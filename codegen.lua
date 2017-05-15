@@ -1,21 +1,39 @@
-local LITERAL = "LITERAL" -- #value
-local VARIABLE = "VARIABLE" -- label
-local ARRAY = "ARRAY" -- array[index]
-local CODE = "CODE" -- code pointer
+local LITERAL = "LITERAL" -- #value          0
+local VARIABLE = "VARIABLE" -- variable      1
+local ARRAYV = "ARRAYV" -- array[variable]   2
+local ARRAYO = "ARRAYO" -- array[literal]    3
+local CODE = "CODE" -- code pointer          4
 
-local COPY = "COPY"
+local MOV = "MOV"
 local ADD = "ADD"
+local SUB = "SUB"
+local AND = "AND"
+local OR = "OR"
+local EOR = "EOR"
+local ROL = "ROL"
+local ROR = "ROR"
+local ASL = "ASL"
+local ASR = "ASR"
+local LSR = "LSR"
+local JMP = "JMP"
+local JSR = "JSR"
+local RET = "RET"
+local LBL = "LBL"
+local BEQ = "BEQ"
 local BNE = "BNE"
+local BLT = "BLT"
+local BGE = "BGE"
+local BGT = "BGT"
+local BLE = "BLE"
 
 local registers =
     {
-        p1 = {size=2, uses=0, values={}},
-        p2 = {size=2, uses=0, values={}},
-        p3 = {size=2, uses=0, values={}},
         a = {size=1, uses=0, values={}},
         x = {size=1, uses=0, values={}},
         y = {size=1, uses=0, values={}},
     }
+
+local temporaries = 0
 
 function log(...)
     print(string.format(...))
@@ -25,12 +43,50 @@ function fatal(...)
     error(string.format(...))
 end
 
+function memberof(needle, haystack)
+    for _, i in ipairs(haystack) do
+        if (i == needle) then
+            return true
+        end
+    end
+    return false
+end
+
+function value(kind, size, left, right)
+    return {kind=kind, size=size, left=left, right=right}
+end
+
+function value1(kind, left, right)
+    return value(kind, 1, left, right)
+end
+
+function value2(kind, left, right)
+    return value(kind, 2, left, right)
+end
+
 function value_to_string(v)
-    return "{" .. table.concat(v, ", ") .. "}"
+    return "{" .. table.concat({v.kind, v.size, v.left, v.right}, ", ") .. "}"
 end
 
 function equal_values(v1, v2)
-    return (v1[1] == v2[1]) and (v1[2] == v2[2]) and (v1[3] == v2[3])
+    return (v1.kind == v2.kind) and (v1.size == v2.size) and (v1.left == v2.left) and (v1.right == v2.right)
+end
+
+function alloc_reg(candidate_rns)
+    local candidates
+    candidates = {}
+    for _, rn in ipairs(candidate_rns) do
+        candidates[rn] = registers[rn]
+    end
+
+    for rn, r in pairs(candidates) do
+        if (r.uses == 0) then
+            log("allocating %s", rn)
+            ref_reg(rn)
+            return rn
+        end
+    end
+    fatal("cannot allocate register, all candidates busy")
 end
 
 function add_value(rn, v)
@@ -41,7 +97,7 @@ function add_value(rn, v)
         end
     end
 
-    log("add value %s to %s", value_to_string(v), rn)
+    log("%s now also contains %s", rn, value_to_string(v))
     values[#values+1] = v
 end
 
@@ -58,8 +114,15 @@ end
 
 function flush_value(v)
     local rn = find_reg_with_value(v)
-    log("value in %s is stale, flushing", rn)
-    flush_reg(rn)
+    if rn then
+        log("value in %s is stale, flushing", rn)
+        flush_reg(rn)
+    end
+end
+
+function ref_reg(rn)
+    local r = registers[rn]
+    r.uses = r.uses + 1
 end
 
 function deref_reg(rn)
@@ -79,63 +142,85 @@ function flush_reg(rn)
     r.uses = 0
 end
 
+function flush_regs()
+    for rn, r in pairs(registers) do
+        flush_reg(rn)
+    end
+end
+
 local loaders =
     {
         LITERAL = function(v, rn)
-            log("* load size=%d value=%d into %s", registers[rn].size, v[2], rn)
+            log("* load size=%d value=%d into %s", registers[rn].size, v.left, rn)
+        end,
+
+        ARRAYV = function(v, rn)
+            local indexrn = coerce_rvalue(value1(VARIABLE, v.right), {"x", "y"})
+            log("* array load size=%d base=%s offset=%s into %s", registers[rn].size,
+                v.left, indexrn, rn)
+            deref_reg(indexrn)
         end,
     }
 
-function coerce_rvalue(value, size, candidates)
-    local regs
-    if candidates then
-        regs = {}
-        for rn in ipairs(candidates) do
-            regs[rn] = registers[rn]
-        end
-    else
-        regs = registers
-    end
-
-    for rn, r in pairs(registers) do
-        if r.size == size then
-            for _, v in ipairs(r.values) do
-                if equal_values(value, v) then
-                    log("reusing %s for %s", rn, value_to_string(value))
-                    r.uses = r.uses + 1
-                    return rn
-                end
-            end
-        end
-    end
-    log("could not find existing value for %s", value_to_string(value))
-
-    for rn, r in pairs(registers) do
-        if (r.size == size) and (r.uses == 0) then
-            r.values = {value}
-            r.uses = 1
-            log("allocated %s for %s", rn, value_to_string(value))
-            loaders[value[1]](value, rn)
-            return rn
-        end
-    end
-    fatal("unable to allocate register for %s", value_to_string(value))
+function move_reg(src, dest)
+    log("* move %s to %s", src, dest)
 end
 
-local function write_to_dest(size, rn, destv)
-    if destv[1] == VARIABLE then
-        log("* store size=%d reg=%s into %s", size, rn, destv[2])
+function coerce_rvalue(value, candidate_rns)
+    local rn = find_reg_with_value(value)
+    if rn then
+        log("found %s containing %s", rn, value_to_string(value))
+        if memberof(rn, candidate_rns) then
+            ref_reg(rn)
+            return rn
+        else
+            local newrn = alloc_reg(candidate_rns)
+            move_reg(rn, newrn)
+            add_value(newrn, value)
+            return newrn
+        end
+    end
+
+    rn = alloc_reg(candidate_rns)
+    loaders[value.kind](value, rn)
+    registers[rn].values = {v}
+    return rn
+end
+
+function coerce_rvalue_to_var(v)
+    if (v.kind == VARIABLE) then
+        return v
+    elseif (v.kind == LITERAL) then
+        return value(VARIABLE, v.size, "literal_"..v.left)
     else
-        fatal("cannot use %s as a simple destination", value_to_string(dest))
+        fatal("cannot coerce %s to a variable", value_to_string(v))
+    end
+end
+
+local function write_to_dest(rn, destv)
+    if destv.kind == VARIABLE then
+        log("* store size=%d reg=%s into %s", destv.size, rn, destv.left)
+    else
+        fatal("cannot use %s as a simple destination", value_to_string(destv))
     end
 end
 
 local generators = {
-    COPY = function(o)
+    MOV = function(o)
+        local leftv = o.left
+        local destv = o.dest
         log("copy %s -> %s", value_to_string(o.left), value_to_string(o.dest))
-        local inputrn = coerce_rvalue(o.left, o.size, {"a", "x", "y"})
-        add_value(inputrn, o.dest)
-        write_to_dest(o.size, inputrn, o.dest)
+        if (leftv.size == destv.size) then
+            if (leftv.size == 1) then
+                local inputrn = coerce_rvalue(o.left, {"a", "x", "y"})
+                add_value(inputrn, o.dest)
+                write_to_dest(inputrn, o.dest)
+            else
+                fatal("copy with unsupported size")
+            end
+        else
+            fatal("copy of mismatched sizes")
+        end
     end,
 
     ADD = function(o)
@@ -143,31 +228,65 @@ local generators = {
         local rightv = o.right
         local destv = o.dest
         log("add %s, %s -> %s", value_to_string(leftv), value_to_string(rightv), value_to_string(destv))
-        if (rightv[1] == LITERAL) then
-            local leftrn
-            if (rightv[2] == 1) then
-                leftrn = coerce_rvalue(leftv, o.size, {"a", "x", "y"})
-                log("* increment size=%d reg=%s", o.size, leftrn)
-            else
-                leftrn = coerce_rvalue(leftv, o.size, {"a"})
-                log("* add size=%d reg=%s value=%s", o.size, leftrn, rightv[2])
+        if (leftv.size == destv.size) and (rightv.size == destv.size) then
+            if (leftv.size == 1) then
+                if (rightv.kind == LITERAL) then
+                    local leftrn
+                    if (rightv.left == 1) then
+                        leftrn = coerce_rvalue(leftv, {"a", "x", "y"})
+                        log("* increment reg=%s", leftrn)
+                    else
+                        leftrn = coerce_rvalue(leftv, {"a"})
+                        log("* add reg=%s value=%s", leftrn, rightv.left)
+                    end
+                    deref_reg(leftrn)
+                    flush_value(leftv)
+                    add_value(leftrn, destv)
+                    write_to_dest(leftrn, destv)
+                else
+                    fatal("unsupported add")
+                end
+            elseif (leftv.size == 2) then
+                local leftvar = coerce_rvalue_to_var(leftv)
+                local rightvar = coerce_rvalue_to_var(rightv)
+                local destvar = coerce_rvalue_to_var(destv)
+                local tempreg = alloc_reg({"a"})
+                registers[tempreg].values = {}
+                log("* add16 %s + %s -> %s", leftvar.left, rightvar.left, destvar.left)
             end
-            deref_reg(leftrn)
-            flush_value(leftv)
-            add_value(leftrn, destv)
-            write_to_dest(o.size, leftrn, destv)
+        else
+            fatal("add of mismatched sizes")
         end
     end,
+
+    BNE = function(o)
+        local leftv = o.left
+        local rightv = o.right
+        log("bne %s = %s", value_to_string(leftv), value_to_string(rightv))
+        if (rightv.kind == LITERAL) then
+            local leftrn = coerce_rvalue(leftv, {"x", "y"})
+            log("* bne %s against #%s", leftrn, rightv.left)
+            deref_reg(leftrn)
+        else
+            fatal("unsupported bne")
+        end
+        flush_regs()
+    end,
+
 }
 
 local code =
     {
-        {opcode=COPY, size=1, left={LITERAL, 0}, dest={VARIABLE, "i"}},
-        {opcode=ADD, size=1, left={VARIABLE, "i"}, right={LITERAL, 3}, dest={VARIABLE, "i"}},
-        {opcode=COPY, size=1, left={ARRAY, "array", "i"}, dest={VARIABLE, "j"}}
+        {opcode=MOV, left=value1(LITERAL, 0), dest=value1(VARIABLE, "i")},
+        {opcode=ADD, left=value1(VARIABLE, "i"), right=value1(LITERAL, 3), dest=value1(VARIABLE, "i")},
+        {opcode=MOV, left=value1(ARRAYV, "array", "i"), dest=value1(VARIABLE, "j")},
+        {opcode=BNE, left=value1(VARIABLE, "j"), right=value1(LITERAL, 100)},
+        {opcode=ADD, left=value1(LITERAL, 1), right=value1(LITERAL, 2), dest=value1(VARIABLE, "i")},
+        {opcode=ADD, left=value2(LITERAL, 1), right=value2(LITERAL, 2), dest=value2(VARIABLE, "word")},
     }
 
 for _, o in ipairs(code) do
+    log("")
     generators[o.opcode](o)
 
     for rn, r in pairs(registers) do
@@ -178,7 +297,7 @@ for _, o in ipairs(code) do
             t[#t+1] = value_to_string(vv)
         end
         if (#t > 1) then
-            log("%s\n", table.concat(t, " "))
+            log("%s", table.concat(t, " "))
         end
     end
 end
