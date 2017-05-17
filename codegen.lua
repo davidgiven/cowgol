@@ -34,7 +34,8 @@ local registers =
         y = {size=1, uses=0, values={}},
     }
 
-local temporaries = 0
+local all_values = {}
+local precious_values = {}
 
 function log(...)
     print(string.format(...))
@@ -53,12 +54,19 @@ function memberof(needle, haystack)
     return false
 end
 
-function value(kind, size, left, right)
-    return {kind=kind, size=size, left=left, right=right}
+function equal_values(v1, v2)
+    return (v1.kind == v2.kind) and (v1.size == v2.size) and (v1.left == v2.left) and (v1.right == v2.right)
 end
 
-function clone_value(v)
-    return value(v.kind, v.size, v.left, v.right)
+function value(kind, size, left, right)
+    local v = {kind=kind, size=size, left=left, right=right}
+    for vv in pairs(all_values) do
+        if equal_values(v, vv) then
+            return vv
+        end
+    end
+    all_values[v] = true
+    return v
 end
 
 function value1(kind, left, right)
@@ -70,17 +78,12 @@ function value2(kind, left, right)
 end
 
 function value_to_string(v)
-    return "{" .. (v.precious and "PRECIOUS " or "") ..
-        table.concat({v.kind, v.size, v.left, v.right}, ", ") .. "}"
-end
-
-function equal_values(v1, v2)
-    return (v1.kind == v2.kind) and (v1.size == v2.size) and (v1.left == v2.left) and (v1.right == v2.right)
+    return "{" .. table.concat({v.kind, v.size, v.left, v.right}, ", ") .. "}"
 end
 
 function _find_valueless_reg(candidates)
     for rn, r in pairs(candidates) do
-        if (r.uses == 0) and (#r.values == 0) then
+        if (r.uses == 0) and not next(r.values) then
             return rn
         end
     end
@@ -106,7 +109,7 @@ function alloc_reg(candidate_rns)
     local rn = _find_valueless_reg(candidates) or _find_unused_reg(candidates)
     if rn then
         log("allocating %s", rn)
-        flush_reg(rn)
+        flush_all_values_in_reg(rn)
         ref_reg(rn)
         return rn
     end
@@ -115,65 +118,60 @@ end
 
 function add_value(rn, v)
     local values = registers[rn].values
-    for _, vv in ipairs(values) do
-        if equal_values(vv, v) then
-            return
-        end
+    if values[v] then
+        log("%s already contains %s", rn, value_to_string(v))
+    else
+        log("%s now also contains %s", rn, value_to_string(v))
+        values[v] = true
     end
-
-    log("%s now also contains %s", rn, value_to_string(v))
-    values[#values+1] = clone_value(v)
 end
 
 function add_precious_value(rn, v)
-    local values = registers[rn].values
-    for _, vv in ipairs(values) do
-        if equal_values(vv, v) then
-            vv.precious = true
-            return
-        end
-    end
-
-    local vv = clone_value(v)
-    vv.precious = true
-    log("%s now contains precious value %s", rn, value_to_string(vv))
-    values[#values+1] = vv
-end
-
-function contains_precious_value(rn, v)
-    for _, vv in ipairs(registers[rn].values) do
-        if equal_values(vv, v) and vv.precious then
-            return true
-        end
-    end
-end
-
-function value_is_not_precious(v)
-    for rn, r in pairs(registers) do
-        for _, vv in ipairs(r.values) do
-            if equal_values(vv, v) then
-                vv.precious = nil
-            end
-        end
-    end
+    add_value(rn, v)
+    precious_values[v] = true
 end
 
 function find_reg_with_value(v)
     for rn, r in pairs(registers) do
-        for _, vv in ipairs(r.values) do
-            if equal_values(vv, v) then
-                return rn
-            end
+        if r.values[v] then
+            return rn
         end
     end
     return nil
 end
 
+function write_back_precious_value(rn, v)
+    if not find_reg_with_value(v) then
+        implicit_store(rn, v)
+        precious_values[v] = nil
+    end
+end
+
+function remove_value_from_reg(rn, v)
+    local r = registers[rn]
+    if r.values[v] then
+        log("value %s is about to change, so removing from %s", value_to_string(v), rn)
+        r.values[v] = nil
+        if precious_values[v] then
+            write_back_precious_value(rn, v)
+        end
+    end
+end
+
 function value_changing(v)
-    local rn = find_reg_with_value(v)
-    if rn then
-        log("value in %s is about to change, so flushing", rn)
-        flush_reg(rn)
+    for rn, r in pairs(registers) do
+        remove_value_from_reg(rn, v)
+    end
+end
+
+function replace_value(rn, v)
+    local r = registers[rn]
+    r.values[v] = true
+    log("replacement value %s going in %s", value_to_string(v), rn)
+    for rrn, _ in pairs(registers) do
+        if (rrn ~= rn) then
+            remove_value_from_reg(rrn, v)
+        end
     end
 end
 
@@ -190,14 +188,19 @@ function deref_reg(rn)
     r.uses = r.uses - 1
 end
 
-function flush_reg(rn)
+function flush_all_values_in_reg(rn)
     local r = registers[rn]
     if r.uses > 0 then
         fatal("flushing locked register %s", rn)
     end
-    for _, v in ipairs(r.values) do
-        if v.precious then
-            implicit_store(rn, v)
+    while true do
+        local v = next(r.values)
+        if not v then
+            break
+        end
+        r.values[v] = nil
+        if precious_values[v] then
+            write_back_precious_value(rn, v)
         end
     end
     r.values = {}
@@ -206,50 +209,40 @@ end
 
 function flush_regs()
     for rn, r in pairs(registers) do
-        flush_reg(rn)
+        flush_all_values_in_reg(rn)
     end
 end
 
 function implicit_store(rn, value)
     log("* implicit store of %s to %s", rn, value_to_string(value))
-    value_is_not_precious(value)
 end
 
 
-function find_or_load_value(value, candidate_rns)
-    local rn = find_reg_with_value(value)
+function find_or_load_value(v, candidate_rns)
+    local rn = find_reg_with_value(v)
     if rn then
-        log("found %s containing %s", rn, value_to_string(value))
+        log("found %s containing %s", rn, value_to_string(v))
         if memberof(rn, candidate_rns) then
             ref_reg(rn)
             return rn
         else
             local newrn = alloc_reg(candidate_rns)
             log("* move %s to %s", rn, newrn)
-            add_value(newrn, value)
+            add_value(newrn, v)
             return newrn
         end
     end
 
     rn = alloc_reg(candidate_rns)
-    if (value.kind == LITERAL) then
-        log("* implicit load literal #%d of size %d into %s", value.left, value.size, rn)
-    elseif (value.kind == VARIABLE) then
-        log("* implicit load variable %s of size %d into %s", value.left, value.size, rn)
+    if (v.kind == LITERAL) then
+        log("* implicit load literal #%d of size %d into %s", v.left, v.size, rn)
+    elseif (v.kind == VARIABLE) then
+        log("* implicit load variable %s of size %d into %s", v.left, v.size, rn)
     else
-        fatal("cannot implicitly load %s", value_to_string(value))
+        fatal("cannot implicitly load %s", value_to_string(v))
     end
 
-    registers[rn].values = {v}
-    return rn
-end
-
-function find_or_load_value_for_mutation(value, candidate_rns)
-    local rn = find_or_load_value(value, candidate_rns)
-    if not contains_precious_value(rn, value) then
-        deref_reg(rn)
-        value_changing(value)
-    end
+    add_value(rn, v)
     return rn
 end
 
@@ -268,7 +261,7 @@ local opcode_rules =
             local indexrn = find_or_load_value(value1(VARIABLE, leftv.right), {"x", "y"})
             local valuern = alloc_reg({"a", "x", "y"})
             value_changing(destv)
-            log("* load array %s+%s into %s", leftv.left, leftv.right, valuern)
+            log("* load array %s+%s into %s", leftv.left, indexrn, valuern)
             deref_reg(indexrn)
             add_value(valuern, leftv)
             add_precious_value(valuern, destv)
@@ -277,7 +270,7 @@ local opcode_rules =
         [rule(MOV, ARRAYV, 1, VARIABLE, 1)] = function(opcode, destv, leftv)
             local indexrn = find_or_load_value(value1(VARIABLE, destv.right), {"x", "y"})
             local valuern = find_or_load_value(leftv, {"a", "x", "y"})
-            log("* store array %s into %s+%s", valuern, destv.left, destv.right, valuern)
+            log("* store array %s into %s+%s", valuern, destv.left, indexrn)
             add_value(valuern, destv)
         end,
 
@@ -292,13 +285,23 @@ local opcode_rules =
         [rule(ADD, VARIABLE, 1, VARIABLE, 1, LITERAL, 1)] = function(opcode, destv, leftv, rightv)
             local leftrn
             if (rightv.left == 1) then
-                leftrn = find_or_load_value_for_mutation(leftv, {"a", "x", "y"})
+                leftrn = find_or_load_value(leftv, {"a", "x", "y"})
+                deref_reg(leftrn)
+                replace_value(leftrn, destv)
                 log("* increment reg=%s", leftrn)
             else
-                leftrn = find_or_load_value_for_mutation(leftv, {"a"})
+                leftrn = find_or_load_value(leftv, {"a"})
+                deref_reg(leftrn)
+                replace_value(leftrn, destv)
                 log("* add reg=%s value=%s", leftrn, rightv.left)
             end
-            add_precious_value(leftrn, destv)
+        end,
+
+        [rule(ADD, VARIABLE, 1, VARIABLE, 1, VARIABLE, 1)] = function(opcode, destv, leftv, rightv)
+            local leftrn = find_or_load_value(leftv, {"a"})
+            value_changing(rightv)
+            replace_value(leftrn, destv)
+            log("* add %s + variable %s -> %s", leftrn, rightv.left, leftrn)
         end,
 
         [rule(BNE, CODE, 2, VARIABLE, 1, LITERAL, 1)] = function(opcode, destv, leftv, rightv)
@@ -360,7 +363,8 @@ local code =
         {opcode=ADD, left=value1(VARIABLE, "j"), right=value1(LITERAL, 1), dest=value1(VARIABLE, "j")},
         {opcode=MOV, left=value1(VARIABLE, "j"), dest=value1(ARRAYV, "array", "i")},
         {opcode=MOV, left=value1(ARRAYO, "array", 7), dest=value1(VARIABLE, "i")},
-        {opcode=BNE, left=value1(VARIABLE, "i"), right=value1(LITERAL, 100), dest=value2(CODE, "label")},
+        {opcode=ADD, left=value1(VARIABLE, "i"), right=value1(VARIABLE, "j"), dest=value1(VARIABLE, "k")},
+        {opcode=BNE, left=value1(VARIABLE, "k"), right=value1(LITERAL, 100), dest=value2(CODE, "label")},
     }
 
 for _, o in ipairs(code) do
@@ -382,11 +386,18 @@ for _, o in ipairs(code) do
         r.uses = 0
 
         local t = {rn..":"}
-        for _, vv in ipairs(r.values) do
-            t[#t+1] = value_to_string(vv)
+        for v in pairs(r.values) do
+            t[#t+1] = value_to_string(v)
         end
         if (#t > 1) then
             log("%s", table.concat(t, " "))
         end
+    end
+    local t = {"precious:"}
+    for v in pairs(precious_values) do
+        t[#t+1] = value_to_string(v)
+    end
+    if (#t > 1) then
+        log("%s", table.concat(t, " "))
     end
 end
