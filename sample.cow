@@ -1,0 +1,11 @@
+sub main(argc: int8)
+    printn(0);
+end sub;
+
+sub counter(i: uint8, out sum: uint8)
+    var q: int8 := 9;
+    sum := 0;
+    while (i > 0) do
+        sum := sum + i;
+    loop
+end
