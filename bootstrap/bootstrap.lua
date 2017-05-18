@@ -611,6 +611,8 @@ local fn = create_function("printn", "global_printn")
 fn.parameters[#fn.parameters+1] = {name="c", inout="in",
     variable=create_variable("printn_c", current_ns["int8"]) }
 
+fn = create_function("newline", "global_newline")
+
 for _, arg in ipairs({...}) do
     local source = io.open(arg):read("*a")
     stream = tokenstream(source)
@@ -621,6 +623,7 @@ print("#include <stdio.h>")
 print("#include <stdlib.h>")
 print("#include <stdint.h>")
 print("#include <stdbool.h>")
+print("#include \"cowgol.h\"")
 for var in pairs(variables) do
     print(var.type.ctype.." "..var.storage..";")
 end

@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+./bootstrap/bootstrap.lua "$@" > /tmp/cowgol$$.c
+gcc -O -o ${1%.*} /tmp/cowgol$$.c -I bootstrap bootstrap/cowgol.c
