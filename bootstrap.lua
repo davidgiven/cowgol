@@ -6,11 +6,23 @@ local stream
 local functions = {}
 local variables = {}
 local current_fn = nil
-local current_ns = {}
+local root_ns = {}
+local current_ns = root_ns
 local unique_id = 0
+local temporaries = {}
+
+function set(...)
+    local t = {}
+    for _, s in ipairs({...}) do
+        t[s] = true
+    end
+    return t
+end
+
+local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "and", "or", "eor")
 
 function log(...)
-    print(string.format(...))
+    io.stderr:write(string.format(...), "\n")
 end
 
 function fatal(...)
@@ -26,7 +38,8 @@ function tokenstream(source)
         "^(\n)",
         "^(%w[%w%d_]*)",
         "^(:=)",
-        "^([():;,])"
+        "^([<>!]=)",
+        "^([-+*/():;,<>])"
     }
 
     local c = coroutine.create(
@@ -46,7 +59,7 @@ function tokenstream(source)
                 fatal("cannot parse text: %s...", source:sub(o, o+20))
             end
 
-            while (o < #source) do
+            while (o <= #source) do
                 while true do
                     local nexto, m
                     _, nexto = source:find("^[\t\r ]+", o)
@@ -55,33 +68,34 @@ function tokenstream(source)
                         break
                     end
 
-                    _, nexto, m = source:find("^(-?%d+)", o)
+                    _, nexto, m = source:find("^(-?%d+U?)", o)
                     if nexto then
                         o = nexto + 1
-                        coroutine.yield("number", tonumber(m))
+                        coroutine.yield("number", m)
                         break
                     end
 
                     check_patterns()
+                    break
                 end
+            end
+
+            while true do
+                coroutine.yield("eof")
             end
         end
     )
 
     local line = 1
-    local peeked = nil
-    local savedvalue = nil
+    local peekedtoken = nil
+    local peekedvalue = nil
     return {
         next = function(self)
-            if peeked then
-                local p = peeked
-                peeked = nil
-                return p
+            if peekedtoken then
+                local p = peekedtoken
+                peekedtoken = nil
+                return p, peekedvalue
             else
-                if not c then
-                    return "eof"
-                end
-
                 while true do
                     local status, token, value = coroutine.resume(c)
                     if not status then
@@ -90,26 +104,22 @@ function tokenstream(source)
                         line = line + 1
                     else
                         savedvalue = value
-                        return token
+                        return token, value
                     end
                 end
             end
         end,
 
         peek = function(self)
-            if not peeked then
-                peeked = self:next()
+            if not peekedtoken then
+                peekedtoken, peekedvalue = self:next()
             end
-            return peeked
+            return peekedtoken, peekedvalue
         end,
 
         line = function(self)
             return line
         end,
-
-        value = function(self)
-            return savedvalue
-        end
     }
 end
 
@@ -172,7 +182,11 @@ function new_storage_for(name)
     end
 end
 
-function create_variable(name, type)
+function create_variable(name, type, ns)
+    if not ns then
+        ns = current_ns
+    end
+
     local var = {
         kind = "variable",
         storage = new_storage_for(name),
@@ -180,7 +194,39 @@ function create_variable(name, type)
     }
     check_undefined(name)
     current_ns[name] = var
+    variables[var] = true
     return var
+end
+
+function create_number(value)
+    local _, _, v, u = value:find("(-?%d+)(U?)")
+    local type
+    v = tonumber(v)
+    if (u == "U") then
+        if (v < 0) then
+            fatal("unsigned literal out of range")
+        elseif (v < 256) then
+            type = root_ns["uint8"]
+        elseif (v < 65536) then
+            type = root_ns["uint16"]
+        else
+            fatal("unsigned literal out of range")
+        end
+    else
+        if (v >= -128) and (v <= 127) then
+            type = root_ns["int8"]
+        elseif (v >= -32768) and (v <= 32767) then
+            type = root_ns["int16"]
+        else
+            fatal("signed literal out of range")
+        end
+    end
+
+    return {
+        kind = "number",
+        type = type,
+        storage = value
+    }
 end
 
 function create_function(name, storage)
@@ -194,7 +240,31 @@ function create_function(name, storage)
 
     check_undefined(name)
     current_ns[name] = fn
+    functions[fn] = true
     return fn
+end
+
+function create_tempvar(type)
+    for v in pairs(temporaries) do
+        if (v.type == type) then
+            temporaries[v] = nil
+            return v
+        end
+    end
+
+    local var = create_variable("_temp_"..type.name.."_"..nextid(), type, root_ns)
+    var.temporary = true
+    return var
+end
+
+function free_tempvar(var)
+    temporaries[var] = true
+end
+
+function type_check(want, got)
+    if got and (want ~= got) then
+        fatal("type mismatch: wanted %s, but got %s", want.name, got.name)
+    end
 end
 
 function do_type()
@@ -256,7 +326,16 @@ function do_sub()
     expect(")")
 
     emit("void %s(void) {", current_fn.storage)
+    do_statements()
+    expect("end")
+    expect("sub")
+    emit("}")
 
+    current_fn = old_fn
+    current_ns = old_ns
+end
+
+function do_statements()
     while true do
         local t = stream:peek()
         if (t == "end") then
@@ -285,14 +364,6 @@ function do_sub()
             end
         end
     end
-
-    expect("end")
-    expect("sub")
-    expect(";")
-    emit("}")
-
-    current_fn = old_fn
-    current_ns = old_ns
 end
 
 function do_var()
@@ -305,12 +376,12 @@ function do_var()
         fatal("'%s' is not a type in scope", typename)
     end
 
-    local var = create_variable(varname, typename)
+    local var = create_variable(varname, type)
 
     local t = stream:peek()
     if (t == ":=") then
         expect(":=")
-        do_expression(var)
+        expression(var)
     end
     expect(";")
 end
@@ -319,17 +390,130 @@ function do_assignment()
     local t = stream:next()
     local sym = lookup_symbol(t)
     expect(":=")
-    do_expression(sym)
+    expression(sym)
     expect(";")
 end
 
-function do_expression(outputvar)
-    local t = stream:next()
+function rvalue_leaf()
+    local t, v = stream:next()
     if (t == "number") then
-        emit("%s = %d;", outputvar.storage, stream:value())
+        return create_number(v)
     else
-        fatal("unsupported token in expression '%s'", t)
+        local sym = lookup_symbol(t)
+        if not sym then
+            fatal("'%s' is not a symbol in scope", t)
+        end
+        if (sym.kind == "variable") then
+            return sym
+        end
+        fatal("can't do %s in expressions yet", t)
     end
+end
+
+function expression(outputvar)
+    local rpn = {}
+    local operators = {}
+
+    local function flush()
+        while next(operators) do
+            local operator = operators[#operators]
+            if (operator == "(") then
+                return
+            end
+            operators[#operators] = nil
+
+            rpn[#rpn+1] = operator
+        end
+    end
+
+    local parens = 0
+    while true do
+        local t = stream:peek()
+        if (t == "(") then
+            expect("(")
+            operators[#operators+1] = t
+            parens = parens + 1
+        elseif (t == ")") then
+            if (parens == 0) then
+                break
+            end
+            expect(")")
+            flush()
+            if (operators[#operators] ~= "(") then
+                fatal("mismatched parentheses")
+            end
+            operators[#operators] = nil
+            parens = parens - 1
+        else
+            rpn[#rpn+1] = rvalue_leaf()
+        end
+
+        t = stream:peek()
+        if infix_operators[t] then
+            operators[#operators+1] = stream:next()
+        elseif (t == ";") or (t == "do") or (t == "then") then
+            break
+        end
+    end
+    flush()
+    if next(operators) then
+        fatal("mismatched parentheses")
+    end
+
+    local stack = {}
+    for _, s in ipairs(rpn) do
+        if (type(s) == "string") then
+            local right = stack[#stack]
+            stack[#stack] = nil
+            local left = stack[#stack]
+            stack[#stack] = nil
+
+            type_check(left.type, right.type)
+            local type
+            if (s == "<") or (s == ">") or (s == "<=") or (s == ">=") or (s == "==") or (s == "!=") then
+                type = root_ns["bool"]
+            else
+                type = left.type
+            end
+            stack[#stack+1] = {kind="op", type=type, op=s, left=left, right=right}
+        else
+            stack[#stack+1] = s
+        end
+    end
+    assert(#stack == 1)
+
+    local function unparse(op, outputvar)
+        if (op.kind == "op") then
+            local t1, t2
+            if (op.left.kind == "op") then
+                t1 = create_tempvar(op.type)
+                unparse(op.left, t1)
+            else
+                t1 = op.left
+            end
+
+            if (op.right.kind == "op") then
+                t2 = create_tempvar(op.type)
+                unparse(op.right, t2)
+            else
+                t2 = op.right
+            end
+
+            type_check(outputvar.type, op.type)
+            emit("%s = %s %s %s;", outputvar.storage, t1.storage, op.op, t2.storage)
+            if t1.temporary then
+                free_tempvar(t1)
+            end
+            if t2.temporary then
+                free_tempvar(t2)
+            end
+        else
+            type_check(outputvar.type, op.type)
+            emit("%s = %s;", outputvar.storage, op.storage)
+        end
+    end
+
+    unparse(stack[1], outputvar)
 end
 
 function do_function_call()
@@ -346,7 +530,7 @@ function do_function_call()
             end
             first = false
 
-            do_expression(p.variable)
+            expression(p.variable)
         end
     end
 
@@ -357,7 +541,16 @@ end
 
 function do_while()
     expect("while")
-    fatal("unsupported")
+    emit("for (;;) {")
+    local tempvar = create_tempvar(root_ns["bool"])
+    expression(tempvar)
+    emit("if (!(%s)) break;", tempvar.storage)
+    free_tempvar(tempvar)
+    expect("do")
+    do_statements()
+    expect("end")
+    expect("while")
+    emit("}")
 end
 
 function compile_stream()
@@ -373,7 +566,7 @@ function compile_stream()
     end
 end
 
-current_ns["int8"] = {
+root_ns["int8"] = {
     kind = "type",
     name = "int8",
     size = "1",
@@ -381,7 +574,7 @@ current_ns["int8"] = {
     numeric = true
 }
 
-current_ns["uint8"] = {
+root_ns["uint8"] = {
     kind = "type",
     name = "uint8",
     size = "1",
@@ -389,7 +582,7 @@ current_ns["uint8"] = {
     numeric = true
 }
 
-current_ns["int16"] = {
+root_ns["int16"] = {
     kind = "type",
     name = "int16",
     size = "2",
@@ -397,7 +590,7 @@ current_ns["int16"] = {
     numeric = true
 }
 
-current_ns["uint16"] = {
+root_ns["uint16"] = {
     kind = "type",
     name = "uint16",
     size = "2",
@@ -405,12 +598,32 @@ current_ns["uint16"] = {
     numeric = true
 }
 
+root_ns["bool"] = {
+    kind = "type",
+    name = "bool",
+    size = "1",
+    ctype = "bool",
+    numeric = false
+}
+
+current_ns = root_ns
 local fn = create_function("printn", "global_printn")
 fn.parameters[#fn.parameters+1] = {name="c", inout="in",
-    variable=create_variable("printn_c", current_ns["uint8"]) }
+    variable=create_variable("printn_c", current_ns["int8"]) }
 
 for _, arg in ipairs({...}) do
     local source = io.open(arg):read("*a")
     stream = tokenstream(source)
     compile_stream()
+end
+
+print("#include <stdio.h>")
+print("#include <stdlib.h>")
+print("#include <stdint.h>")
+print("#include <stdbool.h>")
+for var in pairs(variables) do
+    print(var.type.ctype.." "..var.storage..";")
+end
+for fn in pairs(functions) do
+    print(table.concat(fn.code, "\n"))
 end
