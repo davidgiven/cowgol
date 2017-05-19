@@ -37,9 +37,8 @@ function tokenstream(source)
     local patterns = {
         "^(\n)",
         "^(%w[%w%d_]*)",
-        "^(:=)",
-        "^([<>!]=)",
-        "^([-+*/():;,<>])"
+        "^([<>!:]=)",
+        "^([-+*/():;,<>[%]])"
     }
 
     local c = coroutine.create(
@@ -59,9 +58,38 @@ function tokenstream(source)
                 fatal("cannot parse text: %s...", source:sub(o, o+20))
             end
 
+            local function parse_string()
+                local t = {}
+                while true do
+                    while true do
+                        local _, nexto, m = source:find('^([^"\\]+)', o)
+                        if nexto then
+                            t[#t+1] = m
+                            o = nexto + 1
+                            break
+                        end
+
+                        _, nexto, m = source:find("^\\(.)", o)
+                        if nexto then
+                            t[#t+1] = m
+                            o = nexto + 1
+                            break
+                        end
+
+                        _, nexto = source:find('^"', o)
+                        if nexto then
+                            o = nexto + 1
+                            return table.concat(t)
+                        end
+
+                        break
+                    end
+                end
+            end
+
             while (o <= #source) do
                 while true do
-                    local nexto, m
+                    local nexto, m, _
                     _, nexto = source:find("^[\t\r ]+", o)
                     if nexto then
                         o = nexto + 1
@@ -72,6 +100,13 @@ function tokenstream(source)
                     if nexto then
                         o = nexto + 1
                         coroutine.yield("number", m)
+                        break
+                    end
+
+                    _, nexto = source:find('^"', o)
+                    if nexto then
+                        o = nexto + 1
+                        coroutine.yield("string", parse_string())
                         break
                     end
 
@@ -198,6 +233,12 @@ function create_variable(name, type, ns)
     return var
 end
 
+function create_extern_variable(name, type, ns, storage)
+    local var = create_variable(name, type, ns)
+    var.storage = storage
+    return var
+end
+
 function create_number(value)
     local _, _, v, u = value:find("(-?%d+)(U?)")
     local type
@@ -229,6 +270,22 @@ function create_number(value)
     }
 end
 
+function create_string(v)
+    local storage = "string_"..nextid()
+    local bytes = {}
+    for i = 1, #v do
+        bytes[#bytes+1] = v:byte(i)
+    end
+    bytes[#bytes+1] = 0
+    emit("static int8_t %s[] = {%s};", storage, table.concat(bytes, ", "))
+
+    return {
+        kind = "string",
+        type = pointer_of(root_ns["int8"]),
+        storage = storage
+    }
+end
+
 function create_function(name, storage)
     local fn = {}
     fn.kind = "function"
@@ -241,6 +298,12 @@ function create_function(name, storage)
     check_undefined(name)
     current_ns[name] = fn
     functions[fn] = true
+    return fn
+end
+
+function create_extern_function(name, storage, ...)
+    local fn = create_function(name, storage)
+    fn.parameters = {...}
     return fn
 end
 
@@ -267,13 +330,43 @@ function type_check(want, got)
     end
 end
 
-function do_type()
-    local id = stream:next()
-    local sym = lookup_symbol(id)
+function read_type()
+    local indirections = 0
+    local t
+
+    while true do
+        t = stream:next()
+        if (t == "[") then
+            indirections = indirections + 1
+        else
+            break
+        end
+    end
+
+    local sym = lookup_symbol(t)
     if not sym or (sym.kind ~= "type") then
-        fatal("'%s' is not a type in scope", id)
+        fatal("'%s' is not a type in scope", t)
+    end
+
+    while (indirections > 0) do
+        sym = pointer_of(sym)
+        expect("]")
+        indirections = indirections - 1
     end
     return sym
+end
+
+function pointer_of(type)
+    if not type.pointertype then
+        type.pointertype = {
+            kind = "type",
+            name = "["..type.name.."]",
+            size = 1,
+            ctype = type.ctype.."*",
+            numeric = false
+        }
+    end
+    return type.pointertype
 end
 
 function do_parameter()
@@ -284,7 +377,7 @@ function do_parameter()
         name = stream:next()
     end
     expect(":")
-    local type = do_type()
+    local type = read_type()
 
     local var = create_variable(name, type)
     current_fn.parameters[#current_fn.parameters] = {
@@ -338,7 +431,7 @@ end
 function do_statements()
     while true do
         local t = stream:peek()
-        if (t == "end") then
+        if (t == "end") or (t == "eof") then
             break
         end
 
@@ -370,12 +463,7 @@ function do_var()
     expect("var")
     local varname = stream:next()
     expect(":")
-    local typename = stream:next()
-    local type = lookup_symbol(typename)
-    if not type or (type.kind ~= "type") then
-        fatal("'%s' is not a type in scope", typename)
-    end
-
+    local type = read_type()
     local var = create_variable(varname, type)
 
     local t = stream:peek()
@@ -398,6 +486,8 @@ function rvalue_leaf()
     local t, v = stream:next()
     if (t == "number") then
         return create_number(v)
+    elseif (t == "string") then
+        return create_string(v)
     else
         local sym = lookup_symbol(t)
         if not sym then
@@ -553,25 +643,19 @@ function do_while()
     emit("}")
 end
 
-function compile_stream()
-    while true do
-        local t = stream:peek()
-        if (t == "eof") then
-            break
-        elseif (t == "sub") then
-            do_sub()
-        else
-            unexpected_keyword(t)
-        end
-    end
-end
-
 root_ns["int8"] = {
     kind = "type",
     name = "int8",
     size = "1",
     ctype = "int8_t",
-    numeric = true
+    numeric = true,
+    pointertype = {
+        kind = "type",
+        name = "[int8]",
+        size = 1,
+        ctype = "int8_t*",
+        numeric = false
+    }
 }
 
 root_ns["uint8"] = {
@@ -607,17 +691,32 @@ root_ns["bool"] = {
 }
 
 current_ns = root_ns
-local fn = create_function("printn", "global_printn")
-fn.parameters[#fn.parameters+1] = {name="c", inout="in",
-    variable=create_variable("printn_c", current_ns["int8"]) }
 
-fn = create_function("newline", "global_newline")
+local extern_i8 = create_extern_variable(" i8", root_ns["int8"], root_ns, "extern_i8")
+local extern_i16 = create_extern_variable(" i16", root_ns["int16"], root_ns, "extern_i16")
+local extern_p8 = create_extern_variable(" p8", pointer_of(root_ns["int8"]), root_ns, "extern_p8")
+create_extern_function("print", "cowgol_print", { name="c", inout="in", variable=extern_p8 })
+create_extern_function("print_char", "cowgol_print_char", { name="c", inout="in", variable=extern_i8 })
+create_extern_function("print_i8", "cowgol_print_i8", { name="c", inout="in", variable=extern_i8 })
+create_extern_function("print_i16", "cowgol_print_i16", { name="c", inout="in", variable=extern_i16 })
+create_extern_function("print_hex_i8", "cowgol_print_hex_i8", { name="c", inout="in", variable=extern_i8 })
+create_extern_function("print_hex_i16", "cowgol_print_hex_i16", { name="c", inout="in", variable=extern_i16 })
 
+fn = create_function("print_newline", "cowgol_print_newline")
+
+create_extern_variable("LOMEM", pointer_of(root_ns["int8"]), root_ns, "lomem")
+create_extern_variable("HIMEM", pointer_of(root_ns["int8"]), root_ns, "himem")
+
+current_fn = create_function("main", "compiled_main")
+
+emit("void compiled_main(void) {")
 for _, arg in ipairs({...}) do
     local source = io.open(arg):read("*a")
     stream = tokenstream(source)
-    compile_stream()
+    do_statements()
+    expect("eof")
 end
+emit("}")
 
 print("#include <stdio.h>")
 print("#include <stdlib.h>")

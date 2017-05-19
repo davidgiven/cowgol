@@ -1,8 +1,4 @@
-sub main()
-    var i: int8 := 0;
-    while (i < 10) do
-        printn(i);
-        newline();
-        i := i + 1;
-    end while
-end sub
+var ptr: [int8] := LOMEM;
+
+print("Hello, world!");
+print_newline();
