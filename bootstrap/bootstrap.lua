@@ -617,20 +617,18 @@ function expression(outputvar)
                     (op.op == "!=") or (op.op == "==") then
                     type_check(left.type, right.type)
                     type = root_ns["bool"]
-                elseif left.type.pointer then
-                    if (op.op == "+") or (op.op == "-") then
-                        if right.type.pointer then
-                            type = root_ns["int16"]
-                            type_check(left.type, right.type)
-                        elseif right.type.numeric then
-                            type = left.type
-                        else
-                            fatal("can't do that to a pointer")
-                        end
-                    else
+                elseif left.type.pointer and ((op.op == "+") or (op.op == "-")) then
+                    if right.type.pointer then
+                        type = root_ns["int16"]
+                        type_check(left.type, right.type)
+                    elseif right.type.numeric then
                         type = left.type
-                        type_check(type, right.type)
+                    else
+                        fatal("can't do that to a pointer")
                     end
+                else
+                    type = left.type
+                    type_check(type, right.type)
                 end
                 if not op.rvalue then
                     op.rvalue = create_tempvar(type)
@@ -777,6 +775,22 @@ root_ns["uint16"] = {
     numeric = true
 }
 
+root_ns["int32"] = {
+    kind = "type",
+    name = "int32",
+    size = "4",
+    ctype = "int32_t",
+    numeric = true
+}
+
+root_ns["uint32"] = {
+    kind = "type",
+    name = "uint32",
+    size = "4",
+    ctype = "uint32_t",
+    numeric = true
+}
+
 root_ns["bool"] = {
     kind = "type",
     name = "bool",
@@ -791,6 +805,7 @@ local extern_i8 = create_extern_variable(" i8", root_ns["int8"], root_ns, "exter
 local extern_i8_2 = create_extern_variable(" i8_2", root_ns["int8"], root_ns, "extern_i8_2")
 local extern_i16 = create_extern_variable(" i16", root_ns["int16"], root_ns, "extern_i16")
 local extern_p8 = create_extern_variable(" p8", pointer_of(root_ns["int8"]), root_ns, "extern_p8")
+local extern_u32 = create_extern_variable(" u32", root_ns["uint32"], root_ns, "extern_u32")
 create_extern_function("print", "cowgol_print", { name="c", inout="in", variable=extern_p8 })
 create_extern_function("print_char", "cowgol_print_char", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_i8", "cowgol_print_i8", { name="c", inout="in", variable=extern_i8 })
@@ -819,6 +834,28 @@ create_extern_function("file_getchar", "cowgol_file_getchar",
 create_extern_function("file_putchar", "cowgol_file_putchar",
     { name="fd", inout="in", variable=extern_i8 },
     { name="byte", inout="in", variable=extern_i8_2 }
+)
+create_extern_function("file_getblock", "cowgol_file_getblock",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="ptr", inout="in", variable=extern_p8 },
+    { name="size", inout="in", variable=extern_u32 }
+)
+create_extern_function("file_putblock", "cowgol_file_putblock",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="ptr", inout="in", variable=extern_p8 },
+    { name="size", inout="in", variable=extern_u32 }
+)
+create_extern_function("file_seek", "cowgol_file_seek",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="offset", inout="in", variable=extern_u32 }
+)
+create_extern_function("file_tell", "cowgol_file_tell",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="offset", inout="out", variable=extern_u32 }
+)
+create_extern_function("file_ext", "cowgol_file_ext",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="offset", inout="out", variable=extern_u32 }
 )
 create_extern_function("file_close", "cowgol_file_close",
     { name="fd", inout="in", variable=extern_i8 }

@@ -54,6 +54,30 @@ void cowgol_file_putchar(void) {
     fputc(extern_i8_2, filetab[extern_i8]);
 }
 
+void cowgol_file_getblock(void) {
+    fread(extern_p8, 1, extern_u32, filetab[extern_i8]);
+}
+
+void cowgol_file_putblock(void) {
+    fwrite(extern_p8, 1, extern_u32, filetab[extern_i8]);
+}
+
+void cowgol_file_seek(void) {
+    fseek(filetab[extern_i8], extern_u32, SEEK_SET);
+}
+
+void cowgol_file_tell(void) {
+    extern_u32 = ftell(filetab[extern_i8]);
+}
+
+void cowgol_file_ext(void) {
+    FILE* fp = filetab[extern_i8];
+    long old = ftell(fp);
+    fseek(fp, 0, SEEK_END);
+    extern_u32 = ftell(fp);
+    fseek(fp, old, SEEK_SET);
+}
+
 void cowgol_file_close(void) {
     fclose(filetab[extern_i8]);
     filetab[extern_i8] = NULL;
