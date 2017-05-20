@@ -1,0 +1,17 @@
+sub with_input_params(p1: int8, p2: int8)
+    if p1 != p2 then
+        fail("input params aren't equal");
+    end if;
+end sub;
+
+with_input_params(1, 1);
+
+sub with_output_params(p1: int8, p2: int8, out o1: int8)
+    o1 := p1 + p2;
+end sub;
+
+var out: int8;
+with_output_params(1, 2, out);
+if out != 3 then
+    fail("output parameter isn't right");
+end if;

@@ -166,7 +166,6 @@ end
 function emit(...)
     local s = string.format(...)
     current_fn.code[#current_fn.code + 1] = s
-    log("* %s", s)
 end
 
 function unexpected_keyword(token)

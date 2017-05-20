@@ -1,0 +1,7 @@
+var one: int8 := 1;
+var zero: int8 := 0;
+
+sub nop() end sub;
+
+if one == zero then fail("line 4"); end if;
+if one == one then nop(); else fail("line 5"); end if;
