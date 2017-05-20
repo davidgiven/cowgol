@@ -1,0 +1,20 @@
+var ptr: [int8] := LOMEM;
+
+ptr[0] := 99;
+if ptr[0] != 99 then
+    fail("write/read of pointer didn't work");
+end if;
+
+var newptr: [int8] := ptr + 1;
+if newptr == ptr then
+    fail("modified pointer hasn't changed");
+end if;
+
+newptr[0] := 98;
+if ptr[1] != newptr[0] then
+    fail("pointer arithmetic isn't sane");
+end if;
+
+if (newptr - ptr) != 1 then
+    fail("pointer difference isn't sane");
+end if;

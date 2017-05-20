@@ -242,29 +242,10 @@ function create_number(value)
     local _, _, v, u = value:find("(-?%d+)(U?)")
     local type
     v = tonumber(v)
-    if (u == "U") then
-        if (v < 0) then
-            fatal("unsigned literal out of range")
-        elseif (v < 256) then
-            type = root_ns["uint8"]
-        elseif (v < 65536) then
-            type = root_ns["uint16"]
-        else
-            fatal("unsigned literal out of range")
-        end
-    else
-        if (v >= -128) and (v <= 127) then
-            type = root_ns["int8"]
-        elseif (v >= -32768) and (v <= 32767) then
-            type = root_ns["int16"]
-        else
-            fatal("signed literal out of range")
-        end
-    end
 
     return {
         kind = "number",
-        type = type,
+        type = root_ns["number"],
         storage = value
     }
 end
@@ -282,6 +263,14 @@ function create_string(v)
         kind = "string",
         type = pointer_of(root_ns["int8"]),
         storage = storage
+    }
+end
+
+function create_deref(base, index)
+    return {
+        kind = "deref",
+        storage = string.format("%s[%s]", base.storage, index.storage),
+        type = base.type.elementtype
     }
 end
 
@@ -324,6 +313,9 @@ function free_tempvar(var)
 end
 
 function type_check(want, got)
+    if want.numeric and (got == root_ns["number"]) then
+        return
+    end
     if got and (want ~= got) then
         fatal("type mismatch: wanted %s, but got %s", want.name, got.name)
     end
@@ -362,7 +354,9 @@ function pointer_of(type)
             name = "["..type.name.."]",
             size = 1,
             ctype = type.ctype.."*",
-            numeric = false
+            numeric = false,
+            elementtype = type,
+            pointer = true,
         }
     end
     return type.pointertype
@@ -483,10 +477,9 @@ function do_var()
 end
 
 function do_assignment()
-    local t = stream:next()
-    local sym = lookup_symbol(t)
+    local lvalue = lvalue_leaf()
     expect(":=")
-    expression(sym)
+    expression(lvalue)
 end
 
 function lvalue_leaf()
@@ -498,10 +491,23 @@ function lvalue_leaf()
     if not sym then
         fatal("'%s' is not a symbol in scope", t)
     end
-    if (sym.kind == "variable") then
-        return sym
+    if (sym.kind ~= "variable") then
+        fatal("can't assign to '%s'", t)
     end
-    fatal("can't assign to '%s'", t)
+
+    while true do
+        local t = stream:peek()
+        if (t == "[") then
+            expect("[");
+            local index = create_tempvar(root_ns["int16"])
+            expression(index)
+            sym = create_deref(sym, index)
+            expect("]");
+        else
+            break
+        end
+    end
+    return sym
 end
 
 function rvalue_leaf()
@@ -515,10 +521,29 @@ function rvalue_leaf()
         if not sym then
             fatal("'%s' is not a symbol in scope", t)
         end
-        if (sym.kind == "variable") then
-            return sym
+        if (sym.kind ~= "variable") then
+            fatal("can't do %s in expressions yet", t)
         end
-        fatal("can't do %s in expressions yet", t)
+
+        while true do
+            local t = stream:peek()
+            if (t == "[") then
+                expect("[");
+                local index = create_tempvar(root_ns["int16"])
+                expression(index)
+                local result = create_tempvar(sym.type.elementtype)
+                emit("%s = %s[%s];", result.storage, sym.storage, index.storage)
+                free_tempvar(index)
+                expect("]");
+                if sym.temporary then
+                    free_tempvar(sym)
+                end
+                sym = result
+            else
+                break
+            end
+        end
+        return sym
     end
 end
 
@@ -563,7 +588,7 @@ function expression(outputvar)
         t = stream:peek()
         if infix_operators[t] then
             operators[#operators+1] = {kind="infixop", op=stream:next()}
-        elseif (t == ";") or (t == "do") or (t == "then") or (t == ",") then
+        elseif (t == ";") or (t == "do") or (t == "then") or (t == ",") or (t == "]") then
             break
         end
     end
@@ -592,9 +617,20 @@ function expression(outputvar)
                     (op.op == "!=") or (op.op == "==") then
                     type_check(left.type, right.type)
                     type = root_ns["bool"]
-                else
-                    type = left.type
-                    type_check(type, right.type)
+                elseif left.type.pointer then
+                    if (op.op == "+") or (op.op == "-") then
+                        if right.type.pointer then
+                            type = root_ns["int16"]
+                            type_check(left.type, right.type)
+                        elseif right.type.numeric then
+                            type = left.type
+                        else
+                            fatal("can't do that to a pointer")
+                        end
+                    else
+                        type = left.type
+                        type_check(type, right.type)
+                    end
                 end
                 if not op.rvalue then
                     op.rvalue = create_tempvar(type)
@@ -700,6 +736,14 @@ function do_if()
     expect("end")
     expect("if")
 end
+
+root_ns["number"] = {
+    kind = "type",
+    name = "number",
+    size = "1",
+    ctype = "int64_t",
+    numeric = true,
+}
 
 root_ns["int8"] = {
     kind = "type",

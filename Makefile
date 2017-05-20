@@ -9,9 +9,10 @@ TEST_STAMPS = $(patsubst %.cow,%.stamp,$(TEST_SRCS))
 .phony: tests
 tests: $(TEST_STAMPS)
 
-%.cow: cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
-tests/%.cow: tests/_test.cow
+$(TEST_SRCS): cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
+$(TEST_SRCS): tests/_test.cow
 
+.PRECIOUS: tests/%
 tests/%: tests/%.cow
 	$(hide) ./cowboot -o $@ tests/_test.cow $<
 
