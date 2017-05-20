@@ -436,7 +436,9 @@ function do_statements()
         end
 
         local t = stream:peek()
-        if (t == "sub") then
+        if (t == ";") then
+            -- do nothing
+        elseif (t == "sub") then
             do_sub()
         elseif (t == "var") then
             do_var()
@@ -448,7 +450,6 @@ function do_statements()
             do_if()
         elseif (t == "break") then
             expect("break")
-            expect(";")
             emit("break;")
         else
             local sym = lookup_symbol(t)
@@ -464,6 +465,7 @@ function do_statements()
                 fatal("unsupported statement '%s'", t)
             end
         end
+        expect(";")
     end
 end
 
@@ -479,7 +481,6 @@ function do_var()
         expect(":=")
         expression(var)
     end
-    expect(";")
 end
 
 function do_assignment()
@@ -487,7 +488,6 @@ function do_assignment()
     local sym = lookup_symbol(t)
     expect(":=")
     expression(sym)
-    expect(";")
 end
 
 function lvalue_leaf()
@@ -646,7 +646,6 @@ function do_function_call()
 
     expect(")")
     emit("%s();", sym.storage)
-    expect(";")
 
     local i = 1
     for _, p in ipairs(sym.parameters) do
@@ -654,7 +653,7 @@ function do_function_call()
             local lvalue = lvalues[i]
             i = i + 1
             type_check(p.variable.type, lvalue.type)
-            emit("%s = %s;", rvalue.storage, p.variable.storage)
+            emit("%s = %s;", lvalue.storage, p.variable.storage)
         end
     end
 end
