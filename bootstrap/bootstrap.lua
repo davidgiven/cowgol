@@ -19,7 +19,7 @@ function set(...)
     return t
 end
 
-local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "and", "or", "eor")
+local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!=", "&", "|", "^")
 
 function log(...)
     io.stderr:write(string.format(...), "\n")
@@ -37,8 +37,8 @@ function tokenstream(source)
     local patterns = {
         "^(\n)",
         "^(%w[%w%d_]*)",
-        "^([<>!:]=)",
-        "^([-+*/():;,<>[%]])"
+        "^([<>!:=]=)",
+        "^([-+*/():;,<>[%]&|^])"
     }
 
     local c = coroutine.create(
@@ -380,7 +380,7 @@ function do_parameter()
     local type = read_type()
 
     local var = create_variable(name, type)
-    current_fn.parameters[#current_fn.parameters] = {
+    current_fn.parameters[#current_fn.parameters + 1] = {
         name = name,
         inout = inout,
         variable = current_ns[name]
@@ -623,7 +623,7 @@ function do_function_call()
 
     expect("(")
 
-    local rvalues = {}
+    local lvalues = {}
 
     local first = true
     for _, p in ipairs(sym.parameters) do
@@ -635,11 +635,11 @@ function do_function_call()
         if (p.inout == "in") then
             expression(p.variable)
         else
-            local rvalue = rvalue_leaf()
-            rvalues[#rvalues+1] = rvalue
+            local lvalue = lvalue_leaf()
+            lvalues[#lvalues+1] = lvalue
             if (p.inout == "inout") then
-                type_check(p.variable.type, rvalue.type)
-                emit("%s = %s;", p.variable.storage, rvalue.storage)
+                type_check(p.variable.type, lvalue.type)
+                emit("%s = %s;", p.variable.storage, lvalue.storage)
             end
         end
     end
@@ -651,9 +651,9 @@ function do_function_call()
     local i = 1
     for _, p in ipairs(sym.parameters) do
         if (p.inout ~= "in") then
-            local rvalue = rvalues[i]
+            local lvalue = lvalues[i]
             i = i + 1
-            type_check(p.variable.type, rvalue.type)
+            type_check(p.variable.type, lvalue.type)
             emit("%s = %s;", rvalue.storage, p.variable.storage)
         end
     end
@@ -756,6 +756,8 @@ create_extern_function("print_i16", "cowgol_print_i16", { name="c", inout="in", 
 create_extern_function("print_hex_i8", "cowgol_print_hex_i8", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_hex_i16", "cowgol_print_hex_i16", { name="c", inout="in", variable=extern_i16 })
 
+create_extern_function("exit", "cowgol_exit", { name="c", inout="in", variable=extern_i8 })
+
 create_extern_function("file_openin", "cowgol_file_openin",
     { name="name", inout="in", variable=extern_p8 },
     { name="fd", inout="out", variable=extern_i8 }
@@ -803,6 +805,9 @@ print("#include <stdbool.h>")
 print("#include \"cowgol.h\"")
 for var in pairs(variables) do
     print(var.type.ctype.." "..var.storage..";")
+end
+for fn in pairs(functions) do
+    print(string.format("void %s(void);", fn.storage))
 end
 for fn in pairs(functions) do
     print(table.concat(fn.code, "\n"))

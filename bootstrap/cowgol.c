@@ -59,6 +59,11 @@ void cowgol_file_close(void) {
     filetab[extern_i8] = NULL;
 }
 
+void cowgol_exit(void) {
+    exit(extern_i8);
+}
+
 int main(int argc, const char* argv[]) {
     compiled_main();
+    return 0;
 }

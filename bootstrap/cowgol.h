@@ -24,6 +24,8 @@ extern void cowgol_file_putchar(void);
 extern void cowgol_file_getchar(void);
 extern void cowgol_file_close(void);
 
+extern void cowgol_exit(void);
+
 extern void compiled_main(void);
 
 #endif
