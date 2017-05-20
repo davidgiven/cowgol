@@ -372,7 +372,7 @@ end
 function do_parameter()
     local name = stream:next()
     local inout = "in"
-    if (name == "in") or (name == "out") or (name == "ref") then
+    if (name == "in") or (name == "out") or (name == "inout") then
         inout = name
         name = stream:next()
     end
@@ -431,7 +431,7 @@ end
 function do_statements()
     while true do
         local t = stream:peek()
-        if (t == "end") or (t == "eof") then
+        if (t == "end") or (t == "else") or (t == "eof") then
             break
         end
 
@@ -442,6 +442,14 @@ function do_statements()
             do_var()
         elseif (t == "while") then
             do_while()
+        elseif (t == "loop") then
+            do_loop()
+        elseif (t == "if") then
+            do_if()
+        elseif (t == "break") then
+            expect("break")
+            expect(";")
+            emit("break;")
         else
             local sym = lookup_symbol(t)
             if sym then
@@ -480,6 +488,21 @@ function do_assignment()
     expect(":=")
     expression(sym)
     expect(";")
+end
+
+function lvalue_leaf()
+    local t = stream:next()
+    if (t == "number") or (t == "string") then
+        fatal("can't use constants as lvalues")
+    end
+    local sym = lookup_symbol(t)
+    if not sym then
+        fatal("'%s' is not a symbol in scope", t)
+    end
+    if (sym.kind == "variable") then
+        return sym
+    end
+    fatal("can't assign to '%s'", t)
 end
 
 function rvalue_leaf()
@@ -540,8 +563,8 @@ function expression(outputvar)
 
         t = stream:peek()
         if infix_operators[t] then
-            operators[#operators+1] = stream:next()
-        elseif (t == ";") or (t == "do") or (t == "then") then
+            operators[#operators+1] = {kind="infixop", op=stream:next()}
+        elseif (t == ";") or (t == "do") or (t == "then") or (t == ",") then
             break
         end
     end
@@ -550,60 +573,48 @@ function expression(outputvar)
         fatal("mismatched parentheses")
     end
 
-    local stack = {}
-    for _, s in ipairs(rpn) do
-        if (type(s) == "string") then
-            local right = stack[#stack]
-            stack[#stack] = nil
-            local left = stack[#stack]
-            stack[#stack] = nil
+    if (#rpn == 1) then
+        local op = rpn[1]
+        type_check(outputvar.type, op.type)
+        emit("%s = %s;", outputvar.storage, op.storage)
+    else
+        rpn[#rpn].rvalue = outputvar
+        stack = {}
 
-            type_check(left.type, right.type)
-            local type
-            if (s == "<") or (s == ">") or (s == "<=") or (s == ">=") or (s == "==") or (s == "!=") then
-                type = root_ns["bool"]
+        for _, op in ipairs(rpn) do
+            if (op.kind == "infixop") then
+                local right = stack[#stack]
+                stack[#stack] = nil
+                local left = stack[#stack]
+                stack[#stack] = nil
+
+                local type
+                if (op.op == "<") or (op.op == "<=") or (op.op == ">") or (op.op == ">=") or
+                    (op.op == "!=") or (op.op == "==") then
+                    type_check(left.type, right.type)
+                    type = root_ns["bool"]
+                else
+                    type = left.type
+                    type_check(type, right.type)
+                end
+                if not op.rvalue then
+                    op.rvalue = create_tempvar(type)
+                end
+
+                type_check(type, op.rvalue.type)
+                emit("%s = %s %s %s;", op.rvalue.storage, left.storage, op.op, right.storage)
+                stack[#stack+1] = op.rvalue
+                if left.temporary then
+                    free_tempvar(left)
+                end
+                if right.temporary then
+                    free_tempvar(right)
+                end
             else
-                type = left.type
+                stack[#stack+1] = op
             end
-            stack[#stack+1] = {kind="op", type=type, op=s, left=left, right=right}
-        else
-            stack[#stack+1] = s
         end
     end
-    assert(#stack == 1)
-
-    local function unparse(op, outputvar)
-        if (op.kind == "op") then
-            local t1, t2
-            if (op.left.kind == "op") then
-                t1 = create_tempvar(op.type)
-                unparse(op.left, t1)
-            else
-                t1 = op.left
-            end
-
-            if (op.right.kind == "op") then
-                t2 = create_tempvar(op.type)
-                unparse(op.right, t2)
-            else
-                t2 = op.right
-            end
-
-            type_check(outputvar.type, op.type)
-            emit("%s = %s %s %s;", outputvar.storage, t1.storage, op.op, t2.storage)
-            if t1.temporary then
-                free_tempvar(t1)
-            end
-            if t2.temporary then
-                free_tempvar(t2)
-            end
-        else
-            type_check(outputvar.type, op.type)
-            emit("%s = %s;", outputvar.storage, op.storage)
-        end
-    end
-
-    unparse(stack[1], outputvar)
 end
 
 function do_function_call()
@@ -612,21 +623,40 @@ function do_function_call()
 
     expect("(")
 
+    local rvalues = {}
+
     local first = true
     for _, p in ipairs(sym.parameters) do
-        if (p.inout == "in") or (p.inout == "ref") then
-            if not first then
-                expect(",")
-            end
-            first = false
+        if not first then
+            expect(",")
+        end
+        first = false
 
+        if (p.inout == "in") then
             expression(p.variable)
+        else
+            local rvalue = rvalue_leaf()
+            rvalues[#rvalues+1] = rvalue
+            if (p.inout == "inout") then
+                type_check(p.variable.type, rvalue.type)
+                emit("%s = %s;", p.variable.storage, rvalue.storage)
+            end
         end
     end
 
     expect(")")
     emit("%s();", sym.storage)
     expect(";")
+
+    local i = 1
+    for _, p in ipairs(sym.parameters) do
+        if (p.inout ~= "in") then
+            local rvalue = rvalues[i]
+            i = i + 1
+            type_check(p.variable.type, rvalue.type)
+            emit("%s = %s;", rvalue.storage, p.variable.storage)
+        end
+    end
 end
 
 function do_while()
@@ -643,19 +673,42 @@ function do_while()
     emit("}")
 end
 
+function do_loop()
+    expect("loop")
+    emit("for (;;) {")
+    do_statements()
+    expect("end")
+    expect("loop")
+    emit("}")
+end
+
+function do_if()
+    expect("if")
+    local tempvar = create_tempvar(root_ns["bool"])
+    expression(tempvar)
+    emit("if (%s) {", tempvar.storage)
+    free_tempvar(tempvar)
+    expect("then")
+    do_statements()
+
+    local t = stream:peek()
+    if (t == "else") then
+        expect("else")
+        emit("} else {")
+        do_statements()
+    end
+    emit("}")
+
+    expect("end")
+    expect("if")
+end
+
 root_ns["int8"] = {
     kind = "type",
     name = "int8",
     size = "1",
     ctype = "int8_t",
     numeric = true,
-    pointertype = {
-        kind = "type",
-        name = "[int8]",
-        size = 1,
-        ctype = "int8_t*",
-        numeric = false
-    }
 }
 
 root_ns["uint8"] = {
@@ -693,6 +746,7 @@ root_ns["bool"] = {
 current_ns = root_ns
 
 local extern_i8 = create_extern_variable(" i8", root_ns["int8"], root_ns, "extern_i8")
+local extern_i8_2 = create_extern_variable(" i8_2", root_ns["int8"], root_ns, "extern_i8_2")
 local extern_i16 = create_extern_variable(" i16", root_ns["int16"], root_ns, "extern_i16")
 local extern_p8 = create_extern_variable(" p8", pointer_of(root_ns["int8"]), root_ns, "extern_p8")
 create_extern_function("print", "cowgol_print", { name="c", inout="in", variable=extern_p8 })
@@ -701,6 +755,30 @@ create_extern_function("print_i8", "cowgol_print_i8", { name="c", inout="in", va
 create_extern_function("print_i16", "cowgol_print_i16", { name="c", inout="in", variable=extern_i16 })
 create_extern_function("print_hex_i8", "cowgol_print_hex_i8", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_hex_i16", "cowgol_print_hex_i16", { name="c", inout="in", variable=extern_i16 })
+
+create_extern_function("file_openin", "cowgol_file_openin",
+    { name="name", inout="in", variable=extern_p8 },
+    { name="fd", inout="out", variable=extern_i8 }
+)
+create_extern_function("file_openout", "cowgol_file_openout",
+    { name="name", inout="in", variable=extern_p8 },
+    { name="fd", inout="out", variable=extern_i8 }
+)
+create_extern_function("file_openup", "cowgol_file_openup",
+    { name="name", inout="in", variable=extern_p8 },
+    { name="fd", inout="out", variable=extern_i8 }
+)
+create_extern_function("file_getchar", "cowgol_file_getchar",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="byte", inout="out", variable=extern_i8 }
+)
+create_extern_function("file_putchar", "cowgol_file_putchar",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="byte", inout="in", variable=extern_i8_2 }
+)
+create_extern_function("file_close", "cowgol_file_close",
+    { name="fd", inout="in", variable=extern_i8 }
+)
 
 fn = create_function("print_newline", "cowgol_print_newline")
 

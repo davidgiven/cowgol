@@ -1,4 +1,14 @@
-var ptr: [int8] := LOMEM;
-
-print("Hello, world!");
-print_newline();
+var fdin: int8;
+file_openin("test.dat", fdin);
+var fdout: int8;
+file_openout("testout.dat", fdout);
+loop
+    var c: int8;
+    file_getchar(fdin, c);
+    if c < 0 then
+        break;
+    end if
+    file_putchar(fdout, c+1);
+end loop
+file_close(fdin);
+file_close(fdout);

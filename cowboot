@@ -2,4 +2,4 @@
 set -e
 base=${1%.*}
 ./bootstrap/bootstrap.lua "$@" > $base.c
-gcc -O -o $base $base.c -I bootstrap bootstrap/cowgol.c
+gcc -g -O -o $base $base.c -I bootstrap bootstrap/cowgol.c
