@@ -9,6 +9,8 @@ extern uint32_t extern_u32;
 
 extern int8_t* lomem;
 extern int8_t* himem;
+extern int8_t** cowgol_argv;
+extern int8_t cowgol_argc;
 
 extern void cowgol_print(void);
 extern void cowgol_print_char(void);

@@ -5,3 +5,19 @@ sub nop() end sub;
 
 if one == zero then fail("line 4"); end if;
 if one == one then nop(); else fail("line 5"); end if;
+
+if one == zero then
+    fail("line 10");
+elseif zero == one then
+    fail("line 12");
+else
+    nop();
+end if;
+
+if one == zero then
+    fail("line 18");
+elseif one == one then
+    nop();
+else
+    fail("line 22");
+end if;

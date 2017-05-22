@@ -1,0 +1,6 @@
+var array: int8[20];
+
+array[0] := 99;
+if array[0] != 99 then
+    fail("write/read of array didn't work");
+end if;

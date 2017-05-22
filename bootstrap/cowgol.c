@@ -88,6 +88,8 @@ void cowgol_exit(void) {
 }
 
 int main(int argc, const char* argv[]) {
+    cowgol_argc = argc;
+    cowgol_argv = (int8_t**) argv;
     compiled_main();
     return 0;
 }

@@ -71,6 +71,12 @@ function tokenstream(source)
 
                         _, nexto, m = source:find("^\\(.)", o)
                         if nexto then
+                            if (m == "n") then
+                                m = "\n"
+                            else
+                                fatal("unrecognised string escape '\\%s'", m)
+                            end
+
                             t[#t+1] = m
                             o = nexto + 1
                             break
@@ -107,6 +113,13 @@ function tokenstream(source)
                     if nexto then
                         o = nexto + 1
                         coroutine.yield("string", parse_string())
+                        break
+                    end
+
+                    _, nexto, m = source:find("^'(.)'", o)
+                    if nexto then
+                        o = nexto + 1
+                        coroutine.yield("number", m:byte(1))
                         break
                     end
 
@@ -184,10 +197,10 @@ end
 
 function expect(...)
     local e = {...}
-    local t = stream:next()
+    local t, v = stream:next()
     for _, tt in ipairs(e) do
         if (t == tt) then
-            return t
+            return t, v
         end
     end
     fatal("got '%s', expected %s", t, table.concat(e, ", "))
@@ -216,18 +229,23 @@ function new_storage_for(name)
     end
 end
 
-function create_variable(name, type, ns)
+function create_symbol(name, ns)
     if not ns then
         ns = current_ns
     end
 
-    local var = {
-        kind = "variable",
-        storage = new_storage_for(name),
-        type = type
-    }
+    local sym = {}
+
     check_undefined(name)
-    current_ns[name] = var
+    current_ns[name] = sym
+    return sym
+end
+
+function create_variable(name, type, ns)
+    local var = create_symbol(name, ns)
+    var.kind = "variable"
+    var.storage = new_storage_for(name)
+    var.type = type
     variables[var] = true
     return var
 end
@@ -238,10 +256,16 @@ function create_extern_variable(name, type, ns, storage)
     return var
 end
 
+function create_const(name, value, ns)
+    local const = create_symbol(name, ns)
+    const.kind = "number"
+    const.storage = tonumber(value)
+    const.type = root_ns["number"]
+    return const
+end
+
 function create_number(value)
-    local _, _, v, u = value:find("(-?%d+)(U?)")
-    local type
-    v = tonumber(v)
+    v = tonumber(value)
 
     return {
         kind = "number",
@@ -303,7 +327,7 @@ function create_tempvar(type)
         end
     end
 
-    local var = create_variable("_temp_"..type.name.."_"..nextid(), type, root_ns)
+    local var = create_variable("_temp_"..nextid(), type, root_ns)
     var.temporary = true
     return var
 end
@@ -313,7 +337,7 @@ function free_tempvar(var)
 end
 
 function type_check(want, got)
-    if want.numeric and (got == root_ns["number"]) then
+    if want.numeric and got.numeric then
         return
     end
     if got and (want ~= got) then
@@ -339,10 +363,24 @@ function read_type()
         fatal("'%s' is not a type in scope", t)
     end
 
-    while (indirections > 0) do
-        sym = pointer_of(sym)
-        expect("]")
-        indirections = indirections - 1
+    while true do
+        local t = stream:peek()
+        if (t == "]") then
+            if (indirections > 0) then
+                sym = pointer_of(sym)
+                expect("]")
+                indirections = indirections - 1
+            else
+                break
+            end
+        elseif (t == "[") then
+            expect("[");
+            local _, v = expect("number");
+            expect("]");
+            sym = array_of(sym, tonumber(v))
+        else
+            break
+        end
     end
     return sym
 end
@@ -360,6 +398,18 @@ function pointer_of(type)
         }
     end
     return type.pointertype
+end
+
+function array_of(type, length)
+    return {
+        kind = "type",
+        name = type.name.."["..length.."]",
+        length = length,
+        ctype = type.ctype,
+        numeric = false,
+        elementtype = type,
+        array = true
+    }
 end
 
 function do_parameter()
@@ -424,7 +474,7 @@ end
 function do_statements()
     while true do
         local t = stream:peek()
-        if (t == "end") or (t == "else") or (t == "eof") then
+        if (t == "end") or (t == "else") or (t == "elseif") or (t == "eof") then
             break
         end
 
@@ -435,6 +485,8 @@ function do_statements()
             do_sub()
         elseif (t == "var") then
             do_var()
+        elseif (t == "const") then
+            do_const()
         elseif (t == "while") then
             do_while()
         elseif (t == "loop") then
@@ -444,6 +496,9 @@ function do_statements()
         elseif (t == "break") then
             expect("break")
             emit("break;")
+        elseif (t == "return") then
+            expect("return")
+            emit("return;")
         else
             local sym = lookup_symbol(t)
             if sym then
@@ -474,6 +529,14 @@ function do_var()
         expect(":=")
         expression(var)
     end
+end
+
+function do_const()
+    expect("const")
+    local name = stream:next()
+    expect(":=")
+    local _, v = expect("number")
+    local var = create_const(name, v)
 end
 
 function do_assignment()
@@ -521,7 +584,9 @@ function rvalue_leaf()
         if not sym then
             fatal("'%s' is not a symbol in scope", t)
         end
-        if (sym.kind ~= "variable") then
+        if (sym.kind == "number") then
+            return sym
+        elseif (sym.kind ~= "variable") then
             fatal("can't do %s in expressions yet", t)
         end
 
@@ -613,8 +678,14 @@ function expression(outputvar)
                 stack[#stack] = nil
 
                 local type
-                if (op.op == "<") or (op.op == "<=") or (op.op == ">") or (op.op == ">=") or
-                    (op.op == "!=") or (op.op == "==") then
+                if (op.op == "!=") or (op.op == "==") then
+                    type = root_ns["bool"]
+                    if left.type.pointer and right.type.numeric then
+                        -- yup, okay
+                    else
+                        type_check(left.type, right.type)
+                    end
+                elseif (op.op == "<") or (op.op == "<=") or (op.op == ">") or (op.op == ">=") then
                     type_check(left.type, right.type)
                     type = root_ns["bool"]
                 elseif left.type.pointer and ((op.op == "+") or (op.op == "-")) then
@@ -715,13 +786,25 @@ function do_loop()
 end
 
 function do_if()
+    local nesting = 0
     expect("if")
-    local tempvar = create_tempvar(root_ns["bool"])
-    expression(tempvar)
-    emit("if (%s) {", tempvar.storage)
-    free_tempvar(tempvar)
-    expect("then")
-    do_statements()
+
+    while true do
+        local tempvar = create_tempvar(root_ns["bool"])
+        expression(tempvar)
+        emit("if (%s) {", tempvar.storage)
+        free_tempvar(tempvar)
+        expect("then")
+        do_statements()
+
+        local t = stream:peek()
+        if (t ~= "elseif") then
+            break;
+        end
+        expect("elseif")
+        emit("} else {")
+        nesting = nesting + 1
+    end
 
     local t = stream:peek()
     if (t == "else") then
@@ -730,6 +813,10 @@ function do_if()
         do_statements()
     end
     emit("}")
+
+    for i = 1, nesting do
+        emit("}")
+    end
 
     expect("end")
     expect("if")
@@ -865,6 +952,8 @@ fn = create_function("print_newline", "cowgol_print_newline")
 
 create_extern_variable("LOMEM", pointer_of(root_ns["int8"]), root_ns, "lomem")
 create_extern_variable("HIMEM", pointer_of(root_ns["int8"]), root_ns, "himem")
+create_extern_variable("ARGC", root_ns["int8"], root_ns, "cowgol_argc")
+create_extern_variable("ARGV", pointer_of(pointer_of(root_ns["int8"])), root_ns, "cowgol_argv")
 
 current_fn = create_function("main", "compiled_main")
 
@@ -883,7 +972,11 @@ print("#include <stdint.h>")
 print("#include <stdbool.h>")
 print("#include \"cowgol.h\"")
 for var in pairs(variables) do
-    print(var.type.ctype.." "..var.storage..";")
+    if var.type.array then
+        print(var.type.ctype.." "..var.storage.."["..var.type.length.."];")
+    else
+        print(var.type.ctype.." "..var.storage..";")
+    end
 end
 for fn in pairs(functions) do
     print(string.format("void %s(void);", fn.storage))
