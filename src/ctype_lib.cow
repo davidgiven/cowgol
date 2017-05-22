@@ -1,0 +1,19 @@
+const WHITESPACE := 0;
+const NEWLINE := 1;
+const DIGIT := 2;
+const SYMBOL := 3;
+const ALPHABETIC := 4;
+
+sub classify_char_type(c: int8, out type: int8)
+    if (c == ' ') | (c == 13) | (c == 9) then
+        type := WHITESPACE;
+    elseif c == 10 then
+        type := NEWLINE;
+    elseif (c >= '0') & (c <= '9') then
+        type := DIGIT;
+    elseif ((c >= 'a') & (c <= 'z')) | ((c >= 'A') & (c <= 'Z')) then
+        type := ALPHABETIC;
+    else
+        type := SYMBOL;
+    end if;
+end sub;

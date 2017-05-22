@@ -1,0 +1,11 @@
+sub copy_string(src: [int8], dest: [int8])
+    var i: int16 := 0;
+    loop
+        var c: int8 := src[i];
+        if c == 0 then
+            break;
+        end if;
+        dest[i] := c;
+        i := i + 1;
+    end loop;
+end sub;
