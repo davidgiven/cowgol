@@ -2,4 +2,8 @@ syntax: regexp
 ^bin$
 ^.obj$
 ^.hg$
+\.exe$
+\.exe\.c$
+\.stamp$
+~$
 

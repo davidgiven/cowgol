@@ -1,0 +1,11 @@
+sub fail(message: [int8])
+    print(message);
+    print_newline();
+    exit(1);
+end sub;
+
+sub assert(condition: int8, message: [int8])
+    if condition == 0 then
+        fail(message);
+    end if;
+end sub;
