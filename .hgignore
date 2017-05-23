@@ -6,4 +6,5 @@ syntax: regexp
 \.exe\.c$
 \.stamp$
 ~$
+tests/[^/]+.c$
 

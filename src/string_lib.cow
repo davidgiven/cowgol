@@ -10,6 +10,13 @@ sub copy_string(src: [int8], dest: [int8])
     end loop;
 end sub;
 
+sub copy_memory(src: [int8], dest: [int8], length: uint16)
+    while length > 0 do
+        length := length - 1;
+        dest[length] := src[length];
+    end while;
+end sub;
+
 sub compare_strings(left: [int8], right: [int8], out result: int8)
     var i: uint8 := 0;
     loop
@@ -25,4 +32,22 @@ sub compare_strings(left: [int8], right: [int8], out result: int8)
 
         i := i + 1;
     end loop;
+end sub;
+
+sub compare_memory(left: [int8], right: [int8], length: uint8, out result: int8)
+    while length > 0 do
+        length := length - 1;
+        result := left[length] - right[length];
+        if result != 0 then
+            return;
+        end if;
+    end while;
+    result := 0;
+end sub;
+
+sub string_length(src: [int8], out length: int8)
+    length := 0;
+    while src[length] != 0 do
+        length := length + 1;
+    end while;
 end sub;

@@ -1,4 +1,5 @@
-var membase: [int8] := LOMEM;
+var string_table: [int8] := LOMEM;
+var string_table_top: uint16 := 0;
 
 var current_arg: int8 := 1;
 var current_filename: [int8];
@@ -47,6 +48,43 @@ end sub;
 var input_buffer: int8[256];
 var buffer_index: int8 := 0;
 
+sub print_string(id: uint16)
+    var objectlen: uint8 := string_table[id];
+    var i: uint8 := 1;
+    while i < objectlen do
+        print_char(string_table[id + i]);
+        i := i + 1;
+    end while;
+end sub;
+
+string_table[0] := 0;
+sub lookup_string(out id: uint16)
+    var objectlen: uint8;
+    id := 0;
+    loop
+        objectlen := string_table[id];
+        if objectlen == 0 then
+            break;
+        end if;
+
+        if objectlen == (buffer_index+1) then
+            var c: int8;
+            compare_memory(&input_buffer[0], &string_table[id+1], objectlen - 1, c);
+            if c == 0 then
+                return;
+            end if;
+        end if;
+
+        id := id + objectlen;
+    end loop;
+
+    objectlen := buffer_index + 1;
+    string_table[id] := objectlen;
+    copy_memory(&input_buffer[0], &string_table[id+1], buffer_index);
+    string_table_top := id + objectlen;
+    string_table[string_table_top] := 0;
+end sub;
+
 sub read_identifier()
     loop
         input_buffer[buffer_index] := current_byte;
@@ -61,7 +99,12 @@ sub read_identifier()
     end loop;
 
     input_buffer[buffer_index] := 0;
-    print("identifier<>");
+
+    var id: uint16;
+    lookup_string(id);
+    print("identifier<");
+    print_i16(id);
+    print(">");
 end sub;
 
 sub read_number()
@@ -94,15 +137,16 @@ sub read_symbol()
     input_buffer[0] := current_byte;
     if peeked_byte == '=' then
         input_buffer[1] := peeked_byte;
-        input_buffer[2] := 0;
+        buffer_index := 2;
         next_byte();
     else
-        input_buffer[1] := 0;
+        buffer_index := 1;
     end if;
 
+    var id: uint16;
+    lookup_string(id);
     print("symbol<");
-    print_char(input_buffer[0]);
-    print_char(input_buffer[1]);
+    print_i16(id);
     print(">");
 end sub;
 
@@ -113,6 +157,7 @@ loop
         break;
     end if;
 
+    buffer_index := 0;
     var type: int8;
     classify_char_type(current_byte, type);
     if type == NEWLINE then
@@ -131,4 +176,8 @@ loop
     end if;
     next_byte();
 end loop;
+print_newline();
+
+print("string table size: ");
+print_i16(string_table_top);
 print_newline();

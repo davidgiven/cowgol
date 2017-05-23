@@ -11,7 +11,7 @@ sub classify_char_type(c: int8, out type: int8)
         type := NEWLINE;
     elseif (c >= '0') & (c <= '9') then
         type := DIGIT;
-    elseif ((c >= 'a') & (c <= 'z')) | ((c >= 'A') & (c <= 'Z')) then
+    elseif ((c >= 'a') & (c <= 'z')) | ((c >= 'A') & (c <= 'Z')) | (c == '_') then
         type := ALPHABETIC;
     else
         type := SYMBOL;

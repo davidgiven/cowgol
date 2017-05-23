@@ -18,3 +18,28 @@ compare_strings("aaa", "aaaa", o);
 if o >= 0 then
     fail("failed: aaa > aaaa");
 end if;
+
+compare_memory("aaa", "aaa", 3, o);
+if o != 0 then
+    fail("failed: memory aaa == aaa");
+end if;
+
+compare_memory("aaaq", "aaar", 3, o);
+if o != 0 then
+    fail("failed: memory (aaa)q == (aaa)r");
+end if;
+
+compare_memory("aaa", "aab", 3, o);
+if o >= 0 then
+    fail("failed: memory aaa < aab");
+end if;
+
+string_length("aaa", o);
+if o != 3 then
+    fail("failed: string_length(aaa) != 3");
+end if;
+
+string_length("", o);
+if o != 0 then
+    fail("failed: string_length() != 0");
+end if;
