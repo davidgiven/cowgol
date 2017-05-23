@@ -151,7 +151,6 @@ function tokenstream(source)
                     elseif (token == "\n") then
                         line = line + 1
                     else
-                        savedvalue = value
                         return token, value
                     end
                 end
@@ -295,6 +294,14 @@ function create_deref(base, index)
         kind = "deref",
         storage = string.format("%s[%s]", base.storage, index.storage),
         type = base.type.elementtype
+    }
+end
+
+function create_addrof(value)
+    return {
+        kind = "variable",
+        storage = "&"..value.storage,
+        type = pointer_of(value.type)
     }
 end
 
@@ -646,6 +653,10 @@ function expression(outputvar)
             end
             operators[#operators] = nil
             parens = parens - 1
+        elseif (t == "&") then
+            expect("&")
+            local lvalue = lvalue_leaf()
+            rpn[#rpn+1] = create_addrof(lvalue)
         else
             rpn[#rpn+1] = rvalue_leaf()
         end
