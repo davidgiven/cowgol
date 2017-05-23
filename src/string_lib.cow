@@ -1,11 +1,28 @@
 sub copy_string(src: [int8], dest: [int8])
-    var i: int16 := 0;
+    var i: uint8 := 0;
     loop
         var c: int8 := src[i];
         if c == 0 then
             break;
         end if;
         dest[i] := c;
+        i := i + 1;
+    end loop;
+end sub;
+
+sub compare_strings(left: [int8], right: [int8], out result: int8)
+    var i: uint8 := 0;
+    loop
+        var c1: int8 := left[i];
+        var c2: int8 := right[i];
+        result := c1 - c2;
+        if result != 0 then
+            return;
+        end if;
+        if (c1 == 0) & (c2 == 0) then
+            return;
+        end if;
+
         i := i + 1;
     end loop;
 end sub;
