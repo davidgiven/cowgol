@@ -4,10 +4,10 @@ BOOTSTRAP = \
 	cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
 
 TEST_SRCS =	\
-	$(wildcard tests/test_*.cow)
+	$(wildcard tests/*.test.cow)
 
-TEST_BINS = $(patsubst %.cow,%.exe,$(TEST_SRCS))
-TEST_STAMPS = $(patsubst %.cow,%.stamp,$(TEST_SRCS))
+TEST_BINS = $(patsubst %.test.cow,.obj/%.test.exe,$(TEST_SRCS))
+TEST_STAMPS = $(patsubst %.test.cow,.obj/%.stamp,$(TEST_SRCS))
 
 PARSER_SRCS = \
 	src/string_lib.cow \
@@ -23,18 +23,20 @@ bin/parser: $(PARSER_SRCS) $(BOOTSTRAP)
 .phony: tests
 tests: $(TEST_STAMPS)
 
-$(TEST_BINS): cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
-$(TEST_BINS): tests/_test.cow
+%.cow: cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
+%.test.cow: tests/_test.cow
 
 .PRECIOUS: $(TEST_BINS)
-tests/%.exe: tests/%.cow
+.obj/%.test.exe: %.test.cow
 	@echo BUILDTEST $@
+	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ tests/_test.cow $<
 
-tests/%.stamp: tests/%.exe
+.obj/%.stamp: .obj/%.test.exe
 	@echo TEST $@
+	@mkdir -p $(dir $@)
 	$(hide) $<
 	$(hide) touch $@
 
 clean:
-	$(hide) rm -f $(TEST_BINS) $(TEST_STAMPS)
+	$(hide) rm -rf .obj
