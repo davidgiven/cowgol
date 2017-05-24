@@ -24,7 +24,7 @@ bin/parser: $(PARSER_SRCS) $(BOOTSTRAP)
 .phony: tests
 tests: $(TEST_STAMPS)
 
-%.exe: cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
+$(TEST_BINS) parser: cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
 $(TEST_BINS): tests/_test.cow
 .obj/src/string_lib.test.exe: src/string_lib.cow
 
@@ -32,8 +32,7 @@ $(TEST_BINS): tests/_test.cow
 .obj/%.test.exe: %.test.cow
 	@echo BUILDTEST $@
 	@mkdir -p $(dir $@)
-	@echo $^
-	$(hide) ./cowboot -o $@ $(sort $(filter-out %.test.cow, $^)) $<
+	$(hide) ./cowboot -o $@ $(sort $(filter-out %.test.cow, $(filter %.cow, $^))) $<
 
 .obj/%.stamp: .obj/%.test.exe
 	@echo TEST $@
