@@ -664,7 +664,7 @@ function expression(outputvar)
         t = stream:peek()
         if infix_operators[t] then
             operators[#operators+1] = {kind="infixop", op=stream:next()}
-        elseif (t == ";") or (t == "do") or (t == "then") or (t == ",") or (t == "]") then
+        elseif (t == ";") or (t == "loop") or (t == "then") or (t == ",") or (t == "]") then
             break
         end
     end
@@ -780,10 +780,10 @@ function do_while()
     expression(tempvar)
     emit("if (!(%s)) break;", tempvar.storage)
     free_tempvar(tempvar)
-    expect("do")
+    expect("loop")
     do_statements()
     expect("end")
-    expect("while")
+    expect("loop")
     emit("}")
 end
 

@@ -51,10 +51,10 @@ var buffer_index: int8 := 0;
 sub print_string(id: uint16)
     var objectlen: uint8 := string_table[id];
     var i: uint8 := 1;
-    while i < objectlen do
+    while i < objectlen loop
         print_char(string_table[id + i]);
         i := i + 1;
-    end while;
+    end loop;
 end sub;
 
 string_table[0] := 0;

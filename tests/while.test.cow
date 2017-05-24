@@ -1,12 +1,12 @@
 var one: int8 := 1;
 var zero: int8 := 0;
 
-while one == zero do
+while one == zero loop
     fail("nop while runs block");
-end while;
+end loop;
 
-while one == one do
+while one == one loop
     break;
     fail("break doesn't break");
-end while;
+end loop;
 
