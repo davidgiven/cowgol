@@ -552,6 +552,40 @@ function do_assignment()
     expression(lvalue)
 end
 
+function do_expression_function_call(sym)
+    expect("(")
+
+    local outvar = nil
+    local first = true
+    for _, p in ipairs(sym.parameters) do
+        if (p.inout == "inout") then
+            fatal("%s has inout parameters; can't call inside expressions")
+        elseif (p.inout == "out") then
+            if outvar then
+                fatal("%s has more than one output parameter; can't call inside expressions")
+            end
+            outvar = p
+        else
+            if not first then
+                expect(",")
+            end
+            first = false
+
+            expression(p.variable)
+        end
+    end
+    if not outvar then
+        fatal("%s does not have a single output parameter; can't call inside expressions")
+    end
+
+    expect(")")
+    emit("%s();", sym.storage)
+
+    local temp = create_tempvar(outvar.variable.type)
+    emit("%s = %s;", temp.storage, outvar.variable.storage)
+    return temp
+end
+
 function lvalue_leaf()
     local t = stream:next()
     if (t == "number") or (t == "string") then
@@ -593,6 +627,8 @@ function rvalue_leaf()
         end
         if (sym.kind == "number") then
             return sym
+        elseif (sym.kind == "function") then
+            return do_expression_function_call(sym)
         elseif (sym.kind ~= "variable") then
             fatal("can't do %s in expressions yet", t)
         end

@@ -13,7 +13,7 @@ sub next_byte()
 
     loop
         if current_fd != -1 then
-            file_getchar(current_fd, peeked_byte);
+            peeked_byte := file_getchar(current_fd);
             if peeked_byte == -1 then
                 file_close(current_fd);
                 current_fd := -1;
@@ -25,7 +25,7 @@ sub next_byte()
         current_filename := ARGV[current_arg];
         if current_filename != 0 then
             current_arg := current_arg + 1;
-            file_openin(current_filename, current_fd);
+            current_fd := file_openin(current_filename);
             line_number := 1;
         end if;
 
@@ -68,9 +68,7 @@ sub lookup_string(out id: uint16)
         end if;
 
         if objectlen == (buffer_index+1) then
-            var c: int8;
-            compare_memory(&input_buffer[0], &string_table[id+1], objectlen - 1, c);
-            if c == 0 then
+            if compare_memory(&input_buffer[0], &string_table[id+1], objectlen - 1) == 0 then
                 return;
             end if;
         end if;
@@ -90,8 +88,7 @@ sub read_identifier()
         input_buffer[buffer_index] := current_byte;
         buffer_index := buffer_index + 1;
 
-        var type: int8;
-        classify_char_type(peeked_byte, type);
+        var type: int8 := classify_char_type(peeked_byte);
         if (type != ALPHABETIC) & (type != DIGIT) then
             break;
         end if;
@@ -100,8 +97,7 @@ sub read_identifier()
 
     input_buffer[buffer_index] := 0;
 
-    var id: uint16;
-    lookup_string(id);
+    var id: uint16 := lookup_string();
     print("identifier<");
     print_i16(id);
     print(">");
@@ -112,9 +108,7 @@ sub read_number()
         input_buffer[buffer_index] := current_byte;
         buffer_index := buffer_index + 1;
 
-        var type: int8;
-        classify_char_type(peeked_byte, type);
-        if (type != DIGIT) then
+        if classify_char_type(peeked_byte) != DIGIT then
             break;
         end if;
         next_byte();
@@ -126,9 +120,7 @@ end sub;
 
 sub read_symbol()
     if current_byte == '-' then
-        var type: int8;
-        classify_char_type(peeked_byte, type);
-        if type == DIGIT then
+        if classify_char_type(peeked_byte) == DIGIT then
             read_number();
             return;
         end if;
@@ -143,8 +135,7 @@ sub read_symbol()
         buffer_index := 1;
     end if;
 
-    var id: uint16;
-    lookup_string(id);
+    var id: uint16 := lookup_string();
     print("symbol<");
     print_i16(id);
     print(">");
@@ -158,8 +149,7 @@ loop
     end if;
 
     buffer_index := 0;
-    var type: int8;
-    classify_char_type(current_byte, type);
+    var type: int8 := classify_char_type(current_byte);
     if type == NEWLINE then
         line_number := line_number + 1;
     elseif type == WHITESPACE then

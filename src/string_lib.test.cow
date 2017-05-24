@@ -1,45 +1,35 @@
-var o: int8;
-compare_strings("aaa", "bbb", o);
-if o >= 0 then
+if compare_strings("aaa", "bbb") >= 0 then
     fail("failed: aaa < bbb");
 end if;
 
-compare_strings("aaa", "aaa", o);
-if o != 0 then
+if compare_strings("aaa", "aaa") != 0 then
     fail("failed: aaa == bbbb");
 end if;
 
-compare_strings("aaaa", "aaa", o);
-if o <= 0 then
+if compare_strings("aaaa", "aaa") <= 0 then
     fail("failed: aaaa > aaa");
 end if;
 
-compare_strings("aaa", "aaaa", o);
-if o >= 0 then
+if compare_strings("aaa", "aaaa") >= 0 then
     fail("failed: aaa > aaaa");
 end if;
 
-compare_memory("aaa", "aaa", 3, o);
-if o != 0 then
+if compare_memory("aaa", "aaa", 3) != 0 then
     fail("failed: memory aaa == aaa");
 end if;
 
-compare_memory("aaaq", "aaar", 3, o);
-if o != 0 then
+if compare_memory("aaaq", "aaar", 3) != 0 then
     fail("failed: memory (aaa)q == (aaa)r");
 end if;
 
-compare_memory("aaa", "aab", 3, o);
-if o >= 0 then
+if compare_memory("aaa", "aab", 3) >= 0 then
     fail("failed: memory aaa < aab");
 end if;
 
-string_length("aaa", o);
-if o != 3 then
+if string_length("aaa") != 3 then
     fail("failed: string_length(aaa) != 3");
 end if;
 
-string_length("", o);
-if o != 0 then
+if string_length("") != 0 then
     fail("failed: string_length() != 0");
 end if;

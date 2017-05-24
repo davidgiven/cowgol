@@ -15,3 +15,8 @@ with_output_params(1, 2, out);
 if out != 3 then
     fail("output parameter isn't right");
 end if;
+
+out := with_output_params(1, 2);
+if out != 3 then
+    fail("implicit output parameter isn't right");
+end if;
