@@ -13,9 +13,10 @@ TEST_STAMPS = $(patsubst %.test.cow,.obj/%.stamp,$(TEST_SRCS))
 PARSER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
-	src/_token_names.cow \
+	src/parser/lexer.cow \
 	src/_token_table.cow \
-	src/parser.cow
+	src/parser/tokeniser.cow \
+	src/parser/main.cow
 
 all: tests bin/parser
 

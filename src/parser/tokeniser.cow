@@ -1,0 +1,28 @@
+sub lookup_token(out tokenid: uint8)
+    var bi: uint8 := 0;
+    var ti: uint8 := 0;
+    tokenid := 1;
+    while token_table[ti] != 0 loop
+        loop
+            var c: int8 := token_table[ti];
+            if (c == 0) & (bi == buffer_index) then
+                return;
+            end if;
+            if input_buffer[bi] != c then
+                break;
+            end if;
+
+            ti := ti + 1;
+            bi := bi + 1;
+        end loop;
+
+        while token_table[ti] != 0 loop
+            ti := ti + 1;
+        end loop;
+
+        ti := ti + 1;
+        bi := 0;
+        tokenid := tokenid + 1;
+    end loop;
+    tokenid := 0;
+end sub;

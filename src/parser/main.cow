@@ -1,66 +1,11 @@
 var string_table: [int8] := LOMEM;
 var string_table_top: uint16 := 0;
 
-var current_arg: int8 := 1;
-var current_filename: [int8];
-var current_fd: int8 := -1;
-var current_byte: int8 := -1;
-var peeked_byte: int8 := -1;
-var line_number: int16;
-
-sub next_byte()
-    current_byte := peeked_byte;
-
-    loop
-        if current_fd != -1 then
-            peeked_byte := file_getchar(current_fd);
-            if peeked_byte == -1 then
-                file_close(current_fd);
-                current_fd := -1;
-                peeked_byte := 10;
-            end if;
-            return;
-        end if;
-
-        current_filename := ARGV[current_arg];
-        if current_filename != 0 then
-            current_arg := current_arg + 1;
-            current_fd := file_openin(current_filename);
-            line_number := 1;
-        end if;
-
-        if current_fd == -1 then
-            peeked_byte := -1;
-            return;
-        end if;
-    end loop;
-end sub;
-
-sub error_with_location()
-    print(", at about line ");
-    print_i16(line_number);
-    print(" of ");
-    print(current_filename);
-    print_newline();
-    exit(1);
-end sub;
-
-var input_buffer: int8[256];
-var buffer_index: int8 := 0;
-
 sub print_string(id: uint16)
     var objectlen: uint8 := string_table[id];
     var i: uint8 := 1;
     while i < objectlen loop
         print_char(string_table[id + i]);
-        i := i + 1;
-    end loop;
-end sub;
-
-sub print_buffer()
-    var i: int8 := 0;
-    while i < buffer_index loop
-        print_char(input_buffer[i]);
         i := i + 1;
     end loop;
 end sub;
@@ -89,35 +34,6 @@ sub lookup_string(out id: uint16)
     copy_memory(&input_buffer[0], &string_table[id+1], buffer_index);
     string_table_top := id + objectlen;
     string_table[string_table_top] := 0;
-end sub;
-
-sub lookup_token(out tokenid: uint8)
-    var bi: uint8 := 0;
-    var ti: uint8 := 0;
-    tokenid := 1;
-    while token_table[ti] != 0 loop
-        loop
-            var c: int8 := token_table[ti];
-            if (c == 0) & (bi == buffer_index) then
-                return;
-            end if;
-            if input_buffer[bi] != c then
-                break;
-            end if;
-
-            ti := ti + 1;
-            bi := bi + 1;
-        end loop;
-
-        while token_table[ti] != 0 loop
-            ti := ti + 1;
-        end loop;
-
-        ti := ti + 1;
-        bi := 0;
-        tokenid := tokenid + 1;
-    end loop;
-    tokenid := 0;
 end sub;
 
 sub identify_token(out tokenid: uint16)
