@@ -24,6 +24,7 @@ var     VAR
 in      IN
 out     OUT
 break   BREAK
+const   CONST
 
 # Primitive types.
 int8    INT8

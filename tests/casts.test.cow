@@ -1,0 +1,5 @@
+var ptr32: [int32];
+var ptr8: [int8] := ptr32 as [int8];
+
+var array: int32[4];
+ptr8 := (&array[0]) as [int8];

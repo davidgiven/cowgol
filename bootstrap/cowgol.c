@@ -16,8 +16,10 @@ void cowgol_print(void) { fputs(extern_p8, stdout); }
 void cowgol_print_char(void) { putchar(extern_i8); }
 void cowgol_print_i8(void) { printf("%d", extern_i8); }
 void cowgol_print_i16(void) { printf("%d", extern_i16); }
+void cowgol_print_i32(void) { printf("%d", extern_i32); }
 void cowgol_print_hex_i8(void) { printf("%02x", (uint8_t)extern_i8); }
 void cowgol_print_hex_i16(void) { printf("%04x", (uint16_t)extern_i16); }
+void cowgol_print_hex_i32(void) { printf("%08x", (uint16_t)extern_i32); }
 void cowgol_print_newline(void) { printf("\n"); }
 
 static int find_fd(FILE* fp) {

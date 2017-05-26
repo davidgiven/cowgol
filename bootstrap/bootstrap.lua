@@ -1,4 +1,4 @@
-#!/usr/bin/lua
+#!/usr/bin/lua5.2
 -- Cowgol bootstrap compiler.
 -- Shoddy compiler with compiles into shoddy C.
 
@@ -20,6 +20,7 @@ function set(...)
 end
 
 local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!=", "&", "|", "^")
+local postfix_operators = set("as")
 
 function log(...)
     io.stderr:write(string.format(...), "\n")
@@ -682,34 +683,47 @@ function expression(outputvar)
 
     local parens = 0
     while true do
-        local t = stream:peek()
-        if (t == "(") then
-            expect("(")
-            operators[#operators+1] = t
-            parens = parens + 1
-        elseif (t == ")") then
-            if (parens == 0) then
+        local t
+        while true do
+            t = stream:peek()
+            if (t == "(") then
+                expect("(")
+                operators[#operators+1] = t
+                parens = parens + 1
+            elseif (t == "&") then
+                expect("&")
+                local lvalue = lvalue_leaf()
+                rpn[#rpn+1] = create_addrof(lvalue)
+                break
+            else
+                rpn[#rpn+1] = rvalue_leaf()
                 break
             end
-            expect(")")
-            flush()
-            if (operators[#operators] ~= "(") then
-                fatal("mismatched parentheses")
-            end
-            operators[#operators] = nil
-            parens = parens - 1
-        elseif (t == "&") then
-            expect("&")
-            local lvalue = lvalue_leaf()
-            rpn[#rpn+1] = create_addrof(lvalue)
-        else
-            rpn[#rpn+1] = rvalue_leaf()
         end
 
-        t = stream:peek()
+        while true do
+            t = stream:peek()
+            if (t == "as") then
+                expect("as")
+                local desttype = read_type()
+                rpn[#rpn+1] = {kind="cast", type=desttype}
+            elseif (t == ")") and (parens > 0) then
+                expect(")")
+                flush()
+                if (operators[#operators] ~= "(") then
+                    fatal("mismatched parentheses")
+                end
+                operators[#operators] = nil
+                parens = parens - 1
+            else
+                break
+            end
+        end
         if infix_operators[t] then
             operators[#operators+1] = {kind="infixop", op=stream:next()}
         elseif (t == ";") or (t == "loop") or (t == "then") or (t == ",") or (t == "]") then
+            break
+        elseif (t == ")") and (parens == 0) then
             break
         end
     end
@@ -769,6 +783,19 @@ function expression(outputvar)
                 end
                 if right.temporary then
                     free_tempvar(right)
+                end
+            elseif (op.kind == "cast") then
+                local value = stack[#stack]
+                stack[#stack] = nil
+
+                if not op.rvalue then
+                    op.rvalue = create_tempvar(op.type)
+                end
+                type_check(op.type, op.rvalue.type)
+
+                emit("%s = (%s) %s;", op.rvalue.storage, op.type.ctype, value.storage)
+                if value.temporary then
+                    free_tempvar(value)
                 end
             else
                 stack[#stack+1] = op
@@ -947,14 +974,17 @@ current_ns = root_ns
 local extern_i8 = create_extern_variable(" i8", root_ns["int8"], root_ns, "extern_i8")
 local extern_i8_2 = create_extern_variable(" i8_2", root_ns["int8"], root_ns, "extern_i8_2")
 local extern_i16 = create_extern_variable(" i16", root_ns["int16"], root_ns, "extern_i16")
+local extern_i32 = create_extern_variable(" i32", root_ns["int32"], root_ns, "extern_i32")
 local extern_p8 = create_extern_variable(" p8", pointer_of(root_ns["int8"]), root_ns, "extern_p8")
 local extern_u32 = create_extern_variable(" u32", root_ns["uint32"], root_ns, "extern_u32")
 create_extern_function("print", "cowgol_print", { name="c", inout="in", variable=extern_p8 })
 create_extern_function("print_char", "cowgol_print_char", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_i8", "cowgol_print_i8", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_i16", "cowgol_print_i16", { name="c", inout="in", variable=extern_i16 })
+create_extern_function("print_i32", "cowgol_print_i32", { name="c", inout="in", variable=extern_i32 })
 create_extern_function("print_hex_i8", "cowgol_print_hex_i8", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_hex_i16", "cowgol_print_hex_i16", { name="c", inout="in", variable=extern_i16 })
+create_extern_function("print_hex_i32", "cowgol_print_hex_i32", { name="c", inout="in", variable=extern_i32 })
 
 create_extern_function("exit", "cowgol_exit", { name="c", inout="in", variable=extern_i8 })
 

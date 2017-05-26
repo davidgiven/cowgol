@@ -33,14 +33,24 @@ sub read_number()
         input_buffer[buffer_index] := current_byte;
         buffer_index := buffer_index + 1;
 
-        if classify_char_type(peeked_byte) != DIGIT then
+        var type: int8 := classify_char_type(peeked_byte);
+        if (type != ALPHABETIC) & (type != DIGIT) then
             break;
         end if;
         next_byte();
     end loop;
 
     input_buffer[buffer_index] := 0;
-    print("number<>");
+    var numbuf: int32[1];
+    if (buffer_index >= 2) & (input_buffer[0] == '0') & (input_buffer[1] == 'x') then
+        numbuf[0] := string_to_number(&input_buffer[2], 16);
+    else
+        numbuf[0] := string_to_number(&input_buffer[0], 10);
+    end if;
+
+    var tokenid: uint16 := find_thing_by_value(THING_NUMBER, 4, (&numbuf[0]) as [int8]);
+    tokenid := tokenid | TOKEN_NUMBER;
+    emit_token(tokenid);
 end sub;
 
 sub read_symbol()
@@ -81,6 +91,7 @@ loop
     var type: int8 := classify_char_type(current_byte);
     if type == NEWLINE then
         line_number := line_number + 1;
+        emit_token(TOKEN_LINENO | line_number);
     elseif type == WHITESPACE then
     elseif type == ALPHABETIC then
         read_identifier();

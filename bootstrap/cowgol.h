@@ -4,6 +4,7 @@
 extern int8_t extern_i8;
 extern int8_t extern_i8_2;
 extern int16_t extern_i16;
+extern int32_t extern_i32;
 extern int8_t* extern_p8;
 extern uint32_t extern_u32;
 
@@ -16,8 +17,10 @@ extern void cowgol_print(void);
 extern void cowgol_print_char(void);
 extern void cowgol_print_i8(void);
 extern void cowgol_print_i16(void);
+extern void cowgol_print_i32(void);
 extern void cowgol_print_hex_i8(void);
 extern void cowgol_print_hex_i16(void);
+extern void cowgol_print_hex_i32(void);
 extern void cowgol_print_newline(void);
 
 extern void cowgol_file_openin(void);
