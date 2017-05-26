@@ -104,7 +104,14 @@ function tokenstream(source)
                         break
                     end
 
-                    _, nexto, m = source:find("^(-?%d+U?)", o)
+                    _, nexto, m = source:find("^(-?0x[0-9a-fA-F]+)", o)
+                    if nexto then
+                        o = nexto + 1
+                        coroutine.yield("number", m)
+                        break
+                    end
+
+                    _, nexto, m = source:find("^(-?%d+)", o)
                     if nexto then
                         o = nexto + 1
                         coroutine.yield("number", m)
