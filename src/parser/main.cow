@@ -1,48 +1,10 @@
-var string_table: [int8] := LOMEM;
-var string_table_top: uint16 := 0;
+var token_count: uint16 := 0;
 
-sub print_string(id: uint16)
-    var objectlen: uint8 := string_table[id];
-    var i: uint8 := 1;
-    while i < objectlen loop
-        print_char(string_table[id + i]);
-        i := i + 1;
-    end loop;
-end sub;
-
-string_table[0] := 0;
-sub lookup_string(out id: uint16)
-    var objectlen: uint8;
-    id := 0;
-    loop
-        objectlen := string_table[id];
-        if objectlen == 0 then
-            break;
-        end if;
-
-        if objectlen == (buffer_index+1) then
-            if compare_memory(&input_buffer[0], &string_table[id+1], objectlen - 1) == 0 then
-                return;
-            end if;
-        end if;
-
-        id := id + objectlen;
-    end loop;
-
-    objectlen := buffer_index + 1;
-    string_table[id] := objectlen;
-    copy_memory(&input_buffer[0], &string_table[id+1], buffer_index);
-    string_table_top := id + objectlen;
-    string_table[string_table_top] := 0;
-end sub;
-
-sub identify_token(out tokenid: uint16)
-    tokenid := lookup_token();
-    if tokenid != 0 then
-        return;
-    end if;
-
-    tokenid := lookup_string() | 32768;
+sub emit_token(tokenid: uint16)
+    token_count := token_count + 1;
+    print("<");
+    print_hex_i16(tokenid);
+    print(">");
 end sub;
 
 sub read_identifier()
@@ -57,12 +19,13 @@ sub read_identifier()
         next_byte();
     end loop;
 
-    input_buffer[buffer_index] := 0;
+    var tokenid: uint16 := lookup_token();
+    if tokenid == 0 then
+        tokenid := find_thing_by_value(THING_IDENTIFIER, buffer_index, &input_buffer[0]);
+        tokenid := tokenid | TOKEN_STRING;
+    end if;
 
-    var id: uint16 := identify_token();
-    print("<");
-    print_hex_i16(id);
-    print(">");
+    emit_token(tokenid);
 end sub;
 
 sub read_number()
@@ -97,16 +60,14 @@ sub read_symbol()
         buffer_index := 1;
     end if;
 
-    var id: uint16 := lookup_token();
-    if id == 0 then
+    var tokenid: uint16 := lookup_token();
+    if tokenid == 0 then
         print("unparseable symbol '");
         print_buffer();
         print("'");
         error_with_location();
     end if;
-    print("<");
-    print_hex_i16(id);
-    print(">");
+    emit_token(tokenid);
 end sub;
 
 next_byte();
@@ -136,6 +97,11 @@ loop
 end loop;
 print_newline();
 
-print("string table size: ");
-print_i16(string_table_top);
+print("thing table size: ");
+print_i16(thing_table_top);
+print_newline();
+save_thing_table("things.dat");
+
+print("tokens emitted: ");
+print_i16(token_count);
 print_newline();

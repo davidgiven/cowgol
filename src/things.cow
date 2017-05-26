@@ -1,0 +1,39 @@
+const THING_STRING := 1;
+const THING_IDENTIFIER := 2;
+const THING_NUMBER := 3;
+
+var thing_table: [int8] := LOMEM;
+var thing_table_top: uint16 := 0;
+thing_table[0] := 0;
+
+sub find_thing_by_value(type: uint8, length: uint8, value: [int8], out id: uint16)
+    id := 0;
+    loop
+        var thinglen: uint8 := thing_table[id];
+        if thinglen == 0 then
+            break;
+        end if;
+        if thinglen == (length+2) then
+            if thing_table[id+1] == type then
+                if compare_memory(value, &thing_table[id+2], length) == 0 then
+                    return;
+                end if;
+            end if;
+        end if;
+
+        id := id + thinglen;
+    end loop;
+
+    thinglen := length + 2;
+    thing_table[id] := thinglen;
+    thing_table[id+1] := type;
+    copy_memory(value, &thing_table[id+2], length);
+    thing_table_top := id + thinglen;
+    thing_table[thing_table_top] := 0;
+end sub;
+
+sub save_thing_table(filename: [int8])
+    var fd: uint8 := file_openout(filename);
+    file_putblock(fd, &thing_table[0], thing_table_top);
+    file_close(fd);
+end sub;
