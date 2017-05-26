@@ -13,6 +13,7 @@ TEST_STAMPS = $(patsubst %.test.cow,.obj/%.stamp,$(TEST_SRCS))
 PARSER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
+	src/numbers_lib.cow \
 	src/parser/lexer.cow \
 	src/_token_names.cow \
 	src/_token_table.cow \
@@ -31,6 +32,7 @@ tests: $(TEST_STAMPS)
 
 $(TEST_BINS) parser: cowboot bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h
 $(TEST_BINS): tests/_test.cow
+.obj/src/numbers_lib.test.exe: src/numbers_lib.cow
 .obj/src/string_lib.test.exe: src/string_lib.cow
 
 .PRECIOUS: $(TEST_BINS)

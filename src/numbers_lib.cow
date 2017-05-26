@@ -1,0 +1,29 @@
+sub string_to_number(s: [int8], base: int8, out result: int32)
+    result := 0;
+    var i: uint8 := 0;
+    var m: int8 := 1;
+
+    if s[i] == '-' then
+        m := -1;
+        i := i + 1;
+    end if;
+
+    loop
+        var c: int8 := s[i];
+        if c == 0 then
+            result := result * m;
+            return;
+        end if;
+
+        if c <= '9' then
+            c := c - '0';
+        elseif c <= 'Z' then
+            c := (c - 'A') + 10;
+        else
+            c := (c - 'a') + 10;
+        end if;
+
+        result := (result * base) + c;
+        i := i + 1;
+    end loop;
+end sub;

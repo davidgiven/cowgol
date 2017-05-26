@@ -1,0 +1,19 @@
+if string_to_number("0", 10) != 0 then
+    fail("failed: 0, 10");
+end if;
+
+if string_to_number("999", 10) != 999 then
+    fail("failed: 999, 10");
+end if;
+
+if string_to_number("1b", 16) != 27 then
+    fail("failed: 1b, 16");
+end if;
+
+if string_to_number("1B", 16) != 27 then
+    fail("failed: 1B, 16");
+end if;
+
+if string_to_number("-4", 10) != -4 then
+    fail("failed: -4, 10");
+end if;
