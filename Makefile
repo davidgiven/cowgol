@@ -13,6 +13,8 @@ TEST_STAMPS = $(patsubst %.test.cow,.obj/%.stamp,$(TEST_SRCS))
 PARSER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
+	src/_token_names.cow \
+	src/_token_table.cow \
 	src/parser.cow
 
 all: tests bin/parser
@@ -39,6 +41,16 @@ $(TEST_BINS): tests/_test.cow
 	@mkdir -p $(dir $@)
 	$(hide) $<
 	$(hide) touch $@
+
+src/_token_names.cow: src/tokens.txt src/mk-token-names.awk
+	@echo TOKEN_NAMES $@
+	@mkdir -p $(dir $@)
+	$(hide) awk -f src/mk-token-names.awk src/tokens.txt > src/_token_names.cow
+
+src/_token_table.cow: src/tokens.txt src/mk-token-table.awk
+	@echo TOKEN_TABLE $@
+	@mkdir -p $(dir $@)
+	$(hide) awk -f src/mk-token-table.awk src/tokens.txt > src/_token_table.cow
 
 clean:
 	$(hide) rm -rf .obj

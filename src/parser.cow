@@ -57,6 +57,14 @@ sub print_string(id: uint16)
     end loop;
 end sub;
 
+sub print_buffer()
+    var i: int8 := 0;
+    while i < buffer_index loop
+        print_char(input_buffer[i]);
+        i := i + 1;
+    end loop;
+end sub;
+
 string_table[0] := 0;
 sub lookup_string(out id: uint16)
     var objectlen: uint8;
@@ -83,6 +91,44 @@ sub lookup_string(out id: uint16)
     string_table[string_table_top] := 0;
 end sub;
 
+sub lookup_token(out tokenid: uint8)
+    var bi: uint8 := 0;
+    var ti: uint8 := 0;
+    tokenid := 1;
+    while token_table[ti] != 0 loop
+        loop
+            var c: int8 := token_table[ti];
+            if (c == 0) & (bi == buffer_index) then
+                return;
+            end if;
+            if input_buffer[bi] != c then
+                break;
+            end if;
+
+            ti := ti + 1;
+            bi := bi + 1;
+        end loop;
+
+        while token_table[ti] != 0 loop
+            ti := ti + 1;
+        end loop;
+
+        ti := ti + 1;
+        bi := 0;
+        tokenid := tokenid + 1;
+    end loop;
+    tokenid := 0;
+end sub;
+
+sub identify_token(out tokenid: uint16)
+    tokenid := lookup_token();
+    if tokenid != 0 then
+        return;
+    end if;
+
+    tokenid := lookup_string() | 32768;
+end sub;
+
 sub read_identifier()
     loop
         input_buffer[buffer_index] := current_byte;
@@ -97,9 +143,9 @@ sub read_identifier()
 
     input_buffer[buffer_index] := 0;
 
-    var id: uint16 := lookup_string();
-    print("identifier<");
-    print_i16(id);
+    var id: uint16 := identify_token();
+    print("<");
+    print_hex_i16(id);
     print(">");
 end sub;
 
@@ -135,9 +181,15 @@ sub read_symbol()
         buffer_index := 1;
     end if;
 
-    var id: uint16 := lookup_string();
-    print("symbol<");
-    print_i16(id);
+    var id: uint16 := lookup_token();
+    if id == 0 then
+        print("unparseable symbol '");
+        print_buffer();
+        print("'");
+        error_with_location();
+    end if;
+    print("<");
+    print_hex_i16(id);
     print(">");
 end sub;
 
