@@ -1,0 +1,43 @@
+# These all close control structures or expressions.
+end     END
+;       SEMICOLON
+loop    LOOP
+]       CLOSESQUARE
+
+:       COLON
+,       COMMA
+[       OPENSQUARE
+(       OPENPAREN
+)       CLOSEPAREN
+:=      ASSIGN
+==      EQUALS
+!=      NOTEQUALS
+<       LESSTHAN
+<=      LESSTHANEQUALS
+>       GREATERTHAN
+>=      GREATERTHANEQUALS
+sub     SUB
+while   WHILE
+if      IF
+then    THEN
+var     VAR
+in      IN
+out     OUT
+break   BREAK
+
+# Primitive types.
+int8    INT8
+uint8   UINT8
+int16   INT16
+uint16  UINT16
+int32   INT32
+uint32  UINT32
+
+# Binary operators, in increasing order of precedence.
++       PLUS
+-       MINUS
+*       STAR
+/       SLASH
+&       ANDOP
+|       OROP
+^       XOROP
