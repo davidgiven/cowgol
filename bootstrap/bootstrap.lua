@@ -73,6 +73,8 @@ function tokenstream(source)
                         if nexto then
                             if (m == "n") then
                                 m = "\n"
+                            elseif (m == "0") then
+                                m = "\0"
                             else
                                 fatal("unrecognised string escape '\\%s'", m)
                             end
