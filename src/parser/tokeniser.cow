@@ -1,3 +1,11 @@
+var current_token: uint16;
+var peeked_token: uint16;
+
+sub emit_token(tokenid: uint16)
+    current_token := peeked_token;
+    peeked_token := tokenid;
+end sub;
+
 sub lookup_token(out tokenid: uint8)
     var bi: uint8 := 0;
     var ti: uint8 := 0;
@@ -25,4 +33,129 @@ sub lookup_token(out tokenid: uint8)
         tokenid := tokenid + 1;
     end loop;
     tokenid := 0;
+end sub;
+
+sub read_identifier()
+    loop
+        input_buffer[buffer_index] := current_byte;
+        buffer_index := buffer_index + 1;
+
+        var type: int8 := classify_char_type(peeked_byte);
+        if (type != ALPHABETIC) & (type != DIGIT) then
+            break;
+        end if;
+        next_byte();
+    end loop;
+
+    var tokenid: uint16 := lookup_token();
+    if tokenid == 0 then
+        tokenid := find_thing_by_value(THING_IDENTIFIER, buffer_index, &input_buffer[0]);
+        tokenid := tokenid | TOKEN_TYPE_STRING;
+    end if;
+
+    emit_token(tokenid);
+end sub;
+
+sub read_number()
+    loop
+        input_buffer[buffer_index] := current_byte;
+        buffer_index := buffer_index + 1;
+
+        var type: int8 := classify_char_type(peeked_byte);
+        if (type != ALPHABETIC) & (type != DIGIT) then
+            break;
+        end if;
+        next_byte();
+    end loop;
+
+    input_buffer[buffer_index] := 0;
+    var numbuf: int32[1];
+    if (buffer_index >= 2) & (input_buffer[0] == '0') & (input_buffer[1] == 'x') then
+        numbuf[0] := string_to_number(&input_buffer[2], 16);
+    else
+        numbuf[0] := string_to_number(&input_buffer[0], 10);
+    end if;
+
+    var tokenid: uint16 := find_thing_by_value(THING_NUMBER, 4, (&numbuf[0]) as [int8]);
+    tokenid := tokenid | TOKEN_TYPE_NUMBER;
+    emit_token(tokenid);
+end sub;
+
+sub read_comment()
+    while current_byte != 10 loop
+        next_byte();
+    end loop;
+end sub;
+
+sub read_symbol()
+    if current_byte == '#' then
+        read_comment();
+        return;
+    elseif current_byte == '-' then
+        if classify_char_type(peeked_byte) == DIGIT then
+            read_number();
+            return;
+        end if;
+    end if;
+
+    input_buffer[0] := current_byte;
+    if peeked_byte == '=' then
+        input_buffer[1] := peeked_byte;
+        buffer_index := 2;
+        next_byte();
+    else
+        buffer_index := 1;
+    end if;
+
+    var tokenid: uint16 := lookup_token();
+    if tokenid == 0 then
+        print("unparseable symbol '");
+        print_buffer();
+        print("'");
+        error_with_location();
+    end if;
+    emit_token(tokenid);
+end sub;
+
+sub next_token()
+    if current_byte == -1 then
+        emit_token(0);
+        return;
+    end if;
+
+    buffer_index := 0;
+    var type: int8;
+    loop
+        type := classify_char_type(current_byte);
+        if type == NEWLINE then
+            line_number := line_number + 1;
+            emit_token(TOKEN_TYPE_LINENO | line_number);
+            next_byte();
+            return;
+        elseif type == WHITESPACE then
+        else
+            break;
+        end if;
+        next_byte();
+    end loop;
+
+    if type == ALPHABETIC then
+        read_identifier();
+    elseif type == SYMBOL then
+        read_symbol();
+    elseif type == DIGIT then
+        read_number();
+    else
+        print("unknown char type ");
+        print_i8(type);
+        error_with_location();
+    end if;
+    next_byte();
+end sub;
+
+sub init_tokeniser()
+    next_byte();
+    next_byte();
+    next_token();
+    next_token();
 end sub;

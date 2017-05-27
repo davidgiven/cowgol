@@ -14,11 +14,11 @@ PARSER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
 	src/numbers_lib.cow \
+	src/things.cow \
 	src/parser/lexer.cow \
 	src/_token_names.cow \
 	src/_token_table.cow \
 	src/parser/tokeniser.cow \
-	src/things.cow \
 	src/parser/main.cow
 
 all: tests bin/parser
