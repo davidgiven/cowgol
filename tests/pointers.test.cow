@@ -18,3 +18,10 @@ end if;
 if (newptr - ptr) != 1 then
     fail("pointer difference isn't sane");
 end if;
+
+sub check(i: int8)
+    if i != 99 then
+        fail("i != 99");
+    end if;
+end sub;
+check(ptr[0]);

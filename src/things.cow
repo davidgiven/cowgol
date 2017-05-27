@@ -1,11 +1,17 @@
 const THING_STRING := 1;
 const THING_IDENTIFIER := 2;
 const THING_NUMBER := 3;
-
 record Thing
     size: uint8;
     type: uint8;
     payload: int8[0];
+end record;
+
+const THING_NAMESPACE := 4;
+record ThingNamespace
+    thing: Thing;
+    previousNamespace: uint16;
+    firstSymbol: uint16;
 end record;
 
 var thing_table: [int8] := LOMEM;
@@ -38,8 +44,27 @@ sub find_thing_by_value(type: uint8, length: uint8, value: [int8], out id: uint1
     thing_table[thing_table_top] := 0;
 end sub;
 
+sub find_thing(id: uint16, thing: [Thing])
+    if id >= thing_table_top then
+        print("thing id ");
+        print_hex_i16(id);
+        print(" out of bounds");
+        exit(1);
+    end if;
+
+    thing := &thing_table[id] as [Thing];
+end sub;
+
 sub save_thing_table(filename: [int8])
     var fd: uint8 := file_openout(filename);
     file_putblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
+end sub;
+
+sub load_thing_table(filename: [int8])
+    var fd: uint8 := file_openin(filename);
+    thing_table_top := file_ext(fd);
+    file_getblock(fd, &thing_table[0], thing_table_top);
+    file_close(fd);
+    thing_table[thing_table_top] := 0;
 end sub;

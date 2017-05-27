@@ -22,11 +22,20 @@ PARSER_SRCS = \
 	src/parser/tokeniser.cow \
 	src/parser/main.cow
 
-all: tests bin/parser
+THINGSHOWER_SRCS = \
+	src/string_lib.cow \
+	src/things.cow \
+	src/thingshower/thingshower.cow
+
+all: tests bin/parser bin/thingshower
 
 bin/parser: $(PARSER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	$(hide) ./cowboot -o $@ $(PARSER_SRCS)
+
+bin/thingshower: $(THINGSHOWER_SRCS) $(BOOTSTRAP)
+	@echo BUILD $@
+	$(hide) ./cowboot -o $@ $(THINGSHOWER_SRCS)
 
 .phony: tests
 tests: $(TEST_STAMPS)

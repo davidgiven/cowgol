@@ -1,0 +1,62 @@
+load_thing_table("things.dat");
+
+sub show_identifier_thing(thing: [Thing])
+    var len: uint8 := thing.size - 2;
+    print("identifier: ");
+    var i: uint8 := 0;
+    while i < len loop
+        print_char(thing.payload[i]);
+        i := i + 1;
+    end loop;
+end sub;
+
+sub show_string_thing(thing: [Thing])
+    var len: uint8 := thing.size - 2;
+    print("string: \"");
+    var i: uint8 := 0;
+    while i < len loop
+        var c: int8 := thing.payload[i];
+        if (c < 32) | (c > 126) then
+            print("\\x");
+            print_hex_i8(c);
+        else
+            print_char(c);
+        end if;
+        i := i + 1;
+    end loop;
+    print_char('"');
+end sub;
+
+sub show_number_thing(thing: [Thing])
+    print("number: 0x");
+    var ptr: [uint32] := &thing.payload[0] as [uint32];
+    print_hex_i32(ptr[0]);
+end sub;
+
+var id: uint16 := 0;
+loop
+    var thing: [Thing] := &thing_table[id] as [Thing];
+    if thing.size == 0 then
+        break;
+    end if;
+    print_i16(id);
+    print(": ");
+
+    var type: uint8 := thing.type;
+    if type == THING_IDENTIFIER then
+        show_identifier_thing(thing);
+    elseif type == THING_NUMBER then
+        show_number_thing(thing);
+    elseif type == THING_STRING then
+        show_string_thing(thing);
+    else
+        print("unknown type ");
+        print_i8(type);
+    end if;
+    print_newline();
+
+    id := id + thing.size;
+end loop;
+print("thing table size: ");
+print_i16(thing_table_top);
+print_newline();
