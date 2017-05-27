@@ -60,6 +60,20 @@ function tokenstream(source)
                 fatal("cannot parse text: %s...", source:sub(o, o+20))
             end
 
+            local function decode_escape(s)
+                if (s == "n") then
+                    return "\n"
+                elseif (s == "0") then
+                    return "\0"
+                elseif (s == "\\") then
+                    return "\\"
+                elseif (s == "'") or (s == "\"") then
+                    return s
+                else
+                    fatal("unrecognised string escape '\\%s'", s)
+                end
+            end
+
             local function parse_string()
                 local t = {}
                 while true do
@@ -73,15 +87,7 @@ function tokenstream(source)
 
                         _, nexto, m = source:find("^\\(.)", o)
                         if nexto then
-                            if (m == "n") then
-                                m = "\n"
-                            elseif (m == "0") then
-                                m = "\0"
-                            else
-                                fatal("unrecognised string escape '\\%s'", m)
-                            end
-
-                            t[#t+1] = m
+                            t[#t+1] = decode_escape(m)
                             o = nexto + 1
                             break
                         end
@@ -130,6 +136,14 @@ function tokenstream(source)
                     if nexto then
                         o = nexto + 1
                         coroutine.yield("string", parse_string())
+                        break
+                    end
+
+                    _, nexto, m = source:find("^'\\(.)'", o)
+                    if nexto then
+                        o = nexto + 1
+                        m = decode_escape(m)
+                        coroutine.yield("number", m:byte(1))
                         break
                     end
 

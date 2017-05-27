@@ -3,8 +3,8 @@ const THING_IDENTIFIER := 2;
 const THING_NUMBER := 3;
 
 record Thing
-    size: int8;
-    type: int8;
+    size: uint8;
+    type: uint8;
     payload: int8[0];
 end record;
 

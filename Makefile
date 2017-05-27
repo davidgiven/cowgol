@@ -16,6 +16,7 @@ PARSER_SRCS = \
 	src/numbers_lib.cow \
 	src/things.cow \
 	src/parser/lexer.cow \
+	src/icode.cow \
 	src/_token_names.cow \
 	src/_token_table.cow \
 	src/parser/tokeniser.cow \

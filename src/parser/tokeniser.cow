@@ -50,7 +50,7 @@ sub read_identifier()
     var tokenid: uint16 := lookup_token();
     if tokenid == 0 then
         tokenid := find_thing_by_value(THING_IDENTIFIER, buffer_index, &input_buffer[0]);
-        tokenid := tokenid | TOKEN_TYPE_STRING;
+        tokenid := tokenid | TOKEN_TYPE_IDENTIFIER;
     end if;
 
     emit_token(tokenid);
@@ -117,6 +117,53 @@ sub read_symbol()
     emit_token(tokenid);
 end sub;
 
+sub decode_escaped_char()
+    if current_byte == 'n' then
+        current_byte := '\n';
+    elseif current_byte == '0' then
+        current_byte := 0;
+    elseif (current_byte == '\\') | (current_byte == '"') | (current_byte == '\'') then
+    else
+        print("unrecognised string escape \\");
+        print_char(current_byte);
+        error_with_location();
+    end if;
+end sub;
+
+sub read_string()
+    next_byte();
+    loop
+        if current_byte == '"' then
+            break;
+        elseif current_byte == '\\' then
+            next_byte();
+            decode_escaped_char();
+        end if;
+        input_buffer[buffer_index] := current_byte;
+        buffer_index := buffer_index + 1;
+        next_byte();
+    end loop;
+
+    var tokenid: uint16 := find_thing_by_value(THING_STRING, buffer_index, &input_buffer[0]);
+    tokenid := tokenid | TOKEN_TYPE_STRING;
+    emit_token(tokenid);
+end sub;
+
+sub read_char_constant()
+    next_byte();
+    if current_byte == '\\' then
+        next_byte();
+        decode_escaped_char();
+    end if;
+
+    var numbuf: int32[1];
+    numbuf[0] := current_byte;
+
+    var tokenid: uint16 := find_thing_by_value(THING_NUMBER, 4, (&numbuf[0]) as [int8]);
+    tokenid := tokenid | TOKEN_TYPE_NUMBER;
+    emit_token(tokenid);
+end sub;
+
 sub next_token()
     if current_byte == -1 then
         emit_token(0);
@@ -139,7 +186,11 @@ sub next_token()
         next_byte();
     end loop;
 
-    if type == ALPHABETIC then
+    if current_byte == '"' then
+        read_string();
+    elseif current_byte == '\'' then
+        read_char_constant();
+    elseif type == ALPHABETIC then
         read_identifier();
     elseif type == SYMBOL then
         read_symbol();

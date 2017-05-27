@@ -6,6 +6,7 @@ loop    LOOP
 
 :       COLON
 ,       COMMA
+.       DOT
 [       OPENSQUARE
 (       OPENPAREN
 )       CLOSEPAREN
