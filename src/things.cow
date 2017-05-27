@@ -2,33 +2,39 @@ const THING_STRING := 1;
 const THING_IDENTIFIER := 2;
 const THING_NUMBER := 3;
 
+record Thing
+    size: int8;
+    type: int8;
+    payload: int8[0];
+end record;
+
 var thing_table: [int8] := LOMEM;
 var thing_table_top: uint16 := 0;
 thing_table[0] := 0;
 
 sub find_thing_by_value(type: uint8, length: uint8, value: [int8], out id: uint16)
+    var thing: [Thing];
     id := 0;
     loop
-        var thinglen: uint8 := thing_table[id];
-        if thinglen == 0 then
+        thing := &thing_table[id] as [Thing];
+        if thing.size == 0 then
             break;
         end if;
-        if thinglen == (length+2) then
-            if thing_table[id+1] == type then
+        if thing.size == (length+2) then
+            if thing.type == type then
                 if compare_memory(value, &thing_table[id+2], length) == 0 then
                     return;
                 end if;
             end if;
         end if;
 
-        id := id + thinglen;
+        id := id + thing.size;
     end loop;
 
-    thinglen := length + 2;
-    thing_table[id] := thinglen;
-    thing_table[id+1] := type;
+    thing.size := length + 2;
+    thing.type := type;
     copy_memory(value, &thing_table[id+2], length);
-    thing_table_top := id + thinglen;
+    thing_table_top := id + thing.size;
     thing_table[thing_table_top] := 0;
 end sub;
 

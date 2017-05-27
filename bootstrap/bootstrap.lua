@@ -314,10 +314,26 @@ function create_array_deref(base, index)
     }
 end
 
-function create_record_deref(base, member)
+function create_record_deref(base, membername)
+    local recordtype
+    if base.type.pointer then
+        recordtype = base.type.elementtype
+    else
+        recordtype = base.type
+    end
+    if not recordtype then
+        fatal("type '%s' is not a record or a pointer to a record", base.type.name)
+    end
+
+    local member = lookup_symbol(membername, recordtype.members)
+    if not member then
+        fatal("'%s' is not a member of %s", membername, recordtype.name)
+    end
+
     return {
         kind = "recordderef",
-        storage = string.format("%s.%s", base.storage, member.storage),
+        storage = string.format("%s%s%s", base.storage,
+            base.type.pointer and "->" or ".", member.storage),
         type = member.type
     }
 end
@@ -596,7 +612,12 @@ function do_record()
         member.kind = "member"
         member.storage = new_storage_for(membername)
         member.type = membertype
-        emit("%s %s;", member.type.ctype, member.storage)
+
+        if member.type.array then
+            emit(member.type.ctype.." "..member.storage.."["..member.type.length.."];")
+        else
+            emit(member.type.ctype.." "..member.storage..";")
+        end
     end
 
     emit("};")
@@ -679,8 +700,7 @@ function lvalue_leaf()
         elseif (t == ".") then
             expect(".")
             t = stream:next()
-            local member = lookup_symbol(t, sym.type.members)
-            sym = create_record_deref(sym, member)
+            sym = create_record_deref(sym, t)
         else
             break
         end
@@ -724,8 +744,7 @@ function rvalue_leaf()
             elseif (t == ".") then
                 expect(".")
                 t = stream:next()
-                local member = lookup_symbol(t, sym.type.members)
-                local result = create_record_deref(sym, member)
+                local result = create_record_deref(sym, t)
                 if sym.temporary then
                     free_tempvar(sym)
                 end

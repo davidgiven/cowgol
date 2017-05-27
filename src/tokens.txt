@@ -10,12 +10,12 @@ loop    LOOP
 (       OPENPAREN
 )       CLOSEPAREN
 :=      ASSIGN
-==      EQUALS
-!=      NOTEQUALS
-<       LESSTHAN
-<=      LESSTHANEQUALS
->       GREATERTHAN
->=      GREATERTHANEQUALS
+==      EQOP
+!=      NEOP
+<       LTOP
+<=      LEOP
+>       GTOP
+>=      GEOP
 sub     SUB
 while   WHILE
 if      IF
@@ -26,6 +26,7 @@ out     OUT
 break   BREAK
 const   CONST
 record  RECORD
+return  RETURN
 
 # Primitive types.
 int8    INT8
