@@ -6,6 +6,7 @@ local stream
 local functions = {}
 local variables = {}
 local current_fn = nil
+local record_fn = {name="record", code={}}
 local root_ns = {}
 local current_ns = root_ns
 local unique_id = 0
@@ -39,7 +40,7 @@ function tokenstream(source)
         "^(\n)",
         "^(%w[%w%d_]*)",
         "^([<>!:=]=)",
-        "^([-+*/():;,<>[%]&|^])"
+        "^([-+*/():;,.<>[%]&|^])"
     }
 
     local c = coroutine.create(
@@ -221,8 +222,8 @@ function expect(...)
     fatal("got '%s', expected %s", t, table.concat(e, ", "))
 end
 
-function lookup_symbol(id)
-    local ns = current_ns
+function lookup_symbol(id, ns)
+    ns = ns or current_ns
     while ns do
         local sym = ns[id]
         if sym then
@@ -305,11 +306,19 @@ function create_string(v)
     }
 end
 
-function create_deref(base, index)
+function create_array_deref(base, index)
     return {
-        kind = "deref",
+        kind = "arrayderef",
         storage = string.format("%s[%s]", base.storage, index.storage),
         type = base.type.elementtype
+    }
+end
+
+function create_record_deref(base, member)
+    return {
+        kind = "recordderef",
+        storage = string.format("%s.%s", base.storage, member.storage),
+        type = member.type
     }
 end
 
@@ -516,6 +525,8 @@ function do_statements()
             do_loop()
         elseif (t == "if") then
             do_if()
+        elseif (t == "record") then
+            do_record()
         elseif (t == "break") then
             expect("break")
             emit("break;")
@@ -552,6 +563,48 @@ function do_var()
         expect(":=")
         expression(var)
     end
+end
+
+function do_record()
+    expect("record")
+    local typename = stream:next()
+    local sym = create_symbol(typename)
+    sym.kind = "type"
+    sym.name = typename
+    sym.ctype = "struct " .. new_storage_for(typename)
+    sym.members = {}
+
+    local old_fn = current_fn
+    current_fn = record_fn
+    local old_ns = current_ns
+    current_ns = sym.members
+    current_ns[".prev"] = old_ns
+    emit(sym.ctype .. " {")
+
+    while true do
+        local t = stream:peek()
+        if (t == "end") then
+            break
+        end
+
+        local membername = stream:next()
+        expect(":")
+        local membertype = read_type()
+        expect(";")
+
+        local member = create_symbol(membername)
+        member.kind = "member"
+        member.storage = new_storage_for(membername)
+        member.type = membertype
+        emit("%s %s;", member.type.ctype, member.storage)
+    end
+
+    emit("};")
+    current_fn = old_fn
+    current_ns = old_ns
+
+    expect("end")
+    expect("record")
 end
 
 function do_const()
@@ -621,8 +674,13 @@ function lvalue_leaf()
             expect("[");
             local index = create_tempvar(root_ns["int16"])
             expression(index)
-            sym = create_deref(sym, index)
+            sym = create_array_deref(sym, index)
             expect("]");
+        elseif (t == ".") then
+            expect(".")
+            t = stream:next()
+            local member = lookup_symbol(t, sym.type.members)
+            sym = create_record_deref(sym, member)
         else
             break
         end
@@ -659,6 +717,15 @@ function rvalue_leaf()
                 emit("%s = %s[%s];", result.storage, sym.storage, index.storage)
                 free_tempvar(index)
                 expect("]");
+                if sym.temporary then
+                    free_tempvar(sym)
+                end
+                sym = result
+            elseif (t == ".") then
+                expect(".")
+                t = stream:next()
+                local member = lookup_symbol(t, sym.type.members)
+                local result = create_record_deref(sym, member)
                 if sym.temporary then
                     free_tempvar(sym)
                 end
@@ -1063,6 +1130,7 @@ print("#include <stdlib.h>")
 print("#include <stdint.h>")
 print("#include <stdbool.h>")
 print("#include \"cowgol.h\"")
+print(table.concat(record_fn.code, "\n"))
 for var in pairs(variables) do
     if var.type.array then
         print(var.type.ctype.." "..var.storage.."["..var.type.length.."];")

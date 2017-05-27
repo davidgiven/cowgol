@@ -1,0 +1,16 @@
+record Point
+    x: int8;
+    y: int8;
+end record;
+
+var p: Point;
+p.x := 1;
+p.y := p.x;
+if p.y != 1 then
+    fail("p.y == 1");
+end if;
+
+var p1: Point := p;
+if p1.y != 1 then
+    fail("p1.y == 1");
+end if;

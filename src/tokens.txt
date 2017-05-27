@@ -25,6 +25,7 @@ in      IN
 out     OUT
 break   BREAK
 const   CONST
+record  RECORD
 
 # Primitive types.
 int8    INT8
