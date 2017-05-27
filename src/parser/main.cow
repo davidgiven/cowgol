@@ -53,8 +53,17 @@ sub read_number()
     emit_token(tokenid);
 end sub;
 
+sub read_comment()
+    while current_byte != 10 loop
+        next_byte();
+    end loop;
+end sub;
+
 sub read_symbol()
-    if current_byte == '-' then
+    if current_byte == '#' then
+        read_comment();
+        return;
+    elseif current_byte == '-' then
         if classify_char_type(peeked_byte) == DIGIT then
             read_number();
             return;

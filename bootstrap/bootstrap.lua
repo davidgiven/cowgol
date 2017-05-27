@@ -105,6 +105,12 @@ function tokenstream(source)
                         break
                     end
 
+                    _, nexto = source:find("^#[^\n]+", o)
+                    if nexto then
+                        o = nexto + 1
+                        break
+                    end
+
                     _, nexto, m = source:find("^(-?0x[0-9a-fA-F]+)", o)
                     if nexto then
                         o = nexto + 1
