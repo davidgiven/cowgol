@@ -40,7 +40,7 @@ function tokenstream(source)
         "^(\n)",
         "^(%w[%w%d_]*)",
         "^([<>!:=]=)",
-        "^([-+*/():;,.<>[%]&|^])"
+        "^([-+*/():;,.'<>[%]&|^])"
     }
 
     local c = coroutine.create(
@@ -737,6 +737,23 @@ function rvalue_leaf()
             return sym
         elseif (sym.kind == "function") then
             return do_expression_function_call(sym)
+        elseif (sym.kind == "type") then
+            expect("'")
+            t = stream:next()
+            if (t == "bytes") then
+                return {
+                    kind = "number",
+                    type = root_ns["number"],
+                    storage = "sizeof("..sym.ctype..")"
+                }
+            elseif (t == "size") then
+                if not sym.array then
+                    fatal("'%s' is not an array", sym.name);
+                end
+                return create_number(sym.length)
+            else
+                fatal("unknown type attribute '%s'", t)
+            end
         elseif (sym.kind ~= "variable") then
             fatal("can't do %s in expressions yet", t)
         end
@@ -763,6 +780,23 @@ function rvalue_leaf()
                     free_tempvar(sym)
                 end
                 sym = result
+            elseif (t == "'") then
+                expect("'")
+                t = stream:next()
+                if (t == "bytes") then
+                    sym = {
+                        kind = "number",
+                        type = root_ns["number"],
+                        storage = "sizeof("..sym.type.ctype..")"
+                    }
+                elseif (t == "size") then
+                    if not sym.type.array then
+                        fatal("'%s' is not an array", sym.type.name);
+                    end
+                    return create_number(sym.type.length)
+                else
+                    fatal("unknown attribute '%s'", t)
+                end
             else
                 break
             end
