@@ -1,14 +1,115 @@
+const LEX_TOP := 0;
+const LEX_SUBROUTINE := 1;
 
-var tokenfd: int8 := file_openout("tokens.dat");
-var tokenbuf: uint16[1];
+var lexical_stack: uint16[32];
+var lexical_stack_ptr: uint8 := 0;
 
+var current_namespace_id: uint16;
+var current_subroutine_id: uint16;
+
+sub halt()
+    print(" at ");
+    if filename_id != 0 then
+        print_string_thing(filename_id);
+    else
+        print("?");
+    end if;
+    print_char(':');
+    print_i16(line_no);
+    print_newline();
+    exit(1);
+end sub;
+
+sub lexical_push(value: uint16)
+    if lexical_stack_ptr == lexical_stack'size then
+        print("lexical stack overflow");
+        halt();
+    end if;
+
+    lexical_stack[lexical_stack_ptr] := value;
+    lexical_stack_ptr := lexical_stack_ptr + 1;
+end sub;
+
+sub lexical_pop(out value: uint16)
+    if lexical_stack_ptr == 0 then
+        print("lexical stack underflow");
+        halt();
+    end if;
+
+    lexical_stack_ptr := lexical_stack_ptr - 1;
+    value := lexical_stack[lexical_stack_ptr];
+end sub;
+
+sub lexical_pop_scope_type(type: uint16)
+    if lexical_pop() != type then
+        print("mismatched lexical scope terminator");
+        halt();
+    end if;
+end sub;
+
+sub create_function(symbol_id: uint16, out subroutine_id: uint16, out namespace_id: uint16)
+    subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing'bytes);
+    namespace_id := create_thing(THING_NAMESPACE, NamespaceThing'bytes);
+    var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
+    namespace.previous_namespace := current_namespace_id;
+    var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+    subroutine.namespace := namespace_id;
+    subroutine.symbol := symbol_id;
+end sub;
+
+sub push_function(out id: uint16)
+    lexical_push(current_subroutine_id);
+    lexical_push(current_namespace_id);
+    lexical_push(LEX_SUBROUTINE);
+end sub;
+
+sub pop_function()
+    lexical_pop_scope_type(LEX_SUBROUTINE);
+    current_namespace_id := lexical_pop();
+    current_subroutine_id := lexical_pop();
+end sub;
+
+sub init_parser()
+    current_namespace_id := 0;
+    lexical_push(LEX_TOP);
+
+    var main_symbol_id: uint16 := create_thing(THING_SYMBOL, SymbolThing'bytes);
+    create_function(main_symbol_id, current_subroutine_id, current_namespace_id);
+end sub;
+
+sub expect_token(expected: uint16)
+    if current_token != expected then
+        print("expected 0x");
+        print_hex_i16(expected);
+        print(" but got 0x");
+        print_hex_i16(current_token);
+    end if;
+    next_token_without_whitespace();
+end sub;
+
+sub do_sub()
+    expect_token(TOKEN_SUB);
+end sub;
+
+sub do_end()
+    expect_token(TOKEN_END);
+end sub;
+
+init_parser();
 init_tokeniser();
+
 while current_token != 0 loop
-    tokenbuf[0] := current_token;
-    file_putblock(tokenfd, &tokenbuf[0] as [int8], 2);
-    next_token();
+    if current_token == TOKEN_SUB then
+        do_sub();
+    elseif current_token == TOKEN_END then
+        do_end();
+    else
+        print("unknown token 0x");
+        print_hex_i16(current_token);
+        halt();
+    end if;
+    next_token_without_whitespace();
 end loop;
-file_close(tokenfd);
 
 print("thing table size: ");
 print_i16(thing_table_top);

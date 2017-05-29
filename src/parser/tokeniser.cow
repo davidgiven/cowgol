@@ -1,5 +1,7 @@
 var current_token: uint16;
 var peeked_token: uint16;
+var filename_id: uint16 := 0;
+var line_no: uint16 := 0;
 
 sub emit_token(tokenid: uint16)
     current_token := peeked_token;
@@ -204,9 +206,29 @@ sub next_token()
     next_byte();
 end sub;
 
+sub skip_whitespace()
+    loop
+        var token_type: uint16 := current_token & TOKEN_TYPE_MASK;
+        if token_type == TOKEN_TYPE_FILENAME then
+            filename_id := current_token & TOKEN_VALUE_MASK;
+        elseif token_type == TOKEN_TYPE_LINENO then
+            line_no := current_token & TOKEN_VALUE_MASK;
+        else
+            break;
+        end if;
+        next_token();
+    end loop;
+end sub;
+
+sub next_token_without_whitespace()
+    next_token();
+    skip_whitespace();
+end sub;
+
 sub init_tokeniser()
     next_byte();
     next_byte();
     next_token();
     next_token();
+    skip_whitespace();
 end sub;

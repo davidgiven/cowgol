@@ -1,6 +1,7 @@
 BEGIN {
     count = 1
     print "const TOKEN_TYPE_MASK := 0xe000;"
+    print "const TOKEN_VALUE_MASK := 0x1fff;"
     print "const TOKEN_TYPE_NORMAL := 0x0000;"
     print "const TOKEN_TYPE_IDENTIFIER := 0x2000;"
     print "const TOKEN_TYPE_NUMBER := 0x4000;"

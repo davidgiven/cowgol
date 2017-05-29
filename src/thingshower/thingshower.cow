@@ -33,7 +33,32 @@ sub show_number_thing(thing: [Thing])
     print_hex_i32(ptr[0]);
 end sub;
 
-var id: uint16 := 0;
+sub show_namespace_thing(thing: [NamespaceThing])
+    print("namespace: previous_namespace=0x");
+    print_hex_i16(thing.previous_namespace);
+    print(" first_symbol=0x");
+    print_hex_i16(thing.first_symbol);
+end sub;
+
+sub show_function_thing(thing: [SubroutineThing])
+    print("subroutine: namespace=0x");
+    print_hex_i16(thing.namespace);
+    print(" symbol=0x");
+    print_hex_i16(thing.symbol);
+end sub;
+
+sub show_symbol_thing(thing: [SymbolThing])
+    print("symbol: name=0x");
+    print_hex_i16(thing.name);
+    print(" type=0x");
+    print_hex_i16(thing.type);
+    print(" next_symbol=0x");
+    print_hex_i16(thing.next_symbol);
+    print(" section=");
+    print_i8(thing.section);
+end sub;
+
+var id: uint16 := 1;
 loop
     var thing: [Thing] := &thing_table[id] as [Thing];
     if thing.size == 0 then
@@ -49,6 +74,12 @@ loop
         show_number_thing(thing);
     elseif type == THING_STRING then
         show_string_thing(thing);
+    elseif type == THING_NAMESPACE then
+        show_namespace_thing(thing as [NamespaceThing]);
+    elseif type == THING_SUBROUTINE then
+        show_function_thing(thing as [SubroutineThing]);
+    elseif type == THING_SYMBOL then
+        show_symbol_thing(thing as [SymbolThing]);
     else
         print("unknown type ");
         print_i8(type);

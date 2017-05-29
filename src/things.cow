@@ -1,3 +1,10 @@
+const SECTION_UNKNOWN := 0;
+const SECTION_CODE := 1;
+const SECTION_ROMDATA := 2;
+const SECTION_RAMDATA := 3;
+const SECTION_NONINITDATA := 4;
+const SECTION_POINTERS := 5;
+
 const THING_STRING := 1;
 const THING_IDENTIFIER := 2;
 const THING_NUMBER := 3;
@@ -8,19 +15,65 @@ record Thing
 end record;
 
 const THING_NAMESPACE := 4;
-record ThingNamespace
+record NamespaceThing
     thing: Thing;
-    previousNamespace: uint16;
-    firstSymbol: uint16;
+    previous_namespace: uint16;
+    first_symbol: uint16;
+end record;
+
+const THING_SYMBOL := 5;
+record SymbolThing
+    thing: Thing;
+    name: uint16;
+    type: uint16;
+    next_symbol: uint16;
+    section: uint8;
+end record;
+
+const THING_SUBROUTINE := 6;
+record SubroutineThing
+    thing: Thing;
+    namespace: uint16;
+    symbol: uint16;
 end record;
 
 var thing_table: [int8] := LOMEM;
-var thing_table_top: uint16 := 0;
-thing_table[0] := 0;
+var thing_table_top: uint16 := 1;
+thing_table[thing_table_top] := 0;
+
+sub create_thing(type: uint8, size: uint8, out id: uint16)
+    id := thing_table_top;
+    var thing: [Thing] := &thing_table[id] as [Thing];
+    zero_memory(thing as [int8], size + 1);
+    thing.size := size;
+    thing.type := type;
+    thing_table_top := id + size;
+end sub;
+
+sub find_thing(id: uint16, out thing: [Thing])
+    if id >= thing_table_top then
+        print("thing id ");
+        print_hex_i16(id);
+        print(" out of bounds");
+        exit(1);
+    end if;
+
+    thing := &thing_table[id] as [Thing];
+end sub;
+
+sub print_string_thing(id: uint16)
+    var thing: [Thing] := find_thing(id);
+    var len: uint8 := thing.size - 2;
+    var i: uint8 := 0;
+    while i < len loop
+        print_char(thing.payload[i]);
+        i := i + 1;
+    end loop;
+end sub;
 
 sub find_thing_by_value(type: uint8, length: uint8, value: [int8], out id: uint16)
     var thing: [Thing];
-    id := 0;
+    id := 1;
     loop
         thing := &thing_table[id] as [Thing];
         if thing.size == 0 then
@@ -37,22 +90,8 @@ sub find_thing_by_value(type: uint8, length: uint8, value: [int8], out id: uint1
         id := id + thing.size;
     end loop;
 
-    thing.size := length + 2;
-    thing.type := type;
+    id := create_thing(type, length+2);
     copy_memory(value, &thing_table[id+2], length);
-    thing_table_top := id + thing.size;
-    thing_table[thing_table_top] := 0;
-end sub;
-
-sub find_thing(id: uint16, thing: [Thing])
-    if id >= thing_table_top then
-        print("thing id ");
-        print_hex_i16(id);
-        print(" out of bounds");
-        exit(1);
-    end if;
-
-    thing := &thing_table[id] as [Thing];
 end sub;
 
 sub save_thing_table(filename: [int8])
