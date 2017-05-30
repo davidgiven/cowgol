@@ -40,22 +40,28 @@ sub show_namespace_thing(thing: [NamespaceThing])
     print_hex_i16(thing.first_symbol);
 end sub;
 
-sub show_function_thing(thing: [SubroutineThing])
-    print("subroutine: namespace=0x");
-    print_hex_i16(thing.namespace);
-    print(" symbol=0x");
-    print_hex_i16(thing.symbol);
-end sub;
-
 sub show_symbol_thing(thing: [SymbolThing])
-    print("symbol: name=0x");
+    print("symbol(name=0x");
     print_hex_i16(thing.name);
-    print(" type=0x");
-    print_hex_i16(thing.type);
     print(" next_symbol=0x");
     print_hex_i16(thing.next_symbol);
+    print(") ");
+end sub;
+
+sub show_physical_symbol_thing(thing: [PhysicalSymbolThing])
+    show_symbol_thing(thing as [SymbolThing]);
+    print("physymbol(type=0x");
+    print_hex_i16(thing.type);
     print(" section=");
     print_i8(thing.section);
+    print(") ");
+end sub;
+
+sub show_subroutine_thing(thing: [SubroutineThing])
+    show_physical_symbol_thing(thing as [PhysicalSymbolThing]);
+    print("subroutine(namespace=0x");
+    print_hex_i16(thing.namespace);
+    print(") ");
 end sub;
 
 var id: uint16 := 1;
@@ -64,7 +70,7 @@ loop
     if thing.size == 0 then
         break;
     end if;
-    print_i16(id);
+    print_hex_i16(id);
     print(": ");
 
     var type: uint8 := thing.type;
@@ -77,9 +83,7 @@ loop
     elseif type == THING_NAMESPACE then
         show_namespace_thing(thing as [NamespaceThing]);
     elseif type == THING_SUBROUTINE then
-        show_function_thing(thing as [SubroutineThing]);
-    elseif type == THING_SYMBOL then
-        show_symbol_thing(thing as [SymbolThing]);
+        show_subroutine_thing(thing as [SubroutineThing]);
     else
         print("unknown type ");
         print_i8(type);

@@ -192,7 +192,7 @@ sub next_token()
         read_string();
     elseif current_byte == '\'' then
         read_char_constant();
-    elseif type == ALPHABETIC then
+    elseif (type == ALPHABETIC) | (current_byte == '\'') then
         read_identifier();
     elseif type == SYMBOL then
         read_symbol();

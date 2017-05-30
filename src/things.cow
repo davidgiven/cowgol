@@ -5,36 +5,41 @@ const SECTION_RAMDATA := 3;
 const SECTION_NONINITDATA := 4;
 const SECTION_POINTERS := 5;
 
-const THING_STRING := 1;
+const THING_STRING     := 1;
 const THING_IDENTIFIER := 2;
-const THING_NUMBER := 3;
+const THING_NUMBER     := 3;
+const THING_NAMESPACE  := 4;
+const THING_SYMBOL     := 0x10;
+const THING_PHYSSYMBOL := 0x30;
+const THING_SUBROUTINE := 0x31;
+const THING_VARIABLE   := 0x32;
+const THING_LABEL      := 0x33;
+const THING_PTYPE      := 0x14;
+const THING_ARRAY      := 0x35;
+
 record Thing
     size: uint8;
     type: uint8;
     payload: int8[0];
 end record;
 
-const THING_NAMESPACE := 4;
-record NamespaceThing
-    thing: Thing;
+record NamespaceThing: Thing
     previous_namespace: uint16;
     first_symbol: uint16;
 end record;
 
-const THING_SYMBOL := 5;
-record SymbolThing
-    thing: Thing;
+record SymbolThing: Thing
     name: uint16;
-    type: uint16;
     next_symbol: uint16;
+end record;
+
+record PhysicalSymbolThing: SymbolThing
+    type: uint16;
     section: uint8;
 end record;
 
-const THING_SUBROUTINE := 6;
-record SubroutineThing
-    thing: Thing;
+record SubroutineThing: PhysicalSymbolThing
     namespace: uint16;
-    symbol: uint16;
 end record;
 
 var thing_table: [int8] := LOMEM;

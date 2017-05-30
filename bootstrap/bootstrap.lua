@@ -339,9 +339,17 @@ function create_record_deref(base, membername)
         fatal("type '%s' is not a record or a pointer to a record", base.type.name)
     end
 
-    local member = lookup_symbol(membername, recordtype.members)
-    if not member then
-        fatal("'%s' is not a member of %s", membername, recordtype.name)
+    local member
+    local currenttype = recordtype
+    while true do
+        member = lookup_symbol(membername, currenttype.members)
+        if member then
+            break
+        end
+        currenttype = currenttype.supertype
+        if not currenttype then
+            fatal("'%s' is not a member of %s", membername, recordtype.name)
+        end
     end
 
     return {
@@ -598,11 +606,23 @@ end
 function do_record()
     expect("record")
     local typename = stream:next()
+
+    local supertype = nil
+    if (stream:peek() == ":") then
+        expect(":")
+        supertype = read_type()
+        if not supertype.record then
+            fatal("can't inherit from '%s' as it's not a record type", supertype.name)
+        end
+    end
+
     local sym = create_symbol(typename)
     sym.kind = "type"
     sym.name = typename
     sym.ctype = "struct " .. new_storage_for(typename)
     sym.members = {}
+    sym.record = true
+    sym.supertype = supertype
 
     local old_fn = current_fn
     current_fn = record_fn
@@ -610,6 +630,10 @@ function do_record()
     current_ns = sym.members
     current_ns[".prev"] = old_ns
     emit(sym.ctype .. " {")
+
+    if sym.supertype then
+        emit(supertype.ctype..";")
+    end
 
     while true do
         local t = stream:peek()

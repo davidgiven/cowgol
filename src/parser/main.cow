@@ -47,23 +47,22 @@ sub lexical_pop_scope_type(type: uint16)
     end if;
 end sub;
 
-sub create_function(symbol_id: uint16, out subroutine_id: uint16, out namespace_id: uint16)
+sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
     subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing'bytes);
     namespace_id := create_thing(THING_NAMESPACE, NamespaceThing'bytes);
     var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
     namespace.previous_namespace := current_namespace_id;
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
     subroutine.namespace := namespace_id;
-    subroutine.symbol := symbol_id;
 end sub;
 
-sub push_function(out id: uint16)
+sub push_subroutine()
     lexical_push(current_subroutine_id);
     lexical_push(current_namespace_id);
     lexical_push(LEX_SUBROUTINE);
 end sub;
 
-sub pop_function()
+sub pop_subroutine()
     lexical_pop_scope_type(LEX_SUBROUTINE);
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
@@ -73,8 +72,7 @@ sub init_parser()
     current_namespace_id := 0;
     lexical_push(LEX_TOP);
 
-    var main_symbol_id: uint16 := create_thing(THING_SYMBOL, SymbolThing'bytes);
-    create_function(main_symbol_id, current_subroutine_id, current_namespace_id);
+    create_function(current_subroutine_id, current_namespace_id);
 end sub;
 
 sub expect_token(expected: uint16)
@@ -87,12 +85,81 @@ sub expect_token(expected: uint16)
     next_token_without_whitespace();
 end sub;
 
+sub expect_identifier(out id: uint16)
+    if (current_token & TOKEN_TYPE_MASK) != TOKEN_TYPE_IDENTIFIER then
+        print("missing identifier");
+        halt();
+    end if;
+
+    id := current_token & TOKEN_VALUE_MASK;
+    next_token_without_whitespace();
+end sub;
+
+sub find_symbol_in_namespace(identifier_id: uint16, namespace_id: uint16, out symbol_id: uint16)
+    var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
+    symbol_id := namespace.first_symbol;
+
+    while symbol_id != 0 loop
+        var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+        if symbol.name == identifier_id then
+            return;
+        end if;
+        symbol_id := symbol.next_symbol;
+    end loop;
+
+    symbol_id := 0;
+end sub;
+
+sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
+    var namespace_id: uint16 := current_namespace_id;
+
+    while namespace_id != 0 loop
+        symbol_id := find_symbol_in_namespace(identifier_id, namespace_id);
+        if symbol_id != 0 then
+            return;
+        end if;
+
+        var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
+        namespace_id := namespace.previous_namespace;
+    end loop;
+
+    print("symbol with identifier 0x");
+    print_hex_i16(identifier_id);
+    print(" not found in any scope");
+    halt();
+end sub;
+
+sub name_symbol(identifier_id: uint16, symbol_id: uint16, namespace_id: uint16)
+    var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+    var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
+
+    if find_symbol_in_namespace(identifier_id, namespace_id) != 0 then
+        print("symbol with identifier 0x");
+        print_hex_i16(identifier_id);
+        print(" is already defined in this namespace");
+        halt();
+    end if;
+
+    symbol.next_symbol := namespace.first_symbol;
+    namespace.first_symbol := symbol_id;
+    symbol.name := identifier_id;
+end sub;
+
 sub do_sub()
+    var old_namespace_id: uint16 := current_namespace_id;
+
+    push_subroutine();
     expect_token(TOKEN_SUB);
+    var id: uint16 := expect_identifier();
+
+    create_function(current_subroutine_id, current_namespace_id);
+    name_symbol(id, current_subroutine_id, old_namespace_id);
 end sub;
 
 sub do_end()
     expect_token(TOKEN_END);
+    expect_token(TOKEN_SUB);
+    pop_subroutine();
 end sub;
 
 init_parser();

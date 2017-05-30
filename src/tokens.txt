@@ -30,6 +30,10 @@ record    RECORD
 return    RETURN
 namespace NAMESPACE
 
+# Attributes.
+'bytes    BYTES
+'size     SIZE
+
 # Primitive types.
 int8      INT8
 uint8     UINT8
