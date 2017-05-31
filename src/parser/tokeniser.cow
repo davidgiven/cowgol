@@ -164,6 +164,12 @@ sub read_char_constant()
     var tokenid: uint16 := find_thing_by_value(THING_NUMBER, 4, (&numbuf[0]) as [int8]);
     tokenid := tokenid | TOKEN_TYPE_NUMBER;
     emit_token(tokenid);
+
+    next_byte();
+    if current_byte != '\'' then
+        print("invalid character constant");
+        error_with_location();
+    end if;
 end sub;
 
 sub next_token()
@@ -192,7 +198,7 @@ sub next_token()
         read_string();
     elseif current_byte == '\'' then
         read_char_constant();
-    elseif (type == ALPHABETIC) | (current_byte == '\'') then
+    elseif (type == ALPHABETIC) | (current_byte == '@') then
         read_identifier();
     elseif type == SYMBOL then
         read_symbol();

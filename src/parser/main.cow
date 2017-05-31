@@ -21,7 +21,7 @@ sub halt()
 end sub;
 
 sub lexical_push(value: uint16)
-    if lexical_stack_ptr == lexical_stack'size then
+    if lexical_stack_ptr == lexical_stack@size then
         print("lexical stack overflow");
         halt();
     end if;
@@ -52,8 +52,8 @@ sub lexical_pop_scope_type(type: uint16)
 end sub;
 
 sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
-    subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing'bytes);
-    namespace_id := create_thing(THING_NAMESPACE, NamespaceThing'bytes);
+    subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
+    namespace_id := create_thing(THING_NAMESPACE, NamespaceThing@bytes);
     var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
     namespace.previous_namespace := current_namespace_id;
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
@@ -124,7 +124,7 @@ end sub;
 
 sub create_bootstrap_type(name: [int8], out type: [NumericThing])
     var identifier_id: uint16 := find_thing_by_value(THING_IDENTIFIER, string_length(name), name);
-    var type_id: uint16 := create_thing(THING_NUMERIC, NumericThing'bytes);
+    var type_id: uint16 := create_thing(THING_NUMERIC, NumericThing@bytes);
     name_symbol(identifier_id, type_id, current_namespace_id);
     type := find_thing(type_id) as [NumericThing];
 end sub;
@@ -215,7 +215,7 @@ sub do_sub()
         expect_token(TOKEN_COLON);
         var type_id: uint16 := read_type();
 
-        var parameter_id: uint16 := create_thing(THING_PARAMETER, ParameterThing'bytes);
+        var parameter_id: uint16 := create_thing(THING_PARAMETER, ParameterThing@bytes);
         name_symbol(id, parameter_id, current_namespace_id);
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
         parameter.inout := inout;
@@ -250,6 +250,11 @@ sub do_end()
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
+sub do_bytes()
+    print("can't do @bytes yet");
+    halt();
+end sub;
+
 init_parser();
 init_tokeniser();
 
@@ -258,6 +263,8 @@ while current_token != 0 loop
         do_sub();
     elseif current_token == TOKEN_END then
         do_end();
+    elseif current_token == TOKEN_BYTES then
+        do_bytes();
     else
         print("unknown token 0x");
         print_hex_i16(current_token);

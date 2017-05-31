@@ -31,9 +31,10 @@ in        IN
 out       OUT
 inout     INOUT
 
-# Attributes.
-'bytes    BYTES
-'size     SIZE
+# Attributes and specials.
+@bytes    BYTES
+@size     SIZE
+@section  SECTION
 
 # Binary operators, in increasing order of precedence. Note the unary
 +         PLUS
