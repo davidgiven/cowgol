@@ -229,6 +229,5 @@ sub init_tokeniser()
     next_byte();
     next_byte();
     next_token();
-    next_token();
-    skip_whitespace();
+    next_token_without_whitespace();
 end sub;

@@ -1,5 +1,5 @@
-const LEX_TOP := 0;
-const LEX_SUBROUTINE := 1;
+# These occupy the same namespace as tokens.
+const LEX_TOP := 200;
 
 var lexical_stack: uint16[32];
 var lexical_stack_ptr: uint8 := 0;
@@ -40,6 +40,10 @@ sub lexical_pop(out value: uint16)
     value := lexical_stack[lexical_stack_ptr];
 end sub;
 
+sub lexical_peek(out value: uint16)
+    value := lexical_stack[lexical_stack_ptr - 1];
+end sub;
+
 sub lexical_pop_scope_type(type: uint16)
     if lexical_pop() != type then
         print("mismatched lexical scope terminator");
@@ -54,45 +58,6 @@ sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
     namespace.previous_namespace := current_namespace_id;
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
     subroutine.namespace := namespace_id;
-end sub;
-
-sub push_subroutine()
-    lexical_push(current_subroutine_id);
-    lexical_push(current_namespace_id);
-    lexical_push(LEX_SUBROUTINE);
-end sub;
-
-sub pop_subroutine()
-    lexical_pop_scope_type(LEX_SUBROUTINE);
-    current_namespace_id := lexical_pop();
-    current_subroutine_id := lexical_pop();
-end sub;
-
-sub init_parser()
-    current_namespace_id := 0;
-    lexical_push(LEX_TOP);
-
-    create_function(current_subroutine_id, current_namespace_id);
-end sub;
-
-sub expect_token(expected: uint16)
-    if current_token != expected then
-        print("expected 0x");
-        print_hex_i16(expected);
-        print(" but got 0x");
-        print_hex_i16(current_token);
-    end if;
-    next_token_without_whitespace();
-end sub;
-
-sub expect_identifier(out id: uint16)
-    if (current_token & TOKEN_TYPE_MASK) != TOKEN_TYPE_IDENTIFIER then
-        print("missing identifier");
-        halt();
-    end if;
-
-    id := current_token & TOKEN_VALUE_MASK;
-    next_token_without_whitespace();
 end sub;
 
 sub find_symbol_in_namespace(identifier_id: uint16, namespace_id: uint16, out symbol_id: uint16)
@@ -145,21 +110,144 @@ sub name_symbol(identifier_id: uint16, symbol_id: uint16, namespace_id: uint16)
     symbol.name := identifier_id;
 end sub;
 
+sub push_subroutine()
+    lexical_push(current_subroutine_id);
+    lexical_push(current_namespace_id);
+    lexical_push(TOKEN_SUB);
+end sub;
+
+sub pop_subroutine()
+    lexical_pop_scope_type(TOKEN_SUB);
+    current_namespace_id := lexical_pop();
+    current_subroutine_id := lexical_pop();
+end sub;
+
+sub create_bootstrap_type(name: [int8], out type: [NumericThing])
+    var identifier_id: uint16 := find_thing_by_value(THING_IDENTIFIER, string_length(name), name);
+    var type_id: uint16 := create_thing(THING_NUMERIC, NumericThing'bytes);
+    name_symbol(identifier_id, type_id, current_namespace_id);
+    type := find_thing(type_id) as [NumericThing];
+end sub;
+
+sub init_parser()
+    current_namespace_id := 0;
+    lexical_push(LEX_TOP);
+
+    create_function(current_subroutine_id, current_namespace_id);
+
+    var type: [NumericThing];
+    type := create_bootstrap_type("int8");
+    type.thing_type := THING_SIGNED;
+    type.width := 1;
+
+    type := create_bootstrap_type("uint8");
+    type.thing_type := THING_UNSIGNED;
+    type.width := 1;
+
+    type := create_bootstrap_type("int16");
+    type.thing_type := THING_SIGNED;
+    type.width := 2;
+
+    type := create_bootstrap_type("uint16");
+    type.thing_type := THING_UNSIGNED;
+    type.width := 2;
+
+    type := create_bootstrap_type("int32");
+    type.thing_type := THING_SIGNED;
+    type.width := 4;
+
+    type := create_bootstrap_type("uint32");
+    type.thing_type := THING_UNSIGNED;
+    type.width := 4;
+end sub;
+
+sub expect_token(expected: uint16)
+    if current_token != expected then
+        print("expected 0x");
+        print_hex_i16(expected);
+        print(" but got 0x");
+        print_hex_i16(current_token);
+        halt();
+    end if;
+    next_token_without_whitespace();
+end sub;
+
+sub expect_identifier(out id: uint16)
+    if (current_token & TOKEN_TYPE_MASK) != TOKEN_TYPE_IDENTIFIER then
+        print("missing identifier");
+        halt();
+    end if;
+
+    id := current_token & TOKEN_VALUE_MASK;
+    next_token_without_whitespace();
+end sub;
+
+sub read_type(out type_id: uint16)
+    var identifier_id: uint16 := expect_identifier();
+    type_id := find_symbol(identifier_id);
+    var type: [TypeThing] := find_thing(type_id) as [TypeThing];
+    if (type.thing_type & THING_TYPE) != THING_TYPE then
+        print("identifier 0x");
+        print_hex_i16(identifier_id);
+        print(" does not refer to a type");
+    end if;
+end sub;
+
 sub do_sub()
     var old_namespace_id: uint16 := current_namespace_id;
 
     push_subroutine();
     expect_token(TOKEN_SUB);
     var id: uint16 := expect_identifier();
-
     create_function(current_subroutine_id, current_namespace_id);
     name_symbol(id, current_subroutine_id, old_namespace_id);
+
+    expect_token(TOKEN_OPENPAREN);
+
+    while current_token != TOKEN_CLOSEPAREN loop
+        var inout: uint16 := TOKEN_IN;
+        if (current_token == TOKEN_IN) | (current_token == TOKEN_OUT) | (current_token == TOKEN_INOUT) then
+            inout := current_token;
+            next_token_without_whitespace();
+        end if;
+
+        id := expect_identifier();
+        expect_token(TOKEN_COLON);
+        var type_id: uint16 := read_type();
+
+        var parameter_id: uint16 := create_thing(THING_PARAMETER, ParameterThing'bytes);
+        name_symbol(id, parameter_id, current_namespace_id);
+        var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
+        parameter.inout := inout;
+        parameter.type := type_id;
+
+        if current_token != TOKEN_COMMA then
+            break;
+        end if;
+        next_token_without_whitespace();
+    end loop;
+    expect_token(TOKEN_CLOSEPAREN);
 end sub;
 
 sub do_end()
     expect_token(TOKEN_END);
-    expect_token(TOKEN_SUB);
-    pop_subroutine();
+    if current_token != lexical_peek() then
+        print("can't close a 0x");
+        print_hex_i16(lexical_peek());
+        print(" with a 0x");
+        print_hex_i16(current_token);
+        halt();
+    end if;
+    if current_token == TOKEN_SUB then
+        expect_token(TOKEN_SUB);
+        pop_subroutine();
+    else
+        print("can't close 0x");
+        print_hex_i16(current_token);
+        print(" yet");
+        halt();
+    end if;
+    expect_token(TOKEN_SEMICOLON);
 end sub;
 
 init_parser();
@@ -175,7 +263,6 @@ while current_token != 0 loop
         print_hex_i16(current_token);
         halt();
     end if;
-    next_token_without_whitespace();
 end loop;
 
 print("thing table size: ");

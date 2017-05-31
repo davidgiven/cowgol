@@ -1,1 +1,1 @@
-var token_table: [int8] := "end\0;\0loop\0]\0:\0,\0.\0[\0(\0)\0:=\0==\0!=\0<\0<=\0>\0>=\0sub\0while\0if\0then\0var\0in\0out\0break\0const\0record\0return\0namespace\0'bytes\0'size\0int8\0uint8\0int16\0uint16\0int32\0uint32\0+\0-\0*\0/\0&\0|\0^\0~\0";
+var token_table: [int8] := "end\0;\0loop\0]\0:\0,\0.\0[\0(\0)\0:=\0==\0!=\0<\0<=\0>\0>=\0sub\0while\0if\0then\0var\0break\0const\0record\0return\0namespace\0in\0out\0inout\0'bytes\0'size\0+\0-\0*\0/\0&\0|\0^\0~\0";

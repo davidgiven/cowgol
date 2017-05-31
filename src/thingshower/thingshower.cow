@@ -1,7 +1,7 @@
 load_thing_table("things.dat");
 
 sub show_identifier_thing(thing: [Thing])
-    var len: uint8 := thing.size - 2;
+    var len: uint8 := thing.thing_size - 2;
     print("identifier: ");
     var i: uint8 := 0;
     while i < len loop
@@ -11,7 +11,7 @@ sub show_identifier_thing(thing: [Thing])
 end sub;
 
 sub show_string_thing(thing: [Thing])
-    var len: uint8 := thing.size - 2;
+    var len: uint8 := thing.thing_size - 2;
     print("string: \"");
     var i: uint8 := 0;
     while i < len loop
@@ -48,32 +48,61 @@ sub show_symbol_thing(thing: [SymbolThing])
     print(") ");
 end sub;
 
-sub show_physical_symbol_thing(thing: [PhysicalSymbolThing])
+sub show_data_thing(thing: [DataThing])
     show_symbol_thing(thing as [SymbolThing]);
-    print("physymbol(type=0x");
-    print_hex_i16(thing.type);
-    print(" section=");
+    print("data(section=");
     print_i8(thing.section);
     print(") ");
 end sub;
 
+sub show_typed_thing(thing: [TypedThing])
+    show_data_thing(thing as [DataThing]);
+    print("typed(type=0x");
+    print_hex_i16(thing.type);
+    print(") ");
+end sub;
+
 sub show_subroutine_thing(thing: [SubroutineThing])
-    show_physical_symbol_thing(thing as [PhysicalSymbolThing]);
+    show_data_thing(thing as [DataThing]);
     print("subroutine(namespace=0x");
     print_hex_i16(thing.namespace);
     print(") ");
 end sub;
 
+sub show_type_thing(thing: [TypeThing])
+    show_symbol_thing(thing as [SymbolThing]);
+    print("type(width=");
+    print_i8(thing.width);
+    print(") ");
+end sub;
+
+sub show_variable_thing(thing: [VariableThing])
+    show_typed_thing(thing as [TypedThing]);
+    print("variable ");
+end sub;
+
+sub show_parameter_thing(thing: [ParameterThing])
+    show_variable_thing(thing as [VariableThing]);
+    print("parameter(inout=");
+    print_i8(thing.inout);
+    print(") ");
+end sub;
+
+sub show_numeric_thing(kind: [int8], thing: [NumericThing])
+    show_type_thing(thing as [TypeThing]);
+    print(kind);
+end sub;
+
 var id: uint16 := 1;
 loop
     var thing: [Thing] := &thing_table[id] as [Thing];
-    if thing.size == 0 then
+    if thing.thing_size == 0 then
         break;
     end if;
     print_hex_i16(id);
     print(": ");
 
-    var type: uint8 := thing.type;
+    var type: uint8 := thing.thing_type;
     if type == THING_IDENTIFIER then
         show_identifier_thing(thing);
     elseif type == THING_NUMBER then
@@ -84,13 +113,21 @@ loop
         show_namespace_thing(thing as [NamespaceThing]);
     elseif type == THING_SUBROUTINE then
         show_subroutine_thing(thing as [SubroutineThing]);
+    elseif type == THING_SIGNED then
+        show_numeric_thing("signed_type", thing as [NumericThing]);
+    elseif type == THING_UNSIGNED then
+        show_numeric_thing("unsigned_type", thing as [NumericThing]);
+    elseif type == THING_VARIABLE then
+        show_variable_thing(thing as [VariableThing]);
+    elseif type == THING_PARAMETER then
+        show_parameter_thing(thing as [ParameterThing]);
     else
         print("unknown type ");
         print_i8(type);
     end if;
     print_newline();
 
-    id := id + thing.size;
+    id := id + thing.thing_size;
 end loop;
 print("thing table size: ");
 print_i16(thing_table_top);

@@ -5,21 +5,33 @@ const SECTION_RAMDATA := 3;
 const SECTION_NONINITDATA := 4;
 const SECTION_POINTERS := 5;
 
-const THING_STRING     := 1;
-const THING_IDENTIFIER := 2;
-const THING_NUMBER     := 3;
-const THING_NAMESPACE  := 4;
-const THING_SYMBOL     := 0x10;
-const THING_PHYSSYMBOL := 0x30;
-const THING_SUBROUTINE := 0x31;
-const THING_VARIABLE   := 0x32;
-const THING_LABEL      := 0x33;
-const THING_PTYPE      := 0x14;
-const THING_ARRAY      := 0x35;
+const THING_SYMBOL     := 0x10; # bitfield
+const THING_DATA       := 0x30; # bitfield
+const THING_TYPEDDATA  := 0x38; # bitfield
+const THING_TYPE       := 0x70; # bitfield
+const THING_NUMERIC    := 0xf0; # bitfield
+
+const THING_STRING     := 0x01;
+const THING_IDENTIFIER := 0x02;
+const THING_NUMBER     := 0x03;
+const THING_NAMESPACE  := 0x04;
+
+const THING_SUBROUTINE := 0x30;
+const THING_LABEL      := 0x31;
+
+const THING_VARIABLE   := 0x38; # bitfield
+const THING_PARAMETER  := 0x39;
+const THING_ARRAY      := 0x3a;
+
+const THING_RECORD     := 0x70;
+const THING_POINTER    := 0x71;
+
+const THING_UNSIGNED   := 0xf0;
+const THING_SIGNED     := 0xf1;
 
 record Thing
-    size: uint8;
-    type: uint8;
+    thing_size: uint8;
+    thing_type: uint8;
     payload: int8[0];
 end record;
 
@@ -33,13 +45,34 @@ record SymbolThing: Thing
     next_symbol: uint16;
 end record;
 
-record PhysicalSymbolThing: SymbolThing
-    type: uint16;
+record TypeThing: SymbolThing
+    width: uint8;
+end record;
+
+record NumericThing: TypeThing
+end record;
+
+record PointerThing: TypeThing
+    element_id: uint16;
+end record;
+
+record DataThing: SymbolThing
     section: uint8;
 end record;
 
-record SubroutineThing: PhysicalSymbolThing
+record SubroutineThing: DataThing
     namespace: uint16;
+end record;
+
+record TypedThing: DataThing
+    type: uint16;
+end record;
+
+record VariableThing: TypedThing
+end record;
+
+record ParameterThing: VariableThing
+    inout: uint8;
 end record;
 
 var thing_table: [int8] := LOMEM;
@@ -50,8 +83,8 @@ sub create_thing(type: uint8, size: uint8, out id: uint16)
     id := thing_table_top;
     var thing: [Thing] := &thing_table[id] as [Thing];
     zero_memory(thing as [int8], size + 1);
-    thing.size := size;
-    thing.type := type;
+    thing.thing_size := size;
+    thing.thing_type := type;
     thing_table_top := id + size;
 end sub;
 
@@ -68,7 +101,7 @@ end sub;
 
 sub print_string_thing(id: uint16)
     var thing: [Thing] := find_thing(id);
-    var len: uint8 := thing.size - 2;
+    var len: uint8 := thing.thing_size - 2;
     var i: uint8 := 0;
     while i < len loop
         print_char(thing.payload[i]);
@@ -81,18 +114,18 @@ sub find_thing_by_value(type: uint8, length: uint8, value: [int8], out id: uint1
     id := 1;
     loop
         thing := &thing_table[id] as [Thing];
-        if thing.size == 0 then
+        if thing.thing_size == 0 then
             break;
         end if;
-        if thing.size == (length+2) then
-            if thing.type == type then
+        if thing.thing_size == (length+2) then
+            if thing.thing_type == type then
                 if compare_memory(value, &thing_table[id+2], length) == 0 then
                     return;
                 end if;
             end if;
         end if;
 
-        id := id + thing.size;
+        id := id + thing.thing_size;
     end loop;
 
     id := create_thing(type, length+2);
