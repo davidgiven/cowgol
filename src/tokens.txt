@@ -39,6 +39,8 @@ inout     INOUT
 @section  SECTION
 
 # Binary operators, in increasing order of precedence. Note the unary
+<<        LEFTSHIFT
+>>        RIGHTSHIFT
 +         PLUS
 -         MINUS
 *         STAR

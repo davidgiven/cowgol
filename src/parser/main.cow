@@ -15,12 +15,13 @@ end sub;
 sub push_subroutine()
     lexical_push(current_subroutine_id);
     lexical_push(current_namespace_id);
+    lexical_push(ioptab_size);
     lexical_push(TOKEN_SUB);
 end sub;
 
 sub pop_subroutine()
-    flush_iops();
     lexical_pop_scope_type(TOKEN_SUB);
+    flush_iops(lexical_pop());
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
 end sub;
@@ -186,7 +187,7 @@ while current_token != 0 loop
         halt();
     end if;
 end loop;
-flush_iops();
+flush_iops(0);
 close_iopfile();
 
 print("thing table size: ");

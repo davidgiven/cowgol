@@ -62,8 +62,6 @@ end record;
 
 record SubroutineThing: DataThing
     namespace: uint16;
-    iop_start: uint32;
-    iop_length: uint32;
 end record;
 
 record LabelThing: DataThing

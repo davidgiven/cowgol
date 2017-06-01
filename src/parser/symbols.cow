@@ -40,6 +40,22 @@ sub lexical_pop(out value: uint16)
     value := lexical_stack[lexical_stack_ptr];
 end sub;
 
+sub lexical_push32(value: uint32)
+    var buf: uint16[2];
+    var ptr: [uint32] := &buf[0] as [uint32];
+    ptr[0] := value;
+    lexical_push(buf[0]);
+    lexical_push(buf[1]);
+end sub;
+
+sub lexical_pop32(out value: uint32)
+    var buf: uint16[2];
+    var ptr: [uint32] := &buf[0] as [uint32];
+    buf[1] := lexical_pop();
+    buf[0] := lexical_pop();
+    value := ptr[0];
+end sub;
+
 sub lexical_peek(out value: uint16)
     value := lexical_stack[lexical_stack_ptr - 1];
 end sub;

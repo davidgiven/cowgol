@@ -1,3 +1,8 @@
+record IHeader
+    thing_id: uint16;
+    iop_size: uint16;
+end record;
+
 record Iop
     iop_size: uint8;
     iop_kind: uint8;
