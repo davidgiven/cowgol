@@ -33,6 +33,8 @@ inout     INOUT
 
 # Attributes and specials.
 @bytes    BYTES
+@string   STRING
+@pointer  POINTER
 @size     SIZE
 @section  SECTION
 

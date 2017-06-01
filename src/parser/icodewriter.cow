@@ -1,0 +1,35 @@
+var ioptab_top: [int8] := HIMEM;
+var ioptab_size: uint16 := 0;
+var iopfd: uint8;
+
+sub emit(kind: uint8, size: uint8, out ptr: [Iop])
+    ioptab_size := ioptab_size + size;
+    ptr := &ioptab_top[0-ioptab_size] as [Iop];
+    ptr.iop_kind := kind;
+    ptr.iop_size := size;
+
+    var current_subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
+    current_subroutine.iop_length := current_subroutine.iop_length + size;
+end sub;
+
+sub flush_iops()
+    var current_subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
+    current_subroutine.iop_start := file_tell(iopfd);
+    var remaining: uint32 := current_subroutine.iop_length;
+
+    while remaining != 0 loop
+        var iop: [Iop] := &ioptab_top[0-ioptab_size] as [Iop];
+        var size: uint8 := iop.iop_size;
+        file_putblock(iopfd, iop as [int8], size);
+        remaining := remaining - size;
+        ioptab_size := ioptab_size - size;
+    end loop;
+end sub;
+
+sub open_iopfile(filename: [int8])
+    iopfd := file_openout(filename);
+end sub;
+
+sub close_iopfile()
+    file_close(iopfd);
+end sub;

@@ -66,7 +66,15 @@ sub show_subroutine_thing(thing: [SubroutineThing])
     show_data_thing(thing as [DataThing]);
     print("subroutine(namespace=0x");
     print_hex_i16(thing.namespace);
+    print(" iop_start=0x");
+    print_hex_i32(thing.iop_start);
+    print(" iop_length=0x");
+    print_hex_i32(thing.iop_length);
     print(") ");
+end sub;
+
+sub show_label_thing(thing: [LabelThing])
+    show_data_thing(thing as [DataThing]);
 end sub;
 
 sub show_type_thing(thing: [TypeThing])
@@ -113,6 +121,8 @@ loop
         show_namespace_thing(thing as [NamespaceThing]);
     elseif type == THING_SUBROUTINE then
         show_subroutine_thing(thing as [SubroutineThing]);
+    elseif type == THING_LABEL then
+        show_label_thing(thing as [LabelThing]);
     elseif type == THING_SIGNED then
         show_numeric_thing("signed_type", thing as [NumericThing]);
     elseif type == THING_UNSIGNED then

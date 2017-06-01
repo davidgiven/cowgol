@@ -1,0 +1,23 @@
+record Iop
+    iop_size: uint8;
+    iop_kind: uint8;
+    payload: int8[0];
+end record;
+
+const IOP_STOP := 0;
+
+const IOP_LABEL := 1;
+const IOP_SECTION := 2;
+const IOP_STRING := 3;
+
+record LabelIop: Iop
+    label_id: uint16;
+end record;
+
+record SectionIop: Iop
+    section: uint8;
+end record;
+
+record StringIop: Iop
+    string_id: uint16;
+end record;
