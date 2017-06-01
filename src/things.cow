@@ -35,6 +35,11 @@ record Thing
     payload: int8[0];
 end record;
 
+record StringThing: Thing
+    string_length: uint8;
+    string_offset: uint16;
+end record;
+
 record NamespaceThing: Thing
     previous_namespace: uint16;
     first_symbol: uint16;

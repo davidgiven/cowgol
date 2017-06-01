@@ -1,0 +1,54 @@
+var current_arg: int8 := 1;
+var current_filename: [int8];
+var current_fd: int8 := -1;
+var current_byte: int8 := -1;
+var peeked_byte: int8 := -1;
+var line_number: int16;
+
+var input_buffer: int8[256];
+var buffer_index: uint8 := 0;
+
+sub next_byte()
+    current_byte := peeked_byte;
+
+    loop
+        if current_fd != -1 then
+            peeked_byte := file_getchar(current_fd);
+            if peeked_byte == -1 then
+                file_close(current_fd);
+                current_fd := -1;
+                peeked_byte := 10;
+            end if;
+            return;
+        end if;
+
+        current_filename := ARGV[current_arg];
+        if current_filename != 0 then
+            current_arg := current_arg + 1;
+            current_fd := file_openin(current_filename);
+            line_number := 1;
+        end if;
+
+        if current_fd == -1 then
+            peeked_byte := -1;
+            return;
+        end if;
+    end loop;
+end sub;
+
+sub error_with_location()
+    print(", at about line ");
+    print_i16(line_number);
+    print(" of ");
+    print(current_filename);
+    print_newline();
+    exit(1);
+end sub;
+
+sub print_buffer()
+    var i: int8 := 0;
+    while i < buffer_index loop
+        print_char(input_buffer[i]);
+        i := i + 1;
+    end loop;
+end sub;

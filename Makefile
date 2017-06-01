@@ -10,6 +10,17 @@ TEST_SRCS =	\
 TEST_BINS = $(patsubst %.test.cow,.obj/%.test.exe,$(TEST_SRCS))
 TEST_STAMPS = $(patsubst %.test.cow,.obj/%.stamp,$(TEST_SRCS))
 
+TOKENISER_SRCS = \
+	src/string_lib.cow \
+	src/ctype_lib.cow \
+	src/numbers_lib.cow \
+	src/things.cow \
+	src/tokeniser/lexer.cow \
+	src/_token_names.cow \
+	src/_token_table.cow \
+	src/tokeniser/tokeniser.cow \
+	src/tokeniser/main.cow
+
 PARSER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
@@ -29,7 +40,11 @@ THINGSHOWER_SRCS = \
 	src/things.cow \
 	src/thingshower/thingshower.cow
 
-all: tests bin/parser bin/thingshower
+all: tests bin/tokeniser bin/parser bin/thingshower
+
+bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
+	@echo BUILD $@
+	$(hide) ./cowboot -o $@ $(TOKENISER_SRCS)
 
 bin/parser: $(PARSER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
