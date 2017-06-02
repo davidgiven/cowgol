@@ -658,7 +658,7 @@ function do_record()
         end
     end
 
-    emit("};")
+    emit("} __attribute__((packed));")
     current_fn = old_fn
     current_ns = old_ns
 
