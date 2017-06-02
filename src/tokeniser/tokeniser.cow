@@ -25,7 +25,7 @@ sub read_identifier()
     buf[0].thing_type := THING_IDENTIFIER;
     buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
-    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]) | TOKEN_TYPE_IDENTIFIER;
+    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
     emit_token(token_id);
 end sub;
 
@@ -54,7 +54,6 @@ sub read_number()
     end if;
 
     var tokenid: uint16 := find_thing_by_value(&buf[0] as [Thing]);
-    tokenid := tokenid | TOKEN_TYPE_NUMBER;
     emit_token(tokenid);
 end sub;
 
@@ -89,7 +88,7 @@ sub read_symbol()
     buf[0].thing_type := THING_IDENTIFIER;
     buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
-    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]) | TOKEN_TYPE_IDENTIFIER;
+    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
     emit_token(token_id);
 end sub;
 
@@ -126,7 +125,7 @@ sub read_string()
     buf[0].thing_size := StringThing@bytes;
     buf[0].string_id := string_id;
     buf[0].string_size := buffer_index;
-    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]) | TOKEN_TYPE_STRING;
+    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
     emit_token(token_id);
 end sub;
 
@@ -143,7 +142,6 @@ sub read_char_constant()
     buf[0].value := current_byte;
 
     var tokenid: uint16 := find_thing_by_value(&buf[0] as [Thing]);
-    tokenid := tokenid | TOKEN_TYPE_NUMBER;
     emit_token(tokenid);
 
     next_byte();
@@ -193,30 +191,11 @@ sub next_token()
     next_byte();
 end sub;
 
-sub skip_whitespace()
-    loop
-        var token_type: uint16 := current_token & TOKEN_TYPE_MASK;
-        if token_type == TOKEN_TYPE_FILENAME then
-            filename_id := current_token & TOKEN_VALUE_MASK;
-        elseif token_type == TOKEN_TYPE_LINENO then
-            line_no := current_token & TOKEN_VALUE_MASK;
-        else
-            break;
-        end if;
-        next_token();
-    end loop;
-end sub;
-
-sub next_token_without_whitespace()
-    next_token();
-    skip_whitespace();
-end sub;
-
 sub init_tokeniser()
     next_byte();
     next_byte();
-    next_token();
-    next_token_without_whitespace();
+    current_token := TOKEN_TYPE_LINENO;
+    peeked_token := TOKEN_TYPE_LINENO;
 end sub;
 
 sub install_identifier(name: [int8], id: uint16)
@@ -225,7 +204,7 @@ sub install_identifier(name: [int8], id: uint16)
 
     var string_id: uint16 := lookup_string();
     var buf: IdentifierThing[1];
-    buf[0].thing_type := THING_IDENTIFIER;
+    buf[0].thing_type := THING_TOKEN;
     buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
     var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);

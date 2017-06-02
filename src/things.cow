@@ -15,6 +15,7 @@ const THING_STRING     := 0x01;
 const THING_IDENTIFIER := 0x02;
 const THING_NUMBER     := 0x03;
 const THING_NAMESPACE  := 0x04;
+const THING_TOKEN      := 0x05;
 
 const THING_SUBROUTINE := 0x30;
 const THING_LABEL      := 0x31;

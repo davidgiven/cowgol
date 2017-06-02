@@ -113,7 +113,7 @@ loop
     print(": ");
 
     var type: uint8 := thing.thing_type;
-    if type == THING_IDENTIFIER then
+    if (type == THING_IDENTIFIER) | (type == THING_TOKEN) then
         show_identifier_thing(thing as [IdentifierThing]);
     elseif type == THING_NUMBER then
         show_number_thing(thing as [NumberThing]);

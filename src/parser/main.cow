@@ -76,12 +76,13 @@ sub expect_token(expected: uint16)
 end sub;
 
 sub expect_identifier(out id: uint16)
-    if (current_token & TOKEN_TYPE_MASK) != TOKEN_TYPE_IDENTIFIER then
+    var thing: [Thing] := find_thing(current_token);
+    if thing.thing_type != THING_TOKEN then
         print("missing identifier");
         halt();
     end if;
 
-    id := current_token & TOKEN_VALUE_MASK;
+    id := current_token;
     next_token();
 end sub;
 
@@ -170,7 +171,8 @@ init_tokenreader("tokens.dat");
 
 open_iopfile("iops.dat");
 while current_token != 0 loop
-    if (current_token & TOKEN_TYPE_MASK) == TOKEN_TYPE_IDENTIFIER then
+    var thing: [Thing] := find_thing(current_token);
+    if thing.thing_type == THING_IDENTIFIER then
         if (peeked_token == TOKEN_COLON) then
             do_label();
         else
