@@ -1,0 +1,32 @@
+var tokens_fd: uint8;
+var current_token: uint16;
+var peeked_token: uint16;
+var filename_id: uint16 := 0;
+var line_no: uint16 := 0;
+
+sub next_token()
+    loop
+        var buf: uint16[1];
+        buf[0] := 0;
+        file_getblock(tokens_fd, &buf[0] as [int8], 2);
+
+        current_token := peeked_token;
+        peeked_token := buf[0];
+
+        var token_type: uint16 := current_token & TOKEN_TYPE_MASK;
+        if token_type == TOKEN_TYPE_FILENAME then
+            filename_id := current_token & TOKEN_VALUE_MASK;
+        elseif token_type == TOKEN_TYPE_LINENO then
+            line_no := current_token & TOKEN_VALUE_MASK;
+        else
+            break;
+        end if;
+    end loop;
+end sub;
+
+sub init_tokenreader(filename: [int8])
+    tokens_fd := file_openin(filename);
+    current_token := TOKEN_TYPE_LINENO;
+    peeked_token := TOKEN_TYPE_LINENO;
+    next_token();
+end sub;

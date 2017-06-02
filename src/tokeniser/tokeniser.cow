@@ -8,35 +8,6 @@ sub emit_token(tokenid: uint16)
     peeked_token := tokenid;
 end sub;
 
-sub lookup_token(out tokenid: uint8)
-    var bi: uint8 := 0;
-    var ti: uint8 := 0;
-    tokenid := 1;
-    while token_table[ti] != 0 loop
-        loop
-            var c: int8 := token_table[ti];
-            if (c == 0) & (bi == buffer_index) then
-                return;
-            end if;
-            if input_buffer[bi] != c then
-                break;
-            end if;
-
-            ti := ti + 1;
-            bi := bi + 1;
-        end loop;
-
-        while token_table[ti] != 0 loop
-            ti := ti + 1;
-        end loop;
-
-        ti := ti + 1;
-        bi := 0;
-        tokenid := tokenid + 1;
-    end loop;
-    tokenid := 0;
-end sub;
-
 sub read_identifier()
     loop
         input_buffer[buffer_index] := current_byte;
@@ -49,13 +20,13 @@ sub read_identifier()
         next_byte();
     end loop;
 
-    var tokenid: uint16 := lookup_token();
-    if tokenid == 0 then
-        tokenid := find_thing_by_value(THING_IDENTIFIER, buffer_index, &input_buffer[0]);
-        tokenid := tokenid | TOKEN_TYPE_IDENTIFIER;
-    end if;
-
-    emit_token(tokenid);
+    var string_id: uint16 := lookup_string();
+    var buf: IdentifierThing[1];
+    buf[0].thing_type := THING_IDENTIFIER;
+    buf[0].thing_size := IdentifierThing@bytes;
+    buf[0].string_id := string_id;
+    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]) | TOKEN_TYPE_IDENTIFIER;
+    emit_token(token_id);
 end sub;
 
 sub read_number()
@@ -70,15 +41,19 @@ sub read_number()
         next_byte();
     end loop;
 
+    var buf: NumberThing[1];
+    buf[0].thing_type := THING_NUMBER;
+    buf[0].thing_size := NumberThing@bytes;
+
     input_buffer[buffer_index] := 0;
     var numbuf: int32[1];
     if (buffer_index >= 2) & (input_buffer[0] == '0') & (input_buffer[1] == 'x') then
-        numbuf[0] := string_to_number(&input_buffer[2], 16);
+        buf[0].value := string_to_number(&input_buffer[2], 16);
     else
-        numbuf[0] := string_to_number(&input_buffer[0], 10);
+        buf[0].value := string_to_number(&input_buffer[0], 10);
     end if;
 
-    var tokenid: uint16 := find_thing_by_value(THING_NUMBER, 4, (&numbuf[0]) as [int8]);
+    var tokenid: uint16 := find_thing_by_value(&buf[0] as [Thing]);
     tokenid := tokenid | TOKEN_TYPE_NUMBER;
     emit_token(tokenid);
 end sub;
@@ -109,14 +84,13 @@ sub read_symbol()
         buffer_index := 1;
     end if;
 
-    var tokenid: uint16 := lookup_token();
-    if tokenid == 0 then
-        print("unparseable symbol '");
-        print_buffer();
-        print("'");
-        error_with_location();
-    end if;
-    emit_token(tokenid);
+    var string_id: uint16 := lookup_string();
+    var buf: IdentifierThing[1];
+    buf[0].thing_type := THING_IDENTIFIER;
+    buf[0].thing_size := IdentifierThing@bytes;
+    buf[0].string_id := string_id;
+    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]) | TOKEN_TYPE_IDENTIFIER;
+    emit_token(token_id);
 end sub;
 
 sub decode_escaped_char()
@@ -146,9 +120,14 @@ sub read_string()
         next_byte();
     end loop;
 
-    var tokenid: uint16 := find_thing_by_value(THING_STRING, buffer_index, &input_buffer[0]);
-    tokenid := tokenid | TOKEN_TYPE_STRING;
-    emit_token(tokenid);
+    var string_id: uint16 := lookup_string();
+    var buf: StringThing[1];
+    buf[0].thing_type := THING_STRING;
+    buf[0].thing_size := StringThing@bytes;
+    buf[0].string_id := string_id;
+    buf[0].string_size := buffer_index;
+    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]) | TOKEN_TYPE_STRING;
+    emit_token(token_id);
 end sub;
 
 sub read_char_constant()
@@ -158,10 +137,12 @@ sub read_char_constant()
         decode_escaped_char();
     end if;
 
-    var numbuf: int32[1];
-    numbuf[0] := current_byte;
+    var buf: NumberThing[1];
+    buf[0].thing_type := THING_NUMBER;
+    buf[0].thing_size := NumberThing@bytes;
+    buf[0].value := current_byte;
 
-    var tokenid: uint16 := find_thing_by_value(THING_NUMBER, 4, (&numbuf[0]) as [int8]);
+    var tokenid: uint16 := find_thing_by_value(&buf[0] as [Thing]);
     tokenid := tokenid | TOKEN_TYPE_NUMBER;
     emit_token(tokenid);
 
@@ -236,4 +217,25 @@ sub init_tokeniser()
     next_byte();
     next_token();
     next_token_without_whitespace();
+end sub;
+
+sub install_identifier(name: [int8], id: uint16)
+    copy_string(name, &input_buffer[0]);
+    buffer_index := string_length(&input_buffer[0]);
+
+    var string_id: uint16 := lookup_string();
+    var buf: IdentifierThing[1];
+    buf[0].thing_type := THING_IDENTIFIER;
+    buf[0].thing_size := IdentifierThing@bytes;
+    buf[0].string_id := string_id;
+    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+
+    if token_id != id then
+        print("token id mismatch (internal error); wanted 0x");
+        print_hex_i16(id);
+        print(", got 0x");
+        print_hex_i16(token_id);
+        print_newline();
+        exit(1);
+    end if;
 end sub;

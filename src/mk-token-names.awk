@@ -12,5 +12,5 @@ BEGIN {
 
 /^[^#].*$/ {
     print "const TOKEN_" $2 " := " count ";"
-    count = count + 1;
+    count = count + 4;
 }

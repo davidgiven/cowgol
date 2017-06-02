@@ -16,9 +16,10 @@ TOKENISER_SRCS = \
 	src/numbers_lib.cow \
 	src/things.cow \
 	src/tokeniser/lexer.cow \
+	src/tokeniser/strings.cow \
 	src/_token_names.cow \
-	src/_token_table.cow \
 	src/tokeniser/tokeniser.cow \
+	src/_token_maker.cow \
 	src/tokeniser/main.cow
 
 PARSER_SRCS = \
@@ -26,11 +27,9 @@ PARSER_SRCS = \
 	src/ctype_lib.cow \
 	src/numbers_lib.cow \
 	src/things.cow \
-	src/parser/lexer.cow \
 	src/_token_names.cow \
-	src/_token_table.cow \
-	src/parser/tokeniser.cow \
 	src/icode.cow \
+	src/parser/tokenreader.cow \
 	src/parser/symbols.cow \
 	src/parser/icodewriter.cow \
 	src/parser/main.cow
@@ -44,14 +43,17 @@ all: tests bin/tokeniser bin/parser bin/thingshower
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
+	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(TOKENISER_SRCS)
 
 bin/parser: $(PARSER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
+	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(PARSER_SRCS)
 
 bin/thingshower: $(THINGSHOWER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
+	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(THINGSHOWER_SRCS)
 
 .phony: tests
@@ -79,10 +81,10 @@ src/_token_names.cow: src/tokens.txt src/mk-token-names.awk
 	@mkdir -p $(dir $@)
 	$(hide) awk -f src/mk-token-names.awk src/tokens.txt > src/_token_names.cow
 
-src/_token_table.cow: src/tokens.txt src/mk-token-table.awk
-	@echo TOKEN_TABLE $@
+src/_token_maker.cow: src/tokens.txt src/mk-token-maker.awk
+	@echo TOKEN_MAKER $@
 	@mkdir -p $(dir $@)
-	$(hide) awk -f src/mk-token-table.awk src/tokens.txt > src/_token_table.cow
+	$(hide) awk -f src/mk-token-maker.awk src/tokens.txt > src/_token_maker.cow
 
 clean:
-	$(hide) rm -rf .obj
+	$(hide) rm -rf .obj bin

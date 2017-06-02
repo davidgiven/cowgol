@@ -36,8 +36,16 @@ record Thing
 end record;
 
 record StringThing: Thing
-    string_length: uint8;
-    string_offset: uint16;
+    string_size: uint8;
+    string_id: uint16;
+end record;
+
+record IdentifierThing: Thing
+    string_id: uint16;
+end record;
+
+record NumberThing: Thing
+    value: uint32;
 end record;
 
 record NamespaceThing: Thing
@@ -117,7 +125,33 @@ sub print_string_thing(id: uint16)
     end loop;
 end sub;
 
-sub find_thing_by_value(type: uint8, length: uint8, value: [int8], out id: uint16)
+sub find_thing_by_value(template: [Thing], out id: uint16)
+    var thing: [Thing];
+    id := 1;
+    loop
+        thing := &thing_table[id] as [Thing];
+        if thing.thing_size == 0 then
+            break;
+        end if;
+        if thing.thing_size == template.thing_size then
+            if thing.thing_type == template.thing_type then
+                if compare_memory(template as [int8], thing as [int8], thing.thing_size) == 0 then
+                    return;
+                end if;
+            end if;
+        end if;
+
+        id := id + thing.thing_size;
+    end loop;
+
+    id := thing_table_top;
+    thing := &thing_table[id] as [Thing];
+    copy_memory(template as [int8], &thing_table[id] as [int8], template.thing_size);
+    thing_table_top := id + template.thing_size;
+    thing_table[thing_table_top] := 0;
+end sub;
+
+sub find_thing_by_payload(type: uint8, length: uint8, value: [int8], out id: uint16)
     var thing: [Thing];
     id := 1;
     loop

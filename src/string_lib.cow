@@ -2,10 +2,10 @@ sub copy_string(src: [int8], dest: [int8])
     var i: uint8 := 0;
     loop
         var c: int8 := src[i];
+        dest[i] := c;
         if c == 0 then
             break;
         end if;
-        dest[i] := c;
         i := i + 1;
     end loop;
 end sub;

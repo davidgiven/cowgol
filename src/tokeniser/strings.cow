@@ -1,0 +1,47 @@
+var stringtab_top: [int8] := HIMEM;
+var stringtab_base: [int8] := stringtab_top;
+
+sub lookup_string(out stringid: uint16)
+    var ptr: [int8] := stringtab_base;
+    while ptr < stringtab_top loop
+        var len: uint8 := ptr[0] - 1;
+        if len == buffer_index then
+            if compare_memory(&input_buffer[0], &ptr[1], len) == 0 then
+                stringid := stringtab_top - ptr;
+                return;
+            end if;
+        end if;
+        ptr := ptr + len + 1;
+    end loop;
+
+    stringtab_base := (stringtab_base - buffer_index) - 1;
+    stringtab_base[0] := buffer_index + 1;
+    copy_memory(&input_buffer[0], stringtab_base+1, buffer_index);
+    stringid := stringtab_top - stringtab_base;
+end sub;
+
+sub save_string_table(filename: [int8])
+    var fd: uint8 := file_openout(filename);
+    file_putblock(fd, stringtab_base, stringtab_top - stringtab_base);
+    file_close(fd);
+end sub;
+
+sub fixup_strings()
+    var length: uint16 := stringtab_top - stringtab_base;
+    var id: uint16 := 1;
+    loop
+        var thing: [Thing] := &thing_table[id] as [Thing];
+        if thing.thing_size == 0 then
+            break;
+        end if;
+        if thing.thing_type == THING_IDENTIFIER then
+            var identifier_thing: [IdentifierThing] := thing as [IdentifierThing];
+            identifier_thing.string_id := length - identifier_thing.string_id;
+        elseif thing.thing_type == THING_STRING then
+            var string_thing: [StringThing] := thing as [StringThing];
+            string_thing.string_id := length - string_thing.string_id;
+        end if;
+        id := id + thing.thing_size;
+    end loop;
+end sub;
+

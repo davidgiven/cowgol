@@ -1,36 +1,42 @@
 load_thing_table("things.dat");
+var strings_fd: uint8 := file_openin("strings.dat");
 
-sub show_identifier_thing(thing: [Thing])
-    var len: uint8 := thing.thing_size - 2;
-    print("identifier: ");
-    var i: uint8 := 0;
-    while i < len loop
-        print_char(thing.payload[i]);
-        i := i + 1;
-    end loop;
-end sub;
+sub show_string(string_id: uint16)
+    print("(0x");
+    print_hex_i16(string_id);
+    print(") ");
 
-sub show_string_thing(thing: [Thing])
-    var len: uint8 := thing.thing_size - 2;
-    print("string: \"");
-    var i: uint8 := 0;
-    while i < len loop
-        var c: int8 := thing.payload[i];
+    file_seek(strings_fd, string_id);
+    var len: uint8 := file_getchar(strings_fd);
+    print_char('"');
+    while len != 1 loop
+        var c: int8 := file_getchar(strings_fd);
         if (c < 32) | (c > 126) then
             print("\\x");
             print_hex_i8(c);
+        elseif c == '"' then
+            print("\\\"");
         else
             print_char(c);
         end if;
-        i := i + 1;
+        len := len - 1;
     end loop;
     print_char('"');
 end sub;
 
-sub show_number_thing(thing: [Thing])
+sub show_identifier_thing(thing: [IdentifierThing])
+    print("identifier: ");
+    show_string(thing.string_id);
+end sub;
+
+sub show_string_thing(thing: [StringThing])
+    print("string: ");
+    show_string(thing.string_id);
+end sub;
+
+sub show_number_thing(thing: [NumberThing])
     print("number: 0x");
-    var ptr: [uint32] := &thing.payload[0] as [uint32];
-    print_hex_i32(ptr[0]);
+    print_hex_i32(thing.value);
 end sub;
 
 sub show_namespace_thing(thing: [NamespaceThing])
@@ -108,11 +114,11 @@ loop
 
     var type: uint8 := thing.thing_type;
     if type == THING_IDENTIFIER then
-        show_identifier_thing(thing);
+        show_identifier_thing(thing as [IdentifierThing]);
     elseif type == THING_NUMBER then
-        show_number_thing(thing);
+        show_number_thing(thing as [NumberThing]);
     elseif type == THING_STRING then
-        show_string_thing(thing);
+        show_string_thing(thing as [StringThing]);
     elseif type == THING_NAMESPACE then
         show_namespace_thing(thing as [NamespaceThing]);
     elseif type == THING_SUBROUTINE then

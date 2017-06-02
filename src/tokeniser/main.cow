@@ -1,3 +1,4 @@
+install_identifiers();
 init_tokeniser();
 
 var tokens_fd: uint8 := file_openout("tokens.dat");
@@ -13,6 +14,14 @@ end loop;
 print("tokens read: ");
 print_i16(tokens_count);
 print_newline();
+file_close(tokens_fd);
+
+fixup_strings();
+
+print("string table size: ");
+print_i16(stringtab_top - stringtab_base);
+print_newline();
+save_string_table("strings.dat");
 
 print("thing table size: ");
 print_i16(thing_table_top);
