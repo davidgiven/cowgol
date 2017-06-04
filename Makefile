@@ -28,10 +28,12 @@ PARSER_SRCS = \
 	src/numbers_lib.cow \
 	src/things.cow \
 	src/_token_names.cow \
+	src/utils/stringtable.cow \
 	src/iops.cow \
 	src/parser/tokenreader.cow \
 	src/parser/symbols.cow \
 	src/parser/iopwriter.cow \
+	src/parser/expression.cow \
 	src/parser/main.cow
 
 THINGSHOWER_SRCS = \

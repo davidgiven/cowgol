@@ -14,6 +14,23 @@ const IOP_LABEL := 1;
 const IOP_SECTION := 2;
 const IOP_STRING := 3;
 
+const IOP_ASSIGN := 0x10;
+const IOP_THING := 0x80;
+const IOP_OFFSET := 0x81;
+const IOP_INDEX := 0x82;
+
+const IOP_ADDOP := 0x90;
+const IOP_SUBOP := 0x91;
+const IOP_MULOP := 0x92;
+const IOP_DIVOP := 0x93;
+const IOP_REMOP := 0x94;
+const IOP_ANDOP := 0x95;
+const IOP_OROP := 0x96;
+const IOP_EOROP := 0x97;
+const IOP_LSLOP := 0x98;
+const IOP_LSROP := 0x99;
+const IOP_ASROP := 0x9a;
+
 record LabelIop: Iop
     label_id: uint16;
 end record;
@@ -24,4 +41,19 @@ end record;
 
 record StringIop: Iop
     string_id: uint16;
+end record;
+
+record PushingIop: Iop
+    type_id: uint16;
+end record;
+
+record ThingIop: PushingIop
+    thing_id: uint16;
+end record;
+
+record OffsetIop: PushingIop
+    offset: int32;
+end record;
+
+record IndexIop: PushingIop
 end record;

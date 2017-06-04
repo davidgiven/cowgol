@@ -2,15 +2,17 @@
 end       END
 ;         SEMICOLON
 loop      LOOP
-]         CLOSESQUARE
+:=        ASSIGN
+          LAST_EXPR_END
 
-:         COLON
-,         COMMA
-.         DOT
 [         OPENSQUARE
+]         CLOSESQUARE
 (         OPENPAREN
 )         CLOSEPAREN
-:=        ASSIGN
+,         COMMA
+
+:         COLON
+.         DOT
 ==        EQOP
 !=        NEOP
 <         LTOP
@@ -39,12 +41,12 @@ inout     INOUT
 @section  SECTION
 
 # Primitive types.
-int8      INT8
-uint8     UINT8
-int16     INT16
-uint16    UINT16
-int32     INT32
-uint32    UINT32
+int8      INT8      THING_IDENTIFIER
+uint8     UINT8     THING_IDENTIFIER
+int16     INT16     THING_IDENTIFIER
+uint16    UINT16    THING_IDENTIFIER
+int32     INT32     THING_IDENTIFIER
+uint32    UINT32    THING_IDENTIFIER
 
 # Binary operators, in increasing order of precedence. Note the unary
 <<        LEFTSHIFT

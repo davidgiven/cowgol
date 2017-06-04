@@ -16,6 +16,19 @@ sub do_label(iop: [LabelIop])
     end if;
 end sub;
 
+sub do_thing(iop: [ThingIop])
+    print("THING id=0x");
+    print_hex_i16(iop.thing_id);
+    print(" type=0x");
+    print_hex_i16(iop.type_id);
+end sub;
+
+sub do_pushing(kind: [int8], iop: [PushingIop])
+    print(kind);
+    print(" pushing type=0x");
+    print_hex_i16(iop.type_id);
+end sub;
+
 loop
     var header: [IHeader] := read_iop_header();
     if header.thing_id == 0 then
@@ -43,6 +56,14 @@ loop
             print("END");
         elseif kind == IOP_LABEL then
             do_label(iop as [LabelIop]);
+        elseif kind == IOP_ASSIGN then
+            print("ASSIGN");
+        elseif kind == IOP_THING then
+            do_thing(iop as [ThingIop]);
+        elseif kind == IOP_ADDOP then
+            do_pushing("ADDOP", iop as [PushingIop]);
+        elseif kind == IOP_SUBOP then
+            do_pushing("SUBOP", iop as [PushingIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

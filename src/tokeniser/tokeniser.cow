@@ -206,13 +206,13 @@ sub init_tokeniser()
     peeked_token := TOKEN_TYPE_LINENO;
 end sub;
 
-sub install_identifier(name: [int8], id: uint16)
+sub install_identifier(name: [int8], id: uint16, thingtype: uint8)
     copy_string(name, &input_buffer[0]);
     buffer_index := string_length(&input_buffer[0]);
 
     var string_id: uint16 := lookup_string();
     var buf: IdentifierThing[1];
-    buf[0].thing_type := THING_TOKEN;
+    buf[0].thing_type := thingtype;
     buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
     var token_id: uint16 := add_thing_by_value(&buf[0] as [Thing]);

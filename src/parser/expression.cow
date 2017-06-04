@@ -1,0 +1,98 @@
+var operator_stack: uint16[32];
+var operator_stack_pos: uint8;
+
+sub do_expression()
+    const STATE_BEFORE := 0;
+    const STATE_AFTER := 1;
+
+    operator_stack_pos := 0;
+    var state: uint8 := STATE_BEFORE;
+
+    sub peek_op(out op: uint16)
+        if operator_stack_pos == 0 then
+            op := 0;
+        else
+            op := operator_stack[operator_stack_pos-1];
+        end if;
+    end sub;
+
+    sub push_op(op: uint16)
+        if operator_stack_pos == operator_stack@size then
+            print("expression too complex");
+            halt();
+        end if;
+
+        operator_stack[operator_stack_pos] := op;
+        operator_stack_pos := operator_stack_pos + 1;
+    end sub;
+
+    sub pop_op(out op: uint16)
+        if operator_stack_pos == 0 then
+            print("expression stack underflow");
+            halt();
+        end if;
+
+        operator_stack_pos := operator_stack_pos - 1;
+        op := operator_stack[operator_stack_pos];
+    end sub;
+
+    sub flush_ops()
+        while operator_stack_pos > 0 loop
+            operator_stack_pos := operator_stack_pos - 1;
+            var op_id: uint16 := operator_stack[operator_stack_pos];
+            var op: [Thing] := find_thing(op_id);
+
+            if op_id == TOKEN_PLUS then
+                emit_simple_pushing(IOP_ADDOP);
+            elseif op_id == TOKEN_MINUS then
+                emit_simple_pushing(IOP_SUBOP);
+            else
+                print("unknown operator ");
+                show_identifier(op_id);
+                halt();
+            end if;
+        end loop;
+    end sub;
+
+    var thing: [Thing];
+    var thing_iop: [ThingIop];
+    loop
+        if state == STATE_BEFORE then
+            # Before a leaf.
+            if current_token == TOKEN_OPENPAREN then
+                next_token();
+                push_op(TOKEN_OPENPAREN);
+            else
+                thing := find_thing(current_token);
+                if thing.thing_type == THING_IDENTIFIER then
+                    thing_iop := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
+                    thing_iop.thing_id := current_token;
+                    next_token();
+                    state := STATE_AFTER;
+                else
+                    print("bad token");
+                    halt();
+                end if;
+            end if;
+        else
+            # After a leaf (this is the only valid place to end an expression).
+            if current_token < TOKEN_LAST_EXPR_END then
+                break;
+            elseif (current_token == TOKEN_PLUS) | (current_token == TOKEN_MINUS) then
+                push_op(current_token);
+                next_token();
+                state := STATE_BEFORE;
+            else
+                print("bad state ");
+                show_identifier(current_token);
+                halt();
+            end if;
+        end if;
+    end loop;
+
+    flush_ops();
+    if operator_stack_pos != 0 then
+        print("unmatched expression");
+        halt();
+    end if;
+end sub;

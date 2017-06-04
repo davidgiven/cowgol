@@ -6,7 +6,11 @@ BEGIN {
     print "const TOKEN_TYPE_LINENO := 0xe000;"
 }
 
-/^[^#].*$/ {
+/^[^ #].*$/ {
     print "const TOKEN_" $2 " := " count ";"
     count = count + 4;
+}
+
+/^ .*$/ {
+    print "const TOKEN_" $1 " := " count ";"
 }

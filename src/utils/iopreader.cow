@@ -12,9 +12,6 @@ sub read_iop_header(out header: [IHeader])
 end sub;
 
 sub read_iop(out iop: [Iop])
-print("(at ");
-print_hex_i32(file_tell(iops_fd));
-print(")\n");
     iop_buffer[0] := file_getchar(iops_fd);
     file_getblock(iops_fd, &iop_buffer[1] as [int8], iop_buffer[0] - 1);
     iop := &iop_buffer[0] as [Iop];

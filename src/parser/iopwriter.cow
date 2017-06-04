@@ -7,8 +7,17 @@ sub emit(kind: uint8, size: uint8, out ptr: [Iop])
     ioptab_top[0-ioptab_size] := size;
     ioptab_size := ioptab_size + size;
     ptr := &ioptab_top[0-ioptab_size] as [Iop];
+    zero_memory(ptr as [int8], size);
     ptr.iop_kind := kind;
     ptr.iop_size := size;
+end sub;
+
+sub emit_simple(kind: uint8)
+    var iop: [Iop] := emit(kind, Iop@bytes);
+end sub;
+
+sub emit_simple_pushing(kind: uint8)
+    var iop: [PushingIop] := emit(kind, PushingIop@bytes) as [PushingIop];
 end sub;
 
 sub flush_iops(oldtop: uint16)
