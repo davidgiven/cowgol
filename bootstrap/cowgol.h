@@ -33,6 +33,7 @@ extern void cowgol_file_getblock(void);
 extern void cowgol_file_seek(void);
 extern void cowgol_file_tell(void);
 extern void cowgol_file_ext(void);
+extern void cowgol_file_eof(void);
 extern void cowgol_file_close(void);
 
 extern void cowgol_exit(void);

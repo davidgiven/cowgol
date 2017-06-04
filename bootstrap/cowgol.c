@@ -72,6 +72,10 @@ void cowgol_file_tell(void) {
     extern_u32 = ftell(filetab[extern_i8]);
 }
 
+void cowgol_file_eof(void) {
+    extern_i8 = feof(filetab[extern_i8]);
+}
+
 void cowgol_file_ext(void) {
     FILE* fp = filetab[extern_i8];
     long old = ftell(fp);

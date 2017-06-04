@@ -1189,6 +1189,10 @@ create_extern_function("file_ext", "cowgol_file_ext",
     { name="fd", inout="in", variable=extern_i8 },
     { name="offset", inout="out", variable=extern_u32 }
 )
+create_extern_function("file_eof", "cowgol_file_eof",
+    { name="fd", inout="in", variable=extern_i8 },
+    { name="eof", inout="out", variable=extern_i8 }
+)
 create_extern_function("file_close", "cowgol_file_close",
     { name="fd", inout="in", variable=extern_i8 }
 )
