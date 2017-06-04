@@ -1,5 +1,7 @@
 var stringtab_top: [int8] := HIMEM;
 var stringtab_base: [int8] := stringtab_top;
+var input_buffer: int8[256];
+var buffer_index: uint8 := 0;
 
 sub lookup_string(out stringid: uint16)
     var ptr: [int8] := stringtab_base;

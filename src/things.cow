@@ -110,6 +110,7 @@ sub find_thing(id: uint16, out thing: [Thing])
         print("thing id ");
         print_hex_i16(id);
         print(" out of bounds");
+        print_newline();
         exit(1);
     end if;
 
@@ -127,10 +128,9 @@ sub print_string_thing(id: uint16)
 end sub;
 
 sub find_thing_by_value(template: [Thing], out id: uint16)
-    var thing: [Thing];
     id := 1;
     loop
-        thing := &thing_table[id] as [Thing];
+        var thing: [Thing] := &thing_table[id] as [Thing];
         if thing.thing_size == 0 then
             break;
         end if;
@@ -145,11 +145,18 @@ sub find_thing_by_value(template: [Thing], out id: uint16)
         id := id + thing.thing_size;
     end loop;
 
-    id := thing_table_top;
-    thing := &thing_table[id] as [Thing];
-    copy_memory(template as [int8], &thing_table[id] as [int8], template.thing_size);
-    thing_table_top := id + template.thing_size;
-    thing_table[thing_table_top] := 0;
+    id := 0;
+end sub;
+
+sub add_thing_by_value(template: [Thing], out id: uint16)
+    id := find_thing_by_value(template);
+    if id == 0 then
+        id := thing_table_top;
+        var thing: [Thing] := &thing_table[id] as [Thing];
+        copy_memory(template as [int8], &thing_table[id] as [int8], template.thing_size);
+        thing_table_top := id + template.thing_size;
+        thing_table[thing_table_top] := 0;
+    end if;
 end sub;
 
 sub find_thing_by_payload(type: uint8, length: uint8, value: [int8], out id: uint16)

@@ -3,6 +3,8 @@ var ioptab_size: uint16 := 0;
 var iopfd: uint8;
 
 sub emit(kind: uint8, size: uint8, out ptr: [Iop])
+    ioptab_size := ioptab_size + 1;
+    ioptab_top[0-ioptab_size] := size;
     ioptab_size := ioptab_size + size;
     ptr := &ioptab_top[0-ioptab_size] as [Iop];
     ptr.iop_kind := kind;
@@ -12,15 +14,18 @@ end sub;
 sub flush_iops(oldtop: uint16)
     var header: IHeader[1];
     header[0].thing_id := current_subroutine_id;
-    header[0].iop_size := ioptab_size - oldtop;
     file_putblock(iopfd, &header[0] as [int8], IHeader@bytes);
 
-    while ioptab_size > oldtop loop
-        var iop: [Iop] := &ioptab_top[0-ioptab_size] as [Iop];
-        var size: uint8 := iop.iop_size;
+    var offset: uint16 := oldtop;
+    while offset < ioptab_size loop
+        offset := offset + 1;
+        var size: uint8 := ioptab_top[0-offset];
+        offset := offset + size;
+        var iop: [Iop] := &ioptab_top[0-offset] as [Iop];
         file_putblock(iopfd, iop as [int8], size);
-        ioptab_size := ioptab_size - size;
     end loop;
+
+    ioptab_size := oldtop;
 end sub;
 
 sub open_iopfile(filename: [int8])
@@ -28,5 +33,8 @@ sub open_iopfile(filename: [int8])
 end sub;
 
 sub close_iopfile()
+    var buf: IHeader[1];
+    buf[0].thing_id := 0;
+    file_putblock(iopfd, &buf[0] as [int8], IHeader@bytes);
     file_close(iopfd);
 end sub;

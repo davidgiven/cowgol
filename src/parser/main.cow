@@ -21,6 +21,9 @@ end sub;
 
 sub pop_subroutine()
     lexical_pop_scope_type(TOKEN_SUB);
+
+    var iop: [Iop] := emit(IOP_END, Iop@bytes);
+
     flush_iops(lexical_pop());
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
@@ -77,7 +80,7 @@ end sub;
 
 sub expect_identifier(out id: uint16)
     var thing: [Thing] := find_thing(current_token);
-    if thing.thing_type != THING_TOKEN then
+    if thing.thing_type != THING_IDENTIFIER then
         print("missing identifier");
         halt();
     end if;
@@ -189,6 +192,7 @@ while current_token != 0 loop
         halt();
     end if;
 end loop;
+var iop: [Iop] := emit(IOP_END, Iop@bytes);
 flush_iops(0);
 close_iopfile();
 

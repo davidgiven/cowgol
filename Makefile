@@ -15,8 +15,8 @@ TOKENISER_SRCS = \
 	src/ctype_lib.cow \
 	src/numbers_lib.cow \
 	src/things.cow \
-	src/tokeniser/lexer.cow \
 	src/tokeniser/strings.cow \
+	src/tokeniser/lexer.cow \
 	src/_token_names.cow \
 	src/tokeniser/tokeniser.cow \
 	src/_token_maker.cow \
@@ -28,18 +28,27 @@ PARSER_SRCS = \
 	src/numbers_lib.cow \
 	src/things.cow \
 	src/_token_names.cow \
-	src/icode.cow \
+	src/iops.cow \
 	src/parser/tokenreader.cow \
 	src/parser/symbols.cow \
-	src/parser/icodewriter.cow \
+	src/parser/iopwriter.cow \
 	src/parser/main.cow
 
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \
 	src/things.cow \
+	src/utils/stringtable.cow \
 	src/thingshower/thingshower.cow
 
-all: tests bin/tokeniser bin/parser bin/thingshower
+IOPSHOWER_SRCS = \
+	src/string_lib.cow \
+	src/iops.cow \
+	src/things.cow \
+	src/utils/stringtable.cow \
+	src/utils/iopreader.cow \
+	src/iopshower/iopshower.cow
+
+all: tests bin/tokeniser bin/parser bin/thingshower bin/iopshower
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
@@ -55,6 +64,11 @@ bin/thingshower: $(THINGSHOWER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(THINGSHOWER_SRCS)
+
+bin/iopshower: $(IOPSHOWER_SRCS) $(BOOTSTRAP)
+	@echo BUILD $@
+	@mkdir -p $(dir $@)
+	$(hide) ./cowboot -o $@ $(IOPSHOWER_SRCS)
 
 .phony: tests
 tests: $(TEST_STAMPS)

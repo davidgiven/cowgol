@@ -22,10 +22,14 @@ sub read_identifier()
 
     var string_id: uint16 := lookup_string();
     var buf: IdentifierThing[1];
-    buf[0].thing_type := THING_IDENTIFIER;
+    buf[0].thing_type := THING_TOKEN;
     buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
     var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    if token_id == 0 then
+        buf[0].thing_type := THING_IDENTIFIER;
+        token_id := add_thing_by_value(&buf[0] as [Thing]);
+    end if;
     emit_token(token_id);
 end sub;
 
@@ -53,7 +57,7 @@ sub read_number()
         buf[0].value := string_to_number(&input_buffer[0], 10);
     end if;
 
-    var tokenid: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    var tokenid: uint16 := add_thing_by_value(&buf[0] as [Thing]);
     emit_token(tokenid);
 end sub;
 
@@ -85,10 +89,14 @@ sub read_symbol()
 
     var string_id: uint16 := lookup_string();
     var buf: IdentifierThing[1];
-    buf[0].thing_type := THING_IDENTIFIER;
+    buf[0].thing_type := THING_TOKEN;
     buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
     var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    if token_id == 0 then
+        print("unrecognised symbol");
+        error_with_location();
+    end if;
     emit_token(token_id);
 end sub;
 
@@ -125,7 +133,7 @@ sub read_string()
     buf[0].thing_size := StringThing@bytes;
     buf[0].string_id := string_id;
     buf[0].string_size := buffer_index;
-    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    var token_id: uint16 := add_thing_by_value(&buf[0] as [Thing]);
     emit_token(token_id);
 end sub;
 
@@ -141,7 +149,7 @@ sub read_char_constant()
     buf[0].thing_size := NumberThing@bytes;
     buf[0].value := current_byte;
 
-    var tokenid: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    var tokenid: uint16 := add_thing_by_value(&buf[0] as [Thing]);
     emit_token(tokenid);
 
     next_byte();
@@ -207,7 +215,7 @@ sub install_identifier(name: [int8], id: uint16)
     buf[0].thing_type := THING_TOKEN;
     buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
-    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    var token_id: uint16 := add_thing_by_value(&buf[0] as [Thing]);
 
     if token_id != id then
         print("token id mismatch (internal error); wanted 0x");

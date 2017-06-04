@@ -1,0 +1,57 @@
+load_thing_table("things.dat");
+
+sub print_identifier(identifier_id: uint16)
+    var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];
+    show_string(identifier.string_id);
+end sub;
+
+sub do_label(iop: [LabelIop])
+    print("LABEL 0x");
+    print_hex_i16(iop.label_id);
+
+    var label: [LabelThing] := find_thing(iop.label_id) as [LabelThing];
+    if label.name != 0 then
+        print(": ");
+        print_identifier(label.name);
+    end if;
+end sub;
+
+loop
+    var header: [IHeader] := read_iop_header();
+    if header.thing_id == 0 then
+        break;
+    end if;
+
+    var subroutine: [SubroutineThing] := find_thing(header.thing_id) as [SubroutineThing];
+    print("SUBROUTINE: 0x");
+    print_hex_i16(header.thing_id);
+    print(": ");
+    if subroutine.name != 0 then
+        print_identifier(subroutine.name);
+    else
+        print("(main subroutine)");
+    end if;
+    print_newline();
+
+    var offset: uint16 := IHeader@bytes;
+    loop
+        var iop: [Iop] := read_iop();
+        var kind: uint8 := iop.iop_kind;
+        print_hex_i16(offset);
+        print(": ");
+        if kind == IOP_END then
+            print("END");
+        elseif kind == IOP_LABEL then
+            do_label(iop as [LabelIop]);
+        else
+            print("Unknown iop 0x");
+            print_hex_i8(kind);
+        end if;
+        print_newline();
+        offset := offset + iop.iop_size;
+        if kind == IOP_END then
+            break;
+        end if;
+    end loop;
+    print_newline();
+end loop;

@@ -1,31 +1,6 @@
-load_thing_table("things.dat");
-var strings_fd: uint8 := file_openin("strings.dat");
-
-sub show_string(string_id: uint16)
-    print("(0x");
-    print_hex_i16(string_id);
-    print(") ");
-
-    file_seek(strings_fd, string_id);
-    var len: uint8 := file_getchar(strings_fd);
-    print_char('"');
-    while len != 1 loop
-        var c: int8 := file_getchar(strings_fd);
-        if (c < 32) | (c > 126) then
-            print("\\x");
-            print_hex_i8(c);
-        elseif c == '"' then
-            print("\\\"");
-        else
-            print_char(c);
-        end if;
-        len := len - 1;
-    end loop;
-    print_char('"');
-end sub;
-
-sub show_identifier_thing(thing: [IdentifierThing])
-    print("identifier: ");
+sub show_identifier_thing(kind: [int8], thing: [IdentifierThing])
+    print(kind);
+    print(": ");
     show_string(thing.string_id);
 end sub;
 
@@ -103,6 +78,7 @@ sub show_numeric_thing(kind: [int8], thing: [NumericThing])
     print(kind);
 end sub;
 
+load_thing_table("things.dat");
 var id: uint16 := 1;
 loop
     var thing: [Thing] := &thing_table[id] as [Thing];
@@ -113,8 +89,10 @@ loop
     print(": ");
 
     var type: uint8 := thing.thing_type;
-    if (type == THING_IDENTIFIER) | (type == THING_TOKEN) then
-        show_identifier_thing(thing as [IdentifierThing]);
+    if (type == THING_IDENTIFIER) then
+        show_identifier_thing("identifier", thing as [IdentifierThing]);
+    elseif (type == THING_TOKEN) then
+        show_identifier_thing("token", thing as [IdentifierThing]);
     elseif type == THING_NUMBER then
         show_number_thing(thing as [NumberThing]);
     elseif type == THING_STRING then

@@ -5,9 +5,6 @@ var current_byte: int8 := -1;
 var peeked_byte: int8 := -1;
 var line_number: int16;
 
-var input_buffer: int8[256];
-var buffer_index: uint8 := 0;
-
 sub next_byte()
     current_byte := peeked_byte;
 
