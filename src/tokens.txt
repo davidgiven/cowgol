@@ -3,16 +3,16 @@ end       END
 ;         SEMICOLON
 loop      LOOP
 :=        ASSIGN
-          LAST_EXPR_END
-
-:         COLON
-.         DOT
 ==        EQOP
 !=        NEOP
 <         LTOP
 <=        LEOP
 >         GTOP
 >=        GEOP
+          LAST_EXPR_END
+
+:         COLON
+.         DOT
 sub       SUB
 while     WHILE
 if        IF

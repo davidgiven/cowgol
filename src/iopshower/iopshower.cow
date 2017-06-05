@@ -58,6 +58,8 @@ loop
             do_label(iop as [LabelIop]);
         elseif kind == IOP_ASSIGN then
             print("ASSIGN");
+        elseif kind == IOP_GOTO then
+            print("GOTO");
         elseif kind == IOP_THING then
             do_thing(iop as [ThingIop]);
         elseif kind == IOP_ADDOP then

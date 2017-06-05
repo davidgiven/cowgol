@@ -200,6 +200,16 @@ sub do_assignment()
     emit_simple(IOP_ASSIGN);
 end sub;
 
+sub do_goto()
+    next_token();
+    var id: uint16 := expect_identifier();
+    var thing_iop: [ThingIop] := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
+    thing_iop.thing_id := id;
+    expect_token(TOKEN_SEMICOLON);
+
+    emit_simple(IOP_GOTO);
+end sub;
+
 load_thing_table("things.dat");
 init_parser();
 init_tokenreader("tokens.dat");
@@ -222,6 +232,8 @@ while current_token != 0 loop
         do_var();
     elseif current_token == TOKEN_END then
         do_end();
+    elseif current_token == TOKEN_GOTO then
+        do_goto();
     else
         print("unknown token ");
         show_identifier(current_token);
