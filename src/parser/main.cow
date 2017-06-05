@@ -136,6 +136,29 @@ sub do_sub()
     expect_token(TOKEN_CLOSEPAREN);
 end sub;
 
+sub do_var()
+    expect_token(TOKEN_VAR);
+    var id: uint16 := expect_identifier();
+    expect_token(TOKEN_COLON);
+    var type_id: uint16 := read_type();
+
+    var variable_id: uint16 := create_thing(THING_VARIABLE, VariableThing@bytes);
+    name_symbol(id, variable_id, current_namespace_id);
+    var variable: [VariableThing] := find_thing(variable_id) as [VariableThing];
+    variable.type := type_id;
+
+    if current_token == TOKEN_ASSIGN then
+        var thing_iop: [ThingIop] := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
+        thing_iop.thing_id := variable_id;
+
+        next_token();
+        do_expression();
+        emit_simple(IOP_ASSIGN);
+    end if;
+
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
 sub do_end()
     expect_token(TOKEN_END);
     if current_token != lexical_peek() then
@@ -195,6 +218,8 @@ while current_token != 0 loop
         end if;
     elseif current_token == TOKEN_SUB then
         do_sub();
+    elseif current_token == TOKEN_VAR then
+        do_var();
     elseif current_token == TOKEN_END then
         do_end();
     else
