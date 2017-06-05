@@ -5,12 +5,6 @@ loop      LOOP
 :=        ASSIGN
           LAST_EXPR_END
 
-[         OPENSQUARE
-]         CLOSESQUARE
-(         OPENPAREN
-)         CLOSEPAREN
-,         COMMA
-
 :         COLON
 .         DOT
 ==        EQOP
@@ -28,6 +22,7 @@ break     BREAK
 const     CONST
 record    RECORD
 return    RETURN
+goto      GOTO
 namespace NAMESPACE
 in        IN
 out       OUT
@@ -48,14 +43,32 @@ uint16    UINT16    THING_IDENTIFIER
 int32     INT32     THING_IDENTIFIER
 uint32    UINT32    THING_IDENTIFIER
 
-# Binary operators, in increasing order of precedence. Note the unary
+(         OPENPAREN
+)         CLOSEPAREN
+[         OPENSQUARE
+]         CLOSESQUARE
+,         COMMA
+
+# Binary operators, in increasing order of precedence.
+          START_OF_OPS
+          START_OF_BINARY_OPS
+|         PIPE
+          PRECEDENCE_BAND_1
+^         CARET
+          PRECEDENCE_BAND_2
+&         AMPERSAND
+          PRECEDENCE_BAND_3
 <<        LEFTSHIFT
 >>        RIGHTSHIFT
+          PRECEDENCE_BAND_4
 +         PLUS
 -         MINUS
+          PRECEDENCE_BAND_5
 *         STAR
 /         SLASH
-&         ANDOP
-|         OROP
-^         XOROP
-~         NOTOP
+%         PERCENT
+          PRECEDENCE_BAND_6
+          END_OF_BINARY_OPS
+
+~         TILDE
+          END_OF_OPS

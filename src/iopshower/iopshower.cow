@@ -64,6 +64,12 @@ loop
             do_pushing("ADDOP", iop as [PushingIop]);
         elseif kind == IOP_SUBOP then
             do_pushing("SUBOP", iop as [PushingIop]);
+        elseif kind == IOP_MULOP then
+            do_pushing("MULOP", iop as [PushingIop]);
+        elseif kind == IOP_DIVOP then
+            do_pushing("DIVOP", iop as [PushingIop]);
+        elseif kind == IOP_MODOP then
+            do_pushing("MODOP", iop as [PushingIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);
