@@ -13,9 +13,9 @@ const IOP_END := 0;
 const IOP_LABEL := 1;
 const IOP_SECTION := 2;
 const IOP_STRING := 3;
+const IOP_GOTO := 4;
 
 const IOP_ASSIGN := 0x10;
-const IOP_GOTO := 0x11;
 const IOP_THING := 0x80;
 const IOP_OFFSET := 0x81;
 const IOP_INDEX := 0x82;
@@ -42,6 +42,10 @@ end record;
 
 record StringIop: Iop
     string_id: uint16;
+end record;
+
+record GotoIop: Iop
+    label_id: uint16;
 end record;
 
 record PushingIop: Iop

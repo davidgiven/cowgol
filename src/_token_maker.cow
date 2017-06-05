@@ -17,6 +17,7 @@ install_identifier("if", TOKEN_IF, THING_TOKEN);
 install_identifier("then", TOKEN_THEN, THING_TOKEN);
 install_identifier("var", TOKEN_VAR, THING_TOKEN);
 install_identifier("break", TOKEN_BREAK, THING_TOKEN);
+install_identifier("continue", TOKEN_CONTINUE, THING_TOKEN);
 install_identifier("const", TOKEN_CONST, THING_TOKEN);
 install_identifier("record", TOKEN_RECORD, THING_TOKEN);
 install_identifier("return", TOKEN_RETURN, THING_TOKEN);

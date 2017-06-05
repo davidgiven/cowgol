@@ -23,9 +23,14 @@ sub do_thing(iop: [ThingIop])
     print_hex_i16(iop.type_id);
 end sub;
 
+sub do_goto(iop: [GotoIop])
+    print("GOTO label=0x");
+    print_hex_i16(iop.label_id);
+end sub;
+
 sub do_pushing(kind: [int8], iop: [PushingIop])
     print(kind);
-    print(" pushing type=0x");
+    print(" type=0x");
     print_hex_i16(iop.type_id);
 end sub;
 
@@ -59,7 +64,7 @@ loop
         elseif kind == IOP_ASSIGN then
             print("ASSIGN");
         elseif kind == IOP_GOTO then
-            print("GOTO");
+            do_goto(iop as [GotoIop]);
         elseif kind == IOP_THING then
             do_thing(iop as [ThingIop]);
         elseif kind == IOP_ADDOP then

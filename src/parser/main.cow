@@ -1,3 +1,5 @@
+var break_label_id: uint16;
+var continue_label_id: uint16;
 
 sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
     subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
@@ -12,7 +14,27 @@ sub create_label(out label_id: uint16)
     label_id := create_thing(THING_LABEL, LabelThing@bytes);
 end sub;
 
+sub push_loop()
+    lexical_push(break_label_id);
+    lexical_push(continue_label_id);
+    lexical_push(TOKEN_LOOP);
+end sub;
+
+sub pop_loop()
+    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
+    goto_iop.label_id := continue_label_id;
+
+    var label_iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
+    label_iop.label_id := break_label_id;
+
+    lexical_pop_scope_type(TOKEN_LOOP);
+    continue_label_id := lexical_pop();
+    break_label_id := lexical_pop();
+end sub;
+
 sub push_subroutine()
+    lexical_push(break_label_id);
+    lexical_push(continue_label_id);
     lexical_push(current_subroutine_id);
     lexical_push(current_namespace_id);
     lexical_push(ioptab_size);
@@ -22,11 +44,13 @@ end sub;
 sub pop_subroutine()
     lexical_pop_scope_type(TOKEN_SUB);
 
-    var iop: [Iop] := emit(IOP_END, Iop@bytes);
+    emit_simple(IOP_END);
 
     flush_iops(lexical_pop());
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
+    continue_label_id := lexical_pop();
+    break_label_id := lexical_pop();
 end sub;
 
 sub create_bootstrap_type(identifier_id: uint16, out type: [NumericThing])
@@ -108,6 +132,8 @@ sub do_sub()
     var id: uint16 := expect_identifier();
     create_function(current_subroutine_id, current_namespace_id);
     name_symbol(id, current_subroutine_id, old_namespace_id);
+    break_label_id := 0;
+    continue_label_id := 0;
 
     expect_token(TOKEN_OPENPAREN);
 
@@ -161,19 +187,23 @@ end sub;
 
 sub do_end()
     expect_token(TOKEN_END);
-    if current_token != lexical_peek() then
-        print("can't close a 0x");
-        print_hex_i16(lexical_peek());
-        print(" with a 0x");
-        print_hex_i16(current_token);
+    var peeked: uint16 := lexical_peek();
+    if current_token != peeked then
+        print("can't close a ");
+        show_identifier(peeked);
+        print(" with a ");
+        show_identifier(current_token);
         halt();
     end if;
     if current_token == TOKEN_SUB then
-        expect_token(TOKEN_SUB);
+        next_token();
         pop_subroutine();
+    elseif current_token == TOKEN_LOOP then
+        next_token();
+        pop_loop();
     else
-        print("can't close 0x");
-        print_hex_i16(current_token);
+        print("can't close ");
+        show_identifier(current_token);
         print(" yet");
         halt();
     end if;
@@ -203,11 +233,35 @@ end sub;
 sub do_goto()
     next_token();
     var id: uint16 := expect_identifier();
-    var thing_iop: [ThingIop] := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
-    thing_iop.thing_id := id;
+    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
+    goto_iop.label_id := id;
+
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
+sub do_loop()
+    next_token();
+
+    push_loop();
+
+    break_label_id := create_label();
+    continue_label_id := create_label();
+
+    var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
+    iop.label_id := continue_label_id;
+end sub;
+
+sub do_jump(label_id: uint16)
+    next_token();
     expect_token(TOKEN_SEMICOLON);
 
-    emit_simple(IOP_GOTO);
+    if label_id == 0 then
+        print("not inside a loop");
+        halt();
+    end if;
+
+    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
+    goto_iop.label_id := label_id;
 end sub;
 
 load_thing_table("things.dat");
@@ -215,6 +269,8 @@ init_parser();
 init_tokenreader("tokens.dat");
 
 open_iopfile("iops.dat");
+break_label_id := 0;
+continue_label_id := 0;
 while current_token != 0 loop
     var thing: [Thing] := find_thing(current_token);
     if thing.thing_type == THING_IDENTIFIER then
@@ -234,6 +290,12 @@ while current_token != 0 loop
         do_end();
     elseif current_token == TOKEN_GOTO then
         do_goto();
+    elseif current_token == TOKEN_LOOP then
+        do_loop();
+    elseif current_token == TOKEN_BREAK then
+        do_jump(break_label_id);
+    elseif current_token == TOKEN_CONTINUE then
+        do_jump(continue_label_id);
     else
         print("unknown token ");
         show_identifier(current_token);

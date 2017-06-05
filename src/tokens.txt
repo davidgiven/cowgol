@@ -19,6 +19,7 @@ if        IF
 then      THEN
 var       VAR
 break     BREAK
+continue  CONTINUE
 const     CONST
 record    RECORD
 return    RETURN
