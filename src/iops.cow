@@ -10,27 +10,41 @@ end record;
 
 const IOP_END := 0;
 
-const IOP_LABEL := 1;
-const IOP_SECTION := 2;
-const IOP_STRING := 3;
-const IOP_GOTO := 4;
+const IOP_LABEL := 0x01;
+const IOP_SECTION := 0x02;
+const IOP_STRING := 0x03;
+const IOP_ASSIGN := 0x04;
 
-const IOP_ASSIGN := 0x10;
-const IOP_THING := 0x80;
+const IOP_TYPE_BRANCHING := 0x20;
+const IOP_BEQ  := 0x20;
+const IOP_BNE  := 0x21;
+const IOP_BLT  := 0x22;
+const IOP_BGE  := 0x23;
+const IOP_BGT  := 0x24;
+const IOP_BLE  := 0x25;
+const IOP_GOTO := 0x26;
+
+const IOP_TYPE_PUSHING := 0x80;
+const IOP_THING  := 0x80;
 const IOP_OFFSET := 0x81;
-const IOP_INDEX := 0x82;
+const IOP_INDEX  := 0x82;
 
-const IOP_ADDOP := 0x90;
-const IOP_SUBOP := 0x91;
-const IOP_MULOP := 0x92;
-const IOP_DIVOP := 0x93;
-const IOP_MODOP := 0x94;
-const IOP_ANDOP := 0x95;
-const IOP_OROP := 0x96;
-const IOP_EOROP := 0x97;
-const IOP_LSLOP := 0x98;
-const IOP_LSROP := 0x99;
-const IOP_ASROP := 0x9a;
+const IOP_TYPE_2ALU := 0xc0;
+const IOP_ADDOP := 0xc0;
+const IOP_SUBOP := 0xc1;
+const IOP_MULOP := 0xc2;
+const IOP_DIVOP := 0xc3;
+const IOP_MODOP := 0xc4;
+const IOP_ANDOP := 0xc5;
+const IOP_OROP  := 0xc6;
+const IOP_EOROP := 0xc7;
+const IOP_LSLOP := 0xc8;
+const IOP_LSROP := 0xc9;
+const IOP_ASROP := 0xca;
+
+const IOP_TYPE_1ALU := 0xa0;
+const IOP_NEGOP := 0xa0;
+const IOP_NOTOP := 0xa1;
 
 record LabelIop: Iop
     label_id: uint16;
@@ -44,7 +58,7 @@ record StringIop: Iop
     string_id: uint16;
 end record;
 
-record GotoIop: Iop
+record BranchingIop: Iop
     label_id: uint16;
 end record;
 

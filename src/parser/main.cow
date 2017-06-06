@@ -21,7 +21,7 @@ sub push_loop()
 end sub;
 
 sub pop_loop()
-    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
+    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
     goto_iop.label_id := continue_label_id;
 
     var label_iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
@@ -233,22 +233,36 @@ end sub;
 sub do_goto()
     next_token();
     var id: uint16 := expect_identifier();
-    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
+    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
     goto_iop.label_id := id;
 
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
-sub do_loop()
+sub do_generic_loop_opening()
     next_token();
-
     push_loop();
 
-    break_label_id := create_label();
     continue_label_id := create_label();
-
     var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
     iop.label_id := continue_label_id;
+end sub;
+
+sub do_loop()
+    do_generic_loop_opening();
+    break_label_id := create_label();
+end sub;
+
+sub do_while()
+    do_generic_loop_opening();
+
+    var loop_label_id: uint16;
+    do_conditional(loop_label_id, break_label_id);
+
+    var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
+    iop.label_id := loop_label_id;
+
+    expect_token(TOKEN_LOOP);
 end sub;
 
 sub do_jump(label_id: uint16)
@@ -260,7 +274,7 @@ sub do_jump(label_id: uint16)
         halt();
     end if;
 
-    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
+    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
     goto_iop.label_id := label_id;
 end sub;
 
@@ -292,6 +306,8 @@ while current_token != 0 loop
         do_goto();
     elseif current_token == TOKEN_LOOP then
         do_loop();
+    elseif current_token == TOKEN_WHILE then
+        do_while();
     elseif current_token == TOKEN_BREAK then
         do_jump(break_label_id);
     elseif current_token == TOKEN_CONTINUE then

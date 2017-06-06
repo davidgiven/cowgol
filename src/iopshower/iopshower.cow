@@ -23,8 +23,9 @@ sub do_thing(iop: [ThingIop])
     print_hex_i16(iop.type_id);
 end sub;
 
-sub do_goto(iop: [GotoIop])
-    print("GOTO label=0x");
+sub do_branching(kind: [int8], iop: [BranchingIop])
+    print(kind);
+    print(" label=0x");
     print_hex_i16(iop.label_id);
 end sub;
 
@@ -64,7 +65,19 @@ loop
         elseif kind == IOP_ASSIGN then
             print("ASSIGN");
         elseif kind == IOP_GOTO then
-            do_goto(iop as [GotoIop]);
+            do_branching("GOTO", iop as [BranchingIop]);
+        elseif kind == IOP_BEQ then
+            do_branching("BEQ", iop as [BranchingIop]);
+        elseif kind == IOP_BNE then
+            do_branching("BNE", iop as [BranchingIop]);
+        elseif kind == IOP_BLT then
+            do_branching("BLT", iop as [BranchingIop]);
+        elseif kind == IOP_BGE then
+            do_branching("BGE", iop as [BranchingIop]);
+        elseif kind == IOP_BGT then
+            do_branching("BGT", iop as [BranchingIop]);
+        elseif kind == IOP_BLE then
+            do_branching("BLE", iop as [BranchingIop]);
         elseif kind == IOP_THING then
             do_thing(iop as [ThingIop]);
         elseif kind == IOP_ADDOP then
@@ -77,6 +90,10 @@ loop
             do_pushing("DIVOP", iop as [PushingIop]);
         elseif kind == IOP_MODOP then
             do_pushing("MODOP", iop as [PushingIop]);
+        elseif kind == IOP_NEGOP then
+            do_pushing("NEGOP", iop as [PushingIop]);
+        elseif kind == IOP_NOTOP then
+            do_pushing("NOTOP", iop as [PushingIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

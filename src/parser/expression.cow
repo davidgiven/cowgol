@@ -1,12 +1,15 @@
-var operator_stack: uint16[32];
-var operator_stack_pos: uint8;
+var iftrue_label_id: uint16;
+var iffalse_label_id: uint16;
+var data_stack_size: uint8;
 
-sub do_expression()
+sub expression_state_machine()
     const STATE_BEFORE := 0;
     const STATE_AFTER := 1;
 
-    operator_stack_pos := 0;
+    var operator_stack: uint16[32];
+    var operator_stack_pos: uint8 := 0;
     var state: uint8 := STATE_BEFORE;
+    data_stack_size := 0;
 
     sub peek_op(out op_id: uint16)
         if operator_stack_pos == 0 then
@@ -50,16 +53,77 @@ sub do_expression()
         var op_id: uint16 := operator_stack[operator_stack_pos];
         var op: [Thing] := find_thing(op_id);
 
+        sub alu_2op(iop: uint8)
+            if data_stack_size < 2 then
+                print("binary arithmetic operator cannot be used in this context");
+                halt();
+            end if;
+
+            emit_simple_pushing(iop);
+            data_stack_size := data_stack_size - 1;
+        end sub;
+
+        sub alu_1op(iop: uint8)
+            if data_stack_size < 1 then
+                print("unary arithmetic operator cannot be used in this context");
+                halt();
+            end if;
+
+            emit_simple_pushing(iop);
+        end sub;
+
+        sub check_b_op()
+            if (iftrue_label_id == 0) | (iffalse_label_id == 0) then
+                print("boolean operator cannot be used in this context");
+                halt();
+            end if;
+        end sub;
+
+        sub b_2op(iop: uint8)
+            check_b_op();
+
+            var branch_iop: [BranchingIop] := emit(iop, BranchingIop@bytes) as [BranchingIop];
+            branch_iop.label_id := iftrue_label_id;
+
+            branch_iop := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
+            branch_iop.label_id := iffalse_label_id;
+
+            data_stack_size := data_stack_size - 2;
+        end sub;
+
+        sub b_not()
+            check_b_op();
+            var t: uint16 := iftrue_label_id;
+            iftrue_label_id := iffalse_label_id;
+            iffalse_label_id := t;
+        end sub;
+
         if op_id == TOKEN_PLUS then
-            emit_simple_pushing(IOP_ADDOP);
+            alu_2op(IOP_ADDOP);
         elseif op_id == TOKEN_MINUS then
-            emit_simple_pushing(IOP_SUBOP);
+            alu_2op(IOP_SUBOP);
         elseif op_id == TOKEN_STAR then
-            emit_simple_pushing(IOP_MULOP);
+            alu_2op(IOP_MULOP);
         elseif op_id == TOKEN_SLASH then
-            emit_simple_pushing(IOP_DIVOP);
+            alu_2op(IOP_DIVOP);
         elseif op_id == TOKEN_PERCENT then
-            emit_simple_pushing(IOP_MODOP);
+            alu_2op(IOP_MODOP);
+        elseif op_id == TOKEN_TILDE then
+            alu_1op(IOP_NOTOP);
+        elseif op_id == TOKEN_EQOP then
+            b_2op(IOP_BEQ);
+        elseif op_id == TOKEN_NEOP then
+            b_2op(IOP_BNE);
+        elseif op_id == TOKEN_LTOP then
+            b_2op(IOP_BLT);
+        elseif op_id == TOKEN_LEOP then
+            b_2op(IOP_BLE);
+        elseif op_id == TOKEN_GTOP then
+            b_2op(IOP_BGT);
+        elseif op_id == TOKEN_GEOP then
+            b_2op(IOP_BGE);
+        elseif op_id == TOKEN_NOT then
+            b_not();
         else
             print("unknown operator ");
             show_identifier(op_id);
@@ -82,8 +146,16 @@ sub do_expression()
             precedence := 5;
         elseif op_id < TOKEN_PRECEDENCE_BAND_6 then
             precedence := 6;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_7 then
+            precedence := 7;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_8 then
+            precedence := 8;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_9 then
+            precedence := 9;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_10 then
+            precedence := 10;
         else
-            precedence := 0;
+            precedence := 99; # unary operators
         end if;
     end sub;
 
@@ -132,8 +204,11 @@ sub do_expression()
         if state == STATE_BEFORE then
             # Before a leaf.
             if current_token == TOKEN_OPENPAREN then
-                next_token();
                 push_op(TOKEN_OPENPAREN);
+                next_token();
+            elseif (current_token >= TOKEN_START_OF_UNARY_OPS) & (current_token < TOKEN_END_OF_UNARY_OPS) then
+                push_op(current_token);
+                next_token();
             else
                 thing := find_thing(current_token);
                 if thing.thing_type == THING_IDENTIFIER then
@@ -141,6 +216,7 @@ sub do_expression()
                     thing_iop.thing_id := current_token;
                     next_token();
                     state := STATE_AFTER;
+                    data_stack_size := data_stack_size + 1;
                 else
                     print("bad token");
                     halt();
@@ -169,6 +245,34 @@ sub do_expression()
     flush_ops();
     if operator_stack_pos != 0 then
         print("unmatched expression");
+        halt();
+    end if;
+end sub;
+
+sub do_expression()
+    iftrue_label_id := 0;
+    iffalse_label_id := 0;
+    expression_state_machine();
+    if data_stack_size != 1 then
+        print("expression left ");
+        print_i8(data_stack_size);
+        print(" items on the stack, but expected 1");
+        halt();
+    end if;
+end sub;
+
+sub do_conditional(out true_label: uint16, out false_label: uint16)
+    iftrue_label_id := create_thing(THING_LABEL, LabelThing@bytes);
+    iffalse_label_id := create_thing(THING_LABEL, LabelThing@bytes);
+
+    expression_state_machine();
+
+    true_label := iftrue_label_id;
+    false_label := iffalse_label_id;
+    if data_stack_size != 0 then
+        print("expression left ");
+        print_i8(data_stack_size);
+        print(" items on the stack, but expected 0");
         halt();
     end if;
 end sub;

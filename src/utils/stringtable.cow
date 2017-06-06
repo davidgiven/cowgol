@@ -1,9 +1,9 @@
 var strings_fd: uint8 := file_openin("strings.dat");
 
 sub show_string(string_id: uint16)
-    print("(0x");
-    print_hex_i16(string_id);
-    print(") ");
+    #print("(0x");
+    #print_hex_i16(string_id);
+    #print(") ");
 
     file_seek(strings_fd, string_id);
     var len: uint8 := file_getchar(strings_fd);

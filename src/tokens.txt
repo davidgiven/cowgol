@@ -3,12 +3,6 @@ end       END
 ;         SEMICOLON
 loop      LOOP
 :=        ASSIGN
-==        EQOP
-!=        NEOP
-<         LTOP
-<=        LEOP
->         GTOP
->=        GEOP
           LAST_EXPR_END
 
 :         COLON
@@ -53,23 +47,40 @@ uint32    UINT32    THING_IDENTIFIER
 # Binary operators, in increasing order of precedence.
           START_OF_OPS
           START_OF_BINARY_OPS
-|         PIPE
+or        OR
           PRECEDENCE_BAND_1
-^         CARET
+and       AND
           PRECEDENCE_BAND_2
-&         AMPERSAND
+|         PIPE
           PRECEDENCE_BAND_3
+^         CARET
+          PRECEDENCE_BAND_4
+&         AMPERSAND
+          PRECEDENCE_BAND_5
 <<        LEFTSHIFT
 >>        RIGHTSHIFT
-          PRECEDENCE_BAND_4
+          PRECEDENCE_BAND_6
+          START_OF_COMPARISON_OPS
+<         LTOP
+<=        LEOP
+>         GTOP
+>=        GEOP
+          PRECEDENCE_BAND_7
+==        EQOP
+!=        NEOP
+          END_OF_COMPARISON_OPS
+          PRECEDENCE_BAND_8
 +         PLUS
 -         MINUS
-          PRECEDENCE_BAND_5
+          PRECEDENCE_BAND_9
 *         STAR
 /         SLASH
 %         PERCENT
-          PRECEDENCE_BAND_6
+          PRECEDENCE_BAND_10
           END_OF_BINARY_OPS
 
+          START_OF_UNARY_OPS
 ~         TILDE
+not       NOT
+          END_OF_UNARY_OPS
           END_OF_OPS
