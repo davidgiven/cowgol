@@ -47,10 +47,10 @@ end sub;
 sub push_subroutine()
     lexical_push(break_label_id);
     lexical_push(continue_label_id);
-    lexical_push(current_subroutine_id);
     lexical_push(if_true_label_id);
     lexical_push(if_false_label_id);
     lexical_push(if_end_label_id);
+    lexical_push(current_subroutine_id);
     lexical_push(current_namespace_id);
     lexical_push(ioptab_size);
     lexical_push(TOKEN_SUB);
