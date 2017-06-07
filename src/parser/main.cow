@@ -323,6 +323,30 @@ sub do_else()
     emit_label(if_false_label_id);
 end sub;
 
+sub do_functioncall()
+    var id: uint16 := expect_identifier();
+    var parameters: uint8 := 0;
+
+    expect_token(TOKEN_OPENPAREN);
+    loop
+        if current_token == TOKEN_CLOSEPAREN then
+            break;
+        end if;
+        if parameters > 0 then
+            expect_token(TOKEN_COMMA);
+        end if;
+
+        do_expression();
+        parameters := parameters + 1;
+    end loop;
+    expect_token(TOKEN_CLOSEPAREN);
+
+    var iop: [CallIop] := emit(IOP_SCALL, CallIop@bytes) as [CallIop];
+    iop.thing_id := id;
+    iop.parameter_count := parameters;
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
 load_thing_table("things.dat");
 init_parser();
 init_tokenreader("tokens.dat");
@@ -336,8 +360,7 @@ while current_token != 0 loop
         if peeked_token == TOKEN_COLON then
             do_label();
         elseif peeked_token == TOKEN_OPENPAREN then
-            print("can't do function calls yet");
-            halt();
+            do_functioncall();
         else
             do_assignment();
         end if;

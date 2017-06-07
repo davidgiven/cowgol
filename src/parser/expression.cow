@@ -187,7 +187,9 @@ sub expression_state_machine()
 
     sub close_parenthesis()
         var closer_id: uint16 := apply_until_closer();
-        if closer_id != TOKEN_OPENPAREN then
+        if closer_id == 0 then
+            return;
+        elseif closer_id != TOKEN_OPENPAREN then
             print(") matched with ");
             show_identifier(closer_id);
             print(", not (");
@@ -209,14 +211,15 @@ sub expression_state_machine()
                 next_token();
             else
                 thing := find_thing(current_token);
-                if thing.thing_type == THING_IDENTIFIER then
+                if (thing.thing_type == THING_IDENTIFIER) | (thing.thing_type == THING_NUMBER) then
                     thing_iop := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
                     thing_iop.thing_id := current_token;
                     next_token();
                     state := STATE_AFTER;
                     data_stack_size := data_stack_size + 1;
                 else
-                    print("bad token");
+                    print("bad token ");
+                    show_identifier(current_token);
                     halt();
                 end if;
             end if;
@@ -224,8 +227,13 @@ sub expression_state_machine()
             # After a leaf (this is the only valid place to end an expression).
             if current_token < TOKEN_LAST_EXPR_END then
                 break;
+            elseif current_token == TOKEN_COMMA then
+                break;
             elseif current_token == TOKEN_CLOSEPAREN then
                 close_parenthesis();
+                if peek_op() == 0 then
+                    break;
+                end if;
                 next_token();
             elseif (current_token == TOKEN_AND) | (current_token == TOKEN_OR) then
                 check_b_op();

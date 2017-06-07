@@ -14,6 +14,8 @@ const IOP_LABEL := 0x01;
 const IOP_SECTION := 0x02;
 const IOP_STRING := 0x03;
 const IOP_ASSIGN := 0x04;
+const IOP_SCALL := 0x05;
+const IOP_FCALL := 0x06;
 
 const IOP_TYPE_BRANCHING := 0x20;
 const IOP_BEQ  := 0x20;
@@ -56,6 +58,11 @@ end record;
 
 record StringIop: Iop
     string_id: uint16;
+end record;
+
+record CallIop: Iop
+    thing_id: uint16;
+    parameter_count: uint8;
 end record;
 
 record BranchingIop: Iop
