@@ -43,6 +43,13 @@ sub expression_state_machine()
         op := operator_stack[operator_stack_pos];
     end sub;
 
+    sub check_b_op()
+        if (iftrue_label_id == 0) | (iffalse_label_id == 0) then
+            print("boolean operator cannot be used in this context");
+            halt();
+        end if;
+    end sub;
+
     sub apply_op()
         if operator_stack_pos == 0 then
             print("apply on empty stack");
@@ -70,13 +77,6 @@ sub expression_state_machine()
             end if;
 
             emit_simple_pushing(iop);
-        end sub;
-
-        sub check_b_op()
-            if (iftrue_label_id == 0) | (iffalse_label_id == 0) then
-                print("boolean operator cannot be used in this context");
-                halt();
-            end if;
         end sub;
 
         sub b_2op(iop: uint8)
@@ -124,6 +124,9 @@ sub expression_state_machine()
             b_2op(IOP_BGE);
         elseif op_id == TOKEN_NOT then
             b_not();
+        elseif (op_id == TOKEN_AND) | (op_id == TOKEN_OR) then
+            merge_label(iffalse_label_id, pop_op());
+            merge_label(iftrue_label_id, pop_op());
         else
             print("unknown operator ");
             show_identifier(op_id);
@@ -229,6 +232,26 @@ sub expression_state_machine()
             elseif current_token == TOKEN_CLOSEPAREN then
                 close_parenthesis();
                 next_token();
+            elseif (current_token == TOKEN_AND) | (current_token == TOKEN_OR) then
+                check_b_op();
+                apply_higher_precedence_ops(current_token);
+
+                if (current_token == TOKEN_AND) then
+                    emit_label(iftrue_label_id);
+                    push_op(create_label());
+                    push_op(iffalse_label_id);
+                else
+                    emit_label(iffalse_label_id);
+                    push_op(iftrue_label_id);
+                    push_op(create_label());
+                end if;
+                push_op(current_token);
+
+                iftrue_label_id := create_label();
+                iffalse_label_id := create_label();
+
+                next_token();
+                state := STATE_BEFORE;
             elseif (current_token >= TOKEN_START_OF_BINARY_OPS) & (current_token < TOKEN_END_OF_BINARY_OPS) then
                 apply_higher_precedence_ops(current_token);
                 push_op(current_token);

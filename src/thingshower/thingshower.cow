@@ -31,8 +31,8 @@ end sub;
 
 sub show_data_thing(thing: [DataThing])
     show_symbol_thing(thing as [SymbolThing]);
-    print("data(section=");
-    print_i8(thing.section);
+    print("data(label_id=");
+    print_i8(thing.label_id);
     print(") ");
 end sub;
 
@@ -51,7 +51,17 @@ sub show_subroutine_thing(thing: [SubroutineThing])
 end sub;
 
 sub show_label_thing(thing: [LabelThing])
-    show_data_thing(thing as [DataThing]);
+    print("label(target=0x");
+    print_hex_i16(thing.target);
+    print(" section=");
+    print_i8(thing.section);
+    print(")");
+end sub;
+
+sub show_labelref_thing(thing: [LabelThing])
+    print("labelref(label=0x");
+    print_hex_i16(thing.target);
+    print(")");
 end sub;
 
 sub show_type_thing(thing: [TypeThing])
@@ -103,6 +113,8 @@ loop
         show_subroutine_thing(thing as [SubroutineThing]);
     elseif type == THING_LABEL then
         show_label_thing(thing as [LabelThing]);
+    elseif type == THING_LABELREF then
+        show_labelref_thing(thing as [LabelThing]);
     elseif type == THING_SIGNED then
         show_numeric_thing("signed_type", thing as [NumericThing]);
     elseif type == THING_UNSIGNED then

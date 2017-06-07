@@ -10,10 +10,6 @@ sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
     subroutine.namespace := namespace_id;
 end sub;
 
-sub create_label(out label_id: uint16)
-    label_id := create_thing(THING_LABEL, LabelThing@bytes);
-end sub;
-
 sub push_loop()
     lexical_push(break_label_id);
     lexical_push(continue_label_id);
@@ -21,11 +17,8 @@ sub push_loop()
 end sub;
 
 sub pop_loop()
-    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
-    goto_iop.label_id := continue_label_id;
-
-    var label_iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
-    label_iop.label_id := break_label_id;
+    emit_goto(continue_label_id);
+    emit_label(break_label_id);
 
     lexical_pop_scope_type(TOKEN_LOOP);
     continue_label_id := lexical_pop();
@@ -216,9 +209,7 @@ sub do_label()
 
     var label_id: uint16 := create_label();
     name_symbol(id, label_id, current_namespace_id);
-
-    var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
-    iop.label_id := label_id;
+    emit_label(label_id);
 end sub;
 
 sub do_assignment()
@@ -233,8 +224,7 @@ end sub;
 sub do_goto()
     next_token();
     var id: uint16 := expect_identifier();
-    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
-    goto_iop.label_id := id;
+    emit_goto(id);
 
     expect_token(TOKEN_SEMICOLON);
 end sub;
@@ -244,8 +234,7 @@ sub do_generic_loop_opening()
     push_loop();
 
     continue_label_id := create_label();
-    var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
-    iop.label_id := continue_label_id;
+    emit_label(continue_label_id);
 end sub;
 
 sub do_loop()
@@ -258,9 +247,7 @@ sub do_while()
 
     var loop_label_id: uint16;
     do_conditional(loop_label_id, break_label_id);
-
-    var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
-    iop.label_id := loop_label_id;
+    emit_label(loop_label_id);
 
     expect_token(TOKEN_LOOP);
 end sub;
@@ -274,8 +261,7 @@ sub do_jump(label_id: uint16)
         halt();
     end if;
 
-    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
-    goto_iop.label_id := label_id;
+    emit_goto(label_id);
 end sub;
 
 load_thing_table("things.dat");

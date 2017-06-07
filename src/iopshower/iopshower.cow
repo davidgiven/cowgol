@@ -5,15 +5,23 @@ sub print_identifier(identifier_id: uint16)
     show_string(identifier.string_id);
 end sub;
 
+sub print_label(label_id: uint16)
+    loop
+        print_hex_i16(label_id);
+
+        var label: [LabelThing] := find_thing(label_id) as [LabelThing];
+        if label.thing_type == THING_LABEL then
+            break;
+        end if;
+
+        label_id := label.target;
+        print(" -> 0x");
+    end loop;
+end sub;
+
 sub do_label(iop: [LabelIop])
     print("LABEL 0x");
-    print_hex_i16(iop.label_id);
-
-    var label: [LabelThing] := find_thing(iop.label_id) as [LabelThing];
-    if label.name != 0 then
-        print(": ");
-        print_identifier(label.name);
-    end if;
+    print_label(iop.label_id);
 end sub;
 
 sub do_thing(iop: [ThingIop])
@@ -26,7 +34,7 @@ end sub;
 sub do_branching(kind: [int8], iop: [BranchingIop])
     print(kind);
     print(" label=0x");
-    print_hex_i16(iop.label_id);
+    print_label(iop.label_id);
 end sub;
 
 sub do_pushing(kind: [int8], iop: [PushingIop])

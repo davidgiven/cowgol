@@ -20,6 +20,35 @@ sub emit_simple_pushing(kind: uint8)
     var iop: [PushingIop] := emit(kind, PushingIop@bytes) as [PushingIop];
 end sub;
 
+sub emit_label(label_id: uint16)
+    var label_iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
+    label_iop.label_id := label_id;
+end sub;
+
+sub emit_goto(label_id: uint16)
+    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
+    goto_iop.label_id := label_id;
+end sub;
+
+sub create_label(out label_id: uint16)
+    label_id := create_thing(THING_LABEL, LabelThing@bytes);
+end sub;
+
+sub merge_label(srclabel_id: uint16, destlabel_id: uint16)
+    var srclabel: [LabelThing];
+    loop
+        srclabel := find_thing(srclabel_id) as [LabelThing];
+        if srclabel.thing_type == THING_LABEL then
+            break;
+        else
+            srclabel_id := srclabel.target;
+        end if;
+    end loop;
+
+    srclabel.thing_type := THING_LABELREF;
+    srclabel.target := destlabel_id;
+end sub;
+
 sub flush_iops(oldtop: uint16)
     var header: IHeader[1];
     header[0].thing_id := current_subroutine_id;
