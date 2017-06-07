@@ -1,5 +1,8 @@
 var break_label_id: uint16;
 var continue_label_id: uint16;
+var if_true_label_id: uint16;
+var if_false_label_id: uint16;
+var if_end_label_id: uint16;
 
 sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
     subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
@@ -25,10 +28,29 @@ sub pop_loop()
     break_label_id := lexical_pop();
 end sub;
 
+sub push_if()
+    lexical_push(if_true_label_id);
+    lexical_push(if_false_label_id);
+    lexical_push(if_end_label_id);
+    lexical_push(TOKEN_IF);
+end sub;
+
+sub pop_if()
+    emit_label(if_end_label_id);
+
+    lexical_pop_scope_type(TOKEN_IF);
+    if_end_label_id := lexical_pop();
+    if_false_label_id := lexical_pop();
+    if_true_label_id := lexical_pop();
+end sub;
+
 sub push_subroutine()
     lexical_push(break_label_id);
     lexical_push(continue_label_id);
     lexical_push(current_subroutine_id);
+    lexical_push(if_true_label_id);
+    lexical_push(if_false_label_id);
+    lexical_push(if_end_label_id);
     lexical_push(current_namespace_id);
     lexical_push(ioptab_size);
     lexical_push(TOKEN_SUB);
@@ -42,6 +64,9 @@ sub pop_subroutine()
     flush_iops(lexical_pop());
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
+    if_end_label_id := lexical_pop();
+    if_false_label_id := lexical_pop();
+    if_end_label_id := lexical_pop();
     continue_label_id := lexical_pop();
     break_label_id := lexical_pop();
 end sub;
@@ -127,6 +152,9 @@ sub do_sub()
     name_symbol(id, current_subroutine_id, old_namespace_id);
     break_label_id := 0;
     continue_label_id := 0;
+    if_true_label_id := 0;
+    if_false_label_id := 0;
+    if_end_label_id := 0;
 
     expect_token(TOKEN_OPENPAREN);
 
@@ -194,6 +222,9 @@ sub do_end()
     elseif current_token == TOKEN_LOOP then
         next_token();
         pop_loop();
+    elseif current_token == TOKEN_IF then
+        next_token();
+        pop_if();
     else
         print("can't close ");
         show_identifier(current_token);
@@ -264,6 +295,34 @@ sub do_jump(label_id: uint16)
     emit_goto(label_id);
 end sub;
 
+sub do_generic_if_then()
+    if_true_label_id := create_label();
+    if_false_label_id := create_label();
+    do_conditional(if_true_label_id, if_false_label_id);
+    expect_token(TOKEN_THEN);
+    emit_label(if_true_label_id);
+end sub;
+
+sub do_if()
+    next_token();
+    push_if();
+    do_generic_if_then();
+    if_end_label_id := create_label();
+end sub;
+
+sub do_elseif()
+    next_token();
+    emit_goto(if_end_label_id);
+    emit_label(if_false_label_id);
+    do_generic_if_then();
+end sub;
+
+sub do_else()
+    next_token();
+    emit_goto(if_end_label_id);
+    emit_label(if_false_label_id);
+end sub;
+
 load_thing_table("things.dat");
 init_parser();
 init_tokenreader("tokens.dat");
@@ -298,6 +357,12 @@ while current_token != 0 loop
         do_jump(break_label_id);
     elseif current_token == TOKEN_CONTINUE then
         do_jump(continue_label_id);
+    elseif current_token == TOKEN_IF then
+        do_if();
+    elseif current_token == TOKEN_ELSE then
+        do_else();
+    elseif current_token == TOKEN_ELSEIF then
+        do_elseif();
     else
         print("unknown token ");
         show_identifier(current_token);

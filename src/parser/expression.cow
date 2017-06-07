@@ -1,5 +1,5 @@
-var iftrue_label_id: uint16;
-var iffalse_label_id: uint16;
+var expr_true_label_id: uint16;
+var expr_false_label_id: uint16;
 var data_stack_size: uint8;
 
 sub expression_state_machine()
@@ -44,7 +44,7 @@ sub expression_state_machine()
     end sub;
 
     sub check_b_op()
-        if (iftrue_label_id == 0) | (iffalse_label_id == 0) then
+        if (expr_true_label_id == 0) | (expr_false_label_id == 0) then
             print("boolean operator cannot be used in this context");
             halt();
         end if;
@@ -81,16 +81,16 @@ sub expression_state_machine()
 
         sub b_2op(iop: uint8)
             check_b_op();
-            emit_conditional_branch(iop, iftrue_label_id);
-            emit_goto(iffalse_label_id);
+            emit_conditional_branch(iop, expr_true_label_id);
+            emit_goto(expr_false_label_id);
             data_stack_size := data_stack_size - 2;
         end sub;
 
         sub b_not()
             check_b_op();
-            var t: uint16 := iftrue_label_id;
-            iftrue_label_id := iffalse_label_id;
-            iffalse_label_id := t;
+            var t: uint16 := expr_true_label_id;
+            expr_true_label_id := expr_false_label_id;
+            expr_false_label_id := t;
         end sub;
 
         if op_id == TOKEN_PLUS then
@@ -120,8 +120,8 @@ sub expression_state_machine()
         elseif op_id == TOKEN_NOT then
             b_not();
         elseif (op_id == TOKEN_AND) | (op_id == TOKEN_OR) then
-            merge_label(iffalse_label_id, pop_op());
-            merge_label(iftrue_label_id, pop_op());
+            merge_label(expr_false_label_id, pop_op());
+            merge_label(expr_true_label_id, pop_op());
         else
             print("unknown operator ");
             show_identifier(op_id);
@@ -232,18 +232,18 @@ sub expression_state_machine()
                 apply_higher_precedence_ops(current_token);
 
                 if (current_token == TOKEN_AND) then
-                    emit_label(iftrue_label_id);
+                    emit_label(expr_true_label_id);
                     push_op(create_label());
-                    push_op(iffalse_label_id);
+                    push_op(expr_false_label_id);
                 else
-                    emit_label(iffalse_label_id);
-                    push_op(iftrue_label_id);
+                    emit_label(expr_false_label_id);
+                    push_op(expr_true_label_id);
                     push_op(create_label());
                 end if;
                 push_op(current_token);
 
-                iftrue_label_id := create_label();
-                iffalse_label_id := create_label();
+                expr_true_label_id := create_label();
+                expr_false_label_id := create_label();
 
                 next_token();
                 state := STATE_BEFORE;
@@ -268,8 +268,8 @@ sub expression_state_machine()
 end sub;
 
 sub do_expression()
-    iftrue_label_id := 0;
-    iffalse_label_id := 0;
+    expr_true_label_id := 0;
+    expr_false_label_id := 0;
     expression_state_machine();
     if data_stack_size != 1 then
         print("expression left ");
@@ -280,13 +280,13 @@ sub do_expression()
 end sub;
 
 sub do_conditional(out true_label: uint16, out false_label: uint16)
-    iftrue_label_id := create_thing(THING_LABEL, LabelThing@bytes);
-    iffalse_label_id := create_thing(THING_LABEL, LabelThing@bytes);
+    expr_true_label_id := create_thing(THING_LABEL, LabelThing@bytes);
+    expr_false_label_id := create_thing(THING_LABEL, LabelThing@bytes);
 
     expression_state_machine();
 
-    true_label := iftrue_label_id;
-    false_label := iffalse_label_id;
+    true_label := expr_true_label_id;
+    false_label := expr_false_label_id;
     if data_stack_size != 0 then
         print("expression left ");
         print_i8(data_stack_size);

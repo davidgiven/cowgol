@@ -3,6 +3,7 @@ end       END
 ;         SEMICOLON
 loop      LOOP
 :=        ASSIGN
+then      THEN
           LAST_EXPR_END
 
 :         COLON
@@ -10,7 +11,8 @@ loop      LOOP
 sub       SUB
 while     WHILE
 if        IF
-then      THEN
+else      ELSE
+elseif    ELSEIF
 var       VAR
 break     BREAK
 continue  CONTINUE
