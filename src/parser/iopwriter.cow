@@ -30,6 +30,11 @@ sub emit_goto(label_id: uint16)
     goto_iop.label_id := label_id;
 end sub;
 
+sub emit_conditional_branch(iopcode: uint8, label_id: uint16)
+    var iop: [BranchingIop] := emit(iopcode, BranchingIop@bytes) as [BranchingIop];
+    iop.label_id := label_id;
+end sub;
+
 sub create_label(out label_id: uint16)
     label_id := create_thing(THING_LABEL, LabelThing@bytes);
 end sub;

@@ -81,13 +81,8 @@ sub expression_state_machine()
 
         sub b_2op(iop: uint8)
             check_b_op();
-
-            var branch_iop: [BranchingIop] := emit(iop, BranchingIop@bytes) as [BranchingIop];
-            branch_iop.label_id := iftrue_label_id;
-
-            branch_iop := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
-            branch_iop.label_id := iffalse_label_id;
-
+            emit_conditional_branch(iop, iftrue_label_id);
+            emit_goto(iffalse_label_id);
             data_stack_size := data_stack_size - 2;
         end sub;
 
