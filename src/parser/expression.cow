@@ -211,7 +211,8 @@ sub expression_state_machine()
                 next_token();
             else
                 thing := find_thing(current_token);
-                if (thing.thing_type == THING_IDENTIFIER) | (thing.thing_type == THING_NUMBER) then
+                if (thing.thing_type == THING_IDENTIFIER) | (thing.thing_type == THING_NUMBER)
+                        | (thing.thing_type == THING_STRING) then
                     thing_iop := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
                     thing_iop.thing_id := current_token;
                     next_token();
