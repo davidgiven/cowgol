@@ -274,6 +274,12 @@ sub do_jump(label_id: uint16)
     emit_goto(label_id);
 end sub;
 
+sub do_return()
+    next_token();
+    expect_token(TOKEN_SEMICOLON);
+    emit_simple(IOP_RETURN);
+end sub;
+
 sub do_generic_if_then()
     if_true_label_id := create_label();
     if_false_label_id := create_label();
@@ -361,6 +367,8 @@ while current_token != 0 loop
         do_jump(break_label_id);
     elseif current_token == TOKEN_CONTINUE then
         do_jump(continue_label_id);
+    elseif current_token == TOKEN_RETURN then
+        do_return();
     elseif current_token == TOKEN_IF then
         do_if();
     elseif current_token == TOKEN_ELSE then

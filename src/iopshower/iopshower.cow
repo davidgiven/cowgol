@@ -115,6 +115,8 @@ loop
             do_pushing("NEGOP", iop as [PushingIop]);
         elseif kind == IOP_NOTOP then
             do_pushing("NOTOP", iop as [PushingIop]);
+        elseif kind == IOP_DEREFOP then
+            do_pushing("DEREFOP", iop as [PushingIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

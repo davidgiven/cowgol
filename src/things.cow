@@ -19,11 +19,11 @@ const THING_TYPEDDATA  := 0b00100_000;
 const THING_SUBROUTINE := 0b11000_000;
 const THING_VARIABLE   := 0b11100_000;
 const THING_PARAMETER  := 0b11100_001;
-const THING_ARRAY      := 0b11100_010;
 
 const THING_TYPE       := 0b00010_000;
 const THING_RECORD     := 0b00010_001;
 const THING_POINTER    := 0b00010_010;
+const THING_ARRAY      := 0b00010_011;
 const THING_NUMERIC    := 0b00011_000;
 const THING_UNSIGNED   := 0b00011_001;
 const THING_SIGNED     := 0b00011_010;
@@ -64,7 +64,7 @@ record SymbolThing: Thing
 end record;
 
 record TypeThing: Thing
-    width: uint8;
+    width: uint16;
 end record;
 
 record NumericThing: TypeThing
@@ -72,6 +72,11 @@ end record;
 
 record PointerThing: TypeThing
     element_id: uint16;
+end record;
+
+record ArrayThing: TypeThing
+    element_id: uint16;
+    element_count: uint16;
 end record;
 
 record DataThing: Thing

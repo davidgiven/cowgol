@@ -95,6 +95,15 @@ sub show_numeric_thing(kind: [int8], thing: [NumericThing])
     print(kind);
 end sub;
 
+sub show_array_thing(thing: [ArrayThing])
+    show_type_thing(thing as [TypeThing]);
+    print("array(element_id=0x");
+    print_hex_i16(thing.element_id);
+    print(" element_count=");
+    print_i16(thing.element_count);
+    print(") ");
+end sub;
+
 load_thing_table("things.dat");
 var id: uint16 := 1;
 loop
@@ -134,6 +143,8 @@ loop
         show_variable_thing(thing as [VariableThing]);
     elseif type == THING_PARAMETER then
         show_parameter_thing(thing as [ParameterThing]);
+    elseif type == THING_ARRAY then
+        show_array_thing(thing as [ArrayThing]);
     else
         print("unknown type ");
         print_i8(type);

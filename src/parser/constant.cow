@@ -207,7 +207,7 @@ sub do_constant(out result: int32)
             # After a leaf (this is the only valid place to end an expression).
             if current_token < TOKEN_LAST_EXPR_END then
                 break;
-            elseif current_token == TOKEN_COMMA then
+            elseif (current_token == TOKEN_COMMA) | (current_token == TOKEN_CLOSESQUARE) then
                 break;
             elseif current_token == TOKEN_CLOSEPAREN then
                 close_parenthesis();

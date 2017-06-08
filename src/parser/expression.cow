@@ -119,6 +119,8 @@ sub expression_state_machine()
             b_2op(IOP_BGE);
         elseif op_id == TOKEN_NOT then
             b_not();
+        elseif op_id == TOKEN_OPENSQUARE then
+            alu_2op(IOP_DEREFOP);
         elseif (op_id == TOKEN_AND) | (op_id == TOKEN_OR) then
             merge_label(expr_false_label_id, pop_op());
             merge_label(expr_true_label_id, pop_op());
@@ -178,7 +180,7 @@ sub expression_state_machine()
     sub apply_until_closer(out topop_id: uint16)
         loop
             topop_id := peek_op();
-            if (topop_id == 0) | (topop_id == TOKEN_OPENPAREN) then
+            if (topop_id == 0) | (topop_id == TOKEN_OPENPAREN) | (topop_id == TOKEN_OPENSQUARE) then
                 break;
             end if;
             apply_op();
@@ -190,12 +192,23 @@ sub expression_state_machine()
         if closer_id == 0 then
             return;
         elseif closer_id != TOKEN_OPENPAREN then
-            print(") matched with ");
+            print("\")\" matched with ");
             show_identifier(closer_id);
-            print(", not (");
+            print(", not \"(\"");
             halt();
         end if;
-        discard_op();
+    end sub;
+
+    sub close_square()
+        var closer_id: uint16 := apply_until_closer();
+        if closer_id == 0 then
+            return;
+        elseif closer_id != TOKEN_OPENSQUARE then
+            print("\"]\" matched with ");
+            show_identifier(closer_id);
+            print(", not \"[\"");
+            halt();
+        end if;
     end sub;
 
     var thing: [Thing];
@@ -230,11 +243,23 @@ sub expression_state_machine()
                 break;
             elseif current_token == TOKEN_COMMA then
                 break;
+            elseif current_token == TOKEN_OPENSQUARE then
+                push_op(TOKEN_OPENSQUARE);
+                state := STATE_BEFORE;
+                next_token();
             elseif current_token == TOKEN_CLOSEPAREN then
                 close_parenthesis();
                 if peek_op() == 0 then
                     break;
                 end if;
+                discard_op();
+                next_token();
+            elseif current_token == TOKEN_CLOSESQUARE then
+                close_square();
+                if peek_op() == 0 then
+                    break;
+                end if;
+                apply_op();
                 next_token();
             elseif (current_token == TOKEN_AND) | (current_token == TOKEN_OR) then
                 check_b_op();
