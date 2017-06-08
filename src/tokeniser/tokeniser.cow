@@ -51,6 +51,26 @@ sub read_number()
 
     input_buffer[buffer_index] := 0;
     var numbuf: int32[1];
+
+    sub buffer_to_int()
+        var base: uint8 := 10;
+        var ptr: [int8] := &input_buffer[0];
+        if (buffer_index >= 2) & (input_buffer[0] == '0') then
+            if input_buffer[1] == 'x' then
+                base := 16;
+                ptr := &input_buffer[2];
+            elseif input_buffer[1] == 'o' then
+                base := 8;
+                ptr := &input_buffer[2];
+            elseif input_buffer[1] == 'b' then
+                base := 2;
+                ptr := &input_buffer[2];
+            end if;
+        end if;
+
+        buf[0].value := string_to_number(ptr, base);
+    end sub;
+
     if (buffer_index >= 2) & (input_buffer[0] == '0') & (input_buffer[1] == 'x') then
         buf[0].value := string_to_number(&input_buffer[2], 16);
     else

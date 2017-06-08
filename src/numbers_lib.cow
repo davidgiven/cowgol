@@ -15,15 +15,17 @@ sub string_to_number(s: [int8], base: int8, out result: int32)
             return;
         end if;
 
-        if c <= '9' then
-            c := c - '0';
-        elseif c <= 'Z' then
-            c := (c - 'A') + 10;
-        else
-            c := (c - 'a') + 10;
-        end if;
+        if c != '_' then
+            if c <= '9' then
+                c := c - '0';
+            elseif c <= 'Z' then
+                c := (c - 'A') + 10;
+            else
+                c := (c - 'a') + 10;
+            end if;
 
-        result := (result * base) + c;
+            result := (result * base) + c;
+        end if;
         i := i + 1;
     end loop;
 end sub;

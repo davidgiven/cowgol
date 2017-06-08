@@ -118,17 +118,31 @@ function tokenstream(source)
                         break
                     end
 
-                    _, nexto, m = source:find("^(0x[0-9a-fA-F]+)", o)
+                    _, nexto, m = source:find("^(0x[0-9a-fA-F_]+)", o)
                     if nexto then
                         o = nexto + 1
-                        coroutine.yield("number", m)
+                        coroutine.yield("number", tonumber(m:sub(3):gsub("_", ""), 16))
                         break
                     end
 
-                    _, nexto, m = source:find("^(%d+)", o)
+                    _, nexto, m = source:find("^(0o[0-1_]+)", o)
                     if nexto then
                         o = nexto + 1
-                        coroutine.yield("number", m)
+                        coroutine.yield("number", tonumber(m:sub(3):gsub("_", ""), 8))
+                        break
+                    end
+
+                    _, nexto, m = source:find("^(0b[0-1_]+)", o)
+                    if nexto then
+                        o = nexto + 1
+                        coroutine.yield("number", tonumber(m:sub(3):gsub("_", ""), 2))
+                        break
+                    end
+
+                    _, nexto, m = source:find("^([%d_]+)", o)
+                    if nexto then
+                        o = nexto + 1
+                        coroutine.yield("number", tonumber(m:gsub("_", ""), 10))
                         break
                     end
 

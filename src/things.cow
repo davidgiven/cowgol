@@ -5,31 +5,28 @@ const SECTION_RAMDATA := 3;
 const SECTION_NONINITDATA := 4;
 const SECTION_POINTERS := 5;
 
-const THING_SYMBOL     := 0x10; # bitfield
-const THING_DATA       := 0x30; # bitfield
-const THING_TYPEDDATA  := 0x38; # bitfield
-const THING_TYPE       := 0x70; # bitfield
-const THING_NUMERIC    := 0xf0; # bitfield
+const THING_STRING     := 0b00000_001;
+const THING_IDENTIFIER := 0b00000_010;
+const THING_NUMBER     := 0b00000_011;
+const THING_NAMESPACE  := 0b00000_100;
+const THING_TOKEN      := 0b00000_101;
+const THING_LABEL      := 0b00000_110;
+const THING_LABELREF   := 0b00000_111;
 
-const THING_STRING     := 0x01;
-const THING_IDENTIFIER := 0x02;
-const THING_NUMBER     := 0x03;
-const THING_NAMESPACE  := 0x04;
-const THING_TOKEN      := 0x05;
-const THING_LABEL      := 0x06;
-const THING_LABELREF   := 0x07;
+const THING_SYMBOL     := 0b10000_000;
+const THING_DATA       := 0b01000_000;
+const THING_TYPEDDATA  := 0b00100_000;
+const THING_SUBROUTINE := 0b11000_000;
+const THING_VARIABLE   := 0b11100_000;
+const THING_PARAMETER  := 0b11100_001;
+const THING_ARRAY      := 0b11100_010;
 
-const THING_SUBROUTINE := 0x30;
-
-const THING_VARIABLE   := 0x38; # bitfield
-const THING_PARAMETER  := 0x39;
-const THING_ARRAY      := 0x3a;
-
-const THING_RECORD     := 0x70;
-const THING_POINTER    := 0x71;
-
-const THING_UNSIGNED   := 0xf0;
-const THING_SIGNED     := 0xf1;
+const THING_TYPE       := 0b00010_000;
+const THING_RECORD     := 0b00010_001;
+const THING_POINTER    := 0b00010_010;
+const THING_NUMERIC    := 0b00011_000;
+const THING_UNSIGNED   := 0b00011_001;
+const THING_SIGNED     := 0b00011_010;
 
 record Thing
     thing_size: uint8;
