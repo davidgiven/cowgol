@@ -14,7 +14,6 @@ const THING_LABEL      := 0b00000_110;
 const THING_LABELREF   := 0b00000_111;
 
 const THING_SYMBOL     := 0b10000_000;
-const THING_CONST      := 0b10000_001;
 const THING_DATA       := 0b01000_000;
 const THING_TYPEDDATA  := 0b00100_000;
 const THING_SUBROUTINE := 0b11000_000;
@@ -59,15 +58,12 @@ record LabelThing: Thing
 end record;
 
 record SymbolThing: Thing
-    name: uint16;
+    name_id: uint16;
+    value_id: uint16;
     next_symbol: uint16;
 end record;
 
-record ConstThing: SymbolThing
-    number_id: uint16;
-end record;
-
-record TypeThing: SymbolThing
+record TypeThing: Thing
     width: uint8;
 end record;
 
@@ -78,7 +74,7 @@ record PointerThing: TypeThing
     element_id: uint16;
 end record;
 
-record DataThing: SymbolThing
+record DataThing: Thing
     label_id: uint16;
 end record;
 
@@ -192,6 +188,22 @@ sub add_number_by_value(value: int32, out id: uint16)
     buf[0].thing_size := NumberThing@bytes;
     buf[0].value := value;
     id := add_thing_by_value(&buf[0] as [Thing]);
+end sub;
+
+sub find_symbol_by_value(value_id: uint16, out symbol_id: uint16)
+    symbol_id := 1;
+    loop
+        var thing: [SymbolThing] := &thing_table[symbol_id] as [SymbolThing];
+        if thing.thing_size == 0 then
+            break;
+        end if;
+        if (thing.thing_type == THING_SYMBOL) & (thing.value_id == value_id) then
+            return;
+        end if;
+
+        symbol_id := symbol_id + thing.thing_size;
+    end loop;
+    symbol_id := 0;
 end sub;
 
 sub save_thing_table(filename: [int8])

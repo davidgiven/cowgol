@@ -59,11 +59,13 @@ loop
     end if;
 
     var subroutine: [SubroutineThing] := find_thing(header.thing_id) as [SubroutineThing];
+    var symbol_id: uint16 := find_symbol_by_value(header.thing_id);
     print("SUBROUTINE: 0x");
     print_hex_i16(header.thing_id);
     print(": ");
-    if subroutine.name != 0 then
-        print_identifier(subroutine.name);
+    if symbol_id != 0 then
+        var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+        print_identifier(symbol.name_id);
     else
         print("(main subroutine)");
     end if;

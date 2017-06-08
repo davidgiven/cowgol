@@ -22,15 +22,16 @@ sub show_namespace_thing(thing: [NamespaceThing])
 end sub;
 
 sub show_symbol_thing(thing: [SymbolThing])
-    print("symbol(name=0x");
-    print_hex_i16(thing.name);
+    print("symbol(name_id=0x");
+    print_hex_i16(thing.name_id);
+    print(" value_id=0x");
+    print_hex_i16(thing.value_id);
     print(" next_symbol=0x");
     print_hex_i16(thing.next_symbol);
     print(") ");
 end sub;
 
 sub show_data_thing(thing: [DataThing])
-    show_symbol_thing(thing as [SymbolThing]);
     print("data(label_id=");
     print_i8(thing.label_id);
     print(") ");
@@ -65,7 +66,6 @@ sub show_labelref_thing(thing: [LabelThing])
 end sub;
 
 sub show_type_thing(thing: [TypeThing])
-    show_symbol_thing(thing as [SymbolThing]);
     print("type(width=");
     print_i8(thing.width);
     print(") ");
@@ -95,13 +95,6 @@ sub show_numeric_thing(kind: [int8], thing: [NumericThing])
     print(kind);
 end sub;
 
-sub show_const_thing(thing: [ConstThing])
-    show_symbol_thing(thing as [SymbolThing]);
-    print("const(number_id=0x");
-    print_hex_i16(thing.number_id);
-    print(") ");
-end sub;
-
 load_thing_table("things.dat");
 var id: uint16 := 1;
 loop
@@ -123,6 +116,8 @@ loop
         show_string_thing(thing as [StringThing]);
     elseif type == THING_NAMESPACE then
         show_namespace_thing(thing as [NamespaceThing]);
+    elseif type == THING_SYMBOL then
+        show_symbol_thing(thing as [SymbolThing]);
     elseif type == THING_SUBROUTINE then
         show_subroutine_thing(thing as [SubroutineThing]);
     elseif type == THING_LABEL then
@@ -139,8 +134,6 @@ loop
         show_variable_thing(thing as [VariableThing]);
     elseif type == THING_PARAMETER then
         show_parameter_thing(thing as [ParameterThing]);
-    elseif type == THING_CONST then
-        show_const_thing(thing as [ConstThing]);
     else
         print("unknown type ");
         print_i8(type);

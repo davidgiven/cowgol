@@ -182,13 +182,13 @@ sub do_constant(out result: int32)
                 thing := find_thing(current_token);
                 var number_thing: [NumberThing];
                 if thing.thing_type == THING_IDENTIFIER then
-                    var const_thing: [ConstThing] := find_thing(find_symbol(current_token)) as [ConstThing];
-                    if const_thing.thing_type != THING_CONST then
+                    var symbol: [SymbolThing] := find_thing(find_symbol(current_token)) as [SymbolThing];
+                    number_thing := find_thing(symbol.value_id) as [NumberThing];
+                    if number_thing.thing_type != THING_NUMBER then
                         show_identifier(current_token);
                         print(" does not refer to a constant number value");
                         halt();
                     end if;
-                    number_thing := find_thing(const_thing.number_id) as [NumberThing];
                 elseif thing.thing_type == THING_NUMBER then
                     number_thing := thing as [NumberThing];
                 elseif thing.thing_type == THING_STRING then

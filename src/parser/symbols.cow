@@ -73,7 +73,7 @@ sub find_symbol_in_namespace(identifier_id: uint16, namespace_id: uint16, out sy
 
     while symbol_id != 0 loop
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-        if symbol.name == identifier_id then
+        if symbol.name_id == identifier_id then
             return;
         end if;
         symbol_id := symbol.next_symbol;
@@ -101,19 +101,27 @@ sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
     halt();
 end sub;
 
-sub name_symbol(identifier_id: uint16, symbol_id: uint16, namespace_id: uint16)
+sub deref_symbol(identifier_id: uint16, out value_id: uint16)
+    var symbol_id: uint16 := find_symbol(identifier_id);
     var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-    var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
+    value_id := symbol.value_id;
+end sub;
 
+sub add_symbol(identifier_id: uint16, value_id: uint16, namespace_id: uint16)
     if find_symbol_in_namespace(identifier_id, namespace_id) != 0 then
-        print("symbol with identifier 0x");
-        print_hex_i16(identifier_id);
+        print("symbol ");
+        show_identifier(identifier_id);
         print(" is already defined in this namespace");
         halt();
     end if;
 
+    var symbol_id: uint16 := create_thing(THING_SYMBOL, SymbolThing@bytes);
+    var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+    var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
+
     symbol.next_symbol := namespace.first_symbol;
     namespace.first_symbol := symbol_id;
-    symbol.name := identifier_id;
+    symbol.name_id := identifier_id;
+    symbol.value_id := value_id;
 end sub;
 

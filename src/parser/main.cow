@@ -73,7 +73,7 @@ end sub;
 
 sub create_bootstrap_type(identifier_id: uint16, out type: [NumericThing])
     var type_id: uint16 := create_thing(THING_NUMERIC, NumericThing@bytes);
-    name_symbol(identifier_id, type_id, current_namespace_id);
+    add_symbol(identifier_id, type_id, current_namespace_id);
     type := find_thing(type_id) as [NumericThing];
 end sub;
 
@@ -116,7 +116,7 @@ sub do_sub()
     expect_token(TOKEN_SUB);
     var id: uint16 := expect_identifier();
     create_function(current_subroutine_id, current_namespace_id);
-    name_symbol(id, current_subroutine_id, old_namespace_id);
+    add_symbol(id, current_subroutine_id, old_namespace_id);
     break_label_id := 0;
     continue_label_id := 0;
     if_true_label_id := 0;
@@ -137,7 +137,7 @@ sub do_sub()
         var type_id: uint16 := read_type();
 
         var parameter_id: uint16 := create_thing(THING_PARAMETER, ParameterThing@bytes);
-        name_symbol(id, parameter_id, current_namespace_id);
+        add_symbol(id, parameter_id, current_namespace_id);
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
         parameter.inout := inout;
         parameter.type := type_id;
@@ -157,7 +157,7 @@ sub do_var()
     var type_id: uint16 := read_type();
 
     var variable_id: uint16 := create_thing(THING_VARIABLE, VariableThing@bytes);
-    name_symbol(id, variable_id, current_namespace_id);
+    add_symbol(id, variable_id, current_namespace_id);
     var variable: [VariableThing] := find_thing(variable_id) as [VariableThing];
     variable.type := type_id;
 
@@ -180,11 +180,7 @@ sub do_const()
 
     var value: int32 := do_constant();
     var number_id: uint16 := add_number_by_value(value);
-
-    var const_id: uint16 := create_thing(THING_CONST, ConstThing@bytes);
-    name_symbol(id, const_id, current_namespace_id);
-    var constthing: [ConstThing] := find_thing(const_id) as [ConstThing];
-    constthing.number_id := number_id;
+    add_symbol(id, number_id, current_namespace_id);
 
     expect_token(TOKEN_SEMICOLON);
 end sub;
@@ -222,7 +218,7 @@ sub do_label()
     expect_token(TOKEN_COLON);
 
     var label_id: uint16 := create_label();
-    name_symbol(id, label_id, current_namespace_id);
+    add_symbol(id, label_id, current_namespace_id);
     emit_label(label_id);
 end sub;
 
