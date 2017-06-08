@@ -1,0 +1,50 @@
+
+sub pointer_of(type_id: uint16, out ptr_type_id: uint16)
+    var buf: PointerThing[1];
+    buf[0].thing_type := THING_POINTER;
+    buf[0].thing_size := PointerThing@bytes;
+    buf[0].element_id := type_id;
+    ptr_type_id := add_thing_by_value(&buf[0] as [Thing]);
+end sub;
+
+sub read_type(out type_id: uint16)
+    var brackets: uint8 := 0;
+
+    sub mismatched_square_brackets()
+        print("mismatched square brackets in type");
+        halt();
+    end sub;
+
+    while current_token == TOKEN_OPENSQUARE loop
+        brackets := brackets + 1;
+        next_token();
+    end loop;
+
+    var identifier_id: uint16 := expect_identifier();
+    type_id := find_symbol(identifier_id);
+
+    loop
+        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
+        if (type.thing_type & THING_TYPE) != THING_TYPE then
+            print("identifier ");
+            show_identifier(identifier_id);
+            print(" does not refer to a type");
+        end if;
+
+        if current_token == TOKEN_CLOSESQUARE then
+            if brackets == 0 then
+                mismatched_square_brackets();
+            end if;
+            brackets := brackets - 1;
+            type_id := pointer_of(type_id);
+            next_token();
+        else
+            break;
+        end if;
+    end loop;
+
+    if brackets != 0 then
+        mismatched_square_brackets();
+    end if;
+end sub;
+

@@ -109,39 +109,6 @@ sub init_parser()
     type.width := 4;
 end sub;
 
-sub expect_token(expected: uint16)
-    if current_token != expected then
-        print("expected ");
-        show_identifier(expected);
-        print(" but got ");
-        show_identifier(current_token);
-        halt();
-    end if;
-    next_token();
-end sub;
-
-sub expect_identifier(out id: uint16)
-    var thing: [Thing] := find_thing(current_token);
-    if thing.thing_type != THING_IDENTIFIER then
-        print("missing identifier");
-        halt();
-    end if;
-
-    id := current_token;
-    next_token();
-end sub;
-
-sub read_type(out type_id: uint16)
-    var identifier_id: uint16 := expect_identifier();
-    type_id := find_symbol(identifier_id);
-    var type: [TypeThing] := find_thing(type_id) as [TypeThing];
-    if (type.thing_type & THING_TYPE) != THING_TYPE then
-        print("identifier 0x");
-        print_hex_i16(identifier_id);
-        print(" does not refer to a type");
-    end if;
-end sub;
-
 sub do_sub()
     var old_namespace_id: uint16 := current_namespace_id;
 

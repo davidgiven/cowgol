@@ -1,8 +1,4 @@
 var tokens_fd: uint8;
-var current_token: uint16;
-var peeked_token: uint16;
-var filename_id: uint16 := 0;
-var line_no: uint16 := 0;
 
 sub next_token()
     loop
@@ -28,5 +24,27 @@ sub init_tokenreader(filename: [int8])
     tokens_fd := file_openin(filename);
     current_token := TOKEN_TYPE_LINENO;
     peeked_token := TOKEN_TYPE_LINENO;
+    next_token();
+end sub;
+
+sub expect_token(expected: uint16)
+    if current_token != expected then
+        print("expected ");
+        show_identifier(expected);
+        print(" but got ");
+        show_identifier(current_token);
+        halt();
+    end if;
+    next_token();
+end sub;
+
+sub expect_identifier(out id: uint16)
+    var thing: [Thing] := find_thing(current_token);
+    if thing.thing_type != THING_IDENTIFIER then
+        print("missing identifier");
+        halt();
+    end if;
+
+    id := current_token;
     next_token();
 end sub;

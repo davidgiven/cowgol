@@ -1,0 +1,4 @@
+var current_token: uint16;
+var peeked_token: uint16;
+var filename_id: uint16 := 0;
+var line_no: uint16 := 0;

@@ -23,3 +23,8 @@ sub show_string(string_id: uint16)
     print_char('"');
 end sub;
 
+sub show_identifier(identifier_id: uint16)
+    var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];
+    show_string(identifier.string_id);
+end sub;
+

@@ -71,6 +71,13 @@ sub show_type_thing(thing: [TypeThing])
     print(") ");
 end sub;
 
+sub show_pointer_thing(thing: [PointerThing])
+    show_type_thing(thing as [TypeThing]);
+    print("pointer(element_id=0x");
+    print_hex_i16(thing.element_id);
+    print(") ");
+end sub;
+
 sub show_variable_thing(thing: [VariableThing])
     show_typed_thing(thing as [TypedThing]);
     print("variable ");
@@ -126,6 +133,8 @@ loop
         show_numeric_thing("signed_type", thing as [NumericThing]);
     elseif type == THING_UNSIGNED then
         show_numeric_thing("unsigned_type", thing as [NumericThing]);
+    elseif type == THING_POINTER then
+        show_pointer_thing(thing as [PointerThing]);
     elseif type == THING_VARIABLE then
         show_variable_thing(thing as [VariableThing]);
     elseif type == THING_PARAMETER then

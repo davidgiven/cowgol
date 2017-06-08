@@ -30,11 +30,13 @@ PARSER_SRCS = \
 	src/_token_names.cow \
 	src/utils/stringtable.cow \
 	src/iops.cow \
-	src/parser/tokenreader.cow \
+	src/parser/globals.cow \
 	src/parser/symbols.cow \
+	src/parser/tokenreader.cow \
 	src/parser/iopwriter.cow \
 	src/parser/expression.cow \
 	src/parser/constant.cow \
+	src/parser/types.cow \
 	src/parser/main.cow
 
 THINGSHOWER_SRCS = \
