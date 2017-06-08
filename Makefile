@@ -34,6 +34,7 @@ PARSER_SRCS = \
 	src/parser/symbols.cow \
 	src/parser/iopwriter.cow \
 	src/parser/expression.cow \
+	src/parser/constant.cow \
 	src/parser/main.cow
 
 THINGSHOWER_SRCS = \

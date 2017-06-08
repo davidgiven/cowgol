@@ -1,0 +1,245 @@
+sub do_constant(out result: int32)
+    const STATE_BEFORE := 0;
+    const STATE_AFTER := 1;
+
+    var operator_stack: uint16[32];
+    var operator_stack_pos: uint8 := 0;
+    var data_stack: uint32[8];
+    var data_stack_pos: uint8 := 0;
+    var state: uint8 := STATE_BEFORE;
+
+    sub peek_op(out op_id: uint16)
+        if operator_stack_pos == 0 then
+            op_id := 0;
+        else
+            op_id := operator_stack[operator_stack_pos-1];
+        end if;
+    end sub;
+
+    sub push_op(op: uint16)
+        if operator_stack_pos == operator_stack@size then
+            print("expression too complex");
+            halt();
+        end if;
+
+        operator_stack[operator_stack_pos] := op;
+        operator_stack_pos := operator_stack_pos + 1;
+    end sub;
+
+    sub discard_op()
+        if operator_stack_pos == 0 then
+            print("expression stack underflow");
+            halt();
+        end if;
+
+        operator_stack_pos := operator_stack_pos - 1;
+    end sub;
+
+    sub pop_op(out op: uint16)
+        discard_op();
+        op := operator_stack[operator_stack_pos];
+    end sub;
+
+    sub push_value(value: int32)
+        if data_stack_pos == data_stack@size then
+            print("expression too complex");
+            halt();
+        end if;
+
+        data_stack[data_stack_pos] := value;
+        data_stack_pos := data_stack_pos + 1;
+    end sub;
+
+    sub pop_value(out value: int32)
+        if data_stack_pos == 0 then
+            print("expression stack underflow");
+            halt();
+        end if;
+
+        data_stack_pos := data_stack_pos - 1;
+        value := data_stack[data_stack_pos];
+    end sub;
+
+    sub apply_op()
+        if operator_stack_pos == 0 then
+            print("apply on empty stack");
+            halt();
+        end if;
+
+        operator_stack_pos := operator_stack_pos - 1;
+        var op_id: uint16 := operator_stack[operator_stack_pos];
+
+        var left: uint32;
+        var right: uint32 := pop_value();
+
+        if (op_id >= TOKEN_START_OF_BINARY_OPS) & (op_id < TOKEN_END_OF_BINARY_OPS) then
+            left := pop_value();
+        end if;
+
+        if op_id == TOKEN_PLUS then
+            left := left + right;
+        elseif op_id == TOKEN_MINUS then
+            left := left - right;
+        elseif op_id == TOKEN_STAR then
+            left := left * right;
+        elseif op_id == TOKEN_SLASH then
+            left := left / right;
+        elseif op_id == TOKEN_PERCENT then
+            left := left % right;
+        #elseif op_id == TOKEN_TILDE then
+        #    left := ~right;
+        else
+            print("cannot use operator ");
+            show_identifier(op_id);
+            print(" in a constant expression");
+            halt();
+        end if;
+
+        push_value(left);
+    end sub;
+
+    sub operator_precedence(op_id: uint16, out precedence: uint8)
+        if op_id < TOKEN_START_OF_OPS then
+            precedence := 0;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_1 then
+            precedence := 1;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_2 then
+            precedence := 2;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_3 then
+            precedence := 3;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_4 then
+            precedence := 4;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_5 then
+            precedence := 5;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_6 then
+            precedence := 6;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_7 then
+            precedence := 7;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_8 then
+            precedence := 8;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_9 then
+            precedence := 9;
+        elseif op_id < TOKEN_PRECEDENCE_BAND_10 then
+            precedence := 10;
+        else
+            precedence := 99; # unary operators
+        end if;
+    end sub;
+
+    sub apply_higher_precedence_ops(op_id: uint16)
+        var op_p: uint8 := operator_precedence(op_id);
+        loop
+            var topop_id: uint16 := peek_op();
+            var topop_p: uint8 := operator_precedence(topop_id);
+            if (topop_p == 0) | (topop_p < op_p) then
+                break;
+            end if;
+            apply_op();
+        end loop;
+    end sub;
+
+    sub flush_ops()
+        while operator_stack_pos > 0 loop
+            apply_op();
+        end loop;
+    end sub;
+
+    sub apply_until_closer(out topop_id: uint16)
+        loop
+            topop_id := peek_op();
+            if (topop_id == 0) | (topop_id == TOKEN_OPENPAREN) then
+                break;
+            end if;
+            apply_op();
+        end loop;
+    end sub;
+
+    sub close_parenthesis()
+        var closer_id: uint16 := apply_until_closer();
+        if closer_id == 0 then
+            return;
+        elseif closer_id != TOKEN_OPENPAREN then
+            print(") matched with ");
+            show_identifier(closer_id);
+            print(", not (");
+            halt();
+        end if;
+        discard_op();
+    end sub;
+
+    var thing: [Thing];
+    var thing_iop: [ThingIop];
+    loop
+        if state == STATE_BEFORE then
+            # Before a leaf.
+            if current_token == TOKEN_OPENPAREN then
+                push_op(TOKEN_OPENPAREN);
+                next_token();
+            elseif (current_token >= TOKEN_START_OF_UNARY_OPS) & (current_token < TOKEN_END_OF_UNARY_OPS) then
+                push_op(current_token);
+                next_token();
+            else
+                thing := find_thing(current_token);
+                var number_thing: [NumberThing];
+                if thing.thing_type == THING_IDENTIFIER then
+                    var const_thing: [ConstThing] := find_thing(find_symbol(current_token)) as [ConstThing];
+                    if const_thing.thing_type != THING_CONST then
+                        show_identifier(current_token);
+                        print(" does not refer to a constant number value");
+                        halt();
+                    end if;
+                    number_thing := find_thing(const_thing.number_id) as [NumberThing];
+                elseif thing.thing_type == THING_NUMBER then
+                    number_thing := thing as [NumberThing];
+                elseif thing.thing_type == THING_STRING then
+                    print("cannot use strings in constant expressions");
+                    halt();
+                else
+                    print("bad token ");
+                    show_identifier(current_token);
+                    halt();
+                end if;
+                push_value(number_thing.value);
+                state := STATE_AFTER;
+                next_token();
+            end if;
+        else
+            # After a leaf (this is the only valid place to end an expression).
+            if current_token < TOKEN_LAST_EXPR_END then
+                break;
+            elseif current_token == TOKEN_COMMA then
+                break;
+            elseif current_token == TOKEN_CLOSEPAREN then
+                close_parenthesis();
+                if peek_op() == 0 then
+                    break;
+                end if;
+                next_token();
+            elseif (current_token >= TOKEN_START_OF_BINARY_OPS) & (current_token < TOKEN_END_OF_BINARY_OPS) then
+                apply_higher_precedence_ops(current_token);
+                push_op(current_token);
+                next_token();
+                state := STATE_BEFORE;
+            else
+                print("bad state ");
+                show_identifier(current_token);
+                halt();
+            end if;
+        end if;
+    end loop;
+
+    flush_ops();
+    if operator_stack_pos != 0 then
+        print("unmatched expression");
+        halt();
+    end if;
+
+    if data_stack_pos != 1 then
+        print("expression left ");
+        print_i8(data_stack_pos);
+        print(" items on the stack, but expected 1");
+        halt();
+    end if;
+
+    result := data_stack[0];
+end sub;

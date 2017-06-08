@@ -206,6 +206,22 @@ sub do_var()
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
+sub do_const()
+    expect_token(TOKEN_CONST);
+    var id: uint16 := expect_identifier();
+    expect_token(TOKEN_ASSIGN);
+
+    var value: int32 := do_constant();
+    var number_id: uint16 := add_number_by_value(value);
+
+    var const_id: uint16 := create_thing(THING_CONST, ConstThing@bytes);
+    name_symbol(id, const_id, current_namespace_id);
+    var constthing: [ConstThing] := find_thing(const_id) as [ConstThing];
+    constthing.number_id := number_id;
+
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
 sub do_end()
     expect_token(TOKEN_END);
     var peeked: uint16 := lexical_peek();
@@ -368,6 +384,8 @@ while current_token != 0 loop
         do_sub();
     elseif current_token == TOKEN_VAR then
         do_var();
+    elseif current_token == TOKEN_CONST then
+        do_const();
     elseif current_token == TOKEN_END then
         do_end();
     elseif current_token == TOKEN_GOTO then

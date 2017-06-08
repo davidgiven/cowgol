@@ -14,6 +14,7 @@ const THING_LABEL      := 0b00000_110;
 const THING_LABELREF   := 0b00000_111;
 
 const THING_SYMBOL     := 0b10000_000;
+const THING_CONST      := 0b10000_001;
 const THING_DATA       := 0b01000_000;
 const THING_TYPEDDATA  := 0b00100_000;
 const THING_SUBROUTINE := 0b11000_000;
@@ -60,6 +61,10 @@ end record;
 record SymbolThing: Thing
     name: uint16;
     next_symbol: uint16;
+end record;
+
+record ConstThing: SymbolThing
+    number_id: uint16;
 end record;
 
 record TypeThing: SymbolThing
@@ -152,7 +157,6 @@ sub add_thing_by_value(template: [Thing], out id: uint16)
     id := find_thing_by_value(template);
     if id == 0 then
         id := thing_table_top;
-        var thing: [Thing] := &thing_table[id] as [Thing];
         copy_memory(template as [int8], &thing_table[id] as [int8], template.thing_size);
         thing_table_top := id + template.thing_size;
         thing_table[thing_table_top] := 0;
@@ -180,6 +184,14 @@ sub find_thing_by_payload(type: uint8, length: uint8, value: [int8], out id: uin
 
     id := create_thing(type, length+2);
     copy_memory(value, &thing_table[id+2], length);
+end sub;
+
+sub add_number_by_value(value: int32, out id: uint16)
+    var buf: NumberThing[1];
+    buf[0].thing_type := THING_NUMBER;
+    buf[0].thing_size := NumberThing@bytes;
+    buf[0].value := value;
+    id := add_thing_by_value(&buf[0] as [Thing]);
 end sub;
 
 sub save_thing_table(filename: [int8])

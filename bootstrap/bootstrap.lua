@@ -20,7 +20,7 @@ function set(...)
     return t
 end
 
-local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!=", "&", "|", "^")
+local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!=", "&", "|", "^", "%")
 local postfix_operators = set("as")
 
 function log(...)
@@ -40,7 +40,7 @@ function tokenstream(source)
         "^(\n)",
         "^([%w@][%w%d_]*)",
         "^([<>!:=]=)",
-        "^([-+*/():;,.'<>[%]&|^])"
+        "^([-+*/():;,.'<>[%]&|^%%~])"
     }
 
     local c = coroutine.create(

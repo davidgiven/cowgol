@@ -100,8 +100,8 @@ sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
         namespace_id := namespace.previous_namespace;
     end loop;
 
-    print("symbol with identifier 0x");
-    print_hex_i16(identifier_id);
+    print("symbol ");
+    show_identifier(identifier_id);
     print(" not found in any scope");
     halt();
 end sub;
