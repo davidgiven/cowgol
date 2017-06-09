@@ -26,7 +26,7 @@ sub compare_strings(left: [int8], right: [int8], out result: int8)
         if result != 0 then
             return;
         end if;
-        if (c1 == 0) & (c2 == 0) then
+        if (c1 == 0) and (c2 == 0) then
             return;
         end if;
 

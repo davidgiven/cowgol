@@ -103,6 +103,10 @@ sub expression_state_machine()
             alu_2op(IOP_DIVOP);
         elseif op_id == TOKEN_PERCENT then
             alu_2op(IOP_MODOP);
+        elseif op_id == TOKEN_PIPE then
+            alu_2op(IOP_OROP);
+        elseif op_id == TOKEN_CARET then
+            alu_2op(IOP_ANDOP);
         elseif op_id == TOKEN_TILDE then
             alu_1op(IOP_NOTOP);
         elseif op_id == TOKEN_EQOP then

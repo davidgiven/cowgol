@@ -20,7 +20,8 @@ function set(...)
     return t
 end
 
-local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!=", "&", "|", "^", "%")
+local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!=", "&", "|", "^", "%",
+    "and", "or")
 local postfix_operators = set("as")
 
 function log(...)
@@ -954,7 +955,13 @@ function expression(outputvar)
                 end
 
                 type_check(type, op.rvalue.type)
-                emit("%s = %s %s %s;", op.rvalue.storage, left.storage, op.op, right.storage)
+                local cop = op.op
+                if (cop == "or") then
+                    cop = "|"
+                elseif (cop == "and") then
+                    cop = "&"
+                end
+                emit("%s = %s %s %s;", op.rvalue.storage, left.storage, cop, right.storage)
                 stack[#stack+1] = op.rvalue
                 if left.temporary then
                     free_tempvar(left)
