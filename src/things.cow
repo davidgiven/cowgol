@@ -1,32 +1,26 @@
-const SECTION_UNKNOWN := 0;
-const SECTION_CODE := 1;
-const SECTION_ROMDATA := 2;
-const SECTION_RAMDATA := 3;
-const SECTION_NONINITDATA := 4;
-const SECTION_POINTERS := 5;
+const THING_STRING     := 0b0000_0001;
+const THING_IDENTIFIER := 0b0000_0010;
+const THING_NUMBER     := 0b0000_0011;
+const THING_NAMESPACE  := 0b0000_0100;
+const THING_TOKEN      := 0b0000_0101;
+const THING_SYMBOL     := 0b0000_0110;
+const THING_LABEL      := 0b0000_0111;
+const THING_LABELREF   := 0b0000_1000;
 
-const THING_STRING     := 0b00000_001;
-const THING_IDENTIFIER := 0b00000_010;
-const THING_NUMBER     := 0b00000_011;
-const THING_NAMESPACE  := 0b00000_100;
-const THING_TOKEN      := 0b00000_101;
-const THING_LABEL      := 0b00000_110;
-const THING_LABELREF   := 0b00000_111;
+const THING_DATA       := 0b1000_0000;
+const THING_SUBROUTINE := 0b1000_0001;
 
-const THING_SYMBOL     := 0b10000_000;
-const THING_DATA       := 0b01000_000;
-const THING_TYPEDDATA  := 0b00100_000;
-const THING_SUBROUTINE := 0b11000_000;
-const THING_VARIABLE   := 0b11100_000;
-const THING_PARAMETER  := 0b11100_001;
+const THING_TYPED      := 0b0100_0000;
+const THING_VARIABLE   := 0b1100_0000;
+const THING_PARAMETER  := 0b1100_0001;
 
-const THING_TYPE       := 0b00010_000;
-const THING_RECORD     := 0b00010_001;
-const THING_POINTER    := 0b00010_010;
-const THING_ARRAY      := 0b00010_011;
-const THING_NUMERIC    := 0b00011_000;
-const THING_UNSIGNED   := 0b00011_001;
-const THING_SIGNED     := 0b00011_010;
+const THING_TYPE       := 0b0010_0000;
+const THING_RECORD     := 0b0010_0001;
+const THING_POINTER    := 0b0010_0010;
+const THING_ARRAY      := 0b0010_0011;
+const THING_NUMERIC    := 0b0011_0000;
+const THING_UNSIGNED   := 0b0011_0001;
+const THING_SIGNED     := 0b0011_0010;
 
 record Thing
     thing_size: uint8;
@@ -54,7 +48,6 @@ end record;
 
 record LabelThing: Thing
     target: uint16;
-    section: uint8;
 end record;
 
 record SymbolThing: Thing

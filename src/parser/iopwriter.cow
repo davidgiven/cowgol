@@ -54,9 +54,9 @@ sub merge_label(srclabel_id: uint16, destlabel_id: uint16)
     srclabel.target := destlabel_id;
 end sub;
 
-sub flush_iops(oldtop: uint16)
+sub flush_iops(object_id: uint16, oldtop: uint16)
     var header: IHeader[1];
-    header[0].thing_id := current_subroutine_id;
+    header[0].thing_id := object_id;
     file_putblock(iopfd, &header[0] as [int8], IHeader@bytes);
 
     var offset: uint16 := oldtop;
@@ -69,6 +69,14 @@ sub flush_iops(oldtop: uint16)
     end loop;
 
     ioptab_size := oldtop;
+end sub;
+
+# Writes the iops for an empty variable definition, without disturbing the current
+# subroutine.
+sub flush_var(variable_id: uint16)
+    var oldtop: uint16 := ioptab_size;
+    emit_simple(IOP_END);
+    flush_iops(variable_id, oldtop);
 end sub;
 
 sub open_iopfile(filename: [int8])

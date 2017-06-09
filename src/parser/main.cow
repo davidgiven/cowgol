@@ -56,10 +56,7 @@ end sub;
 
 sub pop_subroutine()
     lexical_pop_scope_type(TOKEN_SUB);
-
-    emit_simple(IOP_END);
-
-    flush_iops(lexical_pop());
+    flush_iops(current_subroutine_id, lexical_pop());
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
     if_end_label_id := lexical_pop();
@@ -139,6 +136,7 @@ sub do_sub()
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
         parameter.inout := inout;
         parameter.type := type_id;
+        flush_var(parameter_id);
 
         if current_token != TOKEN_COMMA then
             break;
@@ -146,6 +144,12 @@ sub do_sub()
         next_token();
     end loop;
     expect_token(TOKEN_CLOSEPAREN);
+end sub;
+
+sub do_end_sub()
+    emit_simple(IOP_RETURN);
+    emit_simple(IOP_END);
+    pop_subroutine();
 end sub;
 
 sub do_var()
@@ -158,6 +162,7 @@ sub do_var()
     add_symbol(id, variable_id, current_namespace_id);
     var variable: [VariableThing] := find_thing(variable_id) as [VariableThing];
     variable.type := type_id;
+    flush_var(variable_id);
 
     if current_token == TOKEN_ASSIGN then
         var thing_iop: [ThingIop] := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
@@ -281,7 +286,6 @@ sub do_elseif()
 end sub;
 
 sub do_end_if()
-    next_token();
     if if_false_label_id != 0 then
         emit_label(if_false_label_id);
     end if;
@@ -326,10 +330,8 @@ sub do_end()
         halt();
     end if;
     if current_token == TOKEN_SUB then
-        next_token();
-        pop_subroutine();
+        do_end_sub();
     elseif current_token == TOKEN_LOOP then
-        next_token();
         pop_loop();
     elseif current_token == TOKEN_IF then
         do_end_if();
@@ -339,6 +341,7 @@ sub do_end()
         print(" yet");
         halt();
     end if;
+    next_token();
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
@@ -391,8 +394,9 @@ while current_token != 0 loop
         halt();
     end if;
 end loop;
-var iop: [Iop] := emit(IOP_END, Iop@bytes);
-flush_iops(0);
+emit_simple(IOP_RETURN);
+emit_simple(IOP_END);
+flush_iops(current_subroutine_id, 0);
 close_iopfile();
 
 print("thing table size: ");

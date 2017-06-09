@@ -59,8 +59,10 @@ loop
 
     var subroutine: [SubroutineThing] := find_thing(header.thing_id) as [SubroutineThing];
     var symbol_id: uint16 := find_symbol_by_value(header.thing_id);
-    print("SUBROUTINE: 0x");
+    print("OBJECT: id=0x");
     print_hex_i16(header.thing_id);
+    print(", section=");
+    print_i8(header.section);
     print(": ");
     if symbol_id != 0 then
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
@@ -82,6 +84,8 @@ loop
             do_label(iop as [LabelIop]);
         elseif kind == IOP_ASSIGN then
             print("ASSIGN");
+        elseif kind == IOP_RETURN then
+            print("RETURN");
         elseif kind == IOP_SCALL then
             do_call("SCALL", iop as [CallIop]);
         elseif kind == IOP_GOTO then

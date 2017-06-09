@@ -54,8 +54,6 @@ end sub;
 sub show_label_thing(thing: [LabelThing])
     print("label(target=0x");
     print_hex_i16(thing.target);
-    print(" section=");
-    print_i8(thing.section);
     print(")");
 end sub;
 
