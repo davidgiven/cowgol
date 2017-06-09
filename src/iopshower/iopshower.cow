@@ -37,7 +37,6 @@ sub do_call(kind: [int8], iop: [CallIop])
     print_hex_i16(iop.thing_id);
     print(" parameter_count=");
     print_i8(iop.parameter_count);
-    print(")");
 end sub;
 
 sub do_branching(kind: [int8], iop: [BranchingIop])

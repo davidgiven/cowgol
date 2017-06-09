@@ -36,8 +36,6 @@ sub push_if()
 end sub;
 
 sub pop_if()
-    emit_label(if_end_label_id);
-
     lexical_pop_scope_type(TOKEN_IF);
     if_end_label_id := lexical_pop();
     if_false_label_id := lexical_pop();
@@ -185,34 +183,6 @@ sub do_const()
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
-sub do_end()
-    expect_token(TOKEN_END);
-    var peeked: uint16 := lexical_peek();
-    if current_token != peeked then
-        print("can't close a ");
-        show_identifier(peeked);
-        print(" with a ");
-        show_identifier(current_token);
-        halt();
-    end if;
-    if current_token == TOKEN_SUB then
-        next_token();
-        pop_subroutine();
-    elseif current_token == TOKEN_LOOP then
-        next_token();
-        pop_loop();
-    elseif current_token == TOKEN_IF then
-        next_token();
-        pop_if();
-    else
-        print("can't close ");
-        show_identifier(current_token);
-        print(" yet");
-        halt();
-    end if;
-    expect_token(TOKEN_SEMICOLON);
-end sub;
-
 sub do_label()
     var id: uint16 := expect_identifier();
     expect_token(TOKEN_COLON);
@@ -291,21 +261,34 @@ end sub;
 sub do_if()
     next_token();
     push_if();
-    do_generic_if_then();
-    if_end_label_id := create_label();
-end sub;
-
-sub do_elseif()
-    next_token();
-    emit_goto(if_end_label_id);
-    emit_label(if_false_label_id);
+    if_end_label_id := 0;
     do_generic_if_then();
 end sub;
 
 sub do_else()
     next_token();
+    if if_end_label_id == 0 then
+        if_end_label_id := create_label();
+    end if;
     emit_goto(if_end_label_id);
     emit_label(if_false_label_id);
+    if_false_label_id := 0;
+end sub;
+
+sub do_elseif()
+    do_else();
+    do_generic_if_then();
+end sub;
+
+sub do_end_if()
+    next_token();
+    if if_false_label_id != 0 then
+        emit_label(if_false_label_id);
+    end if;
+    if if_end_label_id != 0 then
+        emit_label(if_end_label_id);
+    end if;
+    pop_if();
 end sub;
 
 sub do_functioncall()
@@ -329,6 +312,33 @@ sub do_functioncall()
     var iop: [CallIop] := emit(IOP_SCALL, CallIop@bytes) as [CallIop];
     iop.thing_id := id;
     iop.parameter_count := parameters;
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
+sub do_end()
+    expect_token(TOKEN_END);
+    var peeked: uint16 := lexical_peek();
+    if current_token != peeked then
+        print("can't close a ");
+        show_identifier(peeked);
+        print(" with a ");
+        show_identifier(current_token);
+        halt();
+    end if;
+    if current_token == TOKEN_SUB then
+        next_token();
+        pop_subroutine();
+    elseif current_token == TOKEN_LOOP then
+        next_token();
+        pop_loop();
+    elseif current_token == TOKEN_IF then
+        do_end_if();
+    else
+        print("can't close ");
+        show_identifier(current_token);
+        print(" yet");
+        halt();
+    end if;
     expect_token(TOKEN_SEMICOLON);
 end sub;
 

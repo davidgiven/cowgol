@@ -10,14 +10,20 @@ if one == zero then
     fail("line 10");
 elseif zero == one then
     fail("line 12");
+end if;
+
+if one == zero then
+    fail("line 16");
+elseif zero == one then
+    fail("line 18");
 else
     nop();
 end if;
 
 if one == zero then
-    fail("line 18");
+    fail("line 24");
 elseif one == one then
     nop();
 else
-    fail("line 22");
+    fail("line 28");
 end if;
