@@ -4,11 +4,15 @@ var if_true_label_id: uint16;
 var if_false_label_id: uint16;
 var if_end_label_id: uint16;
 
-sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
-    subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
+sub create_namespace(parent_id: uint16, out namespace_id: uint16)
     namespace_id := create_thing(THING_NAMESPACE, NamespaceThing@bytes);
     var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
-    namespace.previous_namespace := current_namespace_id;
+    namespace.previous_namespace := parent_id;
+end sub;
+
+sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
+    subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
+    namespace_id := create_namespace(current_namespace_id);
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
     subroutine.namespace := namespace_id;
 end sub;
@@ -185,6 +189,62 @@ sub do_const()
     var number_id: uint16 := add_number_by_value(value);
     add_symbol(id, number_id, current_namespace_id);
 
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
+sub do_record()
+    var type_id: uint16;
+    var type: [TypeThing];
+
+    expect_token(TOKEN_RECORD);
+    var id: uint16 := expect_identifier();
+    var record_id: uint16 := create_thing(THING_RECORD, RecordThing@bytes);
+    add_symbol(id, record_id, current_namespace_id);
+    var recordp: [RecordThing] := find_thing(record_id) as [RecordThing];
+
+    sub check_recursive_type()
+        if type_id == record_id then
+            print("recursive type in record (use a pointer instead)");
+            halt();
+        end if;
+    end sub;
+
+    if current_token == TOKEN_COLON then
+        next_token();
+        type_id := read_type();
+        check_recursive_type();
+        var superclass: [RecordThing] := find_thing(type_id) as [RecordThing];
+        if superclass.thing_type != THING_RECORD then
+            print("you can only inherit from records");
+            halt();
+        end if;
+
+        recordp.superclass_id := type_id;
+        recordp.width := superclass.width;
+        recordp.namespace_id := create_namespace(superclass.namespace_id);
+    else
+        recordp.namespace_id := create_namespace(0);
+    end if;
+
+    while current_token != TOKEN_END loop
+        id := expect_identifier();
+        expect_token(TOKEN_COLON);
+        type_id := read_type();
+        check_recursive_type();
+        type := find_thing(type_id) as [TypeThing];
+
+        var member_id: uint16 := create_thing(THING_MEMBER, MemberThing@bytes);
+        add_symbol(id, member_id, recordp.namespace_id);
+        var member: [MemberThing] := find_thing(member_id) as [MemberThing];
+        member.type_id := type_id;
+        member.offset := recordp.width;
+        recordp.width := recordp.width + type.width;
+
+        expect_token(TOKEN_SEMICOLON);
+    end loop;
+
+    next_token();
+    expect_token(TOKEN_RECORD);
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
@@ -368,6 +428,8 @@ while current_token != 0 loop
         do_var();
     elseif current_token == TOKEN_CONST then
         do_const();
+    elseif current_token == TOKEN_RECORD then
+        do_record();
     elseif current_token == TOKEN_END then
         do_end();
     elseif current_token == TOKEN_GOTO then

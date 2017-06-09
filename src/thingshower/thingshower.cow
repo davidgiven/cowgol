@@ -76,6 +76,23 @@ sub show_pointer_thing(thing: [PointerThing])
     print(") ");
 end sub;
 
+sub show_record_thing(thing: [RecordThing])
+    show_type_thing(thing as [TypeThing]);
+    print("record(superclass_id=0x");
+    print_hex_i16(thing.superclass_id);
+    print(" namespace_id=0x");
+    print_hex_i16(thing.namespace_id);
+    print(") ");
+end sub;
+
+sub show_member_thing(thing: [MemberThing])
+    print("member(type_id=0x");
+    print_hex_i16(thing.type_id);
+    print(" offset=0x");
+    print_hex_i16(thing.offset);
+    print(") ");
+end sub;
+
 sub show_variable_thing(thing: [VariableThing])
     show_typed_thing(thing as [TypedThing]);
     print("variable ");
@@ -137,6 +154,10 @@ loop
         show_numeric_thing("unsigned_type", thing as [NumericThing]);
     elseif type == THING_POINTER then
         show_pointer_thing(thing as [PointerThing]);
+    elseif type == THING_RECORD then
+        show_record_thing(thing as [RecordThing]);
+    elseif type == THING_MEMBER then
+        show_member_thing(thing as [MemberThing]);
     elseif type == THING_VARIABLE then
         show_variable_thing(thing as [VariableThing]);
     elseif type == THING_PARAMETER then

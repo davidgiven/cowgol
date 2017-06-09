@@ -129,7 +129,7 @@ sub expression_state_machine()
             merge_label(expr_false_label_id, pop_op());
             merge_label(expr_true_label_id, pop_op());
         else
-            print("unknown operator ");
+            print("couldn't apply operator ");
             show_identifier(op_id);
             halt();
         end if;
@@ -291,7 +291,7 @@ sub expression_state_machine()
                 next_token();
                 state := STATE_BEFORE;
             else
-                print("bad state ");
+                print("couldn't parse operator ");
                 show_identifier(current_token);
                 halt();
             end if;
