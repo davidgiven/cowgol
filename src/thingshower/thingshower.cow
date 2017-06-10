@@ -1,7 +1,15 @@
-sub show_identifier_thing(kind: [int8], thing: [IdentifierThing])
-    print(kind);
-    print(": ");
+sub show_identifier_thing(thing: [IdentifierThing])
+    print("identifier(string_id=");
     show_string(thing.string_id);
+    print(") ");
+end sub;
+
+sub show_token_thing(thing: [TokenThing])
+    print("token(string_id=");
+    show_string(thing.string_id);
+    print(" token_flags=");
+    print_hex_i8(thing.token_flags);
+    print(") ");
 end sub;
 
 sub show_string_thing(thing: [StringThing])
@@ -131,9 +139,9 @@ loop
 
     var type: uint8 := thing.thing_type;
     if (type == THING_IDENTIFIER) then
-        show_identifier_thing("identifier", thing as [IdentifierThing]);
+        show_identifier_thing(thing as [IdentifierThing]);
     elseif (type == THING_TOKEN) then
-        show_identifier_thing("token", thing as [IdentifierThing]);
+        show_token_thing(thing as [TokenThing]);
     elseif type == THING_NUMBER then
         show_number_thing(thing as [NumberThing]);
     elseif type == THING_STRING then

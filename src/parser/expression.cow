@@ -135,39 +135,11 @@ sub expression_state_machine()
         end if;
     end sub;
 
-    sub operator_precedence(op_id: uint16, out precedence: uint8)
-        if op_id < TOKEN_START_OF_OPS then
-            precedence := 0;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_1 then
-            precedence := 1;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_2 then
-            precedence := 2;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_3 then
-            precedence := 3;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_4 then
-            precedence := 4;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_5 then
-            precedence := 5;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_6 then
-            precedence := 6;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_7 then
-            precedence := 7;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_8 then
-            precedence := 8;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_9 then
-            precedence := 9;
-        elseif op_id < TOKEN_PRECEDENCE_BAND_10 then
-            precedence := 10;
-        else
-            precedence := 99; # unary operators
-        end if;
-    end sub;
-
     sub apply_higher_precedence_ops(op_id: uint16)
-        var op_p: uint8 := operator_precedence(op_id);
+        var op_p: uint8 := get_token_flags(op_id) & TOKEN_FLAG_PRECEDENCE_MASK;
         loop
             var topop_id: uint16 := peek_op();
-            var topop_p: uint8 := operator_precedence(topop_id);
+            var topop_p: uint8 := get_token_flags(topop_id) & TOKEN_FLAG_PRECEDENCE_MASK;
             if (topop_p == 0) | (topop_p < op_p) then
                 break;
             end if;
@@ -218,12 +190,13 @@ sub expression_state_machine()
     var thing: [Thing];
     var thing_iop: [ThingIop];
     loop
+        var token_flags: uint8 := get_token_flags(current_token);
         if state == STATE_BEFORE then
             # Before a leaf.
             if current_token == TOKEN_OPENPAREN then
                 push_op(TOKEN_OPENPAREN);
                 next_token();
-            elseif (current_token >= TOKEN_START_OF_UNARY_OPS) & (current_token < TOKEN_END_OF_UNARY_OPS) then
+            elseif (token_flags & TOKEN_FLAG_UNARY_OP) != 0 then
                 push_op(current_token);
                 next_token();
             else
@@ -243,7 +216,7 @@ sub expression_state_machine()
             end if;
         else
             # After a leaf (this is the only valid place to end an expression).
-            if current_token < TOKEN_LAST_EXPR_END then
+            if (token_flags & TOKEN_FLAG_EXPR_ENDER) != 0 then
                 break;
             elseif current_token == TOKEN_COMMA then
                 break;
@@ -285,7 +258,7 @@ sub expression_state_machine()
 
                 next_token();
                 state := STATE_BEFORE;
-            elseif (current_token >= TOKEN_START_OF_BINARY_OPS) & (current_token < TOKEN_END_OF_BINARY_OPS) then
+            elseif (token_flags & TOKEN_FLAG_BINARY_OP) != 0 then
                 apply_higher_precedence_ops(current_token);
                 push_op(current_token);
                 next_token();

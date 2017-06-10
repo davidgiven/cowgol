@@ -21,13 +21,12 @@ sub read_identifier()
     end loop;
 
     var string_id: uint16 := lookup_string();
-    var buf: IdentifierThing[1];
-    buf[0].thing_type := THING_TOKEN;
-    buf[0].thing_size := IdentifierThing@bytes;
-    buf[0].string_id := string_id;
-    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    var token_id: uint16 := find_token_by_string(string_id);
     if token_id == 0 then
+        var buf: IdentifierThing[1];
         buf[0].thing_type := THING_IDENTIFIER;
+        buf[0].thing_size := IdentifierThing@bytes;
+        buf[0].string_id := string_id;
         token_id := add_thing_by_value(&buf[0] as [Thing]);
     end if;
     emit_token(token_id);
@@ -45,40 +44,24 @@ sub read_number()
         next_byte();
     end loop;
 
-    var buf: NumberThing[1];
-    buf[0].thing_type := THING_NUMBER;
-    buf[0].thing_size := NumberThing@bytes;
-
-    input_buffer[buffer_index] := 0;
-    var numbuf: int32[1];
-
-    sub buffer_to_int()
-        var base: uint8 := 10;
-        var ptr: [int8] := &input_buffer[0];
-        if (buffer_index >= 2) & (input_buffer[0] == '0') then
-            if input_buffer[1] == 'x' then
-                base := 16;
-                ptr := &input_buffer[2];
-            elseif input_buffer[1] == 'o' then
-                base := 8;
-                ptr := &input_buffer[2];
-            elseif input_buffer[1] == 'b' then
-                base := 2;
-                ptr := &input_buffer[2];
-            end if;
+    var base: uint8 := 10;
+    var ptr: [int8] := &input_buffer[0];
+    if (buffer_index >= 2) & (input_buffer[0] == '0') then
+        if input_buffer[1] == 'x' then
+            base := 16;
+            ptr := &input_buffer[2];
+        elseif input_buffer[1] == 'o' then
+            base := 8;
+            ptr := &input_buffer[2];
+        elseif input_buffer[1] == 'b' then
+            base := 2;
+            ptr := &input_buffer[2];
         end if;
-
-        buf[0].value := string_to_number(ptr, base);
-    end sub;
-
-    if (buffer_index >= 2) & (input_buffer[0] == '0') & (input_buffer[1] == 'x') then
-        buf[0].value := string_to_number(&input_buffer[2], 16);
-    else
-        buf[0].value := string_to_number(&input_buffer[0], 10);
     end if;
 
-    var tokenid: uint16 := add_thing_by_value(&buf[0] as [Thing]);
-    emit_token(tokenid);
+    var value: int32 := string_to_number(ptr, base);
+    var token_id: uint16 := add_number_by_value(value);
+    emit_token(token_id);
 end sub;
 
 sub read_comment()
@@ -108,11 +91,7 @@ sub read_symbol()
     end if;
 
     var string_id: uint16 := lookup_string();
-    var buf: IdentifierThing[1];
-    buf[0].thing_type := THING_TOKEN;
-    buf[0].thing_size := IdentifierThing@bytes;
-    buf[0].string_id := string_id;
-    var token_id: uint16 := find_thing_by_value(&buf[0] as [Thing]);
+    var token_id: uint16 := find_token_by_string(string_id);
     if token_id == 0 then
         print("unrecognised symbol");
         error_with_location();
@@ -226,15 +205,20 @@ sub init_tokeniser()
     peeked_token := TOKEN_TYPE_LINENO;
 end sub;
 
-sub install_identifier(name: [int8], id: uint16, thingtype: uint8)
+sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: uint8)
     copy_string(name, &input_buffer[0]);
     buffer_index := string_length(&input_buffer[0]);
 
     var string_id: uint16 := lookup_string();
-    var buf: IdentifierThing[1];
+    var buf: TokenThing[1];
     buf[0].thing_type := thingtype;
-    buf[0].thing_size := IdentifierThing@bytes;
     buf[0].string_id := string_id;
+    if thingtype == THING_TOKEN then
+        buf[0].thing_size := TokenThing@bytes;
+        buf[0].token_flags := token_flags;
+    else
+        buf[0].thing_size := IdentifierThing@bytes;
+    end if;
     var token_id: uint16 := add_thing_by_value(&buf[0] as [Thing]);
 
     if token_id != id then

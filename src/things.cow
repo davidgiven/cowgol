@@ -38,6 +38,10 @@ record IdentifierThing: Thing
     string_id: uint16;
 end record;
 
+record TokenThing: IdentifierThing
+    token_flags: uint8;
+end record;
+
 record NumberThing: Thing
     value: uint32;
 end record;
@@ -127,16 +131,6 @@ sub find_thing(id: uint16, out thing: [Thing])
     thing := &thing_table[id] as [Thing];
 end sub;
 
-sub print_string_thing(id: uint16)
-    var thing: [Thing] := find_thing(id);
-    var len: uint8 := thing.thing_size - 2;
-    var i: uint8 := 0;
-    while i < len loop
-        print_char(thing.payload[i]);
-        i := i + 1;
-    end loop;
-end sub;
-
 sub find_thing_by_value(template: [Thing], out id: uint16)
     id := 1;
     loop
@@ -168,35 +162,27 @@ sub add_thing_by_value(template: [Thing], out id: uint16)
     end if;
 end sub;
 
-sub find_thing_by_payload(type: uint8, length: uint8, value: [int8], out id: uint16)
-    var thing: [Thing];
-    id := 1;
-    loop
-        thing := &thing_table[id] as [Thing];
-        if thing.thing_size == 0 then
-            break;
-        end if;
-        if thing.thing_size == (length+2) then
-            if thing.thing_type == type then
-                if compare_memory(value, &thing_table[id+2], length) == 0 then
-                    return;
-                end if;
-            end if;
-        end if;
-
-        id := id + thing.thing_size;
-    end loop;
-
-    id := create_thing(type, length+2);
-    copy_memory(value, &thing_table[id+2], length);
-end sub;
-
 sub add_number_by_value(value: int32, out id: uint16)
     var buf: NumberThing[1];
     buf[0].thing_type := THING_NUMBER;
     buf[0].thing_size := NumberThing@bytes;
     buf[0].value := value;
     id := add_thing_by_value(&buf[0] as [Thing]);
+end sub;
+
+sub find_token_by_string(string_id: uint16, out id: uint16)
+    id := 1;
+    loop
+        var thing: [IdentifierThing] := &thing_table[id] as [IdentifierThing];
+        if thing.thing_size == 0 then
+            break;
+        elseif (thing.thing_type == THING_TOKEN) and (thing.string_id == string_id) then
+            return;
+        end if;
+        id := id + thing.thing_size;
+    end loop;
+
+    id := 0;
 end sub;
 
 sub find_symbol_by_value(value_id: uint16, out symbol_id: uint16)
@@ -213,6 +199,15 @@ sub find_symbol_by_value(value_id: uint16, out symbol_id: uint16)
         symbol_id := symbol_id + thing.thing_size;
     end loop;
     symbol_id := 0;
+end sub;
+
+sub get_token_flags(token_id: uint16, out token_flags: uint8)
+    var token: [TokenThing] := find_thing(token_id) as [TokenThing];
+    if token.thing_type == THING_TOKEN then
+        token_flags := token.token_flags;
+    else
+        token_flags := 0;
+    end if;
 end sub;
 
 sub save_thing_table(filename: [int8])
