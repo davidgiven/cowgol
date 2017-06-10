@@ -143,9 +143,16 @@ sub do_constant(out result: int32)
     var thing: [Thing];
     var thing_iop: [ThingIop];
     loop
-        var token_flags: uint8 := get_token_flags(current_token);
+        var token_flags: uint8;
         if state == STATE_BEFORE then
             # Before a leaf.
+            if current_token == TOKEN_MINUS then
+                current_token := TOKEN_UNARYMINUS;
+            elseif current_token == TOKEN_AMPERSAND then
+                current_token := TOKEN_UNARYAMPERSAND;
+            end if;
+            token_flags := get_token_flags(current_token);
+
             if current_token == TOKEN_OPENPAREN then
                 push_op(TOKEN_OPENPAREN);
                 next_token();
@@ -179,6 +186,7 @@ sub do_constant(out result: int32)
             end if;
         else
             # After a leaf (this is the only valid place to end an expression).
+            token_flags := get_token_flags(current_token);
             if (token_flags & TOKEN_FLAG_EXPR_ENDER) != 0 then
                 break;
             elseif (current_token == TOKEN_COMMA) | (current_token == TOKEN_CLOSESQUARE) then

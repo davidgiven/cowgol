@@ -45,24 +45,26 @@ uint32    UINT32        IDENTIFIER
 ,         COMMA
 
 # Binary operators, in increasing order of precedence.
-or        OR            BINARY 1
-and       AND           BINARY 2
-|         PIPE          BINARY 3
-^         CARET         BINARY 4
-&         AMPERSAND     BINARY 5
-<<        LEFTSHIFT     BINARY 6
->>        RIGHTSHIFT    BINARY 6
-<         LTOP          COMPARISON BINARY 7
-<=        LEOP          COMPARISON BINARY 7
->         GTOP          COMPARISON BINARY 7
->=        GEOP          COMPARISON BINARY 7
-==        EQOP          COMPARISON BINARY 8
-!=        NEOP          COMPARISON BINARY 8
-+         PLUS          BINARY 9
--         MINUS         BINARY 9
-*         STAR          BINARY 10
-/         SLASH         BINARY 10
-%         PERCENT       BINARY 10
-~         TILDE         UNARY 11
-not       NOT           UNARY 11
-.         DOT           BINARY 12
+or        OR             BINARY 1
+and       AND            BINARY 2
+|         PIPE           BINARY 3
+^         CARET          BINARY 4
+&         AMPERSAND      BINARY 5
+<<        LEFTSHIFT      BINARY 6
+>>        RIGHTSHIFT     BINARY 6
+<         LTOP           COMPARISON BINARY 7
+<=        LEOP           COMPARISON BINARY 7
+>         GTOP           COMPARISON BINARY 7
+>=        GEOP           COMPARISON BINARY 7
+==        EQOP           COMPARISON BINARY 8
+!=        NEOP           COMPARISON BINARY 8
++         PLUS           BINARY 9
+-         MINUS          BINARY 9
+*         STAR           BINARY 10
+/         SLASH          BINARY 10
+%         PERCENT        BINARY 10
+~         TILDE          UNARY 11
+not       NOT            UNARY 11
+&         UNARYAMPERSAND UNARY 11
+-         UNARYMINUS     UNARY 11
+.         DOT            BINARY 12

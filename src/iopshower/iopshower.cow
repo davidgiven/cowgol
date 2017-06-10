@@ -118,8 +118,12 @@ loop
             do_pushing("NEGOP", iop as [PushingIop]);
         elseif kind == IOP_NOTOP then
             do_pushing("NOTOP", iop as [PushingIop]);
-        elseif kind == IOP_DEREFOP then
-            do_pushing("DEREFOP", iop as [PushingIop]);
+        elseif kind == IOP_INDEXOP then
+            do_pushing("INDEXOP", iop as [PushingIop]);
+        elseif kind == IOP_MEMBEROP then
+            do_pushing("MEMBEROP", iop as [PushingIop]);
+        elseif kind == IOP_ADDRESSOP then
+            do_pushing("ADDRESSOP", iop as [PushingIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

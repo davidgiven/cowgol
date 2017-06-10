@@ -107,8 +107,16 @@ sub expression_state_machine()
             alu_2op(IOP_OROP);
         elseif op_id == TOKEN_CARET then
             alu_2op(IOP_ANDOP);
+        elseif op_id == TOKEN_OPENSQUARE then
+            alu_2op(IOP_INDEXOP);
+        elseif op_id == TOKEN_DOT then
+            alu_2op(IOP_MEMBEROP);
         elseif op_id == TOKEN_TILDE then
             alu_1op(IOP_NOTOP);
+        elseif op_id == TOKEN_UNARYAMPERSAND then
+            alu_1op(IOP_ADDRESSOP);
+        elseif op_id == TOKEN_UNARYMINUS then
+            alu_1op(IOP_NEGOP);
         elseif op_id == TOKEN_EQOP then
             b_2op(IOP_BEQ);
         elseif op_id == TOKEN_NEOP then
@@ -123,8 +131,6 @@ sub expression_state_machine()
             b_2op(IOP_BGE);
         elseif op_id == TOKEN_NOT then
             b_not();
-        elseif op_id == TOKEN_OPENSQUARE then
-            alu_2op(IOP_DEREFOP);
         elseif (op_id == TOKEN_AND) | (op_id == TOKEN_OR) then
             merge_label(expr_false_label_id, pop_op());
             merge_label(expr_true_label_id, pop_op());
@@ -190,9 +196,16 @@ sub expression_state_machine()
     var thing: [Thing];
     var thing_iop: [ThingIop];
     loop
-        var token_flags: uint8 := get_token_flags(current_token);
+        var token_flags: uint8;
         if state == STATE_BEFORE then
             # Before a leaf.
+            if current_token == TOKEN_MINUS then
+                current_token := TOKEN_UNARYMINUS;
+            elseif current_token == TOKEN_AMPERSAND then
+                current_token := TOKEN_UNARYAMPERSAND;
+            end if;
+            token_flags := get_token_flags(current_token);
+
             if current_token == TOKEN_OPENPAREN then
                 push_op(TOKEN_OPENPAREN);
                 next_token();
@@ -216,6 +229,7 @@ sub expression_state_machine()
             end if;
         else
             # After a leaf (this is the only valid place to end an expression).
+            token_flags := get_token_flags(current_token);
             if (token_flags & TOKEN_FLAG_EXPR_ENDER) != 0 then
                 break;
             elseif current_token == TOKEN_COMMA then

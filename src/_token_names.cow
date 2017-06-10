@@ -67,4 +67,6 @@ const TOKEN_SLASH := 265;
 const TOKEN_PERCENT := 270;
 const TOKEN_TILDE := 275;
 const TOKEN_NOT := 280;
-const TOKEN_DOT := 285;
+const TOKEN_UNARYAMPERSAND := 285;
+const TOKEN_UNARYMINUS := 290;
+const TOKEN_DOT := 295;
