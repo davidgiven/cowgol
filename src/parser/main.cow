@@ -125,9 +125,9 @@ sub do_sub()
     expect_token(TOKEN_OPENPAREN);
 
     while current_token != TOKEN_CLOSEPAREN loop
-        var inout: uint16 := TOKEN_IN;
+        var direction: uint16 := TOKEN_IN;
         if (current_token == TOKEN_IN) | (current_token == TOKEN_OUT) | (current_token == TOKEN_INOUT) then
-            inout := current_token;
+            direction := current_token;
             next_token();
         end if;
 
@@ -138,7 +138,7 @@ sub do_sub()
         var parameter_id: uint16 := create_thing(THING_PARAMETER, ParameterThing@bytes);
         add_symbol(id, parameter_id, current_namespace_id);
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
-        parameter.inout := inout;
+        parameter.direction := direction;
         parameter.type := type_id;
         flush_var(parameter_id);
 

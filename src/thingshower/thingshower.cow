@@ -108,8 +108,8 @@ end sub;
 
 sub show_parameter_thing(thing: [ParameterThing])
     show_variable_thing(thing as [VariableThing]);
-    print("parameter(inout=");
-    print_i8(thing.inout);
+    print("parameter(direction=");
+    print_i8(thing.direction);
     print(") ");
 end sub;
 

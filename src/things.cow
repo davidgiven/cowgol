@@ -103,7 +103,7 @@ record VariableThing: TypedThing
 end record;
 
 record ParameterThing: VariableThing
-    inout: uint8;
+    direction: uint8;
 end record;
 
 var thing_table: [int8] := LOMEM;
