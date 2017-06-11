@@ -146,7 +146,7 @@ sub expression_state_machine()
         loop
             var topop_id: uint16 := peek_op();
             var topop_p: uint8 := get_token_flags(topop_id) & TOKEN_FLAG_PRECEDENCE_MASK;
-            if (topop_p == 0) | (topop_p < op_p) then
+            if (topop_id == 0) | (topop_p < op_p) then
                 break;
             end if;
             apply_op();
