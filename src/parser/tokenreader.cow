@@ -11,7 +11,6 @@ sub next_token()
     var token: uint16;
     loop
         token := next_raw_token();
-        print_hex_i16(token); print_char(' ');
 
         if token == TOKEN_FILENAME then
             filename_id := next_raw_token();
