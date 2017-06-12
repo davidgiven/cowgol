@@ -26,13 +26,14 @@ sub emit_label(label_id: uint16)
 end sub;
 
 sub emit_goto(label_id: uint16)
-    var goto_iop: [BranchingIop] := emit(IOP_GOTO, BranchingIop@bytes) as [BranchingIop];
+    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
     goto_iop.label_id := label_id;
 end sub;
 
-sub emit_conditional_branch(iopcode: uint8, label_id: uint16)
-    var iop: [BranchingIop] := emit(iopcode, BranchingIop@bytes) as [BranchingIop];
-    iop.label_id := label_id;
+sub emit_conditional_branch(iopcode: uint8, iftrue_label_id: uint16, iffalse_label_id: uint16)
+    var iop: [ConditionalIop] := emit(iopcode, ConditionalIop@bytes) as [ConditionalIop];
+    iop.iftrue_label_id := iftrue_label_id;
+    iop.iffalse_label_id := iffalse_label_id;
 end sub;
 
 sub create_label(out label_id: uint16)

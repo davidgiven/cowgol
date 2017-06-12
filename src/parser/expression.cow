@@ -81,8 +81,7 @@ sub expression_state_machine()
 
         sub b_2op(iop: uint8)
             check_b_op();
-            emit_conditional_branch(iop, expr_true_label_id);
-            emit_goto(expr_false_label_id);
+            emit_conditional_branch(iop, expr_true_label_id, expr_false_label_id);
             data_stack_size := data_stack_size - 2;
         end sub;
 

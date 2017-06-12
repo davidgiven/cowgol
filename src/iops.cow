@@ -25,15 +25,15 @@ const IOP_ASSIGN := 0x04;
 const IOP_SCALL := 0x05;
 const IOP_FCALL := 0x06;
 const IOP_RETURN := 0x07;
+const IOP_GOTO := 0x08;
 
-const IOP_TYPE_BRANCHING := 0x20;
+const IOP_TYPE_CONDITIONAL := 0x20;
 const IOP_BEQ  := 0x20;
 const IOP_BNE  := 0x21;
 const IOP_BLT  := 0x22;
 const IOP_BGE  := 0x23;
 const IOP_BGT  := 0x24;
 const IOP_BLE  := 0x25;
-const IOP_GOTO := 0x26;
 
 const IOP_TYPE_PUSHING := 0x80;
 const IOP_THING  := 0x80;
@@ -75,8 +75,13 @@ record CallIop: Iop
     parameter_count: uint8;
 end record;
 
-record BranchingIop: Iop
+record GotoIop: Iop
     label_id: uint16;
+end record;
+
+record ConditionalIop: Iop
+    iftrue_label_id: uint16;
+    iffalse_label_id: uint16;
 end record;
 
 record PushingIop: Iop
