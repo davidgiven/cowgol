@@ -10,7 +10,7 @@ var current_subroutine_id: uint16;
 sub halt()
     print(" at ");
     if filename_id != 0 then
-        show_string(filename_id);
+        show_identifier(filename_id);
     else
         print("?");
     end if;
