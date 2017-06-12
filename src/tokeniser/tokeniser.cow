@@ -51,6 +51,7 @@ sub read_number()
         end if;
     end if;
 
+    input_buffer[buffer_index] := 0;
     var value: int32 := string_to_number(ptr, base);
     current_token := add_number_by_value(value);
 end sub;
