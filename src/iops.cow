@@ -59,6 +59,7 @@ const IOP_MEMBEROP  := 0xcc;
 const IOP_NEGOP     := 0xcd;
 const IOP_NOTOP     := 0xce;
 const IOP_ADDRESSOP := 0xcf;
+const IOP_CASTOP    := 0xd0;
 
 record FilenameIop: Iop
     thing_id: uint16;

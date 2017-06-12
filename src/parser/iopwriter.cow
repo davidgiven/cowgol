@@ -50,6 +50,11 @@ sub emit_conditional_branch(iopcode: uint8, iftrue_label_id: uint16, iffalse_lab
     iop.iffalse_label_id := iffalse_label_id;
 end sub;
 
+sub emit_cast(type_id: uint16)
+    var iop: [PushingIop] := emit(IOP_CASTOP, PushingIop@bytes) as [PushingIop];
+    iop.type_id := type_id;
+end sub;
+
 sub create_label(out label_id: uint16)
     label_id := create_thing(THING_LABEL, LabelThing@bytes);
 end sub;

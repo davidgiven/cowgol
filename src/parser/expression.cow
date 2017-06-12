@@ -44,8 +44,15 @@ sub expression_state_machine()
     end sub;
 
     sub check_b_op()
-        if (expr_true_label_id == 0) | (expr_false_label_id == 0) then
+        if (expr_true_label_id == 0) or (expr_false_label_id == 0) then
             print("boolean operator cannot be used in this context");
+            halt();
+        end if;
+    end sub;
+
+    sub check_alu_op()
+        if (expr_true_label_id != 0) or (expr_false_label_id != 0) then
+            print("arithmetic operator cannot be used in this context");
             halt();
         end if;
     end sub;
@@ -61,21 +68,13 @@ sub expression_state_machine()
         var op: [Thing] := find_thing(op_id);
 
         sub alu_2op(iop: uint8)
-            if data_stack_size < 2 then
-                print("binary arithmetic operator cannot be used in this context");
-                halt();
-            end if;
-
+            check_alu_op();
             emit_simple_pushing(iop);
             data_stack_size := data_stack_size - 1;
         end sub;
 
         sub alu_1op(iop: uint8)
-            if data_stack_size < 1 then
-                print("unary arithmetic operator cannot be used in this context");
-                halt();
-            end if;
-
+            check_alu_op();
             emit_simple_pushing(iop);
         end sub;
 
@@ -133,6 +132,8 @@ sub expression_state_machine()
         elseif (op_id == TOKEN_AND) | (op_id == TOKEN_OR) then
             merge_label(expr_false_label_id, pop_op());
             merge_label(expr_true_label_id, pop_op());
+        elseif op_id == TOKEN_AS then
+            emit_cast(pop_op());
         else
             print("couldn't apply operator ");
             show_identifier(op_id);
@@ -208,6 +209,9 @@ sub expression_state_machine()
             if current_token == TOKEN_OPENPAREN then
                 push_op(TOKEN_OPENPAREN);
                 next_token();
+            elseif current_token == TOKEN_AS then
+                print("can't use \"as\" as a prefix operator");
+                halt();
             elseif (token_flags & TOKEN_FLAG_UNARY_OP) != 0 then
                 push_op(current_token);
                 next_token();
@@ -276,6 +280,19 @@ sub expression_state_machine()
                 push_op(current_token);
                 next_token();
                 state := STATE_BEFORE;
+            elseif current_token == TOKEN_AS then
+                # 'as' is actually a *unary* operator. The thing on the right hand side is a type,
+                # not an expression.
+                apply_higher_precedence_ops(current_token);
+                next_token();
+                check_alu_op();
+                push_op(read_type());
+                push_op(TOKEN_AS);
+            elseif (token_flags & TOKEN_FLAG_UNARY_OP) != 0 then
+                print("can't use ");
+                show_identifier(current_token);
+                print(" as a postfix operator");
+                halt();
             else
                 print("couldn't parse operator ");
                 show_identifier(current_token);

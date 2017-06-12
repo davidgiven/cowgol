@@ -66,8 +66,9 @@ and       AND            BINARY 2
 *         STAR           BINARY 10
 /         SLASH          BINARY 10
 %         PERCENT        BINARY 10
-~         TILDE          UNARY 11
-not       NOT            UNARY 11
-&         UNARYAMPERSAND UNARY 11
--         UNARYMINUS     UNARY 11
-.         DOT            BINARY 12
+as        AS             UNARY 11
+~         TILDE          UNARY 12
+not       NOT            UNARY 12
+&         UNARYAMPERSAND UNARY 12
+-         UNARYMINUS     UNARY 12
+.         DOT            BINARY 13

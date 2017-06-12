@@ -151,6 +151,8 @@ loop
             do_pushing("MEMBEROP", iop as [PushingIop]);
         elseif kind == IOP_ADDRESSOP then
             do_pushing("ADDRESSOP", iop as [PushingIop]);
+        elseif kind == IOP_CASTOP then
+            do_pushing("CASTOP", iop as [PushingIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);
