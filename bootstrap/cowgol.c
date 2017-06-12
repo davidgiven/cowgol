@@ -22,6 +22,10 @@ void cowgol_print_hex_i16(void) { printf("%04x", (uint16_t)extern_i16); }
 void cowgol_print_hex_i32(void) { printf("%08x", (uint16_t)extern_i32); }
 void cowgol_print_newline(void) { printf("\n"); }
 
+void cowgol_print_bytes(void) {
+    fwrite(extern_p8, 1, extern_i8, stdout);
+}
+
 static int find_fd(FILE* fp) {
     assert(fp);
     for (int i=0; i<FILE_COUNT; i++) {

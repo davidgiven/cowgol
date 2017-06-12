@@ -1,4 +1,7 @@
-# These all close control structures or expressions.
+# Magic tokens with no attached string.
+          FILENAME
+          LINENUMBER
+
 end       END           ENDER
 ;         SEMICOLON     ENDER
 loop      LOOP          ENDER

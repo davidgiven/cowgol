@@ -113,6 +113,11 @@ function tokenstream(source)
                         break
                     end
 
+                    _, nexto, m = source:find("^##([^\n]+)", o)
+                    if nexto then
+                        coroutine.yield("extern", m)
+                    end
+
                     _, nexto = source:find("^#[^\n]+", o)
                     if nexto then
                         o = nexto + 1
@@ -1163,6 +1168,9 @@ local extern_i32 = create_extern_variable(" i32", root_ns["int32"], root_ns, "ex
 local extern_p8 = create_extern_variable(" p8", pointer_of(root_ns["int8"]), root_ns, "extern_p8")
 local extern_u32 = create_extern_variable(" u32", root_ns["uint32"], root_ns, "extern_u32")
 create_extern_function("print", "cowgol_print", { name="c", inout="in", variable=extern_p8 })
+create_extern_function("print_bytes", "cowgol_print_bytes",
+    { name="c", inout="in", variable=extern_p8 },
+    { name="len", inout="in", variable=extern_i8 })
 create_extern_function("print_char", "cowgol_print_char", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_i8", "cowgol_print_i8", { name="c", inout="in", variable=extern_i8 })
 create_extern_function("print_i16", "cowgol_print_i16", { name="c", inout="in", variable=extern_i16 })

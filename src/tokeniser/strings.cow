@@ -3,12 +3,12 @@ var stringtab_base: [int8] := stringtab_top;
 var input_buffer: int8[256];
 var buffer_index: uint8 := 0;
 
-sub lookup_string(out stringid: uint16)
+sub lookup_string(buffer_ptr: [int8], buffer_len: uint8, out stringid: uint16)
     var ptr: [int8] := stringtab_base;
     while ptr < stringtab_top loop
         var len: uint8 := ptr[0] - 1;
-        if len == buffer_index then
-            if compare_memory(&input_buffer[0], &ptr[1], len) == 0 then
+        if len == buffer_len then
+            if compare_memory(buffer_ptr, &ptr[1], len) == 0 then
                 stringid := stringtab_top - ptr;
                 return;
             end if;
@@ -16,9 +16,9 @@ sub lookup_string(out stringid: uint16)
         ptr := ptr + len + 1;
     end loop;
 
-    stringtab_base := (stringtab_base - buffer_index) - 1;
-    stringtab_base[0] := buffer_index + 1;
-    copy_memory(&input_buffer[0], stringtab_base+1, buffer_index);
+    stringtab_base := (stringtab_base - buffer_len) - 1;
+    stringtab_base[0] := buffer_len + 1;
+    copy_memory(buffer_ptr, stringtab_base+1, buffer_len);
     stringid := stringtab_top - stringtab_base;
 end sub;
 

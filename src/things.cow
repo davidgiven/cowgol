@@ -29,13 +29,12 @@ record Thing
     payload: int8[0];
 end record;
 
-record StringThing: Thing
-    string_size: uint8;
+record IdentifierThing: Thing
     string_id: uint16;
 end record;
 
-record IdentifierThing: Thing
-    string_id: uint16;
+record StringThing: IdentifierThing
+    string_size: uint8;
 end record;
 
 record TokenThing: IdentifierThing
@@ -152,13 +151,17 @@ sub find_thing_by_value(template: [Thing], out id: uint16)
     id := 0;
 end sub;
 
+sub add_thing(template: [Thing], out id: uint16)
+    id := thing_table_top;
+    copy_memory(template as [int8], &thing_table[id] as [int8], template.thing_size);
+    thing_table_top := id + template.thing_size;
+    thing_table[thing_table_top] := 0;
+end sub;
+
 sub add_thing_by_value(template: [Thing], out id: uint16)
     id := find_thing_by_value(template);
     if id == 0 then
-        id := thing_table_top;
-        copy_memory(template as [int8], &thing_table[id] as [int8], template.thing_size);
-        thing_table_top := id + template.thing_size;
-        thing_table[thing_table_top] := 0;
+        id := add_thing(template);
     end if;
 end sub;
 

@@ -19,6 +19,16 @@ sub print_label(label_id: uint16)
     end loop;
 end sub;
 
+sub do_filename(iop: [FilenameIop])
+    print("FILENAME ");
+    print_identifier(iop.thing_id);
+end sub;
+
+sub do_linenumber(iop: [LinenumberIop])
+    print("LINENUMBER ");
+    print_i16(iop.line_number);
+end sub;
+
 sub do_label(iop: [LabelIop])
     print("LABEL 0x");
     print_label(iop.label_id);
@@ -87,6 +97,10 @@ loop
         print(": ");
         if kind == IOP_END then
             print("END");
+        elseif kind == IOP_FILENAME then
+            do_filename(iop as [FilenameIop]);
+        elseif kind == IOP_LINENUMBER then
+            do_linenumber(iop as [LinenumberIop]);
         elseif kind == IOP_LABEL then
             do_label(iop as [LabelIop]);
         elseif kind == IOP_ASSIGN then

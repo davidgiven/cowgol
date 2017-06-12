@@ -12,6 +12,20 @@ sub emit(kind: uint8, size: uint8, out ptr: [Iop])
     ptr.iop_size := size;
 end sub;
 
+sub emit_filename(thing_id: uint16)
+    if thing_id != 0 then
+        var iop: [FilenameIop] := emit(IOP_FILENAME, FilenameIop@bytes) as [FilenameIop];
+        iop.thing_id := thing_id;
+    end if;
+end sub;
+
+sub emit_linenumber(line_number: uint16)
+    if line_number != 0 then
+        var iop: [LinenumberIop] := emit(IOP_LINENUMBER, LinenumberIop@bytes) as [LinenumberIop];
+        iop.line_number := line_number;
+    end if;
+end sub;
+
 sub emit_simple(kind: uint8)
     var iop: [Iop] := emit(kind, Iop@bytes);
 end sub;

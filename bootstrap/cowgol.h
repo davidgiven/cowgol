@@ -14,6 +14,7 @@ extern int8_t** cowgol_argv;
 extern int8_t cowgol_argc;
 
 extern void cowgol_print(void);
+extern void cowgol_print_bytes(void);
 extern void cowgol_print_char(void);
 extern void cowgol_print_i8(void);
 extern void cowgol_print_i16(void);

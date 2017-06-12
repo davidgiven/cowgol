@@ -148,6 +148,9 @@ sub do_sub()
         next_token();
     end loop;
     expect_token(TOKEN_CLOSEPAREN);
+
+    emit_filename(filename_id);
+    emit_linenumber(line_no);
 end sub;
 
 sub do_end_sub()

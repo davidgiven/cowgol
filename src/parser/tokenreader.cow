@@ -1,29 +1,36 @@
 var tokens_fd: uint8;
 
+sub next_raw_token(out token: uint16)
+    var buf: uint16[1];
+    buf[0] := 0;
+    file_getblock(tokens_fd, &buf[0] as [int8], 2);
+    token := buf[0];
+end sub;
+
 sub next_token()
+    var token: uint16;
     loop
-        var buf: uint16[1];
-        buf[0] := 0;
-        file_getblock(tokens_fd, &buf[0] as [int8], 2);
+        token := next_raw_token();
+        print_hex_i16(token); print_char(' ');
 
-        current_token := peeked_token;
-        peeked_token := buf[0];
-
-        var token_type: uint16 := current_token & TOKEN_TYPE_MASK;
-        if token_type == TOKEN_TYPE_FILENAME then
-            filename_id := current_token & TOKEN_VALUE_MASK;
-        elseif token_type == TOKEN_TYPE_LINENO then
-            line_no := current_token & TOKEN_VALUE_MASK;
+        if token == TOKEN_FILENAME then
+            filename_id := next_raw_token();
+            emit_filename(filename_id);
+        elseif token == TOKEN_LINENUMBER then
+            line_no := next_raw_token();
+            emit_linenumber(line_no);
         else
             break;
         end if;
     end loop;
+
+    current_token := peeked_token;
+    peeked_token := token;
 end sub;
 
 sub init_tokenreader(filename: [int8])
     tokens_fd := file_openin(filename);
-    current_token := TOKEN_TYPE_LINENO;
-    peeked_token := TOKEN_TYPE_LINENO;
+    next_token();
     next_token();
 end sub;
 

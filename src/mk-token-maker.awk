@@ -30,6 +30,10 @@ BEGIN {
     printf "install_identifier(\"%s\", TOKEN_%s, %s, %s);\n", $1, $2, type, flags
 }
 
+/^ .*$/ {
+    printf "install_identifier(\"\", TOKEN_%s, THING_TOKEN, 0);\n", $1
+}
+
 END {
     print "end sub;"
 }

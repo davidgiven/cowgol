@@ -18,14 +18,16 @@ end record;
 
 const IOP_END := 0;
 
-const IOP_LABEL := 0x01;
-const IOP_SECTION := 0x02;
-const IOP_STRING := 0x03;
-const IOP_ASSIGN := 0x04;
-const IOP_SCALL := 0x05;
-const IOP_FCALL := 0x06;
-const IOP_RETURN := 0x07;
-const IOP_GOTO := 0x08;
+const IOP_LABEL      := 0x01;
+const IOP_SECTION    := 0x02;
+const IOP_STRING     := 0x03;
+const IOP_ASSIGN     := 0x04;
+const IOP_SCALL      := 0x05;
+const IOP_FCALL      := 0x06;
+const IOP_RETURN     := 0x07;
+const IOP_GOTO       := 0x08;
+const IOP_FILENAME   := 0x09;
+const IOP_LINENUMBER := 0x0a;
 
 const IOP_TYPE_CONDITIONAL := 0x20;
 const IOP_BEQ  := 0x20;
@@ -57,6 +59,14 @@ const IOP_MEMBEROP  := 0xcc;
 const IOP_NEGOP     := 0xcd;
 const IOP_NOTOP     := 0xce;
 const IOP_ADDRESSOP := 0xcf;
+
+record FilenameIop: Iop
+    thing_id: uint16;
+end record;
+
+record LinenumberIop: Iop
+    line_number: uint16;
+end record;
 
 record LabelIop: Iop
     label_id: uint16;

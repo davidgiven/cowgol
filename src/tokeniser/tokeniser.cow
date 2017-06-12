@@ -1,12 +1,5 @@
 var current_token: uint16;
-var peeked_token: uint16;
 var filename_id: uint16 := 0;
-var line_no: uint16 := 0;
-
-sub emit_token(tokenid: uint16)
-    current_token := peeked_token;
-    peeked_token := tokenid;
-end sub;
 
 sub read_identifier()
     loop
@@ -20,16 +13,15 @@ sub read_identifier()
         next_byte();
     end loop;
 
-    var string_id: uint16 := lookup_string();
-    var token_id: uint16 := find_token_by_string(string_id);
-    if token_id == 0 then
+    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    current_token := find_token_by_string(string_id);
+    if current_token == 0 then
         var buf: IdentifierThing[1];
         buf[0].thing_type := THING_IDENTIFIER;
         buf[0].thing_size := IdentifierThing@bytes;
         buf[0].string_id := string_id;
-        token_id := add_thing_by_value(&buf[0] as [Thing]);
+        current_token := add_thing_by_value(&buf[0] as [Thing]);
     end if;
-    emit_token(token_id);
 end sub;
 
 sub read_number()
@@ -60,8 +52,7 @@ sub read_number()
     end if;
 
     var value: int32 := string_to_number(ptr, base);
-    var token_id: uint16 := add_number_by_value(value);
-    emit_token(token_id);
+    current_token := add_number_by_value(value);
 end sub;
 
 sub read_comment()
@@ -90,13 +81,12 @@ sub read_symbol()
         buffer_index := 1;
     end if;
 
-    var string_id: uint16 := lookup_string();
-    var token_id: uint16 := find_token_by_string(string_id);
-    if token_id == 0 then
+    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    current_token := find_token_by_string(string_id);
+    if current_token == 0 then
         print("unrecognised symbol");
         error_with_location();
     end if;
-    emit_token(token_id);
 end sub;
 
 sub decode_escaped_char()
@@ -110,6 +100,15 @@ sub decode_escaped_char()
         print_char(current_byte);
         error_with_location();
     end if;
+end sub;
+
+sub add_string_thing(string_id: uint16, out token_id: uint16)
+    var buf: StringThing[1];
+    buf[0].thing_type := THING_STRING;
+    buf[0].thing_size := StringThing@bytes;
+    buf[0].string_id := string_id;
+    buf[0].string_size := buffer_index;
+    token_id := add_thing_by_value(&buf[0] as [Thing]);
 end sub;
 
 sub read_string()
@@ -126,14 +125,8 @@ sub read_string()
         next_byte();
     end loop;
 
-    var string_id: uint16 := lookup_string();
-    var buf: StringThing[1];
-    buf[0].thing_type := THING_STRING;
-    buf[0].thing_size := StringThing@bytes;
-    buf[0].string_id := string_id;
-    buf[0].string_size := buffer_index;
-    var token_id: uint16 := add_thing_by_value(&buf[0] as [Thing]);
-    emit_token(token_id);
+    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    current_token := add_string_thing(string_id);
 end sub;
 
 sub read_char_constant()
@@ -148,8 +141,7 @@ sub read_char_constant()
     buf[0].thing_size := NumberThing@bytes;
     buf[0].value := current_byte;
 
-    var tokenid: uint16 := add_thing_by_value(&buf[0] as [Thing]);
-    emit_token(tokenid);
+    current_token := add_thing_by_value(&buf[0] as [Thing]);
 
     next_byte();
     if current_byte != '\'' then
@@ -160,7 +152,7 @@ end sub;
 
 sub next_token()
     if current_byte == -1 then
-        emit_token(0);
+        current_token := 0;
         return;
     end if;
 
@@ -168,16 +160,14 @@ sub next_token()
     var type: int8;
     loop
         type := classify_char_type(current_byte);
-        if type == NEWLINE then
-            line_number := line_number + 1;
-            emit_token(TOKEN_TYPE_LINENO | line_number);
-            next_byte();
-            return;
-        elseif type == WHITESPACE then
-        else
+        if (type != NEWLINE) and (type != WHITESPACE) then
             break;
         end if;
         next_byte();
+        if current_byte == -1 then
+            current_token := 0;
+            return;
+        end if;
     end loop;
 
     if current_byte == '"' then
@@ -191,8 +181,9 @@ sub next_token()
     elseif type == DIGIT then
         read_number();
     else
-        print("unknown char type ");
-        print_i8(type);
+        print("unknown char '");
+        print_char(current_byte);
+        print("'");
         error_with_location();
     end if;
     next_byte();
@@ -201,15 +192,14 @@ end sub;
 sub init_tokeniser()
     next_byte();
     next_byte();
-    current_token := TOKEN_TYPE_LINENO;
-    peeked_token := TOKEN_TYPE_LINENO;
+    next_token();
 end sub;
 
 sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: uint8)
     copy_string(name, &input_buffer[0]);
     buffer_index := string_length(&input_buffer[0]);
 
-    var string_id: uint16 := lookup_string();
+    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
     var buf: TokenThing[1];
     buf[0].thing_type := thingtype;
     buf[0].string_id := string_id;
@@ -219,7 +209,7 @@ sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: 
     else
         buf[0].thing_size := IdentifierThing@bytes;
     end if;
-    var token_id: uint16 := add_thing_by_value(&buf[0] as [Thing]);
+    var token_id: uint16 := add_thing(&buf[0] as [Thing]);
 
     if token_id != id then
         print("token id mismatch (internal error); wanted 0x");

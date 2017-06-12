@@ -32,8 +32,8 @@ PARSER_SRCS = \
 	src/iops.cow \
 	src/parser/globals.cow \
 	src/parser/symbols.cow \
-	src/parser/tokenreader.cow \
 	src/parser/iopwriter.cow \
+	src/parser/tokenreader.cow \
 	src/parser/expression.cow \
 	src/parser/constant.cow \
 	src/parser/types.cow \
