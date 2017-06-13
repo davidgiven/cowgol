@@ -66,11 +66,6 @@ sub read_symbol()
     if current_byte == '#' then
         read_comment();
         return;
-    elseif current_byte == '-' then
-        if classify_char_type(peeked_byte) == DIGIT then
-            read_number();
-            return;
-        end if;
     end if;
 
     input_buffer[0] := current_byte;
