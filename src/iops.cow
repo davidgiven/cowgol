@@ -60,6 +60,8 @@ const IOP_NEGOP     := 0xcd;
 const IOP_NOTOP     := 0xce;
 const IOP_ADDRESSOP := 0xcf;
 const IOP_CASTOP    := 0xd0;
+const IOP_BYTESOP   := 0xd1;
+const IOP_SIZEOP    := 0xd2;
 
 record FilenameIop: Iop
     thing_id: uint16;

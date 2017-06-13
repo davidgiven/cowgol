@@ -55,7 +55,7 @@ end sub;
 sub show_subroutine_thing(thing: [SubroutineThing])
     show_data_thing(thing as [DataThing]);
     print("subroutine(namespace=0x");
-    print_hex_i16(thing.namespace);
+    print_hex_i16(thing.namespace_id);
     print(") ");
 end sub;
 

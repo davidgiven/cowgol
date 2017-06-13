@@ -25,6 +25,13 @@ end sub;
 
 sub show_identifier(identifier_id: uint16)
     var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];
-    show_string(identifier.string_id);
+    if (identifier.thing_type == THING_STRING) or (identifier.thing_type == THING_TOKEN)
+            or (identifier.thing_type == THING_IDENTIFIER) then
+        show_string(identifier.string_id);
+    else
+        print("(not an identifier, type 0x");
+        print_hex_i8(identifier.thing_type);
+        print(")");
+    end if;
 end sub;
 

@@ -91,7 +91,7 @@ record DataThing: Thing
 end record;
 
 record SubroutineThing: DataThing
-    namespace: uint16;
+    namespace_id: uint16;
 end record;
 
 record TypedThing: DataThing
@@ -195,7 +195,7 @@ sub find_symbol_by_value(value_id: uint16, out symbol_id: uint16)
         if thing.thing_size == 0 then
             break;
         end if;
-        if (thing.thing_type == THING_SYMBOL) & (thing.value_id == value_id) then
+        if (thing.thing_type == THING_SYMBOL) and (thing.value_id == value_id) then
             return;
         end if;
 

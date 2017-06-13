@@ -6,15 +6,15 @@ var if_end_label_id: uint16;
 
 sub create_namespace(parent_id: uint16, out namespace_id: uint16)
     namespace_id := create_thing(THING_NAMESPACE, NamespaceThing@bytes);
-    var namespace: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
-    namespace.previous_namespace := parent_id;
+    var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
+    namespace_thing.previous_namespace := parent_id;
 end sub;
 
 sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
     subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
     namespace_id := create_namespace(current_namespace_id);
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
-    subroutine.namespace := namespace_id;
+    subroutine.namespace_id := namespace_id;
 end sub;
 
 sub push_loop()
@@ -126,7 +126,9 @@ sub do_sub()
 
     while current_token != TOKEN_CLOSEPAREN loop
         var direction: uint16 := TOKEN_IN;
-        if (current_token == TOKEN_IN) | (current_token == TOKEN_OUT) | (current_token == TOKEN_INOUT) then
+        if (current_token == TOKEN_IN)
+                or (current_token == TOKEN_OUT)
+                or (current_token == TOKEN_INOUT) then
             direction := current_token;
             next_token();
         end if;

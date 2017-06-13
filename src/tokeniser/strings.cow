@@ -36,7 +36,7 @@ sub fixup_strings()
         if thing.thing_size == 0 then
             break;
         end if;
-        if (thing.thing_type == THING_IDENTIFIER) | (thing.thing_type == THING_TOKEN) then
+        if (thing.thing_type == THING_IDENTIFIER) or (thing.thing_type == THING_TOKEN) then
             var identifier_thing: [IdentifierThing] := thing as [IdentifierThing];
             identifier_thing.string_id := length - identifier_thing.string_id;
         elseif thing.thing_type == THING_STRING then

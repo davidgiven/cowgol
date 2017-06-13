@@ -9,6 +9,8 @@ sub expression_state_machine()
     var operator_stack: uint16[32];
     var operator_stack_pos: uint8 := 0;
     var state: uint8 := STATE_BEFORE;
+    var current_function_call: uint16 := 0;
+    var nesting: uint8 := 0;
     data_stack_size := 0;
 
     sub peek_op(out op_id: uint16)
@@ -50,31 +52,44 @@ sub expression_state_machine()
         end if;
     end sub;
 
-    sub check_alu_op()
-        if (expr_true_label_id != 0) or (expr_false_label_id != 0) then
+    sub check_alu_op(min_count: uint8)
+        if data_stack_size < min_count then
             print("arithmetic operator cannot be used in this context");
             halt();
         end if;
     end sub;
 
-    sub apply_op()
-        if operator_stack_pos == 0 then
-            print("apply on empty stack");
-            halt();
-        end if;
+    sub print_op_stack()
+        print("op stack:");
+        var i: uint8 := operator_stack_pos;
+        while i > 0 loop
+            print_char(' ');
+            i := i - 1;
+            var op: uint16 := operator_stack[i];
+            var thing: [Thing] := find_thing(op);
+            print_hex_i16(op);
+            if thing.thing_type == THING_TOKEN then
+                show_identifier(op);
+            else
+                print("<data>");
+            end if;
+        end loop;
+        print_newline();
+    end sub;
 
-        operator_stack_pos := operator_stack_pos - 1;
-        var op_id: uint16 := operator_stack[operator_stack_pos];
+    sub apply_op()
+        #print("applying "); print_op_stack();
+        var op_id: uint16 := pop_op();
         var op: [Thing] := find_thing(op_id);
 
         sub alu_2op(iop: uint8)
-            check_alu_op();
+            check_alu_op(2);
             emit_simple_pushing(iop);
             data_stack_size := data_stack_size - 1;
         end sub;
 
         sub alu_1op(iop: uint8)
-            check_alu_op();
+            check_alu_op(1);
             emit_simple_pushing(iop);
         end sub;
 
@@ -91,6 +106,20 @@ sub expression_state_machine()
             expr_false_label_id := t;
         end sub;
 
+        sub comma()
+            check_alu_op(1);
+        end sub;
+
+        sub fcall()
+            var oldstack: uint8 := pop_op();
+            var parameters: uint8 := data_stack_size - oldstack;
+            var iop: [CallIop] := emit(IOP_FCALL, CallIop@bytes) as [CallIop];
+            iop.thing_id := current_function_call;
+            iop.parameter_count:= data_stack_size - oldstack;
+            current_function_call := pop_op();
+            data_stack_size := oldstack + 1;
+        end sub;
+
         if op_id == TOKEN_PLUS then
             alu_2op(IOP_ADDOP);
         elseif op_id == TOKEN_MINUS then
@@ -103,10 +132,14 @@ sub expression_state_machine()
             alu_2op(IOP_MODOP);
         elseif op_id == TOKEN_PIPE then
             alu_2op(IOP_OROP);
-        elseif op_id == TOKEN_CARET then
+        elseif op_id == TOKEN_AMPERSAND then
             alu_2op(IOP_ANDOP);
+        elseif op_id == TOKEN_CARET then
+            alu_2op(IOP_EOROP);
         elseif op_id == TOKEN_OPENSQUARE then
             alu_2op(IOP_INDEXOP);
+        elseif op_id == TOKEN_OPENPAREN then
+            # do nothing
         elseif op_id == TOKEN_DOT then
             alu_2op(IOP_MEMBEROP);
         elseif op_id == TOKEN_TILDE then
@@ -129,11 +162,19 @@ sub expression_state_machine()
             b_2op(IOP_BGE);
         elseif op_id == TOKEN_NOT then
             b_not();
-        elseif (op_id == TOKEN_AND) | (op_id == TOKEN_OR) then
+        elseif (op_id == TOKEN_AND) or (op_id == TOKEN_OR) then
             merge_label(expr_false_label_id, pop_op());
             merge_label(expr_true_label_id, pop_op());
         elseif op_id == TOKEN_AS then
             emit_cast(pop_op());
+        elseif op_id == TOKEN_COMMA then
+            comma();
+        elseif op_id == TOKEN_FCALL then
+            fcall();
+        elseif op_id == TOKEN_BYTES then
+            alu_1op(IOP_BYTESOP);
+        elseif op_id == TOKEN_SIZE then
+            alu_1op(IOP_SIZEOP);
         else
             print("couldn't apply operator ");
             show_identifier(op_id);
@@ -143,10 +184,22 @@ sub expression_state_machine()
 
     sub apply_higher_precedence_ops(op_id: uint16)
         var op_p: uint8 := get_token_flags(op_id) & TOKEN_FLAG_PRECEDENCE_MASK;
-        loop
+        while operator_stack_pos > 0 loop
             var topop_id: uint16 := peek_op();
             var topop_p: uint8 := get_token_flags(topop_id) & TOKEN_FLAG_PRECEDENCE_MASK;
-            if (topop_id == 0) | (topop_p < op_p) then
+            if topop_p <= op_p then
+                break;
+            end if;
+            apply_op();
+        end loop;
+    end sub;
+
+    sub apply_left_associative(op_id: uint16)
+        var op_p: uint8 := get_token_flags(op_id) & TOKEN_FLAG_PRECEDENCE_MASK;
+        while operator_stack_pos > 0 loop
+            var topop_id: uint16 := peek_op();
+            var topop_p: uint8 := get_token_flags(topop_id) & TOKEN_FLAG_PRECEDENCE_MASK;
+            if topop_p < op_p then
                 break;
             end if;
             apply_op();
@@ -159,44 +212,32 @@ sub expression_state_machine()
         end loop;
     end sub;
 
-    sub apply_until_closer(out topop_id: uint16)
-        loop
-            topop_id := peek_op();
-            if (topop_id == 0) | (topop_id == TOKEN_OPENPAREN) | (topop_id == TOKEN_OPENSQUARE) then
-                break;
-            end if;
-            apply_op();
-        end loop;
-    end sub;
-
-    sub close_parenthesis()
-        var closer_id: uint16 := apply_until_closer();
-        if closer_id == 0 then
+    sub close_expression(opener_op: uint16)
+        #print("looking for: "); show_identifier(opener_op); print_newline();
+        apply_higher_precedence_ops(opener_op);
+        #print("peeked: "); show_identifier(opener_op); print_newline();
+        var peeked_op: uint16 := peek_op();
+        if peeked_op == 0 then
             return;
-        elseif closer_id != TOKEN_OPENPAREN then
-            print("\")\" matched with ");
-            show_identifier(closer_id);
-            print(", not \"(\"");
+        elseif (opener_op == TOKEN_OPENPAREN) and (peeked_op == TOKEN_FCALL) then
+            # special case; function calls are closed with ).
+        elseif peeked_op != opener_op then
+            print("expected a ");
+            show_identifier(opener_op);
+            print(", not a ");
+            show_identifier(peeked_op);
             halt();
         end if;
-    end sub;
 
-    sub close_square()
-        var closer_id: uint16 := apply_until_closer();
-        if closer_id == 0 then
-            return;
-        elseif closer_id != TOKEN_OPENSQUARE then
-            print("\"]\" matched with ");
-            show_identifier(closer_id);
-            print(", not \"[\"");
-            halt();
-        end if;
+        apply_op();
     end sub;
 
     var thing: [Thing];
     var thing_iop: [ThingIop];
     loop
         var token_flags: uint8;
+        #print("seen: "); show_identifier(current_token); print_newline();
+        #print("loop "); print_op_stack();
         if state == STATE_BEFORE then
             # Before a leaf.
             if current_token == TOKEN_MINUS then
@@ -207,18 +248,36 @@ sub expression_state_machine()
             token_flags := get_token_flags(current_token);
 
             if current_token == TOKEN_OPENPAREN then
-                push_op(TOKEN_OPENPAREN);
+                push_op(current_token);
                 next_token();
-            elseif current_token == TOKEN_AS then
-                print("can't use \"as\" as a prefix operator");
+                nesting := nesting + 1;
+            elseif (token_flags & TOKEN_FLAG_POSTFIX_OP) != 0 then
+                print("can't use ");
+                show_identifier(current_token);
+                print(" as a prefix operator");
                 halt();
-            elseif (token_flags & TOKEN_FLAG_UNARY_OP) != 0 then
+            elseif (token_flags & TOKEN_FLAG_PREFIX_OP) != 0 then
                 push_op(current_token);
                 next_token();
             else
                 thing := find_thing(current_token);
-                if (thing.thing_type == THING_IDENTIFIER) | (thing.thing_type == THING_NUMBER)
-                        | (thing.thing_type == THING_STRING) then
+                if (thing.thing_type == THING_IDENTIFIER) and (peeked_token == TOKEN_OPENPAREN) then
+                    push_op(current_function_call);
+                    push_op(data_stack_size);
+                    current_function_call := current_token;
+                    push_op(TOKEN_FCALL);
+                    next_token();
+                    expect_token(TOKEN_OPENPAREN);
+
+                    if current_token == TOKEN_CLOSEPAREN then
+                        apply_op();
+                        next_token();
+                        state := STATE_AFTER;
+                    else
+                        nesting := nesting + 1;
+                    end if;
+                elseif (thing.thing_type == THING_IDENTIFIER) or (thing.thing_type == THING_NUMBER)
+                        or (thing.thing_type == THING_STRING) then
                     thing_iop := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
                     thing_iop.thing_id := current_token;
                     next_token();
@@ -235,29 +294,32 @@ sub expression_state_machine()
             token_flags := get_token_flags(current_token);
             if (token_flags & TOKEN_FLAG_EXPR_ENDER) != 0 then
                 break;
-            elseif current_token == TOKEN_COMMA then
+            elseif (current_token == TOKEN_COMMA) and (nesting == 0) then
                 break;
             elseif current_token == TOKEN_OPENSQUARE then
                 push_op(TOKEN_OPENSQUARE);
                 state := STATE_BEFORE;
+                nesting := nesting + 1;
                 next_token();
             elseif current_token == TOKEN_CLOSEPAREN then
-                close_parenthesis();
-                if peek_op() == 0 then
+                if nesting > 0 then
+                    close_expression(TOKEN_OPENPAREN);
+                    nesting := nesting - 1;
+                    next_token();
+                else
                     break;
                 end if;
-                discard_op();
-                next_token();
             elseif current_token == TOKEN_CLOSESQUARE then
-                close_square();
-                if peek_op() == 0 then
+                if nesting > 0 then
+                    close_expression(TOKEN_OPENSQUARE);
+                    nesting := nesting - 1;
+                    next_token();
+                else
                     break;
                 end if;
-                apply_op();
-                next_token();
-            elseif (current_token == TOKEN_AND) | (current_token == TOKEN_OR) then
+            elseif (current_token == TOKEN_AND) or (current_token == TOKEN_OR) then
                 check_b_op();
-                apply_higher_precedence_ops(current_token);
+                apply_left_associative(current_token);
 
                 if (current_token == TOKEN_AND) then
                     emit_label(expr_true_label_id);
@@ -276,23 +338,26 @@ sub expression_state_machine()
                 next_token();
                 state := STATE_BEFORE;
             elseif (token_flags & TOKEN_FLAG_BINARY_OP) != 0 then
-                apply_higher_precedence_ops(current_token);
+                apply_left_associative(current_token);
                 push_op(current_token);
                 next_token();
                 state := STATE_BEFORE;
             elseif current_token == TOKEN_AS then
                 # 'as' is actually a *unary* operator. The thing on the right hand side is a type,
                 # not an expression.
-                apply_higher_precedence_ops(current_token);
+                apply_left_associative(current_token);
                 next_token();
-                check_alu_op();
+                check_alu_op(1);
                 push_op(read_type());
                 push_op(TOKEN_AS);
-            elseif (token_flags & TOKEN_FLAG_UNARY_OP) != 0 then
+            elseif (token_flags & TOKEN_FLAG_PREFIX_OP) != 0 then
                 print("can't use ");
                 show_identifier(current_token);
                 print(" as a postfix operator");
                 halt();
+            elseif (token_flags & TOKEN_FLAG_POSTFIX_OP) != 0 then
+                push_op(current_token);
+                next_token();
             else
                 print("couldn't parse operator ");
                 show_identifier(current_token);
@@ -309,6 +374,7 @@ sub expression_state_machine()
 end sub;
 
 sub do_expression()
+    #print("expression start\n");
     expr_true_label_id := 0;
     expr_false_label_id := 0;
     expression_state_machine();
@@ -321,6 +387,7 @@ sub do_expression()
 end sub;
 
 sub do_conditional(out true_label: uint16, out false_label: uint16)
+    #print("conditional start\n");
     expr_true_label_id := create_thing(THING_LABEL, LabelThing@bytes);
     expr_false_label_id := create_thing(THING_LABEL, LabelThing@bytes);
 

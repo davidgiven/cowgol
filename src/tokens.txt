@@ -27,11 +27,8 @@ out       OUT
 inout     INOUT
 
 # Attributes and specials.
-@bytes    BYTES
 @string   STRING
 @pointer  POINTER
-@size     SIZE
-@section  SECTION
 
 # Primitive types.
 int8      INT8          IDENTIFIER
@@ -41,34 +38,37 @@ uint16    UINT16        IDENTIFIER
 int32     INT32         IDENTIFIER
 uint32    UINT32        IDENTIFIER
 
-(         OPENPAREN
 )         CLOSEPAREN
-[         OPENSQUARE
 ]         CLOSESQUARE
-,         COMMA
 
 # Binary operators, in increasing order of precedence.
-or        OR             BINARY 1
-and       AND            BINARY 2
-|         PIPE           BINARY 3
-^         CARET          BINARY 4
-&         AMPERSAND      BINARY 5
-<<        LEFTSHIFT      BINARY 6
->>        RIGHTSHIFT     BINARY 6
-<         LTOP           COMPARISON BINARY 7
-<=        LEOP           COMPARISON BINARY 7
->         GTOP           COMPARISON BINARY 7
->=        GEOP           COMPARISON BINARY 7
-==        EQOP           COMPARISON BINARY 8
-!=        NEOP           COMPARISON BINARY 8
-+         PLUS           BINARY 9
--         MINUS          BINARY 9
-*         STAR           BINARY 10
-/         SLASH          BINARY 10
-%         PERCENT        BINARY 10
-as        AS             UNARY 11
-~         TILDE          UNARY 12
-not       NOT            UNARY 12
-&         UNARYAMPERSAND UNARY 12
--         UNARYMINUS     UNARY 12
-.         DOT            BINARY 13
+<fcall>   FCALL          0
+(         OPENPAREN      0
+[         OPENSQUARE     0
+,         COMMA          BINARY 1
+or        OR             BINARY 2
+and       AND            BINARY 3
+|         PIPE           BINARY 4
+^         CARET          BINARY 5
+&         AMPERSAND      BINARY 6
+<<        LEFTSHIFT      BINARY 7
+>>        RIGHTSHIFT     BINARY 7
+<         LTOP           BINARY 8
+<=        LEOP           BINARY 8
+>         GTOP           BINARY 8
+>=        GEOP           BINARY 8
+==        EQOP           BINARY 9
+!=        NEOP           BINARY 9
++         PLUS           BINARY 10
+-         MINUS          BINARY 10
+*         STAR           BINARY 11
+/         SLASH          BINARY 11
+%         PERCENT        BINARY 11
+as        AS             POSTFIX 12
+@size     SIZE           POSTFIX 12
+@bytes    BYTES          POSTFIX 12
+~         TILDE          PREFIX 13
+not       NOT            PREFIX 13
+&         UNARYAMPERSAND PREFIX 13
+-         UNARYMINUS     PREFIX 13
+.         DOT            BINARY 14

@@ -13,8 +13,10 @@ BEGIN {
             flags = flags "|" $i
         else if ($i == "IDENTIFIER")
             type = "THING_IDENTIFIER"
-        else if ($i == "UNARY")
-            flags = flags "|TOKEN_FLAG_UNARY_OP"
+        else if ($i == "PREFIX")
+            flags = flags "|TOKEN_FLAG_PREFIX_OP"
+        else if ($i == "POSTFIX")
+            flags = flags "|TOKEN_FLAG_POSTFIX_OP"
         else if ($i == "BINARY")
             flags = flags "|TOKEN_FLAG_BINARY_OP"
         else if ($i == "COMPARISON")

@@ -156,7 +156,7 @@ sub do_constant(out result: int32)
             if current_token == TOKEN_OPENPAREN then
                 push_op(TOKEN_OPENPAREN);
                 next_token();
-            elseif (token_flags & TOKEN_FLAG_UNARY_OP) != 0 then
+            elseif (token_flags & TOKEN_FLAG_PREFIX_OP) != 0 then
                 push_op(current_token);
                 next_token();
             else
