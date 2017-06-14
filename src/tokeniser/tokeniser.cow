@@ -7,7 +7,7 @@ sub read_identifier()
         buffer_index := buffer_index + 1;
 
         var type: int8 := classify_char_type(peeked_byte);
-        if (type != ALPHABETIC) & (type != DIGIT) then
+        if (type != ALPHABETIC) and (type != DIGIT) then
             break;
         end if;
         next_byte();
@@ -30,7 +30,7 @@ sub read_number()
         buffer_index := buffer_index + 1;
 
         var type: int8 := classify_char_type(peeked_byte);
-        if (type != ALPHABETIC) & (type != DIGIT) then
+        if (type != ALPHABETIC) and (type != DIGIT) then
             break;
         end if;
         next_byte();
@@ -38,7 +38,7 @@ sub read_number()
 
     var base: uint8 := 10;
     var ptr: [int8] := &input_buffer[0];
-    if (buffer_index >= 2) & (input_buffer[0] == '0') then
+    if (buffer_index >= 2) and (input_buffer[0] == '0') then
         if input_buffer[1] == 'x' then
             base := 16;
             ptr := &input_buffer[2];
@@ -85,7 +85,7 @@ sub decode_escaped_char()
         current_byte := '\n';
     elseif current_byte == '0' then
         current_byte := 0;
-    elseif (current_byte == '\\') | (current_byte == '"') | (current_byte == '\'') then
+    elseif (current_byte == '\\') or (current_byte == '"') or (current_byte == '\'') then
     else
         print("unrecognised string escape \\");
         print_char(current_byte);
@@ -146,6 +146,11 @@ sub next_token()
         current_token := 0;
         return;
     end if;
+    if current_byte == '#' then
+        while (current_byte != -1) and (current_byte != '\n') loop
+            next_byte();
+        end loop;
+    end if;
 
     buffer_index := 0;
     var type: int8;
@@ -165,7 +170,7 @@ sub next_token()
         read_string();
     elseif current_byte == '\'' then
         read_char_constant();
-    elseif (type == ALPHABETIC) | (current_byte == '@') then
+    elseif (type == ALPHABETIC) or (current_byte == '@') then
         read_identifier();
     elseif type == SYMBOL then
         read_symbol();

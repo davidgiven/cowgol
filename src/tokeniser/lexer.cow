@@ -41,13 +41,7 @@ end sub;
 
 sub next_byte()
     current_byte := peeked_byte;
-
     peeked_byte := next_raw_byte();
-    if peeked_byte == '#' then
-        while (current_byte != -1) and (current_byte != '\n') loop
-            next_byte();
-        end loop;
-    end if;
 end sub;
 
 sub error_with_location()
