@@ -4,7 +4,6 @@ const LEX_TOP := 200;
 var lexical_stack: uint16[64];
 var lexical_stack_ptr: uint8 := 0;
 
-var current_namespace_id: uint16;
 var current_subroutine_id: uint16;
 
 sub halt()
@@ -66,79 +65,3 @@ sub lexical_pop_scope_type(type: uint16)
         halt();
     end if;
 end sub;
-
-sub find_symbol_in_namespace(identifier_id: uint16, namespace_id: uint16, out symbol_id: uint16)
-    var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
-    symbol_id := namespace_thing.first_symbol;
-
-    while symbol_id != 0 loop
-        var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-        if symbol.name_id == identifier_id then
-            return;
-        end if;
-        symbol_id := symbol.next_symbol;
-    end loop;
-
-    symbol_id := 0;
-end sub;
-
-sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
-    var namespace_id: uint16 := current_namespace_id;
-
-    while namespace_id != 0 loop
-        symbol_id := find_symbol_in_namespace(identifier_id, namespace_id);
-        if symbol_id != 0 then
-            return;
-        end if;
-
-        var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
-        namespace_id := namespace_thing.previous_namespace;
-    end loop;
-
-    symbol_id := 0;
-end sub;
-
-sub find_symbol_or_fail(identifier_id: uint16, out symbol_id: uint16)
-    symbol_id := find_symbol(identifier_id);
-    if symbol_id == 0 then
-        print("symbol ");
-        show_identifier(identifier_id);
-        print(" not found in any scope");
-        halt();
-    end if;
-end sub;
-
-sub deref_symbol(identifier_id: uint16, out value_id: uint16)
-    var symbol_id: uint16 := find_symbol(identifier_id);
-    if symbol_id != 0 then
-        var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-        value_id := symbol.value_id;
-    else
-        value_id := 0;
-    end if;
-end sub;
-
-sub deref_symbol_or_fail(identifier_id: uint16, out value_id: uint16)
-    var symbol_id: uint16 := find_symbol_or_fail(identifier_id);
-    var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-    value_id := symbol.value_id;
-end sub;
-
-sub add_symbol(identifier_id: uint16, value_id: uint16, namespace_id: uint16)
-    if find_symbol_in_namespace(identifier_id, namespace_id) != 0 then
-        print("symbol ");
-        show_identifier(identifier_id);
-        print(" is already defined in this namespace");
-        halt();
-    end if;
-
-    var symbol_id: uint16 := create_thing(THING_SYMBOL, SymbolThing@bytes);
-    var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-    var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
-
-    symbol.next_symbol := namespace_thing.first_symbol;
-    namespace_thing.first_symbol := symbol_id;
-    symbol.name_id := identifier_id;
-    symbol.value_id := value_id;
-end sub;
-

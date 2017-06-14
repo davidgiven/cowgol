@@ -106,6 +106,10 @@ sub init_parser()
     type := create_bootstrap_type(TOKEN_UINT32);
     type.thing_type := THING_UNSIGNED;
     type.width := 4;
+
+    type := create_bootstrap_type(TOKEN_NUMERIC);
+    type.thing_type := THING_NUMERIC;
+    type.width := 0;
 end sub;
 
 sub do_sub()
@@ -141,8 +145,7 @@ sub do_sub()
         add_symbol(id, parameter_id, current_namespace_id);
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
         parameter.direction := direction;
-        parameter.type := type_id;
-        flush_var(parameter_id);
+        parameter.type_id := type_id;
 
         if current_token != TOKEN_COMMA then
             break;
@@ -170,8 +173,7 @@ sub do_var()
     var variable_id: uint16 := create_thing(THING_VARIABLE, VariableThing@bytes);
     add_symbol(id, variable_id, current_namespace_id);
     var variable: [VariableThing] := find_thing(variable_id) as [VariableThing];
-    variable.type := type_id;
-    flush_var(variable_id);
+    variable.type_id := type_id;
 
     if current_token == TOKEN_ASSIGN then
         var thing_iop: [ThingIop] := emit(IOP_THING, ThingIop@bytes) as [ThingIop];

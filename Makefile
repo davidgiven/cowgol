@@ -32,12 +32,26 @@ PARSER_SRCS = \
 	src/iops.cow \
 	src/parser/globals.cow \
 	src/parser/symbols.cow \
+	src/utils/symbols.cow \
 	src/parser/iopwriter.cow \
 	src/parser/tokenreader.cow \
 	src/parser/constant.cow \
+	src/utils/types.cow \
 	src/parser/types.cow \
 	src/parser/expression.cow \
 	src/parser/main.cow
+
+TYPECHECKER_SRCS = \
+	src/string_lib.cow \
+	src/things.cow \
+	src/iops.cow \
+	src/utils/stringtable.cow \
+	src/typechecker/iopreader.cow \
+	src/typechecker/iopwriter.cow \
+	src/utils/symbols.cow \
+	src/_token_names.cow \
+	src/utils/types.cow \
+	src/typechecker/main.cow
 
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \
@@ -50,10 +64,10 @@ IOPSHOWER_SRCS = \
 	src/iops.cow \
 	src/things.cow \
 	src/utils/stringtable.cow \
-	src/utils/iopreader.cow \
+	src/iopshower/iopreader.cow \
 	src/iopshower/iopshower.cow
 
-all: tests bin/tokeniser bin/parser bin/thingshower bin/iopshower
+all: tests bin/tokeniser bin/parser bin/typechecker bin/thingshower bin/iopshower
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
@@ -64,6 +78,11 @@ bin/parser: $(PARSER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(PARSER_SRCS)
+
+bin/typechecker: $(TYPECHECKER_SRCS) $(BOOTSTRAP)
+	@echo BUILD $@
+	@mkdir -p $(dir $@)
+	$(hide) ./cowboot -o $@ $(TYPECHECKER_SRCS)
 
 bin/thingshower: $(THINGSHOWER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@

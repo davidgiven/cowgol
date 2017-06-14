@@ -1,25 +1,3 @@
-
-sub pointer_of(type_id: uint16, out ptr_type_id: uint16)
-    var buf: PointerThing[1];
-    buf[0].thing_type := THING_POINTER;
-    buf[0].thing_size := PointerThing@bytes;
-    buf[0].width := 2;
-    buf[0].element_id := type_id;
-    ptr_type_id := add_thing_by_value(&buf[0] as [Thing]);
-end sub;
-
-sub array_of(type_id: uint16, element_count: uint16, out array_type_id: uint16)
-    var type: [TypeThing] := find_thing(type_id) as [TypeThing];
-
-    var buf: ArrayThing[1];
-    buf[0].thing_type := THING_ARRAY;
-    buf[0].thing_size := ArrayThing@bytes;
-    buf[0].width := element_count * type.width;
-    buf[0].element_id := type_id;
-    buf[0].element_count := element_count;
-    array_type_id := add_thing_by_value(&buf[0] as [Thing]);
-end sub;
-
 sub read_type(out type_id: uint16)
     var brackets: uint8 := 0;
 

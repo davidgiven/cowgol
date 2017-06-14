@@ -1,6 +1,7 @@
 sub install_identifiers()
 install_identifier("", TOKEN_FILENAME, THING_TOKEN, 0);
 install_identifier("", TOKEN_LINENUMBER, THING_TOKEN, 0);
+install_identifier("<number>", TOKEN_NUMERIC, THING_TOKEN, 0);
 install_identifier("end", TOKEN_END, THING_TOKEN, 0|TOKEN_FLAG_EXPR_ENDER);
 install_identifier(";", TOKEN_SEMICOLON, THING_TOKEN, 0|TOKEN_FLAG_EXPR_ENDER);
 install_identifier("loop", TOKEN_LOOP, THING_TOKEN, 0|TOKEN_FLAG_EXPR_ENDER);

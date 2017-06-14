@@ -48,7 +48,7 @@ end sub;
 sub show_typed_thing(thing: [TypedThing])
     show_data_thing(thing as [DataThing]);
     print("typed(type=0x");
-    print_hex_i16(thing.type);
+    print_hex_i16(thing.type_id);
     print(") ");
 end sub;
 

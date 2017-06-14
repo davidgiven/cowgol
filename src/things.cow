@@ -95,7 +95,7 @@ record SubroutineThing: DataThing
 end record;
 
 record TypedThing: DataThing
-    type: uint16;
+    type_id: uint16;
 end record;
 
 record VariableThing: TypedThing
@@ -202,6 +202,16 @@ sub find_symbol_by_value(value_id: uint16, out symbol_id: uint16)
         symbol_id := symbol_id + thing.thing_size;
     end loop;
     symbol_id := 0;
+end sub;
+
+sub find_name_of_value(value_id: uint16, out identifier_id: uint16)
+    var symbol_id: uint16 := find_symbol_by_value(value_id);
+    if symbol_id != 0 then
+        var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+        identifier_id := symbol.name_id;
+    else
+        identifier_id := 0;
+    end if;
 end sub;
 
 sub get_token_flags(token_id: uint16, out token_flags: uint8)

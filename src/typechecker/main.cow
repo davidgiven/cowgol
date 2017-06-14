@@ -1,0 +1,208 @@
+load_thing_table("things.dat");
+init_iop_reader("iops.dat");
+init_iop_writer("iops-out.dat");
+
+const FLAG_RVALUE := 1;
+var typestack: uint16[32];
+var flagstack: uint8[32];
+var stack_pos: uint8;
+var main_subroutine_id: uint16 := find_main_subroutine();
+
+sub find_bootstrap_type(identifier_id: uint16, out type_id: uint16)
+    var subroutine: [SubroutineThing] := find_thing(main_subroutine_id) as [SubroutineThing];
+    current_namespace_id := subroutine.namespace_id;
+    type_id := deref_symbol_or_fail(identifier_id);
+end sub;
+
+var int8_type: uint16 := find_bootstrap_type(TOKEN_INT8);
+var numeric_type: uint16 := find_bootstrap_type(TOKEN_NUMERIC);
+
+sub push_type(type: uint16, flags: uint8)
+    if stack_pos == typestack@size then
+        print("stack overflow");
+        halt();
+    end if;
+
+    typestack[stack_pos] := type;
+    flagstack[stack_pos] := flags;
+    stack_pos := stack_pos + 1;
+end sub;
+
+sub pop_type(out type_id: uint16, out flags: uint8)
+    if stack_pos == 0 then
+        print("stack underflow");
+        halt();
+    end if;
+
+    stack_pos := stack_pos - 1;
+    type_id := typestack[stack_pos];
+    flags := flagstack[stack_pos];
+end sub;
+
+sub print_type_name(type_id: uint16)
+    var brackets: uint8 := 0;
+    loop
+        var ptr_type: [PointerThing] := find_thing(type_id) as [PointerThing];
+        if ptr_type.thing_type != THING_POINTER then
+            break;
+        end if;
+        brackets := brackets + 1;
+        print_char('[');
+        type_id := ptr_type.element_id;
+    end loop;
+
+    show_identifier(find_name_of_value(type_id));
+
+    while brackets > 0 loop
+        print_char(']');
+    end loop;
+end sub;
+
+sub check_type_assignability(left_type_id: uint16, right_type_id: uint16)
+    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+
+    if ((left_type.thing_type & THING_NUMERIC) != 0) and
+       ((right_type.thing_type & THING_NUMERIC) != 0) then
+        return;
+    end if;
+    if left_type_id != right_type_id then
+        print_type_name(right_type_id);
+        print(" cannot be assigned to ");
+        print_type_name(left_type_id);
+        halt();
+    end if;
+end sub;
+
+sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16, out result_type_id: uint16)
+    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+
+    if left_type_id == right_type_id then
+        result_type_id := left_type_id;
+    elseif ((left_type.thing_type & THING_NUMERIC) != 0) and
+       ((right_type.thing_type & THING_NUMERIC) != 0) then
+        if left_type.width < right_type.width then
+            result_type_id := right_type_id;
+        else
+            result_type_id := left_type_id;
+        end if;
+        return;
+    else
+        print_type_name(left_type_id);
+        print(" and ");
+        print_type_name(right_type_id);
+        print(" are not compatible in this context");
+        halt();
+    end if;
+end sub;
+
+sub process_subroutine(thing_id: uint16)
+    var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
+    stack_pos := 0;
+    current_namespace_id := subroutine.namespace_id;
+
+    sub push_thing(iop: [ThingIop])
+        var thing: [Thing] := find_thing(iop.thing_id);
+        if thing.thing_type == THING_IDENTIFIER then
+            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+            thing := find_thing(iop.thing_id);
+        end if;
+
+        var type_id: uint16;
+        var flags: uint8 := 0;
+        if thing.thing_type == THING_NUMBER then
+            type_id := numeric_type;
+            flags := FLAG_RVALUE;
+        elseif thing.thing_type == THING_STRING then
+            type_id := pointer_of(int8_type);
+            flags := FLAG_RVALUE;
+        elseif (thing.thing_type & THING_TYPED) != 0 then
+            var typed_thing: [TypedThing] := thing as [TypedThing];
+            if typed_thing.type_id == 0 then
+                print("forward reference to type inferred value");
+                halt();
+            end if;
+            type_id := typed_thing.type_id;
+        else
+            print("can't push things of type 0x");
+            print_hex_i8(thing.thing_type);
+            halt();
+        end if;
+
+        push_type(type_id, flags);
+        iop.type_id := type_id;
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub assign_things(iop: [Iop])
+        var right_type_id: uint16;
+        var right_flags: uint8;
+        pop_type(right_type_id, right_flags);
+
+        var left_type_id: uint16;
+        var left_flags: uint8;
+        pop_type(left_type_id, left_flags);
+
+        if (left_flags & FLAG_RVALUE) != 0 then
+            print("cannot assign to rvalue");
+            halt();
+        end if;
+
+        check_type_assignability(left_type_id, right_type_id);
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub commutative_alu_iop(iop: [PushingIop])
+        var right_type_id: uint16;
+        var right_flags: uint8;
+        pop_type(right_type_id, right_flags);
+
+        var left_type_id: uint16;
+        var left_flags: uint8;
+        pop_type(left_type_id, left_flags);
+
+        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
+        iop.type_id := type_id;
+        push_type(type_id, FLAG_RVALUE);
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub simple_iop(iop: [Iop])
+        write_iop(iop as [Iop]);
+    end sub;
+
+    loop
+        var iop: [Iop] := read_iop();
+        if iop.iop_kind == IOP_END then
+            break;
+        elseif iop.iop_kind == IOP_THING then
+            push_thing(iop as [ThingIop]);
+        elseif iop.iop_kind == IOP_ASSIGN then
+            assign_things(iop as [Iop]);
+        elseif iop.iop_kind == IOP_RETURN then
+            simple_iop(iop);
+        elseif iop.iop_kind == IOP_ADDOP then
+            commutative_alu_iop(iop as [PushingIop]);
+        else
+            print("unsupported iop 0x");
+            print_hex_i8(iop.iop_kind);
+            halt();
+        end if;
+    end loop;
+    print_newline();
+end sub;
+
+sub process()
+    loop
+        var iheader: [IHeader] := read_iop_header();
+        if iheader.thing_id == 0 then
+            break;
+        end if;
+
+        write_iop_header(iheader);
+        process_subroutine(iheader.thing_id);
+    end loop;
+end sub;
+
+process();

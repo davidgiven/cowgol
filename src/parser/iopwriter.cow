@@ -91,14 +91,6 @@ sub flush_iops(object_id: uint16, oldtop: uint16)
     ioptab_size := oldtop;
 end sub;
 
-# Writes the iops for an empty variable definition, without disturbing the current
-# subroutine.
-sub flush_var(variable_id: uint16)
-    var oldtop: uint16 := ioptab_size;
-    emit_simple(IOP_END);
-    flush_iops(variable_id, oldtop);
-end sub;
-
 sub open_iopfile(filename: [int8])
     iopfd := file_openout(filename);
 end sub;

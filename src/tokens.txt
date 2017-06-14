@@ -1,6 +1,7 @@
 # Magic tokens with no attached string.
           FILENAME
           LINENUMBER
+<number>  NUMERIC
 
 end       END           ENDER
 ;         SEMICOLON     ENDER

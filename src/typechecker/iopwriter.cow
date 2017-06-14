@@ -1,0 +1,17 @@
+var iop_out_fd: uint8;
+var old_filename_id: uint16;
+var old_linenumber: uint16;
+
+sub init_iop_writer(filename: [int8])
+    iop_out_fd := file_openout(filename);
+end sub;
+
+sub write_iop_header(header: [IHeader])
+    file_putblock(iop_out_fd, header as [int8], IHeader@bytes);
+    old_filename_id := 0;
+    old_linenumber := 0;
+end sub;
+
+sub write_iop(iop: [Iop])
+    file_putblock(iop_out_fd, iop as [int8], iop.iop_size);
+end sub;

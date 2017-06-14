@@ -1,4 +1,5 @@
 load_thing_table("things.dat");
+init_iop_reader(ARGV[1]);
 
 sub print_identifier(identifier_id: uint16)
     var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];

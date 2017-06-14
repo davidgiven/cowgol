@@ -1,18 +1,27 @@
-var iops_fd: uint8 := file_openin("iops.dat");
+var iops_fd: uint8;
 var iop_buffer: uint8[256];
 
-sub read_iop_header(out header: [IHeader])
-    file_getblock(iops_fd, &iop_buffer[0] as [int8], IHeader@bytes);
+sub init_iop_reader(filename: [int8])
+    iops_fd := file_openin(filename);
+end sub;
+
+sub check_eof()
     if file_eof(iops_fd) != 0 then
         print("unexpected end of file in iop stream");
         print_newline();
         exit(1);
     end if;
+end sub;
+
+sub read_iop_header(out header: [IHeader])
+    file_getblock(iops_fd, &iop_buffer[0] as [int8], IHeader@bytes);
+    check_eof();
     header := &iop_buffer[0] as [IHeader];
 end sub;
 
 sub read_iop(out iop: [Iop])
     iop_buffer[0] := file_getchar(iops_fd);
     file_getblock(iops_fd, &iop_buffer[1] as [int8], iop_buffer[0] - 1);
+    check_eof();
     iop := &iop_buffer[0] as [Iop];
 end sub;
