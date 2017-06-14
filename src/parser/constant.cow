@@ -104,7 +104,7 @@ sub do_constant(out result: int32)
         loop
             var topop_id: uint16 := peek_op();
             var topop_p: uint8 := get_token_flags(topop_id) & TOKEN_FLAG_PRECEDENCE_MASK;
-            if (topop_p == 0) | (topop_p < op_p) then
+            if (topop_p == 0) or (topop_p < op_p) then
                 break;
             end if;
             apply_op();
@@ -120,7 +120,7 @@ sub do_constant(out result: int32)
     sub apply_until_closer(out topop_id: uint16)
         loop
             topop_id := peek_op();
-            if (topop_id == 0) | (topop_id == TOKEN_OPENPAREN) then
+            if (topop_id == 0) or (topop_id == TOKEN_OPENPAREN) then
                 break;
             end if;
             apply_op();
@@ -189,7 +189,7 @@ sub do_constant(out result: int32)
             token_flags := get_token_flags(current_token);
             if (token_flags & TOKEN_FLAG_EXPR_ENDER) != 0 then
                 break;
-            elseif (current_token == TOKEN_COMMA) | (current_token == TOKEN_CLOSESQUARE) then
+            elseif (current_token == TOKEN_COMMA) or (current_token == TOKEN_CLOSESQUARE) then
                 break;
             elseif current_token == TOKEN_CLOSEPAREN then
                 close_parenthesis();

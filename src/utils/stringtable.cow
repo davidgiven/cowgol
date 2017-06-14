@@ -10,7 +10,7 @@ sub show_string(string_id: uint16)
     print_char('"');
     while len != 1 loop
         var c: int8 := file_getchar(strings_fd);
-        if (c < 32) | (c > 126) then
+        if (c < 32) or (c > 126) then
             print("\\x");
             print_hex_i8(c);
         elseif c == '"' then
