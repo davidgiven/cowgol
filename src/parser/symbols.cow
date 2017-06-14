@@ -95,14 +95,31 @@ sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
         namespace_id := namespace.previous_namespace;
     end loop;
 
-    print("symbol ");
-    show_identifier(identifier_id);
-    print(" not found in any scope");
-    halt();
+    symbol_id := 0;
+end sub;
+
+sub find_symbol_or_fail(identifier_id: uint16, out symbol_id: uint16)
+    symbol_id := find_symbol(identifier_id);
+    if symbol_id == 0 then
+        print("symbol ");
+        show_identifier(identifier_id);
+        print(" not found in any scope");
+        halt();
+    end if;
 end sub;
 
 sub deref_symbol(identifier_id: uint16, out value_id: uint16)
     var symbol_id: uint16 := find_symbol(identifier_id);
+    if symbol_id != 0 then
+        var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+        value_id := symbol.value_id;
+    else
+        value_id := 0;
+    end if;
+end sub;
+
+sub deref_symbol_or_fail(identifier_id: uint16, out value_id: uint16)
+    var symbol_id: uint16 := find_symbol_or_fail(identifier_id);
     var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
     value_id := symbol.value_id;
 end sub;

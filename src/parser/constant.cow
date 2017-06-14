@@ -163,7 +163,7 @@ sub do_constant(out result: int32)
                 thing := find_thing(current_token);
                 var number_thing: [NumberThing];
                 if thing.thing_type == THING_IDENTIFIER then
-                    var symbol: [SymbolThing] := find_thing(find_symbol(current_token)) as [SymbolThing];
+                    var symbol: [SymbolThing] := find_thing(find_symbol_or_fail(current_token)) as [SymbolThing];
                     number_thing := find_thing(symbol.value_id) as [NumberThing];
                     if number_thing.thing_type != THING_NUMBER then
                         show_identifier(current_token);

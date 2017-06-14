@@ -34,7 +34,7 @@ sub read_type(out type_id: uint16)
     end loop;
 
     var identifier_id: uint16 := expect_identifier();
-    type_id := deref_symbol(identifier_id);
+    type_id := deref_symbol_or_fail(identifier_id);
 
     loop
         var type: [TypeThing] := find_thing(type_id) as [TypeThing];

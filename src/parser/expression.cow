@@ -232,6 +232,24 @@ sub expression_state_machine()
         apply_op();
     end sub;
 
+    sub thing_reference(type: [TypeThing], out pushable_id: uint16)
+        if current_token == TOKEN_BYTES then
+            pushable_id := add_number_by_value(type.width);
+        elseif current_token == TOKEN_SIZE then
+            var array_type: [ArrayThing] := type as [ArrayThing];
+            if array_type.thing_type != THING_ARRAY then
+                show_identifier(current_token);
+                print(" only works on arrays");
+                halt();
+            end if;
+            pushable_id := add_number_by_value(array_type.element_count);
+        else
+            print("expected a type attribute, got ");
+            show_identifier(current_token);
+            halt();
+        end if;
+    end sub;
+
     var thing: [Thing];
     var thing_iop: [ThingIop];
     loop
@@ -278,8 +296,19 @@ sub expression_state_machine()
                     end if;
                 elseif (thing.thing_type == THING_IDENTIFIER) or (thing.thing_type == THING_NUMBER)
                         or (thing.thing_type == THING_STRING) then
+                    var pushable_id: uint16 := current_token;
+                    if thing.thing_type == THING_IDENTIFIER then
+                        var looked_up_id: uint16 := deref_symbol(pushable_id);
+                        if looked_up_id != 0 then
+                            var looked_up: [TypeThing] := find_thing(looked_up_id) as [TypeThing];
+                            if (looked_up.thing_type & THING_TYPE) != 0 then
+                                next_token();
+                                pushable_id := thing_reference(looked_up);
+                            end if;
+                        end if;
+                    end if;
                     thing_iop := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
-                    thing_iop.thing_id := current_token;
+                    thing_iop.thing_id := pushable_id;
                     next_token();
                     state := STATE_AFTER;
                     data_stack_size := data_stack_size + 1;
