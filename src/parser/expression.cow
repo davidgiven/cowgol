@@ -9,6 +9,7 @@ sub expression_state_machine()
     var operator_stack: uint16[32];
     var operator_stack_pos: uint8 := 0;
     var state: uint8 := STATE_BEFORE;
+    var current_parameter_count: uint8 := 0;
     var current_function_call: uint16 := 0;
     var nesting: uint8 := 0;
     data_stack_size := 0;
@@ -112,18 +113,34 @@ sub expression_state_machine()
             expr_false_label_id := t;
         end sub;
 
-        sub comma()
+        sub parameter()
             check_alu_op(1);
+            emit_parameter(IOP_INPUTPARAM, current_function_call, current_parameter_count);
         end sub;
 
-        sub fcall()
-            var oldstack: uint8 := pop_op();
-            var parameters: uint8 := data_stack_size - oldstack;
-            var iop: [CallIop] := emit(IOP_FCALL, CallIop@bytes) as [CallIop];
+        sub comma()
+            check_alu_op(1);
+            emit_simple(IOP_ASSIGN);
+            data_stack_size := data_stack_size - 1;
+            current_parameter_count := current_parameter_count + 1;
+        end sub;
+
+        sub call()
+            if current_parameter_count > 0 then
+                emit_simple(IOP_ASSIGN);
+                data_stack_size := data_stack_size - 1;
+            end if;
+
+            var iop: [CallIop] := emit(IOP_CALL, CallIop@bytes) as [CallIop];
             iop.thing_id := current_function_call;
-            iop.parameter_count:= data_stack_size - oldstack;
+            iop.input_parameter_count := current_parameter_count;
+            iop.output_parameter_count := 0;
+
+            emit_parameter(IOP_OUTPUTPARAM, current_function_call, 0);
+            data_stack_size := data_stack_size + 1;
+
+            current_parameter_count := pop_op();
             current_function_call := pop_op();
-            data_stack_size := oldstack + 1;
         end sub;
 
         if op_id == TOKEN_PLUS then
@@ -173,10 +190,12 @@ sub expression_state_machine()
             merge_label(expr_true_label_id, pop_op());
         elseif op_id == TOKEN_AS then
             emit_cast(pop_op());
+        elseif op_id == TOKEN_PARAMETER then
+            parameter();
         elseif op_id == TOKEN_COMMA then
             comma();
-        elseif op_id == TOKEN_FCALL then
-            fcall();
+        elseif op_id == TOKEN_CALL then
+            call();
         elseif op_id == TOKEN_BYTES then
             alu_1op(IOP_BYTESOP);
         elseif op_id == TOKEN_SIZE then
@@ -225,7 +244,7 @@ sub expression_state_machine()
         var peeked_op: uint16 := peek_op();
         if peeked_op == 0 then
             return;
-        elseif (opener_op == TOKEN_OPENPAREN) and (peeked_op == TOKEN_FCALL) then
+        elseif (opener_op == TOKEN_OPENPAREN) and (peeked_op == TOKEN_CALL) then
             # special case; function calls are closed with ).
         elseif peeked_op != opener_op then
             print("expected a ");
@@ -254,6 +273,14 @@ sub expression_state_machine()
             show_identifier(current_token);
             halt();
         end if;
+    end sub;
+
+    sub parameter()
+        apply_left_associative(TOKEN_COMMA);
+        emit_simple(IOP_ASSIGN);
+        data_stack_size := data_stack_size - 1;
+        current_parameter_count := current_parameter_count + 1;
+        emit_parameter(IOP_INPUTPARAM, current_function_call, 0);
     end sub;
 
     var thing: [Thing];
@@ -287,9 +314,10 @@ sub expression_state_machine()
                 thing := find_thing(current_token);
                 if (thing.thing_type == THING_IDENTIFIER) and (peeked_token == TOKEN_OPENPAREN) then
                     push_op(current_function_call);
-                    push_op(data_stack_size);
+                    push_op(current_parameter_count);
                     current_function_call := current_token;
-                    push_op(TOKEN_FCALL);
+                    current_parameter_count := 0;
+                    push_op(TOKEN_CALL);
                     next_token();
                     expect_token(TOKEN_OPENPAREN);
 
@@ -298,6 +326,7 @@ sub expression_state_machine()
                         next_token();
                         state := STATE_AFTER;
                     else
+                        emit_parameter(IOP_INPUTPARAM, current_function_call, 0);
                         nesting := nesting + 1;
                     end if;
                 elseif (thing.thing_type == THING_IDENTIFIER) or (thing.thing_type == THING_NUMBER)
@@ -329,8 +358,15 @@ sub expression_state_machine()
             token_flags := get_token_flags(current_token);
             if (token_flags & TOKEN_FLAG_EXPR_ENDER) != 0 then
                 break;
-            elseif (current_token == TOKEN_COMMA) and (nesting == 0) then
-                break;
+            elseif (current_token == TOKEN_COMMA) then
+                if (nesting == 0) then
+                    break;
+                else
+                    parameter();
+                    next_token();
+                    state := STATE_BEFORE;
+                end if;
+
             elseif current_token == TOKEN_OPENSQUARE then
                 push_op(TOKEN_OPENSQUARE);
                 state := STATE_BEFORE;

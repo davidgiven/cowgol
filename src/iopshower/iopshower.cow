@@ -42,12 +42,21 @@ sub do_thing(iop: [ThingIop])
     print_hex_i16(iop.type_id);
 end sub;
 
-sub do_call(kind: [int8], iop: [CallIop])
-    print(kind);
-    print(" id=0x");
+sub do_call(iop: [CallIop])
+    print("CALL id=0x");
     print_hex_i16(iop.thing_id);
-    print(" parameter_count=");
-    print_i8(iop.parameter_count);
+    print(" input_parameter_count=");
+    print_i8(iop.input_parameter_count);
+    print(" output_parameter_count=");
+    print_i8(iop.output_parameter_count);
+end sub;
+
+sub do_parameter(kind: [int8], iop: [ParameterIop])
+    print(kind);
+    print(" subroutine_id=0x");
+    print_hex_i16(iop.subroutine_id);
+    print(" parameter=");
+    print_i8(iop.parameter);
 end sub;
 
 sub do_goto(iop: [GotoIop])
@@ -108,10 +117,12 @@ loop
             print("ASSIGN");
         elseif kind == IOP_RETURN then
             print("RETURN");
-        elseif kind == IOP_SCALL then
-            do_call("SCALL", iop as [CallIop]);
-        elseif kind == IOP_FCALL then
-            do_call("FCALL", iop as [CallIop]);
+        elseif kind == IOP_CALL then
+            do_call(iop as [CallIop]);
+        elseif kind == IOP_INPUTPARAM then
+            do_parameter("INPUTPARAM", iop as [ParameterIop]);
+        elseif kind == IOP_OUTPUTPARAM then
+            do_parameter("OUTPUTPARAM", iop as [ParameterIop]);
         elseif kind == IOP_GOTO then
             do_goto(iop as [GotoIop]);
         elseif kind == IOP_BEQ then

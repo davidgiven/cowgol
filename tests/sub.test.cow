@@ -14,10 +14,21 @@ sub with_output_params(p1: int8, p2: int8, out o1: int8)
     o1 := p1 + p2;
 end sub;
 
+sub with_multiple_output_params(p1: int8, p2: int8, out o1: int8, out o2: int8)
+    o1 := p1 + p2;
+    o2 := p1 - p2;
+end sub;
+
 var value: int8;
 (value) := with_output_params(1, 2);
 if value != 3 then
     fail("output parameter isn't right");
+end if;
+
+var value2: int8;
+(value, value2) := with_multiple_output_params(1, 2);
+if (value != 3) and (value2 != -1) then
+    fail("with_multiple_output_params isn't right");
 end if;
 
 value := with_output_params(1, 2);

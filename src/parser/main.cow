@@ -363,26 +363,48 @@ sub do_end_if()
 end sub;
 
 sub do_functioncall()
+    var input_parameters: uint8 := 0;
+    var output_parameters: uint8 := 0;
+
+    if current_token == TOKEN_OPENPAREN then
+        next_token();
+        while current_token != TOKEN_CLOSEPAREN loop
+            if output_parameters > 0 then
+                expect_token(TOKEN_COMMA);
+            end if;
+            do_expression();
+            output_parameters := output_parameters + 1;
+        end loop;
+        expect_token(TOKEN_CLOSEPAREN);
+        expect_token(TOKEN_ASSIGN);
+    end if;
+
     var id: uint16 := expect_identifier();
-    var parameters: uint8 := 0;
 
     expect_token(TOKEN_OPENPAREN);
-    loop
-        if current_token == TOKEN_CLOSEPAREN then
-            break;
-        end if;
-        if parameters > 0 then
+    while current_token != TOKEN_CLOSEPAREN loop
+        if input_parameters > 0 then
             expect_token(TOKEN_COMMA);
         end if;
 
+        emit_parameter(IOP_INPUTPARAM, id, input_parameters);
         do_expression();
-        parameters := parameters + 1;
+        emit_simple(IOP_ASSIGN);
+        input_parameters := input_parameters + 1;
     end loop;
     expect_token(TOKEN_CLOSEPAREN);
 
-    var iop: [CallIop] := emit(IOP_SCALL, CallIop@bytes) as [CallIop];
+    var iop: [CallIop] := emit(IOP_CALL, CallIop@bytes) as [CallIop];
     iop.thing_id := id;
-    iop.parameter_count := parameters;
+    iop.input_parameter_count := input_parameters;
+    iop.output_parameter_count := output_parameters;
+
+    while output_parameters > 0 loop
+        output_parameters := output_parameters - 1;
+        emit_parameter(IOP_OUTPUTPARAM, id, output_parameters);
+        emit_simple(IOP_ASSIGN);
+    end loop;
+
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
@@ -429,6 +451,8 @@ while current_token != 0 loop
         else
             do_assignment();
         end if;
+    elseif current_token == TOKEN_OPENPAREN then
+        do_functioncall();
     elseif current_token == TOKEN_SUB then
         do_sub();
     elseif current_token == TOKEN_VAR then

@@ -44,23 +44,22 @@ const IOP_GOTO             := 0b0110_0011;
 const IOP_FILENAME         := 0b0110_0100;
 const IOP_LINENUMBER       := 0b0110_0101;
 
-const IOP_THING      := 0x01;
-const IOP_ASSIGN     := 0x02; # ( dest src -- )
-const IOP_GETPARAM   := 0x03; # push parameter of subroutine; rewritten to THING or nothing
-const IOP_SETPARAM   := 0x04; # assign, but only for parameters; rewritten to ASSIGN or nothing
-const IOP_SCALL      := 0x05; # statement call; rewritten to RAWCALL
-const IOP_FCALL      := 0x06; # function call; rewritten to RAWCALL
-const IOP_RAWCALL    := 0x07; # raw call
-const IOP_ADDOP      := 0x09;
-const IOP_SUBOP      := 0x0a;
-const IOP_NEGOP      := 0x0b;
-const IOP_NOTOP      := 0x0c;
-const IOP_INDEXOP    := 0x0d;
-const IOP_MEMBEROP   := 0x0e;
-const IOP_ADDRESSOP  := 0x0f;
-const IOP_CASTOP     := 0x10;
-const IOP_BYTESOP    := 0x11;
-const IOP_SIZEOP     := 0x12;
+const IOP_THING       := 0x01;
+const IOP_ASSIGN      := 0x02; # ( dest src -- )
+const IOP_INPUTPARAM  := 0x03; # push input parameter of subroutine; rewritten to THING
+const IOP_OUTPUTPARAM := 0x04; # push output parameter of subroutine; rewritten to THING
+const IOP_CALL        := 0x05;
+const IOP_ASSIGNTO    := 0x06; # ( src dest -- )
+const IOP_ADDOP       := 0x09;
+const IOP_SUBOP       := 0x0a;
+const IOP_NEGOP       := 0x0b;
+const IOP_NOTOP       := 0x0c;
+const IOP_INDEXOP     := 0x0d;
+const IOP_MEMBEROP    := 0x0e;
+const IOP_ADDRESSOP   := 0x0f;
+const IOP_CASTOP      := 0x10;
+const IOP_BYTESOP     := 0x11;
+const IOP_SIZEOP      := 0x12;
 
 record FilenameIop: Iop
     thing_id: uint16;
@@ -84,11 +83,12 @@ end record;
 
 record CallIop: Iop
     thing_id: uint16;
-    parameter_count: uint8;
+    input_parameter_count: uint8;
+    output_parameter_count: uint8;
 end record;
 
 record ParameterIop: Iop
-    thing_id: uint16;
+    subroutine_id: uint16;
     parameter: uint8;
 end record;
 

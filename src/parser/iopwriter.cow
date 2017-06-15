@@ -55,6 +55,12 @@ sub emit_cast(type_id: uint16)
     iop.type_id := type_id;
 end sub;
 
+sub emit_parameter(kind: uint8, subroutine_id: uint16, parameter: uint8)
+    var iop: [ParameterIop] := emit(kind, ParameterIop@bytes) as [ParameterIop];
+    iop.subroutine_id := subroutine_id;
+    iop.parameter := parameter;
+end sub;
+
 sub create_label(out label_id: uint16)
     label_id := create_thing(THING_LABEL, LabelThing@bytes);
 end sub;
