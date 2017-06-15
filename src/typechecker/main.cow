@@ -139,11 +139,11 @@ sub process_subroutine(thing_id: uint16)
     sub assign_things(iop: [Iop])
         var right_type_id: uint16;
         var right_flags: uint8;
-        pop_type(right_type_id, right_flags);
+        (right_type_id, right_flags) := pop_type();
 
         var left_type_id: uint16;
         var left_flags: uint8;
-        pop_type(left_type_id, left_flags);
+        (left_type_id, left_flags) := pop_type();
 
         if (left_flags & FLAG_RVALUE) != 0 then
             print("cannot assign to rvalue");
@@ -157,11 +157,11 @@ sub process_subroutine(thing_id: uint16)
     sub simple_alu2op(iop: [TypedIop])
         var right_type_id: uint16;
         var right_flags: uint8;
-        pop_type(right_type_id, right_flags);
+        (right_type_id, right_flags) := pop_type();
 
         var left_type_id: uint16;
         var left_flags: uint8;
-        pop_type(left_type_id, left_flags);
+        (left_type_id, left_flags) := pop_type();
 
         var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
         iop.type_id := type_id;
@@ -172,11 +172,11 @@ sub process_subroutine(thing_id: uint16)
     sub conditional_jump(iop: [ConditionalIop])
         var right_type_id: uint16;
         var right_flags: uint8;
-        pop_type(right_type_id, right_flags);
+        (right_type_id, right_flags) := pop_type();
 
         var left_type_id: uint16;
         var left_flags: uint8;
-        pop_type(left_type_id, left_flags);
+        (left_type_id, left_flags) := pop_type();
 
         var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
         iop.type_id := type_id;

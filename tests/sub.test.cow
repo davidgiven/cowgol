@@ -15,7 +15,7 @@ sub with_output_params(p1: int8, p2: int8, out o1: int8)
 end sub;
 
 var value: int8;
-with_output_params(1, 2, value);
+(value) := with_output_params(1, 2);
 if value != 3 then
     fail("output parameter isn't right");
 end if;

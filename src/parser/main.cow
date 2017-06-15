@@ -80,7 +80,7 @@ sub init_parser()
     current_namespace_id := 0;
     lexical_push(LEX_TOP);
 
-    create_function(current_subroutine_id, current_namespace_id);
+    (current_subroutine_id, current_namespace_id) := create_function();
 
     var type: [NumericThing];
     type := create_bootstrap_type(TOKEN_INT8);
@@ -118,7 +118,7 @@ sub do_sub()
     push_subroutine();
     expect_token(TOKEN_SUB);
     var id: uint16 := expect_identifier();
-    create_function(current_subroutine_id, current_namespace_id);
+    (current_subroutine_id, current_namespace_id) := create_function();
     add_symbol(id, current_subroutine_id, old_namespace_id);
     break_label_id := 0;
     continue_label_id := 0;
@@ -298,7 +298,7 @@ sub do_while()
     do_generic_loop_opening();
 
     var loop_label_id: uint16;
-    do_conditional(loop_label_id, break_label_id);
+    (loop_label_id, break_label_id) := do_conditional();
     emit_label(loop_label_id);
 
     expect_token(TOKEN_LOOP);
@@ -325,7 +325,7 @@ end sub;
 sub do_generic_if_then()
     if_true_label_id := create_label();
     if_false_label_id := create_label();
-    do_conditional(if_true_label_id, if_false_label_id);
+    (if_true_label_id, if_false_label_id) := do_conditional();
     expect_token(TOKEN_THEN);
     emit_label(if_true_label_id);
 end sub;

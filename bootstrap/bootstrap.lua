@@ -505,7 +505,7 @@ end
 function do_parameter()
     local name = stream:next()
     local inout = "in"
-    if (name == "in") or (name == "out") or (name == "inout") then
+    if (name == "in") or (name == "out") then
         inout = name
         name = stream:next()
     end
@@ -591,6 +591,8 @@ function do_statements()
         elseif (t == "return") then
             expect("return")
             emit("return;")
+        elseif (t == "(") then
+            do_function_call()
         else
             local sym = lookup_symbol(t)
             if sym then
@@ -706,9 +708,7 @@ function do_expression_function_call(sym)
     local outvar = nil
     local first = true
     for _, p in ipairs(sym.parameters) do
-        if (p.inout == "inout") then
-            fatal("%s has inout parameters; can't call inside expressions")
-        elseif (p.inout == "out") then
+        if (p.inout == "out") then
             if outvar then
                 fatal("%s has more than one output parameter; can't call inside expressions")
             end
@@ -995,43 +995,54 @@ function expression(outputvar)
 end
 
 function do_function_call()
+    local lvalues = {}
+    if stream:peek() == "(" then
+        expect("(")
+        local first = true
+        while stream:peek() ~= ")" do
+            if not first then
+                expect(",")
+            end
+            first = false
+            local lvalue = lvalue_leaf()
+            lvalues[#lvalues+1] = lvalue
+        end
+        expect(")")
+        expect(":=")
+    end
+
     local t = stream:next()
     local sym = lookup_symbol(t)
 
     expect("(")
-
-    local lvalues = {}
-
     local first = true
     for _, p in ipairs(sym.parameters) do
-        if not first then
-            expect(",")
-        end
-        first = false
-
         if (p.inout == "in") then
-            expression(p.variable)
-        else
-            local lvalue = lvalue_leaf()
-            lvalues[#lvalues+1] = lvalue
-            if (p.inout == "inout") then
-                type_check(p.variable.type, lvalue.type)
-                emit("%s = %s;", p.variable.storage, lvalue.storage)
+            if not first then
+                expect(",")
             end
+            first = false
+            expression(p.variable)
         end
     end
-
     expect(")")
+
     emit("%s();", sym.storage)
 
     local i = 1
     for _, p in ipairs(sym.parameters) do
-        if (p.inout ~= "in") then
+        if (p.inout == "out") then
             local lvalue = lvalues[i]
+            if not lvalue then
+                fatal("not enough return values")
+            end
             i = i + 1
             type_check(p.variable.type, lvalue.type)
             emit("%s = %s;", lvalue.storage, p.variable.storage)
         end
+    end
+    if (i - 1) ~= #lvalues then
+        fatal("too many return values")
     end
 end
 
