@@ -55,18 +55,18 @@ sub do_goto(iop: [GotoIop])
     print_label(iop.label_id);
 end sub;
 
-sub do_conditional(kind: [int8], iop: [ConditionalIop])
+sub do_typed(kind: [int8], iop: [TypedIop])
     print(kind);
+    print(" type_id=0x");
+    print_hex_i16(iop.type_id);
+end sub;
+
+sub do_conditional(kind: [int8], iop: [ConditionalIop])
+    do_typed(kind, iop as [TypedIop]);
     print(" iftrue=0x");
     print_hex_i16(iop.iftrue_label_id);
     print(" iffalse=0x");
     print_hex_i16(iop.iffalse_label_id);
-end sub;
-
-sub do_pushing(kind: [int8], iop: [PushingIop])
-    print(kind);
-    print(" type=0x");
-    print_hex_i16(iop.type_id);
 end sub;
 
 loop
@@ -116,46 +116,40 @@ loop
             do_goto(iop as [GotoIop]);
         elseif kind == IOP_BEQ then
             do_conditional("BEQ", iop as [ConditionalIop]);
-        elseif kind == IOP_BNE then
-            do_conditional("BNE", iop as [ConditionalIop]);
         elseif kind == IOP_BLT then
             do_conditional("BLT", iop as [ConditionalIop]);
-        elseif kind == IOP_BGE then
-            do_conditional("BGE", iop as [ConditionalIop]);
         elseif kind == IOP_BGT then
             do_conditional("BGT", iop as [ConditionalIop]);
-        elseif kind == IOP_BLE then
-            do_conditional("BLE", iop as [ConditionalIop]);
         elseif kind == IOP_THING then
             do_thing(iop as [ThingIop]);
         elseif kind == IOP_ADDOP then
-            do_pushing("ADDOP", iop as [PushingIop]);
+            do_typed("ADDOP", iop as [TypedIop]);
         elseif kind == IOP_SUBOP then
-            do_pushing("SUBOP", iop as [PushingIop]);
+            do_typed("SUBOP", iop as [TypedIop]);
         elseif kind == IOP_MULOP then
-            do_pushing("MULOP", iop as [PushingIop]);
+            do_typed("MULOP", iop as [TypedIop]);
         elseif kind == IOP_DIVOP then
-            do_pushing("DIVOP", iop as [PushingIop]);
+            do_typed("DIVOP", iop as [TypedIop]);
         elseif kind == IOP_MODOP then
-            do_pushing("MODOP", iop as [PushingIop]);
+            do_typed("MODOP", iop as [TypedIop]);
         elseif kind == IOP_ANDOP then
-            do_pushing("ANDOP", iop as [PushingIop]);
+            do_typed("ANDOP", iop as [TypedIop]);
         elseif kind == IOP_OROP then
-            do_pushing("OROP", iop as [PushingIop]);
+            do_typed("OROP", iop as [TypedIop]);
         elseif kind == IOP_EOROP then
-            do_pushing("EOROP", iop as [PushingIop]);
+            do_typed("EOROP", iop as [TypedIop]);
         elseif kind == IOP_NEGOP then
-            do_pushing("NEGOP", iop as [PushingIop]);
+            do_typed("NEGOP", iop as [TypedIop]);
         elseif kind == IOP_NOTOP then
-            do_pushing("NOTOP", iop as [PushingIop]);
+            do_typed("NOTOP", iop as [TypedIop]);
         elseif kind == IOP_INDEXOP then
-            do_pushing("INDEXOP", iop as [PushingIop]);
+            do_typed("INDEXOP", iop as [TypedIop]);
         elseif kind == IOP_MEMBEROP then
-            do_pushing("MEMBEROP", iop as [PushingIop]);
+            do_typed("MEMBEROP", iop as [TypedIop]);
         elseif kind == IOP_ADDRESSOP then
-            do_pushing("ADDRESSOP", iop as [PushingIop]);
+            do_typed("ADDRESSOP", iop as [TypedIop]);
         elseif kind == IOP_CASTOP then
-            do_pushing("CASTOP", iop as [PushingIop]);
+            do_typed("CASTOP", iop as [TypedIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

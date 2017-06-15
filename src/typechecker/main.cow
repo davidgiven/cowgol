@@ -55,6 +55,7 @@ sub print_type_name(type_id: uint16)
 
     while brackets > 0 loop
         print_char(']');
+        brackets := brackets - 1;
     end loop;
 end sub;
 
@@ -153,7 +154,22 @@ sub process_subroutine(thing_id: uint16)
         write_iop(iop as [Iop]);
     end sub;
 
-    sub commutative_alu_iop(iop: [PushingIop])
+    sub simple_alu2op(iop: [TypedIop])
+        var right_type_id: uint16;
+        var right_flags: uint8;
+        pop_type(right_type_id, right_flags);
+
+        var left_type_id: uint16;
+        var left_flags: uint8;
+        pop_type(left_type_id, left_flags);
+
+        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
+        iop.type_id := type_id;
+        push_type(type_id, FLAG_RVALUE);
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub conditional_jump(iop: [ConditionalIop])
         var right_type_id: uint16;
         var right_flags: uint8;
         pop_type(right_type_id, right_flags);
@@ -172,24 +188,36 @@ sub process_subroutine(thing_id: uint16)
         write_iop(iop as [Iop]);
     end sub;
 
+    sub write_end_iop()
+        var buf: Iop[1];
+        buf[0].iop_size := Iop@bytes;
+        buf[0].iop_kind := IOP_END;
+        simple_iop(&buf[0]);
+    end sub;
+
     loop
         var iop: [Iop] := read_iop();
+        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+
         if iop.iop_kind == IOP_END then
             break;
+        elseif ioptype == IOP_TYPE_UNTYPED then
+            simple_iop(iop);
+        elseif ioptype == IOP_TYPE_SIMPLE2OP then
+            simple_alu2op(iop as [TypedIop]);
+        elseif ioptype == IOP_TYPE_CONDITIONAL then
+            conditional_jump(iop as [ConditionalIop]);
         elseif iop.iop_kind == IOP_THING then
             push_thing(iop as [ThingIop]);
         elseif iop.iop_kind == IOP_ASSIGN then
             assign_things(iop as [Iop]);
-        elseif iop.iop_kind == IOP_RETURN then
-            simple_iop(iop);
-        elseif iop.iop_kind == IOP_ADDOP then
-            commutative_alu_iop(iop as [PushingIop]);
         else
             print("unsupported iop 0x");
             print_hex_i8(iop.iop_kind);
             halt();
         end if;
     end loop;
+    write_end_iop();
     print_newline();
 end sub;
 

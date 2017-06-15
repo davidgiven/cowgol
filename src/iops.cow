@@ -18,48 +18,49 @@ end record;
 
 const IOP_END := 0;
 
-const IOP_LABEL      := 0x01;
-const IOP_SECTION    := 0x02;
-const IOP_STRING     := 0x03;
-const IOP_ASSIGN     := 0x04;
-const IOP_SCALL      := 0x05;
-const IOP_FCALL      := 0x06;
-const IOP_RETURN     := 0x07;
-const IOP_GOTO       := 0x08;
-const IOP_FILENAME   := 0x09;
-const IOP_LINENUMBER := 0x0a;
+const IOP_TYPE_MASK        := 0b1110_0000;
 
-const IOP_TYPE_CONDITIONAL := 0x20;
-const IOP_BEQ  := 0x20;
-const IOP_BNE  := 0x21;
-const IOP_BLT  := 0x22;
-const IOP_BGE  := 0x23;
-const IOP_BGT  := 0x24;
-const IOP_BLE  := 0x25;
+const IOP_TYPE_CONDITIONAL := 0b0010_0000;
+const IOP_BEQ              := 0b0010_0000;
+const IOP_BLT              := 0b0010_0001;
+const IOP_BGT              := 0b0010_0010;
 
-const IOP_TYPE_PUSHING := 0x80;
-const IOP_THING  := 0x80;
+const IOP_TYPE_SIMPLE2OP   := 0b0100_0000;
+const IOP_MULOP            := 0b0100_0010;
+const IOP_DIVOP            := 0b0100_0011;
+const IOP_MODOP            := 0b0100_0100;
+const IOP_ANDOP            := 0b0100_0101;
+const IOP_OROP             := 0b0100_0110;
+const IOP_EOROP            := 0b0100_0111;
+const IOP_LSLOP            := 0b0100_1000;
+const IOP_LSROP            := 0b0100_1001;
+const IOP_ASROP            := 0b0100_1010;
 
-const IOP_TYPE_ABSTRACT_ALU := 0xc0;
-const IOP_ADDOP     := 0xc0;
-const IOP_SUBOP     := 0xc1;
-const IOP_MULOP     := 0xc2;
-const IOP_DIVOP     := 0xc3;
-const IOP_MODOP     := 0xc4;
-const IOP_ANDOP     := 0xc5;
-const IOP_OROP      := 0xc6;
-const IOP_EOROP     := 0xc7;
-const IOP_LSLOP     := 0xc8;
-const IOP_LSROP     := 0xc9;
-const IOP_ASROP     := 0xca;
-const IOP_INDEXOP   := 0xcb;
-const IOP_MEMBEROP  := 0xcc;
-const IOP_NEGOP     := 0xcd;
-const IOP_NOTOP     := 0xce;
-const IOP_ADDRESSOP := 0xcf;
-const IOP_CASTOP    := 0xd0;
-const IOP_BYTESOP   := 0xd1;
-const IOP_SIZEOP    := 0xd2;
+const IOP_TYPE_UNTYPED     := 0b0110_0000;
+const IOP_LABEL            := 0b0110_0000;
+const IOP_STRING           := 0b0110_0001;
+const IOP_RETURN           := 0b0110_0010;
+const IOP_GOTO             := 0b0110_0011;
+const IOP_FILENAME         := 0b0110_0100;
+const IOP_LINENUMBER       := 0b0110_0101;
+
+const IOP_THING      := 0x01;
+const IOP_ASSIGN     := 0x02; # ( dest src -- )
+const IOP_GETPARAM   := 0x03; # push parameter of subroutine; rewritten to THING or nothing
+const IOP_SETPARAM   := 0x04; # assign, but only for parameters; rewritten to ASSIGN or nothing
+const IOP_SCALL      := 0x05; # statement call; rewritten to RAWCALL
+const IOP_FCALL      := 0x06; # function call; rewritten to RAWCALL
+const IOP_RAWCALL    := 0x07; # raw call
+const IOP_ADDOP      := 0x09;
+const IOP_SUBOP      := 0x0a;
+const IOP_NEGOP      := 0x0b;
+const IOP_NOTOP      := 0x0c;
+const IOP_INDEXOP    := 0x0d;
+const IOP_MEMBEROP   := 0x0e;
+const IOP_ADDRESSOP  := 0x0f;
+const IOP_CASTOP     := 0x10;
+const IOP_BYTESOP    := 0x11;
+const IOP_SIZEOP     := 0x12;
 
 record FilenameIop: Iop
     thing_id: uint16;
@@ -86,26 +87,31 @@ record CallIop: Iop
     parameter_count: uint8;
 end record;
 
+record ParameterIop: Iop
+    thing_id: uint16;
+    parameter: uint8;
+end record;
+
 record GotoIop: Iop
     label_id: uint16;
 end record;
 
-record ConditionalIop: Iop
+record TypedIop: Iop
+    type_id: uint16;
+end record;
+
+record ConditionalIop: TypedIop
     iftrue_label_id: uint16;
     iffalse_label_id: uint16;
 end record;
 
-record PushingIop: Iop
-    type_id: uint16;
-end record;
-
-record ThingIop: PushingIop
+record ThingIop: TypedIop
     thing_id: uint16;
 end record;
 
-record OffsetIop: PushingIop
+record OffsetIop: TypedIop
     offset: int32;
 end record;
 
-record IndexIop: PushingIop
+record IndexIop: TypedIop
 end record;

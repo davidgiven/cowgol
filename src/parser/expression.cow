@@ -84,18 +84,24 @@ sub expression_state_machine()
 
         sub alu_2op(iop: uint8)
             check_alu_op(2);
-            emit_simple_pushing(iop);
+            emit_simple_typed(iop);
             data_stack_size := data_stack_size - 1;
         end sub;
 
         sub alu_1op(iop: uint8)
             check_alu_op(1);
-            emit_simple_pushing(iop);
+            emit_simple_typed(iop);
         end sub;
 
         sub b_2op(iop: uint8)
             check_b_op();
             emit_conditional_branch(iop, expr_true_label_id, expr_false_label_id);
+            data_stack_size := data_stack_size - 2;
+        end sub;
+
+        sub b_2op_reverse(iop: uint8)
+            check_b_op();
+            emit_conditional_branch(iop, expr_false_label_id, expr_true_label_id);
             data_stack_size := data_stack_size - 2;
         end sub;
 
@@ -151,15 +157,15 @@ sub expression_state_machine()
         elseif op_id == TOKEN_EQOP then
             b_2op(IOP_BEQ);
         elseif op_id == TOKEN_NEOP then
-            b_2op(IOP_BNE);
+            b_2op_reverse(IOP_BEQ);
         elseif op_id == TOKEN_LTOP then
             b_2op(IOP_BLT);
         elseif op_id == TOKEN_LEOP then
-            b_2op(IOP_BLE);
+            b_2op_reverse(IOP_BGT);
         elseif op_id == TOKEN_GTOP then
             b_2op(IOP_BGT);
         elseif op_id == TOKEN_GEOP then
-            b_2op(IOP_BGE);
+            b_2op_reverse(IOP_BLT);
         elseif op_id == TOKEN_NOT then
             b_not();
         elseif (op_id == TOKEN_AND) or (op_id == TOKEN_OR) then

@@ -13,5 +13,23 @@ sub write_iop_header(header: [IHeader])
 end sub;
 
 sub write_iop(iop: [Iop])
+    if current_filename_id != old_filename_id then
+        var fbuf: FilenameIop[1];
+        fbuf[0].iop_size := FilenameIop@bytes;
+        fbuf[0].iop_kind := IOP_FILENAME;
+        fbuf[0].thing_id := current_filename_id;
+        file_putblock(iop_out_fd, &fbuf[0] as [int8], FilenameIop@bytes);
+        old_filename_id := current_filename_id;
+    end if;
+
+    if current_linenumber != old_linenumber then
+        var lbuf: LinenumberIop[1];
+        lbuf[0].iop_size := LinenumberIop@bytes;
+        lbuf[0].iop_kind := IOP_LINENUMBER;
+        lbuf[0].line_number := current_linenumber;
+        file_putblock(iop_out_fd, &lbuf[0] as [int8], LinenumberIop@bytes);
+        old_linenumber := current_linenumber;
+    end if;
+
     file_putblock(iop_out_fd, iop as [int8], iop.iop_size);
 end sub;

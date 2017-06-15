@@ -19,7 +19,7 @@ const THING_TYPE       := 0b0010_0000;
 const THING_RECORD     := 0b0010_0001;
 const THING_POINTER    := 0b0010_0010;
 const THING_ARRAY      := 0b0010_0011;
-const THING_NUMERIC    := 0b0011_0000;
+const THING_NUMERIC    := 0b0001_0000;
 const THING_UNSIGNED   := 0b0011_0001;
 const THING_SIGNED     := 0b0011_0010;
 
