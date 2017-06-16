@@ -50,6 +50,7 @@ const IOP_INPUTPARAM  := 0x03; # push input parameter of subroutine; rewritten t
 const IOP_OUTPUTPARAM := 0x04; # push output parameter of subroutine; rewritten to THING
 const IOP_CALL        := 0x05;
 const IOP_ASSIGNTO    := 0x06; # ( src dest -- )
+const IOP_MATERIALISE := 0x07;
 const IOP_ADDOP       := 0x09;
 const IOP_SUBOP       := 0x0a;
 const IOP_NEGOP       := 0x0b;

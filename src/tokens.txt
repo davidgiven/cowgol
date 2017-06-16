@@ -47,7 +47,6 @@ uint32    UINT32        IDENTIFIER
 (         OPENPAREN      0
 [         OPENSQUARE     0
 ,         COMMA          BINARY 1
-<param>   PARAMETER      PREFIX 1
 or        OR             BINARY 2
 and       AND            BINARY 3
 |         PIPE           BINARY 4

@@ -387,21 +387,27 @@ sub do_functioncall()
             expect_token(TOKEN_COMMA);
         end if;
 
-        emit_parameter(IOP_INPUTPARAM, id, input_parameters);
         do_expression();
-        emit_simple(IOP_ASSIGN);
         input_parameters := input_parameters + 1;
     end loop;
     expect_token(TOKEN_CLOSEPAREN);
+
+    var i: uint8 := input_parameters;
+    while i > 0 loop
+        i := i - 1;
+        emit_parameter(IOP_INPUTPARAM, id, i);
+        emit_simple(IOP_ASSIGNTO);
+    end loop;
 
     var iop: [CallIop] := emit(IOP_CALL, CallIop@bytes) as [CallIop];
     iop.thing_id := id;
     iop.input_parameter_count := input_parameters;
     iop.output_parameter_count := output_parameters;
 
-    while output_parameters > 0 loop
-        output_parameters := output_parameters - 1;
-        emit_parameter(IOP_OUTPUTPARAM, id, output_parameters);
+    i := output_parameters;
+    while i > 0 loop
+        i := i - 1;
+        emit_parameter(IOP_OUTPUTPARAM, id, i);
         emit_simple(IOP_ASSIGN);
     end loop;
 
