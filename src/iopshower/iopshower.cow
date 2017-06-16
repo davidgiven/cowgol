@@ -165,6 +165,10 @@ loop
             do_typed("ADDRESSOP", iop as [TypedIop]);
         elseif kind == IOP_CASTOP then
             do_typed("CASTOP", iop as [TypedIop]);
+        elseif kind == IOP_ZEXTOP then
+            do_typed("ZEXTOP", iop as [TypedIop]);
+        elseif kind == IOP_SEXTOP then
+            do_typed("SEXTOP", iop as [TypedIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

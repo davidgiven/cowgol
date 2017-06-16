@@ -135,7 +135,7 @@ sub expression_state_machine()
             var iop: [CallIop] := emit(IOP_CALL, CallIop@bytes) as [CallIop];
             iop.thing_id := current_function_call;
             iop.input_parameter_count := current_parameter_count;
-            iop.output_parameter_count := 0;
+            iop.output_parameter_count := 1;
 
             emit_parameter(IOP_OUTPUTPARAM, current_function_call, 0);
             emit_simple(IOP_MATERIALISE);

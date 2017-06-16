@@ -1,0 +1,11 @@
+sub print(ptr: [int8])
+end sub;
+
+sub print_newline()
+end sub;
+
+sub exit(status: uint8)
+end sub;
+
+var LOMEM: [int8] := 0 as [int8];
+var HIMEM: [int8] := 0x10000 as [int8];

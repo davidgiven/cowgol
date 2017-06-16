@@ -35,3 +35,16 @@ sub show_identifier(identifier_id: uint16)
     end if;
 end sub;
 
+sub show_name_of(thing_id: uint16)
+    var identifier_id: uint16 := find_name_of_value(thing_id);
+    if identifier_id != 0 then
+        show_identifier(identifier_id);
+    else
+        var thing: [Thing] := find_thing(thing_id);
+        print("(anonymous thing 0x");
+        print_hex_i16(thing_id);
+        print(" of type 0x");
+        print_hex_i8(thing.thing_type);
+        print(")");
+    end if;
+end sub;

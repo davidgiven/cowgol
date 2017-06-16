@@ -91,3 +91,48 @@ sub find_main_subroutine(out subroutine_id: uint16)
     end loop;
     subroutine_id := 0;
 end sub;
+
+sub find_nth_parameter(subroutine_id: uint16, direction: uint8, parameter: uint8,
+        out parameter_id: uint16)
+    var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+    var parameter_count: uint8;
+    if direction == DIRECTION_IN then
+        parameter_count := subroutine.input_parameter_count;
+    else
+        parameter_count := subroutine.output_parameter_count;
+    end if;
+
+    var namespace_thing: [NamespaceThing] := find_thing(subroutine.namespace_id) as [NamespaceThing];
+    var symbol_id: uint16 := namespace_thing.first_symbol;
+    var symbol: [SymbolThing];
+    var parameter_thing: [ParameterThing];
+    var i: uint8 := parameter_count - parameter;
+    while i > 0 loop
+        if symbol_id == 0 then
+            print("asked for ");
+            if direction == DIRECTION_IN then
+                print("input");
+            else
+                print("output");
+            end if;
+            print(" parameter ");
+            print_i8(parameter);
+            print(" of ");
+            show_name_of(subroutine_id);
+            print(", which has ");
+            print_i8(parameter_count);
+            halt();
+        end if;
+        symbol := find_thing(symbol_id) as [SymbolThing];
+        parameter_id := symbol.value_id;
+        parameter_thing := find_thing(parameter_id) as [ParameterThing];
+        if (parameter_thing.thing_type == THING_PARAMETER)
+                and (parameter_thing.direction == direction) then
+            i := i - 1;
+            if i == 0 then
+                return;
+            end if;
+        end if;
+        symbol_id := symbol.next_symbol;
+    end loop;
+end sub;

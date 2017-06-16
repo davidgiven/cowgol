@@ -56,6 +56,10 @@ sub show_subroutine_thing(thing: [SubroutineThing])
     show_data_thing(thing as [DataThing]);
     print("subroutine(namespace=0x");
     print_hex_i16(thing.namespace_id);
+    print(" input_parameter_count=");
+    print_i8(thing.input_parameter_count);
+    print(" output_parameter_count=");
+    print_i8(thing.output_parameter_count);
     print(") ");
 end sub;
 

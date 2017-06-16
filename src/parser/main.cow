@@ -119,6 +119,7 @@ sub do_sub()
     expect_token(TOKEN_SUB);
     var id: uint16 := expect_identifier();
     (current_subroutine_id, current_namespace_id) := create_function();
+    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     add_symbol(id, current_subroutine_id, old_namespace_id);
     break_label_id := 0;
     continue_label_id := 0;
@@ -129,12 +130,13 @@ sub do_sub()
     expect_token(TOKEN_OPENPAREN);
 
     while current_token != TOKEN_CLOSEPAREN loop
-        var direction: uint16 := TOKEN_IN;
-        if (current_token == TOKEN_IN)
-                or (current_token == TOKEN_OUT)
-                or (current_token == TOKEN_INOUT) then
-            direction := current_token;
+        var direction: uint8 := DIRECTION_IN;
+        if (current_token == TOKEN_OUT) then
+            direction := DIRECTION_OUT;
+            subroutine.output_parameter_count := subroutine.output_parameter_count + 1;
             next_token();
+        else
+            subroutine.input_parameter_count := subroutine.input_parameter_count + 1;
         end if;
 
         id := expect_identifier();

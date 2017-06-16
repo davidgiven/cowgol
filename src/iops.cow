@@ -44,21 +44,29 @@ const IOP_GOTO             := 0b0110_0011;
 const IOP_FILENAME         := 0b0110_0100;
 const IOP_LINENUMBER       := 0b0110_0101;
 
-const IOP_THING       := 0x01;
-const IOP_ASSIGN      := 0x02; # ( dest src -- )
-const IOP_INPUTPARAM  := 0x03; # push input parameter of subroutine; rewritten to THING
-const IOP_OUTPUTPARAM := 0x04; # push output parameter of subroutine; rewritten to THING
-const IOP_CALL        := 0x05;
+const IOP_TYPE_SIMPLE1OP   := 0b1000_0000;
+const IOP_NEGOP            := 0b1000_0001;
+const IOP_NOTOP            := 0b1000_0010;
+const IOP_MATERIALISE      := 0b1000_0011;
+const IOP_ZEXTOP           := 0b1000_0100;
+const IOP_SEXTOP           := 0b1000_0101;
+
+# the typechecker rewrites these to THING.
+const IOP_INPUTPARAM  := 0x01; # push input parameter of subroutine
+const IOP_OUTPUTPARAM := 0x02; # push output parameter of subroutine
+
+# the typechecker rewrites this to ZEXTOP or SEXTOP.
+const IOP_CASTOP      := 0x03;
+
+const IOP_THING       := 0x04;
+const IOP_ASSIGN      := 0x05; # ( dest src -- )
 const IOP_ASSIGNTO    := 0x06; # ( src dest -- )
-const IOP_MATERIALISE := 0x07;
+const IOP_CALL        := 0x07;
 const IOP_ADDOP       := 0x09;
 const IOP_SUBOP       := 0x0a;
-const IOP_NEGOP       := 0x0b;
-const IOP_NOTOP       := 0x0c;
 const IOP_INDEXOP     := 0x0d;
 const IOP_MEMBEROP    := 0x0e;
 const IOP_ADDRESSOP   := 0x0f;
-const IOP_CASTOP      := 0x10;
 const IOP_BYTESOP     := 0x11;
 const IOP_SIZEOP      := 0x12;
 

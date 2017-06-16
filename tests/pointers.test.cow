@@ -5,7 +5,7 @@ if ptr[0] != 99 then
     fail("write/read of pointer didn't work");
 end if;
 
-var newptr: [int8] := ptr + 1;
+var newptr: [int8] := &ptr[1];
 if newptr == ptr then
     fail("modified pointer hasn't changed");
 end if;

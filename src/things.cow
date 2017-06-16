@@ -77,12 +77,14 @@ end record;
 record NumericThing: TypeThing
 end record;
 
-record PointerThing: TypeThing
+record WithElementsThing: TypeThing
     element_id: uint16;
 end record;
 
-record ArrayThing: TypeThing
-    element_id: uint16;
+record PointerThing: WithElementsThing
+end record;
+
+record ArrayThing: WithElementsThing
     element_count: uint16;
 end record;
 
@@ -92,6 +94,8 @@ end record;
 
 record SubroutineThing: DataThing
     namespace_id: uint16;
+    input_parameter_count: uint8;
+    output_parameter_count: uint8;
 end record;
 
 record TypedThing: DataThing
@@ -101,6 +105,8 @@ end record;
 record VariableThing: TypedThing
 end record;
 
+const DIRECTION_IN  := 0;
+const DIRECTION_OUT := 1;
 record ParameterThing: VariableThing
     direction: uint8;
 end record;
