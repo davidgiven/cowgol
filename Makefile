@@ -46,12 +46,20 @@ TYPECHECKER_SRCS = \
 	src/things.cow \
 	src/iops.cow \
 	src/utils/stringtable.cow \
-	src/typechecker/iopreader.cow \
+	src/utils/iopreader.cow \
 	src/typechecker/iopwriter.cow \
 	src/utils/symbols.cow \
 	src/_token_names.cow \
 	src/utils/types.cow \
 	src/typechecker/main.cow
+
+CODEGEN_SRCS = \
+	src/string_lib.cow \
+	src/things.cow \
+	src/iops.cow \
+	src/utils/stringtable.cow \
+	src/utils/iopreader.cow \
+	src/codegen/codegen.cow
 
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \
@@ -67,7 +75,7 @@ IOPSHOWER_SRCS = \
 	src/iopshower/iopreader.cow \
 	src/iopshower/iopshower.cow
 
-all: tests bin/tokeniser bin/parser bin/typechecker bin/thingshower bin/iopshower
+all: tests bin/tokeniser bin/parser bin/typechecker bin/codegen bin/thingshower bin/iopshower
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
@@ -83,6 +91,11 @@ bin/typechecker: $(TYPECHECKER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(TYPECHECKER_SRCS)
+
+bin/codegen: $(CODEGEN_SRCS) $(BOOTSTRAP)
+	@echo BUILD $@
+	@mkdir -p $(dir $@)
+	$(hide) ./cowboot -o $@ $(CODEGEN_SRCS)
 
 bin/thingshower: $(THINGSHOWER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
