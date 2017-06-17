@@ -1,0 +1,75 @@
+sub print(ptr: [int8])
+    var index: uint8 := 0;
+    loop
+        var c: int8 := ptr[index];
+        if c == 0 then
+            break;
+        end if;
+        print_char(c);
+        index := index + 1;
+    end loop;
+end sub;
+
+sub print_char(char: uint8)
+    @bytes 0xAD;   # LDA abs
+    @words &char;
+    @bytes 0x4C;   # JMP abs
+    @words 0xFFE3; # OSASCII
+end sub;
+
+sub print_newline()
+    @bytes 0x4c;   # JMP abs
+    @words 0xFFE7; # OSNEWL
+end sub;
+
+sub print_i8(value: uint8)
+end sub;
+
+sub print_i16(value: uint16)
+end sub;
+
+sub print_i32(value: uint32)
+end sub;
+
+sub print_hex_i8(value: uint8)
+end sub;
+
+sub print_hex_i16(value: uint16)
+end sub;
+
+sub print_hex_i32(value: uint32)
+end sub;
+
+sub file_openin(filename: [int8]): (fd: uint8)
+end sub;
+
+sub file_openout(filename: [int8]): (fd: uint8)
+end sub;
+
+sub file_getblock(fd: uint8, ptr: [int8], length: uint16)
+end sub;
+
+sub file_putblock(fd: uint8, ptr: [int8], length: uint16)
+end sub;
+
+sub file_seek(fd: uint8, pos: uint32)
+end sub;
+
+sub file_ext(fd: uint8): (length: uint32)
+end sub;
+
+sub file_eof(fd: uint8): (eof: uint8)
+end sub;
+
+sub file_getchar(fd: uint8): (char: int8)
+end sub;
+
+sub file_close(fd: uint8)
+end sub;
+
+sub exit(status: uint8)
+end sub;
+
+var LOMEM: [int8] := 0 as [int8];
+var HIMEM: [int8] := 0x10000 as [int8];
+var ARGV: [[int8]] := 0 as [[int8]];

@@ -450,6 +450,43 @@ sub do_end()
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
+sub do_bytes()
+    next_token();
+    loop
+        var value: int32 := do_constant();
+        emit_byte(value);
+
+        if current_token == TOKEN_SEMICOLON then
+            break;
+        else
+            expect_token(TOKEN_COMMA);
+        end if;
+    end loop;
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
+sub do_words()
+    next_token();
+    loop
+        if current_token == TOKEN_AMPERSAND then
+            next_token();
+            var identifier_id: uint16 := expect_identifier();
+            emit_word(identifier_id);
+        else
+            var value: int32 := do_constant();
+            emit_word(add_number_by_value(value));
+        end if;
+
+        if current_token == TOKEN_SEMICOLON then
+            break;
+        else
+            expect_token(TOKEN_COMMA);
+        end if;
+    end loop;
+    expect_token(TOKEN_SEMICOLON);
+end sub;
+
+print("PARSER\n");
 load_thing_table("things.dat");
 init_parser();
 init_tokenreader("tokens.dat");
@@ -497,6 +534,10 @@ while current_token != 0 loop
         do_else();
     elseif current_token == TOKEN_ELSEIF then
         do_elseif();
+    elseif current_token == TOKEN_BYTES then
+        do_bytes();
+    elseif current_token == TOKEN_WORDS then
+        do_words();
     else
         print("unknown token ");
         show_identifier(current_token);

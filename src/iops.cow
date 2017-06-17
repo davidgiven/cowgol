@@ -43,6 +43,8 @@ const IOP_RETURN           := 0b0110_0010;
 const IOP_GOTO             := 0b0110_0011;
 const IOP_FILENAME         := 0b0110_0100;
 const IOP_LINENUMBER       := 0b0110_0101;
+const IOP_BYTES            := 0b0110_0110;
+const IOP_WORD             := 0b0110_0111;
 
 const IOP_TYPE_SIMPLE1OP   := 0b1000_0000;
 const IOP_NEGOP            := 0b1000_0001;
@@ -129,5 +131,13 @@ record OffsetIop: TypedIop
 end record;
 
 record MemberIop: Iop
+    thing_id: uint16;
+end record;
+
+record BytesIop: Iop
+    bytes: uint8[0];
+end record;
+
+record WordIop: Iop
     thing_id: uint16;
 end record;

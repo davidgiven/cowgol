@@ -47,7 +47,7 @@ TYPECHECKER_SRCS = \
 	src/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
-	src/typechecker/iopwriter.cow \
+	src/utils/iopwriter.cow \
 	src/utils/symbols.cow \
 	src/_token_names.cow \
 	src/utils/types.cow \
@@ -59,7 +59,8 @@ CODEGEN_SRCS = \
 	src/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
-	src/codegen/codegen.cow
+	src/utils/iopwriter.cow \
+	src/codegen/main.cow
 
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \

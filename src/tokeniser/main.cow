@@ -1,3 +1,4 @@
+print("TOKENISER\n");
 install_identifiers();
 init_tokeniser();
 

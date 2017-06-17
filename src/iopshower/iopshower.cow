@@ -89,6 +89,21 @@ sub do_offsetop(iop: [OffsetIop])
     print_hex_i16(iop.offset);
 end sub;
 
+sub do_bytes(iop: [BytesIop])
+    print("BYTES");
+    var i: uint8 := 0;
+    while i < (iop.iop_size-2) loop
+        print(" 0x");
+        print_hex_i8(iop.payload[i]);
+        i := i + 1;
+    end loop;
+end sub;
+
+sub do_word(iop: [WordIop])
+    print("WORD thing_id=0x");
+    print_hex_i16(iop.thing_id);
+end sub;
+
 loop
     var header: [IHeader] := read_iop_header();
     if header.thing_id == 0 then
@@ -188,6 +203,10 @@ loop
             do_typed("ZEXTOP", iop as [TypedIop]);
         elseif kind == IOP_SEXTOP then
             do_typed("SEXTOP", iop as [TypedIop]);
+        elseif kind == IOP_BYTES then
+            do_bytes(iop as [BytesIop]);
+        elseif kind == IOP_WORD then
+            do_word(iop as [WordIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);
