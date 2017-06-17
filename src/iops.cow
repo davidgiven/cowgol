@@ -58,17 +58,23 @@ const IOP_OUTPUTPARAM := 0x02; # push output parameter of subroutine
 # the typechecker rewrites this to ZEXTOP or SEXTOP.
 const IOP_CASTOP      := 0x03;
 
-const IOP_THING       := 0x04;
-const IOP_ASSIGN      := 0x05; # ( dest src -- )
-const IOP_ASSIGNTO    := 0x06; # ( src dest -- )
-const IOP_CALL        := 0x07;
-const IOP_ADDOP       := 0x09;
-const IOP_SUBOP       := 0x0a;
-const IOP_INDEXOP     := 0x0d;
-const IOP_MEMBEROP    := 0x0e;
-const IOP_ADDRESSOP   := 0x0f;
-const IOP_BYTESOP     := 0x11;
-const IOP_SIZEOP      := 0x12;
+# the typechecker rewrites this to an INDEXOP.
+const IOP_MEMBEROP    := 0x04; # takes identifier
+
+# if used on a pointer, the typechecker rewrites this to an ADD/LOAD.
+const IOP_INDEXOP     := 0x05; # apply non-constant offset to EA
+
+const IOP_THING       := 0x06;
+const IOP_ASSIGN      := 0x07; # ( dest src -- )
+const IOP_ASSIGNTO    := 0x08; # ( src dest -- )
+const IOP_CALL        := 0x09;
+const IOP_ADDOP       := 0x0a;
+const IOP_SUBOP       := 0x0b;
+const IOP_ADDRESSOP   := 0x0c;
+const IOP_BYTESOP     := 0x0d;
+const IOP_SIZEOP      := 0x0e;
+const IOP_OFFSETOP    := 0x0f; # apply constant offset to EA
+const IOP_LOAD        := 0x10; # create EA from pointer
 
 record FilenameIop: Iop
     thing_id: uint16;
@@ -119,8 +125,9 @@ record ThingIop: TypedIop
 end record;
 
 record OffsetIop: TypedIop
-    offset: int32;
+    offset: int16;
 end record;
 
-record IndexIop: TypedIop
+record MemberIop: Iop
+    thing_id: uint16;
 end record;

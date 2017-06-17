@@ -15,9 +15,7 @@ sub find_symbol_in_namespace(identifier_id: uint16, namespace_id: uint16, out sy
     symbol_id := 0;
 end sub;
 
-sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
-    var namespace_id: uint16 := current_namespace_id;
-
+sub find_symbol_recursively(identifier_id: uint16, namespace_id: uint16, out symbol_id: uint16)
     while namespace_id != 0 loop
         symbol_id := find_symbol_in_namespace(identifier_id, namespace_id);
         if symbol_id != 0 then
@@ -29,6 +27,10 @@ sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
     end loop;
 
     symbol_id := 0;
+end sub;
+
+sub find_symbol(identifier_id: uint16, out symbol_id: uint16)
+    symbol_id := find_symbol_recursively(identifier_id, current_namespace_id);
 end sub;
 
 sub find_symbol_or_fail(identifier_id: uint16, out symbol_id: uint16)

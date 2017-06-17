@@ -72,4 +72,4 @@ as        AS             POSTFIX 12
 not       NOT            PREFIX 13
 &         UNARYAMPERSAND PREFIX 13
 -         UNARYMINUS     PREFIX 13
-.         DOT            BINARY 14
+.         DOT            POSTFIX 14

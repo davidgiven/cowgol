@@ -78,6 +78,17 @@ sub do_conditional(kind: [int8], iop: [ConditionalIop])
     print_hex_i16(iop.iffalse_label_id);
 end sub;
 
+sub do_memberop(iop: [MemberIop])
+    print("MEMBEROP thing_id=0x");
+    print_hex_i16(iop.thing_id);
+end sub;
+
+sub do_offsetop(iop: [OffsetIop])
+    do_typed("OFFSETOP", iop as [TypedIop]);
+    print(" offset=0x");
+    print_hex_i16(iop.offset);
+end sub;
+
 loop
     var header: [IHeader] := read_iop_header();
     if header.thing_id == 0 then
@@ -153,6 +164,12 @@ loop
             do_typed("OROP", iop as [TypedIop]);
         elseif kind == IOP_EOROP then
             do_typed("EOROP", iop as [TypedIop]);
+        elseif kind == IOP_LSLOP then
+            do_typed("LSLOP", iop as [TypedIop]);
+        elseif kind == IOP_LSROP then
+            do_typed("LSROP", iop as [TypedIop]);
+        elseif kind == IOP_ASROP then
+            do_typed("ASROP", iop as [TypedIop]);
         elseif kind == IOP_NEGOP then
             do_typed("NEGOP", iop as [TypedIop]);
         elseif kind == IOP_NOTOP then
@@ -160,7 +177,9 @@ loop
         elseif kind == IOP_INDEXOP then
             do_typed("INDEXOP", iop as [TypedIop]);
         elseif kind == IOP_MEMBEROP then
-            do_typed("MEMBEROP", iop as [TypedIop]);
+            do_memberop(iop as [MemberIop]);
+        elseif kind == IOP_OFFSETOP then
+            do_offsetop(iop as [OffsetIop]);
         elseif kind == IOP_ADDRESSOP then
             do_typed("ADDRESSOP", iop as [TypedIop]);
         elseif kind == IOP_CASTOP then

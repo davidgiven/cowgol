@@ -165,8 +165,6 @@ sub expression_state_machine()
             alu_2op(IOP_INDEXOP);
         elseif op_id == TOKEN_OPENPAREN then
             # do nothing
-        elseif op_id == TOKEN_DOT then
-            alu_2op(IOP_MEMBEROP);
         elseif op_id == TOKEN_TILDE then
             alu_1op(IOP_NOTOP);
         elseif op_id == TOKEN_UNARYAMPERSAND then
@@ -192,6 +190,9 @@ sub expression_state_machine()
             merge_label(expr_true_label_id, pop_op());
         elseif op_id == TOKEN_AS then
             emit_cast(pop_op());
+        elseif op_id == TOKEN_DOT then
+            check_alu_op(1);
+            emit_member(pop_op());
         elseif op_id == TOKEN_COMMA then
             comma();
         elseif op_id == TOKEN_CALL then
@@ -406,6 +407,14 @@ sub expression_state_machine()
                 check_alu_op(1);
                 push_op(read_type());
                 push_op(TOKEN_AS);
+            elseif current_token == TOKEN_DOT then
+                # '.' is actually a *unary* operator. The thing on the right hand side is an
+                # identifier, not an expression.
+                apply_left_associative(current_token);
+                next_token();
+                check_alu_op(1);
+                push_op(expect_identifier());
+                push_op(TOKEN_DOT);
             elseif (token_flags & TOKEN_FLAG_PREFIX_OP) != 0 then
                 print("can't use ");
                 show_identifier(current_token);
