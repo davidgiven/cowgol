@@ -422,7 +422,6 @@ sub process_subroutine(thing_id: uint16)
         simple_iop(&buf[0]);
     end sub;
 
-    print("sub");
     loop
         var iop: [Iop] := read_iop();
         var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
