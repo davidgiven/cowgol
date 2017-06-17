@@ -20,6 +20,12 @@ end record;
 
 var stack: EffectiveAddress[32];
 var stack_pos: uint8;
+var blank_ea: EffectiveAddress[1];
+
+sub init_stack()
+    zero_memory(&blank_ea[0] as [int8], EffectiveAddress@bytes);
+    stack_pos := 0;
+end sub;
 
 sub print_ea(ea: [EffectiveAddress])
     if ea.type == EA_NOTHING then
@@ -65,7 +71,12 @@ sub push_new_ea(): (ea: [EffectiveAddress])
 end sub;
 
 sub peek_ea(offset: int8): (ea: [EffectiveAddress])
-    ea := &stack[stack_pos + offset];
+    var i: uint8 := stack_pos + offset;
+    if i >= stack_pos then
+        ea := &blank_ea[0];
+    else
+        ea := &stack[i];
+    end if;
 end sub;
 
 sub pop_eas(count: uint8)

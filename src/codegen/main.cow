@@ -23,9 +23,9 @@ sub print_stack()
 end sub;
 
 sub apply_rules()
-    if global_rules() == 1 then
+    if arch_rules() == 1 then
         return;
-    elseif arch_rules() == 1 then
+    elseif global_rules() == 1 then
         return;
     else
         print("unmatched iops: ");
@@ -36,7 +36,7 @@ end sub;
 
 sub process_subroutine(subroutine_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
-    stack_pos := 0;
+    init_stack();
     queue_depth := 0;
     run_out_of_iops := 0;
     init_allocator();

@@ -204,11 +204,24 @@ sub arch_rules(): (matched: uint8)
         value_is_precious_in_reg(dest, location);
     end sub;
 
+    sub add_16bit(left: [EffectiveAddress], right: [EffectiveAddress])
+        halt();
+    end sub;
+
+    var right: [EffectiveAddress] := peek_ea(-1);
+    var left: [EffectiveAddress] := peek_ea(-2);
     if queue[0].iop_kind == IOP_ASSIGN then
-        var src: [EffectiveAddress] := peek_ea(-1);
-        var dest: [EffectiveAddress] := peek_ea(-2);
-        if ((src.flags & FLAG_WIDTH_1) != 0) and ((dest.flags & FLAG_WIDTH_1) != 0) then
-            assign_to_byte(src, dest);
+        if ((right.flags & FLAG_WIDTH_1) != 0) and ((left.flags & FLAG_WIDTH_1) != 0) then
+            assign_to_byte(right, left);
+            consume_iops(1);
+            pop_eas(2);
+            return;
+        end if;
+    end if;
+
+    if queue[0].iop_kind == IOP_ADDOP then
+        if ((left.flags & FLAG_WIDTH_2) != 0) and ((right.flags & FLAG_WIDTH_2) != 0) then
+            add_16bit(left, right);
             consume_iops(1);
             pop_eas(2);
             return;
