@@ -315,8 +315,21 @@ sub process_subroutine(thing_id: uint16)
             print("index must be numeric");
             halt();
         end if;
-        write_push_number_iop(1, uint16_type); # FIXME: number of bits needs to be better
-        write_typed_iop(IOP_LSLOP, uint16_type);
+
+        var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
+        if element_type.width == 1 then
+            # do nothing
+        elseif element_type.width == 2 then
+            write_push_number_iop(1, uint16_type);
+            write_typed_iop(IOP_LSLOP, uint16_type);
+        elseif element_type.width == 4 then
+            write_push_number_iop(2, uint16_type);
+            write_typed_iop(IOP_LSLOP, uint16_type);
+        else
+            write_push_number_iop(element_type.width, uint16_type);
+            write_typed_iop(IOP_MULOP, uint16_type);
+        end if;
+
         if left_type.thing_type == THING_POINTER then
             write_typed_iop(IOP_ADDOP, left_type_id);
             write_typed_iop(IOP_LOAD, left_type.element_id);

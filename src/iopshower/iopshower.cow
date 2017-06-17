@@ -92,9 +92,9 @@ end sub;
 sub do_bytes(iop: [BytesIop])
     print("BYTES");
     var i: uint8 := 0;
-    while i < (iop.iop_size-2) loop
+    while i < iop.byte_count loop
         print(" 0x");
-        print_hex_i8(iop.payload[i]);
+        print_hex_i8(iop.bytes[i]);
         i := i + 1;
     end loop;
 end sub;
@@ -207,6 +207,8 @@ loop
             do_bytes(iop as [BytesIop]);
         elseif kind == IOP_WORD then
             do_word(iop as [WordIop]);
+        elseif kind == IOP_LOAD then
+            print("LOAD");
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);
