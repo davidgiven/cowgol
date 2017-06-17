@@ -12,6 +12,13 @@ sub write_iop_header(header: [IHeader])
     old_linenumber := 0;
 end sub;
 
+sub write_terminating_iop_header()
+    var buf: IHeader[1];
+    buf[0].thing_id := 0;
+    buf[0].section := 0;
+    write_iop_header(&buf[0]);
+end sub;
+
 sub write_iop(iop: [Iop])
     if current_filename_id != old_filename_id then
         var fbuf: FilenameIop[1];

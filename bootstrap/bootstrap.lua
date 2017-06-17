@@ -966,7 +966,15 @@ function expression(outputvar)
                 elseif (cop == "and") then
                     cop = "&"
                 end
-                emit("%s = %s %s %s;", op.rvalue.storage, left.storage, cop, right.storage)
+                if left.type.pointer and not right.type.pointer then
+                    emit("%s = (%s)((intptr_t)%s %s %s);",
+                        op.rvalue.storage, op.rvalue.type.ctype, left.storage, cop, right.storage)
+                elseif (cop == "-") and left.type.pointer and right.type.pointer then
+                    emit("%s = (intptr_t)%s - (intptr_t)%s;",
+                        op.rvalue.storage, left.storage, right.storage)
+                else
+                    emit("%s = %s %s %s;", op.rvalue.storage, left.storage, cop, right.storage)
+                end
                 stack[#stack+1] = op.rvalue
                 if left.temporary then
                     free_tempvar(left)
