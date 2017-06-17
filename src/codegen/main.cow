@@ -1,4 +1,65 @@
+const VALUE_NOTHING  := 0;
+const VALUE_VARIABLE := 1;
+const VALUE_NUMBER   := 2;
+
+# All Value objects must be the same size! Currently, seven bytes.
+
+record NullValue
+    type: uint8;
+    empty: uint8[6];
+end record;
+
+record VariableValue
+    value_type: uint8;
+    type_id: uint16;
+    thing_id: uint16;
+    offset_id: uint16;
+end record;
+
+record NumberValue
+    type: uint8;
+    type_id: uint16;
+    value: int32;
+end record;
+
+var stack: NullValue[32];
+var stack_pos: uint8;
+
+sub process_subroutine(subroutine_id: uint16)
+    var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+    stack_pos := 0;
+    loop
+        var iop: [Iop] := read_iop();
+        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+
+        if iop.iop_kind == IOP_END then
+            break;
+        else
+            print("unsupported iop 0x");
+            print_hex_i8(iop.iop_kind);
+            halt();
+        end if;
+    end loop;
+    write_end_iop();
+end sub;
+
+sub process()
+    loop
+        var iheader: [IHeader] := read_iop_header();
+        if iheader.thing_id == 0 then
+            break;
+        end if;
+
+        write_iop_header(iheader);
+        process_subroutine(iheader.thing_id);
+    end loop;
+    write_terminating_iop_header();
+end sub;
+
 print("CODEGEN\n");
 load_thing_table("things.dat");
 init_iop_reader("iops.dat");
 init_iop_writer("iops-out.dat");
+process();
+save_thing_table("things.dat");
+

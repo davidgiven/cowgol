@@ -416,13 +416,6 @@ sub process_subroutine(thing_id: uint16)
         write_iop(iop as [Iop]);
     end sub;
 
-    sub write_end_iop()
-        var buf: Iop[1];
-        buf[0].iop_size := Iop@bytes;
-        buf[0].iop_kind := IOP_END;
-        simple_iop(&buf[0]);
-    end sub;
-
     loop
         var iop: [Iop] := read_iop();
         var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;

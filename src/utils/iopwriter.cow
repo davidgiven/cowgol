@@ -66,3 +66,10 @@ sub write_typed_iop(kind: uint8, type_id: uint16)
     obuf[0].type_id := type_id;
     write_iop(&obuf[0] as [Iop]);
 end sub;
+
+sub write_end_iop()
+    var buf: Iop[1];
+    buf[0].iop_size := Iop@bytes;
+    buf[0].iop_kind := IOP_END;
+    write_iop(&buf[0]);
+end sub;
