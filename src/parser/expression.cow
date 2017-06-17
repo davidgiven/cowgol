@@ -14,7 +14,7 @@ sub expression_state_machine()
     var nesting: uint8 := 0;
     data_stack_size := 0;
 
-    sub peek_op(out op_id: uint16)
+    sub peek_op(): (op_id: uint16)
         if operator_stack_pos == 0 then
             op_id := 0;
         else
@@ -41,7 +41,7 @@ sub expression_state_machine()
         operator_stack_pos := operator_stack_pos - 1;
     end sub;
 
-    sub pop_op(out op: uint16)
+    sub pop_op(): (op: uint16)
         discard_op();
         op := operator_stack[operator_stack_pos];
     end sub;
@@ -258,7 +258,7 @@ sub expression_state_machine()
         apply_op();
     end sub;
 
-    sub thing_reference(type: [TypeThing], out pushable_id: uint16)
+    sub thing_reference(type: [TypeThing]): (pushable_id: uint16)
         if current_token == TOKEN_BYTES then
             pushable_id := add_number_by_value(type.width);
         elseif current_token == TOKEN_SIZE then
@@ -451,7 +451,7 @@ sub do_expression()
     end if;
 end sub;
 
-sub do_conditional(out true_label: uint16, out false_label: uint16)
+sub do_conditional(): (true_label: uint16, false_label: uint16)
     #print("conditional start\n");
     expr_true_label_id := create_thing(THING_LABEL, LabelThing@bytes);
     expr_false_label_id := create_thing(THING_LABEL, LabelThing@bytes);

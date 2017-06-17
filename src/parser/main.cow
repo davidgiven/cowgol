@@ -4,13 +4,13 @@ var if_true_label_id: uint16;
 var if_false_label_id: uint16;
 var if_end_label_id: uint16;
 
-sub create_namespace(parent_id: uint16, out namespace_id: uint16)
+sub create_namespace(parent_id: uint16): (namespace_id: uint16)
     namespace_id := create_thing(THING_NAMESPACE, NamespaceThing@bytes);
     var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
     namespace_thing.previous_namespace := parent_id;
 end sub;
 
-sub create_function(out subroutine_id: uint16, out namespace_id: uint16)
+sub create_function(): (subroutine_id: uint16, namespace_id: uint16)
     subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
     namespace_id := create_namespace(current_namespace_id);
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
@@ -70,7 +70,7 @@ sub pop_subroutine()
     break_label_id := lexical_pop();
 end sub;
 
-sub create_bootstrap_type(identifier_id: uint16, out type: [NumericThing])
+sub create_bootstrap_type(identifier_id: uint16): (type: [NumericThing])
     var type_id: uint16 := create_thing(THING_NUMERIC, NumericThing@bytes);
     add_symbol(identifier_id, type_id, current_namespace_id);
     type := find_thing(type_id) as [NumericThing];
@@ -127,18 +127,7 @@ sub do_sub()
     if_false_label_id := 0;
     if_end_label_id := 0;
 
-    expect_token(TOKEN_OPENPAREN);
-
-    while current_token != TOKEN_CLOSEPAREN loop
-        var direction: uint8 := DIRECTION_IN;
-        if (current_token == TOKEN_OUT) then
-            direction := DIRECTION_OUT;
-            subroutine.output_parameter_count := subroutine.output_parameter_count + 1;
-            next_token();
-        else
-            subroutine.input_parameter_count := subroutine.input_parameter_count + 1;
-        end if;
-
+    sub add_parameter(direction: uint8)
         id := expect_identifier();
         expect_token(TOKEN_COLON);
         var type_id: uint16 := read_type();
@@ -148,13 +137,32 @@ sub do_sub()
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
         parameter.direction := direction;
         parameter.type_id := type_id;
+    end sub;
 
-        if current_token != TOKEN_COMMA then
-            break;
-        end if;
+    sub add_parameter_list(direction: uint8)
+        expect_token(TOKEN_OPENPAREN);
+        while current_token != TOKEN_CLOSEPAREN loop
+            if direction == DIRECTION_OUT then
+                subroutine.output_parameter_count := subroutine.output_parameter_count + 1;
+            else
+                subroutine.input_parameter_count := subroutine.input_parameter_count + 1;
+            end if;
+
+            add_parameter(direction);
+
+            if current_token != TOKEN_COMMA then
+                break;
+            end if;
+            next_token();
+        end loop;
+        expect_token(TOKEN_CLOSEPAREN);
+    end sub;
+
+    add_parameter_list(DIRECTION_IN);
+    if current_token == TOKEN_COLON then
         next_token();
-    end loop;
-    expect_token(TOKEN_CLOSEPAREN);
+        add_parameter_list(DIRECTION_OUT);
+    end if;
 
     emit_filename(filename_id);
     emit_linenumber(line_no);

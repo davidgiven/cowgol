@@ -29,7 +29,7 @@ sub lexical_push(value: uint16)
     lexical_stack_ptr := lexical_stack_ptr + 1;
 end sub;
 
-sub lexical_pop(out value: uint16)
+sub lexical_pop(): (value: uint16)
     if lexical_stack_ptr == 0 then
         print("lexical stack underflow");
         halt();
@@ -47,7 +47,7 @@ sub lexical_push32(value: uint32)
     lexical_push(buf[1]);
 end sub;
 
-sub lexical_pop32(out value: uint32)
+sub lexical_pop32(): (value: uint32)
     var buf: uint16[2];
     var ptr: [uint32] := &buf[0] as [uint32];
     buf[1] := lexical_pop();
@@ -55,7 +55,7 @@ sub lexical_pop32(out value: uint32)
     value := ptr[0];
 end sub;
 
-sub lexical_peek(out value: uint16)
+sub lexical_peek(): (value: uint16)
     value := lexical_stack[lexical_stack_ptr - 1];
 end sub;
 

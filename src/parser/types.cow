@@ -1,4 +1,4 @@
-sub read_type(out type_id: uint16)
+sub read_type(): (type_id: uint16)
     var brackets: uint8 := 0;
 
     sub mismatched_square_brackets()

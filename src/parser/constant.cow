@@ -1,4 +1,4 @@
-sub do_constant(out result: int32)
+sub do_constant(): (result: int32)
     const STATE_BEFORE := 0;
     const STATE_AFTER := 1;
 
@@ -8,7 +8,7 @@ sub do_constant(out result: int32)
     var data_stack_pos: uint8 := 0;
     var state: uint8 := STATE_BEFORE;
 
-    sub peek_op(out op_id: uint16)
+    sub peek_op(): (op_id: uint16)
         if operator_stack_pos == 0 then
             op_id := 0;
         else
@@ -35,7 +35,7 @@ sub do_constant(out result: int32)
         operator_stack_pos := operator_stack_pos - 1;
     end sub;
 
-    sub pop_op(out op: uint16)
+    sub pop_op(): (op: uint16)
         discard_op();
         op := operator_stack[operator_stack_pos];
     end sub;
@@ -50,7 +50,7 @@ sub do_constant(out result: int32)
         data_stack_pos := data_stack_pos + 1;
     end sub;
 
-    sub pop_value(out value: int32)
+    sub pop_value(): (value: int32)
         if data_stack_pos == 0 then
             print("expression stack underflow");
             halt();
@@ -117,7 +117,7 @@ sub do_constant(out result: int32)
         end loop;
     end sub;
 
-    sub apply_until_closer(out topop_id: uint16)
+    sub apply_until_closer(): (topop_id: uint16)
         loop
             topop_id := peek_op();
             if (topop_id == 0) or (topop_id == TOKEN_OPENPAREN) then

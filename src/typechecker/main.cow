@@ -11,7 +11,7 @@ var main_subroutine_id: uint16 := find_main_subroutine();
 const IS_ADD := 0;
 const IS_SUB := 1;
 
-sub find_bootstrap_type(identifier_id: uint16, out type_id: uint16)
+sub find_bootstrap_type(identifier_id: uint16): (type_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(main_subroutine_id) as [SubroutineThing];
     current_namespace_id := subroutine.namespace_id;
     type_id := deref_symbol_or_fail(identifier_id);
@@ -32,7 +32,7 @@ sub push_type(type: uint16, flags: uint8)
     stack_pos := stack_pos + 1;
 end sub;
 
-sub pop_type(out type_id: uint16, out flags: uint8)
+sub pop_type(): (type_id: uint16, flags: uint8)
     if stack_pos == 0 then
         print("stack underflow");
         halt();
@@ -79,7 +79,7 @@ sub check_type_assignability(left_type_id: uint16, right_type_id: uint16)
     end if;
 end sub;
 
-sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16, out result_type_id: uint16)
+sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
     var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
     var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
 
@@ -372,7 +372,7 @@ sub process_subroutine(thing_id: uint16)
         var input_flags: uint8;
         (input_type_id, input_flags) := pop_type();
 
-        sub find_member_of_record_type(type_id: uint16, identifier_id: uint16, out member_id: uint16)
+        sub find_member_of_record_type(type_id: uint16, identifier_id: uint16): (member_id: uint16)
             var type: [RecordThing] := find_thing(type_id) as [RecordThing];
             if type.thing_type != THING_RECORD then
                 print_type_name(type_id);

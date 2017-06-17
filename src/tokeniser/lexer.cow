@@ -6,7 +6,7 @@ var current_fd: int8 := -1;
 var current_byte: int8 := -1;
 var peeked_byte: int8 := -1;
 
-sub next_raw_byte(out byte: int8)
+sub next_raw_byte(): (byte: int8)
     loop
         if current_fd != -1 then
             byte := file_getchar(current_fd);

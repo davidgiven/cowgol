@@ -1,6 +1,6 @@
 var tokens_fd: uint8;
 
-sub next_raw_token(out token: uint16)
+sub next_raw_token(): (token: uint16)
     var buf: uint16[1];
     buf[0] := 0;
     file_getblock(tokens_fd, &buf[0] as [int8], 2);
@@ -44,7 +44,7 @@ sub expect_token(expected: uint16)
     next_token();
 end sub;
 
-sub expect_identifier(out id: uint16)
+sub expect_identifier(): (id: uint16)
     var thing: [Thing] := find_thing(current_token);
     if thing.thing_type != THING_IDENTIFIER then
         print("missing identifier");

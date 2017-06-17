@@ -6,15 +6,15 @@ end sub;
 
 with_input_params(1, 1);
 
-sub with_no_input_params(out o1: int8)
+sub with_no_input_params(): (o1: int8)
     o1 := 42;
 end sub;
 
-sub with_output_params(p1: int8, p2: int8, out o1: int8)
+sub with_output_params(p1: int8, p2: int8): (o1: int8)
     o1 := p1 + p2;
 end sub;
 
-sub with_multiple_output_params(p1: int8, p2: int8, out o1: int8, out o2: int8)
+sub with_multiple_output_params(p1: int8, p2: int8): (o1: int8, o2: int8)
     o1 := p1 + p2;
     o2 := p1 - p2;
 end sub;

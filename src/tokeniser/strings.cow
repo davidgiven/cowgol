@@ -3,7 +3,7 @@ var stringtab_base: [int8] := stringtab_top;
 var input_buffer: int8[256];
 var buffer_index: uint8 := 0;
 
-sub lookup_string(buffer_ptr: [int8], buffer_len: uint8, out stringid: uint16)
+sub lookup_string(buffer_ptr: [int8], buffer_len: uint8): (stringid: uint16)
     var ptr: [int8] := stringtab_base;
     while ptr < stringtab_top loop
         var len: uint8 := ptr[0] - 1;

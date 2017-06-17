@@ -23,9 +23,6 @@ record    RECORD
 return    RETURN
 goto      GOTO
 namespace NAMESPACE
-in        IN
-out       OUT
-inout     INOUT
 
 # Attributes and specials.
 @string   STRING

@@ -502,13 +502,8 @@ function array_of(type, length)
     }
 end
 
-function do_parameter()
+function do_parameter(inout)
     local name = stream:next()
-    local inout = "in"
-    if (name == "in") or (name == "out") then
-        inout = name
-        name = stream:next()
-    end
     expect(":")
     local type = read_type()
 
@@ -520,13 +515,13 @@ function do_parameter()
     }
 end
 
-function do_parameter_list()
+function do_parameter_list(inout)
     while true do
         local t = stream:peek()
         if (t == ")") then
             break
         end
-        do_parameter()
+        do_parameter(inout)
         t = stream:peek()
         if (t == ")") then
             break
@@ -548,8 +543,15 @@ function do_sub()
     current_fn = fn
 
     expect("(")
-    do_parameter_list()
+    do_parameter_list("in")
     expect(")")
+
+    if (stream:peek() == ":") then
+        stream:next()
+        expect("(")
+        do_parameter_list("out")
+        expect(")")
+    end
 
     emit("void %s(void) {", current_fn.storage)
     do_statements()

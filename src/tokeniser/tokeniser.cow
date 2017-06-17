@@ -93,7 +93,7 @@ sub decode_escaped_char()
     end if;
 end sub;
 
-sub add_string_thing(string_id: uint16, out token_id: uint16)
+sub add_string_thing(string_id: uint16): (token_id: uint16)
     var buf: StringThing[1];
     buf[0].thing_type := THING_STRING;
     buf[0].thing_size := StringThing@bytes;

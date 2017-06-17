@@ -2,7 +2,7 @@ var ioptab_top: [int8] := HIMEM;
 var ioptab_size: uint16 := 0;
 var iopfd: uint8;
 
-sub emit(kind: uint8, size: uint8, out ptr: [Iop])
+sub emit(kind: uint8, size: uint8): (ptr: [Iop])
     ioptab_size := ioptab_size + 1;
     ioptab_top[0-ioptab_size] := size;
     ioptab_size := ioptab_size + size;
@@ -66,7 +66,7 @@ sub emit_parameter(kind: uint8, subroutine_id: uint16, parameter: uint8)
     iop.parameter := parameter;
 end sub;
 
-sub create_label(out label_id: uint16)
+sub create_label(): (label_id: uint16)
     label_id := create_thing(THING_LABEL, LabelThing@bytes);
 end sub;
 

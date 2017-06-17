@@ -25,10 +25,10 @@ end sub;
 sub print_hex_i32(value: uint32)
 end sub;
 
-sub file_openin(filename: [int8], out fd: uint8)
+sub file_openin(filename: [int8]): (fd: uint8)
 end sub;
 
-sub file_openout(filename: [int8], out fd: uint8)
+sub file_openout(filename: [int8]): (fd: uint8)
 end sub;
 
 sub file_getblock(fd: uint8, ptr: [int8], length: uint16)
@@ -40,13 +40,13 @@ end sub;
 sub file_seek(fd: uint8, pos: uint32)
 end sub;
 
-sub file_ext(fd: uint8, out length: uint32)
+sub file_ext(fd: uint8): (length: uint32)
 end sub;
 
-sub file_eof(fd: uint8, out eof: uint8)
+sub file_eof(fd: uint8): (eof: uint8)
 end sub;
 
-sub file_getchar(fd: uint8, out char: int8)
+sub file_getchar(fd: uint8): (char: int8)
 end sub;
 
 sub file_close(fd: uint8)
