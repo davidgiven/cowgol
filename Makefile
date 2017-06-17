@@ -60,6 +60,10 @@ CODEGEN_SRCS = \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
+	src/codegen/stack.cow \
+	src/codegen/queue.cow \
+	src/codegen/codegen.cow \
+	src/arch/bbc/codegen.cow \
 	src/codegen/main.cow
 
 THINGSHOWER_SRCS = \

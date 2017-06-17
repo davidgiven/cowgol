@@ -1,44 +1,56 @@
-const VALUE_NOTHING  := 0;
-const VALUE_VARIABLE := 1;
-const VALUE_NUMBER   := 2;
 
-# All Value objects must be the same size! Currently, seven bytes.
+sub print_queue()
+    print("queue: ");
+    var i: uint8 := 0;
+    while i < queue_depth loop
+        print(" 0x");
+        print_hex_i8(queue[i].iop_kind);
+        i := i + 1;
+    end loop;
+end sub;
 
-record NullValue
-    type: uint8;
-    empty: uint8[6];
-end record;
+sub print_stack()
+    print("stack: ");
+    var i: uint8 := 0;
+    while i < stack_pos loop
+        print(" 0x");
+        print_hex_i8(stack[i].type);
+        print("(");
+        print_hex_i8(stack[i].flags);
+        print(")");
+        i := i + 1;
+    end loop;
+end sub;
 
-record VariableValue
-    value_type: uint8;
-    type_id: uint16;
-    thing_id: uint16;
-    offset_id: uint16;
-end record;
-
-record NumberValue
-    type: uint8;
-    type_id: uint16;
-    value: int32;
-end record;
-
-var stack: NullValue[32];
-var stack_pos: uint8;
+sub apply_rules()
+    if global_rules() == 1 then
+        return;
+    elseif arch_rules() == 1 then
+        return;
+    else
+        print("unmatched iops: ");
+        print_queue();
+        halt();
+    end if;
+end sub;
 
 sub process_subroutine(subroutine_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
     stack_pos := 0;
-    loop
-        var iop: [Iop] := read_iop();
-        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+    queue_depth := 0;
+    run_out_of_iops := 0;
+    init_allocator();
 
-        if iop.iop_kind == IOP_END then
+    loop
+        fill_queue();
+        print_stack(); print_newline();
+        print_queue(); print_newline();
+
+        if queue[0].iop_kind == IOP_END then
             break;
-        else
-            print("unsupported iop 0x");
-            print_hex_i8(iop.iop_kind);
-            halt();
         end if;
+
+        apply_rules();
     end loop;
     write_end_iop();
 end sub;

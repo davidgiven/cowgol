@@ -67,8 +67,15 @@ sub emit_parameter(kind: uint8, subroutine_id: uint16, parameter: uint8)
 end sub;
 
 sub emit_byte(value: uint8)
-    var iop: [BytesIop] := emit(IOP_BYTES, BytesIop@bytes + 1) as [BytesIop];
-    iop.payload[0] := value;
+    var iop: [BytesIop] := emit(IOP_BYTES, BytesIop@bytes) as [BytesIop];
+    iop.byte_count := 1;
+    iop.bytes[0] := value;
+end sub;
+
+sub emit_bytes(byte_count: uint8, bytes: [uint8])
+    var iop: [BytesIop] := emit(IOP_BYTES, BytesIop@bytes) as [BytesIop];
+    iop.byte_count := byte_count;
+    copy_memory(bytes as [int8], &iop.bytes[0] as [int8], byte_count);
 end sub;
 
 sub emit_word(thing_id: uint16)

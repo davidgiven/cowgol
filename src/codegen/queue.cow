@@ -1,0 +1,36 @@
+var queue: BiggestIop[16];
+var queue_depth: uint8;
+var run_out_of_iops: uint8;
+const PREFERRED_QUEUE_DEPTH := 4;
+
+sub fill_queue()
+    while queue_depth < PREFERRED_QUEUE_DEPTH loop
+        if run_out_of_iops == 1 then
+            queue[queue_depth].iop_kind := IOP_END;
+        else
+            var iop: [Iop] := read_iop();
+            copy_memory(iop as [int8], &queue[queue_depth] as [int8], iop.iop_size);
+            if iop.iop_kind == IOP_END then
+                run_out_of_iops := 1;
+            end if;
+        end if;
+        queue_depth := queue_depth + 1;
+    end loop;
+end sub;
+
+sub consume_iops(count: uint8)
+    if count > queue_depth then
+        print("can only consume ");
+        print_i8(queue_depth);
+        print(" at this time");
+        halt();
+    end if;
+
+    queue_depth := queue_depth - count;
+    var i: uint8 := 0;
+    while i < queue_depth loop
+        copy_memory(&queue[i+count] as [int8], &queue[i] as [int8],
+            queue[i+count].iop_size);
+        i := i + 1;
+    end loop;
+end sub;

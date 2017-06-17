@@ -1,0 +1,225 @@
+const REG_A    := 0b0000_0001;
+const REG_X    := 0b0000_0010;
+const REG_Y    := 0b0000_0100;
+const REG_MASK := 0b0111_1111;
+const PRECIOUS := 0b1000_0000;
+
+record CachedValue
+    location: uint8;
+    ea: EffectiveAddress;
+end record;
+
+var values: CachedValue[32];
+var regusage: uint8[3];
+
+sub bad_register()
+    print("bad register");
+    halt();
+end sub;
+
+sub init_allocator()
+    zero_memory(&values[0] as [int8], values@bytes);
+    zero_memory(&regusage[0] as [int8], regusage@bytes);
+end sub;
+
+sub find_unused_regs(candidates: uint8): (mask: uint8)
+    var i: uint8 := 0;
+    while i < values@size loop
+        candidates := candidates & (values[i].location ^ 0xff);
+        i := i + 1;
+    end loop;
+    mask := candidates & REG_MASK;
+end sub;
+
+sub find_first_bit(value: uint8): (mask: uint8)
+    mask := 1;
+    loop
+        if (value & mask) != 0 then
+            return;
+        end if;
+        if mask == 0x80 then
+            break;
+        end if;
+        mask := mask << 1;
+    end loop;
+    mask := 0;
+end sub;
+
+sub allocate_reg(candidates: uint8): (mask: uint8)
+    mask := find_unused_regs(candidates);
+    if mask == 0 then
+        print("no unused registers");
+        halt();
+    end if;
+    mask := find_first_bit(mask);
+end sub;
+
+sub find_reg_with_value(value: [EffectiveAddress]): (mask: uint8)
+    var index: uint8 := 0;
+    while index < values@size loop
+        if is_same_ea(&values[index].ea, value) == 1 then
+            mask := values[index].location & REG_MASK;
+            return;
+        end if;
+        index := index + 1;
+    end loop;
+    mask := 0;
+end sub;
+
+sub value_is_cached_in_reg(value: [EffectiveAddress], mask: uint8)
+    var index: uint8 := 0;
+    while index < values@size loop
+        if values[index].location == 0 then
+            print("* using cache slot ");
+            print_i8(index);
+            print(" for ");
+            print_ea(value);
+            print_newline();
+            values[index].location := mask;
+            copy_ea(value, &values[index].ea);
+            return;
+        end if;
+        index := index + 1;
+    end loop;
+    print("value cache is full");
+    halt();
+end sub;
+
+sub value_is_precious_in_reg(value: [EffectiveAddress], mask: uint8)
+    var index: uint8 := 0;
+    while index < values@size loop
+        if values[index].location == 0 then
+            print("* using cache slot ");
+            print_i8(index);
+            print(" for precious ");
+            print_ea(value);
+            print_newline();
+            values[index].location := mask | PRECIOUS;
+            copy_ea(value, &values[index].ea);
+            return;
+        end if;
+        index := index + 1;
+    end loop;
+    print("value cache is full");
+    halt();
+end sub;
+
+sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
+    print("* writing back 0x");
+    print_hex_i8(location);
+    print(" to precious value ");
+    print_ea(ea);
+    print_newline();
+
+    if ea.type == EA_VARIABLE then
+        var buf: uint8[1];
+        if location == REG_A then
+            buf[0] := 0x8D; # STA
+        elseif location == REG_X then
+            buf[0] := 0x8E; # STX
+        elseif location == REG_Y then
+            buf[0] := 0x8C; # STY
+        else
+            bad_register();
+        end if;
+        write_bytes_iop(1, &buf[0]);
+
+        if ea.offset_id != 0 then
+            var offset: [NumberThing] := find_thing(ea.offset_id) as [NumberThing];
+            if offset.value != 0 then
+                print("non-zero offsets can't be done yet");
+                halt();
+            end if;
+        end if;
+        write_word_iop(ea.thing_id);
+    else
+        print("can't write precious value ");
+        print_ea(ea);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
+sub flush_cached_values(mask: uint8)
+    var index: uint8 := 0;
+    while index < values@size loop
+        var location: uint8 := values[index].location;
+        if (location & mask) != 0 then
+            if (location & PRECIOUS) != 0 then
+                write_back_precious_value(location & (PRECIOUS ^ 0xff), &values[index].ea);
+            end if;
+            print("* flushing cache slot ");
+            print_i8(index);
+            print_newline();
+            values[index].location := 0;
+        end if;
+        index := index + 1;
+    end loop;
+end sub;
+
+sub find_or_load_value(value: [EffectiveAddress], candidates: uint8): (mask: uint8)
+    mask := find_reg_with_value(value);
+    if mask != 0 then
+        print("* found in 0x");
+        print_hex_i8(mask);
+        print(" value ");
+        print_ea(value);
+        print_newline();
+        return;
+    end if;
+
+    mask := allocate_reg(candidates);
+    print("* allocating 0x");
+    print_hex_i8(mask);
+    print(" for ");
+    print_ea(value);
+    print_newline();
+
+    flush_cached_values(mask);
+    value_is_cached_in_reg(value, mask);
+    if value.type == EA_NUMBER then
+        var buf: uint8[2];
+        if mask == REG_A then
+            buf[0] := 0xA9; # LDA
+        elseif mask == REG_X then
+            buf[0] := 0xA2; # LDX
+        elseif mask == REG_Y then
+            buf[0] := 0xA0; # LDY
+        else
+            bad_register();
+        end if;
+        var thing: [NumberThing] := find_thing(value.offset_id) as [NumberThing];
+        buf[1] := thing.value;
+        write_bytes_iop(2, &buf[0]);
+    else
+        print("can't implicit load this ea yet");
+    end if;
+end sub;
+
+sub arch_rules(): (matched: uint8)
+    matched := 1;
+
+    sub assign_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
+        var location: uint8 := find_or_load_value(src, REG_A|REG_X|REG_Y);
+        value_is_precious_in_reg(dest, location);
+    end sub;
+
+    if queue[0].iop_kind == IOP_ASSIGN then
+        var src: [EffectiveAddress] := peek_ea(-1);
+        var dest: [EffectiveAddress] := peek_ea(-2);
+        if ((src.flags & FLAG_WIDTH_1) != 0) and ((dest.flags & FLAG_WIDTH_1) != 0) then
+            assign_to_byte(src, dest);
+            consume_iops(1);
+            pop_eas(2);
+            return;
+        end if;
+    end if;
+
+    if queue[0].iop_kind == IOP_LABEL then
+        flush_cached_values(REG_MASK);
+        consume_iops(1);
+        return;
+    end if;
+
+    matched := 0;
+end sub;

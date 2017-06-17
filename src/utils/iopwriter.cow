@@ -73,3 +73,20 @@ sub write_end_iop()
     buf[0].iop_kind := IOP_END;
     write_iop(&buf[0]);
 end sub;
+
+sub write_bytes_iop(byte_count: uint8, bytes: [uint8])
+    var buf: BytesIop[1];
+    buf[0].iop_size := BytesIop@bytes;
+    buf[0].iop_kind := IOP_BYTES;
+    buf[0].byte_count := byte_count;
+    copy_memory(bytes as [int8], &buf[0].bytes[0] as [int8], byte_count);
+    write_iop(&buf[0] as [Iop]);
+end sub;
+
+sub write_word_iop(thing_id: uint16)
+    var buf: WordIop[1];
+    buf[0].iop_size := WordIop@bytes;
+    buf[0].iop_kind := IOP_WORD;
+    buf[0].thing_id := thing_id;
+    write_iop(&buf[0] as [Iop]);
+end sub;

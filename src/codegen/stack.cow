@@ -1,0 +1,77 @@
+const EA_NOTHING             := 0;
+const EA_VARIABLE            := 1;
+const EA_NUMBER              := 2;
+
+const FLAG_WIDTH_1   := 0b0000_0001;
+const FLAG_WIDTH_2   := 0b0000_0010;
+const FLAG_WIDTH_4   := 0b0000_0100;
+const FLAG_WIDTH_BIG := 0b0000_1000;
+const FLAG_POINTER   := 0b0001_0000;
+const FLAG_SIGNED    := 0b0010_0000;
+const FLAG_NUMBER    := 0b0100_0000;
+
+record EffectiveAddress
+    type: uint8;
+    flags: uint8;      # type flags of value at this EA
+    type_id: uint16;   # type of value at this EA
+    thing_id: uint16;  # base object (usually a variable, or 0)
+    offset_id: uint16; # fixed offset to that object
+end record;
+
+var stack: EffectiveAddress[32];
+var stack_pos: uint8;
+
+sub print_ea(ea: [EffectiveAddress])
+    if ea.type == EA_NOTHING then
+        print("nothing()");
+        return;
+    elseif ea.type == EA_VARIABLE then
+        print("variable(");
+    elseif ea.type == EA_NUMBER then
+        print("number(");
+    else
+        print("unknown(");
+    end if;
+
+    print("flags=0x"); print_hex_i8(ea.flags);
+    print(" thing_id=0x"); print_hex_i16(ea.thing_id);
+    print(" offset_id=0x"); print_hex_i16(ea.offset_id);
+    print(")");
+end sub;
+
+sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8)
+    if (ea1.type == ea2.type)
+            and (ea1.flags == ea2.flags)
+            and (ea1.thing_id == ea2.thing_id)
+            and (ea1.offset_id == ea2.offset_id) then
+        result := 1;
+    else
+        result := 0;
+    end if;
+end sub;
+
+sub copy_ea(src: [EffectiveAddress], dest: [EffectiveAddress])
+    copy_memory(src as [int8], dest as [int8], EffectiveAddress@bytes);
+end sub;
+
+sub push_new_ea(): (ea: [EffectiveAddress])
+    ea := &stack[stack_pos];
+    zero_memory(ea as [int8], EffectiveAddress@bytes);
+    stack_pos := stack_pos + 1;
+    if stack_pos == stack@size then
+        print("stack overflow");
+        halt();
+    end if;
+end sub;
+
+sub peek_ea(offset: int8): (ea: [EffectiveAddress])
+    ea := &stack[stack_pos + offset];
+end sub;
+
+sub pop_eas(count: uint8)
+    if stack_pos < count then
+        print("stack underflow");
+        halt();
+    end if;
+    stack_pos := stack_pos - count;
+end sub;

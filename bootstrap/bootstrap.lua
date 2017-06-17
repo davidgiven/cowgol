@@ -20,8 +20,8 @@ function set(...)
     return t
 end
 
-local infix_operators = set("+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!=", "&", "|", "^", "%",
-    "and", "or")
+local infix_operators = set("+", "-", "*", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=",
+    "&", "|", "^", "%", "and", "or")
 local postfix_operators = set("as")
 
 function log(...)
@@ -40,6 +40,8 @@ function tokenstream(source)
     local patterns = {
         "^(\n)",
         "^([%w@][%w%d_]*)",
+        "^(<<)",
+        "^(>>)",
         "^([<>!:=]=)",
         "^([-+*/():;,.'<>[%]&|^%%~])"
     }

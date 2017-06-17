@@ -1,0 +1,60 @@
+sub global_rules(): (matched: uint8)
+    matched := 1;
+
+    sub push_thing()
+        var iop: [ThingIop] := &queue[0] as [ThingIop];
+        var thing: [TypedThing] := find_thing(iop.thing_id) as [TypedThing];
+        var ea: [EffectiveAddress] := push_new_ea();
+
+        ea.type_id := thing.type_id;
+        var type: [TypeThing] := find_thing(ea.type_id) as [TypeThing];
+        if thing.thing_type == THING_NUMBER then
+            ea.flags := ea.flags | FLAG_NUMBER;
+        elseif type.width == 1 then
+            ea.flags := ea.flags | FLAG_WIDTH_1;
+        elseif type.width == 2 then
+            ea.flags := ea.flags | FLAG_WIDTH_2;
+        elseif type.width == 4 then
+            ea.flags := ea.flags | FLAG_WIDTH_4;
+        else
+            ea.flags := ea.flags | FLAG_WIDTH_BIG;
+        end if;
+        if type.thing_type == THING_SIGNED then
+            ea.flags := ea.flags | FLAG_SIGNED;
+        elseif type.thing_type == THING_POINTER then
+            ea.flags := ea.flags | FLAG_POINTER;
+        end if;
+
+        if (thing.thing_type == THING_VARIABLE) or (thing.thing_type == THING_PARAMETER) then
+            ea.type := EA_VARIABLE;
+            ea.thing_id := iop.thing_id;
+        elseif thing.thing_type == THING_NUMBER then
+            ea.type := EA_NUMBER;
+            ea.offset_id := iop.thing_id;
+        else
+            print("don't know how to push things of kind 0x");
+            print_hex_i8(thing.thing_type);
+            halt();
+        end if;
+
+        consume_iops(1);
+    end sub;
+
+    if queue[0].iop_kind == IOP_THING then
+        push_thing();
+        return;
+    end if;
+
+    # When assigning a generic number to something, promote the number to the same type as
+    # the thing being assigned to.
+    if queue[0].iop_kind == IOP_ASSIGN then
+        var src: [EffectiveAddress] := peek_ea(-1);
+        var dest: [EffectiveAddress] := peek_ea(-2);
+        if ((src.flags & FLAG_NUMBER) != 0) then
+            src.flags := dest.flags;
+            return;
+        end if;
+    end if;
+
+    matched := 0;
+end sub;

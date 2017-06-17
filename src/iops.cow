@@ -135,9 +135,13 @@ record MemberIop: Iop
 end record;
 
 record BytesIop: Iop
-    bytes: uint8[0];
+    byte_count: uint8;
+    bytes: uint8[8];
 end record;
 
 record WordIop: Iop
     thing_id: uint16;
+end record;
+
+record BiggestIop: BytesIop
 end record;
