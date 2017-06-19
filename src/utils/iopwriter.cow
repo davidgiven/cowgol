@@ -41,6 +41,13 @@ sub write_iop(iop: [Iop])
     file_putblock(iop_out_fd, iop as [int8], iop.iop_size);
 end sub;
 
+sub write_untyped_iop(kind: uint8)
+    var obuf: Iop[1];
+    obuf[0].iop_kind := kind;
+    obuf[0].iop_size := Iop@bytes;
+    write_iop(&obuf[0] as [Iop]);
+end sub;
+
 sub write_offset_iop(offset: int16, type_id: uint16)
     var obuf: OffsetIop[1];
     obuf[0].iop_kind := IOP_OFFSETOP;

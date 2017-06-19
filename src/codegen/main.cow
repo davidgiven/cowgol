@@ -10,14 +10,11 @@ sub print_queue()
 end sub;
 
 sub print_stack()
-    print("stack: ");
+    print("stack:");
     var i: uint8 := 0;
     while i < stack_pos loop
-        print(" 0x");
-        print_hex_i8(stack[i].type);
-        print("(");
-        print_hex_i8(stack[i].flags);
-        print(")");
+        print_char(' ');
+        print_ea(&stack[i]);
         i := i + 1;
     end loop;
 end sub;

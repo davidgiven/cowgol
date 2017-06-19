@@ -191,6 +191,8 @@ loop
             do_typed("NOTOP", iop as [TypedIop]);
         elseif kind == IOP_INDEXOP then
             do_typed("INDEXOP", iop as [TypedIop]);
+        elseif kind == IOP_SINDEXOP then
+            do_typed("SINDEXOP", iop as [TypedIop]);
         elseif kind == IOP_MEMBEROP then
             do_memberop(iop as [MemberIop]);
         elseif kind == IOP_OFFSETOP then
@@ -209,6 +211,8 @@ loop
             do_word(iop as [WordIop]);
         elseif kind == IOP_LOAD then
             print("LOAD");
+        elseif kind == IOP_SWAP then
+            print("SWAP");
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

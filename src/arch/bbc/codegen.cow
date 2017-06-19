@@ -111,7 +111,7 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     print_ea(ea);
     print_newline();
 
-    if ea.type == EA_VARIABLE then
+    if ea.type == EA_VAR_PLUS_CONST then
         var buf: uint8[1];
         if location == REG_A then
             buf[0] := 0x8D; # STA
@@ -124,12 +124,10 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
         end if;
         write_bytes_iop(1, &buf[0]);
 
-        if ea.offset_id != 0 then
-            var offset: [NumberThing] := find_thing(ea.offset_id) as [NumberThing];
-            if offset.value != 0 then
-                print("non-zero offsets can't be done yet");
-                halt();
-            end if;
+        var offset: int32 := get_value_of_number(ea.offset_id);
+        if offset != 0 then
+            print("non-zero offsets can't be done yet");
+            halt();
         end if;
         write_word_iop(ea.thing_id);
     else

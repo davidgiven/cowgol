@@ -1,5 +1,7 @@
 sub global_rules(): (matched: uint8)
     matched := 1;
+    var right: [EffectiveAddress] := peek_ea(-1);
+    var left: [EffectiveAddress] := peek_ea(-2);
 
     sub push_thing()
         var iop: [ThingIop] := &queue[0] as [ThingIop];
@@ -26,7 +28,7 @@ sub global_rules(): (matched: uint8)
         end if;
 
         if (thing.thing_type == THING_VARIABLE) or (thing.thing_type == THING_PARAMETER) then
-            ea.type := EA_VARIABLE;
+            ea.type := EA_VAR_PLUS_CONST;
             ea.thing_id := iop.thing_id;
         elseif thing.thing_type == THING_NUMBER then
             ea.type := EA_NUMBER;
@@ -54,6 +56,23 @@ sub global_rules(): (matched: uint8)
             src.flags := dest.flags;
             return;
         end if;
+    end if;
+
+    if queue[0].iop_kind == IOP_LOAD then
+        if (right.type == EA_VAR_PLUS_CONST) and (get_value_of_number(right.offset_id) == 0) then
+            right.type := EA_PTR_PLUS_CONST;
+            consume_iops(1);
+            return;
+        end if;
+    end if;
+
+    if queue[0].iop_kind == IOP_SWAP then
+        var temp: EffectiveAddress[1];
+        copy_ea(left, &temp[0]);
+        copy_ea(right, left);
+        copy_ea(&temp[0], right);
+        consume_iops(1);
+        return;
     end if;
 
     matched := 0;

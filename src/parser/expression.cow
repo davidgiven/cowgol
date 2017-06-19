@@ -162,7 +162,7 @@ sub expression_state_machine()
         elseif op_id == TOKEN_CARET then
             alu_2op(IOP_EOROP);
         elseif op_id == TOKEN_OPENSQUARE then
-            alu_2op(IOP_INDEXOP);
+            alu_2op(IOP_SINDEXOP);
         elseif op_id == TOKEN_OPENPAREN then
             # do nothing
         elseif op_id == TOKEN_TILDE then

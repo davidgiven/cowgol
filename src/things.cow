@@ -179,6 +179,15 @@ sub add_number_by_value(value: int32): (id: uint16)
     id := add_thing_by_value(&buf[0] as [Thing]);
 end sub;
 
+sub get_value_of_number(thing_id: uint16): (value: int32)
+    if thing_id == 0 then
+        value := 0;
+    else
+        var thing: [NumberThing] := find_thing(thing_id) as [NumberThing];
+        value := thing.value;
+    end if;
+end sub;
+
 sub find_token_by_string(string_id: uint16): (id: uint16)
     id := 1;
     loop
