@@ -102,6 +102,8 @@ end sub;
 sub do_word(iop: [WordIop])
     print("WORD thing_id=0x");
     print_hex_i16(iop.thing_id);
+    print(" offset_id=0x");
+    print_hex_i16(iop.offset_id);
 end sub;
 
 loop

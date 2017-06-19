@@ -60,6 +60,7 @@ CODEGEN_SRCS = \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
+	src/codegen/temporaries.cow \
 	src/codegen/stack.cow \
 	src/codegen/queue.cow \
 	src/codegen/codegen.cow \

@@ -90,10 +90,11 @@ sub write_bytes_iop(byte_count: uint8, bytes: [uint8])
     write_iop(&buf[0] as [Iop]);
 end sub;
 
-sub write_word_iop(thing_id: uint16)
+sub write_word_iop(thing_id: uint16, offset_id: uint16)
     var buf: WordIop[1];
     buf[0].iop_size := WordIop@bytes;
     buf[0].iop_kind := IOP_WORD;
     buf[0].thing_id := thing_id;
+    buf[0].offset_id := offset_id;
     write_iop(&buf[0] as [Iop]);
 end sub;

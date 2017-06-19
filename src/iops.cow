@@ -76,8 +76,8 @@ const IOP_SUBOP       := 0x0b;
 const IOP_ADDRESSOP   := 0x0c;
 const IOP_BYTESOP     := 0x0d;
 const IOP_SIZEOP      := 0x0e;
-const IOP_OFFSETOP    := 0x0f; # apply constant offset to EA
-const IOP_INDEXOP     := 0x10; # apply variable offset to EA
+const IOP_OFFSETOP    := 0x0f; # apply constant byte offset to EA
+const IOP_INDEXOP     := 0x10; # apply variable byte offset to EA
 const IOP_LOAD        := 0x11; # turn EA to pointer into EA to thing being pointed at
 
 record FilenameIop: Iop
@@ -143,6 +143,7 @@ end record;
 
 record WordIop: Iop
     thing_id: uint16;
+    offset_id: uint16;
 end record;
 
 record BiggestIop: BytesIop

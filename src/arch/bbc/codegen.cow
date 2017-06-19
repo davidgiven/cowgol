@@ -114,22 +114,16 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     if ea.type == EA_VAR_PLUS_CONST then
         var buf: uint8[1];
         if location == REG_A then
-            buf[0] := 0x8D; # STA
+            buf[0] := 0x8D; # STA abs
         elseif location == REG_X then
-            buf[0] := 0x8E; # STX
+            buf[0] := 0x8E; # STX abs
         elseif location == REG_Y then
-            buf[0] := 0x8C; # STY
+            buf[0] := 0x8C; # STY abs
         else
             bad_register();
         end if;
         write_bytes_iop(1, &buf[0]);
-
-        var offset: int32 := get_value_of_number(ea.offset_id);
-        if offset != 0 then
-            print("non-zero offsets can't be done yet");
-            halt();
-        end if;
-        write_word_iop(ea.thing_id);
+        write_word_iop(ea.thing_id, ea.offset_id);
     else
         print("can't write precious value ");
         print_ea(ea);
@@ -155,40 +149,53 @@ sub flush_cached_values(mask: uint8)
     end loop;
 end sub;
 
-sub find_or_load_value(value: [EffectiveAddress], candidates: uint8): (mask: uint8)
-    mask := find_reg_with_value(value);
-    if mask != 0 then
+sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    location := find_reg_with_value(ea);
+    if location != 0 then
         print("* found in 0x");
-        print_hex_i8(mask);
+        print_hex_i8(location);
         print(" value ");
-        print_ea(value);
+        print_ea(ea);
         print_newline();
         return;
     end if;
 
-    mask := allocate_reg(candidates);
+    location := allocate_reg(candidates);
     print("* allocating 0x");
-    print_hex_i8(mask);
+    print_hex_i8(location);
     print(" for ");
-    print_ea(value);
+    print_ea(ea);
     print_newline();
 
-    flush_cached_values(mask);
-    value_is_cached_in_reg(value, mask);
-    if value.type == EA_NUMBER then
-        var buf: uint8[2];
-        if mask == REG_A then
-            buf[0] := 0xA9; # LDA
-        elseif mask == REG_X then
-            buf[0] := 0xA2; # LDX
-        elseif mask == REG_Y then
-            buf[0] := 0xA0; # LDY
+    var buf: uint8[2];
+
+    flush_cached_values(location);
+    value_is_cached_in_reg(ea, location);
+    if ea.type == EA_NUMBER then
+        if location == REG_A then
+            buf[0] := 0xA9; # LDA imm
+        elseif location == REG_X then
+            buf[0] := 0xA2; # LDX imm
+        elseif location == REG_Y then
+            buf[0] := 0xA0; # LDY imm
         else
             bad_register();
         end if;
-        var thing: [NumberThing] := find_thing(value.offset_id) as [NumberThing];
+        var thing: [NumberThing] := find_thing(ea.offset_id) as [NumberThing];
         buf[1] := thing.value;
         write_bytes_iop(2, &buf[0]);
+    elseif ea.type == EA_VAR_PLUS_CONST then
+        if location == REG_A then
+            buf[0] := 0xAD; # LDA abs
+        elseif location == REG_X then
+            buf[0] := 0xAE; # LDX abs
+        elseif location == REG_Y then
+            buf[0] := 0xAC; # LDY abs
+        else
+            bad_register();
+        end if;
+        write_bytes_iop(1, &buf[0]);
+        write_word_iop(ea.thing_id, ea.offset_id);
     else
         print("can't implicit load this ea yet");
     end if;
@@ -196,6 +203,8 @@ end sub;
 
 sub arch_rules(): (matched: uint8)
     matched := 1;
+    var right: [EffectiveAddress] := peek_ea(-1);
+    var left: [EffectiveAddress] := peek_ea(-2);
 
     sub assign_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
         var location: uint8 := find_or_load_value(src, REG_A|REG_X|REG_Y);
@@ -206,8 +215,37 @@ sub arch_rules(): (matched: uint8)
         halt();
     end sub;
 
-    var right: [EffectiveAddress] := peek_ea(-1);
-    var left: [EffectiveAddress] := peek_ea(-2);
+    sub do_return()
+        var buf: uint8[1];
+        buf[0] := 0x60; # RTS
+        write_bytes_iop(1, &buf[0]);
+    end sub;
+
+    sub emit_clc()
+        var buf: uint8[1];
+        buf[0] := 0x18; # CLC
+        write_bytes_iop(1, &buf[0]);
+    end sub;
+
+    sub major_8bit(opcodebase: uint8, left: [EffectiveAddress], right: [EffectiveAddress])
+        var accumulator: uint8 := find_or_load_value(left, REG_A);
+        var buf: uint8[2];
+        if right.type == EA_VAR_PLUS_CONST then
+            buf[0] := opcodebase | 0x0D; # <op> abs
+            write_bytes_iop(1, &buf[0]);
+            write_word_iop(right.thing_id, right.offset_id);
+        else
+            print("can't add this EA yet");
+            halt();
+        end if;
+    end sub;
+
+    if queue[0].iop_kind == IOP_RETURN then
+        do_return();
+        consume_iops(1);
+        return;
+    end if;
+
     if queue[0].iop_kind == IOP_ASSIGN then
         if ((right.flags & FLAG_WIDTH_1) != 0) and ((left.flags & FLAG_WIDTH_1) != 0) then
             assign_to_byte(right, left);
@@ -218,7 +256,13 @@ sub arch_rules(): (matched: uint8)
     end if;
 
     if queue[0].iop_kind == IOP_ADDOP then
-        if ((left.flags & FLAG_WIDTH_2) != 0) and ((right.flags & FLAG_WIDTH_2) != 0) then
+        if ((left.flags & FLAG_WIDTH_1) != 0) and ((right.flags & FLAG_WIDTH_1) != 0) then
+            emit_clc();
+            major_8bit(0x60, left, right);
+            consume_iops(1);
+            pop_eas(2);
+            return;
+        elseif ((left.flags & FLAG_WIDTH_2) != 0) and ((right.flags & FLAG_WIDTH_2) != 0) then
             add_16bit(left, right);
             consume_iops(1);
             pop_eas(2);

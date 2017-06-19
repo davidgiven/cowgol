@@ -33,7 +33,12 @@ end sub;
 
 sub process_subroutine(subroutine_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+    print("subroutine: ");
+    show_name_of(subroutine_id);
+    print_newline();
+
     init_stack();
+    init_temporaries();
     queue_depth := 0;
     run_out_of_iops := 0;
     init_allocator();

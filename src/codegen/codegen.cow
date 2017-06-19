@@ -58,6 +58,10 @@ sub global_rules(): (matched: uint8)
         end if;
     end if;
 
+#    if queue[0].iop_kind == IOP_INDEXOP then
+#        # Pointer plus variable?
+#        if (left.type == EA_PTR_PLUS_CONST) and (right.type == EA_VAR_PLUS_CONST) then
+
     if queue[0].iop_kind == IOP_LOAD then
         if (right.type == EA_VAR_PLUS_CONST) and (get_value_of_number(right.offset_id) == 0) then
             right.type := EA_PTR_PLUS_CONST;
@@ -71,6 +75,12 @@ sub global_rules(): (matched: uint8)
         copy_ea(left, &temp[0]);
         copy_ea(right, left);
         copy_ea(&temp[0], right);
+        consume_iops(1);
+        return;
+    end if;
+
+    if (queue[0].iop_kind == IOP_BYTES) or (queue[0].iop_kind == IOP_WORD) then
+        write_iop(&queue[0] as [Iop]);
         consume_iops(1);
         return;
     end if;
