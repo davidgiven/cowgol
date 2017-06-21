@@ -227,7 +227,7 @@ sub arch_gen_copy(src: [EffectiveAddress], dest: [EffectiveAddress]): (matched: 
     if ((src.flags & FLAG_WIDTH_2) != 0) and ((dest.flags & FLAG_WIDTH_2) != 0) then
         if ((src.flags & FLAG_NUMBER) != 0) then
             write_byte(0x20); # JSR abs
-            write_word_iop(0, 0); # copy number
+            write_word_iop(deref_symbol_or_fail(TOKEN_CG_LOAD2), 0);
             write_word_iop(src.thing_id, src.offset_id);
             write_word_iop(dest.thing_id, dest.offset_id);
         else

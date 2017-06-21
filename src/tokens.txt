@@ -24,6 +24,12 @@ return    RETURN
 goto      GOTO
 namespace NAMESPACE
 
+# Names of routines in the runtime library.
+__copy2   CG_COPY2      IDENTIFIER
+__copy4   CG_COPY4      IDENTIFIER
+__load2   CG_LOAD2      IDENTIFIER
+__load4   CG_LOAD4      IDENTIFIER
+
 # Attributes and specials.
 @words    WORDS
 

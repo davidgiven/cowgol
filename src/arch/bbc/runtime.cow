@@ -70,6 +70,13 @@ end sub;
 sub exit(status: uint8)
 end sub;
 
+sub __load_params(count: uint8)
+end sub;
+
+sub __load2()
+    __load_params(4);
+end sub;
+
 var LOMEM: [int8] := 0 as [int8];
 var HIMEM: [int8] := 0x10000 as [int8];
 var ARGV: [[int8]] := 0 as [[int8]];

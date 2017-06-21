@@ -60,6 +60,8 @@ CODEGEN_SRCS = \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
+	src/_token_names.cow \
+	src/utils/symbols.cow \
 	src/codegen/temporaries.cow \
 	src/codegen/ea.cow \
 	src/codegen/stack.cow \
