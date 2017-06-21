@@ -106,6 +106,29 @@ sub do_word(iop: [WordIop])
     print_hex_i16(iop.offset_id);
 end sub;
 
+sub do_cg_copy(kind: [int8], iop: [CGCopyNIop])
+    print(kind);
+    print(" opcode=0x");
+    print_hex_i8(iop.opcode);
+    print(" src_thing_id=0x");
+    print_hex_i16(iop.src_thing_id);
+    print(" src_offset_id=0x");
+    print_hex_i16(iop.src_offset_id);
+    print(" dest_thing_id=0x");
+    print_hex_i16(iop.dest_thing_id);
+    print(" dest_offset_id=0x");
+    print_hex_i16(iop.dest_offset_id);
+end sub;
+
+sub do_cg_6502_mem(iop: [CG6502MemIop])
+    print("CG_6502_MEM opcode=0x");
+    print_hex_i8(iop.opcode);
+    print(" thing_id=0x");
+    print_hex_i16(iop.thing_id);
+    print(" offset_id=0x");
+    print_hex_i16(iop.offset_id);
+end sub;
+
 loop
     var header: [IHeader] := read_iop_header();
     if header.thing_id == 0 then
@@ -215,6 +238,14 @@ loop
             print("LOAD");
         elseif kind == IOP_SWAP then
             print("SWAP");
+        elseif kind == IOP_CG_COPY1 then
+            do_cg_copy("CG_COPY1", iop as [CGCopyNIop]);
+        elseif kind == IOP_CG_COPY2 then
+            do_cg_copy("CG_COPY2", iop as [CGCopyNIop]);
+        elseif kind == IOP_CG_COPY4 then
+            do_cg_copy("CG_COPY4", iop as [CGCopyNIop]);
+        elseif kind == IOP_CG_6502_MEM then
+            do_cg_6502_mem(iop as [CG6502MemIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

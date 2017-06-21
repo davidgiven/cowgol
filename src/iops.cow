@@ -54,6 +54,12 @@ const IOP_MATERIALISE      := 0b1000_0011;
 const IOP_ZEXTOP           := 0b1000_0100;
 const IOP_SEXTOP           := 0b1000_0101;
 
+const IOP_TYPE_CODEGEN     := 0b1111_0000;
+const IOP_CG_COPY1         := 0b1111_0000;
+const IOP_CG_COPY2         := 0b1111_0001;
+const IOP_CG_COPY4         := 0b1111_0010;
+const IOP_CG_6502_MEM      := 0b1111_0011;
+
 # the typechecker rewrites these to THING.
 const IOP_INPUTPARAM  := 0x01; # push input parameter of subroutine
 const IOP_OUTPUTPARAM := 0x02; # push output parameter of subroutine
@@ -142,6 +148,20 @@ record BytesIop: Iop
 end record;
 
 record WordIop: Iop
+    thing_id: uint16;
+    offset_id: uint16;
+end record;
+
+record CGCopyNIop: Iop
+    opcode: uint8;
+    src_thing_id: uint16;
+    src_offset_id: uint16;
+    dest_thing_id: uint16;
+    dest_offset_id: uint16;
+end record;
+
+record CG6502MemIop: Iop
+    opcode: uint8;
     thing_id: uint16;
     offset_id: uint16;
 end record;

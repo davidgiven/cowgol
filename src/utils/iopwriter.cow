@@ -98,3 +98,26 @@ sub write_word_iop(thing_id: uint16, offset_id: uint16)
     buf[0].offset_id := offset_id;
     write_iop(&buf[0] as [Iop]);
 end sub;
+
+sub write_cg_copy_iop(iop: uint8, opcode: uint8, src_thing_id: uint16, src_offset_id: int16,
+        dest_thing_id: uint16, dest_offset_id: uint16)
+    var buf: CGCopyNIop[1];
+    buf[0].iop_size := CGCopyNIop@bytes;
+    buf[0].iop_kind := iop;
+    buf[0].opcode := opcode;
+    buf[0].src_thing_id := src_thing_id;
+    buf[0].src_offset_id := src_offset_id;
+    buf[0].dest_thing_id := dest_thing_id;
+    buf[0].dest_offset_id := dest_offset_id;
+    write_iop(&buf[0] as [Iop]);
+end sub;
+
+sub write_cg_6502_mem_iop(opcode: uint8, thing_id: uint16, offset_id: int16)
+    var buf: CG6502MemIop[1];
+    buf[0].iop_size := CG6502MemIop@bytes;
+    buf[0].iop_kind := IOP_CG_6502_MEM;
+    buf[0].opcode := opcode;
+    buf[0].thing_id := thing_id;
+    buf[0].offset_id := offset_id;
+    write_iop(&buf[0] as [Iop]);
+end sub;

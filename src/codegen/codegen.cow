@@ -5,8 +5,8 @@ sub try_copy(src: [EffectiveAddress], dest: [EffectiveAddress])
 
     # When assigning a generic number to something, promote the number to the same type as
     # the thing being assigned to.
-    if (src.flags & FLAG_NUMBER) != 0 then
-        src.flags := dest.flags;
+    if src.type == EA_NUMBER then
+        src.flags := dest.flags | FLAG_NUMBER;
         if arch_gen_copy(src, dest) == 1 then
             return;
         end if;

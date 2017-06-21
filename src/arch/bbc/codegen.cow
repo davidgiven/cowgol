@@ -112,18 +112,17 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     print_newline();
 
     if ea.type == EA_VAR_PLUS_CONST then
-        var buf: uint8[1];
+        var opcode: uint8;
         if location == REG_A then
-            buf[0] := 0x8D; # STA abs
+            opcode := 0x8D; # STA abs
         elseif location == REG_X then
-            buf[0] := 0x8E; # STX abs
+            opcode := 0x8E; # STX abs
         elseif location == REG_Y then
-            buf[0] := 0x8C; # STY abs
+            opcode := 0x8C; # STY abs
         else
             bad_register();
         end if;
-        write_bytes_iop(1, &buf[0]);
-        write_word_iop(ea.thing_id, ea.offset_id);
+        write_cg_6502_mem_iop(opcode, ea.thing_id, ea.offset_id);
     else
         print("can't write precious value ");
         print_ea(ea);
@@ -167,11 +166,12 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     print_ea(ea);
     print_newline();
 
-    var buf: uint8[2];
+    var opcode: uint8;
 
     flush_cached_values(location);
     value_is_cached_in_reg(ea, location);
     if ea.type == EA_NUMBER then
+        var buf: uint8[2];
         if location == REG_A then
             buf[0] := 0xA9; # LDA imm
         elseif location == REG_X then
@@ -186,16 +186,15 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
         write_bytes_iop(2, &buf[0]);
     elseif ea.type == EA_VAR_PLUS_CONST then
         if location == REG_A then
-            buf[0] := 0xAD; # LDA abs
+            opcode := 0xAD; # LDA abs
         elseif location == REG_X then
-            buf[0] := 0xAE; # LDX abs
+            opcode := 0xAE; # LDX abs
         elseif location == REG_Y then
-            buf[0] := 0xAC; # LDY abs
+            opcode := 0xAC; # LDY abs
         else
             bad_register();
         end if;
-        write_bytes_iop(1, &buf[0]);
-        write_word_iop(ea.thing_id, ea.offset_id);
+        write_cg_6502_mem_iop(opcode, ea.thing_id, ea.offset_id);
     else
         print("can't implicit load this ea yet");
     end if;
@@ -229,12 +228,13 @@ sub arch_gen_copy(src: [EffectiveAddress], dest: [EffectiveAddress]): (matched: 
         if ((src.flags & FLAG_NUMBER) != 0) then
             write_byte(0x20); # JSR abs
             write_word_iop(0, 0); # copy number
+            write_word_iop(src.thing_id, src.offset_id);
+            write_word_iop(dest.thing_id, dest.offset_id);
         else
-            write_byte(0x20); # JSR abs
-            write_word_iop(0, 0); # copy value
+            write_cg_copy_iop(IOP_CG_COPY2, 0,
+                src.thing_id, src.offset_id,
+                dest.thing_id, dest.offset_id);
         end if;
-        write_word_iop(src.thing_id, src.offset_id);
-        write_word_iop(dest.thing_id, dest.offset_id);
         return;
     end if;
 
@@ -256,8 +256,8 @@ sub arch_gen_alu2op(iop: uint8,
         var accumulator: uint8 := find_or_load_value(left, REG_A);
         var buf: uint8[2];
         if right.type == EA_VAR_PLUS_CONST then
-            write_byte(opcodebase | 0x0D); # <op> abs
-            write_word_iop(right.thing_id, right.offset_id);
+            # OPCODE abs
+            write_cg_6502_mem_iop(opcodebase | 0x0D, right.thing_id, right.offset_id);
             value_is_precious_in_reg(dest, REG_A);
         else
             print("can't add this EA yet");
