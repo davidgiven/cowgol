@@ -61,10 +61,11 @@ CODEGEN_SRCS = \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
 	src/codegen/temporaries.cow \
+	src/codegen/ea.cow \
 	src/codegen/stack.cow \
 	src/codegen/queue.cow \
-	src/codegen/codegen.cow \
 	src/arch/bbc/codegen.cow \
+	src/codegen/codegen.cow \
 	src/codegen/main.cow
 
 THINGSHOWER_SRCS = \

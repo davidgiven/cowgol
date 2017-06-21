@@ -115,12 +115,7 @@ function tokenstream(source)
                         break
                     end
 
-                    _, nexto, m = source:find("^##([^\n]+)", o)
-                    if nexto then
-                        coroutine.yield("extern", m)
-                    end
-
-                    _, nexto = source:find("^#[^\n]+", o)
+                    _, nexto = source:find("^#[^\n]*", o)
                     if nexto then
                         o = nexto + 1
                         break

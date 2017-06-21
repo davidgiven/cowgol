@@ -1,77 +1,41 @@
-const EA_NOTHING             := 0;
-const EA_VAR_PLUS_CONST      := 1;
-const EA_VAR_PLUS_VAR        := 2;
-const EA_PTR_PLUS_CONST      := 3;
-const EA_PTR_PLUS_VAR        := 4;
-const EA_NUMBER              := 5;
-
-const FLAG_WIDTH_1   := 0b0000_0001;
-const FLAG_WIDTH_2   := 0b0000_0010;
-const FLAG_WIDTH_4   := 0b0000_0100;
-const FLAG_WIDTH_BIG := 0b0000_1000;
-const FLAG_POINTER   := 0b0001_0000;
-const FLAG_SIGNED    := 0b0010_0000;
-const FLAG_NUMBER    := 0b0100_0000;
-
-record EffectiveAddress
-    type: uint8;
-    flags: uint8;      # type flags of value at this EA
-    type_id: uint16;   # type of value at this EA
-    thing_id: uint16;  # base object (usually a variable, or 0)
-    offset_id: uint16; # fixed offset to that object
+record StackSlot
+    operator: uint8; # or 0
+    left: EffectiveAddress;
+    right: EffectiveAddress;
 end record;
 
-var stack: EffectiveAddress[32];
+var stack: StackSlot[32];
 var stack_pos: uint8;
-var blank_ea: EffectiveAddress[1];
+var empty_slot: StackSlot[1];
 
 sub init_stack()
-    zero_memory(&blank_ea[0] as [int8], EffectiveAddress@bytes);
+    zero_memory(&stack[0] as [int8], stack@bytes);
+    zero_memory(&empty_slot[0] as [int8], empty_slot@bytes);
     stack_pos := 0;
 end sub;
 
-sub print_ea(ea: [EffectiveAddress])
-    if ea.type == EA_NOTHING then
-        print("nothing()");
-        return;
-    elseif ea.type == EA_VAR_PLUS_VAR then
-        print("var_plus_var(");
-    elseif ea.type == EA_VAR_PLUS_CONST then
-        print("var_plus_const(");
-    elseif ea.type == EA_PTR_PLUS_VAR then
-        print("ptr_plus_var(");
-    elseif ea.type == EA_PTR_PLUS_CONST then
-        print("ptr_plus_const(");
-    elseif ea.type == EA_NUMBER then
-        print("number(");
-    else
-        print("unknown(");
-    end if;
-
-    print("flags=0x"); print_hex_i8(ea.flags);
-    print(" thing_id=0x"); print_hex_i16(ea.thing_id);
-    print(" offset_id=0x"); print_hex_i16(ea.offset_id);
-    print(")");
+sub print_stack()
+    print("stack:\n");
+    var i: uint8 := 0;
+    while i < stack_pos loop
+        print(" 0x");
+        print_hex_i8(stack[i].operator);
+        print_char(' ');
+        print_ea(&stack[i].left);
+        print_char(' ');
+        print_ea(&stack[i].right);
+        print_newline();
+        i := i + 1;
+    end loop;
 end sub;
 
-sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8)
-    if (ea1.type == ea2.type)
-            and (ea1.flags == ea2.flags)
-            and (ea1.thing_id == ea2.thing_id)
-            and (ea1.offset_id == ea2.offset_id) then
-        result := 1;
-    else
-        result := 0;
-    end if;
+sub copy_slot(src: [StackSlot], dest: [StackSlot])
+    copy_memory(src as [int8], dest as [int8], StackSlot@bytes);
 end sub;
 
-sub copy_ea(src: [EffectiveAddress], dest: [EffectiveAddress])
-    copy_memory(src as [int8], dest as [int8], EffectiveAddress@bytes);
-end sub;
-
-sub push_new_ea(): (ea: [EffectiveAddress])
-    ea := &stack[stack_pos];
-    zero_memory(ea as [int8], EffectiveAddress@bytes);
+sub push_new_slot(): (slot: [StackSlot])
+    slot := &stack[stack_pos];
+    zero_memory(slot as [int8], StackSlot@bytes);
     stack_pos := stack_pos + 1;
     if stack_pos == stack@size then
         print("stack overflow");
@@ -79,19 +43,39 @@ sub push_new_ea(): (ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub peek_ea(offset: int8): (ea: [EffectiveAddress])
+sub peek_slot(offset: int8): (slot: [StackSlot])
     var i: uint8 := stack_pos + offset;
     if i >= stack_pos then
-        ea := &blank_ea[0];
+        slot := &empty_slot[0];
     else
-        ea := &stack[i];
+        slot := &stack[i];
     end if;
 end sub;
 
-sub pop_eas(count: uint8)
+sub pop_slot(slot: [StackSlot])
+    if stack_pos == 0 then
+        print("stack underflow");
+        halt();
+    end if;
+    stack_pos := stack_pos - 1;
+    copy_slot(&stack[stack_pos], slot);
+end sub;
+
+sub discard_slots(count: uint8)
     if stack_pos < count then
         print("stack underflow");
         halt();
     end if;
     stack_pos := stack_pos - count;
 end sub;
+
+#sub peek_ea(offset: int8): (ea: [EffectiveAddress])
+#    var i: uint8 := stack_pos + offset;
+#    if i >= stack_pos then
+#        ea := &blank_ea[0];
+#    else
+#        ea := &stack[i];
+#    end if;
+#end sub;
+#
+#sub pop_eas(count: uint8)

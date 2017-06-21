@@ -9,21 +9,13 @@ sub print_queue()
     end loop;
 end sub;
 
-sub print_stack()
-    print("stack:");
-    var i: uint8 := 0;
-    while i < stack_pos loop
-        print_char(' ');
-        print_ea(&stack[i]);
-        i := i + 1;
-    end loop;
-end sub;
-
 sub apply_rules()
-    if arch_rules() == 1 then
+    if global_stack_rules() == 1 then
         return;
-    elseif global_rules() == 1 then
-        return;
+#    if arch_rules() == 1 then
+#        return;
+#    elseif global_rules() == 1 then
+#        return;
     else
         print("unmatched iops: ");
         print_queue();
@@ -45,7 +37,7 @@ sub process_subroutine(subroutine_id: uint16)
 
     loop
         fill_queue();
-        print_stack(); print_newline();
+        print_stack();
         print_queue(); print_newline();
 
         if queue[0].iop_kind == IOP_END then

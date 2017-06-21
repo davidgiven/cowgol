@@ -1,13 +1,13 @@
 sub print(ptr: [int8])
-#    var index: uint8 := 0;
-#    loop
-#        var c: int8 := ptr[index];
-#        if c == 0 then
-#            break;
-#        end if;
-#        print_char(c);
-#        index := index + 1;
-#    end loop;
+    var index: uint8 := 0;
+    loop
+        var c: int8 := ptr[index];
+        if c == 0 then
+            break;
+        end if;
+        print_char(c);
+        index := index + 1;
+    end loop;
 end sub;
 
 sub print_char(char: uint8)

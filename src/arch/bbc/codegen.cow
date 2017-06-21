@@ -201,79 +201,96 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     end if;
 end sub;
 
-sub arch_rules(): (matched: uint8)
-    matched := 1;
-    var right: [EffectiveAddress] := peek_ea(-1);
-    var left: [EffectiveAddress] := peek_ea(-2);
+sub write_byte(byte: uint8)
+    var buf: uint8[1];
+    buf[0] := byte;
+    write_bytes_iop(1, &buf[0]);
+end sub;
 
-    sub assign_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
+sub arch_gen_return()
+    flush_cached_values(REG_MASK);
+    write_byte(0x60); # RTS
+end sub;
+
+sub arch_gen_call(thing_id: uint16)
+    flush_cached_values(REG_MASK);
+    write_byte(0x20); # JSR
+    write_word_iop(thing_id, 0);
+end sub;
+
+sub arch_gen_label()
+    flush_cached_values(REG_MASK);
+end sub;
+
+sub arch_gen_copy(src: [EffectiveAddress], dest: [EffectiveAddress]): (matched: uint8)
+    matched := 1;
+
+    if ((src.flags & FLAG_WIDTH_2) != 0) and ((dest.flags & FLAG_WIDTH_2) != 0) then
+        if ((src.flags & FLAG_NUMBER) != 0) then
+            write_byte(0x20); # JSR abs
+            write_word_iop(0, 0); # copy number
+        else
+            write_byte(0x20); # JSR abs
+            write_word_iop(0, 0); # copy value
+        end if;
+        write_word_iop(src.thing_id, src.offset_id);
+        write_word_iop(dest.thing_id, dest.offset_id);
+        return;
+    end if;
+
+    if ((src.flags & FLAG_WIDTH_1) != 0) and ((dest.flags & FLAG_WIDTH_1) != 0) then
         var location: uint8 := find_or_load_value(src, REG_A|REG_X|REG_Y);
         value_is_precious_in_reg(dest, location);
-    end sub;
+        return;
+    end if;
 
-    sub add_16bit(left: [EffectiveAddress], right: [EffectiveAddress])
-        halt();
-    end sub;
+    matched := 0;
+end sub;
 
-    sub do_return()
-        var buf: uint8[1];
-        buf[0] := 0x60; # RTS
-        write_bytes_iop(1, &buf[0]);
-    end sub;
+sub arch_gen_alu2op(iop: uint8,
+        left: [EffectiveAddress], right: [EffectiveAddress], dest: [EffectiveAddress]):
+        (matched: uint8)
+    matched := 1;
 
-    sub emit_clc()
-        var buf: uint8[1];
-        buf[0] := 0x18; # CLC
-        write_bytes_iop(1, &buf[0]);
-    end sub;
-
-    sub major_8bit(opcodebase: uint8, left: [EffectiveAddress], right: [EffectiveAddress])
+    sub major_8bit(opcodebase: uint8)
         var accumulator: uint8 := find_or_load_value(left, REG_A);
         var buf: uint8[2];
         if right.type == EA_VAR_PLUS_CONST then
-            buf[0] := opcodebase | 0x0D; # <op> abs
-            write_bytes_iop(1, &buf[0]);
+            write_byte(opcodebase | 0x0D); # <op> abs
             write_word_iop(right.thing_id, right.offset_id);
+            value_is_precious_in_reg(dest, REG_A);
         else
             print("can't add this EA yet");
             halt();
         end if;
     end sub;
 
-    if queue[0].iop_kind == IOP_RETURN then
-        do_return();
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue[0].iop_kind == IOP_ASSIGN then
-        if ((right.flags & FLAG_WIDTH_1) != 0) and ((left.flags & FLAG_WIDTH_1) != 0) then
-            assign_to_byte(right, left);
-            consume_iops(1);
-            pop_eas(2);
-            return;
-        end if;
-    end if;
-
-    if queue[0].iop_kind == IOP_ADDOP then
+    if iop == IOP_ADDOP then
         if ((left.flags & FLAG_WIDTH_1) != 0) and ((right.flags & FLAG_WIDTH_1) != 0) then
-            emit_clc();
-            major_8bit(0x60, left, right);
-            consume_iops(1);
-            pop_eas(2);
-            return;
-        elseif ((left.flags & FLAG_WIDTH_2) != 0) and ((right.flags & FLAG_WIDTH_2) != 0) then
-            add_16bit(left, right);
-            consume_iops(1);
-            pop_eas(2);
+            write_byte(0x18); # CLC
+            major_8bit(0x60); # base ADC
             return;
         end if;
     end if;
 
-    if queue[0].iop_kind == IOP_LABEL then
-        flush_cached_values(REG_MASK);
-        consume_iops(1);
-        return;
+    matched := 0;
+end sub;
+
+sub arch_gen_alu1op(iop: uint8, left: [EffectiveAddress], dest: [EffectiveAddress]): (matched: uint8)
+    matched := 1;
+
+    sub do_not()
+        var accumulator: uint8 := find_or_load_value(left, REG_A);
+        write_byte(0x4D); # EOR imm
+        write_byte(0xFF);
+        value_is_precious_in_reg(dest, REG_A);
+    end sub;
+
+    if iop == IOP_NOTOP then
+        if (left.flags & FLAG_WIDTH_1) != 0 then
+            do_not();
+            return;
+        end if;
     end if;
 
     matched := 0;
