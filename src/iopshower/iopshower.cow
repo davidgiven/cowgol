@@ -129,6 +129,20 @@ sub do_cg_6502_mem(iop: [CG6502MemIop])
     print_hex_i16(iop.offset_id);
 end sub;
 
+sub do_cg_6502_zeropage(iop: [CG6502ZeroPageIop])
+    print("CG_6502_ZEROPAGE thing_id=0x");
+    print_hex_i16(iop.thing_id);
+    print(" offset_id=0x");
+    print_hex_i16(iop.offset_id);
+end sub;
+
+sub do_cg_6502_cond(iop: [CG6502ConditionalIop])
+    print("CG_6502_COND opcode=0x");
+    print_hex_i8(iop.opcode);
+    print(" label_id=0x");
+    print_hex_i16(iop.label_id);
+end sub;
+
 loop
     var header: [IHeader] := read_iop_header();
     if header.thing_id == 0 then
@@ -246,6 +260,10 @@ loop
             do_cg_copy("CG_COPY4", iop as [CGCopyNIop]);
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);
+        elseif kind == IOP_CG_6502_ZEROPAGE then
+            do_cg_6502_zeropage(iop as [CG6502ZeroPageIop]);
+        elseif kind == IOP_CG_6502_COND then
+            do_cg_6502_cond(iop as [CG6502ConditionalIop]);
         else
             print("Unknown iop 0x");
             print_hex_i8(kind);

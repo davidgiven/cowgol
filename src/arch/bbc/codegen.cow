@@ -131,14 +131,27 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub flush_cached_values(mask: uint8)
+sub write_back_precious_values(mask: uint8)
     var index: uint8 := 0;
     while index < values@size loop
         var location: uint8 := values[index].location;
         if (location & mask) != 0 then
             if (location & PRECIOUS) != 0 then
-                write_back_precious_value(location & (PRECIOUS ^ 0xff), &values[index].ea);
+                location := location - PRECIOUS;
+                write_back_precious_value(location, &values[index].ea);
+                values[index].location := location;
             end if;
+        end if;
+        index := index + 1;
+    end loop;
+end sub;
+
+sub flush_cached_values(mask: uint8)
+    write_back_precious_values(mask);
+    var index: uint8 := 0;
+    while index < values@size loop
+        var location: uint8 := values[index].location;
+        if (location & mask) != 0 then
             print("* flushing cache slot ");
             print_i8(index);
             print_newline();
@@ -221,30 +234,51 @@ sub arch_gen_label()
     flush_cached_values(REG_MASK);
 end sub;
 
+sub arch_gen_goto(thing_id: uint16)
+    flush_cached_values(REG_MASK);
+    write_byte(0x4C); # JMP abs
+    write_word_iop(thing_id, 0);
+end sub;
+
 sub arch_gen_copy(src: [EffectiveAddress], dest: [EffectiveAddress]): (matched: uint8)
-    matched := 1;
-
-    if ((src.flags & FLAG_WIDTH_2) != 0) and ((dest.flags & FLAG_WIDTH_2) != 0) then
-        if ((src.flags & FLAG_NUMBER) != 0) then
-            write_byte(0x20); # JSR abs
-            write_word_iop(deref_symbol_or_fail(TOKEN_CG_LOAD2), 0);
-            write_word_iop(src.thing_id, src.offset_id);
-            write_word_iop(dest.thing_id, dest.offset_id);
-        else
-            write_cg_copy_iop(IOP_CG_COPY2, 0,
-                src.thing_id, src.offset_id,
-                dest.thing_id, dest.offset_id);
-        end if;
-        return;
-    end if;
-
-    if ((src.flags & FLAG_WIDTH_1) != 0) and ((dest.flags & FLAG_WIDTH_1) != 0) then
-        var location: uint8 := find_or_load_value(src, REG_A|REG_X|REG_Y);
-        value_is_precious_in_reg(dest, location);
-        return;
-    end if;
-
     matched := 0;
+end sub;
+
+sub arch_gen_copy_byte_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
+    var location: uint8 := find_or_load_value(src, REG_A|REG_X|REG_Y);
+    value_is_precious_in_reg(dest, location);
+end sub;
+
+sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
+    write_cg_copy_iop(IOP_CG_COPY2, 0,
+        src.thing_id, src.offset_id,
+        dest.thing_id, dest.offset_id);
+end sub;
+
+sub arch_gen_copy_number_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
+    arch_gen_copy_byte_to_byte(src, dest);
+end sub;
+
+sub arch_gen_copy_number_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
+    write_byte(0x20); # JSR abs
+    write_word_iop(deref_symbol_or_fail(TOKEN_CG_LOAD2), 0);
+    write_word_iop(src.thing_id, src.offset_id);
+    write_word_iop(dest.thing_id, dest.offset_id);
+end sub;
+
+sub arch_gen_load_ptr_offset_bytevar_to_byte(ptr_id: uint16, offsetvar_id: uint16,
+        dest: [EffectiveAddress])
+    var ptr: [VariableThing] := find_thing(ptr_id) as [VariableThing];
+    #ptr.section := SECTION_POINTER;
+
+    var ea: EffectiveAddress[1];
+    ea[0].type := EA_VAR_PLUS_CONST;
+    ea[0].flags := FLAG_POINTER | FLAG_WIDTH_1;
+    ea[0].thing_id := offsetvar_id;
+    var xreg: uint8 := find_or_load_value(&ea[0], REG_X);
+    write_byte(0xA1); # LDA ind,X
+    write_cg_6502_zeropage_iop(ptr_id, 0);
+    value_is_precious_in_reg(dest, REG_A);
 end sub;
 
 sub arch_gen_alu2op(iop: uint8,
@@ -294,4 +328,49 @@ sub arch_gen_alu1op(iop: uint8, left: [EffectiveAddress], dest: [EffectiveAddres
     end if;
 
     matched := 0;
+end sub;
+
+sub arch_gen_conditional_fallthrough(iop: uint8,
+        left: [EffectiveAddress], right: [EffectiveAddress], inverted: uint8, label_id: uint16):
+        (matched: uint8)
+    matched := 1;
+
+    var opcode: uint8;
+    if ((left.flags & FLAG_WIDTH_1|FLAG_NUMBER) != 0)
+            and ((right.flags & FLAG_WIDTH_1|FLAG_NUMBER) != 0) then
+        var reg: uint8 := find_or_load_value(left, REG_A|REG_X|REG_Y);
+        write_back_precious_values(REG_MASK);
+
+        if right.type == EA_NUMBER then
+            if reg == REG_A then
+                opcode := 0xC9; # CMP imm
+            elseif reg == REG_X then
+                opcode := 0xE0; # CPX imm
+            elseif reg == REG_Y then
+                opcode := 0xC0; # CPY imm
+            else
+                bad_register();
+            end if;
+            write_byte(opcode);
+            write_byte(get_value_of_number(right.offset_id));
+        else
+            print("can't compare these types yet");
+            halt();
+        end if;
+    else
+        matched := 0;
+        return;
+    end if;
+
+    if iop == IOP_BEQ then
+        opcode := 0xF0; # BNE
+    else
+        print("can't do this comparison yet");
+    end if;
+    if inverted == 1 then
+        opcode := opcode ^ 0x20;
+    end if;
+
+    flush_cached_values(REG_MASK);
+    write_cg_6502_conditional_iop(opcode, label_id);
 end sub;

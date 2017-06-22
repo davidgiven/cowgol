@@ -5,13 +5,14 @@ const EA_PTR_PLUS_CONST      := 3;
 const EA_PTR_PLUS_VAR        := 4;
 const EA_NUMBER              := 5;
 
-const FLAG_WIDTH_1   := 0b0000_0001;
-const FLAG_WIDTH_2   := 0b0000_0010;
-const FLAG_WIDTH_4   := 0b0000_0100;
-const FLAG_WIDTH_BIG := 0b0000_1000;
-const FLAG_POINTER   := 0b0001_0000;
-const FLAG_SIGNED    := 0b0010_0000;
-const FLAG_NUMBER    := 0b0100_0000;
+const FLAG_MASK_WIDTH := 0b0000_1111;
+const FLAG_WIDTH_1    := 0b0000_0001;
+const FLAG_WIDTH_2    := 0b0000_0010;
+const FLAG_WIDTH_4    := 0b0000_0100;
+const FLAG_WIDTH_BIG  := 0b0000_1000;
+const FLAG_POINTER    := 0b0001_0000;
+const FLAG_SIGNED     := 0b0010_0000;
+const FLAG_NUMBER     := 0b0100_0000;
 
 record EffectiveAddress
     type: uint8;

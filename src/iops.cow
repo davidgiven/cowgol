@@ -1,10 +1,3 @@
-const SECTION_UNKNOWN := 0;
-const SECTION_CODE := 1;
-const SECTION_ROMDATA := 2;
-const SECTION_RAMDATA := 3;
-const SECTION_NONINITDATA := 4;
-const SECTION_POINTERS := 5;
-
 record IHeader
     thing_id: uint16;
     section: uint8;
@@ -59,6 +52,8 @@ const IOP_CG_COPY1         := 0b1111_0000;
 const IOP_CG_COPY2         := 0b1111_0001;
 const IOP_CG_COPY4         := 0b1111_0010;
 const IOP_CG_6502_MEM      := 0b1111_0011;
+const IOP_CG_6502_ZEROPAGE := 0b1111_0100;
+const IOP_CG_6502_COND     := 0b1111_0101;
 
 # the typechecker rewrites these to THING.
 const IOP_INPUTPARAM  := 0x01; # push input parameter of subroutine
@@ -166,5 +161,28 @@ record CG6502MemIop: Iop
     offset_id: uint16;
 end record;
 
+record CG6502ZeroPageIop: Iop
+    thing_id: uint16;
+    offset_id: uint16;
+end record;
+
+record CG6502ConditionalIop: Iop
+    opcode: uint8;
+    label_id: uint16;
+end record;
+
 record BiggestIop: BytesIop
 end record;
+
+sub resolve_label_id(ref_id: uint16): (label_id: uint16)
+    label_id := ref_id;
+    loop
+        var label: [LabelThing] := find_thing(label_id) as [LabelThing];
+        if label.thing_type == THING_LABEL then
+            break;
+        end if;
+
+        label_id := label.target;
+    end loop;
+end sub;
+

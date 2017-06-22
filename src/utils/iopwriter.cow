@@ -121,3 +121,22 @@ sub write_cg_6502_mem_iop(opcode: uint8, thing_id: uint16, offset_id: int16)
     buf[0].offset_id := offset_id;
     write_iop(&buf[0] as [Iop]);
 end sub;
+
+sub write_cg_6502_zeropage_iop(thing_id: uint16, offset_id: uint16)
+    var buf: CG6502ZeroPageIop[1];
+    buf[0].iop_size := CG6502ZeroPageIop@bytes;
+    buf[0].iop_kind := IOP_CG_6502_ZEROPAGE;
+    buf[0].thing_id := thing_id;
+    buf[0].offset_id := offset_id;
+    write_iop(&buf[0] as [Iop]);
+end sub;
+
+sub write_cg_6502_conditional_iop(opcode: uint8, label_id: uint16)
+    var buf: CG6502ConditionalIop[1];
+    buf[0].iop_size := CG6502ConditionalIop@bytes;
+    buf[0].iop_kind := IOP_CG_6502_COND;
+    buf[0].opcode := opcode;
+    buf[0].label_id := label_id;
+    write_iop(&buf[0] as [Iop]);
+end sub;
+

@@ -66,6 +66,7 @@ CODEGEN_SRCS = \
 	src/codegen/ea.cow \
 	src/codegen/stack.cow \
 	src/codegen/queue.cow \
+	src/arch/bbc/globals.cow \
 	src/arch/bbc/codegen.cow \
 	src/codegen/codegen.cow \
 	src/codegen/main.cow
@@ -78,8 +79,8 @@ THINGSHOWER_SRCS = \
 
 IOPSHOWER_SRCS = \
 	src/string_lib.cow \
-	src/iops.cow \
 	src/things.cow \
+	src/iops.cow \
 	src/utils/stringtable.cow \
 	src/iopshower/iopreader.cow \
 	src/iopshower/iopshower.cow

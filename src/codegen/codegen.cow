@@ -3,12 +3,42 @@ sub try_copy(src: [EffectiveAddress], dest: [EffectiveAddress])
         return;
     end if;
 
-    # When assigning a generic number to something, promote the number to the same type as
-    # the thing being assigned to.
     if src.type == EA_NUMBER then
-        src.flags := dest.flags | FLAG_NUMBER;
-        if arch_gen_copy(src, dest) == 1 then
+        if dest.type == EA_VAR_PLUS_CONST then
+            if (dest.flags & FLAG_WIDTH_1) != 0 then
+                arch_gen_copy_number_to_byte(src, dest);
+                return;
+            elseif (dest.flags & FLAG_WIDTH_2) != 0 then
+                arch_gen_copy_number_to_word(src, dest);
+                return;
+            end if;
+        end if;
+    end if;
+
+    if (src.type == EA_VAR_PLUS_CONST) and (dest.type == EA_VAR_PLUS_CONST) then
+        if (src.flags & FLAG_MASK_WIDTH) != (dest.flags & FLAG_MASK_WIDTH) then
+            print("ea flags mismatch");
+            halt();
+        elseif (src.flags & FLAG_WIDTH_1) != 0 then
+            arch_gen_copy_byte_to_byte(src, dest);
             return;
+        elseif (src.flags & FLAG_WIDTH_2) != 0 then
+            arch_gen_copy_word_to_word(src, dest);
+            return;
+        end if;
+    end if;
+
+    if (src.type == EA_PTR_PLUS_VAR) and (dest.type == EA_VAR_PLUS_CONST) then
+        var left: [VariableThing] := find_thing(src.thing_id) as [VariableThing];
+        var right: [VariableThing] := find_thing(src.offset_id) as [VariableThing];
+        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
+
+        # we can safely assume that the left is a pointer...
+        if (dest.flags & FLAG_WIDTH_1) != 0 then
+            if right_type.width == 1 then
+                arch_gen_load_ptr_offset_bytevar_to_byte(src.thing_id, src.offset_id, dest);
+                return;
+            end if;
         end if;
     end if;
 
@@ -138,7 +168,7 @@ sub global_stack_rules(): (matched: uint8)
         end if;
     end sub;
 
-    sub swap()
+    sub do_swap()
         var params: StackSlot[2];
         pop_slot(&params[1]);
         pop_slot(&params[0]);
@@ -164,6 +194,7 @@ sub global_stack_rules(): (matched: uint8)
             slot.left.offset_id := compute_constant_alu2_value(
                 queue[0].iop_kind, params[0].left.offset_id, params[1].left.offset_id);
         else
+            print("combining\n");
             slot.operator := queue[0].iop_kind;
             copy_ea(&params[0].left, &slot.left);
             copy_ea(&params[1].left, &slot.right);
@@ -194,13 +225,19 @@ sub global_stack_rules(): (matched: uint8)
         discard_slots(2);
     end sub;
 
-    sub call()
+    sub do_call()
         simplify_all_slots_up_to(0);
         var iop: [CallIop] := &queue[0] as [CallIop];
         arch_gen_call(iop.thing_id);
     end sub;
 
-    sub load()
+    sub do_goto()
+        stack_must_be_empty();
+        var iop: [GotoIop] := &queue[0] as [GotoIop];
+        arch_gen_goto(iop.label_id);
+    end sub;
+
+    sub do_load()
         var var_id: uint16 := slot_to_variable(right);
         discard_slots(1);
         var slot: [StackSlot] := push_new_slot();
@@ -208,6 +245,48 @@ sub global_stack_rules(): (matched: uint8)
         slot.left.type := EA_PTR_PLUS_CONST;
         slot.left.flags := FLAG_WIDTH_2;
         slot.left.thing_id := var_id;
+    end sub;
+
+    sub do_index()
+        simplify_slot(left);
+        simplify_slot(right);
+        if (left.left.type == EA_PTR_PLUS_CONST) and (right.left.type == EA_VAR_PLUS_CONST) then
+            var left_offset_id: uint16 := left.left.offset_id;
+            var right_thing_id: uint16 := right.left.thing_id;
+            var right_offset_id: uint16 := right.left.offset_id;
+            if (get_value_of_number(left_offset_id) == 0)
+                    and (get_value_of_number(right_offset_id) == 0) then
+                discard_slots(1);
+                left.left.type := EA_PTR_PLUS_VAR;
+                left.left.offset_id := right_thing_id;
+                return;
+            end if;
+        end if;
+
+        print("cannot index this yet");
+        halt();
+    end sub;
+
+    sub do_conditional_with_fallthrough(conditional: [ConditionalIop], label: [LabelIop]):
+            (matched: uint8)
+        simplify_slot(left);
+        simplify_slot(right);
+        var iftrue_label_id: uint16 := resolve_label_id(conditional.iftrue_label_id);
+        var iffalse_label_id: uint16 := resolve_label_id(conditional.iffalse_label_id);
+        var fallthrough_id: uint16 := resolve_label_id(label.label_id);
+
+        if iftrue_label_id == fallthrough_id then
+            matched := arch_gen_conditional_fallthrough(
+                conditional.iop_kind, &left.left, &right.left, 1, iffalse_label_id);
+        elseif iffalse_label_id == fallthrough_id then
+            matched := arch_gen_conditional_fallthrough(
+                conditional.iop_kind, &left.left, &right.left, 0, iftrue_label_id);
+        else
+            matched := 0;
+        end if;
+        if matched == 1 then
+            discard_slots(2);
+        end if;
     end sub;
 
     if queue[0].iop_kind == IOP_RETURN then
@@ -218,7 +297,7 @@ sub global_stack_rules(): (matched: uint8)
     end if;
 
     if queue[0].iop_kind == IOP_CALL then
-        call();
+        do_call();
         consume_iops(1);
         return;
     end if;
@@ -231,8 +310,15 @@ sub global_stack_rules(): (matched: uint8)
         return;
     end if;
 
+    if queue[0].iop_kind == IOP_GOTO then
+        stack_must_be_empty();
+        do_goto();
+        consume_iops(1);
+        return;
+    end if;
+
     if queue[0].iop_kind == IOP_SWAP then
-        swap();
+        do_swap();
         consume_iops(1);
         return;
     end if;
@@ -251,7 +337,13 @@ sub global_stack_rules(): (matched: uint8)
     end if;
 
     if queue[0].iop_kind == IOP_LOAD then
-        load();
+        do_load();
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue[0].iop_kind == IOP_INDEXOP then
+        do_index();
         consume_iops(1);
         return;
     end if;
@@ -286,6 +378,16 @@ sub global_stack_rules(): (matched: uint8)
         assignto();
         consume_iops(1);
         return;
+    end if;
+
+    if (queue[0].iop_kind & IOP_TYPE_CONDITIONAL) != 0 then
+        if queue[1].iop_kind == IOP_LABEL then
+            if do_conditional_with_fallthrough(
+                    &queue[0] as [ConditionalIop], &queue[1] as [LabelIop]) == 1 then
+                consume_iops(1);
+                return;
+            end if;
+        end if;
     end if;
 
     matched := 0;
