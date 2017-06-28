@@ -11,6 +11,11 @@ end record;
 
 const IOP_END := 0;
 
+# Important note with regard to the stack machine: there is no DUP instruction.
+# The code generator relies on every value on the stack being pushed exactly
+# once and popped exactly once (so as to make it easy to determine the lifespan
+# of nodes in the operator tree).
+
 const IOP_TYPE_MASK        := 0b1110_0000;
 
 const IOP_TYPE_CONDITIONAL := 0b0010_0000;

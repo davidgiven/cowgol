@@ -1,0 +1,6 @@
+const SECTION_UNKNOWN := 0;
+const SECTION_CODE := 1;
+const SECTION_ROMDATA := 2;
+const SECTION_RAMDATA := 3;
+const SECTION_NONINITDATA := 4;
+const SECTION_POINTERS := 5;

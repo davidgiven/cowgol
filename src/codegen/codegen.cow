@@ -15,32 +15,32 @@ sub try_copy(src: [EffectiveAddress], dest: [EffectiveAddress])
         end if;
     end if;
 
-    if (src.type == EA_VAR_PLUS_CONST) and (dest.type == EA_VAR_PLUS_CONST) then
-        if (src.flags & FLAG_MASK_WIDTH) != (dest.flags & FLAG_MASK_WIDTH) then
-            print("ea flags mismatch");
-            halt();
-        elseif (src.flags & FLAG_WIDTH_1) != 0 then
-            arch_gen_copy_byte_to_byte(src, dest);
-            return;
-        elseif (src.flags & FLAG_WIDTH_2) != 0 then
-            arch_gen_copy_word_to_word(src, dest);
-            return;
-        end if;
-    end if;
-
-    if (src.type == EA_PTR_PLUS_VAR) and (dest.type == EA_VAR_PLUS_CONST) then
-        var left: [VariableThing] := find_thing(src.thing_id) as [VariableThing];
-        var right: [VariableThing] := find_thing(src.offset_id) as [VariableThing];
-        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
-
-        # we can safely assume that the left is a pointer...
-        if (dest.flags & FLAG_WIDTH_1) != 0 then
-            if right_type.width == 1 then
-                arch_gen_load_ptr_offset_bytevar_to_byte(src.thing_id, src.offset_id, dest);
-                return;
-            end if;
-        end if;
-    end if;
+#    if (src.type == EA_VAR_PLUS_CONST) and (dest.type == EA_VAR_PLUS_CONST) then
+#        if (src.flags & FLAG_MASK_WIDTH) != (dest.flags & FLAG_MASK_WIDTH) then
+#            print("ea flags mismatch");
+#            halt();
+#        elseif (src.flags & FLAG_WIDTH_1) != 0 then
+#            arch_gen_copy_byte_to_byte(src, dest);
+#            return;
+#        elseif (src.flags & FLAG_WIDTH_2) != 0 then
+#            arch_gen_copy_word_to_word(src, dest);
+#            return;
+#        end if;
+#    end if;
+#
+#    if (src.type == EA_PTR_PLUS_VAR) and (dest.type == EA_VAR_PLUS_CONST) then
+#        var left: [VariableThing] := find_thing(src.thing_id) as [VariableThing];
+#        var right: [VariableThing] := find_thing(src.offset_id) as [VariableThing];
+#        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
+#
+#        # we can safely assume that the left is a pointer...
+#        if (dest.flags & FLAG_WIDTH_1) != 0 then
+#            if right_type.width == 1 then
+#                arch_gen_load_ptr_offset_bytevar_to_byte(src.thing_id, src.offset_id, dest);
+#                return;
+#            end if;
+#        end if;
+#    end if;
 
     print("cannot copy ");
     print_ea(src);
@@ -49,118 +49,139 @@ sub try_copy(src: [EffectiveAddress], dest: [EffectiveAddress])
     halt();
 end sub;
 
-sub simplify_to(src: [StackSlot], dest: [StackSlot])
-    if ((src.operator & IOP_TYPE_SIMPLE2OP) != 0)
-            or (src.operator == IOP_ADDOP)
-            or (src.operator == IOP_SUBOP)  then
-        if arch_gen_alu2op(src.operator, &src.left, &src.right, &dest.left) == 0 then
+
+sub simplify_lvalue(index: uint8)
+    if nodes[index].iop == IOP_THING then
+        return;
+    else
+        print("cannot simplify expression to lvalue");
+        halt();
+    end if;
+end sub;
+
+sub simplify_rvalue_to(src: uint8, dest: uint8)
+    var iop: uint8 := nodes[src].iop;
+    if iop == IOP_THING then
+        try_copy(&nodes[src].ea, &nodes[dest].ea);
+    elseif ((iop & IOP_TYPE_SIMPLE2OP) != 0) or (iop == IOP_ADDOP) or (iop == IOP_SUBOP) then
+        print("* alu2op 0x");
+        print_hex_i8(iop);
+        print_newline();
+        if arch_gen_alu2op(iop, &nodes[nodes[src].left].ea, &nodes[nodes[src].right].ea,
+                &nodes[dest].ea) == 0 then
             print("2op needs more simplification");
             halt();
         end if;
-    elseif (src.operator & IOP_TYPE_SIMPLE1OP) != 0 then
-        if arch_gen_alu1op(src.operator, &src.left, &dest.left) == 0 then
-            print("1op needs more simplification");
-            halt();
-        end if;
-    elseif src.operator == IOP_THING then
-        try_copy(&src.left, &dest.left);
     else
-        print("cannot simplify");
+        print("cannot simplify rvalue");
         halt();
     end if;
 end sub;
 
-sub simplify_slot(slot: [StackSlot])
-    if slot.operator != IOP_THING then
-        print("can't simplify yet");
-        halt();
-    end if;
-end sub;
-
-sub slot_to_variable(slot: [StackSlot]): (var_id: uint16)
-    if (slot.operator == IOP_THING) and (slot.left.type == EA_VAR_PLUS_CONST)
-            and (get_value_of_number(slot.left.offset_id) == 0) then
-        var_id := slot.left.thing_id;
-        return;
-    end if;
-
-    if slot.left.type_id == 0 then
-        print("can't convert something with no type to a variable");
-        halt();
-    end if;
-
-    print("todo");
-    halt();
-end sub;
-
-sub simplify_all_slots_up_to(offset: int8)
-    var top: int8 := stack_pos + offset;
-    var index: int8 := 0;
-    while index < top loop
-        simplify_slot(&stack[index]);
-        index := index + 1;
-    end loop;
-end sub;
-
-sub compute_constant_alu2_value(op: uint8, left_id: uint16, right_id: uint16): (result_id: uint16)
-    var left: int32 := get_value_of_number(left_id);
-    var right: int32 := get_value_of_number(right_id);
-    var result: int32;
-
-    if op == IOP_ADDOP then
-        result := left + right;
-    elseif op == IOP_SUBOP then
-        result := left - right;
-    else
-        print("can't compute this constant value yet");
-    end if;
-
-    result_id := add_number_by_value(result);
-end sub;
-
+#sub simplify_to(src: [StackSlot], dest: [StackSlot])
+#    if ((src.operator & IOP_TYPE_SIMPLE2OP) != 0)
+#            or (src.operator == IOP_ADDOP)
+#            or (src.operator == IOP_SUBOP)  then
+#        if arch_gen_alu2op(src.operator, &src.left, &src.right, &dest.left) == 0 then
+#            print("2op needs more simplification");
+#            halt();
+#        end if;
+#    elseif (src.operator & IOP_TYPE_SIMPLE1OP) != 0 then
+#        if arch_gen_alu1op(src.operator, &src.left, &dest.left) == 0 then
+#            print("1op needs more simplification");
+#            halt();
+#        end if;
+#    elseif src.operator == IOP_THING then
+#        try_copy(&src.left, &dest.left);
+#    else
+#        print("cannot simplify");
+#        halt();
+#    end if;
+#end sub;
+#
+#sub simplify_slot(slot: [StackSlot])
+#    if slot.operator != IOP_THING then
+#        print("can't simplify yet");
+#        halt();
+#    end if;
+#end sub;
+#
+#sub slot_to_variable(slot: [StackSlot]): (var_id: uint16)
+#    if (slot.operator == IOP_THING) and (slot.left.type == EA_VAR_PLUS_CONST)
+#            and (get_value_of_number(slot.left.offset_id) == 0) then
+#        var_id := slot.left.thing_id;
+#        return;
+#    end if;
+#
+#    if slot.left.type_id == 0 then
+#        print("can't convert something with no type to a variable");
+#        halt();
+#    end if;
+#
+#    print("todo");
+#    halt();
+#end sub;
+#
+#sub simplify_all_slots_up_to(offset: int8)
+#    var top: int8 := stack_pos + offset;
+#    var index: int8 := 0;
+#    while index < top loop
+#        simplify_slot(&stack[index]);
+#        index := index + 1;
+#    end loop;
+#end sub;
+#
+#sub compute_constant_alu2_value(op: uint8, left_id: uint16, right_id: uint16): (result_id: uint16)
+#    var left: int32 := get_value_of_number(left_id);
+#    var right: int32 := get_value_of_number(right_id);
+#    var result: int32;
+#
+#    if op == IOP_ADDOP then
+#        result := left + right;
+#    elseif op == IOP_SUBOP then
+#        result := left - right;
+#    else
+#        print("can't compute this constant value yet");
+#    end if;
+#
+#    result_id := add_number_by_value(result);
+#end sub;
+#
 sub global_stack_rules(): (matched: uint8)
     matched := 1;
-    var right: [StackSlot] := peek_slot(-1);
-    var left: [StackSlot] := peek_slot(-2);
-
-    sub stack_must_be_empty()
-        if stack_pos != 0 then
-            print("stack not empty");
-            halt();
-        end if;
-    end sub;
-
+#    var right: [StackSlot] := peek_slot(-1);
+#    var left: [StackSlot] := peek_slot(-2);
+#
     sub push_thing()
         var iop: [ThingIop] := &queue[0] as [ThingIop];
         var thing: [TypedThing] := find_thing(iop.thing_id) as [TypedThing];
-        var slot: [StackSlot] := push_new_slot();
+        var ea: [EffectiveAddress] := push_ea();
 
-        slot.operator := IOP_THING;
-        slot.left.type_id := thing.type_id;
-        var type: [TypeThing] := find_thing(slot.left.type_id) as [TypeThing];
+        ea.type_id := thing.type_id;
+        var type: [TypeThing] := find_thing(ea.type_id) as [TypeThing];
         if thing.thing_type == THING_NUMBER then
-            slot.left.flags := slot.left.flags | FLAG_NUMBER;
+            ea.flags := ea.flags | FLAG_NUMBER;
         elseif type.width == 1 then
-            slot.left.flags := slot.left.flags | FLAG_WIDTH_1;
+            ea.flags := ea.flags | FLAG_WIDTH_1;
         elseif type.width == 2 then
-            slot.left.flags := slot.left.flags | FLAG_WIDTH_2;
+            ea.flags := ea.flags | FLAG_WIDTH_2;
         elseif type.width == 4 then
-            slot.left.flags := slot.left.flags | FLAG_WIDTH_4;
+            ea.flags := ea.flags | FLAG_WIDTH_4;
         else
-            slot.left.flags := slot.left.flags | FLAG_WIDTH_BIG;
+            ea.flags := ea.flags | FLAG_WIDTH_BIG;
         end if;
         if type.thing_type == THING_SIGNED then
-            slot.left.flags := slot.left.flags | FLAG_SIGNED;
+            ea.flags := ea.flags | FLAG_SIGNED;
         elseif type.thing_type == THING_POINTER then
-            slot.left.flags := slot.left.flags | FLAG_POINTER;
+            ea.flags := ea.flags | FLAG_POINTER;
         end if;
 
         if (thing.thing_type == THING_VARIABLE) or (thing.thing_type == THING_PARAMETER) then
-            slot.left.type := EA_VAR_PLUS_CONST;
-            slot.left.thing_id := iop.thing_id;
+            ea.type := EA_VAR_PLUS_CONST;
+            ea.thing_id := iop.thing_id;
         elseif thing.thing_type == THING_NUMBER then
-            slot.left.type := EA_NUMBER;
-            slot.left.offset_id := iop.thing_id;
+            ea.type := EA_NUMBER;
+            ea.offset_id := iop.thing_id;
         else
             print("don't know how to push things of kind 0x");
             print_hex_i8(thing.thing_type);
@@ -169,126 +190,129 @@ sub global_stack_rules(): (matched: uint8)
     end sub;
 
     sub do_swap()
-        var params: StackSlot[2];
-        pop_slot(&params[1]);
-        pop_slot(&params[0]);
-
-        var slot: [StackSlot] := push_new_slot();
-        copy_slot(&params[1], slot);
-        slot := push_new_slot();
-        copy_slot(&params[0], slot);
+        ensure_stack_size(2);
+        var t: uint8 := stack[stack_pos-1];
+        stack[stack_pos-1] := stack[stack_pos-2];
+        stack[stack_pos-2] := t;
     end sub;
 
     sub push_simple2op()
-        var params: StackSlot[2];
-        pop_slot(&params[1]);
-        pop_slot(&params[0]);
-        simplify_slot(&params[0]);
-        simplify_slot(&params[1]);
+        var node_index: uint8 := alloc_node();
+        var node: [Node] := &nodes[node_index];
 
-        var slot: [StackSlot] := push_new_slot();
-        if (params[0].left.type == EA_NUMBER) and (params[1].left.type == EA_NUMBER) then
-            slot.operator := IOP_THING;
-            slot.left.type := EA_NUMBER;
-            slot.left.flags := FLAG_NUMBER;
-            slot.left.offset_id := compute_constant_alu2_value(
-                queue[0].iop_kind, params[0].left.offset_id, params[1].left.offset_id);
-        else
-            print("combining\n");
-            slot.operator := queue[0].iop_kind;
-            copy_ea(&params[0].left, &slot.left);
-            copy_ea(&params[1].left, &slot.right);
-        end if;
-    end sub;
-
-    sub push_simple1op()
-        var params: StackSlot[1];
-        pop_slot(&params[0]);
-        simplify_slot(&params[0]);
-
-        var slot: [StackSlot] := push_new_slot();
-        slot.operator := queue[0].iop_kind;
-        copy_ea(&params[0].left, &slot.left);
-    end sub;
-
-    sub assign()
-        simplify_all_slots_up_to(-2); # all except assign params
-        simplify_slot(left);
-        simplify_to(right, left);
-        discard_slots(2);
-    end sub;
-
-    sub assignto()
-        simplify_all_slots_up_to(-2); # all except assign params
-        simplify_slot(right);
-        simplify_to(left, right);
-        discard_slots(2);
-    end sub;
-
-    sub do_call()
-        simplify_all_slots_up_to(0);
-        var iop: [CallIop] := &queue[0] as [CallIop];
-        arch_gen_call(iop.thing_id);
-    end sub;
-
-    sub do_goto()
-        stack_must_be_empty();
-        var iop: [GotoIop] := &queue[0] as [GotoIop];
-        arch_gen_goto(iop.label_id);
-    end sub;
-
-    sub do_load()
-        var var_id: uint16 := slot_to_variable(right);
-        discard_slots(1);
-        var slot: [StackSlot] := push_new_slot();
-        slot.operator := IOP_THING;
-        slot.left.type := EA_PTR_PLUS_CONST;
-        slot.left.flags := FLAG_WIDTH_2;
-        slot.left.thing_id := var_id;
-    end sub;
-
-    sub do_index()
-        simplify_slot(left);
-        simplify_slot(right);
-        if (left.left.type == EA_PTR_PLUS_CONST) and (right.left.type == EA_VAR_PLUS_CONST) then
-            var left_offset_id: uint16 := left.left.offset_id;
-            var right_thing_id: uint16 := right.left.thing_id;
-            var right_offset_id: uint16 := right.left.offset_id;
-            if (get_value_of_number(left_offset_id) == 0)
-                    and (get_value_of_number(right_offset_id) == 0) then
-                discard_slots(1);
-                left.left.type := EA_PTR_PLUS_VAR;
-                left.left.offset_id := right_thing_id;
-                return;
-            end if;
-        end if;
-
-        print("cannot index this yet");
+#        var params: StackSlot[2];
+#        pop_slot(&params[1]);
+#        pop_slot(&params[0]);
+#        simplify_slot(&params[0]);
+#        simplify_slot(&params[1]);
+#
+#        var slot: [StackSlot] := push_new_slot();
+#        if (params[0].left.type == EA_NUMBER) and (params[1].left.type == EA_NUMBER) then
+#            slot.operator := IOP_THING;
+#            slot.left.type := EA_NUMBER;
+#            slot.left.flags := FLAG_NUMBER;
+#            slot.left.offset_id := compute_constant_alu2_value(
+#                queue[0].iop_kind, params[0].left.offset_id, params[1].left.offset_id);
+#        else
+#            print("combining\n");
+#            slot.operator := queue[0].iop_kind;
+#            copy_ea(&params[0].left, &slot.left);
+#            copy_ea(&params[1].left, &slot.right);
+#        end if;
+        pop(2);
+        push_node(node_index);
         halt();
     end sub;
 
-    sub do_conditional_with_fallthrough(conditional: [ConditionalIop], label: [LabelIop]):
-            (matched: uint8)
-        simplify_slot(left);
-        simplify_slot(right);
-        var iftrue_label_id: uint16 := resolve_label_id(conditional.iftrue_label_id);
-        var iffalse_label_id: uint16 := resolve_label_id(conditional.iffalse_label_id);
-        var fallthrough_id: uint16 := resolve_label_id(label.label_id);
+#    sub push_simple1op()
+#        var params: StackSlot[1];
+#        pop_slot(&params[0]);
+#        simplify_slot(&params[0]);
+#
+#        var slot: [StackSlot] := push_new_slot();
+#        slot.operator := queue[0].iop_kind;
+#        copy_ea(&params[0].left, &slot.left);
+#    end sub;
 
-        if iftrue_label_id == fallthrough_id then
-            matched := arch_gen_conditional_fallthrough(
-                conditional.iop_kind, &left.left, &right.left, 1, iffalse_label_id);
-        elseif iffalse_label_id == fallthrough_id then
-            matched := arch_gen_conditional_fallthrough(
-                conditional.iop_kind, &left.left, &right.left, 0, iftrue_label_id);
-        else
-            matched := 0;
-        end if;
-        if matched == 1 then
-            discard_slots(2);
-        end if;
+    sub assign()
+        var right_index: uint8 := stack_pos - 1;
+        var left_index: uint8 := stack_pos - 2;
+        simplify_lvalue(left_index);
+        simplify_rvalue_to(right_index, left_index);
+        pop(2);
     end sub;
 
+#    sub assignto()
+#        simplify_all_slots_up_to(-2); # all except assign params
+#        simplify_slot(right);
+#        simplify_to(left, right);
+#        discard_slots(2);
+#    end sub;
+#
+#    sub do_call()
+#        simplify_all_slots_up_to(0);
+#        var iop: [CallIop] := &queue[0] as [CallIop];
+#        arch_gen_call(iop.thing_id);
+#    end sub;
+#
+#    sub do_goto()
+#        stack_must_be_empty();
+#        var iop: [GotoIop] := &queue[0] as [GotoIop];
+#        arch_gen_goto(iop.label_id);
+#    end sub;
+#
+#    sub do_load()
+#        var var_id: uint16 := slot_to_variable(right);
+#        discard_slots(1);
+#        var slot: [StackSlot] := push_new_slot();
+#        slot.operator := IOP_THING;
+#        slot.left.type := EA_PTR_PLUS_CONST;
+#        slot.left.flags := FLAG_WIDTH_2;
+#        slot.left.thing_id := var_id;
+#    end sub;
+#
+#    sub do_index()
+#        simplify_slot(left);
+#        simplify_slot(right);
+#        if (left.left.type == EA_PTR_PLUS_CONST) and (right.left.type == EA_VAR_PLUS_CONST) then
+#            var left_offset_id: uint16 := left.left.offset_id;
+#            var right_thing_id: uint16 := right.left.thing_id;
+#            var right_offset_id: uint16 := right.left.offset_id;
+#            if (get_value_of_number(left_offset_id) == 0)
+#                    and (get_value_of_number(right_offset_id) == 0) then
+#                discard_slots(1);
+#                left.left.type := EA_PTR_PLUS_VAR;
+#                left.left.offset_id := right_thing_id;
+#                return;
+#            end if;
+#        end if;
+#
+#        print("cannot index this yet");
+#        halt();
+#    end sub;
+#
+#    sub do_conditional_with_fallthrough(conditional: [ConditionalIop], label: [LabelIop]):
+#            (matched: uint8)
+#        simplify_slot(left);
+#        simplify_slot(right);
+#        var iftrue_label_id: uint16 := resolve_label_id(conditional.iftrue_label_id);
+#        var iffalse_label_id: uint16 := resolve_label_id(conditional.iffalse_label_id);
+#        var fallthrough_id: uint16 := resolve_label_id(label.label_id);
+#
+#        if iftrue_label_id == fallthrough_id then
+#            matched := arch_gen_conditional_fallthrough(
+#                conditional.iop_kind, &left.left, &right.left, 1, iffalse_label_id);
+#        elseif iffalse_label_id == fallthrough_id then
+#            matched := arch_gen_conditional_fallthrough(
+#                conditional.iop_kind, &left.left, &right.left, 0, iftrue_label_id);
+#        else
+#            matched := 0;
+#        end if;
+#        if matched == 1 then
+#            discard_slots(2);
+#        end if;
+#    end sub;
+#
     if queue[0].iop_kind == IOP_RETURN then
         stack_must_be_empty();
         arch_gen_return();
@@ -296,11 +320,11 @@ sub global_stack_rules(): (matched: uint8)
         return;
     end if;
 
-    if queue[0].iop_kind == IOP_CALL then
-        do_call();
-        consume_iops(1);
-        return;
-    end if;
+#    if queue[0].iop_kind == IOP_CALL then
+#        do_call();
+#        consume_iops(1);
+#        return;
+#    end if;
 
     if queue[0].iop_kind == IOP_LABEL then
         stack_must_be_empty();
@@ -310,12 +334,12 @@ sub global_stack_rules(): (matched: uint8)
         return;
     end if;
 
-    if queue[0].iop_kind == IOP_GOTO then
-        stack_must_be_empty();
-        do_goto();
-        consume_iops(1);
-        return;
-    end if;
+#    if queue[0].iop_kind == IOP_GOTO then
+#        stack_must_be_empty();
+#        do_goto();
+#        consume_iops(1);
+#        return;
+#    end if;
 
     if queue[0].iop_kind == IOP_SWAP then
         do_swap();
@@ -323,12 +347,12 @@ sub global_stack_rules(): (matched: uint8)
         return;
     end if;
 
-    if (queue[0].iop_kind == IOP_BYTES) or (queue[0].iop_kind == IOP_WORD) then
-        stack_must_be_empty();
-        write_iop(&queue[0] as [Iop]);
-        consume_iops(1);
-        return;
-    end if;
+#    if (queue[0].iop_kind == IOP_BYTES) or (queue[0].iop_kind == IOP_WORD) then
+#        stack_must_be_empty();
+#        write_iop(&queue[0] as [Iop]);
+#        consume_iops(1);
+#        return;
+#    end if;
 
     if queue[0].iop_kind == IOP_THING then
         push_thing();
@@ -336,17 +360,17 @@ sub global_stack_rules(): (matched: uint8)
         return;
     end if;
 
-    if queue[0].iop_kind == IOP_LOAD then
-        do_load();
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue[0].iop_kind == IOP_INDEXOP then
-        do_index();
-        consume_iops(1);
-        return;
-    end if;
+#    if queue[0].iop_kind == IOP_LOAD then
+#        do_load();
+#        consume_iops(1);
+#        return;
+#    end if;
+#
+#    if queue[0].iop_kind == IOP_INDEXOP then
+#        do_index();
+#        consume_iops(1);
+#        return;
+#    end if;
 
     if ((queue[0].iop_kind & IOP_TYPE_SIMPLE2OP) != 0)
             or (queue[0].iop_kind == IOP_ADDOP)
@@ -356,17 +380,17 @@ sub global_stack_rules(): (matched: uint8)
         return;
     end if;
 
-    if (queue[0].iop_kind == IOP_ZEXTOP)
-            and (right.operator == IOP_THING) and (right.left.type == EA_NUMBER) then
-        consume_iops(1);
-        return;
-    end if;
-
-    if ((queue[0].iop_kind & IOP_TYPE_SIMPLE1OP) != 0) then
-        push_simple1op();
-        consume_iops(1);
-        return;
-    end if;
+#    if (queue[0].iop_kind == IOP_ZEXTOP)
+#            and (right.operator == IOP_THING) and (right.left.type == EA_NUMBER) then
+#        consume_iops(1);
+#        return;
+#    end if;
+#
+#    if ((queue[0].iop_kind & IOP_TYPE_SIMPLE1OP) != 0) then
+#        push_simple1op();
+#        consume_iops(1);
+#        return;
+#    end if;
 
     if queue[0].iop_kind == IOP_ASSIGN then
         assign();
@@ -374,21 +398,22 @@ sub global_stack_rules(): (matched: uint8)
         return;
     end if;
 
-    if queue[0].iop_kind == IOP_ASSIGNTO then
-        assignto();
-        consume_iops(1);
-        return;
-    end if;
-
-    if (queue[0].iop_kind & IOP_TYPE_CONDITIONAL) != 0 then
-        if queue[1].iop_kind == IOP_LABEL then
-            if do_conditional_with_fallthrough(
-                    &queue[0] as [ConditionalIop], &queue[1] as [LabelIop]) == 1 then
-                consume_iops(1);
-                return;
-            end if;
-        end if;
-    end if;
-
+#    if queue[0].iop_kind == IOP_ASSIGNTO then
+#        assignto();
+#        consume_iops(1);
+#        return;
+#    end if;
+#
+#    if (queue[0].iop_kind & IOP_TYPE_CONDITIONAL) != 0 then
+#        if queue[1].iop_kind == IOP_LABEL then
+#            if do_conditional_with_fallthrough(
+#                    &queue[0] as [ConditionalIop], &queue[1] as [LabelIop]) == 1 then
+#                consume_iops(1);
+#                return;
+#            end if;
+#        end if;
+#    end if;
+#
     matched := 0;
 end sub;
+#

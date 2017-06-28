@@ -30,7 +30,7 @@ sub process_subroutine(subroutine_id: uint16)
     show_name_of(subroutine_id);
     print_newline();
 
-    init_stack();
+    init_tree();
     init_temporaries();
     queue_depth := 0;
     run_out_of_iops := 0;

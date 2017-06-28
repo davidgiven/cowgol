@@ -1,0 +1,137 @@
+record Node
+    iop: uint8;
+    ea: EffectiveAddress;    # when iop=IOP_THING
+    left: uint8;             # when iop is an operator
+    right: uint8;            # when iop is an operator
+end record;
+
+var nodes: Node[32];
+var allocated_nodes: uint8;
+var stack: uint8[32];
+var stack_pos: uint8;
+
+sub init_tree()
+    zero_memory(&nodes[0] as [int8], nodes@bytes);
+    zero_memory(&stack[0] as [int8], stack@bytes);
+    stack_pos := 0;
+    allocated_nodes := 0;
+end sub;
+
+sub alloc_node(): (index: uint8)
+    index := 0;
+    while index < nodes@size loop
+        if nodes[index].iop == 0 then
+            allocated_nodes := allocated_nodes + 1;
+            print("* allocated new node ");
+            print_i8(index);
+            print(" (");
+            print_i8(allocated_nodes);
+            print(" used out of ");
+            print_i8(nodes@size);
+            print(")\n");
+            return;
+        end if;
+        index := index + 1;
+    end loop;
+    print("operator tree is full");
+    halt();
+end sub;
+
+sub free_node(index: uint8)
+    nodes[index].iop := 0;
+    zero_memory(&nodes[index] as [int8], Node@bytes);
+    allocated_nodes := allocated_nodes - 1;
+    print("* freed node ");
+    print_i8(index);
+    print_newline();
+end sub;
+
+sub push_node(index: uint8)
+    stack[stack_pos] := index;
+    stack_pos := stack_pos + 1;
+    if stack_pos == stack@size then
+        print("stack overflow");
+        halt();
+    end if;
+end sub;
+
+sub push_empty_node(): (index: uint8)
+    index := alloc_node();
+    push_node(index);
+end sub;
+
+sub push_ea(): (ea: [EffectiveAddress])
+    var index: uint8 := push_empty_node();
+    nodes[index].iop := IOP_THING;
+    ea := &nodes[index].ea;
+end sub;
+
+sub push_operator(iop: uint8, type_id: uint16, left: uint8, right: uint8)
+    var index: uint8 := push_empty_node();
+    nodes[index].ea.type_id := type_id;
+    nodes[index].iop := iop;
+    nodes[index].left := left;
+    nodes[index].right := right;
+end sub;
+
+sub pop(count: uint8)
+    while count > 0 loop
+        if stack_pos == 0 then
+            print("stack underflow");
+            halt();
+        end if;
+
+        stack_pos := stack_pos - 1;
+        free_node(stack[stack_pos]);
+        count := count - 1;
+    end loop;
+end sub;
+
+sub ensure_stack_size(size: uint8)
+    if stack_pos < size then
+        print("stack underflow");
+        halt();
+    end if;
+end sub;
+
+sub stack_must_be_empty()
+    if stack_pos != 0 then
+        print("stack not empty");
+        halt();
+    end if;
+end sub;
+
+sub print_stack()
+    print("tree:\n");
+    var index: uint8 := 0;
+    while index < nodes@size loop
+        if nodes[index].iop != 0 then
+            print("node=");
+            print_i8(index);
+            print(" iop=0x");
+            print_hex_i8(nodes[index].iop);
+            print(" type_id=0x");
+            print_hex_i16(nodes[index].ea.type_id);
+            print_char(' ');
+            if nodes[index].iop == IOP_THING then
+                print_ea(&nodes[index].ea);
+            else
+                print("left=");
+                print_i8(nodes[index].left);
+                print(" right=");
+                print_i8(nodes[index].right);
+            end if;
+            print_newline();
+        end if;
+        index := index + 1;
+    end loop;
+
+    print("stack:\n");
+    index := stack_pos;
+    while index != 0 loop
+        index := index - 1;
+        print_i8(stack[index]);
+        print_char(' ');
+    end loop;
+    print_newline();
+end sub;

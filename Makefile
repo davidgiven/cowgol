@@ -64,7 +64,7 @@ CODEGEN_SRCS = \
 	src/utils/symbols.cow \
 	src/codegen/temporaries.cow \
 	src/codegen/ea.cow \
-	src/codegen/stack.cow \
+	src/codegen/tree.cow \
 	src/codegen/queue.cow \
 	src/arch/bbc/globals.cow \
 	src/arch/bbc/codegen.cow \
