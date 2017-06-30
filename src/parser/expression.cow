@@ -161,6 +161,10 @@ sub expression_state_machine()
             alu_2op(IOP_ANDOP);
         elseif op_id == TOKEN_CARET then
             alu_2op(IOP_EOROP);
+        elseif op_id == TOKEN_LEFTSHIFT then
+            alu_2op(IOP_LSLOP);
+        elseif op_id == TOKEN_RIGHTSHIFT then
+            alu_2op(IOP_RSHIFTOP);
         elseif op_id == TOKEN_OPENSQUARE then
             alu_2op(IOP_SINDEXOP);
         elseif op_id == TOKEN_OPENPAREN then
@@ -341,7 +345,7 @@ sub expression_state_machine()
                     state := STATE_AFTER;
                     data_stack_size := data_stack_size + 1;
                 else
-                    print("bad token ");
+                    print("bad prefix token ");
                     show_identifier(current_token);
                     halt();
                 end if;

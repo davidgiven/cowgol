@@ -248,6 +248,39 @@ sub process_subroutine(thing_id: uint16)
         end if;
     end sub;
 
+    sub shift_op(iop: [TypedIop])
+        var right_type_id: uint16;
+        var right_flags: uint8;
+        (right_type_id, right_flags) := pop_type();
+
+        var left_type_id: uint16;
+        var left_flags: uint8;
+        (left_type_id, left_flags) := pop_type();
+
+        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+
+        if (left_type.thing_type & THING_NUMERIC) == 0 then
+            print("cannot shift non-numbers");
+            halt();
+        end if;
+        if (right_type.thing_type & THING_NUMERIC) == 0 then
+            print("cannot shift by non-numbers");
+            halt();
+        end if;
+        if iop.iop_kind == IOP_RSHIFTOP then
+            if left_type.thing_type == THING_SIGNED then
+                iop.iop_kind := IOP_ASROP;
+            else
+                iop.iop_kind := IOP_LSROP;
+            end if;
+        end if;
+
+        iop.type_id := left_type_id;
+        push_type(left_type_id, FLAG_RVALUE);
+        write_iop(iop as [Iop]);
+    end sub;
+
     sub addsub(kind: uint8, iop: [TypedIop])
         var right_type_id: uint16;
         var right_flags: uint8;
@@ -484,6 +517,8 @@ sub process_subroutine(thing_id: uint16)
         elseif iop.iop_kind == IOP_MODOP then
             maybe_signed_biop(IOP_MODSOP, IOP_MODUOP, iop as [TypedIop]);
             simple_alu2op(iop as [TypedIop]);
+        elseif (iop.iop_kind == IOP_LSLOP) or (iop.iop_kind == IOP_RSHIFTOP) then
+            shift_op(iop as [TypedIop]);
         elseif ioptype == IOP_TYPE_SIMPLE1OP then
             simple_alu1op(iop as [TypedIop]);
         elseif iop.iop_kind == IOP_BEQ then

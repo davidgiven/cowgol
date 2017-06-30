@@ -32,9 +32,6 @@ const IOP_MODUOP           := 0b0100_0011;
 const IOP_ANDOP            := 0b0100_0100;
 const IOP_OROP             := 0b0100_0101;
 const IOP_EOROP            := 0b0100_0110;
-const IOP_LSLOP            := 0b0100_0111;
-const IOP_LSROP            := 0b0100_1000;
-const IOP_ASROP            := 0b0100_1001;
 const IOP_DIVSOP           := 0b0100_1010;
 const IOP_DIVUOP           := 0b0100_1011;
 
@@ -89,6 +86,9 @@ const IOP_OFFSETOP    := 0x0a; # apply constant byte offset to EA
 const IOP_INDEXSOP    := 0x0b; # apply variable signed byte offset to EA
 const IOP_INDEXUOP    := 0x0c; # apply variable unsigned byte offset to EA
 const IOP_LOAD        := 0x0d; # turn EA to pointer into EA to thing being pointed at
+const IOP_LSLOP       := 0x0e;
+const IOP_LSROP       := 0x0f;
+const IOP_ASROP       := 0x10;
 
 record FilenameIop: Iop
     thing_id: uint16;
