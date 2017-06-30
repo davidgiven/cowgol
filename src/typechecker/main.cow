@@ -44,6 +44,17 @@ sub pop_type(): (type_id: uint16, flags: uint8)
     flags := flagstack[stack_pos];
 end sub;
 
+sub peek_type(offset: int8): (type_id: uint16, flags: uint8)
+    var i: uint8 := stack_pos + offset;
+    if i > stack_pos then
+        print("stack underflow");
+        halt();
+    end if;
+
+    type_id := typestack[i];
+    flags := flagstack[i];
+end sub;
+
 sub print_type_name(type_id: uint16)
     var brackets: uint8 := 0;
     loop
@@ -217,6 +228,26 @@ sub process_subroutine(thing_id: uint16)
         write_iop(iop as [Iop]);
     end sub;
 
+    sub maybe_signed_biop(signed_iop: uint8, unsigned_iop: uint8, iop: [TypedIop])
+        var right_type_id: uint16;
+        var right_flags: uint8;
+        (right_type_id, right_flags) := peek_type(-1);
+
+        var left_type_id: uint16;
+        var left_flags: uint8;
+        (left_type_id, left_flags) := peek_type(-2);
+
+        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+
+        var left_signedness: uint8;
+        if (left_type.thing_type == THING_SIGNED) and (right_type.thing_type == THING_SIGNED) then
+            iop.iop_kind := signed_iop;
+        else
+            iop.iop_kind := unsigned_iop;
+        end if;
+    end sub;
+
     sub addsub(kind: uint8, iop: [TypedIop])
         var right_type_id: uint16;
         var right_flags: uint8;
@@ -340,7 +371,11 @@ sub process_subroutine(thing_id: uint16)
             write_typed_iop(IOP_MULOP, uint16_type);
         end if;
 
-        iop.iop_kind := IOP_INDEXOP;
+        if right_type.thing_type == THING_SIGNED then
+            iop.iop_kind := IOP_INDEXSOP;
+        else
+            iop.iop_kind := IOP_INDEXUOP;
+        end if;
         iop.type_id := left_type.element_id;
         write_iop(iop as [Iop]);
         push_type(left_type.element_id, 0);
@@ -353,14 +388,16 @@ sub process_subroutine(thing_id: uint16)
 
         var input_type: [TypeThing] := find_thing(input_type_id) as [TypeThing];
         var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
-        if output_type.thing_type == THING_SIGNED then
-            iop.iop_kind := IOP_SEXTOP;
-        else
-            iop.iop_kind := IOP_ZEXTOP;
-        end if;
+        if (input_type.thing_type != THING_NUMERIC) and (input_type.width != output_type.width) then
+            if output_type.thing_type == THING_SIGNED then
+                iop.iop_kind := IOP_SEXTOP;
+            else
+                iop.iop_kind := IOP_ZEXTOP;
+            end if;
 
+            write_iop(iop as [Iop]);
+        end if;
         push_type(iop.type_id, FLAG_RVALUE);
-        write_iop(iop as [Iop]);
     end sub;
 
     sub addressop(iop: [TypedIop])
@@ -441,9 +478,21 @@ sub process_subroutine(thing_id: uint16)
             simple_iop(iop);
         elseif ioptype == IOP_TYPE_SIMPLE2OP then
             simple_alu2op(iop as [TypedIop]);
+        elseif iop.iop_kind == IOP_DIVOP then
+            maybe_signed_biop(IOP_DIVSOP, IOP_DIVUOP, iop as [TypedIop]);
+            simple_alu2op(iop as [TypedIop]);
+        elseif iop.iop_kind == IOP_MODOP then
+            maybe_signed_biop(IOP_MODSOP, IOP_MODUOP, iop as [TypedIop]);
+            simple_alu2op(iop as [TypedIop]);
         elseif ioptype == IOP_TYPE_SIMPLE1OP then
             simple_alu1op(iop as [TypedIop]);
-        elseif ioptype == IOP_TYPE_CONDITIONAL then
+        elseif iop.iop_kind == IOP_BEQ then
+            conditional_jump(iop as [ConditionalIop]);
+        elseif iop.iop_kind == IOP_BGT then
+            maybe_signed_biop(IOP_BGTS, IOP_BGTU, iop as [TypedIop]);
+            conditional_jump(iop as [ConditionalIop]);
+        elseif iop.iop_kind == IOP_BLT then
+            maybe_signed_biop(IOP_BLTS, IOP_BLTU, iop as [TypedIop]);
             conditional_jump(iop as [ConditionalIop]);
         elseif iop.iop_kind == IOP_THING then
             push_thing(iop as [ThingIop]);

@@ -198,8 +198,14 @@ loop
             do_conditional("BEQ", iop as [ConditionalIop]);
         elseif kind == IOP_BLT then
             do_conditional("BLT", iop as [ConditionalIop]);
-        elseif kind == IOP_BGT then
-            do_conditional("BGT", iop as [ConditionalIop]);
+        elseif kind == IOP_BLTS then
+            do_conditional("BLTS", iop as [ConditionalIop]);
+        elseif kind == IOP_BLTU then
+            do_conditional("BLTU", iop as [ConditionalIop]);
+        elseif kind == IOP_BGTS then
+            do_conditional("BGTS", iop as [ConditionalIop]);
+        elseif kind == IOP_BGTU then
+            do_conditional("BGTU", iop as [ConditionalIop]);
         elseif kind == IOP_THING then
             do_thing(iop as [ThingIop]);
         elseif kind == IOP_ADDOP then
@@ -210,8 +216,16 @@ loop
             do_typed("MULOP", iop as [TypedIop]);
         elseif kind == IOP_DIVOP then
             do_typed("DIVOP", iop as [TypedIop]);
+        elseif kind == IOP_DIVSOP then
+            do_typed("DIVSOP", iop as [TypedIop]);
+        elseif kind == IOP_DIVUOP then
+            do_typed("DIVUOP", iop as [TypedIop]);
         elseif kind == IOP_MODOP then
             do_typed("MODOP", iop as [TypedIop]);
+        elseif kind == IOP_MODSOP then
+            do_typed("MODSOP", iop as [TypedIop]);
+        elseif kind == IOP_MODUOP then
+            do_typed("MODUOP", iop as [TypedIop]);
         elseif kind == IOP_ANDOP then
             do_typed("ANDOP", iop as [TypedIop]);
         elseif kind == IOP_OROP then
@@ -224,12 +238,16 @@ loop
             do_typed("LSROP", iop as [TypedIop]);
         elseif kind == IOP_ASROP then
             do_typed("ASROP", iop as [TypedIop]);
+        elseif kind == IOP_RSHIFTOP then
+            do_typed("RSHIFTOP", iop as [TypedIop]);
         elseif kind == IOP_NEGOP then
             do_typed("NEGOP", iop as [TypedIop]);
         elseif kind == IOP_NOTOP then
             do_typed("NOTOP", iop as [TypedIop]);
-        elseif kind == IOP_INDEXOP then
-            do_typed("INDEXOP", iop as [TypedIop]);
+        elseif kind == IOP_INDEXSOP then
+            do_typed("INDEXSOP", iop as [TypedIop]);
+        elseif kind == IOP_INDEXUOP then
+            do_typed("INDEXUOP", iop as [TypedIop]);
         elseif kind == IOP_SINDEXOP then
             do_typed("SINDEXOP", iop as [TypedIop]);
         elseif kind == IOP_MEMBEROP then
@@ -244,12 +262,12 @@ loop
             do_typed("ZEXTOP", iop as [TypedIop]);
         elseif kind == IOP_SEXTOP then
             do_typed("SEXTOP", iop as [TypedIop]);
+        elseif kind == IOP_LOAD then
+            do_typed("LOAD", iop as [TypedIop]);
         elseif kind == IOP_BYTES then
             do_bytes(iop as [BytesIop]);
         elseif kind == IOP_WORD then
             do_word(iop as [WordIop]);
-        elseif kind == IOP_LOAD then
-            print("LOAD");
         elseif kind == IOP_SWAP then
             print("SWAP");
         elseif kind == IOP_CG_COPY1 then

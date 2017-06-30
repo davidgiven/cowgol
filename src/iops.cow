@@ -20,19 +20,23 @@ const IOP_TYPE_MASK        := 0b1110_0000;
 
 const IOP_TYPE_CONDITIONAL := 0b0010_0000;
 const IOP_BEQ              := 0b0010_0000;
-const IOP_BLT              := 0b0010_0001;
-const IOP_BGT              := 0b0010_0010;
+const IOP_BLTU             := 0b0010_0001;
+const IOP_BGTU             := 0b0010_0010;
+const IOP_BLTS             := 0b0010_0011;
+const IOP_BGTS             := 0b0010_0100;
 
 const IOP_TYPE_SIMPLE2OP   := 0b0100_0000;
-const IOP_MULOP            := 0b0100_0010;
-const IOP_DIVOP            := 0b0100_0011;
-const IOP_MODOP            := 0b0100_0100;
-const IOP_ANDOP            := 0b0100_0101;
-const IOP_OROP             := 0b0100_0110;
-const IOP_EOROP            := 0b0100_0111;
-const IOP_LSLOP            := 0b0100_1000;
-const IOP_LSROP            := 0b0100_1001;
-const IOP_ASROP            := 0b0100_1010;
+const IOP_MULOP            := 0b0100_0001;
+const IOP_MODSOP           := 0b0100_0010;
+const IOP_MODUOP           := 0b0100_0011;
+const IOP_ANDOP            := 0b0100_0100;
+const IOP_OROP             := 0b0100_0101;
+const IOP_EOROP            := 0b0100_0110;
+const IOP_LSLOP            := 0b0100_0111;
+const IOP_LSROP            := 0b0100_1000;
+const IOP_ASROP            := 0b0100_1001;
+const IOP_DIVSOP           := 0b0100_1010;
+const IOP_DIVUOP           := 0b0100_1011;
 
 const IOP_TYPE_UNTYPED     := 0b0110_0000;
 const IOP_LABEL            := 0b0110_0000;
@@ -52,39 +56,39 @@ const IOP_MATERIALISE      := 0b1000_0011;
 const IOP_ZEXTOP           := 0b1000_0100;
 const IOP_SEXTOP           := 0b1000_0101;
 
-const IOP_TYPE_CODEGEN     := 0b1111_0000;
-const IOP_CG_COPY1         := 0b1111_0000;
-const IOP_CG_COPY2         := 0b1111_0001;
-const IOP_CG_COPY4         := 0b1111_0010;
-const IOP_CG_6502_MEM      := 0b1111_0011;
-const IOP_CG_6502_ZEROPAGE := 0b1111_0100;
-const IOP_CG_6502_COND     := 0b1111_0101;
+const IOP_TYPE_FAKE        := 0b1010_0000;
+const IOP_BLT              := 0b1010_0001; # rewritten to BLTU or BLTS
+const IOP_BGT              := 0b1010_0010; # rewritten to BGTU or BGTS
+const IOP_MODOP            := 0b1010_0011; # rewritten to MODS or MODU
+const IOP_DIVOP            := 0b1010_0100; # rewritten to DIVS or DIVU
+const IOP_CASTOP           := 0b1010_0101; # rewritten to ZEXT or SEXT
+const IOP_MEMBEROP         := 0b1010_0110; # takes identifier; rewritten to INDEXU
+const IOP_SINDEXOP         := 0b1010_0111; # apply non-constant scaled offset; rewritten to INDEXS or INDEXU
+const IOP_INPUTPARAM       := 0b1010_1000; # push input parameter; rewritten to THING
+const IOP_OUTPUTPARAM      := 0b1010_1001; # push output parameter; rewritten to THING
+const IOP_RSHIFTOP         := 0b1010_1010; # rewritten to LSR or ASR
 
-# the typechecker rewrites these to THING.
-const IOP_INPUTPARAM  := 0x01; # push input parameter of subroutine
-const IOP_OUTPUTPARAM := 0x02; # push output parameter of subroutine
+const IOP_TYPE_CODEGEN     := 0b1110_0000;
+const IOP_CG_COPY1         := 0b1110_0000;
+const IOP_CG_COPY2         := 0b1110_0001;
+const IOP_CG_COPY4         := 0b1110_0010;
+const IOP_CG_6502_MEM      := 0b1110_0011;
+const IOP_CG_6502_ZEROPAGE := 0b1110_0100;
+const IOP_CG_6502_COND     := 0b1110_0101;
 
-# the typechecker rewrites this to ZEXTOP or SEXTOP.
-const IOP_CASTOP      := 0x03;
-
-# the typechecker rewrites this to an INDEXOP.
-const IOP_MEMBEROP    := 0x04; # takes identifier
-
-# dereference pointer or array with scaled offset; typechecker rewrites to IOP_INDEXOP
-const IOP_SINDEXOP     := 0x05; # apply non-constant offset to EA
-
-const IOP_THING       := 0x06;
-const IOP_ASSIGN      := 0x07; # ( dest src -- )
-const IOP_ASSIGNTO    := 0x08; # ( src dest -- )
-const IOP_CALL        := 0x09;
-const IOP_ADDOP       := 0x0a;
-const IOP_SUBOP       := 0x0b;
-const IOP_ADDRESSOP   := 0x0c;
-const IOP_BYTESOP     := 0x0d;
-const IOP_SIZEOP      := 0x0e;
-const IOP_OFFSETOP    := 0x0f; # apply constant byte offset to EA
-const IOP_INDEXOP     := 0x10; # apply variable byte offset to EA
-const IOP_LOAD        := 0x11; # turn EA to pointer into EA to thing being pointed at
+const IOP_THING       := 0x01;
+const IOP_ASSIGN      := 0x02; # ( dest src -- )
+const IOP_ASSIGNTO    := 0x03; # ( src dest -- )
+const IOP_CALL        := 0x04;
+const IOP_ADDOP       := 0x05;
+const IOP_SUBOP       := 0x06;
+const IOP_ADDRESSOP   := 0x07;
+const IOP_BYTESOP     := 0x08;
+const IOP_SIZEOP      := 0x09;
+const IOP_OFFSETOP    := 0x0a; # apply constant byte offset to EA
+const IOP_INDEXSOP    := 0x0b; # apply variable signed byte offset to EA
+const IOP_INDEXUOP    := 0x0c; # apply variable unsigned byte offset to EA
+const IOP_LOAD        := 0x0d; # turn EA to pointer into EA to thing being pointed at
 
 record FilenameIop: Iop
     thing_id: uint16;

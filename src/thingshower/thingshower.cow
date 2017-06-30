@@ -164,6 +164,8 @@ loop
         show_numeric_thing("signed_type", thing as [NumericThing]);
     elseif type == THING_UNSIGNED then
         show_numeric_thing("unsigned_type", thing as [NumericThing]);
+    elseif type == THING_NUMERIC then
+        show_numeric_thing("numeric_type", thing as [NumericThing]);
     elseif type == THING_POINTER then
         show_pointer_thing(thing as [PointerThing]);
     elseif type == THING_RECORD then
