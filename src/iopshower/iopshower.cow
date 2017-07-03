@@ -35,11 +35,9 @@ sub do_label(iop: [LabelIop])
     print_label(iop.label_id);
 end sub;
 
-sub do_thing(iop: [ThingIop])
-    print("THING id=0x");
+sub do_fe_push(iop: [FrontEndPushIop])
+    print("FE_PUSH id=0x");
     print_hex_i16(iop.thing_id);
-    print(" type=0x");
-    print_hex_i16(iop.type_id);
 end sub;
 
 sub do_call(iop: [CallIop])
@@ -51,7 +49,7 @@ sub do_call(iop: [CallIop])
     print_i8(iop.output_parameter_count);
 end sub;
 
-sub do_parameter(kind: [int8], iop: [ParameterIop])
+sub do_fe_parameter(kind: [int8], iop: [FrontEndParameterIop])
     print(kind);
     print(" subroutine_id=0x");
     print_hex_i16(iop.subroutine_id);
@@ -59,34 +57,27 @@ sub do_parameter(kind: [int8], iop: [ParameterIop])
     print_i8(iop.parameter);
 end sub;
 
-sub do_goto(iop: [GotoIop])
-    print("GOTO label=0x");
-    print_label(iop.label_id);
+sub do_fe_member(iop: [FrontEndMemberIop])
+    print("FEX_MEMBER thing_id=0x");
+    print_hex_i16(iop.thing_id);
 end sub;
 
-sub do_typed(kind: [int8], iop: [TypedIop])
-    print(kind);
-    print(" type_id=0x");
+sub do_fe_cast(iop: [FrontEndCastIop])
+    print("FEX_CAST type_id=0x");
     print_hex_i16(iop.type_id);
 end sub;
 
-sub do_conditional(kind: [int8], iop: [ConditionalIop])
-    do_typed(kind, iop as [TypedIop]);
+sub do_fe_conditional(kind: [int8], iop: [FrontEndConditionalIop])
+    print(kind);
     print(" iftrue=0x");
     print_hex_i16(iop.iftrue_label_id);
     print(" iffalse=0x");
     print_hex_i16(iop.iffalse_label_id);
 end sub;
 
-sub do_memberop(iop: [MemberIop])
-    print("MEMBEROP thing_id=0x");
-    print_hex_i16(iop.thing_id);
-end sub;
-
-sub do_offsetop(iop: [OffsetIop])
-    do_typed("OFFSETOP", iop as [TypedIop]);
-    print(" offset=0x");
-    print_hex_i16(iop.offset);
+sub do_goto(iop: [GotoIop])
+    print("GOTO label=0x");
+    print_label(iop.label_id);
 end sub;
 
 sub do_bytes(iop: [BytesIop])
@@ -164,98 +155,53 @@ loop
             do_linenumber(iop as [LinenumberIop]);
         elseif kind == IOP_LABEL then
             do_label(iop as [LabelIop]);
-        elseif kind == IOP_ASSIGN then
-            print("ASSIGN");
-        elseif kind == IOP_ASSIGNTO then
-            print("ASSIGNTO");
+
+        elseif kind == IOP_FE_SWAP then print("FE_SWAP");
+        elseif kind == IOP_FE_ASSIGN then print("FE_ASSIGN");
+        elseif kind == IOP_FE_ADDRESSOF then print("FE_ADDRESSOF");
+        elseif kind == IOP_FE_BYTESOF then print("FE_BYTESOF");
+        elseif kind == IOP_FE_SIZEOF then print("FE_SIZEOF");
+        elseif kind == IOP_FE_OFFSET then print("FE_OFFSET");
+        elseif kind == IOP_FE_INDEX then print("FE_INDEX");
+        elseif kind == IOP_FE_ADD then print("FE_ADD");
+        elseif kind == IOP_FE_SUB then print("FE_SUB");
+        elseif kind == IOP_FE_MUL then print("FE_MUL");
+        elseif kind == IOP_FE_DIV then print("FE_DIV");
+        elseif kind == IOP_FE_MOD then print("FE_MOD");
+        elseif kind == IOP_FE_AND then print("FE_AND");
+        elseif kind == IOP_FE_OR then print("FE_OR");
+        elseif kind == IOP_FE_EOR then print("FE_EOR");
+        elseif kind == IOP_FE_NEG then print("FE_NEG");
+        elseif kind == IOP_FE_NOT then print("FE_NOT");
+        elseif kind == IOP_FE_MATERIALISE then print("FE_MATERIALISE");
+        elseif kind == IOP_FE_ZEXT then print("FE_ZEXT");
+        elseif kind == IOP_FE_SEXT then print("FE_SEXT");
+        elseif kind == IOP_FE_LSHIFT then print("FE_LSHIFT");
+        elseif kind == IOP_FE_RSHIFT then print("FE_RSHIFT");
+
+        elseif kind == IOP_FEX_PUSH then
+            do_fe_push(iop as [FrontEndPushIop]);
+        elseif kind == IOP_FEX_INPUTPARAM then
+            do_fe_parameter("FEX_INPUTPARAM", iop as [FrontEndParameterIop]);
+        elseif kind == IOP_FEX_OUTPUTPARAM then
+            do_fe_parameter("FEX_OUTPUTPARAM", iop as [FrontEndParameterIop]);
+        elseif kind == IOP_FEX_MEMBER then
+            do_fe_member(iop as [FrontEndMemberIop]);
+        elseif kind == IOP_FEX_CAST then
+            do_fe_cast(iop as [FrontEndCastIop]);
+        elseif kind == IOP_FE_BEQ then
+            do_fe_conditional("FE_BEQ", iop as [FrontEndConditionalIop]);
+        elseif kind == IOP_FE_BLT then
+            do_fe_conditional("FE_BLT", iop as [FrontEndConditionalIop]);
+        elseif kind == IOP_FE_BGT then
+            do_fe_conditional("FE_BGT", iop as [FrontEndConditionalIop]);
+
         elseif kind == IOP_RETURN then
             print("RETURN");
         elseif kind == IOP_CALL then
             do_call(iop as [CallIop]);
-        elseif kind == IOP_INPUTPARAM then
-            do_parameter("INPUTPARAM", iop as [ParameterIop]);
-        elseif kind == IOP_OUTPUTPARAM then
-            do_parameter("OUTPUTPARAM", iop as [ParameterIop]);
-        elseif kind == IOP_MATERIALISE then
-            print("MATERIALISE");
         elseif kind == IOP_GOTO then
             do_goto(iop as [GotoIop]);
-        elseif kind == IOP_BEQ then
-            do_conditional("BEQ", iop as [ConditionalIop]);
-        elseif kind == IOP_BLT then
-            do_conditional("BLT", iop as [ConditionalIop]);
-        elseif kind == IOP_BLTS then
-            do_conditional("BLTS", iop as [ConditionalIop]);
-        elseif kind == IOP_BLTU then
-            do_conditional("BLTU", iop as [ConditionalIop]);
-        elseif kind == IOP_BGTS then
-            do_conditional("BGTS", iop as [ConditionalIop]);
-        elseif kind == IOP_BGTU then
-            do_conditional("BGTU", iop as [ConditionalIop]);
-        elseif kind == IOP_THING then
-            do_thing(iop as [ThingIop]);
-        elseif kind == IOP_ADDOP then
-            do_typed("ADDOP", iop as [TypedIop]);
-        elseif kind == IOP_SUBOP then
-            do_typed("SUBOP", iop as [TypedIop]);
-        elseif kind == IOP_MULOP then
-            do_typed("MULOP", iop as [TypedIop]);
-        elseif kind == IOP_DIVOP then
-            do_typed("DIVOP", iop as [TypedIop]);
-        elseif kind == IOP_DIVSOP then
-            do_typed("DIVSOP", iop as [TypedIop]);
-        elseif kind == IOP_DIVUOP then
-            do_typed("DIVUOP", iop as [TypedIop]);
-        elseif kind == IOP_MODOP then
-            do_typed("MODOP", iop as [TypedIop]);
-        elseif kind == IOP_MODSOP then
-            do_typed("MODSOP", iop as [TypedIop]);
-        elseif kind == IOP_MODUOP then
-            do_typed("MODUOP", iop as [TypedIop]);
-        elseif kind == IOP_ANDOP then
-            do_typed("ANDOP", iop as [TypedIop]);
-        elseif kind == IOP_OROP then
-            do_typed("OROP", iop as [TypedIop]);
-        elseif kind == IOP_EOROP then
-            do_typed("EOROP", iop as [TypedIop]);
-        elseif kind == IOP_LSLOP then
-            do_typed("LSLOP", iop as [TypedIop]);
-        elseif kind == IOP_LSROP then
-            do_typed("LSROP", iop as [TypedIop]);
-        elseif kind == IOP_ASROP then
-            do_typed("ASROP", iop as [TypedIop]);
-        elseif kind == IOP_RSHIFTOP then
-            do_typed("RSHIFTOP", iop as [TypedIop]);
-        elseif kind == IOP_NEGOP then
-            do_typed("NEGOP", iop as [TypedIop]);
-        elseif kind == IOP_NOTOP then
-            do_typed("NOTOP", iop as [TypedIop]);
-        elseif kind == IOP_INDEXSOP then
-            do_typed("INDEXSOP", iop as [TypedIop]);
-        elseif kind == IOP_INDEXUOP then
-            do_typed("INDEXUOP", iop as [TypedIop]);
-        elseif kind == IOP_SINDEXOP then
-            do_typed("SINDEXOP", iop as [TypedIop]);
-        elseif kind == IOP_MEMBEROP then
-            do_memberop(iop as [MemberIop]);
-        elseif kind == IOP_OFFSETOP then
-            do_offsetop(iop as [OffsetIop]);
-        elseif kind == IOP_ADDRESSOP then
-            do_typed("ADDRESSOP", iop as [TypedIop]);
-        elseif kind == IOP_CASTOP then
-            do_typed("CASTOP", iop as [TypedIop]);
-        elseif kind == IOP_ZEXTOP then
-            do_typed("ZEXTOP", iop as [TypedIop]);
-        elseif kind == IOP_SEXTOP then
-            do_typed("SEXTOP", iop as [TypedIop]);
-        elseif kind == IOP_LOAD then
-            do_typed("LOAD", iop as [TypedIop]);
-        elseif kind == IOP_BYTES then
-            do_bytes(iop as [BytesIop]);
-        elseif kind == IOP_ADDRESS then
-            do_address(iop as [AddressIop]);
-        elseif kind == IOP_SWAP then
-            print("SWAP");
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);
         elseif kind == IOP_CG_6502_ZEROPAGE then

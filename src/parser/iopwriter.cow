@@ -26,12 +26,37 @@ sub emit_linenumber(line_number: uint16)
     end if;
 end sub;
 
-sub emit_simple(kind: uint8)
+sub emit_fe(kind: uint8)
     var iop: [Iop] := emit(kind, Iop@bytes);
 end sub;
 
-sub emit_simple_typed(kind: uint8)
-    var iop: [TypedIop] := emit(kind, TypedIop@bytes) as [TypedIop];
+sub emit_fe_push(thing_id: uint16)
+    var iop: [FrontEndPushIop] := emit(IOP_FEX_PUSH, FrontEndPushIop@bytes) as [FrontEndPushIop];
+    iop.thing_id := thing_id;
+end sub;
+
+sub emit_fe_push_const(value: int32)
+    emit_fe_push(add_number_by_value(value));
+end sub;
+
+sub emit_fe_parameter(kind: uint8, subroutine_id: uint16, parameter: uint8)
+    var iop: [FrontEndParameterIop] := emit(kind, FrontEndParameterIop@bytes) as [FrontEndParameterIop];
+    iop.subroutine_id := subroutine_id;
+    iop.parameter := parameter;
+end sub;
+
+sub emit_fe_member(thing_id: uint16)
+    var iop: [FrontEndMemberIop] := emit(IOP_FEX_MEMBER, FrontEndMemberIop@bytes) as [FrontEndMemberIop];
+    iop.thing_id := thing_id;
+end sub;
+
+sub emit_fe_cast(type_id: uint16)
+    var iop: [FrontEndCastIop] := emit(IOP_FEX_CAST, FrontEndCastIop@bytes) as [FrontEndCastIop];
+    iop.type_id := type_id;
+end sub;
+
+sub emit_simple(kind: uint8)
+    var iop: [Iop] := emit(kind, Iop@bytes);
 end sub;
 
 sub emit_label(label_id: uint16)
@@ -44,26 +69,11 @@ sub emit_goto(label_id: uint16)
     goto_iop.label_id := label_id;
 end sub;
 
-sub emit_conditional_branch(iopcode: uint8, iftrue_label_id: uint16, iffalse_label_id: uint16)
-    var iop: [ConditionalIop] := emit(iopcode, ConditionalIop@bytes) as [ConditionalIop];
+sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label_id: uint16, iffalse_label_id: uint16)
+    var iop: [FrontEndConditionalIop] :=
+        emit(iopcode, FrontEndConditionalIop@bytes) as [FrontEndConditionalIop];
     iop.iftrue_label_id := iftrue_label_id;
     iop.iffalse_label_id := iffalse_label_id;
-end sub;
-
-sub emit_cast(type_id: uint16)
-    var iop: [TypedIop] := emit(IOP_CASTOP, TypedIop@bytes) as [TypedIop];
-    iop.type_id := type_id;
-end sub;
-
-sub emit_member(thing_id: uint16)
-    var iop: [MemberIop] := emit(IOP_MEMBEROP, MemberIop@bytes) as [MemberIop];
-    iop.thing_id := thing_id;
-end sub;
-
-sub emit_parameter(kind: uint8, subroutine_id: uint16, parameter: uint8)
-    var iop: [ParameterIop] := emit(kind, ParameterIop@bytes) as [ParameterIop];
-    iop.subroutine_id := subroutine_id;
-    iop.parameter := parameter;
 end sub;
 
 sub emit_byte(value: uint8)

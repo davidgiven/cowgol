@@ -186,12 +186,11 @@ sub do_var()
     variable.type_id := type_id;
 
     if current_token == TOKEN_ASSIGN then
-        var thing_iop: [ThingIop] := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
-        thing_iop.thing_id := variable_id;
+        emit_fe_push(variable_id);
 
         next_token();
         do_expression();
-        emit_simple(IOP_ASSIGN);
+        emit_fe(IOP_FE_ASSIGN);
     end if;
 
     expect_token(TOKEN_SEMICOLON);
@@ -280,7 +279,7 @@ sub do_assignment()
     do_expression();
     expect_token(TOKEN_SEMICOLON);
 
-    emit_simple(IOP_ASSIGN);
+    emit_fe(IOP_FE_ASSIGN);
 end sub;
 
 sub do_goto()
@@ -405,8 +404,9 @@ sub do_functioncall()
     var i: uint8 := input_parameters;
     while i > 0 loop
         i := i - 1;
-        emit_parameter(IOP_INPUTPARAM, id, i);
-        emit_simple(IOP_ASSIGNTO);
+        emit_fe_parameter(IOP_FEX_INPUTPARAM, id, i);
+        emit_fe(IOP_FE_SWAP);
+        emit_fe(IOP_FE_ASSIGN);
     end loop;
 
     var iop: [CallIop] := emit(IOP_CALL, CallIop@bytes) as [CallIop];
@@ -417,8 +417,8 @@ sub do_functioncall()
     i := output_parameters;
     while i > 0 loop
         i := i - 1;
-        emit_parameter(IOP_OUTPUTPARAM, id, i);
-        emit_simple(IOP_ASSIGN);
+        emit_fe_parameter(IOP_FEX_OUTPUTPARAM, id, i);
+        emit_fe(IOP_FE_ASSIGN);
     end loop;
 
     expect_token(TOKEN_SEMICOLON);

@@ -85,24 +85,24 @@ sub expression_state_machine()
 
         sub alu_2op(iop: uint8)
             check_alu_op(2);
-            emit_simple_typed(iop);
+            emit_fe(iop);
             data_stack_size := data_stack_size - 1;
         end sub;
 
         sub alu_1op(iop: uint8)
             check_alu_op(1);
-            emit_simple_typed(iop);
+            emit_fe(iop);
         end sub;
 
         sub b_2op(iop: uint8)
             check_b_op();
-            emit_conditional_branch(iop, expr_true_label_id, expr_false_label_id);
+            emit_fe_conditional_branch(iop, expr_true_label_id, expr_false_label_id);
             data_stack_size := data_stack_size - 2;
         end sub;
 
         sub b_2op_reverse(iop: uint8)
             check_b_op();
-            emit_conditional_branch(iop, expr_false_label_id, expr_true_label_id);
+            emit_fe_conditional_branch(iop, expr_false_label_id, expr_true_label_id);
             data_stack_size := data_stack_size - 2;
         end sub;
 
@@ -115,7 +115,7 @@ sub expression_state_machine()
 
         sub parameter()
             check_alu_op(1);
-            emit_parameter(IOP_INPUTPARAM, current_function_call, current_parameter_count);
+            emit_fe_parameter(IOP_FEX_INPUTPARAM, current_function_call, current_parameter_count);
         end sub;
 
         sub comma()
@@ -127,8 +127,9 @@ sub expression_state_machine()
             var i: uint8 := current_parameter_count;
             while i > 0 loop
                 i := i - 1;
-                emit_parameter(IOP_INPUTPARAM, current_function_call, i);
-                emit_simple(IOP_ASSIGNTO);
+                emit_fe_parameter(IOP_FEX_INPUTPARAM, current_function_call, i);
+                emit_fe(IOP_FE_SWAP);
+                emit_fe(IOP_FE_ASSIGN);
                 data_stack_size := data_stack_size - 1;
             end loop;
 
@@ -137,8 +138,8 @@ sub expression_state_machine()
             iop.input_parameter_count := current_parameter_count;
             iop.output_parameter_count := 1;
 
-            emit_parameter(IOP_OUTPUTPARAM, current_function_call, 0);
-            emit_simple(IOP_MATERIALISE);
+            emit_fe_parameter(IOP_FEX_OUTPUTPARAM, current_function_call, 0);
+            emit_fe(IOP_FE_MATERIALISE);
             data_stack_size := data_stack_size + 1;
 
             current_parameter_count := pop_op();
@@ -146,65 +147,65 @@ sub expression_state_machine()
         end sub;
 
         if op_id == TOKEN_PLUS then
-            alu_2op(IOP_ADDOP);
+            alu_2op(IOP_FE_ADD);
         elseif op_id == TOKEN_MINUS then
-            alu_2op(IOP_SUBOP);
+            alu_2op(IOP_FE_SUB);
         elseif op_id == TOKEN_STAR then
-            alu_2op(IOP_MULOP);
+            alu_2op(IOP_FE_MUL);
         elseif op_id == TOKEN_SLASH then
-            alu_2op(IOP_DIVOP);
+            alu_2op(IOP_FE_DIV);
         elseif op_id == TOKEN_PERCENT then
-            alu_2op(IOP_MODOP);
+            alu_2op(IOP_FE_MOD);
         elseif op_id == TOKEN_PIPE then
-            alu_2op(IOP_OROP);
+            alu_2op(IOP_FE_OR);
         elseif op_id == TOKEN_AMPERSAND then
-            alu_2op(IOP_ANDOP);
+            alu_2op(IOP_FE_AND);
         elseif op_id == TOKEN_CARET then
-            alu_2op(IOP_EOROP);
+            alu_2op(IOP_FE_EOR);
         elseif op_id == TOKEN_LEFTSHIFT then
-            alu_2op(IOP_LSLOP);
+            alu_2op(IOP_FE_LSHIFT);
         elseif op_id == TOKEN_RIGHTSHIFT then
-            alu_2op(IOP_RSHIFTOP);
+            alu_2op(IOP_FE_RSHIFT);
         elseif op_id == TOKEN_OPENSQUARE then
-            alu_2op(IOP_SINDEXOP);
+            alu_2op(IOP_FE_INDEX);
         elseif op_id == TOKEN_OPENPAREN then
             # do nothing
         elseif op_id == TOKEN_TILDE then
-            alu_1op(IOP_NOTOP);
+            alu_1op(IOP_FE_NOT);
         elseif op_id == TOKEN_UNARYAMPERSAND then
-            alu_1op(IOP_ADDRESSOP);
+            alu_1op(IOP_FE_ADDRESSOF);
         elseif op_id == TOKEN_UNARYMINUS then
-            alu_1op(IOP_NEGOP);
+            alu_1op(IOP_FE_NEG);
         elseif op_id == TOKEN_EQOP then
-            b_2op(IOP_BEQ);
+            b_2op(IOP_FE_BEQ);
         elseif op_id == TOKEN_NEOP then
-            b_2op_reverse(IOP_BEQ);
+            b_2op_reverse(IOP_FE_BEQ);
         elseif op_id == TOKEN_LTOP then
-            b_2op(IOP_BLT);
+            b_2op(IOP_FE_BLT);
         elseif op_id == TOKEN_LEOP then
-            b_2op_reverse(IOP_BGT);
+            b_2op_reverse(IOP_FE_BGT);
         elseif op_id == TOKEN_GTOP then
-            b_2op(IOP_BGT);
+            b_2op(IOP_FE_BGT);
         elseif op_id == TOKEN_GEOP then
-            b_2op_reverse(IOP_BLT);
+            b_2op_reverse(IOP_FE_BLT);
         elseif op_id == TOKEN_NOT then
             b_not();
         elseif (op_id == TOKEN_AND) or (op_id == TOKEN_OR) then
             merge_label(expr_false_label_id, pop_op());
             merge_label(expr_true_label_id, pop_op());
         elseif op_id == TOKEN_AS then
-            emit_cast(pop_op());
+            emit_fe_cast(pop_op());
         elseif op_id == TOKEN_DOT then
             check_alu_op(1);
-            emit_member(pop_op());
+            emit_fe_member(pop_op());
         elseif op_id == TOKEN_COMMA then
             comma();
         elseif op_id == TOKEN_CALL then
             call();
         elseif op_id == TOKEN_BYTES then
-            alu_1op(IOP_BYTESOP);
+            alu_1op(IOP_FE_BYTESOF);
         elseif op_id == TOKEN_SIZE then
-            alu_1op(IOP_SIZEOP);
+            alu_1op(IOP_FE_SIZEOF);
         else
             print("couldn't apply operator ");
             show_identifier(op_id);
@@ -281,7 +282,6 @@ sub expression_state_machine()
     end sub;
 
     var thing: [Thing];
-    var thing_iop: [ThingIop];
     loop
         var token_flags: uint8;
         #print("seen: "); show_identifier(current_token); print_newline();
@@ -339,8 +339,7 @@ sub expression_state_machine()
                             end if;
                         end if;
                     end if;
-                    thing_iop := emit(IOP_THING, ThingIop@bytes) as [ThingIop];
-                    thing_iop.thing_id := pushable_id;
+                    emit_fe_push(pushable_id);
                     next_token();
                     state := STATE_AFTER;
                     data_stack_size := data_stack_size + 1;
