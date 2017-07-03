@@ -64,7 +64,7 @@ end sub;
 
 sub read_symbol()
     input_buffer[0] := current_byte;
-    if (peeked_byte == '=') or (peeked_byte == current_byte) then
+    if (peeked_byte == '=') or (peeked_byte == '<') or (peeked_byte == '>') then
         input_buffer[1] := peeked_byte;
         buffer_index := 2;
         next_byte();
