@@ -122,7 +122,7 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
         else
             bad_register();
         end if;
-        write_cg_6502_mem_iop(opcode, ea.thing_id, ea.offset_id);
+        write_cg_6502_mem_iop(opcode, ea.thing_id, ea.constant);
     else
         print("can't write precious value ");
         print_ea(ea);
@@ -194,9 +194,7 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
         else
             bad_register();
         end if;
-        var thing: [NumberThing] := find_thing(ea.offset_id) as [NumberThing];
-        buf[1] := thing.value;
-        write_bytes_iop(2, &buf[0]);
+        write_word_iop(ea.constant);
     elseif ea.type == EA_VAR_PLUS_CONST then
         if location == REG_A then
             opcode := 0xAD; # LDA abs
@@ -207,16 +205,10 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
         else
             bad_register();
         end if;
-        write_cg_6502_mem_iop(opcode, ea.thing_id, ea.offset_id);
+        write_cg_6502_mem_iop(opcode, ea.thing_id, ea.constant);
     else
         print("can't implicit load this ea yet");
     end if;
-end sub;
-
-sub write_byte(byte: uint8)
-    var buf: uint8[1];
-    buf[0] := byte;
-    write_bytes_iop(1, &buf[0]);
 end sub;
 
 sub arch_gen_return()
@@ -227,7 +219,7 @@ end sub;
 sub arch_gen_call(thing_id: uint16)
     flush_cached_values(REG_MASK);
     write_byte(0x20); # JSR
-    write_word_iop(thing_id, 0);
+    write_address_iop(thing_id, 0);
 end sub;
 
 sub arch_gen_label()
@@ -237,7 +229,7 @@ end sub;
 sub arch_gen_goto(thing_id: uint16)
     flush_cached_values(REG_MASK);
     write_byte(0x4C); # JMP abs
-    write_word_iop(thing_id, 0);
+    write_address_iop(thing_id, 0);
 end sub;
 
 sub arch_gen_copy(src: [EffectiveAddress], dest: [EffectiveAddress]): (matched: uint8)
@@ -250,9 +242,10 @@ sub arch_gen_copy_byte_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress]
 end sub;
 
 sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
-    write_cg_copy_iop(IOP_CG_COPY2, 0,
-        src.thing_id, src.offset_id,
-        dest.thing_id, dest.offset_id);
+    write_byte(0x40); # JSR abs
+    write_address_iop(IOP_CG_COPY2, 0);
+    write_address_iop(src.thing_id, src.constant);
+    write_address_iop(dest.thing_id, dest.constant);
 end sub;
 
 sub arch_gen_copy_number_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
@@ -261,9 +254,9 @@ end sub;
 
 sub arch_gen_copy_number_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
     write_byte(0x20); # JSR abs
-    write_word_iop(deref_symbol_or_fail(TOKEN_CG_LOAD2), 0);
-    write_word_iop(src.thing_id, src.offset_id);
-    write_word_iop(dest.thing_id, dest.offset_id);
+    write_address_iop(deref_symbol_or_fail(TOKEN_CG_LOAD2), 0);
+    write_address_iop(src.thing_id, src.constant);
+    write_address_iop(dest.thing_id, dest.constant);
 end sub;
 
 sub arch_gen_load_ptr_offset_bytevar_to_byte(ptr_id: uint16, offsetvar_id: uint16,
@@ -273,8 +266,9 @@ sub arch_gen_load_ptr_offset_bytevar_to_byte(ptr_id: uint16, offsetvar_id: uint1
 
     var ea: EffectiveAddress[1];
     ea[0].type := EA_VAR_PLUS_CONST;
-    ea[0].flags := FLAG_POINTER | FLAG_WIDTH_1;
+    ea[0].width := 2;
     ea[0].thing_id := offsetvar_id;
+    ea[0].constant := 0;
     var xreg: uint8 := find_or_load_value(&ea[0], REG_X);
     write_byte(0xA1); # LDA ind,X
     write_cg_6502_zeropage_iop(ptr_id, 0);
@@ -291,7 +285,7 @@ sub arch_gen_alu2op(iop: uint8,
         var buf: uint8[2];
         if right.type == EA_VAR_PLUS_CONST then
             # OPCODE abs
-            write_cg_6502_mem_iop(opcodebase | 0x0D, right.thing_id, right.offset_id);
+            write_cg_6502_mem_iop(opcodebase | 0x0D, right.thing_id, right.constant);
             value_is_precious_in_reg(dest, REG_A);
         else
             print("can't add this EA yet");
@@ -300,7 +294,7 @@ sub arch_gen_alu2op(iop: uint8,
     end sub;
 
     if iop == IOP_ADDOP then
-        if ((left.flags & FLAG_WIDTH_1) != 0) and ((right.flags & FLAG_WIDTH_1) != 0) then
+        if left.width <= 1 then
             write_byte(0x18); # CLC
             major_8bit(0x60); # base ADC
             return;
@@ -321,7 +315,7 @@ sub arch_gen_alu1op(iop: uint8, left: [EffectiveAddress], dest: [EffectiveAddres
     end sub;
 
     if iop == IOP_NOTOP then
-        if (left.flags & FLAG_WIDTH_1) != 0 then
+        if left.width == 1 then
             do_not();
             return;
         end if;
@@ -336,8 +330,7 @@ sub arch_gen_conditional_fallthrough(iop: uint8,
     matched := 1;
 
     var opcode: uint8;
-    if ((left.flags & FLAG_WIDTH_1|FLAG_NUMBER) != 0)
-            and ((right.flags & FLAG_WIDTH_1|FLAG_NUMBER) != 0) then
+    if (left.width <= 1) and (right.width <= 1) then
         var reg: uint8 := find_or_load_value(left, REG_A|REG_X|REG_Y);
         write_back_precious_values(REG_MASK);
 
@@ -352,7 +345,7 @@ sub arch_gen_conditional_fallthrough(iop: uint8,
                 bad_register();
             end if;
             write_byte(opcode);
-            write_byte(get_value_of_number(right.offset_id));
+            write_byte(right.constant);
         else
             print("can't compare these types yet");
             halt();

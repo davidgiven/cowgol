@@ -5,10 +5,10 @@ sub try_copy(src: [EffectiveAddress], dest: [EffectiveAddress])
 
     if src.type == EA_NUMBER then
         if dest.type == EA_VAR_PLUS_CONST then
-            if (dest.flags & FLAG_WIDTH_1) != 0 then
+            if dest.width == 1 then
                 arch_gen_copy_number_to_byte(src, dest);
                 return;
-            elseif (dest.flags & FLAG_WIDTH_2) != 0 then
+            elseif dest.width == 2 then
                 arch_gen_copy_number_to_word(src, dest);
                 return;
             end if;
@@ -157,23 +157,11 @@ sub global_stack_rules(): (matched: uint8)
         var thing: [TypedThing] := find_thing(iop.thing_id) as [TypedThing];
         var ea: [EffectiveAddress] := push_ea();
 
-        ea.type_id := thing.type_id;
-        var type: [TypeThing] := find_thing(ea.type_id) as [TypeThing];
+        var type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
         if thing.thing_type == THING_NUMBER then
-            ea.flags := ea.flags | FLAG_NUMBER;
-        elseif type.width == 1 then
-            ea.flags := ea.flags | FLAG_WIDTH_1;
-        elseif type.width == 2 then
-            ea.flags := ea.flags | FLAG_WIDTH_2;
-        elseif type.width == 4 then
-            ea.flags := ea.flags | FLAG_WIDTH_4;
+            ea.width := 0;
         else
-            ea.flags := ea.flags | FLAG_WIDTH_BIG;
-        end if;
-        if type.thing_type == THING_SIGNED then
-            ea.flags := ea.flags | FLAG_SIGNED;
-        elseif type.thing_type == THING_POINTER then
-            ea.flags := ea.flags | FLAG_POINTER;
+            ea.width := type.width;
         end if;
 
         if (thing.thing_type == THING_VARIABLE) or (thing.thing_type == THING_PARAMETER) then
@@ -181,7 +169,7 @@ sub global_stack_rules(): (matched: uint8)
             ea.thing_id := iop.thing_id;
         elseif thing.thing_type == THING_NUMBER then
             ea.type := EA_NUMBER;
-            ea.offset_id := iop.thing_id;
+            ea.constant := get_value_of_number(iop.thing_id);
         else
             print("don't know how to push things of kind 0x");
             print_hex_i8(thing.thing_type);

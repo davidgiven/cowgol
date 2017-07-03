@@ -66,9 +66,9 @@ sub push_ea(): (ea: [EffectiveAddress])
     ea := &nodes[index].ea;
 end sub;
 
-sub push_operator(iop: uint8, type_id: uint16, left: uint8, right: uint8)
+sub push_operator(iop: uint8, width: uint8, left: uint8, right: uint8)
     var index: uint8 := push_empty_node();
-    nodes[index].ea.type_id := type_id;
+    nodes[index].ea.width := width;
     nodes[index].iop := iop;
     nodes[index].left := left;
     nodes[index].right := right;
@@ -110,8 +110,8 @@ sub print_stack()
             print_i8(index);
             print(" iop=0x");
             print_hex_i8(nodes[index].iop);
-            print(" type_id=0x");
-            print_hex_i16(nodes[index].ea.type_id);
+            print(" width=");
+            print_i8(nodes[index].ea.width);
             print_char(' ');
             if nodes[index].iop == IOP_THING then
                 print_ea(&nodes[index].ea);

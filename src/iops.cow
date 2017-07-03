@@ -43,7 +43,7 @@ const IOP_GOTO             := 0b0110_0011;
 const IOP_FILENAME         := 0b0110_0100;
 const IOP_LINENUMBER       := 0b0110_0101;
 const IOP_BYTES            := 0b0110_0110;
-const IOP_WORD             := 0b0110_0111;
+const IOP_ADDRESS          := 0b0110_0111;
 const IOP_SWAP             := 0b0110_1000; # not understood by type checker
 
 const IOP_TYPE_SIMPLE1OP   := 0b1000_0000;
@@ -69,9 +69,9 @@ const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_COPY1         := 0b1110_0000;
 const IOP_CG_COPY2         := 0b1110_0001;
 const IOP_CG_COPY4         := 0b1110_0010;
-const IOP_CG_6502_MEM      := 0b1110_0011;
-const IOP_CG_6502_ZEROPAGE := 0b1110_0100;
-const IOP_CG_6502_COND     := 0b1110_0101;
+const IOP_CG_6502_ZEROPAGE := 0b1110_0011;
+const IOP_CG_6502_COND     := 0b1110_0100;
+const IOP_CG_6502_MEM      := 0b1110_0101;
 
 const IOP_THING       := 0x01;
 const IOP_ASSIGN      := 0x02; # ( dest src -- )
@@ -151,28 +151,20 @@ record BytesIop: Iop
     bytes: uint8[8];
 end record;
 
-record WordIop: Iop
+record AddressIop: Iop
     thing_id: uint16;
-    offset_id: uint16;
-end record;
-
-record CGCopyNIop: Iop
-    opcode: uint8;
-    src_thing_id: uint16;
-    src_offset_id: uint16;
-    dest_thing_id: uint16;
-    dest_offset_id: uint16;
+    offset: uint16;
 end record;
 
 record CG6502MemIop: Iop
     opcode: uint8;
     thing_id: uint16;
-    offset_id: uint16;
+    offset: uint16;
 end record;
 
 record CG6502ZeroPageIop: Iop
     thing_id: uint16;
-    offset_id: uint16;
+    offset: uint16;
 end record;
 
 record CG6502ConditionalIop: Iop

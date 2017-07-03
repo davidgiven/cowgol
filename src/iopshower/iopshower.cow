@@ -99,25 +99,11 @@ sub do_bytes(iop: [BytesIop])
     end loop;
 end sub;
 
-sub do_word(iop: [WordIop])
-    print("WORD thing_id=0x");
+sub do_address(iop: [AddressIop])
+    print("ADDRESS thing_id=0x");
     print_hex_i16(iop.thing_id);
-    print(" offset_id=0x");
-    print_hex_i16(iop.offset_id);
-end sub;
-
-sub do_cg_copy(kind: [int8], iop: [CGCopyNIop])
-    print(kind);
-    print(" opcode=0x");
-    print_hex_i8(iop.opcode);
-    print(" src_thing_id=0x");
-    print_hex_i16(iop.src_thing_id);
-    print(" src_offset_id=0x");
-    print_hex_i16(iop.src_offset_id);
-    print(" dest_thing_id=0x");
-    print_hex_i16(iop.dest_thing_id);
-    print(" dest_offset_id=0x");
-    print_hex_i16(iop.dest_offset_id);
+    print(" offset=0x");
+    print_hex_i16(iop.offset);
 end sub;
 
 sub do_cg_6502_mem(iop: [CG6502MemIop])
@@ -125,15 +111,15 @@ sub do_cg_6502_mem(iop: [CG6502MemIop])
     print_hex_i8(iop.opcode);
     print(" thing_id=0x");
     print_hex_i16(iop.thing_id);
-    print(" offset_id=0x");
-    print_hex_i16(iop.offset_id);
+    print(" offset=0x");
+    print_hex_i16(iop.offset);
 end sub;
 
 sub do_cg_6502_zeropage(iop: [CG6502ZeroPageIop])
     print("CG_6502_ZEROPAGE thing_id=0x");
     print_hex_i16(iop.thing_id);
-    print(" offset_id=0x");
-    print_hex_i16(iop.offset_id);
+    print(" offset=0x");
+    print_hex_i16(iop.offset);
 end sub;
 
 sub do_cg_6502_cond(iop: [CG6502ConditionalIop])
@@ -266,16 +252,10 @@ loop
             do_typed("LOAD", iop as [TypedIop]);
         elseif kind == IOP_BYTES then
             do_bytes(iop as [BytesIop]);
-        elseif kind == IOP_WORD then
-            do_word(iop as [WordIop]);
+        elseif kind == IOP_ADDRESS then
+            do_address(iop as [AddressIop]);
         elseif kind == IOP_SWAP then
             print("SWAP");
-        elseif kind == IOP_CG_COPY1 then
-            do_cg_copy("CG_COPY1", iop as [CGCopyNIop]);
-        elseif kind == IOP_CG_COPY2 then
-            do_cg_copy("CG_COPY2", iop as [CGCopyNIop]);
-        elseif kind == IOP_CG_COPY4 then
-            do_cg_copy("CG_COPY4", iop as [CGCopyNIop]);
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);
         elseif kind == IOP_CG_6502_ZEROPAGE then

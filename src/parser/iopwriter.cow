@@ -78,8 +78,14 @@ sub emit_bytes(byte_count: uint8, bytes: [uint8])
     copy_memory(bytes as [int8], &iop.bytes[0] as [int8], byte_count);
 end sub;
 
-sub emit_word(thing_id: uint16)
-    var iop: [WordIop] := emit(IOP_WORD, WordIop@bytes) as [WordIop];
+sub emit_word(word: uint16)
+    var buf: uint16[1];
+    buf[0] := word;
+    emit_bytes(2, &buf[0] as [uint8]);
+end sub;
+
+sub emit_address(thing_id: uint16)
+    var iop: [AddressIop] := emit(IOP_ADDRESS, AddressIop@bytes) as [AddressIop];
     iop.thing_id := thing_id;
 end sub;
 

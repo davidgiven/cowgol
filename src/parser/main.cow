@@ -471,10 +471,10 @@ sub do_words()
         if current_token == TOKEN_AMPERSAND then
             next_token();
             var identifier_id: uint16 := expect_identifier();
-            emit_word(identifier_id);
+            emit_address(identifier_id);
         else
             var value: int32 := do_constant();
-            emit_word(add_number_by_value(value));
+            emit_word(value);
         end if;
 
         if current_token == TOKEN_SEMICOLON then
