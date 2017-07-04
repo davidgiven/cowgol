@@ -9,7 +9,6 @@ record Iop
     payload: int8[0];
 end record;
 
-const IOP_END := 0;
 
 # Important note with regard to the stack machine: there is no DUP instruction.
 # The code generator relies on every value on the stack being pushed exactly
@@ -17,6 +16,19 @@ const IOP_END := 0;
 # of nodes in the operator tree).
 
 const IOP_TYPE_MASK        := 0b1110_0000;
+
+# These are valid for all stages.
+const IOP_TYPE_UNTYPED     := 0b0000_0000;
+const IOP_END              := 0b0000_0000;
+const IOP_LABEL            := 0b0000_0001;
+const IOP_STRING           := 0b0000_0010;
+const IOP_RETURN           := 0b0000_0011;
+const IOP_GOTO             := 0b0000_0100;
+const IOP_FILENAME         := 0b0000_0101;
+const IOP_LINENUMBER       := 0b0000_0110;
+const IOP_BYTES            := 0b0000_0111;
+const IOP_ADDRESS          := 0b0000_1000;
+const IOP_CALL             := 0b0000_1001;
 
 # Front-end opcodes: this is the pure stack machine architecture emitted by the
 # compiler. These are all Iops, with no payload.
@@ -46,31 +58,24 @@ const IOP_FE_RSHIFT        := 0b0011_1111; # ( value count -- result )
 
 # Additional, special front end iops. These all have payload.
 const IOP_TYPE_FEX         := 0b0100_0000;
-const IOP_FEX_PUSH         := 0b0100_0000; # ( -- ea ): FrontEndPushIop
-const IOP_FEX_INPUTPARAM   := 0b0100_0001; # ( -- ea ): FrontEndParameterIop
-const IOP_FEX_OUTPUTPARAM  := 0b0100_0010; # ( -- ea ): FrontEndParameterIop
-const IOP_FEX_CAST         := 0b0100_0011; # ( value -- result ): FrontEndCastIop
-const IOP_FEX_MEMBER       := 0b0100_0100; # ( ea -- ea ): FrontEndMemberIop
-const IOP_FE_BEQ           := 0b0100_0101; # ( left right -- ): FrontEndConditionalIop
-const IOP_FE_BLT           := 0b0100_0110; # ( left right -- ): FrontEndConditionalIop
-const IOP_FE_BGT           := 0b0100_0111; # ( left right -- ): FrontEndConditionalIop
+const IOP_FEX_PUSH         := 0b0100_0000; # ( -- ea ): FEPushIop
+const IOP_FEX_INPUTPARAM   := 0b0100_0001; # ( -- ea ): FEParameterIop
+const IOP_FEX_OUTPUTPARAM  := 0b0100_0010; # ( -- ea ): FEParameterIop
+const IOP_FEX_CAST         := 0b0100_0011; # ( value -- result ): FECastIop
+const IOP_FEX_MEMBER       := 0b0100_0100; # ( ea -- ea ): FEMemberIop
+const IOP_FE_BEQ           := 0b0100_0101; # ( left right -- ): FEConditionalIop
+const IOP_FE_BLT           := 0b0100_0110; # ( left right -- ): FEConditionalIop
+const IOP_FE_BGT           := 0b0100_0111; # ( left right -- ): FEConditionalIop
 
-const IOP_TYPE_UNTYPED     := 0b0110_0000;
-const IOP_LABEL            := 0b0110_0000;
-const IOP_STRING           := 0b0110_0001;
-const IOP_RETURN           := 0b0110_0010;
-const IOP_GOTO             := 0b0110_0011;
-const IOP_FILENAME         := 0b0110_0100;
-const IOP_LINENUMBER       := 0b0110_0101;
-const IOP_BYTES            := 0b0110_0110;
-const IOP_ADDRESS          := 0b0110_0111;
+# Backend opcodes, after type checking and conversion out of front end format.
+# This is the memory-memory architecture which the real code generator converts
+# into machine code.
+const IOP_TYPE_BACKEND     := 0b0110_0000;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_ZEROPAGE := 0b1110_0011;
 const IOP_CG_6502_COND     := 0b1110_0100;
 const IOP_CG_6502_MEM      := 0b1110_0101;
-
-const IOP_CALL        := 0x04;
 
 record FilenameIop: Iop
     thing_id: uint16;
@@ -84,10 +89,6 @@ record LabelIop: Iop
     label_id: uint16;
 end record;
 
-record SectionIop: Iop
-    section: uint8;
-end record;
-
 record StringIop: Iop
     string_id: uint16;
 end record;
@@ -98,35 +99,8 @@ record CallIop: Iop
     output_parameter_count: uint8;
 end record;
 
-record ParameterIop: Iop
-    subroutine_id: uint16;
-    parameter: uint8;
-end record;
-
 record GotoIop: Iop
     label_id: uint16;
-end record;
-
-record FrontEndPushIop: Iop
-    thing_id: uint16;
-end record;
-
-record FrontEndParameterIop: Iop
-    subroutine_id: uint16;
-    parameter: uint8;
-end record;
-
-record FrontEndMemberIop: Iop
-    thing_id: uint16;
-end record;
-
-record FrontEndCastIop: Iop
-    type_id: uint16;
-end record;
-
-record FrontEndConditionalIop: Iop
-    iftrue_label_id: uint16;
-    iffalse_label_id: uint16;
 end record;
 
 record BytesIop: Iop
@@ -137,6 +111,28 @@ end record;
 record AddressIop: Iop
     thing_id: uint16;
     offset: uint16;
+end record;
+
+record FEPushIop: Iop
+    thing_id: uint16;
+end record;
+
+record FEParameterIop: Iop
+    subroutine_id: uint16;
+    parameter: uint8;
+end record;
+
+record FEMemberIop: Iop
+    thing_id: uint16;
+end record;
+
+record FECastIop: Iop
+    type_id: uint16;
+end record;
+
+record FEConditionalIop: Iop
+    iftrue_label_id: uint16;
+    iffalse_label_id: uint16;
 end record;
 
 record CG6502MemIop: Iop

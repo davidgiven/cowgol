@@ -35,7 +35,7 @@ sub do_label(iop: [LabelIop])
     print_label(iop.label_id);
 end sub;
 
-sub do_fe_push(iop: [FrontEndPushIop])
+sub do_fe_push(iop: [FEPushIop])
     print("FE_PUSH id=0x");
     print_hex_i16(iop.thing_id);
 end sub;
@@ -49,7 +49,7 @@ sub do_call(iop: [CallIop])
     print_i8(iop.output_parameter_count);
 end sub;
 
-sub do_fe_parameter(kind: [int8], iop: [FrontEndParameterIop])
+sub do_fe_parameter(kind: [int8], iop: [FEParameterIop])
     print(kind);
     print(" subroutine_id=0x");
     print_hex_i16(iop.subroutine_id);
@@ -57,17 +57,17 @@ sub do_fe_parameter(kind: [int8], iop: [FrontEndParameterIop])
     print_i8(iop.parameter);
 end sub;
 
-sub do_fe_member(iop: [FrontEndMemberIop])
+sub do_fe_member(iop: [FEMemberIop])
     print("FEX_MEMBER thing_id=0x");
     print_hex_i16(iop.thing_id);
 end sub;
 
-sub do_fe_cast(iop: [FrontEndCastIop])
+sub do_fe_cast(iop: [FECastIop])
     print("FEX_CAST type_id=0x");
     print_hex_i16(iop.type_id);
 end sub;
 
-sub do_fe_conditional(kind: [int8], iop: [FrontEndConditionalIop])
+sub do_fe_conditional(kind: [int8], iop: [FEConditionalIop])
     print(kind);
     print(" iftrue=0x");
     print_hex_i16(iop.iftrue_label_id);
@@ -147,61 +147,46 @@ loop
         var kind: uint8 := iop.iop_kind;
         print_hex_i16(offset);
         print(": ");
-        if kind == IOP_END then
-            print("END");
-        elseif kind == IOP_FILENAME then
-            do_filename(iop as [FilenameIop]);
-        elseif kind == IOP_LINENUMBER then
-            do_linenumber(iop as [LinenumberIop]);
-        elseif kind == IOP_LABEL then
-            do_label(iop as [LabelIop]);
+        if kind == IOP_END            then print("END");
+        elseif kind == IOP_RETURN     then print("RETURN");
+        elseif kind == IOP_FILENAME   then do_filename(iop as [FilenameIop]);
+        elseif kind == IOP_LINENUMBER then do_linenumber(iop as [LinenumberIop]);
+        elseif kind == IOP_LABEL      then do_label(iop as [LabelIop]);
+        elseif kind == IOP_CALL       then do_call(iop as [CallIop]);
+        elseif kind == IOP_GOTO       then do_goto(iop as [GotoIop]);
 
-        elseif kind == IOP_FE_SWAP then print("FE_SWAP");
-        elseif kind == IOP_FE_ASSIGN then print("FE_ASSIGN");
-        elseif kind == IOP_FE_ADDRESSOF then print("FE_ADDRESSOF");
-        elseif kind == IOP_FE_BYTESOF then print("FE_BYTESOF");
-        elseif kind == IOP_FE_SIZEOF then print("FE_SIZEOF");
-        elseif kind == IOP_FE_OFFSET then print("FE_OFFSET");
-        elseif kind == IOP_FE_INDEX then print("FE_INDEX");
-        elseif kind == IOP_FE_ADD then print("FE_ADD");
-        elseif kind == IOP_FE_SUB then print("FE_SUB");
-        elseif kind == IOP_FE_MUL then print("FE_MUL");
-        elseif kind == IOP_FE_DIV then print("FE_DIV");
-        elseif kind == IOP_FE_MOD then print("FE_MOD");
-        elseif kind == IOP_FE_AND then print("FE_AND");
-        elseif kind == IOP_FE_OR then print("FE_OR");
-        elseif kind == IOP_FE_EOR then print("FE_EOR");
-        elseif kind == IOP_FE_NEG then print("FE_NEG");
-        elseif kind == IOP_FE_NOT then print("FE_NOT");
+        elseif kind == IOP_FE_SWAP        then print("FE_SWAP");
+        elseif kind == IOP_FE_ASSIGN      then print("FE_ASSIGN");
+        elseif kind == IOP_FE_ADDRESSOF   then print("FE_ADDRESSOF");
+        elseif kind == IOP_FE_BYTESOF     then print("FE_BYTESOF");
+        elseif kind == IOP_FE_SIZEOF      then print("FE_SIZEOF");
+        elseif kind == IOP_FE_OFFSET      then print("FE_OFFSET");
+        elseif kind == IOP_FE_INDEX       then print("FE_INDEX");
+        elseif kind == IOP_FE_ADD         then print("FE_ADD");
+        elseif kind == IOP_FE_SUB         then print("FE_SUB");
+        elseif kind == IOP_FE_MUL         then print("FE_MUL");
+        elseif kind == IOP_FE_DIV         then print("FE_DIV");
+        elseif kind == IOP_FE_MOD         then print("FE_MOD");
+        elseif kind == IOP_FE_AND         then print("FE_AND");
+        elseif kind == IOP_FE_OR          then print("FE_OR");
+        elseif kind == IOP_FE_EOR         then print("FE_EOR");
+        elseif kind == IOP_FE_NEG         then print("FE_NEG");
+        elseif kind == IOP_FE_NOT         then print("FE_NOT");
         elseif kind == IOP_FE_MATERIALISE then print("FE_MATERIALISE");
-        elseif kind == IOP_FE_ZEXT then print("FE_ZEXT");
-        elseif kind == IOP_FE_SEXT then print("FE_SEXT");
-        elseif kind == IOP_FE_LSHIFT then print("FE_LSHIFT");
-        elseif kind == IOP_FE_RSHIFT then print("FE_RSHIFT");
+        elseif kind == IOP_FE_ZEXT        then print("FE_ZEXT");
+        elseif kind == IOP_FE_SEXT        then print("FE_SEXT");
+        elseif kind == IOP_FE_LSHIFT      then print("FE_LSHIFT");
+        elseif kind == IOP_FE_RSHIFT      then print("FE_RSHIFT");
 
-        elseif kind == IOP_FEX_PUSH then
-            do_fe_push(iop as [FrontEndPushIop]);
-        elseif kind == IOP_FEX_INPUTPARAM then
-            do_fe_parameter("FEX_INPUTPARAM", iop as [FrontEndParameterIop]);
-        elseif kind == IOP_FEX_OUTPUTPARAM then
-            do_fe_parameter("FEX_OUTPUTPARAM", iop as [FrontEndParameterIop]);
-        elseif kind == IOP_FEX_MEMBER then
-            do_fe_member(iop as [FrontEndMemberIop]);
-        elseif kind == IOP_FEX_CAST then
-            do_fe_cast(iop as [FrontEndCastIop]);
-        elseif kind == IOP_FE_BEQ then
-            do_fe_conditional("FE_BEQ", iop as [FrontEndConditionalIop]);
-        elseif kind == IOP_FE_BLT then
-            do_fe_conditional("FE_BLT", iop as [FrontEndConditionalIop]);
-        elseif kind == IOP_FE_BGT then
-            do_fe_conditional("FE_BGT", iop as [FrontEndConditionalIop]);
+        elseif kind == IOP_FEX_PUSH        then do_fe_push(iop as [FEPushIop]);
+        elseif kind == IOP_FEX_INPUTPARAM  then do_fe_parameter("FEX_INPUTPARAM", iop as [FEParameterIop]);
+        elseif kind == IOP_FEX_OUTPUTPARAM then do_fe_parameter("FEX_OUTPUTPARAM", iop as [FEParameterIop]);
+        elseif kind == IOP_FEX_MEMBER      then do_fe_member(iop as [FEMemberIop]);
+        elseif kind == IOP_FEX_CAST        then do_fe_cast(iop as [FECastIop]);
+        elseif kind == IOP_FE_BEQ          then do_fe_conditional("FE_BEQ", iop as [FEConditionalIop]);
+        elseif kind == IOP_FE_BLT          then do_fe_conditional("FE_BLT", iop as [FEConditionalIop]);
+        elseif kind == IOP_FE_BGT          then do_fe_conditional("FE_BGT", iop as [FEConditionalIop]);
 
-        elseif kind == IOP_RETURN then
-            print("RETURN");
-        elseif kind == IOP_CALL then
-            do_call(iop as [CallIop]);
-        elseif kind == IOP_GOTO then
-            do_goto(iop as [GotoIop]);
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);
         elseif kind == IOP_CG_6502_ZEROPAGE then

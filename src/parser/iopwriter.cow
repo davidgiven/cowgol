@@ -31,7 +31,7 @@ sub emit_fe(kind: uint8)
 end sub;
 
 sub emit_fe_push(thing_id: uint16)
-    var iop: [FrontEndPushIop] := emit(IOP_FEX_PUSH, FrontEndPushIop@bytes) as [FrontEndPushIop];
+    var iop: [FEPushIop] := emit(IOP_FEX_PUSH, FEPushIop@bytes) as [FEPushIop];
     iop.thing_id := thing_id;
 end sub;
 
@@ -40,18 +40,18 @@ sub emit_fe_push_const(value: int32)
 end sub;
 
 sub emit_fe_parameter(kind: uint8, subroutine_id: uint16, parameter: uint8)
-    var iop: [FrontEndParameterIop] := emit(kind, FrontEndParameterIop@bytes) as [FrontEndParameterIop];
+    var iop: [FEParameterIop] := emit(kind, FEParameterIop@bytes) as [FEParameterIop];
     iop.subroutine_id := subroutine_id;
     iop.parameter := parameter;
 end sub;
 
 sub emit_fe_member(thing_id: uint16)
-    var iop: [FrontEndMemberIop] := emit(IOP_FEX_MEMBER, FrontEndMemberIop@bytes) as [FrontEndMemberIop];
+    var iop: [FEMemberIop] := emit(IOP_FEX_MEMBER, FEMemberIop@bytes) as [FEMemberIop];
     iop.thing_id := thing_id;
 end sub;
 
 sub emit_fe_cast(type_id: uint16)
-    var iop: [FrontEndCastIop] := emit(IOP_FEX_CAST, FrontEndCastIop@bytes) as [FrontEndCastIop];
+    var iop: [FECastIop] := emit(IOP_FEX_CAST, FECastIop@bytes) as [FECastIop];
     iop.type_id := type_id;
 end sub;
 
@@ -70,8 +70,8 @@ sub emit_goto(label_id: uint16)
 end sub;
 
 sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label_id: uint16, iffalse_label_id: uint16)
-    var iop: [FrontEndConditionalIop] :=
-        emit(iopcode, FrontEndConditionalIop@bytes) as [FrontEndConditionalIop];
+    var iop: [FEConditionalIop] :=
+        emit(iopcode, FEConditionalIop@bytes) as [FEConditionalIop];
     iop.iftrue_label_id := iftrue_label_id;
     iop.iffalse_label_id := iffalse_label_id;
 end sub;
