@@ -1,0 +1,8 @@
+sub arch_validate_be_iop(iop: uint8, width: uint8,
+        src: [EffectiveAddress], dest: [EffectiveAddress]): (is_valid: uint8)
+    is_valid := 0;
+
+    if (src.varb_id == 0) and (dest.varb_id == 0) then
+        is_valid := 1;
+    end if;
+end sub;

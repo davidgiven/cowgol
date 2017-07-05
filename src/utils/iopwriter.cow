@@ -48,39 +48,6 @@ sub write_untyped_iop(kind: uint8)
     write_iop(&obuf[0] as [Iop]);
 end sub;
 
-sub write_offset_iop(offset: int16, type_id: uint16)
-    var obuf: OffsetIop[1];
-    obuf[0].iop_kind := IOP_OFFSETOP;
-    obuf[0].iop_size := OffsetIop@bytes;
-    obuf[0].offset := offset;
-    obuf[0].type_id := type_id;
-    write_iop(&obuf[0] as [Iop]);
-end sub;
-
-sub write_push_number_iop(value: uint32, type_id: uint16)
-    var obuf: ThingIop[1];
-    obuf[0].iop_kind := IOP_THING;
-    obuf[0].iop_size := ThingIop@bytes;
-    obuf[0].thing_id := add_number_by_value(value);
-    obuf[0].type_id := type_id;
-    write_iop(&obuf[0] as [Iop]);
-end sub;
-
-sub write_typed_iop(kind: uint8, type_id: uint16)
-    var obuf: TypedIop[1];
-    obuf[0].iop_kind := kind;
-    obuf[0].iop_size := TypedIop@bytes;
-    obuf[0].type_id := type_id;
-    write_iop(&obuf[0] as [Iop]);
-end sub;
-
-sub write_end_iop()
-    var buf: Iop[1];
-    buf[0].iop_size := Iop@bytes;
-    buf[0].iop_kind := IOP_END;
-    write_iop(&buf[0]);
-end sub;
-
 sub write_bytes_iop(byte_count: uint8, bytes: [uint8])
     var buf: BytesIop[1];
     buf[0].iop_size := BytesIop@bytes;

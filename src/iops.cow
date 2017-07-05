@@ -63,14 +63,15 @@ const IOP_FEX_INPUTPARAM   := 0b0100_0001; # ( -- ea ): FEParameterIop
 const IOP_FEX_OUTPUTPARAM  := 0b0100_0010; # ( -- ea ): FEParameterIop
 const IOP_FEX_CAST         := 0b0100_0011; # ( value -- result ): FECastIop
 const IOP_FEX_MEMBER       := 0b0100_0100; # ( ea -- ea ): FEMemberIop
-const IOP_FE_BEQ           := 0b0100_0101; # ( left right -- ): FEConditionalIop
-const IOP_FE_BLT           := 0b0100_0110; # ( left right -- ): FEConditionalIop
-const IOP_FE_BGT           := 0b0100_0111; # ( left right -- ): FEConditionalIop
+const IOP_FEX_BEQ          := 0b0100_0101; # ( left right -- ): FEConditionalIop
+const IOP_FEX_BLT          := 0b0100_0110; # ( left right -- ): FEConditionalIop
+const IOP_FEX_BGT          := 0b0100_0111; # ( left right -- ): FEConditionalIop
 
 # Backend opcodes, after type checking and conversion out of front end format.
 # This is the memory-memory architecture which the real code generator converts
 # into machine code.
 const IOP_TYPE_BACKEND     := 0b0110_0000;
+const IOP_BE_COPY          := 0b0110_0000;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_ZEROPAGE := 0b1110_0011;
@@ -135,6 +136,21 @@ record FEConditionalIop: Iop
     iffalse_label_id: uint16;
 end record;
 
+const EA_DEREF := 0b0000_0001; # treat value as pointer, deref after computing EA
+
+record EffectiveAddress
+    flags: uint8;
+    vara_id: uint16;
+    varb_id: uint16;
+    const: int16;
+end record;
+
+record BEIop: Iop
+    width: uint8;
+    src: EffectiveAddress;
+    dest: EffectiveAddress;
+end record;
+
 record CG6502MemIop: Iop
     opcode: uint8;
     thing_id: uint16;
@@ -151,8 +167,33 @@ record CG6502ConditionalIop: Iop
     label_id: uint16;
 end record;
 
-record BiggestIop: BytesIop
-end record;
+sub copy_ea(src: [EffectiveAddress], dest: [EffectiveAddress])
+    copy_memory(src as [int8], dest as [int8], EffectiveAddress@bytes);
+end sub;
+
+sub zero_ea(ea: [EffectiveAddress])
+    zero_memory(ea as [int8], EffectiveAddress@bytes);
+end sub;
+
+sub print_ea(ea: [EffectiveAddress])
+    if (ea.flags & EA_DEREF) != 0 then
+        print_char('[');
+    end if;
+    print("(0x");
+    print_hex_i16(ea.vara_id);
+    if ea.varb_id != 0 then
+        print("+0x");
+        print_hex_i16(ea.varb_id);
+    end if;
+    if ea.const != 0 then
+        print("+#0x");
+        print_hex_i16(ea.const);
+    end if;
+    print_char(')');
+    if (ea.flags & EA_DEREF) != 0 then
+        print_char(']');
+    end if;
+end sub;
 
 sub resolve_label_id(ref_id: uint16): (label_id: uint16)
     label_id := ref_id;

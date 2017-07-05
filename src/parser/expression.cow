@@ -177,17 +177,17 @@ sub expression_state_machine()
         elseif op_id == TOKEN_UNARYMINUS then
             alu_1op(IOP_FE_NEG);
         elseif op_id == TOKEN_EQOP then
-            b_2op(IOP_FE_BEQ);
+            b_2op(IOP_FEX_BEQ);
         elseif op_id == TOKEN_NEOP then
-            b_2op_reverse(IOP_FE_BEQ);
+            b_2op_reverse(IOP_FEX_BEQ);
         elseif op_id == TOKEN_LTOP then
-            b_2op(IOP_FE_BLT);
+            b_2op(IOP_FEX_BLT);
         elseif op_id == TOKEN_LEOP then
-            b_2op_reverse(IOP_FE_BGT);
+            b_2op_reverse(IOP_FEX_BGT);
         elseif op_id == TOKEN_GTOP then
-            b_2op(IOP_FE_BGT);
+            b_2op(IOP_FEX_BGT);
         elseif op_id == TOKEN_GEOP then
-            b_2op_reverse(IOP_FE_BLT);
+            b_2op_reverse(IOP_FEX_BLT);
         elseif op_id == TOKEN_NOT then
             b_not();
         elseif (op_id == TOKEN_AND) or (op_id == TOKEN_OR) then

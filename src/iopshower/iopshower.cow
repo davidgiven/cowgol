@@ -183,9 +183,9 @@ loop
         elseif kind == IOP_FEX_OUTPUTPARAM then do_fe_parameter("FEX_OUTPUTPARAM", iop as [FEParameterIop]);
         elseif kind == IOP_FEX_MEMBER      then do_fe_member(iop as [FEMemberIop]);
         elseif kind == IOP_FEX_CAST        then do_fe_cast(iop as [FECastIop]);
-        elseif kind == IOP_FE_BEQ          then do_fe_conditional("FE_BEQ", iop as [FEConditionalIop]);
-        elseif kind == IOP_FE_BLT          then do_fe_conditional("FE_BLT", iop as [FEConditionalIop]);
-        elseif kind == IOP_FE_BGT          then do_fe_conditional("FE_BGT", iop as [FEConditionalIop]);
+        elseif kind == IOP_FEX_BEQ         then do_fe_conditional("FEX_BEQ", iop as [FEConditionalIop]);
+        elseif kind == IOP_FEX_BLT         then do_fe_conditional("FEX_BLT", iop as [FEConditionalIop]);
+        elseif kind == IOP_FEX_BGT         then do_fe_conditional("FEX_BGT", iop as [FEConditionalIop]);
 
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);

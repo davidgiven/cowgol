@@ -3,14 +3,7 @@ load_thing_table("things.dat");
 init_iop_reader("iops.dat");
 init_iop_writer("iops-out.dat");
 
-const FLAG_RVALUE := 1;
-var typestack: uint16[32];
-var flagstack: uint8[32];
-var stack_pos: uint8;
 var main_subroutine_id: uint16 := find_main_subroutine();
-
-const IS_ADD := 0;
-const IS_SUB := 1;
 
 sub find_bootstrap_type(identifier_id: uint16): (type_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(main_subroutine_id) as [SubroutineThing];
@@ -21,39 +14,6 @@ end sub;
 var int8_type: uint16 := find_bootstrap_type(TOKEN_INT8);
 var uint16_type: uint16 := find_bootstrap_type(TOKEN_INT16);
 var numeric_type: uint16 := find_bootstrap_type(TOKEN_NUMERIC);
-
-sub push_type(type: uint16, flags: uint8)
-    if stack_pos == typestack@size then
-        print("stack overflow");
-        halt();
-    end if;
-
-    typestack[stack_pos] := type;
-    flagstack[stack_pos] := flags;
-    stack_pos := stack_pos + 1;
-end sub;
-
-sub pop_type(): (type_id: uint16, flags: uint8)
-    if stack_pos == 0 then
-        print("stack underflow");
-        halt();
-    end if;
-
-    stack_pos := stack_pos - 1;
-    type_id := typestack[stack_pos];
-    flags := flagstack[stack_pos];
-end sub;
-
-sub peek_type(offset: int8): (type_id: uint16, flags: uint8)
-    var i: uint8 := stack_pos + offset;
-    if i > stack_pos then
-        print("stack underflow");
-        halt();
-    end if;
-
-    type_id := typestack[i];
-    flags := flagstack[i];
-end sub;
 
 sub print_type_name(type_id: uint16)
     var brackets: uint8 := 0;
@@ -75,491 +35,503 @@ sub print_type_name(type_id: uint16)
     end loop;
 end sub;
 
-sub check_type_assignability(left_type_id: uint16, right_type_id: uint16)
-    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+sub get_width_of(node: [Node]): (width: uint8)
+    var type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
+    width := type.width;
+end sub;
 
-    if ((left_type.thing_type & THING_NUMERIC) != 0) and
-       ((right_type.thing_type & THING_NUMERIC) != 0) then
+sub check_type_assignability(src_type_id: uint16, dest_type_id: uint16)
+    var src_type: [TypeThing] := find_thing(src_type_id) as [TypeThing];
+    var dest_type: [TypeThing] := find_thing(dest_type_id) as [TypeThing];
+
+    # It's legal to assign any number to any other number.
+    if ((src_type.thing_type & THING_NUMERIC) != 0) and
+       ((dest_type.thing_type & THING_NUMERIC) != 0) then
         return;
     end if;
-    if left_type_id != right_type_id then
-        print_type_name(right_type_id);
+
+    # Otherwise, the type must match exactly.
+    if src_type_id != dest_type_id then
+        print_type_name(src_type_id);
         print(" cannot be assigned to ");
-        print_type_name(left_type_id);
+        print_type_name(dest_type_id);
         halt();
     end if;
 end sub;
 
-sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
-    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-
-    if left_type_id == right_type_id then
-        result_type_id := left_type_id;
-    elseif ((left_type.thing_type & THING_NUMERIC) != 0) and
-       ((right_type.thing_type & THING_NUMERIC) != 0) then
-        if left_type.width < right_type.width then
-            result_type_id := right_type_id;
-        else
-            result_type_id := left_type_id;
-        end if;
-        return;
-    else
-        print_type_name(left_type_id);
-        print(" and ");
-        print_type_name(right_type_id);
-        print(" are not compatible in this context");
-        halt();
-    end if;
-end sub;
-
+#sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
+#    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+#    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+#
+#    if left_type_id == right_type_id then
+#        result_type_id := left_type_id;
+#    elseif ((left_type.thing_type & THING_NUMERIC) != 0) and
+#       ((right_type.thing_type & THING_NUMERIC) != 0) then
+#        if left_type.width < right_type.width then
+#            result_type_id := right_type_id;
+#        else
+#            result_type_id := left_type_id;
+#        end if;
+#        return;
+#    else
+#        print_type_name(left_type_id);
+#        print(" and ");
+#        print_type_name(right_type_id);
+#        print(" are not compatible in this context");
+#        halt();
+#    end if;
+#end sub;
+#
 sub process_subroutine(thing_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
-    stack_pos := 0;
+    init_tree();
     current_namespace_id := subroutine.namespace_id;
 
-    sub push_thing(iop: [ThingIop])
+    sub fex_push(iop: [FEPushIop])
         var thing: [Thing] := find_thing(iop.thing_id);
         if thing.thing_type == THING_IDENTIFIER then
             iop.thing_id := deref_symbol_or_fail(iop.thing_id);
             thing := find_thing(iop.thing_id);
         end if;
 
-        var type_id: uint16;
-        var flags: uint8 := 0;
+        var index: uint8 := push_empty_node();
+        var node: [Node] := &nodes[index];
+
+        node.iop := IOP_FEX_PUSH;
+        node.ea.vara_id := iop.thing_id;
         if thing.thing_type == THING_NUMBER then
-            type_id := numeric_type;
-            flags := FLAG_RVALUE;
+            node.type_id := numeric_type;
+            node.flags := FLAG_RVALUE;
         elseif thing.thing_type == THING_STRING then
-            type_id := pointer_of(int8_type);
-            flags := FLAG_RVALUE;
+            node.type_id := pointer_of(int8_type);
+            node.flags := FLAG_RVALUE;
         elseif (thing.thing_type & THING_TYPED) != 0 then
             var typed_thing: [TypedThing] := thing as [TypedThing];
             if typed_thing.type_id == 0 then
                 print("forward reference to type inferred value");
                 halt();
             end if;
-            type_id := typed_thing.type_id;
+            node.type_id := typed_thing.type_id;
         else
             print("can't push things of type 0x");
             print_hex_i8(thing.thing_type);
             halt();
         end if;
-
-        push_type(type_id, flags);
-        iop.type_id := type_id;
-        write_iop(iop as [Iop]);
+        print("type_id=0x");
+        print_hex_i16(node.type_id);
+        print_newline();
     end sub;
+#
+#    sub push_parameter(direction: uint8, iop: [ParameterIop])
+#        var thing_id: uint16 := iop.subroutine_id;
+#        var thing: [Thing] := find_thing(thing_id);
+#        if thing.thing_type == THING_IDENTIFIER then
+#            thing_id := deref_symbol_or_fail(thing_id);
+#            thing := find_thing(thing_id);
+#        end if;
+#        if thing.thing_type != THING_SUBROUTINE then
+#            print("subroutine_id not a subroutine");
+#            halt();
+#        end if;
+#
+#        var parameter_id: uint16 := find_nth_parameter(
+#            thing_id, direction, iop.parameter);
+#        var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
+#        var buf: ThingIop[1];
+#        buf[0].iop_kind := IOP_THING;
+#        buf[0].iop_size := ThingIop@bytes;
+#        buf[0].type_id := parameter.type_id;
+#        buf[0].thing_id := parameter_id;
+#        write_iop(&buf[0] as [Iop]);
+#        push_type(parameter.type_id, 0);
+#    end sub;
 
-    sub push_parameter(direction: uint8, iop: [ParameterIop])
-        var thing_id: uint16 := iop.subroutine_id;
-        var thing: [Thing] := find_thing(thing_id);
-        if thing.thing_type == THING_IDENTIFIER then
-            thing_id := deref_symbol_or_fail(thing_id);
-            thing := find_thing(thing_id);
-        end if;
-        if thing.thing_type != THING_SUBROUTINE then
-            print("subroutine_id not a subroutine");
-            halt();
-        end if;
+    sub fe_assign()
+        var src_index: uint8 := pop();
+        var src: [Node] := get_node(src_index);
+        var dest_index: uint8 := pop();
+        var dest: [Node] := get_node(dest_index);
 
-        var parameter_id: uint16 := find_nth_parameter(
-            thing_id, direction, iop.parameter);
-        var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
-        var buf: ThingIop[1];
-        buf[0].iop_kind := IOP_THING;
-        buf[0].iop_size := ThingIop@bytes;
-        buf[0].type_id := parameter.type_id;
-        buf[0].thing_id := parameter_id;
-        write_iop(&buf[0] as [Iop]);
-        push_type(parameter.type_id, 0);
-    end sub;
-
-    sub assign_things(iop: [Iop])
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := pop_type();
-
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        if (left_flags & FLAG_RVALUE) != 0 then
+        if (dest.flags & FLAG_RVALUE) != 0 then
             print("cannot assign to rvalue");
             halt();
         end if;
 
-        check_type_assignability(left_type_id, right_type_id);
-        write_iop(iop as [Iop]);
+        check_type_assignability(src.type_id, dest.type_id);
+        write_be_iop(IOP_BE_COPY, get_width_of(dest), src, dest);
+        free_node(src_index);
+        free_node(dest_index);
     end sub;
 
-    sub assignto_things(iop: [Iop])
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := pop_type();
-
-        if (left_flags & FLAG_RVALUE) != 0 then
-            print("cannot assign to rvalue");
-            halt();
-        end if;
-
-        check_type_assignability(left_type_id, right_type_id);
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub simple_alu2op(iop: [TypedIop])
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := pop_type();
-
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        # if you change this, change the non-pointer case in addsub as well
-        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
-        iop.type_id := type_id;
-        push_type(type_id, FLAG_RVALUE);
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub maybe_signed_biop(signed_iop: uint8, unsigned_iop: uint8, iop: [TypedIop])
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := peek_type(-1);
-
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := peek_type(-2);
-
-        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-
-        var left_signedness: uint8;
-        if (left_type.thing_type == THING_SIGNED) and (right_type.thing_type == THING_SIGNED) then
-            iop.iop_kind := signed_iop;
-        else
-            iop.iop_kind := unsigned_iop;
-        end if;
-    end sub;
-
-    sub shift_op(iop: [TypedIop])
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := pop_type();
-
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-
-        if (left_type.thing_type & THING_NUMERIC) == 0 then
-            print("cannot shift non-numbers");
-            halt();
-        end if;
-        if (right_type.thing_type & THING_NUMERIC) == 0 then
-            print("cannot shift by non-numbers");
-            halt();
-        end if;
-        if iop.iop_kind == IOP_RSHIFTOP then
-            if left_type.thing_type == THING_SIGNED then
-                iop.iop_kind := IOP_ASROP;
-            else
-                iop.iop_kind := IOP_LSROP;
-            end if;
-        end if;
-
-        iop.type_id := left_type_id;
-        push_type(left_type_id, FLAG_RVALUE);
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub addsub(kind: uint8, iop: [TypedIop])
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := pop_type();
-
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        var left_type: [PointerThing] := find_thing(left_type_id) as [PointerThing];
-        var right_type: [PointerThing] := find_thing(right_type_id) as [PointerThing];
-        var type_id: uint16;
-        if left_type.thing_type != THING_POINTER then
-            # this is the same as simple_alu2op above
-            type_id := check_type_compatibility(left_type_id, right_type_id);
-        elseif (kind == IS_SUB)
-                and (left_type.thing_type == THING_POINTER)
-                and (right_type.thing_type == THING_POINTER) then
-            type_id := uint16_type;
-        elseif (kind == IS_ADD)
-                and (left_type.thing_type == THING_POINTER)
-                and ((right_type.thing_type & THING_NUMERIC) != 0) then
-            type_id := left_type_id;
-        else
-            halt();
-        end if;
-        iop.type_id := type_id;
-        push_type(type_id, FLAG_RVALUE);
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub simple_alu1op(iop: [TypedIop])
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        iop.type_id := left_type_id;
-        push_type(left_type_id, FLAG_RVALUE);
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub conditional_jump(iop: [ConditionalIop])
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := pop_type();
-
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
-        iop.type_id := type_id;
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub call_subroutine(iop: [CallIop])
-        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
-        if thing.thing_type == THING_IDENTIFIER then
-            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
-            thing := find_thing(iop.thing_id) as [SubroutineThing];
-        end if;
-        if thing.thing_type != THING_SUBROUTINE then
-            print("subroutine_id not pointing at subroutine");
-            halt();
-        end if;
-
-        if (thing.input_parameter_count != iop.input_parameter_count)
-                or (thing.output_parameter_count != iop.output_parameter_count) then
-            show_name_of(iop.thing_id);
-            print(" has ");
-            print_i8(thing.input_parameter_count);
-            print(" inputs and ");
-            print_i8(thing.output_parameter_count);
-            print(" outputs, but was called with ");
-            print_i8(iop.input_parameter_count);
-            print(" and ");
-            print_i8(iop.output_parameter_count);
-            halt();
-        end if;
-
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub sindexop(iop: [TypedIop])
-        var right_type_id: uint16;
-        var right_flags: uint8;
-        (right_type_id, right_flags) := pop_type();
-
-        var left_type_id: uint16;
-        var left_flags: uint8;
-        (left_type_id, left_flags) := pop_type();
-
-        var left_type: [WithElementsThing] := find_thing(left_type_id) as [WithElementsThing];
-        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-        var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
-
-        if (right_type.thing_type & THING_NUMERIC) == 0 then
-            print("index must be numeric");
-            halt();
-        end if;
-
-        if left_type.thing_type == THING_POINTER then
-            write_untyped_iop(IOP_SWAP);
-            write_typed_iop(IOP_LOAD, left_type.element_id);
-            write_untyped_iop(IOP_SWAP);
-        elseif left_type.thing_type != THING_ARRAY then
-            print("only pointers or arrays can be indexed");
-            halt();
-        end if;
-
-        if element_type.width == 1 then
-            # do nothing
-        elseif element_type.width == 2 then
-            write_push_number_iop(1, uint16_type);
-            write_typed_iop(IOP_LSLOP, uint16_type);
-        elseif element_type.width == 4 then
-            write_push_number_iop(2, uint16_type);
-            write_typed_iop(IOP_LSLOP, uint16_type);
-        else
-            write_push_number_iop(element_type.width, uint16_type);
-            write_typed_iop(IOP_MULOP, uint16_type);
-        end if;
-
-        if right_type.thing_type == THING_SIGNED then
-            iop.iop_kind := IOP_INDEXSOP;
-        else
-            iop.iop_kind := IOP_INDEXUOP;
-        end if;
-        iop.type_id := left_type.element_id;
-        write_iop(iop as [Iop]);
-        push_type(left_type.element_id, 0);
-    end sub;
-
-    sub castop(iop: [TypedIop])
-        var input_type_id: uint16;
-        var input_flags: uint8;
-        (input_type_id, input_flags) := pop_type();
-
-        var input_type: [TypeThing] := find_thing(input_type_id) as [TypeThing];
-        var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
-        if (input_type.thing_type != THING_NUMERIC) and (input_type.width != output_type.width) then
-            if output_type.thing_type == THING_SIGNED then
-                iop.iop_kind := IOP_SEXTOP;
-            else
-                iop.iop_kind := IOP_ZEXTOP;
-            end if;
-
-            write_iop(iop as [Iop]);
-        end if;
-        push_type(iop.type_id, FLAG_RVALUE);
-    end sub;
-
-    sub addressop(iop: [TypedIop])
-        var input_type_id: uint16;
-        var input_flags: uint8;
-        (input_type_id, input_flags) := pop_type();
-
-        if (input_flags & FLAG_RVALUE) != 0 then
-            print("cannot take the address of an rvalue");
-            halt();
-        end if;
-
-        # The type checker's not actually smart enough to tell whether the thing that
-        # the address is being taken of is actually an array member. So we just set
-        # the type correctly and leave it at that. The codegen stage will complain
-        # if it can't be done.
-
-        iop.type_id := pointer_of(input_type_id);
-        push_type(iop.type_id, FLAG_RVALUE);
-        write_iop(iop as [Iop]);
-    end sub;
-
-    sub memberop(iop: [MemberIop])
-        var input_type_id: uint16;
-        var input_flags: uint8;
-        (input_type_id, input_flags) := pop_type();
-
-        sub find_member_of_record_type(type_id: uint16, identifier_id: uint16): (member_id: uint16)
-            var type: [RecordThing] := find_thing(type_id) as [RecordThing];
-            if type.thing_type != THING_RECORD then
-                print_type_name(type_id);
-                print(" is not a record type");
-                halt();
-            end if;
-
-            var symbol_id: uint16 := find_symbol_recursively(identifier_id, type.namespace_id);
-            if symbol_id == 0 then
-                show_identifier(identifier_id);
-                print(" is not a member of ");
-                print_type_name(type_id);
-                halt();
-            end if;
-            var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-            member_id := symbol.value_id;
-        end sub;
-
-        var input_type: [TypeThing] := find_thing(input_type_id) as [TypeThing];
-        var member_id: uint16;
-        var member: [MemberThing];
-        if input_type.thing_type == THING_RECORD then
-            member_id := find_member_of_record_type(input_type_id, iop.thing_id);
-            member := find_thing(member_id) as [MemberThing];
-            write_offset_iop(member.offset, member.type_id);
-        elseif input_type.thing_type == THING_POINTER then
-            var ptr_input_type: [PointerThing] := input_type as [PointerThing];
-            member_id := find_member_of_record_type(ptr_input_type.element_id, iop.thing_id);
-            member := find_thing(member_id) as [MemberThing];
-            write_push_number_iop(member.offset, uint16_type);
-            write_typed_iop(IOP_ADDOP, input_type_id);
-        else
-            print(". only works on pointer and record types");
-            halt();
-        end if;
-        push_type(member.type_id, 0);
-    end sub;
-
-    sub simple_iop(iop: [Iop])
-        write_iop(iop as [Iop]);
-    end sub;
+#    sub assignto_things(iop: [Iop])
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := pop_type();
+#
+#        var right_type_id: uint16;
+#        var right_flags: uint8;
+#        (right_type_id, right_flags) := pop_type();
+#
+#        if (left_flags & FLAG_RVALUE) != 0 then
+#            print("cannot assign to rvalue");
+#            halt();
+#        end if;
+#
+#        check_type_assignability(left_type_id, right_type_id);
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub simple_alu2op(iop: [TypedIop])
+#        var right_type_id: uint16;
+#        var right_flags: uint8;
+#        (right_type_id, right_flags) := pop_type();
+#
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := pop_type();
+#
+#        # if you change this, change the non-pointer case in addsub as well
+#        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
+#        iop.type_id := type_id;
+#        push_type(type_id, FLAG_RVALUE);
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub maybe_signed_biop(signed_iop: uint8, unsigned_iop: uint8, iop: [TypedIop])
+#        var right_type_id: uint16;
+#        var right_flags: uint8;
+#        (right_type_id, right_flags) := peek_type(-1);
+#
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := peek_type(-2);
+#
+#        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+#        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+#
+#        var left_signedness: uint8;
+#        if (left_type.thing_type == THING_SIGNED) and (right_type.thing_type == THING_SIGNED) then
+#            iop.iop_kind := signed_iop;
+#        else
+#            iop.iop_kind := unsigned_iop;
+#        end if;
+#    end sub;
+#
+#    sub shift_op(iop: [TypedIop])
+#        var right_type_id: uint16;
+#        var right_flags: uint8;
+#        (right_type_id, right_flags) := pop_type();
+#
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := pop_type();
+#
+#        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+#        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+#
+#        if (left_type.thing_type & THING_NUMERIC) == 0 then
+#            print("cannot shift non-numbers");
+#            halt();
+#        end if;
+#        if (right_type.thing_type & THING_NUMERIC) == 0 then
+#            print("cannot shift by non-numbers");
+#            halt();
+#        end if;
+#        if iop.iop_kind == IOP_RSHIFTOP then
+#            if left_type.thing_type == THING_SIGNED then
+#                iop.iop_kind := IOP_ASROP;
+#            else
+#                iop.iop_kind := IOP_LSROP;
+#            end if;
+#        end if;
+#
+#        iop.type_id := left_type_id;
+#        push_type(left_type_id, FLAG_RVALUE);
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub addsub(kind: uint8, iop: [TypedIop])
+#        var right_type_id: uint16;
+#        var right_flags: uint8;
+#        (right_type_id, right_flags) := pop_type();
+#
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := pop_type();
+#
+#        var left_type: [PointerThing] := find_thing(left_type_id) as [PointerThing];
+#        var right_type: [PointerThing] := find_thing(right_type_id) as [PointerThing];
+#        var type_id: uint16;
+#        if left_type.thing_type != THING_POINTER then
+#            # this is the same as simple_alu2op above
+#            type_id := check_type_compatibility(left_type_id, right_type_id);
+#        elseif (kind == IS_SUB)
+#                and (left_type.thing_type == THING_POINTER)
+#                and (right_type.thing_type == THING_POINTER) then
+#            type_id := uint16_type;
+#        elseif (kind == IS_ADD)
+#                and (left_type.thing_type == THING_POINTER)
+#                and ((right_type.thing_type & THING_NUMERIC) != 0) then
+#            type_id := left_type_id;
+#        else
+#            halt();
+#        end if;
+#        iop.type_id := type_id;
+#        push_type(type_id, FLAG_RVALUE);
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub simple_alu1op(iop: [TypedIop])
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := pop_type();
+#
+#        iop.type_id := left_type_id;
+#        push_type(left_type_id, FLAG_RVALUE);
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub conditional_jump(iop: [ConditionalIop])
+#        var right_type_id: uint16;
+#        var right_flags: uint8;
+#        (right_type_id, right_flags) := pop_type();
+#
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := pop_type();
+#
+#        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
+#        iop.type_id := type_id;
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub call_subroutine(iop: [CallIop])
+#        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
+#        if thing.thing_type == THING_IDENTIFIER then
+#            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+#            thing := find_thing(iop.thing_id) as [SubroutineThing];
+#        end if;
+#        if thing.thing_type != THING_SUBROUTINE then
+#            print("subroutine_id not pointing at subroutine");
+#            halt();
+#        end if;
+#
+#        if (thing.input_parameter_count != iop.input_parameter_count)
+#                or (thing.output_parameter_count != iop.output_parameter_count) then
+#            show_name_of(iop.thing_id);
+#            print(" has ");
+#            print_i8(thing.input_parameter_count);
+#            print(" inputs and ");
+#            print_i8(thing.output_parameter_count);
+#            print(" outputs, but was called with ");
+#            print_i8(iop.input_parameter_count);
+#            print(" and ");
+#            print_i8(iop.output_parameter_count);
+#            halt();
+#        end if;
+#
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub sindexop(iop: [TypedIop])
+#        var right_type_id: uint16;
+#        var right_flags: uint8;
+#        (right_type_id, right_flags) := pop_type();
+#
+#        var left_type_id: uint16;
+#        var left_flags: uint8;
+#        (left_type_id, left_flags) := pop_type();
+#
+#        var left_type: [WithElementsThing] := find_thing(left_type_id) as [WithElementsThing];
+#        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+#        var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
+#
+#        if (right_type.thing_type & THING_NUMERIC) == 0 then
+#            print("index must be numeric");
+#            halt();
+#        end if;
+#
+#        if left_type.thing_type == THING_POINTER then
+#            write_untyped_iop(IOP_SWAP);
+#            write_typed_iop(IOP_LOAD, left_type.element_id);
+#            write_untyped_iop(IOP_SWAP);
+#        elseif left_type.thing_type != THING_ARRAY then
+#            print("only pointers or arrays can be indexed");
+#            halt();
+#        end if;
+#
+#        if element_type.width == 1 then
+#            # do nothing
+#        elseif element_type.width == 2 then
+#            write_push_number_iop(1, uint16_type);
+#            write_typed_iop(IOP_LSLOP, uint16_type);
+#        elseif element_type.width == 4 then
+#            write_push_number_iop(2, uint16_type);
+#            write_typed_iop(IOP_LSLOP, uint16_type);
+#        else
+#            write_push_number_iop(element_type.width, uint16_type);
+#            write_typed_iop(IOP_MULOP, uint16_type);
+#        end if;
+#
+#        if right_type.thing_type == THING_SIGNED then
+#            iop.iop_kind := IOP_INDEXSOP;
+#        else
+#            iop.iop_kind := IOP_INDEXUOP;
+#        end if;
+#        iop.type_id := left_type.element_id;
+#        write_iop(iop as [Iop]);
+#        push_type(left_type.element_id, 0);
+#    end sub;
+#
+#    sub castop(iop: [TypedIop])
+#        var input_type_id: uint16;
+#        var input_flags: uint8;
+#        (input_type_id, input_flags) := pop_type();
+#
+#        var input_type: [TypeThing] := find_thing(input_type_id) as [TypeThing];
+#        var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
+#        if (input_type.thing_type != THING_NUMERIC) and (input_type.width != output_type.width) then
+#            if output_type.thing_type == THING_SIGNED then
+#                iop.iop_kind := IOP_SEXTOP;
+#            else
+#                iop.iop_kind := IOP_ZEXTOP;
+#            end if;
+#
+#            write_iop(iop as [Iop]);
+#        end if;
+#        push_type(iop.type_id, FLAG_RVALUE);
+#    end sub;
+#
+#    sub addressop(iop: [TypedIop])
+#        var input_type_id: uint16;
+#        var input_flags: uint8;
+#        (input_type_id, input_flags) := pop_type();
+#
+#        if (input_flags & FLAG_RVALUE) != 0 then
+#            print("cannot take the address of an rvalue");
+#            halt();
+#        end if;
+#
+#        # The type checker's not actually smart enough to tell whether the thing that
+#        # the address is being taken of is actually an array member. So we just set
+#        # the type correctly and leave it at that. The codegen stage will complain
+#        # if it can't be done.
+#
+#        iop.type_id := pointer_of(input_type_id);
+#        push_type(iop.type_id, FLAG_RVALUE);
+#        write_iop(iop as [Iop]);
+#    end sub;
+#
+#    sub memberop(iop: [MemberIop])
+#        var input_type_id: uint16;
+#        var input_flags: uint8;
+#        (input_type_id, input_flags) := pop_type();
+#
+#        sub find_member_of_record_type(type_id: uint16, identifier_id: uint16): (member_id: uint16)
+#            var type: [RecordThing] := find_thing(type_id) as [RecordThing];
+#            if type.thing_type != THING_RECORD then
+#                print_type_name(type_id);
+#                print(" is not a record type");
+#                halt();
+#            end if;
+#
+#            var symbol_id: uint16 := find_symbol_recursively(identifier_id, type.namespace_id);
+#            if symbol_id == 0 then
+#                show_identifier(identifier_id);
+#                print(" is not a member of ");
+#                print_type_name(type_id);
+#                halt();
+#            end if;
+#            var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+#            member_id := symbol.value_id;
+#        end sub;
+#
+#        var input_type: [TypeThing] := find_thing(input_type_id) as [TypeThing];
+#        var member_id: uint16;
+#        var member: [MemberThing];
+#        if input_type.thing_type == THING_RECORD then
+#            member_id := find_member_of_record_type(input_type_id, iop.thing_id);
+#            member := find_thing(member_id) as [MemberThing];
+#            write_offset_iop(member.offset, member.type_id);
+#        elseif input_type.thing_type == THING_POINTER then
+#            var ptr_input_type: [PointerThing] := input_type as [PointerThing];
+#            member_id := find_member_of_record_type(ptr_input_type.element_id, iop.thing_id);
+#            member := find_thing(member_id) as [MemberThing];
+#            write_push_number_iop(member.offset, uint16_type);
+#            write_typed_iop(IOP_ADDOP, input_type_id);
+#        else
+#            print(". only works on pointer and record types");
+#            halt();
+#        end if;
+#        push_type(member.type_id, 0);
+#    end sub;
 
     loop
         var iop: [Iop] := read_iop();
         var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+        print_newline();
+        print_stack();
+        print("* read iop 0x");
+        print_hex_i8(iop.iop_kind);
+        print_newline();
 
         if iop.iop_kind == IOP_END then
             break;
         elseif ioptype == IOP_TYPE_UNTYPED then
-            simple_iop(iop);
-        elseif ioptype == IOP_TYPE_SIMPLE2OP then
-            simple_alu2op(iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_DIVOP then
-            maybe_signed_biop(IOP_DIVSOP, IOP_DIVUOP, iop as [TypedIop]);
-            simple_alu2op(iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_MODOP then
-            maybe_signed_biop(IOP_MODSOP, IOP_MODUOP, iop as [TypedIop]);
-            simple_alu2op(iop as [TypedIop]);
-        elseif (iop.iop_kind == IOP_LSLOP) or (iop.iop_kind == IOP_RSHIFTOP) then
-            shift_op(iop as [TypedIop]);
-        elseif ioptype == IOP_TYPE_SIMPLE1OP then
-            simple_alu1op(iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_BEQ then
-            conditional_jump(iop as [ConditionalIop]);
-        elseif iop.iop_kind == IOP_BGT then
-            maybe_signed_biop(IOP_BGTS, IOP_BGTU, iop as [TypedIop]);
-            conditional_jump(iop as [ConditionalIop]);
-        elseif iop.iop_kind == IOP_BLT then
-            maybe_signed_biop(IOP_BLTS, IOP_BLTU, iop as [TypedIop]);
-            conditional_jump(iop as [ConditionalIop]);
-        elseif iop.iop_kind == IOP_THING then
-            push_thing(iop as [ThingIop]);
-        elseif iop.iop_kind == IOP_ASSIGN then
-            assign_things(iop as [Iop]);
-        elseif iop.iop_kind == IOP_ASSIGNTO then
-            assignto_things(iop as [Iop]);
-        elseif iop.iop_kind == IOP_INPUTPARAM then
-            push_parameter(DIRECTION_IN, iop as [ParameterIop]);
-        elseif iop.iop_kind == IOP_OUTPUTPARAM then
-            push_parameter(DIRECTION_OUT, iop as [ParameterIop]);
-        elseif iop.iop_kind == IOP_CALL then
-            call_subroutine(iop as [CallIop]);
-        elseif iop.iop_kind == IOP_ADDOP then
-            addsub(IS_ADD, iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_SUBOP then
-            addsub(IS_SUB, iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_SINDEXOP then
-            sindexop(iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_CASTOP then
-            castop(iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_ADDRESSOP then
-            addressop(iop as [TypedIop]);
-        elseif iop.iop_kind == IOP_MEMBEROP then
-            memberop(iop as [MemberIop]);
+            write_iop(iop);
+        elseif iop.iop_kind == IOP_FEX_PUSH then
+            fex_push(iop as [FEPushIop]);
+        elseif iop.iop_kind == IOP_FE_ASSIGN then
+            fe_assign();
+#        elseif ioptype == IOP_TYPE_SIMPLE2OP then
+#            simple_alu2op(iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_DIVOP then
+#            maybe_signed_biop(IOP_DIVSOP, IOP_DIVUOP, iop as [TypedIop]);
+#            simple_alu2op(iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_MODOP then
+#            maybe_signed_biop(IOP_MODSOP, IOP_MODUOP, iop as [TypedIop]);
+#            simple_alu2op(iop as [TypedIop]);
+#        elseif (iop.iop_kind == IOP_LSLOP) or (iop.iop_kind == IOP_RSHIFTOP) then
+#            shift_op(iop as [TypedIop]);
+#        elseif ioptype == IOP_TYPE_SIMPLE1OP then
+#            simple_alu1op(iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_BEQ then
+#            conditional_jump(iop as [ConditionalIop]);
+#        elseif iop.iop_kind == IOP_BGT then
+#            maybe_signed_biop(IOP_BGTS, IOP_BGTU, iop as [TypedIop]);
+#            conditional_jump(iop as [ConditionalIop]);
+#        elseif iop.iop_kind == IOP_BLT then
+#            maybe_signed_biop(IOP_BLTS, IOP_BLTU, iop as [TypedIop]);
+#            conditional_jump(iop as [ConditionalIop]);
+#        elseif iop.iop_kind == IOP_THING then
+#            push_thing(iop as [ThingIop]);
+#        elseif iop.iop_kind == IOP_ASSIGNTO then
+#            assignto_things(iop as [Iop]);
+#        elseif iop.iop_kind == IOP_INPUTPARAM then
+#            push_parameter(DIRECTION_IN, iop as [ParameterIop]);
+#        elseif iop.iop_kind == IOP_OUTPUTPARAM then
+#            push_parameter(DIRECTION_OUT, iop as [ParameterIop]);
+#        elseif iop.iop_kind == IOP_CALL then
+#            call_subroutine(iop as [CallIop]);
+#        elseif iop.iop_kind == IOP_ADDOP then
+#            addsub(IS_ADD, iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_SUBOP then
+#            addsub(IS_SUB, iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_SINDEXOP then
+#            sindexop(iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_CASTOP then
+#            castop(iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_ADDRESSOP then
+#            addressop(iop as [TypedIop]);
+#        elseif iop.iop_kind == IOP_MEMBEROP then
+#            memberop(iop as [MemberIop]);
         else
             print("unsupported iop 0x");
             print_hex_i8(iop.iop_kind);
             halt();
         end if;
     end loop;
-    write_end_iop();
+    write_untyped_iop(IOP_END);
 end sub;
 
 sub process()

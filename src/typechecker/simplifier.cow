@@ -1,0 +1,19 @@
+sub simplify_node(node: [Node])
+    if node.iop == IOP_FEX_PUSH then
+        return;
+    end if;
+    print("can't simplify this yet");
+    halt();
+end sub;
+
+sub write_be_iop(iop: uint8, width: uint8, src: [Node], dest: [Node])
+    simplify_node(src);
+    simplify_node(dest);
+
+    if arch_validate_be_iop(IOP_BE_COPY, width, &src.ea, &dest.ea) == 1 then
+        print("writing");
+    else
+        print("not writing");
+    end if;
+    halt();
+end sub;
