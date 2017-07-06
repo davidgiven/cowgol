@@ -45,7 +45,7 @@ sub alloc_node(): (index: uint8)
     halt();
 end sub;
 
-sub free_node(index: uint8)
+sub free_raw_node(index: uint8)
     var node: [Node] := get_node(index);
     node.iop := 0;
     zero_memory(node as [int8], Node@bytes);
@@ -53,6 +53,17 @@ sub free_node(index: uint8)
     print("* freed node ");
     print_i8(index);
     print_newline();
+end sub;
+
+sub free_node(index: uint8)
+    var node: [Node] := get_node(index);
+    if node.left != 0 then
+        free_raw_node(node.left);
+    end if;
+    if node.right != 0 then
+        free_raw_node(node.right);
+    end if;
+    free_raw_node(index);
 end sub;
 
 sub push_node(index: uint8)

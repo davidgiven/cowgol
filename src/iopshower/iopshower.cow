@@ -75,6 +75,28 @@ sub do_fe_conditional(kind: [int8], iop: [FEConditionalIop])
     print_hex_i16(iop.iffalse_label_id);
 end sub;
 
+sub do_be_2op(kind: [int8], iop: [BEIop])
+    print(kind);
+    print(" width=");
+    print_i8(iop.width);
+    print(" src=");
+    print_ea(&iop.left);
+    print(" dest=");
+    print_ea(&iop.dest);
+end sub;
+
+sub do_be_3op(kind: [int8], iop: [BEIop])
+    print(kind);
+    print(" width=");
+    print_i8(iop.width);
+    print(" left=");
+    print_ea(&iop.left);
+    print(" right=");
+    print_ea(&iop.right);
+    print(" dest=");
+    print_ea(&iop.dest);
+end sub;
+
 sub do_goto(iop: [GotoIop])
     print("GOTO label=0x");
     print_label(iop.label_id);
@@ -186,6 +208,10 @@ loop
         elseif kind == IOP_FEX_BEQ         then do_fe_conditional("FEX_BEQ", iop as [FEConditionalIop]);
         elseif kind == IOP_FEX_BLT         then do_fe_conditional("FEX_BLT", iop as [FEConditionalIop]);
         elseif kind == IOP_FEX_BGT         then do_fe_conditional("FEX_BGT", iop as [FEConditionalIop]);
+
+        elseif kind == IOP_BE_COPY         then do_be_2op("BE_COPY", iop as [BEIop]);
+        elseif kind == IOP_BE_ADD          then do_be_3op("BE_ADD", iop as [BEIop]);
+        elseif kind == IOP_BE_SUB          then do_be_3op("BE_SUB", iop as [BEIop]);
 
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);

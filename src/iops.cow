@@ -70,8 +70,14 @@ const IOP_FEX_BGT          := 0b0100_0111; # ( left right -- ): FEConditionalIop
 # Backend opcodes, after type checking and conversion out of front end format.
 # This is the memory-memory architecture which the real code generator converts
 # into machine code.
-const IOP_TYPE_BACKEND     := 0b0110_0000;
+# 2op instructions (the RHS is ignored).
+const IOP_TYPE_BACKEND_2OP := 0b0110_0000;
 const IOP_BE_COPY          := 0b0110_0000;
+
+# 3op instructions.
+const IOP_TYPE_BACKEND_3OP := 0b1000_0000;
+const IOP_BE_ADD           := 0b1000_0000;
+const IOP_BE_SUB           := 0b1000_0001;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_ZEROPAGE := 0b1110_0011;
@@ -136,18 +142,19 @@ record FEConditionalIop: Iop
     iffalse_label_id: uint16;
 end record;
 
-const EA_DEREF := 0b0000_0001; # treat value as pointer, deref after computing EA
+const EA_DEREF     := 0b0000_0001; # var is a pointer; deref
+const EA_VAROFFSET := 0b0000_0010; # off_id is a variable rather than a number
 
 record EffectiveAddress
     flags: uint8;
-    vara_id: uint16;
-    varb_id: uint16;
-    const: int16;
+    var_id: uint16;
+    off_id: uint16;
 end record;
 
 record BEIop: Iop
     width: uint8;
-    src: EffectiveAddress;
+    left: EffectiveAddress;
+    right: EffectiveAddress;
     dest: EffectiveAddress;
 end record;
 
@@ -180,14 +187,14 @@ sub print_ea(ea: [EffectiveAddress])
         print_char('[');
     end if;
     print("(0x");
-    print_hex_i16(ea.vara_id);
-    if ea.varb_id != 0 then
-        print("+0x");
-        print_hex_i16(ea.varb_id);
-    end if;
-    if ea.const != 0 then
-        print("+#0x");
-        print_hex_i16(ea.const);
+    print_hex_i16(ea.var_id);
+    if ea.off_id != 0 then
+        if (ea.flags & EA_VAROFFSET) != 0 then
+            print("+0x");
+        else
+            print("+#0x");
+        end if;
+        print_hex_i16(ea.off_id);
     end if;
     print_char(')');
     if (ea.flags & EA_DEREF) != 0 then

@@ -19,3 +19,13 @@ sub array_of(type_id: uint16, element_count: uint16): (array_type_id: uint16)
     buf[0].element_count := element_count;
     array_type_id := add_thing_by_value(&buf[0] as [Thing]);
 end sub;
+
+sub get_type_of_thing(thing_id: uint16): (type_id: uint16)
+    var thing: [TypedThing] := find_thing(thing_id) as [TypedThing];
+    if (thing.thing_type & THING_TYPED) == 0 then
+        print("thing is not typed");
+        halt();
+    end if;
+
+    type_id := thing.type_id;
+end sub;

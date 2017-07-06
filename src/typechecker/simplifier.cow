@@ -1,3 +1,62 @@
+sub get_width_of(node: [Node]): (width: uint8)
+    var type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
+    width := type.width;
+end sub;
+
+sub write_be_iop(iop: [BEIop])
+    print("* BE iop 0x");
+    print_hex_i8(iop.iop_kind);
+    print(" width=");
+    print_i8(iop.width);
+    print(" left=");
+    print_ea(&iop.left);
+    print(" right=");
+    print_ea(&iop.right);
+    print(" dest=");
+    print_ea(&iop.dest);
+    print_newline();
+    write_iop(iop as [Iop]);
+end sub;
+
+sub simplify_node_to(src: [Node], dest: [Node])
+    if dest.iop != IOP_FEX_PUSH then
+        print("simplify_node_to() where dest is not simplified");
+        halt();
+    end if;
+
+    var iop: BEIop;
+    zero_memory(&iop as [int8], BEIop@bytes);
+    iop.iop_size := BEIop@bytes;
+    iop.width := get_width_of(dest);
+    copy_ea(&dest.ea, &iop.dest);
+
+    var srckind: uint8 := src.iop & IOP_TYPE_MASK;
+    if src.iop == IOP_FEX_PUSH then
+        iop.iop_kind := IOP_BE_COPY;
+        copy_ea(&src.ea, &iop.left);
+        if arch_validate_be_iop(&iop) == 1 then
+            write_be_iop(&iop);
+        else
+            print("needs breakdown");
+            halt();
+        end if;
+    else
+        iop.iop_kind := src.iop;
+        var left: [Node] := get_node(src.left);
+        copy_ea(&left.ea, &iop.left);
+        if srckind == IOP_TYPE_BACKEND_3OP then
+            var right: [Node] := get_node(src.right);
+            copy_ea(&right.ea, &iop.right);
+        end if;
+        if arch_validate_be_iop(&iop) == 1 then
+            write_be_iop(&iop);
+        else
+            print("needs breakdown");
+            halt();
+        end if;
+    end if;
+end sub;
+
 sub simplify_node(node: [Node])
     if node.iop == IOP_FEX_PUSH then
         return;
@@ -6,14 +65,3 @@ sub simplify_node(node: [Node])
     halt();
 end sub;
 
-sub write_be_iop(iop: uint8, width: uint8, src: [Node], dest: [Node])
-    simplify_node(src);
-    simplify_node(dest);
-
-    if arch_validate_be_iop(IOP_BE_COPY, width, &src.ea, &dest.ea) == 1 then
-        print("writing");
-    else
-        print("not writing");
-    end if;
-    halt();
-end sub;

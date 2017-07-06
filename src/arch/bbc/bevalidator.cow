@@ -1,8 +1,117 @@
-sub arch_validate_be_iop(iop: uint8, width: uint8,
-        src: [EffectiveAddress], dest: [EffectiveAddress]): (is_valid: uint8)
+sub is_valid_byte_offset(num_id: uint16): (is_valid: uint8)
+    is_valid := 1;
+    if num_id != 0 then
+        var value: int32 := get_value_of_number(num_id);
+        if (value < 0) or (value > 255) then
+            is_valid := 0;
+        end if;
+    end if;
+end sub;
+
+sub arch_validate_be_iop(iop: [BEIop]): (is_valid: uint8)
+    print("* checking ea validity: iop=0x");
+    print_hex_i8(iop.iop_kind);
+    print(" width=");
+    print_i8(iop.width);
+    print(" left=");
+    print_ea(&iop.left);
+    print(" right=");
+    print_ea(&iop.right);
+    print(" dest=");
+    print_ea(&iop.dest);
+    print_newline();
+
+    var iopkind: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+
     is_valid := 0;
 
-    if (src.varb_id == 0) and (dest.varb_id == 0) then
-        is_valid := 1;
+    if iop.width > 1 then
+        # var offsetted EAs are not allowed.
+        if ((iop.left.flags & EA_VAROFFSET) != 0)
+                or ((iop.right.flags & EA_VAROFFSET) != 0)
+                or ((iop.dest.flags & EA_VAROFFSET) != 0) then
+            print("* invalid: only vara+const are allowed\n");
+            return;
+        end if;
+
+        # Derefs are only allowed if the opcode is a copy.
+        if iop == IOP_BE_COPY then
+            if ((iop.left.flags & EA_DEREF) != 0) and ((iop.dest.flags & EA_DEREF) != 0) then
+                print("* invalid: copy with deref on src and dest\n");
+                return;
+            end if;
+        else
+            if ((iop.left.flags & EA_DEREF) != 0)
+                    or ((iop.right.flags & EA_DEREF) != 0)
+                    or ((iop.dest.flags & EA_DEREF) != 0) then
+                print("* invalid: deref\n");
+                return;
+            end if;
+        end if;
+    else
+        # You are allowed a single var offsetted EA. This can't be combined with a deref.
+        var var_id: uint16 := 0;
+        if (iop.dest.flags & EA_VAROFFSET) != 0 then
+            var_id := iop.dest.off_id;
+            if (iop.dest.flags & EA_DEREF) != 0 then
+                print("* invalid: dest combines varoffset and deref\n");
+                return;
+            end if;
+        else
+            if is_valid_byte_offset(iop.dest.off_id) == 0 then
+                print("* invalid: dest offset out of bounds\n");
+                return;
+            end if;
+        end if;
+
+        if (iop.left.flags & EA_VAROFFSET) != 0 then
+            if var_id != 0 then
+                print("* invalid: more than one var offset\n");
+                return;
+            end if;
+
+            var_id := iop.left.off_id;
+            if (iop.left.flags & EA_DEREF) != 0 then
+                print("* invalid: left combines varoffset and deref\n");
+                return;
+            end if;
+        else
+            if is_valid_byte_offset(iop.left.off_id) == 0 then
+                print("* invalid: left offset out of bounds\n");
+                return;
+            end if;
+        end if;
+
+        if iopkind == IOP_TYPE_BACKEND_3OP then
+            if (iop.right.flags & EA_VAROFFSET) != 0 then
+                if var_id != 0 then
+                    print("* invalid: more than one var offset\n");
+                    return;
+                end if;
+
+                var_id := iop.right.off_id;
+                if (iop.right.flags & EA_DEREF) != 0 then
+                    print("* invalid: right combines varoffset and deref\n");
+                    return;
+                end if;
+            else
+                if is_valid_byte_offset(iop.right.off_id) == 0 then
+                    print("* invalid: right offset out of bounds\n");
+                    return;
+                end if;
+            end if;
+        end if;
+
+        # If an offset var was supplied, it must be an unsigned byte.
+        if var_id != 0 then
+            var type_id: uint16 := get_type_of_thing(var_id);
+            var type: [TypeThing] := find_thing(type_id) as [TypeThing];
+            if (type.thing_type != THING_UNSIGNED) or (type.width != 1) then
+                print("* invalid: var offset is not unsigned byte\n");
+                return;
+            end if;
+        end if;
     end if;
+
+    is_valid := 1;
 end sub;

@@ -35,11 +35,6 @@ sub print_type_name(type_id: uint16)
     end loop;
 end sub;
 
-sub get_width_of(node: [Node]): (width: uint8)
-    var type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
-    width := type.width;
-end sub;
-
 sub check_type_assignability(src_type_id: uint16, dest_type_id: uint16)
     var src_type: [TypeThing] := find_thing(src_type_id) as [TypeThing];
     var dest_type: [TypeThing] := find_thing(dest_type_id) as [TypeThing];
@@ -59,29 +54,29 @@ sub check_type_assignability(src_type_id: uint16, dest_type_id: uint16)
     end if;
 end sub;
 
-#sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
-#    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-#    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-#
-#    if left_type_id == right_type_id then
-#        result_type_id := left_type_id;
-#    elseif ((left_type.thing_type & THING_NUMERIC) != 0) and
-#       ((right_type.thing_type & THING_NUMERIC) != 0) then
-#        if left_type.width < right_type.width then
-#            result_type_id := right_type_id;
-#        else
-#            result_type_id := left_type_id;
-#        end if;
-#        return;
-#    else
-#        print_type_name(left_type_id);
-#        print(" and ");
-#        print_type_name(right_type_id);
-#        print(" are not compatible in this context");
-#        halt();
-#    end if;
-#end sub;
-#
+sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
+    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
+    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
+
+    if left_type_id == right_type_id then
+        result_type_id := left_type_id;
+    elseif ((left_type.thing_type & THING_NUMERIC) != 0) and
+       ((right_type.thing_type & THING_NUMERIC) != 0) then
+        if left_type.width < right_type.width then
+            result_type_id := right_type_id;
+        else
+            result_type_id := left_type_id;
+        end if;
+        return;
+    else
+        print_type_name(left_type_id);
+        print(" and ");
+        print_type_name(right_type_id);
+        print(" are not compatible in this context");
+        halt();
+    end if;
+end sub;
+
 sub process_subroutine(thing_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
     init_tree();
@@ -98,7 +93,7 @@ sub process_subroutine(thing_id: uint16)
         var node: [Node] := &nodes[index];
 
         node.iop := IOP_FEX_PUSH;
-        node.ea.vara_id := iop.thing_id;
+        node.ea.var_id := iop.thing_id;
         if thing.thing_type == THING_NUMBER then
             node.type_id := numeric_type;
             node.flags := FLAG_RVALUE;
@@ -158,10 +153,48 @@ sub process_subroutine(thing_id: uint16)
         end if;
 
         check_type_assignability(src.type_id, dest.type_id);
-        write_be_iop(IOP_BE_COPY, get_width_of(dest), src, dest);
+        simplify_node(dest);
+        simplify_node_to(src, dest);
         free_node(src_index);
         free_node(dest_index);
     end sub;
+
+    sub fe_addsub(kind: uint8)
+        var right_index: uint8 := pop();
+        var right: [Node] := get_node(right_index);
+        var left_index: uint8 := pop();
+        var left: [Node] := get_node(left_index);
+
+        simplify_node(right);
+        simplify_node(left);
+
+        var index: uint8 := push_empty_node();
+        var node: [Node] := get_node(index);
+        node.iop := kind;
+        node.flags := FLAG_RVALUE;
+        node.left := left_index;
+        node.right := right_index;
+
+        var left_type: [PointerThing] := find_thing(left.type_id) as [PointerThing];
+        var right_type: [PointerThing] := find_thing(right.type_id) as [PointerThing];
+        if left_type.thing_type != THING_POINTER then
+            # this is the same as simple_alu2op above
+            node.type_id := check_type_compatibility(left.type_id, right.type_id);
+        elseif (kind == IOP_BE_SUB)
+                and (left_type.thing_type == THING_POINTER)
+                and (right_type.thing_type == THING_POINTER) then
+            # Pointer difference.
+            node.type_id := uint16_type;
+        elseif (kind == IOP_BE_ADD)
+                and (left_type.thing_type == THING_POINTER)
+                and ((right_type.thing_type & THING_NUMERIC) != 0) then
+            # Pointer offsetting.
+            node.type_id := left.type_id;
+        else
+            halt();
+        end if;
+    end sub;
+
 
 #    sub assignto_things(iop: [Iop])
 #        var left_type_id: uint16;
@@ -249,38 +282,7 @@ sub process_subroutine(thing_id: uint16)
 #        push_type(left_type_id, FLAG_RVALUE);
 #        write_iop(iop as [Iop]);
 #    end sub;
-#
-#    sub addsub(kind: uint8, iop: [TypedIop])
-#        var right_type_id: uint16;
-#        var right_flags: uint8;
-#        (right_type_id, right_flags) := pop_type();
-#
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := pop_type();
-#
-#        var left_type: [PointerThing] := find_thing(left_type_id) as [PointerThing];
-#        var right_type: [PointerThing] := find_thing(right_type_id) as [PointerThing];
-#        var type_id: uint16;
-#        if left_type.thing_type != THING_POINTER then
-#            # this is the same as simple_alu2op above
-#            type_id := check_type_compatibility(left_type_id, right_type_id);
-#        elseif (kind == IS_SUB)
-#                and (left_type.thing_type == THING_POINTER)
-#                and (right_type.thing_type == THING_POINTER) then
-#            type_id := uint16_type;
-#        elseif (kind == IS_ADD)
-#                and (left_type.thing_type == THING_POINTER)
-#                and ((right_type.thing_type & THING_NUMERIC) != 0) then
-#            type_id := left_type_id;
-#        else
-#            halt();
-#        end if;
-#        iop.type_id := type_id;
-#        push_type(type_id, FLAG_RVALUE);
-#        write_iop(iop as [Iop]);
-#    end sub;
-#
+
 #    sub simple_alu1op(iop: [TypedIop])
 #        var left_type_id: uint16;
 #        var left_flags: uint8;
@@ -483,6 +485,10 @@ sub process_subroutine(thing_id: uint16)
             fex_push(iop as [FEPushIop]);
         elseif iop.iop_kind == IOP_FE_ASSIGN then
             fe_assign();
+        elseif iop.iop_kind == IOP_FE_ADD then
+            fe_addsub(IOP_BE_ADD);
+        elseif iop.iop_kind == IOP_FE_SUB then
+            fe_addsub(IOP_BE_SUB);
 #        elseif ioptype == IOP_TYPE_SIMPLE2OP then
 #            simple_alu2op(iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_DIVOP then
@@ -513,10 +519,6 @@ sub process_subroutine(thing_id: uint16)
 #            push_parameter(DIRECTION_OUT, iop as [ParameterIop]);
 #        elseif iop.iop_kind == IOP_CALL then
 #            call_subroutine(iop as [CallIop]);
-#        elseif iop.iop_kind == IOP_ADDOP then
-#            addsub(IS_ADD, iop as [TypedIop]);
-#        elseif iop.iop_kind == IOP_SUBOP then
-#            addsub(IS_SUB, iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_SINDEXOP then
 #            sindexop(iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_CASTOP then
