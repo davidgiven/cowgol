@@ -1,9 +1,26 @@
-sub is_valid_byte_offset(num_id: uint16): (is_valid: uint8)
+sub is_valid_byte_offset(ea: [EffectiveAddress], var_off_id: uint16):
+        (is_valid: uint8, new_var_off_id: uint16)
     is_valid := 1;
-    if num_id != 0 then
-        var value: int32 := get_value_of_number(num_id);
-        if (value < 0) or (value > 255) then
+    new_var_off_id := var_off_id;
+
+    var thing_type: uint8 := get_thing_type(ea.off_id);
+    if (thing_type & THING_TYPED) != 0 then
+        if (ea.flags & EA_DEREF) != 0 then
+            print("* invalid: deref with var offset\n");
             is_valid := 0;
+        else
+            if var_off_id != 0 then
+                print("* invalid: multiple variable offsets\n");
+                is_valid := 0;
+            end if;
+        end if;
+    elseif thing_type == THING_NUMBER then
+        if (ea.flags & EA_DEREF) != 0 then
+            var value: int32 := get_value_of_number(ea.off_id);
+            if (value < 0) or (value > 255) then
+                print("* invalid: pointer offset out of range\n");
+                is_valid := 0;
+            end if;
         end if;
     end if;
 end sub;
@@ -22,22 +39,21 @@ sub arch_validate_be_iop(iop: [BEIop]): (is_valid: uint8)
     print_newline();
 
     var iopkind: uint8 := iop.iop_kind & IOP_TYPE_MASK;
-
     is_valid := 0;
 
     if iop.width > 1 then
         # var offsetted EAs are not allowed.
-        if ((iop.left.flags & EA_VAROFFSET) != 0)
-                or ((iop.right.flags & EA_VAROFFSET) != 0)
-                or ((iop.dest.flags & EA_VAROFFSET) != 0) then
-            print("* invalid: only vara+const are allowed\n");
-            return;
+        if (is_typed_thing(iop.left.off_id) != 0) or
+           (is_typed_thing(iop.right.off_id) != 0) or
+           (is_typed_thing(iop.dest.off_id) != 0) then
+           print("* invalid: non-constant offset\n");
+           return;
         end if;
 
         # Derefs are only allowed if the opcode is a copy.
         if iop == IOP_BE_COPY then
             if ((iop.left.flags & EA_DEREF) != 0) and ((iop.dest.flags & EA_DEREF) != 0) then
-                print("* invalid: copy with deref on src and dest\n");
+                print("* invalid: copy with deref on both src and dest\n");
                 return;
             end if;
         else
@@ -50,61 +66,29 @@ sub arch_validate_be_iop(iop: [BEIop]): (is_valid: uint8)
         end if;
     else
         # You are allowed a single var offsetted EA. This can't be combined with a deref.
-        var var_id: uint16 := 0;
-        if (iop.dest.flags & EA_VAROFFSET) != 0 then
-            var_id := iop.dest.off_id;
-            if (iop.dest.flags & EA_DEREF) != 0 then
-                print("* invalid: dest combines varoffset and deref\n");
-                return;
-            end if;
-        else
-            if is_valid_byte_offset(iop.dest.off_id) == 0 then
-                print("* invalid: dest offset out of bounds\n");
-                return;
-            end if;
-        end if;
+        var offset_var_id: uint16 := 0;
+        var offset_valid: uint8;
 
-        if (iop.left.flags & EA_VAROFFSET) != 0 then
-            if var_id != 0 then
-                print("* invalid: more than one var offset\n");
-                return;
-            end if;
-
-            var_id := iop.left.off_id;
-            if (iop.left.flags & EA_DEREF) != 0 then
-                print("* invalid: left combines varoffset and deref\n");
-                return;
-            end if;
-        else
-            if is_valid_byte_offset(iop.left.off_id) == 0 then
-                print("* invalid: left offset out of bounds\n");
-                return;
-            end if;
+        (offset_valid, offset_var_id) := is_valid_byte_offset(&iop.left, offset_var_id);
+        if offset_valid == 0 then
+            return;
         end if;
 
         if iopkind == IOP_TYPE_BACKEND_3OP then
-            if (iop.right.flags & EA_VAROFFSET) != 0 then
-                if var_id != 0 then
-                    print("* invalid: more than one var offset\n");
-                    return;
-                end if;
-
-                var_id := iop.right.off_id;
-                if (iop.right.flags & EA_DEREF) != 0 then
-                    print("* invalid: right combines varoffset and deref\n");
-                    return;
-                end if;
-            else
-                if is_valid_byte_offset(iop.right.off_id) == 0 then
-                    print("* invalid: right offset out of bounds\n");
-                    return;
-                end if;
+            (offset_valid, offset_var_id) := is_valid_byte_offset(&iop.right, offset_var_id);
+            if offset_valid == 0 then
+                return;
             end if;
         end if;
 
-        # If an offset var was supplied, it must be an unsigned byte.
-        if var_id != 0 then
-            var type_id: uint16 := get_type_of_thing(var_id);
+        (offset_valid, offset_var_id) := is_valid_byte_offset(&iop.dest, offset_var_id);
+        if offset_valid == 0 then
+            return;
+        end if;
+
+        # If a variable offset var was supplied, it must be an unsigned byte.
+        if offset_var_id != 0 then
+            var type_id: uint16 := get_type_of_thing(offset_var_id);
             var type: [TypeThing] := find_thing(type_id) as [TypeThing];
             if (type.thing_type != THING_UNSIGNED) or (type.width != 1) then
                 print("* invalid: var offset is not unsigned byte\n");

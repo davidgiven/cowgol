@@ -238,6 +238,31 @@ sub get_token_flags(token_id: uint16): (token_flags: uint8)
     end if;
 end sub;
 
+sub get_thing_type(thing_id: uint16): (type: uint8)
+    if thing_id == 0 then
+        type := 0;
+    else
+        var thing: [Thing] := find_thing(thing_id);
+        type := thing.thing_type;
+    end if;
+end sub;
+
+sub is_typed_thing(thing_id: uint16): (yes: uint8)
+    if (get_thing_type(thing_id) & THING_TYPED) != 0 then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
+sub is_number_thing(thing_id: uint16): (yes: uint8)
+    if get_thing_type(thing_id) == THING_NUMBER then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
 sub save_thing_table(filename: [int8])
     var fd: uint8 := file_openout(filename);
     file_putblock(fd, &thing_table[0], thing_table_top);

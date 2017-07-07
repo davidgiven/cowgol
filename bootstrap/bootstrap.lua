@@ -1020,6 +1020,9 @@ function do_function_call()
 
     local t = stream:next()
     local sym = lookup_symbol(t)
+    if not sym then
+        fatal("symbol '%s' not defined", t)
+    end
 
     expect("(")
     local first = true

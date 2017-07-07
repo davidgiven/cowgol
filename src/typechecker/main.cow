@@ -93,7 +93,7 @@ sub process_subroutine(thing_id: uint16)
         var node: [Node] := &nodes[index];
 
         node.iop := IOP_FEX_PUSH;
-        node.ea.var_id := iop.thing_id;
+        node.ea.obj_id := iop.thing_id;
         if thing.thing_type == THING_NUMBER then
             node.type_id := numeric_type;
             node.flags := FLAG_RVALUE;
