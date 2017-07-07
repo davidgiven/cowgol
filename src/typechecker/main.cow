@@ -159,6 +159,44 @@ sub process_subroutine(thing_id: uint16)
         free_node(dest_index);
     end sub;
 
+    sub fe_simple_alu2op(beiop: uint8)
+        var right_index: uint8 := pop();
+        var right: [Node] := get_node(right_index);
+        var left_index: uint8 := pop();
+        var left: [Node] := get_node(left_index);
+
+        simplify_node(right);
+        simplify_node(left);
+
+        var index: uint8 := push_empty_node();
+        var node: [Node] := get_node(index);
+        node.iop := beiop;
+        node.flags := FLAG_RVALUE;
+        node.left := left_index;
+        node.right := right_index;
+        # if you change this, change the non-pointer case in addsub as well
+        node.type_id := check_type_compatibility(left.type_id, right.type_id);
+    end sub;
+
+    sub maybe_signed_biop(signed_beiop: uint8, unsigned_beiop: uint8): (beiop: uint8)
+        var right_index: uint8 := peek(1);
+        var right: [Node] := get_node(right_index);
+        var left_index: uint8 := peek(2);
+        var left: [Node] := get_node(left_index);
+
+        var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
+        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
+
+        var left_signedness: uint8;
+        if ((left_type.thing_type == THING_SIGNED) or (left_type.thing_type == THING_NUMERIC))
+            and ((right_type.thing_type == THING_SIGNED) or (right_type.thing_type == THING_NUMERIC))
+        then
+            beiop := signed_beiop;
+        else
+            beiop := unsigned_beiop;
+        end if;
+    end sub;
+
     sub fe_addsub(kind: uint8)
         var right_index: uint8 := pop();
         var right: [Node] := get_node(right_index);
@@ -195,61 +233,6 @@ sub process_subroutine(thing_id: uint16)
         end if;
     end sub;
 
-
-#    sub assignto_things(iop: [Iop])
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := pop_type();
-#
-#        var right_type_id: uint16;
-#        var right_flags: uint8;
-#        (right_type_id, right_flags) := pop_type();
-#
-#        if (left_flags & FLAG_RVALUE) != 0 then
-#            print("cannot assign to rvalue");
-#            halt();
-#        end if;
-#
-#        check_type_assignability(left_type_id, right_type_id);
-#        write_iop(iop as [Iop]);
-#    end sub;
-#
-#    sub simple_alu2op(iop: [TypedIop])
-#        var right_type_id: uint16;
-#        var right_flags: uint8;
-#        (right_type_id, right_flags) := pop_type();
-#
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := pop_type();
-#
-#        # if you change this, change the non-pointer case in addsub as well
-#        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
-#        iop.type_id := type_id;
-#        push_type(type_id, FLAG_RVALUE);
-#        write_iop(iop as [Iop]);
-#    end sub;
-#
-#    sub maybe_signed_biop(signed_iop: uint8, unsigned_iop: uint8, iop: [TypedIop])
-#        var right_type_id: uint16;
-#        var right_flags: uint8;
-#        (right_type_id, right_flags) := peek_type(-1);
-#
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := peek_type(-2);
-#
-#        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-#        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-#
-#        var left_signedness: uint8;
-#        if (left_type.thing_type == THING_SIGNED) and (right_type.thing_type == THING_SIGNED) then
-#            iop.iop_kind := signed_iop;
-#        else
-#            iop.iop_kind := unsigned_iop;
-#        end if;
-#    end sub;
-#
 #    sub shift_op(iop: [TypedIop])
 #        var right_type_id: uint16;
 #        var right_flags: uint8;
@@ -489,11 +472,16 @@ sub process_subroutine(thing_id: uint16)
             fe_addsub(IOP_BE_ADD);
         elseif iop.iop_kind == IOP_FE_SUB then
             fe_addsub(IOP_BE_SUB);
-#        elseif ioptype == IOP_TYPE_SIMPLE2OP then
-#            simple_alu2op(iop as [TypedIop]);
-#        elseif iop.iop_kind == IOP_DIVOP then
-#            maybe_signed_biop(IOP_DIVSOP, IOP_DIVUOP, iop as [TypedIop]);
-#            simple_alu2op(iop as [TypedIop]);
+        elseif iop.iop_kind == IOP_FE_MUL then
+            fe_simple_alu2op(IOP_BE_MUL);
+        elseif iop.iop_kind == IOP_FE_AND then
+            fe_simple_alu2op(IOP_BE_AND);
+        elseif iop.iop_kind == IOP_FE_OR then
+            fe_simple_alu2op(IOP_BE_OR);
+        elseif iop.iop_kind == IOP_FE_EOR then
+            fe_simple_alu2op(IOP_BE_EOR);
+        elseif iop.iop_kind == IOP_FE_DIV then
+            fe_simple_alu2op(maybe_signed_biop(IOP_BE_DIVS, IOP_BE_DIVU));
 #        elseif iop.iop_kind == IOP_MODOP then
 #            maybe_signed_biop(IOP_MODSOP, IOP_MODUOP, iop as [TypedIop]);
 #            simple_alu2op(iop as [TypedIop]);
@@ -509,10 +497,6 @@ sub process_subroutine(thing_id: uint16)
 #        elseif iop.iop_kind == IOP_BLT then
 #            maybe_signed_biop(IOP_BLTS, IOP_BLTU, iop as [TypedIop]);
 #            conditional_jump(iop as [ConditionalIop]);
-#        elseif iop.iop_kind == IOP_THING then
-#            push_thing(iop as [ThingIop]);
-#        elseif iop.iop_kind == IOP_ASSIGNTO then
-#            assignto_things(iop as [Iop]);
 #        elseif iop.iop_kind == IOP_INPUTPARAM then
 #            push_parameter(DIRECTION_IN, iop as [ParameterIop]);
 #        elseif iop.iop_kind == IOP_OUTPUTPARAM then

@@ -212,6 +212,14 @@ loop
         elseif kind == IOP_BE_COPY         then do_be_2op("BE_COPY", iop as [BEIop]);
         elseif kind == IOP_BE_ADD          then do_be_3op("BE_ADD", iop as [BEIop]);
         elseif kind == IOP_BE_SUB          then do_be_3op("BE_SUB", iop as [BEIop]);
+        elseif kind == IOP_BE_MUL          then do_be_3op("BE_MUL", iop as [BEIop]);
+        elseif kind == IOP_BE_AND          then do_be_3op("BE_AND", iop as [BEIop]);
+        elseif kind == IOP_BE_OR           then do_be_3op("BE_OR", iop as [BEIop]);
+        elseif kind == IOP_BE_EOR          then do_be_3op("BE_EOR", iop as [BEIop]);
+        elseif kind == IOP_BE_DIVS         then do_be_3op("BE_DIVS", iop as [BEIop]);
+        elseif kind == IOP_BE_DIVU         then do_be_3op("BE_DIVU", iop as [BEIop]);
+        elseif kind == IOP_BE_MODS         then do_be_3op("BE_MODS", iop as [BEIop]);
+        elseif kind == IOP_BE_MODU         then do_be_3op("BE_MODU", iop as [BEIop]);
 
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);

@@ -93,6 +93,11 @@ sub pop(): (index: uint8)
     index := stack[stack_pos];
 end sub;
 
+sub peek(offset: int8): (index: uint8)
+    ensure_stack_size(offset);
+    index := stack[stack_pos - offset];
+end sub;
+
 sub discard(count: uint8)
     while count > 0 loop
         if stack_pos == 0 then
