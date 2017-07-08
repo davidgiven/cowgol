@@ -37,12 +37,6 @@ sub simplify_node_to(src_index: uint8, dest_index: uint8)
     if src.iop == IOP_FEX_PUSH then
         iop.iop_kind := IOP_BE_COPY;
         copy_ea(&src.ea, &iop.left);
-        if arch_validate_be_iop(&iop) == 1 then
-            write_be_iop(&iop);
-        else
-            print("needs breakdown");
-            halt();
-        end if;
     else
         iop.iop_kind := src.iop;
         var left: [Node] := get_node(src.left);
@@ -51,13 +45,15 @@ sub simplify_node_to(src_index: uint8, dest_index: uint8)
             var right: [Node] := get_node(src.right);
             copy_ea(&right.ea, &iop.right);
         end if;
-        if arch_validate_be_iop(&iop) == 1 then
-            write_be_iop(&iop);
-        else
-            print("needs breakdown");
-            halt();
-        end if;
     end if;
+
+    if arch_validate_be_iop(&iop) == 1 then
+        write_be_iop(&iop);
+        return;
+    end if;
+
+    print("needs breakdown");
+    halt();
 end sub;
 
 sub simplify_node_to_var(index: uint8): (newindex: uint8)

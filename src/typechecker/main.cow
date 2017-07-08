@@ -77,26 +77,47 @@ sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (resu
     end if;
 end sub;
 
-sub multiply(index: uint8, amount: uint16): (newindex: uint8)
+sub alloc_const_node(type_id: uint16, number_id: uint16): (index: uint8)
+    index := alloc_node();
+    var node: [Node] := get_node(index);
+    node.iop := IOP_FEX_PUSH;
+    node.type_id := type_id;
+    node.ea.obj_id := number_id;
+end sub;
+
+sub alloc_thing_node(thing_id: uint16): (index: uint8)
+    index := alloc_node();
+    var node: [Node] := get_node(index);
+    node.iop := IOP_FEX_PUSH;
+    node.type_id := get_type_of_thing(thing_id);
+    node.ea.obj_id := thing_id;
+end sub;
+
+sub gen_multiply(index: uint8, amount: uint16): (newindex: uint8)
     if amount == 1 then
         newindex := index;
         return;
     end if;
-
-    var constnode_index: uint8 := alloc_node();
-    var constnode: [Node] := get_node(constnode_index);
-    constnode.iop := IOP_FEX_PUSH;
-    constnode.type_id := uint16_type;
-    constnode.ea.obj_id := add_number_by_value(amount);
 
     var mulnode_index: uint8 := alloc_node();
     var mulnode: [Node] := get_node(mulnode_index);
     mulnode.iop := IOP_BE_MUL;
     mulnode.type_id := uint16_type;
     mulnode.left := index;
-    mulnode.right := constnode_index;
+    mulnode.right := alloc_const_node(uint16_type, add_number_by_value(amount));;
 
     newindex := simplify_node_to_var(mulnode_index);
+end sub;
+
+sub gen_add(left_index: uint8, right_index: uint8): (newindex: uint8)
+    var addnode_index: uint8 := alloc_node();
+    var addnode: [Node] := get_node(addnode_index);
+    addnode.iop := IOP_BE_ADD;
+    addnode.type_id := uint16_type;
+    addnode.left := left_index;
+    addnode.right := right_index;
+
+    newindex := simplify_node_to_var(addnode_index);
 end sub;
 
 sub process_subroutine(thing_id: uint16)
@@ -285,14 +306,28 @@ sub process_subroutine(thing_id: uint16)
             halt();
         end if;
 
-        right_index := multiply(right_index, element_type.width);
+        push_node(left_index);
+        left.type_id := left_type.element_id;
 
-        var index: uint8 := push_empty_node();
-        var node: [Node] := get_node(index);
-        node.iop := IOP_BE_INDEX;
-        node.left := left_index;
-        node.right := right_index;
-        node.type_id := left_type.element_id;
+        if (right_type.thing_type == THING_NUMERIC)
+            and ((left.ea.off_id == 0) or (is_number_thing(left.ea.off_id) != 0)) then
+
+            left.ea.off_id := add_number_by_value(
+                get_value_of_number(left.ea.off_id) +
+                    get_value_of_number(right.ea.obj_id) * element_type.width);
+        else
+            var offset_index: uint8 := gen_multiply(right_index, element_type.width);
+            if left.ea.off_id != 0 then
+                var i: uint8 := gen_add(alloc_thing_node(left.ea.off_id), offset_index);
+                free_node(offset_index);
+                offset_index := i;
+            end if;
+
+            var offset_node: [Node] := get_node(offset_index);
+            left.ea.off_id := offset_node.ea.obj_id;
+            free_node(offset_index);
+        end if;
+        free_node(right_index);
     end sub;
 
 #    sub shift_op(iop: [TypedIop])
