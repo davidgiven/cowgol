@@ -18,7 +18,10 @@ sub write_be_iop(iop: [BEIop])
     write_iop(iop as [Iop]);
 end sub;
 
-sub simplify_node_to(src: [Node], dest: [Node])
+sub simplify_node_to(src_index: uint8, dest_index: uint8)
+    var src: [Node] := get_node(src_index);
+    var dest: [Node] := get_node(dest_index);
+
     if dest.iop != IOP_FEX_PUSH then
         print("simplify_node_to() where dest is not simplified");
         halt();
@@ -57,11 +60,34 @@ sub simplify_node_to(src: [Node], dest: [Node])
     end if;
 end sub;
 
-sub simplify_node(node: [Node])
-    if node.iop == IOP_FEX_PUSH then
+sub simplify_node_to_var(index: uint8): (newindex: uint8)
+    var node: [Node] := get_node(index);
+
+    if (node.iop == IOP_FEX_PUSH) and (node.ea.flags == 0) and (node.ea.off_id == 0) then
+        newindex := index;
         return;
     end if;
-    print("can't simplify this yet");
-    halt();
+
+    var type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
+    var tempvar_id: uint16 := alloc_temporary(type.width);
+
+    newindex := alloc_node();
+    var temp: [Node] := get_node(newindex);
+    temp.iop := IOP_FEX_PUSH;
+    temp.type_id := node.type_id;
+    temp.ea.obj_id := tempvar_id;
+
+    simplify_node_to(index, newindex);
+    free_node(index);
+end sub;
+
+sub simplify_node(index: uint8): (newindex: uint8)
+    var node: [Node] := get_node(index);
+
+    if node.iop == IOP_FEX_PUSH then
+        newindex := index;
+        return;
+    end if;
+    newindex := simplify_node_to_var(index);
 end sub;
 

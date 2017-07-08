@@ -86,6 +86,7 @@ const IOP_BE_DIVS          := 0b1000_0110;
 const IOP_BE_DIVU          := 0b1000_0111;
 const IOP_BE_MODS          := 0b1000_1000;
 const IOP_BE_MODU          := 0b1000_1001;
+const IOP_BE_INDEX         := 0b1000_1010;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_ZEROPAGE := 0b1110_0011;

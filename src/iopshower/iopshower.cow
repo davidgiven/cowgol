@@ -220,6 +220,7 @@ loop
         elseif kind == IOP_BE_DIVU         then do_be_3op("BE_DIVU", iop as [BEIop]);
         elseif kind == IOP_BE_MODS         then do_be_3op("BE_MODS", iop as [BEIop]);
         elseif kind == IOP_BE_MODU         then do_be_3op("BE_MODU", iop as [BEIop]);
+        elseif kind == IOP_BE_INDEX        then do_be_3op("BE_INDEX", iop as [BEIop]);
 
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);

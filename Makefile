@@ -51,6 +51,7 @@ TYPECHECKER_SRCS = \
 	src/utils/symbols.cow \
 	src/_token_names.cow \
 	src/utils/types.cow \
+	src/typechecker/temporaries.cow \
 	src/typechecker/tree.cow \
 	src/arch/bbc/bevalidator.cow \
 	src/typechecker/simplifier.cow \

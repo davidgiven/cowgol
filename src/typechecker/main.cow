@@ -77,9 +77,32 @@ sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (resu
     end if;
 end sub;
 
+sub multiply(index: uint8, amount: uint16): (newindex: uint8)
+    if amount == 1 then
+        newindex := index;
+        return;
+    end if;
+
+    var constnode_index: uint8 := alloc_node();
+    var constnode: [Node] := get_node(constnode_index);
+    constnode.iop := IOP_FEX_PUSH;
+    constnode.type_id := uint16_type;
+    constnode.ea.obj_id := add_number_by_value(amount);
+
+    var mulnode_index: uint8 := alloc_node();
+    var mulnode: [Node] := get_node(mulnode_index);
+    mulnode.iop := IOP_BE_MUL;
+    mulnode.type_id := uint16_type;
+    mulnode.left := index;
+    mulnode.right := constnode_index;
+
+    newindex := simplify_node_to_var(mulnode_index);
+end sub;
+
 sub process_subroutine(thing_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
     init_tree();
+    init_temporaries();
     current_namespace_id := subroutine.namespace_id;
 
     sub fex_push(iop: [FEPushIop])
@@ -153,20 +176,20 @@ sub process_subroutine(thing_id: uint16)
         end if;
 
         check_type_assignability(src.type_id, dest.type_id);
-        simplify_node(dest);
-        simplify_node_to(src, dest);
+        dest_index := simplify_node(dest_index);
+        simplify_node_to(src_index, dest_index);
         free_node(src_index);
         free_node(dest_index);
     end sub;
 
     sub fe_simple_alu2op(beiop: uint8)
         var right_index: uint8 := pop();
+        right_index := simplify_node(right_index);
         var right: [Node] := get_node(right_index);
-        var left_index: uint8 := pop();
-        var left: [Node] := get_node(left_index);
 
-        simplify_node(right);
-        simplify_node(left);
+        var left_index: uint8 := pop();
+        left_index := simplify_node(left_index);
+        var left: [Node] := get_node(left_index);
 
         var index: uint8 := push_empty_node();
         var node: [Node] := get_node(index);
@@ -199,12 +222,12 @@ sub process_subroutine(thing_id: uint16)
 
     sub fe_addsub(kind: uint8)
         var right_index: uint8 := pop();
+        right_index := simplify_node(right_index);
         var right: [Node] := get_node(right_index);
-        var left_index: uint8 := pop();
-        var left: [Node] := get_node(left_index);
 
-        simplify_node(right);
-        simplify_node(left);
+        var left_index: uint8 := pop();
+        left_index := simplify_node(left_index);
+        var left: [Node] := get_node(left_index);
 
         var index: uint8 := push_empty_node();
         var node: [Node] := get_node(index);
@@ -231,6 +254,45 @@ sub process_subroutine(thing_id: uint16)
         else
             halt();
         end if;
+    end sub;
+
+    sub fe_index()
+        var right_index: uint8 := pop();
+        right_index := simplify_node(right_index);
+        var right: [Node] := get_node(right_index);
+
+        var left_index: uint8 := pop();
+        var left: [Node] := get_node(left_index);
+
+        var left_type: [WithElementsThing] := find_thing(left.type_id) as [WithElementsThing];
+        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
+        var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
+
+        if (right_type.thing_type & THING_NUMERIC) == 0 then
+            print("index must be numeric");
+            halt();
+        end if;
+
+        if left_type.thing_type == THING_POINTER then
+            left_index := simplify_node_to_var(left_index);
+            left := get_node(left_index);
+            left.ea.flags := EA_DEREF;
+        elseif left_type.thing_type == THING_ARRAY then
+            left_index := simplify_node(left_index);
+            left := get_node(left_index);
+        else
+            print("only pointers or arrays can be indexed");
+            halt();
+        end if;
+
+        right_index := multiply(right_index, element_type.width);
+
+        var index: uint8 := push_empty_node();
+        var node: [Node] := get_node(index);
+        node.iop := IOP_BE_INDEX;
+        node.left := left_index;
+        node.right := right_index;
+        node.type_id := left_type.element_id;
     end sub;
 
 #    sub shift_op(iop: [TypedIop])
@@ -317,57 +379,6 @@ sub process_subroutine(thing_id: uint16)
 #
 #        write_iop(iop as [Iop]);
 #    end sub;
-#
-#    sub sindexop(iop: [TypedIop])
-#        var right_type_id: uint16;
-#        var right_flags: uint8;
-#        (right_type_id, right_flags) := pop_type();
-#
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := pop_type();
-#
-#        var left_type: [WithElementsThing] := find_thing(left_type_id) as [WithElementsThing];
-#        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-#        var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
-#
-#        if (right_type.thing_type & THING_NUMERIC) == 0 then
-#            print("index must be numeric");
-#            halt();
-#        end if;
-#
-#        if left_type.thing_type == THING_POINTER then
-#            write_untyped_iop(IOP_SWAP);
-#            write_typed_iop(IOP_LOAD, left_type.element_id);
-#            write_untyped_iop(IOP_SWAP);
-#        elseif left_type.thing_type != THING_ARRAY then
-#            print("only pointers or arrays can be indexed");
-#            halt();
-#        end if;
-#
-#        if element_type.width == 1 then
-#            # do nothing
-#        elseif element_type.width == 2 then
-#            write_push_number_iop(1, uint16_type);
-#            write_typed_iop(IOP_LSLOP, uint16_type);
-#        elseif element_type.width == 4 then
-#            write_push_number_iop(2, uint16_type);
-#            write_typed_iop(IOP_LSLOP, uint16_type);
-#        else
-#            write_push_number_iop(element_type.width, uint16_type);
-#            write_typed_iop(IOP_MULOP, uint16_type);
-#        end if;
-#
-#        if right_type.thing_type == THING_SIGNED then
-#            iop.iop_kind := IOP_INDEXSOP;
-#        else
-#            iop.iop_kind := IOP_INDEXUOP;
-#        end if;
-#        iop.type_id := left_type.element_id;
-#        write_iop(iop as [Iop]);
-#        push_type(left_type.element_id, 0);
-#    end sub;
-#
 #    sub castop(iop: [TypedIop])
 #        var input_type_id: uint16;
 #        var input_flags: uint8;
@@ -482,9 +493,8 @@ sub process_subroutine(thing_id: uint16)
             fe_simple_alu2op(IOP_BE_EOR);
         elseif iop.iop_kind == IOP_FE_DIV then
             fe_simple_alu2op(maybe_signed_biop(IOP_BE_DIVS, IOP_BE_DIVU));
-#        elseif iop.iop_kind == IOP_MODOP then
-#            maybe_signed_biop(IOP_MODSOP, IOP_MODUOP, iop as [TypedIop]);
-#            simple_alu2op(iop as [TypedIop]);
+        elseif iop.iop_kind == IOP_FE_INDEX then
+            fe_index();
 #        elseif (iop.iop_kind == IOP_LSLOP) or (iop.iop_kind == IOP_RSHIFTOP) then
 #            shift_op(iop as [TypedIop]);
 #        elseif ioptype == IOP_TYPE_SIMPLE1OP then

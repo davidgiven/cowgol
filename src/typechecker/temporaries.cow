@@ -1,0 +1,86 @@
+record Temporary
+    thing_id: uint16;
+    refcount: uint8;
+    width: uint8;
+end record;
+
+var temporaries: Temporary[32];
+
+sub init_temporaries()
+    zero_memory(&temporaries[0] as [int8], temporaries@bytes);
+end sub;
+
+sub alloc_temporary(width: uint8): (thing_id: uint16)
+    var index: uint8 := 0;
+    while index < temporaries@size loop
+        var temp: [Temporary] := &temporaries[index];
+        if temp.refcount == 0 then
+            if temp.width == width then
+                print("* reusing temp 0x");
+                print_hex_i16(temp.thing_id);
+                print_newline();
+
+                temp.refcount := 1;
+                thing_id := temp.thing_id;
+            elseif temp.width == 0 then
+                thing_id := create_thing(THING_VARIABLE, VariableThing@bytes);
+                print("* creating new temp 0x");
+                print_hex_i16(thing_id);
+                print_newline();
+
+                temp.refcount := 1;
+                temp.width := width;
+                temp.thing_id := thing_id;
+            end if;
+            return;
+        end if;
+
+        index := index + 1;
+    end loop;
+
+    print("ran out of temporary variables");
+    halt();
+end sub;
+
+sub ref_temporary(thing_id: uint16)
+    if thing_id != 0 then
+        var index: uint8 := 0;
+        while index < temporaries@size loop
+            var temp: [Temporary] := &temporaries[index];
+            if (temp.thing_id == thing_id) and (temp.refcount > 0) then
+                temp.refcount := temp.refcount + 1;
+
+                print("* ref temp 0x");
+                print_hex_i16(thing_id);
+                print_newline();
+
+                return;
+            end if;
+
+            index := index + 1;
+        end loop;
+    end if;
+end sub;
+
+sub deref_temporary(thing_id: uint16)
+    if thing_id != 0 then
+        var index: uint8 := 0;
+        while index < temporaries@size loop
+            var temp: [Temporary] := &temporaries[index];
+            if (temp.thing_id == thing_id) and (temp.refcount > 0) then
+                temp.refcount := temp.refcount - 1;
+
+                print("* deref temp 0x");
+                print_hex_i16(thing_id);
+                if temp.refcount == 0 then
+                    print("; temp is now free");
+                end if;
+                print_newline();
+
+                return;
+            end if;
+
+            index := index + 1;
+        end loop;
+    end if;
+end sub;

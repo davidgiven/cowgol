@@ -47,6 +47,8 @@ end sub;
 
 sub free_raw_node(index: uint8)
     var node: [Node] := get_node(index);
+    deref_temporary(node.ea.obj_id);
+    deref_temporary(node.ea.off_id);
     node.iop := 0;
     zero_memory(node as [int8], Node@bytes);
     allocated_nodes := allocated_nodes - 1;
