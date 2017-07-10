@@ -2,16 +2,16 @@ const FLAG_RVALUE := 0b0000_0001;
 
 record Node
     iop: uint8;
+    refcount: uint8;
     flags: uint8;
     type_id: uint16;
-    ea: EffectiveAddress;    # when iop=IOP_FEX_PUSH
-    left: uint8;             # when iop is an operator
-    right: uint8;            # when iop is an operator
+    left: EffectiveAddress;
+    right: EffectiveAddress;
 end record;
 
 var nodes: Node[32];
 var allocated_nodes: uint8;
-var stack: uint8[32];
+var stack: [Node][32];
 var stack_pos: uint8;
 
 sub init_tree()
@@ -21,15 +21,14 @@ sub init_tree()
     allocated_nodes := 0;
 end sub;
 
-sub get_node(index: uint8): (node: [Node])
-    node := &nodes[index];
-end sub;
-
-sub alloc_node(): (index: uint8)
-    index := 0;
+sub alloc_node(): (node: [Node])
+    var index: uint8 := 0;
     while index < nodes@size loop
-        if nodes[index].iop == 0 then
+        node := &nodes[index];
+        if node.iop == 0 then
             allocated_nodes := allocated_nodes + 1;
+            node.refcount := 1;
+
             print("* allocated new node ");
             print_i8(index);
             print(" (");
@@ -41,35 +40,36 @@ sub alloc_node(): (index: uint8)
         end if;
         index := index + 1;
     end loop;
-    print("operator tree is full");
+    print("node heap is full");
     halt();
 end sub;
 
-sub free_raw_node(index: uint8)
-    var node: [Node] := get_node(index);
-    deref_temporary(node.ea.obj_id);
-    deref_temporary(node.ea.off_id);
-    node.iop := 0;
-    zero_memory(node as [int8], Node@bytes);
-    allocated_nodes := allocated_nodes - 1;
-    print("* freed node ");
-    print_i8(index);
-    print_newline();
+sub ref_node(node: [Node])
+    node.refcount := node.refcount + 1;
 end sub;
 
-sub free_node(index: uint8)
-    var node: [Node] := get_node(index);
-    if node.left != 0 then
-        free_raw_node(node.left);
+sub deref_node(node: [Node])
+    node.refcount := node.refcount - 1;
+    if node.refcount == 0 then
+        deref_temporary(node.left.obj_id);
+        deref_temporary(node.left.off_id);
+        deref_temporary(node.right.obj_id);
+        deref_temporary(node.right.off_id);
+        zero_memory(node as [int8], Node@bytes);
+        allocated_nodes := allocated_nodes - 1;
+
+        print("* freed node ");
+        print_i16((node - &nodes[0]) / Node@bytes);
+        print(" (");
+        print_i8(allocated_nodes);
+        print(" used out of ");
+        print_i8(nodes@size);
+        print(")\n");
     end if;
-    if node.right != 0 then
-        free_raw_node(node.right);
-    end if;
-    free_raw_node(index);
 end sub;
 
-sub push_node(index: uint8)
-    stack[stack_pos] := index;
+sub push_node(node: [Node])
+    stack[stack_pos] := node;
     stack_pos := stack_pos + 1;
     if stack_pos == stack@size then
         print("stack overflow");
@@ -77,9 +77,9 @@ sub push_node(index: uint8)
     end if;
 end sub;
 
-sub push_empty_node(): (index: uint8)
-    index := alloc_node();
-    push_node(index);
+sub push_empty_node(): (node: [Node])
+    node := alloc_node();
+    push_node(node);
 end sub;
 
 sub ensure_stack_size(size: uint8)
@@ -89,28 +89,15 @@ sub ensure_stack_size(size: uint8)
     end if;
 end sub;
 
-sub pop(): (index: uint8)
+sub pop(): (node: [Node])
     ensure_stack_size(1);
     stack_pos := stack_pos - 1;
-    index := stack[stack_pos];
+    node := stack[stack_pos];
 end sub;
 
-sub peek(offset: int8): (index: uint8)
+sub peek(offset: int8): (node: [Node])
     ensure_stack_size(offset);
-    index := stack[stack_pos - offset];
-end sub;
-
-sub discard(count: uint8)
-    while count > 0 loop
-        if stack_pos == 0 then
-            print("stack underflow");
-            halt();
-        end if;
-
-        stack_pos := stack_pos - 1;
-        free_node(stack[stack_pos]);
-        count := count - 1;
-    end loop;
+    node := stack[stack_pos - offset];
 end sub;
 
 sub stack_must_be_empty()
@@ -120,40 +107,30 @@ sub stack_must_be_empty()
     end if;
 end sub;
 
+sub copy_ea_ref(src: [EffectiveAddress], dest: [EffectiveAddress])
+    copy_ea(src, dest);
+    ref_temporary(src.obj_id);
+    ref_temporary(src.off_id);
+end sub;
+
 sub print_stack()
-    print("tree:\n");
+    print("stack:\n");
     var index: uint8 := 0;
-    while index < nodes@size loop
-        var node: [Node] := get_node(index);
-        if node.iop != 0 then
-            print("node=");
-            print_i8(index);
-            print(" iop=0x");
-            print_hex_i8(node.iop);
-            print(" flags=0x");
-            print_hex_i8(node.flags);
-            print(" type_id=0x");
-            print_hex_i16(node.type_id);
-            print_char(' ');
-            if node.iop == IOP_FEX_PUSH then
-                print_ea(&node.ea);
-            else
-                print("left=");
-                print_i8(node.left);
-                print(" right=");
-                print_i8(node.right);
-            end if;
-            print_newline();
-        end if;
+    while index < stack_pos loop
+        var node: [Node] := stack[index];
+        print("node=");
+        print_i8(index);
+        print(" iop=0x");
+        print_hex_i8(node.iop);
+        print(" flags=0x");
+        print_hex_i8(node.flags);
+        print(" type_id=0x");
+        print_hex_i16(node.type_id);
+        print(" left=");
+        print_ea(&node.left);
+        print(" right=");
+        print_ea(&node.right);
+        print_newline();
         index := index + 1;
     end loop;
-
-    print("stack:\n");
-    index := stack_pos;
-    while index != 0 loop
-        index := index - 1;
-        print_i8(stack[index]);
-        print_char(' ');
-    end loop;
-    print_newline();
 end sub;

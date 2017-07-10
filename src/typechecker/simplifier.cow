@@ -18,10 +18,7 @@ sub write_be_iop(iop: [BEIop])
     write_iop(iop as [Iop]);
 end sub;
 
-sub simplify_node_to(src_index: uint8, dest_index: uint8)
-    var src: [Node] := get_node(src_index);
-    var dest: [Node] := get_node(dest_index);
-
+sub simplify_node_to(src: [Node], dest: [Node])
     if dest.iop != IOP_FEX_PUSH then
         print("simplify_node_to() where dest is not simplified");
         halt();
@@ -31,21 +28,16 @@ sub simplify_node_to(src_index: uint8, dest_index: uint8)
     zero_memory(&iop as [int8], BEIop@bytes);
     iop.iop_size := BEIop@bytes;
     iop.width := get_width_of(dest);
-    copy_ea(&dest.ea, &iop.dest);
+    copy_ea(&dest.left, &iop.dest);
 
-    var srckind: uint8 := src.iop & IOP_TYPE_MASK;
     if src.iop == IOP_FEX_PUSH then
         iop.iop_kind := IOP_BE_COPY;
-        copy_ea(&src.ea, &iop.left);
     else
         iop.iop_kind := src.iop;
-        var left: [Node] := get_node(src.left);
-        copy_ea(&left.ea, &iop.left);
-        if srckind == IOP_TYPE_BACKEND_3OP then
-            var right: [Node] := get_node(src.right);
-            copy_ea(&right.ea, &iop.right);
-        end if;
     end if;
+
+    copy_ea(&src.left, &iop.left);
+    copy_ea(&src.right, &iop.right);
 
     if arch_validate_be_iop(&iop) == 1 then
         write_be_iop(&iop);
@@ -56,34 +48,40 @@ sub simplify_node_to(src_index: uint8, dest_index: uint8)
     halt();
 end sub;
 
-sub simplify_node_to_var(index: uint8): (newindex: uint8)
-    var node: [Node] := get_node(index);
-
-    if (node.iop == IOP_FEX_PUSH) and (node.ea.flags == 0) and (node.ea.off_id == 0) then
-        newindex := index;
+sub simplify_node_to_var(src: [Node]): (dest: [Node])
+    if (src.iop == IOP_FEX_PUSH) and (src.left.flags == 0) and (src.left.off_id == 0) then
+        dest := src;
+        ref_node(dest);
         return;
     end if;
 
-    var type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
-    var tempvar_id: uint16 := alloc_temporary(type.width);
+    var tempvar_id: uint16 := alloc_temporary(get_width_of(src));
 
-    newindex := alloc_node();
-    var temp: [Node] := get_node(newindex);
-    temp.iop := IOP_FEX_PUSH;
-    temp.type_id := node.type_id;
-    temp.ea.obj_id := tempvar_id;
+    dest := alloc_node();
+    dest.iop := IOP_FEX_PUSH;
+    dest.flags := FLAG_RVALUE;
+    dest.type_id := src.type_id;
+    dest.left.obj_id := tempvar_id;
 
-    simplify_node_to(index, newindex);
-    free_node(index);
+    simplify_node_to(src, dest);
 end sub;
 
-sub simplify_node(index: uint8): (newindex: uint8)
-    var node: [Node] := get_node(index);
-
-    if node.iop == IOP_FEX_PUSH then
-        newindex := index;
+sub simplify_node_to_ea(src: [Node]): (dest: [Node])
+    if src.iop == IOP_FEX_PUSH then
+        dest := src;
+        ref_node(dest);
         return;
     end if;
-    newindex := simplify_node_to_var(index);
+
+    dest := simplify_node_to_var(src);
 end sub;
 
+sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
+    dest := simplify_node_to_var(src);
+    deref_node(src);
+end sub;
+
+sub simplify_node_to_ea_and_deref(src: [Node]): (dest: [Node])
+    dest := simplify_node_to_ea(src);
+    deref_node(src);
+end sub;

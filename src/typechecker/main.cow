@@ -77,47 +77,49 @@ sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (resu
     end if;
 end sub;
 
-sub alloc_const_node(type_id: uint16, number_id: uint16): (index: uint8)
-    index := alloc_node();
-    var node: [Node] := get_node(index);
-    node.iop := IOP_FEX_PUSH;
-    node.type_id := type_id;
-    node.ea.obj_id := number_id;
+sub must_be_simplified(node: [Node])
+    if node.iop != IOP_FEX_PUSH then
+        print("operation on non-simplified node");
+        halt();
+    end if;
 end sub;
 
-sub alloc_thing_node(thing_id: uint16): (index: uint8)
-    index := alloc_node();
-    var node: [Node] := get_node(index);
+sub alloc_ea_node(ea: [EffectiveAddress]): (node: [Node])
+    node := alloc_node();
+    node.iop := IOP_FEX_PUSH;
+    node.flags := FLAG_RVALUE;
+    node.type_id := uint16_type;
+    copy_ea_ref(ea, &node.left);
+end sub;
+
+sub alloc_const_node(number_id: uint16): (node: [Node])
+    node := alloc_node();
+    node.iop := IOP_FEX_PUSH;
+    node.flags := FLAG_RVALUE;
+    node.type_id := uint16_type;
+    node.left.obj_id := number_id;
+end sub;
+
+sub alloc_thing_node(thing_id: uint16): (node: [Node])
+    node := alloc_node();
     node.iop := IOP_FEX_PUSH;
     node.type_id := get_type_of_thing(thing_id);
-    node.ea.obj_id := thing_id;
+    node.left.obj_id := thing_id;
+    ref_temporary(thing_id);
 end sub;
 
-sub gen_multiply(index: uint8, amount: uint16): (newindex: uint8)
-    if amount == 1 then
-        newindex := index;
-        return;
-    end if;
+sub gen_operator(beiop: uint8, left: [Node], right: [Node]): (dest: [Node])
+    must_be_simplified(left);
+    must_be_simplified(right);
 
-    var mulnode_index: uint8 := alloc_node();
-    var mulnode: [Node] := get_node(mulnode_index);
-    mulnode.iop := IOP_BE_MUL;
-    mulnode.type_id := uint16_type;
-    mulnode.left := index;
-    mulnode.right := alloc_const_node(uint16_type, add_number_by_value(amount));;
+    var node: [Node] := alloc_node();
+    node.iop := beiop;
+    node.type_id := uint16_type;
+    node.flags := FLAG_RVALUE;
+    copy_ea_ref(&left.left, &node.left);
+    copy_ea_ref(&right.left, &node.right);
 
-    newindex := simplify_node_to_var(mulnode_index);
-end sub;
-
-sub gen_add(left_index: uint8, right_index: uint8): (newindex: uint8)
-    var addnode_index: uint8 := alloc_node();
-    var addnode: [Node] := get_node(addnode_index);
-    addnode.iop := IOP_BE_ADD;
-    addnode.type_id := uint16_type;
-    addnode.left := left_index;
-    addnode.right := right_index;
-
-    newindex := simplify_node_to_var(addnode_index);
+    dest := simplify_node_to_ea_and_deref(node);
 end sub;
 
 sub process_subroutine(thing_id: uint16)
@@ -133,11 +135,10 @@ sub process_subroutine(thing_id: uint16)
             thing := find_thing(iop.thing_id);
         end if;
 
-        var index: uint8 := push_empty_node();
-        var node: [Node] := &nodes[index];
+        var node: [Node] := push_empty_node();
 
         node.iop := IOP_FEX_PUSH;
-        node.ea.obj_id := iop.thing_id;
+        node.left.obj_id := iop.thing_id;
         if thing.thing_type == THING_NUMBER then
             node.type_id := numeric_type;
             node.flags := FLAG_RVALUE;
@@ -186,10 +187,8 @@ sub process_subroutine(thing_id: uint16)
 #    end sub;
 
     sub fe_assign()
-        var src_index: uint8 := pop();
-        var src: [Node] := get_node(src_index);
-        var dest_index: uint8 := pop();
-        var dest: [Node] := get_node(dest_index);
+        var src: [Node] := pop();
+        var dest: [Node] := simplify_node_to_ea_and_deref(pop());
 
         if (dest.flags & FLAG_RVALUE) != 0 then
             print("cannot assign to rvalue");
@@ -197,36 +196,31 @@ sub process_subroutine(thing_id: uint16)
         end if;
 
         check_type_assignability(src.type_id, dest.type_id);
-        dest_index := simplify_node(dest_index);
-        simplify_node_to(src_index, dest_index);
-        free_node(src_index);
-        free_node(dest_index);
+        dest := simplify_node_to_ea_and_deref(dest);
+        simplify_node_to(src, dest);
+        deref_node(src);
+        deref_node(dest);
     end sub;
 
     sub fe_simple_alu2op(beiop: uint8)
-        var right_index: uint8 := pop();
-        right_index := simplify_node(right_index);
-        var right: [Node] := get_node(right_index);
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
-        var left_index: uint8 := pop();
-        left_index := simplify_node(left_index);
-        var left: [Node] := get_node(left_index);
-
-        var index: uint8 := push_empty_node();
-        var node: [Node] := get_node(index);
+        var node: [Node] := push_empty_node();
         node.iop := beiop;
         node.flags := FLAG_RVALUE;
-        node.left := left_index;
-        node.right := right_index;
+        copy_ea_ref(&left.left, &node.left);
+        copy_ea_ref(&right.left, &node.right);
         # if you change this, change the non-pointer case in addsub as well
         node.type_id := check_type_compatibility(left.type_id, right.type_id);
+
+        deref_node(right);
+        deref_node(left);
     end sub;
 
     sub maybe_signed_biop(signed_beiop: uint8, unsigned_beiop: uint8): (beiop: uint8)
-        var right_index: uint8 := peek(1);
-        var right: [Node] := get_node(right_index);
-        var left_index: uint8 := peek(2);
-        var left: [Node] := get_node(left_index);
+        var right: [Node] := peek(1);
+        var left: [Node] := peek(2);
 
         var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
@@ -242,20 +236,14 @@ sub process_subroutine(thing_id: uint16)
     end sub;
 
     sub fe_addsub(kind: uint8)
-        var right_index: uint8 := pop();
-        right_index := simplify_node(right_index);
-        var right: [Node] := get_node(right_index);
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
-        var left_index: uint8 := pop();
-        left_index := simplify_node(left_index);
-        var left: [Node] := get_node(left_index);
-
-        var index: uint8 := push_empty_node();
-        var node: [Node] := get_node(index);
+        var node: [Node] := push_empty_node();
         node.iop := kind;
         node.flags := FLAG_RVALUE;
-        node.left := left_index;
-        node.right := right_index;
+        copy_ea_ref(&left.left, &node.left);
+        copy_ea_ref(&right.left, &node.right);
 
         var left_type: [PointerThing] := find_thing(left.type_id) as [PointerThing];
         var right_type: [PointerThing] := find_thing(right.type_id) as [PointerThing];
@@ -275,15 +263,14 @@ sub process_subroutine(thing_id: uint16)
         else
             halt();
         end if;
+
+        deref_node(right);
+        deref_node(left);
     end sub;
 
     sub fe_index()
-        var right_index: uint8 := pop();
-        right_index := simplify_node(right_index);
-        var right: [Node] := get_node(right_index);
-
-        var left_index: uint8 := pop();
-        var left: [Node] := get_node(left_index);
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := pop();
 
         var left_type: [WithElementsThing] := find_thing(left.type_id) as [WithElementsThing];
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
@@ -294,40 +281,54 @@ sub process_subroutine(thing_id: uint16)
             halt();
         end if;
 
+        var node: [Node] := push_empty_node();
+        node.iop := IOP_FEX_PUSH;
+        node.type_id := left_type.element_id;
+        node.left.obj_id := left.left.obj_id;
+        ref_temporary(node.left.obj_id);
+
         if left_type.thing_type == THING_POINTER then
-            left_index := simplify_node_to_var(left_index);
-            left := get_node(left_index);
-            left.ea.flags := EA_DEREF;
+            left := simplify_node_to_var_and_deref(left);
+            node.left.flags := EA_DEREF;
         elseif left_type.thing_type == THING_ARRAY then
-            left_index := simplify_node(left_index);
-            left := get_node(left_index);
+            left := simplify_node_to_ea_and_deref(left);
         else
             print("only pointers or arrays can be indexed");
             halt();
         end if;
 
-        push_node(left_index);
-        left.type_id := left_type.element_id;
-
         if (right_type.thing_type == THING_NUMERIC)
-            and ((left.ea.off_id == 0) or (is_number_thing(left.ea.off_id) != 0)) then
+            and ((left.left.off_id == 0) or (is_number_thing(left.left.off_id) != 0)) then
 
-            left.ea.off_id := add_number_by_value(
-                get_value_of_number(left.ea.off_id) +
-                    get_value_of_number(right.ea.obj_id) * element_type.width);
+            node.left.off_id := add_number_by_value(
+                get_value_of_number(left.left.off_id) +
+                    get_value_of_number(right.left.obj_id) * element_type.width);
         else
-            var offset_index: uint8 := gen_multiply(right_index, element_type.width);
-            if left.ea.off_id != 0 then
-                var i: uint8 := gen_add(alloc_thing_node(left.ea.off_id), offset_index);
-                free_node(offset_index);
-                offset_index := i;
+            var new_delta_node: [Node];
+            var delta_node: [Node] := alloc_ea_node(&right.left);
+            if element_type.width != 1 then
+                var num_node: [Node] := alloc_const_node(element_type.width);
+                new_delta_node := gen_operator(IOP_BE_MUL, delta_node, num_node);
+                deref_node(num_node);
+                deref_node(delta_node);
+                delta_node := new_delta_node;
             end if;
 
-            var offset_node: [Node] := get_node(offset_index);
-            left.ea.off_id := offset_node.ea.obj_id;
-            free_node(offset_index);
+            if left.left.off_id != 0 then
+                var old_delta_node: [Node] := alloc_thing_node(left.left.off_id);
+                new_delta_node := gen_operator(IOP_BE_ADD, old_delta_node, delta_node);
+                deref_node(old_delta_node);
+                deref_node(delta_node);
+                delta_node := new_delta_node;
+            end if;
+
+            delta_node := simplify_node_to_var_and_deref(delta_node);
+            node.left.off_id := delta_node.left.obj_id;
+            ref_temporary(node.left.off_id);
+            deref_node(delta_node);
         end if;
-        free_node(right_index);
+        deref_node(right);
+        deref_node(left);
     end sub;
 
 #    sub shift_op(iop: [TypedIop])
