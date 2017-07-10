@@ -1,20 +1,3 @@
-print("TYPECHECKER\n");
-load_thing_table("things.dat");
-init_iop_reader("iops.dat");
-init_iop_writer("iops-out.dat");
-
-var main_subroutine_id: uint16 := find_main_subroutine();
-
-sub find_bootstrap_type(identifier_id: uint16): (type_id: uint16)
-    var subroutine: [SubroutineThing] := find_thing(main_subroutine_id) as [SubroutineThing];
-    current_namespace_id := subroutine.namespace_id;
-    type_id := deref_symbol_or_fail(identifier_id);
-end sub;
-
-var int8_type: uint16 := find_bootstrap_type(TOKEN_INT8);
-var uint16_type: uint16 := find_bootstrap_type(TOKEN_INT16);
-var numeric_type: uint16 := find_bootstrap_type(TOKEN_NUMERIC);
-
 sub print_type_name(type_id: uint16)
     var brackets: uint8 := 0;
     loop
@@ -307,7 +290,7 @@ sub process_subroutine(thing_id: uint16)
             var new_delta_node: [Node];
             var delta_node: [Node] := alloc_ea_node(&right.left);
             if element_type.width != 1 then
-                var num_node: [Node] := alloc_const_node(element_type.width);
+                var num_node: [Node] := alloc_const_node(add_number_by_value(element_type.width));
                 new_delta_node := gen_operator(IOP_BE_MUL, delta_node, num_node);
                 deref_node(num_node);
                 deref_node(delta_node);

@@ -22,60 +22,53 @@ sub is_valid_byte_offset(ea: [EffectiveAddress]): (is_valid: uint8)
     is_valid := 1;
 end sub;
 
-sub arch_validate_be_iop(iop: [BEIop]): (is_valid: uint8)
-    print("* checking ea validity: iop=0x");
-    print_hex_i8(iop.iop_kind);
-    print(" width=");
-    print_i8(iop.width);
-    print(" left=");
-    print_ea(&iop.left);
-    print(" right=");
-    print_ea(&iop.right);
-    print(" dest=");
-    print_ea(&iop.dest);
+sub arch_validate_ea(iop: uint8, width: uint8, ea: [EffectiveAddress]): (is_valid: uint8)
+    print("* checking ea validity: width=");
+    print_i8(width);
+    print(" ea=");
+    print_ea(ea);
     print_newline();
 
-    var iopkind: uint8 := iop.iop_kind & IOP_TYPE_MASK;
     is_valid := 0;
 
-    if iop.width > 1 then
-        # var offsetted EAs are not allowed.
-        if (is_typed_thing(iop.left.off_id) != 0) or
-           (is_typed_thing(iop.right.off_id) != 0) or
-           (is_typed_thing(iop.dest.off_id) != 0) then
-           print("* invalid: non-constant offset\n");
-           return;
+    if width > 1 then
+        if is_typed_thing(ea.off_id) != 0 then
+            print("* invalid EA: non-constant offset\n");
+            return;
         end if;
 
-        # Derefs are only allowed if the opcode is a copy.
-        if iop == IOP_BE_COPY then
-            if ((iop.left.flags & EA_DEREF) != 0) and ((iop.dest.flags & EA_DEREF) != 0) then
-                print("* invalid: copy with deref on both src and dest\n");
-                return;
-            end if;
-        else
-            if ((iop.left.flags & EA_DEREF) != 0)
-                    or ((iop.right.flags & EA_DEREF) != 0)
-                    or ((iop.dest.flags & EA_DEREF) != 0) then
-                print("* invalid: deref\n");
+        if iop != IOP_BE_COPY then
+            if (ea.flags & EA_DEREF) != 0 then
+                print("* wide deref not allowed\n");
                 return;
             end if;
         end if;
     else
-        # You are allowed a single var offsetted EA. This can't be combined with a deref.
-        if is_valid_byte_offset(&iop.left) == 0 then
+        if is_valid_byte_offset(ea) == 0 then
             return;
         end if;
+    end if;
 
-        if iopkind == IOP_TYPE_BACKEND_3OP then
-            if is_valid_byte_offset(&iop.right) == 0 then
-                return;
-            end if;
-        end if;
+    is_valid := 1;
+end sub;
 
-        if is_valid_byte_offset(&iop.dest) == 0 then
+sub arch_validate_be_iop(iop: [BEIop]): (is_valid: uint8)
+    var iopkind: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+    is_valid := 0;
+
+    # You are allowed a single var offsetted EA. This can't be combined with a deref.
+    if arch_validate_ea(iop.iop_kind, iop.width, &iop.left) == 0 then
+        return;
+    end if;
+
+    if iopkind == IOP_TYPE_BACKEND_3OP then
+        if arch_validate_ea(iop.iop_kind, iop.width, &iop.right) == 0 then
             return;
         end if;
+    end if;
+
+    if arch_validate_ea(iop.iop_kind, iop.width, &iop.dest) == 0 then
+        return;
     end if;
 
     is_valid := 1;
