@@ -276,3 +276,15 @@ sub load_thing_table(filename: [int8])
     file_close(fd);
     thing_table[thing_table_top] := 0;
 end sub;
+
+sub print_thing(thing_id: uint16)
+    var thing: [Thing] := find_thing(thing_id);
+    if thing.thing_type == THING_NUMBER then
+        print_char('#');
+        print_i32(get_value_of_number(thing_id));
+    else
+        print("0x");
+        print_hex_i16(thing_id);
+    end if;
+end sub;
+

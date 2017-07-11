@@ -38,8 +38,8 @@ sub arch_validate_ea(iop: uint8, width: uint8, ea: [EffectiveAddress]): (is_vali
         end if;
 
         if iop != IOP_BE_COPY then
-            if (ea.flags & EA_DEREF) != 0 then
-                print("* wide deref not allowed\n");
+            if (ea.flags & EA_DEREF|EA_LEA) != 0 then
+                print("* wide deref or lea not allowed unless in copy\n");
                 return;
             end if;
         end if;

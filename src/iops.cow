@@ -151,7 +151,8 @@ record FEConditionalIop: Iop
     iffalse_label_id: uint16;
 end record;
 
-const EA_DEREF     := 0b0000_0001; # var is a pointer; deref before applying offset
+const EA_DEREF     := 0b0000_0001; # deref obj before applying offset
+const EA_LEA       := 0b0000_0010; # result is address of EA, not value at that address
 
 record EffectiveAddress
     flags: uint8;
@@ -191,18 +192,20 @@ sub zero_ea(ea: [EffectiveAddress])
 end sub;
 
 sub print_ea(ea: [EffectiveAddress])
+    if (ea.flags & EA_LEA) != 0 then
+        print_char('&');
+    end if;
     print_char('(');
     if (ea.flags & EA_DEREF) != 0 then
         print_char('[');
     end if;
-    print("0x");
-    print_hex_i16(ea.obj_id);
+    print_thing(ea.obj_id);
     if (ea.flags & EA_DEREF) != 0 then
         print_char(']');
     end if;
     if ea.off_id != 0 then
-        print("+0x");
-        print_hex_i16(ea.off_id);
+        print("+");
+        print_thing(ea.off_id);
     end if;
     print_char(')');
 end sub;

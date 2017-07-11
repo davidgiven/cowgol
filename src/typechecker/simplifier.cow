@@ -30,6 +30,8 @@ sub simplify_ea(ea: [EffectiveAddress])
         reset_be_iop(&iop);
 
         if (ea.flags & EA_DEREF) != 0 then
+            print("* turning deref+offset into add then deref\n");
+
             iop.left.obj_id := ea.obj_id;
             iop.right.obj_id := ea.off_id;
             iop.dest.obj_id := tempvar_id;
@@ -39,6 +41,30 @@ sub simplify_ea(ea: [EffectiveAddress])
 
             ea.obj_id := tempvar_id;
             ea.off_id := 0;
+            return;
+        end if;
+
+        if (ea.flags & EA_LEA) == 0 then
+            print("* turning obj+offset into lea then deref\n");
+
+            iop.left.obj_id := ea.obj_id;
+            iop.left.flags := EA_LEA;
+            iop.dest.obj_id := tempvar_id;
+            iop.iop_kind := IOP_BE_COPY;
+            iop.width := 2;
+            write_be_iop(&iop);
+            reset_be_iop(&iop);
+
+            iop.left.obj_id := tempvar_id;
+            iop.right.obj_id := ea.off_id;
+            iop.dest.obj_id := tempvar_id;
+            iop.iop_kind := IOP_BE_ADD;
+            iop.width := 2;
+            write_be_iop(&iop);
+
+            ea.obj_id := tempvar_id;
+            ea.off_id := 0;
+            ea.flags := EA_DEREF;
             return;
         end if;
 
@@ -71,9 +97,24 @@ sub simplify_node_to(src: [Node], dest: [Node])
     if arch_validate_ea(iop.iop_kind, iop.width, &iop.left) == 0 then
         simplify_ea(&iop.left);
     end if;
+    if (iop.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_3OP then
+        if arch_validate_ea(iop.iop_kind, iop.width, &iop.right) == 0 then
+            simplify_ea(&iop.right);
+        end if;
+    end if;
+    if arch_validate_ea(iop.iop_kind, iop.width, &iop.dest) == 0 then
+        simplify_ea(&iop.dest);
+    end if;
 
     if arch_validate_be_iop(&iop) == 0 then
-        print("needs breakdown");
+        print("needs breakdown; width=");
+        print_i8(iop.width);
+        print(" left=");
+        print_ea(&iop.left);
+        print(" right=");
+        print_ea(&iop.right);
+        print(" dest=");
+        print_ea(&iop.dest);
         halt();
     end if;
 
