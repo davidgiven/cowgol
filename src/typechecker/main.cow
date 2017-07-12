@@ -180,7 +180,7 @@ sub process_subroutine(thing_id: uint16)
 
         check_type_assignability(src.type_id, dest.type_id);
         dest := simplify_node_to_ea_and_deref(dest);
-        simplify_node_to(src, dest);
+        arch_simplify_node_to(src, dest);
         deref_node(src);
         deref_node(dest);
     end sub;
@@ -306,6 +306,7 @@ sub process_subroutine(thing_id: uint16)
             end if;
 
             delta_node := simplify_node_to_var_and_deref(delta_node);
+            node.left.flags := EA_DEREF;
             node.left.off_id := delta_node.left.obj_id;
             ref_temporary(node.left.off_id);
             deref_node(delta_node);

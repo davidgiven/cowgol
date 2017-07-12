@@ -53,8 +53,8 @@ TYPECHECKER_SRCS = \
 	src/utils/types.cow \
 	src/typechecker/temporaries.cow \
 	src/typechecker/tree.cow \
-	src/arch/bbc/bevalidator.cow \
 	src/typechecker/init.cow \
+	src/arch/bbc/simplifier.cow \
 	src/typechecker/simplifier.cow \
 	src/typechecker/main.cow
 
