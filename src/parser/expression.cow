@@ -318,13 +318,13 @@ sub expression_state_machine()
                     expect_token(TOKEN_OPENPAREN);
 
                     if current_token == TOKEN_CLOSEPAREN then
+                        current_parameter_count := 0;
                         apply_op();
                         next_token();
                         state := STATE_AFTER;
-                        current_parameter_count := 0;
                     else
-                        nesting := nesting + 1;
                         current_parameter_count := 1;
+                        nesting := nesting + 1;
                     end if;
                 elseif (thing.thing_type == THING_IDENTIFIER) or (thing.thing_type == THING_NUMBER)
                         or (thing.thing_type == THING_STRING) then
