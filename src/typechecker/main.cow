@@ -250,14 +250,14 @@ sub process_subroutine(thing_id: uint16)
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
         node.type_id := left_type.element_id;
-        node.left.obj_id := left.left.obj_id;
-        ref_temporary(node.left.obj_id);
 
         if left_type.thing_type == THING_POINTER then
             left := simplify_node_to_var_and_deref(left);
+            copy_ea_ref(&left.left, &node.left);
             node.left.flags := EA_DEREF;
         elseif left_type.thing_type == THING_ARRAY then
             left := simplify_node_to_ea_and_deref(left);
+            copy_ea_ref(&left.left, &node.left);
         else
             print("only pointers or arrays can be indexed");
             halt();
@@ -383,6 +383,24 @@ sub process_subroutine(thing_id: uint16)
         push_node(node);
     end sub;
 
+    sub fe_addressof()
+        var node: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        if (node.flags & FLAG_RVALUE) != 0 then
+            print("cannot take the address of an rvalue");
+            halt();
+        end if;
+
+        node.type_id := pointer_of(node.type_id);
+        if node.left.flags == EA_DEREF then
+            node.left.flags := 0;
+        else
+            node.left.flags := EA_LEA;
+        end if;
+
+        push_node(node);
+    end sub;
+
 #    sub shift_op(iop: [TypedIop])
 #        var right_type_id: uint16;
 #        var right_flags: uint8;
@@ -450,25 +468,6 @@ sub process_subroutine(thing_id: uint16)
 #            halt();
 #        end if;
 #
-#        write_iop(iop as [Iop]);
-#    end sub;
-#    sub addressop(iop: [TypedIop])
-#        var input_type_id: uint16;
-#        var input_flags: uint8;
-#        (input_type_id, input_flags) := pop_type();
-#
-#        if (input_flags & FLAG_RVALUE) != 0 then
-#            print("cannot take the address of an rvalue");
-#            halt();
-#        end if;
-#
-#        # The type checker's not actually smart enough to tell whether the thing that
-#        # the address is being taken of is actually an array member. So we just set
-#        # the type correctly and leave it at that. The codegen stage will complain
-#        # if it can't be done.
-#
-#        iop.type_id := pointer_of(input_type_id);
-#        push_type(iop.type_id, FLAG_RVALUE);
 #        write_iop(iop as [Iop]);
 #    end sub;
 #
@@ -557,6 +556,8 @@ sub process_subroutine(thing_id: uint16)
             fex_parameter(DIRECTION_OUT, iop as [FEParameterIop]);
         elseif iop.iop_kind == IOP_FE_MATERIALISE then
             fe_materialise();
+        elseif iop.iop_kind == IOP_FE_ADDRESSOF then
+            fe_addressof();
         elseif iop.iop_kind == IOP_FEX_BEQ then
             fe_conditional(IOP_BE_BEQ, iop as [FEConditionalIop]);
         elseif iop.iop_kind == IOP_FEX_BGT then
@@ -573,8 +574,6 @@ sub process_subroutine(thing_id: uint16)
 #            simple_alu1op(iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_SINDEXOP then
 #            sindexop(iop as [TypedIop]);
-#        elseif iop.iop_kind == IOP_ADDRESSOP then
-#            addressop(iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_MEMBEROP then
 #            memberop(iop as [MemberIop]);
         else
