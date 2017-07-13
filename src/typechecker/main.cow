@@ -144,30 +144,13 @@ sub process_subroutine(thing_id: uint16)
         print_hex_i16(node.type_id);
         print_newline();
     end sub;
-#
-#    sub push_parameter(direction: uint8, iop: [ParameterIop])
-#        var thing_id: uint16 := iop.subroutine_id;
-#        var thing: [Thing] := find_thing(thing_id);
-#        if thing.thing_type == THING_IDENTIFIER then
-#            thing_id := deref_symbol_or_fail(thing_id);
-#            thing := find_thing(thing_id);
-#        end if;
-#        if thing.thing_type != THING_SUBROUTINE then
-#            print("subroutine_id not a subroutine");
-#            halt();
-#        end if;
-#
-#        var parameter_id: uint16 := find_nth_parameter(
-#            thing_id, direction, iop.parameter);
-#        var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
-#        var buf: ThingIop[1];
-#        buf[0].iop_kind := IOP_THING;
-#        buf[0].iop_size := ThingIop@bytes;
-#        buf[0].type_id := parameter.type_id;
-#        buf[0].thing_id := parameter_id;
-#        write_iop(&buf[0] as [Iop]);
-#        push_type(parameter.type_id, 0);
-#    end sub;
+
+    sub fe_swap()
+        var n1: [Node] := pop();
+        var n2: [Node] := pop();
+        push_node(n1);
+        push_node(n2);
+    end sub;
 
     sub fe_assign()
         var src: [Node] := pop();
@@ -313,6 +296,50 @@ sub process_subroutine(thing_id: uint16)
         end if;
         deref_node(right);
         deref_node(left);
+    end sub;
+
+    sub fex_parameter(direction: uint8, iop: [FEParameterIop])
+        var thing_id: uint16 := iop.subroutine_id;
+        var thing: [Thing] := find_thing(thing_id);
+        if thing.thing_type == THING_IDENTIFIER then
+            thing_id := deref_symbol_or_fail(thing_id);
+            thing := find_thing(thing_id);
+        end if;
+        if thing.thing_type != THING_SUBROUTINE then
+            print("subroutine_id not a subroutine");
+            halt();
+        end if;
+
+        var parameter_id: uint16 := find_nth_parameter(
+            thing_id, direction, iop.parameter);
+        if parameter_id == 0 then
+            print("invalid parameter id");
+            halt();
+        end if;
+        var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
+
+        var node: [Node] := push_empty_node();
+        print("found subroutine 0x");
+        print_hex_i16(thing_id);
+        print(" direction ");
+        print_i8(direction);
+        print_newline();
+        node.iop := IOP_FEX_PUSH;
+        node.type_id := parameter.type_id;
+        node.left.obj_id := parameter_id;
+    end sub;
+
+    sub fe_materialise()
+        var src: [Node] := pop();
+
+        var dest: [Node] := push_empty_node();
+        dest.iop := IOP_FEX_PUSH;
+        dest.flags := FLAG_RVALUE;
+        dest.type_id := src.type_id;
+        dest.left.obj_id := alloc_temporary(get_width_of(src));
+
+        arch_simplify_node_to(src, dest);
+        deref_node(src);
     end sub;
 
 #    sub shift_op(iop: [TypedIop])
@@ -495,6 +522,8 @@ sub process_subroutine(thing_id: uint16)
             break;
         elseif ioptype == IOP_TYPE_UNTYPED then
             write_iop(iop);
+        elseif iop.iop_kind == IOP_FE_SWAP then
+            fe_swap();
         elseif iop.iop_kind == IOP_FEX_PUSH then
             fex_push(iop as [FEPushIop]);
         elseif iop.iop_kind == IOP_FE_ASSIGN then
@@ -515,6 +544,12 @@ sub process_subroutine(thing_id: uint16)
             fe_simple_alu2op(maybe_signed_biop(IOP_BE_DIVS, IOP_BE_DIVU));
         elseif iop.iop_kind == IOP_FE_INDEX then
             fe_index();
+        elseif iop.iop_kind == IOP_FEX_INPUTPARAM then
+            fex_parameter(DIRECTION_IN, iop as [FEParameterIop]);
+        elseif iop.iop_kind == IOP_FEX_OUTPUTPARAM then
+            fex_parameter(DIRECTION_OUT, iop as [FEParameterIop]);
+        elseif iop.iop_kind == IOP_FE_MATERIALISE then
+            fe_materialise();
 #        elseif (iop.iop_kind == IOP_LSLOP) or (iop.iop_kind == IOP_RSHIFTOP) then
 #            shift_op(iop as [TypedIop]);
 #        elseif ioptype == IOP_TYPE_SIMPLE1OP then
@@ -527,10 +562,6 @@ sub process_subroutine(thing_id: uint16)
 #        elseif iop.iop_kind == IOP_BLT then
 #            maybe_signed_biop(IOP_BLTS, IOP_BLTU, iop as [TypedIop]);
 #            conditional_jump(iop as [ConditionalIop]);
-#        elseif iop.iop_kind == IOP_INPUTPARAM then
-#            push_parameter(DIRECTION_IN, iop as [ParameterIop]);
-#        elseif iop.iop_kind == IOP_OUTPUTPARAM then
-#            push_parameter(DIRECTION_OUT, iop as [ParameterIop]);
 #        elseif iop.iop_kind == IOP_CALL then
 #            call_subroutine(iop as [CallIop]);
 #        elseif iop.iop_kind == IOP_SINDEXOP then
