@@ -73,6 +73,8 @@ const IOP_FEX_BGT          := 0b0100_0111; # ( left right -- ): FEConditionalIop
 # 2op instructions (the RHS is ignored).
 const IOP_TYPE_BACKEND_2OP := 0b0110_0000;
 const IOP_BE_COPY          := 0b0110_0000;
+const IOP_BE_SEXT          := 0b0110_0001;
+const IOP_BE_ZEXT          := 0b0110_0010;
 
 # 3op instructions.
 const IOP_TYPE_BACKEND_3OP := 0b1000_0000;
@@ -87,6 +89,14 @@ const IOP_BE_DIVU          := 0b1000_0111;
 const IOP_BE_MODS          := 0b1000_1000;
 const IOP_BE_MODU          := 0b1000_1001;
 const IOP_BE_INDEX         := 0b1000_1010;
+
+# Specials.
+const IOP_TYPE_BACKEND_SPECIAL := 0b1001_0000;
+const IOP_BE_BEQ               := 0b1001_0000;
+const IOP_BE_BLTS              := 0b1001_0001;
+const IOP_BE_BLTU              := 0b1001_0010;
+const IOP_BE_BGTS              := 0b1001_0011;
+const IOP_BE_BGTU              := 0b1001_0100;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_ZEROPAGE := 0b1110_0011;
@@ -167,6 +177,14 @@ record BEIop: Iop
     left: EffectiveAddress;
     right: EffectiveAddress;
     dest: EffectiveAddress;
+end record;
+
+record BEConditionalIop: Iop
+    width: uint8;
+    left: EffectiveAddress;
+    right: EffectiveAddress;
+    iftrue_label_id: uint16;
+    iffalse_label_id: uint16;
 end record;
 
 record CG6502MemIop: Iop

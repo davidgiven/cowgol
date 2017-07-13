@@ -97,6 +97,20 @@ sub do_be_3op(kind: [int8], iop: [BEIop])
     print_ea(&iop.dest);
 end sub;
 
+sub do_be_cmpop(kind: [int8], iop: [BEConditionalIop])
+    print(kind);
+    print(" width=");
+    print_i8(iop.width);
+    print(" left=");
+    print_ea(&iop.left);
+    print(" right=");
+    print_ea(&iop.right);
+    print(" iftrue_label_id=0x");
+    print_label(iop.iftrue_label_id);
+    print(" iffalse_label_id=0x");
+    print_label(iop.iffalse_label_id);
+end sub;
+
 sub do_goto(iop: [GotoIop])
     print("GOTO label=0x");
     print_label(iop.label_id);
@@ -179,6 +193,8 @@ loop
         elseif kind == IOP_LABEL      then do_label(iop as [LabelIop]);
         elseif kind == IOP_CALL       then do_call(iop as [CallIop]);
         elseif kind == IOP_GOTO       then do_goto(iop as [GotoIop]);
+        elseif kind == IOP_BYTES      then do_bytes(iop as [BytesIop]);
+        elseif kind == IOP_ADDRESS    then do_address(iop as [AddressIop]);
 
         elseif kind == IOP_FE_SWAP        then print("FE_SWAP");
         elseif kind == IOP_FE_ASSIGN      then print("FE_ASSIGN");
@@ -213,6 +229,8 @@ loop
         elseif kind == IOP_FEX_BGT         then do_fe_conditional("FEX_BGT", iop as [FEConditionalIop]);
 
         elseif kind == IOP_BE_COPY         then do_be_2op("BE_COPY", iop as [BEIop]);
+        elseif kind == IOP_BE_SEXT         then do_be_2op("BE_SEXT", iop as [BEIop]);
+        elseif kind == IOP_BE_ZEXT         then do_be_2op("BE_ZEXT", iop as [BEIop]);
         elseif kind == IOP_BE_ADD          then do_be_3op("BE_ADD", iop as [BEIop]);
         elseif kind == IOP_BE_SUB          then do_be_3op("BE_SUB", iop as [BEIop]);
         elseif kind == IOP_BE_MUL          then do_be_3op("BE_MUL", iop as [BEIop]);
@@ -224,6 +242,12 @@ loop
         elseif kind == IOP_BE_MODS         then do_be_3op("BE_MODS", iop as [BEIop]);
         elseif kind == IOP_BE_MODU         then do_be_3op("BE_MODU", iop as [BEIop]);
         elseif kind == IOP_BE_INDEX        then do_be_3op("BE_INDEX", iop as [BEIop]);
+
+        elseif kind == IOP_BE_BEQ          then do_be_cmpop("BE_BEQ", iop as [BEConditionalIop]);
+        elseif kind == IOP_BE_BLTS         then do_be_cmpop("BE_BLTS", iop as [BEConditionalIop]);
+        elseif kind == IOP_BE_BLTU         then do_be_cmpop("BE_BLTU", iop as [BEConditionalIop]);
+        elseif kind == IOP_BE_BGTS         then do_be_cmpop("BE_BGTS", iop as [BEConditionalIop]);
+        elseif kind == IOP_BE_BGTU         then do_be_cmpop("BE_BGTU", iop as [BEConditionalIop]);
 
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);

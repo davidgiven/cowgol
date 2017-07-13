@@ -342,6 +342,47 @@ sub process_subroutine(thing_id: uint16)
         deref_node(src);
     end sub;
 
+    sub fe_conditional(iopkind: uint8, iop: [FEConditionalIop])
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
+
+        var beiop: BEConditionalIop;
+        zero_memory(&beiop as [int8], BEConditionalIop@bytes);
+        beiop.iop_size := BEConditionalIop@bytes;
+        beiop.iop_kind := iopkind;
+        beiop.width := get_width_of_type(type_id);
+        beiop.iftrue_label_id := iop.iftrue_label_id;
+        beiop.iffalse_label_id := iop.iffalse_label_id;
+        copy_ea_ref(&left.left, &beiop.left);
+        copy_ea_ref(&right.left, &beiop.right);
+
+        arch_simplify_conditional_iop(&beiop);
+
+        deref_temporary(beiop.left.obj_id);
+        deref_temporary(beiop.left.off_id);
+        deref_temporary(beiop.right.obj_id);
+        deref_temporary(beiop.right.off_id);
+    end sub;
+
+    sub fe_cast(iop: [FECastIop])
+        var node: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var input_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
+        var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
+        if (input_type.thing_type != THING_NUMERIC) and (input_type.width != output_type.width) then
+            if output_type.thing_type == THING_SIGNED then
+                node.iop := IOP_BE_SEXT;
+            else
+                node.iop := IOP_BE_ZEXT;
+            end if;
+        end if;
+        node.type_id := iop.type_id;
+        node.flags := FLAG_RVALUE;
+        push_node(node);
+    end sub;
+
 #    sub shift_op(iop: [TypedIop])
 #        var right_type_id: uint16;
 #        var right_flags: uint8;
@@ -384,21 +425,6 @@ sub process_subroutine(thing_id: uint16)
 #        push_type(left_type_id, FLAG_RVALUE);
 #        write_iop(iop as [Iop]);
 #    end sub;
-#
-#    sub conditional_jump(iop: [ConditionalIop])
-#        var right_type_id: uint16;
-#        var right_flags: uint8;
-#        (right_type_id, right_flags) := pop_type();
-#
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := pop_type();
-#
-#        var type_id: uint16 := check_type_compatibility(left_type_id, right_type_id);
-#        iop.type_id := type_id;
-#        write_iop(iop as [Iop]);
-#    end sub;
-#
 #    sub call_subroutine(iop: [CallIop])
 #        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
 #        if thing.thing_type == THING_IDENTIFIER then
@@ -426,25 +452,6 @@ sub process_subroutine(thing_id: uint16)
 #
 #        write_iop(iop as [Iop]);
 #    end sub;
-#    sub castop(iop: [TypedIop])
-#        var input_type_id: uint16;
-#        var input_flags: uint8;
-#        (input_type_id, input_flags) := pop_type();
-#
-#        var input_type: [TypeThing] := find_thing(input_type_id) as [TypeThing];
-#        var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
-#        if (input_type.thing_type != THING_NUMERIC) and (input_type.width != output_type.width) then
-#            if output_type.thing_type == THING_SIGNED then
-#                iop.iop_kind := IOP_SEXTOP;
-#            else
-#                iop.iop_kind := IOP_ZEXTOP;
-#            end if;
-#
-#            write_iop(iop as [Iop]);
-#        end if;
-#        push_type(iop.type_id, FLAG_RVALUE);
-#    end sub;
-#
 #    sub addressop(iop: [TypedIop])
 #        var input_type_id: uint16;
 #        var input_flags: uint8;
@@ -550,24 +557,22 @@ sub process_subroutine(thing_id: uint16)
             fex_parameter(DIRECTION_OUT, iop as [FEParameterIop]);
         elseif iop.iop_kind == IOP_FE_MATERIALISE then
             fe_materialise();
+        elseif iop.iop_kind == IOP_FEX_BEQ then
+            fe_conditional(IOP_BE_BEQ, iop as [FEConditionalIop]);
+        elseif iop.iop_kind == IOP_FEX_BGT then
+            fe_conditional(maybe_signed_biop(IOP_BE_BGTS, IOP_BE_BGTU),
+                iop as [FEConditionalIop]);
+        elseif iop.iop_kind == IOP_FEX_BLT then
+            fe_conditional(maybe_signed_biop(IOP_BE_BLTS, IOP_BE_BLTU),
+                iop as [FEConditionalIop]);
+        elseif iop.iop_kind == IOP_FEX_CAST then
+            fe_cast(iop as [FECastIop]);
 #        elseif (iop.iop_kind == IOP_LSLOP) or (iop.iop_kind == IOP_RSHIFTOP) then
 #            shift_op(iop as [TypedIop]);
 #        elseif ioptype == IOP_TYPE_SIMPLE1OP then
 #            simple_alu1op(iop as [TypedIop]);
-#        elseif iop.iop_kind == IOP_BEQ then
-#            conditional_jump(iop as [ConditionalIop]);
-#        elseif iop.iop_kind == IOP_BGT then
-#            maybe_signed_biop(IOP_BGTS, IOP_BGTU, iop as [TypedIop]);
-#            conditional_jump(iop as [ConditionalIop]);
-#        elseif iop.iop_kind == IOP_BLT then
-#            maybe_signed_biop(IOP_BLTS, IOP_BLTU, iop as [TypedIop]);
-#            conditional_jump(iop as [ConditionalIop]);
-#        elseif iop.iop_kind == IOP_CALL then
-#            call_subroutine(iop as [CallIop]);
 #        elseif iop.iop_kind == IOP_SINDEXOP then
 #            sindexop(iop as [TypedIop]);
-#        elseif iop.iop_kind == IOP_CASTOP then
-#            castop(iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_ADDRESSOP then
 #            addressop(iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_MEMBEROP then

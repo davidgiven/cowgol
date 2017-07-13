@@ -1,6 +1,5 @@
 sub get_width_of(node: [Node]): (width: uint8)
-    var type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
-    width := type.width;
+    width := get_width_of_type(node.type_id);
 end sub;
 
 sub write_be_iop(iop: [BEIop])
@@ -135,4 +134,11 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
     simplify_ea(iop.iop_kind, destwidth, &iop.dest);
 
     write_be_iop(&iop);
+end sub;
+
+sub arch_simplify_conditional_iop(iop: [BEConditionalIop])
+    simplify_ea(iop.iop_kind, iop.width, &iop.left);
+    simplify_ea(iop.iop_kind, iop.width, &iop.right);
+
+    write_iop(iop as [Iop]);
 end sub;

@@ -29,3 +29,8 @@ sub get_type_of_thing(thing_id: uint16): (type_id: uint16)
 
     type_id := thing.type_id;
 end sub;
+
+sub get_width_of_type(type_id: uint16): (width: uint8)
+    var type: [TypeThing] := find_thing(type_id) as [TypeThing];
+    width := type.width;
+end sub;

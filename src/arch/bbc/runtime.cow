@@ -78,5 +78,5 @@ sub __load2()
 end sub;
 
 var LOMEM: [int8] := 0 as [int8];
-var HIMEM: [int8] := 0x10000 as [int8];
+var HIMEM: [int8] := 0xffff as [int8];
 var ARGV: [[int8]] := 0 as [[int8]];
