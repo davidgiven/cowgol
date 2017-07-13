@@ -169,6 +169,9 @@ loop
         var kind: uint8 := iop.iop_kind;
         print_hex_i16(offset);
         print(": ");
+        print_hex_i8(kind);
+        print_char(' ');
+
         if kind == IOP_END            then print("END");
         elseif kind == IOP_RETURN     then print("RETURN");
         elseif kind == IOP_FILENAME   then do_filename(iop as [FilenameIop]);
