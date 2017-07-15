@@ -171,7 +171,8 @@ const EA_PTRVAL       := 0b11; # deref pointer, plus offset, then deref
 record EffectiveAddress
     type: uint8;
     obj_id: uint16;
-    off_id: uint16;
+    varoff_id: uint16;
+    numoff_id: uint16;
 end record;
 
 record BEIop: Iop
@@ -224,10 +225,14 @@ sub print_ea(ea: [EffectiveAddress])
     if (ea.type & EA_DEREF_BEFORE) != 0 then
         print_char(']');
     end if;
-    if ea.off_id != 0 then
+    if ea.varoff_id != 0 then
         print("+[");
-        print_thing(ea.off_id);
+        print_thing(ea.varoff_id);
         print_char(']');
+    end if;
+    if ea.numoff_id != 0 then
+        print("+");
+        print_thing(ea.numoff_id);
     end if;
     if (ea.type & EA_DEREF_AFTER) != 0 then
         print_char(']');

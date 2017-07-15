@@ -1,5 +1,9 @@
 sub simplify_node_to_var(src: [Node]): (dest: [Node])
-    if (src.iop == IOP_FEX_PUSH) and (src.left.type == EA_OBJVAL) and (src.left.off_id == 0) then
+    if (src.iop == IOP_FEX_PUSH)
+        and (src.left.type == EA_OBJVAL)
+        and (src.left.varoff_id == 0)
+        and (src.left.numoff_id == 0)
+    then
         dest := src;
         ref_node(dest);
         return;

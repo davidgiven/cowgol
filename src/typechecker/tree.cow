@@ -45,16 +45,27 @@ sub alloc_node(): (node: [Node])
 end sub;
 
 sub ref_node(node: [Node])
+    print("* ref node ");
+    print_i16((node - &nodes[0]) / Node@bytes);
+    print_newline();
+
     node.refcount := node.refcount + 1;
 end sub;
 
+sub deref_ea(ea: [EffectiveAddress])
+    deref_temporary(ea.obj_id);
+    deref_temporary(ea.varoff_id);
+end sub;
+
 sub deref_node(node: [Node])
+    print("* deref node ");
+    print_i16((node - &nodes[0]) / Node@bytes);
+    print_newline();
+
     node.refcount := node.refcount - 1;
     if node.refcount == 0 then
-        deref_temporary(node.left.obj_id);
-        deref_temporary(node.left.off_id);
-        deref_temporary(node.right.obj_id);
-        deref_temporary(node.right.off_id);
+        deref_ea(&node.left);
+        deref_ea(&node.right);
         zero_memory(node as [int8], Node@bytes);
         allocated_nodes := allocated_nodes - 1;
 
@@ -110,7 +121,7 @@ end sub;
 sub copy_ea_ref(src: [EffectiveAddress], dest: [EffectiveAddress])
     copy_ea(src, dest);
     ref_temporary(src.obj_id);
-    ref_temporary(src.off_id);
+    ref_temporary(src.varoff_id);
 end sub;
 
 sub print_stack()

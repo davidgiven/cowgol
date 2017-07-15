@@ -284,11 +284,9 @@ sub process_subroutine(thing_id: uint16)
         print_ea(&node.left);
         print_newline();
 
-        if (right_type.thing_type == THING_NUMERIC)
-            and ((left.left.off_id == 0) or (is_number_thing(left.left.off_id) != 0)) then
-
-            node.left.off_id := add_number_by_value(
-                get_value_of_number(left.left.off_id) +
+        if (right_type.thing_type == THING_NUMERIC) then
+            node.left.numoff_id := add_number_by_value(
+                get_value_of_number(left.left.numoff_id) +
                     get_value_of_number(right.left.obj_id) * element_type.width);
         else
             var new_delta_node: [Node];
@@ -301,8 +299,8 @@ sub process_subroutine(thing_id: uint16)
                 delta_node := new_delta_node;
             end if;
 
-            if left.left.off_id != 0 then
-                var old_delta_node: [Node] := alloc_thing_node(left.left.off_id);
+            if left.left.varoff_id != 0 then
+                var old_delta_node: [Node] := alloc_thing_node(left.left.varoff_id);
 
                 print("* calculating new delta from ");
                 print_ea(&old_delta_node.left);
@@ -317,8 +315,8 @@ sub process_subroutine(thing_id: uint16)
             end if;
 
             delta_node := simplify_node_to_var_and_deref(delta_node);
-            node.left.off_id := delta_node.left.obj_id;
-            ref_temporary(node.left.off_id);
+            node.left.varoff_id := delta_node.left.obj_id;
+            ref_temporary(node.left.varoff_id);
             deref_node(delta_node);
         end if;
         deref_node(right);
@@ -337,10 +335,9 @@ sub process_subroutine(thing_id: uint16)
         if (node.left.type & EA_DEREF_AFTER) != 0 then
             node.left.type := node.left.type & (EA_DEREF_AFTER ^ -1);
         else
-            node.iop := IOP_BE_ADD;
-            node.right.obj_id := node.left.off_id;
-            node.left.off_id := 0;
-            node.left.type := node.left.type & (EA_DEREF_AFTER ^ -1);
+            print("can't take the address of ea ");
+            print_ea(&node.left);
+            halt();
         end if;
 
         push_node(node);
@@ -409,9 +406,9 @@ sub process_subroutine(thing_id: uint16)
         arch_simplify_conditional_iop(&beiop);
 
         deref_temporary(beiop.left.obj_id);
-        deref_temporary(beiop.left.off_id);
+        deref_temporary(beiop.left.varoff_id);
         deref_temporary(beiop.right.obj_id);
-        deref_temporary(beiop.right.off_id);
+        deref_temporary(beiop.right.varoff_id);
     end sub;
 
     sub fe_cast(iop: [FECastIop])
