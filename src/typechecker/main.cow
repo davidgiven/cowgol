@@ -81,6 +81,7 @@ sub alloc_const_node(number_id: uint16): (node: [Node])
     node.flags := FLAG_RVALUE;
     node.type_id := uint16_type;
     node.left.obj_id := number_id;
+    node.left.type := EA_OBJVAL;
 end sub;
 
 sub alloc_thing_node(thing_id: uint16): (node: [Node])
@@ -88,6 +89,7 @@ sub alloc_thing_node(thing_id: uint16): (node: [Node])
     node.iop := IOP_FEX_PUSH;
     node.type_id := get_type_of_thing(thing_id);
     node.left.obj_id := thing_id;
+    node.left.type := EA_OBJVAL;
     ref_temporary(thing_id);
 end sub;
 
@@ -122,6 +124,7 @@ sub process_subroutine(thing_id: uint16)
 
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := iop.thing_id;
+        node.left.type := EA_OBJVAL;
         if thing.thing_type == THING_NUMBER then
             node.type_id := numeric_type;
             node.flags := FLAG_RVALUE;
@@ -135,14 +138,16 @@ sub process_subroutine(thing_id: uint16)
                 halt();
             end if;
             node.type_id := typed_thing.type_id;
+
+            var type: [Thing] := find_thing(typed_thing.type_id);
+            if type.thing_type == THING_ARRAY then
+                node.left.type := EA_OBJADR;
+            end if;
         else
             print("can't push things of type 0x");
             print_hex_i8(thing.thing_type);
             halt();
         end if;
-        print("type_id=0x");
-        print_hex_i16(node.type_id);
-        print_newline();
     end sub;
 
     sub fe_swap()
@@ -236,9 +241,14 @@ sub process_subroutine(thing_id: uint16)
 
     sub fe_index()
         var right: [Node] := simplify_node_to_ea_and_deref(pop());
-        var left: [Node] := pop();
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [WithElementsThing] := find_thing(left.type_id) as [WithElementsThing];
+        if (left_type.thing_type != THING_POINTER) and (left_type.thing_type != THING_ARRAY) then
+            print_type_name(left.type_id);
+            print(" is not indexable");
+            halt();
+        end if;
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
         var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
 
@@ -251,17 +261,28 @@ sub process_subroutine(thing_id: uint16)
         node.iop := IOP_FEX_PUSH;
         node.type_id := left_type.element_id;
 
-        if left_type.thing_type == THING_POINTER then
-            left := simplify_node_to_var_and_deref(left);
-            copy_ea_ref(&left.left, &node.left);
-            node.left.flags := EA_DEREF;
-        elseif left_type.thing_type == THING_ARRAY then
-            left := simplify_node_to_ea_and_deref(left);
-            copy_ea_ref(&left.left, &node.left);
-        else
+        if (left_type.thing_type != THING_POINTER) and (left_type.thing_type != THING_ARRAY) then
             print("only pointers or arrays can be indexed");
             halt();
         end if;
+
+        print("* left has ea ");
+        print_ea(&left.left);
+        print_newline();
+
+        copy_ea_ref(&left.left, &node.left);
+        if node.left.type == EA_OBJADR then
+            node.left.type := EA_OBJVAL;
+        elseif (node.left.type == EA_OBJVAL) or (node.left.type == EA_PTRVAL) then
+            node := simplify_node_to_var_and_deref(node);
+            node.left.type := EA_PTRVAL;
+        elseif node.left.type == EA_PTRADR then
+            node.left.type := EA_PTRVAL;
+        end if;
+
+        print("* result base has ea ");
+        print_ea(&node.left);
+        print_newline();
 
         if (right_type.thing_type == THING_NUMERIC)
             and ((left.left.off_id == 0) or (is_number_thing(left.left.off_id) != 0)) then
@@ -282,6 +303,13 @@ sub process_subroutine(thing_id: uint16)
 
             if left.left.off_id != 0 then
                 var old_delta_node: [Node] := alloc_thing_node(left.left.off_id);
+
+                print("* calculating new delta from ");
+                print_ea(&old_delta_node.left);
+                print(" and ");
+                print_ea(&delta_node.left);
+                print_newline();
+
                 new_delta_node := gen_operator(IOP_BE_ADD, old_delta_node, delta_node);
                 deref_node(old_delta_node);
                 deref_node(delta_node);
@@ -289,13 +317,33 @@ sub process_subroutine(thing_id: uint16)
             end if;
 
             delta_node := simplify_node_to_var_and_deref(delta_node);
-            node.left.flags := EA_DEREF;
             node.left.off_id := delta_node.left.obj_id;
             ref_temporary(node.left.off_id);
             deref_node(delta_node);
         end if;
         deref_node(right);
         deref_node(left);
+    end sub;
+
+    sub fe_addressof()
+        var node: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        if (node.flags & FLAG_RVALUE) != 0 then
+            print("cannot take the address of an rvalue");
+            halt();
+        end if;
+
+        node.type_id := pointer_of(node.type_id);
+        if (node.left.type & EA_DEREF_AFTER) != 0 then
+            node.left.type := node.left.type & (EA_DEREF_AFTER ^ -1);
+        else
+            node.iop := IOP_BE_ADD;
+            node.right.obj_id := node.left.off_id;
+            node.left.off_id := 0;
+            node.left.type := node.left.type & (EA_DEREF_AFTER ^ -1);
+        end if;
+
+        push_node(node);
     end sub;
 
     sub fex_parameter(direction: uint8, iop: [FEParameterIop])
@@ -380,24 +428,6 @@ sub process_subroutine(thing_id: uint16)
         end if;
         node.type_id := iop.type_id;
         node.flags := FLAG_RVALUE;
-        push_node(node);
-    end sub;
-
-    sub fe_addressof()
-        var node: [Node] := simplify_node_to_ea_and_deref(pop());
-
-        if (node.flags & FLAG_RVALUE) != 0 then
-            print("cannot take the address of an rvalue");
-            halt();
-        end if;
-
-        node.type_id := pointer_of(node.type_id);
-        if node.left.flags == EA_DEREF then
-            node.left.flags := 0;
-        else
-            node.left.flags := EA_LEA;
-        end if;
-
         push_node(node);
     end sub;
 

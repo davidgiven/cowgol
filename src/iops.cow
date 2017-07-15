@@ -161,13 +161,15 @@ record FEConditionalIop: Iop
     iffalse_label_id: uint16;
 end record;
 
-# You can't combine EA_DEREF and EA_LEA!
-const EA_NORMAL    := 0; # result = *(&obj + off)
-const EA_DEREF     := 1; # result = *(obj + off)
-const EA_LEA       := 2; # result =  (&obj + off)
+const EA_DEREF_BEFORE := 0b10;
+const EA_DEREF_AFTER  := 0b01;
+const EA_OBJADR       := 0b00; # address of object, plus offset
+const EA_OBJVAL       := 0b01; # address of object, plus offset, then deref
+const EA_PTRADR       := 0b10; # deref pointer, plus offset
+const EA_PTRVAL       := 0b11; # deref pointer, plus offset, then deref
 
 record EffectiveAddress
-    flags: uint8;
+    type: uint8;
     obj_id: uint16;
     off_id: uint16;
 end record;
@@ -212,22 +214,24 @@ sub zero_ea(ea: [EffectiveAddress])
 end sub;
 
 sub print_ea(ea: [EffectiveAddress])
-    if ea.flags == EA_LEA then
-        print_char('&');
+    if (ea.type & EA_DEREF_AFTER) != 0 then
+        print_char('[');
     end if;
-    print_char('(');
-    if ea.flags == EA_DEREF then
+    if (ea.type & EA_DEREF_BEFORE) != 0 then
         print_char('[');
     end if;
     print_thing(ea.obj_id);
-    if ea.flags == EA_DEREF then
+    if (ea.type & EA_DEREF_BEFORE) != 0 then
         print_char(']');
     end if;
     if ea.off_id != 0 then
-        print("+");
+        print("+[");
         print_thing(ea.off_id);
+        print_char(']');
     end if;
-    print_char(')');
+    if (ea.type & EA_DEREF_AFTER) != 0 then
+        print_char(']');
+    end if;
 end sub;
 
 sub resolve_label_id(ref_id: uint16): (label_id: uint16)

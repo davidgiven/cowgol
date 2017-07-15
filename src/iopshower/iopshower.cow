@@ -36,8 +36,8 @@ sub do_label(iop: [LabelIop])
 end sub;
 
 sub do_fe_push(iop: [FEPushIop])
-    print("FE_PUSH id=0x");
-    print_hex_i16(iop.thing_id);
+    print("FE_PUSH id=");
+    print_thing(iop.thing_id);
 end sub;
 
 sub do_call(iop: [CallIop])

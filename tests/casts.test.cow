@@ -1,14 +1,64 @@
+var ptr8: [int8];
 var ptr32: [int32];
-var ptr8: [int8] := ptr32 as [int8];
-var array: int32[4];
+var i8: int8;
+var i32: int32;
+#var ptr8: [int8] := ptr32 as [int8];
+var array8: int8[4];
+var array32: int32[4];
+var i: uint8 := 99;
+var j: int8 := 99;
 
-ptr8 := (&array[0]) as [int8];
-ptr32 := &ptr32[7];
-ptr32 := &(&ptr32[3])[4];
+#ptr8 := (&array[0]) as [int8];
+
+# OBJADR 8 bit
+i8 := array8[3];
+i8 := array8[i];
+#i8 := array8[j];
+
+# OBJADR 32 bit
+#i32 := array32[3];
+#i32 := array32[i];
+#i32 := array32[j];
+
+# PTRADR 8 bit
+i8 := ptr8[3];
+i8 := ptr8[i];
+#i8 := ptr8[j];
+
+# PTRADR 32 bit
+#i32 := ptr32[3];
+#i32 := ptr32[i];
+#i32 := ptr32[j];
+
+# address of OBJADR 8 bit
+ptr8 := &array8[3];
+#ptr8 := &array8[i];
+#ptr8 := &array8[j];
+
+# address of OBJADR 32 bit
+#ptr32 := &array32[3];
+#ptr32 := &array32[i];
+#ptr32 := &array32[j];
+
+# repeated indexing of OBJADR 8 bit
+ptr8 := &(&(&array8[3])[1])[1];
+#ptr8 := &(&array8[i])[1][1];
+#ptr8 := &(&(&array8[j])[1])[1];
+
+# load of repeated index of OBJADR 8 bit
+i8 := (&(&array8[3])[1])[1];
+
+#ptr32 := &array[3];
+#ptr32 := &ptr32[3];
+#i32 := ptr32[1];
+#ptr32 := &(&ptr32[1])[2];
+#ptr32 := &(&array[1])[2];
+#i32 := ptr32[1];
+#i32 := (&ptr32[1])[2];
 
 record Fnord
     i: int32;
 end record;
 
-var fnord: Fnord;
-var pfnord: [Fnord] := &fnord;
+#var fnord: Fnord;
+#var pfnord: [Fnord] := &fnord;
