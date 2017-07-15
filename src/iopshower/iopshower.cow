@@ -57,9 +57,9 @@ sub do_fe_parameter(kind: [int8], iop: [FEParameterIop])
     print_i8(iop.parameter);
 end sub;
 
-sub do_fe_member(iop: [FEMemberIop])
-    print("FEX_MEMBER thing_id=0x");
-    print_hex_i16(iop.thing_id);
+sub do_fex_memberof(iop: [FEMemberIop])
+    print("FEX_MEMBEROF thing_id=");
+    print_thing(iop.thing_id);
 end sub;
 
 sub do_fe_cast(iop: [FECastIop])
@@ -222,7 +222,7 @@ loop
         elseif kind == IOP_FEX_PUSH        then do_fe_push(iop as [FEPushIop]);
         elseif kind == IOP_FEX_INPUTPARAM  then do_fe_parameter("FEX_INPUTPARAM", iop as [FEParameterIop]);
         elseif kind == IOP_FEX_OUTPUTPARAM then do_fe_parameter("FEX_OUTPUTPARAM", iop as [FEParameterIop]);
-        elseif kind == IOP_FEX_MEMBER      then do_fe_member(iop as [FEMemberIop]);
+        elseif kind == IOP_FEX_MEMBEROF    then do_fex_memberof(iop as [FEMemberIop]);
         elseif kind == IOP_FEX_CAST        then do_fe_cast(iop as [FECastIop]);
         elseif kind == IOP_FEX_BEQ         then do_fe_conditional("FEX_BEQ", iop as [FEConditionalIop]);
         elseif kind == IOP_FEX_BLT         then do_fe_conditional("FEX_BLT", iop as [FEConditionalIop]);
