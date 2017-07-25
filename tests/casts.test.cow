@@ -37,21 +37,23 @@ ptr32 := &array32[3];
 ptr32 := &array32[i];
 ptr32 := &array32[j];
 
-# repeated indexing of OBJADR 8 bit
-ptr8 := &(&(&array8[3])[1])[1];
-ptr8 := &(&(&array8[i])[1])[1];
-ptr8 := &(&(&array8[j])[1])[300];
-
-# load of repeated index of OBJADR 8 bit
-i8 := (&(&array8[3])[1])[1];
-
-# repeated indexing of OBJADR 32 bit
-ptr32 := &(&(&array32[3])[1])[1];
-ptr32 := &(&(&array32[i])[1])[1];
-ptr32 := &(&(&array32[j])[1])[1];
-
-# load of repeated index of OBJADR 32 bit
-i32 := (&(&array32[3])[1])[1];
+# These don't work with the bootstrap compiler.
+#
+## repeated indexing of OBJADR 8 bit
+#ptr8 := &(&(&array8[3])[1])[1];
+#ptr8 := &(&(&array8[i])[1])[1];
+#ptr8 := &(&(&array8[j])[1])[300];
+#
+## load of repeated index of OBJADR 8 bit
+#i8 := (&(&array8[3])[1])[1];
+#
+## repeated indexing of OBJADR 32 bit
+#ptr32 := &(&(&array32[3])[1])[1];
+#ptr32 := &(&(&array32[i])[1])[1];
+#ptr32 := &(&(&array32[j])[1])[1];
+#
+## load of repeated index of OBJADR 32 bit
+#i32 := (&(&array32[3])[1])[1];
 
 record Subrecord
     i: int8;
@@ -65,16 +67,18 @@ record Fnord
     subrecord: Subrecord;
 end record;
 
-var fnord: Fnord;
-i8 := fnord.j;
-i8 := (fnord.array)[5];
-i8 := (fnord.array)[300];
-i8 := fnord.subrecord.j;
-
-var pfnord: [Fnord] := &fnord;
-i8 := pfnord.j;
-i8 := (pfnord.array)[5];
-i8 := (pfnord.array)[300];
-i8 := pfnord.subrecord.j;
+# These don't work with the bootstrap compiler.
+#
+#var fnord: Fnord;
+#i8 := fnord.j;
+#i8 := (fnord.array)[5];
+#i8 := (fnord.array)[300];
+#i8 := fnord.subrecord.j;
+#
+#var pfnord: [Fnord] := &fnord;
+#i8 := pfnord.j;
+#i8 := (pfnord.array)[5];
+#i8 := (pfnord.array)[300];
+#i8 := pfnord.subrecord.j;
 
 ptr8 := ptr32 as [int8];
