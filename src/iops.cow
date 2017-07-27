@@ -75,6 +75,8 @@ const IOP_TYPE_BACKEND_2OP := 0b0110_0000;
 const IOP_BE_COPY          := 0b0110_0000;
 const IOP_BE_SEXT          := 0b0110_0001;
 const IOP_BE_ZEXT          := 0b0110_0010;
+const IOP_BE_NEG           := 0b0110_0011;
+const IOP_BE_NOT           := 0b0110_0100;
 
 # 3op instructions.
 const IOP_TYPE_BACKEND_3OP := 0b1000_0000;

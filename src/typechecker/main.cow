@@ -206,6 +206,21 @@ sub process_subroutine(thing_id: uint16)
         deref_node(left);
     end sub;
 
+    sub fe_simple_alu1op(beiop: uint8)
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
+        if ((left_type.thing_type & THING_NUMERIC) == 0) then
+            print("can't do this to non-numeric type ");
+            print_type_name(left.type_id);
+            halt();
+        end if;
+
+        left.iop := beiop;
+        left.flags := FLAG_RVALUE;
+        push_node(left);
+    end sub;
+
     sub maybe_signed_biop(signed_beiop: uint8, unsigned_beiop: uint8): (beiop: uint8)
         var right: [Node] := peek(1);
         var left: [Node] := peek(2);
@@ -405,31 +420,6 @@ sub process_subroutine(thing_id: uint16)
 
         push_node(node);
     end sub;
-#
-#    sub memberop(iop: [MemberIop])
-#        var input_type_id: uint16;
-#        var input_flags: uint8;
-#        (input_type_id, input_flags) := pop_type();
-#
-#        var input_type: [TypeThing] := find_thing(input_type_id) as [TypeThing];
-#        var member_id: uint16;
-#        var member: [MemberThing];
-#        if input_type.thing_type == THING_RECORD then
-#            member_id := find_member_of_record_type(input_type_id, iop.thing_id);
-#            member := find_thing(member_id) as [MemberThing];
-#            write_offset_iop(member.offset, member.type_id);
-#        elseif input_type.thing_type == THING_POINTER then
-#            var ptr_input_type: [PointerThing] := input_type as [PointerThing];
-#            member_id := find_member_of_record_type(ptr_input_type.element_id, iop.thing_id);
-#            member := find_thing(member_id) as [MemberThing];
-#            write_push_number_iop(member.offset, uint16_type);
-#            write_typed_iop(IOP_ADDOP, input_type_id);
-#        else
-#            print(". only works on pointer and record types");
-#            halt();
-#        end if;
-#        push_type(member.type_id, 0);
-#    end sub;
 
     sub fex_parameter(direction: uint8, iop: [FEParameterIop])
         var thing_id: uint16 := iop.subroutine_id;
@@ -549,15 +539,6 @@ sub process_subroutine(thing_id: uint16)
 #        write_iop(iop as [Iop]);
 #    end sub;
 
-#    sub simple_alu1op(iop: [TypedIop])
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := pop_type();
-#
-#        iop.type_id := left_type_id;
-#        push_type(left_type_id, FLAG_RVALUE);
-#        write_iop(iop as [Iop]);
-#    end sub;
 #    sub call_subroutine(iop: [CallIop])
 #        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
 #        if thing.thing_type == THING_IDENTIFIER then
@@ -618,6 +599,10 @@ sub process_subroutine(thing_id: uint16)
             fe_simple_alu2op(IOP_BE_EOR);
         elseif iop.iop_kind == IOP_FE_DIV then
             fe_simple_alu2op(maybe_signed_biop(IOP_BE_DIVS, IOP_BE_DIVU));
+        elseif iop.iop_kind == IOP_FE_NEG then
+            fe_simple_alu1op(IOP_BE_NEG);
+        elseif iop.iop_kind == IOP_FE_NOT then
+            fe_simple_alu1op(IOP_BE_NOT);
         elseif iop.iop_kind == IOP_FE_INDEX then
             fe_index();
         elseif iop.iop_kind == IOP_FEX_INPUTPARAM then
