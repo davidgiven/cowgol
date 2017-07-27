@@ -1,3 +1,24 @@
+sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: uint32)
+    if beiop == IOP_BE_ADD then
+        result := left + right;
+    elseif beiop == IOP_BE_NEG then
+        result := 0-left;
+    else
+        print("can't collapse 0x");
+        print_hex_i8(beiop);
+        halt();
+    end if;
+    print("* constant collapse: 0x");
+    print_hex_i8(beiop);
+    print(" left=");
+    print_i32(left);
+    print(" right=");
+    print_i32(right);
+    print(" result=");
+    print_i32(result);
+    print_newline();
+end sub;
+
 sub simplify_node_to_var(src: [Node]): (dest: [Node])
     if (src.iop == IOP_FEX_PUSH)
         and (src.left.type == EA_OBJVAL)
@@ -9,15 +30,32 @@ sub simplify_node_to_var(src: [Node]): (dest: [Node])
         return;
     end if;
 
-    var tempvar_id: uint16 := alloc_temporary(get_width_of(src));
-
     dest := alloc_node();
     dest.iop := IOP_FEX_PUSH;
     dest.flags := FLAG_RVALUE;
-    dest.type_id := src.type_id;
-    dest.left.obj_id := tempvar_id;
     dest.left.type := EA_OBJVAL;
+    dest.type_id := src.type_id;
 
+    if (is_number_thing(src.left.obj_id) != 0) and
+        (((src.iop & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_2OP) or
+            (is_number_thing(src.right.obj_id) != 0))
+    then
+        dest.left.obj_id := add_number_by_value(
+            collapse_constant_op(
+                src.iop,
+                get_value_of_number(src.left.obj_id),
+                get_value_of_number(src.right.obj_id)
+            )
+        );
+        return;
+    end if;
+
+    if src.type_id == numeric_type then
+        print("unresolved numeric type");
+        halt();
+    end if;
+
+    dest.left.obj_id := alloc_temporary(get_width_of_type(dest.type_id));;
     arch_simplify_node_to(src, dest);
 end sub;
 

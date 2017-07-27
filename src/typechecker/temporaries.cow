@@ -11,6 +11,11 @@ sub init_temporaries()
 end sub;
 
 sub alloc_temporary(width: uint8): (thing_id: uint16)
+    if width == 0 then
+        print("temporary of width 0");
+        halt();
+    end if;
+
     var index: uint8 := 0;
     while index < temporaries@size loop
         var temp: [Temporary] := &temporaries[index];
@@ -26,6 +31,8 @@ sub alloc_temporary(width: uint8): (thing_id: uint16)
                 thing_id := create_thing(THING_VARIABLE, VariableThing@bytes);
                 print("* creating new temp 0x");
                 print_hex_i16(thing_id);
+                print(" of width ");
+                print_i8(width);
                 print_newline();
 
                 temp.refcount := 1;
