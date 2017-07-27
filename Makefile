@@ -90,7 +90,13 @@ IOPSHOWER_SRCS = \
 	src/iopshower/iopreader.cow \
 	src/iopshower/iopshower.cow
 
-all: tests bin/tokeniser bin/parser bin/typechecker bin/codegen bin/thingshower bin/iopshower
+BBCTUBE_SRCS = \
+	emu/bbctube/bbctube.c \
+	emu/bbctube/lib6502.c
+
+all: tests \
+	bin/tokeniser bin/parser bin/typechecker bin/thingshower \
+	bin/iopshower bin/bbctube
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
@@ -121,6 +127,11 @@ bin/iopshower: $(IOPSHOWER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(IOPSHOWER_SRCS)
+
+bin/bbctube: $(BBCTUBE_SRCS)
+	@echo BUILD $@
+	@mkdir -p $(dir $@)
+	$(hide) gcc -Og -g -o $@ $(BBCTUBE_SRCS)
 
 .phony: tests
 tests: $(TEST_STAMPS)
