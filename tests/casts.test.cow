@@ -1,5 +1,7 @@
-var ptr8: [int8];
-var ptr32: [int32];
+var data: uint32[128];
+
+var ptr8: [int8] := &data[0] as [int8];
+var ptr32: [int32] := &data[0] as [int32];
 var i8: int8;
 var i32: int32;
 var array8: int8[4];
@@ -58,6 +60,7 @@ ptr32 := &array32[j];
 record Subrecord
     i: int8;
     j: int8;
+    array: int8[10];
 end record;
 
 record Fnord
@@ -65,20 +68,21 @@ record Fnord
     j: int8;
     array: int8[10];
     subrecord: Subrecord;
+    subrecordarray: Subrecord[10];
 end record;
 
-# These don't work with the bootstrap compiler.
-#
-#var fnord: Fnord;
-#i8 := fnord.j;
-#i8 := (fnord.array)[5];
-#i8 := (fnord.array)[300];
-#i8 := fnord.subrecord.j;
-#
-#var pfnord: [Fnord] := &fnord;
-#i8 := pfnord.j;
-#i8 := (pfnord.array)[5];
-#i8 := (pfnord.array)[300];
-#i8 := pfnord.subrecord.j;
+var fnord: Fnord;
+i8 := fnord.j;
+i8 := fnord.array[5];
+i8 := fnord.array[300];
+i8 := fnord.subrecord.j;
+i8 := fnord.subrecordarray[3].array[2];
+
+var pfnord: [Fnord] := &fnord;
+i8 := pfnord.j;
+i8 := pfnord.array[5];
+i8 := pfnord.array[300];
+i8 := pfnord.subrecord.j;
+i8 := pfnord.subrecordarray[3].array[2];
 
 ptr8 := ptr32 as [int8];

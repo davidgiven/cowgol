@@ -357,6 +357,7 @@ sub expression_state_machine()
             elseif (current_token == TOKEN_COMMA) and (nesting == 0) then
                 break;
             elseif current_token == TOKEN_OPENSQUARE then
+                apply_left_associative(TOKEN_OPENSQUARE);
                 push_op(TOKEN_OPENSQUARE);
                 state := STATE_BEFORE;
                 nesting := nesting + 1;

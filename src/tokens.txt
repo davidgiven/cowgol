@@ -47,7 +47,6 @@ uint32    UINT32        IDENTIFIER
 # Binary operators, in increasing order of precedence.
 <call>   CALL            0
 (         OPENPAREN      0
-[         OPENSQUARE     0
 ,         COMMA          BINARY 1
 or        OR             BINARY 2
 and       AND            BINARY 3
@@ -74,4 +73,5 @@ as        AS             POSTFIX 12
 not       NOT            PREFIX 13
 &         UNARYAMPERSAND PREFIX 13
 -         UNARYMINUS     PREFIX 13
-.         DOT            POSTFIX 14
+[         OPENSQUARE     POSTFIX 14
+.         DOT            POSTFIX 15
