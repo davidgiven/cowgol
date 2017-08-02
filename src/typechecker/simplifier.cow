@@ -1,8 +1,18 @@
 sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: uint32)
-    if beiop == IOP_BE_ADD then
-        result := left + right;
-    elseif beiop == IOP_BE_NEG then
-        result := 0-left;
+    if beiop == IOP_BE_ADD then                                  result := left + right;
+    elseif beiop == IOP_BE_SUB then                              result := left - right;
+    elseif beiop == IOP_BE_MUL then                              result := left * right;
+    elseif (beiop == IOP_BE_DIVU) or (beiop == IOP_BE_DIVS) then result := left / right;
+    elseif (beiop == IOP_BE_MODU) or (beiop == IOP_BE_MODS) then result := left % right;
+    elseif beiop == IOP_BE_AND then                              result := left & right;
+    elseif beiop == IOP_BE_OR then                               result := left | right;
+    elseif beiop == IOP_BE_EOR then                              result := left ^ right;
+    elseif beiop == IOP_BE_NEG then                              result := 0-left;
+    elseif beiop == IOP_BE_LSL then                              result := left << right;
+    elseif beiop == IOP_BE_LSR then                              result := left >> right;
+    elseif beiop == IOP_BE_ASR then
+        var lefts: int32 := left;
+        result := lefts >> right;
     else
         print("can't collapse 0x");
         print_hex_i8(beiop);

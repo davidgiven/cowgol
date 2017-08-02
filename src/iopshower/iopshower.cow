@@ -243,6 +243,9 @@ loop
         elseif kind == IOP_BE_DIVU         then do_be_3op("BE_DIVU", iop as [BEIop]);
         elseif kind == IOP_BE_MODS         then do_be_3op("BE_MODS", iop as [BEIop]);
         elseif kind == IOP_BE_MODU         then do_be_3op("BE_MODU", iop as [BEIop]);
+        elseif kind == IOP_BE_LSL          then do_be_3op("BE_LSL", iop as [BEIop]);
+        elseif kind == IOP_BE_LSR          then do_be_3op("BE_LSR", iop as [BEIop]);
+        elseif kind == IOP_BE_ASR          then do_be_3op("BE_ASR", iop as [BEIop]);
         elseif kind == IOP_BE_INDEX        then do_be_3op("BE_INDEX", iop as [BEIop]);
 
         elseif kind == IOP_BE_BEQ          then do_be_cmpop("BE_BEQ", iop as [BEConditionalIop]);

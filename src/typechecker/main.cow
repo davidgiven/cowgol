@@ -487,6 +487,8 @@ sub process_subroutine(thing_id: uint16)
         deref_temporary(beiop.left.varoff_id);
         deref_temporary(beiop.right.obj_id);
         deref_temporary(beiop.right.varoff_id);
+        deref_node(left);
+        deref_node(right);
     end sub;
 
     sub fe_cast(iop: [FECastIop])
@@ -506,38 +508,38 @@ sub process_subroutine(thing_id: uint16)
         push_node(node);
     end sub;
 
-#    sub shift_op(iop: [TypedIop])
-#        var right_type_id: uint16;
-#        var right_flags: uint8;
-#        (right_type_id, right_flags) := pop_type();
-#
-#        var left_type_id: uint16;
-#        var left_flags: uint8;
-#        (left_type_id, left_flags) := pop_type();
-#
-#        var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-#        var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-#
-#        if (left_type.thing_type & THING_NUMERIC) == 0 then
-#            print("cannot shift non-numbers");
-#            halt();
-#        end if;
-#        if (right_type.thing_type & THING_NUMERIC) == 0 then
-#            print("cannot shift by non-numbers");
-#            halt();
-#        end if;
-#        if iop.iop_kind == IOP_RSHIFTOP then
-#            if left_type.thing_type == THING_SIGNED then
-#                iop.iop_kind := IOP_ASROP;
-#            else
-#                iop.iop_kind := IOP_LSROP;
-#            end if;
-#        end if;
-#
-#        iop.type_id := left_type_id;
-#        push_type(left_type_id, FLAG_RVALUE);
-#        write_iop(iop as [Iop]);
-#    end sub;
+    sub fe_shift(signed_beiop: uint8, unsigned_beiop: uint8)
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
+        if ((left_type.thing_type & THING_NUMERIC) == 0) then
+            print("can't shift non-numeric type ");
+            print_type_name(left.type_id);
+            halt();
+        end if;
+
+        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
+        if ((right_type.thing_type & THING_NUMERIC) == 0) then
+            print("can't shift by non-numeric type ");
+            print_type_name(left.type_id);
+            halt();
+        end if;
+
+        var node: [Node] := push_empty_node();
+        if ((left_type.thing_type == THING_SIGNED) or (left_type.thing_type == THING_NUMERIC)) then
+            node.iop := signed_beiop;
+        else
+            node.iop := unsigned_beiop;
+        end if;
+        node.flags := FLAG_RVALUE;
+        copy_ea_ref(&left.left, &node.left);
+        copy_ea_ref(&right.left, &node.right);
+        node.type_id := left.type_id;
+
+        deref_node(left);
+        deref_node(right);
+    end sub;
 
 #    sub call_subroutine(iop: [CallIop])
 #        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
@@ -599,10 +601,16 @@ sub process_subroutine(thing_id: uint16)
             fe_simple_alu2op(IOP_BE_EOR);
         elseif iop.iop_kind == IOP_FE_DIV then
             fe_simple_alu2op(maybe_signed_biop(IOP_BE_DIVS, IOP_BE_DIVU));
+        elseif iop.iop_kind == IOP_FE_MOD then
+            fe_simple_alu2op(maybe_signed_biop(IOP_BE_MODS, IOP_BE_MODU));
         elseif iop.iop_kind == IOP_FE_NEG then
             fe_simple_alu1op(IOP_BE_NEG);
         elseif iop.iop_kind == IOP_FE_NOT then
             fe_simple_alu1op(IOP_BE_NOT);
+        elseif (iop.iop_kind == IOP_FE_LSHIFT) then
+            fe_shift(IOP_BE_LSL, IOP_BE_LSL);
+        elseif (iop.iop_kind == IOP_FE_RSHIFT) then
+            fe_shift(IOP_BE_ASR, IOP_BE_LSR);
         elseif iop.iop_kind == IOP_FE_INDEX then
             fe_index();
         elseif iop.iop_kind == IOP_FEX_INPUTPARAM then
@@ -625,8 +633,6 @@ sub process_subroutine(thing_id: uint16)
                 iop as [FEConditionalIop]);
         elseif iop.iop_kind == IOP_FEX_CAST then
             fe_cast(iop as [FECastIop]);
-#        elseif (iop.iop_kind == IOP_LSLOP) or (iop.iop_kind == IOP_RSHIFTOP) then
-#            shift_op(iop as [TypedIop]);
 #        elseif ioptype == IOP_TYPE_SIMPLE1OP then
 #            simple_alu1op(iop as [TypedIop]);
 #        elseif iop.iop_kind == IOP_SINDEXOP then
