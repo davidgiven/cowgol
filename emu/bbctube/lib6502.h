@@ -12,6 +12,7 @@ typedef struct _M6502_Callbacks	M6502_Callbacks;
 typedef int   (*M6502_Callback)(M6502 *mpu, uint16_t address, uint8_t data);
 
 typedef M6502_Callback	M6502_CallbackTable[0x10000];
+typedef M6502_Callback	M6502_IllegalInstructionCallbackTable[0x100];
 typedef uint8_t		M6502_Memory[0x10000];
 
 enum {
@@ -35,6 +36,7 @@ struct _M6502_Callbacks
   M6502_CallbackTable read;
   M6502_CallbackTable write;
   M6502_CallbackTable call;
+  M6502_IllegalInstructionCallbackTable illegal_instruction;
 };
 
 struct _M6502
@@ -72,4 +74,4 @@ extern void   M6502_delete(M6502 *mpu);
 #define M6502_setCallback(MPU, TYPE, ADDR, FN)	((MPU)->callbacks->TYPE[ADDR]= (FN))
 
 
-#endif
+#endif /*__m6502_h */
