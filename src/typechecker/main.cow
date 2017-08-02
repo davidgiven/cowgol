@@ -541,33 +541,34 @@ sub process_subroutine(thing_id: uint16)
         deref_node(right);
     end sub;
 
-#    sub call_subroutine(iop: [CallIop])
-#        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
-#        if thing.thing_type == THING_IDENTIFIER then
-#            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
-#            thing := find_thing(iop.thing_id) as [SubroutineThing];
-#        end if;
-#        if thing.thing_type != THING_SUBROUTINE then
-#            print("subroutine_id not pointing at subroutine");
-#            halt();
-#        end if;
-#
-#        if (thing.input_parameter_count != iop.input_parameter_count)
-#                or (thing.output_parameter_count != iop.output_parameter_count) then
-#            show_name_of(iop.thing_id);
-#            print(" has ");
-#            print_i8(thing.input_parameter_count);
-#            print(" inputs and ");
-#            print_i8(thing.output_parameter_count);
-#            print(" outputs, but was called with ");
-#            print_i8(iop.input_parameter_count);
-#            print(" and ");
-#            print_i8(iop.output_parameter_count);
-#            halt();
-#        end if;
-#
-#        write_iop(iop as [Iop]);
-#    end sub;
+    sub fe_call(iop: [CallIop])
+        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
+        if thing.thing_type == THING_IDENTIFIER then
+            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+            thing := find_thing(iop.thing_id) as [SubroutineThing];
+        end if;
+        if thing.thing_type != THING_SUBROUTINE then
+            print("subroutine_id not pointing at subroutine");
+            halt();
+        end if;
+
+        if (thing.input_parameter_count != iop.input_parameter_count)
+                or (thing.output_parameter_count != iop.output_parameter_count) then
+            show_name_of(iop.thing_id);
+            print(" has ");
+            print_i8(thing.input_parameter_count);
+            print(" inputs and ");
+            print_i8(thing.output_parameter_count);
+            print(" outputs, but was called with ");
+            print_i8(iop.input_parameter_count);
+            print(" and ");
+            print_i8(iop.output_parameter_count);
+            halt();
+        end if;
+
+        write_iop(iop as [Iop]);
+    end sub;
+
     loop
         var iop: [Iop] := read_iop();
         var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
@@ -579,6 +580,8 @@ sub process_subroutine(thing_id: uint16)
 
         if iop.iop_kind == IOP_END then
             break;
+        elseif iop.iop_kind == IOP_CALL then
+            fe_call(iop as [CallIop]);
         elseif ioptype == IOP_TYPE_UNTYPED then
             write_iop(iop);
         elseif iop.iop_kind == IOP_FE_SWAP then
@@ -633,10 +636,6 @@ sub process_subroutine(thing_id: uint16)
                 iop as [FEConditionalIop]);
         elseif iop.iop_kind == IOP_FEX_CAST then
             fe_cast(iop as [FECastIop]);
-#        elseif ioptype == IOP_TYPE_SIMPLE1OP then
-#            simple_alu1op(iop as [TypedIop]);
-#        elseif iop.iop_kind == IOP_SINDEXOP then
-#            sindexop(iop as [TypedIop]);
         else
             print("unsupported iop 0x");
             print_hex_i8(iop.iop_kind);
