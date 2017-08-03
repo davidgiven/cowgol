@@ -450,6 +450,7 @@ sub process_subroutine(thing_id: uint16)
         node.iop := IOP_FEX_PUSH;
         node.type_id := parameter.type_id;
         node.left.obj_id := parameter_id;
+        node.left.type := EA_OBJVAL;
     end sub;
 
     sub fe_materialise()
