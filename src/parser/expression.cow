@@ -166,9 +166,9 @@ sub expression_state_machine()
             alu_2op(IOP_FE_LSHIFT);
         elseif op_id == TOKEN_RIGHTSHIFT then
             alu_2op(IOP_FE_RSHIFT);
-        elseif op_id == TOKEN_OPENSQUARE then
+        elseif op_id == TOKEN_CLOSESQUARE then
             alu_2op(IOP_FE_INDEX);
-        elseif op_id == TOKEN_OPENPAREN then
+        elseif op_id == TOKEN_CLOSEPAREN then
             # do nothing
         elseif op_id == TOKEN_TILDE then
             alu_1op(IOP_FE_NOT);
@@ -243,22 +243,23 @@ sub expression_state_machine()
         end loop;
     end sub;
 
-    sub close_expression(opener_op: uint16)
-        #print("looking for: "); show_identifier(opener_op); print_newline();
-        apply_higher_precedence_ops(opener_op);
-        #print("peeked: "); show_identifier(opener_op); print_newline();
-        var peeked_op: uint16 := peek_op();
-        if peeked_op == 0 then
-            return;
-        elseif (opener_op == TOKEN_OPENPAREN) and (peeked_op == TOKEN_CALL) then
-            # special case; function calls are closed with ).
-        elseif peeked_op != opener_op then
-            print("expected a ");
-            show_identifier(opener_op);
-            print(", not a ");
-            show_identifier(peeked_op);
-            halt();
-        end if;
+    sub close_expression(target_op: uint16)
+        #print("looking for: "); show_identifier(target_op); print_newline();
+        loop
+            var peeked_op: uint16 := peek_op();
+            #print("peeked: "); show_identifier(peeked_op); print_newline();
+            if (target_op == TOKEN_CLOSEPAREN) and (peeked_op == TOKEN_CALL) then
+                # special case; function calls are closed with ).
+                break;
+            elseif target_op == peeked_op then
+                break;
+            elseif (peeked_op == 0) or (peeked_op == TOKEN_CLOSEPAREN) or (peeked_op == TOKEN_CLOSESQUARE) then
+                print("mismatched [...] or (...)");
+                halt();
+            else
+                apply_op();
+            end if;
+        end loop;
 
         apply_op();
     end sub;
@@ -296,7 +297,7 @@ sub expression_state_machine()
             token_flags := get_token_flags(current_token);
 
             if current_token == TOKEN_OPENPAREN then
-                push_op(current_token);
+                push_op(TOKEN_CLOSEPAREN);
                 next_token();
                 nesting := nesting + 1;
             elseif (token_flags & TOKEN_FLAG_POSTFIX_OP) != 0 then
@@ -358,21 +359,13 @@ sub expression_state_machine()
                 break;
             elseif current_token == TOKEN_OPENSQUARE then
                 apply_left_associative(TOKEN_OPENSQUARE);
-                push_op(TOKEN_OPENSQUARE);
+                push_op(TOKEN_CLOSESQUARE);
                 state := STATE_BEFORE;
                 nesting := nesting + 1;
                 next_token();
-            elseif current_token == TOKEN_CLOSEPAREN then
+            elseif (current_token == TOKEN_CLOSEPAREN) or (current_token == TOKEN_CLOSESQUARE) then
                 if nesting > 0 then
-                    close_expression(TOKEN_OPENPAREN);
-                    nesting := nesting - 1;
-                    next_token();
-                else
-                    break;
-                end if;
-            elseif current_token == TOKEN_CLOSESQUARE then
-                if nesting > 0 then
-                    close_expression(TOKEN_OPENSQUARE);
+                    close_expression(current_token);
                     nesting := nesting - 1;
                     next_token();
                 else

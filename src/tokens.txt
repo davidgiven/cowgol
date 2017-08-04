@@ -41,8 +41,8 @@ uint16    UINT16        IDENTIFIER
 int32     INT32         IDENTIFIER
 uint32    UINT32        IDENTIFIER
 
-)         CLOSEPAREN
-]         CLOSESQUARE
+)         CLOSEPAREN     0
+]         CLOSESQUARE    0
 
 # Binary operators, in increasing order of precedence.
 <call>   CALL            0
