@@ -14,7 +14,7 @@ TOKENISER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
 	src/numbers_lib.cow \
-	src/things.cow \
+	src/utils/things.cow \
 	src/tokeniser/strings.cow \
 	src/tokeniser/lexer.cow \
 	src/_token_names.cow \
@@ -26,10 +26,10 @@ PARSER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
 	src/numbers_lib.cow \
-	src/things.cow \
+	src/utils/things.cow \
 	src/_token_names.cow \
 	src/utils/stringtable.cow \
-	src/iops.cow \
+	src/utils/iops.cow \
 	src/parser/globals.cow \
 	src/parser/symbols.cow \
 	src/utils/symbols.cow \
@@ -43,8 +43,8 @@ PARSER_SRCS = \
 
 TYPECHECKER_SRCS = \
 	src/string_lib.cow \
-	src/things.cow \
-	src/iops.cow \
+	src/utils/things.cow \
+	src/utils/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
@@ -60,8 +60,8 @@ TYPECHECKER_SRCS = \
 
 CODEGEN_SRCS = \
 	src/string_lib.cow \
-	src/things.cow \
-	src/iops.cow \
+	src/utils/things.cow \
+	src/utils/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
@@ -78,14 +78,14 @@ CODEGEN_SRCS = \
 
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \
-	src/things.cow \
+	src/utils/things.cow \
 	src/utils/stringtable.cow \
 	src/thingshower/thingshower.cow
 
 IOPSHOWER_SRCS = \
 	src/string_lib.cow \
-	src/things.cow \
-	src/iops.cow \
+	src/utils/things.cow \
+	src/utils/iops.cow \
 	src/utils/stringtable.cow \
 	src/iopshower/iopreader.cow \
 	src/iopshower/iopshower.cow
