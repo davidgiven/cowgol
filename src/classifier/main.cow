@@ -1,0 +1,26 @@
+sub process_subroutine(thing_id: uint16)
+    var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
+
+    loop
+        var iop: [Iop] := read_iop();
+
+        if iop.iop_kind == IOP_END then
+            break;
+        end if;
+    end loop;
+end sub;
+
+sub process()
+    loop
+        var iheader: [IHeader] := read_iop_header();
+        if iheader.thing_id == 0 then
+            break;
+        end if;
+
+        process_subroutine(iheader.thing_id);
+    end loop;
+end sub;
+
+process();
+
+save_thing_table("things.dat");
