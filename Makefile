@@ -58,16 +58,16 @@ TYPECHECKER_SRCS = \
 	src/typechecker/simplifier.cow \
 	src/typechecker/main.cow
 
-CLASSIFIER_SRCS = \
+SUBFINDER_SRCS = \
 	src/string_lib.cow \
 	src/utils/things.cow \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
 	src/utils/symbols.cow \
-	src/classifier/init.cow \
-	src/classifier/graph.cow \
-	src/classifier/main.cow
+	src/subfinder/init.cow \
+	src/subfinder/graph.cow \
+	src/subfinder/main.cow
 
 CODEGEN_SRCS = \
 	src/string_lib.cow \
@@ -107,7 +107,7 @@ BBCTUBE_SRCS = \
 
 all: tests \
 	bin/tokeniser bin/parser bin/typechecker bin/thingshower \
-	bin/classifier \
+	bin/subfinder \
 	bin/iopshower bin/bbctube
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
@@ -125,10 +125,10 @@ bin/typechecker: $(TYPECHECKER_SRCS) $(BOOTSTRAP)
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(TYPECHECKER_SRCS)
 
-bin/classifier: $(CLASSIFIER_SRCS) $(BOOTSTRAP)
+bin/subfinder: $(SUBFINDER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
-	$(hide) ./cowboot -o $@ $(CLASSIFIER_SRCS)
+	$(hide) ./cowboot -o $@ $(SUBFINDER_SRCS)
 
 bin/codegen: $(CODEGEN_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
