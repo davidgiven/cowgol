@@ -40,8 +40,10 @@ sub show_symbol_thing(thing: [SymbolThing])
 end sub;
 
 sub show_data_thing(thing: [DataThing])
-    print("data(label_id=");
-    print_i8(thing.label_id);
+    print("data(segment=");
+    print_i8(thing.segment);
+    print(" address=0x");
+    print_hex_i16(thing.address);
     print(") ");
 end sub;
 

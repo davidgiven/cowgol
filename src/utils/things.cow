@@ -88,8 +88,12 @@ record ArrayThing: WithElementsThing
     element_count: uint16;
 end record;
 
+const SEGMENT_UNKNOWN := 0;
+const SEGMENT_OMIT := 1;
+
 record DataThing: Thing
-    label_id: uint16;
+    segment: uint8;
+    address: uint16;
 end record;
 
 record SubroutineThing: DataThing
@@ -287,4 +291,3 @@ sub print_thing(thing_id: uint16)
         print_hex_i16(thing_id);
     end if;
 end sub;
-

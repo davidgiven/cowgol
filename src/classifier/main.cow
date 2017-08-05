@@ -1,35 +1,12 @@
+var subroutine_count: uint16 := 0;
+var used_subroutine_count: uint16 := 0;
+
 sub process_subroutine(thing_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
+    subroutine.segment := SEGMENT_OMIT;
 
     sub do_call(iop: [CallIop])
         add_reference(thing_id, iop.thing_id);
-    end sub;
-
-    sub do_var(obj_id: uint16)
-        if obj_id == 0 then
-            return;
-        end if;
-
-        var obj: [Thing] := find_thing(obj_id);
-        if (obj.thing_type == THING_VARIABLE) or (obj.thing_type == THING_PARAMETER) then
-            add_reference(thing_id, obj_id);
-        end if;
-    end sub;
-
-    sub do_ea(ea: [EffectiveAddress])
-        do_var(ea.obj_id);
-        do_var(ea.varoff_id);
-    end sub;
-
-    sub do_beiop(iop: [BEIop])
-        do_ea(&iop.left);
-        do_ea(&iop.right);
-        do_ea(&iop.dest);
-    end sub;
-
-    sub do_beconditionaliop(iop: [BEConditionalIop])
-        do_ea(&iop.left);
-        do_ea(&iop.right);
     end sub;
 
     loop
@@ -40,20 +17,11 @@ sub process_subroutine(thing_id: uint16)
             break;
         elseif iop.iop_kind == IOP_CALL then
             do_call(iop as [CallIop]);
-        elseif (ioptype == IOP_TYPE_BACKEND_2OP) or (ioptype == IOP_TYPE_BACKEND_3OP) then
-            do_beiop(iop as [BEIop]);
-        elseif (iop.iop_kind == IOP_BE_BEQ)
-            or (iop.iop_kind == IOP_BE_BLTS)
-            or (iop.iop_kind == IOP_BE_BLTU)
-            or (iop.iop_kind == IOP_BE_BGTS)
-            or (iop.iop_kind == IOP_BE_BGTU)
-        then
-            do_beconditionaliop(iop as [BEConditionalIop]);
         end if;
     end loop;
 end sub;
 
-sub process()
+sub build_graph()
     loop
         var iheader: [IHeader] := read_iop_header();
         if iheader.thing_id == 0 then
@@ -61,12 +29,57 @@ sub process()
         end if;
 
         process_subroutine(iheader.thing_id);
+        subroutine_count := subroutine_count + 1;
     end loop;
 end sub;
 
-process();
+sub mark_main_subroutine()
+    var main_id: uint16 := find_main_subroutine();
+    var main: [SubroutineThing] := find_thing(main_id) as [SubroutineThing];
+    main.segment := SEGMENT_UNKNOWN;
+    used_subroutine_count := 1;
+end sub;
+
+sub scan_graph()
+    var changed: uint8;
+
+    loop
+        changed := 0;
+        var i: uint16 := 0;
+        while i < graph_count loop
+            var g: [GraphRecord] := &graph_base[i];
+            var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
+            var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
+
+            if src.segment == SEGMENT_UNKNOWN then
+                if dest.segment == SEGMENT_OMIT then
+                    changed := 1;
+                    dest.segment := SEGMENT_UNKNOWN;
+                    used_subroutine_count := used_subroutine_count + 1;
+                end if;
+            end if;
+
+            i := i + 1;
+        end loop;
+
+        if changed == 0 then
+            break;
+        end if;
+    end loop;
+end sub;
+
+build_graph();
 print("found ");
+print_i16(subroutine_count);
+print(" subroutines in ");
 print_i16(graph_count);
 print(" graph nodes\n");
+
+mark_main_subroutine();
+scan_graph();
+
+print("found ");
+print_i16(used_subroutine_count);
+print(" reachable subroutines\n");
 
 save_thing_table("things.dat");

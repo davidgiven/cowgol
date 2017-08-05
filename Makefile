@@ -64,7 +64,7 @@ CLASSIFIER_SRCS = \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
-	src/utils/iopwriter.cow \
+	src/utils/symbols.cow \
 	src/classifier/init.cow \
 	src/classifier/graph.cow \
 	src/classifier/main.cow
