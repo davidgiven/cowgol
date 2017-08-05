@@ -96,12 +96,12 @@ const IOP_BE_LSR           := 0b1000_1100;
 const IOP_BE_ASR           := 0b1000_1101;
 
 # Specials.
-const IOP_TYPE_BACKEND_SPECIAL := 0b1001_0000;
-const IOP_BE_BEQ               := 0b1001_0000;
-const IOP_BE_BLTS              := 0b1001_0001;
-const IOP_BE_BLTU              := 0b1001_0010;
-const IOP_BE_BGTS              := 0b1001_0011;
-const IOP_BE_BGTU              := 0b1001_0100;
+const IOP_TYPE_BACKEND_SPECIAL := 0b1010_0000;
+const IOP_BE_BEQ               := 0b1010_0000;
+const IOP_BE_BLTS              := 0b1010_0001;
+const IOP_BE_BLTU              := 0b1010_0010;
+const IOP_BE_BGTS              := 0b1010_0011;
+const IOP_BE_BGTU              := 0b1010_0100;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_ZEROPAGE := 0b1110_0011;
