@@ -66,6 +66,7 @@ CLASSIFIER_SRCS = \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
 	src/classifier/init.cow \
+	src/classifier/graph.cow \
 	src/classifier/main.cow
 
 CODEGEN_SRCS = \

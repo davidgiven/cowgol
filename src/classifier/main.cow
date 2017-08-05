@@ -1,11 +1,54 @@
 sub process_subroutine(thing_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
 
+    sub do_call(iop: [CallIop])
+        add_reference(thing_id, iop.thing_id);
+    end sub;
+
+    sub do_var(obj_id: uint16)
+        if obj_id == 0 then
+            return;
+        end if;
+
+        var obj: [Thing] := find_thing(obj_id);
+        if (obj.thing_type == THING_VARIABLE) or (obj.thing_type == THING_PARAMETER) then
+            add_reference(thing_id, obj_id);
+        end if;
+    end sub;
+
+    sub do_ea(ea: [EffectiveAddress])
+        do_var(ea.obj_id);
+        do_var(ea.varoff_id);
+    end sub;
+
+    sub do_beiop(iop: [BEIop])
+        do_ea(&iop.left);
+        do_ea(&iop.right);
+        do_ea(&iop.dest);
+    end sub;
+
+    sub do_beconditionaliop(iop: [BEConditionalIop])
+        do_ea(&iop.left);
+        do_ea(&iop.right);
+    end sub;
+
     loop
         var iop: [Iop] := read_iop();
+        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
 
         if iop.iop_kind == IOP_END then
             break;
+        elseif iop.iop_kind == IOP_CALL then
+            do_call(iop as [CallIop]);
+        elseif (ioptype == IOP_TYPE_BACKEND_2OP) or (ioptype == IOP_TYPE_BACKEND_3OP) then
+            do_beiop(iop as [BEIop]);
+        elseif (iop.iop_kind == IOP_BE_BEQ)
+            or (iop.iop_kind == IOP_BE_BLTS)
+            or (iop.iop_kind == IOP_BE_BLTU)
+            or (iop.iop_kind == IOP_BE_BGTS)
+            or (iop.iop_kind == IOP_BE_BGTU)
+        then
+            do_beconditionaliop(iop as [BEConditionalIop]);
         end if;
     end loop;
 end sub;
@@ -22,5 +65,8 @@ sub process()
 end sub;
 
 process();
+print("found ");
+print_i16(graph_count);
+print(" graph nodes\n");
 
 save_thing_table("things.dat");

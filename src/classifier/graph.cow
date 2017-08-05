@@ -1,0 +1,24 @@
+record GraphRecord
+    src_id: uint16;
+    dest_id: uint16;
+end record;
+
+var graph_base: [GraphRecord] := &thing_table[thing_table_top] as [GraphRecord];
+var graph_count: uint16 := 0;
+
+sub add_reference(src_id: uint16, dest_id: uint16)
+    var g: [GraphRecord];
+    var i: uint16 := 0;
+    while i < graph_count loop
+        g := &graph_base[graph_count] as [GraphRecord];
+        if (g.src_id == src_id) and (g.dest_id == dest_id) then
+            return;
+        end if;
+        i := i + 1;
+    end loop;
+
+    g := &graph_base[graph_count] as [GraphRecord];
+    graph_count := graph_count + 1;
+    g.src_id := src_id;
+    g.dest_id := dest_id;
+end sub;
