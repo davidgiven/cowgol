@@ -28,6 +28,7 @@ sub alloc_temporary(type_id: uint16): (thing_id: uint16)
 
                 temp.refcount := 1;
                 temp.thing_id := thing_id;
+                return;
             else
                 thing := find_thing(temp.thing_id) as [VariableThing];
                 if thing.type_id == type_id then
@@ -37,9 +38,9 @@ sub alloc_temporary(type_id: uint16): (thing_id: uint16)
 
                     temp.refcount := 1;
                     thing_id := temp.thing_id;
+                    return;
                 end if;
             end if;
-            return;
         end if;
 
         index := index + 1;
