@@ -1,3 +1,6 @@
+var total_var_usage: ArchVarOffsets;
+zero_memory(&total_var_usage as [int8], total_var_usage@bytes);
+
 sub check_sub_ancestry(child_sub_id: uint16, parent_sub_id: uint16): (yes: uint8)
     sub namespace_of(subroutine_id: uint16): (namespace: [NamespaceThing])
         var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
@@ -30,11 +33,11 @@ sub process_subroutine(subroutine_id: uint16)
     sub do_var(var_id: uint16)
         if is_typed_thing(var_id) != 0 then
             var obj: [TypedThing] := find_thing(var_id) as [TypedThing];
-            if obj.address == 0 then
-                obj.address := subroutine_id;
+            if obj.owner_id == 0 then
+                obj.owner_id := subroutine_id;
             else
-                if check_sub_ancestry(subroutine_id, obj.address) == 0 then
-                    obj.address := subroutine_id;
+                if check_sub_ancestry(subroutine_id, obj.owner_id) == 0 then
+                    obj.owner_id := subroutine_id;
                 end if;
             end if;
         end if;
@@ -143,28 +146,108 @@ sub clean_graph()
     end loop;
 end sub;
 
-sub count_variable_sizes()
-    sub do_var(thing: [TypedThing])
-        if thing.address != 0 then
-            var subthing: [SubroutineThing] := find_thing(thing.address) as [SubroutineThing];
-            var sr: [SubRecord] := &subdata[subthing.address];
-            arch_account_for_var(&sr.base, thing, get_width_of_type(thing.type_id));
-        end if;
+sub assign_space_for_variables(subroutine_id: uint16)
+    var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+    var sr: [SubRecord] := &subdata[subroutine.address];
+
+    sub allocate_space()
+        sub do_var(thing: [TypedThing])
+            if thing.owner_id == subroutine_id then
+                arch_allocate_var(&sr.base, thing, get_width_of_type(thing.type_id));
+            end if;
+        end sub;
+
+        var id: uint16 := 1;
+        loop
+            var thing: [Thing] := &thing_table[id] as [Thing];
+            if thing.thing_size == 0 then
+                break;
+            end if;
+            if (thing.thing_type & THING_TYPED) != 0 then
+                do_var(thing as [TypedThing]);
+            end if;
+            id := id + thing.thing_size;
+        end loop;
     end sub;
 
-    var id: uint16 := 1;
+    sub propagate_offsets_to_callees()
+        var i: uint16 := 0;
+        while i < graph_count loop
+            var g: [GraphRecord] := &graph_base[i];
+            if g.src_id == subroutine_id then
+                var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
+                var dest_sr: [SubRecord] := &subdata[dest.address];
+                arch_propagate_var_offsets(&sr.base, &dest_sr.base);
+                g.src_id := 0;
+                g.dest_id := 0;
+            end if;
+            i := i + 1;
+        end loop;
+    end sub;
+
+    allocate_space();
+    propagate_offsets_to_callees();
+    arch_propagate_var_offsets(&sr.base, &total_var_usage);
+    subroutine.address := 0; # reset field after internal classifier use
+end sub;
+
+sub find_orphaned_subroutine(): (subroutine_id: uint16)
+    var i: uint16 := 0;
+    while i < graph_count loop
+        var g1: [GraphRecord] := &graph_base[i];
+        if g1.src_id != 0 then
+            var j: uint16 := 0;
+            while j < graph_count loop
+                var g2: [GraphRecord] := &graph_base[j];
+                if g2.dest_id == g1.src_id then
+                    break;
+                end if;
+                j := j + 1;
+            end loop;
+            if g2.dest_id != g1.src_id then
+                subroutine_id := g1.src_id;
+                return;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+
+    subroutine_id := 0;
+end sub;
+
+sub assign_space_for_all_variables()
     loop
-        var thing: [Thing] := &thing_table[id] as [Thing];
-        if thing.thing_size == 0 then
+        var subroutine_id: uint16 := find_orphaned_subroutine();
+        if subroutine_id == 0 then
             break;
         end if;
-        if (thing.thing_type & THING_TYPED) != 0 then
-            do_var(thing as [TypedThing]);
-        end if;
-        id := id + thing.thing_size;
+
+        assign_space_for_variables(subroutine_id);
     end loop;
 end sub;
 
+#sub count_variable_sizes()
+#    sub do_var(thing: [TypedThing])
+#        if thing.address != 0 then
+#            var subthing: [SubroutineThing] := find_thing(thing.address) as [SubroutineThing];
+#            var sr: [SubRecord] := &subdata[subthing.address];
+#            arch_account_for_var(&sr.base, thing, get_width_of_type(thing.type_id));
+#        end if;
+#    end sub;
+#
+#    var id: uint16 := 1;
+#    loop
+#        var thing: [Thing] := &thing_table[id] as [Thing];
+#        if thing.thing_size == 0 then
+#            break;
+#        end if;
+#        if (thing.thing_type & THING_TYPED) != 0 then
+#            do_var(thing as [TypedThing]);
+#        end if;
+#        id := id + thing.thing_size;
+#    end loop;
+#end sub;
+#
 sub show_subroutine_sizes()
     var id: uint16 := 1;
 
@@ -196,24 +279,26 @@ end sub;
 
 init_graph(&thing_table[thing_table_top] as [int8]);
 build_graph();
-print("found ");
+print("Total subroutines: ");
 print_i16(subroutine_count);
-print(" subroutines in ");
+print("\n(");
 print_i16(graph_count);
 print(" graph nodes from ");
 print_i16(reference_count);
-print(" references\n");
+print(" references)\n");
 
 mark_main_subroutine();
 find_reachable_subroutines();
 
-print("found ");
+print("Reachable subroutines: ");
 print_i16(used_subroutine_count);
-print(" reachable subroutines\n");
+print_newline();
 
 clean_graph();
 init_subdata(&graph_base[graph_count] as [int8]);
-count_variable_sizes();
-show_subroutine_sizes();
+assign_space_for_all_variables();
+#show_subroutine_sizes();
+
+arch_report_offsets(&total_var_usage);
 
 save_thing_table("things.dat");

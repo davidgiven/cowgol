@@ -25,13 +25,33 @@ sub arch_classify_vars(ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub arch_account_for_var(offsets: [ArchVarOffsets], thing: [TypedThing], width: uint16)
+sub arch_allocate_var(offsets: [ArchVarOffsets], thing: [TypedThing], width: uint16)
     if thing.segment == SEGMENT_ZEROPAGE then
+        thing.address := offsets.zp_offset;
         offsets.zp_offset := offsets.zp_offset + width;
     elseif thing.segment == SEGMENT_DATA then
+        thing.address := offsets.data_offset;
         offsets.data_offset := offsets.data_offset + width;
     else
         print("bad segment");
         halt();
     end if;
+end sub;
+
+sub arch_propagate_var_offsets(src_offsets: [ArchVarOffsets], dest_offsets: [ArchVarOffsets])
+    if src_offsets.zp_offset > dest_offsets.zp_offset then
+        dest_offsets.zp_offset := src_offsets.zp_offset;
+    end if;
+
+    if src_offsets.data_offset > dest_offsets.data_offset then
+        dest_offsets.data_offset := src_offsets.data_offset;
+    end if;
+end sub;
+
+sub arch_report_offsets(offsets: [ArchVarOffsets])
+    print("Zero page: ");
+    print_i16(offsets.zp_offset);
+    print(" bytes\nData: ");
+    print_i16(offsets.data_offset);
+    print(" bytes\n");
 end sub;

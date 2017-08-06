@@ -44,6 +44,8 @@ sub show_data_thing(thing: [DataThing])
     print_i8(thing.segment);
     print(" address=0x");
     print_hex_i16(thing.address);
+    print(" owner_id=");
+    print_thing(thing.owner_id);
     print(") ");
 end sub;
 

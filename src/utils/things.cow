@@ -93,6 +93,7 @@ const SEGMENT_OMIT := 1;
 
 record DataThing: Thing
     segment: uint8;
+    owner_id: uint16;
     address: uint16; # or sundry other things if segment == SEGMENT_UNKNOWN
 end record;
 
