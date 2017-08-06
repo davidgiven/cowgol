@@ -1,7 +1,3 @@
-var reference_count: uint16 := 0;
-var subroutine_count: uint16 := 0;
-var used_subroutine_count: uint16 := 0;
-
 sub check_sub_ancestry(child_sub_id: uint16, parent_sub_id: uint16): (yes: uint8)
     sub namespace_of(subroutine_id: uint16): (namespace: [NamespaceThing])
         var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
@@ -148,6 +144,55 @@ sub clean_graph()
     end loop;
 end sub;
 
+sub count_variable_sizes()
+    sub do_var(thing: [TypedThing])
+        if (thing.segment == SEGMENT_UNKNOWN) and (thing.address != 0) then
+            var subthing: [SubroutineThing] := find_thing(thing.address) as [SubroutineThing];
+            var sr: [SubRecord] := &subdata[subthing.address];
+            sr.vartotal := sr.vartotal + get_width_of_type(thing.type_id);
+        end if;
+    end sub;
+
+    var id: uint16 := 1;
+    loop
+        var thing: [Thing] := &thing_table[id] as [Thing];
+        if thing.thing_size == 0 then
+            break;
+        end if;
+        if (thing.thing_type & THING_TYPED) != 0 then
+            do_var(thing as [TypedThing]);
+        end if;
+        id := id + thing.thing_size;
+    end loop;
+end sub;
+
+sub show_subroutine_sizes()
+    var id: uint16 := 1;
+
+    sub do_sub(thing: [SubroutineThing])
+        if thing.segment == SEGMENT_UNKNOWN then
+            var sr: [SubRecord] := &subdata[thing.address];
+            show_name_of(id);
+            print(" ");
+            print_i16(thing.address);
+            print(": ");
+            print_i16(sr.vartotal);
+            print_newline();
+        end if;
+    end sub;
+
+    loop
+        var thing: [Thing] := &thing_table[id] as [Thing];
+        if thing.thing_size == 0 then
+            break;
+        end if;
+        if thing.thing_type == THING_SUBROUTINE then
+            do_sub(thing as [SubroutineThing]);
+        end if;
+        id := id + thing.thing_size;
+    end loop;
+end sub;
+
 init_graph(&thing_table[thing_table_top] as [int8]);
 build_graph();
 print("found ");
@@ -166,5 +211,8 @@ print_i16(used_subroutine_count);
 print(" reachable subroutines\n");
 
 clean_graph();
+init_subdata(&graph_base[graph_count] as [int8]);
+count_variable_sizes();
+show_subroutine_sizes();
 
 save_thing_table("things.dat");
