@@ -65,7 +65,7 @@ sub simplify_node_to_var(src: [Node]): (dest: [Node])
         halt();
     end if;
 
-    dest.left.obj_id := alloc_temporary(get_width_of_type(dest.type_id));;
+    dest.left.obj_id := alloc_temporary(dest.type_id);
     arch_simplify_node_to(src, dest);
 end sub;
 

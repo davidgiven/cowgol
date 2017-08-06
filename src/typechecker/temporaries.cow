@@ -1,7 +1,6 @@
 record Temporary
     thing_id: uint16;
     refcount: uint8;
-    width: uint8;
 end record;
 
 var temporaries: Temporary[32];
@@ -10,34 +9,35 @@ sub init_temporaries()
     zero_memory(&temporaries[0] as [int8], temporaries@bytes);
 end sub;
 
-sub alloc_temporary(width: uint8): (thing_id: uint16)
-    if width == 0 then
-        print("temporary of width 0");
-        halt();
-    end if;
-
+sub alloc_temporary(type_id: uint16): (thing_id: uint16)
     var index: uint8 := 0;
     while index < temporaries@size loop
         var temp: [Temporary] := &temporaries[index];
+        var thing: [VariableThing];
         if temp.refcount == 0 then
-            if temp.width == width then
-                print("* reusing temp 0x");
-                print_hex_i16(temp.thing_id);
-                print_newline();
-
-                temp.refcount := 1;
-                thing_id := temp.thing_id;
-            elseif temp.width == 0 then
+            if temp.thing_id == 0 then
                 thing_id := create_thing(THING_VARIABLE, VariableThing@bytes);
+                thing := find_thing(thing_id) as [VariableThing];
+                thing.type_id := type_id;
+
                 print("* creating new temp 0x");
                 print_hex_i16(thing_id);
-                print(" of width ");
-                print_i8(width);
+                print(" of type ");
+                print_thing(type_id);
                 print_newline();
 
                 temp.refcount := 1;
-                temp.width := width;
                 temp.thing_id := thing_id;
+            else
+                thing := find_thing(temp.thing_id) as [VariableThing];
+                if thing.type_id == type_id then
+                    print("* reusing temp 0x");
+                    print_hex_i16(temp.thing_id);
+                    print_newline();
+
+                    temp.refcount := 1;
+                    thing_id := temp.thing_id;
+                end if;
             end if;
             return;
         end if;
