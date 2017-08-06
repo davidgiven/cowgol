@@ -3,14 +3,19 @@ record GraphRecord
     dest_id: uint16;
 end record;
 
-var graph_base: [GraphRecord] := &thing_table[thing_table_top] as [GraphRecord];
-var graph_count: uint16 := 0;
+var graph_base: [GraphRecord];
+var graph_count: uint16;
+
+sub init_graph(base: [int8])
+    graph_base := base as [GraphRecord];
+    graph_count := 0;
+end sub;
 
 sub add_reference(src_id: uint16, dest_id: uint16)
     var g: [GraphRecord];
     var i: uint16 := 0;
     while i < graph_count loop
-        g := &graph_base[graph_count] as [GraphRecord];
+        g := &graph_base[i] as [GraphRecord];
         if (g.src_id == src_id) and (g.dest_id == dest_id) then
             return;
         end if;

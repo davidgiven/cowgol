@@ -1,3 +1,4 @@
+var reference_count: uint16 := 0;
 var subroutine_count: uint16 := 0;
 var used_subroutine_count: uint16 := 0;
 
@@ -26,6 +27,7 @@ sub process_subroutine(subroutine_id: uint16)
     subroutine.segment := SEGMENT_OMIT;
 
     sub do_call(iop: [CallIop])
+        reference_count := reference_count + 1;
         add_reference(subroutine_id, iop.thing_id);
     end sub;
 
@@ -131,12 +133,30 @@ sub find_reachable_subroutines()
     end loop;
 end sub;
 
+sub clean_graph()
+    var i: uint16 := 0;
+    while i < graph_count loop
+        var g: [GraphRecord] := &graph_base[i];
+        var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
+
+        if src.segment == SEGMENT_OMIT then
+            g.src_id := 0;
+            g.dest_id := 0;
+        end if;
+
+        i := i + 1;
+    end loop;
+end sub;
+
+init_graph(&thing_table[thing_table_top] as [int8]);
 build_graph();
 print("found ");
 print_i16(subroutine_count);
 print(" subroutines in ");
 print_i16(graph_count);
-print(" graph nodes\n");
+print(" graph nodes from ");
+print_i16(reference_count);
+print(" references\n");
 
 mark_main_subroutine();
 find_reachable_subroutines();
@@ -144,5 +164,7 @@ find_reachable_subroutines();
 print("found ");
 print_i16(used_subroutine_count);
 print(" reachable subroutines\n");
+
+clean_graph();
 
 save_thing_table("things.dat");
