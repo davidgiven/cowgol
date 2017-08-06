@@ -67,6 +67,7 @@ CLASSIFIER_SRCS = \
 	src/utils/symbols.cow \
 	src/utils/types.cow \
 	src/arch/bbc/globals.cow \
+	src/arch/bbc/classifier.cow \
 	src/classifier/init.cow \
 	src/classifier/graph.cow \
 	src/classifier/subdata.cow \
@@ -128,7 +129,7 @@ bin/typechecker: $(TYPECHECKER_SRCS) $(BOOTSTRAP)
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(TYPECHECKER_SRCS)
 
-bin/subfinder: $(CLASSIFIER_SRCS) $(BOOTSTRAP)
+bin/classifier: $(CLASSIFIER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(CLASSIFIER_SRCS)

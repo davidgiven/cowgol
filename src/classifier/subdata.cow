@@ -1,6 +1,5 @@
 record SubRecord
-    vartotal: uint16;
-    database: uint16;
+    base: ArchVarOffsets;
 end record;
 
 var subdata: [SubRecord];

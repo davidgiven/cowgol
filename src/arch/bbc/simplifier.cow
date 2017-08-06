@@ -29,7 +29,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     var tmpvar_id: uint16;
 
     sub varoffset_into_add()
-        tmpvar_id := alloc_temporary(2);
+        tmpvar_id := alloc_temporary(uint16_type);
         reset_be_iop(&iop);
         iop.iop_kind := IOP_BE_ADD;
         iop.width := 2;
@@ -49,7 +49,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
 
     sub numoffset_into_add()
         if tmpvar_id == 0 then
-            tmpvar_id := alloc_temporary(2);
+            tmpvar_id := alloc_temporary(uint16_type);
         else
             ref_temporary(tmpvar_id);
         end if;

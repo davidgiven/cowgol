@@ -30,13 +30,11 @@ sub process_subroutine(subroutine_id: uint16)
     sub do_var(var_id: uint16)
         if is_typed_thing(var_id) != 0 then
             var obj: [TypedThing] := find_thing(var_id) as [TypedThing];
-            if obj.segment == SEGMENT_UNKNOWN then
-                if obj.address == 0 then
+            if obj.address == 0 then
+                obj.address := subroutine_id;
+            else
+                if check_sub_ancestry(subroutine_id, obj.address) == 0 then
                     obj.address := subroutine_id;
-                else
-                    if check_sub_ancestry(subroutine_id, obj.address) == 0 then
-                        obj.address := subroutine_id;
-                    end if;
                 end if;
             end if;
         end if;
@@ -45,6 +43,7 @@ sub process_subroutine(subroutine_id: uint16)
     sub do_ea(ea: [EffectiveAddress])
         do_var(ea.obj_id);
         do_var(ea.varoff_id);
+        arch_classify_vars(ea);
     end sub;
 
     sub do_beiop(iop: [BEIop])
@@ -146,10 +145,10 @@ end sub;
 
 sub count_variable_sizes()
     sub do_var(thing: [TypedThing])
-        if (thing.segment == SEGMENT_UNKNOWN) and (thing.address != 0) then
+        if thing.address != 0 then
             var subthing: [SubroutineThing] := find_thing(thing.address) as [SubroutineThing];
             var sr: [SubRecord] := &subdata[subthing.address];
-            sr.vartotal := sr.vartotal + get_width_of_type(thing.type_id);
+            arch_account_for_var(&sr.base, thing, get_width_of_type(thing.type_id));
         end if;
     end sub;
 
@@ -176,7 +175,9 @@ sub show_subroutine_sizes()
             print(" ");
             print_i16(thing.address);
             print(": ");
-            print_i16(sr.vartotal);
+            print_i16(sr.base.zp_offset);
+            print(" ");
+            print_i16(sr.base.data_offset);
             print_newline();
         end if;
     end sub;
