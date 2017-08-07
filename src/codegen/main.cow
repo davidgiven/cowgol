@@ -9,18 +9,32 @@ sub print_queue()
     end loop;
 end sub;
 
-sub apply_rules()
-    if global_stack_rules() == 1 then
-        return;
-#    if arch_rules() == 1 then
+#sub apply_rules()
+#    if global_stack_rules() == 1 then
 #        return;
-#    elseif global_rules() == 1 then
-#        return;
-    else
-        print("unmatched iops: ");
-        print_queue();
-        halt();
-    end if;
+##    if arch_rules() == 1 then
+##        return;
+##    elseif global_rules() == 1 then
+##        return;
+#    else
+#        print("unmatched iops: ");
+#        print_queue();
+#        halt();
+#    end if;
+#end sub;
+#
+
+sub skip_subroutine()
+    queue_depth := 0;
+    loop
+        fill_queue();
+
+        if queue[0].iop_kind == IOP_END then
+            break;
+        end if;
+
+        consume_iops(1);
+    end loop;
 end sub;
 
 sub process_subroutine(subroutine_id: uint16)
@@ -30,24 +44,21 @@ sub process_subroutine(subroutine_id: uint16)
     show_name_of(subroutine_id);
     print_newline();
 
-    init_tree();
-    init_temporaries();
     queue_depth := 0;
     run_out_of_iops := 0;
-    init_allocator();
+#    init_allocator();
 
     loop
         fill_queue();
-        print_stack();
         print_queue(); print_newline();
 
         if queue[0].iop_kind == IOP_END then
             break;
         end if;
 
-        apply_rules();
+#        apply_rules();
     end loop;
-    write_end_iop();
+#    write_end_iop();
 end sub;
 
 sub process()
@@ -57,16 +68,17 @@ sub process()
             break;
         end if;
 
-        write_iop_header(iheader);
-        process_subroutine(iheader.thing_id);
+        var subroutine: [SubroutineThing] := find_thing(iheader.thing_id) as [SubroutineThing];
+        if subroutine.segment == SEGMENT_OMIT then
+            skip_subroutine();
+        else
+            write_iop_header(iheader);
+            process_subroutine(iheader.thing_id);
+        end if;
     end loop;
     write_terminating_iop_header();
 end sub;
 
-print("CODEGEN\n");
-load_thing_table("things.dat");
-init_iop_reader("iops.dat");
-init_iop_writer("iops-out.dat");
 process();
 save_thing_table("things.dat");
 

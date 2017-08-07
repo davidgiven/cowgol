@@ -82,13 +82,8 @@ CODEGEN_SRCS = \
 	src/utils/iopwriter.cow \
 	src/_token_names.cow \
 	src/utils/symbols.cow \
-	src/codegen/temporaries.cow \
-	src/codegen/ea.cow \
-	src/codegen/tree.cow \
+	src/codegen/init.cow \
 	src/codegen/queue.cow \
-	src/arch/bbc/globals.cow \
-	src/arch/bbc/codegen.cow \
-	src/codegen/codegen.cow \
 	src/codegen/main.cow
 
 THINGSHOWER_SRCS = \
@@ -111,7 +106,7 @@ BBCTUBE_SRCS = \
 
 all: tests \
 	bin/tokeniser bin/parser bin/typechecker bin/thingshower \
-	bin/classifier \
+	bin/classifier bin/codegen \
 	bin/iopshower bin/bbctube
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)

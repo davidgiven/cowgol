@@ -217,12 +217,23 @@ record CG6502ConditionalIop: Iop
     label: uint16;
 end record;
 
+record BiggestIop: BEConditionalIop
+end record;
+
 sub copy_ea(src: [EffectiveAddress], dest: [EffectiveAddress])
     copy_memory(src as [int8], dest as [int8], EffectiveAddress@bytes);
 end sub;
 
 sub zero_ea(ea: [EffectiveAddress])
     zero_memory(ea as [int8], EffectiveAddress@bytes);
+end sub;
+
+sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8)
+    if compare_memory(ea1 as [int8], ea2 as [int8], EffectiveAddress@bytes) == 0 then
+        result := 1;
+    else
+        result := 0;
+    end if;
 end sub;
 
 sub print_ea(ea: [EffectiveAddress])
