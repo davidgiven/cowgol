@@ -4,9 +4,7 @@ const THING_NUMBER     := 0b0000_0011;
 const THING_NAMESPACE  := 0b0000_0100;
 const THING_TOKEN      := 0b0000_0101;
 const THING_SYMBOL     := 0b0000_0110;
-const THING_LABEL      := 0b0000_0111;
-const THING_LABELREF   := 0b0000_1000;
-const THING_MEMBER     := 0b0000_1001;
+const THING_MEMBER     := 0b0000_0111;
 
 const THING_DATA       := 0b1000_0000;
 const THING_SUBROUTINE := 0b1000_0001;
@@ -48,10 +46,6 @@ end record;
 record NamespaceThing: Thing
     previous_namespace: uint16;
     first_symbol: uint16;
-end record;
-
-record LabelThing: Thing
-    target: uint16;
 end record;
 
 record MemberThing: Thing
@@ -99,6 +93,7 @@ end record;
 
 record SubroutineThing: DataThing
     namespace_id: uint16;
+    label_count: uint16;
     input_parameter_count: uint8;
     output_parameter_count: uint8;
 end record;

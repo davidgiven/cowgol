@@ -59,21 +59,27 @@ sub emit_simple(kind: uint8)
     var iop: [Iop] := emit(kind, Iop@bytes);
 end sub;
 
-sub emit_label(label_id: uint16)
-    var label_iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
-    label_iop.label_id := label_id;
+sub emit_label(label: uint16)
+    var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
+    iop.label := label;
 end sub;
 
-sub emit_goto(label_id: uint16)
-    var goto_iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
-    goto_iop.label_id := label_id;
+sub emit_clonelabel(src_label: uint16, dest_label: uint16)
+    var iop: [CloneLabelIop] := emit(IOP_CLONELABEL, CloneLabelIop@bytes) as [CloneLabelIop];
+    iop.src_label := src_label;
+    iop.dest_label := dest_label;
 end sub;
 
-sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label_id: uint16, iffalse_label_id: uint16)
+sub emit_goto(label: uint16)
+    var iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
+    iop.label := label;
+end sub;
+
+sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label: uint16, iffalse_label: uint16)
     var iop: [FEConditionalIop] :=
         emit(iopcode, FEConditionalIop@bytes) as [FEConditionalIop];
-    iop.iftrue_label_id := iftrue_label_id;
-    iop.iffalse_label_id := iffalse_label_id;
+    iop.iftrue_label := iftrue_label;
+    iop.iffalse_label := iffalse_label;
 end sub;
 
 sub emit_byte(value: uint8)
@@ -99,23 +105,10 @@ sub emit_address(thing_id: uint16)
     iop.thing_id := thing_id;
 end sub;
 
-sub create_label(): (label_id: uint16)
-    label_id := create_thing(THING_LABEL, LabelThing@bytes);
-end sub;
-
-sub merge_label(srclabel_id: uint16, destlabel_id: uint16)
-    var srclabel: [LabelThing];
-    loop
-        srclabel := find_thing(srclabel_id) as [LabelThing];
-        if srclabel.thing_type == THING_LABEL then
-            break;
-        else
-            srclabel_id := srclabel.target;
-        end if;
-    end loop;
-
-    srclabel.thing_type := THING_LABELREF;
-    srclabel.target := destlabel_id;
+sub create_label(): (label_label: uint16)
+    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
+    label_label := subroutine.label_count;
+    subroutine.label_count := subroutine.label_count + 1;
 end sub;
 
 sub flush_iops(object_id: uint16, oldtop: uint16)

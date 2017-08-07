@@ -6,20 +6,6 @@ sub print_identifier(identifier_id: uint16)
     show_string(identifier.string_id);
 end sub;
 
-sub print_label(label_id: uint16)
-    loop
-        print_hex_i16(label_id);
-
-        var label: [LabelThing] := find_thing(label_id) as [LabelThing];
-        if label.thing_type == THING_LABEL then
-            break;
-        end if;
-
-        label_id := label.target;
-        print(" -> 0x");
-    end loop;
-end sub;
-
 sub do_filename(iop: [FilenameIop])
     print("FILENAME ");
     print_identifier(iop.thing_id);
@@ -31,8 +17,15 @@ sub do_linenumber(iop: [LinenumberIop])
 end sub;
 
 sub do_label(iop: [LabelIop])
-    print("LABEL 0x");
-    print_label(iop.label_id);
+    print("LABEL label=");
+    print_i16(iop.label);
+end sub;
+
+sub do_clonelabel(iop: [CloneLabelIop])
+    print("CLONELABEL src_label=");
+    print_i16(iop.src_label);
+    print(" dest_label=");
+    print_i16(iop.dest_label);
 end sub;
 
 sub do_fe_push(iop: [FEPushIop])
@@ -69,10 +62,10 @@ end sub;
 
 sub do_fe_conditional(kind: [int8], iop: [FEConditionalIop])
     print(kind);
-    print(" iftrue=0x");
-    print_hex_i16(iop.iftrue_label_id);
-    print(" iffalse=0x");
-    print_hex_i16(iop.iffalse_label_id);
+    print(" iftrue=");
+    print_i16(iop.iftrue_label);
+    print(" iffalse=");
+    print_i16(iop.iffalse_label);
 end sub;
 
 sub do_be_2op(kind: [int8], iop: [BEIop])
@@ -105,15 +98,15 @@ sub do_be_cmpop(kind: [int8], iop: [BEConditionalIop])
     print_ea(&iop.left);
     print(" right=");
     print_ea(&iop.right);
-    print(" iftrue_label_id=0x");
-    print_label(iop.iftrue_label_id);
-    print(" iffalse_label_id=0x");
-    print_label(iop.iffalse_label_id);
+    print(" iftrue_label=");
+    print_i16(iop.iftrue_label);
+    print(" iffalse_label=");
+    print_i16(iop.iffalse_label);
 end sub;
 
 sub do_goto(iop: [GotoIop])
-    print("GOTO label=0x");
-    print_label(iop.label_id);
+    print("GOTO label=");
+    print_i16(iop.label);
 end sub;
 
 sub do_bytes(iop: [BytesIop])
@@ -152,8 +145,8 @@ end sub;
 sub do_cg_6502_cond(iop: [CG6502ConditionalIop])
     print("CG_6502_COND opcode=0x");
     print_hex_i8(iop.opcode);
-    print(" label_id=0x");
-    print_hex_i16(iop.label_id);
+    print(" label=");
+    print_i16(iop.label);
 end sub;
 
 loop
@@ -191,6 +184,7 @@ loop
         elseif kind == IOP_FILENAME   then do_filename(iop as [FilenameIop]);
         elseif kind == IOP_LINENUMBER then do_linenumber(iop as [LinenumberIop]);
         elseif kind == IOP_LABEL      then do_label(iop as [LabelIop]);
+        elseif kind == IOP_CLONELABEL then do_clonelabel(iop as [CloneLabelIop]);
         elseif kind == IOP_CALL       then do_call(iop as [CallIop]);
         elseif kind == IOP_GOTO       then do_goto(iop as [GotoIop]);
         elseif kind == IOP_BYTES      then do_bytes(iop as [BytesIop]);

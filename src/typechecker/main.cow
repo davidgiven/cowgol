@@ -478,8 +478,8 @@ sub process_subroutine(thing_id: uint16)
         beiop.iop_size := BEConditionalIop@bytes;
         beiop.iop_kind := iopkind;
         beiop.width := get_width_of_type(type_id);
-        beiop.iftrue_label_id := iop.iftrue_label_id;
-        beiop.iffalse_label_id := iop.iffalse_label_id;
+        beiop.iftrue_label := iop.iftrue_label;
+        beiop.iffalse_label := iop.iffalse_label;
         copy_ea_ref(&left.left, &beiop.left);
         copy_ea_ref(&right.left, &beiop.right);
 

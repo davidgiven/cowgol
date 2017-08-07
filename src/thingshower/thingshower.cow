@@ -60,23 +60,13 @@ sub show_subroutine_thing(thing: [SubroutineThing])
     show_data_thing(thing as [DataThing]);
     print("subroutine(namespace=0x");
     print_hex_i16(thing.namespace_id);
+    print(" label_count=");
+    print_i16(thing.label_count);
     print(" input_parameter_count=");
     print_i8(thing.input_parameter_count);
     print(" output_parameter_count=");
     print_i8(thing.output_parameter_count);
     print(") ");
-end sub;
-
-sub show_label_thing(thing: [LabelThing])
-    print("label(target=0x");
-    print_hex_i16(thing.target);
-    print(")");
-end sub;
-
-sub show_labelref_thing(thing: [LabelThing])
-    print("labelref(label=0x");
-    print_hex_i16(thing.target);
-    print(")");
 end sub;
 
 sub show_type_thing(thing: [TypeThing])
@@ -160,10 +150,6 @@ loop
         show_symbol_thing(thing as [SymbolThing]);
     elseif type == THING_SUBROUTINE then
         show_subroutine_thing(thing as [SubroutineThing]);
-    elseif type == THING_LABEL then
-        show_label_thing(thing as [LabelThing]);
-    elseif type == THING_LABELREF then
-        show_labelref_thing(thing as [LabelThing]);
     elseif type == THING_SIGNED then
         show_numeric_thing("signed_type", thing as [NumericThing]);
     elseif type == THING_UNSIGNED then

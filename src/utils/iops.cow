@@ -20,7 +20,7 @@ const IOP_TYPE_MASK        := 0b1110_0000;
 # These are valid for all stages.
 const IOP_TYPE_UNTYPED     := 0b0000_0000;
 const IOP_END              := 0b0000_0000;
-const IOP_LABEL            := 0b0000_0001;
+const IOP_CALL             := 0b0000_0001;
 const IOP_STRING           := 0b0000_0010;
 const IOP_RETURN           := 0b0000_0011;
 const IOP_GOTO             := 0b0000_0100;
@@ -28,7 +28,8 @@ const IOP_FILENAME         := 0b0000_0101;
 const IOP_LINENUMBER       := 0b0000_0110;
 const IOP_BYTES            := 0b0000_0111;
 const IOP_ADDRESS          := 0b0000_1000;
-const IOP_CALL             := 0b0000_1001;
+const IOP_LABEL            := 0b0000_1001;
+const IOP_CLONELABEL       := 0b0000_1010;
 
 # Front-end opcodes: this is the pure stack machine architecture emitted by the
 # compiler. These are all Iops, with no payload.
@@ -117,7 +118,12 @@ record LinenumberIop: Iop
 end record;
 
 record LabelIop: Iop
-    label_id: uint16;
+    label: uint16;
+end record;
+
+record CloneLabelIop: Iop
+    src_label: uint16;
+    dest_label: uint16;
 end record;
 
 record StringIop: Iop
@@ -131,7 +137,7 @@ record CallIop: Iop
 end record;
 
 record GotoIop: Iop
-    label_id: uint16;
+    label: uint16;
 end record;
 
 record BytesIop: Iop
@@ -162,8 +168,8 @@ record FECastIop: Iop
 end record;
 
 record FEConditionalIop: Iop
-    iftrue_label_id: uint16;
-    iffalse_label_id: uint16;
+    iftrue_label: uint16;
+    iffalse_label: uint16;
 end record;
 
 const EA_DEREF_BEFORE := 0b10;
@@ -191,8 +197,8 @@ record BEConditionalIop: Iop
     width: uint8;
     left: EffectiveAddress;
     right: EffectiveAddress;
-    iftrue_label_id: uint16;
-    iffalse_label_id: uint16;
+    iftrue_label: uint16;
+    iffalse_label: uint16;
 end record;
 
 record CG6502MemIop: Iop
@@ -208,7 +214,7 @@ end record;
 
 record CG6502ConditionalIop: Iop
     opcode: uint8;
-    label_id: uint16;
+    label: uint16;
 end record;
 
 sub copy_ea(src: [EffectiveAddress], dest: [EffectiveAddress])
@@ -243,16 +249,3 @@ sub print_ea(ea: [EffectiveAddress])
         print_char(']');
     end if;
 end sub;
-
-sub resolve_label_id(ref_id: uint16): (label_id: uint16)
-    label_id := ref_id;
-    loop
-        var label: [LabelThing] := find_thing(label_id) as [LabelThing];
-        if label.thing_type == THING_LABEL then
-            break;
-        end if;
-
-        label_id := label.target;
-    end loop;
-end sub;
-

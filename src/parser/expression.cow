@@ -1,5 +1,5 @@
-var expr_true_label_id: uint16;
-var expr_false_label_id: uint16;
+var expr_true_label: uint16;
+var expr_false_label: uint16;
 var data_stack_size: uint8;
 
 sub expression_state_machine()
@@ -47,7 +47,7 @@ sub expression_state_machine()
     end sub;
 
     sub check_b_op()
-        if (expr_true_label_id == 0) or (expr_false_label_id == 0) then
+        if (expr_true_label == 0) or (expr_false_label == 0) then
             print("boolean operator cannot be used in this context");
             halt();
         end if;
@@ -96,21 +96,21 @@ sub expression_state_machine()
 
         sub b_2op(iop: uint8)
             check_b_op();
-            emit_fe_conditional_branch(iop, expr_true_label_id, expr_false_label_id);
+            emit_fe_conditional_branch(iop, expr_true_label, expr_false_label);
             data_stack_size := data_stack_size - 2;
         end sub;
 
         sub b_2op_reverse(iop: uint8)
             check_b_op();
-            emit_fe_conditional_branch(iop, expr_false_label_id, expr_true_label_id);
+            emit_fe_conditional_branch(iop, expr_false_label, expr_true_label);
             data_stack_size := data_stack_size - 2;
         end sub;
 
         sub b_not()
             check_b_op();
-            var t: uint16 := expr_true_label_id;
-            expr_true_label_id := expr_false_label_id;
-            expr_false_label_id := t;
+            var t: uint16 := expr_true_label;
+            expr_true_label := expr_false_label;
+            expr_false_label := t;
         end sub;
 
         sub parameter()
@@ -191,8 +191,8 @@ sub expression_state_machine()
         elseif op_id == TOKEN_NOT then
             b_not();
         elseif (op_id == TOKEN_AND) or (op_id == TOKEN_OR) then
-            merge_label(expr_false_label_id, pop_op());
-            merge_label(expr_true_label_id, pop_op());
+            emit_clonelabel(pop_op(), expr_false_label);
+            emit_clonelabel(pop_op(), expr_true_label);
         elseif op_id == TOKEN_AS then
             emit_fe_cast(pop_op());
         elseif op_id == TOKEN_DOT then
@@ -376,18 +376,18 @@ sub expression_state_machine()
                 apply_left_associative(current_token);
 
                 if (current_token == TOKEN_AND) then
-                    emit_label(expr_true_label_id);
+                    emit_label(expr_true_label);
                     push_op(create_label());
-                    push_op(expr_false_label_id);
+                    push_op(expr_false_label);
                 else
-                    emit_label(expr_false_label_id);
-                    push_op(expr_true_label_id);
+                    emit_label(expr_false_label);
+                    push_op(expr_true_label);
                     push_op(create_label());
                 end if;
                 push_op(current_token);
 
-                expr_true_label_id := create_label();
-                expr_false_label_id := create_label();
+                expr_true_label := create_label();
+                expr_false_label := create_label();
 
                 next_token();
                 state := STATE_BEFORE;
@@ -437,8 +437,8 @@ end sub;
 
 sub do_expression()
     #print("expression start\n");
-    expr_true_label_id := 0;
-    expr_false_label_id := 0;
+    expr_true_label := 0;
+    expr_false_label := 0;
     expression_state_machine();
     if data_stack_size != 1 then
         print("expression left ");
@@ -450,13 +450,13 @@ end sub;
 
 sub do_conditional(): (true_label: uint16, false_label: uint16)
     #print("conditional start\n");
-    expr_true_label_id := create_thing(THING_LABEL, LabelThing@bytes);
-    expr_false_label_id := create_thing(THING_LABEL, LabelThing@bytes);
+    expr_true_label := create_label();
+    expr_false_label := create_label();
 
     expression_state_machine();
 
-    true_label := expr_true_label_id;
-    false_label := expr_false_label_id;
+    true_label := expr_true_label;
+    false_label := expr_false_label;
     if data_stack_size != 0 then
         print("expression left ");
         print_i8(data_stack_size);
