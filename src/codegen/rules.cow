@@ -1,7 +1,34 @@
+sub try_copy(iop: [BEIop])
+    if arch_gen_copy(&iop.left, &iop.dest) == 1 then
+        return;
+    end if;
+
+    if iop.width == 1 then
+        arch_gen_copy_byte_to_byte(&iop.left, &iop.dest);
+        return;
+    end if;
+
+    print("can't copy ");
+    print_ea(&iop.left);
+    print(" to ");
+    print_ea(&iop.dest);
+    halt();
+end sub;
+
 sub global_rules(): (matched: uint8)
     matched := 1;
-    print("reading 0x");
-    print_hex_i8(queue0.iop_kind);
-    print_newline();
-    consume_iops(1);
+
+    if queue0.iop_kind == IOP_BE_COPY then
+        try_copy(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_RETURN then
+        arch_gen_return();
+        consume_iops(1);
+        return;
+    end if;
+
+    matched := 0;
 end sub;

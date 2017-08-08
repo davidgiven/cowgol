@@ -34,7 +34,7 @@ sub process_subroutine()
     print_newline();
 
     init_queue();
-#    init_allocator();
+    arch_init_codegen();
 
     loop
         fill_queue();

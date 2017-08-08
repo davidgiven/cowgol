@@ -301,13 +301,6 @@ sub global_stack_rules(): (matched: uint8)
 #        end if;
 #    end sub;
 #
-    if queue[0].iop_kind == IOP_RETURN then
-        stack_must_be_empty();
-        arch_gen_return();
-        consume_iops(1);
-        return;
-    end if;
-
 #    if queue[0].iop_kind == IOP_CALL then
 #        do_call();
 #        consume_iops(1);

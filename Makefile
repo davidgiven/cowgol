@@ -82,8 +82,11 @@ CODEGEN_SRCS = \
 	src/utils/iopwriter.cow \
 	src/_token_names.cow \
 	src/utils/symbols.cow \
+	src/utils/types.cow \
 	src/codegen/init.cow \
 	src/codegen/queue.cow \
+	src/arch/bbc/globals.cow \
+	src/arch/bbc/codegen.cow \
 	src/codegen/rules.cow \
 	src/codegen/main.cow
 
