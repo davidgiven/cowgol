@@ -84,6 +84,7 @@ CODEGEN_SRCS = \
 	src/utils/symbols.cow \
 	src/codegen/init.cow \
 	src/codegen/queue.cow \
+	src/codegen/rules.cow \
 	src/codegen/main.cow
 
 THINGSHOWER_SRCS = \

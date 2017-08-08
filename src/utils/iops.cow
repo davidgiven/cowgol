@@ -217,8 +217,12 @@ record CG6502ConditionalIop: Iop
     label: uint16;
 end record;
 
-record BiggestIop: BEConditionalIop
+record BiggestIop: BEIop
 end record;
+
+sub copy_iop(src: [Iop], dest: [Iop])
+    copy_memory(src as [int8], dest as [int8], src.iop_size);
+end sub;
 
 sub copy_ea(src: [EffectiveAddress], dest: [EffectiveAddress])
     copy_memory(src as [int8], dest as [int8], EffectiveAddress@bytes);

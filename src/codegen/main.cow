@@ -1,35 +1,22 @@
 
-sub print_queue()
-    print("queue: ");
-    var i: uint8 := 0;
-    while i < queue_depth loop
-        print(" 0x");
-        print_hex_i8(queue[i].iop_kind);
-        i := i + 1;
-    end loop;
+sub apply_rules()
+    if global_rules() == 1 then
+        return;
+    else
+        print("unmatched iops: ");
+        print_queue();
+        halt();
+    end if;
 end sub;
 
-#sub apply_rules()
-#    if global_stack_rules() == 1 then
-#        return;
-##    if arch_rules() == 1 then
-##        return;
-##    elseif global_rules() == 1 then
-##        return;
-#    else
-#        print("unmatched iops: ");
-#        print_queue();
-#        halt();
-#    end if;
-#end sub;
-#
 
 sub skip_subroutine()
-    queue_depth := 0;
+    init_queue();
     loop
         fill_queue();
+        print_queue(); print_newline();
 
-        if queue[0].iop_kind == IOP_END then
+        if queue0.iop_kind == IOP_END then
             break;
         end if;
 
@@ -37,28 +24,29 @@ sub skip_subroutine()
     end loop;
 end sub;
 
-sub process_subroutine(subroutine_id: uint16)
-    var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+sub process_subroutine()
+    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     current_namespace_id := subroutine.namespace_id;
-    print("subroutine: ");
-    show_name_of(subroutine_id);
+    print("subroutine: 0x");
+    print_hex_i16(current_subroutine_id);
+    print_char(' ');
+    show_name_of(current_subroutine_id);
     print_newline();
 
-    queue_depth := 0;
-    run_out_of_iops := 0;
+    init_queue();
 #    init_allocator();
 
     loop
         fill_queue();
         print_queue(); print_newline();
 
-        if queue[0].iop_kind == IOP_END then
+        if queue0.iop_kind == IOP_END then
             break;
         end if;
 
-#        apply_rules();
+        apply_rules();
     end loop;
-#    write_end_iop();
+    write_untyped_iop(IOP_END);
 end sub;
 
 sub process()
@@ -68,12 +56,13 @@ sub process()
             break;
         end if;
 
-        var subroutine: [SubroutineThing] := find_thing(iheader.thing_id) as [SubroutineThing];
+        current_subroutine_id := iheader.thing_id;
+        var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
         if subroutine.segment == SEGMENT_OMIT then
             skip_subroutine();
         else
             write_iop_header(iheader);
-            process_subroutine(iheader.thing_id);
+            process_subroutine();
         end if;
     end loop;
     write_terminating_iop_header();

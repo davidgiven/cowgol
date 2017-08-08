@@ -1,0 +1,7 @@
+sub global_rules(): (matched: uint8)
+    matched := 1;
+    print("reading 0x");
+    print_hex_i8(queue0.iop_kind);
+    print_newline();
+    consume_iops(1);
+end sub;
