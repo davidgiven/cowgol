@@ -52,6 +52,9 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
         halt();
     end if;
     mask := find_first_bit(mask);
+    print("* allocating 0x");
+    print_hex_i8(mask);
+    print_newline();
 end sub;
 
 sub find_reg_with_value(value: [EffectiveAddress]): (mask: uint8)
@@ -59,11 +62,20 @@ sub find_reg_with_value(value: [EffectiveAddress]): (mask: uint8)
     while index < values@size loop
         if is_same_ea(&values[index].ea, value) == 1 then
             mask := values[index].location & REG_MASK;
+            print("* found in 0x");
+            print_hex_i8(mask);
+            print(" value ");
+            print_ea(value);
+            print_newline();
             return;
         end if;
         index := index + 1;
     end loop;
     mask := 0;
+    print("* did not find ");
+    print(" value ");
+    print_ea(value);
+    print(" in any register\n");
 end sub;
 
 sub value_is_cached_in_reg(value: [EffectiveAddress], mask: uint8)
@@ -172,29 +184,22 @@ sub flush_cached_values(mask: uint8)
     end loop;
 end sub;
 
-sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    location := find_reg_with_value(ea);
-    if location != 0 then
-        print("* found in 0x");
-        print_hex_i8(location);
-        print(" value ");
-        print_ea(ea);
-        print_newline();
-        return;
-    end if;
-
+sub allocate_reg_for_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     location := allocate_reg(candidates);
-    print("* allocating 0x");
-    print_hex_i8(location);
-    print(" for ");
-    print_ea(ea);
-    print_newline();
-
-    var opcode: uint8;
-
     flush_cached_values(location);
     value_is_cached_in_reg(ea, location);
-    if (ea.type == EA_OBJVAL) and (is_number_thing(ea.obj_id) != 0) then
+end sub;
+
+sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    var opcode: uint8;
+
+    location := find_reg_with_value(ea);
+    if location != 0 then
+        return;
+    end if;
+    location := allocate_reg_for_value(ea, candidates);
+
+    if is_number_thing(ea.obj_id) != 0 then
         if location == REG_A then
             opcode := 0xA9; # LDA imm
         elseif location == REG_X then
@@ -206,19 +211,52 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
         end if;
         write_byte(opcode);
         write_byte(get_value_of_number(ea.obj_id));
-#    elseif ea.type == EA_VAR_PLUS_CONST then
-#        if location == REG_A then
-#            opcode := 0xAD; # LDA abs
-#        elseif location == REG_X then
-#            opcode := 0xAE; # LDX abs
-#        elseif location == REG_Y then
-#            opcode := 0xAC; # LDY abs
-#        else
-#            bad_register();
-#        end if;
-#        write_cg_6502_mem_iop(opcode, ea.thing_id, ea.constant);
+    else
+        if location == REG_A then
+            opcode := 0xA9; # LDA imm
+        elseif location == REG_X then
+            opcode := 0xA2; # LDX imm
+        elseif location == REG_Y then
+            opcode := 0xA0; # LDY imm
+        else
+            bad_register();
+        end if;
+        write_byte(opcode);
+        write_byte(get_value_of_number(ea.obj_id));
+    end if;
+end sub;
+
+sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    var opcode: uint8;
+
+    var indexea: EffectiveAddress;
+    indexea.type := EA_OBJVAL;
+    indexea.varoff_id := 0;
+    indexea.numoff_id := 0;
+    if ea.varoff_id != 0 then
+        indexea.obj_id := ea.varoff_id;
+    else
+        indexea.obj_id := ea.numoff_id;
+        if indexea.obj_id == 0 then
+            indexea.obj_id := add_number_by_value(0);
+        end if;
+    end if;
+
+    var indexlocation: uint8 := find_or_load_objval(&indexea, REG_Y);
+    location := allocate_reg_for_value(ea, REG_A);
+
+    write_byte(0xB1); # LDA (zp), Y
+    write_cg_6502_zeropage_iop(ea.obj_id, 0);
+end sub;
+
+sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    if ea.type == EA_OBJVAL then
+        location := find_or_load_objval(ea, candidates);
+    elseif ea.type == EA_PTRVAL then
+        location := find_or_load_ptrval(ea, candidates);
     else
         print("can't implicit load this ea yet");
+        halt();
     end if;
 end sub;
 
