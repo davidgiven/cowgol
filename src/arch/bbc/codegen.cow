@@ -9,8 +9,7 @@ record CachedValue
     ea: EffectiveAddress;
 end record;
 
-var values: CachedValue[32];
-var regusage: uint8[3];
+var values: CachedValue[8];
 
 sub bad_register()
     print("bad register");
@@ -19,7 +18,6 @@ end sub;
 
 sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
-    zero_memory(&regusage[0] as [int8], regusage@bytes);
 end sub;
 
 sub find_unused_regs(candidates: uint8): (mask: uint8)
@@ -127,6 +125,20 @@ sub write_6502_mem_iop(opcode: uint8, thing_id: uint16, offset_id: uint16)
     end if;
 end sub;
 
+sub save_objval(location: uint8, ea: [EffectiveAddress])
+    var opcode: uint8;
+    if location == REG_A then
+        opcode := 0x8D; # STA abs
+    elseif location == REG_X then
+        opcode := 0x8E; # STX abs
+    elseif location == REG_Y then
+        opcode := 0x8C; # STY abs
+    else
+        bad_register();
+    end if;
+    write_6502_mem_iop(opcode, ea.obj_id, ea.numoff_id);
+end sub;
+
 sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     print("* writing back 0x");
     print_hex_i8(location);
@@ -135,17 +147,7 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     print_newline();
 
     if ea.type == EA_OBJVAL then
-        var opcode: uint8;
-        if location == REG_A then
-            opcode := 0x8D; # STA abs
-        elseif location == REG_X then
-            opcode := 0x8E; # STX abs
-        elseif location == REG_Y then
-            opcode := 0x8C; # STY abs
-        else
-            bad_register();
-        end if;
-        write_6502_mem_iop(opcode, ea.obj_id, ea.numoff_id);
+        save_objval(location, ea);
     else
         print("can't write precious value ");
         print_ea(ea);
@@ -226,13 +228,13 @@ sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: u
     end if;
 end sub;
 
-sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    var opcode: uint8;
-
+# Loads *just the index part* of the EA into either X or Y.
+sub find_or_load_index(ea: [EffectiveAddress]): (location: uint8)
     var indexea: EffectiveAddress;
     indexea.type := EA_OBJVAL;
     indexea.varoff_id := 0;
     indexea.numoff_id := 0;
+    var indexcandidates: uint8 := REG_Y;
     if ea.varoff_id != 0 then
         indexea.obj_id := ea.varoff_id;
     else
@@ -240,12 +242,38 @@ sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: u
         if indexea.obj_id == 0 then
             indexea.obj_id := add_number_by_value(0);
         end if;
+        if get_value_of_number(indexea.obj_id) == 0 then
+            indexcandidates := REG_X|REG_Y;
+        end if;
     end if;
 
-    var indexlocation: uint8 := find_or_load_objval(&indexea, REG_Y);
+    location := find_or_load_objval(&indexea, indexcandidates);
+end sub;
+
+sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    var indexlocation: uint8 := find_or_load_index(ea);
     location := allocate_reg_for_value(ea, REG_A);
 
-    write_byte(0xB1); # LDA (zp), Y
+    var opcode: uint8;
+    if indexlocation == REG_Y then
+        opcode := 0xB1; # LDA (zp), Y
+    else
+        opcode := 0xA1; # LDA (zp, X)
+    end if;
+    write_byte(opcode);
+    write_cg_6502_zeropage_iop(ea.obj_id, 0);
+end sub;
+
+sub save_ptrval(location: uint8, ea: [EffectiveAddress])
+    var indexlocation: uint8 := find_or_load_index(ea);
+
+    var opcode: uint8;
+    if indexlocation == REG_Y then
+        opcode := 0x91; # STA (zp), Y
+    else
+        opcode := 0x81; # STA (zp, X)
+    end if;
+    write_byte(opcode);
     write_cg_6502_zeropage_iop(ea.obj_id, 0);
 end sub;
 
@@ -255,7 +283,22 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     elseif ea.type == EA_PTRVAL then
         location := find_or_load_ptrval(ea, candidates);
     else
-        print("can't implicit load this ea yet");
+        print("can't load ");
+        print_ea(ea);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
+sub save_value(location: uint8, ea: [EffectiveAddress])
+    if ea.type == EA_OBJVAL then
+        save_objval(location, ea);
+    elseif ea.type == EA_PTRVAL then
+        save_ptrval(location, ea);
+    else
+        print("can't save ");
+        print_ea(ea);
+        print(" yet");
         halt();
     end if;
 end sub;
@@ -287,7 +330,11 @@ end sub;
 
 sub arch_gen_copy_byte_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
     var location: uint8 := find_or_load_value(src, REG_A|REG_X|REG_Y);
-    value_is_precious_in_reg(dest, location);
+    if (dest.type & EA_DEREF_BEFORE) != 0 then
+        save_value(location, dest);
+    else
+        value_is_precious_in_reg(dest, location);
+    end if;
 end sub;
 
 sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
@@ -295,19 +342,6 @@ sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress]
     print("unsupported");
     halt();
 #    write_address_iop(IOP_CG_COPY2, 0);
-#    write_address_iop(src.thing_id, src.constant);
-#    write_address_iop(dest.thing_id, dest.constant);
-end sub;
-
-sub arch_gen_copy_number_to_byte(src: [EffectiveAddress], dest: [EffectiveAddress])
-    arch_gen_copy_byte_to_byte(src, dest);
-end sub;
-
-sub arch_gen_copy_number_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
-    write_byte(0x20); # JSR abs
-    print("unsupported");
-    halt();
-#    write_address_iop(deref_symbol_or_fail(TOKEN_CG_LOAD2), 0);
 #    write_address_iop(src.thing_id, src.constant);
 #    write_address_iop(dest.thing_id, dest.constant);
 end sub;
