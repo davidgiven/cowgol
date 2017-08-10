@@ -475,35 +475,12 @@ sub arch_gen_copy_byte(iop: [BEIop])
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
-sub arch_gen_add_byte(iop: [BEIop])
-    var location: uint8;
-    var opcode: uint8;
-
-    if is_number_thing(iop.right.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.right.obj_id);
-        if (value == 1) or (value == -1) then
-            location := find_or_load_value(&iop.left, REG_X|REG_Y);
-            print_cache();
-            value_in_location_will_be_replaced_with(location, &iop.dest);
-            print_cache();
-
-            if value == 1 then
-                opcode := 0xE8; # INX
-            else
-                opcode := 0xC8; # INY
-            end if;
-            write_byte(opcode);
-
-            make_value_precious_or_save_now(location, &iop.dest);
-            return;
-        end if;
-    end if;
-
-    location := find_or_load_value(&iop.left, REG_A);
+sub gen_regular_alu(iop: [BEIop], opcode: uint8)
+    var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.dest);
 
     if iop.right.type == EA_OBJVAL then
-        opcode := 0x6D; # ADC abs
+        # do nothing, the opcode is already right
     else
         print("can't add ");
         print_ea(&iop.right);
@@ -511,10 +488,64 @@ sub arch_gen_add_byte(iop: [BEIop])
         print_newline();
     end if;
 
-    write_byte(0x18); # CLC
     write_6502_regular_op(opcode, &iop.right);
 
     make_value_precious_or_save_now(location, &iop.dest);
+end sub;
+
+sub gen_incdec(iop: [BEIop], value: int8)
+    var location: uint8 := find_or_load_value(&iop.left, REG_X|REG_Y);
+    value_in_location_will_be_replaced_with(location, &iop.dest);
+
+    var opcode: uint8;
+    if value == 1 then
+        if location == REG_X then
+            opcode := 0xE8; # INX
+        else
+            opcode := 0xC8; # INY
+        end if;
+    else
+        if location == REG_X then
+            opcode := 0xCA; # INX
+        else
+            opcode := 0x88; # INY
+        end if;
+    end if;
+    write_byte(opcode);
+
+    make_value_precious_or_save_now(location, &iop.dest);
+end sub;
+
+sub arch_gen_add_byte(iop: [BEIop])
+    var location: uint8;
+    var opcode: uint8;
+
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var value: int32 := get_value_of_number(iop.right.obj_id);
+        if (value == 1) or (value == -1) then
+            gen_incdec(iop, value);
+            return;
+        end if;
+    end if;
+
+    write_byte(0x18); # CLC
+    gen_regular_alu(iop, 0x6D); # ADC abs
+end sub;
+
+sub arch_gen_sub_byte(iop: [BEIop])
+    var location: uint8;
+    var opcode: uint8;
+
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var value: int32 := get_value_of_number(iop.right.obj_id);
+        if (value == 1) or (value == -1) then
+            gen_incdec(iop, 0-value);
+            return;
+        end if;
+    end if;
+
+    write_byte(0x18); # CLC
+    gen_regular_alu(iop, 0xED); # SBC abs
 end sub;
 
 sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
