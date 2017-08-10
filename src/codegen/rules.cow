@@ -1,17 +1,32 @@
 sub try_copy(iop: [BEIop])
-    if arch_gen_copy(&iop.left, &iop.dest) == 1 then
-        return;
-    end if;
-
     if iop.width == 1 then
-        arch_gen_copy_byte_to_byte(&iop.left, &iop.dest);
+        arch_gen_copy_byte(iop);
         return;
     end if;
 
     print("can't copy ");
     print_ea(&iop.left);
-    print(" to ");
+    print(" -> ");
     print_ea(&iop.dest);
+    print(" width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
+sub try_add(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_add_byte(iop);
+        return;
+    end if;
+
+    print("can't add ");
+    print_ea(&iop.left);
+    print(" + ");
+    print_ea(&iop.right);
+    print(" -> ");
+    print_ea(&iop.dest);
+    print(" width ");
+    print_i8(iop.width);
     halt();
 end sub;
 
@@ -20,6 +35,12 @@ sub global_rules(): (matched: uint8)
 
     if queue0.iop_kind == IOP_BE_COPY then
         try_copy(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_ADD then
+        try_add(queue0 as [BEIop]);
         consume_iops(1);
         return;
     end if;
