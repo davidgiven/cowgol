@@ -1,11 +1,20 @@
 
 sub pointer_of(type_id: uint16): (ptr_type_id: uint16)
-    var buf: PointerThing[1];
-    buf[0].thing_type := THING_POINTER;
-    buf[0].thing_size := PointerThing@bytes;
-    buf[0].width := 2;
-    buf[0].element_id := type_id;
-    ptr_type_id := add_thing_by_value(&buf[0] as [Thing]);
+    var buf: PointerThing;
+    buf.thing_type := THING_POINTER;
+    buf.thing_size := PointerThing@bytes;
+    buf.width := 2;
+    buf.element_id := type_id;
+    ptr_type_id := add_thing_by_value(&buf as [Thing]);
+end sub;
+
+sub element_of(type_id: uint16): (element_type_id: uint16)
+    var type: [WithElementsThing] := find_thing(type_id) as [WithElementsThing];
+    if (type.thing_type == THING_POINTER) or (type.thing_type == THING_ARRAY) then
+        element_type_id := type.element_id;
+    else
+        element_type_id := 0;
+    end if;
 end sub;
 
 sub array_of(type_id: uint16, element_count: uint16): (array_type_id: uint16)
@@ -23,18 +32,43 @@ end sub;
 sub get_type_of_thing(thing_id: uint16): (type_id: uint16)
     var thing: [TypedThing] := find_thing(thing_id) as [TypedThing];
     if (thing.thing_type & THING_TYPED) == 0 then
-        print("thing is not typed");
-        halt();
+        type_id := 0;
+    else
+        type_id := thing.type_id;
     end if;
-
-    type_id := thing.type_id;
 end sub;
 
+sub get_type_of_ea(ea: [EffectiveAddress]): (type_id: uint16)
+    type_id := get_type_of_thing(ea.obj_id);
+    if type_id != 0 then
+        if (ea.type & EA_DEREF_BEFORE) == 0 then
+            type_id := pointer_of(type_id);
+        end if;
+        if (ea.type & EA_DEREF_AFTER) != 0 then
+            type_id := element_of(type_id);
+        end if;
+        if type_id == 0 then
+            print("bad thing_type");
+            halt();
+        end if;
+    end if;
+end sub;
+
+# assumes type_id == 0 for numbers
 sub get_width_of_type(type_id: uint16): (width: uint8)
-    var type: [TypeThing] := find_thing(type_id) as [TypeThing];
-    width := type.width;
+    if type_id == 0 then
+        width := 0;
+    else
+        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
+        width := type.width;
+    end if;
 end sub;
 
 sub get_width_of_thing(thing_id: uint16): (width: uint8)
-    width := get_width_of_type(get_type_of_thing(thing_id));
+    var type_id: uint16 := get_type_of_thing(thing_id);
+    if type_id == 0 then
+        width := 0;
+    else
+        width := get_width_of_type(type_id);
+    end if;
 end sub;
