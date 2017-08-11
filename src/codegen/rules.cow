@@ -1,14 +1,43 @@
+sub get_2op_widths(iop: [BEIop]): (srcw: uint8, destw: uint8)
+    srcw := get_width_of_thing(iop.left.obj_id);
+    destw := get_width_of_thing(iop.dest.obj_id);
+    if srcw == 0 then
+        srcw := destw;
+    end if;
+end sub;
+
+sub get_3op_widths(iop: [BEIop]): (leftw: uint8, rightw: uint8, destw: uint8)
+    leftw := get_width_of_thing(iop.left.obj_id);
+    rightw := get_width_of_thing(iop.right.obj_id);
+    destw := get_width_of_thing(iop.dest.obj_id);
+
+    if leftw == 0 then
+        leftw := destw;
+    end if;
+    if rightw == 0 then
+        rightw := destw;
+    end if;
+end sub;
+
 sub try_copy(iop: [BEIop])
-    if iop.width == 1 then
+    var srcw: uint8;
+    var destw: uint8;
+    (srcw, destw) := get_2op_widths(iop);
+
+    if destw == 1 then
         arch_gen_copy_byte(iop);
         return;
     end if;
 
     print("can't copy ");
     print_ea(&iop.left);
-    print(" -> ");
+    print("(");
+    print_i8(srcw);
+    print(") -> ");
     print_ea(&iop.dest);
-    print(" width ");
+    print("(");
+    print_i8(destw);
+    print(") width ");
     print_i8(iop.width);
     halt();
 end sub;
@@ -16,18 +45,29 @@ end sub;
 sub cant_do_3op(iop: [BEIop], op: [int8])
     print("can't do ");
     print_ea(&iop.left);
-    print(" ");
+    print_char('(');
+    print_i8(get_width_of_thing(iop.left.obj_id));
+    print(") ");
     print(op);
     print(" ");
     print_ea(&iop.right);
-    print(" -> ");
+    print_char('(');
+    print_i8(get_width_of_thing(iop.right.obj_id));
+    print(") -> ");
     print_ea(&iop.dest);
-    print(" width ");
+    print_char('(');
+    print_i8(get_width_of_thing(iop.dest.obj_id));
+    print(") width ");
     print_i8(iop.width);
     halt();
 end sub;
 
 sub try_add(iop: [BEIop])
+    var leftw: uint8;
+    var rightw: uint8;
+    var destw: uint8;
+    (leftw, rightw, destw) := get_3op_widths(iop);
+
     if iop.width == 1 then
         arch_gen_add_byte(iop);
         return;
