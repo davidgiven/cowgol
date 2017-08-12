@@ -19,6 +19,22 @@ sub get_3op_widths(iop: [BEIop]): (leftw: uint8, rightw: uint8, destw: uint8)
     end if;
 end sub;
 
+sub cant_do_2op(iop: [BEIop], op: [int8])
+    print("can't do ");
+    print_ea(&iop.left);
+    print_char('(');
+    print_i8(get_width_of_thing(iop.left.obj_id));
+    print(") ");
+    print(op);
+    print(" -> ");
+    print_ea(&iop.dest);
+    print_char('(');
+    print_i8(get_width_of_thing(iop.dest.obj_id));
+    print(") width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
 sub try_copy(iop: [BEIop])
     var srcw: uint8;
     var destw: uint8;
@@ -29,17 +45,7 @@ sub try_copy(iop: [BEIop])
         return;
     end if;
 
-    print("can't copy ");
-    print_ea(&iop.left);
-    print("(");
-    print_i8(srcw);
-    print(") -> ");
-    print_ea(&iop.dest);
-    print("(");
-    print_i8(destw);
-    print(") width ");
-    print_i8(iop.width);
-    halt();
+    cant_do_2op(iop, "");
 end sub;
 
 sub cant_do_3op(iop: [BEIop], op: [int8])
@@ -85,6 +91,15 @@ sub try_sub(iop: [BEIop])
     cant_do_3op(iop, "-");
 end sub;
 
+sub try_sext(iop: [BEIop])
+    if iop.width == 2 then
+        arch_gen_sext_word(iop);
+        return;
+    end if;
+
+    cant_do_2op(iop, "sext");
+end sub;
+
 sub global_rules(): (matched: uint8)
     matched := 1;
 
@@ -102,6 +117,12 @@ sub global_rules(): (matched: uint8)
 
     if queue0.iop_kind == IOP_BE_SUB then
         try_sub(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_SEXT then
+        try_sext(queue0 as [BEIop]);
         consume_iops(1);
         return;
     end if;

@@ -75,6 +75,10 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
     print_newline();
 end sub;
 
+sub allocate_fixed_reg(candidates: uint8)
+    var location: uint8 := allocate_reg(candidates);
+end sub;
+
 sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations: uint8)
     var index: uint8 := 0;
     while index < values@size loop
@@ -260,6 +264,14 @@ sub save_objval(location: uint8, ea: [EffectiveAddress])
     write_6502_regular_op(opcode, ea);
 end sub;
 
+sub save_objval_pair(lo: uint8, hi: uint8, ea: [EffectiveAddress])
+    save_objval(lo, ea);
+    var old_numoff_id: uint16 := ea.numoff_id;
+    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + 1);
+    save_objval(hi, ea);
+    ea.numoff_id := old_numoff_id;
+end sub;
+
 sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     location := find_first_bit(location);
     print("* writing back 0x");
@@ -360,13 +372,12 @@ sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: u
     write_6502_regular_op(opcode, ea);
 end sub;
 
-# Loads *just the index part* of the EA into either X or Y.
-sub find_or_load_index(ea: [EffectiveAddress]): (location: uint8)
+# Loads *just the index part* of the EA into Y.
+sub find_or_load_index_into_y(ea: [EffectiveAddress])
     var indexea: EffectiveAddress;
     indexea.type := EA_OBJVAL;
     indexea.varoff_id := 0;
     indexea.numoff_id := 0;
-    var indexcandidates: uint8 := REG_Y;
     if ea.varoff_id != 0 then
         indexea.obj_id := ea.varoff_id;
     else
@@ -374,12 +385,9 @@ sub find_or_load_index(ea: [EffectiveAddress]): (location: uint8)
         if indexea.obj_id == 0 then
             indexea.obj_id := add_number_by_value(0);
         end if;
-        if get_value_of_number(indexea.obj_id) == 0 then
-            indexcandidates := REG_X|REG_Y;
-        end if;
     end if;
 
-    location := find_or_load_objval(&indexea, indexcandidates);
+    var location: uint8 := find_or_load_objval(&indexea, REG_Y);
 end sub;
 
 sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
@@ -388,29 +396,16 @@ sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: u
         return;
     end if;
 
-    var indexlocation: uint8 := find_or_load_index(ea);
+    find_or_load_index_into_y(ea);
     location := allocate_reg_for_value(ea, REG_A);
 
-    var opcode: uint8;
-    if indexlocation == REG_Y then
-        opcode := 0xB1; # LDA (zp), Y
-    else
-        opcode := 0xA1; # LDA (zp, X)
-    end if;
-    write_byte(opcode);
+    write_byte(0xB1); # LDA (zp), Y
     write_cg_6502_zeropage_iop(ea.obj_id, 0);
 end sub;
 
 sub save_ptrval(location: uint8, ea: [EffectiveAddress])
-    var indexlocation: uint8 := find_or_load_index(ea);
-
-    var opcode: uint8;
-    if indexlocation == REG_Y then
-        opcode := 0x91; # STA (zp), Y
-    else
-        opcode := 0x81; # STA (zp, X)
-    end if;
-    write_byte(opcode);
+    find_or_load_index_into_y(ea);
+    write_byte(0x91); # STA (zp), Y
     write_cg_6502_zeropage_iop(ea.obj_id, 0);
 end sub;
 
@@ -427,6 +422,17 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     end if;
 end sub;
 
+sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    var oldlocation: uint8 := find_reg_with_value(ea, candidates);
+    location := find_or_load_value(ea, candidates);
+    if oldlocation != location then
+        # The value was forced from memory, so the flags are set automatically.
+    else
+        write_byte(0x09); # ORA imm
+        write_byte(0x00);
+    end if;
+end sub;
+
 sub save_value(location: uint8, ea: [EffectiveAddress])
     if ea.type == EA_OBJVAL then
         save_objval(location, ea);
@@ -434,6 +440,17 @@ sub save_value(location: uint8, ea: [EffectiveAddress])
         save_ptrval(location, ea);
     else
         print("can't save ");
+        print_ea(ea);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
+sub save_value_pair(lo: uint8, hi: uint8, ea: [EffectiveAddress])
+    if ea.type == EA_OBJVAL then
+        save_objval_pair(lo, hi, ea);
+    else
+        print("can't save to ");
         print_ea(ea);
         print(" yet");
         halt();
@@ -546,6 +563,19 @@ sub arch_gen_sub_byte(iop: [BEIop])
 
     write_byte(0x18); # CLC
     gen_regular_alu(iop, 0xED); # SBC abs
+end sub;
+
+sub arch_gen_sext_word(iop: [BEIop])
+    allocate_fixed_reg(REG_X);
+    write_byte(0xA2); # LDX imm
+    write_byte(0); # payload
+
+    var location: uint8 := find_or_load_value_with_flags(&iop.left, REG_A);
+    write_byte(0x10); # BPL rel
+    write_byte(0x01); # skip one instruction
+    write_byte(0xCA); # DEX
+
+    save_objval_pair(location, REG_X, &iop.dest);
 end sub;
 
 sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
