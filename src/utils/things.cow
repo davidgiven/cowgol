@@ -263,6 +263,15 @@ sub is_number_thing(thing_id: uint16): (yes: uint8)
     end if;
 end sub;
 
+sub is_signed_type_thing(thing_id: uint16): (yes: uint8)
+    var type: uint8 := get_thing_type(thing_id);
+    if (type == THING_SIGNED) or (type == THING_NUMERIC) then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
 sub save_thing_table(filename: [int8])
     var fd: uint8 := file_openout(filename);
     file_putblock(fd, &thing_table[0], thing_table_top);

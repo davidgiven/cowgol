@@ -56,6 +56,7 @@ TYPECHECKER_SRCS = \
 	src/typechecker/init.cow \
 	src/arch/bbc/simplifier.cow \
 	src/typechecker/simplifier.cow \
+	src/arch/bbc/promotion.cow \
 	src/typechecker/main.cow
 
 CLASSIFIER_SRCS = \

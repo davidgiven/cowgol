@@ -1,0 +1,30 @@
+sub arch_promote_to_new_node_and_deref(src: [Node], dest_type_id: uint16): (dest: [Node])
+    var destwidth: uint8 := get_width_of_type(dest_type_id);
+    var width: uint8 := get_width_of(src);
+    if (width != 0) and (width < destwidth) then
+        print("* promote-and-copy of value of width ");
+        print_i8(width);
+        print(" to width ");
+        print_i8(destwidth);
+        print_newline();
+
+        dest := simplify_node_to_ea_and_deref(src);
+        if (is_signed_type_thing(get_type_of_ea(&dest.left)) != 0) then
+            dest.iop := IOP_BE_SEXT;
+        else
+            dest.iop := IOP_BE_ZEXT;
+        end if;
+        dest.flags := FLAG_RVALUE;
+        dest.type_id := dest_type_id;
+    else
+        dest := src;
+    end if;
+end sub;
+
+sub arch_promote_to_new_ea_nodes_and_deref(beiop: uint8, left: [Node], right: [Node],
+        dest_type_id: uint16): (newleft: [Node], newright: [Node])
+    newleft := arch_promote_to_new_node_and_deref(left, dest_type_id);
+    newleft := simplify_node_to_ea_and_deref(newleft);
+    newright := arch_promote_to_new_node_and_deref(right, dest_type_id);
+    newright := simplify_node_to_ea_and_deref(newright);
+end sub;

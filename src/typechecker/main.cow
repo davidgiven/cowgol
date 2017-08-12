@@ -185,22 +185,29 @@ sub process_subroutine(thing_id: uint16)
 
         check_type_assignability(src.type_id, dest.type_id);
         dest := simplify_node_to_ea_and_deref(dest);
+        src := arch_promote_to_new_node_and_deref(src, dest.type_id);
         arch_simplify_node_to(src, dest);
         deref_node(src);
         deref_node(dest);
     end sub;
 
     sub fe_simple_alu2op(beiop: uint8)
-        var right: [Node] := simplify_node_to_ea_and_deref(pop());
-        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+        var right: [Node] := pop();
+        var left: [Node] := pop();
+
+        # if you change this, change the non-pointer case in addsub as well
+        var dest_type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
+
+        (left, right) := arch_promote_to_new_ea_nodes_and_deref(beiop, left, right, dest_type_id);
+        right := simplify_node_to_ea_and_deref(right);
+        left := simplify_node_to_ea_and_deref(left);
 
         var node: [Node] := push_empty_node();
+        node.type_id := dest_type_id;
         node.iop := beiop;
         node.flags := FLAG_RVALUE;
         copy_ea_ref(&left.left, &node.left);
         copy_ea_ref(&right.left, &node.right);
-        # if you change this, change the non-pointer case in addsub as well
-        node.type_id := check_type_compatibility(left.type_id, right.type_id);
 
         deref_node(right);
         deref_node(left);
@@ -225,47 +232,45 @@ sub process_subroutine(thing_id: uint16)
         var right: [Node] := peek(1);
         var left: [Node] := peek(2);
 
-        var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
-        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
-
-        var left_signedness: uint8;
-        if ((left_type.thing_type == THING_SIGNED) or (left_type.thing_type == THING_NUMERIC))
-            and ((right_type.thing_type == THING_SIGNED) or (right_type.thing_type == THING_NUMERIC))
-        then
+        if (is_signed_type_thing(left.type_id) != 0) or (is_signed_type_thing(right.type_id) != 0) then
             beiop := signed_beiop;
         else
             beiop := unsigned_beiop;
         end if;
     end sub;
 
-    sub fe_addsub(kind: uint8)
-        var right: [Node] := simplify_node_to_ea_and_deref(pop());
-        var left: [Node] := simplify_node_to_ea_and_deref(pop());
-
-        var node: [Node] := push_empty_node();
-        node.iop := kind;
-        node.flags := FLAG_RVALUE;
-        copy_ea_ref(&left.left, &node.left);
-        copy_ea_ref(&right.left, &node.right);
+    sub fe_addsub(beiop: uint8)
+        var right: [Node] := pop();
+        var left: [Node] := pop();
 
         var left_type: [PointerThing] := find_thing(left.type_id) as [PointerThing];
         var right_type: [PointerThing] := find_thing(right.type_id) as [PointerThing];
+        var dest_type_id: uint16;
         if left_type.thing_type != THING_POINTER then
             # this is the same as simple_alu2op above
-            node.type_id := check_type_compatibility(left.type_id, right.type_id);
-        elseif (kind == IOP_BE_SUB)
+            dest_type_id := check_type_compatibility(left.type_id, right.type_id);
+        elseif (beiop == IOP_BE_SUB)
                 and (left_type.thing_type == THING_POINTER)
                 and (right_type.thing_type == THING_POINTER) then
             # Pointer difference.
-            node.type_id := uint16_type;
-        elseif (kind == IOP_BE_ADD)
+            dest_type_id := uint16_type;
+        elseif (beiop == IOP_BE_ADD)
                 and (left_type.thing_type == THING_POINTER)
                 and ((right_type.thing_type & THING_NUMERIC) != 0) then
             # Pointer offsetting.
-            node.type_id := left.type_id;
+            dest_type_id := left.type_id;
         else
             halt();
         end if;
+
+        (left, right) := arch_promote_to_new_ea_nodes_and_deref(beiop, left, right, dest_type_id);
+
+        var node: [Node] := push_empty_node();
+        node.iop := beiop;
+        node.flags := FLAG_RVALUE;
+        node.type_id := dest_type_id;
+        copy_ea_ref(&left.left, &node.left);
+        copy_ea_ref(&right.left, &node.right);
 
         deref_node(right);
         deref_node(left);
