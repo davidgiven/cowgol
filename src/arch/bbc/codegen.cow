@@ -10,6 +10,7 @@ record CachedValue
 end record;
 
 var values: CachedValue[8];
+var locked_registers: uint8;
 
 sub print_cache()
     var i: uint8 := 0;
@@ -36,17 +37,74 @@ sub bad_register()
     halt();
 end sub;
 
+sub arch_gen_beginning_of_instruction()
+    locked_registers := 0;
+end sub;
+
 sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
 end sub;
 
-sub find_unused_regs(candidates: uint8): (mask: uint8)
-    var i: uint8 := 0;
-    while i < values@size loop
-        candidates := candidates & (values[i].locations ^ 0xff);
-        i := i + 1;
-    end loop;
-    mask := candidates & REG_MASK;
+# opcode needs to be the *abs* form of the instruction.
+sub write_6502_regular_op(opcode: uint8, ea: [EffectiveAddress])
+    print("* write opcode 0x");
+    print_hex_i8(opcode);
+    print(": ");
+    print_ea(ea);
+    print_newline();
+
+    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
+    if obj.thing_type == THING_NUMBER then
+        if opcode == 0xAD then opcode := 0xA9; # LDA
+        elseif opcode == 0xAE then opcode := 0xA2; # LDX
+        elseif opcode == 0xAC then opcode := 0xA0; # LDY
+        end if;
+        write_byte(opcode);
+        write_byte(get_value_of_number(ea.obj_id));
+        return;
+    elseif (obj.thing_type & THING_DATA) == 0 then
+        print("bad ea: wrong thing type ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    if ea.varoff_id != 0 then
+        print("bad ea: has varoff ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
+        # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
+        # an index. (We can probably optimise this for objects which we know live only in
+        # zero page.)
+        write_byte(opcode & 0xf7);
+        write_cg_6502_zeropage_iop(ea.obj_id, 0);
+    else
+        write_byte(opcode);
+        write_address_iop(ea.obj_id, ea.numoff_id);
+    end if;
+end sub;
+
+sub save_objval(location: uint8, ea: [EffectiveAddress])
+    var opcode: uint8;
+    if location == REG_A then
+        opcode := 0x8D; # STA abs
+    elseif location == REG_X then
+        opcode := 0x8E; # STX abs
+    elseif location == REG_Y then
+        opcode := 0x8C; # STY abs
+    else
+        bad_register();
+    end if;
+    write_6502_regular_op(opcode, ea);
+end sub;
+
+sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+    var old_numoff_id: uint16 := ea.numoff_id;
+    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
+    save_objval(location, ea);
+    ea.numoff_id := old_numoff_id;
 end sub;
 
 sub find_first_bit(value: uint8): (mask: uint8)
@@ -63,13 +121,66 @@ sub find_first_bit(value: uint8): (mask: uint8)
     mask := 0;
 end sub;
 
-sub allocate_reg(candidates: uint8): (mask: uint8)
-    mask := find_unused_regs(candidates);
-    if mask == 0 then
-        print("no unused registers");
+sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
+    location := find_first_bit(location);
+    print("* writing back 0x");
+    print_hex_i8(location);
+    print(" to precious value ");
+    print_ea(ea);
+    print_newline();
+
+    if ea.type == EA_OBJVAL then
+        save_objval(location, ea);
+    else
+        print("can't write precious value ");
+        print_ea(ea);
+        print(" yet");
         halt();
     end if;
+end sub;
+
+sub write_back_precious_values(mask: uint8)
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        var locations: uint8 := value.locations;
+        if (locations & mask) != 0 then
+            if (locations & PRECIOUS) != 0 then
+                locations := locations - PRECIOUS;
+                write_back_precious_value(locations, &value.ea);
+                value.locations := locations;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+sub find_unused_regs(candidates: uint8): (mask: uint8)
+    var i: uint8 := 0;
+    while i < values@size loop
+        candidates := candidates & (values[i].locations ^ 0xff);
+        i := i + 1;
+    end loop;
+    mask := candidates & REG_MASK;
+end sub;
+
+sub allocate_reg(candidates: uint8): (mask: uint8)
+    candidates := candidates & (locked_registers ^ 0xff);
+    mask := find_unused_regs(candidates);
+    if mask == 0 then
+        mask := candidates;
+        if mask == 0 then
+            print_cache();
+            print("locked register bitmask: 0x");
+            print_hex_i8(locked_registers);
+            print_newline();
+            print("no available registers");
+            halt();
+        end if;
+    end if;
     mask := find_first_bit(mask);
+    write_back_precious_values(mask);
+    locked_registers := locked_registers | mask;
     print("* allocating 0x");
     print_hex_i8(mask);
     print_newline();
@@ -83,7 +194,7 @@ sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations:
     var index: uint8 := 0;
     while index < values@size loop
         var value: [CachedValue] := &values[index];
-        locations := value.locations & REG_MASK;
+        locations := value.locations & candidates & REG_MASK;
         if (locations != 0) and (is_same_ea(&value.ea, ea) != 0) then
             locations := value.locations & REG_MASK;
             print("* found in 0x");
@@ -152,8 +263,15 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
 end sub;
 
 sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    print("* hunting for ");
+    print_ea(ea);
+    print(" in 0x");
+    print_hex_i8(candidates);
+    print_newline();
+
     location := find_reg_with_value(ea, candidates);
     if location != 0 then
+        locked_registers := locked_registers | location;
         return;
     end if;
 
@@ -164,6 +282,14 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
 
     var oldlocation: uint8 := location;
     location := allocate_reg(candidates);
+
+    print("* moving value ");
+    print_ea(ea);
+    print(" from 0x");
+    print_hex_i8(oldlocation);
+    print(" to ");
+    print_hex_i8(location);
+    print_newline();
 
     var opcode: uint8 := 0;
     if location == REG_A then
@@ -213,99 +339,6 @@ sub value_is_precious(ea: [EffectiveAddress])
     halt();
 end sub;
 
-# opcode needs to be the *abs* form of the instruction.
-sub write_6502_regular_op(opcode: uint8, ea: [EffectiveAddress])
-    print("* write opcode 0x");
-    print_hex_i8(opcode);
-    print(": ");
-    print_ea(ea);
-    print_newline();
-
-    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
-    if obj.thing_type == THING_NUMBER then
-        write_byte(opcode & 0xfb);
-        write_byte(get_value_of_number(ea.obj_id));
-        return;
-    elseif (obj.thing_type & THING_DATA) == 0 then
-        print("bad ea: wrong thing type ");
-        print_ea(ea);
-        halt();
-    end if;
-
-    if ea.varoff_id != 0 then
-        print("bad ea: has varoff ");
-        print_ea(ea);
-        halt();
-    end if;
-
-    if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
-        # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
-        # an index. (We can probably optimise this for objects which we know live only in
-        # zero page.)
-        write_byte(opcode & 0xf7);
-        write_cg_6502_zeropage_iop(ea.obj_id, 0);
-    else
-        write_byte(opcode);
-        write_address_iop(ea.obj_id, ea.numoff_id);
-    end if;
-end sub;
-
-sub save_objval(location: uint8, ea: [EffectiveAddress])
-    var opcode: uint8;
-    if location == REG_A then
-        opcode := 0x8D; # STA abs
-    elseif location == REG_X then
-        opcode := 0x8E; # STX abs
-    elseif location == REG_Y then
-        opcode := 0x8C; # STY abs
-    else
-        bad_register();
-    end if;
-    write_6502_regular_op(opcode, ea);
-end sub;
-
-sub save_objval_pair(lo: uint8, hi: uint8, ea: [EffectiveAddress])
-    save_objval(lo, ea);
-    var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + 1);
-    save_objval(hi, ea);
-    ea.numoff_id := old_numoff_id;
-end sub;
-
-sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
-    location := find_first_bit(location);
-    print("* writing back 0x");
-    print_hex_i8(location);
-    print(" to precious value ");
-    print_ea(ea);
-    print_newline();
-
-    if ea.type == EA_OBJVAL then
-        save_objval(location, ea);
-    else
-        print("can't write precious value ");
-        print_ea(ea);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub write_back_precious_values(mask: uint8)
-    var i: uint8 := 0;
-    while i < values@size loop
-        var value: [CachedValue] := &values[i];
-        var locations: uint8 := value.locations;
-        if (locations & mask) != 0 then
-            if (locations & PRECIOUS) != 0 then
-                locations := locations - PRECIOUS;
-                write_back_precious_value(locations, &value.ea);
-                value.locations := locations;
-            end if;
-        end if;
-        i := i + 1;
-    end loop;
-end sub;
-
 # The contents of location are about to be replaced with a new value. If any values there
 # are precious, they get written back --- except for the new value, if it's there.
 # Any cached values in that location get flushed. This allows mutation of values without
@@ -332,15 +365,15 @@ end sub;
 
 sub flush_cached_values(mask: uint8)
     write_back_precious_values(mask);
+
+    print("* flushing cached values in 0x");
+    print_hex_i8(mask);
+    print_newline();
+
     var i: uint8 := 0;
     while i < values@size loop
         var value: [CachedValue] := &values[i];
-        if (value.locations & mask) != 0 then
-            print("* flushing cache slot ");
-            print_i8(i);
-            print_newline();
-            value.locations := 0;
-        end if;
+        value.locations := value.locations & (REG_MASK & mask);
         i := i + 1;
     end loop;
 end sub;
@@ -422,6 +455,19 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     end if;
 end sub;
 
+sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
+    var ea: EffectiveAddress;
+    ea.type := EA_OBJVAL;
+    ea.obj_id := add_number_by_value(value);
+    ea.numoff_id := 0;
+    ea.varoff_id := 0;
+    location := find_or_load_value(&ea, candidates);
+end sub;
+
+sub find_or_load_fixed_int(value: uint8, candidates: uint8)
+    var location: uint8 := find_or_load_int(value, candidates);
+end sub;
+
 sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     var oldlocation: uint8 := find_reg_with_value(ea, candidates);
     location := find_or_load_value(ea, candidates);
@@ -431,6 +477,10 @@ sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: uint8): (l
         write_byte(0x09); # ORA imm
         write_byte(0x00);
     end if;
+end sub;
+
+sub find_or_load_fixed_value_with_flags(ea: [EffectiveAddress], candidates: uint8)
+    var location: uint8 := find_or_load_value_with_flags(ea, candidates);
 end sub;
 
 sub save_value(location: uint8, ea: [EffectiveAddress])
@@ -446,12 +496,14 @@ sub save_value(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub save_value_pair(lo: uint8, hi: uint8, ea: [EffectiveAddress])
+sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
     if ea.type == EA_OBJVAL then
-        save_objval_pair(lo, hi, ea);
+        save_objval_with_offset(location, ea, offset);
     else
-        print("can't save to ");
+        print("can't save ");
         print_ea(ea);
+        print(" with offset 0x");
+        print_hex_i8(offset);
         print(" yet");
         halt();
     end if;
@@ -566,16 +618,23 @@ sub arch_gen_sub_byte(iop: [BEIop])
 end sub;
 
 sub arch_gen_sext_word(iop: [BEIop])
-    allocate_fixed_reg(REG_X);
-    write_byte(0xA2); # LDX imm
-    write_byte(0); # payload
+    find_or_load_fixed_int(0, REG_X);
 
-    var location: uint8 := find_or_load_value_with_flags(&iop.left, REG_A);
+    find_or_load_fixed_value_with_flags(&iop.left, REG_A);
     write_byte(0x10); # BPL rel
-    write_byte(0x01); # skip one instruction
+    write_byte(0x01); # skip one byte
     write_byte(0xCA); # DEX
 
-    save_objval_pair(location, REG_X, &iop.dest);
+    save_value_with_offset(REG_A, &iop.dest, 0);
+    save_value_with_offset(REG_X, &iop.dest, 1);
+end sub;
+
+sub arch_gen_zext_word(iop: [BEIop])
+    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
+    save_value_with_offset(location, &iop.dest, 0);
+
+    location := find_or_load_int(0, REG_A|REG_X|REG_Y);
+    save_value_with_offset(location, &iop.dest, 1);
 end sub;
 
 sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])

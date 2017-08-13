@@ -100,8 +100,18 @@ sub try_sext(iop: [BEIop])
     cant_do_2op(iop, "sext");
 end sub;
 
+sub try_zext(iop: [BEIop])
+    if iop.width == 2 then
+        arch_gen_zext_word(iop);
+        return;
+    end if;
+
+    cant_do_2op(iop, "zext");
+end sub;
+
 sub global_rules(): (matched: uint8)
     matched := 1;
+    arch_gen_beginning_of_instruction();
 
     if queue0.iop_kind == IOP_BE_COPY then
         try_copy(queue0 as [BEIop]);
@@ -123,6 +133,12 @@ sub global_rules(): (matched: uint8)
 
     if queue0.iop_kind == IOP_BE_SEXT then
         try_sext(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_ZEXT then
+        try_zext(queue0 as [BEIop]);
         consume_iops(1);
         return;
     end if;
