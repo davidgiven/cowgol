@@ -507,17 +507,26 @@ sub arch_gen_sub_byte(iop: [BEIop])
 end sub;
 
 sub arch_gen_copy_word(iop: [BEIop])
-    find_or_load_fixed_int(1, REG_Y);
-    allocate_fixed_reg(REG_A);
+    if is_number_thing(iop.left.obj_id) != 0 then
+        var value: int32 := get_value_of_number(iop.left.obj_id);
+        var location: uint8 := find_or_load_int(value, REG_A|REG_X);
+        save_value_with_offset(location, &iop.dest, 0);
+        locked_registers := locked_registers ^ location;
+        location := find_or_load_int(value >> 8, REG_A|REG_X);
+        save_value_with_offset(location, &iop.dest, 1);
+    else
+        find_or_load_fixed_int(1, REG_Y);
+        allocate_fixed_reg(REG_A);
 
-    var label: uint16 := create_label();
-    write_label_iop(label);
-    load_value_with_index(REG_A, &iop.left, REG_Y);
-    save_value_with_index(REG_A, &iop.dest, REG_Y);
-    write_byte(0x88); # DEY
-    write_cg_6502_conditional_iop(0x30, label); # BMI
+        var label: uint16 := create_label();
+        write_label_iop(label);
+        load_value_with_index(REG_A, &iop.left, REG_Y);
+        save_value_with_index(REG_A, &iop.dest, REG_Y);
+        write_byte(0x88); # DEY
+        write_cg_6502_conditional_iop(0x30, label); # BMI
 
-    flush_cached_values(REG_Y);
+        flush_cached_values(REG_Y);
+    end if;
 end sub;
 
 sub arch_gen_sext_word(iop: [BEIop])
