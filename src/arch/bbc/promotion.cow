@@ -1,6 +1,7 @@
-sub arch_promote_to_new_node_and_deref(src: [Node], dest_type_id: uint16): (dest: [Node])
+sub arch_promote_to_new_node_and_deref(src: [Node], dest_type_id: uint16):
+        (dest: [Node])
     var destwidth: uint8 := get_width_of_type(dest_type_id);
-    var width: uint8 := get_width_of(src);
+    var width: uint8 := get_width_of_type(src.type_id);
     if (width != 0) and (width < destwidth) then
         print("* promote-and-copy of value of width ");
         print_i8(width);
@@ -9,7 +10,7 @@ sub arch_promote_to_new_node_and_deref(src: [Node], dest_type_id: uint16): (dest
         print_newline();
 
         dest := simplify_node_to_ea_and_deref(src);
-        if (is_signed_type_thing(get_type_of_ea(&dest.left)) != 0) then
+        if is_signed_type_thing(dest.type_id) != 0 then
             dest.iop := IOP_BE_SEXT;
         else
             dest.iop := IOP_BE_ZEXT;

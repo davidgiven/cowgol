@@ -38,22 +38,6 @@ sub get_type_of_thing(thing_id: uint16): (type_id: uint16)
     end if;
 end sub;
 
-sub get_type_of_ea(ea: [EffectiveAddress]): (type_id: uint16)
-    type_id := get_type_of_thing(ea.obj_id);
-    if type_id != 0 then
-        if (ea.type & EA_DEREF_BEFORE) == 0 then
-            type_id := pointer_of(type_id);
-        end if;
-        if (ea.type & EA_DEREF_AFTER) != 0 then
-            type_id := element_of(type_id);
-        end if;
-        if type_id == 0 then
-            print("bad thing_type");
-            halt();
-        end if;
-    end if;
-end sub;
-
 # assumes type_id == 0 for numbers
 sub get_width_of_type(type_id: uint16): (width: uint8)
     if type_id == 0 then

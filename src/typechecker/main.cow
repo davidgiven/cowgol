@@ -499,17 +499,10 @@ sub process_subroutine(thing_id: uint16)
     end sub;
 
     sub fe_cast(iop: [FECastIop])
-        var node: [Node] := simplify_node_to_ea_and_deref(pop());
+        var node: [Node] := pop();
 
         var input_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
         var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
-        if (input_type.thing_type != THING_NUMERIC) and (input_type.width != output_type.width) then
-            if output_type.thing_type == THING_SIGNED then
-                node.iop := IOP_BE_SEXT;
-            else
-                node.iop := IOP_BE_ZEXT;
-            end if;
-        end if;
         node.type_id := iop.type_id;
         node.flags := FLAG_RVALUE;
         push_node(node);
