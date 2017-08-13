@@ -99,6 +99,10 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
     print_newline();
 end sub;
 
+sub free_reg(mask: uint8)
+    locked_registers := locked_registers & (mask ^ REG_MASK);
+end sub;
+
 sub allocate_fixed_reg(candidates: uint8)
     var location: uint8 := allocate_reg(candidates);
 end sub;
@@ -196,6 +200,13 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
     var oldlocation: uint8 := location;
     location := allocate_reg(candidates);
 
+    # Special case: can't move from X to Y or vice versa.
+    if (oldlocation|location) == (REG_X|REG_Y) then
+        free_reg(location);
+        location := 0;
+        return;
+    end if;
+
     print("* moving value ");
     print_ea(ea);
     print(" from 0x");
@@ -286,7 +297,7 @@ sub flush_cached_values(mask: uint8)
     var i: uint8 := 0;
     while i < values@size loop
         var value: [CachedValue] := &values[i];
-        value.locations := value.locations & (REG_MASK & mask);
+        value.locations := value.locations & (REG_MASK ^ mask);
         i := i + 1;
     end loop;
 end sub;
@@ -422,6 +433,9 @@ end sub;
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     value_is_cached_in_reg(ea, location);
     if (ea.type & EA_DEREF_BEFORE) != 0 then
+        print("* value ");
+        print_ea(ea);
+        print(" can't be made precious, saving now\n");
         save_value(location, ea);
     else
         value_is_precious(ea);
