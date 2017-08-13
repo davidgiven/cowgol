@@ -1,0 +1,229 @@
+const REG_A    := 0b0000_0001;
+const REG_X    := 0b0000_0010;
+const REG_Y    := 0b0000_0100;
+const REG_MASK := 0b0111_1111;
+const PRECIOUS := 0b1000_0000;
+
+sub find_first_bit(value: uint8): (mask: uint8)
+    mask := 1;
+    loop
+        if (value & mask) != 0 then
+            return;
+        end if;
+        if mask == 0x80 then
+            break;
+        end if;
+        mask := mask << 1;
+    end loop;
+    mask := 0;
+end sub;
+
+sub find_bit_index(value: uint8): (index: uint8)
+    var mask: uint8 := 1;
+    index := 0;
+    loop
+        if (value & mask) != 0 then
+            return;
+        end if;
+        if mask == 0x80 then
+            break;
+        end if;
+        mask := mask << 1;
+        index := index + 1;
+    end loop;
+    print("bit not set");
+    halt();
+end sub;
+
+sub bad_register()
+    print("bad register");
+    halt();
+end sub;
+
+# opcode needs to be the *abs* form of the instruction.
+sub write_6502_regular_op(opcode: uint8, ea: [EffectiveAddress])
+    print("* write opcode 0x");
+    print_hex_i8(opcode);
+    print(": ");
+    print_ea(ea);
+    print_newline();
+
+    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
+    if obj.thing_type == THING_NUMBER then
+        if opcode == 0xAD then opcode := 0xA9; # LDA
+        elseif opcode == 0xAE then opcode := 0xA2; # LDX
+        elseif opcode == 0xAC then opcode := 0xA0; # LDY
+        end if;
+        write_byte(opcode);
+        write_byte(get_value_of_number(ea.obj_id));
+        return;
+    elseif (obj.thing_type & THING_DATA) == 0 then
+        print("bad ea: wrong thing type ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    if ea.varoff_id != 0 then
+        print("bad ea: has varoff ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
+        # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
+        # an index. (We can probably optimise this for objects which we know live only in
+        # zero page.)
+        write_byte(opcode & 0xf7);
+        write_cg_6502_zeropage_iop(ea.obj_id, 0);
+    else
+        write_byte(opcode);
+        write_address_iop(ea.obj_id, ea.numoff_id);
+    end if;
+end sub;
+
+var ld_imm_opcodes: uint8[3];
+ld_imm_opcodes[0] := 0xA9; # LDA imm
+ld_imm_opcodes[1] := 0xA2; # LDX imm
+ld_imm_opcodes[2] := 0xA0; # LDY imm
+sub ld_imm(location: uint8, value: uint8)
+    location := find_bit_index(location);
+    write_byte(ld_imm_opcodes[location]);
+    write_byte(value);
+end sub;
+
+var ld_abs_opcodes: uint8[3];
+ld_abs_opcodes[0] := 0xAD; # LDA abs
+ld_abs_opcodes[1] := 0xAE; # LDX abs
+ld_abs_opcodes[2] := 0xAC; # LDY abs
+var ld_abs_x_opcodes: uint8[3];
+ld_abs_x_opcodes[0] := 0xBD; # LDA abs, X
+ld_abs_x_opcodes[1] := 0x00; # invalid
+ld_abs_x_opcodes[2] := 0xBC; # LDY abs, X
+var ld_abs_y_opcodes: uint8[3];
+ld_abs_y_opcodes[0] := 0xB9; # LDA abs, Y
+ld_abs_y_opcodes[1] := 0xBE; # LDX abs, Y
+ld_abs_y_opcodes[2] := 0x00; # invalid
+sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint8)
+    if ea.varoff_id != 0 then
+        print("can't have varoff here");
+        halt();
+    end if;
+    if is_number_thing(ea.obj_id) != 0 then
+        print("can't have number here");
+        halt();
+    end if;
+
+    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
+    var opcode: uint8 := 0;
+
+    location := find_bit_index(location);
+    if index == 0 then
+        opcode := ld_abs_opcodes[location];
+    elseif index == REG_X then
+        opcode := ld_abs_x_opcodes[location];
+    elseif index == REG_Y then
+        opcode := ld_abs_y_opcodes[location];
+    end if;
+
+    if opcode == 0 then
+        bad_register();
+    end if;
+    opcode := opcode & opmask;
+
+    if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
+        # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
+        # an index. (We can probably optimise this for objects which we know live only in
+        # zero page.)
+        write_byte(opcode & 0xf7);
+        write_cg_6502_zeropage_iop(ea.obj_id, 0);
+    else
+        write_byte(opcode);
+        write_address_iop(ea.obj_id, ea.numoff_id);
+    end if;
+end sub;
+
+sub ld_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
+    ldst_abs(location, index, ea, 0b11111111);
+end sub;
+
+sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
+    ldst_abs(location, index, ea, 0b11011111);
+end sub;
+
+sub load_objval(location: uint8, ea: [EffectiveAddress])
+    if is_number_thing(ea.obj_id) != 0 then
+        ld_imm(location, get_value_of_number(ea.obj_id));
+    else
+        ld_abs(location, 0, ea);
+    end if;
+end sub;
+
+sub load_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+    var old_numoff_id: uint16 := ea.numoff_id;
+    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
+    ld_abs(location, 0, ea);
+    ea.numoff_id := old_numoff_id;
+end sub;
+
+sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+    if ea.type == EA_OBJVAL then
+        load_objval_with_offset(location, ea, offset);
+    else
+        print("can't load ");
+        print_ea(ea);
+        print(" with offset 0x");
+        print_hex_i8(offset);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
+sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
+    if ea.type == EA_OBJVAL then
+        ld_abs(location, index, ea);
+    else
+        print("can't load ");
+        print_ea(ea);
+        print(" with index reg 0x");
+        print_hex_i8(index);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
+sub save_objval(location: uint8, ea: [EffectiveAddress])
+    st_abs(location, 0, ea);
+end sub;
+
+sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+    var old_numoff_id: uint16 := ea.numoff_id;
+    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
+    st_abs(location, 0, ea);
+    ea.numoff_id := old_numoff_id;
+end sub;
+
+sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+    if ea.type == EA_OBJVAL then
+        save_objval_with_offset(location, ea, offset);
+    else
+        print("can't save ");
+        print_ea(ea);
+        print(" with offset 0x");
+        print_hex_i8(offset);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
+sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
+    if ea.type == EA_OBJVAL then
+        st_abs(location, index, ea);
+    else
+        print("can't save ");
+        print_ea(ea);
+        print(" with index reg 0x");
+        print_hex_i8(index);
+        print(" yet");
+        halt();
+    end if;
+end sub;

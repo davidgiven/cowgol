@@ -1,9 +1,3 @@
-const REG_A    := 0b0000_0001;
-const REG_X    := 0b0000_0010;
-const REG_Y    := 0b0000_0100;
-const REG_MASK := 0b0111_1111;
-const PRECIOUS := 0b1000_0000;
-
 record CachedValue
     ea: EffectiveAddress;
     locations: uint8;
@@ -32,93 +26,12 @@ sub print_cache()
     end loop;
 end sub;
 
-sub bad_register()
-    print("bad register");
-    halt();
-end sub;
-
 sub arch_gen_beginning_of_instruction()
     locked_registers := 0;
 end sub;
 
 sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
-end sub;
-
-# opcode needs to be the *abs* form of the instruction.
-sub write_6502_regular_op(opcode: uint8, ea: [EffectiveAddress])
-    print("* write opcode 0x");
-    print_hex_i8(opcode);
-    print(": ");
-    print_ea(ea);
-    print_newline();
-
-    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
-    if obj.thing_type == THING_NUMBER then
-        if opcode == 0xAD then opcode := 0xA9; # LDA
-        elseif opcode == 0xAE then opcode := 0xA2; # LDX
-        elseif opcode == 0xAC then opcode := 0xA0; # LDY
-        end if;
-        write_byte(opcode);
-        write_byte(get_value_of_number(ea.obj_id));
-        return;
-    elseif (obj.thing_type & THING_DATA) == 0 then
-        print("bad ea: wrong thing type ");
-        print_ea(ea);
-        halt();
-    end if;
-
-    if ea.varoff_id != 0 then
-        print("bad ea: has varoff ");
-        print_ea(ea);
-        halt();
-    end if;
-
-    if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
-        # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
-        # an index. (We can probably optimise this for objects which we know live only in
-        # zero page.)
-        write_byte(opcode & 0xf7);
-        write_cg_6502_zeropage_iop(ea.obj_id, 0);
-    else
-        write_byte(opcode);
-        write_address_iop(ea.obj_id, ea.numoff_id);
-    end if;
-end sub;
-
-sub save_objval(location: uint8, ea: [EffectiveAddress])
-    var opcode: uint8;
-    if location == REG_A then
-        opcode := 0x8D; # STA abs
-    elseif location == REG_X then
-        opcode := 0x8E; # STX abs
-    elseif location == REG_Y then
-        opcode := 0x8C; # STY abs
-    else
-        bad_register();
-    end if;
-    write_6502_regular_op(opcode, ea);
-end sub;
-
-sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
-    save_objval(location, ea);
-    ea.numoff_id := old_numoff_id;
-end sub;
-
-sub find_first_bit(value: uint8): (mask: uint8)
-    mask := 1;
-    loop
-        if (value & mask) != 0 then
-            return;
-        end if;
-        if mask == 0x80 then
-            break;
-        end if;
-        mask := mask << 1;
-    end loop;
-    mask := 0;
 end sub;
 
 sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
@@ -391,18 +304,7 @@ sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: u
     end if;
     location := allocate_reg_for_value(ea, candidates);
 
-    var opcode: uint8;
-    if location == REG_A then
-        opcode := 0xAD; # LDA abs
-    elseif location == REG_X then
-        opcode := 0xAE; # LDX abs
-    elseif location == REG_Y then
-        opcode := 0xAC; # LDY abs
-    else
-        bad_register();
-    end if;
-
-    write_6502_regular_op(opcode, ea);
+    load_objval(location, ea);
 end sub;
 
 # Loads *just the index part* of the EA into Y.
@@ -491,19 +393,6 @@ sub save_value(location: uint8, ea: [EffectiveAddress])
     else
         print("can't save ");
         print_ea(ea);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.type == EA_OBJVAL then
-        save_objval_with_offset(location, ea, offset);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" with offset 0x");
-        print_hex_i8(offset);
         print(" yet");
         halt();
     end if;
@@ -617,6 +506,20 @@ sub arch_gen_sub_byte(iop: [BEIop])
     gen_regular_alu(iop, 0xED); # SBC abs
 end sub;
 
+sub arch_gen_copy_word(iop: [BEIop])
+    find_or_load_fixed_int(1, REG_Y);
+    allocate_fixed_reg(REG_A);
+
+    var label: uint16 := create_label();
+    write_label_iop(label);
+    load_value_with_index(REG_A, &iop.left, REG_Y);
+    save_value_with_index(REG_A, &iop.dest, REG_Y);
+    write_byte(0x88); # DEY
+    write_cg_6502_conditional_iop(0x30, label); # BMI
+
+    flush_cached_values(REG_Y);
+end sub;
+
 sub arch_gen_sext_word(iop: [BEIop])
     find_or_load_fixed_int(0, REG_X);
 
@@ -636,121 +539,3 @@ sub arch_gen_zext_word(iop: [BEIop])
     location := find_or_load_int(0, REG_A|REG_X|REG_Y);
     save_value_with_offset(location, &iop.dest, 1);
 end sub;
-
-sub arch_gen_copy_word_to_word(src: [EffectiveAddress], dest: [EffectiveAddress])
-    write_byte(0x40); # JSR abs
-    print("unsupported");
-    halt();
-#    write_address_iop(IOP_CG_COPY2, 0);
-#    write_address_iop(src.thing_id, src.constant);
-#    write_address_iop(dest.thing_id, dest.constant);
-end sub;
-
-#sub arch_gen_load_ptr_offset_bytevar_to_byte(ptr_id: uint16, offsetvar_id: uint16,
-#        dest: [EffectiveAddress])
-#    var ptr: [VariableThing] := find_thing(ptr_id) as [VariableThing];
-#    #ptr.section := SECTION_POINTER;
-#
-#    var ea: EffectiveAddress[1];
-#    ea[0].type := EA_VAR_PLUS_CONST;
-#    ea[0].width := 2;
-#    ea[0].thing_id := offsetvar_id;
-#    ea[0].constant := 0;
-#    var xreg: uint8 := find_or_load_value(&ea[0], REG_X);
-#    write_byte(0xA1); # LDA ind,X
-#    write_cg_6502_zeropage_iop(ptr_id, 0);
-#    value_is_precious_in_reg(dest, REG_A);
-#end sub;
-
-#sub arch_gen_alu2op(iop: uint8,
-#        left: [EffectiveAddress], right: [EffectiveAddress], dest: [EffectiveAddress]):
-#        (matched: uint8)
-#    matched := 1;
-#
-#    sub major_8bit(opcodebase: uint8)
-#        var accumulator: uint8 := find_or_load_value(left, REG_A);
-#        var buf: uint8[2];
-#        if right.type == EA_VAR_PLUS_CONST then
-#            # OPCODE abs
-#            write_cg_6502_mem_iop(opcodebase | 0x0D, right.thing_id, right.constant);
-#            value_is_precious_in_reg(dest, REG_A);
-#        else
-#            print("can't add this EA yet");
-#            halt();
-#        end if;
-#    end sub;
-#
-#    if iop == IOP_ADDOP then
-#        if left.width <= 1 then
-#            write_byte(0x18); # CLC
-#            major_8bit(0x60); # base ADC
-#            return;
-#        end if;
-#    end if;
-#
-#    matched := 0;
-#end sub;
-
-#sub arch_gen_alu1op(iop: uint8, left: [EffectiveAddress], dest: [EffectiveAddress]): (matched: uint8)
-#    matched := 1;
-#
-#    sub do_not()
-#        var accumulator: uint8 := find_or_load_value(left, REG_A);
-#        write_byte(0x4D); # EOR imm
-#        write_byte(0xFF);
-#        value_is_precious_in_reg(dest, REG_A);
-#    end sub;
-#
-#    if iop == IOP_NOTOP then
-#        if left.width == 1 then
-#            do_not();
-#            return;
-#        end if;
-#    end if;
-#
-#    matched := 0;
-#end sub;
-
-#sub arch_gen_conditional_fallthrough(iop: uint8,
-#        left: [EffectiveAddress], right: [EffectiveAddress], inverted: uint8, label_id: uint16):
-#        (matched: uint8)
-#    matched := 1;
-#
-#    var opcode: uint8;
-#    if (left.width <= 1) and (right.width <= 1) then
-#        var reg: uint8 := find_or_load_value(left, REG_A|REG_X|REG_Y);
-#        write_back_precious_values(REG_MASK);
-#
-#        if right.type == EA_NUMBER then
-#            if reg == REG_A then
-#                opcode := 0xC9; # CMP imm
-#            elseif reg == REG_X then
-#                opcode := 0xE0; # CPX imm
-#            elseif reg == REG_Y then
-#                opcode := 0xC0; # CPY imm
-#            else
-#                bad_register();
-#            end if;
-#            write_byte(opcode);
-#            write_byte(right.constant);
-#        else
-#            print("can't compare these types yet");
-#            halt();
-#        end if;
-#    else
-#        matched := 0;
-#        return;
-#    end if;
-#
-#    if iop == IOP_BEQ then
-#        opcode := 0xF0; # BNE
-#    else
-#        print("can't do this comparison yet");
-#    end if;
-#    if inverted == 1 then
-#        opcode := opcode ^ 0x20;
-#    end if;
-#
-#    flush_cached_values(REG_MASK);
-#    write_cg_6502_conditional_iop(opcode, label_id);
-#end sub;

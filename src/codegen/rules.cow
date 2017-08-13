@@ -45,6 +45,11 @@ sub try_copy(iop: [BEIop])
         return;
     end if;
 
+    if destw == 2 then
+        arch_gen_copy_word(iop);
+        return;
+    end if;
+
     cant_do_2op(iop, "");
 end sub;
 
