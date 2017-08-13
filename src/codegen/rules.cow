@@ -1,15 +1,26 @@
+sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint8)
+    if (ea.type & EA_DEREF_AFTER) == 0 then
+        width := 2;
+    elseif ea.type == EA_OBJVAL then
+        width := get_width_of_thing(ea.obj_id);
+    else
+        var type: [WithElementsThing] := find_thing(get_type_of_thing(ea.obj_id)) as [WithElementsThing];
+        width := get_width_of_type(type.element_id);
+    end if;
+end sub;
+
 sub get_2op_widths(iop: [BEIop]): (srcw: uint8, destw: uint8)
-    srcw := get_width_of_thing(iop.left.obj_id);
-    destw := get_width_of_thing(iop.dest.obj_id);
+    srcw := get_width_of_ea(&iop.left);
+    destw := get_width_of_ea(&iop.dest);
     if srcw == 0 then
         srcw := destw;
     end if;
 end sub;
 
 sub get_3op_widths(iop: [BEIop]): (leftw: uint8, rightw: uint8, destw: uint8)
-    leftw := get_width_of_thing(iop.left.obj_id);
-    rightw := get_width_of_thing(iop.right.obj_id);
-    destw := get_width_of_thing(iop.dest.obj_id);
+    leftw := get_width_of_ea(&iop.left);
+    rightw := get_width_of_ea(&iop.right);
+    destw := get_width_of_ea(&iop.dest);
 
     if leftw == 0 then
         leftw := destw;
@@ -23,13 +34,13 @@ sub cant_do_2op(iop: [BEIop], op: [int8])
     print("can't do ");
     print_ea(&iop.left);
     print_char('(');
-    print_i8(get_width_of_thing(iop.left.obj_id));
+    print_i8(get_width_of_ea(&iop.left));
     print(") ");
     print(op);
     print(" -> ");
     print_ea(&iop.dest);
     print_char('(');
-    print_i8(get_width_of_thing(iop.dest.obj_id));
+    print_i8(get_width_of_ea(&iop.dest));
     print(") width ");
     print_i8(iop.width);
     halt();
@@ -57,17 +68,17 @@ sub cant_do_3op(iop: [BEIop], op: [int8])
     print("can't do ");
     print_ea(&iop.left);
     print_char('(');
-    print_i8(get_width_of_thing(iop.left.obj_id));
+    print_i8(get_width_of_ea(&iop.left));
     print(") ");
     print(op);
     print(" ");
     print_ea(&iop.right);
     print_char('(');
-    print_i8(get_width_of_thing(iop.right.obj_id));
+    print_i8(get_width_of_ea(&iop.right));
     print(") -> ");
     print_ea(&iop.dest);
     print_char('(');
-    print_i8(get_width_of_thing(iop.dest.obj_id));
+    print_i8(get_width_of_ea(&iop.dest));
     print(") width ");
     print_i8(iop.width);
     halt();
