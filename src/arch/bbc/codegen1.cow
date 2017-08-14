@@ -140,7 +140,7 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
         print("* remembering that ");
         print_ea(ea);
         print(" is also in 0x");
-        print_i8(locations);
+        print_hex_i8(locations);
         print_newline();
     end sub;
 
@@ -207,7 +207,7 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
     print_ea(ea);
     print(" from 0x");
     print_hex_i8(oldlocation);
-    print(" to ");
+    print(" to 0x");
     print_hex_i8(location);
     print_newline();
 
@@ -225,7 +225,7 @@ sub value_is_precious(ea: [EffectiveAddress])
                     print("* remembering that value ");
                     print_ea(ea);
                     print(" is precious in 0x");
-                    print_i8(value.locations);
+                    print_hex_i8(value.locations);
                     print_newline();
                     value.locations := value.locations | PRECIOUS;
                     return;
@@ -334,13 +334,13 @@ sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
         indexreg := find_or_load_index(ea, REG_X|REG_Y);
     end if;
     st_abs(location, indexreg, ea);
-    free_reg(location);
+    free_reg(indexreg);
 end sub;
 
 sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
     var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    st_ind(location, location, ea);
-    free_reg(location);
+    st_ind(location, indexreg, ea);
+    free_reg(indexreg);
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)

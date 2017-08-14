@@ -48,18 +48,32 @@ sub cant_do_2op(iop: [BEIop], op: [int8])
     halt();
 end sub;
 
+sub insn_before(iop: [BEIop])
+    arch_gen_before(&iop.left);
+    arch_gen_before(&iop.right);
+    arch_gen_before(&iop.dest);
+end sub;
+
+sub insn_after(iop: [BEIop])
+    arch_gen_after(&iop.dest);
+end sub;
+
 sub try_copy(iop: [BEIop])
+    insn_before(iop);
+
     var srcw: uint8;
     var destw: uint8;
     (srcw, destw) := get_2op_widths(iop);
 
     if destw == 1 then
         arch_gen_copy_byte(iop);
+        insn_after(iop);
         return;
     end if;
 
     if destw == 2 then
         arch_gen_copy_word(iop);
+        insn_after(iop);
         return;
     end if;
 
@@ -87,6 +101,8 @@ sub cant_do_3op(iop: [BEIop], op: [int8])
 end sub;
 
 sub try_add(iop: [BEIop])
+    insn_before(iop);
+
     var leftw: uint8;
     var rightw: uint8;
     var destw: uint8;
@@ -94,6 +110,7 @@ sub try_add(iop: [BEIop])
 
     if iop.width == 1 then
         arch_gen_add_byte(iop);
+        insn_after(iop);
         return;
     end if;
 
@@ -101,8 +118,11 @@ sub try_add(iop: [BEIop])
 end sub;
 
 sub try_sub(iop: [BEIop])
+    insn_before(iop);
+
     if iop.width == 1 then
         arch_gen_sub_byte(iop);
+        insn_after(iop);
         return;
     end if;
 
@@ -110,8 +130,11 @@ sub try_sub(iop: [BEIop])
 end sub;
 
 sub try_sext(iop: [BEIop])
+    insn_before(iop);
+
     if iop.width == 2 then
         arch_gen_sext_word(iop);
+        insn_after(iop);
         return;
     end if;
 
@@ -119,8 +142,11 @@ sub try_sext(iop: [BEIop])
 end sub;
 
 sub try_zext(iop: [BEIop])
+    insn_before(iop);
+
     if iop.width == 2 then
         arch_gen_zext_word(iop);
+        insn_after(iop);
         return;
     end if;
 
@@ -163,6 +189,12 @@ sub global_rules(): (matched: uint8)
 
     if queue0.iop_kind == IOP_RETURN then
         arch_gen_return();
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_LABEL then
+        arch_gen_label(queue0 as [LabelIop]);
         consume_iops(1);
         return;
     end if;

@@ -143,6 +143,18 @@ sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint
 end sub;
 
 sub ldst_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress], opcode: uint8)
+    print("@ ldst location=0x");
+    print_hex_i8(location);
+    print(" indexreg=0x");
+    print_hex_i8(indexreg);
+    print(" obj_id=");
+    print_thing(ea.obj_id);
+    print(" numoff=");
+    print_thing(ea.numoff_id);
+    print(" opcode=0x");
+    print_hex_i8(opcode);
+    print_newline();
+
     if ea.varoff_id != 0 then
         print("can't have varoff here");
         halt();
@@ -190,6 +202,12 @@ t_opcodes[2 + 0*3] := 0x98; # TYA
 t_opcodes[2 + 1*3] := 0x00; # TYX
 t_opcodes[2 + 2*3] := 0x00; # TYY
 sub t_reg_reg(src: uint8, dest: uint8)
+    print("@ t?? src=0x");
+    print_hex_i8(src);
+    print(" dest=0x");
+    print_hex_i8(dest);
+    print_newline();
+
     src := find_bit_index(src);
     dest := find_bit_index(dest);
     if (src|dest) == 0 then

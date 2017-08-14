@@ -1,3 +1,22 @@
+sub arch_gen_before(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.type == EA_PTRVAL) then
+        print("* writing back precious values because of pointer access: ");
+        print_ea(ea);
+        print_newline();
+
+        write_back_precious_values(REG_MASK);
+    end if;
+end sub;
+
+sub arch_gen_after(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.type == EA_PTRVAL) then
+        print("* flushing cached values because of pointer access: ");
+        print_ea(ea);
+        print_newline();
+
+        flush_cached_values(REG_MASK);
+    end if;
+end sub;
 
 sub arch_gen_beginning_of_instruction()
     locked_registers := 0;
@@ -14,8 +33,9 @@ sub arch_gen_call(thing_id: uint16)
     write_address_iop(thing_id, 0);
 end sub;
 
-sub arch_gen_label()
+sub arch_gen_label(iop: [LabelIop])
     flush_cached_values(REG_MASK);
+    write_iop(iop as [Iop]);
 end sub;
 
 sub arch_gen_goto(thing_id: uint16)
