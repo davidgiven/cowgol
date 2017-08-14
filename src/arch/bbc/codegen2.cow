@@ -38,10 +38,9 @@ sub arch_gen_label(iop: [LabelIop])
     write_iop(iop as [Iop]);
 end sub;
 
-sub arch_gen_goto(thing_id: uint16)
+sub arch_gen_goto(iop: [GotoIop])
     flush_cached_values(REG_MASK);
-    write_byte(0x4C); # JMP abs
-    write_address_iop(thing_id, 0);
+    write_cg_6502_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
 end sub;
 
 sub arch_gen_copy_byte(iop: [BEIop])
@@ -62,7 +61,9 @@ sub gen_regular_alu(iop: [BEIop], opcode: uint8)
         print_newline();
     end if;
 
-    write_6502_regular_op(opcode, &iop.right);
+    print("gen_regular_alu");
+    halt();
+    #write_6502_regular_op(opcode, &iop.right);
 
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
@@ -170,4 +171,42 @@ sub arch_gen_zext_word(iop: [BEIop])
 
     location := find_or_load_int(0, REG_A|REG_X|REG_Y);
     save_value_with_offset(location, &iop.dest, 1);
+end sub;
+
+sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
+
+    var swapped: uint8 := 0;
+    var opcode: uint8;
+    if ciop.iop_kind == IOP_BE_BEQ then
+        opcode := 0xF0; # BEQ rel
+    elseif ciop.iop_kind == IOP_BE_BLTU then
+        opcode := 0x90; # BCC rel
+    elseif ciop.iop_kind == IOP_BE_BGTU then
+        opcode := 0x90; # BCC rel
+        swapped := 1;
+    else
+        print("unsupported comparison");
+        halt();
+    end if;
+
+    if swapped == 0 then
+        find_or_load_fixed_value(&ciop.left, REG_A);
+        aluop_value(&ciop.right, 0xCD); # CMP abs
+    else
+        find_or_load_fixed_value(&ciop.right, REG_A);
+        aluop_value(&ciop.left, 0xCD); # CMP abs
+    end if;
+
+    var destlabel: uint16;
+    if liop.label == ciop.iftrue_label then
+        destlabel := ciop.iffalse_label;
+    elseif liop.label == ciop.iffalse_label then
+        destlabel := ciop.iftrue_label;
+        opcode := opcode ^ 0x10;
+    else
+        print("bad conditional");
+        halt();
+    end if;
+
+    write_cg_6502_conditional_iop(opcode, destlabel);
 end sub;

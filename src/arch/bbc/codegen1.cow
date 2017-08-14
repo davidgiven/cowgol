@@ -356,6 +356,42 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     end if;
 end sub;
 
+sub find_or_load_fixed_value(ea: [EffectiveAddress], candidates: uint8)
+    var location: uint8 := find_or_load_value(ea, candidates);
+end sub;
+
+sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)
+    if is_number_thing(ea.obj_id) != 0 then
+        op_imm(get_value_of_number(ea.obj_id), opcode & 0xFB);
+    else
+        var indexreg: uint8 := 0;
+        if ea.varoff_id != 0 then
+            indexreg := find_or_load_index(ea, REG_X|REG_Y);
+            opcode := opcode | 0x10;
+            if indexreg == REG_Y then
+                opcode := opcode & 0xFB;
+            end if;
+        end if;
+
+        op_abs(ea, opcode);
+
+        free_reg(indexreg);
+    end if;
+end sub;
+
+# Assumes the input value is in A. opcode must be an abs instruction in the 0x0D or 0x0E
+# columns of the map. ea is read direct from memory (or via an immediate).
+sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
+    if ea.type == EA_OBJVAL then
+        aluop_objval(ea, opcode);
+    else
+        print("can't alu ");
+        print_ea(ea);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
 sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
     var ea: EffectiveAddress;
     ea.type := EA_OBJVAL;

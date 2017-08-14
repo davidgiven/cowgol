@@ -40,35 +40,45 @@ sub bad_register()
     halt();
 end sub;
 
-# opcode needs to be the *abs* form of the instruction.
-sub write_6502_regular_op(opcode: uint8, ea: [EffectiveAddress])
-    print("* write opcode 0x");
+sub op_imm(value: uint8, opcode: uint8)
+    print("@ op_imm 0x");
     print_hex_i8(opcode);
-    print(": ");
+    print(" value=0x");
+    print_hex_i8(value);
+    print_newline();
+
+    var buf: uint8[2];
+    buf[0] := opcode;
+    buf[1] := value;
+    write_bytes_iop(buf@size, &buf[0]);
+end sub;
+
+var ld_imm_opcodes: uint8[3];
+ld_imm_opcodes[0] := 0xA9; # LDA imm
+ld_imm_opcodes[1] := 0xA2; # LDX imm
+ld_imm_opcodes[2] := 0xA0; # LDY imm
+sub ld_imm(location: uint8, value: uint8)
+    location := find_bit_index(location);
+    op_imm(value, ld_imm_opcodes[location]);
+end sub;
+
+sub op_abs(ea: [EffectiveAddress], opcode: uint8)
+    print("@ op_abs 0x");
+    print_hex_i8(opcode);
+    print(" ea=");
     print_ea(ea);
     print_newline();
 
-    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
-    if obj.thing_type == THING_NUMBER then
-        if opcode == 0xAD then opcode := 0xA9; # LDA
-        elseif opcode == 0xAE then opcode := 0xA2; # LDX
-        elseif opcode == 0xAC then opcode := 0xA0; # LDY
-        end if;
-        write_byte(opcode);
-        write_byte(get_value_of_number(ea.obj_id));
-        return;
-    elseif (obj.thing_type & THING_DATA) == 0 then
-        print("bad ea: wrong thing type ");
-        print_ea(ea);
-        halt();
-    end if;
-
     if ea.varoff_id != 0 then
-        print("bad ea: has varoff ");
-        print_ea(ea);
+        print("can't have varoff here");
+        halt();
+    end if;
+    if is_number_thing(ea.obj_id) != 0 then
+        print("can't have number here");
         halt();
     end if;
 
+    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
     if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
         # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
         # an index. (We can probably optimise this for objects which we know live only in
@@ -79,16 +89,6 @@ sub write_6502_regular_op(opcode: uint8, ea: [EffectiveAddress])
         write_byte(opcode);
         write_address_iop(ea.obj_id, ea.numoff_id);
     end if;
-end sub;
-
-var ld_imm_opcodes: uint8[3];
-ld_imm_opcodes[0] := 0xA9; # LDA imm
-ld_imm_opcodes[1] := 0xA2; # LDX imm
-ld_imm_opcodes[2] := 0xA0; # LDY imm
-sub ld_imm(location: uint8, value: uint8)
-    location := find_bit_index(location);
-    write_byte(ld_imm_opcodes[location]);
-    write_byte(value);
 end sub;
 
 var ld_abs_opcodes: uint8[3];
@@ -104,16 +104,6 @@ ld_abs_y_opcodes[0] := 0xB9; # LDA abs, Y
 ld_abs_y_opcodes[1] := 0xBE; # LDX abs, Y
 ld_abs_y_opcodes[2] := 0x00; # invalid
 sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint8)
-    if ea.varoff_id != 0 then
-        print("can't have varoff here");
-        halt();
-    end if;
-    if is_number_thing(ea.obj_id) != 0 then
-        print("can't have number here");
-        halt();
-    end if;
-
-    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
     var opcode: uint8 := 0;
 
     location := find_bit_index(location);
@@ -130,29 +120,16 @@ sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint
     end if;
     opcode := opcode & opmask;
 
-    if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
-        # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
-        # an index. (We can probably optimise this for objects which we know live only in
-        # zero page.)
-        write_byte(opcode & 0xf7);
-        write_cg_6502_zeropage_iop(ea.obj_id, 0);
-    else
-        write_byte(opcode);
-        write_address_iop(ea.obj_id, ea.numoff_id);
-    end if;
+    op_abs(ea, opcode);
 end sub;
 
-sub ldst_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress], opcode: uint8)
-    print("@ ldst location=0x");
-    print_hex_i8(location);
-    print(" indexreg=0x");
-    print_hex_i8(indexreg);
+sub op_ind(ea: [EffectiveAddress], opcode: uint8)
+    print("@ op_ind 0x");
+    print_hex_i8(opcode);
     print(" obj_id=");
     print_thing(ea.obj_id);
     print(" numoff=");
     print_thing(ea.numoff_id);
-    print(" opcode=0x");
-    print_hex_i8(opcode);
     print_newline();
 
     if ea.varoff_id != 0 then
@@ -167,9 +144,6 @@ sub ldst_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress], opcode: u
         print("can't have numoff here");
         halt();
     end if;
-    if (location != REG_A) or (indexreg != REG_Y) then
-        bad_register();
-    end if;
 
     write_byte(opcode);
     write_cg_6502_zeropage_iop(ea.obj_id, 0);
@@ -180,7 +154,7 @@ sub ld_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
 end sub;
 
 sub ld_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
-    ldst_ind(location, indexreg, ea, 0xB1); # LDA (ind), Y
+    op_ind(ea, 0xB1); # LDA (ind), Y
 end sub;
 
 sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
@@ -188,7 +162,7 @@ sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
 end sub;
 
 sub st_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
-    ldst_ind(location, indexreg, ea, 0x91); # STA (ind), Y
+    op_ind(ea, 0x91); # STA (ind), Y
 end sub;
 
 var t_opcodes: uint8[9];
