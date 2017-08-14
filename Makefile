@@ -89,6 +89,7 @@ CODEGEN_SRCS = \
 	src/arch/bbc/globals.cow \
 	src/arch/bbc/codegen0.cow \
 	src/arch/bbc/codegen1.cow \
+	src/arch/bbc/codegen2.cow \
 	src/codegen/rules.cow \
 	src/codegen/main.cow
 

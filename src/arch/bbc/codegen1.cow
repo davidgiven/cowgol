@@ -26,10 +26,6 @@ sub print_cache()
     end loop;
 end sub;
 
-sub arch_gen_beginning_of_instruction()
-    locked_registers := 0;
-end sub;
-
 sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
 end sub;
@@ -410,27 +406,6 @@ sub save_value(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub arch_gen_return()
-    flush_cached_values(REG_MASK);
-    write_byte(0x60); # RTS
-end sub;
-
-sub arch_gen_call(thing_id: uint16)
-    flush_cached_values(REG_MASK);
-    write_byte(0x20); # JSR
-    write_address_iop(thing_id, 0);
-end sub;
-
-sub arch_gen_label()
-    flush_cached_values(REG_MASK);
-end sub;
-
-sub arch_gen_goto(thing_id: uint16)
-    flush_cached_values(REG_MASK);
-    write_byte(0x4C); # JMP abs
-    write_address_iop(thing_id, 0);
-end sub;
-
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     value_is_cached_in_reg(ea, location);
     if (ea.type & EA_DEREF_BEFORE) != 0 then
@@ -458,132 +433,4 @@ sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], off
         print(" yet");
         halt();
     end if;
-end sub;
-
-sub arch_gen_copy_byte(iop: [BEIop])
-    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
-    make_value_precious_or_save_now(location, &iop.dest);
-end sub;
-
-sub gen_regular_alu(iop: [BEIop], opcode: uint8)
-    var location: uint8 := find_or_load_value(&iop.left, REG_A);
-    value_in_location_will_be_replaced_with(location, &iop.dest);
-
-    if iop.right.type == EA_OBJVAL then
-        # do nothing, the opcode is already right
-    else
-        print("can't add ");
-        print_ea(&iop.right);
-        print(" yet");
-        print_newline();
-    end if;
-
-    write_6502_regular_op(opcode, &iop.right);
-
-    make_value_precious_or_save_now(location, &iop.dest);
-end sub;
-
-sub gen_incdec(iop: [BEIop], value: int8)
-    var location: uint8 := find_or_load_value(&iop.left, REG_X|REG_Y);
-    value_in_location_will_be_replaced_with(location, &iop.dest);
-
-    var opcode: uint8;
-    if value == 1 then
-        if location == REG_X then
-            opcode := 0xE8; # INX
-        else
-            opcode := 0xC8; # INY
-        end if;
-    else
-        if location == REG_X then
-            opcode := 0xCA; # INX
-        else
-            opcode := 0x88; # INY
-        end if;
-    end if;
-    write_byte(opcode);
-
-    make_value_precious_or_save_now(location, &iop.dest);
-end sub;
-
-sub arch_gen_add_byte(iop: [BEIop])
-    var location: uint8;
-    var opcode: uint8;
-
-    if is_number_thing(iop.right.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.right.obj_id);
-        if (value == 1) or (value == -1) then
-            gen_incdec(iop, value);
-            return;
-        end if;
-    end if;
-
-    write_byte(0x18); # CLC
-    gen_regular_alu(iop, 0x6D); # ADC abs
-end sub;
-
-sub arch_gen_sub_byte(iop: [BEIop])
-    var location: uint8;
-    var opcode: uint8;
-
-    if is_number_thing(iop.right.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.right.obj_id);
-        if (value == 1) or (value == -1) then
-            gen_incdec(iop, 0-value);
-            return;
-        end if;
-    end if;
-
-    write_byte(0x18); # CLC
-    gen_regular_alu(iop, 0xED); # SBC abs
-end sub;
-
-sub arch_gen_copy_word(iop: [BEIop])
-    if is_number_thing(iop.left.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.left.obj_id);
-        var candidates: uint8;
-        if iop.dest.type == EA_PTRVAL then
-            candidates := REG_A;
-        else
-            candidates := REG_A|REG_X;
-        end if;
-
-        var location: uint8 := find_or_load_int(value, candidates);
-        save_value_with_index_or_offset(location, &iop.dest, 0);
-        free_reg(location);
-        location := find_or_load_int(value >> 8, candidates);
-        save_value_with_index_or_offset(location, &iop.dest, 1);
-    else
-        find_or_load_fixed_int(1, REG_Y);
-        allocate_fixed_reg(REG_A);
-
-        var label: uint16 := create_label();
-        write_label_iop(label);
-        load_value_with_index(REG_A, &iop.left, REG_Y);
-        save_value_with_index(REG_A, &iop.dest, REG_Y);
-        write_byte(0x88); # DEY
-        write_cg_6502_conditional_iop(0x30, label); # BMI
-
-        flush_cached_values(REG_Y);
-    end if;
-end sub;
-
-sub arch_gen_sext_word(iop: [BEIop])
-    find_or_load_fixed_int(0, REG_X);
-
-    find_or_load_fixed_value_with_flags(&iop.left, REG_A);
-    write_byte(0x10); # BPL rel
-    write_byte(0x01); # skip one byte
-    write_byte(0xCA); # DEX
-
-    save_value_with_offset(REG_A, &iop.dest, 0);
-    save_value_with_offset(REG_X, &iop.dest, 1);
-end sub;
-
-sub arch_gen_zext_word(iop: [BEIop])
-    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
-    save_value_with_offset(location, &iop.dest, 0);
-
-    location := find_or_load_int(0, REG_A|REG_X|REG_Y);
-    save_value_with_offset(location, &iop.dest, 1);
 end sub;
