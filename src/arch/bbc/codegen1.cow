@@ -211,28 +211,7 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
     print_hex_i8(location);
     print_newline();
 
-    var opcode: uint8 := 0;
-    if location == REG_A then
-        if oldlocation == REG_X then
-            opcode := 0x8A; # TXA
-        elseif oldlocation == REG_Y then
-            opcode := 0x98; # TYA
-        end if;
-    elseif location == REG_X then
-        if oldlocation == REG_A then
-            opcode := 0xAA; # TAX
-        end if;
-    elseif location == REG_Y then
-        if oldlocation == REG_A then
-            opcode := 0xA8; # TAY
-        end if;
-    end if;
-    if opcode == 0 then
-        print("bad move");
-        halt();
-    end if;
-
-    write_byte(opcode);
+    t_reg_reg(oldlocation, location);
     value_is_cached_in_reg(ea, location);
 end sub;
 

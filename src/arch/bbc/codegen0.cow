@@ -179,6 +179,31 @@ sub st_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
     ldst_ind(location, indexreg, ea, 0x91); # STA (ind), Y
 end sub;
 
+var t_opcodes: uint8[9];
+t_opcodes[0 + 0*3] := 0x00; # TAA
+t_opcodes[0 + 1*3] := 0xAA; # TAX
+t_opcodes[0 + 2*3] := 0xA8; # TAY
+t_opcodes[1 + 0*3] := 0x8A; # TXA
+t_opcodes[1 + 1*3] := 0x00; # TXX
+t_opcodes[1 + 2*3] := 0x00; # TXY
+t_opcodes[2 + 0*3] := 0x98; # TYA
+t_opcodes[2 + 1*3] := 0x00; # TYX
+t_opcodes[2 + 2*3] := 0x00; # TYY
+sub t_reg_reg(src: uint8, dest: uint8)
+    src := find_bit_index(src);
+    dest := find_bit_index(dest);
+    if (src|dest) == 0 then
+        bad_register();
+    end if;
+
+    var opcode: uint8 := t_opcodes[src + dest*3];
+    if opcode == 0 then
+        print("bad move");
+        halt();
+    end if;
+    write_byte(opcode);
+end sub;
+
 sub load_objval(location: uint8, ea: [EffectiveAddress])
     if is_number_thing(ea.obj_id) != 0 then
         ld_imm(location, get_value_of_number(ea.obj_id));
