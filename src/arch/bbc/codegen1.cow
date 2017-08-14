@@ -128,7 +128,7 @@ end sub;
 sub find_reg_with_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     location := find_regs_with_value(ea, candidates);
     if location != 0 then
-        location := find_first_bit(location);
+        location := find_first_bit(location & candidates);
     end if;
 end sub;
 
@@ -256,7 +256,14 @@ sub value_in_location_will_be_replaced_with(location: uint8, newvalue: [Effectiv
             if ((value.locations & PRECIOUS) != 0) and (is_same_ea(&value.ea, newvalue) == 0) then
                 write_back_precious_value(location, &value.ea);
             end if;
-            value.locations := value.locations & (REG_MASK ^ location);
+
+            print("* forgetting that ");
+            print_ea(&value.ea);
+            print(" is in 0x");
+            print_hex_i8((value.locations & REG_MASK) ^ location);
+            print_newline();
+
+            value.locations := location;
         end if;
         i := i + 1;
     end loop;
