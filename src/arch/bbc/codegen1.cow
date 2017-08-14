@@ -351,8 +351,9 @@ end sub;
 
 sub save_ptrval(location: uint8, ea: [EffectiveAddress])
     find_or_load_index_into_y(ea);
-    write_byte(0x91); # STA (zp), Y
-    write_cg_6502_zeropage_iop(ea.obj_id, 0);
+    ea.numoff_id := 0;
+    st_ind(location, REG_Y, ea);
+    free_reg(REG_Y);
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
@@ -442,6 +443,23 @@ sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
+sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+    if ea.type == EA_OBJVAL then
+        save_objval_with_offset(location, ea, offset);
+    elseif ea.type == EA_PTRVAL then
+        find_or_load_fixed_int(offset, REG_Y);
+        st_ind(location, REG_Y, ea);
+        free_reg(REG_Y);
+    else
+        print("can't save ");
+        print_ea(ea);
+        print(" with offset 0x");
+        print_hex_i8(offset);
+        print(" yet");
+        halt();
+    end if;
+end sub;
+
 sub arch_gen_copy_byte(iop: [BEIop])
     var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
     make_value_precious_or_save_now(location, &iop.dest);
@@ -523,11 +541,18 @@ end sub;
 sub arch_gen_copy_word(iop: [BEIop])
     if is_number_thing(iop.left.obj_id) != 0 then
         var value: int32 := get_value_of_number(iop.left.obj_id);
-        var location: uint8 := find_or_load_int(value, REG_A|REG_X);
-        save_value_with_offset(location, &iop.dest, 0);
-        locked_registers := locked_registers ^ location;
-        location := find_or_load_int(value >> 8, REG_A|REG_X);
-        save_value_with_offset(location, &iop.dest, 1);
+        var candidates: uint8;
+        if iop.dest.type == EA_PTRVAL then
+            candidates := REG_A;
+        else
+            candidates := REG_A|REG_X;
+        end if;
+
+        var location: uint8 := find_or_load_int(value, candidates);
+        save_value_with_index_or_offset(location, &iop.dest, 0);
+        free_reg(location);
+        location := find_or_load_int(value >> 8, candidates);
+        save_value_with_index_or_offset(location, &iop.dest, 1);
     else
         find_or_load_fixed_int(1, REG_Y);
         allocate_fixed_reg(REG_A);

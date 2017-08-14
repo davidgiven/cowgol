@@ -142,12 +142,41 @@ sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint
     end if;
 end sub;
 
+sub ldst_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress], opcode: uint8)
+    if ea.varoff_id != 0 then
+        print("can't have varoff here");
+        halt();
+    end if;
+    if is_number_thing(ea.obj_id) != 0 then
+        print("can't have number here");
+        halt();
+    end if;
+    if get_value_of_number(ea.numoff_id) != 0 then
+        print("can't have numoff here");
+        halt();
+    end if;
+    if (location != REG_A) or (indexreg != REG_Y) then
+        bad_register();
+    end if;
+
+    write_byte(opcode);
+    write_cg_6502_zeropage_iop(ea.obj_id, 0);
+end sub;
+
 sub ld_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
     ldst_abs(location, index, ea, 0b11111111);
 end sub;
 
+sub ld_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
+    ldst_ind(location, indexreg, ea, 0xB1); # LDA (ind), Y
+end sub;
+
 sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
     ldst_abs(location, index, ea, 0b11011111);
+end sub;
+
+sub st_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
+    ldst_ind(location, indexreg, ea, 0x91); # STA (ind), Y
 end sub;
 
 sub load_objval(location: uint8, ea: [EffectiveAddress])
