@@ -1,11 +1,13 @@
 sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint8)
     if (ea.type & EA_DEREF_AFTER) == 0 then
         width := 2;
-    elseif ea.type == EA_OBJVAL then
-        width := get_width_of_thing(ea.obj_id);
     else
         var type: [WithElementsThing] := find_thing(get_type_of_thing(ea.obj_id)) as [WithElementsThing];
-        width := get_width_of_type(type.element_id);
+        if (type.thing_type == THING_ARRAY) or (ea.type == EA_PTRVAL) then
+            width := get_width_of_type(type.element_id);
+        else
+            width := get_width_of_thing(ea.obj_id);
+        end if;
     end if;
 end sub;
 

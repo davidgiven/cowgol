@@ -293,22 +293,28 @@ sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: u
     load_objval(location, ea);
 end sub;
 
-# Loads *just the index part* of the EA into Y.
-sub find_or_load_index_into_y(ea: [EffectiveAddress])
+# Loads *just the index part* of the EA into a register.
+sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     var indexea: EffectiveAddress;
     indexea.type := EA_OBJVAL;
     indexea.varoff_id := 0;
     indexea.numoff_id := 0;
     if ea.varoff_id != 0 then
         indexea.obj_id := ea.varoff_id;
+        ea.varoff_id := 0;
     else
         indexea.obj_id := ea.numoff_id;
         if indexea.obj_id == 0 then
             indexea.obj_id := add_number_by_value(0);
         end if;
+        ea.numoff_id := 0;
     end if;
 
-    var location: uint8 := find_or_load_objval(&indexea, REG_Y);
+    print("* loading index value ");
+    print_ea(&indexea);
+    print_newline();
+
+    location := find_or_load_objval(&indexea, candidates);
 end sub;
 
 sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
@@ -317,18 +323,24 @@ sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: u
         return;
     end if;
 
-    find_or_load_index_into_y(ea);
+    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
     location := allocate_reg_for_value(ea, REG_A);
-
-    write_byte(0xB1); # LDA (zp), Y
-    write_cg_6502_zeropage_iop(ea.obj_id, 0);
+    ld_ind(location, indexreg, ea);
 end sub;
 
-sub save_ptrval(location: uint8, ea: [EffectiveAddress])
-    find_or_load_index_into_y(ea);
-    ea.numoff_id := 0;
-    st_ind(location, REG_Y, ea);
-    free_reg(REG_Y);
+sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
+    var indexreg: uint8 := 0;
+    if ea.varoff_id != 0 then
+        indexreg := find_or_load_index(ea, REG_X|REG_Y);
+    end if;
+    st_abs(location, indexreg, ea);
+    free_reg(location);
+end sub;
+
+sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
+    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
+    st_ind(location, location, ea);
+    free_reg(location);
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
@@ -374,9 +386,9 @@ end sub;
 
 sub save_value(location: uint8, ea: [EffectiveAddress])
     if ea.type == EA_OBJVAL then
-        save_objval(location, ea);
+        save_objval_with_optional_index(location, ea);
     elseif ea.type == EA_PTRVAL then
-        save_ptrval(location, ea);
+        save_ptrval_with_index(location, ea);
     else
         print("can't save ");
         print_ea(ea);
@@ -387,7 +399,7 @@ end sub;
 
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     value_is_cached_in_reg(ea, location);
-    if (ea.type & EA_DEREF_BEFORE) != 0 then
+    if (ea.varoff_id != 0) or ((ea.type & EA_DEREF_BEFORE) != 0) then
         print("* value ");
         print_ea(ea);
         print(" can't be made precious, saving now\n");
