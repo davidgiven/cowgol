@@ -27,10 +27,10 @@ sub arch_gen_return()
     write_byte(0x60); # RTS
 end sub;
 
-sub arch_gen_call(thing_id: uint16)
+sub arch_gen_call(iop: [CallIop])
     flush_cached_values(REG_MASK);
     write_byte(0x20); # JSR
-    write_address_iop(thing_id, 0);
+    write_address_iop(iop.thing_id, 0);
 end sub;
 
 sub arch_gen_label(iop: [LabelIop])
@@ -229,4 +229,5 @@ sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     end if;
 
     write_cg_6502_conditional_iop(opcode, destlabel);
+    flush_cached_values(REG_MASK);
 end sub;

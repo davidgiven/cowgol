@@ -239,5 +239,11 @@ sub global_rules(): (matched: uint8)
         return;
     end if;
 
+    if queue0.iop_kind == IOP_CALL then
+        arch_gen_call(queue0 as [CallIop]);
+        consume_iops(1);
+        return;
+    end if;
+
     matched := 0;
 end sub;
