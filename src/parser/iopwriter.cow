@@ -1,8 +1,8 @@
 var ioptab_top: [int8] := HIMEM;
-var ioptab_size: uint16 := 0;
-var iopfd: uint8;
+var ioptab_size: int16 := 0;
+var iopfd: int8;
 
-sub emit(kind: uint8, size: uint8): (ptr: [Iop])
+sub emit(kind: int8, size: int8): (ptr: [Iop])
     ioptab_size := ioptab_size + 1;
     ioptab_top[0-ioptab_size] := size;
     ioptab_size := ioptab_size + size;
@@ -12,25 +12,25 @@ sub emit(kind: uint8, size: uint8): (ptr: [Iop])
     ptr.iop_size := size;
 end sub;
 
-sub emit_filename(thing_id: uint16)
+sub emit_filename(thing_id: int16)
     if thing_id != 0 then
         var iop: [FilenameIop] := emit(IOP_FILENAME, FilenameIop@bytes) as [FilenameIop];
         iop.thing_id := thing_id;
     end if;
 end sub;
 
-sub emit_linenumber(line_number: uint16)
+sub emit_linenumber(line_number: int16)
     if line_number != 0 then
         var iop: [LinenumberIop] := emit(IOP_LINENUMBER, LinenumberIop@bytes) as [LinenumberIop];
         iop.line_number := line_number;
     end if;
 end sub;
 
-sub emit_fe(kind: uint8)
+sub emit_fe(kind: int8)
     var iop: [Iop] := emit(kind, Iop@bytes);
 end sub;
 
-sub emit_fe_push(thing_id: uint16)
+sub emit_fe_push(thing_id: int16)
     var iop: [FEPushIop] := emit(IOP_FEX_PUSH, FEPushIop@bytes) as [FEPushIop];
     iop.thing_id := thing_id;
 end sub;
@@ -39,87 +39,87 @@ sub emit_fe_push_const(value: int32)
     emit_fe_push(add_number_by_value(value));
 end sub;
 
-sub emit_fe_parameter(kind: uint8, subroutine_id: uint16, parameter: uint8)
+sub emit_fe_parameter(kind: int8, subroutine_id: int16, parameter: int8)
     var iop: [FEParameterIop] := emit(kind, FEParameterIop@bytes) as [FEParameterIop];
     iop.subroutine_id := subroutine_id;
     iop.parameter := parameter;
 end sub;
 
-sub emit_fe_member(thing_id: uint16)
+sub emit_fe_member(thing_id: int16)
     var iop: [FEMemberIop] := emit(IOP_FEX_MEMBEROF, FEMemberIop@bytes) as [FEMemberIop];
     iop.thing_id := thing_id;
 end sub;
 
-sub emit_fe_cast(type_id: uint16)
+sub emit_fe_cast(type_id: int16)
     var iop: [FECastIop] := emit(IOP_FEX_CAST, FECastIop@bytes) as [FECastIop];
     iop.type_id := type_id;
 end sub;
 
-sub emit_simple(kind: uint8)
+sub emit_simple(kind: int8)
     var iop: [Iop] := emit(kind, Iop@bytes);
 end sub;
 
-sub emit_label(label: uint16)
+sub emit_label(label: int16)
     var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
     iop.label := label;
 end sub;
 
-sub emit_clonelabel(src_label: uint16, dest_label: uint16)
+sub emit_clonelabel(src_label: int16, dest_label: int16)
     var iop: [CloneLabelIop] := emit(IOP_CLONELABEL, CloneLabelIop@bytes) as [CloneLabelIop];
     iop.src_label := src_label;
     iop.dest_label := dest_label;
 end sub;
 
-sub emit_goto(label: uint16)
+sub emit_goto(label: int16)
     var iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
     iop.label := label;
 end sub;
 
-sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label: uint16, iffalse_label: uint16)
+sub emit_fe_conditional_branch(iopcode: int8, iftrue_label: int16, iffalse_label: int16)
     var iop: [FEConditionalIop] :=
         emit(iopcode, FEConditionalIop@bytes) as [FEConditionalIop];
     iop.iftrue_label := iftrue_label;
     iop.iffalse_label := iffalse_label;
 end sub;
 
-sub emit_byte(value: uint8)
+sub emit_byte(value: int8)
     var iop: [BytesIop] := emit(IOP_BYTES, BytesIop@bytes) as [BytesIop];
     iop.byte_count := 1;
     iop.bytes[0] := value;
 end sub;
 
-sub emit_bytes(byte_count: uint8, bytes: [uint8])
+sub emit_bytes(byte_count: int8, bytes: [int8])
     var iop: [BytesIop] := emit(IOP_BYTES, BytesIop@bytes) as [BytesIop];
     iop.byte_count := byte_count;
     copy_memory(bytes as [int8], &iop.bytes[0] as [int8], byte_count);
 end sub;
 
-sub emit_word(word: uint16)
-    var buf: uint16[1];
+sub emit_word(word: int16)
+    var buf: int16[1];
     buf[0] := word;
-    emit_bytes(2, &buf[0] as [uint8]);
+    emit_bytes(2, &buf[0] as [int8]);
 end sub;
 
-sub emit_address(thing_id: uint16)
+sub emit_address(thing_id: int16)
     var iop: [AddressIop] := emit(IOP_ADDRESS, AddressIop@bytes) as [AddressIop];
     iop.thing_id := thing_id;
 end sub;
 
-sub create_label(): (label_label: uint16)
+sub create_label(): (label_label: int16)
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     label_label := subroutine.label_count;
     subroutine.label_count := subroutine.label_count + 1;
 end sub;
 
-sub flush_iops(object_id: uint16, oldtop: uint16)
+sub flush_iops(object_id: int16, oldtop: int16)
     var header: IHeader[1];
     header[0].thing_id := object_id;
     file_putblock(iopfd, &header[0] as [int8], IHeader@bytes);
 
-    var offset: uint16 := oldtop;
-    while offset < ioptab_size loop
+    var offset: int16 := oldtop;
+    while offset != ioptab_size loop
         offset := offset + 1;
-        var size: uint8 := ioptab_top[0-offset];
+        var size: int8 := ioptab_top[0-offset];
         offset := offset + size;
         var iop: [Iop] := &ioptab_top[0-offset] as [Iop];
         file_putblock(iopfd, iop as [int8], size);

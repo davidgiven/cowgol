@@ -14,7 +14,7 @@ if 0b0100_0001 != 'A' then
     fail("0b010_00001 != 'A'");
 end if;
 
-var i: uint8 := 1;
+var i: int8 := 1;
 i := i-1;
 if i != 0 then
     fail("i-1 != 0");

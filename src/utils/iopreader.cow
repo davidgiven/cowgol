@@ -1,7 +1,7 @@
-var iop_in_fd: uint8;
-var iop_buffer: uint8[256];
-var current_filename_id: uint16;
-var current_linenumber: uint16;
+var iop_in_fd: int8;
+var iop_buffer: int8[256];
+var current_filename_id: int16;
+var current_linenumber: int16;
 
 sub init_iop_reader(filename: [int8])
     iop_in_fd := file_openin(filename);

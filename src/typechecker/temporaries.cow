@@ -1,6 +1,6 @@
 record Temporary
-    thing_id: uint16;
-    refcount: uint8;
+    thing_id: int16;
+    refcount: int8;
 end record;
 
 var temporaries: Temporary[32];
@@ -9,9 +9,9 @@ sub init_temporaries()
     zero_memory(&temporaries[0] as [int8], temporaries@bytes);
 end sub;
 
-sub alloc_temporary(type_id: uint16): (thing_id: uint16)
-    var index: uint8 := 0;
-    while index < temporaries@size loop
+sub alloc_temporary(type_id: int16): (thing_id: int16)
+    var index: int8 := 0;
+    while index != temporaries@size loop
         var temp: [Temporary] := &temporaries[index];
         var thing: [VariableThing];
         if temp.refcount == 0 then
@@ -50,10 +50,10 @@ sub alloc_temporary(type_id: uint16): (thing_id: uint16)
     halt();
 end sub;
 
-sub ref_temporary(thing_id: uint16)
+sub ref_temporary(thing_id: int16)
     if thing_id != 0 then
-        var index: uint8 := 0;
-        while index < temporaries@size loop
+        var index: int8 := 0;
+        while index != temporaries@size loop
             var temp: [Temporary] := &temporaries[index];
             if (temp.thing_id == thing_id) and (temp.refcount > 0) then
                 temp.refcount := temp.refcount + 1;
@@ -70,10 +70,10 @@ sub ref_temporary(thing_id: uint16)
     end if;
 end sub;
 
-sub deref_temporary(thing_id: uint16)
+sub deref_temporary(thing_id: int16)
     if thing_id != 0 then
-        var index: uint8 := 0;
-        while index < temporaries@size loop
+        var index: int8 := 0;
+        while index != temporaries@size loop
             var temp: [Temporary] := &temporaries[index];
             if (temp.thing_id == thing_id) and (temp.refcount > 0) then
                 temp.refcount := temp.refcount - 1;

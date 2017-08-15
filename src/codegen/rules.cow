@@ -1,4 +1,4 @@
-sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint8)
+sub get_width_of_ea(ea: [EffectiveAddress]): (width: int8)
     if (ea.type & EA_DEREF_AFTER) == 0 then
         width := 2;
     else
@@ -11,7 +11,7 @@ sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint8)
     end if;
 end sub;
 
-sub get_2op_widths(iop: [BEIop]): (srcw: uint8, destw: uint8)
+sub get_2op_widths(iop: [BEIop]): (srcw: int8, destw: int8)
     srcw := get_width_of_ea(&iop.left);
     destw := get_width_of_ea(&iop.dest);
     if srcw == 0 then
@@ -19,7 +19,7 @@ sub get_2op_widths(iop: [BEIop]): (srcw: uint8, destw: uint8)
     end if;
 end sub;
 
-sub get_3op_widths(iop: [BEIop]): (leftw: uint8, rightw: uint8, destw: uint8)
+sub get_3op_widths(iop: [BEIop]): (leftw: int8, rightw: int8, destw: int8)
     leftw := get_width_of_ea(&iop.left);
     rightw := get_width_of_ea(&iop.right);
     destw := get_width_of_ea(&iop.dest);
@@ -61,8 +61,8 @@ end sub;
 sub try_copy(iop: [BEIop])
     insn_before(iop);
 
-    var srcw: uint8;
-    var destw: uint8;
+    var srcw: int8;
+    var destw: int8;
     (srcw, destw) := get_2op_widths(iop);
 
     if destw == 1 then
@@ -103,9 +103,9 @@ end sub;
 sub try_add(iop: [BEIop])
     insn_before(iop);
 
-    var leftw: uint8;
-    var rightw: uint8;
-    var destw: uint8;
+    var leftw: int8;
+    var rightw: int8;
+    var destw: int8;
     (leftw, rightw, destw) := get_3op_widths(iop);
 
     if iop.width == 1 then
@@ -174,7 +174,7 @@ sub try_conditional(ciop: [BEConditionalIop], liop: [LabelIop])
     halt();
 end sub;
 
-sub global_rules(): (matched: uint8)
+sub global_rules(): (matched: int8)
     matched := 1;
     arch_gen_beginning_of_instruction();
 

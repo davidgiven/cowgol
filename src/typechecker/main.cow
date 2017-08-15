@@ -1,5 +1,5 @@
-sub print_raw_type_name(type_id: uint16)
-    var brackets: uint8 := 0;
+sub print_raw_type_name(type_id: int16)
+    var brackets: int8 := 0;
     loop
         var ptr_type: [PointerThing] := find_thing(type_id) as [PointerThing];
         if ptr_type.thing_type != THING_POINTERT then
@@ -10,7 +10,7 @@ sub print_raw_type_name(type_id: uint16)
         type_id := ptr_type.element_id;
     end loop;
 
-    var id: uint16 := find_name_of_value(type_id);
+    var id: int16 := find_name_of_value(type_id);
     if id != 0 then
         show_identifier(id);
     else
@@ -23,7 +23,7 @@ sub print_raw_type_name(type_id: uint16)
     end loop;
 end sub;
 
-sub print_type_name(type_id: uint16)
+sub print_type_name(type_id: int16)
     var array_type: [ArrayThing] := find_thing(type_id) as [ArrayThing];
     if array_type.thing_type == THING_ARRAYT then
         print_raw_type_name(array_type.element_id);
@@ -35,7 +35,7 @@ sub print_type_name(type_id: uint16)
     end if;
 end sub;
 
-sub check_type_assignability(src_type_id: uint16, dest_type_id: uint16)
+sub check_type_assignability(src_type_id: int16, dest_type_id: int16)
     var src_type: [TypeThing] := find_thing(src_type_id) as [TypeThing];
     var dest_type: [TypeThing] := find_thing(dest_type_id) as [TypeThing];
 
@@ -54,15 +54,13 @@ sub check_type_assignability(src_type_id: uint16, dest_type_id: uint16)
     end if;
 end sub;
 
-sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
-    var left_type: [TypeThing] := find_thing(left_type_id) as [TypeThing];
-    var right_type: [TypeThing] := find_thing(right_type_id) as [TypeThing];
-
+sub check_type_compatibility(left_type_id: int16, right_type_id: int16): (result_type_id: int16)
     if left_type_id == right_type_id then
         result_type_id := left_type_id;
-    elseif ((left_type.thing_type & THING_CONSTANTT) != 0) and
-       ((right_type.thing_type & THING_CONSTANTT) != 0) then
-        if left_type.width < right_type.width then
+    elseif (is_number_type_thing(left_type_id) != 0)
+        and (is_number_type_thing(right_type_id) != 0)
+    then
+        if get_width_of_type(left_type_id) < get_width_of_type(right_type_id) then
             result_type_id := right_type_id;
         else
             result_type_id := left_type_id;
@@ -88,20 +86,20 @@ sub alloc_ea_node(ea: [EffectiveAddress]): (node: [Node])
     node := alloc_node();
     node.iop := IOP_FEX_PUSH;
     node.flags := FLAG_RVALUE;
-    node.type_id := uint16_type;
+    node.type_id := int16_type;
     copy_ea_ref(ea, &node.left);
 end sub;
 
-sub alloc_const_node(number_id: uint16): (node: [Node])
+sub alloc_const_node(number_id: int16): (node: [Node])
     node := alloc_node();
     node.iop := IOP_FEX_PUSH;
     node.flags := FLAG_RVALUE;
-    node.type_id := uint16_type;
+    node.type_id := int16_type;
     node.left.obj_id := number_id;
     node.left.type := EA_OBJVAL;
 end sub;
 
-sub alloc_thing_node(thing_id: uint16): (node: [Node])
+sub alloc_thing_node(thing_id: int16): (node: [Node])
     node := alloc_node();
     node.iop := IOP_FEX_PUSH;
     node.type_id := get_type_of_thing(thing_id);
@@ -110,13 +108,13 @@ sub alloc_thing_node(thing_id: uint16): (node: [Node])
     ref_temporary(thing_id);
 end sub;
 
-sub gen_operator(beiop: uint8, left: [Node], right: [Node]): (dest: [Node])
+sub gen_operator(beiop: int8, left: [Node], right: [Node]): (dest: [Node])
     must_be_simplified(left);
     must_be_simplified(right);
 
     var node: [Node] := alloc_node();
     node.iop := beiop;
-    node.type_id := uint16_type;
+    node.type_id := int16_type;
     node.flags := FLAG_RVALUE;
     copy_ea_ref(&left.left, &node.left);
     copy_ea_ref(&right.left, &node.right);
@@ -124,7 +122,7 @@ sub gen_operator(beiop: uint8, left: [Node], right: [Node]): (dest: [Node])
     dest := simplify_node_to_ea_and_deref(node);
 end sub;
 
-sub process_subroutine(thing_id: uint16)
+sub process_subroutine(thing_id: int16)
     var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
     init_tree();
     init_temporaries();
@@ -191,12 +189,12 @@ sub process_subroutine(thing_id: uint16)
         deref_node(dest);
     end sub;
 
-    sub fe_simple_alu2op(beiop: uint8)
+    sub fe_simple_alu2op(beiop: int8)
         var right: [Node] := pop();
         var left: [Node] := pop();
 
         # if you change this, change the non-pointer case in addsub as well
-        var dest_type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
+        var dest_type_id: int16 := check_type_compatibility(left.type_id, right.type_id);
 
         (left, right) := arch_promote_to_new_ea_nodes_and_deref(beiop, left, right, dest_type_id);
         right := simplify_node_to_ea_and_deref(right);
@@ -213,7 +211,7 @@ sub process_subroutine(thing_id: uint16)
         deref_node(left);
     end sub;
 
-    sub fe_simple_alu1op(beiop: uint8)
+    sub fe_simple_alu1op(beiop: int8)
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
@@ -228,13 +226,13 @@ sub process_subroutine(thing_id: uint16)
         push_node(left);
     end sub;
 
-    sub fe_addsub(beiop: uint8)
+    sub fe_addsub(beiop: int8)
         var right: [Node] := pop();
         var left: [Node] := pop();
 
         var left_type: [PointerThing] := find_thing(left.type_id) as [PointerThing];
         var right_type: [PointerThing] := find_thing(right.type_id) as [PointerThing];
-        var dest_type_id: uint16;
+        var dest_type_id: int16;
         if left_type.thing_type != THING_POINTERT then
             # this is the same as simple_alu2op above
             dest_type_id := check_type_compatibility(left.type_id, right.type_id);
@@ -242,7 +240,7 @@ sub process_subroutine(thing_id: uint16)
                 and (left_type.thing_type == THING_POINTERT)
                 and (right_type.thing_type == THING_POINTERT) then
             # Pointer difference.
-            dest_type_id := uint16_type;
+            dest_type_id := int16_type;
         elseif (beiop == IOP_BE_ADD)
                 and (left_type.thing_type == THING_POINTERT)
                 and ((right_type.thing_type & THING_CONSTANTT) != 0) then
@@ -369,7 +367,7 @@ sub process_subroutine(thing_id: uint16)
         var node: [Node] := simplify_node_to_ea_and_deref(pop());
         var node_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
 
-        var type_id: uint16 := node.type_id;
+        var type_id: int16 := node.type_id;
         var type: [Thing] := find_thing(type_id);
         if type.thing_type == THING_POINTERT then
             var pointer_type: [PointerThing] := type as [PointerThing];
@@ -388,7 +386,7 @@ sub process_subroutine(thing_id: uint16)
         end if;
         var record_type: [RecordThing] := type as [RecordThing];
 
-        var symbol_id: uint16 := find_symbol_recursively(iop.thing_id, record_type.namespace_id);
+        var symbol_id: int16 := find_symbol_recursively(iop.thing_id, record_type.namespace_id);
         if symbol_id == 0 then
             show_identifier(iop.thing_id);
             print(" is not a member of ");
@@ -415,8 +413,8 @@ sub process_subroutine(thing_id: uint16)
         push_node(node);
     end sub;
 
-    sub fex_parameter(direction: uint8, iop: [FEParameterIop])
-        var thing_id: uint16 := iop.subroutine_id;
+    sub fex_parameter(direction: int8, iop: [FEParameterIop])
+        var thing_id: int16 := iop.subroutine_id;
         var thing: [Thing] := find_thing(thing_id);
         if thing.thing_type == THING_IDENTIFIER then
             thing_id := deref_symbol_or_fail(thing_id);
@@ -427,7 +425,7 @@ sub process_subroutine(thing_id: uint16)
             halt();
         end if;
 
-        var parameter_id: uint16 := find_nth_parameter(
+        var parameter_id: int16 := find_nth_parameter(
             thing_id, direction, iop.parameter);
         if parameter_id == 0 then
             print("invalid parameter id");
@@ -461,11 +459,11 @@ sub process_subroutine(thing_id: uint16)
         deref_node(src);
     end sub;
 
-    sub fe_conditional(iopkind: uint8, iop: [FEConditionalIop])
+    sub fe_conditional(iopkind: int8, iop: [FEConditionalIop])
         var right: [Node] := simplify_node_to_ea_and_deref(pop());
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
-        var type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
+        var type_id: int16 := check_type_compatibility(left.type_id, right.type_id);
 
         var beiop: BEConditionalIop;
         zero_memory(&beiop as [int8], BEConditionalIop@bytes);
@@ -497,7 +495,7 @@ sub process_subroutine(thing_id: uint16)
         push_node(node);
     end sub;
 
-    sub fe_shift(beiop: uint8)
+    sub fe_shift(beiop: int8)
         var right: [Node] := simplify_node_to_ea_and_deref(pop());
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
@@ -556,7 +554,7 @@ sub process_subroutine(thing_id: uint16)
 
     sub fe_bytesof()
         var left: [Node] := pop();
-        var width: uint16 := get_width_of_type(left.type_id);
+        var width: int16 := get_width_of_type(left.type_id);
 
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
@@ -589,7 +587,7 @@ sub process_subroutine(thing_id: uint16)
 
     loop
         var iop: [Iop] := read_iop();
-        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+        var ioptype: int8 := iop.iop_kind & IOP_TYPE_MASK;
         print_newline();
         print_stack();
         print("* read iop 0x");

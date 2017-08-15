@@ -44,12 +44,12 @@ sub arch_gen_goto(iop: [GotoIop])
 end sub;
 
 sub arch_gen_copy_byte(iop: [BEIop])
-    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
+    var location: int8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
-sub gen_regular_alu(iop: [BEIop], opcode: uint8)
-    var location: uint8 := find_or_load_value(&iop.left, REG_A);
+sub gen_regular_alu(iop: [BEIop], opcode: int8)
+    var location: int8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.dest);
 
     if iop.right.type == EA_OBJVAL then
@@ -69,10 +69,10 @@ sub gen_regular_alu(iop: [BEIop], opcode: uint8)
 end sub;
 
 sub gen_incdec(iop: [BEIop], value: int8)
-    var location: uint8 := find_or_load_value(&iop.left, REG_X|REG_Y);
+    var location: int8 := find_or_load_value(&iop.left, REG_X|REG_Y);
     value_in_location_will_be_replaced_with(location, &iop.dest);
 
-    var opcode: uint8;
+    var opcode: int8;
     if value == 1 then
         if location == REG_X then
             opcode := 0xE8; # INX
@@ -92,8 +92,8 @@ sub gen_incdec(iop: [BEIop], value: int8)
 end sub;
 
 sub arch_gen_add_byte(iop: [BEIop])
-    var location: uint8;
-    var opcode: uint8;
+    var location: int8;
+    var opcode: int8;
 
     if is_number_thing(iop.right.obj_id) != 0 then
         var value: int32 := get_value_of_number(iop.right.obj_id);
@@ -108,8 +108,8 @@ sub arch_gen_add_byte(iop: [BEIop])
 end sub;
 
 sub arch_gen_sub_byte(iop: [BEIop])
-    var location: uint8;
-    var opcode: uint8;
+    var location: int8;
+    var opcode: int8;
 
     if is_number_thing(iop.right.obj_id) != 0 then
         var value: int32 := get_value_of_number(iop.right.obj_id);
@@ -126,14 +126,14 @@ end sub;
 sub arch_gen_copy_word(iop: [BEIop])
     if is_number_thing(iop.left.obj_id) != 0 then
         var value: int32 := get_value_of_number(iop.left.obj_id);
-        var candidates: uint8;
+        var candidates: int8;
         if iop.dest.type == EA_PTRVAL then
             candidates := REG_A;
         else
             candidates := REG_A|REG_X;
         end if;
 
-        var location: uint8 := find_or_load_int(value, candidates);
+        var location: int8 := find_or_load_int(value, candidates);
         save_value_with_index_or_offset(location, &iop.dest, 0);
         free_reg(location);
         location := find_or_load_int(value >> 8, candidates);
@@ -142,7 +142,7 @@ sub arch_gen_copy_word(iop: [BEIop])
         find_or_load_fixed_int(1, REG_Y);
         allocate_fixed_reg(REG_A);
 
-        var label: uint16 := create_label();
+        var label: int16 := create_label();
         write_label_iop(label);
         load_value_with_index(REG_A, &iop.left, REG_Y);
         save_value_with_index(REG_A, &iop.dest, REG_Y);
@@ -166,7 +166,7 @@ sub arch_gen_sext_word(iop: [BEIop])
 end sub;
 
 sub arch_gen_zext_word(iop: [BEIop])
-    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
+    var location: int8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
     save_value_with_offset(location, &iop.dest, 0);
 
     location := find_or_load_int(0, REG_A|REG_X|REG_Y);
@@ -176,9 +176,9 @@ end sub;
 sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     write_back_precious_values(REG_MASK);
 
-    var swapped: uint8 := 0;
-    var signed: uint8 := 0;
-    var opcode: uint8;
+    var swapped: int8 := 0;
+    var signed: int8 := 0;
+    var opcode: int8;
     if ciop.iop_kind == IOP_BE_BEQ then
         opcode := 0xF0; # BEQ rel
     elseif ciop.iop_kind == IOP_BE_BLTU then
@@ -217,7 +217,7 @@ sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
         emit_comparison(&ciop.left);
     end if;
 
-    var destlabel: uint16;
+    var destlabel: int16;
     if liop.label == ciop.iftrue_label then
         destlabel := ciop.iffalse_label;
     elseif liop.label == ciop.iffalse_label then

@@ -1,10 +1,10 @@
 record GraphRecord
-    src_id: uint16;
-    dest_id: uint16;
+    src_id: int16;
+    dest_id: int16;
 end record;
 
 var graph_base: [GraphRecord];
-var graph_count: uint16;
+var graph_count: int16;
 
 sub init_graph(base: [int8])
     graph_base := base as [GraphRecord];
@@ -15,10 +15,10 @@ sub init_graph(base: [int8])
     print(")\n");
 end sub;
 
-sub add_reference(src_id: uint16, dest_id: uint16)
+sub add_reference(src_id: int16, dest_id: int16)
     var g: [GraphRecord];
-    var i: uint16 := 0;
-    while i < graph_count loop
+    var i: int16 := 0;
+    while i != graph_count loop
         g := &graph_base[i] as [GraphRecord];
         if (g.src_id == src_id) and (g.dest_id == dest_id) then
             return;

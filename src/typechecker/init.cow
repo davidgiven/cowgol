@@ -3,14 +3,18 @@ load_thing_table("things.dat");
 init_iop_reader("iops.dat");
 init_iop_writer("iops-out.dat");
 
-var main_subroutine_id: uint16 := find_main_subroutine();
+var main_subroutine_id: int16 := find_main_subroutine();
+if main_subroutine_id == 0 then
+    print("no main subroutine!");
+    halt();
+end if;
 
-sub find_bootstrap_type(identifier_id: uint16): (type_id: uint16)
+sub find_bootstrap_type(identifier_id: int16): (type_id: int16)
     var subroutine: [SubroutineThing] := find_thing(main_subroutine_id) as [SubroutineThing];
     current_namespace_id := subroutine.namespace_id;
     type_id := deref_symbol_or_fail(identifier_id);
 end sub;
 
-var int8_type: uint16 := find_bootstrap_type(TOKEN_INT8);
-var uint16_type: uint16 := find_bootstrap_type(TOKEN_INT16);
-var constant_type: uint16 := find_bootstrap_type(TOKEN_CONSTANTT);
+var int8_type: int16 := find_bootstrap_type(TOKEN_INT8);
+var int16_type: int16 := find_bootstrap_type(TOKEN_INT16);
+var constant_type: int16 := find_bootstrap_type(TOKEN_CONSTANTT);

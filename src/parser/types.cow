@@ -1,5 +1,5 @@
-sub read_type(): (type_id: uint16)
-    var brackets: uint8 := 0;
+sub read_type(): (type_id: int16)
+    var brackets: int8 := 0;
 
     sub mismatched_square_brackets()
         print("mismatched square brackets in type");
@@ -11,7 +11,7 @@ sub read_type(): (type_id: uint16)
         next_token();
     end loop;
 
-    var identifier_id: uint16 := expect_identifier();
+    var identifier_id: int16 := expect_identifier();
     type_id := deref_symbol_or_fail(identifier_id);
 
     loop

@@ -1,5 +1,5 @@
-var iops_fd: uint8;
-var iop_buffer: uint8[256];
+var iops_fd: int8;
+var iop_buffer: int8[256];
 
 sub init_iop_reader(filename: [int8])
     iops_fd := file_openin(filename);

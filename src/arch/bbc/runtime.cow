@@ -1,5 +1,5 @@
 sub print(ptr: [int8])
-    var index: uint8 := 0;
+    var index: int8 := 0;
     loop
         var c: int8 := ptr[index];
         if c == 0 then
@@ -10,7 +10,7 @@ sub print(ptr: [int8])
     end loop;
 end sub;
 
-sub print_char(char: uint8)
+sub print_char(char: int8)
     @bytes 0xAD;   # LDA abs
     @words &char;
     @bytes 0x4C;   # JMP abs
@@ -22,55 +22,55 @@ sub print_newline()
     @words 0xFFE7; # OSNEWL
 end sub;
 
-sub print_i8(value: uint8)
+sub print_i8(value: int8)
 end sub;
 
-sub print_i16(value: uint16)
+sub print_i16(value: int16)
 end sub;
 
-sub print_i32(value: uint32)
+sub print_i32(value: int32)
 end sub;
 
-sub print_hex_i8(value: uint8)
+sub print_hex_i8(value: int8)
 end sub;
 
-sub print_hex_i16(value: uint16)
+sub print_hex_i16(value: int16)
 end sub;
 
-sub print_hex_i32(value: uint32)
+sub print_hex_i32(value: int32)
 end sub;
 
-sub file_openin(filename: [int8]): (fd: uint8)
+sub file_openin(filename: [int8]): (fd: int8)
 end sub;
 
-sub file_openout(filename: [int8]): (fd: uint8)
+sub file_openout(filename: [int8]): (fd: int8)
 end sub;
 
-sub file_getblock(fd: uint8, ptr: [int8], length: uint16)
+sub file_getblock(fd: int8, ptr: [int8], length: int16)
 end sub;
 
-sub file_putblock(fd: uint8, ptr: [int8], length: uint16)
+sub file_putblock(fd: int8, ptr: [int8], length: int16)
 end sub;
 
-sub file_seek(fd: uint8, pos: uint32)
+sub file_seek(fd: int8, pos: int32)
 end sub;
 
-sub file_ext(fd: uint8): (length: uint32)
+sub file_ext(fd: int8): (length: int32)
 end sub;
 
-sub file_eof(fd: uint8): (eof: uint8)
+sub file_eof(fd: int8): (eof: int8)
 end sub;
 
-sub file_getchar(fd: uint8): (char: int8)
+sub file_getchar(fd: int8): (char: int8)
 end sub;
 
-sub file_close(fd: uint8)
+sub file_close(fd: int8)
 end sub;
 
-sub exit(status: uint8)
+sub exit(status: int8)
 end sub;
 
-sub __load_params(count: uint8)
+sub __load_params(count: int8)
 end sub;
 
 sub __load2()

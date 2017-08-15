@@ -1,12 +1,12 @@
 var stringtab_top: [int8] := HIMEM;
 var stringtab_base: [int8] := stringtab_top;
 var input_buffer: int8[256];
-var buffer_index: uint8 := 0;
+var buffer_index: int8 := 0;
 
-sub lookup_string(buffer_ptr: [int8], buffer_len: uint8): (stringid: uint16)
+sub lookup_string(buffer_ptr: [int8], buffer_len: int8): (stringid: int16)
     var ptr: [int8] := stringtab_base;
-    while ptr < stringtab_top loop
-        var len: uint8 := ptr[0] - 1;
+    while ptr != stringtab_top loop
+        var len: int8 := ptr[0] - 1;
         if len == buffer_len then
             if compare_memory(buffer_ptr, &ptr[1], len) == 0 then
                 stringid := stringtab_top - ptr;
@@ -23,14 +23,14 @@ sub lookup_string(buffer_ptr: [int8], buffer_len: uint8): (stringid: uint16)
 end sub;
 
 sub save_string_table(filename: [int8])
-    var fd: uint8 := file_openout(filename);
+    var fd: int8 := file_openout(filename);
     file_putblock(fd, stringtab_base, stringtab_top - stringtab_base);
     file_close(fd);
 end sub;
 
 sub fixup_strings()
-    var length: uint16 := stringtab_top - stringtab_base;
-    var id: uint16 := 1;
+    var length: int16 := stringtab_top - stringtab_base;
+    var id: int16 := 1;
     loop
         var thing: [Thing] := &thing_table[id] as [Thing];
         if thing.thing_size == 0 then

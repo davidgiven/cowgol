@@ -28,7 +28,7 @@ if pp.y != 7 then
     fail("pp.y != 7");
 end if;
 
-var size: uint8 := Point@bytes;
+var size: int8 := Point@bytes;
 if size != 2 then
     fail("Point@bytes != 2");
 end if;

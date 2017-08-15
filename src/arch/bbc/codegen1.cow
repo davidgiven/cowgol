@@ -1,14 +1,14 @@
 record CachedValue
     ea: EffectiveAddress;
-    locations: uint8;
+    locations: int8;
 end record;
 
 var values: CachedValue[8];
-var locked_registers: uint8;
+var locked_registers: int8;
 
 sub print_cache()
-    var i: uint8 := 0;
-    while i < values@size loop
+    var i: int8 := 0;
+    while i != values@size loop
         var value: [CachedValue] := &values[i];
         if value.locations != 0 then
             print("cache slot ");
@@ -30,7 +30,7 @@ sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
 end sub;
 
-sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
+sub write_back_precious_value(location: int8, ea: [EffectiveAddress])
     location := find_first_bit(location);
     print("* writing back 0x");
     print_hex_i8(location);
@@ -48,11 +48,11 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub write_back_precious_values(mask: uint8)
-    var i: uint8 := 0;
-    while i < values@size loop
+sub write_back_precious_values(mask: int8)
+    var i: int8 := 0;
+    while i != values@size loop
         var value: [CachedValue] := &values[i];
-        var locations: uint8 := value.locations;
+        var locations: int8 := value.locations;
         if (locations & mask) != 0 then
             if (locations & PRECIOUS) != 0 then
                 locations := locations - PRECIOUS;
@@ -64,16 +64,16 @@ sub write_back_precious_values(mask: uint8)
     end loop;
 end sub;
 
-sub find_unused_regs(candidates: uint8): (mask: uint8)
-    var i: uint8 := 0;
-    while i < values@size loop
+sub find_unused_regs(candidates: int8): (mask: int8)
+    var i: int8 := 0;
+    while i != values@size loop
         candidates := candidates & (values[i].locations ^ 0xff);
         i := i + 1;
     end loop;
     mask := candidates & REG_MASK;
 end sub;
 
-sub allocate_reg(candidates: uint8): (mask: uint8)
+sub allocate_reg(candidates: int8): (mask: int8)
     candidates := candidates & (locked_registers ^ 0xff);
     mask := find_unused_regs(candidates);
     if mask == 0 then
@@ -95,18 +95,18 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
     print_newline();
 end sub;
 
-sub free_reg(mask: uint8)
+sub free_reg(mask: int8)
     locked_registers := locked_registers & (mask ^ REG_MASK);
 end sub;
 
-sub allocate_fixed_reg(candidates: uint8)
-    var location: uint8 := allocate_reg(candidates);
+sub allocate_fixed_reg(candidates: int8)
+    var location: int8 := allocate_reg(candidates);
 end sub;
 
-sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations: uint8)
-    var index: uint8 := 0;
-    while index < values@size loop
-        var value: [CachedValue] := &values[index];
+sub find_regs_with_value(ea: [EffectiveAddress], candidates: int8): (locations: int8)
+    var i: int8 := 0;
+    while i != values@size loop
+        var value: [CachedValue] := &values[i];
         locations := value.locations & candidates & REG_MASK;
         if (locations != 0) and (is_same_ea(&value.ea, ea) != 0) then
             locations := value.locations & REG_MASK;
@@ -117,7 +117,7 @@ sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations:
             print_newline();
             return;
         end if;
-        index := index + 1;
+        i := i + 1;
     end loop;
     locations := 0;
     print("* did not find value ");
@@ -125,15 +125,15 @@ sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations:
     print(" in any register\n");
 end sub;
 
-sub find_reg_with_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub find_reg_with_value(ea: [EffectiveAddress], candidates: int8): (location: int8)
     location := find_regs_with_value(ea, candidates);
     if location != 0 then
         location := find_first_bit(location & candidates);
     end if;
 end sub;
 
-sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
-    var i: uint8;
+sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: int8)
+    var i: int8;
     var value: [CachedValue];
 
     sub msg()
@@ -146,7 +146,7 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
 
     # Look for a cache slot already containing this value.
     i := 0;
-    while i < values@size loop
+    while i != values@size loop
         value := &values[i];
 
         if is_same_ea(&value.ea, ea) != 0 then
@@ -159,7 +159,7 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
 
     # Not found --- find an empty cache slot and use that.
     i := 0;
-    while i < values@size loop
+    while i != values@size loop
         value := &values[i];
 
         if value.locations == 0 then
@@ -175,7 +175,7 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
     halt();
 end sub;
 
-sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub move_value_to_reg(ea: [EffectiveAddress], candidates: int8): (location: int8)
     print("* hunting for ");
     print_ea(ea);
     print(" in 0x");
@@ -193,7 +193,7 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
         return;
     end if;
 
-    var oldlocation: uint8 := location;
+    var oldlocation: int8 := location;
     location := allocate_reg(candidates);
 
     # Special case: can't move from X to Y or vice versa.
@@ -216,8 +216,8 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
 end sub;
 
 sub value_is_precious(ea: [EffectiveAddress])
-    var i: uint8 := 0;
-    while i < values@size loop
+    var i: int8 := 0;
+    while i != values@size loop
         var value: [CachedValue] := &values[i];
         if value.locations != 0 then
             if is_same_ea(ea, &value.ea) != 0 then
@@ -242,15 +242,15 @@ end sub;
 # are precious, they get written back --- except for the new value, if it's there.
 # Any cached values in that location get flushed. This allows mutation of values without
 # triggering writeback.
-sub value_in_location_will_be_replaced_with(location: uint8, newvalue: [EffectiveAddress])
+sub value_in_location_will_be_replaced_with(location: int8, newvalue: [EffectiveAddress])
     print("* replacing value in 0x");
     print_hex_i8(location);
     print(" with ");
     print_ea(newvalue);
     print_newline();
 
-    var i: uint8 := 0;
-    while i < values@size loop
+    var i: int8 := 0;
+    while i != values@size loop
         var value: [CachedValue] := &values[i];
         if (value.locations & location) != 0 then
             if ((value.locations & PRECIOUS) != 0) and (is_same_ea(&value.ea, newvalue) == 0) then
@@ -269,28 +269,28 @@ sub value_in_location_will_be_replaced_with(location: uint8, newvalue: [Effectiv
     end loop;
 end sub;
 
-sub flush_cached_values(mask: uint8)
+sub flush_cached_values(mask: int8)
     write_back_precious_values(mask);
 
     print("* flushing cached values in 0x");
     print_hex_i8(mask);
     print_newline();
 
-    var i: uint8 := 0;
-    while i < values@size loop
+    var i: int8 := 0;
+    while i != values@size loop
         var value: [CachedValue] := &values[i];
         value.locations := value.locations & (REG_MASK ^ mask);
         i := i + 1;
     end loop;
 end sub;
 
-sub allocate_reg_for_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub allocate_reg_for_value(ea: [EffectiveAddress], candidates: int8): (location: int8)
     location := allocate_reg(candidates);
     flush_cached_values(location);
     value_is_cached_in_reg(ea, location);
 end sub;
 
-sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub find_or_load_objval(ea: [EffectiveAddress], candidates: int8): (location: int8)
     location := move_value_to_reg(ea, candidates);
     if location != 0 then
         return;
@@ -301,7 +301,7 @@ sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: u
 end sub;
 
 # Loads *just the index part* of the EA into a register.
-sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub find_or_load_index(ea: [EffectiveAddress], candidates: int8): (location: int8)
     var indexea: EffectiveAddress;
     indexea.type := EA_OBJVAL;
     indexea.varoff_id := 0;
@@ -324,19 +324,19 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
     location := find_or_load_objval(&indexea, candidates);
 end sub;
 
-sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: int8): (location: int8)
     location := move_value_to_reg(ea, candidates);
     if location != 0 then
         return;
     end if;
 
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
+    var indexreg: int8 := find_or_load_index(ea, REG_Y);
     location := allocate_reg_for_value(ea, REG_A);
     ld_ind(location, indexreg, ea);
 end sub;
 
-sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
-    var indexreg: uint8 := 0;
+sub save_objval_with_optional_index(location: int8, ea: [EffectiveAddress])
+    var indexreg: int8 := 0;
     if ea.varoff_id != 0 then
         indexreg := find_or_load_index(ea, REG_X|REG_Y);
     end if;
@@ -344,13 +344,13 @@ sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
     free_reg(indexreg);
 end sub;
 
-sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
+sub save_ptrval_with_index(location: int8, ea: [EffectiveAddress])
+    var indexreg: int8 := find_or_load_index(ea, REG_Y);
     st_ind(location, indexreg, ea);
     free_reg(indexreg);
 end sub;
 
-sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub find_or_load_value(ea: [EffectiveAddress], candidates: int8): (location: int8)
     if ea.type == EA_OBJVAL then
         location := find_or_load_objval(ea, candidates);
     elseif ea.type == EA_PTRVAL then
@@ -363,15 +363,15 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     end if;
 end sub;
 
-sub find_or_load_fixed_value(ea: [EffectiveAddress], candidates: uint8)
-    var location: uint8 := find_or_load_value(ea, candidates);
+sub find_or_load_fixed_value(ea: [EffectiveAddress], candidates: int8)
+    var location: int8 := find_or_load_value(ea, candidates);
 end sub;
 
-sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)
+sub aluop_objval(ea: [EffectiveAddress], opcode: int8)
     if is_number_thing(ea.obj_id) != 0 then
         op_imm(get_value_of_number(ea.obj_id), opcode & 0xFB);
     else
-        var indexreg: uint8 := 0;
+        var indexreg: int8 := 0;
         if ea.varoff_id != 0 then
             indexreg := find_or_load_index(ea, REG_X|REG_Y);
             opcode := opcode | 0x10;
@@ -388,7 +388,7 @@ end sub;
 
 # Assumes the input value is in A. opcode must be an abs instruction in the 0x0D or 0x0E
 # columns of the map. ea is read direct from memory (or via an immediate).
-sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
+sub aluop_value(ea: [EffectiveAddress], opcode: int8)
     if ea.type == EA_OBJVAL then
         aluop_objval(ea, opcode);
     else
@@ -399,7 +399,7 @@ sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
     end if;
 end sub;
 
-sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
+sub find_or_load_int(value: int8, candidates: int8): (location: int8)
     var ea: EffectiveAddress;
     ea.type := EA_OBJVAL;
     ea.obj_id := add_number_by_value(value);
@@ -408,12 +408,12 @@ sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
     location := find_or_load_value(&ea, candidates);
 end sub;
 
-sub find_or_load_fixed_int(value: uint8, candidates: uint8)
-    var location: uint8 := find_or_load_int(value, candidates);
+sub find_or_load_fixed_int(value: int8, candidates: int8)
+    var location: int8 := find_or_load_int(value, candidates);
 end sub;
 
-sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    var oldlocation: uint8 := find_reg_with_value(ea, candidates);
+sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: int8): (location: int8)
+    var oldlocation: int8 := find_reg_with_value(ea, candidates);
     location := find_or_load_value(ea, candidates);
     if oldlocation != location then
         # The value was forced from memory, so the flags are set automatically.
@@ -423,11 +423,11 @@ sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: uint8): (l
     end if;
 end sub;
 
-sub find_or_load_fixed_value_with_flags(ea: [EffectiveAddress], candidates: uint8)
-    var location: uint8 := find_or_load_value_with_flags(ea, candidates);
+sub find_or_load_fixed_value_with_flags(ea: [EffectiveAddress], candidates: int8)
+    var location: int8 := find_or_load_value_with_flags(ea, candidates);
 end sub;
 
-sub save_value(location: uint8, ea: [EffectiveAddress])
+sub save_value(location: int8, ea: [EffectiveAddress])
     if ea.type == EA_OBJVAL then
         save_objval_with_optional_index(location, ea);
     elseif ea.type == EA_PTRVAL then
@@ -440,7 +440,7 @@ sub save_value(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
+sub make_value_precious_or_save_now(location: int8, ea: [EffectiveAddress])
     value_is_cached_in_reg(ea, location);
     if (ea.varoff_id != 0) or ((ea.type & EA_DEREF_BEFORE) != 0) then
         print("* value ");
@@ -452,7 +452,7 @@ sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+sub save_value_with_index_or_offset(location: int8, ea: [EffectiveAddress], offset: int8)
     if ea.type == EA_OBJVAL then
         save_objval_with_offset(location, ea, offset);
     elseif ea.type == EA_PTRVAL then

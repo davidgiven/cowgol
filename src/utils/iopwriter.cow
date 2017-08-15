@@ -1,6 +1,6 @@
-var iop_out_fd: uint8;
-var old_filename_id: uint16;
-var old_linenumber: uint16;
+var iop_out_fd: int8;
+var old_filename_id: int16;
+var old_linenumber: int16;
 
 sub init_iop_writer(filename: [int8])
     iop_out_fd := file_openout(filename);
@@ -41,14 +41,14 @@ sub write_iop(iop: [Iop])
     file_putblock(iop_out_fd, iop as [int8], iop.iop_size);
 end sub;
 
-sub write_untyped_iop(kind: uint8)
+sub write_untyped_iop(kind: int8)
     var obuf: Iop[1];
     obuf[0].iop_kind := kind;
     obuf[0].iop_size := Iop@bytes;
     write_iop(&obuf[0] as [Iop]);
 end sub;
 
-sub write_bytes_iop(byte_count: uint8, bytes: [uint8])
+sub write_bytes_iop(byte_count: int8, bytes: [int8])
     var buf: BytesIop[1];
     buf[0].iop_size := BytesIop@bytes;
     buf[0].iop_kind := IOP_BYTES;
@@ -57,19 +57,19 @@ sub write_bytes_iop(byte_count: uint8, bytes: [uint8])
     write_iop(&buf[0] as [Iop]);
 end sub;
 
-sub write_byte(byte: uint8)
-    var buf: uint8[1];
+sub write_byte(byte: int8)
+    var buf: int8[1];
     buf[0] := byte;
-    write_bytes_iop(1, &buf[0] as [uint8]);
+    write_bytes_iop(1, &buf[0] as [int8]);
 end sub;
 
-sub write_word_iop(word: uint16)
-    var buf: uint16[1];
+sub write_word_iop(word: int16)
+    var buf: int16[1];
     buf[0] := word;
-    write_bytes_iop(2, &buf[0] as [uint8]);
+    write_bytes_iop(2, &buf[0] as [int8]);
 end sub;
 
-sub write_address_iop(thing_id: uint16, offset: uint16)
+sub write_address_iop(thing_id: int16, offset: int16)
     var buf: AddressIop[1];
     buf[0].iop_size := AddressIop@bytes;
     buf[0].iop_kind := IOP_ADDRESS;
@@ -78,7 +78,7 @@ sub write_address_iop(thing_id: uint16, offset: uint16)
     write_iop(&buf[0] as [Iop]);
 end sub;
 
-sub write_label_iop(label: uint16)
+sub write_label_iop(label: int16)
     var buf: LabelIop;
     buf.iop_size := LabelIop@bytes;
     buf.iop_kind := IOP_LABEL;
@@ -86,7 +86,7 @@ sub write_label_iop(label: uint16)
     write_iop(&buf as [Iop]);
 end sub;
 
-sub write_cg_6502_mem_iop(opcode: uint8, thing_id: uint16, offset: uint16)
+sub write_cg_6502_mem_iop(opcode: int8, thing_id: int16, offset: int16)
     var buf: CG6502MemIop[1];
     buf[0].iop_size := CG6502MemIop@bytes;
     buf[0].iop_kind := IOP_CG_6502_MEM;
@@ -96,7 +96,7 @@ sub write_cg_6502_mem_iop(opcode: uint8, thing_id: uint16, offset: uint16)
     write_iop(&buf[0] as [Iop]);
 end sub;
 
-sub write_cg_6502_zeropage_iop(thing_id: uint16, offset: uint16)
+sub write_cg_6502_zeropage_iop(thing_id: int16, offset: int16)
     var buf: CG6502ZeroPageIop;
     buf.iop_size := CG6502ZeroPageIop@bytes;
     buf.iop_kind := IOP_CG_6502_ZEROPAGE;
@@ -105,7 +105,7 @@ sub write_cg_6502_zeropage_iop(thing_id: uint16, offset: uint16)
     write_iop(&buf as [Iop]);
 end sub;
 
-sub write_cg_6502_conditional_iop(opcode: uint8, label: uint16)
+sub write_cg_6502_conditional_iop(opcode: int8, label: int16)
     var buf: CG6502ConditionalIop[1];
     buf[0].iop_size := CG6502ConditionalIop@bytes;
     buf[0].iop_kind := IOP_CG_6502_COND;

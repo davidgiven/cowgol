@@ -972,7 +972,8 @@ function expression(outputvar)
                     emit("%s = (intptr_t)%s - (intptr_t)%s;",
                         op.rvalue.storage, left.storage, right.storage)
                 else
-                    emit("%s = %s %s %s;", op.rvalue.storage, left.storage, cop, right.storage)
+                    emit("%s = %s %s (%s)%s;", op.rvalue.storage, left.storage, cop,
+                        left.type.ctype, right.storage)
                 end
                 stack[#stack+1] = op.rvalue
                 if left.temporary then

@@ -1,16 +1,16 @@
-var break_label_id: uint16;
-var continue_label_id: uint16;
-var if_true_label_id: uint16;
-var if_false_label_id: uint16;
-var if_end_label_id: uint16;
+var break_label_id: int16;
+var continue_label_id: int16;
+var if_true_label_id: int16;
+var if_false_label_id: int16;
+var if_end_label_id: int16;
 
-sub create_namespace(parent_id: uint16): (namespace_id: uint16)
+sub create_namespace(parent_id: int16): (namespace_id: int16)
     namespace_id := create_thing(THING_NAMESPACE, NamespaceThing@bytes);
     var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
     namespace_thing.previous_namespace := parent_id;
 end sub;
 
-sub create_function(): (subroutine_id: uint16, namespace_id: uint16)
+sub create_function(): (subroutine_id: int16, namespace_id: int16)
     subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
     namespace_id := create_namespace(current_namespace_id);
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
@@ -70,8 +70,8 @@ sub pop_subroutine()
     break_label_id := lexical_pop();
 end sub;
 
-sub create_bootstrap_type(identifier_id: uint16): (type: [NumericThing])
-    var type_id: uint16 := create_thing(THING_CONSTANTT, NumericThing@bytes);
+sub create_bootstrap_type(identifier_id: int16): (type: [NumericThing])
+    var type_id: int16 := create_thing(THING_CONSTANTT, NumericThing@bytes);
     add_symbol(identifier_id, type_id, current_namespace_id);
     type := find_thing(type_id) as [NumericThing];
 end sub;
@@ -101,11 +101,11 @@ sub init_parser()
 end sub;
 
 sub do_sub()
-    var old_namespace_id: uint16 := current_namespace_id;
+    var old_namespace_id: int16 := current_namespace_id;
 
     push_subroutine();
     expect_token(TOKEN_SUB);
-    var id: uint16 := expect_identifier();
+    var id: int16 := expect_identifier();
     (current_subroutine_id, current_namespace_id) := create_function();
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     add_symbol(id, current_subroutine_id, old_namespace_id);
@@ -115,19 +115,19 @@ sub do_sub()
     if_false_label_id := 0;
     if_end_label_id := 0;
 
-    sub add_parameter(direction: uint8)
+    sub add_parameter(direction: int8)
         id := expect_identifier();
         expect_token(TOKEN_COLON);
-        var type_id: uint16 := read_type();
+        var type_id: int16 := read_type();
 
-        var parameter_id: uint16 := create_thing(THING_PARAMETER, ParameterThing@bytes);
+        var parameter_id: int16 := create_thing(THING_PARAMETER, ParameterThing@bytes);
         add_symbol(id, parameter_id, current_namespace_id);
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
         parameter.direction := direction;
         parameter.type_id := type_id;
     end sub;
 
-    sub add_parameter_list(direction: uint8)
+    sub add_parameter_list(direction: int8)
         expect_token(TOKEN_OPENPAREN);
         while current_token != TOKEN_CLOSEPAREN loop
             if direction == DIRECTION_OUT then
@@ -164,11 +164,11 @@ end sub;
 
 sub do_var()
     expect_token(TOKEN_VAR);
-    var id: uint16 := expect_identifier();
+    var id: int16 := expect_identifier();
     expect_token(TOKEN_COLON);
-    var type_id: uint16 := read_type();
+    var type_id: int16 := read_type();
 
-    var variable_id: uint16 := create_thing(THING_VARIABLE, VariableThing@bytes);
+    var variable_id: int16 := create_thing(THING_VARIABLE, VariableThing@bytes);
     add_symbol(id, variable_id, current_namespace_id);
     var variable: [VariableThing] := find_thing(variable_id) as [VariableThing];
     variable.type_id := type_id;
@@ -186,23 +186,23 @@ end sub;
 
 sub do_const()
     expect_token(TOKEN_CONST);
-    var id: uint16 := expect_identifier();
+    var id: int16 := expect_identifier();
     expect_token(TOKEN_ASSIGN);
 
     var value: int32 := do_constant();
-    var number_id: uint16 := add_number_by_value(value);
+    var number_id: int16 := add_number_by_value(value);
     add_symbol(id, number_id, current_namespace_id);
 
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
 sub do_record()
-    var type_id: uint16;
+    var type_id: int16;
     var type: [TypeThing];
 
     expect_token(TOKEN_RECORD);
-    var id: uint16 := expect_identifier();
-    var record_id: uint16 := create_thing(THING_RECORDT, RecordThing@bytes);
+    var id: int16 := expect_identifier();
+    var record_id: int16 := create_thing(THING_RECORDT, RecordThing@bytes);
     add_symbol(id, record_id, current_namespace_id);
     var recordp: [RecordThing] := find_thing(record_id) as [RecordThing];
 
@@ -237,7 +237,7 @@ sub do_record()
         check_recursive_type();
         type := find_thing(type_id) as [TypeThing];
 
-        var member_id: uint16 := create_thing(THING_MEMBER, MemberThing@bytes);
+        var member_id: int16 := create_thing(THING_MEMBER, MemberThing@bytes);
         add_symbol(id, member_id, recordp.namespace_id);
         var member: [MemberThing] := find_thing(member_id) as [MemberThing];
         member.type_id := type_id;
@@ -253,10 +253,10 @@ sub do_record()
 end sub;
 
 sub do_label()
-    var id: uint16 := expect_identifier();
+    var id: int16 := expect_identifier();
     expect_token(TOKEN_COLON);
 
-    var label_id: uint16 := create_label();
+    var label_id: int16 := create_label();
     add_symbol(id, label_id, current_namespace_id);
     emit_label(label_id);
 end sub;
@@ -272,7 +272,7 @@ end sub;
 
 sub do_goto()
     next_token();
-    var id: uint16 := expect_identifier();
+    var id: int16 := expect_identifier();
     emit_goto(id);
 
     expect_token(TOKEN_SEMICOLON);
@@ -294,14 +294,14 @@ end sub;
 sub do_while()
     do_generic_loop_opening();
 
-    var loop_label_id: uint16;
+    var loop_label_id: int16;
     (loop_label_id, break_label_id) := do_conditional();
     emit_label(loop_label_id);
 
     expect_token(TOKEN_LOOP);
 end sub;
 
-sub do_jump(label_id: uint16)
+sub do_jump(label_id: int16)
     next_token();
     expect_token(TOKEN_SEMICOLON);
 
@@ -360,8 +360,8 @@ sub do_end_if()
 end sub;
 
 sub do_functioncall()
-    var input_parameters: uint8 := 0;
-    var output_parameters: uint8 := 0;
+    var input_parameters: int8 := 0;
+    var output_parameters: int8 := 0;
 
     if current_token == TOKEN_OPENPAREN then
         next_token();
@@ -376,7 +376,7 @@ sub do_functioncall()
         expect_token(TOKEN_ASSIGN);
     end if;
 
-    var id: uint16 := expect_identifier();
+    var id: int16 := expect_identifier();
 
     expect_token(TOKEN_OPENPAREN);
     while current_token != TOKEN_CLOSEPAREN loop
@@ -389,7 +389,7 @@ sub do_functioncall()
     end loop;
     expect_token(TOKEN_CLOSEPAREN);
 
-    var i: uint8 := input_parameters;
+    var i: int8 := input_parameters;
     while i > 0 loop
         i := i - 1;
         emit_fe_parameter(IOP_FEX_INPUTPARAM, id, i);
@@ -414,7 +414,7 @@ end sub;
 
 sub do_end()
     expect_token(TOKEN_END);
-    var peeked: uint16 := lexical_peek();
+    var peeked: int16 := lexical_peek();
     if current_token != peeked then
         print("can't close a ");
         show_identifier(peeked);
@@ -458,7 +458,7 @@ sub do_words()
     loop
         if current_token == TOKEN_AMPERSAND then
             next_token();
-            var identifier_id: uint16 := expect_identifier();
+            var identifier_id: int16 := expect_identifier();
             emit_address(identifier_id);
         else
             var value: int32 := do_constant();

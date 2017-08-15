@@ -1,4 +1,4 @@
-sub get_width_of(node: [Node]): (width: uint8)
+sub get_width_of(node: [Node]): (width: int8)
     width := get_width_of_type(node.type_id);
 end sub;
 
@@ -24,12 +24,12 @@ sub reset_be_iop(iop: [BEIop])
     iop.right.type := EA_OBJVAL;
 end sub;
 
-sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
+sub simplify_ea(beiop: int8, width: int8, ea: [EffectiveAddress])
     var iop: BEIop;
-    var tmpvar_id: uint16;
+    var tmpvar_id: int16;
 
     sub varoffset_into_add()
-        tmpvar_id := alloc_temporary(uint16_type);
+        tmpvar_id := alloc_temporary(int16_type);
         reset_be_iop(&iop);
         iop.iop_kind := IOP_BE_ADD;
         iop.width := 2;
@@ -49,7 +49,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
 
     sub numoffset_into_add()
         if tmpvar_id == 0 then
-            tmpvar_id := alloc_temporary(uint16_type);
+            tmpvar_id := alloc_temporary(int16_type);
         else
             ref_temporary(tmpvar_id);
         end if;
@@ -72,7 +72,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     end sub;
 
     if ea.varoff_id != 0 then
-        var type_id: uint16 := get_type_of_thing(ea.varoff_id);
+        var type_id: int16 := get_type_of_thing(ea.varoff_id);
         var type: [TypeThing] := find_thing(type_id) as [TypeThing];
 
         # If this is an OBJVAL ea, then the object must be an array. Out of bound
@@ -86,7 +86,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     end if;
 
     if ea.numoff_id != 0 then
-        sub is_number_a_byte(number_id: uint16): (is_valid: uint8)
+        sub is_number_a_byte(number_id: int16): (is_valid: int8)
             var value: int32 := get_value_of_number(number_id);
             if (value >= 0) and (value <= 255) then
                 is_valid := 1;
@@ -110,7 +110,7 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
         halt();
     end if;
 
-    var destwidth: uint8 := get_width_of(dest);
+    var destwidth: int8 := get_width_of(dest);
 
     var iop: BEIop;
     reset_be_iop(&iop);

@@ -1,4 +1,4 @@
-sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: uint32)
+sub collapse_constant_op(beiop: int8, left: int32, right: int32): (result: int32)
     if beiop == IOP_BE_ADD then                                  result := left + right;
     elseif beiop == IOP_BE_SUB then                              result := left - right;
     elseif beiop == IOP_BE_MUL then                              result := left * right;

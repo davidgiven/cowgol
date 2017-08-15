@@ -4,7 +4,7 @@ const REG_Y    := 0b0000_0100;
 const REG_MASK := 0b0111_1111;
 const PRECIOUS := 0b1000_0000;
 
-sub find_first_bit(value: uint8): (mask: uint8)
+sub find_first_bit(value: int8): (mask: int8)
     mask := 1;
     loop
         if (value & mask) != 0 then
@@ -18,8 +18,8 @@ sub find_first_bit(value: uint8): (mask: uint8)
     mask := 0;
 end sub;
 
-sub find_bit_index(value: uint8): (index: uint8)
-    var mask: uint8 := 1;
+sub find_bit_index(value: int8): (index: int8)
+    var mask: int8 := 1;
     index := 0;
     loop
         if (value & mask) != 0 then
@@ -40,29 +40,29 @@ sub bad_register()
     halt();
 end sub;
 
-sub op_imm(value: uint8, opcode: uint8)
+sub op_imm(value: int8, opcode: int8)
     print("@ op_imm 0x");
     print_hex_i8(opcode);
     print(" value=0x");
     print_hex_i8(value);
     print_newline();
 
-    var buf: uint8[2];
+    var buf: int8[2];
     buf[0] := opcode;
     buf[1] := value;
     write_bytes_iop(buf@size, &buf[0]);
 end sub;
 
-var ld_imm_opcodes: uint8[3];
+var ld_imm_opcodes: int8[3];
 ld_imm_opcodes[0] := 0xA9; # LDA imm
 ld_imm_opcodes[1] := 0xA2; # LDX imm
 ld_imm_opcodes[2] := 0xA0; # LDY imm
-sub ld_imm(location: uint8, value: uint8)
+sub ld_imm(location: int8, value: int8)
     location := find_bit_index(location);
     op_imm(value, ld_imm_opcodes[location]);
 end sub;
 
-sub op_abs(ea: [EffectiveAddress], opcode: uint8)
+sub op_abs(ea: [EffectiveAddress], opcode: int8)
     print("@ op_abs 0x");
     print_hex_i8(opcode);
     print(" ea=");
@@ -91,20 +91,20 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
     end if;
 end sub;
 
-var ld_abs_opcodes: uint8[3];
+var ld_abs_opcodes: int8[3];
 ld_abs_opcodes[0] := 0xAD; # LDA abs
 ld_abs_opcodes[1] := 0xAE; # LDX abs
 ld_abs_opcodes[2] := 0xAC; # LDY abs
-var ld_abs_x_opcodes: uint8[3];
+var ld_abs_x_opcodes: int8[3];
 ld_abs_x_opcodes[0] := 0xBD; # LDA abs, X
 ld_abs_x_opcodes[1] := 0x00; # invalid
 ld_abs_x_opcodes[2] := 0xBC; # LDY abs, X
-var ld_abs_y_opcodes: uint8[3];
+var ld_abs_y_opcodes: int8[3];
 ld_abs_y_opcodes[0] := 0xB9; # LDA abs, Y
 ld_abs_y_opcodes[1] := 0xBE; # LDX abs, Y
 ld_abs_y_opcodes[2] := 0x00; # invalid
-sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint8)
-    var opcode: uint8 := 0;
+sub ldst_abs(location: int8, index: int8, ea: [EffectiveAddress], opmask: int8)
+    var opcode: int8 := 0;
 
     location := find_bit_index(location);
     if index == 0 then
@@ -123,7 +123,7 @@ sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint
     op_abs(ea, opcode);
 end sub;
 
-sub op_ind(ea: [EffectiveAddress], opcode: uint8)
+sub op_ind(ea: [EffectiveAddress], opcode: int8)
     print("@ op_ind 0x");
     print_hex_i8(opcode);
     print(" obj_id=");
@@ -149,23 +149,23 @@ sub op_ind(ea: [EffectiveAddress], opcode: uint8)
     write_cg_6502_zeropage_iop(ea.obj_id, 0);
 end sub;
 
-sub ld_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
+sub ld_abs(location: int8, index: int8, ea: [EffectiveAddress])
     ldst_abs(location, index, ea, 0b11111111);
 end sub;
 
-sub ld_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
+sub ld_ind(location: int8, indexreg: int8, ea: [EffectiveAddress])
     op_ind(ea, 0xB1); # LDA (ind), Y
 end sub;
 
-sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
+sub st_abs(location: int8, index: int8, ea: [EffectiveAddress])
     ldst_abs(location, index, ea, 0b11011111);
 end sub;
 
-sub st_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
+sub st_ind(location: int8, indexreg: int8, ea: [EffectiveAddress])
     op_ind(ea, 0x91); # STA (ind), Y
 end sub;
 
-var t_opcodes: uint8[9];
+var t_opcodes: int8[9];
 t_opcodes[0 + 0*3] := 0x00; # TAA
 t_opcodes[0 + 1*3] := 0xAA; # TAX
 t_opcodes[0 + 2*3] := 0xA8; # TAY
@@ -175,7 +175,7 @@ t_opcodes[1 + 2*3] := 0x00; # TXY
 t_opcodes[2 + 0*3] := 0x98; # TYA
 t_opcodes[2 + 1*3] := 0x00; # TYX
 t_opcodes[2 + 2*3] := 0x00; # TYY
-sub t_reg_reg(src: uint8, dest: uint8)
+sub t_reg_reg(src: int8, dest: int8)
     print("@ t?? src=0x");
     print_hex_i8(src);
     print(" dest=0x");
@@ -188,7 +188,7 @@ sub t_reg_reg(src: uint8, dest: uint8)
         bad_register();
     end if;
 
-    var opcode: uint8 := t_opcodes[src + dest*3];
+    var opcode: int8 := t_opcodes[src + dest*3];
     if opcode == 0 then
         print("bad move");
         halt();
@@ -196,7 +196,7 @@ sub t_reg_reg(src: uint8, dest: uint8)
     write_byte(opcode);
 end sub;
 
-sub load_objval(location: uint8, ea: [EffectiveAddress])
+sub load_objval(location: int8, ea: [EffectiveAddress])
     if is_number_thing(ea.obj_id) != 0 then
         ld_imm(location, get_value_of_number(ea.obj_id));
     else
@@ -204,14 +204,14 @@ sub load_objval(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub load_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    var old_numoff_id: uint16 := ea.numoff_id;
+sub load_objval_with_offset(location: int8, ea: [EffectiveAddress], offset: int8)
+    var old_numoff_id: int16 := ea.numoff_id;
     ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
     ld_abs(location, 0, ea);
     ea.numoff_id := old_numoff_id;
 end sub;
 
-sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+sub load_value_with_offset(location: int8, ea: [EffectiveAddress], offset: int8)
     if ea.type == EA_OBJVAL then
         load_objval_with_offset(location, ea, offset);
     else
@@ -224,7 +224,7 @@ sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint
     end if;
 end sub;
 
-sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
+sub load_value_with_index(location: int8, ea: [EffectiveAddress], index: int8)
     if ea.type == EA_OBJVAL then
         ld_abs(location, index, ea);
     else
@@ -237,18 +237,18 @@ sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
     end if;
 end sub;
 
-sub save_objval(location: uint8, ea: [EffectiveAddress])
+sub save_objval(location: int8, ea: [EffectiveAddress])
     st_abs(location, 0, ea);
 end sub;
 
-sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    var old_numoff_id: uint16 := ea.numoff_id;
+sub save_objval_with_offset(location: int8, ea: [EffectiveAddress], offset: int8)
+    var old_numoff_id: int16 := ea.numoff_id;
     ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
     st_abs(location, 0, ea);
     ea.numoff_id := old_numoff_id;
 end sub;
 
-sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
+sub save_value_with_offset(location: int8, ea: [EffectiveAddress], offset: int8)
     if ea.type == EA_OBJVAL then
         save_objval_with_offset(location, ea, offset);
     else
@@ -261,7 +261,7 @@ sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint
     end if;
 end sub;
 
-sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
+sub save_value_with_index(location: int8, ea: [EffectiveAddress], index: int8)
     if ea.type == EA_OBJVAL then
         st_abs(location, index, ea);
     else

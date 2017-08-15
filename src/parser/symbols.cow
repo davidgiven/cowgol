@@ -1,10 +1,10 @@
 # These occupy the same namespace as tokens.
 const LEX_TOP := 200;
 
-var lexical_stack: uint16[64];
-var lexical_stack_ptr: uint8 := 0;
+var lexical_stack: int16[64];
+var lexical_stack_ptr: int8 := 0;
 
-var current_subroutine_id: uint16;
+var current_subroutine_id: int16;
 
 sub halt()
     print(" at ");
@@ -19,7 +19,7 @@ sub halt()
     exit(1);
 end sub;
 
-sub lexical_push(value: uint16)
+sub lexical_push(value: int16)
     if lexical_stack_ptr == lexical_stack@size then
         print("lexical stack overflow");
         halt();
@@ -29,7 +29,7 @@ sub lexical_push(value: uint16)
     lexical_stack_ptr := lexical_stack_ptr + 1;
 end sub;
 
-sub lexical_pop(): (value: uint16)
+sub lexical_pop(): (value: int16)
     if lexical_stack_ptr == 0 then
         print("lexical stack underflow");
         halt();
@@ -39,27 +39,27 @@ sub lexical_pop(): (value: uint16)
     value := lexical_stack[lexical_stack_ptr];
 end sub;
 
-sub lexical_push32(value: uint32)
-    var buf: uint16[2];
-    var ptr: [uint32] := &buf[0] as [uint32];
+sub lexical_push32(value: int32)
+    var buf: int16[2];
+    var ptr: [int32] := &buf[0] as [int32];
     ptr[0] := value;
     lexical_push(buf[0]);
     lexical_push(buf[1]);
 end sub;
 
-sub lexical_pop32(): (value: uint32)
-    var buf: uint16[2];
-    var ptr: [uint32] := &buf[0] as [uint32];
+sub lexical_pop32(): (value: int32)
+    var buf: int16[2];
+    var ptr: [int32] := &buf[0] as [int32];
     buf[1] := lexical_pop();
     buf[0] := lexical_pop();
     value := ptr[0];
 end sub;
 
-sub lexical_peek(): (value: uint16)
+sub lexical_peek(): (value: int16)
     value := lexical_stack[lexical_stack_ptr - 1];
 end sub;
 
-sub lexical_pop_scope_type(type: uint16)
+sub lexical_pop_scope_type(type: int16)
     if lexical_pop() != type then
         print("mismatched lexical scope terminator");
         halt();

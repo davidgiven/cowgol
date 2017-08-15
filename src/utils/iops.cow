@@ -1,11 +1,11 @@
 record IHeader
-    thing_id: uint16;
-    section: uint8;
+    thing_id: int16;
+    section: int8;
 end record;
 
 record Iop
-    iop_size: uint8;
-    iop_kind: uint8;
+    iop_size: int8;
+    iop_kind: int8;
     payload: int8[0];
 end record;
 
@@ -110,66 +110,66 @@ const IOP_CG_6502_COND     := 0b1110_0100;
 const IOP_CG_6502_MEM      := 0b1110_0101;
 
 record FilenameIop: Iop
-    thing_id: uint16;
+    thing_id: int16;
 end record;
 
 record LinenumberIop: Iop
-    line_number: uint16;
+    line_number: int16;
 end record;
 
 record LabelIop: Iop
-    label: uint16;
+    label: int16;
 end record;
 
 record CloneLabelIop: Iop
-    src_label: uint16;
-    dest_label: uint16;
+    src_label: int16;
+    dest_label: int16;
 end record;
 
 record StringIop: Iop
-    string_id: uint16;
+    string_id: int16;
 end record;
 
 record CallIop: Iop
-    thing_id: uint16;
-    input_parameter_count: uint8;
-    output_parameter_count: uint8;
+    thing_id: int16;
+    input_parameter_count: int8;
+    output_parameter_count: int8;
 end record;
 
 record GotoIop: Iop
-    label: uint16;
+    label: int16;
 end record;
 
 record BytesIop: Iop
-    byte_count: uint8;
-    bytes: uint8[8];
+    byte_count: int8;
+    bytes: int8[8];
 end record;
 
 record AddressIop: Iop
-    thing_id: uint16;
-    offset: uint16;
+    thing_id: int16;
+    offset: int16;
 end record;
 
 record FEPushIop: Iop
-    thing_id: uint16;
+    thing_id: int16;
 end record;
 
 record FEParameterIop: Iop
-    subroutine_id: uint16;
-    parameter: uint8;
+    subroutine_id: int16;
+    parameter: int8;
 end record;
 
 record FEMemberIop: Iop
-    thing_id: uint16;
+    thing_id: int16;
 end record;
 
 record FECastIop: Iop
-    type_id: uint16;
+    type_id: int16;
 end record;
 
 record FEConditionalIop: Iop
-    iftrue_label: uint16;
-    iffalse_label: uint16;
+    iftrue_label: int16;
+    iffalse_label: int16;
 end record;
 
 const EA_DEREF_BEFORE := 0b10;
@@ -180,41 +180,41 @@ const EA_PTRADR       := 0b10; # deref pointer, plus offset
 const EA_PTRVAL       := 0b11; # deref pointer, plus offset, then deref
 
 record EffectiveAddress
-    type: uint8;
-    obj_id: uint16;
-    varoff_id: uint16;
-    numoff_id: uint16;
+    type: int8;
+    obj_id: int16;
+    varoff_id: int16;
+    numoff_id: int16;
 end record;
 
 record BEIop: Iop
-    width: uint8;
+    width: int8;
     left: EffectiveAddress;
     right: EffectiveAddress;
     dest: EffectiveAddress;
 end record;
 
 record BEConditionalIop: Iop
-    width: uint8;
+    width: int8;
     left: EffectiveAddress;
     right: EffectiveAddress;
-    iftrue_label: uint16;
-    iffalse_label: uint16;
+    iftrue_label: int16;
+    iffalse_label: int16;
 end record;
 
 record CG6502MemIop: Iop
-    opcode: uint8;
-    thing_id: uint16;
-    offset: uint16;
+    opcode: int8;
+    thing_id: int16;
+    offset: int16;
 end record;
 
 record CG6502ZeroPageIop: Iop
-    thing_id: uint16;
-    offset: uint16;
+    thing_id: int16;
+    offset: int16;
 end record;
 
 record CG6502ConditionalIop: Iop
-    opcode: uint8;
-    label: uint16;
+    opcode: int8;
+    label: int16;
 end record;
 
 record BiggestIop: BEIop
@@ -232,7 +232,7 @@ sub zero_ea(ea: [EffectiveAddress])
     zero_memory(ea as [int8], EffectiveAddress@bytes);
 end sub;
 
-sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8)
+sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: int8)
     if compare_memory(ea1 as [int8], ea2 as [int8], EffectiveAddress@bytes) == 0 then
         result := 1;
     else

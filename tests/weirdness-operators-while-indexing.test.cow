@@ -1,8 +1,8 @@
-var array: uint8[10];
-var index: uint8;
+var array: int8[10];
+var index: int8;
 
 index := 0;
-while index < array@size loop
+while index != array@size loop
     array[index] := index;
     index := index + 1;
 end loop;

@@ -21,84 +21,84 @@ const THING_NUMBERT    := 0b0010_0100;
 const THING_CONSTANTT  := 0b0010_0101;
 
 record Thing
-    thing_size: uint8;
-    thing_type: uint8;
+    thing_size: int8;
+    thing_type: int8;
     payload: int8[0];
 end record;
 
 record IdentifierThing: Thing
-    string_id: uint16;
+    string_id: int16;
 end record;
 
 record StringThing: IdentifierThing
-    string_size: uint8;
+    string_size: int8;
 end record;
 
 record TokenThing: IdentifierThing
-    token_flags: uint8;
+    token_flags: int8;
 end record;
 
 record NumberThing: Thing
-    value: uint32;
+    value: int32;
 end record;
 
 record NamespaceThing: Thing
-    previous_namespace: uint16;
-    first_symbol: uint16;
+    previous_namespace: int16;
+    first_symbol: int16;
 end record;
 
 record MemberThing: Thing
-    type_id: uint16;
-    offset: uint16;
+    type_id: int16;
+    offset: int16;
 end record;
 
 record SymbolThing: Thing
-    name_id: uint16;
-    value_id: uint16;
-    next_symbol: uint16;
+    name_id: int16;
+    value_id: int16;
+    next_symbol: int16;
 end record;
 
 record TypeThing: Thing
-    width: uint16;
+    width: int16;
 end record;
 
 record RecordThing: TypeThing
-    superclass_id: uint16;
-    namespace_id: uint16;
+    superclass_id: int16;
+    namespace_id: int16;
 end record;
 
 record NumericThing: TypeThing
 end record;
 
 record WithElementsThing: TypeThing
-    element_id: uint16;
+    element_id: int16;
 end record;
 
 record PointerThing: WithElementsThing
 end record;
 
 record ArrayThing: WithElementsThing
-    element_count: uint16;
+    element_count: int16;
 end record;
 
 const SEGMENT_UNKNOWN := 0; # here, the address field is used for record-keeping
 const SEGMENT_OMIT := 1;
 
 record DataThing: Thing
-    segment: uint8;
-    owner_id: uint16;
-    address: uint16; # or sundry other things if segment == SEGMENT_UNKNOWN
+    segment: int8;
+    owner_id: int16;
+    address: int16; # or sundry other things if segment == SEGMENT_UNKNOWN
 end record;
 
 record SubroutineThing: DataThing
-    namespace_id: uint16;
-    label_count: uint16;
-    input_parameter_count: uint8;
-    output_parameter_count: uint8;
+    namespace_id: int16;
+    label_count: int16;
+    input_parameter_count: int8;
+    output_parameter_count: int8;
 end record;
 
 record TypedThing: DataThing
-    type_id: uint16;
+    type_id: int16;
 end record;
 
 record VariableThing: TypedThing
@@ -107,14 +107,14 @@ end record;
 const DIRECTION_IN  := 0;
 const DIRECTION_OUT := 1;
 record ParameterThing: VariableThing
-    direction: uint8;
+    direction: int8;
 end record;
 
 var thing_table: [int8] := LOMEM;
-var thing_table_top: uint16 := 1;
+var thing_table_top: int16 := 1;
 thing_table[thing_table_top] := 0;
 
-sub create_thing(type: uint8, size: uint8): (id: uint16)
+sub create_thing(type: int8, size: int8): (id: int16)
     id := thing_table_top;
     var thing: [Thing] := &thing_table[id] as [Thing];
     zero_memory(thing as [int8], size + 1);
@@ -123,19 +123,20 @@ sub create_thing(type: uint8, size: uint8): (id: uint16)
     thing_table_top := id + size;
 end sub;
 
-sub find_thing(id: uint16): (thing: [Thing])
+sub find_thing(id: int16): (thing: [Thing])
     if id >= thing_table_top then
-        print("thing id ");
+        print("thing id 0x");
         print_hex_i16(id);
-        print(" out of bounds");
-        print_newline();
+        print(" out of bounds (0x");
+        print_hex_i16(thing_table_top);
+        print(")\n");
         exit(1);
     end if;
 
     thing := &thing_table[id] as [Thing];
 end sub;
 
-sub find_thing_by_value(template: [Thing]): (id: uint16)
+sub find_thing_by_value(template: [Thing]): (id: int16)
     id := 1;
     loop
         var thing: [Thing] := &thing_table[id] as [Thing];
@@ -156,21 +157,21 @@ sub find_thing_by_value(template: [Thing]): (id: uint16)
     id := 0;
 end sub;
 
-sub add_thing(template: [Thing]): (id: uint16)
+sub add_thing(template: [Thing]): (id: int16)
     id := thing_table_top;
     copy_memory(template as [int8], &thing_table[id] as [int8], template.thing_size);
     thing_table_top := id + template.thing_size;
     thing_table[thing_table_top] := 0;
 end sub;
 
-sub add_thing_by_value(template: [Thing]): (id: uint16)
+sub add_thing_by_value(template: [Thing]): (id: int16)
     id := find_thing_by_value(template);
     if id == 0 then
         id := add_thing(template);
     end if;
 end sub;
 
-sub add_number_by_value(value: int32): (id: uint16)
+sub add_number_by_value(value: int32): (id: int16)
     var buf: NumberThing[1];
     buf[0].thing_type := THING_NUMBER;
     buf[0].thing_size := NumberThing@bytes;
@@ -178,7 +179,7 @@ sub add_number_by_value(value: int32): (id: uint16)
     id := add_thing_by_value(&buf[0] as [Thing]);
 end sub;
 
-sub get_value_of_number(thing_id: uint16): (value: int32)
+sub get_value_of_number(thing_id: int16): (value: int32)
     if thing_id == 0 then
         value := 0;
     else
@@ -187,7 +188,7 @@ sub get_value_of_number(thing_id: uint16): (value: int32)
     end if;
 end sub;
 
-sub find_token_by_string(string_id: uint16): (id: uint16)
+sub find_token_by_string(string_id: int16): (id: int16)
     id := 1;
     loop
         var thing: [IdentifierThing] := &thing_table[id] as [IdentifierThing];
@@ -202,7 +203,7 @@ sub find_token_by_string(string_id: uint16): (id: uint16)
     id := 0;
 end sub;
 
-sub find_symbol_by_value(value_id: uint16): (symbol_id: uint16)
+sub find_symbol_by_value(value_id: int16): (symbol_id: int16)
     symbol_id := 1;
     loop
         var thing: [SymbolThing] := &thing_table[symbol_id] as [SymbolThing];
@@ -218,8 +219,8 @@ sub find_symbol_by_value(value_id: uint16): (symbol_id: uint16)
     symbol_id := 0;
 end sub;
 
-sub find_name_of_value(value_id: uint16): (identifier_id: uint16)
-    var symbol_id: uint16 := find_symbol_by_value(value_id);
+sub find_name_of_value(value_id: int16): (identifier_id: int16)
+    var symbol_id: int16 := find_symbol_by_value(value_id);
     if symbol_id != 0 then
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
         identifier_id := symbol.name_id;
@@ -228,7 +229,7 @@ sub find_name_of_value(value_id: uint16): (identifier_id: uint16)
     end if;
 end sub;
 
-sub get_token_flags(token_id: uint16): (token_flags: uint8)
+sub get_token_flags(token_id: int16): (token_flags: int8)
     var token: [TokenThing] := find_thing(token_id) as [TokenThing];
     if token.thing_type == THING_TOKEN then
         token_flags := token.token_flags;
@@ -237,7 +238,7 @@ sub get_token_flags(token_id: uint16): (token_flags: uint8)
     end if;
 end sub;
 
-sub get_thing_type(thing_id: uint16): (type: uint8)
+sub get_thing_type(thing_id: int16): (type: int8)
     if thing_id == 0 then
         type := 0;
     else
@@ -246,7 +247,7 @@ sub get_thing_type(thing_id: uint16): (type: uint8)
     end if;
 end sub;
 
-sub is_typed_thing(thing_id: uint16): (yes: uint8)
+sub is_typed_thing(thing_id: int16): (yes: int8)
     if (get_thing_type(thing_id) & THING_TYPED) != 0 then
         yes := 1;
     else
@@ -254,7 +255,7 @@ sub is_typed_thing(thing_id: uint16): (yes: uint8)
     end if;
 end sub;
 
-sub is_number_thing(thing_id: uint16): (yes: uint8)
+sub is_number_thing(thing_id: int16): (yes: int8)
     if get_thing_type(thing_id) == THING_NUMBER then
         yes := 1;
     else
@@ -262,8 +263,8 @@ sub is_number_thing(thing_id: uint16): (yes: uint8)
     end if;
 end sub;
 
-sub is_number_type_thing(thing_id: uint16): (yes: uint8)
-    var type: uint8 := get_thing_type(thing_id);
+sub is_number_type_thing(thing_id: int16): (yes: int8)
+    var type: int8 := get_thing_type(thing_id);
     if (type == THING_NUMBERT) or (type == THING_CONSTANTT) then
         yes := 1;
     else
@@ -272,20 +273,20 @@ sub is_number_type_thing(thing_id: uint16): (yes: uint8)
 end sub;
 
 sub save_thing_table(filename: [int8])
-    var fd: uint8 := file_openout(filename);
+    var fd: int8 := file_openout(filename);
     file_putblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
 end sub;
 
 sub load_thing_table(filename: [int8])
-    var fd: uint8 := file_openin(filename);
+    var fd: int8 := file_openin(filename);
     thing_table_top := file_ext(fd);
     file_getblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
     thing_table[thing_table_top] := 0;
 end sub;
 
-sub print_thing(thing_id: uint16)
+sub print_thing(thing_id: int16)
     var thing: [Thing] := find_thing(thing_id);
     if thing.thing_type == THING_NUMBER then
         print_char('#');

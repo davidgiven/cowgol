@@ -2,13 +2,13 @@ print("TOKENISER\n");
 install_identifiers();
 init_tokeniser();
 
-var old_filename_string_id: uint16 := 0;
-var old_line_number: uint16 := 0;
-var tokens_fd: uint8 := file_openout("tokens.dat");
-var tokens_count: uint16 := 0;
+var old_filename_string_id: int16 := 0;
+var old_line_number: int16 := 0;
+var tokens_fd: int8 := file_openout("tokens.dat");
+var tokens_count: int16 := 0;
 
-sub write_token(token: uint16)
-    var buf: uint16[1];
+sub write_token(token: int16)
+    var buf: int16[1];
     buf[0] := token;
     tokens_count := tokens_count + 1;
     file_putblock(tokens_fd, &buf[0] as [int8], 2);
@@ -16,7 +16,7 @@ end sub;
 
 while current_token != 0 loop
     if old_filename_string_id != current_filename_string_id then
-        var filename_token_id: uint16 := add_string_thing(current_filename_string_id);
+        var filename_token_id: int16 := add_string_thing(current_filename_string_id);
         write_token(TOKEN_FILENAME);
         write_token(filename_token_id);
         old_filename_string_id := current_filename_string_id;

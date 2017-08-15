@@ -1,6 +1,6 @@
-var uone: uint8 := 1;
-var utwo: uint8 := 2;
-var uthree: uint8 := 3;
+var uone: int8 := 1;
+var utwo: int8 := 2;
+var uthree: int8 := 3;
 var sone: int8 := 1;
 var stwo: int8 := 2;
 var sthree: int8 := 3;

@@ -1,8 +1,8 @@
 var total_var_usage: ArchVarOffsets;
 zero_memory(&total_var_usage as [int8], total_var_usage@bytes);
 
-sub check_sub_ancestry(child_sub_id: uint16, parent_sub_id: uint16): (yes: uint8)
-    sub namespace_of(subroutine_id: uint16): (namespace: [NamespaceThing])
+sub check_sub_ancestry(child_sub_id: int16, parent_sub_id: int16): (yes: int8)
+    sub namespace_of(subroutine_id: int16): (namespace: [NamespaceThing])
         var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
         namespace := find_thing(subroutine.namespace_id) as [NamespaceThing];
     end sub;
@@ -21,7 +21,7 @@ sub check_sub_ancestry(child_sub_id: uint16, parent_sub_id: uint16): (yes: uint8
     yes := 1;
 end sub;
 
-sub process_subroutine(subroutine_id: uint16)
+sub process_subroutine(subroutine_id: int16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
     subroutine.segment := SEGMENT_OMIT;
 
@@ -30,7 +30,7 @@ sub process_subroutine(subroutine_id: uint16)
         add_reference(subroutine_id, iop.thing_id);
     end sub;
 
-    sub do_var(var_id: uint16)
+    sub do_var(var_id: int16)
         if is_typed_thing(var_id) != 0 then
             var obj: [TypedThing] := find_thing(var_id) as [TypedThing];
             if obj.owner_id == 0 then
@@ -62,7 +62,7 @@ sub process_subroutine(subroutine_id: uint16)
 
     loop
         var iop: [Iop] := read_iop();
-        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+        var ioptype: int8 := iop.iop_kind & IOP_TYPE_MASK;
 
         if iop.iop_kind == IOP_END then
             break;
@@ -96,30 +96,28 @@ sub build_graph()
 end sub;
 
 sub mark_main_subroutine()
-    var main_id: uint16 := find_main_subroutine();
+    var main_id: int16 := find_main_subroutine();
     var main: [SubroutineThing] := find_thing(main_id) as [SubroutineThing];
     main.segment := SEGMENT_UNKNOWN;
     used_subroutine_count := 1;
 end sub;
 
 sub find_reachable_subroutines()
-    var changed: uint8;
+    var changed: int8;
 
     loop
         changed := 0;
-        var i: uint16 := 0;
-        while i < graph_count loop
+        var i: int16 := 0;
+        while i != graph_count loop
             var g: [GraphRecord] := &graph_base[i];
             var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
             var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
 
-            if src.segment == SEGMENT_UNKNOWN then
-                if dest.segment == SEGMENT_OMIT then
-                    changed := 1;
-                    dest.segment := SEGMENT_UNKNOWN;
-                    dest.address := used_subroutine_count;
-                    used_subroutine_count := used_subroutine_count + 1;
-                end if;
+            if (src.segment == SEGMENT_UNKNOWN) and (dest.segment == SEGMENT_OMIT) then
+                changed := 1;
+                dest.segment := SEGMENT_UNKNOWN;
+                dest.address := used_subroutine_count;
+                used_subroutine_count := used_subroutine_count + 1;
             end if;
 
             i := i + 1;
@@ -132,8 +130,8 @@ sub find_reachable_subroutines()
 end sub;
 
 sub clean_graph()
-    var i: uint16 := 0;
-    while i < graph_count loop
+    var i: int16 := 0;
+    while i != graph_count loop
         var g: [GraphRecord] := &graph_base[i];
         var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
 
@@ -146,7 +144,7 @@ sub clean_graph()
     end loop;
 end sub;
 
-sub assign_space_for_variables(subroutine_id: uint16)
+sub assign_space_for_variables(subroutine_id: int16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
     var sr: [SubRecord] := &subdata[subroutine.address];
 
@@ -157,7 +155,7 @@ sub assign_space_for_variables(subroutine_id: uint16)
             end if;
         end sub;
 
-        var id: uint16 := 1;
+        var id: int16 := 1;
         loop
             var thing: [Thing] := &thing_table[id] as [Thing];
             if thing.thing_size == 0 then
@@ -171,8 +169,8 @@ sub assign_space_for_variables(subroutine_id: uint16)
     end sub;
 
     sub propagate_offsets_to_callees()
-        var i: uint16 := 0;
-        while i < graph_count loop
+        var i: int16 := 0;
+        while i != graph_count loop
             var g: [GraphRecord] := &graph_base[i];
             if g.src_id == subroutine_id then
                 var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
@@ -191,13 +189,13 @@ sub assign_space_for_variables(subroutine_id: uint16)
     subroutine.address := 0; # reset field after internal classifier use
 end sub;
 
-sub find_orphaned_subroutine(): (subroutine_id: uint16)
-    var i: uint16 := 0;
-    while i < graph_count loop
+sub find_orphaned_subroutine(): (subroutine_id: int16)
+    var i: int16 := 0;
+    while i != graph_count loop
         var g1: [GraphRecord] := &graph_base[i];
         if g1.src_id != 0 then
-            var j: uint16 := 0;
-            while j < graph_count loop
+            var j: int16 := 0;
+            while j != graph_count loop
                 var g2: [GraphRecord] := &graph_base[j];
                 if g2.dest_id == g1.src_id then
                     break;
@@ -217,7 +215,7 @@ end sub;
 
 sub assign_space_for_all_variables()
     loop
-        var subroutine_id: uint16 := find_orphaned_subroutine();
+        var subroutine_id: int16 := find_orphaned_subroutine();
         if subroutine_id == 0 then
             break;
         end if;
@@ -235,7 +233,7 @@ end sub;
 #        end if;
 #    end sub;
 #
-#    var id: uint16 := 1;
+#    var id: int16 := 1;
 #    loop
 #        var thing: [Thing] := &thing_table[id] as [Thing];
 #        if thing.thing_size == 0 then
@@ -249,7 +247,7 @@ end sub;
 #end sub;
 #
 sub show_subroutine_sizes()
-    var id: uint16 := 1;
+    var id: int16 := 1;
 
     sub do_sub(thing: [SubroutineThing])
         if thing.segment == SEGMENT_UNKNOWN then

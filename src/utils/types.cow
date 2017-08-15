@@ -1,5 +1,5 @@
 
-sub pointer_of(type_id: uint16): (ptr_type_id: uint16)
+sub pointer_of(type_id: int16): (ptr_type_id: int16)
     var buf: PointerThing;
     buf.thing_type := THING_POINTERT;
     buf.thing_size := PointerThing@bytes;
@@ -8,7 +8,7 @@ sub pointer_of(type_id: uint16): (ptr_type_id: uint16)
     ptr_type_id := add_thing_by_value(&buf as [Thing]);
 end sub;
 
-sub element_of(type_id: uint16): (element_type_id: uint16)
+sub element_of(type_id: int16): (element_type_id: int16)
     var type: [WithElementsThing] := find_thing(type_id) as [WithElementsThing];
     if (type.thing_type == THING_POINTERT) or (type.thing_type == THING_ARRAYT) then
         element_type_id := type.element_id;
@@ -17,7 +17,7 @@ sub element_of(type_id: uint16): (element_type_id: uint16)
     end if;
 end sub;
 
-sub array_of(type_id: uint16, element_count: uint16): (array_type_id: uint16)
+sub array_of(type_id: int16, element_count: int16): (array_type_id: int16)
     var type: [TypeThing] := find_thing(type_id) as [TypeThing];
 
     var buf: ArrayThing[1];
@@ -29,7 +29,7 @@ sub array_of(type_id: uint16, element_count: uint16): (array_type_id: uint16)
     array_type_id := add_thing_by_value(&buf[0] as [Thing]);
 end sub;
 
-sub get_type_of_thing(thing_id: uint16): (type_id: uint16)
+sub get_type_of_thing(thing_id: int16): (type_id: int16)
     var thing: [TypedThing] := find_thing(thing_id) as [TypedThing];
     if (thing.thing_type & THING_TYPED) == 0 then
         type_id := 0;
@@ -39,7 +39,7 @@ sub get_type_of_thing(thing_id: uint16): (type_id: uint16)
 end sub;
 
 # assumes type_id == 0 for numbers
-sub get_width_of_type(type_id: uint16): (width: uint8)
+sub get_width_of_type(type_id: int16): (width: int8)
     if type_id == 0 then
         width := 0;
     else
@@ -48,8 +48,8 @@ sub get_width_of_type(type_id: uint16): (width: uint8)
     end if;
 end sub;
 
-sub get_width_of_thing(thing_id: uint16): (width: uint8)
-    var type_id: uint16 := get_type_of_thing(thing_id);
+sub get_width_of_thing(thing_id: int16): (width: int8)
+    var type_id: int16 := get_type_of_thing(thing_id);
     if type_id == 0 then
         width := 0;
     else

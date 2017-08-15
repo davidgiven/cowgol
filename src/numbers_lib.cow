@@ -1,6 +1,6 @@
 sub string_to_number(s: [int8], base: int8): (result: int32)
     result := 0;
-    var i: uint8 := 0;
+    var i: int8 := 0;
     var m: int8 := 1;
 
     if s[i] == '-' then

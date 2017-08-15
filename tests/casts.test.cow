@@ -1,4 +1,4 @@
-var data: uint32[128];
+var data: int32[128];
 
 var ptr8: [int8] := &data[0] as [int8];
 var ptr32: [int32] := &data[0] as [int32];
@@ -6,7 +6,7 @@ var i8: int8;
 var i32: int32;
 var array8: int8[4];
 var array32: int32[4];
-var i: uint8 := 99;
+var i: int8 := 99;
 var j: int8 := 99;
 
 # OBJADR 8 bit

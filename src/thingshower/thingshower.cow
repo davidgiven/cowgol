@@ -126,7 +126,7 @@ sub show_array_thing(thing: [ArrayThing])
 end sub;
 
 load_thing_table("things.dat");
-var id: uint16 := 1;
+var id: int16 := 1;
 loop
     var thing: [Thing] := &thing_table[id] as [Thing];
     if thing.thing_size == 0 then
@@ -135,7 +135,7 @@ loop
     print_hex_i16(id);
     print(": ");
 
-    var type: uint8 := thing.thing_type;
+    var type: int8 := thing.thing_type;
     if (type == THING_IDENTIFIER) then
         show_identifier_thing(thing as [IdentifierThing]);
     elseif (type == THING_TOKEN) then
@@ -168,7 +168,7 @@ loop
         show_array_thing(thing as [ArrayThing]);
     else
         print("unknown type ");
-        print_i8(type);
+        print_hex_i8(type);
     end if;
     print_newline();
 

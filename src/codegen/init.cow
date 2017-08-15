@@ -3,9 +3,9 @@ load_thing_table("things.dat");
 init_iop_reader("iops.dat");
 init_iop_writer("iops-out.dat");
 
-var current_subroutine_id: uint16;
+var current_subroutine_id: int16;
 
-sub create_label(): (label: uint16)
+sub create_label(): (label: int16)
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     label := subroutine.label_count;
     subroutine.label_count := subroutine.label_count + 1;

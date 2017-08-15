@@ -1,10 +1,10 @@
 record ArchVarOffsets
-    data_offset: uint16;
-    zp_offset: uint8;
+    data_offset: int16;
+    zp_offset: int16;
 end record;
 
 sub arch_classify_vars(ea: [EffectiveAddress])
-    sub do_var(var_id: uint16, segment: uint8)
+    sub do_var(var_id: int16, segment: int8)
         var obj: [TypedThing] := find_thing(var_id) as [TypedThing];
         if segment > obj.segment then
             obj.segment := segment;
@@ -12,7 +12,7 @@ sub arch_classify_vars(ea: [EffectiveAddress])
     end sub;
 
     if is_typed_thing(ea.obj_id) != 0 then
-        var segment: uint8;
+        var segment: int8;
         if (ea.type & EA_DEREF_BEFORE) != 0 then
             segment := SEGMENT_ZEROPAGE;
         else
@@ -25,7 +25,7 @@ sub arch_classify_vars(ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub arch_allocate_var(offsets: [ArchVarOffsets], thing: [TypedThing], width: uint16)
+sub arch_allocate_var(offsets: [ArchVarOffsets], thing: [TypedThing], width: int16)
     if thing.segment == SEGMENT_ZEROPAGE then
         thing.address := offsets.zp_offset;
         offsets.zp_offset := offsets.zp_offset + width;
@@ -33,7 +33,9 @@ sub arch_allocate_var(offsets: [ArchVarOffsets], thing: [TypedThing], width: uin
         thing.address := offsets.data_offset;
         offsets.data_offset := offsets.data_offset + width;
     else
-        print("bad segment");
+        print("bad segment (0x");
+        print_hex_i8(thing.segment);
+        print(")");
         halt();
     end if;
 end sub;

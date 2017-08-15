@@ -1,5 +1,5 @@
 sub copy_string(src: [int8], dest: [int8])
-    var i: uint8 := 0;
+    var i: int8 := 0;
     loop
         var c: int8 := src[i];
         dest[i] := c;
@@ -10,7 +10,7 @@ sub copy_string(src: [int8], dest: [int8])
     end loop;
 end sub;
 
-sub copy_memory(src: [int8], dest: [int8], length: uint16)
+sub copy_memory(src: [int8], dest: [int8], length: int16)
     while length > 0 loop
         length := length - 1;
         dest[length] := src[length];
@@ -18,7 +18,7 @@ sub copy_memory(src: [int8], dest: [int8], length: uint16)
 end sub;
 
 sub compare_strings(left: [int8], right: [int8]): (result: int8)
-    var i: uint8 := 0;
+    var i: int8 := 0;
     loop
         var c1: int8 := left[i];
         var c2: int8 := right[i];
@@ -34,7 +34,7 @@ sub compare_strings(left: [int8], right: [int8]): (result: int8)
     end loop;
 end sub;
 
-sub compare_memory(left: [int8], right: [int8], length: uint8): (result: int8)
+sub compare_memory(left: [int8], right: [int8], length: int8): (result: int8)
     while length > 0 loop
         length := length - 1;
         result := left[length] - right[length];
@@ -45,7 +45,7 @@ sub compare_memory(left: [int8], right: [int8], length: uint8): (result: int8)
     result := 0;
 end sub;
 
-sub zero_memory(ptr: [int8], length: uint8)
+sub zero_memory(ptr: [int8], length: int8)
     while length > 0 loop
         length := length - 1;
         ptr[length] := 0;

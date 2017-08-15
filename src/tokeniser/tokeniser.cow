@@ -1,5 +1,5 @@
-var current_token: uint16;
-var filename_id: uint16 := 0;
+var current_token: int16;
+var filename_id: int16 := 0;
 
 sub read_identifier()
     loop
@@ -13,7 +13,7 @@ sub read_identifier()
         next_byte();
     end loop;
 
-    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    var string_id: int16 := lookup_string(&input_buffer[0], buffer_index);
     current_token := find_token_by_string(string_id);
     if current_token == 0 then
         var buf: IdentifierThing[1];
@@ -36,7 +36,7 @@ sub read_number()
         next_byte();
     end loop;
 
-    var base: uint8 := 10;
+    var base: int8 := 10;
     var ptr: [int8] := &input_buffer[0];
     if (buffer_index >= 2) and (input_buffer[0] == '0') then
         if input_buffer[1] == 'x' then
@@ -72,7 +72,7 @@ sub read_symbol()
         buffer_index := 1;
     end if;
 
-    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    var string_id: int16 := lookup_string(&input_buffer[0], buffer_index);
     current_token := find_token_by_string(string_id);
     if current_token == 0 then
         print("unrecognised symbol");
@@ -93,7 +93,7 @@ sub decode_escaped_char()
     end if;
 end sub;
 
-sub add_string_thing(string_id: uint16): (token_id: uint16)
+sub add_string_thing(string_id: int16): (token_id: int16)
     var buf: StringThing[1];
     buf[0].thing_type := THING_STRING;
     buf[0].thing_size := StringThing@bytes;
@@ -116,7 +116,7 @@ sub read_string()
         next_byte();
     end loop;
 
-    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    var string_id: int16 := lookup_string(&input_buffer[0], buffer_index);
     current_token := add_string_thing(string_id);
 end sub;
 
@@ -191,11 +191,11 @@ sub init_tokeniser()
     next_token();
 end sub;
 
-sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: uint8)
+sub install_identifier(name: [int8], id: int16, thingtype: int8, token_flags: int8)
     copy_string(name, &input_buffer[0]);
     buffer_index := string_length(&input_buffer[0]);
 
-    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    var string_id: int16 := lookup_string(&input_buffer[0], buffer_index);
     var buf: TokenThing[1];
     buf[0].thing_type := thingtype;
     buf[0].string_id := string_id;
@@ -205,7 +205,7 @@ sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: 
     else
         buf[0].thing_size := IdentifierThing@bytes;
     end if;
-    var token_id: uint16 := add_thing(&buf[0] as [Thing]);
+    var token_id: int16 := add_thing(&buf[0] as [Thing]);
 
     if token_id != id then
         print("token id mismatch (internal error); wanted 0x");

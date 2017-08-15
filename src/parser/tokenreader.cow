@@ -1,14 +1,14 @@
-var tokens_fd: uint8;
+var tokens_fd: int8;
 
-sub next_raw_token(): (token: uint16)
-    var buf: uint16[1];
+sub next_raw_token(): (token: int16)
+    var buf: int16[1];
     buf[0] := 0;
     file_getblock(tokens_fd, &buf[0] as [int8], 2);
     token := buf[0];
 end sub;
 
 sub next_token()
-    var token: uint16;
+    var token: int16;
     loop
         token := next_raw_token();
 
@@ -33,7 +33,7 @@ sub init_tokenreader(filename: [int8])
     next_token();
 end sub;
 
-sub expect_token(expected: uint16)
+sub expect_token(expected: int16)
     if current_token != expected then
         print("expected ");
         show_identifier(expected);
@@ -44,7 +44,7 @@ sub expect_token(expected: uint16)
     next_token();
 end sub;
 
-sub expect_identifier(): (id: uint16)
+sub expect_identifier(): (id: int16)
     var thing: [Thing] := find_thing(current_token);
     if thing.thing_type != THING_IDENTIFIER then
         print("missing identifier");

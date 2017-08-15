@@ -1,12 +1,12 @@
-var strings_fd: uint8 := file_openin("strings.dat");
+var strings_fd: int8 := file_openin("strings.dat");
 
-sub show_string(string_id: uint16)
+sub show_string(string_id: int16)
     #print("(0x");
     #print_hex_i16(string_id);
     #print(") ");
 
     file_seek(strings_fd, string_id);
-    var len: uint8 := file_getchar(strings_fd);
+    var len: int8 := file_getchar(strings_fd);
     print_char('"');
     while len != 1 loop
         var c: int8 := file_getchar(strings_fd);
@@ -23,20 +23,24 @@ sub show_string(string_id: uint16)
     print_char('"');
 end sub;
 
-sub show_identifier(identifier_id: uint16)
-    var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];
-    if (identifier.thing_type == THING_STRING) or (identifier.thing_type == THING_TOKEN)
-            or (identifier.thing_type == THING_IDENTIFIER) then
-        show_string(identifier.string_id);
+sub show_identifier(identifier_id: int16)
+    if identifier_id == 0 then
+        print("(null identifier)");
     else
-        print("(not an identifier, type 0x");
-        print_hex_i8(identifier.thing_type);
-        print(")");
+        var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];
+        if (identifier.thing_type == THING_STRING) or (identifier.thing_type == THING_TOKEN)
+                or (identifier.thing_type == THING_IDENTIFIER) then
+            show_string(identifier.string_id);
+        else
+            print("(not an identifier, type 0x");
+            print_hex_i8(identifier.thing_type);
+            print(")");
+        end if;
     end if;
 end sub;
 
-sub show_name_of(thing_id: uint16)
-    var identifier_id: uint16 := find_name_of_value(thing_id);
+sub show_name_of(thing_id: int16)
+    var identifier_id: int16 := find_name_of_value(thing_id);
     if identifier_id != 0 then
         show_identifier(identifier_id);
     else

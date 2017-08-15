@@ -1,18 +1,18 @@
 const FLAG_RVALUE := 0b0000_0001;
 
 record Node
-    iop: uint8;
-    refcount: uint8;
-    flags: uint8;
-    type_id: uint16;
+    iop: int8;
+    refcount: int8;
+    flags: int8;
+    type_id: int16;
     left: EffectiveAddress;
     right: EffectiveAddress;
 end record;
 
 var nodes: Node[32];
-var allocated_nodes: uint8;
+var allocated_nodes: int8;
 var stack: [Node][32];
-var stack_pos: uint8;
+var stack_pos: int8;
 
 sub init_tree()
     zero_memory(&nodes[0] as [int8], nodes@bytes);
@@ -22,8 +22,8 @@ sub init_tree()
 end sub;
 
 sub alloc_node(): (node: [Node])
-    var index: uint8 := 0;
-    while index < nodes@size loop
+    var index: int8 := 0;
+    while index != nodes@size loop
         node := &nodes[index];
         if node.iop == 0 then
             allocated_nodes := allocated_nodes + 1;
@@ -59,7 +59,7 @@ sub deref_ea(ea: [EffectiveAddress])
     deref_temporary(ea.varoff_id);
 end sub;
 
-sub get_node_id(node: [Node]): (id: uint8)
+sub get_node_id(node: [Node]): (id: int8)
     id := (node - &nodes[0]) / Node@bytes;
 end sub;
 
@@ -99,7 +99,7 @@ sub push_empty_node(): (node: [Node])
     push_node(node);
 end sub;
 
-sub ensure_stack_size(size: uint8)
+sub ensure_stack_size(size: int8)
     if stack_pos < size then
         print("stack underflow");
         halt();
@@ -150,8 +150,8 @@ end sub;
 
 sub print_stack()
     print("stack:\n");
-    var index: uint8 := 0;
-    while index < stack_pos loop
+    var index: int8 := 0;
+    while index != stack_pos loop
         var node: [Node] := stack[index];
         print("node=");
         print_i8(index);

@@ -1,6 +1,6 @@
 var current_arg: int8 := 1;
 var current_filename: [int8];
-var current_filename_string_id: uint16;
+var current_filename_string_id: int16;
 var current_line_number: int16;
 var current_fd: int8 := -1;
 var current_byte: int8 := -1;
@@ -60,7 +60,7 @@ end sub;
 
 sub print_buffer()
     var i: int8 := 0;
-    while i < buffer_index loop
+    while i != buffer_index loop
         print_char(input_buffer[i]);
         i := i + 1;
     end loop;

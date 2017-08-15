@@ -46,7 +46,7 @@ if value != 42 then
     fail("with_no_input_params failed");
 end if;
 
-var q: uint8 := with_no_input_params();
+var q: int8 := with_no_input_params();
 if value != 42 then
     fail("with_no_input_params failed");
 end if;

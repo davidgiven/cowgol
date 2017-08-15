@@ -2,13 +2,13 @@ sub do_constant(): (result: int32)
     const STATE_BEFORE := 0;
     const STATE_AFTER := 1;
 
-    var operator_stack: uint16[32];
-    var operator_stack_pos: uint8 := 0;
-    var data_stack: uint32[8];
-    var data_stack_pos: uint8 := 0;
-    var state: uint8 := STATE_BEFORE;
+    var operator_stack: int16[32];
+    var operator_stack_pos: int8 := 0;
+    var data_stack: int32[8];
+    var data_stack_pos: int8 := 0;
+    var state: int8 := STATE_BEFORE;
 
-    sub peek_op(): (op_id: uint16)
+    sub peek_op(): (op_id: int16)
         if operator_stack_pos == 0 then
             op_id := 0;
         else
@@ -16,7 +16,7 @@ sub do_constant(): (result: int32)
         end if;
     end sub;
 
-    sub push_op(op: uint16)
+    sub push_op(op: int16)
         if operator_stack_pos == operator_stack@size then
             print("expression too complex");
             halt();
@@ -35,7 +35,7 @@ sub do_constant(): (result: int32)
         operator_stack_pos := operator_stack_pos - 1;
     end sub;
 
-    sub pop_op(): (op: uint16)
+    sub pop_op(): (op: int16)
         discard_op();
         op := operator_stack[operator_stack_pos];
     end sub;
@@ -67,12 +67,12 @@ sub do_constant(): (result: int32)
         end if;
 
         operator_stack_pos := operator_stack_pos - 1;
-        var op_id: uint16 := operator_stack[operator_stack_pos];
+        var op_id: int16 := operator_stack[operator_stack_pos];
 
-        var left: uint32;
-        var right: uint32 := pop_value();
+        var left: int32;
+        var right: int32 := pop_value();
 
-        var op_flags: uint8 := get_token_flags(op_id);
+        var op_flags: int8 := get_token_flags(op_id);
         if (op_flags & TOKEN_FLAG_BINARY_OP) != 0 then
             left := pop_value();
         end if;
@@ -99,11 +99,11 @@ sub do_constant(): (result: int32)
         push_value(left);
     end sub;
 
-    sub apply_higher_precedence_ops(op_id: uint16)
-        var op_p: uint8 := get_token_flags(op_id) & TOKEN_FLAG_PRECEDENCE_MASK;
+    sub apply_higher_precedence_ops(op_id: int16)
+        var op_p: int8 := get_token_flags(op_id) & TOKEN_FLAG_PRECEDENCE_MASK;
         loop
-            var topop_id: uint16 := peek_op();
-            var topop_p: uint8 := get_token_flags(topop_id) & TOKEN_FLAG_PRECEDENCE_MASK;
+            var topop_id: int16 := peek_op();
+            var topop_p: int8 := get_token_flags(topop_id) & TOKEN_FLAG_PRECEDENCE_MASK;
             if (topop_p == 0) or (topop_p < op_p) then
                 break;
             end if;
@@ -117,7 +117,7 @@ sub do_constant(): (result: int32)
         end loop;
     end sub;
 
-    sub apply_until_closer(): (topop_id: uint16)
+    sub apply_until_closer(): (topop_id: int16)
         loop
             topop_id := peek_op();
             if (topop_id == 0) or (topop_id == TOKEN_OPENPAREN) then
@@ -128,7 +128,7 @@ sub do_constant(): (result: int32)
     end sub;
 
     sub close_parenthesis()
-        var closer_id: uint16 := apply_until_closer();
+        var closer_id: int16 := apply_until_closer();
         if closer_id == 0 then
             return;
         elseif closer_id != TOKEN_OPENPAREN then
@@ -142,7 +142,7 @@ sub do_constant(): (result: int32)
 
     var thing: [Thing];
     loop
-        var token_flags: uint8;
+        var token_flags: int8;
         if state == STATE_BEFORE then
             # Before a leaf.
             if current_token == TOKEN_MINUS then

@@ -1,7 +1,7 @@
 load_thing_table("things.dat");
 init_iop_reader(ARGV[1]);
 
-sub print_identifier(identifier_id: uint16)
+sub print_identifier(identifier_id: int16)
     var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];
     show_string(identifier.string_id);
 end sub;
@@ -111,8 +111,8 @@ end sub;
 
 sub do_bytes(iop: [BytesIop])
     print("BYTES");
-    var i: uint8 := 0;
-    while i < iop.byte_count loop
+    var i: int8 := 0;
+    while i != iop.byte_count loop
         print(" 0x");
         print_hex_i8(iop.bytes[i]);
         i := i + 1;
@@ -156,7 +156,7 @@ loop
     end if;
 
     var subroutine: [SubroutineThing] := find_thing(header.thing_id) as [SubroutineThing];
-    var symbol_id: uint16 := find_symbol_by_value(header.thing_id);
+    var symbol_id: int16 := find_symbol_by_value(header.thing_id);
     print("OBJECT: id=0x");
     print_hex_i16(header.thing_id);
     print(", section=");
@@ -170,10 +170,10 @@ loop
     end if;
     print_newline();
 
-    var offset: uint16 := IHeader@bytes;
+    var offset: int16 := IHeader@bytes;
     loop
         var iop: [Iop] := read_iop();
-        var kind: uint8 := iop.iop_kind;
+        var kind: int8 := iop.iop_kind;
         print_hex_i16(offset);
         print(": ");
         print_hex_i8(kind);

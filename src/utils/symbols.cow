@@ -1,6 +1,6 @@
-var current_namespace_id: uint16;
+var current_namespace_id: int16;
 
-sub find_symbol_in_namespace(identifier_id: uint16, namespace_id: uint16): (symbol_id: uint16)
+sub find_symbol_in_namespace(identifier_id: int16, namespace_id: int16): (symbol_id: int16)
     var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
     symbol_id := namespace_thing.first_symbol;
 
@@ -15,7 +15,7 @@ sub find_symbol_in_namespace(identifier_id: uint16, namespace_id: uint16): (symb
     symbol_id := 0;
 end sub;
 
-sub find_symbol_recursively(identifier_id: uint16, namespace_id: uint16): (symbol_id: uint16)
+sub find_symbol_recursively(identifier_id: int16, namespace_id: int16): (symbol_id: int16)
     while namespace_id != 0 loop
         symbol_id := find_symbol_in_namespace(identifier_id, namespace_id);
         if symbol_id != 0 then
@@ -29,11 +29,11 @@ sub find_symbol_recursively(identifier_id: uint16, namespace_id: uint16): (symbo
     symbol_id := 0;
 end sub;
 
-sub find_symbol(identifier_id: uint16): (symbol_id: uint16)
+sub find_symbol(identifier_id: int16): (symbol_id: int16)
     symbol_id := find_symbol_recursively(identifier_id, current_namespace_id);
 end sub;
 
-sub find_symbol_or_fail(identifier_id: uint16): (symbol_id: uint16)
+sub find_symbol_or_fail(identifier_id: int16): (symbol_id: int16)
     symbol_id := find_symbol(identifier_id);
     if symbol_id == 0 then
         print("symbol ");
@@ -43,8 +43,8 @@ sub find_symbol_or_fail(identifier_id: uint16): (symbol_id: uint16)
     end if;
 end sub;
 
-sub deref_symbol(identifier_id: uint16): (value_id: uint16)
-    var symbol_id: uint16 := find_symbol(identifier_id);
+sub deref_symbol(identifier_id: int16): (value_id: int16)
+    var symbol_id: int16 := find_symbol(identifier_id);
     if symbol_id != 0 then
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
         value_id := symbol.value_id;
@@ -53,13 +53,13 @@ sub deref_symbol(identifier_id: uint16): (value_id: uint16)
     end if;
 end sub;
 
-sub deref_symbol_or_fail(identifier_id: uint16): (value_id: uint16)
-    var symbol_id: uint16 := find_symbol_or_fail(identifier_id);
+sub deref_symbol_or_fail(identifier_id: int16): (value_id: int16)
+    var symbol_id: int16 := find_symbol_or_fail(identifier_id);
     var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
     value_id := symbol.value_id;
 end sub;
 
-sub add_symbol(identifier_id: uint16, value_id: uint16, namespace_id: uint16)
+sub add_symbol(identifier_id: int16, value_id: int16, namespace_id: int16)
     if find_symbol_in_namespace(identifier_id, namespace_id) != 0 then
         print("symbol ");
         show_identifier(identifier_id);
@@ -67,7 +67,7 @@ sub add_symbol(identifier_id: uint16, value_id: uint16, namespace_id: uint16)
         halt();
     end if;
 
-    var symbol_id: uint16 := create_thing(THING_SYMBOL, SymbolThing@bytes);
+    var symbol_id: int16 := create_thing(THING_SYMBOL, SymbolThing@bytes);
     var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
     var namespace_thing: [NamespaceThing] := find_thing(namespace_id) as [NamespaceThing];
 
@@ -77,7 +77,7 @@ sub add_symbol(identifier_id: uint16, value_id: uint16, namespace_id: uint16)
     symbol.value_id := value_id;
 end sub;
 
-sub find_main_subroutine(): (subroutine_id: uint16)
+sub find_main_subroutine(): (subroutine_id: int16)
     # The first subroutine created is the main one.
     subroutine_id := 1;
     loop
@@ -94,10 +94,10 @@ sub find_main_subroutine(): (subroutine_id: uint16)
     subroutine_id := 0;
 end sub;
 
-sub find_nth_parameter(subroutine_id: uint16, direction: uint8, parameter: uint8):
-        (parameter_id: uint16)
+sub find_nth_parameter(subroutine_id: int16, direction: int8, parameter: int8):
+        (parameter_id: int16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
-    var parameter_count: uint8;
+    var parameter_count: int8;
     if direction == DIRECTION_IN then
         parameter_count := subroutine.input_parameter_count;
     else
@@ -105,10 +105,10 @@ sub find_nth_parameter(subroutine_id: uint16, direction: uint8, parameter: uint8
     end if;
 
     var namespace_thing: [NamespaceThing] := find_thing(subroutine.namespace_id) as [NamespaceThing];
-    var symbol_id: uint16 := namespace_thing.first_symbol;
+    var symbol_id: int16 := namespace_thing.first_symbol;
     var symbol: [SymbolThing];
     var parameter_thing: [ParameterThing];
-    var i: uint8 := parameter_count - parameter;
+    var i: int8 := parameter_count - parameter;
     while i > 0 loop
         if symbol_id == 0 then
             print("asked for ");
