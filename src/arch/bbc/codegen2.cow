@@ -174,8 +174,10 @@ sub arch_gen_zext_word(iop: [BEIop])
 end sub;
 
 sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
+    write_back_precious_values(REG_MASK);
 
     var swapped: uint8 := 0;
+    var signed: uint8 := 0;
     var opcode: uint8;
     if ciop.iop_kind == IOP_BE_BEQ then
         opcode := 0xF0; # BEQ rel
@@ -184,17 +186,35 @@ sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     elseif ciop.iop_kind == IOP_BE_BGTU then
         opcode := 0x90; # BCC rel
         swapped := 1;
+    elseif ciop.iop_kind == IOP_BE_BLTS then
+        opcode := 0x30; # BMI rel
+        signed := 1;
+    elseif ciop.iop_kind == IOP_BE_BGTS then
+        opcode := 0x30; # BMI rel
+        signed := 1;
+        swapped := 1;
     else
         print("unsupported comparison");
         halt();
     end if;
 
+    sub emit_comparison(ea: [EffectiveAddress])
+        if signed != 0 then
+            write_byte(0x38); # SEC
+            aluop_value(ea, 0xED); # SBC abs
+            write_word_iop(0x0250); # BVC .+2
+            write_word_iop(0x8049); # EOR #80
+        else
+            aluop_value(ea, 0xCD); # CMP abs
+        end if;
+    end sub;
+
     if swapped == 0 then
         find_or_load_fixed_value(&ciop.left, REG_A);
-        aluop_value(&ciop.right, 0xCD); # CMP abs
+        emit_comparison(&ciop.right);
     else
         find_or_load_fixed_value(&ciop.right, REG_A);
-        aluop_value(&ciop.left, 0xCD); # CMP abs
+        emit_comparison(&ciop.left);
     end if;
 
     var destlabel: uint16;
