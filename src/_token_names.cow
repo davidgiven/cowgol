@@ -6,7 +6,7 @@ const TOKEN_FLAG_EXPR_ENDER      := 0b1000_0000;
 
 const TOKEN_FILENAME := 1;
 const TOKEN_LINENUMBER := 6;
-const TOKEN_NUMERIC := 0xb;
+const TOKEN_CONSTANTT := 0xb;
 const TOKEN_END := 0x10;
 const TOKEN_SEMICOLON := 0x15;
 const TOKEN_LOOP := 0x1a;

@@ -269,7 +269,7 @@ sub expression_state_machine()
             pushable_id := add_number_by_value(type.width);
         elseif current_token == TOKEN_SIZE then
             var array_type: [ArrayThing] := type as [ArrayThing];
-            if array_type.thing_type != THING_ARRAY then
+            if array_type.thing_type != THING_ARRAYT then
                 show_identifier(current_token);
                 print(" only works on arrays");
                 halt();

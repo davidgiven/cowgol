@@ -13,4 +13,4 @@ end sub;
 
 var int8_type: uint16 := find_bootstrap_type(TOKEN_INT8);
 var uint16_type: uint16 := find_bootstrap_type(TOKEN_INT16);
-var numeric_type: uint16 := find_bootstrap_type(TOKEN_NUMERIC);
+var constant_type: uint16 := find_bootstrap_type(TOKEN_CONSTANTT);

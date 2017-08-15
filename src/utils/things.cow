@@ -14,12 +14,12 @@ const THING_VARIABLE   := 0b1100_0000;
 const THING_PARAMETER  := 0b1100_0001;
 
 const THING_TYPE       := 0b0010_0000;
-const THING_RECORD     := 0b0010_0001;
-const THING_POINTER    := 0b0010_0010;
-const THING_ARRAY      := 0b0010_0011;
-const THING_NUMERIC    := 0b0001_0000;
-const THING_UNSIGNED   := 0b0011_0001;
-const THING_SIGNED     := 0b0011_0010;
+const THING_RECORDT    := 0b0010_0001;
+const THING_POINTERT   := 0b0010_0010;
+const THING_ARRAYT     := 0b0010_0011;
+const THING_CONSTANTT  := 0b0010_0100;
+const THING_UNSIGNEDT  := 0b0010_0101;
+const THING_SIGNEDT    := 0b0010_0110;
 
 record Thing
     thing_size: uint8;
@@ -263,9 +263,18 @@ sub is_number_thing(thing_id: uint16): (yes: uint8)
     end if;
 end sub;
 
+sub is_constant_type_thing(thing_id: uint16): (yes: uint8)
+    var type: uint8 := get_thing_type(thing_id);
+    if (type == THING_SIGNEDT) or (type == THING_UNSIGNEDT) or (type == THING_CONSTANTT) then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
 sub is_signed_type_thing(thing_id: uint16): (yes: uint8)
     var type: uint8 := get_thing_type(thing_id);
-    if (type == THING_SIGNED) or (type == THING_NUMERIC) then
+    if (type == THING_SIGNEDT) or (type == THING_CONSTANTT) then
         yes := 1;
     else
         yes := 0;

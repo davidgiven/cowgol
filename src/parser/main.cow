@@ -71,7 +71,7 @@ sub pop_subroutine()
 end sub;
 
 sub create_bootstrap_type(identifier_id: uint16): (type: [NumericThing])
-    var type_id: uint16 := create_thing(THING_NUMERIC, NumericThing@bytes);
+    var type_id: uint16 := create_thing(THING_CONSTANTT, NumericThing@bytes);
     add_symbol(identifier_id, type_id, current_namespace_id);
     type := find_thing(type_id) as [NumericThing];
 end sub;
@@ -84,31 +84,31 @@ sub init_parser()
 
     var type: [NumericThing];
     type := create_bootstrap_type(TOKEN_INT8);
-    type.thing_type := THING_SIGNED;
+    type.thing_type := THING_SIGNEDT;
     type.width := 1;
 
     type := create_bootstrap_type(TOKEN_UINT8);
-    type.thing_type := THING_UNSIGNED;
+    type.thing_type := THING_UNSIGNEDT;
     type.width := 1;
 
     type := create_bootstrap_type(TOKEN_INT16);
-    type.thing_type := THING_SIGNED;
+    type.thing_type := THING_SIGNEDT;
     type.width := 2;
 
     type := create_bootstrap_type(TOKEN_UINT16);
-    type.thing_type := THING_UNSIGNED;
+    type.thing_type := THING_UNSIGNEDT;
     type.width := 2;
 
     type := create_bootstrap_type(TOKEN_INT32);
-    type.thing_type := THING_SIGNED;
+    type.thing_type := THING_SIGNEDT;
     type.width := 4;
 
     type := create_bootstrap_type(TOKEN_UINT32);
-    type.thing_type := THING_UNSIGNED;
+    type.thing_type := THING_UNSIGNEDT;
     type.width := 4;
 
-    type := create_bootstrap_type(TOKEN_NUMERIC);
-    type.thing_type := THING_NUMERIC;
+    type := create_bootstrap_type(TOKEN_CONSTANTT);
+    type.thing_type := THING_CONSTANTT;
     type.width := 0;
 end sub;
 
@@ -214,7 +214,7 @@ sub do_record()
 
     expect_token(TOKEN_RECORD);
     var id: uint16 := expect_identifier();
-    var record_id: uint16 := create_thing(THING_RECORD, RecordThing@bytes);
+    var record_id: uint16 := create_thing(THING_RECORDT, RecordThing@bytes);
     add_symbol(id, record_id, current_namespace_id);
     var recordp: [RecordThing] := find_thing(record_id) as [RecordThing];
 
@@ -230,7 +230,7 @@ sub do_record()
         type_id := read_type();
         check_recursive_type();
         var superclass: [RecordThing] := find_thing(type_id) as [RecordThing];
-        if superclass.thing_type != THING_RECORD then
+        if superclass.thing_type != THING_RECORDT then
             print("you can only inherit from records");
             halt();
         end if;

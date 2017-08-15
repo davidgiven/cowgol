@@ -75,7 +75,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         var type_id: uint16 := get_type_of_thing(ea.varoff_id);
         var type: [TypeThing] := find_thing(type_id) as [TypeThing];
 
-        if (type.thing_type != THING_UNSIGNED) or (type.width != 1) then
+        if (type.thing_type != THING_UNSIGNEDT) or (type.width != 1) then
             print("* turning var offset into add\n");
             varoffset_into_add();
         end if;

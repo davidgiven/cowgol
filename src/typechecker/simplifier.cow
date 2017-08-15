@@ -60,7 +60,7 @@ sub simplify_node_to_var(src: [Node]): (dest: [Node])
         return;
     end if;
 
-    if src.type_id == numeric_type then
+    if src.type_id == constant_type then
         print("unresolved numeric type");
         halt();
     end if;
