@@ -20,7 +20,6 @@ sub read_type(): (type_id: uint16)
             print("identifier ");
             show_identifier(identifier_id);
             print(" does not refer to a type");
-            print_hex_i16(type_id);
             halt();
         end if;
 

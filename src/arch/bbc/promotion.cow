@@ -10,11 +10,7 @@ sub arch_promote_to_new_node_and_deref(src: [Node], dest_type_id: uint16):
         print_newline();
 
         dest := simplify_node_to_ea_and_deref(src);
-        if is_signed_type_thing(dest.type_id) != 0 then
-            dest.iop := IOP_BE_SEXT;
-        else
-            dest.iop := IOP_BE_ZEXT;
-        end if;
+        dest.iop := IOP_BE_SEXT;
         dest.flags := FLAG_RVALUE;
         dest.type_id := dest_type_id;
     else

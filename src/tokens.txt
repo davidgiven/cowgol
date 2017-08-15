@@ -1,7 +1,7 @@
 # Magic tokens with no attached string.
           FILENAME
           LINENUMBER
-<number>  NUMERIC
+<number>  CONSTANTT
 
 end       END           ENDER
 ;         SEMICOLON     ENDER
@@ -24,22 +24,13 @@ return    RETURN
 goto      GOTO
 namespace NAMESPACE
 
-# Names of routines in the runtime library.
-__copy2   CG_COPY2      IDENTIFIER
-__copy4   CG_COPY4      IDENTIFIER
-__load2   CG_LOAD2      IDENTIFIER
-__load4   CG_LOAD4      IDENTIFIER
-
 # Attributes and specials.
 @words    WORDS
 
 # Primitive types.
 int8      INT8          IDENTIFIER
-uint8     UINT8         IDENTIFIER
 int16     INT16         IDENTIFIER
-uint16    UINT16        IDENTIFIER
 int32     INT32         IDENTIFIER
-uint32    UINT32        IDENTIFIER
 
 )         CLOSEPAREN     0
 ]         CLOSESQUARE    0

@@ -1,7 +1,7 @@
 
 sub pointer_of(type_id: uint16): (ptr_type_id: uint16)
     var buf: PointerThing;
-    buf.thing_type := THING_POINTER;
+    buf.thing_type := THING_POINTERT;
     buf.thing_size := PointerThing@bytes;
     buf.width := 2;
     buf.element_id := type_id;
@@ -10,7 +10,7 @@ end sub;
 
 sub element_of(type_id: uint16): (element_type_id: uint16)
     var type: [WithElementsThing] := find_thing(type_id) as [WithElementsThing];
-    if (type.thing_type == THING_POINTER) or (type.thing_type == THING_ARRAY) then
+    if (type.thing_type == THING_POINTERT) or (type.thing_type == THING_ARRAYT) then
         element_type_id := type.element_id;
     else
         element_type_id := 0;
@@ -21,7 +21,7 @@ sub array_of(type_id: uint16, element_count: uint16): (array_type_id: uint16)
     var type: [TypeThing] := find_thing(type_id) as [TypeThing];
 
     var buf: ArrayThing[1];
-    buf[0].thing_type := THING_ARRAY;
+    buf[0].thing_type := THING_ARRAYT;
     buf[0].thing_size := ArrayThing@bytes;
     buf[0].width := element_count * type.width;
     buf[0].element_id := type_id;

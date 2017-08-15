@@ -2,7 +2,7 @@ sub print_raw_type_name(type_id: uint16)
     var brackets: uint8 := 0;
     loop
         var ptr_type: [PointerThing] := find_thing(type_id) as [PointerThing];
-        if ptr_type.thing_type != THING_POINTER then
+        if ptr_type.thing_type != THING_POINTERT then
             break;
         end if;
         brackets := brackets + 1;
@@ -25,7 +25,7 @@ end sub;
 
 sub print_type_name(type_id: uint16)
     var array_type: [ArrayThing] := find_thing(type_id) as [ArrayThing];
-    if array_type.thing_type == THING_ARRAY then
+    if array_type.thing_type == THING_ARRAYT then
         print_raw_type_name(array_type.element_id);
         print_char('[');
         print_i16(array_type.element_count);
@@ -40,8 +40,8 @@ sub check_type_assignability(src_type_id: uint16, dest_type_id: uint16)
     var dest_type: [TypeThing] := find_thing(dest_type_id) as [TypeThing];
 
     # It's legal to assign any number to any other number.
-    if ((src_type.thing_type & THING_NUMERIC) != 0) and
-       ((dest_type.thing_type & THING_NUMERIC) != 0) then
+    if ((src_type.thing_type & THING_CONSTANTT) != 0) and
+       ((dest_type.thing_type & THING_CONSTANTT) != 0) then
         return;
     end if;
 
@@ -60,8 +60,8 @@ sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (resu
 
     if left_type_id == right_type_id then
         result_type_id := left_type_id;
-    elseif ((left_type.thing_type & THING_NUMERIC) != 0) and
-       ((right_type.thing_type & THING_NUMERIC) != 0) then
+    elseif ((left_type.thing_type & THING_CONSTANTT) != 0) and
+       ((right_type.thing_type & THING_CONSTANTT) != 0) then
         if left_type.width < right_type.width then
             result_type_id := right_type_id;
         else
@@ -143,7 +143,7 @@ sub process_subroutine(thing_id: uint16)
         node.left.obj_id := iop.thing_id;
         node.left.type := EA_OBJVAL;
         if thing.thing_type == THING_NUMBER then
-            node.type_id := numeric_type;
+            node.type_id := constant_type;
             node.flags := FLAG_RVALUE;
         elseif thing.thing_type == THING_STRING then
             node.type_id := pointer_of(int8_type);
@@ -157,7 +157,7 @@ sub process_subroutine(thing_id: uint16)
             node.type_id := typed_thing.type_id;
 
             var type: [Thing] := find_thing(typed_thing.type_id);
-            if (type.thing_type == THING_ARRAY) or (type.thing_type == THING_RECORD) then
+            if (type.thing_type == THING_ARRAYT) or (type.thing_type == THING_RECORDT) then
                 node.left.type := EA_OBJADR;
             end if;
         else
@@ -217,7 +217,7 @@ sub process_subroutine(thing_id: uint16)
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
-        if ((left_type.thing_type & THING_NUMERIC) == 0) then
+        if ((left_type.thing_type & THING_CONSTANTT) == 0) then
             print("can't do this to non-numeric type ");
             print_type_name(left.type_id);
             halt();
@@ -228,17 +228,6 @@ sub process_subroutine(thing_id: uint16)
         push_node(left);
     end sub;
 
-    sub maybe_signed_biop(signed_beiop: uint8, unsigned_beiop: uint8): (beiop: uint8)
-        var right: [Node] := peek(1);
-        var left: [Node] := peek(2);
-
-        if (is_signed_type_thing(left.type_id) != 0) or (is_signed_type_thing(right.type_id) != 0) then
-            beiop := signed_beiop;
-        else
-            beiop := unsigned_beiop;
-        end if;
-    end sub;
-
     sub fe_addsub(beiop: uint8)
         var right: [Node] := pop();
         var left: [Node] := pop();
@@ -246,17 +235,17 @@ sub process_subroutine(thing_id: uint16)
         var left_type: [PointerThing] := find_thing(left.type_id) as [PointerThing];
         var right_type: [PointerThing] := find_thing(right.type_id) as [PointerThing];
         var dest_type_id: uint16;
-        if left_type.thing_type != THING_POINTER then
+        if left_type.thing_type != THING_POINTERT then
             # this is the same as simple_alu2op above
             dest_type_id := check_type_compatibility(left.type_id, right.type_id);
         elseif (beiop == IOP_BE_SUB)
-                and (left_type.thing_type == THING_POINTER)
-                and (right_type.thing_type == THING_POINTER) then
+                and (left_type.thing_type == THING_POINTERT)
+                and (right_type.thing_type == THING_POINTERT) then
             # Pointer difference.
             dest_type_id := uint16_type;
         elseif (beiop == IOP_BE_ADD)
-                and (left_type.thing_type == THING_POINTER)
-                and ((right_type.thing_type & THING_NUMERIC) != 0) then
+                and (left_type.thing_type == THING_POINTERT)
+                and ((right_type.thing_type & THING_CONSTANTT) != 0) then
             # Pointer offsetting.
             dest_type_id := left.type_id;
         else
@@ -281,7 +270,7 @@ sub process_subroutine(thing_id: uint16)
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [WithElementsThing] := find_thing(left.type_id) as [WithElementsThing];
-        if (left_type.thing_type != THING_POINTER) and (left_type.thing_type != THING_ARRAY) then
+        if (left_type.thing_type != THING_POINTERT) and (left_type.thing_type != THING_ARRAYT) then
             print_type_name(left.type_id);
             print(" is not indexable");
             halt();
@@ -289,7 +278,7 @@ sub process_subroutine(thing_id: uint16)
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
         var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
 
-        if (right_type.thing_type & THING_NUMERIC) == 0 then
+        if (right_type.thing_type & THING_CONSTANTT) == 0 then
             print("index must be numeric");
             halt();
         end if;
@@ -298,7 +287,7 @@ sub process_subroutine(thing_id: uint16)
         node.iop := IOP_FEX_PUSH;
         node.type_id := left_type.element_id;
 
-        if (left_type.thing_type != THING_POINTER) and (left_type.thing_type != THING_ARRAY) then
+        if (left_type.thing_type != THING_POINTERT) and (left_type.thing_type != THING_ARRAYT) then
             print("only pointers or arrays can be indexed");
             halt();
         end if;
@@ -321,7 +310,7 @@ sub process_subroutine(thing_id: uint16)
         print_ea(&node.left);
         print_newline();
 
-        if (right_type.thing_type == THING_NUMERIC) then
+        if (right_type.thing_type == THING_CONSTANTT) then
             node.left.numoff_id := add_number_by_value(
                 get_value_of_number(left.left.numoff_id) +
                     get_value_of_number(right.left.obj_id) * element_type.width);
@@ -382,7 +371,7 @@ sub process_subroutine(thing_id: uint16)
 
         var type_id: uint16 := node.type_id;
         var type: [Thing] := find_thing(type_id);
-        if type.thing_type == THING_POINTER then
+        if type.thing_type == THING_POINTERT then
             var pointer_type: [PointerThing] := type as [PointerThing];
             type_id := pointer_type.element_id;
             type := find_thing(type_id);
@@ -392,7 +381,7 @@ sub process_subroutine(thing_id: uint16)
                 node.left.type := EA_PTRVAL;
             end if;
         end if;
-        if type.thing_type != THING_RECORD then
+        if type.thing_type != THING_RECORDT then
             print_type_name(type_id);
             print(" is not a record type or a pointer to a record type");
             halt();
@@ -410,8 +399,8 @@ sub process_subroutine(thing_id: uint16)
         var member: [MemberThing] := find_thing(symbol.value_id) as [MemberThing];
         var member_type_thing: [Thing] := find_thing(member.type_id);
 
-        if (member_type_thing.thing_type == THING_ARRAY)
-            or (member_type_thing.thing_type == THING_RECORD)
+        if (member_type_thing.thing_type == THING_ARRAYT)
+            or (member_type_thing.thing_type == THING_RECORDT)
         then
             node.left.type := node.left.type & (EA_DEREF_AFTER ^ -1);
         else
@@ -508,30 +497,26 @@ sub process_subroutine(thing_id: uint16)
         push_node(node);
     end sub;
 
-    sub fe_shift(signed_beiop: uint8, unsigned_beiop: uint8)
+    sub fe_shift(beiop: uint8)
         var right: [Node] := simplify_node_to_ea_and_deref(pop());
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
-        if ((left_type.thing_type & THING_NUMERIC) == 0) then
+        if ((left_type.thing_type & THING_CONSTANTT) == 0) then
             print("can't shift non-numeric type ");
             print_type_name(left.type_id);
             halt();
         end if;
 
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
-        if ((right_type.thing_type & THING_NUMERIC) == 0) then
+        if ((right_type.thing_type & THING_CONSTANTT) == 0) then
             print("can't shift by non-numeric type ");
             print_type_name(left.type_id);
             halt();
         end if;
 
         var node: [Node] := push_empty_node();
-        if ((left_type.thing_type == THING_SIGNED) or (left_type.thing_type == THING_NUMERIC)) then
-            node.iop := signed_beiop;
-        else
-            node.iop := unsigned_beiop;
-        end if;
+        node.iop := beiop;
         node.flags := FLAG_RVALUE;
         copy_ea_ref(&left.left, &node.left);
         copy_ea_ref(&right.left, &node.right);
@@ -577,7 +562,7 @@ sub process_subroutine(thing_id: uint16)
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := add_number_by_value(width);
         node.left.type := EA_OBJVAL;
-        node.type_id := numeric_type;
+        node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
 
         deref_node(left);
@@ -587,7 +572,7 @@ sub process_subroutine(thing_id: uint16)
         var left: [Node] := pop();
 
         var left_type: [ArrayThing] := find_thing(left.type_id) as [ArrayThing];
-        if (left_type.thing_type != THING_ARRAY) then
+        if (left_type.thing_type != THING_ARRAYT) then
             print("@size only works on arrays");
             halt();
         end if;
@@ -596,7 +581,7 @@ sub process_subroutine(thing_id: uint16)
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := add_number_by_value(left_type.element_count);
         node.left.type := EA_OBJVAL;
-        node.type_id := numeric_type;
+        node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
 
         deref_node(left);
@@ -636,17 +621,17 @@ sub process_subroutine(thing_id: uint16)
         elseif iop.iop_kind == IOP_FE_EOR then
             fe_simple_alu2op(IOP_BE_EOR);
         elseif iop.iop_kind == IOP_FE_DIV then
-            fe_simple_alu2op(maybe_signed_biop(IOP_BE_DIVS, IOP_BE_DIVU));
+            fe_simple_alu2op(IOP_BE_DIVS);
         elseif iop.iop_kind == IOP_FE_MOD then
-            fe_simple_alu2op(maybe_signed_biop(IOP_BE_MODS, IOP_BE_MODU));
+            fe_simple_alu2op(IOP_BE_MODS);
         elseif iop.iop_kind == IOP_FE_NEG then
             fe_simple_alu1op(IOP_BE_NEG);
         elseif iop.iop_kind == IOP_FE_NOT then
             fe_simple_alu1op(IOP_BE_NOT);
         elseif (iop.iop_kind == IOP_FE_LSHIFT) then
-            fe_shift(IOP_BE_LSL, IOP_BE_LSL);
+            fe_shift(IOP_BE_LSL);
         elseif (iop.iop_kind == IOP_FE_RSHIFT) then
-            fe_shift(IOP_BE_ASR, IOP_BE_LSR);
+            fe_shift(IOP_BE_ASR);
         elseif iop.iop_kind == IOP_FE_INDEX then
             fe_index();
         elseif iop.iop_kind == IOP_FEX_INPUTPARAM then
@@ -666,11 +651,9 @@ sub process_subroutine(thing_id: uint16)
         elseif iop.iop_kind == IOP_FEX_BEQ then
             fe_conditional(IOP_BE_BEQ, iop as [FEConditionalIop]);
         elseif iop.iop_kind == IOP_FEX_BGT then
-            fe_conditional(maybe_signed_biop(IOP_BE_BGTS, IOP_BE_BGTU),
-                iop as [FEConditionalIop]);
+            fe_conditional(IOP_BE_BGTS, iop as [FEConditionalIop]);
         elseif iop.iop_kind == IOP_FEX_BLT then
-            fe_conditional(maybe_signed_biop(IOP_BE_BLTS, IOP_BE_BLTU),
-                iop as [FEConditionalIop]);
+            fe_conditional(IOP_BE_BLTS, iop as [FEConditionalIop]);
         elseif iop.iop_kind == IOP_FEX_CAST then
             fe_cast(iop as [FECastIop]);
         else

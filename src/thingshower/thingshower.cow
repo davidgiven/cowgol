@@ -150,15 +150,13 @@ loop
         show_symbol_thing(thing as [SymbolThing]);
     elseif type == THING_SUBROUTINE then
         show_subroutine_thing(thing as [SubroutineThing]);
-    elseif type == THING_SIGNED then
-        show_numeric_thing("signed_type", thing as [NumericThing]);
-    elseif type == THING_UNSIGNED then
-        show_numeric_thing("unsigned_type", thing as [NumericThing]);
-    elseif type == THING_NUMERIC then
-        show_numeric_thing("numeric_type", thing as [NumericThing]);
-    elseif type == THING_POINTER then
+    elseif type == THING_NUMBERT then
+        show_numeric_thing("number_type", thing as [NumericThing]);
+    elseif type == THING_CONSTANTT then
+        show_numeric_thing("constant_type", thing as [NumericThing]);
+    elseif type == THING_POINTERT then
         show_pointer_thing(thing as [PointerThing]);
-    elseif type == THING_RECORD then
+    elseif type == THING_RECORDT then
         show_record_thing(thing as [RecordThing]);
     elseif type == THING_MEMBER then
         show_member_thing(thing as [MemberThing]);
@@ -166,7 +164,7 @@ loop
         show_variable_thing(thing as [VariableThing]);
     elseif type == THING_PARAMETER then
         show_parameter_thing(thing as [ParameterThing]);
-    elseif type == THING_ARRAY then
+    elseif type == THING_ARRAYT then
         show_array_thing(thing as [ArrayThing]);
     else
         print("unknown type ");
