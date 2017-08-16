@@ -103,6 +103,7 @@ PLACER_SRCS = \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
+	src/utils/iopwriter.cow \
 	src/placer/init.cow \
 	src/placer/main.cow
 

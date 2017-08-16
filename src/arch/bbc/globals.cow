@@ -1,7 +1,6 @@
 # The higher the value, the higher the priority.
-const SEGMENT_CODE := 0x80;
-const SEGMENT_DATA := 0x81;
-const SEGMENT_ZEROPAGE := 0x82;
+const SEGMENT_DATA := 0x80;
+const SEGMENT_ZEROPAGE := 0x81;
 
 record ArchSizes
     data_size: uint16;

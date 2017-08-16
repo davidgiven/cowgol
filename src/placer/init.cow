@@ -1,3 +1,8 @@
 print("PLACER\n");
 load_thing_table("things.dat");
 init_iop_reader("iops.dat");
+init_iop_writer("iops-out.dat");
+
+var current_subroutine_id: uint16;
+var current_subroutine: [SubroutineThing];
+var pass: uint8;

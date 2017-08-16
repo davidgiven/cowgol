@@ -3,11 +3,13 @@ sub show_root_thing(thing: [RootThing])
     print_thing(thing.main_subroutine_id);
     print(" ");
     print_arch_sizes(&thing.archsizes as [ArchSizes]);
-    print(" ro1=0x");
+    print(" code_size=0x");
+    print_hex_i16(thing.code_size);
+    print(" ro1_size=0x");
     print_hex_i16(thing.ro1_size);
-    print(" ro2=0x");
+    print(" ro2_size=0x");
     print_hex_i16(thing.ro2_size);
-    print(" ro4=0x");
+    print(" ro4_size=0x");
     print_hex_i16(thing.ro4_size);
     print(") ");
 end sub;

@@ -95,7 +95,7 @@ end sub;
 sub mark_main_subroutine()
     var main_id: uint16 := find_main_subroutine();
     var main: [SubroutineThing] := find_thing(main_id) as [SubroutineThing];
-    main.segment := SEGMENT_UNKNOWN;
+    main.segment := SEGMENT_CODE;
     used_subroutine_count := 1;
 end sub;
 
@@ -110,10 +110,10 @@ sub find_reachable_subroutines()
             var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
             var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
 
-            if src.segment == SEGMENT_UNKNOWN then
+            if src.segment == SEGMENT_CODE then
                 if dest.segment == SEGMENT_OMIT then
                     changed := 1;
-                    dest.segment := SEGMENT_UNKNOWN;
+                    dest.segment := SEGMENT_CODE;
                     dest.address := used_subroutine_count;
                     used_subroutine_count := used_subroutine_count + 1;
                 end if;
@@ -223,33 +223,11 @@ sub assign_space_for_all_variables()
     end loop;
 end sub;
 
-#sub count_variable_sizes()
-#    sub do_var(thing: [TypedThing])
-#        if thing.address != 0 then
-#            var subthing: [SubroutineThing] := find_thing(thing.address) as [SubroutineThing];
-#            var sr: [SubRecord] := &subdata[subthing.address];
-#            arch_account_for_var(&sr.base, thing, get_width_of_type(thing.type_id));
-#        end if;
-#    end sub;
-#
-#    var id: uint16 := 1;
-#    loop
-#        var thing: [Thing] := &thing_table[id] as [Thing];
-#        if thing.thing_size == 0 then
-#            break;
-#        end if;
-#        if (thing.thing_type & THING_TYPED) != 0 then
-#            do_var(thing as [TypedThing]);
-#        end if;
-#        id := id + thing.thing_size;
-#    end loop;
-#end sub;
-#
 sub show_subroutine_sizes()
     var id: uint16 := 1;
 
     sub do_sub(thing: [SubroutineThing])
-        if thing.segment == SEGMENT_UNKNOWN then
+        if thing.segment == SEGMENT_CODE then
             var sr: [SubRecord] := &subdata[thing.address];
             show_name_of(id);
             print(" ");

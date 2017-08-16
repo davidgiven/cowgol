@@ -31,6 +31,7 @@ end record;
 # If you add anything here, remember to update the size in mk-token-names.awk.
 record RootThing: Thing
     archsizes: ArchSizes;
+    code_size: uint16;
     ro1_size: uint16;
     ro2_size: uint16;
     ro4_size: uint16;
@@ -93,6 +94,7 @@ const SEGMENT_OMIT := 1;
 const SEGMENT_RO1 := 2;
 const SEGMENT_RO2 := 3;
 const SEGMENT_RO4 := 4;
+const SEGMENT_CODE := 0x5;
 
 record DataThing: Thing
     segment: uint8;
