@@ -28,15 +28,12 @@ record Thing
     payload: int8[0];
 end record;
 
-record SegmentSizes: ArchSizes
+# If you add anything here, remember to update the size in mk-token-names.awk.
+record RootThing: Thing
+    archsizes: ArchSizes;
     ro1_size: uint16;
     ro2_size: uint16;
     ro4_size: uint16;
-end record;
-
-# If you add anything here, remember to update the size in mk-token-names.awk.
-record RootThing: Thing
-    sizes: SegmentSizes;
     main_subroutine_id: uint16;
 end record;
 

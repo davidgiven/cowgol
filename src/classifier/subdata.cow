@@ -1,5 +1,5 @@
 record SubRecord
-    base: ArchVarOffsets;
+    base: ArchSizes;
 end record;
 
 var subdata: [SubRecord];

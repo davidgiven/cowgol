@@ -1,8 +1,3 @@
-record ArchVarOffsets
-    data_offset: uint16;
-    zp_offset: uint8;
-end record;
-
 sub arch_classify_vars(ea: [EffectiveAddress])
     sub do_var(var_id: uint16, segment: uint8)
         var obj: [TypedThing] := find_thing(var_id) as [TypedThing];
@@ -25,33 +20,33 @@ sub arch_classify_vars(ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub arch_allocate_var(offsets: [ArchVarOffsets], thing: [TypedThing], width: uint16)
+sub arch_allocate_var(offsets: [ArchSizes], thing: [TypedThing], width: uint16)
     if thing.segment == SEGMENT_ZEROPAGE then
-        thing.address := offsets.zp_offset;
-        offsets.zp_offset := offsets.zp_offset + width;
+        thing.address := offsets.zp_size;
+        offsets.zp_size := offsets.zp_size + width;
     elseif thing.segment == SEGMENT_DATA then
-        thing.address := offsets.data_offset;
-        offsets.data_offset := offsets.data_offset + width;
+        thing.address := offsets.data_size;
+        offsets.data_size := offsets.data_size + width;
     else
         print("bad segment");
         halt();
     end if;
 end sub;
 
-sub arch_propagate_var_offsets(src_offsets: [ArchVarOffsets], dest_offsets: [ArchVarOffsets])
-    if src_offsets.zp_offset > dest_offsets.zp_offset then
-        dest_offsets.zp_offset := src_offsets.zp_offset;
+sub arch_propagate_var_offsets(src_offsets: [ArchSizes], dest_offsets: [ArchSizes])
+    if src_offsets.zp_size > dest_offsets.zp_size then
+        dest_offsets.zp_size := src_offsets.zp_size;
     end if;
 
-    if src_offsets.data_offset > dest_offsets.data_offset then
-        dest_offsets.data_offset := src_offsets.data_offset;
+    if src_offsets.data_size > dest_offsets.data_size then
+        dest_offsets.data_size := src_offsets.data_size;
     end if;
 end sub;
 
-sub arch_report_offsets(offsets: [ArchVarOffsets])
+sub arch_report_offsets(offsets: [ArchSizes])
     print("Zero page: ");
-    print_i16(offsets.zp_offset);
+    print_i16(offsets.zp_size);
     print(" bytes\nData: ");
-    print_i16(offsets.data_offset);
+    print_i16(offsets.data_size);
     print(" bytes\n");
 end sub;
