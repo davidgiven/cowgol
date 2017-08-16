@@ -81,6 +81,7 @@ sub init_parser()
     lexical_push(LEX_TOP);
 
     (current_subroutine_id, current_namespace_id) := create_function();
+    root.main_subroutine_id := current_subroutine_id;
 
     var type: [NumericThing];
     type := create_bootstrap_type(TOKEN_INT8);

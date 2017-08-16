@@ -78,20 +78,8 @@ sub add_symbol(identifier_id: uint16, value_id: uint16, namespace_id: uint16)
 end sub;
 
 sub find_main_subroutine(): (subroutine_id: uint16)
-    # The first subroutine created is the main one.
-    subroutine_id := 1;
-    loop
-        var thing: [SubroutineThing] := &thing_table[subroutine_id] as [SubroutineThing];
-        if thing.thing_size == 0 then
-            break;
-        end if;
-        if (thing.thing_type == THING_SUBROUTINE) then
-            return;
-        end if;
-
-        subroutine_id := subroutine_id + thing.thing_size;
-    end loop;
-    subroutine_id := 0;
+    var root: [RootThing] := find_thing(1) as [RootThing];
+    subroutine_id := root.main_subroutine_id;
 end sub;
 
 sub find_nth_parameter(subroutine_id: uint16, direction: uint8, parameter: uint8):

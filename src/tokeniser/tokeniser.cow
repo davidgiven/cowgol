@@ -191,6 +191,11 @@ sub init_tokeniser()
     next_token();
 end sub;
 
+sub install_root_thing()
+    var id: uint16 := create_thing(THING_ROOT, RootThing@bytes);
+    root := find_thing(1) as [RootThing];
+end sub;
+
 sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: uint8)
     copy_string(name, &input_buffer[0]);
     buffer_index := string_length(&input_buffer[0]);

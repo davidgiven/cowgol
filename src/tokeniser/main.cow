@@ -1,4 +1,5 @@
 print("TOKENISER\n");
+install_root_thing();
 install_identifiers();
 init_tokeniser();
 

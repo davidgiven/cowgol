@@ -14,6 +14,7 @@ TOKENISER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
 	src/numbers_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/tokeniser/strings.cow \
 	src/tokeniser/lexer.cow \
@@ -26,6 +27,7 @@ PARSER_SRCS = \
 	src/string_lib.cow \
 	src/ctype_lib.cow \
 	src/numbers_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/_token_names.cow \
 	src/utils/stringtable.cow \
@@ -43,6 +45,7 @@ PARSER_SRCS = \
 
 TYPECHECKER_SRCS = \
 	src/string_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \
@@ -61,13 +64,13 @@ TYPECHECKER_SRCS = \
 
 CLASSIFIER_SRCS = \
 	src/string_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \
 	src/utils/iopreader.cow \
 	src/utils/symbols.cow \
 	src/utils/types.cow \
-	src/arch/bbc/globals.cow \
 	src/arch/bbc/classifier.cow \
 	src/classifier/init.cow \
 	src/classifier/graph.cow \
@@ -76,6 +79,7 @@ CLASSIFIER_SRCS = \
 
 CODEGEN_SRCS = \
 	src/string_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \
@@ -86,7 +90,6 @@ CODEGEN_SRCS = \
 	src/utils/types.cow \
 	src/codegen/init.cow \
 	src/codegen/queue.cow \
-	src/arch/bbc/globals.cow \
 	src/arch/bbc/codegen0.cow \
 	src/arch/bbc/codegen1.cow \
 	src/arch/bbc/codegen2.cow \
@@ -95,6 +98,7 @@ CODEGEN_SRCS = \
 
 PLACER_SRCS = \
 	src/string_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \
@@ -104,12 +108,14 @@ PLACER_SRCS = \
 
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/utils/stringtable.cow \
 	src/thingshower/thingshower.cow
 
 IOPSHOWER_SRCS = \
 	src/string_lib.cow \
+	src/arch/bbc/globals.cow \
 	src/utils/things.cow \
 	src/utils/iops.cow \
 	src/utils/stringtable.cow \

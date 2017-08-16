@@ -5,6 +5,7 @@ const THING_NAMESPACE  := 0b0000_0100;
 const THING_TOKEN      := 0b0000_0101;
 const THING_SYMBOL     := 0b0000_0110;
 const THING_MEMBER     := 0b0000_0111;
+const THING_ROOT       := 0b0000_1000; # singleton
 
 const THING_DATA       := 0b1000_0000;
 const THING_SUBROUTINE := 0b1000_0001;
@@ -25,6 +26,18 @@ record Thing
     thing_size: uint8;
     thing_type: uint8;
     payload: int8[0];
+end record;
+
+record SegmentSizes: ArchSizes
+    ro1_size: uint16;
+    ro2_size: uint16;
+    ro4_size: uint16;
+end record;
+
+# If you add anything here, remember to update the size in mk-token-names.awk.
+record RootThing: Thing
+    sizes: SegmentSizes;
+    main_subroutine_id: uint16;
 end record;
 
 record IdentifierThing: Thing
@@ -118,6 +131,8 @@ end record;
 var thing_table: [int8] := LOMEM;
 var thing_table_top: uint16 := 1;
 thing_table[thing_table_top] := 0;
+
+var root: [RootThing];
 
 sub create_thing(type: uint8, size: uint8): (id: uint16)
     id := thing_table_top;
@@ -297,6 +312,8 @@ sub load_thing_table(filename: [int8])
     file_getblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
     thing_table[thing_table_top] := 0;
+
+    root := find_thing(1) as [RootThing];
 end sub;
 
 sub print_thing(thing_id: uint16)

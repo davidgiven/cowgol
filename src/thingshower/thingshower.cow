@@ -1,3 +1,17 @@
+sub show_root_thing(thing: [RootThing])
+    print("root(main_subroutine_id=");
+    print_thing(thing.main_subroutine_id);
+    print(" ");
+    print_arch_sizes(&thing.sizes as [ArchSizes]);
+    print(" ro1=0x");
+    print_hex_i16(thing.sizes.ro1_size);
+    print(" ro2=0x");
+    print_hex_i16(thing.sizes.ro2_size);
+    print(" ro4=0x");
+    print_hex_i16(thing.sizes.ro4_size);
+    print(") ");
+end sub;
+
 sub show_identifier_thing(thing: [IdentifierThing])
     print("identifier(string_id=");
     show_string(thing.string_id);
@@ -136,7 +150,9 @@ loop
     print(": ");
 
     var type: uint8 := thing.thing_type;
-    if (type == THING_IDENTIFIER) then
+    if (type == THING_ROOT) then
+        show_root_thing(thing as [RootThing]);
+    elseif (type == THING_IDENTIFIER) then
         show_identifier_thing(thing as [IdentifierThing]);
     elseif (type == THING_TOKEN) then
         show_token_thing(thing as [TokenThing]);
