@@ -15,7 +15,6 @@ end sub;
 sub write_terminating_iop_header()
     var buf: IHeader[1];
     buf[0].thing_id := 0;
-    buf[0].section := 0;
     write_iop_header(&buf[0]);
 end sub;
 

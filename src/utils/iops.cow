@@ -1,6 +1,5 @@
 record IHeader
     thing_id: uint16;
-    section: uint8;
 end record;
 
 record Iop
