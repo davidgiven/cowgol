@@ -93,6 +93,15 @@ CODEGEN_SRCS = \
 	src/codegen/rules.cow \
 	src/codegen/main.cow
 
+PLACER_SRCS = \
+	src/string_lib.cow \
+	src/utils/things.cow \
+	src/utils/iops.cow \
+	src/utils/stringtable.cow \
+	src/utils/iopreader.cow \
+	src/placer/init.cow \
+	src/placer/main.cow
+
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \
 	src/utils/things.cow \
@@ -113,7 +122,7 @@ BBCTUBE_SRCS = \
 
 all: tests \
 	bin/tokeniser bin/parser bin/typechecker bin/thingshower \
-	bin/classifier bin/codegen \
+	bin/classifier bin/codegen bin/placer \
 	bin/iopshower bin/bbctube
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
@@ -140,6 +149,11 @@ bin/codegen: $(CODEGEN_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(CODEGEN_SRCS)
+
+bin/placer: $(PLACER_SRCS) $(BOOTSTRAP)
+	@echo BUILD $@
+	@mkdir -p $(dir $@)
+	$(hide) ./cowboot -o $@ $(PLACER_SRCS)
 
 bin/thingshower: $(THINGSHOWER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
