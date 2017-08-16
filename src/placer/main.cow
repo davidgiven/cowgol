@@ -1,26 +1,58 @@
-var labels: [uint16] := &thing_table[thing_table_top] as [uint16];
+
+sub do_label(iop: [LabelIop])
+    labels[iop.label] := pc;
+end sub;
 
 sub pass12()
+    sub do_bytes(iop: [BytesIop])
+        pc := pc + iop.byte_count;
+    end sub;
+
+    pc := 0;
     loop
         var iop: [Iop] := read_iop();
         var iopkind: uint8 := iop.iop_kind;
 
         if iopkind == IOP_END then
             break;
+        elseif iopkind == IOP_BYTES then
+            do_bytes(iop as [BytesIop]);
+        elseif iopkind == IOP_ADDRESS then
+            pc := pc + 2;
+        elseif iopkind == IOP_LABEL then
+            do_label(iop as [LabelIop]);
+        else
+            pc := pc + arch_calculate_iop_size(iop);
         end if;
     end loop;
 end sub;
 
 sub pass3()
+    sub do_bytes(iop: [BytesIop])
+        write_iop(iop as [Iop]);
+        pc := pc + iop.byte_count;
+    end sub;
+
+    pc := 0;
     loop
         var iop: [Iop] := read_iop();
         var iopkind: uint8 := iop.iop_kind;
 
         if iopkind == IOP_END then
             break;
+        elseif iopkind == IOP_BYTES then
+            do_bytes(iop as [BytesIop]);
+        elseif iopkind == IOP_ADDRESS then
+            write_iop(iop);
+            pc := pc + 2;
+        elseif iopkind == IOP_LABEL then
+            do_label(iop as [LabelIop]);
+        else
+            pc := pc + arch_generate_iop(iop);
         end if;
     end loop;
 
+    root.code_size := root.code_size + pc;
     write_untyped_iop(IOP_END);
 end sub;
 

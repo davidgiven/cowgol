@@ -105,6 +105,7 @@ PLACER_SRCS = \
 	src/utils/iopreader.cow \
 	src/utils/iopwriter.cow \
 	src/placer/init.cow \
+	src/arch/bbc/placer.cow \
 	src/placer/main.cow
 
 THINGSHOWER_SRCS = \
