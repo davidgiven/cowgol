@@ -40,18 +40,18 @@ sub show_symbol_thing(thing: [SymbolThing])
 end sub;
 
 sub show_data_thing(thing: [DataThing])
-    print("data(segment=");
-    print_i8(thing.segment);
+    print("data(segment=0x");
+    print_hex_i8(thing.segment);
     print(" address=0x");
     print_hex_i16(thing.address);
-    print(" owner_id=");
-    print_thing(thing.owner_id);
     print(") ");
 end sub;
 
 sub show_typed_thing(thing: [TypedThing])
     show_data_thing(thing as [DataThing]);
-    print("typed(type=0x");
+    print("typed(owner_id=0x");
+    print_thing(thing.owner_id);
+    print(" type_id=0x");
     print_hex_i16(thing.type_id);
     print(") ");
 end sub;

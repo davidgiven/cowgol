@@ -31,10 +31,6 @@ record IdentifierThing: Thing
     string_id: uint16;
 end record;
 
-record StringThing: IdentifierThing
-    string_size: uint8;
-end record;
-
 record TokenThing: IdentifierThing
     token_flags: uint8;
 end record;
@@ -84,11 +80,18 @@ end record;
 
 const SEGMENT_UNKNOWN := 0; # here, the address field is used for record-keeping
 const SEGMENT_OMIT := 1;
+const SEGMENT_RO1 := 2;
+const SEGMENT_RO2 := 3;
+const SEGMENT_RO4 := 4;
 
 record DataThing: Thing
     segment: uint8;
-    owner_id: uint16;
     address: uint16; # or sundry other things if segment == SEGMENT_UNKNOWN
+end record;
+
+record StringThing: DataThing
+    string_id: uint16;
+    string_size: uint8;
 end record;
 
 record SubroutineThing: DataThing
@@ -99,6 +102,7 @@ record SubroutineThing: DataThing
 end record;
 
 record TypedThing: DataThing
+    owner_id: uint16;
     type_id: uint16;
 end record;
 
