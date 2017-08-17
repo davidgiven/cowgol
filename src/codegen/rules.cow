@@ -245,5 +245,11 @@ sub global_rules(): (matched: uint8)
         return;
     end if;
 
+    if (queue0.iop_kind == IOP_BYTES) or (queue0.iop_kind == IOP_ADDRESS) then
+        write_iop(queue0);
+        consume_iops(1);
+        return;
+    end if;
+
     matched := 0;
 end sub;

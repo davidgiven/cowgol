@@ -124,6 +124,21 @@ sub process_subroutine(thing_id: uint16)
     init_temporaries();
     current_namespace_id := subroutine.namespace_id;
 
+    sub special_address(iop: [AddressIop])
+        var thing: [Thing] := find_thing(iop.thing_id);
+        if thing.thing_type == THING_IDENTIFIER then
+            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+            thing := find_thing(iop.thing_id);
+        end if;
+
+        if (thing.thing_type & THING_DATA) == 0 then
+            print("not a data symbol");
+            halt();
+        end if;
+
+        write_iop(iop as [Iop]);
+    end sub;
+
     sub fex_push(iop: [FEPushIop])
         var thing: [Thing] := find_thing(iop.thing_id);
         if thing.thing_type == THING_IDENTIFIER then
@@ -608,6 +623,8 @@ sub process_subroutine(thing_id: uint16)
             break;
         elseif iop.iop_kind == IOP_CALL then
             fe_call(iop as [CallIop]);
+        elseif iop.iop_kind == IOP_ADDRESS then
+            special_address(iop as [AddressIop]);
         elseif ioptype == IOP_TYPE_UNTYPED then
             write_iop(iop);
         elseif iop.iop_kind == IOP_FE_SWAP then
