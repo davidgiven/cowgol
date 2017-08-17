@@ -104,7 +104,7 @@ const IOP_BE_BGTS              := 0b1010_0011;
 const IOP_BE_BGTU              := 0b1010_0100;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
-const IOP_CG_6502_ZEROPAGE := 0b1110_0011;
+const IOP_CG_6502_ZEROPAGE := 0b1110_0011; # AddressIop
 const IOP_CG_6502_COND     := 0b1110_0100;
 const IOP_CG_6502_MEM      := 0b1110_0101;
 
@@ -202,11 +202,6 @@ end record;
 
 record CG6502MemIop: Iop
     opcode: uint8;
-    thing_id: uint16;
-    offset: uint16;
-end record;
-
-record CG6502ZeroPageIop: Iop
     thing_id: uint16;
     offset: uint16;
 end record;

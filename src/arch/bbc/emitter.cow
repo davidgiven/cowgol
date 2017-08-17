@@ -15,8 +15,20 @@ sub arch_calculate_address(thing: [DataThing]): (address: uint16)
 end sub;
 
 sub arch_emit_iop(iop: [Iop])
-    print("cannot emit iop 0x");
-    print_hex_i8(iop.iop_kind);
-    halt();
+    var iopkind: uint8 := iop.iop_kind;
+    if iopkind == IOP_CG_6502_ZEROPAGE then
+        var zpiop: [AddressIop] := iop as [AddressIop];
+        var thing: [DataThing] := find_thing(zpiop.thing_id) as [DataThing];
+        var address: uint16 := arch_calculate_address(thing) + zpiop.offset;
+        if address > 0xFF then
+            print("zero page address out of bounds");
+            halt();
+        end if;
+        file_putchar(outfd, address);
+    else
+        print("cannot emit iop 0x");
+        print_hex_i8(iop.iop_kind);
+        halt();
+    end if;
 end sub;
 

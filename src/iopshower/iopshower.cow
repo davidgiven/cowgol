@@ -135,7 +135,7 @@ sub do_cg_6502_mem(iop: [CG6502MemIop])
     print_hex_i16(iop.offset);
 end sub;
 
-sub do_cg_6502_zeropage(iop: [CG6502ZeroPageIop])
+sub do_cg_6502_zeropage(iop: [AddressIop])
     print("CG_6502_ZEROPAGE thing_id=0x");
     print_hex_i16(iop.thing_id);
     print(" offset=0x");
@@ -249,7 +249,7 @@ loop
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);
         elseif kind == IOP_CG_6502_ZEROPAGE then
-            do_cg_6502_zeropage(iop as [CG6502ZeroPageIop]);
+            do_cg_6502_zeropage(iop as [AddressIop]);
         elseif kind == IOP_CG_6502_COND then
             do_cg_6502_cond(iop as [CG6502ConditionalIop]);
         else
