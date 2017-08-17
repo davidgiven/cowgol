@@ -281,7 +281,7 @@ sub is_number_thing(thing_id: uint16): (yes: uint8)
     end if;
 end sub;
 
-sub is_constant_type_thing(thing_id: uint16): (yes: uint8)
+sub is_number_type_thing(thing_id: uint16): (yes: uint8)
     var type: uint8 := get_thing_type(thing_id);
     if (type == THING_SIGNEDT) or (type == THING_UNSIGNEDT) or (type == THING_CONSTANTT) then
         yes := 1;

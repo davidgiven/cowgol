@@ -37,7 +37,7 @@ end sub;
 
 sub check_type_assignability(src_type_id: uint16, dest_type_id: uint16)
     # It's legal to assign any number to any other number.
-    if (is_constant_type_thing(src_type_id) != 0) and (is_constant_type_thing(dest_type_id) != 0) then
+    if (is_number_type_thing(src_type_id) != 0) and (is_number_type_thing(dest_type_id) != 0) then
         return;
     end if;
 
@@ -53,8 +53,8 @@ end sub;
 sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
     if left_type_id == right_type_id then
         result_type_id := left_type_id;
-    elseif (is_constant_type_thing(left_type_id) != 0)
-        and (is_constant_type_thing(right_type_id) != 0)
+    elseif (is_number_type_thing(left_type_id) != 0)
+        and (is_number_type_thing(right_type_id) != 0)
     then
         if get_width_of_type(left_type_id) < get_width_of_type(right_type_id) then
             result_type_id := right_type_id;
@@ -225,7 +225,7 @@ sub process_subroutine(thing_id: uint16)
     sub fe_simple_alu1op(beiop: uint8)
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
-        if (is_constant_type_thing(left.type_id) == 0) then
+        if (is_number_type_thing(left.type_id) == 0) then
             print("can't do this to non-numeric type ");
             print_type_name(left.type_id);
             halt();
@@ -264,7 +264,7 @@ sub process_subroutine(thing_id: uint16)
             dest_type_id := uint16_type;
         elseif (beiop == IOP_BE_ADD)
                 and (left_type.thing_type == THING_POINTERT)
-                and (is_constant_type_thing(right_type.thing_type) != 0) then
+                and (is_number_type_thing(right_type.thing_type) != 0) then
             # Pointer offsetting.
             dest_type_id := left.type_id;
         else
@@ -297,7 +297,7 @@ sub process_subroutine(thing_id: uint16)
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
         var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
 
-        if is_constant_type_thing(right_type.thing_type) == 0 then
+        if is_number_type_thing(right.type_id) == 0 then
             print("index must be numeric");
             halt();
         end if;
@@ -521,14 +521,14 @@ sub process_subroutine(thing_id: uint16)
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
-        if is_constant_type_thing(left_type.thing_type) == 0 then
+        if is_number_type_thing(left_type.thing_type) == 0 then
             print("can't shift non-numeric type ");
             print_type_name(left.type_id);
             halt();
         end if;
 
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
-        if is_constant_type_thing(right_type.thing_type) == 0 then
+        if is_number_type_thing(right_type.thing_type) == 0 then
             print("can't shift by non-numeric type ");
             print_type_name(left.type_id);
             halt();
