@@ -108,6 +108,17 @@ PLACER_SRCS = \
 	src/arch/bbc/placer.cow \
 	src/placer/main.cow
 
+EMITTER_SRCS = \
+	src/string_lib.cow \
+	src/arch/bbc/globals.cow \
+	src/utils/things.cow \
+	src/utils/iops.cow \
+	src/utils/stringtable.cow \
+	src/utils/iopreader.cow \
+	src/emitter/init.cow \
+	src/arch/bbc/emitter.cow \
+	src/emitter/main.cow
+
 THINGSHOWER_SRCS = \
 	src/string_lib.cow \
 	src/arch/bbc/globals.cow \
@@ -130,7 +141,7 @@ BBCTUBE_SRCS = \
 
 all: tests \
 	bin/tokeniser bin/parser bin/typechecker bin/thingshower \
-	bin/classifier bin/codegen bin/placer \
+	bin/classifier bin/codegen bin/placer bin/emitter \
 	bin/iopshower bin/bbctube
 
 bin/tokeniser: $(TOKENISER_SRCS) $(BOOTSTRAP)
@@ -162,6 +173,11 @@ bin/placer: $(PLACER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
 	@mkdir -p $(dir $@)
 	$(hide) ./cowboot -o $@ $(PLACER_SRCS)
+
+bin/emitter: $(EMITTER_SRCS) $(BOOTSTRAP)
+	@echo BUILD $@
+	@mkdir -p $(dir $@)
+	$(hide) ./cowboot -o $@ $(EMITTER_SRCS)
 
 bin/thingshower: $(THINGSHOWER_SRCS) $(BOOTSTRAP)
 	@echo BUILD $@
