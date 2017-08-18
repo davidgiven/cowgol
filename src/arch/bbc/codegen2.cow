@@ -205,7 +205,7 @@ sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     var signed: uint8 := 0;
     var opcode: uint8;
     if ciop.iop_kind == IOP_BE_BEQ then
-        opcode := 0xF0; # BEQ rel
+        opcode := 0xD0; # BNE rel
     elseif ciop.iop_kind == IOP_BE_BLTU then
         opcode := 0x90; # BCC rel
     elseif ciop.iop_kind == IOP_BE_BGTU then
