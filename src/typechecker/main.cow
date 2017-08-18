@@ -156,6 +156,7 @@ sub process_subroutine(thing_id: uint16)
             node.flags := FLAG_RVALUE;
         elseif thing.thing_type == THING_STRING then
             node.type_id := pointer_of(int8_type);
+            node.left.type := EA_OBJADR;
             node.flags := FLAG_RVALUE;
         elseif (thing.thing_type & THING_TYPED) != 0 then
             var typed_thing: [TypedThing] := thing as [TypedThing];

@@ -30,7 +30,7 @@ end sub;
 sub arch_gen_call(iop: [CallIop])
     flush_cached_values(REG_MASK);
     write_byte(0x20); # JSR
-    write_address_iop(iop.thing_id, 0);
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
 end sub;
 
 sub arch_gen_label(iop: [LabelIop])
@@ -124,6 +124,21 @@ sub arch_gen_sub_byte(iop: [BEIop])
 end sub;
 
 sub arch_gen_copy_word(iop: [BEIop])
+    sub address_of()
+        var candidates: uint8;
+        if iop.dest.type == EA_PTRVAL then
+            candidates := REG_A;
+        else
+            candidates := REG_A|REG_X;
+        end if;
+
+        var location: uint8 := allocate_reg(candidates);
+        ld_imm_adr_lo(location, &iop.left);
+        save_value_with_index_or_offset(location, &iop.dest, 0);
+        ld_imm_adr_hi(location, &iop.left);
+        save_value_with_index_or_offset(location, &iop.dest, 1);
+    end sub;
+
     if is_number_thing(iop.left.obj_id) != 0 then
         var value: int32 := get_value_of_number(iop.left.obj_id);
         var candidates: uint8;
@@ -138,18 +153,28 @@ sub arch_gen_copy_word(iop: [BEIop])
         free_reg(location);
         location := find_or_load_int(value >> 8, candidates);
         save_value_with_index_or_offset(location, &iop.dest, 1);
+    elseif is_string_thing(iop.left.obj_id) != 0 then
+        address_of();
+    elseif is_typed_thing(iop.left.obj_id) != 0 then
+        if iop.left.type == EA_OBJADR then
+            address_of();
+        else
+            find_or_load_fixed_int(1, REG_Y);
+            allocate_fixed_reg(REG_A);
+
+            var label: uint16 := create_label();
+            write_label_iop(label);
+            load_value_with_index(REG_A, &iop.left, REG_Y);
+            save_value_with_index(REG_A, &iop.dest, REG_Y);
+            write_byte(0x88); # DEY
+            write_cg_6502_conditional_iop(0x30, label); # BMI
+
+            flush_cached_values(REG_Y);
+        end if;
     else
-        find_or_load_fixed_int(1, REG_Y);
-        allocate_fixed_reg(REG_A);
-
-        var label: uint16 := create_label();
-        write_label_iop(label);
-        load_value_with_index(REG_A, &iop.left, REG_Y);
-        save_value_with_index(REG_A, &iop.dest, REG_Y);
-        write_byte(0x88); # DEY
-        write_cg_6502_conditional_iop(0x30, label); # BMI
-
-        flush_cached_values(REG_Y);
+        print("don't know how to load ");
+        print_ea(&iop.left);
+        halt();
     end if;
 end sub;
 

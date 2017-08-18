@@ -29,6 +29,8 @@ const IOP_BYTES            := 0b0000_0111;
 const IOP_ADDRESS          := 0b0000_1000;
 const IOP_LABEL            := 0b0000_1001;
 const IOP_CLONELABEL       := 0b0000_1010;
+const IOP_ADDRESSLO        := 0b0000_1011; # AddressIop
+const IOP_ADDRESSHI        := 0b0000_1100; # AddressIop
 
 # Front-end opcodes: this is the pure stack machine architecture emitted by the
 # compiler. These are all Iops, with no payload.
@@ -104,7 +106,6 @@ const IOP_BE_BGTS              := 0b1010_0011;
 const IOP_BE_BGTU              := 0b1010_0100;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
-const IOP_CG_6502_ZEROPAGE := 0b1110_0011; # AddressIop
 const IOP_CG_6502_COND     := 0b1110_0100;
 const IOP_CG_6502_MEM      := 0b1110_0101;
 

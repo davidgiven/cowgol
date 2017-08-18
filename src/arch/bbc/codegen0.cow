@@ -53,6 +53,19 @@ sub op_imm(value: uint8, opcode: uint8)
     write_bytes_iop(buf@size, &buf[0]);
 end sub;
 
+sub op_imm_adr(ea: [EffectiveAddress], beiop: uint8, opcode: uint8)
+    print("@ op_imm_adr 0x");
+    print_hex_i8(opcode);
+    print(" iop=0x");
+    print_hex_i8(beiop);
+    print(" value=");
+    print_ea(ea);
+    print_newline();
+
+    write_byte(opcode);
+    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id));
+end sub;
+
 var ld_imm_opcodes: uint8[3];
 ld_imm_opcodes[0] := 0xA9; # LDA imm
 ld_imm_opcodes[1] := 0xA2; # LDX imm
@@ -60,6 +73,16 @@ ld_imm_opcodes[2] := 0xA0; # LDY imm
 sub ld_imm(location: uint8, value: uint8)
     location := find_bit_index(location);
     op_imm(value, ld_imm_opcodes[location]);
+end sub;
+
+sub ld_imm_adr_lo(location: uint8, ea: [EffectiveAddress])
+    location := find_bit_index(location);
+    op_imm_adr(ea, IOP_ADDRESSLO, ld_imm_opcodes[location]);
+end sub;
+
+sub ld_imm_adr_hi(location: uint8, ea: [EffectiveAddress])
+    location := find_bit_index(location);
+    op_imm_adr(ea, IOP_ADDRESSHI, ld_imm_opcodes[location]);
 end sub;
 
 sub op_abs(ea: [EffectiveAddress], opcode: uint8)
@@ -79,16 +102,16 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
     end if;
 
     var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
-    if (obj.segment == SEGMENT_ZEROPAGE) and (ea.numoff_id == 0) then
-        # Zero page indexing behaves funny (it wraps at 0x0100), so don't use it if there's
-        # an index. (We can probably optimise this for objects which we know live only in
-        # zero page.)
-        write_byte(opcode & 0xf7);
-        write_cg_6502_zeropage_iop(ea.obj_id, 0);
+    var beiop: uint8;
+    if obj.segment == SEGMENT_ZEROPAGE then
+        opcode := opcode & 0xf7;
+        beiop := IOP_ADDRESSLO;
     else
-        write_byte(opcode);
-        write_address_iop(ea.obj_id, ea.numoff_id);
+        beiop := IOP_ADDRESS;
     end if;
+
+    write_byte(opcode);
+    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id));
 end sub;
 
 var ld_abs_opcodes: uint8[3];
@@ -146,7 +169,7 @@ sub op_ind(ea: [EffectiveAddress], opcode: uint8)
     end if;
 
     write_byte(opcode);
-    write_cg_6502_zeropage_iop(ea.obj_id, 0);
+    write_address_iop(IOP_ADDRESSLO, ea.obj_id, 0);
 end sub;
 
 sub ld_abs(location: uint8, index: uint8, ea: [EffectiveAddress])

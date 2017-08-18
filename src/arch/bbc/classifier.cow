@@ -1,22 +1,25 @@
 sub arch_classify_vars(ea: [EffectiveAddress])
-    sub do_var(var_id: uint16, segment: uint8)
-        var obj: [TypedThing] := find_thing(var_id) as [TypedThing];
+    sub do_data(obj_id: uint16, segment: uint8)
+        var obj: [DataThing] := find_thing(obj_id) as [DataThing];
         if segment > obj.segment then
             obj.segment := segment;
         end if;
     end sub;
 
-    if is_typed_thing(ea.obj_id) != 0 then
+    var objtype: uint8 := get_thing_type(ea.obj_id);
+    if (objtype & THING_TYPED) != 0 then
         var segment: uint8;
         if (ea.type & EA_DEREF_BEFORE) != 0 then
             segment := SEGMENT_ZEROPAGE;
         else
             segment := SEGMENT_DATA;
         end if;
-        do_var(ea.obj_id, segment);
+        do_data(ea.obj_id, segment);
+    elseif objtype == THING_STRING then
+        do_data(ea.obj_id, SEGMENT_CONST);
     end if;
     if is_typed_thing(ea.varoff_id) != 0 then
-        do_var(ea.obj_id, SEGMENT_DATA);
+        do_data(ea.obj_id, SEGMENT_DATA);
     end if;
 end sub;
 

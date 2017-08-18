@@ -32,9 +32,7 @@ end record;
 record RootThing: Thing
     archsizes: ArchSizes;
     code_size: uint16;
-    ro1_size: uint16;
-    ro2_size: uint16;
-    ro4_size: uint16;
+    const_size: uint16;
     main_subroutine_id: uint16;
 end record;
 
@@ -91,10 +89,8 @@ end record;
 
 const SEGMENT_UNKNOWN := 0; # here, the address field is used for record-keeping
 const SEGMENT_OMIT := 1;
-const SEGMENT_RO1 := 2;
-const SEGMENT_RO2 := 3;
-const SEGMENT_RO4 := 4;
-const SEGMENT_CODE := 0x5;
+const SEGMENT_CONST := 2;
+const SEGMENT_CODE := 3;
 
 record DataThing: Thing
     segment: uint8;
@@ -275,6 +271,14 @@ end sub;
 
 sub is_number_thing(thing_id: uint16): (yes: uint8)
     if get_thing_type(thing_id) == THING_NUMBER then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
+sub is_string_thing(thing_id: uint16): (yes: uint8)
+    if get_thing_type(thing_id) == THING_STRING then
         yes := 1;
     else
         yes := 0;

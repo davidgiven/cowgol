@@ -5,12 +5,8 @@ sub show_root_thing(thing: [RootThing])
     print_arch_sizes(&thing.archsizes as [ArchSizes]);
     print(" code_size=0x");
     print_hex_i16(thing.code_size);
-    print(" ro1_size=0x");
-    print_hex_i16(thing.ro1_size);
-    print(" ro2_size=0x");
-    print_hex_i16(thing.ro2_size);
-    print(" ro4_size=0x");
-    print_hex_i16(thing.ro4_size);
+    print(" const_size=0x");
+    print_hex_i16(thing.const_size);
     print(") ");
 end sub;
 
@@ -26,11 +22,6 @@ sub show_token_thing(thing: [TokenThing])
     print(" token_flags=");
     print_hex_i8(thing.token_flags);
     print(") ");
-end sub;
-
-sub show_string_thing(thing: [StringThing])
-    print("string: ");
-    show_string(thing.string_id);
 end sub;
 
 sub show_number_thing(thing: [NumberThing])
@@ -60,6 +51,13 @@ sub show_data_thing(thing: [DataThing])
     print_hex_i8(thing.segment);
     print(" address=0x");
     print_hex_i16(thing.address);
+    print(") ");
+end sub;
+
+sub show_string_thing(thing: [StringThing])
+    show_data_thing(thing as [DataThing]);
+    print("string(");
+    show_string(thing.string_id);
     print(") ");
 end sub;
 

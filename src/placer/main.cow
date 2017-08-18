@@ -19,6 +19,8 @@ sub pass12()
             do_bytes(iop as [BytesIop]);
         elseif iopkind == IOP_ADDRESS then
             pc := pc + 2;
+        elseif (iopkind == IOP_ADDRESSHI) or (iopkind == IOP_ADDRESSLO) then
+            pc := pc + 1;
         elseif iopkind == IOP_LABEL then
             do_label(iop as [LabelIop]);
         else
@@ -45,6 +47,9 @@ sub pass3()
         elseif iopkind == IOP_ADDRESS then
             write_iop(iop);
             pc := pc + 2;
+        elseif (iopkind == IOP_ADDRESSHI) or (iopkind == IOP_ADDRESSLO) then
+            write_iop(iop);
+            pc := pc + 1;
         elseif iopkind == IOP_LABEL then
             do_label(iop as [LabelIop]);
         else
@@ -56,7 +61,26 @@ sub pass3()
     write_untyped_iop(IOP_END);
 end sub;
 
-sub process()
+sub process_data()
+    var id: uint16 := 1;
+    loop
+        var thing: [Thing] := &thing_table[id] as [Thing];
+        if thing.thing_size == 0 then
+            break;
+        end if;
+        if thing.thing_type == THING_STRING then
+            var stringthing: [StringThing] := thing as [StringThing];
+            if stringthing.segment == SEGMENT_CONST then
+                stringthing.address := root.const_size;
+                # Remember the trailing zero!
+                root.const_size := root.const_size + stringthing.string_size + 1;
+            end if;
+        end if;
+        id := id + thing.thing_size;
+    end loop;
+end sub;
+
+sub process_subroutines()
     loop
         var iheader: [IHeader] := read_iop_header();
         if iheader.thing_id == 0 then
@@ -89,5 +113,6 @@ sub process()
     write_terminating_iop_header();
 end sub;
 
-process();
+process_data();
+process_subroutines();
 save_thing_table("things.dat");

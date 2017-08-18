@@ -2,11 +2,24 @@ sub do_bytes(iop: [BytesIop])
     file_putblock(outfd, &iop.bytes[0] as [int8], iop.byte_count);
 end sub;
 
-sub do_address(iop: [AddressIop])
+sub address_of(iop: [AddressIop]): (address: uint16)
     var thing: [DataThing] := find_thing(iop.thing_id) as [DataThing];
-    var address: uint16 := arch_calculate_address(thing);
-    address := address + iop.offset;
+    address := arch_calculate_address(thing) + iop.offset;
+ end sub;
+
+sub do_address(iop: [AddressIop])
+    var address: uint16 := address_of(iop);
     file_putblock(outfd, &address as [int8], address@bytes);
+end sub;
+
+sub do_addresshi(iop: [AddressIop])
+    var address: uint16 := address_of(iop);
+    file_putchar(outfd, address >> 8);
+end sub;
+
+sub do_addresslo(iop: [AddressIop])
+    var address: uint16 := address_of(iop);
+    file_putchar(outfd, address);
 end sub;
 
 sub emit_subroutine()
@@ -22,13 +35,17 @@ sub emit_subroutine()
             do_bytes(iop as [BytesIop]);
         elseif iopkind == IOP_ADDRESS then
             do_address(iop as [AddressIop]);
+        elseif iopkind == IOP_ADDRESSHI then
+            do_addresshi(iop as [AddressIop]);
+        elseif iopkind == IOP_ADDRESSLO then
+            do_addresslo(iop as [AddressIop]);
         else
             arch_emit_iop(iop);
         end if;
     end loop;
 end sub;
 
-sub process()
+sub emit_subroutines()
     loop
         var iheader: [IHeader] := read_iop_header();
         if iheader.thing_id == 0 then
@@ -47,5 +64,46 @@ sub process()
     end loop;
 end sub;
 
-process();
+sub emit_constants()
+    var thing: [StringThing];
+
+    sub emit()
+        file_seek(outfd, root.code_size + thing.address);
+        file_seek(strings_fd, thing.string_id + 1);
+
+        var len: uint8 := thing.string_size;
+        while len != 0 loop
+            var c: int8 := file_getchar(strings_fd);
+            file_putchar(outfd, c);
+            len := len - 1;
+        end loop;
+        file_putchar(outfd, 0);
+    end sub;
+
+    var id: uint16 := 1;
+    loop
+        thing := &thing_table[id] as [StringThing];
+        if thing.thing_size == 0 then
+            break;
+        end if;
+        if thing.thing_type == THING_STRING then
+            if thing.segment == SEGMENT_CONST then
+                emit();
+            end if;
+        end if;
+        id := id + thing.thing_size;
+    end loop;
+end sub;
+
+sub show_entrypoint()
+    var main: [DataThing] := find_thing(root.main_subroutine_id) as [DataThing];
+    print("Main entrypoint: 0x");
+    print_hex_i16(arch_calculate_address(main));
+    print_newline();
+end sub;
+
+emit_subroutines();
+emit_constants();
+
 file_close(outfd);
+show_entrypoint();
