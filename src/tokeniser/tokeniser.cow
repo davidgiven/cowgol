@@ -82,7 +82,9 @@ end sub;
 
 sub decode_escaped_char()
     if current_byte == 'n' then
-        current_byte := '\n';
+        current_byte := 10;
+    elseif current_byte == 'r' then
+        current_byte := 13;
     elseif current_byte == '0' then
         current_byte := 0;
     elseif (current_byte == '\\') or (current_byte == '"') or (current_byte == '\'') then
