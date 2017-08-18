@@ -55,7 +55,7 @@ sub write_back_precious_values(mask: uint8)
         var locations: uint8 := value.locations;
         if (locations & mask) != 0 then
             if (locations & PRECIOUS) != 0 then
-                locations := locations - PRECIOUS;
+                locations := locations ^ PRECIOUS;
                 write_back_precious_value(locations, &value.ea);
                 value.locations := locations;
             end if;
@@ -270,16 +270,16 @@ sub value_in_location_will_be_replaced_with(location: uint8, newvalue: [Effectiv
 end sub;
 
 sub flush_cached_values(mask: uint8)
-    write_back_precious_values(mask);
-
     print("* flushing cached values in 0x");
     print_hex_i8(mask);
     print_newline();
 
+    write_back_precious_values(mask);
+
     var i: uint8 := 0;
     while i < values@size loop
         var value: [CachedValue] := &values[i];
-        value.locations := value.locations & (REG_MASK ^ mask);
+        value.locations := value.locations & (0xFF ^ mask);
         i := i + 1;
     end loop;
 end sub;
