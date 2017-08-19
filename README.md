@@ -40,7 +40,10 @@ So there's two main things here.
 The system's in such an early stage so far that I'm not going to write any
 more documentation than that, but the tl;dr set of instructions is:
 
-    make
+    ninja
+
+...will build the bootstrap compiler and run all the tests; then:
+
     bin/tokeniser test.cow
     bin/parser
     bin/typechecker
@@ -52,9 +55,10 @@ more documentation than that, but the tl;dr set of instructions is:
     mv iops-out.dat iops.dat
     bin/emitter
 
-This will compile `test.cow` into `cow.out`. You can then copy this to a
-BBC Micro, load it at 0x0E00, and then run it by jumping to the address
-given to you by `bin/emitter`.
+(**Breaking news:** There's a script that will do this for you in
+`scripts/cowgol`.) This will compile `test.cow` into `cow.out`. You can then
+copy this to a BBC Micro, load it at 0x0E00, and then run it by jumping to
+0x0E00.
 
 The compiler works by having a shared state, `things.dat`, which is read into
 memory by each stage, modified, and written out again on exit. Then there is
