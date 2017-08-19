@@ -1,14 +1,9 @@
 load_thing_table("things.dat");
 init_iop_reader(ARGV[1]);
 
-sub print_identifier(identifier_id: uint16)
-    var identifier: [IdentifierThing] := find_thing(identifier_id) as [IdentifierThing];
-    show_string(identifier.string_id);
-end sub;
-
 sub do_filename(iop: [FilenameIop])
     print("FILENAME ");
-    print_identifier(iop.thing_id);
+    show_identifier(iop.thing_id);
 end sub;
 
 sub do_linenumber(iop: [LinenumberIop])
@@ -156,7 +151,7 @@ loop
     print(": ");
     if symbol_id != 0 then
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
-        print_identifier(symbol.name_id);
+        show_identifier(symbol.name_id);
     else
         print("(main subroutine)");
     end if;
