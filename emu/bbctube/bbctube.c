@@ -173,22 +173,63 @@ static int brk_insn(M6502* cpu, uint16_t address, uint8_t data)
 	exit(1);
 }
 
-int main(int argc, const char* argv[])
+static int stop_insn(M6502* cpu, uint16_t address, uint8_t data)
 {
-	int fd = open("HiBasic430", O_RDONLY);
-	read(fd, ram+0xb800, 0x4000);
-	close(fd);
+	exit(0);
+}
+
+int main(int argc, char* const argv[])
+{
+	uint16_t load_address = 0x0E00;
+	uint16_t exec_address = load_address;
+
+	for (;;)
+	{
+		int opt = getopt(argc, argv, "l:e:f:");
+		switch (opt)
+		{
+			case -1:
+				goto end_of_opts;
+
+			case 'l':
+				load_address = strtoul(optarg, NULL, 0);
+				break;
+
+			case 'e':
+				exec_address = strtoul(optarg, NULL, 0);
+				break;
+
+			case 'f':
+			{
+				int fd = open(optarg, O_RDONLY);
+				if (read(fd, ram+load_address, 0x10000-load_address) == -1)
+				{
+					perror("failed to read file");
+					exit(1);
+				}
+				close(fd);
+				break;
+			}
+		}
+	}
+end_of_opts:
 
 	cpu = M6502_new(NULL, ram, NULL);
 	for (int i=0xfe00; i<=0xffff; i++)
 		cpu->callbacks->call[i] = systemcall;
+	cpu->callbacks->call[0x01fd] = stop_insn;
+	ram[0x01fb] = 0xFC; // lo (minus one)
+	ram[0x01fc] = 0x01; // hi
+	ram[0x01fd] = 0x4C; // JMP abs
+	ram[0x01fe] = 0xFD; // lo
+	ram[0x01ff] = 0x01; // hi
 	cpu->callbacks->call[0x0000] = brk_insn;
 	ram[0x020e] = 0xee;
 	ram[0x020f] = 0xff;
 
-	M6502_setVector(cpu, RST, 0xb800);
+	M6502_setVector(cpu, RST, exec_address);
 	M6502_reset(cpu);
-	cpu->registers->s = 0xfd;
+	cpu->registers->s = 0xFA;
 	M6502_run(cpu);
 }
 
