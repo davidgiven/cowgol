@@ -1,12 +1,26 @@
+sub arch_calculate_fileoffset(thing: [DataThing]): (offset: uint16)
+    if thing.segment == SEGMENT_CODE then
+        offset := 3 + thing.address;
+    elseif thing.segment == SEGMENT_CONST then
+        offset := 3 + root.code_size + thing.address;
+    else
+        print("cannot calculate file offset of thing with segment=0x");
+        print_i8(thing.segment);
+        print(" address=");
+        print_i16(thing.address);
+        halt();
+    end if;
+end sub;
+
 sub arch_calculate_address(thing: [DataThing]): (address: uint16)
     if thing.segment == SEGMENT_CODE then
-        address := 0x0E00 + thing.address;
+        address := 0x0E03 + thing.address;
     elseif thing.segment == SEGMENT_ZEROPAGE then
         address := thing.address;
     elseif thing.segment == SEGMENT_DATA then
-        address := 0x0E00 + root.code_size + root.const_size + thing.address;
+        address := 0x0E03 + root.code_size + root.const_size + thing.address;
     elseif thing.segment == SEGMENT_CONST then
-        address := 0x0E00 + root.code_size + thing.address;
+        address := 0x0E03 + root.code_size + thing.address;
     else
         print("cannot calculate address of thing with segment=0x");
         print_i8(thing.segment);
@@ -14,6 +28,15 @@ sub arch_calculate_address(thing: [DataThing]): (address: uint16)
         print_i16(thing.address);
         halt();
     end if;
+end sub;
+
+sub arch_emit_header()
+    var main: [DataThing] := find_thing(root.main_subroutine_id) as [DataThing];
+    var address: uint16 := arch_calculate_address(main);
+
+    file_seek(outfd, 0);
+    file_putchar(outfd, 0x4C); # JMP abs
+    file_putblock(outfd, &address as [int8], 2);
 end sub;
 
 sub arch_emit_iop(iop: [Iop])

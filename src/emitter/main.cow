@@ -23,7 +23,12 @@ sub do_addresslo(iop: [AddressIop])
 end sub;
 
 sub emit_subroutine()
-    file_seek(outfd, current_subroutine.address);
+    file_seek(outfd, arch_calculate_fileoffset(current_subroutine as [DataThing]));
+    print("0x");
+    print_hex_i16(arch_calculate_address(current_subroutine as [DataThing]));
+    print(": ");
+    show_name_of(current_subroutine_id);
+    print_newline();
 
     loop
         var iop: [Iop] := read_iop();
@@ -66,10 +71,17 @@ end sub;
 
 sub emit_constants()
     var thing: [StringThing];
+    var id: uint16 := 1;
 
     sub emit()
-        file_seek(outfd, root.code_size + thing.address);
+        file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]));
         file_seek(strings_fd, thing.string_id + 1);
+
+        print("0x");
+        print_hex_i16(arch_calculate_address(thing as [DataThing]));
+        print(": ");
+        show_name_of(id);
+        print_newline();
 
         var len: uint8 := thing.string_size;
         while len != 0 loop
@@ -80,7 +92,6 @@ sub emit_constants()
         file_putchar(outfd, 0);
     end sub;
 
-    var id: uint16 := 1;
     loop
         thing := &thing_table[id] as [StringThing];
         if thing.thing_size == 0 then
@@ -95,15 +106,8 @@ sub emit_constants()
     end loop;
 end sub;
 
-sub show_entrypoint()
-    var main: [DataThing] := find_thing(root.main_subroutine_id) as [DataThing];
-    print("Main entrypoint: 0x");
-    print_hex_i16(arch_calculate_address(main));
-    print_newline();
-end sub;
-
+arch_emit_header();
 emit_subroutines();
 emit_constants();
 
 file_close(outfd);
-show_entrypoint();
