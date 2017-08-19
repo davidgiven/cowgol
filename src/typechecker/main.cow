@@ -195,6 +195,7 @@ sub process_subroutine(thing_id: uint16)
 
         check_type_assignability(src.type_id, dest.type_id);
         dest := simplify_node_to_ea_and_deref(dest);
+        src := simplify_constants_and_deref(src);
         src := arch_promote_to_new_node_and_deref(src, dest.type_id);
         arch_simplify_node_to(src, dest);
         deref_node(src);

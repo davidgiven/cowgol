@@ -29,27 +29,16 @@ sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: ui
     print_newline();
 end sub;
 
-sub simplify_node_to_var(src: [Node]): (dest: [Node])
-    if (src.iop == IOP_FEX_PUSH)
-        and (src.left.type == EA_OBJVAL)
-        and (src.left.varoff_id == 0)
-        and (src.left.numoff_id == 0)
-    then
-        dest := src;
-        ref_node(dest);
-        return;
-    end if;
-
-    dest := alloc_node();
-    dest.iop := IOP_FEX_PUSH;
-    dest.flags := FLAG_RVALUE;
-    dest.left.type := EA_OBJVAL;
-    dest.type_id := src.type_id;
-
+sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
     if (is_number_thing(src.left.obj_id) != 0) and
         (((src.iop & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_2OP) or
             (is_number_thing(src.right.obj_id) != 0))
     then
+        dest := alloc_node();
+        dest.iop := IOP_FEX_PUSH;
+        dest.flags := FLAG_RVALUE;
+        dest.left.type := EA_OBJVAL;
+        dest.type_id := src.type_id;
         dest.left.obj_id := add_number_by_value(
             collapse_constant_op(
                 src.iop,
@@ -57,8 +46,27 @@ sub simplify_node_to_var(src: [Node]): (dest: [Node])
                 get_value_of_number(src.right.obj_id)
             )
         );
+    else
+        dest := src;
+    end if;
+end sub;
+
+sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
+    if (src.iop == IOP_FEX_PUSH)
+        and (src.left.type == EA_OBJVAL)
+        and (src.left.varoff_id == 0)
+        and (src.left.numoff_id == 0)
+    then
+        dest := src;
         return;
     end if;
+
+    src := simplify_constants_and_deref(src);
+    dest := alloc_node();
+    dest.iop := IOP_FEX_PUSH;
+    dest.flags := FLAG_RVALUE;
+    dest.left.type := EA_OBJVAL;
+    dest.type_id := src.type_id;
 
     if src.type_id == constant_type then
         print("unresolved numeric type");
@@ -69,22 +77,10 @@ sub simplify_node_to_var(src: [Node]): (dest: [Node])
     arch_simplify_node_to(src, dest);
 end sub;
 
-sub simplify_node_to_ea(src: [Node]): (dest: [Node])
+sub simplify_node_to_ea_and_deref(src: [Node]): (dest: [Node])
     if src.iop == IOP_FEX_PUSH then
         dest := src;
-        ref_node(dest);
-        return;
+    else
+        dest := simplify_node_to_var_and_deref(src);
     end if;
-
-    dest := simplify_node_to_var(src);
-end sub;
-
-sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
-    dest := simplify_node_to_var(src);
-    deref_node(src);
-end sub;
-
-sub simplify_node_to_ea_and_deref(src: [Node]): (dest: [Node])
-    dest := simplify_node_to_ea(src);
-    deref_node(src);
 end sub;
