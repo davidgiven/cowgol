@@ -204,8 +204,10 @@ sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     var swapped: uint8 := 0;
     var signed: uint8 := 0;
     var opcode: uint8;
+    # The opcodes below assume we're jumping to the *true* label ---
+    # if not, we adjust things later.
     if ciop.iop_kind == IOP_BE_BEQ then
-        opcode := 0xD0; # BNE rel
+        opcode := 0xF0; # BEQ rel --- branch if zero clear
     elseif ciop.iop_kind == IOP_BE_BLTU then
         opcode := 0x90; # BCC rel
     elseif ciop.iop_kind == IOP_BE_BGTU then
@@ -245,9 +247,9 @@ sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     var destlabel: uint16;
     if liop.label == ciop.iftrue_label then
         destlabel := ciop.iffalse_label;
+        opcode := opcode ^ 0x20;
     elseif liop.label == ciop.iffalse_label then
         destlabel := ciop.iftrue_label;
-        opcode := opcode ^ 0x10;
     else
         print("bad conditional");
         halt();
