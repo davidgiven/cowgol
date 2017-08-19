@@ -12,5 +12,9 @@ sub find_bootstrap_type(identifier_id: uint16): (type_id: uint16)
 end sub;
 
 var int8_type: uint16 := find_bootstrap_type(TOKEN_INT8);
-var uint16_type: uint16 := find_bootstrap_type(TOKEN_INT16);
+var uint8_type: uint16 := find_bootstrap_type(TOKEN_UINT8);
+var int16_type: uint16 := find_bootstrap_type(TOKEN_INT16);
+var uint16_type: uint16 := find_bootstrap_type(TOKEN_UINT16);
+var int32_type: uint16 := find_bootstrap_type(TOKEN_INT32);
+var uint32_type: uint16 := find_bootstrap_type(TOKEN_UINT32);
 var constant_type: uint16 := find_bootstrap_type(TOKEN_CONSTANTT);

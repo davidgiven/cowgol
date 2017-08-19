@@ -51,6 +51,23 @@ sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
     end if;
 end sub;
 
+sub guess_type_of_constant(num_id: uint16): (type_id: uint16)
+    var value: int32 := get_value_of_number(num_id);
+    if (value >= -128) and (value <= 127) then
+        type_id := int8_type;
+    elseif (value >= 0) and (value <= 255) then
+        type_id := uint8_type;
+    elseif (value >= -0x8000) and (value <= 0x7fff) then
+        type_id := int16_type;
+    elseif (value >= 0) and (value <= 0xffff) then
+        type_id := uint16_type;
+    elseif value >= 0 then
+        type_id := uint32_type;
+    else
+        type_id := int32_type;
+    end if;
+end sub;
+
 sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
     if (src.iop == IOP_FEX_PUSH)
         and (src.left.type == EA_OBJVAL)
@@ -62,16 +79,16 @@ sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
     end if;
 
     src := simplify_constants_and_deref(src);
+
+    if src.type_id == constant_type then
+        src.type_id := guess_type_of_constant(src.left.obj_id);
+    end if;
+
     dest := alloc_node();
     dest.iop := IOP_FEX_PUSH;
     dest.flags := FLAG_RVALUE;
     dest.left.type := EA_OBJVAL;
     dest.type_id := src.type_id;
-
-    if src.type_id == constant_type then
-        print("unresolved numeric type");
-        halt();
-    end if;
 
     dest.left.obj_id := alloc_temporary(dest.type_id);
     arch_simplify_node_to(src, dest);
