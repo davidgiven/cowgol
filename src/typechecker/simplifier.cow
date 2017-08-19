@@ -92,6 +92,7 @@ sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
 
     dest.left.obj_id := alloc_temporary(dest.type_id);
     arch_simplify_node_to(src, dest);
+    deref_node(src);
 end sub;
 
 sub simplify_node_to_ea_and_deref(src: [Node]): (dest: [Node])
