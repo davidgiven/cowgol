@@ -31,6 +31,7 @@ sub arch_generate_iop(iop: [Iop]): (size: uint8)
     sub do_cond(iop: [CG6502ConditionalIop])
         var buf: uint8[3];
         if iop.opcode == 0x80 then
+            size := 3;
             write_byte(0x4C); # JMP abs
             write_address_iop(IOP_ADDRESS, current_subroutine_id, labels[iop.label]);
         else
