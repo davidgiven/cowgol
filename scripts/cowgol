@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+tmpdir=$(mktemp -d --tmpdir cowgol.XXXXXX)
+trap 'rm -rf $tmpdir' EXIT
+
+srcs=$(realpath "$@")
+bindir=$(realpath bin)
+outpath=$(realpath cow.out)
+
+cd $tmpdir
+$bindir/tokeniser $srcs
+$bindir/parser
+$bindir/typechecker
+mv iops-out.dat iops.dat
+$bindir/classifier
+$bindir/codegen
+mv iops-out.dat iops.dat
+$bindir/placer
+mv iops-out.dat iops.dat
+$bindir/emitter
+mv cow.out $outpath
