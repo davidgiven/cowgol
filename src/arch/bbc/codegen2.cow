@@ -61,10 +61,7 @@ sub gen_regular_alu(iop: [BEIop], opcode: uint8)
         print_newline();
     end if;
 
-    print("gen_regular_alu");
-    halt();
-    #write_6502_regular_op(opcode, &iop.right);
-
+    aluop_value(&iop.right, opcode);
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
