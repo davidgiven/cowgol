@@ -97,6 +97,7 @@ sub mark_main_subroutine()
     var main: [SubroutineThing] := find_thing(main_id) as [SubroutineThing];
     main.segment := SEGMENT_CODE;
     used_subroutine_count := 1;
+    add_reference(main_id, 0);
 end sub;
 
 sub find_reachable_subroutines()
@@ -138,6 +139,19 @@ sub clean_graph()
             g.src_id := 0;
             g.dest_id := 0;
         end if;
+
+        i := i + 1;
+    end loop;
+end sub;
+
+sub print_graph()
+    var i: uint16 := 0;
+    while i < graph_count loop
+        var g: [GraphRecord] := &graph_base[i];
+        print_thing(g.src_id);
+        print(" -> ");
+        print_thing(g.dest_id);
+        print_newline();
 
         i := i + 1;
     end loop;
@@ -196,6 +210,7 @@ sub find_orphaned_subroutine(): (subroutine_id: uint16)
             var j: uint16 := 0;
             while j < graph_count loop
                 var g2: [GraphRecord] := &graph_base[j];
+                # Bail out if we find any subroutine called by the one under consideration.
                 if g2.dest_id == g1.src_id then
                     break;
                 end if;
@@ -232,9 +247,9 @@ sub show_subroutine_sizes()
             show_name_of(id);
             print(" ");
             print_i16(thing.address);
-            print(": ");
+            print(": zp=");
             print_i16(sr.base.zp_size);
-            print(" ");
+            print(" data=");
             print_i16(sr.base.data_size);
             print_newline();
         end if;
@@ -270,6 +285,7 @@ print_i16(used_subroutine_count);
 print_newline();
 
 clean_graph();
+#print_graph();
 init_subdata(&graph_base[graph_count] as [int8]);
 assign_space_for_all_variables();
 #show_subroutine_sizes();
