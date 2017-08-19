@@ -116,7 +116,7 @@ sub arch_gen_sub_byte(iop: [BEIop])
         end if;
     end if;
 
-    write_byte(0x18); # CLC
+    write_byte(0x38); # SEC
     gen_regular_alu(iop, 0xED); # SBC abs
 end sub;
 

@@ -1,0 +1,45 @@
+var mtwo: int8 := -2;
+var mone: int8 := -1;
+var zero: int8 := 0;
+var one: int8 := 1;
+var two: int8 := 2;
+
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
+
+print("zero+two == two");   if zero+two == two then yes(); else no(); end if;
+print("zero+one == one");   if zero+one == one then yes(); else no(); end if;
+print("zero+zero == zero"); if zero+zero == zero then yes(); else no(); end if;
+print("zero+mone == mone"); if zero+mone == mone then yes(); else no(); end if;
+print("zero+mtwo == mtwo"); if zero+mtwo == mtwo then yes(); else no(); end if;
+
+print("0+two == two");   if 0+two == two then yes(); else no(); end if;
+print("0+one == one");   if 0+one == one then yes(); else no(); end if;
+print("0+zero == zero"); if 0+zero == zero then yes(); else no(); end if;
+print("0+mone == mone"); if 0+mone == mone then yes(); else no(); end if;
+print("0+mtwo == mtwo"); if 0+mtwo == mtwo then yes(); else no(); end if;
+
+print("zero+2 == two");     if zero+2 == two then yes(); else no(); end if;
+print("zero+1 == one");     if zero+1 == one then yes(); else no(); end if;
+print("zero+0 == zero");    if zero+0 == zero then yes(); else no(); end if;
+print("zero+(-1) == mone"); if zero+(-1) == mone then yes(); else no(); end if;
+print("zero+(-2) == mtwo"); if zero+(-2) == mtwo then yes(); else no(); end if;
+
+print("zero-two == mtwo");  if zero-two == mtwo then yes(); else no(); end if;
+print("zero-one == mone");  if zero-one == mone then yes(); else no(); end if;
+print("zero-zero == zero"); if zero-zero == zero then yes(); else no(); end if;
+print("zero-mone == one");  if zero-mone == one then yes(); else no(); end if;
+print("zero-mtwo == two");  if zero-mtwo == two then yes(); else no(); end if;
+
+print("0-two == mtwo");  if 0-two == mtwo then yes(); else no(); end if;
+print("0-one == mone");  if 0-one == mone then yes(); else no(); end if;
+print("0-zero == zero"); if 0-zero == zero then yes(); else no(); end if;
+print("0-mone == one");  if 0-mone == one then yes(); else no(); end if;
+print("0-mtwo == two");  if 0-mtwo == two then yes(); else no(); end if;
+
+print("zero-2 == mtwo");   if zero-2 == mtwo then yes(); else no(); end if;
+print("zero-1 == mone");   if zero-1 == mone then yes(); else no(); end if;
+print("zero-0 == zero");   if zero-0 == zero then yes(); else no(); end if;
+print("zero-(-1) == one"); if zero-(-1) == one then yes(); else no(); end if;
+print("zero-(-2) == two"); if zero-(-2) == two then yes(); else no(); end if;
+
