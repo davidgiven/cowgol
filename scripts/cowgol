@@ -1,12 +1,25 @@
 #!/bin/sh
 set -e
 
-tmpdir=$(mktemp -d --tmpdir cowgol.XXXXXX)
-trap 'rm -rf $tmpdir' EXIT
+if [ "$1" = "-k" ]; then
+    shift
+    tmpdir=.
+else
+    tmpdir=$(mktemp -d --tmpdir cowgol.XXXXXX)
+    trap 'rm -rf $tmpdir' EXIT
+fi
+
+if [ "$1" != "-o" ]; then
+    echo "Syntax: cowgol [-k] -o outputfile inputfiles..."
+    exit 1
+else
+    outputfile=$(realpath $2)
+    shift
+    shift
+fi
 
 srcs=$(realpath "$@")
 bindir=$(realpath bin)
-outpath=$(realpath cow.out)
 
 cd $tmpdir
 $bindir/tokeniser $srcs
@@ -19,4 +32,4 @@ mv iops-out.dat iops.dat
 $bindir/placer
 mv iops-out.dat iops.dat
 $bindir/emitter
-mv cow.out $outpath
+mv cow.out $outputfile

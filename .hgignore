@@ -5,6 +5,7 @@ syntax: regexp
 \.exe$
 \.exe\.c$
 \.stamp$
+.*\.orig$
+.*\.dat$
 ~$
-tests/[^/]+.c$
 

@@ -1263,7 +1263,7 @@ current_fn = create_function("main", "compiled_main")
 
 emit("void compiled_main(void) {")
 for _, arg in ipairs({...}) do
-    log("reading %s", arg)
+    --log("reading %s", arg)
     local source = io.open(arg):read("*a")
     stream = tokenstream(source)
     do_statements()

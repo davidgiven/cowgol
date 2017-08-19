@@ -126,7 +126,8 @@ static void oswrch(void)
 
 static void osnewl(void)
 {
-	write(1, "\n\r", 2);
+	static const char c = '\n';
+	write(1, &c, 1);
 }
 
 static void osasci(void)
