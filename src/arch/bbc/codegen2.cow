@@ -1,5 +1,5 @@
 sub arch_gen_before(ea: [EffectiveAddress])
-    if (ea.obj_id != 0) and (ea.type == EA_PTRVAL) then
+    if (ea.obj_id != 0) and (ea.flags == EA_PTRVAL) then
         print("* writing back precious values because of pointer access: ");
         print_ea(ea);
         print_newline();
@@ -9,7 +9,7 @@ sub arch_gen_before(ea: [EffectiveAddress])
 end sub;
 
 sub arch_gen_after(ea: [EffectiveAddress])
-    if (ea.obj_id != 0) and (ea.type == EA_PTRVAL) then
+    if (ea.obj_id != 0) and (ea.flags == EA_PTRVAL) then
         print("* flushing cached values because of pointer access: ");
         print_ea(ea);
         print_newline();
@@ -52,7 +52,7 @@ sub gen_regular_alu(iop: [BEIop], opcode: uint8)
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.dest);
 
-    if iop.right.type == EA_OBJVAL then
+    if iop.right.flags == EA_OBJVAL then
         # do nothing, the opcode is already right
     else
         print("can't add ");
@@ -105,7 +105,7 @@ sub arch_gen_add_byte(iop: [BEIop])
 end sub;
 
 sub check_16bit_ea(ea: [EffectiveAddress])
-    if (ea.type == EA_OBJVAL) and (is_number_thing(ea.obj_id) != 0) then
+    if (ea.flags == EA_OBJVAL) and (is_number_thing(ea.obj_id) != 0) then
         var thing: [NumberThing] := find_thing(ea.obj_id) as [NumberThing];
         thing.segment := SEGMENT_CONST;
     end if;
@@ -115,7 +115,7 @@ sub check_16bit_ea(ea: [EffectiveAddress])
         halt();
     end if;
 
-    if ((ea.type & EA_DEREF_BEFORE) != 0) and (get_value_of_number(ea.numoff_id) != 0) then
+    if ((ea.flags & EA_DEREF_BEFORE) != 0) and (get_value_of_number(ea.numoff_id) != 0) then
         print("wide pointer EA with numeric offset");
         halt();
     end if;
@@ -170,7 +170,7 @@ end sub;
 sub arch_gen_copy_word(iop: [BEIop])
     sub address_of()
         var candidates: uint8;
-        if iop.dest.type == EA_PTRVAL then
+        if iop.dest.flags == EA_PTRVAL then
             candidates := REG_A;
         else
             candidates := REG_A|REG_X;
@@ -186,7 +186,7 @@ sub arch_gen_copy_word(iop: [BEIop])
     if is_number_thing(iop.left.obj_id) != 0 then
         var value: int32 := get_value_of_number(iop.left.obj_id);
         var candidates: uint8;
-        if iop.dest.type == EA_PTRVAL then
+        if iop.dest.flags == EA_PTRVAL then
             candidates := REG_A;
         else
             candidates := REG_A|REG_X;
@@ -200,7 +200,7 @@ sub arch_gen_copy_word(iop: [BEIop])
     elseif is_string_thing(iop.left.obj_id) != 0 then
         address_of();
     elseif is_typed_thing(iop.left.obj_id) != 0 then
-        if iop.left.type == EA_OBJADR then
+        if iop.left.flags == EA_OBJADR then
             address_of();
         else
             find_or_load_fixed_int(1, REG_Y);

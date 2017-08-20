@@ -230,7 +230,7 @@ sub load_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uin
 end sub;
 
 sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.type == EA_OBJVAL then
+    if ea.flags == EA_OBJVAL then
         load_objval_with_offset(location, ea, offset);
     else
         print("can't load ");
@@ -243,7 +243,7 @@ sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint
 end sub;
 
 sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    if ea.type == EA_OBJVAL then
+    if ea.flags == EA_OBJVAL then
         ld_abs(location, index, ea);
     else
         print("can't load ");
@@ -267,7 +267,7 @@ sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uin
 end sub;
 
 sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.type == EA_OBJVAL then
+    if ea.flags == EA_OBJVAL then
         save_objval_with_offset(location, ea, offset);
     else
         print("can't save ");
@@ -280,7 +280,7 @@ sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint
 end sub;
 
 sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    if ea.type == EA_OBJVAL then
+    if ea.flags == EA_OBJVAL then
         st_abs(location, index, ea);
     else
         print("can't save ");
@@ -294,13 +294,13 @@ end sub;
 
 # opcode must be the abs form of a regular accumulator ALU operation in column 0x0D.
 sub aluop_value_with_index(ea: [EffectiveAddress], index: uint8, opcode: uint8)
-    if ea.type == EA_PTRVAL then
+    if ea.flags == EA_PTRVAL then
         opcode := opcode & 0xF3;
         if index != REG_Y then
             print("PTRVAL must have Y index");
             halt();
         end if;
-    elseif ea.type == EA_OBJVAL then
+    elseif ea.flags == EA_OBJVAL then
         if index == REG_X then
             opcode := opcode | 0x10;
         elseif index == REG_Y then

@@ -1,9 +1,9 @@
 sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint8)
-    if (ea.type & EA_DEREF_AFTER) == 0 then
+    if (ea.flags & EA_DEREF_AFTER) == 0 then
         width := 2;
     else
         var type: [WithElementsThing] := find_thing(get_type_of_thing(ea.obj_id)) as [WithElementsThing];
-        if (type.thing_type == THING_ARRAYT) or (ea.type == EA_PTRVAL) then
+        if (type.thing_type == THING_ARRAYT) or (ea.flags == EA_PTRVAL) then
             width := get_width_of_type(type.element_id);
         else
             width := get_width_of_thing(ea.obj_id);
