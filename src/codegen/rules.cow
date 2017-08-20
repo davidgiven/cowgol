@@ -132,6 +132,12 @@ sub try_sub(iop: [BEIop])
         return;
     end if;
 
+    if iop.width == 2 then
+        arch_gen_sub_word(iop);
+        insn_after(iop);
+        return;
+    end if;
+
     cant_do_3op(iop, "-");
 end sub;
 
