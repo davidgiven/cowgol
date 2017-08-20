@@ -24,12 +24,16 @@ bindir=$(realpath bin)
 cd $tmpdir
 $bindir/tokeniser $srcs
 $bindir/parser
+cp iops.dat iops-parsed.dat
 $bindir/typechecker
+cp iops-out.dat iops-typechecked.dat
 mv iops-out.dat iops.dat
 $bindir/classifier
 $bindir/codegen
+cp iops-out.dat iops-codegenned.dat
 mv iops-out.dat iops.dat
 $bindir/placer
+cp iops-out.dat iops-placed.dat
 mv iops-out.dat iops.dat
 $bindir/emitter
 mv cow.out $outputfile
