@@ -1,6 +1,10 @@
+var changed: uint8;
 
 sub do_label(iop: [LabelIop])
-    labels[iop.label] := pc;
+    if labels[iop.label] != pc then
+        changed := 1;
+        labels[iop.label] := pc;
+    end if;
 end sub;
 
 sub pass12()
@@ -67,13 +71,18 @@ sub process_data()
         var thing: [Thing] := &thing_table[id] as [Thing];
         if thing.thing_size == 0 then
             break;
-        end if;
-        if thing.thing_type == THING_STRING then
+        elseif thing.thing_type == THING_STRING then
             var stringthing: [StringThing] := thing as [StringThing];
             if stringthing.segment == SEGMENT_CONST then
                 stringthing.address := root.const_size;
                 # Remember the trailing zero!
                 root.const_size := root.const_size + stringthing.string_size + 1;
+            end if;
+        elseif thing.thing_type == THING_NUMBER then
+            var numberthing: [NumberThing] := thing as [NumberThing];
+            if numberthing.segment == SEGMENT_CONST then
+                numberthing.address := root.const_size;
+                root.const_size := root.const_size + 4;
             end if;
         end if;
         id := id + thing.thing_size;
@@ -102,9 +111,17 @@ sub process_subroutines()
             var pos: uint32 := file_tell(iop_in_fd);
             pass := 1;
             pass12();
-            file_seek(iop_in_fd, pos);
+
             pass := 2;
-            pass12();
+            loop
+                file_seek(iop_in_fd, pos);
+                changed := 0;
+                pass12();
+                if changed == 0 then
+                    break;
+                end if;
+            end loop;
+
             file_seek(iop_in_fd, pos);
             pass := 3;
             pass3();
