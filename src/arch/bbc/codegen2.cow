@@ -126,6 +126,7 @@ sub arch_gen_add_word(iop: [BEIop])
     check_16bit_ea(&iop.right);
 
     find_or_load_fixed_int(0, REG_Y);
+    find_or_load_fixed_int(1, REG_X);
     allocate_fixed_reg(REG_A);
     write_byte(0x18); # CLC
 
@@ -135,11 +136,10 @@ sub arch_gen_add_word(iop: [BEIop])
     aluop_value_with_index(&iop.right, REG_Y, 0x6D); # ADC abs
     save_value_with_index(REG_A, &iop.dest, REG_Y);
     write_byte(0xC8); # INY
-    write_byte(0xC0); # CPY imm
-    write_byte(0x02); # size of word
-    write_cg_6502_conditional_iop(0xD0, label); # BNE rel
+    write_byte(0xCA); # DEX
+    write_cg_6502_conditional_iop(0x10, label); # BPL rel
 
-    flush_cached_values(REG_Y);
+    flush_cached_values(REG_A|REG_X|REG_Y);
 end sub;
 
 sub arch_gen_sub_byte(iop: [BEIop])
