@@ -3,6 +3,7 @@
 -- Shoddy compiler with compiles into shoddy C.
 
 local stream
+local current_filename = nil
 local functions = {}
 local variables = {}
 local current_fn = nil
@@ -31,7 +32,7 @@ end
 function fatal(...)
     local s = string.format(...)
     if stream then
-        s = s .. string.format(" at about line %d", stream:line())
+        s = s .. string.format(" at about line %d of %s", stream:line(), current_filename)
     end
     error(s)
 end
@@ -1264,6 +1265,7 @@ current_fn = create_function("main", "compiled_main")
 emit("void compiled_main(void) {")
 for _, arg in ipairs({...}) do
     --log("reading %s", arg)
+    current_filename = arg
     local source = io.open(arg):read("*a")
     stream = tokenstream(source)
     do_statements()
