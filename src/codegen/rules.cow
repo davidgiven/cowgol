@@ -114,6 +114,12 @@ sub try_add(iop: [BEIop])
         return;
     end if;
 
+    if iop.width == 2 then
+        arch_gen_add_word(iop);
+        insn_after(iop);
+        return;
+    end if;
+
     cant_do_3op(iop, "+");
 end sub;
 
@@ -159,6 +165,11 @@ sub try_conditional(ciop: [BEConditionalIop], liop: [LabelIop])
 
     if ciop.width == 1 then
         arch_gen_cmp_byte(ciop, liop);
+        return;
+    end if;
+
+    if ciop.width == 2 then
+        arch_gen_cmp_word(ciop, liop);
         return;
     end if;
 

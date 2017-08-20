@@ -1,0 +1,49 @@
+var mone: uint16 := -1;
+var one: uint16 := 1;
+var zero: uint16 := 0;
+
+sub yes() print("yes\r"); end sub;
+sub no()  print("no\r");  end sub;
+
+print("one == zero: "); if one == zero then yes(); else no(); end if;
+print("one != zero: "); if one != zero then yes(); else no(); end if;
+print("zero == one: "); if zero == one then yes(); else no(); end if;
+print("zero != one: "); if zero != one then yes(); else no(); end if;
+
+print("1 == zero: "); if 1 == zero then yes(); else no(); end if;
+print("1 != zero: "); if 1 != zero then yes(); else no(); end if;
+print("0 == one: ");  if 0 == one then yes(); else no(); end if;
+print("0 != one: ");  if 0 != one then yes(); else no(); end if;
+
+print("one == 0: ");  if one == 0 then yes(); else no(); end if;
+print("one != 0: ");  if one != 0 then yes(); else no(); end if;
+print("zero == 1: "); if zero == 1 then yes(); else no(); end if;
+print("zero != 1: "); if zero != 1 then yes(); else no(); end if;
+
+print("one < zero: "); if one < zero then yes(); else no(); end if;
+print("one < one: "); if one < one then yes(); else no(); end if;
+print("one <= zero: "); if one <= zero then yes(); else no(); end if;
+print("one <= one: "); if one <= one then yes(); else no(); end if;
+print("zero < one: "); if zero < one then yes(); else no(); end if;
+print("zero <= one: "); if zero <= one then yes(); else no(); end if;
+
+print("one > zero: "); if one > zero then yes(); else no(); end if;
+print("one > one: "); if one > one then yes(); else no(); end if;
+print("one >= zero: "); if one >= zero then yes(); else no(); end if;
+print("one >= one: "); if one >= one then yes(); else no(); end if;
+print("zero > one: "); if zero > one then yes(); else no(); end if;
+print("zero >= one: "); if zero >= one then yes(); else no(); end if;
+
+print("mone < zero: "); if mone < zero then yes(); else no(); end if;
+print("mone < mone: "); if mone < mone then yes(); else no(); end if;
+print("mone <= zero: "); if mone <= zero then yes(); else no(); end if;
+print("mone <= mone: "); if mone <= mone then yes(); else no(); end if;
+print("zero < mone: "); if zero < mone then yes(); else no(); end if;
+print("zero <= mone: "); if zero <= mone then yes(); else no(); end if;
+
+print("mone > zero: "); if mone > zero then yes(); else no(); end if;
+print("mone > mone: "); if mone > mone then yes(); else no(); end if;
+print("mone >= zero: "); if mone >= zero then yes(); else no(); end if;
+print("mone >= mone: "); if mone >= mone then yes(); else no(); end if;
+print("zero > mone: "); if zero > mone then yes(); else no(); end if;
+print("zero >= mone: "); if zero >= mone then yes(); else no(); end if;

@@ -70,5 +70,25 @@ end sub;
 sub exit(status: uint8)
 end sub;
 
+sub __mul8u(left: uint8, right: uint8): (result: uint8)
+    @bytes 0xA9, 0x00; # LDA #0
+    @bytes 0xF0, 0x07; # BEQ start
+
+    # add:
+    @bytes 0x18; # CLC
+    @bytes 0x6D; # ADC abs
+    @words &left;
+    # loop:
+    @bytes 0x0E; # ASL abs
+    @words &left;
+    # start:
+    @bytes 0x4E; # LSR abs
+    @words &right;
+    @bytes 0xB0, 0xF4; # BCS add
+    @bytes 0xD0, 0xF6; # BNE loop
+    @bytes 0x8D; # STA abs
+    @words &result;
+end sub;
+
 var LOMEM: [int8];
 var HIMEM: [int8];

@@ -24,11 +24,6 @@ sub show_token_thing(thing: [TokenThing])
     print(") ");
 end sub;
 
-sub show_number_thing(thing: [NumberThing])
-    print("number: 0x");
-    print_hex_i32(thing.value);
-end sub;
-
 sub show_namespace_thing(thing: [NamespaceThing])
     print("namespace: previous_namespace=0x");
     print_hex_i16(thing.previous_namespace);
@@ -58,6 +53,13 @@ sub show_string_thing(thing: [StringThing])
     show_data_thing(thing as [DataThing]);
     print("string(");
     show_string(thing.string_id);
+    print(") ");
+end sub;
+
+sub show_number_thing(thing: [NumberThing])
+    show_data_thing(thing as [DataThing]);
+    print("number(0x");
+    print_hex_i32(thing.value);
     print(") ");
 end sub;
 

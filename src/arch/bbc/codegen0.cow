@@ -96,16 +96,15 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
         print("can't have varoff here");
         halt();
     end if;
-    if is_number_thing(ea.obj_id) != 0 then
-        print("can't have number here");
-        halt();
-    end if;
 
     var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
     var beiop: uint8;
     if obj.segment == SEGMENT_ZEROPAGE then
         opcode := opcode & 0xf7;
         beiop := IOP_ADDRESSLO;
+    elseif obj.segment == SEGMENT_UNKNOWN then
+        print("segment of object not known");
+        halt();
     else
         beiop := IOP_ADDRESS;
     end if;
@@ -157,10 +156,6 @@ sub op_ind(ea: [EffectiveAddress], opcode: uint8)
 
     if ea.varoff_id != 0 then
         print("can't have varoff here");
-        halt();
-    end if;
-    if is_number_thing(ea.obj_id) != 0 then
-        print("can't have number here");
         halt();
     end if;
     if get_value_of_number(ea.numoff_id) != 0 then
@@ -295,4 +290,26 @@ sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
         print(" yet");
         halt();
     end if;
+end sub;
+
+# opcode must be the abs form of a regular accumulator ALU operation in column 0x0D.
+sub aluop_value_with_index(ea: [EffectiveAddress], index: uint8, opcode: uint8)
+    if ea.type == EA_PTRVAL then
+        opcode := opcode & 0xF3;
+        if index != REG_Y then
+            print("PTRVAL must have Y index");
+            halt();
+        end if;
+    elseif ea.type == EA_OBJVAL then
+        if index == REG_X then
+            opcode := opcode | 0x10;
+        elseif index == REG_Y then
+            opcode := (opcode | 0x10) & 0xFB;
+        end if;
+    else
+        print("alup with unsupported EA");
+        halt();
+    end if;
+
+    op_abs(ea, opcode);
 end sub;

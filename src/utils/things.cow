@@ -44,10 +44,6 @@ record TokenThing: IdentifierThing
     token_flags: uint8;
 end record;
 
-record NumberThing: Thing
-    value: uint32;
-end record;
-
 record NamespaceThing: Thing
     previous_namespace: uint16;
     first_symbol: uint16;
@@ -100,6 +96,10 @@ end record;
 record StringThing: DataThing
     string_id: uint16;
     string_size: uint8;
+end record;
+
+record NumberThing: DataThing
+    value: uint32;
 end record;
 
 record SubroutineThing: DataThing
