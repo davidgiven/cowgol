@@ -1,0 +1,15 @@
+one+two==three: yes
+one+mtwo==mone: yes
+one+one==two: yes
+zero+one==one: yes
+two+mtwo==zero: yes
+one+TWO==three: yes
+one+MTWO==mone: yes
+one+ONE==two: yes
+zero+ONE==one: yes
+two+MTWO==zero: yes
+ONE+two==three: yes
+ONE+mtwo==mone: yes
+ONE+one==two: yes
+ZERO+one==one: yes
+TWO+mtwo==zero: yes
