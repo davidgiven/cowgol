@@ -300,13 +300,19 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
         opcode := 0xD0; # BNE rel
         shortcircuit_label := ciop.iffalse_label;
         fallthrough_label := ciop.iftrue_label;
-    elseif (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
-        opcode := 0x30; # BMI rel
     else
-        # BCS: branch if carry set.
-        # Branches if M<A (unsigned).
-        # Short-circuiting happens if the condition is TRUE.
-        opcode := 0x90; # BCC rel
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            # BMI rel: branch if negative.
+            # Branches if result of comparison is negative, which isn't the same
+            # thing as M<A (signed). This needs the sign adjust in emit_comparison().
+            # Short-circuiting happens if the condition is TRUE.
+            opcode := 0x30; # BMI rel
+        else
+            # BCS: branch if carry set.
+            # Branches if M<A (unsigned).
+            # Short-circuiting happens if the condition is TRUE.
+            opcode := 0x90; # BCC rel
+        end if;
         shortcircuit_label := ciop.iftrue_label;
         fallthrough_label := ciop.iffalse_label;
     end if;
