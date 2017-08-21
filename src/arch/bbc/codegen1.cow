@@ -310,12 +310,14 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
         indexea.obj_id := ea.varoff_id;
         ea.varoff_id := 0;
     else
-        indexea.obj_id := ea.numoff_id;
         if indexea.obj_id == 0 then
             indexea.obj_id := add_number_by_value(0);
+        else
+            indexea.obj_id := ea.numoff_id;
         end if;
         ea.numoff_id := 0;
     end if;
+    indexea.type_id := get_type_of_thing(ea.obj_id);
 
     print("* loading index value ");
     print_ea(&indexea);

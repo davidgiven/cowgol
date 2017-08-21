@@ -186,6 +186,7 @@ record EffectiveAddress
     obj_id: uint16;
     varoff_id: uint16;
     numoff_id: uint16;
+    type_id: uint16;
 end record;
 
 record BEIop: Iop
@@ -253,11 +254,11 @@ sub print_ea(ea: [EffectiveAddress])
         print_thing(ea.varoff_id);
         print_char(']');
     end if;
-    if ea.numoff_id != 0 then
-        print("+");
-        print_thing(ea.numoff_id);
-    end if;
+    print("+#");
+    print_i32(get_value_of_number(ea.numoff_id));
     if (ea.flags & EA_DEREF_AFTER) != 0 then
         print_char(']');
     end if;
+    print_char('.');
+    print_thing(ea.type_id);
 end sub;

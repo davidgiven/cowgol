@@ -250,6 +250,8 @@ sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
         print_ea(ea);
         print(" with index reg 0x");
         print_hex_i8(index);
+        print(" and flags ");
+        print_hex_i8(ea.flags);
         print(" yet");
         halt();
     end if;

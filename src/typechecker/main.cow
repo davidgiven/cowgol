@@ -175,6 +175,7 @@ sub process_subroutine(thing_id: uint16)
             print_hex_i8(thing.thing_type);
             halt();
         end if;
+        node.left.type_id := node.type_id;
     end sub;
 
     sub fe_swap()
@@ -326,6 +327,9 @@ sub process_subroutine(thing_id: uint16)
         elseif node.left.flags == EA_PTRADR then
             node.left.flags := EA_PTRVAL;
         end if;
+        if (node.left.flags & EA_DEREF_AFTER) != 0 then
+            node.left.type_id := left_type.element_id;
+        end if;
 
         print("* result base has ea ");
         print_ea(&node.left);
@@ -464,6 +468,7 @@ sub process_subroutine(thing_id: uint16)
         print_newline();
         node.iop := IOP_FEX_PUSH;
         node.type_id := parameter.type_id;
+        node.left.type_id := node.type_id;
         node.left.obj_id := parameter_id;
         node.left.flags := EA_OBJVAL;
     end sub;
