@@ -4,9 +4,11 @@ set -e
 if [ "$1" = "-k" ]; then
     shift
     tmpdir=.
+    keep=yes
 else
     tmpdir=$(mktemp -d --tmpdir cowgol.XXXXXX)
     trap 'rm -rf $tmpdir' EXIT
+    keep=no
 fi
 
 if [ "$1" != "-o" ]; then
@@ -36,4 +38,7 @@ $bindir/placer
 cp iops-out.dat iops-placed.dat
 mv iops-out.dat iops.dat
 $bindir/emitter
-mv cow.out $outputfile
+
+if [ "$keep" = "no" ]; then
+    mv cow.out $outputfile
+fi
