@@ -58,7 +58,7 @@ const IOP_FE_SEXT          := 0b0011_1010; # ( value -- result )
 const IOP_FE_LSHIFT        := 0b0011_1110; # ( value count -- result )
 const IOP_FE_RSHIFT        := 0b0011_1111; # ( value count -- result )
 
-# Additional, special front end iops. These all have payload.
+# Additional, special front end iops. These may have payload.
 const IOP_TYPE_FEX         := 0b0100_0000;
 const IOP_FEX_PUSH         := 0b0100_0000; # ( -- ea ): FEPushIop
 const IOP_FEX_INPUTPARAM   := 0b0100_0001; # ( -- ea ): FEParameterIop
@@ -96,6 +96,8 @@ const IOP_BE_INDEX         := 0b1000_1010;
 const IOP_BE_LSL           := 0b1000_1011;
 const IOP_BE_LSR           := 0b1000_1100;
 const IOP_BE_ASR           := 0b1000_1101;
+const IOP_BE_LOADPTR       := 0b1000_1110; # adds left and right, dereferences result
+const IOP_BE_DEREF         := 0b1000_1111; # internal; rewritten to LOADPTR or SAVEPTR
 
 # Specials.
 const IOP_TYPE_BACKEND_SPECIAL := 0b1010_0000;
@@ -106,6 +108,7 @@ const IOP_BE_BLTS              := 0b1010_0001;
 const IOP_BE_BGTU              := 0b1010_0010;
 const IOP_BE_BGTS              := 0b1010_0011;
 const IOP_BE_BEQ               := 0b1010_0100;
+const IOP_BE_SAVEPTR           := 0b1010_0101; # BESavePtrIop
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_COND     := 0b1110_0100;
@@ -174,15 +177,8 @@ record FEConditionalIop: Iop
     iffalse_label: uint16;
 end record;
 
-const EA_DEREF_BEFORE := 0b10;
-const EA_DEREF_AFTER  := 0b01;
-const EA_OBJADR       := 0b00; # address of object, plus offset
-const EA_OBJVAL       := 0b01; # address of object, plus offset, then deref
-const EA_PTRADR       := 0b10; # deref pointer, plus offset
-const EA_PTRVAL       := 0b11; # deref pointer, plus offset, then deref
-
 record EffectiveAddress
-    flags: uint8;
+    deref: uint8;
     obj_id: uint16;
     varoff_id: uint16;
     numoff_id: uint16;
@@ -202,6 +198,13 @@ record BEConditionalIop: Iop
     right: EffectiveAddress;
     iftrue_label: uint16;
     iffalse_label: uint16;
+end record;
+
+record BESavePtrIop: Iop
+    width: uint8;
+    left: EffectiveAddress;
+    right: EffectiveAddress;
+    value: EffectiveAddress;
 end record;
 
 record CG6502MemIop: Iop
@@ -239,24 +242,20 @@ sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8
 end sub;
 
 sub print_ea(ea: [EffectiveAddress])
-    if (ea.flags & EA_DEREF_AFTER) != 0 then
-        print_char('[');
-    end if;
-    if (ea.flags & EA_DEREF_BEFORE) != 0 then
+    if ea.deref != 0 then
         print_char('[');
     end if;
     print_thing(ea.obj_id);
-    if (ea.flags & EA_DEREF_BEFORE) != 0 then
-        print_char(']');
-    end if;
     if ea.varoff_id != 0 then
         print("+[");
         print_thing(ea.varoff_id);
         print_char(']');
     end if;
-    print("+#");
-    print_i32(get_value_of_number(ea.numoff_id));
-    if (ea.flags & EA_DEREF_AFTER) != 0 then
+    if ea.numoff_id != 0 then
+        print("+#");
+        print_i32(get_value_of_number(ea.numoff_id));
+    end if;
+    if ea.deref != 0 then
         print_char(']');
     end if;
     print_char('.');

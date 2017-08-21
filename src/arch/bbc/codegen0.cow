@@ -230,7 +230,7 @@ sub load_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uin
 end sub;
 
 sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_OBJVAL then
+    if ea.deref != 0 then
         load_objval_with_offset(location, ea, offset);
     else
         print("can't load ");
@@ -243,15 +243,13 @@ sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint
 end sub;
 
 sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    if ea.flags == EA_OBJVAL then
+    if ea.deref != 0 then
         ld_abs(location, index, ea);
     else
         print("can't load ");
         print_ea(ea);
         print(" with index reg 0x");
         print_hex_i8(index);
-        print(" and flags ");
-        print_hex_i8(ea.flags);
         print(" yet");
         halt();
     end if;
@@ -269,7 +267,7 @@ sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uin
 end sub;
 
 sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_OBJVAL then
+    if ea.deref != 0 then
         save_objval_with_offset(location, ea, offset);
     else
         print("can't save ");
@@ -282,7 +280,7 @@ sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint
 end sub;
 
 sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    if ea.flags == EA_OBJVAL then
+    if ea.deref != 0 then
         st_abs(location, index, ea);
     else
         print("can't save ");

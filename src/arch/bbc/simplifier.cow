@@ -20,101 +20,91 @@ end sub;
 sub reset_be_iop(iop: [BEIop])
     zero_memory(iop as [int8], BEIop@bytes);
     iop.iop_size := BEIop@bytes;
-    iop.left.flags := EA_OBJVAL;
-    iop.right.flags := EA_OBJVAL;
+    iop.left.deref := 1;
+    iop.right.deref := 1;
 end sub;
 
-sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
-    var iop: BEIop;
-    var tmpvar_id: uint16;
-
-    sub varoffset_into_add()
-        tmpvar_id := alloc_temporary(int16_type);
-        reset_be_iop(&iop);
-        iop.iop_kind := IOP_BE_ADD;
-        iop.width := 2;
-        iop.left.type_id := get_type_of_thing(ea.obj_id);
-        iop.left.obj_id := ea.obj_id;
-        iop.left.flags := ea.flags & (EA_DEREF_AFTER ^ -1);
-        iop.right.obj_id := int16_type;
-        iop.right.obj_id := ea.varoff_id;
-        iop.right.flags := EA_OBJVAL;
-        iop.dest.type_id := iop.left.type_id;
-        iop.dest.obj_id := tmpvar_id;
-        iop.dest.flags := EA_OBJVAL;
-        write_be_iop(&iop);
-
-        deref_temporary(ea.obj_id);
-        ea.obj_id := tmpvar_id;
-        ea.flags := EA_PTRVAL;
-        ea.varoff_id := 0;
-    end sub;
-
-    sub numoffset_into_add()
-        if tmpvar_id == 0 then
-            tmpvar_id := alloc_temporary(ea.type_id);
-        else
-            ref_temporary(tmpvar_id);
-        end if;
-
-        reset_be_iop(&iop);
-        iop.iop_kind := IOP_BE_ADD;
-        iop.width := 2;
-        iop.left.type_id := get_type_of_thing(ea.obj_id);
-        iop.left.obj_id := ea.obj_id;
-        iop.left.flags := ea.flags & (EA_DEREF_AFTER ^ -1);
-        iop.right.type_id := int16_type;
-        iop.right.obj_id := ea.numoff_id;
-        iop.right.flags := EA_OBJVAL;
-        iop.dest.type_id := iop.left.type_id;
-        iop.dest.obj_id := tmpvar_id;
-        iop.dest.flags := EA_OBJVAL;
-        write_be_iop(&iop);
-
-        deref_temporary(ea.obj_id);
-        ea.obj_id := tmpvar_id;
-        ea.flags := EA_PTRVAL;
-        ea.numoff_id := 0;
-    end sub;
-
-    if ea.varoff_id != 0 then
-        var type_id: uint16 := get_type_of_thing(ea.varoff_id);
-        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
-
-        if (type.thing_type != THING_UNSIGNEDT) or (type.width != 1) then
-            print("* turning var offset into add\n");
-            varoffset_into_add();
-        end if;
-    end if;
-
-    if ea.numoff_id != 0 then
-        sub is_number_a_byte(number_id: uint16): (is_valid: uint8)
-            var value: int32 := get_value_of_number(number_id);
-            if (value >= 0) and (value <= 255) then
-                is_valid := 1;
-            else
-                is_valid := 0;
-            end if;
-        end sub;
-
-        print("width=");
-        print_i8(width);
-        print(" ea=");
-        print_ea(ea);
-        print_newline();
-
-        if (ea.flags & EA_DEREF_AFTER) != 0 then
-            if is_number_a_byte(ea.numoff_id) == 0 then
-                print("* turning too-large constant offset of deref into add\n");
-                numoffset_into_add();
-            end if;
-        end if;
-        if (width != 1) and ((ea.flags & EA_DEREF_BEFORE) != 0) then
-            print("* turning 16-bit pointer offset into add\n");
-            numoffset_into_add();
-        end if;
-    end if;
-end sub;
+#sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
+#    var iop: BEIop;
+#    var tmpvar_id: uint16;
+#
+#    sub varoffset_into_add()
+#        tmpvar_id := alloc_temporary(int16_type);
+#        reset_be_iop(&iop);
+#        iop.iop_kind := IOP_BE_ADD;
+#        iop.width := 2;
+#        iop.left.type_id := get_type_of_thing(ea.obj_id);
+#        iop.left.obj_id := ea.obj_id;
+#        iop.left.flags := ea.flags & (EA_DEREF_AFTER ^ -1);
+#        iop.right.obj_id := int16_type;
+#        iop.right.obj_id := ea.varoff_id;
+#        iop.right.flags := EA_OBJVAL;
+#        iop.dest.type_id := iop.left.type_id;
+#        iop.dest.obj_id := tmpvar_id;
+#        iop.dest.flags := EA_OBJVAL;
+#        write_be_iop(&iop);
+#
+#        deref_temporary(ea.obj_id);
+#        ea.obj_id := tmpvar_id;
+#        ea.flags := EA_PTRVAL;
+#        ea.varoff_id := 0;
+#    end sub;
+#
+#    sub numoffset_into_add()
+#        if tmpvar_id == 0 then
+#            tmpvar_id := alloc_temporary(ea.type_id);
+#        else
+#            ref_temporary(tmpvar_id);
+#        end if;
+#
+#        reset_be_iop(&iop);
+#        iop.iop_kind := IOP_BE_ADD;
+#        iop.width := 2;
+#        iop.left.type_id := get_type_of_thing(ea.obj_id);
+#        iop.left.obj_id := ea.obj_id;
+#        iop.left.deref := ea.deref;
+#        iop.right.type_id := int16_type;
+#        iop.right.obj_id := ea.numoff_id;
+#        iop.right.flags := EA_OBJVAL;
+#        iop.dest.type_id := iop.left.type_id;
+#        iop.dest.obj_id := tmpvar_id;
+#        iop.dest.flags := EA_OBJVAL;
+#        write_be_iop(&iop);
+#
+#        deref_temporary(ea.obj_id);
+#        ea.obj_id := tmpvar_id;
+#        ea.flags := EA_PTRVAL;
+#        ea.numoff_id := 0;
+#    end sub;
+#
+#    if ea.varoff_id != 0 then
+#        var type_id: uint16 := get_type_of_thing(ea.varoff_id);
+#        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
+#
+#        if (type.thing_type != THING_UNSIGNEDT) or (type.width != 1) then
+#            print("* splitting invalid var offset\n");
+#            varoffset_into_add();
+#        end if;
+#    end if;
+#
+#    if ea.numoff_id != 0 then
+#        sub is_number_a_byte(number_id: uint16): (is_valid: uint8)
+#            var value: int32 := get_value_of_number(number_id);
+#            if (value >= 0) and (value <= 255) then
+#                is_valid := 1;
+#            else
+#                is_valid := 0;
+#            end if;
+#        end sub;
+#
+#        if ea.deref != 0 then
+#            if is_number_a_byte(ea.numoff_id) == 0 then
+#                print("* splitting too-large constant offset\n");
+#                numoffset_into_add();
+#            end if;
+#        end if;
+#    end if;
+#end sub;
 
 sub arch_simplify_node_to(src: [Node], dest: [Node])
     if dest.iop != IOP_FEX_PUSH then
@@ -138,13 +128,13 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
 
     copy_ea_ref(&src.left, &iop.left);
     copy_ea_ref(&src.right, &iop.right);
-
-    simplify_ea(iop.iop_kind, destwidth, &iop.left);
-    if (iop.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_3OP then
-        simplify_ea(iop.iop_kind, destwidth, &iop.right);
-    end if;
-    simplify_ea(iop.iop_kind, destwidth, &iop.dest);
-
+#
+#    simplify_ea(iop.iop_kind, destwidth, &iop.left);
+#    if (iop.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_3OP then
+#        simplify_ea(iop.iop_kind, destwidth, &iop.right);
+#    end if;
+#    simplify_ea(iop.iop_kind, destwidth, &iop.dest);
+#
     write_be_iop(&iop);
 
     deref_ea(&iop.left);
@@ -153,8 +143,8 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
 end sub;
 
 sub arch_simplify_conditional_iop(iop: [BEConditionalIop])
-    simplify_ea(iop.iop_kind, iop.width, &iop.left);
-    simplify_ea(iop.iop_kind, iop.width, &iop.right);
+#    simplify_ea(iop.iop_kind, iop.width, &iop.left);
+#    simplify_ea(iop.iop_kind, iop.width, &iop.right);
 
     write_iop(iop as [Iop]);
 end sub;

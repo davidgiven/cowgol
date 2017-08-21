@@ -200,7 +200,7 @@ sub arch_gen_copy_word(iop: [BEIop])
     elseif is_string_thing(iop.left.obj_id) != 0 then
         address_of();
     elseif is_typed_thing(iop.left.obj_id) != 0 then
-        if iop.left.flags == EA_OBJADR then
+        if iop.left.deref == 0 then
             address_of();
         else
             find_or_load_fixed_int(1, REG_Y);

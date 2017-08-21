@@ -37,7 +37,7 @@ sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
         dest := alloc_node();
         dest.iop := IOP_FEX_PUSH;
         dest.flags := FLAG_RVALUE;
-        dest.left.flags := EA_OBJVAL;
+        dest.left.deref := 1;
         dest.type_id := src.type_id;
         dest.left.type_id := src.type_id;
         dest.left.obj_id := add_number_by_value(
@@ -71,7 +71,6 @@ end sub;
 
 sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
     if (src.iop == IOP_FEX_PUSH)
-        and (src.left.flags == EA_OBJVAL)
         and (src.left.varoff_id == 0)
         and (src.left.numoff_id == 0)
     then
@@ -79,16 +78,20 @@ sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
         return;
     end if;
 
-    src := simplify_constants_and_deref(src);
+    dest := alloc_node();
+    dest.iop := IOP_FEX_PUSH;
+    dest.left.deref := 1;
+    if src.iop == IOP_BE_DEREF then
+        src.iop := IOP_BE_LOADPTR;
+    else
+        dest.flags := FLAG_RVALUE;
+    end if;
 
+    src := simplify_constants_and_deref(src);
     if src.type_id == constant_type then
         src.type_id := guess_type_of_constant(src.left.obj_id);
     end if;
 
-    dest := alloc_node();
-    dest.iop := IOP_FEX_PUSH;
-    dest.flags := FLAG_RVALUE;
-    dest.left.flags := EA_OBJVAL;
     dest.type_id := src.type_id;
 
     dest.left.type_id := dest.type_id;
@@ -101,6 +104,7 @@ sub simplify_node_to_ea_and_deref(src: [Node]): (dest: [Node])
     if src.iop == IOP_FEX_PUSH then
         dest := src;
     else
-        dest := simplify_node_to_var_and_deref(src);
+        dest := simplify_constants_and_deref(src);
+        dest := simplify_node_to_var_and_deref(dest);
     end if;
 end sub;
