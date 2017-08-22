@@ -79,6 +79,7 @@ const IOP_BE_SEXT          := 0b0110_0001;
 const IOP_BE_ZEXT          := 0b0110_0010;
 const IOP_BE_NEG           := 0b0110_0011;
 const IOP_BE_NOT           := 0b0110_0100;
+const IOP_BE_LEA           := 0b0110_0101; # returns address of LHS
 
 # 3op instructions.
 const IOP_TYPE_BACKEND_3OP := 0b1000_0000;
@@ -96,7 +97,7 @@ const IOP_BE_INDEX         := 0b1000_1010;
 const IOP_BE_LSL           := 0b1000_1011;
 const IOP_BE_LSR           := 0b1000_1100;
 const IOP_BE_ASR           := 0b1000_1101;
-const IOP_BE_LOADPTR       := 0b1000_1110; # adds left and right, dereferences result
+const IOP_BE_LOADPTR       := 0b1000_1110; # adds LHS and RHS, dereferences result
 const IOP_BE_DEREF         := 0b1000_1111; # internal; rewritten to LOADPTR or SAVEPTR
 
 # Specials.
@@ -178,7 +179,6 @@ record FEConditionalIop: Iop
 end record;
 
 record EffectiveAddress
-    deref: uint8;
     obj_id: uint16;
     varoff_id: uint16;
     numoff_id: uint16;
@@ -242,9 +242,7 @@ sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8
 end sub;
 
 sub print_ea(ea: [EffectiveAddress])
-    if ea.deref != 0 then
-        print_char('[');
-    end if;
+    print_char('[');
     print_thing(ea.obj_id);
     if ea.varoff_id != 0 then
         print("+[");
@@ -255,9 +253,6 @@ sub print_ea(ea: [EffectiveAddress])
         print("+#");
         print_i32(get_value_of_number(ea.numoff_id));
     end if;
-    if ea.deref != 0 then
-        print_char(']');
-    end if;
-    print_char('.');
+    print("].");
     print_thing(ea.type_id);
 end sub;
