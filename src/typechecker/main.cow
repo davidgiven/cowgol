@@ -92,7 +92,6 @@ sub alloc_const_node(number_id: uint16): (node: [Node])
     node.flags := FLAG_RVALUE;
     node.type_id := uint16_type;
     node.left.obj_id := number_id;
-    node.left.flags := EA_OBJVAL;
 end sub;
 
 sub alloc_thing_node(thing_id: uint16): (node: [Node])
@@ -100,7 +99,6 @@ sub alloc_thing_node(thing_id: uint16): (node: [Node])
     node.iop := IOP_FEX_PUSH;
     node.type_id := get_type_of_thing(thing_id);
     node.left.obj_id := thing_id;
-    node.left.flags := EA_OBJVAL;
     ref_temporary(thing_id);
 end sub;
 
@@ -150,13 +148,12 @@ sub process_subroutine(thing_id: uint16)
 
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := iop.thing_id;
-        node.left.flags := EA_OBJVAL;
         if thing.thing_type == THING_NUMBER then
             node.type_id := constant_type;
             node.flags := FLAG_RVALUE;
         elseif thing.thing_type == THING_STRING then
             node.type_id := pointer_of(int8_type);
-            node.left.flags := EA_OBJADR;
+            node.left.flags := EA_LEA;
             node.flags := FLAG_RVALUE;
         elseif (thing.thing_type & THING_TYPED) != 0 then
             var typed_thing: [TypedThing] := thing as [TypedThing];
@@ -168,7 +165,7 @@ sub process_subroutine(thing_id: uint16)
 
             var type: [Thing] := find_thing(typed_thing.type_id);
             if (type.thing_type == THING_ARRAYT) or (type.thing_type == THING_RECORDT) then
-                node.left.flags := EA_OBJADR;
+                node.left.flags := EA_LEA;
             end if;
         else
             print("can't push things of type 0x");
@@ -319,15 +316,13 @@ sub process_subroutine(thing_id: uint16)
         print_newline();
 
         copy_ea_ref(&left.left, &node.left);
-        if node.left.flags == EA_OBJADR then
-            node.left.flags := EA_OBJVAL;
-        elseif (node.left.flags == EA_OBJVAL) or (node.left.flags == EA_PTRVAL) then
+        if node.left.flags == EA_LEA then
+            node.left.flags := EA_VALUE;
+        elseif (node.left.flags == EA_VALUE) or (node.left.flags == EA_DEREF) then
             node := simplify_node_to_var_and_deref(node);
-            node.left.flags := EA_PTRVAL;
-        elseif node.left.flags == EA_PTRADR then
-            node.left.flags := EA_PTRVAL;
+            node.left.flags := EA_DEREF;
         end if;
-        if (node.left.flags & EA_DEREF_AFTER) != 0 then
+        if node.left.flags != EA_LEA then
             node.left.type_id := left_type.element_id;
         end if;
 
@@ -383,9 +378,7 @@ sub process_subroutine(thing_id: uint16)
         end if;
 
         node.type_id := pointer_of(node.type_id);
-        if (node.left.flags & EA_DEREF_AFTER) != 0 then
-            node.left.flags := node.left.flags & (EA_DEREF_AFTER ^ -1);
-        end if;
+        node.left.flags := EA_LEA;
 
         push_node(node);
     end sub;
@@ -401,9 +394,9 @@ sub process_subroutine(thing_id: uint16)
             type_id := pointer_type.element_id;
             type := find_thing(type_id);
 
-            if (node.left.flags & EA_DEREF_AFTER) != 0 then
+            if node.left.flags != EA_LEA then
                 node := simplify_node_to_var_and_deref(node);
-                node.left.flags := EA_PTRVAL;
+                node.left.flags := EA_LEA;
             end if;
         end if;
         if type.thing_type != THING_RECORDT then
@@ -427,9 +420,9 @@ sub process_subroutine(thing_id: uint16)
         if (member_type_thing.thing_type == THING_ARRAYT)
             or (member_type_thing.thing_type == THING_RECORDT)
         then
-            node.left.flags := node.left.flags & (EA_DEREF_AFTER ^ -1);
+            node.left.flags := EA_LEA;
         else
-            node.left.flags := node.left.flags | EA_DEREF_AFTER;
+            node.left.flags := EA_VALUE;
         end if;
 
         node.left.numoff_id := add_number_by_value(
@@ -470,7 +463,6 @@ sub process_subroutine(thing_id: uint16)
         node.type_id := parameter.type_id;
         node.left.type_id := node.type_id;
         node.left.obj_id := parameter_id;
-        node.left.flags := EA_OBJVAL;
     end sub;
 
     sub fe_materialise()
@@ -481,7 +473,6 @@ sub process_subroutine(thing_id: uint16)
         dest.flags := FLAG_RVALUE;
         dest.type_id := src.type_id;
         dest.left.obj_id := alloc_temporary(src.type_id);
-        dest.left.flags := EA_OBJVAL;
 
         arch_simplify_node_to(src, dest);
         deref_node(src);
@@ -591,7 +582,6 @@ sub process_subroutine(thing_id: uint16)
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := add_number_by_value(width);
-        node.left.flags := EA_OBJVAL;
         node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
 
@@ -610,7 +600,6 @@ sub process_subroutine(thing_id: uint16)
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := add_number_by_value(left_type.element_count);
-        node.left.flags := EA_OBJVAL;
         node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
 

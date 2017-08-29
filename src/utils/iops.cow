@@ -174,12 +174,9 @@ record FEConditionalIop: Iop
     iffalse_label: uint16;
 end record;
 
-const EA_DEREF_BEFORE := 0b10;
-const EA_DEREF_AFTER  := 0b01;
-const EA_OBJADR       := 0b00; # address of object, plus offset
-const EA_OBJVAL       := 0b01; # address of object, plus offset, then deref
-const EA_PTRADR       := 0b10; # deref pointer, plus offset
-const EA_PTRVAL       := 0b11; # deref pointer, plus offset, then deref
+const EA_VALUE := 0; # [&obj+numoff+[varoff]]
+const EA_DEREF := 1; # [[&obj]+numoff+[varoff]]
+const EA_LEA   := 2; # &obj+num+var
 
 record EffectiveAddress
     flags: uint8;
@@ -239,14 +236,14 @@ sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8
 end sub;
 
 sub print_ea(ea: [EffectiveAddress])
-    if (ea.flags & EA_DEREF_AFTER) != 0 then
+    if ea.flags != EA_LEA then
         print_char('[');
     end if;
-    if (ea.flags & EA_DEREF_BEFORE) != 0 then
+    if ea.flags == EA_DEREF then
         print_char('[');
     end if;
     print_thing(ea.obj_id);
-    if (ea.flags & EA_DEREF_BEFORE) != 0 then
+    if ea.flags == EA_DEREF then
         print_char(']');
     end if;
     if ea.varoff_id != 0 then
@@ -256,7 +253,7 @@ sub print_ea(ea: [EffectiveAddress])
     end if;
     print("+#");
     print_i32(get_value_of_number(ea.numoff_id));
-    if (ea.flags & EA_DEREF_AFTER) != 0 then
+    if ea.flags != EA_LEA then
         print_char(']');
     end if;
     print_char('.');
