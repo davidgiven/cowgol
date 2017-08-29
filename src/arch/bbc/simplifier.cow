@@ -22,6 +22,15 @@ sub reset_be_iop(iop: [BEIop])
     iop.iop_size := BEIop@bytes;
 end sub;
 
+sub check_ea(ea: [EffectiveAddress])
+    if is_scalar_type_thing(ea.type_id) == 0 then
+        print("cannot emit EA ");
+        print_ea(ea);
+        print(" as it is not scalar");
+        halt();
+    end if;
+end sub;
+
 sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
 #    var iop: BEIop;
 #    var tmpvar_id: uint16;
@@ -125,6 +134,7 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
     var iop: BEIop;
     reset_be_iop(&iop);
     iop.width := destwidth;
+    check_ea(&dest.left);
     copy_ea(&dest.left, &iop.dest);
     iop.dest.type_id := dest.type_id;
 
@@ -134,7 +144,9 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
         iop.iop_kind := src.iop;
     end if;
 
+    check_ea(&src.left);
     copy_ea(&src.left, &iop.left);
+    check_ea(&src.left);
     copy_ea(&src.right, &iop.right);
 
 #    simplify_ea(iop.iop_kind, destwidth, &iop.left);
@@ -147,6 +159,8 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
 end sub;
 
 sub arch_simplify_conditional_iop(iop: [BEConditionalIop])
+    check_ea(&iop.left);
+    check_ea(&iop.right);
 #    simplify_ea(iop.iop_kind, iop.width, &iop.left);
 #    simplify_ea(iop.iop_kind, iop.width, &iop.right);
 

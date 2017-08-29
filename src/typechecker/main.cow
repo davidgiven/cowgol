@@ -45,7 +45,7 @@ sub alloc_ea_node(ea: [EffectiveAddress]): (node: [Node])
     node := alloc_node();
     node.iop := IOP_FEX_PUSH;
     node.flags := FLAG_RVALUE;
-    node.type_id := uint16_type;
+    node.type_id := ea.type_id;
     copy_ea_ref(ea, &node.left);
 end sub;
 
@@ -53,30 +53,38 @@ sub alloc_const_node(number_id: uint16): (node: [Node])
     node := alloc_node();
     node.iop := IOP_FEX_PUSH;
     node.flags := FLAG_RVALUE;
-    node.type_id := uint16_type;
+    node.type_id := constant_type;
+    node.left.type_id := constant_type;
     node.left.obj_id := number_id;
+end sub;
+
+sub alloc_smallint_node(value: int16): (node: [Node])
+    node := alloc_const_node(add_number_by_value(value));
 end sub;
 
 sub alloc_thing_node(thing_id: uint16): (node: [Node])
     node := alloc_node();
     node.iop := IOP_FEX_PUSH;
     node.type_id := get_type_of_thing(thing_id);
+    node.left.type_id := node.type_id;
     node.left.obj_id := thing_id;
     ref_temporary(thing_id);
 end sub;
 
-sub gen_operator(beiop: uint8, left: [Node], right: [Node]): (dest: [Node])
-    must_be_simplified(left);
-    must_be_simplified(right);
+# Note: the type of the result is the type of the *left* parameter.
+sub gen_operator_and_deref(beiop: uint8, left: [Node], right: [Node]): (dest: [Node])
+    left := simplify_node_to_ea_and_deref(left);
+    right := simplify_node_to_ea_and_deref(right);
 
-    var node: [Node] := alloc_node();
-    node.iop := beiop;
-    node.type_id := uint16_type;
-    node.flags := FLAG_RVALUE;
-    copy_ea_ref(&left.left, &node.left);
-    copy_ea_ref(&right.left, &node.right);
+    dest := alloc_node();
+    dest.iop := beiop;
+    dest.type_id := left.type_id;
+    dest.flags := FLAG_RVALUE;
+    copy_ea_ref(&left.left, &dest.left);
+    copy_ea_ref(&right.left, &dest.right);
 
-    dest := simplify_node_to_ea_and_deref(node);
+    deref_node(left);
+    deref_node(right);
 end sub;
 
 sub process_subroutine(thing_id: uint16)
@@ -125,11 +133,6 @@ sub process_subroutine(thing_id: uint16)
                 halt();
             end if;
             node.type_id := typed_thing.type_id;
-
-            var type: [Thing] := find_thing(typed_thing.type_id);
-            if (type.thing_type == THING_ARRAYT) or (type.thing_type == THING_RECORDT) then
-                node.left.flags := EA_LEA;
-            end if;
         else
             print("can't push things of type 0x");
             print_hex_i8(thing.thing_type);
@@ -149,7 +152,7 @@ sub process_subroutine(thing_id: uint16)
         var src: [Node] := pop();
         var dest: [Node] := simplify_node_to_ea_and_deref(pop());
 
-        if (dest.flags & FLAG_RVALUE) != 0 then
+        if (dest.left.flags != EA_DEREF) and ((dest.flags & FLAG_RVALUE) != 0) then
             print("cannot assign to rvalue");
             halt();
         end if;
@@ -252,7 +255,7 @@ sub process_subroutine(thing_id: uint16)
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [WithElementsThing] := find_thing(left.type_id) as [WithElementsThing];
-        if (left_type.thing_type != THING_POINTERT) and (left_type.thing_type != THING_ARRAYT) then
+        if is_indexable_type_thing(left.type_id) == 0 then
             print_type_name(left.type_id);
             print(" is not indexable");
             halt();
@@ -265,68 +268,63 @@ sub process_subroutine(thing_id: uint16)
             halt();
         end if;
 
+        if left_type.thing_type == THING_POINTERT then
+            # Ensure that any additional offset is applied to the *contents* of the pointer, and
+            # not the *location* of the pointer.
+            left := simplify_node_to_var_and_deref(left);
+            left.left.flags := EA_DEREF;
+            left.left.type_id := left_type.element_id;
+        end if;
+
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
         node.type_id := left_type.element_id;
 
-        if (left_type.thing_type != THING_POINTERT) and (left_type.thing_type != THING_ARRAYT) then
-            print("only pointers or arrays can be indexed");
-            halt();
-        end if;
-
         print("* left has ea ");
         print_ea(&left.left);
         print_newline();
+        print("* right has ea ");
+        print_ea(&right.left);
+        print_newline();
 
         copy_ea_ref(&left.left, &node.left);
-        if node.left.flags == EA_LEA then
-            node.left.flags := EA_VALUE;
-        elseif (node.left.flags == EA_VALUE) or (node.left.flags == EA_DEREF) then
-            node := simplify_node_to_var_and_deref(node);
-            node.left.flags := EA_DEREF;
-        end if;
-        if node.left.flags != EA_LEA then
-            node.left.type_id := left_type.element_id;
-        end if;
+        node.left.type_id := left_type.element_id;
 
         print("* result base has ea ");
         print_ea(&node.left);
         print_newline();
 
-        if (right_type.thing_type == THING_CONSTANTT) then
-            node.left.numoff_id := add_number_by_value(
-                get_value_of_number(left.left.numoff_id) +
-                    get_value_of_number(right.left.obj_id) * element_type.width);
-        else
-            var new_delta_node: [Node];
-            var delta_node: [Node] := alloc_ea_node(&right.left);
-            if element_type.width != 1 then
-                var num_node: [Node] := alloc_const_node(add_number_by_value(element_type.width));
-                new_delta_node := gen_operator(IOP_BE_MUL, delta_node, num_node);
-                deref_node(num_node);
-                deref_node(delta_node);
-                delta_node := new_delta_node;
-            end if;
+        if element_type.width != 1 then
+            print("* scaling right by 0x");
+            print_hex_i16(element_type.width);
+            print_newline();
 
-            if left.left.varoff_id != 0 then
-                var old_delta_node: [Node] := alloc_thing_node(left.left.varoff_id);
-
-                print("* calculating new delta from ");
-                print_ea(&old_delta_node.left);
-                print(" and ");
-                print_ea(&delta_node.left);
+            right := gen_operator_and_deref(IOP_BE_MUL, right, alloc_smallint_node(element_type.width));
+        end if;
+        if right.type_id == constant_type then
+            print("* offset is constant\n");
+            if node.left.numoff_id != 0 then
+                print("* adding right to existing constant offset ");
+                print_thing(node.left.numoff_id);
                 print_newline();
 
-                new_delta_node := gen_operator(IOP_BE_ADD, old_delta_node, delta_node);
-                deref_node(old_delta_node);
-                deref_node(delta_node);
-                delta_node := new_delta_node;
+                right := gen_operator_and_deref(IOP_BE_ADD, alloc_const_node(node.left.numoff_id), right);
             end if;
+            right := simplify_node_to_ea_and_deref(right);
+            node.left.numoff_id := right.left.obj_id;
+        else
+            print("* offset is variable\n");
+            if node.left.varoff_id != 0 then
+                print("* adding right to existing variable offset ");
+                print_thing(node.left.numoff_id);
+                print_newline();
 
-            delta_node := simplify_node_to_var_and_deref(delta_node);
-            node.left.varoff_id := delta_node.left.obj_id;
-            ref_temporary(node.left.varoff_id);
-            deref_node(delta_node);
+                right := gen_operator_and_deref(IOP_BE_ADD, alloc_thing_node(node.left.varoff_id), right);
+            end if;
+            right := simplify_node_to_var_and_deref(right);
+            ref_temporary(right.left.obj_id);
+            deref_temporary(node.left.varoff_id);
+            node.left.varoff_id := right.left.obj_id;
         end if;
         deref_node(right);
         deref_node(left);
@@ -341,7 +339,14 @@ sub process_subroutine(thing_id: uint16)
         end if;
 
         node.type_id := pointer_of(node.type_id);
-        node.left.flags := EA_LEA;
+        if node.left.flags == EA_DEREF then
+            node.left.flags := EA_VALUE;
+        elseif node.left.flags == EA_VALUE then
+            node.left.flags := EA_LEA;
+        else
+            print("addressof with LEA");
+            halt();
+        end if;
 
         push_node(node);
     end sub;
@@ -352,15 +357,16 @@ sub process_subroutine(thing_id: uint16)
 
         var type_id: uint16 := node.type_id;
         var type: [Thing] := find_thing(type_id);
+
         if type.thing_type == THING_POINTERT then
+            # Ensure that any additional offset is applied to the *contents* of the pointer, and
+            # not the *location* of the pointer.
+            node := simplify_node_to_var_and_deref(node);
+            node.left.flags := EA_DEREF;
+
             var pointer_type: [PointerThing] := type as [PointerThing];
             type_id := pointer_type.element_id;
             type := find_thing(type_id);
-
-            if node.left.flags != EA_LEA then
-                node := simplify_node_to_var_and_deref(node);
-                node.left.flags := EA_LEA;
-            end if;
         end if;
         if type.thing_type != THING_RECORDT then
             print_type_name(type_id);
@@ -380,18 +386,11 @@ sub process_subroutine(thing_id: uint16)
         var member: [MemberThing] := find_thing(symbol.value_id) as [MemberThing];
         var member_type_thing: [Thing] := find_thing(member.type_id);
 
-        if (member_type_thing.thing_type == THING_ARRAYT)
-            or (member_type_thing.thing_type == THING_RECORDT)
-        then
-            node.left.flags := EA_LEA;
-        else
-            node.left.flags := EA_VALUE;
-        end if;
-
+        node.left.type_id := member.type_id;
+        node.type_id := member.type_id;
         node.left.numoff_id := add_number_by_value(
             get_value_of_number(node.left.numoff_id) +
                 member.offset);
-        node.type_id := member.type_id;
 
         push_node(node);
     end sub;

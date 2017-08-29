@@ -251,8 +251,10 @@ sub print_ea(ea: [EffectiveAddress])
         print_thing(ea.varoff_id);
         print_char(']');
     end if;
-    print("+#");
-    print_i32(get_value_of_number(ea.numoff_id));
+    if ea.numoff_id != 0 then
+        print("+#");
+        print_i32(get_value_of_number(ea.numoff_id));
+    end if;
     if ea.flags != EA_LEA then
         print_char(']');
     end if;

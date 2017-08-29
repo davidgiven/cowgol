@@ -303,6 +303,33 @@ sub is_signed_type_thing(thing_id: uint16): (yes: uint8)
     end if;
 end sub;
 
+sub is_indexable_type_thing(thing_id: uint16): (yes: uint8)
+    var type: uint8 := get_thing_type(thing_id);
+    if (type == THING_ARRAYT) or (type == THING_POINTERT) then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
+sub is_memberable_type_thing(thing_id: uint16): (yes: uint8)
+    var type: uint8 := get_thing_type(thing_id);
+    if (type == THING_RECORDT) or (type == THING_POINTERT) then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
+sub is_scalar_type_thing(thing_id: uint16): (yes: uint8)
+    var type: uint8 := get_thing_type(thing_id);
+    if (type != THING_ARRAYT) and (type != THING_RECORDT) then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
 sub save_thing_table(filename: [int8])
     var fd: uint8 := file_openout(filename);
     file_putblock(fd, &thing_table[0], thing_table_top);
