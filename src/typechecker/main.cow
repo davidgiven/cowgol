@@ -188,7 +188,7 @@ sub process_subroutine(thing_id: uint16)
             copy_ea(&dest.right, &iop.right);
             src := simplify_node_to_ea_and_deref(src);
             copy_ea(&src.left, &iop.value);
-            write_iop(&iop as [Iop]);
+            arch_simplify_saveptr_iop(&iop);
         else
             if (dest.flags & FLAG_RVALUE) != 0 then
                 print("cannot assign to rvalue");

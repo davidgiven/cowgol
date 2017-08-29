@@ -99,17 +99,6 @@ sub do_be_cmpop(kind: [int8], iop: [BEConditionalIop])
     print_i16(iop.iffalse_label);
 end sub;
 
-sub do_be_saveptrop(iop: [BESavePtrIop])
-    print("BE_SAVEPTR width=");
-    print_i8(iop.width);
-    print(" left=");
-    print_ea(&iop.left);
-    print(" right=");
-    print_ea(&iop.right);
-    print(" value=");
-    print_ea(&iop.value);
-end sub;
-
 sub do_goto(iop: [GotoIop])
     print("GOTO label=");
     print_i16(iop.label);
@@ -227,7 +216,6 @@ loop
         elseif kind == IOP_BE_ZEXT         then do_be_2op("BE_ZEXT", iop as [BEIop]);
         elseif kind == IOP_BE_NEG          then do_be_2op("BE_NEG", iop as [BEIop]);
         elseif kind == IOP_BE_NOT          then do_be_2op("BE_NOT", iop as [BEIop]);
-        elseif kind == IOP_BE_LEA          then do_be_2op("BE_LEA", iop as [BEIop]);
         elseif kind == IOP_BE_ADD          then do_be_3op("BE_ADD", iop as [BEIop]);
         elseif kind == IOP_BE_SUB          then do_be_3op("BE_SUB", iop as [BEIop]);
         elseif kind == IOP_BE_MUL          then do_be_3op("BE_MUL", iop as [BEIop]);
@@ -242,15 +230,12 @@ loop
         elseif kind == IOP_BE_LSR          then do_be_3op("BE_LSR", iop as [BEIop]);
         elseif kind == IOP_BE_ASR          then do_be_3op("BE_ASR", iop as [BEIop]);
         elseif kind == IOP_BE_INDEX        then do_be_3op("BE_INDEX", iop as [BEIop]);
-        elseif kind == IOP_BE_DEREF        then do_be_3op("BE_DEREF", iop as [BEIop]);
-        elseif kind == IOP_BE_LOADPTR      then do_be_3op("BE_LOADPTR", iop as [BEIop]);
 
         elseif kind == IOP_BE_BEQ          then do_be_cmpop("BE_BEQ", iop as [BEConditionalIop]);
         elseif kind == IOP_BE_BLTS         then do_be_cmpop("BE_BLTS", iop as [BEConditionalIop]);
         elseif kind == IOP_BE_BLTU         then do_be_cmpop("BE_BLTU", iop as [BEConditionalIop]);
         elseif kind == IOP_BE_BGTS         then do_be_cmpop("BE_BGTS", iop as [BEConditionalIop]);
         elseif kind == IOP_BE_BGTU         then do_be_cmpop("BE_BGTU", iop as [BEConditionalIop]);
-        elseif kind == IOP_BE_SAVEPTR      then do_be_saveptrop(iop as [BESavePtrIop]);
 
         elseif kind == IOP_CG_6502_MEM then
             do_cg_6502_mem(iop as [CG6502MemIop]);

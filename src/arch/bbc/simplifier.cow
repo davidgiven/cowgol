@@ -104,6 +104,104 @@ end sub;
 #    end if;
 #end sub;
 
+sub is_ea_valid(ea: [EffectiveAddress]): (yes: uint8)
+    yes := 1;
+    if ea.varoff_id != 0 then
+        var type_id: uint16 := get_type_of_thing(ea.varoff_id);
+        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
+
+        if (type.thing_type != THING_UNSIGNEDT) or (type.width != 1) then
+            yes := 0;
+        end if;
+    end if;
+end sub;
+
+sub make_pointer_to_ea(ea: [EffectiveAddress]): (ptrtempvar: uint16)
+    if is_ea_valid(ea) != 0 then
+        ptrtempvar := 0;
+        return;
+    end if;
+
+    print("* converting ea ");
+    print_ea(ea);
+    print(" to pointer\n");
+
+    var ptr_type_id: uint16 := pointer_of(ea.type_id);
+    ptrtempvar := alloc_temporary(ptr_type_id);
+
+    var iop: BEIop;
+    reset_be_iop(&iop);
+    iop.iop_kind := IOP_BE_LEA;
+    iop.width := 2;
+    copy_ea(ea, &iop.left);
+    iop.dest.obj_id := ptrtempvar;
+    iop.dest.type_id := ptr_type_id;
+    iop.left.varoff_id := 0;
+    write_iop(&iop as [Iop]);
+
+    if ea.varoff_id != 0 then
+        reset_be_iop(&iop);
+        iop.iop_kind := IOP_BE_ADD;
+        iop.width := 2;
+        iop.left.obj_id := ptrtempvar;
+        iop.left.type_id := ptr_type_id;
+        iop.right.obj_id := ea.varoff_id;
+        iop.right.type_id := get_type_of_thing(iop.right.obj_id);
+        iop.dest.obj_id := ptrtempvar;
+        iop.dest.type_id := ptr_type_id;
+        write_iop(&iop as [Iop]);
+    end if;
+end sub;
+
+sub load_ea_from_pointer(ea: [EffectiveAddress], ptrtempvar: uint16): (valtempvar: uint16)
+    valtempvar := alloc_temporary(ea.type_id);
+
+    var iop: BEIop;
+    reset_be_iop(&iop);
+    iop.iop_kind := IOP_BE_LOADPTR;
+    iop.width := get_width_of_type(ea.type_id);
+    iop.left.obj_id := ptrtempvar;
+    iop.left.type_id := get_type_of_thing(ptrtempvar);
+    iop.dest.obj_id := valtempvar;
+    iop.dest.type_id := ea.type_id;
+    write_iop(&iop as [Iop]);
+end sub;
+
+sub simplify_src_ea(ea: [EffectiveAddress])
+    var ptrtempvar: uint16 := make_pointer_to_ea(ea);
+    if ptrtempvar != 0 then
+        var valtempvar: uint16 := load_ea_from_pointer(ea, ptrtempvar);
+        deref_temporary(ptrtempvar);
+
+        deref_ea(ea);
+        ea.obj_id := valtempvar;
+        ea.varoff_id := 0;
+        ea.numoff_id := 0;
+    end if;
+end sub;
+
+sub write_back_simplified_dest(tempvar: uint16, ea: [EffectiveAddress])
+end sub;
+
+sub simplify_dest_ea(ea: [EffectiveAddress]): (tempvar: uint16)
+    if is_ea_valid(ea) != 0 then
+        tempvar := 0;
+        return;
+    end if;
+
+    tempvar := 0;
+end sub;
+
+sub simplify_deref_iop(iop: [BETwoLeggedIop])
+end sub;
+
+sub simplify_two_legged_iop(iop: [BETwoLeggedIop])
+    simplify_src_ea(&iop.left);
+    if (iop.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_3OP then
+        simplify_src_ea(&iop.right);
+    end if;
+end sub;
+
 sub arch_simplify_node_to(src: [Node], dest: [Node])
     if dest.iop != IOP_FEX_PUSH then
         print("simplify_node_to() where dest is not simplified");
@@ -118,27 +216,41 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
     copy_ea(&dest.left, &iop.dest);
     iop.dest.type_id := dest.type_id;
 
+    var iopkind: uint8;
     if src.iop == IOP_FEX_PUSH then
-        iop.iop_kind := IOP_BE_COPY;
+        iopkind := IOP_BE_COPY;
+    elseif src.iop == IOP_BE_DEREF then
+        iopkind := IOP_BE_LOADPTR;
     else
-        iop.iop_kind := src.iop;
+        iopkind := src.iop;
     end if;
+    iop.iop_kind := iopkind;
 
     copy_ea(&src.left, &iop.left);
     copy_ea(&src.right, &iop.right);
-#
-#    simplify_ea(iop.iop_kind, destwidth, &iop.left);
-#    if (iop.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_3OP then
-#        simplify_ea(iop.iop_kind, destwidth, &iop.right);
-#    end if;
-#    simplify_ea(iop.iop_kind, destwidth, &iop.dest);
-#
+    print_node(src);
+    print_newline();
+
+    if iopkind == IOP_BE_LOADPTR then
+        simplify_deref_iop(&iop as [BETwoLeggedIop]);
+    else
+        simplify_two_legged_iop(&iop as [BETwoLeggedIop]);
+    end if;
+    var tempvar: uint16 := simplify_dest_ea(&iop.dest);
     write_be_iop(&iop);
+
+    if tempvar != 0 then
+        write_back_simplified_dest(tempvar, &dest.left);
+    end if;
 end sub;
 
 sub arch_simplify_conditional_iop(iop: [BEConditionalIop])
-#    simplify_ea(iop.iop_kind, iop.width, &iop.left);
-#    simplify_ea(iop.iop_kind, iop.width, &iop.right);
+    simplify_two_legged_iop(iop as [BETwoLeggedIop]);
+    write_iop(iop as [Iop]);
+end sub;
 
+sub arch_simplify_saveptr_iop(iop: [BESavePtrIop])
+    simplify_deref_iop(iop as [BETwoLeggedIop]);
+    #simplify_ea(IOP_BE_SAVEPTR, iop.width, &iop.value);
     write_iop(iop as [Iop]);
 end sub;

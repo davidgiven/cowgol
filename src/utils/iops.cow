@@ -185,25 +185,22 @@ record EffectiveAddress
     type_id: uint16;
 end record;
 
-record BEIop: Iop
+record BETwoLeggedIop: Iop
     width: uint8;
     left: EffectiveAddress;
     right: EffectiveAddress;
+end record;
+
+record BEIop: BETwoLeggedIop
     dest: EffectiveAddress;
 end record;
 
-record BEConditionalIop: Iop
-    width: uint8;
-    left: EffectiveAddress;
-    right: EffectiveAddress;
+record BEConditionalIop: BETwoLeggedIop
     iftrue_label: uint16;
     iffalse_label: uint16;
 end record;
 
-record BESavePtrIop: Iop
-    width: uint8;
-    left: EffectiveAddress;
-    right: EffectiveAddress;
+record BESavePtrIop: BETwoLeggedIop
     value: EffectiveAddress;
 end record;
 
@@ -218,7 +215,7 @@ record CG6502ConditionalIop: Iop
     label: uint16;
 end record;
 
-record BiggestIop: BEIop
+record BiggestIop: BEConditionalIop
 end record;
 
 sub copy_iop(src: [Iop], dest: [Iop])
