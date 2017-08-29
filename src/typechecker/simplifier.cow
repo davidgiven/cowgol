@@ -30,9 +30,9 @@ sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: ui
 end sub;
 
 sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
-    if (is_number_thing(src.left.obj_id) != 0) and
+    if (src.left.type_id == constant_type) and
         (((src.iop & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_2OP) or
-            (is_number_thing(src.right.obj_id) != 0))
+            (src.right.type_id == constant_type))
     then
         dest := alloc_node();
         dest.iop := IOP_FEX_PUSH;
@@ -46,6 +46,7 @@ sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
                 get_value_of_number(src.right.obj_id)
             )
         );
+        deref_node(src);
     else
         dest := src;
     end if;
@@ -69,6 +70,7 @@ sub guess_type_of_constant(num_id: uint16): (type_id: uint16)
 end sub;
 
 sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
+    src := simplify_constants_and_deref(src);
     if (src.iop == IOP_FEX_PUSH)
         and (src.left.flags == EA_VALUE)
         and (src.left.varoff_id == 0)
@@ -77,8 +79,6 @@ sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
         dest := src;
         return;
     end if;
-
-    src := simplify_constants_and_deref(src);
 
     if src.type_id == constant_type then
         src.type_id := guess_type_of_constant(src.left.obj_id);
