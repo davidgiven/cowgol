@@ -134,8 +134,8 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
         iop.iop_kind := src.iop;
     end if;
 
-    copy_ea_ref(&src.left, &iop.left);
-    copy_ea_ref(&src.right, &iop.right);
+    copy_ea(&src.left, &iop.left);
+    copy_ea(&src.right, &iop.right);
 
 #    simplify_ea(iop.iop_kind, destwidth, &iop.left);
 #    if (iop.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_3OP then
@@ -144,10 +144,6 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
 #    simplify_ea(iop.iop_kind, destwidth, &iop.dest);
 
     write_be_iop(&iop);
-
-    deref_ea(&iop.left);
-    deref_ea(&iop.right);
-    deref_ea(&iop.dest);
 end sub;
 
 sub arch_simplify_conditional_iop(iop: [BEConditionalIop])
