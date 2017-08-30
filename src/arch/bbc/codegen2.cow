@@ -119,6 +119,11 @@ sub check_16bit_ea(ea: [EffectiveAddress])
         print("wide pointer EA with numeric offset");
         halt();
     end if;
+
+    if get_width_of_type(ea.type_id) != 2 then
+        print("wide iop with non-wide parameter");
+        halt();
+    end if;
 end sub;
 
 sub regular_alu_word_op(iop: [BEIop], opcode: uint8)
@@ -268,11 +273,12 @@ sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
         end if;
     end sub;
 
+    allocate_fixed_reg(REG_A);
     if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
-        find_or_load_fixed_value(&ciop.left, REG_A);
+        aluop_value(&ciop.left, 0xAD); # LDA abs
         emit_comparison(&ciop.right);
     else
-        find_or_load_fixed_value(&ciop.right, REG_A);
+        aluop_value(&ciop.right, 0xAD); # LDA abs
         emit_comparison(&ciop.left);
     end if;
 

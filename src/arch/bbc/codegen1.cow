@@ -310,7 +310,7 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
         indexea.obj_id := ea.varoff_id;
         ea.varoff_id := 0;
     else
-        if indexea.obj_id == 0 then
+        if indexea.numoff_id == 0 then
             indexea.obj_id := add_number_by_value(0);
         else
             indexea.obj_id := ea.numoff_id;
@@ -388,11 +388,25 @@ sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)
     end if;
 end sub;
 
+sub aluop_deref(ea: [EffectiveAddress], opcode: uint8)
+    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
+    opcode := (opcode | 0x10) & 0xF3;
+    ea.varoff_id := 0;
+    ea.numoff_id := 0;
+
+    op_ind(ea, opcode);
+
+    free_reg(indexreg);
+end sub;
+
 # Assumes the input value is in A. opcode must be an abs instruction in the 0x0D or 0x0E
 # columns of the map. ea is read direct from memory (or via an immediate).
 sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
-    if ea.flags == EA_VALUE then
+    var flags: uint8 := ea.flags;
+    if flags == EA_VALUE then
         aluop_objval(ea, opcode);
+    elseif flags == EA_DEREF then
+        aluop_deref(ea, opcode);
     else
         print("can't alu ");
         print_ea(ea);
