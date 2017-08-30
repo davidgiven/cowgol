@@ -99,7 +99,7 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
 
     var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
     var beiop: uint8;
-    if obj.segment == SEGMENT_ZEROPAGE then
+    if (obj.segment == SEGMENT_ZEROPAGE) and ((opcode & 0x0F) == 0x0D) then
         opcode := opcode & 0xf7;
         beiop := IOP_ADDRESSLO;
     elseif obj.segment == SEGMENT_UNKNOWN then
