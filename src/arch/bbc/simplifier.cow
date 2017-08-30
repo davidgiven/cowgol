@@ -78,7 +78,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
             iop.left.obj_id := tmpvar_id;
             iop.dest.type_id := pointer_of(iop.left.type_id);
         end if;
-        iop.right.obj_id := int16_type;
+        iop.right.type_id := int16_type;
         iop.right.obj_id := ea.varoff_id;
         iop.dest.obj_id := tmpvar_id;
         write_be_iop(&iop);
