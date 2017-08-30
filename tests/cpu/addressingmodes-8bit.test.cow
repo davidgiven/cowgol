@@ -1,0 +1,19 @@
+var array: int8[512];
+var ptr: [int8] := &array[0];
+var smallu: uint8 := 0;
+var smalls: int8 := 1;
+var largeu: uint16 := 300;
+var larges: int16 := 301;
+
+sub yes() print(": yes\r"); end sub;
+sub no() print(": no\r"); end sub;
+
+# [array + numoff]. We expect these to work, they're just simple absolute references.
+array[0] := 0x55;
+array[1] := 0xAA;
+array[300] := 0x55;
+array[301] := 0xAA;
+
+# [array + varoff].
+print("array[smallu]==0x55"); if array[smallu] == 0x55 then yes(); else no(); end if;
+print("array[smalls]==0xAA"); if array[smalls] == 0xAA then yes(); else no(); end if;
