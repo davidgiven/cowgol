@@ -35,18 +35,47 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     var iop: BEIop;
     var tmpvar_id: uint16 := 0;
 
+    sub maybe_alloc_tmpvar()
+        if tmpvar_id == 0 then
+            tmpvar_id := alloc_temporary(int16_type);
+        else
+            ref_temporary(tmpvar_id);
+        end if;
+    end sub;
+
+    sub lea()
+        print("* promoting LEA to copy\n");
+        maybe_alloc_tmpvar();
+        reset_be_iop(&iop);
+        iop.iop_kind := IOP_BE_COPY;
+        iop.width := 2;
+        iop.left.type_id := get_type_of_thing(ea.obj_id);
+        iop.left.obj_id := ea.obj_id;
+        iop.left.numoff_id := ea.numoff_id;
+        iop.left.flags := EA_LEA;
+        iop.dest.type_id := int16_type;
+        iop.dest.obj_id := tmpvar_id;
+        write_be_iop(&iop);
+    end sub;
+
     sub varoffset_into_add()
-        tmpvar_id := alloc_temporary(int16_type);
+        maybe_alloc_tmpvar();
+
+        if ea.flags != EA_DEREF then
+            lea();
+        end if;
+
         reset_be_iop(&iop);
         iop.iop_kind := IOP_BE_ADD;
         iop.width := 2;
         iop.left.type_id := get_type_of_thing(ea.obj_id);
-        iop.left.obj_id := ea.obj_id;
-        if iop.left.flags == EA_DEREF then
+        if ea.flags == EA_DEREF then
             iop.left.flags := EA_VALUE;
+            iop.left.obj_id := ea.obj_id;
             iop.dest.type_id := iop.left.type_id;
         else
-            iop.left.flags := EA_LEA;
+            iop.left.flags := EA_VALUE;
+            iop.left.obj_id := tmpvar_id;
             iop.dest.type_id := pointer_of(iop.left.type_id);
         end if;
         iop.right.obj_id := int16_type;
@@ -61,7 +90,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         ea.varoff_id := 0;
     end sub;
 
-    sub numoffset_into_add()
+    sub deref_numoffset_into_add()
         if tmpvar_id == 0 then
             tmpvar_id := alloc_temporary(ea.type_id);
         else
@@ -86,6 +115,14 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         ea.numoff_id := 0;
     end sub;
 
+    if (beiop != IOP_BE_COPY) and (width != 1) and (ea.flags == EA_LEA) then
+        lea();
+        ea.obj_id := tmpvar_id;
+        ea.numoff_id := 0;
+        ea.type_id := int16_type;
+        ea.flags := EA_DEREF;
+    end if;
+
     if ea.varoff_id != 0 then
         var type_id: uint16 := get_type_of_thing(ea.varoff_id);
         var type: [TypeThing] := find_thing(type_id) as [TypeThing];
@@ -109,7 +146,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         if ea.flags == EA_DEREF then
             if (width != 1) or (is_number_a_byte(ea.numoff_id) == 0) then
                 print("* turning too-large constant offset of deref into add\n");
-                numoffset_into_add();
+                deref_numoffset_into_add();
             end if;
         end if;
     end if;
