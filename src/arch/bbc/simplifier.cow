@@ -33,7 +33,7 @@ end sub;
 
 sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     var iop: BEIop;
-    var tmpvar_id: uint16;
+    var tmpvar_id: uint16 := 0;
 
     sub varoffset_into_add()
         tmpvar_id := alloc_temporary(int16_type);
@@ -61,32 +61,30 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         ea.varoff_id := 0;
     end sub;
 
-#    sub numoffset_into_add()
-#        if tmpvar_id == 0 then
-#            tmpvar_id := alloc_temporary(ea.type_id);
-#        else
-#            ref_temporary(tmpvar_id);
-#        end if;
-#
-#        reset_be_iop(&iop);
-#        iop.iop_kind := IOP_BE_ADD;
-#        iop.width := 2;
-#        iop.left.type_id := get_type_of_thing(ea.obj_id);
-#        iop.left.obj_id := ea.obj_id;
-#        iop.left.flags := ea.flags & (EA_DEREF_AFTER ^ -1);
-#        iop.right.type_id := int16_type;
-#        iop.right.obj_id := ea.numoff_id;
-#        iop.right.flags := EA_OBJVAL;
-#        iop.dest.type_id := iop.left.type_id;
-#        iop.dest.obj_id := tmpvar_id;
-#        iop.dest.flags := EA_OBJVAL;
-#        write_be_iop(&iop);
-#
-#        deref_temporary(ea.obj_id);
-#        ea.obj_id := tmpvar_id;
-#        ea.flags := EA_PTRVAL;
-#        ea.numoff_id := 0;
-#    end sub;
+    sub numoffset_into_add()
+        if tmpvar_id == 0 then
+            tmpvar_id := alloc_temporary(ea.type_id);
+        else
+            ref_temporary(tmpvar_id);
+        end if;
+
+        reset_be_iop(&iop);
+        iop.iop_kind := IOP_BE_ADD;
+        iop.width := 2;
+        iop.left.type_id := get_type_of_thing(ea.obj_id);
+        iop.left.obj_id := ea.obj_id;
+        iop.left.flags := EA_VALUE;
+        iop.right.type_id := uint16_type;
+        iop.right.obj_id := ea.numoff_id;
+        iop.dest.type_id := iop.left.type_id;
+        iop.dest.obj_id := tmpvar_id;
+        write_be_iop(&iop);
+
+        deref_temporary(ea.obj_id);
+        ea.obj_id := tmpvar_id;
+        ea.flags := EA_DEREF;
+        ea.numoff_id := 0;
+    end sub;
 
     if ea.varoff_id != 0 then
         var type_id: uint16 := get_type_of_thing(ea.varoff_id);
@@ -98,33 +96,23 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         end if;
     end if;
 
-#    if ea.numoff_id != 0 then
-#        sub is_number_a_byte(number_id: uint16): (is_valid: uint8)
-#            var value: int32 := get_value_of_number(number_id);
-#            if (value >= 0) and (value <= 255) then
-#                is_valid := 1;
-#            else
-#                is_valid := 0;
-#            end if;
-#        end sub;
-#
-#        print("width=");
-#        print_i8(width);
-#        print(" ea=");
-#        print_ea(ea);
-#        print_newline();
-#
-#        if (ea.flags & EA_DEREF_AFTER) != 0 then
-#            if is_number_a_byte(ea.numoff_id) == 0 then
-#                print("* turning too-large constant offset of deref into add\n");
-#                numoffset_into_add();
-#            end if;
-#        end if;
-#        if (width != 1) and ((ea.flags & EA_DEREF_BEFORE) != 0) then
-#            print("* turning 16-bit pointer offset into add\n");
-#            numoffset_into_add();
-#        end if;
-#    end if;
+    if ea.numoff_id != 0 then
+        sub is_number_a_byte(number_id: uint16): (is_valid: uint8)
+            var value: int32 := get_value_of_number(number_id);
+            if (value >= 0) and (value <= 255) then
+                is_valid := 1;
+            else
+                is_valid := 0;
+            end if;
+        end sub;
+
+        if ea.flags == EA_DEREF then
+            if (width != 1) or (is_number_a_byte(ea.numoff_id) == 0) then
+                print("* turning too-large constant offset of deref into add\n");
+                numoffset_into_add();
+            end if;
+        end if;
+    end if;
 end sub;
 
 sub arch_simplify_node_to(src: [Node], dest: [Node])
