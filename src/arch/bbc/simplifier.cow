@@ -76,10 +76,11 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         else
             iop.left.flags := EA_VALUE;
             iop.left.obj_id := tmpvar_id;
-            iop.dest.type_id := pointer_of(iop.left.type_id);
+            iop.left.type_id := pointer_of(iop.left.type_id);
+            iop.dest.type_id := iop.left.type_id;
         end if;
-        iop.right.type_id := int16_type;
         iop.right.obj_id := ea.varoff_id;
+        iop.right.type_id := get_type_of_thing(iop.right.obj_id);
         iop.dest.obj_id := tmpvar_id;
         write_be_iop(&iop);
 
@@ -124,12 +125,33 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     end if;
 
     if ea.varoff_id != 0 then
-        var type_id: uint16 := get_type_of_thing(ea.varoff_id);
+        var varoff_id: uint16 := ea.varoff_id;
+        var type_id: uint16 := get_type_of_thing(varoff_id);
         var type: [TypeThing] := find_thing(type_id) as [TypeThing];
 
         if (type.thing_type != THING_UNSIGNEDT) or (type.width != 1) then
+            if type.width == 2 then
+                ref_temporary(varoff_id);
+            else
+                varoff_id := alloc_temporary(int16_type);
+                reset_be_iop(&iop);
+                if type.thing_type == THING_SIGNEDT then
+                    iop.iop_kind := IOP_BE_SEXT;
+                else
+                    iop.iop_kind := IOP_BE_ZEXT;
+                end if;
+                iop.width := 2;
+                iop.left.obj_id := ea.varoff_id;
+                iop.left.type_id := type_id;
+                iop.dest.obj_id := varoff_id;
+                iop.dest.type_id := int16_type;
+                write_iop(&iop as [Iop]);
+                ea.varoff_id := varoff_id;
+            end if;
+
             print("* turning var offset into add\n");
             varoffset_into_add();
+            deref_temporary(ea.varoff_id);
         end if;
     end if;
 
