@@ -38,7 +38,7 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     print_ea(ea);
     print_newline();
 
-    if ea.flags == EA_OBJVAL then
+    if ea.flags == EA_VALUE then
         save_objval(location, ea);
     else
         print("can't write precious value ");
@@ -303,7 +303,7 @@ end sub;
 # Loads *just the index part* of the EA into a register.
 sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     var indexea: EffectiveAddress;
-    indexea.flags := EA_OBJVAL;
+    indexea.flags := EA_VALUE;
     indexea.varoff_id := 0;
     indexea.numoff_id := 0;
     if ea.varoff_id != 0 then
@@ -353,9 +353,9 @@ sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    if ea.flags == EA_OBJVAL then
+    if ea.flags == EA_VALUE then
         location := find_or_load_objval(ea, candidates);
-    elseif ea.flags == EA_PTRVAL then
+    elseif ea.flags == EA_DEREF then
         location := find_or_load_ptrval(ea, candidates);
     else
         print("can't load ");
@@ -391,7 +391,7 @@ end sub;
 # Assumes the input value is in A. opcode must be an abs instruction in the 0x0D or 0x0E
 # columns of the map. ea is read direct from memory (or via an immediate).
 sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
-    if ea.flags == EA_OBJVAL then
+    if ea.flags == EA_VALUE then
         aluop_objval(ea, opcode);
     else
         print("can't alu ");
@@ -403,10 +403,8 @@ end sub;
 
 sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
     var ea: EffectiveAddress;
-    ea.flags := EA_OBJVAL;
+    zero_ea(&ea);
     ea.obj_id := add_number_by_value(value);
-    ea.numoff_id := 0;
-    ea.varoff_id := 0;
     location := find_or_load_value(&ea, candidates);
 end sub;
 
@@ -430,9 +428,9 @@ sub find_or_load_fixed_value_with_flags(ea: [EffectiveAddress], candidates: uint
 end sub;
 
 sub save_value(location: uint8, ea: [EffectiveAddress])
-    if ea.flags == EA_OBJVAL then
+    if ea.flags == EA_VALUE then
         save_objval_with_optional_index(location, ea);
-    elseif ea.flags == EA_PTRVAL then
+    elseif ea.flags == EA_DEREF then
         save_ptrval_with_index(location, ea);
     else
         print("can't save ");
@@ -444,7 +442,7 @@ end sub;
 
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     value_is_cached_in_reg(ea, location);
-    if (ea.varoff_id != 0) or ((ea.flags & EA_DEREF_BEFORE) != 0) then
+    if (ea.varoff_id != 0) or (ea.flags == EA_DEREF) then
         print("* value ");
         print_ea(ea);
         print(" can't be made precious, saving now\n");
@@ -455,9 +453,9 @@ sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
 end sub;
 
 sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_OBJVAL then
+    if ea.flags == EA_VALUE then
         save_objval_with_offset(location, ea, offset);
-    elseif ea.flags == EA_PTRVAL then
+    elseif ea.flags == EA_DEREF then
         find_or_load_fixed_int(offset, REG_Y);
         st_ind(location, REG_Y, ea);
         free_reg(REG_Y);
