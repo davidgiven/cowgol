@@ -441,10 +441,14 @@ sub process_subroutine(thing_id: uint16)
     end sub;
 
     sub fe_conditional(iopkind: uint8, iop: [FEConditionalIop])
-        var right: [Node] := simplify_node_to_ea_and_deref(pop());
-        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+        var right: [Node] := pop();
+        var left: [Node] := pop();
 
         var type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
+
+        (left, right) := arch_promote_to_new_ea_nodes_and_deref(iopkind, left, right, type_id);
+        right := simplify_node_to_ea_and_deref(right);
+        left := simplify_node_to_ea_and_deref(left);
 
         var beiop: BEConditionalIop;
         zero_memory(&beiop as [int8], BEConditionalIop@bytes);
@@ -481,14 +485,14 @@ sub process_subroutine(thing_id: uint16)
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
-        if is_number_type_thing(left_type.thing_type) == 0 then
+        if is_number_type_thing(left.type_id) == 0 then
             print("can't shift non-numeric type ");
             print_type_name(left.type_id);
             halt();
         end if;
 
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
-        if is_number_type_thing(right_type.thing_type) == 0 then
+        if is_number_type_thing(right.type_id) == 0 then
             print("can't shift by non-numeric type ");
             print_type_name(left.type_id);
             halt();
