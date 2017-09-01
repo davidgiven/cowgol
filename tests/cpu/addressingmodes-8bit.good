@@ -1,2 +1,7 @@
 array[smallu]==0x55: yes
 array[smalls]==0xAA: yes
+array[largeu]==0x55: yes
+array[larges]==0xAA: yes
+array[smallu+1]==0xAA: yes
+array[largeu+1]==0xAA: yes
+array[maxuint8+1]==0x55: yes

@@ -4,9 +4,18 @@ var smallu: uint8 := 0;
 var smalls: int8 := 1;
 var largeu: uint16 := 300;
 var larges: int16 := 301;
+var maxuint8: uint8 := 0xff;
 
 sub yes() print(": yes\r"); end sub;
 sub no() print(": no\r"); end sub;
+
+sub zero_memory(ptr: [int8], size: uint16)
+    while size != 0 loop
+        size := size - 1;
+        ptr[size] := 0;
+    end loop;
+end sub;
+zero_memory(&array[0] as [int8], array@bytes);
 
 # [array + numoff]. We expect these to work, they're just simple absolute references.
 array[0] := 0x55;
@@ -17,3 +26,13 @@ array[301] := 0xAA;
 # [array + varoff].
 print("array[smallu]==0x55"); if array[smallu] == 0x55 then yes(); else no(); end if;
 print("array[smalls]==0xAA"); if array[smalls] == 0xAA then yes(); else no(); end if;
+print("array[largeu]==0x55"); if array[largeu] == 0x55 then yes(); else no(); end if;
+print("array[larges]==0xAA"); if array[larges] == 0xAA then yes(); else no(); end if;
+
+# [array + numoff + varoff].
+print("array[smallu+1]==0xAA"); if array[smallu+1] == 0xAA then yes(); else no(); end if;
+print("array[largeu+1]==0xAA"); if array[largeu+1] == 0xAA then yes(); else no(); end if;
+
+# Special: because of https://github.com/davidgiven/cowgol/issues/2, promotion happens
+# in arguably the wrong place. Check this.
+print("array[maxuint8+1]==0x55"); if array[maxuint8+1] == 0x55 then yes(); else no(); end if;
