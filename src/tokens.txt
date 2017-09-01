@@ -24,6 +24,9 @@ return    RETURN
 goto      GOTO
 namespace NAMESPACE
 
+# Specials.
+@segment  SEGMENT
+
 # Primitive types.
 int8      INT8          IDENTIFIER
 uint8     UINT8         IDENTIFIER

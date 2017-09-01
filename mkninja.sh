@@ -32,6 +32,12 @@ rule run_smart_test
 
 rule run_bbctube_test
     command = scripts/bbctube_test $in $badfile $goodfile && touch $out
+
+rule token_maker
+    command = gawk -f src/mk-token-maker.awk $in > $out
+
+rule token_names
+    command = gawk -f src/mk-token-names.awk $in > $out
 EOF
 
 OBJDIR="/tmp/cowgol-obj"
@@ -94,9 +100,9 @@ bootstrapped_cowgol_program bin/tokeniser \
     src/utils/things.cow \
     src/tokeniser/strings.cow \
     src/tokeniser/lexer.cow \
-    src/_token_names.cow \
+    $OBJDIR/token_names.cow \
     src/tokeniser/tokeniser.cow \
-    src/_token_maker.cow \
+    $OBJDIR/token_maker.cow \
     src/tokeniser/main.cow \
 
 bootstrapped_cowgol_program bin/parser \
@@ -105,7 +111,7 @@ bootstrapped_cowgol_program bin/parser \
     src/numbers_lib.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
-    src/_token_names.cow \
+    $OBJDIR/token_names.cow \
     src/utils/stringtable.cow \
     src/utils/iops.cow \
     src/parser/globals.cow \
@@ -128,7 +134,7 @@ bootstrapped_cowgol_program bin/typechecker \
     src/utils/iopreader.cow \
     src/utils/iopwriter.cow \
     src/utils/symbols.cow \
-    src/_token_names.cow \
+    $OBJDIR/token_names.cow \
     src/utils/types.cow \
     src/typechecker/temporaries.cow \
     src/typechecker/tree.cow \
@@ -161,7 +167,7 @@ bootstrapped_cowgol_program bin/codegen \
     src/utils/stringtable.cow \
     src/utils/iopreader.cow \
     src/utils/iopwriter.cow \
-    src/_token_names.cow \
+    $OBJDIR/token_names.cow \
     src/utils/symbols.cow \
     src/utils/types.cow \
     src/codegen/init.cow \
@@ -224,3 +230,6 @@ done
 for f in tests/cpu/*.test.cow; do
     cpu_test $f
 done
+
+echo "build $OBJDIR/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk"
+echo "build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk"

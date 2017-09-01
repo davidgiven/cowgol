@@ -186,6 +186,13 @@ sub do_var()
     var variable: [VariableThing] := find_thing(variable_id) as [VariableThing];
     variable.type_id := type_id;
 
+    if current_token == TOKEN_SEGMENT then
+        next_token();
+        expect_token(TOKEN_OPENPAREN);
+        variable.segment := do_constant();
+        expect_token(TOKEN_CLOSEPAREN);
+    end if;
+
     if current_token == TOKEN_ASSIGN then
         emit_fe_push(variable_id);
 
