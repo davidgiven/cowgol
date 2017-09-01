@@ -67,34 +67,90 @@ end sub;
 sub exit(status: uint8)
 end sub;
 
+var __nextaddr: [uint16] @segment(0x81);
+var __pointers: [uint16][3] @segment(0x81);
+
+# Copies A parameters from __nextaddr into __pointers. Advances __nextaddr.
+sub __copyparams()
+    @bytes 0xAA;                 # TAX
+    @bytes 0xA8;                 # TAY
+again:
+    @bytes 0x88;                 # DEY
+    @bytes 0x30, 0xF8;           # BPL loop
+    @bytes 0xB1, >&__nextaddr;   # LDA (__nextaddr), Y
+    @bytes 0x99, &__pointers;    # STA __pointers, Y
+    goto again;
+
+    @bytes 0x8A;                 # TXA
+    @bytes 0x18;                 # CLC
+    @bytes 0x65, >&__nextaddr+0; # ADC __nextaddr
+    @bytes 0x85, >&__nextaddr+0; # STA __nextaddr
+    @bytes 0x90, 0x02;           # BCC exit
+    @bytes 0xE6, >&__nextaddr+1; # INC __nextaddr+1
+end sub;
+
 sub __add16()
-    var lp: [uint16];
     @bytes 0x68;             # PLA
-    @bytes 0x8D, >&lp;       # STA lp
+    @bytes 0x85, >&lp;       # STA lp
     @bytes 0x68;             # PLA
-    @bytes 0x8D, >&lp+1;     # STA lp+1
+    @bytes 0x85, >&lp+1;     # STA lp+1
 
-    var buffer: uint8[6];
+    @bytes 0xA9, 0x06;       # LDA #6
+    __copyparams();
 
-    @bytes 0xA0, 0x05;       # LDY #5
     # loop:
-    @bytes 0xB1, >&lp;       # LDA (lp), Y
-    @bytes 0x99, &buffer;    # STA buffer, Y
-    @bytes 0x88;             # DEY
-    @bytes 0x10, 0xF8;       # BPL loop
-
-    @bytes 0xC8;             # INY (sets Y back to 0)
+    @bytes 0xA0, 0x00;       # LDY #0
     @bytes 0xA2, 0x01;       # LDX #1
     @bytes 0x18;             # CLC
     # loop:
-    @bytes 0xB1, >&buffer+0; # LDA (buffer+0), Y
-    @bytes 0x71, >&buffer+2; # ADC (buffer+2), Y
-    @bytes 0x91, >&buffer+4; # STA (buffer+4), Y
+    @bytes 0xB1, >&__pointers+0; # LDA (__pointers+0), Y
+    @bytes 0x71, >&__pointers+2; # ADC (__pointers+2), Y
+    @bytes 0x91, >&__pointers+4; # STA (__pointers+4), Y
     @bytes 0xC8;             # INY
     @bytes 0xCA;             # DEX
     @bytes 0x10, 0xF6;       # BPL loop
 
-    @bytes 0x6C, &lp;        # JMP (lp)
+    @bytes 0x6C, &__nextaddr; # JMP (__nextaddr)
+end sub;
+
+sub __lsl16()
+    var count: uint8;
+    @bytes 0x8D, &count;         # STA count
+
+    @bytes 0x68;                 # PLA
+    @bytes 0x85, >&lp;           # STA lp
+    @bytes 0x68;                 # PLA
+    @bytes 0x85, >&lp+1;         # STA lp+1
+
+    @bytes 0xA9, 0x06;           # LDA #4
+    __copyparams();
+
+    # Copy the value from src to dest, shifting once as we go.
+
+shiftagain:
+    @bytes 0xA0, 0x00;           # LDY #0
+    @bytes 0xA2, 0x01;           # LDX #1
+    @bytes 0x18;                 # CLC
+    # loop:
+    @bytes 0xB1, >&__pointers+0; # LDA (__pointers+0), Y
+    @bytes 0x2A;                 # ROL A
+    @bytes 0x91, >&__pointers+2; # STA (__pointers+2), Y
+    @bytes 0xC8;                 # INY
+    @bytes 0xCA;                 # DEX
+    @bytes 0x10, 0xF8;           # BPL loop
+
+    @bytes 0xCE, &count;         # DEC count
+    @bytes 0xF0, 0x09;           # BEQ exit
+
+    # We need to shift more, so we do it in-place in dest.
+
+    @bytes 0xA5, >&__pointers+2; # LDA __pointers+2
+    @bytes 0x85, >&__pointers+0; # STA __pointers+0
+    @bytes 0xA5, >&__pointers+3; # LDA __pointers+3
+    @bytes 0x85, >&__pointers+1; # STA __pointers+1
+    goto shiftagain;
+
+    @bytes 0x6C, &__nextaddr;    # JMP (__nextaddr)
 end sub;
 
 sub __mul8u(left: uint8, right: uint8): (result: uint8)
