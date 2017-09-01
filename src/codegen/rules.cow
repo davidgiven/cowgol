@@ -138,6 +138,18 @@ sub try_sub(iop: [BEIop])
     cant_do_3op(iop, "-");
 end sub;
 
+sub try_lsl(iop: [BEIop])
+    insn_before(iop);
+
+    if iop.width == 1 then
+        arch_gen_lsl_byte(iop);
+        insn_after(iop);
+        return;
+    end if;
+
+    cant_do_3op(iop, "lsl");
+end sub;
+
 sub try_sext(iop: [BEIop])
     insn_before(iop);
 
@@ -206,6 +218,12 @@ sub global_rules(): (matched: uint8)
 
     if queue0.iop_kind == IOP_BE_SUB then
         try_sub(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_LSL then
+        try_lsl(queue0 as [BEIop]);
         consume_iops(1);
         return;
     end if;

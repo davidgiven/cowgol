@@ -245,6 +245,8 @@ end sub;
 sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
     if ea.flags == EA_VALUE then
         ld_abs(location, index, ea);
+    elseif ea.flags == EA_DEREF then
+        ld_ind(location, index, ea);
     else
         print("can't load ");
         print_ea(ea);

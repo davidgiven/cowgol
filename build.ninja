@@ -108,5 +108,9 @@ build /tmp/cowgol-obj/tests/cpu/comparisons-8bit-u.6502.exe : cowgol_program src
 build /tmp/cowgol-obj/tests/cpu/comparisons-8bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/comparisons-8bit-u.6502.exe | tests/cpu/comparisons-8bit-u.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/comparisons-8bit-u.good
   badfile=tests/cpu/comparisons-8bit-u.bad
+build /tmp/cowgol-obj/tests/cpu/shifts-8bit-u.6502.exe : cowgol_program src/arch/bbc/runtime.cow tests/cpu/shifts-8bit-u.test.cow | scripts/cowgol compiler_suite
+build /tmp/cowgol-obj/tests/cpu/shifts-8bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/shifts-8bit-u.6502.exe | tests/cpu/shifts-8bit-u.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/shifts-8bit-u.good
+  badfile=tests/cpu/shifts-8bit-u.bad
 build /tmp/cowgol-obj/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk
 build /tmp/cowgol-obj/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk

@@ -53,3 +53,4 @@ print("ptr[largeu+1]==0xAA"); if ptr[largeu+1] == 0xAA then yes(); else no(); en
 # in arguably the wrong place. Check this.
 print("array[maxuint8+1]==0x55"); if array[maxuint8+1] == 0x55 then yes(); else no(); end if;
 print("ptr[maxuint8+1]==0x55"); if ptr[maxuint8+1] == 0x55 then yes(); else no(); end if;
+

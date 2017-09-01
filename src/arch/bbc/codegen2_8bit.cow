@@ -75,6 +75,38 @@ sub arch_gen_sub_byte(iop: [BEIop])
     gen_regular_alu(iop, 0xED); # SBC abs
 end sub;
 
+sub arch_gen_lsl_byte(iop: [BEIop])
+    find_or_load_fixed_value(&iop.left, REG_A);
+    value_in_location_will_be_replaced_with(REG_A, &iop.dest);
+
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var shifts: int32 := get_value_of_number(iop.right.obj_id);
+        if (shifts > 0) and (shifts < 8) then
+            while shifts != 0 loop
+                write_byte(0x0A); # ASL A
+                shifts := shifts - 1;
+            end loop;
+            make_value_precious_or_save_now(REG_A, &iop.dest);
+            return;
+        end if;
+    end if;
+
+    var shiftby: uint8 := find_or_load_value(&iop.right, REG_X|REG_Y);
+
+    var label: uint16 := create_label();
+    write_label_iop(label);
+    write_byte(0x0A); # ASL A
+
+    if shiftby == REG_X then
+        write_byte(0xCA); # DEX
+    else
+        write_byte(0x88); # DEY
+    end if;
+    write_cg_6502_conditional_iop(0xD0, label);
+
+    make_value_precious_or_save_now(REG_A, &iop.dest);
+end sub;
+
 sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     write_back_precious_values(REG_MASK);
 

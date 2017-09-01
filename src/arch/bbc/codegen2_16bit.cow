@@ -5,12 +5,14 @@ sub check_16bit_ea(ea: [EffectiveAddress])
     end if;
 
     if ea.varoff_id != 0 then
-        print("wide EA with variable offset");
+        print("wide EA with variable offset: ");
+        print_ea(ea);
         halt();
     end if;
 
     if (ea.flags == EA_DEREF) and (get_value_of_number(ea.numoff_id) != 0) then
-        print("wide pointer EA with numeric offset");
+        print("wide pointer EA with numeric offset: ");
+        print_ea(ea);
         halt();
     end if;
 
