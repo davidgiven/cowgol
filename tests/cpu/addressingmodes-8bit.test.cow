@@ -33,6 +33,23 @@ print("array[larges]==0xAA"); if array[larges] == 0xAA then yes(); else no(); en
 print("array[smallu+1]==0xAA"); if array[smallu+1] == 0xAA then yes(); else no(); end if;
 print("array[largeu+1]==0xAA"); if array[largeu+1] == 0xAA then yes(); else no(); end if;
 
+# [ptr + numoff].
+print("ptr[0]==0x55"); if ptr[0] == 0x55 then yes(); else no(); end if;
+print("ptr[1]==0xAA"); if ptr[1] == 0xAA then yes(); else no(); end if;
+print("ptr[300]==0x55"); if ptr[300] == 0x55 then yes(); else no(); end if;
+print("ptr[301]==0xAA"); if ptr[301] == 0xAA then yes(); else no(); end if;
+
+# [ptr + varoff].
+print("ptr[smallu]==0x55"); if ptr[smallu] == 0x55 then yes(); else no(); end if;
+print("ptr[smalls]==0xAA"); if ptr[smalls] == 0xAA then yes(); else no(); end if;
+print("ptr[largeu]==0x55"); if ptr[largeu] == 0x55 then yes(); else no(); end if;
+print("ptr[larges]==0xAA"); if ptr[larges] == 0xAA then yes(); else no(); end if;
+
+# [ptr + numoff + varoff].
+print("ptr[smallu+1]==0xAA"); if ptr[smallu+1] == 0xAA then yes(); else no(); end if;
+print("ptr[largeu+1]==0xAA"); if ptr[largeu+1] == 0xAA then yes(); else no(); end if;
+
 # Special: because of https://github.com/davidgiven/cowgol/issues/2, promotion happens
 # in arguably the wrong place. Check this.
 print("array[maxuint8+1]==0x55"); if array[maxuint8+1] == 0x55 then yes(); else no(); end if;
+print("ptr[maxuint8+1]==0x55"); if ptr[maxuint8+1] == 0x55 then yes(); else no(); end if;

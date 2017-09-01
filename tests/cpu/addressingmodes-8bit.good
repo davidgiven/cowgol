@@ -4,4 +4,15 @@ array[largeu]==0x55: yes
 array[larges]==0xAA: yes
 array[smallu+1]==0xAA: yes
 array[largeu+1]==0xAA: yes
+ptr[0]==0x55: yes
+ptr[1]==0xAA: yes
+ptr[300]==0x55: yes
+ptr[301]==0xAA: yes
+ptr[smallu]==0x55: yes
+ptr[smalls]==0xAA: yes
+ptr[largeu]==0x55: yes
+ptr[larges]==0xAA: yes
+ptr[smallu+1]==0xAA: yes
+ptr[largeu+1]==0xAA: yes
 array[maxuint8+1]==0x55: yes
+ptr[maxuint8+1]==0x55: yes
