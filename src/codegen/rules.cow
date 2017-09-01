@@ -1,6 +1,7 @@
-sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint8)
+sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint16)
     if ea.type_id == 0 then
-        print("untyped EA");
+        print("untyped EA ");
+        print_ea(ea);
         halt();
     end if;
 

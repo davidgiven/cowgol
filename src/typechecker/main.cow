@@ -540,10 +540,16 @@ sub process_subroutine(thing_id: uint16)
     sub fe_bytesof()
         var left: [Node] := pop();
         var width: uint16 := get_width_of_type(left.type_id);
+        print("* pushing width of type ");
+        print_type_name(left.type_id);
+        print(" = 0x");
+        print_hex_i16(width);
+        print_newline();
 
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := add_number_by_value(width);
+        node.left.type_id := constant_type;
         node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
 
