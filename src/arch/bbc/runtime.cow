@@ -11,15 +11,12 @@ sub print(ptr: [int8])
 end sub;
 
 sub print_char(char: uint8)
-    @bytes 0xAD;   # LDA abs
-    @words &char;
-    @bytes 0x4C;   # JMP abs
-    @words 0xFFE3; # OSASCII
+    @bytes 0xAD, &char;        # LDA char
+    @bytes 0x4C, 0xE3, 0xFF;   # JMP OSASCII
 end sub;
 
 sub print_newline()
-    @bytes 0x4c;   # JMP abs
-    @words 0xFFE7; # OSNEWL
+    @bytes 0x4C, 0xE7, 0xFF;   # JMP abs
 end sub;
 
 sub print_i8(value: uint8)
@@ -70,24 +67,50 @@ end sub;
 sub exit(status: uint8)
 end sub;
 
+sub __add16()
+    var lp: [uint16];
+    @bytes 0x68;             # PLA
+    @bytes 0x8D, >&lp;       # STA lp
+    @bytes 0x68;             # PLA
+    @bytes 0x8D, >&lp+1;     # STA lp+1
+
+    var buffer: uint8[6];
+
+    @bytes 0xA0, 0x05;       # LDY #5
+    # loop:
+    @bytes 0xB1, >&lp;       # LDA (lp), Y
+    @bytes 0x99, &buffer;    # STA buffer, Y
+    @bytes 0x88;             # DEY
+    @bytes 0x10, 0xF8;       # BPL loop
+
+    @bytes 0xC8;             # INY (sets Y back to 0)
+    @bytes 0xA2, 0x01;       # LDX #1
+    @bytes 0x18;             # CLC
+    # loop:
+    @bytes 0xB1, >&buffer+0; # LDA (buffer+0), Y
+    @bytes 0x71, >&buffer+2; # ADC (buffer+2), Y
+    @bytes 0x91, >&buffer+4; # STA (buffer+4), Y
+    @bytes 0xC8;             # INY
+    @bytes 0xCA;             # DEX
+    @bytes 0x10, 0xF6;       # BPL loop
+
+    @bytes 0x6C, &lp;        # JMP (lp)
+end sub;
+
 sub __mul8u(left: uint8, right: uint8): (result: uint8)
     @bytes 0xA9, 0x00; # LDA #0
     @bytes 0xF0, 0x07; # BEQ start
 
     # add:
     @bytes 0x18; # CLC
-    @bytes 0x6D; # ADC abs
-    @words &left;
+    @bytes 0x6D, &left; # ADC abs
     # loop:
-    @bytes 0x0E; # ASL abs
-    @words &left;
+    @bytes 0x0E, &left; # ASL abs
     # start:
-    @bytes 0x4E; # LSR abs
-    @words &right;
+    @bytes 0x4E, &right; # LSR abs
     @bytes 0xB0, 0xF4; # BCS add
     @bytes 0xD0, 0xF6; # BNE loop
-    @bytes 0x8D; # STA abs
-    @words &result;
+    @bytes 0x8D, &result; # STA abs
 end sub;
 
 var LOMEM: [int8];

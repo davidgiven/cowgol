@@ -454,28 +454,33 @@ end sub;
 sub do_bytes()
     next_token();
     loop
-        var value: int32 := do_constant();
-        emit_byte(value);
-
-        if current_token == TOKEN_SEMICOLON then
-            break;
-        else
-            expect_token(TOKEN_COMMA);
-        end if;
-    end loop;
-    expect_token(TOKEN_SEMICOLON);
-end sub;
-
-sub do_words()
-    next_token();
-    loop
-        if current_token == TOKEN_AMPERSAND then
-            next_token();
+        sub do_address(iop: uint8)
             var identifier_id: uint16 := expect_identifier();
-            emit_address(identifier_id);
+            var offset: int32;
+            if current_token == TOKEN_PLUS then
+                next_token();
+                offset := do_constant();
+            else
+                offset := 0;
+            end if;
+
+            emit_address(iop, identifier_id, offset);
+        end sub;
+
+        if current_token == TOKEN_LTOP then
+            next_token();
+            expect_token(TOKEN_AMPERSAND);
+            do_address(IOP_ADDRESSHI);
+        elseif current_token == TOKEN_GTOP then
+            next_token();
+            expect_token(TOKEN_AMPERSAND);
+            do_address(IOP_ADDRESSLO);
+        elseif current_token == TOKEN_AMPERSAND then
+            next_token();
+            do_address(IOP_ADDRESS);
         else
             var value: int32 := do_constant();
-            emit_word(value);
+            emit_byte(value);
         end if;
 
         if current_token == TOKEN_SEMICOLON then
@@ -537,8 +542,6 @@ while current_token != 0 loop
         do_elseif();
     elseif current_token == TOKEN_BYTES then
         do_bytes();
-    elseif current_token == TOKEN_WORDS then
-        do_words();
     else
         print("unknown token ");
         show_identifier(current_token);

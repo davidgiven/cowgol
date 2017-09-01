@@ -100,9 +100,10 @@ sub emit_word(word: uint16)
     emit_bytes(2, &buf[0] as [uint8]);
 end sub;
 
-sub emit_address(thing_id: uint16)
-    var iop: [AddressIop] := emit(IOP_ADDRESS, AddressIop@bytes) as [AddressIop];
+sub emit_address(opcode: uint8, thing_id: uint16, offset: int16)
+    var iop: [AddressIop] := emit(opcode, AddressIop@bytes) as [AddressIop];
     iop.thing_id := thing_id;
+    iop.offset := offset;
 end sub;
 
 sub create_label(): (label_label: uint16)
