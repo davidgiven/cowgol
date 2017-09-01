@@ -1,109 +1,3 @@
-sub arch_gen_before(ea: [EffectiveAddress])
-    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
-        print("* writing back precious values because of pointer access: ");
-        print_ea(ea);
-        print_newline();
-
-        write_back_precious_values(REG_MASK);
-    end if;
-end sub;
-
-sub arch_gen_after(ea: [EffectiveAddress])
-    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
-        print("* flushing cached values because of pointer access: ");
-        print_ea(ea);
-        print_newline();
-
-        flush_cached_values(REG_MASK);
-    end if;
-end sub;
-
-sub arch_gen_beginning_of_instruction()
-    locked_registers := 0;
-end sub;
-
-sub arch_gen_return()
-    flush_cached_values(REG_MASK);
-    write_byte(0x60); # RTS
-end sub;
-
-sub arch_gen_call(iop: [CallIop])
-    flush_cached_values(REG_MASK);
-    write_byte(0x20); # JSR
-    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
-end sub;
-
-sub arch_gen_label(iop: [LabelIop])
-    flush_cached_values(REG_MASK);
-    write_iop(iop as [Iop]);
-end sub;
-
-sub arch_gen_goto(iop: [GotoIop])
-    flush_cached_values(REG_MASK);
-    write_cg_6502_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
-end sub;
-
-sub arch_gen_copy_byte(iop: [BEIop])
-    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
-    make_value_precious_or_save_now(location, &iop.dest);
-end sub;
-
-sub gen_regular_alu(iop: [BEIop], opcode: uint8)
-    var location: uint8 := find_or_load_value(&iop.left, REG_A);
-    value_in_location_will_be_replaced_with(location, &iop.dest);
-
-    if iop.right.flags == EA_VALUE then
-        # do nothing, the opcode is already right
-    else
-        print("can't add ");
-        print_ea(&iop.right);
-        print(" yet");
-        print_newline();
-    end if;
-
-    aluop_value(&iop.right, opcode);
-    make_value_precious_or_save_now(location, &iop.dest);
-end sub;
-
-sub gen_incdec(iop: [BEIop], value: int8)
-    var location: uint8 := find_or_load_value(&iop.left, REG_X|REG_Y);
-    value_in_location_will_be_replaced_with(location, &iop.dest);
-
-    var opcode: uint8;
-    if value == 1 then
-        if location == REG_X then
-            opcode := 0xE8; # INX
-        else
-            opcode := 0xC8; # INY
-        end if;
-    else
-        if location == REG_X then
-            opcode := 0xCA; # INX
-        else
-            opcode := 0x88; # INY
-        end if;
-    end if;
-    write_byte(opcode);
-
-    make_value_precious_or_save_now(location, &iop.dest);
-end sub;
-
-sub arch_gen_add_byte(iop: [BEIop])
-    var location: uint8;
-    var opcode: uint8;
-
-    if is_number_thing(iop.right.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.right.obj_id);
-        if (value == 1) or (value == -1) then
-            gen_incdec(iop, value);
-            return;
-        end if;
-    end if;
-
-    write_byte(0x18); # CLC
-    gen_regular_alu(iop, 0x6D); # ADC abs
-end sub;
-
 sub check_16bit_ea(ea: [EffectiveAddress])
     if (ea.flags == EA_VALUE) and (is_number_thing(ea.obj_id) != 0) then
         var thing: [NumberThing] := find_thing(ea.obj_id) as [NumberThing];
@@ -120,8 +14,10 @@ sub check_16bit_ea(ea: [EffectiveAddress])
         halt();
     end if;
 
-    if get_width_of_type(ea.type_id) != 2 then
-        print("wide iop with non-wide parameter");
+    var width: uint8 := get_width_of_type(ea.type_id);
+    if (width != 0) and (width != 2) then
+        print("wide iop with non-wide parameter: ");
+        print_ea(ea);
         halt();
     end if;
 end sub;
@@ -154,22 +50,6 @@ end sub;
 sub arch_gen_sub_word(iop: [BEIop])
     write_byte(0x38); # SEC
     regular_alu_word_op(iop, 0xED); # SBC abs
-end sub;
-
-sub arch_gen_sub_byte(iop: [BEIop])
-    var location: uint8;
-    var opcode: uint8;
-
-    if is_number_thing(iop.right.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.right.obj_id);
-        if (value == 1) or (value == -1) then
-            gen_incdec(iop, 0-value);
-            return;
-        end if;
-    end if;
-
-    write_byte(0x38); # SEC
-    gen_regular_alu(iop, 0xED); # SBC abs
 end sub;
 
 sub arch_gen_copy_word(iop: [BEIop])
@@ -245,56 +125,6 @@ sub arch_gen_zext_word(iop: [BEIop])
 
     location := find_or_load_int(0, REG_A|REG_X|REG_Y);
     save_value_with_offset(location, &iop.dest, 1);
-end sub;
-
-sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
-    write_back_precious_values(REG_MASK);
-
-    var opcode: uint8;
-    # The opcodes below assume we're jumping to the *true* label ---
-    # if not, we adjust things later.
-    var iopkind: uint8 := ciop.iop_kind;
-    if iopkind == IOP_BE_BEQ then
-        opcode := 0xF0; # BEQ rel --- branch if zero clear
-    elseif (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
-        opcode := 0x30; # BMI rel
-    else
-        opcode := 0x90; # BCC rel
-    end if;
-
-    sub emit_comparison(ea: [EffectiveAddress])
-        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
-            write_byte(0x38); # SEC
-            aluop_value(ea, 0xED); # SBC abs
-            write_word_iop(0x0250); # BVC .+2
-            write_word_iop(0x8049); # EOR #80
-        else
-            aluop_value(ea, 0xCD); # CMP abs
-        end if;
-    end sub;
-
-    allocate_fixed_reg(REG_A);
-    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
-        aluop_value(&ciop.left, 0xAD); # LDA abs
-        emit_comparison(&ciop.right);
-    else
-        aluop_value(&ciop.right, 0xAD); # LDA abs
-        emit_comparison(&ciop.left);
-    end if;
-
-    var destlabel: uint16;
-    if liop.label == ciop.iftrue_label then
-        destlabel := ciop.iffalse_label;
-        opcode := opcode ^ 0x20;
-    elseif liop.label == ciop.iffalse_label then
-        destlabel := ciop.iftrue_label;
-    else
-        print("bad conditional");
-        halt();
-    end if;
-
-    write_cg_6502_conditional_iop(opcode, destlabel);
-    flush_cached_values(REG_MASK);
 end sub;
 
 sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])

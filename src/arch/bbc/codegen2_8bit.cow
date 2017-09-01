@@ -1,0 +1,126 @@
+sub arch_gen_copy_byte(iop: [BEIop])
+    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
+    make_value_precious_or_save_now(location, &iop.dest);
+end sub;
+
+sub gen_regular_alu(iop: [BEIop], opcode: uint8)
+    var location: uint8 := find_or_load_value(&iop.left, REG_A);
+    value_in_location_will_be_replaced_with(location, &iop.dest);
+
+    if iop.right.flags == EA_VALUE then
+        # do nothing, the opcode is already right
+    else
+        print("can't add ");
+        print_ea(&iop.right);
+        print(" yet");
+        print_newline();
+    end if;
+
+    aluop_value(&iop.right, opcode);
+    make_value_precious_or_save_now(location, &iop.dest);
+end sub;
+
+sub gen_incdec(iop: [BEIop], value: int8)
+    var location: uint8 := find_or_load_value(&iop.left, REG_X|REG_Y);
+    value_in_location_will_be_replaced_with(location, &iop.dest);
+
+    var opcode: uint8;
+    if value == 1 then
+        if location == REG_X then
+            opcode := 0xE8; # INX
+        else
+            opcode := 0xC8; # INY
+        end if;
+    else
+        if location == REG_X then
+            opcode := 0xCA; # INX
+        else
+            opcode := 0x88; # INY
+        end if;
+    end if;
+    write_byte(opcode);
+
+    make_value_precious_or_save_now(location, &iop.dest);
+end sub;
+
+sub arch_gen_add_byte(iop: [BEIop])
+    var location: uint8;
+    var opcode: uint8;
+
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var value: int32 := get_value_of_number(iop.right.obj_id);
+        if (value == 1) or (value == -1) then
+            gen_incdec(iop, value);
+            return;
+        end if;
+    end if;
+
+    write_byte(0x18); # CLC
+    gen_regular_alu(iop, 0x6D); # ADC abs
+end sub;
+
+sub arch_gen_sub_byte(iop: [BEIop])
+    var location: uint8;
+    var opcode: uint8;
+
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var value: int32 := get_value_of_number(iop.right.obj_id);
+        if (value == 1) or (value == -1) then
+            gen_incdec(iop, 0-value);
+            return;
+        end if;
+    end if;
+
+    write_byte(0x38); # SEC
+    gen_regular_alu(iop, 0xED); # SBC abs
+end sub;
+
+sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
+    write_back_precious_values(REG_MASK);
+
+    var opcode: uint8;
+    # The opcodes below assume we're jumping to the *true* label ---
+    # if not, we adjust things later.
+    var iopkind: uint8 := ciop.iop_kind;
+    if iopkind == IOP_BE_BEQ then
+        opcode := 0xF0; # BEQ rel --- branch if zero clear
+    elseif (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+        opcode := 0x30; # BMI rel
+    else
+        opcode := 0x90; # BCC rel
+    end if;
+
+    sub emit_comparison(ea: [EffectiveAddress])
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            write_byte(0x38); # SEC
+            aluop_value(ea, 0xED); # SBC abs
+            write_word_iop(0x0250); # BVC .+2
+            write_word_iop(0x8049); # EOR #80
+        else
+            aluop_value(ea, 0xCD); # CMP abs
+        end if;
+    end sub;
+
+    allocate_fixed_reg(REG_A);
+    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+        aluop_value(&ciop.left, 0xAD); # LDA abs
+        emit_comparison(&ciop.right);
+    else
+        aluop_value(&ciop.right, 0xAD); # LDA abs
+        emit_comparison(&ciop.left);
+    end if;
+
+    var destlabel: uint16;
+    if liop.label == ciop.iftrue_label then
+        destlabel := ciop.iffalse_label;
+        opcode := opcode ^ 0x20;
+    elseif liop.label == ciop.iffalse_label then
+        destlabel := ciop.iftrue_label;
+    else
+        print("bad conditional");
+        halt();
+    end if;
+
+    write_cg_6502_conditional_iop(opcode, destlabel);
+    flush_cached_values(REG_MASK);
+end sub;
