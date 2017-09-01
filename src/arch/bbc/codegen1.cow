@@ -310,7 +310,7 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
         indexea.obj_id := ea.varoff_id;
         ea.varoff_id := 0;
     else
-        if indexea.numoff_id == 0 then
+        if ea.numoff_id == 0 then
             indexea.obj_id := add_number_by_value(0);
         else
             indexea.obj_id := ea.numoff_id;
