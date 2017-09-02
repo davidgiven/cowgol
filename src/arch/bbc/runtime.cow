@@ -5,7 +5,7 @@ sub print(ptr: [int8])
         if c == 0 then
             return;
         end if;
-        print_char(c);
+        print_char(c as uint8);
         index := index + 1;
     end loop;
 end sub;
