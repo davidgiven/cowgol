@@ -26,6 +26,7 @@ namespace NAMESPACE
 
 # Specials.
 @segment  SEGMENT
+@index    INDEX
 
 # Primitive types.
 int8      INT8          IDENTIFIER

@@ -6,6 +6,17 @@ sub read_type(): (type_id: uint16)
         halt();
     end sub;
 
+    sub process_type_modifiers()
+        expect_token(TOKEN_INDEX);
+        type_id := get_type_of_thing(type_id);
+        var thing: [ArrayThing] := find_thing(type_id) as [ArrayThing];
+        if thing.thing_type != THING_ARRAYT then
+            print("@index can only be used on arrays");
+            halt();
+        end if;
+        type_id := thing.index_type_id;
+    end sub;
+
     while current_token == TOKEN_OPENSQUARE loop
         brackets := brackets + 1;
         next_token();
@@ -13,6 +24,9 @@ sub read_type(): (type_id: uint16)
 
     var identifier_id: uint16 := expect_identifier();
     type_id := deref_symbol_or_fail(identifier_id);
+    if (get_thing_type(type_id) & THING_TYPED) == THING_TYPED then
+        process_type_modifiers();
+    end if;
 
     loop
         var type: [TypeThing] := find_thing(type_id) as [TypeThing];
@@ -20,7 +34,6 @@ sub read_type(): (type_id: uint16)
             print("identifier ");
             show_identifier(identifier_id);
             print(" does not refer to a type");
-            print_hex_i16(type_id);
             halt();
         end if;
 
@@ -33,7 +46,14 @@ sub read_type(): (type_id: uint16)
             next_token();
         elseif current_token == TOKEN_OPENSQUARE then
             next_token();
-            type_id := array_of(type_id, do_constant());
+            var element_count: uint16 := do_constant();
+            var index_type_id: uint16;
+            if element_count < 256 then
+                index_type_id := find_bootstrap_type(TOKEN_UINT8);
+            else
+                index_type_id := find_bootstrap_type(TOKEN_UINT16);
+            end if;
+            type_id := array_of(type_id, element_count, index_type_id);
             expect_token(TOKEN_CLOSESQUARE);
         else
             break;

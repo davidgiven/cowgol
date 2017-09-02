@@ -87,7 +87,7 @@ end sub;
 
 sub show_type_thing(thing: [TypeThing])
     print("type(width=");
-    print_i8(thing.width);
+    print_i16(thing.width);
     print(") ");
 end sub;
 
@@ -140,6 +140,8 @@ sub show_array_thing(thing: [ArrayThing])
     show_withelements_thing(thing as [WithElementsThing]);
     print("array(element_count=");
     print_i16(thing.element_count);
+    print(" index_type_id=0x");
+    print_hex_i16(thing.index_type_id);
     print(") ");
 end sub;
 

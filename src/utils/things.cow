@@ -81,6 +81,7 @@ end record;
 
 record ArrayThing: WithElementsThing
     element_count: uint16;
+    index_type_id: uint16;
 end record;
 
 const SEGMENT_UNKNOWN := 0; # here, the address field is used for record-keeping
