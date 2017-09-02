@@ -1,15 +1,15 @@
 sub find_bootstrap_type(identifier_id: uint16): (type_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(find_main_subroutine()) as [SubroutineThing];
-    current_namespace_id := subroutine.namespace_id;
-    type_id := deref_symbol_or_fail(identifier_id);
+    type_id := deref_symbol_in_namespace_or_fail(identifier_id, subroutine.namespace_id);
 end sub;
 
-sub pointer_of(type_id: uint16): (ptr_type_id: uint16)
+sub pointer_of(type_id: uint16, index_type_id: uint16): (ptr_type_id: uint16)
     var buf: PointerThing;
     buf.thing_type := THING_POINTERT;
     buf.thing_size := PointerThing@bytes;
     buf.width := 2;
     buf.element_type_id := type_id;
+    buf.index_type_id := index_type_id;
     ptr_type_id := add_thing_by_value(&buf as [Thing]);
 end sub;
 

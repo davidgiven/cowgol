@@ -9,10 +9,8 @@ sub read_type(): (type_id: uint16)
     sub process_type_modifiers()
         expect_token(TOKEN_INDEX);
         type_id := get_type_of_thing(type_id);
-        var thing: [ArrayThing] := find_thing(type_id) as [ArrayThing];
-        if thing.thing_type == THING_POINTERT then
-            type_id := find_bootstrap_type(TOKEN_INT16);
-        elseif thing.thing_type == THING_ARRAYT then
+        var thing: [WithElementsThing] := find_thing(type_id) as [WithElementsThing];
+        if (thing.thing_type == THING_POINTERT) or (thing.thing_type == THING_ARRAYT) then
             type_id := thing.index_type_id;
         else
             print("@index can only be used on arrays or pointers");
@@ -42,10 +40,10 @@ sub read_type(): (type_id: uint16)
 
         if current_token == TOKEN_CLOSESQUARE then
             if brackets == 0 then
-                mismatched_square_brackets();
+                break;
             end if;
             brackets := brackets - 1;
-            type_id := pointer_of(type_id);
+            type_id := pointer_of(type_id, find_bootstrap_type(TOKEN_INT16));
             next_token();
         elseif current_token == TOKEN_OPENSQUARE then
             next_token();

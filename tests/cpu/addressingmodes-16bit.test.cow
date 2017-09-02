@@ -12,7 +12,7 @@ sub no() print(": no\r"); end sub;
 sub zero_memory(ptr: [int8], size: uint16)
     while size != 0 loop
         size := size - 1;
-        ptr[size] := 0;
+        ptr[size as int16] := 0;
     end loop;
 end sub;
 zero_memory(&array[0] as [int8], array@bytes);

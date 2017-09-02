@@ -96,7 +96,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         else
             iop.left.flags := EA_VALUE;
             iop.left.obj_id := tmpvar_id;
-            iop.left.type_id := pointer_of(iop.left.type_id);
+            iop.left.type_id := pointer_of(iop.left.type_id, uint16_type);
             iop.dest.type_id := iop.left.type_id;
         end if;
         iop.right.obj_id := ea.varoff_id;

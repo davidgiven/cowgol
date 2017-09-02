@@ -1,17 +1,36 @@
 sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
-    if left_type_id == right_type_id then
-        result_type_id := left_type_id;
-    elseif (is_number_type_thing(left_type_id) != 0) and (right_type_id == constant_type) then
-        result_type_id := left_type_id;
-    elseif (is_number_type_thing(right_type_id) != 0) and (left_type_id == constant_type) then
-        result_type_id := right_type_id;
-    else
-        print_type_name(left_type_id);
-        print(" and ");
-        print_type_name(right_type_id);
-        print(" are not compatible in this context");
-        halt();
-    end if;
+    var left: uint16 := left_type_id;
+    var right: uint16 := right_type_id;
+
+    loop
+        if left == right then
+            result_type_id := left;
+            return;
+        elseif (is_number_type_thing(left) != 0) and (right == constant_type) then
+            result_type_id := left;
+            return;
+        elseif (is_number_type_thing(right) != 0) and (left == constant_type) then
+            result_type_id := right;
+            return;
+        end if;
+
+        var left_type: [PointerThing] := find_thing(left) as [PointerThing];
+        var right_type: [PointerThing] := find_thing(right) as [PointerThing];
+        if (left_type.thing_type != THING_POINTERT) or (right_type.thing_type != THING_POINTERT) then
+            break;
+        end if;
+
+        left:= left_type.element_type_id;
+        right:= right_type.element_type_id;
+    end loop;
+
+    print_thing(left_type_id);
+    print_type_name(left_type_id);
+    print(" and ");
+    print_thing(right_type_id);
+    print_type_name(right_type_id);
+    print(" are not compatible in this context");
+    halt();
 end sub;
 
 sub must_be_simplified(node: [Node])
@@ -103,7 +122,7 @@ sub process_subroutine(thing_id: uint16)
             node.type_id := constant_type;
             node.flags := FLAG_RVALUE;
         elseif thing.thing_type == THING_STRING then
-            node.type_id := pointer_of(int8_type);
+            node.type_id := pointer_of(int8_type, uint8_type);
             node.left.flags := EA_LEA;
             node.flags := FLAG_RVALUE;
         elseif (thing.thing_type & THING_TYPED) != 0 then
@@ -242,8 +261,11 @@ sub process_subroutine(thing_id: uint16)
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
         var element_type: [TypeThing] := find_thing(left_type.element_type_id) as [TypeThing];
 
-        if is_number_type_thing(right.type_id) == 0 then
-            print("index must be numeric");
+        var index_type_id: uint16 := check_type_compatibility(right.type_id, left_type.index_type_id);
+        if is_number_type_thing(index_type_id) == 0 then
+            print("index type ");
+            print_type_name(index_type_id);
+            print(" is not numeric");
             halt();
         end if;
 
@@ -317,7 +339,7 @@ sub process_subroutine(thing_id: uint16)
             halt();
         end if;
 
-        node.type_id := pointer_of(node.type_id);
+        node.type_id := pointer_of(node.type_id, uint16_type);
         if node.left.flags == EA_DEREF then
             node.left.flags := EA_VALUE;
         elseif node.left.flags == EA_VALUE then

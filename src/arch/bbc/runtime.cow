@@ -1,7 +1,7 @@
 sub print(ptr: [int8])
     var index: uint8 := 0;
     loop
-        var c: int8 := ptr[index];
+        var c: int8 := ptr[index as int16];
         if c == 0 then
             return;
         end if;
