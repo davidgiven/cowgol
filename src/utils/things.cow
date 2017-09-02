@@ -73,7 +73,7 @@ record NumericThing: TypeThing
 end record;
 
 record WithElementsThing: TypeThing
-    element_id: uint16;
+    element_type_id: uint16;
 end record;
 
 record PointerThing: WithElementsThing

@@ -255,7 +255,7 @@ sub process_subroutine(thing_id: uint16)
             halt();
         end if;
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
-        var element_type: [TypeThing] := find_thing(left_type.element_id) as [TypeThing];
+        var element_type: [TypeThing] := find_thing(left_type.element_type_id) as [TypeThing];
 
         if is_number_type_thing(right.type_id) == 0 then
             print("index must be numeric");
@@ -267,12 +267,12 @@ sub process_subroutine(thing_id: uint16)
             # not the *location* of the pointer.
             left := simplify_node_to_var_and_deref(left);
             left.left.flags := EA_DEREF;
-            left.left.type_id := left_type.element_id;
+            left.left.type_id := left_type.element_type_id;
         end if;
 
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
-        node.type_id := left_type.element_id;
+        node.type_id := left_type.element_type_id;
 
         print("* left has ea ");
         print_ea(&left.left);
@@ -282,7 +282,7 @@ sub process_subroutine(thing_id: uint16)
         print_newline();
 
         copy_ea_ref(&left.left, &node.left);
-        node.left.type_id := left_type.element_id;
+        node.left.type_id := left_type.element_type_id;
 
         print("* result base has ea ");
         print_ea(&node.left);
@@ -359,7 +359,7 @@ sub process_subroutine(thing_id: uint16)
             node.left.flags := EA_DEREF;
 
             var pointer_type: [PointerThing] := type as [PointerThing];
-            type_id := pointer_type.element_id;
+            type_id := pointer_type.element_type_id;
             type := find_thing(type_id);
         end if;
         if type.thing_type != THING_RECORDT then

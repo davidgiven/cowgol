@@ -91,11 +91,15 @@ sub show_type_thing(thing: [TypeThing])
     print(") ");
 end sub;
 
-sub show_pointer_thing(thing: [PointerThing])
+sub show_withelements_thing(thing: [WithElementsThing])
     show_type_thing(thing as [TypeThing]);
-    print("pointer(element_id=0x");
-    print_hex_i16(thing.element_id);
+    print("withelements(element_type_id=0x");
+    print_hex_i16(thing.element_type_id);
     print(") ");
+end sub;
+
+sub show_pointer_thing(thing: [PointerThing])
+    show_withelements_thing(thing as [WithElementsThing]);
 end sub;
 
 sub show_record_thing(thing: [RecordThing])
@@ -133,10 +137,8 @@ sub show_numeric_thing(kind: [int8], thing: [NumericThing])
 end sub;
 
 sub show_array_thing(thing: [ArrayThing])
-    show_type_thing(thing as [TypeThing]);
-    print("array(element_id=0x");
-    print_hex_i16(thing.element_id);
-    print(" element_count=");
+    show_withelements_thing(thing as [WithElementsThing]);
+    print("array(element_count=");
     print_i16(thing.element_count);
     print(") ");
 end sub;
