@@ -16,15 +16,10 @@ end sub;
 sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
     if left_type_id == right_type_id then
         result_type_id := left_type_id;
-    elseif (is_number_type_thing(left_type_id) != 0)
-        and (is_number_type_thing(right_type_id) != 0)
-    then
-        if get_width_of_type(left_type_id) < get_width_of_type(right_type_id) then
-            result_type_id := right_type_id;
-        else
-            result_type_id := left_type_id;
-        end if;
-        return;
+    elseif (is_number_type_thing(left_type_id) != 0) and (right_type_id == constant_type) then
+        result_type_id := left_type_id;
+    elseif (is_number_type_thing(right_type_id) != 0) and (left_type_id == constant_type) then
+        result_type_id := right_type_id;
     else
         print_type_name(left_type_id);
         print(" and ");
@@ -160,7 +155,6 @@ sub process_subroutine(thing_id: uint16)
         check_type_assignability(src.type_id, dest.type_id);
         dest := simplify_node_to_ea_and_deref(dest);
         src := simplify_constants_and_deref(src);
-        src := arch_promote_to_new_node_and_deref(src, dest.type_id);
         arch_simplify_node_to(src, dest);
         deref_node(src);
         deref_node(dest);
@@ -173,7 +167,6 @@ sub process_subroutine(thing_id: uint16)
         # if you change this, change the non-pointer case in addsub as well
         var dest_type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
 
-        (left, right) := arch_promote_to_new_ea_nodes_and_deref(beiop, left, right, dest_type_id);
         right := simplify_node_to_ea_and_deref(right);
         left := simplify_node_to_ea_and_deref(left);
 
@@ -237,7 +230,8 @@ sub process_subroutine(thing_id: uint16)
             halt();
         end if;
 
-        (left, right) := arch_promote_to_new_ea_nodes_and_deref(beiop, left, right, dest_type_id);
+        left := simplify_node_to_ea_and_deref(left);
+        right := simplify_node_to_ea_and_deref(right);
 
         var node: [Node] := push_empty_node();
         node.iop := beiop;
@@ -446,7 +440,6 @@ sub process_subroutine(thing_id: uint16)
 
         var type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
 
-        (left, right) := arch_promote_to_new_ea_nodes_and_deref(iopkind, left, right, type_id);
         right := simplify_node_to_ea_and_deref(right);
         left := simplify_node_to_ea_and_deref(left);
 

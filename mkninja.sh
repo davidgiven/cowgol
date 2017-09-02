@@ -141,7 +141,6 @@ bootstrapped_cowgol_program bin/typechecker \
     src/typechecker/init.cow \
     src/arch/bbc/simplifier.cow \
     src/typechecker/simplifier.cow \
-    src/arch/bbc/promotion.cow \
     src/typechecker/main.cow
 
 bootstrapped_cowgol_program bin/classifier \
