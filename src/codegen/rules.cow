@@ -147,6 +147,12 @@ sub try_lsl(iop: [BEIop])
         return;
     end if;
 
+    if iop.width == 2 then
+        arch_gen_lsl_word(iop);
+        insn_after(iop);
+        return;
+    end if;
+
     cant_do_3op(iop, "lsl");
 end sub;
 
@@ -277,7 +283,11 @@ sub global_rules(): (matched: uint8)
         return;
     end if;
 
-    if (queue0.iop_kind == IOP_BYTES) or (queue0.iop_kind == IOP_ADDRESS) then
+    if (queue0.iop_kind == IOP_BYTES)
+        or (queue0.iop_kind == IOP_ADDRESS)
+        or (queue0.iop_kind == IOP_ADDRESSLO)
+        or (queue0.iop_kind == IOP_ADDRESSHI)
+    then
         write_iop(queue0);
         consume_iops(1);
         return;

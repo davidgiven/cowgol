@@ -129,6 +129,16 @@ sub arch_gen_zext_word(iop: [BEIop])
     save_value_with_offset(location, &iop.dest, 1);
 end sub;
 
+sub arch_gen_lsl_word(iop: [BEIop])
+    if (iop.left.flags != EA_VALUE) or (iop.dest.flags != EA_VALUE) then
+        print("unimplemented");
+        halt();
+    end if;
+
+    check_16bit_ea(&iop.left);
+    check_16bit_ea(&iop.dest);
+end sub;
+
 sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
     write_back_precious_values(REG_MASK);
     check_16bit_ea(&ciop.left);

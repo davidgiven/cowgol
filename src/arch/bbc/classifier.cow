@@ -1,11 +1,15 @@
-sub arch_classify_vars(ea: [EffectiveAddress])
-    sub do_data(obj_id: uint16, segment: uint8)
-        var obj: [DataThing] := find_thing(obj_id) as [DataThing];
-        if segment > obj.segment then
-            obj.segment := segment;
-        end if;
-    end sub;
+sub do_data(obj_id: uint16, segment: uint8)
+    var obj: [DataThing] := find_thing(obj_id) as [DataThing];
+    if segment > obj.segment then
+        obj.segment := segment;
+    end if;
+end sub;
 
+sub arch_classify_var(var_id: uint16)
+    do_data(var_id, SEGMENT_DATA);
+end sub;
+
+sub arch_classify_ea(ea: [EffectiveAddress])
     var objtype: uint8 := get_thing_type(ea.obj_id);
     if (objtype & THING_TYPED) != 0 then
         var segment: uint8;
@@ -31,7 +35,8 @@ sub arch_allocate_var(offsets: [ArchSizes], thing: [TypedThing], width: uint16)
         thing.address := offsets.data_size;
         offsets.data_size := offsets.data_size + width;
     else
-        print("bad segment");
+        print("bad segment 0x");
+        print_hex_i8(thing.segment);
         halt();
     end if;
 end sub;
@@ -52,4 +57,26 @@ sub arch_report_offsets(offsets: [ArchSizes])
     print(" bytes\nData: ");
     print_i16(offsets.data_size);
     print(" bytes\n");
+end sub;
+
+sub needs_runtime_subroutine(identifier_id: uint16)
+    var subroutine_id: uint16 := find_bootstrap_symbol(identifier_id);
+    var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+    if subroutine.thing_type != THING_SUBROUTINE then
+        print("runtime sub not a sub!");
+        halt();
+    end if;
+
+    subroutine.segment := SEGMENT_CODE;
+end sub;
+
+sub arch_classify_iop(iop: [BEIop])
+    var iopkind: uint8 := iop.iop_kind;
+    var width: uint8 := iop.width;
+    if (iopkind == IOP_BE_LSL) and (width == 2) then
+        needs_runtime_subroutine(TOKEN_LSL16);
+    end if;
+end sub;
+
+sub arch_classify_conditional_iop(iop: [BEConditionalIop])
 end sub;

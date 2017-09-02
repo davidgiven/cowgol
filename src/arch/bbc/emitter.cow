@@ -23,7 +23,7 @@ sub arch_calculate_address(thing: [DataThing]): (address: uint16)
         address := 0x0E03 + root.code_size + thing.address;
     else
         print("cannot calculate address of thing with segment=0x");
-        print_i8(thing.segment);
+        print_hex_i8(thing.segment);
         print(" address=");
         print_i16(thing.address);
         halt();

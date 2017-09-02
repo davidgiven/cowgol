@@ -90,6 +90,11 @@ sub find_main_subroutine(): (subroutine_id: uint16)
     subroutine_id := root.main_subroutine_id;
 end sub;
 
+sub find_bootstrap_symbol(identifier_id: uint16): (thing_id: uint16)
+    var subroutine: [SubroutineThing] := find_thing(find_main_subroutine()) as [SubroutineThing];
+    thing_id := deref_symbol_in_namespace_or_fail(identifier_id, subroutine.namespace_id);
+end sub;
+
 sub find_nth_parameter(subroutine_id: uint16, direction: uint8, parameter: uint8):
         (parameter_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];

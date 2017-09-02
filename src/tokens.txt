@@ -28,6 +28,9 @@ namespace NAMESPACE
 @segment  SEGMENT
 @index    INDEX
 
+# Builtins.
+__lsl16   LSL16         IDENTIFIER
+
 # Primitive types.
 int8      INT8          IDENTIFIER
 uint8     UINT8         IDENTIFIER

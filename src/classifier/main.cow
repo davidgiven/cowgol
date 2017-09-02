@@ -43,18 +43,25 @@ sub process_subroutine(subroutine_id: uint16)
     sub do_ea(ea: [EffectiveAddress])
         do_var(ea.obj_id);
         do_var(ea.varoff_id);
-        arch_classify_vars(ea);
+        arch_classify_ea(ea);
     end sub;
 
     sub do_beiop(iop: [BEIop])
+        arch_classify_iop(iop);
         do_ea(&iop.left);
         do_ea(&iop.right);
         do_ea(&iop.dest);
     end sub;
 
     sub do_beconditionaliop(iop: [BEConditionalIop])
+        arch_classify_conditional_iop(iop);
         do_ea(&iop.left);
         do_ea(&iop.right);
+    end sub;
+
+    sub do_addressiop(iop: [AddressIop])
+        #do_var(iop.thing_id);
+        arch_classify_var(iop.thing_id);
     end sub;
 
     loop
@@ -76,6 +83,11 @@ sub process_subroutine(subroutine_id: uint16)
             or (iop.iop_kind == IOP_BE_BGTU)
         then
             do_beconditionaliop(iop as [BEConditionalIop]);
+        elseif (iop.iop_kind == IOP_ADDRESS)
+            or (iop.iop_kind == IOP_ADDRESSLO)
+            or (iop.iop_kind == IOP_ADDRESSHI)
+        then
+            do_addressiop(iop as [AddressIop]);
         end if;
     end loop;
 end sub;
@@ -92,7 +104,7 @@ sub build_graph()
     end loop;
 end sub;
 
-sub mark_main_subroutine()
+sub mark_main_subroutines()
     var main_id: uint16 := find_main_subroutine();
     var main: [SubroutineThing] := find_thing(main_id) as [SubroutineThing];
     main.segment := SEGMENT_CODE;
@@ -148,9 +160,9 @@ sub print_graph()
     var i: uint16 := 0;
     while i < graph_count loop
         var g: [GraphRecord] := &graph_base[i];
-        print_thing(g.src_id);
+        show_name_of(g.src_id);
         print(" -> ");
-        print_thing(g.dest_id);
+        show_name_of(g.dest_id);
         print_newline();
 
         i := i + 1;
@@ -277,7 +289,7 @@ print(" graph nodes from ");
 print_i16(reference_count);
 print(" references)\n");
 
-mark_main_subroutine();
+mark_main_subroutines();
 find_reachable_subroutines();
 
 print("Reachable subroutines: ");
@@ -285,10 +297,10 @@ print_i16(used_subroutine_count);
 print_newline();
 
 clean_graph();
-#print_graph();
+print_graph();
 init_subdata(&graph_base[graph_count] as [int8]);
 assign_space_for_all_variables();
-#show_subroutine_sizes();
+show_subroutine_sizes();
 
 arch_report_offsets(&root.archsizes);
 

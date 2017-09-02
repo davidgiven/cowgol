@@ -67,13 +67,14 @@ end sub;
 sub exit(status: uint8)
 end sub;
 
-var __nextaddr: [uint16] @segment(0x81);
-var __pointers: [uint16][3] @segment(0x81);
+var __nextaddr: uint16 @segment(0x81);
+var __pointers: uint16[3] @segment(0x81);
 
 # Copies A parameters from __nextaddr into __pointers. Advances __nextaddr.
 sub __copyparams()
     @bytes 0xAA;                 # TAX
     @bytes 0xA8;                 # TAY
+
 again:
     @bytes 0x88;                 # DEY
     @bytes 0x30, 0xF8;           # BPL loop
@@ -89,38 +90,38 @@ again:
     @bytes 0xE6, >&__nextaddr+1; # INC __nextaddr+1
 end sub;
 
-sub __add16()
-    @bytes 0x68;             # PLA
-    @bytes 0x85, >&lp;       # STA lp
-    @bytes 0x68;             # PLA
-    @bytes 0x85, >&lp+1;     # STA lp+1
-
-    @bytes 0xA9, 0x06;       # LDA #6
-    __copyparams();
-
-    # loop:
-    @bytes 0xA0, 0x00;       # LDY #0
-    @bytes 0xA2, 0x01;       # LDX #1
-    @bytes 0x18;             # CLC
-    # loop:
-    @bytes 0xB1, >&__pointers+0; # LDA (__pointers+0), Y
-    @bytes 0x71, >&__pointers+2; # ADC (__pointers+2), Y
-    @bytes 0x91, >&__pointers+4; # STA (__pointers+4), Y
-    @bytes 0xC8;             # INY
-    @bytes 0xCA;             # DEX
-    @bytes 0x10, 0xF6;       # BPL loop
-
-    @bytes 0x6C, &__nextaddr; # JMP (__nextaddr)
-end sub;
+#sub __add16()
+#    @bytes 0x68;             # PLA
+#    @bytes 0x85, >&lp;       # STA lp
+#    @bytes 0x68;             # PLA
+#    @bytes 0x85, >&lp+1;     # STA lp+1
+#
+#    @bytes 0xA9, 0x06;       # LDA #6
+#    __copyparams();
+#
+#    # loop:
+#    @bytes 0xA0, 0x00;       # LDY #0
+#    @bytes 0xA2, 0x01;       # LDX #1
+#    @bytes 0x18;             # CLC
+#    # loop:
+#    @bytes 0xB1, >&__pointers+0; # LDA (__pointers+0), Y
+#    @bytes 0x71, >&__pointers+2; # ADC (__pointers+2), Y
+#    @bytes 0x91, >&__pointers+4; # STA (__pointers+4), Y
+#    @bytes 0xC8;             # INY
+#    @bytes 0xCA;             # DEX
+#    @bytes 0x10, 0xF6;       # BPL loop
+#
+#    @bytes 0x6C, &__nextaddr; # JMP (__nextaddr)
+#end sub;
 
 sub __lsl16()
     var count: uint8;
     @bytes 0x8D, &count;         # STA count
 
     @bytes 0x68;                 # PLA
-    @bytes 0x85, >&lp;           # STA lp
+    @bytes 0x85, >&__nextaddr+0; # STA __nextaddr+0
     @bytes 0x68;                 # PLA
-    @bytes 0x85, >&lp+1;         # STA lp+1
+    @bytes 0x85, >&__nextaddr+1; # STA __nextaddr+1
 
     @bytes 0xA9, 0x06;           # LDA #4
     __copyparams();

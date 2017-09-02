@@ -601,7 +601,10 @@ sub process_subroutine(thing_id: uint16)
             break;
         elseif iop.iop_kind == IOP_CALL then
             fe_call(iop as [CallIop]);
-        elseif iop.iop_kind == IOP_ADDRESS then
+        elseif (iop.iop_kind == IOP_ADDRESS)
+            or (iop.iop_kind == IOP_ADDRESSLO)
+            or (iop.iop_kind == IOP_ADDRESSHI)
+        then
             special_address(iop as [AddressIop]);
         elseif ioptype == IOP_TYPE_UNTYPED then
             write_iop(iop);
