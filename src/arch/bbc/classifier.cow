@@ -68,6 +68,7 @@ sub needs_runtime_subroutine(identifier_id: uint16)
     end if;
 
     subroutine.segment := SEGMENT_CODE;
+    add_reference(current_subroutine_id, subroutine_id);
 end sub;
 
 sub arch_classify_iop(iop: [BEIop])

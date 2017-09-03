@@ -1,11 +1,11 @@
-sub process_subroutine(subroutine_id: uint16)
-    add_reference(subroutine_id, 0);
-    var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
+sub process_subroutine()
+    add_reference(current_subroutine_id, 0);
+    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     subroutine.segment := SEGMENT_OMIT;
 
     sub do_call(iop: [CallIop])
         reference_count := reference_count + 1;
-        add_reference(subroutine_id, iop.thing_id);
+        add_reference(current_subroutine_id, iop.thing_id);
     end sub;
 
     sub do_ea(ea: [EffectiveAddress])
@@ -26,9 +26,12 @@ sub process_subroutine(subroutine_id: uint16)
     end sub;
 
     sub do_addressiop(iop: [AddressIop])
-        var var_id: uint16 := iop.thing_id;
-        if is_typed_thing(var_id) != 0 then
-            arch_classify_var(iop.thing_id);
+        var obj_id: uint16 := iop.thing_id;
+        if get_thing_type(obj_id) == THING_SUBROUTINE then
+            add_reference(current_subroutine_id, obj_id);
+        end if;
+        if is_typed_thing(obj_id) != 0 then
+            arch_classify_var(obj_id);
         end if;
     end sub;
 
@@ -68,7 +71,8 @@ sub build_graph()
             break;
         end if;
 
-        process_subroutine(iheader.thing_id);
+        current_subroutine_id := iheader.thing_id;
+        process_subroutine();
         subroutine_count := subroutine_count + 1;
     end loop;
 end sub;
@@ -218,6 +222,10 @@ sub assign_space_for_all_variables()
         if subroutine_id == 0 then
             break;
         end if;
+
+        print("assigning ");
+        show_name_of(subroutine_id);
+        print_newline();
 
         assign_space_for_variables(subroutine_id);
     end loop;
