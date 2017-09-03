@@ -71,16 +71,22 @@ var __nextaddr: uint16 @segment(0x81);
 var __pointers: uint16[3] @segment(0x81);
 
 # Copies A parameters from __nextaddr into __pointers. Advances __nextaddr.
+# Note that __nextaddr is pointing at the *previous* byte to the one we're going
+# to return to and we need to adjust it.
 sub __copyparams()
     @bytes 0xAA;                 # TAX
     @bytes 0xA8;                 # TAY
 
-again:
+    @bytes 0xE6, >&__nextaddr+0; # INC __nextaddr+0
+    @bytes 0xD0, 0x02;           # BNE $+2
+    @bytes 0xE6, >&__nextaddr+1; # INC __nextaddr+1
+
     @bytes 0x88;                 # DEY
-    @bytes 0x30, 0xF8;           # BPL loop
+#again:
     @bytes 0xB1, >&__nextaddr;   # LDA (__nextaddr), Y
-    @bytes 0x99, &__pointers;    # STA __pointers, Y
-    goto again;
+    @bytes 0x99, &__pointers;  # STA __pointers, Y
+    @bytes 0x88;                 # DEY
+    @bytes 0x10, 0xF8;           # BPL again
 
     @bytes 0x8A;                 # TXA
     @bytes 0x18;                 # CLC
@@ -123,7 +129,7 @@ sub __lsl16()
     @bytes 0x68;                 # PLA
     @bytes 0x85, >&__nextaddr+1; # STA __nextaddr+1
 
-    @bytes 0xA9, 0x06;           # LDA #6
+    @bytes 0xA9, 0x04;           # LDA #4
     __copyparams();
 
     # Copy the value from src to dest, shifting once as we go.
