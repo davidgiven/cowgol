@@ -86,8 +86,8 @@ sub gen_operator_and_deref(beiop: uint8, left: [Node], right: [Node]): (dest: [N
     deref_node(right);
 end sub;
 
-sub process_subroutine(thing_id: uint16)
-    var subroutine: [SubroutineThing] := find_thing(thing_id) as [SubroutineThing];
+sub process_subroutine()
+    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     init_tree();
     init_temporaries();
     current_namespace_id := subroutine.namespace_id;
@@ -681,7 +681,8 @@ sub process()
         end if;
 
         write_iop_header(iheader);
-        process_subroutine(iheader.thing_id);
+        current_subroutine_id := iheader.thing_id;
+        process_subroutine();
     end loop;
     write_terminating_iop_header();
 end sub;

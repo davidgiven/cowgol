@@ -123,7 +123,7 @@ sub __lsl16()
     @bytes 0x68;                 # PLA
     @bytes 0x85, >&__nextaddr+1; # STA __nextaddr+1
 
-    @bytes 0xA9, 0x06;           # LDA #4
+    @bytes 0xA9, 0x06;           # LDA #6
     __copyparams();
 
     # Copy the value from src to dest, shifting once as we go.
@@ -138,10 +138,10 @@ shiftagain:
     @bytes 0x91, >&__pointers+2; # STA (__pointers+2), Y
     @bytes 0xC8;                 # INY
     @bytes 0xCA;                 # DEX
-    @bytes 0x10, 0xF8;           # BPL loop
+    @bytes 0x10, 0xF7;           # BPL loop
 
     @bytes 0xCE, &count;         # DEC count
-    @bytes 0xF0, 0x09;           # BEQ exit
+    @bytes 0xF0, 0x0B;           # BEQ exit
 
     # We need to shift more, so we do it in-place in dest.
 

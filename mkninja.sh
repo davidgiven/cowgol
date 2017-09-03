@@ -136,9 +136,9 @@ bootstrapped_cowgol_program bin/typechecker \
     src/utils/symbols.cow \
     $OBJDIR/token_names.cow \
     src/utils/types.cow \
+    src/typechecker/init.cow \
     src/typechecker/temporaries.cow \
     src/typechecker/tree.cow \
-    src/typechecker/init.cow \
     src/arch/bbc/simplifier.cow \
     src/typechecker/simplifier.cow \
     src/typechecker/main.cow

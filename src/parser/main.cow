@@ -138,6 +138,7 @@ sub do_sub()
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
         parameter.direction := direction;
         parameter.type_id := type_id;
+        parameter.owner_id := current_subroutine_id;
     end sub;
 
     sub add_parameter_list(direction: uint8)
@@ -185,6 +186,7 @@ sub do_var()
     add_symbol(id, variable_id, current_namespace_id);
     var variable: [VariableThing] := find_thing(variable_id) as [VariableThing];
     variable.type_id := type_id;
+    variable.owner_id := current_subroutine_id;
 
     if current_token == TOKEN_SEGMENT then
         next_token();

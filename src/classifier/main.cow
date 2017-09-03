@@ -1,24 +1,5 @@
-sub check_sub_ancestry(child_sub_id: uint16, parent_sub_id: uint16): (yes: uint8)
-    sub namespace_of(subroutine_id: uint16): (namespace: [NamespaceThing])
-        var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
-        namespace := find_thing(subroutine.namespace_id) as [NamespaceThing];
-    end sub;
-
-    var child: [NamespaceThing] := namespace_of(child_sub_id);
-    var parent: [NamespaceThing] := namespace_of(parent_sub_id);
-
-    yes := 0;
-    while child != parent loop
-        if child.previous_namespace == 0 then
-            return;
-        end if;
-        child := find_thing(child.previous_namespace) as [NamespaceThing];
-    end loop;
-
-    yes := 1;
-end sub;
-
 sub process_subroutine(subroutine_id: uint16)
+    add_reference(subroutine_id, 0);
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
     subroutine.segment := SEGMENT_OMIT;
 
@@ -27,22 +8,7 @@ sub process_subroutine(subroutine_id: uint16)
         add_reference(subroutine_id, iop.thing_id);
     end sub;
 
-    sub do_var(var_id: uint16)
-        if is_typed_thing(var_id) != 0 then
-            var obj: [TypedThing] := find_thing(var_id) as [TypedThing];
-            if obj.owner_id == 0 then
-                obj.owner_id := subroutine_id;
-            else
-                if check_sub_ancestry(subroutine_id, obj.owner_id) == 0 then
-                    obj.owner_id := subroutine_id;
-                end if;
-            end if;
-        end if;
-    end sub;
-
     sub do_ea(ea: [EffectiveAddress])
-        do_var(ea.obj_id);
-        do_var(ea.varoff_id);
         arch_classify_ea(ea);
     end sub;
 
@@ -60,32 +26,35 @@ sub process_subroutine(subroutine_id: uint16)
     end sub;
 
     sub do_addressiop(iop: [AddressIop])
-        #do_var(iop.thing_id);
-        arch_classify_var(iop.thing_id);
+        var var_id: uint16 := iop.thing_id;
+        if is_typed_thing(var_id) != 0 then
+            arch_classify_var(iop.thing_id);
+        end if;
     end sub;
 
     loop
         var iop: [Iop] := read_iop();
-        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+        var iopkind: uint8 := iop.iop_kind;
+        var ioptype: uint8 := iopkind & IOP_TYPE_MASK;
 
-        if iop.iop_kind == IOP_END then
+        if iopkind == IOP_END then
             break;
-        elseif iop.iop_kind == IOP_CALL then
+        elseif iopkind == IOP_CALL then
             do_call(iop as [CallIop]);
         elseif (ioptype == IOP_TYPE_BACKEND_2OP)
             or (ioptype == IOP_TYPE_BACKEND_3OP)
         then
             do_beiop(iop as [BEIop]);
-        elseif (iop.iop_kind == IOP_BE_BEQ)
-            or (iop.iop_kind == IOP_BE_BLTS)
-            or (iop.iop_kind == IOP_BE_BLTU)
-            or (iop.iop_kind == IOP_BE_BGTS)
-            or (iop.iop_kind == IOP_BE_BGTU)
+        elseif (iopkind == IOP_BE_BEQ)
+            or (iopkind == IOP_BE_BLTS)
+            or (iopkind == IOP_BE_BLTU)
+            or (iopkind == IOP_BE_BGTS)
+            or (iopkind == IOP_BE_BGTU)
         then
             do_beconditionaliop(iop as [BEConditionalIop]);
-        elseif (iop.iop_kind == IOP_ADDRESS)
-            or (iop.iop_kind == IOP_ADDRESSLO)
-            or (iop.iop_kind == IOP_ADDRESSHI)
+        elseif (iopkind == IOP_ADDRESS)
+            or (iopkind == IOP_ADDRESSLO)
+            or (iopkind == IOP_ADDRESSHI)
         then
             do_addressiop(iop as [AddressIop]);
         end if;
@@ -109,7 +78,6 @@ sub mark_main_subroutines()
     var main: [SubroutineThing] := find_thing(main_id) as [SubroutineThing];
     main.segment := SEGMENT_CODE;
     used_subroutine_count := 1;
-    add_reference(main_id, 0);
 end sub;
 
 sub find_reachable_subroutines()
@@ -174,20 +142,25 @@ sub assign_space_for_variables(subroutine_id: uint16)
     var sr: [SubRecord] := &subdata[subroutine.address];
 
     sub allocate_space()
-        sub do_var(thing: [TypedThing])
-            if thing.owner_id == subroutine_id then
-                arch_allocate_var(&sr.base, thing, get_width_of_type(thing.type_id));
-            end if;
-        end sub;
-
         var id: uint16 := 1;
         loop
-            var thing: [Thing] := &thing_table[id] as [Thing];
+            var thing: [TypedThing] := &thing_table[id] as [TypedThing];
             if thing.thing_size == 0 then
                 break;
             end if;
             if (thing.thing_type & THING_TYPED) != 0 then
-                do_var(thing as [TypedThing]);
+                if (thing.owner_id == subroutine_id) and (thing.segment != SEGMENT_UNKNOWN) then
+                    arch_allocate_var(&sr.base, thing, get_width_of_type(thing.type_id));
+
+                    #show_name_of(subroutine_id);
+                    #print_char('.');
+                    #show_name_of(id);
+                    #print(": segment 0x");
+                    #print_hex_i8(thing.segment);
+                    #print(" offset 0x");
+                    #print_hex_i16(thing.address);
+                    #print_newline();
+                end if;
             end if;
             id := id + thing.thing_size;
         end loop;
@@ -297,10 +270,10 @@ print_i16(used_subroutine_count);
 print_newline();
 
 clean_graph();
-print_graph();
+#print_graph();
 init_subdata(&graph_base[graph_count] as [int8]);
 assign_space_for_all_variables();
-show_subroutine_sizes();
+#show_subroutine_sizes();
 
 arch_report_offsets(&root.archsizes);
 

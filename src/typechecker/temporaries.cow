@@ -19,6 +19,7 @@ sub alloc_temporary(type_id: uint16): (thing_id: uint16)
                 thing_id := create_thing(THING_VARIABLE, VariableThing@bytes);
                 thing := find_thing(thing_id) as [VariableThing];
                 thing.type_id := type_id;
+                thing.owner_id := current_subroutine_id;
 
                 print("* creating new temp 0x");
                 print_hex_i16(thing_id);

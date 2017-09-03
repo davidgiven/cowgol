@@ -4,6 +4,7 @@ init_iop_reader("iops.dat");
 init_iop_writer("iops-out.dat");
 
 var main_subroutine_id: uint16 := find_main_subroutine();
+var current_subroutine_id: uint16;
 
 var int8_type: uint16 := find_bootstrap_symbol(TOKEN_INT8);
 var uint8_type: uint16 := find_bootstrap_symbol(TOKEN_UINT8);
