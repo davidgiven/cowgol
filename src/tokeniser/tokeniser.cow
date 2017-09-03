@@ -62,9 +62,21 @@ sub read_comment()
     end loop;
 end sub;
 
+sub is_double_char_symbol(left: uint8, right: uint8): (yes: uint8)
+    if ((left == '!') or (left == ':') or (left == '=') or (left == '<') or (left == '>'))
+        and (right == '=')
+    then
+        yes := 1;
+    elseif ((left == '<') or (left == '>')) and (left == right) then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
 sub read_symbol()
     input_buffer[0] := current_byte;
-    if (peeked_byte == '=') or (peeked_byte == '<') or (peeked_byte == '>') then
+    if is_double_char_symbol(current_byte, peeked_byte) != 0 then
         input_buffer[1] := peeked_byte;
         buffer_index := 2;
         next_byte();
@@ -72,10 +84,13 @@ sub read_symbol()
         buffer_index := 1;
     end if;
 
+    input_buffer[buffer_index] := 0;
     var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
     current_token := find_token_by_string(string_id);
     if current_token == 0 then
-        print("unrecognised symbol");
+        print("unrecognised symbol '");
+        print(&input_buffer[0]);
+        print_char('\'');
         error_with_location();
     end if;
 end sub;

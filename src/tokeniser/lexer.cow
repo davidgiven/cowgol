@@ -45,7 +45,7 @@ sub next_byte()
 end sub;
 
 sub error_with_location()
-    print(", at about line ");
+    print(" at about line ");
     print_i16(current_line_number);
     print(" of ");
     if current_filename != 0 then
