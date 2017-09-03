@@ -24,9 +24,10 @@ sub show_string(string_id: uint16)
 end sub;
 
 sub show_identifier(identifier_id: uint16)
-    print("(0x");
-    print_hex_i16(identifier_id);
-    print_char(')');
+    if identifier_id == 0 then
+        print("(null)");
+        return;
+    end if;
 
     var thing: [Thing] := find_thing(identifier_id);
     if (thing.thing_type == THING_STRING) then
@@ -43,6 +44,11 @@ sub show_identifier(identifier_id: uint16)
 end sub;
 
 sub show_name_of(thing_id: uint16)
+    if thing_id == 0 then
+        print("(null)");
+        return;
+    end if;
+
     var identifier_id: uint16 := find_name_of_value(thing_id);
     if identifier_id != 0 then
         show_identifier(identifier_id);
