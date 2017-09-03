@@ -29,7 +29,9 @@ namespace NAMESPACE
 @index    INDEX
 
 # Builtins.
-__lsl16   LSL16         IDENTIFIER
+__load4bytes  LOAD4BYTES IDENTIFIER
+__load6bytes  LOAD6BYTES IDENTIFIER
+__lsl16       LSL16       IDENTIFIER
 
 # Primitive types.
 int8      INT8          IDENTIFIER

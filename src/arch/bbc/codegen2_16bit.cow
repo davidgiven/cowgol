@@ -139,6 +139,13 @@ sub arch_gen_lsl_word(iop: [BEIop])
     check_16bit_ea(&iop.dest);
 
     write_back_precious_values(REG_MASK);
+
+    write_byte(0x20); # JSR abs
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LOAD4BYTES), 0);
+    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id));
+    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
+
+    flush_cached_values(REG_MASK);
     find_or_load_fixed_value(&iop.right, REG_A);
     if is_number_thing(iop.right.obj_id) == 0 then
         write_byte(0x29); # AND imm
@@ -146,8 +153,6 @@ sub arch_gen_lsl_word(iop: [BEIop])
     end if;
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LSL16), 0);
-    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id));
-    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
 
     flush_cached_values(REG_MASK);
 end sub;

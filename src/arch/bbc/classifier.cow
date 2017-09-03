@@ -76,6 +76,7 @@ sub arch_classify_iop(iop: [BEIop])
     var width: uint8 := iop.width;
     if (iopkind == IOP_BE_LSL) and (width == 2) then
         needs_runtime_subroutine(TOKEN_LSL16);
+        needs_runtime_subroutine(TOKEN_LOAD4BYTES);
     end if;
 end sub;
 
