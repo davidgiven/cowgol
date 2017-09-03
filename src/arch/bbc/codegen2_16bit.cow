@@ -176,6 +176,20 @@ sub arch_gen_lsr_word(iop: [BEIop])
     flush_cached_values(REG_MASK);
 end sub;
 
+sub arch_gen_asr_word(iop: [BEIop])
+    do_2op_helper(iop);
+
+    find_or_load_fixed_value(&iop.right, REG_A);
+    if is_number_thing(iop.right.obj_id) == 0 then
+        write_byte(0x29); # AND imm
+        write_byte(0x07);
+    end if;
+    write_byte(0x20); # JSR abs
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_ASR16), 0);
+
+    flush_cached_values(REG_MASK);
+end sub;
+
 sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
     write_back_precious_values(REG_MASK);
     check_16bit_ea(&ciop.left);

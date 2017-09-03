@@ -75,7 +75,14 @@ sub arch_gen_sub_byte(iop: [BEIop])
     gen_regular_alu(iop, 0xED); # SBC abs
 end sub;
 
-sub lsl_lsr_byte(iop: [BEIop], opcode: uint8)
+sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
+    sub signed_shift_adjustment()
+        if signed != 0 then
+            write_byte(0xC9);
+            write_byte(0x80);
+        end if;
+    end sub;
+
     find_or_load_fixed_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(REG_A, &iop.dest);
 
@@ -83,6 +90,7 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8)
         var shifts: int32 := get_value_of_number(iop.right.obj_id);
         if (shifts > 0) and (shifts < 8) then
             while shifts != 0 loop
+                signed_shift_adjustment();
                 write_byte(opcode);
                 shifts := shifts - 1;
             end loop;
@@ -92,9 +100,11 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8)
     end if;
 
     var shiftby: uint8 := find_or_load_value(&iop.right, REG_X|REG_Y);
+    flush_cached_values(shiftby);
 
     var label: uint16 := create_label();
     write_label_iop(label);
+    signed_shift_adjustment();
     write_byte(opcode);
 
     if shiftby == REG_X then
@@ -108,11 +118,15 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8)
 end sub;
 
 sub arch_gen_lsl_byte(iop: [BEIop])
-    lsl_lsr_byte(iop, 0x0A); # ASL A
+    lsl_lsr_byte(iop, 0x0A, 0); # ASL A
 end sub;
 
 sub arch_gen_lsr_byte(iop: [BEIop])
-    lsl_lsr_byte(iop, 0x4A); # LSR A
+    lsl_lsr_byte(iop, 0x4A, 0); # LSR A
+end sub;
+
+sub arch_gen_asr_byte(iop: [BEIop])
+    lsl_lsr_byte(iop, 0x6A, 1); # ROR A
 end sub;
 
 sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])

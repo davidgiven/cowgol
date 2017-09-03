@@ -81,6 +81,9 @@ sub arch_classify_iop(iop: [BEIop])
         elseif iopkind == IOP_BE_LSR then
             needs_runtime_subroutine(TOKEN_LSR16);
             needs_runtime_subroutine(TOKEN_LOAD4BYTES);
+        elseif iopkind == IOP_BE_ASR then
+            needs_runtime_subroutine(TOKEN_ASR16);
+            needs_runtime_subroutine(TOKEN_LOAD4BYTES);
         end if;
     end if;
 end sub;

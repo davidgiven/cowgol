@@ -526,7 +526,7 @@ sub process_subroutine()
         end if;
 
         var node: [Node] := push_empty_node();
-        if is_signed_type_thing(left_type.thing_type) != 0 then
+        if left_type.thing_type == THING_SIGNEDT then
             node.iop := signed_beiop;
         else
             node.iop := unsigned_beiop;
