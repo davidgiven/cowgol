@@ -1,0 +1,10 @@
+smallarray[smallu]==0x55: yes
+largearray[largeu]==0x55: yes
+smallarray[smallu+1]==0xAA: yes
+largearray[largeu+1]==0xAA: yes
+ptr[0]==0x55: yes
+ptr[1]==0xAA: yes
+ptr[300]==0x55: yes
+ptr[301]==0xAA: yes
+ptr[larges]==0xAA: yes
+ptr[larges-1]==0x55: yes
