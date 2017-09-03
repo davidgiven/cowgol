@@ -223,8 +223,8 @@ sub process_subroutine()
     end sub;
 
     sub fe_addsub(beiop: uint8)
-        var right: [Node] := pop();
-        var left: [Node] := pop();
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [PointerThing] := find_thing(left.type_id) as [PointerThing];
         var right_type: [PointerThing] := find_thing(right.type_id) as [PointerThing];
@@ -237,17 +237,18 @@ sub process_subroutine()
                 and (right_type.thing_type == THING_POINTERT) then
             # Pointer difference.
             dest_type_id := uint16_type;
-        elseif (beiop == IOP_BE_ADD)
-                and (left_type.thing_type == THING_POINTERT)
-                and (is_number_type_thing(right_type.thing_type) != 0) then
+        elseif (left_type.thing_type == THING_POINTERT)
+            and (is_number_type_thing(right.type_id) != 0)
+        then
             # Pointer offsetting.
             dest_type_id := left.type_id;
         else
+            print("unsupported add/sub combination: left=");
+            print_ea(&left.left);
+            print(", right=");
+            print_ea(&right.left);
             halt();
         end if;
-
-        left := simplify_node_to_ea_and_deref(left);
-        right := simplify_node_to_ea_and_deref(right);
 
         var node: [Node] := push_empty_node();
         node.iop := beiop;

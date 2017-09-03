@@ -1,12 +1,11 @@
 sub print(ptr: [int8])
-    var index: uint8 := 0;
     loop
-        var c: int8 := ptr[index as int16];
+        var c: int8 := ptr[0];
         if c == 0 then
             return;
         end if;
         print_char(c as uint8);
-        index := index + 1;
+        ptr := ptr + 1;
     end loop;
 end sub;
 
