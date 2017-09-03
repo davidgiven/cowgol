@@ -31,6 +31,7 @@ const IOP_LABEL            := 0b0000_1001;
 const IOP_CLONELABEL       := 0b0000_1010;
 const IOP_ADDRESSLO        := 0b0000_1011; # AddressIop
 const IOP_ADDRESSHI        := 0b0000_1100; # AddressIop
+const IOP_NAMEDGOTO        := 0b0000_1101; # GotoIop
 
 # Front-end opcodes: this is the pure stack machine architecture emitted by the
 # compiler. These are all Iops, with no payload.

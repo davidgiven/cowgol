@@ -75,6 +75,11 @@ sub emit_goto(label: uint16)
     iop.label := label;
 end sub;
 
+sub emit_named_goto(label_id: uint16)
+    var iop: [GotoIop] := emit(IOP_NAMEDGOTO, GotoIop@bytes) as [GotoIop];
+    iop.label := label_id;
+end sub;
+
 sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label: uint16, iffalse_label: uint16)
     var iop: [FEConditionalIop] :=
         emit(iopcode, FEConditionalIop@bytes) as [FEConditionalIop];
@@ -106,9 +111,9 @@ sub emit_address(opcode: uint8, thing_id: uint16, offset: int16)
     iop.offset := offset;
 end sub;
 
-sub create_label(): (label_label: uint16)
+sub create_label(): (label: uint16)
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
-    label_label := subroutine.label_count;
+    label := subroutine.label_count;
     subroutine.label_count := subroutine.label_count + 1;
 end sub;
 

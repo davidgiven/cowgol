@@ -278,9 +278,13 @@ sub do_label()
     var id: uint16 := expect_identifier();
     expect_token(TOKEN_COLON);
 
-    var label_id: uint16 := create_label();
+    var label: uint16 := create_label();
+    var label_id: uint16 := create_thing(THING_LABEL, LabelThing@bytes);
     add_symbol(id, label_id, current_namespace_id);
-    emit_label(label_id);
+    var labelp: [LabelThing] := find_thing(label_id) as [LabelThing];
+    labelp.label := label;
+
+    emit_label(label);
 end sub;
 
 sub do_assignment()
@@ -295,7 +299,7 @@ end sub;
 sub do_goto()
     next_token();
     var id: uint16 := expect_identifier();
-    emit_goto(id);
+    emit_named_goto(id);
 
     expect_token(TOKEN_SEMICOLON);
 end sub;

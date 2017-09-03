@@ -6,6 +6,7 @@ const THING_TOKEN      := 0b0000_0101;
 const THING_SYMBOL     := 0b0000_0110;
 const THING_MEMBER     := 0b0000_0111;
 const THING_ROOT       := 0b0000_1000; # singleton
+const THING_LABEL      := 0b0000_1001;
 
 const THING_DATA       := 0b1000_0000;
 const THING_SUBROUTINE := 0b1000_0001;
@@ -58,6 +59,10 @@ record SymbolThing: Thing
     name_id: uint16;
     value_id: uint16;
     next_symbol: uint16;
+end record;
+
+record LabelThing: Thing
+    label: uint16;
 end record;
 
 record TypeThing: Thing

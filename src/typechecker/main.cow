@@ -107,6 +107,18 @@ sub process_subroutine()
         write_iop(iop as [Iop]);
     end sub;
 
+    sub special_named_goto(iop: [GotoIop])
+        var label_id: uint16 := deref_symbol_or_fail(iop.label);
+        var labelthing: [LabelThing] := find_thing(label_id) as [LabelThing];
+        if labelthing.thing_type != THING_LABEL then
+            print("not a label");
+        end if;
+
+        iop.iop_kind := IOP_GOTO;
+        iop.label := labelthing.label;
+        write_iop(iop as [Iop]);
+    end sub;
+
     sub fex_push(iop: [FEPushIop])
         var thing: [Thing] := find_thing(iop.thing_id);
         if thing.thing_type == THING_IDENTIFIER then
@@ -606,6 +618,8 @@ sub process_subroutine()
             or (iop.iop_kind == IOP_ADDRESSHI)
         then
             special_address(iop as [AddressIop]);
+        elseif iop.iop_kind == IOP_NAMEDGOTO then
+            special_named_goto(iop as [GotoIop]);
         elseif ioptype == IOP_TYPE_UNTYPED then
             write_iop(iop);
         elseif iop.iop_kind == IOP_FE_SWAP then
