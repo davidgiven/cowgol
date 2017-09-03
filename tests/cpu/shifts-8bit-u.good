@@ -2,7 +2,7 @@ one<<one == two: yes
 one<<two == four: yes
 one<<1 == two: yes
 one<<2 == four: yes
-1<<one == two: yes
-1<<two == four: yes
-1<<1 == two: yes
-1<<2 == four: yes
+(1 as uint8)<<one == two: yes
+(1 as uint8)<<two == four: yes
+(1 as uint8)<<1 == two: yes
+(1 as uint8)<<2 == four: yes

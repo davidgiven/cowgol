@@ -507,6 +507,10 @@ sub process_subroutine()
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
+        if left.type_id == constant_type then
+            print("you must cast constants to a real type before you can shift them");
+            halt();
+        end if;
         if is_number_type_thing(left.type_id) == 0 then
             print("can't shift non-numeric type ");
             print_type_name(left.type_id);
@@ -514,9 +518,10 @@ sub process_subroutine()
         end if;
 
         var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
-        if is_number_type_thing(right.type_id) == 0 then
-            print("can't shift by non-numeric type ");
+        if (right.type_id != uint8_type) and (right.type_id != constant_type) then
+            print("shift type ");
             print_type_name(left.type_id);
+            print(" is not uint8");
             halt();
         end if;
 

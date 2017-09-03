@@ -5,15 +5,17 @@ var one: uint16 := 1;
 var two: uint16 := 2;
 var four: uint16 := 4;
 
+var zero8: uint8 := 0;
+var one8: uint8 := 1;
+var two8: uint8 := 2;
+var four8: uint8 := 4;
+
 sub yes() print(": yes\r"); end sub;
 sub no() print(": no\r"); end sub;
 
-print("one<<one == two"); if (one<<one) == two then yes(); else no(); end if;
-print("one<<two == four"); if (one<<two) == four then yes(); else no(); end if;
-#print("one<<1 == two"); if (one<<1) == two then yes(); else no(); end if;
-#print("one<<2 == four"); if (one<<2) == four then yes(); else no(); end if;
-#print("1<<one == two"); if (1<<one) == two then yes(); else no(); end if;
-#print("1<<two == four"); if (1<<two) == four then yes(); else no(); end if;
-#print("1<<1 == two"); if (1<<1) == two then yes(); else no(); end if;
-#print("1<<2 == four"); if (1<<2) == four then yes(); else no(); end if;
-#
+print("one<<one8 == two"); if (one<<one8) == two then yes(); else no(); end if;
+print("one<<two8 == four"); if (one<<two8) == four then yes(); else no(); end if;
+print("one<<1 == two"); if (one<<1) == two then yes(); else no(); end if;
+print("one<<2 == four"); if (one<<2) == four then yes(); else no(); end if;
+print("(1 as uint16)<<one8 == two"); if ((1 as uint16) <<one8) == two then yes(); else no(); end if;
+print("(1 as uint16)<<two8 == four"); if ((1 as uint16) <<two8) == four then yes(); else no(); end if;
