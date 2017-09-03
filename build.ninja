@@ -108,6 +108,10 @@ build /tmp/cowgol-obj/tests/cpu/comparisons-8bit-u.6502.exe : cowgol_program src
 build /tmp/cowgol-obj/tests/cpu/comparisons-8bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/comparisons-8bit-u.6502.exe | tests/cpu/comparisons-8bit-u.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/comparisons-8bit-u.good
   badfile=tests/cpu/comparisons-8bit-u.bad
+build /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.6502.exe : cowgol_program src/arch/bbc/runtime.cow tests/cpu/divrem-8bit-u.test.cow | scripts/cowgol compiler_suite
+build /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.6502.exe | tests/cpu/divrem-8bit-u.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/divrem-8bit-u.good
+  badfile=tests/cpu/divrem-8bit-u.bad
 build /tmp/cowgol-obj/tests/cpu/shifts-16bit-s.6502.exe : cowgol_program src/arch/bbc/runtime.cow tests/cpu/shifts-16bit-s.test.cow | scripts/cowgol compiler_suite
 build /tmp/cowgol-obj/tests/cpu/shifts-16bit-s.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/shifts-16bit-s.6502.exe | tests/cpu/shifts-16bit-s.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/shifts-16bit-s.good

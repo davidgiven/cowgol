@@ -1,0 +1,20 @@
+var four: uint8 := 4;
+var three: uint8 := 3;
+var two: uint8 := 2;
+var one: uint8 := 1;
+var zero: uint8 := 0;
+
+sub yes() print(": yes\r"); end sub;
+sub no() print(": no\r"); end sub;
+
+print("four/two==two");  if four/two==two  then yes(); else no(); end if;
+print("three/two==one"); if three/two==one then yes(); else no(); end if;
+print("two/two==one");   if two/two==one   then yes(); else no(); end if;
+print("one/two==zero");  if one/two==zero  then yes(); else no(); end if;
+print("zero/two==zero"); if zero/two==zero then yes(); else no(); end if;
+
+print("four%two==zero"); if four%two==zero then yes(); else no(); end if;
+print("three%two==one"); if three%two==one then yes(); else no(); end if;
+print("two%two==zero");  if two%two==zero  then yes(); else no(); end if;
+print("one%two==one");   if one%two==one   then yes(); else no(); end if;
+print("zero%two==zero"); if zero%two==zero then yes(); else no(); end if;

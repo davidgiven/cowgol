@@ -129,6 +129,29 @@ sub arch_gen_asr_byte(iop: [BEIop])
     lsl_lsr_byte(iop, 0x6A, 1); # ROR A
 end sub;
 
+sub divu_modu_byte(iop: [BEIop])
+    find_or_load_fixed_value(&iop.left, REG_A);
+    find_or_load_fixed_value(&iop.right, REG_X);
+
+    # This routine preserves Y.
+    write_byte(0x20); # JSR abs
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_DIVMODU8), 0);
+end sub;
+
+sub arch_gen_divu_byte(iop: [BEIop])
+    value_in_location_will_be_replaced_with(REG_A, &iop.dest);
+    divu_modu_byte(iop);
+    make_value_precious_or_save_now(REG_A, &iop.dest);
+    flush_cached_values(REG_X);
+end sub;
+
+sub arch_gen_modu_byte(iop: [BEIop])
+    value_in_location_will_be_replaced_with(REG_X, &iop.dest);
+    divu_modu_byte(iop);
+    make_value_precious_or_save_now(REG_X, &iop.dest);
+    flush_cached_values(REG_A);
+end sub;
+
 sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
     write_back_precious_values(REG_MASK);
 

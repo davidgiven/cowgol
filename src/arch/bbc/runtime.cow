@@ -223,6 +223,30 @@ sub __asr16()
     @bytes 0x4C, &__lsr_asr;     # JMP __asr
 end sub;
 
+# A/X -> A quotient, X remainder
+sub __divmodu8()
+    var num: uint8 @segment(0x81);
+    var den: uint8 @segment(0x81);
+    @bytes 0x85, >&num;          # STA num
+    @bytes 0x86, >&den;          # STX den
+
+    @bytes 0xA9, 0x00;           # LDA #0
+    @bytes 0xA2, 0x08;           # LDX #8
+    @bytes 0x06, >&num;          # ASL num
+
+    # again:
+    @bytes 0x2A;                 # ROL A
+    @bytes 0xC5, >&den;          # CMP den
+    @bytes 0x90, 0x02;           # BCC $+2
+    @bytes 0xE5, >&den;          # SBC den
+    @bytes 0x26, >&num;          # ROL num
+    @bytes 0xCA;                 # DEX
+    @bytes 0xD0, 0xF4;           # BNE again
+
+    @bytes 0xAA;                 # TAX
+    @bytes 0xA5, >&num;          # LDA num
+end sub;
+
 sub __mul8u(left: uint8, right: uint8): (result: uint8)
     @bytes 0xA9, 0x00; # LDA #0
     @bytes 0xF0, 0x07; # BEQ start

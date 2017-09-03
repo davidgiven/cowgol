@@ -215,7 +215,9 @@ sub process_subroutine()
         var right: [Node] := peek(1);
         var left: [Node] := peek(2);
 
-        if (is_signed_type_thing(left.type_id) != 0) or (is_signed_type_thing(right.type_id) != 0) then
+        if (get_thing_type(left.type_id) == THING_SIGNEDT)
+            or (get_thing_type(right.type_id) == THING_SIGNEDT)
+        then
             beiop := signed_beiop;
         else
             beiop := unsigned_beiop;
@@ -236,11 +238,13 @@ sub process_subroutine()
                 and (left_type.thing_type == THING_POINTERT)
                 and (right_type.thing_type == THING_POINTERT) then
             # Pointer difference.
-            dest_type_id := uint16_type;
+            dest_type_id := check_type_compatibility(left.type_id, right.type_id);
+            dest_type_id := int16_type;
         elseif (left_type.thing_type == THING_POINTERT)
             and (is_number_type_thing(right.type_id) != 0)
         then
             # Pointer offsetting.
+            dest_type_id := check_type_compatibility(int16_type, right.type_id);
             dest_type_id := left.type_id;
         else
             print("unsupported add/sub combination: left=");

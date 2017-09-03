@@ -1,0 +1,10 @@
+four/two==two: yes
+three/two==one: yes
+two/two==one: yes
+one/two==zero: yes
+zero/two==zero: yes
+four%two==zero: yes
+three%two==one: yes
+two%two==zero: yes
+one%two==one: yes
+zero%two==zero: yes
