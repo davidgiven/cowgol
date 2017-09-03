@@ -8,8 +8,8 @@ var four: uint16 := 4;
 sub yes() print(": yes\r"); end sub;
 sub no() print(": no\r"); end sub;
 
-#print("one<<one == two"); if (one<<one) == two then yes(); else no(); end if;
-#print("one<<two == four"); if (one<<two) == four then yes(); else no(); end if;
+print("one<<one == two"); if (one<<one) == two then yes(); else no(); end if;
+print("one<<two == four"); if (one<<two) == four then yes(); else no(); end if;
 #print("one<<1 == two"); if (one<<1) == two then yes(); else no(); end if;
 #print("one<<2 == four"); if (one<<2) == four then yes(); else no(); end if;
 #print("1<<one == two"); if (1<<one) == two then yes(); else no(); end if;

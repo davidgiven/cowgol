@@ -74,26 +74,23 @@ var __pointers: uint16[3] @segment(0x81);
 # Note that __nextaddr is pointing at the *previous* byte to the one we're going
 # to return to and we need to adjust it.
 sub __copyparams()
-    @bytes 0xAA;                 # TAX
-    @bytes 0xA8;                 # TAY
+    var maxcount: uint8 @segment(0x81);
+    @bytes 0x85, >&maxcount;     # STA maxcount
+    @bytes 0xA2, 0xFF;           # LDX #-1
+    goto start;
 
+again:
+    @bytes 0xB1, >&__nextaddr;   # LDA (__nextaddr), Y
+    @bytes 0x95, >&__pointers;   # STA __pointers, X
+
+start:
     @bytes 0xE6, >&__nextaddr+0; # INC __nextaddr+0
     @bytes 0xD0, 0x02;           # BNE $+2
     @bytes 0xE6, >&__nextaddr+1; # INC __nextaddr+1
 
-    @bytes 0x88;                 # DEY
-#again:
-    @bytes 0xB1, >&__nextaddr;   # LDA (__nextaddr), Y
-    @bytes 0x99, &__pointers;  # STA __pointers, Y
-    @bytes 0x88;                 # DEY
-    @bytes 0x10, 0xF8;           # BPL again
-
-    @bytes 0x8A;                 # TXA
-    @bytes 0x18;                 # CLC
-    @bytes 0x65, >&__nextaddr+0; # ADC __nextaddr
-    @bytes 0x85, >&__nextaddr+0; # STA __nextaddr
-    @bytes 0x90, 0x02;           # BCC exit
-    @bytes 0xE6, >&__nextaddr+1; # INC __nextaddr+1
+    @bytes 0xE8;                 # INX
+    @bytes 0xE4, >&maxcount;     # CPX maxcount
+    @bytes 0xD0, 0xF1;           # BNE again
 end sub;
 
 #sub __add16()
@@ -120,9 +117,12 @@ end sub;
 #    @bytes 0x6C, &__nextaddr; # JMP (__nextaddr)
 #end sub;
 
-sub __lsl16()
-    var count: uint8;
-    @bytes 0x8D, &count;         # STA count
+sub __lsl()
+    var count: uint8 @segment(0x81);
+    var width: uint8 @segment(0x81);
+    @bytes 0x85, >&count;        # STA count
+    @bytes 0xCA;                 # DEX
+    @bytes 0x86, >&width;        # STX width
 
     @bytes 0x68;                 # PLA
     @bytes 0x85, >&__nextaddr+0; # STA __nextaddr+0
@@ -136,7 +136,7 @@ sub __lsl16()
 
 shiftagain:
     @bytes 0xA0, 0x00;           # LDY #0
-    @bytes 0xA2, 0x01;           # LDX #1
+    @bytes 0xA6, >&width;        # LDX #1
     @bytes 0x18;                 # CLC
     # loop:
     @bytes 0xB1, >&__pointers+0; # LDA (__pointers+0), Y
@@ -146,7 +146,7 @@ shiftagain:
     @bytes 0xCA;                 # DEX
     @bytes 0x10, 0xF7;           # BPL loop
 
-    @bytes 0xCE, &count;         # DEC count
+    @bytes 0xC6, >&count;        # DEC count
     @bytes 0xF0, 0x0B;           # BEQ exit
 
     # We need to shift more, so we do it in-place in dest.
@@ -158,6 +158,11 @@ shiftagain:
     goto shiftagain;
 
     @bytes 0x6C, &__nextaddr;    # JMP (__nextaddr)
+end sub;
+
+sub __lsl16()
+    @bytes 0xA2, 0x02;           # LDX #2
+    @bytes 0x4C, &__lsl;         # JMP __lsl (must be jump to avoid changing stack)
 end sub;
 
 sub __mul8u(left: uint8, right: uint8): (result: uint8)

@@ -153,9 +153,9 @@ bootstrapped_cowgol_program bin/classifier \
     src/utils/symbols.cow \
     src/utils/types.cow \
     $OBJDIR/token_names.cow \
-    src/arch/bbc/classifier.cow \
     src/classifier/init.cow \
     src/classifier/graph.cow \
+    src/arch/bbc/classifier.cow \
     src/classifier/subdata.cow \
     src/classifier/main.cow
 
