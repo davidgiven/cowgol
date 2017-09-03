@@ -133,6 +133,7 @@ end sub;
 #    @bytes 0x6C, &__nextaddr; # JMP (__nextaddr)
 #end sub;
 
+# On entry, A=shift amount, X=word size
 sub __lsl()
     var count: uint8 @segment(0x81);
     var width: uint8 @segment(0x81);
@@ -144,7 +145,7 @@ sub __lsl()
 
 shiftagain:
     @bytes 0xA0, 0x00;           # LDY #0
-    @bytes 0xA6, >&width;        # LDX #1
+    @bytes 0xA6, >&width;        # LDX width
     @bytes 0x18;                 # CLC
     # loop:
     @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
@@ -168,7 +169,44 @@ end sub;
 
 sub __lsl16()
     @bytes 0xA2, 0x02;           # LDX #2
-    @bytes 0x4C, &__lsl;         # JMP __lsl (must be jump to avoid changing stack)
+    @bytes 0x4C, &__lsl;         # JMP __lsl
+end sub;
+
+# On entry, A=shift amount, X=word size
+sub __lsr()
+    var count: uint8 @segment(0x81);
+    var width: uint8 @segment(0x81);
+    @bytes 0x85, >&count;        # STA count
+    @bytes 0xCA;                 # DEX
+    @bytes 0x86, >&width;        # STX width
+
+    # Copy the value from src to dest, shifting once as we go.
+
+shiftagain:
+    @bytes 0xA4, >&width;        # LDY width
+    @bytes 0x18;                 # CLC
+    # loop:
+    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0x6A;                 # ROR A
+    @bytes 0x91, >&__params+2;   # STA (__params+2), Y
+    @bytes 0x88;                 # DEY
+    @bytes 0x10, 0xF8;           # BPL loop
+
+    @bytes 0xC6, >&count;        # DEC count
+    @bytes 0xF0, 0x0B;           # BEQ exit
+
+    # We need to shift more, so we do it in-place in dest.
+
+    @bytes 0xA5, >&__params+2;   # LDA __params+2
+    @bytes 0x85, >&__params+0;   # STA __params+0
+    @bytes 0xA5, >&__params+3;   # LDA __params+3
+    @bytes 0x85, >&__params+1;   # STA __params+1
+    goto shiftagain;
+end sub;
+
+sub __lsr16()
+    @bytes 0xA2, 0x02;           # LDX #2
+    @bytes 0x4C, &__lsr;         # JMP __lsr
 end sub;
 
 sub __mul8u(left: uint8, right: uint8): (result: uint8)

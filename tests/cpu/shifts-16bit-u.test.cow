@@ -19,3 +19,10 @@ print("one<<1 == two"); if (one<<1) == two then yes(); else no(); end if;
 print("one<<2 == four"); if (one<<2) == four then yes(); else no(); end if;
 print("(1 as uint16)<<one8 == two"); if ((1 as uint16) <<one8) == two then yes(); else no(); end if;
 print("(1 as uint16)<<two8 == four"); if ((1 as uint16) <<two8) == four then yes(); else no(); end if;
+
+print("two>>one8 == one"); if (two>>one8) == one then yes(); else no(); end if;
+print("two>>two8 == zero"); if (two>>two8) == zero then yes(); else no(); end if;
+print("two>>1 == one"); if (two>>1) == one then yes(); else no(); end if;
+print("two>>2 == zero"); if (two>>2) == zero then yes(); else no(); end if;
+print("(2 as uint16)>>one8 == one"); if ((2 as uint16) >>one8) == one then yes(); else no(); end if;
+print("(2 as uint16)>>two8 == zero"); if ((2 as uint16) >>two8) == zero then yes(); else no(); end if;

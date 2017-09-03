@@ -129,7 +129,7 @@ sub arch_gen_zext_word(iop: [BEIop])
     save_value_with_offset(location, &iop.dest, 1);
 end sub;
 
-sub arch_gen_lsl_word(iop: [BEIop])
+sub do_2op_helper(iop: [BEIop])
     if (iop.left.flags != EA_VALUE) or (iop.dest.flags != EA_VALUE) then
         print("unimplemented");
         halt();
@@ -146,6 +146,11 @@ sub arch_gen_lsl_word(iop: [BEIop])
     write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
 
     flush_cached_values(REG_MASK);
+end sub;
+
+sub arch_gen_lsl_word(iop: [BEIop])
+    do_2op_helper(iop);
+
     find_or_load_fixed_value(&iop.right, REG_A);
     if is_number_thing(iop.right.obj_id) == 0 then
         write_byte(0x29); # AND imm
@@ -153,6 +158,20 @@ sub arch_gen_lsl_word(iop: [BEIop])
     end if;
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LSL16), 0);
+
+    flush_cached_values(REG_MASK);
+end sub;
+
+sub arch_gen_lsr_word(iop: [BEIop])
+    do_2op_helper(iop);
+
+    find_or_load_fixed_value(&iop.right, REG_A);
+    if is_number_thing(iop.right.obj_id) == 0 then
+        write_byte(0x29); # AND imm
+        write_byte(0x07);
+    end if;
+    write_byte(0x20); # JSR abs
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LSR16), 0);
 
     flush_cached_values(REG_MASK);
 end sub;
