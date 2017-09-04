@@ -8,3 +8,7 @@ mone>>1 == mone: yes
 mtwo>>1 == mone: yes
 two>>1 == one: yes
 two>>2 == zero: yes
+mone>>seven8 == mone: yes
+mone>>eight8 == mone: yes
+mone>>7 == mone: yes
+mone>>8 == mone: yes

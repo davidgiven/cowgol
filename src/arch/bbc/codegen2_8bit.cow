@@ -88,7 +88,13 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
 
     if is_number_thing(iop.right.obj_id) != 0 then
         var shifts: int32 := get_value_of_number(iop.right.obj_id);
-        if (shifts > 0) and (shifts < 8) then
+        var maxshifts: uint8;
+        if signed == 0 then
+            maxshifts := 6;
+        else
+            maxshifts := 3;
+        end if;
+        if (shifts >= 0) and (shifts <= maxshifts) then
             while shifts != 0 loop
                 signed_shift_adjustment();
                 write_byte(opcode);

@@ -4,9 +4,14 @@ one<<1 == two: yes
 one<<2 == four: yes
 (1 as uint16)<<one8 == two: yes
 (1 as uint16)<<two8 == four: yes
+one<<16 == zero: yes
 two>>one8 == one: yes
 two>>two8 == zero: yes
 two>>1 == one: yes
 two>>2 == zero: yes
 (2 as uint16)>>one8 == one: yes
 (2 as uint16)>>two8 == zero: yes
+mone>>fifteen8 == one: yes
+mone>>sixteen8 == zero: yes
+mone>>15 == one: yes
+mone>>16 == zero: yes

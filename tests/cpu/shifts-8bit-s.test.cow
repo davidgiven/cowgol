@@ -9,6 +9,8 @@ var zero8: uint8 := 0;
 var one8: uint8 := 1;
 var two8: uint8 := 2;
 var four8: uint8 := 4;
+var seven8: uint8 := 7;
+var eight8: uint8 := 8;
 
 sub yes() print(": yes\r"); end sub;
 sub no() print(": no\r"); end sub;
@@ -25,3 +27,8 @@ print("mone>>1 == mone"); if (mone>>1) == mone then yes(); else no(); end if;
 print("mtwo>>1 == mone"); if (mtwo>>1) == mone then yes(); else no(); end if;
 print("two>>1 == one"); if (two>>1) == one then yes(); else no(); end if;
 print("two>>2 == zero"); if (two>>2) == zero then yes(); else no(); end if;
+
+print("mone>>seven8 == mone"); if (mone>>seven8) == mone then yes(); else no(); end if;
+print("mone>>eight8 == mone"); if (mone>>eight8) == mone then yes(); else no(); end if;
+print("mone>>7 == mone"); if (mone>>7) == mone then yes(); else no(); end if;
+print("mone>>8 == mone"); if (mone>>8) == mone then yes(); else no(); end if;
