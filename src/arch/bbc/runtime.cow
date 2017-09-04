@@ -1,3 +1,10 @@
+sub osbyte(a: uint8, x: uint8, y: uint8)
+    @bytes 0xAD, &a;            # LDA a
+    @bytes 0xAE, &x;            # LDX x
+    @bytes 0xAC, &y;            # LDY y
+    @bytes 0x4C, 0xF4, 0xFF;    # JMP OSBYTE
+end sub;
+
 sub print(ptr: [int8])
     loop
         var c: int8 := ptr[0];

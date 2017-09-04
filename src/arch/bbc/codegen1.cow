@@ -234,7 +234,9 @@ sub value_is_precious(ea: [EffectiveAddress])
         end if;
         i := i + 1;
     end loop;
-    print("can't make precious, value cache is full");
+    print("can't make precious, value ");
+    print_ea(ea);
+    print(" is not in the cache");
     halt();
 end sub;
 
@@ -252,18 +254,24 @@ sub value_in_location_will_be_replaced_with(location: uint8, newvalue: [Effectiv
     var i: uint8 := 0;
     while i < values@size loop
         var value: [CachedValue] := &values[i];
+        print("considering value ");
+        print_ea(&value.ea);
+        print(" in 0x");
+        print_hex_i8(value.locations);
+        print_newline();
+
         if (value.locations & location) != 0 then
             if ((value.locations & PRECIOUS) != 0) and (is_same_ea(&value.ea, newvalue) == 0) then
                 write_back_precious_value(location, &value.ea);
             end if;
 
-            print("* forgetting that ");
-            print_ea(&value.ea);
-            print(" is in 0x");
-            print_hex_i8((value.locations & REG_MASK) ^ location);
-            print_newline();
+            value.locations := (value.locations & REG_MASK) ^ location;
 
-            value.locations := location;
+            print("* value ");
+            print_ea(&value.ea);
+            print(" is now only in 0x");
+            print_hex_i8(value.locations);
+            print_newline();
         end if;
         i := i + 1;
     end loop;
