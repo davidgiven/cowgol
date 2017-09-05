@@ -1,0 +1,15 @@
+var mone: int8 := -1;
+var zero: int8 := 0;
+var one: int8 := 1;
+var two: int8 := 2;
+var three: int8 := 3;
+var four: int8 := 4;
+
+sub yes() print(": yes\r"); end sub;
+sub no() print(": no\r"); end sub;
+
+print("two|one==three"); if (two|one) == three then yes(); else no(); end if;
+print("three&two==two"); if (three&two) == two then yes(); else no(); end if;
+print("two^one==three"); if (two^one) == three then yes(); else no(); end if;
+print("three^one==two"); if (three^one) == two then yes(); else no(); end if;
+print("~zero==mone");    if ~zero == mone      then yes(); else no(); end if;

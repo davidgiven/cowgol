@@ -3,6 +3,14 @@ sub arch_gen_copy_byte(iop: [BEIop])
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
+sub arch_gen_not_byte(iop: [BEIop])
+    var location: uint8 := find_or_load_value(&iop.left, REG_A);
+    value_in_location_will_be_replaced_with(location, &iop.dest);
+    write_byte(0x49); # EOR imm
+    write_byte(0xFF);
+    make_value_precious_or_save_now(location, &iop.dest);
+end sub;
+
 sub gen_regular_alu(iop: [BEIop], opcode: uint8)
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.dest);
@@ -18,6 +26,18 @@ sub gen_regular_alu(iop: [BEIop], opcode: uint8)
 
     aluop_value(&iop.right, opcode);
     make_value_precious_or_save_now(location, &iop.dest);
+end sub;
+
+sub arch_gen_and_byte(iop: [BEIop])
+    gen_regular_alu(iop, 0x2D); # AND abs
+end sub;
+
+sub arch_gen_or_byte(iop: [BEIop])
+    gen_regular_alu(iop, 0x0D); # ORA abs
+end sub;
+
+sub arch_gen_eor_byte(iop: [BEIop])
+    gen_regular_alu(iop, 0x4D); # EOR abs
 end sub;
 
 sub gen_incdec(iop: [BEIop], value: int8)

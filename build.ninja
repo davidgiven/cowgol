@@ -112,6 +112,10 @@ build /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.6502.exe : cowgol_program src/arch
 build /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.6502.exe | tests/cpu/divrem-8bit-u.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/divrem-8bit-u.good
   badfile=tests/cpu/divrem-8bit-u.bad
+build /tmp/cowgol-obj/tests/cpu/logic-8bit.6502.exe : cowgol_program src/arch/bbc/runtime.cow tests/cpu/logic-8bit.test.cow | scripts/cowgol compiler_suite
+build /tmp/cowgol-obj/tests/cpu/logic-8bit.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/logic-8bit.6502.exe | tests/cpu/logic-8bit.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/logic-8bit.good
+  badfile=tests/cpu/logic-8bit.bad
 build /tmp/cowgol-obj/tests/cpu/mul-16bit-s.6502.exe : cowgol_program src/arch/bbc/runtime.cow tests/cpu/mul-16bit-s.test.cow | scripts/cowgol compiler_suite
 build /tmp/cowgol-obj/tests/cpu/mul-16bit-s.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/mul-16bit-s.6502.exe | tests/cpu/mul-16bit-s.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/mul-16bit-s.good

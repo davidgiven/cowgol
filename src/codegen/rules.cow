@@ -77,6 +77,28 @@ sub try_copy(iop: [BEIop])
     cant_do_2op(iop, "");
 end sub;
 
+sub try_not(iop: [BEIop])
+    insn_before(iop);
+
+    var srcw: uint8;
+    var destw: uint8;
+    (srcw, destw) := get_2op_widths(iop);
+
+    if destw == 1 then
+        arch_gen_not_byte(iop);
+        insn_after(iop);
+        return;
+    end if;
+
+#    if destw == 2 then
+#        arch_gen_not_word(iop);
+#        insn_after(iop);
+#        return;
+#    end if;
+
+    cant_do_2op(iop, "not");
+end sub;
+
 sub cant_do_3op(iop: [BEIop], op: [int8])
     print("can't do ");
     print_ea(&iop.left);
@@ -95,6 +117,75 @@ sub cant_do_3op(iop: [BEIop], op: [int8])
     print(") width ");
     print_i8(iop.width);
     halt();
+end sub;
+
+sub try_and(iop: [BEIop])
+    insn_before(iop);
+
+    var leftw: uint8;
+    var rightw: uint8;
+    var destw: uint8;
+    (leftw, rightw, destw) := get_3op_widths(iop);
+
+    if iop.width == 1 then
+        arch_gen_and_byte(iop);
+        insn_after(iop);
+        return;
+    end if;
+
+#    if iop.width == 2 then
+#        arch_gen_and_word(iop);
+#        insn_after(iop);
+#        return;
+#    end if;
+
+    cant_do_3op(iop, "and");
+end sub;
+
+sub try_or(iop: [BEIop])
+    insn_before(iop);
+
+    var leftw: uint8;
+    var rightw: uint8;
+    var destw: uint8;
+    (leftw, rightw, destw) := get_3op_widths(iop);
+
+    if iop.width == 1 then
+        arch_gen_or_byte(iop);
+        insn_after(iop);
+        return;
+    end if;
+
+#    if iop.width == 2 then
+#        arch_gen_or_word(iop);
+#        insn_after(iop);
+#        return;
+#    end if;
+
+    cant_do_3op(iop, "or");
+end sub;
+
+sub try_eor(iop: [BEIop])
+    insn_before(iop);
+
+    var leftw: uint8;
+    var rightw: uint8;
+    var destw: uint8;
+    (leftw, rightw, destw) := get_3op_widths(iop);
+
+    if iop.width == 1 then
+        arch_gen_eor_byte(iop);
+        insn_after(iop);
+        return;
+    end if;
+
+#    if iop.width == 2 then
+#        arch_gen_eor_word(iop);
+#        insn_after(iop);
+#        return;
+#    end if;
+
+    cant_do_3op(iop, "eor");
 end sub;
 
 sub try_add(iop: [BEIop])
@@ -302,6 +393,30 @@ sub global_rules(): (matched: uint8)
 
     if queue0.iop_kind == IOP_BE_COPY then
         try_copy(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_NOT then
+        try_not(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_AND then
+        try_and(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_OR then
+        try_or(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_EOR then
+        try_eor(queue0 as [BEIop]);
         consume_iops(1);
         return;
     end if;
