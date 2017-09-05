@@ -391,92 +391,43 @@ sub global_rules(): (matched: uint8)
     matched := 1;
     arch_gen_beginning_of_instruction();
 
-    if queue0.iop_kind == IOP_BE_COPY then
-        try_copy(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_NOT then
-        try_not(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_AND then
-        try_and(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_OR then
-        try_or(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_EOR then
-        try_eor(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_ADD then
-        try_add(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_SUB then
-        try_sub(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_LSL then
-        try_lsl(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_LSR then
-        try_lsr(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_ASR then
-        try_asr(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_DIVU then
-        try_divu(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_MUL then
-        try_mul(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_MODU then
-        try_modu(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_SEXT then
-        try_sext(queue0 as [BEIop]);
-        consume_iops(1);
-        return;
-    end if;
-
-    if queue0.iop_kind == IOP_BE_ZEXT then
-        try_zext(queue0 as [BEIop]);
+    var type: uint8 := queue0.iop_kind & IOP_TYPE_MASK;
+    if (type == IOP_TYPE_BACKEND_2OP) or (type == IOP_TYPE_BACKEND_3OP) then
+        if queue0.iop_kind == IOP_BE_COPY then
+            try_copy(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_NOT then
+            try_not(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_AND then
+            try_and(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_OR then
+            try_or(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_EOR then
+            try_eor(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_ADD then
+            try_add(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_SUB then
+            try_sub(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_LSL then
+            try_lsl(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_LSR then
+            try_lsr(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_ASR then
+            try_asr(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_DIVU then
+            try_divu(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_MUL then
+            try_mul(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_MODU then
+            try_modu(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_SEXT then
+            try_sext(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_ZEXT then
+            try_zext(queue0 as [BEIop]);
+        else
+            print("unsupported opcode 0x");
+            print_hex_i8(queue0.iop_kind);
+            halt();
+        end if;
         consume_iops(1);
         return;
     end if;
