@@ -27,7 +27,7 @@ end sub;
 sub process_subroutine()
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     current_namespace_id := subroutine.namespace_id;
-    print("subroutine: 0x");
+    print("\nsubroutine: 0x");
     print_hex_i16(current_subroutine_id);
     print_char(' ');
     show_name_of(current_subroutine_id);

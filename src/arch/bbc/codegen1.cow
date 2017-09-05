@@ -240,38 +240,104 @@ sub value_is_precious(ea: [EffectiveAddress])
     halt();
 end sub;
 
-# The contents of location are about to be replaced with a new value. If any values there
-# are precious, they get written back --- except for the new value, if it's there.
-# Any cached values in that location get flushed. This allows mutation of values without
-# triggering writeback.
-sub value_in_location_will_be_replaced_with(location: uint8, newvalue: [EffectiveAddress])
-    print("* replacing value in 0x");
-    print_hex_i8(location);
-    print(" with ");
-    print_ea(newvalue);
+sub value_is_not_precious(ea: [EffectiveAddress])
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        if (value.locations != 0) and (is_same_ea(ea, &value.ea) != 0) then
+            if (value.locations & PRECIOUS) == 0 then
+                print("* value ");
+                print_ea(ea);
+                print(" is no longer precious\n");
+                value.locations := value.locations ^ PRECIOUS;
+                return;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+# This value is about to be written to, so flush any references to it.
+sub value_is_changing(oldvalue: [EffectiveAddress])
+    print("* flushing references to ");
+    print_ea(oldvalue);
     print_newline();
+
+    var varoff_candidate: uint8;
+    if (oldvalue.varoff_id == 0) and (get_value_of_number(oldvalue.numoff_id) == 0) then
+        varoff_candidate := 1;
+        print("* (this might be used as a varoff)\n");
+    else
+        varoff_candidate := 0;
+    end if;
 
     var i: uint8 := 0;
     while i < values@size loop
         var value: [CachedValue] := &values[i];
-        print("considering value ");
-        print_ea(&value.ea);
-        print(" in 0x");
-        print_hex_i8(value.locations);
-        print_newline();
+        var locations: uint8 := value.locations;
 
-        if (value.locations & location) != 0 then
-            if ((value.locations & PRECIOUS) != 0) and (is_same_ea(&value.ea, newvalue) == 0) then
-                write_back_precious_value(location, &value.ea);
-            end if;
-
-            value.locations := (value.locations & REG_MASK) ^ location;
-
+        sub flush()
             print("* value ");
             print_ea(&value.ea);
-            print(" is now only in 0x");
-            print_hex_i8(value.locations);
+            print(" is no longer cached\n");
+            value.locations := 0;
+        end sub;
+
+        if locations != 0 then
+            if is_same_ea(&value.ea, oldvalue) != 0 then
+                flush();
+            elseif (varoff_candidate != 0) and (value.ea.varoff_id == oldvalue.obj_id) then
+                if (locations & PRECIOUS) != 0 then
+                    locations := locations ^ PRECIOUS;
+                    write_back_precious_value(locations ^ PRECIOUS, &value.ea);
+                end if;
+                flush();
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+# A value in a particular location is about to be replaced with a new value.
+# If the old one is precious, write it back... except if it's the same as the new one, in which
+# case we don't bother.
+sub value_in_location_will_be_replaced_with(location: uint8,
+        oldvalue: [EffectiveAddress], newvalue: [EffectiveAddress])
+    print("* location 0x");
+    print_hex_i8(location);
+    print(" is changing from ");
+    print_ea(oldvalue);
+    print(" to ");
+    print_ea(newvalue);
+    print_newline();
+
+    if is_same_ea(oldvalue, newvalue) != 0 then
+        # This means that the value is changing. Don't consider it to be precious any more
+        # (because it's about to change).
+        print("* value is no longer precious\n");
+
+        value_is_not_precious(oldvalue);
+        value_is_changing(oldvalue);
+    end if;
+
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        var locations: uint8 := value.locations;
+        if locations == (location|PRECIOUS) then
+            # This location contains the only copy of a precious value, so write it back.
+            print("* writing back only copy of precious value ");
+            print_ea(&value.ea);
             print_newline();
+
+            write_back_precious_value(location, &value.ea);
+            value.locations := 0;
+        elseif locations == location then
+            print("* non-precious value ");
+            print_ea(&value.ea);
+            print(" is no longer cached\n");
+
+            value.locations := 0;
         end if;
         i := i + 1;
     end loop;

@@ -1,11 +1,12 @@
 sub arch_gen_copy_byte(iop: [BEIop])
     var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
+    value_is_changing(&iop.dest);
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
 sub arch_gen_not_byte(iop: [BEIop])
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
-    value_in_location_will_be_replaced_with(location, &iop.dest);
+    value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
     write_byte(0x49); # EOR imm
     write_byte(0xFF);
     make_value_precious_or_save_now(location, &iop.dest);
@@ -13,7 +14,7 @@ end sub;
 
 sub gen_regular_alu(iop: [BEIop], opcode: uint8)
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
-    value_in_location_will_be_replaced_with(location, &iop.dest);
+    value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
 
     if iop.right.flags == EA_VALUE then
         # do nothing, the opcode is already right
@@ -42,7 +43,7 @@ end sub;
 
 sub gen_incdec(iop: [BEIop], value: int8)
     var location: uint8 := find_or_load_value(&iop.left, REG_X|REG_Y);
-    value_in_location_will_be_replaced_with(location, &iop.dest);
+    value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
 
     var opcode: uint8;
     if value == 1 then
@@ -104,7 +105,7 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
     end sub;
 
     find_or_load_fixed_value(&iop.left, REG_A);
-    value_in_location_will_be_replaced_with(REG_A, &iop.dest);
+    value_in_location_will_be_replaced_with(REG_A, &iop.left, &iop.dest);
 
     if is_number_thing(iop.right.obj_id) != 0 then
         var shifts: int32 := get_value_of_number(iop.right.obj_id);
@@ -155,27 +156,25 @@ sub arch_gen_asr_byte(iop: [BEIop])
     lsl_lsr_byte(iop, 0x6A, 1); # ROR A
 end sub;
 
-sub divu_modu_byte(iop: [BEIop])
+sub divu_modu_byte(iop: [BEIop], resultreg: uint8, discardreg: uint8)
     find_or_load_fixed_value(&iop.left, REG_A);
     find_or_load_fixed_value(&iop.right, REG_X);
+    value_in_location_will_be_replaced_with(resultreg, &iop.left, &iop.dest);
 
     # This routine preserves Y.
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_DIVMODU8), 0);
+
+    make_value_precious_or_save_now(resultreg, &iop.dest);
+    flush_cached_values(discardreg);
 end sub;
 
 sub arch_gen_divu_byte(iop: [BEIop])
-    value_in_location_will_be_replaced_with(REG_A, &iop.dest);
-    divu_modu_byte(iop);
-    make_value_precious_or_save_now(REG_A, &iop.dest);
-    flush_cached_values(REG_X);
+    divu_modu_byte(iop, REG_A, REG_X);
 end sub;
 
 sub arch_gen_modu_byte(iop: [BEIop])
-    value_in_location_will_be_replaced_with(REG_X, &iop.dest);
-    divu_modu_byte(iop);
-    make_value_precious_or_save_now(REG_X, &iop.dest);
-    flush_cached_values(REG_A);
+    divu_modu_byte(iop, REG_X, REG_A);
 end sub;
 
 sub arch_gen_cmp_byte(ciop: [BEConditionalIop], liop: [LabelIop])
