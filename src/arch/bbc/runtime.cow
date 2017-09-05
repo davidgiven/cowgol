@@ -110,7 +110,7 @@ sub __load4bytes()
     @bytes 0x4C, &__loadbytes;   # JMP __loadbytes (must be jump to avoid changing stack)
 end sub;
 
-sub __load6params()
+sub __load6bytes()
     @bytes 0xA9, 0x06;           # LDA #6
     @bytes 0x4C, &__loadbytes;   # JMP __loadbytes (must be jump to avoid changing stack)
 end sub;
@@ -252,6 +252,94 @@ sub __divmodu8()
 
     @bytes 0xAA;                 # TAX
     @bytes 0xA5, >&num;          # LDA num
+end sub;
+
+# On entry, A=word size
+sub __mul()
+    var count: uint8 @segment(0x81);
+    var widthm1: uint8 @segment(0x81);
+    var left: uint8[4] @segment(0x81);
+    var right: uint8[4] @segment(0x81);
+    var result: uint8[8] @segment(0x81);
+    @bytes 0xA8;                 # TAY
+    @bytes 0x88;                 # DEY
+    @bytes 0x84, >&widthm1;      # STY widthm1
+    @bytes 0x0A;                 # ASL A
+    @bytes 0x0A;                 # ASL A
+    @bytes 0x0A;                 # ASL A
+    @bytes 0x85, >&count;        # STA count
+
+    # First, copy left and right into the work area, and clear the result.
+
+# again:
+    @bytes 0x98;                 # TYA
+    @bytes 0xAA;                 # TAX
+    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0x95, >&left;         # STA left, X
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
+    @bytes 0x95, >&right;        # STA right, X
+    @bytes 0xA9, 0x00;           # LDA #0
+    @bytes 0x95, >&result+4;     # STA dest+4, X --- only need to clear the top half
+    @bytes 0x88;                 # DEY
+    @bytes 0x10, 0xEF;           # BPL loop
+
+    # Now the multiply.
+
+shift:
+    # Shift right right.
+    @bytes 0xA6, >&widthm1;      # LDX widthm1
+    @bytes 0x18;                 # CLC
+    # loop:
+    @bytes 0x76, >&right;        # ROR right, X
+    @bytes 0xCA;                 # DEX
+    @bytes 0x10, 0xFB;           # BPL loop
+    @bytes 0x90, 0x0F;           # BCC rotate
+
+    # Add left to the upper half of the result.
+    @bytes 0xA2, 0x00;           # LDX #0
+    @bytes 0xA4, >&widthm1;      # LDY widthm1
+    @bytes 0x18;                 # CLC
+    # loop:
+    @bytes 0xB5, >&result+4;     # LDA result+4, X
+    @bytes 0x75, >&left;         # ADC left, X
+    @bytes 0x95, >&result+4;     # STA result+4, X
+    @bytes 0xE8;                 # INX
+    @bytes 0x88;                 # DEY
+    @bytes 0x10, 0xF6;           # BPL loop
+
+# rotate:
+    # Now rotate the result right. (In two halves because of the split result.)
+    @bytes 0xA6, >&widthm1;      # LDX widthm1
+    # loop:
+    @bytes 0x76, >&result+4;     # ROR result+4, X
+    @bytes 0xCA;                 # DEX
+    @bytes 0x10, 0xFB;           # BPL loop
+
+    @bytes 0xA6, >&widthm1;      # LDX widthm1
+    # loop:
+    @bytes 0x76, >&result;       # ROR result, X
+    @bytes 0xCA;                 # DEX
+    @bytes 0x10, 0xFB;           # BPL loop
+
+    # Decrement bit count and optionally go again.
+    @bytes 0xC6, >&count;        # DEC count
+    @bytes 0xD0, 0xD5;           # BNE shift
+
+    # Now copy the result out.
+
+    @bytes 0xA6, >&widthm1;      # LDX widthm1
+    # loop:
+    @bytes 0x8A;                 # TXA
+    @bytes 0xA8;                 # TAY
+    @bytes 0xB5, >&result;       # LDA result, X
+    @bytes 0x91, >&__params+4;   # STA (__params+4), Y
+    @bytes 0xCA;                 # DEX
+    @bytes 0x10, 0xF7;           # BPL loop
+end sub;
+
+sub __mul16()
+    @bytes 0xA9, 0x02;           # LDA #2
+    @bytes 0x4C, &__mul;         # JMP __mul
 end sub;
 
 sub __mul8u(left: uint8, right: uint8): (result: uint8)

@@ -1,0 +1,16 @@
+var mtwo: uint16 := -2;
+var mone: uint16 := -1;
+var zero: uint16 := 0;
+var one: uint16 := 1;
+var two: uint16 := 2;
+var four: uint16 := 4;
+var twofivesix: uint16 := 256;
+var threehundred: uint16 := 300;
+
+sub yes() print(": yes\r"); end sub;
+sub no() print(": no\r"); end sub;
+
+print("two*two==4");            if (two*two) == 4            then yes(); else no(); end if;
+print("threehundred*two==600"); if (threehundred*two) == 600 then yes(); else no(); end if;
+print("twofivesix*two==512");   if (twofivesix*two) == 512   then yes(); else no(); end if;
+print("mone*two=mtwo");         if (mone*two) == mtwo        then yes(); else no(); end if;

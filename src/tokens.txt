@@ -35,6 +35,7 @@ __lsl16       LSL16      IDENTIFIER
 __lsr16       LSR16      IDENTIFIER
 __asr16       ASR16      IDENTIFIER
 __divmodu8    DIVMODU8   IDENTIFIER
+__mul16       MUL16      IDENTIFIER
 
 # Primitive types.
 int8      INT8          IDENTIFIER

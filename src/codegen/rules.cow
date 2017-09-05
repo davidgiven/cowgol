@@ -228,6 +228,24 @@ sub try_modu(iop: [BEIop])
     cant_do_3op(iop, "modu");
 end sub;
 
+sub try_mul(iop: [BEIop])
+    insn_before(iop);
+
+#    if iop.width == 1 then
+#        arch_gen_modu_byte(iop);
+#        insn_after(iop);
+#        return;
+#    end if;
+
+    if iop.width == 2 then
+        arch_gen_mul_word(iop);
+        insn_after(iop);
+        return;
+    end if;
+
+    cant_do_3op(iop, "mul");
+end sub;
+
 sub try_sext(iop: [BEIop])
     insn_before(iop);
 
@@ -320,6 +338,12 @@ sub global_rules(): (matched: uint8)
 
     if queue0.iop_kind == IOP_BE_DIVU then
         try_divu(queue0 as [BEIop]);
+        consume_iops(1);
+        return;
+    end if;
+
+    if queue0.iop_kind == IOP_BE_MUL then
+        try_mul(queue0 as [BEIop]);
         consume_iops(1);
         return;
     end if;
