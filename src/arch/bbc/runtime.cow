@@ -26,6 +26,25 @@ sub print_newline()
 end sub;
 
 sub print_i8(value: uint8)
+    var buffer: uint8[3];
+    var pos: uint8 := 0;
+    loop
+        var rem: uint8;
+        (value, rem) := divmod8(value, 10);
+        buffer[pos] := rem;
+        if value == 0 then
+            break;
+        end if;
+        pos := pos + 1;
+    end loop;
+
+    loop
+        print_char(buffer[pos] + '0');
+        if pos == 0 then
+            break;
+        end if;
+        pos := pos - 1;
+    end loop;
 end sub;
 
 sub print_i16(value: uint16)
@@ -35,12 +54,35 @@ sub print_i32(value: uint32)
 end sub;
 
 sub print_hex_i8(value: uint8)
+    var i: uint8 := 2;
+    loop
+        var digit: uint8 := value >> 4;
+        if digit < 10 then
+            digit := digit + '0';
+        else
+            digit := digit + ('A' - 10);
+        end if;
+        print_char(digit);
+        value := value << 4;
+        i := i - 1;
+        if i == 0 then
+            break;
+        end if;
+    end loop;
 end sub;
 
 sub print_hex_i16(value: uint16)
+    var valuep: [uint8] := (&value) as [uint8];
+    print_hex_i8(valuep[1]);
+    print_hex_i8(valuep[0]);
 end sub;
 
 sub print_hex_i32(value: uint32)
+    var valuep: [uint8] := (&value) as [uint8];
+    print_hex_i8(valuep[3]);
+    print_hex_i8(valuep[2]);
+    print_hex_i8(valuep[1]);
+    print_hex_i8(valuep[0]);
 end sub;
 
 sub file_openin(filename: [int8]): (fd: uint8)
@@ -81,6 +123,7 @@ sub __loadbytes()
     var maxcount: uint8 @segment(0x81);
     @bytes 0x85, >&maxcount;     # STA maxcount
     @bytes 0xA2, 0xFF;           # LDX #-1
+    @bytes 0xA0, 0x00;           # LDY #0
 
     @bytes 0x68;                 # PLA
     @bytes 0x85, >&nextaddr+0;   # STA nextaddr+0
@@ -252,6 +295,14 @@ sub __divmodu8()
 
     @bytes 0xAA;                 # TAX
     @bytes 0xA5, >&num;          # LDA num
+end sub;
+
+sub divmod8(left: uint8, right: uint8): (quotient: uint8, remainder: uint8)
+    @bytes 0xAD, &left;          # LDA left
+    @bytes 0xAE, &right;         # LDX right
+    __divmodu8();
+    @bytes 0x8D, &quotient;      # STA quotient
+    @bytes 0x8E, &remainder;     # STA remainder
 end sub;
 
 # On entry, A=word size
