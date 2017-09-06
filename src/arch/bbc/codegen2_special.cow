@@ -19,6 +19,8 @@ sub arch_gen_after(ea: [EffectiveAddress])
 end sub;
 
 sub arch_gen_beginning_of_instruction()
+    print_newline();
+    print_cache();
     locked_registers := 0;
 end sub;
 

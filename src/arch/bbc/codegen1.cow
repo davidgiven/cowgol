@@ -400,6 +400,25 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
     location := find_or_load_objval(&indexea, candidates);
 end sub;
 
+sub find_or_load_objval_with_optional_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    location := move_value_to_reg(ea, candidates);
+    if location != 0 then
+        return;
+    end if;
+    location := allocate_reg_for_value(ea, candidates);
+
+    if is_number_thing(ea.obj_id) != 0 then
+        load_objval(location, ea);
+    else
+        var indexreg: uint8 := 0;
+        if ea.varoff_id != 0 then
+            indexreg := find_or_load_index(ea, REG_X|REG_Y);
+        end if;
+        ld_abs(location, indexreg, ea);
+        free_reg(indexreg);
+    end if;
+end sub;
+
 sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     location := move_value_to_reg(ea, candidates);
     if location != 0 then
@@ -411,24 +430,9 @@ sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: u
     ld_ind(location, indexreg, ea);
 end sub;
 
-sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
-    var indexreg: uint8 := 0;
-    if ea.varoff_id != 0 then
-        indexreg := find_or_load_index(ea, REG_X|REG_Y);
-    end if;
-    st_abs(location, indexreg, ea);
-    free_reg(indexreg);
-end sub;
-
-sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    st_ind(location, indexreg, ea);
-    free_reg(indexreg);
-end sub;
-
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     if ea.flags == EA_VALUE then
-        location := find_or_load_objval(ea, candidates);
+        location := find_or_load_objval_with_optional_index(ea, candidates);
     elseif ea.flags == EA_DEREF then
         location := find_or_load_ptrval(ea, candidates);
     else
@@ -441,6 +445,30 @@ end sub;
 
 sub find_or_load_fixed_value(ea: [EffectiveAddress], candidates: uint8)
     var location: uint8 := find_or_load_value(ea, candidates);
+end sub;
+
+sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
+    var newlocation: uint8 := location;
+    var indexreg: uint8 := 0;
+    if ea.varoff_id != 0 then
+        indexreg := find_or_load_index(ea, REG_X|REG_Y);
+        if newlocation != REG_A then
+            newlocation := allocate_reg(REG_A);
+            t_reg_reg(location, newlocation);
+            value_is_cached_in_reg(ea, newlocation);
+        end if;
+    end if;
+    st_abs(newlocation, indexreg, ea);
+    free_reg(indexreg);
+    if location != newlocation then
+        free_reg(newlocation);
+    end if;
+end sub;
+
+sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
+    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
+    st_ind(location, indexreg, ea);
+    free_reg(indexreg);
 end sub;
 
 sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)
@@ -529,13 +557,17 @@ sub save_value(location: uint8, ea: [EffectiveAddress])
 end sub;
 
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
-    value_is_cached_in_reg(ea, location);
     if (ea.varoff_id != 0) or (ea.flags == EA_DEREF) then
         print("* value ");
         print_ea(ea);
         print(" can't be made precious, saving now\n");
         save_value(location, ea);
+
+        if ea.flags != EA_DEREF then
+            value_is_cached_in_reg(ea, location);
+        end if;
     else
+        value_is_cached_in_reg(ea, location);
         value_is_precious(ea);
     end if;
 end sub;
@@ -545,7 +577,16 @@ sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], off
         save_objval_with_offset(location, ea, offset);
     elseif ea.flags == EA_DEREF then
         find_or_load_fixed_int(offset, REG_Y);
-        st_ind(location, REG_Y, ea);
+        var newlocation: uint8 := location;
+        if location != REG_A then
+            newlocation := allocate_reg(REG_A);
+            t_reg_reg(location, newlocation);
+            value_is_cached_in_reg(ea, newlocation);
+        end if;
+        st_ind(newlocation, REG_Y, ea);
+        if newlocation != REG_A then
+            free_reg(newlocation);
+        end if;
         free_reg(REG_Y);
     else
         print("can't save ");
