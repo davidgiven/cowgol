@@ -98,7 +98,7 @@ sub arch_gen_copy_word(iop: [BEIop])
             load_value_with_index(REG_A, &iop.left, REG_Y);
             save_value_with_index(REG_A, &iop.dest, REG_Y);
             write_byte(0x88); # DEY
-            write_cg_6502_conditional_iop(0x30, label); # BMI
+            write_cg_6502_conditional_iop(0x10, label); # BPL rel
 
             flush_cached_values(REG_Y);
         end if;
