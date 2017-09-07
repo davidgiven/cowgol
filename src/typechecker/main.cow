@@ -357,6 +357,7 @@ sub process_subroutine()
         end if;
 
         node.type_id := pointer_of(node.type_id, uint16_type);
+        node.left.type_id := node.type_id;
         if node.left.flags == EA_DEREF then
             node.left.flags := EA_VALUE;
         elseif node.left.flags == EA_VALUE then
