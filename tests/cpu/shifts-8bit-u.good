@@ -1,5 +1,7 @@
+one<<zero == one: yes
 one<<one == two: yes
 one<<two == four: yes
+one<<0 == one: yes
 one<<1 == two: yes
 one<<2 == four: yes
 (1 as uint8)<<one == two: yes
@@ -7,8 +9,10 @@ one<<2 == four: yes
 (1 as uint8)<<1 == two: yes
 (1 as uint8)<<2 == four: yes
 one<<8 == zero: yes
+two>>zero == two: yes
 two>>one == one: yes
 two>>two == zero: yes
+two>>0 == two: yes
 two>>1 == one: yes
 two>>2 == zero: yes
 (2 as uint8)>>one == one: yes

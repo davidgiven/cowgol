@@ -182,8 +182,25 @@ end sub;
 #    @bytes 0x6C, &__nextaddr; # JMP (__nextaddr)
 #end sub;
 
+# On entry, X=word size
+sub __copy()
+    @bytes 0xCA;                 # DEX
+    @bytes 0x8A;                 # TXA
+    @bytes 0xA8;                 # TAY
+
+    # again:
+    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0x91, >&__params+2;   # STA (__params+2), Y
+    @bytes 0x88;                 # DEY
+    @bytes 0x10, 0xF9;           # BPL again
+end sub;
+
 # On entry, A=shift amount, X=word size
 sub __lsl()
+    @bytes 0xA8;                 # TAY (cheap cmp #0)
+    @bytes 0xD0, 0x03;           # BNE $+3
+    @bytes 0x4C, &__copy;        # JMP __copy
+
     var count: uint8 @segment(0x81);
     var width: uint8 @segment(0x81);
     @bytes 0x85, >&count;        # STA count
@@ -223,13 +240,18 @@ end sub;
 
 # On entry, A=shift amount, X=word size, Y=0xFF for signed or 0x00 for unsigned
 sub __lsr_asr()
+    var signed: uint8 @segment(0x81);
+    @bytes 0x84, >&signed;       # STY signed
+
+    @bytes 0xA8;                 # TAY (cheap cmp #0)
+    @bytes 0xD0, 0x03;           # BNE $+3
+    @bytes 0x4C, &__copy;        # JMP __copy
+
     var count: uint8 @segment(0x81);
     var width: uint8 @segment(0x81);
-    var signed: uint8 @segment(0x81);
     @bytes 0x85, >&count;        # STA count
     @bytes 0xCA;                 # DEX
     @bytes 0x86, >&width;        # STX width
-    @bytes 0x84, >&signed;       # STY signed
 
     # Copy the value from src to dest, shifting once as we go.
 

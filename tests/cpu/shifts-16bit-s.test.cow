@@ -19,12 +19,16 @@ sub no() print(": no\r"); end sub;
 print("one<<one8 == two"); if (one<<one8) == two then yes(); else no(); end if;
 print("one<<two8 == four"); if (one<<two8) == four then yes(); else no(); end if;
 
+print("mone>>zero8 == mone"); if (mone>>zero8) == mone then yes(); else no(); end if;
 print("mone>>one8 == mone"); if (mone>>one8) == mone then yes(); else no(); end if;
 print("mtwo>>one8 == mone"); if (mtwo>>one8) == mone then yes(); else no(); end if;
+print("two>>zero8 == two"); if (two>>zero8) == two then yes(); else no(); end if;
 print("two>>one8 == one"); if (two>>one8) == one then yes(); else no(); end if;
 print("two>>two8 == zero"); if (two>>two8) == zero then yes(); else no(); end if;
+print("mone>>0 == mone"); if (mone>>0) == mone then yes(); else no(); end if;
 print("mone>>1 == mone"); if (mone>>1) == mone then yes(); else no(); end if;
 print("mtwo>>1 == mone"); if (mtwo>>1) == mone then yes(); else no(); end if;
+print("two>>0 == two"); if (two>>0) == two then yes(); else no(); end if;
 print("two>>1 == one"); if (two>>1) == one then yes(); else no(); end if;
 print("two>>2 == zero"); if (two>>2) == zero then yes(); else no(); end if;
 

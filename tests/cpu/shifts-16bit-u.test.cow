@@ -15,18 +15,24 @@ var sixteen8: uint8 := 16;
 sub yes() print(": yes\r"); end sub;
 sub no() print(": no\r"); end sub;
 
+print("one<<zero8 == one"); if (one<<zero8) == one then yes(); else no(); end if;
 print("one<<one8 == two"); if (one<<one8) == two then yes(); else no(); end if;
 print("one<<two8 == four"); if (one<<two8) == four then yes(); else no(); end if;
+print("one<<0 == one"); if (one<<0) == one then yes(); else no(); end if;
 print("one<<1 == two"); if (one<<1) == two then yes(); else no(); end if;
 print("one<<2 == four"); if (one<<2) == four then yes(); else no(); end if;
+print("(1 as uint16)<<zero8 == one"); if ((1 as uint16)<<zero8) == one then yes(); else no(); end if;
 print("(1 as uint16)<<one8 == two"); if ((1 as uint16)<<one8) == two then yes(); else no(); end if;
 print("(1 as uint16)<<two8 == four"); if ((1 as uint16)<<two8) == four then yes(); else no(); end if;
 print("one<<16 == zero"); if ((one<<16) == zero) then yes(); else no(); end if;
 
+print("two>>zero8 == two"); if (two>>zero8) == two then yes(); else no(); end if;
 print("two>>one8 == one"); if (two>>one8) == one then yes(); else no(); end if;
 print("two>>two8 == zero"); if (two>>two8) == zero then yes(); else no(); end if;
+print("two>>0 == two"); if (two>>0) == two then yes(); else no(); end if;
 print("two>>1 == one"); if (two>>1) == one then yes(); else no(); end if;
 print("two>>2 == zero"); if (two>>2) == zero then yes(); else no(); end if;
+print("(2 as uint16)>>zero8 == two"); if ((2 as uint16)>>zero8) == two then yes(); else no(); end if;
 print("(2 as uint16)>>one8 == one"); if ((2 as uint16)>>one8) == one then yes(); else no(); end if;
 print("(2 as uint16)>>two8 == zero"); if ((2 as uint16)>>two8) == zero then yes(); else no(); end if;
 
