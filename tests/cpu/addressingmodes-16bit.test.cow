@@ -2,7 +2,7 @@ var smallarray: int8[200];
 var largearray: int8[512];
 var ptr: [int8] := &largearray[0];
 var smallu: uint8 := 0;
-var smalls: int8 := 1;
+var smallu1: uint8 := 1;
 var largeu: uint16 := 300;
 var larges: int16 := 301;
 var maxuint8: uint8 := 0xff;
@@ -27,7 +27,7 @@ largearray[1] := 0xAA;
 largearray[300] := 0x55;
 largearray[301] := 0xAA;
 
-# [array + varoff].
+## [array + varoff].
 print("smallarray[smallu]==0x55"); if smallarray[smallu] == 0x55 then yes(); else no(); end if;
 print("largearray[largeu]==0x55"); if largearray[largeu] == 0x55 then yes(); else no(); end if;
 
@@ -46,4 +46,8 @@ print("ptr[larges]==0xAA"); if ptr[larges as int16] == 0xAA then yes(); else no(
 
 # [ptr + numoff + varoff].
 print("ptr[larges-1]==0x55"); if ptr[larges-1] == 0x55 then yes(); else no(); end if;
+
+# array + varoff.
+var p: [int8] := &smallarray[smallu1];
+print("p[0]==0xAA"); if p[0] == 0xAA then yes(); else no(); end if;
 

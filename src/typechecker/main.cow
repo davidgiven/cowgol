@@ -86,6 +86,25 @@ sub gen_operator_and_deref(beiop: uint8, left: [Node], right: [Node]): (dest: [N
     deref_node(right);
 end sub;
 
+sub var_to_pointer_compatible_var(invar_id: uint16): (outvar_id: uint16)
+    var invar_type_id: uint16 := get_type_of_thing(invar_id);
+    if get_width_of_type(invar_type_id) == 2 then
+        outvar_id := invar_id;
+    else
+        print("* zextending varoff ");
+        print_thing(invar_id);
+        print_newline();
+
+        var node: [Node] := alloc_thing_node(invar_id);
+        node.iop := IOP_BE_ZEXT;
+        node.type_id := uint16_type;
+        node := simplify_node_to_var_and_deref(node);
+        outvar_id := node.left.obj_id;
+        deref_node(node);
+    end if;
+    ref_temporary(outvar_id);
+end sub;
+
 sub process_subroutine()
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     init_tree();
@@ -342,7 +361,7 @@ sub process_subroutine()
             right := simplify_node_to_var_and_deref(right);
             ref_temporary(right.left.obj_id);
             deref_temporary(node.left.varoff_id);
-            node.left.varoff_id := right.left.obj_id;
+            node.left.varoff_id := var_to_pointer_compatible_var(right.left.obj_id);
         end if;
         deref_node(right);
         deref_node(left);
@@ -362,6 +381,11 @@ sub process_subroutine()
             node.left.flags := EA_VALUE;
         elseif node.left.flags == EA_VALUE then
             node.left.flags := EA_LEA;
+            if node.left.varoff_id != 0 then
+                var newvaroff_id: uint16 := var_to_pointer_compatible_var(node.left.varoff_id);
+                deref_temporary(node.left.varoff_id);
+                node.left.varoff_id := newvaroff_id;
+            end if;
         else
             print("addressof with LEA");
             halt();

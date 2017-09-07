@@ -8,3 +8,4 @@ ptr[300]==0x55: yes
 ptr[301]==0xAA: yes
 ptr[larges]==0xAA: yes
 ptr[larges-1]==0x55: yes
+p[0]==0xAA: yes

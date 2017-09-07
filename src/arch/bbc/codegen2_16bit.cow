@@ -17,7 +17,7 @@ sub check_16bit_ea(ea: [EffectiveAddress])
     end if;
 
     var width: uint8 := get_width_of_type(ea.type_id);
-    if (width != 0) and (width != 2) then
+    if (width != 0) and (width != 2) and (ea.flags != EA_LEA) then
         print("wide iop with non-wide parameter: ");
         print_ea(ea);
         halt();
@@ -70,6 +70,8 @@ sub arch_gen_copy_word(iop: [BEIop])
         save_value_with_index_or_offset(location, &iop.dest, 1);
     end sub;
 
+    check_16bit_ea(&iop.left);
+    check_16bit_ea(&iop.right);
     if is_number_thing(iop.left.obj_id) != 0 then
         var value: int32 := get_value_of_number(iop.left.obj_id);
         var candidates: uint8;

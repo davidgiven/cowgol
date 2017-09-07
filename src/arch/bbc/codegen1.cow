@@ -3,7 +3,7 @@ record CachedValue
     locations: uint8;
 end record;
 
-var values: CachedValue[8];
+var values: CachedValue[16];
 var locked_registers: uint8;
 
 sub print_cache()
@@ -64,6 +64,21 @@ sub write_back_precious_values(mask: uint8)
     end loop;
 end sub;
 
+sub flush_cached_values(mask: uint8)
+    print("* flushing cached values in 0x");
+    print_hex_i8(mask);
+    print_newline();
+
+    write_back_precious_values(mask);
+
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        value.locations := value.locations & (0xFF ^ mask);
+        i := i + 1;
+    end loop;
+end sub;
+
 sub find_unused_regs(candidates: uint8): (mask: uint8)
     var i: uint8 := 0;
     while i < values@size loop
@@ -88,7 +103,7 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
         end if;
     end if;
     mask := find_first_bit(mask);
-    write_back_precious_values(mask);
+    flush_cached_values(mask);
     locked_registers := locked_registers | mask;
     print("* allocating 0x");
     print_hex_i8(mask);
@@ -339,21 +354,6 @@ sub value_in_location_will_be_replaced_with(location: uint8,
 
             value.locations := 0;
         end if;
-        i := i + 1;
-    end loop;
-end sub;
-
-sub flush_cached_values(mask: uint8)
-    print("* flushing cached values in 0x");
-    print_hex_i8(mask);
-    print_newline();
-
-    write_back_precious_values(mask);
-
-    var i: uint8 := 0;
-    while i < values@size loop
-        var value: [CachedValue] := &values[i];
-        value.locations := value.locations & (0xFF ^ mask);
         i := i + 1;
     end loop;
 end sub;

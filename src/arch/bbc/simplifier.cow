@@ -107,7 +107,11 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         deref_temporary(ea.obj_id);
         ea.obj_id := tmpvar_id;
         ea.type_id := iop.dest.type_id;
-        ea.flags := EA_DEREF;
+        if ea.flags == EA_LEA then
+            ea.flags := EA_VALUE;
+        else
+            ea.flags := EA_DEREF;
+        end if;
         ea.varoff_id := 0;
     end sub;
 
@@ -136,12 +140,13 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         ea.numoff_id := 0;
     end sub;
 
-    if (beiop != IOP_BE_COPY) and (width != 1) and (ea.flags == EA_LEA) then
+    print("lea? "); print_ea(ea); print_newline();
+    if (ea.flags == EA_LEA) and (beiop != IOP_BE_COPY) then
         lea();
         ea.obj_id := tmpvar_id;
         ea.numoff_id := 0;
-        ea.type_id := int16_type;
-        ea.flags := EA_DEREF;
+        ea.varoff_id := 0;
+        ea.flags := EA_VALUE;
     end if;
 
     if ea.varoff_id != 0 then
