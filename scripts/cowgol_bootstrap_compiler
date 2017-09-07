@@ -10,7 +10,7 @@ fi
 output=${1%.*}
 for option in $options; do
     case "$option" in
-        -o) shift; output=$(realpath $1); shift;;
+        -o) shift; output=$(realpath -s $1); shift;;
         --) break;;
     esac
 done

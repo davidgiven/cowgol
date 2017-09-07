@@ -15,13 +15,13 @@ if [ "$1" != "-o" ]; then
     echo "Syntax: cowgol [-k] -o outputfile inputfiles..."
     exit 1
 else
-    outputfile=$(realpath $2)
+    outputfile=$(realpath -s $2)
     shift
     shift
 fi
 
-srcs=$(realpath "$@")
-bindir=$(realpath bin)
+srcs=$(realpath -s "$@")
+bindir=$(realpath -s bin)
 
 cd $tmpdir
 $bindir/tokeniser $srcs

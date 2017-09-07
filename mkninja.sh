@@ -18,7 +18,7 @@ rule bootstrapped_cowgol_program
     command = scripts/cowgol_bootstrap_compiler -o $out $in
 
 rule c_program
-    command = cc -O -g -o $out $in
+    command = cc -std=c99 -Wno-unused-result -O -g -o $out $in
 
 build compiler_suite : phony $
     bin/tokeniser bin/parser bin/typechecker $
