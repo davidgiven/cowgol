@@ -789,10 +789,14 @@ function rvalue_leaf()
         elseif (sym.kind == "type") then
             t = stream:next()
             if (t == "@bytes") then
+                local suffix = ""
+                if sym.array then
+                    suffix = "*"..sym.length
+                end
                 return {
                     kind = "number",
                     type = root_ns["number"],
-                    storage = "sizeof("..sym.ctype..")"
+                    storage = "sizeof("..sym.ctype..")"..suffix
                 }
             elseif (t == "@size") then
                 if not sym.array then
@@ -830,10 +834,14 @@ function rvalue_leaf()
                 sym = result
             elseif (t == "@bytes") then
                 stream:next()
+                local suffix = ""
+                if sym.type.array then
+                    suffix = "*"..sym.type.length
+                end
                 sym = {
                     kind = "number",
                     type = root_ns["number"],
-                    storage = "sizeof("..sym.type.ctype..")"
+                    storage = "sizeof("..sym.type.ctype..")"..suffix
                 }
             elseif (t == "@size") then
                 stream:next()
