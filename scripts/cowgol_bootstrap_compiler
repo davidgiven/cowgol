@@ -1,22 +1,29 @@
 #!/bin/sh
 set -e
 
-options=$(getopt -s sh -n $0 o: "$@")
+options=$(getopt -s sh -n $0 ko: "$@")
 if [ $? -ne 0 ]; then
-    echo >&2 "Usage: $0 [-o outputfile] inputfiles..."
+    echo >&2 "Usage: $0 [-k] [-o outputfile] inputfiles..."
     exit 1
 fi
+
+keep=no
 
 output=${1%.*}
 for option in $options; do
     case "$option" in
         -o) shift; output=$(realpath -s $1); shift;;
+        -k) shift; keep=yes;;
         --) break;;
     esac
 done
 
-tmpdir=$(mktemp -d --tmpdir cowgol.XXXXXX)
-trap 'rm -rf $tmpdir' EXIT
+if [ "$keep" = "no" ]; then
+    tmpdir=$(mktemp -d --tmpdir cowgol.XXXXXX)
+    trap 'rm -rf $tmpdir' EXIT
+else
+    tmpdir=.
+fi
 
 ./bootstrap/bootstrap.lua "$@" > $tmpdir/output.c
 gcc -g -Og -std=c1x -fms-extensions -ffunction-sections -fdata-sections \
