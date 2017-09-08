@@ -347,12 +347,14 @@ sub value_in_location_will_be_replaced_with(location: uint8,
 
             write_back_precious_value(location, &value.ea);
             value.locations := 0;
-        elseif locations == location then
+        elseif (locations&location) != 0 then
             print("* non-precious value ");
             print_ea(&value.ea);
-            print(" is no longer cached\n");
+            print(" is no longer cached in 0x");
+            print_hex_i8(location);
+            print_newline();
 
-            value.locations := 0;
+            value.locations := locations^location;
         end if;
         i := i + 1;
     end loop;
@@ -428,6 +430,7 @@ sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: u
     var indexreg: uint8 := find_or_load_index(ea, REG_Y);
     location := allocate_reg_for_value(ea, REG_A);
     ld_ind(location, indexreg, ea);
+    free_reg(indexreg);
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
@@ -467,8 +470,18 @@ end sub;
 
 sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
     var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    st_ind(location, indexreg, ea);
+    var newlocation: uint8;
+    if location != REG_A then
+        newlocation := allocate_reg(REG_A);
+        t_reg_reg(location, newlocation);
+    else
+        newlocation := location;
+    end if;
+    st_ind(newlocation, indexreg, ea);
     free_reg(indexreg);
+    if location != REG_A then
+        free_reg(newlocation);
+    end if;
 end sub;
 
 sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)

@@ -16,15 +16,6 @@ sub gen_regular_alu(iop: [BEIop], opcode: uint8)
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
 
-    if iop.right.flags == EA_VALUE then
-        # do nothing, the opcode is already right
-    else
-        print("can't add ");
-        print_ea(&iop.right);
-        print(" yet");
-        print_newline();
-    end if;
-
     aluop_value(&iop.right, opcode);
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
