@@ -1,0 +1,123 @@
+var screen: [uint8] := 0x7C00 as [uint8];
+
+record Ball
+    x: uint8;
+    y: uint8;
+    dx: int8;
+    dy: int8;
+end record;
+
+var balls: Ball[10];
+
+sub mode(m: uint8)
+    print_char(22);
+    print_char(m);
+end sub;
+
+sub setup_screen()
+    var ptr: [uint8] := screen;
+    var line: uint8 := 0;
+    while line < 25 loop
+        ptr[0] := 147;
+        ptr := ptr + 40;
+        line := line + 1;
+    end loop;
+end sub;
+
+sub vsync()
+    osbyte(19, 0, 0);
+end sub;
+
+sub putpixel(x: uint8, y: uint8, ink: uint8)
+    var xx: int16 := (x / 2) as int16;
+    var yy: int16 := (y / 3) as int16;
+    var ptr: [uint8] := screen + 1 + (yy*40) + xx;
+
+    x := x & 1;
+    y := y % 3;
+    var p: uint8 := (1 as uint8) << ((y*2) + x);
+    p := (p | ((p & 32)<<1)) & ~32;
+
+    ptr[0] := ptr[0] & ~p | (p & ink) | 160;
+end sub;
+
+sub draw_ball(ball: [Ball], ink: uint8)
+    var x: uint8 := ball.x;
+    var x1: uint8 := x+1;
+    var x3: uint8 := x+3;
+    var y: uint8 := ball.y;
+    var y1: uint8 := y+1;
+    var y3: uint8 := y+3;
+    var z: uint8 := 1;
+    while z != 3 loop
+        putpixel(x+z, y, ink);
+        putpixel(x+z, y3, ink);
+        putpixel(x, y+z, ink);
+        putpixel(x3, y+z, ink);
+        z := z + 1;
+    end loop;
+end sub;
+
+sub init_balls()
+    var i: balls@index := 0;
+    loop
+        var ball: [Ball] := &balls[i];
+        ball.x := i<<2;
+        ball.y := i<<2;
+        ball.dx := ((i % 3) as int8) - 1;
+        ball.dy := (((i/3) % 3) as int8) - 1;
+        if i == (balls@size-1) then
+            break;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+sub draw_balls(ink: uint8)
+    var i: balls@index := 0;
+    loop
+        var ball: [Ball] := &balls[i];
+        draw_ball(ball, ink);
+        if i == (balls@size-1) then
+            break;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+sub move_balls()
+    var i: balls@index := 0;
+    loop
+        var ball: [Ball] := &balls[i];
+        if ball.x == 0 then
+            ball.dx := 1;
+        elseif ball.x == 73 then
+            ball.dx := -1;
+        end if;
+        if ball.y == 0 then
+            ball.dy := 1;
+        elseif ball.y == 70 then
+            ball.dy := -1;
+        end if;
+
+        ball.x := ball.x + (ball.dx as uint8);
+        ball.y := ball.y + (ball.dy as uint8);
+
+        if i == (balls@size-1) then
+            break;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+mode(7);
+vsync();
+setup_screen();
+init_balls();
+
+loop
+    draw_balls(0x00);
+    move_balls();
+    draw_balls(0xFF);
+    vsync();
+end loop;
