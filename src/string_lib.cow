@@ -45,8 +45,8 @@ sub compare_memory(left: [int8], right: [int8], length: uint8): (result: int8)
     result := 0;
 end sub;
 
-sub zero_memory(ptr: [int8], length: uint8)
-    while length > 0 loop
+sub zero_memory(ptr: [int8], length: uint16)
+    while length != 0 loop
         length := length - 1;
         ptr[length] := 0;
     end loop;
