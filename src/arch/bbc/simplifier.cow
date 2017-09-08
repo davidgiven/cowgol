@@ -140,7 +140,6 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         ea.numoff_id := 0;
     end sub;
 
-    print("lea? "); print_ea(ea); print_newline();
     if (ea.flags == EA_LEA) and (beiop != IOP_BE_COPY) then
         lea();
         ea.obj_id := tmpvar_id;

@@ -731,6 +731,10 @@ sub process()
 
         write_iop_header(iheader);
         current_subroutine_id := iheader.thing_id;
+        print("\n******* SUBROUTINE ");
+        show_name_of(current_subroutine_id);
+        print_newline();
+        print_newline();
         process_subroutine();
     end loop;
     write_terminating_iop_header();
