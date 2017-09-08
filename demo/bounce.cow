@@ -29,15 +29,17 @@ sub vsync()
 end sub;
 
 sub putpixel(x: uint8, y: uint8, ink: uint8)
-    var xx: int16 := (x / 2) as int16;
-    var yy: int16 := (y / 3) as int16;
-    var ptr: [uint8] := screen + 1 + (yy*40) + xx;
+    var xq: uint8 := x >> 1;
+    var xr: uint8 := x & 1;
 
-    x := x & 1;
-    y := y % 3;
-    var p: uint8 := (1 as uint8) << ((y*2) + x);
+    var yq: uint8;
+    var yr: uint8;
+    (yq, yr) := divmod8(y, 3);
+
+    var ptr: [uint8] := screen + 1 + ((yq as int16)*40) + (xq as int16);
+
+    var p: uint8 := (1 as uint8) << ((yr*2) + xr);
     p := (p | ((p & 32)<<1)) & ~32;
-
     ptr[0] := ptr[0] & ~p | (p & ink) | 160;
 end sub;
 
