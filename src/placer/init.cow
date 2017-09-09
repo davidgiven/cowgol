@@ -7,4 +7,4 @@ var current_subroutine_id: uint16;
 var current_subroutine: [SubroutineThing];
 var pass: uint8;
 var pc: uint16;
-var labels: [uint16] := &thing_table[thing_table_top] as [uint16];
+var labels: [uint16] := &thing_table[thing_table_top+1] as [uint16];

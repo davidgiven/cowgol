@@ -260,7 +260,7 @@ sub show_subroutine_sizes()
     end loop;
 end sub;
 
-init_graph(&thing_table[thing_table_top] as [int8]);
+init_graph(&thing_table[thing_table_top+1] as [int8]);
 build_graph();
 print("Total subroutines: ");
 print_i16(subroutine_count);
