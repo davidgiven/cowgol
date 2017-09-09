@@ -1,0 +1,48 @@
+sub check_wide_ea(ea: [EffectiveAddress])
+    if (ea.flags == EA_VALUE) and (is_number_thing(ea.obj_id) != 0) then
+        var thing: [NumberThing] := find_thing(ea.obj_id) as [NumberThing];
+        thing.segment := SEGMENT_CONST;
+    end if;
+
+    if ea.varoff_id != 0 then
+        print("wide EA with variable offset: ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    if (ea.flags == EA_DEREF) and (get_value_of_number(ea.numoff_id) != 0) then
+        print("wide pointer EA with numeric offset: ");
+        print_ea(ea);
+        halt();
+    end if;
+end sub;
+
+sub arch_gen_copy_wide(iop: [BEIop])
+    check_wide_ea(&iop.left);
+    check_wide_ea(&iop.right);
+
+    find_or_load_fixed_int(iop.width - 1, REG_Y);
+    allocate_fixed_reg(REG_A);
+
+    var label: uint16 := create_label();
+    write_label_iop(label);
+    load_value_with_index(REG_A, &iop.left, REG_Y);
+    save_value_with_index(REG_A, &iop.dest, REG_Y);
+    write_byte(0x88); # DEY
+    write_cg_6502_conditional_iop(0x10, label); # BPL rel
+
+    flush_cached_values(REG_Y);
+end sub;
+
+sub arch_gen_zext_wide(iop: [BEIop])
+    var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
+    save_value_with_offset(location, &iop.dest, 0);
+
+    location := find_or_load_int(0, REG_A|REG_X|REG_Y);
+
+    var i: uint8 := 1;
+    while i != iop.width loop
+        save_value_with_offset(location, &iop.dest, i);
+        i := i + 1;
+    end loop;
+end sub;

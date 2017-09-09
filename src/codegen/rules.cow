@@ -58,33 +58,21 @@ end sub;
 sub try_copy(iop: [BEIop])
     insn_before(iop);
 
-    var srcw: uint8;
-    var destw: uint8;
-    (srcw, destw) := get_2op_widths(iop);
-
-    if destw == 1 then
+    if iop.width == 1 then
         arch_gen_copy_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    if destw == 2 then
+    elseif iop.width == 2 then
         arch_gen_copy_word(iop);
-        insn_after(iop);
-        return;
+    else
+        arch_gen_copy_wide(iop);
     end if;
 
-    cant_do_2op(iop, "");
+    insn_after(iop);
 end sub;
 
 sub try_not(iop: [BEIop])
     insn_before(iop);
 
-    var srcw: uint8;
-    var destw: uint8;
-    (srcw, destw) := get_2op_widths(iop);
-
-    if destw == 1 then
+    if iop.width == 1 then
         arch_gen_not_byte(iop);
         insn_after(iop);
         return;
@@ -122,11 +110,6 @@ end sub;
 sub try_and(iop: [BEIop])
     insn_before(iop);
 
-    var leftw: uint8;
-    var rightw: uint8;
-    var destw: uint8;
-    (leftw, rightw, destw) := get_3op_widths(iop);
-
     if iop.width == 1 then
         arch_gen_and_byte(iop);
         insn_after(iop);
@@ -144,11 +127,6 @@ end sub;
 
 sub try_or(iop: [BEIop])
     insn_before(iop);
-
-    var leftw: uint8;
-    var rightw: uint8;
-    var destw: uint8;
-    (leftw, rightw, destw) := get_3op_widths(iop);
 
     if iop.width == 1 then
         arch_gen_or_byte(iop);
@@ -168,11 +146,6 @@ end sub;
 sub try_eor(iop: [BEIop])
     insn_before(iop);
 
-    var leftw: uint8;
-    var rightw: uint8;
-    var destw: uint8;
-    (leftw, rightw, destw) := get_3op_widths(iop);
-
     if iop.width == 1 then
         arch_gen_eor_byte(iop);
         insn_after(iop);
@@ -190,11 +163,6 @@ end sub;
 
 sub try_add(iop: [BEIop])
     insn_before(iop);
-
-    var leftw: uint8;
-    var rightw: uint8;
-    var destw: uint8;
-    (leftw, rightw, destw) := get_3op_widths(iop);
 
     if iop.width == 1 then
         arch_gen_add_byte(iop);
@@ -354,11 +322,11 @@ sub try_zext(iop: [BEIop])
 
     if iop.width == 2 then
         arch_gen_zext_word(iop);
-        insn_after(iop);
-        return;
+    else
+        arch_gen_zext_wide(iop);
     end if;
 
-    cant_do_2op(iop, "zext");
+    insn_after(iop);
 end sub;
 
 sub try_conditional(ciop: [BEConditionalIop], liop: [LabelIop])
