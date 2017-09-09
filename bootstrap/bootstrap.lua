@@ -1000,6 +1000,7 @@ function expression(outputvar)
                 type_check(op.type, op.rvalue.type)
 
                 emit("%s = (%s) %s;", op.rvalue.storage, op.type.ctype, value.storage)
+                stack[#stack+1] = op.rvalue
                 if value.temporary then
                     free_tempvar(value)
                 end
