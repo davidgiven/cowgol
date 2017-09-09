@@ -478,6 +478,7 @@ sub process_subroutine()
         dest.flags := FLAG_RVALUE;
         dest.type_id := src.type_id;
         dest.left.obj_id := alloc_temporary(src.type_id);
+        dest.left.type_id := dest.type_id;
 
         arch_simplify_node_to(src, dest);
         deref_node(src);
