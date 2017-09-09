@@ -59,7 +59,7 @@ end sub;
 sub show_number_thing(thing: [NumberThing])
     show_data_thing(thing as [DataThing]);
     print("number(0x");
-    print_hex_i32(thing.value);
+    print_hex_i32(thing.value as uint32);
     print(") ");
 end sub;
 
@@ -196,7 +196,7 @@ loop
     end if;
     print_newline();
 
-    id := id + thing.thing_size;
+    id := id + (thing.thing_size as uint16);
 end loop;
 print("thing table size: ");
 print_i16(thing_table_top);

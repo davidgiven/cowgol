@@ -175,11 +175,13 @@ sub assign_space_for_variables(subroutine_id: uint16)
         while i < graph_count loop
             var g: [GraphRecord] := &graph_base[i];
             if g.src_id == subroutine_id then
-                var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
-                var dest_sr: [SubRecord] := &subdata[dest.address];
-                arch_propagate_var_offsets(&sr.base, &dest_sr.base);
+                if g.dest_id != 0 then
+                    var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
+                    var dest_sr: [SubRecord] := &subdata[dest.address];
+                    arch_propagate_var_offsets(&sr.base, &dest_sr.base);
+                    g.dest_id := 0;
+                end if;
                 g.src_id := 0;
-                g.dest_id := 0;
             end if;
             i := i + 1;
         end loop;
@@ -260,7 +262,7 @@ sub show_subroutine_sizes()
     end loop;
 end sub;
 
-init_graph(&thing_table[thing_table_top+1] as [int8]);
+init_graph(LOMEM);
 build_graph();
 print("Total subroutines: ");
 print_i16(subroutine_count);
