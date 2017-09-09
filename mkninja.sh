@@ -42,7 +42,7 @@ EOF
 
 OBJDIR="/tmp/cowgol-obj"
 BOOTSTRAP_DEPENDENCIES="scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h"
-COWGOL_DEPENDENCIES="scripts/cowgol compiler_suite"
+COWGOL_DEPENDENCIES="scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow"
 CPUTEST_DEPENDENCIES="scripts/bbctube_test bin/bbctube"
 
 bootstrapped_cowgol_program() {
@@ -54,7 +54,7 @@ bootstrapped_cowgol_program() {
 cowgol_program() {
     out=$1
     shift
-    echo "build $out : cowgol_program src/arch/bbc/runtime.cow $@ | $COWGOL_DEPENDENCIES"
+    echo "build $out : cowgol_program src/arch/bbc/lib/runtime.cow $@ | $COWGOL_DEPENDENCIES"
 }
 
 bootstrap_test() {
