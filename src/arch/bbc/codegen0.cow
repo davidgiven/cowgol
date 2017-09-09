@@ -286,6 +286,8 @@ end sub;
 sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
     if ea.flags == EA_VALUE then
         st_abs(location, index, ea);
+    elseif ea.flags == EA_DEREF then
+        st_ind(location, index, ea);
     else
         print("can't save ");
         print_ea(ea);
