@@ -51,3 +51,6 @@ print("ptr[larges-1]==0x55"); if ptr[larges-1] == 0x55 then yes(); else no(); en
 var p: [int8] := &smallarray[smallu1];
 print("p[0]==0xAA"); if p[0] == 0xAA then yes(); else no(); end if;
 
+# &array + numoff.
+print("(&smallarray[1])[0]==0xAA"); if (&smallarray[1])[0] == 0xAA then yes(); else no(); end if;
+print("(&smallarray[1] as [uint8])[0]==0xAA"); if (&smallarray[1] as [uint8])[0] == 0xAA then yes(); else no(); end if;

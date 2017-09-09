@@ -9,3 +9,5 @@ ptr[301]==0xAA: yes
 ptr[larges]==0xAA: yes
 ptr[larges-1]==0x55: yes
 p[0]==0xAA: yes
+(&smallarray[1])[0]==0xAA: yes
+(&smallarray[1] as [uint8])[0]==0xAA: yes
