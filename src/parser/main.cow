@@ -200,7 +200,7 @@ sub do_var()
 
         next_token();
         do_expression();
-        emit_fe(IOP_FE_ASSIGN);
+        emit_untyped_fe(IOP_FEX_ASSIGN);
     end if;
 
     expect_token(TOKEN_SEMICOLON);
@@ -293,7 +293,7 @@ sub do_assignment()
     do_expression();
     expect_token(TOKEN_SEMICOLON);
 
-    emit_fe(IOP_FE_ASSIGN);
+    emit_untyped_fe(IOP_FEX_ASSIGN);
 end sub;
 
 sub do_goto()
@@ -419,8 +419,8 @@ sub do_functioncall()
     while i > 0 loop
         i := i - 1;
         emit_fe_parameter(IOP_FEX_INPUTPARAM, id, i);
-        emit_fe(IOP_FE_SWAP);
-        emit_fe(IOP_FE_ASSIGN);
+        emit_untyped_fe(IOP_FEX_SWAP);
+        emit_untyped_fe(IOP_FEX_ASSIGN);
     end loop;
 
     var iop: [CallIop] := emit(IOP_CALL, CallIop@bytes) as [CallIop];
@@ -432,7 +432,7 @@ sub do_functioncall()
     while i > 0 loop
         i := i - 1;
         emit_fe_parameter(IOP_FEX_OUTPUTPARAM, id, i);
-        emit_fe(IOP_FE_ASSIGN);
+        emit_untyped_fe(IOP_FEX_ASSIGN);
     end loop;
 
     expect_token(TOKEN_SEMICOLON);

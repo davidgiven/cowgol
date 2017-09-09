@@ -26,8 +26,12 @@ sub emit_linenumber(line_number: uint16)
     end if;
 end sub;
 
-sub emit_fe(kind: uint8)
+sub emit_untyped_fe(kind: uint8)
     var iop: [Iop] := emit(kind, Iop@bytes);
+end sub;
+
+sub emit_fe(kind: uint8)
+    var iop: [Iop] := emit(kind, FETypedIop@bytes);
 end sub;
 
 sub emit_fe_push(thing_id: uint16)
@@ -51,7 +55,7 @@ sub emit_fe_member(thing_id: uint16)
 end sub;
 
 sub emit_fe_cast(type_id: uint16)
-    var iop: [FECastIop] := emit(IOP_FEX_CAST, FECastIop@bytes) as [FECastIop];
+    var iop: [FETypedIop] := emit(IOP_FE_CAST, FETypedIop@bytes) as [FETypedIop];
     iop.type_id := type_id;
 end sub;
 

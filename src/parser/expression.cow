@@ -128,8 +128,8 @@ sub expression_state_machine()
             while i > 0 loop
                 i := i - 1;
                 emit_fe_parameter(IOP_FEX_INPUTPARAM, current_function_call, i);
-                emit_fe(IOP_FE_SWAP);
-                emit_fe(IOP_FE_ASSIGN);
+                emit_untyped_fe(IOP_FEX_SWAP);
+                emit_untyped_fe(IOP_FEX_ASSIGN);
                 data_stack_size := data_stack_size - 1;
             end loop;
 

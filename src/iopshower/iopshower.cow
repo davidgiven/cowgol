@@ -23,8 +23,15 @@ sub do_clonelabel(iop: [CloneLabelIop])
     print_i16(iop.dest_label);
 end sub;
 
-sub do_fe_push(iop: [FEPushIop])
-    print("FE_PUSH id=");
+sub do_fe(kind: [int8], iop: [FETypedIop])
+    print(kind);
+    print(" type_id=0x");
+    print_hex_i16(iop.type_id);
+end sub;
+
+sub do_fex_push(iop: [FEPushIop])
+    do_fe("FEX_PUSH", iop as [FETypedIop]);
+    print(" id=");
     print_thing(iop.thing_id);
 end sub;
 
@@ -37,8 +44,8 @@ sub do_call(iop: [CallIop])
     print_i8(iop.output_parameter_count);
 end sub;
 
-sub do_fe_parameter(kind: [int8], iop: [FEParameterIop])
-    print(kind);
+sub do_fex_parameter(kind: [int8], iop: [FEParameterIop])
+    do_fe(kind, iop as [FETypedIop]);
     print(" subroutine_id=0x");
     print_hex_i16(iop.subroutine_id);
     print(" parameter=");
@@ -46,16 +53,12 @@ sub do_fe_parameter(kind: [int8], iop: [FEParameterIop])
 end sub;
 
 sub do_fex_memberof(iop: [FEMemberIop])
-    print("FEX_MEMBEROF thing_id=");
+    do_fe("FEX_MEMBEROF", iop as [FETypedIop]);
+    print(" thing_id=");
     print_thing(iop.thing_id);
 end sub;
 
-sub do_fe_cast(iop: [FECastIop])
-    print("FEX_CAST type_id=0x");
-    print_hex_i16(iop.type_id);
-end sub;
-
-sub do_fe_conditional(kind: [int8], iop: [FEConditionalIop])
+sub do_fex_conditional(kind: [int8], iop: [FEConditionalIop])
     print(kind);
     print(" iftrue=");
     print_i16(iop.iftrue_label);
@@ -185,37 +188,37 @@ loop
         elseif kind == IOP_ADDRESSLO  then do_address("ADDRESSLO", iop as [AddressIop]);
         elseif kind == IOP_ADDRESSHI  then do_address("ADDRESSHI", iop as [AddressIop]);
 
-        elseif kind == IOP_FE_SWAP        then print("FE_SWAP");
-        elseif kind == IOP_FE_ASSIGN      then print("FE_ASSIGN");
-        elseif kind == IOP_FE_ADDRESSOF   then print("FE_ADDRESSOF");
-        elseif kind == IOP_FE_BYTESOF     then print("FE_BYTESOF");
-        elseif kind == IOP_FE_SIZEOF      then print("FE_SIZEOF");
-        elseif kind == IOP_FE_OFFSET      then print("FE_OFFSET");
-        elseif kind == IOP_FE_INDEX       then print("FE_INDEX");
-        elseif kind == IOP_FE_ADD         then print("FE_ADD");
-        elseif kind == IOP_FE_SUB         then print("FE_SUB");
-        elseif kind == IOP_FE_MUL         then print("FE_MUL");
-        elseif kind == IOP_FE_DIV         then print("FE_DIV");
-        elseif kind == IOP_FE_MOD         then print("FE_MOD");
-        elseif kind == IOP_FE_AND         then print("FE_AND");
-        elseif kind == IOP_FE_OR          then print("FE_OR");
-        elseif kind == IOP_FE_EOR         then print("FE_EOR");
-        elseif kind == IOP_FE_NEG         then print("FE_NEG");
-        elseif kind == IOP_FE_NOT         then print("FE_NOT");
-        elseif kind == IOP_FE_MATERIALISE then print("FE_MATERIALISE");
-        elseif kind == IOP_FE_ZEXT        then print("FE_ZEXT");
-        elseif kind == IOP_FE_SEXT        then print("FE_SEXT");
-        elseif kind == IOP_FE_LSHIFT      then print("FE_LSHIFT");
-        elseif kind == IOP_FE_RSHIFT      then print("FE_RSHIFT");
+        elseif kind == IOP_FE_ADDRESSOF   then do_fe("FE_ADDRESSOF", iop as [FETypedIop]);
+        elseif kind == IOP_FE_BYTESOF     then do_fe("FE_BYTESOF", iop as [FETypedIop]);
+        elseif kind == IOP_FE_SIZEOF      then do_fe("FE_SIZEOF", iop as [FETypedIop]);
+        elseif kind == IOP_FE_OFFSET      then do_fe("FE_OFFSET", iop as [FETypedIop]);
+        elseif kind == IOP_FE_INDEX       then do_fe("FE_INDEX", iop as [FETypedIop]);
+        elseif kind == IOP_FE_ADD         then do_fe("FE_ADD", iop as [FETypedIop]);
+        elseif kind == IOP_FE_SUB         then do_fe("FE_SUB", iop as [FETypedIop]);
+        elseif kind == IOP_FE_MUL         then do_fe("FE_MUL", iop as [FETypedIop]);
+        elseif kind == IOP_FE_DIV         then do_fe("FE_DIV", iop as [FETypedIop]);
+        elseif kind == IOP_FE_MOD         then do_fe("FE_MOD", iop as [FETypedIop]);
+        elseif kind == IOP_FE_AND         then do_fe("FE_AND", iop as [FETypedIop]);
+        elseif kind == IOP_FE_OR          then do_fe("FE_OR", iop as [FETypedIop]);
+        elseif kind == IOP_FE_EOR         then do_fe("FE_EOR", iop as [FETypedIop]);
+        elseif kind == IOP_FE_NEG         then do_fe("FE_NEG", iop as [FETypedIop]);
+        elseif kind == IOP_FE_NOT         then do_fe("FE_NOT", iop as [FETypedIop]);
+        elseif kind == IOP_FE_MATERIALISE then do_fe("FE_MATERIALISE", iop as [FETypedIop]);
+        elseif kind == IOP_FE_ZEXT        then do_fe("FE_ZEXT", iop as [FETypedIop]);
+        elseif kind == IOP_FE_SEXT        then do_fe("FE_SEXT", iop as [FETypedIop]);
+        elseif kind == IOP_FE_LSHIFT      then do_fe("FE_LSHIFT", iop as [FETypedIop]);
+        elseif kind == IOP_FE_RSHIFT      then do_fe("FE_RSHIFT", iop as [FETypedIop]);
+        elseif kind == IOP_FE_CAST        then do_fe("FE_CAST", iop as [FETypedIop]);
 
-        elseif kind == IOP_FEX_PUSH        then do_fe_push(iop as [FEPushIop]);
-        elseif kind == IOP_FEX_INPUTPARAM  then do_fe_parameter("FEX_INPUTPARAM", iop as [FEParameterIop]);
-        elseif kind == IOP_FEX_OUTPUTPARAM then do_fe_parameter("FEX_OUTPUTPARAM", iop as [FEParameterIop]);
+        elseif kind == IOP_FEX_ASSIGN      then print("FEX_ASSIGN");
+        elseif kind == IOP_FEX_SWAP        then print("FEX_SWAP");
+        elseif kind == IOP_FEX_PUSH        then do_fex_push(iop as [FEPushIop]);
+        elseif kind == IOP_FEX_INPUTPARAM  then do_fex_parameter("FEX_INPUTPARAM", iop as [FEParameterIop]);
+        elseif kind == IOP_FEX_OUTPUTPARAM then do_fex_parameter("FEX_OUTPUTPARAM", iop as [FEParameterIop]);
         elseif kind == IOP_FEX_MEMBEROF    then do_fex_memberof(iop as [FEMemberIop]);
-        elseif kind == IOP_FEX_CAST        then do_fe_cast(iop as [FECastIop]);
-        elseif kind == IOP_FEX_BEQ         then do_fe_conditional("FEX_BEQ", iop as [FEConditionalIop]);
-        elseif kind == IOP_FEX_BLT         then do_fe_conditional("FEX_BLT", iop as [FEConditionalIop]);
-        elseif kind == IOP_FEX_BGT         then do_fe_conditional("FEX_BGT", iop as [FEConditionalIop]);
+        elseif kind == IOP_FEX_BEQ         then do_fex_conditional("FEX_BEQ", iop as [FEConditionalIop]);
+        elseif kind == IOP_FEX_BLT         then do_fex_conditional("FEX_BLT", iop as [FEConditionalIop]);
+        elseif kind == IOP_FEX_BGT         then do_fex_conditional("FEX_BGT", iop as [FEConditionalIop]);
 
         elseif kind == IOP_BE_COPY         then do_be_2op("BE_COPY", iop as [BEIop]);
         elseif kind == IOP_BE_SEXT         then do_be_2op("BE_SEXT", iop as [BEIop]);

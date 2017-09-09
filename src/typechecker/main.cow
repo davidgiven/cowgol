@@ -171,14 +171,14 @@ sub process_subroutine()
         node.left.type_id := node.type_id;
     end sub;
 
-    sub fe_swap()
+    sub fex_swap()
         var n1: [Node] := pop();
         var n2: [Node] := pop();
         push_node(n1);
         push_node(n2);
     end sub;
 
-    sub fe_assign()
+    sub fex_assign()
         var src: [Node] := pop();
         var dest: [Node] := simplify_node_to_ea_and_deref(pop());
 
@@ -512,7 +512,7 @@ sub process_subroutine()
         deref_node(right);
     end sub;
 
-    sub fe_cast(iop: [FECastIop])
+    sub fe_cast(iop: [FETypedIop])
         var node: [Node] := pop();
 
         var input_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
@@ -657,12 +657,12 @@ sub process_subroutine()
             special_named_goto(iop as [GotoIop]);
         elseif ioptype == IOP_TYPE_UNTYPED then
             write_iop(iop);
-        elseif iop.iop_kind == IOP_FE_SWAP then
-            fe_swap();
+        elseif iop.iop_kind == IOP_FEX_SWAP then
+            fex_swap();
         elseif iop.iop_kind == IOP_FEX_PUSH then
             fex_push(iop as [FEPushIop]);
-        elseif iop.iop_kind == IOP_FE_ASSIGN then
-            fe_assign();
+        elseif iop.iop_kind == IOP_FEX_ASSIGN then
+            fex_assign();
         elseif iop.iop_kind == IOP_FE_ADD then
             fe_addsub(IOP_BE_ADD);
         elseif iop.iop_kind == IOP_FE_SUB then
@@ -711,8 +711,8 @@ sub process_subroutine()
         elseif iop.iop_kind == IOP_FEX_BLT then
             fe_conditional(maybe_signed_biop(IOP_BE_BLTS, IOP_BE_BLTU),
                 iop as [FEConditionalIop]);
-        elseif iop.iop_kind == IOP_FEX_CAST then
-            fe_cast(iop as [FECastIop]);
+        elseif iop.iop_kind == IOP_FE_CAST then
+            fe_cast(iop as [FETypedIop]);
         else
             print("unsupported iop 0x");
             print_hex_i8(iop.iop_kind);
