@@ -45,7 +45,7 @@ sub file_eof(fd: uint8): (eof: uint8)
     @bytes 0xA9, 0x7F;          # LDA #7F
     @bytes 0xAE, &fd;           # LDX fd
     @bytes 0x20, 0xF4, 0xFF;    # JSR OSBYTE
-    @bytes 0x8E, &eof;          # STA eof
+    @bytes 0x8E, &eof;          # STX eof
 end sub;
 
 sub file_putchar(fd: uint8, char: int8)
