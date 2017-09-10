@@ -49,7 +49,7 @@ sub read_type(): (type_id: uint16)
             next_token();
             var element_count: uint16 := do_constant();
             var index_type_id: uint16;
-            if element_count < 256 then
+            if element_count <= 256 then
                 index_type_id := find_bootstrap_symbol(TOKEN_UINT8);
             else
                 index_type_id := find_bootstrap_symbol(TOKEN_UINT16);
