@@ -1,0 +1,62 @@
+var arg: int8[128];
+
+sub copy_args()
+    record OsargBlock
+        ptr: [int8];
+        unused: int16; # high two bytes of address
+        byte: int8;
+    end record;
+
+    var block: OsargBlock @segment(0x81);
+    @bytes 0xA2, >&block;        # LDX #block
+    @bytes 0xA0, 0x00;           # LDY #0
+    @bytes 0xA9, 0x01;           # LDA #1
+    @bytes 0x20, 0xDA, 0xFF;     # JSR OSARGS
+
+    var outindex: uint8 := 0;
+    loop
+        @bytes 0xA9, 0x05;          # LDA #5
+        @bytes 0xA2, >&block;       # LDX #block
+        @bytes 0xA0, 0x00;          # LDY #0
+        @bytes 0x20, 0xF1, 0xFF;    # JMP OSWORD
+
+        if block.byte == 13 then
+            break;
+        end if;
+        arg[outindex] := block.byte;
+        outindex := outindex + 1;
+        block.ptr := block.ptr + 1;
+    end loop;
+
+    arg[outindex] := 0;
+end sub;
+
+sub gettime(): (time: uint32)
+    var timebuf: uint8[5];
+    osword(1, &timebuf[0] as [int8]);
+    time := (&timebuf[0] as [uint32])[0];
+end sub;
+
+copy_args();
+print("Filename: ");
+print(&arg[0]);
+print_newline();
+
+var fd: uint8 := file_openin(&arg[0]);
+print("File handle: 0x");
+print_hex_i8(fd);
+print_newline();
+
+var bytes: uint32 := 0;
+var before: uint32 := gettime();
+
+while file_eof(fd) == 0 loop
+    var c: int8 := file_getchar(fd);
+    bytes := bytes + 1;
+end loop;
+
+var time: uint32 := gettime() - before;
+print("Total bytes: 0x"); print_hex_i32(bytes); print_newline();
+print("Total time: 0x"); print_hex_i32(time); print_newline();
+
+file_close(fd);
