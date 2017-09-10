@@ -1,0 +1,208 @@
+sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint16)
+    if ea.type_id == 0 then
+        print("untyped EA ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    width := get_width_of_type(ea.type_id);
+end sub;
+
+sub cant_do_2op(iop: [BEIop], op: [int8])
+    print("can't do ");
+    print_ea(&iop.left);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.left));
+    print(") ");
+    print(op);
+    print(" -> ");
+    print_ea(&iop.dest);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.dest));
+    print(") width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
+sub cant_do_3op(iop: [BEIop], op: [int8])
+    print("can't do ");
+    print_ea(&iop.left);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.left));
+    print(") ");
+    print(op);
+    print(" ");
+    print_ea(&iop.right);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.right));
+    print(") -> ");
+    print_ea(&iop.dest);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.dest));
+    print(") width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
+sub arch_gen_before(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
+        print("* writing back precious values because of pointer access: ");
+        print_ea(ea);
+        print_newline();
+
+        write_back_precious_values(REG_MASK);
+    end if;
+end sub;
+
+sub arch_gen_after(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
+        print("* flushing cached values because of pointer access: ");
+        print_ea(ea);
+        print_newline();
+
+        flush_cached_values(REG_MASK);
+    end if;
+end sub;
+
+sub arch_gen_beginning_of_instruction()
+    print_newline();
+    print_cache();
+    locked_registers := 0;
+end sub;
+
+sub arch_gen_return()
+    flush_cached_values(REG_MASK);
+    write_byte(0x60); # RTS
+end sub;
+
+sub arch_gen_call(iop: [CallIop])
+    flush_cached_values(REG_MASK);
+    write_byte(0x20); # JSR
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+end sub;
+
+sub arch_gen_label(iop: [LabelIop])
+    flush_cached_values(REG_MASK);
+    write_iop(iop as [Iop]);
+end sub;
+
+sub arch_gen_goto(iop: [GotoIop])
+    flush_cached_values(REG_MASK);
+    write_cg_6502_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
+end sub;
+
+sub arch_gen_copy(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_copy_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_copy_word(iop);
+    else
+        arch_gen_copy_wide(iop);
+    end if;
+end sub;
+
+sub arch_gen_not(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_not_byte(iop);
+    else
+        cant_do_2op(iop, "not");
+    end if;
+end sub;
+
+sub arch_gen_and(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_and_byte(iop);
+    else
+        cant_do_3op(iop, "and");
+    end if;
+end sub;
+
+sub arch_gen_or(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_or_byte(iop);
+    else
+        cant_do_3op(iop, "or");
+    end if;
+end sub;
+
+sub arch_gen_eor(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_eor_byte(iop);
+    else
+        cant_do_3op(iop, "eor");
+    end if;
+end sub;
+
+sub arch_gen_add(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_add_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_add_word(iop);
+    else
+        cant_do_3op(iop, "+");
+    end if;
+end sub;
+
+sub arch_gen_sub(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_sub_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_sub_word(iop);
+    else
+        cant_do_3op(iop, "-");
+    end if;
+end sub;
+
+sub arch_gen_lsl(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_lsl_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_lsl_word(iop);
+    else
+        cant_do_3op(iop, "lsl");
+    end if;
+end sub;
+
+sub arch_gen_lsr(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_lsr_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_lsr_word(iop);
+    else
+        cant_do_3op(iop, "lsr");
+    end if;
+end sub;
+
+sub arch_gen_asr(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_asr_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_asr_word(iop);
+    else
+        cant_do_3op(iop, "asr");
+    end if;
+end sub;
+
+sub arch_gen_divu(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_divu_byte(iop);
+    else
+        cant_do_3op(iop, "divu");
+    end if;
+end sub;
+
+sub arch_gen_modu(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_modu_byte(iop);
+    else
+        cant_do_3op(iop, "modu");
+    end if;
+end sub;
+
+sub arch_gen_mul(iop: [BEIop])
+    if iop.width == 2 then
+        arch_gen_mul_word(iop);
+    else
+        cant_do_3op(iop, "mul");
+    end if;
+end sub;

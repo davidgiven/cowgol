@@ -174,10 +174,10 @@ bootstrapped_cowgol_program bin/codegen \
     src/codegen/queue.cow \
     src/arch/bbc/codegen0.cow \
     src/arch/bbc/codegen1.cow \
-    src/arch/bbc/codegen2_special.cow \
     src/arch/bbc/codegen2_8bit.cow \
     src/arch/bbc/codegen2_wide.cow \
     src/arch/bbc/codegen2_16bit.cow \
+    src/arch/bbc/codegen2.cow \
     src/codegen/rules.cow \
     src/codegen/main.cow
 

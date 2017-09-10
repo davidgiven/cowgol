@@ -1,50 +1,3 @@
-sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint16)
-    if ea.type_id == 0 then
-        print("untyped EA ");
-        print_ea(ea);
-        halt();
-    end if;
-
-    width := get_width_of_type(ea.type_id);
-end sub;
-
-sub get_2op_widths(iop: [BEIop]): (srcw: uint8, destw: uint8)
-    srcw := get_width_of_ea(&iop.left);
-    destw := get_width_of_ea(&iop.dest);
-    if srcw == 0 then
-        srcw := destw;
-    end if;
-end sub;
-
-sub get_3op_widths(iop: [BEIop]): (leftw: uint8, rightw: uint8, destw: uint8)
-    leftw := get_width_of_ea(&iop.left);
-    rightw := get_width_of_ea(&iop.right);
-    destw := get_width_of_ea(&iop.dest);
-
-    if leftw == 0 then
-        leftw := destw;
-    end if;
-    if rightw == 0 then
-        rightw := destw;
-    end if;
-end sub;
-
-sub cant_do_2op(iop: [BEIop], op: [int8])
-    print("can't do ");
-    print_ea(&iop.left);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.left));
-    print(") ");
-    print(op);
-    print(" -> ");
-    print_ea(&iop.dest);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.dest));
-    print(") width ");
-    print_i8(iop.width);
-    halt();
-end sub;
-
 sub insn_before(iop: [BEIop])
     arch_gen_before(&iop.left);
     arch_gen_before(&iop.right);
@@ -53,280 +6,6 @@ end sub;
 
 sub insn_after(iop: [BEIop])
     arch_gen_after(&iop.dest);
-end sub;
-
-sub try_copy(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_copy_byte(iop);
-    elseif iop.width == 2 then
-        arch_gen_copy_word(iop);
-    else
-        arch_gen_copy_wide(iop);
-    end if;
-
-    insn_after(iop);
-end sub;
-
-sub try_not(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_not_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-#    if destw == 2 then
-#        arch_gen_not_word(iop);
-#        insn_after(iop);
-#        return;
-#    end if;
-
-    cant_do_2op(iop, "not");
-end sub;
-
-sub cant_do_3op(iop: [BEIop], op: [int8])
-    print("can't do ");
-    print_ea(&iop.left);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.left));
-    print(") ");
-    print(op);
-    print(" ");
-    print_ea(&iop.right);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.right));
-    print(") -> ");
-    print_ea(&iop.dest);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.dest));
-    print(") width ");
-    print_i8(iop.width);
-    halt();
-end sub;
-
-sub try_and(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_and_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-#    if iop.width == 2 then
-#        arch_gen_and_word(iop);
-#        insn_after(iop);
-#        return;
-#    end if;
-
-    cant_do_3op(iop, "and");
-end sub;
-
-sub try_or(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_or_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-#    if iop.width == 2 then
-#        arch_gen_or_word(iop);
-#        insn_after(iop);
-#        return;
-#    end if;
-
-    cant_do_3op(iop, "or");
-end sub;
-
-sub try_eor(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_eor_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-#    if iop.width == 2 then
-#        arch_gen_eor_word(iop);
-#        insn_after(iop);
-#        return;
-#    end if;
-
-    cant_do_3op(iop, "eor");
-end sub;
-
-sub try_add(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_add_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    if iop.width == 2 then
-        arch_gen_add_word(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    cant_do_3op(iop, "+");
-end sub;
-
-sub try_sub(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_sub_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    if iop.width == 2 then
-        arch_gen_sub_word(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    cant_do_3op(iop, "-");
-end sub;
-
-sub try_lsl(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_lsl_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    if iop.width == 2 then
-        arch_gen_lsl_word(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    cant_do_3op(iop, "lsl");
-end sub;
-
-sub try_lsr(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_lsr_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    if iop.width == 2 then
-        arch_gen_lsr_word(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    cant_do_3op(iop, "lsr");
-end sub;
-
-sub try_asr(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_asr_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    if iop.width == 2 then
-        arch_gen_asr_word(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    cant_do_3op(iop, "lsr");
-end sub;
-
-sub try_divu(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_divu_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-#    if iop.width == 2 then
-#        arch_gen_divu_word(iop);
-#        insn_after(iop);
-#        return;
-#    end if;
-
-    cant_do_3op(iop, "divu");
-end sub;
-
-sub try_modu(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 1 then
-        arch_gen_modu_byte(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-#    if iop.width == 2 then
-#        arch_gen_modu_word(iop);
-#        insn_after(iop);
-#        return;
-#    end if;
-
-    cant_do_3op(iop, "modu");
-end sub;
-
-sub try_mul(iop: [BEIop])
-    insn_before(iop);
-
-#    if iop.width == 1 then
-#        arch_gen_modu_byte(iop);
-#        insn_after(iop);
-#        return;
-#    end if;
-
-    if iop.width == 2 then
-        arch_gen_mul_word(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    cant_do_3op(iop, "mul");
-end sub;
-
-sub try_sext(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 2 then
-        arch_gen_sext_word(iop);
-        insn_after(iop);
-        return;
-    end if;
-
-    cant_do_2op(iop, "sext");
-end sub;
-
-sub try_zext(iop: [BEIop])
-    insn_before(iop);
-
-    if iop.width == 2 then
-        arch_gen_zext_word(iop);
-    else
-        arch_gen_zext_wide(iop);
-    end if;
-
-    insn_after(iop);
 end sub;
 
 sub try_conditional(ciop: [BEConditionalIop], liop: [LabelIop])
@@ -361,41 +40,45 @@ sub global_rules(): (matched: uint8)
 
     var type: uint8 := queue0.iop_kind & IOP_TYPE_MASK;
     if (type == IOP_TYPE_BACKEND_2OP) or (type == IOP_TYPE_BACKEND_3OP) then
+        insn_before(queue0 as [BEIop]);
+
         if queue0.iop_kind == IOP_BE_COPY then
-            try_copy(queue0 as [BEIop]);
+            arch_gen_copy(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_NOT then
-            try_not(queue0 as [BEIop]);
+            arch_gen_not(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_AND then
-            try_and(queue0 as [BEIop]);
+            arch_gen_and(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_OR then
-            try_or(queue0 as [BEIop]);
+            arch_gen_or(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_EOR then
-            try_eor(queue0 as [BEIop]);
+            arch_gen_eor(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_ADD then
-            try_add(queue0 as [BEIop]);
+            arch_gen_add(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_SUB then
-            try_sub(queue0 as [BEIop]);
+            arch_gen_sub(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_LSL then
-            try_lsl(queue0 as [BEIop]);
+            arch_gen_lsl(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_LSR then
-            try_lsr(queue0 as [BEIop]);
+            arch_gen_lsr(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_ASR then
-            try_asr(queue0 as [BEIop]);
+            arch_gen_asr(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_DIVU then
-            try_divu(queue0 as [BEIop]);
-        elseif queue0.iop_kind == IOP_BE_MUL then
-            try_mul(queue0 as [BEIop]);
+            arch_gen_divu(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_MODU then
-            try_modu(queue0 as [BEIop]);
+            arch_gen_modu(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_MUL then
+            arch_gen_mul(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_SEXT then
-            try_sext(queue0 as [BEIop]);
+            arch_gen_sext(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_ZEXT then
-            try_zext(queue0 as [BEIop]);
+            arch_gen_zext(queue0 as [BEIop]);
         else
             print("unsupported opcode 0x");
             print_hex_i8(queue0.iop_kind);
             halt();
         end if;
+
+        insn_after(queue0 as [BEIop]);
         consume_iops(1);
         return;
     end if;

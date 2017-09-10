@@ -34,7 +34,23 @@ sub arch_gen_copy_wide(iop: [BEIop])
     flush_cached_values(REG_Y);
 end sub;
 
-sub arch_gen_zext_wide(iop: [BEIop])
+sub arch_gen_sext(iop: [BEIop])
+    find_or_load_fixed_value_with_flags(&iop.left, REG_A);
+    save_value_with_offset(REG_A, &iop.dest, 0);
+
+    find_or_load_fixed_int(0, REG_X);
+    write_byte(0x10); # BPL rel
+    write_byte(0x01); # skip one byte
+    write_byte(0xCA); # DEX
+
+    var i: uint8 := 1;
+    while i != iop.width loop
+        save_value_with_offset(REG_X, &iop.dest, i);
+        i := i + 1;
+    end loop;
+end sub;
+
+sub arch_gen_zext(iop: [BEIop])
     var location: uint8 := find_or_load_value(&iop.left, REG_A|REG_X|REG_Y);
     save_value_with_offset(location, &iop.dest, 0);
 

@@ -1,7 +1,7 @@
 var table: uint8[256];
 zero_memory(&table[0] as [int8], table@bytes);
 
-var fd: uint8 := file_openin("datafile");
+var fd: uint8 := file_openin("infile");
 var fd1: uint8 := file_openout("outfile");
 print("File handle: 0x");
 print_hex_i8(fd);
@@ -10,11 +10,11 @@ print_newline();
 var count: uint16 := 0;
 while file_eof(fd) == 0 loop
     var b: uint8 := file_getchar(fd) as uint8;
-    print_hex_i8(b);
     var c: uint8 := table[b as uint16];
     if c != 255 then
         table[b as uint16] := c + 1;
     end if;
+    file_putchar(fd1, b as int8);
     file_putchar(fd1, (b+1) as int8);
     count := count + 1;
 end loop;
