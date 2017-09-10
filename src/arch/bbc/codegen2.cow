@@ -202,3 +202,11 @@ sub arch_gen_mul(iop: [BEIop])
         cant_do_3op(iop, "mul");
     end if;
 end sub;
+
+sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
+    if ciop.width == 1 then
+        arch_gen_cmp_byte(ciop, liop);
+    else
+        arch_gen_cmp_wide(ciop, liop);
+    end if;
+end sub;

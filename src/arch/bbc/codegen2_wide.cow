@@ -92,3 +92,73 @@ sub arch_gen_zext(iop: [BEIop])
         i := i + 1;
     end loop;
 end sub;
+
+sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
+    write_back_precious_values(REG_MASK);
+    check_wide_ea(&ciop.left);
+    check_wide_ea(&ciop.right);
+
+    var shortcircuit_label: uint16;
+    var fallthrough_label: uint16;
+    var opcode: uint8;
+    # The opcodes below assume we're jumping to the *false* label ---
+    # if not, we adjust things later.
+    var iopkind: uint8 := ciop.iop_kind;
+    if iopkind == IOP_BE_BEQ then
+        # BNE rel: branch if zero clear.
+        # Branches if A!=M.
+        # Short-circuiting happens if the condition is FALSE.
+        opcode := 0xD0; # BNE rel
+        shortcircuit_label := ciop.iffalse_label;
+        fallthrough_label := ciop.iftrue_label;
+    else
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            # BMI rel: branch if negative.
+            # Branches if result of comparison is negative, which isn't the same
+            # thing as M<A (signed). This needs the sign adjust in emit_comparison().
+            # Short-circuiting happens if the condition is TRUE.
+            opcode := 0x30; # BMI rel
+        else
+            # BCS: branch if carry set.
+            # Branches if M<A (unsigned).
+            # Short-circuiting happens if the condition is TRUE.
+            opcode := 0x90; # BCC rel
+        end if;
+        shortcircuit_label := ciop.iftrue_label;
+        fallthrough_label := ciop.iffalse_label;
+    end if;
+
+    sub emit_comparison(ea: [EffectiveAddress])
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            write_byte(0x38); # SEC
+            aluop_value_with_index(ea, REG_Y, 0xED); # SBC abs
+            write_word_iop(0x0250); # BVC .+2
+            write_word_iop(0x8049); # EOR #80
+        else
+            aluop_value_with_index(ea, REG_Y, 0xCD); # CMP abs
+        end if;
+    end sub;
+
+    find_or_load_fixed_int(ciop.width-1, REG_Y);
+    allocate_fixed_reg(REG_A);
+
+    var label: uint16 := create_label();
+    write_label_iop(label);
+
+    # Remember, with BEQ we don't care about the order.
+    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+        load_value_with_index(REG_A, &ciop.left, REG_Y);
+        emit_comparison(&ciop.right);
+    else
+        load_value_with_index(REG_A, &ciop.right, REG_Y);
+        emit_comparison(&ciop.left);
+    end if;
+
+    write_cg_6502_conditional_iop(opcode, shortcircuit_label);
+    write_byte(0x88); # DEY
+    write_cg_6502_conditional_iop(0x10, label); # BPL rel
+
+    if liop.label != fallthrough_label then
+        write_cg_6502_conditional_iop(0x80, fallthrough_label);
+    end if;
+end sub;
