@@ -152,30 +152,24 @@ end sub;
 sub arch_gen_lsl(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_lsl_byte(iop);
-    elseif iop.width == 2 then
-        arch_gen_lsl_word(iop);
     else
-        cant_do_3op(iop, "lsl");
+        arch_gen_lsl_wide(iop);
     end if;
 end sub;
 
 sub arch_gen_lsr(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_lsr_byte(iop);
-    elseif iop.width == 2 then
-        arch_gen_lsr_word(iop);
     else
-        cant_do_3op(iop, "lsr");
+        arch_gen_lsr_wide(iop);
     end if;
 end sub;
 
 sub arch_gen_asr(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_asr_byte(iop);
-    elseif iop.width == 2 then
-        arch_gen_asr_word(iop);
     else
-        cant_do_3op(iop, "asr");
+        arch_gen_asr_wide(iop);
     end if;
 end sub;
 

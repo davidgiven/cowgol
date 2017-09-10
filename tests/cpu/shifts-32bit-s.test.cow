@@ -1,0 +1,38 @@
+var mtwo: int32 := -2;
+var mone: int32 := -1;
+var zero: int32 := 0;
+var one: int32 := 1;
+var two: int32 := 2;
+var four: int32 := 4;
+
+var zero8: uint8 := 0;
+var one8: uint8 := 1;
+var two8: uint8 := 2;
+var four8: uint8 := 4;
+var thirtyone8: uint8 := 31;
+var thirtytwo8: uint8 := 32;
+
+sub yes() print(": yes\r"); end sub;
+sub no() print(": no\r"); end sub;
+
+# This should generate the same bytecode as for unsigned.
+print("one<<one8 == two"); if (one<<one8) == two then yes(); else no(); end if;
+print("one<<two8 == four"); if (one<<two8) == four then yes(); else no(); end if;
+
+print("mone>>zero8 == mone"); if (mone>>zero8) == mone then yes(); else no(); end if;
+print("mone>>one8 == mone"); if (mone>>one8) == mone then yes(); else no(); end if;
+print("mtwo>>one8 == mone"); if (mtwo>>one8) == mone then yes(); else no(); end if;
+print("two>>zero8 == two"); if (two>>zero8) == two then yes(); else no(); end if;
+print("two>>one8 == one"); if (two>>one8) == one then yes(); else no(); end if;
+print("two>>two8 == zero"); if (two>>two8) == zero then yes(); else no(); end if;
+print("mone>>0 == mone"); if (mone>>0) == mone then yes(); else no(); end if;
+print("mone>>1 == mone"); if (mone>>1) == mone then yes(); else no(); end if;
+print("mtwo>>1 == mone"); if (mtwo>>1) == mone then yes(); else no(); end if;
+print("two>>0 == two"); if (two>>0) == two then yes(); else no(); end if;
+print("two>>1 == one"); if (two>>1) == one then yes(); else no(); end if;
+print("two>>2 == zero"); if (two>>2) == zero then yes(); else no(); end if;
+
+print("mone>>thirtyone8 == mone"); if (mone>>thirtyone8) == mone then yes(); else no(); end if;
+print("mone>>thirtytwo8 == mone"); if (mone>>thirtytwo8) == mone then yes(); else no(); end if;
+print("mone>>31 == mone"); if (mone>>31) == mone then yes(); else no(); end if;
+print("mone>>32 == mone"); if (mone>>32) == mone then yes(); else no(); end if;

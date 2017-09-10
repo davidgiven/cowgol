@@ -92,6 +92,20 @@ sub arch_classify_iop(iop: [BEIop])
             needs_runtime_subroutine(TOKEN_MUL16);
             needs_runtime_subroutine(TOKEN_LOAD6BYTES);
         end if;
+    elseif width == 4 then
+        if iopkind == IOP_BE_LSL then
+            needs_runtime_subroutine(TOKEN_LSL32);
+            needs_runtime_subroutine(TOKEN_LOAD4BYTES);
+        elseif iopkind == IOP_BE_LSR then
+            needs_runtime_subroutine(TOKEN_LSR32);
+            needs_runtime_subroutine(TOKEN_LOAD4BYTES);
+        elseif iopkind == IOP_BE_ASR then
+            needs_runtime_subroutine(TOKEN_ASR32);
+            needs_runtime_subroutine(TOKEN_LOAD4BYTES);
+        elseif iopkind == IOP_BE_MUL then
+            needs_runtime_subroutine(TOKEN_MUL32);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        end if;
     end if;
 end sub;
 
