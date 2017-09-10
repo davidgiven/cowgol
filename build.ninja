@@ -80,6 +80,10 @@ build /tmp/cowgol-obj/tests/cpu/addsub-16bit.6502.exe : cowgol_program src/arch/
 build /tmp/cowgol-obj/tests/cpu/addsub-16bit.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/addsub-16bit.6502.exe | tests/cpu/addsub-16bit.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/addsub-16bit.good
   badfile=tests/cpu/addsub-16bit.bad
+build /tmp/cowgol-obj/tests/cpu/addsub-32bit.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/addsub-32bit.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/addsub-32bit.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/addsub-32bit.6502.exe | tests/cpu/addsub-32bit.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/addsub-32bit.good
+  badfile=tests/cpu/addsub-32bit.bad
 build /tmp/cowgol-obj/tests/cpu/addsub-8bit.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/addsub-8bit.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
 build /tmp/cowgol-obj/tests/cpu/addsub-8bit.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/addsub-8bit.6502.exe | tests/cpu/addsub-8bit.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/addsub-8bit.good
@@ -132,6 +136,14 @@ build /tmp/cowgol-obj/tests/cpu/shifts-16bit-u.6502.exe : cowgol_program src/arc
 build /tmp/cowgol-obj/tests/cpu/shifts-16bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/shifts-16bit-u.6502.exe | tests/cpu/shifts-16bit-u.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/shifts-16bit-u.good
   badfile=tests/cpu/shifts-16bit-u.bad
+build /tmp/cowgol-obj/tests/cpu/shifts-32bit-s.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/shifts-32bit-s.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/shifts-32bit-s.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/shifts-32bit-s.6502.exe | tests/cpu/shifts-32bit-s.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/shifts-32bit-s.good
+  badfile=tests/cpu/shifts-32bit-s.bad
+build /tmp/cowgol-obj/tests/cpu/shifts-32bit-u.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/shifts-32bit-u.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/shifts-32bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/shifts-32bit-u.6502.exe | tests/cpu/shifts-32bit-u.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/shifts-32bit-u.good
+  badfile=tests/cpu/shifts-32bit-u.bad
 build /tmp/cowgol-obj/tests/cpu/shifts-8bit-s.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/shifts-8bit-s.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
 build /tmp/cowgol-obj/tests/cpu/shifts-8bit-s.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/shifts-8bit-s.6502.exe | tests/cpu/shifts-8bit-s.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/shifts-8bit-s.good
