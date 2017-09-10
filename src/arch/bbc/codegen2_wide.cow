@@ -17,6 +17,36 @@ sub check_wide_ea(ea: [EffectiveAddress])
     end if;
 end sub;
 
+sub regular_alu_wide_op(iop: [BEIop], opcode: uint8)
+    check_wide_ea(&iop.left);
+    check_wide_ea(&iop.right);
+
+    find_or_load_fixed_int(0, REG_Y);
+    find_or_load_fixed_int(iop.width - 1, REG_X);
+    allocate_fixed_reg(REG_A);
+
+    var label: uint16 := create_label();
+    write_label_iop(label);
+    load_value_with_index(REG_A, &iop.left, REG_Y);
+    aluop_value_with_index(&iop.right, REG_Y, opcode);
+    save_value_with_index(REG_A, &iop.dest, REG_Y);
+    write_byte(0xC8); # INY
+    write_byte(0xCA); # DEX
+    write_cg_6502_conditional_iop(0x10, label); # BPL rel
+
+    flush_cached_values(REG_A|REG_X|REG_Y);
+end sub;
+
+sub arch_gen_add_wide(iop: [BEIop])
+    write_byte(0x18); # CLC
+    regular_alu_wide_op(iop, 0x6D); # ADC abs
+end sub;
+
+sub arch_gen_sub_wide(iop: [BEIop])
+    write_byte(0x38); # SEC
+    regular_alu_wide_op(iop, 0xED); # SBC abs
+end sub;
+
 sub arch_gen_copy_wide(iop: [BEIop])
     check_wide_ea(&iop.left);
     check_wide_ea(&iop.right);
