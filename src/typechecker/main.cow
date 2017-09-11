@@ -4,13 +4,13 @@ sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (resu
 
     loop
         if left == right then
-            result_type_id := left;
+            result_type_id := left_type_id;
             return;
         elseif (is_number_type_thing(left) != 0) and (right == constant_type) then
-            result_type_id := left;
+            result_type_id := left_type_id;
             return;
         elseif (is_number_type_thing(right) != 0) and (left == constant_type) then
-            result_type_id := right;
+            result_type_id := right_type_id;
             return;
         end if;
 
