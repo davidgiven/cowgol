@@ -11,3 +11,8 @@ ptr[larges-1]==0x55: yes
 p[0]==0xAA: yes
 (&smallarray[1])[0]==0xAA: yes
 (&smallarray[1] as [uint8])[0]==0xAA: yes
+&testrecord==testrecordptr: yes
+&testrecord.byte==&testrecordptr.byte: yes
+&testrecord.array[0]==&testrecordptr.array[0]: yes
+testrecord.array[2]==testrecordptr.array[2]: yes
+&testrecord.array[2]==&testrecordptr.array[2]: yes

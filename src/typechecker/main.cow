@@ -379,6 +379,19 @@ sub process_subroutine()
         node.left.type_id := node.type_id;
         if node.left.flags == EA_DEREF then
             node.left.flags := EA_VALUE;
+
+            # Ensure that any offset is applied to the value of the pointer, and not the pointer
+            # itself.
+            var numoff_id: uint16 := node.left.numoff_id;
+            var varoff_id: uint16 := node.left.varoff_id;
+            node.left.numoff_id := 0;
+            node.left.varoff_id := 0;
+            if varoff_id != 0 then
+                node := gen_operator_and_deref(IOP_BE_ADD, node, alloc_thing_node(varoff_id));
+            end if;
+            if numoff_id != 0 then
+                node := gen_operator_and_deref(IOP_BE_ADD, node, alloc_const_node(numoff_id));
+            end if;
         elseif node.left.flags == EA_VALUE then
             node.left.flags := EA_LEA;
             if node.left.varoff_id != 0 then

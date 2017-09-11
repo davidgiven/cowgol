@@ -8,3 +8,8 @@ ptr[300]==0x55: yes
 ptr[301]==0xAA: yes
 ptr[larges]==0xAA: yes
 ptr[larges-1]==0x55: yes
+&testrecord==testrecordptr: yes
+&testrecord.byte==&testrecordptr.byte: yes
+&testrecord.array[0]==&testrecordptr.array[0]: yes
+testrecord.array[2]==testrecordptr.array[2]: yes
+&testrecord.array[2]==&testrecordptr.array[2]: yes

@@ -54,3 +54,23 @@ print("p[0]==0xAA"); if p[0] == 0xAA then yes(); else no(); end if;
 # &array + numoff.
 print("(&smallarray[1])[0]==0xAA"); if (&smallarray[1])[0] == 0xAA then yes(); else no(); end if;
 print("(&smallarray[1] as [uint8])[0]==0xAA"); if (&smallarray[1] as [uint8])[0] == 0xAA then yes(); else no(); end if;
+
+record TestRecord
+    byte: uint8;
+    array: uint16[4];
+end record;
+var testrecord: TestRecord;
+testrecord.byte := 1;
+testrecord.array[0] := 2;
+testrecord.array[1] := 3;
+testrecord.array[2] := 4;
+testrecord.array[3] := 5;
+var testrecordptr: [TestRecord] := &testrecord;
+
+print("&testrecord==testrecordptr"); if &testrecord == testrecordptr then yes(); else no(); end if;
+print("&testrecord.byte==&testrecordptr.byte"); if &testrecord.byte == &testrecordptr.byte then yes(); else no(); end if;
+print("&testrecord.array[0]==&testrecordptr.array[0]"); if &testrecord.array[0] == &testrecordptr.array[0] then yes(); else no(); end if;
+print("testrecord.array[2]==testrecordptr.array[2]"); if testrecord.array[2] == testrecordptr.array[2] then yes(); else no(); end if;
+print("&testrecord.array[2]==&testrecordptr.array[2]"); if &testrecord.array[2] == &testrecordptr.array[2] then yes(); else no(); end if;
+
+
