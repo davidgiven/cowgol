@@ -21,7 +21,7 @@ end sub;
 
 sub read_iop(): (iop: [Iop])
     file_getblock(iops_fd, &iop_buffer[0] as [int8], 1);
-    file_getblock(iops_fd, &iop_buffer[1] as [int8], iop_buffer[0] - 1);
+    file_getblock(iops_fd, &iop_buffer[1] as [int8], (iop_buffer[0]-1) as uint16);
     check_eof();
     iop := &iop_buffer[0] as [Iop];
 end sub;

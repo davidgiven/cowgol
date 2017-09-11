@@ -255,7 +255,7 @@ loop
             print_hex_i8(kind);
         end if;
         print_newline();
-        offset := offset + iop.iop_size;
+        offset := offset + (iop.iop_size as uint16);
         if kind == IOP_END then
             break;
         end if;
