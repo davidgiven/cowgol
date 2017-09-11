@@ -102,6 +102,7 @@ end sub;
 
 sub show_pointer_thing(thing: [PointerThing])
     show_withelements_thing(thing as [WithElementsThing]);
+    print(" pointer");
 end sub;
 
 sub show_record_thing(thing: [RecordThing])
