@@ -17,12 +17,21 @@ sub check_wide_ea(ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub do_2op_helper(iop: [BEIop])
-    if (iop.left.flags != EA_VALUE) or (iop.dest.flags != EA_VALUE) then
-        print("unimplemented do_2op_helper ea");
-        halt();
+sub addressing_mode(iop: [BEIop]): (mode: uint8)
+    if iop.dest.flags == EA_DEREF then
+        mode := 0b001;
+    else
+        mode := 0b000;
     end if;
+    if iop.left.flags == EA_DEREF then
+        mode := mode | 0b010;
+    end if;
+    if iop.right.flags == EA_DEREF then
+        mode := mode | 0b100;
+    end if;
+end sub;
 
+sub do_2op_helper(iop: [BEIop])
     check_wide_ea(&iop.left);
     check_wide_ea(&iop.dest);
 
@@ -30,20 +39,19 @@ sub do_2op_helper(iop: [BEIop])
 
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LOAD4BYTES), 0);
-    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id));
     write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
+    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id));
+
+    var mode: uint8 := addressing_mode(iop);
+    if (mode & 0b111) != 0 then
+        write_byte(0x20); # JSR abs
+        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), 7-mode);
+    end if;
 
     flush_cached_values(REG_MASK);
 end sub;
 
 sub do_3op_helper(iop: [BEIop])
-    if (iop.left.flags != EA_VALUE) or (iop.right.flags != EA_VALUE)
-        or (iop.dest.flags != EA_VALUE)
-    then
-        print("unimplemented do_3op_helper ea");
-        halt();
-    end if;
-
     check_wide_ea(&iop.left);
     check_wide_ea(&iop.right);
     check_wide_ea(&iop.dest);
@@ -52,9 +60,15 @@ sub do_3op_helper(iop: [BEIop])
 
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LOAD6BYTES), 0);
+    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
     write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id));
     write_address_iop(IOP_ADDRESS, iop.right.obj_id, get_value_of_number(iop.right.numoff_id));
-    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
+
+    var mode: uint8 := addressing_mode(iop);
+    if (mode & 0b111) != 0 then
+        write_byte(0x20); # JSR abs
+        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), 7-mode);
+    end if;
 
     flush_cached_values(REG_MASK);
 end sub;

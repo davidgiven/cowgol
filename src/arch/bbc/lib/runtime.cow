@@ -84,6 +84,7 @@ end sub;
 var __params: uint16[3] @segment(0x81);
 
 # Copies A parameters from the code immediately following this call into __params.
+# Note: X is left at 0, for use by __modeadjust if necessary.
 sub __loadbytes()
     var nextaddr: uint16 @segment(0x81);
     var maxcount: uint8 @segment(0x81);
@@ -111,6 +112,7 @@ start:
     @bytes 0xE4, >&maxcount;     # CPX maxcount
     @bytes 0xD0, 0xF1;           # BNE again
 
+    @bytes 0xA2, 0x00;           # LDX #0
     @bytes 0x6C, &nextaddr;      # JMP (nextaddr)
 end sub;
 
@@ -122,6 +124,60 @@ end sub;
 sub __load6bytes()
     @bytes 0xA9, 0x06;           # LDA #6
     @bytes 0x4C, &__loadbytes;   # JMP __loadbytes (must be jump to avoid changing stack)
+end sub;
+
+# Called immediately after a __loadbytes. On entry, X must be zero. Jump to
+# __modeadjust+(7-addressingmode). This is gross, and probably quite slow.
+sub __modeadjust()
+    @bytes 0xE8;                 # INX X=7
+    @bytes 0xE8;                 # INX X=6
+    @bytes 0xE8;                 # INX X=5
+    @bytes 0xE8;                 # INX X=4
+    @bytes 0xE8;                 # INX X=3
+    @bytes 0xE8;                 # INX X=2
+    @bytes 0xE8;                 # INX X=1
+                                 #     X=0
+
+    @bytes 0xA0, 0x00;           # LDY #0
+    @bytes 0x8A;                 # TXA
+    @bytes 0x29, 0x01;           # AND #1
+    @bytes 0xF0, 0x0C;           # BEQ next
+
+    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0x48;                 # PHA
+    @bytes 0xC8;                 # INY
+    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0x85, >&__params+1;   # STA __params+1
+    @bytes 0x68;                 # PLA
+    @bytes 0x85, >&__params+0;   # STA __params+0
+    @bytes 0x88;                 # DEY
+
+# next:
+    @bytes 0x8A;                 # TXA
+    @bytes 0x29, 0x02;           # AND #2
+    @bytes 0xF0, 0x0C;           # BEQ next
+
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
+    @bytes 0x48;                 # PHA
+    @bytes 0xC8;                 # INY
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
+    @bytes 0x85, >&__params+3;   # STA __params+3
+    @bytes 0x68;                 # PLA
+    @bytes 0x85, >&__params+2;   # STA __params+2
+    @bytes 0x88;                 # DEY
+
+# next:
+    @bytes 0x8A;                 # TXA
+    @bytes 0x29, 0x04;           # AND #4
+    @bytes 0xF0, 0x0B;           # BEQ next
+
+    @bytes 0xB1, >&__params+4;   # LDA (__params+4), Y
+    @bytes 0x48;                 # PHA
+    @bytes 0xC8;                 # INY
+    @bytes 0xB1, >&__params+4;   # LDA (__params+4), Y
+    @bytes 0x85, >&__params+5;   # STA __params+5
+    @bytes 0x68;                 # PLA
+    @bytes 0x85, >&__params+4;   # STA __params+4
 end sub;
 
 #sub __add16()
@@ -155,8 +211,8 @@ sub __copy()
     @bytes 0xA8;                 # TAY
 
     # again:
-    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
-    @bytes 0x91, >&__params+2;   # STA (__params+2), Y
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
+    @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF9;           # BPL again
 end sub;
@@ -180,9 +236,9 @@ shiftagain:
     @bytes 0xA6, >&width;        # LDX width
     @bytes 0x18;                 # CLC
     # loop:
-    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
     @bytes 0x2A;                 # ROL A
-    @bytes 0x91, >&__params+2;   # STA (__params+2), Y
+    @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0xC8;                 # INY
     @bytes 0xCA;                 # DEX
     @bytes 0x10, 0xF7;           # BPL loop
@@ -192,15 +248,20 @@ shiftagain:
 
     # We need to shift more, so we do it in-place in dest.
 
-    @bytes 0xA5, >&__params+2;   # LDA __params+2
-    @bytes 0x85, >&__params+0;   # STA __params+0
-    @bytes 0xA5, >&__params+3;   # LDA __params+3
-    @bytes 0x85, >&__params+1;   # STA __params+1
+    @bytes 0xA5, >&__params+0;   # LDA __params+0
+    @bytes 0x85, >&__params+2;   # STA __params+2
+    @bytes 0xA5, >&__params+1;   # LDA __params+1
+    @bytes 0x85, >&__params+3;   # STA __params+3
     goto shiftagain;
 end sub;
 
 sub __lsl16()
     @bytes 0xA2, 0x02;           # LDX #2
+    @bytes 0x4C, &__lsl;         # JMP __lsl
+end sub;
+
+sub __lsl32()
+    @bytes 0xA2, 0x04;           # LDX #4
     @bytes 0x4C, &__lsl;         # JMP __lsl
 end sub;
 
@@ -226,14 +287,14 @@ shiftagain:
     @bytes 0x18;                 # CLC
 
     # Prime the carry bit with the sign, so it propagates in if needed.
-    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
     @bytes 0x25, >&signed;       # AND signed
     @bytes 0x0A;                 # ASL A
 
     # loop:
-    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
     @bytes 0x6A;                 # ROR A
-    @bytes 0x91, >&__params+2;   # STA (__params+2), Y
+    @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF8;           # BPL loop
 
@@ -242,10 +303,10 @@ shiftagain:
 
     # We need to shift more, so we do it in-place in dest.
 
-    @bytes 0xA5, >&__params+2;   # LDA __params+2
-    @bytes 0x85, >&__params+0;   # STA __params+0
-    @bytes 0xA5, >&__params+3;   # LDA __params+3
-    @bytes 0x85, >&__params+1;   # STA __params+1
+    @bytes 0xA5, >&__params+0;   # LDA __params+0
+    @bytes 0x85, >&__params+2;   # STA __params+2
+    @bytes 0xA5, >&__params+1;   # LDA __params+1
+    @bytes 0x85, >&__params+3;   # STA __params+3
     goto shiftagain;
 end sub;
 
@@ -255,8 +316,20 @@ sub __lsr16()
     @bytes 0x4C, &__lsr_asr;     # JMP __lsr
 end sub;
 
+sub __lsr32()
+    @bytes 0xA2, 0x04;           # LDX #4 --- word width
+    @bytes 0xA0, 0x00;           # LDY #0 --- unsigned
+    @bytes 0x4C, &__lsr_asr;     # JMP __lsr
+end sub;
+
 sub __asr16()
-    @bytes 0xA2, 0x02;           # LDX #2
+    @bytes 0xA2, 0x02;           # LDX #2 --- word width
+    @bytes 0xA0, 0xFF;           # LDY #255 --- signed
+    @bytes 0x4C, &__lsr_asr;     # JMP __asr
+end sub;
+
+sub __asr32()
+    @bytes 0xA2, 0x04;           # LDX #4 --- word width
     @bytes 0xA0, 0xFF;           # LDY #255 --- signed
     @bytes 0x4C, &__lsr_asr;     # JMP __asr
 end sub;
@@ -313,9 +386,9 @@ sub __mul()
 # again:
     @bytes 0x98;                 # TYA
     @bytes 0xAA;                 # TAX
-    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
-    @bytes 0x95, >&left;         # STA left, X
     @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
+    @bytes 0x95, >&left;         # STA left, X
+    @bytes 0xB1, >&__params+4;   # LDA (__params+4), Y
     @bytes 0x95, >&right;        # STA right, X
     @bytes 0xA9, 0x00;           # LDA #0
     @bytes 0x95, >&result+4;     # STA dest+4, X --- only need to clear the top half
@@ -371,13 +444,18 @@ shift:
     @bytes 0x8A;                 # TXA
     @bytes 0xA8;                 # TAY
     @bytes 0xB5, >&result;       # LDA result, X
-    @bytes 0x91, >&__params+4;   # STA (__params+4), Y
+    @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0xCA;                 # DEX
     @bytes 0x10, 0xF7;           # BPL loop
 end sub;
 
 sub __mul16()
     @bytes 0xA9, 0x02;           # LDA #2
+    @bytes 0x4C, &__mul;         # JMP __mul
+end sub;
+
+sub __mul32()
+    @bytes 0xA9, 0x04;           # LDA #4
     @bytes 0x4C, &__mul;         # JMP __mul
 end sub;
 

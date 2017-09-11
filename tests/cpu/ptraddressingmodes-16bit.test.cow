@@ -1,0 +1,21 @@
+record Values
+    a: int16;
+    b: int16;
+    c: int16;
+end record;
+
+var direct: Values;
+direct.a := 1;
+direct.b := 2;
+direct.c := 3;
+var indirect: [Values] := &direct;
+
+sub yes() print(": yes\r"); end sub;
+sub no() print(": no\r"); end sub;
+
+print("indirect.b*2==4"); if (indirect.b*2)==4 then yes(); else no(); end if;
+print("2*indirect.b==4"); if (2*indirect.b)==4 then yes(); else no(); end if;
+
+print("indirect.c:=indirect.b*2");
+indirect.c := indirect.b*2;
+if indirect.c == 4 then yes(); else no(); end if;

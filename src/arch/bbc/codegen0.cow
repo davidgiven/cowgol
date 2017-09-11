@@ -99,7 +99,13 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
 
     var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
     var beiop: uint8;
-    if (obj.segment == SEGMENT_ZEROPAGE) and ((opcode & 0x0C) == 0x0C) then
+    if ((opcode & 0x0F) == 0x01) then
+        if obj.segment != SEGMENT_ZEROPAGE then
+            print("indirect op with non zero-page object");
+            halt();
+        end if;
+        beiop := IOP_ADDRESSLO;
+    elseif (obj.segment == SEGMENT_ZEROPAGE) and ((opcode & 0x0C) == 0x0C) then
         opcode := opcode & 0xf7;
         beiop := IOP_ADDRESSLO;
     elseif obj.segment == SEGMENT_UNKNOWN then
@@ -301,7 +307,7 @@ end sub;
 # opcode must be the abs form of a regular accumulator ALU operation in column 0x0D.
 sub aluop_value_with_index(ea: [EffectiveAddress], index: uint8, opcode: uint8)
     if ea.flags == EA_DEREF then
-        opcode := opcode & 0xF3;
+        opcode := (opcode | 0x10) & 0xF3;
         if index != REG_Y then
             print("PTRVAL must have Y index");
             halt();

@@ -11,3 +11,25 @@ sub osword(a: uint8, ptr: [int8])
     @bytes 0xAC, &ptr+1;        # LDY ptr+1
     @bytes 0x4C, 0xF1, 0xFF;    # JMP OSWORD
 end sub;
+
+record OsgbpbBlock
+    fd: uint8;
+    bufferlo: [uint8];
+    bufferhi: uint16;
+    count: uint32;
+    offset: uint32;
+end record;
+
+sub osgbpb(a: uint8, ptr: [OsgbpbBlock])
+    @bytes 0xAD, &a;            # LDA a
+    @bytes 0xAE, &ptr+0;        # LDX ptr+0
+    @bytes 0xAC, &ptr+1;        # LDY ptr+1
+    @bytes 0x4C, 0xD1, 0xFF;    # JMP OSGBPB
+end sub;
+
+sub osargs(a: uint8, ptr: [uint8], fd: uint8)
+    @bytes 0xAD, &a;            # LDA a
+    @bytes 0xAE, &ptr;          # LDX ptr
+    @bytes 0xAC, &fd;           # LDY fd
+    @bytes 0x4C, 0xDA, 0xFF;    # JMP OSARGS
+end sub;

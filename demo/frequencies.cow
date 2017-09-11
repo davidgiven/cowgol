@@ -10,9 +10,9 @@ print_newline();
 var count: uint16 := 0;
 while file_eof(fd) == 0 loop
     var b: uint8 := file_getchar(fd) as uint8;
-    var c: uint8 := table[b as uint16];
+    var c: uint8 := table[b];
     if c != 255 then
-        table[b as uint16] := c + 1;
+        table[b] := c + 1;
     end if;
     file_putchar(fd1, b as int8);
     file_putchar(fd1, (b+1) as int8);

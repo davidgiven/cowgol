@@ -1,0 +1,3 @@
+indirect.b*2==4: yes
+2*indirect.b==4: yes
+indirect.c:=indirect.b*2: yes
