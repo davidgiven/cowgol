@@ -1,0 +1,150 @@
+var arg: int8[128];
+
+sub copy_args()
+    record OsargBlock
+        ptr: [int8];
+        unused: int16; # high two bytes of address
+        byte: int8;
+    end record;
+
+    var block: OsargBlock @segment(0x81);
+    @bytes 0xA2, >&block;        # LDX #block
+    @bytes 0xA0, 0x00;           # LDY #0
+    @bytes 0xA9, 0x01;           # LDA #1
+    @bytes 0x20, 0xDA, 0xFF;     # JSR OSARGS
+
+    var outindex: uint8 := 0;
+    loop
+        @bytes 0xA9, 0x05;          # LDA #5
+        @bytes 0xA2, >&block;       # LDX #block
+        @bytes 0xA0, 0x00;          # LDY #0
+        @bytes 0x20, 0xF1, 0xFF;    # JMP OSWORD
+
+        if block.byte == 13 then
+            break;
+        end if;
+        arg[outindex] := block.byte;
+        outindex := outindex + 1;
+        block.ptr := block.ptr + 1;
+    end loop;
+
+    arg[outindex] := 0;
+end sub;
+
+sub gettime(): (time: uint32)
+    var timebuf: uint8[5];
+    osword(1, &timebuf[0] as [int8]);
+    time := (&timebuf[0] as [uint32])[0];
+end sub;
+
+record File
+    fd: uint8;
+    bytepos: uint8;
+    blockpos: uint16;
+    loaded_block: uint16;
+    length: uint16;
+    buffer: uint8[256];
+end record;
+
+record MyOsgbpbBlock
+    fd: uint8;
+    bufferlo: [uint8];
+    bufferhi: uint16;
+    count: uint32;
+    offsetlo: uint8;
+    offsetmed: uint16;
+    offsethi: uint8;
+end record;
+
+sub myosgbpb(a: uint8, ptr: [MyOsgbpbBlock])
+    @bytes 0xAD, &a;            # LDA a
+    @bytes 0xAE, &ptr+0;        # LDX ptr+0
+    @bytes 0xAC, &ptr+1;        # LDY ptr+1
+    @bytes 0x4C, 0xD1, 0xFF;    # JMP OSGBPB
+end sub;
+
+sub buffer_loadblock(file: [File])
+    var block: MyOsgbpbBlock;
+    zero_memory(&block as [int8], block@bytes);
+    block.fd := file.fd;
+    block.bufferlo := &(file.buffer[0]);
+    block.bufferhi := 0xffff;
+    block.count := 0x100;
+    block.offsetlo := 0;
+    block.offsethi := 0;
+    block.offsetmed := file.loaded_block;
+    myosgbpb(3, &block);
+end sub;
+
+sub buffer_open(file: [File], filename: [int8])
+    zero_memory(file as [int8], File@bytes);
+    file.fd := file_openin(filename);
+
+    var length: uint32 @segment(0x81);
+    osargs(2, &length as [uint8], file.fd);
+    file.length := (length >> 8) as uint16;
+
+    print("File length: 0x");
+    print_hex_i32(length);
+    print_newline();
+
+    buffer_loadblock(file);
+end sub;
+
+sub buffer_close(file: [File])
+    file_close(file.fd);
+end sub;
+
+sub buffer_readbyte(file: [File]): (byte: uint8)
+    var block: uint16 := file.blockpos;
+    if block != file.loaded_block then
+        #print("loading block 0x");
+        #print_hex_i16(block);
+        #print_newline();
+
+        file.loaded_block := block;
+        buffer_loadblock(file);
+    end if;
+
+    var bytepos: uint8 := file.bytepos;
+    byte := file.buffer[bytepos];
+    bytepos := bytepos + 1;
+    file.bytepos := bytepos;
+    if bytepos == 0 then
+        file.blockpos := file.blockpos + 1;
+    end if;
+end sub;
+
+sub buffer_eof(file: [File]): (yes: uint8)
+    if file.blockpos >= file.length then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
+copy_args();
+print("Filename: ");
+print(&arg[0]);
+print_newline();
+
+var infile: File;
+buffer_open(&infile, &arg[0]);
+print("File handle: 0x");
+print_hex_i8(infile.fd);
+print_newline();
+
+var bytes: uint32 := 0;
+var before: uint32 := gettime();
+
+while buffer_eof(&infile) == 0 loop
+    var c: uint8 := buffer_readbyte(&infile);
+    bytes := bytes + 1;
+end loop;
+
+var time: uint32 := gettime() - before;
+print("Total bytes: 0x"); print_hex_i32(bytes); print_newline();
+print("Total time: 0x"); print_hex_i32(time); print_newline();
+
+buffer_close(&infile);
+
