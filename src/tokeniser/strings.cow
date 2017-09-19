@@ -23,7 +23,7 @@ sub lookup_string(buffer_ptr: [int8], buffer_len: uint8): (stringid: uint16)
 end sub;
 
 sub save_string_table(filename: [int8])
-    var fd: uint8 := file_openout(filename);
+    var fd: int8 := file_openout(filename);
     file_putblock(fd, stringtab_base, (stringtab_top - stringtab_base) as uint16);
     file_close(fd);
 end sub;

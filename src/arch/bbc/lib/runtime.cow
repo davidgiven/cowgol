@@ -477,3 +477,6 @@ end sub;
 
 var LOMEM: [int8];
 var HIMEM: [int8];
+
+#var ARGV: [int8][1];
+#ARGV[0] := "iops.dat";

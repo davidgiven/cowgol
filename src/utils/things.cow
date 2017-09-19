@@ -341,13 +341,13 @@ sub is_scalar_type_thing(thing_id: uint16): (yes: uint8)
 end sub;
 
 sub save_thing_table(filename: [int8])
-    var fd: uint8 := file_openout(filename);
+    var fd: int8 := file_openout(filename);
     file_putblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
 end sub;
 
 sub load_thing_table(filename: [int8])
-    var fd: uint8 := file_openin(filename);
+    var fd: int8 := file_openin(filename);
     thing_table_top := file_ext(fd) as uint16;
     file_getblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
