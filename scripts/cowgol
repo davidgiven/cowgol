@@ -30,6 +30,9 @@ cp iops.dat iops-parsed.dat
 $bindir/typechecker
 cp iops-out.dat iops-typechecked.dat
 mv iops-out.dat iops.dat
+$bindir/blockifier
+cp iops-out.dat iops-blockified.dat
+mv iops-out.dat iops.dat
 $bindir/classifier
 $bindir/codegen
 cp iops-out.dat iops-codegenned.dat
