@@ -1,6 +1,7 @@
 # The higher the value, the higher the priority.
 const SEGMENT_DATA := 0x80;
 const SEGMENT_ZEROPAGE := 0x81;
+const SEGMENT_LAST := 0x82;
 
 record ArchSizes
     data_size: uint16;

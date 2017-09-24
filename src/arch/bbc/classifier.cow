@@ -34,6 +34,8 @@ sub arch_allocate_var(offsets: [ArchSizes], thing: [TypedThing], width: uint16)
     elseif thing.segment == SEGMENT_DATA then
         thing.address := offsets.data_size;
         offsets.data_size := offsets.data_size + width;
+    elseif thing.segment == SEGMENT_LAST then
+        thing.address := 0;
     else
         print("bad segment 0x");
         print_hex_i8(thing.segment);

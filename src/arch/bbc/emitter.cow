@@ -17,10 +17,12 @@ sub arch_calculate_address(thing: [DataThing]): (address: uint16)
         address := 0x0E03 + thing.address;
     elseif thing.segment == SEGMENT_ZEROPAGE then
         address := thing.address;
-    elseif thing.segment == SEGMENT_DATA then
-        address := 0x0E03 + root.code_size + root.const_size + thing.address;
     elseif thing.segment == SEGMENT_CONST then
         address := 0x0E03 + root.code_size + thing.address;
+    elseif thing.segment == SEGMENT_DATA then
+        address := 0x0E03 + root.code_size + root.const_size + thing.address;
+    elseif thing.segment == SEGMENT_LAST then
+        address := 0x0E03 + root.code_size + root.const_size + root.archsizes.data_size;
     else
         print("cannot calculate address of thing with segment=0x");
         print_hex_i8(thing.segment);
