@@ -1,0 +1,3 @@
+print("BLOCKIFIER\n");
+load_thing_table("things.dat");
+init_iop_reader("iops.dat");

@@ -125,6 +125,20 @@ bootstrapped_cowgol_program bin/parser \
     src/parser/expression.cow \
     src/parser/main.cow
 
+bootstrapped_cowgol_program bin/blockifier \
+    src/string_lib.cow \
+    src/arch/bbc/globals.cow \
+    src/utils/things.cow \
+    src/utils/iops.cow \
+    src/utils/stringtable.cow \
+    src/utils/iopreader.cow \
+    src/utils/iopwriter.cow \
+    src/utils/symbols.cow \
+    $OBJDIR/token_names.cow \
+    src/utils/types.cow \
+    src/blockifier/init.cow \
+    src/blockifier/main.cow
+
 bootstrapped_cowgol_program bin/typechecker \
     src/string_lib.cow \
     src/arch/bbc/globals.cow \
