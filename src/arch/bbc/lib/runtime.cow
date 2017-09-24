@@ -475,8 +475,11 @@ sub __mul8u(left: uint8, right: uint8): (result: uint8)
     @bytes 0x8D, &result; # STA abs
 end sub;
 
-var LOMEM: [int8];
-var HIMEM: [int8];
+var __lomem: int8 @segment(0x82);
+var LOMEM: [int8] @segment(0x81) := &__lomem;
+var HIMEM: [int8] @segment(0x81);
 
-#var ARGV: [int8][1];
-#ARGV[0] := "iops.dat";
+@bytes 0xA9, 0x84;          # LDA #84
+@bytes 0x20, 0xF4, 0xFF;    # JSR OSBYTE
+@bytes 0x86, >&HIMEM+0;     # STX HIMEM+0
+@bytes 0x84, >&HIMEM+1;     # STY HIMEM+1
