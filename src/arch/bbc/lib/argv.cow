@@ -1,0 +1,72 @@
+var ARGV: [int8][8];
+var ARGC: uint8;
+
+sub init_argv()
+    record OsargBlock
+        ptr: [int8];
+        unused: int16; # high two bytes of address
+        byte: int8;
+    end record;
+
+    var block: OsargBlock @segment(0x81);
+    @bytes 0xA2, >&block;        # LDX #block
+    @bytes 0xA0, 0x00;           # LDY #0
+    @bytes 0xA9, 0x01;           # LDA #1
+    @bytes 0x20, 0xDA, 0xFF;     # JSR OSARGS
+
+    sub nextchar()
+        @bytes 0xA9, 0x05;          # LDA #5
+        @bytes 0xA2, >&block;       # LDX #block
+        @bytes 0xA0, 0x00;          # LDY #0
+        @bytes 0x20, 0xF1, 0xFF;    # JMP OSWORD
+
+        block.ptr := block.ptr + 1;
+    end sub;
+
+    ARGC := 1;
+    ARGV[0] := "";
+    var __argstorage: [int8] := LOMEM as [int8];
+    var outindex: int16 := 0;
+    loop
+        loop
+            nextchar();
+            if block.byte != 32 then
+                break;
+            end if;
+        end loop;
+
+        if block.byte == 13 then
+            break;
+        end if;
+
+        ARGV[ARGC] := &__argstorage[outindex];
+        ARGC := ARGC + 1;
+        if ARGC == ARGV@size then
+            print("too many arguments\r");
+            exit(1);
+        end if;
+
+        loop
+            __argstorage[outindex] := block.byte;
+            outindex := outindex + 1;
+
+            nextchar();
+            if block.byte == 13 then
+                break;
+            end if;
+            if block.byte == 32 then
+                break;
+            end if;
+        end loop;
+
+        __argstorage[outindex] := 0;
+        outindex := outindex + 1;
+
+        if block.byte == 13 then
+            break;
+        end if;
+    end loop;
+
+    LOMEM := &__argstorage[outindex];
+end sub;
+init_argv();

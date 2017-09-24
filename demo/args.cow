@@ -1,0 +1,35 @@
+print("LOMEM is: 0x");
+print_hex_i16(LOMEM as uint16);
+print(" (advanced from 0x");
+print_hex_i16(&__lomem as uint16);
+print(")\r");
+print("HIMEM is: 0x");
+print_hex_i16(HIMEM as uint16);
+print_newline();
+
+sub get_language(): (lang: uint8)
+    @bytes 0xA9, 0xFC;          # LDA #FC
+    @bytes 0xA2, 0x00;          # LDX #00
+    @bytes 0xA0, 0xFF;          # LDY #00
+    @bytes 0x20, 0xF4, 0xFF;    # JSR OSBYTE
+    @bytes 0x8E, &lang;         # STX lang
+end sub;
+
+print("The current language is: 0x");
+print_hex_i8(get_language());
+print_newline();
+
+print("You gave ");
+print_i8(ARGC);
+print(" arguments:\r");
+
+var i: uint8 := 0;
+while i < ARGC loop
+    print_char('#');
+    print_i8(i);
+    print(": ");
+    #print_hex_i16(ARGV[i] as uint16);
+    print(ARGV[i]);
+    print_newline();
+    i := i + 1;
+end loop;
