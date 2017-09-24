@@ -90,6 +90,7 @@ sub var_to_pointer_compatible_var(invar_id: uint16): (outvar_id: uint16)
     var invar_type_id: uint16 := get_type_of_thing(invar_id);
     if get_width_of_type(invar_type_id) == 2 then
         outvar_id := invar_id;
+        ref_temporary(outvar_id);
     else
         print("* zextending varoff ");
         print_thing(invar_id);
@@ -100,9 +101,14 @@ sub var_to_pointer_compatible_var(invar_id: uint16): (outvar_id: uint16)
         node.type_id := uint16_type;
         node := simplify_node_to_var_and_deref(node);
         outvar_id := node.left.obj_id;
+
+        print("* extended varoff is ");
+        print_thing(outvar_id);
+        print_newline();
+
+        ref_temporary(outvar_id);
         deref_node(node);
     end if;
-    ref_temporary(outvar_id);
 end sub;
 
 sub process_subroutine()
@@ -332,7 +338,7 @@ sub process_subroutine()
         print_newline();
 
         if element_type.width != 1 then
-            print("* scaling right by 0x");
+            print("* scaling left by 0x");
             print_hex_i16(element_type.width);
             print_newline();
 

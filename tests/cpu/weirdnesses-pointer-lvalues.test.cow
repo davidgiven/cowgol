@@ -1,0 +1,11 @@
+sub yes() print("yes\r"); end sub;
+sub no() print("no\r"); end sub;
+
+var ptrarray: [int8][10];
+var bytearray: int8[10];
+var index: uint8 := 1;
+
+var r: [int8] := &bytearray[index];
+ptrarray[index] := &bytearray[index];
+
+if ptrarray[index] == r then yes(); else no(); end if;
