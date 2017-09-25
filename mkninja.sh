@@ -21,7 +21,7 @@ rule c_program
     command = cc -std=c99 -Wno-unused-result -O -g -o $out $in
 
 build compiler_suite : phony $
-    bin/tokeniser bin/parser bin/typechecker $
+    bin/tokeniser bin/parser bin/typechecker bin/blockifier $
     bin/classifier bin/codegen bin/placer bin/emitter
 
 rule cowgol_program

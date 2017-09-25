@@ -17,7 +17,7 @@ rule c_program
     command = cc -std=c99 -Wno-unused-result -O -g -o $out $in
 
 build compiler_suite : phony $
-    bin/tokeniser bin/parser bin/typechecker $
+    bin/tokeniser bin/parser bin/typechecker bin/blockifier $
     bin/classifier bin/codegen bin/placer bin/emitter
 
 rule cowgol_program
@@ -157,6 +157,10 @@ build /tmp/cowgol-obj/tests/cpu/shifts-8bit-u.6502.exe : cowgol_program src/arch
 build /tmp/cowgol-obj/tests/cpu/shifts-8bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/shifts-8bit-u.6502.exe | tests/cpu/shifts-8bit-u.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/shifts-8bit-u.good
   badfile=tests/cpu/shifts-8bit-u.bad
+build /tmp/cowgol-obj/tests/cpu/signextension.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/signextension.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/signextension.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/signextension.6502.exe | tests/cpu/signextension.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/signextension.good
+  badfile=tests/cpu/signextension.bad
 build /tmp/cowgol-obj/tests/cpu/weirdnesses-pointer-lvalues.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/weirdnesses-pointer-lvalues.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
 build /tmp/cowgol-obj/tests/cpu/weirdnesses-pointer-lvalues.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/weirdnesses-pointer-lvalues.6502.exe | tests/cpu/weirdnesses-pointer-lvalues.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/weirdnesses-pointer-lvalues.good
