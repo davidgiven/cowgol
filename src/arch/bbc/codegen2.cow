@@ -193,7 +193,7 @@ sub arch_gen_mul(iop: [BEIop])
     if iop.width == 2 then
         arch_gen_mul_word(iop);
     else
-        cant_do_3op(iop, "mul");
+        arch_gen_mul_wide(iop);
     end if;
 end sub;
 

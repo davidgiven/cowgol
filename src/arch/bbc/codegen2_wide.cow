@@ -263,3 +263,13 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
         write_cg_6502_conditional_iop(0x80, fallthrough_label);
     end if;
 end sub;
+
+sub arch_gen_mul_wide(iop: [BEIop])
+    do_3op_helper(iop);
+
+    write_byte(0x20); # JSR abs
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MUL32), 0);
+
+    flush_cached_values(REG_MASK);
+end sub;
+

@@ -129,6 +129,14 @@ build /tmp/cowgol-obj/tests/cpu/mul-16bit-u.6502.exe : cowgol_program src/arch/b
 build /tmp/cowgol-obj/tests/cpu/mul-16bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/mul-16bit-u.6502.exe | tests/cpu/mul-16bit-u.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/mul-16bit-u.good
   badfile=tests/cpu/mul-16bit-u.bad
+build /tmp/cowgol-obj/tests/cpu/mul-32bit-s.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/mul-32bit-s.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/mul-32bit-s.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/mul-32bit-s.6502.exe | tests/cpu/mul-32bit-s.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/mul-32bit-s.good
+  badfile=tests/cpu/mul-32bit-s.bad
+build /tmp/cowgol-obj/tests/cpu/mul-32bit-u.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/mul-32bit-u.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/mul-32bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/mul-32bit-u.6502.exe | tests/cpu/mul-32bit-u.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/mul-32bit-u.good
+  badfile=tests/cpu/mul-32bit-u.bad
 build /tmp/cowgol-obj/tests/cpu/ptraddressingmodes-16bit.6502.exe : cowgol_program src/arch/bbc/lib/runtime.cow tests/cpu/ptraddressingmodes-16bit.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
 build /tmp/cowgol-obj/tests/cpu/ptraddressingmodes-16bit.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/ptraddressingmodes-16bit.6502.exe | tests/cpu/ptraddressingmodes-16bit.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/ptraddressingmodes-16bit.good
