@@ -1,12 +1,55 @@
-sub process_subroutine()
+var labels: [uint16] := LOMEM as [uint16];
+const REAL_LABEL := 0xffff;
+
+sub pass1()
+    sub do_label(iop: [LabelIop])
+        labels[iop.label] := REAL_LABEL;
+    end sub;
+
+    sub do_clonelabel(iop: [CloneLabelIop])
+        labels[iop.src_label] := iop.dest_label;
+    end sub;
+
     loop
         var iop: [Iop] := read_iop();
         var iopkind: uint8 := iop.iop_kind;
 
         if iopkind == IOP_END then
             break;
+        elseif iopkind == IOP_LABEL then
+            do_label(iop as [LabelIop]);
+        elseif iopkind == IOP_CLONELABEL then
+            do_clonelabel(iop as [CloneLabelIop]);
         end if;
-        write_iop(iop);
+    end loop;
+end sub;
+
+sub pass2()
+    sub do_label(iop: [LabelIop])
+        var reallabel: uint16 := iop.label;
+        var i: int16 := 0;
+        while i != current_subroutine.label_count loop
+            var label: uint16 := labels[i];
+            if (i != reallabel) and (label == reallabel) then
+                iop.label := i;
+                write_iop(iop as [Iop]);
+            end if;
+            i := i + 1;
+        end loop;
+    end sub;
+
+    loop
+        var iop: [Iop] := read_iop();
+        var iopkind: uint8 := iop.iop_kind;
+
+        if iopkind == IOP_END then
+            break;
+        elseif iopkind == IOP_LABEL then
+            write_iop(iop);
+            do_label(iop as [LabelIop]);
+        elseif iopkind != IOP_CLONELABEL then
+            write_iop(iop);
+        end if;
     end loop;
 
     write_untyped_iop(IOP_END);
@@ -21,11 +64,17 @@ sub process_subroutines()
 
         current_subroutine_id := iheader.thing_id;
         current_subroutine := find_thing(current_subroutine_id) as [SubroutineThing];
+        zero_memory(&labels[0] as [int8], current_subroutine.label_count * 2);
         write_iop_header(iheader);
-        process_subroutine();
+
+        var pos: uint32 := file_tell(iop_in_fd);
+        pass1();
+
+        file_seek(iop_in_fd, pos);
+        pass2();
     end loop;
     write_terminating_iop_header();
 end sub;
 
 process_subroutines();
-save_thing_table("things.dat");
+save_thing_table(things_dat);
