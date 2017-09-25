@@ -1,4 +1,4 @@
-var current_arg: int8 := 1;
+var current_arg: uint8 := 1;
 var current_filename: [int8];
 var current_filename_string_id: uint16;
 var current_line_number: int16;
@@ -21,12 +21,12 @@ sub next_raw_byte(): (byte: int8)
         end if;
 
         current_filename := ARGV[current_arg];
-        if current_filename != 0 then
+        if current_filename != (0 as [int8]) then
             print("opening: ");
             print(current_filename);
             print_newline();
             current_filename_string_id := lookup_string(
-                current_filename, string_length(current_filename));
+                current_filename, string_length(current_filename) as uint8);
             current_arg := current_arg + 1;
             current_fd := file_openin(current_filename);
             current_line_number := 1;
@@ -46,9 +46,9 @@ end sub;
 
 sub error_with_location()
     print(" at about line ");
-    print_i16(current_line_number);
+    print_i16(current_line_number as uint16);
     print(" of ");
-    if current_filename != 0 then
+    if current_filename != (0 as [int8]) then
         print(current_filename);
     else
         print("?");
@@ -59,9 +59,9 @@ sub error_with_location()
 end sub;
 
 sub print_buffer()
-    var i: int8 := 0;
+    var i: uint8 := 0;
     while i < buffer_index loop
-        print_char(input_buffer[i]);
+        print_char(input_buffer[i] as int8);
         i := i + 1;
     end loop;
 end sub;

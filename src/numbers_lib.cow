@@ -1,6 +1,6 @@
-sub string_to_number(s: [int8], base: int8): (result: int32)
+sub string_to_number(s: [int8], base: uint8): (result: int32)
     result := 0;
-    var i: uint8 := 0;
+    var i: int16 := 0;
     var m: int8 := 1;
 
     if s[i] == '-' then
@@ -11,7 +11,7 @@ sub string_to_number(s: [int8], base: int8): (result: int32)
     loop
         var c: int8 := s[i];
         if c == 0 then
-            result := result * m;
+            result := result * (m as int32);
             return;
         end if;
 
@@ -24,7 +24,7 @@ sub string_to_number(s: [int8], base: int8): (result: int32)
                 c := (c - 'a') + 10;
             end if;
 
-            result := (result * base) + c;
+            result := (result * (base as int32)) + (c as int32);
         end if;
         i := i + 1;
     end loop;

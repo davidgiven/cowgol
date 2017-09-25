@@ -4,12 +4,12 @@ sub print(ptr: [int8])
         if c == 0 then
             return;
         end if;
-        print_char(c as uint8);
+        print_char(c);
         ptr := ptr + 1;
     end loop;
 end sub;
 
-sub print_char(char: uint8)
+sub print_char(char: int8)
     @bytes 0xAD, &char;        # LDA char
     @bytes 0x4C, 0xE3, 0xFF;   # JMP OSASCII
 end sub;
@@ -32,7 +32,7 @@ sub print_i8(value: uint8)
     end loop;
 
     loop
-        print_char(buffer[pos] + '0');
+        print_char((buffer[pos] + '0') as int8);
         if pos == 0 then
             break;
         end if;
@@ -55,7 +55,7 @@ sub print_hex_i8(value: uint8)
         else
             digit := digit + ('A' - 10);
         end if;
-        print_char(digit);
+        print_char(digit as int8);
         value := value << 4;
         i := i - 1;
         if i == 0 then

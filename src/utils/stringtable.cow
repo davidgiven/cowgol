@@ -16,7 +16,7 @@ sub show_string(string_id: uint16)
         elseif c == '"' then
             print("\\\"");
         else
-            print_char(c);
+            print_char(c as int8);
         end if;
         len := len - 1;
     end loop;

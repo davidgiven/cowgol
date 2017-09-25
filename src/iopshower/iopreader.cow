@@ -1,4 +1,4 @@
-var iops_fd: uint8;
+var iops_fd: int8;
 var iop_buffer: uint8[256];
 
 sub init_iop_reader(filename: [int8])
