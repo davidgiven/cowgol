@@ -40,6 +40,8 @@ __lsr32       LSR32      IDENTIFIER
 __asr32       ASR32      IDENTIFIER
 __mul32       MUL32      IDENTIFIER
 __divmodu8    DIVMODU8   IDENTIFIER
+__zext        ZEXT       IDENTIFIER
+__sext        SEXT       IDENTIFIER
 __modeadjust  MODEADJUST IDENTIFIER
 
 # Primitive types.
