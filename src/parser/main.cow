@@ -509,11 +509,11 @@ sub do_bytes()
 end sub;
 
 print("PARSER\n");
-load_thing_table("things.dat");
+load_thing_table(things_dat);
 init_parser();
-init_tokenreader("tokens.dat");
+init_tokenreader(tokens_dat);
 
-open_iopfile("iops.dat");
+open_iopfile(iops_dat);
 break_label_id := 0;
 continue_label_id := 0;
 while current_token != 0 loop
@@ -572,4 +572,4 @@ close_iopfile();
 print("thing table size: ");
 print_i16(thing_table_top);
 print_newline();
-save_thing_table("things.dat");
+save_thing_table(things_dat);

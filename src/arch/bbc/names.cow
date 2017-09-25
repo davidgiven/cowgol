@@ -1,0 +1,7 @@
+# Names for compiler output files on the BBC.
+
+var things_dat: [int8] := "things-d";
+var tokens_dat: [int8] := "tokens-d";
+var strings_dat: [int8] := "strings-d";
+var iops_dat: [int8] := "iops-d";
+var iops_out_dat: [int8] := "iops-out-d";

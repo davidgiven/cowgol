@@ -54,7 +54,7 @@ sub error_with_location()
         print("?");
     end if;
     print_newline();
-    save_string_table("strings.dat");
+    save_string_table(strings_dat);
     exit(1);
 end sub;
 

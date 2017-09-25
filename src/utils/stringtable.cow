@@ -1,4 +1,4 @@
-var strings_fd: int8 := file_openin("strings.dat");
+var strings_fd: int8 := file_openin(strings_dat);
 
 sub show_string(string_id: uint16)
     #print("(0x");

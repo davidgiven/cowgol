@@ -146,7 +146,7 @@ sub show_array_thing(thing: [ArrayThing])
     print(") ");
 end sub;
 
-load_thing_table("things.dat");
+load_thing_table(things_dat);
 var id: uint16 := 1;
 loop
     var thing: [Thing] := &thing_table[id] as [Thing];
@@ -199,6 +199,6 @@ loop
 
     id := id + (thing.thing_size as uint16);
 end loop;
-print("thing table size: ");
-print_i16(thing_table_top);
+print("thing table size: 0x");
+print_hex_i16(thing_table_top);
 print_newline();

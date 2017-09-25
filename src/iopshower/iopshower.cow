@@ -1,4 +1,4 @@
-load_thing_table("things.dat");
+load_thing_table(things_dat);
 init_iop_reader(ARGV[1]);
 
 sub do_filename(iop: [FilenameIop])

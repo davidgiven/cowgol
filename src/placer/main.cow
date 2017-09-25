@@ -132,4 +132,4 @@ end sub;
 
 process_data();
 process_subroutines();
-save_thing_table("things.dat");
+save_thing_table(things_dat);

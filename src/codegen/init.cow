@@ -1,7 +1,7 @@
 print("CODEGEN\n");
-load_thing_table("things.dat");
-init_iop_reader("iops.dat");
-init_iop_writer("iops-out.dat");
+load_thing_table(things_dat);
+init_iop_reader(iops_dat);
+init_iop_writer(iops_out_dat);
 
 var current_subroutine_id: uint16;
 

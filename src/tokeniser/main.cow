@@ -5,7 +5,7 @@ init_tokeniser();
 
 var old_filename_string_id: uint16 := 0;
 var old_line_number: uint16 := 0;
-var tokens_fd: uint8 := file_openout("tokens.dat");
+var tokens_fd: uint8 := file_openout(tokens_dat);
 var tokens_count: uint16 := 0;
 
 sub write_token(token: uint16)
@@ -43,9 +43,9 @@ fixup_strings();
 print("string table size: ");
 print_i16(stringtab_top - stringtab_base);
 print_newline();
-save_string_table("strings.dat");
+save_string_table(strings_dat);
 
 print("thing table size: ");
 print_i16(thing_table_top);
 print_newline();
-save_thing_table("things.dat");
+save_thing_table(things_dat);

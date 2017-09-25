@@ -1,6 +1,6 @@
 print("EMITTER\n");
-load_thing_table("things.dat");
-init_iop_reader("iops.dat");
+load_thing_table(things_dat);
+init_iop_reader(iops_dat);
 
 var current_subroutine_id: uint16;
 var current_subroutine: [SubroutineThing];

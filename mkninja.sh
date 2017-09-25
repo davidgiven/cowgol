@@ -96,6 +96,7 @@ bootstrapped_cowgol_program bin/tokeniser \
     src/string_lib.cow \
     src/ctype_lib.cow \
     src/numbers_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/tokeniser/strings.cow \
@@ -109,6 +110,7 @@ bootstrapped_cowgol_program bin/parser \
     src/string_lib.cow \
     src/ctype_lib.cow \
     src/numbers_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     $OBJDIR/token_names.cow \
@@ -127,6 +129,7 @@ bootstrapped_cowgol_program bin/parser \
 
 bootstrapped_cowgol_program bin/blockifier \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -141,6 +144,7 @@ bootstrapped_cowgol_program bin/blockifier \
 
 bootstrapped_cowgol_program bin/typechecker \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -159,6 +163,7 @@ bootstrapped_cowgol_program bin/typechecker \
 
 bootstrapped_cowgol_program bin/classifier \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -175,6 +180,7 @@ bootstrapped_cowgol_program bin/classifier \
 
 bootstrapped_cowgol_program bin/codegen \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -197,6 +203,7 @@ bootstrapped_cowgol_program bin/codegen \
 
 bootstrapped_cowgol_program bin/placer \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -209,6 +216,7 @@ bootstrapped_cowgol_program bin/placer \
 
 bootstrapped_cowgol_program bin/emitter \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -220,6 +228,7 @@ bootstrapped_cowgol_program bin/emitter \
 
 bootstrapped_cowgol_program bin/thingshower \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/stringtable.cow \
@@ -227,6 +236,7 @@ bootstrapped_cowgol_program bin/thingshower \
 
 bootstrapped_cowgol_program bin/iopshower \
     src/string_lib.cow \
+    src/utils/names.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
     src/utils/iops.cow \

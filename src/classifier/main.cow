@@ -287,4 +287,4 @@ assign_space_for_all_variables();
 
 arch_report_offsets(&root.archsizes);
 
-save_thing_table("things.dat");
+save_thing_table(things_dat);
