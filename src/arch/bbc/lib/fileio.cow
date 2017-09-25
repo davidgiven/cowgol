@@ -30,15 +30,26 @@ sub file_openup(filename: [int8]): (fd: int8)
 end sub;
 
 sub file_getblock(fd: int8, ptr: [int8], length: uint16)
+    var block: OsgbpbBlock;
+    block.fd := fd as uint8;
+    block.bufferlo := ptr as [uint8];
+    block.bufferhi := 0;
+    block.count := length as uint32;
+    osgbpb(4, &block); # read bytes ignoring pointer
 end sub;
 
 sub file_putblock(fd: int8, ptr: [int8], length: uint16)
 end sub;
 
 sub file_seek(fd: int8, pos: uint32)
+    var zp: uint32 @segment(0x81) := pos;
+    osargs(1, &zp as [uint8], fd as uint8); # write PTR#
 end sub;
 
 sub file_ext(fd: int8): (length: uint32)
+    var zp: uint32 @segment(0x81);
+    osargs(2, &zp as [uint8], fd as uint8); # read EXT#
+    length := zp;
 end sub;
 
 sub file_eof(fd: int8): (eof: uint8)
