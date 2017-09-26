@@ -67,6 +67,8 @@ function tokenstream(source)
             local function decode_escape(s)
                 if (s == "n") then
                     return "\n"
+                elseif (s == "r") then
+                    return "\r"
                 elseif (s == "0") then
                     return "\0"
                 elseif (s == "\\") then
@@ -463,9 +465,18 @@ function read_type()
             end
         elseif (t == "[") then
             expect("[");
-            local _, v = expect("number");
+            local t, v = stream:next();
+            if t == "number" then
+                v = tonumber(v)
+            else
+                vsym = lookup_symbol(t)
+                if not vsym or (vsym.kind ~= "number") then
+                    fatal("'%s' is not a number in scope", t)
+                end
+                v = vsym.storage
+            end
             expect("]");
-            sym = array_of(sym, tonumber(v))
+            sym = array_of(sym, v)
         else
             break
         end
