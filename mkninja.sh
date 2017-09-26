@@ -40,21 +40,31 @@ rule token_names
     command = gawk -f src/mk-token-names.awk $in > $out
 EOF
 
+BOOTSTRAP_LIBS="src/arch/bootstrap/host.cow"
+BBC_LIBS="src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow"
+
 OBJDIR="/tmp/cowgol-obj"
-BOOTSTRAP_DEPENDENCIES="scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h"
+BOOTSTRAP_DEPENDENCIES="scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h $BOOTSTRAP_LIBS"
 COWGOL_DEPENDENCIES="scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow"
 CPUTEST_DEPENDENCIES="scripts/bbctube_test bin/bbctube"
 
 bootstrapped_cowgol_program() {
     out=$1
     shift
-    echo "build $out : bootstrapped_cowgol_program $@ | $BOOTSTRAP_DEPENDENCIES"
+    echo "build $out : bootstrapped_cowgol_program $BOOTSTRAP_LIBS $@ | $BOOTSTRAP_DEPENDENCIES"
 }
 
 cowgol_program() {
     out=$1
     shift
-    echo "build $out : cowgol_program src/arch/bbc/lib/runtime.cow $@ | $COWGOL_DEPENDENCIES"
+    echo "build $out : cowgol_program $BBC_LIBS $@ | $COWGOL_DEPENDENCIES"
+}
+
+both_cowgol_programs() {
+    progname=$1
+    shift
+    bootstrapped_cowgol_program bin/$progname "$@"
+    cowgol_program bin/bbc/$progname "$@"
 }
 
 bootstrap_test() {
@@ -92,7 +102,7 @@ c_program() {
     echo "build $out : c_program $@"
 }
 
-bootstrapped_cowgol_program bin/tokeniser \
+both_cowgol_programs tokeniser \
     src/string_lib.cow \
     src/ctype_lib.cow \
     src/numbers_lib.cow \
@@ -226,7 +236,7 @@ bootstrapped_cowgol_program bin/emitter \
     src/arch/bbc/emitter.cow \
     src/emitter/main.cow
 
-bootstrapped_cowgol_program bin/thingshower \
+both_cowgol_programs thingshower \
     src/string_lib.cow \
     src/utils/names.cow \
     src/arch/bbc/globals.cow \
@@ -234,7 +244,7 @@ bootstrapped_cowgol_program bin/thingshower \
     src/utils/stringtable.cow \
     src/thingshower/thingshower.cow
 
-bootstrapped_cowgol_program bin/iopshower \
+both_cowgol_programs iopshower \
     src/string_lib.cow \
     src/utils/names.cow \
     src/arch/bbc/globals.cow \

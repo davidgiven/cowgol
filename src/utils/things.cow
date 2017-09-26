@@ -129,7 +129,7 @@ record ParameterThing: VariableThing
     direction: uint8;
 end record;
 
-var thing_table: int8[20000];
+var thing_table: int8[THINGSTABLE_SIZE];
 var thing_table_top: uint16 := 1;
 thing_table[thing_table_top] := 0;
 
