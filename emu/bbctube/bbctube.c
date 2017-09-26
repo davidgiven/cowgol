@@ -26,12 +26,49 @@ uint32_t read32(uint16_t address)
 		| ((uint32_t)ram[address+3] << 24);
 }
 
+void write32(uint16_t address, uint32_t value)
+{
+	ram[address+0] = value;
+	ram[address+1] = value >> 8;
+	ram[address+2] = value >> 16;
+	ram[address+3] = value >> 24;
+}
+
 static int rts(void)
 {
 	uint16_t pc;
 	pc = (uint16_t)ram[++cpu->registers->s + 0x100];
 	pc |= (uint16_t)ram[++cpu->registers->s + 0x100] << 8;
 	return pc + 1; /* jsr pushes next instruction -1 */
+}
+
+static void osargs(void)
+{
+	uint8_t fd = cpu->registers->y;
+	uint16_t block = (uint16_t)cpu->registers->x;
+
+	if (fd == 0)
+	{
+		switch (cpu->registers->a)
+		{
+			case 0x01: /* get address of command line */
+				write32(block, 0x2ff);
+				break;
+
+			default:
+				printf("unknown OSARGS y=0 0x%02x\n", cpu->registers->a);
+				exit(1);
+		}
+	}
+	else
+	{
+		switch (cpu->registers->a)
+		{
+			default:
+				printf("unknown OSARGS y!=0 0x%02x\n", cpu->registers->a);
+				exit(1);
+		}
+	}
 }
 
 static void osfile(void)
@@ -106,9 +143,10 @@ static void osword(void)
 			uint32_t ioaddr = read32(block+0);
 			switch (ioaddr)
 			{
-				case 0xf2: ram[block+4] = 0x00; break;
-				case 0xf3: ram[block+4] = 0x02; break;
-				default:   ram[block+4] = 0x00; break;
+				case 0xf2:   ram[block+4] = 0x00; break;
+				case 0xf3:   ram[block+4] = 0x02; break;
+				case 0x02ff: ram[block+4] = '\r'; break; /* command line */
+				default:     ram[block+4] = 0x00; break;
 			}
 			break;
 		}
@@ -144,6 +182,7 @@ static int systemcall(M6502* cpu, uint16_t address, uint8_t data)
 {
 	switch (address)
 	{
+		case 0xffda: osargs(); break;
 		case 0xffdd: osfile(); break;
 		case 0xfff4: osbyte(); break;
 		case 0xfff1: osword(); break;
