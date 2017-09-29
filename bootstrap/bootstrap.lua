@@ -21,6 +21,8 @@ function set(...)
     return t
 end
 
+local compilation_flags = set("DEBUG")
+
 local infix_operators = set("+", "-", "*", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=",
     "&", "|", "^", "%", "and", "or")
 local postfix_operators = set("as")
@@ -40,7 +42,7 @@ end
 function tokenstream(source)
     local patterns = {
         "^(\n)",
-        "^([%w@][%w%d_]*)",
+        "^([%w@$][%w%d_]*)",
         "^(<<)",
         "^(>>)",
         "^([<>!:=]=)",
@@ -186,39 +188,95 @@ function tokenstream(source)
     )
 
     local line = 1
-    local peekedtoken = nil
-    local peekedvalue = nil
     return {
         next = function(self)
-            if peekedtoken then
-                local p = peekedtoken
-                peekedtoken = nil
-                return p, peekedvalue
-            else
-                while true do
-                    local status, token, value = coroutine.resume(c)
-                    if not status then
-                        fatal("parse error: %s", token)
-                    elseif (token == "\n") then
-                        line = line + 1
-                    else
-                        return token, value
-                    end
-                end
-            end
-        end,
-
-        peek = function(self)
-            if not peekedtoken then
-                peekedtoken, peekedvalue = self:next()
-            end
-            return peekedtoken, peekedvalue
+			while true do
+				local status, token, value = coroutine.resume(c)
+				if not status then
+					fatal("parse error: %s", token)
+				elseif (token == "\n") then
+					line = line + 1
+				else
+					return token, value
+				end
+			end
         end,
 
         line = function(self)
             return line
         end,
     }
+end
+
+function filteredtokenstream(stream)
+	local c = coroutine.create(
+		function()
+			while true do
+				local token, value = stream:next()
+				if token == "$if" then
+					token, value = stream:next()
+					if not compilation_flags[token] then
+						while true do
+							token, value = stream:next()
+							if token == "$endif" then
+								break
+							end
+						end
+					end
+				elseif token == "$endif" then
+					-- consume silently
+				else
+					coroutine.yield(token, value)
+				end
+			end
+		end
+	)
+
+	return {
+		next = function(self)
+			local status, token, value = coroutine.resume(c)
+			if not status then
+				fatal("parse error: %s", token)
+			end
+			return token, value
+		end,
+
+		line = function(self)
+			return stream:line()
+		end
+	}
+end
+
+function peekabletokenstream(stream)
+	local peekedline, peekedtoken, peekedvalue
+	local line
+
+	return {
+		next = function(self)
+			local t, v
+			if peekedtoken then
+				line = peekedline
+				t, v = peekedtoken, peekedvalue
+				peekedtoken = nil
+			else
+				t, v = stream:next()
+				line = stream:line()
+			end
+			return t, v
+		end,
+
+		peek = function(self)
+			if not peekedtoken then
+				peekedtoken, peekedvalue = stream:next()
+				peekedline = stream:line()
+			end
+			return peekedtoken, peekedvalue
+		end,
+
+		line = function(self)	
+			return line
+		end
+	}
 end
 
 function nextid()
@@ -1287,7 +1345,7 @@ for _, arg in ipairs({...}) do
     --log("reading %s", arg)
     current_filename = arg
     local source = io.open(arg):read("*a")
-    stream = tokenstream(source)
+    stream = peekabletokenstream(filteredtokenstream(tokenstream(source)))
     do_statements()
     expect("eof")
 end
