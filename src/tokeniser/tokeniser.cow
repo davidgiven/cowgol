@@ -199,7 +199,7 @@ sub do_compilation_option()
 		var inverted_case: uint8 := 0;
 		skip_whitespace();
 		print("current byte is ");
-		print_hex_i8(current_byte);
+		print_hex_i8(current_byte as uint8);
 		print_newline();
 		if current_byte == '!' then
 			inverted_case := 1;
