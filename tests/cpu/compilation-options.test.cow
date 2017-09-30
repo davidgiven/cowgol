@@ -1,0 +1,7 @@
+sub yes() print("yes\n"); end sub;
+sub no() print("no\n"); end sub;
+
+print("DEBUG: ");
+$if DEBUG yes(); $endif
+$if !DEBUG no(); $endif
+

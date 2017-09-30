@@ -130,6 +130,8 @@ sub copy_ea_ref(src: [EffectiveAddress], dest: [EffectiveAddress])
     ref_temporary(src.varoff_id);
 end sub;
 
+$if DEBUG
+
 sub print_node(node: [Node])
     print_char('@');
     print_i8(get_node_id(node));
@@ -161,3 +163,6 @@ sub print_stack()
         index := index + 1;
     end loop;
 end sub;
+
+$endif
+

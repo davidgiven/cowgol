@@ -1,7 +1,25 @@
 var current_token: uint16;
 var filename_id: uint16 := 0;
 
-sub read_identifier()
+var debug_option: uint8 := 0;
+
+sub skip_whitespace()
+	loop
+		var type: int8 := classify_char_type(current_byte);
+		if (type != NEWLINE) and (type != WHITESPACE) and (type != '#') then
+			break;
+		end if;
+		next_byte();
+		if current_byte == '#' then
+			while (current_byte != -1) and (current_byte != '\n') loop
+				next_byte();
+			end loop;
+		end if;
+	end loop;
+end sub;
+
+sub read_raw_identifier()
+	buffer_index := 0;
     loop
         input_buffer[buffer_index] := current_byte;
         buffer_index := buffer_index + 1;
@@ -12,6 +30,12 @@ sub read_identifier()
         end if;
         next_byte();
     end loop;
+
+	input_buffer[buffer_index] := 0;
+end sub;
+
+sub read_identifier()
+	read_raw_identifier();
 
     var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
     current_token := find_token_by_string(string_id);
@@ -158,31 +182,82 @@ sub read_char_constant()
     end if;
 end sub;
 
+var in_if: uint8 := 0;
+sub do_compilation_option()
+	next_byte();
+
+	read_raw_identifier();
+	next_byte();
+
+	if compare_strings(&input_buffer[0], "if") == 0 then
+		if in_if != 0 then
+			print("can't nest $if (yet)");
+			error_with_location();
+		end if;
+		in_if := 1;
+
+		var inverted_case: uint8 := 0;
+		skip_whitespace();
+		print("current byte is ");
+		print_hex_i8(current_byte);
+		print_newline();
+		if current_byte == '!' then
+			inverted_case := 1;
+			next_byte();
+			skip_whitespace();
+		end if;
+
+		read_raw_identifier();
+		next_byte();
+		if compare_strings(&input_buffer[0], "DEBUG") != 0 then
+			print("only DEBUG is supported here (now)");
+			error_with_location();
+		end if;
+
+		if inverted_case != debug_option then
+			while current_byte != '$' loop
+				if current_byte == -1 then
+					print("end of file in $if");
+					error_with_location();
+				end if;
+				next_byte();
+			end loop;
+		end if;
+	elseif compare_strings(&input_buffer[0], "endif") == 0 then
+		if in_if == 0 then
+			print("$endif without $if");
+			error_with_location();
+		end if;
+		in_if := 0;
+	else
+		print("unknown directive '");
+		print(&input_buffer[0]);
+		print("'");
+		error_with_location();
+	end if;
+end sub;
+
 sub next_token()
     if current_byte == -1 then
         current_token := 0;
         return;
     end if;
 
-    buffer_index := 0;
-    var type: int8;
-    loop
-        type := classify_char_type(current_byte);
-        if (type != NEWLINE) and (type != WHITESPACE) and (type != '#') then
-            break;
-        end if;
-        next_byte();
-        if current_byte == '#' then
-            while (current_byte != -1) and (current_byte != '\n') loop
-                next_byte();
-            end loop;
-        end if;
-        if current_byte == -1 then
-            current_token := 0;
-            return;
-        end if;
-    end loop;
+	buffer_index := 0;
+	loop
+		skip_whitespace();
+		if current_byte == '$' then
+			do_compilation_option();
+		else
+			break;
+		end if;
+	end loop;
+	if current_byte == -1 then
+		current_token := 0;
+		return;
+	end if;
 
+	var type: int8 := classify_char_type(current_byte);
     if current_byte == '"' then
         read_string();
     elseif current_byte == '\'' then
