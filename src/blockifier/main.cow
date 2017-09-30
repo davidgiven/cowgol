@@ -3,7 +3,7 @@ const REAL_LABEL := 0xffff;
 
 sub pass1()
     sub do_label(iop: [LabelIop])
-        labels[iop.label] := REAL_LABEL;
+        labels[iop.label] := iop.label;
     end sub;
 
     sub do_clonelabel(iop: [CloneLabelIop])
@@ -25,17 +25,30 @@ sub pass1()
 end sub;
 
 sub pass2()
-    sub do_label(iop: [LabelIop])
-        var reallabel: uint16 := iop.label;
-        var i: int16 := 0;
-        while i != current_subroutine.label_count loop
-            var label: uint16 := labels[i];
-            if (i != reallabel) and (label == reallabel) then
-                iop.label := i;
-                write_iop(iop as [Iop]);
+    sub lookup_label(labelin: uint16): (labelout: uint16)
+        loop
+            labelout := labels[labelin];
+            if labelout == labelin then
+                return;
             end if;
-            i := i + 1;
+            labelin := labelout;
         end loop;
+    end sub;
+
+    sub do_label(iop: [LabelIop])
+        iop.label := lookup_label(iop.label);
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub do_goto(iop: [GotoIop])
+        iop.label := lookup_label(iop.label);
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub do_conditional(iop: [BEConditionalIop])
+        iop.iftrue_label := lookup_label(iop.iftrue_label);
+        iop.iffalse_label := lookup_label(iop.iffalse_label);
+        write_iop(iop as [Iop]);
     end sub;
 
     loop
@@ -45,9 +58,14 @@ sub pass2()
         if iopkind == IOP_END then
             break;
         elseif iopkind == IOP_LABEL then
-            write_iop(iop);
             do_label(iop as [LabelIop]);
-        elseif iopkind != IOP_CLONELABEL then
+        elseif iopkind == IOP_CLONELABEL then
+            # do nothing
+        elseif iopkind == IOP_GOTO then
+            do_goto(iop as [GotoIop]);
+        elseif (iopkind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_SPECIAL then
+            do_conditional(iop as [BEConditionalIop]);
+        else
             write_iop(iop);
         end if;
     end loop;

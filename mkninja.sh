@@ -38,6 +38,12 @@ rule token_maker
 
 rule token_names
     command = gawk -f src/mk-token-names.awk $in > $out
+
+rule mkbbcdist
+    command = scripts/mkbbcdist $out
+build bin/bbcdist.zip : mkbbcdist bin/bbc/iopshower bin/bbc/thingshower bin/bbc/tokeniser $
+    src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/fileio.cow $
+    src/arch/bbc/lib/argv.cow
 EOF
 
 BOOTSTRAP_LIBS="src/arch/bootstrap/host.cow"
