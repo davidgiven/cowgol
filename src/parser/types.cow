@@ -47,7 +47,7 @@ sub read_type(): (type_id: uint16)
             next_token();
         elseif current_token == TOKEN_OPENSQUARE then
             next_token();
-            var element_count: uint16 := do_constant();
+            var element_count: uint16 := do_constant() as uint16;
             var index_type_id: uint16;
             if element_count <= 256 then
                 index_type_id := find_bootstrap_symbol(TOKEN_UINT8);

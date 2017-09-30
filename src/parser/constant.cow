@@ -4,7 +4,7 @@ sub do_constant(): (result: int32)
 
     var operator_stack: uint16[32];
     var operator_stack_pos: uint8 := 0;
-    var data_stack: uint32[8];
+    var data_stack: int32[8];
     var data_stack_pos: uint8 := 0;
     var state: uint8 := STATE_BEFORE;
 
@@ -69,8 +69,8 @@ sub do_constant(): (result: int32)
         operator_stack_pos := operator_stack_pos - 1;
         var op_id: uint16 := operator_stack[operator_stack_pos];
 
-        var left: uint32;
-        var right: uint32 := pop_value();
+        var left: int32;
+        var right: int32 := pop_value();
 
         var op_flags: uint8 := get_token_flags(op_id);
         if (op_flags & TOKEN_FLAG_BINARY_OP) != 0 then

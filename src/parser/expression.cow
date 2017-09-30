@@ -142,7 +142,7 @@ sub expression_state_machine()
             emit_fe(IOP_FE_MATERIALISE);
             data_stack_size := data_stack_size + 1;
 
-            current_parameter_count := pop_op();
+            current_parameter_count := pop_op() as uint8;
             current_function_call := pop_op();
         end sub;
 
@@ -266,7 +266,7 @@ sub expression_state_machine()
 
     sub thing_reference(type: [TypeThing]): (pushable_id: uint16)
         if current_token == TOKEN_BYTES then
-            pushable_id := add_number_by_value(type.width);
+            pushable_id := add_number_by_value(type.width as int32);
         elseif current_token == TOKEN_SIZE then
             var array_type: [ArrayThing] := type as [ArrayThing];
             if array_type.thing_type != THING_ARRAYT then
@@ -274,7 +274,7 @@ sub expression_state_machine()
                 print(" only works on arrays");
                 halt();
             end if;
-            pushable_id := add_number_by_value(array_type.element_count);
+            pushable_id := add_number_by_value(array_type.element_count as int32);
         else
             print("expected a type attribute, got ");
             show_identifier(current_token);
@@ -312,7 +312,7 @@ sub expression_state_machine()
                 thing := find_thing(current_token);
                 if (thing.thing_type == THING_IDENTIFIER) and (peeked_token == TOKEN_OPENPAREN) then
                     push_op(current_function_call);
-                    push_op(current_parameter_count);
+                    push_op(current_parameter_count as uint16);
                     current_function_call := current_token;
                     push_op(TOKEN_CALL);
                     next_token();

@@ -1,4 +1,4 @@
-var tokens_fd: uint8;
+var tokens_fd: int8;
 
 sub next_raw_token(): (token: uint16)
     var buf: uint16[1];

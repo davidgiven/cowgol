@@ -1,13 +1,13 @@
-var ioptab_top: [int8] := HIMEM;
+var ioptab_top: [uint8] := HIMEM as [uint8];
 var ioptab_size: uint16 := 0;
-var iopfd: uint8;
+var iopfd: int8;
 
 sub emit(kind: uint8, size: uint8): (ptr: [Iop])
     ioptab_size := ioptab_size + 1;
-    ioptab_top[0-ioptab_size] := size;
-    ioptab_size := ioptab_size + size;
-    ptr := &ioptab_top[0-ioptab_size] as [Iop];
-    zero_memory(ptr as [int8], size);
+    ioptab_top[0-(ioptab_size as int16)] := size;
+    ioptab_size := ioptab_size + (size as uint16);
+    ptr := &ioptab_top[0-(ioptab_size as int16)] as [Iop];
+    zero_memory(ptr as [int8], size as uint16);
     ptr.iop_kind := kind;
     ptr.iop_size := size;
 end sub;
@@ -100,7 +100,7 @@ end sub;
 sub emit_bytes(byte_count: uint8, bytes: [uint8])
     var iop: [BytesIop] := emit(IOP_BYTES, BytesIop@bytes) as [BytesIop];
     iop.byte_count := byte_count;
-    copy_memory(bytes as [int8], &iop.bytes[0] as [int8], byte_count);
+    copy_memory(bytes as [int8], &iop.bytes[0] as [int8], byte_count as uint16);
 end sub;
 
 sub emit_word(word: uint16)
@@ -112,7 +112,7 @@ end sub;
 sub emit_address(opcode: uint8, thing_id: uint16, offset: int16)
     var iop: [AddressIop] := emit(opcode, AddressIop@bytes) as [AddressIop];
     iop.thing_id := thing_id;
-    iop.offset := offset;
+    iop.offset := offset as uint16;
 end sub;
 
 sub create_label(): (label: uint16)
@@ -127,12 +127,12 @@ sub flush_iops(object_id: uint16, oldtop: uint16)
     file_putblock(iopfd, &header[0] as [int8], IHeader@bytes);
 
     var offset: uint16 := oldtop;
-    while offset < ioptab_size loop
+    while offset != ioptab_size loop
         offset := offset + 1;
-        var size: uint8 := ioptab_top[0-offset];
-        offset := offset + size;
-        var iop: [Iop] := &ioptab_top[0-offset] as [Iop];
-        file_putblock(iopfd, iop as [int8], size);
+        var size: uint8 := ioptab_top[0-(offset as int16)];
+        offset := offset + (size as uint16);
+        var iop: [Iop] := &ioptab_top[0-(offset as int16)] as [Iop];
+        file_putblock(iopfd, iop as [int8], size as uint16);
     end loop;
 
     ioptab_size := oldtop;
