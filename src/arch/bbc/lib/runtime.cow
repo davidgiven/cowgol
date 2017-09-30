@@ -11,7 +11,10 @@ end sub;
 
 sub print_char(char: int8)
     @bytes 0xAD, &char;        # LDA char
-    @bytes 0x4C, 0xE3, 0xFF;   # JMP OSASCII
+    @bytes 0xC9, '\n';         # CMP #'\n'
+    @bytes 0xD0, 0x02;         # BNE next
+    @bytes 0xA9, '\r';         # LDA #'\r'
+    @bytes 0x4C, 0xE3, 0xFF;   # JMP OSASCI
 end sub;
 
 sub print_newline()
