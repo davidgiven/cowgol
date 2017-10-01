@@ -4,7 +4,7 @@ var ARGC: uint8;
 sub init_argv()
     record OsargBlock
         ptr: [int8];
-        unused: int16; # high two bytes of address
+        hiptr: int16; # high two bytes of address
         byte: int8;
     end record;
 
@@ -18,8 +18,7 @@ sub init_argv()
         @bytes 0xA9, 0x05;          # LDA #5
         @bytes 0xA2, >&block;       # LDX #block
         @bytes 0xA0, 0x00;          # LDY #0
-        @bytes 0x20, 0xF1, 0xFF;    # JMP OSWORD
-
+        @bytes 0x20, 0xF1, 0xFF;    # JSR OSWORD
         block.ptr := block.ptr + 1;
     end sub;
 
@@ -51,10 +50,7 @@ sub init_argv()
             outindex := outindex + 1;
 
             nextchar();
-            if block.byte == 13 then
-                break;
-            end if;
-            if block.byte == 32 then
+            if (block.byte == 13) or (block.byte == 32) then
                 break;
             end if;
         end loop;
