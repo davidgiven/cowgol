@@ -21,11 +21,13 @@ sub alloc_temporary(type_id: uint16): (thing_id: uint16)
                 thing.type_id := type_id;
                 thing.owner_id := current_subroutine_id;
 
-                print("* creating new temp 0x");
-                print_hex_i16(thing_id);
-                print(" of type ");
-                print_thing(type_id);
-                print_newline();
+                $if DEBUG
+                    print("* creating new temp 0x");
+                    print_hex_i16(thing_id);
+                    print(" of type ");
+                    print_thing(type_id);
+                    print_newline();
+                $endif
 
                 temp.refcount := 1;
                 temp.thing_id := thing_id;
@@ -33,9 +35,11 @@ sub alloc_temporary(type_id: uint16): (thing_id: uint16)
             else
                 thing := find_thing(temp.thing_id) as [VariableThing];
                 if thing.type_id == type_id then
-                    print("* reusing temp 0x");
-                    print_hex_i16(temp.thing_id);
-                    print_newline();
+                    $if DEBUG
+                        print("* reusing temp 0x");
+                        print_hex_i16(temp.thing_id);
+                        print_newline();
+                    $endif
 
                     temp.refcount := 1;
                     thing_id := temp.thing_id;
@@ -59,9 +63,11 @@ sub ref_temporary(thing_id: uint16)
             if (temp.thing_id == thing_id) and (temp.refcount > 0) then
                 temp.refcount := temp.refcount + 1;
 
-                print("* ref temp 0x");
-                print_hex_i16(thing_id);
-                print_newline();
+                $if DEBUG
+                    print("* ref temp 0x");
+                    print_hex_i16(thing_id);
+                    print_newline();
+                $endif
 
                 return;
             end if;
@@ -79,12 +85,14 @@ sub deref_temporary(thing_id: uint16)
             if (temp.thing_id == thing_id) and (temp.refcount > 0) then
                 temp.refcount := temp.refcount - 1;
 
-                print("* deref temp 0x");
-                print_hex_i16(thing_id);
-                if temp.refcount == 0 then
-                    print("; temp is now free");
-                end if;
-                print_newline();
+                $if DEBUG
+                    print("* deref temp 0x");
+                    print_hex_i16(thing_id);
+                    if temp.refcount == 0 then
+                        print("; temp is now free");
+                    end if;
+                    print_newline();
+                $endif
 
                 return;
             end if;

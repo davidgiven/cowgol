@@ -20,15 +20,18 @@ sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: ui
         print_hex_i8(beiop);
         halt();
     end if;
-    print("* constant collapse: 0x");
-    print_hex_i8(beiop);
-    print(" left=");
-    print_i32(left);
-    print(" right=");
-    print_i32(right);
-    print(" result=");
-    print_i32(result);
-    print_newline();
+
+    $if DEBUG
+        print("* constant collapse: 0x");
+        print_hex_i8(beiop);
+        print(" left=");
+        print_i32(left);
+        print(" right=");
+        print_i32(right);
+        print(" result=");
+        print_i32(result);
+        print_newline();
+    $endif
 end sub;
 
 sub simplify_constants_and_deref(src: [Node]): (dest: [Node])

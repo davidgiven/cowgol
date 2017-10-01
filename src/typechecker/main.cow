@@ -92,9 +92,11 @@ sub var_to_pointer_compatible_var(invar_id: uint16): (outvar_id: uint16)
         outvar_id := invar_id;
         ref_temporary(outvar_id);
     else
-        print("* zextending varoff ");
-        print_thing(invar_id);
-        print_newline();
+        $if DEBUG
+            print("* zextending varoff ");
+            print_thing(invar_id);
+            print_newline();
+        $endif
 
         var node: [Node] := alloc_thing_node(invar_id);
         node.iop := IOP_BE_ZEXT;
@@ -102,9 +104,11 @@ sub var_to_pointer_compatible_var(invar_id: uint16): (outvar_id: uint16)
         node := simplify_node_to_var_and_deref(node);
         outvar_id := node.left.obj_id;
 
-        print("* extended varoff is ");
-        print_thing(outvar_id);
-        print_newline();
+        $if DEBUG
+            print("* extended varoff is ");
+            print_thing(outvar_id);
+            print_newline();
+        $endif
 
         ref_temporary(outvar_id);
         deref_node(node);
@@ -137,6 +141,7 @@ sub process_subroutine()
         var labelthing: [LabelThing] := find_thing(label_id) as [LabelThing];
         if labelthing.thing_type != THING_LABEL then
             print("not a label");
+            halt();
         end if;
 
         iop.iop_kind := IOP_GOTO;
@@ -323,44 +328,60 @@ sub process_subroutine()
         node.iop := IOP_FEX_PUSH;
         node.type_id := left_type.element_type_id;
 
-        print("* left has ea ");
-        print_ea(&left.left);
-        print_newline();
-        print("* right has ea ");
-        print_ea(&right.left);
-        print_newline();
+        $if DEBUG
+            print("* left has ea ");
+            print_ea(&left.left);
+            print_newline();
+            print("* right has ea ");
+            print_ea(&right.left);
+            print_newline();
+        $endif
 
         copy_ea_ref(&left.left, &node.left);
         node.left.type_id := left_type.element_type_id;
 
-        print("* result base has ea ");
-        print_ea(&node.left);
-        print_newline();
+        $if DEBUG
+            print("* result base has ea ");
+            print_ea(&node.left);
+            print_newline();
+        $endif
 
         if element_type.width != 1 then
-            print("* scaling left by 0x");
-            print_hex_i16(element_type.width);
-            print_newline();
+            $if DEBUG
+                print("* scaling left by 0x");
+                print_hex_i16(element_type.width);
+                print_newline();
+            $endif
 
             right := gen_operator_and_deref(IOP_BE_MUL, right, alloc_smallint_node(element_type.width));
         end if;
         if right.type_id == constant_type then
-            print("* offset is constant\n");
+            $if DEBUG
+                print("* offset is constant\n");
+            $endif
+
             if node.left.numoff_id != 0 then
-                print("* adding right to existing constant offset ");
-                print_thing(node.left.numoff_id);
-                print_newline();
+                $if DEBUG
+                    print("* adding right to existing constant offset ");
+                    print_thing(node.left.numoff_id);
+                    print_newline();
+                $endif
 
                 right := gen_operator_and_deref(IOP_BE_ADD, alloc_const_node(node.left.numoff_id), right);
             end if;
             right := simplify_node_to_ea_and_deref(right);
             node.left.numoff_id := right.left.obj_id;
         else
-            print("* offset is variable\n");
+            $if DEBUG
+                print("* offset is variable\n");
+            $endif
+
             if node.left.varoff_id != 0 then
-                print("* adding right to existing variable offset ");
-                print_thing(node.left.numoff_id);
-                print_newline();
+                $if DEBUG
+                    print("* adding right to existing variable offset ");
+                    print_thing(node.left.numoff_id);
+                    print_newline();
+                $endif
 
                 right := gen_operator_and_deref(IOP_BE_ADD, alloc_thing_node(node.left.varoff_id), right);
             end if;
@@ -478,11 +499,15 @@ sub process_subroutine()
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
 
         var node: [Node] := push_empty_node();
-        print("found subroutine 0x");
-        print_hex_i16(thing_id);
-        print(" direction ");
-        print_i8(direction);
-        print_newline();
+
+        $if DEBUG
+            print("found subroutine 0x");
+            print_hex_i16(thing_id);
+            print(" direction ");
+            print_i8(direction);
+            print_newline();
+        $endif
+
         node.iop := IOP_FEX_PUSH;
         node.type_id := parameter.type_id;
         node.left.type_id := node.type_id;
@@ -621,11 +646,14 @@ sub process_subroutine()
     sub fe_bytesof()
         var left: [Node] := pop();
         var width: uint16 := get_width_of_type(left.type_id);
-        print("* pushing width of type ");
-        print_type_name(left.type_id);
-        print(" = 0x");
-        print_hex_i16(width);
-        print_newline();
+
+        $if DEBUG
+            print("* pushing width of type ");
+            print_type_name(left.type_id);
+            print(" = 0x");
+            print_hex_i16(width);
+            print_newline();
+        $endif
 
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
@@ -658,11 +686,13 @@ sub process_subroutine()
     loop
         var iop: [Iop] := read_iop();
         var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
-        print_newline();
-        print_stack();
-        print("* read iop 0x");
-        print_hex_i8(iop.iop_kind);
-        print_newline();
+        $if DEBUG
+            print_newline();
+            print_stack();
+            print("* read iop 0x");
+            print_hex_i8(iop.iop_kind);
+            print_newline();
+        $endif
 
         if iop.iop_kind == IOP_END then
             break;
@@ -751,10 +781,14 @@ sub process()
 
         write_iop_header(iheader);
         current_subroutine_id := iheader.thing_id;
-        print("\n******* SUBROUTINE ");
-        show_name_of(current_subroutine_id);
-        print_newline();
-        print_newline();
+
+        $if DEBUG
+            print("\n******* SUBROUTINE ");
+            show_name_of(current_subroutine_id);
+            print_newline();
+            print_newline();
+        $endif
+
         process_subroutine();
     end loop;
     write_terminating_iop_header();

@@ -21,7 +21,7 @@ function set(...)
     return t
 end
 
-local compilation_flags = set("DEBUG")
+local compilation_flags = {} -- set("DEBUG")
 
 local infix_operators = set("+", "-", "*", "/", "<<", ">>", "<", ">", "<=", ">=", "==", "!=",
     "&", "|", "^", "%", "and", "or")

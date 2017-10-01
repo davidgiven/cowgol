@@ -3,17 +3,20 @@ sub get_width_of(node: [Node]): (width: uint8)
 end sub;
 
 sub write_be_iop(iop: [BEIop])
-    print("* BE iop 0x");
-    print_hex_i8(iop.iop_kind);
-    print(" width=");
-    print_i8(iop.width);
-    print(" left=");
-    print_ea(&iop.left);
-    print(" right=");
-    print_ea(&iop.right);
-    print(" dest=");
-    print_ea(&iop.dest);
-    print_newline();
+    $if DEBUG
+        print("* BE iop 0x");
+        print_hex_i8(iop.iop_kind);
+        print(" width=");
+        print_i8(iop.width);
+        print(" left=");
+        print_ea(&iop.left);
+        print(" right=");
+        print_ea(&iop.right);
+        print(" dest=");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
     write_iop(iop as [Iop]);
 end sub;
 
@@ -64,7 +67,10 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     end sub;
 
     sub lea()
-        print("* promoting LEA to copy\n");
+        $if DEBUG
+            print("* promoting LEA to copy\n");
+        $endif
+
         maybe_alloc_tmpvar();
         reset_be_iop(&iop);
         iop.iop_kind := IOP_BE_COPY;
@@ -173,7 +179,9 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
                 ea.varoff_id := varoff_id;
             end if;
 
-            print("* turning var offset into add\n");
+            $if DEBUG
+                print("* turning var offset into add\n");
+            $endif
             varoffset_into_add();
             deref_temporary(ea.varoff_id);
         end if;
@@ -191,7 +199,9 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
 
         if ea.flags == EA_DEREF then
             if (width != 1) or (is_number_a_byte(ea.numoff_id) == 0) then
-                print("* turning too-large constant offset of deref into add\n");
+                $if DEBUG
+                    print("* turning too-large constant offset of deref into add\n");
+                $endif
                 deref_numoffset_into_add();
             end if;
         end if;
