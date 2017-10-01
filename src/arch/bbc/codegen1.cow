@@ -431,6 +431,11 @@ sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: u
     location := allocate_reg_for_value(ea, REG_A);
     ld_ind(location, indexreg, ea);
     free_reg(indexreg);
+
+    if (location & candidates) == 0 then
+        free_reg(location);
+        location := move_value_to_reg(ea, candidates);
+    end if;
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)

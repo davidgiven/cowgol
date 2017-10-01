@@ -43,3 +43,8 @@ print("zero-0 == zero");   if zero-0 == zero then yes(); else no(); end if;
 print("zero-(-1) == one"); if zero-(-1) == one then yes(); else no(); end if;
 print("zero-(-2) == two"); if zero-(-2) == two then yes(); else no(); end if;
 
+var array: uint8[1];
+var ptr: [uint8] := &array[0];
+ptr[0] := 1;
+print("ptr[0]-1 == 0"); if (ptr[0]-1) == 0 then yes(); else no(); end if;
+

@@ -28,3 +28,4 @@ zero-1 == mone: yes
 zero-0 == zero: yes
 zero-(-1) == one: yes
 zero-(-2) == two: yes
+ptr[0]-1 == 0: yes
