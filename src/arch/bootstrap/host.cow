@@ -1,4 +1,4 @@
 # How big should the thing table and string table be? These need to be about 20000
 # and 10000 if you want to compile the compiler.
-const THINGSTABLE_SIZE := 20000;
+const THINGSTABLE_SIZE := 28000;
 const STRINGTABLE_SIZE := 10000;

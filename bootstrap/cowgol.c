@@ -53,7 +53,9 @@ void cowgol_file_openup(void) {
 }
 
 void cowgol_file_getchar(void) {
-    extern_i8 = fgetc(filetab[extern_i8]);
+    FILE* fp = filetab[extern_i8];
+    extern_i8 = fgetc(fp);
+    extern_i8_2 = feof(fp);
 }
 
 void cowgol_file_putchar(void) {

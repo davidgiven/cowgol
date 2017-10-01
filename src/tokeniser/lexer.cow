@@ -9,8 +9,9 @@ var peeked_byte: int8 := -1;
 sub next_raw_byte(): (byte: int8)
     loop
         if current_fd != -1 then
-            byte := file_getchar(current_fd);
-            if byte == -1 then
+            var eof: uint8;
+            (byte, eof) := file_getchar(current_fd);
+            if eof != 0 then
                 file_close(current_fd);
                 current_fd := -1;
                 byte := 10;
@@ -20,8 +21,8 @@ sub next_raw_byte(): (byte: int8)
             return;
         end if;
 
-        current_filename := ARGV[current_arg];
-        if current_filename != (0 as [int8]) then
+        if current_arg != ARGC then
+            current_filename := ARGV[current_arg];
             print("opening: ");
             print(current_filename);
             print_newline();

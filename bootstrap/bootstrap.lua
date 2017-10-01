@@ -273,7 +273,7 @@ function peekabletokenstream(stream)
 			return peekedtoken, peekedvalue
 		end,
 
-		line = function(self)	
+		line = function(self)
 			return line
 		end
 	}
@@ -779,7 +779,7 @@ function do_expression_function_call(sym)
     for _, p in ipairs(sym.parameters) do
         if (p.inout == "out") then
             if outvar then
-                fatal("%s has more than one output parameter; can't call inside expressions")
+                fatal("%s has more than one output parameter; can't call inside expressions", sym.name)
             end
             outvar = p
         else
@@ -792,7 +792,7 @@ function do_expression_function_call(sym)
         end
     end
     if not outvar then
-        fatal("%s does not have a single output parameter; can't call inside expressions")
+        fatal("%s does not have a single output parameter; can't call inside expressions", sym.name)
     end
 
     expect(")")
@@ -1295,7 +1295,8 @@ create_extern_function("file_openup", "cowgol_file_openup",
 )
 create_extern_function("file_getchar", "cowgol_file_getchar",
     { name="fd", inout="in", variable=extern_i8 },
-    { name="byte", inout="out", variable=extern_i8 }
+    { name="byte", inout="out", variable=extern_i8 },
+    { name="eof", inout="out", variable=extern_i8_2 }
 )
 create_extern_function("file_putchar", "cowgol_file_putchar",
     { name="fd", inout="in", variable=extern_i8 },

@@ -520,9 +520,9 @@ end sub;
 
 var __lomem: int8 @segment(0x82);
 var LOMEM: [int8] @segment(0x81) := &__lomem;
-var HIMEM: [int8] @segment(0x81);
+var HIMEM: [int8] @segment(0x81) := 0xf800 as [int8];
 
-@bytes 0xA9, 0x84;          # LDA #0x84
-@bytes 0x20, 0xF4, 0xFF;    # JSR OSBYTE
-@bytes 0x86, >&HIMEM+0;     # STX HIMEM+0
-@bytes 0x84, >&HIMEM+1;     # STY HIMEM+1
+#@bytes 0xA9, 0x84;          # LDA #0x84
+#@bytes 0x20, 0xF4, 0xFF;    # JSR OSBYTE
+#@bytes 0x86, >&HIMEM+0;     # STX HIMEM+0
+#@bytes 0x84, >&HIMEM+1;     # STY HIMEM+1

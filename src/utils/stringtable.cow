@@ -6,10 +6,14 @@ sub show_string(string_id: uint16)
     #print(") ");
 
     file_seek(strings_fd, string_id as uint32);
-    var len: uint8 := file_getchar(strings_fd) as uint8;
+    var v: int8;
+    var eof: uint8;
+    (v, eof) := file_getchar(strings_fd);
+    var len: uint8 := v as uint8;
     print_char('"');
     while len != 1 loop
-        var c: uint8 := file_getchar(strings_fd) as uint8;
+        (v, eof) := file_getchar(strings_fd);
+        var c: uint8 := v as uint8;
         if (c < 32) or (c > 126) then
             print("\\x");
             print_hex_i8(c);

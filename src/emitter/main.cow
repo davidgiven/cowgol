@@ -105,7 +105,9 @@ sub emit_constants()
 
         var len: uint8 := stringthing.string_size;
         while len != 0 loop
-            var c: int8 := file_getchar(strings_fd);
+            var c: int8;
+            var eof: uint8;
+            (c, eof) := file_getchar(strings_fd);
             file_putchar(outfd, c);
             len := len - 1;
         end loop;

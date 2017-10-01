@@ -9,10 +9,8 @@ var tokens_fd: int8 := file_openout(tokens_dat);
 var tokens_count: uint16 := 0;
 
 sub write_token(token: int16)
-    var buf: uint16[1];
-    buf[0] := token as uint16;
     tokens_count := tokens_count + 1;
-    file_putblock(tokens_fd, &buf[0] as [int8], 2);
+    file_putblock(tokens_fd, &token as [int8], 2);
 end sub;
 
 while current_token != 0 loop

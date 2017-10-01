@@ -35,7 +35,7 @@ sub file_getblock(fd: int8, ptr: [int8], length: uint16)
     block.bufferlo := ptr as [uint8];
     block.bufferhi := 0;
     block.count := length as uint32;
-    osgbpb(2, &block); # write bytes ignoring pointer
+    osgbpb(4, &block); # write bytes ignoring pointer
 end sub;
 
 sub file_putblock(fd: int8, ptr: [int8], length: uint16)
@@ -44,7 +44,7 @@ sub file_putblock(fd: int8, ptr: [int8], length: uint16)
     block.bufferlo := ptr as [uint8];
     block.bufferhi := 0;
     block.count := length as uint32;
-    osgbpb(4, &block); # read bytes ignoring pointer
+    osgbpb(2, &block); # read bytes ignoring pointer
 end sub;
 
 sub file_seek(fd: int8, pos: uint32)
@@ -71,10 +71,13 @@ sub file_putchar(fd: int8, char: int8)
     @bytes 0x20, 0xD4, 0xFF;    # JSR OSBPUT
 end sub;
 
-sub file_getchar(fd: int8): (char: int8)
+sub file_getchar(fd: int8): (char: int8, eof: uint8)
     @bytes 0xAC, &fd;           # LDY fd
     @bytes 0x20, 0xD7, 0xFF;    # JSR OSBGET
     @bytes 0x8D, &char;         # STA char
+    @bytes 0xA9, 0x00;          # LDA #0
+    @bytes 0x2A;                # ROL A
+    @bytes 0x8D, &eof;          # STA eof
 end sub;
 
 sub file_close(fd: int8)

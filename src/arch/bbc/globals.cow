@@ -5,7 +5,7 @@ const SEGMENT_LAST := 0x82;
 
 # What's the base address of our executables? 0x0E00 for the Master, 0x0800 for
 # the second processor. (Or 0x1000 for a Master with HADFS.)
-const BASE_ADDRESS := 0x0e00;
+const BASE_ADDRESS := 0x0800;
 
 record ArchSizes
     data_size: uint16;
