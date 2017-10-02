@@ -7,23 +7,25 @@ var queue_read_pos: uint8; # current place to read
 var queue_write_pos: uint8; # next place to write
 var run_out_of_iops: uint8;
 
-sub print_queue()
-    print("queue: w");
-    print_i8(queue_write_pos);
-    print(" ");
+$if DEBUG
+    sub print_queue()
+        print("queue: w");
+        print_i8(queue_write_pos);
+        print(" ");
 
-    var i: uint8 := queue_read_pos;
-    loop
-        print(" (");
-        print_i8(i);
-        print(")0x");
-        print_hex_i8(queue_array[i].iop_kind);
-        i := (i+1) & (queue_array@size - 1);
-        if i == queue_write_pos then
-            break;
-        end if;
-    end loop;
-end sub;
+        var i: uint8 := queue_read_pos;
+        loop
+            print(" (");
+            print_i8(i);
+            print(")0x");
+            print_hex_i8(queue_array[i].iop_kind);
+            i := (i+1) & (queue_array@size - 1);
+            if i == queue_write_pos then
+                break;
+            end if;
+        end loop;
+    end sub;
+$endif
 
 sub queue_item(n: uint8): (iop: [Iop])
     iop := (&queue_array[(queue_read_pos + n) & (queue_array@size - 1)]) as [Iop];

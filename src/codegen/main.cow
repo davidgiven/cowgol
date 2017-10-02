@@ -3,8 +3,10 @@ sub apply_rules()
     if global_rules() == 1 then
         return;
     else
-        print("unmatched iops: ");
-        print_queue();
+        print("unmatched iops\n");
+        $if DEBUG
+            print_queue();
+        $endif
         halt();
     end if;
 end sub;
@@ -14,7 +16,10 @@ sub skip_subroutine()
     init_queue();
     loop
         fill_queue();
-        print_queue(); print_newline();
+        $if DEBUG
+            print_queue();
+            print_newline();
+        $endif
 
         if queue0.iop_kind == IOP_END then
             break;
@@ -27,18 +32,24 @@ end sub;
 sub process_subroutine()
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     current_namespace_id := subroutine.namespace_id;
-    print("\n***** subroutine: 0x");
-    print_hex_i16(current_subroutine_id);
-    print_char(' ');
-    show_name_of(current_subroutine_id);
-    print_newline();
+
+    $if DEBUG
+        print("\n***** subroutine: 0x");
+        print_hex_i16(current_subroutine_id);
+        print_char(' ');
+        show_name_of(current_subroutine_id);
+        print_newline();
+    $endif
 
     init_queue();
     arch_init_codegen();
 
     loop
         fill_queue();
-        print_queue(); print_newline();
+        $if DEBUG
+            print_queue();
+            print_newline();
+        $endif
 
         if queue0.iop_kind == IOP_END then
             break;
