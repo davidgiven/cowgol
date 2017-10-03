@@ -126,6 +126,14 @@ build /tmp/cowgol-obj/tests/cpu/compilation-options.6502.exe : cowgol_program sr
 build /tmp/cowgol-obj/tests/cpu/compilation-options.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/compilation-options.6502.exe | tests/cpu/compilation-options.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/compilation-options.good
   badfile=tests/cpu/compilation-options.bad
+build /tmp/cowgol-obj/tests/cpu/divrem-16bit-u.6502.exe : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-16bit-u.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/divrem-16bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/divrem-16bit-u.6502.exe | tests/cpu/divrem-16bit-u.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/divrem-16bit-u.good
+  badfile=tests/cpu/divrem-16bit-u.bad
+build /tmp/cowgol-obj/tests/cpu/divrem-32bit-u.6502.exe : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-32bit-u.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/divrem-32bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/divrem-32bit-u.6502.exe | tests/cpu/divrem-32bit-u.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/divrem-32bit-u.good
+  badfile=tests/cpu/divrem-32bit-u.bad
 build /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.6502.exe : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-8bit-u.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
 build /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/divrem-8bit-u.6502.exe | tests/cpu/divrem-8bit-u.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/divrem-8bit-u.good

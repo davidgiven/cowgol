@@ -44,12 +44,3 @@ sub arch_gen_copy_word(iop: [BEIop])
         halt();
     end if;
 end sub;
-
-sub arch_gen_mul_word(iop: [BEIop])
-    do_3op_helper(iop);
-
-    write_byte(0x20); # JSR abs
-    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MUL16), 0);
-
-    flush_cached_values(REG_MASK);
-end sub;

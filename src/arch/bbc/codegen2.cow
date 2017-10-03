@@ -176,14 +176,34 @@ end sub;
 sub arch_gen_divu(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_divu_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_simple_wide(iop, TOKEN_DIVU16);
+    elseif iop.width == 4 then
+        arch_gen_simple_wide(iop, TOKEN_DIVU32);
     else
         cant_do_3op(iop, "divu");
+    end if;
+end sub;
+
+sub arch_gen_divs(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_divu_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_simple_wide(iop, TOKEN_DIVS16);
+    elseif iop.width == 4 then
+        arch_gen_simple_wide(iop, TOKEN_DIVS32);
+    else
+        cant_do_3op(iop, "divs");
     end if;
 end sub;
 
 sub arch_gen_modu(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_modu_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_simple_wide(iop, TOKEN_MODU16);
+    elseif iop.width == 4 then
+        arch_gen_simple_wide(iop, TOKEN_MODU32);
     else
         cant_do_3op(iop, "modu");
     end if;
@@ -191,9 +211,11 @@ end sub;
 
 sub arch_gen_mul(iop: [BEIop])
     if iop.width == 2 then
-        arch_gen_mul_word(iop);
+        arch_gen_simple_wide(iop, TOKEN_MUL16);
+    elseif iop.width == 4 then
+        arch_gen_simple_wide(iop, TOKEN_MUL32);
     else
-        arch_gen_mul_wide(iop);
+        cant_do_3op(iop, "mul");
     end if;
 end sub;
 

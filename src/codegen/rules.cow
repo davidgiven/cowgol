@@ -43,6 +43,8 @@ sub global_rules(): (matched: uint8)
             arch_gen_lsr(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_ASR then
             arch_gen_asr(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_DIVS then
+            arch_gen_divs(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_DIVU then
             arch_gen_divu(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_MODU then

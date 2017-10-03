@@ -94,6 +94,18 @@ sub arch_classify_iop(iop: [BEIop])
         elseif iopkind == IOP_BE_MUL then
             needs_runtime_subroutine(TOKEN_MUL16);
             needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_DIVU then
+            needs_runtime_subroutine(TOKEN_DIVU16);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_DIVS then
+            needs_runtime_subroutine(TOKEN_DIVS16);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_MODU then
+            needs_runtime_subroutine(TOKEN_MODU16);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_MODS then
+            needs_runtime_subroutine(TOKEN_MODS16);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
         end if;
     elseif width == 4 then
         needs_runtime_subroutine(TOKEN_MODEADJUST);
@@ -108,6 +120,18 @@ sub arch_classify_iop(iop: [BEIop])
             needs_runtime_subroutine(TOKEN_LOAD4BYTES);
         elseif iopkind == IOP_BE_MUL then
             needs_runtime_subroutine(TOKEN_MUL32);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_DIVU then
+            needs_runtime_subroutine(TOKEN_DIVU32);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_DIVS then
+            needs_runtime_subroutine(TOKEN_DIVS32);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_MODU then
+            needs_runtime_subroutine(TOKEN_MODU32);
+            needs_runtime_subroutine(TOKEN_LOAD6BYTES);
+        elseif iopkind == IOP_BE_MODS then
+            needs_runtime_subroutine(TOKEN_MODS32);
             needs_runtime_subroutine(TOKEN_LOAD6BYTES);
         end if;
     end if;
