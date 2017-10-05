@@ -1,8 +1,9 @@
-var four: uint32 := 4;
-var three: uint32 := 3;
-var two: uint32 := 2;
-var one: uint32 := 1;
-var zero: uint32 := 0;
+var big: uint16 := 0x1234;
+var four: uint16 := 4;
+var three: uint16 := 3;
+var two: uint16 := 2;
+var one: uint16 := 1;
+var zero: uint16 := 0;
 
 sub yes() print(": yes\r"); end sub;
 sub no() print(": no\r"); end sub;
@@ -18,4 +19,7 @@ print("three%two==one"); if three%two==one then yes(); else no(); end if;
 print("two%two==zero");  if two%two==zero  then yes(); else no(); end if;
 print("one%two==one");   if one%two==one   then yes(); else no(); end if;
 print("zero%two==zero"); if zero%two==zero then yes(); else no(); end if;
+
+print("big/three==bigdivthree"); if big/three==(0x1234/3) then yes(); else no(); end if;
+print("big%three==bigmodthree"); if big%three==(0x1234%3) then yes(); else no(); end if;
 

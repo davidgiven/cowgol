@@ -85,7 +85,8 @@ sub exit(status: uint8)
 end sub;
 
 var __params: uint16[3] @segment(0x81);
-var __temp: uint8[8] @segment(0x81);
+var __temp1: uint32 @segment(0x81);
+var __temp2: uint32 @segment(0x81);
 
 # Copies A parameters from the code immediately following this call into __params.
 # Note: X is left at 0, for use by __modeadjust if necessary.
@@ -370,7 +371,7 @@ sub __mul()
     @bytes 0xB1, >&__params+4;   # LDA (__params+4), Y
     @bytes 0x95, >&right;        # STA right, X
     @bytes 0xA9, 0x00;           # LDA #0
-    @bytes 0x95, >&__temp+4;     # STA dest+4, X --- only need to clear the top half
+    @bytes 0x95, >&__temp2;      # STA __temp2, X --- only need to clear the top half
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xEF;           # BPL loop
 
@@ -391,9 +392,9 @@ shift:
     @bytes 0xA4, >&widthm1;      # LDY widthm1
     @bytes 0x18;                 # CLC
     # loop:
-    @bytes 0xB5, >&__temp+4;     # LDA __temp+4, X
+    @bytes 0xB5, >&__temp2;      # LDA __temp2, X
     @bytes 0x75, >&left;         # ADC left, X
-    @bytes 0x95, >&__temp+4;     # STA __temp+4, X
+    @bytes 0x95, >&__temp2;      # STA __temp2, X
     @bytes 0xE8;                 # INX
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF6;           # BPL loop
@@ -402,13 +403,13 @@ shift:
     # Now rotate the result right. (In two halves because of the split result.)
     @bytes 0xA6, >&widthm1;      # LDX widthm1
     # loop:
-    @bytes 0x76, >&__temp+4;     # ROR __temp+4, X
+    @bytes 0x76, >&__temp2;      # ROR __temp2, X
     @bytes 0xCA;                 # DEX
     @bytes 0x10, 0xFB;           # BPL loop
 
     @bytes 0xA6, >&widthm1;      # LDX widthm1
     # loop:
-    @bytes 0x76, >&__temp;       # ROR __temp, X
+    @bytes 0x76, >&__temp1;      # ROR __temp1, X
     @bytes 0xCA;                 # DEX
     @bytes 0x10, 0xFB;           # BPL loop
 
@@ -422,7 +423,7 @@ shift:
     # loop:
     @bytes 0x8A;                 # TXA
     @bytes 0xA8;                 # TAY
-    @bytes 0xB5, >&__temp;       # LDA __temp, X
+    @bytes 0xB5, >&__temp1;      # LDA __temp1, X
     @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0xCA;                 # DEX
     @bytes 0x10, 0xF7;           # BPL loop
@@ -438,12 +439,13 @@ sub __mul32()
     @bytes 0x4C, &__mul;         # JMP __mul
 end sub;
 
+# Performs dividend / divisor = quotient:remainder.
 # On entry, A=word size
-# On exit, __temp is dividend:remainder, packed according to word size
+# On exit, __temp1 is dividend, __temp2 is remainder
 sub __div()
     var widthm1: uint8 @segment(0x81);
     var bitcount: uint8 @segment(0x81);
-    var scrap: uint8[4] @segment(0x80); # yes, actually in data
+    var scrap: uint8[4] @segment(0x80); # not in zero page
 
     @bytes 0xA8;                 # TAY
     @bytes 0x88;                 # DEY
@@ -453,14 +455,14 @@ sub __div()
     @bytes 0x0A;                 # ASL A
     @bytes 0x85, >&bitcount;     # STA bitcount
 
-    # Copy right into 'dividend'; clear remainder.
+    # Copy leftright into 'dividend'; clear remainder.
 
 # again:
-    @bytes 0xB1, >&__params+4;   # LDA (__params+4), Y -- right
+    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y -- left
     @bytes 0xAA;                 # TAX
-    @bytes 0x96, >&__temp+0;     # STX __temp+0, Y
+    @bytes 0x96, >&__temp1;      # STX __temp1, Y
     @bytes 0xA2, 0x00;           # LDX #0
-    @bytes 0x96, >&__temp+4;     # STX __temp+4, Y
+    @bytes 0x96, >&__temp2;      # STX __temp2, Y
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF4;           # BPL again
 
@@ -471,7 +473,7 @@ sub __div()
     @bytes 0xA4, >&widthm1;      # LDY widthm1
     @bytes 0x18;                 # CLC
 # again:
-    @bytes 0x36, >&__temp+0;     # ROL __temp+0, X
+    @bytes 0x36, >&__temp1;      # ROL __temp1, X
     @bytes 0xE8;                 # INX
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xFA;           # BPL again
@@ -481,7 +483,7 @@ sub __div()
     @bytes 0xA2, 0x00;           # LDX #0
     @bytes 0xA4, >&widthm1;      # LDY widthm1
 # again:
-    @bytes 0x36, >&__temp+4;     # ROL __temp+4, X
+    @bytes 0x36, >&__temp2;      # ROL __temp2, X
     @bytes 0xE8;                 # INX
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xFA;           # BPL again
@@ -493,8 +495,8 @@ sub __div()
     @bytes 0xA0, 0x00;           # LDY #0
     @bytes 0x38;                 # SEC
 # again:
-    @bytes 0xB9, &__temp+4;      # LDA __temp+4, Y
-    @bytes 0xF1, >&__params+2;   # SBC (__params+2), Y
+    @bytes 0xB9, &__temp2;       # LDA __temp2, Y
+    @bytes 0xF1, >&__params+4;   # SBC (__params+4), Y
     @bytes 0x99, &scrap;         # STA scrap, Y
     @bytes 0xC8;                 # INY
     @bytes 0xCA;                 # DEX
@@ -509,13 +511,13 @@ sub __div()
     @bytes 0xA4, >&widthm1;      # LDY widthm1
 # again:
     @bytes 0xBE, &scrap;         # LDX scrap, Y -- absolute
-    @bytes 0x96, >&__temp+4;     # STX __temp+4, Y -- zero page
+    @bytes 0x96, >&__temp2;      # STX __temp2, Y -- zero page
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF8;           # BPL again
 
     # ...and increment the result, because this one fit.
 
-    @bytes 0xE6, >&__temp+0;     # INC __temp+0
+    @bytes 0xE6, >&__temp1+0;    # INC __temp1+0
 
 # skip:
     @bytes 0xC6, >&bitcount;     # DEC bitcount
@@ -524,7 +526,7 @@ end sub;
 
 sub __divu16()
     @bytes 0xA9, 0x02;           # LDA #2
-    @bytes 0x4C, &__div;         # JMP __div
+    @bytes 0x20, &__div;         # JSR __div
 
     # Copy dividend to result.
 
@@ -542,7 +544,7 @@ end sub;
 
 sub __copy_div_result()
 # again:
-    @bytes 0xB9, &__temp+0;      # LDA __temp+0, Y
+    @bytes 0xB9, &__temp1;       # LDA __temp1, Y
     @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF8;           # BPL again
@@ -550,7 +552,7 @@ end sub;
 
 sub __modu16()
     @bytes 0xA9, 0x02;           # LDA #2
-    @bytes 0x4C, &__div;         # JMP __div
+    @bytes 0x20, &__div;         # JSR __div
 
     # Copy dividend to result.
 
@@ -568,7 +570,7 @@ end sub;
 
 sub __copy_mod_result()
 # again:
-    @bytes 0xB9, &__temp+4;      # LDA __temp+4, Y
+    @bytes 0xB9, &__temp2;       # LDA __temp2, Y
     @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF8;           # BPL again
