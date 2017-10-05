@@ -6,25 +6,27 @@ end record;
 var values: CachedValue[16];
 var locked_registers: uint8;
 
-sub print_cache()
-    var i: uint8 := 0;
-    while i < values@size loop
-        var value: [CachedValue] := &values[i];
-        if value.locations != 0 then
-            print("cache slot ");
-            print_i8(i);
-            print(": ");
-            print_ea(&value.ea);
-            if (value.locations & PRECIOUS) != 0 then
-                print(" precious");
-            end if;
-            print(" in 0x");
-            print_hex_i8(value.locations & REG_MASK);
-            print_newline();
-        end if;
-        i := i + 1;
-    end loop;
-end sub;
+$if DEBUG
+	sub print_cache()
+		var i: uint8 := 0;
+		while i < values@size loop
+			var value: [CachedValue] := &values[i];
+			if value.locations != 0 then
+				print("cache slot ");
+				print_i8(i);
+				print(": ");
+				print_ea(&value.ea);
+				if (value.locations & PRECIOUS) != 0 then
+					print(" precious");
+				end if;
+				print(" in 0x");
+				print_hex_i8(value.locations & REG_MASK);
+				print_newline();
+			end if;
+			i := i + 1;
+		end loop;
+	end sub;
+$endif
 
 sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
@@ -32,11 +34,13 @@ end sub;
 
 sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     location := find_first_bit(location);
-    print("* writing back 0x");
-    print_hex_i8(location);
-    print(" to precious value ");
-    print_ea(ea);
-    print_newline();
+	$if DEBUG
+		print("* writing back 0x");
+		print_hex_i8(location);
+		print(" to precious value ");
+		print_ea(ea);
+		print_newline();
+	$endif
 
     if ea.flags == EA_VALUE then
         save_objval(location, ea);
@@ -65,9 +69,11 @@ sub write_back_precious_values(mask: uint8)
 end sub;
 
 sub flush_cached_values(mask: uint8)
-    print("* flushing cached values in 0x");
-    print_hex_i8(mask);
-    print_newline();
+	$if DEBUG
+		print("* flushing cached values in 0x");
+		print_hex_i8(mask);
+		print_newline();
+	$endif
 
     write_back_precious_values(mask);
 
@@ -94,7 +100,9 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
     if mask == 0 then
         mask := candidates;
         if mask == 0 then
-            print_cache();
+			$if DEBUG
+				print_cache();
+			$endif
             print("locked register bitmask: 0x");
             print_hex_i8(locked_registers);
             print_newline();
@@ -105,9 +113,12 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
     mask := find_first_bit(mask);
     flush_cached_values(mask);
     locked_registers := locked_registers | mask;
-    print("* allocating 0x");
-    print_hex_i8(mask);
-    print_newline();
+
+	$if DEBUG
+		print("* allocating 0x");
+		print_hex_i8(mask);
+		print_newline();
+	$endif
 end sub;
 
 sub free_reg(mask: uint8)
@@ -125,19 +136,26 @@ sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations:
         locations := value.locations & candidates & REG_MASK;
         if (locations != 0) and (is_same_ea(&value.ea, ea) != 0) then
             locations := value.locations & REG_MASK;
-            print("* found in 0x");
-            print_hex_i8(locations);
-            print(" value ");
-            print_ea(ea);
-            print_newline();
+
+			$if DEBUG
+				print("* found in 0x");
+				print_hex_i8(locations);
+				print(" value ");
+				print_ea(ea);
+				print_newline();
+			$endif
+
             return;
         end if;
         index := index + 1;
     end loop;
     locations := 0;
-    print("* did not find value ");
-    print_ea(ea);
-    print(" in any register\n");
+
+	$if DEBUG
+		print("* did not find value ");
+		print_ea(ea);
+		print(" in any register\n");
+	$endif
 end sub;
 
 sub find_reg_with_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
@@ -151,13 +169,15 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
     var i: uint8;
     var value: [CachedValue];
 
-    sub msg()
-        print("* remembering that ");
-        print_ea(ea);
-        print(" is also in 0x");
-        print_hex_i8(locations);
-        print_newline();
-    end sub;
+	$if DEBUG
+		sub msg()
+			print("* remembering that ");
+			print_ea(ea);
+			print(" is also in 0x");
+			print_hex_i8(locations);
+			print_newline();
+		end sub;
+	$endif
 
     # Look for a cache slot already containing this value.
     i := 0;
@@ -166,7 +186,11 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
 
         if is_same_ea(&value.ea, ea) != 0 then
             value.locations := value.locations | locations;
-            msg();
+
+			$if DEBUG
+				msg();
+			$endif
+
             return;
         end if;
         i := i + 1;
@@ -180,7 +204,11 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
         if value.locations == 0 then
             value.locations := locations;
             copy_ea(ea, &value.ea);
-            msg();
+
+			$if DEBUG
+				msg();
+			$endif
+
             return;
         end if;
         i := i + 1;
@@ -191,11 +219,13 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
 end sub;
 
 sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    print("* hunting for ");
-    print_ea(ea);
-    print(" in 0x");
-    print_hex_i8(candidates);
-    print_newline();
+	$if DEBUG
+		print("* hunting for ");
+		print_ea(ea);
+		print(" in 0x");
+		print_hex_i8(candidates);
+		print_newline();
+	$endif
 
     location := find_reg_with_value(ea, candidates);
     if location != 0 then
@@ -218,13 +248,15 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
         return;
     end if;
 
-    print("* moving value ");
-    print_ea(ea);
-    print(" from 0x");
-    print_hex_i8(oldlocation);
-    print(" to 0x");
-    print_hex_i8(location);
-    print_newline();
+	$if DEBUG
+		print("* moving value ");
+		print_ea(ea);
+		print(" from 0x");
+		print_hex_i8(oldlocation);
+		print(" to 0x");
+		print_hex_i8(location);
+		print_newline();
+	$endif
 
     t_reg_reg(oldlocation, location);
     value_is_cached_in_reg(ea, location);
@@ -237,11 +269,14 @@ sub value_is_precious(ea: [EffectiveAddress])
         if value.locations != 0 then
             if is_same_ea(ea, &value.ea) != 0 then
                 if (value.locations & PRECIOUS) == 0 then
-                    print("* remembering that value ");
-                    print_ea(ea);
-                    print(" is precious in 0x");
-                    print_hex_i8(value.locations);
-                    print_newline();
+					$if DEBUG
+						print("* remembering that value ");
+						print_ea(ea);
+						print(" is precious in 0x");
+						print_hex_i8(value.locations);
+						print_newline();
+					$endif
+
                     value.locations := value.locations | PRECIOUS;
                     return;
                 end if;
@@ -249,6 +284,7 @@ sub value_is_precious(ea: [EffectiveAddress])
         end if;
         i := i + 1;
     end loop;
+
     print("can't make precious, value ");
     print_ea(ea);
     print(" is not in the cache");
@@ -261,9 +297,12 @@ sub value_is_not_precious(ea: [EffectiveAddress])
         var value: [CachedValue] := &values[i];
         if (value.locations != 0) and (is_same_ea(ea, &value.ea) != 0) then
             if (value.locations & PRECIOUS) == 0 then
-                print("* value ");
-                print_ea(ea);
-                print(" is no longer precious\n");
+				$if DEBUG
+					print("* value ");
+					print_ea(ea);
+					print(" is no longer precious\n");
+				$endif
+
                 value.locations := value.locations ^ PRECIOUS;
                 return;
             end if;
@@ -274,14 +313,18 @@ end sub;
 
 # This value is about to be written to, so flush any references to it.
 sub value_is_changing(oldvalue: [EffectiveAddress])
-    print("* flushing references to ");
-    print_ea(oldvalue);
-    print_newline();
+	$if DEBUG
+		print("* flushing references to ");
+		print_ea(oldvalue);
+		print_newline();
+	$endif
 
     var varoff_candidate: uint8;
     if (oldvalue.varoff_id == 0) and (get_value_of_number(oldvalue.numoff_id) == 0) then
         varoff_candidate := 1;
-        print("* (this might be used as a varoff)\n");
+		$if DEBUG
+			print("* (this might be used as a varoff)\n");
+		$endif
     else
         varoff_candidate := 0;
     end if;
@@ -292,9 +335,11 @@ sub value_is_changing(oldvalue: [EffectiveAddress])
         var locations: uint8 := value.locations;
 
         sub flush()
-            print("* value ");
-            print_ea(&value.ea);
-            print(" is no longer cached\n");
+			$if DEBUG
+				print("* value ");
+				print_ea(&value.ea);
+				print(" is no longer cached\n");
+			$endif
             value.locations := 0;
         end sub;
 
@@ -318,18 +363,22 @@ end sub;
 # case we don't bother.
 sub value_in_location_will_be_replaced_with(location: uint8,
         oldvalue: [EffectiveAddress], newvalue: [EffectiveAddress])
-    print("* location 0x");
-    print_hex_i8(location);
-    print(" is changing from ");
-    print_ea(oldvalue);
-    print(" to ");
-    print_ea(newvalue);
-    print_newline();
+	$if DEBUG
+		print("* location 0x");
+		print_hex_i8(location);
+		print(" is changing from ");
+		print_ea(oldvalue);
+		print(" to ");
+		print_ea(newvalue);
+		print_newline();
+	$endif
 
     if is_same_ea(oldvalue, newvalue) != 0 then
         # This means that the value is changing. Don't consider it to be precious any more
         # (because it's about to change).
-        print("* value is no longer precious\n");
+		$if DEBUG
+			print("* value is no longer precious\n");
+		$endif
 
         value_is_not_precious(oldvalue);
         value_is_changing(oldvalue);
@@ -341,18 +390,22 @@ sub value_in_location_will_be_replaced_with(location: uint8,
         var locations: uint8 := value.locations;
         if locations == (location|PRECIOUS) then
             # This location contains the only copy of a precious value, so write it back.
-            print("* writing back only copy of precious value ");
-            print_ea(&value.ea);
-            print_newline();
+			$if DEBUG
+				print("* writing back only copy of precious value ");
+				print_ea(&value.ea);
+				print_newline();
+			$endif
 
             write_back_precious_value(location, &value.ea);
             value.locations := 0;
         elseif (locations&location) != 0 then
-            print("* non-precious value ");
-            print_ea(&value.ea);
-            print(" is no longer cached in 0x");
-            print_hex_i8(location);
-            print_newline();
+			$if DEBUG
+				print("* non-precious value ");
+				print_ea(&value.ea);
+				print(" is no longer cached in 0x");
+				print_hex_i8(location);
+				print_newline();
+			$endif
 
             value.locations := locations^location;
         end if;
@@ -395,9 +448,11 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
     end if;
     indexea.type_id := get_type_of_thing(ea.obj_id);
 
-    print("* loading index value ");
-    print_ea(&indexea);
-    print_newline();
+	$if DEBUG
+		print("* loading index value ");
+		print_ea(&indexea);
+		print_newline();
+	$endif
 
     location := find_or_load_objval(&indexea, candidates);
 end sub;
@@ -576,9 +631,12 @@ end sub;
 
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     if (ea.varoff_id != 0) or (ea.flags == EA_DEREF) then
-        print("* value ");
-        print_ea(ea);
-        print(" can't be made precious, saving now\n");
+		$if DEBUG
+			print("* value ");
+			print_ea(ea);
+			print(" can't be made precious, saving now\n");
+		$endif
+
         save_value(location, ea);
 
         if ea.flags != EA_DEREF then

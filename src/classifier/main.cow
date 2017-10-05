@@ -225,10 +225,6 @@ sub assign_space_for_all_variables()
             break;
         end if;
 
-        print("assigning ");
-        show_name_of(subroutine_id);
-        print_newline();
-
         assign_space_for_variables(subroutine_id);
     end loop;
 end sub;
