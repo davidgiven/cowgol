@@ -441,7 +441,7 @@ end sub;
 
 # Performs unsigned dividend / divisor = quotient:remainder.
 # On entry, A=word size
-# On exit, __temp1 is dividend, __temp2 is remainder
+# On exit, __temp1 is quotient, __temp2 is remainder
 sub __divu()
     var widthm1: uint8 @segment(0x81);
     var bitcount: uint8 @segment(0x81);
@@ -455,7 +455,7 @@ sub __divu()
     @bytes 0x0A;                 # ASL A
     @bytes 0x85, >&bitcount;     # STA bitcount
 
-    # Copy leftright into 'dividend'; clear remainder.
+    # Copy left into quotient; clear remainder.
 
 # again:
     @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y -- left
@@ -529,7 +529,8 @@ end sub;
 # On exit, __temp1 is dividend, __temp2 is remainder
 sub __divs()
 	var widthm1: uint8 @segment(0x81);
-	var outputsign: uint8 @segment(0x81);
+	var quotientsign: uint8 @segment(0x81);
+    var remaindersign: uint8 @segment(0x81);
 	var newleft: uint32;
 	var newright: uint32;
 
@@ -539,8 +540,9 @@ sub __divs()
 	@bytes 0x84, >&widthm1;      # STY widthm1
 
 	@bytes 0xB1, >&__params+2;   # LDA (__params+2), Y -- left
+	@bytes 0x85, >&remaindersign; # STA remaindersign
 	@bytes 0x51, >&__params+4;   # EOR (__params+4), Y -- right
-	@bytes 0x85, >&outputsign;   # STA outputsign
+	@bytes 0x85, >&quotientsign; # STA quotientsign
 
 	# Ensure that left is positive.
 
@@ -595,7 +597,7 @@ sub __divs()
 
     # If we need the quotient to be negative, negate it.
 
-    @bytes 0xA5, >&outputsign;   # LDA >outputsign
+    @bytes 0xA5, >&quotientsign; # LDA >quotientsign
     @bytes 0x10, 0x0F;           # BPL dontnegatequotient
 
     @bytes 0xA4, >&widthm1;      # LDY widthm1
@@ -608,6 +610,24 @@ sub __divs()
     @bytes 0xE8;                 # INX
     @bytes 0x88;                 # DEY
 	@bytes 0x10, 0xF6;           # BPL again
+# dontnegatequotient:
+
+    # Likewise for the remainder.
+
+    @bytes 0xA5, >&remaindersign; # LDA >remaindersign
+    @bytes 0x10, 0x0F;           # BPL dontnegateremainder
+
+    @bytes 0xA4, >&widthm1;      # LDY widthm1
+    @bytes 0xA2, 0x00;           # LDX #0
+    @bytes 0x38;                 # SEC
+# again:
+    @bytes 0xA9, 0x00;           # LDA #0
+    @bytes 0xF5, >&__temp2;      # SBC __temp2, X
+    @bytes 0x95, >&__temp2;      # STA __temp2, X
+    @bytes 0xE8;                 # INX
+    @bytes 0x88;                 # DEY
+	@bytes 0x10, 0xF6;           # BPL again
+# dontnegateremainder:
 
 end sub;
 
@@ -637,6 +657,14 @@ sub __copy_div_result()
     @bytes 0x10, 0xF8;           # BPL again
 end sub;
 
+sub __divs16()
+    @bytes 0xA9, 0x02;           # LDA #2
+    @bytes 0x20, &__divs;        # JSR __divs
+
+    @bytes 0xA0, 0x01;           # LDY #1 -- width minus 1
+    @bytes 0x4C, &__copy_div_result; # JMP __copy_div_result
+end sub;
+
 sub __divs32()
     @bytes 0xA9, 0x04;           # LDA #4
     @bytes 0x20, &__divs;        # JSR __divs
@@ -660,6 +688,14 @@ sub __modu32()
     @bytes 0x20, &__divu;        # JSR __divu
 
     @bytes 0xA0, 0x03;           # LDY #3 -- width minus 1
+    @bytes 0x4C, &__copy_mod_result; # JMP __copy_mod_result
+end sub;
+
+sub __mods16()
+    @bytes 0xA9, 0x02;           # LDA #2
+    @bytes 0x20, &__divs;        # JSR __divs
+
+    @bytes 0xA0, 0x01;           # LDY #1 -- width minus 1
     @bytes 0x4C, &__copy_mod_result; # JMP __copy_mod_result
 end sub;
 
