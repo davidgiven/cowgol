@@ -215,6 +215,16 @@ sub arch_gen_modu(iop: [BEIop])
     end if;
 end sub;
 
+sub arch_gen_mods(iop: [BEIop])
+    if iop.width == 2 then
+        arch_gen_simple_wide(iop, TOKEN_MODS16);
+    elseif iop.width == 4 then
+        arch_gen_simple_wide(iop, TOKEN_MODS32);
+    else
+        cant_do_3op(iop, "mods");
+    end if;
+end sub;
+
 sub arch_gen_mul(iop: [BEIop])
     if iop.width == 2 then
         arch_gen_simple_wide(iop, TOKEN_MUL16);

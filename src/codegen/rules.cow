@@ -49,6 +49,8 @@ sub global_rules(): (matched: uint8)
             arch_gen_divu(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_MODU then
             arch_gen_modu(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_MODS then
+            arch_gen_mods(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_MUL then
             arch_gen_mul(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_SEXT then

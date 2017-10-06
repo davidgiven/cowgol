@@ -439,10 +439,10 @@ sub __mul32()
     @bytes 0x4C, &__mul;         # JMP __mul
 end sub;
 
-# Performs dividend / divisor = quotient:remainder.
+# Performs unsigned dividend / divisor = quotient:remainder.
 # On entry, A=word size
 # On exit, __temp1 is dividend, __temp2 is remainder
-sub __div()
+sub __divu()
     var widthm1: uint8 @segment(0x81);
     var bitcount: uint8 @segment(0x81);
     var scrap: uint8[4] @segment(0x80); # not in zero page
@@ -524,9 +524,57 @@ sub __div()
     @bytes 0xD0, 0xC8;           # BNE mainloop
 end sub;
 
+# Performs unsigned dividend / divisor = quotient:remainder.
+# On entry, A=word size
+# On exit, __temp1 is dividend, __temp2 is remainder
+sub __divs()
+	var widthm1: uint8 @segment(0x81);
+	var outputsign: uint8 @segment(0x81);
+	var newleft: uint32;
+	var newright: uint32;
+
+    @bytes 0x48;                 # PHA
+    @bytes 0xA8;                 # TAY
+	@bytes 0x88;                 # DEY
+	@bytes 0x84;                 # STY widthm1
+
+	@bytes 0xB1, >&__params+2;   # LDA (__params+2), Y -- left
+	@bytes 0x51, >&__params+4;   # EOR (__params+2), Y -- right
+	@bytes 0x85, >&outputsign;   # STA outputsign
+
+	# Ensure that left is positive.
+
+	@bytes 0xB1, >&__params+2;   # LDA (__params+2), Y -- left
+	@bytes 0x10, 0x18;           # BPL notneg
+
+	@bytes 0xA6, >&widthm1;      # LDX widthm1
+    @bytes 0xA0, 0x00;           # LDY #0
+    @bytes 0x38;                 # SEC
+# again:
+	@bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
+	@bytes 0xE9, 0x00;           # SBC #0
+	@bytes 0x99, &newleft;       # STA newleft, Y
+	@bytes 0xC8;                 # INY
+	@bytes 0xCA;                 # DEX
+	@bytes 0x10, 0xF5;           # BPL again
+	
+	# Y is widthm1 again now
+	@bytes 0xA9, >&newleft;      # LDA #>newleft
+	@bytes 0x85, >&__params+2;   # STA __params+2
+	@bytes 0xA9, <&newleft;      # LDA #<newleft
+	@bytes 0x85, >&__params+3;   # STA __params+3
+	
+	#@bytes 0xB1, >&__params+4;   # LDA (__params+2), Y -- right
+	#@bytes 0x10, notneg;         # BPL notneg
+
+    @bytes 0x68;                 # PLA
+
+
+end sub;
+
 sub __divu16()
     @bytes 0xA9, 0x02;           # LDA #2
-    @bytes 0x20, &__div;         # JSR __div
+    @bytes 0x20, &__divu;        # JSR __divu
 
     # Copy dividend to result.
 
@@ -536,7 +584,7 @@ end sub;
 
 sub __divu32()
     @bytes 0xA9, 0x04;           # LDA #4
-    @bytes 0x20, &__div;         # JSR __div
+    @bytes 0x20, &__divu;        # JSR __divu
 
     @bytes 0xA0, 0x03;           # LDY #3 -- width minus 1
     @bytes 0x4C, &__copy_div_result; # JMP __copy_div_result
@@ -550,9 +598,17 @@ sub __copy_div_result()
     @bytes 0x10, 0xF8;           # BPL again
 end sub;
 
+sub __divs32()
+    @bytes 0xA9, 0x04;           # LDA #4
+    @bytes 0x20, &__divs;        # JSR __divs
+
+    @bytes 0xA0, 0x03;           # LDY #3 -- width minus 1
+    @bytes 0x4C, &__copy_div_result; # JMP __copy_div_result
+end sub;
+
 sub __modu16()
     @bytes 0xA9, 0x02;           # LDA #2
-    @bytes 0x20, &__div;         # JSR __div
+    @bytes 0x20, &__divu;        # JSR __divu
 
     # Copy dividend to result.
 
@@ -562,7 +618,15 @@ end sub;
 
 sub __modu32()
     @bytes 0xA9, 0x04;           # LDA #4
-    @bytes 0x20, &__div;         # JSR __div
+    @bytes 0x20, &__divu;        # JSR __divu
+
+    @bytes 0xA0, 0x03;           # LDY #3 -- width minus 1
+    @bytes 0x4C, &__copy_mod_result; # JMP __copy_mod_result
+end sub;
+
+sub __mods32()
+    @bytes 0xA9, 0x04;           # LDA #4
+    @bytes 0x20, &__divs;        # JSR __divs
 
     @bytes 0xA0, 0x03;           # LDY #3 -- width minus 1
     @bytes 0x4C, &__copy_mod_result; # JMP __copy_mod_result
