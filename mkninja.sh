@@ -121,7 +121,7 @@ both_cowgol_programs tokeniser \
     $OBJDIR/token_maker.cow \
     src/tokeniser/main.cow \
 
-bootstrapped_cowgol_program bin/parser \
+both_cowgol_programs parser \
     src/string_lib.cow \
     src/ctype_lib.cow \
     src/numbers_lib.cow \
