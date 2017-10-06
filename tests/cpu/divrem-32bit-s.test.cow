@@ -15,4 +15,3 @@ print("7%3=1");    if seven%three == 1    then yes(); else no(); end if;
 print("-7%3=-1");  if mseven%three == -1  then yes(); else no(); end if;
 print("7%-3=1");   if seven%mthree == 1   then yes(); else no(); end if;
 print("-7%-3=-1"); if mseven%mthree == -1 then yes(); else no(); end if;
-

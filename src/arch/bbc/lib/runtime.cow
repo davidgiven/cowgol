@@ -536,39 +536,78 @@ sub __divs()
     @bytes 0x48;                 # PHA
     @bytes 0xA8;                 # TAY
 	@bytes 0x88;                 # DEY
-	@bytes 0x84;                 # STY widthm1
+	@bytes 0x84, >&widthm1;      # STY widthm1
 
 	@bytes 0xB1, >&__params+2;   # LDA (__params+2), Y -- left
-	@bytes 0x51, >&__params+4;   # EOR (__params+2), Y -- right
+	@bytes 0x51, >&__params+4;   # EOR (__params+4), Y -- right
 	@bytes 0x85, >&outputsign;   # STA outputsign
 
 	# Ensure that left is positive.
 
 	@bytes 0xB1, >&__params+2;   # LDA (__params+2), Y -- left
-	@bytes 0x10, 0x18;           # BPL notneg
+	@bytes 0x10, 0x19;           # BPL notneg
 
 	@bytes 0xA6, >&widthm1;      # LDX widthm1
     @bytes 0xA0, 0x00;           # LDY #0
     @bytes 0x38;                 # SEC
 # again:
-	@bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
-	@bytes 0xE9, 0x00;           # SBC #0
+    @bytes 0xA9, 0x00;           # LDA #0
+    @bytes 0xF1, >&__params+2;   # SBC (__params+2), Y
 	@bytes 0x99, &newleft;       # STA newleft, Y
 	@bytes 0xC8;                 # INY
 	@bytes 0xCA;                 # DEX
 	@bytes 0x10, 0xF5;           # BPL again
-	
-	# Y is widthm1 again now
+
+	# Y is widthm1+1 now, so adjust
+    @bytes 0x88;                 # DEY
+
 	@bytes 0xA9, >&newleft;      # LDA #>newleft
 	@bytes 0x85, >&__params+2;   # STA __params+2
 	@bytes 0xA9, <&newleft;      # LDA #<newleft
 	@bytes 0x85, >&__params+3;   # STA __params+3
-	
-	#@bytes 0xB1, >&__params+4;   # LDA (__params+2), Y -- right
-	#@bytes 0x10, notneg;         # BPL notneg
+
+    # Ensure that right is positive.
+
+	@bytes 0xB1, >&__params+4;   # LDA (__params+4), Y -- right
+	@bytes 0x10, 0x19;           # BPL notneg
+
+	@bytes 0xA6, >&widthm1;      # LDX widthm1
+    @bytes 0xA0, 0x00;           # LDY #0
+    @bytes 0x38;                 # SEC
+# again:
+    @bytes 0xA9, 0x00;           # LDA #0
+    @bytes 0xF1, >&__params+4;   # SBC (__params+4), Y
+	@bytes 0x99, &newright;      # STA newright, Y
+    @bytes 0xE8;                 # INX
+    @bytes 0x88;                 # DEY
+	@bytes 0x10, 0xF5;           # BPL again
+
+	# Y is widthm1+1 now, so adjust
+    @bytes 0x88;                 # DEY
+
+	@bytes 0xA9, >&newright;     # LDA #>newright
+	@bytes 0x85, >&__params+4;   # STA __params+4
+	@bytes 0xA9, <&newright;     # LDA #<newright
+	@bytes 0x85, >&__params+5;   # STA __params+5
 
     @bytes 0x68;                 # PLA
+    @bytes 0x20, &__divu;        # JSR __divu
 
+    # If we need the quotient to be negative, negate it.
+
+    @bytes 0xA5, >&outputsign;   # LDA >outputsign
+    @bytes 0x10, 0x0F;           # BPL dontnegatequotient
+
+    @bytes 0xA4, >&widthm1;      # LDY widthm1
+    @bytes 0xA2, 0x00;           # LDX #0
+    @bytes 0x38;                 # SEC
+# again:
+    @bytes 0xA9, 0x00;           # LDA #0
+    @bytes 0xF5, >&__temp1;      # SBC __temp1, X
+    @bytes 0x95, >&__temp1;      # STA __temp1, X
+    @bytes 0xE8;                 # INX
+    @bytes 0x88;                 # DEY
+	@bytes 0x10, 0xF6;           # BPL again
 
 end sub;
 
