@@ -141,7 +141,7 @@ both_cowgol_programs parser \
     src/parser/expression.cow \
     src/parser/main.cow
 
-bootstrapped_cowgol_program bin/blockifier \
+both_cowgol_programs blockifier \
     src/string_lib.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \

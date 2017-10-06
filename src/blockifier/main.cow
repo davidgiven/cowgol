@@ -3,11 +3,11 @@ const REAL_LABEL := 0xffff;
 
 sub pass1()
     sub do_label(iop: [LabelIop])
-        labels[iop.label] := iop.label;
+        labels[iop.label as int16] := iop.label;
     end sub;
 
     sub do_clonelabel(iop: [CloneLabelIop])
-        labels[iop.src_label] := iop.dest_label;
+        labels[iop.src_label as int16] := iop.dest_label;
     end sub;
 
     loop
@@ -27,7 +27,7 @@ end sub;
 sub pass2()
     sub lookup_label(labelin: uint16): (labelout: uint16)
         loop
-            labelout := labels[labelin];
+            labelout := labels[labelin as int16];
             if labelout == labelin then
                 return;
             end if;

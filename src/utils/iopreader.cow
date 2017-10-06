@@ -1,4 +1,4 @@
-var iop_in_fd: uint8;
+var iop_in_fd: int8;
 var iop_buffer: uint8[256];
 var current_filename_id: uint16;
 var current_linenumber: uint16;
@@ -17,7 +17,7 @@ end sub;
 sub read_iop(): (iop: [Iop])
     loop
         file_getblock(iop_in_fd, &iop_buffer[0] as [int8], 1);
-        file_getblock(iop_in_fd, &iop_buffer[1] as [int8], iop_buffer[0] - 1);
+        file_getblock(iop_in_fd, &iop_buffer[1] as [int8], (iop_buffer[0] - 1) as uint16);
         iop := &iop_buffer[0] as [Iop];
 
         if iop.iop_kind == IOP_LINENUMBER then

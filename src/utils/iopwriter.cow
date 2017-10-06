@@ -1,4 +1,4 @@
-var iop_out_fd: uint8;
+var iop_out_fd: int8;
 var old_filename_id: uint16;
 var old_linenumber: uint16;
 
@@ -37,7 +37,7 @@ sub write_iop(iop: [Iop])
         old_linenumber := current_linenumber;
     end if;
 
-    file_putblock(iop_out_fd, iop as [int8], iop.iop_size);
+    file_putblock(iop_out_fd, iop as [int8], iop.iop_size as uint16);
 end sub;
 
 sub write_untyped_iop(kind: uint8)
@@ -52,7 +52,7 @@ sub write_bytes_iop(byte_count: uint8, bytes: [uint8])
     buf[0].iop_size := BytesIop@bytes;
     buf[0].iop_kind := IOP_BYTES;
     buf[0].byte_count := byte_count;
-    copy_memory(bytes as [int8], &buf[0].bytes[0] as [int8], byte_count);
+    copy_memory(bytes as [int8], &buf[0].bytes[0] as [int8], byte_count as uint16);
     write_iop(&buf[0] as [Iop]);
 end sub;
 
