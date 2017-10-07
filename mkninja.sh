@@ -223,7 +223,7 @@ bootstrapped_cowgol_program bin/placer \
     src/arch/bbc/placer.cow \
     src/placer/main.cow
 
-bootstrapped_cowgol_program bin/emitter \
+both_cowgol_programs emitter \
     src/string_lib.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \

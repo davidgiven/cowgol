@@ -5,4 +5,4 @@ init_iop_reader(iops_dat);
 var current_subroutine_id: uint16;
 var current_subroutine: [SubroutineThing];
 
-var outfd: uint8 := file_openout("cow.out");
+var outfd: int8 := file_openout("cow.out");

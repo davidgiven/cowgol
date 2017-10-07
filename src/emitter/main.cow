@@ -1,5 +1,5 @@
 sub do_bytes(iop: [BytesIop])
-    file_putblock(outfd, &iop.bytes[0] as [int8], iop.byte_count);
+    file_putblock(outfd, &iop.bytes[0] as [int8], iop.byte_count as uint16);
 end sub;
 
 sub address_of(iop: [AddressIop]): (address: uint16)
@@ -14,16 +14,16 @@ end sub;
 
 sub do_addresshi(iop: [AddressIop])
     var address: uint16 := address_of(iop);
-    file_putchar(outfd, address >> 8);
+    file_putchar(outfd, (address >> 8) as int8);
 end sub;
 
 sub do_addresslo(iop: [AddressIop])
     var address: uint16 := address_of(iop);
-    file_putchar(outfd, address);
+    file_putchar(outfd, address as int8);
 end sub;
 
 sub emit_subroutine()
-    file_seek(outfd, arch_calculate_fileoffset(current_subroutine as [DataThing]));
+    file_seek(outfd, arch_calculate_fileoffset(current_subroutine as [DataThing]) as uint32);
     print("0x");
     print_hex_i16(arch_calculate_address(current_subroutine as [DataThing]));
     print_char(' ');
@@ -90,7 +90,7 @@ sub emit_subroutines()
                 show_name_of(id);
                 print_newline();
             end if;
-            id := id + thing.thing_size;
+            id := id + (thing.thing_size as uint16);
         end loop;
     end loop;
 end sub;
@@ -101,7 +101,7 @@ sub emit_constants()
 
     sub emit_string()
         var stringthing: [StringThing] := thing as [StringThing];
-        file_seek(strings_fd, stringthing.string_id + 1);
+        file_seek(strings_fd, (stringthing.string_id + 1) as uint32);
 
         var len: uint8 := stringthing.string_size;
         while len != 0 loop
@@ -126,16 +126,16 @@ sub emit_constants()
         end if;
         if thing.thing_type == THING_STRING then
             if thing.segment == SEGMENT_CONST then
-                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]));
+                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
                 emit_string();
             end if;
         elseif thing.thing_type == THING_NUMBER then
             if thing.segment == SEGMENT_CONST then
-                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]));
+                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
                 emit_number();
             end if;
         end if;
-        id := id + thing.thing_size;
+        id := id + (thing.thing_size as uint16);
     end loop;
 end sub;
 
