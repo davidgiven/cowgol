@@ -58,7 +58,7 @@ sub alloc_const_node(number_id: uint16): (node: [Node])
 end sub;
 
 sub alloc_smallint_node(value: int16): (node: [Node])
-    node := alloc_const_node(add_number_by_value(value));
+    node := alloc_const_node(add_number_by_value(value as int32));
 end sub;
 
 sub alloc_thing_node(thing_id: uint16): (node: [Node])
@@ -353,7 +353,8 @@ sub process_subroutine()
                 print_newline();
             $endif
 
-            right := gen_operator_and_deref(IOP_BE_MUL, right, alloc_smallint_node(element_type.width));
+            right := gen_operator_and_deref(IOP_BE_MUL, right,
+                alloc_smallint_node(element_type.width as int16));
         end if;
         if right.type_id == constant_type then
             $if DEBUG
@@ -473,7 +474,7 @@ sub process_subroutine()
         node.type_id := member.type_id;
         node.left.numoff_id := add_number_by_value(
             get_value_of_number(node.left.numoff_id) +
-                member.offset);
+                (member.offset as int32));
 
         push_node(node);
     end sub;
@@ -541,7 +542,7 @@ sub process_subroutine()
         zero_memory(&beiop as [int8], BEConditionalIop@bytes);
         beiop.iop_size := BEConditionalIop@bytes;
         beiop.iop_kind := iopkind;
-        beiop.width := get_width_of_type(type_id);
+        beiop.width := get_width_of_type(type_id) as uint8;
         beiop.iftrue_label := iop.iftrue_label;
         beiop.iffalse_label := iop.iffalse_label;
         copy_ea_ref(&left.left, &beiop.left);
@@ -657,7 +658,7 @@ sub process_subroutine()
 
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
-        node.left.obj_id := add_number_by_value(width);
+        node.left.obj_id := add_number_by_value(width as int32);
         node.left.type_id := constant_type;
         node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
@@ -676,7 +677,7 @@ sub process_subroutine()
 
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
-        node.left.obj_id := add_number_by_value(left_type.element_count);
+        node.left.obj_id := add_number_by_value(left_type.element_count as int32);
         node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
 

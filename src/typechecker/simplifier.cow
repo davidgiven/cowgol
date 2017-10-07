@@ -10,11 +10,11 @@ sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: ui
     elseif (beiop == IOP_BE_SEXT) or (beiop == IOP_BE_ZEXT) then result := left;
     elseif beiop == IOP_BE_NEG then                              result := 0-left;
     elseif beiop == IOP_BE_NOT then                              result := (-1)^left;
-    elseif beiop == IOP_BE_LSL then                              result := left << right;
-    elseif beiop == IOP_BE_LSR then                              result := left >> right;
+    elseif beiop == IOP_BE_LSL then                              result := left << (right as uint8);
+    elseif beiop == IOP_BE_LSR then                              result := left >> (right as uint8);
     elseif beiop == IOP_BE_ASR then
-        var lefts: int32 := left;
-        result := lefts >> right;
+        var lefts: int32 := left as int32;
+        result := (lefts >> (right as uint8)) as uint32;
     else
         print("can't collapse 0x");
         print_hex_i8(beiop);
@@ -47,9 +47,9 @@ sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
         dest.left.obj_id := add_number_by_value(
             collapse_constant_op(
                 src.iop,
-                get_value_of_number(src.left.obj_id),
-                get_value_of_number(src.right.obj_id)
-            )
+                get_value_of_number(src.left.obj_id) as uint32,
+                get_value_of_number(src.right.obj_id) as uint32
+            ) as int32
         );
         deref_node(src);
     else

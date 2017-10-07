@@ -135,6 +135,13 @@ thing_table[thing_table_top] := 0;
 
 var root: [RootThing];
 
+sub check_for_thing_table_overflow()
+    if thing_table_top > thing_table@size then
+        print("thing table overflow\n");
+        exit(1);
+    end if;
+end sub;
+
 sub create_thing(type: uint8, size: uint8): (id: uint16)
     id := thing_table_top;
     var thing: [Thing] := &thing_table[id] as [Thing];
@@ -142,10 +149,7 @@ sub create_thing(type: uint8, size: uint8): (id: uint16)
     thing.thing_size := size;
     thing.thing_type := type;
     thing_table_top := thing_table_top + (size as uint16);
-    if thing_table_top > thing_table@bytes then
-        print("thing table overflow\n");
-        exit(1);
-    end if;
+    check_for_thing_table_overflow();
 end sub;
 
 sub find_thing(id: uint16): (thing: [Thing])
@@ -185,6 +189,7 @@ sub add_thing(template: [Thing]): (id: uint16)
     id := thing_table_top;
     copy_memory(template as [int8], &thing_table[id], template.thing_size as uint16);
     thing_table_top := id + (template.thing_size as uint16);
+    check_for_thing_table_overflow();
     thing_table[thing_table_top] := 0;
 end sub;
 

@@ -1,2 +1,2 @@
-const THINGSTABLE_SIZE := 30000; # must be about 30000 to build the compiler
+const THINGSTABLE_SIZE := 31000; # must be about 30000 to build the compiler
 const STRINGTABLE_SIZE := 2000;  # must be about 10000 to build the compiler

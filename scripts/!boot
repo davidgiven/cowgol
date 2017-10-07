@@ -1,1 +1,1 @@
-*go f800create d.things 1000create d.tokens 1000create d.iops 1000create d.strings 1000run p.tokenis srcrun p.parse
+*go f800create d.things 1000create d.tokens 1000create d.iops 1000create d.strings 1000run p.tokenis srcrun p.parserun p.typechkdelete d.iopsrename d.iopsout d.iops

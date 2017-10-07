@@ -1,5 +1,6 @@
+# Don't use this on non-primitive types.
 sub get_width_of(node: [Node]): (width: uint8)
-    width := get_width_of_type(node.type_id);
+    width := get_width_of_type(node.type_id) as uint8;
 end sub;
 
 sub write_be_iop(iop: [BEIop])

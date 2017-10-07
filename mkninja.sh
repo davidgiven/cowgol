@@ -44,12 +44,14 @@ rule mkbbcdist
 build bin/bbcdist.ssd : mkbbcdist | $
     bin/mkdfs scripts/mkbbcdist $
     bin/bbc/iopshower bin/bbc/thingshower $
-    bin/bbc/tokeniser bin/bbc/parser bin/bbc/blockifier bin/bbc/placer bin/bbc/emitter $
+    bin/bbc/tokeniser bin/bbc/parser bin/typechecker $
+    bin/bbc/blockifier bin/bbc/placer bin/bbc/emitter $
     src/arch/bbc/lib/argv.cow $
     src/arch/bbc/lib/fileio.cow $
     src/arch/bbc/lib/mos.cow $
     src/arch/bbc/lib/runtime.cow $
-    scripts/!boot
+    scripts/!boot $
+    demo/tiny.cow
 EOF
 
 BOOTSTRAP_LIBS="src/arch/bootstrap/host.cow src/utils/names.cow"
@@ -161,7 +163,7 @@ both_cowgol_programs blockifier \
     src/blockifier/init.cow \
     src/blockifier/main.cow
 
-bootstrapped_cowgol_program bin/typechecker \
+both_cowgol_programs typechecker \
     src/string_lib.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \

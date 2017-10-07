@@ -1,10 +1,11 @@
 #!/bin/sh
 
 bin/mkdfs -O $1 -B 3 -N 'Cowgol demo' \
-    -f bin/bbc/iopshower            -n U.IopSh   -l 0x800 \
-    -f bin/bbc/thingshower          -n U.ThingSh -l 0x800 \
+    -f bin/bbc/iopshower            -n P.IopSh   -l 0x800 \
+    -f bin/bbc/thingshower          -n P.ThingSh -l 0x800 \
     -f bin/bbc/tokeniser            -n P.Tokenis -l 0x800 \
     -f bin/bbc/parser               -n P.Parse   -l 0x800 \
+    -f bin/bbc/typechecker          -n P.TypeChk -l 0x800 \
     -f bin/bbc/blockifier           -n P.Blockif -l 0x800 \
     -f bin/bbc/placer               -n P.Placer  -l 0x800 \
     -f bin/bbc/emitter              -n P.Emit    -l 0x800 \
@@ -13,3 +14,4 @@ bin/mkdfs -O $1 -B 3 -N 'Cowgol demo' \
     -f src/arch/bbc/lib/mos.cow     -n L.MOS \
     -f src/arch/bbc/lib/runtime.cow -n L.Runtime \
     -f scripts/'!boot'              -n !BOOT \
+    -f demo/tiny.cow                -n src
