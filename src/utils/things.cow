@@ -143,7 +143,7 @@ sub create_thing(type: uint8, size: uint8): (id: uint16)
     thing.thing_type := type;
     thing_table_top := thing_table_top + (size as uint16);
     if thing_table_top > thing_table@bytes then
-        print("thing table overflow");
+        print("thing table overflow\n");
         exit(1);
     end if;
 end sub;

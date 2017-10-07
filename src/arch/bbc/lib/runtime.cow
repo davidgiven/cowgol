@@ -83,7 +83,20 @@ sub print_hex_i32(value: uint32)
     print_hex_i8(valuep[0]);
 end sub;
 
+# longjmps out of the program.
+var __exitstack: uint8;
+@bytes 0xBA;               # TSX
+@bytes 0x8E, &__exitstack; # STX __exitstack
 sub exit(status: uint8)
+    @bytes 0xAD, &status;      # LDA status
+    @bytes 0xF0, 0x06;         # BEQ dontclose
+
+    @bytes 0xA9, 0x00;         # LDA #0
+    @bytes 0xA8;               # TAY
+    @bytes 0x20, 0xCC, 0xFF;   # JSR OSFIND
+
+    @bytes 0xAE, &__exitstack; # LDX __exitstack
+    @bytes 0x9A;               # TXS
 end sub;
 
 var __params: uint16[3] @segment(0x81);
