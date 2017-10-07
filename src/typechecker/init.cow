@@ -1,4 +1,5 @@
 print("TYPECHECKER\n");
+init_string_table();
 load_thing_table(things_dat);
 init_iop_reader(iops_dat);
 init_iop_writer(iops_out_dat);

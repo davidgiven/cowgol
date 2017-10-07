@@ -282,5 +282,3 @@ assign_space_for_all_variables();
 #show_subroutine_sizes();
 
 arch_report_offsets(&root.archsizes);
-
-save_thing_table(things_dat);

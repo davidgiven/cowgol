@@ -5,6 +5,10 @@ sub init_iop_reader(filename: [int8])
     iops_fd := file_openin(filename);
 end sub;
 
+sub deinit_iop_reader()
+    file_close(iops_fd);
+end sub;
+
 sub check_eof(eof: uint8)
     if eof != 0 then
         print("unexpected end of file in iop stream");

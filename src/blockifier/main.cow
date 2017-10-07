@@ -95,4 +95,3 @@ sub process_subroutines()
 end sub;
 
 process_subroutines();
-save_thing_table(things_dat);

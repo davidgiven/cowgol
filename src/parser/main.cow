@@ -508,10 +508,8 @@ sub do_bytes()
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
-print("PARSER\n");
-load_thing_table(things_dat);
-init_parser();
 init_tokenreader(tokens_dat);
+init_parser();
 
 open_iopfile(iops_dat);
 break_label_id := 0;
@@ -572,4 +570,3 @@ close_iopfile();
 print("thing table size: ");
 print_i16(thing_table_top);
 print_newline();
-save_thing_table(things_dat);

@@ -146,6 +146,8 @@ sub show_array_thing(thing: [ArrayThing])
     print(") ");
 end sub;
 
+print("THINGSHOWER\n");
+init_string_table();
 load_thing_table(things_dat);
 var id: uint16 := 1;
 loop
@@ -202,3 +204,5 @@ end loop;
 print("thing table size: 0x");
 print_hex_i16(thing_table_top);
 print_newline();
+
+deinit_string_table();

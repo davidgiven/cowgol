@@ -6,6 +6,10 @@ sub init_iop_writer(filename: [int8])
     iop_out_fd := file_openout(filename);
 end sub;
 
+sub deinit_iop_writer()
+    file_close(iop_out_fd);
+end sub;
+
 sub write_iop_header(header: [IHeader])
     file_putblock(iop_out_fd, header as [int8], IHeader@bytes);
     old_filename_id := 0;

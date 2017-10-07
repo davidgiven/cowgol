@@ -1,4 +1,12 @@
-var strings_fd: int8 := file_openin(strings_dat);
+var strings_fd: int8;
+
+sub init_string_table()
+    strings_fd := file_openin(strings_dat);
+end sub;
+
+sub deinit_string_table()
+    file_close(strings_fd);
+end sub;
 
 sub show_string(string_id: uint16)
     #print("(0x");

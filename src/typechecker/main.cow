@@ -796,4 +796,3 @@ sub process()
 end sub;
 
 process();
-save_thing_table(things_dat);

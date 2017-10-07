@@ -1,3 +1,5 @@
+print("IOPSHOWER\n");
+init_string_table();
 load_thing_table(things_dat);
 init_iop_reader(ARGV[1]);
 
@@ -262,3 +264,6 @@ loop
     end loop;
     print_newline();
 end loop;
+
+deinit_iop_reader();
+deinit_string_table();

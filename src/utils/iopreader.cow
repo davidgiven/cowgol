@@ -9,6 +9,10 @@ sub init_iop_reader(filename: [int8])
     current_linenumber := 0;
 end sub;
 
+sub deinit_iop_reader()
+    file_close(iop_in_fd);
+end sub;
+
 sub halt()
     print(" at ");
     show_identifier(current_filename_id);

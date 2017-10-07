@@ -138,7 +138,7 @@ both_cowgol_programs parser \
     $OBJDIR/token_names.cow \
     src/utils/stringtable.cow \
     src/utils/iops.cow \
-    src/parser/globals.cow \
+    src/parser/init.cow \
     src/parser/symbols.cow \
     src/utils/symbols.cow \
     src/parser/iopwriter.cow \
@@ -147,7 +147,8 @@ both_cowgol_programs parser \
     src/utils/types.cow \
     src/parser/types.cow \
     src/parser/expression.cow \
-    src/parser/main.cow
+    src/parser/main.cow \
+    src/parser/deinit.cow \
 
 both_cowgol_programs blockifier \
     src/string_lib.cow \
@@ -161,7 +162,8 @@ both_cowgol_programs blockifier \
     $OBJDIR/token_names.cow \
     src/utils/types.cow \
     src/blockifier/init.cow \
-    src/blockifier/main.cow
+    src/blockifier/main.cow \
+    src/blockifier/deinit.cow \
 
 both_cowgol_programs typechecker \
     src/string_lib.cow \
@@ -179,7 +181,8 @@ both_cowgol_programs typechecker \
     src/typechecker/tree.cow \
     src/arch/bbc/simplifier.cow \
     src/typechecker/simplifier.cow \
-    src/typechecker/main.cow
+    src/typechecker/main.cow \
+    src/typechecker/deinit.cow \
 
 bootstrapped_cowgol_program bin/classifier \
     src/string_lib.cow \
@@ -195,7 +198,8 @@ bootstrapped_cowgol_program bin/classifier \
     src/classifier/graph.cow \
     src/arch/bbc/classifier.cow \
     src/classifier/subdata.cow \
-    src/classifier/main.cow
+    src/classifier/main.cow \
+    src/classifier/deinit.cow \
 
 bootstrapped_cowgol_program bin/codegen \
     src/string_lib.cow \
@@ -217,7 +221,8 @@ bootstrapped_cowgol_program bin/codegen \
     src/arch/bbc/codegen2_16bit.cow \
     src/arch/bbc/codegen2.cow \
     src/codegen/rules.cow \
-    src/codegen/main.cow
+    src/codegen/main.cow \
+    src/codegen/deinit.cow \
 
 both_cowgol_programs placer \
     src/string_lib.cow \
@@ -229,7 +234,8 @@ both_cowgol_programs placer \
     src/utils/iopwriter.cow \
     src/placer/init.cow \
     src/arch/bbc/placer.cow \
-    src/placer/main.cow
+    src/placer/main.cow \
+    src/placer/deinit.cow \
 
 both_cowgol_programs emitter \
     src/string_lib.cow \
@@ -240,7 +246,8 @@ both_cowgol_programs emitter \
     src/utils/iopreader.cow \
     src/emitter/init.cow \
     src/arch/bbc/emitter.cow \
-    src/emitter/main.cow
+    src/emitter/main.cow \
+    src/emitter/deinit.cow \
 
 both_cowgol_programs thingshower \
     src/string_lib.cow \
@@ -256,7 +263,7 @@ both_cowgol_programs iopshower \
     src/utils/iops.cow \
     src/utils/stringtable.cow \
     src/iopshower/iopreader.cow \
-    src/iopshower/iopshower.cow
+    src/iopshower/iopshower.cow \
 
 c_program bin/bbctube \
     emu/bbctube/bbctube.c \

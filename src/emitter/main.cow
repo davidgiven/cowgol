@@ -143,4 +143,3 @@ arch_emit_header();
 emit_subroutines();
 emit_constants();
 
-file_close(outfd);

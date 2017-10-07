@@ -1,0 +1,3 @@
+deinit_string_table();
+deinit_iop_reader();
+file_close(outfd);

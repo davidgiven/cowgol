@@ -37,6 +37,10 @@ sub init_tokenreader(filename: [int8])
     next_token();
 end sub;
 
+sub deinit_tokenreader()
+    file_close(tokens_fd);
+end sub;
+
 sub expect_token(expected: uint16)
     if current_token != expected then
         print("expected ");
