@@ -44,7 +44,7 @@ rule mkbbcdist
 build bin/bbcdist.ssd : mkbbcdist | $
     bin/mkdfs scripts/mkbbcdist $
     bin/bbc/iopshower bin/bbc/thingshower $
-    bin/bbc/tokeniser bin/bbc/parser bin/typechecker $
+    bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker $
     bin/bbc/blockifier bin/bbc/placer bin/bbc/emitter $
     src/arch/bbc/lib/argv.cow $
     src/arch/bbc/lib/fileio.cow $
