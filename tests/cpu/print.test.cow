@@ -1,0 +1,13 @@
+print_hex_i8(0x12);
+print_newline();
+print_hex_i16(0x1234);
+print_newline();
+print_hex_i32(0x12345678);
+print_newline();
+
+print_i8(12);
+print_newline();
+print_i16(1234);
+print_newline();
+print_i32(12345678);
+print_newline();

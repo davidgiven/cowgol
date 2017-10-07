@@ -6,3 +6,5 @@
 -7%3=-1: yes
 7%-3=1: yes
 -7%-3=-1: yes
+divmod -7/-3=2: yes
+divmod -7%-3=-1: yes

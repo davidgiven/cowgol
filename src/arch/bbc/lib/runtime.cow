@@ -22,12 +22,20 @@ sub print_newline()
 end sub;
 
 sub print_i8(value: uint8)
-    var buffer: uint8[3];
+    print_i32(value as uint32);
+end sub;
+
+sub print_i16(value: uint16)
+    print_i32(value as uint32);
+end sub;
+
+sub print_i32(value: uint32)
+    var buffer: uint8[11];
     var pos: uint8 := 0;
     loop
-        var rem: uint8;
-        (value, rem) := divmod8(value, 10);
-        buffer[pos] := rem;
+        var rem: uint32;
+        (value, rem) := divmodu32(value, 10);
+        buffer[pos] := rem as uint8;
         if value == 0 then
             break;
         end if;
@@ -41,12 +49,6 @@ sub print_i8(value: uint8)
         end if;
         pos := pos - 1;
     end loop;
-end sub;
-
-sub print_i16(value: uint16)
-end sub;
-
-sub print_i32(value: uint32)
 end sub;
 
 sub print_hex_i8(value: uint8)
@@ -713,6 +715,30 @@ sub __copy_mod_result()
     @bytes 0x91, >&__params+0;   # STA (__params+0), Y
     @bytes 0x88;                 # DEY
     @bytes 0x10, 0xF8;           # BPL again
+end sub;
+
+sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32)
+    @bytes 0x20, &__load6bytes;  # JSR __load6bytes
+    @bytes &quotient, &left, &right;
+    @bytes 0x20, &__divu32;      # JSR __divu32
+	@bytes 0xA9, >&remainder;    # LDA #>remainder
+	@bytes 0x85, >&__params+0;   # STA __params+0
+	@bytes 0xA9, <&remainder;    # LDA #<remainder
+	@bytes 0x85, >&__params+1;   # STA __params+1
+    @bytes 0xA0, 0x03;           # LDY #3 -- width minus 1
+    @bytes 0x4C, &__copy_mod_result; # JMP __copy_mod_result
+end sub;
+
+sub divmods32(left: int32, right: int32): (quotient: int32, remainder: int32)
+    @bytes 0x20, &__load6bytes;  # JSR __load6bytes
+    @bytes &quotient, &left, &right;
+    @bytes 0x20, &__divs32;      # JSR __divs32
+	@bytes 0xA9, >&remainder;    # LDA #>remainder
+	@bytes 0x85, >&__params+0;   # STA __params+0
+	@bytes 0xA9, <&remainder;    # LDA #<remainder
+	@bytes 0x85, >&__params+1;   # STA __params+1
+    @bytes 0xA0, 0x03;           # LDY #3 -- width minus 1
+    @bytes 0x4C, &__copy_mod_result; # JMP __copy_mod_result
 end sub;
 
 sub __mul8u(left: uint8, right: uint8): (result: uint8)
