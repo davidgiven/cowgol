@@ -1,15 +1,15 @@
 var changed: uint8;
 
 sub do_label(iop: [LabelIop])
-    if labels[iop.label] != pc then
+    if labels[iop.label as int16] != pc then
         changed := 1;
-        labels[iop.label] := pc;
+        labels[iop.label as int16] := pc;
     end if;
 end sub;
 
 sub pass12()
     sub do_bytes(iop: [BytesIop])
-        pc := pc + iop.byte_count;
+        pc := pc + (iop.byte_count as uint16);
     end sub;
 
     pc := 0;
@@ -28,7 +28,7 @@ sub pass12()
         elseif iopkind == IOP_LABEL then
             do_label(iop as [LabelIop]);
         else
-            pc := pc + arch_calculate_iop_size(iop);
+            pc := pc + (arch_calculate_iop_size(iop) as uint16);
         end if;
     end loop;
 end sub;
@@ -36,7 +36,7 @@ end sub;
 sub pass3()
     sub do_bytes(iop: [BytesIop])
         write_iop(iop as [Iop]);
-        pc := pc + iop.byte_count;
+        pc := pc + (iop.byte_count as uint16);
     end sub;
 
     pc := 0;
@@ -57,7 +57,7 @@ sub pass3()
         elseif iopkind == IOP_LABEL then
             do_label(iop as [LabelIop]);
         else
-            pc := pc + arch_generate_iop(iop);
+            pc := pc + (arch_generate_iop(iop) as uint16);
         end if;
     end loop;
 
@@ -76,7 +76,7 @@ sub process_data()
             if stringthing.segment == SEGMENT_CONST then
                 stringthing.address := root.const_size;
                 # Remember the trailing zero!
-                root.const_size := root.const_size + stringthing.string_size + 1;
+                root.const_size := root.const_size + (stringthing.string_size as uint16) + 1;
             end if;
         elseif thing.thing_type == THING_NUMBER then
             var numberthing: [NumberThing] := thing as [NumberThing];
@@ -85,7 +85,7 @@ sub process_data()
                 root.const_size := root.const_size + 4;
             end if;
         end if;
-        id := id + thing.thing_size;
+        id := id + (thing.thing_size as uint16);
     end loop;
 end sub;
 

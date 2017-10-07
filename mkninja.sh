@@ -211,7 +211,7 @@ bootstrapped_cowgol_program bin/codegen \
     src/codegen/rules.cow \
     src/codegen/main.cow
 
-bootstrapped_cowgol_program bin/placer \
+both_cowgol_programs placer \
     src/string_lib.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
