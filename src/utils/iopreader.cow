@@ -9,15 +9,29 @@ sub init_iop_reader(filename: [int8])
     current_linenumber := 0;
 end sub;
 
+sub halt()
+    print(" at ");
+    show_identifier(current_filename_id);
+    print_char(':');
+    print_i16(current_linenumber);
+    print_newline();
+    exit(1);
+end sub;
+
 sub read_iop_header(): (header: [IHeader])
-    file_getblock(iop_in_fd, &iop_buffer[0] as [int8], IHeader@bytes);
+    var eof: uint8 := file_getblock(iop_in_fd, &iop_buffer[0] as [int8], IHeader@bytes);
+    if eof != 0 then
+        print("unexpected EOF");
+        halt();
+    end if;
     header := &iop_buffer[0] as [IHeader];
 end sub;
 
 sub read_iop(): (iop: [Iop])
     loop
-        file_getblock(iop_in_fd, &iop_buffer[0] as [int8], 1);
-        file_getblock(iop_in_fd, &iop_buffer[1] as [int8], (iop_buffer[0] - 1) as uint16);
+        var eof: uint8;
+        (eof) := file_getblock(iop_in_fd, &iop_buffer[0] as [int8], 1);
+        (eof) := file_getblock(iop_in_fd, &iop_buffer[1] as [int8], (iop_buffer[0] - 1) as uint16);
         iop := &iop_buffer[0] as [Iop];
 
         if iop.iop_kind == IOP_LINENUMBER then
@@ -30,13 +44,4 @@ sub read_iop(): (iop: [Iop])
             break;
         end if;
     end loop;
-end sub;
-
-sub halt()
-    print(" at ");
-    show_identifier(current_filename_id);
-    print_char(':');
-    print_i16(current_linenumber);
-    print_newline();
-    exit(1);
 end sub;

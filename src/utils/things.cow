@@ -353,7 +353,7 @@ sub load_thing_table(filename: [int8])
         print("thing table on disk too big (your configuration is broken)\n");
         exit(1);
     end if;
-    file_getblock(fd, &thing_table[0], thing_table_top);
+    var eof: uint8 := file_getblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
     thing_table[thing_table_top] := 0;
 

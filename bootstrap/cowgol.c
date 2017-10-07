@@ -63,7 +63,9 @@ void cowgol_file_putchar(void) {
 }
 
 void cowgol_file_getblock(void) {
-    fread(extern_p8, 1, extern_u32, filetab[extern_i8]);
+    FILE* fp = filetab[extern_i8];
+    fread(extern_p8, 1, extern_u32, fp);
+    extern_i8_2 = feof(fp);
 }
 
 void cowgol_file_putblock(void) {

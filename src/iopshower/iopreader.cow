@@ -5,8 +5,8 @@ sub init_iop_reader(filename: [int8])
     iops_fd := file_openin(filename);
 end sub;
 
-sub check_eof()
-    if file_eof(iops_fd) != 0 then
+sub check_eof(eof: uint8)
+    if eof != 0 then
         print("unexpected end of file in iop stream");
         print_newline();
         exit(1);
@@ -14,14 +14,12 @@ sub check_eof()
 end sub;
 
 sub read_iop_header(): (header: [IHeader])
-    file_getblock(iops_fd, &iop_buffer[0] as [int8], IHeader@bytes);
-    check_eof();
+    check_eof(file_getblock(iops_fd, &iop_buffer[0] as [int8], IHeader@bytes));
     header := &iop_buffer[0] as [IHeader];
 end sub;
 
 sub read_iop(): (iop: [Iop])
-    file_getblock(iops_fd, &iop_buffer[0] as [int8], 1);
-    file_getblock(iops_fd, &iop_buffer[1] as [int8], (iop_buffer[0]-1) as uint16);
-    check_eof();
+    check_eof(file_getblock(iops_fd, &iop_buffer[0] as [int8], 1));
+    check_eof(file_getblock(iops_fd, &iop_buffer[1] as [int8], (iop_buffer[0]-1) as uint16));
     iop := &iop_buffer[0] as [Iop];
 end sub;

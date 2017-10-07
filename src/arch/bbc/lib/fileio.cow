@@ -29,13 +29,13 @@ sub file_openup(filename: [int8]): (fd: int8)
     fd := open_with_osfind(filename, 0xC0);
 end sub;
 
-sub file_getblock(fd: int8, ptr: [int8], length: uint16)
+sub file_getblock(fd: int8, ptr: [int8], length: uint16): (eof: uint8)
     var block: OsgbpbBlock;
     block.fd := fd as uint8;
     block.bufferlo := ptr as [uint8];
     block.bufferhi := 0;
     block.count := length as uint32;
-    osgbpb(4, &block); # write bytes ignoring pointer
+    (eof) := osgbpb(4, &block); # read bytes ignoring pointer
 end sub;
 
 sub file_putblock(fd: int8, ptr: [int8], length: uint16)
@@ -44,7 +44,9 @@ sub file_putblock(fd: int8, ptr: [int8], length: uint16)
     block.bufferlo := ptr as [uint8];
     block.bufferhi := 0;
     block.count := length as uint32;
-    osgbpb(2, &block); # read bytes ignoring pointer
+
+    var eof: uint8;
+    (eof) := osgbpb(2, &block); # write bytes ignoring pointer
 end sub;
 
 sub file_seek(fd: int8, pos: uint32)

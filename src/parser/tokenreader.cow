@@ -1,10 +1,14 @@
 var tokens_fd: int8;
 
 sub next_raw_token(): (token: uint16)
-    var buf: uint16[1];
-    buf[0] := 0;
-    file_getblock(tokens_fd, &buf[0] as [int8], 2);
-    token := buf[0];
+    if file_eof(tokens_fd) != 0 then
+        token := 0;
+    else
+        var eof: uint8 := file_getblock(tokens_fd, &token as [int8], 2);
+        if eof != 0 then
+            token := 0;
+        end if;
+    end if;
 end sub;
 
 sub next_token()

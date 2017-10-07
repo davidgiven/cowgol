@@ -1305,7 +1305,8 @@ create_extern_function("file_putchar", "cowgol_file_putchar",
 create_extern_function("file_getblock", "cowgol_file_getblock",
     { name="fd", inout="in", variable=extern_i8 },
     { name="ptr", inout="in", variable=extern_p8 },
-    { name="size", inout="in", variable=extern_u32 }
+    { name="size", inout="in", variable=extern_u32 },
+    { name="eof", inout="out", variable=extern_i8_2 }
 )
 create_extern_function("file_putblock", "cowgol_file_putblock",
     { name="fd", inout="in", variable=extern_i8 },

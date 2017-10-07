@@ -20,11 +20,14 @@ record OsgbpbBlock
     offset: uint32;
 end record;
 
-sub osgbpb(a: uint8, ptr: [OsgbpbBlock])
+sub osgbpb(a: uint8, ptr: [OsgbpbBlock]): (eof: uint8)
     @bytes 0xAD, &a;            # LDA a
     @bytes 0xAE, &ptr+0;        # LDX ptr+0
     @bytes 0xAC, &ptr+1;        # LDY ptr+1
-    @bytes 0x4C, 0xD1, 0xFF;    # JMP OSGBPB
+    @bytes 0x20, 0xD1, 0xFF;    # JMP OSGBPB
+    @bytes 0xA9, 0x00;          # LDA #0
+    @bytes 0x2A;                # ROL A
+    @bytes 0x8D, &eof;          # STA eof
 end sub;
 
 sub osargs(a: uint8, ptr: [uint8], fd: uint8)
