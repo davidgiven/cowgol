@@ -50,8 +50,8 @@ end sub;
 
 sub ref_node(node: [Node])
     $if DEBUG
-        print("* ref node ");
-        print_i16((node - &nodes[0]) / Node@bytes);
+        print("* ref node 0x");
+        print_i8(get_node_id(node));
         print_newline();
     $endif
 
@@ -64,13 +64,13 @@ sub deref_ea(ea: [EffectiveAddress])
 end sub;
 
 sub get_node_id(node: [Node]): (id: uint8)
-    id := (node - &nodes[0]) / Node@bytes;
+    id := (((node - &nodes[0]) as uint16) / Node@bytes) as uint8;
 end sub;
 
 sub deref_node(node: [Node])
     $if DEBUG
-        print("* deref node ");
-        print_i16((node - &nodes[0]) / Node@bytes);
+        print("* deref node 0x");
+        print_i8(get_node_id(node));
         print_newline();
     $endif
 
@@ -120,7 +120,7 @@ sub pop(): (node: [Node])
     node := stack[stack_pos];
 end sub;
 
-sub peek(offset: int8): (node: [Node])
+sub peek(offset: uint8): (node: [Node])
     ensure_stack_size(offset);
     node := stack[stack_pos - offset];
 end sub;

@@ -41,9 +41,14 @@ rule token_names
 
 rule mkbbcdist
     command = scripts/mkbbcdist $out
-#build bin/bbcdist.zip : mkbbcdist bin/bbc/iopshower bin/bbc/thingshower bin/bbc/tokeniser $
-#    src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/fileio.cow $
-#    src/arch/bbc/lib/argv.cow
+build bin/bbcdist.ssd : mkbbcdist | $
+    bin/mkdfs scripts/mkbbcdist $
+    bin/bbc/iopshower bin/bbc/thingshower $
+    bin/bbc/tokeniser bin/bbc/parser bin/bbc/blockifier bin/bbc/placer bin/bbc/emitter $
+    src/arch/bbc/lib/argv.cow $
+    src/arch/bbc/lib/fileio.cow $
+    src/arch/bbc/lib/mos.cow $
+    src/arch/bbc/lib/runtime.cow
 EOF
 
 BOOTSTRAP_LIBS="src/arch/bootstrap/host.cow src/utils/names.cow"
@@ -253,6 +258,9 @@ both_cowgol_programs iopshower \
 c_program bin/bbctube \
     emu/bbctube/bbctube.c \
     emu/bbctube/lib6502.c \
+
+c_program bin/mkdfs \
+    emu/mkdfs/mkdfs.c
 
 for f in tests/bootstrap/*.test.cow; do
     bootstrap_test $f

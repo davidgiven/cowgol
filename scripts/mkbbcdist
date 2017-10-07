@@ -1,0 +1,14 @@
+#!/bin/sh
+
+bin/mkdfs -O $1 \
+    -f bin/bbc/iopshower            -n U.IopSh   -l 0x800 \
+    -f bin/bbc/thingshower          -n U.ThingSh -l 0x800 \
+    -f bin/bbc/tokeniser            -n P.Tokenis -l 0x800 \
+    -f bin/bbc/parser               -n P.Parse   -l 0x800 \
+    -f bin/bbc/blockifier           -n P.Blockif -l 0x800 \
+    -f bin/bbc/placer               -n P.Placer  -l 0x800 \
+    -f bin/bbc/emitter              -n P.Emit    -l 0x800 \
+    -f src/arch/bbc/lib/argv.cow    -n L.ArgV \
+    -f src/arch/bbc/lib/fileio.cow  -n L.FileIO \
+    -f src/arch/bbc/lib/mos.cow     -n L.MOS \
+    -f src/arch/bbc/lib/runtime.cow -n L.Runtime \
