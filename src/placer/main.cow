@@ -113,13 +113,15 @@ sub process_subroutines()
             pass12();
 
             pass := 2;
-            loop
+            var iterations: uint8 := 0;
+            while iterations != 5 loop
                 file_seek(iop_in_fd, pos);
                 changed := 0;
                 pass12();
                 if changed == 0 then
                     break;
                 end if;
+                iterations := iterations + 1;
             end loop;
 
             file_seek(iop_in_fd, pos);
