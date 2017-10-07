@@ -119,7 +119,7 @@ sub arch_gen_and(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_and_byte(iop);
     else
-        cant_do_3op(iop, "and");
+        regular_alu_wide_op(iop, 0x2D); # AND abs
     end if;
 end sub;
 
@@ -127,7 +127,7 @@ sub arch_gen_or(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_or_byte(iop);
     else
-        cant_do_3op(iop, "or");
+        regular_alu_wide_op(iop, 0x0D); # ORA abs
     end if;
 end sub;
 
@@ -135,7 +135,7 @@ sub arch_gen_eor(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_eor_byte(iop);
     else
-        cant_do_3op(iop, "eor");
+        regular_alu_wide_op(iop, 0x4D); # EOR abs
     end if;
 end sub;
 
@@ -226,7 +226,9 @@ sub arch_gen_mods(iop: [BEIop])
 end sub;
 
 sub arch_gen_mul(iop: [BEIop])
-    if iop.width == 2 then
+    if iop.width == 1 then
+        arch_gen_simple_wide(iop, TOKEN_MUL8);
+    elseif iop.width == 2 then
         arch_gen_simple_wide(iop, TOKEN_MUL16);
     elseif iop.width == 4 then
         arch_gen_simple_wide(iop, TOKEN_MUL32);

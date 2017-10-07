@@ -444,6 +444,11 @@ shift:
     @bytes 0x10, 0xF7;           # BPL loop
 end sub;
 
+sub __mul8()
+    @bytes 0xA9, 0x01;           # LDA #1
+    @bytes 0x4C, &__mul;         # JMP __mul
+end sub;
+
 sub __mul16()
     @bytes 0xA9, 0x02;           # LDA #2
     @bytes 0x4C, &__mul;         # JMP __mul
