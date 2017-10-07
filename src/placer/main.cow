@@ -1,9 +1,9 @@
 var changed: uint8;
 
 sub do_label(iop: [LabelIop])
-    if labels[iop.label as int16] != pc then
+    if labels[iop.label] != pc then
         changed := 1;
-        labels[iop.label as int16] := pc;
+        labels[iop.label] := pc;
     end if;
 end sub;
 
@@ -106,7 +106,7 @@ sub process_subroutines()
 
             current_subroutine.segment := SEGMENT_CODE;
             current_subroutine.address := root.code_size;
-            zero_memory(labels as [int8], 2 * current_subroutine.label_count);
+            zero_memory(&labels[0] as [int8], labels@bytes);
 
             var pos: uint32 := file_tell(iop_in_fd);
             pass := 1;

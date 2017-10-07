@@ -72,6 +72,14 @@ sub write_word_iop(word: uint16)
     write_bytes_iop(2, &buf[0] as [uint8]);
 end sub;
 
+sub write_goto_iop(label: uint8)
+    var buf: GotoIop;
+    buf.iop_size := GotoIop@bytes;
+    buf.iop_kind := IOP_GOTO;
+    buf.label := label;
+    write_iop(&buf as [Iop]);
+end sub;
+
 sub write_address_iop(beiop: uint8, thing_id: uint16, offset: uint16)
     var buf: AddressIop[1];
     buf[0].iop_size := AddressIop@bytes;
@@ -81,7 +89,7 @@ sub write_address_iop(beiop: uint8, thing_id: uint16, offset: uint16)
     write_iop(&buf[0] as [Iop]);
 end sub;
 
-sub write_label_iop(label: uint16)
+sub write_label_iop(label: uint8)
     var buf: LabelIop;
     buf.iop_size := LabelIop@bytes;
     buf.iop_kind := IOP_LABEL;
@@ -99,7 +107,7 @@ sub write_cg_6502_mem_iop(opcode: uint8, thing_id: uint16, offset: uint16)
     write_iop(&buf[0] as [Iop]);
 end sub;
 
-sub write_cg_6502_conditional_iop(opcode: uint8, label: uint16)
+sub write_cg_6502_conditional_iop(opcode: uint8, label: uint8)
     var buf: CG6502ConditionalIop[1];
     buf[0].iop_size := CG6502ConditionalIop@bytes;
     buf[0].iop_kind := IOP_CG_6502_COND;

@@ -31,7 +31,7 @@ const IOP_LABEL            := 0b0000_1001;
 const IOP_CLONELABEL       := 0b0000_1010;
 const IOP_ADDRESSLO        := 0b0000_1011; # AddressIop
 const IOP_ADDRESSHI        := 0b0000_1100; # AddressIop
-const IOP_NAMEDGOTO        := 0b0000_1101; # GotoIop
+const IOP_NAMEDGOTO        := 0b0000_1101;
 
 # Front-end opcodes: this is the pure stack machine architecture emitted by the
 # compiler. These are all FEIops (or subclasses thereof).
@@ -124,12 +124,12 @@ record LinenumberIop: Iop
 end record;
 
 record LabelIop: Iop
-    label: uint16;
+    label: uint8;
 end record;
 
 record CloneLabelIop: Iop
-    src_label: uint16;
-    dest_label: uint16;
+    src_label: uint8;
+    dest_label: uint8;
 end record;
 
 record StringIop: Iop
@@ -143,7 +143,11 @@ record CallIop: Iop
 end record;
 
 record GotoIop: Iop
-    label: uint16;
+    label: uint8;
+end record;
+
+record NamedGotoIop: Iop
+    label_id: uint16;
 end record;
 
 record BytesIop: Iop
@@ -174,8 +178,8 @@ record FEMemberIop: FETypedIop
 end record;
 
 record FEConditionalIop: Iop
-    iftrue_label: uint16;
-    iffalse_label: uint16;
+    iftrue_label: uint8;
+    iffalse_label: uint8;
 end record;
 
 const EA_VALUE := 0; # [&obj+numoff+[varoff]]
@@ -201,8 +205,8 @@ record BEConditionalIop: Iop
     width: uint8;
     left: EffectiveAddress;
     right: EffectiveAddress;
-    iftrue_label: uint16;
-    iffalse_label: uint16;
+    iftrue_label: uint8;
+    iffalse_label: uint8;
 end record;
 
 record CG6502MemIop: Iop
@@ -213,7 +217,7 @@ end record;
 
 record CG6502ConditionalIop: Iop
     opcode: uint8;
-    label: uint16;
+    label: uint8;
 end record;
 
 record BiggestIop: BEIop

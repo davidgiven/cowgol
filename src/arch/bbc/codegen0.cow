@@ -67,7 +67,7 @@ sub op_imm_adr(ea: [EffectiveAddress], beiop: uint8, opcode: uint8)
 	$endif
 
     write_byte(opcode);
-    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id));
+    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
 end sub;
 
 var ld_imm_opcodes: uint8[3];
@@ -122,7 +122,7 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
     end if;
 
     write_byte(opcode);
-    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id));
+    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
 end sub;
 
 var ld_abs_opcodes: uint8[3];
@@ -232,7 +232,7 @@ end sub;
 
 sub load_objval(location: uint8, ea: [EffectiveAddress])
     if is_number_thing(ea.obj_id) != 0 then
-        ld_imm(location, get_value_of_number(ea.obj_id));
+        ld_imm(location, get_value_of_number(ea.obj_id) as uint8);
     else
         ld_abs(location, 0, ea);
     end if;
@@ -240,7 +240,8 @@ end sub;
 
 sub load_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
     var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
+    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) +
+        (offset as int32));
     ld_abs(location, 0, ea);
     ea.numoff_id := old_numoff_id;
 end sub;
@@ -281,7 +282,8 @@ end sub;
 
 sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
     var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + offset);
+    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) +
+        (offset as int32));
     st_abs(location, 0, ea);
     ea.numoff_id := old_numoff_id;
 end sub;

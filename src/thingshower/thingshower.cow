@@ -77,7 +77,7 @@ sub show_subroutine_thing(thing: [SubroutineThing])
     print("subroutine(namespace=0x");
     print_hex_i16(thing.namespace_id);
     print(" label_count=");
-    print_i16(thing.label_count);
+    print_i8(thing.label_count);
     print(" input_parameter_count=");
     print_i8(thing.input_parameter_count);
     print(" output_parameter_count=");

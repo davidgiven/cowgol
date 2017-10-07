@@ -9,5 +9,9 @@ var current_subroutine_id: uint16;
 sub create_label(): (label: uint16)
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     label := subroutine.label_count;
+    if subroutine.label_count == 0xff then
+        print("too many labels");
+        halt();
+    end if;
     subroutine.label_count := subroutine.label_count + 1;
 end sub;

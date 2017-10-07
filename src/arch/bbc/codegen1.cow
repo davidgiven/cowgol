@@ -546,7 +546,7 @@ end sub;
 
 sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)
     if is_number_thing(ea.obj_id) != 0 then
-        op_imm(get_value_of_number(ea.obj_id), opcode & 0xFB);
+        op_imm(get_value_of_number(ea.obj_id) as uint8, opcode & 0xFB);
     else
         var indexreg: uint8 := 0;
         if ea.varoff_id != 0 then

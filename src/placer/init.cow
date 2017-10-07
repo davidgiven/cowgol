@@ -8,4 +8,4 @@ var current_subroutine_id: uint16;
 var current_subroutine: [SubroutineThing];
 var pass: uint8;
 var pc: uint16;
-var labels: [uint16] := LOMEM as [uint16];
+var labels: uint16[256];

@@ -62,7 +62,7 @@ record SymbolThing: Thing
 end record;
 
 record LabelThing: Thing
-    label: uint16;
+    label: uint8;
 end record;
 
 record TypeThing: Thing
@@ -110,7 +110,7 @@ end record;
 
 record SubroutineThing: DataThing
     namespace_id: uint16;
-    label_count: uint16;
+    label_count: uint8;
     input_parameter_count: uint8;
     output_parameter_count: uint8;
 end record;

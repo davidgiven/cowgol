@@ -1,8 +1,8 @@
-var break_label_id: uint16;
-var continue_label_id: uint16;
-var if_true_label_id: uint16;
-var if_false_label_id: uint16;
-var if_end_label_id: uint16;
+var break_label_id: uint8;
+var continue_label_id: uint8;
+var if_true_label_id: uint8;
+var if_false_label_id: uint8;
+var if_end_label_id: uint8;
 
 sub create_namespace(parent_id: uint16): (namespace_id: uint16)
     namespace_id := create_thing(THING_NAMESPACE, NamespaceThing@bytes);
@@ -18,8 +18,8 @@ sub create_function(): (subroutine_id: uint16, namespace_id: uint16)
 end sub;
 
 sub push_loop()
-    lexical_push(break_label_id);
-    lexical_push(continue_label_id);
+    lexical_push(break_label_id as uint16);
+    lexical_push(continue_label_id as uint16);
     lexical_push(TOKEN_LOOP);
 end sub;
 
@@ -28,30 +28,30 @@ sub pop_loop()
     emit_label(break_label_id);
 
     lexical_pop_scope_type(TOKEN_LOOP);
-    continue_label_id := lexical_pop();
-    break_label_id := lexical_pop();
+    continue_label_id := lexical_pop() as uint8;
+    break_label_id := lexical_pop() as uint8;
 end sub;
 
 sub push_if()
-    lexical_push(if_true_label_id);
-    lexical_push(if_false_label_id);
-    lexical_push(if_end_label_id);
+    lexical_push(if_true_label_id as uint16);
+    lexical_push(if_false_label_id as uint16);
+    lexical_push(if_end_label_id as uint16);
     lexical_push(TOKEN_IF);
 end sub;
 
 sub pop_if()
     lexical_pop_scope_type(TOKEN_IF);
-    if_end_label_id := lexical_pop();
-    if_false_label_id := lexical_pop();
-    if_true_label_id := lexical_pop();
+    if_end_label_id := lexical_pop() as uint8;
+    if_false_label_id := lexical_pop() as uint8;
+    if_true_label_id := lexical_pop() as uint8;
 end sub;
 
 sub push_subroutine()
-    lexical_push(break_label_id);
-    lexical_push(continue_label_id);
-    lexical_push(if_true_label_id);
-    lexical_push(if_false_label_id);
-    lexical_push(if_end_label_id);
+    lexical_push(break_label_id as uint16);
+    lexical_push(continue_label_id as uint16);
+    lexical_push(if_true_label_id as uint16);
+    lexical_push(if_false_label_id as uint16);
+    lexical_push(if_end_label_id as uint16);
     lexical_push(current_subroutine_id);
     lexical_push(current_namespace_id);
     lexical_push(ioptab_size);
@@ -63,11 +63,11 @@ sub pop_subroutine()
     flush_iops(current_subroutine_id, lexical_pop());
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
-    if_end_label_id := lexical_pop();
-    if_false_label_id := lexical_pop();
-    if_end_label_id := lexical_pop();
-    continue_label_id := lexical_pop();
-    break_label_id := lexical_pop();
+    if_end_label_id := lexical_pop() as uint8;
+    if_false_label_id := lexical_pop() as uint8;
+    if_end_label_id := lexical_pop() as uint8;
+    continue_label_id := lexical_pop() as uint8;
+    break_label_id := lexical_pop() as uint8;
 end sub;
 
 sub create_bootstrap_type(identifier_id: uint16): (type: [NumericThing])
@@ -278,7 +278,7 @@ sub do_label()
     var id: uint16 := expect_identifier();
     expect_token(TOKEN_COLON);
 
-    var label: uint16 := create_label();
+    var label: uint8 := create_label();
     var label_id: uint16 := create_thing(THING_LABEL, LabelThing@bytes);
     add_symbol(id, label_id, current_namespace_id);
     var labelp: [LabelThing] := find_thing(label_id) as [LabelThing];
@@ -320,23 +320,23 @@ end sub;
 sub do_while()
     do_generic_loop_opening();
 
-    var loop_label_id: uint16;
+    var loop_label_id: uint8;
     (loop_label_id, break_label_id) := do_conditional();
     emit_label(loop_label_id);
 
     expect_token(TOKEN_LOOP);
 end sub;
 
-sub do_jump(label_id: uint16)
+sub do_jump(label: uint8)
     next_token();
     expect_token(TOKEN_SEMICOLON);
 
-    if label_id == 0 then
+    if label == 0 then
         print("not inside a loop");
         halt();
     end if;
 
-    emit_goto(label_id);
+    emit_goto(label);
 end sub;
 
 sub do_return()

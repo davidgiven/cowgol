@@ -120,20 +120,20 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
     var shiftby: uint8 := find_or_load_value(&iop.right, REG_X|REG_Y);
     flush_cached_values(shiftby);
 
-    var entry: uint16 := create_label();
-    var loop: uint16 := create_label();
-    write_cg_6502_conditional_iop(0x80, entry);
-    write_label_iop(loop);
+    var entrylabel: uint16 := create_label();
+    var looplabel: uint16 := create_label();
+    write_cg_6502_conditional_iop(0x80, entrylabel);
+    write_label_iop(looplabel);
     signed_shift_adjustment();
     write_byte(opcode);
 
-    write_label_iop(entry);
+    write_label_iop(entrylabel);
     if shiftby == REG_X then
         write_byte(0xCA); # DEX
     else
         write_byte(0x88); # DEY
     end if;
-    write_cg_6502_conditional_iop(0x10, loop);
+    write_cg_6502_conditional_iop(0x10, looplabel);
 
     make_value_precious_or_save_now(REG_A, &iop.dest);
 end sub;

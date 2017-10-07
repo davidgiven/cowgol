@@ -63,28 +63,28 @@ sub emit_simple(kind: uint8)
     var iop: [Iop] := emit(kind, Iop@bytes);
 end sub;
 
-sub emit_label(label: uint16)
+sub emit_label(label: uint8)
     var iop: [LabelIop] := emit(IOP_LABEL, LabelIop@bytes) as [LabelIop];
     iop.label := label;
 end sub;
 
-sub emit_clonelabel(src_label: uint16, dest_label: uint16)
+sub emit_clonelabel(src_label: uint8, dest_label: uint8)
     var iop: [CloneLabelIop] := emit(IOP_CLONELABEL, CloneLabelIop@bytes) as [CloneLabelIop];
     iop.src_label := src_label;
     iop.dest_label := dest_label;
 end sub;
 
-sub emit_goto(label: uint16)
+sub emit_goto(label: uint8)
     var iop: [GotoIop] := emit(IOP_GOTO, GotoIop@bytes) as [GotoIop];
     iop.label := label;
 end sub;
 
 sub emit_named_goto(label_id: uint16)
-    var iop: [GotoIop] := emit(IOP_NAMEDGOTO, GotoIop@bytes) as [GotoIop];
-    iop.label := label_id;
+    var iop: [NamedGotoIop] := emit(IOP_NAMEDGOTO, NamedGotoIop@bytes) as [NamedGotoIop];
+    iop.label_id := label_id;
 end sub;
 
-sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label: uint16, iffalse_label: uint16)
+sub emit_fe_conditional_branch(iopcode: uint8, iftrue_label: uint8, iffalse_label: uint8)
     var iop: [FEConditionalIop] :=
         emit(iopcode, FEConditionalIop@bytes) as [FEConditionalIop];
     iop.iftrue_label := iftrue_label;
@@ -115,9 +115,13 @@ sub emit_address(opcode: uint8, thing_id: uint16, offset: int16)
     iop.offset := offset as uint16;
 end sub;
 
-sub create_label(): (label: uint16)
+sub create_label(): (label: uint8)
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     label := subroutine.label_count;
+    if label == 0xff then
+        print("too many labels");
+        halt();
+    end if;
     subroutine.label_count := subroutine.label_count + 1;
 end sub;
 

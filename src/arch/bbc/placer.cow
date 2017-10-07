@@ -7,7 +7,7 @@ sub arch_calculate_iop_size(iop: [Iop]): (size: uint8)
             # Worst case.
             size := 5; # Long branch
         else
-            var target: uint16 := labels[iop.label as int16];
+            var target: uint16 := labels[iop.label];
             var offset: int16 := (target - (pc + 2)) as int16;
             if (offset < -128) or (offset > 127) then
                 size := 5;
@@ -33,9 +33,9 @@ sub arch_generate_iop(iop: [Iop]): (size: uint8)
         if iop.opcode == 0x80 then
             size := 3;
             write_byte(0x4C); # JMP abs
-            write_address_iop(IOP_ADDRESS, current_subroutine_id, labels[iop.label as int16]);
+            write_address_iop(IOP_ADDRESS, current_subroutine_id, labels[iop.label]);
         else
-            var target: uint16 := labels[iop.label as int16];
+            var target: uint16 := labels[iop.label];
             var offset: int16 := (target - (pc + 2)) as int16;
             if (offset < -128) or (offset > 127) then
                 size := 5;
@@ -43,7 +43,7 @@ sub arch_generate_iop(iop: [Iop]): (size: uint8)
                 buf[1] := 3;                 # skip jump
                 buf[2] := 0x4C;              # JMP abs
                 write_bytes_iop(3, &buf[0]);
-                write_address_iop(IOP_ADDRESS, current_subroutine_id, labels[iop.label as int16]);
+                write_address_iop(IOP_ADDRESS, current_subroutine_id, labels[iop.label]);
             else
                 size := 2;
                 buf[0] := iop.opcode;
