@@ -48,7 +48,8 @@ build bin/bbcdist.ssd : mkbbcdist | $
     src/arch/bbc/lib/argv.cow $
     src/arch/bbc/lib/fileio.cow $
     src/arch/bbc/lib/mos.cow $
-    src/arch/bbc/lib/runtime.cow
+    src/arch/bbc/lib/runtime.cow $
+    scripts/!boot
 EOF
 
 BOOTSTRAP_LIBS="src/arch/bootstrap/host.cow src/utils/names.cow"

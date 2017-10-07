@@ -349,6 +349,10 @@ end sub;
 sub load_thing_table(filename: [int8])
     var fd: int8 := file_openin(filename);
     thing_table_top := file_ext(fd) as uint16;
+    if thing_table_top > thing_table@size then
+        print("thing table on disk too big (your configuration is broken)\n");
+        exit(1);
+    end if;
     file_getblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
     thing_table[thing_table_top] := 0;

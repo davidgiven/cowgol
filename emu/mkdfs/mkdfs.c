@@ -11,9 +11,10 @@
 
 static const char* output_filename = "dfs.dsd";
 
+static int boot_mode = 0;
 static int disk_size = 800;
 static int disk_pos = 2;
-static const char* disk_name = "Disk";
+static char disk_name[12] = "Disk";
 
 struct catalogue_entry
 {
@@ -114,8 +115,10 @@ static void write_disk(void)
 
     ftruncate(fd, disk_size * 0x100);
     write_byte(fd, 0x107, disk_size);
-    write_byte(fd, 0x106, disk_size>>8);
+    write_byte(fd, 0x106, (boot_mode<<4) | (disk_size>>8));
     write_byte(fd, 0x105, catalogue_pos << 3);
+    pwrite(fd, disk_name+0, 8, 0x000);
+    pwrite(fd, disk_name+8, 4, 0x100);
 
     for (int i=0; i<catalogue_pos; i++)
     {
@@ -142,7 +145,7 @@ int main(int argc, char* const argv[])
 {
     for (;;)
     {
-        switch (getopt(argc, argv, "O:S:N:f:n:l:e:"))
+        switch (getopt(argc, argv, "O:S:N:B:f:n:l:e:"))
         {
             case -1:
                 write_disk();
@@ -157,7 +160,12 @@ int main(int argc, char* const argv[])
                 break;
 
             case 'N':
-                disk_name = optarg;
+                memset(disk_name, 0, sizeof(disk_name));
+                strncpy(disk_name, optarg, sizeof(disk_name));
+                break;
+
+            case 'B':
+                boot_mode = atoi(optarg);
                 break;
 
             case 'f':

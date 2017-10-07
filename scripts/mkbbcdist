@@ -1,6 +1,6 @@
 #!/bin/sh
 
-bin/mkdfs -O $1 \
+bin/mkdfs -O $1 -B 3 -N 'Cowgol demo' \
     -f bin/bbc/iopshower            -n U.IopSh   -l 0x800 \
     -f bin/bbc/thingshower          -n U.ThingSh -l 0x800 \
     -f bin/bbc/tokeniser            -n P.Tokenis -l 0x800 \
@@ -12,3 +12,4 @@ bin/mkdfs -O $1 \
     -f src/arch/bbc/lib/fileio.cow  -n L.FileIO \
     -f src/arch/bbc/lib/mos.cow     -n L.MOS \
     -f src/arch/bbc/lib/runtime.cow -n L.Runtime \
+    -f scripts/'!boot'              -n !BOOT \
