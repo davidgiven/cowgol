@@ -7,8 +7,4 @@ var subdata: [SubRecord];
 sub init_subdata(top: [int8])
     subdata := top as [SubRecord];
     zero_memory(top, subroutine_count * SubRecord@bytes);
-
-    print("(workspace top is 0x");
-    print_hex_i16((top + subroutine_count*SubRecord@bytes) - LOMEM);
-    print(")\n");
 end sub;

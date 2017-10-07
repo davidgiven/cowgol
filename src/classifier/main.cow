@@ -91,7 +91,7 @@ sub find_reachable_subroutines()
         changed := 0;
         var i: uint16 := 0;
         while i < graph_count loop
-            var g: [GraphRecord] := &graph_base[i];
+            var g: [GraphRecord] := &graph_base[i as int16];
             var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
             var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
 
@@ -116,7 +116,7 @@ end sub;
 sub clean_graph()
     var i: uint16 := 0;
     while i < graph_count loop
-        var g: [GraphRecord] := &graph_base[i];
+        var g: [GraphRecord] := &graph_base[i as int16];
         var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
 
         if src.segment == SEGMENT_OMIT then
@@ -131,7 +131,7 @@ end sub;
 sub print_graph()
     var i: uint16 := 0;
     while i < graph_count loop
-        var g: [GraphRecord] := &graph_base[i];
+        var g: [GraphRecord] := &graph_base[i as int16];
         show_name_of(g.src_id);
         print(" -> ");
         show_name_of(g.dest_id);
@@ -143,7 +143,7 @@ end sub;
 
 sub assign_space_for_variables(subroutine_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
-    var sr: [SubRecord] := &subdata[subroutine.address];
+    var sr: [SubRecord] := &subdata[subroutine.address as int16];
 
     sub allocate_space()
         var id: uint16 := 1;
@@ -166,18 +166,18 @@ sub assign_space_for_variables(subroutine_id: uint16)
                     #print_newline();
                 end if;
             end if;
-            id := id + thing.thing_size;
+            id := id + (thing.thing_size as uint16);
         end loop;
     end sub;
 
     sub propagate_offsets_to_callees()
         var i: uint16 := 0;
         while i < graph_count loop
-            var g: [GraphRecord] := &graph_base[i];
+            var g: [GraphRecord] := &graph_base[i as int16];
             if g.src_id == subroutine_id then
                 if g.dest_id != 0 then
                     var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
-                    var dest_sr: [SubRecord] := &subdata[dest.address];
+                    var dest_sr: [SubRecord] := &subdata[dest.address as int16];
                     arch_propagate_var_offsets(&sr.base, &dest_sr.base);
                     g.dest_id := 0;
                 end if;
@@ -196,11 +196,11 @@ end sub;
 sub find_orphaned_subroutine(): (subroutine_id: uint16)
     var i: uint16 := 0;
     while i < graph_count loop
-        var g1: [GraphRecord] := &graph_base[i];
+        var g1: [GraphRecord] := &graph_base[i as int16];
         if g1.src_id != 0 then
             var j: uint16 := 0;
             while j < graph_count loop
-                var g2: [GraphRecord] := &graph_base[j];
+                var g2: [GraphRecord] := &graph_base[j as int16];
                 # Bail out if we find any subroutine called by the one under consideration.
                 if g2.dest_id == g1.src_id then
                     break;
@@ -234,12 +234,12 @@ sub show_subroutine_sizes()
 
     sub do_sub(thing: [SubroutineThing])
         if thing.segment == SEGMENT_CODE then
-            var sr: [SubRecord] := &subdata[thing.address];
+            var sr: [SubRecord] := &subdata[thing.address as int16];
             show_name_of(id);
             print(" ");
             print_i16(thing.address);
             print(": zp=");
-            print_i16(sr.base.zp_size);
+            print_i8(sr.base.zp_size);
             print(" data=");
             print_i16(sr.base.data_size);
             print_newline();
@@ -254,7 +254,7 @@ sub show_subroutine_sizes()
         if thing.thing_type == THING_SUBROUTINE then
             do_sub(thing as [SubroutineThing]);
         end if;
-        id := id + thing.thing_size;
+        id := id + (thing.thing_size as uint16);
     end loop;
 end sub;
 
@@ -277,7 +277,7 @@ print_newline();
 
 clean_graph();
 #print_graph();
-init_subdata(&graph_base[graph_count] as [int8]);
+init_subdata(&graph_base[graph_count as int16] as [int8]);
 assign_space_for_all_variables();
 #show_subroutine_sizes();
 

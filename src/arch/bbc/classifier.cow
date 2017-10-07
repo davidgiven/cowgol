@@ -29,8 +29,8 @@ end sub;
 
 sub arch_allocate_var(offsets: [ArchSizes], thing: [TypedThing], width: uint16)
     if thing.segment == SEGMENT_ZEROPAGE then
-        thing.address := offsets.zp_size;
-        offsets.zp_size := offsets.zp_size + width;
+        thing.address := offsets.zp_size as uint16;
+        offsets.zp_size := offsets.zp_size + (width as uint8);
     elseif thing.segment == SEGMENT_DATA then
         thing.address := offsets.data_size;
         offsets.data_size := offsets.data_size + width;
@@ -55,7 +55,7 @@ end sub;
 
 sub arch_report_offsets(offsets: [ArchSizes])
     print("Zero page: ");
-    print_i16(offsets.zp_size);
+    print_i8(offsets.zp_size);
     print(" bytes\nData: ");
     print_i16(offsets.data_size);
     print(" bytes\n");

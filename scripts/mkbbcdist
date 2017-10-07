@@ -7,6 +7,7 @@ bin/mkdfs -O $1 -B 3 -N 'Cowgol demo' \
     -f bin/bbc/parser               -n P.Parse   -l 0x800 \
     -f bin/bbc/typechecker          -n P.TypeChk -l 0x800 \
     -f bin/bbc/blockifier           -n P.Blockif -l 0x800 \
+    -f bin/bbc/classifier           -n P.Classif -l 0x800 \
     -f bin/bbc/placer               -n P.Placer  -l 0x800 \
     -f bin/bbc/emitter              -n P.Emit    -l 0x800 \
     -f src/arch/bbc/lib/argv.cow    -n L.ArgV \

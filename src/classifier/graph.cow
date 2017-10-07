@@ -9,24 +9,20 @@ var graph_count: uint16;
 sub init_graph(base: [int8])
     graph_base := base as [GraphRecord];
     graph_count := 0;
-
-    print("(workspace base is 0x");
-    print_hex_i16(base - LOMEM);
-    print(")\n");
 end sub;
 
 sub add_reference(src_id: uint16, dest_id: uint16)
     var g: [GraphRecord];
     var i: uint16 := 0;
     while i < graph_count loop
-        g := &graph_base[i] as [GraphRecord];
+        g := &graph_base[i as int16] as [GraphRecord];
         if (g.src_id == src_id) and (g.dest_id == dest_id) then
             return;
         end if;
         i := i + 1;
     end loop;
 
-    g := &graph_base[graph_count] as [GraphRecord];
+    g := &graph_base[graph_count as int16] as [GraphRecord];
     graph_count := graph_count + 1;
     g.src_id := src_id;
     g.dest_id := dest_id;

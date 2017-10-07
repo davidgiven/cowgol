@@ -45,7 +45,8 @@ build bin/bbcdist.ssd : mkbbcdist | $
     bin/mkdfs scripts/mkbbcdist $
     bin/bbc/iopshower bin/bbc/thingshower $
     bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker $
-    bin/bbc/blockifier bin/bbc/placer bin/bbc/emitter $
+    bin/bbc/blockifier bin/bbc/classifier  bin/bbc/placer $
+    bin/bbc/emitter $
     src/arch/bbc/lib/argv.cow $
     src/arch/bbc/lib/fileio.cow $
     src/arch/bbc/lib/mos.cow $
@@ -184,7 +185,7 @@ both_cowgol_programs typechecker \
     src/typechecker/main.cow \
     src/typechecker/deinit.cow \
 
-bootstrapped_cowgol_program bin/classifier \
+both_cowgol_programs classifier \
     src/string_lib.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
