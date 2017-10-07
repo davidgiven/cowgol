@@ -5,3 +5,4 @@ var tokens_dat: [int8] := "D.tokens";
 var strings_dat: [int8] := "D.strings";
 var iops_dat: [int8] := "D.iops";
 var iops_out_dat: [int8] := "D.iopsout";
+var cow_out: [int8] := "cow/out";
