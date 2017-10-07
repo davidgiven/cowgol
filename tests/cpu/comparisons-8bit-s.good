@@ -34,3 +34,11 @@ mone >= zero: no
 mone >= mone: yes
 zero > mone: yes
 zero >= mone: yes
+one < big: yes
+one <= big: yes
+one > big: no
+one >= big: no
+mone < big: yes
+mone <= big: yes
+mone > big: no
+mone >= big: no

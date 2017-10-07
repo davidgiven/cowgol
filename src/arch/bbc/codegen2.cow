@@ -236,9 +236,88 @@ sub arch_gen_mul(iop: [BEIop])
 end sub;
 
 sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
-    if ciop.width == 1 then
-        arch_gen_cmp_byte(ciop, liop);
+    var width: uint8 := ciop.width;
+    write_back_precious_values(REG_MASK);
+
+    if width != 1 then
+        check_wide_ea(&ciop.left);
+        check_wide_ea(&ciop.right);
+    end if;
+
+    var fallthrough_label: uint16;
+    var iopkind: uint8 := ciop.iop_kind;
+
+    sub emit_comparison(ea: [EffectiveAddress])
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            write_byte(0x38); # SEC
+            if width != 1 then
+                aluop_value_with_index(ea, REG_Y, 0xED); # SBC abs
+            else
+                aluop_value(ea, 0xED); # SBC abs
+            end if;
+            write_word_iop(0x0250); # BVC .+2
+            write_word_iop(0x8049); # EOR #80
+        else
+            if width != 1 then
+                aluop_value_with_index(ea, REG_Y, 0xCD); # CMP abs
+            else
+                aluop_value(ea, 0xCD); # CMP abs
+            end if;
+        end if;
+    end sub;
+
+    if width != 1 then
+        find_or_load_fixed_int(ciop.width-1, REG_Y);
+    end if;
+
+    allocate_fixed_reg(REG_A);
+
+    if width != 1 then
+        var label: uint16 := create_label();
+        write_label_iop(label);
+
+        if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+            load_value_with_index(REG_A, &ciop.left, REG_Y);
+            emit_comparison(&ciop.right);
+        else
+            load_value_with_index(REG_A, &ciop.right, REG_Y);
+            emit_comparison(&ciop.left);
+        end if;
     else
-        arch_gen_cmp_wide(ciop, liop);
+        if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+            aluop_value(&ciop.left, 0xAD); # LDA abs
+            emit_comparison(&ciop.right);
+        else
+            aluop_value(&ciop.right, 0xAD); # LDA abs
+            emit_comparison(&ciop.left);
+        end if;
+    end if;
+
+    # Remember, with BEQ we don't care about the order.
+    # After this point, assume we're comparing LT.
+
+    if iopkind == IOP_BE_BEQ then
+        write_cg_6502_conditional_iop(0xD0, ciop.iffalse_label); # BNE
+        fallthrough_label := ciop.iftrue_label;
+    else
+        fallthrough_label := ciop.iffalse_label;
+        if (iopkind & IOP_TYPE_COMPARISON_S) == 0 then
+            # BLTU
+            write_cg_6502_conditional_iop(0x90, ciop.iftrue_label); # BCC, branch if less than
+        else
+            # BLTS
+            write_cg_6502_conditional_iop(0x30, ciop.iftrue_label); # BMI, branch if negative
+            write_word_iop(0x8049); # EOR #80; put Z flag back how it was
+        end if;
+        write_cg_6502_conditional_iop(0xD0, ciop.iffalse_label); # BNE, branch if greater than
+    end if;
+
+    if width != 1 then
+        write_byte(0x88); # DEY
+        write_cg_6502_conditional_iop(0x10, label); # BPL rel
+    end if;
+
+    if liop.label != fallthrough_label then
+        write_cg_6502_conditional_iop(0x80, fallthrough_label);
     end if;
 end sub;

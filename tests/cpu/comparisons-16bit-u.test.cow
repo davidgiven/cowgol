@@ -1,3 +1,5 @@
+var mbig: uint16 := -7000;
+var big: uint16 := 7000;
 var mone: uint16 := -1;
 var one: uint16 := 1;
 var zero: uint16 := 0;
@@ -47,3 +49,13 @@ print("mone >= zero: "); if mone >= zero then yes(); else no(); end if;
 print("mone >= mone: "); if mone >= mone then yes(); else no(); end if;
 print("zero > mone: "); if zero > mone then yes(); else no(); end if;
 print("zero >= mone: "); if zero >= mone then yes(); else no(); end if;
+
+print("one < big: ");  if one < big then yes(); else no(); end if;
+print("one <= big: "); if one <= big then yes(); else no(); end if;
+print("one > big: ");  if one > big then yes(); else no(); end if;
+print("one >= big: "); if one >= big then yes(); else no(); end if;
+
+print("mone < big: ");  if mone < big then yes(); else no(); end if;
+print("mone <= big: "); if mone <= big then yes(); else no(); end if;
+print("mone > big: ");  if mone > big then yes(); else no(); end if;
+print("mone >= big: "); if mone >= big then yes(); else no(); end if;

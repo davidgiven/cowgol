@@ -1,3 +1,5 @@
+var mbig: int8 := -70;
+var big: int8 := 70;
 var mone: int8 := -1;
 var one: int8 := 1;
 var zero: int8 := 0;
@@ -47,3 +49,14 @@ print("mone >= zero: "); if mone >= zero then yes(); else no(); end if;
 print("mone >= mone: "); if mone >= mone then yes(); else no(); end if;
 print("zero > mone: "); if zero > mone then yes(); else no(); end if;
 print("zero >= mone: "); if zero >= mone then yes(); else no(); end if;
+
+print("one < big: ");  if one < big then yes(); else no(); end if;
+print("one <= big: "); if one <= big then yes(); else no(); end if;
+print("one > big: ");  if one > big then yes(); else no(); end if;
+print("one >= big: "); if one >= big then yes(); else no(); end if;
+
+print("mone < big: ");  if mone < big then yes(); else no(); end if;
+print("mone <= big: "); if mone <= big then yes(); else no(); end if;
+print("mone > big: ");  if mone > big then yes(); else no(); end if;
+print("mone >= big: "); if mone >= big then yes(); else no(); end if;
+
