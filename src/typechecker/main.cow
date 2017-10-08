@@ -129,7 +129,8 @@ sub process_subroutine()
         end if;
 
         if (thing.thing_type & THING_DATA) == 0 then
-            print("not a data symbol");
+            print_thing(iop.thing_id);
+            print(" is not a data symbol");
             halt();
         end if;
 

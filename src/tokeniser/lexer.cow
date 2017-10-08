@@ -23,7 +23,7 @@ sub next_raw_byte(): (byte: int8)
 
         if current_arg != ARGC then
             current_filename := ARGV[current_arg];
-            print("opening: ");
+            print("reading: ");
             print(current_filename);
             print_newline();
             current_filename_string_id := lookup_string(

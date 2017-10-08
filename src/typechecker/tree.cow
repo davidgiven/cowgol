@@ -48,6 +48,10 @@ sub alloc_node(): (node: [Node])
     halt();
 end sub;
 
+sub get_node_id(node: [Node]): (id: uint8)
+    id := (((node - &nodes[0]) as uint16) / Node@bytes) as uint8;
+end sub;
+
 sub ref_node(node: [Node])
     $if DEBUG
         print("* ref node 0x");
@@ -61,10 +65,6 @@ end sub;
 sub deref_ea(ea: [EffectiveAddress])
     deref_temporary(ea.obj_id);
     deref_temporary(ea.varoff_id);
-end sub;
-
-sub get_node_id(node: [Node]): (id: uint8)
-    id := (((node - &nodes[0]) as uint16) / Node@bytes) as uint8;
 end sub;
 
 sub deref_node(node: [Node])

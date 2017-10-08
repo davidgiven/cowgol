@@ -154,7 +154,7 @@ end sub;
 
 sub find_thing(id: uint16): (thing: [Thing])
     if id >= thing_table_top then
-        print("thing id ");
+        print("thing id 0x");
         print_hex_i16(id);
         print(" out of bounds");
         print_newline();
@@ -346,6 +346,10 @@ sub is_scalar_type_thing(thing_id: uint16): (yes: uint8)
 end sub;
 
 sub save_thing_table(filename: [int8])
+    print("writing thing table: ");
+    print_i16(thing_table_top);
+    print(" bytes\n");
+
     var fd: int8 := file_openout(filename);
     file_putblock(fd, &thing_table[0], thing_table_top);
     file_close(fd);
@@ -354,6 +358,11 @@ end sub;
 sub load_thing_table(filename: [int8])
     var fd: int8 := file_openin(filename);
     thing_table_top := file_ext(fd) as uint16;
+
+    print("reading thing table: ");
+    print_i16(thing_table_top);
+    print(" bytes\n");
+
     if thing_table_top > thing_table@size then
         print("thing table on disk too big (your configuration is broken)\n");
         exit(1);

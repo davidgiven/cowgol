@@ -593,7 +593,7 @@ end sub;
 sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
     var ea: EffectiveAddress;
     zero_ea(&ea);
-    ea.obj_id := add_number_by_value(value);
+    ea.obj_id := add_number_by_value(value as int32);
     location := find_or_load_value(&ea, candidates);
 end sub;
 

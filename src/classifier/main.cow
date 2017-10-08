@@ -156,14 +156,17 @@ sub assign_space_for_variables(subroutine_id: uint16)
                 if (thing.owner_id == subroutine_id) and (thing.segment != SEGMENT_UNKNOWN) then
                     arch_allocate_var(&sr.base, thing, get_width_of_type(thing.type_id));
 
-                    #show_name_of(subroutine_id);
-                    #print_char('.');
-                    #show_name_of(id);
-                    #print(": segment 0x");
-                    #print_hex_i8(thing.segment);
-                    #print(" offset 0x");
-                    #print_hex_i16(thing.address);
-                    #print_newline();
+                    $if DEBUG
+                        print_thing(subroutine_id);
+                        show_name_of(subroutine_id);
+                        print_char('.');
+                        show_name_of(id);
+                        print(": segment 0x");
+                        print_hex_i8(thing.segment);
+                        print(" offset 0x");
+                        print_hex_i16(thing.address);
+                        print_newline();
+                    $endif
                 end if;
             end if;
             id := id + (thing.thing_size as uint16);

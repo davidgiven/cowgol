@@ -201,8 +201,5 @@ loop
 
     id := id + (thing.thing_size as uint16);
 end loop;
-print("thing table size: 0x");
-print_hex_i16(thing_table_top);
-print_newline();
 
 deinit_string_table();

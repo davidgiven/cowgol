@@ -12,13 +12,13 @@ sub cant_do_2op(iop: [BEIop], op: [int8])
     print("can't do ");
     print_ea(&iop.left);
     print_char('(');
-    print_i8(get_width_of_ea(&iop.left));
+    print_i8(get_width_of_ea(&iop.left) as uint8);
     print(") ");
     print(op);
     print(" -> ");
     print_ea(&iop.dest);
     print_char('(');
-    print_i8(get_width_of_ea(&iop.dest));
+    print_i8(get_width_of_ea(&iop.dest) as uint8);
     print(") width ");
     print_i8(iop.width);
     halt();
@@ -28,17 +28,17 @@ sub cant_do_3op(iop: [BEIop], op: [int8])
     print("can't do ");
     print_ea(&iop.left);
     print_char('(');
-    print_i8(get_width_of_ea(&iop.left));
+    print_i8(get_width_of_ea(&iop.left) as uint8);
     print(") ");
     print(op);
     print(" ");
     print_ea(&iop.right);
     print_char('(');
-    print_i8(get_width_of_ea(&iop.right));
+    print_i8(get_width_of_ea(&iop.right) as uint8);
     print(") -> ");
     print_ea(&iop.dest);
     print_char('(');
-    print_i8(get_width_of_ea(&iop.dest));
+    print_i8(get_width_of_ea(&iop.dest) as uint8);
     print(") width ");
     print_i8(iop.width);
     halt();
@@ -246,7 +246,7 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
         check_wide_ea(&ciop.right);
     end if;
 
-    var fallthrough_label: uint16;
+    var fallthrough_label: uint8;
     var iopkind: uint8 := ciop.iop_kind;
 
     sub emit_comparison(ea: [EffectiveAddress])
@@ -257,8 +257,8 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
             else
                 aluop_value(ea, 0xED); # SBC abs
             end if;
-            write_word_iop(0x0250); # BVC .+2
-            write_word_iop(0x8049); # EOR #80
+            write_word(0x0250); # BVC .+2
+            write_word(0x8049); # EOR #80
         else
             if width != 1 then
                 aluop_value_with_index(ea, REG_Y, 0xCD); # CMP abs
@@ -275,7 +275,7 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
     allocate_fixed_reg(REG_A);
 
     if width != 1 then
-        var label: uint16 := create_label();
+        var label: uint8 := create_label();
         write_label_iop(label);
 
         if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
@@ -309,7 +309,7 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
         else
             # BLTS
             write_cg_6502_conditional_iop(0x30, ciop.iftrue_label); # BMI, branch if negative
-            write_word_iop(0x8049); # EOR #80; put Z flag back how it was
+            write_word(0x8049); # EOR #80; put Z flag back how it was
         end if;
         write_cg_6502_conditional_iop(0xD0, ciop.iffalse_label); # BNE, branch if greater than
     end if;

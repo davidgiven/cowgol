@@ -820,7 +820,7 @@ function lvalue_leaf()
         local t = stream:peek()
         if (t == "[") then
             expect("[");
-            local index = create_tempvar(root_ns["int16"])
+            local index = create_tempvar(root_ns["uint16"])
             expression(index)
             sym = create_array_deref(sym, index)
             expect("]");
@@ -883,7 +883,7 @@ function rvalue_leaf()
             local t = stream:peek()
             if (t == "[") then
                 expect("[");
-                local index = create_tempvar(root_ns["int16"])
+                local index = create_tempvar(root_ns["uint16"])
                 expression(index)
                 local result = create_tempvar(sym.type.elementtype)
                 emit("%s = %s[%s];", result.storage, sym.storage, index.storage)

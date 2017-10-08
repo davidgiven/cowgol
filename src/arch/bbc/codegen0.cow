@@ -115,7 +115,9 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
         opcode := opcode & 0xf7;
         beiop := IOP_ADDRESSLO;
     elseif obj.segment == SEGMENT_UNKNOWN then
-        print("segment of object not known");
+        print("segment of ");
+        print_ea(ea);
+        print(" not known");
         halt();
     else
         beiop := IOP_ADDRESS;

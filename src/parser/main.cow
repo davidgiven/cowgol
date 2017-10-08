@@ -54,7 +54,7 @@ sub push_subroutine()
     lexical_push(if_end_label_id as uint16);
     lexical_push(current_subroutine_id);
     lexical_push(current_namespace_id);
-    lexical_push(ioptab_size);
+    lexical_push(ioptab_top);
     lexical_push(TOKEN_SUB);
 end sub;
 
@@ -566,7 +566,3 @@ emit_simple(IOP_RETURN);
 emit_simple(IOP_END);
 flush_iops(current_subroutine_id, 0);
 close_iopfile();
-
-print("thing table size: ");
-print_i16(thing_table_top);
-print_newline();

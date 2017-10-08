@@ -60,7 +60,7 @@ sub arch_gen_add_byte(iop: [BEIop])
     var opcode: uint8;
 
     if is_number_thing(iop.right.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.right.obj_id);
+        var value: int8 := get_value_of_number(iop.right.obj_id) as int8;
         if (value == 1) or (value == -1) then
             gen_incdec(iop, value);
             return;
@@ -76,7 +76,7 @@ sub arch_gen_sub_byte(iop: [BEIop])
     var opcode: uint8;
 
     if is_number_thing(iop.right.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.right.obj_id);
+        var value: int8 := get_value_of_number(iop.right.obj_id) as int8;
         if (value == 1) or (value == -1) then
             gen_incdec(iop, 0-value);
             return;
@@ -90,8 +90,7 @@ end sub;
 sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
     sub signed_shift_adjustment()
         if signed != 0 then
-            write_byte(0xC9);
-            write_byte(0x80);
+            write_word(0x80C9); # CMP #80
         end if;
     end sub;
 
@@ -99,7 +98,7 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
     value_in_location_will_be_replaced_with(REG_A, &iop.left, &iop.dest);
 
     if is_number_thing(iop.right.obj_id) != 0 then
-        var shifts: int32 := get_value_of_number(iop.right.obj_id);
+        var shifts: uint8 := get_value_of_number(iop.right.obj_id) as uint8;
         var maxshifts: uint8;
         if signed == 0 then
             maxshifts := 6;
@@ -120,8 +119,8 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
     var shiftby: uint8 := find_or_load_value(&iop.right, REG_X|REG_Y);
     flush_cached_values(shiftby);
 
-    var entrylabel: uint16 := create_label();
-    var looplabel: uint16 := create_label();
+    var entrylabel: uint8 := create_label();
+    var looplabel: uint8 := create_label();
     write_cg_6502_conditional_iop(0x80, entrylabel);
     write_label_iop(looplabel);
     signed_shift_adjustment();

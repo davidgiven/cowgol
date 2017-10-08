@@ -1,12 +1,15 @@
-var ioptab_top: [uint8] := HIMEM as [uint8];
-var ioptab_size: uint16 := 0;
+var ioptab: uint8[IOPTABLE_SIZE];
+var ioptab_top: uint16 := 0;
 var iopfd: int8;
 
 sub emit(kind: uint8, size: uint8): (ptr: [Iop])
-    ioptab_size := ioptab_size + 1;
-    ioptab_top[0-(ioptab_size as int16)] := size;
-    ioptab_size := ioptab_size + (size as uint16);
-    ptr := &ioptab_top[0-(ioptab_size as int16)] as [Iop];
+    ptr := &ioptab[ioptab_top] as [Iop];
+    ioptab_top := ioptab_top + (size as uint16);
+    if ioptab_top > ioptab@size then
+        print("iop table overflow");
+        halt();
+    end if;
+
     zero_memory(ptr as [int8], size as uint16);
     ptr.iop_kind := kind;
     ptr.iop_size := size;
@@ -129,17 +132,8 @@ sub flush_iops(object_id: uint16, oldtop: uint16)
     var header: IHeader[1];
     header[0].thing_id := object_id;
     file_putblock(iopfd, &header[0] as [int8], IHeader@bytes);
-
-    var offset: uint16 := oldtop;
-    while offset != ioptab_size loop
-        offset := offset + 1;
-        var size: uint8 := ioptab_top[0-(offset as int16)];
-        offset := offset + (size as uint16);
-        var iop: [Iop] := &ioptab_top[0-(offset as int16)] as [Iop];
-        file_putblock(iopfd, iop as [int8], size as uint16);
-    end loop;
-
-    ioptab_size := oldtop;
+    file_putblock(iopfd, &ioptab[oldtop] as [int8], ioptab_top - oldtop);
+    ioptab_top := oldtop;
 end sub;
 
 sub open_iopfile(filename: [int8])

@@ -6,7 +6,7 @@ init_iop_writer(iops_out_dat);
 
 var current_subroutine_id: uint16;
 
-sub create_label(): (label: uint16)
+sub create_label(): (label: uint8)
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     label := subroutine.label_count;
     if subroutine.label_count == 0xff then

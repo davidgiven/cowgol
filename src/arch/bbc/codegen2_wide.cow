@@ -39,13 +39,13 @@ sub do_2op_helper(iop: [BEIop])
 
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LOAD4BYTES), 0);
-    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
-    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id));
+    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id) as uint16);
+    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id) as uint16);
 
     var mode: uint8 := addressing_mode(iop);
     if (mode & 0b111) != 0 then
         write_byte(0x20); # JSR abs
-        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), 7-mode);
+        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), (7-mode) as uint16);
     end if;
 
     flush_cached_values(REG_MASK);
@@ -60,14 +60,14 @@ sub do_3op_helper(iop: [BEIop])
 
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LOAD6BYTES), 0);
-    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id));
-    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id));
-    write_address_iop(IOP_ADDRESS, iop.right.obj_id, get_value_of_number(iop.right.numoff_id));
+    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id) as uint16);
+    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id) as uint16);
+    write_address_iop(IOP_ADDRESS, iop.right.obj_id, get_value_of_number(iop.right.numoff_id) as uint16);
 
     var mode: uint8 := addressing_mode(iop);
     if (mode & 0b111) != 0 then
         write_byte(0x20); # JSR abs
-        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), 7-mode);
+        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), (7-mode) as uint16);
     end if;
 
     flush_cached_values(REG_MASK);
@@ -81,7 +81,7 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8)
     find_or_load_fixed_int(iop.width - 1, REG_X);
     allocate_fixed_reg(REG_A);
 
-    var label: uint16 := create_label();
+    var label: uint8 := create_label();
     write_label_iop(label);
     load_value_with_index(REG_A, &iop.left, REG_Y);
     aluop_value_with_index(&iop.right, REG_Y, opcode);
@@ -110,7 +110,7 @@ sub arch_gen_copy_wide(iop: [BEIop])
     find_or_load_fixed_int(iop.width - 1, REG_Y);
     allocate_fixed_reg(REG_A);
 
-    var label: uint16 := create_label();
+    var label: uint8 := create_label();
     write_label_iop(label);
     load_value_with_index(REG_A, &iop.left, REG_Y);
     save_value_with_index(REG_A, &iop.dest, REG_Y);
@@ -124,7 +124,7 @@ sub arch_gen_sext(iop: [BEIop])
     do_2op_helper(iop);
 
     find_or_load_fixed_int(iop.width-1, REG_Y);
-    find_or_load_fixed_int(get_width_of_type(iop.left.type_id)-1, REG_X);
+    find_or_load_fixed_int((get_width_of_type(iop.left.type_id) as uint8)-1, REG_X);
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_SEXT), 0);
 
@@ -135,7 +135,7 @@ sub arch_gen_zext(iop: [BEIop])
     do_2op_helper(iop);
 
     find_or_load_fixed_int(iop.width-1, REG_Y);
-    find_or_load_fixed_int(get_width_of_type(iop.left.type_id)-1, REG_X);
+    find_or_load_fixed_int((get_width_of_type(iop.left.type_id) as uint8)-1, REG_X);
     write_byte(0x20); # JSR abs
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_ZEXT), 0);
 

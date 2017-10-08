@@ -1,49 +1,41 @@
-var stringtab_top: [int8] := HIMEM;
-var stringtab_base: [int8] := stringtab_top;
+var stringtab: uint8[STRINGTABLE_SIZE];
+var stringtab_top: uint16 := 1;
 var input_buffer: int8[256];
 var buffer_index: uint8 := 0;
 
 sub lookup_string(buffer_ptr: [int8], buffer_len: uint8): (stringid: uint16)
-    var ptr: [int8] := stringtab_base;
-    while ptr < stringtab_top loop
-        var len: uint8 := (ptr[0] as uint8) - 1;
+    var ptr: [uint8];
+
+    stringid := 1;
+    while stringid != stringtab_top loop
+        ptr := &stringtab[stringid] as [uint8];
+        var len: uint8 := ptr[0] - 1;
         if len == buffer_len then
-            if compare_memory(buffer_ptr, &ptr[1], len as uint16) == 0 then
-                stringid := (stringtab_top - ptr) as uint16;
+            if compare_memory(buffer_ptr, &ptr[1] as [int8], len as uint16) == 0 then
                 return;
             end if;
         end if;
-        ptr := ptr + (len as int16) + 1;
+        stringid := stringid + (len as uint16) + 1;
     end loop;
 
-    stringtab_base := (stringtab_base - (buffer_len as int16)) - 1;
-    stringtab_base[0] := (buffer_len + 1) as int8;
-    copy_memory(buffer_ptr, stringtab_base+1, buffer_len as uint16);
-    stringid := (stringtab_top - stringtab_base) as uint16;
+    stringid := stringtab_top;
+    stringtab_top := stringtab_top + (buffer_len as uint16) + 1;
+    if stringtab_top > stringtab@size then
+        print("string table overflow\n");
+        exit(1);
+    end if;
+
+    ptr := &stringtab[stringid] as [uint8];
+    ptr[0] := buffer_len + 1;
+    copy_memory(buffer_ptr, &ptr[1] as [int8], buffer_len as uint16);
 end sub;
 
 sub save_string_table(filename: [int8])
+    print("writing string table: ");
+    print_i16(stringtab_top);
+    print(" bytes\n");
+
     var fd: int8 := file_openout(filename);
-    file_putblock(fd, stringtab_base, (stringtab_top - stringtab_base) as uint16);
+    file_putblock(fd, &stringtab[0] as [int8], stringtab_top);
     file_close(fd);
 end sub;
-
-sub fixup_strings()
-    var length: uint16 := (stringtab_top - stringtab_base) as uint16;
-    var id: uint16 := 1;
-    loop
-        var thing: [Thing] := &thing_table[id] as [Thing];
-        if thing.thing_size == 0 then
-            break;
-        end if;
-        if (thing.thing_type == THING_IDENTIFIER) or (thing.thing_type == THING_TOKEN) then
-            var identifier_thing: [IdentifierThing] := thing as [IdentifierThing];
-            identifier_thing.string_id := length - identifier_thing.string_id;
-        elseif thing.thing_type == THING_STRING then
-            var string_thing: [StringThing] := thing as [StringThing];
-            string_thing.string_id := length - string_thing.string_id;
-        end if;
-        id := id + (thing.thing_size as uint16);
-    end loop;
-end sub;
-

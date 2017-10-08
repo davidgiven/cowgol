@@ -17,7 +17,7 @@ sub arch_gen_copy_word(iop: [BEIop])
     check_wide_ea(&iop.left);
     check_wide_ea(&iop.right);
     if is_number_thing(iop.left.obj_id) != 0 then
-        var value: int32 := get_value_of_number(iop.left.obj_id);
+        var value: uint16 := get_value_of_number(iop.left.obj_id) as uint16;
         var candidates: uint8;
         if iop.dest.flags == EA_DEREF then
             candidates := REG_A;
@@ -25,10 +25,10 @@ sub arch_gen_copy_word(iop: [BEIop])
             candidates := REG_A|REG_X;
         end if;
 
-        var location: uint8 := find_or_load_int(value, candidates);
+        var location: uint8 := find_or_load_int(value as uint8, candidates);
         save_value_with_index_or_offset(location, &iop.dest, 0);
         free_reg(location);
-        location := find_or_load_int(value >> 8, candidates);
+        location := find_or_load_int((value >> 8) as uint8, candidates);
         save_value_with_index_or_offset(location, &iop.dest, 1);
     elseif is_string_thing(iop.left.obj_id) != 0 then
         address_of();
