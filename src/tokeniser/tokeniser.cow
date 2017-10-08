@@ -1,7 +1,7 @@
 var current_token: uint16;
 var filename_id: uint16 := 0;
 
-var debug_option: uint8 := 1;
+var debug_option: uint8 := 0;
 
 sub skip_whitespace()
 	loop
