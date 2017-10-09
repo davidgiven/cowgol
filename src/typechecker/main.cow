@@ -677,6 +677,7 @@ sub process_subroutine()
         var node: [Node] := push_empty_node();
         node.iop := IOP_FEX_PUSH;
         node.left.obj_id := add_number_by_value(left_type.element_count as int32);
+        node.left.type_id := constant_type;
         node.type_id := constant_type;
         node.flags := FLAG_RVALUE;
 
