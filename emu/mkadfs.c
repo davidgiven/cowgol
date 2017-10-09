@@ -16,7 +16,7 @@ static const char* output_filename = "adfs.adf";
 static int boot_mode = 0;
 static int disk_size = 1280;
 static int disk_pos = 7;
-static char disk_name[19] = "Disk";
+static int disk_fd;
 
 struct directory_entry
 {
@@ -33,12 +33,27 @@ struct directory_entry
 struct directory
 {
     struct directory_entry* entries[47];
+    uint32_t start_sector;
+    uint32_t parent_sector;
+    uint8_t name[10];
+    uint8_t title[19];
     uint8_t data[0x500];
 };
 
+struct dirstack
+{
+    struct dirstack* next;
+    struct directory* dir;
+};
+
+struct dirstack* cwd = NULL;
 struct directory_entry* lastfile;
 
-struct directory root_dir;
+struct directory root_dir = {
+    .parent_sector = 2,
+    .name = "$\r\r\r\r\r\r\r\r\r",
+    .title = "$\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r",
+};
 
 static void write_word(uint8_t* ptr, uint16_t value)
 {
@@ -61,10 +76,10 @@ static void write_quad(uint8_t* ptr, uint32_t value)
     ptr[3] = value>>24;
 }
 
-static void add_file(struct directory* dir, const char* filename)
+static void add_de(struct directory* parent, const char* filename, bool isdir, uint32_t length, void* data)
 {
     int pos = 0;
-    while (dir->entries[pos])
+    while (parent->entries[pos])
     {
         pos++;
         if (pos == 47)
@@ -74,21 +89,14 @@ static void add_file(struct directory* dir, const char* filename)
         }
     }
 
-    lastfile = dir->entries[pos] = calloc(1, sizeof(struct directory_entry));
+    lastfile = parent->entries[pos] = calloc(1, sizeof(struct directory_entry));
 
-    int fd = open(filename, O_RDONLY);
-    if (fd == -1)
-    {
-        fprintf(stderr, "cannot open '%s': %s\n", filename, strerror(errno));
-        exit(1);
-    }
-
-    struct stat st;
-    fstat(fd, &st);
-    lastfile->length = st.st_size;
+    lastfile->length = length;
+    lastfile->data = data;
+    lastfile->isdir = isdir;
     lastfile->load_address = lastfile->exec_address = 0xffffffff;
 
-    memset(&lastfile->name[0], 13, sizeof(lastfile->name));
+    memset(lastfile->name, 13, sizeof(lastfile->name));
     const char* leaf = strrchr(filename, '/');
     if (!leaf)
         leaf = filename;
@@ -102,7 +110,7 @@ static void add_file(struct directory* dir, const char* filename)
         lastfile->name[i] = c;
     }
 
-    lastfile->sectors = ((st.st_size + 0xff) & ~0xff) >> 8;
+    lastfile->sectors = ((length + 0xff) & ~0xff) >> 8;
     lastfile->start_sector = disk_pos;
     disk_pos += lastfile->sectors;
     if (disk_pos > disk_size)
@@ -110,13 +118,40 @@ static void add_file(struct directory* dir, const char* filename)
         fprintf(stderr, "no space on disk\n");
         exit(1);
     }
+}
 
-    lastfile->data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (lastfile->data == (void*)-1)
+static void add_file(struct directory* parent, const char* filename)
+{
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1)
+    {
+        fprintf(stderr, "cannot open '%s': %s\n", filename, strerror(errno));
+        exit(1);
+    }
+
+    struct stat st;
+    fstat(fd, &st);
+
+    void* data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    if (data == (void*)-1)
     {
         fprintf(stderr, "cannot load '%s': %s\n", filename, strerror(errno));
         exit(1);
     }
+
+    add_de(parent, filename, false, st.st_size, data);
+}
+
+static struct directory* add_dir(struct directory* parent, const char* filename)
+{
+    struct directory* dir = calloc(1, sizeof(struct directory));
+    add_de(parent, filename, true, 0x500, &dir->data);
+    dir->parent_sector = parent->start_sector;
+    dir->start_sector = lastfile->start_sector;
+    memcpy(dir->name, lastfile->name, sizeof(dir->name));
+    memset(dir->title, 13, sizeof(dir->title));
+    memcpy(dir->title, lastfile->name, sizeof(dir->name));
+    return dir;
 }
 
 static int filename_comparison(const void* leftp, const void* rightp)
@@ -149,8 +184,8 @@ static void compile_directory(struct directory* dir)
 
     memcpy(&dir->data[0x001], "Hugo", 4);
     memcpy(&dir->data[0x4fb], "Hugo", 4);
-    strcpy(&dir->data[0x4cc], "$");
-    strncpy(&dir->data[0x4d9], disk_name, sizeof(disk_name));
+    memcpy(&dir->data[0x4cc], dir->name, sizeof(dir->name));
+    memcpy(&dir->data[0x4d9], dir->title, sizeof(dir->title));
     write_triad(&dir->data[0x4d6], 2);
 
     for (int i=0; i<47; i++)
@@ -172,6 +207,8 @@ static void compile_directory(struct directory* dir)
         write_quad(&ptr[0x12], de->length);
         write_triad(&ptr[0x16], de->start_sector);
         ptr[0x19] = i;
+
+        pwrite(disk_fd, de->data, 0x100 * de->sectors, de->start_sector * 0x100);
     }
 }
 
@@ -189,15 +226,6 @@ static uint8_t checksum(uint8_t* ptr)
 
 static void write_disk(void)
 {
-    int fd = open(output_filename, O_WRONLY|O_CREAT|O_TRUNC, 0644);
-    if (fd == -1)
-    {
-        fprintf(stderr, "cannot open output file: %s\n", strerror(errno));
-        exit(1);
-    }
-
-    ftruncate(fd, disk_size * 0x100);
-
     uint8_t diskmap[512] = {};
     write_triad(&diskmap[0x000], disk_pos);
     write_triad(&diskmap[0x100], disk_size - disk_pos);
@@ -207,35 +235,31 @@ static void write_disk(void)
     diskmap[0x1fe] = 3;
     diskmap[0x0ff] = checksum(&diskmap[0x000]);
     diskmap[0x1ff] = checksum(&diskmap[0x100]);
-    pwrite(fd, diskmap, sizeof(diskmap), 0x000);
-
-    compile_directory(&root_dir);
-    pwrite(fd, root_dir.data, sizeof(root_dir.data), 0x200);
-
-    for (int i=0; i<47; i++)
-    {
-        struct directory_entry* de = root_dir.entries[i];
-        if (!de)
-            continue;
-
-        pwrite(fd, de->data, 0x100 * de->sectors, de->start_sector * 0x100);
-    }
-
-    close(fd);
+    pwrite(disk_fd, diskmap, sizeof(diskmap), 0x000);
 }
 
 int main(int argc, char* const argv[])
 {
+    cwd = calloc(1, sizeof(struct dirstack));
+    cwd->dir = &root_dir;
+
     for (;;)
     {
-        switch (getopt(argc, argv, "O:S:N:B:f:n:l:e:"))
+        switch (getopt(argc, argv, "O:S:N:B:f:n:l:e:d:u"))
         {
             case -1:
-                write_disk();
-                return 0;
+                goto finished;
 
             case 'O':
                 output_filename = optarg;
+                disk_fd = open(output_filename, O_WRONLY|O_CREAT|O_TRUNC, 0644);
+                if (disk_fd == -1)
+                {
+                    fprintf(stderr, "cannot open output file: %s\n", strerror(errno));
+                    exit(1);
+                }
+
+                ftruncate(disk_fd, disk_size * 0x100);
                 break;
 
             case 'S':
@@ -243,8 +267,8 @@ int main(int argc, char* const argv[])
                 break;
 
             case 'N':
-                memset(disk_name, 0, sizeof(disk_name));
-                strncpy(disk_name, optarg, sizeof(disk_name));
+                memset(cwd->dir->title, 0, sizeof(cwd->dir->title));
+                memcpy(cwd->dir->title, optarg, strlen(optarg));
                 break;
 
             case 'B':
@@ -252,7 +276,7 @@ int main(int argc, char* const argv[])
                 break;
 
             case 'f':
-                add_file(&root_dir, optarg);
+                add_file(cwd->dir, optarg);
                 break;
 
             case 'n':
@@ -276,9 +300,37 @@ int main(int argc, char* const argv[])
                 lastfile->exec_address = strtoul(optarg, NULL, 0);
                 break;
 
+            case 'd':
+            {
+                struct dirstack* ds = calloc(1, sizeof(struct dirstack));
+                ds->next = cwd;
+                ds->dir = add_dir(cwd->dir, optarg);
+                cwd = ds;
+                break;
+            }
+
+            case 'u':
+                if (!cwd->next)
+                {
+                    fprintf(stderr, "at the root directory\n");
+                    exit(1);
+                }
+                compile_directory(cwd->dir);
+                cwd = cwd->next;
+                break;
+
             default:
                 fprintf(stderr, "Usage: mkdfs -O <diskname> -f <filename> ...\n");
                 exit(1);
         }
     }
+finished:
+    while (cwd)
+    {
+        compile_directory(cwd->dir);
+        cwd = cwd->next;
+    }
+    pwrite(disk_fd, root_dir.data, sizeof(root_dir.data), 0x200);
+    write_disk();
+    close(disk_fd);
 }

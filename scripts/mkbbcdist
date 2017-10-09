@@ -1,19 +1,23 @@
 #!/bin/sh
 
 bin/mkadfs -O $1 -B 3 -N 'Cowgol demo' \
-    -f bin/bbc/iopshower            -n IopSh   -l 0x800 \
-    -f bin/bbc/thingshower          -n ThingSh -l 0x800 \
-    -f bin/bbc/tokeniser            -n Tokenis -l 0x800 \
-    -f bin/bbc/parser               -n Parse   -l 0x800 \
-    -f bin/bbc/typechecker          -n TypeChk -l 0x800 \
-    -f bin/bbc/blockifier           -n Blockif -l 0x800 \
-    -f bin/bbc/classifier           -n Classif -l 0x800 \
-    -f bin/bbc/codegen              -n CodeGen -l 0x800 \
-    -f bin/bbc/placer               -n Placer  -l 0x800 \
-    -f bin/bbc/emitter              -n Emit    -l 0x800 \
-    -f src/arch/bbc/lib/argv.cow    -n ArgV \
-    -f src/arch/bbc/lib/fileio.cow  -n FileIO \
-    -f src/arch/bbc/lib/mos.cow     -n MOS \
-    -f src/arch/bbc/lib/runtime.cow -n Runtime \
     -f scripts/'!boot'              -n !BOOT \
-    -f demo/tiny.cow                -n src
+    -f demo/tiny.cow                -n TestProg \
+    -d Bin \
+        -f bin/bbc/iopshower            -n IopShow    -l 0x800 \
+        -f bin/bbc/thingshower          -n ThingShow  -l 0x800 \
+        -f bin/bbc/tokeniser            -n Tokeniser  -l 0x800 \
+        -f bin/bbc/parser               -n Parser     -l 0x800 \
+        -f bin/bbc/typechecker          -n TypeCheck  -l 0x800 \
+        -f bin/bbc/blockifier           -n Blockifier -l 0x800 \
+        -f bin/bbc/classifier           -n Classifier -l 0x800 \
+        -f bin/bbc/codegen              -n CodeGen    -l 0x800 \
+        -f bin/bbc/placer               -n Placer     -l 0x800 \
+        -f bin/bbc/emitter              -n Emitter    -l 0x800 \
+        -u \
+    -d Lib \
+        -f src/arch/bbc/lib/argv.cow    -n ArgV \
+        -f src/arch/bbc/lib/fileio.cow  -n FileIO \
+        -f src/arch/bbc/lib/mos.cow     -n MOS \
+        -f src/arch/bbc/lib/runtime.cow -n Runtime \
+        -u \

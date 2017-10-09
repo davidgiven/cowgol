@@ -41,7 +41,7 @@ rule token_names
 
 rule mkbbcdist
     command = scripts/mkbbcdist $out
-build bin/bbcdist.ssd : mkbbcdist | $
+build bin/bbcdist.adf : mkbbcdist | $
     bin/mkdfs bin/mkadfs scripts/mkbbcdist $
     bin/bbc/iopshower bin/bbc/thingshower $
     bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker $
