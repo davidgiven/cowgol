@@ -211,7 +211,7 @@ sub do_compilation_option()
 			error_with_location();
 		end if;
 
-		if inverted_case != debug_option then
+		if inverted_case == debug_option then
 			while current_byte != '$' loop
 				if current_byte == -1 then
 					print("end of file in $if");
