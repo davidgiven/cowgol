@@ -29,6 +29,11 @@ sub read_iop_header(): (header: [IHeader])
         halt();
     end if;
     header := &iop_buffer[0] as [IHeader];
+
+    print_i32(file_tell(iop_in_fd));
+    print_char('/');
+    print_i32(file_ext(iop_in_fd));
+    print_newline();
 end sub;
 
 sub read_iop(): (iop: [Iop])
