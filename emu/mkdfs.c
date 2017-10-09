@@ -9,7 +9,7 @@
 #include <string.h>
 #include <errno.h>
 
-static const char* output_filename = "dfs.dsd";
+static const char* output_filename = "dfs.ssd";
 
 static int boot_mode = 0;
 static int disk_size = 800;

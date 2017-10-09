@@ -14,7 +14,7 @@ rule bootstrapped_cowgol_program
     command = scripts/cowgol_bootstrap_compiler -o $out $in
 
 rule c_program
-    command = cc -std=c99 -Wno-unused-result -O -g -o $out $in
+    command = cc -std=c99 -Wno-unused-result -g -o $out $in
 
 build compiler_suite : phony $
     bin/tokeniser bin/parser bin/typechecker bin/blockifier $
@@ -38,7 +38,7 @@ rule token_names
 rule mkbbcdist
     command = scripts/mkbbcdist $out
 build bin/bbcdist.ssd : mkbbcdist | $
-    bin/mkdfs scripts/mkbbcdist $
+    bin/mkdfs bin/mkadfs scripts/mkbbcdist $
     bin/bbc/iopshower bin/bbc/thingshower $
     bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker $
     bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen $
@@ -70,7 +70,8 @@ build bin/bbc/thingshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/li
 build bin/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/things.cow src/utils/iops.cow src/utils/stringtable.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h src/arch/bootstrap/host.cow src/utils/names.cow
 build bin/bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/things.cow src/utils/iops.cow src/utils/stringtable.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
 build bin/bbctube : c_program emu/bbctube/bbctube.c emu/bbctube/lib6502.c
-build bin/mkdfs : c_program emu/mkdfs/mkdfs.c
+build bin/mkdfs : c_program emu/mkdfs.c
+build bin/mkadfs : c_program emu/mkadfs.c
 build /tmp/cowgol-obj/tests/bootstrap/arrays : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow tests/bootstrap/_test.cow tests/bootstrap/arrays.test.cow | scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h src/arch/bootstrap/host.cow src/utils/names.cow
 build /tmp/cowgol-obj/tests/bootstrap/arrays.stamp : run_smart_test /tmp/cowgol-obj/tests/bootstrap/arrays
 build /tmp/cowgol-obj/tests/bootstrap/casts : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow tests/bootstrap/_test.cow tests/bootstrap/casts.test.cow | scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h src/arch/bootstrap/host.cow src/utils/names.cow

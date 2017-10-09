@@ -18,7 +18,7 @@ rule bootstrapped_cowgol_program
     command = scripts/cowgol_bootstrap_compiler -o $out $in
 
 rule c_program
-    command = cc -std=c99 -Wno-unused-result -O -g -o $out $in
+    command = cc -std=c99 -Wno-unused-result -g -o $out $in
 
 build compiler_suite : phony $
     bin/tokeniser bin/parser bin/typechecker bin/blockifier $
@@ -42,7 +42,7 @@ rule token_names
 rule mkbbcdist
     command = scripts/mkbbcdist $out
 build bin/bbcdist.ssd : mkbbcdist | $
-    bin/mkdfs scripts/mkbbcdist $
+    bin/mkdfs bin/mkadfs scripts/mkbbcdist $
     bin/bbc/iopshower bin/bbc/thingshower $
     bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker $
     bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen $
@@ -271,7 +271,10 @@ c_program bin/bbctube \
     emu/bbctube/lib6502.c \
 
 c_program bin/mkdfs \
-    emu/mkdfs/mkdfs.c
+    emu/mkdfs.c
+
+c_program bin/mkadfs \
+    emu/mkadfs.c
 
 for f in tests/bootstrap/*.test.cow; do
     bootstrap_test $f
