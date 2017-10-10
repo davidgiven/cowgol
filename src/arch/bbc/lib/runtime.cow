@@ -600,8 +600,8 @@ sub __divs()
     @bytes 0xA9, 0x00;           # LDA #0
     @bytes 0xF1, >&__params+4;   # SBC (__params+4), Y
 	@bytes 0x99, &newright;      # STA newright, Y
-    @bytes 0xE8;                 # INX
-    @bytes 0x88;                 # DEY
+    @bytes 0xC8;                 # INY
+    @bytes 0xCA;                 # DEX
 	@bytes 0x10, 0xF5;           # BPL again
 
 	# Y is widthm1+1 now, so adjust
@@ -611,6 +611,8 @@ sub __divs()
 	@bytes 0x85, >&__params+4;   # STA __params+4
 	@bytes 0xA9, <&newright;     # LDA #<newright
 	@bytes 0x85, >&__params+5;   # STA __params+5
+
+    # Restore the width field, and actually do the division.
 
     @bytes 0x68;                 # PLA
     @bytes 0x20, &__divu;        # JSR __divu
