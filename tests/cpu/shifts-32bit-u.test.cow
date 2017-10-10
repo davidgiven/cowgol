@@ -12,8 +12,8 @@ var four8: uint8 := 4;
 var thirtyone8: uint8 := 31;
 var thirtytwo8: uint8 := 32;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 print("one<<zero8 == one"); if (one<<zero8) == one then yes(); else no(); end if;
 print("one<<one8 == two"); if (one<<one8) == two then yes(); else no(); end if;

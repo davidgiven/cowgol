@@ -5,8 +5,8 @@ var two: int8 := 2;
 var three: int8 := 3;
 var four: int8 := 4;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 print("two|one==three"); if (two|one) == three then yes(); else no(); end if;
 print("three&two==two"); if (three&two) == two then yes(); else no(); end if;

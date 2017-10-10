@@ -10,8 +10,8 @@ direct.b := 2;
 direct.c := 3;
 var indirect: [Values] := &direct;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 print("indirect.b*2==4"); if (indirect.b*2)==4 then yes(); else no(); end if;
 print("2*indirect.b==4"); if (2*indirect.b)==4 then yes(); else no(); end if;

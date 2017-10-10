@@ -7,8 +7,8 @@ var largeu: uint16 := 300;
 var larges: int16 := 301;
 var maxuint8: uint8 := 0xff;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 sub zero_memory(ptr: [int8], size: uint16)
     while size != 0 loop

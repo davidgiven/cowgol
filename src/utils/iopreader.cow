@@ -33,7 +33,7 @@ sub read_iop_header(): (header: [IHeader])
     print_i32(file_tell(iop_in_fd));
     print_char('/');
     print_i32(file_ext(iop_in_fd));
-    print_newline();
+    print_char('\r');
 end sub;
 
 sub read_iop(): (iop: [Iop])

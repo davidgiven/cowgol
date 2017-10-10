@@ -41,7 +41,7 @@ sub init_argv()
         ARGV[ARGC] := &__argstorage[outindex];
         ARGC := ARGC + 1;
         if ARGC == ARGV@size then
-            print("too many arguments\r");
+            print("too many arguments\n");
             exit(1);
         end if;
 

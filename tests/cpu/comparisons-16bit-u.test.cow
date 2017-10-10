@@ -4,8 +4,8 @@ var mone: uint16 := -1;
 var one: uint16 := 1;
 var zero: uint16 := 0;
 
-sub yes() print("yes\r"); end sub;
-sub no()  print("no\r");  end sub;
+sub yes() print("yes\n"); end sub;
+sub no()  print("no\n");  end sub;
 
 sub test1()
     print("one == zero: "); if one == zero then yes(); else no(); end if;

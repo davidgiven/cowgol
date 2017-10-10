@@ -15,8 +15,6 @@ sub next_raw_byte(): (byte: int8)
                 file_close(current_fd);
                 current_fd := -1;
                 byte := 10;
-            elseif byte == 10 then
-                current_line_number := current_line_number + 1;
             end if;
             return;
         end if;
@@ -43,6 +41,17 @@ end sub;
 sub next_byte()
     current_byte := peeked_byte;
     peeked_byte := next_raw_byte();
+
+    if ((current_byte == '\r') and (peeked_byte != '\n')) or (current_byte == '\n') then
+        current_line_number := current_line_number + 1;
+
+        if current_fd != -1 then
+            print_i32(file_tell(current_fd));
+            print_char('/');
+            print_i32(file_ext(current_fd));
+            print_char('\r');
+        end if;
+    end if;
 end sub;
 
 sub error_with_location()

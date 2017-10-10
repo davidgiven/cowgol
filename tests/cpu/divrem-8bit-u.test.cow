@@ -4,8 +4,8 @@ var two: uint8 := 2;
 var one: uint8 := 1;
 var zero: uint8 := 0;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 print("four/two==two");  if four/two==two  then yes(); else no(); end if;
 print("three/two==one"); if three/two==one then yes(); else no(); end if;

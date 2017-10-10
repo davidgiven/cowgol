@@ -61,6 +61,7 @@ end sub;
 sub pop_subroutine()
     lexical_pop_scope_type(TOKEN_SUB);
     flush_iops(current_subroutine_id, lexical_pop());
+    show_progress();
     current_namespace_id := lexical_pop();
     current_subroutine_id := lexical_pop();
     if_end_label_id := lexical_pop() as uint8;

@@ -21,7 +21,7 @@ end loop;
 
 print("Byte 0 was used 0x");
 print_hex_i8(table[0]);
-print(" times!\r");
+print(" times!\n");
 
 print("Byte count: 0x");
 print_hex_i16(count);

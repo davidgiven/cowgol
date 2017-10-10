@@ -12,8 +12,8 @@ var four8: uint8 := 4;
 var fifteen8: uint8 := 15;
 var sixteen8: uint8 := 16;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 # This should generate the same bytecode as for unsigned.
 print("one<<one8 == two"); if (one<<one8) == two then yes(); else no(); end if;

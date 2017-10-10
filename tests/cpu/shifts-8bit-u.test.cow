@@ -7,8 +7,8 @@ var four: uint8 := 4;
 var seven: uint8 := 7;
 var eight: uint8 := 8;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 print("one<<zero == one"); if (one<<zero) == one then yes(); else no(); end if;
 print("one<<one == two"); if (one<<one) == two then yes(); else no(); end if;

@@ -5,8 +5,8 @@ var u16: uint16;
 var s32: int32;
 var u32: uint32;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 # Zero extension.
 

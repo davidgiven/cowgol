@@ -7,8 +7,8 @@ var four: int16 := 4;
 var twofivesix: int16 := 256;
 var threehundred: int16 := 300;
 
-sub yes() print(": yes\r"); end sub;
-sub no() print(": no\r"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
 print("two*two==4");            if (two*two) == 4            then yes(); else no(); end if;
 print("threehundred*two==600"); if (threehundred*two) == 600 then yes(); else no(); end if;

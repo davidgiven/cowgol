@@ -62,3 +62,10 @@ sub expect_identifier(): (id: uint16)
     id := current_token;
     next_token();
 end sub;
+
+sub show_progress()
+    print_i32(file_tell(tokens_fd));
+    print_char('/');
+    print_i32(file_ext(tokens_fd));
+    print_char('\r');
+end sub;

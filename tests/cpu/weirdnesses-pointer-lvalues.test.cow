@@ -1,5 +1,5 @@
-sub yes() print("yes\r"); end sub;
-sub no() print("no\r"); end sub;
+sub yes() print("yes\n"); end sub;
+sub no() print("no\n"); end sub;
 
 var ptrarray: [int8][10];
 var bytearray: int8[10];
