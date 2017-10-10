@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 #include "lib6502.h"
 
 M6502* cpu;
@@ -208,9 +209,27 @@ static int brk_insn(M6502* cpu, uint16_t address, uint8_t data)
 	M6502_dump(cpu, buffer);
 	printf("%s\n", buffer);
 	printf("%04x: ", address);
-	for (int i=0; i<10; i++)
+	for (int i=0; i<16; i++)
 		printf("%02x ", ram[address+i]);
 	printf("brk '%s'\n", &ram[address]);
+
+	for (int i=0; i<256; i+=16)
+	{
+		printf("%04x: ", i);
+		for (int j=0; j<16; j++)
+			printf("%02x ", ram[i+j]);
+		printf("\n");
+	}
+
+	printf("\n");
+	for (int i=0x0b80; i<0x0c80; i+=16)
+	{
+		printf("%04x: ", i);
+		for (int j=0; j<16; j++)
+			printf("%02x ", ram[i+j]);
+		printf("\n");
+	}
+
 	exit(1);
 }
 
@@ -223,6 +242,8 @@ int main(int argc, char* const argv[])
 {
 	uint16_t load_address = 0x0E00;
 	uint16_t exec_address = load_address;
+
+	memset(ram, 0x55, sizeof(ram));
 
 	for (;;)
 	{

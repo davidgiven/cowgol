@@ -40,11 +40,12 @@ sub read_identifier()
     var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
     current_token := find_token_by_string(string_id);
     if current_token == 0 then
-        var buf: IdentifierThing[1];
-        buf[0].thing_type := THING_IDENTIFIER;
-        buf[0].thing_size := IdentifierThing@bytes;
-        buf[0].string_id := string_id;
-        current_token := add_thing_by_value(&buf[0] as [Thing]);
+        var thing: IdentifierThing;
+        zero_memory(&thing as [int8], thing@bytes);
+        thing.thing_type := THING_IDENTIFIER;
+        thing.thing_size := IdentifierThing@bytes;
+        thing.string_id := string_id;
+        current_token := add_thing_by_value(&thing as [Thing]);
     end if;
 end sub;
 
@@ -135,12 +136,13 @@ sub decode_escaped_char()
 end sub;
 
 sub add_string_thing(string_id: uint16): (token_id: uint16)
-    var buf: StringThing[1];
-    buf[0].thing_type := THING_STRING;
-    buf[0].thing_size := StringThing@bytes;
-    buf[0].string_id := string_id;
-    buf[0].string_size := buffer_index;
-    token_id := add_thing_by_value(&buf[0] as [Thing]);
+    var thing: StringThing;
+    zero_memory(&thing as [int8], thing@bytes);
+    thing.thing_type := THING_STRING;
+    thing.thing_size := StringThing@bytes;
+    thing.string_id := string_id;
+    thing.string_size := buffer_index;
+    token_id := add_thing_by_value(&thing as [Thing]);
 end sub;
 
 sub read_string()
@@ -168,12 +170,13 @@ sub read_char_constant()
         decode_escaped_char();
     end if;
 
-    var buf: NumberThing[1];
-    buf[0].thing_type := THING_NUMBER;
-    buf[0].thing_size := NumberThing@bytes;
-    buf[0].value := current_byte as int32;
+    var thing: NumberThing;
+    zero_memory(&thing as [int8], thing@bytes);
+    thing.thing_type := THING_NUMBER;
+    thing.thing_size := NumberThing@bytes;
+    thing.value := current_byte as int32;
 
-    current_token := add_thing_by_value(&buf[0] as [Thing]);
+    current_token := add_thing_by_value(&thing as [Thing]);
 
     next_byte();
     if current_byte != '\'' then
@@ -290,16 +293,17 @@ sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: 
     buffer_index := string_length(&input_buffer[0]) as uint8;
 
     var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
-    var buf: TokenThing[1];
-    buf[0].thing_type := thingtype;
-    buf[0].string_id := string_id;
+    var thing: TokenThing;
+    zero_memory(&thing as [int8], thing@bytes);
+    thing.thing_type := thingtype;
+    thing.string_id := string_id;
     if thingtype == THING_TOKEN then
-        buf[0].thing_size := TokenThing@bytes;
-        buf[0].token_flags := token_flags;
+        thing.thing_size := TokenThing@bytes;
+        thing.token_flags := token_flags;
     else
-        buf[0].thing_size := IdentifierThing@bytes;
+        thing.thing_size := IdentifierThing@bytes;
     end if;
-    var token_id: uint16 := add_thing(&buf[0] as [Thing]);
+    var token_id: uint16 := add_thing(&thing as [Thing]);
 
     if token_id != id then
         print("token id mismatch (internal error); wanted 0x");

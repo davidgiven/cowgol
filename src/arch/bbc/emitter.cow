@@ -24,7 +24,9 @@ sub arch_calculate_address(thing: [DataThing]): (address: uint16)
     elseif thing.segment == SEGMENT_LAST then
         address := BASE_ADDRESS + 3 + root.code_size + root.const_size + root.archsizes.data_size;
     else
-        print("cannot calculate address of thing with segment=0x");
+        print("cannot calculate address of thing ");
+        print_thing(((thing as [int8]) - &thing_table[0]) as uint16);
+        print(" with segment=0x");
         print_hex_i8(thing.segment);
         print(" address=");
         print_i16(thing.address);

@@ -1,5 +1,6 @@
 sub pointer_of(type_id: uint16, index_type_id: uint16): (ptr_type_id: uint16)
     var buf: PointerThing;
+    zero_memory(&buf as [int8], buf@bytes);
     buf.thing_type := THING_POINTERT;
     buf.thing_size := PointerThing@bytes;
     buf.width := 2;
@@ -21,6 +22,7 @@ sub array_of(type_id: uint16, element_count: uint16, index_type_id: uint16): (ar
     var typething: [TypeThing] := find_thing(type_id) as [TypeThing];
 
     var buf: ArrayThing;
+    zero_memory(&buf as [int8], buf@bytes);
     buf.thing_type := THING_ARRAYT;
     buf.thing_size := ArrayThing@bytes;
     buf.width := element_count * typething.width;

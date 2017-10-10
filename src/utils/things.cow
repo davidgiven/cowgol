@@ -202,6 +202,7 @@ end sub;
 
 sub add_number_by_value(value: int32): (id: uint16)
     var buf: NumberThing;
+    zero_memory(&buf as [int8], buf@bytes);
     buf.thing_type := THING_NUMBER;
     buf.thing_size := NumberThing@bytes;
     buf.value := value;
