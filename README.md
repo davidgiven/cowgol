@@ -1,4 +1,4 @@
-COWGOL v0.0
+COWGOL v0.1
 ===========
 
 © 2017 David Given
@@ -12,16 +12,14 @@ Cowgol is an experimental, Ada-inspired language for very small systems
 these devices: the intention is that you can rebuild the entire compiler on
 an 8-bit micro.
 
-It's really, really unfinished. Right now it's in a state where you can build
-the compiler on a PC, and then use it to cross-compile a minimal 6502 program
-which you can run (successfully) on a real machine.
+Right now it's in a state where you can build the cross-compiler on a PC,
+then use it to compile the compiler for a 6502 device, and then use *that*
+to (slowly) compile and run real programs on a 6502. It can't compile itself
+yet --- there's not enough memory.
 
-Let me be clear:
-
-THERE IS NOTHING USEFUL HERE YET.
-
-So... moving on.
-
+I'm currently targeting this at a BBC Micro with Tube second processor,
+because that gives me a real operating system with file streams and 61kB
+of usable RAM.
 
 How?
 ----
@@ -34,44 +32,86 @@ So there's two main things here.
   afraid: the generated code is full of misaligned accesses and it just won't
   work on an ARM.
 
-- `src/` contains the real compiler. It's this massive, undocumented, seven-
+- `src/` contains the real compiler. It's this massive, undocumented, eight-
   stage pipeline.
 
-The system's in such an early stage so far that I'm not going to write any
+The tests proper are in `tests/cpu`. Some demo programs are in `demo`, and
+some scripts for tying everything together are in `scripts`.
+
+The system's in such an early stage so far that I'm not going to write much
 more documentation than that, but the tl;dr set of instructions is:
 
     ninja
 
-...will build the bootstrap compiler and run all the tests; then:
+...will build the bootstrap compiler, run the tests, then build the BBC Tube
+version. Now you can invoke the bootstrap compiler with:
 
-    bin/tokeniser test.cow
-    bin/parser
-    bin/typechecker
-    mv iops-out.dat iops.dat
-    bin/classifier
-    bin/codegen
-    mv iops-out.dat iops.dat
-    bin/placer
-    mv iops-out.dat iops.dat
-    bin/emitter
+    ./scripts/cowgol -o cow.out test1.cow test2.cow test3.cow
 
-(**Breaking news:** There's a script that will do this for you in
-`scripts/cowgol`.) This will compile `test.cow` into `cow.out`. You can then
-copy this to a BBC Micro, load it at 0x0E00, and then run it by jumping to
-0x0E00.
+The first input file should be `src/arch/bbc/lib/runtime.cow`.
 
 The compiler works by having a shared state, `things.dat`, which is read into
 memory by each stage, modified, and written out again on exit. Then there is
 the opcode stream, `iops.dat`, which is streamed _through_ memory. Provided
 you have enough RAM for the things table you should be able to compile
-programs of unlimited size.
+programs of unlimited size; you need 35kB for the things table to compile the
+compiler. This will fit, just, so it's *theoretically* possible to build the
+compiler on a BBC Tube, but it needs some other memory rearrangement before
+it's worth trying. (And, realistically, making the code smaller and more
+efficient.)
 
-I have no idea whether this is feasible yet --- I'm targeting the 6502 to
-begin with, and it's really wordy. If I compile the parser, which is one of
-the bigger parts of the pipeline, then I end up (at the codegen stage, it
-doesn't get any further than that) with a things table of about 20kB. So,
-that _plus_ the binary both have to fit into memory. This is going to push it
-on most systems. We'll see.
+
+Using the demo disk on a BBC Micro
+----------------------------------
+
+As part of the build, `bin/bbcdist.adf` will be created. This is a ADFS-M
+bootable floppy with the compiler on it. You can use this to play with the
+system.
+
+To use, fire up a BBC Micro with second processor. Enable the Tube. Mount the
+disk. There'll be a file, `TestProg`. This is your source file. If you're on
+a Master, you can edit this with the built-in editor, with `*edit testprog`.
+
+Once you're done, save the file, and then do CTRL+SHIFT+BREAK. The compiler
+will run, very very slowly, and generate you an executable called `cow/out`.
+You can then run it with:
+
+    *LOAD cow/out 800
+    *GO 800
+
+**Important note:** Cowgol binaries stomp all over the language workspace in
+*zero page, and Basic can get pretty upset (including crashlooping). Before
+*doing anything with it, you'll want to get Basic out of the way by doing:
+
+    *GO F800
+
+...to enter the Supervisor.
+
+**A likewise important note:** For some unknown reason, when you `*RUN` a
+*program on the Tube, it remembers where in memory it was and when you press
+*BREAK the Tube OS will try to restart it. This doesn't work with the Cowgol
+*compiler, and you'll end up rerunning random stages of the compiler and
+*horrible things will happen. Use CTRL+BREAK instead.
+
+**An even more important node:** Error handling behaviour is awful, as the
+*manky little `*EXEC` script I wrote to run the compiler can't detect errors.
+*Be handy with CTRL+SHIFT and the BREAK key.
+
+
+Why not?
+--------
+
+So you've tried the demo disk!
+
+...and you've discovered that the compiler takes eight minutes to compile
+"Hello, world!". Does that answer your question?
+
+There are a bunch of things that can be done to improve performance, but they
+all need memory. This isn't free, so I'll need to make things smaller,
+improve code sizes, make the generated code more efficient, etc.
+
+But let's be honest; you're trying to compile a modern-ish language on a 2MHz
+6502 with 64kB of RAM. It's not going to be fast.
 
 
 License?
