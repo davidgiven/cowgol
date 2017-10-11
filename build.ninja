@@ -232,6 +232,10 @@ build /tmp/cowgol-obj/tests/cpu/weirdnesses-queues.6502.exe : cowgol_program src
 build /tmp/cowgol-obj/tests/cpu/weirdnesses-queues.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/weirdnesses-queues.6502.exe | tests/cpu/weirdnesses-queues.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/weirdnesses-queues.good
   badfile=tests/cpu/weirdnesses-queues.bad
+build /tmp/cowgol-obj/tests/cpu/weirdnesses-shift-then-cast.6502.exe : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-shift-then-cast.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
+build /tmp/cowgol-obj/tests/cpu/weirdnesses-shift-then-cast.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/weirdnesses-shift-then-cast.6502.exe | tests/cpu/weirdnesses-shift-then-cast.good scripts/bbctube_test bin/bbctube
+  goodfile=tests/cpu/weirdnesses-shift-then-cast.good
+  badfile=tests/cpu/weirdnesses-shift-then-cast.bad
 build /tmp/cowgol-obj/tests/cpu/weirdnesses.6502.exe : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses.test.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow
 build /tmp/cowgol-obj/tests/cpu/weirdnesses.stamp : run_bbctube_test /tmp/cowgol-obj/tests/cpu/weirdnesses.6502.exe | tests/cpu/weirdnesses.good scripts/bbctube_test bin/bbctube
   goodfile=tests/cpu/weirdnesses.good

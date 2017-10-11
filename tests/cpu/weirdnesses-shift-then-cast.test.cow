@@ -1,0 +1,8 @@
+# This one only showed up when running codegen on the 6502.
+# It only shows up when there's a shift and a cast in the same expression.
+# It eventually turned out to be a borked cast when sizeof(input) >= sizeof(output).
+
+var value: uint16 := 0xf800;
+var shorter: uint8 := (value >> 8) as uint8;
+
+if shorter == 0xf8 then print("yes\n"); else print("no\n"); end if;

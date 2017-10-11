@@ -558,12 +558,11 @@ sub process_subroutine()
     end sub;
 
     sub fe_cast(iop: [FETypedIop])
-        var node: [Node] := pop();
+        var node: [Node] := simplify_node_to_ea_and_deref(pop());
 
         var input_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
         var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
         if input_type.width < output_type.width then
-            node := simplify_node_to_ea_and_deref(node);
             if input_type.thing_type == THING_SIGNEDT then
                 node.iop := IOP_BE_SEXT;
             else
