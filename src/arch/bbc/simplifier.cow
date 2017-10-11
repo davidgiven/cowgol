@@ -82,6 +82,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         iop.left.flags := EA_LEA;
         iop.dest.type_id := int16_type;
         iop.dest.obj_id := tmpvar_id;
+        ea.numoff_id := 0;
         write_be_iop(&iop);
     end sub;
 

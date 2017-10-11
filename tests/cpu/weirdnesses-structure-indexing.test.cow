@@ -1,0 +1,15 @@
+record Value
+    big: uint32;
+    locations: uint8;
+end record;
+
+var values: Value[2];
+values[0].locations := 0;
+values[1].locations := 1;
+
+sub yes() print("yes\n"); end sub;
+sub no() print("no\n"); end sub;
+
+var i: uint8 := 0;
+if values[i].locations == 0 then yes(); else no(); end if;
+if values[0].locations == 0 then yes(); else no(); end if;
