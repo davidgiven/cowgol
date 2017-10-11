@@ -1,0 +1,81 @@
+sub yes() print(": yes\n"); end sub;
+sub no()  print(": no\n");  end sub;
+
+sub test1()
+    var valu8: uint8 := 0x01;
+    var vals8: int8 := 0x10;
+    var valns8: int8 := 0xfe;
+
+    print("valu8 as uint8");    if (valu8 as uint8)    ==       0x01 then yes(); else no(); end if;
+    print("vals8 as uint8");    if (vals8 as uint8)    ==       0x10 then yes(); else no(); end if;
+    print("valns8 as uint8");   if (valns8 as uint8)   ==       0xfe then yes(); else no(); end if;
+    print("valu8 as int8");     if (valu8 as int8)     ==       0x01 then yes(); else no(); end if;
+    print("vals8 as int8");     if (vals8 as int8)     ==       0x10 then yes(); else no(); end if;
+    print("valns8 as int8");    if (valns8 as int8)    ==       0xfe then yes(); else no(); end if;
+    print("valu8 as uint16");   if (valu8 as uint16)   ==     0x0001 then yes(); else no(); end if;
+    print("vals8 as uint16");   if (vals8 as uint16)   ==     0x0010 then yes(); else no(); end if;
+    print("valns8 as uint16");  if (valns8 as uint16)  ==     0xfffe then yes(); else no(); end if;
+    print("valu8 as int16");    if (valu8 as int16)    ==     0x0001 then yes(); else no(); end if;
+    print("vals8 as int16");    if (vals8 as int16)    ==     0x0010 then yes(); else no(); end if;
+    print("valns8 as int16");   if (valns8 as int16)   ==     0xfffe then yes(); else no(); end if;
+    print("valu8 as uint32");   if (valu8 as uint32)   == 0x00000001 then yes(); else no(); end if;
+    print("vals8 as uint32");   if (vals8 as uint32)   == 0x00000010 then yes(); else no(); end if;
+    print("valns8 as uint32");  if (valns8 as uint32)  == 0xfffffffe then yes(); else no(); end if;
+    print("valu8 as int32");    if (valu8 as int32)    == 0x00000001 then yes(); else no(); end if;
+    print("vals8 as int32");    if (vals8 as int32)    == 0x00000010 then yes(); else no(); end if;
+    print("valns8 as int32");   if (valns8 as int32)   == 0xfffffffe then yes(); else no(); end if;
+end sub;
+test1();
+
+sub test2()
+    var valu16: uint16 := 0x0123;
+    var vals16: int16 := 0x3210;
+    var valns16: int16 := 0xfedc;
+
+    print("valu16 as uint8");   if (valu16 as uint8)   ==       0x23 then yes(); else no(); end if;
+    print("vals16 as uint8");   if (vals16 as uint8)   ==       0x10 then yes(); else no(); end if;
+    print("valns16 as uint8");  if (valns16 as uint8)  ==       0xdc then yes(); else no(); end if;
+    print("valu16 as int8");    if (valu16 as int8)    ==       0x23 then yes(); else no(); end if;
+    print("vals16 as int8");    if (vals16 as int8)    ==       0x10 then yes(); else no(); end if;
+    print("valns16 as int8");   if (valns16 as int8)   ==       0xdc then yes(); else no(); end if;
+    print("valu16 as uint16");  if (valu16 as uint16)  ==     0x0123 then yes(); else no(); end if;
+    print("vals16 as uint16");  if (vals16 as uint16)  ==     0x3210 then yes(); else no(); end if;
+    print("valns16 as uint16"); if (valns16 as uint16) ==     0xfedc then yes(); else no(); end if;
+    print("valu16 as int16");   if (valu16 as int16)   ==     0x0123 then yes(); else no(); end if;
+    print("vals16 as int16");   if (vals16 as int16)   ==     0x3210 then yes(); else no(); end if;
+    print("valns16 as int16");  if (valns16 as int16)  ==     0xfedc then yes(); else no(); end if;
+    print("valu16 as uint32");  if (valu16 as uint32)  == 0x00000123 then yes(); else no(); end if;
+    print("vals16 as uint32");  if (vals16 as uint32)  == 0x00003210 then yes(); else no(); end if;
+    print("valns16 as uint32"); if (valns16 as uint32) == 0xfffffedc then yes(); else no(); end if;
+    print("valu16 as int32");   if (valu16 as int32)   == 0x00000123 then yes(); else no(); end if;
+    print("vals16 as int32");   if (vals16 as int32)   == 0x00003210 then yes(); else no(); end if;
+    print("valns16 as int32");  if (valns16 as int32)  == 0xfffffedc then yes(); else no(); end if;
+end sub;
+test2();
+
+sub test3()
+    var valu32: uint32 := 0x01234567;
+    var vals32: int32 := 0x76543210;
+    var valns32: int32 := 0xfedcba98;
+
+    print("valu32 as uint8");   if (valu32 as uint8)   ==       0x67 then yes(); else no(); end if;
+    print("vals32 as uint8");   if (vals32 as uint8)   ==       0x10 then yes(); else no(); end if;
+    print("valns32 as uint8");  if (valns32 as uint8)  ==       0x98 then yes(); else no(); end if;
+    print("valu32 as int8");    if (valu32 as int8)    ==       0x67 then yes(); else no(); end if;
+    print("vals32 as int8");    if (vals32 as int8)    ==       0x10 then yes(); else no(); end if;
+    print("valns32 as int8");   if (valns32 as int8)   ==       0x98 then yes(); else no(); end if;
+    print("valu32 as uint16");  if (valu32 as uint16)  ==     0x4567 then yes(); else no(); end if;
+    print("vals32 as uint16");  if (vals32 as uint16)  ==     0x3210 then yes(); else no(); end if;
+    print("valns32 as uint16"); if (valns32 as uint16) ==     0xba98 then yes(); else no(); end if;
+    print("valu32 as int16");   if (valu32 as int16)   ==     0x4567 then yes(); else no(); end if;
+    print("vals32 as int16");   if (vals32 as int16)   ==     0x3210 then yes(); else no(); end if;
+    print("valns32 as int16");  if (valns32 as int16)  ==     0xba98 then yes(); else no(); end if;
+    print("valu32 as uint32");  if (valu32 as uint32)  == 0x01234567 then yes(); else no(); end if;
+    print("vals32 as uint32");  if (vals32 as uint32)  == 0x76543210 then yes(); else no(); end if;
+    print("valns32 as uint32"); if (valns32 as uint32) == 0xfedcba98 then yes(); else no(); end if;
+    print("valu32 as int32");   if (valu32 as int32)   == 0x01234567 then yes(); else no(); end if;
+    print("vals32 as int32");   if (vals32 as int32)   == 0x76543210 then yes(); else no(); end if;
+    print("valns32 as int32");  if (valns32 as int32)  == 0xfedcba98 then yes(); else no(); end if;
+end sub;
+test3();
+

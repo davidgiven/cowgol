@@ -564,9 +564,7 @@ sub process_subroutine()
         var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
         if input_type.width < output_type.width then
             node := simplify_node_to_ea_and_deref(node);
-            if (input_type.thing_type == THING_SIGNEDT)
-                and (output_type.thing_type == THING_SIGNEDT)
-            then
+            if input_type.thing_type == THING_SIGNEDT then
                 node.iop := IOP_BE_SEXT;
             else
                 node.iop := IOP_BE_ZEXT;
