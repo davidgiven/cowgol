@@ -124,7 +124,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
 
     sub deref_numoffset_into_add()
         if tmpvar_id == 0 then
-            tmpvar_id := alloc_temporary(ea.type_id);
+            tmpvar_id := alloc_temporary(pointer_of(ea.type_id, uint8_type));
         else
             ref_temporary(tmpvar_id);
         end if;
