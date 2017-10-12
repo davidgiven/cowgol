@@ -10,7 +10,9 @@ sub skip_whitespace()
 			break;
 		end if;
 		if current_byte == '#' then
-			while (current_byte != -1) and (current_byte != '\n') loop
+            while (current_byte != -1) and
+                    (current_byte != '\r') and (current_byte != '\n')
+            loop
 				next_byte();
 			end loop;
         else
