@@ -1,7 +1,5 @@
-COWGOL v0.1
-===========
-
-© 2017 David Given
+Cowgol
+======
 
 
 What?
