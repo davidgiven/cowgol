@@ -49,7 +49,7 @@ void cowgol_file_openout(void) {
 
 void cowgol_file_openup(void) {
     char* filename = extern_p8;
-    extern_i8 = find_fd(fopen(filename, "w+b"));
+    extern_i8 = find_fd(fopen(filename, "r+b"));
 }
 
 void cowgol_file_getchar(void) {

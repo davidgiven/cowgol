@@ -137,7 +137,10 @@ sub flush_iops(object_id: uint16, oldtop: uint16)
 end sub;
 
 sub open_iopfile(filename: [int8])
-    iopfd := file_openout(filename);
+    iopfd := file_openup(filename);
+    # Position the write point on the end-of-file header so that we append
+    # to the file rather than replacing it.
+    file_seek(iopfd, file_ext(iopfd)-2);
 end sub;
 
 sub close_iopfile()
