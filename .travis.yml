@@ -1,0 +1,15 @@
+language: c
+
+os: linux
+sudo: false
+dist: trusty
+compiler: gcc
+
+addons:
+    apt:
+        packages:
+        - ninja-build
+
+script:
+    - ninja
+
