@@ -21,6 +21,7 @@ rule c_program
     command = cc -std=c99 -Wno-unused-result -g -o $out $in
 
 build compiler_suite : phony $
+    bin/init $
     bin/tokeniser bin/parser bin/typechecker bin/blockifier $
     bin/classifier bin/codegen bin/placer bin/emitter
 
@@ -117,17 +118,28 @@ c_program() {
     echo "build $out : c_program $@"
 }
 
+both_cowgol_programs init \
+    src/string_lib.cow \
+    src/arch/bbc/globals.cow \
+    src/utils/things.cow \
+    src/utils/stringtablewriter.cow \
+    src/utils/iops.cow \
+    src/init/init.cow \
+    $OBJDIR/token_names.cow \
+    src/init/things.cow \
+    $OBJDIR/token_maker.cow \
+    src/init/main.cow \
+
 both_cowgol_programs tokeniser \
     src/string_lib.cow \
     src/ctype_lib.cow \
     src/numbers_lib.cow \
     src/arch/bbc/globals.cow \
     src/utils/things.cow \
-    src/tokeniser/strings.cow \
+    src/utils/stringtablewriter.cow \
     src/tokeniser/lexer.cow \
     $OBJDIR/token_names.cow \
     src/tokeniser/tokeniser.cow \
-    $OBJDIR/token_maker.cow \
     src/tokeniser/main.cow \
 
 both_cowgol_programs parser \

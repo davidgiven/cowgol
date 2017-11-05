@@ -30,6 +30,18 @@ sub lookup_string(buffer_ptr: [int8], buffer_len: uint8): (stringid: uint16)
     copy_memory(buffer_ptr, &ptr[1] as [int8], buffer_len as uint16);
 end sub;
 
+sub load_string_table(filename: [int8])
+    print("reading string table: ");
+
+    var fd: int8 := file_openin(filename);
+    stringtab_top := file_ext(fd) as uint16;
+    print_i16(stringtab_top);
+    print(" bytes\n");
+
+    var eof: uint8 := file_getblock(fd, &stringtab[0] as [int8], stringtab_top);
+    file_close(fd);
+end sub;
+
 sub save_string_table(filename: [int8])
     print("writing string table: ");
     print_i16(stringtab_top);

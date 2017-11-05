@@ -1,0 +1,14 @@
+sub write_iops_file()
+    print("writing empty iops file\n");
+    var fd: int8 := file_openout(iops_dat);
+    var iheader: IHeader;
+    zero_memory(&iheader as [int8], iheader@bytes);
+    file_putblock(fd, &iheader as [int8], iheader@bytes);
+    file_close(fd);
+end sub;
+
+install_root_thing();
+install_identifiers();
+save_thing_table(things_dat);
+save_string_table(strings_dat);
+write_iops_file();

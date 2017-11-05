@@ -1,0 +1,32 @@
+sub install_root_thing()
+    var id: uint16 := create_thing(THING_ROOT, RootThing@bytes);
+    root := find_thing(1) as [RootThing];
+end sub;
+
+sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: uint8)
+    copy_string(name, &input_buffer[0]);
+    buffer_index := string_length(&input_buffer[0]) as uint8;
+
+    var string_id: uint16 := lookup_string(&input_buffer[0], buffer_index);
+    var thing: TokenThing;
+    zero_memory(&thing as [int8], thing@bytes);
+    thing.thing_type := thingtype;
+    thing.string_id := string_id;
+    if thingtype == THING_TOKEN then
+        thing.thing_size := TokenThing@bytes;
+        thing.token_flags := token_flags;
+    else
+        thing.thing_size := IdentifierThing@bytes;
+    end if;
+    var token_id: uint16 := add_thing(&thing as [Thing]);
+
+    if token_id != id then
+        print("token id mismatch (internal error); wanted 0x");
+        print_hex_i16(id);
+        print(", got 0x");
+        print_hex_i16(token_id);
+        print_newline();
+        exit(1);
+    end if;
+end sub;
+

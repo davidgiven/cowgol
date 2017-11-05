@@ -1,6 +1,6 @@
 print("TOKENISER\n");
-install_root_thing();
-install_identifiers();
+load_string_table(strings_dat);
+load_thing_table(things_dat);
 init_tokeniser();
 
 var old_filename_string_id: uint16 := 0;

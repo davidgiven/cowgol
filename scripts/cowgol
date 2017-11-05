@@ -24,6 +24,7 @@ srcs=$(realpath -s "$@")
 bindir=$(realpath -s bin)
 
 cd $tmpdir
+$bindir/init
 $bindir/tokeniser $srcs
 $bindir/parser
 cp iops.dat iops-parsed.dat
