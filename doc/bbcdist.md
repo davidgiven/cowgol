@@ -18,6 +18,8 @@ You need:
 
 To use, simply boot the disk with SHIFT+BREAK and it'll run the compiler,
 turning a source file called `$.TestProg` into a binary called `$.cow/out`.
+(The first time you run it it will precompile the standard library, which
+saves time on subsequent runs.)
 
 If you don't have one of these, here's a screencast.
 

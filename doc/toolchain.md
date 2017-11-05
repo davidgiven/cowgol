@@ -27,6 +27,13 @@ memory machine representation.
 
 These are, in order:
 
+- **the initialiser**: creates a new, empty program, ready for adding
+tokenised and parsed code to. Normally this is only used for precompiling the
+runtime library. In normal use, you would simply take a copy of the data
+files for the runtime library and add your own code to that, so as to save
+time (the runtime library is big and takes about eight minutes to tokenise
+and parse).
+
 - **the tokeniser**: reads the source files and produces a token stream and the string table.
 
 - **the parser**: reads the token stream and parses the Cowgol language out of it. It generates an iop stream containing stack-based front end opcodes.
