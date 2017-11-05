@@ -15,6 +15,7 @@ bin/mkadfs -O $1 -B 3 -N 'Cowgol demo' \
         -f bin/bbc/thingshower          -n ThingShow  -l 0x800 \
         -f bin/bbc/tokeniser            -n Tokeniser  -l 0x800 \
         -f bin/bbc/typechecker          -n TypeCheck  -l 0x800 \
+        -f scripts/precompile           -n Precompile \
         -u \
     -d Lib \
         -f src/arch/bbc/lib/argv.cow    -n ArgV \

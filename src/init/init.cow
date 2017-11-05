@@ -1,1 +1,5 @@
 print("INIT\n");
+
+sub halt()
+    exit(1);
+end sub;

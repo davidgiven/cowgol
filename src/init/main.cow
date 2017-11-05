@@ -1,3 +1,65 @@
+var current_namespace_id: uint16;
+var current_subroutine_id: uint16;
+
+sub create_main_namespace()
+    current_namespace_id := create_thing(THING_NAMESPACE, NamespaceThing@bytes);
+    var namespace_thing: [NamespaceThing] := find_thing(current_namespace_id) as [NamespaceThing];
+end sub;
+
+sub create_main_subroutine()
+    current_subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
+    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
+    subroutine.namespace_id := current_namespace_id;
+end sub;
+
+sub add_symbol(identifier_id: uint16, value_id: uint16)
+    var symbol_id: uint16 := create_thing(THING_SYMBOL, SymbolThing@bytes);
+    var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+    var namespace_thing: [NamespaceThing] := find_thing(current_namespace_id) as [NamespaceThing];
+
+    symbol.next_symbol := namespace_thing.first_symbol;
+    namespace_thing.first_symbol := symbol_id;
+    symbol.name_id := identifier_id;
+    symbol.value_id := value_id;
+end sub;
+
+sub create_bootstrap_type(identifier_id: uint16): (type: [NumericThing])
+    var type_id: uint16 := create_thing(THING_CONSTANTT, NumericThing@bytes);
+    add_symbol(identifier_id, type_id);
+    type := find_thing(type_id) as [NumericThing];
+end sub;
+
+sub init_types()
+    var type: [NumericThing];
+    type := create_bootstrap_type(TOKEN_INT8);
+    type.thing_type := THING_SIGNEDT;
+    type.width := 1;
+
+    type := create_bootstrap_type(TOKEN_UINT8);
+    type.thing_type := THING_UNSIGNEDT;
+    type.width := 1;
+
+    type := create_bootstrap_type(TOKEN_INT16);
+    type.thing_type := THING_SIGNEDT;
+    type.width := 2;
+
+    type := create_bootstrap_type(TOKEN_UINT16);
+    type.thing_type := THING_UNSIGNEDT;
+    type.width := 2;
+
+    type := create_bootstrap_type(TOKEN_INT32);
+    type.thing_type := THING_SIGNEDT;
+    type.width := 4;
+
+    type := create_bootstrap_type(TOKEN_UINT32);
+    type.thing_type := THING_UNSIGNEDT;
+    type.width := 4;
+
+    type := create_bootstrap_type(TOKEN_CONSTANTT);
+    type.thing_type := THING_CONSTANTT;
+    type.width := 0;
+end sub;
+
 sub write_iops_file()
     print("writing empty iops file\n");
     var fd: int8 := file_openout(iops_dat);
@@ -9,6 +71,12 @@ end sub;
 
 install_root_thing();
 install_identifiers();
+
+create_main_namespace();
+create_main_subroutine();
+root.main_subroutine_id := current_subroutine_id;
+
+init_types();
 save_thing_table(things_dat);
 save_string_table(strings_dat);
 write_iops_file();
