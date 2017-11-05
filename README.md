@@ -59,8 +59,10 @@ it's worth trying. (And, realistically, making the code smaller and more
 efficient.)
 
 
-Using the demo disk on a BBC Micro
-----------------------------------
+Testing on the BBC Micro
+------------------------
+
+### The demo floppy
 
 As part of the build, `bin/bbcdist.adf` will be created. This is a ADFS-M
 bootable floppy with the compiler on it. You can use this to play with the
@@ -94,6 +96,17 @@ You can then run it with:
 **An even more important node:** Error handling behaviour is awful, as the
 *manky little `*EXEC` script I wrote to run the compiler can't detect errors.
 *Be handy with CTRL+SHIFT and the BREAK key.
+
+### The VDFS symlink farm
+
+In the `tools/vdfs` directory is a symlink farm pointing at the various
+binaries and source files in the main distribution, with the relevant `.inf`
+files set up for you. If you're using a BBC emulator such as
+[b-em](https://github.com/stardot/b-em) or
+[BeebEm](http://www.mkw.me.uk/beebem/) (and if you're on a Unix platform, of
+course) then you can point your VDFS root here and you should have a live
+setup just like the demo floppy, except much faster and with your changes
+saved. And without the risk of running out of disk space!
 
 
 Why not?
