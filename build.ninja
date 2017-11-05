@@ -49,6 +49,7 @@ build bin/bbcdist.adf : mkbbcdist | $
     src/arch/bbc/lib/mos.cow $
     src/arch/bbc/lib/runtime.cow $
     scripts/!boot $
+    scripts/precompile $
     demo/tiny.cow
 build bin/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/things.cow src/utils/stringtablewriter.cow src/utils/iops.cow src/init/init.cow /tmp/cowgol-obj/token_names.cow src/init/things.cow /tmp/cowgol-obj/token_maker.cow src/init/main.cow | scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h src/arch/bootstrap/host.cow src/utils/names.cow
 build bin/bbc/init : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/things.cow src/utils/stringtablewriter.cow src/utils/iops.cow src/init/init.cow /tmp/cowgol-obj/token_names.cow src/init/things.cow /tmp/cowgol-obj/token_maker.cow src/init/main.cow | scripts/cowgol compiler_suite src/arch/bbc/lib/runtime.cow

@@ -53,6 +53,7 @@ build bin/bbcdist.adf : mkbbcdist | $
     src/arch/bbc/lib/mos.cow $
     src/arch/bbc/lib/runtime.cow $
     scripts/!boot $
+    scripts/precompile $
     demo/tiny.cow
 EOF
 
