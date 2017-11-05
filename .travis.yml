@@ -9,6 +9,7 @@ addons:
     apt:
         packages:
         - ninja-build
+        - realpath
 
 script:
     - ninja
