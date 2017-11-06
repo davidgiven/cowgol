@@ -45,7 +45,8 @@ rule mkbbcdist
 build bin/bbcdist.adf : mkbbcdist | $
     bin/mkdfs bin/mkadfs scripts/mkbbcdist $
     bin/bbc/iopshower bin/bbc/thingshower $
-    bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker $
+    bin/bbc/tokeniser bin/bbc/parser $
+    bin/bbc/typechecker bin/bbc/backendify $
     bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen $
     bin/bbc/placer bin/bbc/emitter $
     src/arch/bbc/lib/argv.cow $
@@ -197,6 +198,25 @@ both_cowgol_programs typechecker \
     src/typechecker/simplifier.cow \
     src/typechecker/main.cow \
     src/typechecker/deinit.cow \
+
+both_cowgol_programs backendify \
+    src/string_lib.cow \
+    src/arch/bbc/globals.cow \
+    src/utils/things.cow \
+    src/utils/iops.cow \
+    src/utils/stringtable.cow \
+    src/utils/iopreader.cow \
+    src/utils/iopwriter.cow \
+    src/utils/symbols.cow \
+    $OBJDIR/token_names.cow \
+    src/utils/types.cow \
+    src/backendify/init.cow \
+    src/backendify/temporaries.cow \
+    src/backendify/tree.cow \
+    src/arch/bbc/simplifier.cow \
+    src/backendify/simplifier.cow \
+    src/backendify/main.cow \
+    src/backendify/deinit.cow \
 
 both_cowgol_programs classifier \
     src/string_lib.cow \

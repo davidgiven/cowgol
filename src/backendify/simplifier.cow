@@ -1,0 +1,109 @@
+sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: uint32)
+    if beiop == IOP_BE_ADD then                                  result := left + right;
+    elseif beiop == IOP_BE_SUB then                              result := left - right;
+    elseif beiop == IOP_BE_MUL then                              result := left * right;
+    elseif (beiop == IOP_BE_DIVU) or (beiop == IOP_BE_DIVS) then result := left / right;
+    elseif (beiop == IOP_BE_MODU) or (beiop == IOP_BE_MODS) then result := left % right;
+    elseif beiop == IOP_BE_AND then                              result := left & right;
+    elseif beiop == IOP_BE_OR then                               result := left | right;
+    elseif beiop == IOP_BE_EOR then                              result := left ^ right;
+    elseif (beiop == IOP_BE_SEXT) or (beiop == IOP_BE_ZEXT) then result := left;
+    elseif beiop == IOP_BE_NEG then                              result := 0-left;
+    elseif beiop == IOP_BE_NOT then                              result := (-1)^left;
+    elseif beiop == IOP_BE_LSL then                              result := left << (right as uint8);
+    elseif beiop == IOP_BE_LSR then                              result := left >> (right as uint8);
+    elseif beiop == IOP_BE_ASR then
+        var lefts: int32 := left as int32;
+        result := (lefts >> (right as uint8)) as uint32;
+    else
+        print("can't collapse 0x");
+        print_hex_i8(beiop);
+        halt();
+    end if;
+
+    $if DEBUG
+        print("* constant collapse: 0x");
+        print_hex_i8(beiop);
+        print(" left=");
+        print_i32(left);
+        print(" right=");
+        print_i32(right);
+        print(" result=");
+        print_i32(result);
+        print_newline();
+    $endif
+end sub;
+
+sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
+    if (src.left.type_id == constant_type) and
+        (((src.iop & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_2OP) or
+            (src.right.type_id == constant_type))
+    then
+        dest := alloc_node();
+        dest.iop := IOP_FEX_PUSH;
+        dest.flags := FLAG_RVALUE;
+        dest.type_id := src.type_id;
+        dest.left.type_id := src.type_id;
+        dest.left.obj_id := add_number_by_value(
+            collapse_constant_op(
+                src.iop,
+                get_value_of_number(src.left.obj_id) as uint32,
+                get_value_of_number(src.right.obj_id) as uint32
+            ) as int32
+        );
+        deref_node(src);
+    else
+        dest := src;
+    end if;
+end sub;
+
+sub guess_type_of_constant(num_id: uint16): (type_id: uint16)
+    var value: int32 := get_value_of_number(num_id);
+    if (value >= -128) and (value <= 127) then
+        type_id := int8_type;
+    elseif (value >= 0) and (value <= 255) then
+        type_id := uint8_type;
+    elseif (value >= -0x8000) and (value <= 0x7fff) then
+        type_id := int16_type;
+    elseif (value >= 0) and (value <= 0xffff) then
+        type_id := uint16_type;
+    elseif value >= 0 then
+        type_id := uint32_type;
+    else
+        type_id := int32_type;
+    end if;
+end sub;
+
+sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
+    src := simplify_constants_and_deref(src);
+    if (src.iop == IOP_FEX_PUSH)
+        and (src.left.flags == EA_VALUE)
+        and (src.left.varoff_id == 0)
+        and (src.left.numoff_id == 0)
+    then
+        dest := src;
+        return;
+    end if;
+
+    if src.type_id == constant_type then
+        src.type_id := guess_type_of_constant(src.left.obj_id);
+    end if;
+
+    dest := alloc_node();
+    dest.iop := IOP_FEX_PUSH;
+    dest.flags := FLAG_RVALUE;
+    dest.type_id := src.type_id;
+
+    dest.left.type_id := dest.type_id;
+    dest.left.obj_id := alloc_temporary(dest.type_id);
+    arch_simplify_node_to(src, dest);
+    deref_node(src);
+end sub;
+
+sub simplify_node_to_ea_and_deref(src: [Node]): (dest: [Node])
+    if src.iop == IOP_FEX_PUSH then
+        dest := src;
+    else
+        dest := simplify_node_to_var_and_deref(src);
+    end if;
+end sub;

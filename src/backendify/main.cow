@@ -1,0 +1,795 @@
+sub check_type_compatibility(left_type_id: uint16, right_type_id: uint16): (result_type_id: uint16)
+    var left: uint16 := left_type_id;
+    var right: uint16 := right_type_id;
+
+    loop
+        if left == right then
+            result_type_id := left_type_id;
+            return;
+        elseif (is_number_type_thing(left) != 0) and (right == constant_type) then
+            result_type_id := left_type_id;
+            return;
+        elseif (is_number_type_thing(right) != 0) and (left == constant_type) then
+            result_type_id := right_type_id;
+            return;
+        end if;
+
+        var left_type: [PointerThing] := find_thing(left) as [PointerThing];
+        var right_type: [PointerThing] := find_thing(right) as [PointerThing];
+        if (left_type.thing_type != THING_POINTERT) or (right_type.thing_type != THING_POINTERT) then
+            break;
+        end if;
+
+        left:= left_type.element_type_id;
+        right:= right_type.element_type_id;
+    end loop;
+
+    print_thing(left_type_id);
+    print_type_name(left_type_id);
+    print(" and ");
+    print_thing(right_type_id);
+    print_type_name(right_type_id);
+    print(" are not compatible in this context");
+    halt();
+end sub;
+
+sub must_be_simplified(node: [Node])
+    if node.iop != IOP_FEX_PUSH then
+        print("operation on non-simplified node");
+        halt();
+    end if;
+end sub;
+
+sub alloc_ea_node(ea: [EffectiveAddress]): (node: [Node])
+    node := alloc_node();
+    node.iop := IOP_FEX_PUSH;
+    node.flags := FLAG_RVALUE;
+    node.type_id := ea.type_id;
+    copy_ea_ref(ea, &node.left);
+end sub;
+
+sub alloc_const_node(number_id: uint16): (node: [Node])
+    node := alloc_node();
+    node.iop := IOP_FEX_PUSH;
+    node.flags := FLAG_RVALUE;
+    node.type_id := constant_type;
+    node.left.type_id := constant_type;
+    node.left.obj_id := number_id;
+end sub;
+
+sub alloc_smallint_node(value: int16): (node: [Node])
+    node := alloc_const_node(add_number_by_value(value as int32));
+end sub;
+
+sub alloc_thing_node(thing_id: uint16): (node: [Node])
+    node := alloc_node();
+    node.iop := IOP_FEX_PUSH;
+    node.type_id := get_type_of_thing(thing_id);
+    node.left.type_id := node.type_id;
+    node.left.obj_id := thing_id;
+    ref_temporary(thing_id);
+end sub;
+
+# Note: the type of the result is the type of the *left* parameter.
+sub gen_operator_and_deref(beiop: uint8, left: [Node], right: [Node]): (dest: [Node])
+    left := simplify_node_to_ea_and_deref(left);
+    right := simplify_node_to_ea_and_deref(right);
+
+    dest := alloc_node();
+    dest.iop := beiop;
+    dest.type_id := left.type_id;
+    dest.flags := FLAG_RVALUE;
+    copy_ea_ref(&left.left, &dest.left);
+    copy_ea_ref(&right.left, &dest.right);
+
+    deref_node(left);
+    deref_node(right);
+end sub;
+
+sub var_to_pointer_compatible_var(invar_id: uint16): (outvar_id: uint16)
+    var invar_type_id: uint16 := get_type_of_thing(invar_id);
+    if get_width_of_type(invar_type_id) == 2 then
+        outvar_id := invar_id;
+        ref_temporary(outvar_id);
+    else
+        $if DEBUG
+            print("* zextending varoff ");
+            print_thing(invar_id);
+            print_newline();
+        $endif
+
+        var node: [Node] := alloc_thing_node(invar_id);
+        node.iop := IOP_BE_ZEXT;
+        node.type_id := uint16_type;
+        node := simplify_node_to_var_and_deref(node);
+        outvar_id := node.left.obj_id;
+
+        $if DEBUG
+            print("* extended varoff is ");
+            print_thing(outvar_id);
+            print_newline();
+        $endif
+
+        ref_temporary(outvar_id);
+        deref_node(node);
+    end if;
+end sub;
+
+sub process_subroutine()
+    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
+    init_tree();
+    init_temporaries();
+    current_namespace_id := subroutine.namespace_id;
+
+    sub special_address(iop: [AddressIop])
+        var thing: [Thing] := find_thing(iop.thing_id);
+        if thing.thing_type == THING_IDENTIFIER then
+            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+            thing := find_thing(iop.thing_id);
+        end if;
+
+        if (thing.thing_type & THING_DATA) == 0 then
+            print_thing(iop.thing_id);
+            print(" is not a data symbol");
+            halt();
+        end if;
+
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub special_named_goto(iop: [NamedGotoIop])
+        var label_id: uint16 := deref_symbol_or_fail(iop.label_id);
+        var labelthing: [LabelThing] := find_thing(label_id) as [LabelThing];
+        if labelthing.thing_type != THING_LABEL then
+            print("not a label");
+            halt();
+        end if;
+
+        write_goto_iop(labelthing.label);
+    end sub;
+
+    sub fex_push(iop: [FEPushIop])
+        var thing: [Thing] := find_thing(iop.thing_id);
+        if thing.thing_type == THING_IDENTIFIER then
+            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+            thing := find_thing(iop.thing_id);
+        end if;
+
+        var node: [Node] := push_empty_node();
+
+        node.iop := IOP_FEX_PUSH;
+        node.left.obj_id := iop.thing_id;
+        if thing.thing_type == THING_NUMBER then
+            node.type_id := constant_type;
+            node.flags := FLAG_RVALUE;
+        elseif thing.thing_type == THING_STRING then
+            node.type_id := pointer_of(int8_type, uint8_type);
+            node.left.flags := EA_LEA;
+            node.flags := FLAG_RVALUE;
+        elseif (thing.thing_type & THING_TYPED) != 0 then
+            var typed_thing: [TypedThing] := thing as [TypedThing];
+            if typed_thing.type_id == 0 then
+                print("forward reference to type inferred value");
+                halt();
+            end if;
+            node.type_id := typed_thing.type_id;
+        else
+            print("can't push things of type 0x");
+            print_hex_i8(thing.thing_type);
+            halt();
+        end if;
+        node.left.type_id := node.type_id;
+    end sub;
+
+    sub fex_swap()
+        var n1: [Node] := pop();
+        var n2: [Node] := pop();
+        push_node(n1);
+        push_node(n2);
+    end sub;
+
+    sub fex_assign()
+        var src: [Node] := pop();
+        var dest: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        if (dest.left.flags != EA_DEREF) and ((dest.flags & FLAG_RVALUE) != 0) then
+            print("cannot assign to rvalue");
+            halt();
+        end if;
+
+        var dest_type_id: uint16 := check_type_compatibility(src.type_id, dest.type_id);
+        dest := simplify_node_to_ea_and_deref(dest);
+        src := simplify_constants_and_deref(src);
+        arch_simplify_node_to(src, dest);
+        deref_node(src);
+        deref_node(dest);
+    end sub;
+
+    sub fe_simple_alu2op(beiop: uint8)
+        var right: [Node] := pop();
+        var left: [Node] := pop();
+
+        # if you change this, change the non-pointer case in addsub as well
+        var dest_type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
+
+        right := simplify_node_to_ea_and_deref(right);
+        left := simplify_node_to_ea_and_deref(left);
+
+        var node: [Node] := push_empty_node();
+        node.type_id := dest_type_id;
+        node.iop := beiop;
+        node.flags := FLAG_RVALUE;
+        copy_ea_ref(&left.left, &node.left);
+        copy_ea_ref(&right.left, &node.right);
+
+        deref_node(right);
+        deref_node(left);
+    end sub;
+
+    sub fe_simple_alu1op(beiop: uint8)
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        if (is_number_type_thing(left.type_id) == 0) then
+            print("can't do this to non-numeric type ");
+            print_type_name(left.type_id);
+            halt();
+        end if;
+
+        left.iop := beiop;
+        left.flags := FLAG_RVALUE;
+        push_node(left);
+    end sub;
+
+    sub maybe_signed_biop(signed_beiop: uint8, unsigned_beiop: uint8): (beiop: uint8)
+        var right: [Node] := peek(1);
+        var left: [Node] := peek(2);
+
+        if (get_thing_type(left.type_id) == THING_SIGNEDT)
+            or (get_thing_type(right.type_id) == THING_SIGNEDT)
+        then
+            beiop := signed_beiop;
+        else
+            beiop := unsigned_beiop;
+        end if;
+    end sub;
+
+    sub fe_addsub(beiop: uint8)
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var left_type: [PointerThing] := find_thing(left.type_id) as [PointerThing];
+        var right_type: [PointerThing] := find_thing(right.type_id) as [PointerThing];
+        var dest_type_id: uint16;
+        if left_type.thing_type != THING_POINTERT then
+            # this is the same as simple_alu2op above
+            dest_type_id := check_type_compatibility(left.type_id, right.type_id);
+        elseif (beiop == IOP_BE_SUB)
+                and (left_type.thing_type == THING_POINTERT)
+                and (right_type.thing_type == THING_POINTERT) then
+            # Pointer difference.
+            dest_type_id := check_type_compatibility(left.type_id, right.type_id);
+            dest_type_id := int16_type;
+        elseif (left_type.thing_type == THING_POINTERT)
+            and (is_number_type_thing(right.type_id) != 0)
+        then
+            # Pointer offsetting.
+            dest_type_id := check_type_compatibility(int16_type, right.type_id);
+            dest_type_id := left.type_id;
+        else
+            print("unsupported add/sub combination: left=");
+            print_ea(&left.left);
+            print(", right=");
+            print_ea(&right.left);
+            halt();
+        end if;
+
+        var node: [Node] := push_empty_node();
+        node.iop := beiop;
+        node.flags := FLAG_RVALUE;
+        node.type_id := dest_type_id;
+        copy_ea_ref(&left.left, &node.left);
+        copy_ea_ref(&right.left, &node.right);
+
+        deref_node(right);
+        deref_node(left);
+    end sub;
+
+    sub fe_index()
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var left_type: [WithElementsThing] := find_thing(left.type_id) as [WithElementsThing];
+        if is_indexable_type_thing(left.type_id) == 0 then
+            print_type_name(left.type_id);
+            print(" is not indexable");
+            halt();
+        end if;
+        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
+        var element_type: [TypeThing] := find_thing(left_type.element_type_id) as [TypeThing];
+
+        var index_type_id: uint16 := check_type_compatibility(right.type_id, left_type.index_type_id);
+        if is_number_type_thing(index_type_id) == 0 then
+            print("index type ");
+            print_type_name(index_type_id);
+            print(" is not numeric");
+            halt();
+        end if;
+
+        if left_type.thing_type == THING_POINTERT then
+            # Ensure that any additional offset is applied to the *contents* of the pointer, and
+            # not the *location* of the pointer.
+            left := simplify_node_to_var_and_deref(left);
+            left.left.flags := EA_DEREF;
+            left.left.type_id := left_type.element_type_id;
+        end if;
+
+        var node: [Node] := push_empty_node();
+        node.iop := IOP_FEX_PUSH;
+        node.type_id := left_type.element_type_id;
+
+        $if DEBUG
+            print("* left has ea ");
+            print_ea(&left.left);
+            print_newline();
+            print("* right has ea ");
+            print_ea(&right.left);
+            print_newline();
+        $endif
+
+        copy_ea_ref(&left.left, &node.left);
+        node.left.type_id := left_type.element_type_id;
+
+        $if DEBUG
+            print("* result base has ea ");
+            print_ea(&node.left);
+            print_newline();
+        $endif
+
+        if element_type.width != 1 then
+            $if DEBUG
+                print("* scaling left by 0x");
+                print_hex_i16(element_type.width);
+                print_newline();
+            $endif
+
+            right := gen_operator_and_deref(IOP_BE_MUL, right,
+                alloc_smallint_node(element_type.width as int16));
+        end if;
+        if right.type_id == constant_type then
+            $if DEBUG
+                print("* offset is constant\n");
+            $endif
+
+            if node.left.numoff_id != 0 then
+                $if DEBUG
+                    print("* adding right to existing constant offset ");
+                    print_thing(node.left.numoff_id);
+                    print_newline();
+                $endif
+
+                right := gen_operator_and_deref(IOP_BE_ADD, alloc_const_node(node.left.numoff_id), right);
+            end if;
+            right := simplify_node_to_ea_and_deref(right);
+            node.left.numoff_id := right.left.obj_id;
+        else
+            $if DEBUG
+                print("* offset is variable\n");
+            $endif
+
+            if node.left.varoff_id != 0 then
+                $if DEBUG
+                    print("* adding right to existing variable offset ");
+                    print_thing(node.left.numoff_id);
+                    print_newline();
+                $endif
+
+                right := gen_operator_and_deref(IOP_BE_ADD, alloc_thing_node(node.left.varoff_id), right);
+            end if;
+            right := simplify_node_to_var_and_deref(right);
+            ref_temporary(right.left.obj_id);
+            deref_temporary(node.left.varoff_id);
+            node.left.varoff_id := var_to_pointer_compatible_var(right.left.obj_id);
+        end if;
+        deref_node(right);
+        deref_node(left);
+    end sub;
+
+    sub fe_addressof()
+        var node: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        if (node.flags & FLAG_RVALUE) != 0 then
+            print("cannot take the address of an rvalue");
+            halt();
+        end if;
+
+        node.type_id := pointer_of(node.type_id, uint16_type);
+        node.left.type_id := node.type_id;
+        if node.left.flags == EA_DEREF then
+            node.left.flags := EA_VALUE;
+
+            # Ensure that any offset is applied to the value of the pointer, and not the pointer
+            # itself.
+            var numoff_id: uint16 := node.left.numoff_id;
+            var varoff_id: uint16 := node.left.varoff_id;
+            node.left.numoff_id := 0;
+            node.left.varoff_id := 0;
+            if varoff_id != 0 then
+                node := gen_operator_and_deref(IOP_BE_ADD, node, alloc_thing_node(varoff_id));
+            end if;
+            if numoff_id != 0 then
+                node := gen_operator_and_deref(IOP_BE_ADD, node, alloc_const_node(numoff_id));
+            end if;
+        elseif node.left.flags == EA_VALUE then
+            node.left.flags := EA_LEA;
+            if node.left.varoff_id != 0 then
+                var newvaroff_id: uint16 := var_to_pointer_compatible_var(node.left.varoff_id);
+                deref_temporary(node.left.varoff_id);
+                node.left.varoff_id := newvaroff_id;
+            end if;
+        else
+            print("addressof with LEA");
+            halt();
+        end if;
+
+        push_node(node);
+    end sub;
+
+    sub fex_memberof(iop: [FEMemberIop])
+        var node: [Node] := simplify_node_to_ea_and_deref(pop());
+        var node_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
+
+        var type_id: uint16 := node.type_id;
+        var type: [Thing] := find_thing(type_id);
+
+        if type.thing_type == THING_POINTERT then
+            # Ensure that any additional offset is applied to the *contents* of the pointer, and
+            # not the *location* of the pointer.
+            node := simplify_node_to_var_and_deref(node);
+            node.left.flags := EA_DEREF;
+
+            var pointer_type: [PointerThing] := type as [PointerThing];
+            type_id := pointer_type.element_type_id;
+            type := find_thing(type_id);
+        end if;
+        if type.thing_type != THING_RECORDT then
+            print_type_name(type_id);
+            print(" is not a record type or a pointer to a record type");
+            halt();
+        end if;
+        var record_type: [RecordThing] := type as [RecordThing];
+
+        var symbol_id: uint16 := find_symbol_recursively(iop.thing_id, record_type.namespace_id);
+        if symbol_id == 0 then
+            show_identifier(iop.thing_id);
+            print(" is not a member of ");
+            print_type_name(type_id);
+            halt();
+        end if;
+        var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
+        var member: [MemberThing] := find_thing(symbol.value_id) as [MemberThing];
+        var member_type_thing: [Thing] := find_thing(member.type_id);
+
+        node.left.type_id := member.type_id;
+        node.type_id := member.type_id;
+        node.left.numoff_id := add_number_by_value(
+            get_value_of_number(node.left.numoff_id) +
+                (member.offset as int32));
+
+        push_node(node);
+    end sub;
+
+    sub fex_parameter(direction: uint8, iop: [FEParameterIop])
+        var thing_id: uint16 := iop.subroutine_id;
+        var thing: [Thing] := find_thing(thing_id);
+        if thing.thing_type == THING_IDENTIFIER then
+            thing_id := deref_symbol_or_fail(thing_id);
+            thing := find_thing(thing_id);
+        end if;
+        if thing.thing_type != THING_SUBROUTINE then
+            print("subroutine_id not a subroutine");
+            halt();
+        end if;
+
+        var parameter_id: uint16 := find_nth_parameter(
+            thing_id, direction, iop.parameter);
+        if parameter_id == 0 then
+            print("invalid parameter id");
+            halt();
+        end if;
+        var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
+
+        var node: [Node] := push_empty_node();
+
+        $if DEBUG
+            print("found subroutine 0x");
+            print_hex_i16(thing_id);
+            print(" direction ");
+            print_i8(direction);
+            print_newline();
+        $endif
+
+        node.iop := IOP_FEX_PUSH;
+        node.type_id := parameter.type_id;
+        node.left.type_id := node.type_id;
+        node.left.obj_id := parameter_id;
+    end sub;
+
+    sub fe_materialise()
+        var src: [Node] := pop();
+
+        var dest: [Node] := push_empty_node();
+        dest.iop := IOP_FEX_PUSH;
+        dest.flags := FLAG_RVALUE;
+        dest.type_id := src.type_id;
+        dest.left.obj_id := alloc_temporary(src.type_id);
+        dest.left.type_id := dest.type_id;
+
+        arch_simplify_node_to(src, dest);
+        deref_node(src);
+    end sub;
+
+    sub fe_conditional(iopkind: uint8, iop: [FEConditionalIop])
+        var right: [Node] := pop();
+        var left: [Node] := pop();
+
+        var type_id: uint16 := check_type_compatibility(left.type_id, right.type_id);
+
+        right := simplify_node_to_ea_and_deref(right);
+        left := simplify_node_to_ea_and_deref(left);
+
+        var beiop: BEConditionalIop;
+        zero_memory(&beiop as [int8], BEConditionalIop@bytes);
+        beiop.iop_size := BEConditionalIop@bytes;
+        beiop.iop_kind := iopkind;
+        beiop.width := get_width_of_type(type_id) as uint8;
+        beiop.iftrue_label := iop.iftrue_label;
+        beiop.iffalse_label := iop.iffalse_label;
+        copy_ea_ref(&left.left, &beiop.left);
+        copy_ea_ref(&right.left, &beiop.right);
+
+        arch_simplify_conditional_iop(&beiop);
+
+        deref_temporary(beiop.left.obj_id);
+        deref_temporary(beiop.left.varoff_id);
+        deref_temporary(beiop.right.obj_id);
+        deref_temporary(beiop.right.varoff_id);
+        deref_node(left);
+        deref_node(right);
+    end sub;
+
+    sub fe_cast(iop: [FETypedIop])
+        var node: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var input_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
+        var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
+        if input_type.width < output_type.width then
+            if input_type.thing_type == THING_SIGNEDT then
+                node.iop := IOP_BE_SEXT;
+            else
+                node.iop := IOP_BE_ZEXT;
+            end if;
+        end if;
+        node.type_id := iop.type_id;
+        node.flags := FLAG_RVALUE;
+        push_node(node);
+    end sub;
+
+    sub fe_shift(signed_beiop: uint8, unsigned_beiop: uint8)
+        var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        var left: [Node] := simplify_node_to_ea_and_deref(pop());
+
+        var left_type: [TypeThing] := find_thing(left.type_id) as [TypeThing];
+        if left.type_id == constant_type then
+            print("you must cast constants to a real type before you can shift them");
+            halt();
+        end if;
+        if is_number_type_thing(left.type_id) == 0 then
+            print("can't shift non-numeric type ");
+            print_type_name(left.type_id);
+            halt();
+        end if;
+
+        var right_type: [TypeThing] := find_thing(right.type_id) as [TypeThing];
+        if (right.type_id != uint8_type) and (right.type_id != constant_type) then
+            print("shift type ");
+            print_type_name(left.type_id);
+            print(" is not uint8");
+            halt();
+        end if;
+
+        var node: [Node] := push_empty_node();
+        if left_type.thing_type == THING_SIGNEDT then
+            node.iop := signed_beiop;
+        else
+            node.iop := unsigned_beiop;
+        end if;
+        node.flags := FLAG_RVALUE;
+        copy_ea_ref(&left.left, &node.left);
+        copy_ea_ref(&right.left, &node.right);
+        node.type_id := left.type_id;
+
+        deref_node(left);
+        deref_node(right);
+    end sub;
+
+    sub fe_call(iop: [CallIop])
+        var thing: [SubroutineThing] := find_thing(iop.thing_id) as [SubroutineThing];
+        if thing.thing_type == THING_IDENTIFIER then
+            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+            thing := find_thing(iop.thing_id) as [SubroutineThing];
+        end if;
+        if thing.thing_type != THING_SUBROUTINE then
+            print("subroutine_id not pointing at subroutine");
+            halt();
+        end if;
+
+        if (thing.input_parameter_count != iop.input_parameter_count)
+                or (thing.output_parameter_count != iop.output_parameter_count) then
+            show_name_of(iop.thing_id);
+            print(" has ");
+            print_i8(thing.input_parameter_count);
+            print(" inputs and ");
+            print_i8(thing.output_parameter_count);
+            print(" outputs, but was called with ");
+            print_i8(iop.input_parameter_count);
+            print(" and ");
+            print_i8(iop.output_parameter_count);
+            halt();
+        end if;
+
+        write_iop(iop as [Iop]);
+    end sub;
+
+    sub fe_bytesof()
+        var left: [Node] := pop();
+        var width: uint16 := get_width_of_type(left.type_id);
+
+        $if DEBUG
+            print("* pushing width of type ");
+            print_type_name(left.type_id);
+            print(" = 0x");
+            print_hex_i16(width);
+            print_newline();
+        $endif
+
+        var node: [Node] := push_empty_node();
+        node.iop := IOP_FEX_PUSH;
+        node.left.obj_id := add_number_by_value(width as int32);
+        node.left.type_id := constant_type;
+        node.type_id := constant_type;
+        node.flags := FLAG_RVALUE;
+
+        deref_node(left);
+    end sub;
+
+    sub fe_sizeof()
+        var left: [Node] := pop();
+
+        var left_type: [ArrayThing] := find_thing(left.type_id) as [ArrayThing];
+        if (left_type.thing_type != THING_ARRAYT) then
+            print("@size only works on arrays");
+            halt();
+        end if;
+
+        var node: [Node] := push_empty_node();
+        node.iop := IOP_FEX_PUSH;
+        node.left.obj_id := add_number_by_value(left_type.element_count as int32);
+        node.left.type_id := constant_type;
+        node.type_id := constant_type;
+        node.flags := FLAG_RVALUE;
+
+        deref_node(left);
+    end sub;
+
+    loop
+        var iop: [Iop] := read_iop();
+        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
+        $if DEBUG
+            print_newline();
+            print_stack();
+            print("* read iop 0x");
+            print_hex_i8(iop.iop_kind);
+            print_newline();
+        $endif
+
+        if iop.iop_kind == IOP_END then
+            break;
+        elseif iop.iop_kind == IOP_CALL then
+            fe_call(iop as [CallIop]);
+        elseif (iop.iop_kind == IOP_ADDRESS)
+            or (iop.iop_kind == IOP_ADDRESSLO)
+            or (iop.iop_kind == IOP_ADDRESSHI)
+        then
+            special_address(iop as [AddressIop]);
+        elseif iop.iop_kind == IOP_NAMEDGOTO then
+            special_named_goto(iop as [NamedGotoIop]);
+        elseif ioptype == IOP_TYPE_UNTYPED then
+            write_iop(iop);
+        elseif iop.iop_kind == IOP_FEX_SWAP then
+            fex_swap();
+        elseif iop.iop_kind == IOP_FEX_PUSH then
+            fex_push(iop as [FEPushIop]);
+        elseif iop.iop_kind == IOP_FEX_ASSIGN then
+            fex_assign();
+        elseif iop.iop_kind == IOP_FE_ADD then
+            fe_addsub(IOP_BE_ADD);
+        elseif iop.iop_kind == IOP_FE_SUB then
+            fe_addsub(IOP_BE_SUB);
+        elseif iop.iop_kind == IOP_FE_MUL then
+            fe_simple_alu2op(IOP_BE_MUL);
+        elseif iop.iop_kind == IOP_FE_AND then
+            fe_simple_alu2op(IOP_BE_AND);
+        elseif iop.iop_kind == IOP_FE_OR then
+            fe_simple_alu2op(IOP_BE_OR);
+        elseif iop.iop_kind == IOP_FE_EOR then
+            fe_simple_alu2op(IOP_BE_EOR);
+        elseif iop.iop_kind == IOP_FE_DIV then
+            fe_simple_alu2op(maybe_signed_biop(IOP_BE_DIVS, IOP_BE_DIVU));
+        elseif iop.iop_kind == IOP_FE_MOD then
+            fe_simple_alu2op(maybe_signed_biop(IOP_BE_MODS, IOP_BE_MODU));
+        elseif iop.iop_kind == IOP_FE_NEG then
+            fe_simple_alu1op(IOP_BE_NEG);
+        elseif iop.iop_kind == IOP_FE_NOT then
+            fe_simple_alu1op(IOP_BE_NOT);
+        elseif (iop.iop_kind == IOP_FE_LSHIFT) then
+            fe_shift(IOP_BE_LSL, IOP_BE_LSL);
+        elseif (iop.iop_kind == IOP_FE_RSHIFT) then
+            fe_shift(IOP_BE_ASR, IOP_BE_LSR);
+        elseif iop.iop_kind == IOP_FE_INDEX then
+            fe_index();
+        elseif iop.iop_kind == IOP_FEX_INPUTPARAM then
+            fex_parameter(DIRECTION_IN, iop as [FEParameterIop]);
+        elseif iop.iop_kind == IOP_FEX_OUTPUTPARAM then
+            fex_parameter(DIRECTION_OUT, iop as [FEParameterIop]);
+        elseif iop.iop_kind == IOP_FE_MATERIALISE then
+            fe_materialise();
+        elseif iop.iop_kind == IOP_FE_ADDRESSOF then
+            fe_addressof();
+        elseif iop.iop_kind == IOP_FEX_MEMBEROF then
+            fex_memberof(iop as [FEMemberIop]);
+        elseif iop.iop_kind == IOP_FE_BYTESOF then
+            fe_bytesof();
+        elseif iop.iop_kind == IOP_FE_SIZEOF then
+            fe_sizeof();
+        elseif iop.iop_kind == IOP_FEX_BEQ then
+            fe_conditional(IOP_BE_BEQ, iop as [FEConditionalIop]);
+        elseif iop.iop_kind == IOP_FEX_BGT then
+            fe_conditional(maybe_signed_biop(IOP_BE_BGTS, IOP_BE_BGTU),
+                iop as [FEConditionalIop]);
+        elseif iop.iop_kind == IOP_FEX_BLT then
+            fe_conditional(maybe_signed_biop(IOP_BE_BLTS, IOP_BE_BLTU),
+                iop as [FEConditionalIop]);
+        elseif iop.iop_kind == IOP_FE_CAST then
+            fe_cast(iop as [FETypedIop]);
+        else
+            print("unsupported iop 0x");
+            print_hex_i8(iop.iop_kind);
+            halt();
+        end if;
+    end loop;
+    write_untyped_iop(IOP_END);
+end sub;
+
+sub process()
+    loop
+        var iheader: [IHeader] := read_iop_header();
+        if iheader.thing_id == 0 then
+            break;
+        end if;
+
+        write_iop_header(iheader);
+        current_subroutine_id := iheader.thing_id;
+
+        $if DEBUG
+            print("\n******* SUBROUTINE ");
+            show_name_of(current_subroutine_id);
+            print_newline();
+            print_newline();
+        $endif
+
+        process_subroutine();
+    end loop;
+    write_terminating_iop_header();
+end sub;
+
+process();

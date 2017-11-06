@@ -1,0 +1,174 @@
+const FLAG_RVALUE := 0b0000_0001;
+
+record Node
+    iop: uint8;
+    refcount: uint8;
+    flags: uint8;
+    type_id: uint16;
+    left: EffectiveAddress;
+    right: EffectiveAddress;
+end record;
+
+var nodes: Node[32];
+var allocated_nodes: uint8;
+var stack: [Node][32];
+var stack_pos: uint8;
+
+sub init_tree()
+    zero_memory(&nodes[0] as [int8], nodes@bytes);
+    zero_memory(&stack[0] as [int8], stack@bytes);
+    stack_pos := 0;
+    allocated_nodes := 0;
+end sub;
+
+sub alloc_node(): (node: [Node])
+    var index: uint8 := 0;
+    while index < nodes@size loop
+        node := &nodes[index];
+        if node.iop == 0 then
+            allocated_nodes := allocated_nodes + 1;
+            node.refcount := 1;
+
+            node.iop := 0xff; # invalid; prevents this node being allocated again
+
+            $if DEBUG
+                print("* allocated new node ");
+                print_i8(index);
+                print(" (");
+                print_i8(allocated_nodes);
+                print(" used out of ");
+                print_i8(nodes@size);
+                print(")\n");
+            $endif
+            return;
+        end if;
+        index := index + 1;
+    end loop;
+    print("node heap is full");
+    halt();
+end sub;
+
+sub get_node_id(node: [Node]): (id: uint8)
+    id := (((node - &nodes[0]) as uint16) / Node@bytes) as uint8;
+end sub;
+
+sub ref_node(node: [Node])
+    $if DEBUG
+        print("* ref node 0x");
+        print_i8(get_node_id(node));
+        print_newline();
+    $endif
+
+    node.refcount := node.refcount + 1;
+end sub;
+
+sub deref_ea(ea: [EffectiveAddress])
+    deref_temporary(ea.obj_id);
+    deref_temporary(ea.varoff_id);
+end sub;
+
+sub deref_node(node: [Node])
+    $if DEBUG
+        print("* deref node 0x");
+        print_i8(get_node_id(node));
+        print_newline();
+    $endif
+
+    node.refcount := node.refcount - 1;
+    if node.refcount == 0 then
+        deref_ea(&node.left);
+        deref_ea(&node.right);
+        zero_memory(node as [int8], Node@bytes);
+        allocated_nodes := allocated_nodes - 1;
+
+        $if DEBUG
+            print("* freed node ");
+            print_i8(get_node_id(node));
+            print(" (");
+            print_i8(allocated_nodes);
+            print(" used out of ");
+            print_i8(nodes@size);
+            print(")\n");
+        $endif
+    end if;
+end sub;
+
+sub push_node(node: [Node])
+    stack[stack_pos] := node;
+    stack_pos := stack_pos + 1;
+    if stack_pos == stack@size then
+        print("stack overflow");
+        halt();
+    end if;
+end sub;
+
+sub push_empty_node(): (node: [Node])
+    node := alloc_node();
+    push_node(node);
+end sub;
+
+sub ensure_stack_size(size: uint8)
+    if stack_pos < size then
+        print("stack underflow");
+        halt();
+    end if;
+end sub;
+
+sub pop(): (node: [Node])
+    ensure_stack_size(1);
+    stack_pos := stack_pos - 1;
+    node := stack[stack_pos];
+end sub;
+
+sub peek(offset: uint8): (node: [Node])
+    ensure_stack_size(offset);
+    node := stack[stack_pos - offset];
+end sub;
+
+sub stack_must_be_empty()
+    if stack_pos != 0 then
+        print("stack not empty");
+        halt();
+    end if;
+end sub;
+
+sub copy_ea_ref(src: [EffectiveAddress], dest: [EffectiveAddress])
+    copy_ea(src, dest);
+    ref_temporary(src.obj_id);
+    ref_temporary(src.varoff_id);
+end sub;
+
+$if DEBUG
+    sub print_node(node: [Node])
+        print_char('@');
+        print_i8(get_node_id(node));
+        print_char('.');
+        print_i8(node.refcount);
+        print("{iop=0x");
+        print_hex_i8(node.iop);
+        print(" flags=0x");
+        print_hex_i8(node.flags);
+        print(" type_id=0x");
+        print_hex_i16(node.type_id);
+        print(" left=");
+        print_ea(&node.left);
+        print(" right=");
+        print_ea(&node.right);
+        print_char('}');
+    end sub;
+
+    sub print_stack()
+        print("stack:\n");
+        var index: uint8 := 0;
+        while index < stack_pos loop
+            var node: [Node] := stack[index];
+            print("node=");
+            print_i8(index);
+            print_char(' ');
+            print_node(node);
+            print_newline();
+            index := index + 1;
+        end loop;
+    end sub;
+$endif
+

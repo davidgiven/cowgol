@@ -1,0 +1,103 @@
+record Temporary
+    thing_id: uint16;
+    refcount: uint8;
+end record;
+
+var temporaries: Temporary[32];
+
+sub init_temporaries()
+    zero_memory(&temporaries[0] as [int8], temporaries@bytes);
+end sub;
+
+sub alloc_temporary(type_id: uint16): (thing_id: uint16)
+    var index: uint8 := 0;
+    while index < temporaries@size loop
+        var temp: [Temporary] := &temporaries[index];
+        var thing: [VariableThing];
+        if temp.refcount == 0 then
+            if temp.thing_id == 0 then
+                thing_id := create_thing(THING_VARIABLE, VariableThing@bytes);
+                thing := find_thing(thing_id) as [VariableThing];
+                thing.type_id := type_id;
+                thing.owner_id := current_subroutine_id;
+
+                $if DEBUG
+                    print("* creating new temp 0x");
+                    print_hex_i16(thing_id);
+                    print(" of type ");
+                    print_thing(type_id);
+                    print_newline();
+                $endif
+
+                temp.refcount := 1;
+                temp.thing_id := thing_id;
+                return;
+            else
+                thing := find_thing(temp.thing_id) as [VariableThing];
+                if thing.type_id == type_id then
+                    $if DEBUG
+                        print("* reusing temp 0x");
+                        print_hex_i16(temp.thing_id);
+                        print_newline();
+                    $endif
+
+                    temp.refcount := 1;
+                    thing_id := temp.thing_id;
+                    return;
+                end if;
+            end if;
+        end if;
+
+        index := index + 1;
+    end loop;
+
+    print("ran out of temporary variables");
+    halt();
+end sub;
+
+sub ref_temporary(thing_id: uint16)
+    if thing_id != 0 then
+        var index: uint8 := 0;
+        while index < temporaries@size loop
+            var temp: [Temporary] := &temporaries[index];
+            if (temp.thing_id == thing_id) and (temp.refcount > 0) then
+                temp.refcount := temp.refcount + 1;
+
+                $if DEBUG
+                    print("* ref temp 0x");
+                    print_hex_i16(thing_id);
+                    print_newline();
+                $endif
+
+                return;
+            end if;
+
+            index := index + 1;
+        end loop;
+    end if;
+end sub;
+
+sub deref_temporary(thing_id: uint16)
+    if thing_id != 0 then
+        var index: uint8 := 0;
+        while index < temporaries@size loop
+            var temp: [Temporary] := &temporaries[index];
+            if (temp.thing_id == thing_id) and (temp.refcount > 0) then
+                temp.refcount := temp.refcount - 1;
+
+                $if DEBUG
+                    print("* deref temp 0x");
+                    print_hex_i16(thing_id);
+                    if temp.refcount == 0 then
+                        print("; temp is now free");
+                    end if;
+                    print_newline();
+                $endif
+
+                return;
+            end if;
+
+            index := index + 1;
+        end loop;
+    end if;
+end sub;
