@@ -192,10 +192,7 @@ both_cowgol_programs typechecker \
     $OBJDIR/token_names.cow \
     src/utils/types.cow \
     src/typechecker/init.cow \
-    src/typechecker/temporaries.cow \
-    src/typechecker/tree.cow \
-    src/arch/bbc/simplifier.cow \
-    src/typechecker/simplifier.cow \
+    src/typechecker/stack.cow \
     src/typechecker/main.cow \
     src/typechecker/deinit.cow \
 

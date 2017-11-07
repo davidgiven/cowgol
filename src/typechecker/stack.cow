@@ -1,0 +1,73 @@
+var type_stack: uint16[32];
+var rvalue_stack: uint8[32];
+var stack_pos: uint8;
+
+sub init_stack()
+    zero_memory(&type_stack[0] as [int8], type_stack@bytes);
+    zero_memory(&rvalue_stack[0] as [int8], rvalue_stack@bytes);
+    stack_pos := 0;
+end sub;
+
+sub push_type(type_id: uint16, is_rvalue: uint8)
+    if stack_pos == type_stack@size then
+        print("stack overflow");
+        halt();
+    end if;
+
+    $if DEBUG
+        print("* push ");
+        print_type_name(type_id);
+        if is_rvalue != 0 then
+            print_char('!');
+        end if;
+        print_newline();
+    $endif
+
+    type_stack[stack_pos] := type_id;
+    rvalue_stack[stack_pos] := is_rvalue;
+    stack_pos := stack_pos + 1;
+end sub;
+
+sub pop_type(): (type_id: uint16, is_rvalue: uint8)
+    if stack_pos == 0 then
+        print("stack underflow");
+        halt();
+    end if;
+
+    stack_pos := stack_pos - 1;
+    type_id := type_stack[stack_pos];
+    is_rvalue := rvalue_stack[stack_pos];
+
+    $if DEBUG
+        print("* pop ");
+        print_type_name(type_id);
+        if is_rvalue != 0 then
+            print_char('!');
+        end if;
+        print_newline();
+    $endif
+
+end sub;
+
+sub check_stack_is_empty() 
+    if stack_pos != 0 then
+        print("stray items left on stack");
+        halt();
+    end if;
+end sub;
+
+$if DEBUG
+    sub print_stack()
+        print("stack: ");
+        var i: uint8 := stack_pos;
+        while i != 0 loop
+            i := i - 1;
+            print_type_name(type_stack[i]);
+            if rvalue_stack[i] != 0 then
+                print_char('!');
+            end if;
+            print_char(' ');
+        end loop;
+        print_newline();
+    end sub;
+$endif

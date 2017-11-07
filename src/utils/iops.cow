@@ -50,16 +50,24 @@ const IOP_FE_ZEXT          := 0b0010_1001; # ( value -- result )
 const IOP_FE_SEXT          := 0b0010_1010; # ( value -- result )
 
 const IOP_TYPE_FE_3OP      := 0b0011_0000;
+const IOP_TYPE_FE_3OP_SIGNED := 1;
+const IOP_TYPE_FE_3OP_UNSIGNED_MASK := 0xFE;
 const IOP_FE_ADD           := 0b0011_0000; # ( left right -- result )
 const IOP_FE_SUB           := 0b0011_0001; # ( left right -- result )
 const IOP_FE_MUL           := 0b0011_0010; # ( left right -- result )
-const IOP_FE_DIV           := 0b0011_0100; # ( left right -- result )
-const IOP_FE_MOD           := 0b0011_0101; # ( left right -- result )
-const IOP_FE_AND           := 0b0011_0110; # ( left right -- result )
-const IOP_FE_OR            := 0b0011_0111; # ( left right -- result )
-const IOP_FE_EOR           := 0b0011_1000; # ( left right -- result )
-const IOP_FE_LSHIFT        := 0b0011_1001; # ( value count -- result )
-const IOP_FE_RSHIFT        := 0b0011_1010; # ( value count -- result )
+const IOP_FE_DIV           := 0b0011_0011; # ( left right -- result )
+const IOP_FE_MOD           := 0b0011_0100; # ( left right -- result )
+const IOP_FE_AND           := 0b0011_0101; # ( left right -- result )
+const IOP_FE_OR            := 0b0011_0110; # ( left right -- result )
+const IOP_FE_EOR           := 0b0011_0111; # ( left right -- result )
+const IOP_FE_LSHIFT        := 0b0011_1000; # ( value count -- result )
+const IOP_FE_RSHIFT        := 0b0011_1001; # ( value count -- result )
+const IOP_FE_RSHIFTU       := 0b0011_1010; # ( value count -- result )
+const IOP_FE_RSHIFTS       := 0b0011_1011; # ( value count -- result )
+const IOP_FE_DIVU          := 0b0011_1100; # ( left right -- result )
+const IOP_FE_DIVS          := 0b0011_1101; # ( left right -- result )
+const IOP_FE_MODU          := 0b0011_1110; # ( left right -- result )
+const IOP_FE_MODS          := 0b0011_1111; # ( left right -- result )
 
 # Additional, special front end iops.
 const IOP_TYPE_FEX         := 0b0100_0000;
@@ -72,6 +80,10 @@ const IOP_FEX_BLT          := 0b0100_0110; # ( left right -- ): FEConditionalIop
 const IOP_FEX_BGT          := 0b0100_0111; # ( left right -- ): FEConditionalIop
 const IOP_FEX_SWAP         := 0b0100_1000; # ( a b -- b a ): Iop
 const IOP_FEX_ASSIGN       := 0b0100_1001; # ( dest src -- ): Iop
+const IOP_FEX_BLTU         := 0b0100_1010; # ( left right -- ): FEConditionalIop
+const IOP_FEX_BLTS         := 0b0100_1011; # ( left right -- ): FEConditionalIop
+const IOP_FEX_BGTU         := 0b0100_1100; # ( left right -- ): FEConditionalIop
+const IOP_FEX_BGTS         := 0b0100_1101; # ( left right -- ): FEConditionalIop
 
 # Backend opcodes, after type checking and conversion out of front end format.
 # This is the memory-memory architecture which the real code generator converts
@@ -168,7 +180,7 @@ record FEPushIop: FETypedIop
     thing_id: uint16;
 end record;
 
-record FEParameterIop: FETypedIop
+record FEParameterIop: Iop
     subroutine_id: uint16;
     parameter: uint8;
 end record;

@@ -6,7 +6,9 @@ sub emit(kind: uint8, size: uint8): (ptr: [Iop])
     ptr := &ioptab[ioptab_top] as [Iop];
     ioptab_top := ioptab_top + (size as uint16);
     if ioptab_top > ioptab@size then
-        print("iop table overflow");
+        print("iop table overflow (0x");
+        print_hex_i16(ioptab@size);
+        print(" bytes)");
         halt();
     end if;
 
