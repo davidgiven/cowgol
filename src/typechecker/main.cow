@@ -46,7 +46,10 @@ sub process_subroutine()
             halt();
         end if;
 
-        write_goto_iop(labelthing.label);
+        var goto_iop: [GotoIop] := iop as [GotoIop];
+        goto_iop.iop_size := GotoIop@bytes;
+        goto_iop.iop_kind := IOP_GOTO;
+        goto_iop.label := labelthing.label;
     end sub;
 
     sub fex_push(iop: [FEPushIop])
@@ -56,10 +59,13 @@ sub process_subroutine()
             thing := find_thing(iop.thing_id);
         end if;
 
+        var is_rvalue: uint8;
         if thing.thing_type == THING_NUMBER then
             iop.type_id := constant_type;
+            is_rvalue := 1;
         elseif thing.thing_type == THING_STRING then
             iop.type_id := pointer_of(int8_type, uint8_type);
+            is_rvalue := 1;
         elseif (thing.thing_type & THING_TYPED) != 0 then
             var typed_thing: [TypedThing] := thing as [TypedThing];
             if typed_thing.type_id == 0 then
@@ -67,13 +73,14 @@ sub process_subroutine()
                 halt();
             end if;
             iop.type_id := typed_thing.type_id;
+            is_rvalue := 0;
         else
             print("can't push things of type 0x");
             print_hex_i8(thing.thing_type);
             halt();
         end if;
 
-        push_type(iop.type_id, 0);
+        push_type(iop.type_id, is_rvalue);
     end sub;
 
     sub fex_swap()
@@ -285,6 +292,7 @@ sub process_subroutine()
         var parameter: [ParameterThing] := find_thing(parameter_id) as [ParameterThing];
 
         var push_iop: [FEPushIop] := iop as [FEPushIop];
+        push_iop.iop_size := FEPushIop@bytes;
         push_iop.iop_kind := IOP_FEX_PUSH;
         push_iop.type_id := parameter.type_id;
         push_iop.thing_id := parameter_id;
@@ -330,7 +338,7 @@ sub process_subroutine()
         push_type(iop.type_id, 1);
     end sub;
 
-    sub fe_shift(iop: [FETypedIop], signed_beiop: uint8, unsigned_beiop: uint8)
+    sub fe_shift(iop: [FETypedIop], signed_feiop: uint8, unsigned_feiop: uint8)
         var right_type_id: uint16;
         var right_is_rvalue: uint8;
         (right_type_id, right_is_rvalue) := pop_type();
@@ -355,6 +363,12 @@ sub process_subroutine()
             print_type_name(left_type_id);
             print(" is not uint8");
             halt();
+        end if;
+
+        if left_type.thing_type == THING_SIGNEDT then
+            iop.iop_kind := signed_feiop;
+        else
+            iop.iop_kind := unsigned_feiop;
         end if;
 
         iop.type_id := left_type_id;
@@ -402,6 +416,7 @@ sub process_subroutine()
         $endif
 
         var push_iop: [FEPushIop] := iop as [FEPushIop];
+        push_iop.iop_size := FEPushIop@bytes;
         push_iop.iop_kind := IOP_FEX_PUSH;
         push_iop.type_id := constant_type;
         push_iop.thing_id := add_number_by_value(width as int32);
@@ -421,6 +436,7 @@ sub process_subroutine()
         end if;
 
         var push_iop: [FEPushIop] := iop as [FEPushIop];
+        push_iop.iop_size := FEPushIop@bytes;
         push_iop.iop_kind := IOP_FEX_PUSH;
         push_iop.type_id := constant_type;
         push_iop.thing_id := add_number_by_value(left_type.element_count as int32);
