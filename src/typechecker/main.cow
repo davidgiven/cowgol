@@ -415,6 +415,8 @@ sub process_subroutine()
             print_newline();
         $endif
 
+        write_untyped_iop(IOP_FEX_DROP);
+        
         var push_iop: [FEPushIop] := iop as [FEPushIop];
         push_iop.iop_size := FEPushIop@bytes;
         push_iop.iop_kind := IOP_FEX_PUSH;
@@ -435,6 +437,8 @@ sub process_subroutine()
             halt();
         end if;
 
+        write_untyped_iop(IOP_FEX_DROP);
+
         var push_iop: [FEPushIop] := iop as [FEPushIop];
         push_iop.iop_size := FEPushIop@bytes;
         push_iop.iop_kind := IOP_FEX_PUSH;
@@ -446,7 +450,6 @@ sub process_subroutine()
 
     loop
         var iop: [Iop] := read_iop();
-        var ioptype: uint8 := iop.iop_kind & IOP_TYPE_MASK;
         $if DEBUG
             print_newline();
             print_stack();
@@ -456,7 +459,11 @@ sub process_subroutine()
         $endif
 
         var kind: uint8 := iop.iop_kind;
-        if (kind == IOP_END) or
+        var ioptype: uint8 := kind & IOP_TYPE_MASK;
+
+        if ioptype == IOP_TYPE_UNTYPED then
+            # do nothing
+        elseif (kind == IOP_END) or
             (kind == IOP_ADDRESS)
             or (kind == IOP_ADDRESSLO)
             or (kind == IOP_ADDRESSHI)

@@ -84,6 +84,7 @@ const IOP_FEX_BLTU         := 0b0100_1010; # ( left right -- ): FEConditionalIop
 const IOP_FEX_BLTS         := 0b0100_1011; # ( left right -- ): FEConditionalIop
 const IOP_FEX_BGTU         := 0b0100_1100; # ( left right -- ): FEConditionalIop
 const IOP_FEX_BGTS         := 0b0100_1101; # ( left right -- ): FEConditionalIop
+const IOP_FEX_DROP         := 0b0100_1110; # ( value -- ); Iop
 
 # Backend opcodes, after type checking and conversion out of front end format.
 # This is the memory-memory architecture which the real code generator converts
