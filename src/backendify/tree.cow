@@ -1,9 +1,6 @@
-const FLAG_RVALUE := 0b0000_0001;
-
 record Node
     iop: uint8;
     refcount: uint8;
-    flags: uint8;
     type_id: uint16;
     left: EffectiveAddress;
     right: EffectiveAddress;
@@ -146,8 +143,6 @@ $if DEBUG
         print_i8(node.refcount);
         print("{iop=0x");
         print_hex_i8(node.iop);
-        print(" flags=0x");
-        print_hex_i8(node.flags);
         print(" type_id=0x");
         print_hex_i16(node.type_id);
         print(" left=");

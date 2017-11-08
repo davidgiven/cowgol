@@ -41,7 +41,6 @@ sub simplify_constants_and_deref(src: [Node]): (dest: [Node])
     then
         dest := alloc_node();
         dest.iop := IOP_FEX_PUSH;
-        dest.flags := FLAG_RVALUE;
         dest.type_id := src.type_id;
         dest.left.type_id := src.type_id;
         dest.left.obj_id := add_number_by_value(
@@ -91,7 +90,6 @@ sub simplify_node_to_var_and_deref(src: [Node]): (dest: [Node])
 
     dest := alloc_node();
     dest.iop := IOP_FEX_PUSH;
-    dest.flags := FLAG_RVALUE;
     dest.type_id := src.type_id;
 
     dest.left.type_id := dest.type_id;

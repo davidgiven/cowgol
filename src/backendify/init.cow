@@ -1,4 +1,4 @@
-print("TYPECHECKER\n");
+print("BACKENDIFY\n");
 init_string_table();
 load_thing_table(things_dat);
 init_iop_reader(iops_dat);
