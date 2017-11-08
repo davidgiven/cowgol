@@ -51,3 +51,7 @@ sub save_string_table(filename: [int8])
     file_putblock(fd, &stringtab[0] as [int8], stringtab_top);
     file_close(fd);
 end sub;
+
+sub show_string(string_id: uint16)
+    print("[a string]");
+end sub;
