@@ -366,82 +366,83 @@ sub process_subroutine()
             print_newline();
         $endif
 
-        if iop.iop_kind == IOP_END then
+        var kind: uint8 := iop.iop_kind;
+        if kind == IOP_END then
             break;
-        elseif iop.iop_kind == IOP_CALL then
+        elseif kind == IOP_CALL then
             fe_call(iop as [CallIop]);
-        elseif (iop.iop_kind == IOP_ADDRESS)
-            or (iop.iop_kind == IOP_ADDRESSLO)
-            or (iop.iop_kind == IOP_ADDRESSHI)
+        elseif (kind == IOP_ADDRESS)
+            or (kind == IOP_ADDRESSLO)
+            or (kind == IOP_ADDRESSHI)
         then
             special_address(iop as [AddressIop]);
         elseif ioptype == IOP_TYPE_UNTYPED then
             write_iop(iop);
-        elseif iop.iop_kind == IOP_FEX_SWAP then
+        elseif kind == IOP_FEX_SWAP then
             fex_swap();
-        elseif iop.iop_kind == IOP_FEX_PUSH then
+        elseif kind == IOP_FEX_PUSH then
             fex_push(iop as [FEPushIop]);
-        elseif iop.iop_kind == IOP_FEX_ASSIGN then
+        elseif kind == IOP_FEX_ASSIGN then
             fex_assign();
-        elseif iop.iop_kind == IOP_FE_ADD then
+        elseif kind == IOP_FE_ADD then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_ADD);
-        elseif iop.iop_kind == IOP_FE_SUB then
+        elseif kind == IOP_FE_SUB then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_SUB);
-        elseif iop.iop_kind == IOP_FE_MUL then
+        elseif kind == IOP_FE_MUL then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_MUL);
-        elseif iop.iop_kind == IOP_FE_AND then
+        elseif kind == IOP_FE_AND then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_AND);
-        elseif iop.iop_kind == IOP_FE_OR then
+        elseif kind == IOP_FE_OR then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_OR);
-        elseif iop.iop_kind == IOP_FE_EOR then
+        elseif kind == IOP_FE_EOR then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_EOR);
-        elseif iop.iop_kind == IOP_FE_DIVS then
+        elseif kind == IOP_FE_DIVS then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_DIVS);
-        elseif iop.iop_kind == IOP_FE_DIVU then
+        elseif kind == IOP_FE_DIVU then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_DIVU);
-        elseif iop.iop_kind == IOP_FE_MODS then
+        elseif kind == IOP_FE_MODS then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_MODS);
-        elseif iop.iop_kind == IOP_FE_MODU then
+        elseif kind == IOP_FE_MODU then
             fe_simple_alu2op(iop as [FETypedIop], IOP_BE_MODU);
-        elseif iop.iop_kind == IOP_FE_NEG then
+        elseif kind == IOP_FE_NEG then
             fe_simple_alu1op(iop as [FETypedIop], IOP_BE_NEG);
-        elseif iop.iop_kind == IOP_FE_NOT then
+        elseif kind == IOP_FE_NOT then
             fe_simple_alu1op(iop as [FETypedIop], IOP_BE_NOT);
-        elseif iop.iop_kind == IOP_FE_SEXT then
+        elseif kind == IOP_FE_SEXT then
             fe_simple_alu1op(iop as [FETypedIop], IOP_BE_SEXT);
-        elseif iop.iop_kind == IOP_FE_ZEXT then
+        elseif kind == IOP_FE_ZEXT then
             fe_simple_alu1op(iop as [FETypedIop], IOP_BE_ZEXT);
-        elseif (iop.iop_kind == IOP_FE_LSHIFT) then
+        elseif (kind == IOP_FE_LSHIFT) then
             fe_shift(iop as [FETypedIop], IOP_BE_LSL);
-        elseif (iop.iop_kind == IOP_FE_RSHIFTS) then
+        elseif (kind == IOP_FE_RSHIFTS) then
             fe_shift(iop as [FETypedIop], IOP_BE_ASR);
-        elseif (iop.iop_kind == IOP_FE_RSHIFTU) then
+        elseif (kind == IOP_FE_RSHIFTU) then
             fe_shift(iop as [FETypedIop], IOP_BE_LSR);
-        elseif iop.iop_kind == IOP_FE_INDEX then
+        elseif kind == IOP_FE_INDEX then
             fe_index(iop as [FETypedIop]);
-        elseif iop.iop_kind == IOP_FE_MATERIALISE then
+        elseif kind == IOP_FE_MATERIALISE then
             fe_materialise(iop as [FETypedIop]);
-        elseif iop.iop_kind == IOP_FE_ADDRESSOF then
+        elseif kind == IOP_FE_ADDRESSOF then
             fe_addressof(iop as [FETypedIop]);
-        elseif iop.iop_kind == IOP_FEX_MEMBEROF then
+        elseif kind == IOP_FEX_MEMBEROF then
             fex_memberof(iop as [FEMemberIop]);
-        elseif iop.iop_kind == IOP_FEX_BEQ then
+        elseif kind == IOP_FEX_BEQ then
             fe_conditional(IOP_BE_BEQ, iop as [FEConditionalIop]);
-        elseif iop.iop_kind == IOP_FEX_BGTS then
+        elseif kind == IOP_FEX_BGTS then
             fe_conditional(IOP_BE_BGTS, iop as [FEConditionalIop]);
-        elseif iop.iop_kind == IOP_FEX_BGTU then
+        elseif kind == IOP_FEX_BGTU then
             fe_conditional(IOP_BE_BGTU, iop as [FEConditionalIop]);
-        elseif iop.iop_kind == IOP_FEX_BLTS then
+        elseif kind == IOP_FEX_BLTS then
             fe_conditional(IOP_BE_BLTS, iop as [FEConditionalIop]);
-        elseif iop.iop_kind == IOP_FEX_BLTU then
+        elseif kind == IOP_FEX_BLTU then
             fe_conditional(IOP_BE_BLTU, iop as [FEConditionalIop]);
-        elseif iop.iop_kind == IOP_FE_CAST then
+        elseif kind == IOP_FE_CAST then
             fe_cast(iop as [FETypedIop]);
-        elseif iop.iop_kind == IOP_FEX_DROP then
+        elseif kind == IOP_FEX_DROP then
             fex_drop();
         else
             print("unsupported iop 0x");
-            print_hex_i8(iop.iop_kind);
+            print_hex_i8(kind);
             halt();
         end if;
     end loop;
