@@ -38,6 +38,14 @@ sub process_subroutine()
     init_stack();
     current_namespace_id := subroutine.namespace_id;
 
+    sub special_address(iop: [AddressIop])
+        var thing: [Thing] := find_thing(iop.thing_id);
+        if thing.thing_type == THING_IDENTIFIER then
+            iop.thing_id := deref_symbol_or_fail(iop.thing_id);
+        end if;
+        check_stack_is_empty();
+    end sub;
+
     sub special_named_goto(iop: [NamedGotoIop])
         var label_id: uint16 := deref_symbol_or_fail(iop.label_id);
         var labelthing: [LabelThing] := find_thing(label_id) as [LabelThing];
@@ -459,22 +467,17 @@ sub process_subroutine()
         $endif
 
         var kind: uint8 := iop.iop_kind;
-        var ioptype: uint8 := kind & IOP_TYPE_MASK;
 
-        if ioptype == IOP_TYPE_UNTYPED then
-            # do nothing
-        elseif (kind == IOP_END) or
-            (kind == IOP_ADDRESS)
-            or (kind == IOP_ADDRESSLO)
-            or (kind == IOP_ADDRESSHI)
+        if (kind == IOP_ADDRESS) or (kind == IOP_ADDRESSLO) or (kind == IOP_ADDRESSHI) then
+            special_address(iop as [AddressIop]);
+        elseif (kind == IOP_LABEL) or (kind == IOP_BYTES) or (kind == IOP_RETURN)
+            or (kind == IOP_END) or (kind == IOP_GOTO) or (kind == IOP_CLONELABEL)
         then
             check_stack_is_empty();
-        elseif kind == IOP_CALL then
-            fe_call(iop as [CallIop]);
         elseif kind == IOP_NAMEDGOTO then
             special_named_goto(iop as [NamedGotoIop]);
-        elseif ioptype == IOP_TYPE_UNTYPED then
-            write_iop(iop);
+        elseif kind == IOP_CALL then
+            fe_call(iop as [CallIop]);
         elseif kind == IOP_FEX_SWAP then
             fex_swap();
         elseif kind == IOP_FEX_PUSH then
