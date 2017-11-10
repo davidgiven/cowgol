@@ -34,10 +34,10 @@ mv iops-out.dat iops.dat
 $bindir/backendify
 cp iops-out.dat iops-backendified.dat
 mv iops-out.dat iops.dat
+$bindir/classifier
 $bindir/blockifier
 cp iops-out.dat iops-blockified.dat
 mv iops-out.dat iops.dat
-$bindir/classifier
 $bindir/codegen
 cp iops-out.dat iops-codegenned.dat
 mv iops-out.dat iops.dat

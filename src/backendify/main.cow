@@ -456,7 +456,6 @@ sub process()
             break;
         end if;
 
-        write_iop_header(iheader);
         current_subroutine_id := iheader.thing_id;
 
         $if DEBUG
@@ -466,6 +465,7 @@ sub process()
             print_newline();
         $endif
 
+        write_iop_header(iheader);
         process_subroutine();
     end loop;
     write_terminating_iop_header();
