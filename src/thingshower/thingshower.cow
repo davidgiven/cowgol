@@ -155,7 +155,7 @@ loop
     if thing.thing_size == 0 then
         break;
     end if;
-    print_hex_i16(id);
+    print_thing(id);
     print(": ");
 
     var type: uint8 := thing.thing_type;

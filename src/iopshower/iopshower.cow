@@ -27,8 +27,8 @@ end sub;
 
 sub do_typed_fe(kind: [int8], iop: [FETypedIop])
     print(kind);
-    print(" type_id=0x");
-    print_hex_i16(iop.type_id);
+    print(" type_id=");
+    print_thing(iop.type_id);
 end sub;
 
 sub do_fex_push(iop: [FEPushIop])
@@ -38,8 +38,8 @@ sub do_fex_push(iop: [FEPushIop])
 end sub;
 
 sub do_call(iop: [CallIop])
-    print("CALL id=0x");
-    print_hex_i16(iop.thing_id);
+    print("CALL id=");
+    print_thing(iop.thing_id);
     print(" input_parameter_count=");
     print_i8(iop.input_parameter_count);
     print(" output_parameter_count=");
@@ -48,8 +48,8 @@ end sub;
 
 sub do_fex_parameter(kind: [int8], iop: [FEParameterIop])
     print(kind);
-    print(" subroutine_id=0x");
-    print_hex_i16(iop.subroutine_id);
+    print(" subroutine_id=");
+    print_thing(iop.subroutine_id);
     print(" parameter=");
     print_i8(iop.parameter);
 end sub;
@@ -111,7 +111,7 @@ end sub;
 
 sub do_namedgoto(iop: [NamedGotoIop])
     print("NAMEDGOTO label_id=");
-    print_i16(iop.label_id);
+    print_thing(iop.label_id);
 end sub;
 
 sub do_bytes(iop: [BytesIop])
@@ -126,17 +126,17 @@ end sub;
 
 sub do_address(kind: [int8], iop: [AddressIop])
     print(kind);
-    print(" thing_id=0x");
-    print_hex_i16(iop.thing_id);
-    print(" offset=0x");
-    print_hex_i16(iop.offset);
+    print(" thing_id=");
+    print_thing(iop.thing_id);
+    print(" offset=");
+    print_thing(iop.offset);
 end sub;
 
 sub do_cg_6502_mem(iop: [CG6502MemIop])
     print("CG_6502_MEM opcode=0x");
     print_hex_i8(iop.opcode);
-    print(" thing_id=0x");
-    print_hex_i16(iop.thing_id);
+    print(" thing_id=");
+    print_thing(iop.thing_id);
     print(" offset=0x");
     print_hex_i16(iop.offset);
 end sub;
@@ -156,8 +156,8 @@ loop
 
     var subroutine: [SubroutineThing] := find_thing(header.thing_id) as [SubroutineThing];
     var symbol_id: uint16 := find_symbol_by_value(header.thing_id);
-    print("OBJECT: id=0x");
-    print_hex_i16(header.thing_id);
+    print("OBJECT: id=");
+    print_thing(header.thing_id);
     print(": ");
     if symbol_id != 0 then
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];

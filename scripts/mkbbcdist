@@ -1,6 +1,6 @@
 #!/bin/sh
 
-bin/mkadfs -O $1 -B 3 -N 'Cowgol demo' \
+bin/mkadfs -O $1 -S 1280 -B 3 -N 'Cowgol demo' \
     -f scripts/'!boot'              -n !BOOT \
     -f demo/tiny.cow                -n TestProg \
     -d Bin \

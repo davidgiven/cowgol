@@ -460,7 +460,7 @@ sub process()
 
         $if DEBUG
             print("\n******* SUBROUTINE ");
-            show_name_of(current_subroutine_id);
+            print_thing(current_subroutine_id);
             print_newline();
             print_newline();
         $endif

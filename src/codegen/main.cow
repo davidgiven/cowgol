@@ -36,7 +36,7 @@ sub process_subroutine()
         print("\n***** subroutine: 0x");
         print_hex_i16(current_subroutine_id);
         print_char(' ');
-        show_name_of(current_subroutine_id);
+        print_thing(current_subroutine_id);
         print_newline();
     $endif
 

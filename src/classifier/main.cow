@@ -132,9 +132,9 @@ sub print_graph()
     var i: uint16 := 0;
     while i < graph_count loop
         var g: [GraphRecord] := &graph_base[i as int16];
-        show_name_of(g.src_id);
+        print_thing(g.src_id);
         print(" -> ");
-        show_name_of(g.dest_id);
+        print_thing(g.dest_id);
         print_newline();
 
         i := i + 1;
@@ -158,9 +158,9 @@ sub assign_space_for_variables(subroutine_id: uint16)
 
                     $if DEBUG
                         print_thing(subroutine_id);
-                        show_name_of(subroutine_id);
+                        print_thing(subroutine_id);
                         print_char('.');
-                        show_name_of(id);
+                        print_thing(id);
                         print(": segment 0x");
                         print_hex_i8(thing.segment);
                         print(" offset 0x");
@@ -238,7 +238,7 @@ sub show_subroutine_sizes()
     sub do_sub(thing: [SubroutineThing])
         if thing.segment == SEGMENT_CODE then
             var sr: [SubRecord] := &subdata[thing.address as int16];
-            show_name_of(id);
+            print_thing(id);
             print(" ");
             print_i16(thing.address);
             print(": zp=");

@@ -396,7 +396,7 @@ sub process_subroutine()
 
         if (thing.input_parameter_count != iop.input_parameter_count)
                 or (thing.output_parameter_count != iop.output_parameter_count) then
-            show_name_of(iop.thing_id);
+            print_thing(iop.thing_id);
             print(" has ");
             print_i8(thing.input_parameter_count);
             print(" inputs and ");
@@ -554,7 +554,7 @@ sub process()
 
         $if DEBUG
             print("\n******* SUBROUTINE ");
-            show_name_of(current_subroutine_id);
+            print_thing(current_subroutine_id);
             print_newline();
             print_newline();
         $endif

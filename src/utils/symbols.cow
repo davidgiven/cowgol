@@ -121,7 +121,7 @@ sub find_nth_parameter(subroutine_id: uint16, direction: uint8, parameter: uint8
             print(" parameter ");
             print_i8(parameter);
             print(" of ");
-            show_name_of(subroutine_id);
+            print_thing(subroutine_id);
             print(", which has ");
             print_i8(parameter_count);
             halt();

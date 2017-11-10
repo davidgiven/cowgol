@@ -26,10 +26,8 @@ sub emit_subroutine()
     file_seek(outfd, arch_calculate_fileoffset(current_subroutine as [DataThing]) as uint32);
     print("0x");
     print_hex_i16(arch_calculate_address(current_subroutine as [DataThing]));
-    print_char(' ');
+    print(": ");
     print_thing(current_subroutine_id);
-    print(": SUB ");
-    show_name_of(current_subroutine_id);
     print_newline();
 
     loop
@@ -82,12 +80,8 @@ sub emit_subroutines()
                 var address: uint16 := arch_calculate_address(thing as [DataThing]);
                 print("0x");
                 print_hex_i16(address);
-                print_char(' ');
+                print(": ");
                 print_thing(id);
-                print(": VAR ");
-                show_name_of(current_subroutine_id);
-                print_char('.');
-                show_name_of(id);
                 print_newline();
             end if;
             id := id + (thing.thing_size as uint16);

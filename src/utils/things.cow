@@ -279,25 +279,6 @@ sub show_identifier(identifier_id: uint16)
     end if;
 end sub;
 
-sub show_name_of(thing_id: uint16)
-    if thing_id == 0 then
-        print("(null)");
-        return;
-    end if;
-
-    var identifier_id: uint16 := find_name_of_value(thing_id);
-    if identifier_id != 0 then
-        show_identifier(identifier_id);
-    else
-        var thing: [Thing] := find_thing(thing_id);
-        print("(anonymous thing 0x");
-        print_hex_i16(thing_id);
-        print(" of type 0x");
-        print_hex_i8(thing.thing_type);
-        print(")");
-    end if;
-end sub;
-
 sub get_token_flags(token_id: uint16): (token_flags: uint8)
     var token: [TokenThing] := find_thing(token_id) as [TokenThing];
     if token.thing_type == THING_TOKEN then
@@ -313,6 +294,14 @@ sub get_thing_type(thing_id: uint16): (type: uint8)
     else
         var thing: [Thing] := find_thing(thing_id);
         type := thing.thing_type;
+    end if;
+end sub;
+
+sub is_type_thing(thing_id: uint16): (yes: uint8)
+    if (get_thing_type(thing_id) & THING_TYPE) != 0 then
+        yes := 1;
+    else
+        yes := 0;
     end if;
 end sub;
 
@@ -334,6 +323,14 @@ end sub;
 
 sub is_string_thing(thing_id: uint16): (yes: uint8)
     if get_thing_type(thing_id) == THING_STRING then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
+sub is_identifier_thing(thing_id: uint16): (yes: uint8)
+    if get_thing_type(thing_id) == THING_IDENTIFIER then
         yes := 1;
     else
         yes := 0;
@@ -415,19 +412,45 @@ sub load_thing_table(filename: [int8])
 end sub;
 
 sub print_thing(thing_id: uint16)
-    var thing: [Thing] := find_thing(thing_id);
-    if thing.thing_type == THING_NUMBER then
+    if thing_id == 0 then
+        print("(null)");
+        return;
+    end if;
+
+    sub print_prefix(s: [int8], thing_id: uint16)
+        print(s);
+        print_char('.');
+        print_hex_i16(thing_id);
+        print_char(':');
+    end sub;
+
+    if is_number_thing(thing_id) != 0 then
         print_char('#');
         print_i32(get_value_of_number(thing_id) as uint32);
-    else
-        var id: uint16 := find_name_of_value(thing_id);
-        if id == 0 then
-            print_char('?');
-        else
-            show_identifier(id);
-        end if;
-        print("(0x");
+        print_char('.');
         print_hex_i16(thing_id);
-        print(")");
+    elseif is_identifier_thing(thing_id) != 0 then
+        print_prefix("ID", thing_id);
+        show_identifier(thing_id);
+    elseif is_string_thing(thing_id) != 0 then
+        print_prefix("STR", thing_id);
+        show_identifier(thing_id);
+    else
+        var identifier_id: uint16 := find_name_of_value(thing_id);
+        if is_type_thing(thing_id) != 0 then
+            print_prefix("TYPE", thing_id);
+        elseif is_typed_thing(thing_id) != 0 then
+            print_prefix("VAR", thing_id);
+        elseif get_thing_type(thing_id) == THING_SUBROUTINE then
+            print_prefix("SUB", thing_id);
+        else
+            print_prefix("UNK", thing_id);
+        end if;
+
+        if identifier_id != 0 then
+            show_identifier(identifier_id);
+        else
+            print("(anonymous)");
+        end if;
     end if;
 end sub;
