@@ -306,6 +306,9 @@ c_program bin/mkdfs \
 c_program bin/mkadfs \
     emu/mkadfs.c
 
+c_program bin/miniyacc \
+    src/miniyacc/yacc.c
+
 for f in tests/bootstrap/*.test.cow; do
     bootstrap_test $f
 done

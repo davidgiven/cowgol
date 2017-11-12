@@ -79,6 +79,7 @@ build bin/bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/
 build bin/bbctube : c_program emu/bbctube/bbctube.c emu/bbctube/lib6502.c
 build bin/mkdfs : c_program emu/mkdfs.c
 build bin/mkadfs : c_program emu/mkadfs.c
+build bin/miniyacc : c_program src/miniyacc/yacc.c
 build /tmp/cowgol-obj/tests/bootstrap/arrays : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow tests/bootstrap/_test.cow tests/bootstrap/arrays.test.cow | scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h src/arch/bootstrap/host.cow src/utils/names.cow
 build /tmp/cowgol-obj/tests/bootstrap/arrays.stamp : run_smart_test /tmp/cowgol-obj/tests/bootstrap/arrays
 build /tmp/cowgol-obj/tests/bootstrap/casts : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow tests/bootstrap/_test.cow tests/bootstrap/casts.test.cow | scripts/cowgol_bootstrap_compiler bootstrap/bootstrap.lua bootstrap/cowgol.c bootstrap/cowgol.h src/arch/bootstrap/host.cow src/utils/names.cow
