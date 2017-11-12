@@ -72,11 +72,11 @@ sub pop_subroutine()
 end sub;
 
 sub init_parser()
-    current_namespace_id := 0;
-    current_subroutine_id := root.main_subroutine_id;
-
-    var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
+    var subroutine: [SubroutineThing] := find_thing(root.main_subroutine_id) as [SubroutineThing];
     current_namespace_id := subroutine.namespace_id;
+    current_subroutine_id := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
+    subroutine := find_thing(current_subroutine_id) as [SubroutineThing];
+    subroutine.namespace_id := current_namespace_id;
     
     lexical_push(LEX_TOP);
 end sub;

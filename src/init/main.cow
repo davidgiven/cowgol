@@ -64,8 +64,20 @@ sub write_iops_file()
     print("writing empty iops file\n");
     var fd: int8 := file_openout(iops_dat);
     var iheader: IHeader;
-    zero_memory(&iheader as [int8], iheader@bytes);
+    iheader.thing_id := current_subroutine_id;
     file_putblock(fd, &iheader as [int8], iheader@bytes);
+
+    var iop: Iop;
+    iop.iop_size := Iop@bytes;
+    iop.iop_kind := IOP_RETURN;
+    file_putblock(fd, &iop as [int8], iop@bytes);
+
+    iop.iop_kind := IOP_END;
+    file_putblock(fd, &iop as [int8], iop@bytes);
+    
+    iheader.thing_id := 0;
+    file_putblock(fd, &iheader as [int8], iheader@bytes);
+
     file_close(fd);
 end sub;
 
