@@ -99,6 +99,12 @@ sub global_rules(): (matched: uint8)
         return;
     end if;
 
+    if (queue0.iop_kind == IOP_CALL) and (queue1.iop_kind == IOP_RETURN) then
+        arch_gen_tail_call(queue0 as [CallIop]);
+        consume_iops(2);
+        return;
+    end if;
+
     if queue0.iop_kind == IOP_CALL then
         arch_gen_call(queue0 as [CallIop]);
         consume_iops(1);

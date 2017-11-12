@@ -51,11 +51,14 @@ sub fill_queue()
 end sub;
 
 sub consume_iops(count: uint8)
-    queue_read_pos := (queue_read_pos + 1) & (queue_array@size - 1);
-    queue0 := queue_item(0);
-    queue1 := queue_item(1);
-    queue2 := queue_item(2);
-    queue3 := queue_item(3);
+    while count > 0 loop
+        queue_read_pos := (queue_read_pos + 1) & (queue_array@size - 1);
+        queue0 := queue_item(0);
+        queue1 := queue_item(1);
+        queue2 := queue_item(2);
+        queue3 := queue_item(3);
+        count := count - 1;
+    end loop;
 end sub;
 
 sub init_queue()

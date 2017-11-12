@@ -87,6 +87,12 @@ sub arch_gen_call(iop: [CallIop])
     write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
 end sub;
 
+sub arch_gen_tail_call(iop: [CallIop])
+    flush_cached_values(REG_MASK);
+    write_byte(0x4C); # JMP
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+end sub;
+
 sub arch_gen_label(iop: [LabelIop])
     flush_cached_values(REG_MASK);
     write_iop(iop as [Iop]);
