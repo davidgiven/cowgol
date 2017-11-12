@@ -1,4 +1,10 @@
+var biggest_subroutine: uint16 := 0;
+var biggest_basicblock: uint16 := 0;
+
 sub process_subroutine()
+    var subroutine_start: uint32 := file_tell(iop_in_fd);
+    var basicblock_start: uint32 := subroutine_start;
+
     add_reference(current_subroutine_id, 0);
     var subroutine: [SubroutineThing] := find_thing(current_subroutine_id) as [SubroutineThing];
     subroutine.segment := SEGMENT_OMIT;
@@ -35,6 +41,15 @@ sub process_subroutine()
         end if;
     end sub;
 
+    sub end_of_basic_block()
+        var here: uint32 := file_tell(iop_in_fd);
+        var basicblock_size: uint16 := (here - basicblock_start) as uint16;
+        if basicblock_size > biggest_basicblock then
+            biggest_basicblock := basicblock_size;
+        end if;
+        basicblock_start := here;
+    end sub;
+
     loop
         var iop: [Iop] := read_iop();
         var iopkind: uint8 := iop.iop_kind;
@@ -42,8 +57,12 @@ sub process_subroutine()
 
         if iopkind == IOP_END then
             break;
+        elseif iopkind == IOP_LABEL then
+            end_of_basic_block();
         elseif iopkind == IOP_CALL then
+            end_of_basic_block();
             do_call(iop as [CallIop]);
+            end_of_basic_block();
         elseif (ioptype == IOP_TYPE_BACKEND_2OP)
             or (ioptype == IOP_TYPE_BACKEND_3OP)
         then
@@ -62,6 +81,12 @@ sub process_subroutine()
             do_addressiop(iop as [AddressIop]);
         end if;
     end loop;
+
+    end_of_basic_block();
+    var subroutine_size: uint16 := (file_tell(iop_in_fd) - subroutine_start) as uint16;
+    if subroutine_size > biggest_subroutine then
+        biggest_subroutine := subroutine_size;
+    end if;
 end sub;
 
 sub build_graph()
@@ -263,7 +288,11 @@ end sub;
 
 init_graph(LOMEM);
 build_graph();
-print("Total subroutines: ");
+print("Biggest subroutine: ");
+print_i16(biggest_subroutine);
+print(" bytes\nBiggest basic block: ");
+print_i16(biggest_basicblock);
+print(" bytes\nTotal subroutines: ");
 print_i16(subroutine_count);
 print("\n(");
 print_i16(graph_count);
