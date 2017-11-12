@@ -632,7 +632,7 @@ aout(char *name, int *t, int n)
 {
 	int i;
 
-	fprintf(fout, "short %s[] = {", name);
+	fprintf(fout, "short %s[%d] = {", name, n);
 	for (i=0; i<n; i++) {
 		if (i % 10 == 0)
 			fprintf(fout, "\n");
