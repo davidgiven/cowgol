@@ -131,10 +131,6 @@ License?
 Cowgol is available under the two-clause BSD license. Please see the COPYING
 file for the full text.
 
-Cowgol also includes a (hacked up) copy of the Miniyacc parser generator.
-This is © 2015 Quentin Carbonneaux and is available under the MIT license.
-See src/miniyacc/LICENSE for the full text. https://c9x.me/yacc/
-
 
 Who?
 ----

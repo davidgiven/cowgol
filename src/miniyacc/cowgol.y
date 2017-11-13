@@ -1,5 +1,6 @@
 %{
 %}
+%token EOF
 %token ID NUMBER STRING
 %token SUB WHILE LOOP IF ELSE ELSEIF VAR BREAK CONTINUE
 %token CONST RECORD RETURN GOTO END
@@ -24,7 +25,7 @@
 %left DOT
 %%
 prog
-    : statements
+    : statements EOF
     ;
 
 statements
