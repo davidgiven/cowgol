@@ -5,7 +5,7 @@ const SEGMENT_LAST := 0x82;
 
 # What are our base addresses?
 const BASE_ADDRESS := 0x0800;
-const BASE_ZEROPAGE := 0x00;
+const BASE_ZEROPAGE := 0x14;
 
 record ArchSizes
     data_size: uint16;

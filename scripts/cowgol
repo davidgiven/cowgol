@@ -1,6 +1,19 @@
 #!/bin/sh
 set -e
 
+syntax() {
+    echo "Syntax: cowgol -a arch [-k] -o outputfile inputfiles..."
+    exit 1
+}
+
+if [ "$1" != "-a" ]; then
+    syntax
+else
+    arch=$2
+    shift
+    shift
+fi
+
 if [ "$1" = "-k" ]; then
     shift
     tmpdir=.
@@ -12,8 +25,7 @@ else
 fi
 
 if [ "$1" != "-o" ]; then
-    echo "Syntax: cowgol [-k] -o outputfile inputfiles..."
-    exit 1
+    syntax
 else
     outputfile=$(realpath -s $2)
     shift
@@ -21,7 +33,7 @@ else
 fi
 
 srcs=$(realpath -s "$@")
-bindir=$(realpath -s bin)
+bindir=$(realpath -s bin/$arch)
 
 cd $tmpdir
 $bindir/init

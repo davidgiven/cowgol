@@ -122,7 +122,7 @@ c_program() {
 
 both_cowgol_programs init \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtablewriter.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -136,7 +136,7 @@ both_cowgol_programs tokeniser \
     src/string_lib.cow \
     src/ctype_lib.cow \
     src/numbers_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtablewriter.cow \
     src/utils/things.cow \
     src/tokeniser/lexer.cow \
@@ -148,7 +148,7 @@ both_cowgol_programs parser \
     src/string_lib.cow \
     src/ctype_lib.cow \
     src/numbers_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     $OBJDIR/token_names.cow \
@@ -167,7 +167,7 @@ both_cowgol_programs parser \
 
 both_cowgol_programs blockifier \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -182,7 +182,7 @@ both_cowgol_programs blockifier \
 
 both_cowgol_programs typechecker \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -198,7 +198,7 @@ both_cowgol_programs typechecker \
 
 both_cowgol_programs backendify \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -217,7 +217,7 @@ both_cowgol_programs backendify \
 
 both_cowgol_programs classifier \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -234,7 +234,7 @@ both_cowgol_programs classifier \
 
 both_cowgol_programs codegen \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -257,7 +257,7 @@ both_cowgol_programs codegen \
 
 both_cowgol_programs placer \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
@@ -270,26 +270,26 @@ both_cowgol_programs placer \
 
 both_cowgol_programs emitter \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
     src/utils/iopreader.cow \
     src/emitter/init.cow \
-    src/arch/bbc/emitter.cow \
+    src/arch/6502/emitter.cow \
     src/emitter/main.cow \
     src/emitter/deinit.cow \
 
 both_cowgol_programs thingshower \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/thingshower/thingshower.cow
 
 both_cowgol_programs iopshower \
     src/string_lib.cow \
-    src/arch/bbc/globals.cow \
+    GLOBALS \
     src/utils/stringtable.cow \
     src/utils/things.cow \
     src/utils/iops.cow \
