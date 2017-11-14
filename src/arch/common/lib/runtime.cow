@@ -1,0 +1,72 @@
+sub print(ptr: [int8])
+    loop
+        var c: int8 := ptr[0];
+        if c == 0 then
+            return;
+        end if;
+        print_char(c);
+        ptr := ptr + 1;
+    end loop;
+end sub;
+
+sub print_i8(value: uint8)
+    print_i32(value as uint32);
+end sub;
+
+sub print_i16(value: uint16)
+    print_i32(value as uint32);
+end sub;
+
+sub print_i32(value: uint32)
+    var buffer: uint8[11];
+    var pos: uint8 := 0;
+    loop
+        var rem: uint32;
+        (value, rem) := divmodu32(value, 10);
+        buffer[pos] := rem as uint8;
+        if value == 0 then
+            break;
+        end if;
+        pos := pos + 1;
+    end loop;
+
+    loop
+        print_char((buffer[pos] + '0') as int8);
+        if pos == 0 then
+            break;
+        end if;
+        pos := pos - 1;
+    end loop;
+end sub;
+
+sub print_hex_i8(value: uint8)
+    var i: uint8 := 2;
+    loop
+        var digit: uint8 := value >> 4;
+        if digit < 10 then
+            digit := digit + '0';
+        else
+            digit := digit + ('A' - 10);
+        end if;
+        print_char(digit as int8);
+        value := value << 4;
+        i := i - 1;
+        if i == 0 then
+            break;
+        end if;
+    end loop;
+end sub;
+
+sub print_hex_i16(value: uint16)
+    var valuep: [uint8] := (&value) as [uint8];
+    print_hex_i8(valuep[1]);
+    print_hex_i8(valuep[0]);
+end sub;
+
+sub print_hex_i32(value: uint32)
+    var valuep: [uint8] := (&value) as [uint8];
+    print_hex_i8(valuep[3]);
+    print_hex_i8(valuep[2]);
+    print_hex_i8(valuep[1]);
+    print_hex_i8(valuep[0]);
+end sub;

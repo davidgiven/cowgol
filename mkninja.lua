@@ -113,7 +113,9 @@ local host_data = {
         LIBS = {
             "src/arch/bbc/host.cow",
             "src/arch/bbc/lib/mos.cow",
+            "src/arch/6502/lib/runtime.cow",
             "src/arch/bbc/lib/runtime.cow",
+            "src/arch/common/lib/runtime.cow",
             "src/arch/bbc/lib/fileio.cow",
             "src/arch/bbc/lib/argv.cow",
             "src/arch/bbc/names.cow"
