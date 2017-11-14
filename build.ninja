@@ -32,6 +32,18 @@ build compiler_for_native_to_native : phony dependencies_for_bootstrapped_cowgol
 rule c_program
     command = cc -std=c99 -Wno-unused-result -g -o $out $in
 
+rule token_maker
+    command = gawk -f src/mk-token-maker.awk $in > $out
+
+rule token_names
+    command = gawk -f src/mk-token-names.awk $in > $out
+
+build $OBJDIR/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk
+build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk
+    
+rule run_smart_test
+    command = $in && touch $out
+
 build compiler_for_native_to_bbc : phony dependencies_for_bootstrapped_cowgol_program bin/native_to_bbc/init bin/native_to_bbc/tokeniser bin/native_to_bbc/parser bin/native_to_bbc/typechecker bin/native_to_bbc/backendify bin/native_to_bbc/blockifier bin/native_to_bbc/classifier bin/native_to_bbc/codegen bin/native_to_bbc/placer bin/native_to_bbc/emitter bin/native_to_bbc/iopshower bin/native_to_bbc/thingshower 
 
 build bin/native_to_bbc/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | compiler_for_native_to_native 
@@ -107,6 +119,42 @@ build bin/bbc/thingshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/li
 
 build bin/bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | compiler_for_native_to_bbc 
  arch = native_to_bbc 
+
+build $OBJDIR/tests/bootstrap/arrays : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/arrays.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/arrays.stamp : run_smart_test $OBJDIR/tests/bootstrap/arrays 
+
+build $OBJDIR/tests/bootstrap/casts : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/casts.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/casts.stamp : run_smart_test $OBJDIR/tests/bootstrap/casts 
+
+build $OBJDIR/tests/bootstrap/constants : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/constants.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/constants.stamp : run_smart_test $OBJDIR/tests/bootstrap/constants 
+
+build $OBJDIR/tests/bootstrap/empty : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/empty.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/empty.stamp : run_smart_test $OBJDIR/tests/bootstrap/empty 
+
+build $OBJDIR/tests/bootstrap/if : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/if.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/if.stamp : run_smart_test $OBJDIR/tests/bootstrap/if 
+
+build $OBJDIR/tests/bootstrap/numberic-constants : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/numberic-constants.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/numberic-constants.stamp : run_smart_test $OBJDIR/tests/bootstrap/numberic-constants 
+
+build $OBJDIR/tests/bootstrap/operators : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/operators.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/operators.stamp : run_smart_test $OBJDIR/tests/bootstrap/operators 
+
+build $OBJDIR/tests/bootstrap/pointers : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/pointers.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/pointers.stamp : run_smart_test $OBJDIR/tests/bootstrap/pointers 
+
+build $OBJDIR/tests/bootstrap/records : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/records.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/records.stamp : run_smart_test $OBJDIR/tests/bootstrap/records 
+
+build $OBJDIR/tests/bootstrap/sub : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/sub.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/sub.stamp : run_smart_test $OBJDIR/tests/bootstrap/sub 
+
+build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/weirdness-operators-while-indexing.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing.stamp : run_smart_test $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing 
+
+build $OBJDIR/tests/bootstrap/while : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/while.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/while.stamp : run_smart_test $OBJDIR/tests/bootstrap/while 
 
 build bin/bbctube : c_program emu/bbctube/bbctube.c emu/bbctube/lib6502.c 
 

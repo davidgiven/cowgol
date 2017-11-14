@@ -1,3 +1,5 @@
+local posix = require("posix")
+
 local out = io.stdout
 
 local function emit(...)
@@ -48,6 +50,18 @@ build compiler_for_native_to_native : phony dependencies_for_bootstrapped_cowgol
 
 rule c_program
     command = cc -std=c99 -Wno-unused-result -g -o $out $in
+
+rule token_maker
+    command = gawk -f src/mk-token-maker.awk $in > $out
+
+rule token_names
+    command = gawk -f src/mk-token-names.awk $in > $out
+
+build $OBJDIR/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk
+build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk
+    
+rule run_smart_test
+    command = $in && touch $out
 
 ]])
 
@@ -123,6 +137,22 @@ local function build_c(files)
     emit("build", "bin/"..program, ":", "c_program", files)
     nl()
     nl()
+end
+
+local function bootstrap_test(file)
+    local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
+    local testbin = "$OBJDIR/tests/bootstrap/"..testname
+    emit("build", testbin, ":", "bootstrapped_cowgol_program",
+        "tests/bootstrap/_test.cow",
+        file,
+        "|", "dependencies_for_bootstrapped_cowgol_program")
+    nl()
+    emit("build", testbin..".stamp", ":", "run_smart_test", testbin)
+    nl()
+    nl()
+end
+
+local function cpu_test(file)
 end
 
 local function build_cowgol_programs()
@@ -355,6 +385,16 @@ for host, hostcb in pairs(host_data) do
         targetcb()
         build_cowgol_programs()
     end
+end
+
+-- Build the bootstrap compiler tests.
+for _, file in ipairs(posix.glob("tests/bootstrap/*.test.cow")) do
+    bootstrap_test(file)
+end
+
+-- Build the CPU tests.
+for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
+    cpu_test(file)
 end
 
 build_c {
