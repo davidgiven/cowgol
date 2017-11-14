@@ -16,8 +16,9 @@ to (slowly) compile and run real programs on a 6502. It can't compile itself
 yet --- there's not enough memory.
 
 I'm currently targeting this at a BBC Micro with Tube second processor,
-because that gives me a real operating system with file streams and 61kB
-of usable RAM.
+because that gives me a real operating system with file streams and 61kB of
+usable RAM, but there's extremely basic (cross compilation only) support for
+the Commodore 64. (For ultra hackers only. Email me.)
 
 How?
 ----

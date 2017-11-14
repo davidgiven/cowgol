@@ -18,7 +18,8 @@ bugfixing.)
 
 It's currently targeted at a BBC Micro with Tube second processor, because
 that gives me a real operating system with file streams and 61kB of usable
-RAM.
+RAM, but there's extremely basic (cross compilation only) support for the
+Commodore 64. (For ultra hackers only. Email me.)
 
 
 Why?
