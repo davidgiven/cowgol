@@ -12,22 +12,16 @@ build build.ninja : mkninja mkninja.lua
 
 OBJDIR = /tmp/cowgol-obj
 
+rule stamp
+    command = touch $out
+
 rule bootstrapped_cowgol_program
     command = scripts/cowgol_bootstrap_compiler -o $out $in
-
-build dependencies_for_bootstrapped_cowgol_program : phony $
-    scripts/cowgol_bootstrap_compiler $
-    bootstrap/bootstrap.lua $
-    bootstrap/cowgol.c $
-    bootstrap/cowgol.h
 
 rule cowgol_program
     command = scripts/cowgol -a $arch -o $out $in
 
-build dependencies_for_cowgol_program : phony $
-    scripts/cowgol
-
-build compiler_for_native_to_native : phony dependencies_for_bootstrapped_cowgol_program
+build $OBJDIR/compiler_for_native_on_native : stamp
 
 rule c_program
     command = cc -std=c99 -Wno-unused-result -g -o $out $in
@@ -47,336 +41,345 @@ rule run_smart_test
 rule run_bbctube_test
     command = scripts/bbctube_test $in $badfile $goodfile && touch $out
 
-build compiler_for_native_to_bbc : phony dependencies_for_bootstrapped_cowgol_program bin/native_to_bbc/init bin/native_to_bbc/tokeniser bin/native_to_bbc/parser bin/native_to_bbc/typechecker bin/native_to_bbc/backendify bin/native_to_bbc/blockifier bin/native_to_bbc/classifier bin/native_to_bbc/codegen bin/native_to_bbc/placer bin/native_to_bbc/emitter bin/native_to_bbc/iopshower bin/native_to_bbc/thingshower 
+build $OBJDIR/dependencies_for_bootstrapped_cowgol_program : stamp $
+    scripts/cowgol_bootstrap_compiler $
+    bootstrap/bootstrap.lua $
+    bootstrap/cowgol.c $
+    bootstrap/cowgol.h
 
-build bin/native_to_bbc/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build $OBJDIR/dependencies_for_cowgol_program : stamp $
+    scripts/cowgol
 
-build bin/native_to_bbc/tokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build $OBJDIR/compiler_for_bbc_on_bbc : stamp bin/bbc/init bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker bin/bbc/backendify bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen bin/bbc/placer bin/bbc/emitter bin/bbc/iopshower bin/bbc/thingshower 
 
-build bin/native_to_bbc/parser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/utils/iops.cow src/parser/init.cow src/parser/symbols.cow src/utils/symbols.cow src/parser/iopwriter.cow src/parser/tokenreader.cow src/parser/constant.cow src/utils/types.cow src/parser/types.cow src/parser/expression.cow src/parser/main.cow src/parser/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/init : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/blockifier : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/blockifier/init.cow src/blockifier/main.cow src/blockifier/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/tokeniser : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/typechecker : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/typechecker/init.cow src/typechecker/stack.cow src/typechecker/main.cow src/typechecker/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/parser : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/utils/iops.cow src/parser/init.cow src/parser/symbols.cow src/utils/symbols.cow src/parser/iopwriter.cow src/parser/tokenreader.cow src/parser/constant.cow src/utils/types.cow src/parser/types.cow src/parser/expression.cow src/parser/main.cow src/parser/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/backendify : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/backendify/init.cow src/backendify/temporaries.cow src/backendify/tree.cow src/arch/bbc/simplifier.cow src/backendify/simplifier.cow src/backendify/main.cow src/backendify/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/blockifier : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/blockifier/init.cow src/blockifier/main.cow src/blockifier/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/classifier : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/symbols.cow src/utils/types.cow $OBJDIR/token_names.cow src/classifier/init.cow src/classifier/graph.cow src/arch/bbc/classifier.cow src/classifier/subdata.cow src/classifier/main.cow src/classifier/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/typechecker : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/typechecker/init.cow src/typechecker/stack.cow src/typechecker/main.cow src/typechecker/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/codegen : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow $OBJDIR/token_names.cow src/utils/symbols.cow src/utils/types.cow src/codegen/init.cow src/codegen/queue.cow src/arch/bbc/codegen0.cow src/arch/bbc/codegen1.cow src/arch/bbc/codegen2_8bit.cow src/arch/bbc/codegen2_wide.cow src/arch/bbc/codegen2_16bit.cow src/arch/bbc/codegen2.cow src/codegen/rules.cow src/codegen/main.cow src/codegen/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/backendify : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/backendify/init.cow src/backendify/temporaries.cow src/backendify/tree.cow src/arch/bbc/simplifier.cow src/backendify/simplifier.cow src/backendify/main.cow src/backendify/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/placer : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/placer/init.cow src/arch/bbc/placer.cow src/placer/main.cow src/placer/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/classifier : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/symbols.cow src/utils/types.cow $OBJDIR/token_names.cow src/classifier/init.cow src/classifier/graph.cow src/arch/bbc/classifier.cow src/classifier/subdata.cow src/classifier/main.cow src/classifier/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/emitter : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/emitter/init.cow src/arch/6502/emitter.cow src/emitter/main.cow src/emitter/deinit.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/codegen : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow $OBJDIR/token_names.cow src/utils/symbols.cow src/utils/types.cow src/codegen/init.cow src/codegen/queue.cow src/arch/bbc/codegen0.cow src/arch/bbc/codegen1.cow src/arch/bbc/codegen2_8bit.cow src/arch/bbc/codegen2_wide.cow src/arch/bbc/codegen2_16bit.cow src/arch/bbc/codegen2.cow src/codegen/rules.cow src/codegen/main.cow src/codegen/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/thingshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/thingshower/thingshower.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/placer : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/placer/init.cow src/arch/bbc/placer.cow src/placer/main.cow src/placer/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/native_to_bbc/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | compiler_for_native_to_native 
- arch = native_to_native 
+build bin/bbc/emitter : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/emitter/init.cow src/arch/6502/emitter.cow src/emitter/main.cow src/emitter/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build compiler_for_bbc_to_bbc : phony dependencies_for_cowgol_program bin/bbc/init bin/bbc/tokeniser bin/bbc/parser bin/bbc/typechecker bin/bbc/backendify bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen bin/bbc/placer bin/bbc/emitter bin/bbc/iopshower bin/bbc/thingshower 
+build bin/bbc/thingshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/thingshower/thingshower.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/bbc/init : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
 
-build bin/bbc/tokeniser : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/compiler_for_bbc_on_native : stamp bin/bbc_on_native/init bin/bbc_on_native/tokeniser bin/bbc_on_native/parser bin/bbc_on_native/typechecker bin/bbc_on_native/backendify bin/bbc_on_native/blockifier bin/bbc_on_native/classifier bin/bbc_on_native/codegen bin/bbc_on_native/placer bin/bbc_on_native/emitter bin/bbc_on_native/iopshower bin/bbc_on_native/thingshower 
 
-build bin/bbc/parser : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/utils/iops.cow src/parser/init.cow src/parser/symbols.cow src/utils/symbols.cow src/parser/iopwriter.cow src/parser/tokenreader.cow src/parser/constant.cow src/utils/types.cow src/parser/types.cow src/parser/expression.cow src/parser/main.cow src/parser/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/blockifier : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/blockifier/init.cow src/blockifier/main.cow src/blockifier/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/tokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/typechecker : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/typechecker/init.cow src/typechecker/stack.cow src/typechecker/main.cow src/typechecker/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/parser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/utils/iops.cow src/parser/init.cow src/parser/symbols.cow src/utils/symbols.cow src/parser/iopwriter.cow src/parser/tokenreader.cow src/parser/constant.cow src/utils/types.cow src/parser/types.cow src/parser/expression.cow src/parser/main.cow src/parser/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/backendify : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/backendify/init.cow src/backendify/temporaries.cow src/backendify/tree.cow src/arch/bbc/simplifier.cow src/backendify/simplifier.cow src/backendify/main.cow src/backendify/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/blockifier : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/blockifier/init.cow src/blockifier/main.cow src/blockifier/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/classifier : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/symbols.cow src/utils/types.cow $OBJDIR/token_names.cow src/classifier/init.cow src/classifier/graph.cow src/arch/bbc/classifier.cow src/classifier/subdata.cow src/classifier/main.cow src/classifier/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/typechecker : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/typechecker/init.cow src/typechecker/stack.cow src/typechecker/main.cow src/typechecker/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/codegen : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow $OBJDIR/token_names.cow src/utils/symbols.cow src/utils/types.cow src/codegen/init.cow src/codegen/queue.cow src/arch/bbc/codegen0.cow src/arch/bbc/codegen1.cow src/arch/bbc/codegen2_8bit.cow src/arch/bbc/codegen2_wide.cow src/arch/bbc/codegen2_16bit.cow src/arch/bbc/codegen2.cow src/codegen/rules.cow src/codegen/main.cow src/codegen/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/backendify : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/utils/types.cow src/backendify/init.cow src/backendify/temporaries.cow src/backendify/tree.cow src/arch/bbc/simplifier.cow src/backendify/simplifier.cow src/backendify/main.cow src/backendify/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/placer : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/placer/init.cow src/arch/bbc/placer.cow src/placer/main.cow src/placer/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/classifier : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/symbols.cow src/utils/types.cow $OBJDIR/token_names.cow src/classifier/init.cow src/classifier/graph.cow src/arch/bbc/classifier.cow src/classifier/subdata.cow src/classifier/main.cow src/classifier/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/emitter : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/emitter/init.cow src/arch/6502/emitter.cow src/emitter/main.cow src/emitter/deinit.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/codegen : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow $OBJDIR/token_names.cow src/utils/symbols.cow src/utils/types.cow src/codegen/init.cow src/codegen/queue.cow src/arch/bbc/codegen0.cow src/arch/bbc/codegen1.cow src/arch/bbc/codegen2_8bit.cow src/arch/bbc/codegen2_wide.cow src/arch/bbc/codegen2_16bit.cow src/arch/bbc/codegen2.cow src/codegen/rules.cow src/codegen/main.cow src/codegen/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/thingshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/thingshower/thingshower.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/placer : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/placer/init.cow src/arch/bbc/placer.cow src/placer/main.cow src/placer/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build bin/bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build bin/bbc_on_native/emitter : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/utils/iopreader.cow src/emitter/init.cow src/arch/6502/emitter.cow src/emitter/main.cow src/emitter/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
 
-build $OBJDIR/tests/bootstrap/arrays : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/arrays.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build bin/bbc_on_native/thingshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/thingshower/thingshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/bbc_on_native/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build $OBJDIR/tests/bootstrap/arrays : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/arrays.test.cow | 
 build $OBJDIR/tests/bootstrap/arrays.stamp : run_smart_test $OBJDIR/tests/bootstrap/arrays 
 
-build $OBJDIR/tests/bootstrap/casts : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/casts.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/casts : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/casts.test.cow | 
 build $OBJDIR/tests/bootstrap/casts.stamp : run_smart_test $OBJDIR/tests/bootstrap/casts 
 
-build $OBJDIR/tests/bootstrap/constants : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/constants.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/constants : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/constants.test.cow | 
 build $OBJDIR/tests/bootstrap/constants.stamp : run_smart_test $OBJDIR/tests/bootstrap/constants 
 
-build $OBJDIR/tests/bootstrap/empty : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/empty.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/empty : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/empty.test.cow | 
 build $OBJDIR/tests/bootstrap/empty.stamp : run_smart_test $OBJDIR/tests/bootstrap/empty 
 
-build $OBJDIR/tests/bootstrap/if : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/if.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/if : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/if.test.cow | 
 build $OBJDIR/tests/bootstrap/if.stamp : run_smart_test $OBJDIR/tests/bootstrap/if 
 
-build $OBJDIR/tests/bootstrap/numberic-constants : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/numberic-constants.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/numberic-constants : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/numberic-constants.test.cow | 
 build $OBJDIR/tests/bootstrap/numberic-constants.stamp : run_smart_test $OBJDIR/tests/bootstrap/numberic-constants 
 
-build $OBJDIR/tests/bootstrap/operators : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/operators.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/operators : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/operators.test.cow | 
 build $OBJDIR/tests/bootstrap/operators.stamp : run_smart_test $OBJDIR/tests/bootstrap/operators 
 
-build $OBJDIR/tests/bootstrap/pointers : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/pointers.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/pointers : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/pointers.test.cow | 
 build $OBJDIR/tests/bootstrap/pointers.stamp : run_smart_test $OBJDIR/tests/bootstrap/pointers 
 
-build $OBJDIR/tests/bootstrap/records : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/records.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/records : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/records.test.cow | 
 build $OBJDIR/tests/bootstrap/records.stamp : run_smart_test $OBJDIR/tests/bootstrap/records 
 
-build $OBJDIR/tests/bootstrap/sub : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/sub.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/sub : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/sub.test.cow | 
 build $OBJDIR/tests/bootstrap/sub.stamp : run_smart_test $OBJDIR/tests/bootstrap/sub 
 
-build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/weirdness-operators-while-indexing.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/weirdness-operators-while-indexing.test.cow | 
 build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing.stamp : run_smart_test $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing 
 
-build $OBJDIR/tests/bootstrap/while : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/while.test.cow | dependencies_for_bootstrapped_cowgol_program 
+build $OBJDIR/tests/bootstrap/while : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/while.test.cow | 
 build $OBJDIR/tests/bootstrap/while.stamp : run_smart_test $OBJDIR/tests/bootstrap/while 
 
-build $OBJDIR/tests/cpu/addressingmodes-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addressingmodes-16bit.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addressingmodes-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addressingmodes-16bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/addressingmodes-16bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addressingmodes-16bit.6502 | tests/cpu/addressingmodes-16bit.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/addressingmodes-16bit.good 
  badfile = tests/cpu/addressingmodes-16bit.bad 
 
-build $OBJDIR/tests/cpu/addressingmodes-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addressingmodes-8bit.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addressingmodes-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addressingmodes-8bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/addressingmodes-8bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addressingmodes-8bit.6502 | tests/cpu/addressingmodes-8bit.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/addressingmodes-8bit.good 
  badfile = tests/cpu/addressingmodes-8bit.bad 
 
-build $OBJDIR/tests/cpu/addsub-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-16bit.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addsub-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-16bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/addsub-16bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addsub-16bit.6502 | tests/cpu/addsub-16bit.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/addsub-16bit.good 
  badfile = tests/cpu/addsub-16bit.bad 
 
-build $OBJDIR/tests/cpu/addsub-32bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-32bit.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addsub-32bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-32bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/addsub-32bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addsub-32bit.6502 | tests/cpu/addsub-32bit.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/addsub-32bit.good 
  badfile = tests/cpu/addsub-32bit.bad 
 
-build $OBJDIR/tests/cpu/addsub-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-8bit.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addsub-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-8bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/addsub-8bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addsub-8bit.6502 | tests/cpu/addsub-8bit.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/addsub-8bit.good 
  badfile = tests/cpu/addsub-8bit.bad 
 
-build $OBJDIR/tests/cpu/casts.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/casts.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/casts.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/casts.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/casts.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/casts.6502 | tests/cpu/casts.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/casts.good 
  badfile = tests/cpu/casts.bad 
 
-build $OBJDIR/tests/cpu/comparisons-16bit-bigs.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigs.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigs.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigs.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/comparisons-16bit-bigs.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-bigs.6502 | tests/cpu/comparisons-16bit-bigs.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/comparisons-16bit-bigs.good 
  badfile = tests/cpu/comparisons-16bit-bigs.bad 
 
-build $OBJDIR/tests/cpu/comparisons-16bit-bigu.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigu.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigu.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigu.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/comparisons-16bit-bigu.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-bigu.6502 | tests/cpu/comparisons-16bit-bigu.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/comparisons-16bit-bigu.good 
  badfile = tests/cpu/comparisons-16bit-bigu.bad 
 
-build $OBJDIR/tests/cpu/comparisons-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/comparisons-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-s.6502 | tests/cpu/comparisons-16bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/comparisons-16bit-s.good 
  badfile = tests/cpu/comparisons-16bit-s.bad 
 
-build $OBJDIR/tests/cpu/comparisons-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/comparisons-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-u.6502 | tests/cpu/comparisons-16bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/comparisons-16bit-u.good 
  badfile = tests/cpu/comparisons-16bit-u.bad 
 
-build $OBJDIR/tests/cpu/comparisons-8bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-8bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-8bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-8bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/comparisons-8bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-8bit-s.6502 | tests/cpu/comparisons-8bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/comparisons-8bit-s.good 
  badfile = tests/cpu/comparisons-8bit-s.bad 
 
-build $OBJDIR/tests/cpu/comparisons-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-8bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-8bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/comparisons-8bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-8bit-u.6502 | tests/cpu/comparisons-8bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/comparisons-8bit-u.good 
  badfile = tests/cpu/comparisons-8bit-u.bad 
 
-build $OBJDIR/tests/cpu/divrem-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-16bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-16bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/divrem-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-16bit-s.6502 | tests/cpu/divrem-16bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/divrem-16bit-s.good 
  badfile = tests/cpu/divrem-16bit-s.bad 
 
-build $OBJDIR/tests/cpu/divrem-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-16bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-16bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/divrem-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-16bit-u.6502 | tests/cpu/divrem-16bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/divrem-16bit-u.good 
  badfile = tests/cpu/divrem-16bit-u.bad 
 
-build $OBJDIR/tests/cpu/divrem-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-32bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-32bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/divrem-32bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-32bit-s.6502 | tests/cpu/divrem-32bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/divrem-32bit-s.good 
  badfile = tests/cpu/divrem-32bit-s.bad 
 
-build $OBJDIR/tests/cpu/divrem-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-32bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-32bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/divrem-32bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-32bit-u.6502 | tests/cpu/divrem-32bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/divrem-32bit-u.good 
  badfile = tests/cpu/divrem-32bit-u.bad 
 
-build $OBJDIR/tests/cpu/divrem-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-8bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-8bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/divrem-8bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-8bit-u.6502 | tests/cpu/divrem-8bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/divrem-8bit-u.good 
  badfile = tests/cpu/divrem-8bit-u.bad 
 
-build $OBJDIR/tests/cpu/logic-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/logic-8bit.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/logic-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/logic-8bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/logic-8bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/logic-8bit.6502 | tests/cpu/logic-8bit.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/logic-8bit.good 
  badfile = tests/cpu/logic-8bit.bad 
 
-build $OBJDIR/tests/cpu/mul-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-16bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-16bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/mul-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-16bit-s.6502 | tests/cpu/mul-16bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/mul-16bit-s.good 
  badfile = tests/cpu/mul-16bit-s.bad 
 
-build $OBJDIR/tests/cpu/mul-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-16bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-16bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/mul-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-16bit-u.6502 | tests/cpu/mul-16bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/mul-16bit-u.good 
  badfile = tests/cpu/mul-16bit-u.bad 
 
-build $OBJDIR/tests/cpu/mul-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-32bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-32bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/mul-32bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-32bit-s.6502 | tests/cpu/mul-32bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/mul-32bit-s.good 
  badfile = tests/cpu/mul-32bit-s.bad 
 
-build $OBJDIR/tests/cpu/mul-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-32bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-32bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/mul-32bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-32bit-u.6502 | tests/cpu/mul-32bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/mul-32bit-u.good 
  badfile = tests/cpu/mul-32bit-u.bad 
 
-build $OBJDIR/tests/cpu/print.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/print.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/print.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/print.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/print.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/print.6502 | tests/cpu/print.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/print.good 
  badfile = tests/cpu/print.bad 
 
-build $OBJDIR/tests/cpu/ptraddressingmodes-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/ptraddressingmodes-16bit.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/ptraddressingmodes-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/ptraddressingmodes-16bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/ptraddressingmodes-16bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/ptraddressingmodes-16bit.6502 | tests/cpu/ptraddressingmodes-16bit.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/ptraddressingmodes-16bit.good 
  badfile = tests/cpu/ptraddressingmodes-16bit.bad 
 
-build $OBJDIR/tests/cpu/shifts-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-16bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-16bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/shifts-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-16bit-s.6502 | tests/cpu/shifts-16bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/shifts-16bit-s.good 
  badfile = tests/cpu/shifts-16bit-s.bad 
 
-build $OBJDIR/tests/cpu/shifts-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-16bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-16bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/shifts-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-16bit-u.6502 | tests/cpu/shifts-16bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/shifts-16bit-u.good 
  badfile = tests/cpu/shifts-16bit-u.bad 
 
-build $OBJDIR/tests/cpu/shifts-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-32bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-32bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/shifts-32bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-32bit-s.6502 | tests/cpu/shifts-32bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/shifts-32bit-s.good 
  badfile = tests/cpu/shifts-32bit-s.bad 
 
-build $OBJDIR/tests/cpu/shifts-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-32bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-32bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/shifts-32bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-32bit-u.6502 | tests/cpu/shifts-32bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/shifts-32bit-u.good 
  badfile = tests/cpu/shifts-32bit-u.bad 
 
-build $OBJDIR/tests/cpu/shifts-8bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-8bit-s.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-8bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-8bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/shifts-8bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-8bit-s.6502 | tests/cpu/shifts-8bit-s.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/shifts-8bit-s.good 
  badfile = tests/cpu/shifts-8bit-s.bad 
 
-build $OBJDIR/tests/cpu/shifts-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-8bit-u.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-8bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/shifts-8bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-8bit-u.6502 | tests/cpu/shifts-8bit-u.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/shifts-8bit-u.good 
  badfile = tests/cpu/shifts-8bit-u.bad 
 
-build $OBJDIR/tests/cpu/signextension.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/signextension.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/signextension.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/signextension.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/signextension.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/signextension.6502 | tests/cpu/signextension.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/signextension.good 
  badfile = tests/cpu/signextension.bad 
 
-build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-ctype-labels.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-ctype-labels.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502 | tests/cpu/weirdnesses-ctype-labels.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/weirdnesses-ctype-labels.good 
  badfile = tests/cpu/weirdnesses-ctype-labels.bad 
 
-build $OBJDIR/tests/cpu/weirdnesses-pointer-lvalues.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-pointer-lvalues.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-pointer-lvalues.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-pointer-lvalues.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-pointer-lvalues.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-pointer-lvalues.6502 | tests/cpu/weirdnesses-pointer-lvalues.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/weirdnesses-pointer-lvalues.good 
  badfile = tests/cpu/weirdnesses-pointer-lvalues.bad 
 
-build $OBJDIR/tests/cpu/weirdnesses-queues.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-queues.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-queues.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-queues.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-queues.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-queues.6502 | tests/cpu/weirdnesses-queues.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/weirdnesses-queues.good 
  badfile = tests/cpu/weirdnesses-queues.bad 
 
-build $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-shift-then-cast.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-shift-then-cast.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.6502 | tests/cpu/weirdnesses-shift-then-cast.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/weirdnesses-shift-then-cast.good 
  badfile = tests/cpu/weirdnesses-shift-then-cast.bad 
 
-build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-structure-indexing.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-structure-indexing.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-structure-indexing.6502 | tests/cpu/weirdnesses-structure-indexing.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/weirdnesses-structure-indexing.good 
  badfile = tests/cpu/weirdnesses-structure-indexing.bad 
 
-build $OBJDIR/tests/cpu/weirdnesses.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses.test.cow | compiler_for_native_to_bbc 
- arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses.6502 | tests/cpu/weirdnesses.good scripts/bbctube_test bin/bbctube 
  goodfile = tests/cpu/weirdnesses.good 
  badfile = tests/cpu/weirdnesses.bad 
