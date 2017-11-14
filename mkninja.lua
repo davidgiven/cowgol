@@ -129,7 +129,30 @@ local target_data = {
         CLASSIFIER = "src/arch/6502/classifier.cow"
         SIMPLIFIER = "src/arch/6502/simplifier.cow"
         PLACER = "src/arch/6502/placer.cow"
-        EMITTER = "src/arch/6502/emitter.cow"
+        EMITTER = {
+            "src/arch/6502/emitter.cow",
+            "src/arch/bbc/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/6502/codegen0.cow",
+            "src/arch/6502/codegen1.cow",
+            "src/arch/6502/codegen2_8bit.cow",
+            "src/arch/6502/codegen2_wide.cow",
+            "src/arch/6502/codegen2_16bit.cow",
+            "src/arch/6502/codegen2.cow",
+        }
+    end,
+
+    ["c64"] = function()
+        GLOBALS = "src/arch/c64/globals.cow"
+        CLASSIFIER = "src/arch/6502/classifier.cow"
+        SIMPLIFIER = "src/arch/6502/simplifier.cow"
+        PLACER = "src/arch/6502/placer.cow"
+        EMITTER = {
+            "src/arch/6502/emitter.cow",
+            "src/arch/c64/emitter.cow"
+        }
 
         CODEGEN = {
             "src/arch/6502/codegen0.cow",

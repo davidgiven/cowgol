@@ -3,6 +3,9 @@ const SEGMENT_DATA := 0x80;
 const SEGMENT_ZEROPAGE := 0x81;
 const SEGMENT_LAST := 0x82;
 
+# How big is the file header? The code segment starts immediately after this.
+const FILE_HEADER_SIZE := 0;
+
 # What are our base addresses?
 const BASE_ADDRESS := 0x0800;
 const BASE_ZEROPAGE := 0x00;
