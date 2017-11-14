@@ -44,6 +44,9 @@ build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.
 rule run_smart_test
     command = $in && touch $out
 
+rule run_bbctube_test
+    command = scripts/bbctube_test $in $badfile $goodfile && touch $out
+
 build compiler_for_native_to_bbc : phony dependencies_for_bootstrapped_cowgol_program bin/native_to_bbc/init bin/native_to_bbc/tokeniser bin/native_to_bbc/parser bin/native_to_bbc/typechecker bin/native_to_bbc/backendify bin/native_to_bbc/blockifier bin/native_to_bbc/classifier bin/native_to_bbc/codegen bin/native_to_bbc/placer bin/native_to_bbc/emitter bin/native_to_bbc/iopshower bin/native_to_bbc/thingshower 
 
 build bin/native_to_bbc/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | compiler_for_native_to_native 
@@ -155,6 +158,228 @@ build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing.stamp : run_sma
 
 build $OBJDIR/tests/bootstrap/while : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/while.test.cow | dependencies_for_bootstrapped_cowgol_program 
 build $OBJDIR/tests/bootstrap/while.stamp : run_smart_test $OBJDIR/tests/bootstrap/while 
+
+build $OBJDIR/tests/cpu/addressingmodes-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addressingmodes-16bit.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addressingmodes-16bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addressingmodes-16bit.6502 | tests/cpu/addressingmodes-16bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addressingmodes-16bit.good 
+ badfile = tests/cpu/addressingmodes-16bit.bad 
+
+build $OBJDIR/tests/cpu/addressingmodes-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addressingmodes-8bit.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addressingmodes-8bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addressingmodes-8bit.6502 | tests/cpu/addressingmodes-8bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addressingmodes-8bit.good 
+ badfile = tests/cpu/addressingmodes-8bit.bad 
+
+build $OBJDIR/tests/cpu/addsub-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-16bit.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addsub-16bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addsub-16bit.6502 | tests/cpu/addsub-16bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addsub-16bit.good 
+ badfile = tests/cpu/addsub-16bit.bad 
+
+build $OBJDIR/tests/cpu/addsub-32bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-32bit.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addsub-32bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addsub-32bit.6502 | tests/cpu/addsub-32bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addsub-32bit.good 
+ badfile = tests/cpu/addsub-32bit.bad 
+
+build $OBJDIR/tests/cpu/addsub-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addsub-8bit.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/addsub-8bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/addsub-8bit.6502 | tests/cpu/addsub-8bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addsub-8bit.good 
+ badfile = tests/cpu/addsub-8bit.bad 
+
+build $OBJDIR/tests/cpu/casts.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/casts.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/casts.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/casts.6502 | tests/cpu/casts.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/casts.good 
+ badfile = tests/cpu/casts.bad 
+
+build $OBJDIR/tests/cpu/comparisons-16bit-bigs.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigs.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigs.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-bigs.6502 | tests/cpu/comparisons-16bit-bigs.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-bigs.good 
+ badfile = tests/cpu/comparisons-16bit-bigs.bad 
+
+build $OBJDIR/tests/cpu/comparisons-16bit-bigu.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigu.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigu.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-bigu.6502 | tests/cpu/comparisons-16bit-bigu.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-bigu.good 
+ badfile = tests/cpu/comparisons-16bit-bigu.bad 
+
+build $OBJDIR/tests/cpu/comparisons-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-s.6502 | tests/cpu/comparisons-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-s.good 
+ badfile = tests/cpu/comparisons-16bit-s.bad 
+
+build $OBJDIR/tests/cpu/comparisons-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-16bit-u.6502 | tests/cpu/comparisons-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-u.good 
+ badfile = tests/cpu/comparisons-16bit-u.bad 
+
+build $OBJDIR/tests/cpu/comparisons-8bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-8bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-8bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-8bit-s.6502 | tests/cpu/comparisons-8bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-8bit-s.good 
+ badfile = tests/cpu/comparisons-8bit-s.bad 
+
+build $OBJDIR/tests/cpu/comparisons-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-8bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/comparisons-8bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/comparisons-8bit-u.6502 | tests/cpu/comparisons-8bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-8bit-u.good 
+ badfile = tests/cpu/comparisons-8bit-u.bad 
+
+build $OBJDIR/tests/cpu/divrem-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-16bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-16bit-s.6502 | tests/cpu/divrem-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-16bit-s.good 
+ badfile = tests/cpu/divrem-16bit-s.bad 
+
+build $OBJDIR/tests/cpu/divrem-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-16bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-16bit-u.6502 | tests/cpu/divrem-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-16bit-u.good 
+ badfile = tests/cpu/divrem-16bit-u.bad 
+
+build $OBJDIR/tests/cpu/divrem-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-32bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-32bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-32bit-s.6502 | tests/cpu/divrem-32bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-32bit-s.good 
+ badfile = tests/cpu/divrem-32bit-s.bad 
+
+build $OBJDIR/tests/cpu/divrem-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-32bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-32bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-32bit-u.6502 | tests/cpu/divrem-32bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-32bit-u.good 
+ badfile = tests/cpu/divrem-32bit-u.bad 
+
+build $OBJDIR/tests/cpu/divrem-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/divrem-8bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/divrem-8bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/divrem-8bit-u.6502 | tests/cpu/divrem-8bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-8bit-u.good 
+ badfile = tests/cpu/divrem-8bit-u.bad 
+
+build $OBJDIR/tests/cpu/logic-8bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/logic-8bit.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/logic-8bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/logic-8bit.6502 | tests/cpu/logic-8bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/logic-8bit.good 
+ badfile = tests/cpu/logic-8bit.bad 
+
+build $OBJDIR/tests/cpu/mul-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-16bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-16bit-s.6502 | tests/cpu/mul-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-16bit-s.good 
+ badfile = tests/cpu/mul-16bit-s.bad 
+
+build $OBJDIR/tests/cpu/mul-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-16bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-16bit-u.6502 | tests/cpu/mul-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-16bit-u.good 
+ badfile = tests/cpu/mul-16bit-u.bad 
+
+build $OBJDIR/tests/cpu/mul-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-32bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-32bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-32bit-s.6502 | tests/cpu/mul-32bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-32bit-s.good 
+ badfile = tests/cpu/mul-32bit-s.bad 
+
+build $OBJDIR/tests/cpu/mul-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-32bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/mul-32bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/mul-32bit-u.6502 | tests/cpu/mul-32bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-32bit-u.good 
+ badfile = tests/cpu/mul-32bit-u.bad 
+
+build $OBJDIR/tests/cpu/print.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/print.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/print.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/print.6502 | tests/cpu/print.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/print.good 
+ badfile = tests/cpu/print.bad 
+
+build $OBJDIR/tests/cpu/ptraddressingmodes-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/ptraddressingmodes-16bit.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/ptraddressingmodes-16bit.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/ptraddressingmodes-16bit.6502 | tests/cpu/ptraddressingmodes-16bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/ptraddressingmodes-16bit.good 
+ badfile = tests/cpu/ptraddressingmodes-16bit.bad 
+
+build $OBJDIR/tests/cpu/shifts-16bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-16bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-16bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-16bit-s.6502 | tests/cpu/shifts-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-16bit-s.good 
+ badfile = tests/cpu/shifts-16bit-s.bad 
+
+build $OBJDIR/tests/cpu/shifts-16bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-16bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-16bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-16bit-u.6502 | tests/cpu/shifts-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-16bit-u.good 
+ badfile = tests/cpu/shifts-16bit-u.bad 
+
+build $OBJDIR/tests/cpu/shifts-32bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-32bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-32bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-32bit-s.6502 | tests/cpu/shifts-32bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-32bit-s.good 
+ badfile = tests/cpu/shifts-32bit-s.bad 
+
+build $OBJDIR/tests/cpu/shifts-32bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-32bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-32bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-32bit-u.6502 | tests/cpu/shifts-32bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-32bit-u.good 
+ badfile = tests/cpu/shifts-32bit-u.bad 
+
+build $OBJDIR/tests/cpu/shifts-8bit-s.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-8bit-s.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-8bit-s.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-8bit-s.6502 | tests/cpu/shifts-8bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-8bit-s.good 
+ badfile = tests/cpu/shifts-8bit-s.bad 
+
+build $OBJDIR/tests/cpu/shifts-8bit-u.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/shifts-8bit-u.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/shifts-8bit-u.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/shifts-8bit-u.6502 | tests/cpu/shifts-8bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-8bit-u.good 
+ badfile = tests/cpu/shifts-8bit-u.bad 
+
+build $OBJDIR/tests/cpu/signextension.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/signextension.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/signextension.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/signextension.6502 | tests/cpu/signextension.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/signextension.good 
+ badfile = tests/cpu/signextension.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-ctype-labels.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502 | tests/cpu/weirdnesses-ctype-labels.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-ctype-labels.good 
+ badfile = tests/cpu/weirdnesses-ctype-labels.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses-pointer-lvalues.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-pointer-lvalues.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-pointer-lvalues.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-pointer-lvalues.6502 | tests/cpu/weirdnesses-pointer-lvalues.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-pointer-lvalues.good 
+ badfile = tests/cpu/weirdnesses-pointer-lvalues.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses-queues.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-queues.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-queues.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-queues.6502 | tests/cpu/weirdnesses-queues.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-queues.good 
+ badfile = tests/cpu/weirdnesses-queues.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-shift-then-cast.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.6502 | tests/cpu/weirdnesses-shift-then-cast.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-shift-then-cast.good 
+ badfile = tests/cpu/weirdnesses-shift-then-cast.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-structure-indexing.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-structure-indexing.6502 | tests/cpu/weirdnesses-structure-indexing.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-structure-indexing.good 
+ badfile = tests/cpu/weirdnesses-structure-indexing.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/bbc/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses.test.cow | compiler_for_native_to_bbc 
+ arch = native_to_bbc 
+build $OBJDIR/tests/cpu/weirdnesses.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses.6502 | tests/cpu/weirdnesses.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses.good 
+ badfile = tests/cpu/weirdnesses.bad 
 
 build bin/bbctube : c_program emu/bbctube/bbctube.c emu/bbctube/lib6502.c 
 

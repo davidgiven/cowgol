@@ -63,6 +63,9 @@ build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.
 rule run_smart_test
     command = $in && touch $out
 
+rule run_bbctube_test
+    command = scripts/bbctube_test $in $badfile $goodfile && touch $out
+
 ]])
 
 local NAME
@@ -153,6 +156,27 @@ local function bootstrap_test(file)
 end
 
 local function cpu_test(file)
+    local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
+    local testbin = "$OBJDIR/tests/cpu/"..testname..".6502"
+    local goodfile = "tests/cpu/"..testname..".good"
+    local badfile = "tests/cpu/"..testname..".bad"
+
+    emit("build", testbin, ":", RULE, LIBS, file,
+        "|", "compiler_for_native_to_bbc")
+    nl()
+    emit(" arch =", "native_to_bbc")
+    nl()
+    emit("build", testbin..".stamp", ":", "run_bbctube_test",
+        testbin, "|",
+        goodfile,
+        "scripts/bbctube_test",
+        "bin/bbctube")
+    nl()
+    emit(" goodfile = "..goodfile)
+    nl()
+    emit(" badfile = "..badfile)
+    nl()
+    nl()
 end
 
 local function build_cowgol_programs()
@@ -393,6 +417,7 @@ for _, file in ipairs(posix.glob("tests/bootstrap/*.test.cow")) do
 end
 
 -- Build the CPU tests.
+host_data.bbc()
 for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
     cpu_test(file)
 end
