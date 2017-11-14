@@ -16,7 +16,7 @@ sub arch_calculate_address(thing: [DataThing]): (address: uint16)
     if thing.segment == SEGMENT_CODE then
         address := BASE_ADDRESS + thing.address;
     elseif thing.segment == SEGMENT_ZEROPAGE then
-        address := thing.address;
+        address := BASE_ZEROPAGE + thing.address;
     elseif thing.segment == SEGMENT_CONST then
         address := BASE_ADDRESS + root.code_size + thing.address;
     elseif thing.segment == SEGMENT_DATA then

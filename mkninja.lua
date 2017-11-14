@@ -126,18 +126,18 @@ local host_data = {
 local target_data = {
     ["bbc"] = function()
         GLOBALS = "src/arch/bbc/globals.cow"
-        CLASSIFIER = "src/arch/bbc/classifier.cow"
-        SIMPLIFIER = "src/arch/bbc/simplifier.cow"
-        PLACER = "src/arch/bbc/placer.cow"
+        CLASSIFIER = "src/arch/6502/classifier.cow"
+        SIMPLIFIER = "src/arch/6502/simplifier.cow"
+        PLACER = "src/arch/6502/placer.cow"
         EMITTER = "src/arch/6502/emitter.cow"
 
         CODEGEN = {
-            "src/arch/bbc/codegen0.cow",
-            "src/arch/bbc/codegen1.cow",
-            "src/arch/bbc/codegen2_8bit.cow",
-            "src/arch/bbc/codegen2_wide.cow",
-            "src/arch/bbc/codegen2_16bit.cow",
-            "src/arch/bbc/codegen2.cow",
+            "src/arch/6502/codegen0.cow",
+            "src/arch/6502/codegen1.cow",
+            "src/arch/6502/codegen2_8bit.cow",
+            "src/arch/6502/codegen2_wide.cow",
+            "src/arch/6502/codegen2_16bit.cow",
+            "src/arch/6502/codegen2.cow",
         }
     end
 }
