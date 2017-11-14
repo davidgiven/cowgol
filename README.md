@@ -44,9 +44,9 @@ more documentation than that, but the tl;dr set of instructions is:
 ...will build the bootstrap compiler, run the tests, then build the BBC Tube
 version. Now you can invoke the bootstrap compiler with:
 
-    ./scripts/cowgol -o cow.out test1.cow test2.cow test3.cow
+    ./scripts/cowgol -a bbc -o cow.out src/arch/bbc/lib/runtime.cow test.cow
 
-The first input file should be `src/arch/bbc/lib/runtime.cow`.
+The first input file should be always be the runtime library.
 
 The compiler works by having a shared state, `things.dat`, which is read into
 memory by each stage, modified, and written out again on exit. Then there is
