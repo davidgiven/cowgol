@@ -1,6 +1,19 @@
 #!/bin/sh
 set -e
 
+syntax() {
+    echo "Syntax: cowgol -a arch [-k] -o outputfile inputfiles..."
+    exit 1
+}
+
+if [ "$1" != "-a" ]; then
+    syntax
+else
+    arch=$2
+    shift
+    shift
+fi
+
 if [ "$1" = "-k" ]; then
     shift
     tmpdir=.
@@ -12,8 +25,7 @@ else
 fi
 
 if [ "$1" != "-o" ]; then
-    echo "Syntax: cowgol [-k] -o outputfile inputfiles..."
-    exit 1
+    syntax
 else
     outputfile=$(realpath -s $2)
     shift
@@ -21,31 +33,42 @@ else
 fi
 
 srcs=$(realpath -s "$@")
-bindir=$(realpath -s bin)
+bindir=$(realpath -s bin/$arch)
 
-cd $tmpdir
-$bindir/init
-$bindir/tokeniser $srcs
-$bindir/parser
-cp iops.dat iops-parsed.dat
-$bindir/typechecker
-cp iops-out.dat iops-typechecked.dat
-mv iops-out.dat iops.dat
-$bindir/backendify
-cp iops-out.dat iops-backendified.dat
-mv iops-out.dat iops.dat
-$bindir/classifier
-$bindir/blockifier
-cp iops-out.dat iops-blockified.dat
-mv iops-out.dat iops.dat
-$bindir/codegen
-cp iops-out.dat iops-codegenned.dat
-mv iops-out.dat iops.dat
-$bindir/placer
-cp iops-out.dat iops-placed.dat
-mv iops-out.dat iops.dat
-$bindir/emitter
+set +e
+(
+    set -e
+    cd $tmpdir
+    $bindir/init
+    $bindir/tokeniser $srcs
+    $bindir/parser
+    cp iops.dat iops-parsed.dat
+    $bindir/typechecker
+    cp iops-out.dat iops-typechecked.dat
+    mv iops-out.dat iops.dat
+    $bindir/backendify
+    cp iops-out.dat iops-backendified.dat
+    mv iops-out.dat iops.dat
+    $bindir/classifier
+    $bindir/blockifier
+    cp iops-out.dat iops-blockified.dat
+    mv iops-out.dat iops.dat
+    $bindir/codegen
+    cp iops-out.dat iops-codegenned.dat
+    mv iops-out.dat iops.dat
+    $bindir/placer
+    cp iops-out.dat iops-placed.dat
+    mv iops-out.dat iops.dat
+    $bindir/emitter
+) 2>&1 >$outputfile.log
+result=$?
+set -e
+
+if [ $result != 0 ]; then
+    cat $outputfile.log
+    exit 1
+fi
 
 if [ "$keep" = "no" ]; then
-    mv cow.out $outputfile
+    mv $tmpdir/cow.out $outputfile
 fi

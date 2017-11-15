@@ -16,8 +16,9 @@ to (slowly) compile and run real programs on a 6502. It can't compile itself
 yet --- there's not enough memory.
 
 I'm currently targeting this at a BBC Micro with Tube second processor,
-because that gives me a real operating system with file streams and 61kB
-of usable RAM.
+because that gives me a real operating system with file streams and 61kB of
+usable RAM, but there's extremely basic (cross compilation only) support for
+the Commodore 64. (For ultra hackers only. Email me.)
 
 How?
 ----
@@ -44,9 +45,9 @@ more documentation than that, but the tl;dr set of instructions is:
 ...will build the bootstrap compiler, run the tests, then build the BBC Tube
 version. Now you can invoke the bootstrap compiler with:
 
-    ./scripts/cowgol -o cow.out test1.cow test2.cow test3.cow
+    ./scripts/cowgol -a bbc -o cow.out src/arch/bbc/lib/runtime.cow test.cow
 
-The first input file should be `src/arch/bbc/lib/runtime.cow`.
+The first input file should be always be the runtime library.
 
 The compiler works by having a shared state, `things.dat`, which is read into
 memory by each stage, modified, and written out again on exit. Then there is

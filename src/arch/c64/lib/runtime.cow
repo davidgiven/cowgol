@@ -1,0 +1,16 @@
+sub print_char(char: int8)
+    @bytes 0xAD, &char;        # LDA char
+    @bytes 0xC9, '\n';         # CMP #'\n'
+    @bytes 0xD0, 0x03;         # BNE not a newline
+    @bytes 0x4C, &print_newline; # JMP print_newline
+    @bytes 0x4C, 0xD2, 0xFF;   # JMP CHROUT
+end sub;
+
+sub print_newline()
+    @bytes 0xA9, '\r';         # LDA #'\r'
+    @bytes 0x4C, 0xD2, 0xFF;   # JMP CHROUT
+end sub;
+
+var __lomem: int8 @segment(0x82);
+var LOMEM: [int8] @segment(0x81) := &__lomem;
+var HIMEM: [int8] @segment(0x81) := 0xa000 as [int8];
