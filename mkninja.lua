@@ -83,6 +83,20 @@ build $OBJDIR/dependencies_for_bootstrapped_cowgol_program : stamp $
 build $OBJDIR/dependencies_for_cowgol_program : stamp $
     scripts/cowgol
 
+rule mkbbcdist
+    command = scripts/mkbbcdist $out
+
+build bin/bbcdist.adf : mkbbcdist | $
+    scripts/mkbbcdist $
+    $OBJDIR/compiler_for_bbc_on_bbc $
+    src/arch/bbc/lib/argv.cow $
+    src/arch/bbc/lib/fileio.cow $
+    src/arch/bbc/lib/mos.cow $
+    src/arch/bbc/lib/runtime.cow $
+    src/arch/6502/lib/runtime.cow $
+    scripts/!boot $
+    scripts/precompile $
+    demo/tiny.cow
 ]])
 
 local NAME
