@@ -88,6 +88,7 @@ rule mkbbcdist
 
 build bin/bbcdist.adf : mkbbcdist | $
     scripts/mkbbcdist $
+    bin/mkadfs $
     $OBJDIR/compiler_for_bbc_on_bbc $
     src/arch/bbc/lib/argv.cow $
     src/arch/bbc/lib/fileio.cow $
