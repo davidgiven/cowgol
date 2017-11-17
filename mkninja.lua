@@ -480,3 +480,8 @@ build_c {
     "mkadfs",
     "emu/mkadfs.c"
 }
+
+build_c {
+    "miniyacc",
+    "src/miniyacc/yacc.c"
+}
