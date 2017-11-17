@@ -1,6 +1,6 @@
 #!/usr/bin/lua5.2
 -- Cowgol bootstrap compiler.
--- Shoddy compiler with compiles into shoddy C.
+-- Shoddy compiler which compiles into shoddy C.
 
 local stream
 local current_filename = nil
@@ -46,7 +46,7 @@ function tokenstream(source)
         "^(<<)",
         "^(>>)",
         "^([<>!:=]=)",
-        "^([-+*/():;,.'<>[%]&|^%%~])"
+        "^([-+*/():;,.'<>[%]&|^%%~{}])"
     }
 
     local c = coroutine.create(
@@ -680,6 +680,39 @@ function do_statements()
     end
 end
 
+function do_array_initialiser(var)
+    local type = var.type
+    if not type.array or not type.elementtype.numeric then
+        fatal("you can only use array initialisers on arrays of numbers")
+    end
+
+    local initialiser = {}
+    expect("{")
+    local i = 0
+    while (i < type.length) do
+        if stream:peek() == "}" then
+            break
+        end
+
+        local _, v = expect("number")
+        initialiser[#initialiser+1] = v
+        i = i + 1
+
+        if stream:peek() == "}" then
+            break
+        end
+        expect(",")
+    end
+    expect("}")
+
+    while (i < type.length) do
+        initialiser[#initialiser+1] = 0
+        i = i + 1
+    end
+
+    var.initialiser = initialiser
+end
+
 function do_var()
     expect("var")
     local varname = stream:next()
@@ -690,7 +723,12 @@ function do_var()
     local t = stream:peek()
     if (t == ":=") then
         expect(":=")
-        expression(var)
+        t = stream:peek()
+        if (t == "{") then
+            do_array_initialiser(var);
+        else
+            expression(var)
+        end
     end
 end
 
@@ -1360,10 +1398,15 @@ print("#include <stdbool.h>")
 print("#include \"cowgol.h\"")
 print(table.concat(record_fn.code, "\n"))
 for var in pairs(variables) do
+    local initialiser = ""
+    if var.initialiser then
+        initialiser = " = {"..table.concat(var.initialiser, ", ").."}"
+    end
+
     if var.type.array then
-        print(var.type.ctype.." "..var.storage.."["..var.type.length.."];")
+        print(var.type.ctype.." "..var.storage.."["..var.type.length.."]"..initialiser..";")
     else
-        print(var.type.ctype.." "..var.storage..";")
+        print(var.type.ctype.." "..var.storage..initialiser..";")
     end
 end
 for fn in pairs(functions) do

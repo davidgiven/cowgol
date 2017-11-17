@@ -217,6 +217,9 @@ build bin/c64_on_native/thingshower : bootstrapped_cowgol_program src/arch/boots
 build bin/c64_on_native/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/c64/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
 
+build $OBJDIR/tests/bootstrap/arrayinitialisers : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/arrayinitialisers.test.cow | 
+build $OBJDIR/tests/bootstrap/arrayinitialisers.stamp : run_smart_test $OBJDIR/tests/bootstrap/arrayinitialisers 
+
 build $OBJDIR/tests/bootstrap/arrays : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/arrays.test.cow | 
 build $OBJDIR/tests/bootstrap/arrays.stamp : run_smart_test $OBJDIR/tests/bootstrap/arrays 
 
