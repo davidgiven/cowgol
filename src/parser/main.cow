@@ -144,6 +144,38 @@ sub do_end_sub()
     pop_subroutine();
 end sub;
 
+sub do_array_initialiser(variable_id: uint16)
+    var array: [ArrayThing] := find_thing(variable_id) as [ArrayThing];
+    if (array.thing_type == THING_ARRAYT) and (is_number_type_thing(array.element_type_id) != 0) then
+        # success
+        # The weird ordering here is because the bootstrap compiler doesn't do conditional
+        # short circuiting.
+    else
+        print("array initialisers can only be used on arrays of numbers");
+        halt();
+    end if;
+    var element_type: [TypeThing] := find_thing(array.element_type_id) as [TypeThing];
+
+    expect_token(TOKEN_OPENBRACE);
+    var i: uint16 := 0;
+    while i < array.element_count loop
+        if current_token == TOKEN_CLOSEBRACE then
+            break;
+        end if;
+
+        var value: int32 := do_constant();
+        i := i + 1;
+
+        if current_token == TOKEN_CLOSEBRACE then
+            break;
+        end if;
+        expect_token(TOKEN_COMMA);
+    end loop;
+    while i < array.element_count loop
+        i := i + 1;
+    end loop;
+end sub;
+
 sub do_var()
     expect_token(TOKEN_VAR);
     var id: uint16 := expect_identifier();
@@ -164,11 +196,14 @@ sub do_var()
     end if;
 
     if current_token == TOKEN_ASSIGN then
-        emit_fe_push(variable_id);
-
         next_token();
-        do_expression();
-        emit_untyped_fe(IOP_FEX_ASSIGN);
+        if current_token == TOKEN_OPENBRACE then
+            do_array_initialiser(variable_id);
+        else
+            emit_fe_push(variable_id);
+            do_expression();
+            emit_untyped_fe(IOP_FEX_ASSIGN);
+        end if;
     end if;
 
     expect_token(TOKEN_SEMICOLON);
