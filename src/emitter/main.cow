@@ -74,7 +74,7 @@ sub emit_subroutines()
                 break;
             end if;
             if (thing.owner_id == current_subroutine_id)
-                and ((thing.thing_type & THING_TYPED) != 0)
+                and (is_typed_thing(id) != 0)
                 and (thing.segment > SEGMENT_CODE)
             then
                 var address: uint16 := arch_calculate_address(thing as [DataThing]);

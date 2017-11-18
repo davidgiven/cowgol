@@ -1,28 +1,3 @@
-const THING_STRING     := 0b0000_0001;
-const THING_IDENTIFIER := 0b0000_0010;
-const THING_NUMBER     := 0b0000_0011;
-const THING_NAMESPACE  := 0b0000_0100;
-const THING_TOKEN      := 0b0000_0101;
-const THING_SYMBOL     := 0b0000_0110;
-const THING_MEMBER     := 0b0000_0111;
-const THING_ROOT       := 0b0000_1000; # singleton
-const THING_LABEL      := 0b0000_1001;
-
-const THING_DATA       := 0b1000_0000;
-const THING_SUBROUTINE := 0b1000_0001;
-
-const THING_TYPED      := 0b0100_0000;
-const THING_VARIABLE   := 0b1100_0000;
-const THING_PARAMETER  := 0b1100_0001;
-
-const THING_TYPE       := 0b0010_0000;
-const THING_RECORDT    := 0b0010_0001;
-const THING_POINTERT   := 0b0010_0010;
-const THING_ARRAYT     := 0b0010_0011;
-const THING_CONSTANTT  := 0b0010_0100;
-const THING_UNSIGNEDT  := 0b0010_0101;
-const THING_SIGNEDT    := 0b0010_0110;
-
 record Thing
     thing_size: uint8;
     thing_type: uint8;
@@ -129,6 +104,51 @@ record ParameterThing: VariableThing
     direction: uint8;
 end record;
 
+const THING_SUBROUTINE := 1;
+const THING_VARIABLE   := 2;
+const THING_PARAMETER  := 3;
+const THING_RECORDT    := 4;
+const THING_POINTERT   := 5;
+const THING_ARRAYT     := 6;
+const THING_CONSTANTT  := 7;
+const THING_UNSIGNEDT  := 8;
+const THING_SIGNEDT    := 9;
+
+const THING_STRING     := 10;
+const THING_IDENTIFIER := 11;
+const THING_NUMBER     := 12;
+const THING_NAMESPACE  := 13;
+const THING_TOKEN      := 14;
+const THING_SYMBOL     := 15;
+const THING_MEMBER     := 16;
+const THING_ROOT       := 17; # singleton
+const THING_LABEL      := 18;
+
+const THING_CLASS_DATA         := 0b0000_0001;
+const THING_CLASS_TYPE         := 0b0000_0010;
+const THING_CLASS_WITHMEMBERS  := 0b0000_0100;
+const THING_CLASS_WITHELEMENTS := 0b0000_1000;
+const THING_CLASS_SCALAR       := 0b0001_0000;
+const THING_CLASS_NUMERIC      := 0b0010_0000;
+const THING_CLASS_TYPED        := 0b0100_0000;
+
+var thing_classes: uint8[10] := {
+    0,                                                       # null
+    THING_CLASS_DATA,                                        # THING_SUBROUTINE
+    THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_VARIABLE
+    THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_DATA
+    THING_CLASS_TYPE|THING_CLASS_WITHMEMBERS,                # THING_RECORDT
+    THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_WITHMEMBERS|THING_CLASS_WITHELEMENTS, # THING_POINTERT
+    THING_CLASS_TYPE|THING_CLASS_WITHELEMENTS,               # THING_ARRAYT
+    THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_NUMERIC, # THING_CONSTANTT
+    THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_NUMERIC, # THING_UNSIGNEDT
+    THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_NUMERIC, # THING_SIGNEDT
+};
+
+var thing_sizes: uint8[10] := {
+    ParameterThing@bytes
+};
+
 var thing_table: int8[THINGSTABLE_SIZE];
 var thing_table_top: uint16 := 1;
 thing_table[thing_table_top] := 0;
@@ -162,6 +182,40 @@ sub find_thing(id: uint16): (thing: [Thing])
     end if;
 
     thing := &thing_table[id] as [Thing];
+end sub;
+
+sub get_thing_type(thing_id: uint16): (type: uint8)
+    if thing_id == 0 then
+        type := 0;
+    else
+        var thing: [Thing] := find_thing(thing_id);
+        type := thing.thing_type;
+    end if;
+end sub;
+
+sub is_thing_type(id: uint16, type: uint8): (yes: uint8)
+    if get_thing_type(id) == type then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
+end sub;
+
+sub get_thing_class(id: uint16): (class: uint8)
+    var type: uint8 := get_thing_type(id);
+    if type >= thing_classes@size then
+        class := 0;
+    else
+        class := thing_classes[type];
+    end if;
+end sub;
+
+sub is_thing_class(id: uint16, mask: uint8): (yes: uint8)
+    if (get_thing_class(id) & mask) != 0 then
+        yes := 1;
+    else
+        yes := 0;
+    end if;
 end sub;
 
 sub find_thing_by_value(template: [Thing]): (id: uint16)
@@ -288,62 +342,28 @@ sub get_token_flags(token_id: uint16): (token_flags: uint8)
     end if;
 end sub;
 
-sub get_thing_type(thing_id: uint16): (type: uint8)
-    if thing_id == 0 then
-        type := 0;
-    else
-        var thing: [Thing] := find_thing(thing_id);
-        type := thing.thing_type;
-    end if;
-end sub;
-
 sub is_type_thing(thing_id: uint16): (yes: uint8)
-    if (get_thing_type(thing_id) & THING_TYPE) != 0 then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_class(thing_id, THING_CLASS_TYPE);
 end sub;
 
 sub is_typed_thing(thing_id: uint16): (yes: uint8)
-    if (get_thing_type(thing_id) & THING_TYPED) != 0 then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_class(thing_id, THING_CLASS_TYPED);
 end sub;
 
 sub is_number_thing(thing_id: uint16): (yes: uint8)
-    if get_thing_type(thing_id) == THING_NUMBER then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_type(thing_id, THING_NUMBER);
 end sub;
 
 sub is_string_thing(thing_id: uint16): (yes: uint8)
-    if get_thing_type(thing_id) == THING_STRING then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_type(thing_id, THING_STRING);
 end sub;
 
 sub is_identifier_thing(thing_id: uint16): (yes: uint8)
-    if get_thing_type(thing_id) == THING_IDENTIFIER then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_type(thing_id, THING_IDENTIFIER);
 end sub;
 
 sub is_number_type_thing(thing_id: uint16): (yes: uint8)
-    var type: uint8 := get_thing_type(thing_id);
-    if (type == THING_SIGNEDT) or (type == THING_UNSIGNEDT) or (type == THING_CONSTANTT) then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_class(thing_id, THING_CLASS_NUMERIC);
 end sub;
 
 sub is_signed_type_thing(thing_id: uint16): (yes: uint8)
@@ -356,30 +376,15 @@ sub is_signed_type_thing(thing_id: uint16): (yes: uint8)
 end sub;
 
 sub is_indexable_type_thing(thing_id: uint16): (yes: uint8)
-    var type: uint8 := get_thing_type(thing_id);
-    if (type == THING_ARRAYT) or (type == THING_POINTERT) then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_class(thing_id, THING_CLASS_WITHELEMENTS);
 end sub;
 
 sub is_memberable_type_thing(thing_id: uint16): (yes: uint8)
-    var type: uint8 := get_thing_type(thing_id);
-    if (type == THING_RECORDT) or (type == THING_POINTERT) then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_class(thing_id, THING_CLASS_WITHMEMBERS);
 end sub;
 
 sub is_scalar_type_thing(thing_id: uint16): (yes: uint8)
-    var type: uint8 := get_thing_type(thing_id);
-    if (type != THING_ARRAYT) and (type != THING_RECORDT) then
-        yes := 1;
-    else
-        yes := 0;
-    end if;
+    yes := is_thing_class(thing_id, THING_CLASS_SCALAR);
 end sub;
 
 sub save_thing_table(filename: [int8])

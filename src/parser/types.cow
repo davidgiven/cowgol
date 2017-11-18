@@ -25,19 +25,19 @@ sub read_type(): (type_id: uint16)
 
     var identifier_id: uint16 := expect_identifier();
     type_id := deref_symbol_or_fail(identifier_id);
-    if (get_thing_type(type_id) & THING_TYPED) == THING_TYPED then
+    if is_typed_thing(type_id) != 0 then
         process_type_modifiers();
     end if;
 
     loop
-        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
-        if (type.thing_type & THING_TYPE) != THING_TYPE then
+        if is_type_thing(type_id) == 0 then
             print("identifier ");
             show_identifier(identifier_id);
             print(" does not refer to a type");
             halt();
         end if;
 
+        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
         if current_token == TOKEN_CLOSESQUARE then
             if brackets == 0 then
                 break;

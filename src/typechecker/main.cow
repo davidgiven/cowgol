@@ -74,7 +74,7 @@ sub process_subroutine()
         elseif thing.thing_type == THING_STRING then
             iop.type_id := pointer_of(int8_type, uint8_type);
             is_rvalue := 1;
-        elseif (thing.thing_type & THING_TYPED) != 0 then
+        elseif is_typed_thing(iop.thing_id) != 0 then
             var typed_thing: [TypedThing] := thing as [TypedThing];
             if typed_thing.type_id == 0 then
                 print("forward reference to type inferred value");
