@@ -686,7 +686,6 @@ function do_array_initialiser(var)
         fatal("you can only use array initialisers on arrays of numbers")
     end
 
-    local initialiser = {}
     expect("{")
     local i = 0
     while (i < type.length) do
@@ -694,8 +693,8 @@ function do_array_initialiser(var)
             break
         end
 
-        local _, v = expect("number")
-        initialiser[#initialiser+1] = v
+        local deref = create_array_deref(var, create_number(i))
+        expression(deref)
         i = i + 1
 
         if stream:peek() == "}" then
@@ -706,11 +705,10 @@ function do_array_initialiser(var)
     expect("}")
 
     while (i < type.length) do
-        initialiser[#initialiser+1] = 0
         i = i + 1
     end
 
-    var.initialiser = initialiser
+    var.initialiser = {}
 end
 
 function do_var()
@@ -1020,7 +1018,7 @@ function expression(outputvar)
         end
         if infix_operators[t] then
             operators[#operators+1] = {kind="infixop", op=stream:next()}
-        elseif (t == ";") or (t == "loop") or (t == "then") or (t == ",") or (t == "]") then
+        elseif (t == ";") or (t == "loop") or (t == "then") or (t == ",") or (t == "]") or (t == "}") then
             break
         elseif (t == ")") and (parens == 0) then
             break

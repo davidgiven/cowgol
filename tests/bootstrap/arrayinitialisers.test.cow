@@ -1,4 +1,4 @@
-var bytes: uint8[10] := {1, 2, 3, 4};
+var bytes: uint8[10] := {1, 2, 3, uint32@bytes};
 if bytes[0] != 1 then
     fail("index 1 wrong");
 end if;
