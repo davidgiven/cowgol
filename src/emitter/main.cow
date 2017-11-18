@@ -70,7 +70,7 @@ sub emit_subroutines()
         var id: uint16 := 1;
         loop
             var thing: [TypedThing] := &thing_table[id] as [TypedThing];
-            if thing.thing_size == 0 then
+            if thing.thing_type == 0 then
                 break;
             end if;
             if (thing.owner_id == current_subroutine_id)
@@ -84,7 +84,7 @@ sub emit_subroutines()
                 print_thing(id);
                 print_newline();
             end if;
-            id := id + (thing.thing_size as uint16);
+            id := next_thing(id);
         end loop;
     end loop;
 end sub;
@@ -115,7 +115,7 @@ sub emit_constants()
 
     loop
         thing := &thing_table[id] as [DataThing];
-        if thing.thing_size == 0 then
+        if thing.thing_type == 0 then
             break;
         end if;
         if thing.thing_type == THING_STRING then
@@ -129,7 +129,7 @@ sub emit_constants()
                 emit_number();
             end if;
         end if;
-        id := id + (thing.thing_size as uint16);
+        id := next_thing(id);
     end loop;
 end sub;
 

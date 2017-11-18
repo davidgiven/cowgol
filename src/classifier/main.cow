@@ -174,7 +174,7 @@ sub assign_space_for_variables(subroutine_id: uint16)
         var id: uint16 := 1;
         loop
             var thing: [TypedThing] := &thing_table[id] as [TypedThing];
-            if thing.thing_size == 0 then
+            if thing.thing_type == 0 then
                 break;
             end if;
             if is_typed_thing(id) != 0 then
@@ -193,7 +193,7 @@ sub assign_space_for_variables(subroutine_id: uint16)
                     $endif
                 end if;
             end if;
-            id := id + (thing.thing_size as uint16);
+            id := next_thing(id);
         end loop;
     end sub;
 
@@ -275,13 +275,13 @@ sub show_subroutine_sizes()
 
     loop
         var thing: [Thing] := &thing_table[id] as [Thing];
-        if thing.thing_size == 0 then
+        if thing.thing_type == 0 then
             break;
         end if;
         if thing.thing_type == THING_SUBROUTINE then
             do_sub(thing as [SubroutineThing]);
         end if;
-        id := id + (thing.thing_size as uint16);
+        id := next_thing(id);
     end loop;
 end sub;
 

@@ -69,7 +69,7 @@ sub process_data()
     var id: uint16 := 1;
     loop
         var thing: [Thing] := &thing_table[id] as [Thing];
-        if thing.thing_size == 0 then
+        if thing.thing_type == 0 then
             break;
         elseif thing.thing_type == THING_STRING then
             var stringthing: [StringThing] := thing as [StringThing];
@@ -85,7 +85,7 @@ sub process_data()
                 root.const_size := root.const_size + 4;
             end if;
         end if;
-        id := id + (thing.thing_size as uint16);
+        id := next_thing(id);
     end loop;
 end sub;
 

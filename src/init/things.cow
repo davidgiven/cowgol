@@ -13,10 +13,7 @@ sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: 
     thing.thing_type := thingtype;
     thing.string_id := string_id;
     if thingtype == THING_TOKEN then
-        thing.thing_size := TokenThing@bytes;
         thing.token_flags := token_flags;
-    else
-        thing.thing_size := IdentifierThing@bytes;
     end if;
     var token_id: uint16 := add_thing(&thing as [Thing]);
 
