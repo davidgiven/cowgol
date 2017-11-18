@@ -653,44 +653,32 @@ tblout()
 	o = yalloc(nrl+nst+nsy, sizeof o[0]);
 	for (n=0; n<nrl; n++)
 		o[n] = slen(rs[n].rhs);
-	aout("yyr1", o, nrl);
+	aout("rule_to_arity_table", o, nrl);
 	for (n=0; n<nrl; n++)
 		o[n] = rs[n].lhs-MaxTk;
-	aout("yyr2", o, nrl);
+	aout("rule_to_symbol", o, nrl);
 	for (n=0; n<nst; n++)
 		o[n] = as[n].def;
-	aout("yyadef", o, nst);
+	aout("state_to_reduce", o, nst);
 	for (n=0; n<nsy-MaxTk; n++) {
 		o[n] = gs[n].def;
 		assert(o[n]>0 || o[n]==-1);
 		if (o[n]>0)
 			o[n]--;
 	}
-	aout("yygdef", o, nsy-MaxTk);
-	aout("yyadsp", adsp, nst);
-	aout("yygdsp", gdsp, nsy-MaxTk);
+	aout("nt_to_goto", o, nsy-MaxTk);
+	aout("nt_to_displacement", gdsp, nsy-MaxTk);
+	aout("state_to_displacement", adsp, nst);
 	for (n=0; n<actsz; n++)
 		if (act[n]>=0)
 			act[n]--;
-	aout("yyact", act, actsz);
-	aout("yychk", chk, actsz);
-	for (n=0; n<128; n++) {
-		o[n] = 0;
-		for (m=0; m<ntk; m++)
-			if (is[m].name[0]=='\'')
-			if (is[m].name[1]==n)
-				assert(!o[n]), o[n] = m;
-	}
-	m = 128;
+	aout("actions_and_gotos", act, actsz);
+	aout("checking_table", chk, actsz);
 	for (n=1; n<ntk; n++) {
-		if (is[n].name[0]=='\'')
-			continue;
-		fprintf(fout, "#define %s %d\n", is[n].name, m);
+		fprintf(fout, "#define %s %d\n", is[n].name, n);
 		if (fhdr)
-			fprintf(fhdr, "#define %s %d\n", is[n].name, m);
-		o[m++] = n;
+			fprintf(fhdr, "#define %s %d\n", is[n].name, n);
 	}
-	aout("yytrns", o, m);
 	if (fhdr) {
 		fputs("int yyparse(void);\n", fhdr);
 		fputs("#ifndef YYSTYPE\n", fhdr);
@@ -753,7 +741,6 @@ stdump()
 
 enum {
 	TIdnt,
-	TTokchr, /* 'c' */
 	TPP, /* %% */
 	TLL, /* %{ */
 	TLangle, /* < */
@@ -821,14 +808,6 @@ nexttk()
 		return TLBrack;
 	case EOF:
 		return TEof;
-	case '\'':
-		idnt[0] = '\'';
-		idnt[1] = fgetc(fin);
-		idnt[2] = '\'';
-		idnt[3] = 0;
-		if (fgetc(fin)!='\'')
-			die("syntax error, invalid char token");
-		return TTokchr;
 	}
 	p = idnt;
 	while (istok(c)) {
@@ -993,7 +972,7 @@ getdecls()
 		a = ANone;
 	addtoks:
 		tk = gettype(type);
-		while (tk==TIdnt || tk==TTokchr) {
+		while (tk==TIdnt) {
 			si = 0;
 			n = findsy(idnt, 0);
 			if (n>=MaxTk && n<nsy)
@@ -1094,7 +1073,7 @@ getgram()
 			r->lhs = hd;
 			r->act = 0;
 			p = r->rhs;
-			while ((tk=nexttk())==TIdnt || tk==TTokchr || tk==TPrec) {
+			while ((tk=nexttk())==TIdnt || tk==TPrec) {
 				if (tk==TPrec) {
 					tk = nexttk();
 					if (tk!=TIdnt
@@ -1317,7 +1296,7 @@ char *code0[] = {
 "{\n",
 "	enum {\n",
 "		StackSize = 100,\n",
-"		ActSz = sizeof yyact / sizeof yyact[0],\n",
+"		ActSz = sizeof actions_and_gotos / sizeof actions_and_gotos[0],\n",
 "	};\n",
 "	struct {\n",
 "		YYSTYPE val;\n",
@@ -1330,17 +1309,17 @@ char *code0[] = {
 "	ps->state = s = yyini;\n",
 "	tk = -1;\n",
 "loop:\n",
-"	n = yyadsp[s];\n",
+"	n = state_to_displacement[s];\n",
 "	if (tk < 0 && n > -yyntoks)\n",
-"		tk = yytrns[yylex()];\n",
+"		tk = yylex();\n",
 "	n += tk;\n",
-"	if (n < 0 || n >= ActSz || yychk[n] != tk) {\n",
-"		r = yyadef[s];\n",
+"	if (n < 0 || n >= ActSz || checking_table[n] != tk) {\n",
+"		r = state_to_reduce[s];\n",
 "		if (r < 0)\n",
 "			return -1;\n",
 "		goto reduce;\n",
 "	}\n",
-"	n = yyact[n];\n",
+"	n = actions_and_gotos[n];\n",
 "	if (n == -1)\n",
 "		return -1;\n",
 "	if (n < 0) {\n",
@@ -1358,14 +1337,14 @@ char *code0[] = {
 "	ps->val = yyval;\n",
 "	goto loop;\n",
 "reduce:\n",
-"	ps -= yyr1[r];\n",
-"	h = yyr2[r];\n",
+"	ps -= rule_to_arity_table[r];\n",
+"	h = rule_to_symbol[r];\n",
 "	s = ps->state;\n",
-"	n = yygdsp[h] + s;\n",
-"	if (n < 0 || n >= ActSz || yychk[n] != yyntoks+h)\n",
-"		n = yygdef[h];\n",
+"	n = nt_to_displacement[h] + s;\n",
+"	if (n < 0 || n >= ActSz || checking_table[n] != yyntoks+h)\n",
+"		n = nt_to_goto[h];\n",
 "	else\n",
-"		n = yyact[n];\n",
+"		n = actions_and_gotos[n];\n",
 "	switch (r) {\n",
 0
 };
