@@ -178,11 +178,10 @@ sub assign_space_for_variables(subroutine_id: uint16)
                 break;
             end if;
             if (thing.thing_type & THING_TYPED) != 0 then
-                if (thing.owner_id == subroutine_id) and (thing.segment != SEGMENT_UNKNOWN) then
+                if (thing.owner_id == subroutine_id) and (thing.segment > SEGMENT_CODE) then
                     arch_allocate_var(&sr.base, thing, get_width_of_type(thing.type_id));
 
                     $if DEBUG
-                        print_thing(subroutine_id);
                         print_thing(subroutine_id);
                         print_char('.');
                         print_thing(id);

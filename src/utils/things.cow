@@ -91,8 +91,8 @@ end record;
 
 const SEGMENT_UNKNOWN := 0; # here, the address field is used for record-keeping
 const SEGMENT_OMIT := 1;
-const SEGMENT_CONST := 2;
-const SEGMENT_CODE := 3;
+const SEGMENT_CODE := 2;
+const SEGMENT_CONST := 3;
 
 record DataThing: Thing
     segment: uint8;

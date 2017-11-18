@@ -156,8 +156,6 @@ sub do_array_initialiser(variable_id: uint16, type_id: uint16)
     var element_type: [TypeThing] := find_thing(array.element_type_id) as [TypeThing];
 
 	var oldtop: uint16 := ioptab_top;
-	var data_subroutine_id: uint16 := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
-
     expect_token(TOKEN_OPENBRACE);
     var i: uint16 := 0;
 	var value: int32;
@@ -181,9 +179,8 @@ sub do_array_initialiser(variable_id: uint16, type_id: uint16)
         i := i + 1;
     end loop;
 	expect_token(TOKEN_CLOSEBRACE);
-
 	emit_untyped_fe(IOP_END);
-	flush_iops(data_subroutine_id, oldtop);
+	flush_iops(variable_id, oldtop);
 end sub;
 
 sub do_var()
