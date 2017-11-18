@@ -25,19 +25,19 @@ sub show_token_thing(thing: [TokenThing])
 end sub;
 
 sub show_namespace_thing(thing: [NamespaceThing])
-    print("namespace: previous_namespace=0x");
-    print_hex_i16(thing.previous_namespace);
-    print(" first_symbol=0x");
-    print_hex_i16(thing.first_symbol);
+    print("namespace: previous_namespace=");
+    print_thing(thing.previous_namespace);
+    print(" first_symbol=");
+    print_thing(thing.first_symbol);
 end sub;
 
 sub show_symbol_thing(thing: [SymbolThing])
-    print("symbol(name_id=0x");
-    print_hex_i16(thing.name_id);
-    print(" value_id=0x");
-    print_hex_i16(thing.value_id);
-    print(" next_symbol=0x");
-    print_hex_i16(thing.next_symbol);
+    print("symbol(name_id=");
+    print_thing(thing.name_id);
+    print(" value_id=");
+    print_thing(thing.value_id);
+    print(" next_symbol=");
+    print_thing(thing.next_symbol);
     print(") ");
 end sub;
 
@@ -65,17 +65,17 @@ end sub;
 
 sub show_typed_thing(thing: [TypedThing])
     show_data_thing(thing as [DataThing]);
-    print("typed(owner_id=0x");
+    print("typed(owner_id=");
     print_thing(thing.owner_id);
-    print(" type_id=0x");
-    print_hex_i16(thing.type_id);
+    print(" type_id=");
+    print_thing(thing.type_id);
     print(") ");
 end sub;
 
 sub show_subroutine_thing(thing: [SubroutineThing])
     show_data_thing(thing as [DataThing]);
-    print("subroutine(namespace=0x");
-    print_hex_i16(thing.namespace_id);
+    print("subroutine(namespace=");
+    print_thing(thing.namespace_id);
     print(" label_count=");
     print_i8(thing.label_count);
     print(" input_parameter_count=");
@@ -93,10 +93,10 @@ end sub;
 
 sub show_withelements_thing(thing: [WithElementsThing])
     show_type_thing(thing as [TypeThing]);
-    print("withelements(element_type_id=0x");
-    print_hex_i16(thing.element_type_id);
-    print(" index_type_id=0x");
-    print_hex_i16(thing.index_type_id);
+    print("withelements(element_type_id=");
+    print_thing(thing.element_type_id);
+    print(" index_type_id=");
+    print_thing(thing.index_type_id);
     print(") ");
 end sub;
 
@@ -107,18 +107,18 @@ end sub;
 
 sub show_record_thing(thing: [RecordThing])
     show_type_thing(thing as [TypeThing]);
-    print("record(superclass_id=0x");
-    print_hex_i16(thing.superclass_id);
-    print(" namespace_id=0x");
-    print_hex_i16(thing.namespace_id);
+    print("record(superclass_id=");
+    print_thing(thing.superclass_id);
+    print(" namespace_id=");
+    print_thing(thing.namespace_id);
     print(") ");
 end sub;
 
 sub show_member_thing(thing: [MemberThing])
-    print("member(type_id=0x");
-    print_hex_i16(thing.type_id);
-    print(" offset=0x");
-    print_hex_i16(thing.offset);
+    print("member(type_id=");
+    print_thing(thing.type_id);
+    print(" offset=");
+    print_thing(thing.offset);
     print(") ");
 end sub;
 
