@@ -333,9 +333,9 @@ sub expression_state_machine()
                     if thing.thing_type == THING_IDENTIFIER then
                         var looked_up_id: uint16 := deref_symbol(pushable_id);
                         if looked_up_id != 0 then
-                            var looked_up: [TypeThing] := find_thing(looked_up_id) as [TypeThing];
-                            if (looked_up.thing_type & THING_TYPE) != 0 then
+                            if is_type_thing(looked_up_id) != 0 then
                                 next_token();
+                                var looked_up: [TypeThing] := find_thing(looked_up_id) as [TypeThing];
                                 pushable_id := thing_reference(looked_up);
                             end if;
                         end if;

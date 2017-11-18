@@ -46,7 +46,6 @@ sub read_identifier()
         var thing: IdentifierThing;
         zero_memory(&thing as [int8], thing@bytes);
         thing.thing_type := THING_IDENTIFIER;
-        thing.thing_size := IdentifierThing@bytes;
         thing.string_id := string_id;
         current_token := add_thing_by_value(&thing as [Thing]);
     end if;
@@ -142,7 +141,6 @@ sub add_string_thing(string_id: uint16): (token_id: uint16)
     var thing: StringThing;
     zero_memory(&thing as [int8], thing@bytes);
     thing.thing_type := THING_STRING;
-    thing.thing_size := StringThing@bytes;
     thing.string_id := string_id;
     thing.string_size := buffer_index;
     token_id := add_thing_by_value(&thing as [Thing]);
@@ -176,7 +174,6 @@ sub read_char_constant()
     var thing: NumberThing;
     zero_memory(&thing as [int8], thing@bytes);
     thing.thing_type := THING_NUMBER;
-    thing.thing_size := NumberThing@bytes;
     thing.value := current_byte as int32;
 
     current_token := add_thing_by_value(&thing as [Thing]);
@@ -301,10 +298,7 @@ sub install_identifier(name: [int8], id: uint16, thingtype: uint8, token_flags: 
     thing.thing_type := thingtype;
     thing.string_id := string_id;
     if thingtype == THING_TOKEN then
-        thing.thing_size := TokenThing@bytes;
         thing.token_flags := token_flags;
-    else
-        thing.thing_size := IdentifierThing@bytes;
     end if;
     var token_id: uint16 := add_thing(&thing as [Thing]);
 

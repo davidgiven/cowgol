@@ -1,0 +1,7 @@
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
+
+var bytes: uint8[10] := {1, 2, 3, uint32@bytes};
+print("bytes[0]==1"); if bytes[0] == 1 then yes(); else no(); end if;
+print("bytes[3]==4"); if bytes[3] == 4 then yes(); else no(); end if;
+print("bytes[4]==0"); if bytes[4] == 0 then yes(); else no(); end if;

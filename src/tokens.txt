@@ -8,6 +8,7 @@ end       END           ENDER
 loop      LOOP          ENDER
 :=        ASSIGN        ENDER
 then      THEN          ENDER
+}         CLOSEBRACE    ENDER
 
 :         COLON
 sub       SUB
@@ -60,6 +61,8 @@ int16     INT16         IDENTIFIER
 uint16    UINT16        IDENTIFIER
 int32     INT32         IDENTIFIER
 uint32    UINT32        IDENTIFIER
+
+{         OPENBRACE
 
 )         CLOSEPAREN     0
 ]         CLOSESQUARE    0

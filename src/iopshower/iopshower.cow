@@ -128,8 +128,8 @@ sub do_address(kind: [int8], iop: [AddressIop])
     print(kind);
     print(" thing_id=");
     print_thing(iop.thing_id);
-    print(" offset=");
-    print_thing(iop.offset);
+    print(" offset=0x");
+    print_hex_i16(iop.offset);
 end sub;
 
 sub do_cg_6502_mem(iop: [CG6502MemIop])
@@ -163,7 +163,7 @@ loop
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
         show_identifier(symbol.name_id);
     else
-        print("(main subroutine)");
+        print("(anonymous subroutine)");
     end if;
     print_newline();
 

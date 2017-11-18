@@ -70,10 +70,12 @@ sub op_imm_adr(ea: [EffectiveAddress], beiop: uint8, opcode: uint8)
     write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
 end sub;
 
-var ld_imm_opcodes: uint8[3];
-ld_imm_opcodes[0] := 0xA9; # LDA imm
-ld_imm_opcodes[1] := 0xA2; # LDX imm
-ld_imm_opcodes[2] := 0xA0; # LDY imm
+var ld_imm_opcodes: uint8[3] := {
+    0xA9, # LDA imm
+    0xA2, # LDX imm
+    0xA0 # LDY imm
+};
+
 sub ld_imm(location: uint8, value: uint8)
     location := find_bit_index(location);
     op_imm(value, ld_imm_opcodes[location]);
@@ -127,18 +129,24 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
     write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
 end sub;
 
-var ld_abs_opcodes: uint8[3];
-ld_abs_opcodes[0] := 0xAD; # LDA abs
-ld_abs_opcodes[1] := 0xAE; # LDX abs
-ld_abs_opcodes[2] := 0xAC; # LDY abs
-var ld_abs_x_opcodes: uint8[3];
-ld_abs_x_opcodes[0] := 0xBD; # LDA abs, X
-ld_abs_x_opcodes[1] := 0x00; # invalid
-ld_abs_x_opcodes[2] := 0xBC; # LDY abs, X
-var ld_abs_y_opcodes: uint8[3];
-ld_abs_y_opcodes[0] := 0xB9; # LDA abs, Y
-ld_abs_y_opcodes[1] := 0xBE; # LDX abs, Y
-ld_abs_y_opcodes[2] := 0x00; # invalid
+var ld_abs_opcodes: uint8[3] := {
+    0xAD, # LDA abs
+    0xAE, # LDX abs
+    0xAC # LDY abs
+};
+
+var ld_abs_x_opcodes: uint8[3] := {
+    0xBD, # LDA abs, X
+    0x00, # invalid
+    0xBC # LDY abs, X
+};
+
+var ld_abs_y_opcodes: uint8[3] := {
+    0xB9, # LDA abs, Y
+    0xBE, # LDX abs, Y
+    0x00 # invalid
+};
+
 sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint8)
     var opcode: uint8 := 0;
 
@@ -199,16 +207,18 @@ sub st_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
     op_ind(ea, 0x91); # STA (ind), Y
 end sub;
 
-var t_opcodes: uint8[9];
-t_opcodes[0 + 0*3] := 0x00; # TAA
-t_opcodes[0 + 1*3] := 0xAA; # TAX
-t_opcodes[0 + 2*3] := 0xA8; # TAY
-t_opcodes[1 + 0*3] := 0x8A; # TXA
-t_opcodes[1 + 1*3] := 0x00; # TXX
-t_opcodes[1 + 2*3] := 0x00; # TXY
-t_opcodes[2 + 0*3] := 0x98; # TYA
-t_opcodes[2 + 1*3] := 0x00; # TYX
-t_opcodes[2 + 2*3] := 0x00; # TYY
+var t_opcodes: uint8[9] := {
+    0x00, # TAA
+    0x8A, # TXA
+    0x98, # TYA
+    0xAA, # TAX
+    0x00, # TXX
+    0x00, # TYX
+    0xA8, # TAY
+    0x00, # TXY
+    0x00, # TYY
+};
+
 sub t_reg_reg(src: uint8, dest: uint8)
 	$if DEBUG
 		print("@ t?? src=0x");

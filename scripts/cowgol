@@ -6,6 +6,12 @@ syntax() {
     exit 1
 }
 
+verbose=no
+if [ "$1" = "-v" ]; then
+    shift
+    verbose=yes
+fi
+
 if [ "$1" != "-a" ]; then
     syntax
 else
@@ -64,8 +70,11 @@ set +e
 result=$?
 set -e
 
-if [ $result != 0 ]; then
+if [ $result != 0 -o "$verbose" = "yes" ]; then
     cat $outputfile.log
+fi
+
+if [ $result != 0 ]; then
     exit 1
 fi
 
