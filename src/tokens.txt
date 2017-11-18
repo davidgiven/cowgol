@@ -8,6 +8,7 @@ end       END           ENDER
 loop      LOOP          ENDER
 :=        ASSIGN        ENDER
 then      THEN          ENDER
+}         CLOSEBRACE    ENDER
 
 :         COLON
 sub       SUB
@@ -65,7 +66,6 @@ uint32    UINT32        IDENTIFIER
 
 )         CLOSEPAREN     0
 ]         CLOSESQUARE    0
-}         CLOSEBRACE     0
 
 # Binary operators, in increasing order of precedence.
 <call>   CALL            0

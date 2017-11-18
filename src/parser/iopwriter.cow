@@ -131,9 +131,9 @@ sub create_label(): (label: uint8)
 end sub;
 
 sub flush_iops(object_id: uint16, oldtop: uint16)
-    var header: IHeader[1];
-    header[0].thing_id := object_id;
-    file_putblock(iopfd, &header[0] as [int8], IHeader@bytes);
+    var header: IHeader;
+    header.thing_id := object_id;
+    file_putblock(iopfd, &header as [int8], IHeader@bytes);
     file_putblock(iopfd, &ioptab[oldtop] as [int8], ioptab_top - oldtop);
     ioptab_top := oldtop;
 end sub;

@@ -144,10 +144,9 @@ sub do_end_sub()
     pop_subroutine();
 end sub;
 
-sub do_array_initialiser(variable_id: uint16)
-    var array: [ArrayThing] := find_thing(variable_id) as [ArrayThing];
+sub do_array_initialiser(variable_id: uint16, type_id: uint16)
+    var array: [ArrayThing] := find_thing(type_id) as [ArrayThing];
     if (array.thing_type == THING_ARRAYT) and (is_number_type_thing(array.element_type_id) != 0) then
-        # success
         # The weird ordering here is because the bootstrap compiler doesn't do conditional
         # short circuiting.
     else
@@ -156,14 +155,19 @@ sub do_array_initialiser(variable_id: uint16)
     end if;
     var element_type: [TypeThing] := find_thing(array.element_type_id) as [TypeThing];
 
+	var oldtop: uint16 := ioptab_top;
+	var data_subroutine_id: uint16 := create_thing(THING_SUBROUTINE, SubroutineThing@bytes);
+
     expect_token(TOKEN_OPENBRACE);
     var i: uint16 := 0;
+	var value: int32;
     while i < array.element_count loop
         if current_token == TOKEN_CLOSEBRACE then
             break;
         end if;
 
-        var value: int32 := do_constant();
+        value := do_constant();
+		emit_bytes(element_type.width as uint8, &value as [uint8]);
         i := i + 1;
 
         if current_token == TOKEN_CLOSEBRACE then
@@ -171,9 +175,15 @@ sub do_array_initialiser(variable_id: uint16)
         end if;
         expect_token(TOKEN_COMMA);
     end loop;
+	value := 0;
     while i < array.element_count loop
+		emit_bytes(element_type.width as uint8, &value as [uint8]);
         i := i + 1;
     end loop;
+	expect_token(TOKEN_CLOSEBRACE);
+
+	emit_untyped_fe(IOP_END);
+	flush_iops(data_subroutine_id, oldtop);
 end sub;
 
 sub do_var()
@@ -198,7 +208,7 @@ sub do_var()
     if current_token == TOKEN_ASSIGN then
         next_token();
         if current_token == TOKEN_OPENBRACE then
-            do_array_initialiser(variable_id);
+            do_array_initialiser(variable_id, type_id);
         else
             emit_fe_push(variable_id);
             do_expression();

@@ -163,7 +163,7 @@ loop
         var symbol: [SymbolThing] := find_thing(symbol_id) as [SymbolThing];
         show_identifier(symbol.name_id);
     else
-        print("(main subroutine)");
+        print("(anonymous subroutine)");
     end if;
     print_newline();
 
