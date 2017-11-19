@@ -25,7 +25,7 @@
 %left DOT
 %%
 prog
-    : statements EOF
+    : statements EOF { $0 = $1; }
     ;
 
 statements
