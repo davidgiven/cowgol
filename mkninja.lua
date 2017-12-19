@@ -98,6 +98,12 @@ build bin/bbcdist.adf : mkbbcdist | $
     scripts/!boot $
     scripts/precompile $
     demo/tiny.cow
+
+rule build-cpm
+    command = (cd emu/cpm && sh bootstrap-cpm.sh && cp cpm ../../bin/cpm)
+
+build bin/cpm : build-cpm emu/cpm/bootstrap-cpm.sh
+
 ]])
 
 local NAME
