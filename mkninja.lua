@@ -57,7 +57,7 @@ rule cowgol_program
 build $OBJDIR/compiler_for_native_on_native : stamp
 
 rule c_program
-    command = cc -std=c99 -Wno-unused-result -g -o $out $in
+    command = cc -std=c99 -Wno-unused-result -g -o $out $in $libs
 
 rule token_maker
     command = gawk -f src/mk-token-maker.awk $in > $out
@@ -98,11 +98,6 @@ build bin/bbcdist.adf : mkbbcdist | $
     scripts/!boot $
     scripts/precompile $
     demo/tiny.cow
-
-rule build-cpm
-    command = (cd emu/cpm && sh bootstrap-cpm.sh && cp cpm ../../bin/cpm)
-
-build bin/cpm : build-cpm emu/cpm/bootstrap-cpm.sh
 
 ]])
 
@@ -198,9 +193,9 @@ local function build_cowgol(files)
     nl()
 end
 
-local function build_c(files)
+local function build_c(files, vars)
     local program = table.remove(files, 1)
-    rule("c_program", "bin/"..program, files)
+    rule("c_program", "bin/"..program, files, {}, vars)
     nl()
 end
 
@@ -501,3 +496,14 @@ build_c {
     "mkadfs",
     "emu/mkadfs.c"
 }
+
+build_c(
+	{
+		"cpm",
+		"emu/cpm/main.c"
+	},
+	{
+		libs = "-lz80ex"
+	}
+)
+
