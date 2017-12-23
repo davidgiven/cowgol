@@ -99,6 +99,12 @@ build bin/bbcdist.adf : mkbbcdist | $
     scripts/precompile $
     demo/tiny.cow
 
+rule pasmo
+    command = pasmo $in $out
+
+rule objectify
+    command = ./scripts/objectify $symbol < $in > $out
+
 ]])
 
 local NAME
@@ -197,6 +203,18 @@ local function build_c(files, vars)
     local program = table.remove(files, 1)
     rule("c_program", "bin/"..program, files, {}, vars)
     nl()
+end
+
+local function build_pasmo(files, vars)
+	local obj = table.remove(files, 1)
+	rule("pasmo", obj, files, {}, vars)
+	nl()
+end
+
+local function build_objectify(files, vars)
+	local obj = table.remove(files, 1)
+	rule("objectify", obj, files, {}, vars)
+	nl()
 end
 
 local function bootstrap_test(file)
@@ -500,10 +518,29 @@ build_c {
 build_c(
 	{
 		"cpm",
-		"emu/cpm/main.c"
+		"emu/cpm/main.c",
+		"emu/cpm/biosbdos.c",
+		"$OBJDIR/ccp.c",
 	},
 	{
-		libs = "-lz80ex"
+		libs = "-lz80ex -lreadline"
+	}
+)
+
+build_pasmo(
+	{
+		"$OBJDIR/ccp.bin",
+		"emu/cpm/ccp.asm"
+	}
+)
+
+build_objectify(
+	{
+		"$OBJDIR/ccp.c",
+		"$OBJDIR/ccp.bin"
+	},
+	{
+		symbol = "ccp"
 	}
 )
 
