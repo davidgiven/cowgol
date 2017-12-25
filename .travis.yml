@@ -12,6 +12,7 @@ addons:
         - realpath
         - lua5.2
         - pasmo
+        - libz80ex-dev
 
 script:
     - ninja
