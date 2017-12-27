@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +8,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include "globals.h"
 
 #define FBASE 0xff00
@@ -49,8 +48,12 @@ static void set_result(uint16_t result)
 	z80ex_set_reg(z80, regHL, result);
 
 	uint16_t af = z80ex_get_reg(z80, regAF);
-	af &= 0x00ff;
+	af &= 0x00ff & ~(1<<6) & ~(1<<7);
 	af |= result << 8;
+	if (!result)
+		af |= 1<<6;
+	if (result & 0x80)
+		af |= 1<<7;
 	z80ex_set_reg(z80, regAF, af);
 
 	uint16_t bc = z80ex_get_reg(z80, regBC);
@@ -86,15 +89,15 @@ void bios_coldboot(void)
 
 void bdos_readline(void)
 {
+	fflush(stdout);
+
 	uint16_t de = z80ex_get_reg(z80, regDE);
 	uint8_t maxcount = ram[de+0];
-	char* line = readline(NULL);
-	int len = strlen(line);
-	if (len > maxcount)
-		len = maxcount;
-	memcpy(&ram[de+2], line, len);
-	ram[de+1] = len;
-	set_result(len);
+	int count = read(0, &ram[de+2], maxcount);
+	if ((count > 0) && (ram[de+2+count-1] == '\n'))
+		count--;
+	ram[de+1] = count;
+	set_result(count);
 }
 
 static struct fcb* find_fcb(void)
@@ -176,13 +179,15 @@ static void bdos_readsequential(void)
 	if (fcb->extent != 0)
 		fatal("bad extent");
 
-	lseek(fcb->s1, fcb->currentrecord*128, SEEK_SET);
-	fcb->currentrecord++;
 	memset(&ram[dma], 0, 128);
-	if (read(fcb->s1, &ram[dma], 128) <= 0)
+	int i = pread(fcb->s1, &ram[dma], 128, fcb->currentrecord*128);
+	if (i == -1)
 		set_result(0xff);
+	else if (i == 0)
+		set_result(1);
 	else
 		set_result(0);
+	fcb->currentrecord++;
 }
 
 static void bdos_getsetuser(void)
@@ -195,16 +200,17 @@ static void bdos_entry(uint8_t bdos_call)
 {
 	switch (bdos_call)
 	{
-		case 2: putchar(get_e()); return;
-		case 10: bdos_readline(); return;
-		case 13: return; // reset disk system
-		case 14: return; // select disk
-		case 15: bdos_openfile(); return;
-		case 19: bdos_deletefile(); return;
+		case  2: putchar(get_e());      return;
+		case 10: bdos_readline();       return;
+		case 12: set_result(0x0022);    return; // get CP/M version
+		case 13: set_result(0);         return; // reset disk system
+		case 14: set_result(0);         return; // select disk
+		case 15: bdos_openfile();       return;
+		case 19: bdos_deletefile();     return;
 		case 20: bdos_readsequential(); return;
-		case 25: set_result(0); return; // get current disk
-		case 26: dma = get_de(); return; // set DMA
-		case 32: bdos_getsetuser(); return;
+		case 25: set_result(0);         return; // get current disk
+		case 26: dma = get_de();        return; // set DMA
+		case 32: bdos_getsetuser();     return;
 	}
 
 	fatal("unimplemented bdos entry %d", bdos_call);
@@ -216,6 +222,7 @@ static void bios_entry(uint8_t bios_call)
 	{
 		case 0: bios_coldboot(); return;
 		case 1: bios_warmboot(); return;
+		case 23: exit(0);
 	}
 
 	fatal("unimplemented bios entry %d", bios_call);

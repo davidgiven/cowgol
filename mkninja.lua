@@ -520,10 +520,11 @@ build_c(
 		"cpm",
 		"emu/cpm/main.c",
 		"emu/cpm/biosbdos.c",
+		"emu/cpm/emulator.c",
 		"$OBJDIR/ccp.c",
 	},
 	{
-		libs = "-lz80ex -lreadline"
+		libs = "-lz80ex -lz80ex_dasm -lreadline"
 	}
 )
 

@@ -6,6 +6,9 @@
 extern Z80EX_CONTEXT* z80;
 extern uint8_t ram[0x10000];
 
+extern void emulator_init(void);
+extern void emulator_run(void);
+
 extern const uint8_t ccp_data[];
 extern const int ccp_len;
 
