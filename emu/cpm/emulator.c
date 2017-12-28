@@ -37,6 +37,9 @@ static uint8_t ioread_cb(Z80EX_CONTEXT* z80, uint16_t addr, void* data)
 
 static void iowrite_cb(Z80EX_CONTEXT* z80, uint16_t addr, uint8_t value, void* data)
 {
+	biosbdos_entry(addr & 0xff);
+	if (bdosbreak)
+		singlestepping = true;
 }
 
 static uint8_t irqread_cb(Z80EX_CONTEXT* z80, void* user)
@@ -290,8 +293,6 @@ void emulator_run(void)
 {
 	for (;;)
 	{
-		z80ex_step(z80);
-
 		uint16_t pc = z80ex_get_reg(z80, regPC);
 		if (!singlestepping)
 		{
@@ -299,14 +300,12 @@ void emulator_run(void)
 				if (pc == breakpoints[i])
 					singlestepping = true;
 		}
-		if (bdosbreak && (pc >= 0xff00))
-			singlestepping = true;
 		if (singlestepping)
 			debug();
 		else if (tracing)
 			showregs();
-		if (pc >= 0xff00)
-			return;
+
+		z80ex_step(z80);
 	}
 }
 

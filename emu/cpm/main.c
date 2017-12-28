@@ -22,9 +22,6 @@ int main(int argc, const char* argv[])
 	for (;;)
 	{
 		emulator_run();
-
-		if (z80ex_get_reg(z80, regPC) >= 0xff00)
-			biosbdos_entry();
 	}
 
 	return 0;

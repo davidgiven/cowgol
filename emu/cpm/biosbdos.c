@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include "globals.h"
 
-#define FBASE 0xff00
+#define FBASE 0xff80
 #define CBASE (FBASE - (7*1024))
 #define BDOS_ENTRY FBASE
 #define BIOS_ENTRY (FBASE+1)
@@ -38,11 +38,24 @@ static uint16_t get_de(void)
 	return z80ex_get_reg(z80, regDE);
 }
 
+static uint8_t get_c(void)
+{
+	return z80ex_get_reg(z80, regBC);
+}
+
 static uint8_t get_e(void)
 {
 	return z80ex_get_reg(z80, regDE);
 }
 
+static void set_a(uint8_t a)
+{
+	uint16_t af = z80ex_get_reg(z80, regAF);
+	af &= 0x00ff;
+	af |= a << 8;
+	z80ex_set_reg(z80, regAF, af);
+}
+	
 static void set_result(uint16_t result)
 {
 	z80ex_set_reg(z80, regHL, result);
@@ -62,29 +75,18 @@ static void set_result(uint16_t result)
 	z80ex_set_reg(z80, regBC, bc);
 }
 
+void bios_coldboot(void)
+{
+	memcpy(&ram[FBASE], bdos_data, bdos_len);
+	z80ex_set_reg(z80, regPC, FBASE);
+}
+
 static void bios_warmboot(void)
 {
 	dma = 0x0080;
 
-	ram[0] = ram[5] = 0xc3; // jp
-	ram[2] = ram[7] = FBASE >> 8;
-	ram[1] = BIOS_SYSCALL(1) & 0xff; // warmboot
-	ram[6] = BDOS_ENTRY & 0xff;
-
-	ram[3] = 0; // iobyte
-	ram[4] = 0; // user, drive
-
 	memcpy(&ram[CBASE], ccp_data, ccp_len);
 	z80ex_set_reg(z80, regPC, CBASE);
-}
-
-void bios_coldboot(void)
-{
-	ram[BDOS_ENTRY] = 0xc9; // ret
-	for (int i=0; i<CBIOS_SYSCALLS; i++)
-		ram[BIOS_SYSCALL(i)] = 0xc9; // ret
-	
-	bios_warmboot();
 }
 
 void bdos_readline(void)
@@ -216,24 +218,33 @@ static void bdos_entry(uint8_t bdos_call)
 	fatal("unimplemented bdos entry %d", bdos_call);
 }
 
+static void bios_getchar(void)
+{
+	int c = getchar();
+	if (c == '\n')
+		c = '\r';
+	set_a(c);
+}
+
 static void bios_entry(uint8_t bios_call)
 {
 	switch (bios_call)
 	{
-		case 0: bios_coldboot(); return;
-		case 1: bios_warmboot(); return;
-		case 23: exit(0);
+		case 0: bios_coldboot();  return;
+		case 1: bios_warmboot();  return;
+		case 2: set_a(0);         return; // const
+		case 3: bios_getchar();   return; // conin
+		case 4: putchar(get_c()); return; // conout
 	}
 
 	fatal("unimplemented bios entry %d", bios_call);
 }
 
-void biosbdos_entry(void)
+void biosbdos_entry(int syscall)
 {
-	uint16_t pc = z80ex_get_reg(z80, regPC);
-	if (pc == BDOS_ENTRY)
+	if (syscall == 0xff)
 		bdos_entry(z80ex_get_reg(z80, regBC));
 	else
-		bios_entry((pc - BIOS_ENTRY) / 3);
+		bios_entry(syscall);
 }
 

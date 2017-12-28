@@ -522,6 +522,7 @@ build_c(
 		"emu/cpm/biosbdos.c",
 		"emu/cpm/emulator.c",
 		"$OBJDIR/ccp.c",
+		"$OBJDIR/bdos.c",
 	},
 	{
 		libs = "-lz80ex -lz80ex_dasm -lreadline"
@@ -542,6 +543,23 @@ build_objectify(
 	},
 	{
 		symbol = "ccp"
+	}
+)
+
+build_pasmo(
+	{
+		"$OBJDIR/bdos.bin",
+		"emu/cpm/bdos.asm"
+	}
+)
+
+build_objectify(
+	{
+		"$OBJDIR/bdos.c",
+		"$OBJDIR/bdos.bin"
+	},
+	{
+		symbol = "bdos"
 	}
 )
 

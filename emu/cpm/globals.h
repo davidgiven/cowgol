@@ -12,9 +12,12 @@ extern void emulator_run(void);
 extern const uint8_t ccp_data[];
 extern const int ccp_len;
 
+extern const uint8_t bdos_data[];
+extern const int bdos_len;
+
 extern void bios_coldboot(void);
 
-extern void biosbdos_entry(void);
+extern void biosbdos_entry(int syscall);
 
 extern void fatal(const char* message, ...);
 

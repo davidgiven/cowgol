@@ -8,7 +8,7 @@
 ;*
 ;**************************************************************
 ;
-FBASE EQU 0FF00H ;bdos/bios top
+FBASE EQU 0FF80H ;bdos/bios top
 CBASE EQU FBASE - (7*1024)
 ;
 IOBYTE	EQU	3		;i/o definition byte.
