@@ -155,6 +155,30 @@ static void bdos_openfile(void)
 	set_result((fcb->s1 == 0) ? 0xff : 0);
 }
 
+static void bdos_makefile(void)
+{
+	struct fcb* fcb = find_fcb();
+	if (fcb->s1)
+		set_result(0xff);
+	else
+	{
+		fcb->s1 = open(fcb->d, O_RDWR|O_CREAT, 0666);
+		set_result((fcb->s1 == 0xff) ? 0xff : 0);
+	}
+}
+
+static void bdos_closefile(void)
+{
+	struct fcb* fcb = find_fcb();
+	if (fcb->s1)
+	{
+		close(fcb->s1);
+		set_result(0);
+	}
+	else
+		set_result(0xff);
+}
+
 static void bdos_deletefile(void)
 {
 	uint16_t result = 0xff;
@@ -164,7 +188,7 @@ static void bdos_deletefile(void)
 	{
 		for (int i=0; i<globdata.gl_pathc; i++)
 		{
-			printf("deleting %s\n", globdata.gl_pathv[i]);
+			unlink(globdata.gl_pathv[i]);
 			result = 0;
 		}
 	}
@@ -172,7 +196,9 @@ static void bdos_deletefile(void)
 	set_result(result);
 }
 
-static void bdos_readsequential(void)
+typedef ssize_t readwrite_cb(int fd, void* ptr, size_t size, off_t offset);
+
+static void bdos_readwritesequential(readwrite_cb* readwrite)
 {
 	struct fcb* fcb = find_fcb();
 	if (fcb->s1 == 0)
@@ -181,8 +207,7 @@ static void bdos_readsequential(void)
 	if (fcb->extent != 0)
 		fatal("bad extent");
 
-	memset(&ram[dma], 0, 128);
-	int i = pread(fcb->s1, &ram[dma], 128, fcb->currentrecord*128);
+	int i = readwrite(fcb->s1, &ram[dma], 128, fcb->currentrecord*128);
 	if (i == -1)
 		set_result(0xff);
 	else if (i == 0)
@@ -190,6 +215,23 @@ static void bdos_readsequential(void)
 	else
 		set_result(0);
 	fcb->currentrecord++;
+}
+
+static void bdos_readwriterandom(readwrite_cb* readwrite)
+{
+	struct fcb* fcb = find_fcb();
+	if (fcb->s1 == 0)
+		fatal("file '%11s' not open", fcb->name);
+
+	off_t record = fcb->r[0] + fcb->r[1]<<8;
+
+	int i = readwrite(fcb->s1, &ram[dma], 128, record*128);
+	if (i == -1)
+		set_result(0xff);
+	else if (i == 0)
+		set_result(1);
+	else
+		set_result(0);
 }
 
 static void bdos_getsetuser(void)
@@ -202,17 +244,22 @@ static void bdos_entry(uint8_t bdos_call)
 {
 	switch (bdos_call)
 	{
-		case  2: putchar(get_e());      return;
-		case 10: bdos_readline();       return;
-		case 12: set_result(0x0022);    return; // get CP/M version
-		case 13: set_result(0);         return; // reset disk system
-		case 14: set_result(0);         return; // select disk
-		case 15: bdos_openfile();       return;
-		case 19: bdos_deletefile();     return;
-		case 20: bdos_readsequential(); return;
-		case 25: set_result(0);         return; // get current disk
-		case 26: dma = get_de();        return; // set DMA
-		case 32: bdos_getsetuser();     return;
+		case  2: putchar(get_e());   return;
+		case 10: bdos_readline();    return;
+		case 12: set_result(0x0022); return; // get CP/M version
+		case 13: set_result(0);      return; // reset disk system
+		case 14: set_result(0);      return; // select disk
+		case 15: bdos_openfile();    return;
+		case 16: bdos_closefile();   return;
+		case 19: bdos_deletefile();  return;
+		case 20: bdos_readwritesequential((readwrite_cb*) pread);  return;
+		case 21: bdos_readwritesequential((readwrite_cb*) pwrite); return;
+		case 22: bdos_makefile();    return;
+		case 25: set_result(0);      return; // get current disk
+		case 26: dma = get_de();     return; // set DMA
+		case 32: bdos_getsetuser();  return;
+		case 33: bdos_readwriterandom((readwrite_cb*) pread);  return;
+		case 34: bdos_readwriterandom((readwrite_cb*) pwrite); return;
 	}
 
 	fatal("unimplemented bdos entry %d", bdos_call);
