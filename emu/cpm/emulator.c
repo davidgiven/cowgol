@@ -11,6 +11,7 @@ Z80EX_CONTEXT* z80;
 uint8_t ram[0x10000];
 
 static uint16_t breakpoints[16];
+static bool tracing = false;
 static bool singlestepping = true;
 static bool bdosbreak = false;
 
@@ -203,6 +204,15 @@ static void cmd_bdos(void)
 		printf("break on bdos entry: %s\n", bdosbreak ? "on" : "off");
 }
 
+static void cmd_tracing(void)
+{
+	char* w1 = strtok(NULL, " ");
+	if (w1)
+		tracing = !!strtoul(w1, NULL, 16);
+	else
+		printf("tracing: %s\n", tracing ? "on" : "off");
+}
+
 static void cmd_help(void)
 {
 	printf("Sleazy debugger\n"
@@ -215,6 +225,7 @@ static void cmd_help(void)
 		   "  s               single step\n"
 		   "  g               continue\n"
 		   "  bdos 0|1        enable break on bdos entry\n"
+		   "  trace 0|1       enable tracing\n"
 	);
 }
 
@@ -251,6 +262,8 @@ static void debug(void)
 			}
 			else if (strcmp(token, "bdos") == 0)
 				cmd_bdos();
+			else if (strcmp(token, "tracing") == 0)
+				cmd_tracing();
 			else
 				printf("Bad command\n");
 		}
@@ -290,6 +303,8 @@ void emulator_run(void)
 			singlestepping = true;
 		if (singlestepping)
 			debug();
+		else if (tracing)
+			showregs();
 		if (pc >= 0xff00)
 			return;
 	}
