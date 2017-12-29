@@ -8,6 +8,7 @@ extern uint8_t ram[0x10000];
 
 extern void emulator_init(void);
 extern void emulator_run(void);
+extern void showregs(void);
 
 extern const uint8_t ccp_data[];
 extern const int ccp_len;

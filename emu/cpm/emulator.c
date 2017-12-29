@@ -47,7 +47,7 @@ static uint8_t irqread_cb(Z80EX_CONTEXT* z80, void* user)
 	return 0;
 }
 
-static void showregs(void)
+void showregs(void)
 {
 	uint16_t af = z80ex_get_reg(z80, regAF);
 	printf("%c%c.%c.%c%c%c sp=%04x af=%04x bc=%04x de=%04x hl=%04x ix=%04x iy=%04x\n",

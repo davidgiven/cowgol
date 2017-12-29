@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
 #include "globals.h"
 
 #define FBASE 0xff80
@@ -33,6 +34,8 @@ struct fcb
 	uint8_t r[3];
 };
 
+static void bios_getchar(void);
+
 static uint16_t get_de(void)
 {
 	return z80ex_get_reg(z80, regDE);
@@ -46,6 +49,11 @@ static uint8_t get_c(void)
 static uint8_t get_e(void)
 {
 	return z80ex_get_reg(z80, regDE);
+}
+
+static uint8_t get_a(void)
+{
+	return z80ex_get_reg(z80, regAF) >> 8;
 }
 
 static void set_a(uint8_t a)
@@ -87,6 +95,62 @@ static void bios_warmboot(void)
 
 	memcpy(&ram[CBASE], ccp_data, ccp_len);
 	z80ex_set_reg(z80, regPC, CBASE);
+}
+
+static void bios_const(void)
+{
+	struct pollfd pollfd = { 0, POLLIN, 0 };
+	poll(&pollfd, 1, 0);
+	set_a((pollfd.revents & POLLIN) ? 0xff : 0);
+}
+
+static void bios_getchar(void)
+{
+	char c = 0;
+	(void) read(0, &c, 1);
+	if (c == '\n')
+		c = '\r';
+	set_a(c);
+}
+
+static void bios_putchar(void)
+{
+	char c = get_c();
+	(void) write(1, &c, 1);
+}
+
+static void bios_entry(uint8_t bios_call)
+{
+	switch (bios_call)
+	{
+		case 0: bios_coldboot();  return;
+		case 1: bios_warmboot();  return;
+		case 2: bios_const();     return; // const
+		case 3: bios_getchar();   return; // conin
+		case 4: bios_putchar();   return; // conout
+	}
+
+	showregs();
+	fatal("unimplemented bios entry %d", bios_call);
+}
+
+static void bdos_putchar(void)
+{
+	uint8_t c = get_e();
+	(void) write(1, &c, 1);
+}
+
+static void bdos_consoleio(void)
+{
+	uint8_t c = get_e();
+	if (c == 0xff)
+	{
+		bios_const();
+		if (get_a() == 0xff)
+			bios_getchar();
+	}
+	else
+		bdos_putchar();
 }
 
 void bdos_readline(void)
@@ -223,7 +287,7 @@ static void bdos_readwriterandom(readwrite_cb* readwrite)
 	if (fcb->s1 == 0)
 		fatal("file '%11s' not open", fcb->name);
 
-	off_t record = fcb->r[0] + fcb->r[1]<<8;
+	off_t record = fcb->r[0] + (fcb->r[1]<<8);
 
 	int i = readwrite(fcb->s1, &ram[dma], 128, record*128);
 	if (i == -1)
@@ -244,7 +308,8 @@ static void bdos_entry(uint8_t bdos_call)
 {
 	switch (bdos_call)
 	{
-		case  2: putchar(get_e());   return;
+		case  2: bdos_putchar();     return;
+		case  6: bdos_consoleio();   return;
 		case 10: bdos_readline();    return;
 		case 12: set_result(0x0022); return; // get CP/M version
 		case 13: set_result(0);      return; // reset disk system
@@ -260,31 +325,12 @@ static void bdos_entry(uint8_t bdos_call)
 		case 32: bdos_getsetuser();  return;
 		case 33: bdos_readwriterandom((readwrite_cb*) pread);  return;
 		case 34: bdos_readwriterandom((readwrite_cb*) pwrite); return;
+		case 40: bdos_readwriterandom((readwrite_cb*) pwrite); return;
+		case 45:                     return; // set hardware error action
 	}
 
+	showregs();
 	fatal("unimplemented bdos entry %d", bdos_call);
-}
-
-static void bios_getchar(void)
-{
-	int c = getchar();
-	if (c == '\n')
-		c = '\r';
-	set_a(c);
-}
-
-static void bios_entry(uint8_t bios_call)
-{
-	switch (bios_call)
-	{
-		case 0: bios_coldboot();  return;
-		case 1: bios_warmboot();  return;
-		case 2: set_a(0);         return; // const
-		case 3: bios_getchar();   return; // conin
-		case 4: putchar(get_c()); return; // conout
-	}
-
-	fatal("unimplemented bios entry %d", bios_call);
 }
 
 void biosbdos_entry(int syscall)
