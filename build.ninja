@@ -497,7 +497,7 @@ build bin/mkdfs : c_program emu/mkdfs.c |
 
 build bin/mkadfs : c_program emu/mkadfs.c | 
 
-build bin/cpm : c_program emu/cpm/main.c emu/cpm/biosbdos.c emu/cpm/emulator.c $OBJDIR/ccp.c $OBJDIR/bdos.c | 
+build bin/cpm : c_program emu/cpm/main.c emu/cpm/biosbdos.c emu/cpm/emulator.c emu/cpm/fileio.c $OBJDIR/ccp.c $OBJDIR/bdos.c | 
   libs = -lz80ex -lz80ex_dasm -lreadline 
 
 build $OBJDIR/ccp.bin : pasmo emu/cpm/ccp.asm | 

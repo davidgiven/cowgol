@@ -17,6 +17,7 @@ void fatal(const char* message, ...)
 int main(int argc, const char* argv[])
 {
 	emulator_init();
+	files_init();
 	bios_coldboot();
 	
 	for (;;)

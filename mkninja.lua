@@ -521,6 +521,7 @@ build_c(
 		"emu/cpm/main.c",
 		"emu/cpm/biosbdos.c",
 		"emu/cpm/emulator.c",
+		"emu/cpm/fileio.c",
 		"$OBJDIR/ccp.c",
 		"$OBJDIR/bdos.c",
 	},

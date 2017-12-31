@@ -23,8 +23,7 @@ static uint16_t dma;
 struct fcb
 {
 	uint8_t drive;
-	uint8_t name[8];
-	uint8_t extension[3];
+	cpm_filename_t filename;
 	uint8_t extent;
 	uint8_t s1;
 	uint8_t s2;
@@ -153,6 +152,12 @@ static void bdos_consoleio(void)
 		bdos_putchar();
 }
 
+static void bdos_consolestatus(void)
+{
+	bios_const();
+	set_result(get_a());
+}
+
 void bdos_readline(void)
 {
 	fflush(stdout);
@@ -169,83 +174,52 @@ void bdos_readline(void)
 static struct fcb* find_fcb(void)
 {
 	uint16_t de = z80ex_get_reg(z80, regDE);
-	struct fcb* fcb = (struct fcb*) &ram[de];
-
-	uint8_t* p = &fcb->d[0];
-	for (int i=0; i<8; i++)
-	{
-		uint8_t c = fcb->name[i];
-		if (c != ' ')
-			*p++ = tolower(c);
-	}
-	*p++ = '.';
-	for (int i=0; i<3; i++)
-	{
-		uint8_t c = fcb->extension[i];
-		if (c != ' ')
-			*p++ = tolower(c);
-	}
-	*p++ = 0;
-
-	return fcb;
-}
-
-static void open_fcb(struct fcb* fcb, int flags)
-{
-	glob_t globdata;
-	if (glob(fcb->d, 0, NULL, &globdata) == 0)
-	{
-		strncpy(fcb->d, globdata.gl_pathv[0], sizeof(fcb->d));
-		if (fcb->d[sizeof(fcb->d)-1] != 0)
-			fatal("filename '%s' too long", globdata.gl_pathv[0]);
-		if (flags == 0)
-			fcb->s1 = 0;
-		else
-		{
-			fcb->s1 = open(fcb->d, flags);
-			if (fcb->s1 == 0xff)
-				fcb->s1 = 0;
-		}
-	}
-	else
-		fcb->s1 = 0;
-	globfree(&globdata);
+	return (struct fcb*) &ram[de];
 }
 
 static void bdos_openfile(void)
 {
 	struct fcb* fcb = find_fcb();
-	open_fcb(fcb, O_RDWR);
-	set_result((fcb->s1 == 0) ? 0xff : 0);
+	struct file* f = file_open(&fcb->filename);
+	set_result(f ? 0 : 0xff);
 }
 
 static void bdos_makefile(void)
 {
 	struct fcb* fcb = find_fcb();
-	if (fcb->s1)
-		set_result(0xff);
-	else
-	{
-		fcb->s1 = open(fcb->d, O_RDWR|O_CREAT, 0666);
-		set_result((fcb->s1 == 0xff) ? 0xff : 0);
-	}
+	struct file* f = file_create(&fcb->filename);
+	set_result(f ? 0 : 0xff);
 }
 
 static void bdos_closefile(void)
 {
 	struct fcb* fcb = find_fcb();
-	if (fcb->s1)
-	{
-		close(fcb->s1);
-		set_result(0);
-	}
+	int result = file_close(&fcb->filename);
+	set_result(result ? 0xff : 0);
+}
+
+static void bdos_findnext(void)
+{
+	struct fcb* fcb = (struct fcb*) &ram[dma];
+	memset(fcb, 0, sizeof(struct fcb));
+	int i = file_findnext(&fcb->filename);
+	set_result(i ? 0xff : 0);
+}
+
+static void bdos_findfirst(void)
+{
+	struct fcb* fcb = find_fcb();
+	int i = file_findfirst(&fcb->filename);
+	if (i == 0)
+		bdos_findnext();
 	else
-		set_result(0xff);
+		set_result(i ? 0xff : 0);
 }
 
 static void bdos_deletefile(void)
 {
 	uint16_t result = 0xff;
+	#if 0
 	struct fcb* fcb = find_fcb();
 	glob_t globdata;
 	if (glob(fcb->d, 0, NULL, &globdata) == 0)
@@ -257,21 +231,21 @@ static void bdos_deletefile(void)
 		}
 	}
 	globfree(&globdata);
+	#endif
 	set_result(result);
 }
 
-typedef ssize_t readwrite_cb(int fd, void* ptr, size_t size, off_t offset);
+typedef int readwrite_cb(struct file* f, uint8_t* ptr, uint16_t record);
 
 static void bdos_readwritesequential(readwrite_cb* readwrite)
 {
 	struct fcb* fcb = find_fcb();
-	if (fcb->s1 == 0)
-		fatal("file '%11s' not open", fcb->name);
 
 	if (fcb->extent != 0)
 		fatal("bad extent");
 
-	int i = readwrite(fcb->s1, &ram[dma], 128, fcb->currentrecord*128);
+	struct file* f = file_open(&fcb->filename);
+	int i = readwrite(f, &ram[dma], fcb->currentrecord);
 	if (i == -1)
 		set_result(0xff);
 	else if (i == 0)
@@ -284,12 +258,10 @@ static void bdos_readwritesequential(readwrite_cb* readwrite)
 static void bdos_readwriterandom(readwrite_cb* readwrite)
 {
 	struct fcb* fcb = find_fcb();
-	if (fcb->s1 == 0)
-		fatal("file '%11s' not open", fcb->name);
 
-	off_t record = fcb->r[0] + (fcb->r[1]<<8);
-
-	int i = readwrite(fcb->s1, &ram[dma], 128, record*128);
+	uint16_t record = fcb->r[0] + (fcb->r[1]<<8);
+	struct file* f = file_open(&fcb->filename);
+	int i = readwrite(f, &ram[dma], record);
 	if (i == -1)
 		set_result(0xff);
 	else if (i == 0)
@@ -311,21 +283,24 @@ static void bdos_entry(uint8_t bdos_call)
 		case  2: bdos_putchar();     return;
 		case  6: bdos_consoleio();   return;
 		case 10: bdos_readline();    return;
+		case 11: bdos_consolestatus(); return;
 		case 12: set_result(0x0022); return; // get CP/M version
 		case 13: set_result(0);      return; // reset disk system
 		case 14: set_result(0);      return; // select disk
 		case 15: bdos_openfile();    return;
 		case 16: bdos_closefile();   return;
+		case 17: bdos_findfirst();   return;
+		case 18: bdos_findnext();    return;
 		case 19: bdos_deletefile();  return;
-		case 20: bdos_readwritesequential((readwrite_cb*) pread);  return;
-		case 21: bdos_readwritesequential((readwrite_cb*) pwrite); return;
+		case 20: bdos_readwritesequential(file_read);  return;
+		case 21: bdos_readwritesequential(file_write); return;
 		case 22: bdos_makefile();    return;
 		case 25: set_result(0);      return; // get current disk
 		case 26: dma = get_de();     return; // set DMA
 		case 32: bdos_getsetuser();  return;
-		case 33: bdos_readwriterandom((readwrite_cb*) pread);  return;
-		case 34: bdos_readwriterandom((readwrite_cb*) pwrite); return;
-		case 40: bdos_readwriterandom((readwrite_cb*) pwrite); return;
+		case 33: bdos_readwriterandom(file_read);  return;
+		case 34: bdos_readwriterandom(file_write); return;
+		case 40: bdos_readwriterandom(file_write); return;
 		case 45:                     return; // set hardware error action
 	}
 
