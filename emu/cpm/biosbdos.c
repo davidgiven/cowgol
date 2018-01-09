@@ -133,6 +133,12 @@ static void bios_entry(uint8_t bios_call)
 	fatal("unimplemented bios entry %d", bios_call);
 }
 
+static void bdos_getchar(void)
+{
+	bios_getchar();
+	set_result(get_a());
+}
+
 static void bdos_putchar(void)
 {
 	uint8_t c = get_e();
@@ -150,6 +156,18 @@ static void bdos_consoleio(void)
 	}
 	else
 		bdos_putchar();
+}
+
+static void bdos_printstring(void)
+{
+	uint16_t de = get_de();
+	for (;;)
+	{
+		uint8_t c = ram[de++];
+		if (c == '$')
+			break;
+		(void) write(1, &c, 1);
+	}
 }
 
 static void bdos_consolestatus(void)
@@ -280,8 +298,10 @@ static void bdos_entry(uint8_t bdos_call)
 {
 	switch (bdos_call)
 	{
+		case  1: bdos_getchar();     return;
 		case  2: bdos_putchar();     return;
 		case  6: bdos_consoleio();   return;
+		case  9: bdos_printstring(); return;
 		case 10: bdos_readline();    return;
 		case 11: bdos_consolestatus(); return;
 		case 12: set_result(0x0022); return; // get CP/M version
@@ -297,6 +317,8 @@ static void bdos_entry(uint8_t bdos_call)
 		case 22: bdos_makefile();    return;
 		case 25: set_result(0);      return; // get current disk
 		case 26: dma = get_de();     return; // set DMA
+		case 27: set_result(0);      return; // get allocation vector
+		case 31: set_result(0);      return; // get disk parameter block
 		case 32: bdos_getsetuser();  return;
 		case 33: bdos_readwriterandom(file_read);  return;
 		case 34: bdos_readwriterandom(file_write); return;
