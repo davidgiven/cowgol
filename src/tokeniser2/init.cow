@@ -1,0 +1,4 @@
+print("TOKENISER2\n");
+load_string_table(strings_dat);
+load_thing_table(things_dat);
+

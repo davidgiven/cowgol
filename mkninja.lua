@@ -105,6 +105,8 @@ rule pasmo
 rule objectify
     command = ./scripts/objectify $symbol < $in > $out
 
+rule lexify
+    command = flex -8 -Cem -b -B -t $in | gawk -f scripts/lexify.awk > $out
 ]])
 
 local NAME
@@ -217,6 +219,12 @@ local function build_objectify(files, vars)
 	nl()
 end
 
+local function build_lexify(files, vars)
+	local obj = table.remove(files, 1)
+	rule("lexify", obj, files, {"scripts/lexify.awk"}, vars)
+	nl()
+end
+
 local function bootstrap_test(file)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
     local testbin = "$OBJDIR/tests/bootstrap/"..testname
@@ -291,6 +299,7 @@ local function build_cowgol_programs()
         "src/utils/stringtablewriter.cow",
         "src/utils/things.cow",
 		"src/tokeniser2/init.cow",
+		"src/tokeniser2/tables.cow",
         "src/tokeniser2/main.cow",
     }
 
@@ -573,6 +582,13 @@ build_objectify(
 	},
 	{
 		symbol = "bdos"
+	}
+)
+
+build_lexify(
+	{
+		"src/tokeniser2/tables.cow",
+		"src/tokeniser2/lexer.l"
 	}
 )
 
