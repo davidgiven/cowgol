@@ -284,6 +284,17 @@ local function build_cowgol_programs()
     }
 
     build_cowgol {
+        "tokeniser2",
+        "src/string_lib.cow",
+        "src/numbers_lib.cow",
+        GLOBALS,
+        "src/utils/stringtablewriter.cow",
+        "src/utils/things.cow",
+		"src/tokeniser2/init.cow",
+        "src/tokeniser2/main.cow",
+    }
+
+    build_cowgol {
         "parser",
         "src/string_lib.cow",
         "src/ctype_lib.cow",
@@ -468,6 +479,7 @@ for host, hostcb in pairs(host_data) do
             {
                 "bin/"..NAME.."/init",
                 "bin/"..NAME.."/tokeniser",
+                "bin/"..NAME.."/tokeniser2",
                 "bin/"..NAME.."/parser",
                 "bin/"..NAME.."/typechecker",
                 "bin/"..NAME.."/backendify",
