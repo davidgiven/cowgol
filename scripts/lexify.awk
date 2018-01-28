@@ -5,7 +5,7 @@ function linemode() {
 
 function wordmode() {
 	RS = "[{}, \t\n]+"
-	FS = ""
+	FS = "[^0-9]"
 }
 
 BEGIN {
@@ -21,7 +21,7 @@ BEGIN {
 	wordmode();
 }
 
-$1 ~ /[0-9]+/ {
+$1 ~ /^[0-9]+$/ {
 	data[count++] = $1
 	if ($1 > 255)
 		width = 16;
