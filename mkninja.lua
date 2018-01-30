@@ -106,7 +106,7 @@ rule objectify
     command = ./scripts/objectify $symbol < $in > $out
 
 rule lexify
-    command = flex -8 -Cem -b -B -t $in | gawk -f scripts/lexify.awk > $out
+    command = flex -8 -Cem -B -t $in | gawk -f scripts/lexify.awk > $out
 ]])
 
 local NAME
@@ -300,7 +300,9 @@ local function build_cowgol_programs()
         "src/utils/things.cow",
 		"src/tokeniser2/init.cow",
 		"src/tokeniser2/tables.cow",
+		"src/tokeniser2/lexer.cow",
         "src/tokeniser2/main.cow",
+		"src/tokeniser2/deinit.cow",
     }
 
     build_cowgol {

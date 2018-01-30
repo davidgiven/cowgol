@@ -1,0 +1,29 @@
+sub process_file()
+	print("reading: ");
+	print(current_filename);
+	print_newline();
+
+	current_fd := file_openin(current_filename);
+	if current_fd == -1 then
+		print("could not open input file");
+		exit(1);
+	end if;
+
+	lexer_reset();
+	lexer();
+
+	file_close(current_fd);
+end sub;
+
+sub process_files()
+	var i: uint8 := 1;
+	while i != ARGC loop
+		current_filename := ARGV[i];
+		i := i + 1;
+
+		process_file();
+	end loop;
+end sub;
+
+process_files();
+

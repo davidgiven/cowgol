@@ -1,0 +1,3 @@
+save_string_table(strings_dat);
+save_thing_table(things_dat);
+

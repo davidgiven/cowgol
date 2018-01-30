@@ -21,6 +21,10 @@ BEGIN {
 	wordmode();
 }
 
+/while \( yy_current_state !=/ {
+	printf("const YY_ACCEPTING_STATE := %d;\n", $6);
+}
+
 $1 ~ /^[0-9]+$/ {
 	data[count++] = $1
 	if ($1 > 255)
