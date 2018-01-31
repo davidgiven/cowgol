@@ -62,7 +62,7 @@ sub lexer_consume_char(c: uint8)
 		print(" buffer <");
 		var q: uint8 := current_token_start;
 		while q != current_token_end loop
-			print_char(tokenbuffer[q]);
+			print_char(tokenbuffer[q] as int8);
 			q := q + 1;
 		end loop;
 		print(">\n");
