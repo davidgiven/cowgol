@@ -1,0 +1,6 @@
+sub emit_token(token: uint16)
+end sub;
+
+sub emit_number(base: uint8, offset: uint8)
+end sub;
+

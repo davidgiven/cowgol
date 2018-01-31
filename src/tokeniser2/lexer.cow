@@ -14,7 +14,7 @@ sub lex_single_character(c: uint8)
 
 	var basestate: uint16;
 	loop
-		basestate := yy_base[current_state] + (ec as uint16);
+		basestate := (yy_base[current_state] as uint16) + (ec as uint16);
 		if yy_chk[basestate] == current_state then
 			break;
 		end if;

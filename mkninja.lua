@@ -299,6 +299,8 @@ local function build_cowgol_programs()
         "src/utils/stringtablewriter.cow",
         "src/utils/things.cow",
 		"src/tokeniser2/init.cow",
+        "$OBJDIR/token_names.cow",
+		"src/tokeniser2/emitter.cow",
 		"src/tokeniser2/tables.cow",
 		"src/tokeniser2/lexer.cow",
         "src/tokeniser2/main.cow",
