@@ -1,3 +1,14 @@
+sub next_char(): (c: uint8)
+	var cc: int8;
+	var eof: uint8;
+	(cc, eof) := file_getchar(current_fd);
+	if eof != 0 then
+		c := 26;
+	else
+		c := cc as uint8;
+	end if;
+end sub;
+	
 sub process_file()
 	print("reading: ");
 	print(current_filename);
@@ -10,7 +21,9 @@ sub process_file()
 	end if;
 
 	lexer_reset();
-	lexer();
+	loop
+		lexer_consume_char(next_char());
+	end loop;
 
 	file_close(current_fd);
 end sub;

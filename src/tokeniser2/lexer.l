@@ -58,15 +58,15 @@ then                     {}
 var                      {}
 while                    {}
 
-\"                       { BEGIN string; ClearBuffer(strbuf); }
-<string>[^\\"\n]         { AppendBufferString(strbuf, yytext); }
-<string>\\n              { AppendBufferChar(strbuf, '\n'); }
-<string>\\t              { AppendBufferChar(strbuf, '\t'); }
-<string>\\x[0-9A-Fa-f]]+ { AppendBufferChar(strbuf, strtol(yytext+1, 0, 8)); }
-<string>\\[\\"]          { AppendBufferChar(strbuf, yytext[1]); }
-<string>\"               { yylval.str = strdup(BufferData(strbuf)); BEGIN 0; return STRING; }
-<string>\\.              { error("bogus escape '%s' in string\n", yytext); }
-<string>[\n\r]           { error("newline in string\n"); }
+\"                        { BEGIN string; ClearBuffer(strbuf); }
+<string>\\n               { AppendBufferChar(strbuf, '\n'); }
+<string>\\t               { AppendBufferChar(strbuf, '\t'); }
+<string>\\x[0-9A-Fa-f]{2} { AppendBufferChar(strbuf, strtol(yytext+1, 0, 8)); }
+<string>\\[\\"]           { AppendBufferChar(strbuf, yytext[1]); }
+<string>\"                { yylval.str = strdup(BufferData(strbuf)); BEGIN 0; return STRING; }
+<string>\\.               { error("bogus escape '%s' in string\n", yytext); }
+<string>[\x1a\n\r]        { error("newline in string\n"); }
+<string>.*                { AppendBufferString(strbuf, yytext); }
 
 \'[^']\'                 {}
 \'\\.\'                  {}
@@ -81,5 +81,5 @@ while                    {}
 {LF}                     {}
 {SP}+                    {}
 
-<<EOF>>                       { eof }
+\x1a                     { eof }
 .                        { return 0; }
