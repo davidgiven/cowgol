@@ -3,9 +3,10 @@ var tokenbufferlen: uint8;
 var current_token_start: uint8;
 var current_token_end: uint8;
 var current_state: uint8;
+var start_state: uint8 := 1;
 
 sub lexer_reset()
-	current_state := 1;
+	current_state := start_state;
 	current_token_start := 0;
 	current_token_end := 0;
 	tokenbufferlen := 0;
@@ -84,7 +85,7 @@ sub lexer_consume_char(c: uint8)
 		current_token_end := current_token_end - last_accepting_pos;
 		tokenbufferlen := tokenbufferlen - last_accepting_pos;
 		current_token_start := 0;
-		current_state := 1;
+		current_state := start_state;
 	end loop;
 end sub;
 

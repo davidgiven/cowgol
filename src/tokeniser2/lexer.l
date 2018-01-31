@@ -1,6 +1,10 @@
 %{
 %}
 %x string
+%x binary
+%x octal
+%x decimal
+%x hex
 
 LF (\r\n)|\r|\n
 SP [ \t]+
@@ -71,10 +75,17 @@ while                    {}
 \'[^']\'                 {}
 \'\\.\'                  {}
 
--?0b[01']+               { binary }
--?0o[0-7']+              { octal }
--?[0-9']+                { decimal }
--?0x[0-9A-Fa-f']+        { hex }
+-?0b                            { start_state := STATE_BINARY;  number_base := 2; }
+-?0o                            { start_state := STATE_OCTAL;   number_base := 8; }
+-?0x                            { start_state := STATE_HEX;     number_base := 16; }
+-?/[0-9]                        { start_state := STATE_DECIMAL; number_base := 10; }
+<binary,octal,decimal,hex>[0-1] |
+<octal,decimal,hex>[2-7]        |
+<decimal,hex>[8-9]              { digit }
+<hex>[A-Fa-f]                   { hexdigit }
+<binary>[2-7]                   |
+<binary,octal>[8-9]             |
+<hex>[G-Zg-z]                   { baddigit}
 
 [a-zA-Z][a-zA-Z0-9_]*    { identifier }
 #[^\r\n\z]               {}

@@ -42,3 +42,14 @@ $1 ~ /^[0-9]+$/ {
 	}
 }
 
+/^#define INITIAL 0$/ {
+	printf("const STATE_INITIAL := 1;\n");
+	for (;;) {
+		getline;
+		if ($1 != "#define")
+			break;
+
+		printf("const STATE_%s := %d;\n", toupper($2), 2*$3 + 1);
+	}
+}
+
