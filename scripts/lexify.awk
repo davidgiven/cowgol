@@ -53,3 +53,36 @@ $1 ~ /^[0-9]+$/ {
 	}
 }
 
+/switch.*yy_act/ {
+	printf("sub perform_action(action: uint8)\n");
+}
+
+/end of action switch/ {
+	printf("end sub;\n");
+}
+
+/^case [0-9]+:$/ {
+	action = $2;
+	for (;;) {
+		getline;
+		if ($0 ~ /{/)
+			break;
+		if ($0 ~ /YY_BREAK/)
+			next;
+	}
+
+	text = $0
+	for (;;) {
+		getline;
+		if ($0 ~ /YY_BREAK/)
+			break;
+		text = text "\n" $0;
+	}
+	text = gensub(/^{(.*)}/, "\\1", "g", text);
+	if (text !~ /^[ \t]*$/) {
+		printf("if action == %d then\n", action);
+		printf("%s\n", text);
+		printf("return;\nend if;\n");
+	}
+}
+

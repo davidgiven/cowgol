@@ -1,28 +1,12 @@
-var tokenbuffer: uint8[256];
 var tokenbufferlen: uint8;
-var current_token_start: uint8;
-var current_token_end: uint8;
 var current_state: uint8;
-var start_state: uint8 := 1;
 
 sub lexer_reset()
+	start_state := STATE_INITIAL;
 	current_state := start_state;
 	current_token_start := 0;
 	current_token_end := 0;
 	tokenbufferlen := 0;
-end sub;
-
-sub perform_action(action: uint8)
-	print("action: ");
-	print_i8(action);
-
-	print(" buffer <");
-	var i: uint8 := current_token_start;
-	while i != current_token_end loop
-		print_char(tokenbuffer[i] as int8);
-		i := i + 1;
-	end loop;
-	print(">\n");
 end sub;
 
 sub lex_single_character(c: uint8)
@@ -72,6 +56,16 @@ sub lexer_consume_char(c: uint8)
 
 		current_state := last_accepting_state;
 		var action: uint8 := yy_accept[current_state];
+
+		print("action ");
+		print_i8(action);
+		print(" buffer <");
+		var q: uint8 := current_token_start;
+		while q != current_token_end loop
+			print_char(tokenbuffer[q]);
+			q := q + 1;
+		end loop;
+		print(">\n");
 
 		perform_action(action);
 

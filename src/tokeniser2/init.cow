@@ -5,3 +5,11 @@ load_thing_table(things_dat);
 var current_filename: [int8];
 var current_fd: int8;
 
+var tokenbuffer: uint8[256];
+var current_token_start: uint8;
+var current_token_end: uint8;
+var start_state: uint8;
+
+var number_base: uint8;
+var current_number: int32;
+
