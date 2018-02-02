@@ -58,15 +58,17 @@ then                     { emit_token(TOKEN_THEN); }
 var                      { emit_token(TOKEN_VAR); }
 while                    { emit_token(TOKEN_WHILE); }
 
+[a-zA-Z][a-zA-Z0-9_]*    { emit_identifier(); }
+
 \"                        { start_state := STATE_STRING; print("start string\n"); }
-<string>\\n               {  }
-<string>\\t               {  }
+<string>\\n               { }
+<string>\\t               { }
 <string>\\x[0-9A-Fa-f]{2} { }
 <string>\\[\\"]           { }
 <string>\"                { start_state := STATE_INITIAL; print("end string\n"); }
 <string>\\.               { # bogus escape }
 <string>[\n\r]            { # newline in string }
-<string>.                 { # append text }
+<string>[^\n\r\\"]+       { # append text }
 
 \'[^']\'                 {}
 \'\\.\'                  {}
@@ -76,9 +78,8 @@ while                    { emit_token(TOKEN_WHILE); }
 -?0x['0-9A-Fa-f]+        { emit_number(16, 2); }
 -?[0-9]+                 { emit_number(10, 0); }
 
-[a-zA-Z][a-zA-Z0-9_]*    { print("identifier\n"); }
-#[^\r\n\z]               {}
-{LF}                     {}
+#[^\r\n]*{LF}            |
+{LF}                     { current_line := current_line + 1; }
 {SP}+                    {}
 
-.                        { }
+.                        { # bad char }

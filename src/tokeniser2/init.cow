@@ -3,13 +3,15 @@ load_string_table(strings_dat);
 load_thing_table(things_dat);
 
 var current_filename: [int8];
-var current_fd: int8;
+var current_filename_string_id: uint16;
+var current_filename_id: uint16;
+var current_line: uint16;
 
 var tokenbuffer: uint8[256];
 var current_token_start: uint8;
 var current_token_end: uint8;
 var start_state: uint8;
 
-var number_base: uint8;
-var current_number: int32;
+var tokens_fd: int8 := file_openout(tokens_dat);
+var tokens_count: uint16 := 0;
 

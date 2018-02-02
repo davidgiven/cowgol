@@ -1,6 +1,65 @@
+sub add_string_thing(string_id: uint16): (token_id: uint16)
+    var thing: StringThing;
+    zero_memory(&thing as [int8], thing@bytes);
+    thing.thing_type := THING_STRING;
+    thing.string_id := string_id;
+    thing.string_size := buffer_index;
+    token_id := add_thing_by_value(&thing as [Thing]);
+end sub;
+
+var most_recent_line: uint16 := 0;
+var most_recent_filename_id: uint16 := 0;
+
+sub emit_raw_token(token: uint16)
+	tokens_count := tokens_count + 1;
+    file_putblock(tokens_fd, &token as [int8], 2);
+end sub;
+
 sub emit_token(token: uint16)
+	if current_filename_id != most_recent_filename_id then
+		emit_raw_token(TOKEN_FILENAME);
+		emit_raw_token(current_filename_id);
+		most_recent_filename_id := current_filename_id;
+	end if;
+
+	if current_line != most_recent_line then
+		emit_raw_token(TOKEN_LINENUMBER);
+		emit_raw_token(current_line);
+		most_recent_line := current_line;
+	end if;
+
+	emit_raw_token(token);
+end sub;
+
+sub emit_identifier()
+	var string_id: uint16 := lookup_string(
+		&tokenbuffer[current_token_start] as [int8],
+		current_token_end - current_token_start);
+	emit_token(add_string_thing(string_id));
 end sub;
 
 sub emit_number(base: uint8, offset: uint8)
+	var n: int32 := 0;
+	var i: uint8 := offset;
+	if tokenbuffer[i] == '-' then
+		i := i + 1;
+	end if;
+	while i != current_token_end loop
+		var c: uint8 := tokenbuffer[i];
+		if c >= 'a' then
+			c := (c - 'a') + 10;
+		elseif c >= 'A' then
+			c := (c - 'A') + 10;
+		else
+			c := c - '0';
+		end if;
+		n := (n*(base as int32)) + (c as int32);
+		i := i + 1;
+	end loop;
+	if tokenbuffer[current_token_start] == '-' then
+		n := 0-n;
+	end if;
+
+	emit_token(add_number_by_value(n));
 end sub;
 
