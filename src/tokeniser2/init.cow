@@ -15,3 +15,12 @@ var start_state: uint8;
 var tokens_fd: int8 := file_openout(tokens_dat);
 var tokens_count: uint16 := 0;
 
+sub fail()
+	print(" at ");
+	print(current_filename as [int8]);
+	print_char(':');
+	print_i16(current_line);
+	print_newline();
+	exit(1);
+end sub;
+

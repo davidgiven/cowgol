@@ -1,3 +1,6 @@
+var stringbuffer: uint8[256];
+var stringlen: uint8 := 0;
+
 sub add_string_thing(string_id: uint16): (token_id: uint16)
     var thing: StringThing;
     zero_memory(&thing as [int8], thing@bytes);
@@ -38,6 +41,24 @@ sub emit_identifier()
 	emit_token(add_string_thing(string_id));
 end sub;
 
+sub parse_digit(c: uint8): (digit: uint8)
+	if c >= 'a' then
+		digit := (c - 'a') + 10;
+	elseif c >= 'A' then
+		digit := (c - 'A') + 10;
+	else
+		digit := c - '0';
+	end if;
+end sub;
+
+sub parse_hex_byte(offset: uint8): (value: uint8)
+	value := (parse_digit(tokenbuffer[offset])<<4) | parse_digit(tokenbuffer[offset+1]);
+end sub;
+
+sub emit_small_const(n: uint8)
+	emit_token(add_number_by_value(n as int32));
+end sub;
+
 sub emit_number(base: uint8, offset: uint8)
 	var n: int32 := 0;
 	var i: uint8 := offset;
@@ -45,15 +66,8 @@ sub emit_number(base: uint8, offset: uint8)
 		i := i + 1;
 	end if;
 	while i != current_token_end loop
-		var c: uint8 := tokenbuffer[i];
-		if c >= 'a' then
-			c := (c - 'a') + 10;
-		elseif c >= 'A' then
-			c := (c - 'A') + 10;
-		else
-			c := c - '0';
-		end if;
-		n := (n*(base as int32)) + (c as int32);
+		var digit: uint8 := parse_digit(tokenbuffer[i]);
+		n := (n*(base as int32)) + (digit as int32);
 		i := i + 1;
 	end loop;
 	if tokenbuffer[current_token_start] == '-' then
@@ -63,3 +77,36 @@ sub emit_number(base: uint8, offset: uint8)
 	emit_token(add_number_by_value(n));
 end sub;
 
+sub string_start()
+	stringlen := 0;
+end sub;
+
+sub string_add_char(c: uint8)
+	if stringlen == (stringbuffer@bytes-1) then
+		print("string too long");
+		fail();
+	end if;
+
+	stringbuffer[stringlen] := c;
+	stringlen := stringlen + 1;
+end sub;
+
+sub string_add_chars()
+	var len: uint8 := current_token_end - current_token_start;
+	if (stringbuffer@bytes - len) < stringlen then
+		print("string too long");
+		fail();
+	end if;
+
+	copy_memory(
+		&tokenbuffer[current_token_start] as [int8],
+		&stringbuffer[stringlen] as [int8],
+		len as uint16);
+	stringlen := stringlen + len;
+end sub;
+
+sub string_end()
+	var string_id: uint16 := lookup_string(&stringbuffer[0] as [int8], stringlen);
+	emit_token(add_string_thing(string_id));
+end sub;
+	

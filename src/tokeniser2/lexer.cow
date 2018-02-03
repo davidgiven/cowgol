@@ -57,16 +57,6 @@ sub lexer_consume_char(c: uint8)
 		current_state := last_accepting_state;
 		var action: uint8 := yy_accept[current_state];
 
-		print("action ");
-		print_i8(action);
-		print(" buffer <");
-		var q: uint8 := current_token_start;
-		while q != current_token_end loop
-			print_char(tokenbuffer[q] as int8);
-			q := q + 1;
-		end loop;
-		print(">\n");
-
 		perform_action(action);
 
 		var p: uint8 := 0;
