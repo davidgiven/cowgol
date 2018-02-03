@@ -74,12 +74,9 @@ rule objectify
 
 rule lexify
     command = flex -8 -Cem -B -t $in | gawk -f scripts/lexify.awk > $out
-build $OBJDIR/compiler_for_c64_on_bbc : stamp bin/c64_on_bbc/init bin/c64_on_bbc/tokeniser bin/c64_on_bbc/tokeniser2 bin/c64_on_bbc/parser bin/c64_on_bbc/typechecker bin/c64_on_bbc/backendify bin/c64_on_bbc/blockifier bin/c64_on_bbc/classifier bin/c64_on_bbc/codegen bin/c64_on_bbc/placer bin/c64_on_bbc/emitter bin/c64_on_bbc/iopshower bin/c64_on_bbc/thingshower 
+build $OBJDIR/compiler_for_c64_on_bbc : stamp bin/c64_on_bbc/init bin/c64_on_bbc/tokeniser2 bin/c64_on_bbc/parser bin/c64_on_bbc/typechecker bin/c64_on_bbc/backendify bin/c64_on_bbc/blockifier bin/c64_on_bbc/classifier bin/c64_on_bbc/codegen bin/c64_on_bbc/placer bin/c64_on_bbc/emitter bin/c64_on_bbc/iopshower bin/c64_on_bbc/thingshower 
 
 build bin/c64_on_bbc/init : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/c64/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
- arch = bbc_on_native 
-
-build bin/c64_on_bbc/tokeniser : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/c64/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = bbc_on_native 
 
 build bin/c64_on_bbc/tokeniser2 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/numbers_lib.cow src/arch/c64/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser2/init.cow $OBJDIR/token_names.cow src/tokeniser2/emitter.cow src/tokeniser2/tables.cow src/tokeniser2/lexer.cow src/tokeniser2/main.cow src/tokeniser2/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
@@ -115,12 +112,9 @@ build bin/c64_on_bbc/thingshower : cowgol_program src/arch/bbc/host.cow src/arch
 build bin/c64_on_bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/c64/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = bbc_on_native 
 
-build $OBJDIR/compiler_for_bbc_on_bbc : stamp bin/bbc/init bin/bbc/tokeniser bin/bbc/tokeniser2 bin/bbc/parser bin/bbc/typechecker bin/bbc/backendify bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen bin/bbc/placer bin/bbc/emitter bin/bbc/iopshower bin/bbc/thingshower 
+build $OBJDIR/compiler_for_bbc_on_bbc : stamp bin/bbc/init bin/bbc/tokeniser2 bin/bbc/parser bin/bbc/typechecker bin/bbc/backendify bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen bin/bbc/placer bin/bbc/emitter bin/bbc/iopshower bin/bbc/thingshower 
 
 build bin/bbc/init : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
- arch = bbc_on_native 
-
-build bin/bbc/tokeniser : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = bbc_on_native 
 
 build bin/bbc/tokeniser2 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser2/init.cow $OBJDIR/token_names.cow src/tokeniser2/emitter.cow src/tokeniser2/tables.cow src/tokeniser2/lexer.cow src/tokeniser2/main.cow src/tokeniser2/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
@@ -156,12 +150,9 @@ build bin/bbc/thingshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/li
 build bin/bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = bbc_on_native 
 
-build $OBJDIR/compiler_for_c64_on_native : stamp bin/c64_on_native/init bin/c64_on_native/tokeniser bin/c64_on_native/tokeniser2 bin/c64_on_native/parser bin/c64_on_native/typechecker bin/c64_on_native/backendify bin/c64_on_native/blockifier bin/c64_on_native/classifier bin/c64_on_native/codegen bin/c64_on_native/placer bin/c64_on_native/emitter bin/c64_on_native/iopshower bin/c64_on_native/thingshower 
+build $OBJDIR/compiler_for_c64_on_native : stamp bin/c64_on_native/init bin/c64_on_native/tokeniser2 bin/c64_on_native/parser bin/c64_on_native/typechecker bin/c64_on_native/backendify bin/c64_on_native/blockifier bin/c64_on_native/classifier bin/c64_on_native/codegen bin/c64_on_native/placer bin/c64_on_native/emitter bin/c64_on_native/iopshower bin/c64_on_native/thingshower 
 
 build bin/c64_on_native/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/c64/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
- arch = native_on_native 
-
-build bin/c64_on_native/tokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/c64/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
 
 build bin/c64_on_native/tokeniser2 : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/numbers_lib.cow src/arch/c64/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser2/init.cow $OBJDIR/token_names.cow src/tokeniser2/emitter.cow src/tokeniser2/tables.cow src/tokeniser2/lexer.cow src/tokeniser2/main.cow src/tokeniser2/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
@@ -197,12 +188,9 @@ build bin/c64_on_native/thingshower : bootstrapped_cowgol_program src/arch/boots
 build bin/c64_on_native/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/c64/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
 
-build $OBJDIR/compiler_for_bbc_on_native : stamp bin/bbc_on_native/init bin/bbc_on_native/tokeniser bin/bbc_on_native/tokeniser2 bin/bbc_on_native/parser bin/bbc_on_native/typechecker bin/bbc_on_native/backendify bin/bbc_on_native/blockifier bin/bbc_on_native/classifier bin/bbc_on_native/codegen bin/bbc_on_native/placer bin/bbc_on_native/emitter bin/bbc_on_native/iopshower bin/bbc_on_native/thingshower 
+build $OBJDIR/compiler_for_bbc_on_native : stamp bin/bbc_on_native/init bin/bbc_on_native/tokeniser2 bin/bbc_on_native/parser bin/bbc_on_native/typechecker bin/bbc_on_native/backendify bin/bbc_on_native/blockifier bin/bbc_on_native/classifier bin/bbc_on_native/codegen bin/bbc_on_native/placer bin/bbc_on_native/emitter bin/bbc_on_native/iopshower bin/bbc_on_native/thingshower 
 
 build bin/bbc_on_native/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
- arch = native_on_native 
-
-build bin/bbc_on_native/tokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser/lexer.cow $OBJDIR/token_names.cow src/tokeniser/tokeniser.cow src/tokeniser/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
 
 build bin/bbc_on_native/tokeniser2 : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/utils/names.cow src/string_lib.cow src/numbers_lib.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser2/init.cow $OBJDIR/token_names.cow src/tokeniser2/emitter.cow src/tokeniser2/tables.cow src/tokeniser2/lexer.cow src/tokeniser2/main.cow src/tokeniser2/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 

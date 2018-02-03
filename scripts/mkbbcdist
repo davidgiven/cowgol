@@ -13,7 +13,7 @@ bin/mkadfs -O $1 -S 1280 -B 3 -N 'Cowgol demo' \
         -f bin/bbc/parser               -n Parser     -l 0x800 \
         -f bin/bbc/placer               -n Placer     -l 0x800 \
         -f bin/bbc/thingshower          -n ThingShow  -l 0x800 \
-        -f bin/bbc/tokeniser            -n Tokeniser  -l 0x800 \
+        -f bin/bbc/tokeniser2           -n Tokeniser2 -l 0x800 \
         -f bin/bbc/typechecker          -n TypeCheck  -l 0x800 \
         -f bin/bbc/backendify           -n Backendify -l 0x800 \
         -f scripts/precompile           -n Precompile \

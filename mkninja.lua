@@ -278,20 +278,6 @@ local function build_cowgol_programs()
     }
 
     build_cowgol {
-        "tokeniser",
-        "src/string_lib.cow",
-        "src/ctype_lib.cow",
-        "src/numbers_lib.cow",
-        GLOBALS,
-        "src/utils/stringtablewriter.cow",
-        "src/utils/things.cow",
-        "src/tokeniser/lexer.cow",
-        "$OBJDIR/token_names.cow",
-        "src/tokeniser/tokeniser.cow",
-        "src/tokeniser/main.cow",
-    }
-
-    build_cowgol {
         "tokeniser2",
         "src/string_lib.cow",
         "src/numbers_lib.cow",
@@ -491,7 +477,6 @@ for host, hostcb in pairs(host_data) do
         rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
             {
                 "bin/"..NAME.."/init",
-                "bin/"..NAME.."/tokeniser",
                 "bin/"..NAME.."/tokeniser2",
                 "bin/"..NAME.."/parser",
                 "bin/"..NAME.."/typechecker",
