@@ -17,9 +17,9 @@ sub next_char(): (c: uint8)
 			exit(1);
 		end if;
 
-		current_filename_string_id := lookup_string(
-			current_filename, string_length(current_filename) as uint8);
-		current_filename_id := add_string_thing(current_filename_string_id);
+		var len: uint8 := string_length(current_filename) as uint8;
+		current_filename_string_id := lookup_string(current_filename, len);
+		current_filename_id := add_string_thing(current_filename_string_id, len);
 		current_line := 1;
 	end if;
 

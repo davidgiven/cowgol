@@ -2,6 +2,8 @@ print("TOKENISER2\n");
 load_string_table(strings_dat);
 load_thing_table(things_dat);
 
+var debugging: uint8 := 0;
+
 var current_filename: [int8];
 var current_filename_string_id: uint16;
 var current_filename_id: uint16;

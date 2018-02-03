@@ -1,11 +1,20 @@
 %{
 %}
 %x string
+%x skipping
 
 LF (\r\n)|\r|\n
 SP [ \t]+
 
 %%
+\$if{SP}DEBUG             { if debugging == 0 then start_state := STATE_SKIPPING; end if; }
+<skipping>\$endif         { start_state := STATE_INITIAL; }
+<skipping>[^$\r\n]+       { }
+
+\$endif                   { }
+<INITIAL,skipping>\$.     { print("invalid compilation directive"); fail(); }
+<INITIAL,skipping>{LF}    { current_line := current_line + 1; }
+
 "!="                      { emit_token(TOKEN_NEOP); }
 "%"                       { emit_token(TOKEN_PERCENT); }
 "&"                       { emit_token(TOKEN_AMPERSAND); }
@@ -59,14 +68,14 @@ then                      { emit_token(TOKEN_THEN); }
 var                       { emit_token(TOKEN_VAR); }
 while                     { emit_token(TOKEN_WHILE); }
 
-[a-zA-Z][a-zA-Z0-9_]*     { emit_identifier(); }
+[a-zA-Z_][a-zA-Z0-9_]*    { emit_identifier(); }
 
 \"                        { start_state := STATE_STRING; string_start(); }
 <string>\\n               { string_add_char('\n'); }
 <string>\\r               { string_add_char('\r'); }
 <string>\\t               { string_add_char(9); }
 <string>\\x[0-9A-Fa-f]{2} { string_add_char(parse_hex_byte(current_token_start+2)); }
-<string>\\[\\"]           { string_add_char('"'); }
+<string>\\[\\"]           { string_add_char(tokenbuffer[current_token_start+1]); }
 <string>\"                { start_state := STATE_INITIAL; string_end(); }
 <string>\\.               { print("bogus escape"); fail(); }
 <string>[\n\r]            { print("unterminated string"); fail(); }
@@ -75,19 +84,18 @@ while                     { emit_token(TOKEN_WHILE); }
 \'\\n\'                   { emit_small_const('\n'); }
 \'\\r\'                   { emit_small_const('\r'); }
 \'\\t\'                   { emit_small_const(9); }
-\'\\'\'                   { emit_small_const('\''); }
+\'\\['\\]\'               { emit_small_const(tokenbuffer[current_token_start+2]); }
 \'\\x[0-9A-Fa-f]{2}\'     { emit_small_const(parse_hex_byte(current_token_start+3)); }
 \'\\.\'                   { print("bogus escape"); fail(); }
 \'[^']\'                  { emit_small_const(tokenbuffer[current_token_start+1]); }
 
 
--?0b['01]+                { emit_number(2, 2); }
--?0o['0-7]+               { emit_number(8, 2); }
--?0x['0-9A-Fa-f]+         { emit_number(16, 2); }
--?[0-9]+                  { emit_number(10, 0); }
+0b[_01]+                  { emit_number(2, 2); }
+0o[_0-7]+                 { emit_number(8, 2); }
+0x[_0-9A-Fa-f]+           { emit_number(16, 2); }
+[0-9][_0-9]*              { emit_number(10, 0); }
 
 #[^\r\n]*                 |
 {SP}+                     {}
-{LF}                      { current_line := current_line + 1; }
 
 .                         { print("unparsable byte 0x"); print_hex_i8(tokenbuffer[current_token_start]); fail(); }

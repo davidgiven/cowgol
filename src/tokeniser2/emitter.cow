@@ -1,13 +1,21 @@
 var stringbuffer: uint8[256];
 var stringlen: uint8 := 0;
 
-sub add_string_thing(string_id: uint16): (token_id: uint16)
+sub add_string_thing(string_id: uint16, stringlen: uint8): (thing_id: uint16)
     var thing: StringThing;
     zero_memory(&thing as [int8], thing@bytes);
     thing.thing_type := THING_STRING;
     thing.string_id := string_id;
-    thing.string_size := buffer_index;
-    token_id := add_thing_by_value(&thing as [Thing]);
+    thing.string_size := stringlen;
+    thing_id := add_thing_by_value(&thing as [Thing]);
+end sub;
+
+sub add_identifier_thing(string_id: uint16): (thing_id: uint16)
+	var thing: IdentifierThing;
+	zero_memory(&thing as [int8], thing@bytes);
+	thing.thing_type := THING_IDENTIFIER;
+	thing.string_id := string_id;
+	thing_id := add_thing_by_value(&thing as [Thing]);
 end sub;
 
 var most_recent_line: uint16 := 0;
@@ -38,7 +46,7 @@ sub emit_identifier()
 	var string_id: uint16 := lookup_string(
 		&tokenbuffer[current_token_start] as [int8],
 		current_token_end - current_token_start);
-	emit_token(add_string_thing(string_id));
+	emit_token(add_identifier_thing(string_id));
 end sub;
 
 sub parse_digit(c: uint8): (digit: uint8)
@@ -62,17 +70,14 @@ end sub;
 sub emit_number(base: uint8, offset: uint8)
 	var n: int32 := 0;
 	var i: uint8 := offset;
-	if tokenbuffer[i] == '-' then
-		i := i + 1;
-	end if;
 	while i != current_token_end loop
-		var digit: uint8 := parse_digit(tokenbuffer[i]);
-		n := (n*(base as int32)) + (digit as int32);
+		var c: uint8 := tokenbuffer[i];
+		if c != '_' then
+			var digit: uint8 := parse_digit(c);
+			n := (n*(base as int32)) + (digit as int32);
+		end if;
 		i := i + 1;
 	end loop;
-	if tokenbuffer[current_token_start] == '-' then
-		n := 0-n;
-	end if;
 
 	emit_token(add_number_by_value(n));
 end sub;
@@ -107,6 +112,6 @@ end sub;
 
 sub string_end()
 	var string_id: uint16 := lookup_string(&stringbuffer[0] as [int8], stringlen);
-	emit_token(add_string_thing(string_id));
+	emit_token(add_string_thing(string_id, stringlen));
 end sub;
 	
