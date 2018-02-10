@@ -224,7 +224,13 @@ function filteredtokenstream(stream)
 						end
 					end
 				elseif token == "$endif" then
-					-- consume silently
+                    -- consume silently
+                elseif token == "$set" then
+                    token, value = stream:next()
+                    compilation_flags[token] = true
+                elseif token == "$unset" then
+                    token, value = stream:next()
+                    compilation_flags[token] = false
 				else
 					coroutine.yield(token, value)
 				end
