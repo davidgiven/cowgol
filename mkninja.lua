@@ -57,7 +57,7 @@ rule cowgol_program
 build $OBJDIR/compiler_for_native_on_native : stamp
 
 rule c_program
-    command = cc -std=c99 -Wno-unused-result -g -o $out $in
+    command = cc -std=c99 -Wno-unused-result -g -o $out $in $libs
 
 rule token_maker
     command = gawk -f src/mk-token-maker.awk $in > $out
@@ -98,6 +98,15 @@ build bin/bbcdist.adf : mkbbcdist | $
     scripts/!boot $
     scripts/precompile $
     demo/tiny.cow
+
+rule pasmo
+    command = pasmo $in $out
+
+rule objectify
+    command = ./scripts/objectify $symbol < $in > $out
+
+rule lexify
+    command = flex -8 -Cem -B -t $in | gawk -f scripts/lexify.awk > $out
 ]])
 
 local NAME
@@ -192,10 +201,28 @@ local function build_cowgol(files)
     nl()
 end
 
-local function build_c(files)
+local function build_c(files, vars)
     local program = table.remove(files, 1)
-    rule("c_program", "bin/"..program, files)
+    rule("c_program", "bin/"..program, files, {}, vars)
     nl()
+end
+
+local function build_pasmo(files, vars)
+	local obj = table.remove(files, 1)
+	rule("pasmo", obj, files, {}, vars)
+	nl()
+end
+
+local function build_objectify(files, vars)
+	local obj = table.remove(files, 1)
+	rule("objectify", obj, files, {}, vars)
+	nl()
+end
+
+local function build_lexify(files, vars)
+	local obj = table.remove(files, 1)
+	rule("lexify", obj, files, {"scripts/lexify.awk"}, vars)
+	nl()
 end
 
 local function bootstrap_test(file)
@@ -251,17 +278,20 @@ local function build_cowgol_programs()
     }
 
     build_cowgol {
-        "tokeniser",
+        "tokeniser2",
         "src/string_lib.cow",
         "src/ctype_lib.cow",
         "src/numbers_lib.cow",
         GLOBALS,
         "src/utils/stringtablewriter.cow",
         "src/utils/things.cow",
-        "src/tokeniser/lexer.cow",
+		"src/tokeniser2/init.cow",
         "$OBJDIR/token_names.cow",
-        "src/tokeniser/tokeniser.cow",
-        "src/tokeniser/main.cow",
+		"src/tokeniser2/emitter.cow",
+		"src/tokeniser2/tables.cow",
+		"src/tokeniser2/lexer.cow",
+        "src/tokeniser2/main.cow",
+		"src/tokeniser2/deinit.cow",
     }
 
     build_cowgol {
@@ -448,7 +478,7 @@ for host, hostcb in pairs(host_data) do
         rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
             {
                 "bin/"..NAME.."/init",
-                "bin/"..NAME.."/tokeniser",
+                "bin/"..NAME.."/tokeniser2",
                 "bin/"..NAME.."/parser",
                 "bin/"..NAME.."/typechecker",
                 "bin/"..NAME.."/backendify",
@@ -496,7 +526,64 @@ build_c {
     "emu/mkadfs.c"
 }
 
+build_c(
+	{
+		"cpm",
+		"emu/cpm/main.c",
+		"emu/cpm/biosbdos.c",
+		"emu/cpm/emulator.c",
+		"emu/cpm/fileio.c",
+		"$OBJDIR/ccp.c",
+		"$OBJDIR/bdos.c",
+	},
+	{
+		libs = "-lz80ex -lz80ex_dasm -lreadline"
+	}
+)
+
+build_pasmo(
+	{
+		"$OBJDIR/ccp.bin",
+		"emu/cpm/ccp.asm"
+	}
+)
+
+build_objectify(
+	{
+		"$OBJDIR/ccp.c",
+		"$OBJDIR/ccp.bin"
+	},
+	{
+		symbol = "ccp"
+	}
+)
+
+build_pasmo(
+	{
+		"$OBJDIR/bdos.bin",
+		"emu/cpm/bdos.asm"
+	}
+)
+
+build_objectify(
+	{
+		"$OBJDIR/bdos.c",
+		"$OBJDIR/bdos.bin"
+	},
+	{
+		symbol = "bdos"
+	}
+)
+
+build_lexify(
+	{
+		"src/tokeniser2/tables.cow",
+		"src/tokeniser2/lexer.l"
+	}
+)
+
 build_c {
     "miniyacc",
     "src/miniyacc/yacc.c"
 }
+

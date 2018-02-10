@@ -348,7 +348,9 @@ sub show_identifier(identifier_id: uint16)
         var identifierthing: [IdentifierThing] := thing as [IdentifierThing];
         show_string(identifierthing.string_id);
     else
-        print("(not an identifier, type 0x");
+        print("(not an identifier: 0x");
+		print_hex_i16(identifier_id);
+		print_char(':');
         print_hex_i8(thing.thing_type);
         print(")");
     end if;

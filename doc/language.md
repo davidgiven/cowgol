@@ -151,6 +151,16 @@ while i != array@size loop
 end loop;
 ```
 
+There's limited support for array initialisers. These only work for
+one-dimensional arrays of scalars (so far). They work by embedding the data in
+the executable, so they generate no code; but the data is intrinsically static
+(if you use one inside a subroutine, be careful).
+
+```
+var array: uint8[42] = {1, 2, 3, 4};  # remaining items initialised to zero
+var hugearray: uint32[1024] = {};     # your executable just went up in size by 4kB
+```
+
 ### Record types
 
 Cowgol supports structured records.

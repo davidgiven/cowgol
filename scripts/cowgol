@@ -46,7 +46,7 @@ set +e
     set -e
     cd $tmpdir
     $bindir/init
-    $bindir/tokeniser $srcs
+    $bindir/tokeniser2 $srcs
     $bindir/parser
     cp iops.dat iops-parsed.dat
     $bindir/typechecker

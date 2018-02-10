@@ -1,0 +1,117 @@
+var stringbuffer: uint8[256];
+var stringlen: uint8 := 0;
+
+sub add_string_thing(string_id: uint16, stringlen: uint8): (thing_id: uint16)
+    var thing: StringThing;
+    zero_memory(&thing as [int8], thing@bytes);
+    thing.thing_type := THING_STRING;
+    thing.string_id := string_id;
+    thing.string_size := stringlen;
+    thing_id := add_thing_by_value(&thing as [Thing]);
+end sub;
+
+sub add_identifier_thing(string_id: uint16): (thing_id: uint16)
+	var thing: IdentifierThing;
+	zero_memory(&thing as [int8], thing@bytes);
+	thing.thing_type := THING_IDENTIFIER;
+	thing.string_id := string_id;
+	thing_id := add_thing_by_value(&thing as [Thing]);
+end sub;
+
+var most_recent_line: uint16 := 0;
+var most_recent_filename_id: uint16 := 0;
+
+sub emit_raw_token(token: uint16)
+	tokens_count := tokens_count + 1;
+    file_putblock(tokens_fd, &token as [int8], 2);
+end sub;
+
+sub emit_token(token: uint16)
+	if current_filename_id != most_recent_filename_id then
+		emit_raw_token(TOKEN_FILENAME);
+		emit_raw_token(current_filename_id);
+		most_recent_filename_id := current_filename_id;
+	end if;
+
+	if current_line != most_recent_line then
+		emit_raw_token(TOKEN_LINENUMBER);
+		emit_raw_token(current_line);
+		most_recent_line := current_line;
+	end if;
+
+	emit_raw_token(token);
+end sub;
+
+sub emit_identifier()
+	var string_id: uint16 := lookup_string(
+		&tokenbuffer[current_token_start] as [int8],
+		current_token_end - current_token_start);
+	emit_token(add_identifier_thing(string_id));
+end sub;
+
+sub parse_digit(c: uint8): (digit: uint8)
+	if c >= 'a' then
+		digit := (c - 'a') + 10;
+	elseif c >= 'A' then
+		digit := (c - 'A') + 10;
+	else
+		digit := c - '0';
+	end if;
+end sub;
+
+sub parse_hex_byte(offset: uint8): (value: uint8)
+	value := (parse_digit(tokenbuffer[offset])<<4) | parse_digit(tokenbuffer[offset+1]);
+end sub;
+
+sub emit_small_const(n: uint8)
+	emit_token(add_number_by_value(n as int32));
+end sub;
+
+sub emit_number(base: uint8, offset: uint8)
+	var n: int32 := 0;
+	var i: uint8 := offset;
+	while i != current_token_end loop
+		var c: uint8 := tokenbuffer[i];
+		if c != '_' then
+			var digit: uint8 := parse_digit(c);
+			n := (n*(base as int32)) + (digit as int32);
+		end if;
+		i := i + 1;
+	end loop;
+
+	emit_token(add_number_by_value(n));
+end sub;
+
+sub string_start()
+	stringlen := 0;
+end sub;
+
+sub string_add_char(c: uint8)
+	if stringlen == (stringbuffer@bytes-1) then
+		print("string too long");
+		fail();
+	end if;
+
+	stringbuffer[stringlen] := c;
+	stringlen := stringlen + 1;
+end sub;
+
+sub string_add_chars()
+	var len: uint8 := current_token_end - current_token_start;
+	if (stringbuffer@bytes - len) < stringlen then
+		print("string too long");
+		fail();
+	end if;
+
+	copy_memory(
+		&tokenbuffer[current_token_start] as [int8],
+		&stringbuffer[stringlen] as [int8],
+		len as uint16);
+	stringlen := stringlen + len;
+end sub;
+
+sub string_end()
+	var string_id: uint16 := lookup_string(&stringbuffer[0] as [int8], stringlen);
+	emit_token(add_string_thing(string_id, stringlen));
+end sub;
+	

@@ -1,0 +1,45 @@
+var current_file_index: uint8 := 1;
+var current_fd: int8 := -1;
+
+sub next_char(): (c: uint8)
+	var cc: int8;
+	var eof: uint8;
+	if current_fd == -1 then
+		current_filename := ARGV[current_file_index];
+
+		print("reading: ");
+		print(current_filename);
+		print_newline();
+
+		current_fd := file_openin(current_filename);
+		if current_fd == -1 then
+			print("could not open input file");
+			exit(1);
+		end if;
+
+		var len: uint8 := string_length(current_filename) as uint8;
+		current_filename_string_id := lookup_string(current_filename, len);
+		current_filename_id := add_string_thing(current_filename_string_id, len);
+		current_line := 1;
+	end if;
+
+	(cc, eof) := file_getchar(current_fd);
+	if eof != 0 then
+		c := '\n';
+		file_close(current_fd);
+		current_fd := -1;
+		current_file_index := current_file_index + 1;
+	else
+		c := cc as uint8;
+	end if;
+end sub;
+	
+sub process_files()
+	lexer_reset();
+	while current_file_index != ARGC loop
+		lexer_consume_char(next_char());
+	end loop;
+end sub;
+
+process_files();
+
