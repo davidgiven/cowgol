@@ -64,8 +64,8 @@ void cowgol_file_putchar(void) {
 
 void cowgol_file_getblock(void) {
     FILE* fp = filetab[extern_i8];
-    if (fread(extern_p8, 1, extern_u32, fp)) { /* stupid unused-result warning suppression */ }
-    extern_i8_2 = feof(fp);
+    size_t bytes = fread(extern_p8, 1, extern_u32, fp);
+    extern_i8_2 = (bytes == 0) ? feof(fp) : 0;
 }
 
 void cowgol_file_putblock(void) {
