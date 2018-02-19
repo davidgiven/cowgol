@@ -63,6 +63,13 @@ sub show_number_thing(thing: [NumberThing])
     print(") ");
 end sub;
 
+sub show_addressof_thing(thing: [AddressOfThing])
+    show_data_thing(thing as [DataThing]);
+    print("addressof(");
+    print_thing(thing.thing_id);
+    print(") ");
+end sub;
+
 sub show_typed_thing(thing: [TypedThing])
     show_data_thing(thing as [DataThing]);
     print("typed(owner_id=");
@@ -167,6 +174,8 @@ loop
         show_token_thing(thing as [TokenThing]);
     elseif type == THING_NUMBER then
         show_number_thing(thing as [NumberThing]);
+    elseif type == THING_ADDRESSOF then
+        show_addressof_thing(thing as [AddressOfThing]);
     elseif type == THING_STRING then
         show_string_thing(thing as [StringThing]);
     elseif type == THING_NAMESPACE then

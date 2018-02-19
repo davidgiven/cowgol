@@ -30,14 +30,14 @@ sub arch_gen_copy_word(iop: [BEIop])
         free_reg(location);
         location := find_or_load_int((value >> 8) as uint8, candidates);
         save_value_with_index_or_offset(location, &iop.dest, 1);
-    elseif is_string_thing(iop.left.obj_id) != 0 then
-        address_of();
-    elseif is_typed_thing(iop.left.obj_id) != 0 then
+    elseif is_data_thing(iop.left.obj_id) != 0 then
         if iop.left.flags == EA_LEA then
             address_of();
         else
             arch_gen_copy_wide(iop);
         end if;
+    elseif is_string_thing(iop.left.obj_id) != 0 then
+        address_of();
     else
         print("don't know how to load ");
         print_ea(&iop.left);

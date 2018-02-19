@@ -84,6 +84,12 @@ sub process_data()
                 numberthing.address := root.const_size;
                 root.const_size := root.const_size + 4;
             end if;
+        elseif thing.thing_type == THING_ADDRESSOF then
+            var addressofthing: [AddressOfThing] := thing as [AddressOfThing];
+            if addressofthing.segment == SEGMENT_CONST then
+                addressofthing.address := root.const_size;
+                root.const_size := root.const_size + 2;
+            end if;
         end if;
         id := next_thing(id);
     end loop;

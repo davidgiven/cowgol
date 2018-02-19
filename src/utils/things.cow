@@ -82,6 +82,11 @@ record NumberThing: DataThing
     value: int32;
 end record;
 
+record AddressOfThing: DataThing
+    thing_id: uint16;
+    offset: uint16;
+end record;
+
 record SubroutineThing: DataThing
     namespace_id: uint16;
     label_count: uint8;
@@ -106,22 +111,23 @@ end record;
 const THING_SUBROUTINE := 1;
 const THING_VARIABLE   := 2;
 const THING_PARAMETER  := 3;
-const THING_RECORDT    := 4;
-const THING_POINTERT   := 5;
-const THING_ARRAYT     := 6;
-const THING_CONSTANTT  := 7;
-const THING_UNSIGNEDT  := 8;
-const THING_SIGNEDT    := 9;
+const THING_ADDRESSOF  := 4;
+const THING_RECORDT    := 5;
+const THING_POINTERT   := 6;
+const THING_ARRAYT     := 7;
+const THING_CONSTANTT  := 8;
+const THING_UNSIGNEDT  := 9;
+const THING_SIGNEDT    := 10;
 
-const THING_STRING     := 10;
-const THING_IDENTIFIER := 11;
-const THING_NUMBER     := 12;
-const THING_NAMESPACE  := 13;
-const THING_TOKEN      := 14;
-const THING_SYMBOL     := 15;
-const THING_MEMBER     := 16;
-const THING_ROOT       := 17; # singleton
-const THING_LABEL      := 18;
+const THING_STRING     := 11;
+const THING_IDENTIFIER := 12;
+const THING_NUMBER     := 13;
+const THING_NAMESPACE  := 14;
+const THING_TOKEN      := 15;
+const THING_SYMBOL     := 16;
+const THING_MEMBER     := 17;
+const THING_ROOT       := 18; # singleton
+const THING_LABEL      := 19;
 
 const THING_CLASS_DATA         := 0b0000_0001;
 const THING_CLASS_TYPE         := 0b0000_0010;
@@ -131,11 +137,12 @@ const THING_CLASS_SCALAR       := 0b0001_0000;
 const THING_CLASS_NUMERIC      := 0b0010_0000;
 const THING_CLASS_TYPED        := 0b0100_0000;
 
-var thing_classes: uint8[10] := {
+var thing_classes: uint8[11] := {
     0,                                                       # null
     THING_CLASS_DATA,                                        # THING_SUBROUTINE
     THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_VARIABLE
-    THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_DATA
+    THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_PARAMETER
+    THING_CLASS_DATA,                                        # THING_ADDRESSOF
     THING_CLASS_TYPE|THING_CLASS_WITHMEMBERS,                # THING_RECORDT
     THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_WITHMEMBERS|THING_CLASS_WITHELEMENTS, # THING_POINTERT
     THING_CLASS_TYPE|THING_CLASS_WITHELEMENTS,               # THING_ARRAYT
@@ -144,11 +151,12 @@ var thing_classes: uint8[10] := {
     THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_NUMERIC, # THING_SIGNEDT
 };
 
-var thing_sizes: uint8[19] := {
+var thing_sizes: uint8[20] := {
     0,                     # null
     SubroutineThing@bytes, # THING_SUBROUTINE
     VariableThing@bytes,   # THING_VARIABLE
     ParameterThing@bytes,  # THING_PARAMETER
+    AddressOfThing@bytes,  # THING_ADDRESSOF
     RecordThing@bytes,     # THING_RECORDT
     PointerThing@bytes,    # THING_POINTERT
     ArrayThing@bytes,      # THING_ARRAYT
@@ -163,7 +171,7 @@ var thing_sizes: uint8[19] := {
     SymbolThing@bytes,     # THING_SYMBOL
     MemberThing@bytes,     # THING_MEMBER
     RootThing@bytes,       # THING_ROOT
-    LabelThing@bytes       # THING_LABEL
+    LabelThing@bytes,      # THING_LABEL
 };
 
 var thing_table: int8[THINGSTABLE_SIZE];
@@ -293,6 +301,15 @@ sub get_value_of_number(thing_id: uint16): (value: int32)
     end if;
 end sub;
 
+sub add_addressof_by_value(thing_id: uint16, offset: uint16): (id: uint16)
+    var buf: AddressOfThing;
+    zero_memory(&buf as [int8], buf@bytes);
+    buf.thing_type := THING_ADDRESSOF;
+    buf.thing_id := thing_id;
+    buf.offset := offset;
+    id := add_thing_by_value(&buf as [Thing]);
+end sub;
+
 sub find_token_by_string(string_id: uint16): (id: uint16)
     id := 1;
     loop
@@ -365,6 +382,10 @@ sub get_token_flags(token_id: uint16): (token_flags: uint8)
     end if;
 end sub;
 
+sub is_data_thing(thing_id: uint16): (yes: uint8)
+    yes := is_thing_class(thing_id, THING_CLASS_DATA);
+end sub;
+
 sub is_type_thing(thing_id: uint16): (yes: uint8)
     yes := is_thing_class(thing_id, THING_CLASS_TYPE);
 end sub;
@@ -379,6 +400,10 @@ end sub;
 
 sub is_string_thing(thing_id: uint16): (yes: uint8)
     yes := is_thing_type(thing_id, THING_STRING);
+end sub;
+
+sub is_addressof_thing(thing_id: uint16): (yes: uint8)
+    yes := is_thing_type(thing_id, THING_ADDRESSOF);
 end sub;
 
 sub is_identifier_thing(thing_id: uint16): (yes: uint8)
@@ -469,10 +494,15 @@ sub print_thing(thing_id: uint16)
             print_prefix("TYPE", thing_id);
         elseif is_typed_thing(thing_id) != 0 then
             print_prefix("VAR", thing_id);
-        elseif get_thing_type(thing_id) == THING_SUBROUTINE then
-            print_prefix("SUB", thing_id);
         else
-            print_prefix("UNK", thing_id);
+            var thingtype: uint8 := get_thing_type(thing_id);
+            if thingtype == THING_SUBROUTINE then
+                print_prefix("SUB", thing_id);
+            elseif thingtype == THING_ADDRESSOF then
+                print_prefix("ADR", thing_id);
+            else
+                print_prefix("UNK", thing_id);
+            end if;
         end if;
 
         if identifier_id != 0 then

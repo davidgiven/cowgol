@@ -11,7 +11,11 @@ end sub;
 
 sub arch_classify_ea(ea: [EffectiveAddress])
     var objtype: uint8 := get_thing_type(ea.obj_id);
-    if is_typed_thing(ea.obj_id) != 0 then
+    if objtype == THING_ADDRESSOF then
+        do_data(ea.obj_id, SEGMENT_CONST);
+        var addressofthing: [AddressOfThing] := find_thing(ea.obj_id) as [AddressOfThing];
+        do_data(addressofthing.thing_id, SEGMENT_DATA);
+    elseif is_typed_thing(ea.obj_id) != 0 then
         var segment: uint8;
         if (ea.flags & EA_DEREF) != 0 then
             segment := SEGMENT_ZEROPAGE;

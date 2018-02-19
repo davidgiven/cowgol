@@ -33,6 +33,30 @@ sub alloc_thing_node(thing_id: uint16): (node: [Node])
     ref_temporary(thing_id);
 end sub;
 
+# Use for size changes only; the type check is pretty sloppy.
+sub gen_cast_and_deref(src: [Node], desttype: uint16): (dest: [Node])
+    if #(src.type_id != constant_type)
+            (get_width_of_type(src.type_id) != get_width_of_type(desttype)) then
+        src := simplify_node_to_ea_and_deref(src);
+
+        $if DEBUG
+            print("* casting ");
+            print_ea(&src.left);
+            print(" to ");
+            print_thing(desttype);
+            print_newline();
+        $endif
+
+        dest := alloc_node();
+        dest.iop := IOP_BE_ZEXT;
+        dest.type_id := desttype;
+        copy_ea_ref(&src.left, &dest.left);
+        deref_node(src);
+    else
+        dest := src;
+    end if;
+end sub;
+
 # Note: the type of the result is the type of the *left* parameter.
 sub gen_operator_and_deref(beiop: uint8, left: [Node], right: [Node]): (dest: [Node])
     left := simplify_node_to_ea_and_deref(left);
@@ -48,6 +72,7 @@ sub gen_operator_and_deref(beiop: uint8, left: [Node], right: [Node]): (dest: [N
     deref_node(right);
 end sub;
 
+# Sloppy casts are done; only use for changing the width of a value.
 sub var_to_pointer_compatible_var(invar_id: uint16): (outvar_id: uint16)
     var invar_type_id: uint16 := get_type_of_thing(invar_id);
     if get_width_of_type(invar_type_id) == 2 then
@@ -180,11 +205,14 @@ sub process_subroutine()
 
         if element_type.width != 1 then
             $if DEBUG
-                print("* scaling left by 0x");
+                print("* multiplying by 0x");
                 print_hex_i16(element_type.width);
                 print_newline();
             $endif
 
+            # TODO: only really need to do this if the total size of the array >255 bytes
+            # (or is a pointer).
+            right := gen_cast_and_deref(right, uint16_type);
             right := gen_operator_and_deref(IOP_BE_MUL, right,
                 alloc_smallint_node(element_type.width as int16));
         end if;
@@ -216,12 +244,14 @@ sub process_subroutine()
                     print_newline();
                 $endif
 
-                right := gen_operator_and_deref(IOP_BE_ADD, alloc_thing_node(node.left.varoff_id), right);
+                var offsetnode: [Node] := alloc_thing_node(node.left.varoff_id);
+                offsetnode := gen_cast_and_deref(offsetnode, uint16_type);
+                right := gen_operator_and_deref(IOP_BE_ADD, offsetnode, right);
+                deref_temporary(node.left.varoff_id);
             end if;
             right := simplify_node_to_var_and_deref(right);
             ref_temporary(right.left.obj_id);
-            deref_temporary(node.left.varoff_id);
-            node.left.varoff_id := var_to_pointer_compatible_var(right.left.obj_id);
+            node.left.varoff_id := right.left.obj_id;
         end if;
         deref_node(right);
         deref_node(left);
@@ -304,7 +334,18 @@ sub process_subroutine()
 
     sub fe_conditional(iopkind: uint8, iop: [FEConditionalIop])
         var right: [Node] := simplify_node_to_ea_and_deref(pop());
+        $if DEBUG
+            print("* conditional right is ");
+            print_ea(&right.left);
+            print_newline();
+        $endif
+
         var left: [Node] := simplify_node_to_ea_and_deref(pop());
+        $if DEBUG
+            print("* conditional left is ");
+            print_ea(&left.left);
+            print_newline();
+        $endif
 
         var beiop: BEConditionalIop;
         zero_memory(&beiop as [int8], BEConditionalIop@bytes);

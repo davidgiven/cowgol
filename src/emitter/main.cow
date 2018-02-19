@@ -50,6 +50,21 @@ sub emit_subroutine()
     end loop;
 end sub;
 
+sub show_thing_data(thing_id: uint16)
+    var thing: [DataThing] := find_thing(thing_id) as [DataThing];
+    var address: uint16 := arch_calculate_address(thing);
+    print("0x");
+    print_hex_i16(address);
+    print(": ");
+    print_thing(thing_id);
+    if thing.thing_type == THING_ADDRESSOF then
+        var addressofthing: [AddressOfThing] := thing as [AddressOfThing];
+        print(" -> ");
+        print_thing(addressofthing.thing_id);
+    end if;
+    print_newline();
+end sub;
+
 sub emit_subroutines()
     loop
         var iheader: [IHeader] := read_iop_header();
@@ -77,12 +92,7 @@ sub emit_subroutines()
                 and (is_typed_thing(id) != 0)
                 and (thing.segment > SEGMENT_CODE)
             then
-                var address: uint16 := arch_calculate_address(thing as [DataThing]);
-                print("0x");
-                print_hex_i16(address);
-                print(": ");
-                print_thing(id);
-                print_newline();
+                show_thing_data(id);
             end if;
             id := next_thing(id);
         end loop;
@@ -113,20 +123,39 @@ sub emit_constants()
         file_putblock(outfd, &numberthing.value as [int8], 4);
     end sub;
 
+    sub emit_addressof()
+        var pointerthing: [AddressOfThing] := thing as [AddressOfThing];
+        var targetthing: [DataThing] := find_thing(pointerthing.thing_id) as [DataThing];
+        var address: uint16 := arch_calculate_address(targetthing as [DataThing]) + pointerthing.offset;
+
+        show_thing_data(id);
+        file_putblock(outfd, &address as [int8], 2);
+    end sub;
+
+    sub seek_to_data_thing()
+        file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
+    end sub;
+
     loop
         thing := &thing_table[id] as [DataThing];
+
         if thing.thing_type == 0 then
             break;
         end if;
         if thing.thing_type == THING_STRING then
             if thing.segment == SEGMENT_CONST then
-                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
+                seek_to_data_thing();
                 emit_string();
             end if;
         elseif thing.thing_type == THING_NUMBER then
             if thing.segment == SEGMENT_CONST then
-                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
+                seek_to_data_thing();
                 emit_number();
+            end if;
+        elseif thing.thing_type == THING_ADDRESSOF then
+            if thing.segment == SEGMENT_CONST then
+                seek_to_data_thing();
+                emit_addressof();
             end if;
         end if;
         id := next_thing(id);

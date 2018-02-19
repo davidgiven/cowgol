@@ -13,12 +13,16 @@ sub deinit_iop_reader()
     file_close(iop_in_fd);
 end sub;
 
-sub halt()
-    print(" at ");
+sub where_am_i()
     show_identifier(current_filename_id);
     print_char(':');
     print_i16(current_linenumber);
     print_newline();
+end sub;
+
+sub halt()
+    print(" at ");
+    where_am_i();
     exit(1);
 end sub;
 

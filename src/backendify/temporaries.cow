@@ -3,7 +3,7 @@ record Temporary
     refcount: uint8;
 end record;
 
-var temporaries: Temporary[32];
+var temporaries: Temporary[40];
 
 sub init_temporaries()
     zero_memory(&temporaries[0] as [int8], temporaries@bytes);

@@ -499,6 +499,9 @@ sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: ui
     elseif ea.flags == EA_DEREF then
         location := find_or_load_ptrval(ea, candidates);
     else
+        $if DEBUG
+            print("find_or_load_value: ");
+        $endif
         print("can't load ");
         print_ea(ea);
         print(" yet");
