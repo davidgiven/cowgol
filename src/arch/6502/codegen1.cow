@@ -134,7 +134,7 @@ sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations:
     while index < values@size loop
         var value: [CachedValue] := &values[index];
         locations := value.locations & candidates & REG_MASK;
-        if (locations != 0) and (is_same_ea(&value.ea, ea) != 0) then
+        if (locations != 0) and (is_same_ea_ignoring_type(&value.ea, ea) != 0) then
             locations := value.locations & REG_MASK;
 
 			$if DEBUG
@@ -184,7 +184,7 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
     while i < values@size loop
         value := &values[i];
 
-        if is_same_ea(&value.ea, ea) != 0 then
+        if is_same_ea_ignoring_type(&value.ea, ea) != 0 then
             value.locations := value.locations | locations;
 
 			$if DEBUG
@@ -267,7 +267,7 @@ sub value_is_precious(ea: [EffectiveAddress])
     while i < values@size loop
         var value: [CachedValue] := &values[i];
         if value.locations != 0 then
-            if is_same_ea(ea, &value.ea) != 0 then
+            if is_same_ea_ignoring_type(ea, &value.ea) != 0 then
                 if (value.locations & PRECIOUS) == 0 then
 					$if DEBUG
 						print("* remembering that value ");
@@ -295,7 +295,7 @@ sub value_is_not_precious(ea: [EffectiveAddress])
     var i: uint8 := 0;
     while i < values@size loop
         var value: [CachedValue] := &values[i];
-        if (value.locations != 0) and (is_same_ea(ea, &value.ea) != 0) then
+        if (value.locations != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
             if (value.locations & PRECIOUS) == 0 then
 				$if DEBUG
 					print("* value ");
@@ -344,7 +344,7 @@ sub value_is_changing(oldvalue: [EffectiveAddress])
         end sub;
 
         if locations != 0 then
-            if is_same_ea(&value.ea, oldvalue) != 0 then
+            if is_same_ea_ignoring_type(&value.ea, oldvalue) != 0 then
                 flush();
             elseif (varoff_candidate != 0) and (value.ea.varoff_id == oldvalue.obj_id) then
                 if (locations & PRECIOUS) != 0 then
@@ -373,7 +373,7 @@ sub value_in_location_will_be_replaced_with(location: uint8,
 		print_newline();
 	$endif
 
-    if is_same_ea(oldvalue, newvalue) != 0 then
+    if is_same_ea_ignoring_type(oldvalue, newvalue) != 0 then
         # This means that the value is changing. Don't consider it to be precious any more
         # (because it's about to change).
 		$if DEBUG
@@ -446,7 +446,7 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
         end if;
         ea.numoff_id := 0;
     end if;
-    indexea.type_id := get_type_of_thing(ea.obj_id);
+    indexea.type_id := uint8_type;
 
 	$if DEBUG
 		print("* loading index value ");

@@ -491,7 +491,10 @@ sub print_thing(thing_id: uint16)
     else
         var identifier_id: uint16 := find_name_of_value(thing_id);
         if is_type_thing(thing_id) != 0 then
-            print_prefix("TYPE", thing_id);
+            print("TYPE");
+            var typething: [TypeThing] := find_thing(thing_id) as [TypeThing];
+            print_i16(typething.width);
+            print_prefix("", thing_id);
         elseif is_typed_thing(thing_id) != 0 then
             print_prefix("VAR", thing_id);
         else
