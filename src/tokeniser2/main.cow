@@ -1,43 +1,61 @@
 var current_file_index: uint8 := 1;
 var current_fd: int8 := -1;
+var inputbuffer: int8[256];
 
-sub next_char(): (c: uint8)
-	var cc: int8;
-	var eof: uint8;
+sub consume_file()
+	print("reading: ");
+	print(current_filename);
+	print_newline();
+
+	current_fd := file_openin(current_filename);
 	if current_fd == -1 then
-		current_filename := ARGV[current_file_index];
+		print("could not open input file");
+		exit(1);
+	end if;
 
-		print("reading: ");
-		print(current_filename);
-		print_newline();
+	var len: uint8 := string_length(current_filename) as uint8;
+	current_filename_string_id := lookup_string(current_filename, len);
+	current_filename_id := add_string_thing(current_filename_string_id, len);
+	current_line := 1;
 
-		current_fd := file_openin(current_filename);
-		if current_fd == -1 then
-			print("could not open input file");
-			exit(1);
+	loop
+		zero_memory(&inputbuffer[0], inputbuffer@bytes);
+		var eof: uint8 := file_getblock(current_fd, &inputbuffer[0], inputbuffer@bytes);
+		if eof != 0 then
+			break;
 		end if;
 
-		var len: uint8 := string_length(current_filename) as uint8;
-		current_filename_string_id := lookup_string(current_filename, len);
-		current_filename_id := add_string_thing(current_filename_string_id, len);
-		current_line := 1;
-	end if;
+		var i: uint8 := 0;
+		loop
+			var c: int8 := inputbuffer[i];
+			if c == 0 then
+				break;
+			elseif c == '\n' then
+				print_i32(file_tell(current_fd));
+				print_char('/');
+				print_i32(file_ext(current_fd));
+				print_char('\r');
+			end if;
 
-	(cc, eof) := file_getchar(current_fd);
-	if eof != 0 then
-		c := '\n';
-		file_close(current_fd);
-		current_fd := -1;
-		current_file_index := current_file_index + 1;
-	else
-		c := cc as uint8;
-	end if;
+			lexer_consume_char(c as uint8);
+
+			i := i + 1;
+			if i == 0 then
+				break;
+			end if;
+		end loop;
+	end loop;
+
+	lexer_consume_char('\n' as uint8);
+	file_close(current_fd);
 end sub;
 	
 sub process_files()
 	lexer_reset();
 	while current_file_index != ARGC loop
-		lexer_consume_char(next_char());
+		current_filename := ARGV[current_file_index];
+		consume_file();
+		current_file_index := current_file_index + 1;
 	end loop;
 end sub;
 

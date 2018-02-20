@@ -1,3 +1,5 @@
+flush_output_buffer();
+
 print("written ");
 print_i16(tokens_count);
 print(" tokens\n");

@@ -1,36 +1,40 @@
-var yy_accept: uint8[211] := {0, 0, 0, 0, 0, 0, 0, 85, 83, 82, 6, 6, 83, 60, 81, 83, 8, 9, 83, 10, 11, 12, 13, 14, 15, 16, 17, 80, 80, 18, 20, 21, 83, 25, 83, 59, 28, 29, 30, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 59, 31, 32, 33, 34, 69, 68, 66, 84, 3, 6, 84, 82, 6, 7, 81, 5, 5, 5, 0, 0, 80, 0, 0, 0, 19, 22, 23, 24, 26, 27, 0, 0, 0, 59, 59, 40, 59, 59, 59, 59, 59, 48, 59, 59, 59, 52, 59, 59, 59, 59, 59, 69, 67, 65, 61, 62, 63, 67, 3, 5, 0, 0, 76, 0, 76, 0, 0, 0, 0, 0, 77, 78, 79, 0, 0, 0, 0, 39, 59, 59, 59, 46, 59, 59, 59, 51, 59, 59, 55, 59, 57, 59, 0, 0, 0, 0, 75, 73, 70, 71, 72, 0, 0, 0, 0, 0, 59, 59, 59, 44, 47, 49, 59, 59, 59, 56, 59, 64, 0, 0, 0, 0, 0, 0, 0, 38, 41, 42, 59, 59, 59, 59, 59, 58, 0, 4, 0, 74, 35, 36, 0, 59, 45, 59, 53, 54, 2, 0, 0, 59, 59, 0, 37, 43, 59, 1, 50, 0, };
+var yy_accept: uint8[219] := {0, 0, 0, 0, 0, 0, 0, 86, 84, 76, 83, 83, 84, 54, 75, 82, 2, 3, 84, 4, 5, 6, 7, 8, 9, 10, 11, 74, 74, 12, 14, 15, 84, 19, 84, 53, 22, 23, 24, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 25, 26, 27, 28, 63, 62, 60, 85, 80, 83, 82, 76, 83, 1, 75, 0, 0, 0, 0, 0, 74, 0, 0, 0, 13, 16, 17, 18, 20, 21, 0, 0, 0, 53, 53, 34, 53, 53, 53, 53, 53, 42, 53, 53, 53, 46, 53, 53, 53, 53, 53, 63, 61, 59, 55, 56, 57, 61, 80, 0, 0, 0, 0, 70, 0, 70, 0, 0, 0, 0, 0, 71, 72, 73, 0, 0, 0, 0, 33, 53, 53, 53, 40, 53, 53, 53, 45, 53, 53, 49, 53, 51, 53, 0, 0, 0, 0, 0, 69, 67, 64, 65, 66, 0, 0, 0, 0, 0, 53, 53, 53, 38, 41, 43, 53, 53, 53, 50, 53, 58, 0, 0, 0, 0, 0, 0, 0, 0, 32, 35, 36, 53, 53, 53, 53, 53, 52, 0, 81, 0, 0, 68, 29, 30, 0, 53, 39, 53, 47, 48, 79, 0, 0, 0, 53, 53, 0, 0, 31, 37, 53, 78, 0, 44, 77, 0, };
 var yy_ec: uint8[256] := {0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 1, 1, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 22, 22, 22, 22, 22, 23, 23, 24, 25, 26, 27, 28, 1, 29, 30, 31, 30, 32, 33, 30, 34, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 36, 35, 35, 35, 35, 35, 37, 38, 39, 40, 41, 1, 42, 43, 44, 45, 46, 47, 48, 49, 50, 35, 51, 52, 53, 54, 55, 56, 35, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, };
 var yy_meta: uint8[70] := {0, 1, 1, 2, 3, 1, 4, 1, 5, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 7, 1, 1, 1, 1, 1, 1, 7, 7, 7, 7, 8, 8, 8, 1, 4, 1, 1, 9, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 1, 1, 1, 1, };
-var yy_base: uint16[226] := {0, 0, 0, 67, 71, 75, 77, 328, 329, 325, 329, 323, 298, 329, 0, 26, 329, 329, 286, 329, 329, 329, 329, 329, 329, 329, 329, 67, 71, 296, 329, 69, 295, 70, 56, 0, 329, 329, 329, 28, 264, 265, 48, 264, 271, 262, 61, 259, 269, 254, 264, 270, 262, 329, 329, 329, 329, 0, 329, 329, 95, 0, 307, 263, 306, 329, 329, 0, 329, 253, 259, 294, 96, 97, 103, 105, 0, 329, 329, 329, 329, 329, 329, 240, 249, 65, 0, 257, 0, 255, 246, 241, 253, 238, 0, 241, 242, 235, 0, 69, 250, 246, 234, 240, 0, 329, 329, 329, 329, 329, 0, 0, 235, 243, 285, 329, 275, 274, 273, 272, 271, 270, 269, 115, 119, 0, 220, 233, 229, 211, 0, 233, 73, 228, 0, 218, 216, 225, 0, 215, 209, 0, 214, 0, 215, 0, 221, 215, 119, 329, 329, 329, 329, 329, 0, 218, 217, 209, 215, 209, 200, 208, 207, 0, 0, 198, 198, 197, 0, 207, 329, 202, 204, 217, 235, 179, 168, 183, 329, 0, 0, 174, 172, 156, 166, 156, 0, 155, 329, 158, 329, 329, 329, 127, 120, 0, 115, 0, 0, 329, 112, 88, 99, 99, 108, 329, 0, 91, 329, 0, 329, 160, 169, 178, 187, 196, 199, 208, 217, 226, 235, 238, 122, 242, 97, 77, };
-var yy_def: uint8[226] := {0, 210, 1, 211, 211, 212, 212, 210, 210, 210, 210, 210, 210, 210, 213, 214, 210, 210, 215, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 216, 210, 210, 210, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 210, 210, 210, 210, 217, 210, 210, 218, 219, 210, 214, 210, 210, 210, 213, 210, 210, 210, 210, 220, 210, 210, 210, 221, 210, 210, 210, 210, 210, 210, 210, 210, 210, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 217, 210, 210, 210, 210, 210, 222, 219, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 223, 210, 210, 221, 210, 210, 210, 210, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 224, 210, 210, 210, 210, 210, 210, 210, 210, 225, 210, 210, 210, 210, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 216, 210, 210, 210, 210, 210, 210, 210, 210, 210, 216, 216, 216, 216, 216, 216, 216, 216, 210, 210, 210, 210, 210, 210, 210, 216, 216, 216, 216, 216, 210, 210, 210, 216, 216, 210, 210, 216, 216, 210, 216, 0, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, };
-var yy_nxt: uint8[399] := {0, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 28, 28, 29, 30, 31, 32, 33, 34, 35, 35, 35, 35, 35, 35, 35, 36, 8, 37, 38, 35, 39, 40, 41, 35, 42, 35, 43, 35, 44, 35, 45, 35, 46, 47, 35, 48, 49, 50, 35, 51, 52, 35, 35, 35, 53, 54, 55, 56, 58, 58, 69, 59, 58, 58, 70, 59, 10, 62, 10, 62, 87, 63, 174, 63, 88, 73, 73, 73, 73, 73, 73, 73, 73, 78, 79, 81, 82, 83, 91, 106, 92, 96, 170, 60, 84, 117, 73, 60, 74, 128, 73, 139, 85, 129, 97, 73, 73, 73, 73, 148, 75, 123, 123, 124, 124, 124, 140, 145, 76, 160, 161, 106, 118, 123, 123, 209, 73, 124, 124, 124, 208, 207, 123, 206, 124, 205, 204, 107, 119, 173, 108, 120, 109, 121, 123, 203, 110, 122, 124, 57, 57, 57, 57, 57, 57, 57, 57, 57, 61, 61, 61, 61, 61, 61, 61, 61, 61, 67, 202, 201, 67, 67, 67, 67, 67, 67, 68, 200, 68, 68, 68, 68, 68, 68, 68, 71, 71, 71, 71, 71, 199, 71, 71, 71, 86, 86, 86, 104, 198, 197, 196, 104, 104, 104, 104, 104, 105, 195, 105, 105, 105, 105, 105, 105, 105, 111, 194, 193, 111, 192, 111, 111, 111, 111, 116, 191, 116, 116, 116, 116, 116, 116, 116, 125, 190, 125, 154, 154, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 177, 176, 175, 172, 171, 169, 168, 167, 166, 165, 164, 163, 162, 159, 158, 157, 156, 155, 149, 153, 152, 151, 150, 150, 149, 148, 147, 146, 144, 143, 142, 141, 138, 137, 136, 135, 134, 133, 132, 131, 130, 127, 126, 115, 114, 113, 64, 112, 65, 103, 102, 101, 100, 99, 98, 95, 94, 93, 90, 89, 80, 77, 72, 66, 65, 64, 210, 7, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, };
-var yy_chk: uint8[399] := {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 15, 3, 4, 4, 15, 4, 5, 5, 6, 6, 39, 5, 225, 6, 39, 27, 27, 27, 27, 28, 28, 28, 28, 31, 31, 33, 33, 34, 42, 60, 42, 46, 224, 3, 34, 72, 27, 4, 27, 85, 28, 99, 34, 85, 46, 73, 73, 73, 73, 148, 27, 74, 74, 75, 75, 75, 99, 222, 27, 132, 132, 60, 72, 123, 123, 207, 73, 124, 124, 124, 204, 203, 74, 202, 75, 201, 200, 60, 72, 148, 60, 72, 60, 72, 123, 196, 60, 72, 124, 211, 211, 211, 211, 211, 211, 211, 211, 211, 212, 212, 212, 212, 212, 212, 212, 212, 212, 213, 194, 193, 213, 213, 213, 213, 213, 213, 214, 189, 214, 214, 214, 214, 214, 214, 214, 215, 215, 215, 215, 215, 187, 215, 215, 215, 216, 216, 216, 217, 185, 184, 183, 217, 217, 217, 217, 217, 218, 182, 218, 218, 218, 218, 218, 218, 218, 219, 181, 177, 219, 176, 219, 219, 219, 219, 220, 175, 220, 220, 220, 220, 220, 220, 220, 221, 174, 221, 223, 223, 173, 172, 171, 169, 167, 166, 165, 162, 161, 160, 159, 158, 157, 156, 155, 147, 146, 144, 142, 140, 139, 137, 136, 135, 133, 131, 129, 128, 127, 126, 122, 121, 120, 119, 118, 117, 116, 114, 113, 112, 103, 102, 101, 100, 97, 96, 95, 93, 92, 91, 90, 89, 87, 84, 83, 71, 70, 69, 64, 63, 62, 52, 51, 50, 49, 48, 47, 45, 44, 43, 41, 40, 32, 29, 18, 12, 11, 9, 7, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, 210, };
+var yy_base: uint16[233] := {0, 0, 0, 67, 71, 75, 77, 330, 331, 327, 331, 325, 300, 331, 0, 26, 331, 331, 288, 331, 331, 331, 331, 331, 331, 331, 331, 67, 71, 298, 331, 69, 297, 70, 56, 0, 331, 331, 331, 28, 266, 267, 48, 266, 273, 264, 61, 261, 271, 256, 266, 272, 264, 331, 331, 331, 331, 0, 331, 331, 95, 0, 309, 265, 308, 331, 331, 0, 255, 261, 261, 295, 96, 97, 103, 105, 0, 331, 331, 331, 331, 331, 331, 241, 250, 65, 0, 258, 0, 256, 247, 242, 254, 239, 0, 242, 243, 236, 0, 69, 251, 247, 235, 241, 0, 331, 331, 331, 331, 331, 0, 0, 236, 244, 286, 228, 331, 275, 274, 273, 272, 271, 270, 269, 115, 119, 0, 220, 233, 229, 211, 0, 233, 73, 228, 0, 218, 216, 225, 0, 215, 209, 0, 214, 0, 215, 0, 221, 215, 119, 262, 331, 331, 331, 331, 331, 0, 217, 216, 208, 214, 208, 199, 207, 206, 0, 0, 197, 197, 196, 0, 206, 331, 201, 203, 216, 135, 237, 186, 172, 183, 331, 0, 0, 173, 179, 161, 165, 155, 0, 161, 331, 169, 155, 331, 331, 331, 133, 106, 0, 123, 0, 0, 331, 128, 132, 103, 115, 113, 114, 111, 331, 0, 99, 331, 109, 0, 331, 331, 167, 176, 185, 194, 197, 206, 215, 224, 233, 236, 135, 240, 122, 97, };
+var yy_def: uint8[233] := {0, 218, 1, 219, 219, 220, 220, 218, 218, 218, 218, 218, 218, 218, 221, 218, 218, 218, 222, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 223, 218, 218, 218, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 218, 218, 218, 218, 224, 218, 218, 225, 226, 218, 218, 218, 218, 218, 221, 218, 218, 218, 218, 227, 218, 218, 218, 228, 218, 218, 218, 218, 218, 218, 218, 218, 218, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 224, 218, 218, 218, 218, 218, 229, 226, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 230, 218, 218, 228, 218, 218, 218, 218, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 231, 218, 218, 218, 218, 218, 218, 218, 218, 218, 232, 218, 218, 218, 218, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 223, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 223, 223, 223, 223, 223, 223, 223, 223, 218, 218, 218, 218, 218, 218, 218, 218, 223, 223, 223, 223, 223, 218, 218, 218, 218, 223, 223, 218, 218, 218, 223, 223, 218, 218, 223, 218, 0, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, };
+var yy_nxt: uint8[401] := {0, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 28, 28, 29, 30, 31, 32, 33, 34, 35, 35, 35, 35, 35, 35, 35, 36, 8, 37, 38, 35, 39, 40, 41, 35, 42, 35, 43, 35, 44, 35, 45, 35, 46, 47, 35, 48, 49, 50, 35, 51, 52, 35, 35, 35, 53, 54, 55, 56, 58, 58, 68, 59, 58, 58, 69, 59, 10, 62, 10, 62, 87, 63, 70, 63, 88, 73, 73, 73, 73, 73, 73, 73, 73, 78, 79, 81, 82, 83, 91, 106, 92, 96, 177, 60, 84, 118, 73, 60, 74, 129, 73, 140, 85, 130, 97, 73, 73, 73, 73, 149, 75, 124, 124, 125, 125, 125, 141, 172, 76, 162, 163, 106, 119, 124, 124, 176, 73, 125, 125, 125, 146, 217, 124, 216, 125, 215, 214, 107, 120, 175, 108, 121, 109, 122, 124, 213, 110, 123, 125, 212, 211, 210, 209, 208, 207, 193, 57, 57, 57, 57, 57, 57, 57, 57, 57, 61, 61, 61, 61, 61, 61, 61, 61, 61, 67, 206, 205, 67, 67, 67, 67, 67, 67, 71, 71, 71, 71, 71, 204, 71, 71, 71, 86, 86, 86, 104, 203, 202, 201, 104, 104, 104, 104, 104, 105, 200, 105, 105, 105, 105, 105, 105, 105, 111, 199, 198, 111, 197, 111, 111, 111, 111, 117, 196, 117, 117, 117, 117, 117, 117, 117, 126, 195, 126, 156, 156, 194, 192, 191, 190, 189, 188, 187, 186, 185, 184, 183, 182, 181, 180, 179, 178, 176, 174, 173, 171, 170, 169, 168, 167, 166, 165, 164, 161, 160, 159, 158, 157, 151, 155, 154, 153, 152, 152, 151, 150, 149, 148, 147, 145, 144, 143, 142, 139, 138, 137, 136, 135, 134, 133, 132, 131, 128, 127, 116, 115, 114, 113, 64, 112, 65, 103, 102, 101, 100, 99, 98, 95, 94, 93, 90, 89, 80, 77, 72, 66, 65, 64, 218, 7, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, };
+var yy_chk: uint8[401] := {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 15, 3, 4, 4, 15, 4, 5, 5, 6, 6, 39, 5, 15, 6, 39, 27, 27, 27, 27, 28, 28, 28, 28, 31, 31, 33, 33, 34, 42, 60, 42, 46, 232, 3, 34, 72, 27, 4, 27, 85, 28, 99, 34, 85, 46, 73, 73, 73, 73, 149, 27, 74, 74, 75, 75, 75, 99, 231, 27, 133, 133, 60, 72, 124, 124, 176, 73, 125, 125, 125, 229, 215, 74, 213, 75, 210, 209, 60, 72, 149, 60, 72, 60, 72, 124, 208, 60, 72, 125, 207, 206, 205, 204, 200, 198, 176, 219, 219, 219, 219, 219, 219, 219, 219, 219, 220, 220, 220, 220, 220, 220, 220, 220, 220, 221, 197, 193, 221, 221, 221, 221, 221, 221, 222, 222, 222, 222, 222, 192, 222, 222, 222, 223, 223, 223, 224, 190, 188, 187, 224, 224, 224, 224, 224, 225, 186, 225, 225, 225, 225, 225, 225, 225, 226, 185, 184, 226, 180, 226, 226, 226, 226, 227, 179, 227, 227, 227, 227, 227, 227, 227, 228, 178, 228, 230, 230, 177, 175, 174, 173, 171, 169, 168, 167, 164, 163, 162, 161, 160, 159, 158, 157, 150, 148, 147, 145, 143, 141, 140, 138, 137, 136, 134, 132, 130, 129, 128, 127, 123, 122, 121, 120, 119, 118, 117, 115, 114, 113, 112, 103, 102, 101, 100, 97, 96, 95, 93, 92, 91, 90, 89, 87, 84, 83, 71, 70, 69, 68, 64, 63, 62, 52, 51, 50, 49, 48, 47, 45, 44, 43, 41, 40, 32, 29, 18, 12, 11, 9, 7, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, 218, };
 const STATE_INITIAL := 1;
 const STATE_STRING := 3;
 const STATE_SKIPPING := 5;
-const YY_ACCEPTING_STATE := 210;
+const YY_ACCEPTING_STATE := 218;
 sub perform_action(action: uint8)
-# actions between 0 and 84: 79
+# actions between 0 and 85: 80
 sub actions_from_0_to_42()
-# actions between 0 and 42: 39
+# actions between 0 and 42: 41
 sub actions_from_0_to_21()
-# actions between 0 and 21: 18
+# actions between 0 and 21: 20
 sub actions_from_0_to_10()
-# actions between 0 and 10: 7
+# actions between 0 and 10: 9
 if action == 1 then
- if debugging == 0 then start_state := STATE_SKIPPING; end if; 
-elseif action == 2 then
- start_state := STATE_INITIAL; 
-elseif action == 5 then
- print("invalid compilation directive"); fail(); 
-elseif action == 6 then
- current_line := current_line + 1; 
-elseif action == 7 then
  emit_token(TOKEN_NEOP); 
-elseif action == 8 then
+elseif action == 2 then
  emit_token(TOKEN_PERCENT); 
-elseif action == 9 then
+elseif action == 3 then
  emit_token(TOKEN_AMPERSAND); 
+elseif action == 4 then
+ emit_token(TOKEN_OPENPAREN); 
+elseif action == 5 then
+ emit_token(TOKEN_CLOSEPAREN); 
+elseif action == 6 then
+ emit_token(TOKEN_STAR); 
+elseif action == 7 then
+ emit_token(TOKEN_PLUS); 
+elseif action == 8 then
+ emit_token(TOKEN_COMMA); 
+elseif action == 9 then
+ emit_token(TOKEN_MINUS); 
 end if;
 end sub;
 sub actions_from_10_to_21()
@@ -38,31 +42,31 @@ sub actions_from_10_to_21()
 sub actions_from_10_to_15()
 # actions between 10 and 15: 5
 if action == 10 then
- emit_token(TOKEN_OPENPAREN); 
+ emit_token(TOKEN_DOT); 
 elseif action == 11 then
- emit_token(TOKEN_CLOSEPAREN); 
+ emit_token(TOKEN_SLASH); 
 elseif action == 12 then
- emit_token(TOKEN_STAR); 
+ emit_token(TOKEN_COLON); 
 elseif action == 13 then
- emit_token(TOKEN_PLUS); 
+ emit_token(TOKEN_ASSIGN); 
 elseif action == 14 then
- emit_token(TOKEN_COMMA); 
+ emit_token(TOKEN_SEMICOLON); 
 end if;
 end sub;
 sub actions_from_15_to_21()
 # actions between 15 and 21: 6
 if action == 15 then
- emit_token(TOKEN_MINUS); 
+ emit_token(TOKEN_LTOP); 
 elseif action == 16 then
- emit_token(TOKEN_DOT); 
+ emit_token(TOKEN_LEFTSHIFT); 
 elseif action == 17 then
- emit_token(TOKEN_SLASH); 
+ emit_token(TOKEN_LEOP); 
 elseif action == 18 then
- emit_token(TOKEN_COLON); 
+ emit_token(TOKEN_EQOP); 
 elseif action == 19 then
- emit_token(TOKEN_ASSIGN); 
+ emit_token(TOKEN_GTOP); 
 elseif action == 20 then
- emit_token(TOKEN_SEMICOLON); 
+ emit_token(TOKEN_GEOP); 
 end if;
 end sub;
 if action < 15 then
@@ -84,29 +88,29 @@ sub actions_from_21_to_31()
 sub actions_from_21_to_26()
 # actions between 21 and 26: 5
 if action == 21 then
- emit_token(TOKEN_LTOP); 
+ emit_token(TOKEN_RIGHTSHIFT); 
 elseif action == 22 then
- emit_token(TOKEN_LEFTSHIFT); 
+ emit_token(TOKEN_OPENSQUARE); 
 elseif action == 23 then
- emit_token(TOKEN_LEOP); 
+ emit_token(TOKEN_CLOSESQUARE); 
 elseif action == 24 then
- emit_token(TOKEN_EQOP); 
+ emit_token(TOKEN_CARET); 
 elseif action == 25 then
- emit_token(TOKEN_GTOP); 
+ emit_token(TOKEN_OPENBRACE); 
 end if;
 end sub;
 sub actions_from_26_to_31()
 # actions between 26 and 31: 5
 if action == 26 then
- emit_token(TOKEN_GEOP); 
+ emit_token(TOKEN_PIPE); 
 elseif action == 27 then
- emit_token(TOKEN_RIGHTSHIFT); 
+ emit_token(TOKEN_CLOSEBRACE); 
 elseif action == 28 then
- emit_token(TOKEN_OPENSQUARE); 
+ emit_token(TOKEN_TILDE); 
 elseif action == 29 then
- emit_token(TOKEN_CLOSESQUARE); 
+ emit_token(TOKEN_BYTES); 
 elseif action == 30 then
- emit_token(TOKEN_CARET); 
+ emit_token(TOKEN_INDEX); 
 end if;
 end sub;
 if action < 26 then
@@ -120,31 +124,31 @@ sub actions_from_31_to_42()
 sub actions_from_31_to_36()
 # actions between 31 and 36: 5
 if action == 31 then
- emit_token(TOKEN_OPENBRACE); 
+ emit_token(TOKEN_SEGMENT); 
 elseif action == 32 then
- emit_token(TOKEN_PIPE); 
+ emit_token(TOKEN_SIZE); 
 elseif action == 33 then
- emit_token(TOKEN_CLOSEBRACE); 
+ emit_token(TOKEN_AND); 
 elseif action == 34 then
- emit_token(TOKEN_TILDE); 
+ emit_token(TOKEN_AS); 
 elseif action == 35 then
- emit_token(TOKEN_BYTES); 
+ emit_token(TOKEN_BREAK); 
 end if;
 end sub;
 sub actions_from_36_to_42()
 # actions between 36 and 42: 6
 if action == 36 then
- emit_token(TOKEN_INDEX); 
+ emit_token(TOKEN_CONST); 
 elseif action == 37 then
- emit_token(TOKEN_SEGMENT); 
+ emit_token(TOKEN_CONTINUE); 
 elseif action == 38 then
- emit_token(TOKEN_SIZE); 
+ emit_token(TOKEN_ELSE); 
 elseif action == 39 then
- emit_token(TOKEN_AND); 
+ emit_token(TOKEN_ELSEIF); 
 elseif action == 40 then
- emit_token(TOKEN_AS); 
+ emit_token(TOKEN_END); 
 elseif action == 41 then
- emit_token(TOKEN_BREAK); 
+ emit_token(TOKEN_GOTO); 
 end if;
 end sub;
 if action < 36 then
@@ -165,8 +169,8 @@ else
 actions_from_21_to_42();
 end if;
 end sub;
-sub actions_from_42_to_84()
-# actions between 42 and 84: 40
+sub actions_from_42_to_85()
+# actions between 42 and 85: 39
 sub actions_from_42_to_63()
 # actions between 42 and 63: 21
 sub actions_from_42_to_52()
@@ -174,29 +178,29 @@ sub actions_from_42_to_52()
 sub actions_from_42_to_47()
 # actions between 42 and 47: 5
 if action == 42 then
- emit_token(TOKEN_CONST); 
+ emit_token(TOKEN_IF); 
 elseif action == 43 then
- emit_token(TOKEN_CONTINUE); 
+ emit_token(TOKEN_LOOP); 
 elseif action == 44 then
- emit_token(TOKEN_ELSE); 
+ emit_token(TOKEN_NAMESPACE); 
 elseif action == 45 then
- emit_token(TOKEN_ELSEIF); 
+ emit_token(TOKEN_NOT); 
 elseif action == 46 then
- emit_token(TOKEN_END); 
+ emit_token(TOKEN_OR); 
 end if;
 end sub;
 sub actions_from_47_to_52()
 # actions between 47 and 52: 5
 if action == 47 then
- emit_token(TOKEN_GOTO); 
+ emit_token(TOKEN_RECORD); 
 elseif action == 48 then
- emit_token(TOKEN_IF); 
+ emit_token(TOKEN_RETURN); 
 elseif action == 49 then
- emit_token(TOKEN_LOOP); 
+ emit_token(TOKEN_SUB); 
 elseif action == 50 then
- emit_token(TOKEN_NAMESPACE); 
+ emit_token(TOKEN_THEN); 
 elseif action == 51 then
- emit_token(TOKEN_NOT); 
+ emit_token(TOKEN_VAR); 
 end if;
 end sub;
 if action < 47 then
@@ -210,31 +214,31 @@ sub actions_from_52_to_63()
 sub actions_from_52_to_57()
 # actions between 52 and 57: 5
 if action == 52 then
- emit_token(TOKEN_OR); 
+ emit_token(TOKEN_WHILE); 
 elseif action == 53 then
- emit_token(TOKEN_RECORD); 
+ emit_identifier(); 
 elseif action == 54 then
- emit_token(TOKEN_RETURN); 
+ start_state := STATE_STRING; string_start(); 
 elseif action == 55 then
- emit_token(TOKEN_SUB); 
+ string_add_char('\n'); 
 elseif action == 56 then
- emit_token(TOKEN_THEN); 
+ string_add_char('\r'); 
 end if;
 end sub;
 sub actions_from_57_to_63()
 # actions between 57 and 63: 6
 if action == 57 then
- emit_token(TOKEN_VAR); 
+ string_add_char(9); 
 elseif action == 58 then
- emit_token(TOKEN_WHILE); 
+ string_add_char(parse_hex_byte(current_token_start+2)); 
 elseif action == 59 then
- emit_identifier(); 
+ string_add_char(tokenbuffer[current_token_start+1]); 
 elseif action == 60 then
- start_state := STATE_STRING; string_start(); 
+ start_state := STATE_INITIAL; string_end(); 
 elseif action == 61 then
- string_add_char('\n'); 
+ print("bogus escape"); fail(); 
 elseif action == 62 then
- string_add_char('\r'); 
+ print("unterminated string"); fail(); 
 end if;
 end sub;
 if action < 57 then
@@ -249,81 +253,79 @@ else
 actions_from_52_to_63();
 end if;
 end sub;
-sub actions_from_63_to_84()
-# actions between 63 and 84: 19
-sub actions_from_63_to_73()
-# actions between 63 and 73: 10
+sub actions_from_63_to_85()
+# actions between 63 and 85: 18
+sub actions_from_63_to_74()
+# actions between 63 and 74: 11
 sub actions_from_63_to_68()
 # actions between 63 and 68: 5
 if action == 63 then
- string_add_char(9); 
+ string_add_chars(); 
 elseif action == 64 then
- string_add_char(parse_hex_byte(current_token_start+2)); 
+ emit_small_const('\n'); 
 elseif action == 65 then
- string_add_char(tokenbuffer[current_token_start+1]); 
+ emit_small_const('\r'); 
 elseif action == 66 then
- start_state := STATE_INITIAL; string_end(); 
+ emit_small_const(9); 
 elseif action == 67 then
- print("bogus escape"); fail(); 
+ emit_small_const(tokenbuffer[current_token_start+2]); 
 end if;
 end sub;
-sub actions_from_68_to_73()
-# actions between 68 and 73: 5
+sub actions_from_68_to_74()
+# actions between 68 and 74: 6
 if action == 68 then
- print("unterminated string"); fail(); 
+ emit_small_const(parse_hex_byte(current_token_start+3)); 
 elseif action == 69 then
- string_add_chars(); 
+ print("bogus escape"); fail(); 
 elseif action == 70 then
- emit_small_const('\n'); 
+ emit_small_const(tokenbuffer[current_token_start+1]); 
 elseif action == 71 then
- emit_small_const('\r'); 
+ emit_number(2, 2); 
 elseif action == 72 then
- emit_small_const(9); 
+ emit_number(8, 2); 
+elseif action == 73 then
+ emit_number(16, 2); 
 end if;
 end sub;
 if action < 68 then
 actions_from_63_to_68();
 else
-actions_from_68_to_73();
+actions_from_68_to_74();
 end if;
 end sub;
-sub actions_from_73_to_84()
-# actions between 73 and 84: 9
-if action == 73 then
- emit_small_const(tokenbuffer[current_token_start+2]); 
-elseif action == 74 then
- emit_small_const(parse_hex_byte(current_token_start+3)); 
-elseif action == 75 then
- print("bogus escape"); fail(); 
-elseif action == 76 then
- emit_small_const(tokenbuffer[current_token_start+1]); 
-elseif action == 77 then
- emit_number(2, 2); 
-elseif action == 78 then
- emit_number(8, 2); 
-elseif action == 79 then
- emit_number(16, 2); 
-elseif action == 80 then
+sub actions_from_74_to_85()
+# actions between 74 and 85: 7
+if action == 74 then
  emit_number(10, 0); 
+elseif action == 77 then
+ debugging := 1; 
+elseif action == 78 then
+ if debugging == 0 then start_state := STATE_SKIPPING; end if; 
+elseif action == 79 then
+ start_state := STATE_INITIAL; 
+elseif action == 82 then
+ print("invalid compilation directive"); fail(); 
 elseif action == 83 then
+ current_line := current_line + 1; 
+elseif action == 84 then
  print("unparsable byte 0x"); print_hex_i8(tokenbuffer[current_token_start]); fail(); 
 end if;
 end sub;
-if action < 73 then
-actions_from_63_to_73();
+if action < 74 then
+actions_from_63_to_74();
 else
-actions_from_73_to_84();
+actions_from_74_to_85();
 end if;
 end sub;
 if action < 63 then
 actions_from_42_to_63();
 else
-actions_from_63_to_84();
+actions_from_63_to_85();
 end if;
 end sub;
 if action < 42 then
 actions_from_0_to_42();
 else
-actions_from_42_to_84();
+actions_from_42_to_85();
 end if;
 end sub;

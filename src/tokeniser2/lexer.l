@@ -7,14 +7,6 @@ LF (\r\n)|\r|\n
 SP [ \t]+
 
 %%
-\$if{SP}DEBUG             { if debugging == 0 then start_state := STATE_SKIPPING; end if; }
-<skipping>\$endif         { start_state := STATE_INITIAL; }
-<skipping>[^$\r\n]+       { }
-
-\$endif                   { }
-<INITIAL,skipping>\$.     { print("invalid compilation directive"); fail(); }
-<INITIAL,skipping>{LF}    { current_line := current_line + 1; }
-
 "!="                      { emit_token(TOKEN_NEOP); }
 "%"                       { emit_token(TOKEN_PERCENT); }
 "&"                       { emit_token(TOKEN_AMPERSAND); }
@@ -97,5 +89,14 @@ while                     { emit_token(TOKEN_WHILE); }
 
 #[^\r\n]*                 |
 {SP}+                     {}
+
+\$set{SP}DEBUG            { debugging := 1; }
+\$if{SP}DEBUG             { if debugging == 0 then start_state := STATE_SKIPPING; end if; }
+<skipping>\$endif         { start_state := STATE_INITIAL; }
+<skipping>[^$\r\n]+       { }
+
+\$endif                   { }
+<INITIAL,skipping>\$      { print("invalid compilation directive"); fail(); }
+<INITIAL,skipping>{LF}    { current_line := current_line + 1; }
 
 .                         { print("unparsable byte 0x"); print_hex_i8(tokenbuffer[current_token_start]); fail(); }
