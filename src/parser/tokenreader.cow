@@ -16,6 +16,16 @@ sub next_token()
     loop
         token := next_raw_token();
 
+        $if DEBUG
+            print("file 0x");
+            print_i16(filename_id);
+            print(":");
+            print_i16(line_no);
+            print(" token ");
+            print_hex_i16(token);
+            print_newline();
+        $endif
+
         if token == TOKEN_FILENAME then
             filename_id := next_raw_token();
             emit_filename(filename_id);
