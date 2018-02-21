@@ -2,7 +2,7 @@ var stringbuffer: uint8[256];
 var stringlen: uint8 := 0;
 
 var outputbuffer: uint8[256];
-var outputptr: uint8;
+var outputptr: uint8 := 0;
 
 sub emit_byte(b: uint8)
 	outputbuffer[outputptr] := b;
