@@ -285,8 +285,13 @@ sub expression_state_machine()
     var thing: [Thing];
     loop
         var token_flags: uint8;
-        #print("seen: "); show_identifier(current_token); print_newline();
-        #print("loop "); print_op_stack();
+        $if DEBUG
+            print("seen: ");
+            show_identifier(current_token);
+            print_newline();
+            print("loop ");
+            print_op_stack();
+        $endif
         if state == STATE_BEFORE then
             # Before a leaf.
             if current_token == TOKEN_MINUS then
