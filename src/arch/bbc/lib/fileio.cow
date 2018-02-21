@@ -30,12 +30,23 @@ sub file_openup(filename: [int8]): (fd: int8)
 end sub;
 
 sub file_getblock(fd: int8, ptr: [int8], length: uint16): (eof: uint8)
+    var dummy: uint8;
+    (eof, dummy) := osbyte_with_result(0x7f, fd as uint8, 0);
+    if eof != 0 then
+        return;
+    end if;
+
     var block: OsgbpbBlock;
     block.fd := fd as uint8;
     block.bufferlo := ptr as [uint8];
     block.bufferhi := 0;
     block.count := length as uint32;
     (eof) := osgbpb(4, &block); # read bytes ignoring pointer
+    if eof != 0 then
+        if (block.count as uint16) != length then
+            eof := 0;
+        end if;
+    end if;
 end sub;
 
 sub file_putblock(fd: int8, ptr: [int8], length: uint16)
