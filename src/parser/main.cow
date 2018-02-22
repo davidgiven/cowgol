@@ -46,7 +46,28 @@ sub pop_if()
     if_true_label_id := lexical_pop() as uint8;
 end sub;
 
+$if DEBUG
+    sub dump_labels()
+        print("break=");
+        print_i8(break_label_id);
+        print(" continue=");
+        print_i8(continue_label_id);
+        print(" if_true=");
+        print_i8(if_true_label_id);
+        print(" if_false=");
+        print_i8(if_false_label_id);
+        print(" if_end=");
+        print_i8(if_end_label_id);
+    end sub;
+$endif
+
 sub push_subroutine()
+    $if DEBUG
+        print("push_subroutine ");
+        dump_labels();
+        print_newline();
+    $endif
+
     lexical_push(break_label_id as uint16);
     lexical_push(continue_label_id as uint16);
     lexical_push(if_true_label_id as uint16);
@@ -66,9 +87,15 @@ sub pop_subroutine()
     current_subroutine_id := lexical_pop();
     if_end_label_id := lexical_pop() as uint8;
     if_false_label_id := lexical_pop() as uint8;
-    if_end_label_id := lexical_pop() as uint8;
+    if_true_label_id := lexical_pop() as uint8;
     continue_label_id := lexical_pop() as uint8;
     break_label_id := lexical_pop() as uint8;
+
+    $if DEBUG
+        print("pop_subroutine ");
+        dump_labels();
+        print_newline();
+    $endif
 end sub;
 
 sub init_parser()
