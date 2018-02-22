@@ -25,7 +25,7 @@ Commodore 64. (For ultra hackers only. Email me.)
 Why?
 ----
 
-I've always been interesting in compilers, and have had various other
+I've always been interested in compilers, and have had various other
 compiler projects: [the Amsterdam Compiler Kit](http://tack.sourceforge.net/)
 and [Cowbel](http://cowlark.com/cowbel/), to name two. (The
 [languages](http://cowlark.com/index/languages.html) section of my website
