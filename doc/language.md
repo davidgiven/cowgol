@@ -206,8 +206,8 @@ p[0] := p[0] + 1;   # dereference pointer
 ```
 
 **Big warning.** I'm planning on changing the pointer dereference syntax to
-*make them non-indexable. Please don't use indices other than 0. (They'll be
-*replaced with pointers to arrays.)
+make them non-indexable. Please don't use indices other than 0. (They'll be
+replaced with pointers to arrays.)
 
 You may have pointers to pointers. But remember that pointers are typically
 pretty expensive on small machines.

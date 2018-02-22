@@ -25,7 +25,18 @@ Commodore 64. (For ultra hackers only. Email me.)
 Why?
 ----
 
-I don't understand the question?
+I've always been interesting in compilers, and have had various other
+compiler projects: [the Amsterdam Compiler Kit](http://tack.sourceforge.net/)
+and [Cowbel](http://cowlark.com/cowbel/), to name two. (The
+[languages](http://cowlark.com/index/languages.html) section of my website
+contains a fair number of entries. The oldest compiler which still exists
+dates from about 1998.)
+
+Cowgol is a spinoff of the Amsterdam Compiler Kit --- thematically, although
+it shares no code. By dividing the task into many small, discrete units, it
+gets to do (if slowly) a job which machines this size shouldn't really be
+able to do. In many ways it's an exercise in minimalism, just like Cowbel,
+although in a different direction.
 
 
 Where?
