@@ -10,12 +10,6 @@ var maxuint8: uint8 := 0xff;
 sub yes() print(": yes\n"); end sub;
 sub no() print(": no\n"); end sub;
 
-sub zero_memory(ptr: [int8], size: uint16)
-    while size != 0 loop
-        size := size - 1;
-        ptr[size as int16] := 0;
-    end loop;
-end sub;
 zero_memory(&smallarray[0] as [int8], smallarray@bytes);
 zero_memory(&largearray[0] as [int8], largearray@bytes);
 

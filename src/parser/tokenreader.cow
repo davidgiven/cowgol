@@ -1,14 +1,9 @@
-var tokens_fd: int8;
+var tokens_fcb: FCB;
 
 sub next_raw_token(): (token: uint16)
-    if file_eof(tokens_fd) != 0 then
-        token := 0;
-    else
-        var eof: uint8 := file_getblock(tokens_fd, &token as [int8], 2);
-        if eof != 0 then
-            token := 0;
-        end if;
-    end if;
+    tokens_fcb.address := &token as [int8];
+    tokens_fcb.count := 2;
+    fcb_read(&tokens_fcb);
 end sub;
 
 sub next_token()
@@ -39,13 +34,16 @@ sub next_token()
 end sub;
 
 sub init_tokenreader(filename: [int8])
-    tokens_fd := file_openin(filename);
+    if fcb_openin(&tokens_fcb, filename) != 0 then
+        print("cannot open tokens file");
+        halt();
+    end if;
     next_token();
     next_token();
 end sub;
 
 sub deinit_tokenreader()
-    file_close(tokens_fd);
+    fcb_close(&tokens_fcb);
 end sub;
 
 sub expect_token(expected: uint16)
@@ -71,8 +69,8 @@ sub expect_identifier(): (id: uint16)
 end sub;
 
 sub show_progress()
-    print_i32(file_tell(tokens_fd));
+    print_i32(fcb_tell(&tokens_fcb));
     print_char('/');
-    print_i32(file_ext(tokens_fd));
+    print_i32(fcb_ext(&tokens_fcb));
     print_char('\r');
 end sub;

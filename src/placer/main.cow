@@ -114,14 +114,14 @@ sub process_subroutines()
             current_subroutine.address := root.code_size;
             zero_memory(&labels[0] as [int8], labels@bytes);
 
-            var pos: uint32 := file_tell(iop_in_fd);
+            var pos: uint32 := fcb_tell(&iop_in_fcb);
             pass := 1;
             pass12();
 
             pass := 2;
             var iterations: uint8 := 0;
             while iterations != 5 loop
-                file_seek(iop_in_fd, pos);
+                fcb_seek(&iop_in_fcb, pos);
                 changed := 0;
                 pass12();
                 if changed == 0 then
@@ -130,7 +130,7 @@ sub process_subroutines()
                 iterations := iterations + 1;
             end loop;
 
-            file_seek(iop_in_fd, pos);
+            fcb_seek(&iop_in_fcb, pos);
             pass := 3;
             pass3();
         end if;

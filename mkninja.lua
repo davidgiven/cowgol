@@ -127,6 +127,8 @@ local host_data = {
     ["native"] = function()
         LIBS = {
             "src/arch/bootstrap/host.cow",
+			"src/string_lib.cow",
+			"src/arch/bootstrap/fcb.cow",
             "src/utils/names.cow"
         }
 
@@ -140,6 +142,8 @@ local host_data = {
             "src/arch/6502/lib/runtime.cow",
             "src/arch/bbc/lib/runtime.cow",
             "src/arch/common/lib/runtime.cow",
+			"src/string_lib.cow",
+            "src/arch/bbc/lib/fcb.cow",
             "src/arch/bbc/lib/fileio.cow",
             "src/arch/bbc/lib/argv.cow",
             "src/arch/bbc/names.cow"
@@ -265,7 +269,6 @@ end
 local function build_cowgol_programs()
     build_cowgol {
         "init",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtablewriter.cow",
         "src/utils/things.cow",
@@ -280,7 +283,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "tokeniser2",
-        "src/string_lib.cow",
         "src/numbers_lib.cow",
         GLOBALS,
         "src/utils/stringtablewriter.cow",
@@ -296,7 +298,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "parser",
-        "src/string_lib.cow",
         "src/ctype_lib.cow",
         "src/numbers_lib.cow",
         GLOBALS,
@@ -319,7 +320,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "blockifier",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -336,7 +336,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "typechecker",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -354,7 +353,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "backendify",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -375,7 +373,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "classifier",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -394,7 +391,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "codegen",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -414,7 +410,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "placer",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -430,7 +425,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "emitter",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -445,7 +439,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "thingshower",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -454,7 +447,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "iopshower",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",

@@ -12,7 +12,7 @@ sub open_with_osfind(filename: [int8], a: uint8): (fd: int8)
     @bytes 0xAE, &filename+0;   # LDX ptr+0
     @bytes 0xAC, &filename+1;   # LDY ptr+1
     @bytes 0x20, 0xCE, 0xFF;    # JSR OSFIND
-    @bytes 0x8D, &fd;           # STA abs
+    @bytes 0x8D, &fd;           # STA fd
 
     t[0] := 0;
 end sub;

@@ -1,14 +1,12 @@
 var current_file_index: uint8 := 1;
-var current_fd: int8 := -1;
-var inputbuffer: int8[256];
+var input_fcb: FCB;
 
 sub consume_file()
 	print("reading: ");
 	print(current_filename);
 	print_newline();
 
-	current_fd := file_openin(current_filename);
-	if current_fd == -1 then
+	if fcb_openin(&input_fcb, current_filename) != 0 then
 		print("could not open input file");
 		exit(1);
 	end if;
@@ -18,36 +16,26 @@ sub consume_file()
 	current_filename_id := add_string_thing(current_filename_string_id, len);
 	current_line := 1;
 
+	var bytecount: uint8 := 0;
 	loop
-		zero_memory(&inputbuffer[0], inputbuffer@bytes);
-		var eof: uint8 := file_getblock(current_fd, &inputbuffer[0], inputbuffer@bytes);
-		if eof != 0 then
+		var c: int8 := fcb_getchar(&input_fcb);
+		if c == 0 then
 			break;
 		end if;
 
-		print_i32(file_tell(current_fd));
-		print_char('/');
-		print_i32(file_ext(current_fd));
-		print_char('\r');
+		if bytecount == 0 then
+			print_i32(fcb_tell(&input_fcb));
+			print_char('/');
+			print_i32(fcb_ext(&input_fcb));
+			print_char('\r');
+		end if;
+		bytecount := bytecount + 1;
 
-		var i: uint8 := 0;
-		loop
-			var c: int8 := inputbuffer[i];
-			if c == 0 then
-				break;
-			end if;
-
-			lexer_consume_char(c as uint8);
-
-			i := i + 1;
-			if i == 0 then
-				break;
-			end if;
-		end loop;
+		lexer_consume_char(c as uint8);
 	end loop;
 
 	lexer_consume_char('\n' as uint8);
-	file_close(current_fd);
+	fcb_close(&input_fcb);
 end sub;
 	
 sub process_files()

@@ -97,10 +97,10 @@ sub process_subroutines()
             zero_memory(&labels[0] as [int8], labels@bytes);
             write_iop_header(iheader);
 
-            var pos: uint32 := file_tell(iop_in_fd);
+            var pos: uint32 := fcb_tell(&iop_in_fcb);
             pass1();
 
-            file_seek(iop_in_fd, pos);
+            fcb_seek(&iop_in_fcb, pos);
             pass2();
         end if;
     end loop;

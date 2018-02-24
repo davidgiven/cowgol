@@ -2,7 +2,7 @@ var biggest_subroutine: uint16 := 0;
 var biggest_basicblock: uint16 := 0;
 
 sub process_subroutine()
-    var subroutine_start: uint32 := file_tell(iop_in_fd);
+    var subroutine_start: uint32 := fcb_tell(&iop_in_fcb);
     var basicblock_start: uint32 := subroutine_start;
 
     add_reference(current_subroutine_id, 0);
@@ -42,7 +42,7 @@ sub process_subroutine()
     end sub;
 
     sub end_of_basic_block()
-        var here: uint32 := file_tell(iop_in_fd);
+        var here: uint32 := fcb_tell(&iop_in_fcb);
         var basicblock_size: uint16 := (here - basicblock_start) as uint16;
         if basicblock_size > biggest_basicblock then
             biggest_basicblock := basicblock_size;
@@ -83,7 +83,7 @@ sub process_subroutine()
     end loop;
 
     end_of_basic_block();
-    var subroutine_size: uint16 := (file_tell(iop_in_fd) - subroutine_start) as uint16;
+    var subroutine_size: uint16 := (fcb_tell(&iop_in_fcb) - subroutine_start) as uint16;
     if subroutine_size > biggest_subroutine then
         biggest_subroutine := subroutine_size;
     end if;

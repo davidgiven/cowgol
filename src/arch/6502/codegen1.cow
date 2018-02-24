@@ -279,12 +279,24 @@ sub value_is_precious(ea: [EffectiveAddress])
 
                     value.locations := value.locations | PRECIOUS;
                     return;
+                else
+					$if DEBUG
+						print("* value ");
+						print_ea(ea);
+						print(" is already precious in 0x");
+						print_hex_i8(value.locations);
+						print_newline();
+					$endif
+                    return;
                 end if;
             end if;
         end if;
         i := i + 1;
     end loop;
 
+    $if DEBUG
+        print_cache();
+    $endif
     print("can't make precious, value ");
     print_ea(ea);
     print(" is not in the cache");
