@@ -11,103 +11,6 @@ var __params: uint16[3] @segment(0x81);
 var __temp1: uint32 @segment(0x81);
 var __temp2: uint32 @segment(0x81);
 
-# Copies A parameters from the code immediately following this call into __params.
-# Note: X is left at 0, for use by __modeadjust if necessary.
-sub __loadbytes()
-    var nextaddr: uint16 @segment(0x81);
-    var maxcount: uint8 @segment(0x81);
-    @bytes 0x85, >&maxcount;     # STA maxcount
-    @bytes 0xA2, 0xFF;           # LDX #-1
-    @bytes 0xA0, 0x00;           # LDY #0
-
-    @bytes 0x68;                 # PLA
-    @bytes 0x85, >&nextaddr+0;   # STA nextaddr+0
-    @bytes 0x68;                 # PLA
-    @bytes 0x85, >&nextaddr+1;   # STA nextaddr+1
-
-    goto start;
-
-again:
-    @bytes 0xB1, >&nextaddr;     # LDA (nextaddr), Y
-    @bytes 0x95, >&__params;     # STA __pointers, X
-
-start:
-    @bytes 0xE6, >&nextaddr+0;   # INC nextaddr+0
-    @bytes 0xD0, 0x02;           # BNE $+2
-    @bytes 0xE6, >&nextaddr+1;   # INC nextaddr+1
-
-    @bytes 0xE8;                 # INX
-    @bytes 0xE4, >&maxcount;     # CPX maxcount
-    @bytes 0xD0, 0xF1;           # BNE again
-
-    @bytes 0xA2, 0x00;           # LDX #0
-    @bytes 0x6C, &nextaddr;      # JMP (nextaddr)
-end sub;
-
-sub __load4bytes()
-    @bytes 0xA9, 0x04;           # LDA #4
-    @bytes 0x4C, &__loadbytes;   # JMP __loadbytes (must be jump to avoid changing stack)
-end sub;
-
-sub __load6bytes()
-    @bytes 0xA9, 0x06;           # LDA #6
-    @bytes 0x4C, &__loadbytes;   # JMP __loadbytes (must be jump to avoid changing stack)
-end sub;
-
-# Called immediately after a __loadbytes. On entry, X must be zero. Jump to
-# __modeadjust+(7-addressingmode). This is gross, and probably quite slow.
-sub __modeadjust()
-    @bytes 0xE8;                 # INX X=7
-    @bytes 0xE8;                 # INX X=6
-    @bytes 0xE8;                 # INX X=5
-    @bytes 0xE8;                 # INX X=4
-    @bytes 0xE8;                 # INX X=3
-    @bytes 0xE8;                 # INX X=2
-    @bytes 0xE8;                 # INX X=1
-                                 #     X=0
-
-    @bytes 0xA0, 0x00;           # LDY #0
-    @bytes 0x8A;                 # TXA
-    @bytes 0x29, 0x01;           # AND #1
-    @bytes 0xF0, 0x0C;           # BEQ next
-
-    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
-    @bytes 0x48;                 # PHA
-    @bytes 0xC8;                 # INY
-    @bytes 0xB1, >&__params+0;   # LDA (__params+0), Y
-    @bytes 0x85, >&__params+1;   # STA __params+1
-    @bytes 0x68;                 # PLA
-    @bytes 0x85, >&__params+0;   # STA __params+0
-    @bytes 0x88;                 # DEY
-
-# next:
-    @bytes 0x8A;                 # TXA
-    @bytes 0x29, 0x02;           # AND #2
-    @bytes 0xF0, 0x0C;           # BEQ next
-
-    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
-    @bytes 0x48;                 # PHA
-    @bytes 0xC8;                 # INY
-    @bytes 0xB1, >&__params+2;   # LDA (__params+2), Y
-    @bytes 0x85, >&__params+3;   # STA __params+3
-    @bytes 0x68;                 # PLA
-    @bytes 0x85, >&__params+2;   # STA __params+2
-    @bytes 0x88;                 # DEY
-
-# next:
-    @bytes 0x8A;                 # TXA
-    @bytes 0x29, 0x04;           # AND #4
-    @bytes 0xF0, 0x0B;           # BEQ next
-
-    @bytes 0xB1, >&__params+4;   # LDA (__params+4), Y
-    @bytes 0x48;                 # PHA
-    @bytes 0xC8;                 # INY
-    @bytes 0xB1, >&__params+4;   # LDA (__params+4), Y
-    @bytes 0x85, >&__params+5;   # STA __params+5
-    @bytes 0x68;                 # PLA
-    @bytes 0x85, >&__params+4;   # STA __params+4
-end sub;
-
 # On entry, X=word size
 sub __copy()
     @bytes 0xCA;                 # DEX
@@ -646,8 +549,18 @@ sub __copy_mod_result()
 end sub;
 
 sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32)
-    @bytes 0x20, &__load6bytes;  # JSR __load6bytes
-    @bytes &quotient, &left, &right;
+	@bytes 0xA9, >&quotient;     # LDA #>quotient
+	@bytes 0x85, >&__params+0;   # STA __params+0
+	@bytes 0xA9, <&quotient;     # LDA #>quotient
+	@bytes 0x85, >&__params+1;   # STA __params+1
+	@bytes 0xA9, >&left;         # LDA #>left
+	@bytes 0x85, >&__params+2;   # STA __params+2
+	@bytes 0xA9, <&left;         # LDA #>left
+	@bytes 0x85, >&__params+3;   # STA __params+3
+	@bytes 0xA9, >&right;        # LDA #>right
+	@bytes 0x85, >&__params+4;   # STA __params+4
+	@bytes 0xA9, <&right;        # LDA #>right
+	@bytes 0x85, >&__params+5;   # STA __params+5
     @bytes 0x20, &__divu32;      # JSR __divu32
 	@bytes 0xA9, >&remainder;    # LDA #>remainder
 	@bytes 0x85, >&__params+0;   # STA __params+0
@@ -658,8 +571,18 @@ sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32
 end sub;
 
 sub divmods32(left: int32, right: int32): (quotient: int32, remainder: int32)
-    @bytes 0x20, &__load6bytes;  # JSR __load6bytes
-    @bytes &quotient, &left, &right;
+	@bytes 0xA9, >&quotient;     # LDA #>quotient
+	@bytes 0x85, >&__params+0;   # STA __params+0
+	@bytes 0xA9, <&quotient;     # LDA #>quotient
+	@bytes 0x85, >&__params+1;   # STA __params+1
+	@bytes 0xA9, >&left;         # LDA #>left
+	@bytes 0x85, >&__params+2;   # STA __params+2
+	@bytes 0xA9, <&left;         # LDA #>left
+	@bytes 0x85, >&__params+3;   # STA __params+3
+	@bytes 0xA9, >&right;        # LDA #>right
+	@bytes 0x85, >&__params+4;   # STA __params+4
+	@bytes 0xA9, <&right;        # LDA #>right
+	@bytes 0x85, >&__params+5;   # STA __params+5
     @bytes 0x20, &__divs32;      # JSR __divs32
 	@bytes 0xA9, >&remainder;    # LDA #>remainder
 	@bytes 0x85, >&__params+0;   # STA __params+0

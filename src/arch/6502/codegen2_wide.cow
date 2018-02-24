@@ -31,22 +31,47 @@ sub addressing_mode(iop: [BEIop]): (mode: uint8)
     end if;
 end sub;
 
+sub inc_numoff(numoff_id: uint16): (new_numoff_id: uint16)
+        new_numoff_id := add_number_by_value(get_value_of_number(numoff_id) + 1);
+end sub;
+
+sub copy_value_to_param(ea: [EffectiveAddress], param: uint8)
+    var param_ea: EffectiveAddress;
+    zero_ea(&param_ea);
+    param_ea.flags := EA_VALUE;
+    param_ea.obj_id := find_bootstrap_symbol(TOKEN_PARAMS);
+    param_ea.numoff_id := add_number_by_value(param as int32);
+
+    var location: uint8 := allocate_reg(REG_A|REG_X|REG_Y);
+
+    if ea.flags == EA_VALUE then
+        ld_imm_adr_lo(location, ea);
+        st_abs(location, 0, &param_ea);
+
+        param_ea.numoff_id := inc_numoff(param_ea.numoff_id);
+        ld_imm_adr_hi(location, ea);
+        st_abs(location, 0, &param_ea);
+    elseif ea.flags == EA_DEREF then
+        ld_abs(location, 0, ea);
+        st_abs(location, 0, &param_ea);
+
+        param_ea.numoff_id := inc_numoff(param_ea.numoff_id);
+        ea.numoff_id := inc_numoff(ea.numoff_id);
+        ld_abs(location, 0, ea);
+        st_abs(location, 0, &param_ea);
+    end if;
+    
+    free_reg(location);
+end sub;
+
 sub do_2op_helper(iop: [BEIop])
     check_wide_ea(&iop.left);
     check_wide_ea(&iop.dest);
 
     write_back_precious_values(REG_MASK);
 
-    write_byte(0x20); # JSR abs
-    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LOAD4BYTES), 0);
-    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id) as uint16);
-    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id) as uint16);
-
-    var mode: uint8 := addressing_mode(iop);
-    if (mode & 0b111) != 0 then
-        write_byte(0x20); # JSR abs
-        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), (7-mode) as uint16);
-    end if;
+    copy_value_to_param(&iop.dest, 0);
+    copy_value_to_param(&iop.left, 2);
 
     flush_cached_values(REG_MASK);
 end sub;
@@ -58,17 +83,9 @@ sub do_3op_helper(iop: [BEIop])
 
     write_back_precious_values(REG_MASK);
 
-    write_byte(0x20); # JSR abs
-    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_LOAD6BYTES), 0);
-    write_address_iop(IOP_ADDRESS, iop.dest.obj_id, get_value_of_number(iop.dest.numoff_id) as uint16);
-    write_address_iop(IOP_ADDRESS, iop.left.obj_id, get_value_of_number(iop.left.numoff_id) as uint16);
-    write_address_iop(IOP_ADDRESS, iop.right.obj_id, get_value_of_number(iop.right.numoff_id) as uint16);
-
-    var mode: uint8 := addressing_mode(iop);
-    if (mode & 0b111) != 0 then
-        write_byte(0x20); # JSR abs
-        write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MODEADJUST), (7-mode) as uint16);
-    end if;
+    copy_value_to_param(&iop.dest, 0);
+    copy_value_to_param(&iop.left, 2);
+    copy_value_to_param(&iop.right, 4);
 
     flush_cached_values(REG_MASK);
 end sub;
