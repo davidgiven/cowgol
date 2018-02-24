@@ -35,8 +35,8 @@ end sub;
 
 # Use for size changes only; the type check is pretty sloppy.
 sub gen_cast_and_deref(src: [Node], desttype: uint16): (dest: [Node])
-    if #(src.type_id != constant_type)
-            (get_width_of_type(src.type_id) != get_width_of_type(desttype)) then
+    if (src.type_id != constant_type) and
+        (get_width_of_type(src.type_id) != get_width_of_type(desttype)) then
         src := simplify_node_to_ea_and_deref(src);
 
         $if DEBUG
