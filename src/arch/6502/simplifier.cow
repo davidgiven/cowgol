@@ -92,7 +92,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     #   [[&var]+[u8]] --- where u8 is an unsigned byte and the result is a byte
     #   [[&var]+#u8] --- where u8 is an unsigned byte and the result is a byte
     #
-    # Bear in mind that wide values *only* support [&var+#any] and [[&var]+#any]!
+    # Bear in mind that wide values *only* support [&var+#any] and [[&var]]!
     #
     # EA_VALUE and EA_LEA are essentially the same, but EA_DEREF needs a different code path.
 
@@ -192,7 +192,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     else
         var simplify_numoff: uint8 := 0;
         var offset: int32 := get_value_of_number(ea.numoff_id);
-        if (ea.numoff_id != 0) then
+        if offset != 0 then
             simplify_numoff := 1;
 
             if (width == 1) and (offset >= 0) and (offset <= 255) then
