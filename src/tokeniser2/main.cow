@@ -25,16 +25,16 @@ sub consume_file()
 			break;
 		end if;
 
+		print_i32(file_tell(current_fd));
+		print_char('/');
+		print_i32(file_ext(current_fd));
+		print_char('\r');
+
 		var i: uint8 := 0;
 		loop
 			var c: int8 := inputbuffer[i];
 			if c == 0 then
 				break;
-			elseif c == '\n' then
-				print_i32(file_tell(current_fd));
-				print_char('/');
-				print_i32(file_ext(current_fd));
-				print_char('\r');
 			end if;
 
 			lexer_consume_char(c as uint8);
