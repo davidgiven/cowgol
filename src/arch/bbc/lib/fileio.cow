@@ -104,3 +104,49 @@ sub file_close(fd: int8)
     @bytes 0xAC, &fd;           # LDY fd
     @bytes 0x20, 0xCE, 0xFF;    # JSR OSFIND
 end sub;
+
+sub file_load(filename: [int8], address: [int8], maxlength: uint16): (length: uint16)
+    var t: [int8] := filename;
+    loop
+        if t[0] == 0 then
+            break;
+        end if;
+        t := t + 1;
+    end loop;
+    t[0] := 13;
+
+    var osfile: OsfileBlock;
+    zero_memory(&osfile as [int8], OsfileBlock@bytes);
+    osfile.filename := filename;
+    osfile.loadaddress := address;
+    @bytes 0xA9, 0xff;          # LDA #0xff
+    @bytes 0xA2, >&osfile;      # LDX #>osfile
+    @bytes 0xA0, <&osfile;      # LDY #<osfile
+    @bytes 0x20, 0xDD, 0xFF;    # JSR OSFILE
+    length := osfile.startaddress as uint16;
+
+    t[0] := 0;
+end sub;
+
+sub file_save(filename: [int8], address: [int8], length: uint16)
+    var t: [int8] := filename;
+    loop
+        if t[0] == 0 then
+            break;
+        end if;
+        t := t + 1;
+    end loop;
+    t[0] := 13;
+
+    var osfile: OsfileBlock;
+    zero_memory(&osfile as [int8], OsfileBlock@bytes);
+    osfile.filename := filename;
+    osfile.startaddress := address;
+    osfile.endaddress := address+(length as int16);
+    @bytes 0xA9, 0x00;          # LDA #0x00
+    @bytes 0xA2, >&osfile;      # LDX #>osfile
+    @bytes 0xA0, <&osfile;      # LDY #<osfile
+    @bytes 0x20, 0xDD, 0xFF;    # JSR OSFILE
+
+    t[0] := 0;
+end sub;

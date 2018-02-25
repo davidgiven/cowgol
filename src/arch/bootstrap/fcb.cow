@@ -1,3 +1,20 @@
+sub file_load(filename: [int8], address: [int8], maxlength: uint16): (length: uint16)
+    var fd: uint8 := file_openin(filename);
+    length := file_ext(fd) as uint16;
+    if length > maxlength then
+        print("file too long");
+        exit(1);
+    end if;
+    var ateof: uint8 := file_getblock(fd, address, length);
+    file_close(fd);
+end sub;
+
+sub file_save(filename: [int8], address: [int8], length: uint16)
+    var fd: uint8 := file_openout(filename);
+    file_putblock(fd, address, length);
+    file_close(fd);
+end sub;
+
 record FCB
     address: [int8]; # PUBLIC
     count: uint16; # PUBLIC

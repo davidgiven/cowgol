@@ -33,13 +33,9 @@ end sub;
 sub load_string_table(filename: [int8])
     print("reading string table: ");
 
-    var fd: int8 := file_openin(filename);
-    stringtab_top := file_ext(fd) as uint16;
+    stringtab_top := file_load(filename, &stringtab[0] as [int8], STRINGTABLE_SIZE);
     print_i16(stringtab_top);
     print(" bytes\n");
-
-    var eof: uint8 := file_getblock(fd, &stringtab[0] as [int8], stringtab_top);
-    file_close(fd);
 end sub;
 
 sub save_string_table(filename: [int8])
@@ -47,9 +43,7 @@ sub save_string_table(filename: [int8])
     print_i16(stringtab_top);
     print(" bytes\n");
 
-    var fd: int8 := file_openout(filename);
-    file_putblock(fd, &stringtab[0] as [int8], stringtab_top);
-    file_close(fd);
+    file_save(filename, &stringtab[0] as [int8], stringtab_top);
 end sub;
 
 sub show_string(string_id: uint16)

@@ -440,16 +440,12 @@ sub save_thing_table(filename: [int8])
     print_i16(thing_table_top);
     print(" bytes\n");
 
-    var fd: int8 := file_openout(filename);
-    file_putblock(fd, &thing_table[0], thing_table_top);
-    file_close(fd);
+    file_save(filename, &thing_table[0], thing_table_top);
 end sub;
 
 sub load_thing_table(filename: [int8])
-    var fd: int8 := file_openin(filename);
-    thing_table_top := file_ext(fd) as uint16;
-
     print("reading thing table: ");
+    thing_table_top := file_load(filename, &thing_table[0], thing_table@size);
     print_i16(thing_table_top);
     print(" bytes\n");
 
@@ -457,8 +453,6 @@ sub load_thing_table(filename: [int8])
         print("thing table on disk too big (your configuration is broken)\n");
         exit(1);
     end if;
-    var eof: uint8 := file_getblock(fd, &thing_table[0], thing_table_top);
-    file_close(fd);
     thing_table[thing_table_top] := 0;
 
     root := find_thing(1) as [RootThing];
