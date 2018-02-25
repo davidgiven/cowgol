@@ -11,6 +11,20 @@ sub fcb_openin(fcb: [FCB], filename: [int8]): (errno: uint8)
     end if;
 end sub;
 
+sub fcb_openout(fcb: [FCB], filename: [int8]): (errno: uint8)
+    fcb.fd := file_openout(filename);
+    if fcb.fd == -1 then
+        errno := 1;
+    end if;
+end sub;
+
+sub fcb_openup(fcb: [FCB], filename: [int8]): (errno: uint8)
+    fcb.fd := file_openup(filename);
+    if fcb.fd == -1 then
+        errno := 1;
+    end if;
+end sub;
+
 sub fcb_close(fcb: [FCB])
     if fcb.fd != -1 then
         file_close(fcb.fd);
@@ -38,6 +52,12 @@ sub fcb_read(fcb: [FCB])
         fcb.address := fcb.address + fcb.count;
         fcb.count := 0;
     end if;
+end sub;
+
+sub fcb_write(fcb: [FCB])
+    file_putblock(fcb.fd, fcb.address, fcb.count);
+    fcb.address := fcb.address + fcb.count;
+    fcb.count := 0;
 end sub;
 
 sub fcb_seek(fcb: [FCB], pos: uint32)

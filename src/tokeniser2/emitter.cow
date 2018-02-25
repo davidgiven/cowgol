@@ -1,26 +1,6 @@
 var stringbuffer: uint8[256];
 var stringlen: uint8 := 0;
 
-var outputbuffer: uint8[256];
-var outputptr: uint8 := 0;
-
-sub emit_byte(b: uint8)
-	outputbuffer[outputptr] := b;
-	if outputptr == 0xff then
-		file_putblock(tokens_fd, &outputbuffer[0] as [int8], outputbuffer@bytes);
-		outputptr := 0;
-	else
-		outputptr := outputptr + 1;
-	end if;
-end sub;
-
-sub flush_output_buffer()
-	if outputptr != 0 then
-		file_putblock(tokens_fd, &outputbuffer[0] as [int8], outputptr as uint16);
-		outputptr := 0;
-	end if;
-end sub;
-
 sub add_string_thing(string_id: uint16, stringlen: uint8): (thing_id: uint16)
     var thing: StringThing;
     zero_memory(&thing as [int8], thing@bytes);
@@ -43,8 +23,9 @@ var most_recent_filename_id: uint16 := 0;
 
 sub emit_raw_token(token: uint16)
 	tokens_count := tokens_count + 1;
-	emit_byte(token as uint8);
-	emit_byte((token >> 8) as uint8);
+	tokens_fcb.address := &token as [int8];
+	tokens_fcb.count := 2;
+	fcb_write(&tokens_fcb);
 end sub;
 
 sub emit_token(token: uint16)

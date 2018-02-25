@@ -1,9 +1,7 @@
-flush_output_buffer();
-
 print("written ");
 print_i16(tokens_count);
 print(" tokens\n");
-file_close(tokens_fd);
+fcb_close(&tokens_fcb);
 
 save_string_table(strings_dat);
 save_thing_table(things_dat);

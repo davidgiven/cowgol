@@ -14,9 +14,6 @@ var current_token_start: uint8;
 var current_token_end: uint8;
 var start_state: uint8;
 
-var tokens_fd: int8 := file_openout(tokens_dat);
-var tokens_count: uint16 := 0;
-
 sub fail()
 	print(" at ");
 	print(current_filename as [int8]);
@@ -26,3 +23,9 @@ sub fail()
 	exit(1);
 end sub;
 
+var tokens_count: uint16 := 0;
+var tokens_fcb: FCB;
+if fcb_openout(&tokens_fcb, tokens_dat) != 0 then
+	print("cannot open output file");
+	fail();
+end if;
