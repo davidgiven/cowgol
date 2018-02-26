@@ -7,9 +7,17 @@ sub init_iop_writer(filename: [int8])
         print("cannot open output iop file");
         halt();
     end if;
+    
+    fcb_seek(&iop_out_fcb, 4);
 end sub;
 
 sub deinit_iop_writer()
+    var len: uint32 := fcb_tell(&iop_out_fcb);
+    fcb_seek(&iop_out_fcb, 0);
+    iop_out_fcb.address := &len as [int8];
+    iop_out_fcb.count := len@bytes;
+    fcb_write(&iop_out_fcb);
+
     fcb_close(&iop_out_fcb);
 end sub;
 

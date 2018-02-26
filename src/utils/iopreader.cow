@@ -21,6 +21,7 @@ sub init_iop_reader(filename: [int8])
         print("cannot open iop input");
         halt();
     end if;
+    fcb_seek(&iop_in_fcb, 4);
     current_filename_id := 0;
     current_linenumber := 0;
 end sub;

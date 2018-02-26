@@ -50,10 +50,6 @@ sub fcb_i_blockout(fcb: [FCB])
     end if;
 end sub;
 
-sub fcb_i_putblock(fcb: [FCB])
-    fcb_i_gbpb(fcb, 1); # write block with ptr
-end sub;
-
 sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
     if newblock != fcb.block then
         fcb_i_blockout(fcb);
@@ -79,6 +75,7 @@ sub fcb_i_open(fcb: [FCB], filename: [int8], mode: uint8): (errno: uint8)
     @bytes 0x20, 0xCE, 0xFF;    # JSR OSFIND
     @bytes 0xA0, 0x00;          # LDY #0
     @bytes 0x8D, &channel;      # STA channel
+    t[0] := 0;
 
     zero_memory(fcb as [int8], FCB@bytes);
     fcb.mode := mode;
@@ -97,16 +94,16 @@ sub fcb_openin(fcb: [FCB], filename: [int8]): (errno: uint8)
     end if;
 end sub;
 
-sub fcb_openout(fcb: [FCB], filename: [int8]): (errno: uint8)
-    errno := fcb_i_open(fcb, filename, FCB_I_WRITE);
-    zero_memory(&fcb.buffer[0], 256);
-end sub;
-
 sub fcb_openup(fcb: [FCB], filename: [int8]): (errno: uint8)
     errno := fcb_i_open(fcb, filename, FCB_I_READ|FCB_I_WRITE);
     if errno == 0 then
         fcb_i_blockin(fcb);
     end if;
+end sub;
+
+sub fcb_openout(fcb: [FCB], filename: [int8]): (errno: uint8)
+    file_save(filename, 0 as [int8], 0);
+    errno := fcb_openup(fcb, filename);
 end sub;
 
 sub fcb_close(fcb: [FCB])

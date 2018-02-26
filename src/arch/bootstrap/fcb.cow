@@ -62,6 +62,10 @@ sub fcb_getchar(fcb: [FCB]): (c: uint8)
     end if;
 end sub;
 
+sub fcb_putchar(fcb: [FCB], c: int8)
+    file_putchar(fcb.fd, c);
+end sub;
+
 sub fcb_read(fcb: [FCB])
     zero_memory(fcb.address, fcb.count);
     var ateof: uint8 := file_getblock(fcb.fd, fcb.address, fcb.count);

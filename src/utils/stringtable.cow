@@ -1,22 +1,21 @@
-var strings_fd: int8;
+var strings_fcb: FCB;
 
 sub init_string_table()
-    strings_fd := file_openin(strings_dat);
+    if fcb_openin(&strings_fcb, strings_dat) != 0 then
+        print("cannot open strings table\n");
+        exit(1);
+    end if;
 end sub;
 
 sub deinit_string_table()
-    file_close(strings_fd);
+    fcb_close(&strings_fcb);
 end sub;
 
 sub show_string(string_id: uint16)
-    file_seek(strings_fd, string_id as uint32);
-    var v: int8;
-    var eof: uint8;
-    (v, eof) := file_getchar(strings_fd);
-    var len: uint8 := v as uint8;
+    fcb_seek(&strings_fcb, string_id as uint32);
+    var len: uint8 := fcb_getchar(&strings_fcb) as uint8;
     while len != 1 loop
-        (v, eof) := file_getchar(strings_fd);
-        var c: uint8 := v as uint8;
+        var c: uint8 := fcb_getchar(&strings_fcb) as uint8;
         if (c <= 32) or (c > 126) then
             print("\\x");
             print_hex_i8(c);

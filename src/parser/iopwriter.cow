@@ -162,7 +162,12 @@ sub open_iopfile(filename: [int8])
     # *our* main subroutine. So instead we patch it so it ends with a jump to
     # our new one.
 
-    fcb_seek(&iop_fcb, fcb_ext(&iop_fcb) - Iop@bytes*3);
+    var len: uint32;
+    fcb_seek(&iop_fcb, 0);
+    iop_fcb.address := &len as [int8];
+    iop_fcb.count := len@bytes;
+    fcb_read(&iop_fcb);
+    fcb_seek(&iop_fcb, len - Iop@bytes*3);
 
     var iop: CallIop;
     zero_memory(&iop as [int8], iop@bytes);
@@ -188,5 +193,11 @@ sub close_iopfile()
     iop_fcb.count := IHeader@bytes;
     fcb_write(&iop_fcb);
 
+    var len: uint32 := fcb_tell(&iop_fcb);
+    fcb_seek(&iop_fcb, 0);
+    iop_fcb.address := &len as [int8];
+    iop_fcb.count := len@bytes;
+    fcb_write(&iop_fcb);
+    
     fcb_close(&iop_fcb);
 end sub;

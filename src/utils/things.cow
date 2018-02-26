@@ -472,10 +472,9 @@ sub print_thing(thing_id: uint16)
     end sub;
 
     if is_number_thing(thing_id) != 0 then
+        print_prefix("NUM", thing_id);
         print_char('#');
         print_i32(get_value_of_number(thing_id) as uint32);
-        print_char('.');
-        print_hex_i16(thing_id);
     elseif is_identifier_thing(thing_id) != 0 then
         print_prefix("ID", thing_id);
         show_identifier(thing_id);
