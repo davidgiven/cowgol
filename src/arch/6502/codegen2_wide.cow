@@ -1,4 +1,4 @@
-sub check_wide_ea(ea: [EffectiveAddress])
+sub check_widec_ea(ea: [EffectiveAddress])
     if (ea.flags == EA_VALUE) and (is_number_thing(ea.obj_id) != 0) then
         var thing: [NumberThing] := find_thing(ea.obj_id) as [NumberThing];
         thing.segment := SEGMENT_CONST;
@@ -9,7 +9,10 @@ sub check_wide_ea(ea: [EffectiveAddress])
         print_ea(ea);
         halt();
     end if;
+end sub;
 
+sub check_wide_ea(ea: [EffectiveAddress])
+    check_widec_ea(ea);
     if (ea.flags == EA_DEREF) and (get_value_of_number(ea.numoff_id) != 0) then
         print("wide pointer EA with numeric offset: ");
         print_ea(ea);
