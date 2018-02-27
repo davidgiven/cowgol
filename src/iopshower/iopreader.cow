@@ -25,4 +25,5 @@ sub read_iop(): (iop: [Iop])
     iops_fcb.address := &iop_buffer[1] as [int8];
     iops_fcb.count := (iop_buffer[0] - 1) as uint16;
     fcb_read(&iops_fcb);
+    iop := &iop_buffer[0] as [Iop];
 end sub;
