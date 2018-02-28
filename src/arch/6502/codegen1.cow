@@ -234,32 +234,90 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
     end if;
 
     location := find_reg_with_value(ea, REG_A|REG_X|REG_Y);
-    if location == 0 then
-        return;
+    if location != 0 then
+        # Does this value exist in another register?
+
+        var oldlocation: uint8 := location;
+        location := allocate_reg(candidates);
+
+        # Special case: can't move from X to Y or vice versa.
+        if (oldlocation|location) == (REG_X|REG_Y) then
+            free_reg(location);
+            location := 0;
+        else
+            $if DEBUG
+                print("* moving value ");
+                print_ea(ea);
+                print(" from 0x");
+                print_hex_i8(oldlocation);
+                print(" to 0x");
+                print_hex_i8(location);
+                print_newline();
+            $endif
+
+            t_reg_reg(oldlocation, location);
+            value_is_cached_in_reg(ea, location);
+        end if;
     end if;
 
-    var oldlocation: uint8 := location;
-    location := allocate_reg(candidates);
+    if (is_number_thing(ea.obj_id) != 0) and (ea.flags == EA_VALUE)
+        and (ea.numoff_id == 0) and (ea.varoff_id == 0)
+        and ((candidates & (REG_X|REG_Y)) != 0)
+    then
+        # We're loading a number into an index register. Can we construct it
+        # with a inc or dec?
 
-    # Special case: can't move from X to Y or vice versa.
-    if (oldlocation|location) == (REG_X|REG_Y) then
-        free_reg(location);
-        location := 0;
-        return;
+        candidates := candidates & (REG_X|REG_Y);
+
+        var value: int8 := get_value_of_number(ea.obj_id) as int8;
+        sub find_with_delta(delta: int8)
+            var oldea: EffectiveAddress;
+            zero_ea(&oldea);
+            oldea.flags := EA_VALUE;
+            oldea.obj_id := add_number_by_value((value + delta) as int32);
+            location := find_reg_with_value(&oldea, candidates) & (locked_registers ^ 0xff);
+        end sub;
+
+        sub found(modx: uint8, mody: uint8)
+            allocate_fixed_reg(location);
+            
+            $if DEBUG
+                print("* constructing value ");
+                print_ea(ea);
+                print(" from 0x");
+                print_hex_i8(location);
+                print(" using 0x");
+            $endif
+            if location == REG_X then
+                write_byte(modx);
+                $if DEBUG
+                    print_hex_i8(modx);
+                $endif
+            else
+                write_byte(mody);
+                $if DEBUG
+                    print_hex_i8(mody);
+                $endif
+            end if;
+            $if DEBUG
+                print_newline();
+            $endif
+
+            value_is_cached_in_reg(ea, location);
+        end sub;
+
+        find_with_delta(-1);
+        if location != 0 then
+            found(0xe8, 0xc8); # INX, INY
+            return;
+        else
+            find_with_delta(1);
+            if location != 0 then
+                found(0xca, 0x88); # DEX, DEY
+                return;
+            end if;
+        end if;
     end if;
-
-	$if DEBUG
-		print("* moving value ");
-		print_ea(ea);
-		print(" from 0x");
-		print_hex_i8(oldlocation);
-		print(" to 0x");
-		print_hex_i8(location);
-		print_newline();
-	$endif
-
-    t_reg_reg(oldlocation, location);
-    value_is_cached_in_reg(ea, location);
 end sub;
 
 sub value_is_precious(ea: [EffectiveAddress])
