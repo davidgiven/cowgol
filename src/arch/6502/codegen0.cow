@@ -250,30 +250,6 @@ sub load_objval(location: uint8, ea: [EffectiveAddress])
     end if;
 end sub;
 
-sub load_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) +
-        (offset as int32));
-    ld_abs(location, 0, ea);
-    ea.numoff_id := old_numoff_id;
-end sub;
-
-sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_VALUE then
-        load_objval_with_offset(location, ea, offset);
-    else
-        $if DEBUG
-            print("load_value_with_offset: ");
-        $endif
-        print("can't load ");
-        print_ea(ea);
-        print(" with offset 0x");
-        print_hex_i8(offset);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
 sub convert_lea_ea_to_addressof(ea: [EffectiveAddress])
     if ea.flags == EA_LEA then
         var ptr_id: uint16 := add_addressof_by_value(ea.obj_id,

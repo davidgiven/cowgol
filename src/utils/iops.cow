@@ -197,7 +197,7 @@ end record;
 
 const EA_VALUE := 0; # [&obj+numoff+[varoff]]
 const EA_DEREF := 1; # [[&obj]+numoff+[varoff]]
-const EA_LEA   := 2; # &obj+num+var
+const EA_LEA   := 2; # &obj+numoff+[varoff]
 
 record EffectiveAddress
     flags: uint8;

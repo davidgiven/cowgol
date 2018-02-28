@@ -1,99 +1,52 @@
-#sub arch_gen_copy_word(iop: [BEIop])
-#    $if DEBUG
-#        print("* copy ");
-#        print_ea(&iop.left);
-#        print(" to ");
-#        print_ea(&iop.dest);
-#        print_newline();
-#    $endif
-#    
-#    sub address_of()
-#        var candidates: uint8;
-#        if iop.dest.flags == EA_DEREF then
-#            candidates := REG_A;
-#        else
-#            candidates := REG_A|REG_X;
-#        end if;
-#
-#        var location: uint8 := allocate_reg(candidates);
-#        ld_imm_adr_lo(location, &iop.left);
-#        save_value_with_index_or_offset(location, &iop.dest, 0);
-#        ld_imm_adr_hi(location, &iop.left);
-#        save_value_with_index_or_offset(location, &iop.dest, 1);
-#    end sub;
-#
-#    check_wide_ea(&iop.left);
-#    check_wide_ea(&iop.dest);
-#    if is_number_thing(iop.left.obj_id) != 0 then
-#        var value: uint16 := get_value_of_number(iop.left.obj_id) as uint16;
-#        var candidates: uint8;
-#        if iop.dest.flags == EA_DEREF then
-#            candidates := REG_A;
-#        else
-#            candidates := REG_A|REG_X;
-#        end if;
-#
-#        var location: uint8 := find_or_load_int(value as uint8, candidates);
-#        save_value_with_index_or_offset(location, &iop.dest, 0);
-#        free_reg(location);
-#        location := find_or_load_int((value >> 8) as uint8, candidates);
-#        save_value_with_index_or_offset(location, &iop.dest, 1);
-#    elseif is_data_thing(iop.left.obj_id) != 0 then
-#        if iop.left.flags == EA_LEA then
-#            address_of();
-#        else
-#            arch_gen_copy_wide(iop);
-#        end if;
-#    elseif is_string_thing(iop.left.obj_id) != 0 then
-#        address_of();
-#    else
-#        print("don't know how to load ");
-#        print_ea(&iop.left);
-#        halt();
-#    end if;
-#end sub;
+sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8)
+    insn_init_from_ea(ea);
+    if insn.mode == MODE_IMMLO then
+        insn.mode := insn.mode + (offset as uint8);
+    else
+        insn.offset := insn.offset + (offset as uint16);
+        if insn.mode == MODE_IND then
+            if insn.offset > 0xff then
+                print("offset too big");
+                halt();
+            end if;
 
+            find_or_load_fixed_int(insn.offset as uint8, REG_Y);
+            insn.offset := 0;
+            insn.indexreg := REG_Y;
+            free_reg(REG_Y);
+        end if;
+    end if;
+    insn.datareg := location;
+end sub;
+    
 sub regular_alu_word_op(iop: [BEIop], opcode: uint8)
     $if DEBUG
         print("* GENERATE: aluop 0x");
         print_hex_i8(opcode);
         print(": ");
         print_ea(&iop.left);
-        if opcode != 0 then
-            print(", ");
-            print_ea(&iop.right);
-        end if;
+        print(", ");
+        print_ea(&iop.right);
         print(" => ");
         print_ea(&iop.dest);
         print_newline();
     $endif
 
     check_widec_ea(&iop.left);
-    if opcode != 0 then
-        check_widec_ea(&iop.right);
-    end if;
+    check_widec_ea(&iop.right);
     check_widec_ea(&iop.dest);
 
     var offset: uint8;
-    sub aluop(ea: [EffectiveAddress], subopcode: uint8)
-        if ea.flags == EA_DEREF then
-            find_or_load_fixed_int(offset + (get_value_of_number(ea.numoff_id) as uint8), REG_Y);
-            var old_numoff_id: uint16 := ea.numoff_id;
-            ea.numoff_id := 0;
-            aluop_value_with_index(ea, REG_Y, subopcode);
-            ea.numoff_id := old_numoff_id;
-            free_reg(REG_Y);
-        else
-            aluop_value_with_offset(ea, offset, subopcode);
-        end if;
-    end sub;
 
     sub iterate()
-        aluop(&iop.left, 0xad);    # LDA abs
-        if opcode != 0 then
-            aluop(&iop.right, opcode); # actual ALU operation
-        end if;
-        aluop(&iop.dest, 0x8d);    # STA abs
+        setup_insn(&iop.left, offset, REG_A);
+        insn_load_object();
+
+        setup_insn(&iop.right, offset, REG_A);
+        insn_alu_object(opcode);
+
+        setup_insn(&iop.dest, offset, REG_A);
+        insn_save_object();
     end sub;
 
     allocate_fixed_reg(REG_A);
@@ -105,5 +58,39 @@ sub regular_alu_word_op(iop: [BEIop], opcode: uint8)
 end sub;
 
 sub arch_gen_copy_word(iop: [BEIop])
-    regular_alu_word_op(iop, 0); # simple copy, no actual ALU involved
+    $if DEBUG
+        print("* GENERATE: copy 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    check_widec_ea(&iop.left);
+    check_widec_ea(&iop.dest);
+
+    var offset: uint8;
+    var candidates: uint8;
+    if (iop.left.flags == EA_DEREF) or (iop.dest.flags == EA_DEREF) then
+        candidates := REG_A;
+    else
+        candidates := REG_A|REG_X|REG_Y;
+    end if;
+    var location: uint8 := allocate_reg(candidates);
+
+    sub iterate()
+        setup_insn(&iop.left, offset, location);
+        insn_load_object();
+
+        setup_insn(&iop.dest, offset, location);
+        insn_save_object();
+    end sub;
+
+    offset := 0;
+    iterate();
+    offset := 1;
+    iterate();
+    free_reg(location);
 end sub;
