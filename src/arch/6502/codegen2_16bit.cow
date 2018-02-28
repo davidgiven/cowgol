@@ -59,9 +59,7 @@ end sub;
 
 sub arch_gen_copy_word(iop: [BEIop])
     $if DEBUG
-        print("* GENERATE: copy 0x");
-        print_hex_i8(opcode);
-        print(": ");
+        print("* GENERATE: copy: ");
         print_ea(&iop.left);
         print(" => ");
         print_ea(&iop.dest);
