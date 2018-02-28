@@ -124,6 +124,8 @@ end sub;
 sub arch_gen_and(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_and_byte(iop);
+    elseif iop.width == 2 then
+        regular_alu_word_op(iop, 0x2D); # AND abs
     else
         regular_alu_wide_op(iop, 0x2D); # AND abs
     end if;
@@ -132,6 +134,8 @@ end sub;
 sub arch_gen_or(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_or_byte(iop);
+    elseif iop.width == 2 then
+        regular_alu_word_op(iop, 0x0D); # ORA abs
     else
         regular_alu_wide_op(iop, 0x0D); # ORA abs
     end if;
@@ -140,6 +144,8 @@ end sub;
 sub arch_gen_eor(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_eor_byte(iop);
+    elseif iop.width == 2 then
+        regular_alu_word_op(iop, 0x4D); # EOR abs
     else
         regular_alu_wide_op(iop, 0x4D); # EOR abs
     end if;
@@ -149,7 +155,8 @@ sub arch_gen_add(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_add_byte(iop);
     elseif iop.width == 2 then
-        arch_gen_add_word(iop);
+        write_byte(0x18); # CLC
+        regular_alu_word_op(iop, 0x6D); # ADC abs
     else
         arch_gen_add_wide(iop);
     end if;
@@ -159,7 +166,8 @@ sub arch_gen_sub(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_sub_byte(iop);
     elseif iop.width == 2 then
-        arch_gen_sub_word(iop);
+        write_byte(0x38); # SEC
+        regular_alu_word_op(iop, 0xED); # SBC abs
     else
         arch_gen_sub_wide(iop);
     end if;
