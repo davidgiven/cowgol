@@ -80,3 +80,33 @@ sub arch_gen_copy_word(iop: [BEIop])
     iterate();
     free_reg(location);
 end sub;
+
+sub fast_increment_word(src: [EffectiveAddress], dest: [EffectiveAddress])
+    $if DEBUG
+        print("* GENERATE: fast increment word in place: ");
+        print_ea(src);
+        print(" => ");
+        print_ea(dest);
+        print_newline();
+    $endif
+
+    if is_same_ea_ignoring_type(src, dest) == 0 then
+        print("can't increment in place");
+        halt();
+    end if;
+
+    var indexreg: uint8;
+    var noinclabel: uint8 := create_label();
+
+    indexreg := setup_insn(src, 0, 0);
+    insn_mutate_object(0xEE); # INC abs
+    free_reg(indexreg);
+
+    write_cg_6502_conditional_iop(0xD0, noinclabel); # BNE label
+
+    indexreg := setup_insn(src, 1, 0);
+    insn_mutate_object(0xEE); # INC abs
+    free_reg(indexreg);
+
+    write_label_iop(noinclabel);
+end sub;

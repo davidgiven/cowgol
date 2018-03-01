@@ -81,6 +81,13 @@ sub insn_check_ind()
     end if;
 end sub;
 
+sub insn_check_mutate()
+    if (insn.mode != MODE_DIR) or (insn.indexreg == REG_A) or (insn.indexreg == REG_X) then
+        print("insn_check_mutate fail");
+        halt();
+    end if;
+end sub;
+
 sub insn_op_imm(value: uint8, opcode: uint8)
 	$if DEBUG
 		print("@ insn_op_imm 0x");
@@ -223,6 +230,7 @@ sub insn_load_object()
     end if;
 end sub;
 
+# opcode must be the abs form of a column D opcode.
 sub insn_alu_object(opcode: uint8)
     if insn.mode == MODE_DIR then
         insn_op_abs(opcode);
@@ -244,6 +252,12 @@ sub insn_alu_object(opcode: uint8)
             insn_op_imm((insn.offset >> 8) as uint8, opcode);
         end if;
     end if;
+end sub;
+
+# opcode must be the abs form of a column E opcode.
+sub insn_mutate_object(opcode: uint8)
+    insn_check_mutate();
+    insn_op_abs(opcode);
 end sub;
 
 sub insn_save_object()

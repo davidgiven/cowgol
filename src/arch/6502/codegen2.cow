@@ -155,6 +155,15 @@ sub arch_gen_add(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_add_byte(iop);
     elseif iop.width == 2 then
+        if iop.dest.flags == EA_VALUE then
+            if (get_value_of_number(iop.left.obj_id) == 1) and (is_same_ea_ignoring_type(&iop.right, &iop.dest) != 0) then
+                fast_increment_word(&iop.right, &iop.dest);
+                return;
+            elseif (get_value_of_number(iop.right.obj_id) == 1) and (is_same_ea_ignoring_type(&iop.left, &iop.dest) != 0) then
+                fast_increment_word(&iop.left, &iop.dest);
+                return;
+            end if;
+        end if;
         write_byte(0x18); # CLC
         regular_alu_word_op(iop, 0x6D); # ADC abs
     else
