@@ -95,6 +95,12 @@ sub find_unused_regs(candidates: uint8): (mask: uint8)
 end sub;
 
 sub allocate_reg(candidates: uint8): (mask: uint8)
+    $if DEBUG
+        print("* looking for register matching 0x");
+        print_hex_i8(candidates);
+        print_newline();
+    $endif
+
     candidates := candidates & (locked_registers ^ 0xff);
     mask := find_unused_regs(candidates);
     if mask == 0 then
@@ -257,6 +263,7 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
 
             t_reg_reg(oldlocation, location);
             value_is_cached_in_reg(ea, location);
+            return;
         end if;
     end if;
 
@@ -379,6 +386,11 @@ sub value_is_not_precious(ea: [EffectiveAddress])
         end if;
         i := i + 1;
     end loop;
+end sub;
+
+sub flush_value(ea: [EffectiveAddress])
+    var regs: uint8 := find_regs_with_value(ea, REG_A|REG_X|REG_Y);
+    flush_cached_values(regs);
 end sub;
 
 # This value is about to be written to, so flush any references to it.
@@ -746,3 +758,26 @@ sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], off
         halt();
     end if;
 end sub;
+
+sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8): (indexreg: uint8)
+    insn_init_from_ea(ea);
+    indexreg := 0;
+    if insn.mode == MODE_IMMLO then
+        insn.mode := insn.mode + (offset as uint8);
+    else
+        insn.offset := insn.offset + (offset as uint16);
+        if insn.mode == MODE_IND then
+            if insn.offset > 0xff then
+                print("offset too big");
+                halt();
+            end if;
+
+            find_or_load_fixed_int(insn.offset as uint8, REG_Y);
+            insn.offset := 0;
+            insn.indexreg := REG_Y;
+            indexreg := REG_Y;
+        end if;
+    end if;
+    insn.datareg := location;
+end sub;
+    

@@ -123,11 +123,6 @@ sub arch_classify_iop(iop: [BEIop])
             needs_runtime_subroutine(TOKEN_MODS32);
         end if;
     end if;
-    if iopkind == IOP_BE_ZEXT then
-        needs_runtime_subroutine(TOKEN_ZEXT);
-    elseif iopkind == IOP_BE_SEXT then
-        needs_runtime_subroutine(TOKEN_SEXT);
-    end if;
 end sub;
 
 sub arch_classify_conditional_iop(iop: [BEConditionalIop])

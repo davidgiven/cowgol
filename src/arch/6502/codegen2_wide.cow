@@ -94,6 +94,18 @@ sub do_3op_helper(iop: [BEIop])
 end sub;
 
 sub regular_alu_wide_op(iop: [BEIop], opcode: uint8)
+    $if DEBUG
+        print("* GENERATE: wide aluop 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(", ");
+        print_ea(&iop.right);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
     check_wide_ea(&iop.left);
     check_wide_ea(&iop.right);
 
@@ -141,25 +153,138 @@ sub arch_gen_copy_wide(iop: [BEIop])
 end sub;
 
 sub arch_gen_sext(iop: [BEIop])
-    do_2op_helper(iop);
+    $if DEBUG
+        print("* GENERATE: sext: ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
 
-    find_or_load_fixed_int(iop.width-1, REG_Y);
-    find_or_load_fixed_int((get_width_of_type(iop.left.type_id) as uint8)-1, REG_X);
-    write_byte(0x20); # JSR abs
-    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_SEXT), 0);
+    flush_value(&iop.left);
 
-    flush_cached_values(REG_MASK);
+    var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
+    var destwidth: uint8 := iop.width;
+
+    var datacandidates: uint8;
+    var hicandidates: uint8;
+    if (iop.left.flags == EA_DEREF) or (iop.dest.flags == EA_DEREF) then
+        datacandidates := REG_A;
+        hicandidates := REG_X;
+    else
+        datacandidates := REG_A|REG_X|REG_Y;
+        hicandidates := REG_X|REG_Y;
+    end if;
+
+    var hireg: uint8 := find_or_load_int(0, hicandidates);
+    var datareg: uint8 := allocate_reg(datacandidates);
+    var indexreg: uint8;
+
+    find_or_load_fixed_int(0, REG_X);
+
+    # Copy the low bytes, intact.
+
+    var offset: uint8 := 0;
+    loop
+        indexreg := setup_insn(&iop.left, offset, datareg);
+        insn_load_object();
+        free_reg(indexreg);
+
+        indexreg := setup_insn(&iop.dest, offset, datareg);
+        insn_save_object();
+        free_reg(indexreg);
+
+        offset := offset + 1;
+        if offset == srcwidth then
+            break;
+        end if;
+    end loop;
+
+    # Compute the high byte.
+
+    write_byte(0x10); # BPL rel
+    write_byte(0x01); # one byte forwards
+    if hireg == REG_X then
+        write_byte(0xCA); # DEX
+    else
+        write_byte(0x88); # DEY
+    end if;
+
+    if iop.dest.flags == EA_DEREF then
+        t_reg_reg(hireg, datareg);
+        hireg := datareg;
+    end if;
+
+    # Now fill the high bytes.
+
+    loop
+        indexreg := setup_insn(&iop.dest, offset, hireg);
+        insn_save_object();
+        free_reg(indexreg);
+
+        offset := offset + 1;
+        if offset == destwidth then
+            break;
+        end if;
+    end loop;
 end sub;
 
 sub arch_gen_zext(iop: [BEIop])
-    do_2op_helper(iop);
+    $if DEBUG
+        print("* GENERATE: zext: ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
 
-    find_or_load_fixed_int(iop.width-1, REG_Y);
-    find_or_load_fixed_int((get_width_of_type(iop.left.type_id) as uint8)-1, REG_X);
-    write_byte(0x20); # JSR abs
-    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_ZEXT), 0);
+    flush_value(&iop.left);
 
-    flush_cached_values(REG_MASK);
+    var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
+    var destwidth: uint8 := iop.width;
+
+    var datacandidates: uint8;
+    if (iop.left.flags == EA_DEREF) or (iop.dest.flags == EA_DEREF) then
+        datacandidates := REG_A;
+    else
+        datacandidates := REG_A|REG_X|REG_Y;
+    end if;
+
+    # Copy the low bytes, intact.
+
+    var datareg: uint8 := allocate_reg(datacandidates);
+    var offset: uint8 := 0;
+    var indexreg: uint8;
+    loop
+        indexreg := setup_insn(&iop.left, offset, datareg);
+        insn_load_object();
+        free_reg(indexreg);
+
+        indexreg := setup_insn(&iop.dest, offset, datareg);
+        insn_save_object();
+        free_reg(indexreg);
+
+        offset := offset + 1;
+        if offset == srcwidth then
+            break;
+        end if;
+    end loop;
+    free_reg(datareg);
+
+    # Now fill the high bytes.
+
+    datareg := find_or_load_int(0, datacandidates);
+    loop
+        indexreg := setup_insn(&iop.dest, offset, datareg);
+        insn_save_object();
+        free_reg(indexreg);
+
+        offset := offset + 1;
+        if offset == destwidth then
+            break;
+        end if;
+    end loop;
+    free_reg(datareg);
 end sub;
 
 sub arch_gen_lsl_wide(iop: [BEIop])

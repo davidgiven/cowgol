@@ -13,6 +13,18 @@ sub arch_gen_not_byte(iop: [BEIop])
 end sub;
 
 sub gen_regular_alu(iop: [BEIop], opcode: uint8)
+    $if DEBUG
+        print("* GENERATE: byte aluop 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(", ");
+        print_ea(&iop.right);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
 

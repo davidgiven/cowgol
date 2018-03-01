@@ -49,8 +49,6 @@ __divs32      DIVS32     IDENTIFIER
 __modu32      MODU32     IDENTIFIER
 __mods32      MODS32     IDENTIFIER
 __divmodu8    DIVMODU8   IDENTIFIER
-__zext        ZEXT       IDENTIFIER
-__sext        SEXT       IDENTIFIER
 
 # Primitive types.
 int8      INT8          IDENTIFIER

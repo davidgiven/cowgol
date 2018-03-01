@@ -1,27 +1,6 @@
-sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8)
-    insn_init_from_ea(ea);
-    if insn.mode == MODE_IMMLO then
-        insn.mode := insn.mode + (offset as uint8);
-    else
-        insn.offset := insn.offset + (offset as uint16);
-        if insn.mode == MODE_IND then
-            if insn.offset > 0xff then
-                print("offset too big");
-                halt();
-            end if;
-
-            find_or_load_fixed_int(insn.offset as uint8, REG_Y);
-            insn.offset := 0;
-            insn.indexreg := REG_Y;
-            free_reg(REG_Y);
-        end if;
-    end if;
-    insn.datareg := location;
-end sub;
-    
 sub regular_alu_word_op(iop: [BEIop], opcode: uint8)
     $if DEBUG
-        print("* GENERATE: aluop 0x");
+        print("* GENERATE: word aluop 0x");
         print_hex_i8(opcode);
         print(": ");
         print_ea(&iop.left);
@@ -39,14 +18,19 @@ sub regular_alu_word_op(iop: [BEIop], opcode: uint8)
     var offset: uint8;
 
     sub iterate()
-        setup_insn(&iop.left, offset, REG_A);
+        var indexreg: uint8;
+
+        indexreg := setup_insn(&iop.left, offset, REG_A);
         insn_load_object();
+        free_reg(indexreg);
 
-        setup_insn(&iop.right, offset, REG_A);
+        indexreg := setup_insn(&iop.right, offset, REG_A);
         insn_alu_object(opcode);
+        free_reg(indexreg);
 
-        setup_insn(&iop.dest, offset, REG_A);
+        indexreg := setup_insn(&iop.dest, offset, REG_A);
         insn_save_object();
+        free_reg(indexreg);
     end sub;
 
     allocate_fixed_reg(REG_A);
@@ -59,7 +43,7 @@ end sub;
 
 sub arch_gen_copy_word(iop: [BEIop])
     $if DEBUG
-        print("* GENERATE: copy: ");
+        print("* GENERATE: word copy: ");
         print_ea(&iop.left);
         print(" => ");
         print_ea(&iop.dest);
@@ -79,11 +63,15 @@ sub arch_gen_copy_word(iop: [BEIop])
     var location: uint8 := allocate_reg(candidates);
 
     sub iterate()
-        setup_insn(&iop.left, offset, location);
-        insn_load_object();
+        var indexreg: uint8;
 
-        setup_insn(&iop.dest, offset, location);
+        indexreg := setup_insn(&iop.left, offset, location);
+        insn_load_object();
+        free_reg(indexreg);
+
+        indexreg := setup_insn(&iop.dest, offset, location);
         insn_save_object();
+        free_reg(indexreg);
     end sub;
 
     offset := 0;
