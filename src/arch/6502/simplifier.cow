@@ -100,8 +100,9 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     var iop_allows_byte_offsets: uint8 := 0;
     if (width == 1) then
         iop_allows_byte_offsets := 1;
-    elseif (beiop == IOP_BE_COPY) or (beiop == IOP_BE_ADD) or (beiop == IOP_BE_SUB)
-        or (beiop == IOP_BE_AND) or (beiop == IOP_BE_EOR) or (beiop == IOP_BE_OR) then
+    elseif (width == 2) and
+        ((beiop == IOP_BE_COPY) or (beiop == IOP_BE_ADD) or (beiop == IOP_BE_SUB)
+        or (beiop == IOP_BE_AND) or (beiop == IOP_BE_EOR) or (beiop == IOP_BE_OR)) then
         iop_allows_byte_offsets := 1;
     end if;
 
