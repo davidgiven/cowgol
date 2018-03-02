@@ -93,16 +93,15 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     #   [[&var]+#u8] --- where u8 is an unsigned byte and the result is a byte
     #
     # Bear in mind that most wide values *only* support [&var+#any] and [[&var]].
-    # The exception is BE_COPY, BE_ADD and BE_SUB, which support [[&var]+#u8].
+    # The exception is BE_COPY and AND, OR, EOR, ADD, SUB, which support [[&var]+#u8].
     #
     # EA_VALUE and EA_LEA are essentially the same, but EA_DEREF needs a different code path.
 
     var iop_allows_byte_offsets: uint8 := 0;
     if (width == 1) then
         iop_allows_byte_offsets := 1;
-    elseif (width == 2)
-        and ((beiop == IOP_BE_COPY) or (beiop == IOP_BE_ADD) or (beiop == IOP_BE_SUB))
-    then
+    elseif (beiop == IOP_BE_COPY) or (beiop == IOP_BE_ADD) or (beiop == IOP_BE_SUB)
+        or (beiop == IOP_BE_AND) or (beiop == IOP_BE_EOR) or (beiop == IOP_BE_OR) then
         iop_allows_byte_offsets := 1;
     end if;
 
