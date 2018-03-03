@@ -132,6 +132,11 @@ sub do_address(kind: [int8], iop: [AddressIop])
     print_hex_i16(iop.offset);
 end sub;
 
+sub do_kill(iop: [KillIop])
+    print("KILL ");
+    print_ea(&iop.ea);
+end sub;
+
 sub do_cg_6502_mem(iop: [CG6502MemIop])
     print("CG_6502_MEM opcode=0x");
     print_hex_i8(iop.opcode);
@@ -195,6 +200,7 @@ loop
             elseif kind == IOP_ADDRESS    then do_address("ADDRESS", iop as [AddressIop]);
             elseif kind == IOP_ADDRESSLO  then do_address("ADDRESSLO", iop as [AddressIop]);
             elseif kind == IOP_ADDRESSHI  then do_address("ADDRESSHI", iop as [AddressIop]);
+            elseif kind == IOP_KILL       then do_kill(iop as [KillIop]);
             else
                 unknown_iop();
             end if;

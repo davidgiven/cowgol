@@ -32,6 +32,7 @@ const IOP_CLONELABEL       := 0b0000_1010;
 const IOP_ADDRESSLO        := 0b0000_1011; # AddressIop
 const IOP_ADDRESSHI        := 0b0000_1100; # AddressIop
 const IOP_NAMEDGOTO        := 0b0000_1101;
+const IOP_KILL             := 0b0000_1110; # KillIop
 
 # Front-end opcodes: this is the pure stack machine architecture emitted by the
 # compiler. These are all FEIops (or subclasses thereof).
@@ -128,6 +129,18 @@ const IOP_TYPE_CODEGEN     := 0b1110_0000;
 const IOP_CG_6502_COND     := 0b1110_0100;
 const IOP_CG_6502_MEM      := 0b1110_0101;
 
+const EA_VALUE := 0; # [&obj+numoff+[varoff]]
+const EA_DEREF := 1; # [[&obj]+numoff+[varoff]]
+const EA_LEA   := 2; # &obj+numoff+[varoff]
+
+record EffectiveAddress
+    flags: uint8;
+    obj_id: uint16;
+    varoff_id: uint16;
+    numoff_id: uint16;
+    type_id: uint16;
+end record;
+
 record FilenameIop: Iop
     thing_id: uint16;
 end record;
@@ -173,6 +186,10 @@ record AddressIop: Iop
     offset: uint16;
 end record;
 
+record KillIop: Iop
+    ea: EffectiveAddress;
+end record;
+
 record FETypedIop: Iop
     type_id: uint16;
 end record;
@@ -193,18 +210,6 @@ end record;
 record FEConditionalIop: Iop
     iftrue_label: uint8;
     iffalse_label: uint8;
-end record;
-
-const EA_VALUE := 0; # [&obj+numoff+[varoff]]
-const EA_DEREF := 1; # [[&obj]+numoff+[varoff]]
-const EA_LEA   := 2; # &obj+numoff+[varoff]
-
-record EffectiveAddress
-    flags: uint8;
-    obj_id: uint16;
-    varoff_id: uint16;
-    numoff_id: uint16;
-    type_id: uint16;
 end record;
 
 record BEIop: Iop

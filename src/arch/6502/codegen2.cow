@@ -340,3 +340,13 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
         write_cg_6502_conditional_iop(0x80, fallthrough_label);
     end if;
 end sub;
+
+sub arch_gen_kill(iop: [KillIop])
+    $if DEBUG
+        print("* GENERATE: kill ");
+        print_ea(&iop.ea);
+        print_newline();
+    $endif
+
+    value_is_not_precious(&iop.ea);
+end sub;

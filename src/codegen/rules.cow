@@ -8,7 +8,24 @@ sub insn_after(iop: [BEIop])
     arch_gen_after(&iop.dest);
 end sub;
 
-sub try_conditional(ciop: [BEConditionalIop], liop: [LabelIop])
+sub try_conditional()
+    var ciop: [BEConditionalIop] := queue0 as [BEConditionalIop];
+    var liop: [LabelIop] := queue1 as [LabelIop];
+    if liop.iop_kind == IOP_KILL then
+        liop := queue2 as [LabelIop];
+        if liop.iop_kind == IOP_KILL then
+            liop := queue3 as [LabelIop];
+            if liop.iop_kind == IOP_KILL then
+                print("too many kills after conditional");
+                halt();
+            end if;
+        end if;
+    end if;
+    if liop.iop_kind != IOP_LABEL then
+        print("conditionals must be followed by labels");
+        halt();
+    end if;
+
     arch_gen_before(&ciop.left);
     arch_gen_before(&ciop.right);
 
@@ -69,12 +86,7 @@ sub global_rules(): (matched: uint8)
     end if;
 
     if (queue0.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_SPECIAL then
-        if queue1.iop_kind != IOP_LABEL then
-            print("conditionals must be followed by labels");
-            halt();
-        end if;
-
-        try_conditional(queue0 as [BEConditionalIop], queue1 as [LabelIop]);
+        try_conditional();
 
         # *Don't* consume the label; we want to generate it.
         consume_iops(1);
@@ -111,6 +123,12 @@ sub global_rules(): (matched: uint8)
         return;
     end if;
 
+    if queue0.iop_kind == IOP_KILL then
+        arch_gen_kill(queue0 as [KillIop]);
+        consume_iops(1);
+        return;
+    end if;
+    
     if (queue0.iop_kind == IOP_BYTES)
         or (queue0.iop_kind == IOP_ADDRESS)
         or (queue0.iop_kind == IOP_ADDRESSLO)

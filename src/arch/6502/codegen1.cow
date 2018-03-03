@@ -59,9 +59,13 @@ sub write_back_precious_values(mask: uint8)
         var locations: uint8 := value.locations;
         if (locations & mask) != 0 then
             if (locations & PRECIOUS) != 0 then
-                locations := locations ^ PRECIOUS;
-                write_back_precious_value(locations, &value.ea);
-                value.locations := locations;
+                # We only need to write back the value if it's not previous
+                # in other registers (i.e. this is the last use).
+                if (locations & (mask ^ 0x7f)) == 0 then
+                    locations := locations ^ PRECIOUS;
+                    write_back_precious_value(locations, &value.ea);
+                    value.locations := locations;
+                end if;
             end if;
         end if;
         i := i + 1;
@@ -224,6 +228,89 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
     halt();
 end sub;
 
+sub is_value_precious(ea: [EffectiveAddress]): (precious: uint8)
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+
+        if is_same_ea_ignoring_type(&value.ea, ea) != 0 then
+            if (value.locations & PRECIOUS) != 0 then
+                precious := 1;
+                return;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+
+    precious := 0;
+    return;
+end sub;
+
+sub value_is_precious(ea: [EffectiveAddress])
+    var i: uint8 := 0;
+    var made_precious: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        if value.locations != 0 then
+            if is_same_ea_ignoring_type(ea, &value.ea) != 0 then
+                if (value.locations & PRECIOUS) == 0 then
+					$if DEBUG
+						print("* remembering that value ");
+						print_ea(ea);
+						print(" is precious in 0x");
+						print_hex_i8(value.locations);
+						print_newline();
+					$endif
+
+                    value.locations := value.locations | PRECIOUS;
+                else
+					$if DEBUG
+						print("* value ");
+						print_ea(ea);
+						print(" is already precious in 0x");
+						print_hex_i8(value.locations & (PRECIOUS ^ 0xff));
+						print_newline();
+					$endif
+                end if;
+                made_precious := 1;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+
+    if made_precious == 0 then
+        $if DEBUG
+            print_cache();
+        $endif
+        print("can't make precious, value ");
+        print_ea(ea);
+        print(" is not in the cache");
+        halt();
+    end if;
+end sub;
+
+sub value_is_not_precious(ea: [EffectiveAddress])
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        if (value.locations != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
+            if (value.locations & PRECIOUS) != 0 then
+				$if DEBUG
+					print("* value ");
+					print_ea(ea);
+                    print(" in 0x");
+                    print_hex_i8(value.locations & (PRECIOUS ^ 0xff));
+					print(" is no longer precious\n");
+				$endif
+
+                value.locations := value.locations ^ PRECIOUS;
+                return;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
 sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
 	$if DEBUG
 		print("* hunting for ");
@@ -263,6 +350,9 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
 
             t_reg_reg(oldlocation, location);
             value_is_cached_in_reg(ea, location);
+            if is_value_precious(ea) != 0 then
+                value_is_precious(ea);
+            end if;
             return;
         end if;
     end if;
@@ -325,67 +415,6 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
             end if;
         end if;
     end if;
-end sub;
-
-sub value_is_precious(ea: [EffectiveAddress])
-    var i: uint8 := 0;
-    while i < values@size loop
-        var value: [CachedValue] := &values[i];
-        if value.locations != 0 then
-            if is_same_ea_ignoring_type(ea, &value.ea) != 0 then
-                if (value.locations & PRECIOUS) == 0 then
-					$if DEBUG
-						print("* remembering that value ");
-						print_ea(ea);
-						print(" is precious in 0x");
-						print_hex_i8(value.locations);
-						print_newline();
-					$endif
-
-                    value.locations := value.locations | PRECIOUS;
-                    return;
-                else
-					$if DEBUG
-						print("* value ");
-						print_ea(ea);
-						print(" is already precious in 0x");
-						print_hex_i8(value.locations);
-						print_newline();
-					$endif
-                    return;
-                end if;
-            end if;
-        end if;
-        i := i + 1;
-    end loop;
-
-    $if DEBUG
-        print_cache();
-    $endif
-    print("can't make precious, value ");
-    print_ea(ea);
-    print(" is not in the cache");
-    halt();
-end sub;
-
-sub value_is_not_precious(ea: [EffectiveAddress])
-    var i: uint8 := 0;
-    while i < values@size loop
-        var value: [CachedValue] := &values[i];
-        if (value.locations != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
-            if (value.locations & PRECIOUS) == 0 then
-				$if DEBUG
-					print("* value ");
-					print_ea(ea);
-					print(" is no longer precious\n");
-				$endif
-
-                value.locations := value.locations ^ PRECIOUS;
-                return;
-            end if;
-        end if;
-        i := i + 1;
-    end loop;
 end sub;
 
 sub flush_value(ea: [EffectiveAddress])
