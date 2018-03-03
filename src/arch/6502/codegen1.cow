@@ -776,6 +776,13 @@ sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8): (indexre
             insn.offset := 0;
             insn.indexreg := REG_Y;
             indexreg := REG_Y;
+        elseif (insn.mode == MODE_DIR) and (ea.varoff_id != 0) then
+            var indexea: EffectiveAddress;
+            zero_ea(&indexea);
+            indexea.obj_id := ea.varoff_id;
+            indexea.type_id := uint8_type;
+            indexreg := find_or_load_value(&indexea, REG_X|REG_Y);
+            insn.indexreg := indexreg;
         end if;
     end if;
     insn.datareg := location;

@@ -3,12 +3,6 @@ sub check_widec_ea(ea: [EffectiveAddress])
         var thing: [NumberThing] := find_thing(ea.obj_id) as [NumberThing];
         thing.segment := SEGMENT_CONST;
     end if;
-
-    if ea.varoff_id != 0 then
-        print("wide EA with variable offset: ");
-        print_ea(ea);
-        halt();
-    end if;
 end sub;
 
 sub check_wide_ea(ea: [EffectiveAddress])
@@ -123,12 +117,12 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
     end if;
     check(&iop.dest);
 
-    allocate_fixed_reg(REG_A);
     if looped != 0 then
         $if DEBUG
             print("* using looped implementation\n");
         $endif
 
+        allocate_fixed_reg(REG_A);
         find_or_load_fixed_int(iop.width - 1, REG_Y);
         var label: uint8 := create_label();
         write_label_iop(label);
@@ -161,6 +155,7 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
         write_cg_6502_conditional_iop(0x10, label); # BPL rel
 
         flush_cached_values(REG_Y);
+        free_reg(REG_A);
     else
         $if DEBUG
             print("* using unrolled implementation\n");
@@ -171,6 +166,7 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
             var indexreg: uint8;
 
             indexreg := setup_insn(&iop.left, offset, REG_A);
+            allocate_fixed_reg(REG_A);
             insn_load_object();
             free_reg(indexreg);
 
@@ -182,6 +178,7 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
 
             indexreg := setup_insn(&iop.dest, offset, REG_A);
             insn_save_object();
+            free_reg(REG_A);
             free_reg(indexreg);
         end sub;
 

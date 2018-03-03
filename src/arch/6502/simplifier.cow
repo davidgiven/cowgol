@@ -109,10 +109,9 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     if ea.varoff_id != 0 then
         simplify_varoff := 1;
 
-        if width == 1 then
+        if iop_allows_byte_offsets != 0 then
             var type_id: uint16 := get_type_of_thing(ea.varoff_id);
             var type: [TypeThing] := find_thing(type_id) as [TypeThing];
-
             $if DEBUG
                 print("6502: candidate offset variable has type ");
                 print_thing(type_id);
