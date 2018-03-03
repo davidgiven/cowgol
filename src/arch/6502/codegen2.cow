@@ -106,8 +106,6 @@ end sub;
 sub arch_gen_copy(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_copy_byte(iop);
-    elseif iop.width == 2 then
-        arch_gen_copy_word(iop);
     else
         arch_gen_copy_wide(iop);
     end if;
@@ -124,61 +122,53 @@ end sub;
 sub arch_gen_and(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_and_byte(iop);
-    elseif iop.width == 2 then
-        regular_alu_word_op(iop, 0x2D); # AND abs
     else
-        regular_alu_wide_op(iop, 0x2D); # AND abs
+        regular_alu_wide_op(iop, 0x2D, 1); # AND abs
     end if;
 end sub;
 
 sub arch_gen_or(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_or_byte(iop);
-    elseif iop.width == 2 then
-        regular_alu_word_op(iop, 0x0D); # ORA abs
     else
-        regular_alu_wide_op(iop, 0x0D); # ORA abs
+        regular_alu_wide_op(iop, 0x0D, 1); # ORA abs
     end if;
 end sub;
 
 sub arch_gen_eor(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_eor_byte(iop);
-    elseif iop.width == 2 then
-        regular_alu_word_op(iop, 0x4D); # EOR abs
     else
-        regular_alu_wide_op(iop, 0x4D); # EOR abs
+        regular_alu_wide_op(iop, 0x4D, 1); # EOR abs
     end if;
 end sub;
 
 sub arch_gen_add(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_add_byte(iop);
-    elseif iop.width == 2 then
+    else
         if iop.dest.flags == EA_VALUE then
-            if (get_value_of_number(iop.left.obj_id) == 1) and (is_same_ea_ignoring_type(&iop.right, &iop.dest) != 0) then
-                fast_increment_word(&iop.right, &iop.dest);
+            if (get_value_of_number(iop.left.obj_id) == 1)
+                    and (is_same_ea_ignoring_type(&iop.right, &iop.dest) != 0) then
+                fast_increment_wide(iop.width, &iop.right, &iop.dest);
                 return;
-            elseif (get_value_of_number(iop.right.obj_id) == 1) and (is_same_ea_ignoring_type(&iop.left, &iop.dest) != 0) then
-                fast_increment_word(&iop.left, &iop.dest);
+            elseif (get_value_of_number(iop.right.obj_id) == 1)
+                    and (is_same_ea_ignoring_type(&iop.left, &iop.dest) != 0) then
+                fast_increment_wide(iop.width, &iop.left, &iop.dest);
                 return;
             end if;
         end if;
         write_byte(0x18); # CLC
-        regular_alu_word_op(iop, 0x6D); # ADC abs
-    else
-        arch_gen_add_wide(iop);
+        regular_alu_wide_op(iop, 0x6D, 0); # ADC abs
     end if;
 end sub;
 
 sub arch_gen_sub(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_sub_byte(iop);
-    elseif iop.width == 2 then
-        write_byte(0x38); # SEC
-        regular_alu_word_op(iop, 0xED); # SBC abs
     else
-        arch_gen_sub_wide(iop);
+        write_byte(0x38); # SEC
+        regular_alu_wide_op(iop, 0xED, 0); # SBC abs
     end if;
 end sub;
 

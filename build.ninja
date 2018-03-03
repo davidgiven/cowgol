@@ -457,6 +457,12 @@ build $OBJDIR/tests/cpu/signextension.6502.stamp : run_bbctube_test $OBJDIR/test
  goodfile = tests/cpu/signextension.good 
  badfile = tests/cpu/signextension.bad 
 
+build $OBJDIR/tests/cpu/weirdnesses-32bit-returns.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-32bit-returns.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/weirdnesses-32bit-returns.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-32bit-returns.6502 | tests/cpu/weirdnesses-32bit-returns.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-32bit-returns.good 
+ badfile = tests/cpu/weirdnesses-32bit-returns.bad 
+
 build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-ctype-labels.test.cow | $OBJDIR/compiler_for_bbc_on_native 
  arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502.stamp : run_bbctube_test $OBJDIR/tests/cpu/weirdnesses-ctype-labels.6502 | tests/cpu/weirdnesses-ctype-labels.good scripts/bbctube_test bin/bbctube 

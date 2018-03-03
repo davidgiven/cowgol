@@ -93,63 +93,148 @@ sub do_3op_helper(iop: [BEIop])
     flush_cached_values(REG_MASK);
 end sub;
 
-sub regular_alu_wide_op(iop: [BEIop], opcode: uint8)
+sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
     $if DEBUG
         print("* GENERATE: wide aluop 0x");
         print_hex_i8(opcode);
         print(": ");
         print_ea(&iop.left);
-        print(", ");
-        print_ea(&iop.right);
+        if opcode != 0 then
+            print(", ");
+            print_ea(&iop.right);
+        end if;
         print(" => ");
         print_ea(&iop.dest);
         print_newline();
     $endif
 
-    check_wide_ea(&iop.left);
-    check_wide_ea(&iop.right);
+    sub check(ea: [EffectiveAddress])
+        check_widec_ea(ea);
+        if (ea.flags == EA_LEA) or
+            ((ea.flags == EA_DEREF) and (ea.numoff_id != 0)) or
+            (ea.varoff_id != 0) then
+            looped := 0;
+        end if;
+    end sub;
 
-    find_or_load_fixed_int(0, REG_Y);
-    find_or_load_fixed_int(iop.width - 1, REG_X);
+    check(&iop.left);
+    if opcode != 0 then
+        check(&iop.right);
+    end if;
+    check(&iop.dest);
+
     allocate_fixed_reg(REG_A);
+    if looped != 0 then
+        $if DEBUG
+            print("* using looped implementation\n");
+        $endif
 
-    var label: uint8 := create_label();
-    write_label_iop(label);
-    load_value_with_index(REG_A, &iop.left, REG_Y);
-    aluop_value_with_index(&iop.right, REG_Y, opcode);
-    save_value_with_index(REG_A, &iop.dest, REG_Y);
-    write_byte(0xC8); # INY
-    write_byte(0xCA); # DEX
-    write_cg_6502_conditional_iop(0x10, label); # BPL rel
+        find_or_load_fixed_int(iop.width - 1, REG_Y);
+        var label: uint8 := create_label();
+        write_label_iop(label);
 
-    flush_cached_values(REG_A|REG_X|REG_Y);
-end sub;
+        sub setup_looped(ea: [EffectiveAddress])
+            insn_init();
+            insn.obj_id := ea.obj_id;
+            insn.offset := get_value_of_number(ea.numoff_id) as uint16;
+            insn.indexreg := REG_Y;
+            insn.datareg := REG_A;
+            if ea.flags == EA_DEREF then
+                insn.mode := MODE_IND;
+            else
+                insn.mode := MODE_DIR;
+            end if;
+        end sub;
 
-sub arch_gen_add_wide(iop: [BEIop])
-    write_byte(0x18); # CLC
-    regular_alu_wide_op(iop, 0x6D); # ADC abs
-end sub;
+        setup_looped(&iop.left);
+        insn_load_object();
 
-sub arch_gen_sub_wide(iop: [BEIop])
-    write_byte(0x38); # SEC
-    regular_alu_wide_op(iop, 0xED); # SBC abs
+        if opcode != 0 then
+            setup_looped(&iop.right);
+            insn_alu_object(opcode);
+        end if;
+
+        setup_looped(&iop.dest);
+        insn_save_object();
+
+        write_byte(0x88); # DEY
+        write_cg_6502_conditional_iop(0x10, label); # BPL rel
+
+        flush_cached_values(REG_Y);
+    else
+        $if DEBUG
+            print("* using unrolled implementation\n");
+        $endif
+        
+        var offset: uint8;
+        sub iterate_unrolled()
+            var indexreg: uint8;
+
+            indexreg := setup_insn(&iop.left, offset, REG_A);
+            insn_load_object();
+            free_reg(indexreg);
+
+            if opcode != 0 then
+                indexreg := setup_insn(&iop.right, offset, REG_A);
+                insn_alu_object(opcode);
+                free_reg(indexreg);
+            end if;
+
+            indexreg := setup_insn(&iop.dest, offset, REG_A);
+            insn_save_object();
+            free_reg(indexreg);
+        end sub;
+
+        offset := 0;
+        while offset != iop.width loop
+            iterate_unrolled();
+            offset := offset + 1;
+        end loop;
+    end if;
 end sub;
 
 sub arch_gen_copy_wide(iop: [BEIop])
-    check_wide_ea(&iop.left);
-    check_wide_ea(&iop.right);
+    # It's not worth generating a loop for a word --- the overhead's too much.
+    var looped: uint8 := 0;
+    if iop.width == 4 then
+        looped := 1;
+    end if;
+    regular_alu_wide_op(iop, 0, looped);
+end sub;
 
-    find_or_load_fixed_int(iop.width - 1, REG_Y);
-    allocate_fixed_reg(REG_A);
+sub fast_increment_wide(width: uint8, src: [EffectiveAddress], dest: [EffectiveAddress])
+    $if DEBUG
+        print("* GENERATE: fast increment in place: ");
+        print_ea(src);
+        print(" => ");
+        print_ea(dest);
+        print_newline();
+    $endif
 
-    var label: uint8 := create_label();
-    write_label_iop(label);
-    load_value_with_index(REG_A, &iop.left, REG_Y);
-    save_value_with_index(REG_A, &iop.dest, REG_Y);
-    write_byte(0x88); # DEY
-    write_cg_6502_conditional_iop(0x10, label); # BPL rel
+    if is_same_ea_ignoring_type(src, dest) == 0 then
+        print("can't increment in place");
+        halt();
+    end if;
 
-    flush_cached_values(REG_Y);
+    var indexreg: uint8;
+    var noinclabel: uint8 := create_label();
+
+    var offset: uint8;
+    sub inc_once()
+        indexreg := setup_insn(src, offset, 0);
+        insn_mutate_object(0xEE); # INC abs
+        free_reg(indexreg);
+    end sub;
+
+    offset := 0;
+    inc_once();
+    offset := 1;
+    while offset != width loop
+        write_cg_6502_conditional_iop(0xD0, noinclabel); # BNE label
+        inc_once();
+        offset := offset + 1;
+    end loop;
+    write_label_iop(noinclabel);
 end sub;
 
 sub arch_gen_sext(iop: [BEIop])

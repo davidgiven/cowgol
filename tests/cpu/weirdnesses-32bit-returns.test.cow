@@ -1,0 +1,9 @@
+var block: uint16 := 0;
+var bufferptr: uint8 := 7;
+
+sub returns_32bit(): (retval: uint32)
+    retval := ((block as uint32) << 8) | (bufferptr as uint32);
+end sub;
+
+print_hex_i32(returns_32bit());
+print_newline();

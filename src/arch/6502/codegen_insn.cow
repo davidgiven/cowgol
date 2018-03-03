@@ -72,6 +72,14 @@ sub insn_check_abs()
     end if;
 end sub;
 
+sub insn_check_alu_abs()
+    insn_check_abs();
+    if insn.datareg != REG_A then
+        print("insn_check_alu_abs fail");
+        halt();
+    end if;
+end sub;
+
 sub insn_check_ind()
     if (insn.mode != MODE_IND) or (insn.indexreg == 0) or (insn.offset != 0)
         or (insn.datareg != REG_A) or (insn.indexreg == REG_A)
@@ -186,6 +194,19 @@ sub insn_ld_abs()
     insn_ldst_abs(0b11111111);
 end sub;
 
+# opcode must be the abs form of a column D opcode
+sub insn_alu_abs(opcode: uint8)
+    insn_check_alu_abs();
+
+    if insn.indexreg == REG_X then
+        opcode := opcode | 0b00010000;
+    elseif insn.indexreg == REG_Y then
+        opcode := (opcode | 0b00010000) & 0b11111011;
+    end if;
+
+    insn_op_abs(opcode);
+end sub;
+
 sub insn_st_abs()
     insn_ldst_abs(0b11011111);
 end sub;
@@ -233,7 +254,7 @@ end sub;
 # opcode must be the abs form of a column D opcode.
 sub insn_alu_object(opcode: uint8)
     if insn.mode == MODE_DIR then
-        insn_op_abs(opcode);
+        insn_alu_abs(opcode);
     elseif insn.mode == MODE_IND then
         opcode := (opcode | 0x10) & 0xF3;
         insn_op_ind(opcode);
