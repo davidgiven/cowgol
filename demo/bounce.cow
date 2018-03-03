@@ -18,7 +18,7 @@ end sub;
 
 sub mode(m: uint8)
     print_char(22);
-    print_char(m);
+    print_char(m as int8);
 end sub;
 
 sub setup_screen()
