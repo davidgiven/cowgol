@@ -320,7 +320,6 @@ sub arch_gen_zext(iop: [BEIop])
         print_newline();
     $endif
 
-    flush_value(&iop.left);
 
     var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
     var destwidth: uint8 := iop.width;
@@ -332,25 +331,39 @@ sub arch_gen_zext(iop: [BEIop])
         datacandidates := REG_A|REG_X|REG_Y;
     end if;
 
-    # Copy the low bytes, intact.
-
-    var datareg: uint8 := allocate_reg(datacandidates);
-    var offset: uint8 := 0;
+    var offset: uint8;
+    var datareg: uint8;
     var indexreg: uint8;
-    loop
-        indexreg := setup_insn(&iop.left, offset, datareg);
-        insn_load_object();
-        free_reg(indexreg);
+    if srcwidth == 1 then
+        # Optimised code path because we're reading from a byte.
 
-        indexreg := setup_insn(&iop.dest, offset, datareg);
+        datareg := find_or_load_value(&iop.left, datacandidates);
+
+        indexreg := setup_insn(&iop.dest, 0, datareg);
         insn_save_object();
         free_reg(indexreg);
+        offset := 1;
+    else
+        # Copy the low bytes, intact.
 
-        offset := offset + 1;
-        if offset == srcwidth then
-            break;
-        end if;
-    end loop;
+        offset := 0;
+        flush_value(&iop.left);
+        datareg := allocate_reg(datacandidates);
+        loop
+            indexreg := setup_insn(&iop.left, offset, datareg);
+            insn_load_object();
+            free_reg(indexreg);
+
+            indexreg := setup_insn(&iop.dest, offset, datareg);
+            insn_save_object();
+            free_reg(indexreg);
+
+            offset := offset + 1;
+            if offset == srcwidth then
+                break;
+            end if;
+        end loop;
+    end if;
     free_reg(datareg);
 
     # Now fill the high bytes.
