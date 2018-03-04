@@ -32,6 +32,37 @@ sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
 end sub;
 
+sub insn_check_saveable()
+    if (insn.indexreg != 0) or (insn.mode == MODE_IND) then
+        print("unsaveable object");
+        halt();
+    end if;
+end sub;
+
+sub load_saveable_object(ea: [EffectiveAddress], location: uint8)
+    var storage: Insn;
+    save_insn(&storage);
+
+    insn_init_from_ea(ea);
+    insn.datareg := location;
+    insn_check_saveable();
+    insn_load_object();
+
+    load_insn(&storage);
+end sub;
+
+sub save_saveable_object(ea: [EffectiveAddress], location: uint8)
+    var storage: Insn;
+    save_insn(&storage);
+
+    insn_init_from_ea(ea);
+    insn.datareg := location;
+    insn_check_saveable();
+    insn_save_object();
+
+    load_insn(&storage);
+end sub;
+
 sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     location := find_first_bit(location);
 	$if DEBUG
@@ -42,14 +73,7 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
 		print_newline();
 	$endif
 
-    if ea.flags == EA_VALUE then
-        save_objval(location, ea);
-    else
-        print("can't write precious value ");
-        print_ea(ea);
-        print(" yet");
-        halt();
-    end if;
+    save_saveable_object(ea, location);
 end sub;
 
 sub write_back_precious_values(mask: uint8)
@@ -530,14 +554,34 @@ sub allocate_reg_for_value(ea: [EffectiveAddress], candidates: uint8): (location
     value_is_cached_in_reg(ea, location);
 end sub;
 
+sub find_or_load_primitive_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+    location := move_value_to_reg(ea, candidates);
+    if location != 0 then
+        return;
+    end if;
+    
+    location := allocate_reg_for_value(ea, candidates);
+    load_saveable_object(ea, location);
+end sub;
+
+sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
+    var ea: EffectiveAddress;
+    zero_ea(&ea);
+    ea.obj_id := add_number_by_value(value as int32);
+    location := find_or_load_primitive_value(&ea, candidates);
+end sub;
+
+sub find_or_load_fixed_int(value: uint8, candidates: uint8)
+    var location: uint8 := find_or_load_int(value, candidates);
+end sub;
+
 sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     location := move_value_to_reg(ea, candidates);
     if location != 0 then
         return;
     end if;
     location := allocate_reg_for_value(ea, candidates);
-
-    load_objval(location, ea);
+    load_saveable_object(ea, location);
 end sub;
 
 # Loads *just the index part* of the EA into a register.
@@ -568,55 +612,78 @@ sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: ui
     location := find_or_load_objval(&indexea, candidates);
 end sub;
 
-sub find_or_load_objval_with_optional_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    location := move_value_to_reg(ea, candidates);
-    if location != 0 then
-        return;
-    end if;
-    location := allocate_reg_for_value(ea, candidates);
-
-    if is_number_thing(ea.obj_id) != 0 then
-        load_objval(location, ea);
+sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8): (indexreg: uint8)
+    insn_init_from_ea(ea);
+    indexreg := 0;
+    if insn.mode == MODE_IMMLO then
+        insn.mode := insn.mode + (offset as uint8);
     else
-        var indexreg: uint8 := 0;
-        if ea.varoff_id != 0 then
-            indexreg := find_or_load_index(ea, REG_X|REG_Y);
+        insn.offset := insn.offset + (offset as uint16);
+        if insn.mode == MODE_IND then
+            if insn.offset > 0xff then
+                print("offset too big");
+                halt();
+            end if;
+
+            sub load_index(candidates: uint8)
+                var indexea: EffectiveAddress;
+                zero_ea(&indexea);
+                indexea.obj_id := ea.varoff_id;
+                indexea.type_id := uint8_type;
+                indexreg := find_or_load_primitive_value(&indexea, candidates);
+                insn.indexreg := indexreg;
+            end sub;
+
+            if ea.varoff_id != 0 then
+                if insn.offset != 0 then
+                    print("varoff and numoff in ea");
+                    halt();
+                end if;
+                load_index(REG_Y);
+            else
+                find_or_load_fixed_int(insn.offset as uint8, REG_Y);
+            end if;
+            insn.offset := 0;
+            insn.indexreg := REG_Y;
+            indexreg := REG_Y;
+        elseif (insn.mode == MODE_DIR) and (ea.varoff_id != 0) then
+            load_index(REG_X|REG_Y);
         end if;
-        ld_abs(location, indexreg, ea);
-        free_reg(indexreg);
     end if;
-end sub;
-
-sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    location := move_value_to_reg(ea, candidates);
-    if location != 0 then
-        return;
-    end if;
-
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    location := allocate_reg_for_value(ea, REG_A);
-    ld_ind(location, indexreg, ea);
-    free_reg(indexreg);
-
-    if (location & candidates) == 0 then
-        free_reg(location);
-        location := move_value_to_reg(ea, candidates);
-    end if;
+    insn.datareg := location;
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    if ea.flags == EA_VALUE then
-        location := find_or_load_objval_with_optional_index(ea, candidates);
-    elseif ea.flags == EA_DEREF then
-        location := find_or_load_ptrval(ea, candidates);
-    else
-        $if DEBUG
-            print("find_or_load_value: ");
-        $endif
-        print("can't load ");
+    $if DEBUG
+        print("* loading ");
         print_ea(ea);
-        print(" yet");
-        halt();
+        print(" into 0x");
+        print_hex_i8(candidates);
+        print_newline();
+    $endif
+
+    location := move_value_to_reg(ea, candidates);
+    if location != 0 then
+        return;
+    end if;
+
+    var oldcandidates: uint8;
+    if ea.flags == EA_DEREF then    
+        oldcandidates := candidates;
+        candidates := REG_A;
+    end if;
+
+    var storage: Insn;
+    save_insn(&storage);
+    location := allocate_reg_for_value(ea, candidates);
+    var indexreg: uint8 := setup_insn(ea, 0, location);
+    insn_load_object();
+    free_reg(indexreg);
+    load_insn(&storage);
+
+    if (ea.flags == EA_DEREF) and ((oldcandidates & REG_A) == 0) then
+        location := move_value_to_reg(ea, oldcandidates);
+        free_reg(REG_A);
     end if;
 end sub;
 
@@ -624,37 +691,39 @@ sub find_or_load_fixed_value(ea: [EffectiveAddress], candidates: uint8)
     var location: uint8 := find_or_load_value(ea, candidates);
 end sub;
 
-sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
-    var newlocation: uint8 := location;
-    var indexreg: uint8 := 0;
-    if ea.varoff_id != 0 then
-        indexreg := find_or_load_index(ea, REG_X|REG_Y);
-        if newlocation != REG_A then
-            newlocation := allocate_reg(REG_A);
-            t_reg_reg(location, newlocation);
-            value_is_cached_in_reg(ea, newlocation);
+sub save_value(location: uint8, ea: [EffectiveAddress])
+    $if DEBUG
+        print("* saving 0x");
+        print_hex_i8(location);
+        print(" into ");
+        print_ea(ea);
+        print_newline();
+    $endif
+
+    var oldlocation: uint8;
+    if ea.flags == EA_DEREF then    
+        oldlocation := location;
+        if location != REG_A then
+            $if DEBUG
+                print("* moving value because we can't save this register\n");
+                print_cache();
+            $endif
+            allocate_fixed_reg(REG_A);
+            t_reg_reg(location, REG_A);
+            location := REG_A;
         end if;
     end if;
-    st_abs(newlocation, indexreg, ea);
-    free_reg(indexreg);
-    if location != newlocation then
-        free_reg(newlocation);
-    end if;
-end sub;
 
-sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    var newlocation: uint8;
-    if location != REG_A then
-        newlocation := allocate_reg(REG_A);
-        t_reg_reg(location, newlocation);
-    else
-        newlocation := location;
-    end if;
-    st_ind(newlocation, indexreg, ea);
+    var storage: Insn;
+    save_insn(&storage);
+    var indexreg: uint8 := setup_insn(ea, 0, location);
+    insn_save_object();
     free_reg(indexreg);
-    if location != REG_A then
-        free_reg(newlocation);
+    load_insn(&storage);
+
+    if (ea.flags == EA_DEREF) and (oldlocation != REG_A) then    
+        free_reg(location);
+        value_is_cached_in_reg(ea, location);
     end if;
 end sub;
 
@@ -704,45 +773,6 @@ sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
     end if;
 end sub;
 
-sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
-    var ea: EffectiveAddress;
-    zero_ea(&ea);
-    ea.obj_id := add_number_by_value(value as int32);
-    location := find_or_load_value(&ea, candidates);
-end sub;
-
-sub find_or_load_fixed_int(value: uint8, candidates: uint8)
-    var location: uint8 := find_or_load_int(value, candidates);
-end sub;
-
-sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    var oldlocation: uint8 := find_reg_with_value(ea, candidates);
-    location := find_or_load_value(ea, candidates);
-    if oldlocation != location then
-        # The value was forced from memory, so the flags are set automatically.
-    else
-        write_byte(0x09); # ORA imm
-        write_byte(0x00);
-    end if;
-end sub;
-
-sub find_or_load_fixed_value_with_flags(ea: [EffectiveAddress], candidates: uint8)
-    var location: uint8 := find_or_load_value_with_flags(ea, candidates);
-end sub;
-
-sub save_value(location: uint8, ea: [EffectiveAddress])
-    if ea.flags == EA_VALUE then
-        save_objval_with_optional_index(location, ea);
-    elseif ea.flags == EA_DEREF then
-        save_ptrval_with_index(location, ea);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     if (ea.varoff_id != 0) or (ea.flags == EA_DEREF) then
 		$if DEBUG
@@ -761,59 +791,3 @@ sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
         value_is_precious(ea);
     end if;
 end sub;
-
-sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_VALUE then
-        save_objval_with_offset(location, ea, offset);
-    elseif ea.flags == EA_DEREF then
-        find_or_load_fixed_int(offset, REG_Y);
-        var newlocation: uint8 := location;
-        if location != REG_A then
-            newlocation := allocate_reg(REG_A);
-            t_reg_reg(location, newlocation);
-            value_is_cached_in_reg(ea, newlocation);
-        end if;
-        st_ind(newlocation, REG_Y, ea);
-        if newlocation != REG_A then
-            free_reg(newlocation);
-        end if;
-        free_reg(REG_Y);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" with offset 0x");
-        print_hex_i8(offset);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8): (indexreg: uint8)
-    insn_init_from_ea(ea);
-    indexreg := 0;
-    if insn.mode == MODE_IMMLO then
-        insn.mode := insn.mode + (offset as uint8);
-    else
-        insn.offset := insn.offset + (offset as uint16);
-        if insn.mode == MODE_IND then
-            if insn.offset > 0xff then
-                print("offset too big");
-                halt();
-            end if;
-
-            find_or_load_fixed_int(insn.offset as uint8, REG_Y);
-            insn.offset := 0;
-            insn.indexreg := REG_Y;
-            indexreg := REG_Y;
-        elseif (insn.mode == MODE_DIR) and (ea.varoff_id != 0) then
-            var indexea: EffectiveAddress;
-            zero_ea(&indexea);
-            indexea.obj_id := ea.varoff_id;
-            indexea.type_id := uint8_type;
-            indexreg := find_or_load_value(&indexea, REG_X|REG_Y);
-            insn.indexreg := indexreg;
-        end if;
-    end if;
-    insn.datareg := location;
-end sub;
-    

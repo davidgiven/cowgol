@@ -13,6 +13,14 @@ const MODE_IMMHI := 4;
 
 var insn: Insn;
 
+sub save_insn(storage: [Insn])
+    copy_memory(&insn as [int8], storage as [int8], Insn@bytes);
+end sub;
+
+sub load_insn(storage: [Insn])
+    copy_memory(storage as [int8], &insn as [int8], Insn@bytes);
+end sub;
+
 sub insn_init()
     zero_memory(&insn as [int8], Insn@bytes);
 end sub;

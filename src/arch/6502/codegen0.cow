@@ -203,10 +203,6 @@ sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
     ldst_abs(location, index, ea, 0b11011111);
 end sub;
 
-sub st_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
-    op_ind(ea, 0x91); # STA (ind), Y
-end sub;
-
 var t_opcodes: uint8[9] := {
     0x00, # TAA
     0x8A, # TXA
@@ -242,14 +238,6 @@ sub t_reg_reg(src: uint8, dest: uint8)
     write_byte(opcode);
 end sub;
 
-sub load_objval(location: uint8, ea: [EffectiveAddress])
-    if is_number_thing(ea.obj_id) != 0 then
-        ld_imm(location, get_value_of_number(ea.obj_id) as uint8);
-    else
-        ld_abs(location, 0, ea);
-    end if;
-end sub;
-
 sub convert_lea_ea_to_addressof(ea: [EffectiveAddress])
     if ea.flags == EA_LEA then
         var ptr_id: uint16 := add_addressof_by_value(ea.obj_id,
@@ -280,46 +268,6 @@ sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
     end if;
 end sub;
 
-sub save_objval(location: uint8, ea: [EffectiveAddress])
-    st_abs(location, 0, ea);
-end sub;
-
-sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) +
-        (offset as int32));
-    st_abs(location, 0, ea);
-    ea.numoff_id := old_numoff_id;
-end sub;
-
-sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_VALUE then
-        save_objval_with_offset(location, ea, offset);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" with offset 0x");
-        print_hex_i8(offset);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    if ea.flags == EA_VALUE then
-        st_abs(location, index, ea);
-    elseif ea.flags == EA_DEREF then
-        st_ind(location, index, ea);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" with index reg 0x");
-        print_hex_i8(index);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
 # opcode must be the abs form of a regular accumulator ALU operation in column 0x0D.
 sub aluop_value_with_index(ea: [EffectiveAddress], index: uint8, opcode: uint8)
     convert_lea_ea_to_addressof(ea);
@@ -341,27 +289,4 @@ sub aluop_value_with_index(ea: [EffectiveAddress], index: uint8, opcode: uint8)
     end if;
 
     op_abs(ea, opcode);
-end sub;
-
-# opcode must be the abs form of a regular accumulator ALU operation in column 0x0D.
-sub aluop_value_with_offset(ea: [EffectiveAddress], offset: uint8, opcode: uint8)
-    if ea.flags == EA_VALUE then
-        var old_numoff_id: uint16 := ea.numoff_id;
-        ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) + (offset as int32));
-        op_abs(ea, opcode);
-        ea.numoff_id := old_numoff_id;
-    elseif ea.flags == EA_LEA then
-        opcode := opcode & 0xfb;
-        if offset == 0 then
-            op_imm_adr(ea, IOP_ADDRESSLO, opcode);
-        elseif offset == 1 then
-            op_imm_adr(ea, IOP_ADDRESSHI, opcode);
-        else
-            print("bad lea offset");
-            halt();
-        end if;
-    else
-        print("offsetted aluop with unsupported EA");
-        halt();
-    end if;
 end sub;

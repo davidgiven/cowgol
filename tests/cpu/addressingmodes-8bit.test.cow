@@ -54,6 +54,10 @@ testrecord.array[3] := 5;
 var testrecordptr: [TestRecord] := &testrecord;
 
 print("&testrecord==testrecordptr"); if &testrecord == testrecordptr then yes(); else no(); end if;
+print("testrecord.byte==1"); if testrecord.byte == 1 then yes(); else no(); end if;
+print("testrecord.array[2]==4"); if testrecord.array[2] == 4 then yes(); else no(); end if;
+print("testrecordptr.byte==1"); if testrecordptr.byte == 1 then yes(); else no(); end if;
+print("testrecordptr.array[2]==4"); if testrecordptr.array[2] == 4 then yes(); else no(); end if;
 print("&testrecord.byte==&testrecordptr.byte"); if &testrecord.byte == &testrecordptr.byte then yes(); else no(); end if;
 print("&testrecord.array[0]==&testrecordptr.array[0]"); if &testrecord.array[0] == &testrecordptr.array[0] then yes(); else no(); end if;
 print("testrecord.array[2]==testrecordptr.array[2]"); if testrecord.array[2] == testrecordptr.array[2] then yes(); else no(); end if;
