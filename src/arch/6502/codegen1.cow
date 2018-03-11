@@ -32,6 +32,20 @@ sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
 end sub;
 
+sub find_first_bit(value: uint8): (mask: uint8)
+    mask := 1;
+    loop
+        if (value & mask) != 0 then
+            return;
+        end if;
+        if mask == 0x80 then
+            break;
+        end if;
+        mask := mask << 1;
+    end loop;
+    mask := 0;
+end sub;
+
 sub insn_check_saveable()
     if (insn.indexreg != 0) or (insn.mode == MODE_IND) then
         print("unsaveable object");
