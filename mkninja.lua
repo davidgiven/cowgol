@@ -166,7 +166,6 @@ local target_data = {
 
         CODEGEN = {
             "src/arch/6502/codegen0.cow",
-            "src/arch/6502/codegen_insn.cow",
             "src/arch/6502/codegen1.cow",
             "src/arch/6502/codegen2_8bit.cow",
             "src/arch/6502/codegen2_wide.cow",
@@ -187,7 +186,6 @@ local target_data = {
 
         CODEGEN = {
             "src/arch/6502/codegen0.cow",
-            "src/arch/6502/codegen_insn.cow",
             "src/arch/6502/codegen1.cow",
             "src/arch/6502/codegen2_8bit.cow",
             "src/arch/6502/codegen2_wide.cow",
