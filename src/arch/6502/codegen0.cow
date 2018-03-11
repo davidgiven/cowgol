@@ -40,94 +40,11 @@ sub bad_register()
     halt();
 end sub;
 
-sub op_imm(value: uint8, opcode: uint8)
-	$if DEBUG
-		print("@ op_imm 0x");
-		print_hex_i8(opcode);
-		print(" value=0x");
-		print_hex_i8(value);
-		print_newline();
-	$endif
-
-    var buf: uint8[2];
-    buf[0] := opcode;
-    buf[1] := value;
-    write_bytes_iop(buf@size, &buf[0]);
-end sub;
-
-sub op_imm_adr(ea: [EffectiveAddress], beiop: uint8, opcode: uint8)
-	$if DEBUG
-		print("@ op_imm_adr 0x");
-		print_hex_i8(opcode);
-		print(" iop=0x");
-		print_hex_i8(beiop);
-		print(" value=");
-		print_ea(ea);
-		print_newline();
-	$endif
-
-    write_byte(opcode);
-    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
-end sub;
-
 var ld_imm_opcodes: uint8[3] := {
     0xA9, # LDA imm
     0xA2, # LDX imm
     0xA0 # LDY imm
 };
-
-sub ld_imm(location: uint8, value: uint8)
-    location := find_bit_index(location);
-    op_imm(value, ld_imm_opcodes[location]);
-end sub;
-
-sub ld_imm_adr_lo(location: uint8, ea: [EffectiveAddress])
-    location := find_bit_index(location);
-    op_imm_adr(ea, IOP_ADDRESSLO, ld_imm_opcodes[location]);
-end sub;
-
-sub ld_imm_adr_hi(location: uint8, ea: [EffectiveAddress])
-    location := find_bit_index(location);
-    op_imm_adr(ea, IOP_ADDRESSHI, ld_imm_opcodes[location]);
-end sub;
-
-sub op_abs(ea: [EffectiveAddress], opcode: uint8)
-	$if DEBUG
-		print("@ op_abs 0x");
-		print_hex_i8(opcode);
-		print(" ea=");
-		print_ea(ea);
-		print_newline();
-	$endif
-
-    if ea.varoff_id != 0 then
-        print("can't have varoff here");
-        halt();
-    end if;
-
-    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
-    var beiop: uint8;
-    if ((opcode & 0x0F) == 0x01) then
-        if obj.segment != SEGMENT_ZEROPAGE then
-            print("indirect op with non zero-page object");
-            halt();
-        end if;
-        beiop := IOP_ADDRESSLO;
-    elseif (obj.segment == SEGMENT_ZEROPAGE) and ((opcode & 0x0C) == 0x0C) then
-        opcode := opcode & 0xf7;
-        beiop := IOP_ADDRESSLO;
-    elseif obj.segment == SEGMENT_UNKNOWN then
-        print("segment of ");
-        print_ea(ea);
-        print(" not known");
-        halt();
-    else
-        beiop := IOP_ADDRESS;
-    end if;
-
-    write_byte(opcode);
-    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
-end sub;
 
 var ld_abs_opcodes: uint8[3] := {
     0xAD, # LDA abs
@@ -146,62 +63,6 @@ var ld_abs_y_opcodes: uint8[3] := {
     0xBE, # LDX abs, Y
     0x00 # invalid
 };
-
-sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint8)
-    var opcode: uint8 := 0;
-
-    location := find_bit_index(location);
-    if index == 0 then
-        opcode := ld_abs_opcodes[location];
-    elseif index == REG_X then
-        opcode := ld_abs_x_opcodes[location];
-    elseif index == REG_Y then
-        opcode := ld_abs_y_opcodes[location];
-    end if;
-
-    if opcode == 0 then
-        bad_register();
-    end if;
-    opcode := opcode & opmask;
-
-    op_abs(ea, opcode);
-end sub;
-
-sub op_ind(ea: [EffectiveAddress], opcode: uint8)
-	$if DEBUG
-		print("@ op_ind 0x");
-		print_hex_i8(opcode);
-		print(" obj_id=");
-		print_thing(ea.obj_id);
-		print(" numoff=");
-		print_thing(ea.numoff_id);
-		print_newline();
-	$endif
-
-    if ea.varoff_id != 0 then
-        print("can't have varoff here");
-        halt();
-    end if;
-    if get_value_of_number(ea.numoff_id) != 0 then
-        print("can't have numoff here");
-        halt();
-    end if;
-
-    write_byte(opcode);
-    write_address_iop(IOP_ADDRESSLO, ea.obj_id, 0);
-end sub;
-
-sub ld_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
-    ldst_abs(location, index, ea, 0b11111111);
-end sub;
-
-sub ld_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
-    op_ind(ea, 0xB1); # LDA (ind), Y
-end sub;
-
-sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
-    ldst_abs(location, index, ea, 0b11011111);
-end sub;
 
 var t_opcodes: uint8[9] := {
     0x00, # TAA
@@ -247,23 +108,5 @@ sub convert_lea_ea_to_addressof(ea: [EffectiveAddress])
         ea.obj_id := ptr_id;
         ea.numoff_id := 0;
         ea.flags := EA_VALUE;
-    end if;
-end sub;
-
-sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    convert_lea_ea_to_addressof(ea);
-    if ea.flags == EA_VALUE then
-        ld_abs(location, index, ea);
-    elseif ea.flags == EA_DEREF then
-        ld_ind(location, index, ea);
-    else
-        print("can't load ");
-        print_ea(ea);
-        print(" with index reg 0x");
-        print_hex_i8(index);
-        print(" and flags ");
-        print_hex_i8(ea.flags);
-        print(" yet");
-        halt();
     end if;
 end sub;

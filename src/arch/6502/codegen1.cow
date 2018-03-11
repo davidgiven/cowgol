@@ -575,43 +575,6 @@ sub find_or_load_fixed_int(value: uint8, candidates: uint8)
     var location: uint8 := find_or_load_int(value, candidates);
 end sub;
 
-sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    location := move_value_to_reg(ea, candidates);
-    if location != 0 then
-        return;
-    end if;
-    location := allocate_reg_for_value(ea, candidates);
-    load_saveable_object(ea, location);
-end sub;
-
-# Loads *just the index part* of the EA into a register.
-sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    var indexea: EffectiveAddress;
-    indexea.flags := EA_VALUE;
-    indexea.varoff_id := 0;
-    indexea.numoff_id := 0;
-    if ea.varoff_id != 0 then
-        indexea.obj_id := ea.varoff_id;
-        ea.varoff_id := 0;
-    else
-        if ea.numoff_id == 0 then
-            indexea.obj_id := add_number_by_value(0);
-        else
-            indexea.obj_id := ea.numoff_id;
-        end if;
-        ea.numoff_id := 0;
-    end if;
-    indexea.type_id := uint8_type;
-
-	$if DEBUG
-		print("* loading index value ");
-		print_ea(&indexea);
-		print_newline();
-	$endif
-
-    location := find_or_load_objval(&indexea, candidates);
-end sub;
-
 sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8): (indexreg: uint8)
     insn_init_from_ea(ea);
     indexreg := 0;
@@ -725,36 +688,6 @@ sub save_value(location: uint8, ea: [EffectiveAddress])
         free_reg(location);
         value_is_cached_in_reg(ea, location);
     end if;
-end sub;
-
-sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)
-    if is_number_thing(ea.obj_id) != 0 then
-        op_imm(get_value_of_number(ea.obj_id) as uint8, opcode & 0xFB);
-    else
-        var indexreg: uint8 := 0;
-        if ea.varoff_id != 0 then
-            indexreg := find_or_load_index(ea, REG_X|REG_Y);
-            opcode := opcode | 0x10;
-            if indexreg == REG_Y then
-                opcode := opcode & 0xFB;
-            end if;
-        end if;
-
-        op_abs(ea, opcode);
-
-        free_reg(indexreg);
-    end if;
-end sub;
-
-sub aluop_deref(ea: [EffectiveAddress], opcode: uint8)
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    opcode := (opcode | 0x10) & 0xF3;
-    ea.varoff_id := 0;
-    ea.numoff_id := 0;
-
-    op_ind(ea, opcode);
-
-    free_reg(indexreg);
 end sub;
 
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])

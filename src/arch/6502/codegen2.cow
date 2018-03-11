@@ -317,10 +317,18 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
         allocate_fixed_reg(REG_A);
 
         if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
-            load_value_with_index(REG_A, &ciop.left, REG_Y);
+            insn_long_init_from_ea(&ciop.left);
+            insn.indexreg := REG_Y;
+            insn.datareg := REG_A;
+            insn_load_object();
+            
             emit_comparison(&ciop.right);
         else
-            load_value_with_index(REG_A, &ciop.right, REG_Y);
+            insn_long_init_from_ea(&ciop.right);
+            insn.indexreg := REG_Y;
+            insn.datareg := REG_A;
+            insn_load_object();
+            
             emit_comparison(&ciop.left);
         end if;
     else
