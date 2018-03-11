@@ -255,6 +255,18 @@ sub arch_gen_mul(iop: [BEIop])
 end sub;
 
 sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: comparison 0x");
+        print_hex_i8(ciop.iop_kind);
+        print(": ");
+        print_ea(&ciop.left);
+        print(", ");
+        print_ea(&ciop.right);
+        print(" => label 0x");
+        print_hex_i8(liop.label);
+        print_newline();
+    $endif
+
     var width: uint8 := ciop.width;
     write_back_precious_values(REG_MASK);
 
@@ -267,33 +279,42 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
     var iopkind: uint8 := ciop.iop_kind;
 
     sub emit_comparison(ea: [EffectiveAddress])
+        $if DEBUG
+            print("* emit RHS comparison for ");
+            print_ea(ea);
+            print_newline();
+        $endif
+        
+        var indexreg: uint8 := 0;
+        if width == 1 then
+            indexreg := setup_insn(ea, 0, REG_A);
+        else
+            insn_long_init_from_ea(ea);
+            insn.indexreg := REG_Y;
+        end if;
+        insn.datareg := REG_A;
+
         if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
             write_byte(0x38); # SEC
-            if width != 1 then
-                aluop_value_with_index(ea, REG_Y, 0xED); # SBC abs
-            else
-                aluop_value(ea, 0xED); # SBC abs
-            end if;
+            insn_alu_object(0xED); # SBC abs
             write_word(0x0250); # BVC .+2
             write_word(0x8049); # EOR #80
         else
-            if width != 1 then
-                aluop_value_with_index(ea, REG_Y, 0xCD); # CMP abs
-            else
-                aluop_value(ea, 0xCD); # CMP abs
-            end if;
+            insn_alu_object(0xCD); # CMP abs
         end if;
+
+        free_reg(indexreg);
     end sub;
 
     if width != 1 then
         find_or_load_fixed_int(ciop.width-1, REG_Y);
     end if;
 
-    allocate_fixed_reg(REG_A);
-
     if width != 1 then
         var label: uint8 := create_label();
         write_label_iop(label);
+
+        allocate_fixed_reg(REG_A);
 
         if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
             load_value_with_index(REG_A, &ciop.left, REG_Y);
@@ -304,13 +325,15 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
         end if;
     else
         if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
-            aluop_value(&ciop.left, 0xAD); # LDA abs
+            find_or_load_fixed_value(&ciop.left, REG_A);
             emit_comparison(&ciop.right);
+            free_reg(REG_A);
         else
-            aluop_value(&ciop.right, 0xAD); # LDA abs
+            find_or_load_fixed_value(&ciop.right, REG_A);
             emit_comparison(&ciop.left);
         end if;
     end if;
+    free_reg(REG_A);
 
     # Remember, with BEQ we don't care about the order.
     # After this point, assume we're comparing LT.

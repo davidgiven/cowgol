@@ -757,22 +757,6 @@ sub aluop_deref(ea: [EffectiveAddress], opcode: uint8)
     free_reg(indexreg);
 end sub;
 
-# Assumes the input value is in A. opcode must be an abs instruction in the 0x0D or 0x0E
-# columns of the map. ea is read direct from memory (or via an immediate).
-sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
-    var flags: uint8 := ea.flags;
-    if flags == EA_VALUE then
-        aluop_objval(ea, opcode);
-    elseif flags == EA_DEREF then
-        aluop_deref(ea, opcode);
-    else
-        print("can't alu ");
-        print_ea(ea);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
 sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     if (ea.varoff_id != 0) or (ea.flags == EA_DEREF) then
 		$if DEBUG

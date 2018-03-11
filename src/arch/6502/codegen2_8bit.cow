@@ -28,7 +28,10 @@ sub gen_regular_alu(iop: [BEIop], opcode: uint8)
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
 
-    aluop_value(&iop.right, opcode);
+    var indexreg: uint8 := setup_insn(&iop.right, 0, REG_A);
+    insn_alu_object(opcode);
+    free_reg(indexreg);
+    
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 

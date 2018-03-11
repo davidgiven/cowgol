@@ -267,26 +267,3 @@ sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
         halt();
     end if;
 end sub;
-
-# opcode must be the abs form of a regular accumulator ALU operation in column 0x0D.
-sub aluop_value_with_index(ea: [EffectiveAddress], index: uint8, opcode: uint8)
-    convert_lea_ea_to_addressof(ea);
-    if ea.flags == EA_DEREF then
-        opcode := (opcode | 0x10) & 0xF3;
-        if index != REG_Y then
-            print("PTRVAL must have Y index");
-            halt();
-        end if;
-    elseif ea.flags == EA_VALUE then
-        if index == REG_X then
-            opcode := opcode | 0x10;
-        elseif index == REG_Y then
-            opcode := (opcode | 0x10) & 0xFB;
-        end if;
-    else
-        print("indexed aluop with unsupported EA");
-        halt();
-    end if;
-
-    op_abs(ea, opcode);
-end sub;

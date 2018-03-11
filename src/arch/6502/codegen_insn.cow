@@ -25,6 +25,20 @@ sub insn_init()
     zero_memory(&insn as [int8], Insn@bytes);
 end sub;
 
+sub insn_long_init_from_ea(ea: [EffectiveAddress])
+    convert_lea_ea_to_addressof(ea);
+    insn_init();
+    insn.obj_id := ea.obj_id;
+    insn.offset := get_value_of_number(ea.numoff_id) as uint16;
+    if ea.flags == EA_DEREF then
+        insn.mode := MODE_IND;
+    else
+        insn.mode := MODE_DIR;
+    end if;
+end sub;
+
+# Like insn_long_init_from_ea(), but if the value is a number, turn it into
+# a MODE_IMM mode.
 sub insn_init_from_ea(ea: [EffectiveAddress])
     insn_init();
     insn.obj_id := ea.obj_id;
