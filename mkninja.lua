@@ -169,7 +169,6 @@ local target_data = {
             "src/arch/6502/codegen1.cow",
             "src/arch/6502/codegen2_8bit.cow",
             "src/arch/6502/codegen2_wide.cow",
-            "src/arch/6502/codegen2_16bit.cow",
             "src/arch/6502/codegen2.cow",
         }
     end,
@@ -189,7 +188,6 @@ local target_data = {
             "src/arch/6502/codegen1.cow",
             "src/arch/6502/codegen2_8bit.cow",
             "src/arch/6502/codegen2_wide.cow",
-            "src/arch/6502/codegen2_16bit.cow",
             "src/arch/6502/codegen2.cow",
         }
     end
