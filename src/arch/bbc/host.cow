@@ -1,3 +1,3 @@
-const THINGSTABLE_SIZE := 20000; # must be about 32000 to build the compiler
-const STRINGTABLE_SIZE := 2000;  # must be about 10000 to build the compiler
-const IOPTABLE_SIZE := 2000;
+const THINGSTABLE_SIZE := 31000;
+const STRINGTABLE_SIZE := 15000;
+const IOPTABLE_SIZE := 5000; # needs to be about 10000 to compile the compiler

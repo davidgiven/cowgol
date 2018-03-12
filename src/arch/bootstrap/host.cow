@@ -1,3 +1,5 @@
-const THINGSTABLE_SIZE := 50000;
-const STRINGTABLE_SIZE := 20000;
-const IOPTABLE_SIZE := 12000;
+# Experimentally verified to be about the minimum needed to compile the
+# compiler.
+const THINGSTABLE_SIZE := 31000;
+const STRINGTABLE_SIZE := 15000;
+const IOPTABLE_SIZE := 10000;

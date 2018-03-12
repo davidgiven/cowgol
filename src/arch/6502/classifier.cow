@@ -58,10 +58,10 @@ sub arch_propagate_var_offsets(src_offsets: [ArchSizes], dest_offsets: [ArchSize
 end sub;
 
 sub arch_report_offsets(offsets: [ArchSizes])
-    print("Zero page: ");
-    print_i8(offsets.zp_size);
-    print(" bytes\nData: ");
-    print_i16(offsets.data_size);
+    print("Zero page: 0x");
+    print_hex_i8(offsets.zp_size);
+    print(" bytes\nData: 0x");
+    print_hex_i16(offsets.data_size);
     print(" bytes\n");
 end sub;
 
