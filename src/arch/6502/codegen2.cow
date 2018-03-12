@@ -210,7 +210,7 @@ end sub;
 
 sub arch_gen_divs(iop: [BEIop])
     if iop.width == 1 then
-        arch_gen_divu_byte(iop);
+        arch_gen_divs_byte(iop);
     elseif iop.width == 2 then
         arch_gen_simple_wide(iop, TOKEN_DIVS16);
     elseif iop.width == 4 then
@@ -233,7 +233,9 @@ sub arch_gen_modu(iop: [BEIop])
 end sub;
 
 sub arch_gen_mods(iop: [BEIop])
-    if iop.width == 2 then
+    if iop.width == 1 then
+        arch_gen_mods_byte(iop);
+    elseif iop.width == 2 then
         arch_gen_simple_wide(iop, TOKEN_MODS16);
     elseif iop.width == 4 then
         arch_gen_simple_wide(iop, TOKEN_MODS32);

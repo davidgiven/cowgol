@@ -174,23 +174,31 @@ sub arch_gen_asr_byte(iop: [BEIop])
     lsl_lsr_byte(iop, 0x6A, 1); # ROR A
 end sub;
 
-sub divu_modu_byte(iop: [BEIop], resultreg: uint8, discardreg: uint8)
+sub divsu_modu_byte(iop: [BEIop], resultreg: uint8, discardreg: uint8, token: uint16)
     find_or_load_fixed_value(&iop.left, REG_A);
     find_or_load_fixed_value(&iop.right, REG_X);
     value_in_location_will_be_replaced_with(resultreg, &iop.left, &iop.dest);
 
     # This routine preserves Y.
     write_byte(0x20); # JSR abs
-    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_DIVMODU8), 0);
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(token), 0);
 
     make_value_precious_or_save_now(resultreg, &iop.dest);
     flush_cached_values(discardreg);
 end sub;
 
 sub arch_gen_divu_byte(iop: [BEIop])
-    divu_modu_byte(iop, REG_A, REG_X);
+    divsu_modu_byte(iop, REG_A, REG_X, TOKEN_DIVMODU8);
 end sub;
 
 sub arch_gen_modu_byte(iop: [BEIop])
-    divu_modu_byte(iop, REG_X, REG_A);
+    divsu_modu_byte(iop, REG_X, REG_A, TOKEN_DIVMODU8);
+end sub;
+
+sub arch_gen_divs_byte(iop: [BEIop])
+    divsu_modu_byte(iop, REG_A, REG_X, TOKEN_DIVMODS8);
+end sub;
+
+sub arch_gen_mods_byte(iop: [BEIop])
+    divsu_modu_byte(iop, REG_X, REG_A, TOKEN_DIVMODS8);
 end sub;

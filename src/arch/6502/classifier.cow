@@ -83,6 +83,8 @@ sub arch_classify_iop(iop: [BEIop])
     if width == 1 then
         if (iopkind == IOP_BE_DIVU) or (iopkind == IOP_BE_MODU) then
             needs_runtime_subroutine(TOKEN_DIVMODU8);
+        elseif (iopkind == IOP_BE_DIVS) or (iopkind == IOP_BE_MODS) then
+            needs_runtime_subroutine(TOKEN_DIVMODS8);
         elseif iopkind == IOP_BE_MUL then
             needs_runtime_subroutine(TOKEN_MUL8);
         end if;

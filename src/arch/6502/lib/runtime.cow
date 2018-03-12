@@ -141,7 +141,8 @@ sub __asr32()
     @bytes 0x4C, &__lsr_asr;     # JMP __asr
 end sub;
 
-# A/X -> A quotient, X remainder
+# A/X -> A quotient, X remainder (unsigned)
+# Preserves Y!
 sub __divmodu8()
     var num: uint8 @segment(0x81);
     var den: uint8 @segment(0x81);
@@ -163,6 +164,64 @@ sub __divmodu8()
 
     @bytes 0xAA;                 # TAX
     @bytes 0xA5, >&num;          # LDA num
+end sub;
+
+# A/X -> A quotient, X remainder (signed)
+# Preserves Y!
+sub __divmods8()
+    var num: uint8 @segment(0x81);
+    var den: uint8 @segment(0x81);
+    var quotientsign: uint8 @segment(0x81);
+    @bytes 0x85, >&num;          # STA num
+    @bytes 0x86, >&den;          # STX den
+    @bytes 0x45, >&den;          # EOR quotientsign
+    @bytes 0x85, >&quotientsign; # STA quotientsign
+
+    # Is the denominator negative? If so, negate it.
+    # (we do this first so we can use A)
+    @bytes 0x24, >&den;          # BIT den
+    @bytes 0x10, 0x06;           # BPL den_not_negative
+    @bytes 0x38;                 # SEC
+    @bytes 0xA9, 0x00;           # LDA #0
+    @bytes 0xE5, >&den;          # SBC den
+    @bytes 0xAA;                 # TAX
+    # den_not_negative:
+
+    @bytes 0xA5, >&num;          # LDA num
+
+    # Is the numerator negative? If so, negate it.
+    # (don't touch X, which contains the denominator)
+    @bytes 0x24, >&num;          # BIT num
+    @bytes 0x10, 0x06;           # BPL num_not_negative
+    @bytes 0x38;                 # SEC
+    @bytes 0x49, 0xFF;           # EOR #0xFF
+    @bytes 0x38;                 # SEC
+    @bytes 0x69, 0x00;           # ADC #0
+    # num_not_negative:
+
+    # Call the unsigned operation.
+    __divmodu8();
+
+    # The remainder (which is in X) has the same sign as the numerator.
+    @bytes 0x24, >&num;          # BIT num
+    @bytes 0x10, 0x09;           # BPL num_still_not_negative
+    @bytes 0x48;                 # PHA
+    @bytes 0x8A;                 # TXA
+    @bytes 0x49, 0xFF;           # EOR #0xFF
+    @bytes 0x38;                 # SEC
+    @bytes 0x69, 0x00;           # ADC #0
+    @bytes 0xAA;                 # TAX
+    @bytes 0x68;                 # PLA
+    # num_still_not_negative:
+
+    # The quotient (which is in A) gets inverted if either the numerator
+    # *or* the denominator is negative, but not both.
+    @bytes 0x24, >&quotientsign; # BIT quotientsign
+    @bytes 0x10, 0x05;           # BPL dont_negate_quotient
+    @bytes 0x49, 0xFF;           # EOR #0xFF
+    @bytes 0x38;                 # SEC
+    @bytes 0x69, 0x00;           # ADC #0
+    # den_still_not_negative:
 end sub;
 
 sub divmod8(left: uint8, right: uint8): (quotient: uint8, remainder: uint8)
