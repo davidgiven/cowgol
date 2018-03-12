@@ -34,9 +34,13 @@ files for the runtime library and add your own code to that, so as to save
 time (the runtime library is big and takes about eight minutes to tokenise
 and parse).
 
-- **the tokeniser**: reads the source files and produces a token stream and the string table. (Since 0.2 this has been rewritten to use Flex tables. Slightly bigger, slightly faster, much more understandable --- the old hand-tooled tokeniser was pretty crufty.)
+- **the tokeniser**: reads the source files and produces a token stream and
+the string table. (Since 0.2 this has been rewritten to use Flex tables.
+Slightly bigger, slightly faster, much more understandable --- the old
+hand-tooled tokeniser was pretty crufty.)
 
-- **the parser**: reads the token stream and parses the Cowgol language out of it. It generates an iop stream containing stack-based front end opcodes.
+- **the parser**: reads the token stream and parses the Cowgol language out
+of it. It generates an iop stream containing stack-based front end opcodes.
 
 - **the typechecker**: reads in the iops stream containing the front end
 opcodes and does type analysis and reporting of errors; it also looks up
@@ -71,7 +75,7 @@ There's architecture-specific code in every pass except the tokeniser, the
 parser and the blockifier. The 6502 version is in
 [src/arch/6502](https://github.com/davidgiven/cowgol/tree/master/src/arch/6502)
 
-** The backend model
+## The backend model
 
 The backend uses a memory machine abstraction, where every instruction reads
 from memory and writes to memory. The code generator then caches values in
@@ -100,7 +104,9 @@ occasional signedness flag.) Constant values are held in memory and referred
 to by address (the code generator may optimise the fetch away if it wants
 to).
 
-The typechecker generates abstract code, and then there's a platform-specific simplification pass which chops instructions up into pieces which the architecture can understand. So:
+The typechecker generates abstract code, and then there's a platform-specific
+simplification pass which chops instructions up into pieces which the
+architecture can understand. So:
 
 ```
 [i] := [[array] + offset]  # generated from i := array[offset]
@@ -128,20 +134,20 @@ deliberately avoided thinking about this for simplicity.
 
 All the platform-specific code should be in
 [src/arch](https://github.com/davidgiven/cowgol/tree/master/src/arch).
-The most complicated part is the code generator. Currently the 6502 code
-generator is a bit of a mess and needs a proper overhaul. It uses a very
-simple value cache where it tries to remember which 8-bit values are stored in
-which register, and flushes them to memory lazily. It's important to remember
-that you need to flush the cache whenever doing a pointer access to maintain
-pointer aliasing rules. There's no attempt to track values between basic
-blocks (because it's really hard); the cache is flushed and values reloaded
-from memory as needed. 16-bit and 32-bit values aren't cached at all and are
-worked on directly in memory.
+The most complicated part is the code generator, which has received a proper
+overhaul since 0.3 and now generates much... more adequate... code. It uses a
+very simple value cache where it tries to remember which 8-bit values are
+stored in which register, and flushes them to memory lazily. It's important
+to remember that you need to flush the cache whenever doing a pointer access
+to maintain pointer aliasing rules. There's no attempt to track values
+between basic blocks (because it's really hard); the cache is flushed and
+values reloaded from memory as needed. 16-bit and 32-bit values aren't cached
+at all and are worked on directly in memory.
 
 This is a reasonable strategy for the very register-light old architectures,
 but would be very wasteful (although simple!) on a register-centric
 architecture like the ARM. You'll want to rewrite the code generator from
-scratch. The 6502 one is about 1.7kloc.
+scratch. The 6502 one is about 2.1kloc.
 
 You also need a simplifier, which breaks down complex backend instructions.
 This is much smaller, but pretty subtle, and I spent ages removing bugs from

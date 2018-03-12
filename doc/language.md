@@ -230,6 +230,24 @@ zero_memory(&block as [int8], SomeType@bytes);
 zero_memory(&block as [int8], block@bytes);    # this works too
 ```
 
+## Conditional compilation
+
+There's very basic parser support for conditional compilation, which is used
+to turn on and off debug tracing.
+
+```
+$set DEBUG                # set the debugging flag
+
+$if DEBUG
+  something();            # only gets compiled if $set DEBUG was seen
+$endif
+```
+
+**Note:** No semicolon!
+
+There are no other flags which can be set (although more may arrive in the
+future).
+
 ## Special tricks
 
 There's other magic stuff you can do; these are used for interfacing with the

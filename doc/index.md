@@ -131,7 +131,7 @@ Why not?
 
 So you've tried the demo disk!
 
-...and you've discovered that the compiler takes eight minutes to compile
+...and you've discovered that the compiler takes seven minutes to compile
 "Hello, world!". Does that answer your question?
 
 There are a bunch of things that can be done to improve performance, but they
@@ -144,10 +144,15 @@ But let's be honest; you're trying to compile a modern-ish language on a 2MHz
 Who?
 ----
 
-Cowgol was written, entirely so far, by me, David Given. Feel free to send me email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to visit my website](http://cowlark.com); there may or may not be something interesting there.
+Cowgol was written, entirely so far, by me, David Given. Feel free to send me
+email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to visit
+my website](http://cowlark.com); there may or may not be something
+interesting there.
 
 
 License?
 --------
 
-Cowgol is open source software available [under the 2-clause BSD license](https://github.com/davidgiven/cowgol/blob/master/COPYING). Simplified summary: do what you like with it, just don't claim you wrote it.
+Cowgol is open source software available [under the 2-clause BSD
+license](https://github.com/davidgiven/cowgol/blob/master/COPYING).
+Simplified summary: do what you like with it, just don't claim you wrote it.
