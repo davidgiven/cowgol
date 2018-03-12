@@ -21,8 +21,10 @@ bin/mkadfs -O $1 -S 1280 -B 3 -N 'Cowgol demo' \
     -d Lib \
         -f src/arch/bbc/lib/argv.cow     -n ArgV \
         -f src/arch/bbc/lib/fileio.cow   -n FileIO \
+        -f src/arch/bbc/lib/fcb.cow      -n FCB \
         -f src/arch/bbc/lib/mos.cow      -n MOS \
         -f src/arch/bbc/lib/runtime.cow  -n Runtime0 \
         -f src/arch/6502/lib/runtime.cow -n Runtime1 \
         -f src/arch/common/lib/runtime.cow -n Runtime2 \
+        -f src/string_lib.cow            -n StringLib \
         -u \
