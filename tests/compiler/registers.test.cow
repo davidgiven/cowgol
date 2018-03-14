@@ -1,0 +1,3 @@
+# This test will only run with the bootstrap compiler.
+
+$include "src/codegen/registers.cow"

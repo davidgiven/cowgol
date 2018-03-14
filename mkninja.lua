@@ -227,13 +227,13 @@ local function build_lexify(files, vars)
 	nl()
 end
 
-local function bootstrap_test(file)
+local function bootstrap_test(dir, file, extradeps)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
-    local testbin = "$OBJDIR/tests/bootstrap/"..testname
+    local testbin = "$OBJDIR/tests/"..dir.."/"..testname
     emit("build", testbin, ":", "bootstrapped_cowgol_program",
         "tests/bootstrap/_test.cow",
         file,
-        "|", DEPS)
+        "|", extradeps)
     nl()
     emit("build", testbin..".stamp", ":", "run_smart_test", testbin)
     nl()
@@ -494,7 +494,17 @@ end
 -- Build the bootstrap compiler tests.
 host_data.native()
 for _, file in ipairs(posix.glob("tests/bootstrap/*.test.cow")) do
-    bootstrap_test(file)
+    bootstrap_test("bootstrap", file)
+end
+
+-- Build the compiler logic tests.
+host_data.native()
+for _, file in ipairs(posix.glob("tests/compiler/*.test.cow")) do
+    bootstrap_test("compiler", file,
+        {
+            "src/codegen/registers.cow"
+        }
+    )
 end
 
 -- Build the CPU tests.
