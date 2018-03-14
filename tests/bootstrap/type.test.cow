@@ -14,3 +14,9 @@ j := j + (i as LargeInt);
 if j != 1 then
     fail("j wrong");
 end if;
+
+type ArrayType := uint8[5];
+var k: ArrayType;
+if k@bytes != 5 then
+    fail("k@bytes wrong");
+end if;

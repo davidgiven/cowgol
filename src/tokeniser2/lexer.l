@@ -57,6 +57,7 @@ record                    { emit_token(TOKEN_RECORD); }
 return                    { emit_token(TOKEN_RETURN); }
 sub                       { emit_token(TOKEN_SUB); }
 then                      { emit_token(TOKEN_THEN); }
+type                      { emit_token(TOKEN_TYPE); }
 var                       { emit_token(TOKEN_VAR); }
 while                     { emit_token(TOKEN_WHILE); }
 

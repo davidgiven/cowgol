@@ -24,6 +24,7 @@ record    RECORD
 return    RETURN
 goto      GOTO
 namespace NAMESPACE
+type      TYPE
 
 # Specials.
 @segment  SEGMENT

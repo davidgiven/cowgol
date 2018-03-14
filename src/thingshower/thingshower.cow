@@ -165,46 +165,46 @@ loop
     print_thing(id);
     print(": ");
 
-    var type: uint8 := thing.thing_type;
-    if (type == THING_ROOT) then
+    var thing_type: uint8 := thing.thing_type;
+    if (thing_type == THING_ROOT) then
         show_root_thing(thing as [RootThing]);
-    elseif (type == THING_IDENTIFIER) then
+    elseif (thing_type == THING_IDENTIFIER) then
         show_identifier_thing(thing as [IdentifierThing]);
-    elseif (type == THING_TOKEN) then
+    elseif (thing_type == THING_TOKEN) then
         show_token_thing(thing as [TokenThing]);
-    elseif type == THING_NUMBER then
+    elseif thing_type == THING_NUMBER then
         show_number_thing(thing as [NumberThing]);
-    elseif type == THING_ADDRESSOF then
+    elseif thing_type == THING_ADDRESSOF then
         show_addressof_thing(thing as [AddressOfThing]);
-    elseif type == THING_STRING then
+    elseif thing_type == THING_STRING then
         show_string_thing(thing as [StringThing]);
-    elseif type == THING_NAMESPACE then
+    elseif thing_type == THING_NAMESPACE then
         show_namespace_thing(thing as [NamespaceThing]);
-    elseif type == THING_SYMBOL then
+    elseif thing_type == THING_SYMBOL then
         show_symbol_thing(thing as [SymbolThing]);
-    elseif type == THING_SUBROUTINE then
+    elseif thing_type == THING_SUBROUTINE then
         show_subroutine_thing(thing as [SubroutineThing]);
-    elseif type == THING_SIGNEDT then
-        show_numeric_thing("signed_type", thing as [NumericThing]);
-    elseif type == THING_UNSIGNEDT then
-        show_numeric_thing("unsigned_type", thing as [NumericThing]);
-    elseif type == THING_CONSTANTT then
-        show_numeric_thing("constant_type", thing as [NumericThing]);
-    elseif type == THING_POINTERT then
+    elseif thing_type == THING_SIGNEDT then
+        show_numeric_thing("signed_thing_type", thing as [NumericThing]);
+    elseif thing_type == THING_UNSIGNEDT then
+        show_numeric_thing("unsigned_thing_type", thing as [NumericThing]);
+    elseif thing_type == THING_CONSTANTT then
+        show_numeric_thing("constant_thing_type", thing as [NumericThing]);
+    elseif thing_type == THING_POINTERT then
         show_pointer_thing(thing as [PointerThing]);
-    elseif type == THING_RECORDT then
+    elseif thing_type == THING_RECORDT then
         show_record_thing(thing as [RecordThing]);
-    elseif type == THING_MEMBER then
+    elseif thing_type == THING_MEMBER then
         show_member_thing(thing as [MemberThing]);
-    elseif type == THING_VARIABLE then
+    elseif thing_type == THING_VARIABLE then
         show_variable_thing(thing as [VariableThing]);
-    elseif type == THING_PARAMETER then
+    elseif thing_type == THING_PARAMETER then
         show_parameter_thing(thing as [ParameterThing]);
-    elseif type == THING_ARRAYT then
+    elseif thing_type == THING_ARRAYT then
         show_array_thing(thing as [ArrayThing]);
     else
-        print("unknown type ");
-        print_i8(type);
+        print("unknown thing_type ");
+        print_i8(thing_type);
     end if;
     print_newline();
 

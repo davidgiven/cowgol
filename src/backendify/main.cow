@@ -315,15 +315,15 @@ sub process_subroutine()
         var node_type: [TypeThing] := find_thing(node.type_id) as [TypeThing];
 
         var type_id: uint16 := node.type_id;
-        var type: [Thing] := find_thing(type_id);
+        var type_thing: [Thing] := find_thing(type_id);
 
-        if type.thing_type == THING_POINTERT then
+        if type_thing.thing_type == THING_POINTERT then
             # Ensure that any additional offset is applied to the *contents* of the pointer, and
             # not the *location* of the pointer.
             node := simplify_node_to_var_and_deref(node);
             node.left.flags := EA_DEREF;
         end if;
-        var record_type: [RecordThing] := type as [RecordThing];
+        var record_type: [RecordThing] := type_thing as [RecordThing];
 
         var member: [MemberThing] := find_thing(iop.thing_id) as [MemberThing];
         var member_type_thing: [Thing] := find_thing(member.type_id);

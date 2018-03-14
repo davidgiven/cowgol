@@ -8,10 +8,10 @@ sub pointer_of(type_id: uint16, index_type_id: uint16): (ptr_type_id: uint16)
     ptr_type_id := add_thing_by_value(&buf as [Thing]);
 end sub;
 
-sub element_of(type_id: uint16): (element_type_id: uint16)
-    var type: [WithElementsThing] := find_thing(type_id) as [WithElementsThing];
-    if (type.thing_type == THING_POINTERT) or (type.thing_type == THING_ARRAYT) then
-        element_type_id := type.element_type_id;
+sub element_of(thing_id: uint16): (element_type_id: uint16)
+    var thing: [WithElementsThing] := find_thing(thing_id) as [WithElementsThing];
+    if (thing.thing_type == THING_POINTERT) or (thing.thing_type == THING_ARRAYT) then
+        element_type_id := thing.element_type_id;
     else
         element_type_id := 0;
     end if;
@@ -44,8 +44,8 @@ sub get_width_of_type(type_id: uint16): (width: uint16)
     if type_id == 0 then
         width := 0;
     else
-        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
-        width := type.width;
+        var type_thing: [TypeThing] := find_thing(type_id) as [TypeThing];
+        width := type_thing.width;
     end if;
 end sub;
 

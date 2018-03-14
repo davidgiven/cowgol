@@ -187,11 +187,11 @@ sub check_for_thing_table_overflow()
     end if;
 end sub;
 
-sub create_thing(type: uint8, size: uint8): (id: uint16)
+sub create_thing(thing_type: uint8, size: uint8): (id: uint16)
     id := thing_table_top;
     var thing: [Thing] := &thing_table[id] as [Thing];
     zero_memory(thing as [int8], (size + 1) as uint16);
-    thing.thing_type := type;
+    thing.thing_type := thing_type;
     thing_table_top := thing_table_top + (size as uint16);
     check_for_thing_table_overflow();
 end sub;
@@ -222,8 +222,8 @@ sub get_thing_type(thing_id: uint16): (type_id: uint8)
     end if;
 end sub;
 
-sub is_thing_type(id: uint16, type: uint8): (yes: uint8)
-    if get_thing_type(id) == type then
+sub is_thing_type(id: uint16, thing_type: uint8): (yes: uint8)
+    if get_thing_type(id) == thing_type then
         yes := 1;
     else
         yes := 0;
@@ -231,11 +231,11 @@ sub is_thing_type(id: uint16, type: uint8): (yes: uint8)
 end sub;
 
 sub get_thing_class(id: uint16): (class: uint8)
-    var type: uint8 := get_thing_type(id);
-    if type >= thing_classes@size then
+    var thing_type: uint8 := get_thing_type(id);
+    if thing_type >= thing_classes@size then
         class := 0;
     else
-        class := thing_classes[type];
+        class := thing_classes[thing_type];
     end if;
 end sub;
 
@@ -415,8 +415,8 @@ sub is_number_type_thing(thing_id: uint16): (yes: uint8)
 end sub;
 
 sub is_signed_type_thing(thing_id: uint16): (yes: uint8)
-    var type: uint8 := get_thing_type(thing_id);
-    if (type == THING_SIGNEDT) or (type == THING_CONSTANTT) then
+    var thing_type: uint8 := get_thing_type(thing_id);
+    if (thing_type == THING_SIGNEDT) or (thing_type == THING_CONSTANTT) then
         yes := 1;
     else
         yes := 0;

@@ -37,7 +37,6 @@ sub read_type(): (type_id: uint16)
             halt();
         end if;
 
-        var type: [TypeThing] := find_thing(type_id) as [TypeThing];
         if current_token == TOKEN_CLOSESQUARE then
             if brackets == 0 then
                 break;

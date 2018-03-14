@@ -36,8 +36,8 @@ sub global_rules(): (matched: uint8)
     matched := 1;
     arch_gen_beginning_of_instruction();
 
-    var type: uint8 := queue0.iop_kind & IOP_TYPE_MASK;
-    if (type == IOP_TYPE_BACKEND_2OP) or (type == IOP_TYPE_BACKEND_3OP) then
+    var ioptype: uint8 := queue0.iop_kind & IOP_TYPE_MASK;
+    if (ioptype == IOP_TYPE_BACKEND_2OP) or (ioptype == IOP_TYPE_BACKEND_3OP) then
         insn_before(queue0 as [BEIop]);
 
         if queue0.iop_kind == IOP_BE_COPY then

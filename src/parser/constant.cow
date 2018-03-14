@@ -147,10 +147,10 @@ sub do_constant(): (result: int32)
         if is_number_thing(symbol.value_id) != 0 then
             value := get_value_of_number(symbol.value_id);
         elseif is_type_thing(symbol.value_id) != 0 then
-            var type: [TypeThing] := find_thing(symbol.value_id) as [TypeThing];
+            var type_thing: [TypeThing] := find_thing(symbol.value_id) as [TypeThing];
             next_token();
             if current_token == TOKEN_BYTES then
-                value := type.width as int32;
+                value := type_thing.width as int32;
             else
                 print("unsupported type suffix in constant expression");
                 halt();

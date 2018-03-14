@@ -1,0 +1,19 @@
+type SmallInt := uint8;
+type LargeInt := uint16;
+
+sub yes() print(": yes\n"); end sub;
+sub no()  print(": no\n"); end sub;
+
+var i: SmallInt := 0xff;
+i := i + 1;
+print("i==0"); if i == 0 then yes(); else no(); end if;
+
+i := 1;
+var j: LargeInt := 0xffff;
+j := j + (i as uint16);
+j := j + (i as LargeInt);
+print("j==1"); if i == 1 then yes(); else no(); end if;
+
+type ArrayType := uint8[5];
+var k: ArrayType;
+print("k@bytes==5"); if k@bytes == 5 then yes(); else no(); end if;

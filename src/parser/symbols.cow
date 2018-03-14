@@ -63,8 +63,8 @@ sub lexical_peek(): (value: uint16)
     value := lexical_stack[lexical_stack_ptr - 1];
 end sub;
 
-sub lexical_pop_scope_type(type: uint16)
-    if lexical_pop() != type then
+sub lexical_pop_scope_type(scopetype: uint16)
+    if lexical_pop() != scopetype then
         print("mismatched lexical scope terminator");
         halt();
     end if;

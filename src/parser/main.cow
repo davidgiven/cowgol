@@ -311,6 +311,16 @@ sub do_record()
     expect_token(TOKEN_SEMICOLON);
 end sub;
 
+sub do_type()
+    expect_token(TOKEN_TYPE);
+    var id: uint16 := expect_identifier();
+    expect_token(TOKEN_ASSIGN);
+    var type_id: uint16 := read_type();
+    expect_token(TOKEN_SEMICOLON);
+    
+    add_symbol(id, type_id, current_namespace_id);
+end sub;
+
 sub do_label()
     var id: uint16 := expect_identifier();
     expect_token(TOKEN_COLON);
@@ -571,6 +581,8 @@ while current_token != 0 loop
         do_const();
     elseif current_token == TOKEN_RECORD then
         do_record();
+    elseif current_token == TOKEN_TYPE then
+        do_type();
     elseif current_token == TOKEN_END then
         do_end();
     elseif current_token == TOKEN_GOTO then
