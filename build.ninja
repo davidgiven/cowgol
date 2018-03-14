@@ -268,7 +268,7 @@ build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing.stamp : run_sma
 build $OBJDIR/tests/bootstrap/while : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/while.test.cow | 
 build $OBJDIR/tests/bootstrap/while.stamp : run_smart_test $OBJDIR/tests/bootstrap/while 
 
-build $OBJDIR/tests/compiler/registers : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/compiler/registers.test.cow | src/codegen/registers.cow 
+build $OBJDIR/tests/compiler/registers : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/compiler/registers.test.cow | src/codegen/registers.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/arch/bbc/globals.cow src/arch/bbc/host.cow src/utils/names.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow 
 build $OBJDIR/tests/compiler/registers.stamp : run_smart_test $OBJDIR/tests/compiler/registers 
 
 build $OBJDIR/tests/cpu/addressingmodes-16bit.6502 : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/addressingmodes-16bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 

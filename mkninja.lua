@@ -502,7 +502,16 @@ host_data.native()
 for _, file in ipairs(posix.glob("tests/compiler/*.test.cow")) do
     bootstrap_test("compiler", file,
         {
-            "src/codegen/registers.cow"
+            "src/codegen/registers.cow",
+            "src/string_lib.cow",
+            "src/arch/bootstrap/fcb.cow",
+            "src/arch/bbc/globals.cow",
+            "src/arch/bbc/host.cow",
+            "src/utils/names.cow",
+            "src/utils/stringtable.cow",
+            "src/utils/things.cow",
+            "src/utils/types.cow",
+            "src/utils/iops.cow",
         }
     )
 end

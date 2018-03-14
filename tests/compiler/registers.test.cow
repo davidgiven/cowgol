@@ -1,3 +1,52 @@
 # This test will only run with the bootstrap compiler.
 
+$include "src/string_lib.cow"
+$include "src/arch/bootstrap/fcb.cow"
+$include "src/arch/bbc/globals.cow"
+$include "src/arch/bbc/host.cow"
+$include "src/utils/names.cow"
+$include "src/utils/stringtable.cow"
+$include "src/utils/things.cow"
+$include "src/utils/types.cow"
+$include "src/utils/iops.cow"
+
+type RegId := uint8;
+const REG_A   := 0b0000_0001;
+const REG_B   := 0b0000_0010;
+const REG_C   := 0b0000_0100;
+const REG_D   := 0b0000_1000;
+const REG_E   := 0b0001_0000;
+const REG_BC  := 0b0010_0000;
+const REG_CD  := 0b0100_0000;
+const ANY_REG := 0b0111_1111;
+const NUM_REGISTERS := 7;
+
+type PhysRegId := uint8;
+const ANY_PHYS_REG := 0b0001_1111;
+var reg_usage: RegId[NUM_REGISTERS] := {
+    REG_A,
+    REG_B,
+    REG_C,
+    REG_D,
+    REG_E,
+    REG_B|REG_C,
+    REG_D|REG_E
+};
+
+sub save_register(reg: RegId, ea: [EffectiveAddress])
+    print("save 0x");
+    print_hex_i8(reg);
+    print(": ");
+    print_ea(ea);
+    print_newline();
+end sub;
+
+sub load_register(reg: RegId, ea: [EffectiveAddress])
+    print("save 0x");
+    print_hex_i8(reg);
+    print(": ");
+    print_ea(ea);
+    print_newline();
+end sub;
+
 $include "src/codegen/registers.cow"

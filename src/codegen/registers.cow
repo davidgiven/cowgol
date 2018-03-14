@@ -1,0 +1,5 @@
+# This is a very simple, first-come-first-served register allocator. It's dumb
+# as rocks but is really cheap. It keeps track of what values are in what
+# registers and writes back values only when needed. It can handle overlapping
+# registers of different widths.
+
