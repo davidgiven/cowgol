@@ -34,7 +34,7 @@ end
 function fatal(...)
     local s = string.format(...)
     if stream then
-        s = s .. string.format(" at about line %d of %s", stream:line(), current_filename)
+        s = s .. string.format(" at about line %s of %s", stream:line() or "?", current_filename)
     end
     error(s)
 end
