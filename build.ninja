@@ -259,6 +259,9 @@ build $OBJDIR/tests/bootstrap/records.stamp : run_smart_test $OBJDIR/tests/boots
 build $OBJDIR/tests/bootstrap/sub : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/sub.test.cow | 
 build $OBJDIR/tests/bootstrap/sub.stamp : run_smart_test $OBJDIR/tests/bootstrap/sub 
 
+build $OBJDIR/tests/bootstrap/type : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/type.test.cow | 
+build $OBJDIR/tests/bootstrap/type.stamp : run_smart_test $OBJDIR/tests/bootstrap/type 
+
 build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/weirdness-operators-while-indexing.test.cow | 
 build $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing.stamp : run_smart_test $OBJDIR/tests/bootstrap/weirdness-operators-while-indexing 
 

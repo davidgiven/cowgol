@@ -257,7 +257,7 @@ end sub;
 
 sub do_record()
     var type_id: uint16;
-    var type: [TypeThing];
+    var type_thing: [TypeThing];
 
     expect_token(TOKEN_RECORD);
     var id: uint16 := expect_identifier();
@@ -294,14 +294,14 @@ sub do_record()
         expect_token(TOKEN_COLON);
         type_id := read_type();
         check_recursive_type();
-        type := find_thing(type_id) as [TypeThing];
+        type_thing := find_thing(type_id) as [TypeThing];
 
         var member_id: uint16 := create_thing(THING_MEMBER, MemberThing@bytes);
         add_symbol(id, member_id, recordp.namespace_id);
         var member: [MemberThing] := find_thing(member_id) as [MemberThing];
         member.type_id := type_id;
         member.offset := recordp.width;
-        recordp.width := recordp.width + type.width;
+        recordp.width := recordp.width + type_thing.width;
 
         expect_token(TOKEN_SEMICOLON);
     end loop;

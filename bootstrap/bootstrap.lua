@@ -303,8 +303,12 @@ function already_defined(token)
     fatal("name '%s' is already defined at this level of scope", token)
 end
 
-function check_undefined(token)
-    if current_ns[token] then
+function check_undefined(token, ns)
+    if not ns then
+        ns = current_ns
+    end
+
+    if ns[token] then
         already_defined(token)
     end
 end
@@ -350,8 +354,8 @@ function create_symbol(name, ns)
 
     local sym = {}
 
-    check_undefined(name)
-    current_ns[name] = sym
+    check_undefined(name, ns)
+    ns[name] = sym
     return sym
 end
 
@@ -660,6 +664,8 @@ function do_statements()
             do_if()
         elseif (t == "record") then
             do_record()
+        elseif (t == "type") then
+            do_type()
         elseif (t == "break") then
             expect("break")
             emit("break;")
@@ -797,6 +803,16 @@ function do_record()
 
     expect("end")
     expect("record")
+end
+
+function do_type()
+    expect("type")
+    local newname = stream:next()
+    expect(":=")
+    local oldtype = read_type()
+
+    check_undefined(newname)
+    current_ns[newname] = oldtype
 end
 
 function do_const()

@@ -213,12 +213,12 @@ sub next_thing(thing_id: uint16): (new_id: uint16)
     new_id := thing_id + (thing_sizes[thing.thing_type] as uint16);
 end sub;
 
-sub get_thing_type(thing_id: uint16): (type: uint8)
+sub get_thing_type(thing_id: uint16): (type_id: uint8)
     if thing_id == 0 then
-        type := 0;
+        type_id := 0;
     else
         var thing: [Thing] := find_thing(thing_id);
-        type := thing.thing_type;
+        type_id := thing.thing_type;
     end if;
 end sub;
 
