@@ -74,6 +74,9 @@ rule run_smart_test
 rule run_bbctube_test
     command = scripts/bbctube_test $in $badfile $goodfile && touch $out
 
+rule run_stupid_test
+    command = scripts/stupid_test $in $badfile $goodfile && touch $out
+
 build $OBJDIR/dependencies_for_bootstrapped_cowgol_program : stamp $
     scripts/cowgol_bootstrap_compiler $
     bootstrap/bootstrap.lua $
@@ -236,6 +239,27 @@ local function bootstrap_test(dir, file, extradeps)
         "|", extradeps)
     nl()
     emit("build", testbin..".stamp", ":", "run_smart_test", testbin)
+    nl()
+    nl()
+end
+
+local function compiler_test(dir, file, extradeps)
+    local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
+    local testbin = "$OBJDIR/tests/"..dir.."/"..testname
+    local goodfile = "tests/"..dir.."/"..testname..".good"
+    local badfile = "tests/"..dir.."/"..testname..".bad"
+    emit("build", testbin, ":", "bootstrapped_cowgol_program",
+        "tests/bootstrap/_test.cow",
+        file,
+        "|", extradeps)
+    nl()
+    emit("build", testbin..".stamp", ":", "run_stupid_test",
+        testbin, "|",
+        goodfile)
+    nl()
+    emit(" goodfile = "..goodfile)
+    nl()
+    emit(" badfile = "..badfile)
     nl()
     nl()
 end
@@ -500,7 +524,7 @@ end
 -- Build the compiler logic tests.
 host_data.native()
 for _, file in ipairs(posix.glob("tests/compiler/*.test.cow")) do
-    bootstrap_test("compiler", file,
+    compiler_test("compiler", file,
         {
             "src/codegen/registers.cow",
             "src/string_lib.cow",
