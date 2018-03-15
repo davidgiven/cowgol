@@ -5,19 +5,21 @@
 
 record CachedValue
     ea: EffectiveAddress;
-    locations: RegId;
+    locations: RegSet;
     precious: uint8;
 end record;
 
-var locked_registers: RegId;
+var locked_registers: RegSet;
 var value_cache: CachedValue[VALUE_CACHE_SIZE];
+var register_use: uint8[NUM_REGS];
 
 sub reg_reset()
     locked_registers := 0;
     zero_memory(&value_cache as [int8], value_cache@bytes);
+    zero_memory(&register_use as [int8], register_use@bytes);
 end sub;
 
-sub find_lowest_bit(value: RegId): (mask: RegId)
+sub find_lowest_bit(value: RegSet): (mask: RegSet)
     mask := 1;
     loop
         if (value & mask) != 0 then
@@ -30,8 +32,10 @@ sub find_lowest_bit(value: RegId): (mask: RegId)
     end loop;
 end sub;
 
-sub reg_find_affected(regsin: RegId): (regsout: RegId)
-    var mask: RegId := 1;
+# Given a set of registers, finds all registers that may be touched as a side
+# effect.
+sub reg_find_affected(regsin: RegSet): (regsout: RegSet)
+    var mask: RegSet := 1;
     var index: uint8 := 0;
     regsout := 0;
     while index != NUM_REGS loop
@@ -43,8 +47,48 @@ sub reg_find_affected(regsin: RegId): (regsout: RegId)
     end loop;
 end sub;
 
-sub reg_write_back_precious_values(regs: RegId)
-    var mask: RegId := reg_find_affected(regs);
+# Indicate that a register has just been used.
+sub reg_bump(regs: RegSet)
+    regs := reg_find_affected(regs);
+    var mask: RegSet := 1;
+    var index: uint8 := 0;
+    while index != NUM_REGS loop
+        if (regs & mask) != 0 then
+            register_use[index] := 0;
+        else
+            var cost: uint8 := register_use[index];
+            if cost != 0xff then
+                register_use[index] := cost + 1;
+            end if;
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+end sub;
+
+# Find the register with the lowest cost (that is, the one that's been used
+# least recently).
+sub reg_find_lowest_cost(candidates: RegSet): (reg: RegSet)
+    var mask: RegSet := 1;
+    var currentcost: uint8 := 0;
+    var index: uint8 := 0;
+    while index != NUM_REGS loop
+        if (candidates & mask) != 0 then
+            var cost: uint8 := register_use[index];
+            if cost > currentcost then
+                reg := mask;
+                currentcost := cost;
+            end if;
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+end sub;
+
+# Ensure that any precious values are written back to memory (and not marked
+# as precious any more.
+sub reg_write_back_precious_values(regs: RegSet)
+    var mask: RegSet := reg_find_affected(regs);
     $if DEBUG
         print("% writing back precious values in ");
         print_regs(regs);
@@ -71,9 +115,11 @@ sub reg_write_back_precious_values(regs: RegId)
     end loop;
 end sub;
 
-sub reg_evict(regs: RegId)
+# Evicts all values stored in the specified registers from the cache (writing
+# back precious values if necessary).
+sub reg_evict(regs: RegSet)
     reg_write_back_precious_values(regs);
-    var mask: RegId := reg_find_affected(regs);
+    var mask: RegSet := reg_find_affected(regs);
     $if DEBUG
         print("% evicting values in ");
         print_regs(regs);
@@ -93,7 +139,8 @@ sub reg_evict(regs: RegId)
     end loop;
 end sub;
 
-sub reg_used_registers(): (mask: RegId)
+# Returns the set of registers currently known by the cache.
+sub reg_used_registers(): (mask: RegSet)
     var i: uint8 := 0;
     mask := 0;
     while i != value_cache@size loop
@@ -103,7 +150,11 @@ sub reg_used_registers(): (mask: RegId)
     end loop;
 end sub;
 
-sub reg_alloc(candidates: RegId): (location: RegId)
+# Allocates exactly one register from the set of candidates. Completely
+# unused registers will be preferred; then the lowest-cost register used by
+# the cache for a non-precious value; then the lowest-cost register used for
+# a precious value; then an error.
+sub reg_alloc(candidates: RegSet): (location: RegSet)
     $if DEBUG
         print("% allocating register in ");
         print_regs(candidates);
@@ -114,7 +165,7 @@ sub reg_alloc(candidates: RegId): (location: RegId)
         print_newline();
     $endif
 
-    var used_registers: RegId := reg_used_registers();
+    var used_registers: RegSet := reg_used_registers();
     $if DEBUG
         print("%   used registers: ");
         print_regs(used_registers);
@@ -123,7 +174,7 @@ sub reg_alloc(candidates: RegId): (location: RegId)
 
     # First, attempt to find a register which is completely unused.
 
-    var unused: RegId := (reg_find_affected(used_registers | locked_registers) ^ ALL_REGS) & candidates;
+    var unused: RegSet := (reg_find_affected(used_registers | locked_registers) ^ ALL_REGS) & candidates;
     $if DEBUG
         print("%   potential unused registers are ");
         print_regs(unused);
@@ -147,7 +198,7 @@ sub reg_alloc(candidates: RegId): (location: RegId)
     halt();
 end sub;
 
-sub reg_free(regs: RegId)
+sub reg_free(regs: RegSet)
     $if DEBUG
         print("% freeing ");
         print_regs(regs);

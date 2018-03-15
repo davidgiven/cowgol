@@ -12,7 +12,7 @@ $include "src/utils/iops.cow"
 
 const VALUE_CACHE_SIZE := 16;
 
-type RegId := uint8;
+type RegSet := uint8;
 const REG_A     := 0b0000_0001; # 0
 const REG_B     := 0b0000_0010; # 1
 const REG_C     := 0b0000_0100; # 2
@@ -23,7 +23,7 @@ const REG_DE    := 0b0100_0000; # 6
 const ALL_REGS  := 0b0111_1111;
 const NUM_REGS  := 7;
 
-var reg_interference: RegId[NUM_REGS] := {
+var reg_interference: RegSet[NUM_REGS] := {
     REG_A,
     REG_B | REG_BC,
     REG_C | REG_BC,
@@ -33,7 +33,7 @@ var reg_interference: RegId[NUM_REGS] := {
     REG_DE | REG_D | REG_E
 };
 
-sub reg_save(reg: RegId, ea: [EffectiveAddress])
+sub reg_save(reg: RegSet, ea: [EffectiveAddress])
     print("save 0x");
     print_hex_i8(reg);
     print(": ");
@@ -41,7 +41,7 @@ sub reg_save(reg: RegId, ea: [EffectiveAddress])
     print_newline();
 end sub;
 
-sub reg_load(reg: RegId, ea: [EffectiveAddress])
+sub reg_load(reg: RegSet, ea: [EffectiveAddress])
     print("load 0x");
     print_hex_i8(reg);
     print(": ");
@@ -49,7 +49,7 @@ sub reg_load(reg: RegId, ea: [EffectiveAddress])
     print_newline();
 end sub;
 
-sub print_regs(regs: RegId)
+sub print_regs(regs: RegSet)
     if regs == 0            then print("(none) "); end if;
     if (regs & REG_A) != 0  then print("A "); end if;
     if (regs & REG_B) != 0  then print("B "); end if;
@@ -67,10 +67,30 @@ end sub;
 $set DEBUG
 $include "src/codegen/registers.cow"
 
+sub cost_test()
+    print("\nLRU test\n");
+    reg_reset();
+    reg_bump(REG_A);
+    reg_bump(REG_B);
+    reg_bump(REG_C);
+    print("cost for A: "); print_i8(register_use[0]); print_newline();
+    print("cost for B: "); print_i8(register_use[1]); print_newline();
+    print("cost for C: "); print_i8(register_use[2]); print_newline();
+    print("cost for D: "); print_i8(register_use[3]); print_newline();
+    print("cost for E: "); print_i8(register_use[4]); print_newline();
+    print("cost for BC: "); print_i8(register_use[5]); print_newline();
+    print("cost for DE: "); print_i8(register_use[6]); print_newline();
+
+    print("lowest cost of ABC is: ");
+    print_regs(reg_find_lowest_cost(REG_A|REG_B|REG_C));
+    print_newline();
+end sub;
+cost_test();
+
 sub simple_allocation_test()
     print("\nSimple allocation test\n");
     reg_reset();
-    var location: RegId := reg_alloc(REG_B);
+    var location: RegSet := reg_alloc(REG_B);
     location := reg_alloc(REG_BC|REG_DE);
     reg_free(REG_B);
     location := reg_alloc(REG_BC|REG_DE);
