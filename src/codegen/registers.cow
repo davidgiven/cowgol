@@ -3,3 +3,156 @@
 # registers and writes back values only when needed. It can handle overlapping
 # registers of different widths.
 
+record CachedValue
+    ea: EffectiveAddress;
+    locations: RegId;
+    precious: uint8;
+end record;
+
+var locked_registers: RegId;
+var value_cache: CachedValue[VALUE_CACHE_SIZE];
+
+sub reg_reset()
+    locked_registers := 0;
+    zero_memory(&value_cache as [int8], value_cache@bytes);
+end sub;
+
+sub find_lowest_bit(value: RegId): (mask: RegId)
+    mask := 1;
+    loop
+        if (value & mask) != 0 then
+            return;
+        end if;
+        mask := mask << 1;
+        if mask == 0 then
+            return;
+        end if;
+    end loop;
+end sub;
+
+sub reg_find_affected(regsin: RegId): (regsout: RegId)
+    var mask: RegId := 1;
+    var index: uint8 := 0;
+    regsout := 0;
+    while index != NUM_REGS loop
+        if (regsin & mask) != 0 then
+            regsout := regsout | reg_interference[index];
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+end sub;
+
+sub reg_write_back_precious_values(regs: RegId)
+    var mask: RegId := reg_find_affected(regs);
+    $if DEBUG
+        print("% writing back precious values in ");
+        print_regs(regs);
+        print(" which affects ");
+        print_regs(mask);
+        print_newline();
+    $endif
+
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        var locations: uint8 := value.locations;
+        if ((locations & mask) != 0) and (value.precious != 0) then
+            $if DEBUG
+                print("% ea ");
+                print_ea(&value.ea);
+                print(" is no longer precious\n");
+            $endif
+
+            reg_save(find_lowest_bit(locations), &value.ea);
+            value.precious := 0;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+sub reg_evict(regs: RegId)
+    reg_write_back_precious_values(regs);
+    var mask: RegId := reg_find_affected(regs);
+    $if DEBUG
+        print("% evicting values in ");
+        print_regs(regs);
+        print(" which affects ");
+        print_regs(mask);
+        print_newline();
+    $endif
+
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        var locations: uint8 := value.locations;
+        if (locations & mask) != 0 then
+            value.locations := value.locations & (mask ^ ALL_REGS);
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+sub reg_used_registers(): (mask: RegId)
+    var i: uint8 := 0;
+    mask := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        mask := mask | value.locations;
+        i := i + 1;
+    end loop;
+end sub;
+
+sub reg_alloc(candidates: RegId): (location: RegId)
+    $if DEBUG
+        print("% allocating register in ");
+        print_regs(candidates);
+        print_newline();
+
+        print("%   locked registers: ");
+        print_regs(locked_registers);
+        print_newline();
+    $endif
+
+    var used_registers: RegId := reg_used_registers();
+    $if DEBUG
+        print("%   used registers: ");
+        print_regs(used_registers);
+        print_newline();
+    $endif
+
+    # First, attempt to find a register which is completely unused.
+
+    var unused: RegId := (reg_find_affected(used_registers | locked_registers) ^ ALL_REGS) & candidates;
+    $if DEBUG
+        print("%   potential unused registers are ");
+        print_regs(unused);
+        print_newline();
+    $endif
+    if unused != 0 then
+        location := find_lowest_bit(unused);
+        $if DEBUG
+            print("%   allocating unused register ");
+            print_regs(location);
+            print_newline();
+        $endif
+        locked_registers := locked_registers | location;
+        used_registers := used_registers | location;
+        return;
+    end if;
+
+    # If this fails, attempt to evict the lowest cost non-precious register.
+
+    print("cannot allocate register (this bit not done yet)");
+    halt();
+end sub;
+
+sub reg_free(regs: RegId)
+    $if DEBUG
+        print("% freeing ");
+        print_regs(regs);
+        print_newline();
+    $endif
+
+    locked_registers := locked_registers & (regs ^ ALL_REGS);
+end sub;
