@@ -110,6 +110,13 @@ create_main_subroutine();
 root.main_subroutine_id := current_subroutine_id;
 
 init_types();
+
+if ARGC == 4 then
+    things_dat := ARGV[1];
+    strings_dat := ARGV[2];
+    iops_dat := ARGV[3];
+end if;
+
 save_thing_table(things_dat);
 save_string_table(strings_dat);
 write_iops_file();

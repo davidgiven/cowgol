@@ -1,14 +1,48 @@
 # This test will only run with the bootstrap compiler.
 
+var things_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/things.dat";
+var strings_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/strings.dat";
+var iops_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/iops.dat";
+
 $include "src/string_lib.cow"
 $include "src/arch/bootstrap/fcb.cow"
 $include "src/arch/bbc/globals.cow"
 $include "src/arch/bbc/host.cow"
-$include "src/utils/names.cow"
 $include "src/utils/stringtable.cow"
 $include "src/utils/things.cow"
 $include "src/utils/types.cow"
 $include "src/utils/iops.cow"
+
+$include "src/utils/symbols.cow"
+
+load_thing_table(things_dat);
+init_string_table();
+
+var int8_type: uint16 := find_bootstrap_symbol(TOKEN_INT8);
+var uint8_type: uint16 := find_bootstrap_symbol(TOKEN_UINT8);
+var int16_type: uint16 := find_bootstrap_symbol(TOKEN_INT16);
+var uint16_type: uint16 := find_bootstrap_symbol(TOKEN_UINT16);
+
+var ea8bit_1: EffectiveAddress;
+zero_ea(&ea8bit_1);
+ea8bit_1.obj_id := int8_type;
+ea8bit_1.type_id := int8_type;
+
+var ea8bit_2: EffectiveAddress;
+zero_ea(&ea8bit_2);
+ea8bit_2.obj_id := uint8_type;
+ea8bit_2.type_id := uint8_type;
+
+var ea16bit_1: EffectiveAddress;
+zero_ea(&ea16bit_1);
+ea16bit_1.obj_id := int16_type;
+ea16bit_1.type_id := int16_type;
+print("d\n");
+
+var ea16bit_2: EffectiveAddress;
+zero_ea(&ea16bit_2);
+ea16bit_2.obj_id := uint16_type;
+ea16bit_2.type_id := uint16_type;
 
 const VALUE_CACHE_SIZE := 16;
 
@@ -28,7 +62,7 @@ var reg_interference: RegSet[NUM_REGS] := {
     REG_B | REG_BC,
     REG_C | REG_BC,
     REG_D | REG_DE,
-    REG_E | REG_DE
+    REG_E | REG_DE,
     REG_BC | REG_B | REG_C,
     REG_DE | REG_D | REG_E
 };
@@ -58,10 +92,6 @@ sub print_regs(regs: RegSet)
     if (regs & REG_E) != 0  then print("E "); end if;
     if (regs & REG_BC) != 0 then print("BC "); end if;
     if (regs & REG_DE) != 0 then print("DE "); end if;
-end sub;
-
-sub halt()
-    fail("halted");
 end sub;
 
 $set DEBUG
@@ -96,3 +126,22 @@ sub simple_allocation_test()
     location := reg_alloc(REG_BC|REG_DE);
 end sub;
 simple_allocation_test();
+
+sub simple_cache_test()
+    print("\nSimple cache test\n");
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_B, &ea8bit_1);
+    reg_evict(REG_A);
+    reg_evict(REG_B);
+
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_B, &ea8bit_2);
+    reg_cache_value(REG_DE, &ea16bit_1);
+    reg_evict(REG_A);
+    reg_evict(REG_B);
+    reg_evict(REG_DE);
+
+    reg_evict(REG_DE);
+end sub;
+simple_cache_test();

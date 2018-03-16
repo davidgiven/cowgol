@@ -110,6 +110,14 @@ rule objectify
 
 rule lexify
     command = flex -8 -Cem -B -t $in | gawk -f scripts/lexify.awk > $out
+
+rule make_test_things
+    command = $in $out > /dev/null
+
+build $OBJDIR/tests/compiler/things.dat $
+    $OBJDIR/tests/compiler/strings.dat $
+    $OBJDIR/tests/compiler/iops.dat : make_test_things bin/bbc_on_native/init
+
 ]])
 
 local NAME
@@ -250,6 +258,7 @@ local function compiler_test(dir, file, extradeps)
     local badfile = "tests/"..dir.."/"..testname..".bad"
     emit("build", testbin, ":", "bootstrapped_cowgol_program",
         "tests/bootstrap/_test.cow",
+        "$OBJDIR/token_names.cow",
         file,
         "|", extradeps)
     nl()
@@ -535,7 +544,11 @@ for _, file in ipairs(posix.glob("tests/compiler/*.test.cow")) do
             "src/utils/stringtable.cow",
             "src/utils/things.cow",
             "src/utils/types.cow",
+            "src/utils/names.cow",
             "src/utils/iops.cow",
+            "$OBJDIR/tests/compiler/things.dat",
+            "$OBJDIR/tests/compiler/strings.dat",
+            "$OBJDIR/tests/compiler/iops.dat",
         }
     )
 end

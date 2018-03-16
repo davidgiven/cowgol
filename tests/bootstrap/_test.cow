@@ -4,6 +4,10 @@ sub fail(message: [int8])
     exit(1);
 end sub;
 
+sub halt()
+    fail("halted");
+end sub;
+
 sub assert(condition: int8, message: [int8])
     if condition == 0 then
         fail(message);

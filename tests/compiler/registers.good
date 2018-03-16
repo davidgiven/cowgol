@@ -1,5 +1,8 @@
+reading thing table: 409 bytes
+d
 
 LRU test
+% reset register allocator
 cost for A: 2
 cost for B: 1
 cost for C: 0
@@ -10,6 +13,7 @@ cost for DE: 3
 lowest cost of ABC is: A 
 
 Simple allocation test
+% reset register allocator
 % allocating register in B 
 %   locked registers: (none) 
 %   used registers: (none) 
@@ -24,5 +28,30 @@ Simple allocation test
 % allocating register in BC DE 
 %   locked registers: DE 
 %   used registers: (none) 
-%   potential unused registers are BC DE 
+%   potential unused registers are BC 
 %   allocating unused register BC 
+
+Simple cache test
+% reset register allocator
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A B 
+% writing back precious values in A  which affects A 
+% evicting values in A  which affects A 
+%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in B 
+% writing back precious values in B  which affects B BC 
+% evicting values in B  which affects B BC 
+%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in B 
+% value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in DE 
+% writing back precious values in A  which affects A 
+% evicting values in A  which affects A 
+%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+% writing back precious values in B  which affects B BC 
+% evicting values in B  which affects B BC 
+%   value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in (none) 
+% writing back precious values in DE  which affects D E DE 
+% evicting values in DE  which affects D E DE 
+%   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
+% writing back precious values in DE  which affects D E DE 
+% evicting values in DE  which affects D E DE 
