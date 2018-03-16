@@ -1,0 +1,28 @@
+
+LRU test
+cost for A: 2
+cost for B: 1
+cost for C: 0
+cost for D: 3
+cost for E: 3
+cost for BC: 0
+cost for DE: 3
+lowest cost of ABC is: A 
+
+Simple allocation test
+% allocating register in B 
+%   locked registers: (none) 
+%   used registers: (none) 
+%   potential unused registers are B 
+%   allocating unused register B 
+% allocating register in BC DE 
+%   locked registers: B 
+%   used registers: (none) 
+%   potential unused registers are DE 
+%   allocating unused register DE 
+% freeing B 
+% allocating register in BC DE 
+%   locked registers: DE 
+%   used registers: (none) 
+%   potential unused registers are BC DE 
+%   allocating unused register BC 
