@@ -1,6 +1,68 @@
+sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
+    indreg := 0;
+
+    # If the RHS is already in a register, use that.
+
+    if reg_is_cached(ea) != 0 then
+        indreg := reg_find_or_load(REG_STUPID, ea);
+
+        insn_init();
+        insn.datareg := REG_A;
+        insn.otherreg := indreg;
+        insn.mode := MODE_DIR;
+        return;
+    end if;
+        
+    # If the RHS is a constant, use *that*.
+
+    if (ea.flags == EA_VALUE) and (is_number_thing(ea.obj_id) != 0) then
+        insn_init_from_ea(ea);
+        return;
+    end if;
+
+    # The RHS is a value in memory of some description. We can't load or
+    # refer to it directly, so instead get the address in an indexable
+    # register and use an indirection.
+
+    var indea: EffectiveAddress;
+    zero_ea(&indea);
+    indea.flags := EA_LEA;
+    indea.obj_id := ea.obj_id;
+    indea.type_id := ea.type_id;
+    indreg := reg_find_or_load(REG_HL|REG_IX|REG_IY, &indea);
+
+    insn_init();
+    insn.datareg := REG_A;
+    insn.otherreg := indreg;
+    insn.mode := MODE_IND;
+end sub;
+
 sub arch_gen_copy_byte(iop: [BEIop])
     var location: RegSet := reg_find_or_load(REG_A, &iop.left);
     reg_bump(location);
     reg_cache_value(location, &iop.dest);
+    reg_value_is_precious(&iop.dest);
+end sub;
+
+sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
+    $if DEBUG
+        print("* GENERATE regular alu byte op 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(",");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    reg_find_or_load_fixed(REG_A, &iop.left);
+
+    var indreg: RegSet := setup_8bit_rhs_insn(&iop.right);
+    reg_evict(REG_A);
+
+    insn_8bit_aluop(opcode);
+    reg_cache_value(REG_A, &iop.dest);
     reg_value_is_precious(&iop.dest);
 end sub;

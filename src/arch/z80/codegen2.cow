@@ -77,6 +77,7 @@ sub arch_gen_beginning_of_instruction()
 		#print_newline();
 		#print_cache();
 	$endif
+    reg_unlock_all();
 end sub;
 
 sub arch_gen_return()
@@ -119,23 +120,44 @@ sub arch_gen_not(iop: [BEIop])
 end sub;
 
 sub arch_gen_and(iop: [BEIop])
-    cant_do_3op(iop, "and");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xE6); # and *
+    else
+        cant_do_3op(iop, "and");
+    end if;
 end sub;
 
 sub arch_gen_or(iop: [BEIop])
-    cant_do_3op(iop, "or");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xF6); # or *
+    else
+        cant_do_3op(iop, "or");
+    end if;
 end sub;
 
 sub arch_gen_eor(iop: [BEIop])
     cant_do_3op(iop, "eor");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xEE); # xor *
+    else
+        cant_do_3op(iop, "eor");
+    end if;
 end sub;
 
 sub arch_gen_add(iop: [BEIop])
-    cant_do_3op(iop, "add");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xC6); # add *
+    else
+        cant_do_3op(iop, "add");
+    end if;
 end sub;
 
 sub arch_gen_sub(iop: [BEIop])
-    cant_do_3op(iop, "sub");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xD6); # sub *
+    else
+        cant_do_3op(iop, "sub");
+    end if;
 end sub;
 
 sub arch_gen_lsl(iop: [BEIop])
@@ -202,5 +224,5 @@ sub arch_gen_kill(iop: [KillIop])
         print_newline();
     $endif
 
-    #value_is_not_precious(&iop.ea);
+    reg_value_is_not_precious(&iop.ea);
 end sub;

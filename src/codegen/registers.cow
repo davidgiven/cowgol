@@ -13,12 +13,16 @@ var locked_registers: RegSet;
 var value_cache: CachedValue[VALUE_CACHE_SIZE];
 var register_use: uint8[NUM_REGS];
 
+sub reg_unlock_all()
+    locked_registers := 0;
+end sub;
+
 sub reg_reset()
     $if DEBUG
         print("% reset register allocator\n");
     $endif
 
-    locked_registers := 0;
+    reg_unlock_all();
     zero_memory(&value_cache as [int8], value_cache@bytes);
 
     var i: uint8 := 0;
@@ -124,6 +128,21 @@ sub reg_find_cache_slot(ea: [EffectiveAddress]): (value: [CachedValue])
     halt();
 end sub;
 
+# Is a value cached in a register?
+sub reg_is_cached(ea: [EffectiveAddress]): (yes: uint8)
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        if (value.locations != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
+            yes := 1;
+            return;
+        end if;
+        i := i + 1;
+    end loop;
+
+    yes := 0;
+end sub;
+
 # Given a set of registers, finds all registers therein which contain precious
 # values.
 sub reg_find_precious(regsin: RegSet): (regsout: RegSet)
@@ -167,6 +186,19 @@ sub reg_value_is_precious(ea: [EffectiveAddress])
     $endif
 end sub;
 
+# Mark a value as not being precious
+sub reg_value_is_not_precious(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    value.precious := 0;
+    $if DEBUG
+        print("% value ");
+        print_ea(ea);
+        print(" is no longer precious in ");
+        print_regs(value.locations);
+        print_newline();
+    $endif
+end sub;
+
 # Ensure that any precious values are written back to memory (and not marked
 # as precious any more.
 sub reg_write_back_precious_values(regs: RegSet)
@@ -187,7 +219,7 @@ sub reg_write_back_precious_values(regs: RegSet)
             $if DEBUG
                 print("% ea ");
                 print_ea(&value.ea);
-                print(" is no longer precious\n");
+                print(" is being written back\n");
             $endif
 
             reg_save(find_lowest_bit(locations), &value.ea);
@@ -387,4 +419,11 @@ sub reg_find_or_load(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
         reg_load(reg, ea);
     end if;
     reg_cache_value(reg, ea);
+    reg_bump(reg);
+end sub;
+
+# As reg_find_or_load, but the result is discarded (when you know what it'll
+# be).
+sub reg_find_or_load_fixed(candidates: RegSet, ea: [EffectiveAddress])
+    var location: RegSet := reg_find_or_load(candidates, ea);
 end sub;
