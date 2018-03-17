@@ -187,3 +187,25 @@ save BC : [TYPE2.0167:int16].TYPE2.0167:int16
 %   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
 load B : [TYPE1.0153:int8].TYPE1.0153:int8
 % value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in B 
+% reset register allocator
+% locating [TYPE1.0153:int8].TYPE1.0153:int8
+%   allocating new register for value
+% allocating register in A 
+%   locked registers: (none) 
+%   used registers: (none) 
+%   potential unused registers are A 
+%   allocating unused register A 
+load A : [TYPE1.0153:int8].TYPE1.0153:int8
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% locating [TYPE1.0153:int8].TYPE1.0153:int8
+%   allocating new register for value
+% allocating register in B 
+%   locked registers: A 
+%   used registers: A 
+%   potential unused registers are B 
+%   allocating unused register B 
+copy A -> B 
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A B 
+% locating [TYPE1.0153:int8].TYPE1.0153:int8
+%   value is cached in B 
+%   selecting B 
