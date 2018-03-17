@@ -65,7 +65,7 @@ sub get_regnum(reg: RegSet): (regnum: uint8)
     end loop;
 end sub;
 
-var z80_regnum: uint8[NUM_REGS] := {
+var z80_regnum: uint16[NUM_REGS] := {
     0x07, # A
     0x00, # B
     0x01, # C
@@ -74,16 +74,16 @@ var z80_regnum: uint8[NUM_REGS] := {
     0x04, # H
     0x05, # L
 
-    0x00, # BC
-    0x10, # DE
-    0x20, # HL
+    0x01, # BC
+    0x11, # DE
+    0x21, # HL
 
-    0xDD, # IX
-    0xFD, # IY
+    0x21DD, # IX
+    0x21FD, # IY
 };
 
 # Gets the internal Z80 register number.
-sub get_z80_regnum(reg: RegSet): (regnum: uint8)
+sub get_z80_regnum(reg: RegSet): (regnum: uint16)
     regnum := z80_regnum[get_regnum(reg)];
 end sub;
 
@@ -148,7 +148,7 @@ sub insn_init_from_ea(ea: [EffectiveAddress])
 end sub;
 
 sub insn_check_imm()
-    if (insn.mode != MODE_IMM) or (insn.obj_id != 0) or (insn.otherreg != 0) then
+    if (insn.mode != MODE_IMM) or (insn.otherreg != 0) then
         print("insn_check_imm fail");
         halt();
     end if;
@@ -164,6 +164,16 @@ end sub;
 sub insn_check_8bit_reg()
     if (insn.mode != MODE_DIR) or (insn.obj_id != 0) or (insn.offset != 0) or (insn.otherreg == 0) then
         print("insn_check_8bit_reg fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_8bit_ind_reg()
+    if (insn.mode != MODE_IND) or (insn.obj_id != 0) or (insn.otherreg == 0) or
+        ((insn.otherreg != REG_HL) and (insn.otherreg != REG_IX) and (insn.otherreg != REG_IY)) or
+        ((insn.otherreg == REG_HL) and (insn.offset != 0))
+    then
+        print("insn_check_8bit_ind_reg fail");
         halt();
     end if;
 end sub;
@@ -238,14 +248,33 @@ sub insn_8bit_op_imm(opcode: uint8)
     write_byte(insn.offset as uint8);
 end sub;
 
+sub insn_16bit_op_imm(opcode: uint16)
+    $if DEBUG
+        print("@ insn_16bit_op_imm opcode=0x");
+        print_hex_i16(opcode);
+        print_insn();
+    $endif
+    insn_check_imm();
+
+    if opcode < 0x100 then
+        write_byte(opcode as uint8);
+    else
+        write_word(opcode);
+    end if;
+    if insn.obj_id == 0 then
+        write_word(insn.offset as uint16);
+    else
+        write_address_iop(IOP_ADDRESS, insn.obj_id, insn.offset as uint16);
+    end if;
+end sub;
+
 sub insn_ld_imm()
     var reg: RegSet := insn.datareg;
-    var regnum: uint8 := get_z80_regnum(reg);
+    var regnum: uint16 := get_z80_regnum(reg);
     if (reg & REG_8BIT) != 0 then
-        insn_8bit_op_imm(0x06 | (regnum << 3));
+        insn_8bit_op_imm(0x06 | ((regnum as uint8) << 3));
     else
-        print("can't load this yet");
-        halt();
+        insn_16bit_op_imm(regnum);
     end if;
 end sub;
 
@@ -297,7 +326,7 @@ end sub;
 #end sub;
 
 # opcode refers to the immediate form
-sub insn_8bit_op_alu_reg(opcode: uint8)
+sub insn_8bit_op_alu_dir_reg(opcode: uint8)
     $if DEBUG
         print("@ insn_8bit_op_alu_reg opcode=0x");
         print_hex_i8(opcode);
@@ -305,9 +334,31 @@ sub insn_8bit_op_alu_reg(opcode: uint8)
     $endif
     insn_check_8bit_reg();
 
-    var srcreg: uint8 := get_z80_regnum(insn.otherreg);
+    var srcreg: uint8 := get_z80_regnum(insn.otherreg) as uint8;
     opcode := (opcode & 0b10111000) | srcreg;
     write_byte(opcode);
+end sub;
+
+# opcode refers to the immediate form
+sub insn_8bit_op_alu_ind_reg(opcode: uint8)
+    $if DEBUG
+        print("@ insn_8bit_op_alu_reg opcode=0x");
+        print_hex_i8(opcode);
+        print_insn();
+    $endif
+    insn_check_8bit_ind_reg();
+
+    opcode := (opcode & 0b1011_1000) | 0b0000_0110;
+    if insn.otherreg == REG_IX then
+        write_byte(0xDD); # IX prefix
+    elseif insn.otherreg == REG_IY then
+        write_byte(0xFD); # IY prefix
+    end if;
+    write_byte(opcode);
+
+    if (insn.otherreg & REG_INDEX) != 0 then
+        write_byte(insn.offset as uint8);
+    end if;
 end sub;
 
 # opcode refers to the ABS form
@@ -316,9 +367,17 @@ sub insn_8bit_aluop(opcode: uint8)
         insn_8bit_op_imm(opcode);
     elseif insn.mode == MODE_DIR then
         if insn.otherreg != 0 then
-            insn_8bit_op_alu_reg(opcode);
+            insn_8bit_op_alu_dir_reg(opcode);
         else
-            print("cannot aluop ");
+            print("cannot aluop dir ");
+            print_insn();
+            halt();
+        end if;
+    elseif insn.mode == MODE_IND then
+        if insn.otherreg != 0 then
+            insn_8bit_op_alu_ind_reg(opcode);
+        else
+            print("cannot aluop ind ");
             print_insn();
             halt();
         end if;
@@ -386,11 +445,12 @@ sub reg_copy(src: RegSet, dest: RegSet)
         print_newline();
     $endif
 
-    if (src & REG_8BIT) != 0 then
-        var srcregnum: uint8 := get_z80_regnum(src);
-        var destregnum: uint8 := get_z80_regnum(dest);
+    var srcregnum: uint16 := get_z80_regnum(src);
+    var destregnum: uint16 := get_z80_regnum(dest);
 
-        write_byte(0x40 | (destregnum<<3) | srcregnum);
+    if (src & REG_8BIT) != 0 then
+
+        write_byte(0x40 | ((destregnum as uint8)<<3) | (srcregnum as uint8));
     else
         print("can't copy this yet");
         halt();
