@@ -242,7 +242,7 @@ end sub;
 # Allocates exactly one register from the set of candidates. Completely
 # unused registers will be preferred; then the lowest-cost register used by
 # the cache for a non-precious value; then the lowest-cost register used for
-# a precious value; then an error.
+# a precious value; then an error. The register will be locked.
 sub reg_alloc(candidates: RegSet): (regs: RegSet)
     $if DEBUG
         print("% allocating register in ");
@@ -331,6 +331,7 @@ sub reg_alloc(candidates: RegSet): (regs: RegSet)
     halt();
 end sub;
 
+# Frees some registers previously allocated with reg_alloc().
 sub reg_free(regs: RegSet)
     $if DEBUG
         print("% freeing ");
@@ -339,4 +340,43 @@ sub reg_free(regs: RegSet)
     $endif
 
     locked_registers := locked_registers & (regs ^ ALL_REGS);
+end sub;
+
+# Locates a value in the cache and locks it; if the value is not in the cache,
+# then allocates a register and loads it.
+sub reg_find_or_load(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
+    $if DEBUG
+        print("% locating ");
+        print_ea(ea);
+        print_newline();
+    $endif
+
+    # Attempt to find the value in the cache.
+
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    reg := value.locations & candidates;
+    if reg != 0 then
+        $if DEBUG
+            print("%   value is cached in ");
+            print_regs(reg);
+            print_newline();
+        $endif
+        reg := find_lowest_bit(reg);
+        $if DEBUG
+            print("%   selecting ");
+            print_regs(reg);
+            print_newline();
+        $endif
+        locked_registers := locked_registers | reg;
+        return;
+    end if;
+
+    # Allocate a register and load the value.
+
+    $if DEBUG
+        print("%   allocating new register for value\n");
+    $endif
+    reg := reg_alloc(candidates);
+    reg_load(reg, ea);
+    reg_cache_value(reg, ea);
 end sub;

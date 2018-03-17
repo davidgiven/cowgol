@@ -172,3 +172,21 @@ sub caching_and_locking_test()
     location := reg_alloc(REG_A|REG_B);
 end sub;
 caching_and_locking_test();
+
+sub loading_test()
+    print("\nFinding and loading values\n");
+    reg_reset();
+    reg_cache_value(REG_B, &ea8bit_1);
+    var location: RegSet := reg_find_or_load(REG_A|REG_B, &ea8bit_1);
+    location := reg_find_or_load(REG_A|REG_B, &ea8bit_2);
+
+    reg_reset();
+    location := reg_find_or_load(REG_BC|REG_DE, &ea16bit_1);
+    reg_value_is_precious(&ea16bit_1);
+    reg_free(location);
+    location := reg_find_or_load(REG_BC|REG_DE, &ea16bit_2);
+    reg_value_is_precious(&ea16bit_2);
+    reg_free(location);
+    location := reg_find_or_load(REG_B, &ea8bit_1);
+end sub;
+loading_test();

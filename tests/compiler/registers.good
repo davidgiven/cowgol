@@ -132,3 +132,58 @@ save B : [TYPE1.015d:uint8].TYPE1.015d:uint8
 save BC : [TYPE2.0171:uint16].TYPE2.0171:uint16
 % evicting values in B  which affects B BC 
 %   value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in (none) 
+
+Finding and loading values
+% reset register allocator
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in B 
+% locating [TYPE1.0153:int8].TYPE1.0153:int8
+%   value is cached in B 
+%   selecting B 
+% locating [TYPE1.015d:uint8].TYPE1.015d:uint8
+%   allocating new register for value
+% allocating register in A B 
+%   locked registers: B 
+%   used registers: B 
+%   potential unused registers are A 
+%   allocating unused register A 
+load A : [TYPE1.015d:uint8].TYPE1.015d:uint8
+% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in A 
+% reset register allocator
+% locating [TYPE2.0167:int16].TYPE2.0167:int16
+%   allocating new register for value
+% allocating register in BC DE 
+%   locked registers: (none) 
+%   used registers: (none) 
+%   potential unused registers are BC DE 
+%   allocating unused register BC 
+load BC : [TYPE2.0167:int16].TYPE2.0167:int16
+% value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in BC 
+% value [TYPE2.0167:int16].TYPE2.0167:int16 is precious in BC 
+% freeing BC 
+% locating [TYPE2.0171:uint16].TYPE2.0171:uint16
+%   allocating new register for value
+% allocating register in BC DE 
+%   locked registers: (none) 
+%   used registers: BC 
+%   potential unused registers are DE 
+%   allocating unused register DE 
+load DE : [TYPE2.0171:uint16].TYPE2.0171:uint16
+% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in DE 
+% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is precious in DE 
+% freeing DE 
+% locating [TYPE1.0153:int8].TYPE1.0153:int8
+%   allocating new register for value
+% allocating register in B 
+%   locked registers: (none) 
+%   used registers: BC DE 
+%   potential unused registers are (none) 
+%   precious registers are (none) 
+%   no unused registers, considering evicting one of non-precious B 
+%   evicting lowest cost register which is B 
+% writing back precious values in B  which affects B BC 
+% ea [TYPE2.0167:int16].TYPE2.0167:int16 is no longer precious
+save BC : [TYPE2.0167:int16].TYPE2.0167:int16
+% evicting values in B  which affects B BC 
+%   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
+load B : [TYPE1.0153:int8].TYPE1.0153:int8
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in B 
