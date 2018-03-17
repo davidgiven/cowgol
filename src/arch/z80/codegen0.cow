@@ -1,15 +1,23 @@
 type RegSet := uint16;
-const REG_A     := 0b0_0000_0001; # 0
-const REG_B     := 0b0_0000_0010; # 1
-const REG_C     := 0b0_0000_0100; # 2
-const REG_D     := 0b0_0000_1000; # 3
-const REG_E     := 0b0_0001_0000; # 4
-const REG_BC    := 0b0_0010_0000; # 5
-const REG_DE    := 0b0_0100_0000; # 6
-const REG_IX    := 0b0_1000_0000; # 7
-const REG_IY    := 0b1_0000_0000; # 8
-const ALL_REGS  := 0b1_1111_1111;
-const NUM_REGS  := 9;
+const REG_A      := 0b0000_0000_0001; # 0
+const REG_B      := 0b0000_0000_0010; # 1
+const REG_C      := 0b0000_0000_0100; # 2
+const REG_D      := 0b0000_0000_1000; # 3
+const REG_E      := 0b0000_0001_0000; # 4
+const REG_H      := 0b0000_0010_0000; # 5
+const REG_L      := 0b0000_0100_0000; # 6
+const REG_BC     := 0b0000_1000_0000; # 7
+const REG_DE     := 0b0001_0000_0000; # 8
+const REG_HL     := 0b0010_0000_0000; # 9
+const REG_IX     := 0b0100_0000_0000; # 10
+const REG_IY     := 0b1000_0000_0000; # 11
+const ALL_REGS   := 0b1111_1111_1111;
+const NUM_REGS   := 12;
+
+const REG_8BIT   := 0b0000_0111_1111;
+const REG_16BIT  := 0b1111_1000_0000;
+const REG_INDEX  := 0b1100_0000_0000;
+const REG_STUPID := 0b0000_0111_1110;
 
 const VALUE_CACHE_SIZE := 16;
 
@@ -19,8 +27,11 @@ var reg_interference: RegSet[NUM_REGS] := {
     REG_C | REG_BC,
     REG_D | REG_DE,
     REG_E | REG_DE,
+    REG_H | REG_HL,
+    REG_L | REG_HL,
     REG_BC | REG_B | REG_C,
     REG_DE | REG_D | REG_E,
+    REG_HL | REG_H | REG_L,
     REG_IX,
     REG_IY
 };
@@ -32,10 +43,213 @@ sub print_regs(regs: RegSet)
     if (regs & REG_C) != 0  then print("C "); end if;
     if (regs & REG_D) != 0  then print("D "); end if;
     if (regs & REG_E) != 0  then print("E "); end if;
+    if (regs & REG_H) != 0  then print("H "); end if;
+    if (regs & REG_L) != 0  then print("L "); end if;
     if (regs & REG_BC) != 0 then print("BC "); end if;
     if (regs & REG_DE) != 0 then print("DE "); end if;
+    if (regs & REG_HL) != 0 then print("HL "); end if;
     if (regs & REG_IX) != 0 then print("IX "); end if;
     if (regs & REG_IY) != 0 then print("IY "); end if;
+end sub;
+
+# Gets the register index.
+sub get_regnum(reg: RegSet): (regnum: uint8)
+    regnum := 0;
+    while reg != 1 loop
+        if reg == 0 then
+            print("bad register");
+            halt();
+        end if;
+        reg := reg >> 1;
+    end loop;
+end sub;
+
+var z80_regnum: uint8[NUM_REGS] := {
+    0x07, # A
+    0x00, # B
+    0x01, # C
+    0x02, # D
+    0x03, # E
+    0x04, # H
+    0x05, # L
+
+    0x00, # BC
+    0x10, # DE
+    0x20, # HL
+
+    0xDD, # IX
+    0xFD, # IY
+};
+
+# Gets the internal Z80 register number.
+sub get_z80_regnum(reg: RegSet): (regnum: uint8)
+    regnum := z80_regnum[get_regnum(reg)];
+end sub;
+
+record Insn
+    datareg: RegSet;
+    otherreg: RegSet;
+    obj_id: uint16;
+    offset: int16;
+    mode: uint8;
+end record;
+
+const MODE_DIR := 1;
+const MODE_IND := 2;
+const MODE_IMM := 3;
+
+var insn: Insn;
+
+sub insn_init()
+    zero_memory(&insn as [int8], Insn@bytes);
+end sub;
+
+sub print_insn()
+    print(" datareg=");
+    print_regs(insn.datareg);
+    print(" otherreg=");
+    print_regs(insn.otherreg);
+    print(" thing=");
+    print_thing(insn.obj_id);
+    print(" offset=0x");
+    print_hex_i16(insn.offset as uint16);
+    print(" mode=");
+    print_i8(insn.mode);
+    print_newline();
+end sub;
+
+sub insn_init_from_ea(ea: [EffectiveAddress])
+    insn_init();
+    insn.obj_id := ea.obj_id;
+    insn.offset := get_value_of_number(ea.numoff_id) as int16;
+    if ea.flags == EA_VALUE then
+        if is_number_thing(insn.obj_id) != 0 then
+            insn.mode := MODE_IMM;
+            insn.offset := get_value_of_number(insn.obj_id) as int16;
+            insn.obj_id := 0;
+        else
+            insn.mode := MODE_DIR;
+        end if;
+    elseif ea.flags == EA_DEREF then
+        insn.mode := MODE_IND;
+    else
+        insn.mode := MODE_IMM;
+    end if;
+end sub;
+
+sub insn_check_imm()
+    if ((insn.mode != MODE_IMM) or (insn.obj_id != 0) or (insn.otherreg != 0)) then
+        print("insn_check_imm fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_abs()
+    if ((insn.mode != MODE_DIR) or (insn.otherreg != 0) or ((insn.datareg & REG_STUPID) != 0)) then
+        print("insn_check_abs fail");
+        halt();
+    end if;
+end sub;
+
+var ldst_abs_opcodes: uint16[NUM_REGS] := {
+    0x32,   # ld (**), a
+    0,      # b
+    0,      # c
+    0,      # d
+    0,      # e
+    0,      # h
+    0,      # l
+    0x43ED, # ld (**), bc
+    0x53ED, # ld (**), de
+    0x22,   # ld (**), hl
+    0x22DD, # ld (**), ix
+    0x22FD, # ld (**), iy
+};
+
+sub insn_op_abs(readflag: uint8)
+    $if DEBUG
+        print("@ insn_op_abs read=");
+        print_i8(readflag);
+        print_insn();
+    $endif
+    insn_check_abs();
+
+    var reg: RegSet := insn.datareg;
+    var regnum: uint8 := get_regnum(reg);
+    print("regnum=");
+    print_i8(regnum);
+    print_newline();
+    var opcode: uint16 := ldst_abs_opcodes[regnum];
+    if opcode < 0x100 then
+        if readflag != 0 then
+            opcode := opcode | 0x08;
+        end if;
+        write_byte(opcode as uint8);
+    else
+        if readflag != 0 then
+            opcode := opcode | 0x0800;
+        end if;
+        write_word(opcode);
+    end if;
+    write_address_iop(IOP_ADDRESS, insn.obj_id, insn.offset as uint16);
+end sub;
+
+sub insn_ld_abs()
+    insn_op_abs(1);
+end sub;
+
+sub insn_st_abs()
+    insn_op_abs(0);
+end sub;
+
+sub insn_ld_ind()
+    print("ld_ind");
+    halt();
+end sub;
+
+sub insn_st_ind()
+    print("st_ind");
+    halt();
+end sub;
+
+sub insn_ld_imm()
+    $if DEBUG
+        print("@ insn_ld_imm");
+        print_insn();
+    $endif
+    insn_check_imm();
+
+    var reg: RegSet := insn.datareg;
+    var regnum: uint8 := get_z80_regnum(reg);
+    if (reg & REG_8BIT) != 0 then
+        write_byte(0x06 | (regnum << 3));
+        write_byte(insn.offset as uint8);
+    else
+        print("can't load this yet");
+        halt();
+    end if;
+end sub;
+
+sub insn_load_object()
+    if insn.mode == MODE_DIR then
+        insn_ld_abs();
+    elseif insn.mode == MODE_IND then
+        insn_ld_ind();
+    else
+        insn_ld_imm();
+    end if;
+end sub;
+
+sub insn_save_object()
+    if insn.mode == MODE_DIR then
+        insn_st_abs();
+    elseif insn.mode == MODE_IND then
+        insn_st_ind();
+    else
+        print("cannot save ");
+        print_insn();
+        halt();
+    end if;
 end sub;
 
 sub reg_save(reg: RegSet, ea: [EffectiveAddress])
@@ -46,7 +260,15 @@ sub reg_save(reg: RegSet, ea: [EffectiveAddress])
         print_regs(reg);
         print_newline();
     $endif
-    halt();
+
+    if (reg & REG_STUPID) != 0 then
+        print("store from stupid register");
+        halt();
+    end if;
+    
+    insn_init_from_ea(ea);
+    insn.datareg := reg;
+    insn_save_object();
 end sub;
 
 sub reg_load(reg: RegSet, ea: [EffectiveAddress])
@@ -57,7 +279,15 @@ sub reg_load(reg: RegSet, ea: [EffectiveAddress])
         print_regs(reg);
         print_newline();
     $endif
-    halt();
+
+    if (reg & REG_STUPID) != 0 then
+        print("load to stupid register");
+        halt();
+    end if;
+
+    insn_init_from_ea(ea);
+    insn.datareg := reg;
+    insn_load_object();
 end sub;
 
 sub reg_copy(src: RegSet, dest: RegSet)

@@ -1,0 +1,6 @@
+sub arch_gen_copy_byte(iop: [BEIop])
+    var location: RegSet := reg_find_or_load(REG_A, &iop.left);
+    reg_bump(location);
+    reg_cache_value(location, &iop.dest);
+    reg_value_is_precious(&iop.dest);
+end sub;

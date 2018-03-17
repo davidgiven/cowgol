@@ -57,72 +57,33 @@ end sub;
 
 sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     $if DEBUG
-        print("6502: considering ");
+        print("Z80: considering ");
         print_ea(ea);
         print_newline();
     $endif
 
-    # If the expression is too complex for the 6502, we instead compute the
-    # address and use that instead (dereferenced where appropriate).
-    #
-    # The three cases are:
-    #
-    #   [&var+[varoffset]+#toobig] ->
-    #     temp := &var+#toobig + [varoffset]
-    #     [temp]
-    #
-    #   &var+[varoffset]+#toobig ->
-    #     temp := &var+#toobig + [varoffset]
-    #     temp
-    #
-    #   [[&var]+[varoffset]+#toobig] ->
-    #     temp := [&var] + [varoffset]
-    #     temp := [temp+#toobig]
-    #     temp
-    #
-    # Our backend can directly handle this case only (plus degenerate cases):
+    # When it came to getting addressing modes, the Z80 kinda got what was
+    # left over after the 6809 and 68000 got all the good ones. The only
+    # means of indexing it's got is a constant sign extended byte offset
+    # against ix and iy.
+    # 
+    # This lets the backend directly handle:
     #
     # EA_VALUE:
-    #   [&var+#any] --- where the result is a word
-    #   [&var+#any+[u8]] --- where u8 is an unsigned byte and the result is a byte
+    #   [&var+#any]
     # EA_LEA:
-    #   &var+#any --- where the result is a word
-    #   &var+#any+[u8] --- where u8 is an unsigned byte and the result is a byte
+    #   [&var+#any]
     # EA_DEREF:
-    #   [[&var]+[u8]] --- where u8 is an unsigned byte and the result is a byte
-    #   [[&var]+#u8] --- where u8 is an unsigned byte and the result is a byte
+    #   [[&var]+#s8]
     #
-    # Bear in mind that most wide values *only* support [&var+#any] and [[&var]].
-    # The exception is BE_COPY and AND, OR, EOR, ADD, SUB, which support [[&var]+#u8].
-    #
-    # EA_VALUE and EA_LEA are essentially the same, but EA_DEREF needs a different code path.
+    # The good news, of course, is that this lets the simplification be
+    # straightforward.
 
-    var iop_allows_byte_offsets: uint8 := 0;
-    if (width == 1) then
-        iop_allows_byte_offsets := 1;
-    elseif ((beiop == IOP_BE_COPY) or (beiop == IOP_BE_ADD) or (beiop == IOP_BE_SUB)
-        or (beiop == IOP_BE_AND) or (beiop == IOP_BE_EOR) or (beiop == IOP_BE_OR)
-        or (beiop == IOP_BE_ZEXT) or (beiop == IOP_BE_SEXT)) then
-        iop_allows_byte_offsets := 1;
-    end if;
+    var iop_allows_indexing: uint8 := 1;
 
     var simplify_varoff: uint8 := 0;
     if ea.varoff_id != 0 then
         simplify_varoff := 1;
-
-        if iop_allows_byte_offsets != 0 then
-            var type_id: uint16 := get_type_of_thing(ea.varoff_id);
-            var type_thing: [TypeThing] := find_thing(type_id) as [TypeThing];
-            $if DEBUG
-                print("6502: candidate offset variable has type ");
-                print_thing(type_id);
-                print_newline();
-            $endif
-
-            if (type_thing.thing_type == THING_UNSIGNEDT) and (type_thing.width == 1) then
-                simplify_varoff := 0;
-            end if;
-        end if;
     end if;
 
     var tmpvar_id: uint16;
@@ -175,7 +136,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     if ea.flags != EA_DEREF then
         sub simplify_value_lea()
             $if DEBUG
-                print("6502: simplifying VALUE or LEA\n");
+                print("Z80: simplifying VALUE or LEA\n");
             $endif
 
             tmpvar_id := alloc_temporary(int16_type);
@@ -204,9 +165,9 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
         if offset != 0 then
             simplify_numoff := 1;
 
-            var maxwidth: uint8 := 255 - (width-1);
-            if (iop_allows_byte_offsets != 0)
-                and (offset >= 0) and (offset <= (maxwidth as int32))
+            var maxwidth: uint8 := 0x7F - (width-1);
+            if (iop_allows_indexing != 0)
+                and (offset >= -0x80) and (offset <= (maxwidth as int32))
             then
                 simplify_numoff := 0;
             end if;
@@ -214,7 +175,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
 
         sub simplify_deref()
             $if DEBUG
-                print("6502: simplifying DEREF\n");
+                print("Z80: simplifying DEREF\n");
             $endif
 
             tmpvar_id := alloc_temporary(int16_type);
@@ -237,7 +198,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
                 end if;
 
                 $if DEBUG
-                    print("6502: numoff but no varoff\n");
+                    print("Z80: numoff but no varoff\n");
                 $endif
 
                 reset_be_iop(&iop);
@@ -286,9 +247,9 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
             else
                 if (ea.varoff_id != 0) and (ea.numoff_id != 0) then
                     $if DEBUG
-                        print("6502: forcing simplification of numeric part\n");
+                        print("Z80: forcing simplification of variable part\n");
                     $endif
-                    simplify_numoff := 1;
+                    simplify_varoff := 1;
                 else
                     return;
                 end if;
@@ -298,7 +259,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     end if;
 
     $if DEBUG
-        print("6502: after simplification, EA is: ");
+        print("Z80: after simplification, EA is: ");
         print_ea(ea);
         print_newline();
     $endif
@@ -345,7 +306,7 @@ end sub;
 
 sub arch_simplify_conditional_iop(iop: [BEConditionalIop])
     $if DEBUG
-        print("6502: conditional\n");
+        print("Z80: conditional\n");
     $endif
 
     check_ea(&iop.left);

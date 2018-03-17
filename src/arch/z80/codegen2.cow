@@ -74,8 +74,8 @@ end sub;
 
 sub arch_gen_beginning_of_instruction()
 	$if DEBUG
-		print_newline();
-		print_cache();
+		#print_newline();
+		#print_cache();
 	$endif
 end sub;
 
@@ -107,7 +107,11 @@ sub arch_gen_goto(iop: [GotoIop])
 end sub;
 
 sub arch_gen_copy(iop: [BEIop])
-    cant_do_2op(iop, "copy");
+    if iop.width == 1 then
+        arch_gen_copy_byte(iop);
+    else
+        cant_do_2op(iop, "copy");
+    end if;
 end sub;
 
 sub arch_gen_not(iop: [BEIop])
