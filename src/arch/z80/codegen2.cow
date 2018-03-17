@@ -45,6 +45,7 @@ sub cant_do_3op(iop: [BEIop], op: [int8])
 end sub;
 
 sub arch_init_codegen()
+    reg_reset();
 end sub;
 
 sub arch_gen_before(ea: [EffectiveAddress])
@@ -79,30 +80,30 @@ sub arch_gen_beginning_of_instruction()
 end sub;
 
 sub arch_gen_return()
-    #flush_cached_values(REG_MASK);
-    #write_byte(0x60); # RTS
+    reg_evict(ALL_REGS);
+    write_byte(0xC9); # RET
 end sub;
 
 sub arch_gen_call(iop: [CallIop])
-    #flush_cached_values(REG_MASK);
-    #write_byte(0x20); # JSR
-    #write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+    reg_evict(ALL_REGS);
+    write_byte(0xCD); # CALL
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
 end sub;
 
 sub arch_gen_tail_call(iop: [CallIop])
-    #flush_cached_values(REG_MASK);
-    #write_byte(0x4C); # JMP
-    #write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+    reg_evict(ALL_REGS);
+    write_byte(0xC3); # JP
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
 end sub;
 
 sub arch_gen_label(iop: [LabelIop])
-    #flush_cached_values(REG_MASK);
-    #write_iop(iop as [Iop]);
+    reg_evict(ALL_REGS);
+    write_iop(iop as [Iop]);
 end sub;
 
 sub arch_gen_goto(iop: [GotoIop])
-    #flush_cached_values(REG_MASK);
-    #write_cg_6502_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
+    reg_evict(ALL_REGS);
+    write_cg_conditional_iop(0, iop.label); # Unconditional
 end sub;
 
 sub arch_gen_copy(iop: [BEIop])

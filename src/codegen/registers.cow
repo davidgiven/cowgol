@@ -182,7 +182,7 @@ sub reg_write_back_precious_values(regs: RegSet)
     var i: uint8 := 0;
     while i != value_cache@size loop
         var value: [CachedValue] := &value_cache[i];
-        var locations: uint8 := value.locations;
+        var locations: RegSet := value.locations;
         if ((locations & mask) != 0) and (value.precious != 0) then
             $if DEBUG
                 print("% ea ");
@@ -213,7 +213,7 @@ sub reg_evict(regs: RegSet)
     var i: uint8 := 0;
     while i != value_cache@size loop
         var value: [CachedValue] := &value_cache[i];
-        var locations: uint8 := value.locations;
+        var locations: RegSet := value.locations;
         if (locations & mask) != 0 then
             value.locations := value.locations & (mask ^ ALL_REGS);
             $if DEBUG

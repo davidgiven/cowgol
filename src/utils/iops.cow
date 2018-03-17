@@ -126,8 +126,8 @@ const IOP_BE_BGTS              := 0b1010_0011;
 const IOP_BE_BEQ               := 0b1010_0100;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
-const IOP_CG_6502_COND     := 0b1110_0100;
-const IOP_CG_6502_MEM      := 0b1110_0101;
+const IOP_CG_COND     := 0b1110_0100;
+const IOP_CG_MEM      := 0b1110_0101;
 
 const EA_VALUE := 0; # [&obj+numoff+[varoff]]
 const EA_DEREF := 1; # [[&obj]+numoff+[varoff]]
@@ -233,7 +233,7 @@ record CG6502MemIop: Iop
     offset: uint16;
 end record;
 
-record CG6502ConditionalIop: Iop
+record CGConditionalIop: Iop
     opcode: uint8;
     label: uint8;
 end record;

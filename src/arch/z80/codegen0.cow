@@ -1,0 +1,72 @@
+type RegSet := uint16;
+const REG_A     := 0b0_0000_0001; # 0
+const REG_B     := 0b0_0000_0010; # 1
+const REG_C     := 0b0_0000_0100; # 2
+const REG_D     := 0b0_0000_1000; # 3
+const REG_E     := 0b0_0001_0000; # 4
+const REG_BC    := 0b0_0010_0000; # 5
+const REG_DE    := 0b0_0100_0000; # 6
+const REG_IX    := 0b0_1000_0000; # 7
+const REG_IY    := 0b1_0000_0000; # 8
+const ALL_REGS  := 0b1_1111_1111;
+const NUM_REGS  := 9;
+
+const VALUE_CACHE_SIZE := 16;
+
+var reg_interference: RegSet[NUM_REGS] := {
+    REG_A,
+    REG_B | REG_BC,
+    REG_C | REG_BC,
+    REG_D | REG_DE,
+    REG_E | REG_DE,
+    REG_BC | REG_B | REG_C,
+    REG_DE | REG_D | REG_E,
+    REG_IX,
+    REG_IY
+};
+
+sub print_regs(regs: RegSet)
+    if regs == 0            then print("(none) "); end if;
+    if (regs & REG_A) != 0  then print("A "); end if;
+    if (regs & REG_B) != 0  then print("B "); end if;
+    if (regs & REG_C) != 0  then print("C "); end if;
+    if (regs & REG_D) != 0  then print("D "); end if;
+    if (regs & REG_E) != 0  then print("E "); end if;
+    if (regs & REG_BC) != 0 then print("BC "); end if;
+    if (regs & REG_DE) != 0 then print("DE "); end if;
+    if (regs & REG_IX) != 0 then print("IX "); end if;
+    if (regs & REG_IY) != 0 then print("IY "); end if;
+end sub;
+
+sub reg_save(reg: RegSet, ea: [EffectiveAddress])
+    $if DEBUG
+        print("@ SAVE ");
+        print_ea(ea);
+        print(" <- ");
+        print_regs(reg);
+        print_newline();
+    $endif
+    halt();
+end sub;
+
+sub reg_load(reg: RegSet, ea: [EffectiveAddress])
+    $if DEBUG
+        print("@ LOAD ");
+        print_ea(ea);
+        print(" -> ");
+        print_regs(reg);
+        print_newline();
+    $endif
+    halt();
+end sub;
+
+sub reg_copy(src: RegSet, dest: RegSet)
+    $if DEBUG
+        print("@ COPY ");
+        print_regs(src);
+        print(" -> ");
+        print_regs(dest);
+        print_newline();
+    $endif
+    halt();
+end sub;

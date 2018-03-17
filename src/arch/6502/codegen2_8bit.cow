@@ -146,7 +146,7 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
 
     var entrylabel: uint8 := create_label();
     var looplabel: uint8 := create_label();
-    write_cg_6502_conditional_iop(0x80, entrylabel);
+    write_cg_conditional_iop(0x80, entrylabel);
     write_label_iop(looplabel);
     signed_shift_adjustment();
     write_byte(opcode);
@@ -157,7 +157,7 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
     else
         write_byte(0x88); # DEY
     end if;
-    write_cg_6502_conditional_iop(0x10, looplabel);
+    write_cg_conditional_iop(0x10, looplabel);
 
     make_value_precious_or_save_now(REG_A, &iop.dest);
 end sub;
