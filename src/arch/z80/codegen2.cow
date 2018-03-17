@@ -1,0 +1,201 @@
+sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint16)
+    if ea.type_id == 0 then
+        print("untyped EA ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    width := get_width_of_type(ea.type_id);
+end sub;
+
+sub cant_do_2op(iop: [BEIop], op: [int8])
+    print("can't do ");
+    print_ea(&iop.left);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.left) as uint8);
+    print(") ");
+    print(op);
+    print(" -> ");
+    print_ea(&iop.dest);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.dest) as uint8);
+    print(") width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
+sub cant_do_3op(iop: [BEIop], op: [int8])
+    print("can't do ");
+    print_ea(&iop.left);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.left) as uint8);
+    print(") ");
+    print(op);
+    print(" ");
+    print_ea(&iop.right);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.right) as uint8);
+    print(") -> ");
+    print_ea(&iop.dest);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.dest) as uint8);
+    print(") width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
+sub arch_init_codegen()
+end sub;
+
+sub arch_gen_before(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
+		$if DEBUG
+			print("* writing back precious values because of pointer access: ");
+			print_ea(ea);
+			print_newline();
+		$endif
+
+        #write_back_precious_values(REG_MASK);
+    end if;
+end sub;
+
+sub arch_gen_after(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
+		$if DEBUG
+			print("* flushing cached values because of pointer access: ");
+			print_ea(ea);
+			print_newline();
+		$endif
+
+        #flush_cached_values(REG_MASK);
+    end if;
+end sub;
+
+sub arch_gen_beginning_of_instruction()
+	$if DEBUG
+		print_newline();
+		print_cache();
+	$endif
+end sub;
+
+sub arch_gen_return()
+    #flush_cached_values(REG_MASK);
+    #write_byte(0x60); # RTS
+end sub;
+
+sub arch_gen_call(iop: [CallIop])
+    #flush_cached_values(REG_MASK);
+    #write_byte(0x20); # JSR
+    #write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+end sub;
+
+sub arch_gen_tail_call(iop: [CallIop])
+    #flush_cached_values(REG_MASK);
+    #write_byte(0x4C); # JMP
+    #write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+end sub;
+
+sub arch_gen_label(iop: [LabelIop])
+    #flush_cached_values(REG_MASK);
+    #write_iop(iop as [Iop]);
+end sub;
+
+sub arch_gen_goto(iop: [GotoIop])
+    #flush_cached_values(REG_MASK);
+    #write_cg_6502_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
+end sub;
+
+sub arch_gen_copy(iop: [BEIop])
+    cant_do_2op(iop, "copy");
+end sub;
+
+sub arch_gen_not(iop: [BEIop])
+    cant_do_2op(iop, "not");
+end sub;
+
+sub arch_gen_and(iop: [BEIop])
+    cant_do_3op(iop, "and");
+end sub;
+
+sub arch_gen_or(iop: [BEIop])
+    cant_do_3op(iop, "or");
+end sub;
+
+sub arch_gen_eor(iop: [BEIop])
+    cant_do_3op(iop, "eor");
+end sub;
+
+sub arch_gen_add(iop: [BEIop])
+    cant_do_3op(iop, "add");
+end sub;
+
+sub arch_gen_sub(iop: [BEIop])
+    cant_do_3op(iop, "sub");
+end sub;
+
+sub arch_gen_lsl(iop: [BEIop])
+    cant_do_3op(iop, "lsl");
+end sub;
+
+sub arch_gen_lsr(iop: [BEIop])
+    cant_do_3op(iop, "lsr");
+end sub;
+
+sub arch_gen_asr(iop: [BEIop])
+    cant_do_3op(iop, "asr");
+end sub;
+
+sub arch_gen_divu(iop: [BEIop])
+    cant_do_3op(iop, "divu");
+end sub;
+
+sub arch_gen_divs(iop: [BEIop])
+    cant_do_3op(iop, "divs");
+end sub;
+
+sub arch_gen_modu(iop: [BEIop])
+    cant_do_3op(iop, "modu");
+end sub;
+
+sub arch_gen_mods(iop: [BEIop])
+    cant_do_3op(iop, "mods");
+end sub;
+
+sub arch_gen_mul(iop: [BEIop])
+    cant_do_3op(iop, "mul");
+end sub;
+
+sub arch_gen_zext(iop: [BEIop])
+    cant_do_3op(iop, "zext");
+end sub;
+
+sub arch_gen_sext(iop: [BEIop])
+    cant_do_3op(iop, "sext");
+end sub;
+
+sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: comparison 0x");
+        print_hex_i8(ciop.iop_kind);
+        print(": ");
+        print_ea(&ciop.left);
+        print(", ");
+        print_ea(&ciop.right);
+        print(" => label 0x");
+        print_hex_i8(liop.label);
+        print_newline();
+    $endif
+
+    print("can't");
+    halt();
+end sub;
+
+sub arch_gen_kill(iop: [KillIop])
+    $if DEBUG
+        print("* GENERATE: kill ");
+        print_ea(&iop.ea);
+        print_newline();
+    $endif
+
+    #value_is_not_precious(&iop.ea);
+end sub;

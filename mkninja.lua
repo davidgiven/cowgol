@@ -201,6 +201,21 @@ local target_data = {
             "src/arch/6502/codegen2_wide.cow",
             "src/arch/6502/codegen2.cow",
         }
+    end,
+
+    ["cpmz"] = function()
+        GLOBALS = "src/arch/cpmz/globals.cow"
+        CLASSIFIER = "src/arch/z80/classifier.cow"
+        SIMPLIFIER = "src/arch/z80/simplifier.cow"
+        PLACER = "src/arch/z80/placer.cow"
+        EMITTER = {
+            "src/arch/z80/emitter.cow",
+            "src/arch/cpmz/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/z80/codegen2.cow",
+        }
     end
 }
 

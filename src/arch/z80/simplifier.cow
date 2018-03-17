@@ -1,0 +1,357 @@
+# Don't use this on non-primitive types.
+sub get_width_of(node: [Node]): (width: uint8)
+    width := get_width_of_type(node.type_id) as uint8;
+end sub;
+
+sub write_be_iop(iop: [BEIop])
+    $if DEBUG
+        print("* BE iop 0x");
+        print_hex_i8(iop.iop_kind);
+        print(" width=");
+        print_i8(iop.width);
+        print(" left=");
+        print_ea(&iop.left);
+        print(" right=");
+        print_ea(&iop.right);
+        print(" dest=");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    write_iop(iop as [Iop]);
+end sub;
+
+sub simplify_mul(node: [Node])
+    var num_id: uint16 := node.right.obj_id;
+    if is_number_thing(num_id) != 0 then
+        var value: int32 := get_value_of_number(num_id);
+        if value == 1 then
+            node.iop := IOP_BE_COPY;
+            zero_ea(&node.right);
+        elseif value == 2 then
+            node.iop := IOP_BE_LSL;
+            node.right.obj_id := add_number_by_value(1);
+        elseif value == 4 then
+            node.iop := IOP_BE_LSL;
+            node.right.obj_id := add_number_by_value(2);
+        elseif value == 8 then
+            node.iop := IOP_BE_LSL;
+            node.right.obj_id := add_number_by_value(3);
+        end if;
+    end if;
+end sub;
+
+sub reset_be_iop(iop: [BEIop])
+    zero_memory(iop as [int8], BEIop@bytes);
+    iop.iop_size := BEIop@bytes;
+end sub;
+
+sub check_ea(ea: [EffectiveAddress])
+    if is_scalar_type_thing(ea.type_id) == 0 then
+        print("cannot emit EA ");
+        print_ea(ea);
+        print(" as it is not scalar");
+        halt();
+    end if;
+end sub;
+
+sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
+    $if DEBUG
+        print("6502: considering ");
+        print_ea(ea);
+        print_newline();
+    $endif
+
+    # If the expression is too complex for the 6502, we instead compute the
+    # address and use that instead (dereferenced where appropriate).
+    #
+    # The three cases are:
+    #
+    #   [&var+[varoffset]+#toobig] ->
+    #     temp := &var+#toobig + [varoffset]
+    #     [temp]
+    #
+    #   &var+[varoffset]+#toobig ->
+    #     temp := &var+#toobig + [varoffset]
+    #     temp
+    #
+    #   [[&var]+[varoffset]+#toobig] ->
+    #     temp := [&var] + [varoffset]
+    #     temp := [temp+#toobig]
+    #     temp
+    #
+    # Our backend can directly handle this case only (plus degenerate cases):
+    #
+    # EA_VALUE:
+    #   [&var+#any] --- where the result is a word
+    #   [&var+#any+[u8]] --- where u8 is an unsigned byte and the result is a byte
+    # EA_LEA:
+    #   &var+#any --- where the result is a word
+    #   &var+#any+[u8] --- where u8 is an unsigned byte and the result is a byte
+    # EA_DEREF:
+    #   [[&var]+[u8]] --- where u8 is an unsigned byte and the result is a byte
+    #   [[&var]+#u8] --- where u8 is an unsigned byte and the result is a byte
+    #
+    # Bear in mind that most wide values *only* support [&var+#any] and [[&var]].
+    # The exception is BE_COPY and AND, OR, EOR, ADD, SUB, which support [[&var]+#u8].
+    #
+    # EA_VALUE and EA_LEA are essentially the same, but EA_DEREF needs a different code path.
+
+    var iop_allows_byte_offsets: uint8 := 0;
+    if (width == 1) then
+        iop_allows_byte_offsets := 1;
+    elseif ((beiop == IOP_BE_COPY) or (beiop == IOP_BE_ADD) or (beiop == IOP_BE_SUB)
+        or (beiop == IOP_BE_AND) or (beiop == IOP_BE_EOR) or (beiop == IOP_BE_OR)
+        or (beiop == IOP_BE_ZEXT) or (beiop == IOP_BE_SEXT)) then
+        iop_allows_byte_offsets := 1;
+    end if;
+
+    var simplify_varoff: uint8 := 0;
+    if ea.varoff_id != 0 then
+        simplify_varoff := 1;
+
+        if iop_allows_byte_offsets != 0 then
+            var type_id: uint16 := get_type_of_thing(ea.varoff_id);
+            var type_thing: [TypeThing] := find_thing(type_id) as [TypeThing];
+            $if DEBUG
+                print("6502: candidate offset variable has type ");
+                print_thing(type_id);
+                print_newline();
+            $endif
+
+            if (type_thing.thing_type == THING_UNSIGNEDT) and (type_thing.width == 1) then
+                simplify_varoff := 0;
+            end if;
+        end if;
+    end if;
+
+    var tmpvar_id: uint16;
+    var iop: BEIop;
+
+    sub extend_varoff_and_setup_add()
+        var varoff_type: uint16 := get_type_of_thing(ea.varoff_id);
+
+        reset_be_iop(&iop);
+        if get_width_of_type(varoff_type) != 2 then
+            # The varoff isn't compatible with a pointer, so sign extend it.
+
+            iop.width := 2;
+            iop.iop_kind := IOP_BE_ZEXT;
+            iop.left.type_id := varoff_type;
+            iop.left.obj_id := ea.varoff_id;
+            iop.left.flags := EA_VALUE;
+            iop.dest.type_id := int16_type;
+            iop.dest.obj_id := tmpvar_id;
+            write_be_iop(&iop);
+        
+            deref_temporary(ea.varoff_id);
+            ea.varoff_id := 0;
+
+            reset_be_iop(&iop);
+            iop.right.obj_id := tmpvar_id;
+        else
+            # It doesn't need zero extending, phew. We can add it
+            # directly.
+                    
+            iop.right.obj_id := ea.varoff_id;
+            deref_temporary(ea.varoff_id);
+            ea.varoff_id := 0;
+        end if;
+
+        # Now add the base address.
+
+        iop.width := 2;
+        iop.iop_kind := IOP_BE_ADD;
+        iop.left.type_id := int16_type;
+        iop.left.obj_id := ea.obj_id;
+        iop.right.type_id := int16_type;
+        # The right obj_id was left here by the conditional above.
+        iop.dest.type_id := int16_type;
+        iop.dest.obj_id := tmpvar_id;
+
+        # Don't emit just yet, because we might want to adjust the flags.
+    end sub;
+
+    if ea.flags != EA_DEREF then
+        sub simplify_value_lea()
+            $if DEBUG
+                print("6502: simplifying VALUE or LEA\n");
+            $endif
+
+            tmpvar_id := alloc_temporary(int16_type);
+            extend_varoff_and_setup_add();
+            iop.left.flags := EA_LEA;
+            iop.left.numoff_id := ea.numoff_id;
+            ea.numoff_id := 0;
+            write_be_iop(&iop);
+
+            deref_temporary(ea.obj_id);
+            ea.obj_id := tmpvar_id;
+
+            if ea.flags == EA_VALUE then
+                ea.flags := EA_DEREF;
+            else
+                ea.flags := EA_VALUE;
+            end if;
+        end sub;
+
+        if simplify_varoff != 0 then
+            simplify_value_lea();
+        end if;
+    else
+        var simplify_numoff: uint8 := 0;
+        var offset: int32 := get_value_of_number(ea.numoff_id);
+        if offset != 0 then
+            simplify_numoff := 1;
+
+            var maxwidth: uint8 := 255 - (width-1);
+            if (iop_allows_byte_offsets != 0)
+                and (offset >= 0) and (offset <= (maxwidth as int32))
+            then
+                simplify_numoff := 0;
+            end if;
+        end if;
+
+        sub simplify_deref()
+            $if DEBUG
+                print("6502: simplifying DEREF\n");
+            $endif
+
+            tmpvar_id := alloc_temporary(int16_type);
+
+            # This is a little complex. We have several situations we need to handle:
+            #
+            #  [[&value] + #toobig + [toobig].word]
+            #  [[&value] + #toobig + [toobig].notword]
+            #  [[&value] + [toobig].word]
+            #  [[&value] + [toobig].notword]
+            #  [[&value] + #toobig]
+
+            if simplify_varoff == 0 then
+                # No need to fiddle with the varoff; generate the address with a simple
+                # add.
+
+                if simplify_numoff == 0 then
+                    print("simplify_deref with nothing to do\n");
+                    halt();
+                end if;
+
+                $if DEBUG
+                    print("6502: numoff but no varoff\n");
+                $endif
+
+                reset_be_iop(&iop);
+                iop.width := 2;
+                iop.iop_kind := IOP_BE_ADD;
+                iop.left.type_id := ea.type_id;
+                iop.left.obj_id := ea.obj_id;
+                iop.right.type_id := constant_type;
+                iop.right.obj_id := ea.numoff_id;
+                ea.numoff_id := 0;
+                iop.dest.type_id := uint16_type;
+                iop.dest.obj_id := tmpvar_id;
+                write_be_iop(&iop);
+                deref_temporary(ea.obj_id);
+            else
+                # We need a varoff. This may or may not be the right size to add
+                # to the base address.
+
+                extend_varoff_and_setup_add();
+                write_be_iop(&iop);
+
+                if simplify_numoff != 0 then
+                    # Add on the numoff, if necessary.
+
+                    reset_be_iop(&iop);
+                    iop.width := 2;
+                    iop.iop_kind := IOP_BE_ADD;
+                    iop.left.type_id := int16_type;
+                    iop.left.obj_id := tmpvar_id;
+                    iop.right.type_id := int16_type;
+                    iop.right.obj_id := ea.numoff_id;
+                    iop.dest.type_id := int16_type;
+                    iop.dest.obj_id := tmpvar_id;
+                    write_be_iop(&iop);
+                    ea.numoff_id := 0;
+                end if;
+            end if;
+
+            deref_temporary(ea.obj_id);
+            ea.obj_id := tmpvar_id;
+        end sub;
+
+        if (simplify_varoff == 0) and (simplify_numoff == 0) then
+            if (ea.varoff_id == 0) and (ea.numoff_id == 0) then
+                return;
+            else
+                if (ea.varoff_id != 0) and (ea.numoff_id != 0) then
+                    $if DEBUG
+                        print("6502: forcing simplification of numeric part\n");
+                    $endif
+                    simplify_numoff := 1;
+                else
+                    return;
+                end if;
+            end if;
+        end if;
+        simplify_deref();
+    end if;
+
+    $if DEBUG
+        print("6502: after simplification, EA is: ");
+        print_ea(ea);
+        print_newline();
+    $endif
+end sub;
+
+sub arch_simplify_node_to(src: [Node], dest: [Node])
+    if dest.iop != IOP_FEX_PUSH then
+        print("simplify_node_to() where dest is not simplified");
+        halt();
+    end if;
+
+    if src.iop == IOP_BE_MUL then
+        simplify_mul(src);
+    end if;
+
+    var destwidth: uint8 := get_width_of(dest);
+
+    var iop: BEIop;
+    reset_be_iop(&iop);
+    iop.width := destwidth;
+    check_ea(&dest.left);
+    copy_ea(&dest.left, &iop.dest);
+    iop.dest.type_id := dest.type_id;
+
+    if src.iop == IOP_FEX_PUSH then
+        iop.iop_kind := IOP_BE_COPY;
+    else
+        iop.iop_kind := src.iop;
+    end if;
+
+    check_ea(&src.left);
+    copy_ea(&src.left, &iop.left);
+    check_ea(&src.left);
+    copy_ea(&src.right, &iop.right);
+
+    simplify_ea(iop.iop_kind, destwidth, &iop.left);
+    if (iop.iop_kind & IOP_TYPE_MASK) == IOP_TYPE_BACKEND_3OP then
+        simplify_ea(iop.iop_kind, destwidth, &iop.right);
+    end if;
+    simplify_ea(iop.iop_kind, destwidth, &iop.dest);
+
+    write_be_iop(&iop);
+end sub;
+
+sub arch_simplify_conditional_iop(iop: [BEConditionalIop])
+    $if DEBUG
+        print("6502: conditional\n");
+    $endif
+
+    check_ea(&iop.left);
+    check_ea(&iop.right);
+    simplify_ea(iop.iop_kind, iop.width, &iop.left);
+    simplify_ea(iop.iop_kind, iop.width, &iop.right);
+
+    write_iop(iop as [Iop]);
+end sub;
