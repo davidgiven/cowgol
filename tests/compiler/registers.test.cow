@@ -94,6 +94,14 @@ sub reg_load(reg: RegSet, ea: [EffectiveAddress])
     print_newline();
 end sub;
 
+sub reg_copy(src: RegSet, dest: RegSet)
+    print("copy ");
+    print_regs(src);
+    print("-> ");
+    print_regs(dest);
+    print_newline();
+end sub;
+
 $set DEBUG
 $include "src/codegen/registers.cow"
 
@@ -188,5 +196,10 @@ sub loading_test()
     reg_value_is_precious(&ea16bit_2);
     reg_free(location);
     location := reg_find_or_load(REG_B, &ea8bit_1);
+
+    reg_reset();
+    location := reg_find_or_load(REG_A, &ea8bit_1);
+    location := reg_find_or_load(REG_B, &ea8bit_1);
+    location := reg_find_or_load(REG_B|REG_C, &ea8bit_1);
 end sub;
 loading_test();
