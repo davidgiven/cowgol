@@ -67,22 +67,6 @@ var reg_interference: RegSet[NUM_REGS] := {
     REG_DE | REG_D | REG_E
 };
 
-sub reg_save(reg: RegSet, ea: [EffectiveAddress])
-    print("save 0x");
-    print_hex_i8(reg);
-    print(": ");
-    print_ea(ea);
-    print_newline();
-end sub;
-
-sub reg_load(reg: RegSet, ea: [EffectiveAddress])
-    print("load 0x");
-    print_hex_i8(reg);
-    print(": ");
-    print_ea(ea);
-    print_newline();
-end sub;
-
 sub print_regs(regs: RegSet)
     if regs == 0            then print("(none) "); end if;
     if (regs & REG_A) != 0  then print("A "); end if;
@@ -92,6 +76,22 @@ sub print_regs(regs: RegSet)
     if (regs & REG_E) != 0  then print("E "); end if;
     if (regs & REG_BC) != 0 then print("BC "); end if;
     if (regs & REG_DE) != 0 then print("DE "); end if;
+end sub;
+
+sub reg_save(reg: RegSet, ea: [EffectiveAddress])
+    print("save ");
+    print_regs(reg);
+    print(": ");
+    print_ea(ea);
+    print_newline();
+end sub;
+
+sub reg_load(reg: RegSet, ea: [EffectiveAddress])
+    print("load ");
+    print_regs(reg);
+    print(": ");
+    print_ea(ea);
+    print_newline();
 end sub;
 
 $set DEBUG
@@ -143,5 +143,32 @@ sub simple_cache_test()
     reg_evict(REG_DE);
 
     reg_evict(REG_DE);
+
+    reg_reset();
+    reg_cache_value(REG_DE, &ea16bit_1);
+    reg_evict(REG_D);
 end sub;
 simple_cache_test();
+
+sub caching_and_locking_test()
+    print("\nCaching and locking\n");
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    var location: RegSet := reg_alloc(REG_A|REG_B);
+    location := reg_alloc(REG_A|REG_B);
+
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_B, &ea8bit_2);
+    reg_value_is_precious(&ea8bit_2);
+    location := reg_alloc(REG_A|REG_B);
+    location := reg_alloc(REG_A|REG_B);
+
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_BC, &ea16bit_2);
+    reg_value_is_precious(&ea16bit_2);
+    location := reg_alloc(REG_A|REG_B);
+    location := reg_alloc(REG_A|REG_B);
+end sub;
+caching_and_locking_test();

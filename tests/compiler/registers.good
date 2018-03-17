@@ -3,13 +3,13 @@ d
 
 LRU test
 % reset register allocator
-cost for A: 2
-cost for B: 1
-cost for C: 0
-cost for D: 3
-cost for E: 3
-cost for BC: 0
-cost for DE: 3
+cost for A: 3
+cost for B: 2
+cost for C: 1
+cost for D: 4
+cost for E: 4
+cost for BC: 1
+cost for DE: 4
 lowest cost of ABC is: A 
 
 Simple allocation test
@@ -55,3 +55,80 @@ Simple cache test
 %   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
 % writing back precious values in DE  which affects D E DE 
 % evicting values in DE  which affects D E DE 
+% reset register allocator
+% value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in DE 
+% writing back precious values in D  which affects D DE 
+% evicting values in D  which affects D DE 
+%   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
+
+Caching and locking
+% reset register allocator
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% allocating register in A B 
+%   locked registers: (none) 
+%   used registers: A 
+%   potential unused registers are B 
+%   allocating unused register B 
+% allocating register in A B 
+%   locked registers: B 
+%   used registers: A 
+%   potential unused registers are (none) 
+%   precious registers are (none) 
+%   no unused registers, considering evicting one of non-precious A 
+%   evicting lowest cost register which is A 
+% writing back precious values in A  which affects A 
+% evicting values in A  which affects A 
+%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+% reset register allocator
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in B 
+% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is precious in B 
+% allocating register in A B 
+%   locked registers: (none) 
+%   used registers: A B 
+%   potential unused registers are (none) 
+%   precious registers are B 
+%   no unused registers, considering evicting one of non-precious A 
+%   evicting lowest cost register which is A 
+% writing back precious values in A  which affects A 
+% evicting values in A  which affects A 
+%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+% allocating register in A B 
+%   locked registers: A 
+%   used registers: B 
+%   potential unused registers are (none) 
+%   precious registers are B 
+%   no unused registers, considering evicting one of non-precious (none) 
+%   no unused registers, considering evicting one of precious B 
+%   evicting lowest cost register which is B 
+% writing back precious values in B  which affects B BC 
+% ea [TYPE1.015d:uint8].TYPE1.015d:uint8 is no longer precious
+save B : [TYPE1.015d:uint8].TYPE1.015d:uint8
+% evicting values in B  which affects B BC 
+%   value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in (none) 
+% reset register allocator
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in BC 
+% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is precious in BC 
+% allocating register in A B 
+%   locked registers: (none) 
+%   used registers: A BC 
+%   potential unused registers are (none) 
+%   precious registers are (none) 
+%   no unused registers, considering evicting one of non-precious A B 
+%   evicting lowest cost register which is A 
+% writing back precious values in A  which affects A 
+% evicting values in A  which affects A 
+%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+% allocating register in A B 
+%   locked registers: A 
+%   used registers: BC 
+%   potential unused registers are (none) 
+%   precious registers are (none) 
+%   no unused registers, considering evicting one of non-precious B 
+%   evicting lowest cost register which is B 
+% writing back precious values in B  which affects B BC 
+% ea [TYPE2.0171:uint16].TYPE2.0171:uint16 is no longer precious
+save BC : [TYPE2.0171:uint16].TYPE2.0171:uint16
+% evicting values in B  which affects B BC 
+%   value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in (none) 

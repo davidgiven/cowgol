@@ -20,7 +20,12 @@ sub reg_reset()
 
     locked_registers := 0;
     zero_memory(&value_cache as [int8], value_cache@bytes);
-    zero_memory(&register_use as [int8], register_use@bytes);
+
+    var i: uint8 := 0;
+    while i != NUM_REGS loop
+        register_use[i] := 1;
+        i := i + 1;
+    end loop;
 end sub;
 
 sub find_lowest_bit(value: RegSet): (mask: RegSet)
@@ -58,7 +63,7 @@ sub reg_bump(regs: RegSet)
     var index: uint8 := 0;
     while index != NUM_REGS loop
         if (regs & mask) != 0 then
-            register_use[index] := 0;
+            register_use[index] := 1;
         else
             var cost: uint8 := register_use[index];
             if cost != 0xff then
@@ -87,6 +92,10 @@ sub reg_find_lowest_cost(candidates: RegSet): (reg: RegSet)
         index := index + 1;
         mask := mask << 1;
     end loop;
+    
+    if currentcost == 0 then
+        reg := 0;
+    end if;
 end sub;
 
 # Find or create a cache slot for a value.
@@ -115,6 +124,23 @@ sub reg_find_cache_slot(ea: [EffectiveAddress]): (value: [CachedValue])
     halt();
 end sub;
 
+# Given a set of registers, finds all registers therein which contain precious
+# values.
+sub reg_find_precious(regsin: RegSet): (regsout: RegSet)
+    regsout := 0;
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        if value.precious != 0 then
+            var mask: RegSet := value.locations;
+            if (mask & regsin) != 0 then
+                regsout := regsout | mask;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+    
 # Mark a value as being cached in a register.
 sub reg_cache_value(regs: RegSet, ea: [EffectiveAddress])
     var value: [CachedValue] := reg_find_cache_slot(ea);
@@ -123,6 +149,19 @@ sub reg_cache_value(regs: RegSet, ea: [EffectiveAddress])
         print("% value ");
         print_ea(ea);
         print(" is now cached in ");
+        print_regs(value.locations);
+        print_newline();
+    $endif
+end sub;
+
+# Mark a value as being precious
+sub reg_value_is_precious(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    value.precious := 1;
+    $if DEBUG
+        print("% value ");
+        print_ea(ea);
+        print(" is precious in ");
         print_regs(value.locations);
         print_newline();
     $endif
@@ -238,25 +277,54 @@ sub reg_alloc(candidates: RegSet): (regs: RegSet)
             print_newline();
         $endif
         locked_registers := locked_registers | regs;
-        used_registers := used_registers | regs;
         return;
     end if;
 
     # If this fails, attempt to evict the lowest cost non-precious register.
 
-    regs := (reg_find_affected(locked_registers) ^ ALL_REGS) & candidates;
+    var precious: RegSet := reg_find_precious(candidates);
     $if DEBUG
-        print("%  no unused registers, considering evicting ");
+        print("%   precious registers are ");
+        print_regs(precious);
+        print_newline();
+    $endif
+    regs := (reg_find_affected(locked_registers | precious) ^ ALL_REGS) & candidates;
+    $if DEBUG
+        print("%   no unused registers, considering evicting one of non-precious ");
         print_regs(regs);
         print_newline();
     $endif
     if regs != 0 then
         regs := reg_find_lowest_cost(regs);
         $if DEBUG
-            print("%   evicting lowest cost register ");
+            print("%   evicting lowest cost register which is ");
             print_regs(regs);
             print_newline();
         $endif
+        reg_evict(regs);
+        locked_registers := locked_registers | regs;
+        return;
+    end if;
+
+    # There are no candidate non-precious registers. We'll have to evict a
+    # precious one.
+
+    regs := (reg_find_affected(locked_registers) ^ ALL_REGS) & candidates;
+    $if DEBUG
+        print("%   no unused registers, considering evicting one of precious ");
+        print_regs(regs);
+        print_newline();
+    $endif
+    if regs != 0 then
+        regs := reg_find_lowest_cost(regs);
+        $if DEBUG
+            print("%   evicting lowest cost register which is ");
+            print_regs(regs);
+            print_newline();
+        $endif
+        reg_evict(regs);
+        locked_registers := locked_registers | regs;
+        return;
     end if;
     
     print("cannot allocate register (this bit not done yet)");
