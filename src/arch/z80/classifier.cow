@@ -16,13 +16,7 @@ sub arch_classify_ea(ea: [EffectiveAddress])
         var addressofthing: [AddressOfThing] := find_thing(ea.obj_id) as [AddressOfThing];
         do_data(addressofthing.thing_id, SEGMENT_DATA);
     elseif is_typed_thing(ea.obj_id) != 0 then
-        var segment: uint8;
-        if (ea.flags & EA_DEREF) != 0 then
-            segment := SEGMENT_ZEROPAGE;
-        else
-            segment := SEGMENT_DATA;
-        end if;
-        do_data(ea.obj_id, segment);
+        do_data(ea.obj_id, SEGMENT_DATA);
     elseif objtype == THING_STRING then
         do_data(ea.obj_id, SEGMENT_CONST);
     end if;
@@ -32,10 +26,7 @@ sub arch_classify_ea(ea: [EffectiveAddress])
 end sub;
 
 sub arch_allocate_var(offsets: [ArchSizes], thing: [TypedThing], width: uint16)
-    if thing.segment == SEGMENT_ZEROPAGE then
-        thing.address := offsets.zp_size as uint16;
-        offsets.zp_size := offsets.zp_size + (width as uint8);
-    elseif thing.segment == SEGMENT_DATA then
+    if thing.segment == SEGMENT_DATA then
         thing.address := offsets.data_size;
         offsets.data_size := offsets.data_size + width;
     elseif thing.segment == SEGMENT_LAST then
@@ -48,19 +39,13 @@ sub arch_allocate_var(offsets: [ArchSizes], thing: [TypedThing], width: uint16)
 end sub;
 
 sub arch_propagate_var_offsets(src_offsets: [ArchSizes], dest_offsets: [ArchSizes])
-    if src_offsets.zp_size > dest_offsets.zp_size then
-        dest_offsets.zp_size := src_offsets.zp_size;
-    end if;
-
     if src_offsets.data_size > dest_offsets.data_size then
         dest_offsets.data_size := src_offsets.data_size;
     end if;
 end sub;
 
 sub arch_report_offsets(offsets: [ArchSizes])
-    print("Zero page: 0x");
-    print_hex_i8(offsets.zp_size);
-    print(" bytes\nData: 0x");
+    print("Data: 0x");
     print_hex_i16(offsets.data_size);
     print(" bytes\n");
 end sub;
