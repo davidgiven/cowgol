@@ -85,19 +85,39 @@ sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])
 
     reg_find_or_load_fixed(REG_A, &ciop.left);
     var indreg: RegSet := setup_8bit_rhs_insn(&ciop.right);
-    insn_8bit_aluop(0xFE); # cp *
+
+    var invertflag: uint8;
+    var destlabel: uint8;
+    if liop.label == ciop.iftrue_label then
+        invertflag := 0x00;
+        fallthrough_label := ciop.iftrue_label;
+        destlabel := ciop.iffalse_label;
+    else
+        invertflag := 0x08;
+        fallthrough_label := ciop.iffalse_label;
+        destlabel := ciop.iftrue_label;
+    end if;
 
     if iopkind == IOP_BE_BEQ then
-        if liop.label == ciop.iftrue_label then
-            write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
-            fallthrough_label := ciop.iftrue_label;
-        else
-            write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
-            fallthrough_label := ciop.iffalse_label;
-        end if;
+        insn_8bit_aluop(0xFE); # cp *
+        write_cg_conditional_iop(0xC2 ^ invertflag, destlabel); # jp nz
     else
-        print("can't do magnitude comparisons yet");
-        halt();
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            # BLTS
+            reg_evict(REG_A);
+            insn_8bit_aluop(0xD6); # sub *
+
+            var skipxorlabel: uint8 := create_label();
+            write_cg_conditional_iop(0xE2 ^ invertflag, skipxorlabel); # jp po
+            write_word(0x80EE); # xor 0x80
+            write_label_iop(skipxorlabel);
+
+            write_cg_conditional_iop(0xF2 ^ invertflag, destlabel); # jp p
+        else
+            # BLTU
+            insn_8bit_aluop(0xFE); # cp *
+            write_cg_conditional_iop(0xD2 ^ invertflag, destlabel); # jp c
+        end if;
     end if;
 
     if liop.label != fallthrough_label then
