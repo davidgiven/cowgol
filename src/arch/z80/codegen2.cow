@@ -104,7 +104,7 @@ end sub;
 
 sub arch_gen_goto(iop: [GotoIop])
     reg_evict(ALL_REGS);
-    write_cg_conditional_iop(0, iop.label); # Unconditional
+    write_cg_conditional_iop(0xC3, iop.label); # Unconditional
 end sub;
 
 sub arch_gen_copy(iop: [BEIop])
@@ -201,20 +201,13 @@ sub arch_gen_sext(iop: [BEIop])
 end sub;
 
 sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
-    $if DEBUG
-        print("* GENERATE: comparison 0x");
-        print_hex_i8(ciop.iop_kind);
-        print(": ");
-        print_ea(&ciop.left);
-        print(", ");
-        print_ea(&ciop.right);
-        print(" => label 0x");
-        print_hex_i8(liop.label);
-        print_newline();
-    $endif
-
-    print("can't");
-    halt();
+    reg_write_back_precious_values(ALL_REGS);
+    if ciop.width == 1 then
+        arch_gen_cmp_8bit(ciop, liop);
+    else
+        print("can't compare");
+        halt();
+    end if;
 end sub;
 
 sub arch_gen_kill(iop: [KillIop])

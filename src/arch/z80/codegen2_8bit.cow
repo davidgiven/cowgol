@@ -4,7 +4,7 @@ sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
     # If the RHS is already in a register, use that.
 
     if reg_is_cached(ea) != 0 then
-        indreg := reg_find_or_load(REG_STUPID, ea);
+        indreg := reg_find_or_load(REG_8BIT, ea);
 
         insn_init();
         insn.datareg := REG_A;
@@ -65,4 +65,42 @@ sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
     insn_8bit_aluop(opcode);
     reg_cache_value(REG_A, &iop.dest);
     reg_value_is_precious(&iop.dest);
+end sub;
+
+sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare bytes 0x");
+        print_hex_i8(ciop.iop_kind);
+        print(": ");
+        print_ea(&ciop.left);
+        print(", ");
+        print_ea(&ciop.right);
+        print(" => label 0x");
+        print_hex_i8(liop.label);
+        print_newline();
+    $endif
+
+    var fallthrough_label: uint8;
+    var iopkind: uint8 := ciop.iop_kind;
+
+    reg_find_or_load_fixed(REG_A, &ciop.left);
+    var indreg: RegSet := setup_8bit_rhs_insn(&ciop.right);
+    insn_8bit_aluop(0xFE); # cp *
+
+    if iopkind == IOP_BE_BEQ then
+        if liop.label == ciop.iftrue_label then
+            write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
+            fallthrough_label := ciop.iftrue_label;
+        else
+            write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
+            fallthrough_label := ciop.iffalse_label;
+        end if;
+    else
+        print("can't do magnitude comparisons yet");
+        halt();
+    end if;
+
+    if liop.label != fallthrough_label then
+        write_cg_conditional_iop(0xC3, fallthrough_label); # jp
+    end if;
 end sub;
