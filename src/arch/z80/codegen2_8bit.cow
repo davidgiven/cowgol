@@ -1,3 +1,58 @@
+sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
+    # If the value is already in a register, load it.
+
+    if reg_is_cached(ea) != 0 then
+        reg := reg_find_or_load(regs, ea);
+        return;
+    end if;
+        
+    # If the value can be trivially loaded, do so.
+
+    if ea.flags == EA_VALUE then
+        if is_number_thing(ea.obj_id) != 0 then
+            reg := reg_find_or_load(regs, ea);
+            return;
+        elseif (regs & REG_A) != 0 then
+            reg := reg_find_or_load(REG_A, ea);
+            return;
+        end if;
+    end if;
+
+    # The value is going to have to be indirected through a pointer of
+    # some description, as we can't refer to it directly.
+
+    var pointer: RegSet;
+    if get_value_of_number(ea.numoff_id) != 0 then
+        pointer := REG_INDEX;
+    elseif (regs & REG_A) != 0 then
+        pointer := REG_16BIT;
+    else
+        pointer := REG_HL;
+    end if;
+
+    var indea: EffectiveAddress;
+    copy_ea(ea, &indea);
+    if ea.flags == EA_VALUE then
+        indea.flags := EA_LEA;
+    else
+        indea.flags := EA_VALUE;
+    end if;
+    indea.numoff_id := 0;
+    pointer := reg_find_or_load(pointer, &indea);
+
+    # Now the pointer is in a register, dereference it.
+
+    reg := reg_alloc(regs);
+    insn_init();
+    insn.datareg := reg;
+    insn.otherreg := pointer;
+    insn.mode := MODE_IND;
+    insn.offset := get_value_of_number(ea.numoff_id) as int16;
+    insn_load_object();
+
+    reg_free(pointer);
+end sub;
+
 sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
     indreg := 0;
 
@@ -26,10 +81,15 @@ sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
 
     var indea: EffectiveAddress;
     zero_ea(&indea);
-    indea.flags := EA_LEA;
-    indea.obj_id := ea.obj_id;
-    indea.type_id := ea.type_id;
-    indreg := reg_find_or_load(REG_HL|REG_IX|REG_IY, &indea);
+    if ea.flags == EA_VALUE then
+        indea.flags := EA_LEA;
+        indea.obj_id := ea.obj_id;
+        indea.type_id := ea.type_id;
+        indreg := reg_find_or_load(REG_HL|REG_IX|REG_IY, &indea);
+    else
+        print("can't RHS derefs yet");
+        halt();
+    end if;
 
     insn_init();
     insn.datareg := REG_A;
@@ -38,7 +98,15 @@ sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
 end sub;
 
 sub arch_gen_copy_byte(iop: [BEIop])
-    var location: RegSet := reg_find_or_load(REG_A, &iop.left);
+    $if DEBUG
+        print("* GENERATE copy byte: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    var location: RegSet := load_complex_8bit_value(REG_A, &iop.left);
     reg_bump(location);
     reg_cache_value(location, &iop.dest);
     reg_value_is_precious(&iop.dest);

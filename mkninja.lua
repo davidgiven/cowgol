@@ -217,6 +217,7 @@ local target_data = {
             "src/arch/z80/codegen0.cow",
             "src/codegen/registers.cow",
             "src/arch/z80/codegen2_8bit.cow",
+            "src/arch/z80/codegen2_16bit.cow",
             "src/arch/z80/codegen2.cow",
         }
     end

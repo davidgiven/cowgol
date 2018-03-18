@@ -168,12 +168,23 @@ sub insn_check_8bit_reg()
     end if;
 end sub;
 
-sub insn_check_8bit_ind_reg()
+sub insn_check_8bit_alu_ind()
     if (insn.mode != MODE_IND) or (insn.obj_id != 0) or (insn.otherreg == 0) or
         ((insn.otherreg != REG_HL) and (insn.otherreg != REG_IX) and (insn.otherreg != REG_IY)) or
         ((insn.otherreg == REG_HL) and (insn.offset != 0))
     then
-        print("insn_check_8bit_ind_reg fail");
+        print("insn_check_8bit_alu_ind fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_8bit_ind()
+    if (insn.mode != MODE_IND) or (insn.obj_id != 0)
+        or ((insn.otherreg & REG_16BIT) == 0)
+        or (((insn.otherreg & REG_INDEX) == 0) and (insn.offset != 0))
+        or (((insn.otherreg & (REG_BC|REG_DE)) != 0) and (insn.datareg != REG_A))
+    then
+        print("insn_check_8bit_ind fail");
         halt();
     end if;
 end sub;
@@ -218,6 +229,38 @@ sub insn_ldst_abs(readflag: uint8)
     write_address_iop(IOP_ADDRESS, insn.obj_id, insn.offset as uint16);
 end sub;
 
+sub insn_ldst_ind(readflag: uint8)
+    $if DEBUG
+        print("@ insn_ldst_ind read=");
+        print_i8(readflag);
+        print_insn();
+    $endif
+    insn_check_8bit_ind();
+
+    if readflag != 0 then
+        readflag := 0x08;
+    end if;
+
+    if insn.otherreg == REG_BC then
+        write_byte(0x02 | readflag); # ld (bc), a
+    elseif insn.otherreg == REG_DE then
+        write_byte(0x12 | readflag); # ld (de), a
+    else
+        if insn.otherreg == REG_IX then
+            write_byte(0xDD); # IX prefix
+        elseif insn.otherreg == REG_IY then
+            write_byte(0xFD); # IY prefix
+        end if;
+
+        var datareg: uint8 := get_z80_regnum(insn.datareg) as uint8;
+        write_byte(0x46 | (datareg<<3) | readflag); # ld (hl), b
+
+        if (insn.otherreg & REG_INDEX) != 0 then
+            write_byte(insn.offset as uint8);
+        end if;
+    end if;
+end sub;
+
 sub insn_ld_abs()
     insn_ldst_abs(1);
 end sub;
@@ -227,13 +270,11 @@ sub insn_st_abs()
 end sub;
 
 sub insn_ld_ind()
-    print("ld_ind");
-    halt();
+    insn_ldst_ind(1);
 end sub;
 
 sub insn_st_ind()
-    print("st_ind");
-    halt();
+    insn_ldst_ind(0);
 end sub;
 
 sub insn_8bit_op_imm(opcode: uint8)
@@ -346,7 +387,7 @@ sub insn_8bit_op_alu_ind_reg(opcode: uint8)
         print_hex_i8(opcode);
         print_insn();
     $endif
-    insn_check_8bit_ind_reg();
+    insn_check_8bit_alu_ind();
 
     opcode := (opcode & 0b1011_1000) | 0b0000_0110;
     if insn.otherreg == REG_IX then

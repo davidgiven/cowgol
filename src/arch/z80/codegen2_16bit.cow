@@ -1,0 +1,15 @@
+sub arch_gen_copy_word(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE copy word: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    var location: RegSet := reg_find_or_load(REG_16BIT, &iop.left);
+    reg_bump(location);
+    reg_cache_value(location, &iop.dest);
+    reg_value_is_precious(&iop.dest);
+end sub;
+
