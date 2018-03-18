@@ -1,0 +1,12 @@
+sub print_char(char: int8)
+    @bytes 0x3A, &char;      # ld a, char
+    @bytes 0x5F;             # ld e, a
+    @bytes 0x0E, 0x02;       # ld c, 2
+    @bytes 0xC3, 0x05, 0x00; # jp BDOS
+end sub;
+
+sub print_newline()
+    @bytes 0x1E, '\n';       # ld e, '\n'
+    @bytes 0x0E, 0x02;       # ld c, 2
+    @bytes 0xC3, 0x05, 0x00; # jp BDOS
+end sub;
