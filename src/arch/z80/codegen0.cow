@@ -6,9 +6,9 @@ const REG_D      := 0b0000_0000_1000; # 3
 const REG_E      := 0b0000_0001_0000; # 4
 const REG_H      := 0b0000_0010_0000; # 5
 const REG_L      := 0b0000_0100_0000; # 6
-const REG_BC     := 0b0000_1000_0000; # 7
-const REG_DE     := 0b0001_0000_0000; # 8
-const REG_HL     := 0b0010_0000_0000; # 9
+const REG_HL     := 0b0000_1000_0000; # 7
+const REG_BC     := 0b0001_0000_0000; # 8
+const REG_DE     := 0b0010_0000_0000; # 9
 const REG_IX     := 0b0100_0000_0000; # 10
 const REG_IY     := 0b1000_0000_0000; # 11
 const ALL_REGS   := 0b1111_1111_1111;
@@ -29,9 +29,9 @@ var reg_interference: RegSet[NUM_REGS] := {
     REG_E | REG_DE,
     REG_H | REG_HL,
     REG_L | REG_HL,
+    REG_HL | REG_H | REG_L,
     REG_BC | REG_B | REG_C,
     REG_DE | REG_D | REG_E,
-    REG_HL | REG_H | REG_L,
     REG_IX,
     REG_IY
 };
@@ -74,9 +74,9 @@ var z80_regnum: uint16[NUM_REGS] := {
     0x04, # H
     0x05, # L
 
+    0x21, # HL
     0x01, # BC
     0x11, # DE
-    0x21, # HL
 
     0x21DD, # IX
     0x21FD, # IY
@@ -197,9 +197,9 @@ var ldst_abs_opcodes: uint16[NUM_REGS] := {
     0,      # e
     0,      # h
     0,      # l
+    0x22,   # ld (**), hl
     0x43ED, # ld (**), bc
     0x53ED, # ld (**), de
-    0x22,   # ld (**), hl
     0x22DD, # ld (**), ix
     0x22FD, # ld (**), iy
 };

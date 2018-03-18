@@ -1,3 +1,16 @@
+# Returns a pointer to the value in ea.
+sub setup_pointer(pointerregs: RegSet, ea: [EffectiveAddress]): (pointerreg: RegSet)
+    var indea: EffectiveAddress;
+    copy_ea(ea, &indea);
+    if ea.flags == EA_VALUE then
+        indea.flags := EA_LEA;
+    else
+        indea.flags := EA_VALUE;
+    end if;
+    indea.numoff_id := 0;
+    pointerreg := reg_find_or_load(pointerregs, &indea);
+end sub;
+
 sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     # If the value is already in a register, load it.
 
@@ -29,16 +42,7 @@ sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     else
         pointer := REG_HL;
     end if;
-
-    var indea: EffectiveAddress;
-    copy_ea(ea, &indea);
-    if ea.flags == EA_VALUE then
-        indea.flags := EA_LEA;
-    else
-        indea.flags := EA_VALUE;
-    end if;
-    indea.numoff_id := 0;
-    pointer := reg_find_or_load(pointer, &indea);
+    pointer := setup_pointer(pointer, ea);
 
     # Now the pointer is in a register, dereference it.
 
@@ -53,17 +57,15 @@ sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     reg_free(pointer);
 end sub;
 
-sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
-    indreg := 0;
-
+sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (otherreg: RegSet)
     # If the RHS is already in a register, use that.
 
     if reg_is_cached(ea) != 0 then
-        indreg := reg_find_or_load(REG_8BIT, ea);
+        otherreg := reg_find_or_load(REG_8BIT, ea);
 
         insn_init();
         insn.datareg := REG_A;
-        insn.otherreg := indreg;
+        insn.otherreg := otherreg;
         insn.mode := MODE_DIR;
         return;
     end if;
@@ -72,6 +74,7 @@ sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
 
     if (ea.flags == EA_VALUE) and (is_number_thing(ea.obj_id) != 0) then
         insn_init_from_ea(ea);
+        otherreg := 0;
         return;
     end if;
 
@@ -79,21 +82,16 @@ sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (indreg: RegSet)
     # refer to it directly, so instead get the address in an indexable
     # register and use an indirection.
 
-    var indea: EffectiveAddress;
-    zero_ea(&indea);
-    if ea.flags == EA_VALUE then
-        indea.flags := EA_LEA;
-        indea.obj_id := ea.obj_id;
-        indea.type_id := ea.type_id;
-        indreg := reg_find_or_load(REG_HL|REG_IX|REG_IY, &indea);
+    if get_value_of_number(ea.numoff_id) != 0 then
+        otherreg := REG_INDEX;
     else
-        print("can't RHS derefs yet");
-        halt();
+        otherreg := REG_HL;
     end if;
+    otherreg := setup_pointer(otherreg, ea);
 
     insn_init();
     insn.datareg := REG_A;
-    insn.otherreg := indreg;
+    insn.otherreg := otherreg;
     insn.mode := MODE_IND;
 end sub;
 
