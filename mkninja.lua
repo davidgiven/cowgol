@@ -123,6 +123,7 @@ build $OBJDIR/tests/compiler/things.dat $
 local NAME
 local HOST
 local TARGET
+local EXTENSION
 
 local LIBS
 local RULE
@@ -134,8 +135,17 @@ local SIMPLIFIER
 local PLACER
 local EMITTER
 
+-- Build X on Y
+local compilers = {
+    {"bbc", "native"},
+    {"c64", "native"},
+    {"cpmz", "native"},
+    {"bbc", "bbc"},
+}
+
 local host_data = {
     ["native"] = function()
+        HOST = "native"
         LIBS = {
             "src/arch/bootstrap/host.cow",
 			"src/string_lib.cow",
@@ -144,9 +154,11 @@ local host_data = {
         }
 
         RULE = "bootstrapped_cowgol_program"
+        EXTENSION = ""
     end,
 
     ["bbc"] = function()
+        HOST = "bbc"
         LIBS = {
             "src/arch/bbc/host.cow",
             "src/arch/bbc/lib/mos.cow",
@@ -161,11 +173,23 @@ local host_data = {
         }
 
         RULE = "cowgol_program"
+        EXTENSION = ".bbc"
+    end,
+
+    ["cpmz"] = function()
+        HOST = "cpmz"
+        LIBS = {
+            "src/arch/cpmz/host.cow",
+        }
+
+        RULE = "cowgol_program"
+        EXTENSION = ".cpmz"
     end,
 }
 
 local target_data = {
     ["bbc"] = function()
+        TARGET = "bbc"
         GLOBALS = "src/arch/bbc/globals.cow"
         CLASSIFIER = "src/arch/6502/classifier.cow"
         SIMPLIFIER = "src/arch/6502/simplifier.cow"
@@ -185,6 +209,7 @@ local target_data = {
     end,
 
     ["c64"] = function()
+        TARGET = "c64"
         GLOBALS = "src/arch/c64/globals.cow"
         CLASSIFIER = "src/arch/6502/classifier.cow"
         SIMPLIFIER = "src/arch/6502/simplifier.cow"
@@ -204,6 +229,7 @@ local target_data = {
     end,
 
     ["cpmz"] = function()
+        TARGET = "cpmz"
         GLOBALS = "src/arch/cpmz/globals.cow"
         CLASSIFIER = "src/arch/z80/classifier.cow"
         SIMPLIFIER = "src/arch/z80/simplifier.cow"
@@ -222,6 +248,14 @@ local target_data = {
         }
     end
 }
+
+local function compiler_name()
+    if HOST == TARGET then
+        return TARGET
+    else
+        return TARGET.."_on_"..HOST
+    end
+end
 
 local function build_cowgol(files)
     local program = table.remove(files, 1)
@@ -294,14 +328,14 @@ end
 
 local function cpu_test(file)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
-    local testbin = "$OBJDIR/tests/cpu/"..testname..".6502"
+    local testbin = "$OBJDIR/tests/cpu_"..HOST.."/"..testname..EXTENSION
     local goodfile = "tests/cpu/"..testname..".good"
     local badfile = "tests/cpu/"..testname..".bad"
 
     emit("build", testbin, ":", RULE, LIBS, file,
-        "|", "$OBJDIR/compiler_for_bbc_on_native")
+        "|", "$OBJDIR/compiler_for_"..HOST.."_on_native")
     nl()
-    emit(" arch =", "bbc_on_native")
+    emit(" arch =", HOST.."_on_native")
     nl()
     emit("build", testbin..".stamp", ":", "run_bbctube_test",
         testbin, "|",
@@ -507,40 +541,33 @@ local function build_cowgol_programs()
     }
 end
 
--- Build all the combinations of compilers.
-for host, hostcb in pairs(host_data) do
-    HOST = host
-    hostcb()
+-- Build the compilers.
+for _, spec in ipairs(compilers) do
+    TARGET, HOST = unpack(spec)
+    target_data[TARGET]()
+    host_data[HOST]()
 
-    for target, targetcb in pairs(target_data) do
-        TARGET = target
-        if HOST == TARGET then
-            NAME = TARGET
-        else
-            NAME = TARGET.."_on_"..HOST
-        end
+    NAME = compiler_name()
+    rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
+        {
+            "bin/"..NAME.."/init",
+            "bin/"..NAME.."/tokeniser2",
+            "bin/"..NAME.."/parser",
+            "bin/"..NAME.."/typechecker",
+            "bin/"..NAME.."/backendify",
+            "bin/"..NAME.."/blockifier",
+            "bin/"..NAME.."/classifier",
+            "bin/"..NAME.."/codegen",
+            "bin/"..NAME.."/placer",
+            "bin/"..NAME.."/emitter",
+            "bin/"..NAME.."/iopshower",
+            "bin/"..NAME.."/thingshower"
+        }
+    )
+    nl()
 
-        rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
-            {
-                "bin/"..NAME.."/init",
-                "bin/"..NAME.."/tokeniser2",
-                "bin/"..NAME.."/parser",
-                "bin/"..NAME.."/typechecker",
-                "bin/"..NAME.."/backendify",
-                "bin/"..NAME.."/blockifier",
-                "bin/"..NAME.."/classifier",
-                "bin/"..NAME.."/codegen",
-                "bin/"..NAME.."/placer",
-                "bin/"..NAME.."/emitter",
-                "bin/"..NAME.."/iopshower",
-                "bin/"..NAME.."/thingshower"
-            }
-        )
-        nl()
-
-        targetcb()
-        build_cowgol_programs()
-    end
+    target_data[TARGET]()
+    build_cowgol_programs()
 end
 
 -- Build the bootstrap compiler tests.
