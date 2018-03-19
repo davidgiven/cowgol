@@ -1,0 +1,9 @@
+# longjmps out of the program.
+var __exitstack: uint16;
+@bytes 0xED, 0x73, &__exitstack; # ld (__exitstack), sp
+sub exit(status: uint8)
+    @bytes 0xED, 0x7B, &__exitstack; # ld sp, (__exitstack)
+end sub;
+
+sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32)
+end sub;
