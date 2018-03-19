@@ -1,3 +1,74 @@
+# Ensure that the EA is ready for use as the RHS of a 16-bit arithmetic
+# operation: it must either be in a register pair, or there must be a
+# pointer to it in a register pair.
+#
+# If it's a pointer, it must be in HL, IX or IY (because those are the
+# registers allowed when indirecting in the RHS of an aluop).
+# 
+# If it's a value, it can be in HL, BC or DE.
+sub prepare_16bit_rhs(ea: [EffectiveAddress]): (reg: RegSet)
+    $if DEBUG
+        print("* prepare RHS: ");
+        print_ea(ea);
+        print_newline();
+    $endif
+    if ea.flags == EA_DEREF then
+        var candidate: RegSet;
+        if ea.numoff_id != 0 then
+            candidate := REG_IX|REG_IY;
+        else
+            candidate := REG_HL;
+        end if;
+        reg := setup_pointer(candidate, ea);
+    else
+        if (ea.flags == EA_VALUE) and (is_number_thing(ea.obj_id) != 0) then
+            reg := 0;
+        else
+            reg := reg_find_or_load(REG_HL|REG_BC|REG_DE, ea);
+        end if;
+    end if;
+end sub;
+
+# Ensure that the EA is ready of use as the LHS of a 16-bit arithmetic
+# operation: it must either be in a register pair, or there must be a
+# pointer to it in a register pair.
+#
+# If it's a pointer, it must be in BC, DE, HL, IX or IY.
+#
+# If it's a value, it can be in HL, BC or DE.
+sub prepare_16bit_lhs(ea: [EffectiveAddress]): (reg: RegSet)
+    $if DEBUG
+        print("* prepare LHS: ");
+        print_ea(ea);
+        print_newline();
+    $endif
+    if ea.flags == EA_DEREF then
+        reg := setup_pointer(REG_BC|REG_DE|REG_HL|REG_IX|REG_IY, ea);
+    else
+        reg := reg_find_or_load(REG_HL|REG_BC|REG_DE, ea);
+    end if;
+end sub;
+
+# Ensure that a register is prepared for use as the destination of a 16-bit
+# arithmetic operation: either we have a register pair allocated, or a pointer
+# is loaded into a register pair.
+#
+# If it's a pointer, it must be in BC, DE, HL, IX or IY.
+#
+# If it's a value, it can be in HL, BC or DE.
+sub prepare_16bit_dest(ea: [EffectiveAddress]): (reg: RegSet)
+    $if DEBUG
+        print("* prepare dest: ");
+        print_ea(ea);
+        print_newline();
+    $endif
+    if ea.flags == EA_DEREF then
+        reg := setup_pointer(REG_BC|REG_DE|REG_HL|REG_IX|REG_IY, ea);
+    else
+        reg := reg_find_or_load(REG_HL|REG_BC|REG_DE, ea);
+    end if;
+end sub;
+
 sub arch_gen_copy_word(iop: [BEIop])
     $if DEBUG
         print("* GENERATE copy word: ");
@@ -12,9 +83,13 @@ sub arch_gen_copy_word(iop: [BEIop])
     reg_value_is_precious(&iop.dest);
 end sub;
 
-sub arch_gen_add_word(iop: [BEIop])
+sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
     $if DEBUG
-        print("* GENERATE add word: ");
+        print("* GENERATE alu word: opcode1=0x");
+        print_hex_i8(opcode1);
+        print(" opcode2=0x");
+        print_hex_i8(opcode2);
+        print(": ");
         print_ea(&iop.left);
         print(" + ");
         print_ea(&iop.right);
@@ -23,28 +98,89 @@ sub arch_gen_add_word(iop: [BEIop])
         print_newline();
     $endif
 
-    var left: RegSet := reg_find_or_load(REG_HL|REG_BC|REG_DE, &iop.left);
-
-    # At least one register must be in REG_HL.
-    var rightcandidates: RegSet;
-    if left == REG_HL then
-        rightcandidates := REG_HL|REG_BC|REG_DE;
-    else
-        rightcandidates := REG_HL;
+    var rhsreg: RegSet := prepare_16bit_rhs(&iop.right);
+    var lhsreg: RegSet := prepare_16bit_lhs(&iop.left);
+    var destreg: RegSet := prepare_16bit_dest(&iop.dest);
+    if (iop.left.flags == EA_DEREF) and ((lhsreg & REG_INDEX) == 0) then
+        reg_evict(lhsreg);
     end if;
-    var right: RegSet := reg_find_or_load(rightcandidates, &iop.left);
-    
-    var otherregnum: uint8;
-    if left == REG_HL then
-        otherregnum := get_z80_regnum(right);
-        reg_evict(right);
-    else
-        otherregnum := get_z80_regnum(left);
-        reg_evict(left);
+    if (iop.right.flags == EA_DEREF) and ((lhsreg & REG_INDEX) == 0) then
+        reg_evict(rhsreg);
     end if;
     reg_value_is_changing(&iop.dest);
-    reg_evict(REG_HL);
-    write_byte(0x09 | otherregnum);
-    reg_cache_value(REG_HL, &iop.dest);
-    reg_value_is_precious(&iop.dest);
+    if (iop.dest.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
+        reg_evict(destreg);
+    end if;
+
+    sub do_read(ea: [EffectiveAddress], reg: RegSet, offset: uint8)
+        if ea.flags == EA_VALUE then
+            reg_copy(halfof_reg(reg, offset), REG_A);
+        else
+            print("can't do this yet");
+            halt();
+        end if;
+    end sub;
+    
+    sub do_alu(ea: [EffectiveAddress], reg: RegSet, offset: uint8, opcode: uint8)
+        insn_init();
+        insn.datareg := REG_A;
+        if ea.flags == EA_VALUE then
+            if is_number_thing(ea.obj_id) != 0 then
+                var value: uint16 := get_value_of_number(ea.obj_id) as uint16;
+                if offset == 1 then
+                    value := value >> 8;
+                end if;
+                insn.offset := value as int16;
+                insn.mode := MODE_IMM;
+            else
+                insn.otherreg := halfof_reg(reg, offset);
+                insn.mode := MODE_DIR;
+            end if;
+        else
+            print("can't do this yet");
+            halt();
+        end if;
+        insn_8bit_aluop(opcode);
+    end sub;
+
+    sub do_write(ea: [EffectiveAddress], reg: RegSet, offset: uint8)
+        if ea.flags == EA_VALUE then
+            reg_copy(REG_A, halfof_reg(reg, offset));
+        else
+            print("can't do this yet");
+            halt();
+        end if;
+    end sub;
+
+    sub do_inc(ea: [EffectiveAddress], reg: RegSet)
+        if (ea.flags == EA_DEREF) and ((reg & REG_INDEX) == 0) then
+            var regnum: uint8 := get_z80_regnum(reg);
+            write_byte(0x03 | regnum); # inc rr
+        end if;
+    end sub;
+        
+    do_read(&iop.left, lhsreg, 0);
+    do_alu(&iop.right, rhsreg, 0, opcode1);
+    do_write(&iop.dest, destreg, 0);
+
+    do_inc(&iop.left, lhsreg);
+    do_inc(&iop.right, rhsreg);
+    do_inc(&iop.dest, destreg);
+
+    do_read(&iop.left, lhsreg, 1);
+    do_alu(&iop.right, rhsreg, 1, opcode2);
+    do_write(&iop.dest, destreg, 1);
+
+    reg_cache_value(destreg, &iop.dest);
+    if iop.dest.flags != EA_DEREF then
+        reg_value_is_precious(&iop.dest);
+    end if;
+end sub;
+
+sub arch_gen_add_word(iop: [BEIop])
+    arch_gen_regular_alu_word(iop, 0xC6, 0xCE); # add, adc
+end sub;
+
+sub arch_gen_sub_word(iop: [BEIop])
+    arch_gen_regular_alu_word(iop, 0xD6, 0xDE); # sub, sbc
 end sub;

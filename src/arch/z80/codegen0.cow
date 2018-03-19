@@ -52,6 +52,20 @@ sub print_regs(regs: RegSet)
     if (regs & REG_IY) != 0 then print("IY "); end if;
 end sub;
 
+# Returns half a register pair.
+sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
+    if reg16 == REG_HL then
+        reg8 := REG_L - (offset as uint16);
+    elseif reg16 == REG_BC then
+        reg8 := REG_C - (offset as uint16);
+    elseif reg16 == REG_DE then
+        reg8 := REG_E - (offset as uint16);
+    else
+        print("bad register");
+        halt();
+    end if;
+end sub;
+
 # Gets the register index.
 sub get_regnum(reg: RegSet): (regnum: uint8)
     regnum := 0;
