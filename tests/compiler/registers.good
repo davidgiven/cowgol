@@ -209,3 +209,16 @@ copy A -> B
 % locating [TYPE1.0153:int8].TYPE1.0153:int8
 %   value is cached in B 
 %   selecting B 
+
+Values changing
+% reset register allocator
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% value [TYPE1.0153:int8].TYPE1.0153:int8 is precious in A 
+% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in A 
+% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is precious in A 
+% abandoning old value of [TYPE1.0153:int8].TYPE1.0153:int8 which is in A 
+% writing back precious values in A  which affects A 
+% ea [TYPE1.015d:uint8].TYPE1.015d:uint8 is being written back
+save A : [TYPE1.015d:uint8].TYPE1.015d:uint8
+% evicting values in A  which affects A 
+%   value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in (none) 

@@ -229,6 +229,24 @@ sub reg_write_back_precious_values(regs: RegSet)
     end loop;
 end sub;
 
+# This value is about to change, so the cached value becomes invalid. Don't
+# bother writing back any precious values (because the precious value is now
+# obsolete). Note that this doesn't write back any precious values which might
+# share a register, so if you're writing to a register, be sure to evict it
+# after calling this.
+sub reg_value_is_changing(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    $if DEBUG
+        print("% abandoning old value of ");
+        print_ea(ea);
+        print(" which is in ");
+        print_regs(value.locations);
+        print_newline();
+    $endif
+    value.locations := 0;
+    value.precious := 0;
+end sub;
+
 # Evicts all values stored in the specified registers from the cache (writing
 # back precious values if necessary).
 sub reg_evict(regs: RegSet)
@@ -375,7 +393,8 @@ sub reg_free(regs: RegSet)
 end sub;
 
 # Locates a value in the cache and locks it; if the value is not in the cache,
-# then allocates a register and loads it.
+# then allocates a register and loads it. If the value *is* in the cache, a
+# previously locked register may be returned.
 sub reg_find_or_load(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     $if DEBUG
         print("% locating ");

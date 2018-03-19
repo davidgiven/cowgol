@@ -105,7 +105,7 @@ sub arch_gen_copy_byte(iop: [BEIop])
     $endif
 
     var location: RegSet := load_complex_8bit_value(REG_A, &iop.left);
-    reg_bump(location);
+    reg_value_is_changing(&iop.dest);
     reg_cache_value(location, &iop.dest);
     reg_value_is_precious(&iop.dest);
 end sub;
@@ -126,6 +126,7 @@ sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
     reg_find_or_load_fixed(REG_A, &iop.left);
 
     var indreg: RegSet := setup_8bit_rhs_insn(&iop.right);
+    reg_value_is_changing(&iop.dest);
     reg_evict(REG_A);
 
     insn_8bit_aluop(opcode);

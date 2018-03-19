@@ -203,3 +203,15 @@ sub loading_test()
     location := reg_find_or_load(REG_B|REG_C, &ea8bit_1);
 end sub;
 loading_test();
+
+sub value_changing_test()
+    print("\nValues changing\n");
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_value_is_precious(&ea8bit_1);
+    reg_cache_value(REG_A, &ea8bit_2);
+    reg_value_is_precious(&ea8bit_2);
+    reg_value_is_changing(&ea8bit_1);
+    reg_evict(REG_A);
+end sub;
+value_changing_test();

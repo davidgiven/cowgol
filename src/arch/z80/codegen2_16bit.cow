@@ -42,6 +42,8 @@ sub arch_gen_add_word(iop: [BEIop])
         otherregnum := get_z80_regnum(left);
         reg_evict(left);
     end if;
+    reg_value_is_changing(&iop.dest);
+    reg_evict(REG_HL);
     write_byte(0x09 | otherregnum);
     reg_cache_value(REG_HL, &iop.dest);
     reg_value_is_precious(&iop.dest);
