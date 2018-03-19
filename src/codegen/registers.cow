@@ -293,7 +293,9 @@ end sub;
 # unused registers will be preferred; then the lowest-cost register used by
 # the cache for a non-precious value; then the lowest-cost register used for
 # a precious value; then an error. The register will be locked.
-sub reg_alloc(candidates: RegSet): (regs: RegSet)
+#
+# If no register could be allocated, return 0.
+sub reg_alloc_failable(candidates: RegSet): (regs: RegSet)
     $if DEBUG
         print("% allocating register in ");
         print_regs(candidates);
@@ -377,8 +379,17 @@ sub reg_alloc(candidates: RegSet): (regs: RegSet)
         return;
     end if;
     
-    print("cannot allocate register (this bit not done yet)");
-    halt();
+    regs := 0;
+end sub;
+
+# As for reg_alloc_failable(), except that if a register couldn't be
+# allocated, halt with an error.
+sub reg_alloc(candidates: RegSet): (regs: RegSet)
+    (regs) := reg_alloc_failable(candidates);
+    if regs == 0 then
+        print("ran out of registers");
+        halt();
+    end if;
 end sub;
 
 # Frees some registers previously allocated with reg_alloc().

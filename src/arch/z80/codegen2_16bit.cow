@@ -14,7 +14,7 @@ sub prepare_16bit_rhs(ea: [EffectiveAddress]): (reg: RegSet)
     $endif
     if ea.flags == EA_DEREF then
         var candidate: RegSet;
-        if ea.numoff_id != 0 then
+        if get_value_of_number(ea.numoff_id) != 0 then
             candidate := REG_IX|REG_IY;
         else
             candidate := REG_HL;
@@ -33,7 +33,8 @@ end sub;
 # operation: it must either be in a register pair, or there must be a
 # pointer to it in a register pair.
 #
-# If it's a pointer, it must be in BC, DE, HL, IX or IY.
+# If it's a pointer, it must be in IX or IY if there's an offset, or any
+# register pair if there isn't.
 #
 # If it's a value, it can be in HL, BC or DE.
 sub prepare_16bit_lhs(ea: [EffectiveAddress]): (reg: RegSet)
@@ -43,7 +44,13 @@ sub prepare_16bit_lhs(ea: [EffectiveAddress]): (reg: RegSet)
         print_newline();
     $endif
     if ea.flags == EA_DEREF then
-        reg := setup_pointer(REG_BC|REG_DE|REG_HL|REG_IX|REG_IY, ea);
+        var candidate: RegSet;
+        if get_value_of_number(ea.numoff_id) != 0 then
+            candidate := REG_IX|REG_IY;
+        else
+            candidate := REG_HL|REG_BC|REG_DE|REG_IX|REG_IY;
+        end if;
+        reg := setup_pointer(candidate, ea);
     else
         reg := reg_find_or_load(REG_HL|REG_BC|REG_DE, ea);
     end if;
@@ -53,19 +60,38 @@ end sub;
 # arithmetic operation: either we have a register pair allocated, or a pointer
 # is loaded into a register pair.
 #
-# If it's a pointer, it must be in BC, DE, HL, IX or IY.
+# If it's a pointer, it must be in IX or IY if there's an offset, or any
+# register pair if there isn't.
 #
 # If it's a value, it can be in HL, BC or DE.
-sub prepare_16bit_dest(ea: [EffectiveAddress]): (reg: RegSet)
+sub prepare_16bit_dest(ea: [EffectiveAddress]): (reg: RegSet, delayed: uint8)
     $if DEBUG
         print("* prepare dest: ");
         print_ea(ea);
         print_newline();
     $endif
     if ea.flags == EA_DEREF then
-        reg := setup_pointer(REG_BC|REG_DE|REG_HL|REG_IX|REG_IY, ea);
+        var candidate: RegSet;
+        if get_value_of_number(ea.numoff_id) != 0 then
+            candidate := REG_IX|REG_IY;
+            reg := reg_alloc_failable(candidate);
+            if reg == 0 then
+                # We've run out of registers, so we need to delay writing back
+                # the result.
+                reg := reg_alloc(REG_HL|REG_BC|REG_DE);
+                delayed := 1;
+                return;
+            else
+                reg_free(reg);
+            end if;
+        else
+            candidate := REG_HL|REG_BC|REG_DE|REG_IX|REG_IY;
+        end if;
+        reg := setup_pointer(candidate, ea);
+        delayed := 0;
     else
         reg := reg_find_or_load(REG_HL|REG_BC|REG_DE, ea);
+        delayed := 0;
     end if;
 end sub;
 
@@ -100,7 +126,14 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
 
     var rhsreg: RegSet := prepare_16bit_rhs(&iop.right);
     var lhsreg: RegSet := prepare_16bit_lhs(&iop.left);
-    var destreg: RegSet := prepare_16bit_dest(&iop.dest);
+
+    var destreg: RegSet;
+    var destdelayed: uint8;
+    (destreg, destdelayed) := prepare_16bit_dest(&iop.dest);
+
+    # Evict the registers which we know we'll be mutating. We do this *now*,
+    # after we've set them up, so that new registers don't get allocated on
+    # top of things we're using.
     if (iop.left.flags == EA_DEREF) and ((lhsreg & REG_INDEX) == 0) then
         reg_evict(lhsreg);
     end if;
@@ -112,65 +145,161 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
         reg_evict(destreg);
     end if;
 
-    sub do_read(ea: [EffectiveAddress], reg: RegSet, offset: uint8)
-        if ea.flags == EA_VALUE then
-            reg_copy(halfof_reg(reg, offset), REG_A);
+    sub do_read(offset: uint8)
+        $if DEBUG
+            print("*   read ");
+            print_regs(lhsreg);
+            print("<- ");
+            print_ea(&iop.left);
+            print(" offset ");
+            print_i8(offset);
+            print_newline();
+        $endif
+
+        if iop.left.flags == EA_VALUE then
+            reg_copy(halfof_reg(lhsreg, offset), REG_A);
+        elseif iop.left.flags == EA_DEREF then
+            insn_init();
+            insn.datareg := REG_A;
+            insn.otherreg := lhsreg;
+            if (lhsreg & REG_INDEX) != 0 then
+                insn.offset := ((get_value_of_number(iop.left.numoff_id) as uint8) + offset) as int16;
+            end if;
+            insn.mode := MODE_IND;
+            insn_load_object();
         else
-            print("can't do this yet");
+            print("can't do this read yet");
             halt();
         end if;
     end sub;
     
-    sub do_alu(ea: [EffectiveAddress], reg: RegSet, offset: uint8, opcode: uint8)
+    sub do_alu(offset: uint8, opcode: uint8)
+        $if DEBUG
+            print("*   alu opcode 0x");
+            print_hex_i8(opcode);
+            print_char(' ');
+            print_regs(rhsreg);
+            print_char(' ');
+            print_ea(&iop.right);
+            print(" offset ");
+            print_i8(offset);
+            print_newline();
+        $endif
+
         insn_init();
         insn.datareg := REG_A;
-        if ea.flags == EA_VALUE then
-            if is_number_thing(ea.obj_id) != 0 then
-                var value: uint16 := get_value_of_number(ea.obj_id) as uint16;
+        if iop.right.flags == EA_VALUE then
+            if is_number_thing(iop.right.obj_id) != 0 then
+                var value: uint16 := get_value_of_number(iop.right.obj_id) as uint16;
                 if offset == 1 then
                     value := value >> 8;
                 end if;
                 insn.offset := value as int16;
                 insn.mode := MODE_IMM;
             else
-                insn.otherreg := halfof_reg(reg, offset);
+                insn.otherreg := halfof_reg(rhsreg, offset);
                 insn.mode := MODE_DIR;
             end if;
+        elseif iop.right.flags == EA_DEREF then
+            insn.otherreg := rhsreg;
+            if (rhsreg & REG_INDEX) != 0 then
+                insn.offset := ((get_value_of_number(iop.right.numoff_id) as uint8) + offset) as int16;
+            end if;
+            insn.mode := MODE_IND;
         else
-            print("can't do this yet");
+            print("can't do this read yet");
             halt();
         end if;
         insn_8bit_aluop(opcode);
     end sub;
 
-    sub do_write(ea: [EffectiveAddress], reg: RegSet, offset: uint8)
-        if ea.flags == EA_VALUE then
-            reg_copy(REG_A, halfof_reg(reg, offset));
+    sub do_write(offset: uint8)
+        $if DEBUG
+            print("*   write ");
+            print_regs(destreg);
+            print("-> ");
+            print_ea(&iop.dest);
+            print(" offset ");
+            print_i8(offset);
+            print_newline();
+        $endif
+
+        if destdelayed != 0 then
+            reg_copy(REG_A, halfof_reg(destreg, offset));
+        elseif iop.dest.flags == EA_VALUE then
+            reg_copy(REG_A, halfof_reg(destreg, offset));
+        elseif iop.dest.flags == EA_DEREF then
+            insn_init();
+            insn.datareg := REG_A;
+            insn.otherreg := destreg;
+            if (destreg & REG_INDEX) != 0 then
+                insn.offset := ((get_value_of_number(iop.dest.numoff_id) as uint8) + offset) as int16;
+            end if;
+            insn.mode := MODE_IND;
+            insn_save_object();
         else
-            print("can't do this yet");
+            print("can't do this write yet");
             halt();
         end if;
     end sub;
 
     sub do_inc(ea: [EffectiveAddress], reg: RegSet)
         if (ea.flags == EA_DEREF) and ((reg & REG_INDEX) == 0) then
+            $if DEBUG
+                print("*   inc ");
+                print_regs(reg);
+                print("= ");
+                print_ea(ea);
+                print_newline();
+            $endif
+
             var regnum: uint8 := get_z80_regnum(reg);
             write_byte(0x03 | regnum); # inc rr
         end if;
     end sub;
         
-    do_read(&iop.left, lhsreg, 0);
-    do_alu(&iop.right, rhsreg, 0, opcode1);
-    do_write(&iop.dest, destreg, 0);
+    do_read(0);
+    do_alu(0, opcode1);
+    do_write(0);
 
     do_inc(&iop.left, lhsreg);
-    do_inc(&iop.right, rhsreg);
-    do_inc(&iop.dest, destreg);
+    if (rhsreg != 0) and (lhsreg != rhsreg) then
+        do_inc(&iop.right, rhsreg);
+    end if;
+    if (destreg != rhsreg) and (destreg != lhsreg) and (destdelayed == 0) then
+        do_inc(&iop.dest, destreg);
+    end if;
 
-    do_read(&iop.left, lhsreg, 1);
-    do_alu(&iop.right, rhsreg, 1, opcode2);
-    do_write(&iop.dest, destreg, 1);
+    do_read(1);
+    do_alu(1, opcode2);
+    do_write(1);
 
+    if destdelayed != 0 then
+        # We had to cache the result in a register due to starvation (almost
+        # always because IX and IY were both in use). Free them up, set up,
+        # and write the result now.
+        $if DEBUG
+            print("*   writing back delayed result\n");
+        $endif
+        
+        reg_free(lhsreg);
+        reg_free(rhsreg);
+        var destptr: RegSet := setup_pointer(REG_IX|REG_IY, &iop.dest);
+        reg_evict(destptr);
+        destdelayed := 0;
+
+        insn_init();
+        insn.datareg := halfof_reg(destreg, 0);
+        insn.otherreg := destptr;
+        insn.offset := get_value_of_number(iop.dest.numoff_id) as int16;
+        insn.mode := MODE_IND;
+        insn_save_object();
+
+        insn.datareg := halfof_reg(destreg, 1);
+        insn.offset := insn.offset + 1;
+        insn_save_object();
+    end if;
+        
     reg_cache_value(destreg, &iop.dest);
     if iop.dest.flags != EA_DEREF then
         reg_value_is_precious(&iop.dest);
