@@ -97,7 +97,7 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
         insn_save_object();
 
         write_byte(0x88); # DEY
-        write_cg_6502_conditional_iop(0x10, label); # BPL rel
+        write_cg_conditional_iop(0x10, label); # BPL rel
 
         flush_cached_values(REG_Y);
         free_reg(REG_A);
@@ -220,7 +220,7 @@ sub fast_increment_wide(width: uint8, src: [EffectiveAddress], dest: [EffectiveA
     inc_once();
     offset := 1;
     while offset != width loop
-        write_cg_6502_conditional_iop(0xD0, noinclabel); # BNE label
+        write_cg_conditional_iop(0xD0, noinclabel); # BNE label
         inc_once();
         offset := offset + 1;
     end loop;

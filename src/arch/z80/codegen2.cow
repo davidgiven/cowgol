@@ -45,6 +45,7 @@ sub cant_do_3op(iop: [BEIop], op: [int8])
 end sub;
 
 sub arch_init_codegen()
+    reg_reset();
 end sub;
 
 sub arch_gen_before(ea: [EffectiveAddress])
@@ -73,40 +74,45 @@ end sub;
 
 sub arch_gen_beginning_of_instruction()
 	$if DEBUG
-		print_newline();
-		print_cache();
+		#print_newline();
+		#print_cache();
 	$endif
+    reg_unlock_all();
 end sub;
 
 sub arch_gen_return()
-    #flush_cached_values(REG_MASK);
-    #write_byte(0x60); # RTS
+    reg_evict(ALL_REGS);
+    write_byte(0xC9); # RET
 end sub;
 
 sub arch_gen_call(iop: [CallIop])
-    #flush_cached_values(REG_MASK);
-    #write_byte(0x20); # JSR
-    #write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+    reg_evict(ALL_REGS);
+    write_byte(0xCD); # CALL
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
 end sub;
 
 sub arch_gen_tail_call(iop: [CallIop])
-    #flush_cached_values(REG_MASK);
-    #write_byte(0x4C); # JMP
-    #write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+    reg_evict(ALL_REGS);
+    write_byte(0xC3); # JP
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
 end sub;
 
 sub arch_gen_label(iop: [LabelIop])
-    #flush_cached_values(REG_MASK);
-    #write_iop(iop as [Iop]);
+    reg_evict(ALL_REGS);
+    write_iop(iop as [Iop]);
 end sub;
 
 sub arch_gen_goto(iop: [GotoIop])
-    #flush_cached_values(REG_MASK);
-    #write_cg_6502_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
+    reg_evict(ALL_REGS);
+    write_cg_conditional_iop(0, iop.label); # Unconditional
 end sub;
 
 sub arch_gen_copy(iop: [BEIop])
-    cant_do_2op(iop, "copy");
+    if iop.width == 1 then
+        arch_gen_copy_byte(iop);
+    else
+        cant_do_2op(iop, "copy");
+    end if;
 end sub;
 
 sub arch_gen_not(iop: [BEIop])
@@ -114,23 +120,44 @@ sub arch_gen_not(iop: [BEIop])
 end sub;
 
 sub arch_gen_and(iop: [BEIop])
-    cant_do_3op(iop, "and");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xE6); # and *
+    else
+        cant_do_3op(iop, "and");
+    end if;
 end sub;
 
 sub arch_gen_or(iop: [BEIop])
-    cant_do_3op(iop, "or");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xF6); # or *
+    else
+        cant_do_3op(iop, "or");
+    end if;
 end sub;
 
 sub arch_gen_eor(iop: [BEIop])
     cant_do_3op(iop, "eor");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xEE); # xor *
+    else
+        cant_do_3op(iop, "eor");
+    end if;
 end sub;
 
 sub arch_gen_add(iop: [BEIop])
-    cant_do_3op(iop, "add");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xC6); # add *
+    else
+        cant_do_3op(iop, "add");
+    end if;
 end sub;
 
 sub arch_gen_sub(iop: [BEIop])
-    cant_do_3op(iop, "sub");
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xD6); # sub *
+    else
+        cant_do_3op(iop, "sub");
+    end if;
 end sub;
 
 sub arch_gen_lsl(iop: [BEIop])
@@ -197,5 +224,5 @@ sub arch_gen_kill(iop: [KillIop])
         print_newline();
     $endif
 
-    #value_is_not_precious(&iop.ea);
+    reg_value_is_not_precious(&iop.ea);
 end sub;

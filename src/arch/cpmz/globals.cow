@@ -10,6 +10,10 @@ const BASE_ADDRESS := 0x0100;
 
 record ArchSizes
     data_size: uint16;
+    # Due to a limitation in the bootstrap compiler, all the different
+    # ArchSizes must be the same (because that size is baked into
+    # token_names.cow).
+    padding: uint8;
 end record;
 
 sub print_arch_sizes(sizes: [ArchSizes])

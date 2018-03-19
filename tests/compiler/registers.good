@@ -102,7 +102,7 @@ Caching and locking
 %   no unused registers, considering evicting one of precious B 
 %   evicting lowest cost register which is B 
 % writing back precious values in B  which affects B BC 
-% ea [TYPE1.015d:uint8].TYPE1.015d:uint8 is no longer precious
+% ea [TYPE1.015d:uint8].TYPE1.015d:uint8 is being written back
 save B : [TYPE1.015d:uint8].TYPE1.015d:uint8
 % evicting values in B  which affects B BC 
 %   value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in (none) 
@@ -128,7 +128,7 @@ save B : [TYPE1.015d:uint8].TYPE1.015d:uint8
 %   no unused registers, considering evicting one of non-precious B 
 %   evicting lowest cost register which is B 
 % writing back precious values in B  which affects B BC 
-% ea [TYPE2.0171:uint16].TYPE2.0171:uint16 is no longer precious
+% ea [TYPE2.0171:uint16].TYPE2.0171:uint16 is being written back
 save BC : [TYPE2.0171:uint16].TYPE2.0171:uint16
 % evicting values in B  which affects B BC 
 %   value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in (none) 
@@ -181,7 +181,7 @@ load DE : [TYPE2.0171:uint16].TYPE2.0171:uint16
 %   no unused registers, considering evicting one of non-precious B 
 %   evicting lowest cost register which is B 
 % writing back precious values in B  which affects B BC 
-% ea [TYPE2.0167:int16].TYPE2.0167:int16 is no longer precious
+% ea [TYPE2.0167:int16].TYPE2.0167:int16 is being written back
 save BC : [TYPE2.0167:int16].TYPE2.0167:int16
 % evicting values in B  which affects B BC 
 %   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
