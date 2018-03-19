@@ -124,6 +124,8 @@ end sub;
 sub arch_gen_and(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xE6); # and *
+    elseif iop.width == 2 then
+        arch_gen_regular_alu_word(iop, 0xE6, 0xE6); # and *
     else
         cant_do_3op(iop, "and");
     end if;
@@ -132,6 +134,8 @@ end sub;
 sub arch_gen_or(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xF6); # or *
+    elseif iop.width == 2 then
+        arch_gen_regular_alu_word(iop, 0xF6, 0xF6); # and *
     else
         cant_do_3op(iop, "or");
     end if;
@@ -141,6 +145,8 @@ sub arch_gen_eor(iop: [BEIop])
     cant_do_3op(iop, "eor");
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xEE); # xor *
+    elseif iop.width == 2 then
+        arch_gen_regular_alu_word(iop, 0xEE, 0xEE); # xor *
     else
         cant_do_3op(iop, "eor");
     end if;
