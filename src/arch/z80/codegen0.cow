@@ -65,7 +65,8 @@ sub get_regnum(reg: RegSet): (regnum: uint8)
     end loop;
 end sub;
 
-var z80_regnum: uint16[NUM_REGS] := {
+var z80_regnum: uint8[NUM_REGS] := {
+    # Value is three-bit internal register number.
     0x07, # A
     0x00, # B
     0x01, # C
@@ -74,16 +75,18 @@ var z80_regnum: uint16[NUM_REGS] := {
     0x04, # H
     0x05, # L
 
-    0x21, # HL
-    0x01, # BC
-    0x11, # DE
+    # Value is row number.
+    0x20, # HL
+    0x00, # BC
+    0x10, # DE
 
-    0x21DD, # IX
-    0x21FD, # IY
+    # Value is prefix byte.
+    0xDD, # IX
+    0xFD, # IY
 };
 
 # Gets the internal Z80 register number.
-sub get_z80_regnum(reg: RegSet): (regnum: uint16)
+sub get_z80_regnum(reg: RegSet): (regnum: uint8)
     regnum := z80_regnum[get_regnum(reg)];
 end sub;
 
@@ -311,11 +314,11 @@ end sub;
 
 sub insn_ld_imm()
     var reg: RegSet := insn.datareg;
-    var regnum: uint16 := get_z80_regnum(reg);
+    var regnum: uint8 := get_z80_regnum(reg);
     if (reg & REG_8BIT) != 0 then
-        insn_8bit_op_imm(0x06 | ((regnum as uint8) << 3));
+        insn_8bit_op_imm(0x06 | (regnum << 3));
     else
-        insn_16bit_op_imm(regnum);
+        insn_16bit_op_imm((0x01 | regnum) as uint16);
     end if;
 end sub;
 
@@ -375,7 +378,7 @@ sub insn_8bit_op_alu_dir_reg(opcode: uint8)
     $endif
     insn_check_8bit_reg();
 
-    var srcreg: uint8 := get_z80_regnum(insn.otherreg) as uint8;
+    var srcreg: uint8 := get_z80_regnum(insn.otherreg);
     opcode := (opcode & 0b10111000) | srcreg;
     write_byte(opcode);
 end sub;
@@ -486,11 +489,10 @@ sub reg_copy(src: RegSet, dest: RegSet)
         print_newline();
     $endif
 
-    var srcregnum: uint16 := get_z80_regnum(src);
-    var destregnum: uint16 := get_z80_regnum(dest);
+    var srcregnum: uint8 := get_z80_regnum(src);
+    var destregnum: uint8 := get_z80_regnum(dest);
 
     if (src & REG_8BIT) != 0 then
-
         write_byte(0x40 | ((destregnum as uint8)<<3) | (srcregnum as uint8));
     else
         print("can't copy this yet");

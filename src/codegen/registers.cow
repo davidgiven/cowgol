@@ -400,6 +400,7 @@ sub reg_find_or_load(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
             print_newline();
         $endif
         locked_registers := locked_registers | reg;
+		reg_bump(reg);
         return;
     end if;
 

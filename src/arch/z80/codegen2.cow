@@ -149,6 +149,8 @@ end sub;
 sub arch_gen_add(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xC6); # add *
+    elseif iop.width == 2 then
+        arch_gen_add_word(iop);
     else
         cant_do_3op(iop, "add");
     end if;
