@@ -542,6 +542,264 @@ build $OBJDIR/tests/cpu_bbc/weirdnesses.bbc.stamp : run_bbctube_test $OBJDIR/tes
  goodfile = tests/cpu/weirdnesses.good 
  badfile = tests/cpu/weirdnesses.bad 
 
+build $OBJDIR/tests/cpu_cpmz/addressingmodes-16bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/addressingmodes-16bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/addressingmodes-16bit.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/addressingmodes-16bit.cpmz | tests/cpu/addressingmodes-16bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addressingmodes-16bit.good 
+ badfile = tests/cpu/addressingmodes-16bit.bad 
+
+build $OBJDIR/tests/cpu_cpmz/addressingmodes-8bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/addressingmodes-8bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/addressingmodes-8bit.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/addressingmodes-8bit.cpmz | tests/cpu/addressingmodes-8bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addressingmodes-8bit.good 
+ badfile = tests/cpu/addressingmodes-8bit.bad 
+
+build $OBJDIR/tests/cpu_cpmz/addsub-16bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/addsub-16bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/addsub-16bit.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/addsub-16bit.cpmz | tests/cpu/addsub-16bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addsub-16bit.good 
+ badfile = tests/cpu/addsub-16bit.bad 
+
+build $OBJDIR/tests/cpu_cpmz/addsub-32bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/addsub-32bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/addsub-32bit.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/addsub-32bit.cpmz | tests/cpu/addsub-32bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addsub-32bit.good 
+ badfile = tests/cpu/addsub-32bit.bad 
+
+build $OBJDIR/tests/cpu_cpmz/addsub-8bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/addsub-8bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/addsub-8bit.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/addsub-8bit.cpmz | tests/cpu/addsub-8bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/addsub-8bit.good 
+ badfile = tests/cpu/addsub-8bit.bad 
+
+build $OBJDIR/tests/cpu_cpmz/arrayinitialisers.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/arrayinitialisers.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/arrayinitialisers.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/arrayinitialisers.cpmz | tests/cpu/arrayinitialisers.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/arrayinitialisers.good 
+ badfile = tests/cpu/arrayinitialisers.bad 
+
+build $OBJDIR/tests/cpu_cpmz/casts.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/casts.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/casts.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/casts.cpmz | tests/cpu/casts.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/casts.good 
+ badfile = tests/cpu/casts.bad 
+
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-bigs.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-16bit-bigs.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-bigs.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/comparisons-16bit-bigs.cpmz | tests/cpu/comparisons-16bit-bigs.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-bigs.good 
+ badfile = tests/cpu/comparisons-16bit-bigs.bad 
+
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-bigu.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-16bit-bigu.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-bigu.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/comparisons-16bit-bigu.cpmz | tests/cpu/comparisons-16bit-bigu.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-bigu.good 
+ badfile = tests/cpu/comparisons-16bit-bigu.bad 
+
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-16bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/comparisons-16bit-s.cpmz | tests/cpu/comparisons-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-s.good 
+ badfile = tests/cpu/comparisons-16bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-16bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/comparisons-16bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/comparisons-16bit-u.cpmz | tests/cpu/comparisons-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-16bit-u.good 
+ badfile = tests/cpu/comparisons-16bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/comparisons-8bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-8bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/comparisons-8bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/comparisons-8bit-s.cpmz | tests/cpu/comparisons-8bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-8bit-s.good 
+ badfile = tests/cpu/comparisons-8bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/comparisons-8bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-8bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/comparisons-8bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/comparisons-8bit-u.cpmz | tests/cpu/comparisons-8bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/comparisons-8bit-u.good 
+ badfile = tests/cpu/comparisons-8bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/divrem-16bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/divrem-16bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/divrem-16bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/divrem-16bit-s.cpmz | tests/cpu/divrem-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-16bit-s.good 
+ badfile = tests/cpu/divrem-16bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/divrem-16bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/divrem-16bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/divrem-16bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/divrem-16bit-u.cpmz | tests/cpu/divrem-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-16bit-u.good 
+ badfile = tests/cpu/divrem-16bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/divrem-32bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/divrem-32bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/divrem-32bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/divrem-32bit-s.cpmz | tests/cpu/divrem-32bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-32bit-s.good 
+ badfile = tests/cpu/divrem-32bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/divrem-32bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/divrem-32bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/divrem-32bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/divrem-32bit-u.cpmz | tests/cpu/divrem-32bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-32bit-u.good 
+ badfile = tests/cpu/divrem-32bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/divrem-8bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/divrem-8bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/divrem-8bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/divrem-8bit-s.cpmz | tests/cpu/divrem-8bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-8bit-s.good 
+ badfile = tests/cpu/divrem-8bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/divrem-8bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/divrem-8bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/divrem-8bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/divrem-8bit-u.cpmz | tests/cpu/divrem-8bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/divrem-8bit-u.good 
+ badfile = tests/cpu/divrem-8bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/logic-8bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/logic-8bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/logic-8bit.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/logic-8bit.cpmz | tests/cpu/logic-8bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/logic-8bit.good 
+ badfile = tests/cpu/logic-8bit.bad 
+
+build $OBJDIR/tests/cpu_cpmz/mul-16bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/mul-16bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/mul-16bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/mul-16bit-s.cpmz | tests/cpu/mul-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-16bit-s.good 
+ badfile = tests/cpu/mul-16bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/mul-16bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/mul-16bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/mul-16bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/mul-16bit-u.cpmz | tests/cpu/mul-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-16bit-u.good 
+ badfile = tests/cpu/mul-16bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/mul-32bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/mul-32bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/mul-32bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/mul-32bit-s.cpmz | tests/cpu/mul-32bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-32bit-s.good 
+ badfile = tests/cpu/mul-32bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/mul-32bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/mul-32bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/mul-32bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/mul-32bit-u.cpmz | tests/cpu/mul-32bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/mul-32bit-u.good 
+ badfile = tests/cpu/mul-32bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/print.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/print.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/print.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/print.cpmz | tests/cpu/print.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/print.good 
+ badfile = tests/cpu/print.bad 
+
+build $OBJDIR/tests/cpu_cpmz/ptraddressingmodes-16bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/ptraddressingmodes-16bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/ptraddressingmodes-16bit.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/ptraddressingmodes-16bit.cpmz | tests/cpu/ptraddressingmodes-16bit.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/ptraddressingmodes-16bit.good 
+ badfile = tests/cpu/ptraddressingmodes-16bit.bad 
+
+build $OBJDIR/tests/cpu_cpmz/shifts-16bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/shifts-16bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/shifts-16bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/shifts-16bit-s.cpmz | tests/cpu/shifts-16bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-16bit-s.good 
+ badfile = tests/cpu/shifts-16bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/shifts-16bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/shifts-16bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/shifts-16bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/shifts-16bit-u.cpmz | tests/cpu/shifts-16bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-16bit-u.good 
+ badfile = tests/cpu/shifts-16bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/shifts-32bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/shifts-32bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/shifts-32bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/shifts-32bit-s.cpmz | tests/cpu/shifts-32bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-32bit-s.good 
+ badfile = tests/cpu/shifts-32bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/shifts-32bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/shifts-32bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/shifts-32bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/shifts-32bit-u.cpmz | tests/cpu/shifts-32bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-32bit-u.good 
+ badfile = tests/cpu/shifts-32bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/shifts-8bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/shifts-8bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/shifts-8bit-s.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/shifts-8bit-s.cpmz | tests/cpu/shifts-8bit-s.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-8bit-s.good 
+ badfile = tests/cpu/shifts-8bit-s.bad 
+
+build $OBJDIR/tests/cpu_cpmz/shifts-8bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/shifts-8bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/shifts-8bit-u.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/shifts-8bit-u.cpmz | tests/cpu/shifts-8bit-u.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/shifts-8bit-u.good 
+ badfile = tests/cpu/shifts-8bit-u.bad 
+
+build $OBJDIR/tests/cpu_cpmz/signextension.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/signextension.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/signextension.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/signextension.cpmz | tests/cpu/signextension.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/signextension.good 
+ badfile = tests/cpu/signextension.bad 
+
+build $OBJDIR/tests/cpu_cpmz/type.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/type.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/type.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/type.cpmz | tests/cpu/type.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/type.good 
+ badfile = tests/cpu/type.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-32bit-returns.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-32bit-returns.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-32bit-returns.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-32bit-returns.cpmz | tests/cpu/weirdnesses-32bit-returns.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-32bit-returns.good 
+ badfile = tests/cpu/weirdnesses-32bit-returns.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-ctype-labels.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-ctype-labels.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-ctype-labels.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-ctype-labels.cpmz | tests/cpu/weirdnesses-ctype-labels.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-ctype-labels.good 
+ badfile = tests/cpu/weirdnesses-ctype-labels.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-indexing-16bit-arrays.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-indexing-16bit-arrays.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-indexing-16bit-arrays.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-indexing-16bit-arrays.cpmz | tests/cpu/weirdnesses-indexing-16bit-arrays.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-indexing-16bit-arrays.good 
+ badfile = tests/cpu/weirdnesses-indexing-16bit-arrays.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-pointer-lvalues.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-pointer-lvalues.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-pointer-lvalues.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-pointer-lvalues.cpmz | tests/cpu/weirdnesses-pointer-lvalues.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-pointer-lvalues.good 
+ badfile = tests/cpu/weirdnesses-pointer-lvalues.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-queues.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-queues.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-queues.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-queues.cpmz | tests/cpu/weirdnesses-queues.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-queues.good 
+ badfile = tests/cpu/weirdnesses-queues.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-shift-then-cast.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-shift-then-cast.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-shift-then-cast.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-shift-then-cast.cpmz | tests/cpu/weirdnesses-shift-then-cast.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-shift-then-cast.good 
+ badfile = tests/cpu/weirdnesses-shift-then-cast.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-structure-indexing.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-structure-indexing.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-structure-indexing.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-structure-indexing.cpmz | tests/cpu/weirdnesses-structure-indexing.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-structure-indexing.good 
+ badfile = tests/cpu/weirdnesses-structure-indexing.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-variable-corruption.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-variable-corruption.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses-variable-corruption.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses-variable-corruption.cpmz | tests/cpu/weirdnesses-variable-corruption.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses-variable-corruption.good 
+ badfile = tests/cpu/weirdnesses-variable-corruption.bad 
+
+build $OBJDIR/tests/cpu_cpmz/weirdnesses.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu_cpmz/weirdnesses.cpmz.stamp : run_bbctube_test $OBJDIR/tests/cpu_cpmz/weirdnesses.cpmz | tests/cpu/weirdnesses.good scripts/bbctube_test bin/bbctube 
+ goodfile = tests/cpu/weirdnesses.good 
+ badfile = tests/cpu/weirdnesses.bad 
+
 build bin/bbctube : c_program emu/bbctube/bbctube.c emu/bbctube/lib6502.c | 
 
 build bin/mkdfs : c_program emu/mkdfs.c | 

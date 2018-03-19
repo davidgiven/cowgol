@@ -180,6 +180,10 @@ local host_data = {
         HOST = "cpmz"
         LIBS = {
             "src/arch/cpmz/host.cow",
+            "src/arch/cpmz/lib/runtime.cow",
+            "src/arch/z80/lib/runtime.cow",
+            "src/arch/common/lib/runtime.cow",
+            "src/string_lib.cow",
         }
 
         RULE = "cowgol_program"
@@ -601,6 +605,11 @@ end
 
 -- Build the CPU tests.
 host_data.bbc()
+for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
+    cpu_test(file)
+end
+
+host_data.cpmz()
 for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
     cpu_test(file)
 end
