@@ -71,8 +71,8 @@ build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.
 rule run_smart_test
     command = $in && touch $out
 
-rule run_bbctube_test
-    command = scripts/bbctube_test $in $badfile $goodfile && touch $out
+rule run_emu_test
+    command = $testscript $in $badfile $goodfile && touch $out
 
 rule run_stupid_test
     command = scripts/stupid_test $in $badfile $goodfile && touch $out
@@ -127,6 +127,8 @@ local EXTENSION
 
 local LIBS
 local RULE
+local TESTSCRIPT
+local TESTBIN
 
 local GLOBALS
 local CODEGEN
@@ -155,6 +157,8 @@ local host_data = {
 
         RULE = "bootstrapped_cowgol_program"
         EXTENSION = ""
+        TESTSCRIPT = nil
+        TESTBIN = nil
     end,
 
     ["bbc"] = function()
@@ -174,6 +178,8 @@ local host_data = {
 
         RULE = "cowgol_program"
         EXTENSION = ".bbc"
+        TESTSCRIPT = "scripts/bbctube_test"
+        TESTBIN = "bin/bbctube"
     end,
 
     ["cpmz"] = function()
@@ -188,6 +194,8 @@ local host_data = {
 
         RULE = "cowgol_program"
         EXTENSION = ".cpmz"
+        TESTSCRIPT = "scripts/cpmz_test"
+        TESTBIN = "bin/cpm"
     end,
 }
 
@@ -332,20 +340,22 @@ end
 
 local function cpu_test(file)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
-    local testbin = "$OBJDIR/tests/cpu_"..HOST.."/"..testname..EXTENSION
+    local testbin = "$OBJDIR/tests/cpu/"..testname..EXTENSION
     local goodfile = "tests/cpu/"..testname..".good"
-    local badfile = "tests/cpu/"..testname..".bad"
+    local badfile = "tests/cpu/"..testname..EXTENSION..".bad"
 
     emit("build", testbin, ":", RULE, LIBS, file,
         "|", "$OBJDIR/compiler_for_"..HOST.."_on_native")
     nl()
     emit(" arch =", HOST.."_on_native")
     nl()
-    emit("build", testbin..".stamp", ":", "run_bbctube_test",
+    emit("build", testbin..".stamp", ":", "run_emu_test",
         testbin, "|",
         goodfile,
-        "scripts/bbctube_test",
-        "bin/bbctube")
+        TESTSCRIPT,
+        TESTBIN)
+    nl()
+    emit(" testscript = "..TESTSCRIPT)
     nl()
     emit(" goodfile = "..goodfile)
     nl()
@@ -685,4 +695,3 @@ build_lexify(
 		"src/tokeniser2/lexer.l"
 	}
 )
-

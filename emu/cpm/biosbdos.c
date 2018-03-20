@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
+#include <errno.h>
 #include "globals.h"
 
 #define FBASE 0xff80
@@ -94,6 +95,19 @@ static void bios_warmboot(void)
 
 	memcpy(&ram[CBASE], ccp_data, ccp_len);
 	z80ex_set_reg(z80, regPC, CBASE);
+}
+
+void bios_load_program(const char* filename)
+{
+	dma = 0x0080;
+	z80ex_set_reg(z80, regPC, 0x0100);
+	z80ex_set_reg(z80, regSP, FBASE);
+
+	int fd = open(filename, O_RDONLY);
+	if (fd == -1)
+		fatal("couldn't open program: %s", strerror(errno));
+	read(fd, &ram[0x0100], 0xFE00);
+	close(fd);
 }
 
 static void bios_const(void)

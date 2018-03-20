@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <z80ex/z80ex_dasm.h>
@@ -289,6 +288,7 @@ void emulator_init(void)
 		iowrite_cb, NULL,
 		irqread_cb, NULL);
 
+	singlestepping = flag_enter_debugger;
 }
 
 void emulator_run(void)
