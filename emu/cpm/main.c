@@ -55,8 +55,6 @@ int main(int argc, char* const* argv)
 	emulator_init();
 	files_init();
 	bios_coldboot();
-	if (flag_startup_program)
-		bios_load_program(flag_startup_program);
 	
 	for (;;)
 	{

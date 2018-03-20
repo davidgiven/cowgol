@@ -18,7 +18,6 @@ extern const uint8_t bdos_data[];
 extern const int bdos_len;
 
 extern void bios_coldboot(void);
-extern void bios_load_program(const char* filename);
 
 extern void biosbdos_entry(int syscall);
 

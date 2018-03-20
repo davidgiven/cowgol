@@ -81,6 +81,8 @@ static void cmd_register(void)
 		Z80_REG_T reg = -1;
 		if (strcmp(w1, "sp") == 0)
 			reg = regSP;
+		else if (strcmp(w1, "pc") == 0)
+			reg = regPC;
 		else if (strcmp(w1, "af") == 0)
 			reg = regAF;
 		else if (strcmp(w1, "bc") == 0)
