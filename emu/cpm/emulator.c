@@ -239,6 +239,8 @@ static void debug(void)
 	while (!go)
 	{
 		char* cmdline = readline("debug>");
+		if (!cmdline)
+			exit(0);
 
 		char* token = strtok(cmdline, " ");
 		if (token != NULL)
