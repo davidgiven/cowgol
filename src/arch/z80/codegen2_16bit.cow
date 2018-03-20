@@ -6,6 +6,16 @@ var lhsreg: RegSet;
 var destreg: RegSet;
 var destdelayed: uint8;
 
+sub reset_16bit_op()
+    rhsea := 0 as [EffectiveAddress];
+    lhsea := 0 as [EffectiveAddress];
+    destea := 0 as [EffectiveAddress];
+    rhsreg := 0;
+    lhsreg := 0;
+    destreg := 0;
+    destdelayed := 0;
+end sub;
+
 # Ensure that the EA is ready for use as the RHS of a 16-bit arithmetic
 # operation: it must either be in a register pair, or there must be a
 # pointer to it in a register pair.
@@ -14,7 +24,7 @@ var destdelayed: uint8;
 # registers allowed when indirecting in the RHS of an aluop).
 # 
 # If it's a value, it can be in HL, BC or DE.
-sub prepare_16bit_rhs()
+sub prepare_16bit_rhs(forceindex: uint8)
     $if DEBUG
         print("* prepare RHS: ");
         print_ea(rhsea);
@@ -22,7 +32,7 @@ sub prepare_16bit_rhs()
     $endif
     if rhsea.flags == EA_DEREF then
         var candidate: RegSet;
-        if get_value_of_number(rhsea.numoff_id) != 0 then
+        if (forceindex != 0) or (get_value_of_number(rhsea.numoff_id) != 0) then
             candidate := REG_IX|REG_IY;
         else
             candidate := REG_HL;
@@ -45,7 +55,7 @@ end sub;
 # register pair if there isn't.
 #
 # If it's a value, it can be in HL, BC or DE.
-sub prepare_16bit_lhs()
+sub prepare_16bit_lhs(forceindex: uint8)
     $if DEBUG
         print("* prepare LHS: ");
         print_ea(lhsea);
@@ -53,7 +63,7 @@ sub prepare_16bit_lhs()
     $endif
     if lhsea.flags == EA_DEREF then
         var candidate: RegSet;
-        if get_value_of_number(lhsea.numoff_id) != 0 then
+        if (forceindex != 0) or (get_value_of_number(lhsea.numoff_id) != 0) then
             candidate := REG_IX|REG_IY;
         else
             candidate := REG_HL|REG_BC|REG_DE|REG_IX|REG_IY;
@@ -107,7 +117,7 @@ sub do_read(offset: uint8)
     $if DEBUG
         print("*   read lhs ");
         print_regs(lhsreg);
-        print("> A which is ");
+        print("-> A which is ");
         print_ea(lhsea);
         print(" offset ");
         print_i8(offset);
@@ -198,21 +208,35 @@ sub do_write(offset: uint8)
     end if;
 end sub;
 
-sub do_inc(ea: [EffectiveAddress], reg: RegSet)
-    if (ea.flags == EA_DEREF) and ((reg & REG_INDEX) == 0) then
-        $if DEBUG
-            print("*   inc ");
-            print_regs(reg);
-            print("= ");
-            print_ea(ea);
-            print_newline();
-        $endif
+sub do_inc(ea: [EffectiveAddress], reg: RegSet, opcode: uint8)
+    # Multistage if because the bootstrap compiler doesn't support condition
+    # short-circuiting.
+    if (reg != 0) then
+        if (ea.flags == EA_DEREF) and ((reg & REG_INDEX) == 0) then
+            $if DEBUG
+                print("*   inc ");
+                print_regs(reg);
+                print("= ");
+                print_ea(ea);
+                print_newline();
+            $endif
 
-        var regnum: uint8 := get_z80_regnum(reg);
-        write_byte(0x03 | regnum); # inc rr
+            var regnum: uint8 := get_z80_regnum(reg);
+            write_byte(opcode | regnum); # inc rr
+        end if;
     end if;
 end sub;
         
+sub do_inc_all(opcode: uint8)
+    do_inc(lhsea, lhsreg, opcode);
+    if lhsreg != rhsreg then
+        do_inc(rhsea, rhsreg, opcode);
+    end if;
+    if (destreg != rhsreg) and (destreg != lhsreg) and (destdelayed == 0) then
+        do_inc(destea, destreg, opcode);
+    end if;
+end sub;
+
 sub do_delayed_write()
     if destdelayed != 0 then
         # We had to cache the result in a register due to starvation (almost
@@ -255,9 +279,33 @@ sub arch_gen_copy_word(iop: [BEIop])
         print_newline();
     $endif
 
-    var location: RegSet := reg_find_or_load(REG_16BIT, &iop.left);
-    reg_cache_value(location, &iop.dest);
-    reg_value_is_precious(&iop.dest);
+    reset_16bit_op();
+
+    lhsea := &iop.left;
+    destea := &iop.dest;
+
+    prepare_16bit_lhs(0);
+    prepare_16bit_dest();
+
+    # Evict the registers which we know we'll be mutating. We do this *now*,
+    # after we've set them up, so that new registers don't get allocated on
+    # top of things we're using.
+    if (lhsea.flags == EA_DEREF) and ((lhsreg & REG_INDEX) == 0) then
+        reg_evict(rhsreg);
+    end if;
+    reg_value_is_changing(destea);
+    if (destea.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
+        reg_evict(destreg);
+    end if;
+
+    do_read(0);
+    do_write(0);
+
+    do_inc_all(0x03); # inc rr
+
+    do_read(1);
+    do_write(1);
+    do_delayed_write();
 end sub;
 
 sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
@@ -275,12 +323,14 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
         print_newline();
     $endif
 
+    reset_16bit_op();
+    
     rhsea := &iop.right;
     destea := &iop.dest;
     lhsea := &iop.left;
 
-    prepare_16bit_rhs();
-    prepare_16bit_lhs();
+    prepare_16bit_rhs(0);
+    prepare_16bit_lhs(0);
     prepare_16bit_dest();
 
     # Evict the registers which we know we'll be mutating. We do this *now*,
@@ -301,13 +351,7 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
     do_alu(0, opcode1);
     do_write(0);
 
-    do_inc(&iop.left, lhsreg);
-    if (rhsreg != 0) and (lhsreg != rhsreg) then
-        do_inc(&iop.right, rhsreg);
-    end if;
-    if (destreg != rhsreg) and (destreg != lhsreg) and (destdelayed == 0) then
-        do_inc(&iop.dest, destreg);
-    end if;
+    do_inc_all(0x03); # inc rr
 
     do_read(1);
     do_alu(1, opcode2);
@@ -332,14 +376,21 @@ sub arch_gen_zext_word(iop: [BEIop])
         print_newline();
     $endif
 
+    reset_16bit_op();
+    
     destea := &iop.dest;
     prepare_16bit_dest();
+
+    reg_value_is_changing(&iop.dest);
+    if (iop.dest.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
+        reg_evict(destreg);
+    end if;
 
     var srcreg: RegSet := load_complex_8bit_value(REG_8BIT, &iop.left);
     do_write(0);
     reg_free(srcreg);
 
-    do_inc(&iop.dest, destreg);
+    do_inc_all(0x03); # inc rr
 
     reg_evict(REG_A);
     write_byte(0xAF); # xor a
@@ -348,3 +399,75 @@ sub arch_gen_zext_word(iop: [BEIop])
     do_delayed_write();
 end sub;
 
+sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare words 0x");
+        print_hex_i8(ciop.iop_kind);
+        print(": ");
+        print_ea(&ciop.left);
+        print(", ");
+        print_ea(&ciop.right);
+        print(" => label 0x");
+        print_hex_i8(liop.label);
+        print_newline();
+    $endif
+
+    var iopkind: uint8 := ciop.iop_kind;
+    reset_16bit_op();
+
+    var invertflag: uint8;
+    var destlabel: uint8;
+    var fallthrough_label: uint8;
+    if liop.label == ciop.iftrue_label then
+        invertflag := 0x00;
+        fallthrough_label := ciop.iftrue_label;
+        destlabel := ciop.iffalse_label;
+    else
+        invertflag := 0x08;
+        fallthrough_label := ciop.iffalse_label;
+        destlabel := ciop.iftrue_label;
+    end if;
+
+    sub gen_comparison_branch(offset: uint8)
+        if iopkind == IOP_BE_BEQ then
+            do_alu(offset, 0xFE); # cp *
+            write_cg_conditional_iop(0xC2 ^ invertflag, destlabel); # jp nz
+        else
+            if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+                # BLTS
+                do_alu(offset, 0xD6); # sub *
+
+                var skipxorlabel: uint8 := create_label();
+                write_cg_conditional_iop(0xE2 ^ invertflag, skipxorlabel); # jp po
+                write_word(0x80EE); # xor 0x80
+                write_label_iop(skipxorlabel);
+
+                write_cg_conditional_iop(0xF2 ^ invertflag, destlabel); # jp p
+            else
+                # BLTU
+                do_alu(offset, 0xFE); # cp *
+                write_cg_conditional_iop(0xD2 ^ invertflag, destlabel); # jp c
+            end if;
+        end if;
+    end sub;
+
+    lhsea := &ciop.left;
+    rhsea := &ciop.right;
+
+    prepare_16bit_rhs(1);
+    prepare_16bit_lhs(1);
+
+    reg_evict(ALL_REGS);
+
+    do_read(1);
+    gen_comparison_branch(1);
+    
+    do_inc_all(0x0B); # dec rr
+    
+    do_read(0);
+    gen_comparison_branch(0);
+
+    if liop.label != fallthrough_label then
+        write_cg_conditional_iop(0xC3, fallthrough_label); # jp
+    end if;
+end sub;
