@@ -124,7 +124,9 @@ sub do_read(offset: uint8)
         print_newline();
     $endif
 
-    if lhsea.flags == EA_DEREF then
+    if lhsea.flags != EA_DEREF then
+        reg_copy(halfof_reg(lhsreg, offset), REG_A);
+    else
         insn_init();
         insn.datareg := REG_A;
         insn.otherreg := lhsreg;
@@ -133,8 +135,6 @@ sub do_read(offset: uint8)
         end if;
         insn.mode := MODE_IND;
         insn_load_object();
-    else
-        reg_copy(halfof_reg(lhsreg, offset), REG_A);
     end if;
 end sub;
 
@@ -153,7 +153,7 @@ sub do_alu(offset: uint8, opcode: uint8)
 
     insn_init();
     insn.datareg := REG_A;
-    if rhsea.flags == EA_VALUE then
+    if rhsea.flags != EA_DEREF then
         if is_number_thing(rhsea.obj_id) != 0 then
             var value: uint16 := get_value_of_number(rhsea.obj_id) as uint16;
             if offset == 1 then
@@ -165,15 +165,12 @@ sub do_alu(offset: uint8, opcode: uint8)
             insn.otherreg := halfof_reg(rhsreg, offset);
             insn.mode := MODE_DIR;
         end if;
-    elseif rhsea.flags == EA_DEREF then
+    else
         insn.otherreg := rhsreg;
         if (rhsreg & REG_INDEX) != 0 then
             insn.offset := ((get_value_of_number(rhsea.numoff_id) as uint8) + offset) as int16;
         end if;
         insn.mode := MODE_IND;
-    else
-        print("can't do this read yet");
-        halt();
     end if;
     insn_8bit_aluop(opcode);
 end sub;
@@ -189,9 +186,7 @@ sub do_write(offset: uint8)
         print_newline();
     $endif
 
-    if destdelayed != 0 then
-        reg_copy(REG_A, halfof_reg(destreg, offset));
-    elseif destea.flags == EA_VALUE then
+    if (destdelayed != 0) or (destea.flags != EA_DEREF) then
         reg_copy(REG_A, halfof_reg(destreg, offset));
     elseif destea.flags == EA_DEREF then
         insn_init();
@@ -202,9 +197,6 @@ sub do_write(offset: uint8)
         end if;
         insn.mode := MODE_IND;
         insn_save_object();
-    else
-        print("can't do this write yet");
-        halt();
     end if;
 end sub;
 

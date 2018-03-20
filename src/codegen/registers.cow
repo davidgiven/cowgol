@@ -32,6 +32,28 @@ sub reg_reset()
     end loop;
 end sub;
 
+$if DEBUG
+    sub reg_print_cache()
+        var i: uint8 := 0;
+        print("Register/value cache:\n");
+        while i != value_cache@size loop
+            var value: [CachedValue] := &value_cache[i];
+            if value.locations != 0 then
+                if value.precious != 0 then
+                    print("  * ");
+                else
+                    print("    ");
+                end if;
+                print_ea(&value.ea);
+                print(" in ");
+                print_regs(value.locations);
+                print_newline();
+            end if;
+            i := i + 1;
+        end loop;
+    end sub;
+$endif
+
 sub find_lowest_bit(value: RegSet): (mask: RegSet)
     mask := 1;
     loop
