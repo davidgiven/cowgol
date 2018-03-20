@@ -55,15 +55,16 @@ end sub;
 # Returns half a register pair.
 sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
     if reg16 == REG_HL then
-        reg8 := REG_L - (offset as uint16);
+        reg8 := REG_L;
     elseif reg16 == REG_BC then
-        reg8 := REG_C - (offset as uint16);
+        reg8 := REG_C;
     elseif reg16 == REG_DE then
-        reg8 := REG_E - (offset as uint16);
+        reg8 := REG_E;
     else
         print("bad register");
         halt();
     end if;
+    reg8 := reg8 >> offset;
 end sub;
 
 # Gets the register index.

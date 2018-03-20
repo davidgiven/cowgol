@@ -205,7 +205,11 @@ sub arch_gen_mul(iop: [BEIop])
 end sub;
 
 sub arch_gen_zext(iop: [BEIop])
-    cant_do_3op(iop, "zext");
+    if iop.width == 2 then
+        arch_gen_zext_word(iop);
+    else
+        cant_do_3op(iop, "zext");
+    end if;
 end sub;
 
 sub arch_gen_sext(iop: [BEIop])

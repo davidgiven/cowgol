@@ -23,12 +23,16 @@ sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
 
     if ea.flags == EA_VALUE then
         if is_number_thing(ea.obj_id) != 0 then
-            reg := reg_find_or_load(regs, ea);
-            return;
-        elseif (regs & REG_A) != 0 then
-            reg := reg_find_or_load(REG_A, ea);
-            return;
+            regs := REG_A;
         end if;
+        reg := reg_find_or_load(REG_A, ea);
+        if (regs & REG_A) == 0 then
+            reg := reg_alloc(regs);
+            reg_copy(REG_A, reg);
+            reg_free(REG_A);
+            reg_cache_value(reg, ea);
+        end if;
+        return;
     end if;
 
     # The value is going to have to be indirected through a pointer of
@@ -123,12 +127,11 @@ sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
         print_newline();
     $endif
 
-    reg_find_or_load_fixed(REG_A, &iop.left);
-
     var indreg: RegSet := setup_8bit_rhs_insn(&iop.right);
     reg_value_is_changing(&iop.dest);
-    reg_evict(REG_A);
 
+    reg_find_or_load_fixed(REG_A, &iop.left);
+    reg_evict(REG_A);
     insn_8bit_aluop(opcode);
     reg_cache_value(REG_A, &iop.dest);
     reg_value_is_precious(&iop.dest);
