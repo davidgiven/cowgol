@@ -1,16 +1,3 @@
-# Returns a pointer to the value in ea.
-sub setup_pointer(pointerregs: RegSet, ea: [EffectiveAddress]): (pointerreg: RegSet)
-    var indea: EffectiveAddress;
-    copy_ea(ea, &indea);
-    if ea.flags == EA_VALUE then
-        indea.flags := EA_LEA;
-    else
-        indea.flags := EA_VALUE;
-    end if;
-    indea.numoff_id := 0;
-    pointerreg := reg_find_or_load(pointerregs, &indea);
-end sub;
-
 sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     # If the value is already in a register, load it.
 
@@ -159,7 +146,7 @@ sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
     var indreg: RegSet := setup_8bit_rhs_insn(&iop.right);
     reg_value_is_changing(&iop.dest);
 
-    reg_find_or_load_fixed(REG_A, &iop.left);
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
     reg_evict(REG_A);
     insn_8bit_aluop(opcode);
     reg_cache_value(REG_A, &iop.dest);

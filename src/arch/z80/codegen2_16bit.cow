@@ -1,20 +1,3 @@
-var rhsea: [EffectiveAddress];
-var lhsea: [EffectiveAddress];
-var destea: [EffectiveAddress];
-var rhsreg: RegSet;
-var lhsreg: RegSet;
-var destreg: RegSet;
-var destdelayed: uint8;
-
-sub reset_16bit_op()
-    rhsea := 0 as [EffectiveAddress];
-    lhsea := 0 as [EffectiveAddress];
-    destea := 0 as [EffectiveAddress];
-    rhsreg := 0;
-    lhsreg := 0;
-    destreg := 0;
-    destdelayed := 0;
-end sub;
 
 # Ensure that the EA is ready for use as the RHS of a 16-bit arithmetic
 # operation: it must either be in a register pair, or there must be a
@@ -386,6 +369,39 @@ sub arch_gen_zext_word(iop: [BEIop])
 
     reg_evict(REG_A);
     write_byte(0xAF); # xor a
+
+    do_write(1);
+    do_delayed_write();
+end sub;
+
+sub arch_gen_sext_word(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE: sext: ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    reset_16bit_op();
+    
+    destea := &iop.dest;
+    prepare_16bit_dest();
+
+    reg_value_is_changing(&iop.dest);
+    if (iop.dest.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
+        reg_evict(destreg);
+    end if;
+
+    var srcreg: RegSet := load_complex_8bit_value(REG_8BIT, &iop.left);
+    do_write(0);
+    reg_free(srcreg);
+
+    do_inc_all(0x03); # inc rr
+
+    reg_evict(REG_A);
+    write_byte(0x07); # rlca
+    write_byte(0x9F); # sbc a, a
 
     do_write(1);
     do_delayed_write();
