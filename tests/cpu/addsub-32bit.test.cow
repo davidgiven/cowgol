@@ -6,13 +6,13 @@ const MONE := 0-ONE;
 const MTWO := 0-TWO;
 const MTHREE := 0-THREE;
 
-var mthree: int16 := MTHREE;
-var mtwo: int16 := MTWO;
-var mone: int16 := MONE;
-var zero: int16 := ZERO;
-var one: int16 := ONE;
-var two: int16 := TWO;
-var three: int16 := THREE;
+var mthree: int32 := MTHREE;
+var mtwo: int32 := MTWO;
+var mone: int32 := MONE;
+var zero: int32 := ZERO;
+var one: int32 := ONE;
+var two: int32 := TWO;
+var three: int32 := THREE;
 
 sub yes() print(": yes\n"); end sub;
 sub no() print(": no\n"); end sub;

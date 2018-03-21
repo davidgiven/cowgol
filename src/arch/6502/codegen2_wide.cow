@@ -62,26 +62,31 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
     end if;
     check(&iop.dest);
 
+    if iop.width == 4 then
+        looped := 1;
+    end if;
+
     if looped != 0 then
         $if DEBUG
             print("* using looped implementation\n");
         $endif
 
         allocate_fixed_reg(REG_A);
-        find_or_load_fixed_int(iop.width - 1, REG_Y);
+        find_or_load_fixed_int(iop.width - 1, REG_X);
+        find_or_load_fixed_int(0, REG_Y);
         var label: uint8 := create_label();
         write_label_iop(label);
 
         sub setup_looped(ea: [EffectiveAddress])
             insn_init();
             insn.obj_id := ea.obj_id;
-            insn.offset := get_value_of_number(ea.numoff_id) as uint16;
             insn.indexreg := REG_Y;
             insn.datareg := REG_A;
             if ea.flags == EA_DEREF then
                 insn.mode := MODE_IND;
             else
                 insn.mode := MODE_DIR;
+                insn.offset := get_value_of_number(ea.numoff_id) as uint16;
             end if;
         end sub;
 
@@ -96,11 +101,12 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
         setup_looped(&iop.dest);
         insn_save_object();
 
-        write_byte(0x88); # DEY
+        write_byte(0xC8); # INY
+        write_byte(0xCA); # DEX
         write_cg_conditional_iop(0x10, label); # BPL rel
 
-        flush_cached_values(REG_Y);
-        free_reg(REG_A);
+        flush_cached_values(REG_X|REG_Y);
+        free_reg(REG_A|REG_X|REG_Y);
     else
         $if DEBUG
             print("* using unrolled implementation\n");
@@ -136,12 +142,7 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
 end sub;
 
 sub arch_gen_copy_wide(iop: [BEIop])
-    # It's not worth generating a loop for a word --- the overhead's too much.
-    var looped: uint8 := 0;
-    if iop.width == 4 then
-        looped := 1;
-    end if;
-    regular_alu_wide_op(iop, 0, looped);
+    regular_alu_wide_op(iop, 0, 0);
 end sub;
 
 sub copy_value_to_param(ea: [EffectiveAddress], param: uint8)
