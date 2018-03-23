@@ -1,3 +1,153 @@
+# 16-bit code generation on the Z80 is hard.
+#
+# This is because there are multiple interacting strategies that I need to
+# use which all play off each other. In summary, these are:
+#
+#   - 16-bit adds or subs must have the result (and one of the LHS or RHS)
+#     in HL.
+#   - 8-bit indirected RHSs must use HL, IX or IY (preferably HL because #     it's much cheaper).
+#   - any ALU op which isn't an add or a sub needs to be done a byte at a
+#     time and pass through A.
+#   - only A, HL, BC, DE, IX, IY can be read or written directly. Only A,
+#     B, C, D, E, H, L can be read via indirection.
+#   - offsets which aren't 0 have to use IX or IY as the index register.
+#   - if all three parameters have offsets, we need to delay writing back
+#     the result until we can free up an index register.
+#   - if the destination is a DEREF, it needs to be written back to
+#     memory immediately; otherwise, leave it in a register pair for
+#     later.
+#   - lots of things need HL or A for setup, but we frequently need these
+#     for the LHS for the arithmetic operation, so we need to set up the
+#     RHS first... except when we don't.
+#
+# ...and possibly more, which is a mess.
+#
+# We therefore need to know these facts:
+#  1. Where are we going to be doing the work? (A, HL, any register.)
+#     -> This also tells us whether we're working a byte at a time (via A).
+#  2. Where are we leaving the result? (memory, a register pair.)
+#
+# So, essentially, what we end up needing to do is:
+#
+#  1. Decide where the work is happening. Decide where the result will be.
+#  2. Set up any input pointers.
+#  3. Is the work happening in A? Is the result in a DEREF? Do we
+#     have a free index register? If so, set up the result pointer now.
+#     Otherwise, allocate a spare 8-bit register to stash the low byte of
+#     the result in.
+#  4. Do the work, leaving the result either in memory (if the output
+#     pointer was set up), or in a register pair. If the result needs to
+#     go into a DEREF but we don't have a pointer set up, leave the low
+#     byte of the result in a random 8-bit register (the high byte ends up
+#     in A).
+#     -> If any of the operands are a DEREF while we're doing this,
+#        we need to mutate the pointer. The same pointer might be being
+#        used for multiple operands, so make sure to only mutate it once
+#        per byte.
+#  5. Is the result going into a DEREF? Is the pointer not set up? If so,
+#     set one up now, and write the result back.
+#
+# Yikes.
+#
+# I worked through some examples, and it gets painfully complicated, so
+# I'm going to make the simplifying assumption that the destination is
+# *always* a register pair. This will then be written back as a seperate
+# stage. This makes slightly less efficient code, as if the result is a
+# DEREF then we need two additional register copies... but it makes the
+# logic much simpler and does allow us to cache the result (subject to
+# pointer aliasing rules).
+#
+# Some examples:
+#
+#   a := b + c
+#     work is: in HL (because 16-bit add)
+#     pointers: none (values are loaded into register pairs)
+#     result is: in HL (because 16-bit add)
+#     load LHS: ld hl, (b)
+#     load RHS: ld bc, (c)
+#     do work:  add hl, bc
+#     save result: nop, we're leaving it in HL
+#
+#   a := b & c
+#     work is: in A (because it's an and)
+#     pointers: none (values are loaded into register pairs)
+#     result is: in HL
+#     load LHS: ld hl, (c)
+#     load RHS: ld bc, (b)
+#     do work:  ld a, l; and c; ld l, a
+#               ld a, h; and b; ld h, a
+#     save result: nop, we're leaving it in HL
+#
+#   a := b + c[0]
+#     work is: in A (because some params are DEREF and this is ALU)
+#     pointers: RHS, so load it: ld hl, (c)
+#     result is: in BC (because we're leaving it in a register)
+#     load LHS: ld bc, (b)
+#     load RHS: none (it's a DEREF)
+#     do work:  ld a, c; add (hl); inc hl; ld c, a
+#               ld a, b; adc (hl); ld b, a
+#     save result: nop, we're leaving it in HL
+#
+#   a[0] := b[0] + c[0]
+#     work is: in A (because some params are DEREF and this is ALU)
+#     pointer: RHS, so load it: ld hl, (c)
+#     pointer: LHS, so load it: ld bc, (b)
+#     result is: in DE (result is DEREF so try to keep HL free)
+#     do work: ld a, (bc); add (hl); ld a, e; inc bc; inc hl
+#              ld a, (bc); adc (hl); ld a, d
+#     save result: ld hl, (a)
+#                  ld (hl), e; inc hl; ld (hl), d
+#
+#   a[1] := b[2] + c[3]
+#     work is: in A (because some params are DEREF and this is ALU)
+#     pointer: RHS, offsetted, so load it: ld ix, (c)
+#     pointer: LHS, offsetted, so load it: ld iy, (b)
+#     result is: in HL
+#     do work: ld a, (iy+2); add (ix+3); ld l, a
+#              ld a, (iy+3); adc (ix+4); ld h, a
+#     save result: ld ix, (a)
+#                  ld (ix+1), l
+#                  ld (ix+2), h
+#
+#   a := b[0]
+#     work is: in BC
+#     pointer: LHS, so load it: ld hl, (b)
+#     result is: in BC
+#     do work: ld c, (hl); inc hl
+#              ld b, (hl)
+#     save result: nop, we're leaving it in BC
+#
+#   a[1] := b[2]
+#     work is: in HL
+#     pointer: LHS, offsetted, so load it:  ld ix, (b)
+#     result is: in HL
+#     do work: ld l, (ix+2)
+#              ld h, (ix+3)
+#     save result: ld iy, (a)
+#                  ld (iy+1), l
+#                  ld (iy+2), h
+
+var rhsea: [EffectiveAddress];
+var lhsea: [EffectiveAddress];
+var destea: [EffectiveAddress];
+var workreg: RegSet;
+var rhsreg: RegSet;
+var lhsreg: RegSet;
+var destreg: RegSet;
+var tempdestreg: RegSet;
+var destdelayed: uint8;
+
+sub reset_16bit_op()
+    rhsea := 0 as [EffectiveAddress];
+    lhsea := 0 as [EffectiveAddress];
+    destea := 0 as [EffectiveAddress];
+    rhsreg := 0;
+    lhsreg := 0;
+    workreg := 0;
+    destreg := 0;
+    tempdestreg := 0;
+    destdelayed := 0;
+end sub;
 
 # Ensure that the EA is ready for use as the RHS of a 16-bit arithmetic
 # operation: it must either be in a register pair, or there must be a
@@ -260,6 +410,7 @@ sub arch_gen_copy_word(iop: [BEIop])
     destea := &iop.dest;
 
     prepare_16bit_lhs(0);
+    workreg := lhsreg;
     prepare_16bit_dest();
 
     # Evict the registers which we know we'll be mutating. We do this *now*,
@@ -299,6 +450,7 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
     $endif
 
     reset_16bit_op();
+    workreg := REG_A; # because this is an ALU instruction
     
     rhsea := &iop.right;
     destea := &iop.dest;
