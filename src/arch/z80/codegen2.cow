@@ -208,7 +208,7 @@ sub arch_gen_zext(iop: [BEIop])
     if iop.width == 2 then
         arch_gen_zext_word(iop);
     else
-        cant_do_3op(iop, "zext");
+        cant_do_2op(iop, "zext");
     end if;
 end sub;
 
@@ -216,7 +216,7 @@ sub arch_gen_sext(iop: [BEIop])
     if iop.width == 2 then
         arch_gen_sext_word(iop);
     else
-        cant_do_3op(iop, "sext");
+        cant_do_2op(iop, "sext");
     end if;
 end sub;
 

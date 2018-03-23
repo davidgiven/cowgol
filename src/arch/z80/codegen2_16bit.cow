@@ -61,8 +61,8 @@
 #
 #   a := b + c
 #     work is: in HL (because 16-bit add)
-#     pointers: none (values are loaded into register pairs)
 #     result is: in HL (because 16-bit add)
+#     pointers: none (values are loaded into register pairs)
 #     load LHS: ld hl, (b)
 #     load RHS: ld bc, (c)
 #     do work:  add hl, bc
@@ -70,6 +70,7 @@
 #
 #   a := b & c
 #     work is: in A (because it's an and)
+#     result is: in any register pair
 #     pointers: none (values are loaded into register pairs)
 #     result is: in HL
 #     load LHS: ld hl, (c)
@@ -80,6 +81,7 @@
 #
 #   a := b + c[0]
 #     work is: in A (because some params are DEREF and this is ALU)
+#     result is: in any register pair
 #     pointers: RHS, so load it: ld hl, (c)
 #     result is: in BC (because we're leaving it in a register)
 #     load LHS: ld bc, (b)
@@ -90,6 +92,7 @@
 #
 #   a[0] := b[0] + c[0]
 #     work is: in A (because some params are DEREF and this is ALU)
+#     result is: any register pair
 #     pointer: RHS, so load it: ld hl, (c)
 #     pointer: LHS, so load it: ld bc, (b)
 #     result is: in DE (result is DEREF so try to keep HL free)
@@ -100,17 +103,27 @@
 #
 #   a[1] := b[2] + c[3]
 #     work is: in A (because some params are DEREF and this is ALU)
+#     result is: any register pair
 #     pointer: RHS, offsetted, so load it: ld ix, (c)
 #     pointer: LHS, offsetted, so load it: ld iy, (b)
-#     result is: in HL
-#     do work: ld a, (iy+2); add (ix+3); ld l, a
-#              ld a, (iy+3); adc (ix+4); ld h, a
+#     result is: in BC (result is DEREF so try to keep HL free)
+#     do work: ld a, (iy+2); add (ix+3); ld c, a
+#              ld a, (iy+3); adc (ix+4); ld b, a
 #     save result: ld ix, (a)
-#                  ld (ix+1), l
-#                  ld (ix+2), h
+#                  ld (ix+1), c
+#                  ld (ix+2), b
+#
+#   a := b
+#     work is: unnecessary
+#     result is: any register pair
+#     pointers: none
+#     load RHS: ld hl, (b)
+#     result is: HL
+#     save result: nop, leave it in a register
 #
 #   a := b[0]
 #     work is: in BC
+#     result is: any register pair
 #     pointer: LHS, so load it: ld hl, (b)
 #     result is: in BC
 #     do work: ld c, (hl); inc hl
@@ -119,6 +132,7 @@
 #
 #   a[1] := b[2]
 #     work is: in HL
+#     result is: any register pair
 #     pointer: LHS, offsetted, so load it:  ld ix, (b)
 #     result is: in HL
 #     do work: ld l, (ix+2)
@@ -132,7 +146,9 @@ var lhsea: [EffectiveAddress];
 var destea: [EffectiveAddress];
 var workreg: RegSet;
 var rhsreg: RegSet;
+var rhsptrreg: RegSet;
 var lhsreg: RegSet;
+var lhsptrreg: RegSet;
 var destreg: RegSet;
 var tempdestreg: RegSet;
 var destdelayed: uint8;
@@ -142,11 +158,242 @@ sub reset_16bit_op()
     lhsea := 0 as [EffectiveAddress];
     destea := 0 as [EffectiveAddress];
     rhsreg := 0;
+    rhsptrreg := 0;
     lhsreg := 0;
+    lhsptrreg := 0;
     workreg := 0;
     destreg := 0;
     tempdestreg := 0;
     destdelayed := 0;
+end sub;
+
+# Load the input pointers needed for the operation.
+sub load_16bit_pointers(offset: uint8)
+    lhsptrreg := setup_complex_pointer(lhsea);
+    $if DEBUG
+        print("* LHS ptr is ");
+        print_regs(lhsptrreg);
+        print_newline();
+    $endif
+
+    rhsptrreg := setup_complex_pointer(rhsea);
+    $if DEBUG
+        print("* RHS ptr is ");
+        print_regs(rhsptrreg);
+        print_newline();
+    $endif
+end sub;
+
+sub load_16bit_input_parameters()
+    var c: RegSet := rhsreg;
+    rhsreg := 0;
+    if rhsea != (0 as [EffectiveAddress]) then
+        if (rhsea.flags != EA_DEREF) and (is_number_thing(rhsea.obj_id) == 0) then
+            rhsreg := reg_find_or_load(c, rhsea);
+        end if;
+    end if;
+    $if DEBUG
+        print("* RHS value is ");
+        print_regs(rhsreg);
+        print_newline();
+    $endif
+
+    c := lhsreg;
+    lhsreg := 0;
+    if lhsea != (0 as [EffectiveAddress]) then
+        if lhsea.flags != EA_DEREF then
+            lhsreg := reg_find_or_load(c, lhsea);
+        end if;
+    end if;
+    $if DEBUG
+        print("* LHS value is ");
+        print_regs(lhsreg);
+        print_newline();
+    $endif
+end sub;
+
+sub prepare_16bit_output_parameter()
+    if (destreg == lhsreg) or (destreg == rhsreg) then
+        $if DEBUG
+            print("* dest reg reuses ");
+            print_regs(destreg);
+            print_newline();
+        $endif
+    else
+        destreg := reg_alloc(destreg);
+        $if DEBUG
+            print("* dest (or temporary) reg is ");
+            print_regs(destreg);
+            print_newline();
+        $endif
+    end if;
+    reg_value_is_changing(destea);
+    reg_evict(destreg);
+end sub;
+
+sub evict_16bit_mutable_index_registers()
+    # Evict the registers which we know we'll be mutating. We do this *now*,
+    # after we've set them up, so that new registers don't get allocated on
+    # top of things we're using.
+    if (lhsptrreg & (REG_BC|REG_HL|REG_DE)) != 0 then
+        reg_evict(lhsptrreg);
+    end if;
+    if (rhsptrreg & (REG_BC|REG_HL|REG_DE)) != 0 then
+        reg_evict(rhsptrreg);
+    end if;
+end sub;
+
+# Reads the LHS into the work register.
+sub do_16bit_read(offset: uint8)
+    $if DEBUG
+        print("* read LHS ");
+        print_ea(lhsea);
+        print(" -> ");
+        print_regs(workreg);
+        print(" offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
+
+    var reg: uint8 := halfof_reg(workreg, offset);
+    if lhsreg != 0 then
+        if lhsreg == workreg then
+            return;
+        end if;
+
+        reg_copy(halfof_reg(lhsreg, offset), reg);
+    elseif lhsptrreg != 0 then
+        insn_init();
+        insn.datareg := reg;
+        insn.otherreg := lhsptrreg;
+        if (lhsptrreg & REG_INDEX) != 0 then
+            insn.offset := ((get_value_of_number(lhsea.numoff_id) as uint8) + offset) as int16;
+        end if;
+        insn.mode := MODE_IND;
+        insn_load_object();
+    elseif is_number_thing(lhsea.obj_id) != 0 then
+        print("numbers should be loaded as pairs!");
+        halt();
+    else
+        print("cannot load LHS");
+        halt();
+    end if;
+end sub;
+
+# Performs an ALU operation of the RHS against the work register (which must
+# be A).
+sub do_16bit_alu(offset: uint8, opcode: uint8)
+    $if DEBUG
+        print("* alu RHS ");
+        print_ea(rhsea);
+        print(" A offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
+
+    if workreg != REG_A then
+        print("can't ALU against not A");
+        halt();
+    end if;
+
+    insn_init();
+    insn.datareg := REG_A;
+    if rhsreg != 0 then
+        insn.otherreg := halfof_reg(rhsreg, offset);
+        insn.mode := MODE_DIR;
+    elseif rhsptrreg != 0 then
+        insn.otherreg := rhsptrreg;
+        if (rhsptrreg & REG_INDEX) != 0 then
+            insn.offset := ((get_value_of_number(rhsea.numoff_id) as uint8) + offset) as int16;
+        end if;
+        insn.mode := MODE_IND;
+    elseif is_number_thing(rhsea.obj_id) != 0 then
+        var value: uint16 := get_value_of_number(rhsea.obj_id) as uint16;
+        if offset == 1 then
+            value := value >> 8;
+        end if;
+        insn.offset := value as int16;
+        insn.mode := MODE_IMM;
+    else
+        print("cannot load LHS");
+        halt();
+    end if;
+    insn_8bit_aluop(opcode);
+end sub;
+
+# Writes the work register into the destination register.
+sub do_16bit_write(offset: uint8)
+    $if DEBUG
+        print("* write work reg ");
+        print_regs(workreg);
+        print(" to destination ");
+        print_ea(destea);
+        print(" offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
+
+    if (destreg != 0) and (workreg != destreg) then
+        reg_copy(halfof_reg(workreg, offset), halfof_reg(destreg, offset));
+    end if;
+end sub;
+
+# Adjusts any pointers for the second byte.
+sub adjust_16bit_pointers()
+    sub inc(reg: RegSet)
+        var regnum: uint8 := get_z80_regnum(reg);
+        write_byte(0x03 | regnum); # inc rr
+    end sub;
+
+    if (lhsptrreg & (REG_BC|REG_DE|REG_HL)) != 0 then
+        $if DEBUG
+            print("* incrementing LHS ptr\n");
+        $endif
+        inc(lhsptrreg);
+    end if;
+    if (lhsptrreg != rhsptrreg) and ((rhsptrreg & (REG_BC|REG_DE|REG_HL)) != 0) then
+        $if DEBUG
+            print("* incrementing RHS ptr\n");
+        $endif
+        inc(rhsptrreg);
+    end if;
+end sub;
+
+# Ensure that the destination is written back (to whereever).
+sub write_back_16bit_destination()
+    if destea.flags != EA_DEREF then
+        $if DEBUG
+            print("* leaving result in register\n");
+        $endif
+        reg_value_is_precious(destea);
+    else
+        $if DEBUG
+            print("* writing back DEREF result\n");
+        $endif
+
+        var reg: RegSet := setup_complex_pointer(destea);
+
+        sub write_back_byte(offset: uint8)
+            insn_init();
+            insn.datareg := halfof_reg(destreg, offset);;
+            insn.otherreg := reg;
+            if (reg & REG_INDEX) != 0 then
+                insn.offset := ((get_value_of_number(destea.numoff_id) as uint8) + offset) as int16;
+            end if;
+            insn.mode := MODE_IND;
+            insn_save_object();
+        end sub;
+
+        write_back_byte(0);
+        if (reg & REG_INDEX) == 0 then
+            reg_evict(reg);
+            var regnum: uint8 := get_z80_regnum(reg);
+            write_byte(0x03 | regnum); # inc rr
+        end if;
+        write_back_byte(1);
+    end if;
+
+    reg_cache_value(destreg, destea);
 end sub;
 
 # Ensure that the EA is ready for use as the RHS of a 16-bit arithmetic
@@ -405,33 +652,41 @@ sub arch_gen_copy_word(iop: [BEIop])
     $endif
 
     reset_16bit_op();
-
     lhsea := &iop.left;
     destea := &iop.dest;
 
-    prepare_16bit_lhs(0);
-    workreg := lhsreg;
-    prepare_16bit_dest();
+    destreg := REG_BC|REG_DE|REG_HL;
+    lhsreg := REG_BC|REG_DE|REG_HL;
+    $if DEBUG
+        print("* workreg is: ");
+        print_regs(workreg);
+        print_newline();
+        print("* destreg is: ");
+        print_regs(destreg);
+        print_newline();
+    $endif
 
-    # Evict the registers which we know we'll be mutating. We do this *now*,
-    # after we've set them up, so that new registers don't get allocated on
-    # top of things we're using.
-    if (lhsea.flags == EA_DEREF) and ((lhsreg & REG_INDEX) == 0) then
-        reg_evict(rhsreg);
+    load_16bit_pointers(0);
+    load_16bit_input_parameters();
+    if lhsreg != 0 then
+        $if DEBUG
+            print("* reusing LHS as dest reg\n");
+        $endif
+        destreg := lhsreg;
     end if;
-    reg_value_is_changing(destea);
-    if (destea.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
-        reg_evict(destreg);
-    end if;
+    prepare_16bit_output_parameter();
+    workreg := destreg;
+    evict_16bit_mutable_index_registers();
 
-    do_read(0);
-    do_write(0);
+    do_16bit_read(0);
+    do_16bit_write(0);
 
-    do_inc_all(0x03); # inc rr
+    adjust_16bit_pointers();
 
-    do_read(1);
-    do_write(1);
-    do_delayed_write();
+    do_16bit_read(1);
+    do_16bit_write(1);
+
+    write_back_16bit_destination();
 end sub;
 
 sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
@@ -450,40 +705,40 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
     $endif
 
     reset_16bit_op();
-    workreg := REG_A; # because this is an ALU instruction
     
     rhsea := &iop.right;
     destea := &iop.dest;
     lhsea := &iop.left;
 
-    prepare_16bit_rhs(0);
-    prepare_16bit_lhs(0);
-    prepare_16bit_dest();
+    workreg := REG_A;
+    destreg := REG_BC|REG_DE|REG_HL;
+    lhsreg := REG_BC|REG_DE|REG_HL;
+    rhsreg := REG_BC|REG_DE|REG_HL;
+    $if DEBUG
+        print("* workreg is: ");
+        print_regs(workreg);
+        print_newline();
+        print("* destreg is: ");
+        print_regs(destreg);
+        print_newline();
+    $endif
 
-    # Evict the registers which we know we'll be mutating. We do this *now*,
-    # after we've set them up, so that new registers don't get allocated on
-    # top of things we're using.
-    if (iop.left.flags == EA_DEREF) and ((lhsreg & REG_INDEX) == 0) then
-        reg_evict(lhsreg);
-    end if;
-    if (iop.right.flags == EA_DEREF) and ((lhsreg & REG_INDEX) == 0) then
-        reg_evict(rhsreg);
-    end if;
-    reg_value_is_changing(&iop.dest);
-    if (iop.dest.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
-        reg_evict(destreg);
-    end if;
+    load_16bit_pointers(0);
+    load_16bit_input_parameters();
+    prepare_16bit_output_parameter();
+    evict_16bit_mutable_index_registers();
 
-    do_read(0);
-    do_alu(0, opcode1);
-    do_write(0);
+    do_16bit_read(0);
+    do_16bit_alu(0, opcode1);
+    do_16bit_write(0);
 
-    do_inc_all(0x03); # inc rr
+    adjust_16bit_pointers();
 
-    do_read(1);
-    do_alu(1, opcode2);
-    do_write(1);
-    do_delayed_write();
+    do_16bit_read(1);
+    do_16bit_alu(1, opcode2);
+    do_16bit_write(1);
+
+    write_back_16bit_destination();
 end sub;
 
 sub arch_gen_add_word(iop: [BEIop])
@@ -504,26 +759,24 @@ sub arch_gen_zext_word(iop: [BEIop])
     $endif
 
     reset_16bit_op();
-    
+    lhsea := &iop.left;
     destea := &iop.dest;
-    prepare_16bit_dest();
 
-    reg_value_is_changing(&iop.dest);
-    if (iop.dest.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
-        reg_evict(destreg);
-    end if;
+    destreg := REG_BC|REG_DE|REG_HL;
+    prepare_16bit_output_parameter();
+    workreg := REG_A;
 
-    var srcreg: RegSet := load_complex_8bit_value(REG_8BIT, &iop.left);
-    do_write(0);
-    reg_free(srcreg);
+    load_complex_8bit_value_fixed(REG_A, lhsea);
+    do_16bit_write(0);
+    reg_free(REG_A);
+    
+    adjust_16bit_pointers();
 
-    do_inc_all(0x03); # inc rr
+    reg_find_or_load_int_fixed(REG_A, 0);
+    do_16bit_write(1);
+    reg_free(REG_A);
 
-    reg_evict(REG_A);
-    write_byte(0xAF); # xor a
-
-    do_write(1);
-    do_delayed_write();
+    write_back_16bit_destination();
 end sub;
 
 sub arch_gen_sext_word(iop: [BEIop])
@@ -536,27 +789,25 @@ sub arch_gen_sext_word(iop: [BEIop])
     $endif
 
     reset_16bit_op();
-    
+    lhsea := &iop.left;
     destea := &iop.dest;
-    prepare_16bit_dest();
 
-    reg_value_is_changing(&iop.dest);
-    if (iop.dest.flags != EA_DEREF) or ((destreg & REG_INDEX) == 0) then
-        reg_evict(destreg);
-    end if;
+    destreg := REG_BC|REG_DE|REG_HL;
+    prepare_16bit_output_parameter();
+    workreg := REG_A;
 
-    var srcreg: RegSet := load_complex_8bit_value(REG_8BIT, &iop.left);
-    do_write(0);
-    reg_free(srcreg);
-
-    do_inc_all(0x03); # inc rr
+    load_complex_8bit_value_fixed(REG_A, lhsea);
+    do_16bit_write(0);
+    
+    adjust_16bit_pointers();
 
     reg_evict(REG_A);
     write_byte(0x07); # rlca
     write_byte(0x9F); # sbc a, a
+    do_16bit_write(1);
+    reg_free(REG_A);
 
-    do_write(1);
-    do_delayed_write();
+    write_back_16bit_destination();
 end sub;
 
 sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])

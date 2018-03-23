@@ -60,6 +60,11 @@ sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
         reg8 := REG_C;
     elseif reg16 == REG_DE then
         reg8 := REG_E;
+    elseif reg16 == REG_A then
+        # This doesn't really belong here, but it makes a lot of the 16-bit
+        # logic simpler.
+        reg8 := REG_A;
+        return;
     else
         print("bad register");
         halt();
@@ -255,14 +260,16 @@ sub insn_ldst_ind(readflag: uint8)
     $endif
     insn_check_8bit_ind();
 
-    if readflag != 0 then
-        readflag := 0x08;
-    end if;
+    if (insn.otherreg & (REG_BC|REG_DE)) != 0 then
+        if readflag != 0 then
+            readflag := 0x08;
+        end if;
 
-    if insn.otherreg == REG_BC then
-        write_byte(0x02 | readflag); # ld (bc), a
-    elseif insn.otherreg == REG_DE then
-        write_byte(0x12 | readflag); # ld (de), a
+        if insn.otherreg == REG_BC then
+            write_byte(0x02 | readflag); # ld (bc), a
+        elseif insn.otherreg == REG_DE then
+            write_byte(0x12 | readflag); # ld (de), a
+        end if;
     else
         if insn.otherreg == REG_IX then
             write_byte(0xDD); # IX prefix
@@ -271,8 +278,11 @@ sub insn_ldst_ind(readflag: uint8)
         end if;
 
         var datareg: uint8 := get_z80_regnum(insn.datareg) as uint8;
-        write_byte(0x46 | (datareg<<3) | readflag); # ld (hl), b
-
+        if readflag == 0 then
+            write_byte(0x70 | datareg); # ld b, (hl)
+        else
+            write_byte(0x46 | (datareg<<3)); # ld (hl), b
+        end if;
         if (insn.otherreg & REG_INDEX) != 0 then
             write_byte(insn.offset as uint8);
         end if;
@@ -509,6 +519,20 @@ sub reg_copy(src: RegSet, dest: RegSet)
 
     if (src & REG_8BIT) != 0 then
         write_byte(0x40 | ((destregnum as uint8)<<3) | (srcregnum as uint8));
+    elseif ((src|dest) & (REG_IX|REG_IY)) != 0 then
+        if (src & (REG_IX|REG_IY)) != 0 then
+            write_byte(srcregnum);
+            write_byte(0xE5); # push hl (ix/iy with prefix)
+        else
+            write_byte(0xC5 | srcregnum); # push bc
+        end if;
+
+        if (dest & (REG_IX|REG_IY)) != 0 then
+            write_byte(destregnum);
+            write_byte(0xE1); # pop hl (ix/iy with prefix)
+        else
+            write_byte(0xC1 | destregnum); # pop bc
+        end if;
     else
         print("can't copy this yet");
         halt();
