@@ -110,10 +110,8 @@ end sub;
 sub arch_gen_copy(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_copy_byte(iop);
-    elseif iop.width == 2 then
-        arch_gen_copy_word(iop);
     else
-        cant_do_2op(iop, "copy");
+        arch_gen_copy_wide(iop);
     end if;
 end sub;
 
@@ -124,20 +122,16 @@ end sub;
 sub arch_gen_and(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xE6); # and *
-    elseif iop.width == 2 then
-        arch_gen_regular_alu_word(iop, 0xE6, 0xE6); # and *
     else
-        cant_do_3op(iop, "and");
+        arch_gen_regular_alu_wide(iop, 0xE6, 0xE6); # and *
     end if;
 end sub;
 
 sub arch_gen_or(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xF6); # or *
-    elseif iop.width == 2 then
-        arch_gen_regular_alu_word(iop, 0xF6, 0xF6); # and *
     else
-        cant_do_3op(iop, "or");
+        arch_gen_regular_alu_wide(iop, 0xF6, 0xF6); # and *
     end if;
 end sub;
 
@@ -145,40 +139,32 @@ sub arch_gen_eor(iop: [BEIop])
     cant_do_3op(iop, "eor");
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xEE); # xor *
-    elseif iop.width == 2 then
-        arch_gen_regular_alu_word(iop, 0xEE, 0xEE); # xor *
     else
-        cant_do_3op(iop, "eor");
+        arch_gen_regular_alu_wide(iop, 0xEE, 0xEE); # xor *
     end if;
 end sub;
 
 sub arch_gen_add(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xC6); # add *
-    elseif iop.width == 2 then
-        arch_gen_add_word(iop);
     else
-        cant_do_3op(iop, "add");
+        arch_gen_add_wide(iop);
     end if;
 end sub;
 
 sub arch_gen_sub(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xD6); # sub *
-    elseif iop.width == 2 then
-        arch_gen_sub_word(iop);
     else
-        cant_do_3op(iop, "sub");
+        arch_gen_sub_wide(iop);
     end if;
 end sub;
 
 sub arch_gen_lsl(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_shift_byte(iop, 0x20); # sla b (not including prefix byte)
-    elseif iop.width == 2 then
-        arch_gen_lsl_word(iop);
     else
-        cant_do_3op(iop, "lsl");
+        arch_gen_lsl_wide(iop);
     end if;
 end sub;
 
@@ -220,7 +206,7 @@ end sub;
 
 sub arch_gen_zext(iop: [BEIop])
     if iop.width == 2 then
-        arch_gen_zext_word(iop);
+        arch_gen_zext_wide(iop);
     else
         cant_do_2op(iop, "zext");
     end if;
@@ -228,7 +214,7 @@ end sub;
 
 sub arch_gen_sext(iop: [BEIop])
     if iop.width == 2 then
-        arch_gen_sext_word(iop);
+        arch_gen_sext_wide(iop);
     else
         cant_do_2op(iop, "sext");
     end if;
@@ -239,7 +225,7 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
     if ciop.width == 1 then
         arch_gen_cmp_8bit(ciop, liop);
     elseif ciop.width == 2 then
-        arch_gen_cmp_word(ciop, liop);
+        arch_gen_cmp_wide(ciop, liop);
     else
         print("can't compare");
         halt();

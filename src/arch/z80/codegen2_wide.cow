@@ -150,10 +150,8 @@ var rhsptrreg: RegSet;
 var lhsreg: RegSet;
 var lhsptrreg: RegSet;
 var destreg: RegSet;
-var tempdestreg: RegSet;
-var destdelayed: uint8;
 
-sub reset_16bit_op()
+sub reset_wide_op()
     rhsea := 0 as [EffectiveAddress];
     lhsea := 0 as [EffectiveAddress];
     destea := 0 as [EffectiveAddress];
@@ -163,12 +161,10 @@ sub reset_16bit_op()
     lhsptrreg := REG_16BIT;
     workreg := 0;
     destreg := 0;
-    tempdestreg := 0;
-    destdelayed := 0;
 end sub;
 
 # Load the input pointers needed for the operation.
-sub load_16bit_pointers(offset: uint8)
+sub load_wide_pointers(offset: uint8)
     lhsptrreg := setup_complex_pointer(lhsptrreg, lhsea);
     $if DEBUG
         print("* LHS ptr is ");
@@ -185,7 +181,7 @@ sub load_16bit_pointers(offset: uint8)
 end sub;
 
 # If the LHS or RHS are simple values, load them into register pairs.
-sub load_16bit_input_parameters()
+sub load_wide_input_parameters()
     var c: RegSet := rhsreg;
     rhsreg := 0;
     if rhsea != (0 as [EffectiveAddress]) then
@@ -213,7 +209,7 @@ sub load_16bit_input_parameters()
     $endif
 end sub;
 
-sub prepare_16bit_output_parameter()
+sub prepare_wide_output_parameter()
     if (destreg == lhsreg) or (destreg == rhsreg) then
         $if DEBUG
             print("* dest reg reuses ");
@@ -232,7 +228,7 @@ sub prepare_16bit_output_parameter()
     reg_evict(destreg);
 end sub;
 
-sub evict_16bit_mutable_index_registers()
+sub evict_wide_mutable_index_registers()
     # Evict the registers which we know we'll be mutating. We do this *now*,
     # after we've set them up, so that new registers don't get allocated on
     # top of things we're using.
@@ -245,7 +241,7 @@ sub evict_16bit_mutable_index_registers()
 end sub;
 
 # Reads the LHS into the work register.
-sub do_16bit_read(offset: uint8)
+sub do_wide_read(offset: uint8)
     $if DEBUG
         print("* read LHS ");
         print_ea(lhsea);
@@ -283,7 +279,7 @@ end sub;
 
 # Performs an ALU operation of the RHS against the work register (which must
 # be A).
-sub do_16bit_alu(offset: uint8, opcode: uint8)
+sub do_wide_alu(offset: uint8, opcode: uint8)
     $if DEBUG
         print("* alu RHS ");
         print_ea(rhsea);
@@ -323,7 +319,7 @@ sub do_16bit_alu(offset: uint8, opcode: uint8)
 end sub;
 
 # Writes the work register into the destination register.
-sub do_16bit_write(offset: uint8)
+sub do_wide_write(offset: uint8)
     $if DEBUG
         print("* write work reg ");
         print_regs(workreg);
@@ -340,7 +336,7 @@ sub do_16bit_write(offset: uint8)
 end sub;
 
 # Adjusts any pointers for the second byte.
-sub adjust_16bit_pointers(opcode: uint8)
+sub adjust_wide_pointers(opcode: uint8)
     sub inc(reg: RegSet)
         $if DEBUG
             print("* INCREMENT ");
@@ -366,7 +362,7 @@ sub adjust_16bit_pointers(opcode: uint8)
 end sub;
 
 # Ensure that the destination is written back (to whereever).
-sub write_back_16bit_destination()
+sub write_back_wide_destination()
     reg_free(lhsptrreg);
     reg_free(rhsptrreg);
 
@@ -407,8 +403,8 @@ end sub;
 
 # Boilerplate setup for mostly-2op operations, which reads the LHS into
 # the destination register, ready for in-place mutation or writing back.
-sub prepare_16bit_op_where_lhs_is_in_a_reg(iop: [BEIop])
-    reset_16bit_op();
+sub prepare_wide_op_where_lhs_is_in_a_reg(iop: [BEIop])
+    reset_wide_op();
     lhsea := &iop.left;
     destea := &iop.dest;
 
@@ -416,9 +412,9 @@ sub prepare_16bit_op_where_lhs_is_in_a_reg(iop: [BEIop])
     lhsreg := REG_DE|REG_HL;
     destreg := REG_DE|REG_HL;
 
-    load_16bit_pointers(0);
-    load_16bit_input_parameters();
-    prepare_16bit_output_parameter();
+    load_wide_pointers(0);
+    load_wide_input_parameters();
+    prepare_wide_output_parameter();
     if lhsreg != 0 then
         $if DEBUG
             print("* reusing LHS as dest reg\n");
@@ -428,29 +424,29 @@ sub prepare_16bit_op_where_lhs_is_in_a_reg(iop: [BEIop])
     workreg := destreg;
     reg_evict(workreg);
 
-    do_16bit_read(0);
-    do_16bit_write(0);
-    adjust_16bit_pointers(0x03); # inc rr
-    do_16bit_read(1);
-    do_16bit_write(1);
+    do_wide_read(0);
+    do_wide_write(0);
+    adjust_wide_pointers(0x03); # inc rr
+    do_wide_read(1);
+    do_wide_write(1);
 end sub;
 
-sub arch_gen_copy_word(iop: [BEIop])
+sub arch_gen_copy_wide(iop: [BEIop])
     $if DEBUG
-        print("* GENERATE copy word: ");
+        print("* GENERATE copy wide: ");
         print_ea(&iop.left);
         print(" -> ");
         print_ea(&iop.dest);
         print_newline();
     $endif
 
-    prepare_16bit_op_where_lhs_is_in_a_reg(iop);
-    write_back_16bit_destination();
+    prepare_wide_op_where_lhs_is_in_a_reg(iop);
+    write_back_wide_destination();
 end sub;
 
-sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
+sub arch_gen_regular_alu_wide(iop: [BEIop], opcode1: uint8, opcode2: uint8)
     $if DEBUG
-        print("* GENERATE alu word: opcode1=0x");
+        print("* GENERATE alu wide: opcode1=0x");
         print_hex_i8(opcode1);
         print(" opcode2=0x");
         print_hex_i8(opcode2);
@@ -463,7 +459,7 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
         print_newline();
     $endif
 
-    reset_16bit_op();
+    reset_wide_op();
     
     rhsea := &iop.right;
     destea := &iop.dest;
@@ -482,33 +478,33 @@ sub arch_gen_regular_alu_word(iop: [BEIop], opcode1: uint8, opcode2: uint8)
         print_newline();
     $endif
 
-    load_16bit_pointers(0);
-    load_16bit_input_parameters();
-    prepare_16bit_output_parameter();
-    evict_16bit_mutable_index_registers();
+    load_wide_pointers(0);
+    load_wide_input_parameters();
+    prepare_wide_output_parameter();
+    evict_wide_mutable_index_registers();
 
-    do_16bit_read(0);
-    do_16bit_alu(0, opcode1);
-    do_16bit_write(0);
+    do_wide_read(0);
+    do_wide_alu(0, opcode1);
+    do_wide_write(0);
 
-    adjust_16bit_pointers(0x03); # inc rr
+    adjust_wide_pointers(0x03); # inc rr
 
-    do_16bit_read(1);
-    do_16bit_alu(1, opcode2);
-    do_16bit_write(1);
+    do_wide_read(1);
+    do_wide_alu(1, opcode2);
+    do_wide_write(1);
 
-    write_back_16bit_destination();
+    write_back_wide_destination();
 end sub;
 
-sub arch_gen_add_word(iop: [BEIop])
-    arch_gen_regular_alu_word(iop, 0xC6, 0xCE); # add, adc
+sub arch_gen_add_wide(iop: [BEIop])
+    arch_gen_regular_alu_wide(iop, 0xC6, 0xCE); # add, adc
 end sub;
 
-sub arch_gen_sub_word(iop: [BEIop])
-    arch_gen_regular_alu_word(iop, 0xD6, 0xDE); # sub, sbc
+sub arch_gen_sub_wide(iop: [BEIop])
+    arch_gen_regular_alu_wide(iop, 0xD6, 0xDE); # sub, sbc
 end sub;
 
-sub arch_gen_zext_word(iop: [BEIop])
+sub arch_gen_zext_wide(iop: [BEIop])
     $if DEBUG
         print("* GENERATE: zext: ");
         print_ea(&iop.left);
@@ -517,30 +513,30 @@ sub arch_gen_zext_word(iop: [BEIop])
         print_newline();
     $endif
 
-    reset_16bit_op();
+    reset_wide_op();
     lhsea := &iop.left;
     destea := &iop.dest;
 
     destreg := REG_BC|REG_DE|REG_HL;
     lhsptrreg := 0;
     rhsptrreg := 0;
-    prepare_16bit_output_parameter();
+    prepare_wide_output_parameter();
     workreg := REG_A;
 
     load_complex_8bit_value_fixed(REG_A, lhsea);
-    do_16bit_write(0);
+    do_wide_write(0);
     reg_free(REG_A);
     
-    adjust_16bit_pointers(0x03); # inc rr
+    adjust_wide_pointers(0x03); # inc rr
 
     reg_find_or_load_int_fixed(REG_A, 0);
-    do_16bit_write(1);
+    do_wide_write(1);
     reg_free(REG_A);
 
-    write_back_16bit_destination();
+    write_back_wide_destination();
 end sub;
 
-sub arch_gen_sext_word(iop: [BEIop])
+sub arch_gen_sext_wide(iop: [BEIop])
     $if DEBUG
         print("* GENERATE: sext: ");
         print_ea(&iop.left);
@@ -549,33 +545,33 @@ sub arch_gen_sext_word(iop: [BEIop])
         print_newline();
     $endif
 
-    reset_16bit_op();
+    reset_wide_op();
     lhsea := &iop.left;
     destea := &iop.dest;
 
     destreg := REG_BC|REG_DE|REG_HL;
     lhsptrreg := 0;
     rhsptrreg := 0;
-    prepare_16bit_output_parameter();
+    prepare_wide_output_parameter();
     workreg := REG_A;
 
     load_complex_8bit_value_fixed(REG_A, lhsea);
-    do_16bit_write(0);
+    do_wide_write(0);
     
-    adjust_16bit_pointers(0x03); # inc rr
+    adjust_wide_pointers(0x03); # inc rr
 
     reg_evict(REG_A);
     write_byte(0x07); # rlca
     write_byte(0x9F); # sbc a, a
-    do_16bit_write(1);
+    do_wide_write(1);
     reg_free(REG_A);
 
-    write_back_16bit_destination();
+    write_back_wide_destination();
 end sub;
 
-sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
+sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
     $if DEBUG
-        print("* GENERATE: compare words 0x");
+        print("* GENERATE: compare wide 0x");
         print_hex_i8(ciop.iop_kind);
         print(": ");
         print_ea(&ciop.left);
@@ -603,12 +599,12 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
 
     sub gen_comparison_branch(offset: uint8)
         if iopkind == IOP_BE_BEQ then
-            do_16bit_alu(offset, 0xFE); # cp *
+            do_wide_alu(offset, 0xFE); # cp *
             write_cg_conditional_iop(0xC2 ^ invertflag, destlabel); # jp nz
         else
             if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
                 # BLTS
-                do_16bit_alu(offset, 0xD6); # sub *
+                do_wide_alu(offset, 0xD6); # sub *
 
                 var skipxorlabel: uint8 := create_label();
                 write_cg_conditional_iop(0xE2 ^ invertflag, skipxorlabel); # jp po
@@ -618,13 +614,13 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
                 write_cg_conditional_iop(0xF2 ^ invertflag, destlabel); # jp p
             else
                 # BLTU
-                do_16bit_alu(offset, 0xFE); # cp *
+                do_wide_alu(offset, 0xFE); # cp *
                 write_cg_conditional_iop(0xD2 ^ invertflag, destlabel); # jp c
             end if;
         end if;
     end sub;
 
-    reset_16bit_op();
+    reset_wide_op();
     rhsea := &ciop.right;
     lhsea := &ciop.left;
 
@@ -632,16 +628,16 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
     lhsreg := REG_BC|REG_DE|REG_HL;
     rhsreg := REG_BC|REG_DE|REG_HL;
 
-    load_16bit_pointers(1);
-    load_16bit_input_parameters();
+    load_wide_pointers(1);
+    load_wide_input_parameters();
     reg_evict(ALL_REGS);
 
-    do_16bit_read(1);
+    do_wide_read(1);
     gen_comparison_branch(1);
 
-    adjust_16bit_pointers(0x0B); # dec rr
+    adjust_wide_pointers(0x0B); # dec rr
 
-    do_16bit_read(0);
+    do_wide_read(0);
     gen_comparison_branch(0);
 
     if liop.label != fallthrough_label then
@@ -649,9 +645,9 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
     end if;
 end sub;
 
-sub arch_gen_lsl_word(iop: [BEIop])
+sub arch_gen_lsl_wide(iop: [BEIop])
     $if DEBUG
-        print("* GENERATE lsl word: ");
+        print("* GENERATE lsl wide: ");
         print_ea(&iop.left);
         print(" + ");
         print_ea(&iop.right);
@@ -661,7 +657,7 @@ sub arch_gen_lsl_word(iop: [BEIop])
     $endif
 
     load_complex_8bit_value_fixed(REG_B, &iop.right);
-    prepare_16bit_op_where_lhs_is_in_a_reg(iop);
+    prepare_wide_op_where_lhs_is_in_a_reg(iop);
     reg_evict(destreg);
     
     # Now do the in-place shift.
@@ -685,5 +681,5 @@ sub arch_gen_lsl_word(iop: [BEIop])
     write_cg_conditional_iop(0x10, label); # djnz label
     
     reg_free(REG_B);
-    write_back_16bit_destination();
+    write_back_wide_destination();
 end sub;
