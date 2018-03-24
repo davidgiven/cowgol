@@ -89,6 +89,7 @@ sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (otherreg: RegSet)
     insn_init();
     insn.datareg := REG_A;
     insn.otherreg := otherreg;
+    insn.offset := get_value_of_number(ea.numoff_id);
     insn.mode := MODE_IND;
 end sub;
 

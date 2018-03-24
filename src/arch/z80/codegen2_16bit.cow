@@ -342,6 +342,11 @@ end sub;
 # Adjusts any pointers for the second byte.
 sub adjust_16bit_pointers(opcode: uint8)
     sub inc(reg: RegSet)
+        $if DEBUG
+            print("* INCREMENT ");
+            print_regs(reg);
+            print_newline();
+        $endif
         var regnum: uint8 := get_z80_regnum(reg);
         write_byte(opcode | regnum); # inc or dec
     end sub;
@@ -517,6 +522,8 @@ sub arch_gen_zext_word(iop: [BEIop])
     destea := &iop.dest;
 
     destreg := REG_BC|REG_DE|REG_HL;
+    lhsptrreg := 0;
+    rhsptrreg := 0;
     prepare_16bit_output_parameter();
     workreg := REG_A;
 
@@ -547,6 +554,8 @@ sub arch_gen_sext_word(iop: [BEIop])
     destea := &iop.dest;
 
     destreg := REG_BC|REG_DE|REG_HL;
+    lhsptrreg := 0;
+    rhsptrreg := 0;
     prepare_16bit_output_parameter();
     workreg := REG_A;
 
