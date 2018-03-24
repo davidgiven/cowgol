@@ -128,7 +128,6 @@ sub arch_gen_copy_byte(iop: [BEIop])
     $endif
 
     var location: RegSet := load_complex_8bit_value(REG_A, &iop.left);
-    reg_value_is_changing(&iop.dest);
     save_8bit_or_make_precious(&iop.dest, location);
 end sub;
 
@@ -151,8 +150,34 @@ sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
     load_complex_8bit_value_fixed(REG_A, &iop.left);
     reg_evict(REG_A);
     insn_8bit_aluop(opcode);
-    reg_cache_value(REG_A, &iop.dest);
     save_8bit_or_make_precious(&iop.dest, REG_A);
+end sub;
+
+sub arch_gen_shift_byte(iop: [BEIop], opcode: uint8)
+    $if DEBUG
+        print("* GENERATE shift byte op 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(",");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    load_complex_8bit_value_fixed(REG_B, &iop.right);
+    var reg: RegSet := load_complex_8bit_value(REG_8BIT, &iop.left);
+    reg_value_is_changing(&iop.dest);
+    reg_evict(reg);
+
+    var label: uint8 := create_label();
+    write_label_iop(label);
+    write_byte(0xCB);
+    write_byte(opcode | get_z80_regnum(reg));
+    write_cg_conditional_iop(0x10, label); # djnz label
+
+    save_8bit_or_make_precious(&iop.dest, reg);
 end sub;
 
 sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])

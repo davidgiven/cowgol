@@ -421,7 +421,7 @@ sub prepare_16bit_op_where_lhs_is_in_a_reg(iop: [BEIop])
         destreg := lhsreg;
     end if;
     workreg := destreg;
-    reg_evict(destreg);
+    reg_evict(workreg);
 
     do_16bit_read(0);
     do_16bit_write(0);
@@ -653,6 +653,7 @@ sub arch_gen_lsl_word(iop: [BEIop])
 
     load_complex_8bit_value_fixed(REG_B, &iop.right);
     prepare_16bit_op_where_lhs_is_in_a_reg(iop);
+    reg_evict(destreg);
     
     # Now do the in-place shift.
 
