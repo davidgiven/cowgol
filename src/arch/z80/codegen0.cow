@@ -490,7 +490,7 @@ sub reg_load(reg: RegSet, ea: [EffectiveAddress])
         print_newline();
     $endif
 
-    if (reg & REG_STUPID) != 0 then
+    if (is_number_thing(ea.obj_id) == 0) and ((reg & REG_STUPID) != 0) then
         print("load to stupid register");
         halt();
     end if;

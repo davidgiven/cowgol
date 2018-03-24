@@ -173,7 +173,11 @@ sub arch_gen_sub(iop: [BEIop])
 end sub;
 
 sub arch_gen_lsl(iop: [BEIop])
-    cant_do_3op(iop, "lsl");
+    if iop.width == 2 then
+        arch_gen_lsl_word(iop);
+    else
+        cant_do_3op(iop, "lsl");
+    end if;
 end sub;
 
 sub arch_gen_lsr(iop: [BEIop])

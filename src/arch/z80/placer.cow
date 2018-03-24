@@ -37,7 +37,15 @@ sub arch_generate_iop(iop: [Iop]): (size: uint8)
         var buf: uint8[3];
         var target: uint16 := labels[iop.label];
         var offset: int16 := (target - (pc+2)) as int16;
-        if (offset < -128) or (offset > 127) or ((iop.opcode & 0b0010_0000) != 0) then # jp pe, po, m, p
+        if iop.opcode == 0x10 then # djnz
+            if (offset < -128) or (offset > 127) then
+                print("range too large for djnz");
+                halt();
+            end if;
+            size := 2;
+            write_byte(0x10); # djnz
+            write_byte(offset as uint8);
+        elseif (offset < -128) or (offset > 127) or ((iop.opcode & 0b0010_0000) != 0) then # jp pe, po, m, p
             size := 3;
             write_byte(iop.opcode);
             write_address_iop(IOP_ADDRESS, current_subroutine_id, target);

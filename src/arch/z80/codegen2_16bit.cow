@@ -1,4 +1,4 @@
-# 16-bit code generation on the Z80 is hard.
+#Loads 16-bit code generation on the Z80 is hard.
 #
 # This is because there are multiple interacting strategies that I need to
 # use which all play off each other. In summary, these are:
@@ -158,9 +158,9 @@ sub reset_16bit_op()
     lhsea := 0 as [EffectiveAddress];
     destea := 0 as [EffectiveAddress];
     rhsreg := 0;
-    rhsptrreg := 0;
+    rhsptrreg := REG_16BIT;
     lhsreg := 0;
-    lhsptrreg := 0;
+    lhsptrreg := REG_16BIT;
     workreg := 0;
     destreg := 0;
     tempdestreg := 0;
@@ -169,14 +169,14 @@ end sub;
 
 # Load the input pointers needed for the operation.
 sub load_16bit_pointers(offset: uint8)
-    lhsptrreg := setup_complex_pointer(lhsea);
+    lhsptrreg := setup_complex_pointer(lhsptrreg, lhsea);
     $if DEBUG
         print("* LHS ptr is ");
         print_regs(lhsptrreg);
         print_newline();
     $endif
 
-    rhsptrreg := setup_complex_pointer(rhsea);
+    rhsptrreg := setup_complex_pointer(rhsptrreg, rhsea);
     $if DEBUG
         print("* RHS ptr is ");
         print_regs(rhsptrreg);
@@ -184,6 +184,7 @@ sub load_16bit_pointers(offset: uint8)
     $endif
 end sub;
 
+# If the LHS or RHS are simple values, load them into register pairs.
 sub load_16bit_input_parameters()
     var c: RegSet := rhsreg;
     rhsreg := 0;
@@ -326,8 +327,8 @@ sub do_16bit_write(offset: uint8)
     $if DEBUG
         print("* write work reg ");
         print_regs(workreg);
-        print(" to destination ");
-        print_ea(destea);
+        print(" to destination register ");
+        print_regs(destreg);
         print(" offset ");
         print_i8(offset);
         print_newline();
@@ -361,6 +362,9 @@ end sub;
 
 # Ensure that the destination is written back (to whereever).
 sub write_back_16bit_destination()
+    reg_free(lhsptrreg);
+    reg_free(rhsptrreg);
+
     if destea.flags != EA_DEREF then
         $if DEBUG
             print("* leaving result in register\n");
@@ -371,7 +375,7 @@ sub write_back_16bit_destination()
             print("* writing back DEREF result\n");
         $endif
 
-        var reg: RegSet := setup_complex_pointer(destea);
+        var reg: RegSet := setup_complex_pointer(REG_HL|REG_IX|REG_IY, destea);
 
         sub write_back_byte(offset: uint8)
             insn_init();
@@ -396,6 +400,36 @@ sub write_back_16bit_destination()
     reg_cache_value(destreg, destea);
 end sub;
 
+# Boilerplate setup for mostly-2op operations, which reads the LHS into
+# the destination register, ready for in-place mutation or writing back.
+sub prepare_16bit_op_where_lhs_is_in_a_reg(iop: [BEIop])
+    reset_16bit_op();
+    lhsea := &iop.left;
+    destea := &iop.dest;
+
+    lhsptrreg := REG_HL|REG_IX|REG_IY; # because our workreg isn't A
+    lhsreg := REG_DE|REG_HL;
+    destreg := REG_DE|REG_HL;
+
+    load_16bit_pointers(0);
+    load_16bit_input_parameters();
+    prepare_16bit_output_parameter();
+    if lhsreg != 0 then
+        $if DEBUG
+            print("* reusing LHS as dest reg\n");
+        $endif
+        destreg := lhsreg;
+    end if;
+    workreg := destreg;
+    reg_evict(destreg);
+
+    do_16bit_read(0);
+    do_16bit_write(0);
+    adjust_16bit_pointers(0x03); # inc rr
+    do_16bit_read(1);
+    do_16bit_write(1);
+end sub;
+
 sub arch_gen_copy_word(iop: [BEIop])
     $if DEBUG
         print("* GENERATE copy word: ");
@@ -405,41 +439,7 @@ sub arch_gen_copy_word(iop: [BEIop])
         print_newline();
     $endif
 
-    reset_16bit_op();
-    lhsea := &iop.left;
-    destea := &iop.dest;
-
-    destreg := REG_BC|REG_DE|REG_HL;
-    lhsreg := REG_BC|REG_DE|REG_HL;
-    $if DEBUG
-        print("* workreg is: ");
-        print_regs(workreg);
-        print_newline();
-        print("* destreg is: ");
-        print_regs(destreg);
-        print_newline();
-    $endif
-
-    load_16bit_pointers(0);
-    load_16bit_input_parameters();
-    if lhsreg != 0 then
-        $if DEBUG
-            print("* reusing LHS as dest reg\n");
-        $endif
-        destreg := lhsreg;
-    end if;
-    prepare_16bit_output_parameter();
-    workreg := destreg;
-    evict_16bit_mutable_index_registers();
-
-    do_16bit_read(0);
-    do_16bit_write(0);
-
-    adjust_16bit_pointers(0x03); # inc rr
-
-    do_16bit_read(1);
-    do_16bit_write(1);
-
+    prepare_16bit_op_where_lhs_is_in_a_reg(iop);
     write_back_16bit_destination();
 end sub;
 
@@ -615,6 +615,7 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
         end if;
     end sub;
 
+    reset_16bit_op();
     rhsea := &ciop.right;
     lhsea := &ciop.left;
 
@@ -622,7 +623,7 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
     lhsreg := REG_BC|REG_DE|REG_HL;
     rhsreg := REG_BC|REG_DE|REG_HL;
 
-    load_16bit_pointers(0);
+    load_16bit_pointers(1);
     load_16bit_input_parameters();
     reg_evict(ALL_REGS);
 
@@ -631,10 +632,48 @@ sub arch_gen_cmp_word(ciop: [BEConditionalIop], liop: [LabelIop])
 
     adjust_16bit_pointers(0x0B); # dec rr
 
-    do_16bit_read(1);
+    do_16bit_read(0);
     gen_comparison_branch(0);
 
     if liop.label != fallthrough_label then
         write_cg_conditional_iop(0xC3, fallthrough_label); # jp
     end if;
+end sub;
+
+sub arch_gen_lsl_word(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE lsl word: ");
+        print_ea(&iop.left);
+        print(" + ");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    load_complex_8bit_value_fixed(REG_B, &iop.right);
+    prepare_16bit_op_where_lhs_is_in_a_reg(iop);
+    
+    # Now do the in-place shift.
+
+    sub inplace_shift(offset: uint8, opcode: uint8)
+        $if DEBUG
+            print("* in-place shifting reg ");
+            print_regs(destreg);
+            print(" offset ");
+            print_i8(offset);
+            print_newline();
+        $endif
+        var regnum: uint8 := get_z80_regnum(halfof_reg(destreg, offset));
+        write_byte(0xCB);
+        write_byte(opcode | regnum);
+    end sub;
+    var label: uint8 := create_label();
+    write_label_iop(label);
+    inplace_shift(0, 0x20); # sla r
+    inplace_shift(1, 0x10); # rl r
+    write_cg_conditional_iop(0x10, label); # djnz label
+    
+    reg_free(REG_B);
+    write_back_16bit_destination();
 end sub;

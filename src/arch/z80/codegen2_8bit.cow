@@ -9,11 +9,13 @@ sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     # If the value can be trivially loaded, do so.
 
     if ea.flags == EA_VALUE then
-        if is_number_thing(ea.obj_id) != 0 then
-            regs := REG_A;
+        if is_number_thing(ea.obj_id) == 0 then
+            # This has to be loaded through A.
+            reg := reg_find_or_load(REG_A, ea);
+        else
+            reg := reg_find_or_load(regs, ea);
         end if;
-        reg := reg_find_or_load(REG_A, ea);
-        if (regs & REG_A) == 0 then
+        if (regs & reg) == 0 then
             reg := reg_alloc(regs);
             reg_copy(REG_A, reg);
             reg_free(REG_A);
