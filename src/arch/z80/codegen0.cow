@@ -52,26 +52,6 @@ sub print_regs(regs: RegSet)
     if (regs & REG_IY) != 0 then print("IY "); end if;
 end sub;
 
-# Returns half a register pair.
-sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
-    if reg16 == REG_HL then
-        reg8 := REG_L;
-    elseif reg16 == REG_BC then
-        reg8 := REG_C;
-    elseif reg16 == REG_DE then
-        reg8 := REG_E;
-    elseif reg16 == REG_A then
-        # This doesn't really belong here, but it makes a lot of the 16-bit
-        # logic simpler.
-        reg8 := REG_A;
-        return;
-    else
-        print("bad register");
-        halt();
-    end if;
-    reg8 := reg8 >> offset;
-end sub;
-
 # Gets the register index.
 sub get_regnum(reg: RegSet): (regnum: uint8)
     regnum := 0;
@@ -342,6 +322,8 @@ sub insn_ld_imm()
     var regnum: uint8 := get_z80_regnum(reg);
     if (reg & REG_8BIT) != 0 then
         insn_8bit_op_imm(0x06 | (regnum << 3));
+    elseif (reg & REG_INDEX) != 0 then
+        insn_16bit_op_imm(0x2100 | (regnum as uint16));
     else
         insn_16bit_op_imm((0x01 | regnum) as uint16);
     end if;

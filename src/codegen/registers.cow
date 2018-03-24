@@ -414,6 +414,11 @@ sub reg_alloc(candidates: RegSet): (regs: RegSet)
     end if;
 end sub;
 
+# As for reg_alloc_fixed(), but the result is discarded.
+sub reg_alloc_fixed(candidates: RegSet)
+    var reg: RegSet := reg_alloc(candidates);
+end sub;
+
 # Frees some registers previously allocated with reg_alloc().
 sub reg_free(regs: RegSet)
     $if DEBUG

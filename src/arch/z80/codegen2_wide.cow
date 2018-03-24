@@ -1,4 +1,4 @@
-#Loads 16-bit code generation on the Z80 is hard.
+# Wide code generation on the Z80 is hard.
 #
 # This is because there are multiple interacting strategies that I need to
 # use which all play off each other. In summary, these are:
@@ -150,63 +150,95 @@ var rhsptrreg: RegSet;
 var lhsreg: RegSet;
 var lhsptrreg: RegSet;
 var destreg: RegSet;
+var destreghi: RegSet;
+var opwidth: uint8;
 
 sub reset_wide_op()
     rhsea := 0 as [EffectiveAddress];
     lhsea := 0 as [EffectiveAddress];
     destea := 0 as [EffectiveAddress];
     rhsreg := 0;
-    rhsptrreg := REG_16BIT;
+    rhsptrreg := REG_HL|REG_IX|REG_IY;
     lhsreg := 0;
     lhsptrreg := REG_16BIT;
     workreg := 0;
     destreg := 0;
+    destreghi := 0;
+    opwidth := 0;
+end sub;
+
+# Returns half a register pair.
+sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
+    if (opwidth == 4) and (reg16 == destreg) and (offset >= 2) then
+        reg16 := destreghi;
+        offset := offset - 2;
+    end if;
+
+    if reg16 == REG_HL then
+        reg8 := REG_L;
+    elseif reg16 == REG_BC then
+        reg8 := REG_C;
+    elseif reg16 == REG_DE then
+        reg8 := REG_E;
+    elseif reg16 == REG_A then
+        reg8 := REG_A;
+        return;
+    else
+        print("bad register");
+        halt();
+    end if;
+    reg8 := reg8 >> offset;
 end sub;
 
 # Load the input pointers needed for the operation.
 sub load_wide_pointers(offset: uint8)
-    lhsptrreg := setup_complex_pointer(lhsptrreg, lhsea);
-    $if DEBUG
-        print("* LHS ptr is ");
-        print_regs(lhsptrreg);
-        print_newline();
-    $endif
-
     rhsptrreg := setup_complex_pointer(rhsptrreg, rhsea);
     $if DEBUG
         print("* RHS ptr is ");
         print_regs(rhsptrreg);
         print_newline();
     $endif
+
+    lhsptrreg := setup_complex_pointer(lhsptrreg, lhsea);
+    $if DEBUG
+        print("* LHS ptr is ");
+        print_regs(lhsptrreg);
+        print_newline();
+    $endif
 end sub;
 
 # If the LHS or RHS are simple values, load them into register pairs.
 sub load_wide_input_parameters()
-    var c: RegSet := rhsreg;
-    rhsreg := 0;
-    if rhsea != (0 as [EffectiveAddress]) then
-        if (rhsea.flags != EA_DEREF) and (is_number_thing(rhsea.obj_id) == 0) then
-            rhsreg := reg_find_or_load(c, rhsea);
+    if opwidth == 2 then
+        var c: RegSet := rhsreg;
+        rhsreg := 0;
+        if rhsea != (0 as [EffectiveAddress]) then
+            if (rhsea.flags != EA_DEREF) and (is_number_thing(rhsea.obj_id) == 0) then
+                rhsreg := reg_find_or_load(c, rhsea);
+            end if;
         end if;
-    end if;
-    $if DEBUG
-        print("* RHS value is ");
-        print_regs(rhsreg);
-        print_newline();
-    $endif
+        $if DEBUG
+            print("* RHS value is ");
+            print_regs(rhsreg);
+            print_newline();
+        $endif
 
-    c := lhsreg;
-    lhsreg := 0;
-    if lhsea != (0 as [EffectiveAddress]) then
-        if lhsea.flags != EA_DEREF then
-            lhsreg := reg_find_or_load(c, lhsea);
+        c := lhsreg;
+        lhsreg := 0;
+        if lhsea != (0 as [EffectiveAddress]) then
+            if lhsea.flags != EA_DEREF then
+                lhsreg := reg_find_or_load(c, lhsea);
+            end if;
         end if;
+        $if DEBUG
+            print("* LHS value is ");
+            print_regs(lhsreg);
+            print_newline();
+        $endif
+    else
+        lhsreg := 0;
+        rhsreg := 0;
     end if;
-    $if DEBUG
-        print("* LHS value is ");
-        print_regs(lhsreg);
-        print_newline();
-    $endif
 end sub;
 
 sub prepare_wide_output_parameter()
@@ -217,6 +249,15 @@ sub prepare_wide_output_parameter()
             print_newline();
         $endif
     else
+        if opwidth == 4 then
+            destreghi := reg_alloc(destreg);
+            $if DEBUG
+                print("* dest (or temporary) reg (hi) is ");
+                print_regs(destreghi);
+                print_newline();
+            $endif
+        end if;
+
         destreg := reg_alloc(destreg);
         $if DEBUG
             print("* dest (or temporary) reg is ");
@@ -269,8 +310,11 @@ sub do_wide_read(offset: uint8)
         insn.mode := MODE_IND;
         insn_load_object();
     elseif is_number_thing(lhsea.obj_id) != 0 then
-        print("numbers should be loaded as pairs!");
-        halt();
+        insn_init();
+        insn.datareg := reg;
+        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as int16;
+        insn.mode := MODE_IMM;
+        insn_load_object();
     else
         print("cannot load LHS");
         halt();
@@ -306,9 +350,7 @@ sub do_wide_alu(offset: uint8, opcode: uint8)
         insn.mode := MODE_IND;
     elseif is_number_thing(rhsea.obj_id) != 0 then
         var value: uint16 := get_value_of_number(rhsea.obj_id) as uint16;
-        if offset == 1 then
-            value := value >> 8;
-        end if;
+        value := value >> (offset*8);
         insn.offset := value as int16;
         insn.mode := MODE_IMM;
     else
@@ -366,7 +408,7 @@ sub write_back_wide_destination()
     reg_free(lhsptrreg);
     reg_free(rhsptrreg);
 
-    if destea.flags != EA_DEREF then
+    if (opwidth == 2) and (destea.flags != EA_DEREF) then
         $if DEBUG
             print("* leaving result in register\n");
         $endif
@@ -376,7 +418,7 @@ sub write_back_wide_destination()
             print("* writing back DEREF result\n");
         $endif
 
-        var reg: RegSet := setup_complex_pointer(REG_HL|REG_IX|REG_IY, destea);
+        var reg: RegSet := setup_pointer(REG_HL|REG_IX|REG_IY, destea);
 
         sub write_back_byte(offset: uint8)
             insn_init();
@@ -389,28 +431,37 @@ sub write_back_wide_destination()
             insn_save_object();
         end sub;
 
-        write_back_byte(0);
         if (reg & REG_INDEX) == 0 then
             reg_evict(reg);
-            var regnum: uint8 := get_z80_regnum(reg);
-            write_byte(0x03 | regnum); # inc rr
         end if;
-        write_back_byte(1);
+
+        var i: uint8 := 0;
+        while i != opwidth loop
+            if (i != 0) and ((reg & REG_INDEX) == 0) then
+                var regnum: uint8 := get_z80_regnum(reg);
+                write_byte(0x03 | regnum); # inc rr
+            end if;
+            write_back_byte(i);
+            i := i + 1;
+        end loop;
     end if;
 
-    reg_cache_value(destreg, destea);
+    if opwidth == 2 then
+        reg_cache_value(destreg, destea);
+    end if;
 end sub;
 
 # Boilerplate setup for mostly-2op operations, which reads the LHS into
 # the destination register, ready for in-place mutation or writing back.
 sub prepare_wide_op_where_lhs_is_in_a_reg(iop: [BEIop])
     reset_wide_op();
+    opwidth := iop.width;
     lhsea := &iop.left;
     destea := &iop.dest;
 
     lhsptrreg := REG_HL|REG_IX|REG_IY; # because our workreg isn't A
-    lhsreg := REG_DE|REG_HL;
-    destreg := REG_DE|REG_HL;
+    lhsreg := REG_BC|REG_DE;
+    destreg := REG_BC|REG_DE;
 
     load_wide_pointers(0);
     load_wide_input_parameters();
@@ -424,11 +475,15 @@ sub prepare_wide_op_where_lhs_is_in_a_reg(iop: [BEIop])
     workreg := destreg;
     reg_evict(workreg);
 
-    do_wide_read(0);
-    do_wide_write(0);
-    adjust_wide_pointers(0x03); # inc rr
-    do_wide_read(1);
-    do_wide_write(1);
+    var i: uint8 := 0;
+    while i != opwidth loop 
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_read(i);
+        do_wide_write(i);
+        i := i + 1;
+    end loop;
 end sub;
 
 sub arch_gen_copy_wide(iop: [BEIop])
@@ -460,6 +515,7 @@ sub arch_gen_regular_alu_wide(iop: [BEIop], opcode1: uint8, opcode2: uint8)
     $endif
 
     reset_wide_op();
+    opwidth := iop.width;
     
     rhsea := &iop.right;
     destea := &iop.dest;
@@ -469,29 +525,34 @@ sub arch_gen_regular_alu_wide(iop: [BEIop], opcode1: uint8, opcode2: uint8)
     destreg := REG_BC|REG_DE|REG_HL;
     lhsreg := REG_BC|REG_DE|REG_HL;
     rhsreg := REG_BC|REG_DE|REG_HL;
-    $if DEBUG
-        print("* workreg is: ");
-        print_regs(workreg);
-        print_newline();
-        print("* destreg is: ");
-        print_regs(destreg);
-        print_newline();
-    $endif
+    if opwidth == 4 then
+        # We need to reserve two registers for the result. (This is ugly;
+        # there should be a better way.)
+        lhsptrreg := REG_HL|REG_IX|REG_IY;
+        rhsptrreg := REG_HL|REG_IX|REG_IY;
+        lhsreg := 0;
+        rhsreg := 0;
+    end if;
 
     load_wide_pointers(0);
     load_wide_input_parameters();
     prepare_wide_output_parameter();
     evict_wide_mutable_index_registers();
 
-    do_wide_read(0);
-    do_wide_alu(0, opcode1);
-    do_wide_write(0);
-
-    adjust_wide_pointers(0x03); # inc rr
-
-    do_wide_read(1);
-    do_wide_alu(1, opcode2);
-    do_wide_write(1);
+    var i: uint8 := 0;
+    while i != opwidth loop
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_read(i);
+        if i == 0 then
+            do_wide_alu(i, opcode1);
+        else
+            do_wide_alu(i, opcode2);
+        end if;
+        do_wide_write(i);
+        i := i + 1;
+    end loop;
 
     write_back_wide_destination();
 end sub;
@@ -504,9 +565,11 @@ sub arch_gen_sub_wide(iop: [BEIop])
     arch_gen_regular_alu_wide(iop, 0xD6, 0xDE); # sub, sbc
 end sub;
 
-sub arch_gen_zext_wide(iop: [BEIop])
+sub arch_gen_extend_wide(iop: [BEIop], signed: uint8)
     $if DEBUG
-        print("* GENERATE: zext: ");
+        print("* GENERATE: extend signed=");
+        print_i8(signed);
+        print(": ");
         print_ea(&iop.left);
         print(" => ");
         print_ea(&iop.dest);
@@ -514,6 +577,7 @@ sub arch_gen_zext_wide(iop: [BEIop])
     $endif
 
     reset_wide_op();
+    opwidth := iop.width;
     lhsea := &iop.left;
     destea := &iop.dest;
 
@@ -527,43 +591,20 @@ sub arch_gen_zext_wide(iop: [BEIop])
     do_wide_write(0);
     reg_free(REG_A);
     
-    adjust_wide_pointers(0x03); # inc rr
-
-    reg_find_or_load_int_fixed(REG_A, 0);
-    do_wide_write(1);
-    reg_free(REG_A);
-
-    write_back_wide_destination();
-end sub;
-
-sub arch_gen_sext_wide(iop: [BEIop])
-    $if DEBUG
-        print("* GENERATE: sext: ");
-        print_ea(&iop.left);
-        print(" => ");
-        print_ea(&iop.dest);
-        print_newline();
-    $endif
-
-    reset_wide_op();
-    lhsea := &iop.left;
-    destea := &iop.dest;
-
-    destreg := REG_BC|REG_DE|REG_HL;
-    lhsptrreg := 0;
-    rhsptrreg := 0;
-    prepare_wide_output_parameter();
-    workreg := REG_A;
-
-    load_complex_8bit_value_fixed(REG_A, lhsea);
-    do_wide_write(0);
-    
-    adjust_wide_pointers(0x03); # inc rr
-
-    reg_evict(REG_A);
+    if signed != 0 then
+    reg_alloc_fixed(REG_A);
     write_byte(0x07); # rlca
     write_byte(0x9F); # sbc a, a
-    do_wide_write(1);
+    else
+        reg_find_or_load_int_fixed(REG_A, 0);
+    end if;
+
+    var i: uint8 := 1;
+    while i != opwidth loop
+        adjust_wide_pointers(0x03); # inc rr
+        do_wide_write(i);
+        i := i + 1;
+    end loop;
     reg_free(REG_A);
 
     write_back_wide_destination();
@@ -621,6 +662,7 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
     end sub;
 
     reset_wide_op();
+    opwidth := ciop.width;
     rhsea := &ciop.right;
     lhsea := &ciop.left;
 
@@ -632,13 +674,16 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
     load_wide_input_parameters();
     reg_evict(ALL_REGS);
 
-    do_wide_read(1);
-    gen_comparison_branch(1);
+    var i: uint8 := opwidth;
+    while i != 0 loop
+        i := i - 1;
 
-    adjust_wide_pointers(0x0B); # dec rr
-
-    do_wide_read(0);
-    gen_comparison_branch(0);
+        do_wide_read(i);
+        gen_comparison_branch(i);
+        if i != 0 then
+            adjust_wide_pointers(0x0B); # dec rr
+        end if;
+    end loop;
 
     if liop.label != fallthrough_label then
         write_cg_conditional_iop(0xC3, fallthrough_label); # jp

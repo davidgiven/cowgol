@@ -205,16 +205,16 @@ sub arch_gen_mul(iop: [BEIop])
 end sub;
 
 sub arch_gen_zext(iop: [BEIop])
-    if iop.width == 2 then
-        arch_gen_zext_wide(iop);
+    if iop.width >= 2 then
+        arch_gen_extend_wide(iop, 0);
     else
         cant_do_2op(iop, "zext");
     end if;
 end sub;
 
 sub arch_gen_sext(iop: [BEIop])
-    if iop.width == 2 then
-        arch_gen_sext_wide(iop);
+    if iop.width >= 2 then
+        arch_gen_extend_wide(iop, 1);
     else
         cant_do_2op(iop, "sext");
     end if;
@@ -224,11 +224,8 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
     reg_write_back_precious_values(ALL_REGS);
     if ciop.width == 1 then
         arch_gen_cmp_8bit(ciop, liop);
-    elseif ciop.width == 2 then
-        arch_gen_cmp_wide(ciop, liop);
     else
-        print("can't compare");
-        halt();
+        arch_gen_cmp_wide(ciop, liop);
     end if;
 end sub;
 
