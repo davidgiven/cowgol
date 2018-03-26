@@ -80,6 +80,11 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
     # straightforward.
 
     var iop_allows_indexing: uint8 := 1;
+    if (width == 4) and ((beiop == IOP_BE_LSL) or (beiop == IOP_BE_LSR) or (beiop == IOP_BE_ASR)
+        or (beiop == IOP_BE_DIVS) or (beiop == IOP_BE_DIVU) or (beiop == IOP_BE_MODS)
+        or (beiop == IOP_BE_MODU)) then
+        iop_allows_indexing := 0;
+    end if;
 
     var simplify_varoff: uint8 := 0;
     if ea.varoff_id != 0 then
