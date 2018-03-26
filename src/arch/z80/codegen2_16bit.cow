@@ -47,6 +47,34 @@ sub load_complex_16bit_value_fixed(regs: RegSet, ea: [EffectiveAddress])
     var location: RegSet := load_complex_16bit_value(regs, ea);
 end sub;
 
+sub save_16bit_or_make_precious(ea: [EffectiveAddress], reg: RegSet)
+    reg_cache_value(reg, ea);
+    if ea.flags == EA_DEREF then
+        var pointer: RegSet := construct_pointer(REG_HL|REG_IX|REG_IY, MODE_IND, ea, 0);
+
+        sub save_byte(offset: uint8)
+            insn_init();
+            insn.datareg := halfof_reg(reg, offset);
+            insn.otherreg := pointer;
+            insn.mode := MODE_IND;
+            if (pointer & REG_INDEX) != 0 then
+                insn.offset := (get_value_of_number(ea.numoff_id) as int16) + (offset as int16);
+            end if;
+            insn_save_object();
+        end sub;
+
+        save_byte(0);
+        if pointer == REG_HL then
+            write_byte(0x23); # inc hl
+        end if;
+        save_byte(1);
+
+        reg_free(pointer);
+    else
+        reg_value_is_precious(ea);
+    end if;
+end sub;
+
 sub inplace_shift(reg: RegSet, offset: uint8, opcode: uint8)
     $if DEBUG
         print("* in-place shifting reg ");
@@ -84,6 +112,7 @@ sub arch_gen_lsl_word(iop: [BEIop])
     write_cg_conditional_iop(0x10, label); # djnz label
     
     reg_free(REG_B);
+    save_16bit_or_make_precious(&iop.dest, reg);
 end sub;
 
 sub arch_gen_lsr_word(iop: [BEIop])
@@ -110,6 +139,7 @@ sub arch_gen_lsr_word(iop: [BEIop])
     write_cg_conditional_iop(0x10, label); # djnz label
     
     reg_free(REG_B);
+    save_16bit_or_make_precious(&iop.dest, reg);
 end sub;
 
 sub arch_gen_asr_word(iop: [BEIop])
@@ -136,4 +166,5 @@ sub arch_gen_asr_word(iop: [BEIop])
     write_cg_conditional_iop(0x10, label); # djnz label
     
     reg_free(REG_B);
+    save_16bit_or_make_precious(&iop.dest, reg);
 end sub;
