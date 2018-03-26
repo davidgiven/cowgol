@@ -190,13 +190,13 @@ sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
     lhspair := 0;
     destpair := 0;
     if opwidth == 2 then
-        if rhsmode == MODE_DIR then
+        if (rhsmode == MODE_IMM) or (rhsmode == MODE_DIR) then
             rhspair := REG_BC|REG_DE|REG_HL;
         end if;
-        if lhsmode == MODE_DIR then
+        if (lhsmode == MODE_IMM) or (lhsmode == MODE_DIR) then
             lhspair := REG_BC|REG_DE|REG_HL;
         end if;
-        if destmode == MODE_DIR then
+        if (destmode == MODE_IMM) or (destmode == MODE_DIR) then
             destpair := REG_BC|REG_DE|REG_HL;
         end if;
     end if;
