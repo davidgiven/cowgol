@@ -76,14 +76,10 @@ sub arch_classify_iop(iop: [BEIop])
     elseif width == 2 then
         if iopkind == IOP_BE_MUL then
             needs_runtime_subroutine(TOKEN_MUL16);
-        elseif iopkind == IOP_BE_DIVU then
-            needs_runtime_subroutine(TOKEN_DIVU16);
-        elseif iopkind == IOP_BE_DIVS then
-            needs_runtime_subroutine(TOKEN_DIVS16);
-        elseif iopkind == IOP_BE_MODU then
-            needs_runtime_subroutine(TOKEN_MODU16);
-        elseif iopkind == IOP_BE_MODS then
-            needs_runtime_subroutine(TOKEN_MODS16);
+        elseif (iopkind == IOP_BE_DIVU) or (iopkind == IOP_BE_MODU) then
+            needs_runtime_subroutine(TOKEN_DIVMODU16);
+        elseif (iopkind == IOP_BE_DIVS) or (iopkind == IOP_BE_MODS) then
+            needs_runtime_subroutine(TOKEN_DIVMODS16);
         end if;
     elseif width == 4 then
         if iopkind == IOP_BE_LSL then

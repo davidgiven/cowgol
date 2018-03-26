@@ -151,18 +151,19 @@ sub reg_find_cache_slot(ea: [EffectiveAddress]): (value: [CachedValue])
 end sub;
 
 # Is a value cached in a register?
-sub reg_is_cached(ea: [EffectiveAddress]): (yes: uint8)
+sub reg_is_cached_in(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     var i: uint8 := 0;
     while i != value_cache@size loop
         var value: [CachedValue] := &value_cache[i];
-        if (value.locations != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
-            yes := 1;
+        var overlap: RegSet := value.locations & candidates;
+        if (overlap != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
+            reg := find_lowest_bit(overlap);
             return;
         end if;
         i := i + 1;
     end loop;
 
-    yes := 0;
+    reg := 0;
 end sub;
 
 # Given a set of registers, finds all registers therein which contain precious
@@ -221,9 +222,9 @@ sub reg_value_is_not_precious(ea: [EffectiveAddress])
     $endif
 end sub;
 
-# Ensure that any precious values are written back to memory (and not marked
-# as precious any more.
-sub reg_write_back_precious_values(regs: RegSet)
+# Ensure that any precious values in these registers are written back to
+# memory (and not marked as precious any more.
+sub reg_write_back_precious_regs(regs: RegSet)
     var mask: RegSet := reg_find_affected(regs);
     $if DEBUG
         print("% writing back precious values in ");
@@ -251,6 +252,23 @@ sub reg_write_back_precious_values(regs: RegSet)
     end loop;
 end sub;
 
+# Ensure that this precious value is written back to memory, regardless
+# of which register they're in, so they're not precious any more.
+sub reg_write_back_precious_value(ea: [EffectiveAddress])
+    $if DEBUG
+        print("% writing back precious value ");
+        print_ea(ea);
+        print_newline();
+    $endif
+
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    var locations: RegSet := value.locations;
+    if (locations != 0) and (value.precious != 0) then
+        reg_save(find_lowest_bit(locations), ea);
+        value.precious := 0;
+    end if;
+end sub;
+
 # This value is about to change, so the cached value becomes invalid. Don't
 # bother writing back any precious values (because the precious value is now
 # obsolete). Note that this doesn't write back any precious values which might
@@ -272,7 +290,7 @@ end sub;
 # Evicts all values stored in the specified registers from the cache (writing
 # back precious values if necessary).
 sub reg_evict(regs: RegSet)
-    reg_write_back_precious_values(regs);
+    reg_write_back_precious_regs(regs);
     var mask: RegSet := reg_find_affected(regs);
     $if DEBUG
         print("% evicting values in ");

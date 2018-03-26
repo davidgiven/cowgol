@@ -1,4 +1,4 @@
-reading thing table: 409 bytes
+reading thing table: 415 bytes
 d
 
 LRU test
@@ -33,37 +33,37 @@ Simple allocation test
 
 Simple cache test
 % reset register allocator
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A B 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A B 
 % writing back precious values in A  which affects A 
 % evicting values in A  which affects A 
-%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in B 
+%   value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in B 
 % writing back precious values in B  which affects B BC 
 % evicting values in B  which affects B BC 
-%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
-% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in B 
-% value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in DE 
+%   value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in (none) 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A 
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in B 
+% value [TYPE2.016d:int16].TYPE2.016d:int16 is now cached in DE 
 % writing back precious values in A  which affects A 
 % evicting values in A  which affects A 
-%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+%   value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in (none) 
 % writing back precious values in B  which affects B BC 
 % evicting values in B  which affects B BC 
-%   value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in (none) 
+%   value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in (none) 
 % writing back precious values in DE  which affects D E DE 
 % evicting values in DE  which affects D E DE 
-%   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
+%   value [TYPE2.016d:int16].TYPE2.016d:int16 is now cached in (none) 
 % writing back precious values in DE  which affects D E DE 
 % evicting values in DE  which affects D E DE 
 % reset register allocator
-% value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in DE 
+% value [TYPE2.016d:int16].TYPE2.016d:int16 is now cached in DE 
 % writing back precious values in D  which affects D DE 
 % evicting values in D  which affects D DE 
-%   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
+%   value [TYPE2.016d:int16].TYPE2.016d:int16 is now cached in (none) 
 
 Caching and locking
 % reset register allocator
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A 
 % allocating register in A B 
 %   locked registers: (none) 
 %   used registers: A 
@@ -78,11 +78,11 @@ Caching and locking
 %   evicting lowest cost register which is A 
 % writing back precious values in A  which affects A 
 % evicting values in A  which affects A 
-%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+%   value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in (none) 
 % reset register allocator
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
-% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in B 
-% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is precious in B 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A 
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in B 
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is precious in B 
 % allocating register in A B 
 %   locked registers: (none) 
 %   used registers: A B 
@@ -92,7 +92,7 @@ Caching and locking
 %   evicting lowest cost register which is A 
 % writing back precious values in A  which affects A 
 % evicting values in A  which affects A 
-%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+%   value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in (none) 
 % allocating register in A B 
 %   locked registers: A 
 %   used registers: B 
@@ -102,14 +102,14 @@ Caching and locking
 %   no unused registers, considering evicting one of precious B 
 %   evicting lowest cost register which is B 
 % writing back precious values in B  which affects B BC 
-% ea [TYPE1.015d:uint8].TYPE1.015d:uint8 is being written back
-save B : [TYPE1.015d:uint8].TYPE1.015d:uint8
+% ea [TYPE1.0163:uint8].TYPE1.0163:uint8 is being written back
+save B : [TYPE1.0163:uint8].TYPE1.0163:uint8
 % evicting values in B  which affects B BC 
-%   value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in (none) 
+%   value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in (none) 
 % reset register allocator
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
-% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in BC 
-% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is precious in BC 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A 
+% value [TYPE2.0177:uint16].TYPE2.0177:uint16 is now cached in BC 
+% value [TYPE2.0177:uint16].TYPE2.0177:uint16 is precious in BC 
 % allocating register in A B 
 %   locked registers: (none) 
 %   used registers: A BC 
@@ -119,7 +119,7 @@ save B : [TYPE1.015d:uint8].TYPE1.015d:uint8
 %   evicting lowest cost register which is A 
 % writing back precious values in A  which affects A 
 % evicting values in A  which affects A 
-%   value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in (none) 
+%   value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in (none) 
 % allocating register in A B 
 %   locked registers: A 
 %   used registers: BC 
@@ -128,50 +128,50 @@ save B : [TYPE1.015d:uint8].TYPE1.015d:uint8
 %   no unused registers, considering evicting one of non-precious B 
 %   evicting lowest cost register which is B 
 % writing back precious values in B  which affects B BC 
-% ea [TYPE2.0171:uint16].TYPE2.0171:uint16 is being written back
-save BC : [TYPE2.0171:uint16].TYPE2.0171:uint16
+% ea [TYPE2.0177:uint16].TYPE2.0177:uint16 is being written back
+save BC : [TYPE2.0177:uint16].TYPE2.0177:uint16
 % evicting values in B  which affects B BC 
-%   value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in (none) 
+%   value [TYPE2.0177:uint16].TYPE2.0177:uint16 is now cached in (none) 
 
 Finding and loading values
 % reset register allocator
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in B 
-% locating [TYPE1.0153:int8].TYPE1.0153:int8
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in B 
+% locating [TYPE1.0159:int8].TYPE1.0159:int8
 %   value is cached in B 
 %   selecting B 
-% locating [TYPE1.015d:uint8].TYPE1.015d:uint8
+% locating [TYPE1.0163:uint8].TYPE1.0163:uint8
 %   allocating new register for value
 % allocating register in A B 
 %   locked registers: B 
 %   used registers: B 
 %   potential unused registers are A 
 %   allocating unused register A 
-load A : [TYPE1.015d:uint8].TYPE1.015d:uint8
-% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in A 
+load A : [TYPE1.0163:uint8].TYPE1.0163:uint8
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in A 
 % reset register allocator
-% locating [TYPE2.0167:int16].TYPE2.0167:int16
+% locating [TYPE2.016d:int16].TYPE2.016d:int16
 %   allocating new register for value
 % allocating register in BC DE 
 %   locked registers: (none) 
 %   used registers: (none) 
 %   potential unused registers are BC DE 
 %   allocating unused register BC 
-load BC : [TYPE2.0167:int16].TYPE2.0167:int16
-% value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in BC 
-% value [TYPE2.0167:int16].TYPE2.0167:int16 is precious in BC 
+load BC : [TYPE2.016d:int16].TYPE2.016d:int16
+% value [TYPE2.016d:int16].TYPE2.016d:int16 is now cached in BC 
+% value [TYPE2.016d:int16].TYPE2.016d:int16 is precious in BC 
 % freeing BC 
-% locating [TYPE2.0171:uint16].TYPE2.0171:uint16
+% locating [TYPE2.0177:uint16].TYPE2.0177:uint16
 %   allocating new register for value
 % allocating register in BC DE 
 %   locked registers: (none) 
 %   used registers: BC 
 %   potential unused registers are DE 
 %   allocating unused register DE 
-load DE : [TYPE2.0171:uint16].TYPE2.0171:uint16
-% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is now cached in DE 
-% value [TYPE2.0171:uint16].TYPE2.0171:uint16 is precious in DE 
+load DE : [TYPE2.0177:uint16].TYPE2.0177:uint16
+% value [TYPE2.0177:uint16].TYPE2.0177:uint16 is now cached in DE 
+% value [TYPE2.0177:uint16].TYPE2.0177:uint16 is precious in DE 
 % freeing DE 
-% locating [TYPE1.0153:int8].TYPE1.0153:int8
+% locating [TYPE1.0159:int8].TYPE1.0159:int8
 %   allocating new register for value
 % allocating register in B 
 %   locked registers: (none) 
@@ -181,23 +181,23 @@ load DE : [TYPE2.0171:uint16].TYPE2.0171:uint16
 %   no unused registers, considering evicting one of non-precious B 
 %   evicting lowest cost register which is B 
 % writing back precious values in B  which affects B BC 
-% ea [TYPE2.0167:int16].TYPE2.0167:int16 is being written back
-save BC : [TYPE2.0167:int16].TYPE2.0167:int16
+% ea [TYPE2.016d:int16].TYPE2.016d:int16 is being written back
+save BC : [TYPE2.016d:int16].TYPE2.016d:int16
 % evicting values in B  which affects B BC 
-%   value [TYPE2.0167:int16].TYPE2.0167:int16 is now cached in (none) 
-load B : [TYPE1.0153:int8].TYPE1.0153:int8
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in B 
+%   value [TYPE2.016d:int16].TYPE2.016d:int16 is now cached in (none) 
+load B : [TYPE1.0159:int8].TYPE1.0159:int8
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in B 
 % reset register allocator
-% locating [TYPE1.0153:int8].TYPE1.0153:int8
+% locating [TYPE1.0159:int8].TYPE1.0159:int8
 %   allocating new register for value
 % allocating register in A 
 %   locked registers: (none) 
 %   used registers: (none) 
 %   potential unused registers are A 
 %   allocating unused register A 
-load A : [TYPE1.0153:int8].TYPE1.0153:int8
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
-% locating [TYPE1.0153:int8].TYPE1.0153:int8
+load A : [TYPE1.0159:int8].TYPE1.0159:int8
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A 
+% locating [TYPE1.0159:int8].TYPE1.0159:int8
 %   allocating new register for value
 % allocating register in B 
 %   locked registers: A 
@@ -205,20 +205,36 @@ load A : [TYPE1.0153:int8].TYPE1.0153:int8
 %   potential unused registers are B 
 %   allocating unused register B 
 copy A -> B 
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A B 
-% locating [TYPE1.0153:int8].TYPE1.0153:int8
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A B 
+% locating [TYPE1.0159:int8].TYPE1.0159:int8
 %   value is cached in B 
 %   selecting B 
 
 Values changing
 % reset register allocator
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is now cached in A 
-% value [TYPE1.0153:int8].TYPE1.0153:int8 is precious in A 
-% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in A 
-% value [TYPE1.015d:uint8].TYPE1.015d:uint8 is precious in A 
-% abandoning old value of [TYPE1.0153:int8].TYPE1.0153:int8 which is in A 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is precious in A 
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in A 
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is precious in A 
+% abandoning old value of [TYPE1.0159:int8].TYPE1.0159:int8 which is in A 
 % writing back precious values in A  which affects A 
-% ea [TYPE1.015d:uint8].TYPE1.015d:uint8 is being written back
-save A : [TYPE1.015d:uint8].TYPE1.015d:uint8
+% ea [TYPE1.0163:uint8].TYPE1.0163:uint8 is being written back
+save A : [TYPE1.0163:uint8].TYPE1.0163:uint8
 % evicting values in A  which affects A 
-%   value [TYPE1.015d:uint8].TYPE1.015d:uint8 is now cached in (none) 
+%   value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in (none) 
+
+Writing back precious values
+% reset register allocator
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A B 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is precious in A B 
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in A B 
+% writing back precious values in B  which affects B BC 
+% ea [TYPE1.0159:int8].TYPE1.0159:int8 is being written back
+save A : [TYPE1.0159:int8].TYPE1.0159:int8
+% reset register allocator
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is now cached in A B 
+% value [TYPE1.0159:int8].TYPE1.0159:int8 is precious in A B 
+% value [TYPE1.0163:uint8].TYPE1.0163:uint8 is now cached in A B 
+% writing back precious value [TYPE1.0159:int8].TYPE1.0159:int8
+save A : [TYPE1.0159:int8].TYPE1.0159:int8
+% writing back precious value [TYPE1.0163:uint8].TYPE1.0163:uint8

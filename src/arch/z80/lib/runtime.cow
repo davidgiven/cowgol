@@ -5,5 +5,103 @@ sub exit(status: uint8)
     @bytes 0xED, 0x7B, &__exitstack; # ld sp, (__exitstack)
 end sub;
 
+# Loads the 32-bit value pointed to by HL into EDCA. Corrupts HL.
+sub __load_hl()
+    @bytes 0x7E;       # ld a, (hl)
+    @bytes 0x23;       # inc hl
+    @bytes 0x4E;       # ld c, (hl)
+    @bytes 0x23;       # inc hl
+    @bytes 0x56;       # ld d, (hl)
+    @bytes 0x23;       # inc hl
+    @bytes 0x5E;       # ld e, (hl)
+end sub;
+
+# Saves the 32-bit value pointed to by HL from EDCA. Corrupts HL.
+sub __save_hl()
+    @bytes 0x77;       # ld (hl), a
+    @bytes 0x23;       # inc hl
+    @bytes 0x71;       # ld (hl), c
+    @bytes 0x23;       # inc hl
+    @bytes 0x72;       # ld (hl), d
+    @bytes 0x23;       # inc hl
+    @bytes 0x73;       # ld (hl), e
+end sub;
+
+# Shifts the 32-bit value pointed to by HL left B bits, and writes it back
+# to DE. Corrupts all registers (except the index ones).
+sub __lsl32()
+    @bytes 0xD5;       # push de
+    __load_hl();
+
+                       # .loop
+    @bytes 0xCB, 0x27; # sla a
+    @bytes 0xCB, 0x11; # rl c
+    @bytes 0xCB, 0x12; # rl d
+    @bytes 0xCB, 0x13; # rl e
+    @bytes 0x10, 0xF6; # djnz loop
+
+    @bytes 0xE1;       # pop hl
+    __save_hl();
+end sub;
+
+# Arithmetic shifts the 32-bit value pointed to by HL left B bits, and writes
+# it back to DE. Corrupts all registers (except the index ones).
+sub __asr32()
+    @bytes 0xD5;       # push de
+    __load_hl();
+
+                       # .loop
+    @bytes 0xCB, 0x2B; # sra e
+    @bytes 0xCB, 0x1A; # rr d
+    @bytes 0xCB, 0x19; # rr c
+    @bytes 0xCB, 0x18; # rr a
+    @bytes 0x10, 0xF6; # djnz loop
+
+    @bytes 0xE1;       # pop hl
+    __save_hl();
+end sub;
+
+# Logic shifts the 32-bit value pointed to by HL left B bits, and writes
+# it back to DE. Corrupts all registers (except the index ones).
+sub __lsr32()
+    @bytes 0xD5;       # push de
+    __load_hl();
+
+                       # .loop
+    @bytes 0xCB, 0x3B; # srl e
+    @bytes 0xCB, 0x1A; # rr d
+    @bytes 0xCB, 0x19; # rr c
+    @bytes 0xCB, 0x18; # rr a
+    @bytes 0x10, 0xF6; # djnz loop
+
+    @bytes 0xE1;       # pop hl
+    __save_hl();
+end sub;
+
+# Computes DE/BC, result=DE, remainder=HL
+# Corrupts all 8-bit registers.
+sub __divmodu16()
+    @bytes 0x3E, 0x10;       # ld a, #16
+    @bytes 0x21, 0x00, 0x00; # ld hl, #0
+    @bytes 0x18, 0x03;       # jr entry
+
+                             # .loop1:
+    @bytes 0x09;             # add hl, bc
+                             # .loop2
+    @bytes 0x3D;             # dec a
+    @bytes 0xC8;             # ret z
+                             # .entry
+    @bytes 0xCB, 0x23;       # sla e
+    @bytes 0xCB, 0x12;       # rl d
+    @bytes 0xED, 0x6A;       # adc hl, hl
+    @bytes 0xED, 0x42;       # sbc hl, bc
+    @bytes 0x30, 0xF3;       # jr nc, loop1
+    @bytes 0x1C;             # inc e
+    @bytes 0x18, 0xF1;       # jr loop2
+end sub;
+
+sub __divmods16()
+end sub;
+
 sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32)
 end sub;

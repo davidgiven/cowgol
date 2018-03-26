@@ -22,362 +22,260 @@
 #
 # ...and possibly more, which is a mess.
 #
-# We therefore need to know these facts:
-#  1. Where are we going to be doing the work? (A, HL, any register.)
-#     -> This also tells us whether we're working a byte at a time (via A).
-#  2. Where are we leaving the result? (memory, a register pair.)
+# This is the third attempt at doing this; this one's not bad (but could be
+# improved).
 #
-# So, essentially, what we end up needing to do is:
+# For 16-bit 3op:
 #
-#  1. Decide where the work is happening. Decide where the result will be.
-#  2. Set up any input pointers.
-#  3. Is the work happening in A? Is the result in a DEREF? Do we
-#     have a free index register? If so, set up the result pointer now.
-#     Otherwise, allocate a spare 8-bit register to stash the low byte of
-#     the result in.
-#  4. Do the work, leaving the result either in memory (if the output
-#     pointer was set up), or in a register pair. If the result needs to
-#     go into a DEREF but we don't have a pointer set up, leave the low
-#     byte of the result in a random 8-bit register (the high byte ends up
-#     in A).
-#     -> If any of the operands are a DEREF while we're doing this,
-#        we need to mutate the pointer. The same pointer might be being
-#        used for multiple operands, so make sure to only mutate it once
-#        per byte.
-#  5. Is the result going into a DEREF? Is the pointer not set up? If so,
-#     set one up now, and write the result back.
+# LHS can be any of: pair, const, abs, deref-0, deref-X.
+# RHS can be any of: pair, const, deref-0, deref-X.
+# Dest can be any of: pair, abs, deref-0, deref-X.
 #
-# Yikes.
+# For 32-bit 3op:
 #
-# I worked through some examples, and it gets painfully complicated, so
-# I'm going to make the simplifying assumption that the destination is
-# *always* a register pair. This will then be written back as a seperate
-# stage. This makes slightly less efficient code, as if the result is a
-# DEREF then we need two additional register copies... but it makes the
-# logic much simpler and does allow us to cache the result (subject to
-# pointer aliasing rules).
+# LHS can be any of: const, abs, deref-0, deref-X.
+# RHS can be any of: const, deref-0, deref-X.
+# Dest can be any of: abs, deref-0, deref-X.
 #
-# Some examples:
+# We only have two registers capable of doing deref-X, so if all three
+# stages require it, we're stuffed. We have to use a normal register for
+# the third and bake the offset into it.
 #
-#   a := b + c
-#     work is: in HL (because 16-bit add)
-#     result is: in HL (because 16-bit add)
-#     pointers: none (values are loaded into register pairs)
-#     load LHS: ld hl, (b)
-#     load RHS: ld bc, (c)
-#     do work:  add hl, bc
-#     save result: nop, we're leaving it in HL
+# However, the index registers are dead slow.
 #
-#   a := b & c
-#     work is: in A (because it's an and)
-#     result is: in any register pair
-#     pointers: none (values are loaded into register pairs)
-#     result is: in HL
-#     load LHS: ld hl, (c)
-#     load RHS: ld bc, (b)
-#     do work:  ld a, l; and c; ld l, a
-#               ld a, h; and b; ld h, a
-#     save result: nop, we're leaving it in HL
+# ld hl, (...); ld a, (hl); inc hl = 16 setup 13/7 repeating.
+#   16 bits: 16+13+7 = 36 cycles
+#   32 bits: 16+13+13+13+7 = 62 cycles
+# ld bc, (...); ld a, (bc); inc bc = 20 setup 13/7 repeating.
+#   16 bits: 20+13+7 = 40 cycles
+#   32 bits: 20+13+13+13+7 = 66 cycles
+# ld ix, (...); ld a, (ix+0) = 20 setup 19/19 repeating.
+#   16 bits: 20+19+19 = 58 cycles
+#   32 bits: 20+19+19+19+19 = 96 cycles
+# ld bc, #...; ld hl, (...); add hl, bc; ld a, (hl); inc hl = 10+16+11 = 37 setup 13/7 repeating.
+#   16 bits: 37+13+7 = 57 cycles
+#   32 bits: 37+13+13+13+7 = 83 cycles
 #
-#   a := b + c[0]
-#     work is: in A (because some params are DEREF and this is ALU)
-#     result is: in any register pair
-#     pointers: RHS, so load it: ld hl, (c)
-#     result is: in BC (because we're leaving it in a register)
-#     load LHS: ld bc, (b)
-#     load RHS: none (it's a DEREF)
-#     do work:  ld a, c; add (hl); inc hl; ld c, a
-#               ld a, b; adc (hl); ld b, a
-#     save result: nop, we're leaving it in HL
+# We can use BC and DE as pointers, but *only* for operations through A.
+# Setting them up is hard, too. Using 16-bit adds takes 37 cycles and
+# 8 bytes to set up an offsetted pointer in HL; 41/9 for DE; 45/10 for
+# BC, and due to register constraints we can't initialise all three
+# register pairs, and have to do DE before HL.
 #
-#   a[0] := b[0] + c[0]
-#     work is: in A (because some params are DEREF and this is ALU)
-#     result is: any register pair
-#     pointer: RHS, so load it: ld hl, (c)
-#     pointer: LHS, so load it: ld bc, (b)
-#     result is: in DE (result is DEREF so try to keep HL free)
-#     do work: ld a, (bc); add (hl); ld a, e; inc bc; inc hl
-#              ld a, (bc); adc (hl); ld a, d
-#     save result: ld hl, (a)
-#                  ld (hl), e; inc hl; ld (hl), d
+# Doing it the longer way through A is longer and slower but doesn't
+# use an additional register pair:
 #
-#   a[1] := b[2] + c[3]
-#     work is: in A (because some params are DEREF and this is ALU)
-#     result is: any register pair
-#     pointer: RHS, offsetted, so load it: ld ix, (c)
-#     pointer: LHS, offsetted, so load it: ld iy, (b)
-#     result is: in BC (result is DEREF so try to keep HL free)
-#     do work: ld a, (iy+2); add (ix+3); ld c, a
-#              ld a, (iy+3); adc (ix+4); ld b, a
-#     save result: ld ix, (a)
-#                  ld (ix+1), c
-#                  ld (ix+2), b
+#   ld bc, (base)     # 4 bytes 20 cycles
+#   ld a, c           # 1 bytes 4 cycles
+#   add a, #>offset   # 2 bytes 7 cycles
+#   ld c, a           # 1 byte 4 cycles
+#   ld a, b           # 1 bytes 4 cycles
+#   adc a, #<offset   # 2 bytes 7 cycles
+#   ld b, a           # 1 byte 4 cycles
 #
-#   a := b
-#     work is: unnecessary
-#     result is: any register pair
-#     pointers: none
-#     load RHS: ld hl, (b)
-#     result is: HL
-#     save result: nop, leave it in a register
+# = 12 bytes, 50 cycles. (4 cycles cheaper for HL.) If the value is already
+# in a register pair, then we save 4 bytes and 20 cycles to 8/30. So:
 #
-#   a := b[0]
-#     work is: in BC
-#     result is: any register pair
-#     pointer: LHS, so load it: ld hl, (b)
-#     result is: in BC
-#     do work: ld c, (hl); inc hl
-#              ld b, (hl)
-#     save result: nop, we're leaving it in BC
+#    16 bits: 50+13+7 = 70 cycles (66 for HL)
+#    32 bits: 50+13+13+13+7 = 96 cycles (92 for HL)
 #
-#   a[1] := b[2]
-#     work is: in HL
-#     result is: any register pair
-#     pointer: LHS, offsetted, so load it:  ld ix, (b)
-#     result is: in HL
-#     do work: ld l, (ix+2)
-#              ld h, (ix+3)
-#     save result: ld iy, (a)
-#                  ld (iy+1), l
-#                  ld (iy+2), h
+# So, from this, the conclusion appears to be: prefer HL as an index; try to
+# set it up with 16-bit adds; then use IX/IY; BC and DE probably aren't worth
+# it unless you're using deref-0 and don't need to add an offset.
+#
+# (Also, for deref-0, setup cost becomes the same or less than for ix/iy, and
+# access 13/7 rather than 19, so worst case 16-bit access is 20+13+7=40 vs
+# best case 19+19=38.)
+#
+# So, putting this together, the worst 32-bit case is a 3op deref-X 32-bit
+# operation. IX and IY contain LHS and RHS, and HL is the destination.
+#
+#   ld bc, z
+#   ld hl, (DEST)
+#   add hl, bc
+#   ld ix, (LHS)
+#   ld iy, (RHS)
+#
+#   ld a, (LHS+x+0)   # 4 bytes 19 cycles
+#   add a, (RHS+y+0)  # 4 bytes 19 cycles
+#   ld (hl), a        # 1 byte 13 cycles
+#   inc hl            # 1 byte 7 cycles
+#   ...repeat...
+#
+# The best case 32 bit case is a 3op abs operation. We only need one
+# pointer, HL.
+#
+#   ld hl, #RHS
+#
+#   ld a, (LHS+0)     # 3 bytes 13 cycles
+#   add a, (hl)       # 1 bytes 7 cycles
+#   ld (DEST+0), a    # 3 bytes 13 cycles
+#   inc hl            # 1 byte 7 cycles
+#
+# Using pointers for the LHS and DEST is perfectly doable, but only saves one
+# byte and one cycle per iteration, and costs an extra 4 bytes and 20 cycles
+# for setup, so unless they're already in a register it's actually worse.
+#
+# For 16-bit operations we get to take/leave values in registers if we're lucky.
+# So the best case (3op abs) ends up:
+#
+#   ld a, c           # 1 byte 4 cycles
+#   add a, l          # 1 byte 4 cycles
+#   ld e, a           # 1 byte 4 cycles
+#
+# The worst is the same as for 32-bit (but of course shorter).
 
 var rhsea: [EffectiveAddress];
 var lhsea: [EffectiveAddress];
 var destea: [EffectiveAddress];
-var workreg: RegSet;
-var rhsreg: RegSet;
+var rhsptrea: EffectiveAddress;
+var lhsptrea: EffectiveAddress;
+var destptrea: EffectiveAddress;
+var rhsmode: uint8;
+var lhsmode: uint8;
+var destmode: uint8;
+var rhspair: RegSet;
+var lhspair: RegSet;
+var destpair: RegSet;
 var rhsptrreg: RegSet;
-var lhsreg: RegSet;
 var lhsptrreg: RegSet;
-var destreg: RegSet;
-var destreghi: RegSet;
+var destptrreg: RegSet;
 var opwidth: uint8;
 
-sub reset_wide_op()
-    rhsea := 0 as [EffectiveAddress];
-    lhsea := 0 as [EffectiveAddress];
-    destea := 0 as [EffectiveAddress];
-    rhsreg := 0;
-    rhsptrreg := REG_HL|REG_IX|REG_IY;
-    lhsreg := 0;
-    lhsptrreg := REG_16BIT;
-    workreg := 0;
-    destreg := 0;
-    destreghi := 0;
-    opwidth := 0;
-end sub;
-
-# Returns half a register pair.
-sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
-    if (opwidth == 4) and (reg16 == destreg) and (offset >= 2) then
-        reg16 := destreghi;
-        offset := offset - 2;
-    end if;
-
-    if reg16 == REG_HL then
-        reg8 := REG_L;
-    elseif reg16 == REG_BC then
-        reg8 := REG_C;
-    elseif reg16 == REG_DE then
-        reg8 := REG_E;
-    elseif reg16 == REG_A then
-        reg8 := REG_A;
-        return;
+sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
+    if rhsea != (0 as [EffectiveAddress]) then
+        rhsmode := MODE_IND;
+        if is_same_ea_ignoring_type(lhsea, rhsea) != 0 then
+            rhsmode := MODE_DIR;
+        elseif (rhsea.flags == EA_LEA) or (is_number_thing(rhsea.obj_id) != 0) then
+            rhsmode := MODE_IMM;
+        elseif (opwidth == 2) and (rhsea.flags == EA_VALUE) and (reg_is_cached_in(REG_16BIT, rhsea) != 0) then
+            rhsmode := MODE_DIR;
+        else
+            rhsmode := MODE_IND;
+        end if;
     else
-        print("bad register");
-        halt();
+        rhsmode := 0;
     end if;
-    reg8 := reg8 >> offset;
-end sub;
 
-# Load the input pointers needed for the operation.
-sub load_wide_pointers(offset: uint8)
-    rhsptrreg := setup_complex_pointer(rhsptrreg, rhsea);
+    lhsmode := MODE_IND;
+    if (lhsea.flags == EA_LEA) or (is_number_thing(lhsea.obj_id) != 0) then
+        lhsmode := MODE_IMM;
+    elseif lhsea.flags == EA_VALUE then
+        lhsmode := MODE_DIR;
+    end if;
+    
+    if destea != (0 as [EffectiveAddress]) then
+        destmode := MODE_IND;
+        if destea.flags == EA_VALUE then
+            destmode := MODE_DIR;
+        end if;
+    else
+        destmode := 0;
+    end if;
+
+    var rhspointers: RegSet := REG_HL|REG_IX|REG_IY;
+    var otherpointers: RegSet;
+    if needs_a != 0 then
+        reg_evict(REG_A);
+        otherpointers := REG_HL|REG_BC|REG_DE|REG_IX|REG_IY;
+    else
+        otherpointers := REG_HL|REG_IX|REG_IY;
+    end if;
+
+    # If this is a 16-bit value, we'd like it to be in a register pair if
+    # possible.
+
+    rhspair := 0;
+    lhspair := 0;
+    destpair := 0;
+    if opwidth == 2 then
+        if rhsmode == MODE_DIR then
+            rhspair := REG_BC|REG_DE|REG_HL;
+        end if;
+        if lhsmode == MODE_DIR then
+            lhspair := REG_BC|REG_DE|REG_HL;
+        end if;
+        if destmode == MODE_DIR then
+            destpair := REG_BC|REG_DE|REG_HL;
+        end if;
+    end if;
+
+    # Set up any pointers needed for the value.
+
+    rhsptrreg := construct_pointer(rhspointers, rhsmode, rhsea, extraoffset);
+    lhsptrreg := construct_pointer(otherpointers, lhsmode, lhsea, extraoffset);
+    destptrreg := construct_pointer(otherpointers, destmode, destea, extraoffset);
+
+    # The pointers are the important bit. Now they're set up, any values can
+    # go whereever. Note that if we're *not* using values, then there's a
+    # chance that a precious value in a register might be accessed via a
+    # pointer, so make sure they're written back.
+
+    if lhsmode != 0 then
+        if lhspair != 0 then
+            lhspair := reg_find_or_load(lhspair, lhsea);
+        else
+            reg_write_back_precious_value(lhsea);
+        end if;
+    end if;
+    if rhsmode != 0 then
+        if rhspair != 0 then
+            rhspair := reg_find_or_load(rhspair, rhsea);
+        else
+            reg_write_back_precious_value(rhsea);
+        end if;
+    end if;
+    if destpair != 0 then
+        # If there's no RHS, *and* the LHS and dest are in registers, we
+        # can combine them.
+        if (rhsmode == 0) and (lhspair != 0) then
+            destpair := lhspair;
+        else
+            destpair := reg_alloc(destpair);
+        end if;
+        reg_value_is_changing(destea);
+        reg_cache_value(destpair, destea);
+        reg_value_is_precious(destea);
+    end if;
+
     $if DEBUG
-        print("* RHS ptr is ");
-        print_regs(rhsptrreg);
+        print("* allowed rhs pointer regs: ");
+        print_regs(rhspointers);
         print_newline();
-    $endif
-
-    lhsptrreg := setup_complex_pointer(lhsptrreg, lhsea);
-    $if DEBUG
-        print("* LHS ptr is ");
+        print("* allowed other pointers: ");
+        print_regs(otherpointers);
+        print_newline();
+        print("* LHS mode: ");
+        print_i8(lhsmode);
+        print_newline();
+        print("* RHS mode: ");
+        print_i8(rhsmode);
+        print_newline();
+        print("* Dest mode: ");
+        print_i8(destmode);
+        print_newline();
+        print("* LHS value: ");
+        print_regs(lhspair);
+        print_newline();
+        print("* RHS value: ");
+        print_regs(rhspair);
+        print_newline();
+        print("* Dest value: ");
+        print_regs(destpair);
+        print_newline();
+        print("* LHS pointer: ");
         print_regs(lhsptrreg);
         print_newline();
-    $endif
-end sub;
-
-# If the LHS or RHS are simple values, load them into register pairs.
-sub load_wide_input_parameters()
-    if opwidth == 2 then
-        var c: RegSet := rhsreg;
-        rhsreg := 0;
-        if rhsea != (0 as [EffectiveAddress]) then
-            if (rhsea.flags != EA_DEREF) and (is_number_thing(rhsea.obj_id) == 0) then
-                rhsreg := reg_find_or_load(c, rhsea);
-            end if;
-        end if;
-        $if DEBUG
-            print("* RHS value is ");
-            print_regs(rhsreg);
-            print_newline();
-        $endif
-
-        c := lhsreg;
-        lhsreg := 0;
-        if lhsea != (0 as [EffectiveAddress]) then
-            if lhsea.flags != EA_DEREF then
-                lhsreg := reg_find_or_load(c, lhsea);
-            end if;
-        end if;
-        $if DEBUG
-            print("* LHS value is ");
-            print_regs(lhsreg);
-            print_newline();
-        $endif
-    else
-        lhsreg := 0;
-        rhsreg := 0;
-    end if;
-end sub;
-
-sub prepare_wide_output_parameter()
-    if (destreg == lhsreg) or (destreg == rhsreg) then
-        $if DEBUG
-            print("* dest reg reuses ");
-            print_regs(destreg);
-            print_newline();
-        $endif
-    else
-        if opwidth == 4 then
-            destreghi := reg_alloc(destreg);
-            $if DEBUG
-                print("* dest (or temporary) reg (hi) is ");
-                print_regs(destreghi);
-                print_newline();
-            $endif
-        end if;
-
-        destreg := reg_alloc(destreg);
-        $if DEBUG
-            print("* dest (or temporary) reg is ");
-            print_regs(destreg);
-            print_newline();
-        $endif
-    end if;
-    reg_value_is_changing(destea);
-    reg_evict(destreg);
-end sub;
-
-sub evict_wide_mutable_index_registers()
-    # Evict the registers which we know we'll be mutating. We do this *now*,
-    # after we've set them up, so that new registers don't get allocated on
-    # top of things we're using.
-    if (lhsptrreg & (REG_BC|REG_HL|REG_DE)) != 0 then
-        reg_evict(lhsptrreg);
-    end if;
-    if (rhsptrreg & (REG_BC|REG_HL|REG_DE)) != 0 then
-        reg_evict(rhsptrreg);
-    end if;
-end sub;
-
-# Reads the LHS into the work register.
-sub do_wide_read(offset: uint8)
-    $if DEBUG
-        print("* read LHS ");
-        print_ea(lhsea);
-        print(" -> ");
-        print_regs(workreg);
-        print(" offset ");
-        print_i8(offset);
+        print("* RHS pointer: ");
+        print_regs(rhsptrreg);
+        print_newline();
+        print("* Dest pointer: ");
+        print_regs(destptrreg);
         print_newline();
     $endif
-
-    var reg: uint8 := halfof_reg(workreg, offset);
-    if lhsreg != 0 then
-        if lhsreg == workreg then
-            return;
-        end if;
-
-        reg_copy(halfof_reg(lhsreg, offset), reg);
-    elseif lhsptrreg != 0 then
-        insn_init();
-        insn.datareg := reg;
-        insn.otherreg := lhsptrreg;
-        if (lhsptrreg & REG_INDEX) != 0 then
-            insn.offset := ((get_value_of_number(lhsea.numoff_id) as uint8) + offset) as int16;
-        end if;
-        insn.mode := MODE_IND;
-        insn_load_object();
-    elseif is_number_thing(lhsea.obj_id) != 0 then
-        insn_init();
-        insn.datareg := reg;
-        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as int16;
-        insn.mode := MODE_IMM;
-        insn_load_object();
-    else
-        print("cannot load LHS");
-        halt();
-    end if;
 end sub;
 
-# Performs an ALU operation of the RHS against the work register (which must
-# be A).
-sub do_wide_alu(offset: uint8, opcode: uint8)
-    $if DEBUG
-        print("* alu RHS ");
-        print_ea(rhsea);
-        print(" A offset ");
-        print_i8(offset);
-        print_newline();
-    $endif
-
-    if workreg != REG_A then
-        print("can't ALU against not A");
-        halt();
-    end if;
-
-    insn_init();
-    insn.datareg := REG_A;
-    if rhsreg != 0 then
-        insn.otherreg := halfof_reg(rhsreg, offset);
-        insn.mode := MODE_DIR;
-    elseif rhsptrreg != 0 then
-        insn.otherreg := rhsptrreg;
-        if (rhsptrreg & REG_INDEX) != 0 then
-            insn.offset := ((get_value_of_number(rhsea.numoff_id) as uint8) + offset) as int16;
-        end if;
-        insn.mode := MODE_IND;
-    elseif is_number_thing(rhsea.obj_id) != 0 then
-        var value: uint16 := get_value_of_number(rhsea.obj_id) as uint16;
-        value := value >> (offset*8);
-        insn.offset := value as int16;
-        insn.mode := MODE_IMM;
-    else
-        print("cannot load LHS");
-        halt();
-    end if;
-    insn_8bit_aluop(opcode);
-end sub;
-
-# Writes the work register into the destination register.
-sub do_wide_write(offset: uint8)
-    $if DEBUG
-        print("* write work reg ");
-        print_regs(workreg);
-        print(" to destination register ");
-        print_regs(destreg);
-        print(" offset ");
-        print_i8(offset);
-        print_newline();
-    $endif
-
-    if (destreg != 0) and (workreg != destreg) then
-        reg_copy(halfof_reg(workreg, offset), halfof_reg(destreg, offset));
-    end if;
-end sub;
-
-# Adjusts any pointers for the second byte.
 sub adjust_wide_pointers(opcode: uint8)
     sub inc(reg: RegSet)
         $if DEBUG
@@ -385,6 +283,7 @@ sub adjust_wide_pointers(opcode: uint8)
             print_regs(reg);
             print_newline();
         $endif
+        reg_evict(reg);
         var regnum: uint8 := get_z80_regnum(reg);
         write_byte(opcode | regnum); # inc or dec
     end sub;
@@ -401,89 +300,129 @@ sub adjust_wide_pointers(opcode: uint8)
         $endif
         inc(rhsptrreg);
     end if;
+    if (destptrreg != lhsptrreg) and (destptrreg != rhsptrreg) and ((destptrreg & (REG_BC|REG_DE|REG_HL)) != 0) then
+        $if DEBUG
+            print("* incrementing dest ptr\n");
+        $endif
+        inc(destptrreg);
+    end if;
 end sub;
 
-# Ensure that the destination is written back (to whereever).
-sub write_back_wide_destination()
-    reg_free(lhsptrreg);
-    reg_free(rhsptrreg);
+sub do_wide_read(offset: uint8, destreg: RegSet)
+    $if DEBUG
+        print("* read LHS ");
+        print_ea(lhsea);
+        print(" -> ");
+        print_regs(destreg);
+        print(" offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
 
-    if (opwidth == 2) and (destea.flags != EA_DEREF) then
-        $if DEBUG
-            print("* leaving result in register\n");
-        $endif
-        reg_value_is_precious(destea);
+    var reg: uint8 := halfof_reg(destreg, offset);
+    if lhspair != 0 then
+        if lhspair == destreg then
+            return;
+        end if;
+
+        reg_copy(halfof_reg(lhspair, offset), reg);
+    elseif lhsmode == MODE_IND then
+        insn_init();
+        insn.datareg := reg;
+        insn.otherreg := lhsptrreg;
+        if (lhsptrreg & REG_INDEX) != 0 then
+            insn.offset := ((get_value_of_number(lhsea.numoff_id) as uint8) + offset) as int16;
+        end if;
+        insn.mode := MODE_IND;
+        insn_load_object();
+    elseif lhsmode == MODE_IMM then
+        insn_init();
+        insn.datareg := reg;
+        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as int16;
+        insn.mode := MODE_IMM;
+        insn_load_object();
+    elseif lhsmode == MODE_DIR then
+        insn_init_from_ea(lhsea);
+        insn.datareg := reg;
+        insn.offset := insn.offset + (offset as int16);
+        insn_load_object();
     else
-        $if DEBUG
-            print("* writing back DEREF result\n");
-        $endif
-
-        var reg: RegSet := setup_pointer(REG_HL|REG_IX|REG_IY, destea);
-
-        sub write_back_byte(offset: uint8)
-            insn_init();
-            insn.datareg := halfof_reg(destreg, offset);;
-            insn.otherreg := reg;
-            if (reg & REG_INDEX) != 0 then
-                insn.offset := ((get_value_of_number(destea.numoff_id) as uint8) + offset) as int16;
-            end if;
-            insn.mode := MODE_IND;
-            insn_save_object();
-        end sub;
-
-        if (reg & REG_INDEX) == 0 then
-            reg_evict(reg);
-        end if;
-
-        var i: uint8 := 0;
-        while i != opwidth loop
-            if (i != 0) and ((reg & REG_INDEX) == 0) then
-                var regnum: uint8 := get_z80_regnum(reg);
-                write_byte(0x03 | regnum); # inc rr
-            end if;
-            write_back_byte(i);
-            i := i + 1;
-        end loop;
-    end if;
-
-    if opwidth == 2 then
-        reg_cache_value(destreg, destea);
+        print("cannot load LHS");
+        halt();
     end if;
 end sub;
 
-# Boilerplate setup for mostly-2op operations, which reads the LHS into
-# the destination register, ready for in-place mutation or writing back.
-sub prepare_wide_op_where_lhs_is_in_a_reg(iop: [BEIop])
-    reset_wide_op();
-    opwidth := iop.width;
-    lhsea := &iop.left;
-    destea := &iop.dest;
+sub do_wide_alu(offset: uint8, opcode: uint8)
+    $if DEBUG
+        print("* alu RHS ");
+        print_ea(rhsea);
+        print(" A offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
 
-    lhsptrreg := REG_HL|REG_IX|REG_IY; # because our workreg isn't A
-    lhsreg := REG_BC|REG_DE;
-    destreg := REG_BC|REG_DE;
-
-    load_wide_pointers(0);
-    load_wide_input_parameters();
-    prepare_wide_output_parameter();
-    if lhsreg != 0 then
-        $if DEBUG
-            print("* reusing LHS as dest reg\n");
-        $endif
-        destreg := lhsreg;
-    end if;
-    workreg := destreg;
-    reg_evict(workreg);
-
-    var i: uint8 := 0;
-    while i != opwidth loop 
-        if i != 0 then
-            adjust_wide_pointers(0x03); # inc rr
+    insn_init();
+    insn.datareg := REG_A;
+    if rhspair != 0 then
+        insn.otherreg := halfof_reg(rhspair, offset);
+        insn.mode := MODE_DIR;
+    elseif is_same_ea_ignoring_type(lhsea, rhsea) != 0 then
+        insn.otherreg := REG_A;
+        insn.mode := MODE_DIR;
+    elseif rhsmode == MODE_IND then
+        insn.otherreg := rhsptrreg;
+        if (rhsptrreg & REG_INDEX) != 0 then
+            insn.offset := ((get_value_of_number(rhsea.numoff_id) as uint8) + offset) as int16;
         end if;
-        do_wide_read(i);
-        do_wide_write(i);
-        i := i + 1;
-    end loop;
+        insn.mode := MODE_IND;
+    elseif rhsmode == MODE_IMM then
+        var value: uint16 := get_value_of_number(rhsea.obj_id) as uint16;
+        value := value >> (offset*8);
+        insn.offset := value as int16;
+        insn.mode := MODE_IMM;
+    else
+        print("cannot alu RHS");
+        halt();
+    end if;
+    insn_8bit_aluop(opcode);
+end sub;
+
+sub do_wide_write(offset: uint8, srcreg: RegSet);
+    $if DEBUG
+        print("* write result ");
+        print_regs(srcreg);
+        print(" -> ");
+        print_ea(destea);
+        print(" offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
+
+    var reg: uint8 := halfof_reg(srcreg, offset);
+    if destpair != 0 then
+        if destpair == srcreg then
+            return;
+        end if;
+
+        reg_copy(reg, halfof_reg(destpair, offset));
+    elseif destmode == MODE_IND then
+        insn_init();
+        insn.datareg := reg;
+        insn.otherreg := destptrreg;
+        if (destptrreg & REG_INDEX) != 0 then
+            insn.offset := ((get_value_of_number(destea.numoff_id) as uint8) + offset) as int16;
+        end if;
+        insn.mode := MODE_IND;
+        insn_save_object();
+    elseif destmode == MODE_DIR then
+        insn_init_from_ea(destea);
+        insn.datareg := reg;
+        insn.offset := insn.offset + (offset as int16);
+        insn_save_object();
+    else
+        print("cannot write destination");
+        halt();
+    end if;
 end sub;
 
 sub arch_gen_copy_wide(iop: [BEIop])
@@ -495,8 +434,26 @@ sub arch_gen_copy_wide(iop: [BEIop])
         print_newline();
     $endif
 
-    prepare_wide_op_where_lhs_is_in_a_reg(iop);
-    write_back_wide_destination();
+    opwidth := iop.width;
+    rhsea := 0 as [EffectiveAddress];
+    lhsea := &iop.left;
+    destea := &iop.dest;
+    setup_wide_for_iop(0, 0);
+
+    var reg: RegSet := REG_A;
+    if destpair != 0 then
+        reg := destpair;
+    end if;
+
+    var i: uint8 := 0;
+    while i != opwidth loop
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_read(i, reg);
+        do_wide_write(i, reg);
+        i := i + 1;
+    end loop;
 end sub;
 
 sub arch_gen_regular_alu_wide(iop: [BEIop], opcode1: uint8, opcode2: uint8)
@@ -514,47 +471,26 @@ sub arch_gen_regular_alu_wide(iop: [BEIop], opcode1: uint8, opcode2: uint8)
         print_newline();
     $endif
 
-    reset_wide_op();
     opwidth := iop.width;
-    
     rhsea := &iop.right;
-    destea := &iop.dest;
     lhsea := &iop.left;
-
-    workreg := REG_A;
-    destreg := REG_BC|REG_DE|REG_HL;
-    lhsreg := REG_BC|REG_DE|REG_HL;
-    rhsreg := REG_BC|REG_DE|REG_HL;
-    if opwidth == 4 then
-        # We need to reserve two registers for the result. (This is ugly;
-        # there should be a better way.)
-        lhsptrreg := REG_HL|REG_IX|REG_IY;
-        rhsptrreg := REG_HL|REG_IX|REG_IY;
-        lhsreg := 0;
-        rhsreg := 0;
-    end if;
-
-    load_wide_pointers(0);
-    load_wide_input_parameters();
-    prepare_wide_output_parameter();
-    evict_wide_mutable_index_registers();
+    destea := &iop.dest;
+    setup_wide_for_iop(1, 0);
 
     var i: uint8 := 0;
     while i != opwidth loop
         if i != 0 then
             adjust_wide_pointers(0x03); # inc rr
         end if;
-        do_wide_read(i);
+        do_wide_read(i, REG_A);
         if i == 0 then
             do_wide_alu(i, opcode1);
         else
             do_wide_alu(i, opcode2);
         end if;
-        do_wide_write(i);
+        do_wide_write(i, REG_A);
         i := i + 1;
     end loop;
-
-    write_back_wide_destination();
 end sub;
 
 sub arch_gen_add_wide(iop: [BEIop])
@@ -576,38 +512,40 @@ sub arch_gen_extend_wide(iop: [BEIop], signed: uint8)
         print_newline();
     $endif
 
-    reset_wide_op();
     opwidth := iop.width;
+    rhsea := 0 as [EffectiveAddress];
     lhsea := &iop.left;
     destea := &iop.dest;
+    setup_wide_for_iop(1, 0);
 
-    destreg := REG_BC|REG_DE|REG_HL;
-    lhsptrreg := 0;
-    rhsptrreg := 0;
-    prepare_wide_output_parameter();
-    workreg := REG_A;
-
-    load_complex_8bit_value_fixed(REG_A, lhsea);
-    do_wide_write(0);
-    reg_free(REG_A);
-    
-    if signed != 0 then
     reg_alloc_fixed(REG_A);
-    write_byte(0x07); # rlca
-    write_byte(0x9F); # sbc a, a
+
+    var i: uint8 := 0;
+    var srcwidth: uint8 := get_width_of_type(lhsea.type_id);
+    while i != srcwidth loop
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_read(i, REG_A);
+        do_wide_write(i, REG_A);
+        i := i + 1;
+    end loop;
+
+    reg_free(REG_A);
+    if signed != 0 then
+        reg_alloc_fixed(REG_A);
+        write_byte(0x07); # rlca
+        write_byte(0x9F); # sbc a, a
     else
         reg_find_or_load_int_fixed(REG_A, 0);
     end if;
 
-    var i: uint8 := 1;
     while i != opwidth loop
         adjust_wide_pointers(0x03); # inc rr
-        do_wide_write(i);
+        do_wide_write(i, REG_A);
         i := i + 1;
     end loop;
     reg_free(REG_A);
-
-    write_back_wide_destination();
 end sub;
 
 sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
@@ -661,24 +599,20 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
         end if;
     end sub;
 
-    reset_wide_op();
     opwidth := ciop.width;
     rhsea := &ciop.right;
     lhsea := &ciop.left;
+    destea := 0 as [EffectiveAddress];
+    setup_wide_for_iop(1, opwidth-1);
 
-    workreg := REG_A;
-    lhsreg := REG_BC|REG_DE|REG_HL;
-    rhsreg := REG_BC|REG_DE|REG_HL;
-
-    load_wide_pointers(1);
-    load_wide_input_parameters();
     reg_evict(ALL_REGS);
+    reg_alloc_fixed(REG_A);
 
     var i: uint8 := opwidth;
     while i != 0 loop
         i := i - 1;
 
-        do_wide_read(i);
+        do_wide_read(i, REG_A);
         gen_comparison_branch(i);
         if i != 0 then
             adjust_wide_pointers(0x0B); # dec rr
@@ -688,43 +622,4 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
     if liop.label != fallthrough_label then
         write_cg_conditional_iop(0xC3, fallthrough_label); # jp
     end if;
-end sub;
-
-sub arch_gen_lsl_wide(iop: [BEIop])
-    $if DEBUG
-        print("* GENERATE lsl wide: ");
-        print_ea(&iop.left);
-        print(" + ");
-        print_ea(&iop.right);
-        print(" -> ");
-        print_ea(&iop.dest);
-        print_newline();
-    $endif
-
-    load_complex_8bit_value_fixed(REG_B, &iop.right);
-    prepare_wide_op_where_lhs_is_in_a_reg(iop);
-    reg_evict(destreg);
-    
-    # Now do the in-place shift.
-
-    sub inplace_shift(offset: uint8, opcode: uint8)
-        $if DEBUG
-            print("* in-place shifting reg ");
-            print_regs(destreg);
-            print(" offset ");
-            print_i8(offset);
-            print_newline();
-        $endif
-        var regnum: uint8 := get_z80_regnum(halfof_reg(destreg, offset));
-        write_byte(0xCB);
-        write_byte(opcode | regnum);
-    end sub;
-    var label: uint8 := create_label();
-    write_label_iop(label);
-    inplace_shift(0, 0x20); # sla r
-    inplace_shift(1, 0x10); # rl r
-    write_cg_conditional_iop(0x10, label); # djnz label
-    
-    reg_free(REG_B);
-    write_back_wide_destination();
 end sub;

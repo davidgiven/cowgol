@@ -1,7 +1,7 @@
 sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     # If the value is already in a register, load it.
 
-    if reg_is_cached(ea) != 0 then
+    if reg_is_cached_in(REG_8BIT, ea) != 0 then
         reg := reg_find_or_load(regs, ea);
         return;
     end if;
@@ -57,8 +57,8 @@ end sub;
 sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (otherreg: RegSet)
     # If the RHS is already in a register, use that.
 
-    if reg_is_cached(ea) != 0 then
-        otherreg := reg_find_or_load(REG_8BIT, ea);
+    if reg_is_cached_in(REG_8BIT, ea) != 0 then
+        otherreg := reg_find_or_load(REG_B|REG_C|REG_D|REG_H|REG_L, ea);
 
         insn_init();
         insn.datareg := REG_A;

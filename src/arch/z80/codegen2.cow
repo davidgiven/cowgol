@@ -56,7 +56,7 @@ sub arch_gen_before(ea: [EffectiveAddress])
 			print_newline();
 		$endif
 
-        reg_write_back_precious_values(ALL_REGS);
+        reg_write_back_precious_regs(ALL_REGS);
     end if;
 end sub;
 
@@ -163,24 +163,30 @@ end sub;
 sub arch_gen_lsl(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_shift_byte(iop, 0x20); # sla b (not including prefix byte)
+    elseif iop.width == 2 then
+        arch_gen_lsl_word(iop);
     else
-        arch_gen_lsl_wide(iop);
+        arch_gen_shift_wide(iop, TOKEN_LSL32);
     end if;
 end sub;
 
 sub arch_gen_lsr(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_shift_byte(iop, 0x38); # srl b (not including prefix byte)
+    elseif iop.width == 2 then
+        arch_gen_lsr_word(iop);
     else
-        cant_do_3op(iop, "lsr");
+        arch_gen_shift_wide(iop, TOKEN_LSR32);
     end if;
 end sub;
 
 sub arch_gen_asr(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_shift_byte(iop, 0x28); # sra b (not including prefix byte)
+    elseif iop.width == 2 then
+        arch_gen_asr_word(iop);
     else
-        cant_do_3op(iop, "asr");
+        arch_gen_shift_wide(iop, TOKEN_ASR32);
     end if;
 end sub;
 
@@ -221,7 +227,7 @@ sub arch_gen_sext(iop: [BEIop])
 end sub;
 
 sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
-    reg_write_back_precious_values(ALL_REGS);
+    reg_write_back_precious_regs(ALL_REGS);
     if ciop.width == 1 then
         arch_gen_cmp_8bit(ciop, liop);
     else

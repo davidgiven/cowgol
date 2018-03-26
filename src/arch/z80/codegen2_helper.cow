@@ -1,0 +1,27 @@
+sub arch_gen_shift_wide(iop: [BEIop], helper: uint16)
+    $if DEBUG
+        print("* GENERATE wide shift ");
+        print_thing(helper);
+        print(": ");
+        print_ea(&iop.left);
+        print(" + ");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    load_complex_8bit_value_fixed(REG_B, &iop.right);
+    
+    var indea: EffectiveAddress;
+    make_pointer(&iop.left, &indea);
+    reg_find_or_load_fixed(REG_HL, &indea);
+
+    make_pointer(&iop.dest, &indea);
+    reg_find_or_load_fixed(REG_DE, &indea);
+
+    reg_evict(REG_8BIT);
+
+    write_byte(0xCD); # call
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(helper), 0);
+end sub;
