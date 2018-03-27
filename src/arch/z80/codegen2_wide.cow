@@ -554,52 +554,61 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
         print_ea(&ciop.left);
         print(", ");
         print_ea(&ciop.right);
-        print(" => label 0x");
+        print(" => true: 0x");
+        print_hex_i8(ciop.iftrue_label);
+        print(" false: 0x");
+        print_hex_i8(ciop.iffalse_label);
+        print(" fallthrough: 0x");
         print_hex_i8(liop.label);
+        print(", width=");
+        print_i8(ciop.width);
         print_newline();
     $endif
 
     var iopkind: uint8 := ciop.iop_kind;
 
-    var invertflag: uint8;
-    var destlabel: uint8;
-    var fallthrough_label: uint8;
-    if liop.label == ciop.iftrue_label then
-        invertflag := 0x00;
-        fallthrough_label := ciop.iftrue_label;
-        destlabel := ciop.iffalse_label;
-    else
-        invertflag := 0x08;
-        fallthrough_label := ciop.iffalse_label;
-        destlabel := ciop.iftrue_label;
-    end if;
-
     sub gen_comparison_branch(offset: uint8)
         if iopkind == IOP_BE_BEQ then
             do_wide_alu(offset, 0xFE); # cp *
-            write_cg_conditional_iop(0xC2 ^ invertflag, destlabel); # jp nz
+            if (offset == 0) and (liop.label == ciop.iffalse_label) then
+                write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
+            else
+                write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
+            end if;
         else
+            var opcode: uint8;
             if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
                 # BLTS
                 do_wide_alu(offset, 0xD6); # sub *
 
                 var skipxorlabel: uint8 := create_label();
-                write_cg_conditional_iop(0xE2 ^ invertflag, skipxorlabel); # jp po
+                write_cg_conditional_iop(0xE2, skipxorlabel); # jp po
                 write_word(0x80EE); # xor 0x80
                 write_label_iop(skipxorlabel);
 
-                write_cg_conditional_iop(0xF2 ^ invertflag, destlabel); # jp p
+                opcode := 0xFA; # jp m
             else
                 # BLTU
                 do_wide_alu(offset, 0xFE); # cp *
-                write_cg_conditional_iop(0xD2 ^ invertflag, destlabel); # jp c
+                opcode := 0xDA; # jp c
+            end if;
+
+            if (offset == 0) and (liop.label == ciop.iftrue_label) then
+                write_cg_conditional_iop(opcode ^ 0x08, ciop.iffalse_label);
+            else
+                write_cg_conditional_iop(opcode, ciop.iftrue_label);
             end if;
         end if;
     end sub;
 
     opwidth := ciop.width;
-    rhsea := &ciop.right;
-    lhsea := &ciop.left;
+    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+        rhsea := &ciop.right;
+        lhsea := &ciop.left;
+    else
+        rhsea := &ciop.left;
+        lhsea := &ciop.right;
+    end if;
     destea := 0 as [EffectiveAddress];
     setup_wide_for_iop(1, opwidth-1);
 
@@ -616,8 +625,4 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
             adjust_wide_pointers(0x0B); # dec rr
         end if;
     end loop;
-
-    if liop.label != fallthrough_label then
-        write_cg_conditional_iop(0xC3, fallthrough_label); # jp
-    end if;
 end sub;
