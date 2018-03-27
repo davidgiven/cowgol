@@ -370,6 +370,9 @@ sub process_subroutine()
         beiop.iop_size := BEConditionalIop@bytes;
         beiop.iop_kind := iopkind;
         beiop.width := get_width_of_type(left.type_id) as uint8;
+        if beiop.width == 0 then
+            beiop.width := get_width_of_type(right.type_id) as uint8;
+        end if;
         beiop.iftrue_label := iop.iftrue_label;
         beiop.iffalse_label := iop.iffalse_label;
         copy_ea_ref(&left.left, &beiop.left);
