@@ -333,6 +333,20 @@ build $OBJDIR/tests/cpu/casts.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/casts.b
  goodfile = tests/cpu/casts.good 
  badfile = tests/cpu/casts.bbc.bad 
 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigs.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigs.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigs.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/comparisons-16bit-bigs.bbc | tests/cpu/comparisons-16bit-bigs.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/comparisons-16bit-bigs.good 
+ badfile = tests/cpu/comparisons-16bit-bigs.bbc.bad 
+
+build $OBJDIR/tests/cpu/comparisons-16bit-bigu.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-bigu.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigu.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/comparisons-16bit-bigu.bbc | tests/cpu/comparisons-16bit-bigu.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/comparisons-16bit-bigu.good 
+ badfile = tests/cpu/comparisons-16bit-bigu.bbc.bad 
+
 build $OBJDIR/tests/cpu/comparisons-16bit-s.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/comparisons-16bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
  arch = bbc_on_native 
 build $OBJDIR/tests/cpu/comparisons-16bit-s.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/comparisons-16bit-s.bbc | tests/cpu/comparisons-16bit-s.good scripts/bbctube_test bin/bbctube 
@@ -619,6 +633,20 @@ build $OBJDIR/tests/cpu/casts.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/casts.
  testscript = scripts/cpmz_test 
  goodfile = tests/cpu/casts.good 
  badfile = tests/cpu/casts.cpmz.bad 
+
+build $OBJDIR/tests/cpu/comparisons-16bit-bigs.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-16bit-bigs.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigs.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/comparisons-16bit-bigs.cpmz | tests/cpu/comparisons-16bit-bigs.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/comparisons-16bit-bigs.good 
+ badfile = tests/cpu/comparisons-16bit-bigs.cpmz.bad 
+
+build $OBJDIR/tests/cpu/comparisons-16bit-bigu.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-16bit-bigu.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/comparisons-16bit-bigu.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/comparisons-16bit-bigu.cpmz | tests/cpu/comparisons-16bit-bigu.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/comparisons-16bit-bigu.good 
+ badfile = tests/cpu/comparisons-16bit-bigu.cpmz.bad 
 
 build $OBJDIR/tests/cpu/comparisons-16bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/comparisons-16bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
  arch = cpmz_on_native 
