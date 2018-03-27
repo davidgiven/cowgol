@@ -338,7 +338,7 @@ sub do_wide_read(offset: uint8, destreg: RegSet)
     elseif lhsmode == MODE_IMM then
         insn_init();
         insn.datareg := reg;
-        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as int16;
+        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as uint16;
         insn.mode := MODE_IMM;
         insn_load_object();
     elseif lhsmode == MODE_DIR then
@@ -376,9 +376,7 @@ sub do_wide_alu(offset: uint8, opcode: uint8)
         end if;
         insn.mode := MODE_IND;
     elseif rhsmode == MODE_IMM then
-        var value: uint16 := get_value_of_number(rhsea.obj_id) as uint16;
-        value := value >> (offset*8);
-        insn.offset := value as int16;
+        insn.offset := (get_value_of_number(rhsea.obj_id) >> (offset*8)) as uint16;
         insn.mode := MODE_IMM;
     else
         print("cannot alu RHS");
