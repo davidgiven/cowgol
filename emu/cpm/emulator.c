@@ -304,7 +304,7 @@ void emulator_run(void)
 				if (pc == breakpoints[i])
 					singlestepping = true;
 		}
-		if (singlestepping)
+		if (singlestepping && !z80ex_last_op_type(z80))
 			debug();
 		else if (tracing)
 			showregs();
