@@ -25,3 +25,51 @@ sub arch_gen_shift_wide(iop: [BEIop], helper: uint16)
     write_byte(0xCD); # call
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(helper), 0);
 end sub;
+
+sub arch_gen_helper_div_word(iop: [BEIop], helper: uint16)
+    $if DEBUG
+        print("* GENERATE word div ");
+        print_thing(helper);
+        print(": ");
+        print_ea(&iop.left);
+        print(" / ");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    reg_value_is_changing(&iop.dest);
+    load_complex_16bit_value_fixed(REG_DE, &iop.left);
+    load_complex_16bit_value_fixed(REG_BC, &iop.right);
+    reg_evict(REG_8BIT);
+
+    write_byte(0xCD); # call
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(helper), 0);
+
+    save_16bit_or_make_precious(&iop.dest, REG_DE);
+end sub;
+
+sub arch_gen_helper_mod_word(iop: [BEIop], helper: uint16)
+    $if DEBUG
+        print("* GENERATE word mod ");
+        print_thing(helper);
+        print(": ");
+        print_ea(&iop.left);
+        print(" % ");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    reg_value_is_changing(&iop.dest);
+    load_complex_16bit_value_fixed(REG_DE, &iop.left);
+    load_complex_16bit_value_fixed(REG_BC, &iop.right);
+    reg_evict(REG_8BIT);
+
+    write_byte(0xCD); # call
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(helper), 0);
+
+    save_16bit_or_make_precious(&iop.dest, REG_HL);
+end sub;

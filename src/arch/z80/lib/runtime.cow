@@ -93,11 +93,12 @@ sub __divmodu16()
                              # .entry
     @bytes 0xCB, 0x23;       # sla e
     @bytes 0xCB, 0x12;       # rl d
-    @bytes 0xED, 0x6A;       # adc hl, hl
-    @bytes 0xED, 0x42;       # sbc hl, bc
-    @bytes 0x30, 0xF3;       # jr nc, loop1
-    @bytes 0x1C;             # inc e
-    @bytes 0x18, 0xF1;       # jr loop2
+    @bytes 0xED, 0x6A;       # adc hl, hl --- shift remainder left and add carry
+    @bytes 0xB7;             # or a       --- clear carry
+    @bytes 0xED, 0x42;       # sbc hl, bc --- sets carry if remainder(hl) < bc
+    @bytes 0x38, 0xF2;       # jr c, loop1 --- if remainder < bc, undo add and go round again
+    @bytes 0x1C;             # inc e      --- we know the bottom bit is clear
+    @bytes 0x18, 0xF0;       # jr loop2
 end sub;
 
 sub __divmods16()

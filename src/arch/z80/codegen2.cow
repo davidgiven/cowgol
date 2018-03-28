@@ -191,19 +191,35 @@ sub arch_gen_asr(iop: [BEIop])
 end sub;
 
 sub arch_gen_divu(iop: [BEIop])
-    cant_do_3op(iop, "divu");
+    if iop.width == 2 then
+        arch_gen_helper_div_word(iop, TOKEN_DIVMODU16);
+    else
+        cant_do_3op(iop, "divu");
+    end if;
 end sub;
 
 sub arch_gen_divs(iop: [BEIop])
-    cant_do_3op(iop, "divs");
+    if iop.width == 2 then
+        arch_gen_helper_div_word(iop, TOKEN_DIVMODS16);
+    else
+        cant_do_3op(iop, "divs");
+    end if;
 end sub;
 
 sub arch_gen_modu(iop: [BEIop])
-    cant_do_3op(iop, "modu");
+    if iop.width == 2 then
+        arch_gen_helper_mod_word(iop, TOKEN_DIVMODU16);
+    else
+        cant_do_3op(iop, "modu");
+    end if;
 end sub;
 
 sub arch_gen_mods(iop: [BEIop])
-    cant_do_3op(iop, "mods");
+    if iop.width == 2 then
+        arch_gen_helper_mod_word(iop, TOKEN_DIVMODS16);
+    else
+        cant_do_3op(iop, "mods");
+    end if;
 end sub;
 
 sub arch_gen_mul(iop: [BEIop])
