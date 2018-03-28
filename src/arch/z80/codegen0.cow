@@ -499,8 +499,12 @@ sub reg_copy(src: RegSet, dest: RegSet)
     var srcregnum: uint8 := get_z80_regnum(src);
     var destregnum: uint8 := get_z80_regnum(dest);
 
-    if (src & REG_8BIT) != 0 then
+    sub movepair()
         write_byte(0x40 | ((destregnum as uint8)<<3) | (srcregnum as uint8));
+    end sub;
+
+    if (src & REG_8BIT) != 0 then
+        movepair();
     elseif ((src|dest) & (REG_IX|REG_IY)) != 0 then
         if (src & (REG_IX|REG_IY)) != 0 then
             write_byte(srcregnum);
@@ -516,7 +520,12 @@ sub reg_copy(src: RegSet, dest: RegSet)
             write_byte(0xC1 | destregnum); # pop bc
         end if;
     else
-        print("can't copy this yet");
-        halt();
+        # Convert pair number to internal reg number.
+        srcregnum := srcregnum >> 3;
+        destregnum := destregnum >> 3;
+        movepair();
+        srcregnum := srcregnum + 1;
+        destregnum := destregnum + 1;
+        movepair();
     end if;
 end sub;
