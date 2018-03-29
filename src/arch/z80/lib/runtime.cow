@@ -91,6 +91,24 @@ sub __mul8()
     @bytes 0x10, 0xFA; # djnz loop 
 end sub;
 
+# Computes DE*BC, returning the result in DEHL.
+# Corrupts all 8-bit registers.
+sub __mul16()
+    @bytes 0x21, 0x00, 0x00; # ld hl, #0
+    @bytes 0x3E, 0x10;       # ld a, #16
+                             # .loop
+    @bytes 0x29;             # add hl, hl
+    @bytes 0xCB, 0x13;       # rl e
+    @bytes 0xCB, 0x12;       # rl d
+    @bytes 0x30, 0x04;       # jr nc, skip
+    @bytes 0x09;             # add hl, bc
+    @bytes 0x30, 0x01;       # jr nc, skip
+    @bytes 0x13;             # inc de
+                             # .skip
+    @bytes 0x3D;             # dec a
+    @bytes 0x20, 0xF2;       # jr nz, loop
+end sub;
+
 # Computes C/D, result=C, remainder=A
 # Corrupts A, B, C.
 sub __divmodu8()

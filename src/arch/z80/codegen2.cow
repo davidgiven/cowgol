@@ -233,6 +233,8 @@ end sub;
 sub arch_gen_mul(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_helper_mul_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_helper_mul_word(iop);
     else
         cant_do_3op(iop, "mul");
     end if;
@@ -241,6 +243,8 @@ end sub;
 sub arch_gen_zext(iop: [BEIop])
     if iop.width >= 2 then
         arch_gen_extend_wide(iop, 0);
+    elseif iop.width == 2 then
+        arch_gen_helper_mul_word(iop);
     else
         cant_do_2op(iop, "zext");
     end if;

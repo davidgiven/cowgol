@@ -96,3 +96,25 @@ sub arch_gen_helper_mul_byte(iop: [BEIop])
     save_8bit_or_make_precious(&iop.dest, REG_L);
 end sub;
 
+sub arch_gen_helper_mul_word(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE rod mul: ");
+        print_ea(&iop.left);
+        print(" * ");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    reg_value_is_changing(&iop.dest);
+    load_complex_16bit_value_fixed(REG_DE, &iop.left);
+    load_complex_16bit_value_fixed(REG_BC, &iop.right);
+    reg_evict(REG_8BIT);
+
+    write_byte(0xCD); # call
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MUL16), 0);
+
+    save_16bit_or_make_precious(&iop.dest, REG_HL);
+end sub;
+
