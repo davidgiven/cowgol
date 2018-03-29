@@ -42,7 +42,7 @@ sub arch_gen_helper_divmod_byte(iop: [BEIop], helper: uint16, resultreg: RegSet)
     reg_value_is_changing(&iop.dest);
     load_complex_8bit_value_fixed(REG_C, &iop.left);
     load_complex_8bit_value_fixed(REG_D, &iop.right);
-    reg_evict(REG_A|REG_B|REG_C);
+    reg_evict(REG_8BIT);
 
     write_byte(0xCD); # call
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(helper), 0);

@@ -94,6 +94,48 @@ sub __divmodu8()
     @bytes 0x10, 0xF6;       # djnz loop
 end sub;
 
+# Computes C/D, result=C, remainder=A, signed
+# Corrupts A, B, C, H, L.
+sub __divmods8()
+    # If either of the arguments are negative, remember that (in HL, our only
+    # spare register) and make them positive.
+    # If the top bit of H is set: remainder must be negated.
+    # If the top bit of L is set: result must be negated.
+
+    @bytes 0x61;               # ld h, c   --- only care about the top bit
+    @bytes 0xCB, 0x79;         # bit 7, c
+    @bytes 0x28, 0x03;         # jr z, dont_negate_c
+    @bytes 0xAF;               # xor a
+    @bytes 0x91;               # sub c
+    @bytes 0x4F;               # ld c, a
+                               # .dont_negate_c
+
+    @bytes 0x7A;               # ld a, d
+    @bytes 0xAC;               # xor h
+    @bytes 0x6F;               # ld l, a   --- top bit of l is sign of C ^ sign of D
+    @bytes 0xCB, 0x7A;         # bit 7, d
+    @bytes 0x28, 0x03;         # .dont_negate_d
+    @bytes 0xAF;               # xor a
+    @bytes 0x92;               # sub d
+    @bytes 0x57;               # ld d, a
+                               # .dont_negate_d
+
+    @bytes 0xCD, &__divmodu8;  # call __divmodu8
+
+    @bytes 0xCB, 0x7C;         # bit 7, h  --- does remainder need negating?
+    @bytes 0x28, 0x02;         # jr z, dont_negate_remainder
+    @bytes 0xED, 0x44;         # neg
+                               # .dont_negate_remainder
+
+    @bytes 0xCB, 0x7D;         # bit 7, l  --- does result need negating?
+    @bytes 0xC8;               # ret z     --- no? return now
+    @bytes 0x67;               # ld h, a   --- preserve old A (the remainder)
+    @bytes 0xAF;               # xor a
+    @bytes 0x91;               # sub c
+    @bytes 0x4F;               # ld c, a
+    @bytes 0x7C;               # ld a, h
+end sub;
+
 # Computes DE/BC, result=DE, remainder=HL
 # Corrupts all 8-bit registers.
 sub __divmodu16()

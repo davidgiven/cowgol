@@ -201,7 +201,9 @@ sub arch_gen_divu(iop: [BEIop])
 end sub;
 
 sub arch_gen_divs(iop: [BEIop])
-    if iop.width == 2 then
+    if iop.width == 1 then
+        arch_gen_helper_divmod_byte(iop, TOKEN_DIVMODS8, REG_C);
+    elseif iop.width == 2 then
         arch_gen_helper_divmod_word(iop, TOKEN_DIVMODS16, REG_DE);
     else
         cant_do_3op(iop, "divs");
@@ -219,7 +221,9 @@ sub arch_gen_modu(iop: [BEIop])
 end sub;
 
 sub arch_gen_mods(iop: [BEIop])
-    if iop.width == 2 then
+    if iop.width == 1 then
+        arch_gen_helper_divmod_byte(iop, TOKEN_DIVMODS8, REG_A);
+    elseif iop.width == 2 then
         arch_gen_helper_divmod_word(iop, TOKEN_DIVMODS16, REG_HL);
     else
         cant_do_3op(iop, "mods");
