@@ -101,7 +101,60 @@ sub __divmodu16()
     @bytes 0x18, 0xF0;       # jr loop2
 end sub;
 
+# Computer DE/BC, result=DE, remainder=HL, signed.
+# Corrupts all 8-bit registers.
 sub __divmods16()
+    sub negate_de()
+        @bytes 0xAF;             # xor a
+        @bytes 0x93;             # sub e
+        @bytes 0x5F;             # ld e, a
+        @bytes 0x9F;             # sbc a, a  --- clear A to 0 or -1 depending on carry
+        @bytes 0x92;             # sub d
+        @bytes 0x57;             # ld d, a
+    end sub;
+
+    sub negate_bc()
+        @bytes 0xAF;             # xor a
+        @bytes 0x91;             # sub c
+        @bytes 0x4F;             # ld c, a
+        @bytes 0x9F;             # sbc a, a  --- clear A to 0 or -1 depending on carry
+        @bytes 0x90;             # sub b
+        @bytes 0x47;             # ld b, a
+    end sub;
+
+    sub negate_hl()
+        @bytes 0xAF;             # xor a
+        @bytes 0x95;             # sub l
+        @bytes 0x6F;             # ld l, a
+        @bytes 0x9F;             # sbc a, a  --- clear A to 0 or -1 depending on carry
+        @bytes 0x94;             # sub h
+        @bytes 0x67;             # ld h, a
+    end sub;
+
+    # If either of the arguments are negative, remember that (in HL, our only
+    # spare register) and make them positive.
+    # If the top bit of H is set: remainder must be negated.
+    # If the top bit of L is set: result must be negated.
+
+    @bytes 0x62;               # ld h, d   --- only care about the top bit
+    @bytes 0xCB, 0x7A;         # bit 7, d
+    @bytes 0xC4, &negate_de;   # call nz, negate_de
+    
+    @bytes 0x78;               # ld a, b
+    @bytes 0xAC;               # xor h     
+    @bytes 0x6F;               # ld l, a   --- top bit of l is sign of DE ^ sign of BC
+    @bytes 0xCB, 0x78;         # bit 7, b
+    @bytes 0xC4, &negate_bc;   # call nz, negate_bc
+
+    @bytes 0xE5;               # push hl
+    @bytes 0xCD, &__divmodu16; # call __divmodu16
+    @bytes 0xC1;               # pop bc
+
+    @bytes 0xCB, 0x78;         # bit 7, b  --- does remainder need negating?
+    @bytes 0xC4, &negate_hl;   # call nz, negate_hl
+
+    @bytes 0xCB, 0x79;         # bit 7, c  --- does result need negating?
+    @bytes 0xC4, &negate_de;   # call nz, negate_de
 end sub;
 
 sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32)
