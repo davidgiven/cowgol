@@ -78,6 +78,19 @@ sub __lsr32()
     __save_hl();
 end sub;
 
+# Computes H*E, returning the result in HL.
+# Corrupts B, D, H, L.
+sub __mul8()
+    @bytes 0x16, 0x00; # ld d, #0
+    @bytes 0x6A;       # ld l, d
+    @bytes 0x06, 0x08; # ld b, #8
+                       # .loop
+    @bytes 0x29;       # add hl, hl
+    @bytes 0x30, 0x01; # jr nc, skip
+    @bytes 0x19;       # add hl, de
+    @bytes 0x10, 0xFA; # djnz loop 
+end sub;
+
 # Computes C/D, result=C, remainder=A
 # Corrupts A, B, C.
 sub __divmodu8()

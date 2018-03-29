@@ -452,6 +452,20 @@ build $OBJDIR/tests/cpu/mul-32bit-u.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/m
  goodfile = tests/cpu/mul-32bit-u.good 
  badfile = tests/cpu/mul-32bit-u.bbc.bad 
 
+build $OBJDIR/tests/cpu/mul-8bit-s.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-8bit-s.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/mul-8bit-s.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/mul-8bit-s.bbc | tests/cpu/mul-8bit-s.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/mul-8bit-s.good 
+ badfile = tests/cpu/mul-8bit-s.bbc.bad 
+
+build $OBJDIR/tests/cpu/mul-8bit-u.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/mul-8bit-u.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/mul-8bit-u.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/mul-8bit-u.bbc | tests/cpu/mul-8bit-u.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/mul-8bit-u.good 
+ badfile = tests/cpu/mul-8bit-u.bbc.bad 
+
 build $OBJDIR/tests/cpu/print.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/print.test.cow | $OBJDIR/compiler_for_bbc_on_native 
  arch = bbc_on_native 
 build $OBJDIR/tests/cpu/print.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/print.bbc | tests/cpu/print.good scripts/bbctube_test bin/bbctube 
@@ -752,6 +766,20 @@ build $OBJDIR/tests/cpu/mul-32bit-u.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/
  testscript = scripts/cpmz_test 
  goodfile = tests/cpu/mul-32bit-u.good 
  badfile = tests/cpu/mul-32bit-u.cpmz.bad 
+
+build $OBJDIR/tests/cpu/mul-8bit-s.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/mul-8bit-s.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/mul-8bit-s.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/mul-8bit-s.cpmz | tests/cpu/mul-8bit-s.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/mul-8bit-s.good 
+ badfile = tests/cpu/mul-8bit-s.cpmz.bad 
+
+build $OBJDIR/tests/cpu/mul-8bit-u.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/mul-8bit-u.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/mul-8bit-u.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/mul-8bit-u.cpmz | tests/cpu/mul-8bit-u.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/mul-8bit-u.good 
+ badfile = tests/cpu/mul-8bit-u.cpmz.bad 
 
 build $OBJDIR/tests/cpu/print.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/print.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
  arch = cpmz_on_native 

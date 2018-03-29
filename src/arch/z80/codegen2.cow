@@ -231,7 +231,11 @@ sub arch_gen_mods(iop: [BEIop])
 end sub;
 
 sub arch_gen_mul(iop: [BEIop])
-    cant_do_3op(iop, "mul");
+    if iop.width == 1 then
+        arch_gen_helper_mul_byte(iop);
+    else
+        cant_do_3op(iop, "mul");
+    end if;
 end sub;
 
 sub arch_gen_zext(iop: [BEIop])
