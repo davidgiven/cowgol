@@ -114,6 +114,10 @@ sub save_8bit_or_make_precious(ea: [EffectiveAddress], reg: RegSet)
         insn.mode := MODE_IND;
         insn.offset := get_value_of_number(ea.numoff_id) as int16;
         insn_save_object();
+    elseif (reg & REG_A) == 0 then
+        reg_alloc_fixed(REG_A);
+        reg_copy(reg, REG_A);
+        reg_cache_value(REG_A, ea);
     else
         reg_value_is_precious(ea);
     end if;

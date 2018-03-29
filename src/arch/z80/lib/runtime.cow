@@ -78,6 +78,22 @@ sub __lsr32()
     __save_hl();
 end sub;
 
+# Computes C/D, result=C, remainder=A
+# Corrupts A, B, C.
+sub __divmodu8()
+    @bytes 0x06, 0x08;       # ld b,8
+    @bytes 0xAF;             # xor a
+                             # .loop
+    @bytes 0xCB, 0x21;       # sla c
+    @bytes 0x17;             # rla
+    @bytes 0xBA;             # cp d
+    @bytes 0x38, 0x02;       # jr c, skip
+    @bytes 0x0C;             # inc c
+    @bytes 0x92;             # sub d
+                             # .skip
+    @bytes 0x10, 0xF6;       # djnz loop
+end sub;
+
 # Computes DE/BC, result=DE, remainder=HL
 # Corrupts all 8-bit registers.
 sub __divmodu16()
