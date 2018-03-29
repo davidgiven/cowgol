@@ -201,8 +201,15 @@ sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])
     var fallthrough_label: uint8;
     var iopkind: uint8 := ciop.iop_kind;
 
-    load_complex_8bit_value_fixed(REG_A, &ciop.left);
-    var indreg: RegSet := setup_8bit_rhs_insn(&ciop.right);
+    var indreg: RegSet;
+    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+        load_complex_8bit_value_fixed(REG_A, &ciop.left);
+        indreg := setup_8bit_rhs_insn(&ciop.right);
+    else
+        load_complex_8bit_value_fixed(REG_A, &ciop.right);
+        indreg := setup_8bit_rhs_insn(&ciop.left);
+    end if;
+
 
     var invertflag: uint8;
     var destlabel: uint8;
@@ -226,7 +233,7 @@ sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])
             insn_8bit_aluop(0xD6); # sub *
 
             var skipxorlabel: uint8 := create_label();
-            write_cg_conditional_iop(0xE2 ^ invertflag, skipxorlabel); # jp po
+            write_cg_conditional_iop(0xE2, skipxorlabel); # jp po
             write_word(0x80EE); # xor 0x80
             write_label_iop(skipxorlabel);
 
