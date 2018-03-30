@@ -116,7 +116,11 @@ sub arch_gen_copy(iop: [BEIop])
 end sub;
 
 sub arch_gen_not(iop: [BEIop])
-    cant_do_2op(iop, "not");
+    if iop.width == 1 then
+        arch_gen_not_byte(iop);
+    else
+        cant_do_2op(iop, "not");
+    end if;
 end sub;
 
 sub arch_gen_and(iop: [BEIop])
