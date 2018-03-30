@@ -314,7 +314,6 @@ sub arch_gen_zext(iop: [BEIop])
         print_newline();
     $endif
 
-
     var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
     var destwidth: uint8 := iop.width;
 
@@ -435,4 +434,40 @@ sub arch_gen_simple_wide(iop: [BEIop], token: uint16)
     write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(token), 0);
 
     flush_cached_values(REG_MASK);
+end sub;
+
+sub arch_gen_not_wide(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE: wide not: ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    check_widec_ea(&iop.left);
+    check_widec_ea(&iop.dest);
+
+    var offset: uint8;
+    sub iterate_unrolled()
+        var indexreg: uint8;
+
+        indexreg := setup_insn(&iop.left, offset, REG_A);
+        allocate_fixed_reg(REG_A);
+        insn_load_object();
+        free_reg(indexreg);
+
+        write_word(0xFF49); # eor #0xff
+
+        indexreg := setup_insn(&iop.dest, offset, REG_A);
+        insn_save_object();
+        free_reg(REG_A);
+        free_reg(indexreg);
+    end sub;
+
+    offset := 0;
+    while offset != iop.width loop
+        iterate_unrolled();
+        offset := offset + 1;
+    end loop;
 end sub;

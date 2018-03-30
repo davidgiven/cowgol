@@ -417,6 +417,20 @@ build $OBJDIR/tests/cpu/divrem-8bit-u.bbc.stamp : run_emu_test $OBJDIR/tests/cpu
  goodfile = tests/cpu/divrem-8bit-u.good 
  badfile = tests/cpu/divrem-8bit-u.bbc.bad 
 
+build $OBJDIR/tests/cpu/logic-16bit.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/logic-16bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/logic-16bit.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/logic-16bit.bbc | tests/cpu/logic-16bit.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/logic-16bit.good 
+ badfile = tests/cpu/logic-16bit.bbc.bad 
+
+build $OBJDIR/tests/cpu/logic-32bit.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/logic-32bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/logic-32bit.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/logic-32bit.bbc | tests/cpu/logic-32bit.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/logic-32bit.good 
+ badfile = tests/cpu/logic-32bit.bbc.bad 
+
 build $OBJDIR/tests/cpu/logic-8bit.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/logic-8bit.test.cow | $OBJDIR/compiler_for_bbc_on_native 
  arch = bbc_on_native 
 build $OBJDIR/tests/cpu/logic-8bit.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/logic-8bit.bbc | tests/cpu/logic-8bit.good scripts/bbctube_test bin/bbctube 
@@ -731,6 +745,20 @@ build $OBJDIR/tests/cpu/divrem-8bit-u.cpmz.stamp : run_emu_test $OBJDIR/tests/cp
  testscript = scripts/cpmz_test 
  goodfile = tests/cpu/divrem-8bit-u.good 
  badfile = tests/cpu/divrem-8bit-u.cpmz.bad 
+
+build $OBJDIR/tests/cpu/logic-16bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/logic-16bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/logic-16bit.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/logic-16bit.cpmz | tests/cpu/logic-16bit.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/logic-16bit.good 
+ badfile = tests/cpu/logic-16bit.cpmz.bad 
+
+build $OBJDIR/tests/cpu/logic-32bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/logic-32bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/logic-32bit.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/logic-32bit.cpmz | tests/cpu/logic-32bit.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/logic-32bit.good 
+ badfile = tests/cpu/logic-32bit.cpmz.bad 
 
 build $OBJDIR/tests/cpu/logic-8bit.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/logic-8bit.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
  arch = cpmz_on_native 
