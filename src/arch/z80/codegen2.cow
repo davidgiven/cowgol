@@ -196,7 +196,7 @@ sub arch_gen_divu(iop: [BEIop])
     elseif iop.width == 2 then
         arch_gen_helper_divmod_word(iop, TOKEN_DIVMODU16, REG_DE);
     else
-        cant_do_3op(iop, "divu");
+        arch_gen_helper_generic_wide(iop, TOKEN_DIVU32);
     end if;
 end sub;
 
@@ -206,7 +206,7 @@ sub arch_gen_divs(iop: [BEIop])
     elseif iop.width == 2 then
         arch_gen_helper_divmod_word(iop, TOKEN_DIVMODS16, REG_DE);
     else
-        cant_do_3op(iop, "divs");
+        arch_gen_helper_generic_wide(iop, TOKEN_DIVS32);
     end if;
 end sub;
 
@@ -216,7 +216,7 @@ sub arch_gen_modu(iop: [BEIop])
     elseif iop.width == 2 then
         arch_gen_helper_divmod_word(iop, TOKEN_DIVMODU16, REG_HL);
     else
-        cant_do_3op(iop, "modu");
+        arch_gen_helper_generic_wide(iop, TOKEN_MODU32);
     end if;
 end sub;
 
@@ -226,7 +226,7 @@ sub arch_gen_mods(iop: [BEIop])
     elseif iop.width == 2 then
         arch_gen_helper_divmod_word(iop, TOKEN_DIVMODS16, REG_HL);
     else
-        cant_do_3op(iop, "mods");
+        arch_gen_helper_generic_wide(iop, TOKEN_MODS32);
     end if;
 end sub;
 
@@ -236,7 +236,7 @@ sub arch_gen_mul(iop: [BEIop])
     elseif iop.width == 2 then
         arch_gen_helper_mul_word(iop);
     else
-        arch_gen_helper_mul_wide(iop);
+        arch_gen_helper_generic_wide(iop, TOKEN_MUL32);
     end if;
 end sub;
 

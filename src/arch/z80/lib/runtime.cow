@@ -110,7 +110,7 @@ sub __mul16()
 end sub;
 
 # Computes [BC]*[HL], putting the result in [DE].
-# Corrupts all registers.
+# Corrupts all 8-bit registers.
 sub __mul32()
     var lhsptr: uint16;
     var resultptr: uint16;
@@ -328,5 +328,126 @@ sub __divmods16()
     @bytes 0xC4, &negate_de;   # call nz, negate_de
 end sub;
 
+var __divresult: uint32[2];
+
+# Computes [HL]/[BC], putting the result in __divresult+0 and the remainder in
+# __divresult+4.
+# Corrupts all 8-bit registers.
+sub __divmodu32()
+    var rhsptr: uint16;
+    var bitcount: uint8;
+    var scrap: uint32;
+
+    @bytes 0xED, 0x43, &rhsptr; # ld (rhsptr), bc
+    
+    # Copy LHS in HL into result (as we're going to need to mutate it).
+
+    @bytes 0x11, &__divresult+0; # ld de, #__divresult+0
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+
+    # Clear remainder.
+
+    @bytes 0xED, 0x43, &__divresult+4; # ld (__divresult+4), bc
+    @bytes 0xED, 0x43, &__divresult+6; # ld (__divresult+6), bc
+
+    # Now the division loop.
+
+    @bytes 0x3E, 32;           # ld a, #32
+    @bytes 0x32, &bitcount;    # ld (bitcount), a
+
+                               # .mainloop
+    
+    # Shift result left (both result and remainder).
+
+    @bytes 0x21, &__divresult; # ld hl, #__divresult
+    @bytes 0x06, 0x08;         # ld b, #8
+    @bytes 0xB7;               # or a (clear carry)
+                               # .shiftloop
+    @bytes 0xCB, 0x16;         # rl (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x10, 0xFB;         # djnz shiftloop
+
+    # Subtract the RHS from the remainder, leaving the result on the stack
+    # (as we don't know whether we want it or not yet). This is harder than
+    # it should be because we've run out of registers.
+    # we've run out of registers.
+
+    @bytes 0x2A, &rhsptr;      # ld hl, (rhsptr)
+    @bytes 0x4E;               # ld c, (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x46;               # ld b, (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x5E;               # ld e, (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x56;               # ld d, (hl)
+
+    @bytes 0x2A, &__divresult+4; # ld hl, (__divresult+4)
+    @bytes 0xB7;               # or a --- clear carry
+    @bytes 0xED, 0x42;         # sbc hl, bc
+    @bytes 0x22, &scrap+0;     # ld (scrap+0), hl
+    @bytes 0x2A, &__divresult+6; # ld hl, (__divresult+6)
+    @bytes 0xED, 0x52;         # sbc hl, de
+    @bytes 0x22, &scrap+2;     # ld (scrap+2), hl
+
+    # If the carry was set, the RHS didn't fit into the remainder, so skip
+    # adjusting the result.
+
+    @bytes 0x38, 0x0F;         # jr c, rhs_did_not_fit
+
+    # The RHS *did* fit. Make the result of the subtraction the new
+    # remainder and increment the result.
+
+    @bytes 0x21, &scrap;       # ld hl, #scrap
+    @bytes 0x11, &__divresult+4; # ld de, #__divresult+4
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+
+    @bytes 0x21, &__divresult; # ld hl, #__divresult
+    @bytes 0x34;               # inc (hl)
+                               # .rhs_did_not_fit
+
+    # End of loop; decrement bit count and go again.
+
+    @bytes 0x21, &bitcount;    # ld hl, #bitcount
+    @bytes 0x35;               # dec hl
+    @bytes 0x20, 0xC3;         # jr nz, mainloop
+end sub;
+
+# Computes [HL]/[BC], putting the result in [DE].
+# Corrupts all 8-bit registers.
+sub __divu32()
+    @bytes 0xD5;               # push de
+    __divmodu32();
+    @bytes 0xD1;               # pop de
+    @bytes 0x21, &__divresult; # ld hl, #__divresult
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir
+end sub;
+
+# Computes [HL]%[BC], putting the result in [DE].
+# Corrupts all 8-bit registers.
+sub __modu32()
+    @bytes 0xD5;               # push de
+    __divmodu32();
+    @bytes 0xD1;               # pop de
+    @bytes 0x21, &__divresult+4; # ld hl, #__divresult+4
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir
+end sub;
+
 sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32)
+    @bytes 0x21, &left;        # ld hl, #left
+    @bytes 0x01, &right;       # ld bc, #right
+    __divmodu32();
+
+    @bytes 0x21, &__divresult+0; # ld hl, #__divresult+0
+    @bytes 0x11, &quotient;    # ld de, #quotient
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+
+    @bytes 0x21, &__divresult+4; # ld hl, #__divresult+4
+    @bytes 0x11, &remainder;   # ld de, #remainder
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
 end sub;
