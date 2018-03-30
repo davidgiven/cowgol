@@ -136,7 +136,6 @@ sub arch_gen_or(iop: [BEIop])
 end sub;
 
 sub arch_gen_eor(iop: [BEIop])
-    cant_do_3op(iop, "eor");
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xEE); # xor *
     else
