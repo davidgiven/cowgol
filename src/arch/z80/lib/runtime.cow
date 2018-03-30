@@ -109,6 +109,88 @@ sub __mul16()
     @bytes 0x20, 0xF2;       # jr nz, loop
 end sub;
 
+# Computes [BC]*[HL], putting the result in [DE].
+# Corrupts all registers.
+sub __mul32()
+    var lhsptr: uint16;
+    var resultptr: uint16;
+    var resulthi: uint8[4];
+    var rhs: uint8[4];
+
+    @bytes 0xED, 0x43, &lhsptr; # ld (lhsptr), bc
+    @bytes 0xED, 0x53, &resultptr; # ld (resultptr), de
+
+    # Copy RHS into temporary storage.
+
+    @bytes 0x11, &rhs;       # ld de, #rhs
+    @bytes 0x01, 0x04, 0x00; # ld bc, #4
+    @bytes 0xED, 0xB0;       # ldir --- leaves BC 0
+
+    # Clear the high bits of the result.
+
+    @bytes 0xED, 0x43, &resulthi+0; # ld (resulthi+0), bc
+    @bytes 0xED, 0x43, &resulthi+2; # ld (resulthi+2), bc
+
+    # Now begin the multiply itself.
+
+    @bytes 0x0E, 32;         # ld c, #32 (number of iterations)
+
+                             # .main_loop
+    
+    # Shift right right.
+
+    @bytes 0x21, &rhs+3;     # ld hl, rhs+3
+    @bytes 0xB7;             # or a (clear carry)
+    @bytes 0x06, 0x04;       # ld b, #4
+                             # .shiftloop
+    @bytes 0xCB, 0x1E;       # rr (hl)
+    @bytes 0x2B;             # dec hl
+    @bytes 0x10, 0xFB;       # djnz shiftloop
+                             
+    # If the bottom bit that just got clocked out was set, add the LHS to
+    # the top half of the result.
+
+    @bytes 0x30, 0x10;       # jr nc, dont_add
+
+    @bytes 0x2A, &lhsptr;    # ld hl, (lhsptr)
+    @bytes 0x11, &resulthi;  # ld de, resulthi
+    @bytes 0x06, 0x04;       # ld b, #4
+    @bytes 0xB7;             # or a (clear carry)
+                             # .addloop
+    @bytes 0x1A;             # ld a, (de)
+    @bytes 0x8E;             # adc a, (hl)
+    @bytes 0x12;             # ld (de), a
+    @bytes 0x23;             # inc hl
+    @bytes 0x13;             # inc de
+    @bytes 0x10, 0xF9;       # djnz addloop
+                             # .dont_add
+    
+    # Now rotate the 64-bit result right (32 bits at a time).
+
+    @bytes 0x21, &resulthi+3; # ld hl, resulthi+3
+    @bytes 0xB7;             # or a (clear carry)
+    @bytes 0x06, 0x04;       # ld b, #4
+                             # .shiftloop
+    @bytes 0xCB, 0x1E;       # rr (hl)
+    @bytes 0x2B;             # dec hl
+    @bytes 0x10, 0xFB;       # djnz shiftloop
+    
+    @bytes 0x2A, &resultptr; # ld hl, (resultptr)
+    @bytes 0x23;             # inc hl
+    @bytes 0x23;             # inc hl
+    @bytes 0x23;             # inc hl
+    @bytes 0x06, 0x04;       # ld b, #4
+                             # .shiftloop
+    @bytes 0xCB, 0x1E;       # rr (hl)
+    @bytes 0x2B;             # dec hl
+    @bytes 0x10, 0xFB;       # djnz shiftloop
+
+    # Decrement bit count and go again.
+
+    @bytes 0x0D;             # dec c
+    @bytes 0x20, 0xC8;       # jr nz, main_loop
+end sub;
+
 # Computes C/D, result=C, remainder=A
 # Corrupts A, B, C.
 sub __divmodu8()

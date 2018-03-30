@@ -118,3 +118,32 @@ sub arch_gen_helper_mul_word(iop: [BEIop])
     save_16bit_or_make_precious(&iop.dest, REG_HL);
 end sub;
 
+sub arch_gen_helper_mul_wide(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE quad mul: ");
+        print_ea(&iop.left);
+        print(" * ");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    reg_value_is_changing(&iop.dest);
+
+    var indea: EffectiveAddress;
+    make_pointer(&iop.left, &indea);
+    reg_find_or_load_fixed(REG_BC, &indea);
+
+    make_pointer(&iop.right, &indea);
+    reg_find_or_load_fixed(REG_HL, &indea);
+
+    make_pointer(&iop.dest, &indea);
+    reg_find_or_load_fixed(REG_DE, &indea);
+    
+    reg_evict(REG_8BIT);
+
+    write_byte(0xCD); # call
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_MUL32), 0);
+end sub;
+
