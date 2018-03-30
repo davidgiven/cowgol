@@ -115,7 +115,7 @@ sub arch_gen_not(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_not_byte(iop);
     else
-        cant_do_2op(iop, "not");
+        arch_gen_not_wide(iop);
     end if;
 end sub;
 
