@@ -158,16 +158,20 @@ sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
         rhsmode := 0;
     end if;
 
-    lhsmode := MODE_IND;
-    if (lhsea.flags == EA_LEA) or (is_number_thing(lhsea.obj_id) != 0) then
-        lhsmode := MODE_IMM;
-    elseif lhsea.flags == EA_VALUE then
-        lhsmode := MODE_DIR;
+    if lhsea != (0 as [EffectiveAddress]) then
+        lhsmode := MODE_IND;
+        if (lhsea.flags == EA_LEA) or (is_number_thing(lhsea.obj_id) != 0) then
+            lhsmode := MODE_IMM;
+        elseif lhsea.flags == EA_VALUE then
+            lhsmode := MODE_DIR;
+        end if;
+    else
+        lhsmode := 0;
     end if;
     
     if destea != (0 as [EffectiveAddress]) then
         destmode := MODE_IND;
-        if destea.flags == EA_VALUE then
+        if (opwidth == 2) and (destea.flags == EA_VALUE) then
             destmode := MODE_DIR;
         end if;
     else
@@ -510,26 +514,36 @@ sub arch_gen_extend_wide(iop: [BEIop], signed: uint8)
         print_newline();
     $endif
 
+    var srcwidth: uint8 := get_width_of_type(iop.left.type_id);
+    var srcreg: RegSet;
+    if srcwidth == 1 then
+        srcreg := load_complex_8bit_value(REG_A, &iop.left);
+    elseif srcwidth == 2 then
+        srcreg := load_complex_16bit_value(REG_16BIT, &iop.left);
+    else
+        print("bad extension");
+        halt();
+    end if;
+
     opwidth := iop.width;
     rhsea := 0 as [EffectiveAddress];
-    lhsea := &iop.left;
+    lhsea := 0 as [EffectiveAddress];
     destea := &iop.dest;
-    setup_wide_for_iop(1, 0);
-
-    reg_alloc_fixed(REG_A);
+    setup_wide_for_iop(0, 0);
 
     var i: uint8 := 0;
-    var srcwidth: uint8 := get_width_of_type(lhsea.type_id);
     while i != srcwidth loop
         if i != 0 then
             adjust_wide_pointers(0x03); # inc rr
         end if;
-        do_wide_read(i, REG_A);
-        do_wide_write(i, REG_A);
+        do_wide_write(i, srcreg);
         i := i + 1;
     end loop;
-
-    reg_free(REG_A);
+    if srcreg != REG_A then
+        reg_copy(halfof_reg(srcreg, i-1), REG_A);
+    end if;
+    reg_free(srcreg);
+    
     if signed != 0 then
         reg_alloc_fixed(REG_A);
         write_byte(0x07); # rlca
@@ -544,6 +558,7 @@ sub arch_gen_extend_wide(iop: [BEIop], signed: uint8)
         i := i + 1;
     end loop;
     reg_free(REG_A);
+    reg_evict(REG_A);
 end sub;
 
 sub arch_gen_not_wide(iop: [BEIop])

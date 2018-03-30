@@ -592,6 +592,13 @@ build $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.bbc.stamp : run_emu_test $OB
  goodfile = tests/cpu/weirdnesses-shift-then-cast.good 
  badfile = tests/cpu/weirdnesses-shift-then-cast.bbc.bad 
 
+build $OBJDIR/tests/cpu/weirdnesses-signextension-comparisons.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-signextension-comparisons.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/weirdnesses-signextension-comparisons.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/weirdnesses-signextension-comparisons.bbc | tests/cpu/weirdnesses-signextension-comparisons.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/weirdnesses-signextension-comparisons.good 
+ badfile = tests/cpu/weirdnesses-signextension-comparisons.bbc.bad 
+
 build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-structure-indexing.test.cow | $OBJDIR/compiler_for_bbc_on_native 
  arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/weirdnesses-structure-indexing.bbc | tests/cpu/weirdnesses-structure-indexing.good scripts/bbctube_test bin/bbctube 
@@ -920,6 +927,13 @@ build $OBJDIR/tests/cpu/weirdnesses-shift-then-cast.cpmz.stamp : run_emu_test $O
  testscript = scripts/cpmz_test 
  goodfile = tests/cpu/weirdnesses-shift-then-cast.good 
  badfile = tests/cpu/weirdnesses-shift-then-cast.cpmz.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses-signextension-comparisons.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-signextension-comparisons.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/weirdnesses-signextension-comparisons.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/weirdnesses-signextension-comparisons.cpmz | tests/cpu/weirdnesses-signextension-comparisons.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/weirdnesses-signextension-comparisons.good 
+ badfile = tests/cpu/weirdnesses-signextension-comparisons.cpmz.bad 
 
 build $OBJDIR/tests/cpu/weirdnesses-structure-indexing.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-structure-indexing.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
  arch = cpmz_on_native 
