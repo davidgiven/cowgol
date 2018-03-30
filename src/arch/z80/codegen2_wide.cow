@@ -546,6 +546,35 @@ sub arch_gen_extend_wide(iop: [BEIop], signed: uint8)
     reg_free(REG_A);
 end sub;
 
+sub arch_gen_not_wide(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE: not wide: ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    opwidth := iop.width;
+    rhsea := 0 as [EffectiveAddress];
+    lhsea := &iop.left;
+    destea := &iop.dest;
+    setup_wide_for_iop(1, 0);
+
+    reg_alloc_fixed(REG_A);
+
+    var i: uint8 := 0;
+    while i != opwidth loop
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_read(i, REG_A);
+        write_word(0xFFEE); # xor #-1
+        do_wide_write(i, REG_A);
+        i := i + 1;
+    end loop;
+end sub;
+
 sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
     $if DEBUG
         print("* GENERATE: compare wide 0x");
