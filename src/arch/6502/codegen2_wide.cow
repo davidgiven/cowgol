@@ -440,10 +440,6 @@ sub arch_gen_not_wide(iop: [BEIop])
     $if DEBUG
         print("* GENERATE: wide not: ");
         print_ea(&iop.left);
-        if opcode != 0 then
-            print(", ");
-            print_ea(&iop.right);
-        end if;
         print(" => ");
         print_ea(&iop.dest);
         print_newline();
