@@ -120,7 +120,6 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
             # directly.
                     
             iop.right.obj_id := ea.varoff_id;
-            deref_temporary(ea.varoff_id);
             ea.varoff_id := 0;
         end if;
 
@@ -152,6 +151,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
             write_be_iop(&iop);
 
             deref_temporary(ea.obj_id);
+            deref_temporary(ea.varoff_id);
             ea.obj_id := tmpvar_id;
 
             if ea.flags == EA_VALUE then
@@ -243,6 +243,7 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
             end if;
 
             deref_temporary(ea.obj_id);
+            deref_temporary(ea.varoff_id);
             ea.obj_id := tmpvar_id;
         end sub;
 
