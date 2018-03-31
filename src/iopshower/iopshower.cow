@@ -137,8 +137,8 @@ sub do_kill(iop: [KillIop])
     print_ea(&iop.ea);
 end sub;
 
-sub do_cg_6502_mem(iop: [CG6502MemIop])
-    print("CG_6502_MEM opcode=0x");
+sub do_cg_mem(iop: [CG6502MemIop])
+    print("CG_MEM opcode=0x");
     print_hex_i8(iop.opcode);
     print(" thing_id=");
     print_thing(iop.thing_id);
@@ -146,8 +146,8 @@ sub do_cg_6502_mem(iop: [CG6502MemIop])
     print_hex_i16(iop.offset);
 end sub;
 
-sub do_cg_6502_cond(iop: [CG6502ConditionalIop])
-    print("CG_6502_COND opcode=0x");
+sub do_cg_cond(iop: [CGConditionalIop])
+    print("CG_COND opcode=0x");
     print_hex_i8(iop.opcode);
     print(" label=");
     print_i8(iop.label);
@@ -286,10 +286,10 @@ loop
         end sub;
 
         sub cg_iops()
-            if kind == IOP_CG_6502_MEM then
-                do_cg_6502_mem(iop as [CG6502MemIop]);
-            elseif kind == IOP_CG_6502_COND then
-                do_cg_6502_cond(iop as [CG6502ConditionalIop]);
+            if kind == IOP_CG_MEM then
+                do_cg_mem(iop as [CG6502MemIop]);
+            elseif kind == IOP_CG_COND then
+                do_cg_cond(iop as [CGConditionalIop]);
             else
                 unknown_iop();
             end if;

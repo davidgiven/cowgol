@@ -1,0 +1,3 @@
+const THINGSTABLE_SIZE := 31000;
+const STRINGTABLE_SIZE := 15000;
+const IOPTABLE_SIZE := 5000; # needs to be about 10000 to compile the compiler

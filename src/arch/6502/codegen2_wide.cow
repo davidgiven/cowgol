@@ -103,7 +103,7 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
 
         write_byte(0xC8); # INY
         write_byte(0xCA); # DEX
-        write_cg_6502_conditional_iop(0x10, label); # BPL rel
+        write_cg_conditional_iop(0x10, label); # BPL rel
 
         flush_cached_values(REG_X|REG_Y);
         free_reg(REG_A|REG_X|REG_Y);
@@ -221,7 +221,7 @@ sub fast_increment_wide(width: uint8, src: [EffectiveAddress], dest: [EffectiveA
     inc_once();
     offset := 1;
     while offset != width loop
-        write_cg_6502_conditional_iop(0xD0, noinclabel); # BNE label
+        write_cg_conditional_iop(0xD0, noinclabel); # BNE label
         inc_once();
         offset := offset + 1;
     end loop;
@@ -318,14 +318,27 @@ sub arch_gen_zext(iop: [BEIop])
     var destwidth: uint8 := iop.width;
 
     var datacandidates: uint8;
+    var datareg: uint8;
     if (iop.left.flags == EA_DEREF) or (iop.dest.flags == EA_DEREF) then
         datacandidates := REG_A;
     else
         datacandidates := REG_A|REG_X|REG_Y;
     end if;
 
+    if srcwidth > destwidth then
+        $if DEBUG
+            print("* shrinking\n");
+        $endif
+        if destwidth == 1 then
+            datareg := find_or_load_value(&iop.left, datacandidates);
+            make_value_precious_or_save_now(datareg, &iop.dest);
+            return;
+        end if;
+            
+        srcwidth := destwidth;
+    end if;
+
     var offset: uint8;
-    var datareg: uint8;
     var indexreg: uint8;
     if srcwidth == 1 then
         # Optimised code path because we're reading from a byte.
@@ -361,18 +374,20 @@ sub arch_gen_zext(iop: [BEIop])
 
     # Now fill the high bytes.
 
-    datareg := find_or_load_int(0, datacandidates);
-    loop
-        indexreg := setup_insn(&iop.dest, offset, datareg);
-        insn_save_object();
-        free_reg(indexreg);
+    if offset != destwidth then
+        datareg := find_or_load_int(0, datacandidates);
+        loop
+            indexreg := setup_insn(&iop.dest, offset, datareg);
+            insn_save_object();
+            free_reg(indexreg);
 
-        offset := offset + 1;
-        if offset == destwidth then
-            break;
-        end if;
-    end loop;
-    free_reg(datareg);
+            offset := offset + 1;
+            if offset == destwidth then
+                break;
+            end if;
+        end loop;
+        free_reg(datareg);
+    end if;
 end sub;
 
 sub arch_gen_lsl_wide(iop: [BEIop])

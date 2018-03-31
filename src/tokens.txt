@@ -41,6 +41,8 @@ __divu16      DIVU16     IDENTIFIER
 __divs16      DIVS16     IDENTIFIER
 __modu16      MODU16     IDENTIFIER
 __mods16      MODS16     IDENTIFIER
+__divmodu16   DIVMODU16  IDENTIFIER
+__divmods16   DIVMODS16  IDENTIFIER
 __lsl32       LSL32      IDENTIFIER
 __lsr32       LSR32      IDENTIFIER
 __asr32       ASR32      IDENTIFIER

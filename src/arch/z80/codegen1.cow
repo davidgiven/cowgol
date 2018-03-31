@@ -1,0 +1,88 @@
+sub make_pointer(ea: [EffectiveAddress], ptrea: [EffectiveAddress])
+    copy_ea(ea, ptrea);
+    if ea.flags == EA_VALUE then
+        ptrea.flags := EA_LEA;
+
+        # If we ever take the address of a number, ensure that the number will
+        # get written out as a data value.
+        if is_number_thing(ea.obj_id) != 0 then
+            var thing: [NumberThing] := find_thing(ea.obj_id) as [NumberThing];
+            thing.segment := SEGMENT_CONST;
+        end if;
+    else
+        ptrea.flags := EA_VALUE;
+        ptrea.numoff_id := 0;
+    end if;
+end sub;
+
+# Given an ea, loads a pointer to the *unoffsetted* part of it.
+sub setup_pointer(candidates: RegSet, ea: [EffectiveAddress]): (pointerreg: RegSet)
+    var indea: EffectiveAddress;
+    make_pointer(ea, &indea);
+
+    if get_value_of_number(ea.numoff_id) != 0 then
+        candidates := candidates & (REG_IX|REG_IY);
+    end if;
+    pointerreg := reg_find_or_load(candidates, &indea);
+end sub;
+
+sub just_offset(reg: RegSet, offset: uint16)
+    if offset != 0 then
+        $if DEBUG
+            print("* offsetting ");
+            print_regs(reg);
+            print(" by 0x");
+            print_hex_i16(offset);
+            print_newline();
+        $endif
+
+        var indea: EffectiveAddress;
+        indea.type_id := uint16_type;
+        indea.obj_id := add_number_by_value(offset as int32);
+
+        var offreg: RegSet := reg_find_or_load(REG_BC|REG_DE, &indea);
+        reg_evict(reg);
+        var regnum: uint8 := get_z80_regnum(offreg);
+        write_byte(0x09 | regnum); # add hl, bc
+        reg_free(offreg);
+    end if;
+end sub;
+
+sub construct_pointer(candidates: RegSet, mode: uint8, ea: [EffectiveAddress],
+        extraoffset: uint8): (reg: RegSet)
+    reg := 0;
+    if mode == MODE_IND then
+        var ptrea: EffectiveAddress;
+        make_pointer(ea, &ptrea);
+        reg := reg_is_cached_in(candidates, &ptrea);
+        var offset: uint16 := (get_value_of_number(ea.numoff_id) as uint16) + (extraoffset as uint16);
+        if offset != 0 then
+            candidates := candidates & (REG_HL|REG_IX|REG_IY);
+        end if;
+        if reg == 0 then
+            reg := reg_find_or_load(candidates, &ptrea);
+        end if;
+        if (reg & (REG_IX|REG_IY)) == 0 then
+            just_offset(reg, offset);
+        end if;
+    end if;
+end sub;
+
+# Returns half a register pair.
+sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
+    if reg16 == REG_HL then
+        reg8 := REG_L;
+    elseif reg16 == REG_BC then
+        reg8 := REG_C;
+    elseif reg16 == REG_DE then
+        reg8 := REG_E;
+    elseif reg16 == REG_A then
+        reg8 := REG_A;
+        return;
+    else
+        print("bad register: ");
+        print_regs(reg16);
+        halt();
+    end if;
+    reg8 := reg8 >> offset;
+end sub;

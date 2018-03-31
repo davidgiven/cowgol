@@ -49,68 +49,70 @@ function tokenstream(source)
         "^([-+*/():;,.'<>[%]&|^%%~{}])"
     }
 
-    local c = coroutine.create(
-        function()
-            local o = 1
+    local line = 1
+    local function parser()
+        local pushed_contexts = {}
+        local o = 1
 
-            local function check_patterns()
-                for _, p in ipairs(patterns) do
-                    local _, nexto, m = source:find(p, o)
-                    if nexto then
-                        o = nexto + 1
-                        coroutine.yield(m)
-                        return
-                    end
-                end
-
-                fatal("cannot parse text: %s...", source:sub(o, o+20))
-            end
-
-            local function decode_escape(s)
-                if (s == "n") then
-                    return "\n"
-                elseif (s == "r") then
-                    return "\r"
-                elseif (s == "0") then
-                    return "\0"
-                elseif (s == "\\") then
-                    return "\\"
-                elseif (s == "'") or (s == "\"") then
-                    return s
-                else
-                    fatal("unrecognised string escape '\\%s'", s)
+        local function check_patterns()
+            for _, p in ipairs(patterns) do
+                local _, nexto, m = source:find(p, o)
+                if nexto then
+                    o = nexto + 1
+                    coroutine.yield(m)
+                    return
                 end
             end
 
-            local function parse_string()
-                local t = {}
+            fatal("cannot parse text: %s...", source:sub(o, o+20))
+        end
+
+        local function decode_escape(s)
+            if (s == "n") then
+                return "\n"
+            elseif (s == "r") then
+                return "\r"
+            elseif (s == "0") then
+                return "\0"
+            elseif (s == "\\") then
+                return "\\"
+            elseif (s == "'") or (s == "\"") then
+                return s
+            else
+                fatal("unrecognised string escape '\\%s'", s)
+            end
+        end
+
+        local function parse_string()
+            local t = {}
+            while true do
                 while true do
-                    while true do
-                        local _, nexto, m = source:find('^([^"\\]+)', o)
-                        if nexto then
-                            t[#t+1] = m
-                            o = nexto + 1
-                            break
-                        end
-
-                        _, nexto, m = source:find("^\\(.)", o)
-                        if nexto then
-                            t[#t+1] = decode_escape(m)
-                            o = nexto + 1
-                            break
-                        end
-
-                        _, nexto = source:find('^"', o)
-                        if nexto then
-                            o = nexto + 1
-                            return table.concat(t)
-                        end
-
+                    local _, nexto, m = source:find('^([^"\\]+)', o)
+                    if nexto then
+                        t[#t+1] = m
+                        o = nexto + 1
                         break
                     end
+
+                    _, nexto, m = source:find("^\\(.)", o)
+                    if nexto then
+                        t[#t+1] = decode_escape(m)
+                        o = nexto + 1
+                        break
+                    end
+
+                    _, nexto = source:find('^"', o)
+                    if nexto then
+                        o = nexto + 1
+                        return table.concat(t)
+                    end
+
+                    break
                 end
             end
+        end
 
+        while true do
             while (o <= #source) do
                 while true do
                     local nexto, m, _
@@ -176,18 +178,38 @@ function tokenstream(source)
                         break
                     end
 
+                    _, nexto = source:find("^%$include[ \t\r]+\"", o)
+                    if nexto then
+                        o = nexto + 1
+                        local new_filename = parse_string()
+                        pushed_contexts[#pushed_contexts+1] = {current_filename, line, source, o}
+                        current_filename = new_filename
+                        line = 1
+                        o = 1
+                        source = io.open(current_filename):read("*a")
+                        if not source then
+                            fatal("couldn't open hack include %s", current_filename)
+                        end
+                        break
+                    end
+
                     check_patterns()
                     break
                 end
             end
 
-            while true do
-                coroutine.yield("eof")
+            if #pushed_contexts == 0 then
+                while true do
+                    coroutine.yield("eof")
+                end
+            else
+                current_filename, line, source, o = unpack(pushed_contexts[#pushed_contexts])
+                pushed_contexts[#pushed_contexts] = nil
             end
         end
-    )
+    end
 
-    local line = 1
+    local c = coroutine.create(parser)
     return {
         next = function(self)
 			while true do

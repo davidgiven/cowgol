@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <z80ex/z80ex_dasm.h>
@@ -82,6 +81,8 @@ static void cmd_register(void)
 		Z80_REG_T reg = -1;
 		if (strcmp(w1, "sp") == 0)
 			reg = regSP;
+		else if (strcmp(w1, "pc") == 0)
+			reg = regPC;
 		else if (strcmp(w1, "af") == 0)
 			reg = regAF;
 		else if (strcmp(w1, "bc") == 0)
@@ -239,6 +240,8 @@ static void debug(void)
 	while (!go)
 	{
 		char* cmdline = readline("debug>");
+		if (!cmdline)
+			exit(0);
 
 		char* token = strtok(cmdline, " ");
 		if (token != NULL)
@@ -287,6 +290,7 @@ void emulator_init(void)
 		iowrite_cb, NULL,
 		irqread_cb, NULL);
 
+	singlestepping = flag_enter_debugger;
 }
 
 void emulator_run(void)
@@ -300,7 +304,7 @@ void emulator_run(void)
 				if (pc == breakpoints[i])
 					singlestepping = true;
 		}
-		if (singlestepping)
+		if (singlestepping && !z80ex_last_op_type(z80))
 			debug();
 		else if (tracing)
 			showregs();

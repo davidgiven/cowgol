@@ -71,8 +71,11 @@ build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.
 rule run_smart_test
     command = $in && touch $out
 
-rule run_bbctube_test
-    command = scripts/bbctube_test $in $badfile $goodfile && touch $out
+rule run_emu_test
+    command = $testscript $in $badfile $goodfile && touch $out
+
+rule run_stupid_test
+    command = scripts/stupid_test $in $badfile $goodfile && touch $out
 
 build $OBJDIR/dependencies_for_bootstrapped_cowgol_program : stamp $
     scripts/cowgol_bootstrap_compiler $
@@ -107,14 +110,25 @@ rule objectify
 
 rule lexify
     command = flex -8 -Cem -B -t $in | gawk -f scripts/lexify.awk > $out
+
+rule make_test_things
+    command = $in $out > /dev/null
+
+build $OBJDIR/tests/compiler/things.dat $
+    $OBJDIR/tests/compiler/strings.dat $
+    $OBJDIR/tests/compiler/iops.dat : make_test_things bin/bbc_on_native/init
+
 ]])
 
 local NAME
 local HOST
 local TARGET
+local EXTENSION
 
 local LIBS
 local RULE
+local TESTSCRIPT
+local TESTBIN
 
 local GLOBALS
 local CODEGEN
@@ -123,8 +137,17 @@ local SIMPLIFIER
 local PLACER
 local EMITTER
 
+-- Build X on Y
+local compilers = {
+    {"bbc", "native"},
+    {"c64", "native"},
+    {"cpmz", "native"},
+    {"bbc", "bbc"},
+}
+
 local host_data = {
     ["native"] = function()
+        HOST = "native"
         LIBS = {
             "src/arch/bootstrap/host.cow",
 			"src/string_lib.cow",
@@ -133,9 +156,13 @@ local host_data = {
         }
 
         RULE = "bootstrapped_cowgol_program"
+        EXTENSION = ""
+        TESTSCRIPT = nil
+        TESTBIN = nil
     end,
 
     ["bbc"] = function()
+        HOST = "bbc"
         LIBS = {
             "src/arch/bbc/host.cow",
             "src/arch/bbc/lib/mos.cow",
@@ -150,11 +177,31 @@ local host_data = {
         }
 
         RULE = "cowgol_program"
+        EXTENSION = ".bbc"
+        TESTSCRIPT = "scripts/bbctube_test"
+        TESTBIN = "bin/bbctube"
+    end,
+
+    ["cpmz"] = function()
+        HOST = "cpmz"
+        LIBS = {
+            "src/arch/cpmz/host.cow",
+            "src/arch/cpmz/lib/runtime.cow",
+            "src/arch/z80/lib/runtime.cow",
+            "src/arch/common/lib/runtime.cow",
+            "src/string_lib.cow",
+        }
+
+        RULE = "cowgol_program"
+        EXTENSION = ".cpmz"
+        TESTSCRIPT = "scripts/cpmz_test"
+        TESTBIN = "bin/cpm"
     end,
 }
 
 local target_data = {
     ["bbc"] = function()
+        TARGET = "bbc"
         GLOBALS = "src/arch/bbc/globals.cow"
         CLASSIFIER = "src/arch/6502/classifier.cow"
         SIMPLIFIER = "src/arch/6502/simplifier.cow"
@@ -174,6 +221,7 @@ local target_data = {
     end,
 
     ["c64"] = function()
+        TARGET = "c64"
         GLOBALS = "src/arch/c64/globals.cow"
         CLASSIFIER = "src/arch/6502/classifier.cow"
         SIMPLIFIER = "src/arch/6502/simplifier.cow"
@@ -190,8 +238,39 @@ local target_data = {
             "src/arch/6502/codegen2_wide.cow",
             "src/arch/6502/codegen2.cow",
         }
+    end,
+
+    ["cpmz"] = function()
+        TARGET = "cpmz"
+        GLOBALS = "src/arch/cpmz/globals.cow"
+        CLASSIFIER = "src/arch/z80/classifier.cow"
+        SIMPLIFIER = "src/arch/z80/simplifier.cow"
+        PLACER = "src/arch/z80/placer.cow"
+        EMITTER = {
+            "src/arch/z80/emitter.cow",
+            "src/arch/cpmz/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/z80/codegen0.cow",
+            "src/codegen/registers.cow",
+            "src/arch/z80/codegen1.cow",
+            "src/arch/z80/codegen2_8bit.cow",
+            "src/arch/z80/codegen2_16bit.cow",
+            "src/arch/z80/codegen2_wide.cow",
+            "src/arch/z80/codegen2_helper.cow",
+            "src/arch/z80/codegen2.cow",
+        }
     end
 }
+
+local function compiler_name()
+    if HOST == TARGET then
+        return TARGET
+    else
+        return TARGET.."_on_"..HOST
+    end
+end
 
 local function build_cowgol(files)
     local program = table.remove(files, 1)
@@ -227,35 +306,59 @@ local function build_lexify(files, vars)
 	nl()
 end
 
-local function bootstrap_test(file)
+local function bootstrap_test(dir, file, extradeps)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
-    local testbin = "$OBJDIR/tests/bootstrap/"..testname
+    local testbin = "$OBJDIR/tests/"..dir.."/"..testname
     emit("build", testbin, ":", "bootstrapped_cowgol_program",
         "tests/bootstrap/_test.cow",
         file,
-        "|", DEPS)
+        "|", extradeps)
     nl()
     emit("build", testbin..".stamp", ":", "run_smart_test", testbin)
     nl()
     nl()
 end
 
+local function compiler_test(dir, file, extradeps)
+    local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
+    local testbin = "$OBJDIR/tests/"..dir.."/"..testname
+    local goodfile = "tests/"..dir.."/"..testname..".good"
+    local badfile = "tests/"..dir.."/"..testname..".bad"
+    emit("build", testbin, ":", "bootstrapped_cowgol_program",
+        "tests/bootstrap/_test.cow",
+        "$OBJDIR/token_names.cow",
+        file,
+        "|", extradeps)
+    nl()
+    emit("build", testbin..".stamp", ":", "run_stupid_test",
+        testbin, "|",
+        goodfile)
+    nl()
+    emit(" goodfile = "..goodfile)
+    nl()
+    emit(" badfile = "..badfile)
+    nl()
+    nl()
+end
+
 local function cpu_test(file)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
-    local testbin = "$OBJDIR/tests/cpu/"..testname..".6502"
+    local testbin = "$OBJDIR/tests/cpu/"..testname..EXTENSION
     local goodfile = "tests/cpu/"..testname..".good"
-    local badfile = "tests/cpu/"..testname..".bad"
+    local badfile = "tests/cpu/"..testname..EXTENSION..".bad"
 
     emit("build", testbin, ":", RULE, LIBS, file,
-        "|", "$OBJDIR/compiler_for_bbc_on_native")
+        "|", "$OBJDIR/compiler_for_"..HOST.."_on_native")
     nl()
-    emit(" arch =", "bbc_on_native")
+    emit(" arch =", HOST.."_on_native")
     nl()
-    emit("build", testbin..".stamp", ":", "run_bbctube_test",
+    emit("build", testbin..".stamp", ":", "run_emu_test",
         testbin, "|",
         goodfile,
-        "scripts/bbctube_test",
-        "bin/bbctube")
+        TESTSCRIPT,
+        TESTBIN)
+    nl()
+    emit(" testscript = "..TESTSCRIPT)
     nl()
     emit(" goodfile = "..goodfile)
     nl()
@@ -455,50 +558,71 @@ local function build_cowgol_programs()
     }
 end
 
--- Build all the combinations of compilers.
-for host, hostcb in pairs(host_data) do
-    HOST = host
-    hostcb()
+-- Build the compilers.
+for _, spec in ipairs(compilers) do
+    TARGET, HOST = unpack(spec)
+    target_data[TARGET]()
+    host_data[HOST]()
 
-    for target, targetcb in pairs(target_data) do
-        TARGET = target
-        if HOST == TARGET then
-            NAME = TARGET
-        else
-            NAME = TARGET.."_on_"..HOST
-        end
+    NAME = compiler_name()
+    rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
+        {
+            "bin/"..NAME.."/init",
+            "bin/"..NAME.."/tokeniser2",
+            "bin/"..NAME.."/parser",
+            "bin/"..NAME.."/typechecker",
+            "bin/"..NAME.."/backendify",
+            "bin/"..NAME.."/blockifier",
+            "bin/"..NAME.."/classifier",
+            "bin/"..NAME.."/codegen",
+            "bin/"..NAME.."/placer",
+            "bin/"..NAME.."/emitter",
+            "bin/"..NAME.."/iopshower",
+            "bin/"..NAME.."/thingshower"
+        }
+    )
+    nl()
 
-        rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
-            {
-                "bin/"..NAME.."/init",
-                "bin/"..NAME.."/tokeniser2",
-                "bin/"..NAME.."/parser",
-                "bin/"..NAME.."/typechecker",
-                "bin/"..NAME.."/backendify",
-                "bin/"..NAME.."/blockifier",
-                "bin/"..NAME.."/classifier",
-                "bin/"..NAME.."/codegen",
-                "bin/"..NAME.."/placer",
-                "bin/"..NAME.."/emitter",
-                "bin/"..NAME.."/iopshower",
-                "bin/"..NAME.."/thingshower"
-            }
-        )
-        nl()
-
-        targetcb()
-        build_cowgol_programs()
-    end
+    target_data[TARGET]()
+    build_cowgol_programs()
 end
 
 -- Build the bootstrap compiler tests.
 host_data.native()
 for _, file in ipairs(posix.glob("tests/bootstrap/*.test.cow")) do
-    bootstrap_test(file)
+    bootstrap_test("bootstrap", file)
+end
+
+-- Build the compiler logic tests.
+host_data.native()
+for _, file in ipairs(posix.glob("tests/compiler/*.test.cow")) do
+    compiler_test("compiler", file,
+        {
+            "src/codegen/registers.cow",
+            "src/string_lib.cow",
+            "src/arch/bootstrap/fcb.cow",
+            "src/arch/bbc/globals.cow",
+            "src/arch/bbc/host.cow",
+            "src/utils/names.cow",
+            "src/utils/stringtable.cow",
+            "src/utils/things.cow",
+            "src/utils/types.cow",
+            "src/utils/names.cow",
+            "src/utils/iops.cow",
+            "$OBJDIR/tests/compiler/things.dat",
+            "$OBJDIR/tests/compiler/strings.dat",
+            "$OBJDIR/tests/compiler/iops.dat",
+        }
+    )
 end
 
 -- Build the CPU tests.
 host_data.bbc()
+for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
+    cpu_test(file)
+end
+
+host_data.cpmz()
 for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
     cpu_test(file)
 end
@@ -574,4 +698,3 @@ build_lexify(
 		"src/tokeniser2/lexer.l"
 	}
 )
-

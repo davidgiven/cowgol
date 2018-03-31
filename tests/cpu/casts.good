@@ -52,3 +52,6 @@ valns32 as uint32: yes
 valu32 as int32: yes
 vals32 as int32: yes
 valns32 as int32: yes
+valu32 as uint16: yes
+valu32 as uint8: yes
+valu16 as uint8: yes

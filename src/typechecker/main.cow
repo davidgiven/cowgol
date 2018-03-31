@@ -335,8 +335,8 @@ sub process_subroutine()
 
         var input_type: [TypeThing] := find_thing(type_id) as [TypeThing];
         var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
-        if input_type.width < output_type.width then
-            if input_type.thing_type == THING_SIGNEDT then
+        if input_type.width != output_type.width then
+            if (input_type.width < output_type.width) and (input_type.thing_type == THING_SIGNEDT) then
                 iop.iop_kind := IOP_FE_SEXT;
             else
                 iop.iop_kind := IOP_FE_ZEXT;

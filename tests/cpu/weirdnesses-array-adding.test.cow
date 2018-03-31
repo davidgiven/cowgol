@@ -1,0 +1,15 @@
+sub yes() print("yes"); end sub;
+sub no()  print("no");  end sub;
+
+# Discovered in print_i32(), which was doing strange things on the Z80.
+
+var array: uint8[11];
+var pos: uint8 := 3;
+
+zero_memory(&array[0] as [int8], array@bytes);
+array[3] := 3;
+
+sub do_test()
+    if (array[pos] + '0') == '3' then yes(); else no(); end if;
+end sub;
+do_test();

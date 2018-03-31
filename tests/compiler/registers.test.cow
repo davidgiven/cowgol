@@ -1,0 +1,259 @@
+# This test will only run with the bootstrap compiler.
+
+var things_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/things.dat";
+var strings_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/strings.dat";
+var iops_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/iops.dat";
+
+$include "src/string_lib.cow"
+$include "src/arch/bootstrap/fcb.cow"
+$include "src/arch/bbc/globals.cow"
+$include "src/arch/bbc/host.cow"
+$include "src/utils/stringtable.cow"
+$include "src/utils/things.cow"
+$include "src/utils/types.cow"
+$include "src/utils/iops.cow"
+
+$include "src/utils/symbols.cow"
+
+load_thing_table(things_dat);
+init_string_table();
+
+var int8_type: uint16 := find_bootstrap_symbol(TOKEN_INT8);
+var uint8_type: uint16 := find_bootstrap_symbol(TOKEN_UINT8);
+var int16_type: uint16 := find_bootstrap_symbol(TOKEN_INT16);
+var uint16_type: uint16 := find_bootstrap_symbol(TOKEN_UINT16);
+var const_type: uint16 := find_bootstrap_symbol(TOKEN_CONSTANTT);
+
+var ea8bit_1: EffectiveAddress;
+zero_ea(&ea8bit_1);
+ea8bit_1.obj_id := int8_type;
+ea8bit_1.type_id := int8_type;
+
+var ea8bit_2: EffectiveAddress;
+zero_ea(&ea8bit_2);
+ea8bit_2.obj_id := uint8_type;
+ea8bit_2.type_id := uint8_type;
+
+var ea16bit_1: EffectiveAddress;
+zero_ea(&ea16bit_1);
+ea16bit_1.obj_id := int16_type;
+ea16bit_1.type_id := int16_type;
+print("d\n");
+
+var ea16bit_2: EffectiveAddress;
+zero_ea(&ea16bit_2);
+ea16bit_2.obj_id := uint16_type;
+ea16bit_2.type_id := uint16_type;
+
+var eaconst: EffectiveAddress;
+zero_ea(&eaconst);
+eaconst.obj_id := const_type;
+eaconst.type_id := const_type;
+
+const VALUE_CACHE_SIZE := 16;
+
+type RegSet := uint8;
+const REG_A     := 0b0000_0001; # 0
+const REG_B     := 0b0000_0010; # 1
+const REG_C     := 0b0000_0100; # 2
+const REG_D     := 0b0000_1000; # 3
+const REG_E     := 0b0001_0000; # 4
+const REG_BC    := 0b0010_0000; # 5
+const REG_DE    := 0b0100_0000; # 6
+const ALL_REGS  := 0b0111_1111;
+const NUM_REGS  := 7;
+
+var reg_interference: RegSet[NUM_REGS] := {
+    REG_A,
+    REG_B | REG_BC,
+    REG_C | REG_BC,
+    REG_D | REG_DE,
+    REG_E | REG_DE,
+    REG_BC | REG_B | REG_C,
+    REG_DE | REG_D | REG_E
+};
+
+var reg_compatibility: RegSet[NUM_REGS] := {
+    REG_A|REG_B|REG_C|REG_D|REG_E, # A
+    REG_A|REG_B|REG_C|REG_D|REG_E, # B
+    REG_A|REG_B|REG_C|REG_D|REG_E, # C
+    REG_A|REG_B|REG_C|REG_D|REG_E, # D
+    REG_A|REG_B|REG_C|REG_D|REG_E, # E
+    REG_BC|REG_DE,                 # BC
+    REG_BC|REG_DE,                 # DE
+};
+
+sub print_regs(regs: RegSet)
+    if regs == 0            then print("(none) "); end if;
+    if (regs & REG_A) != 0  then print("A "); end if;
+    if (regs & REG_B) != 0  then print("B "); end if;
+    if (regs & REG_C) != 0  then print("C "); end if;
+    if (regs & REG_D) != 0  then print("D "); end if;
+    if (regs & REG_E) != 0  then print("E "); end if;
+    if (regs & REG_BC) != 0 then print("BC "); end if;
+    if (regs & REG_DE) != 0 then print("DE "); end if;
+end sub;
+
+sub reg_save(reg: RegSet, ea: [EffectiveAddress])
+    print("save ");
+    print_regs(reg);
+    print(": ");
+    print_ea(ea);
+    print_newline();
+end sub;
+
+sub reg_load(reg: RegSet, ea: [EffectiveAddress])
+    print("load ");
+    print_regs(reg);
+    print(": ");
+    print_ea(ea);
+    print_newline();
+end sub;
+
+sub reg_copy(src: RegSet, dest: RegSet)
+    print("copy ");
+    print_regs(src);
+    print("-> ");
+    print_regs(dest);
+    print_newline();
+end sub;
+
+$set DEBUG
+$include "src/codegen/registers.cow"
+
+sub cost_test()
+    print("\nLRU test\n");
+    reg_reset();
+    reg_bump(REG_A);
+    reg_bump(REG_B);
+    reg_bump(REG_C);
+    print("cost for A: "); print_i8(register_use[0]); print_newline();
+    print("cost for B: "); print_i8(register_use[1]); print_newline();
+    print("cost for C: "); print_i8(register_use[2]); print_newline();
+    print("cost for D: "); print_i8(register_use[3]); print_newline();
+    print("cost for E: "); print_i8(register_use[4]); print_newline();
+    print("cost for BC: "); print_i8(register_use[5]); print_newline();
+    print("cost for DE: "); print_i8(register_use[6]); print_newline();
+
+    print("lowest cost of ABC is: ");
+    print_regs(reg_find_lowest_cost(REG_A|REG_B|REG_C));
+    print_newline();
+end sub;
+cost_test();
+
+sub simple_allocation_test()
+    print("\nSimple allocation test\n");
+    reg_reset();
+    var location: RegSet := reg_alloc(REG_B);
+    location := reg_alloc(REG_BC|REG_DE);
+    reg_free(REG_B);
+    location := reg_alloc(REG_BC|REG_DE);
+end sub;
+simple_allocation_test();
+
+sub simple_cache_test()
+    print("\nSimple cache test\n");
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_B, &ea8bit_1);
+    reg_evict(REG_A);
+    reg_evict(REG_B);
+
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_B, &ea8bit_2);
+    reg_cache_value(REG_DE, &ea16bit_1);
+    reg_evict(REG_A);
+    reg_evict(REG_B);
+    reg_evict(REG_DE);
+
+    reg_evict(REG_DE);
+
+    reg_reset();
+    reg_cache_value(REG_DE, &ea16bit_1);
+    reg_evict(REG_D);
+end sub;
+simple_cache_test();
+
+sub caching_and_locking_test()
+    print("\nCaching and locking\n");
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    var location: RegSet := reg_alloc(REG_A|REG_B);
+    location := reg_alloc(REG_A|REG_B);
+
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_B, &ea8bit_2);
+    reg_value_is_precious(&ea8bit_2);
+    location := reg_alloc(REG_A|REG_B);
+    location := reg_alloc(REG_A|REG_B);
+
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_cache_value(REG_BC, &ea16bit_2);
+    reg_value_is_precious(&ea16bit_2);
+    location := reg_alloc(REG_A|REG_B);
+    location := reg_alloc(REG_A|REG_B);
+end sub;
+caching_and_locking_test();
+
+sub loading_test()
+    print("\nFinding and loading values\n");
+    reg_reset();
+    reg_cache_value(REG_B, &ea8bit_1);
+    var location: RegSet := reg_find_or_load(REG_A|REG_B, &ea8bit_1);
+    location := reg_find_or_load(REG_A|REG_B, &ea8bit_2);
+
+    reg_reset();
+    location := reg_find_or_load(REG_BC|REG_DE, &ea16bit_1);
+    reg_value_is_precious(&ea16bit_1);
+    reg_free(location);
+    location := reg_find_or_load(REG_BC|REG_DE, &ea16bit_2);
+    reg_value_is_precious(&ea16bit_2);
+    reg_free(location);
+    location := reg_find_or_load(REG_B, &ea8bit_1);
+
+    reg_reset();
+    location := reg_find_or_load(REG_A, &ea8bit_1);
+    location := reg_find_or_load(REG_B, &ea8bit_1);
+    location := reg_find_or_load(REG_B|REG_C, &ea8bit_1);
+end sub;
+loading_test();
+
+sub value_changing_test()
+    print("\nValues changing\n");
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_value_is_precious(&ea8bit_1);
+    reg_cache_value(REG_A, &ea8bit_2);
+    reg_value_is_precious(&ea8bit_2);
+    reg_value_is_changing(&ea8bit_1);
+    reg_evict(REG_A);
+end sub;
+value_changing_test();
+
+sub write_back_precious_test()
+    print("\nWriting back precious values\n");
+    reg_reset();
+    reg_cache_value(REG_A|REG_B, &ea8bit_1);
+    reg_value_is_precious(&ea8bit_1);
+    reg_cache_value(REG_A|REG_B, &ea8bit_2);
+    reg_write_back_precious_regs(REG_B);
+
+    reg_reset();
+    reg_cache_value(REG_A|REG_B, &ea8bit_1);
+    reg_value_is_precious(&ea8bit_1);
+    reg_cache_value(REG_A|REG_B, &ea8bit_2);
+    reg_write_back_precious_value(&ea8bit_1);
+    reg_write_back_precious_value(&ea8bit_2);
+end sub;
+write_back_precious_test();
+
+sub constants_in_different_kinds_of_register_test()
+    print("\nConstants in different kinds of registers\n");
+    reg_reset();
+    var location: RegSet := reg_find_or_load(REG_B|REG_C|REG_D|REG_E, &eaconst);
+    location := reg_find_or_load(REG_BC|REG_DE, &eaconst);
+    location := reg_find_or_load(REG_C|REG_D|REG_E, &eaconst);
+end sub;
+constants_in_different_kinds_of_register_test();

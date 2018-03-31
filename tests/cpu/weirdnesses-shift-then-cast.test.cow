@@ -6,3 +6,5 @@ var value: uint16 := 0xf800;
 var shorter: uint8 := (value >> 8) as uint8;
 
 if shorter == 0xf8 then print("yes\n"); else print("no\n"); end if;
+print_hex_i8(shorter);
+print_newline();

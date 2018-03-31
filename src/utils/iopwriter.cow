@@ -124,20 +124,20 @@ sub write_kill_iop(ea: [EffectiveAddress])
     write_iop(&buf as [Iop]);
 end sub;
     
-sub write_cg_6502_mem_iop(opcode: uint8, thing_id: uint16, offset: uint16)
+sub write_cg_mem_iop(opcode: uint8, thing_id: uint16, offset: uint16)
     var buf: CG6502MemIop;
     buf.iop_size := CG6502MemIop@bytes;
-    buf.iop_kind := IOP_CG_6502_MEM;
+    buf.iop_kind := IOP_CG_MEM;
     buf.opcode := opcode;
     buf.thing_id := thing_id;
     buf.offset := offset;
     write_iop(&buf as [Iop]);
 end sub;
 
-sub write_cg_6502_conditional_iop(opcode: uint8, label: uint8)
-    var buf: CG6502ConditionalIop;
-    buf.iop_size := CG6502ConditionalIop@bytes;
-    buf.iop_kind := IOP_CG_6502_COND;
+sub write_cg_conditional_iop(opcode: uint8, label: uint8)
+    var buf: CGConditionalIop;
+    buf.iop_size := CGConditionalIop@bytes;
+    buf.iop_kind := IOP_CG_COND;
     buf.opcode := opcode;
     buf.label := label;
     write_iop(&buf as [Iop]);

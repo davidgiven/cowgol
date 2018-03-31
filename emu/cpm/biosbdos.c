@@ -9,14 +9,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
+#include <errno.h>
 #include "globals.h"
 
 #define FBASE 0xff80
 #define CBASE (FBASE - (7*1024))
 #define BDOS_ENTRY FBASE
-#define BIOS_ENTRY (FBASE+1)
-#define BIOS_SYSCALL(n) (BIOS_ENTRY + (n)*3)
-#define CBIOS_SYSCALLS 22
 
 static uint16_t dma;
 
@@ -92,8 +90,28 @@ static void bios_warmboot(void)
 {
 	dma = 0x0080;
 
-	memcpy(&ram[CBASE], ccp_data, ccp_len);
-	z80ex_set_reg(z80, regPC, CBASE);
+	if (flag_startup_program)
+	{
+		z80ex_set_reg(z80, regPC, 0x0100);
+
+		/* Push the magic exit code onto the stack. */
+		z80ex_set_reg(z80, regSP, FBASE-4);
+		ram[FBASE-4] = (FBASE-2) & 0xFF;
+		ram[FBASE-3] = (FBASE-2) >> 8;
+		ram[FBASE-2] = 0xD3; // out (??), a
+		ram[FBASE-1] = 0xFE; // exit emulator
+
+		int fd = open(flag_startup_program, O_RDONLY);
+		if (fd == -1)
+			fatal("couldn't open program: %s", strerror(errno));
+		read(fd, &ram[0x0100], 0xFE00);
+		close(fd);
+	}
+	else
+	{
+		memcpy(&ram[CBASE], ccp_data, ccp_len);
+		z80ex_set_reg(z80, regPC, CBASE);
+	}
 }
 
 static void bios_const(void)
@@ -127,6 +145,8 @@ static void bios_entry(uint8_t bios_call)
 		case 2: bios_const();     return; // const
 		case 3: bios_getchar();   return; // conin
 		case 4: bios_putchar();   return; // conout
+
+		case 0xFE: exit(0); // magic emulator exit
 	}
 
 	showregs();

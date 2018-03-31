@@ -1,0 +1,13 @@
+#!/bin/sh
+
+exe=$1
+bad=$2
+good=$3
+
+$exe > $bad
+if ! diff -q $bad $good; then
+    diff -u $bad $good
+    exit 1
+else
+    rm -f $bad
+fi

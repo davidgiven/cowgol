@@ -1,0 +1,68 @@
+sub arch_calculate_iop_size(iop: [Iop]): (size: uint8)
+    sub do_cond(iop: [CGConditionalIop])
+        if (pass == 1) or ((iop.opcode & 0b0010_0000) != 0) then
+            # Worst case.
+            size := 3; # Long branch
+        else
+            var target: uint16 := labels[iop.label];
+            var offset: int16 := (target - (pc+2)) as int16;
+            if (offset < -128) or (offset > 127) then
+                size := 3;
+            else
+                size := 2;
+            end if;
+        end if;
+    end sub;
+
+    var iopkind: uint8 := iop.iop_kind;
+    if iopkind == IOP_CG_COND then
+        do_cond(iop as [CGConditionalIop]);
+    else
+        print("unhandled iop 0x");
+        print_hex_i8(iopkind);
+        halt();
+    end if;
+end sub;
+
+sub arch_generate_iop(iop: [Iop]): (size: uint8)
+    sub make_short(longop: uint8): (shortop: uint8)
+        if longop == 0xC3 then # jp
+            shortop := 0x18; # jr
+        else
+            shortop := (longop & 0b0001_1101) | 0b0010_0000;
+        end if;
+    end sub;
+
+    sub do_cond(iop: [CGConditionalIop])
+        var buf: uint8[3];
+        var target: uint16 := labels[iop.label];
+        var offset: int16 := (target - (pc+2)) as int16;
+        if iop.opcode == 0x10 then # djnz
+            if (offset < -128) or (offset > 127) then
+                print("range too large for djnz");
+                halt();
+            end if;
+            size := 2;
+            write_byte(0x10); # djnz
+            write_byte(offset as uint8);
+        elseif (offset < -128) or (offset > 127) or ((iop.opcode & 0b0010_0000) != 0) then # jp pe, po, m, p
+            size := 3;
+            write_byte(iop.opcode);
+            write_address_iop(IOP_ADDRESS, current_subroutine_id, target);
+        else
+            size := 2;
+            write_byte(make_short(iop.opcode));
+            write_byte(offset as uint8);
+        end if;
+    end sub;
+
+    var iopkind: uint8 := iop.iop_kind;
+    if iopkind == IOP_CG_COND then
+        do_cond(iop as [CGConditionalIop]);
+    else
+        print("unhandled iop 0x");
+        print_hex_i8(iopkind);
+        halt();
+    end if;
+end sub;
+

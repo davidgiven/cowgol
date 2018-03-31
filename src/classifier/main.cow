@@ -265,10 +265,6 @@ sub show_subroutine_sizes()
             print_thing(id);
             print(" ");
             print_i16(thing.address);
-            print(": zp=");
-            print_i8(sr.base.zp_size);
-            print(" data=");
-            print_i16(sr.base.data_size);
             print_newline();
         end if;
     end sub;

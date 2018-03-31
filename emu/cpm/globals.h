@@ -1,6 +1,7 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include <stdbool.h>
 #include <z80ex/z80ex.h>
 
 extern Z80EX_CONTEXT* z80;
@@ -36,6 +37,9 @@ extern int file_findfirst(cpm_filename_t* pattern);
 extern int file_findnext(cpm_filename_t* result);
 
 extern void fatal(const char* message, ...);
+
+extern bool flag_enter_debugger;
+extern const char* flag_startup_program;
 
 #endif
 

@@ -1,5 +1,5 @@
 sub arch_calculate_iop_size(iop: [Iop]): (size: uint8)
-    sub do_cond(iop: [CG6502ConditionalIop])
+    sub do_cond(iop: [CGConditionalIop])
         if iop.opcode == 0x80 then
             # BRA is special; it always turns into a JMP abs instruction.
             size := 3;
@@ -18,8 +18,8 @@ sub arch_calculate_iop_size(iop: [Iop]): (size: uint8)
     end sub;
 
     var iopkind: uint8 := iop.iop_kind;
-    if iopkind == IOP_CG_6502_COND then
-        do_cond(iop as [CG6502ConditionalIop]);
+    if iopkind == IOP_CG_COND then
+        do_cond(iop as [CGConditionalIop]);
     else
         print("unhandled iop 0x");
         print_hex_i8(iopkind);
@@ -28,7 +28,7 @@ sub arch_calculate_iop_size(iop: [Iop]): (size: uint8)
 end sub;
 
 sub arch_generate_iop(iop: [Iop]): (size: uint8)
-    sub do_cond(iop: [CG6502ConditionalIop])
+    sub do_cond(iop: [CGConditionalIop])
         var buf: uint8[3];
         if iop.opcode == 0x80 then
             size := 3;
@@ -54,8 +54,8 @@ sub arch_generate_iop(iop: [Iop]): (size: uint8)
     end sub;
 
     var iopkind: uint8 := iop.iop_kind;
-    if iopkind == IOP_CG_6502_COND then
-        do_cond(iop as [CG6502ConditionalIop]);
+    if iopkind == IOP_CG_COND then
+        do_cond(iop as [CGConditionalIop]);
     else
         print("unhandled iop 0x");
         print_hex_i8(iopkind);

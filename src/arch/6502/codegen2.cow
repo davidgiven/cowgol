@@ -100,7 +100,7 @@ end sub;
 
 sub arch_gen_goto(iop: [GotoIop])
     flush_cached_values(REG_MASK);
-    write_cg_6502_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
+    write_cg_conditional_iop(0x80, iop.label); # BRA (actually a 65C102 opcode)
 end sub;
 
 sub arch_gen_copy(iop: [BEIop])
@@ -349,28 +349,28 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
     # After this point, assume we're comparing LT.
 
     if iopkind == IOP_BE_BEQ then
-        write_cg_6502_conditional_iop(0xD0, ciop.iffalse_label); # BNE
+        write_cg_conditional_iop(0xD0, ciop.iffalse_label); # BNE
         fallthrough_label := ciop.iftrue_label;
     else
         fallthrough_label := ciop.iffalse_label;
         if (iopkind & IOP_TYPE_COMPARISON_S) == 0 then
             # BLTU
-            write_cg_6502_conditional_iop(0x90, ciop.iftrue_label); # BCC, branch if less than
+            write_cg_conditional_iop(0x90, ciop.iftrue_label); # BCC, branch if less than
         else
             # BLTS
-            write_cg_6502_conditional_iop(0x30, ciop.iftrue_label); # BMI, branch if negative
+            write_cg_conditional_iop(0x30, ciop.iftrue_label); # BMI, branch if negative
             write_word(0x8049); # EOR #80; put Z flag back how it was
         end if;
-        write_cg_6502_conditional_iop(0xD0, ciop.iffalse_label); # BNE, branch if greater than
+        write_cg_conditional_iop(0xD0, ciop.iffalse_label); # BNE, branch if greater than
     end if;
 
     if width != 1 then
         write_byte(0x88); # DEY
-        write_cg_6502_conditional_iop(0x10, label); # BPL rel
+        write_cg_conditional_iop(0x10, label); # BPL rel
     end if;
 
     if liop.label != fallthrough_label then
-        write_cg_6502_conditional_iop(0x80, fallthrough_label);
+        write_cg_conditional_iop(0x80, fallthrough_label);
     end if;
 end sub;
 

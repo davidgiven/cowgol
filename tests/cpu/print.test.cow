@@ -1,8 +1,8 @@
-print_hex_i8(0x12);
+print_hex_i8(0xAB);
 print_newline();
-print_hex_i16(0x1234);
+print_hex_i16(0xABCD);
 print_newline();
-print_hex_i32(0x12345678);
+print_hex_i32(0xABCDEF01);
 print_newline();
 
 print_i8(12);

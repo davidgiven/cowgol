@@ -1,0 +1,287 @@
+sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint16)
+    if ea.type_id == 0 then
+        print("untyped EA ");
+        print_ea(ea);
+        halt();
+    end if;
+
+    width := get_width_of_type(ea.type_id);
+end sub;
+
+sub cant_do_2op(iop: [BEIop], op: [int8])
+    print("can't do ");
+    print_ea(&iop.left);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.left) as uint8);
+    print(") ");
+    print(op);
+    print(" -> ");
+    print_ea(&iop.dest);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.dest) as uint8);
+    print(") width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
+sub cant_do_3op(iop: [BEIop], op: [int8])
+    print("can't do ");
+    print_ea(&iop.left);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.left) as uint8);
+    print(") ");
+    print(op);
+    print(" ");
+    print_ea(&iop.right);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.right) as uint8);
+    print(") -> ");
+    print_ea(&iop.dest);
+    print_char('(');
+    print_i8(get_width_of_ea(&iop.dest) as uint8);
+    print(") width ");
+    print_i8(iop.width);
+    halt();
+end sub;
+
+sub arch_init_codegen()
+    reg_reset();
+end sub;
+
+sub arch_gen_before(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
+		$if DEBUG
+			print("* writing back precious values because of pointer access: ");
+			print_ea(ea);
+			print_newline();
+		$endif
+
+        reg_write_back_precious_regs(ALL_REGS);
+    end if;
+end sub;
+
+sub arch_gen_after(ea: [EffectiveAddress])
+    if (ea.obj_id != 0) and (ea.flags == EA_DEREF) then
+		$if DEBUG
+			print("* flushing cached values because of pointer access: ");
+			print_ea(ea);
+			print_newline();
+		$endif
+
+        reg_evict(ALL_REGS);
+    end if;
+end sub;
+
+sub arch_gen_beginning_of_instruction()
+	$if DEBUG
+		print_newline();
+		reg_print_cache();
+	$endif
+    reg_unlock_all();
+end sub;
+
+sub arch_gen_return()
+    reg_evict(ALL_REGS);
+    write_byte(0xC9); # RET
+end sub;
+
+sub arch_gen_call(iop: [CallIop])
+    reg_evict(ALL_REGS);
+    write_byte(0xCD); # CALL
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+end sub;
+
+sub arch_gen_tail_call(iop: [CallIop])
+    reg_evict(ALL_REGS);
+    write_byte(0xC3); # JP
+    write_address_iop(IOP_ADDRESS, iop.thing_id, 0);
+end sub;
+
+sub arch_gen_label(iop: [LabelIop])
+    reg_evict(ALL_REGS);
+    write_iop(iop as [Iop]);
+end sub;
+
+sub arch_gen_goto(iop: [GotoIop])
+    reg_evict(ALL_REGS);
+    write_cg_conditional_iop(0xC3, iop.label); # Unconditional
+end sub;
+
+sub arch_gen_copy(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_copy_byte(iop);
+    else
+        arch_gen_copy_wide(iop);
+    end if;
+end sub;
+
+sub arch_gen_not(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_not_byte(iop);
+    else
+        arch_gen_not_wide(iop);
+    end if;
+end sub;
+
+sub arch_gen_and(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xE6); # and *
+    else
+        arch_gen_regular_alu_wide(iop, 0xE6, 0xE6); # and *
+    end if;
+end sub;
+
+sub arch_gen_or(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xF6); # or *
+    else
+        arch_gen_regular_alu_wide(iop, 0xF6, 0xF6); # and *
+    end if;
+end sub;
+
+sub arch_gen_eor(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xEE); # xor *
+    else
+        arch_gen_regular_alu_wide(iop, 0xEE, 0xEE); # xor *
+    end if;
+end sub;
+
+sub arch_gen_add(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xC6); # add *
+    else
+        arch_gen_add_wide(iop);
+    end if;
+end sub;
+
+sub arch_gen_sub(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_regular_alu_byte(iop, 0xD6); # sub *
+    else
+        arch_gen_sub_wide(iop);
+    end if;
+end sub;
+
+sub arch_gen_lsl(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_shift_byte(iop, 0x20); # sla b (not including prefix byte)
+    elseif iop.width == 2 then
+        arch_gen_lsl_word(iop);
+    else
+        arch_gen_shift_wide(iop, TOKEN_LSL32);
+    end if;
+end sub;
+
+sub arch_gen_lsr(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_shift_byte(iop, 0x38); # srl b (not including prefix byte)
+    elseif iop.width == 2 then
+        arch_gen_lsr_word(iop);
+    else
+        arch_gen_shift_wide(iop, TOKEN_LSR32);
+    end if;
+end sub;
+
+sub arch_gen_asr(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_shift_byte(iop, 0x28); # sra b (not including prefix byte)
+    elseif iop.width == 2 then
+        arch_gen_asr_word(iop);
+    else
+        arch_gen_shift_wide(iop, TOKEN_ASR32);
+    end if;
+end sub;
+
+sub arch_gen_divu(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_helper_divmod_byte(iop, TOKEN_DIVMODU8, REG_C);
+    elseif iop.width == 2 then
+        arch_gen_helper_divmod_word(iop, TOKEN_DIVMODU16, REG_DE);
+    else
+        arch_gen_helper_generic_wide(iop, TOKEN_DIVU32);
+    end if;
+end sub;
+
+sub arch_gen_divs(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_helper_divmod_byte(iop, TOKEN_DIVMODS8, REG_C);
+    elseif iop.width == 2 then
+        arch_gen_helper_divmod_word(iop, TOKEN_DIVMODS16, REG_DE);
+    else
+        arch_gen_helper_generic_wide(iop, TOKEN_DIVS32);
+    end if;
+end sub;
+
+sub arch_gen_modu(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_helper_divmod_byte(iop, TOKEN_DIVMODU8, REG_A);
+    elseif iop.width == 2 then
+        arch_gen_helper_divmod_word(iop, TOKEN_DIVMODU16, REG_HL);
+    else
+        arch_gen_helper_generic_wide(iop, TOKEN_MODU32);
+    end if;
+end sub;
+
+sub arch_gen_mods(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_helper_divmod_byte(iop, TOKEN_DIVMODS8, REG_A);
+    elseif iop.width == 2 then
+        arch_gen_helper_divmod_word(iop, TOKEN_DIVMODS16, REG_HL);
+    else
+        arch_gen_helper_generic_wide(iop, TOKEN_MODS32);
+    end if;
+end sub;
+
+sub arch_gen_mul(iop: [BEIop])
+    if iop.width == 1 then
+        arch_gen_helper_mul_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_helper_mul_word(iop);
+    else
+        arch_gen_helper_generic_wide(iop, TOKEN_MUL32);
+    end if;
+end sub;
+
+sub arch_gen_zext(iop: [BEIop])
+    var srcwidth: uint8 := get_width_of_type(iop.left.type_id);
+    if iop.width < srcwidth then
+        arch_gen_shrink(iop, srcwidth);
+    elseif iop.width >= 2 then
+        arch_gen_extend_wide(iop, 0, srcwidth);
+    elseif iop.width == 2 then
+        arch_gen_extend_word(iop, 0, srcwidth);
+    else
+        cant_do_2op(iop, "zext");
+    end if;
+end sub;
+
+sub arch_gen_sext(iop: [BEIop])
+    var srcwidth: uint8 := get_width_of_type(iop.left.type_id);
+    if iop.width >= 2 then
+        arch_gen_extend_wide(iop, 1, srcwidth);
+    elseif iop.width == 2 then
+        arch_gen_extend_word(iop, 1, srcwidth);
+    else
+        cant_do_2op(iop, "sext");
+    end if;
+end sub;
+
+sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
+    reg_write_back_precious_regs(ALL_REGS);
+    if ciop.width == 1 then
+        arch_gen_cmp_8bit(ciop, liop);
+    else
+        arch_gen_cmp_wide(ciop, liop);
+    end if;
+end sub;
+
+sub arch_gen_kill(iop: [KillIop])
+    $if DEBUG
+        print("* GENERATE: kill ");
+        print_ea(&iop.ea);
+        print_newline();
+    $endif
+
+    reg_value_is_not_precious(&iop.ea);
+end sub;

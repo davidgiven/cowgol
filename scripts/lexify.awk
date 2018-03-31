@@ -14,7 +14,7 @@ BEGIN {
 	maxaction = 0;
 }
 
-/^static yyconst / {
+/^static (yy)?const / {
 	name = $4;
 	size = $5;
 	width = 8;

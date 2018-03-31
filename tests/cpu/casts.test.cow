@@ -79,3 +79,20 @@ sub test3()
 end sub;
 test3();
 
+sub test4()
+    var valu32: uint32 := 0x76543210;
+
+    print("valu32 as uint16");  if (valu32 as uint16) ==     0x3210 then yes(); else no(); end if;
+    print("valu32 as uint8");   if (valu32 as uint8) ==        0x10 then yes(); else no(); end if;
+end sub;
+test4();
+
+sub test5()
+    var valu16: uint16 := 0x3210;
+
+    print("valu16 as uint8");   if (valu16 as uint8) ==        0x10 then yes(); else no(); end if;
+end sub;
+test5();
+
+
+
