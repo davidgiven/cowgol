@@ -102,13 +102,24 @@ sub arch_gen_lsl_word(iop: [BEIop])
     load_complex_8bit_value_fixed(REG_B, &iop.right);
     var reg: RegSet := load_complex_16bit_value(REG_16BIT, &iop.left);
     reg_evict(reg);
+    reg_evict(REG_B);
     reg_cache_value(reg, &iop.dest);
     reg_value_is_precious(&iop.dest);
+
+    # We have to skip the shift completely if the value is 0. Because the test
+    # happens at the *end* of the loop, if we just go in the front we'll always
+    # go round once. So we do this instead.
+    # TODO: unnecessary if the RHS is a constant.
+
+    var entrypoint: uint8 := create_label();
+    write_byte(0x04); # inc b
+    write_cg_conditional_iop(0xC3, entrypoint); # jp
 
     var label: uint8 := create_label();
     write_label_iop(label);
     inplace_shift(reg, 0, 0x20); # sla r
     inplace_shift(reg, 1, 0x10); # rl r
+    write_label_iop(entrypoint);
     write_cg_conditional_iop(0x10, label); # djnz label
     
     reg_free(REG_B);
@@ -129,13 +140,24 @@ sub arch_gen_lsr_word(iop: [BEIop])
     load_complex_8bit_value_fixed(REG_B, &iop.right);
     var reg: RegSet := load_complex_16bit_value(REG_16BIT, &iop.left);
     reg_evict(reg);
+    reg_evict(REG_B);
     reg_cache_value(reg, &iop.dest);
     reg_value_is_precious(&iop.dest);
+
+    # We have to skip the shift completely if the value is 0. Because the test
+    # happens at the *end* of the loop, if we just go in the front we'll always
+    # go round once. So we do this instead.
+    # TODO: unnecessary if the RHS is a constant.
+
+    var entrypoint: uint8 := create_label();
+    write_byte(0x04); # inc b
+    write_cg_conditional_iop(0xC3, entrypoint); # jp
 
     var label: uint8 := create_label();
     write_label_iop(label);
     inplace_shift(reg, 1, 0x38); # srl r
     inplace_shift(reg, 0, 0x18); # rr r
+    write_label_iop(entrypoint);
     write_cg_conditional_iop(0x10, label); # djnz label
     
     reg_free(REG_B);
@@ -156,13 +178,24 @@ sub arch_gen_asr_word(iop: [BEIop])
     load_complex_8bit_value_fixed(REG_B, &iop.right);
     var reg: RegSet := load_complex_16bit_value(REG_16BIT, &iop.left);
     reg_evict(reg);
+    reg_evict(REG_B);
     reg_cache_value(reg, &iop.dest);
     reg_value_is_precious(&iop.dest);
+
+    # We have to skip the shift completely if the value is 0. Because the test
+    # happens at the *end* of the loop, if we just go in the front we'll always
+    # go round once. So we do this instead.
+    # TODO: unnecessary if the RHS is a constant.
+
+    var entrypoint: uint8 := create_label();
+    write_byte(0x04); # inc b
+    write_cg_conditional_iop(0xC3, entrypoint); # jp
 
     var label: uint8 := create_label();
     write_label_iop(label);
     inplace_shift(reg, 1, 0x28); # sra r
     inplace_shift(reg, 0, 0x18); # rr r
+    write_label_iop(entrypoint);
     write_cg_conditional_iop(0x10, label); # djnz label
     
     reg_free(REG_B);

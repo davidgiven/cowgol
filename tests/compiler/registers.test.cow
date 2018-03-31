@@ -22,6 +22,7 @@ var int8_type: uint16 := find_bootstrap_symbol(TOKEN_INT8);
 var uint8_type: uint16 := find_bootstrap_symbol(TOKEN_UINT8);
 var int16_type: uint16 := find_bootstrap_symbol(TOKEN_INT16);
 var uint16_type: uint16 := find_bootstrap_symbol(TOKEN_UINT16);
+var const_type: uint16 := find_bootstrap_symbol(TOKEN_CONSTANTT);
 
 var ea8bit_1: EffectiveAddress;
 zero_ea(&ea8bit_1);
@@ -44,6 +45,11 @@ zero_ea(&ea16bit_2);
 ea16bit_2.obj_id := uint16_type;
 ea16bit_2.type_id := uint16_type;
 
+var eaconst: EffectiveAddress;
+zero_ea(&eaconst);
+eaconst.obj_id := const_type;
+eaconst.type_id := const_type;
+
 const VALUE_CACHE_SIZE := 16;
 
 type RegSet := uint8;
@@ -65,6 +71,16 @@ var reg_interference: RegSet[NUM_REGS] := {
     REG_E | REG_DE,
     REG_BC | REG_B | REG_C,
     REG_DE | REG_D | REG_E
+};
+
+var reg_compatibility: RegSet[NUM_REGS] := {
+    REG_A|REG_B|REG_C|REG_D|REG_E, # A
+    REG_A|REG_B|REG_C|REG_D|REG_E, # B
+    REG_A|REG_B|REG_C|REG_D|REG_E, # C
+    REG_A|REG_B|REG_C|REG_D|REG_E, # D
+    REG_A|REG_B|REG_C|REG_D|REG_E, # E
+    REG_BC|REG_DE,                 # BC
+    REG_BC|REG_DE,                 # DE
 };
 
 sub print_regs(regs: RegSet)
@@ -232,3 +248,12 @@ sub write_back_precious_test()
     reg_write_back_precious_value(&ea8bit_2);
 end sub;
 write_back_precious_test();
+
+sub constants_in_different_kinds_of_register_test()
+    print("\nConstants in different kinds of registers\n");
+    reg_reset();
+    var location: RegSet := reg_find_or_load(REG_B|REG_C|REG_D|REG_E, &eaconst);
+    location := reg_find_or_load(REG_BC|REG_DE, &eaconst);
+    location := reg_find_or_load(REG_C|REG_D|REG_E, &eaconst);
+end sub;
+constants_in_different_kinds_of_register_test();

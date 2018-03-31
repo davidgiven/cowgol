@@ -175,11 +175,22 @@ sub arch_gen_shift_byte(iop: [BEIop], opcode: uint8)
     var reg: RegSet := load_complex_8bit_value(REG_8BIT, &iop.left);
     reg_value_is_changing(&iop.dest);
     reg_evict(reg);
+    reg_evict(REG_B);
+
+    # We have to skip the shift completely if the value is 0. Because the test
+    # happens at the *end* of the loop, if we just go in the front we'll always
+    # go round once. So we do this instead.
+    # TODO: unnecessary if the RHS is a constant.
+
+    var entrypoint: uint8 := create_label();
+    write_byte(0x04); # inc b
+    write_cg_conditional_iop(0xC3, entrypoint); # jp
 
     var label: uint8 := create_label();
     write_label_iop(label);
     write_byte(0xCB);
     write_byte(opcode | get_z80_regnum(reg));
+    write_label_iop(entrypoint);
     write_cg_conditional_iop(0x10, label); # djnz label
 
     save_8bit_or_make_precious(&iop.dest, reg);

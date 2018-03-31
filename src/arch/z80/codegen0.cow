@@ -36,6 +36,21 @@ var reg_interference: RegSet[NUM_REGS] := {
     REG_IY
 };
 
+var reg_compatibility: RegSet[NUM_REGS] := {
+    REG_8BIT,  # A
+    REG_8BIT,  # B
+    REG_8BIT,  # C
+    REG_8BIT,  # D
+    REG_8BIT,  # E
+    REG_8BIT,  # H
+    REG_8BIT,  # L
+    REG_16BIT, # HL
+    REG_16BIT, # BC
+    REG_16BIT, # DE
+    REG_16BIT, # IX
+    REG_16BIT, # IY
+};
+
 sub print_regs(regs: RegSet)
     if regs == 0            then print("(none) "); end if;
     if (regs & REG_A) != 0  then print("A "); end if;

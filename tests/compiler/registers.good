@@ -238,3 +238,33 @@ save A : [TYPE1.0159:int8].TYPE1.0159:int8
 % writing back precious value [TYPE1.0159:int8].TYPE1.0159:int8
 save A : [TYPE1.0159:int8].TYPE1.0159:int8
 % writing back precious value [TYPE1.0163:uint8].TYPE1.0163:uint8
+
+Constants in different kinds of registers
+% reset register allocator
+% locating [TYPE0.0195:<constant>].TYPE0.0195:<constant>
+%   allocating new register for value
+% allocating register in B C D E 
+%   locked registers: (none) 
+%   used registers: (none) 
+%   potential unused registers are B C D E 
+%   allocating unused register B 
+load B : [TYPE0.0195:<constant>].TYPE0.0195:<constant>
+% value [TYPE0.0195:<constant>].TYPE0.0195:<constant> is now cached in B 
+% locating [TYPE0.0195:<constant>].TYPE0.0195:<constant>
+%   allocating new register for value
+% allocating register in BC DE 
+%   locked registers: B 
+%   used registers: B 
+%   potential unused registers are DE 
+%   allocating unused register DE 
+load DE : [TYPE0.0195:<constant>].TYPE0.0195:<constant>
+% value [TYPE0.0195:<constant>].TYPE0.0195:<constant> is now cached in B DE 
+% locating [TYPE0.0195:<constant>].TYPE0.0195:<constant>
+%   allocating new register for value
+% allocating register in C D E 
+%   locked registers: B DE 
+%   used registers: B DE 
+%   potential unused registers are C 
+%   allocating unused register C 
+copy B -> C 
+% value [TYPE0.0195:<constant>].TYPE0.0195:<constant> is now cached in B C DE 

@@ -32,12 +32,15 @@ end sub;
 sub __lsl32()
     @bytes 0xD5;       # push de
     __load_hl();
+    @bytes 0x04;       # inc b
+    @bytes 0x18, 0x08; # jr entry
 
                        # .loop
     @bytes 0xCB, 0x27; # sla a
     @bytes 0xCB, 0x11; # rl c
     @bytes 0xCB, 0x12; # rl d
     @bytes 0xCB, 0x13; # rl e
+                       # .entry
     @bytes 0x10, 0xF6; # djnz loop
 
     @bytes 0xE1;       # pop hl
@@ -49,13 +52,16 @@ end sub;
 sub __asr32()
     @bytes 0xD5;       # push de
     __load_hl();
+    @bytes 0x04;       # inc b
+    @bytes 0x18, 0x07; # jr entry
 
                        # .loop
     @bytes 0xCB, 0x2B; # sra e
     @bytes 0xCB, 0x1A; # rr d
     @bytes 0xCB, 0x19; # rr c
-    @bytes 0xCB, 0x18; # rr a
-    @bytes 0x10, 0xF6; # djnz loop
+    @bytes 0x1F;       # rr a
+                       # .entry
+    @bytes 0x10, 0xF7; # djnz loop
 
     @bytes 0xE1;       # pop hl
     __save_hl();
@@ -66,13 +72,16 @@ end sub;
 sub __lsr32()
     @bytes 0xD5;       # push de
     __load_hl();
+    @bytes 0x04;       # inc b
+    @bytes 0x18, 0x07; # jr entry
 
                        # .loop
     @bytes 0xCB, 0x3B; # srl e
     @bytes 0xCB, 0x1A; # rr d
     @bytes 0xCB, 0x19; # rr c
-    @bytes 0xCB, 0x18; # rr a
-    @bytes 0x10, 0xF6; # djnz loop
+    @bytes 0x1F;       # rr a
+                       # .entry
+    @bytes 0x10, 0xF7; # djnz loop
 
     @bytes 0xE1;       # pop hl
     __save_hl();

@@ -82,6 +82,20 @@ sub reg_find_affected(regsin: RegSet): (regsout: RegSet)
     end loop;
 end sub;
 
+# Given a set of registers, finds all registers which are compatible.
+sub reg_find_compatible(regsin: RegSet): (regsout: RegSet)
+    var mask: RegSet := 1;
+    var index: uint8 := 0;
+    regsout := ALL_REGS;
+    while index != NUM_REGS loop
+        if (regsin & mask) != 0 then
+            regsout := regsout & reg_compatibility[index];
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+end sub;
+
 # Indicate that a register has just been used.
 sub reg_bump(regs: RegSet)
     regs := reg_find_affected(regs);
@@ -489,8 +503,9 @@ sub reg_find_or_load(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     # Is the value in the cache, but not in a candidate register? If so, copy
     # it. Otherwise, load it.
 
-    if value.locations != 0 then
-        reg_copy(find_lowest_bit(value.locations), reg);
+    var compatible: RegSet := reg_find_compatible(candidates) & value.locations;
+    if compatible != 0 then
+        reg_copy(find_lowest_bit(compatible), reg);
     else
         reg_load(reg, ea);
     end if;
