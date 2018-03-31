@@ -80,6 +80,10 @@ sub arch_gen_beginning_of_instruction()
     reg_unlock_all();
 end sub;
 
+sub arch_gen_flush()
+    reg_evict(ALL_REGS);
+end sub;
+
 sub arch_gen_return()
     reg_evict(ALL_REGS);
     write_byte(0xC9); # RET

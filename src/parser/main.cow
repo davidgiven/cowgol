@@ -513,6 +513,7 @@ end sub;
 
 sub do_bytes()
     next_token();
+    emit_untyped_fe(IOP_FLUSH);
     loop
         sub do_address(iop: uint8)
             var identifier_id: uint16 := expect_identifier();

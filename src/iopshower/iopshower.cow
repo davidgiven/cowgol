@@ -201,6 +201,7 @@ loop
             elseif kind == IOP_ADDRESSLO  then do_address("ADDRESSLO", iop as [AddressIop]);
             elseif kind == IOP_ADDRESSHI  then do_address("ADDRESSHI", iop as [AddressIop]);
             elseif kind == IOP_KILL       then do_kill(iop as [KillIop]);
+            elseif kind == IOP_FLUSH      then print("FLUSH");
             else
                 unknown_iop();
             end if;

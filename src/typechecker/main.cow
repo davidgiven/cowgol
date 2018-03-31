@@ -472,6 +472,7 @@ sub process_subroutine()
             special_address(iop as [AddressIop]);
         elseif (kind == IOP_LABEL) or (kind == IOP_BYTES) or (kind == IOP_RETURN)
             or (kind == IOP_END) or (kind == IOP_GOTO) or (kind == IOP_CLONELABEL)
+            or (kind == IOP_FLUSH)
         then
             check_stack_is_empty();
         elseif kind == IOP_NAMEDGOTO then

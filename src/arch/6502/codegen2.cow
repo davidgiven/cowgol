@@ -76,6 +76,10 @@ sub arch_gen_beginning_of_instruction()
     locked_registers := 0;
 end sub;
 
+sub arch_gen_flush()
+    flush_cached_values(REG_MASK);
+end sub;
+
 sub arch_gen_return()
     flush_cached_values(REG_MASK);
     write_byte(0x60); # RTS
