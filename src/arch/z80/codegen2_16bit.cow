@@ -48,6 +48,15 @@ sub load_complex_16bit_value_fixed(regs: RegSet, ea: [EffectiveAddress])
 end sub;
 
 sub save_16bit_or_make_precious(ea: [EffectiveAddress], reg: RegSet)
+    $if DEBUG
+        print("* value ");
+        print_ea(ea);
+        print(" in ");
+        print_regs(reg);
+        print(" must be saved");
+        print_newline();
+    $endif
+
     reg_cache_value(reg, ea);
     if ea.flags == EA_DEREF then
         var pointer: RegSet := construct_pointer(REG_HL|REG_IX|REG_IY, MODE_IND, ea, 0);
@@ -101,10 +110,9 @@ sub arch_gen_lsl_word(iop: [BEIop])
 
     load_complex_8bit_value_fixed(REG_B, &iop.right);
     var reg: RegSet := load_complex_16bit_value(REG_16BIT, &iop.left);
+    reg_value_is_changing(&iop.dest);
     reg_evict(reg);
     reg_evict(REG_B);
-    reg_cache_value(reg, &iop.dest);
-    reg_value_is_precious(&iop.dest);
 
     # We have to skip the shift completely if the value is 0. Because the test
     # happens at the *end* of the loop, if we just go in the front we'll always
@@ -139,10 +147,9 @@ sub arch_gen_lsr_word(iop: [BEIop])
 
     load_complex_8bit_value_fixed(REG_B, &iop.right);
     var reg: RegSet := load_complex_16bit_value(REG_16BIT, &iop.left);
+    reg_value_is_changing(&iop.dest);
     reg_evict(reg);
     reg_evict(REG_B);
-    reg_cache_value(reg, &iop.dest);
-    reg_value_is_precious(&iop.dest);
 
     # We have to skip the shift completely if the value is 0. Because the test
     # happens at the *end* of the loop, if we just go in the front we'll always
@@ -177,10 +184,9 @@ sub arch_gen_asr_word(iop: [BEIop])
 
     load_complex_8bit_value_fixed(REG_B, &iop.right);
     var reg: RegSet := load_complex_16bit_value(REG_16BIT, &iop.left);
+    reg_value_is_changing(&iop.dest);
     reg_evict(reg);
     reg_evict(REG_B);
-    reg_cache_value(reg, &iop.dest);
-    reg_value_is_precious(&iop.dest);
 
     # We have to skip the shift completely if the value is 0. Because the test
     # happens at the *end* of the loop, if we just go in the front we'll always
