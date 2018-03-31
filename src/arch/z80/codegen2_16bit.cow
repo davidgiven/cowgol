@@ -207,3 +207,36 @@ sub arch_gen_asr_word(iop: [BEIop])
     reg_free(REG_B);
     save_16bit_or_make_precious(&iop.dest, reg);
 end sub;
+
+sub arch_gen_extend_word(iop: [BEIop], signed: uint8, srcwidth: uint8)
+    $if DEBUG
+        print("* GENERATE: extend signed=");
+        print_i8(signed);
+        print(" srcwidth=");
+        print_i8(srcwidth);
+        print(": ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    if srcwidth != 1 then
+        print("bad extension");
+        halt();
+    end if;
+
+    var destreg: RegSet := reg_alloc(REG_16BIT);
+    load_complex_8bit_value_fixed(REG_A, &iop.right);
+    reg_copy(REG_A, halfof_reg(destreg, 0));
+    reg_evict(REG_A);
+    if signed != 0 then
+        write_byte(0x07); # rlca
+        write_byte(0x9F); # sbc a, a
+        reg_copy(REG_A, halfof_reg(destreg, 0));
+    else
+        reg_find_or_load_int_fixed(halfof_reg(destreg, 1), 0);
+    end if;
+    reg_free(REG_A);
+    save_16bit_or_make_precious(&iop.dest, destreg);
+end sub;
