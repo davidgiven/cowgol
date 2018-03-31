@@ -1,10 +1,3 @@
-# longjmps out of the program.
-var __exitstack: uint16;
-@bytes 0xED, 0x73, &__exitstack; # ld (__exitstack), sp
-sub exit(status: uint8)
-    @bytes 0xED, 0x7B, &__exitstack; # ld sp, (__exitstack)
-end sub;
-
 # Loads the 32-bit value pointed to by HL into EDCA. Corrupts HL.
 sub __load_hl()
     @bytes 0x7E;       # ld a, (hl)

@@ -638,21 +638,44 @@ sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
                 opcode := 0xDA; # jp c
             end if;
 
-            if (offset == 0) and (liop.label == ciop.iftrue_label) then
-                write_cg_conditional_iop(opcode ^ 0x08, ciop.iffalse_label);
+            if offset == 0 then
+                if liop.label == ciop.iftrue_label then
+                    write_cg_conditional_iop(opcode ^ 0x08, ciop.iffalse_label); # if not less than, false
+                    # fall through to true if less than
+                else
+                    write_cg_conditional_iop(opcode, ciop.iftrue_label); # if less than, true
+                    # fall through to false if not less than
+                end if;
             else
-                write_cg_conditional_iop(opcode, ciop.iftrue_label);
+                write_cg_conditional_iop(opcode, ciop.iftrue_label); # if less than, true
+                write_cg_conditional_iop(0xC2, ciop.iffalse_label); # if greater, false
+                # fall through if equal
             end if;
         end if;
     end sub;
 
     opwidth := ciop.width;
-    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+    if iopkind != IOP_BE_BEQ then
+        if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+            rhsea := &ciop.right;
+            lhsea := &ciop.left;
+        else
+            $if DEBUG
+                print("* greater than (comparing goofy)\n");
+            $endif
+            rhsea := &ciop.left;
+            lhsea := &ciop.right;
+        end if;
+        $if DEBUG
+            print("* testing ");
+            print_ea(lhsea);
+            print(" < ");
+            print_ea(rhsea);
+            print_newline();
+        $endif
+    else
         rhsea := &ciop.right;
         lhsea := &ciop.left;
-    else
-        rhsea := &ciop.left;
-        lhsea := &ciop.right;
     end if;
     destea := 0 as [EffectiveAddress];
     setup_wide_for_iop(1, opwidth-1);
