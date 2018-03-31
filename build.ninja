@@ -557,6 +557,13 @@ build $OBJDIR/tests/cpu/weirdnesses-32bit-returns.bbc.stamp : run_emu_test $OBJD
  goodfile = tests/cpu/weirdnesses-32bit-returns.good 
  badfile = tests/cpu/weirdnesses-32bit-returns.bbc.bad 
 
+build $OBJDIR/tests/cpu/weirdnesses-array-adding.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-array-adding.test.cow | $OBJDIR/compiler_for_bbc_on_native 
+ arch = bbc_on_native 
+build $OBJDIR/tests/cpu/weirdnesses-array-adding.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/weirdnesses-array-adding.bbc | tests/cpu/weirdnesses-array-adding.good scripts/bbctube_test bin/bbctube 
+ testscript = scripts/bbctube_test 
+ goodfile = tests/cpu/weirdnesses-array-adding.good 
+ badfile = tests/cpu/weirdnesses-array-adding.bbc.bad 
+
 build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.bbc : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow tests/cpu/weirdnesses-ctype-labels.test.cow | $OBJDIR/compiler_for_bbc_on_native 
  arch = bbc_on_native 
 build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.bbc.stamp : run_emu_test $OBJDIR/tests/cpu/weirdnesses-ctype-labels.bbc | tests/cpu/weirdnesses-ctype-labels.good scripts/bbctube_test bin/bbctube 
@@ -892,6 +899,13 @@ build $OBJDIR/tests/cpu/weirdnesses-32bit-returns.cpmz.stamp : run_emu_test $OBJ
  testscript = scripts/cpmz_test 
  goodfile = tests/cpu/weirdnesses-32bit-returns.good 
  badfile = tests/cpu/weirdnesses-32bit-returns.cpmz.bad 
+
+build $OBJDIR/tests/cpu/weirdnesses-array-adding.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-array-adding.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
+ arch = cpmz_on_native 
+build $OBJDIR/tests/cpu/weirdnesses-array-adding.cpmz.stamp : run_emu_test $OBJDIR/tests/cpu/weirdnesses-array-adding.cpmz | tests/cpu/weirdnesses-array-adding.good scripts/cpmz_test bin/cpm 
+ testscript = scripts/cpmz_test 
+ goodfile = tests/cpu/weirdnesses-array-adding.good 
+ badfile = tests/cpu/weirdnesses-array-adding.cpmz.bad 
 
 build $OBJDIR/tests/cpu/weirdnesses-ctype-labels.cpmz : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow tests/cpu/weirdnesses-ctype-labels.test.cow | $OBJDIR/compiler_for_cpmz_on_native 
  arch = cpmz_on_native 

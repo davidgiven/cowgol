@@ -149,10 +149,11 @@ sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
         print_newline();
     $endif
 
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
+    
     var indreg: RegSet := setup_8bit_rhs_insn(&iop.right);
     reg_value_is_changing(&iop.dest);
 
-    load_complex_8bit_value_fixed(REG_A, &iop.left);
     reg_evict(REG_A);
     insn_8bit_aluop(opcode);
     save_8bit_or_make_precious(&iop.dest, REG_A);
