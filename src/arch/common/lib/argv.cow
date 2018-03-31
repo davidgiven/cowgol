@@ -1,0 +1,8 @@
+var ARGV: [int8][8];
+var ARGC: uint8;
+
+sub init_argv()
+    ARGC := 1;
+    ARGV[0] := "";
+end sub;
+init_argv();

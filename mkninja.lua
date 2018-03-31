@@ -143,6 +143,7 @@ local compilers = {
     {"c64", "native"},
     {"cpmz", "native"},
     {"bbc", "bbc"},
+    {"cpmz", "cpmz"},
 }
 
 local host_data = {
@@ -190,6 +191,10 @@ local host_data = {
             "src/arch/z80/lib/runtime.cow",
             "src/arch/common/lib/runtime.cow",
             "src/string_lib.cow",
+            "src/arch/common/lib/fcb.cow",
+            "src/arch/common/lib/fileio.cow",
+            "src/arch/common/lib/argv.cow",
+            "src/arch/cpmz/names.cow",
         }
 
         RULE = "cowgol_program"

@@ -133,11 +133,9 @@ sub process_subroutine()
     end sub;
 
     sub fex_assign()
-        var src: [Node] := pop();
+        var src: [Node] := simplify_constants_and_deref(pop());
         var dest: [Node] := simplify_node_to_ea_and_deref(pop());
 
-        dest := simplify_node_to_ea_and_deref(dest);
-        src := simplify_constants_and_deref(src);
         arch_simplify_node_to(src, dest);
         deref_node(src);
         deref_node(dest);

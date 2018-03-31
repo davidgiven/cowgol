@@ -1,0 +1,8 @@
+# This is a stub implementation which just errors out.
+
+sub file_load(filename: [int8], address: [int8], maxlength: uint16): (length: uint16)
+    length := 0;
+end sub;
+
+sub file_save(filename: [int8], address: [int8], length: uint16)
+end sub;

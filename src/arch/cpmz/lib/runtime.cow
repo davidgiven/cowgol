@@ -10,3 +10,7 @@ sub print_newline()
     @bytes 0x0E, 0x02;       # ld c, 2
     @bytes 0xC3, 0x05, 0x00; # jp BDOS
 end sub;
+
+var __lomem: int8 @segment(0x81);
+var LOMEM: [int8] := &__lomem;
+var HIMEM: [int8] := 0xf800 as [int8];

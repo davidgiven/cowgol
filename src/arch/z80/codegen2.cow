@@ -244,7 +244,7 @@ sub arch_gen_mul(iop: [BEIop])
 end sub;
 
 sub arch_gen_zext(iop: [BEIop])
-    var srcwidth: uint8 := get_width_of_type(iop.left.type_id);
+    var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
     if iop.width < srcwidth then
         arch_gen_shrink(iop, srcwidth);
     elseif iop.width >= 2 then
@@ -257,7 +257,7 @@ sub arch_gen_zext(iop: [BEIop])
 end sub;
 
 sub arch_gen_sext(iop: [BEIop])
-    var srcwidth: uint8 := get_width_of_type(iop.left.type_id);
+    var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
     if iop.width >= 2 then
         arch_gen_extend_wide(iop, 1, srcwidth);
     elseif iop.width == 2 then

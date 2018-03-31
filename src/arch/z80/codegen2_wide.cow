@@ -323,7 +323,7 @@ sub do_wide_read(offset: uint8, destreg: RegSet)
         print_newline();
     $endif
 
-    var reg: uint8 := halfof_reg(destreg, offset);
+    var reg: RegSet := halfof_reg(destreg, offset);
     if lhspair != 0 then
         if lhspair == destreg then
             return;
@@ -342,7 +342,7 @@ sub do_wide_read(offset: uint8, destreg: RegSet)
     elseif lhsmode == MODE_IMM then
         insn_init();
         insn.datareg := reg;
-        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as uint16;
+        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as int16;
         insn.mode := MODE_IMM;
         insn_load_object();
     elseif lhsmode == MODE_DIR then
@@ -380,7 +380,7 @@ sub do_wide_alu(offset: uint8, opcode: uint8)
         end if;
         insn.mode := MODE_IND;
     elseif rhsmode == MODE_IMM then
-        insn.offset := (get_value_of_number(rhsea.obj_id) >> (offset*8)) as uint16;
+        insn.offset := (get_value_of_number(rhsea.obj_id) >> (offset*8)) as int16;
         insn.mode := MODE_IMM;
     else
         print("cannot alu RHS");
@@ -389,7 +389,7 @@ sub do_wide_alu(offset: uint8, opcode: uint8)
     insn_8bit_aluop(opcode);
 end sub;
 
-sub do_wide_write(offset: uint8, srcreg: RegSet);
+sub do_wide_write(offset: uint8, srcreg: RegSet)
     $if DEBUG
         print("* write result ");
         print_regs(srcreg);
@@ -400,7 +400,7 @@ sub do_wide_write(offset: uint8, srcreg: RegSet);
         print_newline();
     $endif
 
-    var reg: uint8 := halfof_reg(srcreg, offset);
+    var reg: RegSet := halfof_reg(srcreg, offset);
     if destpair != 0 then
         if destpair == srcreg then
             return;
