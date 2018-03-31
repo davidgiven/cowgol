@@ -24,5 +24,3 @@ var int32_type: uint16 := find_bootstrap_symbol(TOKEN_INT32);
 var uint32_type: uint16 := find_bootstrap_symbol(TOKEN_UINT32);
 var constant_type: uint16 := find_bootstrap_symbol(TOKEN_CONSTANTT);
 
-$set DEBUG
-
