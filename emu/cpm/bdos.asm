@@ -1,5 +1,10 @@
-	ORG 0xff80
+	ORG 0xff80 ; FBASE
 
+bdos: ; BDOS entry point
+	out (0xff), a
+	ret
+
+COLDSTART: ; system startup entry point --- this needs to be three bytes after FBASE.
 	jp boot	    ; 0: Cold start routine
 bios:
 	jp wboot	; 1: Warm boot - reload command processor
@@ -16,10 +21,6 @@ bios:
 	jp setdma	;12: Set DMA address
 	jp read     ;13: Read a sector
 	jp write	;14: Write a sector
-
-bdos:
-	out (0xff), a
-	ret
 
 boot:
 wboot:

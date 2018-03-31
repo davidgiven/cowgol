@@ -13,8 +13,8 @@
 #include "globals.h"
 
 #define FBASE 0xff80
+#define COLDSTART (FBASE + 3) /* see bdos.asm */
 #define CBASE (FBASE - (7*1024))
-#define BDOS_ENTRY FBASE
 
 static uint16_t dma;
 
@@ -83,7 +83,7 @@ static void set_result(uint16_t result)
 void bios_coldboot(void)
 {
 	memcpy(&ram[FBASE], bdos_data, bdos_len);
-	z80ex_set_reg(z80, regPC, FBASE);
+	z80ex_set_reg(z80, regPC, COLDSTART);
 }
 
 static void bios_warmboot(void)
@@ -92,6 +92,11 @@ static void bios_warmboot(void)
 
 	if (flag_startup_program)
 	{
+		static bool terminate_next_time = false;
+		if (terminate_next_time)
+			exit(0);
+		terminate_next_time = true;
+
 		z80ex_set_reg(z80, regPC, 0x0100);
 
 		/* Push the magic exit code onto the stack. */
@@ -344,6 +349,7 @@ static void bdos_entry(uint8_t bdos_call)
 		case 34: bdos_readwriterandom(file_write); return;
 		case 40: bdos_readwriterandom(file_write); return;
 		case 45:                     return; // set hardware error action
+		case 108:                    return; // set exit code
 	}
 
 	showregs();
