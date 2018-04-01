@@ -191,7 +191,7 @@ local host_data = {
             "src/arch/z80/lib/runtime.cow",
             "src/arch/common/lib/runtime.cow",
             "src/string_lib.cow",
-            "src/arch/common/lib/fcb.cow",
+            "src/arch/cpmz/lib/fcb.cow",
             "src/arch/common/lib/fileio.cow",
             "src/arch/common/lib/argv.cow",
             "src/arch/cpmz/names.cow",

@@ -11,6 +11,7 @@
 #include "globals.h"
 
 #define logf(args...) while (0)
+//#define logf(args...) printf(args)
 
 struct file
 {
@@ -222,12 +223,11 @@ int file_read(struct file* f, uint8_t* data, uint16_t record)
 	if (!f->fd)
 		return -1;
 	
-	logf("[read record %02x from file %d for '%.11s']\n", record, f-files, &f->filename);
+	logf("[read record %04x from file %d for '%.11s']\n", record, f-files, &f->filename);
 	bump(f);
 	memset(data, '\0', 128);
 	return pread(f->fd, data, 128, record*128);
 }
-
 
 int file_write(struct file* f, uint8_t* data, uint16_t record)
 {
@@ -237,7 +237,7 @@ int file_write(struct file* f, uint8_t* data, uint16_t record)
 	if (f->flags == O_RDONLY)
 		reopen(f, O_RDWR);
 
-	logf("[write record %02x from file %d for '%.11s']\n", record, f-files, &f->filename);
+	logf("[write record %04x from file %d for '%.11s']\n", record, f-files, &f->filename);
 	bump(f);
 	return pwrite(f->fd, data, 128, record*128);
 }
