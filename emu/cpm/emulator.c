@@ -9,10 +9,19 @@
 Z80EX_CONTEXT* z80;
 uint8_t ram[0x10000];
 
+struct watchpoint
+{
+	uint16_t address;
+	uint8_t value;
+	bool enabled;
+};
+
 static uint16_t breakpoints[16];
+static struct watchpoint watchpoints[16];
 static bool tracing = false;
 static bool singlestepping = true;
 static bool bdosbreak = false;
+
 
 static uint8_t read_cb(Z80EX_CONTEXT* z80, uint16_t addr, int m1_state, void* data)
 {
@@ -133,7 +142,37 @@ static void cmd_break(void)
 	}
 }
 
-static void cmd_delete(void)
+static void cmd_watch(void)
+{
+	char* w1 = strtok(NULL, " ");
+	if (w1)
+	{
+		uint16_t watchaddr = strtoul(w1, NULL, 16);
+		for (int i=0; i<sizeof(watchpoints)/sizeof(*watchpoints); i++)
+		{
+			struct watchpoint* w = &watchpoints[i];
+			if (!w->enabled)
+			{
+				w->address = watchaddr;
+				w->enabled = true;
+				w->value = ram[watchaddr];
+				return;
+			}
+		}
+		printf("Too many breakpoints\n");
+	}
+	else
+	{
+		for (int i=0; i<sizeof(watchpoints)/sizeof(*watchpoints); i++)
+		{
+			struct watchpoint* w = &watchpoints[i];
+			if (w->enabled)
+				printf("%04x (current value: %02x)\n", w->address, w->value);
+		}
+	}
+}
+
+static void cmd_delete_breakpoint(void)
 {
 	char* w1 = strtok(NULL, " ");
 	if (w1)
@@ -148,6 +187,25 @@ static void cmd_delete(void)
 			}
 		}
 		printf("No such breakpoint\n");
+	}
+}
+
+static void cmd_delete_watchpoint(void)
+{
+	char* w1 = strtok(NULL, " ");
+	if (w1)
+	{
+		uint16_t address = strtoul(w1, NULL, 16);
+		for (int i=0; i<sizeof(breakpoints)/sizeof(*breakpoints); i++)
+		{
+			struct watchpoint* w = &watchpoints[i];
+			if (w->enabled && (w->address == address))
+			{
+				w->enabled = false;
+				return;
+			}
+		}
+		printf("No such watchpoint\n");
 	}
 }
 
@@ -224,7 +282,9 @@ static void cmd_help(void)
 		   "  r <reg> <value> set register\n"
 		   "  b               show breakpoints\n"
 		   "  b <addr>        set breakpoint\n"
-		   "  d <addr>        delete breakpoint\n"
+		   "  db <addr>       delete breakpoint\n"
+		   "  w <addr>        set watchpoint\n"
+		   "  dw <addr>       delete watchpoint\n"
 		   "  m <addr> <len>  show memory\n"
 		   "  s               single step\n"
 		   "  g               continue\n"
@@ -252,8 +312,12 @@ static void debug(void)
 				cmd_register();
 			else if (strcmp(token, "b") == 0)
 				cmd_break();
-			else if (strcmp(token, "d") == 0)
-				cmd_delete();
+			else if (strcmp(token, "w") == 0)
+				cmd_watch();
+			else if (strcmp(token, "db") == 0)
+				cmd_delete_breakpoint();
+			else if (strcmp(token, "dw") == 0)
+				cmd_delete_watchpoint();
 			else if (strcmp(token, "m") == 0)
 				cmd_memory();
 			else if (strcmp(token, "s") == 0)
@@ -304,6 +368,18 @@ void emulator_run(void)
 				if (pc == breakpoints[i])
 					singlestepping = true;
 		}
+		for (int i=0; i<sizeof(watchpoints)/sizeof(*watchpoints); i++)
+		{
+			struct watchpoint* w = &watchpoints[i];
+			if (w->enabled && (ram[w->address] != w->value))
+			{
+				printf("\nWatchpoint hit: %04x has changed from %02x to %02x\n",
+					w->address, w->value, ram[w->address]);
+				w->value = ram[w->address];
+				singlestepping = true;
+			}
+		}
+
 		if (singlestepping && !z80ex_last_op_type(z80))
 			debug();
 		else if (tracing)
