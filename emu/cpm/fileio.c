@@ -242,6 +242,16 @@ int file_write(struct file* f, uint8_t* data, uint16_t record)
 	return pwrite(f->fd, data, 128, record*128);
 }
 
+uint64_t file_length(struct file* f)
+{
+	if (!f->fd)
+		return 0;
+	
+	struct stat st;
+	fstat(f->fd, &st);
+	return st.st_size;
+}
+
 int file_findfirst(cpm_filename_t* pattern)
 {
 	if (currentdir)

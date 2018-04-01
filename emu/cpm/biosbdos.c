@@ -313,6 +313,17 @@ static void bdos_readwriterandom(readwrite_cb* readwrite)
 		set_result(0);
 }
 
+static void bdos_filelength(void)
+{
+	struct fcb* fcb = find_fcb();
+	struct file* f = file_open(&fcb->filename);
+
+	uint64_t length = file_length(f) / 128;
+	fcb->r[0] = length;
+	fcb->r[1] = length>>8;
+	fcb->r[2] = length>>16;
+}
+
 static void bdos_getsetuser(void)
 {
 	if (get_e() == 0xff)
@@ -347,6 +358,7 @@ static void bdos_entry(uint8_t bdos_call)
 		case 32: bdos_getsetuser();  return;
 		case 33: bdos_readwriterandom(file_read);  return;
 		case 34: bdos_readwriterandom(file_write); return;
+		case 35: bdos_filelength(); return;
 		case 40: bdos_readwriterandom(file_write); return;
 		case 45:                     return; // set hardware error action
 		case 108:                    return; // set exit code

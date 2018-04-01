@@ -13,7 +13,7 @@ record CpmFCB
     d: uint8[16];
     currentrecord: uint8;
     block: uint16;
-    r: uint8; # overflow block count
+    r2: uint8; # overflow block count
 end record;
 
 record FCB
@@ -183,6 +183,12 @@ sub fcb_tell(fcb: [FCB]): (pos: uint32)
 end sub;
 
 sub fcb_ext(fcb: [FCB]): (len: uint32)
+    var cpmfcb: [CpmFCB] := &fcb.cpm;
+    @bytes 0x0e, 0x23;          # ld c, #COMPUTE FILE SIZE
+    @bytes 0xed, 0x5b, &cpmfcb; # ld de, (cpmfcb)
+    @bytes 0xcd, 0x05, 0x00;    # call BDOS
+
+    len := ((fcb.cpm.block as uint32) | ((fcb.cpm.r2 as uint32) << 16)) << 7;
 end sub;
 
 sub fcb_read(fcb: [FCB])

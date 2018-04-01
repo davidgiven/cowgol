@@ -33,6 +33,7 @@ extern struct file* file_create(cpm_filename_t* filename);
 extern int file_close(cpm_filename_t* filename);
 extern int file_read(struct file* file, uint8_t* data, uint16_t record);
 extern int file_write(struct file* file, uint8_t* data, uint16_t record);
+extern uint64_t file_length(struct file* f);
 extern int file_findfirst(cpm_filename_t* pattern);
 extern int file_findnext(cpm_filename_t* result);
 
