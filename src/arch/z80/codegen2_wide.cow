@@ -207,9 +207,33 @@ sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
 
     # Set up any pointers needed for the value.
 
-    rhsptrreg := construct_pointer(rhspointers, rhsmode, rhsea, extraoffset);
-    lhsptrreg := construct_pointer(otherpointers, lhsmode, lhsea, extraoffset);
-    destptrreg := construct_pointer(otherpointers, destmode, destea, extraoffset);
+    if rhsmode == MODE_IND then
+        rhsptrreg := setup_pointer(rhspointers, rhsea);
+    else
+        rhsptrreg := 0;
+    end if;
+    if lhsmode == MODE_IND then
+        lhsptrreg := setup_pointer(otherpointers, lhsea);
+    else
+        lhsptrreg := 0;
+    end if;
+    if destmode == MODE_IND then
+        destptrreg := setup_pointer(otherpointers, destea);
+    else
+        destptrreg := 0;
+    end if;
+
+    # More complicated than it looks because some of the parameters mgiht
+    # share pointers --- we only want to offset each one once.
+    if rhsptrreg != 0 then
+        apply_offset_to_pointer(rhsptrreg, rhsea, extraoffset);
+    end if;
+    if (lhsptrreg != 0) and (lhsptrreg != rhsptrreg) then
+        apply_offset_to_pointer(lhsptrreg, lhsea, extraoffset);
+    end if;
+    if (destptrreg != 0) and (destptrreg != lhsptrreg) and (destptrreg != rhsptrreg) then
+        apply_offset_to_pointer(destptrreg, destea, extraoffset);
+    end if;
 
     # The pointers are the important bit. Now they're set up, any values can
     # go whereever. Note that if we're *not* using values, then there's a

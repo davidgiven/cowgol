@@ -16,7 +16,8 @@ sub load_complex_16bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet
     # The value is going to have to be indirected through a pointer of
     # some description, as we can't refer to it directly.
 
-    var pointer: RegSet := construct_pointer(REG_HL|REG_IX|REG_IY, MODE_IND, ea, 0);
+    var pointer: RegSet := setup_pointer(REG_HL|REG_DE|REG_IX|REG_IY, ea);
+    apply_offset_to_pointer(pointer, ea, 0);
 
     # Now the pointer is in a register, dereference it.
 
@@ -59,7 +60,8 @@ sub save_16bit_or_make_precious(ea: [EffectiveAddress], reg: RegSet)
 
     reg_cache_value(reg, ea);
     if ea.flags == EA_DEREF then
-        var pointer: RegSet := construct_pointer(REG_HL|REG_IX|REG_IY, MODE_IND, ea, 0);
+        var pointer: RegSet := setup_pointer(REG_HL|REG_DE|REG_IX|REG_IY, ea);
+        apply_offset_to_pointer(pointer, ea, 0);
 
         sub save_byte(offset: uint8)
             insn_init();

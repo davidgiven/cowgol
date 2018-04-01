@@ -17,17 +17,26 @@ end sub;
 
 # Given an ea, loads a pointer to the *unoffsetted* part of it.
 sub setup_pointer(candidates: RegSet, ea: [EffectiveAddress]): (pointerreg: RegSet)
+    $if DEBUG
+        print("* constructing a pointer to ");
+        print_ea(ea);
+        print(" in ");
+        print_regs(candidates);
+        print_newline();
+    $endif
+
     var indea: EffectiveAddress;
     make_pointer(ea, &indea);
 
     if get_value_of_number(ea.numoff_id) != 0 then
-        candidates := candidates & (REG_IX|REG_IY);
+        candidates := candidates & (REG_HL|REG_DE|REG_IX|REG_IY);
     end if;
     pointerreg := reg_find_or_load(candidates, &indea);
 end sub;
 
-sub just_offset(reg: RegSet, offset: uint16)
-    if offset != 0 then
+sub apply_offset_to_pointer(reg: RegSet, ea: [EffectiveAddress], extraoffset: uint8)
+    var offset: uint16 := (get_value_of_number(ea.numoff_id) as uint16) + (extraoffset as uint16);
+    if (offset != 0) and ((reg & (REG_BC|REG_DE|REG_HL)) != 0) then
         $if DEBUG
             print("* offsetting ");
             print_regs(reg);
@@ -40,34 +49,23 @@ sub just_offset(reg: RegSet, offset: uint16)
         indea.type_id := uint16_type;
         indea.obj_id := add_number_by_value(offset as int32);
 
-        var offreg: RegSet := reg_find_or_load(REG_BC|REG_DE, &indea);
+        var offreg: RegSet := reg_find_or_load(REG_HL|REG_BC|REG_DE, &indea);
         reg_evict(reg);
         var regnum: uint8 := get_z80_regnum(offreg);
-        write_byte(0x09 | regnum); # add hl, bc
+        if reg == REG_DE then
+            write_byte(0xEB); # ex hl, de
+            if offreg == REG_HL then
+                write_byte(0x19); # add hl, de
+            elseif offreg == REG_BC then
+                write_byte(0x09); # add hl, bc
+            else
+                print("can't happen");
+                halt();
+            end if;
+        else
+            write_byte(0x09 | regnum); # add hl, bc
+        end if;
         reg_free(offreg);
-    end if;
-end sub;
-
-sub construct_pointer(candidates: RegSet, mode: uint8, ea: [EffectiveAddress],
-        extraoffset: uint8): (reg: RegSet)
-    reg := 0;
-    if mode == MODE_IND then
-        var ptrea: EffectiveAddress;
-        make_pointer(ea, &ptrea);
-        reg := reg_is_cached_in(candidates, &ptrea);
-        var offset: uint16 := (get_value_of_number(ea.numoff_id) as uint16) + (extraoffset as uint16);
-        if offset != 0 then
-            candidates := candidates & (REG_HL|REG_IX|REG_IY);
-        end if;
-        if reg == 0 then
-            reg := reg_find_or_load(candidates, &ptrea);
-		else
-			reg_alloc_fixed(reg);
-			reg_cache_value(reg, &ptrea);
-        end if;
-        if (reg & (REG_IX|REG_IY)) == 0 then
-            just_offset(reg, offset);
-        end if;
     end if;
 end sub;
 
