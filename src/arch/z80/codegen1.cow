@@ -61,6 +61,9 @@ sub construct_pointer(candidates: RegSet, mode: uint8, ea: [EffectiveAddress],
         end if;
         if reg == 0 then
             reg := reg_find_or_load(candidates, &ptrea);
+		else
+			reg_alloc_fixed(reg);
+			reg_cache_value(reg, &ptrea);
         end if;
         if (reg & (REG_IX|REG_IY)) == 0 then
             just_offset(reg, offset);
