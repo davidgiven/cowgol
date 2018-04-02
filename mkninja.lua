@@ -193,7 +193,7 @@ local host_data = {
             "src/string_lib.cow",
             "src/arch/cpmz/lib/fcb.cow",
             "src/arch/common/lib/fileio.cow",
-            "src/arch/common/lib/argv.cow",
+            "src/arch/cpmz/lib/argv.cow",
             "src/arch/cpmz/names.cow",
         }
 
