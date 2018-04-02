@@ -469,6 +469,8 @@ sub arch_gen_copy_wide(iop: [BEIop])
     var reg: RegSet := REG_A;
     if destpair != 0 then
         reg := destpair;
+    else
+        reg_alloc_fixed(REG_A);
     end if;
 
     var i: uint8 := 0;

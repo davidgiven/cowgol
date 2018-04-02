@@ -58,6 +58,11 @@ sub lexer_consume_char(c: uint8)
 		current_state := last_accepting_state;
 		var action: uint8 := yy_accept[current_state];
 
+		$if DEBUG
+			print("action: 0x");
+			print_hex_i8(action);
+			print_newline();
+		$endif
 		perform_action(action);
 
 		var p: uint8 := 0;
