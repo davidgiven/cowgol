@@ -32,10 +32,6 @@ wboot:
 	ld (0), a
 	ld (5), a
 
-	xor a
-	ld (3), a ; iobyte
-	ld (4), a ; drive
-
 	ld hl, bios
 	ld (1), hl
 
