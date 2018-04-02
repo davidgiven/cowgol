@@ -17,6 +17,7 @@
 #define CBASE (FBASE - (7*1024))
 
 static uint16_t dma;
+static int exitcode = 0;
 
 struct fcb
 {
@@ -40,6 +41,11 @@ static uint16_t get_de(void)
 static uint8_t get_c(void)
 {
 	return z80ex_get_reg(z80, regBC);
+}
+
+static uint8_t get_d(void)
+{
+	return z80ex_get_reg(z80, regDE) >> 8;
 }
 
 static uint8_t get_e(void)
@@ -93,7 +99,7 @@ static void bios_warmboot(void)
 	{
 		static bool terminate_next_time = false;
 		if (terminate_next_time)
-			exit(0);
+			exit(exitcode);
 		terminate_next_time = true;
 
         z80ex_set_reg(z80, regPC, 0x0100);
@@ -412,7 +418,7 @@ static void bdos_entry(uint8_t bdos_call)
 		case 35: bdos_filelength(); return;
 		case 40: bdos_readwriterandom(file_write); return;
 		case 45:                     return; // set hardware error action
-		case 108:                    return; // set exit code
+		case 108: exitcode = get_d(); return; // set exit code
 	}
 
 	showregs();
