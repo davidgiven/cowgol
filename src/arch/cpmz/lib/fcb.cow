@@ -121,6 +121,10 @@ sub fcb_openin(fcb: [FCB], filename: [int8]): (errno: uint8)
     @bytes 0xcd, 0x05, 0x00;    # call BDOS
     @bytes 0xcd, &fcb_i_convert_a_to_error; # call fcb_i_convert_a_to_error
     @bytes 0x32, &errno;        # ld (errno), a
+
+    if errno == 0 then
+        fcb_i_blockin(fcb);
+    end if;
 end sub;
 
 sub fcb_openup(fcb: [FCB], filename: [int8]): (errno: uint8)
@@ -138,6 +142,10 @@ sub fcb_openout(fcb: [FCB], filename: [int8]): (errno: uint8)
     @bytes 0xcd, 0x05, 0x00;    # call BDOS
     @bytes 0xcd, &fcb_i_convert_a_to_error; # call fcb_i_convert_a_to_error
     @bytes 0x32, &errno;        # ld (errno), a
+
+    if errno == 0 then
+        fcb_i_blockin(fcb);
+    end if;
 end sub;
 
 sub fcb_close(fcb: [FCB])
@@ -183,12 +191,15 @@ sub fcb_tell(fcb: [FCB]): (pos: uint32)
 end sub;
 
 sub fcb_ext(fcb: [FCB]): (len: uint32)
+    var oldblock: uint16 := fcb.cpm.block;
+
     var cpmfcb: [CpmFCB] := &fcb.cpm;
     @bytes 0x0e, 0x23;          # ld c, #COMPUTE FILE SIZE
     @bytes 0xed, 0x5b, &cpmfcb; # ld de, (cpmfcb)
     @bytes 0xcd, 0x05, 0x00;    # call BDOS
 
     len := ((fcb.cpm.block as uint32) | ((fcb.cpm.r2 as uint32) << 16)) << 7;
+    fcb.cpm.block := oldblock;
 end sub;
 
 sub fcb_read(fcb: [FCB])
