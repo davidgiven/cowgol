@@ -28,8 +28,21 @@ record FCB
     buffer: int8[FCB_BLOCK_SIZE];
 end record;
 
+sub __toupper(cin: int8): (cout: int8)
+    if (cin >= 'a') and (cin <= 'z') then
+        cout := cin & ~32;
+    else
+        cout := cin;
+    end if;
+end sub;
+
 sub __init_fcb(fcb: [FCB], filename: [int8])
     zero_memory(fcb as [int8], FCB@bytes);
+
+    if filename[1] == ':' then
+        fcb.cpm.drive := __toupper(filename[0]) as uint8 - '@';
+        filename := filename + 2;
+    end if;
 
     var fo: [int8] := &fcb.cpm.filename[0];
     var count: uint8 := 0;
@@ -41,12 +54,12 @@ sub __init_fcb(fcb: [FCB], filename: [int8])
 
     fo := &fcb.cpm.filename[0];
     count := 0;
-    while count != 8 loop
+    loop
         var c: int8 := filename[0];
-        if (c == 0) or (c == '.') then
+        if (count == 8) or (c == 0) or (c == '.') then
             break;
         end if;
-        fo[0] := c & ~32;
+        fo[0] := __toupper(c);
         fo := fo + 1;
         filename := filename + 1;
         count := count + 1;
@@ -63,7 +76,7 @@ sub __init_fcb(fcb: [FCB], filename: [int8])
         if c == 0 then
             break;
         end if;
-        fo[0] := c & ~32;
+        fo[0] := __toupper(c);
         fo := fo + 1;
         filename := filename + 1;
         count := count + 1;

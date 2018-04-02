@@ -7,7 +7,7 @@ sub consume_file()
 	print_newline();
 
 	if fcb_openin(&input_fcb, current_filename) != 0 then
-		print("could not open input file");
+		print("could not open input file\n");
 		exit(1);
 	end if;
 
