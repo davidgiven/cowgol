@@ -23,6 +23,10 @@ bios:
 	jp write	;14: Write a sector
 
 boot:
+	xor a
+	ld (3), a ; iobyte
+	ld (4), a ; drive
+	; falls through
 wboot:
 	ld a, 0xc3 ; jp
 	ld (0), a
@@ -38,6 +42,8 @@ wboot:
 	ld hl, bdos
 	ld (6), hl
 
+	ld a, (4) ; get the current drive/user
+	ld c, a
 	out (1), a
 
 const:

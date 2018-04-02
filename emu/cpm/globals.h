@@ -23,11 +23,13 @@ extern void biosbdos_entry(int syscall);
 
 typedef struct
 {
+	uint8_t drive;
 	char bytes[11];
 }
 cpm_filename_t;
 
 extern void files_init(void);
+extern void file_set_drive(int drive, const char* path);
 extern struct file* file_open(cpm_filename_t* filename);
 extern struct file* file_create(cpm_filename_t* filename);
 extern int file_close(cpm_filename_t* filename);

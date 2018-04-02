@@ -1,4 +1,5 @@
 #define _XOPEN_SOURCE 500
+#define _POSIX_C_SOURCE 200809
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <errno.h>
 #include <dirent.h>
 #include "globals.h"
 
@@ -26,11 +28,19 @@ struct file
 static struct file files[NUM_FILES];
 static struct file* firstfile;
 
+#define NUM_DRIVES 16
+static int drives[NUM_DRIVES];
+
 static cpm_filename_t currentpattern;
+static int currentsearchdrivefd;
 static DIR* currentdir;
 
 void files_init(void)
 {
+	for (int i=0; i<NUM_DRIVES; i++)
+		drives[i] = -1;
+	file_set_drive(0, ".");
+
 	for (int i=0; i<NUM_FILES; i++)
 	{
 		struct file* f = &files[i];
@@ -49,6 +59,23 @@ void files_init(void)
 	}
 
 	firstfile = &files[0];
+}
+
+void file_set_drive(int drive, const char* path)
+{
+	if ((drive < 0) || (drive >= NUM_DRIVES))
+		fatal("bad drive letter");
+		
+	if (drives[drive] != -1)
+		close(drives[drive]);
+	drives[drive] = open(path, O_RDONLY);
+	if (drives[drive] == -1)
+		fatal("could not open '%s': %s", path, strerror(errno));
+
+	struct stat st;
+	fstat(drives[drive], &st);
+	if (!S_ISDIR(st.st_mode))
+		fatal("could not open '%s': not a directory", path);
 }
 
 static void bump(struct file* f)
@@ -123,7 +150,10 @@ static bool unix_filename_to_cpm(const char* unixfilename, cpm_filename_t* cpmfi
 
 static bool match_filenames(cpm_filename_t* pattern, cpm_filename_t* filename)
 {
-	for (int i=0; i<sizeof(cpm_filename_t); i++)
+	if (pattern->drive != filename->drive)
+		return false;
+
+	for (int i=0; i<sizeof(pattern->bytes); i++)
 	{
 		char p = pattern->bytes[i];
 		if (p == '?')
@@ -132,6 +162,24 @@ static bool match_filenames(cpm_filename_t* pattern, cpm_filename_t* filename)
 			return false;
 	}
 	return true;
+}
+
+static int get_drive_fd(cpm_filename_t* filename)
+{
+	int drive = filename->drive - 1;
+	if ((drive < 0) || (drive >= NUM_DRIVES))
+	{
+		logf("[reference to bad drive %c]\n", drive + 'A');
+		return -1;
+	}
+	int drivefd = drives[drive];
+	if (drivefd == -1)
+	{
+		logf("[reference to undefined drive %c]\n", drive + 'A');
+		return -1;
+	}
+	logf("[selecting drive %c on fd %d]\n", drive + 'A', drivefd);
+	return drivefd;
 }
 
 static void reopen(struct file* f, int flags)
@@ -147,9 +195,13 @@ static void reopen(struct file* f, int flags)
 			close(f->fd);
 		}
 
+		int drivefd = get_drive_fd(&f->filename);
+		if (drivefd == -1)
+			return;
+
 		f->flags = flags;
-		f->fd = open(unixfilename, flags, 0666);
-		logf("[opened actual file '%s' to fd %d]\n", unixfilename, f->fd);
+		f->fd = openat(drivefd, unixfilename, flags, 0666);
+		logf("[opened actual file '%s' to fd %d: %s]\n", unixfilename, f->fd, strerror(errno));
 	}
 
 }
@@ -166,11 +218,11 @@ static struct file* find_file(cpm_filename_t* filename)
 			f = f->next;
 		else
 		{
-			logf("[allocating file %d for '%.11s']\n", f-files, filename);
+			logf("[allocating file %d for '%.11s']\n", f-files, filename->bytes);
 			bump(f);
 			if (f->fd)
 			{
-				logf("[closing old file %d for '%.11s']\n", f-files, &f->filename);
+				logf("[closing old file %d for '%.11s']\n", f-files, f->filename.bytes);
 				close(f->fd);
 			}
 			f->fd = 0;
@@ -205,7 +257,7 @@ int file_close(cpm_filename_t* filename)
 {
 	struct file* f = find_file(filename);
 
-	logf("[explicitly closing file %d for '%.11s']\n", f-files, &f->filename);
+	logf("[explicitly closing file %d for '%.11s']\n", f-files, f->filename.bytes);
 	if (f->fd)
 	{
 		logf("[closing file descriptor %d]\n", f->fd);
@@ -223,7 +275,7 @@ int file_read(struct file* f, uint8_t* data, uint16_t record)
 	if (!f->fd)
 		return -1;
 	
-	logf("[read record %04x from file %d for '%.11s']\n", record, f-files, &f->filename);
+	logf("[read record %04x from file %d for '%.11s']\n", record, f-files, f->filename.bytes);
 	bump(f);
 	memset(data, '\0', 128);
 	return pread(f->fd, data, 128, record*128);
@@ -237,7 +289,7 @@ int file_write(struct file* f, uint8_t* data, uint16_t record)
 	if (f->flags == O_RDONLY)
 		reopen(f, O_RDWR);
 
-	logf("[write record %04x from file %d for '%.11s']\n", record, f-files, &f->filename);
+	logf("[write record %04x from file %d for '%.11s']\n", record, f-files, f->filename.bytes);
 	bump(f);
 	return pwrite(f->fd, data, 128, record*128);
 }
@@ -261,10 +313,17 @@ int file_findfirst(cpm_filename_t* pattern)
 	}
 
 	currentpattern = *pattern;
-	logf("[reset search; current find pattern is '%.11s']\n", &currentpattern);
-	currentdir = opendir(".");
-	if (currentdir)
+	logf("[reset search; current find pattern is '%.11s']\n", currentpattern.bytes);
+	currentsearchdrivefd = get_drive_fd(pattern);
+	if (currentsearchdrivefd == -1)
 		return 0;
+
+	currentdir = fdopendir(dup(currentsearchdrivefd));
+	if (currentdir)
+	{
+		rewinddir(currentdir);
+		return 0;
+	}
 	return -1;
 }
 
@@ -285,11 +344,12 @@ int file_findnext(cpm_filename_t* result)
 		}
 
 		struct stat st;
-		if ((stat(de->d_name, &st) == 0)
+		if ((fstatat(currentsearchdrivefd, de->d_name, &st, 0) == 0)
 			&& S_ISREG(st.st_mode)
 			&& unix_filename_to_cpm(de->d_name, result))
 		{
-			logf("[compare '%.11s' with pattern '%.11s']\n", result, &currentpattern);
+			result->drive = currentpattern.drive;
+			logf("[compare '%.11s' with pattern '%.11s']\n", result->bytes, currentpattern.bytes);
 			if (match_filenames(&currentpattern, result))
 			{
 				logf("[positive match]\n");

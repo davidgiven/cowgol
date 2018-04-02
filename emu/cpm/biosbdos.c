@@ -20,8 +20,7 @@ static uint16_t dma;
 
 struct fcb
 {
-	uint8_t drive;
-	cpm_filename_t filename;
+	cpm_filename_t filename; /* includes drive */
 	uint8_t extent;
 	uint8_t s1;
 	uint8_t s2;
@@ -217,7 +216,30 @@ void bdos_readline(void)
 static struct fcb* find_fcb(void)
 {
 	uint16_t de = z80ex_get_reg(z80, regDE);
-	return (struct fcb*) &ram[de];
+	struct fcb* fcb = (struct fcb*) &ram[de];
+
+	/* Autoselect the current drive. */
+	if (fcb->filename.drive == 0)
+		fcb->filename.drive = ram[4] + 1;
+
+	return fcb;
+}
+
+static void bdos_resetdisk(void)
+{
+	dma = 0x0100;
+	ram[4] = 0; /* select drive A */
+}
+
+static void bdos_selectdisk(void)
+{
+	uint8_t e = get_e();
+	ram[4] = e;
+}
+
+static void bdos_getdisk(void)
+{
+	set_result(ram[4]);
 }
 
 static void bdos_openfile(void)
@@ -341,8 +363,8 @@ static void bdos_entry(uint8_t bdos_call)
 		case 10: bdos_readline();    return;
 		case 11: bdos_consolestatus(); return;
 		case 12: set_result(0x0022); return; // get CP/M version
-		case 13: set_result(0);      return; // reset disk system
-		case 14: set_result(0);      return; // select disk
+		case 13: bdos_resetdisk();   return; // reset disk system
+		case 14: bdos_selectdisk();  return; // select disk
 		case 15: bdos_openfile();    return;
 		case 16: bdos_closefile();   return;
 		case 17: bdos_findfirst();   return;
@@ -351,9 +373,11 @@ static void bdos_entry(uint8_t bdos_call)
 		case 20: bdos_readwritesequential(file_read);  return;
 		case 21: bdos_readwritesequential(file_write); return;
 		case 22: bdos_makefile();    return;
-		case 25: set_result(0);      return; // get current disk
+		case 24: set_result(0xffff); return; // get login vector
+		case 25: bdos_getdisk();     return; // get current disk
 		case 26: dma = get_de();     return; // set DMA
 		case 27: set_result(0);      return; // get allocation vector
+		case 29: set_result(0x0000); return; // get read-only vector
 		case 31: set_result(0);      return; // get disk parameter block
 		case 32: bdos_getsetuser();  return;
 		case 33: bdos_readwriterandom(file_read);  return;
