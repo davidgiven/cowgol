@@ -1,3 +1,5 @@
+emit_raw_token(0);
+
 print("written ");
 print_i16(tokens_count);
 print(" tokens\n");
