@@ -225,11 +225,23 @@ sub find_orphaned_subroutine(): (subroutine_id: uint16)
     while i < graph_count loop
         var g1: [GraphRecord] := &graph_base[i as int16];
         if g1.src_id != 0 then
+            var g2: [GraphRecord];
             var j: uint16 := 0;
+            if graph_count == 0 then
+                print("graph_count is 0");
+                halt();
+            end if;
             while j < graph_count loop
-                var g2: [GraphRecord] := &graph_base[j as int16];
+                g2 := &graph_base[j as int16];
                 # Bail out if we find any subroutine called by the one under consideration.
                 if g2.dest_id == g1.src_id then
+                    $if DEBUG
+                        print("subroutine ");
+                        print_thing(g1.src_id);
+                        print(" is not orphaned because it's called by ");
+                        print_thing(g2.dest_id);
+                        print_newline();
+                    $endif
                     break;
                 end if;
                 j := j + 1;
@@ -303,9 +315,13 @@ print_i16(used_subroutine_count);
 print_newline();
 
 clean_graph();
-#print_graph();
+$if DEBUG
+    print_graph();
+$endif
 init_subdata(&graph_base[graph_count as int16] as [int8]);
 assign_space_for_all_variables();
-#show_subroutine_sizes();
+$if DEBUG
+    show_subroutine_sizes();
+$endif
 
 arch_report_offsets(&root.archsizes);

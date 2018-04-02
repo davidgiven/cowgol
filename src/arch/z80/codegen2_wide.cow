@@ -182,7 +182,8 @@ sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
     var otherpointers: RegSet;
     if needs_a != 0 then
         reg_evict(REG_A);
-        otherpointers := REG_HL|REG_BC|REG_DE|REG_IX|REG_IY;
+        # BC is very hard to offset, so don't consider it for pointers.
+        otherpointers := REG_HL|REG_DE|REG_IX|REG_IY;
     else
         otherpointers := REG_HL|REG_IX|REG_IY;
     end if;

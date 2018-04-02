@@ -62,8 +62,12 @@ sub apply_offset_to_pointer(reg: RegSet, ea: [EffectiveAddress], extraoffset: ui
                 print("can't happen");
                 halt();
             end if;
-        else
+            write_byte(0xEB); # ex hl, de
+        elseif reg == REG_HL then
             write_byte(0x09 | regnum); # add hl, bc
+        else
+            print("can't offset this register");
+            halt();
         end if;
         reg_free(offreg);
     end if;
