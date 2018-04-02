@@ -175,7 +175,8 @@ var thing_sizes: uint8[20] := {
 };
 
 var thing_table: int8[THINGSTABLE_SIZE];
-var thing_table_top: uint16 := 1;
+const FIRST_THING := 2;
+var thing_table_top: uint16 := FIRST_THING;
 thing_table[thing_table_top] := 0;
 
 var root: [RootThing];
@@ -248,7 +249,7 @@ sub is_thing_class(id: uint16, mask: uint8): (yes: uint8)
 end sub;
 
 sub find_thing_by_value(template: [Thing]): (id: uint16)
-    id := 1;
+    id := FIRST_THING;
     loop
         var thing: [Thing] := &thing_table[id] as [Thing];
         if thing.thing_type == 0 then
@@ -311,7 +312,7 @@ sub add_addressof_by_value(thing_id: uint16, offset: uint16): (id: uint16)
 end sub;
 
 sub find_token_by_string(string_id: uint16): (id: uint16)
-    id := 1;
+    id := FIRST_THING;
     loop
         var thing: [IdentifierThing] := &thing_table[id] as [IdentifierThing];
         if thing.thing_type == 0 then
@@ -326,7 +327,7 @@ sub find_token_by_string(string_id: uint16): (id: uint16)
 end sub;
 
 sub find_symbol_by_value(value_id: uint16): (symbol_id: uint16)
-    symbol_id := 1;
+    symbol_id := FIRST_THING;
     loop
         var thing: [SymbolThing] := &thing_table[symbol_id] as [SymbolThing];
         if thing.thing_type == 0 then
@@ -440,12 +441,16 @@ sub save_thing_table(filename: [int8])
     print_i16(thing_table_top);
     print(" bytes\n");
 
-    file_save(filename, &thing_table[0], thing_table_top);
+    var ptr: [uint16] := &thing_table[0] as [uint16];
+    ptr[0] := thing_table_top;
+    file_save(filename, ptr as [int8], thing_table_top);
 end sub;
 
 sub load_thing_table(filename: [int8])
     print("reading thing table: ");
+    var ptr: [uint16] := &thing_table[0] as [uint16];
     thing_table_top := file_load(filename, &thing_table[0], thing_table@size);
+    thing_table_top := ptr[0];
     print_i16(thing_table_top);
     print(" bytes\n");
 
@@ -455,7 +460,7 @@ sub load_thing_table(filename: [int8])
     end if;
     thing_table[thing_table_top] := 0;
 
-    root := find_thing(1) as [RootThing];
+    root := find_thing(FIRST_THING) as [RootThing];
 end sub;
 
 sub print_thing(thing_id: uint16)

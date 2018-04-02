@@ -86,7 +86,7 @@ sub add_symbol(identifier_id: uint16, value_id: uint16, namespace_id: uint16)
 end sub;
 
 sub find_main_subroutine(): (subroutine_id: uint16)
-    var root: [RootThing] := find_thing(1) as [RootThing];
+    var root: [RootThing] := find_thing(FIRST_THING) as [RootThing];
     subroutine_id := root.main_subroutine_id;
 end sub;
 

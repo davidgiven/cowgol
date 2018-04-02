@@ -86,7 +86,7 @@ sub emit_subroutines()
             emit_subroutine();
         end if;
 
-        var id: uint16 := 1;
+        var id: uint16 := FIRST_THING;
         loop
             var thing: [TypedThing] := &thing_table[id] as [TypedThing];
             if thing.thing_type == 0 then
@@ -105,7 +105,7 @@ end sub;
 
 sub emit_constants()
     var thing: [DataThing];
-    var id: uint16 := 1;
+    var id: uint16 := FIRST_THING;
 
     sub emit_string()
         show_thing_data(id);

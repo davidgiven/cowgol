@@ -171,7 +171,7 @@ sub assign_space_for_variables(subroutine_id: uint16)
     var sr: [SubRecord] := &subdata[subroutine.address as int16];
 
     sub allocate_space()
-        var id: uint16 := 1;
+        var id: uint16 := FIRST_THING;
         loop
             var thing: [TypedThing] := &thing_table[id] as [TypedThing];
             if thing.thing_type == 0 then
@@ -257,7 +257,7 @@ sub assign_space_for_all_variables()
 end sub;
 
 sub show_subroutine_sizes()
-    var id: uint16 := 1;
+    var id: uint16 := FIRST_THING;
 
     sub do_sub(thing: [SubroutineThing])
         if thing.segment == SEGMENT_CODE then
