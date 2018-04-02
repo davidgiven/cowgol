@@ -13,7 +13,7 @@
 #include "globals.h"
 
 #define logf(args...) while (0)
-//#define logf(args...) printf(args)
+// #define logf(args...) printf(args)
 
 struct file
 {
@@ -77,11 +77,12 @@ void file_set_drive(int drive, const char* path)
 	fstat(drives[drive], &st);
 	if (!S_ISDIR(st.st_mode))
 		fatal("could not open '%s': not a directory", path);
+	logf("[drive %c now pointing at %s (fd %d)]\n", drive+'A', path, drives[drive]);
 }
 
 static void bump(struct file* f)
 {
-	logf("[bumping file %d to front]\n", f-files);
+	// logf("[bumping file %d to front]\n", f-files);
 
 	if (f != firstfile)
 	{
@@ -98,15 +99,15 @@ static void bump(struct file* f)
 		firstfile = f;
 	}
 
-	logf("[first file is %d]\n", firstfile-files);
-	for (int i=0; i<NUM_FILES; i++)
-	{
-		f = &files[i];
-		logf("[file %02d: %c:%.11s, fd=%d, prev=%d next=%d]\n",
-			i, 'A'-1+f->filename.drive, f->filename.bytes, f->fd,
-			f->prev ? (f->prev - files) : -1,
-			f->next ? (f->next - files) : -1);
-	}
+	// logf("[first file is %d]\n", firstfile-files);
+	// for (int i=0; i<NUM_FILES; i++)
+	// {
+	// 	f = &files[i];
+	// 	logf("[file %02d: %c:%.11s, fd=%d, prev=%d next=%d]\n",
+	// 		i, 'A'-1+f->filename.drive, f->filename.bytes, f->fd,
+	// 		f->prev ? (f->prev - files) : -1,
+	// 		f->next ? (f->next - files) : -1);
+	// }
 }
 
 static void cpm_filename_to_unix(cpm_filename_t* cpmfilename, char* unixfilename)

@@ -7,7 +7,7 @@
 #include "globals.h"
 
 bool flag_enter_debugger = false;
-const char* flag_startup_program = NULL;
+char* const* user_command_line = NULL;
 
 void fatal(const char* message, ...)
 {
@@ -21,10 +21,14 @@ void fatal(const char* message, ...)
 
 static void syntax(void)
 {
-	printf("cpm [<flags>] [command]:\n");
+	printf("cpm [<flags>] [command] [args]:\n");
 	printf("  -h             this help\n");
 	printf("  -d             enter debugger on startup\n");
 	printf("  -p DRIVE=PATH  map a drive to a path (by default, A=.)\n");
+	printf("If command is specified, a Unix file of that name will be loaded and\n");
+	printf("injected directly into memory (it's not loaded through the CCP).\n");
+	printf("Arguments may also be provided, but note that any FCBs aren't set up,\n");
+	printf("so traditional Unix utilities probably won't work.\n");
 	exit(1);
 }
 
@@ -58,7 +62,7 @@ static void parse_options(int argc, char* const* argv)
 	}
 
 end_of_flags:
-	flag_startup_program = argv[optind];
+	user_command_line = &argv[optind];
 }
 
 int main(int argc, char* const* argv)

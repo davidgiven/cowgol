@@ -89,27 +89,48 @@ static void bios_warmboot(void)
 {
 	dma = 0x0080;
 
-	if (flag_startup_program)
+	if (user_command_line[0])
 	{
 		static bool terminate_next_time = false;
 		if (terminate_next_time)
 			exit(0);
 		terminate_next_time = true;
 
-		z80ex_set_reg(z80, regPC, 0x0100);
+        z80ex_set_reg(z80, regPC, 0x0100);
 
-		/* Push the magic exit code onto the stack. */
-		z80ex_set_reg(z80, regSP, FBASE-4);
-		ram[FBASE-4] = (FBASE-2) & 0xFF;
-		ram[FBASE-3] = (FBASE-2) >> 8;
-		ram[FBASE-2] = 0xD3; // out (??), a
-		ram[FBASE-1] = 0xFE; // exit emulator
+        /* Push the magic exit code onto the stack. */
+        z80ex_set_reg(z80, regSP, FBASE-4);
+        ram[FBASE-4] = (FBASE-2) & 0xFF;
+        ram[FBASE-3] = (FBASE-2) >> 8;
+        ram[FBASE-2] = 0xD3; // out (??), a
+        ram[FBASE-1] = 0xFE; // exit emulator
 
-		int fd = open(flag_startup_program, O_RDONLY);
-		if (fd == -1)
-			fatal("couldn't open program: %s", strerror(errno));
-		read(fd, &ram[0x0100], 0xFE00);
-		close(fd);
+        int fd = open(user_command_line[0], O_RDONLY);
+        if (fd == -1)
+                fatal("couldn't open program: %s", strerror(errno));
+        read(fd, &ram[0x0100], 0xFE00);
+        close(fd);
+
+		int offset = 1;
+		for (int word = 1; user_command_line[word]; word++)
+		{
+			if (word > 1)
+			{
+				ram[0x0080 + offset] = ' ';
+				offset++;
+			}
+
+			const char* pin = user_command_line[word];
+			while (*pin)
+			{
+				if (offset > 125)
+					fatal("user command line too long");
+				ram[0x0080 + offset] = toupper(*pin++);
+				offset++;
+			}
+		}
+		ram[0x0080] = offset;
+		ram[0x0080+offset] = 0;
 	}
 	else
 	{
@@ -263,6 +284,11 @@ static void bdos_closefile(void)
 	set_result(result ? 0xff : 0);
 }
 
+static void bdos_renamefile(void)
+{
+	fatal("rename not supported yet");
+}
+
 static void bdos_findnext(void)
 {
 	struct fcb* fcb = (struct fcb*) &ram[dma];
@@ -373,6 +399,7 @@ static void bdos_entry(uint8_t bdos_call)
 		case 20: bdos_readwritesequential(file_read);  return;
 		case 21: bdos_readwritesequential(file_write); return;
 		case 22: bdos_makefile();    return;
+		case 23: bdos_renamefile();  return;
 		case 24: set_result(0xffff); return; // get login vector
 		case 25: bdos_getdisk();     return; // get current disk
 		case 26: dma = get_de();     return; // set DMA

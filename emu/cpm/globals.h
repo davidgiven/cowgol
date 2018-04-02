@@ -42,7 +42,7 @@ extern int file_findnext(cpm_filename_t* result);
 extern void fatal(const char* message, ...);
 
 extern bool flag_enter_debugger;
-extern const char* flag_startup_program;
+extern char* const* user_command_line;
 
 #endif
 
