@@ -1,6 +1,8 @@
+#define _POSIX_C_SOURCE 199309
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <signal.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <z80ex/z80ex_dasm.h>
@@ -342,6 +344,11 @@ static void debug(void)
 	}
 }
 
+static void sigusr1_cb(int number)
+{
+	singlestepping = true;
+}
+
 void emulator_init(void)
 {
 	for (int i=0; i<sizeof(breakpoints)/sizeof(*breakpoints); i++)
@@ -355,6 +362,11 @@ void emulator_init(void)
 		irqread_cb, NULL);
 
 	singlestepping = flag_enter_debugger;
+
+	struct sigaction action = {
+		.sa_handler = sigusr1_cb
+	};
+	sigaction(SIGUSR1, &action, NULL);
 }
 
 void emulator_run(void)

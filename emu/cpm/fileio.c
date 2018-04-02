@@ -54,7 +54,8 @@ void files_init(void)
 		else
 			f->next = &files[i+1];
 
-		memset(&f->filename, ' ', 11);
+		memset(&f->filename.bytes, ' ', 11);
+		f->filename.drive = 0;
 		f->fd = f->flags = 0;
 	}
 
@@ -80,15 +81,31 @@ void file_set_drive(int drive, const char* path)
 
 static void bump(struct file* f)
 {
-	if (f->prev)
-		f->prev->next = f->next;
-	if (f->next)
-		f->next->prev = f->prev;
+	logf("[bumping file %d to front]\n", f-files);
+
 	if (f != firstfile)
 	{
+		/* Remove from list. */
+		if (f->prev)
+			f->prev->next = f->next;
+		if (f->next)
+			f->next->prev = f->prev;
+
+		/* Reinsert at head of list. */
+		firstfile->prev = f;
 		f->prev = NULL;
 		f->next = firstfile;
 		firstfile = f;
+	}
+
+	logf("[first file is %d]\n", firstfile-files);
+	for (int i=0; i<NUM_FILES; i++)
+	{
+		f = &files[i];
+		logf("[file %02d: %c:%.11s, fd=%d, prev=%d next=%d]\n",
+			i, 'A'-1+f->filename.drive, f->filename.bytes, f->fd,
+			f->prev ? (f->prev - files) : -1,
+			f->next ? (f->next - files) : -1);
 	}
 }
 
@@ -264,7 +281,7 @@ int file_close(cpm_filename_t* filename)
 		close(f->fd);
 	}
 
-	memset(&f->filename, ' ', 11);
+	memset(&f->filename.bytes, ' ', 11);
 	f->fd = f->flags = 0;
 
 	return 0;
