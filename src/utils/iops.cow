@@ -263,16 +263,19 @@ sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8
 end sub;
 
 sub is_same_ea_ignoring_type(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8)
-    if (ea1.obj_id == ea2.obj_id) and
-        (ea1.varoff_id == ea2.varoff_id) and
-        (ea1.numoff_id == ea2.numoff_id) and
-        (ea1.flags == ea2.flags)
-    then
-        var w1: uint8 := get_width_of_type(ea1.type_id) as uint8;
-        var w2: uint8 := get_width_of_type(ea2.type_id) as uint8;
-        if w1 == w2 then
-            result := 1;
-            return;
+    # (the bootstrap compiler doesn't do short circuiting)
+    if (ea1 != (0 as [EffectiveAddress])) and (ea2 != (0 as [EffectiveAddress])) then
+        if (ea1.obj_id == ea2.obj_id) and
+            (ea1.varoff_id == ea2.varoff_id) and
+            (ea1.numoff_id == ea2.numoff_id) and
+            (ea1.flags == ea2.flags)
+        then
+            var w1: uint8 := get_width_of_type(ea1.type_id) as uint8;
+            var w2: uint8 := get_width_of_type(ea2.type_id) as uint8;
+            if w1 == w2 then
+                result := 1;
+                return;
+            end if;
         end if;
     end if;
     result := 0;

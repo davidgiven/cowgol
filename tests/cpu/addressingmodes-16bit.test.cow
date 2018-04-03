@@ -67,6 +67,16 @@ print("&testrecord.array[0]==&testrecordptr.array[0]"); if &testrecord.array[0] 
 print("testrecord.array[2]==testrecordptr.array[2]"); if testrecord.array[2] == testrecordptr.array[2] then yes(); else no(); end if;
 print("&testrecord.array[2]==&testrecordptr.array[2]"); if &testrecord.array[2] == &testrecordptr.array[2] then yes(); else no(); end if;
 
+testrecord.array[2] := 4;
+testrecord.array[3] := 5;
+sub do_work()
+    # This is in its own subroutine to ensure there are no cached registers.
+    testrecordptr.array[2] := testrecordptr.array[3];
+end sub;
+do_work();
+print("testrecord.array[2]==testrecord.array[3]");
+if testrecord.array[2] == testrecord.array[3] then yes(); else no(); end if;
+
 record InnerStructure
     array: uint8[4];
 end record;

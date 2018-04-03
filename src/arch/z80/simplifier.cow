@@ -272,6 +272,16 @@ sub simplify_ea(beiop: uint8, width: uint8, ea: [EffectiveAddress])
 end sub;
 
 sub arch_simplify_node_to(src: [Node], dest: [Node])
+    $if DEBUG
+        print("Z80: simplifying node left=");
+        print_ea(&src.left);
+        print(" right=");
+        print_ea(&src.right);
+        print(" dest=");
+        print_ea(&dest.left);
+        print_newline();
+    $endif
+
     if dest.iop != IOP_FEX_PUSH then
         print("simplify_node_to() where dest is not simplified");
         halt();

@@ -28,6 +28,7 @@ sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     # some description, as we can't refer to it directly.
 
     var pointer: RegSet;
+    var residualoffset: int16;
     if get_value_of_number(ea.numoff_id) != 0 then
         pointer := REG_INDEX;
     elseif (regs & REG_A) != 0 then
@@ -35,7 +36,7 @@ sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     else
         pointer := REG_HL;
     end if;
-    pointer := setup_pointer(pointer, ea);
+    (pointer, residualoffset) := setup_pointer(pointer, ea, 0);
 
     # Now the pointer is in a register, dereference it.
 
@@ -44,7 +45,7 @@ sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
     insn.datareg := reg;
     insn.otherreg := pointer;
     insn.mode := MODE_IND;
-    insn.offset := get_value_of_number(ea.numoff_id) as int16;
+    insn.offset := residualoffset;
     insn_load_object();
 
     reg_free(pointer);
@@ -84,12 +85,13 @@ sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (otherreg: RegSet)
     else
         otherreg := REG_HL;
     end if;
-    otherreg := setup_pointer(otherreg, ea);
+    var residualoffset: int16;
+    (otherreg, residualoffset) := setup_pointer(otherreg, ea, 0);
 
     insn_init();
     insn.datareg := REG_A;
     insn.otherreg := otherreg;
-    insn.offset := get_value_of_number(ea.numoff_id) as int16;
+    insn.offset := residualoffset;
     insn.mode := MODE_IND;
 end sub;
 
@@ -104,7 +106,8 @@ sub save_8bit_or_make_precious(ea: [EffectiveAddress], reg: RegSet)
         else
             pointer := REG_HL;
         end if;
-        pointer := setup_pointer(pointer, ea);
+        var residualoffset: int16;
+        (pointer, residualoffset) := setup_pointer(pointer, ea, 0);
 
         # Now the pointer is in a register, dereference it.
 
@@ -112,7 +115,7 @@ sub save_8bit_or_make_precious(ea: [EffectiveAddress], reg: RegSet)
         insn.datareg := reg;
         insn.otherreg := pointer;
         insn.mode := MODE_IND;
-        insn.offset := get_value_of_number(ea.numoff_id) as int16;
+        insn.offset := residualoffset;
         insn_save_object();
     else
         if (reg & REG_A) == 0 then

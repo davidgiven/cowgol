@@ -1,3 +1,5 @@
+# Note that for VALUEs, any offset gets baked into the pointer. For DEREFs, the
+# pointer points to the base and you need to apply the offset yourself.
 sub make_pointer(ea: [EffectiveAddress], ptrea: [EffectiveAddress])
     copy_ea(ea, ptrea);
     if ea.flags == EA_VALUE then
@@ -15,8 +17,16 @@ sub make_pointer(ea: [EffectiveAddress], ptrea: [EffectiveAddress])
     end if;
 end sub;
 
-# Given an ea, loads a pointer to the *unoffsetted* part of it.
-sub setup_pointer(candidates: RegSet, ea: [EffectiveAddress]): (pointerreg: RegSet)
+# Given an ea, loads a pointer to it, adding any extra offset. Returns the
+# pointer and any extra offset which needs adding in the dereference. The
+# rules are inconsistent and a bit weird:
+#
+#  index registers: pointer+residual does not include extraoffset
+#  other registers: pointer does include extraoffset, residual=0
+#
+# There are reasons for this, honest. 
+sub setup_pointer(candidates: RegSet, ea: [EffectiveAddress], extraoffset: uint8):
+        (reg: RegSet, residualoffset: int16)
     $if DEBUG
         print("* constructing a pointer to ");
         print_ea(ea);
@@ -31,45 +41,52 @@ sub setup_pointer(candidates: RegSet, ea: [EffectiveAddress]): (pointerreg: RegS
     if get_value_of_number(ea.numoff_id) != 0 then
         candidates := candidates & (REG_HL|REG_DE|REG_IX|REG_IY);
     end if;
-    pointerreg := reg_find_or_load(candidates, &indea);
-end sub;
+    reg := reg_find_or_load(candidates, &indea);
 
-sub apply_offset_to_pointer(reg: RegSet, ea: [EffectiveAddress], extraoffset: uint8)
-    var offset: uint16 := (get_value_of_number(ea.numoff_id) as uint16) + (extraoffset as uint16);
-    if (offset != 0) and ((reg & (REG_BC|REG_DE|REG_HL)) != 0) then
-        $if DEBUG
-            print("* offsetting ");
-            print_regs(reg);
-            print(" by 0x");
-            print_hex_i16(offset);
-            print_newline();
-        $endif
+    if ea.flags == EA_DEREF then
+        residualoffset := get_value_of_number(ea.numoff_id) as int16;
+    else
+        residualoffset := 0;
+    end if;
+    if (reg & REG_INDEX) == 0 then
+        residualoffset := residualoffset + (extraoffset as int16);
+        if residualoffset != 0 then
+            $if DEBUG
+                print("* offsetting ");
+                print_regs(reg);
+                print(" by 0x");
+                print_hex_i16(residualoffset as uint16);
+                print_newline();
+            $endif
 
-        var indea: EffectiveAddress;
-        indea.type_id := uint16_type;
-        indea.obj_id := add_number_by_value(offset as int32);
+            var offea: EffectiveAddress;
+            offea.type_id := uint16_type;
+            offea.obj_id := add_number_by_value(residualoffset as int32);
 
-        var offreg: RegSet := reg_find_or_load(REG_HL|REG_BC|REG_DE, &indea);
-        reg_evict(reg);
-        var regnum: uint8 := get_z80_regnum(offreg);
-        if reg == REG_DE then
-            write_byte(0xEB); # ex hl, de
-            if offreg == REG_HL then
-                write_byte(0x19); # add hl, de
-            elseif offreg == REG_BC then
-                write_byte(0x09); # add hl, bc
+            var offreg: RegSet := reg_find_or_load(REG_HL|REG_BC|REG_DE, &offea);
+            reg_evict(reg);
+            var regnum: uint8 := get_z80_regnum(offreg);
+            if reg == REG_DE then
+                write_byte(0xEB); # ex hl, de
+                if offreg == REG_HL then
+                    write_byte(0x19); # add hl, de
+                elseif offreg == REG_BC then
+                    write_byte(0x09); # add hl, bc
+                else
+                    print("can't happen");
+                    halt();
+                end if;
+                write_byte(0xEB); # ex hl, de
+            elseif reg == REG_HL then
+                write_byte(0x09 | regnum); # add hl, bc
             else
-                print("can't happen");
+                print("can't offset this register");
                 halt();
             end if;
-            write_byte(0xEB); # ex hl, de
-        elseif reg == REG_HL then
-            write_byte(0x09 | regnum); # add hl, bc
-        else
-            print("can't offset this register");
-            halt();
+            reg_free(offreg);
+
+            residualoffset := 0;
         end if;
-        reg_free(offreg);
     end if;
 end sub;
 

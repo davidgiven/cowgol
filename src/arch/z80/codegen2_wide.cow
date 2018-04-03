@@ -138,8 +138,11 @@ var rhspair: RegSet;
 var lhspair: RegSet;
 var destpair: RegSet;
 var rhsptrreg: RegSet;
+var rhsoffset: int16;
 var lhsptrreg: RegSet;
+var lhsoffset: int16;
 var destptrreg: RegSet;
+var destoffset: int16;
 var opwidth: uint8;
 
 sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
@@ -162,7 +165,7 @@ sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
         lhsmode := MODE_IND;
         if (lhsea.flags == EA_LEA) or (is_number_thing(lhsea.obj_id) != 0) then
             lhsmode := MODE_IMM;
-        elseif lhsea.flags == EA_VALUE then
+        elseif (opwidth == 2) and (lhsea.flags == EA_VALUE) then
             lhsmode := MODE_DIR;
         end if;
     else
@@ -206,34 +209,45 @@ sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
         end if;
     end if;
 
-    # Set up any pointers needed for the value.
+    # Set up any pointers needed for the value. This is more complicated than
+    # it looks, and I've been through loads of iterations of this: it's
+    # possible for two parameters to share a pointer
+    # (e.g. foo.x := foo.x + 1), which means that we have to ensure that
+    # pointers only get incremented once; but offsetted pointers don't show
+    # up in the cache (because their value can't be represented as an
+    # EffectiveAddress), so we don't get sharing automatically. So... it's
+    # painful.
 
     if rhsmode == MODE_IND then
-        rhsptrreg := setup_pointer(rhspointers, rhsea);
+        (rhsptrreg, rhsoffset) := setup_pointer(rhspointers, rhsea, extraoffset);
     else
         rhsptrreg := 0;
+        rhsoffset := 0;
     end if;
     if lhsmode == MODE_IND then
-        lhsptrreg := setup_pointer(otherpointers, lhsea);
+        if (rhsptrreg != 0) and (is_same_ea_ignoring_type(lhsea, rhsea) != 0) then
+            lhsptrreg := rhsptrreg;
+            lhsoffset := rhsoffset;
+        else
+            (lhsptrreg, lhsoffset) := setup_pointer(otherpointers, lhsea, extraoffset);
+        end if;
     else
         lhsptrreg := 0;
+        lhsoffset := 0;
     end if;
     if destmode == MODE_IND then
-        destptrreg := setup_pointer(otherpointers, destea);
+        if (lhsptrreg != 0) and (is_same_ea_ignoring_type(destea, lhsea) != 0) then
+            destptrreg := lhsptrreg;
+            destoffset := lhsoffset;
+        elseif (rhsptrreg != 0) and (is_same_ea_ignoring_type(destea, rhsea) != 0) then
+            destptrreg := rhsptrreg;
+            destoffset := rhsoffset;
+        else
+            (destptrreg, destoffset) := setup_pointer(otherpointers, destea, extraoffset);
+        end if;
     else
         destptrreg := 0;
-    end if;
-
-    # More complicated than it looks because some of the parameters mgiht
-    # share pointers --- we only want to offset each one once.
-    if rhsptrreg != 0 then
-        apply_offset_to_pointer(rhsptrreg, rhsea, extraoffset);
-    end if;
-    if (lhsptrreg != 0) and (lhsptrreg != rhsptrreg) then
-        apply_offset_to_pointer(lhsptrreg, lhsea, extraoffset);
-    end if;
-    if (destptrreg != 0) and (destptrreg != lhsptrreg) and (destptrreg != rhsptrreg) then
-        apply_offset_to_pointer(destptrreg, destea, extraoffset);
+        destoffset := 0;
     end if;
 
     # The pointers are the important bit. Now they're set up, any values can
@@ -295,12 +309,18 @@ sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
         print_newline();
         print("* LHS pointer: ");
         print_regs(lhsptrreg);
+        print("+0x");
+        print_hex_i16(lhsoffset as uint16);
         print_newline();
         print("* RHS pointer: ");
         print_regs(rhsptrreg);
+        print("+0x");
+        print_hex_i16(rhsoffset as uint16);
         print_newline();
         print("* Dest pointer: ");
         print_regs(destptrreg);
+        print("+0x");
+        print_hex_i16(destoffset as uint16);
         print_newline();
     $endif
 end sub;
@@ -360,7 +380,7 @@ sub do_wide_read(offset: uint8, destreg: RegSet)
         insn.datareg := reg;
         insn.otherreg := lhsptrreg;
         if (lhsptrreg & REG_INDEX) != 0 then
-            insn.offset := ((get_value_of_number(lhsea.numoff_id) as uint8) + offset) as int16;
+            insn.offset := lhsoffset + (offset as int16);
         end if;
         insn.mode := MODE_IND;
         insn_load_object();
@@ -401,7 +421,7 @@ sub do_wide_alu(offset: uint8, opcode: uint8)
     elseif rhsmode == MODE_IND then
         insn.otherreg := rhsptrreg;
         if (rhsptrreg & REG_INDEX) != 0 then
-            insn.offset := ((get_value_of_number(rhsea.numoff_id) as uint8) + offset) as int16;
+            insn.offset := rhsoffset + (offset as int16);
         end if;
         insn.mode := MODE_IND;
     elseif rhsmode == MODE_IMM then
@@ -437,7 +457,7 @@ sub do_wide_write(offset: uint8, srcreg: RegSet)
         insn.datareg := reg;
         insn.otherreg := destptrreg;
         if (destptrreg & REG_INDEX) != 0 then
-            insn.offset := ((get_value_of_number(destea.numoff_id) as uint8) + offset) as int16;
+            insn.offset := destoffset + (offset as int16);
         end if;
         insn.mode := MODE_IND;
         insn_save_object();
