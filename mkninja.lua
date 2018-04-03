@@ -87,10 +87,10 @@ build $OBJDIR/dependencies_for_cowgol_program : stamp $
     scripts/cowgol
 
 rule mkbbcdist
-    command = scripts/mkbbcdist $out
+    command = scripts/bbc/mkbbcdist $out
 
 build bin/bbcdist.adf : mkbbcdist | $
-    scripts/mkbbcdist $
+    scripts/bbc/mkbbcdist $
     bin/mkadfs $
     $OBJDIR/compiler_for_bbc_on_bbc $
     src/arch/bbc/lib/argv.cow $
@@ -98,8 +98,8 @@ build bin/bbcdist.adf : mkbbcdist | $
     src/arch/bbc/lib/mos.cow $
     src/arch/bbc/lib/runtime.cow $
     src/arch/6502/lib/runtime.cow $
-    scripts/!boot $
-    scripts/precompile $
+    scripts/bbc/!boot $
+    scripts/bbc/precompile $
     demo/tiny.cow
 
 rule pasmo
@@ -179,7 +179,7 @@ local host_data = {
 
         RULE = "cowgol_program"
         EXTENSION = ".bbc"
-        TESTSCRIPT = "scripts/bbctube_test"
+        TESTSCRIPT = "scripts/bbc/bbctube_test"
         TESTBIN = "bin/bbctube"
     end,
 

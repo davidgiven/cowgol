@@ -1,7 +1,7 @@
 #!/bin/sh
 
 bin/mkadfs -O $1 -S 1280 -B 3 -N 'Cowgol demo' \
-    -f scripts/'!boot'              -n !BOOT \
+    -f scripts/bbc/'!boot'          -n !BOOT \
     -f demo/tiny.cow                -n TestProg \
     -d Bin \
         -f bin/bbc/blockifier           -n Blockifier -l 0x800 \
@@ -16,7 +16,7 @@ bin/mkadfs -O $1 -S 1280 -B 3 -N 'Cowgol demo' \
         -f bin/bbc/tokeniser2           -n Tokeniser2 -l 0x800 \
         -f bin/bbc/typechecker          -n TypeCheck  -l 0x800 \
         -f bin/bbc/backendify           -n Backendify -l 0x800 \
-        -f scripts/precompile           -n Precompile \
+        -f scripts/bbc/precompile       -n Precompile \
         -u \
     -d Lib \
         -f src/arch/bbc/lib/argv.cow     -n ArgV \
