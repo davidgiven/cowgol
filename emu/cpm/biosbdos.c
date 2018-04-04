@@ -12,8 +12,8 @@
 #include <errno.h>
 #include "globals.h"
 
-#define FBASE 0xff80
-#define COLDSTART (FBASE + 3) /* see bdos.asm */
+#define FBASE 0xff00
+#define COLDSTART (FBASE + 4) /* see bdos.asm */
 #define CBASE (FBASE - (7*1024))
 
 static uint16_t dma;
@@ -252,10 +252,27 @@ static struct fcb* find_fcb(void)
 	return fcb;
 }
 
+static int get_current_record(struct fcb* fcb)
+{
+	return (fcb->extent * 128) + fcb->currentrecord;
+}
+
+static void set_current_record(struct fcb* fcb, int record, int total)
+{
+	int extents = total / 128;
+	fcb->extent = record / 128;
+	if (fcb->extent < extents)
+		fcb->recordcount = 128;
+	else
+		fcb->recordcount = total % 128;
+	fcb->currentrecord = record % 128;
+}
+
 static void bdos_resetdisk(void)
 {
-	dma = 0x0100;
+	dma = 0x0080;
 	ram[4] = 0; /* select drive A */
+	set_result(0xff);
 }
 
 static void bdos_selectdisk(void)
@@ -273,19 +290,34 @@ static void bdos_openfile(void)
 {
 	struct fcb* fcb = find_fcb();
 	struct file* f = file_open(&fcb->filename);
-	set_result(f ? 0 : 0xff);
+	if (f)
+	{
+		set_current_record(fcb, 0, file_getrecordcount(f));
+		set_result(0);
+	}
+	else
+		set_result(0xff);
 }
 
 static void bdos_makefile(void)
 {
 	struct fcb* fcb = find_fcb();
 	struct file* f = file_create(&fcb->filename);
-	set_result(f ? 0 : 0xff);
+	if (f)
+	{
+		set_current_record(fcb, 0, 0);
+		set_result(0);
+	}
+	else
+		set_result(0xff);
 }
 
 static void bdos_closefile(void)
 {
 	struct fcb* fcb = find_fcb();
+	struct file* f = file_open(&fcb->filename);
+	if (file_getrecordcount(f) < 128)
+		file_setrecordcount(f, fcb->recordcount);
 	int result = file_close(&fcb->filename);
 	set_result(result ? 0xff : 0);
 }
@@ -338,18 +370,16 @@ static void bdos_readwritesequential(readwrite_cb* readwrite)
 {
 	struct fcb* fcb = find_fcb();
 
-	if (fcb->extent != 0)
-		fatal("bad extent");
-
 	struct file* f = file_open(&fcb->filename);
-	int i = readwrite(f, &ram[dma], fcb->currentrecord);
+	int here = get_current_record(fcb);
+	int i = readwrite(f, &ram[dma], here);
+	set_current_record(fcb, here+1, file_getrecordcount(f));
 	if (i == -1)
 		set_result(0xff);
 	else if (i == 0)
 		set_result(1);
 	else
 		set_result(0);
-	fcb->currentrecord++;
 }
 
 static void bdos_readwriterandom(readwrite_cb* readwrite)
@@ -359,6 +389,7 @@ static void bdos_readwriterandom(readwrite_cb* readwrite)
 	uint16_t record = fcb->r[0] + (fcb->r[1]<<8);
 	struct file* f = file_open(&fcb->filename);
 	int i = readwrite(f, &ram[dma], record);
+	set_current_record(fcb, record, file_getrecordcount(f));
 	if (i == -1)
 		set_result(0xff);
 	else if (i == 0)
@@ -372,7 +403,7 @@ static void bdos_filelength(void)
 	struct fcb* fcb = find_fcb();
 	struct file* f = file_open(&fcb->filename);
 
-	uint64_t length = file_length(f) / 128;
+	int length = file_getrecordcount(f);
 	fcb->r[0] = length;
 	fcb->r[1] = length>>8;
 	fcb->r[2] = length>>16;

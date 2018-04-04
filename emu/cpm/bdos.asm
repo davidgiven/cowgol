@@ -1,10 +1,11 @@
-	ORG 0xff80 ; FBASE
+	org 0xff00 ; FBASE
 
 bdos: ; BDOS entry point
 	out (0xff), a
+	or a
 	ret
 
-COLDSTART: ; system startup entry point --- this needs to be three bytes after FBASE.
+COLDSTART: ; system startup entry point --- this needs to be four bytes after FBASE.
 	jp boot	    ; 0: Cold start routine
 bios:
 	jp wboot	; 1: Warm boot - reload command processor
@@ -44,53 +45,66 @@ wboot:
 
 const:
 	out (2), a
+	or a
 	ret
 
 conin:
 	out (3), a
+	or a
 	ret
 
 conout:
 	out (4), a
+	or a
 	ret
 
 list:
 	out (5), a
+	or a
 	ret
 
 punch:
 	out (6), a
+	or a
 	ret
 
 reader:
 	out (7), a
+	or a
 	ret
 
 home:
 	out (8), a
+	or a
 	ret
 
 seldsk:
 	out (9), a
+	or a
 	ret
 
 settrk:
 	out (10), a
+	or a
 	ret
 
 setsec:
 	out (11), a
+	or a
 	ret
 
 setdma:
 	out (12), a
+	or a
 	ret
 
 read:
 	out (13), a
+	or a
 	ret
 
 write:
 	out (14), a
+	or a
 	ret
 

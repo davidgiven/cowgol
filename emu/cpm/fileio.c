@@ -13,7 +13,7 @@
 #include "globals.h"
 
 #define logf(args...) while (0)
-// #define logf(args...) printf(args)
+//#define logf(args...) printf(args)
 
 struct file
 {
@@ -56,7 +56,8 @@ void files_init(void)
 
 		memset(&f->filename.bytes, ' ', 11);
 		f->filename.drive = 0;
-		f->fd = f->flags = 0;
+		f->fd = -1;
+		f->flags = 0;
 	}
 
 	firstfile = &files[0];
@@ -202,12 +203,12 @@ static int get_drive_fd(cpm_filename_t* filename)
 
 static void reopen(struct file* f, int flags)
 {
-	if ((f->fd == 0) || ((f->flags == O_RDONLY) && (flags == O_RDWR)))
+	if ((f->fd == -1) || ((f->flags == O_RDONLY) && (flags == O_RDWR)))
 	{
 		char unixfilename[13];
 		cpm_filename_to_unix(&f->filename, unixfilename);
 
-		if (f->fd)
+		if (f->fd != -1)
 		{
 			logf("[reopening actual file '%s' on %d with different flags]\n", unixfilename, f->fd);
 			close(f->fd);
@@ -217,7 +218,8 @@ static void reopen(struct file* f, int flags)
 		if (drivefd == -1)
 			return;
 
-		f->flags = flags;
+		f->flags = flags & O_ACCMODE;
+		errno = 0;
 		f->fd = openat(drivefd, unixfilename, flags, 0666);
 		logf("[opened actual file '%s' to fd %d: %s]\n", unixfilename, f->fd, strerror(errno));
 	}
@@ -238,12 +240,12 @@ static struct file* find_file(cpm_filename_t* filename)
 		{
 			logf("[allocating file %d for '%.11s']\n", f-files, filename->bytes);
 			bump(f);
-			if (f->fd)
+			if (f->fd != -1)
 			{
 				logf("[closing old file %d for '%.11s']\n", f-files, f->filename.bytes);
 				close(f->fd);
 			}
-			f->fd = 0;
+			f->fd = -1;
 			f->filename = *filename;
 			f->flags = 0;
 			break;
@@ -256,7 +258,7 @@ struct file* file_open(cpm_filename_t* filename)
 {
 	struct file* f = find_file(filename);
 	reopen(f, O_RDONLY);
-	if (f->fd <= 0)
+	if (f->fd == -1)
 		return NULL;
 	return f;
 }
@@ -264,9 +266,9 @@ struct file* file_open(cpm_filename_t* filename)
 struct file* file_create(cpm_filename_t* filename)
 {
 	struct file* f = find_file(filename);
+	logf("[creating file %d for '%.11s']\n", f-files, f->filename.bytes);
 	reopen(f, O_RDWR | O_CREAT);
-	f->flags = O_RDWR;
-	if (f->fd <= 0)
+	if (f->fd == -1)
 		return NULL;
 	return f;
 }
@@ -276,22 +278,22 @@ int file_close(cpm_filename_t* filename)
 	struct file* f = find_file(filename);
 
 	logf("[explicitly closing file %d for '%.11s']\n", f-files, f->filename.bytes);
-	if (f->fd)
+	if (f->fd != -1)
 	{
 		logf("[closing file descriptor %d]\n", f->fd);
 		close(f->fd);
 	}
 
 	memset(&f->filename.bytes, ' ', 11);
-	f->fd = f->flags = 0;
+	f->fd = -1;
+	f->flags = 0;
 
 	return 0;
 }
 
 int file_read(struct file* f, uint8_t* data, uint16_t record)
 {
-	if (!f->fd)
-		return -1;
+	reopen(f, O_RDONLY);
 	
 	logf("[read record %04x from file %d for '%.11s']\n", record, f-files, f->filename.bytes);
 	bump(f);
@@ -301,25 +303,32 @@ int file_read(struct file* f, uint8_t* data, uint16_t record)
 
 int file_write(struct file* f, uint8_t* data, uint16_t record)
 {
-	if (!f->fd)
-		return -1;
-	
-	if (f->flags == O_RDONLY)
-		reopen(f, O_RDWR);
+	reopen(f, O_RDWR);
 
 	logf("[write record %04x from file %d for '%.11s']\n", record, f-files, f->filename.bytes);
 	bump(f);
 	return pwrite(f->fd, data, 128, record*128);
 }
 
-uint64_t file_length(struct file* f)
+int file_getrecordcount(struct file* f)
 {
-	if (!f->fd)
-		return 0;
+	reopen(f, O_RDONLY);
 	
 	struct stat st;
 	fstat(f->fd, &st);
-	return st.st_size;
+	return (st.st_size + 127) >> 7;
+}
+
+void file_setrecordcount(struct file* f, int count)
+{
+	reopen(f, O_RDONLY);
+	
+	if (count != file_getrecordcount(f))
+	{
+		logf("[truncating file %d to %d records]\n", f-files, count);
+		reopen(f, O_RDWR);
+		ftruncate(f->fd, count*128);
+	}
 }
 
 int file_findfirst(cpm_filename_t* pattern)
