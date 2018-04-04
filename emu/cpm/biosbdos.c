@@ -240,16 +240,20 @@ void bdos_readline(void)
 	set_result(count);
 }
 
-static struct fcb* find_fcb(void)
+static struct fcb* fcb_at(uint16_t address)
 {
-	uint16_t de = z80ex_get_reg(z80, regDE);
-	struct fcb* fcb = (struct fcb*) &ram[de];
+	struct fcb* fcb = (struct fcb*) &ram[address];
 
 	/* Autoselect the current drive. */
 	if (fcb->filename.drive == 0)
 		fcb->filename.drive = ram[4] + 1;
 
 	return fcb;
+}
+
+static struct fcb* find_fcb(void)
+{
+	return fcb_at(z80ex_get_reg(z80, regDE));
 }
 
 static int get_current_record(struct fcb* fcb)
@@ -324,7 +328,10 @@ static void bdos_closefile(void)
 
 static void bdos_renamefile(void)
 {
-	fatal("rename not supported yet");
+	struct fcb* srcfcb = fcb_at(z80ex_get_reg(z80, regDE));
+	struct fcb* destfcb = fcb_at(z80ex_get_reg(z80, regDE)+16);
+	int result = file_rename(&srcfcb->filename, &destfcb->filename);
+	set_result(result ? 0xff : 0);
 }
 
 static void bdos_findnext(void)

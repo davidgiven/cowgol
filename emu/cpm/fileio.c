@@ -423,3 +423,18 @@ int file_delete(cpm_filename_t* pattern)
 	closedir(dir);
 	return result;
 }
+
+int file_rename(cpm_filename_t* src, cpm_filename_t* dest)
+{
+	logf("[renaming %.11s to %.11s on drive %c]\n",
+		src->bytes, dest->bytes, '@'+src->drive);
+
+	char srcunixfilename[13];
+	cpm_filename_to_unix(src, srcunixfilename);
+
+	char destunixfilename[13];
+	cpm_filename_to_unix(dest, destunixfilename);
+
+	int drivefd = get_drive_fd(src);
+	return renameat(drivefd, srcunixfilename, drivefd, destunixfilename);
+}

@@ -40,6 +40,7 @@ extern void file_setrecordcount(struct file* f, int count);
 extern int file_findfirst(cpm_filename_t* pattern);
 extern int file_findnext(cpm_filename_t* result);
 extern int file_delete(cpm_filename_t* pattern);
+extern int file_rename(cpm_filename_t* src, cpm_filename_t* dest);
 
 extern void fatal(const char* message, ...);
 
