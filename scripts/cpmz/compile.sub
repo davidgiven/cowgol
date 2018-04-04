@@ -1,0 +1,23 @@
+b:init
+b:tokenise c:runtime0.cow c:runtime1.cow c:runtime2.cow
+b:parser
+b:tokenise testprog.cow
+b:parser
+b:typechck
+era iops.dat
+ren iops.dat=iopsout.dat
+b:backend
+era iops.dat
+ren iops.dat=iopsout.dat
+b:classify
+b:blockify
+era iops.dat
+ren iops.dat=iopsout.dat
+b:codegen
+era iops.dat
+ren iops.dat=iopsout.dat
+b:placer
+era iops.dat
+ren iops.dat=iopsout.dat
+b:emitter
+

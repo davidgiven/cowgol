@@ -199,7 +199,7 @@ local host_data = {
 
         RULE = "cowgol_program"
         EXTENSION = ".cpmz"
-        TESTSCRIPT = "scripts/cpmz_test"
+        TESTSCRIPT = "scripts/cpmz/cpmz_test"
         TESTBIN = "bin/cpm"
     end,
 }
