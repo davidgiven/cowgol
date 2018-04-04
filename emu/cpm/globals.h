@@ -39,6 +39,7 @@ extern int file_getrecordcount(struct file* f);
 extern void file_setrecordcount(struct file* f, int count);
 extern int file_findfirst(cpm_filename_t* pattern);
 extern int file_findnext(cpm_filename_t* result);
+extern int file_delete(cpm_filename_t* pattern);
 
 extern void fatal(const char* message, ...);
 

@@ -347,21 +347,9 @@ static void bdos_findfirst(void)
 
 static void bdos_deletefile(void)
 {
-	uint16_t result = 0xff;
-	#if 0
 	struct fcb* fcb = find_fcb();
-	glob_t globdata;
-	if (glob(fcb->d, 0, NULL, &globdata) == 0)
-	{
-		for (int i=0; i<globdata.gl_pathc; i++)
-		{
-			unlink(globdata.gl_pathv[i]);
-			result = 0;
-		}
-	}
-	globfree(&globdata);
-	#endif
-	set_result(result);
+	int i = file_delete(&fcb->filename);
+	set_result(i ? 0xff : 0);
 }
 
 typedef int readwrite_cb(struct file* f, uint8_t* ptr, uint16_t record);

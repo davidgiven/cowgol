@@ -386,3 +386,40 @@ int file_findnext(cpm_filename_t* result)
 	}
 }
 
+int file_delete(cpm_filename_t* pattern)
+{
+	logf("[attempting to delete pattern '%.11s' on drive %c]\n", pattern->bytes, '@'+pattern->drive);
+	int drivefd = get_drive_fd(pattern);
+	DIR* dir = fdopendir(dup(drivefd));
+	if (!dir)
+		return -1;
+	rewinddir(dir);
+
+	int result = -1;
+	for (;;)
+	{
+		struct dirent* de = readdir(dir);
+		if (!de)
+			break;
+
+		struct stat st;
+		cpm_filename_t candidate;
+
+		if ((fstatat(drivefd, de->d_name, &st, 0) == 0)
+			&& S_ISREG(st.st_mode)
+			&& unix_filename_to_cpm(de->d_name, &candidate))
+		{
+			candidate.drive = pattern->drive;
+			logf("[compare '%.11s' with pattern '%.11s']\n", candidate.bytes, pattern->bytes);
+			if (match_filenames(pattern, &candidate))
+			{
+				logf("[positive match, deleting]\n");
+				unlinkat(drivefd, de->d_name, 0);
+				result = 0;
+			}
+		}
+	}
+
+	closedir(dir);
+	return result;
+}
