@@ -11,15 +11,27 @@ these devices: the end goal is to be able to rebuild the entire compiler on
 an 8-bit micro.
 
 Right now it's in a state where you can build the cross-compiler on a PC,
-then use it to compile the compiler for a 6502 device, and then use *that*
-to (slowly) compile and run real programs on a 6502. It's theoretically
-capable of compiling itself but need memory tuning first. (And, realistically,
-bugfixing.)
+then use it to compile the compiler for a 6502 (or Z80) device, and then use
+*that* to (slowly) compile and run real programs on a 6502 (or Z80). It's
+theoretically capable of compiling itself but need memory tuning first. (And,
+realistically, bugfixing.)
 
-It's currently targeted at a BBC Micro with Tube second processor, because
-that gives me a real operating system with file streams and 61kB of usable
-RAM, but there's extremely basic (cross compilation only) support for the
-Commodore 64. (For ultra hackers only. Email me.)
+The compiler itself will run on these architectures (as well as
+cross-compiling from a modern PC in a fraction of the time):
+
+  - 6502, on a BBC Micro with Tube second processor; this is the only
+    platform I've found which is big enough (as it gives me a real operating
+    system with file streams and 61kB of usable RAM). (The distribution
+    contains a simple emulator.)
+
+  - Z80, on CP/M. (The distribution contains a simple emulator.)
+
+It will also cross compile for:
+
+  - 6502, on the Commodore 64 (for ultra hackers only; email me).
+
+(Just for fun we also build cross compilers which will let you build for the
+BBC Micro from CP/M, and vice versa.)
 
 
 Why?
@@ -100,8 +112,10 @@ To run the cross compiler, do:
     srctest.cow
 ```
 
-You'll be left with a BBC Micro executable in `cow.out`. The Commodore 64
-cross compiler works identically.
+You'll be left with a BBC Micro executable in `cow.out`. For the Commodore
+64, substitute `c64_on_native` and `src/arch/c64/...` in the obvious places.
+For CP/M, substitute `cpmz_on_native`, `src/arch/cpmz/...`, and
+`src/arch/z80/...` in the obvious places.
 
 The first three input files should be always be the runtime library.
 
@@ -126,6 +140,17 @@ of running out of disk space! Just remember to set your machine type to a BBC
 Master Turbo, and then crank the emulation speed for both the main computer
 and the Tube processor as high as they will go.
 
+**Even specialler emulation bonus!** There's a _built in_ emulator for CP/M
+*which will let you run Cowgol for CP/M out of the box using the farm of
+*symlinks in `tools/cpm`! After building Cowgol, do this:
+
+    $ bin/cpm -p a=tools/cpm/a -p b=tools/cpm/b/ -p c=tools/cpm/c/
+    a> submit compile
+
+...and watch the fun! (If you get this running on real hardware, please let
+me know. I want to know how long it takes.)
+
+
 Why not?
 --------
 
@@ -138,8 +163,9 @@ There are a bunch of things that can be done to improve performance, but they
 all need memory. This isn't free, so I'll need to make things smaller,
 improve code sizes, make the generated code more efficient, etc.
 
-But let's be honest; you're trying to compile a modern-ish language on a 2MHz
-6502 with 64kB of RAM. It's not going to be fast.
+But let's be honest; you're trying to compile a modern-ish language on a
+2-4MHz device with 64kB of RAM. It's not going to be fast.
+
 
 Who?
 ----
@@ -156,3 +182,10 @@ License?
 Cowgol is open source software available [under the 2-clause BSD
 license](https://github.com/davidgiven/cowgol/blob/master/COPYING).
 Simplified summary: do what you like with it, just don't claim you wrote it.
+
+`src/bbctube` contains a hacked copy of the lib6502 library, which is © 2005
+Ian Plumarta. See `emu/bbctube/COPYING.lib6502` for the full text.
+
+`tools/cpm/a` contains some tools from the original CP/M 2.2 binary
+distribution for the Imsai 1800, redistributable under a special license. See
+`tools/cpm/a/!readme.txt` for the full text.
