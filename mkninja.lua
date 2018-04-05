@@ -159,8 +159,6 @@ local compilers = {
     {"cpmz", "native"},
     {"bbc", "bbc"},
     {"cpmz", "cpmz"},
-	{"cpmz", "bbc"},
-	{"bbc", "cpmz"},
 }
 
 local host_data = {

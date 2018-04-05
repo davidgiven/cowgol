@@ -154,6 +154,8 @@ end sub;
 sub arch_gen_add(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xC6); # add *
+    elseif iop.width == 2 then
+        arch_gen_add_word(iop);
     else
         arch_gen_add_wide(iop);
     end if;
@@ -162,6 +164,8 @@ end sub;
 sub arch_gen_sub(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_regular_alu_byte(iop, 0xD6); # sub *
+    elseif iop.width == 2 then
+        arch_gen_sub_word(iop);
     else
         arch_gen_sub_wide(iop);
     end if;

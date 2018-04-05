@@ -30,9 +30,6 @@ It will also cross compile for:
 
   - 6502, on the Commodore 64 (for ultra hackers only; email me).
 
-(Just for fun we also build cross compilers which will let you build for the
-BBC Micro from CP/M, and vice versa.)
-
 
 Why?
 ----
