@@ -279,6 +279,8 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
     reg_write_back_precious_regs(ALL_REGS);
     if ciop.width == 1 then
         arch_gen_cmp_8bit(ciop, liop);
+    elseif ciop.width == 2 then
+        arch_gen_cmp_16bit(ciop, liop);
     else
         arch_gen_cmp_wide(ciop, liop);
     end if;

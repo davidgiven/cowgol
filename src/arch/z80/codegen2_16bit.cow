@@ -348,3 +348,68 @@ sub arch_gen_sub_word(iop: [BEIop])
     reg_free(rightreg);
     save_16bit_or_make_precious(&iop.dest, leftreg);
 end sub;
+
+sub arch_gen_cmp_16bit(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare words 0x");
+        print_hex_i8(ciop.iop_kind);
+        print(": ");
+        print_ea(&ciop.left);
+        print(", ");
+        print_ea(&ciop.right);
+        print(" => label 0x");
+        print_hex_i8(liop.label);
+        print_newline();
+    $endif
+
+    var fallthrough_label: uint8;
+    var iopkind: uint8 := ciop.iop_kind;
+
+    var rhsreg: RegSet;
+    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+        rhsreg := load_complex_16bit_value(REG_BC|REG_DE, &ciop.right);
+        load_complex_16bit_value_fixed(REG_HL, &ciop.left);
+    else
+        rhsreg := load_complex_16bit_value(REG_BC|REG_DE, &ciop.left);
+        load_complex_16bit_value_fixed(REG_HL, &ciop.right);
+    end if;
+
+    var invertflag: uint8;
+    var destlabel: uint8;
+    if liop.label == ciop.iftrue_label then
+        invertflag := 0x00;
+        fallthrough_label := ciop.iftrue_label;
+        destlabel := ciop.iffalse_label;
+    else
+        invertflag := 0x08;
+        fallthrough_label := ciop.iffalse_label;
+        destlabel := ciop.iftrue_label;
+    end if;
+
+    reg_evict(REG_HL);
+    var regnum: uint8 := get_z80_regnum(rhsreg);
+    write_word(0xEDB7);        # or a (clear carry), plus prefix byte for next
+    write_byte(0x42 | regnum); # sbc hl, bc
+
+    if iopkind == IOP_BE_BEQ then
+        write_cg_conditional_iop(0xC2 ^ invertflag, destlabel); # jp nz
+    else
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            # BLTS
+            var skipxorlabel: uint8 := create_label();
+            write_cg_conditional_iop(0xE2, skipxorlabel); # jp po
+            write_word(0x80EE); # xor 0x80
+            write_label_iop(skipxorlabel);
+
+            write_cg_conditional_iop(0xF2 ^ invertflag, destlabel); # jp p
+        else
+            # BLTU
+            write_cg_conditional_iop(0xD2 ^ invertflag, destlabel); # jp c
+        end if;
+    end if;
+
+    if liop.label != fallthrough_label then
+        write_cg_conditional_iop(0xC3, fallthrough_label); # jp
+    end if;
+end sub;
+

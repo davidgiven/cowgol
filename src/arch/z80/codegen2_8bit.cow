@@ -244,7 +244,6 @@ sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])
         indreg := setup_8bit_rhs_insn(&ciop.left);
     end if;
 
-
     var invertflag: uint8;
     var destlabel: uint8;
     if liop.label == ciop.iftrue_label then
