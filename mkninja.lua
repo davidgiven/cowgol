@@ -102,6 +102,21 @@ build bin/bbcdist.adf : mkbbcdist | $
     scripts/bbc/precompile $
     demo/tiny.cow
 
+rule mkcpmzdist
+    command = scripts/cpmz/mkcpmzdist $out
+
+build bin/cpmzdist.zip : mkcpmzdist | $
+    scripts/cpmz/mkcpmzdist $
+    $OBJDIR/compiler_for_cpmz_on_cpmz $
+    src/arch/cpmz/lib/argv.cow $
+    src/arch/common/lib/fileio.cow $
+    src/arch/cpmz/lib/runtime.cow $
+    src/arch/z80/lib/runtime.cow $
+    scripts/cpmz/compile.sub $
+    tools/cpm/a/!readme.txt $
+    tools/cpm/a/!license.txt $
+    demo/tiny.cow
+
 rule pasmo
     command = pasmo $in $out
 
@@ -705,3 +720,6 @@ build_lexify(
 		"src/tokeniser2/lexer.l"
 	}
 )
+
+-- vim: set expandtab tabstop=4 :
+
