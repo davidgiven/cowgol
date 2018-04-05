@@ -23,9 +23,9 @@ sub apply_offset(reg: RegSet, delta: int16): (newreg: RegSet)
     if (delta >= -4) and (delta <= 4) then
         $if DEBUG
             print("* applying delta of ");
-            print_i16(delta);
+            print_i16(delta as uint16);
             print(" to ");
-            print_reg(reg);
+            print_regs(reg);
             print(" with inc/decs\n");
         $endif
     
@@ -48,9 +48,9 @@ sub apply_offset(reg: RegSet, delta: int16): (newreg: RegSet)
     else
         $if DEBUG
             print("* applying delta of ");
-            print_i16(delta);
+            print_i16(delta as uint16);
             print(" to ");
-            print_reg(reg);
+            print_regs(reg);
             print(" with addition\n");
         $endif
     
