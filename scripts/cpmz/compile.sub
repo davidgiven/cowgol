@@ -1,7 +1,5 @@
 b:init
-b:tokenise c:runtime0.cow c:runtime1.cow c:runtime2.cow
-b:parser
-b:tokenise testprog.cow
+b:tokenise b:runtime0.cow b:runtime1.cow b:runtime2.cow testprog.cow
 b:parser
 b:typechck
 era iops.dat

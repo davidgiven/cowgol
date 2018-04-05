@@ -91,16 +91,32 @@ processor although I recommend a BBC Master Turbo (mainly for the built-in
 editor); requires extreme patience as it takes eight minutes to compile a
 small program.
 
-To build the compiler, do:
+You will need some dependencies:
+
+  - the Ninja build tool
+
+  - Lua 5.2 (needed for the build)
+
+  - the Pasmo Z80 assembler (needed to build part of the CP/M emulator)
+
+  - the libz80ex Z80 emulation library (needed for the CP/M emulator)
+
+If you're on a Debianish platform, you should be able to install them
+with:
+
+    apt install ninja-build lua5.2 pasmo libz80ex-dev
+
+Once done you can build the compiler itself with:
+
 
 ```
 ninja
 ```
 
-There are some dependencies; they should be obvious. You'll be left with a
-lot of stuff in the `bin` directory. The BBC cross compiler is in
-`bin/bbc_on_native`; the BBC native compiler is in `bin/bbc`. The BBC demo
-disk is in `bin/bbcdist.adf`.
+You'll be left with a lot of stuff in the `bin` directory. The BBC cross
+compiler is in `bin/bbc_on_native`; the BBC native compiler is in `bin/bbc`.
+The BBC demo disk is in `bin/bbcdist.adf`. Likewise, the CP/M cross compiler is
+in `bin/cpmz_on_native` and the native compiler is in `bin/cpmz`.
 
 To run the cross compiler, do:
 
@@ -144,7 +160,7 @@ and the Tube processor as high as they will go.
 *which will let you run Cowgol for CP/M out of the box using the farm of
 *symlinks in `tools/cpm`! After building Cowgol, do this:
 
-    $ bin/cpm -p a=tools/cpm/a -p b=tools/cpm/b/ -p c=tools/cpm/c/
+    $ bin/cpm -p a=tools/cpm/a -p b=tools/cpm/b/
     a> submit compile
 
 ...and watch the fun! (If you get this running on real hardware, please let
