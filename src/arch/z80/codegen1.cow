@@ -1,6 +1,8 @@
 # Note that for VALUEs, any offset gets baked into the pointer. For DEREFs, the
 # pointer points to the base and you need to apply the offset yourself.
 sub make_pointer(ea: [EffectiveAddress], ptrea: [EffectiveAddress])
+    var thing: [DataThing];
+
     copy_ea(ea, ptrea);
     if ea.flags == EA_VALUE then
         ptrea.flags := EA_LEA;
@@ -8,10 +10,18 @@ sub make_pointer(ea: [EffectiveAddress], ptrea: [EffectiveAddress])
         # If we ever take the address of a number, ensure that the number will
         # get written out as a data value.
         if is_number_thing(ea.obj_id) != 0 then
-            var thing: [NumberThing] := find_thing(ea.obj_id) as [NumberThing];
+            thing := find_thing(ea.obj_id) as [DataThing];
             thing.segment := SEGMENT_CONST;
         end if;
-    else
+    elseif ea.flags == EA_LEA then
+        var ptr_id: uint16 := add_addressof_by_value(ea.obj_id,
+            get_value_of_number(ea.numoff_id) as uint16);
+        thing := find_thing(ptr_id) as [DataThing];
+        thing.segment := SEGMENT_CONST;
+        ptrea.obj_id := ptr_id;
+        ptrea.numoff_id := 0;
+        ptrea.flags := EA_LEA;
+    elseif ea.flags == EA_DEREF then
         ptrea.flags := EA_VALUE;
         ptrea.numoff_id := 0;
     end if;
@@ -137,7 +147,22 @@ sub setup_pointer(candidates: RegSet, ea: [EffectiveAddress], extraoffset: uint8
     if (reg & REG_INDEX) == 0 then
         residualoffset := residualoffset + (extraoffset as int16);
         if residualoffset != 0 then
-            reg := apply_offset(reg, residualoffset);
+            var newreg: RegSet := apply_offset(reg, residualoffset);
+            $if DEBUG
+                print("* after offset, result is in ");
+                print_regs(newreg);
+                print_newline();
+            $endif
+            if (newreg & candidates) == 0 then
+                $if DEBUG
+                    print("* which is not acceptable, so moving it\n");
+                $endif
+                reg := reg_alloc(candidates);
+                reg_copy(newreg, reg);
+                reg_free(newreg);
+            else
+                reg := newreg;
+            end if;
             residualoffset := 0;
         end if;
     end if;

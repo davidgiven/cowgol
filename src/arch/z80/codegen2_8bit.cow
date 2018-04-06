@@ -137,6 +137,7 @@ sub arch_gen_copy_byte(iop: [BEIop])
     $endif
 
     var location: RegSet := load_complex_8bit_value(REG_A, &iop.left);
+    reg_value_is_changing(&iop.dest);
     save_8bit_or_make_precious(&iop.dest, location);
 end sub;
 

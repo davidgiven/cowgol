@@ -114,6 +114,8 @@ end sub;
 sub arch_gen_copy(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_copy_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_copy_word(iop);
     else
         arch_gen_copy_wide(iop);
     end if;

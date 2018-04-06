@@ -481,28 +481,20 @@ sub arch_gen_copy_wide(iop: [BEIop])
         print_newline();
     $endif
 
-    opwidth := iop.width;
-    rhsea := 0 as [EffectiveAddress];
-    lhsea := &iop.left;
-    destea := &iop.dest;
-    setup_wide_for_iop(0, 0);
+    var residualoffset: int16;
+    var destpointer: RegSet;
+    (destpointer, residualoffset) := setup_pointer(REG_DE, &iop.dest, 0);
 
-    var reg: RegSet := REG_A;
-    if destpair != 0 then
-        reg := destpair;
-    else
-        reg_alloc_fixed(REG_A);
-    end if;
+    var rhspointer: RegSet;
+    (rhspointer, residualoffset) := setup_pointer(REG_HL, &iop.left, 0);
 
-    var i: uint8 := 0;
-    while i != opwidth loop
-        if i != 0 then
-            adjust_wide_pointers(0x03); # inc rr
-        end if;
-        do_wide_read(i, reg);
-        do_wide_write(i, reg);
-        i := i + 1;
-    end loop;
+    reg_value_is_changing(&iop.dest);
+
+    reg_find_or_load_int_fixed(REG_BC, iop.width);
+    reg_evict(REG_DE);
+    reg_evict(REG_HL);
+    reg_evict(REG_BC);
+    write_word(0xB0ED); # ldir
 end sub;
 
 sub arch_gen_regular_alu_wide(iop: [BEIop], opcode1: uint8, opcode2: uint8)
@@ -567,7 +559,7 @@ sub arch_gen_extend_wide(iop: [BEIop], signed: uint8, srcwidth: uint8)
     if srcwidth == 1 then
         srcreg := load_complex_8bit_value(REG_A, &iop.left);
     elseif srcwidth == 2 then
-        srcreg := load_complex_16bit_value(REG_16BIT, &iop.left);
+        srcreg := load_complex_16bit_value(REG_PAIR, &iop.left);
     else
         print("bad extension");
         halt();
