@@ -121,35 +121,68 @@ sub arch_gen_copy_word(iop: [BEIop])
     save_16bit_or_make_precious(&iop.dest, location);
 end sub;
 
-sub inplace_shift(reg: RegSet, offset: uint8, opcode: uint8)
+sub arch_gen_shift_word(iop: [BEIop])
     $if DEBUG
-        print("* in-place shifting reg ");
-        print_regs(reg);
-        print(" offset ");
-        print_i8(offset);
-        print_newline();
-    $endif
-    var regnum: uint8 := get_z80_regnum(halfof_reg(reg, offset));
-    write_byte(0xCB);
-    write_byte(opcode | regnum);
-end sub;
-    
-sub arch_gen_lsl_word(iop: [BEIop])
-    $if DEBUG
-        print("* GENERATE lsl word: ");
+        print("* GENERATE shift word opcode=0x");
+        print_hex_i8(iop.iop_kind);
+        print(": ");
         print_ea(&iop.left);
-        print(" << ");
+        print(" by ");
         print_ea(&iop.right);
         print(" -> ");
         print_ea(&iop.dest);
         print_newline();
     $endif
 
-    load_complex_8bit_value_fixed(REG_B, &iop.right);
-    var reg: RegSet := load_complex_16bit_value(REG_PAIR, &iop.left);
+    var reg: RegSet;
+    sub inplace_shift_half(reg: RegSet, offset: uint8, opcode: uint8)
+        $if DEBUG
+            print("* in-place shifting reg ");
+            print_regs(reg);
+            print(" offset ");
+            print_i8(offset);
+            print_newline();
+        $endif
+        var regnum: uint8 := get_z80_regnum(halfof_reg(reg, offset));
+        write_byte(0xCB);
+        write_byte(opcode | regnum);
+    end sub;
+    
+    sub inplace_shift()
+        if (iop.iop_kind == IOP_BE_LSL) and (reg == REG_HL) then
+            write_byte(0x29); # add hl, hl
+        elseif iop.iop_kind == IOP_BE_LSR then
+            inplace_shift_half(reg, 1, 0x38); # srl r
+            inplace_shift_half(reg, 0, 0x18); # rr r
+        else
+            inplace_shift_half(reg, 1, 0x28); # sra r
+            inplace_shift_half(reg, 0, 0x18); # rr r
+        end if;
+    end sub;
+
+    if iop.iop_kind == IOP_BE_LSL then
+        reg := REG_HL;
+    else
+        reg := REG_PAIR;
+    end if;
+    reg := load_complex_16bit_value(reg, &iop.left);
     reg_value_is_changing(&iop.dest);
-    reg_evict(reg);
+
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var count: uint8 := get_value_of_number(iop.right.obj_id) as uint8;
+        if count < 8 then
+            while count != 0 loop
+                inplace_shift();
+                count := count - 1;
+            end loop;
+            save_16bit_or_make_precious(&iop.dest, reg);
+            return;
+        end if;
+    end if;
+            
+    load_complex_8bit_value_fixed(REG_B, &iop.right);
     reg_evict(REG_B);
+    reg_evict(reg);
 
     # We have to skip the shift completely if the value is 0. Because the test
     # happens at the *end* of the loop, if we just go in the front we'll always
@@ -162,82 +195,7 @@ sub arch_gen_lsl_word(iop: [BEIop])
 
     var label: uint8 := create_label();
     write_label_iop(label);
-    inplace_shift(reg, 0, 0x20); # sla r
-    inplace_shift(reg, 1, 0x10); # rl r
-    write_label_iop(entrypoint);
-    write_cg_conditional_iop(0x10, label); # djnz label
-    
-    reg_free(REG_B);
-    save_16bit_or_make_precious(&iop.dest, reg);
-end sub;
-
-sub arch_gen_lsr_word(iop: [BEIop])
-    $if DEBUG
-        print("* GENERATE lsr word: ");
-        print_ea(&iop.left);
-        print(" >> ");
-        print_ea(&iop.right);
-        print(" -> ");
-        print_ea(&iop.dest);
-        print_newline();
-    $endif
-
-    load_complex_8bit_value_fixed(REG_B, &iop.right);
-    var reg: RegSet := load_complex_16bit_value(REG_PAIR, &iop.left);
-    reg_value_is_changing(&iop.dest);
-    reg_evict(reg);
-    reg_evict(REG_B);
-
-    # We have to skip the shift completely if the value is 0. Because the test
-    # happens at the *end* of the loop, if we just go in the front we'll always
-    # go round once. So we do this instead.
-    # TODO: unnecessary if the RHS is a constant.
-
-    var entrypoint: uint8 := create_label();
-    write_byte(0x04); # inc b
-    write_cg_conditional_iop(0xC3, entrypoint); # jp
-
-    var label: uint8 := create_label();
-    write_label_iop(label);
-    inplace_shift(reg, 1, 0x38); # srl r
-    inplace_shift(reg, 0, 0x18); # rr r
-    write_label_iop(entrypoint);
-    write_cg_conditional_iop(0x10, label); # djnz label
-    
-    reg_free(REG_B);
-    save_16bit_or_make_precious(&iop.dest, reg);
-end sub;
-
-sub arch_gen_asr_word(iop: [BEIop])
-    $if DEBUG
-        print("* GENERATE asr word: ");
-        print_ea(&iop.left);
-        print(" >> ");
-        print_ea(&iop.right);
-        print(" -> ");
-        print_ea(&iop.dest);
-        print_newline();
-    $endif
-
-    load_complex_8bit_value_fixed(REG_B, &iop.right);
-    var reg: RegSet := load_complex_16bit_value(REG_PAIR, &iop.left);
-    reg_value_is_changing(&iop.dest);
-    reg_evict(reg);
-    reg_evict(REG_B);
-
-    # We have to skip the shift completely if the value is 0. Because the test
-    # happens at the *end* of the loop, if we just go in the front we'll always
-    # go round once. So we do this instead.
-    # TODO: unnecessary if the RHS is a constant.
-
-    var entrypoint: uint8 := create_label();
-    write_byte(0x04); # inc b
-    write_cg_conditional_iop(0xC3, entrypoint); # jp
-
-    var label: uint8 := create_label();
-    write_label_iop(label);
-    inplace_shift(reg, 1, 0x28); # sra r
-    inplace_shift(reg, 0, 0x18); # rr r
+    inplace_shift();
     write_label_iop(entrypoint);
     write_cg_conditional_iop(0x10, label); # djnz label
     
