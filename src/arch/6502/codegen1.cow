@@ -130,7 +130,7 @@ end sub;
 sub find_unused_regs(candidates: uint8): (mask: uint8)
     var i: uint8 := 0;
     while i < values@size loop
-        candidates := candidates & (values[i].locations ^ 0xff);
+        candidates := candidates & ~values[i].locations;
         i := i + 1;
     end loop;
     mask := candidates & REG_MASK;
@@ -143,7 +143,7 @@ sub allocate_reg(candidates: uint8): (mask: uint8)
         print_newline();
     $endif
 
-    candidates := candidates & (locked_registers ^ 0xff);
+    candidates := candidates & ~locked_registers;
     mask := find_unused_regs(candidates);
     if mask == 0 then
         mask := candidates;
@@ -306,7 +306,7 @@ sub value_is_precious(ea: [EffectiveAddress])
 						print("* value ");
 						print_ea(ea);
 						print(" is already precious in 0x");
-						print_hex_i8(value.locations & (PRECIOUS ^ 0xff));
+						print_hex_i8(value.locations & ~PRECIOUS);
 						print_newline();
 					$endif
                 end if;
@@ -337,7 +337,7 @@ sub value_is_not_precious(ea: [EffectiveAddress])
 					print("* value ");
 					print_ea(ea);
                     print(" in 0x");
-                    print_hex_i8(value.locations & (PRECIOUS ^ 0xff));
+                    print_hex_i8(value.locations & ~PRECIOUS);
 					print(" is no longer precious\n");
 				$endif
 
@@ -410,7 +410,7 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
             zero_ea(&oldea);
             oldea.flags := EA_VALUE;
             oldea.obj_id := add_number_by_value((value + delta) as int32);
-            location := find_reg_with_value(&oldea, candidates) & (locked_registers ^ 0xff);
+            location := find_reg_with_value(&oldea, candidates) & ~locked_registers;
         end sub;
 
         sub found(modx: uint8, mody: uint8)

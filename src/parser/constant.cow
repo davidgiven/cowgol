@@ -89,8 +89,8 @@ sub do_constant(): (result: int32)
             left := left % right;
         elseif op_id == TOKEN_PIPE then
             left := left | right;
-        #elseif op_id == TOKEN_TILDE then
-        #    left := ~right;
+        elseif op_id == TOKEN_TILDE then
+            left := ~right;
         elseif op_id == TOKEN_UNARYMINUS then
             left := -right;
         else
