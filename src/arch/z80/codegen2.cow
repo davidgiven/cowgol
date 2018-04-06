@@ -1,47 +1,5 @@
-sub get_width_of_ea(ea: [EffectiveAddress]): (width: uint16)
-    if ea.type_id == 0 then
-        print("untyped EA ");
-        print_ea(ea);
-        halt();
-    end if;
-
-    width := get_width_of_type(ea.type_id);
-end sub;
-
 sub cant_do_2op(iop: [BEIop], op: [int8])
-    print("can't do ");
-    print_ea(&iop.left);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.left) as uint8);
-    print(") ");
-    print(op);
-    print(" -> ");
-    print_ea(&iop.dest);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.dest) as uint8);
-    print(") width ");
-    print_i8(iop.width);
-    halt();
-end sub;
-
-sub cant_do_3op(iop: [BEIop], op: [int8])
-    print("can't do ");
-    print_ea(&iop.left);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.left) as uint8);
-    print(") ");
-    print(op);
-    print(" ");
-    print_ea(&iop.right);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.right) as uint8);
-    print(") -> ");
-    print_ea(&iop.dest);
-    print_char('(');
-    print_i8(get_width_of_ea(&iop.dest) as uint8);
-    print(") width ");
-    print_i8(iop.width);
-    halt();
+    print("cant_do_2op (can't happen\n");
 end sub;
 
 sub arch_init_codegen()
