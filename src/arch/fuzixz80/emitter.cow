@@ -15,8 +15,11 @@ sub arch_emit_header()
     zero_memory(&header as [int8], header@bytes);
     header.jump := 0xc3;
     header.startaddr := BASE_ADDRESS;
-    header.magic := 0x315a5846;
+    header.magic := 0x31585a46;
     header.page := 1;
+    header.code := root.code_size + BASE_ADDRESS;
+    header.data := header.code + root.const_size;
+    header.bss := root.archsizes.data_size;
 
     fcb_seek(&out_fcb, 0);
     out_fcb.address := &header as [int8];
