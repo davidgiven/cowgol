@@ -1036,6 +1036,11 @@ function expression(outputvar)
                 local lvalue = lvalue_leaf()
                 rpn[#rpn+1] = create_addrof(lvalue)
                 break
+            elseif (t == "-") or (t == "~") then
+                stream:next()
+                rpn[#rpn+1] = rvalue_leaf()
+                rpn[#rpn+1] = {kind="postfixop", op=t}
+                break
             else
                 rpn[#rpn+1] = rvalue_leaf()
                 break
@@ -1149,6 +1154,18 @@ function expression(outputvar)
                 type_check(op.type, op.rvalue.type)
 
                 emit("%s = (%s) %s;", op.rvalue.storage, op.type.ctype, value.storage)
+                stack[#stack+1] = op.rvalue
+                if value.temporary then
+                    free_tempvar(value)
+                end
+            elseif (op.kind == "postfixop") then
+                local value = stack[#stack]
+                stack[#stack] = nil
+
+                if not op.rvalue then
+                    op.rvalue = create_tempvar(value.type)
+                end
+                emit("%s = %s %s;", op.rvalue.storage, op.op, value.storage)
                 stack[#stack+1] = op.rvalue
                 if value.temporary then
                     free_tempvar(value)
