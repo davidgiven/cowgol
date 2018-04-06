@@ -175,7 +175,7 @@ end sub;
 
 sub arch_gen_lsl(iop: [BEIop])
     if iop.width == 1 then
-        arch_gen_shift_byte(iop, 0x20); # sla b (not including prefix byte)
+        arch_gen_shift_byte(iop, 0x27); # sla a (not including prefix byte)
     elseif iop.width == 2 then
         arch_gen_shift_word(iop);
     else
@@ -185,7 +185,7 @@ end sub;
 
 sub arch_gen_lsr(iop: [BEIop])
     if iop.width == 1 then
-        arch_gen_shift_byte(iop, 0x38); # srl b (not including prefix byte)
+        arch_gen_shift_byte(iop, 0x3f); # srl a (not including prefix byte)
     elseif iop.width == 2 then
         arch_gen_shift_word(iop);
     else
@@ -195,7 +195,7 @@ end sub;
 
 sub arch_gen_asr(iop: [BEIop])
     if iop.width == 1 then
-        arch_gen_shift_byte(iop, 0x28); # sra b (not including prefix byte)
+        arch_gen_shift_byte(iop, 0x2f); # sra a (not including prefix byte)
     elseif iop.width == 2 then
         arch_gen_shift_word(iop);
     else

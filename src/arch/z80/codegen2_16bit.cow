@@ -171,6 +171,7 @@ sub arch_gen_shift_word(iop: [BEIop])
     if is_number_thing(iop.right.obj_id) != 0 then
         var count: uint8 := get_value_of_number(iop.right.obj_id) as uint8;
         if count < 8 then
+            reg_evict(reg);
             while count != 0 loop
                 inplace_shift();
                 count := count - 1;

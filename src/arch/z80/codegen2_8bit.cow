@@ -177,11 +177,37 @@ sub arch_gen_shift_byte(iop: [BEIop], opcode: uint8)
         print_newline();
     $endif
 
-    load_complex_8bit_value_fixed(REG_B, &iop.right);
-    var reg: RegSet := load_complex_8bit_value(REG_8BIT, &iop.left);
+    sub inplace_shift()
+        if opcode == 0x27 then # sla a
+            write_byte(0x87); # add a, a
+        else
+            write_byte(0xCB);
+            write_byte(opcode);
+        end if;
+    end sub;
+
     reg_value_is_changing(&iop.dest);
-    reg_evict(reg);
-    reg_evict(REG_B);
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var count: uint8 := get_value_of_number(iop.right.obj_id) as uint8;
+        load_complex_8bit_value_fixed(REG_A, &iop.left);
+        reg_evict(REG_A);
+        if count < 8 then
+            while count != 0 loop
+                inplace_shift();
+                count := count - 1;
+            end loop;
+        elseif opcode == 0x2f then # sra a
+            write_word(0x9F07); # rlca; sbc a, a
+        else
+            write_byte(0xaf); # xor a
+        end if;
+        save_8bit_or_make_precious(&iop.dest, REG_A);
+        return;
+    end if;
+    
+    load_complex_8bit_value_fixed(REG_B, &iop.right);
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
+    reg_evict(REG_A|REG_B);
 
     # We have to skip the shift completely if the value is 0. Because the test
     # happens at the *end* of the loop, if we just go in the front we'll always
@@ -194,12 +220,12 @@ sub arch_gen_shift_byte(iop: [BEIop], opcode: uint8)
 
     var label: uint8 := create_label();
     write_label_iop(label);
-    write_byte(0xCB);
-    write_byte(opcode | get_z80_regnum(reg));
+    inplace_shift();
     write_label_iop(entrypoint);
     write_cg_conditional_iop(0x10, label); # djnz label
 
-    save_8bit_or_make_precious(&iop.dest, reg);
+    reg_free(REG_B);
+    save_8bit_or_make_precious(&iop.dest, REG_A);
 end sub;
 
 sub arch_gen_not_byte(iop: [BEIop])
