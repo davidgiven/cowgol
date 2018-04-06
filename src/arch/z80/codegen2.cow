@@ -241,6 +241,10 @@ sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
         arch_gen_cmp_8bit(ciop, liop);
     elseif ciop.width == 2 then
         arch_gen_cmp_16bit(ciop, liop);
+    elseif (ciop.iop_kind == IOP_BE_BEQ) and 
+            (is_number_thing(ciop.right.obj_id) != 0) and
+            (get_value_of_number(ciop.right.obj_id) == 0) then
+        arch_gen_cmp_eq_zero(ciop, liop);
     else
         arch_gen_cmp_wide(ciop, liop);
     end if;

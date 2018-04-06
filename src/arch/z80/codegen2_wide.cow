@@ -630,6 +630,45 @@ sub arch_gen_not_wide(iop: [BEIop])
     end loop;
 end sub;
 
+sub arch_gen_cmp_eq_zero(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare wide equals zero: ");
+        print_ea(&ciop.left);
+        print(" => true: 0x");
+        print_hex_i8(ciop.iftrue_label);
+        print(" false: 0x");
+        print_hex_i8(ciop.iffalse_label);
+        print(" fallthrough: 0x");
+        print_hex_i8(liop.label);
+        print(", width=");
+        print_i8(ciop.width);
+        print_newline();
+    $endif
+
+    opwidth := ciop.width;
+    rhsea := &ciop.left;
+    lhsea := 0 as [EffectiveAddress];
+    destea := 0 as [EffectiveAddress];
+    setup_wide_for_iop(0, 0);
+
+    reg_find_or_load_int_fixed(REG_A, 0);
+    reg_evict(ALL_REGS);
+    var i: uint8 := 0;
+    while i != opwidth loop
+        do_wide_alu(i, 0xf6); # or *
+        i := i + 1;
+        if i != opwidth then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+    end loop;
+
+    if liop.label == ciop.iftrue_label then
+        write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
+    else
+        write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
+    end if;
+end sub;
+
 sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
     $if DEBUG
         print("* GENERATE: compare wide 0x");
