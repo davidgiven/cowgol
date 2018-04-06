@@ -154,11 +154,12 @@ local EMITTER
 
 -- Build X on Y
 local compilers = {
-    {"bbc", "native"},
-    {"c64", "native"},
-    {"cpmz", "native"},
-    {"bbc", "bbc"},
-    {"cpmz", "cpmz"},
+    {"bbc",      "native"},
+    {"c64",      "native"},
+    {"cpmz",     "native"},
+    {"fuzixz80", "native"},
+    {"bbc",      "bbc"},
+    {"cpmz",     "cpmz"},
 }
 
 local host_data = {
@@ -269,6 +270,29 @@ local target_data = {
         EMITTER = {
             "src/arch/z80/emitter.cow",
             "src/arch/cpmz/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/z80/codegen0.cow",
+            "src/codegen/registers.cow",
+            "src/arch/z80/codegen1.cow",
+            "src/arch/z80/codegen2_8bit.cow",
+            "src/arch/z80/codegen2_16bit.cow",
+            "src/arch/z80/codegen2_wide.cow",
+            "src/arch/z80/codegen2_helper.cow",
+            "src/arch/z80/codegen2.cow",
+        }
+    end,
+
+    ["fuzixz80"] = function()
+        TARGET = "fuzixz80"
+        GLOBALS = "src/arch/fuzixz80/globals.cow"
+        CLASSIFIER = "src/arch/z80/classifier.cow"
+        SIMPLIFIER = "src/arch/z80/simplifier.cow"
+        PLACER = "src/arch/z80/placer.cow"
+        EMITTER = {
+            "src/arch/z80/emitter.cow",
+            "src/arch/fuzixz80/emitter.cow"
         }
 
         CODEGEN = {
