@@ -290,7 +290,7 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
     end sub;
 
     sub simplify_neg()
-        if destwidth != 1 then
+        if destwidth == 4 then
             copy_ea(&src.left, &src.right);
             src.iop := IOP_BE_SUB;
             zero_ea(&src.left);

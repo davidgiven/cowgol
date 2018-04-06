@@ -90,6 +90,8 @@ end sub;
 sub arch_gen_neg(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_neg_byte(iop);
+    elseif iop.width == 2 then
+        arch_gen_neg_word(iop);
     else
         print("should never happen");
         halt();

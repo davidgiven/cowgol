@@ -121,6 +121,29 @@ sub arch_gen_copy_word(iop: [BEIop])
     save_16bit_or_make_precious(&iop.dest, location);
 end sub;
 
+sub arch_gen_neg_word(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE neg word: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    var reg: RegSet := load_complex_16bit_value(REG_PAIR, &iop.left);
+    reg_value_is_changing(&iop.dest);
+    reg_evict(reg);
+
+    reg_find_or_load_int_fixed(REG_A, 0);
+    write_byte(0x90 | get_z80_regnum(halfof_reg(reg, 0))); # sub b
+    reg_copy(REG_A, halfof_reg(reg, 0));
+    write_byte(0x9f); # sbc a, a
+    write_byte(0x90 | get_z80_regnum(halfof_reg(reg, 1))); # sub b
+    reg_copy(REG_A, halfof_reg(reg, 1));
+
+    save_16bit_or_make_precious(&iop.dest, reg);
+end sub;
+
 sub arch_gen_shift_word(iop: [BEIop])
     $if DEBUG
         print("* GENERATE shift word opcode=0x");
