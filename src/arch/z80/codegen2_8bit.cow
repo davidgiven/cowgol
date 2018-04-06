@@ -246,6 +246,24 @@ sub arch_gen_not_byte(iop: [BEIop])
     save_8bit_or_make_precious(&iop.dest, REG_A);
 end sub;
     
+sub arch_gen_neg_byte(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE neg byte: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
+
+    reg_value_is_changing(&iop.dest);
+    reg_evict(REG_A);
+
+    write_word(0x44ed); # neg
+    save_8bit_or_make_precious(&iop.dest, REG_A);
+end sub;
+    
 sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])
     $if DEBUG
         print("* GENERATE: compare bytes 0x");
