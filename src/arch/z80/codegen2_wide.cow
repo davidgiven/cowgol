@@ -630,7 +630,7 @@ sub arch_gen_not_wide(iop: [BEIop])
     end loop;
 end sub;
 
-sub arch_gen_cmp_eq_zero(ciop: [BEConditionalIop], liop: [LabelIop])
+sub arch_gen_cmp_wide_eq_zero(ciop: [BEConditionalIop], liop: [LabelIop])
     $if DEBUG
         print("* GENERATE: compare wide equals zero: ");
         print_ea(&ciop.left);

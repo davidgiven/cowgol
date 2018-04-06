@@ -236,15 +236,24 @@ sub arch_gen_sext(iop: [BEIop])
 end sub;
 
 sub arch_gen_cmp(ciop: [BEConditionalIop], liop: [LabelIop])
+    var beq_against_zero: uint8 := 0;
+    if (ciop.iop_kind == IOP_BE_BEQ) and 
+            (is_number_thing(ciop.right.obj_id) != 0) and
+            (get_value_of_number(ciop.right.obj_id) == 0) then
+        beq_against_zero := 1;
+    end if;
+
     reg_write_back_precious_regs(ALL_REGS);
     if ciop.width == 1 then
         arch_gen_cmp_8bit(ciop, liop);
     elseif ciop.width == 2 then
-        arch_gen_cmp_16bit(ciop, liop);
-    elseif (ciop.iop_kind == IOP_BE_BEQ) and 
-            (is_number_thing(ciop.right.obj_id) != 0) and
-            (get_value_of_number(ciop.right.obj_id) == 0) then
-        arch_gen_cmp_eq_zero(ciop, liop);
+        if beq_against_zero != 0 then
+            arch_gen_cmp_word_eq_zero(ciop, liop);
+        else
+            arch_gen_cmp_16bit(ciop, liop);
+        end if;
+    elseif beq_against_zero != 0 then
+        arch_gen_cmp_wide_eq_zero(ciop, liop);
     else
         arch_gen_cmp_wide(ciop, liop);
     end if;

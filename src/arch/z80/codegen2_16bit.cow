@@ -322,6 +322,40 @@ sub arch_gen_sub_word(iop: [BEIop])
     save_16bit_or_make_precious(&iop.dest, leftreg);
 end sub;
 
+sub arch_gen_cmp_word_eq_zero(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare word equals zero: ");
+        print_ea(&ciop.left);
+        print(" => true: 0x");
+        print_hex_i8(ciop.iftrue_label);
+        print(" false: 0x");
+        print_hex_i8(ciop.iffalse_label);
+        print(" fallthrough: 0x");
+        print_hex_i8(liop.label);
+        print(", width=");
+        print_i8(ciop.width);
+        print_newline();
+    $endif
+
+    
+    var reg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, &ciop.left);
+    reg_alloc_fixed(REG_A);
+
+    reg_copy(halfof_reg(reg, 0), REG_A);
+
+    insn_init();
+    insn.mode := MODE_DIR;
+    insn.datareg := REG_A;
+    insn.otherreg := halfof_reg(reg, 1);
+    insn_8bit_aluop(0xf6); # or *
+
+    if liop.label == ciop.iftrue_label then
+        write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
+    else
+        write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
+    end if;
+end sub;
+
 sub arch_gen_cmp_16bit(ciop: [BEConditionalIop], liop: [LabelIop])
     $if DEBUG
         print("* GENERATE: compare words 0x");

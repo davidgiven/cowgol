@@ -428,7 +428,7 @@ sub insn_8bit_op_alu_ind_reg(opcode: uint8)
     end if;
 end sub;
 
-# opcode refers to the ABS form
+# opcode refers to the immediate form
 sub insn_8bit_aluop(opcode: uint8)
     if insn.mode == MODE_IMM then
         insn_8bit_op_imm(opcode);
