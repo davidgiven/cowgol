@@ -1,4 +1,4 @@
-const MONE := 0-0x100;
+const MONE := -0x100;
 const ONE := 0x100;
 
 var mone: int16 := MONE;

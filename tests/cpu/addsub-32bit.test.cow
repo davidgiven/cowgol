@@ -2,9 +2,9 @@ const THREE := 0x03030303;
 const TWO := 0x02020202;
 const ONE := 0x01010101;
 const ZERO := 0;
-const MONE := 0-ONE;
-const MTWO := 0-TWO;
-const MTHREE := 0-THREE;
+const MONE := -ONE;
+const MTWO := -TWO;
+const MTHREE := -THREE;
 
 var mthree: int32 := MTHREE;
 var mtwo: int32 := MTWO;
@@ -52,4 +52,10 @@ print("ONE-mtwo==three"); if ONE-mtwo==three then yes(); else no(); end if;
 print("ONE-one==zero"); if ONE-one==zero then yes(); else no(); end if;
 print("ZERO-one==mone"); if ZERO-one==mone then yes(); else no(); end if;
 print("TWO-mone==three"); if TWO-mone==three then yes(); else no(); end if;
+
+print("-two == mtwo");  if -two == mtwo then yes(); else no(); end if;
+print("-one == mone");  if -one == mone then yes(); else no(); end if;
+print("-zero == zero"); if -zero == zero then yes(); else no(); end if;
+print("-mone == one");  if -mone == one then yes(); else no(); end if;
+print("-mtwo == two");  if -mtwo == two then yes(); else no(); end if;
 

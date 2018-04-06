@@ -7,8 +7,7 @@ end sub;
 sub arch_gen_not_byte(iop: [BEIop])
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
-    write_byte(0x49); # EOR imm
-    write_byte(0xFF);
+    write_word(0xff49); # EOR #0xff
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
@@ -103,7 +102,7 @@ sub arch_gen_sub_byte(iop: [BEIop])
     if is_number_thing(iop.right.obj_id) != 0 then
         var value: int8 := get_value_of_number(iop.right.obj_id) as int8;
         if (value == 1) or (value == -1) then
-            gen_incdec(iop, 0-value);
+            gen_incdec(iop, -value);
             return;
         end if;
     end if;

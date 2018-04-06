@@ -8,7 +8,7 @@ sub collapse_constant_op(beiop: uint8, left: uint32, right: uint32): (result: ui
     elseif beiop == IOP_BE_OR then                               result := left | right;
     elseif beiop == IOP_BE_EOR then                              result := left ^ right;
     elseif (beiop == IOP_BE_SEXT) or (beiop == IOP_BE_ZEXT) then result := left;
-    elseif beiop == IOP_BE_NEG then                              result := 0-left;
+    elseif beiop == IOP_BE_NEG then                              result := -left;
     elseif beiop == IOP_BE_NOT then                              result := (-1)^left;
     elseif beiop == IOP_BE_LSL then                              result := left << (right as uint8);
     elseif beiop == IOP_BE_LSR then                              result := left >> (right as uint8);

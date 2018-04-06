@@ -41,6 +41,14 @@ sub simplify_mul(node: [Node])
     end if;
 end sub;
 
+sub simplify_neg(node: [Node])
+    copy_ea(&node.left, &node.right);
+    node.iop := IOP_BE_SUB;
+    zero_ea(&node.left);
+    node.left.obj_id := add_number_by_value(0);
+    node.left.type_id := constant_type;
+end sub;
+
 sub reset_be_iop(iop: [BEIop])
     zero_memory(iop as [int8], BEIop@bytes);
     iop.iop_size := BEIop@bytes;
@@ -289,6 +297,8 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
 
     if src.iop == IOP_BE_MUL then
         simplify_mul(src);
+    elseif src.iop == IOP_BE_NEG then
+        simplify_neg(src);
     end if;
 
     var destwidth: uint8 := get_width_of(dest);

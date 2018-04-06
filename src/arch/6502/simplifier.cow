@@ -25,6 +25,7 @@ sub simplify_mul(node: [Node])
     var num_id: uint16 := node.right.obj_id;
     if is_number_thing(num_id) != 0 then
         var value: int32 := get_value_of_number(num_id);
+        node.right.type_id := constant_type;
         if value == 1 then
             node.iop := IOP_BE_COPY;
             zero_ea(&node.right);
@@ -39,6 +40,14 @@ sub simplify_mul(node: [Node])
             node.right.obj_id := add_number_by_value(3);
         end if;
     end if;
+end sub;
+
+sub simplify_neg(node: [Node])
+    copy_ea(&node.left, &node.right);
+    node.iop := IOP_BE_SUB;
+    zero_ea(&node.left);
+    node.left.obj_id := add_number_by_value(0);
+    node.left.type_id := constant_type;
 end sub;
 
 sub reset_be_iop(iop: [BEIop])
@@ -312,6 +321,8 @@ sub arch_simplify_node_to(src: [Node], dest: [Node])
 
     if src.iop == IOP_BE_MUL then
         simplify_mul(src);
+    elseif src.iop == IOP_BE_NEG then
+        simplify_neg(src);
     end if;
 
     var destwidth: uint8 := get_width_of(dest);

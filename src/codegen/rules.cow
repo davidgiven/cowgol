@@ -54,6 +54,8 @@ sub global_rules(): (matched: uint8)
             arch_gen_copy(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_NOT then
             arch_gen_not(queue0 as [BEIop]);
+        elseif queue0.iop_kind == IOP_BE_NEG then
+            arch_gen_neg(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_AND then
             arch_gen_and(queue0 as [BEIop]);
         elseif queue0.iop_kind == IOP_BE_OR then

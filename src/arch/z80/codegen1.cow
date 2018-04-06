@@ -43,7 +43,7 @@ sub apply_offset(reg: RegSet, delta: int16): (newreg: RegSet)
         var opcode: uint8 := 0;
         if smalldelta < 0 then
             opcode := 0x0B; # dec bc
-            smalldelta := 0-smalldelta;
+            smalldelta := -smalldelta;
         elseif smalldelta > 0 then
             opcode := 0x03; # inc bc
         end if;

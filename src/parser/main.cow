@@ -523,7 +523,7 @@ sub do_bytes()
                 offset := do_constant();
             elseif current_token == TOKEN_MINUS then
                 next_token();
-                offset := 0-do_constant();
+                offset := -do_constant();
             else
                 offset := 0;
             end if;

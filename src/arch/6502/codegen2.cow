@@ -123,6 +123,11 @@ sub arch_gen_not(iop: [BEIop])
     end if;
 end sub;
 
+sub arch_gen_neg(iop: [BEIop])
+    print("neg should never happen");
+    halt();
+end sub;
+
 sub arch_gen_and(iop: [BEIop])
     if iop.width == 1 then
         arch_gen_and_byte(iop);
