@@ -337,7 +337,11 @@ sub insn_ld_imm()
     var reg: RegSet := insn.datareg;
     var regnum: uint8 := get_z80_regnum(reg);
     if (reg & REG_8BIT) != 0 then
-        insn_8bit_op_imm(0x06 | (regnum << 3));
+        if (reg == REG_A) and (insn.offset == 0) then
+            write_byte(0xaf); # xor a
+        else
+            insn_8bit_op_imm(0x06 | (regnum << 3));
+        end if;
     elseif (reg & REG_INDEX) != 0 then
         insn_16bit_op_imm(0x2100 | (regnum as uint16));
     else
