@@ -268,3 +268,24 @@ load DE : [TYPE0.0196:<constant>].TYPE0.0196:<constant>
 %   allocating unused register C 
 copy B -> C 
 % value [TYPE0.0196:<constant>].TYPE0.0196:<constant> is now cached in B C DE 
+
+Consumption of precious values
+% reset register allocator
+% value [TYPE1.015a:int8].TYPE1.015a:int8 is now cached in A 
+% value [TYPE1.015a:int8].TYPE1.015a:int8 is precious in A 
+% value [TYPE1.0164:uint8].TYPE1.0164:uint8 is now cached in B 
+% value [TYPE1.0164:uint8].TYPE1.0164:uint8 is precious in B 
+% value [TYPE1.015a:int8].TYPE1.015a:int8 is consumable in A 
+% locating [TYPE1.015a:int8].TYPE1.015a:int8
+%   value is cached in A 
+%   selecting A 
+%   value is consumed and no longer precious
+% locating [TYPE1.0164:uint8].TYPE1.0164:uint8
+%   value is cached in B 
+%   selecting B 
+% writing back precious values in A B  which affects A B BC 
+% ea [TYPE1.0164:uint8].TYPE1.0164:uint8 is being written back
+save B : [TYPE1.0164:uint8].TYPE1.0164:uint8
+% evicting values in A B  which affects A B BC 
+%   value [TYPE1.015a:int8].TYPE1.015a:int8 is now cached in (none) 
+%   value [TYPE1.0164:uint8].TYPE1.0164:uint8 is now cached in (none) 

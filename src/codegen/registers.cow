@@ -3,6 +3,9 @@
 # registers and writes back values only when needed. It can handle overlapping
 # registers of different widths.
 
+const PRECIOUS_NORMAL := 1;
+const PRECIOUS_CONSUMABLE := 2;
+
 record CachedValue
     ea: EffectiveAddress;
     locations: RegSet;
@@ -39,8 +42,10 @@ $if DEBUG
         while i != value_cache@size loop
             var value: [CachedValue] := &value_cache[i];
             if value.locations != 0 then
-                if value.precious != 0 then
+                if value.precious == PRECIOUS_NORMAL then
                     print("  * ");
+                elseif value.precious == PRECIOUS_CONSUMABLE then
+                    print("  ? ");
                 else
                     print("    ");
                 end if;
@@ -213,7 +218,7 @@ end sub;
 # Mark a value as being precious
 sub reg_value_is_precious(ea: [EffectiveAddress])
     var value: [CachedValue] := reg_find_cache_slot(ea);
-    value.precious := 1;
+    value.precious := PRECIOUS_NORMAL;
     $if DEBUG
         print("% value ");
         print_ea(ea);
@@ -234,6 +239,21 @@ sub reg_value_is_not_precious(ea: [EffectiveAddress])
         print_regs(value.locations);
         print_newline();
     $endif
+end sub;
+
+# Mark a value as being consumable.
+sub reg_value_is_consumable(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    if value.precious == PRECIOUS_NORMAL then
+        value.precious := PRECIOUS_CONSUMABLE;
+        $if DEBUG
+            print("% value ");
+            print_ea(ea);
+            print(" is consumable in ");
+            print_regs(value.locations);
+            print_newline();
+        $endif
+    end if;
 end sub;
 
 # Ensure that any precious values in these registers are written back to
@@ -490,6 +510,13 @@ sub reg_find_or_load(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
         $endif
         locked_registers := locked_registers | reg;
 		reg_bump(reg);
+
+        if value.precious == PRECIOUS_CONSUMABLE then
+            $if DEBUG
+                print("%   value is consumed and no longer precious\n");
+            $endif
+            value.precious := 0;
+        end if;
         return;
     end if;
 

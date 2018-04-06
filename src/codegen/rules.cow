@@ -36,6 +36,16 @@ sub global_rules(): (matched: uint8)
     matched := 1;
     arch_gen_beginning_of_instruction();
 
+    if queue1.iop_kind == IOP_KILL then
+        arch_gen_consume(queue1 as [KillIop]);
+    end if;
+    if queue2.iop_kind == IOP_KILL then
+        arch_gen_consume(queue2 as [KillIop]);
+    end if;
+    if queue3.iop_kind == IOP_KILL then
+        arch_gen_consume(queue3 as [KillIop]);
+    end if;
+
     var ioptype: uint8 := queue0.iop_kind & IOP_TYPE_MASK;
     if (ioptype == IOP_TYPE_BACKEND_2OP) or (ioptype == IOP_TYPE_BACKEND_3OP) then
         insn_before(queue0 as [BEIop]);

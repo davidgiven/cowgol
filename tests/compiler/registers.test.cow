@@ -257,3 +257,18 @@ sub constants_in_different_kinds_of_register_test()
     location := reg_find_or_load(REG_C|REG_D|REG_E, &eaconst);
 end sub;
 constants_in_different_kinds_of_register_test();
+
+sub consume_test()
+    print("\nConsumption of precious values\n");
+    reg_reset();
+    reg_cache_value(REG_A, &ea8bit_1);
+    reg_value_is_precious(&ea8bit_1);
+    reg_cache_value(REG_B, &ea8bit_2);
+    reg_value_is_precious(&ea8bit_2);
+    reg_value_is_consumable(&ea8bit_1);
+    var location: RegSet;
+    location := reg_find_or_load(REG_A|REG_B, &ea8bit_1);
+    location := reg_find_or_load(REG_A|REG_B, &ea8bit_2);
+    reg_evict(REG_A|REG_B);
+end sub;
+consume_test();

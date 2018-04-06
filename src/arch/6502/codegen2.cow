@@ -387,3 +387,6 @@ sub arch_gen_kill(iop: [KillIop])
 
     value_is_not_precious(&iop.ea);
 end sub;
+
+sub arch_gen_consume(iop: [KillIop])
+end sub;
