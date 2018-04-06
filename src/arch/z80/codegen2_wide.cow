@@ -624,7 +624,7 @@ sub arch_gen_not_wide(iop: [BEIop])
             adjust_wide_pointers(0x03); # inc rr
         end if;
         do_wide_read(i, REG_A);
-        write_word(0xFFEE); # xor #-1
+        write_byte(0x2F); # cpl
         do_wide_write(i, REG_A);
         i := i + 1;
     end loop;

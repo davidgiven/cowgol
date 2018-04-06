@@ -242,7 +242,7 @@ sub arch_gen_not_byte(iop: [BEIop])
     reg_value_is_changing(&iop.dest);
     reg_evict(REG_A);
 
-    write_word(0xFFEE); # xor #0xff
+    write_byte(0x2f); # cpl
     save_8bit_or_make_precious(&iop.dest, REG_A);
 end sub;
     
