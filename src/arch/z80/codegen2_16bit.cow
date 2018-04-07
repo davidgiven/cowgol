@@ -222,10 +222,16 @@ sub arch_gen_extend_word(iop: [BEIop], signed: uint8, srcwidth: uint8)
         halt();
     end if;
 
+    reg_value_is_changing(&iop.dest);
     var destreg: RegSet := reg_alloc(REG_PAIR);
-    load_complex_8bit_value_fixed(REG_A, &iop.right);
+
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
     reg_copy(REG_A, halfof_reg(destreg, 0));
+    reg_free(REG_A);
     reg_evict(REG_A);
+
+    reg_evict(destreg);
+    reg_free(destreg);
     if signed != 0 then
         write_byte(0x07); # rlca
         write_byte(0x9F); # sbc a, a

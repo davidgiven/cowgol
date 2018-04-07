@@ -224,12 +224,10 @@ sub arch_gen_zext(iop: [BEIop])
     var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
     if iop.width < srcwidth then
         arch_gen_shrink(iop, srcwidth);
-    elseif iop.width >= 2 then
-        arch_gen_extend_wide(iop, 0, srcwidth);
     elseif iop.width == 2 then
         arch_gen_extend_word(iop, 0, srcwidth);
     else
-        cant_do_2op(iop, "zext");
+        arch_gen_extend_wide(iop, 0, srcwidth);
     end if;
 end sub;
 
