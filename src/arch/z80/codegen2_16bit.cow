@@ -237,25 +237,17 @@ sub arch_gen_extend_word(iop: [BEIop], signed: uint8, srcwidth: uint8)
     save_16bit_or_make_precious(&iop.dest, destreg);
 end sub;
 
-sub add_or_sub_constant_rhs(iop: [BEIop], delta: int16)
-    var leftreg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, &iop.left);
-    reg_value_is_changing(&iop.dest);
-    
-    var reg: RegSet := apply_offset(leftreg, delta);
-
-    reg_free(reg);
-    save_16bit_or_make_precious(&iop.dest, reg);
-end sub;
-
-sub maybe_do_fast_add_or_sub(iop: [BEIop], negative: uint8): (yes: uint8)
-    yes := 0;
-    if is_number_thing(iop.right.obj_id) != 0 then
-        var delta: int16 := get_value_of_number(iop.right.obj_id) as int16;
+sub maybe_do_fast_add_or_sub(leftea: [EffectiveAddress], rightea: [EffectiveAddress],
+         negative: uint8): (reg: RegSet)
+    reg := 0;
+    if is_number_thing(rightea.obj_id) != 0 then
+        var delta: int16 := get_value_of_number(rightea.obj_id) as int16;
         if negative != 0 then
             delta := -delta;
         end if;
-        add_or_sub_constant_rhs(iop, delta);
-        yes := 1;
+
+        var leftreg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, leftea);
+        reg := apply_offset(leftreg, delta);
     end if;
 end sub;
 
@@ -270,23 +262,22 @@ sub arch_gen_add_word(iop: [BEIop])
         print_newline();
     $endif
 
-    if maybe_do_fast_add_or_sub(iop, 0) != 0 then
-        return;
+    var destreg: RegSet := maybe_do_fast_add_or_sub(&iop.left, &iop.right, 0);
+    if destreg == 0 then
+        var leftreg: RegSet := load_complex_16bit_value(REG_HL, &iop.left);
+        var rightreg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, &iop.right);
+        reg_value_is_changing(&iop.dest);
+
+        $if DEBUG
+            print("* doing 16-bit add now\n");
+        $endif
+        reg_evict(leftreg);
+        write_byte(0x09 | get_z80_regnum(rightreg)); # add hl, bc
+
+        reg_free(rightreg);
+        destreg := leftreg;
     end if;
-
-    var leftreg: RegSet := load_complex_16bit_value(REG_HL, &iop.left);
-    var rightreg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, &iop.right);
-
-    reg_value_is_changing(&iop.dest);
-    reg_evict(leftreg);
-    
-    $if DEBUG
-        print("* doing 16-bit add now\n");
-    $endif
-    write_byte(0x09 | get_z80_regnum(rightreg)); # add hl, bc
-
-    reg_free(rightreg);
-    save_16bit_or_make_precious(&iop.dest, leftreg);
+    save_16bit_or_make_precious(&iop.dest, destreg);
 end sub;
 
 sub arch_gen_sub_word(iop: [BEIop])
@@ -300,26 +291,24 @@ sub arch_gen_sub_word(iop: [BEIop])
         print_newline();
     $endif
 
-    if maybe_do_fast_add_or_sub(iop, 1) != 0 then
-        return;
+    var destreg: RegSet := maybe_do_fast_add_or_sub(&iop.left, &iop.right, 1);
+    if destreg == 0 then
+        var leftreg: RegSet := load_complex_16bit_value(REG_HL, &iop.left);
+        var rightreg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, &iop.right);
+        reg_value_is_changing(&iop.dest);
+
+        $if DEBUG
+            print("* doing 16-bit sub now\n");
+        $endif
+        reg_evict(leftreg);
+        var regnum: uint8 := get_z80_regnum(rightreg);
+        write_word(0xEDB7);        # or a (clear carry), plus prefix byte for next
+        write_byte(0x42 | regnum); # sbc hl, bc
+
+        reg_free(rightreg);
+        destreg := leftreg;
     end if;
-    
-    var leftreg: RegSet := load_complex_16bit_value(REG_HL, &iop.left);
-    var rightreg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, &iop.right);
-
-    reg_value_is_changing(&iop.dest);
-    reg_evict(leftreg);
-    
-    $if DEBUG
-        print("* doing 16-bit sub now\n");
-    $endif
-    var regnum: uint8 := get_z80_regnum(rightreg);
-    
-    write_word(0xEDB7);        # or a (clear carry), plus prefix byte for next
-    write_byte(0x42 | regnum); # sbc hl, bc
-
-    reg_free(rightreg);
-    save_16bit_or_make_precious(&iop.dest, leftreg);
+    save_16bit_or_make_precious(&iop.dest, destreg);
 end sub;
 
 sub arch_gen_cmp_word_eq_zero(ciop: [BEConditionalIop], liop: [LabelIop])
@@ -337,9 +326,40 @@ sub arch_gen_cmp_word_eq_zero(ciop: [BEConditionalIop], liop: [LabelIop])
         print_newline();
     $endif
 
-
     var reg: RegSet := load_complex_16bit_value(REG_HL|REG_BC|REG_DE, &ciop.left);
     reg_alloc_fixed(REG_A);
+
+    reg_copy(halfof_reg(reg, 0), REG_A);
+
+    insn_init();
+    insn.mode := MODE_DIR;
+    insn.datareg := REG_A;
+    insn.otherreg := halfof_reg(reg, 1);
+    insn_8bit_aluop(0xf6); # or *
+
+    if liop.label == ciop.iftrue_label then
+        write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
+    else
+        write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
+    end if;
+end sub;
+
+sub arch_gen_cmp_word_eq_constant(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare word equals constant: ");
+        print_ea(&ciop.left);
+        print(" => true: 0x");
+        print_hex_i8(ciop.iftrue_label);
+        print(" false: 0x");
+        print_hex_i8(ciop.iffalse_label);
+        print(" fallthrough: 0x");
+        print_hex_i8(liop.label);
+        print(", width=");
+        print_i8(ciop.width);
+        print_newline();
+    $endif
+
+    var reg: RegSet := maybe_do_fast_add_or_sub(&ciop.left, &ciop.right, 1);
 
     reg_copy(halfof_reg(reg, 0), REG_A);
 

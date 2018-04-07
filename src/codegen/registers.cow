@@ -555,7 +555,21 @@ sub reg_find_or_load_int(candidates: RegSet, value: uint8): (reg: RegSet)
     reg := reg_find_or_load(candidates, &ea);
 end sub;
 
-# As reg_find_or_load_fixed, but the result is discarded.
+# As reg_find_or_load_int, but the result is discarded.
 sub reg_find_or_load_int_fixed(candidates: RegSet, value: uint8)
     var location: RegSet := reg_find_or_load_int(candidates, value);
+end sub;
+
+# As reg_find_or_load, but loads a literal large int.
+sub reg_find_or_load_big_int(candidates: RegSet, value: int32): (reg: RegSet)
+    var ea: EffectiveAddress;
+    zero_ea(&ea);
+    ea.type_id := uint8_type;
+    ea.obj_id := add_number_by_value(value);
+    reg := reg_find_or_load(candidates, &ea);
+end sub;
+
+# As reg_find_or_load_big_int, but the result is discarded.
+sub reg_find_or_load_big_int_fixed(candidates: RegSet, value: int32)
+    var location: RegSet := reg_find_or_load_big_int(candidates, value);
 end sub;

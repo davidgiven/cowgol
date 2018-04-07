@@ -63,12 +63,8 @@ sub apply_offset(reg: RegSet, delta: int16): (newreg: RegSet)
             print_regs(reg);
             print(" with addition\n");
         $endif
-    
-        var offea: EffectiveAddress;
-        offea.type_id := uint16_type;
-        offea.obj_id := add_number_by_value(delta as int32);
 
-        var offreg: RegSet := reg_find_or_load(REG_HL|REG_BC|REG_DE, &offea);
+        var offreg: RegSet := reg_find_or_load_big_int(REG_HL|REG_BC|REG_DE, delta as int32);
         if reg == REG_HL then
             newreg := reg;
         elseif offreg == REG_HL then
