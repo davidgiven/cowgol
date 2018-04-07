@@ -88,8 +88,12 @@ sub arch_gen_not(iop: [BEIop])
 end sub;
 
 sub arch_gen_neg(iop: [BEIop])
-    print("neg should never happen");
-    halt();
+    if iop.width == 1 then
+        arch_gen_neg_byte(iop);
+    else
+        print("should never happen");
+        halt();
+    end if;
 end sub;
 
 sub arch_gen_and(iop: [BEIop])
@@ -220,12 +224,10 @@ sub arch_gen_zext(iop: [BEIop])
     var srcwidth: uint8 := get_width_of_type(iop.left.type_id) as uint8;
     if iop.width < srcwidth then
         arch_gen_shrink(iop, srcwidth);
-    elseif iop.width >= 2 then
-        arch_gen_extend_wide(iop, 0, srcwidth);
     elseif iop.width == 2 then
         arch_gen_extend_word(iop, 0, srcwidth);
     else
-        cant_do_2op(iop, "zext");
+        arch_gen_extend_wide(iop, 0, srcwidth);
     end if;
 end sub;
 
