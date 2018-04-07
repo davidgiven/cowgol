@@ -35,6 +35,11 @@ rule token_names
 build $OBJDIR/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk
 build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk
     
+rule fuzix_syscall_maker
+    command = sh $in > $out
+
+build src/arch/fuzixz80/lib/syscalls.cow : fuzix_syscall_maker scripts/fuzix/syscall-maker.sh
+
 rule run_smart_test
     command = $in && touch $out
 

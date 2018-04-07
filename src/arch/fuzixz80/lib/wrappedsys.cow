@@ -1,0 +1,16 @@
+sub exit(status: int16)
+    @bytes 0x2a, &status;                 # ld hl, (status)
+    @bytes 0xe5;                          # push hl
+    @bytes 0x2e, 0;                       # ld l, #0
+    @bytes 0xe5;                          # push hl
+    @bytes 0xf7;                          # rst #0x30
+    # No need to clean up, we're exiting.
+end sub;
+
+sub lseek(fd: int8, offsetin: uint32, whence: uint16): (offsetout: uint32)
+    offsetout := offsetin;
+    var result: int8 := _lseek(fd, &offsetout, whence);
+    if result != 0 then
+        offsetout := -1;
+    end if;
+end sub;
