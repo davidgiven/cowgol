@@ -1,4 +1,6 @@
-# This is too small to build the compiler, but limits TPA usage to about 50kB.
-const THINGSTABLE_SIZE := 5000;
-const STRINGTABLE_SIZE := 7000;
-const IOPTABLE_SIZE := 9000;
+# This is too small to build the compiler, but limits TPA usage to about 48kB,
+# so that it fits in a Fuzix large address space. Sorry, the TRS80-4P isn't
+# eligible.
+const THINGSTABLE_SIZE := 20000;
+const STRINGTABLE_SIZE := 11000;
+const IOPTABLE_SIZE := 10000;
