@@ -830,3 +830,18 @@ sub setgroups(size: uint8, gids: [uint16]): (status: int8)
 	@bytes 0xe1; # pop hl
 end sub;
 
+sub getgroups(size: uint8, gids: [uint16]): (status: int8)
+	@bytes 0x2a, &gids; # ld hl, (gids)
+	@bytes 0xe5; # push hl
+	@bytes 0x2a, &size; # ld hl, (size)
+	@bytes 0xe5; # push hl
+	@bytes 0x2e, 74; # ld l, #74
+	@bytes 0xe5; # push hl
+	@bytes 0xcd, &__raw_syscall; # call __raw_syscall
+	@bytes 0x7d; # ld a, l
+	@bytes 0x32, &status; # ld (status), a
+	@bytes 0xe1; # pop hl
+	@bytes 0xe1; # pop hl
+	@bytes 0xe1; # pop hl
+end sub;
+

@@ -165,6 +165,7 @@ local compilers = {
     {"fuzixz80", "native"},
     {"bbc",      "bbc"},
     {"cpmz",     "cpmz"},
+    {"fuzixz80", "fuzixz80"},
 }
 
 local host_data = {
@@ -222,6 +223,26 @@ local host_data = {
         EXTENSION = ".cpmz"
         TESTSCRIPT = "scripts/cpmz/cpmz_test"
         TESTBIN = "bin/cpm"
+    end,
+
+    ["fuzixz80"] = function()
+        HOST = "fuzixz80"
+        LIBS = {
+            "src/arch/fuzixz80/host.cow",
+            "src/arch/fuzixz80/lib/runtime.cow",
+            "src/arch/z80/lib/runtime.cow",
+            "src/arch/fuzixz80/lib/syscalls.cow",
+            "src/arch/fuzixz80/lib/wrappedsys.cow",
+            "src/arch/common/lib/runtime.cow",
+            "src/string_lib.cow",
+            "src/arch/fuzixz80/lib/fcb.cow",
+            "src/arch/common/lib/fileio.cow",
+            "src/arch/fuzixz80/lib/argv.cow",
+            "src/arch/fuzixz80/names.cow",
+        }
+
+        RULE = "cowgol_program"
+        EXTENSION = ".fuzixz80"
     end,
 }
 

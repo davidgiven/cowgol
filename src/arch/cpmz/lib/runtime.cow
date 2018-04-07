@@ -28,8 +28,6 @@ sub exit(status: uint8)
     __implicit_exit();
 end sub;
 
-var __lomem: int8 @segment(0x81);
-var LOMEM: [int8] := &__lomem;
 var HIMEM: [int8];
 
 # This switches stacks!

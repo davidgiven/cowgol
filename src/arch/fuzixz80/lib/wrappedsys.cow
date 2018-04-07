@@ -14,3 +14,11 @@ sub lseek(fd: int8, offsetin: uint32, whence: uint16): (offsetout: uint32)
         offsetout := -1;
     end if;
 end sub;
+
+sub print_char(c: int8)
+    var status: int16 := write(0, &c, 1);
+end sub;
+
+sub print_newline()
+    print_char('\n');
+end sub;
