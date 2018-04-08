@@ -1,0 +1,40 @@
+var __argc: uint8;
+var __argv: [[int8]];
+var __environ: [[int8]];
+
+@bytes 0xE1;                   # pop hl
+@bytes 0x22, &__argc;          # ld (__argc), hl
+@bytes 0xE1;                   # pop hl
+@bytes 0x22, &__argv;          # ld (__argv), hl
+@bytes 0xED, 0x73, &__environ; # ld (__environ), sp
+
+record SyscallParams
+    syscall: uint8;
+    __padding: uint8;
+    param: uint16[4];
+end record;
+var __syscall_params: SyscallParams;
+var errno: uint16;
+
+sub __raw_syscall()
+    @bytes 0xd1;               # pop de
+    @bytes 0xF7;               # rst #0x30
+    # Return value is in HL; corrupts AF. Sets C on error.
+    @bytes 0xd5;               # push de
+
+    @bytes 0xd0;               # ret nc
+    @bytes 0x22, &errno;       # ld (errno), hl
+    @bytes 0x21, 0xff, 0xff;   # ld hl, #-1
+end sub;
+
+sub __exit()
+    @bytes 0x21, 0x00, 0x00;              # ld hl, #0
+    @bytes 0xe5;                          # push hl
+    @bytes 0xe5;                          # push hl
+    @bytes 0xf7;                          # rst #0x30
+    # No need to clean up, we're exiting.
+end sub;
+@bytes 0x21, &__exit;                     # ld hl, #__exit
+@bytes 0xe5;                              # push hl
+
+var HIMEM: [int8];
