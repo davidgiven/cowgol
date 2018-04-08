@@ -81,12 +81,26 @@ build bin/cpmzdist.zip : mkcpmzdist | $
     scripts/cpmz/mkcpmzdist $
     $OBJDIR/compiler_for_cpmz_on_cpmz $
     src/arch/cpmz/lib/argv.cow $
-    src/arch/common/lib/fileio.cow $
     src/arch/cpmz/lib/runtime.cow $
+    src/arch/common/lib/fileio.cow $
     src/arch/z80/lib/runtime.cow $
     scripts/cpmz/compile.sub $
     tools/cpm/a/!readme.txt $
     tools/cpm/a/!license.txt $
+    demo/tiny.cow
+
+rule mkfuzixdist
+    command = scripts/fuzix/mkfuzixdist $out
+
+build bin/fuzixdist.tar : mkfuzixdist | $
+    scripts/fuzix/mkfuzixdist $
+    $OBJDIR/compiler_for_fuzixz80_on_fuzixz80 $
+    src/arch/fuzixz80/lib/runtime.cow $
+    src/arch/fuzixz80/lib/wrappedsys.cow $
+    src/arch/fuzixz80/lib/syscalls.cow $
+    src/arch/fuzixz80/lib/fcb.cow $
+    src/arch/fuzixz80/lib/argv.cow $
+    scripts/fuzix/cowgol $
     demo/tiny.cow
 
 rule pasmo

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+libbindir=/opt/packages/cowgol/lib.bin
+
+set -e
+$libbindir/init
+$libbindir/tokeniser2 "$@"
+$libbindir/parser
+cp iops.dat iops-parsed.dat
+$libbindir/typechecker
+cp iops-out.dat iops-typechecked.dat
+mv iops-out.dat iops.dat
+$libbindir/backendify
+cp iops-out.dat iops-backendified.dat
+mv iops-out.dat iops.dat
+$libbindir/classifier
+$libbindir/blockifier
+cp iops-out.dat iops-blockified.dat
+mv iops-out.dat iops.dat
+$libbindir/codegen
+cp iops-out.dat iops-codegenned.dat
+mv iops-out.dat iops.dat
+$libbindir/placer
+cp iops-out.dat iops-placed.dat
+mv iops-out.dat iops.dat
+$libbindir/emitter
