@@ -143,7 +143,8 @@ To run the cross compiler, do:
 You'll be left with a BBC Micro executable in `cow.out`. For the Commodore
 64, substitute `c64_on_native` and `src/arch/c64/...` in the obvious places.
 For CP/M, substitute `cpmz_on_native`, `src/arch/cpmz/...`, and
-`src/arch/z80/...` in the obvious places.
+`src/arch/z80/...` in the obvious places. For Fuzix, substitute
+`fuzixz80_on_native` etc etc obvious places.
 
 The first three input files should be always be the runtime library.
 

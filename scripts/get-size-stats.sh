@@ -8,3 +8,4 @@ echo "Size stats:"
 echo "-----------"
 get_stats cpmz
 get_stats bbc
+get_stats fuzixz80
