@@ -539,7 +539,29 @@ function read_type()
     end
 
     local sym = lookup_symbol(t)
-    if not sym or (sym.kind ~= "type") then
+    if not sym then
+        fatal("'%s' is not a symbol in scope", t)
+    end
+    local t = stream:peek()
+    if t == "@index" then
+        expect("@index")
+        if sym.kind ~= "type" then
+            sym = sym.type
+        end
+        if sym.pointer then
+            sym = lookup_symbol("int16")
+        elseif sym.array then
+            if sym.length < 256 then
+                sym = lookup_symbol("uint8")
+            else
+                sym = lookup_symbol("uint16")
+            end
+        else
+            fatal("can't use @index on this")
+        end
+    end
+
+    if sym.kind ~= "type" then
         fatal("'%s' is not a type in scope", t)
     end
 

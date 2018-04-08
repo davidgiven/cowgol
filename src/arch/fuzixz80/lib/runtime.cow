@@ -1,11 +1,11 @@
-var __argc: uint8;
-var __argv: [[int8]];
+var ARGC: int16;
+var ARGV: [[int8]];
 var __environ: [[int8]];
 
 @bytes 0xE1;                   # pop hl
-@bytes 0x22, &__argc;          # ld (__argc), hl
+@bytes 0x22, &ARGC;            # ld (__argc), hl
 @bytes 0xE1;                   # pop hl
-@bytes 0x22, &__argv;          # ld (__argv), hl
+@bytes 0x22, &ARGV;            # ld (__argv), hl
 @bytes 0xED, 0x73, &__environ; # ld (__environ), sp
 
 record SyscallParams
