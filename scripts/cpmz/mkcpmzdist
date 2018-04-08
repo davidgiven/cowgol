@@ -27,6 +27,7 @@ files="\
 	b/init.com \
 	b/tokenise.com \
 	b/thingsh.com \
+	b/untoken.com \
 	"
 
 (cd tools/cpm && rm -f $out && zip -9q $out $files)

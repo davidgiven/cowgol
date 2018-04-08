@@ -640,6 +640,19 @@ local function build_cowgol_programs()
         "src/iopshower/iopreader.cow",
         "src/iopshower/iopshower.cow",
     }
+
+    build_cowgol {
+        "untokeniser",
+        GLOBALS,
+        "src/ctype_lib.cow",
+        "src/numbers_lib.cow",
+        "src/utils/stringtable.cow",
+        "src/utils/things.cow",
+        "$OBJDIR/token_names.cow",
+        "src/untokeniser/init.cow",
+        "src/untokeniser/main.cow",
+        "src/untokeniser/deinit.cow",
+    }
 end
 
 -- Build the compilers.
@@ -662,7 +675,8 @@ for _, spec in ipairs(compilers) do
             "bin/"..NAME.."/placer",
             "bin/"..NAME.."/emitter",
             "bin/"..NAME.."/iopshower",
-            "bin/"..NAME.."/thingshower"
+            "bin/"..NAME.."/thingshower",
+            "bin/"..NAME.."/untokeniser"
         }
     )
     nl()
