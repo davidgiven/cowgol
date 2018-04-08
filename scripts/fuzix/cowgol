@@ -1,26 +1,27 @@
 #!/bin/sh
 
 libbindir=/opt/packages/cowgol/lib.bin
+sharedir=/opt/packages/cowgol/share
 
-set -e
+set -x
 $libbindir/init
+$libbindir/tokeniser2 \
+    $sharedir/fuzixz80/runtime.cow \
+    $sharedir/z80/runtime.cow \
+    $sharedir/fuzixz80/syscalls.cow \
+    $sharedir/fuzixz80/wrappedsys.cow \
+    $sharedir/common/runtime.cow
+$libbindir/parser
 $libbindir/tokeniser2 "$@"
 $libbindir/parser
-cp iops.dat iops-parsed.dat
 $libbindir/typechecker
-cp iops-out.dat iops-typechecked.dat
-mv iops-out.dat iops.dat
+(mv iops-out.dat iops.dat || exit 0)
 $libbindir/backendify
-cp iops-out.dat iops-backendified.dat
-mv iops-out.dat iops.dat
+(mv iops-out.dat iops.dat || exit 0)
 $libbindir/classifier
-$libbindir/blockifier
-cp iops-out.dat iops-blockified.dat
-mv iops-out.dat iops.dat
+(mv iops-out.dat iops.dat || exit 0)
 $libbindir/codegen
-cp iops-out.dat iops-codegenned.dat
-mv iops-out.dat iops.dat
+(mv iops-out.dat iops.dat || exit 0)
 $libbindir/placer
-cp iops-out.dat iops-placed.dat
-mv iops-out.dat iops.dat
+(mv iops-out.dat iops.dat || exit 0)
 $libbindir/emitter

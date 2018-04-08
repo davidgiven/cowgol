@@ -1,3 +1,13 @@
+const O_RDONLY := 0;
+const O_WRONLY := 1;
+const O_RDWR   := 2;
+const O_CREAT  := 256;
+const O_TRUNC  := 1024;
+
+const SEEK_SET := 0;
+const SEEK_CUR := 1;
+const SEEK_END := 2;
+
 sub exit(status: int16)
     @bytes 0x2a, &status;                 # ld hl, (status)
     @bytes 0xe5;                          # push hl

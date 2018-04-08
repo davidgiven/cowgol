@@ -8,7 +8,8 @@ exes=$(find bin/fuzixz80 -type f ! -name "*.log")
 install -D -t $tmpdir/opt/packages/cowgol/lib.bin/ $exes
 install -D -t $tmpdir/opt/packages/cowgol/bin/ scripts/fuzix/cowgol
 install -D -t $tmpdir/opt/packages/cowgol/share/fuzixz80/ src/arch/fuzixz80/lib/*.cow
-install -D -t $tmpdir/opt/packages/cowgol/share/fuzixz80/ src/arch/z80/lib/*.cow
-install -D -t $tmpdir/opt/packages/cowgol/share/fuzixz80/ src/arch/common/lib/*.cow
+install -D -t $tmpdir/opt/packages/cowgol/share/z80/ src/arch/z80/lib/*.cow
+install -D -t $tmpdir/opt/packages/cowgol/share/common/ src/arch/common/lib/*.cow
+install -D -t $tmpdir/opt/packages/cowgol/share src/*_lib.cow
 
 tar -C $tmpdir --create -f $PWD/$1 --format=v7 .

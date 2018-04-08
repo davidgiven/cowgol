@@ -1,44 +1,77 @@
-# This is a stub FCB implementation which just fails to open anything. It
-# can be used as the basis for the real implementation.
-
 record FCB
+    fd: int8;
+
     address: [int8]; # PUBLIC
     count: uint16; # PUBLIC
 end record;
 
-sub fcb_openin(fcb: [FCB], filename: [int8]): (errno: uint8)
-    errno := 1;
+sub fcb_openin(fcb: [FCB], filename: [int8]): (err: uint8)
+    fcb.fd := open(filename, O_RDONLY, 0o446);
+    if fcb.fd < 0 then
+        err := errno;
+    else
+        err := 0;
+    end if;
 end sub;
 
-sub fcb_openup(fcb: [FCB], filename: [int8]): (errno: uint8)
-    errno := 1;
+sub fcb_openup(fcb: [FCB], filename: [int8]): (err: uint8)
+    fcb.fd := open(filename, O_RDWR, 0o446);
+    if fcb.fd < 0 then
+        err := errno;
+    else
+        err := 0;
+    end if;
 end sub;
 
-sub fcb_openout(fcb: [FCB], filename: [int8]): (errno: uint8)
-    errno := 1;
+sub fcb_openout(fcb: [FCB], filename: [int8]): (err: uint8)
+    fcb.fd := open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0o446);
+    if fcb.fd < 0 then
+        err := errno;
+    else
+        err := 0;
+    end if;
 end sub;
 
 sub fcb_close(fcb: [FCB])
+    var status: int8 := close(fcb.fd);
 end sub;
 
 sub fcb_getchar(fcb: [FCB]): (c: int8)
     c := 0;
+    var result: int16 := read(fcb.fd, &c, 1);
 end sub;
 
 sub fcb_putchar(fcb: [FCB], c: int8)
+    var result: int16 := write(fcb.fd, &c, 1);
 end sub;
 
 sub fcb_seek(fcb: [FCB], pos: uint32)
+    pos := lseek(fcb.fd, pos, SEEK_SET);
 end sub;
 
 sub fcb_tell(fcb: [FCB]): (pos: uint32)
+    pos := lseek(fcb.fd, 0, SEEK_CUR);
 end sub;
 
 sub fcb_ext(fcb: [FCB]): (len: uint32)
+    var pos: uint32 := lseek(fcb.fd, 0, SEEK_CUR);
+    len := lseek(fcb.fd, 0, SEEK_END);
+    pos := lseek(fcb.fd, pos, SEEK_SET);
 end sub;
 
 sub fcb_read(fcb: [FCB])
+    zero_memory(fcb.address, fcb.count);
+    var delta: int16 := read(fcb.fd, fcb.address, fcb.count);
+    if delta != -1 then
+        fcb.address := fcb.address + delta;
+        fcb.count := fcb.count - (delta as uint16);
+    end if;
 end sub;
 
 sub fcb_write(fcb: [FCB])
+    var delta: int16 := write(fcb.fd, fcb.address, fcb.count);
+    if delta != -1 then
+        fcb.address := fcb.address + delta;
+        fcb.count := fcb.count - (delta as uint16);
+    end if;
 end sub;

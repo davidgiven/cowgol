@@ -14,7 +14,7 @@ record SyscallParams
     param: uint16[4];
 end record;
 var __syscall_params: SyscallParams;
-var errno: uint16;
+var errno: uint8;
 
 sub __raw_syscall()
     @bytes 0xd1;               # pop de
@@ -23,7 +23,8 @@ sub __raw_syscall()
     @bytes 0xd5;               # push de
 
     @bytes 0xd0;               # ret nc
-    @bytes 0x22, &errno;       # ld (errno), hl
+    @bytes 0x7d;               # ld a, l
+    @bytes 0x32, &errno;       # ld (errno), a
     @bytes 0x21, 0xff, 0xff;   # ld hl, #-1
 end sub;
 
