@@ -25,10 +25,20 @@ sub lseek(fd: int8, offsetin: uint32, whence: uint16): (offsetout: uint32)
     end if;
 end sub;
 
+var __printbuf: int8[32];
+var __printbufpos: uint8 := 0;
+
 sub print_char(c: int8)
-    var status: int16 := write(0, &c, 1);
+    __printbuf[__printbufpos] := c;
+    if (__printbufpos == (__printbuf@bytes-1)) or (c == '\n') or (c == '\r') then
+        var status: int16 := write(0, &__printbuf[0], (__printbufpos+1) as uint16);
+        __printbufpos := 0;
+    else
+        __printbufpos := __printbufpos + 1;
+    end if;
 end sub;
 
 sub print_newline()
     print_char('\n');
 end sub;
+

@@ -19,6 +19,7 @@ $libbindir/typechecker
 $libbindir/backendify
 (mv iops-out.dat iops.dat || exit 0)
 $libbindir/classifier
+$libbindir/blockifier
 (mv iops-out.dat iops.dat || exit 0)
 $libbindir/codegen
 (mv iops-out.dat iops.dat || exit 0)
