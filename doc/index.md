@@ -26,7 +26,10 @@ cross-compiling from a modern PC in a fraction of the time):
 
   - Z80, on CP/M. (The distribution contains a simple emulator.)
 
-It will also cross compile for:
+  - Z80, on Fuzix; see http://www.fuzix.org. You'll need your own emulator, or
+    real hardware to run on.
+
+It will also cross compile for all of the above plus:
 
   - 6502, on the Commodore 64 (for ultra hackers only; email me).
 
@@ -88,6 +91,18 @@ processor although I recommend a BBC Master Turbo (mainly for the built-in
 editor); requires extreme patience as it takes eight minutes to compile a
 small program.
 
+- [About the CP/M distribution](cpmdist.html); tl;dr: crude, slow, not
+suitable for etc; requires a Z80-based CP/M 2.2 or later system with at least
+50kB of TPA.
+
+- [About the Fuzix distribution](fuzixdist.html); tl;dr: crude, slow, etc,
+etc. Requires a Fuzix system with a Normal™ Z80 ABI (i.e. not the ZX
+Spectrum) with at least 48kB of userspace.
+
+processor although I recommend a BBC Master Turbo (mainly for the built-in
+editor); requires extreme patience as it takes eight minutes to compile a
+small program.
+
 You will need some dependencies:
 
   - the Ninja build tool
@@ -128,7 +143,8 @@ To run the cross compiler, do:
 You'll be left with a BBC Micro executable in `cow.out`. For the Commodore
 64, substitute `c64_on_native` and `src/arch/c64/...` in the obvious places.
 For CP/M, substitute `cpmz_on_native`, `src/arch/cpmz/...`, and
-`src/arch/z80/...` in the obvious places.
+`src/arch/z80/...` in the obvious places. For Fuzix, substitute
+`fuzixz80_on_native` etc etc obvious places.
 
 The first three input files should be always be the runtime library.
 
@@ -167,7 +183,7 @@ me know. I want to know how long it takes.)
 Why not?
 --------
 
-So you've tried the demo disk!
+So you've tried one of the demo disks!
 
 ...and you've discovered that the compiler takes seven minutes to compile
 "Hello, world!". Does that answer your question?

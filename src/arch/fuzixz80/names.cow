@@ -1,0 +1,8 @@
+# Names for compiler output files on Fuzix.
+
+var things_dat: [int8] := "things.dat";
+var tokens_dat: [int8] := "tokens.dat";
+var strings_dat: [int8] := "strings.dat";
+var iops_dat: [int8] := "iops.dat";
+var iops_out_dat: [int8] := "iops-out.dat";
+var cow_out: [int8] := "cow.out";

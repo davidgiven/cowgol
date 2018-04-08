@@ -68,6 +68,11 @@ rule token_names
 build $OBJDIR/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk
 build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk
     
+rule fuzix_syscall_maker
+    command = sh $in > $out
+
+build src/arch/fuzixz80/lib/syscalls.cow : fuzix_syscall_maker scripts/fuzix/syscall-maker.sh
+
 rule run_smart_test
     command = $in && touch $out
 
@@ -109,12 +114,26 @@ build bin/cpmzdist.zip : mkcpmzdist | $
     scripts/cpmz/mkcpmzdist $
     $OBJDIR/compiler_for_cpmz_on_cpmz $
     src/arch/cpmz/lib/argv.cow $
-    src/arch/common/lib/fileio.cow $
     src/arch/cpmz/lib/runtime.cow $
+    src/arch/common/lib/fileio.cow $
     src/arch/z80/lib/runtime.cow $
     scripts/cpmz/compile.sub $
     tools/cpm/a/!readme.txt $
     tools/cpm/a/!license.txt $
+    demo/tiny.cow
+
+rule mkfuzixdist
+    command = scripts/fuzix/mkfuzixdist $out
+
+build bin/fuzixdist.tar : mkfuzixdist | $
+    scripts/fuzix/mkfuzixdist $
+    $OBJDIR/compiler_for_fuzixz80_on_fuzixz80 $
+    src/arch/fuzixz80/lib/runtime.cow $
+    src/arch/fuzixz80/lib/wrappedsys.cow $
+    src/arch/fuzixz80/lib/syscalls.cow $
+    src/arch/fuzixz80/lib/fcb.cow $
+    src/arch/fuzixz80/lib/argv.cow $
+    scripts/fuzix/cowgol $
     demo/tiny.cow
 
 rule pasmo
@@ -154,11 +173,13 @@ local EMITTER
 
 -- Build X on Y
 local compilers = {
-    {"bbc", "native"},
-    {"c64", "native"},
-    {"cpmz", "native"},
-    {"bbc", "bbc"},
-    {"cpmz", "cpmz"},
+    {"bbc",      "native"},
+    {"c64",      "native"},
+    {"cpmz",     "native"},
+    {"fuzixz80", "native"},
+    {"bbc",      "bbc"},
+    {"cpmz",     "cpmz"},
+    {"fuzixz80", "fuzixz80"},
 }
 
 local host_data = {
@@ -217,6 +238,26 @@ local host_data = {
         TESTSCRIPT = "scripts/cpmz/cpmz_test"
         TESTBIN = "bin/cpm"
     end,
+
+    ["fuzixz80"] = function()
+        HOST = "fuzixz80"
+        LIBS = {
+            "src/arch/fuzixz80/host.cow",
+            "src/arch/fuzixz80/lib/runtime.cow",
+            "src/arch/z80/lib/runtime.cow",
+            "src/arch/fuzixz80/lib/syscalls.cow",
+            "src/arch/fuzixz80/lib/wrappedsys.cow",
+            "src/arch/common/lib/runtime.cow",
+            "src/string_lib.cow",
+            "src/arch/fuzixz80/lib/fcb.cow",
+            "src/arch/common/lib/fileio.cow",
+            "src/arch/fuzixz80/lib/argv.cow",
+            "src/arch/fuzixz80/names.cow",
+        }
+
+        RULE = "cowgol_program"
+        EXTENSION = ".fuzixz80"
+    end,
 }
 
 local target_data = {
@@ -269,6 +310,29 @@ local target_data = {
         EMITTER = {
             "src/arch/z80/emitter.cow",
             "src/arch/cpmz/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/z80/codegen0.cow",
+            "src/codegen/registers.cow",
+            "src/arch/z80/codegen1.cow",
+            "src/arch/z80/codegen2_8bit.cow",
+            "src/arch/z80/codegen2_16bit.cow",
+            "src/arch/z80/codegen2_wide.cow",
+            "src/arch/z80/codegen2_helper.cow",
+            "src/arch/z80/codegen2.cow",
+        }
+    end,
+
+    ["fuzixz80"] = function()
+        TARGET = "fuzixz80"
+        GLOBALS = "src/arch/fuzixz80/globals.cow"
+        CLASSIFIER = "src/arch/z80/classifier.cow"
+        SIMPLIFIER = "src/arch/z80/simplifier.cow"
+        PLACER = "src/arch/z80/placer.cow"
+        EMITTER = {
+            "src/arch/z80/emitter.cow",
+            "src/arch/fuzixz80/emitter.cow"
         }
 
         CODEGEN = {
@@ -576,6 +640,19 @@ local function build_cowgol_programs()
         "src/iopshower/iopreader.cow",
         "src/iopshower/iopshower.cow",
     }
+
+    build_cowgol {
+        "untokeniser",
+        GLOBALS,
+        "src/ctype_lib.cow",
+        "src/numbers_lib.cow",
+        "src/utils/stringtable.cow",
+        "src/utils/things.cow",
+        "$OBJDIR/token_names.cow",
+        "src/untokeniser/init.cow",
+        "src/untokeniser/main.cow",
+        "src/untokeniser/deinit.cow",
+    }
 end
 
 -- Build the compilers.
@@ -598,7 +675,8 @@ for _, spec in ipairs(compilers) do
             "bin/"..NAME.."/placer",
             "bin/"..NAME.."/emitter",
             "bin/"..NAME.."/iopshower",
-            "bin/"..NAME.."/thingshower"
+            "bin/"..NAME.."/thingshower",
+            "bin/"..NAME.."/untokeniser"
         }
     )
     nl()

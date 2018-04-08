@@ -16,6 +16,7 @@ bin/mkadfs -O $1 -S 1280 -B 3 -N 'Cowgol demo' \
         -f bin/bbc/tokeniser2           -n Tokeniser2 -l 0x800 \
         -f bin/bbc/typechecker          -n TypeCheck  -l 0x800 \
         -f bin/bbc/backendify           -n Backendify -l 0x800 \
+        -f bin/bbc/untokeniser          -n Untokenise -l 0x800 \
         -f scripts/bbc/precompile       -n Precompile \
         -u \
     -d Lib \

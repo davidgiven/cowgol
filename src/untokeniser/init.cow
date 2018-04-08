@@ -1,0 +1,14 @@
+var current_token: uint16;
+var peeked_token: uint16;
+var filename_id: uint16 := 0;
+var line_no: uint16 := 0;
+
+print("UNTOKENISER\n");
+init_string_table();
+load_thing_table(things_dat);
+
+var tokens_fcb: FCB;
+if fcb_openin(&tokens_fcb, tokens_dat) != 0 then
+    print("cannot open tokens file\n");
+    exit(1);
+end if;

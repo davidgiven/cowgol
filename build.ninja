@@ -35,6 +35,11 @@ rule token_names
 build $OBJDIR/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk
 build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk
     
+rule fuzix_syscall_maker
+    command = sh $in > $out
+
+build src/arch/fuzixz80/lib/syscalls.cow : fuzix_syscall_maker scripts/fuzix/syscall-maker.sh
+
 rule run_smart_test
     command = $in && touch $out
 
@@ -76,12 +81,26 @@ build bin/cpmzdist.zip : mkcpmzdist | $
     scripts/cpmz/mkcpmzdist $
     $OBJDIR/compiler_for_cpmz_on_cpmz $
     src/arch/cpmz/lib/argv.cow $
-    src/arch/common/lib/fileio.cow $
     src/arch/cpmz/lib/runtime.cow $
+    src/arch/common/lib/fileio.cow $
     src/arch/z80/lib/runtime.cow $
     scripts/cpmz/compile.sub $
     tools/cpm/a/!readme.txt $
     tools/cpm/a/!license.txt $
+    demo/tiny.cow
+
+rule mkfuzixdist
+    command = scripts/fuzix/mkfuzixdist $out
+
+build bin/fuzixdist.tar : mkfuzixdist | $
+    scripts/fuzix/mkfuzixdist $
+    $OBJDIR/compiler_for_fuzixz80_on_fuzixz80 $
+    src/arch/fuzixz80/lib/runtime.cow $
+    src/arch/fuzixz80/lib/wrappedsys.cow $
+    src/arch/fuzixz80/lib/syscalls.cow $
+    src/arch/fuzixz80/lib/fcb.cow $
+    src/arch/fuzixz80/lib/argv.cow $
+    scripts/fuzix/cowgol $
     demo/tiny.cow
 
 rule pasmo
@@ -100,7 +119,7 @@ build $OBJDIR/tests/compiler/things.dat $
     $OBJDIR/tests/compiler/strings.dat $
     $OBJDIR/tests/compiler/iops.dat : make_test_things bin/bbc_on_native/init
 
-build $OBJDIR/compiler_for_bbc_on_native : stamp bin/bbc_on_native/init bin/bbc_on_native/tokeniser2 bin/bbc_on_native/parser bin/bbc_on_native/typechecker bin/bbc_on_native/backendify bin/bbc_on_native/blockifier bin/bbc_on_native/classifier bin/bbc_on_native/codegen bin/bbc_on_native/placer bin/bbc_on_native/emitter bin/bbc_on_native/iopshower bin/bbc_on_native/thingshower 
+build $OBJDIR/compiler_for_bbc_on_native : stamp bin/bbc_on_native/init bin/bbc_on_native/tokeniser2 bin/bbc_on_native/parser bin/bbc_on_native/typechecker bin/bbc_on_native/backendify bin/bbc_on_native/blockifier bin/bbc_on_native/classifier bin/bbc_on_native/codegen bin/bbc_on_native/placer bin/bbc_on_native/emitter bin/bbc_on_native/iopshower bin/bbc_on_native/thingshower bin/bbc_on_native/untokeniser 
 
 build bin/bbc_on_native/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
@@ -138,7 +157,10 @@ build bin/bbc_on_native/thingshower : bootstrapped_cowgol_program src/arch/boots
 build bin/bbc_on_native/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
 
-build $OBJDIR/compiler_for_c64_on_native : stamp bin/c64_on_native/init bin/c64_on_native/tokeniser2 bin/c64_on_native/parser bin/c64_on_native/typechecker bin/c64_on_native/backendify bin/c64_on_native/blockifier bin/c64_on_native/classifier bin/c64_on_native/codegen bin/c64_on_native/placer bin/c64_on_native/emitter bin/c64_on_native/iopshower bin/c64_on_native/thingshower 
+build bin/bbc_on_native/untokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/bbc/globals.cow src/ctype_lib.cow src/numbers_lib.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/untokeniser/init.cow src/untokeniser/main.cow src/untokeniser/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build $OBJDIR/compiler_for_c64_on_native : stamp bin/c64_on_native/init bin/c64_on_native/tokeniser2 bin/c64_on_native/parser bin/c64_on_native/typechecker bin/c64_on_native/backendify bin/c64_on_native/blockifier bin/c64_on_native/classifier bin/c64_on_native/codegen bin/c64_on_native/placer bin/c64_on_native/emitter bin/c64_on_native/iopshower bin/c64_on_native/thingshower bin/c64_on_native/untokeniser 
 
 build bin/c64_on_native/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/c64/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
@@ -176,7 +198,10 @@ build bin/c64_on_native/thingshower : bootstrapped_cowgol_program src/arch/boots
 build bin/c64_on_native/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/c64/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
 
-build $OBJDIR/compiler_for_cpmz_on_native : stamp bin/cpmz_on_native/init bin/cpmz_on_native/tokeniser2 bin/cpmz_on_native/parser bin/cpmz_on_native/typechecker bin/cpmz_on_native/backendify bin/cpmz_on_native/blockifier bin/cpmz_on_native/classifier bin/cpmz_on_native/codegen bin/cpmz_on_native/placer bin/cpmz_on_native/emitter bin/cpmz_on_native/iopshower bin/cpmz_on_native/thingshower 
+build bin/c64_on_native/untokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/c64/globals.cow src/ctype_lib.cow src/numbers_lib.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/untokeniser/init.cow src/untokeniser/main.cow src/untokeniser/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build $OBJDIR/compiler_for_cpmz_on_native : stamp bin/cpmz_on_native/init bin/cpmz_on_native/tokeniser2 bin/cpmz_on_native/parser bin/cpmz_on_native/typechecker bin/cpmz_on_native/backendify bin/cpmz_on_native/blockifier bin/cpmz_on_native/classifier bin/cpmz_on_native/codegen bin/cpmz_on_native/placer bin/cpmz_on_native/emitter bin/cpmz_on_native/iopshower bin/cpmz_on_native/thingshower bin/cpmz_on_native/untokeniser 
 
 build bin/cpmz_on_native/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/cpmz/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
@@ -214,7 +239,51 @@ build bin/cpmz_on_native/thingshower : bootstrapped_cowgol_program src/arch/boot
 build bin/cpmz_on_native/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/cpmz/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
  arch = native_on_native 
 
-build $OBJDIR/compiler_for_bbc_on_bbc : stamp bin/bbc/init bin/bbc/tokeniser2 bin/bbc/parser bin/bbc/typechecker bin/bbc/backendify bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen bin/bbc/placer bin/bbc/emitter bin/bbc/iopshower bin/bbc/thingshower 
+build bin/cpmz_on_native/untokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/cpmz/globals.cow src/ctype_lib.cow src/numbers_lib.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/untokeniser/init.cow src/untokeniser/main.cow src/untokeniser/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build $OBJDIR/compiler_for_fuzixz80_on_native : stamp bin/fuzixz80_on_native/init bin/fuzixz80_on_native/tokeniser2 bin/fuzixz80_on_native/parser bin/fuzixz80_on_native/typechecker bin/fuzixz80_on_native/backendify bin/fuzixz80_on_native/blockifier bin/fuzixz80_on_native/classifier bin/fuzixz80_on_native/codegen bin/fuzixz80_on_native/placer bin/fuzixz80_on_native/emitter bin/fuzixz80_on_native/iopshower bin/fuzixz80_on_native/thingshower bin/fuzixz80_on_native/untokeniser 
+
+build bin/fuzixz80_on_native/init : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/tokeniser2 : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/numbers_lib.cow src/arch/fuzixz80/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser2/init.cow $OBJDIR/token_names.cow src/tokeniser2/emitter.cow src/tokeniser2/tables.cow src/tokeniser2/lexer.cow src/tokeniser2/main.cow src/tokeniser2/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/parser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/utils/types.cow src/utils/iops.cow src/parser/init.cow src/parser/symbols.cow src/utils/symbols.cow src/parser/iopwriter.cow src/parser/tokenreader.cow src/parser/constant.cow src/parser/types.cow src/parser/expression.cow src/parser/main.cow src/parser/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/blockifier : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/blockifier/init.cow src/blockifier/main.cow src/blockifier/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/typechecker : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/typechecker/init.cow src/typechecker/stack.cow src/typechecker/main.cow src/typechecker/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/backendify : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/backendify/init.cow src/backendify/temporaries.cow src/backendify/tree.cow src/arch/z80/simplifier.cow src/backendify/simplifier.cow src/backendify/main.cow src/backendify/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/classifier : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/classifier/init.cow src/classifier/graph.cow src/arch/z80/classifier.cow src/classifier/subdata.cow src/classifier/main.cow src/classifier/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/codegen : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow $OBJDIR/token_names.cow src/utils/symbols.cow src/codegen/init.cow src/codegen/queue.cow src/arch/z80/codegen0.cow src/codegen/registers.cow src/arch/z80/codegen1.cow src/arch/z80/codegen2_8bit.cow src/arch/z80/codegen2_16bit.cow src/arch/z80/codegen2_wide.cow src/arch/z80/codegen2_helper.cow src/arch/z80/codegen2.cow src/codegen/rules.cow src/codegen/main.cow src/codegen/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/placer : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/placer/init.cow src/arch/z80/placer.cow src/placer/main.cow src/placer/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/emitter : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/emitter/init.cow src/arch/z80/emitter.cow src/arch/fuzixz80/emitter.cow src/emitter/main.cow src/emitter/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/thingshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/thingshower/thingshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/iopshower : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build bin/fuzixz80_on_native/untokeniser : bootstrapped_cowgol_program src/arch/bootstrap/host.cow src/string_lib.cow src/arch/bootstrap/fcb.cow src/utils/names.cow src/arch/fuzixz80/globals.cow src/ctype_lib.cow src/numbers_lib.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/untokeniser/init.cow src/untokeniser/main.cow src/untokeniser/deinit.cow | $OBJDIR/compiler_for_native_on_native $OBJDIR/dependencies_for_bootstrapped_cowgol_program 
+ arch = native_on_native 
+
+build $OBJDIR/compiler_for_bbc_on_bbc : stamp bin/bbc/init bin/bbc/tokeniser2 bin/bbc/parser bin/bbc/typechecker bin/bbc/backendify bin/bbc/blockifier bin/bbc/classifier bin/bbc/codegen bin/bbc/placer bin/bbc/emitter bin/bbc/iopshower bin/bbc/thingshower bin/bbc/untokeniser 
 
 build bin/bbc/init : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/arch/bbc/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = bbc_on_native 
@@ -252,7 +321,10 @@ build bin/bbc/thingshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/li
 build bin/bbc/iopshower : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/arch/bbc/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = bbc_on_native 
 
-build $OBJDIR/compiler_for_cpmz_on_cpmz : stamp bin/cpmz/init bin/cpmz/tokeniser2 bin/cpmz/parser bin/cpmz/typechecker bin/cpmz/backendify bin/cpmz/blockifier bin/cpmz/classifier bin/cpmz/codegen bin/cpmz/placer bin/cpmz/emitter bin/cpmz/iopshower bin/cpmz/thingshower 
+build bin/bbc/untokeniser : cowgol_program src/arch/bbc/host.cow src/arch/bbc/lib/mos.cow src/arch/6502/lib/runtime.cow src/arch/bbc/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/bbc/lib/fcb.cow src/arch/bbc/lib/fileio.cow src/arch/bbc/lib/argv.cow src/arch/bbc/names.cow src/arch/bbc/globals.cow src/ctype_lib.cow src/numbers_lib.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/untokeniser/init.cow src/untokeniser/main.cow src/untokeniser/deinit.cow | $OBJDIR/compiler_for_bbc_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = bbc_on_native 
+
+build $OBJDIR/compiler_for_cpmz_on_cpmz : stamp bin/cpmz/init bin/cpmz/tokeniser2 bin/cpmz/parser bin/cpmz/typechecker bin/cpmz/backendify bin/cpmz/blockifier bin/cpmz/classifier bin/cpmz/codegen bin/cpmz/placer bin/cpmz/emitter bin/cpmz/iopshower bin/cpmz/thingshower bin/cpmz/untokeniser 
 
 build bin/cpmz/init : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/cpmz/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/cpmz/lib/argv.cow src/arch/cpmz/names.cow src/arch/cpmz/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_cpmz_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = cpmz_on_native 
@@ -289,6 +361,50 @@ build bin/cpmz/thingshower : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz
 
 build bin/cpmz/iopshower : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/cpmz/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/cpmz/lib/argv.cow src/arch/cpmz/names.cow src/arch/cpmz/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_cpmz_on_native $OBJDIR/dependencies_for_cowgol_program 
  arch = cpmz_on_native 
+
+build bin/cpmz/untokeniser : cowgol_program src/arch/cpmz/host.cow src/arch/cpmz/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/cpmz/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/cpmz/lib/argv.cow src/arch/cpmz/names.cow src/arch/cpmz/globals.cow src/ctype_lib.cow src/numbers_lib.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/untokeniser/init.cow src/untokeniser/main.cow src/untokeniser/deinit.cow | $OBJDIR/compiler_for_cpmz_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = cpmz_on_native 
+
+build $OBJDIR/compiler_for_fuzixz80_on_fuzixz80 : stamp bin/fuzixz80/init bin/fuzixz80/tokeniser2 bin/fuzixz80/parser bin/fuzixz80/typechecker bin/fuzixz80/backendify bin/fuzixz80/blockifier bin/fuzixz80/classifier bin/fuzixz80/codegen bin/fuzixz80/placer bin/fuzixz80/emitter bin/fuzixz80/iopshower bin/fuzixz80/thingshower bin/fuzixz80/untokeniser 
+
+build bin/fuzixz80/init : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/init/init.cow $OBJDIR/token_names.cow src/init/things.cow $OBJDIR/token_maker.cow src/init/main.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/tokeniser2 : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/numbers_lib.cow src/arch/fuzixz80/globals.cow src/utils/stringtablewriter.cow src/utils/things.cow src/tokeniser2/init.cow $OBJDIR/token_names.cow src/tokeniser2/emitter.cow src/tokeniser2/tables.cow src/tokeniser2/lexer.cow src/tokeniser2/main.cow src/tokeniser2/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/parser : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/ctype_lib.cow src/numbers_lib.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/utils/types.cow src/utils/iops.cow src/parser/init.cow src/parser/symbols.cow src/utils/symbols.cow src/parser/iopwriter.cow src/parser/tokenreader.cow src/parser/constant.cow src/parser/types.cow src/parser/expression.cow src/parser/main.cow src/parser/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/blockifier : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/blockifier/init.cow src/blockifier/main.cow src/blockifier/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/typechecker : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/typechecker/init.cow src/typechecker/stack.cow src/typechecker/main.cow src/typechecker/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/backendify : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/backendify/init.cow src/backendify/temporaries.cow src/backendify/tree.cow src/arch/z80/simplifier.cow src/backendify/simplifier.cow src/backendify/main.cow src/backendify/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/classifier : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/symbols.cow $OBJDIR/token_names.cow src/classifier/init.cow src/classifier/graph.cow src/arch/z80/classifier.cow src/classifier/subdata.cow src/classifier/main.cow src/classifier/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/codegen : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow $OBJDIR/token_names.cow src/utils/symbols.cow src/codegen/init.cow src/codegen/queue.cow src/arch/z80/codegen0.cow src/codegen/registers.cow src/arch/z80/codegen1.cow src/arch/z80/codegen2_8bit.cow src/arch/z80/codegen2_16bit.cow src/arch/z80/codegen2_wide.cow src/arch/z80/codegen2_helper.cow src/arch/z80/codegen2.cow src/codegen/rules.cow src/codegen/main.cow src/codegen/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/placer : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/utils/iopwriter.cow src/placer/init.cow src/arch/z80/placer.cow src/placer/main.cow src/placer/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/emitter : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/utils/iopreader.cow src/emitter/init.cow src/arch/z80/emitter.cow src/arch/fuzixz80/emitter.cow src/emitter/main.cow src/emitter/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/thingshower : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/thingshower/thingshower.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/iopshower : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/utils/stringtable.cow src/utils/things.cow src/utils/types.cow src/utils/iops.cow src/iopshower/iopreader.cow src/iopshower/iopshower.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
+
+build bin/fuzixz80/untokeniser : cowgol_program src/arch/fuzixz80/host.cow src/arch/fuzixz80/lib/runtime.cow src/arch/z80/lib/runtime.cow src/arch/fuzixz80/lib/syscalls.cow src/arch/fuzixz80/lib/wrappedsys.cow src/arch/common/lib/runtime.cow src/string_lib.cow src/arch/fuzixz80/lib/fcb.cow src/arch/common/lib/fileio.cow src/arch/fuzixz80/lib/argv.cow src/arch/fuzixz80/names.cow src/arch/fuzixz80/globals.cow src/ctype_lib.cow src/numbers_lib.cow src/utils/stringtable.cow src/utils/things.cow $OBJDIR/token_names.cow src/untokeniser/init.cow src/untokeniser/main.cow src/untokeniser/deinit.cow | $OBJDIR/compiler_for_fuzixz80_on_native $OBJDIR/dependencies_for_cowgol_program 
+ arch = fuzixz80_on_native 
 
 build $OBJDIR/tests/bootstrap/arrayinitialisers : bootstrapped_cowgol_program tests/bootstrap/_test.cow tests/bootstrap/arrayinitialisers.test.cow | 
 build $OBJDIR/tests/bootstrap/arrayinitialisers.stamp : run_smart_test $OBJDIR/tests/bootstrap/arrayinitialisers 
