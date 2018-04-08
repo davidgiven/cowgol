@@ -1,6 +1,5 @@
 # Experimentally verified to be about the minimum needed to compile the
 # compiler.
-const THINGSTABLE_SIZE := 37000;
 const STRINGTABLE_SIZE := 19000;
 const IOPTABLE_SIZE := 10000;
 const CLASSIFICATIONGRAPH_NODES := 2000; # in nodes, node bytes

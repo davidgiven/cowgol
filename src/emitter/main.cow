@@ -88,7 +88,7 @@ sub emit_subroutines()
 
         var id: uint16 := FIRST_THING;
         loop
-            var thing: [TypedThing] := &thing_table[id] as [TypedThing];
+            var thing: [TypedThing] := &thing_table[id as int16] as [TypedThing];
             if thing.thing_type == 0 then
                 break;
             end if;
@@ -147,7 +147,7 @@ sub emit_constants()
     end sub;
 
     loop
-        thing := &thing_table[id] as [DataThing];
+        thing := &thing_table[id as int16] as [DataThing];
 
         if thing.thing_type == 0 then
             break;

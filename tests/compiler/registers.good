@@ -1,5 +1,4 @@
-reading thing table: 416 bytes
-d
+reading thing table: 416 bytes (max: 65534)
 
 LRU test
 % reset register allocator

@@ -173,7 +173,7 @@ sub assign_space_for_variables(subroutine_id: uint16)
     sub allocate_space()
         var id: uint16 := FIRST_THING;
         loop
-            var thing: [TypedThing] := &thing_table[id] as [TypedThing];
+            var thing: [TypedThing] := &thing_table[id as int16] as [TypedThing];
             if thing.thing_type == 0 then
                 break;
             end if;
@@ -282,7 +282,7 @@ sub show_subroutine_sizes()
     end sub;
 
     loop
-        var thing: [Thing] := &thing_table[id] as [Thing];
+        var thing: [Thing] := &thing_table[id as int16] as [Thing];
         if thing.thing_type == 0 then
             break;
         end if;

@@ -7,7 +7,7 @@
 
 static int8_t memory[64*1024];
 int8_t* lomem = memory;
-int8_t* himem = memory + sizeof(memory);
+int8_t* himem = memory + sizeof(memory) - 1;
 
 #define FILE_COUNT 16
 static FILE* filetab[FILE_COUNT];

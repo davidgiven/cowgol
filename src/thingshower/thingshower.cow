@@ -158,7 +158,7 @@ init_string_table();
 load_thing_table(things_dat);
 var id: uint16 := FIRST_THING;
 loop
-    var thing: [Thing] := &thing_table[id] as [Thing];
+    var thing: [Thing] := &thing_table[id as int16] as [Thing];
     if thing.thing_type == 0 then
         break;
     end if;

@@ -1,5 +1,4 @@
 # This is too small to build the compiler, but limits TPA usage to about 50kB.
-const THINGSTABLE_SIZE := 22000;
 const STRINGTABLE_SIZE := 14000;
 const IOPTABLE_SIZE := 9000;
 const CLASSIFICATIONGRAPH_NODES := 2000; # in nodes, node bytes

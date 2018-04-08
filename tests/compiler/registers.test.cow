@@ -38,7 +38,6 @@ var ea16bit_1: EffectiveAddress;
 zero_ea(&ea16bit_1);
 ea16bit_1.obj_id := int16_type;
 ea16bit_1.type_id := int16_type;
-print("d\n");
 
 var ea16bit_2: EffectiveAddress;
 zero_ea(&ea16bit_2);
