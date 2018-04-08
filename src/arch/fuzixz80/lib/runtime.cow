@@ -39,3 +39,6 @@ end sub;
 @bytes 0xe5;                              # push hl
 
 var HIMEM: [int8];
+@bytes 0x21, 0x80, 0xFF;       # ld hl, #-128
+@bytes 0x39;                   # add hl, sp
+@bytes 0x22, &HIMEM;           # ld (HIMEM), hl

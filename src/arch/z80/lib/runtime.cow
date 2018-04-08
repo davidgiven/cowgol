@@ -562,6 +562,3 @@ end sub;
 
 var __lomem: int8 @segment(0x81);
 var LOMEM: [int8] := &__lomem;
-@bytes 0x21, 0x80, 0xFF;       # ld hl, #-128
-@bytes 0x39;                   # add hl, sp
-@bytes 0x22, &HIMEM;           # ld (HIMEM), hl
