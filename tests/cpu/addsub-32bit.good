@@ -33,3 +33,8 @@ TWO-mone==three: yes
 -zero == zero: yes
 -mone == one: yes
 -mtwo == two: yes
+deadbeef+deadbeef=0xbd5b7dde: yes
+deadbeef-deadbeef=0x00000000: yes
+pdeadbeef[0]+deadbeef=0xbd5b7dde: yes
+deadbeef+pdeadbeef[0]=0xbd5b7dde: yes
+presult test: yes

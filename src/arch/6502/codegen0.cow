@@ -19,6 +19,11 @@ const MODE_IMMHI := 4;
 
 var insn: Insn;
 
+sub cant_happen()
+    print("generic internal compiler error");
+    halt();
+end sub;
+
 sub save_insn(storage: [Insn])
     copy_memory(&insn as [int8], storage as [int8], Insn@bytes);
 end sub;

@@ -56,15 +56,15 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
         end if;
     end sub;
 
+    if iop.width == 4 then
+        looped := 1;
+    end if;
+
     check(&iop.left);
     if opcode != 0 then
         check(&iop.right);
     end if;
     check(&iop.dest);
-
-    if iop.width == 4 then
-        looped := 1;
-    end if;
 
     if looped != 0 then
         $if DEBUG
@@ -84,9 +84,14 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
             insn.datareg := REG_A;
             if ea.flags == EA_DEREF then
                 insn.mode := MODE_IND;
-            else
+                if get_value_of_number(ea.numoff_id) != 0 then
+                    cant_happen();
+                end if;
+            elseif ea.flags == EA_VALUE then
                 insn.mode := MODE_DIR;
                 insn.offset := get_value_of_number(ea.numoff_id) as uint16;
+            else
+                cant_happen();
             end if;
         end sub;
 
