@@ -82,6 +82,11 @@ record NumberThing: DataThing
     value: int32;
 end record;
 
+record AddressOfThing: DataThing
+    thing_id: uint16;
+    offset: uint16;
+end record;
+
 record SubroutineThing: DataThing
     namespace_id: uint16;
     label_count: uint8;
@@ -106,22 +111,23 @@ end record;
 const THING_SUBROUTINE := 1;
 const THING_VARIABLE   := 2;
 const THING_PARAMETER  := 3;
-const THING_RECORDT    := 4;
-const THING_POINTERT   := 5;
-const THING_ARRAYT     := 6;
-const THING_CONSTANTT  := 7;
-const THING_UNSIGNEDT  := 8;
-const THING_SIGNEDT    := 9;
+const THING_ADDRESSOF  := 4;
+const THING_RECORDT    := 5;
+const THING_POINTERT   := 6;
+const THING_ARRAYT     := 7;
+const THING_CONSTANTT  := 8;
+const THING_UNSIGNEDT  := 9;
+const THING_SIGNEDT    := 10;
 
-const THING_STRING     := 10;
-const THING_IDENTIFIER := 11;
-const THING_NUMBER     := 12;
-const THING_NAMESPACE  := 13;
-const THING_TOKEN      := 14;
-const THING_SYMBOL     := 15;
-const THING_MEMBER     := 16;
-const THING_ROOT       := 17; # singleton
-const THING_LABEL      := 18;
+const THING_STRING     := 11;
+const THING_IDENTIFIER := 12;
+const THING_NUMBER     := 13;
+const THING_NAMESPACE  := 14;
+const THING_TOKEN      := 15;
+const THING_SYMBOL     := 16;
+const THING_MEMBER     := 17;
+const THING_ROOT       := 18; # singleton
+const THING_LABEL      := 19;
 
 const THING_CLASS_DATA         := 0b0000_0001;
 const THING_CLASS_TYPE         := 0b0000_0010;
@@ -131,11 +137,12 @@ const THING_CLASS_SCALAR       := 0b0001_0000;
 const THING_CLASS_NUMERIC      := 0b0010_0000;
 const THING_CLASS_TYPED        := 0b0100_0000;
 
-var thing_classes: uint8[10] := {
+var thing_classes: uint8[11] := {
     0,                                                       # null
     THING_CLASS_DATA,                                        # THING_SUBROUTINE
     THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_VARIABLE
-    THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_DATA
+    THING_CLASS_DATA|THING_CLASS_TYPED,                      # THING_PARAMETER
+    THING_CLASS_DATA,                                        # THING_ADDRESSOF
     THING_CLASS_TYPE|THING_CLASS_WITHMEMBERS,                # THING_RECORDT
     THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_WITHMEMBERS|THING_CLASS_WITHELEMENTS, # THING_POINTERT
     THING_CLASS_TYPE|THING_CLASS_WITHELEMENTS,               # THING_ARRAYT
@@ -144,11 +151,12 @@ var thing_classes: uint8[10] := {
     THING_CLASS_TYPE|THING_CLASS_SCALAR|THING_CLASS_NUMERIC, # THING_SIGNEDT
 };
 
-var thing_sizes: uint8[19] := {
+var thing_sizes: uint8[20] := {
     0,                     # null
     SubroutineThing@bytes, # THING_SUBROUTINE
     VariableThing@bytes,   # THING_VARIABLE
     ParameterThing@bytes,  # THING_PARAMETER
+    AddressOfThing@bytes,  # THING_ADDRESSOF
     RecordThing@bytes,     # THING_RECORDT
     PointerThing@bytes,    # THING_POINTERT
     ArrayThing@bytes,      # THING_ARRAYT
@@ -163,27 +171,31 @@ var thing_sizes: uint8[19] := {
     SymbolThing@bytes,     # THING_SYMBOL
     MemberThing@bytes,     # THING_MEMBER
     RootThing@bytes,       # THING_ROOT
-    LabelThing@bytes       # THING_LABEL
+    LabelThing@bytes,      # THING_LABEL
 };
 
-var thing_table: int8[THINGSTABLE_SIZE];
-var thing_table_top: uint16 := 1;
-thing_table[thing_table_top] := 0;
+var thing_table: [int8] := LOMEM;
+var thing_table_max: uint16 := ((HIMEM - LOMEM) - 1) as uint16;
+const FIRST_THING := 2;
+var thing_table_top: uint16 := FIRST_THING;
+thing_table[thing_table_top as int16] := 0;
 
 var root: [RootThing];
 
 sub check_for_thing_table_overflow()
-    if thing_table_top > thing_table@size then
-        print("thing table overflow\n");
+    if thing_table_top > thing_table_max then
+        print("thing table overflow (0x");
+        print_hex_i16(thing_table_max);
+        print(" bytes max)\n");
         exit(1);
     end if;
 end sub;
 
-sub create_thing(type: uint8, size: uint8): (id: uint16)
+sub create_thing(thing_type: uint8, size: uint8): (id: uint16)
     id := thing_table_top;
-    var thing: [Thing] := &thing_table[id] as [Thing];
+    var thing: [Thing] := &thing_table[id as int16] as [Thing];
     zero_memory(thing as [int8], (size + 1) as uint16);
-    thing.thing_type := type;
+    thing.thing_type := thing_type;
     thing_table_top := thing_table_top + (size as uint16);
     check_for_thing_table_overflow();
 end sub;
@@ -197,7 +209,7 @@ sub find_thing(id: uint16): (thing: [Thing])
         exit(1);
     end if;
 
-    thing := &thing_table[id] as [Thing];
+    thing := &thing_table[id as int16] as [Thing];
 end sub;
 
 sub next_thing(thing_id: uint16): (new_id: uint16)
@@ -205,17 +217,17 @@ sub next_thing(thing_id: uint16): (new_id: uint16)
     new_id := thing_id + (thing_sizes[thing.thing_type] as uint16);
 end sub;
 
-sub get_thing_type(thing_id: uint16): (type: uint8)
+sub get_thing_type(thing_id: uint16): (type_id: uint8)
     if thing_id == 0 then
-        type := 0;
+        type_id := 0;
     else
         var thing: [Thing] := find_thing(thing_id);
-        type := thing.thing_type;
+        type_id := thing.thing_type;
     end if;
 end sub;
 
-sub is_thing_type(id: uint16, type: uint8): (yes: uint8)
-    if get_thing_type(id) == type then
+sub is_thing_type(id: uint16, thing_type: uint8): (yes: uint8)
+    if get_thing_type(id) == thing_type then
         yes := 1;
     else
         yes := 0;
@@ -223,11 +235,11 @@ sub is_thing_type(id: uint16, type: uint8): (yes: uint8)
 end sub;
 
 sub get_thing_class(id: uint16): (class: uint8)
-    var type: uint8 := get_thing_type(id);
-    if type >= thing_classes@size then
+    var thing_type: uint8 := get_thing_type(id);
+    if thing_type >= thing_classes@size then
         class := 0;
     else
-        class := thing_classes[type];
+        class := thing_classes[thing_type];
     end if;
 end sub;
 
@@ -240,9 +252,9 @@ sub is_thing_class(id: uint16, mask: uint8): (yes: uint8)
 end sub;
 
 sub find_thing_by_value(template: [Thing]): (id: uint16)
-    id := 1;
+    id := FIRST_THING;
     loop
-        var thing: [Thing] := &thing_table[id] as [Thing];
+        var thing: [Thing] := &thing_table[id as int16] as [Thing];
         if thing.thing_type == 0 then
             break;
         end if;
@@ -263,10 +275,10 @@ end sub;
 sub add_thing(template: [Thing]): (id: uint16)
     id := thing_table_top;
     var size: uint16 := thing_sizes[template.thing_type] as uint16;
-    copy_memory(template as [int8], &thing_table[id], size);
+    copy_memory(template as [int8], &thing_table[id as int16], size);
     thing_table_top := id + size;
     check_for_thing_table_overflow();
-    thing_table[thing_table_top] := 0;
+    thing_table[thing_table_top as int16] := 0;
 end sub;
 
 sub add_thing_by_value(template: [Thing]): (id: uint16)
@@ -293,10 +305,19 @@ sub get_value_of_number(thing_id: uint16): (value: int32)
     end if;
 end sub;
 
+sub add_addressof_by_value(thing_id: uint16, offset: uint16): (id: uint16)
+    var buf: AddressOfThing;
+    zero_memory(&buf as [int8], buf@bytes);
+    buf.thing_type := THING_ADDRESSOF;
+    buf.thing_id := thing_id;
+    buf.offset := offset;
+    id := add_thing_by_value(&buf as [Thing]);
+end sub;
+
 sub find_token_by_string(string_id: uint16): (id: uint16)
-    id := 1;
+    id := FIRST_THING;
     loop
-        var thing: [IdentifierThing] := &thing_table[id] as [IdentifierThing];
+        var thing: [IdentifierThing] := &thing_table[id as int16] as [IdentifierThing];
         if thing.thing_type == 0 then
             break;
         elseif (thing.thing_type == THING_TOKEN) and (thing.string_id == string_id) then
@@ -309,9 +330,9 @@ sub find_token_by_string(string_id: uint16): (id: uint16)
 end sub;
 
 sub find_symbol_by_value(value_id: uint16): (symbol_id: uint16)
-    symbol_id := 1;
+    symbol_id := FIRST_THING;
     loop
-        var thing: [SymbolThing] := &thing_table[symbol_id] as [SymbolThing];
+        var thing: [SymbolThing] := &thing_table[symbol_id as int16] as [SymbolThing];
         if thing.thing_type == 0 then
             break;
         end if;
@@ -365,6 +386,10 @@ sub get_token_flags(token_id: uint16): (token_flags: uint8)
     end if;
 end sub;
 
+sub is_data_thing(thing_id: uint16): (yes: uint8)
+    yes := is_thing_class(thing_id, THING_CLASS_DATA);
+end sub;
+
 sub is_type_thing(thing_id: uint16): (yes: uint8)
     yes := is_thing_class(thing_id, THING_CLASS_TYPE);
 end sub;
@@ -381,6 +406,10 @@ sub is_string_thing(thing_id: uint16): (yes: uint8)
     yes := is_thing_type(thing_id, THING_STRING);
 end sub;
 
+sub is_addressof_thing(thing_id: uint16): (yes: uint8)
+    yes := is_thing_type(thing_id, THING_ADDRESSOF);
+end sub;
+
 sub is_identifier_thing(thing_id: uint16): (yes: uint8)
     yes := is_thing_type(thing_id, THING_IDENTIFIER);
 end sub;
@@ -390,8 +419,8 @@ sub is_number_type_thing(thing_id: uint16): (yes: uint8)
 end sub;
 
 sub is_signed_type_thing(thing_id: uint16): (yes: uint8)
-    var type: uint8 := get_thing_type(thing_id);
-    if (type == THING_SIGNEDT) or (type == THING_CONSTANTT) then
+    var thing_type: uint8 := get_thing_type(thing_id);
+    if (thing_type == THING_SIGNEDT) or (thing_type == THING_CONSTANTT) then
         yes := 1;
     else
         yes := 0;
@@ -415,28 +444,28 @@ sub save_thing_table(filename: [int8])
     print_i16(thing_table_top);
     print(" bytes\n");
 
-    var fd: int8 := file_openout(filename);
-    file_putblock(fd, &thing_table[0], thing_table_top);
-    file_close(fd);
+    var ptr: [uint16] := &thing_table[0] as [uint16];
+    ptr[0] := thing_table_top;
+    file_save(filename, ptr as [int8], thing_table_top);
 end sub;
 
 sub load_thing_table(filename: [int8])
-    var fd: int8 := file_openin(filename);
-    thing_table_top := file_ext(fd) as uint16;
-
     print("reading thing table: ");
-    print_i16(thing_table_top);
-    print(" bytes\n");
+    var ptr: [uint16] := &thing_table[0] as [uint16];
+    thing_table_top := file_load(filename, &thing_table[0], thing_table_max);
+    thing_table_top := ptr[0];
+    print_i32(thing_table_top as uint32);
+    print(" bytes (max: ");
+    print_i32(thing_table_max as uint32);
+    print(")\n");
 
-    if thing_table_top > thing_table@size then
+    if thing_table_top > thing_table_max then
         print("thing table on disk too big (your configuration is broken)\n");
         exit(1);
     end if;
-    var eof: uint8 := file_getblock(fd, &thing_table[0], thing_table_top);
-    file_close(fd);
-    thing_table[thing_table_top] := 0;
+    thing_table[thing_table_top as int16] := 0;
 
-    root := find_thing(1) as [RootThing];
+    root := find_thing(FIRST_THING) as [RootThing];
 end sub;
 
 sub print_thing(thing_id: uint16)
@@ -453,10 +482,9 @@ sub print_thing(thing_id: uint16)
     end sub;
 
     if is_number_thing(thing_id) != 0 then
+        print_prefix("NUM", thing_id);
         print_char('#');
         print_i32(get_value_of_number(thing_id) as uint32);
-        print_char('.');
-        print_hex_i16(thing_id);
     elseif is_identifier_thing(thing_id) != 0 then
         print_prefix("ID", thing_id);
         show_identifier(thing_id);
@@ -466,13 +494,21 @@ sub print_thing(thing_id: uint16)
     else
         var identifier_id: uint16 := find_name_of_value(thing_id);
         if is_type_thing(thing_id) != 0 then
-            print_prefix("TYPE", thing_id);
+            print("TYPE");
+            var typething: [TypeThing] := find_thing(thing_id) as [TypeThing];
+            print_i16(typething.width);
+            print_prefix("", thing_id);
         elseif is_typed_thing(thing_id) != 0 then
             print_prefix("VAR", thing_id);
-        elseif get_thing_type(thing_id) == THING_SUBROUTINE then
-            print_prefix("SUB", thing_id);
         else
-            print_prefix("UNK", thing_id);
+            var thingtype: uint8 := get_thing_type(thing_id);
+            if thingtype == THING_SUBROUTINE then
+                print_prefix("SUB", thing_id);
+            elseif thingtype == THING_ADDRESSOF then
+                print_prefix("ADR", thing_id);
+            else
+                print_prefix("UNK", thing_id);
+            end if;
         end if;
 
         if identifier_id != 0 then

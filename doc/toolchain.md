@@ -34,25 +34,32 @@ files for the runtime library and add your own code to that, so as to save
 time (the runtime library is big and takes about eight minutes to tokenise
 and parse).
 
-- **the tokeniser**: reads the source files and produces a token stream and the string table.
+- **the tokeniser**: reads the source files and produces a token stream and
+the string table. (Since 0.2 this has been rewritten to use Flex tables.
+Slightly bigger, slightly faster, much more understandable --- the old
+hand-tooled tokeniser was pretty crufty.)
 
-- **the parser**: reads the token stream and parses the Cowgol language out of it. It generates an iop stream containing stack-based front end opcodes.
+- **the parser**: reads the token stream and parses the Cowgol language out
+of it. It generates an iop stream containing stack-based front end opcodes.
 
 - **the typechecker**: reads in the iops stream containing the front end
 opcodes and does type analysis and reporting of errors; it also looks up
 symbolic names which the parser was unable to resolve (so allowing forward
-references). In addition, it concerts the stack-based front-end opcodes into
-memory-machine back-end opcodes used by the code generator. This last stage
-doesn't really belong here and needs to be split out into a separate pass.
+references).
 
-- **the blockifier**: this will, eventually, do some simple basic block
-analysis and dead code removal. What it does now is to rewrite label
-references based on directives produced by the parser.
+- **the backendifier**: reads in the iops stream containing the typechecked,
+stack-based front-end opcodes into memory-machine back-end opcodes used by
+the code generator. It also uses architecture-specific simplification rules
+to turn them into forms which can be emitted by the code generator.
 
 - **the classifier**: constructs the call graph and determines which
 subroutines and variables are referred to. Once it knows which variables are
 used, it assigns them to addresses in the data segment (and in zero page on
 the 6502).
+
+- **the blockifier**: this will, eventually, do some simple basic block
+analysis and dead code removal. What it does now is to rewrite label
+references based on directives produced by the parser.
 
 - **the code generator**: turns the memory-machine opcodes into real
 processor opcodes.
@@ -64,12 +71,11 @@ segment.
 - **the emitter**: assembles all the segments and writes out the executable
 image.
 
-There's platform-specific code in every pass except the tokeniser, the parser
-and the blockifier. The BBC Micro version is in
-[src/arch/bbc](https://github.com/davidgiven/cowgol/tree/master/src/arch/bbc).
-(This needs a refactor.)
+There's architecture-specific code in every pass except the tokeniser, the
+parser and the blockifier. The 6502 version is in
+[src/arch/6502](https://github.com/davidgiven/cowgol/tree/master/src/arch/6502)
 
-** The backend model
+## The backend model
 
 The backend uses a memory machine abstraction, where every instruction reads
 from memory and writes to memory. The code generator then caches values in
@@ -85,19 +91,22 @@ a := b + c
 ...then `a`, `b` and `c` are all memory references, referred to as an
 effective address (EA). Each one may be an LEA, VALUE or DEREF, expressed as:
 
-- LEA: address of an object. `object+numoffset+varoffset`
-- VALUE: value of an object. `[object+numoffset+varoffset]`
-- DEREF: value pointed to by an object. `[[object]+numoffset+varoffset]`
+- LEA: address of an object. `object+#numoffset+varoffset`
+- VALUE: value of an object. `[object+#numoffset+varoffset]`
+- DEREF: value pointed to by an object. `[[object]+#numoffset+varoffset]`
 
-`numoffset` refers to a constant offset; `varoffset` refers to an offset in a
+`#numoffset` refers to a constant offset; `varoffset` refers to an offset in a
 variable. Either or both may be missing.
 
 EAs are typed, and the backend tracks their types. (Although this may be
-removed as the only thing it really cares about are the widths.) Constant
-values are held in memory and referred to by address (the code generator may
-optimise the fetch away if it wants to).
+removed as the only thing it really cares about are the widths and the
+occasional signedness flag.) Constant values are held in memory and referred
+to by address (the code generator may optimise the fetch away if it wants
+to).
 
-The typechecker generates abstract code, and then there's a platform-specific simplification pass which chops instructions up into pieces which the architecture can understand. So:
+The typechecker generates abstract code, and then there's a platform-specific
+simplification pass which chops instructions up into pieces which the
+architecture can understand. So:
 
 ```
 [i] := [[array] + offset]  # generated from i := array[offset]
@@ -125,23 +134,23 @@ deliberately avoided thinking about this for simplicity.
 
 All the platform-specific code should be in
 [src/arch](https://github.com/davidgiven/cowgol/tree/master/src/arch).
-The most complicated part is the code generator. Currently the 6502 code
-generator is a bit of a mess and needs a proper overhaul. It uses a very
-simple value cache where it tries to remember which 8-bit values are stored in
-which register, and flushes them to memory lazily. It's important to remember
-that you need to flush the cache whenever doing a pointer access to maintain
-pointer aliasing rules. There's no attempt to track values between basic
-blocks (because it's really hard); the cache is flushed and values reloaded
-from memory as needed. 16-bit and 32-bit values aren't cached at all and are
-worked on directly in memory.
+The most complicated part is the code generator, which has received a proper
+overhaul since 0.3 and now generates much... more adequate... code. It uses a
+very simple value cache where it tries to remember which 8-bit values are
+stored in which register, and flushes them to memory lazily. It's important
+to remember that you need to flush the cache whenever doing a pointer access
+to maintain pointer aliasing rules. There's no attempt to track values
+between basic blocks (because it's really hard); the cache is flushed and
+values reloaded from memory as needed. 16-bit and 32-bit values aren't cached
+at all and are worked on directly in memory.
 
 This is a reasonable strategy for the very register-light old architectures,
 but would be very wasteful (although simple!) on a register-centric
 architecture like the ARM. You'll want to rewrite the code generator from
-scratch. The 6502 one is about 1.7kloc.
+scratch. The 6502 one is about 2.1kloc.
 
 You also need a simplifier, which breaks down complex backend instructions.
 This is much smaller, but pretty subtle, and I spent ages removing bugs from
-the 6502 one (and probably adding new ones). If you're on a register
-architecture, life may be easier as there are fewer address modes to deal
-with.
+the 6502 one (and probably adding new ones); I've rewritten it completely at
+least once. If you're on a register architecture, life may be easier as there
+are fewer address modes to deal with.

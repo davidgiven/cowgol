@@ -12,7 +12,7 @@ sub no() print(": no\n"); end sub;
 
 u16 := 0x5555;
 u8 := 1;
-print("1 as uint16"); u16 := u8 as uint16; if u8 == 1 then yes(); else no(); end if;
+print("1 as uint16"); u16 := u8 as uint16; if u16 == 1 then yes(); else no(); end if;
 
 u32 := 0x55555555;
 u8 := 1;
@@ -26,7 +26,7 @@ print("1 as uint32"); u32 := u16 as uint32; if u32 == 1 then yes(); else no(); e
 
 s16 := 0x5555;
 s8 := -1;
-print("1 as int16"); s16 := s8 as int16; if s8 == -1 then yes(); else no(); end if;
+print("1 as int16"); s16 := s8 as int16; if s16 == -1 then yes(); else no(); end if;
 
 s32 := 0x55555555;
 s8 := -1;

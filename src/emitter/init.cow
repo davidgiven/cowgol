@@ -6,4 +6,8 @@ init_iop_reader(iops_dat);
 var current_subroutine_id: uint16;
 var current_subroutine: [SubroutineThing];
 
-var outfd: int8 := file_openout(cow_out);
+var out_fcb: FCB;
+if fcb_openout(&out_fcb, cow_out) != 0 then
+    print("cannot open output file");
+    halt();
+end if;

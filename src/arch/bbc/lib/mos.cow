@@ -5,6 +5,15 @@ sub osbyte(a: uint8, x: uint8, y: uint8)
     @bytes 0x4C, 0xF4, 0xFF;    # JMP OSBYTE
 end sub;
 
+sub osbyte_with_result(a: uint8, x: uint8, y: uint8): (xx: uint8, yy: uint8)
+    @bytes 0xAD, &a;            # LDA a
+    @bytes 0xAE, &x;            # LDX x
+    @bytes 0xAC, &y;            # LDY y
+    @bytes 0x20, 0xF4, 0xFF;    # JSR OSBYTE
+    @bytes 0x8E, &xx;           # STX xx
+    @bytes 0x8C, &yy;           # STY yy
+end sub;
+
 sub osword(a: uint8, ptr: [int8])
     @bytes 0xAD, &a;            # LDA a
     @bytes 0xAE, &ptr+0;        # LDX ptr+0
@@ -24,7 +33,7 @@ sub osgbpb(a: uint8, ptr: [OsgbpbBlock]): (eof: uint8)
     @bytes 0xAD, &a;            # LDA a
     @bytes 0xAE, &ptr+0;        # LDX ptr+0
     @bytes 0xAC, &ptr+1;        # LDY ptr+1
-    @bytes 0x20, 0xD1, 0xFF;    # JMP OSGBPB
+    @bytes 0x20, 0xD1, 0xFF;    # JSR OSGBPB
     @bytes 0xA9, 0x00;          # LDA #0
     @bytes 0x2A;                # ROL A
     @bytes 0x8D, &eof;          # STA eof
@@ -36,3 +45,15 @@ sub osargs(a: uint8, ptr: [uint8], fd: uint8)
     @bytes 0xAC, &fd;           # LDY fd
     @bytes 0x4C, 0xDA, 0xFF;    # JMP OSARGS
 end sub;
+
+record OsfileBlock
+    filename: [int8]; # CR-terminated
+    loadaddress: [int8];
+    loadaddresshi: uint16;
+    execaddress: [int8];
+    execaddresshi: uint16;
+    startaddress: [int8];
+    startaddresshi: uint16;
+    endaddress: [int8];
+    endaddresshi: uint16;
+end record;

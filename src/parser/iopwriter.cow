@@ -1,6 +1,6 @@
 var ioptab: uint8[IOPTABLE_SIZE];
 var ioptab_top: uint16 := 0;
-var iopfd: int8;
+var iop_fcb: FCB;
 
 sub emit(kind: uint8, size: uint8): (ptr: [Iop])
     ptr := &ioptab[ioptab_top] as [Iop];
@@ -133,40 +133,71 @@ end sub;
 sub flush_iops(object_id: uint16, oldtop: uint16)
     var header: IHeader;
     header.thing_id := object_id;
-    file_putblock(iopfd, &header as [int8], IHeader@bytes);
-    file_putblock(iopfd, &ioptab[oldtop] as [int8], ioptab_top - oldtop);
+
+    iop_fcb.address := &header as [int8];
+    iop_fcb.count := IHeader@bytes;
+    fcb_write(&iop_fcb);
+
+    iop_fcb.address := &ioptab[oldtop] as [int8];
+    iop_fcb.count := ioptab_top - oldtop;
+    fcb_write(&iop_fcb);
+    
     ioptab_top := oldtop;
 end sub;
 
+sub raw_emit_iop(iop: [Iop])
+    iop_fcb.address := iop as [int8];
+    iop_fcb.count := iop.iop_size as uint16;
+    fcb_write(&iop_fcb);
+end sub;
+
 sub open_iopfile(filename: [int8])
-    iopfd := file_openup(filename);
+    if fcb_openup(&iop_fcb, filename) != 0 then
+        print("cannot open output iop file");
+        halt();
+    end if;
 
     # So, the last subroutine of the existing iop file is always the main one.
     # We can't append to it, because we need to write other subroutines before
     # *our* main subroutine. So instead we patch it so it ends with a jump to
     # our new one.
 
-    file_seek(iopfd, file_ext(iopfd) - Iop@bytes*3);
+    var len: uint32;
+    fcb_seek(&iop_fcb, 0);
+    iop_fcb.address := &len as [int8];
+    iop_fcb.count := len@bytes;
+    fcb_read(&iop_fcb);
+    fcb_seek(&iop_fcb, len - Iop@bytes*3);
 
     var iop: CallIop;
     zero_memory(&iop as [int8], iop@bytes);
-    iop.iop_size := iop@bytes;
+    iop.iop_size := CallIop@bytes;
     iop.iop_kind := IOP_CALL;
     iop.thing_id := current_subroutine_id;
-    file_putblock(iopfd, &iop as [int8], CallIop@bytes);
-
+    raw_emit_iop(&iop as [Iop]);
+ 
     iop.iop_size := Iop@bytes;
     iop.iop_kind := IOP_RETURN;
-    file_putblock(iopfd, &iop as [int8], Iop@bytes);
+    raw_emit_iop(&iop as [Iop]);
     
     iop.iop_size := Iop@bytes;
     iop.iop_kind := IOP_END;
-    file_putblock(iopfd, &iop as [int8], Iop@bytes);
+    raw_emit_iop(&iop as [Iop]);
 end sub;
 
 sub close_iopfile()
     var buf: IHeader[1];
     buf[0].thing_id := 0;
-    file_putblock(iopfd, &buf[0] as [int8], IHeader@bytes);
-    file_close(iopfd);
+
+    iop_fcb.address := &buf[0] as [int8];
+    iop_fcb.count := IHeader@bytes;
+    fcb_write(&iop_fcb);
+
+    var len: uint32 := fcb_tell(&iop_fcb);
+    fcb_seek(&iop_fcb, 0);
+    iop_fcb.address := &len as [int8];
+    iop_fcb.count := len@bytes;
+    fcb_write(&iop_fcb);
+    
+    fcb_close(&iop_fcb);
 end sub;

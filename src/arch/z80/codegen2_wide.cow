@@ -1,0 +1,811 @@
+# Wide code generation on the Z80 is hard.
+#
+# This is because there are multiple interacting strategies that I need to
+# use which all play off each other. In summary, these are:
+#
+#   - 16-bit adds or subs must have the result (and one of the LHS or RHS)
+#     in HL.
+#   - 8-bit indirected RHSs must use HL, IX or IY (preferably HL because #     it's much cheaper).
+#   - any ALU op which isn't an add or a sub needs to be done a byte at a
+#     time and pass through A.
+#   - only A, HL, BC, DE, IX, IY can be read or written directly. Only A,
+#     B, C, D, E, H, L can be read via indirection.
+#   - offsets which aren't 0 have to use IX or IY as the index register.
+#   - if all three parameters have offsets, we need to delay writing back
+#     the result until we can free up an index register.
+#   - if the destination is a DEREF, it needs to be written back to
+#     memory immediately; otherwise, leave it in a register pair for
+#     later.
+#   - lots of things need HL or A for setup, but we frequently need these
+#     for the LHS for the arithmetic operation, so we need to set up the
+#     RHS first... except when we don't.
+#
+# ...and possibly more, which is a mess.
+#
+# This is the third attempt at doing this; this one's not bad (but could be
+# improved).
+#
+# For 16-bit 3op:
+#
+# LHS can be any of: pair, const, abs, deref-0, deref-X.
+# RHS can be any of: pair, const, deref-0, deref-X.
+# Dest can be any of: pair, abs, deref-0, deref-X.
+#
+# For 32-bit 3op:
+#
+# LHS can be any of: const, abs, deref-0, deref-X.
+# RHS can be any of: const, deref-0, deref-X.
+# Dest can be any of: abs, deref-0, deref-X.
+#
+# We only have two registers capable of doing deref-X, so if all three
+# stages require it, we're stuffed. We have to use a normal register for
+# the third and bake the offset into it.
+#
+# However, the index registers are dead slow.
+#
+# ld hl, (...); ld a, (hl); inc hl = 16 setup 13/7 repeating.
+#   16 bits: 16+13+7 = 36 cycles
+#   32 bits: 16+13+13+13+7 = 62 cycles
+# ld bc, (...); ld a, (bc); inc bc = 20 setup 13/7 repeating.
+#   16 bits: 20+13+7 = 40 cycles
+#   32 bits: 20+13+13+13+7 = 66 cycles
+# ld ix, (...); ld a, (ix+0) = 20 setup 19/19 repeating.
+#   16 bits: 20+19+19 = 58 cycles
+#   32 bits: 20+19+19+19+19 = 96 cycles
+# ld bc, #...; ld hl, (...); add hl, bc; ld a, (hl); inc hl = 10+16+11 = 37 setup 13/7 repeating.
+#   16 bits: 37+13+7 = 57 cycles
+#   32 bits: 37+13+13+13+7 = 83 cycles
+#
+# We can use BC and DE as pointers, but *only* for operations through A.
+# Setting them up is hard, too. Using 16-bit adds takes 37 cycles and
+# 8 bytes to set up an offsetted pointer in HL; 41/9 for DE; 45/10 for
+# BC, and due to register constraints we can't initialise all three
+# register pairs, and have to do DE before HL.
+#
+# Doing it the longer way through A is longer and slower but doesn't
+# use an additional register pair:
+#
+#   ld bc, (base)     # 4 bytes 20 cycles
+#   ld a, c           # 1 bytes 4 cycles
+#   add a, #>offset   # 2 bytes 7 cycles
+#   ld c, a           # 1 byte 4 cycles
+#   ld a, b           # 1 bytes 4 cycles
+#   adc a, #<offset   # 2 bytes 7 cycles
+#   ld b, a           # 1 byte 4 cycles
+#
+# = 12 bytes, 50 cycles. (4 cycles cheaper for HL.) If the value is already
+# in a register pair, then we save 4 bytes and 20 cycles to 8/30. So:
+#
+#    16 bits: 50+13+7 = 70 cycles (66 for HL)
+#    32 bits: 50+13+13+13+7 = 96 cycles (92 for HL)
+#
+# So, from this, the conclusion appears to be: prefer HL as an index; try to
+# set it up with 16-bit adds; then use IX/IY; BC and DE probably aren't worth
+# it unless you're using deref-0 and don't need to add an offset.
+#
+# (Also, for deref-0, setup cost becomes the same or less than for ix/iy, and
+# access 13/7 rather than 19, so worst case 16-bit access is 20+13+7=40 vs
+# best case 19+19=38.)
+#
+# So, putting this together, the worst 32-bit case is a 3op deref-X 32-bit
+# operation. IX and IY contain LHS and RHS, and HL is the destination.
+#
+#   ld bc, z
+#   ld hl, (DEST)
+#   add hl, bc
+#   ld ix, (LHS)
+#   ld iy, (RHS)
+#
+#   ld a, (LHS+x+0)   # 4 bytes 19 cycles
+#   add a, (RHS+y+0)  # 4 bytes 19 cycles
+#   ld (hl), a        # 1 byte 13 cycles
+#   inc hl            # 1 byte 7 cycles
+#   ...repeat...
+#
+# The best case 32 bit case is a 3op abs operation. We only need one
+# pointer, HL.
+#
+#   ld hl, #RHS
+#
+#   ld a, (LHS+0)     # 3 bytes 13 cycles
+#   add a, (hl)       # 1 bytes 7 cycles
+#   ld (DEST+0), a    # 3 bytes 13 cycles
+#   inc hl            # 1 byte 7 cycles
+#
+# Using pointers for the LHS and DEST is perfectly doable, but only saves one
+# byte and one cycle per iteration, and costs an extra 4 bytes and 20 cycles
+# for setup, so unless they're already in a register it's actually worse.
+#
+# For 16-bit operations we get to take/leave values in registers if we're lucky.
+# So the best case (3op abs) ends up:
+#
+#   ld a, c           # 1 byte 4 cycles
+#   add a, l          # 1 byte 4 cycles
+#   ld e, a           # 1 byte 4 cycles
+#
+# The worst is the same as for 32-bit (but of course shorter).
+
+var rhsea: [EffectiveAddress];
+var lhsea: [EffectiveAddress];
+var destea: [EffectiveAddress];
+var rhsptrea: EffectiveAddress;
+var lhsptrea: EffectiveAddress;
+var destptrea: EffectiveAddress;
+var rhsmode: uint8;
+var lhsmode: uint8;
+var destmode: uint8;
+var rhspair: RegSet;
+var lhspair: RegSet;
+var destpair: RegSet;
+var rhsptrreg: RegSet;
+var rhsoffset: int16;
+var lhsptrreg: RegSet;
+var lhsoffset: int16;
+var destptrreg: RegSet;
+var destoffset: int16;
+var opwidth: uint8;
+
+sub setup_wide_for_iop(needs_a: uint8, extraoffset: uint8)
+    if rhsea != (0 as [EffectiveAddress]) then
+        rhsmode := MODE_IND;
+        if is_same_ea_ignoring_type(lhsea, rhsea) != 0 then
+            rhsmode := MODE_DIR;
+        elseif (rhsea.flags == EA_LEA) or (is_number_thing(rhsea.obj_id) != 0) then
+            rhsmode := MODE_IMM;
+        elseif (opwidth == 2) and (rhsea.flags == EA_VALUE) and (reg_is_cached_in(REG_16BIT, rhsea) != 0) then
+            rhsmode := MODE_DIR;
+        else
+            rhsmode := MODE_IND;
+        end if;
+    else
+        rhsmode := 0;
+    end if;
+
+    if lhsea != (0 as [EffectiveAddress]) then
+        lhsmode := MODE_IND;
+        if (lhsea.flags == EA_LEA) or (is_number_thing(lhsea.obj_id) != 0) then
+            lhsmode := MODE_IMM;
+        elseif (opwidth == 2) and (lhsea.flags == EA_VALUE) then
+            lhsmode := MODE_DIR;
+        end if;
+    else
+        lhsmode := 0;
+    end if;
+    
+    if destea != (0 as [EffectiveAddress]) then
+        destmode := MODE_IND;
+        if (opwidth == 2) and (destea.flags == EA_VALUE) then
+            destmode := MODE_DIR;
+        end if;
+    else
+        destmode := 0;
+    end if;
+
+    var rhspointers: RegSet := REG_HL|REG_IX|REG_IY;
+    var otherpointers: RegSet;
+    if needs_a != 0 then
+        reg_evict(REG_A);
+        # BC is very hard to offset, so don't consider it for pointers.
+        otherpointers := REG_HL|REG_DE|REG_IX|REG_IY;
+    else
+        otherpointers := REG_HL|REG_IX|REG_IY;
+    end if;
+
+    # If this is a 16-bit value, we'd like it to be in a register pair if
+    # possible.
+
+    rhspair := 0;
+    lhspair := 0;
+    destpair := 0;
+    if opwidth == 2 then
+        if (rhsmode == MODE_IMM) or (rhsmode == MODE_DIR) then
+            rhspair := REG_BC|REG_DE|REG_HL;
+        end if;
+        if (lhsmode == MODE_IMM) or (lhsmode == MODE_DIR) then
+            lhspair := REG_BC|REG_DE|REG_HL;
+        end if;
+        if (destmode == MODE_IMM) or (destmode == MODE_DIR) then
+            destpair := REG_BC|REG_DE|REG_HL;
+        end if;
+    end if;
+
+    # Set up any pointers needed for the value. This is more complicated than
+    # it looks, and I've been through loads of iterations of this: it's
+    # possible for two parameters to share a pointer
+    # (e.g. foo.x := foo.x + 1), which means that we have to ensure that
+    # pointers only get incremented once; but offsetted pointers don't show
+    # up in the cache (because their value can't be represented as an
+    # EffectiveAddress), so we don't get sharing automatically. So... it's
+    # painful.
+
+    if rhsmode == MODE_IND then
+        (rhsptrreg, rhsoffset) := setup_pointer(rhspointers, rhsea, extraoffset);
+    else
+        rhsptrreg := 0;
+        rhsoffset := 0;
+    end if;
+    if lhsmode == MODE_IND then
+        if (rhsptrreg != 0) and (is_same_ea_ignoring_type(lhsea, rhsea) != 0) then
+            lhsptrreg := rhsptrreg;
+            lhsoffset := rhsoffset;
+        else
+            (lhsptrreg, lhsoffset) := setup_pointer(otherpointers, lhsea, extraoffset);
+        end if;
+    else
+        lhsptrreg := 0;
+        lhsoffset := 0;
+    end if;
+    if destmode == MODE_IND then
+        if (lhsptrreg != 0) and (is_same_ea_ignoring_type(destea, lhsea) != 0) then
+            destptrreg := lhsptrreg;
+            destoffset := lhsoffset;
+        elseif (rhsptrreg != 0) and (is_same_ea_ignoring_type(destea, rhsea) != 0) then
+            destptrreg := rhsptrreg;
+            destoffset := rhsoffset;
+        else
+            (destptrreg, destoffset) := setup_pointer(otherpointers, destea, extraoffset);
+        end if;
+    else
+        destptrreg := 0;
+        destoffset := 0;
+    end if;
+
+    # The pointers are the important bit. Now they're set up, any values can
+    # go whereever. Note that if we're *not* using values, then there's a
+    # chance that a precious value in a register might be accessed via a
+    # pointer, so make sure they're written back.
+
+    if lhsmode != 0 then
+        if lhspair != 0 then
+            lhspair := reg_find_or_load(lhspair, lhsea);
+        else
+            reg_write_back_precious_value(lhsea);
+        end if;
+    end if;
+    if rhsmode != 0 then
+        if rhspair != 0 then
+            rhspair := reg_find_or_load(rhspair, rhsea);
+        else
+            reg_write_back_precious_value(rhsea);
+        end if;
+    end if;
+    if destpair != 0 then
+        # If there's no RHS, *and* the LHS and dest are in registers, we
+        # can combine them.
+        if (rhsmode == 0) and (lhspair != 0) then
+            destpair := lhspair;
+        else
+            destpair := reg_alloc(destpair);
+        end if;
+        reg_value_is_changing(destea);
+        reg_cache_value(destpair, destea);
+        reg_value_is_precious(destea);
+    end if;
+
+    $if DEBUG
+        print("* allowed rhs pointer regs: ");
+        print_regs(rhspointers);
+        print_newline();
+        print("* allowed other pointers: ");
+        print_regs(otherpointers);
+        print_newline();
+        print("* LHS mode: ");
+        print_i8(lhsmode);
+        print_newline();
+        print("* RHS mode: ");
+        print_i8(rhsmode);
+        print_newline();
+        print("* Dest mode: ");
+        print_i8(destmode);
+        print_newline();
+        print("* LHS value: ");
+        print_regs(lhspair);
+        print_newline();
+        print("* RHS value: ");
+        print_regs(rhspair);
+        print_newline();
+        print("* Dest value: ");
+        print_regs(destpair);
+        print_newline();
+        print("* LHS pointer: ");
+        print_regs(lhsptrreg);
+        print("+0x");
+        print_hex_i16(lhsoffset as uint16);
+        print_newline();
+        print("* RHS pointer: ");
+        print_regs(rhsptrreg);
+        print("+0x");
+        print_hex_i16(rhsoffset as uint16);
+        print_newline();
+        print("* Dest pointer: ");
+        print_regs(destptrreg);
+        print("+0x");
+        print_hex_i16(destoffset as uint16);
+        print_newline();
+    $endif
+end sub;
+
+sub adjust_wide_pointers(opcode: uint8)
+    sub inc(reg: RegSet)
+        $if DEBUG
+            print("* INCREMENT ");
+            print_regs(reg);
+            print_newline();
+        $endif
+        reg_evict(reg);
+        var regnum: uint8 := get_z80_regnum(reg);
+        write_byte(opcode | regnum); # inc or dec
+    end sub;
+
+    if (lhsptrreg & (REG_BC|REG_DE|REG_HL)) != 0 then
+        $if DEBUG
+            print("* incrementing LHS ptr\n");
+        $endif
+        inc(lhsptrreg);
+    end if;
+    if (lhsptrreg != rhsptrreg) and ((rhsptrreg & (REG_BC|REG_DE|REG_HL)) != 0) then
+        $if DEBUG
+            print("* incrementing RHS ptr\n");
+        $endif
+        inc(rhsptrreg);
+    end if;
+    if (destptrreg != lhsptrreg) and (destptrreg != rhsptrreg) and ((destptrreg & (REG_BC|REG_DE|REG_HL)) != 0) then
+        $if DEBUG
+            print("* incrementing dest ptr\n");
+        $endif
+        inc(destptrreg);
+    end if;
+end sub;
+
+sub do_wide_read(offset: uint8, destreg: RegSet)
+    $if DEBUG
+        print("* read LHS ");
+        print_ea(lhsea);
+        print(" -> ");
+        print_regs(destreg);
+        print(" offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
+
+    var reg: RegSet := halfof_reg(destreg, offset);
+    if lhspair != 0 then
+        if lhspair == destreg then
+            return;
+        end if;
+
+        reg_copy(halfof_reg(lhspair, offset), reg);
+    elseif lhsmode == MODE_IND then
+        insn_init();
+        insn.datareg := reg;
+        insn.otherreg := lhsptrreg;
+        if (lhsptrreg & REG_INDEX) != 0 then
+            insn.offset := lhsoffset + (offset as int16);
+        end if;
+        insn.mode := MODE_IND;
+        insn_load_object();
+    elseif lhsmode == MODE_IMM then
+        insn_init();
+        insn.datareg := reg;
+        insn.offset := (get_value_of_number(lhsea.obj_id) >> (offset*8)) as int16;
+        insn.mode := MODE_IMM;
+        insn_load_object();
+    elseif lhsmode == MODE_DIR then
+        insn_init_from_ea(lhsea);
+        insn.datareg := reg;
+        insn.offset := insn.offset + (offset as int16);
+        insn_load_object();
+    else
+        print("cannot load LHS");
+        halt();
+    end if;
+end sub;
+
+sub do_wide_alu(offset: uint8, opcode: uint8)
+    $if DEBUG
+        print("* alu RHS ");
+        print_ea(rhsea);
+        print(" A offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
+
+    insn_init();
+    insn.datareg := REG_A;
+    if rhspair != 0 then
+        insn.otherreg := halfof_reg(rhspair, offset);
+        insn.mode := MODE_DIR;
+    elseif is_same_ea_ignoring_type(lhsea, rhsea) != 0 then
+        insn.otherreg := REG_A;
+        insn.mode := MODE_DIR;
+    elseif rhsmode == MODE_IND then
+        insn.otherreg := rhsptrreg;
+        if (rhsptrreg & REG_INDEX) != 0 then
+            insn.offset := rhsoffset + (offset as int16);
+        end if;
+        insn.mode := MODE_IND;
+    elseif rhsmode == MODE_IMM then
+        insn.offset := (get_value_of_number(rhsea.obj_id) >> (offset*8)) as int16;
+        insn.mode := MODE_IMM;
+    else
+        print("cannot alu RHS");
+        halt();
+    end if;
+    insn_8bit_aluop(opcode);
+end sub;
+
+sub do_wide_write(offset: uint8, srcreg: RegSet)
+    $if DEBUG
+        print("* write result ");
+        print_regs(srcreg);
+        print(" -> ");
+        print_ea(destea);
+        print(" offset ");
+        print_i8(offset);
+        print_newline();
+    $endif
+
+    var reg: RegSet := halfof_reg(srcreg, offset);
+    if destpair != 0 then
+        if destpair == srcreg then
+            return;
+        end if;
+
+        reg_copy(reg, halfof_reg(destpair, offset));
+    elseif destmode == MODE_IND then
+        insn_init();
+        insn.datareg := reg;
+        insn.otherreg := destptrreg;
+        if (destptrreg & REG_INDEX) != 0 then
+            insn.offset := destoffset + (offset as int16);
+        end if;
+        insn.mode := MODE_IND;
+        insn_save_object();
+    elseif destmode == MODE_DIR then
+        insn_init_from_ea(destea);
+        insn.datareg := reg;
+        insn.offset := insn.offset + (offset as int16);
+        insn_save_object();
+    else
+        print("cannot write destination");
+        halt();
+    end if;
+end sub;
+
+sub arch_gen_copy_wide(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE copy wide: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    var residualoffset: int16;
+    var destpointer: RegSet;
+    (destpointer, residualoffset) := setup_pointer(REG_DE, &iop.dest, 0);
+
+    var rhspointer: RegSet;
+    (rhspointer, residualoffset) := setup_pointer(REG_HL, &iop.left, 0);
+
+    reg_value_is_changing(&iop.dest);
+
+    reg_find_or_load_int_fixed(REG_BC, iop.width);
+    reg_evict(REG_DE);
+    reg_evict(REG_HL);
+    reg_evict(REG_BC);
+    write_word(0xB0ED); # ldir
+end sub;
+
+sub arch_gen_regular_alu_wide(iop: [BEIop], opcode1: uint8, opcode2: uint8)
+    $if DEBUG
+        print("* GENERATE alu wide: opcode1=0x");
+        print_hex_i8(opcode1);
+        print(" opcode2=0x");
+        print_hex_i8(opcode2);
+        print(": ");
+        print_ea(&iop.left);
+        print(" + ");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    opwidth := iop.width;
+    rhsea := &iop.right;
+    lhsea := &iop.left;
+    destea := &iop.dest;
+    setup_wide_for_iop(1, 0);
+
+    var i: uint8 := 0;
+    while i != opwidth loop
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_read(i, REG_A);
+        if i == 0 then
+            do_wide_alu(i, opcode1);
+        else
+            do_wide_alu(i, opcode2);
+        end if;
+        do_wide_write(i, REG_A);
+        i := i + 1;
+    end loop;
+end sub;
+
+sub arch_gen_add_wide(iop: [BEIop])
+    arch_gen_regular_alu_wide(iop, 0xC6, 0xCE); # add, adc
+end sub;
+
+sub arch_gen_sub_wide(iop: [BEIop])
+    arch_gen_regular_alu_wide(iop, 0xD6, 0xDE); # sub, sbc
+end sub;
+
+sub arch_gen_extend_wide(iop: [BEIop], signed: uint8, srcwidth: uint8)
+    $if DEBUG
+        print("* GENERATE: extend signed=");
+        print_i8(signed);
+        print(" srcwidth=");
+        print_i8(srcwidth);
+        print(": ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    var srcreg: RegSet;
+    if srcwidth == 1 then
+        srcreg := load_complex_8bit_value(REG_A, &iop.left);
+    elseif srcwidth == 2 then
+        srcreg := load_complex_16bit_value(REG_PAIR, &iop.left);
+    else
+        print("bad extension");
+        halt();
+    end if;
+
+    opwidth := iop.width;
+    rhsea := 0 as [EffectiveAddress];
+    lhsea := 0 as [EffectiveAddress];
+    destea := &iop.dest;
+    setup_wide_for_iop(0, 0);
+
+    var i: uint8 := 0;
+    while i != srcwidth loop
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_write(i, srcreg);
+        i := i + 1;
+    end loop;
+    if srcreg != REG_A then
+        reg_copy(halfof_reg(srcreg, i-1), REG_A);
+    end if;
+    reg_free(srcreg);
+    
+    if signed != 0 then
+        reg_alloc_fixed(REG_A);
+        write_byte(0x07); # rlca
+        write_byte(0x9F); # sbc a, a
+    else
+        reg_find_or_load_int_fixed(REG_A, 0);
+    end if;
+
+    while i != opwidth loop
+        adjust_wide_pointers(0x03); # inc rr
+        do_wide_write(i, REG_A);
+        i := i + 1;
+    end loop;
+    reg_free(REG_A);
+    reg_evict(REG_A);
+end sub;
+
+sub arch_gen_not_wide(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE: not wide: ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    opwidth := iop.width;
+    rhsea := 0 as [EffectiveAddress];
+    lhsea := &iop.left;
+    destea := &iop.dest;
+    setup_wide_for_iop(1, 0);
+
+    reg_alloc_fixed(REG_A);
+
+    var i: uint8 := 0;
+    while i != opwidth loop
+        if i != 0 then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+        do_wide_read(i, REG_A);
+        write_byte(0x2F); # cpl
+        do_wide_write(i, REG_A);
+        i := i + 1;
+    end loop;
+end sub;
+
+sub arch_gen_cmp_wide_eq_zero(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare wide equals zero: ");
+        print_ea(&ciop.left);
+        print(" => true: 0x");
+        print_hex_i8(ciop.iftrue_label);
+        print(" false: 0x");
+        print_hex_i8(ciop.iffalse_label);
+        print(" fallthrough: 0x");
+        print_hex_i8(liop.label);
+        print(", width=");
+        print_i8(ciop.width);
+        print_newline();
+    $endif
+
+    opwidth := ciop.width;
+    rhsea := &ciop.left;
+    lhsea := 0 as [EffectiveAddress];
+    destea := 0 as [EffectiveAddress];
+    setup_wide_for_iop(0, 0);
+
+    reg_find_or_load_int_fixed(REG_A, 0);
+    reg_evict(ALL_REGS);
+    var i: uint8 := 0;
+    while i != opwidth loop
+        do_wide_alu(i, 0xf6); # or *
+        i := i + 1;
+        if i != opwidth then
+            adjust_wide_pointers(0x03); # inc rr
+        end if;
+    end loop;
+
+    if liop.label == ciop.iftrue_label then
+        write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
+    else
+        write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
+    end if;
+end sub;
+
+sub arch_gen_cmp_wide(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare wide 0x");
+        print_hex_i8(ciop.iop_kind);
+        print(": ");
+        print_ea(&ciop.left);
+        print(", ");
+        print_ea(&ciop.right);
+        print(" => true: 0x");
+        print_hex_i8(ciop.iftrue_label);
+        print(" false: 0x");
+        print_hex_i8(ciop.iffalse_label);
+        print(" fallthrough: 0x");
+        print_hex_i8(liop.label);
+        print(", width=");
+        print_i8(ciop.width);
+        print_newline();
+    $endif
+
+    var iopkind: uint8 := ciop.iop_kind;
+
+    sub gen_comparison_branch(offset: uint8)
+        if iopkind == IOP_BE_BEQ then
+            do_wide_alu(offset, 0xFE); # cp *
+            if (offset == 0) and (liop.label == ciop.iffalse_label) then
+                write_cg_conditional_iop(0xCA, ciop.iftrue_label); # jp z
+            else
+                write_cg_conditional_iop(0xC2, ciop.iffalse_label); # jp nz
+            end if;
+        else
+            var opcode: uint8;
+            if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+                # BLTS
+                do_wide_alu(offset, 0xD6); # sub *
+
+                var skipxorlabel: uint8 := create_label();
+                write_cg_conditional_iop(0xE2, skipxorlabel); # jp po
+                write_word(0x80EE); # xor 0x80
+                write_label_iop(skipxorlabel);
+
+                opcode := 0xFA; # jp m
+            else
+                # BLTU
+                do_wide_alu(offset, 0xFE); # cp *
+                opcode := 0xDA; # jp c
+            end if;
+
+            if offset == 0 then
+                if liop.label == ciop.iftrue_label then
+                    write_cg_conditional_iop(opcode ^ 0x08, ciop.iffalse_label); # if not less than, false
+                    # fall through to true if less than
+                else
+                    write_cg_conditional_iop(opcode, ciop.iftrue_label); # if less than, true
+                    # fall through to false if not less than
+                end if;
+            else
+                write_cg_conditional_iop(opcode, ciop.iftrue_label); # if less than, true
+                write_cg_conditional_iop(0xC2, ciop.iffalse_label); # if greater, false
+                # fall through if equal
+            end if;
+        end if;
+    end sub;
+
+    opwidth := ciop.width;
+    if iopkind != IOP_BE_BEQ then
+        if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+            rhsea := &ciop.right;
+            lhsea := &ciop.left;
+        else
+            $if DEBUG
+                print("* greater than (comparing goofy)\n");
+            $endif
+            rhsea := &ciop.left;
+            lhsea := &ciop.right;
+        end if;
+        $if DEBUG
+            print("* testing ");
+            print_ea(lhsea);
+            print(" < ");
+            print_ea(rhsea);
+            print_newline();
+        $endif
+    else
+        rhsea := &ciop.right;
+        lhsea := &ciop.left;
+    end if;
+    destea := 0 as [EffectiveAddress];
+    setup_wide_for_iop(1, opwidth-1);
+
+    reg_evict(ALL_REGS);
+    reg_alloc_fixed(REG_A);
+
+    var i: uint8 := opwidth;
+    while i != 0 loop
+        i := i - 1;
+
+        do_wide_read(i, REG_A);
+        gen_comparison_branch(i);
+        if i != 0 then
+            adjust_wide_pointers(0x0B); # dec rr
+        end if;
+    end loop;
+end sub;
+
+sub arch_gen_shrink(iop: [BEIop], srcwidth: uint8)
+    $if DEBUG
+        print("* GENERATE: shrink srcwidth=");
+        print_i8(srcwidth);
+        print(": ");
+        print_ea(&iop.left);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    var reg: RegSet;
+    if srcwidth == 2 then
+        reg := reg_is_cached_in(REG_16BIT, &iop.left);
+        if reg != 0 then
+            save_8bit_or_make_precious(&iop.dest, halfof_reg(reg, 0));
+        else
+            load_complex_8bit_value_fixed(REG_A, &iop.left);
+            save_8bit_or_make_precious(&iop.dest, REG_A);
+        end if;
+    elseif srcwidth == 4 then
+        # 32-bit values are never in registers, which makes life a bit
+        # easier.
+        if iop.width == 2 then
+            reg := load_complex_16bit_value(REG_16BIT, &iop.left);
+            save_16bit_or_make_precious(&iop.dest, reg);
+        elseif iop.width == 1 then
+            load_complex_8bit_value_fixed(REG_A, &iop.left);
+            save_8bit_or_make_precious(&iop.dest, REG_A);
+        end if;
+    else
+        print("can't shrink");
+        halt();
+    end if;
+end sub;
+

@@ -1,0 +1,40 @@
+sub print_char(char: int8)
+    @bytes 0x3A, &char;      # ld a, char
+    @bytes 0x5F;             # ld e, a
+    @bytes 0x0E, 0x02;       # ld c, #2
+    @bytes 0xC3, 0x05, 0x00; # jp BDOS
+end sub;
+
+sub print_newline()
+    @bytes 0x1E, '\n';       # ld e, #'\n'
+    @bytes 0x0E, 0x02;       # ld c, #2
+    @bytes 0xC3, 0x05, 0x00; # jp BDOS
+end sub;
+
+sub __implicit_exit()
+    @bytes 0xC7;             # rst #0
+end sub;
+
+sub exit(status: uint8)
+    @bytes 0x3A, &status;    # ld a, (status)
+    @bytes 0x5F;             # ld e, a
+    @bytes 0x16, 0x00;       # ld d, #0
+    @bytes 0xB7;             # or a --- set Z based on status code
+    @bytes 0x28, 0x01;       # jr nz, dont_dec
+    @bytes 0x15;             # dec d --- set D to 0xFF if status code is non-zero
+    @bytes 0x0E, 0x6C;       # ld c, #108 (P_CODE)
+    @bytes 0xCD, 0x05, 0x00; # call BDOS
+
+    __implicit_exit();
+end sub;
+
+var HIMEM: [int8];
+
+# This switches stacks!
+@bytes 0xED, 0x7B, 0x06, 0x00; # ld sp, FBASE
+@bytes 0x21, &__implicit_exit; # ld hl, #__implicit_exit
+@bytes 0xE5;                   # push hl
+
+@bytes 0x21, 0x80, 0xFF;       # ld hl, #-128
+@bytes 0x39;                   # add hl, sp
+@bytes 0x22, &HIMEM;           # ld (HIMEM), hl

@@ -12,3 +12,5 @@ big/three==bigdivthree: yes
 big%three==bigmodthree: yes
 divmod big/three==bigdivthree: yes
 divmod big%three==bigmodthree: yes
+divmod 41/10==4: yes
+divmod 41%10==1: yes

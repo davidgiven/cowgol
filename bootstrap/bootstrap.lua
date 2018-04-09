@@ -34,7 +34,7 @@ end
 function fatal(...)
     local s = string.format(...)
     if stream then
-        s = s .. string.format(" at about line %d of %s", stream:line(), current_filename)
+        s = s .. string.format(" at about line %s of %s", stream:line() or "?", current_filename)
     end
     error(s)
 end
@@ -49,68 +49,70 @@ function tokenstream(source)
         "^([-+*/():;,.'<>[%]&|^%%~{}])"
     }
 
-    local c = coroutine.create(
-        function()
-            local o = 1
+    local line = 1
+    local function parser()
+        local pushed_contexts = {}
+        local o = 1
 
-            local function check_patterns()
-                for _, p in ipairs(patterns) do
-                    local _, nexto, m = source:find(p, o)
-                    if nexto then
-                        o = nexto + 1
-                        coroutine.yield(m)
-                        return
-                    end
-                end
-
-                fatal("cannot parse text: %s...", source:sub(o, o+20))
-            end
-
-            local function decode_escape(s)
-                if (s == "n") then
-                    return "\n"
-                elseif (s == "r") then
-                    return "\r"
-                elseif (s == "0") then
-                    return "\0"
-                elseif (s == "\\") then
-                    return "\\"
-                elseif (s == "'") or (s == "\"") then
-                    return s
-                else
-                    fatal("unrecognised string escape '\\%s'", s)
+        local function check_patterns()
+            for _, p in ipairs(patterns) do
+                local _, nexto, m = source:find(p, o)
+                if nexto then
+                    o = nexto + 1
+                    coroutine.yield(m)
+                    return
                 end
             end
 
-            local function parse_string()
-                local t = {}
+            fatal("cannot parse text: %s...", source:sub(o, o+20))
+        end
+
+        local function decode_escape(s)
+            if (s == "n") then
+                return "\n"
+            elseif (s == "r") then
+                return "\r"
+            elseif (s == "0") then
+                return "\0"
+            elseif (s == "\\") then
+                return "\\"
+            elseif (s == "'") or (s == "\"") then
+                return s
+            else
+                fatal("unrecognised string escape '\\%s'", s)
+            end
+        end
+
+        local function parse_string()
+            local t = {}
+            while true do
                 while true do
-                    while true do
-                        local _, nexto, m = source:find('^([^"\\]+)', o)
-                        if nexto then
-                            t[#t+1] = m
-                            o = nexto + 1
-                            break
-                        end
-
-                        _, nexto, m = source:find("^\\(.)", o)
-                        if nexto then
-                            t[#t+1] = decode_escape(m)
-                            o = nexto + 1
-                            break
-                        end
-
-                        _, nexto = source:find('^"', o)
-                        if nexto then
-                            o = nexto + 1
-                            return table.concat(t)
-                        end
-
+                    local _, nexto, m = source:find('^([^"\\]+)', o)
+                    if nexto then
+                        t[#t+1] = m
+                        o = nexto + 1
                         break
                     end
+
+                    _, nexto, m = source:find("^\\(.)", o)
+                    if nexto then
+                        t[#t+1] = decode_escape(m)
+                        o = nexto + 1
+                        break
+                    end
+
+                    _, nexto = source:find('^"', o)
+                    if nexto then
+                        o = nexto + 1
+                        return table.concat(t)
+                    end
+
+                    break
                 end
             end
+        end
 
+        while true do
             while (o <= #source) do
                 while true do
                     local nexto, m, _
@@ -176,18 +178,38 @@ function tokenstream(source)
                         break
                     end
 
+                    _, nexto = source:find("^%$include[ \t\r]+\"", o)
+                    if nexto then
+                        o = nexto + 1
+                        local new_filename = parse_string()
+                        pushed_contexts[#pushed_contexts+1] = {current_filename, line, source, o}
+                        current_filename = new_filename
+                        line = 1
+                        o = 1
+                        source = io.open(current_filename):read("*a")
+                        if not source then
+                            fatal("couldn't open hack include %s", current_filename)
+                        end
+                        break
+                    end
+
                     check_patterns()
                     break
                 end
             end
 
-            while true do
-                coroutine.yield("eof")
+            if #pushed_contexts == 0 then
+                while true do
+                    coroutine.yield("eof")
+                end
+            else
+                current_filename, line, source, o = unpack(pushed_contexts[#pushed_contexts])
+                pushed_contexts[#pushed_contexts] = nil
             end
         end
-    )
+    end
 
-    local line = 1
+    local c = coroutine.create(parser)
     return {
         next = function(self)
 			while true do
@@ -224,7 +246,13 @@ function filteredtokenstream(stream)
 						end
 					end
 				elseif token == "$endif" then
-					-- consume silently
+                    -- consume silently
+                elseif token == "$set" then
+                    token, value = stream:next()
+                    compilation_flags[token] = true
+                elseif token == "$unset" then
+                    token, value = stream:next()
+                    compilation_flags[token] = false
 				else
 					coroutine.yield(token, value)
 				end
@@ -297,8 +325,12 @@ function already_defined(token)
     fatal("name '%s' is already defined at this level of scope", token)
 end
 
-function check_undefined(token)
-    if current_ns[token] then
+function check_undefined(token, ns)
+    if not ns then
+        ns = current_ns
+    end
+
+    if ns[token] then
         already_defined(token)
     end
 end
@@ -344,8 +376,8 @@ function create_symbol(name, ns)
 
     local sym = {}
 
-    check_undefined(name)
-    current_ns[name] = sym
+    check_undefined(name, ns)
+    ns[name] = sym
     return sym
 end
 
@@ -507,7 +539,29 @@ function read_type()
     end
 
     local sym = lookup_symbol(t)
-    if not sym or (sym.kind ~= "type") then
+    if not sym then
+        fatal("'%s' is not a symbol in scope", t)
+    end
+    local t = stream:peek()
+    if t == "@index" then
+        expect("@index")
+        if sym.kind ~= "type" then
+            sym = sym.type
+        end
+        if sym.pointer then
+            sym = lookup_symbol("int16")
+        elseif sym.array then
+            if sym.length < 256 then
+                sym = lookup_symbol("uint8")
+            else
+                sym = lookup_symbol("uint16")
+            end
+        else
+            fatal("can't use @index on this")
+        end
+    end
+
+    if sym.kind ~= "type" then
         fatal("'%s' is not a type in scope", t)
     end
 
@@ -654,6 +708,8 @@ function do_statements()
             do_if()
         elseif (t == "record") then
             do_record()
+        elseif (t == "type") then
+            do_type()
         elseif (t == "break") then
             expect("break")
             emit("break;")
@@ -791,6 +847,16 @@ function do_record()
 
     expect("end")
     expect("record")
+end
+
+function do_type()
+    expect("type")
+    local newname = stream:next()
+    expect(":=")
+    local oldtype = read_type()
+
+    check_undefined(newname)
+    current_ns[newname] = oldtype
 end
 
 function do_const()
@@ -992,6 +1058,11 @@ function expression(outputvar)
                 local lvalue = lvalue_leaf()
                 rpn[#rpn+1] = create_addrof(lvalue)
                 break
+            elseif (t == "-") or (t == "~") then
+                stream:next()
+                rpn[#rpn+1] = rvalue_leaf()
+                rpn[#rpn+1] = {kind="postfixop", op=t}
+                break
             else
                 rpn[#rpn+1] = rvalue_leaf()
                 break
@@ -1105,6 +1176,18 @@ function expression(outputvar)
                 type_check(op.type, op.rvalue.type)
 
                 emit("%s = (%s) %s;", op.rvalue.storage, op.type.ctype, value.storage)
+                stack[#stack+1] = op.rvalue
+                if value.temporary then
+                    free_tempvar(value)
+                end
+            elseif (op.kind == "postfixop") then
+                local value = stack[#stack]
+                stack[#stack] = nil
+
+                if not op.rvalue then
+                    op.rvalue = create_tempvar(value.type)
+                end
+                emit("%s = %s %s;", op.rvalue.storage, op.op, value.storage)
                 stack[#stack+1] = op.rvalue
                 if value.temporary then
                     free_tempvar(value)

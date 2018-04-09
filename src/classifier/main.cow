@@ -2,7 +2,7 @@ var biggest_subroutine: uint16 := 0;
 var biggest_basicblock: uint16 := 0;
 
 sub process_subroutine()
-    var subroutine_start: uint32 := file_tell(iop_in_fd);
+    var subroutine_start: uint32 := fcb_tell(&iop_in_fcb);
     var basicblock_start: uint32 := subroutine_start;
 
     add_reference(current_subroutine_id, 0);
@@ -42,7 +42,7 @@ sub process_subroutine()
     end sub;
 
     sub end_of_basic_block()
-        var here: uint32 := file_tell(iop_in_fd);
+        var here: uint32 := fcb_tell(&iop_in_fcb);
         var basicblock_size: uint16 := (here - basicblock_start) as uint16;
         if basicblock_size > biggest_basicblock then
             biggest_basicblock := basicblock_size;
@@ -83,7 +83,7 @@ sub process_subroutine()
     end loop;
 
     end_of_basic_block();
-    var subroutine_size: uint16 := (file_tell(iop_in_fd) - subroutine_start) as uint16;
+    var subroutine_size: uint16 := (fcb_tell(&iop_in_fcb) - subroutine_start) as uint16;
     if subroutine_size > biggest_subroutine then
         biggest_subroutine := subroutine_size;
     end if;
@@ -116,7 +116,7 @@ sub find_reachable_subroutines()
         changed := 0;
         var i: uint16 := 0;
         while i < graph_count loop
-            var g: [GraphRecord] := &graph_base[i as int16];
+            var g: [GraphRecord] := &graph_base[i];
             var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
             var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
 
@@ -141,7 +141,7 @@ end sub;
 sub clean_graph()
     var i: uint16 := 0;
     while i < graph_count loop
-        var g: [GraphRecord] := &graph_base[i as int16];
+        var g: [GraphRecord] := &graph_base[i];
         var src: [SubroutineThing] := find_thing(g.src_id) as [SubroutineThing];
 
         if src.segment == SEGMENT_OMIT then
@@ -156,7 +156,7 @@ end sub;
 sub print_graph()
     var i: uint16 := 0;
     while i < graph_count loop
-        var g: [GraphRecord] := &graph_base[i as int16];
+        var g: [GraphRecord] := &graph_base[i];
         print_thing(g.src_id);
         print(" -> ");
         print_thing(g.dest_id);
@@ -168,12 +168,12 @@ end sub;
 
 sub assign_space_for_variables(subroutine_id: uint16)
     var subroutine: [SubroutineThing] := find_thing(subroutine_id) as [SubroutineThing];
-    var sr: [SubRecord] := &subdata[subroutine.address as int16];
+    var sr: [SubRecord] := &subdata[subroutine.address];
 
     sub allocate_space()
-        var id: uint16 := 1;
+        var id: uint16 := FIRST_THING;
         loop
-            var thing: [TypedThing] := &thing_table[id] as [TypedThing];
+            var thing: [TypedThing] := &thing_table[id as int16] as [TypedThing];
             if thing.thing_type == 0 then
                 break;
             end if;
@@ -200,11 +200,11 @@ sub assign_space_for_variables(subroutine_id: uint16)
     sub propagate_offsets_to_callees()
         var i: uint16 := 0;
         while i < graph_count loop
-            var g: [GraphRecord] := &graph_base[i as int16];
+            var g: [GraphRecord] := &graph_base[i];
             if g.src_id == subroutine_id then
                 if g.dest_id != 0 then
                     var dest: [SubroutineThing] := find_thing(g.dest_id) as [SubroutineThing];
-                    var dest_sr: [SubRecord] := &subdata[dest.address as int16];
+                    var dest_sr: [SubRecord] := &subdata[dest.address];
                     arch_propagate_var_offsets(&sr.base, &dest_sr.base);
                     g.dest_id := 0;
                 end if;
@@ -223,13 +223,25 @@ end sub;
 sub find_orphaned_subroutine(): (subroutine_id: uint16)
     var i: uint16 := 0;
     while i < graph_count loop
-        var g1: [GraphRecord] := &graph_base[i as int16];
+        var g1: [GraphRecord] := &graph_base[i];
         if g1.src_id != 0 then
+            var g2: [GraphRecord];
             var j: uint16 := 0;
+            if graph_count == 0 then
+                print("graph_count is 0");
+                halt();
+            end if;
             while j < graph_count loop
-                var g2: [GraphRecord] := &graph_base[j as int16];
+                g2 := &graph_base[j];
                 # Bail out if we find any subroutine called by the one under consideration.
                 if g2.dest_id == g1.src_id then
+                    $if DEBUG
+                        print("subroutine ");
+                        print_thing(g1.src_id);
+                        print(" is not orphaned because it's called by ");
+                        print_thing(g2.dest_id);
+                        print_newline();
+                    $endif
                     break;
                 end if;
                 j := j + 1;
@@ -257,24 +269,20 @@ sub assign_space_for_all_variables()
 end sub;
 
 sub show_subroutine_sizes()
-    var id: uint16 := 1;
+    var id: uint16 := FIRST_THING;
 
     sub do_sub(thing: [SubroutineThing])
         if thing.segment == SEGMENT_CODE then
-            var sr: [SubRecord] := &subdata[thing.address as int16];
+            var sr: [SubRecord] := &subdata[thing.address];
             print_thing(id);
             print(" ");
             print_i16(thing.address);
-            print(": zp=");
-            print_i8(sr.base.zp_size);
-            print(" data=");
-            print_i16(sr.base.data_size);
             print_newline();
         end if;
     end sub;
 
     loop
-        var thing: [Thing] := &thing_table[id] as [Thing];
+        var thing: [Thing] := &thing_table[id as int16] as [Thing];
         if thing.thing_type == 0 then
             break;
         end if;
@@ -285,7 +293,7 @@ sub show_subroutine_sizes()
     end loop;
 end sub;
 
-init_graph(LOMEM);
+init_graph();
 build_graph();
 print("Biggest subroutine: ");
 print_i16(biggest_subroutine);
@@ -307,9 +315,13 @@ print_i16(used_subroutine_count);
 print_newline();
 
 clean_graph();
-#print_graph();
-init_subdata(&graph_base[graph_count as int16] as [int8]);
+$if DEBUG
+    print_graph();
+$endif
+init_subdata();
 assign_space_for_all_variables();
-#show_subroutine_sizes();
+$if DEBUG
+    show_subroutine_sizes();
+$endif
 
 arch_report_offsets(&root.archsizes);

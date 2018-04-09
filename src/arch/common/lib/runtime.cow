@@ -46,7 +46,7 @@ sub print_hex_i8(value: uint8)
         if digit < 10 then
             digit := digit + '0';
         else
-            digit := digit + ('A' - 10);
+            digit := digit + ('a' - 10);
         end if;
         print_char(digit as int8);
         value := value << 4;

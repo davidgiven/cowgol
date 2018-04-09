@@ -143,8 +143,8 @@ $if DEBUG
         print_i8(node.refcount);
         print("{iop=0x");
         print_hex_i8(node.iop);
-        print(" type_id=0x");
-        print_hex_i16(node.type_id);
+        print(" type_id=");
+        print_thing(node.type_id);
         print(" left=");
         print_ea(&node.left);
         print(" right=");
@@ -153,7 +153,9 @@ $if DEBUG
     end sub;
 
     sub print_stack()
-        print("stack:\n");
+        where_am_i();
+        print(" stack:\n");
+        
         var index: uint8 := 0;
         while index < stack_pos loop
             var node: [Node] := stack[index];

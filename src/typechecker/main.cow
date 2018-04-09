@@ -250,19 +250,19 @@ sub process_subroutine()
         var is_rvalue: uint8;
         (type_id, is_rvalue) := pop_type();
 
-        var type: [Thing] := find_thing(type_id);
-        if type.thing_type == THING_POINTERT then
+        var type_thing: [Thing] := find_thing(type_id);
+        if type_thing.thing_type == THING_POINTERT then
             # Implicit dereference of pointer.
-            var pointer_type: [PointerThing] := type as [PointerThing];
+            var pointer_type: [PointerThing] := type_thing as [PointerThing];
             type_id := pointer_type.element_type_id;
-            type := find_thing(type_id);
+            type_thing := find_thing(type_id);
         end if;
-        if type.thing_type != THING_RECORDT then
+        if type_thing.thing_type != THING_RECORDT then
             print_type_name(type_id);
             print(" is not a record type or a pointer to a record type");
             halt();
         end if;
-        var record_type: [RecordThing] := type as [RecordThing];
+        var record_type: [RecordThing] := type_thing as [RecordThing];
 
         var symbol_id: uint16 := find_symbol_recursively(iop.thing_id, record_type.namespace_id);
         if symbol_id == 0 then
@@ -335,8 +335,8 @@ sub process_subroutine()
 
         var input_type: [TypeThing] := find_thing(type_id) as [TypeThing];
         var output_type: [TypeThing] := find_thing(iop.type_id) as [TypeThing];
-        if input_type.width < output_type.width then
-            if input_type.thing_type == THING_SIGNEDT then
+        if input_type.width != output_type.width then
+            if (input_type.width < output_type.width) and (input_type.thing_type == THING_SIGNEDT) then
                 iop.iop_kind := IOP_FE_SEXT;
             else
                 iop.iop_kind := IOP_FE_ZEXT;
@@ -472,6 +472,7 @@ sub process_subroutine()
             special_address(iop as [AddressIop]);
         elseif (kind == IOP_LABEL) or (kind == IOP_BYTES) or (kind == IOP_RETURN)
             or (kind == IOP_END) or (kind == IOP_GOTO) or (kind == IOP_CLONELABEL)
+            or (kind == IOP_FLUSH)
         then
             check_stack_is_empty();
         elseif kind == IOP_NAMEDGOTO then

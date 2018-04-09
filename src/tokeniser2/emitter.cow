@@ -23,7 +23,9 @@ var most_recent_filename_id: uint16 := 0;
 
 sub emit_raw_token(token: uint16)
 	tokens_count := tokens_count + 1;
-    file_putblock(tokens_fd, &token as [int8], 2);
+	tokens_fcb.address := &token as [int8];
+	tokens_fcb.count := 2;
+	fcb_write(&tokens_fcb);
 end sub;
 
 sub emit_token(token: uint16)

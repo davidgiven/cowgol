@@ -1,0 +1,329 @@
+sub load_complex_8bit_value(regs: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
+    # If the value is already in a register, load it.
+
+    if reg_is_cached_in(REG_8BIT, ea) != 0 then
+        reg := reg_find_or_load(regs, ea);
+        return;
+    end if;
+        
+    # If the value can be trivially loaded, do so.
+
+    if ea.flags == EA_VALUE then
+        if is_number_thing(ea.obj_id) == 0 then
+            # This has to be loaded through A.
+            reg := reg_find_or_load(REG_A, ea);
+        else
+            reg := reg_find_or_load(regs, ea);
+        end if;
+        if (regs & reg) == 0 then
+            reg := reg_alloc(regs);
+            reg_copy(REG_A, reg);
+            reg_free(REG_A);
+            reg_cache_value(reg, ea);
+        end if;
+        return;
+    end if;
+
+    # The value is going to have to be indirected through a pointer of
+    # some description, as we can't refer to it directly.
+
+    var pointer: RegSet;
+    var residualoffset: int16;
+    if get_value_of_number(ea.numoff_id) != 0 then
+        pointer := REG_INDEX;
+    elseif (regs & REG_A) != 0 then
+        pointer := REG_16BIT;
+    else
+        pointer := REG_HL;
+    end if;
+    (pointer, residualoffset) := setup_pointer(pointer, ea, 0);
+
+    # Now the pointer is in a register, dereference it.
+
+    reg := reg_alloc(regs);
+    insn_init();
+    insn.datareg := reg;
+    insn.otherreg := pointer;
+    insn.mode := MODE_IND;
+    insn.offset := residualoffset;
+    insn_load_object();
+
+    reg_free(pointer);
+end sub;
+
+sub load_complex_8bit_value_fixed(regs: RegSet, ea: [EffectiveAddress])
+    var location: RegSet := load_complex_8bit_value(regs, ea);
+end sub;
+
+sub setup_8bit_rhs_insn(ea: [EffectiveAddress]): (otherreg: RegSet)
+    # If the RHS is already in a register, use that.
+
+    if reg_is_cached_in(REG_8BIT, ea) != 0 then
+        otherreg := reg_find_or_load(REG_B|REG_C|REG_D|REG_H|REG_L, ea);
+
+        insn_init();
+        insn.datareg := REG_A;
+        insn.otherreg := otherreg;
+        insn.mode := MODE_DIR;
+        return;
+    end if;
+        
+    # If the RHS is a constant, use *that*.
+
+    if (ea.flags == EA_VALUE) and (is_number_thing(ea.obj_id) != 0) then
+        insn_init_from_ea(ea);
+        otherreg := 0;
+        return;
+    end if;
+
+    # The RHS is a value in memory of some description. We can't load or
+    # refer to it directly, so instead get the address in an indexable
+    # register and use an indirection.
+
+    if get_value_of_number(ea.numoff_id) != 0 then
+        otherreg := REG_INDEX;
+    else
+        otherreg := REG_HL;
+    end if;
+    var residualoffset: int16;
+    (otherreg, residualoffset) := setup_pointer(otherreg, ea, 0);
+
+    insn_init();
+    insn.datareg := REG_A;
+    insn.otherreg := otherreg;
+    insn.offset := residualoffset;
+    insn.mode := MODE_IND;
+end sub;
+
+sub save_8bit_or_make_precious(ea: [EffectiveAddress], reg: RegSet)
+    reg_cache_value(reg, ea);
+    if ea.flags == EA_DEREF then
+        var pointer: RegSet;
+        if get_value_of_number(ea.numoff_id) != 0 then
+            pointer := REG_INDEX;
+        elseif (reg & REG_A) != 0 then
+            pointer := REG_16BIT;
+        else
+            pointer := REG_HL;
+        end if;
+        var residualoffset: int16;
+        (pointer, residualoffset) := setup_pointer(pointer, ea, 0);
+
+        # Now the pointer is in a register, dereference it.
+
+        insn_init();
+        insn.datareg := reg;
+        insn.otherreg := pointer;
+        insn.mode := MODE_IND;
+        insn.offset := residualoffset;
+        insn_save_object();
+    else
+        if (reg & REG_A) == 0 then
+            reg_alloc_fixed(REG_A);
+            reg_copy(reg, REG_A);
+            reg_cache_value(REG_A, ea);
+        end if;
+        reg_value_is_precious(ea);
+    end if;
+end sub;
+
+sub arch_gen_copy_byte(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE copy byte: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    var location: RegSet := load_complex_8bit_value(REG_A, &iop.left);
+    reg_value_is_changing(&iop.dest);
+    save_8bit_or_make_precious(&iop.dest, location);
+end sub;
+
+sub arch_gen_regular_alu_byte(iop: [BEIop], opcode: uint8)
+    $if DEBUG
+        print("* GENERATE regular alu byte op 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(",");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
+    
+    var indreg: RegSet := setup_8bit_rhs_insn(&iop.right);
+    reg_value_is_changing(&iop.dest);
+
+    reg_evict(REG_A);
+    insn_8bit_aluop(opcode);
+    save_8bit_or_make_precious(&iop.dest, REG_A);
+end sub;
+
+sub arch_gen_shift_byte(iop: [BEIop], opcode: uint8)
+    $if DEBUG
+        print("* GENERATE shift byte op 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(",");
+        print_ea(&iop.right);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    sub inplace_shift()
+        if opcode == 0x27 then # sla a
+            write_byte(0x87); # add a, a
+        else
+            write_byte(0xCB);
+            write_byte(opcode);
+        end if;
+    end sub;
+
+    reg_value_is_changing(&iop.dest);
+    if is_number_thing(iop.right.obj_id) != 0 then
+        var count: uint8 := get_value_of_number(iop.right.obj_id) as uint8;
+        load_complex_8bit_value_fixed(REG_A, &iop.left);
+        reg_evict(REG_A);
+        if count < 8 then
+            while count != 0 loop
+                inplace_shift();
+                count := count - 1;
+            end loop;
+        elseif opcode == 0x2f then # sra a
+            write_word(0x9F07); # rlca; sbc a, a
+        else
+            write_byte(0xaf); # xor a
+        end if;
+        save_8bit_or_make_precious(&iop.dest, REG_A);
+        return;
+    end if;
+    
+    load_complex_8bit_value_fixed(REG_B, &iop.right);
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
+    reg_evict(REG_A|REG_B);
+
+    # We have to skip the shift completely if the value is 0. Because the test
+    # happens at the *end* of the loop, if we just go in the front we'll always
+    # go round once. So we do this instead.
+    # TODO: unnecessary if the RHS is a constant.
+
+    var entrypoint: uint8 := create_label();
+    write_byte(0x04); # inc b
+    write_cg_conditional_iop(0xC3, entrypoint); # jp
+
+    var label: uint8 := create_label();
+    write_label_iop(label);
+    inplace_shift();
+    write_label_iop(entrypoint);
+    write_cg_conditional_iop(0x10, label); # djnz label
+
+    reg_free(REG_B);
+    save_8bit_or_make_precious(&iop.dest, REG_A);
+end sub;
+
+sub arch_gen_not_byte(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE not byte: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
+
+    reg_value_is_changing(&iop.dest);
+    reg_evict(REG_A);
+
+    write_byte(0x2f); # cpl
+    save_8bit_or_make_precious(&iop.dest, REG_A);
+end sub;
+    
+sub arch_gen_neg_byte(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE neg byte: ");
+        print_ea(&iop.left);
+        print(" -> ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
+    load_complex_8bit_value_fixed(REG_A, &iop.left);
+
+    reg_value_is_changing(&iop.dest);
+    reg_evict(REG_A);
+
+    write_word(0x44ed); # neg
+    save_8bit_or_make_precious(&iop.dest, REG_A);
+end sub;
+    
+sub arch_gen_cmp_8bit(ciop: [BEConditionalIop], liop: [LabelIop])
+    $if DEBUG
+        print("* GENERATE: compare bytes 0x");
+        print_hex_i8(ciop.iop_kind);
+        print(": ");
+        print_ea(&ciop.left);
+        print(", ");
+        print_ea(&ciop.right);
+        print(" => label 0x");
+        print_hex_i8(liop.label);
+        print_newline();
+    $endif
+
+    var fallthrough_label: uint8;
+    var iopkind: uint8 := ciop.iop_kind;
+
+    var indreg: RegSet;
+    if (iopkind & IOP_TYPE_COMPARISON_GT) == 0 then
+        load_complex_8bit_value_fixed(REG_A, &ciop.left);
+        indreg := setup_8bit_rhs_insn(&ciop.right);
+    else
+        load_complex_8bit_value_fixed(REG_A, &ciop.right);
+        indreg := setup_8bit_rhs_insn(&ciop.left);
+    end if;
+
+    var invertflag: uint8;
+    var destlabel: uint8;
+    if liop.label == ciop.iftrue_label then
+        invertflag := 0x00;
+        fallthrough_label := ciop.iftrue_label;
+        destlabel := ciop.iffalse_label;
+    else
+        invertflag := 0x08;
+        fallthrough_label := ciop.iffalse_label;
+        destlabel := ciop.iftrue_label;
+    end if;
+
+    if iopkind == IOP_BE_BEQ then
+        insn_8bit_aluop(0xFE); # cp *
+        write_cg_conditional_iop(0xC2 ^ invertflag, destlabel); # jp nz
+    else
+        if (iopkind & IOP_TYPE_COMPARISON_S) != 0 then
+            # BLTS
+            reg_evict(REG_A);
+            insn_8bit_aluop(0xD6); # sub *
+
+            var skipxorlabel: uint8 := create_label();
+            write_cg_conditional_iop(0xE2, skipxorlabel); # jp po
+            write_word(0x80EE); # xor 0x80
+            write_label_iop(skipxorlabel);
+
+            write_cg_conditional_iop(0xF2 ^ invertflag, destlabel); # jp p
+        else
+            # BLTU
+            insn_8bit_aluop(0xFE); # cp *
+            write_cg_conditional_iop(0xD2 ^ invertflag, destlabel); # jp c
+        end if;
+    end if;
+
+    if liop.label != fallthrough_label then
+        write_cg_conditional_iop(0xC3, fallthrough_label); # jp
+    end if;
+end sub;

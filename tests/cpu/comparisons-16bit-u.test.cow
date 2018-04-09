@@ -1,7 +1,7 @@
-var mbig: uint16 := -7000;
-var big: uint16 := 7000;
-var mone: uint16 := -1;
-var one: uint16 := 1;
+var mbig: uint16 := -0x7900;
+var big: uint16 := 0x7900;
+var mone: uint16 := -10;
+var one: uint16 := 10;
 var zero: uint16 := 0;
 
 sub yes() print("yes\n"); end sub;

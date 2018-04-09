@@ -1,0 +1,94 @@
+sub file_load(filename: [int8], address: [int8], maxlength: uint16): (length: uint16)
+    var fd: uint8 := file_openin(filename);
+    length := file_ext(fd) as uint16;
+    if length > maxlength then
+        print("file too long");
+        exit(1);
+    end if;
+    var ateof: uint8 := file_getblock(fd, address, length);
+    file_close(fd);
+end sub;
+
+sub file_save(filename: [int8], address: [int8], length: uint16)
+    var fd: uint8 := file_openout(filename);
+    file_putblock(fd, address, length);
+    file_close(fd);
+end sub;
+
+record FCB
+    address: [int8]; # PUBLIC
+    count: uint16; # PUBLIC
+    fd: uint8;
+end record;
+
+sub fcb_openin(fcb: [FCB], filename: [int8]): (errno: uint8)
+    fcb.fd := file_openin(filename);
+    if fcb.fd == -1 then
+        errno := 1;
+    end if;
+end sub;
+
+sub fcb_openout(fcb: [FCB], filename: [int8]): (errno: uint8)
+    fcb.fd := file_openout(filename);
+    if fcb.fd == -1 then
+        errno := 1;
+    end if;
+end sub;
+
+sub fcb_openup(fcb: [FCB], filename: [int8]): (errno: uint8)
+    fcb.fd := file_openup(filename);
+    if fcb.fd == -1 then
+        errno := 1;
+    end if;
+end sub;
+
+sub fcb_close(fcb: [FCB])
+    if fcb.fd != -1 then
+        file_close(fcb.fd);
+        fcb.fd := -1;
+    end if;
+end sub;
+
+# Returns 0 on EOF --- so only really safe for ASCII.
+sub fcb_getchar(fcb: [FCB]): (c: uint8)
+    if fcb.fd == -1 then
+        c := 0;
+    else
+        var ateof: uint8;
+        (c, ateof) := file_getchar(fcb.fd);
+        if ateof != 0 then
+            c := 0;
+        end if;
+    end if;
+end sub;
+
+sub fcb_putchar(fcb: [FCB], c: int8)
+    file_putchar(fcb.fd, c);
+end sub;
+
+sub fcb_read(fcb: [FCB])
+    zero_memory(fcb.address, fcb.count);
+    var ateof: uint8 := file_getblock(fcb.fd, fcb.address, fcb.count);
+    if ateof == 0 then
+        fcb.address := fcb.address + fcb.count;
+        fcb.count := 0;
+    end if;
+end sub;
+
+sub fcb_write(fcb: [FCB])
+    file_putblock(fcb.fd, fcb.address, fcb.count);
+    fcb.address := fcb.address + fcb.count;
+    fcb.count := 0;
+end sub;
+
+sub fcb_seek(fcb: [FCB], pos: uint32)
+    file_seek(fcb.fd, pos);
+end sub;
+
+sub fcb_tell(fcb: [FCB]): (pos: uint32)
+    pos := file_tell(fcb.fd);
+end sub;
+
+sub fcb_ext(fcb: [FCB]): (pos: uint32)
+    pos := file_ext(fcb.fd);
+end sub;

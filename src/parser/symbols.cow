@@ -6,8 +6,7 @@ var lexical_stack_ptr: uint8 := 0;
 
 var current_subroutine_id: uint16;
 
-sub halt()
-    print(" at ");
+sub where_am_i()
     if filename_id != 0 then
         show_identifier(filename_id);
     else
@@ -15,6 +14,11 @@ sub halt()
     end if;
     print_char(':');
     print_i16(line_no);
+end sub;
+
+sub halt()
+    print(" at ");
+    where_am_i();
     print_newline();
     exit(1);
 end sub;
@@ -59,8 +63,8 @@ sub lexical_peek(): (value: uint16)
     value := lexical_stack[lexical_stack_ptr - 1];
 end sub;
 
-sub lexical_pop_scope_type(type: uint16)
-    if lexical_pop() != type then
+sub lexical_pop_scope_type(scopetype: uint16)
+    if lexical_pop() != scopetype then
         print("mismatched lexical scope terminator");
         halt();
     end if;

@@ -1,0 +1,16 @@
+var mtwo: uint8 := -2;
+var mone: uint8 := -1;
+var zero: uint8 := 0;
+var one: uint8 := 1;
+var two: uint8 := 2;
+var four: uint8 := 4;
+var thirty: uint8 := 30;
+
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
+
+print("two*two==4");            if (two*two) == 4            then yes(); else no(); end if;
+print("two*2==4");              if (two*2) == 4              then yes(); else no(); end if;
+print("30*two==60");            if (30*two) == 60            then yes(); else no(); end if;
+print("mone*two=mtwo");         if (mone*two) == mtwo        then yes(); else no(); end if;
+

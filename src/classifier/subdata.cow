@@ -2,9 +2,8 @@ record SubRecord
     base: ArchSizes;
 end record;
 
-var subdata: [SubRecord];
+var subdata: SubRecord[MAXSUBROUTINES_COUNT];
 
-sub init_subdata(top: [int8])
-    subdata := top as [SubRecord];
-    zero_memory(top, subroutine_count * SubRecord@bytes);
+sub init_subdata()
+    zero_memory(&subdata[0] as [int8], subdata@bytes);
 end sub;

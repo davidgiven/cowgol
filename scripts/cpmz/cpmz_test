@@ -1,0 +1,2 @@
+#!/bin/sh
+scripts/stupid_test "bin/cpm $1" "$2" "$3"

@@ -16,3 +16,5 @@ p[0]==0xAA: yes
 &testrecord.array[0]==&testrecordptr.array[0]: yes
 testrecord.array[2]==testrecordptr.array[2]: yes
 &testrecord.array[2]==&testrecordptr.array[2]: yes
+testrecord.array[2]==testrecord.array[3]: yes
+teststruct.array[smallu1].array[smallu1]==0x99: yes

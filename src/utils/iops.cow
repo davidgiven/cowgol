@@ -32,6 +32,8 @@ const IOP_CLONELABEL       := 0b0000_1010;
 const IOP_ADDRESSLO        := 0b0000_1011; # AddressIop
 const IOP_ADDRESSHI        := 0b0000_1100; # AddressIop
 const IOP_NAMEDGOTO        := 0b0000_1101;
+const IOP_KILL             := 0b0000_1110; # KillIop
+const IOP_FLUSH            := 0b0000_1111;
 
 # Front-end opcodes: this is the pure stack machine architecture emitted by the
 # compiler. These are all FEIops (or subclasses thereof).
@@ -125,8 +127,20 @@ const IOP_BE_BGTS              := 0b1010_0011;
 const IOP_BE_BEQ               := 0b1010_0100;
 
 const IOP_TYPE_CODEGEN     := 0b1110_0000;
-const IOP_CG_6502_COND     := 0b1110_0100;
-const IOP_CG_6502_MEM      := 0b1110_0101;
+const IOP_CG_COND     := 0b1110_0100;
+const IOP_CG_MEM      := 0b1110_0101;
+
+const EA_VALUE := 0; # [&obj+numoff+[varoff]]
+const EA_DEREF := 1; # [[&obj]+numoff+[varoff]]
+const EA_LEA   := 2; # &obj+numoff+[varoff]
+
+record EffectiveAddress
+    flags: uint8;
+    obj_id: uint16;
+    varoff_id: uint16;
+    numoff_id: uint16;
+    type_id: uint16;
+end record;
 
 record FilenameIop: Iop
     thing_id: uint16;
@@ -173,6 +187,10 @@ record AddressIop: Iop
     offset: uint16;
 end record;
 
+record KillIop: Iop
+    ea: EffectiveAddress;
+end record;
+
 record FETypedIop: Iop
     type_id: uint16;
 end record;
@@ -193,18 +211,6 @@ end record;
 record FEConditionalIop: Iop
     iftrue_label: uint8;
     iffalse_label: uint8;
-end record;
-
-const EA_VALUE := 0; # [&obj+numoff+[varoff]]
-const EA_DEREF := 1; # [[&obj]+numoff+[varoff]]
-const EA_LEA   := 2; # &obj+num+var
-
-record EffectiveAddress
-    flags: uint8;
-    obj_id: uint16;
-    varoff_id: uint16;
-    numoff_id: uint16;
-    type_id: uint16;
 end record;
 
 record BEIop: Iop
@@ -228,7 +234,7 @@ record CG6502MemIop: Iop
     offset: uint16;
 end record;
 
-record CG6502ConditionalIop: Iop
+record CGConditionalIop: Iop
     opcode: uint8;
     label: uint8;
 end record;
@@ -254,6 +260,25 @@ sub is_same_ea(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8
     else
         result := 0;
     end if;
+end sub;
+
+sub is_same_ea_ignoring_type(ea1: [EffectiveAddress], ea2: [EffectiveAddress]): (result: uint8)
+    # (the bootstrap compiler doesn't do short circuiting)
+    if (ea1 != (0 as [EffectiveAddress])) and (ea2 != (0 as [EffectiveAddress])) then
+        if (ea1.obj_id == ea2.obj_id) and
+            (ea1.varoff_id == ea2.varoff_id) and
+            (ea1.numoff_id == ea2.numoff_id) and
+            (ea1.flags == ea2.flags)
+        then
+            var w1: uint8 := get_width_of_type(ea1.type_id) as uint8;
+            var w2: uint8 := get_width_of_type(ea2.type_id) as uint8;
+            if w1 == w2 then
+                result := 1;
+                return;
+            end if;
+        end if;
+    end if;
+    result := 0;
 end sub;
 
 sub print_ea(ea: [EffectiveAddress])

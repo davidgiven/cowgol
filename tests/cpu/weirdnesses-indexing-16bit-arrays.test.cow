@@ -5,7 +5,4 @@ sub no()  print("no\n");  end sub;
 
 var index: uint8 := 0xd1;
 var value: uint16 := yy_base[index];
-if value == 0x0100 then yes(); else no(); end if;
-print_hex_i16(value);
-print_newline();
-
+if value == 321 then yes(); else no(); end if;

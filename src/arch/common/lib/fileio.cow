@@ -1,0 +1,29 @@
+# This is a stub implementation which uses FCBs.
+
+sub file_load(filename: [int8], address: [int8], maxlength: uint16): (length: uint16)
+    var fcb: FCB;
+    if fcb_openin(&fcb, filename) != 0 then
+        print("load error\n");
+        exit(1);
+    end if;
+
+    length := fcb_ext(&fcb) as uint16;
+
+    fcb.address := address;
+    fcb.count := length;
+    fcb_read(&fcb);
+    fcb_close(&fcb);
+end sub;
+
+sub file_save(filename: [int8], address: [int8], length: uint16)
+    var fcb: FCB;
+    if fcb_openout(&fcb, filename) != 0 then
+        print("save error\n");
+        exit(1);
+    end if;
+
+    fcb.address := address;
+    fcb.count := length;
+    fcb_write(&fcb);
+    fcb_close(&fcb);
+end sub;

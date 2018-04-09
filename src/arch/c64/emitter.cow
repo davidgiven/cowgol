@@ -10,6 +10,9 @@ sub arch_emit_header()
     header[8] := '0';
     header[9] := '6';
     header[10] := '1';
-    file_seek(outfd, 0);
-    file_putblock(outfd, &header as [int8], header@bytes);
+
+    fcb_seek(&out_fcb, 0);
+    out_fcb.address := &header as [int8];
+    out_fcb.count := header@bytes;
+    fcb_write(&out_fcb);
 end sub;

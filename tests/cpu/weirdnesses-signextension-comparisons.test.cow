@@ -1,0 +1,18 @@
+var s8: int8;
+var u8: uint8;
+var s16: int16;
+var u16: uint16;
+var s32: int32;
+var u32: uint32;
+
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
+
+# This is peculiar. It came from an old (and broken) version of the sign
+# extension test which didn't actually test what it thought it did, but
+# failed anyway on the Z80.
+
+u16 := 0x5555;
+u8 := 1;
+u16 := u8 as uint16;
+if u8 == 1 then yes(); else no(); end if;

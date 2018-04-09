@@ -9,6 +9,10 @@ ptr[301]==0xAA: yes
 ptr[larges]==0xAA: yes
 ptr[larges-1]==0x55: yes
 &testrecord==testrecordptr: yes
+testrecord.byte==1: yes
+testrecord.array[2]==4: yes
+testrecordptr.byte==1: yes
+testrecordptr.array[2]==4: yes
 &testrecord.byte==&testrecordptr.byte: yes
 &testrecord.array[0]==&testrecordptr.array[0]: yes
 testrecord.array[2]==testrecordptr.array[2]: yes

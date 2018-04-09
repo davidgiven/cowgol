@@ -4,18 +4,41 @@ const REG_Y    := 0b0000_0100;
 const REG_MASK := 0b0111_1111;
 const PRECIOUS := 0b1000_0000;
 
-sub find_first_bit(value: uint8): (mask: uint8)
-    mask := 1;
-    loop
-        if (value & mask) != 0 then
-            return;
-        end if;
-        if mask == 0x80 then
-            break;
-        end if;
-        mask := mask << 1;
-    end loop;
-    mask := 0;
+record Insn
+    datareg: uint8;
+    obj_id: uint16;
+    offset: uint16;
+    indexreg: uint8;
+    mode: uint8;
+end record;
+
+const MODE_DIR := 1;
+const MODE_IND := 2;
+const MODE_IMMLO := 3;
+const MODE_IMMHI := 4;
+
+var insn: Insn;
+
+sub cant_happen()
+    print("generic internal compiler error");
+    halt();
+end sub;
+
+sub save_insn(storage: [Insn])
+    copy_memory(&insn as [int8], storage as [int8], Insn@bytes);
+end sub;
+
+sub load_insn(storage: [Insn])
+    copy_memory(storage as [int8], &insn as [int8], Insn@bytes);
+end sub;
+
+sub insn_init()
+    zero_memory(&insn as [int8], Insn@bytes);
+end sub;
+
+sub bad_register()
+    print("bad register");
+    halt();
 end sub;
 
 sub find_bit_index(value: uint8): (index: uint8)
@@ -35,39 +58,125 @@ sub find_bit_index(value: uint8): (index: uint8)
     halt();
 end sub;
 
-sub bad_register()
-    print("bad register");
-    halt();
+sub convert_lea_ea_to_addressof(ea: [EffectiveAddress])
+    if ea.flags == EA_LEA then
+        var ptr_id: uint16 := add_addressof_by_value(ea.obj_id,
+            get_value_of_number(ea.numoff_id) as uint16);
+        var ptrthing: [AddressOfThing] := find_thing(ptr_id) as [AddressOfThing];
+        ptrthing.segment := SEGMENT_CONST;
+        ea.obj_id := ptr_id;
+        ea.numoff_id := 0;
+        ea.flags := EA_VALUE;
+    end if;
 end sub;
 
-sub op_imm(value: uint8, opcode: uint8)
+sub insn_long_init_from_ea(ea: [EffectiveAddress])
+    convert_lea_ea_to_addressof(ea);
+    insn_init();
+    insn.obj_id := ea.obj_id;
+    insn.offset := get_value_of_number(ea.numoff_id) as uint16;
+    if ea.flags == EA_DEREF then
+        insn.mode := MODE_IND;
+    else
+        insn.mode := MODE_DIR;
+    end if;
+end sub;
+
+# Like insn_long_init_from_ea(), but if the value is a number, turn it into
+# a MODE_IMM mode.
+sub insn_init_from_ea(ea: [EffectiveAddress])
+    insn_init();
+    insn.obj_id := ea.obj_id;
+    insn.offset := get_value_of_number(ea.numoff_id) as uint16;
+    if ea.flags == EA_VALUE then
+        if is_number_thing(insn.obj_id) != 0 then
+            if insn.offset == 0 then
+                insn.mode := MODE_IMMLO;
+            elseif insn.offset == 1 then
+                insn.mode := MODE_IMMHI;
+            else
+                print("bad offset to immediate value");
+                halt();
+            end if;
+
+            insn.offset := get_value_of_number(insn.obj_id) as uint16;
+            insn.obj_id := 0;
+        else
+            insn.mode := MODE_DIR;
+        end if;
+    elseif ea.flags == EA_DEREF then
+        insn.mode := MODE_IND;
+    else
+        insn.mode := MODE_IMMLO;
+    end if;
+end sub;
+
+sub print_insn()
+    print(" datareg=");
+    print_i8(insn.datareg);
+    print(" thing=");
+    print_thing(insn.obj_id);
+    print(" offset=0x");
+    print_hex_i16(insn.offset);
+    print(" indexreg=");
+    print_i8(insn.indexreg);
+    print(" mode=");
+    print_i8(insn.mode);
+    print_newline();
+end sub;
+
+sub insn_check_imm()
+    if ((insn.mode != MODE_IMMLO) and (insn.mode != MODE_IMMHI)) or (insn.indexreg != 0) then
+        print("insn_check_imm fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_abs()
+    if insn.mode != MODE_DIR then
+        print("insn_check_abs fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_alu_abs()
+    insn_check_abs();
+    if insn.datareg != REG_A then
+        print("insn_check_alu_abs fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_ind()
+    if (insn.mode != MODE_IND) or (insn.indexreg == 0) or (insn.offset != 0)
+        or (insn.datareg != REG_A) or (insn.indexreg == REG_A)
+    then
+        print("insn_check_ind fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_mutate()
+    if (insn.mode != MODE_DIR) or (insn.indexreg == REG_A) or (insn.indexreg == REG_X) then
+        print("insn_check_mutate fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_op_imm(value: uint8, opcode: uint8)
 	$if DEBUG
-		print("@ op_imm 0x");
+		print("@ insn_op_imm 0x");
 		print_hex_i8(opcode);
 		print(" value=0x");
 		print_hex_i8(value);
 		print_newline();
 	$endif
+    insn_check_imm();
 
     var buf: uint8[2];
     buf[0] := opcode;
     buf[1] := value;
     write_bytes_iop(buf@size, &buf[0]);
-end sub;
-
-sub op_imm_adr(ea: [EffectiveAddress], beiop: uint8, opcode: uint8)
-	$if DEBUG
-		print("@ op_imm_adr 0x");
-		print_hex_i8(opcode);
-		print(" iop=0x");
-		print_hex_i8(beiop);
-		print(" value=");
-		print_ea(ea);
-		print_newline();
-	$endif
-
-    write_byte(opcode);
-    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
 end sub;
 
 var ld_imm_opcodes: uint8[3] := {
@@ -76,36 +185,41 @@ var ld_imm_opcodes: uint8[3] := {
     0xA0 # LDY imm
 };
 
-sub ld_imm(location: uint8, value: uint8)
-    location := find_bit_index(location);
-    op_imm(value, ld_imm_opcodes[location]);
+sub insn_ld_imm(value: uint8)
+    insn_op_imm(value, ld_imm_opcodes[find_bit_index(insn.datareg)]);
 end sub;
 
-sub ld_imm_adr_lo(location: uint8, ea: [EffectiveAddress])
-    location := find_bit_index(location);
-    op_imm_adr(ea, IOP_ADDRESSLO, ld_imm_opcodes[location]);
-end sub;
-
-sub ld_imm_adr_hi(location: uint8, ea: [EffectiveAddress])
-    location := find_bit_index(location);
-    op_imm_adr(ea, IOP_ADDRESSHI, ld_imm_opcodes[location]);
-end sub;
-
-sub op_abs(ea: [EffectiveAddress], opcode: uint8)
+sub insn_op_imm_adr(beiop: uint8, opcode: uint8)
 	$if DEBUG
-		print("@ op_abs 0x");
+		print("@ insn_op_imm_adr 0x");
 		print_hex_i8(opcode);
-		print(" ea=");
-		print_ea(ea);
-		print_newline();
+		print(" iop=0x");
+		print_hex_i8(beiop);
+        print_insn();
 	$endif
+    insn_check_imm();
 
-    if ea.varoff_id != 0 then
-        print("can't have varoff here");
-        halt();
-    end if;
+    write_byte(opcode);
+    write_address_iop(beiop, insn.obj_id, insn.offset);
+end sub;
 
-    var obj: [DataThing] := find_thing(ea.obj_id) as [DataThing];
+sub insn_ld_imm_adr_lo()
+    insn_op_imm_adr(IOP_ADDRESSLO, ld_imm_opcodes[find_bit_index(insn.datareg)]);
+end sub;
+
+sub insn_ld_imm_adr_hi()
+    insn_op_imm_adr(IOP_ADDRESSHI, ld_imm_opcodes[find_bit_index(insn.datareg)]);
+end sub;
+
+sub insn_op_abs(opcode: uint8)
+	$if DEBUG
+		print("@ insn_op_abs 0x");
+		print_hex_i8(opcode);
+        print_insn();
+	$endif
+    insn_check_abs();
+
+    var obj: [DataThing] := find_thing(insn.obj_id) as [DataThing];
     var beiop: uint8;
     if ((opcode & 0x0F) == 0x01) then
         if obj.segment != SEGMENT_ZEROPAGE then
@@ -118,7 +232,7 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
         beiop := IOP_ADDRESSLO;
     elseif obj.segment == SEGMENT_UNKNOWN then
         print("segment of ");
-        print_ea(ea);
+        print_thing(insn.obj_id);
         print(" not known");
         halt();
     else
@@ -126,7 +240,7 @@ sub op_abs(ea: [EffectiveAddress], opcode: uint8)
     end if;
 
     write_byte(opcode);
-    write_address_iop(beiop, ea.obj_id, get_value_of_number(ea.numoff_id) as uint16);
+    write_address_iop(beiop, insn.obj_id, insn.offset);
 end sub;
 
 var ld_abs_opcodes: uint8[3] := {
@@ -147,15 +261,15 @@ var ld_abs_y_opcodes: uint8[3] := {
     0x00 # invalid
 };
 
-sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint8)
+sub insn_ldst_abs(opmask: uint8)
     var opcode: uint8 := 0;
 
-    location := find_bit_index(location);
-    if index == 0 then
+    var location: uint8 := find_bit_index(insn.datareg);
+    if insn.indexreg == 0 then
         opcode := ld_abs_opcodes[location];
-    elseif index == REG_X then
+    elseif insn.indexreg == REG_X then
         opcode := ld_abs_x_opcodes[location];
-    elseif index == REG_Y then
+    elseif insn.indexreg == REG_Y then
         opcode := ld_abs_y_opcodes[location];
     end if;
 
@@ -164,47 +278,110 @@ sub ldst_abs(location: uint8, index: uint8, ea: [EffectiveAddress], opmask: uint
     end if;
     opcode := opcode & opmask;
 
-    op_abs(ea, opcode);
+    insn_op_abs(opcode);
 end sub;
 
-sub op_ind(ea: [EffectiveAddress], opcode: uint8)
-	$if DEBUG
-		print("@ op_ind 0x");
-		print_hex_i8(opcode);
-		print(" obj_id=");
-		print_thing(ea.obj_id);
-		print(" numoff=");
-		print_thing(ea.numoff_id);
-		print_newline();
-	$endif
+sub insn_ld_abs()
+    insn_ldst_abs(0b11111111);
+end sub;
 
-    if ea.varoff_id != 0 then
-        print("can't have varoff here");
-        halt();
+# opcode must be the abs form of a column D opcode
+sub insn_alu_abs(opcode: uint8)
+    insn_check_alu_abs();
+
+    if insn.indexreg == REG_X then
+        opcode := opcode | 0b00010000;
+    elseif insn.indexreg == REG_Y then
+        opcode := (opcode | 0b00010000) & 0b11111011;
     end if;
-    if get_value_of_number(ea.numoff_id) != 0 then
-        print("can't have numoff here");
-        halt();
-    end if;
+
+    insn_op_abs(opcode);
+end sub;
+
+sub insn_st_abs()
+    insn_ldst_abs(0b11011111);
+end sub;
+
+sub insn_op_ind(opcode: uint8)
+	$if DEBUG
+		print("@ insn_op_ind 0x");
+		print_hex_i8(opcode);
+        print_insn();
+	$endif
+    insn_check_ind();
 
     write_byte(opcode);
-    write_address_iop(IOP_ADDRESSLO, ea.obj_id, 0);
+    write_address_iop(IOP_ADDRESSLO, insn.obj_id, 0);
 end sub;
 
-sub ld_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
-    ldst_abs(location, index, ea, 0b11111111);
+sub insn_ld_ind()
+    insn_op_ind(0xB1); # LDA (ind), Y
 end sub;
 
-sub ld_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
-    op_ind(ea, 0xB1); # LDA (ind), Y
+sub insn_st_ind()
+    insn_op_ind(0x91); # STA (ind), Y
 end sub;
 
-sub st_abs(location: uint8, index: uint8, ea: [EffectiveAddress])
-    ldst_abs(location, index, ea, 0b11011111);
+sub insn_load_object()
+    if insn.mode == MODE_DIR then
+        insn_ld_abs();
+    elseif insn.mode == MODE_IND then
+        insn_ld_ind();
+    elseif insn.mode == MODE_IMMLO then
+        if insn.obj_id != 0 then
+            insn_ld_imm_adr_lo();
+        else
+            insn_ld_imm(insn.offset as uint8);
+        end if;
+    elseif insn.mode == MODE_IMMHI then
+        if insn.obj_id != 0 then
+            insn_ld_imm_adr_hi();
+        else
+            insn_ld_imm((insn.offset >> 8) as uint8);
+        end if;
+    end if;
 end sub;
 
-sub st_ind(location: uint8, indexreg: uint8, ea: [EffectiveAddress])
-    op_ind(ea, 0x91); # STA (ind), Y
+# opcode must be the abs form of a column D opcode.
+sub insn_alu_object(opcode: uint8)
+    if insn.mode == MODE_DIR then
+        insn_alu_abs(opcode);
+    elseif insn.mode == MODE_IND then
+        opcode := (opcode | 0x10) & 0xF3;
+        insn_op_ind(opcode);
+    elseif insn.mode == MODE_IMMLO then
+        opcode := opcode & 0xfb;
+        if insn.obj_id != 0 then
+            insn_op_imm_adr(IOP_ADDRESSLO, opcode);
+        else
+            insn_op_imm(insn.offset as uint8, opcode);
+        end if;
+    elseif insn.mode == MODE_IMMHI then
+        opcode := opcode & 0xfb;
+        if insn.obj_id != 0 then
+            insn_op_imm_adr(IOP_ADDRESSHI, opcode);
+        else
+            insn_op_imm((insn.offset >> 8) as uint8, opcode);
+        end if;
+    end if;
+end sub;
+
+# opcode must be the abs form of a column E opcode.
+sub insn_mutate_object(opcode: uint8)
+    insn_check_mutate();
+    insn_op_abs(opcode);
+end sub;
+
+sub insn_save_object()
+    if insn.mode == MODE_DIR then
+        insn_st_abs();
+    elseif insn.mode == MODE_IND then
+        insn_st_ind();
+    else
+        print("cannot save ");
+        print_insn();
+        halt();
+    end if;
 end sub;
 
 var t_opcodes: uint8[9] := {
@@ -240,112 +417,4 @@ sub t_reg_reg(src: uint8, dest: uint8)
         halt();
     end if;
     write_byte(opcode);
-end sub;
-
-sub load_objval(location: uint8, ea: [EffectiveAddress])
-    if is_number_thing(ea.obj_id) != 0 then
-        ld_imm(location, get_value_of_number(ea.obj_id) as uint8);
-    else
-        ld_abs(location, 0, ea);
-    end if;
-end sub;
-
-sub load_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) +
-        (offset as int32));
-    ld_abs(location, 0, ea);
-    ea.numoff_id := old_numoff_id;
-end sub;
-
-sub load_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_VALUE then
-        load_objval_with_offset(location, ea, offset);
-    else
-        print("can't load ");
-        print_ea(ea);
-        print(" with offset 0x");
-        print_hex_i8(offset);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub load_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    if ea.flags == EA_VALUE then
-        ld_abs(location, index, ea);
-    elseif ea.flags == EA_DEREF then
-        ld_ind(location, index, ea);
-    else
-        print("can't load ");
-        print_ea(ea);
-        print(" with index reg 0x");
-        print_hex_i8(index);
-        print(" and flags ");
-        print_hex_i8(ea.flags);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub save_objval(location: uint8, ea: [EffectiveAddress])
-    st_abs(location, 0, ea);
-end sub;
-
-sub save_objval_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    var old_numoff_id: uint16 := ea.numoff_id;
-    ea.numoff_id := add_number_by_value(get_value_of_number(old_numoff_id) +
-        (offset as int32));
-    st_abs(location, 0, ea);
-    ea.numoff_id := old_numoff_id;
-end sub;
-
-sub save_value_with_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_VALUE then
-        save_objval_with_offset(location, ea, offset);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" with offset 0x");
-        print_hex_i8(offset);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub save_value_with_index(location: uint8, ea: [EffectiveAddress], index: uint8)
-    if ea.flags == EA_VALUE then
-        st_abs(location, index, ea);
-    elseif ea.flags == EA_DEREF then
-        st_ind(location, index, ea);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" with index reg 0x");
-        print_hex_i8(index);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-# opcode must be the abs form of a regular accumulator ALU operation in column 0x0D.
-sub aluop_value_with_index(ea: [EffectiveAddress], index: uint8, opcode: uint8)
-    if ea.flags == EA_DEREF then
-        opcode := (opcode | 0x10) & 0xF3;
-        if index != REG_Y then
-            print("PTRVAL must have Y index");
-            halt();
-        end if;
-    elseif ea.flags == EA_VALUE then
-        if index == REG_X then
-            opcode := opcode | 0x10;
-        elseif index == REG_Y then
-            opcode := (opcode | 0x10) & 0xFB;
-        end if;
-    else
-        print("alup with unsupported EA");
-        halt();
-    end if;
-
-    op_abs(ea, opcode);
 end sub;

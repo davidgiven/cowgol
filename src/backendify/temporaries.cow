@@ -3,7 +3,7 @@ record Temporary
     refcount: uint8;
 end record;
 
-var temporaries: Temporary[32];
+var temporaries: Temporary[40];
 
 sub init_temporaries()
     zero_memory(&temporaries[0] as [int8], temporaries@bytes);
@@ -84,6 +84,14 @@ sub deref_temporary(thing_id: uint16)
             var temp: [Temporary] := &temporaries[index];
             if (temp.thing_id == thing_id) and (temp.refcount > 0) then
                 temp.refcount := temp.refcount - 1;
+
+                if temp.refcount == 0 then
+                    var ea: EffectiveAddress;
+                    zero_ea(&ea);
+                    ea.obj_id := temp.thing_id;
+                    ea.type_id := get_type_of_thing(temp.thing_id);
+                    write_kill_iop(&ea);
+                end if;
 
                 $if DEBUG
                     print("* deref temp 0x");

@@ -3,11 +3,10 @@ record GraphRecord
     dest_id: uint16;
 end record;
 
-var graph_base: [GraphRecord];
+var graph_base: GraphRecord[CLASSIFICATIONGRAPH_NODES];
 var graph_count: uint16;
 
-sub init_graph(base: [int8])
-    graph_base := base as [GraphRecord];
+sub init_graph()
     graph_count := 0;
 end sub;
 
@@ -15,14 +14,19 @@ sub add_reference(src_id: uint16, dest_id: uint16)
     var g: [GraphRecord];
     var i: uint16 := 0;
     while i < graph_count loop
-        g := &graph_base[i as int16] as [GraphRecord];
+        g := &graph_base[i] as [GraphRecord];
         if (g.src_id == src_id) and (g.dest_id == dest_id) then
             return;
         end if;
         i := i + 1;
     end loop;
 
-    g := &graph_base[graph_count as int16] as [GraphRecord];
+    if graph_count == CLASSIFICATIONGRAPH_NODES then
+        print("out of graph nodes");
+        halt();
+    end if;
+
+    g := &graph_base[graph_count] as [GraphRecord];
     graph_count := graph_count + 1;
     g.src_id := src_id;
     g.dest_id := dest_id;

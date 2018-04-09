@@ -9,21 +9,19 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
+#include <errno.h>
 #include "globals.h"
 
-#define FBASE 0xff80
+#define FBASE 0xff00
+#define COLDSTART (FBASE + 4) /* see bdos.asm */
 #define CBASE (FBASE - (7*1024))
-#define BDOS_ENTRY FBASE
-#define BIOS_ENTRY (FBASE+1)
-#define BIOS_SYSCALL(n) (BIOS_ENTRY + (n)*3)
-#define CBIOS_SYSCALLS 22
 
 static uint16_t dma;
+static int exitcode = 0;
 
 struct fcb
 {
-	uint8_t drive;
-	cpm_filename_t filename;
+	cpm_filename_t filename; /* includes drive */
 	uint8_t extent;
 	uint8_t s1;
 	uint8_t s2;
@@ -43,6 +41,11 @@ static uint16_t get_de(void)
 static uint8_t get_c(void)
 {
 	return z80ex_get_reg(z80, regBC);
+}
+
+static uint8_t get_d(void)
+{
+	return z80ex_get_reg(z80, regDE) >> 8;
 }
 
 static uint8_t get_e(void)
@@ -85,15 +88,61 @@ static void set_result(uint16_t result)
 void bios_coldboot(void)
 {
 	memcpy(&ram[FBASE], bdos_data, bdos_len);
-	z80ex_set_reg(z80, regPC, FBASE);
+	z80ex_set_reg(z80, regPC, COLDSTART);
 }
 
 static void bios_warmboot(void)
 {
 	dma = 0x0080;
 
-	memcpy(&ram[CBASE], ccp_data, ccp_len);
-	z80ex_set_reg(z80, regPC, CBASE);
+	if (user_command_line[0])
+	{
+		static bool terminate_next_time = false;
+		if (terminate_next_time)
+			exit(exitcode);
+		terminate_next_time = true;
+
+        z80ex_set_reg(z80, regPC, 0x0100);
+
+        /* Push the magic exit code onto the stack. */
+        z80ex_set_reg(z80, regSP, FBASE-4);
+        ram[FBASE-4] = (FBASE-2) & 0xFF;
+        ram[FBASE-3] = (FBASE-2) >> 8;
+        ram[FBASE-2] = 0xD3; // out (??), a
+        ram[FBASE-1] = 0xFE; // exit emulator
+
+        int fd = open(user_command_line[0], O_RDONLY);
+        if (fd == -1)
+                fatal("couldn't open program: %s", strerror(errno));
+        read(fd, &ram[0x0100], 0xFE00);
+        close(fd);
+
+		int offset = 1;
+		for (int word = 1; user_command_line[word]; word++)
+		{
+			if (word > 1)
+			{
+				ram[0x0080 + offset] = ' ';
+				offset++;
+			}
+
+			const char* pin = user_command_line[word];
+			while (*pin)
+			{
+				if (offset > 125)
+					fatal("user command line too long");
+				ram[0x0080 + offset] = toupper(*pin++);
+				offset++;
+			}
+		}
+		ram[0x0080] = offset;
+		ram[0x0080+offset] = 0;
+	}
+	else
+	{
+		memcpy(&ram[CBASE], ccp_data, ccp_len);
+		z80ex_set_reg(z80, regPC, CBASE);
+	}
 }
 
 static void bios_const(void)
@@ -127,6 +176,8 @@ static void bios_entry(uint8_t bios_call)
 		case 2: bios_const();     return; // const
 		case 3: bios_getchar();   return; // conin
 		case 4: bios_putchar();   return; // conout
+
+		case 0xFE: exit(0); // magic emulator exit
 	}
 
 	showregs();
@@ -189,30 +240,97 @@ void bdos_readline(void)
 	set_result(count);
 }
 
+static struct fcb* fcb_at(uint16_t address)
+{
+	struct fcb* fcb = (struct fcb*) &ram[address];
+
+	/* Autoselect the current drive. */
+	if (fcb->filename.drive == 0)
+		fcb->filename.drive = ram[4] + 1;
+
+	return fcb;
+}
+
 static struct fcb* find_fcb(void)
 {
-	uint16_t de = z80ex_get_reg(z80, regDE);
-	return (struct fcb*) &ram[de];
+	return fcb_at(z80ex_get_reg(z80, regDE));
+}
+
+static int get_current_record(struct fcb* fcb)
+{
+	return (fcb->extent * 128) + fcb->currentrecord;
+}
+
+static void set_current_record(struct fcb* fcb, int record, int total)
+{
+	int extents = total / 128;
+	fcb->extent = record / 128;
+	if (fcb->extent < extents)
+		fcb->recordcount = 128;
+	else
+		fcb->recordcount = total % 128;
+	fcb->currentrecord = record % 128;
+}
+
+static void bdos_resetdisk(void)
+{
+	dma = 0x0080;
+	ram[4] = 0; /* select drive A */
+	set_result(0xff);
+}
+
+static void bdos_selectdisk(void)
+{
+	uint8_t e = get_e();
+	ram[4] = e;
+}
+
+static void bdos_getdisk(void)
+{
+	set_result(ram[4]);
 }
 
 static void bdos_openfile(void)
 {
 	struct fcb* fcb = find_fcb();
 	struct file* f = file_open(&fcb->filename);
-	set_result(f ? 0 : 0xff);
+	if (f)
+	{
+		set_current_record(fcb, 0, file_getrecordcount(f));
+		set_result(0);
+	}
+	else
+		set_result(0xff);
 }
 
 static void bdos_makefile(void)
 {
 	struct fcb* fcb = find_fcb();
 	struct file* f = file_create(&fcb->filename);
-	set_result(f ? 0 : 0xff);
+	if (f)
+	{
+		set_current_record(fcb, 0, 0);
+		set_result(0);
+	}
+	else
+		set_result(0xff);
 }
 
 static void bdos_closefile(void)
 {
 	struct fcb* fcb = find_fcb();
+	struct file* f = file_open(&fcb->filename);
+	if (file_getrecordcount(f) < 128)
+		file_setrecordcount(f, fcb->recordcount);
 	int result = file_close(&fcb->filename);
+	set_result(result ? 0xff : 0);
+}
+
+static void bdos_renamefile(void)
+{
+	struct fcb* srcfcb = fcb_at(z80ex_get_reg(z80, regDE));
+	struct fcb* destfcb = fcb_at(z80ex_get_reg(z80, regDE)+16);
+	int result = file_rename(&srcfcb->filename, &destfcb->filename);
 	set_result(result ? 0xff : 0);
 }
 
@@ -236,21 +354,9 @@ static void bdos_findfirst(void)
 
 static void bdos_deletefile(void)
 {
-	uint16_t result = 0xff;
-	#if 0
 	struct fcb* fcb = find_fcb();
-	glob_t globdata;
-	if (glob(fcb->d, 0, NULL, &globdata) == 0)
-	{
-		for (int i=0; i<globdata.gl_pathc; i++)
-		{
-			unlink(globdata.gl_pathv[i]);
-			result = 0;
-		}
-	}
-	globfree(&globdata);
-	#endif
-	set_result(result);
+	int i = file_delete(&fcb->filename);
+	set_result(i ? 0xff : 0);
 }
 
 typedef int readwrite_cb(struct file* f, uint8_t* ptr, uint16_t record);
@@ -259,18 +365,16 @@ static void bdos_readwritesequential(readwrite_cb* readwrite)
 {
 	struct fcb* fcb = find_fcb();
 
-	if (fcb->extent != 0)
-		fatal("bad extent");
-
 	struct file* f = file_open(&fcb->filename);
-	int i = readwrite(f, &ram[dma], fcb->currentrecord);
+	int here = get_current_record(fcb);
+	int i = readwrite(f, &ram[dma], here);
+	set_current_record(fcb, here+1, file_getrecordcount(f));
 	if (i == -1)
 		set_result(0xff);
 	else if (i == 0)
 		set_result(1);
 	else
 		set_result(0);
-	fcb->currentrecord++;
 }
 
 static void bdos_readwriterandom(readwrite_cb* readwrite)
@@ -280,12 +384,24 @@ static void bdos_readwriterandom(readwrite_cb* readwrite)
 	uint16_t record = fcb->r[0] + (fcb->r[1]<<8);
 	struct file* f = file_open(&fcb->filename);
 	int i = readwrite(f, &ram[dma], record);
+	set_current_record(fcb, record, file_getrecordcount(f));
 	if (i == -1)
 		set_result(0xff);
 	else if (i == 0)
 		set_result(1);
 	else
 		set_result(0);
+}
+
+static void bdos_filelength(void)
+{
+	struct fcb* fcb = find_fcb();
+	struct file* f = file_open(&fcb->filename);
+
+	int length = file_getrecordcount(f);
+	fcb->r[0] = length;
+	fcb->r[1] = length>>8;
+	fcb->r[2] = length>>16;
 }
 
 static void bdos_getsetuser(void)
@@ -305,8 +421,8 @@ static void bdos_entry(uint8_t bdos_call)
 		case 10: bdos_readline();    return;
 		case 11: bdos_consolestatus(); return;
 		case 12: set_result(0x0022); return; // get CP/M version
-		case 13: set_result(0);      return; // reset disk system
-		case 14: set_result(0);      return; // select disk
+		case 13: bdos_resetdisk();   return; // reset disk system
+		case 14: bdos_selectdisk();  return; // select disk
 		case 15: bdos_openfile();    return;
 		case 16: bdos_closefile();   return;
 		case 17: bdos_findfirst();   return;
@@ -315,15 +431,20 @@ static void bdos_entry(uint8_t bdos_call)
 		case 20: bdos_readwritesequential(file_read);  return;
 		case 21: bdos_readwritesequential(file_write); return;
 		case 22: bdos_makefile();    return;
-		case 25: set_result(0);      return; // get current disk
+		case 23: bdos_renamefile();  return;
+		case 24: set_result(0xffff); return; // get login vector
+		case 25: bdos_getdisk();     return; // get current disk
 		case 26: dma = get_de();     return; // set DMA
 		case 27: set_result(0);      return; // get allocation vector
+		case 29: set_result(0x0000); return; // get read-only vector
 		case 31: set_result(0);      return; // get disk parameter block
 		case 32: bdos_getsetuser();  return;
 		case 33: bdos_readwriterandom(file_read);  return;
 		case 34: bdos_readwriterandom(file_write); return;
+		case 35: bdos_filelength(); return;
 		case 40: bdos_readwriterandom(file_write); return;
 		case 45:                     return; // set hardware error action
+		case 108: exitcode = get_d(); return; // set exit code
 	}
 
 	showregs();

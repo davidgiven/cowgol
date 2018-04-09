@@ -23,62 +23,83 @@ sub add_symbol(identifier_id: uint16, value_id: uint16)
     symbol.value_id := value_id;
 end sub;
 
-sub create_bootstrap_type(identifier_id: uint16): (type: [NumericThing])
+sub create_bootstrap_type(identifier_id: uint16): (type_thing: [NumericThing])
     var type_id: uint16 := create_thing(THING_CONSTANTT, NumericThing@bytes);
     add_symbol(identifier_id, type_id);
-    type := find_thing(type_id) as [NumericThing];
+    type_thing := find_thing(type_id) as [NumericThing];
 end sub;
 
 sub init_types()
-    var type: [NumericThing];
-    type := create_bootstrap_type(TOKEN_INT8);
-    type.thing_type := THING_SIGNEDT;
-    type.width := 1;
+    var type_thing: [NumericThing];
+    type_thing := create_bootstrap_type(TOKEN_INT8);
+    type_thing.thing_type := THING_SIGNEDT;
+    type_thing.width := 1;
 
-    type := create_bootstrap_type(TOKEN_UINT8);
-    type.thing_type := THING_UNSIGNEDT;
-    type.width := 1;
+    type_thing := create_bootstrap_type(TOKEN_UINT8);
+    type_thing.thing_type := THING_UNSIGNEDT;
+    type_thing.width := 1;
 
-    type := create_bootstrap_type(TOKEN_INT16);
-    type.thing_type := THING_SIGNEDT;
-    type.width := 2;
+    type_thing := create_bootstrap_type(TOKEN_INT16);
+    type_thing.thing_type := THING_SIGNEDT;
+    type_thing.width := 2;
 
-    type := create_bootstrap_type(TOKEN_UINT16);
-    type.thing_type := THING_UNSIGNEDT;
-    type.width := 2;
+    type_thing := create_bootstrap_type(TOKEN_UINT16);
+    type_thing.thing_type := THING_UNSIGNEDT;
+    type_thing.width := 2;
 
-    type := create_bootstrap_type(TOKEN_INT32);
-    type.thing_type := THING_SIGNEDT;
-    type.width := 4;
+    type_thing := create_bootstrap_type(TOKEN_INT32);
+    type_thing.thing_type := THING_SIGNEDT;
+    type_thing.width := 4;
 
-    type := create_bootstrap_type(TOKEN_UINT32);
-    type.thing_type := THING_UNSIGNEDT;
-    type.width := 4;
+    type_thing := create_bootstrap_type(TOKEN_UINT32);
+    type_thing.thing_type := THING_UNSIGNEDT;
+    type_thing.width := 4;
 
-    type := create_bootstrap_type(TOKEN_CONSTANTT);
-    type.thing_type := THING_CONSTANTT;
-    type.width := 0;
+    type_thing := create_bootstrap_type(TOKEN_CONSTANTT);
+    type_thing.thing_type := THING_CONSTANTT;
+    type_thing.width := 0;
 end sub;
 
 sub write_iops_file()
     print("writing empty iops file\n");
-    var fd: int8 := file_openout(iops_dat);
+    var fcb: FCB;
+    if fcb_openout(&fcb, iops_dat) != 0 then
+        print("failed to open output file\n");
+        exit(1);
+    end if;
+
+    fcb_seek(&fcb, 4);
+
     var iheader: IHeader;
     iheader.thing_id := current_subroutine_id;
-    file_putblock(fd, &iheader as [int8], iheader@bytes);
+    fcb.address := &iheader as [int8];
+    fcb.count := iheader@bytes;
+    fcb_write(&fcb);
 
     var iop: Iop;
     iop.iop_size := Iop@bytes;
     iop.iop_kind := IOP_RETURN;
-    file_putblock(fd, &iop as [int8], iop@bytes);
+    fcb.address := &iop as [int8];
+    fcb.count := Iop@bytes;
+    fcb_write(&fcb);
 
     iop.iop_kind := IOP_END;
-    file_putblock(fd, &iop as [int8], iop@bytes);
+    fcb.address := &iop as [int8];
+    fcb.count := Iop@bytes;
+    fcb_write(&fcb);
     
     iheader.thing_id := 0;
-    file_putblock(fd, &iheader as [int8], iheader@bytes);
+    fcb.address := &iheader as [int8];
+    fcb.count := iheader@bytes;
+    fcb_write(&fcb);
 
-    file_close(fd);
+    var pos: uint32 := fcb_tell(&fcb);
+    fcb_seek(&fcb, 0);
+    fcb.address := &pos as [int8];
+    fcb.count := pos@bytes;
+    fcb_write(&fcb);
+    
+    fcb_close(&fcb);
 end sub;
 
 install_root_thing();
@@ -89,6 +110,13 @@ create_main_subroutine();
 root.main_subroutine_id := current_subroutine_id;
 
 init_types();
+
+if ARGC == 4 then
+    things_dat := ARGV[1];
+    strings_dat := ARGV[2];
+    iops_dat := ARGV[3];
+end if;
+
 save_thing_table(things_dat);
 save_string_table(strings_dat);
 write_iops_file();

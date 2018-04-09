@@ -264,11 +264,11 @@ sub expression_state_machine()
         apply_op();
     end sub;
 
-    sub thing_reference(type: [TypeThing]): (pushable_id: uint16)
+    sub thing_reference(type_thing: [TypeThing]): (pushable_id: uint16)
         if current_token == TOKEN_BYTES then
-            pushable_id := add_number_by_value(type.width as int32);
+            pushable_id := add_number_by_value(type_thing.width as int32);
         elseif current_token == TOKEN_SIZE then
-            var array_type: [ArrayThing] := type as [ArrayThing];
+            var array_type: [ArrayThing] := type_thing as [ArrayThing];
             if array_type.thing_type != THING_ARRAYT then
                 show_identifier(current_token);
                 print(" only works on arrays");
@@ -285,8 +285,13 @@ sub expression_state_machine()
     var thing: [Thing];
     loop
         var token_flags: uint8;
-        #print("seen: "); show_identifier(current_token); print_newline();
-        #print("loop "); print_op_stack();
+        $if DEBUG
+            print("seen: ");
+            show_identifier(current_token);
+            print_newline();
+            print("loop ");
+            print_op_stack();
+        $endif
         if state == STATE_BEFORE then
             # Before a leaf.
             if current_token == TOKEN_MINUS then

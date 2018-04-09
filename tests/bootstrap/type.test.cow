@@ -1,0 +1,22 @@
+type SmallInt := uint8;
+type LargeInt := uint16;
+
+var i: SmallInt := 0xff;
+i := i + 1;
+if i != 0 then
+    fail("i wrong");
+end if;
+
+i := 1;
+var j: LargeInt := 0xffff;
+j := j + (i as uint16);
+j := j + (i as LargeInt);
+if j != 1 then
+    fail("j wrong");
+end if;
+
+type ArrayType := uint8[5];
+var k: ArrayType;
+if k@bytes != 5 then
+    fail("k@bytes wrong");
+end if;

@@ -1,0 +1,41 @@
+sub arch_calculate_fileoffset(thing: [DataThing]): (offset: uint16)
+    if thing.segment == SEGMENT_CODE then
+        offset := thing.address + FILE_HEADER_SIZE;
+    elseif thing.segment == SEGMENT_CONST then
+        offset := root.code_size + thing.address + FILE_HEADER_SIZE;
+    else
+        print("cannot calculate file offset of thing with segment=0x");
+        print_i8(thing.segment);
+        print(" address=");
+        print_i16(thing.address);
+        halt();
+    end if;
+end sub;
+
+sub arch_calculate_address(thing: [DataThing]): (address: uint16)
+    if thing.segment == SEGMENT_CODE then
+        address := BASE_ADDRESS + thing.address;
+    elseif thing.segment == SEGMENT_CONST then
+        address := BASE_ADDRESS + root.code_size + thing.address;
+    elseif thing.segment == SEGMENT_DATA then
+        address := BASE_ADDRESS + root.code_size + root.const_size + thing.address;
+    elseif thing.segment == SEGMENT_LAST then
+        address := BASE_ADDRESS + root.code_size + root.const_size + root.archsizes.data_size;
+    else
+        print("cannot calculate address of thing ");
+        print_thing(((thing as [int8]) - &thing_table[0]) as uint16);
+        print(" with segment=0x");
+        print_hex_i8(thing.segment);
+        print(" address=");
+        print_i16(thing.address);
+        halt();
+    end if;
+end sub;
+
+sub arch_emit_iop(iop: [Iop])
+    var iopkind: uint8 := iop.iop_kind;
+    print("cannot emit iop 0x");
+    print_hex_i8(iop.iop_kind);
+    halt();
+end sub;
+

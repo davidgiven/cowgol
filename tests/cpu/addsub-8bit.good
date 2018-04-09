@@ -18,11 +18,11 @@ zero-one == mone: yes
 zero-zero == zero: yes
 zero-mone == one: yes
 zero-mtwo == two: yes
-0-two == mtwo: yes
-0-one == mone: yes
-0-zero == zero: yes
-0-mone == one: yes
-0-mtwo == two: yes
+-two == mtwo: yes
+-one == mone: yes
+-zero == zero: yes
+-mone == one: yes
+-mtwo == two: yes
 zero-2 == mtwo: yes
 zero-1 == mone: yes
 zero-0 == zero: yes

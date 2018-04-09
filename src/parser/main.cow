@@ -46,7 +46,28 @@ sub pop_if()
     if_true_label_id := lexical_pop() as uint8;
 end sub;
 
+$if DEBUG
+    sub dump_labels()
+        print("break=");
+        print_i8(break_label_id);
+        print(" continue=");
+        print_i8(continue_label_id);
+        print(" if_true=");
+        print_i8(if_true_label_id);
+        print(" if_false=");
+        print_i8(if_false_label_id);
+        print(" if_end=");
+        print_i8(if_end_label_id);
+    end sub;
+$endif
+
 sub push_subroutine()
+    $if DEBUG
+        print("push_subroutine ");
+        dump_labels();
+        print_newline();
+    $endif
+
     lexical_push(break_label_id as uint16);
     lexical_push(continue_label_id as uint16);
     lexical_push(if_true_label_id as uint16);
@@ -66,9 +87,15 @@ sub pop_subroutine()
     current_subroutine_id := lexical_pop();
     if_end_label_id := lexical_pop() as uint8;
     if_false_label_id := lexical_pop() as uint8;
-    if_end_label_id := lexical_pop() as uint8;
+    if_true_label_id := lexical_pop() as uint8;
     continue_label_id := lexical_pop() as uint8;
     break_label_id := lexical_pop() as uint8;
+
+    $if DEBUG
+        print("pop_subroutine ");
+        dump_labels();
+        print_newline();
+    $endif
 end sub;
 
 sub init_parser()
@@ -230,7 +257,7 @@ end sub;
 
 sub do_record()
     var type_id: uint16;
-    var type: [TypeThing];
+    var type_thing: [TypeThing];
 
     expect_token(TOKEN_RECORD);
     var id: uint16 := expect_identifier();
@@ -267,14 +294,14 @@ sub do_record()
         expect_token(TOKEN_COLON);
         type_id := read_type();
         check_recursive_type();
-        type := find_thing(type_id) as [TypeThing];
+        type_thing := find_thing(type_id) as [TypeThing];
 
         var member_id: uint16 := create_thing(THING_MEMBER, MemberThing@bytes);
         add_symbol(id, member_id, recordp.namespace_id);
         var member: [MemberThing] := find_thing(member_id) as [MemberThing];
         member.type_id := type_id;
         member.offset := recordp.width;
-        recordp.width := recordp.width + type.width;
+        recordp.width := recordp.width + type_thing.width;
 
         expect_token(TOKEN_SEMICOLON);
     end loop;
@@ -282,6 +309,16 @@ sub do_record()
     next_token();
     expect_token(TOKEN_RECORD);
     expect_token(TOKEN_SEMICOLON);
+end sub;
+
+sub do_type()
+    expect_token(TOKEN_TYPE);
+    var id: uint16 := expect_identifier();
+    expect_token(TOKEN_ASSIGN);
+    var type_id: uint16 := read_type();
+    expect_token(TOKEN_SEMICOLON);
+    
+    add_symbol(id, type_id, current_namespace_id);
 end sub;
 
 sub do_label()
@@ -476,6 +513,7 @@ end sub;
 
 sub do_bytes()
     next_token();
+    emit_untyped_fe(IOP_FLUSH);
     loop
         sub do_address(iop: uint8)
             var identifier_id: uint16 := expect_identifier();
@@ -485,7 +523,7 @@ sub do_bytes()
                 offset := do_constant();
             elseif current_token == TOKEN_MINUS then
                 next_token();
-                offset := 0-do_constant();
+                offset := -do_constant();
             else
                 offset := 0;
             end if;
@@ -544,6 +582,8 @@ while current_token != 0 loop
         do_const();
     elseif current_token == TOKEN_RECORD then
         do_record();
+    elseif current_token == TOKEN_TYPE then
+        do_type();
     elseif current_token == TOKEN_END then
         do_end();
     elseif current_token == TOKEN_GOTO then

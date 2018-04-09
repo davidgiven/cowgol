@@ -1,5 +1,5 @@
-var mbig: int16 := -7000;
-var big: int16 := 7000;
+var mbig: int16 := -0x7900;
+var big: int16 := 0x7900;
 var mone: int16 := -300;
 var one: int16 := 300;
 var zero: int16 := 0;

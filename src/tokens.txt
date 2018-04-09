@@ -24,14 +24,14 @@ record    RECORD
 return    RETURN
 goto      GOTO
 namespace NAMESPACE
+type      TYPE
 
 # Specials.
 @segment  SEGMENT
 @index    INDEX
 
 # Builtins.
-__load4bytes  LOAD4BYTES IDENTIFIER
-__load6bytes  LOAD6BYTES IDENTIFIER
+__params      PARAMS     IDENTIFIER
 __mul8        MUL8       IDENTIFIER
 __lsl16       LSL16      IDENTIFIER
 __lsr16       LSR16      IDENTIFIER
@@ -41,6 +41,8 @@ __divu16      DIVU16     IDENTIFIER
 __divs16      DIVS16     IDENTIFIER
 __modu16      MODU16     IDENTIFIER
 __mods16      MODS16     IDENTIFIER
+__divmodu16   DIVMODU16  IDENTIFIER
+__divmods16   DIVMODS16  IDENTIFIER
 __lsl32       LSL32      IDENTIFIER
 __lsr32       LSR32      IDENTIFIER
 __asr32       ASR32      IDENTIFIER
@@ -50,9 +52,7 @@ __divs32      DIVS32     IDENTIFIER
 __modu32      MODU32     IDENTIFIER
 __mods32      MODS32     IDENTIFIER
 __divmodu8    DIVMODU8   IDENTIFIER
-__zext        ZEXT       IDENTIFIER
-__sext        SEXT       IDENTIFIER
-__modeadjust  MODEADJUST IDENTIFIER
+__divmods8    DIVMODS8   IDENTIFIER
 
 # Primitive types.
 int8      INT8          IDENTIFIER

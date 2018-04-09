@@ -66,9 +66,9 @@ sub pass3()
 end sub;
 
 sub process_data()
-    var id: uint16 := 1;
+    var id: uint16 := FIRST_THING;
     loop
-        var thing: [Thing] := &thing_table[id] as [Thing];
+        var thing: [Thing] := &thing_table[id as int16] as [Thing];
         if thing.thing_type == 0 then
             break;
         elseif thing.thing_type == THING_STRING then
@@ -83,6 +83,12 @@ sub process_data()
             if numberthing.segment == SEGMENT_CONST then
                 numberthing.address := root.const_size;
                 root.const_size := root.const_size + 4;
+            end if;
+        elseif thing.thing_type == THING_ADDRESSOF then
+            var addressofthing: [AddressOfThing] := thing as [AddressOfThing];
+            if addressofthing.segment == SEGMENT_CONST then
+                addressofthing.address := root.const_size;
+                root.const_size := root.const_size + 2;
             end if;
         end if;
         id := next_thing(id);
@@ -108,14 +114,14 @@ sub process_subroutines()
             current_subroutine.address := root.code_size;
             zero_memory(&labels[0] as [int8], labels@bytes);
 
-            var pos: uint32 := file_tell(iop_in_fd);
+            var pos: uint32 := fcb_tell(&iop_in_fcb);
             pass := 1;
             pass12();
 
             pass := 2;
             var iterations: uint8 := 0;
             while iterations != 5 loop
-                file_seek(iop_in_fd, pos);
+                fcb_seek(&iop_in_fcb, pos);
                 changed := 0;
                 pass12();
                 if changed == 0 then
@@ -124,7 +130,7 @@ sub process_subroutines()
                 iterations := iterations + 1;
             end loop;
 
-            file_seek(iop_in_fd, pos);
+            fcb_seek(&iop_in_fcb, pos);
             pass := 3;
             pass3();
         end if;

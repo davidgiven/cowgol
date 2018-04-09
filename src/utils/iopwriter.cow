@@ -1,17 +1,30 @@
-var iop_out_fd: int8;
+var iop_out_fcb: FCB;
 var old_filename_id: uint16;
 var old_linenumber: uint16;
 
 sub init_iop_writer(filename: [int8])
-    iop_out_fd := file_openout(filename);
+    if fcb_openout(&iop_out_fcb, filename) != 0 then
+        print("cannot open output iop file");
+        halt();
+    end if;
+    
+    fcb_seek(&iop_out_fcb, 4);
 end sub;
 
 sub deinit_iop_writer()
-    file_close(iop_out_fd);
+    var len: uint32 := fcb_tell(&iop_out_fcb);
+    fcb_seek(&iop_out_fcb, 0);
+    iop_out_fcb.address := &len as [int8];
+    iop_out_fcb.count := len@bytes;
+    fcb_write(&iop_out_fcb);
+
+    fcb_close(&iop_out_fcb);
 end sub;
 
 sub write_iop_header(header: [IHeader])
-    file_putblock(iop_out_fd, header as [int8], IHeader@bytes);
+    iop_out_fcb.address := header as [int8];
+    iop_out_fcb.count := IHeader@bytes;
+    fcb_write(&iop_out_fcb);
     old_filename_id := 0;
     old_linenumber := 0;
 end sub;
@@ -22,26 +35,32 @@ sub write_terminating_iop_header()
     write_iop_header(&buf[0]);
 end sub;
 
+sub raw_write_iop(iop: [Iop])
+    iop_out_fcb.address := iop as [int8];
+    iop_out_fcb.count := iop.iop_size as uint16;
+    fcb_write(&iop_out_fcb);
+end sub;
+
 sub write_iop(iop: [Iop])
     if current_filename_id != old_filename_id then
-        var fbuf: FilenameIop[1];
-        fbuf[0].iop_size := FilenameIop@bytes;
-        fbuf[0].iop_kind := IOP_FILENAME;
-        fbuf[0].thing_id := current_filename_id;
-        file_putblock(iop_out_fd, &fbuf[0] as [int8], FilenameIop@bytes);
+        var fbuf: FilenameIop;
+        fbuf.iop_size := FilenameIop@bytes;
+        fbuf.iop_kind := IOP_FILENAME;
+        fbuf.thing_id := current_filename_id;
+        raw_write_iop(&fbuf as [Iop]);
         old_filename_id := current_filename_id;
     end if;
 
     if current_linenumber != old_linenumber then
-        var lbuf: LinenumberIop[1];
-        lbuf[0].iop_size := LinenumberIop@bytes;
-        lbuf[0].iop_kind := IOP_LINENUMBER;
-        lbuf[0].line_number := current_linenumber;
-        file_putblock(iop_out_fd, &lbuf[0] as [int8], LinenumberIop@bytes);
+        var lbuf: LinenumberIop;
+        lbuf.iop_size := LinenumberIop@bytes;
+        lbuf.iop_kind := IOP_LINENUMBER;
+        lbuf.line_number := current_linenumber;
+        raw_write_iop(&lbuf as [Iop]);
         old_linenumber := current_linenumber;
     end if;
 
-    file_putblock(iop_out_fd, iop as [int8], iop.iop_size as uint16);
+    raw_write_iop(iop);
 end sub;
 
 sub write_untyped_iop(kind: uint8)
@@ -81,12 +100,12 @@ sub write_goto_iop(label: uint8)
 end sub;
 
 sub write_address_iop(beiop: uint8, thing_id: uint16, offset: uint16)
-    var buf: AddressIop[1];
-    buf[0].iop_size := AddressIop@bytes;
-    buf[0].iop_kind := beiop;
-    buf[0].thing_id := thing_id;
-    buf[0].offset := offset;
-    write_iop(&buf[0] as [Iop]);
+    var buf: AddressIop;
+    buf.iop_size := AddressIop@bytes;
+    buf.iop_kind := beiop;
+    buf.thing_id := thing_id;
+    buf.offset := offset;
+    write_iop(&buf as [Iop]);
 end sub;
 
 sub write_label_iop(label: uint8)
@@ -97,22 +116,30 @@ sub write_label_iop(label: uint8)
     write_iop(&buf as [Iop]);
 end sub;
 
-sub write_cg_6502_mem_iop(opcode: uint8, thing_id: uint16, offset: uint16)
-    var buf: CG6502MemIop[1];
-    buf[0].iop_size := CG6502MemIop@bytes;
-    buf[0].iop_kind := IOP_CG_6502_MEM;
-    buf[0].opcode := opcode;
-    buf[0].thing_id := thing_id;
-    buf[0].offset := offset;
-    write_iop(&buf[0] as [Iop]);
+sub write_kill_iop(ea: [EffectiveAddress])
+    var buf: KillIop;
+    buf.iop_size := KillIop@bytes;
+    buf.iop_kind := IOP_KILL;
+    copy_ea(ea, &buf.ea);
+    write_iop(&buf as [Iop]);
+end sub;
+    
+sub write_cg_mem_iop(opcode: uint8, thing_id: uint16, offset: uint16)
+    var buf: CG6502MemIop;
+    buf.iop_size := CG6502MemIop@bytes;
+    buf.iop_kind := IOP_CG_MEM;
+    buf.opcode := opcode;
+    buf.thing_id := thing_id;
+    buf.offset := offset;
+    write_iop(&buf as [Iop]);
 end sub;
 
-sub write_cg_6502_conditional_iop(opcode: uint8, label: uint8)
-    var buf: CG6502ConditionalIop[1];
-    buf[0].iop_size := CG6502ConditionalIop@bytes;
-    buf[0].iop_kind := IOP_CG_6502_COND;
-    buf[0].opcode := opcode;
-    buf[0].label := label;
-    write_iop(&buf[0] as [Iop]);
+sub write_cg_conditional_iop(opcode: uint8, label: uint8)
+    var buf: CGConditionalIop;
+    buf.iop_size := CGConditionalIop@bytes;
+    buf.iop_kind := IOP_CG_COND;
+    buf.opcode := opcode;
+    buf.label := label;
+    write_iop(&buf as [Iop]);
 end sub;
 

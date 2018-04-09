@@ -28,3 +28,8 @@ ONE-mtwo==three: yes
 ONE-one==zero: yes
 ZERO-one==mone: yes
 TWO-mone==three: yes
+-two == mtwo: yes
+-one == mone: yes
+-zero == zero: yes
+-mone == one: yes
+-mtwo == two: yes

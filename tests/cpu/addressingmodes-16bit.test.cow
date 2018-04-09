@@ -10,12 +10,6 @@ var maxuint8: uint8 := 0xff;
 sub yes() print(": yes\n"); end sub;
 sub no() print(": no\n"); end sub;
 
-sub zero_memory(ptr: [int8], size: uint16)
-    while size != 0 loop
-        size := size - 1;
-        ptr[size as int16] := 0;
-    end loop;
-end sub;
 zero_memory(&smallarray[0] as [int8], smallarray@bytes);
 zero_memory(&largearray[0] as [int8], largearray@bytes);
 
@@ -73,4 +67,24 @@ print("&testrecord.array[0]==&testrecordptr.array[0]"); if &testrecord.array[0] 
 print("testrecord.array[2]==testrecordptr.array[2]"); if testrecord.array[2] == testrecordptr.array[2] then yes(); else no(); end if;
 print("&testrecord.array[2]==&testrecordptr.array[2]"); if &testrecord.array[2] == &testrecordptr.array[2] then yes(); else no(); end if;
 
+testrecord.array[2] := 4;
+testrecord.array[3] := 5;
+sub do_work()
+    # This is in its own subroutine to ensure there are no cached registers.
+    testrecordptr.array[2] := testrecordptr.array[3];
+end sub;
+do_work();
+print("testrecord.array[2]==testrecord.array[3]");
+if testrecord.array[2] == testrecord.array[3] then yes(); else no(); end if;
 
+record InnerStructure
+    array: uint8[4];
+end record;
+
+record OuterStructure
+    array: InnerStructure[4];
+end record;
+
+var teststruct: OuterStructure;
+teststruct.array[1].array[1] := 0x99;
+print("teststruct.array[smallu1].array[smallu1]==0x99"); if teststruct.array[smallu1].array[smallu1] == 0x99 then yes(); else no(); end if;

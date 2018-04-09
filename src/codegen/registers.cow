@@ -1,0 +1,561 @@
+# This is a very simple, first-come-first-served register allocator. It's dumb
+# as rocks but is really cheap. It keeps track of what values are in what
+# registers and writes back values only when needed. It can handle overlapping
+# registers of different widths.
+
+const PRECIOUS_NORMAL := 1;
+const PRECIOUS_CONSUMABLE := 2;
+
+record CachedValue
+    ea: EffectiveAddress;
+    locations: RegSet;
+    precious: uint8;
+end record;
+
+var locked_registers: RegSet;
+var value_cache: CachedValue[VALUE_CACHE_SIZE];
+var register_use: uint8[NUM_REGS];
+
+sub reg_unlock_all()
+    locked_registers := 0;
+end sub;
+
+sub reg_reset()
+    $if DEBUG
+        print("% reset register allocator\n");
+    $endif
+
+    reg_unlock_all();
+    zero_memory(&value_cache as [int8], value_cache@bytes);
+
+    var i: uint8 := 0;
+    while i != NUM_REGS loop
+        register_use[i] := 1;
+        i := i + 1;
+    end loop;
+end sub;
+
+$if DEBUG
+    sub reg_print_cache()
+        var i: uint8 := 0;
+        print("Register/value cache:\n");
+        while i != value_cache@size loop
+            var value: [CachedValue] := &value_cache[i];
+            if value.locations != 0 then
+                if value.precious == PRECIOUS_NORMAL then
+                    print("  * ");
+                elseif value.precious == PRECIOUS_CONSUMABLE then
+                    print("  ? ");
+                else
+                    print("    ");
+                end if;
+                print_ea(&value.ea);
+                print(" in ");
+                print_regs(value.locations);
+                print_newline();
+            end if;
+            i := i + 1;
+        end loop;
+    end sub;
+$endif
+
+sub find_lowest_bit(value: RegSet): (mask: RegSet)
+    mask := 1;
+    loop
+        if (value & mask) != 0 then
+            return;
+        end if;
+        mask := mask << 1;
+        if mask == 0 then
+            return;
+        end if;
+    end loop;
+end sub;
+
+# Given a set of registers, finds all registers that may be touched as a side
+# effect.
+sub reg_find_affected(regsin: RegSet): (regsout: RegSet)
+    var mask: RegSet := 1;
+    var index: uint8 := 0;
+    regsout := 0;
+    while index != NUM_REGS loop
+        if (regsin & mask) != 0 then
+            regsout := regsout | reg_interference[index];
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+end sub;
+
+# Given a set of registers, finds all registers which are compatible.
+sub reg_find_compatible(regsin: RegSet): (regsout: RegSet)
+    var mask: RegSet := 1;
+    var index: uint8 := 0;
+    regsout := ALL_REGS;
+    while index != NUM_REGS loop
+        if (regsin & mask) != 0 then
+            regsout := regsout & reg_compatibility[index];
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+end sub;
+
+# Indicate that a register has just been used.
+sub reg_bump(regs: RegSet)
+    regs := reg_find_affected(regs);
+    var mask: RegSet := 1;
+    var index: uint8 := 0;
+    while index != NUM_REGS loop
+        if (regs & mask) != 0 then
+            register_use[index] := 1;
+        else
+            var cost: uint8 := register_use[index];
+            if cost != 0xff then
+                register_use[index] := cost + 1;
+            end if;
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+end sub;
+
+# Find the register with the lowest cost (that is, the one that's been used
+# least recently).
+sub reg_find_lowest_cost(candidates: RegSet): (reg: RegSet)
+    var mask: RegSet := 1;
+    var currentcost: uint8 := 0;
+    var index: uint8 := 0;
+    while index != NUM_REGS loop
+        if (candidates & mask) != 0 then
+            var cost: uint8 := register_use[index];
+            if cost > currentcost then
+                reg := mask;
+                currentcost := cost;
+            end if;
+        end if;
+        index := index + 1;
+        mask := mask << 1;
+    end loop;
+    
+    if currentcost == 0 then
+        reg := 0;
+    end if;
+end sub;
+
+# Find or create a cache slot for a value.
+sub reg_find_cache_slot(ea: [EffectiveAddress]): (value: [CachedValue])
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        value := &value_cache[i];
+        if is_same_ea_ignoring_type(ea, &value.ea) != 0 then
+            return;
+        end if;
+        i := i + 1;
+    end loop;
+
+    i := 0;
+    while i != value_cache@size loop
+        value := &value_cache[i];
+        if value.locations == 0 then
+            copy_ea(ea, &value.ea);
+            value.precious := 0;
+            return;
+        end if;
+        i := i + 1;
+    end loop;
+
+    print("register cache full");
+    halt();
+end sub;
+
+# Is a value cached in a register?
+sub reg_is_cached_in(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        var overlap: RegSet := value.locations & candidates;
+        if (overlap != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
+            reg := find_lowest_bit(overlap);
+            return;
+        end if;
+        i := i + 1;
+    end loop;
+
+    reg := 0;
+end sub;
+
+# Given a set of registers, finds all registers therein which contain precious
+# values.
+sub reg_find_precious(regsin: RegSet): (regsout: RegSet)
+    regsout := 0;
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        if value.precious != 0 then
+            var mask: RegSet := value.locations;
+            if (mask & regsin) != 0 then
+                regsout := regsout | mask;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+    
+# Mark a value as being cached in a register.
+sub reg_cache_value(regs: RegSet, ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    value.locations := value.locations | regs;
+    $if DEBUG
+        print("% value ");
+        print_ea(ea);
+        print(" is now cached in ");
+        print_regs(value.locations);
+        print_newline();
+    $endif
+end sub;
+
+# Mark a value as being precious
+sub reg_value_is_precious(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    value.precious := PRECIOUS_NORMAL;
+    $if DEBUG
+        print("% value ");
+        print_ea(ea);
+        print(" is precious in ");
+        print_regs(value.locations);
+        print_newline();
+    $endif
+end sub;
+
+# Mark a value as not being precious
+sub reg_value_is_not_precious(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    value.precious := 0;
+    $if DEBUG
+        print("% value ");
+        print_ea(ea);
+        print(" is no longer precious in ");
+        print_regs(value.locations);
+        print_newline();
+    $endif
+end sub;
+
+# Mark a value as being consumable.
+sub reg_value_is_consumable(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    if value.precious == PRECIOUS_NORMAL then
+        value.precious := PRECIOUS_CONSUMABLE;
+        $if DEBUG
+            print("% value ");
+            print_ea(ea);
+            print(" is consumable in ");
+            print_regs(value.locations);
+            print_newline();
+        $endif
+    end if;
+end sub;
+
+# Ensure that any precious values in these registers are written back to
+# memory (and not marked as precious any more.
+sub reg_write_back_precious_regs(regs: RegSet)
+    var mask: RegSet := reg_find_affected(regs);
+    $if DEBUG
+        print("% writing back precious values in ");
+        print_regs(regs);
+        print(" which affects ");
+        print_regs(mask);
+        print_newline();
+    $endif
+
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        var locations: RegSet := value.locations;
+        if ((locations & mask) != 0) and (value.precious != 0) then
+            $if DEBUG
+                print("% ea ");
+                print_ea(&value.ea);
+                print(" is being written back\n");
+            $endif
+
+            reg_save(find_lowest_bit(locations), &value.ea);
+            value.precious := 0;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+# Ensure that this precious value is written back to memory, regardless
+# of which register they're in, so they're not precious any more.
+sub reg_write_back_precious_value(ea: [EffectiveAddress])
+    $if DEBUG
+        print("% writing back precious value ");
+        print_ea(ea);
+        print_newline();
+    $endif
+
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    var locations: RegSet := value.locations;
+    if (locations != 0) and (value.precious != 0) then
+        reg_save(find_lowest_bit(locations), ea);
+        value.precious := 0;
+    end if;
+end sub;
+
+# This value is about to change, so the cached value becomes invalid. Don't
+# bother writing back any precious values (because the precious value is now
+# obsolete). Note that this doesn't write back any precious values which might
+# share a register, so if you're writing to a register, be sure to evict it
+# after calling this.
+sub reg_value_is_changing(ea: [EffectiveAddress])
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    $if DEBUG
+        print("% abandoning old value of ");
+        print_ea(ea);
+        print(" which is in ");
+        print_regs(value.locations);
+        print_newline();
+    $endif
+    value.locations := 0;
+    value.precious := 0;
+end sub;
+
+# Evicts all values stored in the specified registers from the cache (writing
+# back precious values if necessary).
+sub reg_evict(regs: RegSet)
+    reg_write_back_precious_regs(regs);
+    var mask: RegSet := reg_find_affected(regs);
+    $if DEBUG
+        print("% evicting values in ");
+        print_regs(regs);
+        print(" which affects ");
+        print_regs(mask);
+        print_newline();
+    $endif
+
+    var i: uint8 := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        var locations: RegSet := value.locations;
+        if (locations & mask) != 0 then
+            value.locations := value.locations & (mask ^ ALL_REGS);
+            $if DEBUG
+                print("%   value ");
+                print_ea(&value.ea);
+                print(" is now cached in ");
+                print_regs(value.locations);
+                print_newline();
+            $endif
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+# Returns the set of registers currently known by the cache.
+sub reg_used_registers(): (mask: RegSet)
+    var i: uint8 := 0;
+    mask := 0;
+    while i != value_cache@size loop
+        var value: [CachedValue] := &value_cache[i];
+        mask := mask | value.locations;
+        i := i + 1;
+    end loop;
+end sub;
+
+# Allocates exactly one register from the set of candidates. Completely
+# unused registers will be preferred; then the lowest-cost register used by
+# the cache for a non-precious value; then the lowest-cost register used for
+# a precious value; then an error. The register will be locked.
+#
+# If no register could be allocated, return 0.
+sub reg_alloc_failable(candidates: RegSet): (regs: RegSet)
+    $if DEBUG
+        print("% allocating register in ");
+        print_regs(candidates);
+        print_newline();
+
+        print("%   locked registers: ");
+        print_regs(locked_registers);
+        print_newline();
+    $endif
+
+    var used_registers: RegSet := reg_used_registers();
+    $if DEBUG
+        print("%   used registers: ");
+        print_regs(used_registers);
+        print_newline();
+    $endif
+
+    # First, attempt to find a register which is completely unused.
+
+    regs := (reg_find_affected(used_registers | locked_registers) ^ ALL_REGS) & candidates;
+    $if DEBUG
+        print("%   potential unused registers are ");
+        print_regs(regs);
+        print_newline();
+    $endif
+    if regs != 0 then
+        regs := find_lowest_bit(regs);
+        $if DEBUG
+            print("%   allocating unused register ");
+            print_regs(regs);
+            print_newline();
+        $endif
+        locked_registers := locked_registers | regs;
+        return;
+    end if;
+
+    # If this fails, attempt to evict the lowest cost non-precious register.
+
+    var precious: RegSet := reg_find_precious(candidates);
+    $if DEBUG
+        print("%   precious registers are ");
+        print_regs(precious);
+        print_newline();
+    $endif
+    regs := (reg_find_affected(locked_registers | precious) ^ ALL_REGS) & candidates;
+    $if DEBUG
+        print("%   no unused registers, considering evicting one of non-precious ");
+        print_regs(regs);
+        print_newline();
+    $endif
+    if regs != 0 then
+        regs := reg_find_lowest_cost(regs);
+        $if DEBUG
+            print("%   evicting lowest cost register which is ");
+            print_regs(regs);
+            print_newline();
+        $endif
+        reg_evict(regs);
+        locked_registers := locked_registers | regs;
+        return;
+    end if;
+
+    # There are no candidate non-precious registers. We'll have to evict a
+    # precious one.
+
+    regs := (reg_find_affected(locked_registers) ^ ALL_REGS) & candidates;
+    $if DEBUG
+        print("%   no unused registers, considering evicting one of precious ");
+        print_regs(regs);
+        print_newline();
+    $endif
+    if regs != 0 then
+        regs := reg_find_lowest_cost(regs);
+        $if DEBUG
+            print("%   evicting lowest cost register which is ");
+            print_regs(regs);
+            print_newline();
+        $endif
+        reg_evict(regs);
+        locked_registers := locked_registers | regs;
+        return;
+    end if;
+    
+    regs := 0;
+end sub;
+
+# As for reg_alloc_failable(), except that if a register couldn't be
+# allocated, halt with an error.
+sub reg_alloc(candidates: RegSet): (regs: RegSet)
+    (regs) := reg_alloc_failable(candidates);
+    if regs == 0 then
+        print("ran out of registers");
+        halt();
+    end if;
+end sub;
+
+# As for reg_alloc_fixed(), but the result is discarded.
+sub reg_alloc_fixed(candidates: RegSet)
+    var reg: RegSet := reg_alloc(candidates);
+end sub;
+
+# Frees some registers previously allocated with reg_alloc().
+sub reg_free(regs: RegSet)
+    $if DEBUG
+        print("% freeing ");
+        print_regs(regs);
+        print_newline();
+    $endif
+
+    locked_registers := locked_registers & (regs ^ ALL_REGS);
+end sub;
+
+# Locates a value in the cache and locks it; if the value is not in the cache,
+# then allocates a register and loads it. If the value *is* in the cache, a
+# previously locked register may be returned.
+sub reg_find_or_load(candidates: RegSet, ea: [EffectiveAddress]): (reg: RegSet)
+    $if DEBUG
+        print("% locating ");
+        print_ea(ea);
+        print_newline();
+    $endif
+
+    # Attempt to find the value in the cache.
+
+    var value: [CachedValue] := reg_find_cache_slot(ea);
+    reg := value.locations & candidates;
+    if reg != 0 then
+        $if DEBUG
+            print("%   value is cached in ");
+            print_regs(reg);
+            print_newline();
+        $endif
+        reg := find_lowest_bit(reg);
+        $if DEBUG
+            print("%   selecting ");
+            print_regs(reg);
+            print_newline();
+        $endif
+        locked_registers := locked_registers | reg;
+		reg_bump(reg);
+
+        if value.precious == PRECIOUS_CONSUMABLE then
+            $if DEBUG
+                print("%   value is consumed and no longer precious\n");
+            $endif
+            value.precious := 0;
+        end if;
+        return;
+    end if;
+
+    # Allocate a register.
+
+    $if DEBUG
+        print("%   allocating new register for value\n");
+    $endif
+    reg := reg_alloc(candidates);
+    
+    # Is the value in the cache, but not in a candidate register? If so, copy
+    # it. Otherwise, load it.
+
+    var compatible: RegSet := reg_find_compatible(candidates) & value.locations;
+    if compatible != 0 then
+        reg_copy(find_lowest_bit(compatible), reg);
+    else
+        reg_load(reg, ea);
+    end if;
+    reg_cache_value(reg, ea);
+    reg_bump(reg);
+end sub;
+
+# As reg_find_or_load, but the result is discarded (when you know what it'll
+# be).
+sub reg_find_or_load_fixed(candidates: RegSet, ea: [EffectiveAddress])
+    var location: RegSet := reg_find_or_load(candidates, ea);
+end sub;
+
+# As reg_find_or_load, but loads a literal small int.
+sub reg_find_or_load_int(candidates: RegSet, value: uint8): (reg: RegSet)
+    var ea: EffectiveAddress;
+    zero_ea(&ea);
+    ea.type_id := uint8_type;
+    ea.obj_id := add_number_by_value(value as int32);
+    reg := reg_find_or_load(candidates, &ea);
+end sub;
+
+# As reg_find_or_load_fixed, but the result is discarded.
+sub reg_find_or_load_int_fixed(candidates: RegSet, value: uint8)
+    var location: RegSet := reg_find_or_load_int(candidates, value);
+end sub;

@@ -31,11 +31,11 @@ print("zero-zero == zero"); if zero-zero == zero then yes(); else no(); end if;
 print("zero-mone == one");  if zero-mone == one then yes(); else no(); end if;
 print("zero-mtwo == two");  if zero-mtwo == two then yes(); else no(); end if;
 
-print("0-two == mtwo");  if 0-two == mtwo then yes(); else no(); end if;
-print("0-one == mone");  if 0-one == mone then yes(); else no(); end if;
-print("0-zero == zero"); if 0-zero == zero then yes(); else no(); end if;
-print("0-mone == one");  if 0-mone == one then yes(); else no(); end if;
-print("0-mtwo == two");  if 0-mtwo == two then yes(); else no(); end if;
+print("-two == mtwo");  if -two == mtwo then yes(); else no(); end if;
+print("-one == mone");  if -one == mone then yes(); else no(); end if;
+print("-zero == zero"); if -zero == zero then yes(); else no(); end if;
+print("-mone == one");  if -mone == one then yes(); else no(); end if;
+print("-mtwo == two");  if -mtwo == two then yes(); else no(); end if;
 
 print("zero-2 == mtwo");   if zero-2 == mtwo then yes(); else no(); end if;
 print("zero-1 == mone");   if zero-1 == mone then yes(); else no(); end if;

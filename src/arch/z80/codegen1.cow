@@ -1,0 +1,188 @@
+# Note that for VALUEs, any offset gets baked into the pointer. For DEREFs, the
+# pointer points to the base and you need to apply the offset yourself.
+sub make_pointer(ea: [EffectiveAddress], ptrea: [EffectiveAddress])
+    var thing: [DataThing];
+
+    copy_ea(ea, ptrea);
+    if ea.flags == EA_VALUE then
+        ptrea.flags := EA_LEA;
+
+        # If we ever take the address of a number, ensure that the number will
+        # get written out as a data value.
+        if is_number_thing(ea.obj_id) != 0 then
+            thing := find_thing(ea.obj_id) as [DataThing];
+            thing.segment := SEGMENT_CONST;
+        end if;
+    elseif ea.flags == EA_LEA then
+        var ptr_id: uint16 := add_addressof_by_value(ea.obj_id,
+            get_value_of_number(ea.numoff_id) as uint16);
+        thing := find_thing(ptr_id) as [DataThing];
+        thing.segment := SEGMENT_CONST;
+        ptrea.obj_id := ptr_id;
+        ptrea.numoff_id := 0;
+        ptrea.flags := EA_LEA;
+    elseif ea.flags == EA_DEREF then
+        ptrea.flags := EA_VALUE;
+        ptrea.numoff_id := 0;
+    end if;
+end sub;
+
+# Applies an offset to a register pair (in a mildly efficient way).
+sub apply_offset(reg: RegSet, delta: int16): (newreg: RegSet)
+    # Delta here experimentally verified to be the best.
+    if (delta >= -4) and (delta <= 4) then
+        $if DEBUG
+            print("* applying delta of ");
+            print_i16(delta as uint16);
+            print(" to ");
+            print_regs(reg);
+            print(" with inc/decs\n");
+        $endif
+    
+        var smalldelta: int8 := delta as int8;
+        var opcode: uint8 := 0;
+        if smalldelta < 0 then
+            opcode := 0x0B; # dec bc
+            smalldelta := -smalldelta;
+        elseif smalldelta > 0 then
+            opcode := 0x03; # inc bc
+        end if;
+
+        opcode := opcode | get_z80_regnum(reg);
+
+        while smalldelta != 0 loop
+            write_byte(opcode);
+            smalldelta := smalldelta - 1;
+        end loop;
+        newreg := reg;
+    else
+        $if DEBUG
+            print("* applying delta of ");
+            print_i16(delta as uint16);
+            print(" to ");
+            print_regs(reg);
+            print(" with addition\n");
+        $endif
+    
+        var offea: EffectiveAddress;
+        offea.type_id := uint16_type;
+        offea.obj_id := add_number_by_value(delta as int32);
+
+        var offreg: RegSet := reg_find_or_load(REG_HL|REG_BC|REG_DE, &offea);
+        if reg == REG_HL then
+            newreg := reg;
+        elseif offreg == REG_HL then
+            newreg := offreg;
+            offreg := reg;
+            reg := newreg;
+        elseif reg == REG_DE then
+            # We can do this, but it's slower.
+            newreg := reg;
+        elseif offreg == REG_DE then
+            newreg := offreg;
+            offreg := reg;
+            reg := newreg;
+        else
+            print("reg=");
+            print_regs(reg);
+            print("offreg=");
+            print_regs(offreg);
+            halt();
+        end if;
+            
+        var regnum: uint8 := get_z80_regnum(offreg);
+        if reg == REG_DE then
+            write_byte(0xEB); # ex hl, de
+            if offreg == REG_HL then
+                write_byte(0x19); # add hl, de
+            elseif offreg == REG_BC then
+                write_byte(0x09); # add hl, bc
+            else
+                print("can't happen");
+                halt();
+            end if;
+            write_byte(0xEB); # ex hl, de
+        elseif reg == REG_HL then
+            write_byte(0x09 | regnum); # add hl, bc
+        else
+            print("can't happen 1");
+            halt();
+        end if;
+        reg_free(offreg);
+    end if;
+    reg_evict(newreg);
+end sub;
+
+# Given an ea, loads a pointer to it, adding any extra offset. Returns the
+# pointer and any extra offset which needs adding in the dereference. The
+# rules are inconsistent and a bit weird:
+#
+#  index registers: pointer+residual does not include extraoffset
+#  other registers: pointer does include extraoffset, residual=0
+#
+# There are reasons for this, honest. 
+sub setup_pointer(candidates: RegSet, ea: [EffectiveAddress], extraoffset: uint8):
+        (reg: RegSet, residualoffset: int16)
+    $if DEBUG
+        print("* constructing a pointer to ");
+        print_ea(ea);
+        print(" in ");
+        print_regs(candidates);
+        print_newline();
+    $endif
+
+    var indea: EffectiveAddress;
+    make_pointer(ea, &indea);
+
+    if get_value_of_number(ea.numoff_id) != 0 then
+        candidates := candidates & (REG_HL|REG_DE|REG_IX|REG_IY);
+    end if;
+    reg := reg_find_or_load(candidates, &indea);
+
+    if ea.flags == EA_DEREF then
+        residualoffset := get_value_of_number(ea.numoff_id) as int16;
+    else
+        residualoffset := 0;
+    end if;
+    if (reg & REG_INDEX) == 0 then
+        residualoffset := residualoffset + (extraoffset as int16);
+        if residualoffset != 0 then
+            var newreg: RegSet := apply_offset(reg, residualoffset);
+            $if DEBUG
+                print("* after offset, result is in ");
+                print_regs(newreg);
+                print_newline();
+            $endif
+            if (newreg & candidates) == 0 then
+                $if DEBUG
+                    print("* which is not acceptable, so moving it\n");
+                $endif
+                reg := reg_alloc(candidates);
+                reg_copy(newreg, reg);
+                reg_free(newreg);
+            else
+                reg := newreg;
+            end if;
+            residualoffset := 0;
+        end if;
+    end if;
+end sub;
+
+# Returns half a register pair.
+sub halfof_reg(reg16: RegSet, offset: uint8): (reg8: RegSet)
+    if reg16 == REG_HL then
+        reg8 := REG_L;
+    elseif reg16 == REG_BC then
+        reg8 := REG_C;
+    elseif reg16 == REG_DE then
+        reg8 := REG_E;
+    elseif reg16 == REG_A then
+        reg8 := REG_A;
+        return;
+    else
+        print("bad register: ");
+        print_regs(reg16);
+        halt();
+    end if;
+    reg8 := reg8 >> offset;
+end sub;

@@ -1,48 +1,58 @@
-var iop_in_fd: int8;
+var iop_in_fcb: FCB;
 var iop_buffer: uint8[256];
 var current_filename_id: uint16;
 var current_linenumber: uint16;
 
+sub where_am_i()
+    show_identifier(current_filename_id);
+    print_char(':');
+    print_i16(current_linenumber);
+    print_newline();
+end sub;
+
+sub halt()
+    print(" at ");
+    where_am_i();
+    exit(1);
+end sub;
+
 sub init_iop_reader(filename: [int8])
-    iop_in_fd := file_openin(filename);
+    if fcb_openin(&iop_in_fcb, filename) != 0 then
+        print("cannot open iop input");
+        halt();
+    end if;
+    fcb_seek(&iop_in_fcb, 4);
     current_filename_id := 0;
     current_linenumber := 0;
 end sub;
 
 sub deinit_iop_reader()
-    file_close(iop_in_fd);
-end sub;
-
-sub halt()
-    print(" at ");
-    show_identifier(current_filename_id);
-    print_char(':');
-    print_i16(current_linenumber);
-    print_newline();
-    exit(1);
+    fcb_close(&iop_in_fcb);
 end sub;
 
 sub read_iop_header(): (header: [IHeader])
-    var eof: uint8 := file_getblock(iop_in_fd, &iop_buffer[0] as [int8], IHeader@bytes);
-    if eof != 0 then
+    iop_in_fcb.address := &iop_buffer[0] as [int8];
+    iop_in_fcb.count := IHeader@bytes;
+    fcb_read(&iop_in_fcb);
+    if iop_in_fcb.count != 0 then
         print("unexpected EOF");
         halt();
     end if;
     header := &iop_buffer[0] as [IHeader];
 
-    print_i32(file_tell(iop_in_fd));
+    print_i32(fcb_tell(&iop_in_fcb));
     print_char('/');
-    print_i32(file_ext(iop_in_fd));
+    print_i32(fcb_ext(&iop_in_fcb));
     print_char('\r');
 end sub;
 
 sub read_iop(): (iop: [Iop])
     loop
-        var eof: uint8;
-        var size: int8;
-        (size, eof) := file_getchar(iop_in_fd);
-        iop_buffer[0] := size as uint8;
-        (eof) := file_getblock(iop_in_fd, &iop_buffer[1] as [int8], (size - 1) as uint16);
+        var size: uint8 := fcb_getchar(&iop_in_fcb) as uint8;
+        iop_buffer[0] := size;
+        iop_in_fcb.address := &iop_buffer[1] as [int8];
+        iop_in_fcb.count := (size - 1) as uint16;
+        fcb_read(&iop_in_fcb);
         iop := &iop_buffer[0] as [Iop];
 
         if iop.iop_kind == IOP_LINENUMBER then

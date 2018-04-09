@@ -4,16 +4,16 @@ const DIGIT := 2;
 const SYMBOL := 3;
 const ALPHABETIC := 4;
 
-sub classify_char_type(c: int8): (type: int8)
+sub classify_char_ctype(c: int8): (ctype: int8)
     if (c == ' ') or (c == 13) or (c == 9) then
-        type := WHITESPACE;
+        ctype := WHITESPACE;
     elseif c == 10 then
-        type := NEWLINE;
+        ctype := NEWLINE;
     elseif (c >= '0') and (c <= '9') then
-        type := DIGIT;
+        ctype := DIGIT;
     elseif ((c >= 'a') and (c <= 'z')) or ((c >= 'A') and (c <= 'Z')) or (c == '_') then
-        type := ALPHABETIC;
+        ctype := ALPHABETIC;
     else
-        type := SYMBOL;
+        ctype := SYMBOL;
     end if;
 end sub;

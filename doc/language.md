@@ -206,8 +206,8 @@ p[0] := p[0] + 1;   # dereference pointer
 ```
 
 **Big warning.** I'm planning on changing the pointer dereference syntax to
-*make them non-indexable. Please don't use indices other than 0. (They'll be
-*replaced with pointers to arrays.)
+make them non-indexable. Please don't use indices other than 0. (They'll be
+replaced with pointers to arrays.)
 
 You may have pointers to pointers. But remember that pointers are typically
 pretty expensive on small machines.
@@ -229,6 +229,24 @@ var block: SomeType;
 zero_memory(&block as [int8], SomeType@bytes);
 zero_memory(&block as [int8], block@bytes);    # this works too
 ```
+
+## Conditional compilation
+
+There's very basic parser support for conditional compilation, which is used
+to turn on and off debug tracing.
+
+```
+$set DEBUG                # set the debugging flag
+
+$if DEBUG
+  something();            # only gets compiled if $set DEBUG was seen
+$endif
+```
+
+**Note:** No semicolon!
+
+There are no other flags which can be set (although more may arrive in the
+future).
 
 ## Special tricks
 

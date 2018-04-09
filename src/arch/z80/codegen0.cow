@@ -1,0 +1,547 @@
+type RegSet := uint16;
+const REG_A      := 0b0000_0000_0001; # 0
+const REG_B      := 0b0000_0000_0010; # 1
+const REG_C      := 0b0000_0000_0100; # 2
+const REG_D      := 0b0000_0000_1000; # 3
+const REG_E      := 0b0000_0001_0000; # 4
+const REG_H      := 0b0000_0010_0000; # 5
+const REG_L      := 0b0000_0100_0000; # 6
+const REG_HL     := 0b0000_1000_0000; # 7
+const REG_BC     := 0b0001_0000_0000; # 8
+const REG_DE     := 0b0010_0000_0000; # 9
+const REG_IX     := 0b0100_0000_0000; # 10
+const REG_IY     := 0b1000_0000_0000; # 11
+const ALL_REGS   := 0b1111_1111_1111;
+const NUM_REGS   := 12;
+
+const REG_8BIT   := 0b0000_0111_1111;
+const REG_16BIT  := 0b1111_1000_0000;
+const REG_PAIR   := 0b0011_1000_0000;
+const REG_INDEX  := 0b1100_0000_0000;
+const REG_STUPID := 0b0000_0111_1110;
+
+const VALUE_CACHE_SIZE := 16;
+
+var reg_interference: RegSet[NUM_REGS] := {
+    REG_A,
+    REG_B | REG_BC,
+    REG_C | REG_BC,
+    REG_D | REG_DE,
+    REG_E | REG_DE,
+    REG_H | REG_HL,
+    REG_L | REG_HL,
+    REG_HL | REG_H | REG_L,
+    REG_BC | REG_B | REG_C,
+    REG_DE | REG_D | REG_E,
+    REG_IX,
+    REG_IY
+};
+
+var reg_compatibility: RegSet[NUM_REGS] := {
+    REG_8BIT,  # A
+    REG_8BIT,  # B
+    REG_8BIT,  # C
+    REG_8BIT,  # D
+    REG_8BIT,  # E
+    REG_8BIT,  # H
+    REG_8BIT,  # L
+    REG_16BIT, # HL
+    REG_16BIT, # BC
+    REG_16BIT, # DE
+    REG_16BIT, # IX
+    REG_16BIT, # IY
+};
+
+sub print_regs(regs: RegSet)
+    if regs == 0            then print("(none) "); end if;
+    if (regs & REG_A) != 0  then print("A "); end if;
+    if (regs & REG_B) != 0  then print("B "); end if;
+    if (regs & REG_C) != 0  then print("C "); end if;
+    if (regs & REG_D) != 0  then print("D "); end if;
+    if (regs & REG_E) != 0  then print("E "); end if;
+    if (regs & REG_H) != 0  then print("H "); end if;
+    if (regs & REG_L) != 0  then print("L "); end if;
+    if (regs & REG_BC) != 0 then print("BC "); end if;
+    if (regs & REG_DE) != 0 then print("DE "); end if;
+    if (regs & REG_HL) != 0 then print("HL "); end if;
+    if (regs & REG_IX) != 0 then print("IX "); end if;
+    if (regs & REG_IY) != 0 then print("IY "); end if;
+end sub;
+
+# Gets the register index.
+sub get_regnum(reg: RegSet): (regnum: uint8)
+    regnum := 0;
+    while reg != 1 loop
+        if reg == 0 then
+            print("bad register");
+            halt();
+        end if;
+        reg := reg >> 1;
+        regnum := regnum + 1;
+    end loop;
+end sub;
+
+var z80_regnum: uint8[NUM_REGS] := {
+    # Value is three-bit internal register number.
+    0x07, # A
+    0x00, # B
+    0x01, # C
+    0x02, # D
+    0x03, # E
+    0x04, # H
+    0x05, # L
+
+    # Value is row number.
+    0x20, # HL
+    0x00, # BC
+    0x10, # DE
+
+    # Value is prefix byte.
+    0xDD, # IX
+    0xFD, # IY
+};
+
+# Gets the internal Z80 register number.
+sub get_z80_regnum(reg: RegSet): (regnum: uint8)
+    regnum := z80_regnum[get_regnum(reg)];
+end sub;
+
+record Insn
+    datareg: RegSet;
+    otherreg: RegSet;
+    obj_id: uint16;
+    offset: int16;
+    mode: uint8;
+end record;
+
+const MODE_DIR := 1;
+const MODE_IND := 2;
+const MODE_IMM := 3;
+
+var insn: Insn;
+
+sub save_insn(storage: [Insn])
+    copy_memory(&insn as [int8], storage as [int8], Insn@bytes);
+end sub;
+
+sub load_insn(storage: [Insn])
+    copy_memory(storage as [int8], &insn as [int8], Insn@bytes);
+end sub;
+
+sub insn_init()
+    zero_memory(&insn as [int8], Insn@bytes);
+end sub;
+
+sub print_insn()
+    print(" datareg=");
+    print_regs(insn.datareg);
+    print(" otherreg=");
+    print_regs(insn.otherreg);
+    print(" thing=");
+    print_thing(insn.obj_id);
+    print(" offset=0x");
+    print_hex_i16(insn.offset as uint16);
+    print(" mode=");
+    print_i8(insn.mode);
+    print_newline();
+end sub;
+
+sub insn_init_from_ea(ea: [EffectiveAddress])
+    insn_init();
+    insn.obj_id := ea.obj_id;
+    insn.offset := get_value_of_number(ea.numoff_id) as int16;
+    if ea.flags == EA_VALUE then
+        if is_number_thing(insn.obj_id) != 0 then
+            insn.mode := MODE_IMM;
+            insn.offset := get_value_of_number(insn.obj_id) as int16;
+            insn.obj_id := 0;
+        else
+            insn.mode := MODE_DIR;
+        end if;
+    elseif ea.flags == EA_DEREF then
+        print("insn_init_from_ea with deref");
+        halt();
+    else
+        insn.mode := MODE_IMM;
+    end if;
+end sub;
+
+sub insn_check_imm()
+    if (insn.mode != MODE_IMM) or (insn.otherreg != 0) then
+        print("insn_check_imm fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_abs()
+    if (insn.mode != MODE_DIR) or (insn.otherreg != 0) or ((insn.datareg & REG_STUPID) != 0) then
+        print("insn_check_abs fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_8bit_reg()
+    if (insn.mode != MODE_DIR) or (insn.obj_id != 0) or (insn.offset != 0) or (insn.otherreg == 0) then
+        print("insn_check_8bit_reg fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_8bit_alu_ind()
+    if (insn.mode != MODE_IND) or (insn.obj_id != 0) or (insn.otherreg == 0) or
+        ((insn.otherreg != REG_HL) and (insn.otherreg != REG_IX) and (insn.otherreg != REG_IY)) or
+        ((insn.otherreg == REG_HL) and (insn.offset != 0))
+    then
+        print("insn_check_8bit_alu_ind fail");
+        halt();
+    end if;
+end sub;
+
+sub insn_check_8bit_ind()
+    if (insn.mode != MODE_IND) or (insn.obj_id != 0)
+        or ((insn.otherreg & REG_16BIT) == 0)
+        or (((insn.otherreg & REG_INDEX) == 0) and (insn.offset != 0))
+        or (((insn.otherreg & (REG_BC|REG_DE)) != 0) and (insn.datareg != REG_A))
+    then
+        print("insn_check_8bit_ind fail");
+        halt();
+    end if;
+end sub;
+
+var ldst_abs_opcodes: uint16[NUM_REGS] := {
+    0x32,   # ld (**), a
+    0,      # b
+    0,      # c
+    0,      # d
+    0,      # e
+    0,      # h
+    0,      # l
+    0x22,   # ld (**), hl
+    0x43ED, # ld (**), bc
+    0x53ED, # ld (**), de
+    0x22DD, # ld (**), ix
+    0x22FD, # ld (**), iy
+};
+
+sub insn_ldst_abs(readflag: uint8)
+    $if DEBUG
+        print("@ insn_op_abs read=");
+        print_i8(readflag);
+        print_insn();
+    $endif
+    insn_check_abs();
+
+    var reg: RegSet := insn.datareg;
+    var regnum: uint8 := get_regnum(reg);
+    var opcode: uint16 := ldst_abs_opcodes[regnum];
+    if opcode < 0x100 then
+        if readflag != 0 then
+            opcode := opcode | 0x08;
+        end if;
+        write_byte(opcode as uint8);
+    else
+        if readflag != 0 then
+            opcode := opcode | 0x0800;
+        end if;
+        write_word(opcode);
+    end if;
+    write_address_iop(IOP_ADDRESS, insn.obj_id, insn.offset as uint16);
+end sub;
+
+sub insn_ldst_ind(readflag: uint8)
+    $if DEBUG
+        print("@ insn_ldst_ind read=");
+        print_i8(readflag);
+        print_insn();
+    $endif
+    insn_check_8bit_ind();
+
+    if (insn.otherreg & (REG_BC|REG_DE)) != 0 then
+        if readflag != 0 then
+            readflag := 0x08;
+        end if;
+
+        if insn.otherreg == REG_BC then
+            write_byte(0x02 | readflag); # ld (bc), a
+        elseif insn.otherreg == REG_DE then
+            write_byte(0x12 | readflag); # ld (de), a
+        end if;
+    else
+        if insn.otherreg == REG_IX then
+            write_byte(0xDD); # IX prefix
+        elseif insn.otherreg == REG_IY then
+            write_byte(0xFD); # IY prefix
+        end if;
+
+        var datareg: uint8 := get_z80_regnum(insn.datareg) as uint8;
+        if readflag == 0 then
+            write_byte(0x70 | datareg); # ld b, (hl)
+        else
+            write_byte(0x46 | (datareg<<3)); # ld (hl), b
+        end if;
+        if (insn.otherreg & REG_INDEX) != 0 then
+            write_byte(insn.offset as uint8);
+        end if;
+    end if;
+end sub;
+
+sub insn_ld_abs()
+    insn_ldst_abs(1);
+end sub;
+
+sub insn_st_abs()
+    insn_ldst_abs(0);
+end sub;
+
+sub insn_ld_ind()
+    insn_ldst_ind(1);
+end sub;
+
+sub insn_st_ind()
+    insn_ldst_ind(0);
+end sub;
+
+sub insn_8bit_op_imm(opcode: uint8)
+    $if DEBUG
+        print("@ insn_8bit_op_imm opcode=0x");
+        print_hex_i8(opcode);
+        print_insn();
+    $endif
+    insn_check_imm();
+
+    write_byte(opcode);
+    write_byte(insn.offset as uint8);
+end sub;
+
+sub insn_16bit_op_imm(opcode: uint16)
+    $if DEBUG
+        print("@ insn_16bit_op_imm opcode=0x");
+        print_hex_i16(opcode);
+        print_insn();
+    $endif
+    insn_check_imm();
+
+    if opcode < 0x100 then
+        write_byte(opcode as uint8);
+    else
+        write_word(opcode);
+    end if;
+    if insn.obj_id == 0 then
+        write_word(insn.offset as uint16);
+    else
+        write_address_iop(IOP_ADDRESS, insn.obj_id, insn.offset as uint16);
+    end if;
+end sub;
+
+sub insn_ld_imm()
+    var reg: RegSet := insn.datareg;
+    var regnum: uint8 := get_z80_regnum(reg);
+    if (reg & REG_8BIT) != 0 then
+        insn_8bit_op_imm(0x06 | (regnum << 3));
+    elseif (reg & REG_INDEX) != 0 then
+        insn_16bit_op_imm(0x2100 | (regnum as uint16));
+    else
+        insn_16bit_op_imm((0x01 | regnum) as uint16);
+    end if;
+end sub;
+
+sub insn_load_object()
+    if insn.mode == MODE_DIR then
+        insn_ld_abs();
+    elseif insn.mode == MODE_IND then
+        insn_ld_ind();
+    else
+        insn_ld_imm();
+    end if;
+end sub;
+
+sub insn_save_object()
+    if insn.mode == MODE_DIR then
+        insn_st_abs();
+    elseif insn.mode == MODE_IND then
+        insn_st_ind();
+    else
+        print("cannot save ");
+        print_insn();
+        halt();
+    end if;
+end sub;
+
+#sub insn_op_abs(opcode: uint16)
+#    $if DEBUG
+#        print("@ insn_op_abs opcode=0x");
+#        print_hex_i16(opcode);
+#        print_insn();
+#    $endif
+#    insn_check_abs();
+#
+#    var reg: RegSet := insn.datareg;
+#    var regnum: uint8 := get_regnum(reg);
+#    var opcode: uint16 := ldst_abs_opcodes[regnum];
+#    if opcode < 0x100 then
+#        if readflag != 0 then
+#            opcode := opcode | 0x08;
+#        end if;
+#        write_byte(opcode as uint8);
+#    else
+#        if readflag != 0 then
+#            opcode := opcode | 0x0800;
+#        end if;
+#        write_word(opcode);
+#    end if;
+#    write_address_iop(IOP_ADDRESS, insn.obj_id, insn.offset as uint16);
+#end sub;
+
+# opcode refers to the immediate form
+sub insn_8bit_op_alu_dir_reg(opcode: uint8)
+    $if DEBUG
+        print("@ insn_8bit_op_alu_reg opcode=0x");
+        print_hex_i8(opcode);
+        print_insn();
+    $endif
+    insn_check_8bit_reg();
+
+    var srcreg: uint8 := get_z80_regnum(insn.otherreg);
+    opcode := (opcode & 0b10111000) | srcreg;
+    write_byte(opcode);
+end sub;
+
+# opcode refers to the immediate form
+sub insn_8bit_op_alu_ind_reg(opcode: uint8)
+    $if DEBUG
+        print("@ insn_8bit_op_alu_reg opcode=0x");
+        print_hex_i8(opcode);
+        print_insn();
+    $endif
+    insn_check_8bit_alu_ind();
+
+    opcode := (opcode & 0b1011_1000) | 0b0000_0110;
+    if insn.otherreg == REG_IX then
+        write_byte(0xDD); # IX prefix
+    elseif insn.otherreg == REG_IY then
+        write_byte(0xFD); # IY prefix
+    end if;
+    write_byte(opcode);
+
+    if (insn.otherreg & REG_INDEX) != 0 then
+        write_byte(insn.offset as uint8);
+    end if;
+end sub;
+
+# opcode refers to the immediate form
+sub insn_8bit_aluop(opcode: uint8)
+    if insn.mode == MODE_IMM then
+        insn_8bit_op_imm(opcode);
+    elseif insn.mode == MODE_DIR then
+        if insn.otherreg != 0 then
+            insn_8bit_op_alu_dir_reg(opcode);
+        else
+            print("cannot aluop dir ");
+            print_insn();
+            halt();
+        end if;
+    elseif insn.mode == MODE_IND then
+        if insn.otherreg != 0 then
+            insn_8bit_op_alu_ind_reg(opcode);
+        else
+            print("cannot aluop ind ");
+            print_insn();
+            halt();
+        end if;
+    else
+        print("cannot aluop ");
+        print_insn();
+        halt();
+    end if;
+end sub;
+
+sub reg_save(reg: RegSet, ea: [EffectiveAddress])
+    $if DEBUG
+        print("@ SAVE ");
+        print_ea(ea);
+        print(" <- ");
+        print_regs(reg);
+        print_newline();
+    $endif
+
+    if (reg & REG_STUPID) != 0 then
+        print("store from stupid register");
+        halt();
+    end if;
+    
+    var storage: Insn;
+    save_insn(&storage);
+
+    insn_init_from_ea(ea);
+    insn.datareg := reg;
+    insn_save_object();
+
+    load_insn(&storage);
+end sub;
+
+sub reg_load(reg: RegSet, ea: [EffectiveAddress])
+    $if DEBUG
+        print("@ LOAD ");
+        print_ea(ea);
+        print(" -> ");
+        print_regs(reg);
+        print_newline();
+    $endif
+
+    if (is_number_thing(ea.obj_id) == 0) and ((reg & REG_STUPID) != 0) then
+        print("load to stupid register");
+        halt();
+    end if;
+
+    var storage: Insn;
+    save_insn(&storage);
+
+    insn_init_from_ea(ea);
+    insn.datareg := reg;
+    insn_load_object();
+
+    load_insn(&storage);
+end sub;
+
+sub reg_copy(src: RegSet, dest: RegSet)
+    $if DEBUG
+        print("@ COPY ");
+        print_regs(src);
+        print(" -> ");
+        print_regs(dest);
+        print_newline();
+    $endif
+
+    var srcregnum: uint8 := get_z80_regnum(src);
+    var destregnum: uint8 := get_z80_regnum(dest);
+
+    sub movepair()
+        write_byte(0x40 | ((destregnum as uint8)<<3) | (srcregnum as uint8));
+    end sub;
+
+    if (src & REG_8BIT) != 0 then
+        movepair();
+    elseif ((src|dest) & (REG_IX|REG_IY)) != 0 then
+        if (src & (REG_IX|REG_IY)) != 0 then
+            write_byte(srcregnum);
+            write_byte(0xE5); # push hl (ix/iy with prefix)
+        else
+            write_byte(0xC5 | srcregnum); # push bc
+        end if;
+
+        if (dest & (REG_IX|REG_IY)) != 0 then
+            write_byte(destregnum);
+            write_byte(0xE1); # pop hl (ix/iy with prefix)
+        else
+            write_byte(0xC1 | destregnum); # pop bc
+        end if;
+    else
+        # Convert pair number to internal reg number.
+        srcregnum := srcregnum >> 3;
+        destregnum := destregnum >> 3;
+        movepair();
+        srcregnum := srcregnum + 1;
+        destregnum := destregnum + 1;
+        movepair();
+    end if;
+end sub;

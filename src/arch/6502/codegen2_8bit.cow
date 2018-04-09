@@ -7,16 +7,30 @@ end sub;
 sub arch_gen_not_byte(iop: [BEIop])
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
-    write_byte(0x49); # EOR imm
-    write_byte(0xFF);
+    write_word(0xff49); # EOR #0xff
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
 sub gen_regular_alu(iop: [BEIop], opcode: uint8)
+    $if DEBUG
+        print("* byte aluop 0x");
+        print_hex_i8(opcode);
+        print(": ");
+        print_ea(&iop.left);
+        print(", ");
+        print_ea(&iop.right);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
     var location: uint8 := find_or_load_value(&iop.left, REG_A);
     value_in_location_will_be_replaced_with(location, &iop.left, &iop.dest);
 
-    aluop_value(&iop.right, opcode);
+    var indexreg: uint8 := setup_insn(&iop.right, 0, REG_A);
+    insn_alu_object(opcode);
+    free_reg(indexreg);
+    
     make_value_precious_or_save_now(location, &iop.dest);
 end sub;
 
@@ -56,6 +70,16 @@ sub gen_incdec(iop: [BEIop], value: int8)
 end sub;
 
 sub arch_gen_add_byte(iop: [BEIop])
+    $if DEBUG
+        print("* GENERATE: byte add: ");
+        print_ea(&iop.left);
+        print(", ");
+        print_ea(&iop.right);
+        print(" => ");
+        print_ea(&iop.dest);
+        print_newline();
+    $endif
+
     var location: uint8;
     var opcode: uint8;
 
@@ -78,7 +102,7 @@ sub arch_gen_sub_byte(iop: [BEIop])
     if is_number_thing(iop.right.obj_id) != 0 then
         var value: int8 := get_value_of_number(iop.right.obj_id) as int8;
         if (value == 1) or (value == -1) then
-            gen_incdec(iop, 0-value);
+            gen_incdec(iop, -value);
             return;
         end if;
     end if;
@@ -121,7 +145,7 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
 
     var entrylabel: uint8 := create_label();
     var looplabel: uint8 := create_label();
-    write_cg_6502_conditional_iop(0x80, entrylabel);
+    write_cg_conditional_iop(0x80, entrylabel);
     write_label_iop(looplabel);
     signed_shift_adjustment();
     write_byte(opcode);
@@ -132,7 +156,7 @@ sub lsl_lsr_byte(iop: [BEIop], opcode: uint8, signed: uint8)
     else
         write_byte(0x88); # DEY
     end if;
-    write_cg_6502_conditional_iop(0x10, looplabel);
+    write_cg_conditional_iop(0x10, looplabel);
 
     make_value_precious_or_save_now(REG_A, &iop.dest);
 end sub;
@@ -149,23 +173,31 @@ sub arch_gen_asr_byte(iop: [BEIop])
     lsl_lsr_byte(iop, 0x6A, 1); # ROR A
 end sub;
 
-sub divu_modu_byte(iop: [BEIop], resultreg: uint8, discardreg: uint8)
+sub divsu_modu_byte(iop: [BEIop], resultreg: uint8, discardreg: uint8, token: uint16)
     find_or_load_fixed_value(&iop.left, REG_A);
     find_or_load_fixed_value(&iop.right, REG_X);
     value_in_location_will_be_replaced_with(resultreg, &iop.left, &iop.dest);
 
     # This routine preserves Y.
     write_byte(0x20); # JSR abs
-    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(TOKEN_DIVMODU8), 0);
+    write_address_iop(IOP_ADDRESS, find_bootstrap_symbol(token), 0);
 
     make_value_precious_or_save_now(resultreg, &iop.dest);
     flush_cached_values(discardreg);
 end sub;
 
 sub arch_gen_divu_byte(iop: [BEIop])
-    divu_modu_byte(iop, REG_A, REG_X);
+    divsu_modu_byte(iop, REG_A, REG_X, TOKEN_DIVMODU8);
 end sub;
 
 sub arch_gen_modu_byte(iop: [BEIop])
-    divu_modu_byte(iop, REG_X, REG_A);
+    divsu_modu_byte(iop, REG_X, REG_A, TOKEN_DIVMODU8);
+end sub;
+
+sub arch_gen_divs_byte(iop: [BEIop])
+    divsu_modu_byte(iop, REG_A, REG_X, TOKEN_DIVMODS8);
+end sub;
+
+sub arch_gen_mods_byte(iop: [BEIop])
+    divsu_modu_byte(iop, REG_X, REG_A, TOKEN_DIVMODS8);
 end sub;

@@ -68,11 +68,19 @@ rule token_names
 build $OBJDIR/token_maker.cow : token_maker src/tokens.txt | src/mk-token-maker.awk
 build $OBJDIR/token_names.cow : token_names src/tokens.txt | src/mk-token-names.awk
     
+rule fuzix_syscall_maker
+    command = sh $in > $out
+
+build src/arch/fuzixz80/lib/syscalls.cow : fuzix_syscall_maker scripts/fuzix/syscall-maker.sh
+
 rule run_smart_test
     command = $in && touch $out
 
-rule run_bbctube_test
-    command = scripts/bbctube_test $in $badfile $goodfile && touch $out
+rule run_emu_test
+    command = $testscript $in $badfile $goodfile && touch $out
+
+rule run_stupid_test
+    command = scripts/stupid_test $in $badfile $goodfile && touch $out
 
 build $OBJDIR/dependencies_for_bootstrapped_cowgol_program : stamp $
     scripts/cowgol_bootstrap_compiler $
@@ -84,10 +92,10 @@ build $OBJDIR/dependencies_for_cowgol_program : stamp $
     scripts/cowgol
 
 rule mkbbcdist
-    command = scripts/mkbbcdist $out
+    command = scripts/bbc/mkbbcdist $out
 
 build bin/bbcdist.adf : mkbbcdist | $
-    scripts/mkbbcdist $
+    scripts/bbc/mkbbcdist $
     bin/mkadfs $
     $OBJDIR/compiler_for_bbc_on_bbc $
     src/arch/bbc/lib/argv.cow $
@@ -95,8 +103,37 @@ build bin/bbcdist.adf : mkbbcdist | $
     src/arch/bbc/lib/mos.cow $
     src/arch/bbc/lib/runtime.cow $
     src/arch/6502/lib/runtime.cow $
-    scripts/!boot $
-    scripts/precompile $
+    scripts/bbc/!boot $
+    scripts/bbc/precompile $
+    demo/tiny.cow
+
+rule mkcpmzdist
+    command = scripts/cpmz/mkcpmzdist $out
+
+build bin/cpmzdist.zip : mkcpmzdist | $
+    scripts/cpmz/mkcpmzdist $
+    $OBJDIR/compiler_for_cpmz_on_cpmz $
+    src/arch/cpmz/lib/argv.cow $
+    src/arch/cpmz/lib/runtime.cow $
+    src/arch/common/lib/fileio.cow $
+    src/arch/z80/lib/runtime.cow $
+    scripts/cpmz/compile.sub $
+    tools/cpm/a/!readme.txt $
+    tools/cpm/a/!license.txt $
+    demo/tiny.cow
+
+rule mkfuzixdist
+    command = scripts/fuzix/mkfuzixdist $out
+
+build bin/fuzixdist.tar : mkfuzixdist | $
+    scripts/fuzix/mkfuzixdist $
+    $OBJDIR/compiler_for_fuzixz80_on_fuzixz80 $
+    src/arch/fuzixz80/lib/runtime.cow $
+    src/arch/fuzixz80/lib/wrappedsys.cow $
+    src/arch/fuzixz80/lib/syscalls.cow $
+    src/arch/fuzixz80/lib/fcb.cow $
+    src/arch/fuzixz80/lib/argv.cow $
+    scripts/fuzix/cowgol $
     demo/tiny.cow
 
 rule pasmo
@@ -107,14 +144,25 @@ rule objectify
 
 rule lexify
     command = flex -8 -Cem -B -t $in | gawk -f scripts/lexify.awk > $out
+
+rule make_test_things
+    command = $in $out > /dev/null
+
+build $OBJDIR/tests/compiler/things.dat $
+    $OBJDIR/tests/compiler/strings.dat $
+    $OBJDIR/tests/compiler/iops.dat : make_test_things bin/bbc_on_native/init
+
 ]])
 
 local NAME
 local HOST
 local TARGET
+local EXTENSION
 
 local LIBS
 local RULE
+local TESTSCRIPT
+local TESTBIN
 
 local GLOBALS
 local CODEGEN
@@ -123,34 +171,98 @@ local SIMPLIFIER
 local PLACER
 local EMITTER
 
+-- Build X on Y
+local compilers = {
+    {"bbc",      "native"},
+    {"c64",      "native"},
+    {"cpmz",     "native"},
+    {"fuzixz80", "native"},
+    {"bbc",      "bbc"},
+    {"cpmz",     "cpmz"},
+    {"fuzixz80", "fuzixz80"},
+}
+
 local host_data = {
     ["native"] = function()
+        HOST = "native"
         LIBS = {
             "src/arch/bootstrap/host.cow",
+			"src/string_lib.cow",
+			"src/arch/bootstrap/fcb.cow",
             "src/utils/names.cow"
         }
 
         RULE = "bootstrapped_cowgol_program"
+        EXTENSION = ""
+        TESTSCRIPT = nil
+        TESTBIN = nil
     end,
 
     ["bbc"] = function()
+        HOST = "bbc"
         LIBS = {
             "src/arch/bbc/host.cow",
             "src/arch/bbc/lib/mos.cow",
             "src/arch/6502/lib/runtime.cow",
             "src/arch/bbc/lib/runtime.cow",
             "src/arch/common/lib/runtime.cow",
+			"src/string_lib.cow",
+            "src/arch/bbc/lib/fcb.cow",
             "src/arch/bbc/lib/fileio.cow",
             "src/arch/bbc/lib/argv.cow",
             "src/arch/bbc/names.cow"
         }
 
         RULE = "cowgol_program"
+        EXTENSION = ".bbc"
+        TESTSCRIPT = "scripts/bbc/bbctube_test"
+        TESTBIN = "bin/bbctube"
+    end,
+
+    ["cpmz"] = function()
+        HOST = "cpmz"
+        LIBS = {
+            "src/arch/cpmz/host.cow",
+            "src/arch/cpmz/lib/runtime.cow",
+            "src/arch/z80/lib/runtime.cow",
+            "src/arch/common/lib/runtime.cow",
+            "src/string_lib.cow",
+            "src/arch/cpmz/lib/fcb.cow",
+            "src/arch/common/lib/fileio.cow",
+            "src/arch/cpmz/lib/argv.cow",
+            "src/arch/cpmz/names.cow",
+        }
+
+        RULE = "cowgol_program"
+        EXTENSION = ".cpmz"
+        TESTSCRIPT = "scripts/cpmz/cpmz_test"
+        TESTBIN = "bin/cpm"
+    end,
+
+    ["fuzixz80"] = function()
+        HOST = "fuzixz80"
+        LIBS = {
+            "src/arch/fuzixz80/host.cow",
+            "src/arch/fuzixz80/lib/runtime.cow",
+            "src/arch/z80/lib/runtime.cow",
+            "src/arch/fuzixz80/lib/syscalls.cow",
+            "src/arch/fuzixz80/lib/wrappedsys.cow",
+            "src/arch/common/lib/runtime.cow",
+            "src/string_lib.cow",
+            "src/arch/fuzixz80/lib/fcb.cow",
+            "src/arch/common/lib/fileio.cow",
+            "src/arch/fuzixz80/lib/argv.cow",
+            "src/arch/fuzixz80/names.cow",
+        }
+
+        RULE = "cowgol_program"
+        EXTENSION = ".fuzixz80"
     end,
 }
 
 local target_data = {
     ["bbc"] = function()
+        TARGET = "bbc"
         GLOBALS = "src/arch/bbc/globals.cow"
         CLASSIFIER = "src/arch/6502/classifier.cow"
         SIMPLIFIER = "src/arch/6502/simplifier.cow"
@@ -165,12 +277,12 @@ local target_data = {
             "src/arch/6502/codegen1.cow",
             "src/arch/6502/codegen2_8bit.cow",
             "src/arch/6502/codegen2_wide.cow",
-            "src/arch/6502/codegen2_16bit.cow",
             "src/arch/6502/codegen2.cow",
         }
     end,
 
     ["c64"] = function()
+        TARGET = "c64"
         GLOBALS = "src/arch/c64/globals.cow"
         CLASSIFIER = "src/arch/6502/classifier.cow"
         SIMPLIFIER = "src/arch/6502/simplifier.cow"
@@ -185,11 +297,64 @@ local target_data = {
             "src/arch/6502/codegen1.cow",
             "src/arch/6502/codegen2_8bit.cow",
             "src/arch/6502/codegen2_wide.cow",
-            "src/arch/6502/codegen2_16bit.cow",
             "src/arch/6502/codegen2.cow",
+        }
+    end,
+
+    ["cpmz"] = function()
+        TARGET = "cpmz"
+        GLOBALS = "src/arch/cpmz/globals.cow"
+        CLASSIFIER = "src/arch/z80/classifier.cow"
+        SIMPLIFIER = "src/arch/z80/simplifier.cow"
+        PLACER = "src/arch/z80/placer.cow"
+        EMITTER = {
+            "src/arch/z80/emitter.cow",
+            "src/arch/cpmz/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/z80/codegen0.cow",
+            "src/codegen/registers.cow",
+            "src/arch/z80/codegen1.cow",
+            "src/arch/z80/codegen2_8bit.cow",
+            "src/arch/z80/codegen2_16bit.cow",
+            "src/arch/z80/codegen2_wide.cow",
+            "src/arch/z80/codegen2_helper.cow",
+            "src/arch/z80/codegen2.cow",
+        }
+    end,
+
+    ["fuzixz80"] = function()
+        TARGET = "fuzixz80"
+        GLOBALS = "src/arch/fuzixz80/globals.cow"
+        CLASSIFIER = "src/arch/z80/classifier.cow"
+        SIMPLIFIER = "src/arch/z80/simplifier.cow"
+        PLACER = "src/arch/z80/placer.cow"
+        EMITTER = {
+            "src/arch/z80/emitter.cow",
+            "src/arch/fuzixz80/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/z80/codegen0.cow",
+            "src/codegen/registers.cow",
+            "src/arch/z80/codegen1.cow",
+            "src/arch/z80/codegen2_8bit.cow",
+            "src/arch/z80/codegen2_16bit.cow",
+            "src/arch/z80/codegen2_wide.cow",
+            "src/arch/z80/codegen2_helper.cow",
+            "src/arch/z80/codegen2.cow",
         }
     end
 }
+
+local function compiler_name()
+    if HOST == TARGET then
+        return TARGET
+    else
+        return TARGET.."_on_"..HOST
+    end
+end
 
 local function build_cowgol(files)
     local program = table.remove(files, 1)
@@ -225,35 +390,59 @@ local function build_lexify(files, vars)
 	nl()
 end
 
-local function bootstrap_test(file)
+local function bootstrap_test(dir, file, extradeps)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
-    local testbin = "$OBJDIR/tests/bootstrap/"..testname
+    local testbin = "$OBJDIR/tests/"..dir.."/"..testname
     emit("build", testbin, ":", "bootstrapped_cowgol_program",
         "tests/bootstrap/_test.cow",
         file,
-        "|", DEPS)
+        "|", extradeps)
     nl()
     emit("build", testbin..".stamp", ":", "run_smart_test", testbin)
     nl()
     nl()
 end
 
+local function compiler_test(dir, file, extradeps)
+    local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
+    local testbin = "$OBJDIR/tests/"..dir.."/"..testname
+    local goodfile = "tests/"..dir.."/"..testname..".good"
+    local badfile = "tests/"..dir.."/"..testname..".bad"
+    emit("build", testbin, ":", "bootstrapped_cowgol_program",
+        "tests/bootstrap/_test.cow",
+        "$OBJDIR/token_names.cow",
+        file,
+        "|", extradeps)
+    nl()
+    emit("build", testbin..".stamp", ":", "run_stupid_test",
+        testbin, "|",
+        goodfile)
+    nl()
+    emit(" goodfile = "..goodfile)
+    nl()
+    emit(" badfile = "..badfile)
+    nl()
+    nl()
+end
+
 local function cpu_test(file)
     local testname = file:gsub("^.*/([^./]*)%..*$", "%1")
-    local testbin = "$OBJDIR/tests/cpu/"..testname..".6502"
+    local testbin = "$OBJDIR/tests/cpu/"..testname..EXTENSION
     local goodfile = "tests/cpu/"..testname..".good"
-    local badfile = "tests/cpu/"..testname..".bad"
+    local badfile = "tests/cpu/"..testname..EXTENSION..".bad"
 
     emit("build", testbin, ":", RULE, LIBS, file,
-        "|", "$OBJDIR/compiler_for_bbc_on_native")
+        "|", "$OBJDIR/compiler_for_"..HOST.."_on_native")
     nl()
-    emit(" arch =", "bbc_on_native")
+    emit(" arch =", HOST.."_on_native")
     nl()
-    emit("build", testbin..".stamp", ":", "run_bbctube_test",
+    emit("build", testbin..".stamp", ":", "run_emu_test",
         testbin, "|",
         goodfile,
-        "scripts/bbctube_test",
-        "bin/bbctube")
+        TESTSCRIPT,
+        TESTBIN)
+    nl()
+    emit(" testscript = "..TESTSCRIPT)
     nl()
     emit(" goodfile = "..goodfile)
     nl()
@@ -265,10 +454,10 @@ end
 local function build_cowgol_programs()
     build_cowgol {
         "init",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtablewriter.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/init/init.cow",
         "$OBJDIR/token_names.cow",
@@ -279,8 +468,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "tokeniser2",
-        "src/string_lib.cow",
-        "src/ctype_lib.cow",
         "src/numbers_lib.cow",
         GLOBALS,
         "src/utils/stringtablewriter.cow",
@@ -296,13 +483,13 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "parser",
-        "src/string_lib.cow",
         "src/ctype_lib.cow",
         "src/numbers_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
         "$OBJDIR/token_names.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/parser/init.cow",
         "src/parser/symbols.cow",
@@ -310,7 +497,6 @@ local function build_cowgol_programs()
         "src/parser/iopwriter.cow",
         "src/parser/tokenreader.cow",
         "src/parser/constant.cow",
-        "src/utils/types.cow",
         "src/parser/types.cow",
         "src/parser/expression.cow",
         "src/parser/main.cow",
@@ -319,16 +505,15 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "blockifier",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/utils/iopreader.cow",
         "src/utils/iopwriter.cow",
         "src/utils/symbols.cow",
         "$OBJDIR/token_names.cow",
-        "src/utils/types.cow",
         "src/blockifier/init.cow",
         "src/blockifier/main.cow",
         "src/blockifier/deinit.cow",
@@ -336,16 +521,15 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "typechecker",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/utils/iopreader.cow",
         "src/utils/iopwriter.cow",
         "src/utils/symbols.cow",
         "$OBJDIR/token_names.cow",
-        "src/utils/types.cow",
         "src/typechecker/init.cow",
         "src/typechecker/stack.cow",
         "src/typechecker/main.cow",
@@ -354,16 +538,15 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "backendify",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/utils/iopreader.cow",
         "src/utils/iopwriter.cow",
         "src/utils/symbols.cow",
         "$OBJDIR/token_names.cow",
-        "src/utils/types.cow",
         "src/backendify/init.cow",
         "src/backendify/temporaries.cow",
         "src/backendify/tree.cow",
@@ -375,14 +558,13 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "classifier",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/utils/iopreader.cow",
         "src/utils/symbols.cow",
-        "src/utils/types.cow",
         "$OBJDIR/token_names.cow",
         "src/classifier/init.cow",
         "src/classifier/graph.cow",
@@ -394,16 +576,15 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "codegen",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/utils/iopreader.cow",
         "src/utils/iopwriter.cow",
         "$OBJDIR/token_names.cow",
         "src/utils/symbols.cow",
-        "src/utils/types.cow",
         "src/codegen/init.cow",
         "src/codegen/queue.cow",
         CODEGEN,
@@ -414,10 +595,10 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "placer",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/utils/iopreader.cow",
         "src/utils/iopwriter.cow",
@@ -429,10 +610,10 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "emitter",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/utils/iopreader.cow",
         "src/emitter/init.cow",
@@ -443,7 +624,6 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "thingshower",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
@@ -452,60 +632,95 @@ local function build_cowgol_programs()
 
     build_cowgol {
         "iopshower",
-        "src/string_lib.cow",
         GLOBALS,
         "src/utils/stringtable.cow",
         "src/utils/things.cow",
+        "src/utils/types.cow",
         "src/utils/iops.cow",
         "src/iopshower/iopreader.cow",
         "src/iopshower/iopshower.cow",
     }
+
+    build_cowgol {
+        "untokeniser",
+        GLOBALS,
+        "src/ctype_lib.cow",
+        "src/numbers_lib.cow",
+        "src/utils/stringtable.cow",
+        "src/utils/things.cow",
+        "$OBJDIR/token_names.cow",
+        "src/untokeniser/init.cow",
+        "src/untokeniser/main.cow",
+        "src/untokeniser/deinit.cow",
+    }
 end
 
--- Build all the combinations of compilers.
-for host, hostcb in pairs(host_data) do
-    HOST = host
-    hostcb()
+-- Build the compilers.
+for _, spec in ipairs(compilers) do
+    TARGET, HOST = unpack(spec)
+    target_data[TARGET]()
+    host_data[HOST]()
 
-    for target, targetcb in pairs(target_data) do
-        TARGET = target
-        if HOST == TARGET then
-            NAME = TARGET
-        else
-            NAME = TARGET.."_on_"..HOST
-        end
+    NAME = compiler_name()
+    rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
+        {
+            "bin/"..NAME.."/init",
+            "bin/"..NAME.."/tokeniser2",
+            "bin/"..NAME.."/parser",
+            "bin/"..NAME.."/typechecker",
+            "bin/"..NAME.."/backendify",
+            "bin/"..NAME.."/blockifier",
+            "bin/"..NAME.."/classifier",
+            "bin/"..NAME.."/codegen",
+            "bin/"..NAME.."/placer",
+            "bin/"..NAME.."/emitter",
+            "bin/"..NAME.."/iopshower",
+            "bin/"..NAME.."/thingshower",
+            "bin/"..NAME.."/untokeniser"
+        }
+    )
+    nl()
 
-        rule("stamp", "$OBJDIR/compiler_for_"..TARGET.."_on_"..HOST,
-            {
-                "bin/"..NAME.."/init",
-                "bin/"..NAME.."/tokeniser2",
-                "bin/"..NAME.."/parser",
-                "bin/"..NAME.."/typechecker",
-                "bin/"..NAME.."/backendify",
-                "bin/"..NAME.."/blockifier",
-                "bin/"..NAME.."/classifier",
-                "bin/"..NAME.."/codegen",
-                "bin/"..NAME.."/placer",
-                "bin/"..NAME.."/emitter",
-                "bin/"..NAME.."/iopshower",
-                "bin/"..NAME.."/thingshower"
-            }
-        )
-        nl()
-
-        targetcb()
-        build_cowgol_programs()
-    end
+    target_data[TARGET]()
+    build_cowgol_programs()
 end
 
 -- Build the bootstrap compiler tests.
 host_data.native()
 for _, file in ipairs(posix.glob("tests/bootstrap/*.test.cow")) do
-    bootstrap_test(file)
+    bootstrap_test("bootstrap", file)
+end
+
+-- Build the compiler logic tests.
+host_data.native()
+for _, file in ipairs(posix.glob("tests/compiler/*.test.cow")) do
+    compiler_test("compiler", file,
+        {
+            "src/codegen/registers.cow",
+            "src/string_lib.cow",
+            "src/arch/bootstrap/fcb.cow",
+            "src/arch/bbc/globals.cow",
+            "src/arch/bbc/host.cow",
+            "src/utils/names.cow",
+            "src/utils/stringtable.cow",
+            "src/utils/things.cow",
+            "src/utils/types.cow",
+            "src/utils/names.cow",
+            "src/utils/iops.cow",
+            "$OBJDIR/tests/compiler/things.dat",
+            "$OBJDIR/tests/compiler/strings.dat",
+            "$OBJDIR/tests/compiler/iops.dat",
+        }
+    )
 end
 
 -- Build the CPU tests.
 host_data.bbc()
+for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
+    cpu_test(file)
+end
+
+host_data.cpmz()
 for _, file in ipairs(posix.glob("tests/cpu/*.test.cow")) do
     cpu_test(file)
 end
@@ -581,9 +796,4 @@ build_lexify(
 		"src/tokeniser2/lexer.l"
 	}
 )
-
-build_c {
-    "miniyacc",
-    "src/miniyacc/yacc.c"
-}
 

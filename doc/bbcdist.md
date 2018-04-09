@@ -10,7 +10,7 @@ Instructions
 
 You need:
 
-- A BBC Micro with a 6502 Tube second processor.
+- A BBC Micro with a 6502 Tube second processor. (Or BBC Master Turbo.)
 
 - A single floppy disk drive.
 

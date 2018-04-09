@@ -1,12 +1,13 @@
+const FIRST_STRING_ID := 2;
 var stringtab: uint8[STRINGTABLE_SIZE];
-var stringtab_top: uint16 := 1;
+var stringtab_top: uint16 := FIRST_STRING_ID;
 var input_buffer: int8[256];
 var buffer_index: uint8 := 0;
 
 sub lookup_string(buffer_ptr: [int8], buffer_len: uint8): (stringid: uint16)
     var ptr: [uint8];
 
-    stringid := 1;
+    stringid := FIRST_STRING_ID;
     while stringid != stringtab_top loop
         ptr := &stringtab[stringid] as [uint8];
         var len: uint8 := ptr[0] - 1;
@@ -33,13 +34,11 @@ end sub;
 sub load_string_table(filename: [int8])
     print("reading string table: ");
 
-    var fd: int8 := file_openin(filename);
-    stringtab_top := file_ext(fd) as uint16;
+    var ptr: [uint16] := &stringtab[0] as [uint16];
+    stringtab_top := file_load(filename, ptr as [int8], STRINGTABLE_SIZE);
+    stringtab_top := ptr[0];
     print_i16(stringtab_top);
     print(" bytes\n");
-
-    var eof: uint8 := file_getblock(fd, &stringtab[0] as [int8], stringtab_top);
-    file_close(fd);
 end sub;
 
 sub save_string_table(filename: [int8])
@@ -47,9 +46,9 @@ sub save_string_table(filename: [int8])
     print_i16(stringtab_top);
     print(" bytes\n");
 
-    var fd: int8 := file_openout(filename);
-    file_putblock(fd, &stringtab[0] as [int8], stringtab_top);
-    file_close(fd);
+    var ptr: [uint16] := &stringtab[0] as [uint16];
+    ptr[0] := stringtab_top;
+    file_save(filename, ptr as [int8], stringtab_top);
 end sub;
 
 sub show_string(string_id: uint16)

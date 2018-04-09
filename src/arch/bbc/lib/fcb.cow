@@ -1,0 +1,175 @@
+const FCB_I_READ := 0x40;
+const FCB_I_WRITE := 0x80;
+
+record FCB_OSGBPB
+    channel: uint8;
+    bufferlo: [int8];
+    bufferhi: uint16;
+    count: uint16;
+    counthi: uint16;
+    blocklo: uint8;
+    block: uint16;
+    blockhi: uint8;
+end record;
+
+record FCB
+    gbpb: FCB_OSGBPB;
+
+    address: [int8]; # PUBLIC
+    count: uint16; # PUBLIC
+    
+    block: uint16;
+    bufferptr: uint8;
+    buffer: int8[256];
+    mode: uint8;
+    dirty: uint8;
+end record;
+
+sub fcb_i_gbpb(fcb: [FCB], a: uint8)
+    fcb.gbpb.bufferlo := &fcb.buffer[0];
+    fcb.gbpb.count := 256;
+    fcb.gbpb.blocklo := 0;
+    fcb.gbpb.block := fcb.block;
+
+    @bytes 0xAD, &a;            # LDA a
+    @bytes 0xA6, >&fcb+0;       # LDX fcb+0
+    @bytes 0xA4, >&fcb+1;       # LDY fcb+1
+    @bytes 0x20, 0xD1, 0xFF;    # JSR OSGBPB
+end sub;
+
+sub fcb_i_blockin(fcb: [FCB])
+    zero_memory(&fcb.buffer[0], 256);
+    fcb_i_gbpb(fcb, 3); # read block with ptr
+    fcb.dirty := 0;
+end sub;
+
+sub fcb_i_blockout(fcb: [FCB])
+    if fcb.dirty != 0 then
+        fcb_i_gbpb(fcb, 1); # write block with ptr
+        fcb.dirty := 0;
+    end if;
+end sub;
+
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
+    if newblock != fcb.block then
+        fcb_i_blockout(fcb);
+        fcb.block := newblock;
+        fcb_i_blockin(fcb);
+    end if;
+end sub;
+
+sub fcb_i_open(fcb: [FCB], filename: [int8], mode: uint8): (errno: uint8)
+    var t: [int8] := filename;
+    loop
+        if t[0] == 0 then
+            break;
+        end if;
+        t := t + 1;
+    end loop;
+    t[0] := 13;
+
+    var channel: uint8;
+    @bytes 0xAD, &mode;         # LDA mode
+    @bytes 0xAE, &filename+0;   # LDX ptr+0
+    @bytes 0xAC, &filename+1;   # LDY ptr+1
+    @bytes 0x20, 0xCE, 0xFF;    # JSR OSFIND
+    @bytes 0xA0, 0x00;          # LDY #0
+    @bytes 0x8D, &channel;      # STA channel
+    t[0] := 0;
+
+    zero_memory(fcb as [int8], FCB@bytes);
+    fcb.mode := mode;
+    fcb.gbpb.channel := channel;
+    if channel == 0 then
+        errno := 1;
+    else
+        errno := 0;
+    end if;
+end sub;
+
+sub fcb_openin(fcb: [FCB], filename: [int8]): (errno: uint8)
+    errno := fcb_i_open(fcb, filename, FCB_I_READ);
+    if errno == 0 then
+        fcb_i_blockin(fcb);
+    end if;
+end sub;
+
+sub fcb_openup(fcb: [FCB], filename: [int8]): (errno: uint8)
+    errno := fcb_i_open(fcb, filename, FCB_I_READ|FCB_I_WRITE);
+    if errno == 0 then
+        fcb_i_blockin(fcb);
+    end if;
+end sub;
+
+sub fcb_openout(fcb: [FCB], filename: [int8]): (errno: uint8)
+    file_save(filename, 0 as [int8], 0);
+    errno := fcb_openup(fcb, filename);
+end sub;
+
+sub fcb_close(fcb: [FCB])
+    var channel: uint8 := fcb.gbpb.channel;
+    if channel != 0 then
+        fcb_i_blockout(fcb);
+
+        @bytes 0xA9, 0x00;          # LDA #0
+        @bytes 0xAC, &channel;      # LDY channel
+        @bytes 0x20, 0xCE, 0xFF;    # JSR OSFIND
+        fcb.gbpb.channel := 0;
+    end if;
+end sub;
+
+sub fcb_getchar(fcb: [FCB]): (c: int8)
+    c := fcb.buffer[fcb.bufferptr];
+    if fcb.bufferptr == 0xff then
+        fcb_i_changeblock(fcb, fcb.block+1);
+        fcb.bufferptr := 0;
+    else
+        fcb.bufferptr := fcb.bufferptr + 1;
+    end if;
+end sub;
+
+sub fcb_putchar(fcb: [FCB], c: int8)
+    fcb.dirty := 1;
+    fcb.buffer[fcb.bufferptr] := c;
+    if fcb.bufferptr == 0xff then
+        fcb_i_changeblock(fcb, fcb.block+1);
+        fcb.bufferptr := 0;
+    else
+        fcb.bufferptr := fcb.bufferptr + 1;
+    end if;
+end sub;
+
+sub fcb_seek(fcb: [FCB], pos: uint32)
+    var newblock: uint16 := (pos >> 8) as uint16;
+    var newptr: uint8 := pos as uint8;
+
+    fcb_i_changeblock(fcb, newblock);
+    fcb.bufferptr := newptr;
+end sub;
+
+sub fcb_tell(fcb: [FCB]): (pos: uint32)
+    pos := ((fcb.block as uint32) << 8) | (fcb.bufferptr as uint32);
+end sub;
+
+sub fcb_ext(fcb: [FCB]): (len: uint32)
+    var zp: uint32 @segment(0x81);
+    osargs(2, &zp as [uint8], fcb.gbpb.channel); # read EXT#
+    len := zp;
+end sub;
+
+sub fcb_read(fcb: [FCB])
+    zero_memory(fcb.address, fcb.count);
+    while fcb.count != 0 loop
+        fcb.address[0] := fcb_getchar(fcb);
+        fcb.count := fcb.count - 1;
+        fcb.address := fcb.address + 1;
+    end loop;
+end sub;
+
+sub fcb_write(fcb: [FCB])
+    while fcb.count != 0 loop
+        fcb_putchar(fcb, fcb.address[0]);
+        fcb.count := fcb.count - 1;
+        fcb.address := fcb.address + 1;
+    end loop;
+end sub;

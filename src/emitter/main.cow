@@ -1,5 +1,7 @@
 sub do_bytes(iop: [BytesIop])
-    file_putblock(outfd, &iop.bytes[0] as [int8], iop.byte_count as uint16);
+    out_fcb.address := &iop.bytes[0] as [int8];
+    out_fcb.count := iop.byte_count as uint16;
+    fcb_write(&out_fcb);
 end sub;
 
 sub address_of(iop: [AddressIop]): (address: uint16)
@@ -9,21 +11,23 @@ sub address_of(iop: [AddressIop]): (address: uint16)
 
 sub do_address(iop: [AddressIop])
     var address: uint16 := address_of(iop);
-    file_putblock(outfd, &address as [int8], address@bytes);
+    out_fcb.address := &address as [int8];
+    out_fcb.count := address@bytes;
+    fcb_write(&out_fcb);
 end sub;
 
 sub do_addresshi(iop: [AddressIop])
     var address: uint16 := address_of(iop);
-    file_putchar(outfd, (address >> 8) as int8);
+    fcb_putchar(&out_fcb, (address >> 8) as int8);
 end sub;
 
 sub do_addresslo(iop: [AddressIop])
     var address: uint16 := address_of(iop);
-    file_putchar(outfd, address as int8);
+    fcb_putchar(&out_fcb, address as int8);
 end sub;
 
 sub emit_subroutine()
-    file_seek(outfd, arch_calculate_fileoffset(current_subroutine as [DataThing]) as uint32);
+    fcb_seek(&out_fcb, arch_calculate_fileoffset(current_subroutine as [DataThing]) as uint32);
     print("0x");
     print_hex_i16(arch_calculate_address(current_subroutine as [DataThing]));
     print(": ");
@@ -50,6 +54,21 @@ sub emit_subroutine()
     end loop;
 end sub;
 
+sub show_thing_data(thing_id: uint16)
+    var thing: [DataThing] := find_thing(thing_id) as [DataThing];
+    var address: uint16 := arch_calculate_address(thing);
+    print("0x");
+    print_hex_i16(address);
+    print(": ");
+    print_thing(thing_id);
+    if thing.thing_type == THING_ADDRESSOF then
+        var addressofthing: [AddressOfThing] := thing as [AddressOfThing];
+        print(" -> ");
+        print_thing(addressofthing.thing_id);
+    end if;
+    print_newline();
+end sub;
+
 sub emit_subroutines()
     loop
         var iheader: [IHeader] := read_iop_header();
@@ -67,9 +86,9 @@ sub emit_subroutines()
             emit_subroutine();
         end if;
 
-        var id: uint16 := 1;
+        var id: uint16 := FIRST_THING;
         loop
-            var thing: [TypedThing] := &thing_table[id] as [TypedThing];
+            var thing: [TypedThing] := &thing_table[id as int16] as [TypedThing];
             if thing.thing_type == 0 then
                 break;
             end if;
@@ -77,12 +96,7 @@ sub emit_subroutines()
                 and (is_typed_thing(id) != 0)
                 and (thing.segment > SEGMENT_CODE)
             then
-                var address: uint16 := arch_calculate_address(thing as [DataThing]);
-                print("0x");
-                print_hex_i16(address);
-                print(": ");
-                print_thing(id);
-                print_newline();
+                show_thing_data(id);
             end if;
             id := next_thing(id);
         end loop;
@@ -91,42 +105,67 @@ end sub;
 
 sub emit_constants()
     var thing: [DataThing];
-    var id: uint16 := 1;
+    var id: uint16 := FIRST_THING;
 
     sub emit_string()
+        show_thing_data(id);
+        
         var stringthing: [StringThing] := thing as [StringThing];
-        file_seek(strings_fd, (stringthing.string_id + 1) as uint32);
+        fcb_seek(&strings_fcb, (stringthing.string_id + 1) as uint32);
 
         var len: uint8 := stringthing.string_size;
         while len != 0 loop
-            var c: int8;
-            var eof: uint8;
-            (c, eof) := file_getchar(strings_fd);
-            file_putchar(outfd, c);
+            var c: int8 := fcb_getchar(&strings_fcb);
+            fcb_putchar(&out_fcb, c);
             len := len - 1;
         end loop;
-        file_putchar(outfd, 0);
+        fcb_putchar(&out_fcb, 0);
     end sub;
 
     sub emit_number()
+        show_thing_data(id);
+
         var numberthing: [NumberThing] := thing as [NumberThing];
-        file_putblock(outfd, &numberthing.value as [int8], 4);
+        out_fcb.address := &numberthing.value as [int8];
+        out_fcb.count := 4;
+        fcb_write(&out_fcb);
+    end sub;
+
+    sub emit_addressof()
+        var pointerthing: [AddressOfThing] := thing as [AddressOfThing];
+        var targetthing: [DataThing] := find_thing(pointerthing.thing_id) as [DataThing];
+        var address: uint16 := arch_calculate_address(targetthing as [DataThing]) + pointerthing.offset;
+
+        show_thing_data(id);
+        out_fcb.address := &address as [int8];
+        out_fcb.count := 2;
+        fcb_write(&out_fcb);
+    end sub;
+
+    sub seek_to_data_thing()
+        fcb_seek(&out_fcb, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
     end sub;
 
     loop
-        thing := &thing_table[id] as [DataThing];
+        thing := &thing_table[id as int16] as [DataThing];
+
         if thing.thing_type == 0 then
             break;
         end if;
         if thing.thing_type == THING_STRING then
             if thing.segment == SEGMENT_CONST then
-                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
+                seek_to_data_thing();
                 emit_string();
             end if;
         elseif thing.thing_type == THING_NUMBER then
             if thing.segment == SEGMENT_CONST then
-                file_seek(outfd, arch_calculate_fileoffset(thing as [DataThing]) as uint32);
+                seek_to_data_thing();
                 emit_number();
+            end if;
+        elseif thing.thing_type == THING_ADDRESSOF then
+            if thing.segment == SEGMENT_CONST then
+                seek_to_data_thing();
+                emit_addressof();
             end if;
         end if;
         id := next_thing(id);

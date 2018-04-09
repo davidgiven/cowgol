@@ -1,0 +1,564 @@
+# Loads the 32-bit value pointed to by HL into EDCA. Corrupts HL.
+sub __load_hl()
+    @bytes 0x7E;       # ld a, (hl)
+    @bytes 0x23;       # inc hl
+    @bytes 0x4E;       # ld c, (hl)
+    @bytes 0x23;       # inc hl
+    @bytes 0x56;       # ld d, (hl)
+    @bytes 0x23;       # inc hl
+    @bytes 0x5E;       # ld e, (hl)
+end sub;
+
+# Saves the 32-bit value pointed to by HL from EDCA. Corrupts HL.
+sub __save_hl()
+    @bytes 0x77;       # ld (hl), a
+    @bytes 0x23;       # inc hl
+    @bytes 0x71;       # ld (hl), c
+    @bytes 0x23;       # inc hl
+    @bytes 0x72;       # ld (hl), d
+    @bytes 0x23;       # inc hl
+    @bytes 0x73;       # ld (hl), e
+end sub;
+
+# Shifts the 32-bit value pointed to by HL left B bits, and writes it back
+# to DE. Corrupts all registers (except the index ones).
+sub __lsl32()
+    @bytes 0xD5;       # push de
+    __load_hl();
+    @bytes 0x04;       # inc b
+    @bytes 0x18, 0x08; # jr entry
+
+                       # .loop
+    @bytes 0xCB, 0x27; # sla a
+    @bytes 0xCB, 0x11; # rl c
+    @bytes 0xCB, 0x12; # rl d
+    @bytes 0xCB, 0x13; # rl e
+                       # .entry
+    @bytes 0x10, 0xF6; # djnz loop
+
+    @bytes 0xE1;       # pop hl
+    __save_hl();
+end sub;
+
+# Arithmetic shifts the 32-bit value pointed to by HL left B bits, and writes
+# it back to DE. Corrupts all registers (except the index ones).
+sub __asr32()
+    @bytes 0xD5;       # push de
+    __load_hl();
+    @bytes 0x04;       # inc b
+    @bytes 0x18, 0x07; # jr entry
+
+                       # .loop
+    @bytes 0xCB, 0x2B; # sra e
+    @bytes 0xCB, 0x1A; # rr d
+    @bytes 0xCB, 0x19; # rr c
+    @bytes 0x1F;       # rr a
+                       # .entry
+    @bytes 0x10, 0xF7; # djnz loop
+
+    @bytes 0xE1;       # pop hl
+    __save_hl();
+end sub;
+
+# Logic shifts the 32-bit value pointed to by HL left B bits, and writes
+# it back to DE. Corrupts all registers (except the index ones).
+sub __lsr32()
+    @bytes 0xD5;       # push de
+    __load_hl();
+    @bytes 0x04;       # inc b
+    @bytes 0x18, 0x07; # jr entry
+
+                       # .loop
+    @bytes 0xCB, 0x3B; # srl e
+    @bytes 0xCB, 0x1A; # rr d
+    @bytes 0xCB, 0x19; # rr c
+    @bytes 0x1F;       # rr a
+                       # .entry
+    @bytes 0x10, 0xF7; # djnz loop
+
+    @bytes 0xE1;       # pop hl
+    __save_hl();
+end sub;
+
+# Computes H*E, returning the result in HL.
+# Corrupts B, D, H, L.
+sub __mul8()
+    @bytes 0x16, 0x00; # ld d, #0
+    @bytes 0x6A;       # ld l, d
+    @bytes 0x06, 0x08; # ld b, #8
+                       # .loop
+    @bytes 0x29;       # add hl, hl
+    @bytes 0x30, 0x01; # jr nc, skip
+    @bytes 0x19;       # add hl, de
+    @bytes 0x10, 0xFA; # djnz loop 
+end sub;
+
+# Computes DE*BC, returning the result in DEHL.
+# Corrupts all 8-bit registers.
+sub __mul16()
+    @bytes 0x21, 0x00, 0x00; # ld hl, #0
+    @bytes 0x3E, 0x10;       # ld a, #16
+                             # .loop
+    @bytes 0x29;             # add hl, hl
+    @bytes 0xCB, 0x13;       # rl e
+    @bytes 0xCB, 0x12;       # rl d
+    @bytes 0x30, 0x04;       # jr nc, skip
+    @bytes 0x09;             # add hl, bc
+    @bytes 0x30, 0x01;       # jr nc, skip
+    @bytes 0x13;             # inc de
+                             # .skip
+    @bytes 0x3D;             # dec a
+    @bytes 0x20, 0xF2;       # jr nz, loop
+end sub;
+
+# Computes [BC]*[HL], putting the result in [DE].
+# Corrupts all 8-bit registers.
+sub __mul32()
+    var lhsptr: uint16;
+    var resultptr: uint16;
+    var resulthi: uint8[4];
+    var rhs: uint8[4];
+
+    @bytes 0xED, 0x43, &lhsptr; # ld (lhsptr), bc
+    @bytes 0xED, 0x53, &resultptr; # ld (resultptr), de
+
+    # Copy RHS into temporary storage.
+
+    @bytes 0x11, &rhs;       # ld de, #rhs
+    @bytes 0x01, 0x04, 0x00; # ld bc, #4
+    @bytes 0xED, 0xB0;       # ldir --- leaves BC 0
+
+    # Clear the high bits of the result.
+
+    @bytes 0xED, 0x43, &resulthi+0; # ld (resulthi+0), bc
+    @bytes 0xED, 0x43, &resulthi+2; # ld (resulthi+2), bc
+
+    # Now begin the multiply itself.
+
+    @bytes 0x0E, 32;         # ld c, #32 (number of iterations)
+
+                             # .main_loop
+    
+    # Shift right right.
+
+    @bytes 0x21, &rhs+3;     # ld hl, rhs+3
+    @bytes 0xB7;             # or a (clear carry)
+    @bytes 0x06, 0x04;       # ld b, #4
+                             # .shiftloop
+    @bytes 0xCB, 0x1E;       # rr (hl)
+    @bytes 0x2B;             # dec hl
+    @bytes 0x10, 0xFB;       # djnz shiftloop
+                             
+    # If the bottom bit that just got clocked out was set, add the LHS to
+    # the top half of the result.
+
+    @bytes 0x30, 0x10;       # jr nc, dont_add
+
+    @bytes 0x2A, &lhsptr;    # ld hl, (lhsptr)
+    @bytes 0x11, &resulthi;  # ld de, resulthi
+    @bytes 0x06, 0x04;       # ld b, #4
+    @bytes 0xB7;             # or a (clear carry)
+                             # .addloop
+    @bytes 0x1A;             # ld a, (de)
+    @bytes 0x8E;             # adc a, (hl)
+    @bytes 0x12;             # ld (de), a
+    @bytes 0x23;             # inc hl
+    @bytes 0x13;             # inc de
+    @bytes 0x10, 0xF9;       # djnz addloop
+                             # .dont_add
+    
+    # Now rotate the 64-bit result right (32 bits at a time).
+
+    @bytes 0x21, &resulthi+3; # ld hl, resulthi+3
+    @bytes 0xB7;             # or a (clear carry)
+    @bytes 0x06, 0x04;       # ld b, #4
+                             # .shiftloop
+    @bytes 0xCB, 0x1E;       # rr (hl)
+    @bytes 0x2B;             # dec hl
+    @bytes 0x10, 0xFB;       # djnz shiftloop
+    
+    @bytes 0x2A, &resultptr; # ld hl, (resultptr)
+    @bytes 0x23;             # inc hl
+    @bytes 0x23;             # inc hl
+    @bytes 0x23;             # inc hl
+    @bytes 0x06, 0x04;       # ld b, #4
+                             # .shiftloop
+    @bytes 0xCB, 0x1E;       # rr (hl)
+    @bytes 0x2B;             # dec hl
+    @bytes 0x10, 0xFB;       # djnz shiftloop
+
+    # Decrement bit count and go again.
+
+    @bytes 0x0D;             # dec c
+    @bytes 0x20, 0xC8;       # jr nz, main_loop
+end sub;
+
+# Computes C/D, result=C, remainder=A
+# Corrupts A, B, C.
+sub __divmodu8()
+    @bytes 0x06, 0x08;       # ld b,8
+    @bytes 0xAF;             # xor a
+                             # .loop
+    @bytes 0xCB, 0x21;       # sla c
+    @bytes 0x17;             # rla
+    @bytes 0xBA;             # cp d
+    @bytes 0x38, 0x02;       # jr c, skip
+    @bytes 0x0C;             # inc c
+    @bytes 0x92;             # sub d
+                             # .skip
+    @bytes 0x10, 0xF6;       # djnz loop
+end sub;
+
+# Computes C/D, result=C, remainder=A, signed
+# Corrupts A, B, C, H, L.
+sub __divmods8()
+    # If either of the arguments are negative, remember that (in HL, our only
+    # spare register) and make them positive.
+    # If the top bit of H is set: remainder must be negated.
+    # If the top bit of L is set: result must be negated.
+
+    @bytes 0x61;               # ld h, c   --- only care about the top bit
+    @bytes 0xCB, 0x79;         # bit 7, c
+    @bytes 0x28, 0x03;         # jr z, dont_negate_c
+    @bytes 0xAF;               # xor a
+    @bytes 0x91;               # sub c
+    @bytes 0x4F;               # ld c, a
+                               # .dont_negate_c
+
+    @bytes 0x7A;               # ld a, d
+    @bytes 0xAC;               # xor h
+    @bytes 0x6F;               # ld l, a   --- top bit of l is sign of C ^ sign of D
+    @bytes 0xCB, 0x7A;         # bit 7, d
+    @bytes 0x28, 0x03;         # .dont_negate_d
+    @bytes 0xAF;               # xor a
+    @bytes 0x92;               # sub d
+    @bytes 0x57;               # ld d, a
+                               # .dont_negate_d
+
+    @bytes 0xCD, &__divmodu8;  # call __divmodu8
+
+    @bytes 0xCB, 0x7C;         # bit 7, h  --- does remainder need negating?
+    @bytes 0x28, 0x02;         # jr z, dont_negate_remainder
+    @bytes 0xED, 0x44;         # neg
+                               # .dont_negate_remainder
+
+    @bytes 0xCB, 0x7D;         # bit 7, l  --- does result need negating?
+    @bytes 0xC8;               # ret z     --- no? return now
+    @bytes 0x67;               # ld h, a   --- preserve old A (the remainder)
+    @bytes 0xAF;               # xor a
+    @bytes 0x91;               # sub c
+    @bytes 0x4F;               # ld c, a
+    @bytes 0x7C;               # ld a, h
+end sub;
+
+# Computes DE/BC, result=DE, remainder=HL
+# Corrupts all 8-bit registers.
+sub __divmodu16()
+    @bytes 0x3E, 0x10;       # ld a, #16
+    @bytes 0x21, 0x00, 0x00; # ld hl, #0
+    @bytes 0x18, 0x03;       # jr entry
+
+                             # .loop1:
+    @bytes 0x09;             # add hl, bc
+                             # .loop2
+    @bytes 0x3D;             # dec a
+    @bytes 0xC8;             # ret z
+                             # .entry
+    @bytes 0xCB, 0x23;       # sla e
+    @bytes 0xCB, 0x12;       # rl d
+    @bytes 0xED, 0x6A;       # adc hl, hl --- shift remainder left and add carry
+    @bytes 0xB7;             # or a       --- clear carry
+    @bytes 0xED, 0x42;       # sbc hl, bc --- sets carry if remainder(hl) < bc
+    @bytes 0x38, 0xF2;       # jr c, loop1 --- if remainder < bc, undo add and go round again
+    @bytes 0x1C;             # inc e      --- we know the bottom bit is clear
+    @bytes 0x18, 0xF0;       # jr loop2
+end sub;
+
+# Computer DE/BC, result=DE, remainder=HL, signed.
+# Corrupts all 8-bit registers.
+sub __divmods16()
+    sub negate_de()
+        @bytes 0xAF;             # xor a
+        @bytes 0x93;             # sub e
+        @bytes 0x5F;             # ld e, a
+        @bytes 0x9F;             # sbc a, a  --- clear A to 0 or -1 depending on carry
+        @bytes 0x92;             # sub d
+        @bytes 0x57;             # ld d, a
+    end sub;
+
+    sub negate_bc()
+        @bytes 0xAF;             # xor a
+        @bytes 0x91;             # sub c
+        @bytes 0x4F;             # ld c, a
+        @bytes 0x9F;             # sbc a, a  --- clear A to 0 or -1 depending on carry
+        @bytes 0x90;             # sub b
+        @bytes 0x47;             # ld b, a
+    end sub;
+
+    sub negate_hl()
+        @bytes 0xAF;             # xor a
+        @bytes 0x95;             # sub l
+        @bytes 0x6F;             # ld l, a
+        @bytes 0x9F;             # sbc a, a  --- clear A to 0 or -1 depending on carry
+        @bytes 0x94;             # sub h
+        @bytes 0x67;             # ld h, a
+    end sub;
+
+    # If either of the arguments are negative, remember that (in HL, our only
+    # spare register) and make them positive.
+    # If the top bit of H is set: remainder must be negated.
+    # If the top bit of L is set: result must be negated.
+
+    @bytes 0x62;               # ld h, d   --- only care about the top bit
+    @bytes 0xCB, 0x7A;         # bit 7, d
+    @bytes 0xC4, &negate_de;   # call nz, negate_de
+    
+    @bytes 0x78;               # ld a, b
+    @bytes 0xAC;               # xor h     
+    @bytes 0x6F;               # ld l, a   --- top bit of l is sign of DE ^ sign of BC
+    @bytes 0xCB, 0x78;         # bit 7, b
+    @bytes 0xC4, &negate_bc;   # call nz, negate_bc
+
+    @bytes 0xE5;               # push hl
+    @bytes 0xCD, &__divmodu16; # call __divmodu16
+    @bytes 0xC1;               # pop bc
+
+    @bytes 0xCB, 0x78;         # bit 7, b  --- does remainder need negating?
+    @bytes 0xC4, &negate_hl;   # call nz, negate_hl
+
+    @bytes 0xCB, 0x79;         # bit 7, c  --- does result need negating?
+    @bytes 0xC4, &negate_de;   # call nz, negate_de
+end sub;
+
+var __divresult: uint32[2];
+
+# Computes [HL]/[BC], putting the result in __divresult+0 and the remainder in
+# __divresult+4.
+# Corrupts all 8-bit registers.
+sub __divmodu32()
+    var rhsptr: uint16;
+    var bitcount: uint8;
+    var scrap: uint32;
+
+    @bytes 0xED, 0x43, &rhsptr; # ld (rhsptr), bc
+    
+    # Copy LHS in HL into result (as we're going to need to mutate it).
+
+    @bytes 0x11, &__divresult+0; # ld de, #__divresult+0
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+
+    # Clear remainder.
+
+    @bytes 0xED, 0x43, &__divresult+4; # ld (__divresult+4), bc
+    @bytes 0xED, 0x43, &__divresult+6; # ld (__divresult+6), bc
+
+    # Now the division loop.
+
+    @bytes 0x3E, 32;           # ld a, #32
+    @bytes 0x32, &bitcount;    # ld (bitcount), a
+
+                               # .mainloop
+    
+    # Shift result left (both result and remainder).
+
+    @bytes 0x21, &__divresult; # ld hl, #__divresult
+    @bytes 0x06, 0x08;         # ld b, #8
+    @bytes 0xB7;               # or a (clear carry)
+                               # .shiftloop
+    @bytes 0xCB, 0x16;         # rl (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x10, 0xFB;         # djnz shiftloop
+
+    # Subtract the RHS from the remainder, leaving the result on the stack
+    # (as we don't know whether we want it or not yet). This is harder than
+    # it should be because we've run out of registers.
+    # we've run out of registers.
+
+    @bytes 0x2A, &rhsptr;      # ld hl, (rhsptr)
+    @bytes 0x4E;               # ld c, (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x46;               # ld b, (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x5E;               # ld e, (hl)
+    @bytes 0x23;               # inc hl
+    @bytes 0x56;               # ld d, (hl)
+
+    @bytes 0x2A, &__divresult+4; # ld hl, (__divresult+4)
+    @bytes 0xB7;               # or a --- clear carry
+    @bytes 0xED, 0x42;         # sbc hl, bc
+    @bytes 0x22, &scrap+0;     # ld (scrap+0), hl
+    @bytes 0x2A, &__divresult+6; # ld hl, (__divresult+6)
+    @bytes 0xED, 0x52;         # sbc hl, de
+    @bytes 0x22, &scrap+2;     # ld (scrap+2), hl
+
+    # If the carry was set, the RHS didn't fit into the remainder, so skip
+    # adjusting the result.
+
+    @bytes 0x38, 0x0F;         # jr c, rhs_did_not_fit
+
+    # The RHS *did* fit. Make the result of the subtraction the new
+    # remainder and increment the result.
+
+    @bytes 0x21, &scrap;       # ld hl, #scrap
+    @bytes 0x11, &__divresult+4; # ld de, #__divresult+4
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+
+    @bytes 0x21, &__divresult; # ld hl, #__divresult
+    @bytes 0x34;               # inc (hl)
+                               # .rhs_did_not_fit
+
+    # End of loop; decrement bit count and go again.
+
+    @bytes 0x21, &bitcount;    # ld hl, #bitcount
+    @bytes 0x35;               # dec hl
+    @bytes 0x20, 0xC3;         # jr nz, mainloop
+end sub;
+
+# Computes [HL]/[BC], putting the result in [DE].
+# Corrupts all 8-bit registers.
+sub __divu32()
+    @bytes 0xD5;               # push de
+    __divmodu32();
+    @bytes 0xD1;               # pop de
+    @bytes 0x21, &__divresult; # ld hl, #__divresult
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir
+end sub;
+
+# Computes [HL]%[BC], putting the result in [DE].
+# Corrupts all 8-bit registers.
+sub __modu32()
+    @bytes 0xD5;               # push de
+    __divmodu32();
+    @bytes 0xD1;               # pop de
+    @bytes 0x21, &__divresult+4; # ld hl, #__divresult+4
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir
+end sub;
+
+sub divmodu32(left: uint32, right: uint32): (quotient: uint32, remainder: uint32)
+    @bytes 0x21, &left;        # ld hl, #left
+    @bytes 0x01, &right;       # ld bc, #right
+    __divmodu32();
+
+    @bytes 0x21, &__divresult+0; # ld hl, #__divresult+0
+    @bytes 0x11, &quotient;    # ld de, #quotient
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+
+    @bytes 0x21, &__divresult+4; # ld hl, #__divresult+4
+    @bytes 0x11, &remainder;   # ld de, #remainder
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+end sub;
+
+# Computes signed [HL]/[BC], putting the result in __divresult+0 and the
+# remainder in __divresult+4.
+# Corrupts all 8-bit registers.
+sub __divmods32()
+    var lhs: uint32;
+    var rhs: uint32;
+
+    # Negates the 32-bit value pointed to by HL.
+    # Corrupts A, HL.
+    sub negate_hl()
+        @bytes 0xC5;             # push bc
+
+        @bytes 0xB7;             # or a (clear carry)
+        @bytes 0x06, 0x04;       # ld b, #4
+                                 # .loop
+        @bytes 0x3E, 0x00;       # ld a, #0 (without affecting carry)
+        @bytes 0x9E;             # sbc a, (hl)
+        @bytes 0x77;             # ld (hl), a
+        @bytes 0x23;             # inc hl
+        @bytes 0x10, 0xF9;       # djnz loop
+
+        @bytes 0xC1;             # pop bc
+    end sub;
+
+    # Copy the LHS (HL) and RHS (BC) into temporary storage.
+
+    @bytes 0xC5;                 # push bc
+    @bytes 0x01, 0x04, 0x00;     # ld bc, #4
+    @bytes 0x11, &lhs;           # ld de, #lhs
+    @bytes 0xED, 0xB0;           # ldir
+    @bytes 0xE1;                 # pop hl
+    @bytes 0x01, 0x04, 0x00;     # ld bc, #4
+    @bytes 0x11, &rhs;           # ld de, #rhs
+    @bytes 0xED, 0xB0;           # ldir
+
+    # If either of the arguments are negative, remember that (in DE, our only
+    # spare register) and make them positive.
+    # If the top bit of D is set: remainder must be negated.
+    # If the top bit of E is set: result must be negated.
+
+    @bytes 0x3A, &lhs+3;        # ld a, (lhs+3)
+    @bytes 0x57;                # ld d, a
+    @bytes 0xB7;                # or a (test sign bit)
+    @bytes 0x21, &lhs;          # ld hl, #lhs
+    @bytes 0xFC, &negate_hl;    # call m, negate_hl
+
+    @bytes 0x3A, &rhs+3;        # ld a, (rhs+3)
+    @bytes 0xAA;                # xor d
+    @bytes 0x5F;                # ld e, a
+    @bytes 0xAA;                # xor d
+    @bytes 0x21, &rhs;          # ld hl, #rhs
+    @bytes 0xFC, &negate_hl;    # call m, negate_hl
+
+    @bytes 0xD5;                # push de
+    @bytes 0x21, &lhs;          # ld hl, #lhs
+    @bytes 0x01, &rhs;          # ld bc, #rhs
+    @bytes 0xCD, &__divmodu32;  # call __divmodu32
+    @bytes 0xC1;                # pop bc
+
+    @bytes 0xCB, 0x78;          # bit 7, b  --- does remainder need negating?
+    @bytes 0x21, &__divresult+4; # ld hl, #__divresult+4
+    @bytes 0xC4, &negate_hl;    # call nz, negate_hl
+
+    @bytes 0xCB, 0x79;          # bit 7, c  --- does result need negating?
+    @bytes 0x21, &__divresult+0; # ld hl, #__divresult+0
+    @bytes 0xC4, &negate_hl;    # call nz, negate_hl
+end sub;
+
+# Computes signed [HL]/[BC], putting the result in [DE].
+# Corrupts all 8-bit registers.
+sub __divs32()
+    @bytes 0xD5;               # push de
+    __divmods32();
+    @bytes 0xD1;               # pop de
+    @bytes 0x21, &__divresult; # ld hl, #__divresult
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir
+end sub;
+
+# Computes signed [HL]%[BC], putting the result in [DE].
+# Corrupts all 8-bit registers.
+sub __mods32()
+    @bytes 0xD5;               # push de
+    __divmods32();
+    @bytes 0xD1;               # pop de
+    @bytes 0x21, &__divresult+4; # ld hl, #__divresult+4
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir
+end sub;
+
+sub divmods32(left: int32, right: int32): (quotient: int32, remainder: int32)
+    @bytes 0x21, &left;        # ld hl, #left
+    @bytes 0x01, &right;       # ld bc, #right
+    __divmods32();
+
+    @bytes 0x21, &__divresult+0; # ld hl, #__divresult+0
+    @bytes 0x11, &quotient;    # ld de, #quotient
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+
+    @bytes 0x21, &__divresult+4; # ld hl, #__divresult+4
+    @bytes 0x11, &remainder;   # ld de, #remainder
+    @bytes 0x01, 0x04, 0x00;   # ld bc, #4
+    @bytes 0xED, 0xB0;         # ldir --- leaves BC 0
+end sub;
+
+var __lomem: int8 @segment(0x81);
+var LOMEM: [int8] := &__lomem;

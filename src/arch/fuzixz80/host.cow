@@ -1,0 +1,7 @@
+# This is too small to build the compiler, but limits TPA usage to about 48kB,
+# so that it fits in a Fuzix large address space. Sorry, the TRS80-4P isn't
+# eligible.
+const STRINGTABLE_SIZE := 11000;
+const IOPTABLE_SIZE := 10000;
+const CLASSIFICATIONGRAPH_NODES := 2000; # in nodes, node bytes
+const MAXSUBROUTINES_COUNT := 400;

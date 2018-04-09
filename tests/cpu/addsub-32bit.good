@@ -28,3 +28,13 @@ ONE-mtwo==three: yes
 ONE-one==zero: yes
 ZERO-one==mone: yes
 TWO-mone==three: yes
+-two == mtwo: yes
+-one == mone: yes
+-zero == zero: yes
+-mone == one: yes
+-mtwo == two: yes
+deadbeef+deadbeef=0xbd5b7dde: yes
+deadbeef-deadbeef=0x00000000: yes
+pdeadbeef[0]+deadbeef=0xbd5b7dde: yes
+deadbeef+pdeadbeef[0]=0xbd5b7dde: yes
+presult test: yes

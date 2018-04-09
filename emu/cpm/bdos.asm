@@ -1,5 +1,11 @@
-	ORG 0xff80
+	org 0xff00 ; FBASE
 
+bdos: ; BDOS entry point
+	out (0xff), a
+	or a
+	ret
+
+COLDSTART: ; system startup entry point --- this needs to be four bytes after FBASE.
 	jp boot	    ; 0: Cold start routine
 bios:
 	jp wboot	; 1: Warm boot - reload command processor
@@ -17,19 +23,15 @@ bios:
 	jp read     ;13: Read a sector
 	jp write	;14: Write a sector
 
-bdos:
-	out (0xff), a
-	ret
-
 boot:
+	xor a
+	ld (3), a ; iobyte
+	ld (4), a ; drive
+	; falls through
 wboot:
 	ld a, 0xc3 ; jp
 	ld (0), a
 	ld (5), a
-
-	xor a
-	ld (3), a ; iobyte
-	ld (4), a ; drive
 
 	ld hl, bios
 	ld (1), hl
@@ -37,57 +39,72 @@ wboot:
 	ld hl, bdos
 	ld (6), hl
 
+	ld a, (4) ; get the current drive/user
+	ld c, a
 	out (1), a
 
 const:
 	out (2), a
+	or a
 	ret
 
 conin:
 	out (3), a
+	or a
 	ret
 
 conout:
 	out (4), a
+	or a
 	ret
 
 list:
 	out (5), a
+	or a
 	ret
 
 punch:
 	out (6), a
+	or a
 	ret
 
 reader:
 	out (7), a
+	or a
 	ret
 
 home:
 	out (8), a
+	or a
 	ret
 
 seldsk:
 	out (9), a
+	or a
 	ret
 
 settrk:
 	out (10), a
+	or a
 	ret
 
 setsec:
 	out (11), a
+	or a
 	ret
 
 setdma:
 	out (12), a
+	or a
 	ret
 
 read:
 	out (13), a
+	or a
 	ret
 
 write:
 	out (14), a
+	or a
 	ret
 

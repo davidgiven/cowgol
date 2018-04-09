@@ -32,6 +32,51 @@ sub arch_init_codegen()
     zero_memory(&values[0] as [int8], values@bytes);
 end sub;
 
+sub find_first_bit(value: uint8): (mask: uint8)
+    mask := 1;
+    loop
+        if (value & mask) != 0 then
+            return;
+        end if;
+        if mask == 0x80 then
+            break;
+        end if;
+        mask := mask << 1;
+    end loop;
+    mask := 0;
+end sub;
+
+sub insn_check_saveable()
+    if (insn.indexreg != 0) or (insn.mode == MODE_IND) then
+        print("unsaveable object");
+        halt();
+    end if;
+end sub;
+
+sub load_saveable_object(ea: [EffectiveAddress], location: uint8)
+    var storage: Insn;
+    save_insn(&storage);
+
+    insn_init_from_ea(ea);
+    insn.datareg := location;
+    insn_check_saveable();
+    insn_load_object();
+
+    load_insn(&storage);
+end sub;
+
+sub save_saveable_object(ea: [EffectiveAddress], location: uint8)
+    var storage: Insn;
+    save_insn(&storage);
+
+    insn_init_from_ea(ea);
+    insn.datareg := location;
+    insn_check_saveable();
+    insn_save_object();
+
+    load_insn(&storage);
+end sub;
+
 sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
     location := find_first_bit(location);
 	$if DEBUG
@@ -42,14 +87,7 @@ sub write_back_precious_value(location: uint8, ea: [EffectiveAddress])
 		print_newline();
 	$endif
 
-    if ea.flags == EA_VALUE then
-        save_objval(location, ea);
-    else
-        print("can't write precious value ");
-        print_ea(ea);
-        print(" yet");
-        halt();
-    end if;
+    save_saveable_object(ea, location);
 end sub;
 
 sub write_back_precious_values(mask: uint8)
@@ -59,9 +97,13 @@ sub write_back_precious_values(mask: uint8)
         var locations: uint8 := value.locations;
         if (locations & mask) != 0 then
             if (locations & PRECIOUS) != 0 then
-                locations := locations ^ PRECIOUS;
-                write_back_precious_value(locations, &value.ea);
-                value.locations := locations;
+                # We only need to write back the value if it's not previous
+                # in other registers (i.e. this is the last use).
+                if (locations & (mask ^ 0x7f)) == 0 then
+                    locations := locations ^ PRECIOUS;
+                    write_back_precious_value(locations, &value.ea);
+                    value.locations := locations;
+                end if;
             end if;
         end if;
         i := i + 1;
@@ -88,14 +130,20 @@ end sub;
 sub find_unused_regs(candidates: uint8): (mask: uint8)
     var i: uint8 := 0;
     while i < values@size loop
-        candidates := candidates & (values[i].locations ^ 0xff);
+        candidates := candidates & ~values[i].locations;
         i := i + 1;
     end loop;
     mask := candidates & REG_MASK;
 end sub;
 
 sub allocate_reg(candidates: uint8): (mask: uint8)
-    candidates := candidates & (locked_registers ^ 0xff);
+    $if DEBUG
+        print("* looking for register matching 0x");
+        print_hex_i8(candidates);
+        print_newline();
+    $endif
+
+    candidates := candidates & ~locked_registers;
     mask := find_unused_regs(candidates);
     if mask == 0 then
         mask := candidates;
@@ -134,7 +182,7 @@ sub find_regs_with_value(ea: [EffectiveAddress], candidates: uint8): (locations:
     while index < values@size loop
         var value: [CachedValue] := &values[index];
         locations := value.locations & candidates & REG_MASK;
-        if (locations != 0) and (is_same_ea(&value.ea, ea) != 0) then
+        if (locations != 0) and (is_same_ea_ignoring_type(&value.ea, ea) != 0) then
             locations := value.locations & REG_MASK;
 
 			$if DEBUG
@@ -184,7 +232,7 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
     while i < values@size loop
         value := &values[i];
 
-        if is_same_ea(&value.ea, ea) != 0 then
+        if is_same_ea_ignoring_type(&value.ea, ea) != 0 then
             value.locations := value.locations | locations;
 
 			$if DEBUG
@@ -218,6 +266,89 @@ sub value_is_cached_in_reg(ea: [EffectiveAddress], locations: uint8)
     halt();
 end sub;
 
+sub is_value_precious(ea: [EffectiveAddress]): (precious: uint8)
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+
+        if is_same_ea_ignoring_type(&value.ea, ea) != 0 then
+            if (value.locations & PRECIOUS) != 0 then
+                precious := 1;
+                return;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+
+    precious := 0;
+    return;
+end sub;
+
+sub value_is_precious(ea: [EffectiveAddress])
+    var i: uint8 := 0;
+    var made_precious: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        if value.locations != 0 then
+            if is_same_ea_ignoring_type(ea, &value.ea) != 0 then
+                if (value.locations & PRECIOUS) == 0 then
+					$if DEBUG
+						print("* remembering that value ");
+						print_ea(ea);
+						print(" is precious in 0x");
+						print_hex_i8(value.locations);
+						print_newline();
+					$endif
+
+                    value.locations := value.locations | PRECIOUS;
+                else
+					$if DEBUG
+						print("* value ");
+						print_ea(ea);
+						print(" is already precious in 0x");
+						print_hex_i8(value.locations & ~PRECIOUS);
+						print_newline();
+					$endif
+                end if;
+                made_precious := 1;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+
+    if made_precious == 0 then
+        $if DEBUG
+            print_cache();
+        $endif
+        print("can't make precious, value ");
+        print_ea(ea);
+        print(" is not in the cache");
+        halt();
+    end if;
+end sub;
+
+sub value_is_not_precious(ea: [EffectiveAddress])
+    var i: uint8 := 0;
+    while i < values@size loop
+        var value: [CachedValue] := &values[i];
+        if (value.locations != 0) and (is_same_ea_ignoring_type(ea, &value.ea) != 0) then
+            if (value.locations & PRECIOUS) != 0 then
+				$if DEBUG
+					print("* value ");
+					print_ea(ea);
+                    print(" in 0x");
+                    print_hex_i8(value.locations & ~PRECIOUS);
+					print(" is no longer precious\n");
+				$endif
+
+                value.locations := value.locations ^ PRECIOUS;
+                return;
+            end if;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
 sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
 	$if DEBUG
 		print("* hunting for ");
@@ -234,81 +365,99 @@ sub move_value_to_reg(ea: [EffectiveAddress], candidates: uint8): (location: uin
     end if;
 
     location := find_reg_with_value(ea, REG_A|REG_X|REG_Y);
-    if location == 0 then
-        return;
-    end if;
+    if location != 0 then
+        # Does this value exist in another register?
 
-    var oldlocation: uint8 := location;
-    location := allocate_reg(candidates);
+        var oldlocation: uint8 := location;
+        location := allocate_reg(candidates);
 
-    # Special case: can't move from X to Y or vice versa.
-    if (oldlocation|location) == (REG_X|REG_Y) then
-        free_reg(location);
-        location := 0;
-        return;
-    end if;
+        # Special case: can't move from X to Y or vice versa.
+        if (oldlocation|location) == (REG_X|REG_Y) then
+            free_reg(location);
+            location := 0;
+        else
+            $if DEBUG
+                print("* moving value ");
+                print_ea(ea);
+                print(" from 0x");
+                print_hex_i8(oldlocation);
+                print(" to 0x");
+                print_hex_i8(location);
+                print_newline();
+            $endif
 
-	$if DEBUG
-		print("* moving value ");
-		print_ea(ea);
-		print(" from 0x");
-		print_hex_i8(oldlocation);
-		print(" to 0x");
-		print_hex_i8(location);
-		print_newline();
-	$endif
-
-    t_reg_reg(oldlocation, location);
-    value_is_cached_in_reg(ea, location);
-end sub;
-
-sub value_is_precious(ea: [EffectiveAddress])
-    var i: uint8 := 0;
-    while i < values@size loop
-        var value: [CachedValue] := &values[i];
-        if value.locations != 0 then
-            if is_same_ea(ea, &value.ea) != 0 then
-                if (value.locations & PRECIOUS) == 0 then
-					$if DEBUG
-						print("* remembering that value ");
-						print_ea(ea);
-						print(" is precious in 0x");
-						print_hex_i8(value.locations);
-						print_newline();
-					$endif
-
-                    value.locations := value.locations | PRECIOUS;
-                    return;
-                end if;
+            t_reg_reg(oldlocation, location);
+            value_is_cached_in_reg(ea, location);
+            if is_value_precious(ea) != 0 then
+                value_is_precious(ea);
             end if;
+            return;
         end if;
-        i := i + 1;
-    end loop;
+    end if;
 
-    print("can't make precious, value ");
-    print_ea(ea);
-    print(" is not in the cache");
-    halt();
-end sub;
+    if (is_number_thing(ea.obj_id) != 0) and (ea.flags == EA_VALUE)
+        and (ea.numoff_id == 0) and (ea.varoff_id == 0)
+        and ((candidates & (REG_X|REG_Y)) != 0)
+    then
+        # We're loading a number into an index register. Can we construct it
+        # with a inc or dec?
 
-sub value_is_not_precious(ea: [EffectiveAddress])
-    var i: uint8 := 0;
-    while i < values@size loop
-        var value: [CachedValue] := &values[i];
-        if (value.locations != 0) and (is_same_ea(ea, &value.ea) != 0) then
-            if (value.locations & PRECIOUS) == 0 then
-				$if DEBUG
-					print("* value ");
-					print_ea(ea);
-					print(" is no longer precious\n");
-				$endif
+        candidates := candidates & (REG_X|REG_Y);
 
-                value.locations := value.locations ^ PRECIOUS;
+        var value: int8 := get_value_of_number(ea.obj_id) as int8;
+        sub find_with_delta(delta: int8)
+            var oldea: EffectiveAddress;
+            zero_ea(&oldea);
+            oldea.flags := EA_VALUE;
+            oldea.obj_id := add_number_by_value((value + delta) as int32);
+            location := find_reg_with_value(&oldea, candidates) & ~locked_registers;
+        end sub;
+
+        sub found(modx: uint8, mody: uint8)
+            allocate_fixed_reg(location);
+            
+            $if DEBUG
+                print("* constructing value ");
+                print_ea(ea);
+                print(" from 0x");
+                print_hex_i8(location);
+                print(" using 0x");
+            $endif
+            if location == REG_X then
+                write_byte(modx);
+                $if DEBUG
+                    print_hex_i8(modx);
+                $endif
+            else
+                write_byte(mody);
+                $if DEBUG
+                    print_hex_i8(mody);
+                $endif
+            end if;
+            $if DEBUG
+                print_newline();
+            $endif
+
+            value_is_cached_in_reg(ea, location);
+        end sub;
+
+        find_with_delta(-1);
+        if location != 0 then
+            found(0xe8, 0xc8); # INX, INY
+            return;
+        else
+            find_with_delta(1);
+            if location != 0 then
+                found(0xca, 0x88); # DEX, DEY
                 return;
             end if;
         end if;
-        i := i + 1;
-    end loop;
+    end if;
+end sub;
+
+sub flush_value(ea: [EffectiveAddress])
+    var regs: uint8 := find_regs_with_value(ea, REG_A|REG_X|REG_Y);
+    flush_cached_values(regs);
 end sub;
 
 # This value is about to be written to, so flush any references to it.
@@ -344,7 +493,7 @@ sub value_is_changing(oldvalue: [EffectiveAddress])
         end sub;
 
         if locations != 0 then
-            if is_same_ea(&value.ea, oldvalue) != 0 then
+            if is_same_ea_ignoring_type(&value.ea, oldvalue) != 0 then
                 flush();
             elseif (varoff_candidate != 0) and (value.ea.varoff_id == oldvalue.obj_id) then
                 if (locations & PRECIOUS) != 0 then
@@ -373,7 +522,7 @@ sub value_in_location_will_be_replaced_with(location: uint8,
 		print_newline();
 	$endif
 
-    if is_same_ea(oldvalue, newvalue) != 0 then
+    if is_same_ea_ignoring_type(oldvalue, newvalue) != 0 then
         # This means that the value is changing. Don't consider it to be precious any more
         # (because it's about to change).
 		$if DEBUG
@@ -419,90 +568,103 @@ sub allocate_reg_for_value(ea: [EffectiveAddress], candidates: uint8): (location
     value_is_cached_in_reg(ea, location);
 end sub;
 
-sub find_or_load_objval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
+sub find_or_load_primitive_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
     location := move_value_to_reg(ea, candidates);
     if location != 0 then
         return;
     end if;
+    
     location := allocate_reg_for_value(ea, candidates);
-
-    load_objval(location, ea);
+    load_saveable_object(ea, location);
 end sub;
 
-# Loads *just the index part* of the EA into a register.
-sub find_or_load_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    var indexea: EffectiveAddress;
-    indexea.flags := EA_VALUE;
-    indexea.varoff_id := 0;
-    indexea.numoff_id := 0;
-    if ea.varoff_id != 0 then
-        indexea.obj_id := ea.varoff_id;
-        ea.varoff_id := 0;
-    else
-        if ea.numoff_id == 0 then
-            indexea.obj_id := add_number_by_value(0);
-        else
-            indexea.obj_id := ea.numoff_id;
+sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
+    var ea: EffectiveAddress;
+    zero_ea(&ea);
+    ea.obj_id := add_number_by_value(value as int32);
+    location := find_or_load_primitive_value(&ea, candidates);
+end sub;
+
+sub find_or_load_fixed_int(value: uint8, candidates: uint8)
+    var location: uint8 := find_or_load_int(value, candidates);
+end sub;
+
+sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8): (indexreg: uint8)
+    insn_init_from_ea(ea);
+    indexreg := 0;
+    if insn.mode == MODE_IMMLO then
+        insn.mode := insn.mode + (offset as uint8);
+        if offset > 1 then
+            print("bad offset for immediate");
+            halt();
         end if;
-        ea.numoff_id := 0;
-    end if;
-    indexea.type_id := get_type_of_thing(ea.obj_id);
-
-	$if DEBUG
-		print("* loading index value ");
-		print_ea(&indexea);
-		print_newline();
-	$endif
-
-    location := find_or_load_objval(&indexea, candidates);
-end sub;
-
-sub find_or_load_objval_with_optional_index(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    location := move_value_to_reg(ea, candidates);
-    if location != 0 then
-        return;
-    end if;
-    location := allocate_reg_for_value(ea, candidates);
-
-    if is_number_thing(ea.obj_id) != 0 then
-        load_objval(location, ea);
     else
-        var indexreg: uint8 := 0;
-        if ea.varoff_id != 0 then
-            indexreg := find_or_load_index(ea, REG_X|REG_Y);
+        insn.offset := insn.offset + (offset as uint16);
+        if insn.mode == MODE_IND then
+            if insn.offset > 0xff then
+                print("offset too big");
+                halt();
+            end if;
+
+            sub load_index(candidates: uint8)
+                var indexea: EffectiveAddress;
+                zero_ea(&indexea);
+                indexea.obj_id := ea.varoff_id;
+                indexea.type_id := uint8_type;
+                indexreg := find_or_load_primitive_value(&indexea, candidates);
+                insn.indexreg := indexreg;
+            end sub;
+
+            if ea.varoff_id != 0 then
+                if insn.offset != 0 then
+                    print("varoff and numoff in ea");
+                    halt();
+                end if;
+                load_index(REG_Y);
+            else
+                find_or_load_fixed_int(insn.offset as uint8, REG_Y);
+            end if;
+            insn.offset := 0;
+            insn.indexreg := REG_Y;
+            indexreg := REG_Y;
+        elseif (insn.mode == MODE_DIR) and (ea.varoff_id != 0) then
+            load_index(REG_X|REG_Y);
         end if;
-        ld_abs(location, indexreg, ea);
-        free_reg(indexreg);
     end if;
-end sub;
-
-sub find_or_load_ptrval(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    location := move_value_to_reg(ea, candidates);
-    if location != 0 then
-        return;
-    end if;
-
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    location := allocate_reg_for_value(ea, REG_A);
-    ld_ind(location, indexreg, ea);
-    free_reg(indexreg);
-
-    if (location & candidates) == 0 then
-        free_reg(location);
-        location := move_value_to_reg(ea, candidates);
-    end if;
+    insn.datareg := location;
 end sub;
 
 sub find_or_load_value(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    if ea.flags == EA_VALUE then
-        location := find_or_load_objval_with_optional_index(ea, candidates);
-    elseif ea.flags == EA_DEREF then
-        location := find_or_load_ptrval(ea, candidates);
-    else
-        print("can't load ");
+    $if DEBUG
+        print("* loading ");
         print_ea(ea);
-        print(" yet");
-        halt();
+        print(" into 0x");
+        print_hex_i8(candidates);
+        print_newline();
+    $endif
+
+    location := move_value_to_reg(ea, candidates);
+    if location != 0 then
+        return;
+    end if;
+
+    var oldcandidates: uint8;
+    if ea.flags == EA_DEREF then    
+        oldcandidates := candidates;
+        candidates := REG_A;
+    end if;
+
+    var storage: Insn;
+    save_insn(&storage);
+    location := allocate_reg_for_value(ea, candidates);
+    var indexreg: uint8 := setup_insn(ea, 0, location);
+    insn_load_object();
+    free_reg(indexreg);
+    load_insn(&storage);
+
+    if (ea.flags == EA_DEREF) and ((oldcandidates & REG_A) == 0) then
+        location := move_value_to_reg(ea, oldcandidates);
+        free_reg(REG_A);
     end if;
 end sub;
 
@@ -510,122 +672,39 @@ sub find_or_load_fixed_value(ea: [EffectiveAddress], candidates: uint8)
     var location: uint8 := find_or_load_value(ea, candidates);
 end sub;
 
-sub save_objval_with_optional_index(location: uint8, ea: [EffectiveAddress])
-    var newlocation: uint8 := location;
-    var indexreg: uint8 := 0;
-    if ea.varoff_id != 0 then
-        indexreg := find_or_load_index(ea, REG_X|REG_Y);
-        if newlocation != REG_A then
-            newlocation := allocate_reg(REG_A);
-            t_reg_reg(location, newlocation);
-            value_is_cached_in_reg(ea, newlocation);
-        end if;
-    end if;
-    st_abs(newlocation, indexreg, ea);
-    free_reg(indexreg);
-    if location != newlocation then
-        free_reg(newlocation);
-    end if;
-end sub;
-
-sub save_ptrval_with_index(location: uint8, ea: [EffectiveAddress])
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    var newlocation: uint8;
-    if location != REG_A then
-        newlocation := allocate_reg(REG_A);
-        t_reg_reg(location, newlocation);
-    else
-        newlocation := location;
-    end if;
-    st_ind(newlocation, indexreg, ea);
-    free_reg(indexreg);
-    if location != REG_A then
-        free_reg(newlocation);
-    end if;
-end sub;
-
-sub aluop_objval(ea: [EffectiveAddress], opcode: uint8)
-    if is_number_thing(ea.obj_id) != 0 then
-        op_imm(get_value_of_number(ea.obj_id) as uint8, opcode & 0xFB);
-    else
-        var indexreg: uint8 := 0;
-        if ea.varoff_id != 0 then
-            indexreg := find_or_load_index(ea, REG_X|REG_Y);
-            opcode := opcode | 0x10;
-            if indexreg == REG_Y then
-                opcode := opcode & 0xFB;
-            end if;
-        end if;
-
-        op_abs(ea, opcode);
-
-        free_reg(indexreg);
-    end if;
-end sub;
-
-sub aluop_deref(ea: [EffectiveAddress], opcode: uint8)
-    var indexreg: uint8 := find_or_load_index(ea, REG_Y);
-    opcode := (opcode | 0x10) & 0xF3;
-    ea.varoff_id := 0;
-    ea.numoff_id := 0;
-
-    op_ind(ea, opcode);
-
-    free_reg(indexreg);
-end sub;
-
-# Assumes the input value is in A. opcode must be an abs instruction in the 0x0D or 0x0E
-# columns of the map. ea is read direct from memory (or via an immediate).
-sub aluop_value(ea: [EffectiveAddress], opcode: uint8)
-    var flags: uint8 := ea.flags;
-    if flags == EA_VALUE then
-        aluop_objval(ea, opcode);
-    elseif flags == EA_DEREF then
-        aluop_deref(ea, opcode);
-    else
-        print("can't alu ");
-        print_ea(ea);
-        print(" yet");
-        halt();
-    end if;
-end sub;
-
-sub find_or_load_int(value: uint8, candidates: uint8): (location: uint8)
-    var ea: EffectiveAddress;
-    zero_ea(&ea);
-    ea.obj_id := add_number_by_value(value as int32);
-    location := find_or_load_value(&ea, candidates);
-end sub;
-
-sub find_or_load_fixed_int(value: uint8, candidates: uint8)
-    var location: uint8 := find_or_load_int(value, candidates);
-end sub;
-
-sub find_or_load_value_with_flags(ea: [EffectiveAddress], candidates: uint8): (location: uint8)
-    var oldlocation: uint8 := find_reg_with_value(ea, candidates);
-    location := find_or_load_value(ea, candidates);
-    if oldlocation != location then
-        # The value was forced from memory, so the flags are set automatically.
-    else
-        write_byte(0x09); # ORA imm
-        write_byte(0x00);
-    end if;
-end sub;
-
-sub find_or_load_fixed_value_with_flags(ea: [EffectiveAddress], candidates: uint8)
-    var location: uint8 := find_or_load_value_with_flags(ea, candidates);
-end sub;
-
 sub save_value(location: uint8, ea: [EffectiveAddress])
-    if ea.flags == EA_VALUE then
-        save_objval_with_optional_index(location, ea);
-    elseif ea.flags == EA_DEREF then
-        save_ptrval_with_index(location, ea);
-    else
-        print("can't save ");
+    $if DEBUG
+        print("* saving 0x");
+        print_hex_i8(location);
+        print(" into ");
         print_ea(ea);
-        print(" yet");
-        halt();
+        print_newline();
+    $endif
+
+    var oldlocation: uint8;
+    if ea.flags == EA_DEREF then    
+        oldlocation := location;
+        if location != REG_A then
+            $if DEBUG
+                print("* moving value because we can't save this register\n");
+                print_cache();
+            $endif
+            allocate_fixed_reg(REG_A);
+            t_reg_reg(location, REG_A);
+            location := REG_A;
+        end if;
+    end if;
+
+    var storage: Insn;
+    save_insn(&storage);
+    var indexreg: uint8 := setup_insn(ea, 0, location);
+    insn_save_object();
+    free_reg(indexreg);
+    load_insn(&storage);
+
+    if (ea.flags == EA_DEREF) and (oldlocation != REG_A) then    
+        free_reg(location);
+        value_is_cached_in_reg(ea, location);
     end if;
 end sub;
 
@@ -645,31 +724,5 @@ sub make_value_precious_or_save_now(location: uint8, ea: [EffectiveAddress])
     else
         value_is_cached_in_reg(ea, location);
         value_is_precious(ea);
-    end if;
-end sub;
-
-sub save_value_with_index_or_offset(location: uint8, ea: [EffectiveAddress], offset: uint8)
-    if ea.flags == EA_VALUE then
-        save_objval_with_offset(location, ea, offset);
-    elseif ea.flags == EA_DEREF then
-        find_or_load_fixed_int(offset, REG_Y);
-        var newlocation: uint8 := location;
-        if location != REG_A then
-            newlocation := allocate_reg(REG_A);
-            t_reg_reg(location, newlocation);
-            value_is_cached_in_reg(ea, newlocation);
-        end if;
-        st_ind(newlocation, REG_Y, ea);
-        if newlocation != REG_A then
-            free_reg(newlocation);
-        end if;
-        free_reg(REG_Y);
-    else
-        print("can't save ");
-        print_ea(ea);
-        print(" with offset 0x");
-        print_hex_i8(offset);
-        print(" yet");
-        halt();
     end if;
 end sub;

@@ -1,0 +1,65 @@
+var ARGV: [int8][8];
+var ARGC: uint8;
+
+sub init_argv()
+    ARGC := 1;
+    ARGV[0] := "";
+
+    sub too_many_arguments()
+        print("too many arguments\n");
+        exit(1);
+    end sub;
+
+    var data: [int8] := 0x0081 as [int8];
+    var totalbytes: uint8;
+    @bytes 0x3A, 0x80, 0x00;  # ld a, (0x0080)
+    @bytes 0x32, &totalbytes; # ld (totalbytes), a
+    if totalbytes == 128 then
+        too_many_arguments();
+    end if;
+    data[totalbytes as int16] := 0;
+
+    var offset: uint8 := 0;
+    var char: int8;
+
+    loop
+        # Find the beginning of the next word.
+        loop
+            char := data[0];
+            if char != 32 then
+                break;
+            end if;
+            data := data + 1;
+        end loop;
+
+        if char == 0 then
+            break;
+        end if;
+
+        # Add this word to the list.
+
+        ARGV[ARGC] := &data[0];
+        ARGC := ARGC + 1;
+        if ARGC == ARGV@size then
+            too_many_arguments();
+        end if;
+
+        # Find the end of the word.
+
+        loop
+            char := data[0];
+            if (char == 0) or (char == 32) then
+                break;
+            end if;
+            data := data + 1;
+        end loop;
+
+        data[0] := 0;
+        data := data + 1;
+
+        if char == 0 then
+            break;
+        end if;
+    end loop;
+end sub;
+init_argv();
