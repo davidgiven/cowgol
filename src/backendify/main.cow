@@ -387,9 +387,13 @@ sub process_subroutine()
     end sub;
 
     sub fe_cast(iop: [FETypedIop])
-        var node: [Node] := simplify_node_to_ea_and_deref(pop());
-
+        var node: [Node] := pop();
+        
+        if get_width_of_type(node.type_id) != get_width_of_type(iop.type_id) then
+            node := simplify_node_to_ea_and_deref(node);
+        end if;
         node.type_id := iop.type_id;
+        
         push_node(node);
     end sub;
 
