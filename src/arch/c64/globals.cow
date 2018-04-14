@@ -10,6 +10,10 @@ const FILE_HEADER_SIZE := 14; # 10SYS2061 plus two-byte PRG header
 const BASE_ADDRESS := 0x080d;
 const BASE_ZEROPAGE := 0x14;
 
+# How big are our segments?
+const DATA_SEGMENT_SIZE := 0x97f3; # 0x080d to 0xa000 available
+const ZP_SEGMENT_SIZE := 0x7c; # 0x14 to 0x90 available
+
 record ArchSizes
     data_size: uint16;
     zp_size: uint8;
