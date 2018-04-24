@@ -756,6 +756,13 @@ build_c(
 	}
 )
 
+build_c(
+    {
+        "miniyacc",
+        "src/miniyacc/yacc.c",
+    }
+)
+
 build_pasmo(
 	{
 		"$OBJDIR/ccp.bin",
