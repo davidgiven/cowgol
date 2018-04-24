@@ -675,6 +675,7 @@ void tblout()
 {
 	int *o, n, m;
 
+	fprintf(fout, "const STACK_SIZE := 100;\n");
 	fprintf(fout, "const INITIAL_STATE := %d;\n", ini->id - 1);
 	fprintf(fout, "const NUMBER_OF_TOKENS := %d;\n", ntk);
 	o = yalloc(nrl + nst + nsy, sizeof o[0]);
@@ -704,18 +705,8 @@ void tblout()
 	aout("checking_table", "int16", chk, actsz);
 	for (n = 1; n < ntk; n++)
 	{
-		fprintf(fout, "#define %s %d\n", is[n].name, n);
 		if (fhdr)
-			fprintf(fhdr, "#define %s %d\n", is[n].name, n);
-	}
-	if (fhdr)
-	{
-		fputs("int yyparse(void);\n", fhdr);
-		fputs("#ifndef YYSTYPE\n", fhdr);
-		fputs("#define YYSTYPE int\n", fhdr);
-		fputs("#endif\n", fhdr);
-		fputs("extern YYSTYPE yylval;\n", fhdr);
-		fputs("#endif\n", fhdr);
+			fprintf(fhdr, "#define TOKEN_%s %d\n", is[n].name, n);
 	}
 	free(o);
 }
@@ -988,13 +979,7 @@ void getdecls()
 					die("syntax error, { expected after %union");
 				fprintf(fout, "#line %d \"%s\"\n", lineno, srca);
 				s = cpycode();
-				fprintf(fout, "typedef union %s yyunion;\n", s);
-				fprintf(fout, "#define YYSTYPE yyunion\n");
-				if (fhdr)
-				{
-					fprintf(fhdr, "typedef union %s yyunion;\n", s);
-					fprintf(fhdr, "#define YYSTYPE yyunion\n");
-				}
+				fprintf(fout, "record YYSTYPE %s end record;\n", s);
 				free(s);
 				doty = 1;
 				tk = nexttk();
@@ -1324,11 +1309,6 @@ void init(int ac, char* av[])
 	{
 		sprintf(buf, "%s.tab.h", pref);
 		fhdr = fopen(buf, "w");
-		if (fhdr)
-		{
-			fprintf(fhdr, "#ifndef Y_TAB_H_\n");
-			fprintf(fhdr, "#define Y_TAB_H_\n");
-		}
 	}
 	if (!fin || !fout || (!fgrm && vf) || (!fhdr && df))
 		die("cannot open work files");
@@ -1363,71 +1343,72 @@ int main(int ac, char* av[])
 char* retcode = "\t\tyyval = ps[1].val; return 0;";
 
 char* code0[] = {
+	"sub yyparse(): (result: int8)\n",
+	"   record StackEntry: YYSTYPE\n"
+	"		state: int16;\n",
+	"   end record;\n"
+	"   var stack: StackEntry[STACK_SIZE];\n"
+	"   var ps: [StackEntry];\n"
+	"   var r: int16;\n"
+	"   var h: int16;\n"
+	"   var s: int16;\n"
+	"   var tk: int16;\n"
+	"   var yyval: YYSTYPE;\n"
 	"\n",
-	"#ifndef YYSTYPE\n",
-	"#define YYSTYPE int\n",
-	"#endif\n",
-	"YYSTYPE yylval;\n",
-	"\n",
-	"int\n",
-	"yyparse()\n",
-	"{\n",
-	"	enum {\n",
-	"		StackSize = 100,\n",
-	"		ActSz = sizeof actions_and_gotos / sizeof actions_and_gotos[0],\n",
-	"	};\n",
-	"	struct {\n",
-	"		YYSTYPE val;\n",
-	"		int state;\n",
-	"	} stk[StackSize], *ps;\n",
-	"	int r, h, n, s, tk;\n",
-	"	YYSTYPE yyval;\n",
-	"\n",
-	"	ps = stk;\n",
-	"	ps->state = s = INITIAL_STATE;\n",
-	"	tk = -1;\n",
+	"	ps := &stack[0];\n",
+	"   s := INITIAL_STATE;\n"
+	"   ps.state := s;\n"
+	"   tk := -1;\n"
 	"loop:\n",
-	"	n = state_to_displacement[s];\n",
-	"	if (tk < 0 && n > -NUMBER_OF_TOKENS)\n",
-	"		tk = yylex();\n",
-	"	n += tk;\n",
-	"	if (n < 0 || n >= ActSz || checking_table[n] != tk) {\n",
-	"		r = state_to_reduce[s];\n",
-	"		if (r < 0)\n",
-	"			return -1;\n",
+	"   n := state_to_displacement[s];\n",
+	"	if (tk < 0) and (n > -NUMBER_OF_TOKENS) then\n",
+	"		tk := yylex();\n",
+	"   end if;\n",
+	"	n := n + tk;\n",
+	"	if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != tk) then\n",
+	"		r := state_to_reduce[s];\n",
+	"		if r < 0 then\n",
+	" 			result := -1;\n",
+	"			return;\n",
+	"		end if;\n",
 	"		goto reduce;\n",
-	"	}\n",
-	"	n = actions_and_gotos[n];\n",
-	"	if (n == -1)\n",
-	"		return -1;\n",
-	"	if (n < 0) {\n",
-	"		r = - (n+2);\n",
+	"	end if\n",
+	"	n := actions_and_gotos[n];\n",
+	"	if n == -1 then\n",
+	"		result := -1;\n",
+	" 		return;\n",
+	"	end if;\n"
+	"	if n < 0 then\n",
+	"		r := - (n+2);\n",
 	"		goto reduce;\n",
-	"	}\n",
-	"	tk = -1;\n",
-	"	yyval = yylval;\n",
+	"	end if;\n",
+	"	tk := -1;\n",
+	"	copy_memory(&yylval as [int8], &yyval as [int8], YYSTYPE@bytes);\n"
 	"stack:\n",
-	"	ps++;\n",
-	"	if (ps-stk >= StackSize)\n",
-	"		return -2;\n",
-	"	s = n;\n",
-	"	ps->state = s;\n",
-	"	ps->val = yyval;\n",
+	"	ps := ps + 1;\n",
+	"	if (ps-stk) >= STACK_SIZE then\n",
+	"		result := -2;\n"
+	"		return;\n"
+	"	end if;\n"
+	"	s := n;\n",
+	"	ps.state := s;\n",
+	"   copy_memory(&yyval as [int8], &ps.val as [int8], YYSTYPE@bytes);\n",
 	"	goto loop;\n",
 	"reduce:\n",
-	"	ps -= rule_to_arity_table[r];\n",
-	"	h = rule_to_symbol[r];\n",
-	"	s = ps->state;\n",
-	"	n = nt_to_displacement[h] + s;\n",
-	"	if (n < 0 || n >= ActSz || checking_table[n] != NUMBER_OF_TOKENS+h)\n",
-	"		n = nt_to_goto[h];\n",
-	"	else\n",
-	"		n = actions_and_gotos[n];\n",
+	"	ps := ps - rule_to_arity_table[r];\n",
+	"	h := rule_to_symbol[r];\n",
+	"	s := ps.state;\n",
+	"	n := nt_to_displacement[h] + s;\n",
+	"	if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != (NUMBER_OF_TOKENS+h))\n",
+	"		n := nt_to_goto[h];\n",
+	"   else\n",
+	"		n := actions_and_gotos[n];\n",
+	"	end if;\n",
 	0
 };
 
 char* code1[] = {
 	"	goto stack;\n",
-	"}\n",
+	"end sub;\n",
 	0
 };
