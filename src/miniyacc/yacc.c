@@ -628,11 +628,11 @@ actgen()
 }
 
 void
-aout(char *name, char* type, int *t, int n)
+aout(char *name, int *t, int n)
 {
 	int i;
 
-	fprintf(fout, "%s %s[%d] = {", type, name, n);
+	fprintf(fout, "short %s[%d] = {", name, n);
 	for (i=0; i<n; i++) {
 		if (i % 10 == 0)
 			fprintf(fout, "\n");
@@ -653,27 +653,27 @@ tblout()
 	o = yalloc(nrl+nst+nsy, sizeof o[0]);
 	for (n=0; n<nrl; n++)
 		o[n] = slen(rs[n].rhs);
-	aout("rule_to_arity_table", "uint8", o, nrl);
+	aout("rule_to_arity_table", o, nrl);
 	for (n=0; n<nrl; n++)
 		o[n] = rs[n].lhs-MaxTk;
-	aout("rule_to_symbol", "uint8", o, nrl);
+	aout("rule_to_symbol", o, nrl);
 	for (n=0; n<nst; n++)
-		o[n] = as[n].def + 1;
-	aout("state_to_reduce", "uint8", o, nst);
+		o[n] = as[n].def;
+	aout("state_to_reduce", o, nst);
 	for (n=0; n<nsy-MaxTk; n++) {
 		o[n] = gs[n].def;
 		assert(o[n]>0 || o[n]==-1);
-		if (o[n]==-1)
-			o[n]++;
+		if (o[n]>0)
+			o[n]--;
 	}
-	aout("nt_to_goto", "uint8", o, nsy-MaxTk);
-	aout("nt_to_displacement", "int16", gdsp, nsy-MaxTk);
-	aout("state_to_displacement", "int16", adsp, nst);
+	aout("nt_to_goto", o, nsy-MaxTk);
+	aout("nt_to_displacement", gdsp, nsy-MaxTk);
+	aout("state_to_displacement", adsp, nst);
 	for (n=0; n<actsz; n++)
 		if (act[n]>=0)
 			act[n]--;
-	aout("actions_and_gotos", "int16", act, actsz);
-	aout("checking_table", "int16", chk, actsz);
+	aout("actions_and_gotos", act, actsz);
+	aout("checking_table", chk, actsz);
 	for (n=1; n<ntk; n++) {
 		fprintf(fout, "#define %s %d\n", is[n].name, n);
 		if (fhdr)
@@ -1315,9 +1315,8 @@ char *code0[] = {
 "	n += tk;\n",
 "	if (n < 0 || n >= ActSz || checking_table[n] != tk) {\n",
 "		r = state_to_reduce[s];\n",
-"		if (r == 0)\n",
+"		if (r < 0)\n",
 "			return -1;\n",
-"       r--;\n",
 "		goto reduce;\n",
 "	}\n",
 "	n = actions_and_gotos[n];\n",
@@ -1342,11 +1341,9 @@ char *code0[] = {
 "	h = rule_to_symbol[r];\n",
 "	s = ps->state;\n",
 "	n = nt_to_displacement[h] + s;\n",
-"	if (n < 0 || n >= ActSz || checking_table[n] != yyntoks+h) {\n",
+"	if (n < 0 || n >= ActSz || checking_table[n] != yyntoks+h)\n",
 "		n = nt_to_goto[h];\n",
-"       if (n == 0)\n"
-"           n--;\n"
-"	} else\n",
+"	else\n",
 "		n = actions_and_gotos[n];\n",
 "	switch (r) {\n",
 0
