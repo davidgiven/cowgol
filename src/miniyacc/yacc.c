@@ -655,11 +655,11 @@ void actgen()
 	free(o);
 }
 
-void aout(char* name, int* t, int n)
+void aout(char* name, const char* type, int* t, int n)
 {
 	int i;
 
-	fprintf(fout, "short %s[%d] = {", name, n);
+	fprintf(fout, "var %s: %s[%d] := {", name, type, n);
 	for (i = 0; i < n; i++)
 	{
 		if (i % 10 == 0)
@@ -675,18 +675,18 @@ void tblout()
 {
 	int *o, n, m;
 
-	fprintf(fout, "short yyini = %d;\n", ini->id - 1);
-	fprintf(fout, "short yyntoks = %d;\n", ntk);
+	fprintf(fout, "const INITIAL_STATE := %d;\n", ini->id - 1);
+	fprintf(fout, "const NUMBER_OF_TOKENS := %d;\n", ntk);
 	o = yalloc(nrl + nst + nsy, sizeof o[0]);
 	for (n = 0; n < nrl; n++)
 		o[n] = slen(rs[n].rhs);
-	aout("rule_to_arity_table", o, nrl);
+	aout("rule_to_arity_table", "int16", o, nrl);
 	for (n = 0; n < nrl; n++)
 		o[n] = rs[n].lhs - MaxTk;
-	aout("rule_to_symbol", o, nrl);
+	aout("rule_to_symbol", "int16", o, nrl);
 	for (n = 0; n < nst; n++)
 		o[n] = as[n].def;
-	aout("state_to_reduce", o, nst);
+	aout("state_to_reduce", "int16", o, nst);
 	for (n = 0; n < nsy - MaxTk; n++)
 	{
 		o[n] = gs[n].def;
@@ -694,14 +694,14 @@ void tblout()
 		if (o[n] > 0)
 			o[n]--;
 	}
-	aout("nt_to_goto", o, nsy - MaxTk);
-	aout("nt_to_displacement", gdsp, nsy - MaxTk);
-	aout("state_to_displacement", adsp, nst);
+	aout("nt_to_goto", "int16", o, nsy - MaxTk);
+	aout("nt_to_displacement", "int16", gdsp, nsy - MaxTk);
+	aout("state_to_displacement", "int16", adsp, nst);
 	for (n = 0; n < actsz; n++)
 		if (act[n] >= 0)
 			act[n]--;
-	aout("actions_and_gotos", act, actsz);
-	aout("checking_table", chk, actsz);
+	aout("actions_and_gotos", "int16", act, actsz);
+	aout("checking_table", "int16", chk, actsz);
 	for (n = 1; n < ntk; n++)
 	{
 		fprintf(fout, "#define %s %d\n", is[n].name, n);
@@ -869,8 +869,7 @@ char* cpycode()
 
 	len = 64;
 	s = yalloc(len + 1, 1);
-	s[0] = '{';
-	pos = 1;
+	pos = 0;
 	nest = 1;
 	in = 0;
 
@@ -901,7 +900,7 @@ char* cpycode()
 				die("out of memory");
 		s[pos++] = c;
 	}
-	s[pos] = 0;
+	s[pos-1] = 0;
 	return s;
 }
 
@@ -1263,12 +1262,18 @@ void codeout()
 		fputs(*p, fout);
 	for (n = 0; n < nrl; n++)
 	{
-		fprintf(fout, "\tcase %d:\n", n);
+		if (n == 0)
+			fprintf(fout, "\tif r == %d then\n", n);
+		else
+			fprintf(fout, "\telseif r == %d then\n", n);
+		fprintf(fout, "\t\tsub action_%d()\n", n);
 		r = &rs[n];
 		fprintf(fout, "#line %d \"%s\"\n", r->actln, srca);
 		actout(r);
-		fputs("\t\tbreak;\n", fout);
+		fprintf(fout, "\t\tend sub;\n");
+		fprintf(fout, "\t\taction_%d();\n", n);
 	}
+	fprintf(fout, "\tend if;\n");
 	for (p = code1; *p; p++)
 		fputs(*p, fout);
 	fprintf(fout, "#line %d \"%s\"\n", lineno, srca);
@@ -1379,11 +1384,11 @@ char* code0[] = {
 	"	YYSTYPE yyval;\n",
 	"\n",
 	"	ps = stk;\n",
-	"	ps->state = s = yyini;\n",
+	"	ps->state = s = INITIAL_STATE;\n",
 	"	tk = -1;\n",
 	"loop:\n",
 	"	n = state_to_displacement[s];\n",
-	"	if (tk < 0 && n > -yyntoks)\n",
+	"	if (tk < 0 && n > -NUMBER_OF_TOKENS)\n",
 	"		tk = yylex();\n",
 	"	n += tk;\n",
 	"	if (n < 0 || n >= ActSz || checking_table[n] != tk) {\n",
@@ -1414,16 +1419,14 @@ char* code0[] = {
 	"	h = rule_to_symbol[r];\n",
 	"	s = ps->state;\n",
 	"	n = nt_to_displacement[h] + s;\n",
-	"	if (n < 0 || n >= ActSz || checking_table[n] != yyntoks+h)\n",
+	"	if (n < 0 || n >= ActSz || checking_table[n] != NUMBER_OF_TOKENS+h)\n",
 	"		n = nt_to_goto[h];\n",
 	"	else\n",
 	"		n = actions_and_gotos[n];\n",
-	"	switch (r) {\n",
 	0
 };
 
 char* code1[] = {
-	"	}\n",
 	"	goto stack;\n",
 	"}\n",
 	0
