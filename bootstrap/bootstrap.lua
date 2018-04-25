@@ -684,6 +684,19 @@ function do_sub()
     current_ns = old_ns
 end
 
+function do_label()
+    local label = stream:next()
+    expect(":")
+
+    emit("%s:", label)
+end
+
+function do_goto()
+    expect("goto");
+    local label = stream:next()
+    emit("goto %s;", label)
+end
+
 function do_statements()
     while true do
         local t = stream:peek()
@@ -692,6 +705,7 @@ function do_statements()
         end
 
         local t = stream:peek()
+        local semicolons_yes = true
         if (t == ";") then
             -- do nothing
         elseif (t == "sub") then
@@ -710,6 +724,8 @@ function do_statements()
             do_record()
         elseif (t == "type") then
             do_type()
+        elseif (t == "goto") then
+            do_goto();
         elseif (t == "break") then
             expect("break")
             emit("break;")
@@ -729,10 +745,14 @@ function do_statements()
                     fatal("don't know what to do with %s '%s'", sym.kind, t)
                 end
             else
-                fatal("unsupported statement '%s'", t)
+                -- The only thing this could possibly be is a label (or a mistake).
+                do_label()
+                semicolons_yes = false
             end
         end
-        expect(";")
+        if semicolons_yes then
+            expect(";")
+        end
     end
 end
 

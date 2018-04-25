@@ -1,0 +1,3 @@
+sub yylex(): (result: int16)
+    result := 0;
+end sub;

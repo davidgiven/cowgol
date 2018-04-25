@@ -4,61 +4,67 @@ sub yyparse(): (result: int8)
     var r: int16;
     var h: int16;
     var s: int16;
+    var n: int16;
     var tk: int16;
 
     ps := &stack[0];
     s := INITIAL_STATE;
     ps.state := s;
     tk := -1;
-loop:
-    n := state_to_displacement[s];
+
+do_loop:
+    n := state_to_displacement[s as state_to_displacement@index];
     if (tk < 0) and (n > -NUMBER_OF_TOKENS) then
         tk := yylex();
     end if;
     n := n + tk;
-    if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != tk) then
-        r := state_to_reduce[s];
+    if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n as checking_table@index] != tk) then
+        r := state_to_reduce[s as state_to_reduce@index];
         if r < 0 then
             result := -1;
             return;
         end if;
-        goto reduce;
+        goto do_reduce;
     end if;
 
-    n := actions_and_gotos[n];
+    n := actions_and_gotos[n as actions_and_gotos@index];
     if n == -1 then
         result := -1;
         return;
     end if;
     if n < 0 then
-        r := - (n+2);
-        goto reduce;
+        r := 0 - (n+2);
+        goto do_reduce;
     end if;
 
     tk := -1;
-    copy_memory(&yylval as [int8], &yyval as [int8], YYSTYPE@bytes);
-stack:
+    copy_yystype(&yylval, &yyval);
+do_stack:
     ps := ps + 1;
-    if (ps-stk) >= STACK_SIZE then
+    if ps >= &stack[STACK_SIZE] then
         result := -2;
         return;
     end if;
     s := n;
     ps.state := s;
-    copy_memory(&yyval as [int8], &ps.val as [int8], YYSTYPE@bytes);
-    goto loop;
+    copy_yystype(&yyval, &ps.val);
+    goto do_loop;
 
-reduce:
-    ps := ps - rule_to_arity_table[r];
-    h := rule_to_symbol[r];
+do_reduce:
+    ps := ps - rule_to_arity_table[r as rule_to_arity_table@index];
+    h := rule_to_symbol[r as rule_to_symbol@index];
     s := ps.state;
-    n := nt_to_displacement[h] + s;
-    if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != (NUMBER_OF_TOKENS+h)) then
-        n := nt_to_goto[h];
+    n := nt_to_displacement[h as nt_to_displacement@index] + s;
+    if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n as checking_table@index] != (NUMBER_OF_TOKENS+h)) then
+        n := nt_to_goto[h as nt_to_goto@index];
     else
-        n := actions_and_gotos[n];
+        n := actions_and_gotos[n as actions_and_gotos@index];
     end if;
 
-    parser_action(r, ps);
-    goto stack;
+    parser_action(r);
+    if r == 0 then
+        result := 0;
+        return;
+    end if;
+    goto do_stack;
 end sub;

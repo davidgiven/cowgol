@@ -519,6 +519,7 @@ local function build_cowgol_programs()
         "$OBJDIR/parser2/header.cow",
         "src/parser2/init.cow",
         "$OBJDIR/parser2/actions.cow",
+        "src/parser2/yyparse.cow",
         "src/parser2/deinit.cow",
     }
 

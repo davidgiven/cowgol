@@ -1359,7 +1359,7 @@ int main(int ac, char* av[])
 	|sed 's|.*|"&\\n",|'
 */
 
-char* retcode = "\t\tcopy_yystype(&ps[1].val, &yyval); result := 0; return;";
+char* retcode = "\t\tcopy_yystype(&ps[1].val, &yyval);";
 
 char* code0[] = {
 	"record StackEntry\n",
@@ -1372,10 +1372,10 @@ char* code0[] = {
 	"end sub;\n",
 	"\n",
     "var yyval: YYSTYPE;\n",
+    "var yylval: YYSTYPE;\n",
 	"var ps: [StackEntry];\n",
 	"\n",
-	"sub parser_action(r: uint16): (result: uint8)\n",
-	"	result := 1;\n",
+	"sub parser_action(r: int16)\n",
 	0
 };
 
