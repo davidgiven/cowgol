@@ -1,0 +1,69 @@
+var tokens_fcb: FCB;
+
+sub next_raw_byte(): (value: uint8)
+    tokens_fcb.address := &value as [int8];
+    tokens_fcb.count := 1;
+    fcb_read(&tokens_fcb);
+end sub;
+
+sub next_raw_uint16(): (value: uint16)
+    tokens_fcb.address := &value as [int8];
+    tokens_fcb.count := 2;
+    fcb_read(&tokens_fcb);
+end sub;
+
+sub next_raw_int32(): (value: int32)
+    tokens_fcb.address := &value as [int8];
+    tokens_fcb.count := 4;
+    fcb_read(&tokens_fcb);
+end sub;
+
+sub yylex(): (token: uint8)
+    loop
+        token := next_raw_byte();
+
+        $if DEBUG
+            where_am_i();
+            print(" token ");
+            print_i8(token);
+            print_newline();
+        $endif
+
+        if token == TOKEN_MAGIC_FILENAME then
+            filename_id := next_raw_uint16();
+            #emit_filename(filename_id);
+        elseif token == TOKEN_MAGIC_LINENUMBER then
+            line_no := next_raw_uint16();
+            #emit_linenumber(line_no);
+        elseif token == TOKEN_MAGIC_NEXT_LINE then
+            line_no := line_no + 1;
+            #emit_linenumber(line_no);
+        elseif token == TOKEN_NUMBER then
+            yylval.constval := next_raw_int32();
+            break;
+        elseif (token == TOKEN_STRING) or (token == TOKEN_ID) then
+            yylval.thing_id := next_raw_uint16();
+            break;
+        else
+            break;
+        end if;
+    end loop;
+end sub;
+
+sub init_tokenreader(filename: [int8])
+    if fcb_openin(&tokens_fcb, filename) != 0 then
+        print("cannot open tokens file");
+        halt();
+    end if;
+end sub;
+
+sub deinit_tokenreader()
+    fcb_close(&tokens_fcb);
+end sub;
+
+sub show_progress()
+    print_i32(fcb_tell(&tokens_fcb));
+    print_char('/');
+    print_i32(fcb_ext(&tokens_fcb));
+    print_char('\r');
+end sub;

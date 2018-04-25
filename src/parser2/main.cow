@@ -1,0 +1,4 @@
+init_tokenreader(tokens_dat);
+
+print_i8(yyparse() as uint8);
+

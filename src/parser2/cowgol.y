@@ -26,6 +26,8 @@
 
 %union {
     constval: int32;
+    thing_id: uint16;
+    type_id: uint16;
 }
 %%
 prog
@@ -90,13 +92,13 @@ byteslist
     ;
 
 type
-    : ID
+    : ID                            { print("type id\n"); }
     | OPENSQUARE type CLOSESQUARE
     | type INDEX
     ;
 
 longtype
-    : type
+    : type                          { print("longtype with type\n"); }
     | type OPENSQUARE expression CLOSESQUARE
     ;
     
@@ -112,8 +114,15 @@ optionalsegment
 optionalassignment
     :
     | ASSIGN expression
+    | ASSIGN OPENBRACE arrayinitialiserlist CLOSEBRACE
     ;
     
+arrayinitialiserlist
+    : 
+    | expression
+    | expression COMMA arrayinitialiserlist
+    ;
+
 condition
     : expression LTOP expression
     | expression LEOP expression

@@ -153,12 +153,13 @@ build $OBJDIR/tests/compiler/things.dat $
     $OBJDIR/tests/compiler/iops.dat : make_test_things bin/bbc_on_native/init
 
 rule miniyacc
-    command = bin/miniyacc -i $in -o $actions -h $header
+    command = bin/miniyacc -i $in -o $actions -h $header -g $grammar
 
 build $OBJDIR/parser2/actions.cow $OBJDIR/parser2/header.cow $
     : miniyacc src/parser2/cowgol.y | bin/miniyacc
     actions = $OBJDIR/parser2/actions.cow
     header = $OBJDIR/parser2/header.cow
+    grammar = $OBJDIR/parser2/grammar.txt
 
 ]])
 
@@ -532,10 +533,16 @@ local function build_cowgol_programs()
         "src/ctype_lib.cow",
         "src/numbers_lib.cow",
         GLOBALS,
+        "src/utils/stringtable.cow",
+        "src/utils/things.cow",
         "$OBJDIR/parser2/header.cow",
+        "src/parser2/magictokens.cow",
         "src/parser2/init.cow",
         "$OBJDIR/parser2/actions.cow",
+        "src/parser2/symbols.cow",
+        "src/parser2/tokenreader.cow",
         "src/parser2/yyparse.cow",
+        "src/parser2/main.cow",
         "src/parser2/deinit.cow",
     }
 
