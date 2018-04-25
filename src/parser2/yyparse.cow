@@ -1,0 +1,64 @@
+sub yyparse(): (result: int8)
+    var stack: StackEntry[STACK_SIZE];
+    var ps: [StackEntry];
+    var r: int16;
+    var h: int16;
+    var s: int16;
+    var tk: int16;
+
+    ps := &stack[0];
+    s := INITIAL_STATE;
+    ps.state := s;
+    tk := -1;
+loop:
+    n := state_to_displacement[s];
+    if (tk < 0) and (n > -NUMBER_OF_TOKENS) then
+        tk := yylex();
+    end if;
+    n := n + tk;
+    if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != tk) then
+        r := state_to_reduce[s];
+        if r < 0 then
+            result := -1;
+            return;
+        end if;
+        goto reduce;
+    end if;
+
+    n := actions_and_gotos[n];
+    if n == -1 then
+        result := -1;
+        return;
+    end if;
+    if n < 0 then
+        r := - (n+2);
+        goto reduce;
+    end if;
+
+    tk := -1;
+    copy_memory(&yylval as [int8], &yyval as [int8], YYSTYPE@bytes);
+stack:
+    ps := ps + 1;
+    if (ps-stk) >= STACK_SIZE then
+        result := -2;
+        return;
+    end if;
+    s := n;
+    ps.state := s;
+    copy_memory(&yyval as [int8], &ps.val as [int8], YYSTYPE@bytes);
+    goto loop;
+
+reduce:
+    ps := ps - rule_to_arity_table[r];
+    h := rule_to_symbol[r];
+    s := ps.state;
+    n := nt_to_displacement[h] + s;
+    if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != (NUMBER_OF_TOKENS+h)) then
+        n := nt_to_goto[h];
+    else
+        n := actions_and_gotos[n];
+    end if;
+
+    parser_action(r, ps);
+    goto stack;
+end sub;

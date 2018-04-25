@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <getopt.h>
 
 typedef int Sym;
 typedef struct Rule Rule;
@@ -706,7 +708,7 @@ void tblout()
 	for (n = 1; n < ntk; n++)
 	{
 		if (fhdr)
-			fprintf(fhdr, "#define TOKEN_%s %d\n", is[n].name, n);
+			fprintf(fhdr, "const TOKEN_%s := %d;\n", is[n].name, n);
 	}
 	free(o);
 }
@@ -1236,6 +1238,24 @@ void actout(Rule* r)
 	fputs("\n", fout);
 }
 
+static void print_actions(int start, int end)
+{
+	for (int n = start; n < end; n++)
+	{
+		if (n == start)
+			fprintf(fout, "\tif r == %d then\n", n);
+		else
+			fprintf(fout, "\telseif r == %d then\n", n);
+		fprintf(fout, "\t\tsub action_%d()\n", n);
+		Rule* r = &rs[n];
+		fprintf(fout, "#line %d \"%s\"\n", r->actln, srca);
+		actout(r);
+		fprintf(fout, "\t\tend sub;\n");
+		fprintf(fout, "\t\taction_%d();\n", n);
+	}
+	fprintf(fout, "\tend if;\n");
+}
+
 void codeout()
 {
 	extern char *code0[], *code1[];
@@ -1245,20 +1265,17 @@ void codeout()
 
 	for (p = code0; *p; p++)
 		fputs(*p, fout);
-	for (n = 0; n < nrl; n++)
-	{
-		if (n == 0)
-			fprintf(fout, "\tif r == %d then\n", n);
-		else
-			fprintf(fout, "\telseif r == %d then\n", n);
-		fprintf(fout, "\t\tsub action_%d()\n", n);
-		r = &rs[n];
-		fprintf(fout, "#line %d \"%s\"\n", r->actln, srca);
-		actout(r);
-		fprintf(fout, "\t\tend sub;\n");
-		fprintf(fout, "\t\taction_%d();\n", n);
-	}
-	fprintf(fout, "\tend if;\n");
+
+	fprintf(fout, "\tsub actions_lo()\n");
+	print_actions(0, nrl/2);
+	fprintf(fout, "\tend sub;\n");
+	fprintf(fout, "\tsub actions_hi()\n");
+	print_actions(nrl/2+1, nrl);
+	fprintf(fout, "\tend sub;\n");
+
+	fprintf(fout, "\tif r < %d then actions_lo(); else actions_hi(); end if;\n",
+		nrl/2);
+
 	for (p = code1; *p; p++)
 		fputs(*p, fout);
 	fprintf(fout, "#line %d \"%s\"\n", lineno, srca);
@@ -1266,52 +1283,54 @@ void codeout()
 		fputc(c, fout);
 }
 
-void init(int ac, char* av[])
+static FILE* open_file(const char* filename, const char* mode)
 {
-	int c, vf, df;
-	char *pref, buf[100], *opt;
-
-	(void)ac;
-	pref = "y";
-	vf = df = 0;
-	for (av++; av[0] && av[0][0] == '-'; av++)
-		for (opt = &av[0][1]; (c = *opt); opt++)
-			switch (c)
-			{
-				case 'v':
-					vf = 1;
-					break;
-				case 'd':
-					df = 1;
-					break;
-				case 'b':
-					if ((pref = *++av))
-						break;
-				default:
-				usage:
-					fputs("usage: myacc [-vd] [-b file_prefix] grammar\n", stderr);
-					exit(1);
-			}
-
-	if (!(srca = *av))
-		goto usage;
-	fin = fopen(srca, "r");
-	if (strlen(pref) + 10 > sizeof buf)
-		die("-b prefix too long");
-	sprintf(buf, "%s.tab.c", pref);
-	fout = fopen(buf, "w");
-	if (vf)
+	FILE* fp = fopen(filename, mode);
+	if (!fp)
 	{
-		sprintf(buf, "%s.output", pref);
-		fgrm = fopen(buf, "w");
+		perror(filename);
+		exit(1);
 	}
-	if (df)
+	return fp;
+}
+
+static void syntax_error(void)
+{
+	die("syntax: yacc [-b <prefix>] [-g <grammar>] -i <src> -o <output> [-h <header>]");
+}
+
+void init(int argc, char* argv[])
+{
+	int opt;
+
+	while ((opt = getopt(argc, argv, "i:o:h:g:")) != -1)
 	{
-		sprintf(buf, "%s.tab.h", pref);
-		fhdr = fopen(buf, "w");
+		switch (opt)
+		{
+			case 'i':
+				srca = optarg;
+				fin = open_file(optarg, "r");
+				break;
+
+			case 'o':
+				fout = open_file(optarg, "w");
+				break;
+
+			case 'h':
+				fhdr = open_file(optarg, "w");
+				break;
+
+			case 'g':
+				fgrm = open_file(optarg, "w");
+				break;
+
+			default:
+				syntax_error();
+		}
 	}
-	if (!fin || !fout || (!fgrm && vf) || (!fhdr && df))
-		die("cannot open work files");
+
+	if ((optind != argc) || !fin || !fout)
+		syntax_error();
 }
 
 int main(int ac, char* av[])
@@ -1340,75 +1359,27 @@ int main(int ac, char* av[])
 	|sed 's|.*|"&\\n",|'
 */
 
-char* retcode = "\t\tyyval = ps[1].val; return 0;";
+char* retcode = "\t\tcopy_yystype(&ps[1].val, &yyval); result := 0; return;";
 
 char* code0[] = {
-	"sub yyparse(): (result: int8)\n",
-	"   record StackEntry: YYSTYPE\n"
-	"		state: int16;\n",
-	"   end record;\n"
-	"   var stack: StackEntry[STACK_SIZE];\n"
-	"   var ps: [StackEntry];\n"
-	"   var r: int16;\n"
-	"   var h: int16;\n"
-	"   var s: int16;\n"
-	"   var tk: int16;\n"
-	"   var yyval: YYSTYPE;\n"
+	"record StackEntry\n",
+	"    val: YYSTYPE;\n",
+	"    state: int16;\n",
+	"end record;\n",
 	"\n",
-	"	ps := &stack[0];\n",
-	"   s := INITIAL_STATE;\n"
-	"   ps.state := s;\n"
-	"   tk := -1;\n"
-	"loop:\n",
-	"   n := state_to_displacement[s];\n",
-	"	if (tk < 0) and (n > -NUMBER_OF_TOKENS) then\n",
-	"		tk := yylex();\n",
-	"   end if;\n",
-	"	n := n + tk;\n",
-	"	if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != tk) then\n",
-	"		r := state_to_reduce[s];\n",
-	"		if r < 0 then\n",
-	" 			result := -1;\n",
-	"			return;\n",
-	"		end if;\n",
-	"		goto reduce;\n",
-	"	end if\n",
-	"	n := actions_and_gotos[n];\n",
-	"	if n == -1 then\n",
-	"		result := -1;\n",
-	" 		return;\n",
-	"	end if;\n"
-	"	if n < 0 then\n",
-	"		r := - (n+2);\n",
-	"		goto reduce;\n",
-	"	end if;\n",
-	"	tk := -1;\n",
-	"	copy_memory(&yylval as [int8], &yyval as [int8], YYSTYPE@bytes);\n"
-	"stack:\n",
-	"	ps := ps + 1;\n",
-	"	if (ps-stk) >= STACK_SIZE then\n",
-	"		result := -2;\n"
-	"		return;\n"
-	"	end if;\n"
-	"	s := n;\n",
-	"	ps.state := s;\n",
-	"   copy_memory(&yyval as [int8], &ps.val as [int8], YYSTYPE@bytes);\n",
-	"	goto loop;\n",
-	"reduce:\n",
-	"	ps := ps - rule_to_arity_table[r];\n",
-	"	h := rule_to_symbol[r];\n",
-	"	s := ps.state;\n",
-	"	n := nt_to_displacement[h] + s;\n",
-	"	if (n < 0) or (n >= actions_and_gotos@size) or (checking_table[n] != (NUMBER_OF_TOKENS+h))\n",
-	"		n := nt_to_goto[h];\n",
-	"   else\n",
-	"		n := actions_and_gotos[n];\n",
-	"	end if;\n",
+	"sub copy_yystype(src: [YYSTYPE], dest: [YYSTYPE])\n",
+	"    copy_memory(src as [int8], dest as [int8], YYSTYPE@bytes);\n",
+	"end sub;\n",
+	"\n",
+    "var yyval: YYSTYPE;\n",
+	"var ps: [StackEntry];\n",
+	"\n",
+	"sub parser_action(r: uint16): (result: uint8)\n",
+	"	result := 1;\n",
 	0
 };
 
 char* code1[] = {
-	"	goto stack;\n",
 	"end sub;\n",
 	0
 };

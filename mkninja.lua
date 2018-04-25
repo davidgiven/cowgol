@@ -152,6 +152,14 @@ build $OBJDIR/tests/compiler/things.dat $
     $OBJDIR/tests/compiler/strings.dat $
     $OBJDIR/tests/compiler/iops.dat : make_test_things bin/bbc_on_native/init
 
+rule miniyacc
+    command = bin/miniyacc -i $in -o $actions -h $header
+
+build $OBJDIR/parser2/actions.cow $OBJDIR/parser2/header.cow $
+    : miniyacc src/miniyacc/cowgol.y | bin/miniyacc
+    actions = $OBJDIR/parser2/actions.cow
+    header = $OBJDIR/parser2/header.cow
+
 ]])
 
 local NAME
@@ -504,6 +512,17 @@ local function build_cowgol_programs()
     }
 
     build_cowgol {
+        "parser2",
+        "src/ctype_lib.cow",
+        "src/numbers_lib.cow",
+        GLOBALS,
+        "$OBJDIR/parser2/header.cow",
+        "src/parser2/init.cow",
+        "$OBJDIR/parser2/actions.cow",
+        "src/parser2/deinit.cow",
+    }
+
+    build_cowgol {
         "blockifier",
         GLOBALS,
         "src/utils/stringtable.cow",
@@ -667,6 +686,7 @@ for _, spec in ipairs(compilers) do
             "bin/"..NAME.."/init",
             "bin/"..NAME.."/tokeniser2",
             "bin/"..NAME.."/parser",
+            "bin/"..NAME.."/parser2",
             "bin/"..NAME.."/typechecker",
             "bin/"..NAME.."/backendify",
             "bin/"..NAME.."/blockifier",

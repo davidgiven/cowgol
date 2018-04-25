@@ -23,6 +23,10 @@
 %right NOT
 %left OPENB OPENP
 %left DOT
+
+%union {
+    constval: int32;
+}
 %%
 prog
     : statements EOF
