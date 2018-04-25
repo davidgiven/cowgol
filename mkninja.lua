@@ -490,6 +490,22 @@ local function build_cowgol_programs()
     }
 
     build_cowgol {
+        "tokeniser3",
+        "src/numbers_lib.cow",
+        GLOBALS,
+        "src/utils/stringtablewriter.cow",
+        "src/utils/things.cow",
+        "src/tokeniser3/init.cow",
+        "src/parser2/magictokens.cow",
+        "$OBJDIR/parser2/header.cow",
+		"src/tokeniser3/emitter.cow",
+		"src/tokeniser3/tables.cow",
+		"src/tokeniser3/lexer.cow",
+        "src/tokeniser3/main.cow",
+		"src/tokeniser3/deinit.cow",
+    }
+
+    build_cowgol {
         "parser",
         "src/ctype_lib.cow",
         "src/numbers_lib.cow",
@@ -686,6 +702,7 @@ for _, spec in ipairs(compilers) do
         {
             "bin/"..NAME.."/init",
             "bin/"..NAME.."/tokeniser2",
+            "bin/"..NAME.."/tokeniser3",
             "bin/"..NAME.."/parser",
             "bin/"..NAME.."/parser2",
             "bin/"..NAME.."/typechecker",

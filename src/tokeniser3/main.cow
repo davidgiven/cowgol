@@ -1,0 +1,51 @@
+var current_file_index: ARGV@index := 1;
+var input_fcb: FCB;
+
+sub consume_file()
+	print("reading: ");
+	print(current_filename);
+	print_newline();
+
+	if fcb_openin(&input_fcb, current_filename) != 0 then
+		print("could not open input file\n");
+		exit(1);
+	end if;
+
+	var len: uint8 := string_length(current_filename) as uint8;
+	current_filename_string_id := lookup_string(current_filename, len);
+	current_filename_id := add_string_thing(current_filename_string_id, len);
+	current_line := 1;
+
+	var bytecount: uint8 := 0;
+	loop
+		var c: int8 := fcb_getchar(&input_fcb);
+		if c == 0 then
+			break;
+		end if;
+
+		if bytecount == 0 then
+			print_i32(fcb_tell(&input_fcb));
+			print_char('/');
+			print_i32(fcb_ext(&input_fcb));
+			print_char('\r');
+		end if;
+		bytecount := bytecount + 1;
+
+		lexer_consume_char(c as uint8);
+	end loop;
+
+	lexer_consume_char('\n' as uint8);
+	fcb_close(&input_fcb);
+end sub;
+	
+sub process_files()
+	lexer_reset();
+	while current_file_index != ARGC loop
+		current_filename := ARGV[current_file_index];
+		consume_file();
+		current_file_index := current_file_index + 1;
+	end loop;
+end sub;
+
+process_files();
+

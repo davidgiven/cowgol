@@ -1,0 +1,31 @@
+print("TOKENISER2\n");
+load_string_table(strings_dat);
+load_thing_table(things_dat);
+
+var debugging: uint8 := 0;
+
+var current_filename: [int8];
+var current_filename_string_id: uint16;
+var current_filename_id: uint16;
+var current_line: uint16;
+
+var tokenbuffer: uint8[256];
+var current_token_start: uint8;
+var current_token_end: uint8;
+var start_state: uint8;
+
+sub fail()
+	print(" at ");
+	print(current_filename as [int8]);
+	print_char(':');
+	print_i16(current_line);
+	print_newline();
+	exit(1);
+end sub;
+
+var tokens_count: uint16 := 0;
+var tokens_fcb: FCB;
+if fcb_openout(&tokens_fcb, tokens_dat) != 0 then
+	print("cannot open output file");
+	fail();
+end if;
