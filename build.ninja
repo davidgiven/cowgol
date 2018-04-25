@@ -123,7 +123,7 @@ rule miniyacc
     command = bin/miniyacc -i $in -o $actions -h $header
 
 build $OBJDIR/parser2/actions.cow $OBJDIR/parser2/header.cow $
-    : miniyacc src/miniyacc/cowgol.y | bin/miniyacc
+    : miniyacc src/parser2/cowgol.y | bin/miniyacc
     actions = $OBJDIR/parser2/actions.cow
     header = $OBJDIR/parser2/header.cow
 
