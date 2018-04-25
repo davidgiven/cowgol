@@ -3,17 +3,17 @@
 %token EOF
 %token ID NUMBER STRING
 %token SUB WHILE LOOP IF ELSE ELSEIF VAR BREAK CONTINUE
-%token CONST RECORD RETURN GOTO END
+%token CONST RECORD RETURN GOTO NAMESPACE TYPE END
 %token SEGMENT INDEX
 %token SEMICOLON COLON ASSIGN COMMA
-%token CLOSEP CLOSEB
+%token CLOSEPAREN CLOSESQUARE
 %left COMMA
 %left OR
 %left AND
 %left PIPE
 %left CARET
 %left AMPERSAND
-%left LT LE GT GE EQ NE
+%left LTOP LEOP GTOP GEOP EQOP NEOP
 %left LEFTSHIFT RIGHTSHIFT
 %left PLUS MINUS
 %left STAR SLASH PERCENT
@@ -21,7 +21,7 @@
 %left SIZE BYTES
 %right TILDE
 %right NOT
-%left OPENB OPENP
+%left OPENSQUARE OPENPAREN
 %left DOT
 
 %union {
@@ -54,12 +54,12 @@ statement
     | expression ASSIGN expression;
 
 inputparams
-    : OPENP paramlist CLOSEP
+    : OPENPAREN paramlist CLOSEPAREN
     ;
 
 outputparams
     : 
-    | COLON OPENP paramlist CLOSEP
+    | COLON OPENPAREN paramlist CLOSEPAREN
     ;
 
 paramlist
@@ -80,8 +80,8 @@ bytessymbol
 bytesparam
     : NUMBER
     | bytessymbol
-    | GT bytessymbol
-    | LT bytessymbol
+    | GTOP bytessymbol
+    | LTOP bytessymbol
     ;
 
 byteslist
@@ -91,13 +91,13 @@ byteslist
 
 type
     : ID
-    | OPENB type CLOSEB
+    | OPENSQUARE type CLOSESQUARE
     | type INDEX
     ;
 
 longtype
     : type
-    | type OPENB expression CLOSEB
+    | type OPENSQUARE expression CLOSESQUARE
     ;
     
 vardecl
@@ -106,7 +106,7 @@ vardecl
 
 optionalsegment
     :
-    | SEGMENT OPENP expression CLOSEP
+    | SEGMENT OPENPAREN expression CLOSEPAREN
     ;
 
 optionalassignment
@@ -115,13 +115,13 @@ optionalassignment
     ;
     
 condition
-    : expression LT expression
-    | expression LE expression
-    | expression GT expression
-    | expression GE expression
-    | expression EQ expression
-    | expression NE expression
-    | OPENP condition CLOSEP
+    : expression LTOP expression
+    | expression LEOP expression
+    | expression GTOP expression
+    | expression GEOP expression
+    | expression EQOP expression
+    | expression NEOP expression
+    | OPENPAREN condition CLOSEPAREN
     | condition AND condition
     | condition OR condition
     | NOT condition
@@ -133,11 +133,11 @@ expression
     | STRING
     | type BYTES
     | type SIZE
-    | OPENP expression CLOSEP
+    | OPENPAREN expression CLOSEPAREN
     | TILDE expression
     | MINUS expression
     | AMPERSAND expression
-    | expression OPENB expression CLOSEB
+    | expression OPENSQUARE expression CLOSESQUARE
     | expression PLUS expression
     | expression MINUS expression
     | expression STAR expression
