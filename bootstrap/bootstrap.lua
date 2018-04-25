@@ -688,7 +688,7 @@ function do_label()
     local label = stream:next()
     expect(":")
 
-    emit("%s:", label)
+    emit("%s:;", label)
 end
 
 function do_goto()
