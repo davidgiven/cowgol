@@ -1364,7 +1364,7 @@ char* retcode = "\t\tcopy_yystype(&ps[1].val, &yyval);";
 char* code0[] = {
 	"record StackEntry\n",
 	"    val: YYSTYPE;\n",
-	"    state: int16;\n",
+	"    state: uint8;\n",
 	"end record;\n",
 	"\n",
 	"sub copy_yystype(src: [YYSTYPE], dest: [YYSTYPE])\n",
