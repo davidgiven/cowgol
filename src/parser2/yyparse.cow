@@ -87,7 +87,7 @@ do_reduce:
     print_i16(rule as uint16);
     print_newline();
 
-    var delta: uint8 := rule_to_arity_table[rule as rule_to_arity_table@index] as uint8;
+    var delta: uint8 := rule_to_arity_table[rule as rule_to_arity_table@index];
     print("stack delta ");
     print_i8(delta);
     print_newline();

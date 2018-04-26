@@ -683,7 +683,7 @@ void tblout()
 	o = yalloc(nrl + nst + nsy, sizeof o[0]);
 	for (n = 0; n < nrl; n++)
 		o[n] = slen(rs[n].rhs);
-	aout("rule_to_arity_table", "int16", o, nrl);
+	aout("rule_to_arity_table", "uint8", o, nrl);
 	for (n = 0; n < nrl; n++)
 		o[n] = rs[n].lhs - MaxTk;
 	aout("rule_to_symbol", "int16", o, nrl);
