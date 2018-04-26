@@ -1216,7 +1216,7 @@ void actout(Rule* r)
 						lineno = i;
 						die("invalid $n");
 					}
-					fprintf(fout, "ps[%d].val", (int)l);
+					fprintf(fout, "ps[%d]", (int)l);
 					if (doty)
 					{
 						if (!ty && l > 0)
@@ -1359,23 +1359,17 @@ int main(int ac, char* av[])
 	|sed 's|.*|"&\\n",|'
 */
 
-char* retcode = "\t\tcopy_yystype(&ps[1].val, &yyval);";
+char* retcode = "\t\tcopy_yystype(&ps[1], &yyval);";
 
 char* code0[] = {
-	"record StackEntry\n",
-	"    val: YYSTYPE;\n",
-	"    state: uint8;\n",
-	"end record;\n",
-	"\n",
 	"sub copy_yystype(src: [YYSTYPE], dest: [YYSTYPE])\n",
 	"    copy_memory(src as [int8], dest as [int8], YYSTYPE@bytes);\n",
 	"end sub;\n",
 	"\n",
     "var yyval: YYSTYPE;\n",
     "var yylval: YYSTYPE;\n",
-	"var ps: [StackEntry];\n",
 	"\n",
-	"sub parser_action(r: int16)\n",
+	"sub parser_action(ps: [YYSTYPE], r: int16)\n",
 	0
 };
 

@@ -1,17 +1,17 @@
 sub yyparse(): (result: int8)
     type State := uint8;
 
-    var stack: StackEntry[STACK_SIZE];
-    var ps: [StackEntry];
+    var stack: YYSTYPE[STACK_SIZE];
+    var states: State[STACK_SIZE];
     var rule: int16;
     var h: int16;
     var state: State;
     var n: int16;
     var tk: int16;
 
-    ps := &stack[0];
+    var sp: uint8 := 0;
     state := INITIAL_STATE;
-    ps.state := state;
+    states[sp] := state;
     tk := -1;
 
     sub check_n(checking: int16): (yes: uint8)
@@ -25,6 +25,9 @@ sub yyparse(): (result: int8)
     end sub;
 
 do_loop:
+    print("sp: ");
+    print_i8(sp);
+    print_newline();
     print("state: ");
     print_i16(state as uint16);
     print_newline();
@@ -60,14 +63,15 @@ do_loop:
     tk := -1;
     copy_yystype(&yylval, &yyval);
 do_stack:
-    ps := ps + StackEntry@bytes;
-    if ps >= &stack[STACK_SIZE] then
-        result := -2;
+    sp := sp + 1;
+    if sp >= STACK_SIZE then
+        print("parser stack overflow");
+        halt();
         return;
     end if;
     state := n as State;
-    ps.state := state;
-    copy_yystype(&yyval, &ps.val);
+    states[sp] := state;
+    copy_yystype(&yyval, &stack[sp]);
     goto do_loop;
 
 do_fail_or_reduce:
@@ -83,9 +87,14 @@ do_reduce:
     print_i16(rule as uint16);
     print_newline();
 
-    ps := ps - (rule_to_arity_table[rule as rule_to_arity_table@index]*StackEntry@bytes);
+    var delta: uint8 := rule_to_arity_table[rule as rule_to_arity_table@index] as uint8;
+    print("stack delta ");
+    print_i8(delta);
+    print_newline();
+
+    sp := sp - delta;
     h := rule_to_symbol[rule as rule_to_symbol@index];
-    state := ps.state;
+    state := states[sp];
 
     n := nt_to_displacement[h as nt_to_displacement@index] + (state as int16);
     if check_n(h + NUMBER_OF_TOKENS) != 0 then
@@ -94,7 +103,7 @@ do_reduce:
         n := actions_and_gotos[n as actions_and_gotos@index];
     end if;
 
-    parser_action(rule);
+    parser_action(&stack[sp], rule);
     if rule == 0 then
         result := 0;
         return;

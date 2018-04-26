@@ -42,10 +42,11 @@ statements
 terminatedstatement
     : SEMICOLON
     | statement SEMICOLON
+    | ID COLON
     ;
 
 statement
-    : SUB ID inputparams outputparams END SUB
+    : SUB ID inputparams outputparams statements END SUB
     | WHILE condition LOOP statements END LOOP
     | BREAK
     | CONTINUE
@@ -53,7 +54,9 @@ statement
     | GOTO ID
     | BYTES byteslist
     | VAR vardecl
-    | expression ASSIGN expression;
+    | ID OPENPAREN arguments CLOSEPAREN
+    | expression ASSIGN expression
+    ;
 
 inputparams
     : OPENPAREN paramlist CLOSEPAREN
@@ -65,36 +68,43 @@ outputparams
     ;
 
 paramlist
-    : param
-    | param paramlist
+    :
+    | param
+    | param COMMA paramlist
     ;
 
 param
     : ID COLON type
     ;
 
+arguments
+    :
+    | expression
+    | expression COMMA arguments
+    ;
+
 bytessymbol
-    : AMPERSAND ID
+    : AMPERSAND ID          
     | AMPERSAND ID PLUS NUMBER
     | AMPERSAND ID MINUS NUMBER
     ;
 
 bytesparam
-    : NUMBER
-    | bytessymbol
-    | GTOP bytessymbol
-    | LTOP bytessymbol
+    : NUMBER                        { print("bytes constant\n"); }
+    | bytessymbol                   { print("bytes raw symbol\n"); }
+    | GTOP bytessymbol              { print("bytes symbol hi\n"); }
+    | LTOP bytessymbol              { print("bytes symbol lo\n"); }
     ;
 
 byteslist
-    : bytesparam
+    : bytesparam                    { print("bytes param\n"); }
     | bytesparam COMMA byteslist
     ;
 
 type
     : ID                            { print("type id\n"); }
-    | OPENSQUARE type CLOSESQUARE
-    | type INDEX
+    | OPENSQUARE type CLOSESQUARE   { print("pointer type id\n"); }
+    | type INDEX                    
     ;
 
 longtype
