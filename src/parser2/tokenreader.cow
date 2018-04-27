@@ -34,13 +34,13 @@ sub yylex(): (token: uint8)
             #emit_filename(filename_id);
         elseif token == TOKEN_MAGIC_LINENUMBER then
             line_no := next_raw_uint16();
-            print("* line ");
+            print("\n* line ");
             print_i16(line_no);
             print_newline();
             #emit_linenumber(line_no);
         elseif token == TOKEN_MAGIC_NEXT_LINE then
             line_no := line_no + 1;
-            print("* line ");
+            print("\n* line ");
             print_i16(line_no);
             print_newline();
             #emit_linenumber(line_no);

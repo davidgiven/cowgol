@@ -36,7 +36,7 @@ prog
 
 statements
     : terminatedstatement
-    | terminatedstatement statements
+    | statements terminatedstatement
     ;
 
 terminatedstatement
@@ -54,8 +54,8 @@ statement
     | GOTO ID
     | BYTES byteslist
     | VAR vardecl
-    | ID OPENPAREN arguments CLOSEPAREN
-    | expression ASSIGN expression
+    | functioncallstatement
+    | lvalue ASSIGN expression
     ;
 
 inputparams
@@ -69,18 +69,45 @@ outputparams
 
 paramlist
     :
-    | param
-    | param COMMA paramlist
+    | params
+    ;
+
+params
+    : param
+    | params COMMA param
     ;
 
 param
     : ID COLON type
     ;
 
-arguments
+functioncallexpression
+    : ID OPENPAREN expressionlist CLOSEPAREN
+    ;
+
+functioncallstatement
+    : ID OPENPAREN expressionlist CLOSEPAREN
+    | OPENPAREN lvalueslist CLOSEPAREN ASSIGN ID OPENPAREN expressionlist CLOSEPAREN
+    ;
+
+lvalueslist
     :
-    | expression
-    | expression COMMA arguments
+    | lvalues
+    ;
+
+lvalues
+    : lvalue
+    | lvalues COMMA lvalue
+    ;
+
+expressionlist
+    :
+    | expressions
+    ;
+
+expressions
+    : expression
+    | expressions COMMA expression
     ;
 
 bytessymbol
@@ -146,13 +173,18 @@ condition
     | NOT condition
     ;
 
+lvalue
+    : ID
+    ;
+
 expression
-    : NUMBER
-    | ID
+    : lvalue
+    | NUMBER
     | STRING
     | type BYTES
     | type SIZE
     | OPENPAREN expression CLOSEPAREN
+    | functioncallexpression
     | TILDE expression
     | MINUS expression
     | AMPERSAND expression

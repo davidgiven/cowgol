@@ -63,6 +63,10 @@ do_loop:
     tk := -1;
     copy_yystype(&yylval, &yyval);
 do_stack:
+    print("stacking state ");
+    print_i16(n as uint16);
+    print_newline();
+
     sp := sp + 1;
     if sp >= STACK_SIZE then
         print("parser stack overflow");
