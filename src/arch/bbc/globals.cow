@@ -10,6 +10,10 @@ const FILE_HEADER_SIZE := 0;
 const BASE_ADDRESS := 0x0800;
 const BASE_ZEROPAGE := 0x00;
 
+# How big are our segments?
+const DATA_SEGMENT_SIZE := 0xf000; # 0x0800-0xf800 available
+const ZP_SEGMENT_SIZE := 0xee;     # 0x00-0xee available
+
 record ArchSizes
     data_size: uint16;
     zp_size: uint8;

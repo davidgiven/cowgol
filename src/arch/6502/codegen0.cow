@@ -14,8 +14,10 @@ end record;
 
 const MODE_DIR := 1;
 const MODE_IND := 2;
-const MODE_IMMLO := 3;
-const MODE_IMMHI := 4;
+const MODE_IMM0 := 3;
+const MODE_IMM1 := 4;
+const MODE_IMM2 := 5;
+const MODE_IMM3 := 6;
 
 var insn: Insn;
 
@@ -90,10 +92,8 @@ sub insn_init_from_ea(ea: [EffectiveAddress])
     insn.offset := get_value_of_number(ea.numoff_id) as uint16;
     if ea.flags == EA_VALUE then
         if is_number_thing(insn.obj_id) != 0 then
-            if insn.offset == 0 then
-                insn.mode := MODE_IMMLO;
-            elseif insn.offset == 1 then
-                insn.mode := MODE_IMMHI;
+            if insn.offset < 4 then
+                insn.mode := MODE_IMM0 + (insn.offset as uint8);
             else
                 print("bad offset to immediate value");
                 halt();
@@ -107,7 +107,7 @@ sub insn_init_from_ea(ea: [EffectiveAddress])
     elseif ea.flags == EA_DEREF then
         insn.mode := MODE_IND;
     else
-        insn.mode := MODE_IMMLO;
+        insn.mode := MODE_IMM0;
     end if;
 end sub;
 
@@ -126,7 +126,7 @@ sub print_insn()
 end sub;
 
 sub insn_check_imm()
-    if ((insn.mode != MODE_IMMLO) and (insn.mode != MODE_IMMHI)) or (insn.indexreg != 0) then
+    if (insn.mode < MODE_IMM0) or (insn.indexreg != 0) then
         print("insn_check_imm fail");
         halt();
     end if;
@@ -327,17 +327,29 @@ sub insn_load_object()
         insn_ld_abs();
     elseif insn.mode == MODE_IND then
         insn_ld_ind();
-    elseif insn.mode == MODE_IMMLO then
+    elseif insn.mode == MODE_IMM0 then
         if insn.obj_id != 0 then
             insn_ld_imm_adr_lo();
         else
             insn_ld_imm(insn.offset as uint8);
         end if;
-    elseif insn.mode == MODE_IMMHI then
+    elseif insn.mode == MODE_IMM1 then
         if insn.obj_id != 0 then
             insn_ld_imm_adr_hi();
         else
             insn_ld_imm((insn.offset >> 8) as uint8);
+        end if;
+    elseif insn.mode == MODE_IMM2 then
+        if insn.obj_id != 0 then
+            cant_happen();
+        else
+            insn_ld_imm((insn.offset >> 16) as uint8);
+        end if;
+    elseif insn.mode == MODE_IMM3 then
+        if insn.obj_id != 0 then
+            cant_happen();
+        else
+            insn_ld_imm((insn.offset >> 24) as uint8);
         end if;
     end if;
 end sub;
@@ -349,19 +361,18 @@ sub insn_alu_object(opcode: uint8)
     elseif insn.mode == MODE_IND then
         opcode := (opcode | 0x10) & 0xF3;
         insn_op_ind(opcode);
-    elseif insn.mode == MODE_IMMLO then
+    elseif insn.mode >= MODE_IMM0 then
         opcode := opcode & 0xfb;
         if insn.obj_id != 0 then
-            insn_op_imm_adr(IOP_ADDRESSLO, opcode);
+            if insn.mode == MODE_IMM0 then
+                insn_op_imm_adr(IOP_ADDRESSLO, opcode);
+            elseif insn.mode == MODE_IMM1 then
+                insn_op_imm_adr(IOP_ADDRESSHI, opcode);
+            else
+                cant_happen();
+            end if;
         else
-            insn_op_imm(insn.offset as uint8, opcode);
-        end if;
-    elseif insn.mode == MODE_IMMHI then
-        opcode := opcode & 0xfb;
-        if insn.obj_id != 0 then
-            insn_op_imm_adr(IOP_ADDRESSHI, opcode);
-        else
-            insn_op_imm((insn.offset >> 8) as uint8, opcode);
+            insn_op_imm((insn.offset >> ((insn.mode - MODE_IMM0) * 8)) as uint8, opcode);
         end if;
     end if;
 end sub;

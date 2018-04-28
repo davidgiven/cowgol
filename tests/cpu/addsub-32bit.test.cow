@@ -87,5 +87,9 @@ sub extra_test()
     var presult: [int32] := &result;
     presult[0] := pdeadbeef[0] + pdeadbeef[0];
     if result==0xbd5b7dde then yes(); else no(); end if;
+
+    print("complex backwards sub");
+    result := -1;
+    if (-presult[0]) == 1 then yes(); else no(); end if;
 end sub;
 extra_test();

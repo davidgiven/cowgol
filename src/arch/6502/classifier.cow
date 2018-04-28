@@ -34,10 +34,20 @@ end sub;
 sub arch_allocate_var(offsets: [ArchSizes], thing: [TypedThing], width: uint16)
     if thing.segment == SEGMENT_ZEROPAGE then
         thing.address := offsets.zp_size as uint16;
-        offsets.zp_size := offsets.zp_size + (width as uint8);
+		var newzpsize: uint8 := offsets.zp_size + (width as uint8);
+		if (newzpsize > ZP_SEGMENT_SIZE) or (newzpsize < offsets.zp_size) then
+			print("zero page segment full");
+			halt();
+		end if;
+        offsets.zp_size := newzpsize;
     elseif thing.segment == SEGMENT_DATA then
         thing.address := offsets.data_size;
-        offsets.data_size := offsets.data_size + width;
+		var newdatasize: uint16 := offsets.data_size + width;
+		if (newdatasize > DATA_SEGMENT_SIZE) or (newdatasize < offsets.data_size) then
+			print("data segment full");
+			halt();
+		end if;
+        offsets.data_size := newdatasize;
     elseif thing.segment == SEGMENT_LAST then
         thing.address := 0;
     else
