@@ -592,9 +592,9 @@ end sub;
 sub setup_insn(ea: [EffectiveAddress], offset: uint8, location: uint8): (indexreg: uint8)
     insn_init_from_ea(ea);
     indexreg := 0;
-    if insn.mode == MODE_IMMLO then
+    if insn.mode == MODE_IMM0 then
         insn.mode := insn.mode + (offset as uint8);
-        if offset > 1 then
+        if offset > 3 then
             print("bad offset for immediate");
             halt();
         end if;

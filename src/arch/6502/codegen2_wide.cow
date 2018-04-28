@@ -34,7 +34,9 @@ end sub;
 
 sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
     $if DEBUG
-        print("* GENERATE: wide aluop 0x");
+        print("* GENERATE: wide ");
+        print_i8(iop.width);
+        print(" aluop 0x");
         print_hex_i8(opcode);
         print(": ");
         print_ea(&iop.left);
@@ -52,11 +54,17 @@ sub regular_alu_wide_op(iop: [BEIop], opcode: uint8, looped: uint8)
         if (ea.flags == EA_LEA) or
             ((ea.flags == EA_DEREF) and (ea.numoff_id != 0)) or
             (ea.varoff_id != 0) then
+            $if DEBUG
+                print("* forcing non-looped because complex addressing mode\n");
+            $endif
             looped := 0;
         end if;
     end sub;
 
     if iop.width == 4 then
+        $if DEBUG
+            print("* forcing looped because wide\n");
+        $endif
         looped := 1;
     end if;
 
