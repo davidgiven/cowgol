@@ -186,6 +186,7 @@ local compilers = {
     {"c64",      "native"},
     {"cpmz",     "native"},
     {"fuzixz80", "native"},
+    {"spectrum", "native"},
     {"bbc",      "bbc"},
     {"cpmz",     "cpmz"},
     {"fuzixz80", "fuzixz80"},
@@ -342,6 +343,29 @@ local target_data = {
         EMITTER = {
             "src/arch/z80/emitter.cow",
             "src/arch/fuzixz80/emitter.cow"
+        }
+
+        CODEGEN = {
+            "src/arch/z80/codegen0.cow",
+            "src/codegen/registers.cow",
+            "src/arch/z80/codegen1.cow",
+            "src/arch/z80/codegen2_8bit.cow",
+            "src/arch/z80/codegen2_16bit.cow",
+            "src/arch/z80/codegen2_wide.cow",
+            "src/arch/z80/codegen2_helper.cow",
+            "src/arch/z80/codegen2.cow",
+        }
+    end,
+
+    ["spectrum"] = function()
+        TARGET = "spectrum"
+        GLOBALS = "src/arch/spectrum/globals.cow"
+        CLASSIFIER = "src/arch/z80/classifier.cow"
+        SIMPLIFIER = "src/arch/z80/simplifier.cow"
+        PLACER = "src/arch/z80/placer.cow"
+        EMITTER = {
+            "src/arch/z80/emitter.cow",
+            "src/arch/spectrum/emitter.cow"
         }
 
         CODEGEN = {

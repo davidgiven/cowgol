@@ -1,0 +1,22 @@
+# The higher the value, the higher the priority.
+const SEGMENT_DATA := 0x80;
+const SEGMENT_LAST := 0x81;
+
+# How big is the file header? The code segment starts immediately after this.
+const FILE_HEADER_SIZE := 0;
+
+# What are our base addresses?
+const BASE_ADDRESS := 0x6000;
+
+record ArchSizes
+    data_size: uint16;
+    # Due to a limitation in the bootstrap compiler, all the different
+    # ArchSizes must be the same (because that size is baked into
+    # token_names.cow).
+    padding: uint8;
+end record;
+
+sub print_arch_sizes(sizes: [ArchSizes])
+    print("data=0x");
+    print_hex_i16(sizes.data_size);
+end sub;

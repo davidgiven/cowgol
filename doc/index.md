@@ -33,6 +33,8 @@ It will also cross compile for all of the above plus:
 
   - 6502, on the Commodore 64 (for ultra hackers only; email me).
 
+  - Z80, on the ZX Spectrum (for ultra hackers only; email me).
+
 
 Why?
 ----

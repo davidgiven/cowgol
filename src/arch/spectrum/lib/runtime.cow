@@ -1,0 +1,16 @@
+var __basic_iy: uint16;
+@bytes 0xfd, 0x22, &__basic_iy;
+
+sub print_char(char: int8)
+    @bytes 0xfd, 0x2a, &__basic_iy;
+    @bytes 0x3a, &char;        # ld a, (char)
+    @bytes 0xd7;               # rst 0x10
+end sub;
+
+sub print_newline()
+    @bytes 0xfd, 0x2a, &__basic_iy;
+    @bytes 0x3e, '\r';         # ld a, #'\r'
+    @bytes 0xd7;               # rst 0x10
+end sub;
+
+var HIMEM: [int8] := 0xff58 as [int8];
