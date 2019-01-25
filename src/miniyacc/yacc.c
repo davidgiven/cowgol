@@ -814,7 +814,8 @@ int istok(int c)
 int nexttk()
 {
 	int n;
-	char c, *p;
+	int c;
+	char *p;
 
 	while (isspace(c = fgetc(fin)))
 		if (c == '\n')
