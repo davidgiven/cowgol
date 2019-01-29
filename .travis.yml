@@ -1,23 +1,23 @@
 language: c
 
 os: linux
-sudo: false
+sudo: true
 dist: trusty
 compiler: gcc
 
 addons:
     apt:
+        sources:
+        - sourceline: 'deb http://storage.googleapis.com/bazel-apt stable jdk1.8'
+          key_url: 'https://bazel.build/bazel-release.pub.gpg'
         packages:
         - ninja-build
         - realpath
         - lua5.2
         - pasmo
         - libz80ex-dev
-
-before_install:
-  - wget -O ~/bazel https://github.com/bazelbuild/bazel/releases/download/0.22.0/bazel-0.22.0-linux-x86_64
-  - chmod a+rx ~/bazel
+        - bazel
 
 script:
-  - ~/bazel build //src/...
+  - bazel build //src/...
 

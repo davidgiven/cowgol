@@ -8,6 +8,7 @@ cc_library(
 		"cowgol.c",
 		"cowgol.h"
 	],
+	copts = ["-std=c1x"],
     includes = [""],
 )
 
