@@ -19,5 +19,5 @@ before_install:
   - chmod a+rx ~/bazel
 
 script:
-  - ~/bazel //src/...
+  - ~/bazel build //src/...
 
