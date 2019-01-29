@@ -15,7 +15,7 @@ addons:
         - libz80ex-dev
 
 before_install:
-  - wget -o ~/bazel https://github.com/bazelbuild/bazel/releases/download/0.22.0/bazel-0.22.0-linux-x86_64
+  - wget -O ~/bazel https://github.com/bazelbuild/bazel/releases/download/0.22.0/bazel-0.22.0-linux-x86_64
   - chmod a+rx ~/bazel
 
 script:
