@@ -12,7 +12,7 @@ int8_t* himem = memory + sizeof(memory) - 1;
 #define FILE_COUNT 16
 static FILE* filetab[FILE_COUNT];
 
-void cowgol_print(void) { fputs(extern_p8, stdout); }
+void cowgol_print(void) { fputs((const void*) extern_p8, stdout); }
 void cowgol_print_char(void) { putchar(extern_i8); }
 void cowgol_print_i8(void) { printf("%d", extern_i8); }
 void cowgol_print_i16(void) { printf("%d", extern_i16); }
@@ -38,17 +38,17 @@ static int find_fd(FILE* fp) {
 }
 
 void cowgol_file_openin(void) {
-    char* filename = extern_p8;
+    char* filename = (char*) extern_p8;
     extern_i8 = find_fd(fopen(filename, "rb"));
 }
 
 void cowgol_file_openout(void) {
-    char* filename = extern_p8;
+    char* filename = (char*) extern_p8;
     extern_i8 = find_fd(fopen(filename, "wb"));
 }
 
 void cowgol_file_openup(void) {
-    char* filename = extern_p8;
+    char* filename = (char*) extern_p8;
     extern_i8 = find_fd(fopen(filename, "r+b"));
 }
 

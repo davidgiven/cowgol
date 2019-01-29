@@ -1,0 +1,23 @@
+package(default_visibility = ["//visibility:public"])
+
+load("//:config.bzl", "HOST_DATA", "TARGET_DATA")
+load("//scripts:rules.bzl", "cowgol")
+
+[
+	cowgol(
+		name = "{}_on_{}".format(target, host),
+		srcs = td["globals"] + [
+			"//src:ctype_lib.cow",
+			"//src:numbers_lib.cow",
+			"//src/utils:stringtable.cow",
+			"//src/utils:things.cow",
+			"//src:token_names",
+			"init.cow",
+			"main.cow",
+			"deinit.cow",
+		],
+		hd = hd
+	)
+	for (host, hd) in HOST_DATA.items()
+	for (target, td) in TARGET_DATA.items()
+]

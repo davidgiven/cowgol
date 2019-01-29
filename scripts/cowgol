@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e
 
+COWGOL_INIT=$(realpath -s ${COWGOL_INIT-$bindir/init})
+COWGOL_TOKENISER=$(realpath -s ${COWGOL_TOKENISER-$bindir/tokeniser2})
+COWGOL_PARSER=$(realpath -s ${COWGOL_PARSER-$bindir/parser})
+COWGOL_TYPECHECKER=$(realpath -s ${COWGOL_TYPECHECKER-$bindir/typechecker})
+COWGOL_BACKENDIFY=$(realpath -s ${COWGOL_BACKENDIFY-$bindir/backendify})
+COWGOL_CLASSIFIER=$(realpath -s ${COWGOL_CLASSIFIER-$bindir/classifier})
+COWGOL_BLOCKIFIER=$(realpath -s ${COWGOL_BLOCKIFIER-$bindir/blockifier})
+COWGOL_CODEGEN=$(realpath -s ${COWGOL_CODEGEN-$bindir/codegen})
+COWGOL_PLACER=$(realpath -s ${COWGOL_PLACER-$bindir/placer})
+COWGOL_EMITTER=$(realpath -s ${COWGOL_EMITTER-$bindir/emitter})
+
 syntax() {
     echo "Syntax: cowgol -a arch [-k] -o outputfile inputfiles..."
     exit 1
@@ -39,33 +50,32 @@ else
 fi
 
 srcs=$(realpath -s "$@")
-bindir=$(realpath -s bin/$arch)
 
 set +e
 (
     set -e
     cd $tmpdir
-    $bindir/init
-    $bindir/tokeniser2 $srcs
-    $bindir/parser
+    $COWGOL_INIT
+    $COWGOL_TOKENISER $srcs
+    $COWGOL_PARSER
     cp iops.dat iops-parsed.dat
-    $bindir/typechecker
+    $COWGOL_TYPECHECKER
     cp iops-out.dat iops-typechecked.dat
     mv iops-out.dat iops.dat
-    $bindir/backendify
+    $COWGOL_BACKENDIFY
     cp iops-out.dat iops-backendified.dat
     mv iops-out.dat iops.dat
-    $bindir/classifier
-    $bindir/blockifier
+    $COWGOL_CLASSIFIER
+    $COWGOL_BLOCKIFIER
     cp iops-out.dat iops-blockified.dat
     mv iops-out.dat iops.dat
-    $bindir/codegen
+    $COWGOL_CODEGEN
     cp iops-out.dat iops-codegenned.dat
     mv iops-out.dat iops.dat
-    $bindir/placer
+    $COWGOL_PLACER
     cp iops-out.dat iops-placed.dat
     mv iops-out.dat iops.dat
-    $bindir/emitter
+    $COWGOL_EMITTER
 ) 2>&1 >$outputfile.log
 result=$?
 set -e

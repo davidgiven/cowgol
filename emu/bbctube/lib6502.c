@@ -611,8 +611,8 @@ enum {
       {											\
 	adrmode(ticks);									\
 	externalise();									\
-        if (addr= (mpu->callbacks->illegal_instruction[instruction](mpu, addr,          \
-								    instruction)))      \
+        if ((addr= (mpu->callbacks->illegal_instruction[instruction](mpu, addr,          \
+								    instruction))))      \
           {										\
 	    mpu->registers->pc= addr;							\
           }										\
