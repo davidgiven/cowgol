@@ -65,7 +65,7 @@ HOST_DATA = {
             "//src/arch/fuzixz80:names.cow",
         ],
 		"extension": ".fuzixz80",
-		"testscript": "//scripts/fuzixz80:fuzixz80_test",
+		"testscript": None,
 		"testbin": "//bin:fuzixz80",
 	},
 }

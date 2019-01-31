@@ -62,4 +62,12 @@ def cowgol(name, srcs, hd):
             ),
         )
 
+def simple_test(name, srcs=[], deps=[]):
+  native.sh_test(
+      name = name,
+      srcs = ["//scripts:test_wrapper.sh"],
+      args = ["$(location {})".format(a) for a in srcs],
+      data = srcs + deps,
+  )
+
 # vim: set expandtab:ts=2

@@ -1,3 +1,5 @@
+package(default_visibility = ["//visibility:public"])
+
 load("//scripts:rules.bzl", "objectify", "pasmo")
 
 cc_binary(

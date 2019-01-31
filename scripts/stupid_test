@@ -1,5 +1,8 @@
 #!/bin/sh
 
+echo "difftest"
+echo "$@"
+
 exe=$1
 bad=$2
 good=$3
