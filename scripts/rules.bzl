@@ -62,6 +62,26 @@ def cowgol(name, srcs, hd):
             ),
         )
 
+def emulate(name, binary, emulator):
+  native.genrule(
+      name = name,
+      srcs = [binary],
+      outs = ["{}.out".format(name)],
+      tools = [emulator],
+      cmd = "$(location {}) $(location {}) > $@".format(emulator, binary)
+  )
+
+def diff_test(name, input, good):
+  native.sh_test(
+      name = name,
+      srcs = ["//scripts:diff_test.sh"],
+      args = [
+        "$(location {})".format(input),
+        "$(location {})".format(good)
+      ],
+      data = [input, good]
+  )
+  
 def simple_test(name, srcs=[], deps=[]):
   native.sh_test(
       name = name,

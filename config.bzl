@@ -9,7 +9,8 @@ HOST_DATA = {
         ],
 		"extension": "",
 		"testscript": None,
-		"testbin": None
+		"testbin": None,
+		"emulator": None,
 	},
 
 	"bbc": {
@@ -29,6 +30,7 @@ HOST_DATA = {
 		"extension": ".bbc",
 		"testscript": "//scripts/bbc:bbctube_test",
 		"testbin": "//bin:bbctube",
+		"emulator": "//scripts/bbc:emulate",
 	},
 
 	"cpmz": {
@@ -47,6 +49,7 @@ HOST_DATA = {
 		"extension": ".cpmz",
 		"testscript": "//scripts/cpmz:cpmz_test",
 		"testbin": "//bin:cpmz",
+		"emulator": "//scripts/cpmz:emulate",
 	},
 
 	"fuzixz80": {
@@ -67,6 +70,7 @@ HOST_DATA = {
 		"extension": ".fuzixz80",
 		"testscript": None,
 		"testbin": "//bin:fuzixz80",
+		"emulator": None,
 	},
 }
 

@@ -124,7 +124,7 @@ static void osword(void)
 			for (;;)
 			{
 				uint8_t c;
-				read(0, &c, 1);
+				(void) read(0, &c, 1);
 				if (c == 10)
 					c = 13;
 
@@ -176,7 +176,7 @@ static void osasci(void)
 	if (c == 13)
 		osnewl();
 	else
-		write(1, &c, 1);
+		(void) write(1, &c, 1);
 }
 
 static int systemcall(M6502* cpu, uint16_t address, uint8_t data)

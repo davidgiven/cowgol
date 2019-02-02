@@ -19,5 +19,5 @@ addons:
         - bazel
 
 script:
-  - bazel build //src/...
+  - bazel test //tests/...
 
