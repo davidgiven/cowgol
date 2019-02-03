@@ -186,10 +186,11 @@ function tokenstream(source)
                         current_filename = new_filename
                         line = 1
                         o = 1
-                        source = io.open(current_filename):read("*a")
-                        if not source then
+                        local fp = io.open(current_filename, "r")
+                        if not fp then
                             fatal("couldn't open hack include %s", current_filename)
                         end
+                        source = fp:read("*a")
                         break
                     end
 
@@ -686,6 +687,9 @@ end
 
 function do_label()
     local label = stream:next()
+    if stream:peek() ~= ":" then
+        fatal("'%s' isn't a label", label)
+    end
     expect(":")
 
     emit("%s:;", label)
