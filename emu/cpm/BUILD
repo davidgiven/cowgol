@@ -12,7 +12,8 @@ cc_binary(
 		"-lz80ex",
 		"-lz80ex_dasm",
 		"-lreadline"
-	]
+	],
+	copts = ["-std=c99"],
 )
 
 pasmo(
