@@ -1,13 +1,6 @@
 # This test will only run with the bootstrap compiler.
 
-var things_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/things.dat";
-var strings_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/strings.dat";
-var iops_dat: [int8] := "/tmp/cowgol-obj/tests/compiler/iops.dat";
-
-$include "src/string_lib.cow"
-$include "src/arch/bootstrap/fcb.cow"
 $include "src/arch/bbc/globals.cow"
-$include "src/arch/bbc/host.cow"
 $include "src/utils/stringtable.cow"
 $include "src/utils/things.cow"
 $include "src/utils/types.cow"
@@ -15,7 +8,7 @@ $include "src/utils/iops.cow"
 
 $include "src/utils/symbols.cow"
 
-load_thing_table(things_dat);
+load_thing_table("things.dat");
 init_string_table();
 
 var int8_type: uint16 := find_bootstrap_symbol(TOKEN_INT8);

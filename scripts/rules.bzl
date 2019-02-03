@@ -27,14 +27,14 @@ def lexify(name, src):
 # Note that this uses the terminology of the compiler; the host is the machine the
 # resulting binary is supposed to run on (whereas the target is the machine the
 # resulting binary is supposed to generate code for when run).
-def cowgol(name, srcs, hd):
+def cowgol(name, srcs, hd, deps=[]):
     host = hd["host"]
     if hd["host"] == "native":
         native.genrule(
             name = "{}_src".format(name),
             srcs = hd["libs"] + srcs,
             outs = ["{}.c".format(name)],
-            tools = ["//bootstrap:bootstrap.lua"],
+            tools = ["//bootstrap:bootstrap.lua"] + deps,
             cmd = "lua $(location //bootstrap:bootstrap.lua) $(SRCS) > $@"
         )
 
