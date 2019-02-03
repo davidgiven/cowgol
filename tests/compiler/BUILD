@@ -1,7 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//:config.bzl", "HOST_DATA", "TARGET_DATA")
-load("//scripts:rules.bzl", "cowgol", "diff_test")
 load("//tests/compiler:rules.bzl", "bootstrap_test")
 
 bootstrap_test(
