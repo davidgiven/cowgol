@@ -2,6 +2,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_binary(
 	name = "bbctube",
-	srcs = glob(["*.c", "*.h"])
+	srcs = glob(["*.c", "*.h"]),
+	copts = ["-std=c99"],
 )
 
