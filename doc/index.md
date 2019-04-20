@@ -59,7 +59,7 @@ Where?
 - [Get the latest
 release](https://github.com/davidgiven/cowgol/releases/latest) if you want
 precompled binaries! Currently only available for the BBC Micro. Don't forget
-to [read the instructions](bbcdist.html).
+to [read the instructions](bbcdist.md).
 
 - [Check out the GitHub repository](http://github.com/davidgiven/cowgol) and
 build from source. (Alternatively, you can download a source snapshot from
@@ -78,26 +78,26 @@ How?
 
 We have documentation! Admittedly, not much of it.
 
-- [Everything you want to know about Cowgol, the language](language.html);
+- [Everything you want to know about Cowgol, the language](language.md);
 tl;dr: very strongly typed; Ada-like syntax; multiple return parameters; no
 recursion; nested functions.
 
-- [An overview of Cowgol, the toolchain](toolchain.html); tl;dr: eight-stage
+- [An overview of Cowgol, the toolchain](toolchain.md); tl;dr: eight-stage
 compiler pipeline; separate front-end and back-end; maximum RAM use: about
 60kB; call graph analysis for efficient variable packing; suitable for other
 languages; written in pure Cowgol.
 
-- [About the BBC Micro bootable floppy](bbcdist.html); tl;dr: crude, slow,
+- [About the BBC Micro bootable floppy](bbcdist.md); tl;dr: crude, slow,
 not suitable for production use; requires a BBC Micro with 6502 Tube second
 processor although I recommend a BBC Master Turbo (mainly for the built-in
 editor); requires extreme patience as it takes eight minutes to compile a
 small program.
 
-- [About the CP/M distribution](cpmdist.html); tl;dr: crude, slow, not
+- [About the CP/M distribution](cpmdist.md); tl;dr: crude, slow, not
 suitable for etc; requires a Z80-based CP/M 2.2 or later system with at least
 50kB of TPA.
 
-- [About the Fuzix distribution](fuzixdist.html); tl;dr: crude, slow, etc,
+- [About the Fuzix distribution](fuzixdist.md); tl;dr: crude, slow, etc,
 etc. Requires a Fuzix system with a Normal™ Z80 ABI (i.e. not the ZX
 Spectrum) with at least 48kB of userspace.
 
