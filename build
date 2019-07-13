@@ -3,5 +3,5 @@ set -e
 
 yacc -d -r all --report-file=report.txt parser.y
 flex lexer.l
-gcc -g -Os -Wall -Wno-unused-function lex.yy.c y.tab.c -o compiler -lfl -ly
+gcc -g -Os -Wall -Wno-unused-function lex.yy.c y.tab.c vstack.c -o compiler -lfl -ly
 

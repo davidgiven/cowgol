@@ -193,12 +193,12 @@ expression
 			{
 				case 1:
 					varaccess("lda", $1);
-					printf(" push psw\n");
+					vpush_reg(REG_A);
 					break;
 
 				case 2:
 					varaccess("lhld", $1);
-					printf(" push h\n");
+					vpush_reg(REG_HL);
 					break;
 
 				default:
@@ -211,14 +211,14 @@ expression
 			if (!$2.type->u.type.pointingat)
 				fatal("attempt to dereference a non-pointer");
 
-			printf(" pop h\n");
+			vpop_reg(REG_HL);
 
 			$$.type = $2.type->u.type.pointingat;
 			switch ($$.type->u.type.width)
 			{
 				case 1:
 					printf(" mov a, m\n");
-					printf(" push psw\n");
+					vpush_reg(REG_A);
 					break;
 
 				case 2:
@@ -226,7 +226,7 @@ expression
 					printf(" inx h\n");
 					printf(" mov h, m\n");
 					printf(" mov l, a\n");
-					printf(" push h\n");
+					vpush_reg(REG_HL);
 					break;
 
 				default:
@@ -302,15 +302,15 @@ static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 			{
 				if (width == 1)
 				{
-					printf(" pop psw\n");
+					vpop_reg(REG_A);
 					printf(" inr a\n");
-					printf(" push psw\n");
+					vpush_reg(REG_A);
 				}
 				else
 				{
-					printf(" pop h\n");
+					vpop_reg(REG_HL);
 					printf(" inx h\n");
-					printf(" push h\n");
+					vpush_reg(REG_HL);
 				}
 				return;
 			}
@@ -329,17 +329,17 @@ static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 		switch (width)
 		{
 			case 1:
-				printf(" pop psw\n");
-				printf(" pop h\n");
+				vpop_reg(REG_A);
+				vpop_reg(REG_HL);
 				printf(" add h\n");
-				printf(" push psw\n");
+				vpush_reg(REG_A);
 				break;
 
 			case 2:
-				printf(" pop h\n");
-				printf(" pop d\n");
+				vpop_reg(REG_HL);
+				vpop_reg(REG_DE);
 				printf(" dad d\n");
-				printf(" push h\n");
+				vpush_reg(REG_HL);
 				break;
 		}
 	}
@@ -367,13 +367,13 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 				switch (lhs->type->u.type.width)
 				{
 					case 1:
-						printf(" pop psw\n");
-						printf(" pop h\n");
+						vpop_reg(REG_A);
+						vpop_reg(REG_HL);
 						break;
 
 					case 2:
-						printf(" pop h\n");
-						printf(" pop d\n");
+						vpop_reg(REG_HL);
+						vpop_reg(REG_DE);
 						break;
 
 					default:
@@ -385,13 +385,13 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 				switch (lhs->type->u.type.width)
 				{
 					case 1:
-						printf(" pop h\n");
-						printf(" pop psw\n");
+						vpop_reg(REG_HL);
+						vpop_reg(REG_A);
 						break;
 
 					case 2:
-						printf(" pop d\n");
-						printf(" pop r\n");
+						vpop_reg(REG_DE);
+						vpop_reg(REG_HL);
 						break;
 
 					default:
@@ -403,7 +403,7 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 			{
 				case 1:
 					printf(" sub d\n");
-					printf(" push psw\n");
+					vpush_reg(REG_A);
 					break;
 
 				case 2:
@@ -413,7 +413,7 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 					printf(" mov a, h\n");
 					printf(" sbb d\n");
 					printf(" mov h, a\n");
-					printf(" push h\n");
+					vpush_reg(REG_HL);
 					break;
 
 				default:
@@ -440,14 +440,13 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 		switch (lhs->type->u.type.width)
 		{
 			case 1:
-				printf(" pop psw\n");
-				printf(" pop h\n");
+				vpop_reg(REG_HL);
 				printf(" cmp h\n");
 				break;
 
 			case 2:
-				printf(" pop h\n");
-				printf(" pop d\n");
+				vpop_reg(REG_HL);
+				vpop_reg(REG_DE);
 				printf(" mov a, l\n");
 				printf(" cmp e\n");
 				printf(" bnz x%d\n", labels->truelabel);
@@ -477,12 +476,12 @@ static void assignment(struct symbol* var, struct exprnode* node)
 	switch (var->u.var.type->u.type.width)
 	{
 		case 1:
-			printf(" pop psw\n");
+			vpop_reg(REG_A);
 			varaccess("sta", var);
 			break;
 
 		case 2:
-			printf(" pop h\n");
+			vpop_reg(REG_HL);
 			varaccess("shld", var);
 			break;
 
@@ -500,14 +499,14 @@ static void deref_assignment(struct exprnode* ptr, struct exprnode* node)
 	switch (node->type->u.type.width)
 	{
 		case 1:
-			printf(" pop psw\n");
-			printf(" pop h\n");
+			vpop_reg(REG_A);
+			vpop_reg(REG_HL);
 			printf(" mov m, a\n");
 			break;
 
 		case 2:
-			printf(" pop d\n");
-			printf(" pop h\n");
+			vpop_reg(REG_DE);
+			vpop_reg(REG_HL);
 			printf(" mov m, e\n");
 			printf(" inx h\n");
 			printf(" mov m, d\n");
@@ -567,21 +566,7 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type)
 {
 	if (!node->type)
 	{
-		switch (type->u.type.width)
-		{
-			case 1:
-				printf(" mvi a, %d\n", node->value);
-				printf(" push psw\n");
-				break;
-
-			case 2:
-				printf(" lxi h, %d\n", node->value);
-				printf(" push h\n");
-				break;
-
-			default:
-				assert(false);
-		}
+		vpush_const(node->value);
 		node->type = type;
 		return;
 	}

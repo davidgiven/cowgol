@@ -65,5 +65,20 @@ struct looplabels
 
 #define yyerror(s) fatal(s)
 
+enum
+{
+	REG_A,
+	REG_HL,
+	REG_DE,
+	REG_BC
+};
+
+extern void vpush_reset(void);
+extern void vpush_reg(int reg);
+extern void vpush_const(uint16_t c);
+extern void vpush_addr(struct symbol* sym);
+extern void vpush_value(struct symbol* sym);
+extern void vpop_reg(int reg);
+
 #endif
 
