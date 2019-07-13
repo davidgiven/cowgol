@@ -1,7 +1,9 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include <assert.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 extern void fatal(const char* s, ...);
 extern int yylex(void);

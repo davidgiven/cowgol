@@ -14,6 +14,7 @@ SP [ \t]+
 "var"     { return VAR; }
 "sub"     { return SUB; }
 "end"     { return END; }
+"loop"    { return LOOP; }
 ":"       { return ':'; }
 ":="      { return ASSIGN; }
 ";"       { return ';'; }
