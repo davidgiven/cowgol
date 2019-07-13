@@ -15,8 +15,11 @@ SP [ \t]+
 "sub"     { return SUB; }
 "end"     { return END; }
 "loop"    { return LOOP; }
+"while"   { return WHILE; }
 ":"       { return ':'; }
 ":="      { return ASSIGN; }
+"=="      { return EQUALS; }
+"!="      { return NOTEQUALS; }
 ";"       { return ';'; }
 "+"       { return '+'; }
 "-"       { return '-'; }

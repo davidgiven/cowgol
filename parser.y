@@ -18,8 +18,10 @@ static struct symbol* int16_type;
 
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
+static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, struct exprnode* rhs);
 
 static void assignment(struct symbol* var, struct exprnode* node);
+static void deref_assignment(struct exprnode* ptr, struct exprnode* node);
 static void varaccess(const char* opcode, struct symbol* var);
 
 static struct symbol* add_new_symbol(const char* name);
@@ -29,15 +31,16 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE END LOOP
+%token VAR SUB TYPE END LOOP WHILE
 %token ID NUMBER
-%token ASSIGN
+%token ASSIGN EQUALS NOTEQUALS
 
 %type <symbol> newid;
 %type <symbol> oldid;
 %type <symbol> typeref;
 %type <expr> expression;
 %type <label> LOOP;
+%type <labels> WHILE;
 
 %left '+' '-'
 
@@ -45,6 +48,7 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 	struct symbol* symbol;
 	struct exprnode expr;
 	int label;
+	struct looplabels labels;
 }
 
 %%
@@ -105,6 +109,22 @@ statement
 		{
 			printf(" jmp x%d\n", $1);
 		}
+	| WHILE
+		{
+			$1.truelabel = current_label++;
+			$1.falselabel = current_label++;
+			$1.looplabel = current_label++;
+			printf("x%d:\n", $1.looplabel);
+		}
+		conditional
+		{
+			printf("x%d:\n", $1.truelabel);
+		}
+		LOOP statements END LOOP
+		{
+			printf(" jmp x%d\n", $1.looplabel);
+			printf("x%d:\n", $1.falselabel);
+		}
 	| oldid '(' ')' ';'
 		{
 			if ($1->kind != SUB)
@@ -117,6 +137,10 @@ statement
 				fatal("expected '%s' to be a variable", $1->name);
 
 			assignment($1, &$3);
+		}
+	| '[' expression ']' ASSIGN expression ';'
+		{
+			deref_assignment(&$2, &$5);
 		}
 	;
 
@@ -217,6 +241,12 @@ expression
 		{ expr_sub(&$$, &$1, &$3); }
 	;
 
+conditional
+	: expression NOTEQUALS expression
+		{
+			cond_notequals(&$<labels>-1, &$1, &$3);
+		}
+	;
 %%
 
 void fatal(const char* s, ...)
@@ -393,6 +423,47 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	}
 }
 
+static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, struct exprnode* rhs)
+{
+	if (!lhs->type && !rhs->type)
+	{
+		printf(" jmp x%d\n",
+			(lhs->value != rhs->value) ? labels->truelabel : labels->falselabel);
+	}
+	else
+	{
+		if (lhs->type && !rhs->type)
+			resolve_expression_type(rhs, lhs->type);
+		else if (!lhs->type && rhs->type)
+			resolve_expression_type(lhs, rhs->type);
+
+		switch (lhs->type->u.type.width)
+		{
+			case 1:
+				printf(" pop psw\n");
+				printf(" pop h\n");
+				printf(" cmp h\n");
+				break;
+
+			case 2:
+				printf(" pop h\n");
+				printf(" pop d\n");
+				printf(" mov a, l\n");
+				printf(" cmp e\n");
+				printf(" bnz x%d\n", labels->truelabel);
+				printf(" mov a, h\n");
+				printf(" cmp d\n");
+				break;
+
+			default:
+				assert(false);
+		}
+
+		printf(" bnz x%d\n", labels->truelabel);
+		printf(" jmp x%d\n", labels->falselabel);
+	}
+}
+
 static void varaccess(const char* opcode, struct symbol* var)
 {
 	printf(" %s w_%s+%d ; %s\n",
@@ -413,6 +484,33 @@ static void assignment(struct symbol* var, struct exprnode* node)
 		case 2:
 			printf(" pop h\n");
 			varaccess("shld", var);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+static void deref_assignment(struct exprnode* ptr, struct exprnode* node)
+{
+	if (!ptr->type->u.type.pointingat)
+		fatal("expected LHS to be a pointer");
+
+	resolve_expression_type(node, ptr->type->u.type.pointingat);
+	switch (node->type->u.type.width)
+	{
+		case 1:
+			printf(" pop psw\n");
+			printf(" pop h\n");
+			printf(" mov m, a\n");
+			break;
+
+		case 2:
+			printf(" pop d\n");
+			printf(" pop h\n");
+			printf(" mov m, e\n");
+			printf(" inx h\n");
+			printf(" mov m, d\n");
 			break;
 
 		default:

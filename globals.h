@@ -56,6 +56,13 @@ struct exprnode
 	int32_t value;
 };
 
+struct looplabels
+{
+	int truelabel;
+	int falselabel;
+	int looplabel;
+};
+
 #define yyerror(s) fatal(s)
 
 #endif
