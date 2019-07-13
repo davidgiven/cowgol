@@ -12,11 +12,15 @@ SP [ \t]+
 %%
 
 "var"     { return VAR; }
+"sub"     { return SUB; }
+"end"     { return END; }
 ":"       { return ':'; }
 ":="      { return ASSIGN; }
 ";"       { return ';'; }
 "+"       { return '+'; }
 "-"       { return '-'; }
+"("       { return '('; }
+")"       { return ')'; }
 
 [A-Za-z][A-Za-z0-9_$]* {
 		strncpy(text, yytext, sizeof(text));

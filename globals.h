@@ -30,6 +30,8 @@ struct symbol
 			uint32_t offset;
 		}
 		var;
+
+		struct subroutine* sub;
 	}
 	u;
 };
@@ -40,6 +42,7 @@ struct subroutine
 	struct subroutine* parent;
 	struct symbol* symbol;
 	uint32_t workspace;
+	int label_after;
 };
 
 struct exprnode

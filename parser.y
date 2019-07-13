@@ -12,6 +12,7 @@ char text[256];
 int32_t number;
 
 struct subroutine* current_sub;
+int current_label;
 
 static void varaccess(const char* opcode, struct symbol* var);
 
@@ -22,13 +23,16 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE
+%token VAR SUB TYPE END
 %token ID NUMBER
 %token ASSIGN
 
-%type <symbol> vardefinition;
+%type <symbol> newid;
+%type <symbol> oldid;
 %type <symbol> typeref;
 %type <expr> expression;
+
+%left '+' '-'
 
 %union {
 	struct symbol* symbol;
@@ -51,30 +55,66 @@ statements
 	;
 
 statement
-	: vardefinition ':' typeref ASSIGN expression ';'
+	: VAR newid ':' typeref ASSIGN expression ';'
 		{
-			$1->kind = VAR;
-			$1->u.var.type = $3;
-			$1->u.var.sub = current_sub;
-			$1->u.var.offset = current_sub->workspace;
-			current_sub->workspace += $3->u.type.width;
+			$2->kind = VAR;
+			$2->u.var.type = $4;
+			$2->u.var.sub = current_sub;
+			$2->u.var.offset = current_sub->workspace;
+			current_sub->workspace += $4->u.type.width;
 
-			resolve_expression_type(&$5, $3);
+			resolve_expression_type(&$6, $4);
 			printf(" pop h\n");
-			varaccess("shld", $1);
+			varaccess("shld", $2);
+		}
+	| SUB newid parameterlist 
+		{
+			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
+			sub->name = $2->name;
+			sub->parent = current_sub;
+			sub->label_after = current_label++;
+			printf(" jmp x%d\n", sub->label_after);
+			printf("f_%s:\n", sub->name);
+
+			$2->kind = SUB;
+			$2->u.sub = sub;
+
+			current_sub = sub;
+		}
+		statements
+		{
+			printf(" ret\n");
+			printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
+			printf("x%d:\n", current_sub->label_after);
+			current_sub = current_sub->parent;
+		}
+		END SUB
+	| oldid '(' ')' ';'
+		{
+			if ($1->kind != SUB)
+				fatal("expected '%s' to be a subroutine", $1->name);
+			printf(" call f_%s\n", $1->name);
 		}
 	;
 
-vardefinition
-	: VAR ID { $$ = add_new_symbol(text); }
+newid
+	: ID { $$ = add_new_symbol(text); }
+	;
+
+oldid
+	: ID { $$ = lookup_symbol(text); }
+	;
+
+parameterlist
+	: '(' ')'
 	;
 
 typeref
-	: ID
+	: oldid
 		{
-			$$ = lookup_symbol(text);
+			$$ = $1;
 			if ($$->kind != TYPE)
-				fatal("expected '%s' to be a type", text);
+				fatal("expected '%s' to be a type", $1->name);
 		}
 	;
 
@@ -84,16 +124,17 @@ expression
 			$$.type = NULL;
 			$$.value = number;
 		}
-	| ID
+	| oldid
 		{
-			struct symbol* sym = lookup_symbol(text);
-			if (sym->kind != VAR)
-				fatal("expected '%s' to be a variable", text);
+			if ($1->kind != VAR)
+				fatal("expected '%s' to be a variable", $1->name);
 
-			varaccess("lhld", sym);
+			varaccess("lhld", $1);
 			printf(" push h\n");
-			$$.type = sym->u.var.type;
+			$$.type = $1->u.var.type;
 		}
+	| '(' expression ')'
+		{ $$ = $2; }
 	| expression '+' expression
 		{
 			if (!$1.type && !$3.type)
