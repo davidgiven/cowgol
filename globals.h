@@ -84,6 +84,7 @@ enum
 };
 
 extern void vpush_reset(void);
+extern void vpush_raw(void);
 extern void vpush_reg(int reg);
 extern void vpush_const(uint16_t c);
 extern void vpush_addr(struct symbol* sym);

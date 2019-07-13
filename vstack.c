@@ -46,6 +46,15 @@ void vpush_reset(void)
 	sp = 0;
 }
 
+void vpush_raw(void)
+{
+	if (sp == STACK_DEPTH)
+		fatal("vstack overflow");
+	struct slot* slot = &vstack[sp++];
+
+	slot->kind = SLOT_STACKED;
+}
+
 void vpush_reg(int reg)
 {
 	if (sp == STACK_DEPTH)

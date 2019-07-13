@@ -16,6 +16,7 @@ struct argumentsspec* current_call;
 int current_label;
 
 static struct symbol* int16_type;
+static struct symbol* uint8_type;
 
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
@@ -28,13 +29,14 @@ static void varaccess(const char* opcode, struct symbol* var);
 static struct symbol* add_new_symbol(const char* name);
 static struct symbol* lookup_symbol(const char* name);
 static void init_var(struct symbol* sym, struct symbol* type);
+static struct symbol* make_pointer_type(struct symbol* type);
 
 static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 
 %}
 
 %token VAR SUB TYPE END LOOP WHILE
-%token ID NUMBER
+%token ID NUMBER STRING
 %token ASSIGN EQUALS NOTEQUALS
 
 %type <symbol> newid;
@@ -234,19 +236,7 @@ typeref
 				fatal("expected '%s' to be a type", $1->name);
 		}
 	| '[' typeref ']'
-		{
-			if ($2->u.type.pointerto)
-				$$ = $2->u.type.pointerto;
-			else
-			{
-				$$ = add_new_symbol(NULL);
-				$$->name = aprintf("[%s]", $2->name);
-				$$->kind = TYPE;
-				$$->u.type.width = 2;
-				$$->u.type.pointingat = $2;
-				$2->u.type.pointerto = $$;
-			}
-		}
+		{ $$ = make_pointer_type($2); }
 	;
 
 expression
@@ -254,6 +244,27 @@ expression
 		{
 			$$.type = NULL;
 			$$.value = number;
+		}
+	| STRING
+		{
+			int label1 = current_label++;
+			int label2 = current_label++;
+			printf(" jmp x%d\n", label1);
+			printf("x%d:\n", label2);
+			const uint8_t* p = (const uint8_t*)text;
+			uint8_t c = 0;
+			do
+			{
+				c = *p++;
+				printf(" db %d\n", c);
+			}
+			while (c);
+			printf("x%d:\n", label1);
+			printf(" lxi h, x%d\n", label2);
+			printf(" push h\n");
+			vpush_raw();
+
+			$$.type = make_pointer_type(uint8_type);
 		}
 	| oldid
 		{
@@ -678,6 +689,22 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type)
 			node->type->name, type->name);
 }
 
+static struct symbol* make_pointer_type(struct symbol* type)
+{
+	if (type->u.type.pointerto)
+		return type->u.type.pointerto;
+	else
+	{
+		struct symbol* ptr = add_new_symbol(NULL);
+		ptr->name = aprintf("[%s]", type->name);
+		ptr->kind = TYPE;
+		ptr->u.type.width = 2;
+		ptr->u.type.pointingat = type;
+		type->u.type.pointerto = ptr;
+		return ptr;
+	}
+}
+
 int main(int argc, const char* argv[])
 {
 	current_sub = calloc(1, sizeof(struct subroutine));
@@ -687,9 +714,9 @@ int main(int argc, const char* argv[])
 	int16_type->kind = TYPE;
 	int16_type->u.type.width = 2;
 
-	struct symbol* t = add_new_symbol("uint8");
-	t->kind = TYPE;
-	t->u.type.width = 1;
+	uint8_type = add_new_symbol("uint8");
+	uint8_type->kind = TYPE;
+	uint8_type->u.type.width = 1;
 
 	yydebug = 0;
 	printf(" org 100h\n");

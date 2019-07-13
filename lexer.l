@@ -4,7 +4,10 @@
 #include "globals.h"
 #include "y.tab.h"
 
+static int stringptr = 0;
+
 %}
+%x string
 
 LF (\r\n)|\r|\n
 SP [ \t]+
@@ -28,6 +31,16 @@ SP [ \t]+
 ")"       { return ')'; }
 "["       { return '['; }
 "]"       { return ']'; }
+
+\"                        { BEGIN(string); stringptr = 0; }
+<string>\\n               { text[stringptr++] = '\n'; }
+<string>\\r               { text[stringptr++] = '\r'; }
+<string>\\t               { text[stringptr++] = '\t'; }
+<string>\\[\\"]           { text[stringptr++] = yytext[1]; }
+<string>\"                { BEGIN(INITIAL); text[stringptr++] = '\0'; return STRING; }
+<string>\\.               { fatal("bogus escape"); }
+<string>[\n\r]            { fatal("unterminated string"); }
+<string>[^\n\r\\"]        { text[stringptr++] = *yytext; }
 
 [A-Za-z][A-Za-z0-9_$]* {
 		strncpy(text, yytext, sizeof(text));
