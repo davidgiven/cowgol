@@ -11,6 +11,18 @@ extern int yylex(void);
 extern char text[256];
 extern int32_t number;
 
+enum
+{
+	NO_LOCATION = 0,
+	STACKED,
+	IN_HL,
+	IN_A,
+
+	/* Only allowed in put_node_in_register */
+	IN_DE,
+	IN_D,
+};
+
 struct symbol
 {
 	int kind;
@@ -51,6 +63,7 @@ struct exprnode
 {
 	struct symbol* type;
 	int32_t value;
+	int location;
 };
 
 #define yyerror(s) fatal(s)
