@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 extern void fatal(const char* s, ...);
+extern const char* aprintf(const char* s, ...);
 extern int yylex(void);
 
 extern char text[256];
@@ -34,6 +35,8 @@ struct symbol
 		struct
 		{
 			int width;
+			struct symbol* pointerto;
+			struct symbol* pointingat;
 		}
 		type;
 

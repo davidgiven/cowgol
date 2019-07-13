@@ -15,6 +15,8 @@ struct subroutine* current_sub;
 int current_label;
 int tos_location;
 
+static struct symbol* int16_type;
+
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 
@@ -140,6 +142,19 @@ typeref
 			if ($$->kind != TYPE)
 				fatal("expected '%s' to be a type", $1->name);
 		}
+	| '[' typeref ']'
+		{
+			if ($2->u.type.pointerto)
+				$$ = $2->u.type.pointerto;
+			else
+			{
+				$$ = add_new_symbol(NULL);
+				$$->name = aprintf("[%s]", $2->name);
+				$$->kind = TYPE;
+				$$->u.type.width = 2;
+				$$->u.type.pointingat = $2;
+			}
+		}
 	;
 
 expression
@@ -172,6 +187,33 @@ expression
 			$$.type = $1->u.var.type;
 			tos_location = $$.location;
 		}
+	| '[' expression ']'
+		{
+			if (!$2.type->u.type.pointingat)
+				fatal("attempt to dereference a non-pointer");
+
+			put_node_in_register(&$2, IN_HL);
+
+			$$.type = $2.type->u.type.pointingat;
+			switch ($$.type->u.type.width)
+			{
+				case 1:
+					printf(" mov a, m\n");
+					tos_location = IN_A;
+					break;
+
+				case 2:
+					printf(" mov a, m\n");
+					printf(" inx h\n");
+					printf(" mov h, m\n");
+					printf(" mov l, a\n");
+					break;
+
+				default:
+					assert(false);
+			}
+			$$.location = tos_location;
+		}
 	| '(' expression ')'
 		{ $$ = $2; }
 	| expression '+' expression
@@ -203,6 +245,22 @@ void trace(const char* s, ...)
 	va_end(ap);
 }
 
+const char* aprintf(const char* s, ...)
+{
+	va_list ap;
+
+	va_start(ap, s);
+	int len = snprintf(NULL, 0, s, ap) + 1;
+	va_end(ap);
+
+	char* buffer = malloc(len);
+	va_start(ap, s);
+	snprintf(buffer, len, s, ap);
+	va_end(ap);
+
+	return buffer;
+}
+
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
 	if (!lhs->type && !rhs->type)
@@ -215,11 +273,32 @@ static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 		int width = lhs->type->u.type.width;
 		if (lhs->type && !rhs->type)
 		{
-			resolve_expression_type(rhs, lhs->type);
+			if (rhs->value == 1)
+			{
+				put_node_in_register(lhs, (width == 1) ? IN_A : IN_HL);
+				if (width == 1)
+				{
+					printf(" inr a\n");
+					tos_location = IN_A;
+				}
+				else
+				{
+					printf(" inx h\n");
+					tos_location = IN_HL;
+				}
+				dest->location = tos_location;
+				return;
+			}
+			if (lhs->type->u.type.pointingat)
+				resolve_expression_type(rhs, int16_type);
+			else
+				resolve_expression_type(rhs, lhs->type);
 			put_node_in_register(rhs, (width == 1) ? IN_A : IN_HL);
 		}
 		if (!lhs->type && rhs->type)
 		{
+			if (rhs->type->u.type.pointingat)
+				fatal("add numbers to pointers, not vice versa");
 			resolve_expression_type(lhs, rhs->type);
 			put_node_in_register(lhs, (width == 1) ? IN_A : IN_HL);
 		}
@@ -331,19 +410,27 @@ static void assignment(struct symbol* var, struct exprnode* node)
 
 static struct symbol* add_new_symbol(const char* name)
 {
-	struct symbol* sym = current_sub->symbol;
-	while (sym)
+	struct symbol* sym;
+	
+	if (name)
 	{
-		if (strcmp(sym->name, name) == 0)
-			fatal("symbol '%s' is already defined", name);
-		sym = sym->next;
+		sym = current_sub->symbol;
+		while (sym)
+		{
+			if (strcmp(sym->name, name) == 0)
+				fatal("symbol '%s' is already defined", name);
+			sym = sym->next;
+		}
 	}
 
 	sym = calloc(1, sizeof(struct symbol));
-	sym->name = strdup(name);
+	sym->name = name ? strdup(name) : NULL;
 
-	sym->next = current_sub->symbol;
-	current_sub->symbol = sym;
+	if (name)
+	{
+		sym->next = current_sub->symbol;
+		current_sub->symbol = sym;
+	}
 	return sym;
 }
 
@@ -447,11 +534,11 @@ int main(int argc, const char* argv[])
 	current_sub = calloc(1, sizeof(struct subroutine));
 	current_sub->name = "__main";
 
-	struct symbol* t = add_new_symbol("int16");
-	t->kind = TYPE;
-	t->u.type.width = 2;
+	int16_type = add_new_symbol("uint16");
+	int16_type->kind = TYPE;
+	int16_type->u.type.width = 2;
 
-	t = add_new_symbol("int8");
+	struct symbol* t = add_new_symbol("uint8");
 	t->kind = TYPE;
 	t->u.type.width = 1;
 

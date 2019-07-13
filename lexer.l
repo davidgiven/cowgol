@@ -22,6 +22,8 @@ SP [ \t]+
 "-"       { return '-'; }
 "("       { return '('; }
 ")"       { return ')'; }
+"["       { return '['; }
+"]"       { return ']'; }
 
 [A-Za-z][A-Za-z0-9_$]* {
 		strncpy(text, yytext, sizeof(text));
@@ -36,6 +38,7 @@ SP [ \t]+
 	}
 
 #[^\r\n]*                 |
+{LF}+                     |
 {SP}+                     {}
 
 <<EOF>> { yyterminate(); return 0; }
