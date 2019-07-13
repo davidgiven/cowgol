@@ -13,7 +13,6 @@ int32_t number;
 
 struct subroutine* current_sub;
 int current_label;
-int tos_location;
 
 static struct symbol* int16_type;
 
@@ -27,8 +26,6 @@ static struct symbol* add_new_symbol(const char* name);
 static struct symbol* lookup_symbol(const char* name);
 
 static void resolve_expression_type(struct exprnode* node, struct symbol* type);
-static void evict_tos(void);
-static void put_node_in_register(struct exprnode* node, int location);
 
 %}
 
@@ -168,38 +165,36 @@ expression
 			if ($1->kind != VAR)
 				fatal("expected '%s' to be a variable", $1->name);
 
-			evict_tos();
 			switch ($1->u.var.type->u.type.width)
 			{
 				case 1:
 					varaccess("lda", $1);
-					$$.location = IN_A;
+					printf(" push psw\n");
 					break;
 
 				case 2:
 					varaccess("lhld", $1);
-					$$.location = IN_HL;
+					printf(" push h\n");
 					break;
 
 				default:
 					assert(false);
 			}
 			$$.type = $1->u.var.type;
-			tos_location = $$.location;
 		}
 	| '[' expression ']'
 		{
 			if (!$2.type->u.type.pointingat)
 				fatal("attempt to dereference a non-pointer");
 
-			put_node_in_register(&$2, IN_HL);
+			printf(" pop h\n");
 
 			$$.type = $2.type->u.type.pointingat;
 			switch ($$.type->u.type.width)
 			{
 				case 1:
 					printf(" mov a, m\n");
-					tos_location = IN_A;
+					printf(" push psw\n");
 					break;
 
 				case 2:
@@ -207,12 +202,12 @@ expression
 					printf(" inx h\n");
 					printf(" mov h, m\n");
 					printf(" mov l, a\n");
+					printf(" push h\n");
 					break;
 
 				default:
 					assert(false);
 			}
-			$$.location = tos_location;
 		}
 	| '(' expression ')'
 		{ $$ = $2; }
@@ -275,49 +270,48 @@ static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 		{
 			if (rhs->value == 1)
 			{
-				put_node_in_register(lhs, (width == 1) ? IN_A : IN_HL);
 				if (width == 1)
 				{
+					printf(" pop psw\n");
 					printf(" inr a\n");
-					tos_location = IN_A;
+					printf(" push psw\n");
 				}
 				else
 				{
+					printf(" pop h\n");
 					printf(" inx h\n");
-					tos_location = IN_HL;
+					printf(" push h\n");
 				}
-				dest->location = tos_location;
 				return;
 			}
 			if (lhs->type->u.type.pointingat)
 				resolve_expression_type(rhs, int16_type);
 			else
 				resolve_expression_type(rhs, lhs->type);
-			put_node_in_register(rhs, (width == 1) ? IN_A : IN_HL);
 		}
 		if (!lhs->type && rhs->type)
 		{
 			if (rhs->type->u.type.pointingat)
 				fatal("add numbers to pointers, not vice versa");
 			resolve_expression_type(lhs, rhs->type);
-			put_node_in_register(lhs, (width == 1) ? IN_A : IN_HL);
 		}
 
 		switch (width)
 		{
 			case 1:
+				printf(" pop psw\n");
 				printf(" pop h\n");
 				printf(" add h\n");
-				tos_location = IN_A;
+				printf(" push psw\n");
 				break;
 
 			case 2:
+				printf(" pop h\n");
 				printf(" pop d\n");
 				printf(" dad d\n");
-				tos_location = IN_HL;
+				printf(" push h\n");
 				break;
 		}
-		dest->location = tos_location;
 	}
 }
 
@@ -340,25 +334,46 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 			if (!lhs->type && rhs->type)
 			{
 				resolve_expression_type(lhs, rhs->type);
-				int width = lhs->type->u.type.width;
-				put_node_in_register(lhs, (width == 1) ? IN_A : IN_HL);
-				printf(" pop d\n");
+				switch (lhs->type->u.type.width)
+				{
+					case 1:
+						printf(" pop psw\n");
+						printf(" pop h\n");
+						break;
+
+					case 2:
+						printf(" pop h\n");
+						printf(" pop d\n");
+						break;
+
+					default:
+						assert(false);
+				}
 			}
 			else
 			{
-				int width = lhs->type->u.type.width;
-				put_node_in_register(rhs, (width == 1) ? IN_D : IN_DE);
-				if (width == 1)
-					printf(" pop psw\n");
-				else
-					printf(" pop h\n");
+				switch (lhs->type->u.type.width)
+				{
+					case 1:
+						printf(" pop h\n");
+						printf(" pop psw\n");
+						break;
+
+					case 2:
+						printf(" pop d\n");
+						printf(" pop r\n");
+						break;
+
+					default:
+						assert(false);
+				}
 			}
 
 			switch (lhs->type->u.type.width)
 			{
 				case 1:
 					printf(" sub d\n");
-					tos_location = IN_A;
+					printf(" push psw\n");
 					break;
 
 				case 2:
@@ -368,13 +383,12 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 					printf(" mov a, h\n");
 					printf(" sbb d\n");
 					printf(" mov h, a\n");
-					tos_location = IN_HL;
+					printf(" push h\n");
 					break;
 
 				default:
 					assert(false);
 			}
-			dest->location = tos_location;
 		}
 	}
 }
@@ -392,20 +406,18 @@ static void assignment(struct symbol* var, struct exprnode* node)
 	switch (var->u.var.type->u.type.width)
 	{
 		case 1:
-			put_node_in_register(node, IN_A);
+			printf(" pop psw\n");
 			varaccess("sta", var);
 			break;
 
 		case 2:
-			put_node_in_register(node, IN_HL);
+			printf(" pop h\n");
 			varaccess("shld", var);
 			break;
 
 		default:
 			assert(false);
 	}
-
-	tos_location = NO_LOCATION;
 }
 
 static struct symbol* add_new_symbol(const char* name)
@@ -457,76 +469,28 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type)
 {
 	if (!node->type)
 	{
-		evict_tos();
 		switch (type->u.type.width)
 		{
 			case 1:
 				printf(" mvi a, %d\n", node->value);
-				node->location = IN_A;
+				printf(" push psw\n");
 				break;
 
 			case 2:
 				printf(" lxi h, %d\n", node->value);
-				node->location = IN_HL;
+				printf(" push h\n");
 				break;
 
 			default:
 				assert(false);
 		}
 		node->type = type;
-		tos_location = node->location;
 		return;
 	}
 
 	if (node->type != type)
 		fatal("type mismatch: expression was a '%s', used when a '%s' was expected",
 			node->type->name, type->name);
-}
-
-static void evict_tos(void)
-{
-	switch (tos_location)
-	{
-		case IN_A:
-			printf(" push psw\n");
-			tos_location = STACKED;
-			break;
-
-		case IN_HL:
-			printf(" push h\n");
-			tos_location = STACKED;
-			break;
-	}
-}
-
-static void put_node_in_register(struct exprnode* node, int location)
-{
-	if (node->location == location)
-		return;
-	if (node->location == STACKED)
-	{
-		switch (location)
-		{
-			case IN_A:
-				printf(" pop psw\n");
-				break;
-
-			case IN_HL:
-				printf(" pop h\n");
-				break;
-
-			case IN_D:
-			case IN_DE:
-				printf(" pop d\n");
-				break;
-
-			default:
-				assert(false);
-		}
-		node->location = location;
-		return;
-	}
-	assert(false);
 }
 
 int main(int argc, const char* argv[])
