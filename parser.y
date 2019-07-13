@@ -79,6 +79,12 @@ statement
 			init_var($2, $4);
 			assignment($2, &$6);
 		}
+	| VAR newid ASSIGN expression ';'
+		{
+			$2->kind = VAR;
+			init_var($2, $4.type);
+			assignment($2, &$4);
+		}
 	| SUB newid
 		{
 			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
