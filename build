@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+
+yacc -d parser.y
+flex lexer.l
+gcc -Os -Wall -Wno-unused-function lex.yy.c y.tab.c -o compiler -lfl -ly
+
