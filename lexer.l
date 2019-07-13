@@ -16,6 +16,7 @@ SP [ \t]+
 ":="      { return ASSIGN; }
 ";"       { return ';'; }
 "+"       { return '+'; }
+"-"       { return '-'; }
 
 [A-Za-z][A-Za-z0-9_$]* {
 		strncpy(text, yytext, sizeof(text));

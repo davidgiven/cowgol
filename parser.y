@@ -114,6 +114,48 @@ expression
 				printf(" push h\n");
 			}
 		}
+	| expression '-' expression
+		{
+			if (!$1.type && !$3.type)
+			{
+				$$.type = NULL;
+				$$.value = $1.value - $3.value;
+			}
+			else
+			{
+				if ($1.type && !$3.type)
+				{
+					$3.value = -$3.value;
+					resolve_expression_type(&$3, $1.type);
+					printf(" pop d\n");
+					printf(" pop h\n");
+					printf(" dad d\n");
+					printf(" push h\n");
+				}
+				else
+				{
+					if (!$1.type && $3.type)
+					{
+						resolve_expression_type(&$1, $3.type);
+						printf(" pop h\n");
+						printf(" pop d\n");
+					}
+					else
+					{
+						printf(" pop d\n");
+						printf(" pop h\n");
+					}
+
+					printf(" mov a, l\n");
+					printf(" sub e\n");
+					printf(" mov l, a\n");
+					printf(" mov a, h\n");
+					printf(" sbb d\n");
+					printf(" mov h, a\n");
+					printf(" push h\n");
+				}
+			}
+		}
 	;
 
 %%
@@ -207,6 +249,7 @@ int main(int argc, const char* argv[])
 	t->u.type.width = 2;
 
 	yydebug = 0;
+	printf(" org 100h\n");
 	yyparse();
 	return 0;
 }
