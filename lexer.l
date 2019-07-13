@@ -19,6 +19,10 @@ SP [ \t]+
 "end"     { return END; }
 "loop"    { return LOOP; }
 "while"   { return WHILE; }
+"extern"  { return EXTERN; }
+"if"      { return IF; }
+"then"    { return THEN; }
+"break"   { return BREAK; }
 ":"       { return ':'; }
 ","       { return ','; }
 ":="      { return ASSIGN; }

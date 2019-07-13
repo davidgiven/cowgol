@@ -50,6 +50,7 @@ struct subroutine
 	uint32_t workspace;
 	int label_after;
 	int inputparameters;
+	int old_break_label;
 };
 
 struct exprnode
@@ -63,6 +64,8 @@ struct looplabels
 	int truelabel;
 	int falselabel;
 	int looplabel;
+	int exitlabel;
+	int old_break_label;
 };
 
 struct argumentsspec

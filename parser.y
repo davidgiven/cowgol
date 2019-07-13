@@ -13,14 +13,15 @@ int32_t number;
 
 struct subroutine* current_sub;
 struct argumentsspec* current_call;
-int current_label;
+int current_label = 1;
+int break_label;
 
 static struct symbol* int16_type;
 static struct symbol* uint8_type;
 
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
-static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, struct exprnode* rhs);
+static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 
 static void assignment(struct symbol* var, struct exprnode* node);
 static void deref_assignment(struct exprnode* ptr, struct exprnode* node);
@@ -35,7 +36,7 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE END LOOP WHILE
+%token VAR SUB TYPE END LOOP WHILE EXTERN IF THEN BREAK
 %token ID NUMBER STRING
 %token ASSIGN EQUALS NOTEQUALS
 
@@ -43,15 +44,15 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 %type <symbol> oldid;
 %type <symbol> typeref;
 %type <expr> expression;
-%type <label> LOOP;
+%type <labels> LOOP;
 %type <labels> WHILE;
+%type <labels> IF;
 
 %left '+' '-'
 
 %union {
 	struct symbol* symbol;
 	struct exprnode expr;
-	int label;
 	struct looplabels labels;
 	struct argumentsspec argsspec;
 }
@@ -85,12 +86,31 @@ statement
 			init_var($2, $4.type);
 			assignment($2, &$4);
 		}
+	| EXTERN SUB newid
+		{
+			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
+			sub->name = $3->name;
+			sub->parent = current_sub;
+
+			$3->kind = SUB;
+			$3->u.sub = sub;
+
+			current_sub = sub;
+		}
+		parameterlist
+		ASSIGN STRING
+		{
+			current_sub->name = strdup(text);
+			current_sub = current_sub->parent;
+		}
 	| SUB newid
 		{
 			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
 			sub->name = $2->name;
 			sub->parent = current_sub;
 			sub->label_after = current_label++;
+			sub->old_break_label = break_label;
+			break_label = 0;
 			printf(" jmp x%d\n", sub->label_after);
 			printf("f_%s:\n", sub->name);
 
@@ -118,6 +138,8 @@ statement
 		}
 		statements
 		{
+			break_label = current_sub->old_break_label;
+
 			printf(" ret\n");
 			printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
 			printf("x%d:\n", current_sub->label_after);
@@ -126,18 +148,41 @@ statement
 		END SUB
 	| LOOP
 		{
-			$1 = current_label++;
-			printf("x%d:\n", $1);
+			$1.looplabel = current_label++;
+			$1.exitlabel = current_label++;
+			$1.old_break_label = break_label;
+			break_label = $1.exitlabel;
+			printf("x%d:\n", $1.looplabel);
 		}
 		statements END LOOP
 		{
-			printf(" jmp x%d\n", $1);
+			printf(" jmp x%d\n", $1.looplabel);
+			printf("x%d:\n", $1.exitlabel);
+			break_label = $1.old_break_label;
 		}
+	| IF
+		{
+			$1.truelabel = current_label++;
+			$1.falselabel = current_label++;
+			$1.looplabel = 0;
+		}
+		conditional
+		THEN
+		{
+			printf("x%d:\n", $1.truelabel);
+		}
+		statements
+		{
+			printf("x%d:\n", $1.falselabel);
+		}
+		END IF
 	| WHILE
 		{
 			$1.truelabel = current_label++;
 			$1.falselabel = current_label++;
 			$1.looplabel = current_label++;
+			$1.old_break_label = break_label;
+			break_label = $1.falselabel;
 			printf("x%d:\n", $1.looplabel);
 		}
 		conditional
@@ -148,6 +193,13 @@ statement
 		{
 			printf(" jmp x%d\n", $1.looplabel);
 			printf("x%d:\n", $1.falselabel);
+			break_label = $1.old_break_label;
+		}
+	| BREAK ';'
+		{
+			if (!break_label)
+				fatal("nothing to break from");
+			printf(" jmp x%d\n", break_label);
 		}
 	| oldid argumentlist ';'
 		{
@@ -229,8 +281,21 @@ argument
 			current_call->number++;
 
 			resolve_expression_type(&$1, param->u.var.type);
-			vpop_reg(REG_HL);
-			printf(" push h\n");
+			switch (param->u.var.type->u.type.width)
+			{
+				case 1:
+					vpop_reg(REG_A);
+					printf(" push psw\n");
+					break;
+
+				case 2:
+					vpop_reg(REG_HL);
+					printf(" push h\n");
+					break;
+
+				default:
+					assert(false);
+			}
 		}
 	;
 
@@ -316,9 +381,13 @@ expression
 	;
 
 conditional
-	: expression NOTEQUALS expression
+	: expression EQUALS expression
 		{
-			cond_notequals(&$<labels>-1, &$1, &$3);
+			cond_equals($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3);
+		}
+	| expression NOTEQUALS expression
+		{
+			cond_equals($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3);
 		}
 	;
 %%
@@ -513,18 +582,18 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	}
 }
 
-static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, struct exprnode* rhs)
+static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
 {
 	if (!lhs->type && !rhs->type)
 	{
 		printf(" jmp x%d\n",
-			(lhs->value != rhs->value) ? labels->truelabel : labels->falselabel);
+			(lhs->value == rhs->value) ? truelabel : falselabel);
 	}
 	else
 	{
 		if (!lhs->type && rhs->type)
 		{
-			cond_notequals(labels, rhs, lhs);
+			cond_equals(truelabel, falselabel, rhs, lhs);
 			return;
 		}
 
@@ -532,11 +601,25 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 		{
 			if (rhs->value == 0)
 			{
-				vpop_reg(REG_HL);
-				printf(" mov a, h\n");
-				printf(" ora l\n");
-				printf(" jnz x%d\n", labels->truelabel);
-				printf(" jmp x%d\n", labels->falselabel);
+				switch (lhs->type->u.type.width)
+				{
+					case 1:
+						vpop_reg(REG_A);
+						printf(" ora a\n");
+						break;
+
+					case 2:
+						vpop_reg(REG_HL);
+						printf(" mov a, h\n");
+						printf(" ora l\n");
+						break;
+
+					default:
+						assert(false);
+				}
+
+				printf(" jnz x%d\n", falselabel);
+				printf(" jmp x%d\n", truelabel);
 				return;
 			}
 
@@ -546,6 +629,7 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 		switch (lhs->type->u.type.width)
 		{
 			case 1:
+				vpop_reg(REG_A);
 				vpop_reg(REG_HL);
 				printf(" cmp h\n");
 				break;
@@ -555,7 +639,7 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 				vpop_reg(REG_DE);
 				printf(" mov a, l\n");
 				printf(" cmp e\n");
-				printf(" jnz x%d\n", labels->truelabel);
+				printf(" jnz x%d\n", falselabel);
 				printf(" mov a, h\n");
 				printf(" cmp d\n");
 				break;
@@ -564,8 +648,8 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 				assert(false);
 		}
 
-		printf(" jnz x%d\n", labels->truelabel);
-		printf(" jmp x%d\n", labels->falselabel);
+		printf(" jnz x%d\n", falselabel);
+		printf(" jmp x%d\n", truelabel);
 	}
 }
 
@@ -727,6 +811,16 @@ int main(int argc, const char* argv[])
 	yydebug = 0;
 	printf(" org 100h\n");
 	yyparse();
+
+	printf(
+		"f_putc:\n"
+		"  pop h\n"
+		"  xthl\n"
+		"  mvi c, 2\n"
+		"  mov e, h\n"
+		"  jmp 5\n");
+	putchar(26);
+
 	return 0;
 }
 
