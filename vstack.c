@@ -113,12 +113,16 @@ void vpop_reg(int reg)
 			break;
 
 		case SLOT_VALUE:
-			if (reg != REG_HL)
-				fatal("can't rematerialise non-HL value");
+			if (reg == REG_BC)
+				fatal("can't rematerialise values into BC");
 
+			if (reg == REG_DE)
+				printf(" xchg\n");
 			printf(" lhld w_%s+%d ; %s\n",
 				slot->u.sym->u.var.sub->name, slot->u.sym->u.var.offset,
 				slot->u.sym->name);
+			if (reg == REG_DE)
+				printf(" xchg\n");
 			break;
 	}
 }

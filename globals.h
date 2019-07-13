@@ -45,9 +45,11 @@ struct subroutine
 {
 	const char* name;
 	struct subroutine* parent;
-	struct symbol* symbol;
+	struct symbol* firstsymbol;
+	struct symbol* lastsymbol;
 	uint32_t workspace;
 	int label_after;
+	int inputparameters;
 };
 
 struct exprnode
@@ -61,6 +63,14 @@ struct looplabels
 	int truelabel;
 	int falselabel;
 	int looplabel;
+};
+
+struct argumentsspec
+{
+	struct subroutine* sub;
+	int number;
+	struct symbol* param;
+	struct argumentsspec* previous_call;
 };
 
 #define yyerror(s) fatal(s)

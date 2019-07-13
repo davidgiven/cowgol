@@ -12,6 +12,7 @@ char text[256];
 int32_t number;
 
 struct subroutine* current_sub;
+struct argumentsspec* current_call;
 int current_label;
 
 static struct symbol* int16_type;
@@ -26,6 +27,7 @@ static void varaccess(const char* opcode, struct symbol* var);
 
 static struct symbol* add_new_symbol(const char* name);
 static struct symbol* lookup_symbol(const char* name);
+static void init_var(struct symbol* sym, struct symbol* type);
 
 static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 
@@ -49,6 +51,7 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 	struct exprnode expr;
 	int label;
 	struct looplabels labels;
+	struct argumentsspec argsspec;
 }
 
 %%
@@ -71,14 +74,10 @@ statement
 	| VAR newid ':' typeref ASSIGN expression ';'
 		{
 			$2->kind = VAR;
-			$2->u.var.type = $4;
-			$2->u.var.sub = current_sub;
-			$2->u.var.offset = current_sub->workspace;
-			current_sub->workspace += $4->u.type.width;
-
+			init_var($2, $4);
 			assignment($2, &$6);
 		}
-	| SUB newid parameterlist 
+	| SUB newid
 		{
 			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
 			sub->name = $2->name;
@@ -91,6 +90,23 @@ statement
 			$2->u.sub = sub;
 
 			current_sub = sub;
+		}
+		parameterlist
+		{
+			if (current_sub->inputparameters != 0)
+			{
+				printf(" pop b\n");
+				for (int i=current_sub->inputparameters-1; i>=0; i--)
+				{
+					struct symbol* param = current_sub->firstsymbol;
+					for (int j=0; j<i; j++)
+						param = param->next;
+
+					printf(" pop h\n");
+					varaccess("shld", param);
+				}
+				printf(" push b\n");
+			}
 		}
 		statements
 		{
@@ -125,7 +141,7 @@ statement
 			printf(" jmp x%d\n", $1.looplabel);
 			printf("x%d:\n", $1.falselabel);
 		}
-	| oldid '(' ')' ';'
+	| oldid argumentlist ';'
 		{
 			if ($1->kind != SUB)
 				fatal("expected '%s' to be a subroutine", $1->name);
@@ -153,7 +169,61 @@ oldid
 	;
 
 parameterlist
-	: '(' ')'
+	: '(' parameters ')'
+	;
+
+parameters
+	: parameter
+	| parameter ',' parameters
+	;
+
+parameter
+	: newid ':' typeref
+		{
+			$1->kind = VAR;
+			init_var($1, $3);
+			current_sub->inputparameters++;
+		}
+	;
+
+argumentlist
+	: '('
+		{
+			struct argumentsspec* spec = calloc(1, sizeof(struct argumentsspec));
+			spec->sub = $<symbol>0->u.sub;
+			spec->number = 0;
+			spec->param = spec->sub->firstsymbol;
+			spec->previous_call = current_call;
+			current_call = spec;
+		}
+		arguments ')'
+		{
+			if (current_call->number != current_call->sub->inputparameters)
+				fatal("expected %d parameters but only got %d",
+					current_call->sub->inputparameters, current_call->number);
+			current_call = current_call->previous_call;
+		}
+	;
+
+arguments
+	: argument
+	| argument ',' arguments
+	;
+
+argument
+	: expression
+		{
+			if (current_call->number == current_call->sub->inputparameters)
+				fatal("too many input parameters");
+
+			struct symbol* param = current_call->param;
+			current_call->param = param->next;
+			current_call->number++;
+
+			resolve_expression_type(&$1, param->u.var.type);
+			vpop_reg(REG_HL);
+			printf(" push h\n");
+		}
 	;
 
 typeref
@@ -174,6 +244,7 @@ typeref
 				$$->kind = TYPE;
 				$$->u.type.width = 2;
 				$$->u.type.pointingat = $2;
+				$2->u.type.pointerto = $$;
 			}
 		}
 	;
@@ -189,21 +260,7 @@ expression
 			if ($1->kind != VAR)
 				fatal("expected '%s' to be a variable", $1->name);
 
-			switch ($1->u.var.type->u.type.width)
-			{
-				case 1:
-					varaccess("lda", $1);
-					vpush_reg(REG_A);
-					break;
-
-				case 2:
-					varaccess("lhld", $1);
-					vpush_reg(REG_HL);
-					break;
-
-				default:
-					assert(false);
-			}
+			vpush_value($1);
 			$$.type = $1->u.var.type;
 		}
 	| '[' expression ']'
@@ -275,12 +332,12 @@ const char* aprintf(const char* s, ...)
 	va_list ap;
 
 	va_start(ap, s);
-	int len = snprintf(NULL, 0, s, ap) + 1;
+	int len = vsnprintf(NULL, 0, s, ap) + 1;
 	va_end(ap);
 
 	char* buffer = malloc(len);
 	va_start(ap, s);
-	snprintf(buffer, len, s, ap);
+	vsnprintf(buffer, len, s, ap);
 	va_end(ap);
 
 	return buffer;
@@ -310,6 +367,22 @@ static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 				{
 					vpop_reg(REG_HL);
 					printf(" inx h\n");
+					vpush_reg(REG_HL);
+				}
+				return;
+			}
+			else if (rhs->value == -1)
+			{
+				if (width == 1)
+				{
+					vpop_reg(REG_A);
+					printf(" dcr a\n");
+					vpush_reg(REG_A);
+				}
+				else
+				{
+					vpop_reg(REG_HL);
+					printf(" dcx h\n");
 					vpush_reg(REG_HL);
 				}
 				return;
@@ -432,10 +505,26 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 	}
 	else
 	{
-		if (lhs->type && !rhs->type)
+		if (!lhs->type && rhs->type)
+		{
+			cond_notequals(labels, rhs, lhs);
+			return;
+		}
+
+		if (!rhs->type)
+		{
+			if (rhs->value == 0)
+			{
+				vpop_reg(REG_HL);
+				printf(" mov a, h\n");
+				printf(" ora l\n");
+				printf(" jnz x%d\n", labels->truelabel);
+				printf(" jmp x%d\n", labels->falselabel);
+				return;
+			}
+
 			resolve_expression_type(rhs, lhs->type);
-		else if (!lhs->type && rhs->type)
-			resolve_expression_type(lhs, rhs->type);
+		}
 
 		switch (lhs->type->u.type.width)
 		{
@@ -449,7 +538,7 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 				vpop_reg(REG_DE);
 				printf(" mov a, l\n");
 				printf(" cmp e\n");
-				printf(" bnz x%d\n", labels->truelabel);
+				printf(" jnz x%d\n", labels->truelabel);
 				printf(" mov a, h\n");
 				printf(" cmp d\n");
 				break;
@@ -458,7 +547,7 @@ static void cond_notequals(struct looplabels* labels, struct exprnode* lhs, stru
 				assert(false);
 		}
 
-		printf(" bnz x%d\n", labels->truelabel);
+		printf(" jnz x%d\n", labels->truelabel);
 		printf(" jmp x%d\n", labels->falselabel);
 	}
 }
@@ -523,7 +612,7 @@ static struct symbol* add_new_symbol(const char* name)
 	
 	if (name)
 	{
-		sym = current_sub->symbol;
+		sym = current_sub->firstsymbol;
 		while (sym)
 		{
 			if (strcmp(sym->name, name) == 0)
@@ -537,8 +626,13 @@ static struct symbol* add_new_symbol(const char* name)
 
 	if (name)
 	{
-		sym->next = current_sub->symbol;
-		current_sub->symbol = sym;
+		if (!current_sub->lastsymbol)
+			current_sub->firstsymbol = current_sub->lastsymbol = sym;
+		else
+		{
+			current_sub->lastsymbol->next = sym;
+			current_sub->lastsymbol = sym;
+		}
 	}
 	return sym;
 }
@@ -548,7 +642,7 @@ static struct symbol* lookup_symbol(const char* name)
 	struct subroutine* scope = current_sub;
 	while (scope)
 	{
-		struct symbol* sym = scope->symbol;
+		struct symbol* sym = scope->firstsymbol;
 		while (sym)
 		{
 			if (strcmp(sym->name, name) == 0)
@@ -560,6 +654,14 @@ static struct symbol* lookup_symbol(const char* name)
 
 	fatal("symbol '%s' not found", name);
 	return NULL;
+}
+
+static void init_var(struct symbol* sym, struct symbol* type)
+{
+	sym->u.var.type = type;
+	sym->u.var.sub = current_sub;
+	sym->u.var.offset = current_sub->workspace;
+	current_sub->workspace += type->u.type.width;
 }
 
 static void resolve_expression_type(struct exprnode* node, struct symbol* type)

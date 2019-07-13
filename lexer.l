@@ -17,6 +17,7 @@ SP [ \t]+
 "loop"    { return LOOP; }
 "while"   { return WHILE; }
 ":"       { return ':'; }
+","       { return ','; }
 ":="      { return ASSIGN; }
 "=="      { return EQUALS; }
 "!="      { return NOTEQUALS; }
