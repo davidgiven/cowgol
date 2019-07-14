@@ -1,5 +1,4 @@
-export CFLAGS = -Os -g --std=c++14 \
-	-ffunction-sections -fdata-sections
+export CFLAGS = -Os -g -ffunction-sections -fdata-sections
 export LDFLAGS = -Os
 
 export CC = gcc

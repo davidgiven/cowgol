@@ -91,7 +91,7 @@ buildprogram() {
         objs="$objs $OBJDIR/$src"
     done
 
-    echo build $prog-debug$EXTENSION : link $objs
+    echo "build $prog-debug$EXTENSION : link $objs | $deps"
     echo "    flags=$flags"
 
     echo build $prog$EXTENSION : strip $prog-debug$EXTENSION
@@ -106,7 +106,7 @@ buildyacc() {
     local hfile
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
-    echo "build $1 : yacc $2"
+    echo "build $cfile $hfile : yacc $2"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -134,7 +134,7 @@ buildlibrary libmain.a \
     -I$OBJDIR \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
-    vstack.c \
+    arch8080.c \
 
 buildprogram tinycowc \
     libmain.a \
