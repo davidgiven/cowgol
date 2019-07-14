@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "globals.h"
-#include "y.tab.h"
+#include "parser.h"
 
 static int stringptr = 0;
 

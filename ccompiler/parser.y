@@ -6,7 +6,7 @@
 #include "globals.h"
 
 #define YYDEBUG 1
-#include "y.tab.h"
+#include "parser.h"
 
 char text[256];
 int32_t number;
