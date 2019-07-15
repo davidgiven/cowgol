@@ -17,15 +17,15 @@ int current_label = 1;
 int break_label;
 
 static struct symbol* int16_type;
+static struct symbol* intptr_type;
 static struct symbol* uint8_type;
+
+static bool is_ptr(struct symbol* sym);
+static bool is_num(struct symbol* sym);
 
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
-
-static void assignment(struct symbol* var, struct exprnode* node);
-static void deref_assignment(struct exprnode* ptr, struct exprnode* node);
-static void varaccess(const char* opcode, struct symbol* var);
 
 static struct symbol* add_new_symbol(const char* name);
 static struct symbol* lookup_symbol(const char* name);
@@ -78,13 +78,17 @@ statement
 		{
 			$2->kind = VAR;
 			init_var($2, $4);
-			assignment($2, &$6);
+			resolve_expression_type(&$6, $4);
+			arch_assign_var($2);
 		}
 	| VAR newid ASSIGN expression ';'
 		{
 			$2->kind = VAR;
+			if (!$4.type)
+				fatal("types cannot be inferred for numeric constants");
 			init_var($2, $4.type);
-			assignment($2, &$4);
+			resolve_expression_type(&$4, $4.type);
+			arch_assign_var($2);
 		}
 	| EXTERN SUB newid
 		{
@@ -111,8 +115,6 @@ statement
 			sub->label_after = current_label++;
 			sub->old_break_label = break_label;
 			break_label = 0;
-			printf(" jmp x%d\n", sub->label_after);
-			printf("f_%s:\n", sub->name);
 
 			$2->kind = SUB;
 			$2->u.sub = sub;
@@ -121,28 +123,12 @@ statement
 		}
 		parameterlist
 		{
-			if (current_sub->inputparameters != 0)
-			{
-				printf(" pop b\n");
-				for (int i=current_sub->inputparameters-1; i>=0; i--)
-				{
-					struct symbol* param = current_sub->firstsymbol;
-					for (int j=0; j<i; j++)
-						param = param->next;
-
-					printf(" pop h\n");
-					varaccess("shld", param);
-				}
-				printf(" push b\n");
-			}
+			arch_subroutine_prologue();
 		}
 		statements
 		{
+			arch_subroutine_epilogue();
 			break_label = current_sub->old_break_label;
-
-			printf(" ret\n");
-			printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
-			printf("x%d:\n", current_sub->label_after);
 			current_sub = current_sub->parent;
 		}
 		END SUB
@@ -152,12 +138,12 @@ statement
 			$1.exitlabel = current_label++;
 			$1.old_break_label = break_label;
 			break_label = $1.exitlabel;
-			printf("x%d:\n", $1.looplabel);
+			arch_emit_label($1.looplabel);
 		}
 		statements END LOOP
 		{
-			printf(" jmp x%d\n", $1.looplabel);
-			printf("x%d:\n", $1.exitlabel);
+			arch_emit_jump($1.looplabel);
+			arch_emit_label($1.exitlabel);
 			break_label = $1.old_break_label;
 		}
 	| IF
@@ -169,11 +155,11 @@ statement
 		conditional
 		THEN
 		{
-			printf("x%d:\n", $1.truelabel);
+			arch_emit_label($1.truelabel);
 		}
 		statements
 		{
-			printf("x%d:\n", $1.falselabel);
+			arch_emit_label($1.falselabel);
 		}
 		END IF
 	| WHILE
@@ -183,40 +169,45 @@ statement
 			$1.looplabel = current_label++;
 			$1.old_break_label = break_label;
 			break_label = $1.falselabel;
-			printf("x%d:\n", $1.looplabel);
+			arch_emit_label($1.looplabel);
 		}
 		conditional
 		{
-			printf("x%d:\n", $1.truelabel);
+			arch_emit_label($1.truelabel);
 		}
 		LOOP statements END LOOP
 		{
-			printf(" jmp x%d\n", $1.looplabel);
-			printf("x%d:\n", $1.falselabel);
+			arch_emit_jump($1.looplabel);
+			arch_emit_label($1.falselabel);
 			break_label = $1.old_break_label;
 		}
 	| BREAK ';'
 		{
 			if (!break_label)
 				fatal("nothing to break from");
-			printf(" jmp x%d\n", break_label);
+			arch_emit_jump(break_label);
 		}
 	| oldid argumentlist ';'
 		{
 			if ($1->kind != SUB)
 				fatal("expected '%s' to be a subroutine", $1->name);
-			printf(" call f_%s\n", $1->name);
+			arch_emit_call($1->u.sub);
 		}
 	| oldid ASSIGN expression ';'
 		{
 			if ($1->kind != VAR)
 				fatal("expected '%s' to be a variable", $1->name);
 
-			assignment($1, &$3);
+			resolve_expression_type(&$3, $1->u.var.type);
+			arch_assign_var($1);
 		}
 	| '[' expression ']' ASSIGN expression ';'
 		{
-			deref_assignment(&$2, &$5);
+			if (!$2.type->u.type.pointingat)
+				fatal("expected LHS to be a pointer");
+
+			resolve_expression_type(&$5, $2.type->u.type.pointingat);
+			arch_assign_ptr($2.type);
 		}
 	;
 
@@ -281,21 +272,7 @@ argument
 			current_call->number++;
 
 			resolve_expression_type(&$1, param->u.var.type);
-			switch (param->u.var.type->u.type.width)
-			{
-				case 1:
-					vpop_reg(REG_A);
-					printf(" push psw\n");
-					break;
-
-				case 2:
-					vpop_reg(REG_HL);
-					printf(" push h\n");
-					break;
-
-				default:
-					assert(false);
-			}
+			arch_push_input_param(param->u.var.type);
 		}
 	;
 
@@ -318,23 +295,7 @@ expression
 		}
 	| STRING
 		{
-			int label1 = current_label++;
-			int label2 = current_label++;
-			printf(" jmp x%d\n", label1);
-			printf("x%d:\n", label2);
-			const uint8_t* p = (const uint8_t*)text;
-			uint8_t c = 0;
-			do
-			{
-				c = *p++;
-				printf(" db %d\n", c);
-			}
-			while (c);
-			printf("x%d:\n", label1);
-			printf(" lxi h, x%d\n", label2);
-			printf(" push h\n");
-			vpush_raw();
-
+			arch_push_string_constant(text);
 			$$.type = make_pointer_type(uint8_type);
 		}
 	| oldid
@@ -342,7 +303,7 @@ expression
 			if ($1->kind != VAR)
 				fatal("expected '%s' to be a variable", $1->name);
 
-			vpush_value($1);
+			arch_push_value($1);
 			$$.type = $1->u.var.type;
 		}
 	| '[' expression ']'
@@ -350,27 +311,8 @@ expression
 			if (!$2.type->u.type.pointingat)
 				fatal("attempt to dereference a non-pointer");
 
-			vpop_reg(REG_HL);
-
+			arch_dereference($2.type);
 			$$.type = $2.type->u.type.pointingat;
-			switch ($$.type->u.type.width)
-			{
-				case 1:
-					printf(" mov a, m\n");
-					vpush_reg(REG_A);
-					break;
-
-				case 2:
-					printf(" mov a, m\n");
-					printf(" inx h\n");
-					printf(" mov h, m\n");
-					printf(" mov l, a\n");
-					vpush_reg(REG_HL);
-					break;
-
-				default:
-					assert(false);
-			}
 		}
 	| '(' expression ')'
 		{ $$ = $2; }
@@ -429,6 +371,23 @@ const char* aprintf(const char* s, ...)
 	return buffer;
 }
 
+static bool is_ptr(struct symbol* sym)
+{
+	if (!sym || (sym->kind != TYPE))
+		return false;
+	return sym->u.type.pointingat;
+}
+
+static bool is_num(struct symbol* sym)
+{
+	if (!sym)
+		return true; /* for numeric constants */
+	if (sym->kind != TYPE)
+		return false;
+	/* For now */
+	return !sym->u.type.pointingat;
+}
+
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
 	if (!lhs->type && !rhs->type)
@@ -438,69 +397,29 @@ static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	}
 	else
 	{
-		int width = lhs->type->u.type.width;
+		if (is_ptr(lhs->type) && is_ptr(rhs->type))
+			fatal("you cannot add two pointers together");
+		else if (is_ptr(rhs->type))
+			fatal("add numbers to pointers, not vice versa");
+
 		if (lhs->type && !rhs->type)
 		{
-			if (rhs->value == 1)
-			{
-				if (width == 1)
-				{
-					vpop_reg(REG_A);
-					printf(" inr a\n");
-					vpush_reg(REG_A);
-				}
-				else
-				{
-					vpop_reg(REG_HL);
-					printf(" inx h\n");
-					vpush_reg(REG_HL);
-				}
-				return;
-			}
-			else if (rhs->value == -1)
-			{
-				if (width == 1)
-				{
-					vpop_reg(REG_A);
-					printf(" dcr a\n");
-					vpush_reg(REG_A);
-				}
-				else
-				{
-					vpop_reg(REG_HL);
-					printf(" dcx h\n");
-					vpush_reg(REG_HL);
-				}
-				return;
-			}
-			if (lhs->type->u.type.pointingat)
-				resolve_expression_type(rhs, int16_type);
-			else
-				resolve_expression_type(rhs, lhs->type);
+			arch_add_const(lhs->type, rhs->value);
+			dest->type = lhs->type;
 		}
-		if (!lhs->type && rhs->type)
+		else if (!lhs->type && rhs->type)
 		{
-			if (rhs->type->u.type.pointingat)
-				fatal("add numbers to pointers, not vice versa");
-			resolve_expression_type(lhs, rhs->type);
+			arch_add_const(rhs->type, lhs->value);
+			dest->type = rhs->type;
 		}
-
-		switch (width)
+		else if ((lhs->type == rhs->type) ||
+                 (is_ptr(lhs->type) && (rhs->type == intptr_type)))
 		{
-			case 1:
-				vpop_reg(REG_A);
-				vpop_reg(REG_HL);
-				printf(" add h\n");
-				vpush_reg(REG_A);
-				break;
-
-			case 2:
-				vpop_reg(REG_HL);
-				vpop_reg(REG_DE);
-				printf(" dad d\n");
-				vpush_reg(REG_HL);
-				break;
+			arch_add(lhs->type);
+			dest->type = lhs->type;
 		}
+		else
+			fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
 	}
 }
 
@@ -513,198 +432,54 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	}
 	else
 	{
+		if (is_ptr(rhs->type))
+			fatal("subtract numbers from pointers, not vice versa");
+
 		if (lhs->type && !rhs->type)
 		{
-			rhs->value = -rhs->value;
-			expr_add(dest, lhs, rhs);
+			arch_add_const(lhs->type, -rhs->value);
+			dest->type = lhs->type;
+		}
+		else if (!lhs->type && rhs->type)
+		{
+			arch_subfrom_const(rhs->type, lhs->value);
+			dest->type = rhs->type;
+		}
+		else if ((lhs->type == rhs->type) && is_ptr(lhs->type))
+		{
+			arch_sub(lhs->type);
+			dest->type = intptr_type;
+		}
+		else if ((lhs->type == rhs->type) ||
+                 (is_ptr(lhs->type) && (rhs->type == intptr_type)))
+		{
+			arch_sub(lhs->type);
+			dest->type = lhs->type;
 		}
 		else
-		{
-			if (!lhs->type && rhs->type)
-			{
-				resolve_expression_type(lhs, rhs->type);
-				switch (lhs->type->u.type.width)
-				{
-					case 1:
-						vpop_reg(REG_A);
-						vpop_reg(REG_HL);
-						break;
-
-					case 2:
-						vpop_reg(REG_HL);
-						vpop_reg(REG_DE);
-						break;
-
-					default:
-						assert(false);
-				}
-			}
-			else
-			{
-				switch (lhs->type->u.type.width)
-				{
-					case 1:
-						vpop_reg(REG_HL);
-						vpop_reg(REG_A);
-						break;
-
-					case 2:
-						vpop_reg(REG_DE);
-						vpop_reg(REG_HL);
-						break;
-
-					default:
-						assert(false);
-				}
-			}
-
-			switch (lhs->type->u.type.width)
-			{
-				case 1:
-					printf(" sub d\n");
-					vpush_reg(REG_A);
-					break;
-
-				case 2:
-					printf(" mov a, l\n");
-					printf(" sub e\n");
-					printf(" mov l, a\n");
-					printf(" mov a, h\n");
-					printf(" sbb d\n");
-					printf(" mov h, a\n");
-					vpush_reg(REG_HL);
-					break;
-
-				default:
-					assert(false);
-			}
-		}
+			fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
 	}
 }
 
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
 {
 	if (!lhs->type && !rhs->type)
-	{
-		printf(" jmp x%d\n",
-			(lhs->value == rhs->value) ? truelabel : falselabel);
-	}
+		arch_emit_jump((lhs->value == rhs->value) ? truelabel : falselabel);
+	else if (lhs->type && !rhs->type)
+		arch_cmp_equals_const(lhs->type, truelabel, falselabel, rhs->value);
+	else if (!lhs->type && rhs->type)
+		arch_cmp_equals_const(rhs->type, truelabel, falselabel, lhs->value);
+	else if (lhs->type == rhs->type)
+		arch_cmp_equals(lhs->type, truelabel, falselabel);
 	else
-	{
-		if (!lhs->type && rhs->type)
-		{
-			cond_equals(truelabel, falselabel, rhs, lhs);
-			return;
-		}
-
-		if (!rhs->type)
-		{
-			if (rhs->value == 0)
-			{
-				switch (lhs->type->u.type.width)
-				{
-					case 1:
-						vpop_reg(REG_A);
-						printf(" ora a\n");
-						break;
-
-					case 2:
-						vpop_reg(REG_HL);
-						printf(" mov a, h\n");
-						printf(" ora l\n");
-						break;
-
-					default:
-						assert(false);
-				}
-
-				printf(" jnz x%d\n", falselabel);
-				printf(" jmp x%d\n", truelabel);
-				return;
-			}
-
-			resolve_expression_type(rhs, lhs->type);
-		}
-
-		switch (lhs->type->u.type.width)
-		{
-			case 1:
-				vpop_reg(REG_A);
-				vpop_reg(REG_HL);
-				printf(" cmp h\n");
-				break;
-
-			case 2:
-				vpop_reg(REG_HL);
-				vpop_reg(REG_DE);
-				printf(" mov a, l\n");
-				printf(" cmp e\n");
-				printf(" jnz x%d\n", falselabel);
-				printf(" mov a, h\n");
-				printf(" cmp d\n");
-				break;
-
-			default:
-				assert(false);
-		}
-
-		printf(" jnz x%d\n", falselabel);
-		printf(" jmp x%d\n", truelabel);
-	}
+		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
 }
 
-static void varaccess(const char* opcode, struct symbol* var)
+void varaccess(const char* opcode, struct symbol* var)
 {
 	printf(" %s w_%s+%d ; %s\n",
 		opcode, var->u.var.sub->name, var->u.var.offset,
 		var->name);
-}
-
-static void assignment(struct symbol* var, struct exprnode* node)
-{
-	resolve_expression_type(node, var->u.var.type);
-	switch (var->u.var.type->u.type.width)
-	{
-		case 1:
-			vpop_reg(REG_A);
-			varaccess("sta", var);
-			break;
-
-		case 2:
-			vpop_reg(REG_HL);
-			varaccess("shld", var);
-			break;
-
-		default:
-			assert(false);
-	}
-}
-
-static void deref_assignment(struct exprnode* ptr, struct exprnode* node)
-{
-	if (!ptr->type->u.type.pointingat)
-		fatal("expected LHS to be a pointer");
-
-	resolve_expression_type(node, ptr->type->u.type.pointingat);
-	switch (node->type->u.type.width)
-	{
-		case 1:
-			vpop_reg(REG_A);
-			vpop_reg(REG_HL);
-			printf(" mov m, a\n");
-			break;
-
-		case 2:
-			vpop_reg(REG_DE);
-			vpop_reg(REG_HL);
-			printf(" mov m, e\n");
-			printf(" inx h\n");
-			printf(" mov m, d\n");
-			break;
-
-		default:
-			assert(false);
-	}
 }
 
 static struct symbol* add_new_symbol(const char* name)
@@ -803,23 +578,17 @@ int main(int argc, const char* argv[])
 	int16_type = add_new_symbol("uint16");
 	int16_type->kind = TYPE;
 	int16_type->u.type.width = 2;
+	intptr_type = int16_type;
 
 	uint8_type = add_new_symbol("uint8");
 	uint8_type->kind = TYPE;
 	uint8_type->u.type.width = 1;
 
 	yydebug = 0;
-	printf(" org 100h\n");
-	yyparse();
 
-	printf(
-		"f_putc:\n"
-		"  pop h\n"
-		"  xthl\n"
-		"  mvi c, 2\n"
-		"  mov e, h\n"
-		"  jmp 5\n");
-	putchar(26);
+	arch_file_prologue();
+	yyparse();
+	arch_file_epilogue();
 
 	return 0;
 }
