@@ -1,13 +1,16 @@
 %{
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "globals.h"
 #include "parser.h"
 
 static int stringptr = 0;
+static int base = 0;
 
 %}
-%x string
+%x STRINGSTATE
+%x NUMBERSTATE
 
 LF (\r\n)|\r|\n
 SP [ \t]+
@@ -28,15 +31,15 @@ SP [ \t]+
 "!="                      { return NOTEQUALS; }
 [-;:,+*/%()[\]]           { return yytext[0]; }
 
-\"                        { BEGIN(string); stringptr = 0; }
-<string>\\n               { text[stringptr++] = '\n'; }
-<string>\\r               { text[stringptr++] = '\r'; }
-<string>\\t               { text[stringptr++] = '\t'; }
-<string>\\[\\"]           { text[stringptr++] = yytext[1]; }
-<string>\"                { BEGIN(INITIAL); text[stringptr++] = '\0'; return STRING; }
-<string>\\.               { fatal("bogus escape"); }
-<string>[\n\r]            { fatal("unterminated string"); }
-<string>[^\n\r\\"]        { text[stringptr++] = *yytext; }
+\"                        { BEGIN(STRINGSTATE); stringptr = 0; }
+<STRINGSTATE>\\n          { text[stringptr++] = '\n'; }
+<STRINGSTATE>\\r          { text[stringptr++] = '\r'; }
+<STRINGSTATE>\\t          { text[stringptr++] = '\t'; }
+<STRINGSTATE>\\[\\"]      { text[stringptr++] = yytext[1]; }
+<STRINGSTATE>\"           { BEGIN(INITIAL); text[stringptr++] = '\0'; return STRING; }
+<STRINGSTATE>\\.          { fatal("bogus escape"); }
+<STRINGSTATE>[\n\r]       { fatal("unterminated string"); }
+<STRINGSTATE>[^\n\r\\"]   { text[stringptr++] = *yytext; }
 
 [A-Za-z][A-Za-z0-9_$]* {
 		strncpy(text, yytext, sizeof(text));
@@ -45,10 +48,24 @@ SP [ \t]+
 		return ID;
 	}
 
-[0-9]+ {
-		number = atoi(yytext);
-		return NUMBER;
-	}
+0x                        { number = 0; base = 16; BEGIN(NUMBERSTATE); }
+0d                        { number = 0; base = 10; BEGIN(NUMBERSTATE); }
+0o                        { number = 0; base = 8; BEGIN(NUMBERSTATE); }
+0b                        { number = 0; base = 2; BEGIN(NUMBERSTATE); }
+[0-9]                     { number = *yytext - '0'; base = 10; BEGIN(NUMBERSTATE); }
+<NUMBERSTATE>_            {}
+<NUMBERSTATE>[0-9a-fA-F]  { 
+	int digit = tolower(*yytext);
+	if (digit > '9')
+		digit -= 'a' - 10;
+	else
+		digit -= '0';
+	if (digit >= base)
+		fatal("numeric digit out of range");
+	number *= base;
+	number += digit;
+}
+<NUMBERSTATE>.            { BEGIN(INITIAL); unput(*yytext); return NUMBER; }
 
 #[^\r\n]*                 |
 {LF}+                     |
@@ -56,5 +73,5 @@ SP [ \t]+
 
 <<EOF>> { yyterminate(); return 0; }
 
-.       { fatal("unparseable character 0x%02x", *yytext); }
+.       { fatal("unparseable character '%c' (0x%02x)", *yytext, *yytext); }
 
