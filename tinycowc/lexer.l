@@ -31,22 +31,13 @@ SP [ \t]+
 "!="                      { return NOTEQUALS; }
 [-;:,+*/%()[\]]           { return yytext[0]; }
 
-\"                        { BEGIN(STRINGSTATE); stringptr = 0; }
-<STRINGSTATE>\\n          { text[stringptr++] = '\n'; }
-<STRINGSTATE>\\r          { text[stringptr++] = '\r'; }
-<STRINGSTATE>\\t          { text[stringptr++] = '\t'; }
-<STRINGSTATE>\\[\\"]      { text[stringptr++] = yytext[1]; }
-<STRINGSTATE>\"           { BEGIN(INITIAL); text[stringptr++] = '\0'; return STRING; }
-<STRINGSTATE>\\.          { fatal("bogus escape"); }
-<STRINGSTATE>[\n\r]       { fatal("unterminated string"); }
-<STRINGSTATE>[^\n\r\\"]   { text[stringptr++] = *yytext; }
+\"                        { BEGIN(STRINGSTATE); }
+<STRINGSTATE>([^\"\\]|\\.)* { return STRING; }
+<STRINGSTATE>\"           { BEGIN(INITIAL); }
+<STRINGSTATE>{LF}         { fatal("end of line in string"); }
+<STRINGSTATE>.            { fatal("invalid string"); }
 
-[A-Za-z][A-Za-z0-9_$]* {
-		strncpy(text, yytext, sizeof(text));
-		if (text[sizeof(text)-1] != 0)
-			fatal("token too long");
-		return ID;
-	}
+[A-Za-z][A-Za-z0-9_$]*    { return ID; }
 
 0x                        { number = 0; base = 16; BEGIN(NUMBERSTATE); }
 0d                        { number = 0; base = 10; BEGIN(NUMBERSTATE); }

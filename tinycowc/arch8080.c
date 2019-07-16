@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <ctype.h>
 #include "globals.h"
 
 #define STACK_DEPTH 32
@@ -235,7 +236,9 @@ void arch_push_string_constant(const char* text)
 	do
 	{
 		c = *p++;
-		printf(" db %d\n", c);
+		printf(" db ");
+		printf((isprint(c) ? "'%c'" : "0x%02x"), c);
+		printf("\n");
 	}
 	while (c);
 	printf("x%d:\n", label1);

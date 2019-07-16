@@ -8,7 +8,6 @@
 #define YYDEBUG 1
 #include "parser.h"
 
-char text[256];
 int32_t number;
 
 struct subroutine* current_sub;
@@ -36,6 +35,7 @@ static void init_var(struct symbol* sym, struct symbol* type);
 static struct symbol* make_pointer_type(struct symbol* type);
 
 static void resolve_expression_type(struct exprnode* node, struct symbol* type);
+static void unescape(char* string);
 
 %}
 
@@ -109,7 +109,8 @@ statement
 		parameterlist
 		ASSIGN STRING
 		{
-			current_sub->name = strdup(text);
+			unescape(yytext);
+			current_sub->name = strdup(yytext);
 			current_sub = current_sub->parent;
 		}
 	| SUB newid
@@ -217,11 +218,11 @@ statement
 	;
 
 newid
-	: ID { $$ = add_new_symbol(text); }
+	: ID { $$ = add_new_symbol(yytext); }
 	;
 
 oldid
-	: ID { $$ = lookup_symbol(text); }
+	: ID { $$ = lookup_symbol(yytext); }
 	;
 
 parameterlist
@@ -300,7 +301,8 @@ expression
 		}
 	| STRING
 		{
-			arch_push_string_constant(text);
+			unescape(yytext);
+			arch_push_string_constant(yytext);
 			$$.type = make_pointer_type(uint8_type);
 		}
 	| oldid
@@ -697,6 +699,33 @@ static struct symbol* make_pointer_type(struct symbol* type)
 		return ptr;
 	}
 }
+
+static void unescape(char* string)
+{
+	char* pin = string;
+	char* pout = string;
+	char c = *pin++;
+	for (;;)
+	{
+		if (c == '\\')
+		{
+			c = *pin++;
+			switch (c)
+			{
+				case 'n': c = '\n'; break;
+				case 'r': c = '\r'; break;
+				case '"': c = '"'; break;
+				case '\\': c = '\\'; break;
+				default: fatal("unknown string escape");
+			}
+		}
+		*pout++ = c;
+		if (!c)
+			break;
+		c = *pin++;
+	}
+}
+
 
 int main(int argc, const char* argv[])
 {
