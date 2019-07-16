@@ -14,28 +14,19 @@ SP [ \t]+
 
 %%
 
-"var"     { return VAR; }
-"sub"     { return SUB; }
-"end"     { return END; }
-"loop"    { return LOOP; }
-"while"   { return WHILE; }
-"extern"  { return EXTERN; }
-"if"      { return IF; }
-"then"    { return THEN; }
-"break"   { return BREAK; }
-":"       { return ':'; }
-","       { return ','; }
-":="      { return ASSIGN; }
-"=="      { return EQUALS; }
-"!="      { return NOTEQUALS; }
-";"       { return ';'; }
-"+"       { return '+'; }
-"-"       { return '-'; }
-"*"       { return '*'; }
-"("       { return '('; }
-")"       { return ')'; }
-"["       { return '['; }
-"]"       { return ']'; }
+"var"                     { return VAR; }
+"sub"                     { return SUB; }
+"end"                     { return END; }
+"loop"                    { return LOOP; }
+"while"                   { return WHILE; }
+"extern"                  { return EXTERN; }
+"if"                      { return IF; }
+"then"                    { return THEN; }
+"break"                   { return BREAK; }
+":="                      { return ASSIGN; }
+"=="                      { return EQUALS; }
+"!="                      { return NOTEQUALS; }
+[-;:,+*/%()[\]]           { return yytext[0]; }
 
 \"                        { BEGIN(string); stringptr = 0; }
 <string>\\n               { text[stringptr++] = '\n'; }

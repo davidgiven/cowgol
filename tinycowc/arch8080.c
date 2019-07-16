@@ -330,6 +330,61 @@ void arch_add(struct symbol* type)
 	}
 }
 
+void arch_subfrom_const(struct symbol* type, int32_t value)
+{
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_HL);
+			printf(" mvi a, %d\n", value);
+			printf(" sub h\n");
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_HL);
+			printf(" mvi a, %d\n", value & 0xff);
+			printf(" sub l\n");
+			printf(" mov l, a\n");
+			printf(" mvi a, %d\n", (value >> 8) & 0xff);
+			printf(" sbb h\n");
+			printf(" mov h, a\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_sub(struct symbol* type)
+{
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_DE);
+			vpop_reg(REG_A);
+			printf(" sub d\n");
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_DE);
+			vpop_reg(REG_HL);
+			printf(" mov a, l\n");
+			printf(" sub e\n");
+			printf(" mov l, a\n");
+			printf(" mov a, h\n");
+			printf(" sbb d\n");
+			printf(" mov h, a\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
 static bool is_power_of_two(int32_t value)
 {
 	return (value & (value-1)) == 0;
@@ -337,14 +392,6 @@ static bool is_power_of_two(int32_t value)
 
 void arch_mul_const(struct symbol* type, int32_t value)
 {
-	if (value == 1)
-		return;
-	else if (value == 0)
-	{
-		vpush_const(0);
-		return;
-	}
-
 	switch (type->u.type.width)
 	{
 		case 1:
@@ -418,11 +465,6 @@ void arch_mul(struct symbol* type)
 
 void arch_div_const(struct symbol* type, int32_t value)
 {
-	if (value == 1)
-		return;
-	else if (value == 0)
-		fatal("division by zero");
-
 	switch (type->u.type.width)
 	{
 		case 1:
@@ -462,9 +504,6 @@ void arch_div_const(struct symbol* type, int32_t value)
 
 void arch_div_const_by(struct symbol* type, int32_t value)
 {
-	if (value == 0)
-		fatal("division by zero");
-
 	switch (type->u.type.width)
 	{
 		case 1:
@@ -509,25 +548,21 @@ void arch_div(struct symbol* type)
 	}
 }
 
-void arch_subfrom_const(struct symbol* type, int32_t value)
+void arch_rem_const(struct symbol* type, int32_t value)
 {
 	switch (type->u.type.width)
 	{
 		case 1:
-			vpop_reg(REG_HL);
-			printf(" mvi a, %d\n", value);
-			printf(" sub h\n");
+			vpop_reg(REG_A);
+			printf(" mvi d, %d\n", value);
+			printf(" call rem8\n");
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(REG_HL);
-			printf(" mvi a, %d\n", value & 0xff);
-			printf(" sub l\n");
-			printf(" mov l, a\n");
-			printf(" mvi a, %d\n", (value >> 8) & 0xff);
-			printf(" sbb h\n");
-			printf(" mov h, a\n");
+			printf(" lxi d, %d\n", value);
+			printf(" call rem16\n");
 			vpush_reg(REG_HL);
 			break;
 
@@ -536,26 +571,44 @@ void arch_subfrom_const(struct symbol* type, int32_t value)
 	}
 }
 
-void arch_sub(struct symbol* type)
+void arch_rem_const_by(struct symbol* type, int32_t value)
+{
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_A);
+			printf(" mvi d, %d\n", value);
+			printf(" call rem8\n");
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_HL);
+			printf(" lxi d, %d\n", value);
+			printf(" call rem16\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_rem(struct symbol* type)
 {
 	switch (type->u.type.width)
 	{
 		case 1:
 			vpop_reg(REG_DE);
 			vpop_reg(REG_A);
-			printf(" sub d\n");
+			printf(" call rem8\n");
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(REG_DE);
 			vpop_reg(REG_HL);
-			printf(" mov a, l\n");
-			printf(" sub e\n");
-			printf(" mov l, a\n");
-			printf(" mov a, h\n");
-			printf(" sbb d\n");
-			printf(" mov h, a\n");
+			printf(" call rem16\n");
 			vpush_reg(REG_HL);
 			break;
 

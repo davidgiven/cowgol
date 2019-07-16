@@ -27,6 +27,7 @@ static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
+static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 
 static struct symbol* add_new_symbol(const char* name);
@@ -327,6 +328,8 @@ expression
 		{ expr_mul(&$$, &$1, &$3); }
 	| expression '/' expression
 		{ expr_div(&$$, &$1, &$3); }
+	| expression '%' expression
+		{ expr_rem(&$$, &$1, &$3); }
 	;
 
 conditional
@@ -482,14 +485,20 @@ static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	{
 		if (lhs->type && !rhs->type)
 		{
-			arch_mul_const(lhs->type, rhs->value);
-			dest->type = lhs->type;
+			if (rhs->value == 0)
+			{
+				dest->type = NULL;
+				dest->value = 0;
+			}
+			else
+			{
+				if (rhs->value != 1)
+					arch_mul_const(lhs->type, rhs->value);
+				dest->type = lhs->type;
+			}
 		}
 		else if (!lhs->type && rhs->type)
-		{
-			arch_mul_const(rhs->type, lhs->value);
-			dest->type = rhs->type;
-		}
+			expr_mul(dest, rhs, lhs);
 		else if (lhs->type == rhs->type)
 		{
 			arch_mul(lhs->type);
@@ -505,6 +514,9 @@ static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	if (!is_num(lhs->type) || !is_num(rhs->type))
 		fatal("division only works on numbers");
 
+	if (!rhs->type && (rhs->value == 0))
+		fatal("division by zero");
+
 	if (!lhs->type && !rhs->type)
 	{
 		dest->type = NULL;
@@ -514,7 +526,8 @@ static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	{
 		if (lhs->type && !rhs->type)
 		{
-			arch_div_const(lhs->type, rhs->value);
+			if (rhs->value != 1)
+				arch_div_const(lhs->type, rhs->value);
 			dest->type = lhs->type;
 		}
 		else if (!lhs->type && rhs->type)
@@ -529,6 +542,42 @@ static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 		}
 		else
 			fatal("you tried to divide a %s and a %s", lhs->type->name, rhs->type->name);
+	}
+}
+
+static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
+{
+	if (!is_num(lhs->type) || !is_num(rhs->type))
+		fatal("modulus only works on numbers");
+
+	if (!rhs->type && (rhs->value == 0))
+		fatal("division by zero");
+
+	if (!lhs->type && !rhs->type)
+	{
+		dest->type = NULL;
+		dest->value = lhs->value % rhs->value;
+	}
+	else
+	{
+		if (lhs->type && !rhs->type)
+		{
+			if (rhs->value != 1)
+				arch_rem_const(lhs->type, rhs->value);
+			dest->type = lhs->type;
+		}
+		else if (!lhs->type && rhs->type)
+		{
+			arch_rem_const_by(rhs->type, lhs->value);
+			dest->type = rhs->type;
+		}
+		else if (lhs->type == rhs->type)
+		{
+			arch_rem(lhs->type);
+			dest->type = intptr_type;
+		}
+		else
+			fatal("you tried to use modulus on a %s and a %s", lhs->type->name, rhs->type->name);
 	}
 }
 
