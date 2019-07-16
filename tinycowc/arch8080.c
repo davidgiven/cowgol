@@ -416,6 +416,99 @@ void arch_mul(struct symbol* type)
 	}
 }
 
+void arch_div_const(struct symbol* type, int32_t value)
+{
+	if (value == 1)
+		return;
+	else if (value == 0)
+		fatal("division by zero");
+
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_A);
+			if (value < 0)
+			{
+				printf(" cma\n");
+				value = -value;
+			}
+			if (is_power_of_two(value))
+			{
+				while (value > 1)
+				{
+					printf(" rrc\n");
+					value /= 2;
+				}
+			}
+			else
+			{
+				printf(" mvi d, %d\n", value);
+				printf(" call div8\n");
+			}
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_HL);
+			printf(" lxi d, %d\n", value);
+			printf(" call div16\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_div_const_by(struct symbol* type, int32_t value)
+{
+	if (value == 0)
+		fatal("division by zero");
+
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_A);
+			printf(" mvi d, %d\n", value);
+			printf(" call div8\n");
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_HL);
+			printf(" lxi d, %d\n", value);
+			printf(" call div16\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_div(struct symbol* type)
+{
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_DE);
+			vpop_reg(REG_A);
+			printf(" call div8\n");
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_DE);
+			vpop_reg(REG_HL);
+			printf(" call div16\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
 void arch_subfrom_const(struct symbol* type, int32_t value)
 {
 	switch (type->u.type.width)
