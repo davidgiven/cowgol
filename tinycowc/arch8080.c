@@ -153,7 +153,6 @@ void arch_file_prologue(void)
 
 void arch_file_epilogue(void)
 {
-	putchar(26);
 }
 
 void arch_subroutine_prologue(void)
@@ -170,8 +169,16 @@ void arch_subroutine_prologue(void)
 			for (int j=0; j<i; j++)
 				param = param->next;
 
-			printf(" pop h\n");
-			varaccess("shld", param);
+			if (param->u.var.type->u.type.width == 1)
+			{
+				printf(" pop psw\n");
+				varaccess("sta", param);
+			}
+			else
+			{
+				printf(" pop h\n");
+				varaccess("shld", param);
+			}
 		}
 		printf(" push b\n");
 	}
