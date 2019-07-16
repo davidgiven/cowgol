@@ -51,6 +51,7 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 %type <labels> WHILE;
 %type <labels> IF;
 
+%left EQUALS NOTEQUALS
 %left '+' '-'
 %left '*' '/' '%'
 
@@ -320,6 +321,13 @@ expression
 		}
 	| '(' expression ')'
 		{ $$ = $2; }
+	| '-' expression
+		{ 
+			struct exprnode e;
+			e.type = NULL;
+			e.value = 0;
+			expr_sub(&$$, &e, &$2);
+		}
 	| expression '+' expression
 		{ expr_add(&$$, &$1, &$3); }
 	| expression '-' expression

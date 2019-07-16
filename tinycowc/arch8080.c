@@ -109,9 +109,9 @@ void vpop_reg(int reg)
 
 		case SLOT_CONST:
 			if (reg == REG_A)
-				printf(" mvi a, %d\n", slot->u.constvalue);
+				printf(" mvi a, %u\n", slot->u.constvalue & 0xff);
 			else
-				printf(" lxi %s, %d\n", regname(reg), slot->u.constvalue);
+				printf(" lxi %s, %u\n", regname(reg), slot->u.constvalue);
 			break;
 
 		case SLOT_ADDR:
@@ -336,17 +336,17 @@ void arch_subfrom_const(struct symbol* type, int32_t value)
 	{
 		case 1:
 			vpop_reg(REG_HL);
-			printf(" mvi a, %d\n", value);
+			printf(" mvi a, %u\n", value & 0xff);
 			printf(" sub h\n");
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(REG_HL);
-			printf(" mvi a, %d\n", value & 0xff);
+			printf(" mvi a, %u\n", value & 0xff);
 			printf(" sub l\n");
 			printf(" mov l, a\n");
-			printf(" mvi a, %d\n", (value >> 8) & 0xff);
+			printf(" mvi a, %u\n", (value >> 8) & 0xff);
 			printf(" sbb h\n");
 			printf(" mov h, a\n");
 			vpush_reg(REG_HL);
@@ -411,7 +411,7 @@ void arch_mul_const(struct symbol* type, int32_t value)
 			}
 			else
 			{
-				printf(" mvi d, %d\n", value);
+				printf(" mvi d, %u\n", value & 0xff);
 				printf(" call mul8\n");
 			}
 			vpush_reg(REG_A);
@@ -429,7 +429,7 @@ void arch_mul_const(struct symbol* type, int32_t value)
 			}
 			else
 			{
-				printf(" lxi d, %d\n", value);
+				printf(" lxi d, %u\n", value & 0xffff);
 				printf(" call mul16\n");
 			}
 			vpush_reg(REG_HL);
@@ -484,7 +484,7 @@ void arch_div_const(struct symbol* type, int32_t value)
 			}
 			else
 			{
-				printf(" mvi d, %d\n", value);
+				printf(" mvi d, %u\n", value & 0xff);
 				printf(" call div8\n");
 			}
 			vpush_reg(REG_A);
@@ -492,7 +492,7 @@ void arch_div_const(struct symbol* type, int32_t value)
 
 		case 2:
 			vpop_reg(REG_HL);
-			printf(" lxi d, %d\n", value);
+			printf(" lxi d, %u\n", value & 0xffff);
 			printf(" call div16\n");
 			vpush_reg(REG_HL);
 			break;
@@ -508,14 +508,14 @@ void arch_div_const_by(struct symbol* type, int32_t value)
 	{
 		case 1:
 			vpop_reg(REG_A);
-			printf(" mvi d, %d\n", value);
+			printf(" mvi d, %u\n", value & 0xff);
 			printf(" call div8\n");
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(REG_HL);
-			printf(" lxi d, %d\n", value);
+			printf(" lxi d, %u\n", value & 0xffff);
 			printf(" call div16\n");
 			vpush_reg(REG_HL);
 			break;
@@ -554,14 +554,14 @@ void arch_rem_const(struct symbol* type, int32_t value)
 	{
 		case 1:
 			vpop_reg(REG_A);
-			printf(" mvi d, %d\n", value);
+			printf(" mvi d, %u\n", value & 0xff);
 			printf(" call rem8\n");
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(REG_HL);
-			printf(" lxi d, %d\n", value);
+			printf(" lxi d, %u\n", value & 0xffff);
 			printf(" call rem16\n");
 			vpush_reg(REG_HL);
 			break;
@@ -577,14 +577,14 @@ void arch_rem_const_by(struct symbol* type, int32_t value)
 	{
 		case 1:
 			vpop_reg(REG_A);
-			printf(" mvi d, %d\n", value);
+			printf(" mvi d, %u\n", value & 0xff);
 			printf(" call rem8\n");
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(REG_HL);
-			printf(" lxi d, %d\n", value);
+			printf(" lxi d, %u\n", value & 0xffff);
 			printf(" call rem16\n");
 			vpush_reg(REG_HL);
 			break;
@@ -626,7 +626,7 @@ void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel, i
 			if (value == 0)
 				printf(" ora a\n");
 			else
-				printf(" cpi %d\n", value);
+				printf(" cpi %u\n", value & 0xff);
 			break;
 
 		case 2:
@@ -638,10 +638,10 @@ void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel, i
 			}
 			else
 			{
-				printf(" mvi a, %d\n", value & 0xff);
+				printf(" mvi a, %u\n", value & 0xff);
 				printf(" cmp l\n");
 				printf(" jnz x%d\n", falselabel);
-				printf(" mvi a, %d\n", (value >> 8) & 0xff);
+				printf(" mvi a, %u\n", (value >> 8) & 0xff);
 				printf(" cmp h\n");
 			}
 			break;
