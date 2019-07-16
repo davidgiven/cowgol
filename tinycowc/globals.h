@@ -113,6 +113,8 @@ extern void arch_add_const(struct symbol* type, int32_t value);
 extern void arch_add(struct symbol* type);
 extern void arch_subfrom_const(struct symbol* type, int32_t value);
 extern void arch_sub(struct symbol* type);
+extern void arch_mul_const(struct symbol* type, int32_t value);
+extern void arch_mul(struct symbol* type);
 extern void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
 extern void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel);
 extern void arch_assign_var(struct symbol* var);

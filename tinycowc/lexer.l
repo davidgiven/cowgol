@@ -31,6 +31,7 @@ SP [ \t]+
 ";"       { return ';'; }
 "+"       { return '+'; }
 "-"       { return '-'; }
+"*"       { return '*'; }
 "("       { return '('; }
 ")"       { return ')'; }
 "["       { return '['; }

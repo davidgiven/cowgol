@@ -330,6 +330,92 @@ void arch_add(struct symbol* type)
 	}
 }
 
+static bool is_power_of_two(int32_t value)
+{
+	return (value & (value-1)) == 0;
+}
+
+void arch_mul_const(struct symbol* type, int32_t value)
+{
+	if (value == 1)
+		return;
+	else if (value == 0)
+	{
+		vpush_const(0);
+		return;
+	}
+
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_A);
+			if (value < 0)
+			{
+				printf(" cma\n");
+				value = -value;
+			}
+			if (is_power_of_two(value))
+			{
+				while (value > 1)
+				{
+					printf(" ada a\n");
+					value /= 2;
+				}
+			}
+			else
+			{
+				printf(" mvi d, %d\n", value);
+				printf(" call mul8\n");
+			}
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_HL);
+			if (is_power_of_two(value) && (value <= 256))
+			{
+				while (value > 1)
+				{
+					printf(" dad h\n");
+					value /= 2;
+				}
+			}
+			else
+			{
+				printf(" lxi d, %d\n", value);
+				printf(" call mul16\n");
+			}
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_mul(struct symbol* type)
+{
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(REG_A);
+			vpop_reg(REG_DE);
+			printf(" call mul8\n");
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(REG_HL);
+			vpop_reg(REG_DE);
+			printf(" call mul16\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
 void arch_subfrom_const(struct symbol* type, int32_t value)
 {
 	switch (type->u.type.width)

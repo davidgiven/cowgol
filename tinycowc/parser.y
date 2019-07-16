@@ -25,6 +25,7 @@ static bool is_num(struct symbol* sym);
 
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
+static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 
 static struct symbol* add_new_symbol(const char* name);
@@ -49,6 +50,7 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 %type <labels> IF;
 
 %left '+' '-'
+%left '*' '/' '%'
 
 %union {
 	struct symbol* symbol;
@@ -320,6 +322,8 @@ expression
 		{ expr_add(&$$, &$1, &$3); }
 	| expression '-' expression
 		{ expr_sub(&$$, &$1, &$3); }
+	| expression '*' expression
+		{ expr_mul(&$$, &$1, &$3); }
 	;
 
 conditional
@@ -458,6 +462,38 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 		}
 		else
 			fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
+	}
+}
+
+static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
+{
+	if (!is_num(lhs->type) || !is_num(rhs->type))
+		fatal("multiplication only works on numbers");
+
+	if (!lhs->type && !rhs->type)
+	{
+		dest->type = NULL;
+		dest->value = lhs->value * rhs->value;
+	}
+	else
+	{
+		if (lhs->type && !rhs->type)
+		{
+			arch_mul_const(lhs->type, rhs->value);
+			dest->type = lhs->type;
+		}
+		else if (!lhs->type && rhs->type)
+		{
+			arch_mul_const(rhs->type, lhs->value);
+			dest->type = rhs->type;
+		}
+		else if (lhs->type == rhs->type)
+		{
+			arch_mul(lhs->type);
+			dest->type = intptr_type;
+		}
+		else
+			fatal("you tried to multiply a %s and a %s", lhs->type->name, rhs->type->name);
 	}
 }
 
