@@ -25,6 +25,7 @@ struct symbol
 			int width;
 			struct symbol* pointerto;
 			struct symbol* pointingat;
+			bool issigned: 1;
 		}
 		type;
 
@@ -123,6 +124,10 @@ extern void arch_rem_const(struct symbol* type, int32_t value);
 extern void arch_rem(struct symbol* type);
 extern void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
 extern void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel);
+extern void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
+extern void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel);
+extern void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
+extern void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel);
 extern void arch_assign_var(struct symbol* var);
 extern void arch_assign_ptr(struct symbol* ptrtype);
 extern void arch_asm_start(void);

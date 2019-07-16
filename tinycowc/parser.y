@@ -15,7 +15,6 @@ struct argumentsspec* current_call;
 int current_label = 1;
 int break_label;
 
-static struct symbol* int16_type;
 static struct symbol* intptr_type;
 static struct symbol* uint8_type;
 
@@ -28,6 +27,8 @@ static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
+static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
+static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 
 static struct symbol* add_new_symbol(const char* name);
 static struct symbol* lookup_symbol(const char* name);
@@ -41,7 +42,7 @@ static void unescape(char* string);
 
 %token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM
 %token ID NUMBER STRING
-%token ASSIGN EQUALS NOTEQUALS
+%token ASSIGN
 
 %type <symbol> newid;
 %type <symbol> oldid;
@@ -51,7 +52,7 @@ static void unescape(char* string);
 %type <labels> WHILE;
 %type <labels> IF;
 
-%left EQUALS NOTEQUALS
+%left LTOP LEOP GTOP GEOP EQOP NEOP
 %left '+' '-'
 %left '*' '/' '%'
 
@@ -332,14 +333,18 @@ expression
 	;
 
 conditional
-	: expression EQUALS expression
-		{
-			cond_equals($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3);
-		}
-	| expression NOTEQUALS expression
-		{
-			cond_equals($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3);
-		}
+	: expression EQOP expression
+		{ cond_equals($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3); }
+	| expression NEOP expression
+		{ cond_equals($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3); }
+	| expression LTOP expression
+		{ cond_lessthan($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3); }
+	| expression GEOP expression
+		{ cond_lessthan($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3); }
+	| expression GTOP expression
+		{ cond_greaterthan($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3); }
+	| expression LEOP expression
+		{ cond_greaterthan($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3); }
 	;
 
 asm
@@ -614,6 +619,34 @@ static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, str
 		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
 }
 
+static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
+{
+	if (!lhs->type && !rhs->type)
+		arch_emit_jump((lhs->value < rhs->value) ? truelabel : falselabel);
+	else if (lhs->type && !rhs->type)
+		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, rhs->value);
+	else if (!lhs->type && rhs->type)
+		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, lhs->value);
+	else if (lhs->type == rhs->type)
+		arch_cmp_lessthan(lhs->type, truelabel, falselabel);
+	else
+		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
+}
+
+static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
+{
+	if (!lhs->type && !rhs->type)
+		arch_emit_jump((lhs->value < rhs->value) ? truelabel : falselabel);
+	else if (lhs->type && !rhs->type)
+		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, rhs->value);
+	else if (!lhs->type && rhs->type)
+		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, lhs->value);
+	else if (lhs->type == rhs->type)
+		arch_cmp_greaterthan(lhs->type, truelabel, falselabel);
+	else
+		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
+}
+
 void varaccess(const char* opcode, struct symbol* var)
 {
 	printf(" %s w_%s+%d ; %s\n",
@@ -740,14 +773,25 @@ int main(int argc, const char* argv[])
 	current_sub = calloc(1, sizeof(struct subroutine));
 	current_sub->name = "__main";
 
-	int16_type = add_new_symbol("uint16");
-	int16_type->kind = TYPE;
-	int16_type->u.type.width = 2;
-	intptr_type = int16_type;
+	struct symbol* s;
+	s = add_new_symbol("uint16");
+	s->kind = TYPE;
+	s->u.type.width = 2;
+	intptr_type = s;
 
-	uint8_type = add_new_symbol("uint8");
-	uint8_type->kind = TYPE;
-	uint8_type->u.type.width = 1;
+	s = add_new_symbol("int16");
+	s->kind = TYPE;
+	s->u.type.width = 2;
+	s->u.type.issigned = true;
+
+	s = add_new_symbol("uint8");
+	s->kind = TYPE;
+	s->u.type.width = 1;
+
+	s = add_new_symbol("int8");
+	s->kind = TYPE;
+	s->u.type.width = 1;
+	s->u.type.issigned = true;
 
 	yydebug = 0;
 

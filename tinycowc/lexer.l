@@ -22,13 +22,17 @@ SP [ \t]+
 "end"                     { return END; }
 "loop"                    { return LOOP; }
 "while"                   { return WHILE; }
-"asm"                     { return ASM; }
+"@asm"                    { return ASM; }
 "if"                      { return IF; }
 "then"                    { return THEN; }
 "break"                   { return BREAK; }
 ":="                      { return ASSIGN; }
-"=="                      { return EQUALS; }
-"!="                      { return NOTEQUALS; }
+"=="                      { return EQOP; }
+"!="                      { return NEOP; }
+"<="                      { return LEOP; }
+">="                      { return GEOP; }
+"<"                       { return LTOP; }
+">"                       { return LEOP; }
 [-;:,+*/%()[\]]           { return yytext[0]; }
 
 \"                        { BEGIN(STRINGSTATE); }

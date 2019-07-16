@@ -664,7 +664,7 @@ void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel)
 		case 1:
 			vpop_reg(REG_HL);
 			vpop_reg(REG_A);
-			printf(" cmp b\n");
+			printf(" cmp h\n");
 			break;
 
 		case 2:
@@ -683,6 +683,129 @@ void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel)
 
 	printf(" jnz x%d\n", falselabel);
 	printf(" jmp x%d\n", truelabel);
+}
+
+void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value)
+{
+	if (type->u.type.issigned)
+		fatal("can't compare signed values yet");
+	else
+	{
+		switch (type->u.type.width)
+		{
+			case 1:
+				vpop_reg(REG_A);
+				printf(" cpi %u\n", value & 0xff);
+				printf(" jc x%d\n", truelabel);
+				break;
+
+			case 2:
+				vpop_reg(REG_HL);
+				printf(" lxi d, %u\n", (-value) & 0xffff);
+				printf(" dad d\n");
+				printf(" jc x%d\n", truelabel);
+				break;
+
+			default:
+				assert(false);
+		}
+
+		printf(" jmp x%d\n", falselabel);
+	}
+}
+
+void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel)
+{
+	if (type->u.type.issigned)
+		fatal("can't compare signed values yet");
+	else
+	{
+		switch (type->u.type.width)
+		{
+			case 1:
+				vpop_reg(REG_HL);
+				vpop_reg(REG_A);
+				printf(" cmp h\n");
+				break;
+
+			case 2:
+				vpop_reg(REG_HL);
+				vpop_reg(REG_DE);
+				printf(" mov a, e\n");
+				printf(" sub l\n");
+				printf(" mov a, d\n");
+				printf(" sbb h\n");
+				break;
+
+			default:
+				assert(false);
+		}
+
+		printf(" jc x%d\n", truelabel);
+		printf(" jmp x%d\n", falselabel);
+	}
+}
+
+void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value)
+{
+	if (type->u.type.issigned)
+		fatal("can't compare signed values yet");
+	else
+	{
+		switch (type->u.type.width)
+		{
+			case 1:
+				vpop_reg(REG_HL);
+				printf(" mvi a, %u\n", value & 0xff);
+				printf(" cpi h\n", value & 0xff);
+				printf(" jc x%d\n", truelabel);
+				break;
+
+			case 2:
+				vpop_reg(REG_DE);
+				printf(" lxi h, %u\n", (-value) & 0xffff);
+				printf(" dad d\n");
+				printf(" jc x%d\n", truelabel);
+				break;
+
+			default:
+				assert(false);
+		}
+
+		printf(" jmp x%d\n", falselabel);
+	}
+}
+
+void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel)
+{
+	if (type->u.type.issigned)
+		fatal("can't compare signed values yet");
+	else
+	{
+		switch (type->u.type.width)
+		{
+			case 1:
+				vpop_reg(REG_A);
+				vpop_reg(REG_HL);
+				printf(" cmp h\n");
+				break;
+
+			case 2:
+				vpop_reg(REG_DE);
+				vpop_reg(REG_HL);
+				printf(" mov a, e\n");
+				printf(" sub l\n");
+				printf(" mov a, d\n");
+				printf(" sbb h\n");
+				break;
+
+			default:
+				assert(false);
+		}
+
+		printf(" jc x%d\n", truelabel);
+		printf(" jmp x%d\n", falselabel);
+	}
 }
 
 void arch_assign_var(struct symbol* var)
