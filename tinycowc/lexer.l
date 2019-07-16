@@ -22,7 +22,7 @@ SP [ \t]+
 "end"                     { return END; }
 "loop"                    { return LOOP; }
 "while"                   { return WHILE; }
-"extern"                  { return EXTERN; }
+"asm"                     { return ASM; }
 "if"                      { return IF; }
 "then"                    { return THEN; }
 "break"                   { return BREAK; }

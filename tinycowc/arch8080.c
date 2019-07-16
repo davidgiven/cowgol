@@ -153,13 +153,6 @@ void arch_file_prologue(void)
 
 void arch_file_epilogue(void)
 {
-	printf(
-		"f_putc:\n"
-		"  pop h\n"
-		"  xthl\n"
-		"  mvi c, 2\n"
-		"  mov e, h\n"
-		"  jmp 5\n");
 	putchar(26);
 }
 
@@ -725,4 +718,23 @@ void arch_assign_ptr(struct symbol* ptrtype)
 		default:
 			assert(false);
 	}
+}
+
+void arch_asm_start(void)
+{
+}
+
+void arch_asm_string(const char* s)
+{
+	printf("%s", s);
+}
+
+void arch_asm_symbol(struct symbol* sym)
+{
+	printf(" w_%s+%d ", sym->u.var.sub->name, sym->u.var.offset);
+}
+
+void arch_asm_end(void)
+{
+	printf("\n");
 }

@@ -39,7 +39,7 @@ static void unescape(char* string);
 
 %}
 
-%token VAR SUB TYPE END LOOP WHILE EXTERN IF THEN BREAK
+%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM
 %token ID NUMBER STRING
 %token ASSIGN EQUALS NOTEQUALS
 
@@ -94,24 +94,6 @@ statement
 			init_var($2, $4.type);
 			resolve_expression_type(&$4, $4.type);
 			arch_assign_var($2);
-		}
-	| EXTERN SUB newid
-		{
-			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
-			sub->name = $3->name;
-			sub->parent = current_sub;
-
-			$3->kind = SUB;
-			$3->u.sub = sub;
-
-			current_sub = sub;
-		}
-		parameterlist
-		ASSIGN STRING
-		{
-			unescape(yytext);
-			current_sub->name = strdup(yytext);
-			current_sub = current_sub->parent;
 		}
 	| SUB newid
 		{
@@ -192,6 +174,13 @@ statement
 			if (!break_label)
 				fatal("nothing to break from");
 			arch_emit_jump(break_label);
+		}
+	| ASM {
+		arch_asm_start();
+		}
+		asms ';'
+		{
+			arch_asm_end();
 		}
 	| oldid argumentlist ';'
 		{
@@ -352,6 +341,26 @@ conditional
 			cond_equals($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3);
 		}
 	;
+
+asm
+	: STRING
+		{
+			unescape(yytext);
+			arch_asm_string(yytext);
+		}
+	| oldid
+		{
+			if ($1->kind != VAR)
+				fatal("you can only emit references to variables");
+			arch_asm_symbol($1);
+		}
+	; 
+
+asms
+	: asm
+	| asm ',' asms
+	;
+
 %%
 
 void fatal(const char* s, ...)
@@ -725,7 +734,6 @@ static void unescape(char* string)
 		c = *pin++;
 	}
 }
-
 
 int main(int argc, const char* argv[])
 {

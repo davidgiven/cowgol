@@ -125,6 +125,10 @@ extern void arch_cmp_equals_const(struct symbol* type, int truelabel, int falsel
 extern void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel);
 extern void arch_assign_var(struct symbol* var);
 extern void arch_assign_ptr(struct symbol* ptrtype);
+extern void arch_asm_start(void);
+extern void arch_asm_string(const char* text);
+extern void arch_asm_symbol(struct symbol* sym);
+extern void arch_asm_end(void);
 
 #endif
 
