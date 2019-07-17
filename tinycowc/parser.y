@@ -53,9 +53,13 @@ static void unescape(char* string);
 %type <labels> IF;
 %type <cond> conditional;
 
+%left ','
+%left OR
+%left AND
 %left LTOP LEOP GTOP GEOP EQOP NEOP
 %left '+' '-'
 %left '*' '/' '%'
+%right NOT
 
 %union {
 	struct symbol* symbol;
@@ -332,6 +336,31 @@ expression
 conditional
 	: '(' conditional ')'
 		{ $$ = $2; }
+	| NOT conditional
+		{
+			$$.truelabel = $2.falselabel;
+			$$.falselabel = $2.truelabel;
+		}
+	| conditional AND
+		{
+			arch_emit_label($1.truelabel);
+		}
+		conditional
+		{
+			arch_label_alias($1.falselabel, $4.falselabel);
+			$$.truelabel = $4.truelabel;
+			$$.falselabel = $4.falselabel;
+		}
+	| conditional OR
+		{
+			arch_emit_label($1.falselabel);
+		}
+		conditional
+		{
+			arch_label_alias($1.truelabel, $4.truelabel);
+			$$.truelabel = $4.truelabel;
+			$$.falselabel = $4.falselabel;
+		}
 	| expression EQOP expression
 		{
 			$$.truelabel = current_label++;

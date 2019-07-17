@@ -17,15 +17,18 @@ SP [ \t]+
 
 %%
 
-"var"                     { return VAR; }
-"sub"                     { return SUB; }
-"end"                     { return END; }
-"loop"                    { return LOOP; }
-"while"                   { return WHILE; }
 "@asm"                    { return ASM; }
-"if"                      { return IF; }
-"then"                    { return THEN; }
+"and"                     { return AND; }
 "break"                   { return BREAK; }
+"end"                     { return END; }
+"if"                      { return IF; }
+"loop"                    { return LOOP; }
+"not"                     { return NOT; }
+"or"                      { return OR; }
+"sub"                     { return SUB; }
+"then"                    { return THEN; }
+"var"                     { return VAR; }
+"while"                   { return WHILE; }
 ":="                      { return ASSIGN; }
 "=="                      { return EQOP; }
 "!="                      { return NEOP; }
