@@ -9,7 +9,7 @@ You need ninja, flex and bison (Posix yacc probably won't work).
 
 To use:
 
-    $ ./tinycowc < inputfile.cow > outputfile.asm
+    $ ./tinycowc inputfile.cow > outputfile.asm
 
 To turn the result into a CP/M executable, you need zmac.
 

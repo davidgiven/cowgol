@@ -2,12 +2,14 @@
 #define GLOBALS_H
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 extern void fatal(const char* s, ...);
 extern const char* aprintf(const char* s, ...);
 extern int yylex(void);
+extern FILE* yyin;
 
 extern char* yytext;
 extern int32_t number;
@@ -60,10 +62,14 @@ struct exprnode
 	int32_t value;
 };
 
-struct looplabels
+struct condlabels
 {
 	int truelabel;
 	int falselabel;
+};
+
+struct looplabels
+{
 	int looplabel;
 	int exitlabel;
 	int old_break_label;
@@ -104,6 +110,7 @@ extern void arch_file_epilogue(void);
 extern void arch_subroutine_prologue(void);
 extern void arch_subroutine_epilogue(void);
 extern void arch_emit_label(int label);
+extern void arch_label_alias(int fakelabel, int reallabel);
 extern void arch_emit_jump(int label);
 extern void arch_emit_call(struct subroutine* sub);
 extern void arch_push_input_param(struct symbol* type);

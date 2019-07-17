@@ -32,7 +32,7 @@ SP [ \t]+
 "<="                      { return LEOP; }
 ">="                      { return GEOP; }
 "<"                       { return LTOP; }
-">"                       { return LEOP; }
+">"                       { return GTOP; }
 [-;:,+*/%()[\]]           { return yytext[0]; }
 
 \"                        { BEGIN(STRINGSTATE); }

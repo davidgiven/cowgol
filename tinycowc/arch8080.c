@@ -196,6 +196,11 @@ void arch_emit_label(int label)
 	printf("x%d:\n", label);
 }
 
+void arch_label_alias(int fakelabel, int reallabel)
+{
+	printf("x%d = x%d\n", fakelabel, reallabel);
+}
+
 void arch_emit_jump(int label)
 {
 	printf(" jmp x%d\n", label);
@@ -723,14 +728,15 @@ void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel)
 		switch (type->u.type.width)
 		{
 			case 1:
-				vpop_reg(REG_HL);
-				vpop_reg(REG_A);
+				vpop_reg(REG_HL); /* rhs */
+				vpop_reg(REG_A); /* lhs */
 				printf(" cmp h\n");
+				/* C set if lhs < rhs */
 				break;
 
 			case 2:
-				vpop_reg(REG_HL);
-				vpop_reg(REG_DE);
+				vpop_reg(REG_HL); /* rhs */
+				vpop_reg(REG_DE); /* lhs */
 				printf(" mov a, e\n");
 				printf(" sub l\n");
 				printf(" mov a, d\n");
@@ -758,20 +764,19 @@ void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselab
 				vpop_reg(REG_HL);
 				printf(" mvi a, %u\n", value & 0xff);
 				printf(" cpi h\n", value & 0xff);
-				printf(" jc x%d\n", truelabel);
 				break;
 
 			case 2:
 				vpop_reg(REG_DE);
 				printf(" lxi h, %u\n", (-value) & 0xffff);
 				printf(" dad d\n");
-				printf(" jc x%d\n", truelabel);
 				break;
 
 			default:
 				assert(false);
 		}
 
+		printf(" jc x%d\n", truelabel);
 		printf(" jmp x%d\n", falselabel);
 	}
 }
@@ -785,18 +790,20 @@ void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel)
 		switch (type->u.type.width)
 		{
 			case 1:
-				vpop_reg(REG_A);
-				vpop_reg(REG_HL);
+				vpop_reg(REG_A); /* rhs */
+				vpop_reg(REG_HL); /* lhs */
 				printf(" cmp h\n");
+				/* C set if rhs < lhs */
 				break;
 
 			case 2:
-				vpop_reg(REG_DE);
-				vpop_reg(REG_HL);
-				printf(" mov a, e\n");
-				printf(" sub l\n");
-				printf(" mov a, d\n");
-				printf(" sbb h\n");
+				vpop_reg(REG_HL); /* rhs */
+				vpop_reg(REG_DE); /* lhs */
+				printf(" mov a, l\n");
+				printf(" sub e\n");
+				printf(" mov a, h\n");
+				printf(" sbb d\n");
+				/* C set if rhs < lhs */
 				break;
 
 			default:

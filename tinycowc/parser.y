@@ -51,6 +51,7 @@ static void unescape(char* string);
 %type <labels> LOOP;
 %type <labels> WHILE;
 %type <labels> IF;
+%type <cond> conditional;
 
 %left LTOP LEOP GTOP GEOP EQOP NEOP
 %left '+' '-'
@@ -59,6 +60,7 @@ static void unescape(char* string);
 %union {
 	struct symbol* symbol;
 	struct exprnode expr;
+	struct condlabels cond;
 	struct looplabels labels;
 	struct argumentsspec argsspec;
 }
@@ -136,38 +138,33 @@ statement
 			break_label = $1.old_break_label;
 		}
 	| IF
-		{
-			$1.truelabel = current_label++;
-			$1.falselabel = current_label++;
-			$1.looplabel = 0;
-		}
 		conditional
 		THEN
 		{
-			arch_emit_label($1.truelabel);
+			arch_emit_label($2.truelabel);
 		}
 		statements
 		{
-			arch_emit_label($1.falselabel);
+			arch_emit_label($2.falselabel);
 		}
 		END IF
 	| WHILE
 		{
-			$1.truelabel = current_label++;
-			$1.falselabel = current_label++;
 			$1.looplabel = current_label++;
+			$1.exitlabel = current_label++;
 			$1.old_break_label = break_label;
-			break_label = $1.falselabel;
+			break_label = $1.exitlabel;
 			arch_emit_label($1.looplabel);
 		}
 		conditional
 		{
-			arch_emit_label($1.truelabel);
+			arch_emit_label($3.truelabel);
+			arch_label_alias($3.falselabel, $1.exitlabel);
 		}
 		LOOP statements END LOOP
 		{
 			arch_emit_jump($1.looplabel);
-			arch_emit_label($1.falselabel);
+			arch_emit_label($1.exitlabel);
 			break_label = $1.old_break_label;
 		}
 	| BREAK ';'
@@ -333,18 +330,44 @@ expression
 	;
 
 conditional
-	: expression EQOP expression
-		{ cond_equals($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3); }
+	: '(' conditional ')'
+		{ $$ = $2; }
+	| expression EQOP expression
+		{
+			$$.truelabel = current_label++;
+			$$.falselabel = current_label++;
+			cond_equals($$.truelabel, $$.falselabel, &$1, &$3);
+		}
 	| expression NEOP expression
-		{ cond_equals($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3); }
+		{
+			$$.truelabel = current_label++;
+			$$.falselabel = current_label++;
+			cond_equals($$.falselabel, $$.truelabel, &$1, &$3);
+		}
 	| expression LTOP expression
-		{ cond_lessthan($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3); }
+		{
+			$$.truelabel = current_label++;
+			$$.falselabel = current_label++;
+			cond_lessthan($$.truelabel, $$.falselabel, &$1, &$3);
+		}
 	| expression GEOP expression
-		{ cond_lessthan($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3); }
+		{
+			$$.truelabel = current_label++;
+			$$.falselabel = current_label++;
+			cond_lessthan($$.falselabel, $$.truelabel, &$1, &$3);
+		}
 	| expression GTOP expression
-		{ cond_greaterthan($<labels>-1.truelabel, $<labels>-1.falselabel, &$1, &$3); }
+		{
+			$$.truelabel = current_label++;
+			$$.falselabel = current_label++;
+			cond_greaterthan($$.truelabel, $$.falselabel, &$1, &$3);
+		}
 	| expression LEOP expression
-		{ cond_greaterthan($<labels>-1.falselabel, $<labels>-1.truelabel, &$1, &$3); }
+		{
+			$$.truelabel = current_label++;
+			$$.falselabel = current_label++;
+			cond_greaterthan($$.falselabel, $$.truelabel, &$1, &$3);
+		}
 	;
 
 asm
@@ -787,12 +810,14 @@ int main(int argc, const char* argv[])
 	s = add_new_symbol("uint8");
 	s->kind = TYPE;
 	s->u.type.width = 1;
+	uint8_type = s;
 
 	s = add_new_symbol("int8");
 	s->kind = TYPE;
 	s->u.type.width = 1;
 	s->u.type.issigned = true;
 
+	yyin = fopen(argv[1], "r");
 	yydebug = 0;
 
 	arch_file_prologue();
