@@ -424,7 +424,7 @@ void fatal(const char* s, ...)
 {
 	va_list ap;
 	va_start(ap, s);
-	fprintf(stderr, "Error: ");
+	fprintf(stderr, "%d: ", yylineno);
 	vfprintf(stderr, s, ap);
 	fprintf(stderr, "\n");
 	va_end(ap);
@@ -847,6 +847,7 @@ int main(int argc, const char* argv[])
 	s->u.type.issigned = true;
 
 	yyin = fopen(argv[1], "r");
+	yylineno = 1;
 	yydebug = 0;
 
 	arch_file_prologue();

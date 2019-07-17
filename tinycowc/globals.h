@@ -9,6 +9,7 @@
 extern void fatal(const char* s, ...);
 extern const char* aprintf(const char* s, ...);
 extern int yylex(void);
+extern int yylineno;
 extern FILE* yyin;
 
 extern char* yytext;

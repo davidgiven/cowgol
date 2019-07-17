@@ -66,7 +66,7 @@ SP [ \t]+
 <NUMBERSTATE>.            { BEGIN(INITIAL); unput(*yytext); return NUMBER; }
 
 #[^\r\n]*                 |
-{LF}+                     |
+{LF}                      { yylineno++; }
 {SP}+                     {}
 
 <<EOF>> { yyterminate(); return 0; }
