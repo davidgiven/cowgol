@@ -739,7 +739,7 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type)
 {
 	if (!node->type)
 	{
-		vpush_const(node->value);
+		arch_push_constant(node->value);
 		node->type = type;
 		return;
 	}

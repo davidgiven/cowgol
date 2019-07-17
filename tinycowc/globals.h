@@ -85,21 +85,6 @@ struct argumentsspec
 
 #define yyerror(s) fatal(s)
 
-/* TODO: Remove these after arch conversion. */
-enum
-{
-	REG_A,
-	REG_HL,
-	REG_DE,
-	REG_BC
-};
-extern void vpush_reset(void);
-extern void vpush_raw(void);
-extern void vpush_reg(int reg);
-extern void vpush_const(uint16_t c);
-extern void vpush_addr(struct symbol* sym);
-extern void vpush_value(struct symbol* sym);
-extern void vpop_reg(int reg);
 extern void varaccess(const char* opcode, struct symbol* var);
 
 extern struct subroutine* current_sub;
@@ -114,6 +99,7 @@ extern void arch_label_alias(int fakelabel, int reallabel);
 extern void arch_emit_jump(int label);
 extern void arch_emit_call(struct subroutine* sub);
 extern void arch_push_input_param(struct symbol* type);
+extern void arch_push_constant(int32_t value);
 extern void arch_push_string_constant(const char* text);
 extern void arch_push_value(struct symbol* sym);
 extern void arch_dereference(struct symbol* ptrtype);
