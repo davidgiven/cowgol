@@ -20,6 +20,7 @@ struct symbol* uint8_type;
 
 static bool is_ptr(struct symbol* sym);
 static bool is_num(struct symbol* sym);
+static bool is_array(struct symbol* sym);
 
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
@@ -33,6 +34,7 @@ static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs
 static struct symbol* lookup_symbol(const char* name);
 static void init_var(struct symbol* sym, struct symbol* type);
 static struct symbol* make_pointer_type(struct symbol* type);
+static struct symbol* make_array_type(struct symbol* type, int32_t size);
 
 static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 static void unescape(char* string);
@@ -89,12 +91,17 @@ statements
 
 statement
 	: ';'
+	| VAR newid ':' typeref ';'
+		{
+			$2->kind = VAR;
+			init_var($2, $4);
+		}
 	| VAR newid ':' typeref ASSIGN expression ';'
 		{
 			$2->kind = VAR;
 			init_var($2, $4);
 			resolve_expression_type(&$6, $4);
-			arch_assign_var($2, 0);
+			arch_assign_var($4, $2, 0);
 		}
 	| VAR newid ASSIGN expression ';'
 		{
@@ -103,7 +110,7 @@ statement
 				fatal("types cannot be inferred for numeric constants");
 			init_var($2, $4.type);
 			resolve_expression_type(&$4, $4.type);
-			arch_assign_var($2, 0);
+			arch_assign_var($4.type, $2, 0);
 		}
 	| SUB newid
 		{
@@ -197,7 +204,7 @@ statement
 		{
 			resolve_expression_type(&$3, $1.type);
 			if ($1.constant)
-				arch_assign_var($1.sym, $1.off);
+				arch_assign_var($1.type, $1.sym, $1.off);
 			else
 				arch_assign_ptr($1.type->u.type.pointerto);
 		}
@@ -208,13 +215,28 @@ lvalue
 		{
 			node_is_constant(&$$, $1->u.var.type, $1, 0);
 		}
+	| lvalue '[' expression ']'
+		{
+			if (!is_array($1.type))
+				fatal("you can only index arrays");
+			if (!is_num($3.type))
+				fatal("array indices must be numbers");
+			
+			struct exprnode e;
+			node_is_constant(&e, NULL, NULL, $1.type->u.type.element->u.type.width);
+			expr_mul(&e, &$3, &e);
+
+			$1.type = make_pointer_type($1.type->u.type.element);
+			expr_add(&$$, &$1, &$3);
+			$$.type = $$.type->u.type.element;
+		}
 	| '[' expression ']'
 		{
 			if (!$2.type)
 				fatal("cannot dereference untyped constants");
 			
 			$$ = $2;
-			$$.type = $2.type->u.type.pointingat;
+			$$.type = $2.type->u.type.element;
 			if (!$$.type)
 				fatal("can only dereference pointers");
 		}
@@ -291,6 +313,12 @@ typeref
 			$$ = $1;
 			if ($$->kind != TYPE)
 				fatal("expected '%s' to be a type", $1->name);
+		}
+	| typeref '[' expression ']'
+		{
+			if (!$3.constant || !is_num($3.type))
+				fatal("array bounds must be constant numbers");
+			$$ = make_array_type($1, $3.off);
 		}
 	| '[' typeref ']'
 		{ $$ = make_pointer_type($2); }
@@ -426,7 +454,7 @@ static bool is_ptr(struct symbol* sym)
 {
 	if (!sym || (sym->kind != TYPE))
 		return false;
-	return sym->u.type.pointingat;
+	return sym->u.type.kind == TYPE_POINTER;
 }
 
 static bool is_num(struct symbol* sym)
@@ -435,8 +463,16 @@ static bool is_num(struct symbol* sym)
 		return true; /* for numeric constants */
 	if (sym->kind != TYPE)
 		return false;
-	/* For now */
-	return !sym->u.type.pointingat;
+	return sym->u.type.kind == TYPE_NUMBER;
+}
+
+static bool is_array(struct symbol* sym)
+{
+	if (!sym)
+		return true; /* for numeric constants */
+	if (sym->kind != TYPE)
+		return false;
+	return sym->u.type.kind == TYPE_ARRAY;
 }
 
 static void resolve_untyped_constants_for_add_sub(struct exprnode* lhs, struct exprnode* rhs)
@@ -462,68 +498,51 @@ static void resolve_untyped_constants_for_add_sub(struct exprnode* lhs, struct e
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
 	resolve_untyped_constants_for_add_sub(lhs, rhs);
-	if (!lhs->type && !rhs->type)
-	{
-		assert(lhs->sym == NULL);
-		assert(rhs->sym == NULL);
-		node_is_constant(dest, lhs->type, NULL, lhs->off + rhs->off);
-	}
+
+	if (is_ptr(lhs->type) && is_ptr(rhs->type))
+		fatal("you cannot add two pointers together");
+	else if (is_ptr(lhs->type) && (rhs->type != intptr_type))
+		fatal("you can only add a %s to a pointer", rhs->type->name);
+	else if (is_ptr(rhs->type))
+		fatal("add numbers to pointers, not vice versa");
+	else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
+		fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
+
+	if (lhs->constant && rhs->constant)
+		node_is_constant(dest, lhs->type, lhs->sym, lhs->off + rhs->off);
 	else
 	{
-		if (is_ptr(lhs->type) && is_ptr(rhs->type))
-			fatal("you cannot add two pointers together");
-		else if (is_ptr(lhs->type) && (rhs->type != intptr_type))
-			fatal("you can only add a %s to a pointer", rhs->type->name);
-		else if (is_ptr(rhs->type))
-			fatal("add numbers to pointers, not vice versa");
-		else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
-			fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
-
-		if (lhs->constant && rhs->constant)
-			node_is_constant(dest, lhs->type, lhs->sym, lhs->off + rhs->off);
+		if (!lhs->constant && rhs->constant)
+			arch_add_const(lhs->type, rhs->sym, rhs->off);
+		else if (lhs->constant && !rhs->constant)
+			arch_add_const(lhs->type, lhs->sym, lhs->off);
 		else
-		{
-			if (!lhs->constant && rhs->constant)
-				arch_add_const(lhs->type, NULL, rhs->off);
-			else if (lhs->constant && !rhs->constant)
-				arch_add_const(lhs->type, NULL, lhs->off);
-			else
-				arch_add(lhs->type);
-			node_is_stacked(dest, lhs->type);
-		}
+			arch_add(lhs->type);
+		node_is_stacked(dest, lhs->type);
 	}
 }
 
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
 	resolve_untyped_constants_for_add_sub(lhs, rhs);
-	if (!lhs->type && !rhs->type)
-	{
-		assert(lhs->sym == NULL);
-		assert(rhs->sym == NULL);
-		node_is_constant(dest, lhs->type, NULL, lhs->off - rhs->off);
-	}
+	if (is_ptr(lhs->type) && !is_ptr(rhs->type) && (rhs->type != intptr_type))
+		fatal("you can't subtrack a %s and a %s", lhs->type->name, rhs->type->name);
+	else if (is_num(lhs->type) && is_ptr(rhs->type))
+		fatal("subtract numbers from pointers, not vice versa");
+	else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
+		fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
+
+	if (lhs->constant && rhs->constant)
+		node_is_constant(dest, lhs->type, lhs->sym, lhs->off - rhs->off);
 	else
 	{
-		if (is_ptr(lhs->type) && !is_ptr(rhs->type) && (rhs->type != intptr_type))
-			fatal("you can't subtrack a %s and a %s", lhs->type->name, rhs->type->name);
-		else if (is_num(lhs->type) && is_ptr(rhs->type))
-			fatal("subtract numbers from pointers, not vice versa");
-		else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
-			fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
-
-		if (lhs->constant && rhs->constant)
-			node_is_constant(dest, lhs->type, lhs->sym, lhs->off - rhs->off);
+		if (!lhs->constant && rhs->constant)
+			arch_add_const(lhs->type, NULL, -rhs->off);
+		else if (lhs->constant && !rhs->constant)
+			arch_subfrom_const(lhs->type, 0, lhs->off);
 		else
-		{
-			if (!lhs->constant && rhs->constant)
-				arch_add_const(lhs->type, NULL, -rhs->off);
-			else if (lhs->constant && !rhs->constant)
-				arch_subfrom_const(lhs->type, NULL, lhs->off);
-			else
-				arch_sub(lhs->type);
-			node_is_stacked(dest, lhs->type);
-		}
+			arch_sub(lhs->type);
+		node_is_stacked(dest, lhs->type);
 	}
 }
 
@@ -543,7 +562,7 @@ static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	if (!is_num(lhs->type) || !is_num(rhs->type))
 		fatal("multiplication only works on numbers");
 
-	if (lhs->constant && !rhs->constant)
+	if (lhs->constant && rhs->constant)
 	{
 		assert(lhs->sym == NULL);
 		assert(rhs->sym == NULL);
@@ -568,7 +587,7 @@ static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	if (rhs->constant && (rhs->off == 0))
 		fatal("division by zero");
 
-	if (lhs->constant && !rhs->constant)
+	if (lhs->constant && rhs->constant)
 	{
 		assert(lhs->sym == NULL);
 		assert(rhs->sym == NULL);
@@ -593,7 +612,7 @@ static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	if (rhs->constant && (rhs->off == 0))
 		fatal("division by zero");
 
-	if (lhs->constant && !rhs->constant)
+	if (lhs->constant && rhs->constant)
 	{
 		assert(lhs->sym == NULL);
 		assert(rhs->sym == NULL);
@@ -725,6 +744,19 @@ static void resolve_expression_type(struct exprnode* node, struct symbol* type)
 	if (node->type != type)
 		fatal("type mismatch: expression was a '%s', used when a '%s' was expected",
 			node->type->name, type->name);
+	if (!is_ptr(type) && !is_num(type))
+		fatal("%s cannot be used in this kind of expression", type->name);
+}
+
+struct symbol* make_number_type(const char* name, int width, bool issigned)
+{
+	struct symbol* ptr = add_new_symbol(name);
+	ptr->name = name;
+	ptr->kind = TYPE;
+	ptr->u.type.kind = TYPE_NUMBER;
+	ptr->u.type.width = width;
+	ptr->u.type.issigned = issigned;
+	return ptr;
 }
 
 static struct symbol* make_pointer_type(struct symbol* type)
@@ -736,11 +768,23 @@ static struct symbol* make_pointer_type(struct symbol* type)
 		struct symbol* ptr = add_new_symbol(NULL);
 		ptr->name = aprintf("[%s]", type->name);
 		ptr->kind = TYPE;
+		ptr->u.type.kind = TYPE_POINTER;
 		ptr->u.type.width = 2;
-		ptr->u.type.pointingat = type;
+		ptr->u.type.element = type;
 		type->u.type.pointerto = ptr;
 		return ptr;
 	}
+}
+
+static struct symbol* make_array_type(struct symbol* type, int32_t size)
+{
+	struct symbol* ptr = add_new_symbol(NULL);
+	ptr->name = aprintf("%s[%d]", type->name, size);
+	ptr->kind = TYPE;
+	ptr->u.type.kind = TYPE_ARRAY;
+	ptr->u.type.width = size * type->u.type.width;
+	ptr->u.type.element = type;
+	return ptr;
 }
 
 static void unescape(char* string)

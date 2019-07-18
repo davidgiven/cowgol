@@ -267,7 +267,7 @@ void arch_push_value(struct symbol* sym, int32_t off)
 
 void arch_dereference(struct symbol* ptrtype)
 {
-	int width = ptrtype->u.type.pointingat->u.type.width;
+	int width = ptrtype->u.type.element->u.type.width;
 
 	vpop_reg(2, REG_HL);
 	switch (width)
@@ -845,22 +845,19 @@ void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel)
 	}
 }
 
-void arch_assign_var(struct symbol* var, int32_t offset)
+void arch_assign_var(struct symbol* type, struct symbol* var, int32_t offset)
 {
-	if (offset != 0)
-		fatal("can't use offsets yet");
-
-	int width = var->u.var.type->u.type.width;
+	int width = type->u.type.width;
 	switch (width)
 	{
 		case 1:
 			vpop_reg(width, REG_A);
-			printf(" sta %s\n", varref("", var, 0));
+			printf(" sta %s\n", varref("", var, offset));
 			break;
 
 		case 2:
 			vpop_reg(width, REG_HL);
-			printf(" shld %s\n", varref("", var, 0));
+			printf(" shld %s\n", varref("", var, offset));
 			break;
 
 		default:
@@ -870,7 +867,7 @@ void arch_assign_var(struct symbol* var, int32_t offset)
 
 void arch_assign_ptr(struct symbol* ptrtype)
 {
-	int width = ptrtype->u.type.pointingat->u.type.width;
+	int width = ptrtype->u.type.element->u.type.width;
 	switch (width)
 	{
 		case 1:

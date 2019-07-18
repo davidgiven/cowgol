@@ -49,26 +49,10 @@ int main(int argc, const char* argv[])
 	current_sub = calloc(1, sizeof(struct subroutine));
 	current_sub->name = "__main";
 
-	struct symbol* s;
-	s = add_new_symbol("uint16");
-	s->kind = TYPE;
-	s->u.type.width = 2;
-	intptr_type = s;
-
-	s = add_new_symbol("int16");
-	s->kind = TYPE;
-	s->u.type.width = 2;
-	s->u.type.issigned = true;
-
-	s = add_new_symbol("uint8");
-	s->kind = TYPE;
-	s->u.type.width = 1;
-	uint8_type = s;
-
-	s = add_new_symbol("int8");
-	s->kind = TYPE;
-	s->u.type.width = 1;
-	s->u.type.issigned = true;
+	intptr_type = make_number_type("uint16", 2, false);
+	make_number_type("int16", 2, true);
+	uint8_type = make_number_type("uint8", 1, false);
+	make_number_type("int8", 1, true);
 
 	yyin = fopen(argv[1], "r");
 	yylineno = 1;

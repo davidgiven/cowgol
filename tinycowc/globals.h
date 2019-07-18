@@ -15,6 +15,13 @@ extern FILE* yyin;
 extern char* yytext;
 extern int32_t number;
 
+enum
+{
+	TYPE_NUMBER,
+	TYPE_POINTER,
+	TYPE_ARRAY
+};
+
 struct symbol
 {
 	int kind;
@@ -25,9 +32,10 @@ struct symbol
 	{
 		struct
 		{
+			int kind;
 			int width;
 			struct symbol* pointerto;
-			struct symbol* pointingat;
+			struct symbol* element;
 			bool issigned: 1;
 		}
 		type;
@@ -97,6 +105,7 @@ extern struct subroutine* current_sub;
 extern int current_label;
 
 extern struct symbol* add_new_symbol(const char* name);
+extern struct symbol* make_number_type(const char* name, int width, bool issigned);
 
 extern void arch_file_prologue(void);
 extern void arch_file_epilogue(void);
@@ -133,7 +142,7 @@ extern void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel
 extern void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel,
 	struct symbol* sym, int32_t value);
 extern void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel);
-extern void arch_assign_var(struct symbol* var, int32_t offset);
+extern void arch_assign_var(struct symbol* type, struct symbol* var, int32_t offset);
 extern void arch_assign_ptr(struct symbol* ptrtype);
 extern void arch_asm_start(void);
 extern void arch_asm_string(const char* text);
