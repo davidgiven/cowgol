@@ -265,8 +265,10 @@ void arch_push_string_constant(const char* text)
 	vpush_raw();
 }
 
-void arch_push_value(struct symbol* sym)
+void arch_push_value(struct symbol* sym, int32_t offset)
 {
+	if (offset != 0)
+		fatal("can't use offsets yet");
 	vpush_value(sym);
 }
 
@@ -847,8 +849,11 @@ void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel)
 	}
 }
 
-void arch_assign_var(struct symbol* var)
+void arch_assign_var(struct symbol* var, int32_t offset)
 {
+	if (offset != 0)
+		fatal("can't use offsets yet");
+
 	int width = var->u.var.type->u.type.width;
 	switch (width)
 	{

@@ -107,7 +107,7 @@ extern void arch_emit_call(struct subroutine* sub);
 extern void arch_push_input_param(struct symbol* type);
 extern void arch_push_constant(int32_t value);
 extern void arch_push_string_constant(const char* text);
-extern void arch_push_value(struct symbol* sym);
+extern void arch_push_value(struct symbol* sym, int32_t offset);
 extern void arch_dereference(struct symbol* ptrtype);
 extern void arch_add_const(struct symbol* type, int32_t value);
 extern void arch_add(struct symbol* type);
@@ -127,7 +127,7 @@ extern void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int fals
 extern void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel);
 extern void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
 extern void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel);
-extern void arch_assign_var(struct symbol* var);
+extern void arch_assign_var(struct symbol* var, int32_t offset);
 extern void arch_assign_ptr(struct symbol* ptrtype);
 extern void arch_asm_start(void);
 extern void arch_asm_string(const char* text);

@@ -29,7 +29,7 @@ rule flex
     description = FLEX \$in
 
 rule yacc
-    command = yacc --defines=\$hfile -o \$cfile \$in
+    command = yacc --report=all --report-file=report.txt --defines=\$hfile -o \$cfile \$in
     description = YACC \$in
 EOF
 

@@ -90,7 +90,7 @@ statement
 			$2->kind = VAR;
 			init_var($2, $4);
 			resolve_expression_type(&$6, $4);
-			arch_assign_var($2);
+			arch_assign_var($2, 0);
 		}
 	| VAR newid ASSIGN expression ';'
 		{
@@ -99,7 +99,7 @@ statement
 				fatal("types cannot be inferred for numeric constants");
 			init_var($2, $4.type);
 			resolve_expression_type(&$4, $4.type);
-			arch_assign_var($2);
+			arch_assign_var($2, 0);
 		}
 	| SUB newid
 		{
@@ -195,7 +195,7 @@ statement
 				fatal("expected '%s' to be a variable", $1->name);
 
 			resolve_expression_type(&$3, $1->u.var.type);
-			arch_assign_var($1);
+			arch_assign_var($1, 0);
 		}
 	| '[' expression ']' ASSIGN expression ';'
 		{
@@ -300,7 +300,7 @@ expression
 			if ($1->kind != VAR)
 				fatal("expected '%s' to be a variable", $1->name);
 
-			arch_push_value($1);
+			arch_push_value($1, 0);
 			$$.type = $1->u.var.type;
 		}
 	| '[' expression ']'
