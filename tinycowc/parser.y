@@ -307,21 +307,13 @@ expression
 			arch_push_string_constant(yytext);
 			node_is_stacked(&$$, make_pointer_type(uint8_type));
 		}
-	| oldid
+	| lvalue
 		{
-			if ($1->kind != VAR)
-				fatal("expected '%s' to be a variable", $1->name);
-
-			arch_push_value($1, 0);
-			node_is_stacked(&$$, $1->u.var.type);
-		}
-	| '[' expression ']'
-		{
-			if (!$2.type->u.type.pointingat)
-				fatal("attempt to dereference a non-pointer");
-
-			arch_dereference($2.type);
-			node_is_stacked(&$$, $2.type->u.type.pointingat);
+			if ($1.constant)
+				arch_push_value($1.sym, $1.off);
+			else
+				arch_dereference($1.type->u.type.pointerto);
+			node_is_stacked(&$$, $1.type);
 		}
 	| '(' expression ')'
 		{ $$ = $2; }
