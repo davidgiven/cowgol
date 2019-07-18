@@ -60,7 +60,9 @@ struct subroutine
 struct exprnode
 {
 	struct symbol* type;
-	int32_t value;
+	struct symbol* sym; /* or NULL for a numeric constant */
+	int32_t off;
+	bool constant : 1;
 };
 
 struct condlabels
@@ -105,13 +107,14 @@ extern void arch_label_alias(int fakelabel, int reallabel);
 extern void arch_emit_jump(int label);
 extern void arch_emit_call(struct subroutine* sub);
 extern void arch_push_input_param(struct symbol* type);
-extern void arch_push_constant(int32_t value);
+extern void arch_push_constant(struct symbol* sym, int32_t value);
 extern void arch_push_string_constant(const char* text);
 extern void arch_push_value(struct symbol* sym, int32_t offset);
+extern void arch_pop(struct symbol* type);
 extern void arch_dereference(struct symbol* ptrtype);
-extern void arch_add_const(struct symbol* type, int32_t value);
+extern void arch_add_const(struct symbol* type, struct symbol* sym, int32_t value);
 extern void arch_add(struct symbol* type);
-extern void arch_subfrom_const(struct symbol* type, int32_t value);
+extern void arch_subfrom_const(struct symbol* type, struct symbol* sym, int32_t value);
 extern void arch_sub(struct symbol* type);
 extern void arch_mul_const(struct symbol* type, int32_t value);
 extern void arch_mul(struct symbol* type);
@@ -121,11 +124,14 @@ extern void arch_div(struct symbol* type);
 extern void arch_rem_const_by(struct symbol* type, int32_t value);
 extern void arch_rem_const(struct symbol* type, int32_t value);
 extern void arch_rem(struct symbol* type);
-extern void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
+extern void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel,
+	struct symbol* sym, int32_t value);
 extern void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel);
-extern void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
+extern void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel,
+	struct symbol* sym, int32_t value);
 extern void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel);
-extern void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value);
+extern void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel,
+	struct symbol* sym, int32_t value);
 extern void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel);
 extern void arch_assign_var(struct symbol* var, int32_t offset);
 extern void arch_assign_ptr(struct symbol* ptrtype);

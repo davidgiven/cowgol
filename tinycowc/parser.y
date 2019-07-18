@@ -37,6 +37,9 @@ static struct symbol* make_pointer_type(struct symbol* type);
 static void resolve_expression_type(struct exprnode* node, struct symbol* type);
 static void unescape(char* string);
 
+static void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off);
+static void node_is_stacked(struct exprnode* node, struct symbol* type);
+
 %}
 
 %token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM
@@ -47,6 +50,7 @@ static void unescape(char* string);
 %type <symbol> oldid;
 %type <symbol> typeref;
 %type <expr> expression;
+%type <expr> lvalue;
 %type <labels> LOOP;
 %type <labels> WHILE;
 %type <labels> IF;
@@ -189,21 +193,30 @@ statement
 				fatal("expected '%s' to be a subroutine", $1->name);
 			arch_emit_call($1->u.sub);
 		}
-	| oldid ASSIGN expression ';'
+	| lvalue ASSIGN expression ';'
 		{
-			if ($1->kind != VAR)
-				fatal("expected '%s' to be a variable", $1->name);
-
-			resolve_expression_type(&$3, $1->u.var.type);
-			arch_assign_var($1, 0);
+			resolve_expression_type(&$3, $1.type);
+			if ($1.constant)
+				arch_assign_var($1.sym, $1.off);
+			else
+				arch_assign_ptr($1.type->u.type.pointerto);
 		}
-	| '[' expression ']' ASSIGN expression ';'
-		{
-			if (!$2.type->u.type.pointingat)
-				fatal("expected LHS to be a pointer");
+	;
 
-			resolve_expression_type(&$5, $2.type->u.type.pointingat);
-			arch_assign_ptr($2.type);
+lvalue
+	: oldid
+		{
+			node_is_constant(&$$, $1->u.var.type, $1, 0);
+		}
+	| '[' expression ']'
+		{
+			if (!$2.type)
+				fatal("cannot dereference untyped constants");
+			
+			$$ = $2;
+			$$.type = $2.type->u.type.pointingat;
+			if (!$$.type)
+				fatal("can only dereference pointers");
 		}
 	;
 
@@ -286,14 +299,13 @@ typeref
 expression
 	: NUMBER
 		{
-			$$.type = NULL;
-			$$.value = number;
+			node_is_constant(&$$, NULL, NULL, number);
 		}
 	| STRING
 		{
 			unescape(yytext);
 			arch_push_string_constant(yytext);
-			$$.type = make_pointer_type(uint8_type);
+			node_is_stacked(&$$, make_pointer_type(uint8_type));
 		}
 	| oldid
 		{
@@ -301,7 +313,7 @@ expression
 				fatal("expected '%s' to be a variable", $1->name);
 
 			arch_push_value($1, 0);
-			$$.type = $1->u.var.type;
+			node_is_stacked(&$$, $1->u.var.type);
 		}
 	| '[' expression ']'
 		{
@@ -309,15 +321,14 @@ expression
 				fatal("attempt to dereference a non-pointer");
 
 			arch_dereference($2.type);
-			$$.type = $2.type->u.type.pointingat;
+			node_is_stacked(&$$, $2.type->u.type.pointingat);
 		}
 	| '(' expression ')'
 		{ $$ = $2; }
 	| '-' expression
 		{ 
 			struct exprnode e;
-			e.type = NULL;
-			e.value = 0;
+			node_is_constant(&e, NULL, NULL, 0);
 			expr_sub(&$$, &e, &$2);
 		}
 	| expression '+' expression
@@ -436,197 +447,186 @@ static bool is_num(struct symbol* sym)
 	return !sym->u.type.pointingat;
 }
 
+static void resolve_untyped_constants_for_add_sub(struct exprnode* lhs, struct exprnode* rhs)
+{
+	if (lhs->type && !rhs->type)
+	{
+		if (is_num(lhs->type))
+			rhs->type = lhs->type;
+		else if (is_ptr(lhs->type))
+			rhs->type = intptr_type;
+		else
+			fatal("cannot use an untyped constant in this context");
+	}
+	if (!lhs->type && rhs->type)
+	{
+		if (is_num(rhs->type))
+			lhs->type = rhs->type;
+		else if (is_ptr(rhs->type))
+			fatal("pointers may only appear on the LHS of an addition or subtraction");
+	}
+}
+
 static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
+	resolve_untyped_constants_for_add_sub(lhs, rhs);
 	if (!lhs->type && !rhs->type)
 	{
-		dest->type = NULL;
-		dest->value = lhs->value + rhs->value;
+		assert(lhs->sym == NULL);
+		assert(rhs->sym == NULL);
+		node_is_constant(dest, lhs->type, NULL, lhs->off + rhs->off);
 	}
 	else
 	{
 		if (is_ptr(lhs->type) && is_ptr(rhs->type))
 			fatal("you cannot add two pointers together");
+		else if (is_ptr(lhs->type) && (rhs->type != intptr_type))
+			fatal("you can only add a %s to a pointer", rhs->type->name);
 		else if (is_ptr(rhs->type))
 			fatal("add numbers to pointers, not vice versa");
-
-		if (lhs->type && !rhs->type)
-		{
-			arch_add_const(lhs->type, rhs->value);
-			dest->type = lhs->type;
-		}
-		else if (!lhs->type && rhs->type)
-		{
-			arch_add_const(rhs->type, lhs->value);
-			dest->type = rhs->type;
-		}
-		else if ((lhs->type == rhs->type) ||
-                 (is_ptr(lhs->type) && (rhs->type == intptr_type)))
-		{
-			arch_add(lhs->type);
-			dest->type = lhs->type;
-		}
-		else
+		else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
 			fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
+
+		if (lhs->constant && rhs->constant)
+			node_is_constant(dest, lhs->type, lhs->sym, lhs->off + rhs->off);
+		else
+		{
+			if (!lhs->constant && rhs->constant)
+				arch_add_const(lhs->type, NULL, rhs->off);
+			else if (lhs->constant && !rhs->constant)
+				arch_add_const(lhs->type, NULL, lhs->off);
+			else
+				arch_add(lhs->type);
+			node_is_stacked(dest, lhs->type);
+		}
 	}
 }
 
 static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
+	resolve_untyped_constants_for_add_sub(lhs, rhs);
 	if (!lhs->type && !rhs->type)
 	{
-		dest->type = NULL;
-		dest->value = lhs->value - rhs->value;
+		assert(lhs->sym == NULL);
+		assert(rhs->sym == NULL);
+		node_is_constant(dest, lhs->type, NULL, lhs->off - rhs->off);
 	}
 	else
 	{
-		if (is_ptr(rhs->type))
+		if (is_ptr(lhs->type) && !is_ptr(rhs->type) && (rhs->type != intptr_type))
+			fatal("you can't subtrack a %s and a %s", lhs->type->name, rhs->type->name);
+		else if (is_num(lhs->type) && is_ptr(rhs->type))
 			fatal("subtract numbers from pointers, not vice versa");
+		else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
+			fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
 
-		if (lhs->type && !rhs->type)
-		{
-			arch_add_const(lhs->type, -rhs->value);
-			dest->type = lhs->type;
-		}
-		else if (!lhs->type && rhs->type)
-		{
-			arch_subfrom_const(rhs->type, lhs->value);
-			dest->type = rhs->type;
-		}
-		else if ((lhs->type == rhs->type) && is_ptr(lhs->type))
-		{
-			arch_sub(lhs->type);
-			dest->type = intptr_type;
-		}
-		else if ((lhs->type == rhs->type) ||
-                 (is_ptr(lhs->type) && (rhs->type == intptr_type)))
-		{
-			arch_sub(lhs->type);
-			dest->type = lhs->type;
-		}
+		if (lhs->constant && rhs->constant)
+			node_is_constant(dest, lhs->type, lhs->sym, lhs->off - rhs->off);
 		else
-			fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
+		{
+			if (!lhs->constant && rhs->constant)
+				arch_add_const(lhs->type, NULL, -rhs->off);
+			else if (lhs->constant && !rhs->constant)
+				arch_subfrom_const(lhs->type, NULL, lhs->off);
+			else
+				arch_sub(lhs->type);
+			node_is_stacked(dest, lhs->type);
+		}
 	}
+}
+
+static void resolve_untyped_constants_simply(struct exprnode* lhs, struct exprnode* rhs)
+{
+	if (lhs->type && !rhs->type)
+		rhs->type = lhs->type;
+	else if (!lhs->type && rhs->type)
+		lhs->type = rhs->type;
+	else if (lhs->type != rhs->type)
+		fatal("type mismatch with %s and %s", lhs->type->name, rhs->type->name);
 }
 
 static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
+	resolve_untyped_constants_simply(lhs, rhs);
 	if (!is_num(lhs->type) || !is_num(rhs->type))
 		fatal("multiplication only works on numbers");
 
-	if (!lhs->type && !rhs->type)
+	if (lhs->constant && !rhs->constant)
 	{
-		dest->type = NULL;
-		dest->value = lhs->value * rhs->value;
+		assert(lhs->sym == NULL);
+		assert(rhs->sym == NULL);
+		node_is_constant(dest, lhs->type, NULL, lhs->off * rhs->off);
+		return;
 	}
+
+	if (rhs->constant)
+		arch_mul_const(lhs->type, rhs->off);
+	else if (lhs->constant)
+		arch_mul_const(lhs->type, lhs->off);
 	else
-	{
-		if (lhs->type && !rhs->type)
-		{
-			if (rhs->value == 0)
-			{
-				dest->type = NULL;
-				dest->value = 0;
-			}
-			else
-			{
-				if (rhs->value != 1)
-					arch_mul_const(lhs->type, rhs->value);
-				dest->type = lhs->type;
-			}
-		}
-		else if (!lhs->type && rhs->type)
-			expr_mul(dest, rhs, lhs);
-		else if (lhs->type == rhs->type)
-		{
-			arch_mul(lhs->type);
-			dest->type = intptr_type;
-		}
-		else
-			fatal("you tried to multiply a %s and a %s", lhs->type->name, rhs->type->name);
-	}
+		arch_mul(lhs->type);
+	node_is_stacked(dest, lhs->type);
 }
 
 static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
+	resolve_untyped_constants_simply(lhs, rhs);
 	if (!is_num(lhs->type) || !is_num(rhs->type))
 		fatal("division only works on numbers");
-
-	if (!rhs->type && (rhs->value == 0))
+	if (rhs->constant && (rhs->off == 0))
 		fatal("division by zero");
 
-	if (!lhs->type && !rhs->type)
+	if (lhs->constant && !rhs->constant)
 	{
-		dest->type = NULL;
-		dest->value = lhs->value / rhs->value;
+		assert(lhs->sym == NULL);
+		assert(rhs->sym == NULL);
+		node_is_constant(dest, lhs->type, NULL, lhs->off / rhs->off);
+		return;
 	}
+
+	if (rhs->constant)
+		arch_div_const(lhs->type, rhs->off);
+	else if (lhs->constant)
+		arch_div_const_by(lhs->type, lhs->off);
 	else
-	{
-		if (lhs->type && !rhs->type)
-		{
-			if (rhs->value != 1)
-				arch_div_const(lhs->type, rhs->value);
-			dest->type = lhs->type;
-		}
-		else if (!lhs->type && rhs->type)
-		{
-			arch_div_const_by(rhs->type, lhs->value);
-			dest->type = rhs->type;
-		}
-		else if (lhs->type == rhs->type)
-		{
-			arch_div(lhs->type);
-			dest->type = intptr_type;
-		}
-		else
-			fatal("you tried to divide a %s and a %s", lhs->type->name, rhs->type->name);
-	}
+		arch_div(lhs->type);
+	node_is_stacked(dest, lhs->type);
 }
 
 static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
 {
+	resolve_untyped_constants_simply(lhs, rhs);
 	if (!is_num(lhs->type) || !is_num(rhs->type))
 		fatal("modulus only works on numbers");
-
-	if (!rhs->type && (rhs->value == 0))
+	if (rhs->constant && (rhs->off == 0))
 		fatal("division by zero");
 
-	if (!lhs->type && !rhs->type)
+	if (lhs->constant && !rhs->constant)
 	{
-		dest->type = NULL;
-		dest->value = lhs->value % rhs->value;
+		assert(lhs->sym == NULL);
+		assert(rhs->sym == NULL);
+		node_is_constant(dest, lhs->type, NULL, lhs->off % rhs->off);
+		return;
 	}
+
+	if (rhs->constant)
+		arch_rem_const(lhs->type, rhs->off);
+	else if (lhs->constant)
+		arch_rem_const_by(lhs->type, lhs->off);
 	else
-	{
-		if (lhs->type && !rhs->type)
-		{
-			if (rhs->value != 1)
-				arch_rem_const(lhs->type, rhs->value);
-			dest->type = lhs->type;
-		}
-		else if (!lhs->type && rhs->type)
-		{
-			arch_rem_const_by(rhs->type, lhs->value);
-			dest->type = rhs->type;
-		}
-		else if (lhs->type == rhs->type)
-		{
-			arch_rem(lhs->type);
-			dest->type = intptr_type;
-		}
-		else
-			fatal("you tried to use modulus on a %s and a %s", lhs->type->name, rhs->type->name);
-	}
+		arch_rem(lhs->type);
+	node_is_stacked(dest, lhs->type);
 }
 
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
 {
-	if (!lhs->type && !rhs->type)
-		arch_emit_jump((lhs->value == rhs->value) ? truelabel : falselabel);
-	else if (lhs->type && !rhs->type)
-		arch_cmp_equals_const(lhs->type, truelabel, falselabel, rhs->value);
-	else if (!lhs->type && rhs->type)
-		arch_cmp_equals_const(rhs->type, truelabel, falselabel, lhs->value);
+	resolve_untyped_constants_simply(lhs, rhs);
+	if (lhs->constant && rhs->constant)
+		arch_emit_jump((lhs->off == rhs->off) ? truelabel : falselabel);
+	else if (lhs->constant && !rhs->constant)
+		arch_cmp_equals_const(lhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+	else if (!lhs->constant && rhs->constant)
+		arch_cmp_equals_const(rhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_equals(lhs->type, truelabel, falselabel);
 	else
@@ -635,12 +635,13 @@ static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, str
 
 static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
 {
-	if (!lhs->type && !rhs->type)
-		arch_emit_jump((lhs->value < rhs->value) ? truelabel : falselabel);
-	else if (lhs->type && !rhs->type)
-		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, rhs->value);
-	else if (!lhs->type && rhs->type)
-		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, lhs->value);
+	resolve_untyped_constants_simply(lhs, rhs);
+	if (!lhs->constant && !rhs->constant)
+		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
+	else if (lhs->constant && !rhs->constant)
+		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+	else if (!lhs->constant && rhs->constant)
+		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_lessthan(lhs->type, truelabel, falselabel);
 	else
@@ -649,23 +650,17 @@ static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, s
 
 static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
 {
-	if (!lhs->type && !rhs->type)
-		arch_emit_jump((lhs->value < rhs->value) ? truelabel : falselabel);
-	else if (lhs->type && !rhs->type)
-		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, rhs->value);
-	else if (!lhs->type && rhs->type)
-		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, lhs->value);
+	resolve_untyped_constants_simply(lhs, rhs);
+	if (!lhs->constant && !rhs->constant)
+		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
+	else if (lhs->constant && !rhs->constant)
+		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+	else if (!lhs->constant && rhs->constant)
+		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_greaterthan(lhs->type, truelabel, falselabel);
 	else
 		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
-}
-
-void varaccess(const char* opcode, struct symbol* var)
-{
-	printf(" %s w_%s+%d ; %s\n",
-		opcode, var->u.var.sub->name, var->u.var.offset,
-		var->name);
 }
 
 struct symbol* add_new_symbol(const char* name)
@@ -728,11 +723,11 @@ static void init_var(struct symbol* sym, struct symbol* type)
 
 static void resolve_expression_type(struct exprnode* node, struct symbol* type)
 {
-	if (!node->type)
+	if (node->constant)
 	{
-		arch_push_constant(node->value);
-		node->type = type;
-		return;
+		arch_push_constant(node->sym, node->off);
+		if (!node->type)
+			node->type = type;
 	}
 
 	if (node->type != type)
@@ -781,3 +776,20 @@ static void unescape(char* string)
 		c = *pin++;
 	}
 }
+
+static void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off)
+{
+	node->type = type;
+	node->sym = sym;
+	node->off = off;
+	node->constant = true;
+}
+
+static void node_is_stacked(struct exprnode* node, struct symbol* type)
+{
+	node->type = type;
+	node->sym = NULL;
+	node->off = 0;
+	node->constant = false;
+}
+

@@ -11,7 +11,6 @@ enum
 {
 	SLOT_STACKED,
 	SLOT_CONST,
-	SLOT_ADDR,
 	SLOT_VALUE,
 
 	REG_A,
@@ -23,12 +22,8 @@ enum
 struct slot
 {
 	int kind;
-	union
-	{
-		uint16_t constvalue;
-		struct symbol* sym;
-	}
-	u;
+	struct symbol* sym;
+	int16_t off;
 };
 
 static struct slot vstack[STACK_DEPTH];
@@ -79,34 +74,39 @@ static void vpush_reg(int reg)
 	printf(" push %s\n", stackname(reg));
 }
 
-static void vpush_const(uint16_t c)
+static void vpush_const(struct symbol* sym, uint16_t off)
 {
 	if (sp == STACK_DEPTH)
 		fatal("vstack overflow");
 	struct slot* slot = &vstack[sp++];
 
 	slot->kind = SLOT_CONST;
-	slot->u.constvalue = c;
+	slot->sym = sym;
+	slot->off = off;
 }
 
-static void vpush_addr(struct symbol* sym)
-{
-	if (sp == STACK_DEPTH)
-		fatal("vstack overflow");
-	struct slot* slot = &vstack[sp++];
-
-	slot->kind = SLOT_ADDR;
-	slot->u.sym = sym;
-}
-
-static void vpush_value(struct symbol* sym)
+static void vpush_value(struct symbol* sym, uint16_t off)
 {
 	if (sp == STACK_DEPTH)
 		fatal("vstack overflow");
 	struct slot* slot = &vstack[sp++];
 
 	slot->kind = SLOT_VALUE;
-	slot->u.sym = sym;
+	slot->sym = sym;
+	slot->off = off;
+}
+
+static const char* varref(const char* op, struct symbol* sym, int16_t off)
+{
+	static char buffer[64];
+	if (sym)
+		snprintf(buffer, sizeof(buffer), "%s (w_%s+%d) ; %s",
+			op,
+			sym->u.var.sub->name, sym->u.var.offset + off,
+			sym->name);
+	else
+		snprintf(buffer, sizeof(buffer), "%s %d", op, off);
+	return buffer;
 }
 
 static void vpop_reg(int width, int reg)
@@ -123,9 +123,9 @@ static void vpop_reg(int width, int reg)
 
 		case SLOT_CONST:
 			if (width == 1)
-				printf(" mvi %s, %u\n", regname(reg), slot->u.constvalue & 0xff);
+				printf(" mvi %s, %s\n", regname(reg), varref("low", slot->sym, slot->off));
 			else
-				printf(" lxi %s, %u\n", regname(reg), slot->u.constvalue);
+				printf(" lxi %s, %s\n", regname(reg), varref("", slot->sym, slot->off));
 			break;
 
 		case SLOT_VALUE:
@@ -134,18 +134,13 @@ static void vpop_reg(int width, int reg)
 
 			if (reg == REG_A)
 			{
-				printf(" lda w_%s+%d ; %s\n",
-					slot->u.sym->u.var.sub->name, slot->u.sym->u.var.offset,
-					slot->u.sym->name);
+				printf(" lda %s\n", varref("", slot->sym, slot->off));
 			}
 			else
 			{
 				if (reg == REG_DE)
 					printf(" xchg\n");
-				printf(" lhld w_%s+%d ; %s\n",
-					slot->u.sym->u.var.sub->name,
-					slot->u.sym->u.var.offset - (width == 1),
-					slot->u.sym->name);
+				printf(" lhld %s\n", varref("", slot->sym, slot->off - (width == 1)));
 				if (reg == REG_DE)
 					printf(" xchg\n");
 			}
@@ -179,12 +174,12 @@ void arch_subroutine_prologue(void)
 			if (param->u.var.type->u.type.width == 1)
 			{
 				printf(" pop psw\n");
-				varaccess("sta", param);
+				printf(" sta %s\n", varref("", param, 0));
 			}
 			else
 			{
 				printf(" pop h\n");
-				varaccess("shld", param);
+				printf(" shld %s\n", varref("", param, 0));
 			}
 		}
 		printf(" push b\n");
@@ -238,9 +233,9 @@ void arch_emit_call(struct subroutine* sub)
 	printf(" call f_%s\n", sub->name);
 }
 
-void arch_push_constant(int32_t value)
+void arch_push_constant(struct symbol* sym, int32_t off)
 {
-	vpush_const(value);
+	vpush_const(sym, off);
 }
 
 void arch_push_string_constant(const char* text)
@@ -265,11 +260,9 @@ void arch_push_string_constant(const char* text)
 	vpush_raw();
 }
 
-void arch_push_value(struct symbol* sym, int32_t offset)
+void arch_push_value(struct symbol* sym, int32_t off)
 {
-	if (offset != 0)
-		fatal("can't use offsets yet");
-	vpush_value(sym);
+	vpush_value(sym, off);
 }
 
 void arch_dereference(struct symbol* ptrtype)
@@ -297,31 +290,31 @@ void arch_dereference(struct symbol* ptrtype)
 	}
 }
 
-void arch_add_const(struct symbol* type, int32_t value)
+void arch_add_const(struct symbol* type, struct symbol* sym, int32_t off)
 {
 	int width = type->u.type.width;
 	switch (type->u.type.width)
 	{
 		case 1:
 			vpop_reg(width, REG_A);
-			if (value == 1)
+			if (off == 1)
 				printf(" inr a\n");
-			else if (value == -1)
+			else if (off == -1)
 				printf(" dcr a\n");
 			else
-				printf(" adi %d\n", value);
+				printf(" adi %s\n", varref("low", sym, off));
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(width, REG_HL);
-			if (value == 1)
+			if (off == 1)
 				printf(" inx h\n");
-			else if (value == -1)
+			else if (off == -1)
 				printf(" dcx h\n");
 			else
 			{
-				printf(" lxi b, %d\n", value);
+				printf(" lxi b, %s\n", varref("", sym, off));
 				printf(" dad b\n");
 			}
 			vpush_reg(REG_HL);
@@ -356,24 +349,24 @@ void arch_add(struct symbol* type)
 	}
 }
 
-void arch_subfrom_const(struct symbol* type, int32_t value)
+void arch_subfrom_const(struct symbol* type, struct symbol* sym, int32_t off)
 {
 	int width = type->u.type.width;
 	switch (type->u.type.width)
 	{
 		case 1:
 			vpop_reg(width, REG_HL);
-			printf(" mvi a, %u\n", value & 0xff);
+			printf(" mvi a, %s\n", varref("low", sym, off));
 			printf(" sub h\n");
 			vpush_reg(REG_A);
 			break;
 
 		case 2:
 			vpop_reg(width, REG_HL);
-			printf(" mvi a, %u\n", value & 0xff);
+			printf(" mvi a, %s\n", varref("low", sym, off));
 			printf(" sub l\n");
 			printf(" mov l, a\n");
-			printf(" mvi a, %u\n", (value >> 8) & 0xff);
+			printf(" mvi a, %s\n", varref("high", sym, off));
 			printf(" sbb h\n");
 			printf(" mov h, a\n");
 			vpush_reg(REG_HL);
@@ -653,7 +646,8 @@ void arch_rem(struct symbol* type)
 	}
 }
 
-void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel, int32_t value)
+void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel,
+		struct symbol* sym, int32_t value)
 {
 	int width = type->u.type.width;
 	switch (width)
@@ -720,7 +714,8 @@ void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel)
 	printf(" jmp x%d\n", truelabel);
 }
 
-void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value)
+void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel,
+		struct symbol* sym, int32_t value)
 {
 	int width = type->u.type.width;
 	if (type->u.type.issigned)
@@ -784,7 +779,8 @@ void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel)
 	}
 }
 
-void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel, int32_t value)
+void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel,
+		struct symbol* sym, int32_t value)
 {
 	int width = type->u.type.width;
 	if (type->u.type.issigned)
@@ -859,12 +855,12 @@ void arch_assign_var(struct symbol* var, int32_t offset)
 	{
 		case 1:
 			vpop_reg(width, REG_A);
-			varaccess("sta", var);
+			printf(" sta %s\n", varref("", var, 0));
 			break;
 
 		case 2:
 			vpop_reg(width, REG_HL);
-			varaccess("shld", var);
+			printf(" shld %s\n", varref("", var, 0));
 			break;
 
 		default:
