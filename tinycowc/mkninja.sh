@@ -134,6 +134,7 @@ buildlibrary libmain.a \
     -I$OBJDIR \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
+    main.c \
     arch8080.c \
 
 buildprogram tinycowc \

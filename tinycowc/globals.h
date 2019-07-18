@@ -88,8 +88,13 @@ struct argumentsspec
 
 extern void varaccess(const char* opcode, struct symbol* var);
 
+extern struct symbol* intptr_type;
+extern struct symbol* uint8_type;
+
 extern struct subroutine* current_sub;
 extern int current_label;
+
+extern struct symbol* add_new_symbol(const char* name);
 
 extern void arch_file_prologue(void);
 extern void arch_file_epilogue(void);
