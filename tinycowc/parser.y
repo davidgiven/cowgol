@@ -80,8 +80,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 program
 	: statements
 		{
-			printf(" ret\n");
-			printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
+			arch_subroutine_epilogue();
 		}
 	;
 

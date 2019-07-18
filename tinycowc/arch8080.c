@@ -195,7 +195,8 @@ void arch_subroutine_epilogue(void)
 
 void arch_emit_label(int label)
 {
-	printf("x%d:\n", label);
+	if (label)
+		printf("x%d:\n", label);
 }
 
 void arch_label_alias(int fakelabel, int reallabel)
