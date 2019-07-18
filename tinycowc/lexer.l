@@ -36,7 +36,7 @@ SP [ \t]+
 ">="                      { return GEOP; }
 "<"                       { return LTOP; }
 ">"                       { return GTOP; }
-[-;:,+*/%()[\]]           { return yytext[0]; }
+[-;:,+*/%()[\]^&|]        { return yytext[0]; }
 
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }

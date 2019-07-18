@@ -646,6 +646,64 @@ void arch_rem(struct symbol* type)
 	}
 }
 
+void arch_logicop_const(struct symbol* type, int32_t value, int logicop)
+{
+	static const char* logicops[] = { "ani", "ori", "xri" };
+	int width = type->u.type.width;
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(width, REG_A);
+			printf(" %s %u\n", logicops[logicop], value & 0xff);
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(width, REG_HL);
+			printf(" mov a, l\n");
+			printf(" %s %u\n", logicops[logicop], value & 0xff);
+			printf(" mov l, a\n");
+			printf(" mov a, h\n");
+			printf(" %s %u\n", logicops[logicop], (value >> 8) & 0xff);
+			printf(" mov h, a\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_logicop(struct symbol* type, int logicop)
+{
+	static const char* logicops[] = { "ani", "ori", "xri" };
+	int width = type->u.type.width;
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(width, REG_DE);
+			vpop_reg(width, REG_A);
+			printf(" %s d\n", logicops[logicop]);
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(width, REG_DE);
+			vpop_reg(width, REG_HL);
+			printf(" mov a, l\n");
+			printf(" %s e\n", logicops[logicop]);
+			printf(" mov l, a\n");
+			printf(" mov a, h\n");
+			printf(" %s d\n", logicops[logicop]);
+			printf(" mov h, a\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
 void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel,
 		struct symbol* sym, int32_t value)
 {

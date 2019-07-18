@@ -27,6 +27,7 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
+static void expr_logicop(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs, int logicop);
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
@@ -361,6 +362,12 @@ expression
 		{ expr_div(&$$, &$1, &$3); }
 	| expression '%' expression
 		{ expr_rem(&$$, &$1, &$3); }
+	| expression '^' expression
+		{ expr_logicop(&$$, &$1, &$3, LOGICOP_XOR); }
+	| expression '&' expression
+		{ expr_logicop(&$$, &$1, &$3, LOGICOP_AND); }
+	| expression '|' expression
+		{ expr_logicop(&$$, &$1, &$3, LOGICOP_OR); }
 	;
 
 conditional
@@ -626,6 +633,34 @@ static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 		arch_rem_const_by(lhs->type, lhs->off);
 	else
 		arch_rem(lhs->type);
+	node_is_stacked(dest, lhs->type);
+}
+
+static void expr_logicop(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs, int logicop)
+{
+	resolve_untyped_constants_simply(lhs, rhs);
+	if (!is_num(lhs->type) || !is_num(rhs->type))
+		fatal("logical operations only work on numbers");
+
+	if (lhs->constant && rhs->constant)
+	{
+		assert(lhs->sym == NULL);
+		assert(rhs->sym == NULL);
+		int32_t result;
+		switch (logicop)
+		{
+			case LOGICOP_OR: result = lhs->off | rhs->off; break;
+			case LOGICOP_AND: result = lhs->off & rhs->off; break;
+			case LOGICOP_XOR: result = lhs->off ^ rhs->off; break;
+		}
+		node_is_constant(dest, lhs->type, NULL, result);
+		return;
+	}
+
+	if (rhs->constant)
+		arch_logicop_const(lhs->type, rhs->off, logicop);
+	else
+		arch_logicop(lhs->type, logicop);
 	node_is_stacked(dest, lhs->type);
 }
 
