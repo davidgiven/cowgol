@@ -424,9 +424,25 @@ void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel)
 }
 
 void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel,
-		struct symbol* sym, int32_t value)
+		struct symbol* sym, int32_t off)
 {
-    fatal(__FUNCTION__);
+    if (!sym && (off == 0))
+    {
+        ecode("CCS S%d + %d", current_sub->id, pop());
+    }
+    else
+    {
+        ecode("CAF C%d", add_sym_constant(sym, off));
+        ecode("TS L");
+        ecode("CAE S%d + %d", current_sub->id, pop());
+        ecode("EXTEND");
+        ecode("SU L");
+        ecode("CCS A");
+    }
+    arch_emit_jump(falselabel);
+    arch_emit_jump(falselabel);
+    arch_emit_jump(truelabel);
+    arch_emit_jump(falselabel);
 }
 
 void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel)
@@ -435,9 +451,25 @@ void arch_cmp_lessthan(struct symbol* type, int truelabel, int falselabel)
 }
 
 void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselabel,
-		struct symbol* sym, int32_t value)
+		struct symbol* sym, int32_t off)
 {
-    fatal(__FUNCTION__);
+    if (!sym && (off == 0))
+    {
+        ecode("CCS S%d + %d", current_sub->id, pop());
+    }
+    else
+    {
+        ecode("CAF C%d", add_sym_constant(sym, off));
+        ecode("TS L");
+        ecode("CAE S%d + %d", current_sub->id, pop());
+        ecode("EXTEND");
+        ecode("SU L");
+        ecode("CCS A");
+    }
+    arch_emit_jump(truelabel);
+    arch_emit_jump(falselabel);
+    arch_emit_jump(falselabel);
+    arch_emit_jump(falselabel);
 }
 
 void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel)

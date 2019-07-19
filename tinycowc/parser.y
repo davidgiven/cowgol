@@ -685,9 +685,9 @@ static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, s
 	if (!lhs->constant && !rhs->constant)
 		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
 	else if (lhs->constant && !rhs->constant)
-		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
+		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (!lhs->constant && rhs->constant)
-		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_lessthan(lhs->type, truelabel, falselabel);
 	else
@@ -700,9 +700,9 @@ static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs
 	if (!lhs->constant && !rhs->constant)
 		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
 	else if (lhs->constant && !rhs->constant)
-		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
+		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (!lhs->constant && rhs->constant)
-		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_greaterthan(lhs->type, truelabel, falselabel);
 	else
