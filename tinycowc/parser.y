@@ -79,9 +79,6 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 program
 	: statements
-		{
-			arch_subroutine_epilogue();
-		}
 	;
 
 statements

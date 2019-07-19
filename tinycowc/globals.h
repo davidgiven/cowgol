@@ -63,6 +63,8 @@ struct subroutine
 	int label_after;
 	int inputparameters;
 	int old_break_label;
+    int id;
+    int maxsp;
 };
 
 struct exprnode
