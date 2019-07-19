@@ -54,7 +54,9 @@ int main(int argc, const char* argv[])
 	yydebug = 0;
 
 	arch_file_prologue();
+	arch_subroutine_prologue();
 	yyparse();
+	arch_subroutine_epilogue();
 	arch_file_epilogue();
 
 	return 0;
