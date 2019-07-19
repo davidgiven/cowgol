@@ -159,7 +159,6 @@ void arch_file_epilogue(void)
 
 void arch_subroutine_prologue(void)
 {
-	arch_emit_jump(current_sub->label_after);
 	printf("f_%s:\n", current_sub->name);
 
 	if (current_sub->inputparameters != 0)
@@ -190,7 +189,6 @@ void arch_subroutine_epilogue(void)
 {
 	printf(" ret\n");
 	printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
-	arch_emit_label(current_sub->label_after);
 }
 
 void arch_emit_label(int label)

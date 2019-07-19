@@ -78,10 +78,6 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 program
 	: statements
-		{
-			printf(" ret\n");
-			printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
-		}
 	;
 
 statements
@@ -128,11 +124,13 @@ statement
 		}
 		parameterlist
 		{
+			arch_emit_jump(current_sub->label_after);
 			arch_subroutine_prologue();
 		}
 		statements
 		{
 			arch_subroutine_epilogue();
+			arch_emit_label(current_sub->label_after);
 			break_label = current_sub->old_break_label;
 			current_sub = current_sub->parent;
 		}
