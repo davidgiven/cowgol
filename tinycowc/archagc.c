@@ -47,10 +47,7 @@ static int add_constant(const char* s, ...)
 
 static int add_num_constant(int32_t val)
 {
-    if (val < 0)
-        return add_constant("OCT %o", -val | 0x4000);
-    else
-        return add_constant("OCT %o", val);
+    return add_constant("DEC %d", val);
 }
 
 static int add_sym_constant(struct symbol* sym, int32_t off)
