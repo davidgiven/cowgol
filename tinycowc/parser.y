@@ -249,7 +249,8 @@ oldid
 	;
 
 parameterlist
-	: '(' parameters ')'
+	: '(' ')'
+	| '(' parameters ')'
 	;
 
 parameters
