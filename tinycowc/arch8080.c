@@ -150,6 +150,11 @@ static void vpop_reg(int width, int reg)
 
 void arch_file_prologue(void)
 {
+	intptr_type = make_number_type("uint16", 2, false);
+	make_number_type("int16", 2, true);
+	uint8_type = make_number_type("uint8", 1, false);
+	make_number_type("int8", 1, true);
+
 	printf(" org 100h\n");
 }
 
