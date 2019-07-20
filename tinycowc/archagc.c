@@ -162,9 +162,7 @@ void arch_subroutine_prologue(void)
 
 void arch_subroutine_epilogue(void)
 {
-    ecode("EXTEND");
-    ecode("QXCH Q%d", current_sub->id);
-    ecode("RETURN");
+    arch_return();
 
     elabel("Q%d", current_sub->id);
     edata("ERASE");
@@ -191,6 +189,9 @@ void arch_emit_label(int label)
 
 void arch_label_alias(int fakelabel, int reallabel)
 {
+    if (label[0])
+        ecode("SUBRO");
+
     elabel("X%d", fakelabel);
     ecode("= X%d", reallabel);
 }
@@ -209,6 +210,13 @@ void arch_emit_call(struct subroutine* sub)
     sp -= sub->inputparameters;
     ecode("CAF C%d", add_constant("TC S%d + %d", current_sub->id, sp));
     ecode("TC F%d       # %s", sub->id, sub->name);
+}
+
+void arch_return(void)
+{
+    ecode("EXTEND");
+    ecode("QXCH Q%d", current_sub->id);
+    ecode("RETURN");
 }
 
 void arch_push_constant(struct symbol* sym, int32_t off)
@@ -232,7 +240,10 @@ void arch_push_value(struct symbol* sym, int32_t off)
 
 void arch_dereference(struct symbol* ptrtype)
 {
-    fatal(__FUNCTION__);
+    ecode("CAE S%d + %d", current_sub->id, pop());
+    ecode("INDEX A");
+    ecode("CAE 0");
+    ecode("TS S%d + %d", current_sub->id, push());
 }
 
 void arch_add_const(struct symbol* type, struct symbol* sym, int32_t off)
@@ -496,7 +507,8 @@ void arch_assign_ptr(struct symbol* ptrtype)
 
 void arch_asm_start(void)
 {
-    fprintf(codefp, "%10s", "");
+    fprintf(codefp, "%-9s", label);
+    label[0] = 0;
 }
 
 void arch_asm_string(const char* s)

@@ -124,6 +124,7 @@ extern void arch_emit_label(int label);
 extern void arch_label_alias(int fakelabel, int reallabel);
 extern void arch_emit_jump(int label);
 extern void arch_emit_call(struct subroutine* sub);
+extern void arch_return(void);
 extern void arch_push_input_param(struct symbol* type);
 extern void arch_push_constant(struct symbol* sym, int32_t value);
 extern void arch_push_string_constant(const char* text);

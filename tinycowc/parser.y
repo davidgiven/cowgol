@@ -45,7 +45,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE
+%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN
 %token ID NUMBER STRING
 %token ASSIGN
 
@@ -62,6 +62,9 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 %left ','
 %left OR
 %left AND
+%left '|'
+%left '^'
+%left '&'
 %left LTOP LEOP GTOP GEOP EQOP NEOP
 %left '+' '-'
 %left '*' '/' '%'
@@ -192,6 +195,10 @@ statement
 			if (!break_label)
 				fatal("nothing to break from");
 			arch_emit_jump(break_label);
+		}
+	| RETURN ';'
+		{
+			arch_return();
 		}
 	| ASM {
 		arch_asm_start();

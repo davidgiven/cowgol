@@ -26,6 +26,7 @@ SP [ \t]+
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
+"return"                  { return RETURN; }
 "sub"                     { return SUB; }
 "then"                    { return THEN; }
 "var"                     { return VAR; }
