@@ -268,6 +268,7 @@ void arch_subfrom_const(struct symbol* type, struct symbol* sym, int32_t off)
     ecode("CAF C%d", add_sym_constant(sym, off));
     ecode("EXTEND");
     ecode("SU S%d + %d", current_sub->id, sp-1);
+    ecode("XCH S%d + %d", current_sub->id, sp-1);
 }
 
 void arch_sub(struct symbol* type)
