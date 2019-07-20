@@ -1,0 +1,213 @@
+var dsky_buffer: int15[13];
+
+sub dsky_set_raw_opcode(address: int15, sign: int15, left: int15, right: int15)
+    var olddata := dsky_buffer[address];
+
+    if sign == -1 then
+        sign := olddata & 0b10000000000;
+    else
+        sign := sign * 1024;
+    end if;
+
+    if left == -1 then
+        left := olddata & 0b01111100000;
+    else
+        left := left * 32;
+    end if;
+
+    if right == -1 then
+        right := olddata & 0b00000011111;
+    end if;
+
+    var op: int15 := address * 1024;
+    @asm "CAE", op;
+    @asm "TS CYL";
+    @asm "CAE CYL";
+    @asm "TS", op;
+
+    op := op | sign | left | right;
+    @asm "CAE", op;
+    @asm "EXTEND";
+    @asm "WRITE 10";
+    dsky_buffer[address] := op;
+end sub;
+
+sub dsky_set_digits(digitpair: int15, sign: int15, left: int15, right: int15)
+    if left != -1 then
+        @asm "CAE", left;
+        @asm "TC dskydigit";
+        @asm "TS", left;
+    end if;
+
+    if right != -1 then
+        @asm "CAE", right;
+        @asm "TC dskydigit";
+        @asm "TS", right;
+    end if;
+
+    dsky_set_raw_opcode(digitpair, sign, left, right);
+end sub;
+
+sub dsky_set_register(register: int15, value: int15)
+    var sign: int15 := 0;
+    if value < 0 then
+        sign := 1;
+        value := -value;
+    end if;
+
+    var digits: int15[5];
+    var i: int15 := 5;
+    while i != 0 loop
+        i := i - 1;
+
+        var newvalue := value / 10;
+        digits[i] := value - (newvalue * 10);
+        value := newvalue;
+    end loop;
+
+    if register == 1 then
+        dsky_set_digits(6, sign, digits[3], digits[4]);
+        dsky_set_digits(7, 0, digits[1], digits[2]);
+        dsky_set_digits(8, 0, 0, digits[0]);
+    end if;
+    if register == 2 then
+        dsky_set_digits(3, 0, digits[4], -1);
+        dsky_set_digits(4, sign, digits[2], digits[3]);
+        dsky_set_digits(5, 0, digits[0], digits[1]);
+    end if;
+    if register == 3 then
+        dsky_set_digits(1, sign, digits[3], digits[4]);
+        dsky_set_digits(2, 0, digits[1], digits[2]);
+        dsky_set_digits(3, 0, -1, digits[0]);
+    end if;
+    if register == 4 then
+        dsky_set_digits(11, 0, digits[3], digits[4]);
+    end if;
+    if register == 5 then
+        dsky_set_digits(10, 0, digits[3], digits[4]);
+    end if;
+    if register == 6 then
+        dsky_set_digits(9, 0, digits[3], digits[4]);
+    end if;
+end sub;
+
+sub dsky_clear()
+    var i: int15 := 1;
+    while i != 13 loop
+        dsky_set_raw_opcode(i, 0, 0, 0);
+        i := i + 1;
+    end loop;
+end sub;
+
+sub dsky_pause_for_key()
+    var i: int15 := 1;
+    @asm "CAE", i;
+    @asm "TS KEY";
+
+    while i != 0 loop
+        @asm "CAE KEY";
+        @asm "TS", i;
+    end loop;
+end sub;
+
+var altitude: int15;
+var velocity: int15;
+var subvelocity: int15;
+var fuel: int15;
+var thrust: int15;
+
+sub reset_game()
+    altitude := 1000*10;
+    velocity := -100;
+    subvelocity := 0;
+    fuel := 3000;
+end sub;
+
+sub display_game_state()
+    dsky_set_register(4, thrust);
+    dsky_set_register(1, altitude/10);
+    dsky_set_register(2, velocity);
+    dsky_set_register(3, fuel/10);
+
+    var lights: int15 := 0;
+    if velocity < -4 then
+        lights := lights | 0b00100;
+    end if;
+    if altitude < 100 then
+        lights := lights | 0b10000;
+    end if;
+    dsky_set_raw_opcode(12, 0, 0, lights);
+end sub;
+
+sub one_game_tick()
+    var e: int15 := 0o0600;
+    @asm "CAE", e;
+    @asm "EXTEND";
+    @asm "WOR 13";
+    @asm "CAE RHCP";
+    @asm "XCH", thrust;
+    thrust := - thrust;
+    if thrust < 0 then
+        thrust := 0;
+    end if;
+    
+    if fuel <= 0 then
+        thrust := 0;
+    end if;
+    subvelocity := subvelocity + thrust*5;
+    fuel := fuel - thrust;
+
+    altitude := altitude + velocity;
+    subvelocity := subvelocity - 5;
+    while subvelocity > 100 loop
+        velocity := velocity + 1;
+        subvelocity := subvelocity - 100;
+    end loop;
+    while subvelocity < 100 loop
+        velocity := velocity - 1;
+        subvelocity := subvelocity + 100;
+    end loop;
+end sub;
+
+var i: int15;
+loop
+    dsky_clear();
+
+    reset_game();
+    display_game_state();
+    dsky_pause_for_key();
+
+    while altitude > 0 loop
+        var ticks: int15 := 4;
+        @asm "TS CLOCK";
+
+        one_game_tick();
+        display_game_state();
+
+        loop
+            @asm "CAE CLOCK";
+            @asm "TS", i;
+            if i == 0 then
+                break;
+            end if;
+        end loop;
+    end loop;
+
+    if velocity > -4 then
+        altitude := 0;
+        velocity := 0;
+        thrust := 0;
+        display_game_state();
+    else
+        i := 10;
+        while i != 0 loop
+            dsky_clear();
+            display_game_state();
+            i := i - 1;
+        end loop;
+        dsky_clear();
+    end if;
+    dsky_pause_for_key();
+end loop;
+
+

@@ -55,7 +55,7 @@ static int add_sym_constant(struct symbol* sym, int32_t off)
     if (!sym)
         return add_num_constant(off);
     else
-        return add_constant("TC W%d + %o",
+        return add_constant("TC W%d + %#o",
             sym->u.var.sub->id,
             sym->u.var.offset + off);
 }
@@ -154,8 +154,8 @@ void arch_subroutine_prologue(void)
         for (int i=0; i<current_sub->inputparameters; i++)
         {
             ecode("INDEX Q");
-            ecode("CA %d", i);
-            ecode("TS W%d + %o", current_sub->id, i);
+            ecode("CA %#o", i);
+            ecode("TS W%d + %#o", current_sub->id, i);
         }
     }
 }
@@ -170,13 +170,13 @@ void arch_subroutine_epilogue(void)
     if (current_sub->workspace != 0)
     {
         elabel("W%d", current_sub->id);
-        edata("ERASE %o", current_sub->workspace - 1);
+        edata("ERASE %#o", current_sub->workspace - 1);
     }
 
     if (current_sub->maxsp != 0)
     {
         elabel("S%d", current_sub->id);
-        edata("ERASE %o", current_sub->maxsp - 1);
+        edata("ERASE %#o", current_sub->maxsp - 1);
     }
 
     ecode("");
@@ -210,7 +210,7 @@ void arch_emit_call(struct subroutine* sub)
     if (sub->inputparameters != 0)
     {
         sp -= sub->inputparameters;
-        ecode("CAF C%d", add_constant("TC S%d + %o", current_sub->id, sp));
+        ecode("CAF C%d", add_constant("TC S%d + %#o", current_sub->id, sp));
     }
     ecode("TC F%d       # %s", sub->id, sub->name);
 }
@@ -225,7 +225,7 @@ void arch_return(void)
 void arch_push_constant(struct symbol* sym, int32_t off)
 {
     ecode("CAF C%d", add_sym_constant(sym, off));
-    ecode("TS S%d + %o", current_sub->id, push());
+    ecode("TS S%d + %#o", current_sub->id, push());
 }
 
 void arch_push_string_constant(const char* text)
@@ -235,52 +235,52 @@ void arch_push_string_constant(const char* text)
 
 void arch_push_value(struct symbol* sym, int32_t off)
 {
-    ecode("CAE W%d + %o       # %s",
+    ecode("CAE W%d + %#o       # %s",
         sym->u.var.sub->id, sym->u.var.offset + off,
         sym->name);
-    ecode("TS S%d + %o", current_sub->id, push());
+    ecode("TS S%d + %#o", current_sub->id, push());
 }
 
 void arch_dereference(struct symbol* ptrtype)
 {
-    ecode("CAE S%d + %o", current_sub->id, pop());
+    ecode("CAE S%d + %#o", current_sub->id, pop());
     ecode("INDEX A");
     ecode("CAE 0");
-    ecode("TS S%d + %o", current_sub->id, push());
+    ecode("TS S%d + %#o", current_sub->id, push());
 }
 
 void arch_add_const(struct symbol* type, struct symbol* sym, int32_t off)
 {
     if (!sym && (off == 1))
-        ecode("INCR S%d + %o", current_sub->id, sp-1);
+        ecode("INCR S%d + %#o", current_sub->id, sp-1);
     else
     {
         ecode("CAF C%d", add_sym_constant(sym, off));
-        ecode("ADS S%d + %o", current_sub->id, sp-1);
+        ecode("ADS S%d + %#o", current_sub->id, sp-1);
     }
 }
 
 void arch_add(struct symbol* type)
 {
-    ecode("CAE S%d + %o", current_sub->id, pop());
-    ecode("ADS S%d + %o", current_sub->id, sp-1);
+    ecode("CAE S%d + %#o", current_sub->id, pop());
+    ecode("ADS S%d + %#o", current_sub->id, sp-1);
 }
 
 void arch_subfrom_const(struct symbol* type, struct symbol* sym, int32_t off)
 {
     ecode("CAF C%d", add_sym_constant(sym, off));
     ecode("EXTEND");
-    ecode("SU S%d + %o", current_sub->id, sp-1);
-    ecode("XCH S%d + %o", current_sub->id, sp-1);
+    ecode("SU S%d + %#o", current_sub->id, sp-1);
+    ecode("XCH S%d + %#o", current_sub->id, sp-1);
 }
 
 void arch_sub(struct symbol* type)
 {
-    ecode("CAE S%d + %o", current_sub->id, sp-2);
+    ecode("CAE S%d + %#o", current_sub->id, sp-2);
     ecode("EXTEND");
-    ecode("SU S%d + %o", current_sub->id, sp-1);
+    ecode("SU S%d + %#o", current_sub->id, sp-1);
     sp -= 2;
-    ecode("XCH S%d + %o", current_sub->id, push());
+    ecode("XCH S%d + %#o", current_sub->id, push());
 }
 
 void arch_mul_const(struct symbol* type, int32_t value)
@@ -288,10 +288,10 @@ void arch_mul_const(struct symbol* type, int32_t value)
     if (value == 1)
         return;
 
-    ecode("CAE S%d + %o", current_sub->id, pop());
+    ecode("CAE S%d + %#o", current_sub->id, pop());
     ecode("EXTEND");
     ecode("MP C%d", add_num_constant(value));
-    ecode("LXCH S%d + %o", current_sub->id, push());
+    ecode("LXCH S%d + %#o", current_sub->id, push());
 }
 
 void arch_mul(struct symbol* type)
@@ -303,9 +303,9 @@ void arch_div_const(struct symbol* type, int32_t value)
 {
     ecode("CAF C%d", add_num_constant(value));
     ecode("TS L");
-    ecode("CAE S%d + %o", current_sub->id, sp-1);
+    ecode("CAE S%d + %#o", current_sub->id, sp-1);
     ecode("TC DIV");
-    ecode("TS S%d + %o", current_sub->id, sp-1);
+    ecode("TS S%d + %#o", current_sub->id, sp-1);
 }
 
 void arch_div_const_by(struct symbol* type, int32_t value)
@@ -338,23 +338,25 @@ void arch_logicop_const(struct symbol* type, int32_t value, int logicop)
     switch (logicop)
     {
         case LOGICOP_AND:
-            ecode("CAE S%d + %o", current_sub->id, sp-1);
+            ecode("CAE S%d + %#o", current_sub->id, sp-1);
             ecode("MASK C%d", add_num_constant(value));
-            ecode("XCH S%d + %o", current_sub->id, sp-1);
+            ecode("XCH S%d + %#o", current_sub->id, sp-1);
             break;
 
         case LOGICOP_OR:
-            ecode("LXCH S%d + %o", current_sub->id, sp-1);
-            ecode("CAE C%d", add_num_constant(value));
+            ecode("LXCH S%d + %#o", current_sub->id, sp-1);
+            ecode("CAF C%d", add_num_constant(value));
+            ecode("EXTEND");
             ecode("ROR L");
-            ecode("XCH S%d + %o", current_sub->id, sp-1);
+            ecode("XCH S%d + %#o", current_sub->id, sp-1);
             break;
             
         case LOGICOP_XOR:
-            ecode("LXCH S%d + %o", current_sub->id, sp-1);
-            ecode("CAE C%d", add_num_constant(value));
+            ecode("LXCH S%d + %#o", current_sub->id, sp-1);
+            ecode("CAF C%d", add_num_constant(value));
+            ecode("EXTEND");
             ecode("RXOR L");
-            ecode("XCH S%d + %o", current_sub->id, sp-1);
+            ecode("XCH S%d + %#o", current_sub->id, sp-1);
             break;
     }
 }
@@ -364,25 +366,25 @@ void arch_logicop(struct symbol* type, int logicop)
     switch (logicop)
     {
         case LOGICOP_AND:
-            ecode("CAE S%d + %o", current_sub->id, pop());
-            ecode("MASK S%d + %o", current_sub->id, sp-1);
-            ecode("XCH S%d + %o", current_sub->id, sp-1);
+            ecode("CAE S%d + %#o", current_sub->id, pop());
+            ecode("MASK S%d + %#o", current_sub->id, sp-1);
+            ecode("XCH S%d + %#o", current_sub->id, sp-1);
             break;
 
         case LOGICOP_OR:
-            ecode("LXCH S%d + %o", current_sub->id, pop());
-            ecode("CAE S%d + %o", current_sub->id, sp-1);
+            ecode("LXCH S%d + %#o", current_sub->id, pop());
+            ecode("CAE S%d + %#o", current_sub->id, sp-1);
             ecode("EXTEND");
             ecode("ROR L");
-            ecode("XCH S%d + %o", current_sub->id, sp-1);
+            ecode("XCH S%d + %#o", current_sub->id, sp-1);
             break;
             
         case LOGICOP_XOR:
-            ecode("LXCH S%d + %o", current_sub->id, pop());
-            ecode("CAE S%d + %o", current_sub->id, sp-1);
+            ecode("LXCH S%d + %#o", current_sub->id, pop());
+            ecode("CAE S%d + %#o", current_sub->id, sp-1);
             ecode("EXTEND");
             ecode("RXOR L");
-            ecode("XCH S%d + %o", current_sub->id, sp-1);
+            ecode("XCH S%d + %#o", current_sub->id, sp-1);
             break;
     }
 }
@@ -392,31 +394,27 @@ void arch_cmp_equals_const(struct symbol* type, int truelabel, int falselabel,
 {
     if (!sym && (off == 0))
     {
-        ecode("CAE S%d + %o", current_sub->id, pop());
-        ecode("EXTEND");
-        ecode("BZF X%d", truelabel);
-        ecode("TCF X%d", falselabel);
+        ecode("CAE S%d + %#o", current_sub->id, pop());
     }
     else
     {
         ecode("CAF C%d", add_sym_constant(sym, off));
         ecode("TS L");
-        ecode("CAE S%d + %o", current_sub->id, pop());
+        ecode("CAE S%d + %#o", current_sub->id, pop());
         ecode("EXTEND");
         ecode("SU L");
-        ecode("CCS A");
-        arch_emit_jump(falselabel);
-        arch_emit_jump(truelabel);
-        arch_emit_jump(falselabel);
-        arch_emit_jump(truelabel);
     }
+
+    ecode("EXTEND");
+    ecode("BZF X%d", truelabel);
+    ecode("TCF X%d", falselabel);
 }
 
 void arch_cmp_equals(struct symbol* type, int truelabel, int falselabel)
 {
-    ecode("CAE S%d + %o", current_sub->id, pop());
+    ecode("CAE S%d + %#o", current_sub->id, pop());
     ecode("TS L");
-    ecode("CAE S%d + %o", current_sub->id, pop());
+    ecode("CAE S%d + %#o", current_sub->id, pop());
     ecode("EXTEND");
     ecode("SU L");
     ecode("EXTEND");
@@ -429,13 +427,13 @@ void arch_cmp_lessthan_const(struct symbol* type, int truelabel, int falselabel,
 {
     if (!sym && (off == 0))
     {
-        ecode("CCS S%d + %o", current_sub->id, pop());
+        ecode("CCS S%d + %#o", current_sub->id, pop());
     }
     else
     {
         ecode("CAF C%d", add_sym_constant(sym, off));
         ecode("TS L");
-        ecode("CAE S%d + %o", current_sub->id, pop());
+        ecode("CAE S%d + %#o", current_sub->id, pop());
         ecode("EXTEND");
         ecode("SU L");
         ecode("CCS A");
@@ -456,13 +454,13 @@ void arch_cmp_greaterthan_const(struct symbol* type, int truelabel, int falselab
 {
     if (!sym && (off == 0))
     {
-        ecode("CCS S%d + %o", current_sub->id, pop());
+        ecode("CCS S%d + %#o", current_sub->id, pop());
     }
     else
     {
         ecode("CAF C%d", add_sym_constant(sym, off));
         ecode("TS L");
-        ecode("CAE S%d + %o", current_sub->id, pop());
+        ecode("CAE S%d + %#o", current_sub->id, pop());
         ecode("EXTEND");
         ecode("SU L");
         ecode("CCS A");
@@ -480,16 +478,16 @@ void arch_cmp_greaterthan(struct symbol* type, int truelabel, int falselabel)
 
 void arch_assign_var(struct symbol* type, struct symbol* var, int32_t offset)
 {
-    ecode("CAE S%d + %o", current_sub->id, pop());
-    ecode("TS W%d + %o       # %s",
+    ecode("CAE S%d + %#o", current_sub->id, pop());
+    ecode("TS W%d + %#o       # %s",
         var->u.var.sub->id, var->u.var.offset + offset,
         var->name);
 }
 
 void arch_assign_ptr(struct symbol* ptrtype)
 {
-    ecode("CAE S%d + %o", current_sub->id, pop());
-    ecode("LXCH S%d + %o", current_sub->id, pop());
+    ecode("CAE S%d + %#o", current_sub->id, pop());
+    ecode("LXCH S%d + %#o", current_sub->id, pop());
     ecode("INDEX L");
     ecode("TS 0");
 }
@@ -507,7 +505,7 @@ void arch_asm_string(const char* s)
 
 void arch_asm_symbol(struct symbol* var)
 {
-    fprintf(codefp, " W%d + %o ",
+    fprintf(codefp, " W%d + %#o ",
         var->u.var.sub->id, var->u.var.offset,
         var->name);
 }
