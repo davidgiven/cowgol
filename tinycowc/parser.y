@@ -45,7 +45,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM
+%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE
 %token ID NUMBER STRING
 %token ASSIGN
 
@@ -151,16 +151,23 @@ statement
 			break_label = $1.old_break_label;
 		}
 	| IF
+		{
+			$1.exitlabel = current_label++;
+		}
 		conditional
 		THEN
 		{
-			arch_emit_label($2.truelabel);
+			arch_emit_label($3.truelabel);
 		}
 		statements
 		{
-			arch_emit_label($2.falselabel);
+			arch_emit_jump($1.exitlabel);
+			arch_emit_label($3.falselabel);
 		}
-		END IF
+		iftrailing
+		{
+			arch_emit_label($1.exitlabel);
+		}
 	| WHILE
 		{
 			$1.looplabel = current_label++;
@@ -207,6 +214,11 @@ statement
 			else
 				arch_assign_ptr($1.type->u.type.pointerto);
 		}
+	;
+
+iftrailing
+	: END IF
+	| ELSE statements END IF
 	;
 
 lvalue

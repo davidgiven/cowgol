@@ -63,13 +63,17 @@ static int add_sym_constant(struct symbol* sym, int32_t off)
 void elabel(const char* s, ...)
 {
 	va_list ap;
+    bool labelcloning = (label[0] != 0);
 
-    if (label[0])
-        fatal("two labels emitted in a row");
+    if (labelcloning)
+        fprintf(codefp, "%-9s = ", label);
 
 	va_start(ap, s);
     vsnprintf(label, sizeof(label), s, ap);
 	va_end(ap);
+
+    if (labelcloning)
+        fprintf(codefp, "%s\n", label);
 }
 
 void ecode(const char* s, ...)
@@ -187,11 +191,8 @@ void arch_emit_label(int label)
 
 void arch_label_alias(int fakelabel, int reallabel)
 {
-    if (label[0])
-        ecode("SUBRO");
-
     elabel("X%d", fakelabel);
-    ecode("EQUALS X%d", reallabel);
+    ecode("= X%d", reallabel);
 }
 
 void arch_emit_jump(int label)

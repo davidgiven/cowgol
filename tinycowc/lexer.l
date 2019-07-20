@@ -21,6 +21,7 @@ SP [ \t]+
 "and"                     { return AND; }
 "break"                   { return BREAK; }
 "end"                     { return END; }
+"else"                    { return ELSE; }
 "if"                      { return IF; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
