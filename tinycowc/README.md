@@ -11,7 +11,7 @@ bug in the dependency tree so that the first time you build it you have to do
 
 To use:
 
-    $ ./tinycowc lunarlander.agc
+    $ ./tinycowc lunarlander.cow
 
 This will emit `cow.data.agc` and `cow.code.agc`. Now, use yaYUL to assemble
 the `cowgol.agc` file, which includes the other two files. You'll end up with
