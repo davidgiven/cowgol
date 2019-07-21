@@ -21,10 +21,12 @@ SP [ \t]+
 "and"                     { return AND; }
 "break"                   { return BREAK; }
 "end"                     { return END; }
+"else"                    { return ELSE; }
 "if"                      { return IF; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
+"return"                  { return RETURN; }
 "sub"                     { return SUB; }
 "then"                    { return THEN; }
 "var"                     { return VAR; }
@@ -36,7 +38,7 @@ SP [ \t]+
 ">="                      { return GEOP; }
 "<"                       { return LTOP; }
 ">"                       { return GTOP; }
-[-;:,+*/%()[\]]           { return yytext[0]; }
+[-;:,+*/%()[\]^&|]        { return yytext[0]; }
 
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }

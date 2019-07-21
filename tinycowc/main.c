@@ -49,11 +49,6 @@ int main(int argc, const char* argv[])
 	current_sub = calloc(1, sizeof(struct subroutine));
 	current_sub->name = "__main";
 
-	intptr_type = make_number_type("uint16", 2, false);
-	make_number_type("int16", 2, true);
-	uint8_type = make_number_type("uint8", 1, false);
-	make_number_type("int8", 1, true);
-
 	yyin = fopen(argv[1], "r");
 	yylineno = 1;
 	yydebug = 0;

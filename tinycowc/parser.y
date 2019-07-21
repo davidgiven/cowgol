@@ -27,6 +27,7 @@ static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
 static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
+static void expr_logicop(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs, int logicop);
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
 static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
@@ -44,7 +45,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM
+%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN
 %token ID NUMBER STRING
 %token ASSIGN
 
@@ -61,6 +62,9 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 %left ','
 %left OR
 %left AND
+%left '|'
+%left '^'
+%left '&'
 %left LTOP LEOP GTOP GEOP EQOP NEOP
 %left '+' '-'
 %left '*' '/' '%'
@@ -150,16 +154,23 @@ statement
 			break_label = $1.old_break_label;
 		}
 	| IF
+		{
+			$1.exitlabel = current_label++;
+		}
 		conditional
 		THEN
 		{
-			arch_emit_label($2.truelabel);
+			arch_emit_label($3.truelabel);
 		}
 		statements
 		{
-			arch_emit_label($2.falselabel);
+			arch_emit_jump($1.exitlabel);
+			arch_emit_label($3.falselabel);
 		}
-		END IF
+		iftrailing
+		{
+			arch_emit_label($1.exitlabel);
+		}
 	| WHILE
 		{
 			$1.looplabel = current_label++;
@@ -185,6 +196,10 @@ statement
 				fatal("nothing to break from");
 			arch_emit_jump(break_label);
 		}
+	| RETURN ';'
+		{
+			arch_return();
+		}
 	| ASM {
 		arch_asm_start();
 		}
@@ -206,6 +221,11 @@ statement
 			else
 				arch_assign_ptr($1.type->u.type.pointerto);
 		}
+	;
+
+iftrailing
+	: END IF
+	| ELSE statements END IF
 	;
 
 lvalue
@@ -268,7 +288,8 @@ parameter
 	;
 
 argumentlist
-	: '('
+	: '(' ')'
+	| '('
 		{
 			struct argumentsspec* spec = calloc(1, sizeof(struct argumentsspec));
 			spec->sub = $<symbol>0->u.sub;
@@ -360,6 +381,12 @@ expression
 		{ expr_div(&$$, &$1, &$3); }
 	| expression '%' expression
 		{ expr_rem(&$$, &$1, &$3); }
+	| expression '^' expression
+		{ expr_logicop(&$$, &$1, &$3, LOGICOP_XOR); }
+	| expression '&' expression
+		{ expr_logicop(&$$, &$1, &$3, LOGICOP_AND); }
+	| expression '|' expression
+		{ expr_logicop(&$$, &$1, &$3, LOGICOP_OR); }
 	;
 
 conditional
@@ -628,15 +655,43 @@ static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnod
 	node_is_stacked(dest, lhs->type);
 }
 
+static void expr_logicop(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs, int logicop)
+{
+	resolve_untyped_constants_simply(lhs, rhs);
+	if (!is_num(lhs->type) || !is_num(rhs->type))
+		fatal("logical operations only work on numbers");
+
+	if (lhs->constant && rhs->constant)
+	{
+		assert(lhs->sym == NULL);
+		assert(rhs->sym == NULL);
+		int32_t result;
+		switch (logicop)
+		{
+			case LOGICOP_OR: result = lhs->off | rhs->off; break;
+			case LOGICOP_AND: result = lhs->off & rhs->off; break;
+			case LOGICOP_XOR: result = lhs->off ^ rhs->off; break;
+		}
+		node_is_constant(dest, lhs->type, NULL, result);
+		return;
+	}
+
+	if (rhs->constant)
+		arch_logicop_const(lhs->type, rhs->off, logicop);
+	else
+		arch_logicop(lhs->type, logicop);
+	node_is_stacked(dest, lhs->type);
+}
+
 static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
 {
 	resolve_untyped_constants_simply(lhs, rhs);
 	if (lhs->constant && rhs->constant)
 		arch_emit_jump((lhs->off == rhs->off) ? truelabel : falselabel);
 	else if (lhs->constant && !rhs->constant)
-		arch_cmp_equals_const(lhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+		arch_cmp_equals_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (!lhs->constant && rhs->constant)
-		arch_cmp_equals_const(rhs->type, truelabel, falselabel, lhs->sym, lhs->off);
+		arch_cmp_equals_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_equals(lhs->type, truelabel, falselabel);
 	else
@@ -649,9 +704,9 @@ static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, s
 	if (!lhs->constant && !rhs->constant)
 		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
 	else if (lhs->constant && !rhs->constant)
-		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (!lhs->constant && rhs->constant)
-		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, lhs->sym, lhs->off);
+		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_lessthan(lhs->type, truelabel, falselabel);
 	else
@@ -664,9 +719,9 @@ static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs
 	if (!lhs->constant && !rhs->constant)
 		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
 	else if (lhs->constant && !rhs->constant)
-		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, rhs->sym, rhs->off);
+		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
 	else if (!lhs->constant && rhs->constant)
-		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, lhs->sym, lhs->off);
+		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
 	else if (lhs->type == rhs->type)
 		arch_cmp_greaterthan(lhs->type, truelabel, falselabel);
 	else

@@ -150,6 +150,11 @@ static void vpop_reg(int width, int reg)
 
 void arch_file_prologue(void)
 {
+	intptr_type = make_number_type("uint16", 2, false);
+	make_number_type("int16", 2, true);
+	uint8_type = make_number_type("uint8", 1, false);
+	make_number_type("int8", 1, true);
+
 	printf(" org 100h\n");
 }
 
@@ -187,13 +192,19 @@ void arch_subroutine_prologue(void)
 
 void arch_subroutine_epilogue(void)
 {
-	printf(" ret\n");
+	arch_return();
 	printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
+}
+
+void arch_return(void)
+{
+	printf(" ret\n");
 }
 
 void arch_emit_label(int label)
 {
-	printf("x%d:\n", label);
+	if (label)
+		printf("x%d:\n", label);
 }
 
 void arch_label_alias(int fakelabel, int reallabel)
@@ -636,6 +647,64 @@ void arch_rem(struct symbol* type)
 			vpop_reg(width, REG_DE);
 			vpop_reg(width, REG_HL);
 			printf(" call rem16\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_logicop_const(struct symbol* type, int32_t value, int logicop)
+{
+	static const char* logicops[] = { "ani", "ori", "xri" };
+	int width = type->u.type.width;
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(width, REG_A);
+			printf(" %s %u\n", logicops[logicop], value & 0xff);
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(width, REG_HL);
+			printf(" mov a, l\n");
+			printf(" %s %u\n", logicops[logicop], value & 0xff);
+			printf(" mov l, a\n");
+			printf(" mov a, h\n");
+			printf(" %s %u\n", logicops[logicop], (value >> 8) & 0xff);
+			printf(" mov h, a\n");
+			vpush_reg(REG_HL);
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
+void arch_logicop(struct symbol* type, int logicop)
+{
+	static const char* logicops[] = { "ani", "ori", "xri" };
+	int width = type->u.type.width;
+	switch (type->u.type.width)
+	{
+		case 1:
+			vpop_reg(width, REG_DE);
+			vpop_reg(width, REG_A);
+			printf(" %s d\n", logicops[logicop]);
+			vpush_reg(REG_A);
+			break;
+
+		case 2:
+			vpop_reg(width, REG_DE);
+			vpop_reg(width, REG_HL);
+			printf(" mov a, l\n");
+			printf(" %s e\n", logicops[logicop]);
+			printf(" mov l, a\n");
+			printf(" mov a, h\n");
+			printf(" %s d\n", logicops[logicop]);
+			printf(" mov h, a\n");
 			vpush_reg(REG_HL);
 			break;
 
