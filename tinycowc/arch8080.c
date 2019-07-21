@@ -192,8 +192,13 @@ void arch_subroutine_prologue(void)
 
 void arch_subroutine_epilogue(void)
 {
-	printf(" ret\n");
+	arch_return();
 	printf("w_%s: ds %d\n", current_sub->name, current_sub->workspace);
+}
+
+void arch_return(void)
+{
+	printf(" ret\n");
 }
 
 void arch_emit_label(int label)
