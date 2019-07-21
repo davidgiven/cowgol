@@ -27,6 +27,7 @@ struct symbol
 	int kind;
 	const char* name;
 	struct symbol* next;
+	struct symarch* arch;
 
 	union
 	{
@@ -63,8 +64,7 @@ struct subroutine
 	int label_after;
 	int inputparameters;
 	int old_break_label;
-    int id;
-    int maxsp;
+	struct subarch* arch;
 };
 
 struct exprnode
