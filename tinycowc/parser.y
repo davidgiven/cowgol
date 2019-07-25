@@ -25,9 +25,9 @@ static bool is_array(struct symbol* sym);
 
 static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs);
 static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs);
-static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(void));
+static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(int width));
 static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-	void (*emitter)(int truelabel, int falselabel));
+	void (*emitter)(int width, int truelabel, int falselabel));
 
 static struct symbol* lookup_symbol(const char* name);
 static void init_var(struct symbol* sym, struct symbol* type);
@@ -104,7 +104,7 @@ statement
 			$2->kind = VAR;
 			init_var($2, $4);
 			check_expression_type(&$7, $4);
-			emit_mid_store();
+			emit_mid_store($4->u.type.width);
 		}
 	| VAR newid
 		{
@@ -117,7 +117,7 @@ statement
 				fatal("types cannot be inferred for numeric constants");
 			init_var($2, $5);
 			check_expression_type(&$5, $5);
-			emit_mid_store();
+			emit_mid_store($5->u.type.width);
 		}
 	| SUB newid
 		{
@@ -224,7 +224,7 @@ statement
 	| lvalue ASSIGN expression ';'
 		{
 			check_expression_type(&$3, $1);
-			emit_mid_store();
+			emit_mid_store($1->u.type.width);
 		}
 	;
 
@@ -248,8 +248,8 @@ lvalue
 			
 			check_expression_type(&$3, intptr_type);
 			emit_mid_constant($1->u.type.element->u.type.width);
-			emit_mid_mul();
-			emit_mid_add();
+			emit_mid_mul(intptr_type->u.type.width);
+			emit_mid_add(intptr_type->u.type.width);
 
 			$$ = $$->u.type.element;
 		}
@@ -260,7 +260,7 @@ lvalue
 			if (!is_ptr($2))
 				fatal("can only dereference pointers");
 
-			emit_mid_load();
+			emit_mid_load($2->u.type.element->u.type.width);
 			$$ = $2->u.type.element;
 		}
 	;
@@ -328,7 +328,7 @@ argument
 			current_call->number++;
 
 			check_expression_type(&$1, param->u.var.type);
-			emit_mid_param();
+			emit_mid_param($1->u.type.width);
 		}
 	;
 
@@ -370,15 +370,14 @@ expression
 		}
 	| lvalue
 		{
-			emit_mid_load();
+			emit_mid_load($1->u.type.element->u.type.width);
 			$$ = $1->u.type.element;
 		}
 	| '(' expression ')'
 		{ $$ = $2; }
 	| '-' expression
 		{ 
-			emit_mid_constant(0);
-			emit_mid_rsub();
+			emit_mid_neg($2->u.type.width);
 		}
 	| expression '+' expression
 		{ $$ = expr_add($1, $3); }
@@ -543,7 +542,7 @@ static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs)
 	else if (!is_ptr(lhs) && (lhs != rhs))
 		fatal("you tried to add a %s and a %s", lhs->name, rhs->name);
 
-	emit_mid_add();
+	emit_mid_add(lhs->u.type.width);
 	return lhs;
 }
 
@@ -558,8 +557,8 @@ static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs)
 	else if (is_num(lhs) && is_num(rhs) && (lhs != rhs))
 		fatal("you tried to subtract a %s and a %s", lhs->name, rhs->name);
 
-	emit_mid_sub();
-	if (is_ptr(lhs))
+	emit_mid_sub(lhs->u.type.width);
+	if (is_ptr(rhs))
 		return intptr_type;
 	return lhs;
 }
@@ -574,24 +573,24 @@ static void resolve_untyped_constants_simply(struct symbol** lhs, struct symbol*
 		fatal("type mismatch with %s and %s", (*lhs)->name, (*rhs)->name);
 }
 
-static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(void))
+static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(int width))
 {
 	resolve_untyped_constants_simply(&lhs, &rhs);
 	if (!is_num(lhs) || !is_num(rhs))
 		fatal("number required");
 
-	emitter();
+	emitter(lhs->u.type.width);
 	return lhs;
 }
 
 static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-	void (*emitter)(int truelabel, int falselabel))
+	void (*emitter)(int width, int truelabel, int falselabel))
 {
 	resolve_untyped_constants_simply(&lhs, &rhs);
 	if (lhs != rhs)
 		fatal("you tried to compare a %s and a %s", lhs->name, rhs->name);
 
-	emitter(truelabel, falselabel);
+	emitter(lhs->u.type.width, truelabel, falselabel);
 }
 
 struct symbol* add_new_symbol(const char* name)
