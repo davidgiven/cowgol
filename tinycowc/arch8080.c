@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include "globals.h"
 
+#if 0
 #define STACK_DEPTH 32
 
 enum
@@ -974,3 +975,4 @@ void arch_asm_end(void)
 {
 	printf("\n");
 }
+#endif

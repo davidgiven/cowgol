@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "globals.h"
+#include "midcode.h"
 
 #define YYDEBUG 1
 #include "parser.h"
@@ -53,11 +54,11 @@ int main(int argc, const char* argv[])
 	yylineno = 1;
 	yydebug = 0;
 
-	arch_file_prologue();
-	arch_subroutine_prologue();
+	emit_mid_startfile();
+	emit_mid_startsub(current_sub);
 	yyparse();
-	arch_subroutine_epilogue();
-	arch_file_epilogue();
+	emit_mid_endsub(current_sub);
+	emit_mid_endfile();
 
 	return 0;
 }

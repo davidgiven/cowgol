@@ -1,0 +1,43 @@
+END
+STARTFILE
+ENDFILE
+STARTSUB, struct subroutine* sub
+ENDSUB, struct subroutine* sub
+
+ASMSTART
+ASMTEXT, const char* text   # strdupped
+ASMSYMBOL, const char* symbol, int32_t offset
+ASMEND
+
+LABEL, int label
+LABELALIAS, int oldlabel, int newlabel
+JUMP, int label
+CALL, struct subroutine* sub
+RETURN
+
+CONSTANT, int32_t value
+STRING, const char* text   # strdupped
+ADDRESS, const char* symbol, int32_t offset
+
+LOAD
+STORE
+
+BEQ, int truelabel, int falselabel
+BGT, int truelabel, int falselabel
+BLT, int truelabel, int falselabel
+
+CAST1
+CAST2
+CAST4
+
+PARAM
+ADD
+SUB
+RSUB
+MUL
+DIV
+REM
+AND
+OR
+EOR
+NOT

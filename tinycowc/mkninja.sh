@@ -28,6 +28,10 @@ rule flex
     command = flex -8 -Cem -o \$out \$in
     description = FLEX \$in
 
+rule mkmidcodes
+    command = lua mkmidcodes.lua -- \$in \$out
+    description = MKMIDCODES \$in
+
 rule yacc
     command = yacc --report=all --report-file=report.txt --defines=\$hfile -o \$cfile \$in
     description = YACC \$in
@@ -111,6 +115,10 @@ buildyacc() {
     echo "  hfile=$hfile"
 }
 
+buildmkmidcodes() {
+    echo "build $1 : mkmidcodes $2 | mkmidcodes.lua"
+}
+
 runtest() {
     local prog
     prog=$1
@@ -129,12 +137,14 @@ runtest() {
 
 buildyacc $OBJDIR/parser.c parser.y
 buildflex $OBJDIR/lexer.c lexer.l
+buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
 
 buildlibrary libmain.a \
     -I$OBJDIR \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
-    main.c
+    main.c \
+    midcode.c
 
 buildlibrary libagc.a \
     archagc.c \
@@ -143,10 +153,9 @@ buildlibrary lib8080.a \
     arch8080.c \
 
 buildprogram tinycowc-agc \
-    libmain.a \
-    libagc.a \
+   libmain.a \
+   libagc.a \
 
-buildprogram tinycowc-8080 \
-    libmain.a \
-    lib8080.a \
-
+#buildprogram tinycowc-8080 \
+#    libmain.a \
+#    lib8080.a \

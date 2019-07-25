@@ -43,7 +43,6 @@ SP [ \t]+
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }
 <STRINGSTATE>\"           { BEGIN(INITIAL); }
-<STRINGSTATE>{LF}         { fatal("end of line in string"); }
 <STRINGSTATE>.            { fatal("invalid string"); }
 
 [A-Za-z][A-Za-z0-9_$]*    { return ID; }

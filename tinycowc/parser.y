@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "globals.h"
+#include "midcode.h"
 
 #define YYDEBUG 1
 #include "parser.h"
@@ -22,22 +23,18 @@ static bool is_ptr(struct symbol* sym);
 static bool is_num(struct symbol* sym);
 static bool is_array(struct symbol* sym);
 
-static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
-static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
-static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
-static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
-static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs);
-static void expr_logicop(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs, int logicop);
-static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
-static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
-static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs);
+static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs);
+static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs);
+static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(void));
+static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
+	void (*emitter)(int truelabel, int falselabel));
 
 static struct symbol* lookup_symbol(const char* name);
 static void init_var(struct symbol* sym, struct symbol* type);
 static struct symbol* make_pointer_type(struct symbol* type);
 static struct symbol* make_array_type(struct symbol* type, int32_t size);
 
-static void resolve_expression_type(struct exprnode* node, struct symbol* type);
+static void check_expression_type(struct symbol** node, struct symbol* type);
 static void unescape(char* string);
 
 static void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off);
@@ -51,9 +48,10 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 %type <symbol> newid;
 %type <symbol> oldid;
-%type <symbol> typeref;
-%type <expr> expression;
-%type <expr> lvalue;
+%type <type> typeref;
+%type <type> expression;
+%type <type> lvalue;
+%type <value> cvalue;
 %type <labels> LOOP;
 %type <labels> WHILE;
 %type <labels> IF;
@@ -72,10 +70,11 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 %union {
 	struct symbol* symbol;
-	struct exprnode expr;
+	struct symbol* type;
 	struct condlabels cond;
 	struct looplabels labels;
 	struct argumentsspec argsspec;
+	int32_t value;
 }
 
 %%
@@ -96,21 +95,29 @@ statement
 			$2->kind = VAR;
 			init_var($2, $4);
 		}
-	| VAR newid ':' typeref ASSIGN expression ';'
+	| VAR newid ':' typeref 
+		{
+			emit_mid_address($2->u.var.label, $2->u.var.offset);
+		}
+		ASSIGN expression ';'
 		{
 			$2->kind = VAR;
 			init_var($2, $4);
-			resolve_expression_type(&$6, $4);
-			arch_assign_var($4, $2, 0);
+			check_expression_type(&$7, $4);
+			emit_mid_store();
 		}
-	| VAR newid ASSIGN expression ';'
+	| VAR newid
+		{
+			emit_mid_address($2->u.var.label, $2->u.var.offset);
+		}
+		ASSIGN expression ';'
 		{
 			$2->kind = VAR;
-			if (!$4.type)
+			if (!$5)
 				fatal("types cannot be inferred for numeric constants");
-			init_var($2, $4.type);
-			resolve_expression_type(&$4, $4.type);
-			arch_assign_var($4.type, $2, 0);
+			init_var($2, $5);
+			check_expression_type(&$5, $5);
+			emit_mid_store();
 		}
 	| SUB newid
 		{
@@ -128,13 +135,13 @@ statement
 		}
 		parameterlist
 		{
-			arch_emit_jump(current_sub->label_after);
-			arch_subroutine_prologue();
+			emit_mid_jump(current_sub->label_after);
+			emit_mid_startsub(current_sub);
 		}
 		statements
 		{
-			arch_subroutine_epilogue();
-			arch_emit_label(current_sub->label_after);
+			emit_mid_endsub(current_sub);
+			emit_mid_label(current_sub->label_after);
 			break_label = current_sub->old_break_label;
 			current_sub = current_sub->parent;
 		}
@@ -145,12 +152,12 @@ statement
 			$1.exitlabel = current_label++;
 			$1.old_break_label = break_label;
 			break_label = $1.exitlabel;
-			arch_emit_label($1.looplabel);
+			emit_mid_label($1.looplabel);
 		}
 		statements END LOOP
 		{
-			arch_emit_jump($1.looplabel);
-			arch_emit_label($1.exitlabel);
+			emit_mid_jump($1.looplabel);
+			emit_mid_label($1.exitlabel);
 			break_label = $1.old_break_label;
 		}
 	| IF
@@ -160,16 +167,16 @@ statement
 		conditional
 		THEN
 		{
-			arch_emit_label($3.truelabel);
+			emit_mid_label($3.truelabel);
 		}
 		statements
 		{
-			arch_emit_jump($1.exitlabel);
-			arch_emit_label($3.falselabel);
+			emit_mid_jump($1.exitlabel);
+			emit_mid_label($3.falselabel);
 		}
 		iftrailing
 		{
-			arch_emit_label($1.exitlabel);
+			emit_mid_label($1.exitlabel);
 		}
 	| WHILE
 		{
@@ -177,49 +184,46 @@ statement
 			$1.exitlabel = current_label++;
 			$1.old_break_label = break_label;
 			break_label = $1.exitlabel;
-			arch_emit_label($1.looplabel);
+			emit_mid_label($1.looplabel);
 		}
 		conditional
 		{
-			arch_emit_label($3.truelabel);
-			arch_label_alias($3.falselabel, $1.exitlabel);
+			emit_mid_label($3.truelabel);
+			emit_mid_labelalias($3.falselabel, $1.exitlabel);
 		}
 		LOOP statements END LOOP
 		{
-			arch_emit_jump($1.looplabel);
-			arch_emit_label($1.exitlabel);
+			emit_mid_jump($1.looplabel);
+			emit_mid_label($1.exitlabel);
 			break_label = $1.old_break_label;
 		}
 	| BREAK ';'
 		{
 			if (!break_label)
 				fatal("nothing to break from");
-			arch_emit_jump(break_label);
+			emit_mid_jump(break_label);
 		}
 	| RETURN ';'
 		{
-			arch_return();
+			emit_mid_return();
 		}
 	| ASM {
-		arch_asm_start();
+			emit_mid_asmstart();
 		}
 		asms ';'
 		{
-			arch_asm_end();
+			emit_mid_asmend();
 		}
 	| oldid argumentlist ';'
 		{
 			if ($1->kind != SUB)
 				fatal("expected '%s' to be a subroutine", $1->name);
-			arch_emit_call($1->u.sub);
+			emit_mid_call($1->u.sub);
 		}
 	| lvalue ASSIGN expression ';'
 		{
-			resolve_expression_type(&$3, $1.type);
-			if ($1.constant)
-				arch_assign_var($1.type, $1.sym, $1.off);
-			else
-				arch_assign_ptr($1.type->u.type.pointerto);
+			check_expression_type(&$3, $1);
+			emit_mid_store();
 		}
 	;
 
@@ -231,32 +235,31 @@ iftrailing
 lvalue
 	: oldid
 		{
-			node_is_constant(&$$, $1->u.var.type, $1, 0);
+			emit_mid_address($1->u.var.label, $1->u.var.offset);
 		}
 	| lvalue '[' expression ']'
 		{
-			if (!is_array($1.type))
+			if (!is_array($1))
 				fatal("you can only index arrays");
-			if (!is_num($3.type))
+			if (!is_num($3))
 				fatal("array indices must be numbers");
 			
-			struct exprnode e;
-			node_is_constant(&e, NULL, NULL, $1.type->u.type.element->u.type.width);
-			expr_mul(&e, &$3, &e);
+			check_expression_type(&$3, intptr_type);
+			emit_mid_constant($1->u.type.element->u.type.width);
+			emit_mid_mul();
+			emit_mid_add();
 
-			$1.type = make_pointer_type($1.type->u.type.element);
-			expr_add(&$$, &$1, &$3);
-			$$.type = $$.type->u.type.element;
+			$$ = $$->u.type.element;
 		}
 	| '[' expression ']'
 		{
-			if (!$2.type)
+			if (!$2)
 				fatal("cannot dereference untyped constants");
-			
-			$$ = $2;
-			$$.type = $2.type->u.type.element;
-			if (!$$.type)
+			if (!is_ptr($2))
 				fatal("can only dereference pointers");
+
+			emit_mid_load();
+			$$ = $2->u.type.element;
 		}
 	;
 
@@ -322,8 +325,8 @@ argument
 			current_call->param = param->next;
 			current_call->number++;
 
-			resolve_expression_type(&$1, param->u.var.type);
-			arch_push_input_param(param->u.var.type);
+			check_expression_type(&$1, param->u.var.type);
+			emit_mid_param();
 		}
 	;
 
@@ -334,59 +337,63 @@ typeref
 			if ($$->kind != TYPE)
 				fatal("expected '%s' to be a type", $1->name);
 		}
-	| typeref '[' expression ']'
-		{
-			if (!$3.constant || !is_num($3.type))
-				fatal("array bounds must be constant numbers");
-			$$ = make_array_type($1, $3.off);
-		}
+	| typeref '[' cvalue ']'
+		{ $$ = make_array_type($1, $3); }
 	| '[' typeref ']'
 		{ $$ = make_pointer_type($2); }
 	;
 
+cvalue
+	: NUMBER            { $$ = number; }
+    | '(' cvalue ')'    { $$ = $2; }
+    | '-' cvalue        { $$ = -$2; }
+    | cvalue '+' cvalue { $$ = $1 + $3; }
+    | cvalue '-' cvalue { $$ = $1 - $3; }
+    | cvalue '*' cvalue { $$ = $1 * $3; }
+    | cvalue '/' cvalue { $$ = $1 / $3; }
+    | cvalue '%' cvalue { $$ = $1 % $3; }
+    ;
+
 expression
 	: NUMBER
 		{
-			node_is_constant(&$$, NULL, NULL, number);
+			emit_mid_constant(number);
+			$$ = NULL;
 		}
 	| STRING
 		{
 			unescape(yytext);
-			arch_push_string_constant(yytext);
-			node_is_stacked(&$$, make_pointer_type(uint8_type));
+			emit_mid_string(strdup(yytext));
+			$$ = make_pointer_type(uint8_type);
 		}
 	| lvalue
 		{
-			if ($1.constant)
-				arch_push_value($1.sym, $1.off);
-			else
-				arch_dereference($1.type->u.type.pointerto);
-			node_is_stacked(&$$, $1.type);
+			emit_mid_load();
+			$$ = $1->u.type.element;
 		}
 	| '(' expression ')'
 		{ $$ = $2; }
 	| '-' expression
 		{ 
-			struct exprnode e;
-			node_is_constant(&e, NULL, NULL, 0);
-			expr_sub(&$$, &e, &$2);
+			emit_mid_constant(0);
+			emit_mid_rsub();
 		}
 	| expression '+' expression
-		{ expr_add(&$$, &$1, &$3); }
+		{ $$ = expr_add($1, $3); }
 	| expression '-' expression
-		{ expr_sub(&$$, &$1, &$3); }
+		{ $$ = expr_sub($1, $3); }
 	| expression '*' expression
-		{ expr_mul(&$$, &$1, &$3); }
+		{ $$ = expr_simple($1, $3, emit_mid_mul); }
 	| expression '/' expression
-		{ expr_div(&$$, &$1, &$3); }
+		{ $$ = expr_simple($1, $3, emit_mid_div); }
 	| expression '%' expression
-		{ expr_rem(&$$, &$1, &$3); }
+		{ $$ = expr_simple($1, $3, emit_mid_rem); }
 	| expression '^' expression
-		{ expr_logicop(&$$, &$1, &$3, LOGICOP_XOR); }
+		{ $$ = expr_simple($1, $3, emit_mid_eor); }
 	| expression '&' expression
-		{ expr_logicop(&$$, &$1, &$3, LOGICOP_AND); }
+		{ $$ = expr_simple($1, $3, emit_mid_and); }
 	| expression '|' expression
-		{ expr_logicop(&$$, &$1, &$3, LOGICOP_OR); }
+		{ $$ = expr_simple($1, $3, emit_mid_or); }
 	;
 
 conditional
@@ -399,21 +406,21 @@ conditional
 		}
 	| conditional AND
 		{
-			arch_emit_label($1.truelabel);
+			emit_mid_label($1.truelabel);
 		}
 		conditional
 		{
-			arch_label_alias($1.falselabel, $4.falselabel);
+			emit_mid_labelalias($1.falselabel, $4.falselabel);
 			$$.truelabel = $4.truelabel;
 			$$.falselabel = $4.falselabel;
 		}
 	| conditional OR
 		{
-			arch_emit_label($1.falselabel);
+			emit_mid_label($1.falselabel);
 		}
 		conditional
 		{
-			arch_label_alias($1.truelabel, $4.truelabel);
+			emit_mid_labelalias($1.truelabel, $4.truelabel);
 			$$.truelabel = $4.truelabel;
 			$$.falselabel = $4.falselabel;
 		}
@@ -421,37 +428,37 @@ conditional
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_equals($$.truelabel, $$.falselabel, &$1, &$3);
+			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_beq);
 		}
 	| expression NEOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_equals($$.falselabel, $$.truelabel, &$1, &$3);
+			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_beq);
 		}
 	| expression LTOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_lessthan($$.truelabel, $$.falselabel, &$1, &$3);
+			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_blt);
 		}
 	| expression GEOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_lessthan($$.falselabel, $$.truelabel, &$1, &$3);
+			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_blt);
 		}
 	| expression GTOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_greaterthan($$.truelabel, $$.falselabel, &$1, &$3);
+			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bgt);
 		}
 	| expression LEOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_greaterthan($$.falselabel, $$.truelabel, &$1, &$3);
+			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bgt);
 		}
 	;
 
@@ -459,13 +466,13 @@ asm
 	: STRING
 		{
 			unescape(yytext);
-			arch_asm_string(yytext);
+			emit_mid_asmtext(strdup(yytext));
 		}
 	| oldid
 		{
 			if ($1->kind != VAR)
 				fatal("you can only emit references to variables");
-			arch_asm_symbol($1);
+			emit_mid_asmsymbol($1->u.var.label, $1->u.var.offset);
 		}
 	; 
 
@@ -501,231 +508,88 @@ static bool is_array(struct symbol* sym)
 	return sym->u.type.kind == TYPE_ARRAY;
 }
 
-static void resolve_untyped_constants_for_add_sub(struct exprnode* lhs, struct exprnode* rhs)
+static void resolve_untyped_constants_for_add_sub(struct symbol** lhs, struct symbol** rhs)
 {
-	if (lhs->type && !rhs->type)
+	if (*lhs && !*rhs)
 	{
-		if (is_num(lhs->type))
-			rhs->type = lhs->type;
-		else if (is_ptr(lhs->type))
-			rhs->type = intptr_type;
+		if (is_num(*lhs))
+			*rhs = *lhs;
+		else if (is_ptr(*lhs))
+			*rhs = intptr_type;
 		else
 			fatal("cannot use an untyped constant in this context");
 	}
-	if (!lhs->type && rhs->type)
+	if (!*lhs && *rhs)
 	{
-		if (is_num(rhs->type))
-			lhs->type = rhs->type;
-		else if (is_ptr(rhs->type))
+		if (is_num(*rhs))
+			*lhs = *rhs;
+		else if (is_ptr(*rhs))
 			fatal("pointers may only appear on the LHS of an addition or subtraction");
 	}
 }
 
-static void expr_add(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
+static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs)
 {
-	resolve_untyped_constants_for_add_sub(lhs, rhs);
+	resolve_untyped_constants_for_add_sub(&lhs, &rhs);
 
-	if (is_ptr(lhs->type) && is_ptr(rhs->type))
+	if (is_ptr(lhs) && is_ptr(rhs))
 		fatal("you cannot add two pointers together");
-	else if (is_ptr(lhs->type) && (rhs->type != intptr_type))
-		fatal("you can only add a %s to a pointer", rhs->type->name);
-	else if (is_ptr(rhs->type))
+	else if (is_ptr(lhs) && (rhs != intptr_type))
+		fatal("you can only add a %s to a pointer", rhs->name);
+	else if (is_ptr(rhs))
 		fatal("add numbers to pointers, not vice versa");
-	else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
-		fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
+	else if (!is_ptr(lhs) && (lhs != rhs))
+		fatal("you tried to add a %s and a %s", lhs->name, rhs->name);
 
-	if (lhs->constant && rhs->constant)
-		node_is_constant(dest, lhs->type, lhs->sym, lhs->off + rhs->off);
-	else
-	{
-		if (!lhs->constant && rhs->constant)
-			arch_add_const(lhs->type, rhs->sym, rhs->off);
-		else if (lhs->constant && !rhs->constant)
-			arch_add_const(lhs->type, lhs->sym, lhs->off);
-		else
-			arch_add(lhs->type);
-		node_is_stacked(dest, lhs->type);
-	}
+	emit_mid_add();
+	return lhs;
 }
 
-static void expr_sub(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
+static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs)
 {
-	resolve_untyped_constants_for_add_sub(lhs, rhs);
-	if (is_ptr(lhs->type) && !is_ptr(rhs->type) && (rhs->type != intptr_type))
-		fatal("you can't subtrack a %s and a %s", lhs->type->name, rhs->type->name);
-	else if (is_num(lhs->type) && is_ptr(rhs->type))
+	resolve_untyped_constants_for_add_sub(&lhs, &rhs);
+
+	if (is_ptr(lhs) && !is_ptr(rhs) && (rhs != intptr_type))
+		fatal("you can't subtrack a %s and a %s", lhs->name, rhs->name);
+	else if (is_num(lhs) && is_ptr(rhs))
 		fatal("subtract numbers from pointers, not vice versa");
-	else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
-		fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
+	else if (is_num(lhs) && is_num(rhs) && (lhs != rhs))
+		fatal("you tried to subtract a %s and a %s", lhs->name, rhs->name);
 
-	if (lhs->constant && rhs->constant)
-		node_is_constant(dest, lhs->type, lhs->sym, lhs->off - rhs->off);
-	else
-	{
-		if (!lhs->constant && rhs->constant)
-			arch_add_const(lhs->type, NULL, -rhs->off);
-		else if (lhs->constant && !rhs->constant)
-			arch_subfrom_const(lhs->type, 0, lhs->off);
-		else
-			arch_sub(lhs->type);
-		node_is_stacked(dest, lhs->type);
-	}
+	emit_mid_sub();
+	if (is_ptr(lhs))
+		return intptr_type;
+	return lhs;
 }
 
-static void resolve_untyped_constants_simply(struct exprnode* lhs, struct exprnode* rhs)
+static void resolve_untyped_constants_simply(struct symbol** lhs, struct symbol** rhs)
 {
-	if (lhs->type && !rhs->type)
-		rhs->type = lhs->type;
-	else if (!lhs->type && rhs->type)
-		lhs->type = rhs->type;
-	else if (lhs->type != rhs->type)
-		fatal("type mismatch with %s and %s", lhs->type->name, rhs->type->name);
+	if (*lhs && !*rhs)
+		*rhs = *lhs;
+	else if (!*lhs && *rhs)
+		*lhs = *rhs;
+	else if (*lhs != *rhs)
+		fatal("type mismatch with %s and %s", (*lhs)->name, (*rhs)->name);
 }
 
-static void expr_mul(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
+static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(void))
 {
-	resolve_untyped_constants_simply(lhs, rhs);
-	if (!is_num(lhs->type) || !is_num(rhs->type))
-		fatal("multiplication only works on numbers");
+	resolve_untyped_constants_simply(&lhs, &rhs);
+	if (!is_num(lhs) || !is_num(rhs))
+		fatal("number required");
 
-	if (lhs->constant && rhs->constant)
-	{
-		assert(lhs->sym == NULL);
-		assert(rhs->sym == NULL);
-		node_is_constant(dest, lhs->type, NULL, lhs->off * rhs->off);
-		return;
-	}
-
-	if (rhs->constant)
-		arch_mul_const(lhs->type, rhs->off);
-	else if (lhs->constant)
-		arch_mul_const(lhs->type, lhs->off);
-	else
-		arch_mul(lhs->type);
-	node_is_stacked(dest, lhs->type);
+	emitter();
+	return lhs;
 }
 
-static void expr_div(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
+static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
+	void (*emitter)(int truelabel, int falselabel))
 {
-	resolve_untyped_constants_simply(lhs, rhs);
-	if (!is_num(lhs->type) || !is_num(rhs->type))
-		fatal("division only works on numbers");
-	if (rhs->constant && (rhs->off == 0))
-		fatal("division by zero");
+	resolve_untyped_constants_simply(&lhs, &rhs);
+	if (lhs != rhs)
+		fatal("you tried to compare a %s and a %s", lhs->name, rhs->name);
 
-	if (lhs->constant && rhs->constant)
-	{
-		assert(lhs->sym == NULL);
-		assert(rhs->sym == NULL);
-		node_is_constant(dest, lhs->type, NULL, lhs->off / rhs->off);
-		return;
-	}
-
-	if (rhs->constant)
-		arch_div_const(lhs->type, rhs->off);
-	else if (lhs->constant)
-		arch_div_const_by(lhs->type, lhs->off);
-	else
-		arch_div(lhs->type);
-	node_is_stacked(dest, lhs->type);
-}
-
-static void expr_rem(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs)
-{
-	resolve_untyped_constants_simply(lhs, rhs);
-	if (!is_num(lhs->type) || !is_num(rhs->type))
-		fatal("modulus only works on numbers");
-	if (rhs->constant && (rhs->off == 0))
-		fatal("division by zero");
-
-	if (lhs->constant && rhs->constant)
-	{
-		assert(lhs->sym == NULL);
-		assert(rhs->sym == NULL);
-		node_is_constant(dest, lhs->type, NULL, lhs->off % rhs->off);
-		return;
-	}
-
-	if (rhs->constant)
-		arch_rem_const(lhs->type, rhs->off);
-	else if (lhs->constant)
-		arch_rem_const_by(lhs->type, lhs->off);
-	else
-		arch_rem(lhs->type);
-	node_is_stacked(dest, lhs->type);
-}
-
-static void expr_logicop(struct exprnode* dest, struct exprnode* lhs, struct exprnode* rhs, int logicop)
-{
-	resolve_untyped_constants_simply(lhs, rhs);
-	if (!is_num(lhs->type) || !is_num(rhs->type))
-		fatal("logical operations only work on numbers");
-
-	if (lhs->constant && rhs->constant)
-	{
-		assert(lhs->sym == NULL);
-		assert(rhs->sym == NULL);
-		int32_t result;
-		switch (logicop)
-		{
-			case LOGICOP_OR: result = lhs->off | rhs->off; break;
-			case LOGICOP_AND: result = lhs->off & rhs->off; break;
-			case LOGICOP_XOR: result = lhs->off ^ rhs->off; break;
-		}
-		node_is_constant(dest, lhs->type, NULL, result);
-		return;
-	}
-
-	if (rhs->constant)
-		arch_logicop_const(lhs->type, rhs->off, logicop);
-	else
-		arch_logicop(lhs->type, logicop);
-	node_is_stacked(dest, lhs->type);
-}
-
-static void cond_equals(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
-{
-	resolve_untyped_constants_simply(lhs, rhs);
-	if (lhs->constant && rhs->constant)
-		arch_emit_jump((lhs->off == rhs->off) ? truelabel : falselabel);
-	else if (lhs->constant && !rhs->constant)
-		arch_cmp_equals_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
-	else if (!lhs->constant && rhs->constant)
-		arch_cmp_equals_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
-	else if (lhs->type == rhs->type)
-		arch_cmp_equals(lhs->type, truelabel, falselabel);
-	else
-		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
-}
-
-static void cond_lessthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
-{
-	resolve_untyped_constants_simply(lhs, rhs);
-	if (!lhs->constant && !rhs->constant)
-		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
-	else if (lhs->constant && !rhs->constant)
-		arch_cmp_greaterthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
-	else if (!lhs->constant && rhs->constant)
-		arch_cmp_lessthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
-	else if (lhs->type == rhs->type)
-		arch_cmp_lessthan(lhs->type, truelabel, falselabel);
-	else
-		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
-}
-
-static void cond_greaterthan(int truelabel, int falselabel, struct exprnode* lhs, struct exprnode* rhs)
-{
-	resolve_untyped_constants_simply(lhs, rhs);
-	if (!lhs->constant && !rhs->constant)
-		arch_emit_jump((lhs->off < rhs->off) ? truelabel : falselabel);
-	else if (lhs->constant && !rhs->constant)
-		arch_cmp_lessthan_const(lhs->type, truelabel, falselabel, lhs->sym, lhs->off);
-	else if (!lhs->constant && rhs->constant)
-		arch_cmp_greaterthan_const(rhs->type, truelabel, falselabel, rhs->sym, rhs->off);
-	else if (lhs->type == rhs->type)
-		arch_cmp_greaterthan(lhs->type, truelabel, falselabel);
-	else
-		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
+	emitter(truelabel, falselabel);
 }
 
 struct symbol* add_new_symbol(const char* name)
@@ -786,18 +650,25 @@ static void init_var(struct symbol* sym, struct symbol* type)
 	current_sub->workspace += type->u.type.width;
 }
 
-static void resolve_expression_type(struct exprnode* node, struct symbol* type)
+/* node must be on the top of the midend stack. */
+static void check_expression_type(struct symbol** node, struct symbol* type)
 {
-	if (node->constant)
+	if (*node)
 	{
-		arch_push_constant(node->sym, node->off);
-		if (!node->type)
-			node->type = type;
+		*node = type;
+		switch (type->u.type.width)
+		{
+			case 1: emit_mid_cast1(); break;
+			case 2: emit_mid_cast2(); break;
+			case 4: emit_mid_cast4(); break;
+			default:
+				fatal("type mismatch: cannot convert an untyped constant to a '%s'", type->name);
+		}
 	}
 
-	if (node->type != type)
+	if (*node != type)
 		fatal("type mismatch: expression was a '%s', used when a '%s' was expected",
-			node->type->name, type->name);
+			(*node)->name, type->name);
 	if (!is_ptr(type) && !is_num(type))
 		fatal("%s cannot be used in this kind of expression", type->name);
 }
