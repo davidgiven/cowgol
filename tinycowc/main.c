@@ -54,6 +54,8 @@ int main(int argc, const char* argv[])
 	yylineno = 1;
 	yydebug = 0;
 
+	arch_init_types();
+	arch_init_subroutine(current_sub);
 	emit_mid_startfile();
 	emit_mid_startsub(current_sub);
 	yyparse();

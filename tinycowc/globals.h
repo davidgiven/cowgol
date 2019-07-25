@@ -58,6 +58,7 @@ struct symbol
 struct subroutine
 {
 	const char* name;
+	const char* label;
 	struct subroutine* parent;
 	struct symbol* firstsymbol;
 	struct symbol* lastsymbol;
@@ -109,6 +110,10 @@ extern int current_label;
 
 extern struct symbol* add_new_symbol(const char* name);
 extern struct symbol* make_number_type(const char* name, int width, bool issigned);
+
+extern void arch_init_types(void);
+extern void arch_init_subroutine(struct subroutine* sub);
+extern void arch_init_variable(struct symbol* var);
 
 #endif
 

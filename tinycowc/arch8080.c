@@ -5,6 +5,17 @@
 #include <ctype.h>
 #include "globals.h"
 
+void arch_init_types(void)
+{
+	intptr_type = make_number_type("uint16", 2, false);
+	make_number_type("int16", 2, true);
+	uint8_type = make_number_type("uint8", 1, false);
+	make_number_type("int8", 1, true);
+}
+
+void arch_init_subroutine(struct subroutine* sub) {}
+void arch_init_variable(struct symbol* var) {}
+
 #if 0
 #define STACK_DEPTH 32
 

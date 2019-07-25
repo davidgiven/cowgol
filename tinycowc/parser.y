@@ -97,7 +97,7 @@ statement
 		}
 	| VAR newid ':' typeref 
 		{
-			emit_mid_address($2->u.var.label, $2->u.var.offset);
+			emit_mid_address($2);
 		}
 		ASSIGN expression ';'
 		{
@@ -108,7 +108,7 @@ statement
 		}
 	| VAR newid
 		{
-			emit_mid_address($2->u.var.label, $2->u.var.offset);
+			emit_mid_address($2);
 		}
 		ASSIGN expression ';'
 		{
@@ -126,6 +126,7 @@ statement
 			sub->parent = current_sub;
 			sub->label_after = current_label++;
 			sub->old_break_label = break_label;
+			arch_init_subroutine(sub);
 			break_label = 0;
 
 			$2->kind = SUB;
@@ -235,11 +236,12 @@ iftrailing
 lvalue
 	: oldid
 		{
-			emit_mid_address($1->u.var.label, $1->u.var.offset);
+			emit_mid_address($1);
+			$$ = make_pointer_type($1->u.var.type);
 		}
 	| lvalue '[' expression ']'
 		{
-			if (!is_array($1))
+			if (!is_ptr($1) || !is_array($1->u.type.element))
 				fatal("you can only index arrays");
 			if (!is_num($3))
 				fatal("array indices must be numbers");
@@ -472,7 +474,7 @@ asm
 		{
 			if ($1->kind != VAR)
 				fatal("you can only emit references to variables");
-			emit_mid_asmsymbol($1->u.var.label, $1->u.var.offset);
+			emit_mid_asmsymbol($1);
 		}
 	; 
 
@@ -647,6 +649,7 @@ static void init_var(struct symbol* sym, struct symbol* type)
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
 	sym->u.var.offset = current_sub->workspace;
+	arch_init_variable(sym);
 	current_sub->workspace += type->u.type.width;
 }
 
@@ -654,17 +657,7 @@ static void init_var(struct symbol* sym, struct symbol* type)
 static void check_expression_type(struct symbol** node, struct symbol* type)
 {
 	if (*node)
-	{
 		*node = type;
-		switch (type->u.type.width)
-		{
-			case 1: emit_mid_cast1(); break;
-			case 2: emit_mid_cast2(); break;
-			case 4: emit_mid_cast4(); break;
-			default:
-				fatal("type mismatch: cannot convert an untyped constant to a '%s'", type->name);
-		}
-	}
 
 	if (*node != type)
 		fatal("type mismatch: expression was a '%s', used when a '%s' was expected",

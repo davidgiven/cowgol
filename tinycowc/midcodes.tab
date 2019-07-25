@@ -1,43 +1,43 @@
-END
-STARTFILE
-ENDFILE
-STARTSUB, struct subroutine* sub
-ENDSUB, struct subroutine* sub
+END()
+STARTFILE()
+ENDFILE()
+STARTSUB(struct subroutine* sub) = ("%s", $$.sub->name)
+ENDSUB(struct subroutine* sub) = ("%s", $$.sub->name)
 
-ASMSTART
-ASMTEXT, const char* text   # strdupped
-ASMSYMBOL, const char* symbol, int32_t offset
-ASMEND
+ASMSTART()
+ASMTEXT(const char* text) = ("%s", $$.text)
+ASMSYMBOL(struct symbol* sym) = ("%s", $$.sym->name)
+ASMEND()
 
-LABEL, int label
-LABELALIAS, int oldlabel, int newlabel
-JUMP, int label
-CALL, struct subroutine* sub
-RETURN
+LABEL(int label) = ("%d", $$.label)
+LABELALIAS(int oldlabel, int newlabel) = ("old=%d new=%d", $$.oldlabel, $$.newlabel)
+JUMP(int label) = ("%d", $$.label)
+CALL(struct subroutine* sub) = ("%s", $$.sub->name)
+RETURN()
 
-CONSTANT, int32_t value
-STRING, const char* text   # strdupped
-ADDRESS, const char* symbol, int32_t offset
+CONSTANT(int32_t value) = ("%d", $$.value)
+STRING(const char* text) = ("%s", $$.text)
+ADDRESS(struct symbol* sym) = ("%s", $$.sym->name)
 
-LOAD
-STORE
+LOAD()
+STORE()
 
-BEQ, int truelabel, int falselabel
-BGT, int truelabel, int falselabel
-BLT, int truelabel, int falselabel
+BEQ(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
+BGT(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
+BLT(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 
-CAST1
-CAST2
-CAST4
+CAST1()
+CAST2()
+CAST4()
 
-PARAM
-ADD
-SUB
-RSUB
-MUL
-DIV
-REM
-AND
-OR
-EOR
-NOT
+PARAM()
+ADD()
+SUB()
+RSUB()
+MUL()
+DIV()
+REM()
+AND()
+OR()
+EOR()
+NOT()

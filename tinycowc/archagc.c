@@ -5,6 +5,14 @@
 #include <ctype.h>
 #include "globals.h"
 
+void arch_init_types(void)
+{
+    intptr_type = make_number_type("int15", 1, true);
+}
+
+void arch_init_subroutine(struct subroutine* sub) {}
+void arch_init_variable(struct symbol* var) {}
+
 #if 0
 static int id = 1;
 static int sp = 0;
