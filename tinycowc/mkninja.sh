@@ -128,11 +128,14 @@ buildyacc() {
 }
 
 buildmkmidcodes() {
-    echo "build $1 : mkmidcodes $@ | mkmidcodes.lua libcowgol.lua"
+    echo "build $1 : mkmidcodes $2 | mkmidcodes.lua libcowgol.lua"
 }
 
 buildmkpat() {
-    echo "build $1 : mkpat $2 | mkpat.lua libcowgol.lua"
+    local out
+    out=$1
+    shift
+    echo "build $out : mkpat $@ | mkpat.lua libcowgol.lua"
 }
 
 runtest() {
@@ -159,6 +162,7 @@ buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
 buildlibrary libmain.a \
     -I$OBJDIR \
 	--dep $OBJDIR/parser.h \
+	--dep $OBJDIR/midcodes.h \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
     main.c \

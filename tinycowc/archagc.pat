@@ -1,4 +1,3 @@
-%{
 #include "globals.h"
 #include "midcode.h"
 
@@ -20,11 +19,11 @@ static void popping(void)
         ecode("CAE S%d + %#o", current_sub->arch->id, sp-1);
 }
 
-%}
+%%
 
-%value constant(int32_t val) = ("%d", $$.val)
-%value address(struct symbol* sym, int32_t off) = ("%s+%d", sym->name, off)
-%value s1
+constant(int32_t val) = ("%d", $$.val)
+address(struct symbol* sym, int32_t off) = ("%s+%d", sym->name, off)
+s1
 
 %%
 
