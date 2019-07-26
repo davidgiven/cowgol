@@ -1,40 +1,12 @@
-function trim(s)
-    return (s:gsub("^%s*(.-)%s*$", "%1"))
-end
-
-function split(s)
-    local ss = {}
-    s:gsub("[^,]+", function(c) ss[#ss+1] = trim(c) end)
-    return ss
-end
+require "./libcowgol"
 
 local args = {...}
 local infilename = args[2]
 local outfilename = args[3]
 
-local infp = io.open(infilename, "r")
+local midcodes = loadmidcodes(infilename)
+
 local hfp = io.open(outfilename, "w")
-
-local midcodes = {}
-for line in infp:lines() do
-    local tokens = {}
-    line = line:gsub(" *#.*$", "")
-    if (line ~= "") then
-        local _, _, name, args, emitter = line:find("^(%w+)(%b()) *= *(%b())$")
-        if not name then
-            _, _, name, args = line:find("^(%w+)(%b())$")
-        end
-        if not name then
-            error("syntax error in: "..line)
-        end
-
-        args = args or ""
-        args = args:gsub("^%(", ""):gsub("%)$", "")
-
-        midcodes[name] = { args = split(args or ""), emitter = emitter }
-    end
-end
-
 hfp:write("#ifndef MIDCODES_IMPLEMENTATION\n")
 
 hfp:write("enum {\n")

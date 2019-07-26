@@ -32,6 +32,10 @@ rule mkmidcodes
     command = lua mkmidcodes.lua -- \$in \$out
     description = MKMIDCODES \$in
 
+rule mkpat
+    command = lua mkpat.lua -- \$in \$out
+    description = MKPAT \$in
+
 rule yacc
     command = yacc --report=all --report-file=report.txt --defines=\$hfile -o \$cfile \$in
     description = YACC \$in
@@ -116,7 +120,11 @@ buildyacc() {
 }
 
 buildmkmidcodes() {
-    echo "build $1 : mkmidcodes $2 | mkmidcodes.lua"
+    echo "build $1 : mkmidcodes $@ | mkmidcodes.lua libcowgol.lua"
+}
+
+buildmkpat() {
+    echo "build $1 : mkpat $2 | mkpat.lua libcowgol.lua"
 }
 
 runtest() {
@@ -138,6 +146,7 @@ runtest() {
 buildyacc $OBJDIR/parser.c parser.y
 buildflex $OBJDIR/lexer.c lexer.l
 buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
+buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \

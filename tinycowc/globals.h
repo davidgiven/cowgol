@@ -45,7 +45,6 @@ struct symbol
 		{
 			struct symbol* type;
 			struct subroutine* sub;
-			const char* label;
 			uint32_t offset;
 		}
 		var;
@@ -58,7 +57,6 @@ struct symbol
 struct subroutine
 {
 	const char* name;
-	const char* label;
 	struct subroutine* parent;
 	struct symbol* firstsymbol;
 	struct symbol* lastsymbol;
