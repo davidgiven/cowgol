@@ -5,9 +5,7 @@ To build:
 
     $ make
 
-You need ninja, flex and bison (Posix yacc probably won't work). There's a
-bug in the dependency tree so that the first time you build it you have to do
-`mkdir .obj && touch .obj/parser.h`.
+You need ninja, flex and bison (Posix yacc probably won't work).
 
 ## Apollo Guidance Computer
 

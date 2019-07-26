@@ -48,8 +48,16 @@ buildlibrary() {
 
     local flags
     flags=
+	local deps
+	deps=
     while true; do
         case $1 in
+			--dep)
+				deps="$deps $2"
+				shift
+				shift
+				;;
+
             -*)
                 flags="$flags $1"
                 shift
@@ -67,7 +75,7 @@ buildlibrary() {
         obj="$OBJDIR/${src%%.c*}.o"
         objs="$objs $obj"
 
-        echo build $obj : cc $src
+        echo "build $obj : cc $src | $deps"
         echo "    flags=$flags"
     done
 
@@ -150,6 +158,7 @@ buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
+	--dep $OBJDIR/parser.h \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
     main.c \
