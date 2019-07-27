@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 extern void fatal(const char* s, ...);

@@ -11,4 +11,16 @@ struct midcode
     union midcode_data u;
 };
 
+#define MIDBUFSIZ 16
+#define VSTACKSIZ 64
+
+struct matchcontext
+{
+    int rdptr;
+    int wrptr;
+    struct midcode midcodes[MIDBUFSIZ];
+};
+
+extern void midcode_init(void);
+
 #endif

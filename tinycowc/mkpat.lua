@@ -17,7 +17,7 @@ local function readline()
 end
 
 local function emitline(lineno)
-    cfp:write("#line ", lineno, " \"", midcodetab, "\"\n")
+    --cfp:write("#line ", lineno, " \"", archpat, "\"\n")
 end
 
 -- Emit C header
@@ -187,10 +187,12 @@ for v, vd in pairs(values) do
 end
 cfp:write("} u;\n")
 cfp:write("};\n")
+cfp:write("static int vsp = 0;\n")
+cfp:write("static struct value vstack[VSTACKSIZ];\n")
 
 -- Emit the value printer function.
 
-cfp:write("void print_value(FILE* stream, struct value* value) {\n")
+cfp:write("void arch_print_value(FILE* stream, struct value* value) {\n")
 cfp:write("\tswitch (value->code) {\n")
 for v, vd in pairs(values) do
     cfp:write("\t\tcase VALUE_", v:upper(), ":\n")
@@ -214,19 +216,19 @@ cfp:write("}\n")
 cfp:write("bool arch_instruction_matcher(struct matchcontext* ctx) {\n")
 
 for i = 0, maxinputstackdepth-1 do
-    cfp:write(string.format("\tstruct value* stack%d = &ctx->vstack[ctx->vsp-%d];\n", i, i+1))
+    cfp:write(string.format("\tstruct value* stack%d = &vstack[vsp-%d];\n", i, i+1))
 end
 for i = 0, maxinputmidcodedepth-1 do
-    cfp:write(string.format("\tstruct midcode* midcode%d = &ctx->midcodes[(rdptr + %d) %% MIDBUFSZ];\n", i, i))
+    cfp:write(string.format("\tstruct midcode* midcode%d = &ctx->midcodes[(ctx->rdptr + %d) %% MIDBUFSIZ];\n", i, i))
 end
-cfp:write("\tint midcodedepth = (MAXBUFSZ + ctx->wrptr - ctx->rdptr) % MIDBUFSZ\n")
+cfp:write("\tint midcodedepth = (MIDBUFSIZ + ctx->wrptr - ctx->rdptr) % MIDBUFSIZ;\n")
 
 for id, pattern in ipairs(patterns) do
     cfp:write("\n\t/* ", pattern.pattern, " */\n")
     emitline(pattern.lineno)
     cfp:write("\tif ((midcodedepth >= ", pattern.inputmidcodedepth, ")")
     if (pattern.inputstackdepth > 0) then
-        cfp:write(" && (ctx->vsp >= ", pattern.inputstackdepth, ")")
+        cfp:write(" && (vsp >= ", pattern.inputstackdepth, ")")
     end
     local ac = pattern.inputstackdepth - 1
     local mc = 0
@@ -302,12 +304,12 @@ for id, pattern in ipairs(patterns) do
 
     -- Push stackable output elements.
     if (pattern.inputstackdepth > 0) then
-        cfp:write(string.format("\t\tctx->vsp -= %d;\n", pattern.inputstackdepth))
+        cfp:write(string.format("\t\tvsp -= %d;\n", pattern.inputstackdepth))
     end
     cfp:write("\t\tstruct value __outputvalue;\n")
     for _, element in pairs(pattern.outelements) do
         if not midcodes[element.name] then
-            cfp:write("\t\t__outputvalue = &ctx->vstack[ctx.vsp++];\n")
+            cfp:write("\t\t__outputvalue = &vstack[ctx.vsp++];\n")
             cfp:write(string.format("\t\t__outputvalue->code = VALUE_%s;\n", element.name:upper()))
             local params = element.param.args
             for i = 1, #params do
@@ -324,7 +326,7 @@ for id, pattern in ipairs(patterns) do
     end
 
     if (pattern.inputmidcodedepth > 0) then
-        cfp:write(string.format("\t\tctx->rdptr = (ctx->rdptr + %d) %% MIDBUFSF;\n", pattern.inputmidcodedepth))
+        cfp:write(string.format("\t\tctx->rdptr = (ctx->rdptr + %d) %% MIDBUFSIZ;\n", pattern.inputmidcodedepth))
     end
         
     cfp:write("\t\t#undef REJECT\n")

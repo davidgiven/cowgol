@@ -157,7 +157,7 @@ runtest() {
 buildyacc $OBJDIR/parser.c parser.y
 buildflex $OBJDIR/lexer.c lexer.l
 buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
-buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
+buildmkpat $OBJDIR/arch8080.c midcodes.tab arch8080.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -172,12 +172,14 @@ buildlibrary libagc.a \
     archagc.c \
 
 buildlibrary lib8080.a \
-    arch8080.c \
+    -I$OBJDIR \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/arch8080.c \
 
 buildprogram tinycowc-agc \
    libmain.a \
    libagc.a \
 
-#buildprogram tinycowc-8080 \
-#    libmain.a \
-#    lib8080.a \
+buildprogram tinycowc-8080 \
+    libmain.a \
+    lib8080.a \

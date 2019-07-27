@@ -655,7 +655,7 @@ static void init_var(struct symbol* sym, struct symbol* type)
 /* node must be on the top of the midend stack. */
 static void check_expression_type(struct symbol** node, struct symbol* type)
 {
-	if (*node)
+	if (!*node)
 		*node = type;
 
 	if (*node != type)

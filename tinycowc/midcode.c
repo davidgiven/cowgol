@@ -1,39 +1,41 @@
 #include "globals.h"
 #include "midcode.h"
 
-#define MIDCODES_IMPLEMENTATION
-#include "midcodes.h"
-
-#define MIDBUFSIZ 16
-
-static struct midcode midbuf[MIDBUFSIZ];
-static int rdptr = 0;
-static int wrptr = 1;
+static struct matchcontext ctx;
 
 #define NEXT(ptr) ((ptr+1) % MIDBUFSIZ)
 #define PREV(ptr) ((ptr-1) % MIDBUFSIZ)
 
+#define MIDCODES_IMPLEMENTATION
+#include "midcodes.h"
+
+void midcode_init(void)
+{
+    ctx.rdptr = 0;
+    ctx.wrptr = 1;
+}
+
 static struct midcode* add_midcode(void)
 {
-    struct midcode* m = &midbuf[wrptr];
-    if (wrptr == rdptr)
+    struct midcode* m = &ctx.midcodes[ctx.wrptr];
+    if (ctx.wrptr == ctx.rdptr)
         fatal("midcode buffer overflow");
 
-    wrptr = NEXT(wrptr);
+    ctx.wrptr = NEXT(ctx.wrptr);
     return m;
 }
 
 static void dump_buffer(void)
 {
-    int ptr = rdptr;
+    int ptr = ctx.rdptr;
     printf("Buffer: ");
     for (;;)
     {
         ptr = NEXT(ptr);
-        if (ptr == wrptr)
+        if (ptr == ctx.wrptr)
             break;
         
-        struct midcode* m = &midbuf[ptr];
+        struct midcode* m = &ctx.midcodes[ptr];
         print_midcode(stdout, m);
         putchar(' ');
     }
