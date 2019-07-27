@@ -1,13 +1,6 @@
 #include "globals.h"
 #include "midcode.h"
-
-void arch_init_types(void)
-{
-	intptr_type = make_number_type("uint16", 2, false);
-	make_number_type("int16", 2, true);
-	uint8_type = make_number_type("uint8", 1, false);
-	make_number_type("int8", 1, true);
-}
+#include "emitter.h"
 
 struct subarch
 {
@@ -23,6 +16,16 @@ static enum
     TOS_HL
 }
 tos = TOS_EMPTY;
+
+#define E emitter_printf
+
+void arch_init_types(void)
+{
+	intptr_type = make_number_type("uint16", 2, false);
+	make_number_type("int16", 2, true);
+	uint8_type = make_number_type("uint8", 1, false);
+	make_number_type("int8", 1, true);
+}
 
 void arch_init_subroutine(struct subroutine* sub)
 {
@@ -48,8 +51,8 @@ static void evict(void)
     switch (tos)
     {
         case TOS_EMPTY: return;
-        case TOS_A: printf("\tpush psw\n"); return;
-        case TOS_HL: printf("\tpush hl\n"); return;
+        case TOS_A: E("\tpush psw\n"); return;
+        case TOS_HL: E("\tpush hl\n"); return;
     }
 }
 
@@ -60,9 +63,9 @@ static void unvict(int wanted)
     if (tos != TOS_EMPTY)
         fatal("tos type mismatch");
     if (wanted == TOS_A)
-        printf("\tpop psw\n");
+        E("\tpop psw\n");
     if (wanted == TOS_HL)
-        printf("\tpop h\n");
+        E("\tpop h\n");
     tos = wanted;
 }
 
@@ -80,42 +83,42 @@ STARTFILE --
 ENDFILE --
 
 STARTSUB(sub) --
-    printf("\n");
-    printf("; %s\n", sub->name);
-    printf("\tjmp x%d\n", sub->label_after);
-    printf("f%d:\n", sub->arch->id);
+    emitter_open_chunk();
+    E("\n");
+    E("; %s\n", sub->name);
+    E("f%d:\n", sub->arch->id);
 
 ENDSUB(sub) --
-    printf("\tret\n");
-	printf("w%d: ds %d\n", sub->arch->id, sub->workspace);
-    printf("x%d:\n", sub->label_after);
+    E("\tret\n");
+	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
+    emitter_close_chunk();
 
 address(sym, off) constant(val) STORE(1) --
     evict();
-    printf("\tmvi a, %d\n", val);
-    printf("\tsta %s\n", symref(sym, off));
+    E("\tmvi a, %d\n", val);
+    E("\tsta %s\n", symref(sym, off));
 
 address(sym, off) constant(val) STORE(2) --
     evict();
-    printf("\tlxi hl, %d\n", val);
-    printf("\tshld %s\n", symref(sym, off));
+    E("\tlxi hl, %d\n", val);
+    E("\tshld %s\n", symref(sym, off));
 
 address(sym, off) i1 STORE(1) --
     unvict(TOS_A);
-    printf("\tsta %s\n", symref(sym, off));
+    E("\tsta %s\n", symref(sym, off));
 
 address(sym, off) i2 STORE(2) --
     unvict(TOS_HL);
-    printf("\tshld %s\n", symref(sym, off));
+    E("\tshld %s\n", symref(sym, off));
 
 address(sym, off) LOAD(1) -- i1
     evict();
-    printf("\tlda %s\n", symref(sym, off));
+    E("\tlda %s\n", symref(sym, off));
     tos = TOS_A;
 
 address(sym, off) LOAD(2) -- i2
     evict();
-    printf("\tlhld %s\n", symref(sym, off));
+    E("\tlhld %s\n", symref(sym, off));
     tos = TOS_HL;
 
 constant(lhs) constant(rhs) ADD(n) -- constant(result)
@@ -123,22 +126,22 @@ constant(lhs) constant(rhs) ADD(n) -- constant(result)
 
 i1 i1 ADD(1) -- i1
     unvict(TOS_A);
-    printf("\tpop hl\n");
-    printf("\tadd h\n");
+    E("\tpop hl\n");
+    E("\tadd h\n");
 
 i1 constant(n) ADD(1) -- i1
     unvict(TOS_A);
-    printf("\tadi %d\n", n);
+    E("\tadi %d\n", n);
 
 i2 i2 ADD(2) -- i2
     unvict(TOS_HL);
-    printf("\tpop d\n");
-    printf("\tdad d\n");
+    E("\tpop d\n");
+    E("\tdad d\n");
 
 i2 constant(n) ADD(2) -- i2
     unvict(TOS_HL);
-    printf("\tlxi d, %d", n);
-    printf("\tdad d\n", n);
+    E("\tlxi d, %d\n", n);
+    E("\tdad d\n", n);
 
 ADDRESS(sym) -- address(sym, 0)
 

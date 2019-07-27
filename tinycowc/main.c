@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "globals.h"
+#include "emitter.h"
 #include "midcode.h"
 
 #define YYDEBUG 1
@@ -54,6 +55,8 @@ int main(int argc, const char* argv[])
 	yylineno = 1;
 	yydebug = 0;
 
+	emitter_open(argv[2]);
+
 	midend_init();
 	arch_init_types();
 	arch_init_subroutine(current_sub);
@@ -63,6 +66,8 @@ int main(int argc, const char* argv[])
 	emit_mid_endsub(current_sub);
 	emit_mid_endfile();
     midend_flush(0);
+
+	emitter_close();
 
 	return 0;
 }

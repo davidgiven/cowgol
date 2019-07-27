@@ -173,6 +173,7 @@ buildlibrary libmain.a \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
     main.c \
+    emitter.c \
     midcode.c
 
 buildlibrary libagc.a \
