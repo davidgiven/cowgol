@@ -7,7 +7,7 @@ struct midcode;
 
 struct midcode
 {
-    int code;
+    enum midcodes code;
     union midcode_data u;
 };
 
@@ -21,6 +21,9 @@ struct matchcontext
     struct midcode midcodes[MIDBUFSIZ];
 };
 
-extern void midcode_init(void);
+extern void midend_init(void);
+extern void midend_flush(int threshold);
+extern bool arch_instruction_matcher(struct matchcontext* ctx);
+extern void arch_print_vstack(FILE* stream);
 
 #endif

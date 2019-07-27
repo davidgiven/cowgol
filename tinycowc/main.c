@@ -54,7 +54,7 @@ int main(int argc, const char* argv[])
 	yylineno = 1;
 	yydebug = 0;
 
-	midcode_init();
+	midend_init();
 	arch_init_types();
 	arch_init_subroutine(current_sub);
 	emit_mid_startfile();
@@ -62,6 +62,7 @@ int main(int argc, const char* argv[])
 	yyparse();
 	emit_mid_endsub(current_sub);
 	emit_mid_endfile();
+    midend_flush(0);
 
 	return 0;
 }

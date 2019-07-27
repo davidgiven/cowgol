@@ -542,7 +542,7 @@ static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs)
 	else if (!is_ptr(lhs) && (lhs != rhs))
 		fatal("you tried to add a %s and a %s", lhs->name, rhs->name);
 
-	emit_mid_add(lhs->u.type.width);
+	emit_mid_add(lhs ? lhs->u.type.width : 0);
 	return lhs;
 }
 
@@ -557,7 +557,7 @@ static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs)
 	else if (is_num(lhs) && is_num(rhs) && (lhs != rhs))
 		fatal("you tried to subtract a %s and a %s", lhs->name, rhs->name);
 
-	emit_mid_sub(lhs->u.type.width);
+	emit_mid_sub(lhs ? lhs->u.type.width : 0);
 	if (is_ptr(rhs))
 		return intptr_type;
 	return lhs;
@@ -579,7 +579,7 @@ static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (
 	if (!is_num(lhs) || !is_num(rhs))
 		fatal("number required");
 
-	emitter(lhs->u.type.width);
+	emitter(lhs ? lhs->u.type.width : 0);
 	return lhs;
 }
 

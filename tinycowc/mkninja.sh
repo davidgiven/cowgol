@@ -72,7 +72,14 @@ buildlibrary() {
     objs=
     for src in "$@"; do
         local obj
-        obj="$OBJDIR/${src%%.c*}.o"
+        case $src in
+            $OBJDIR/*)
+                obj="${src%%.c*}.o"
+                ;;
+
+            *)
+            obj="$OBJDIR/${src%%.c*}.o"
+        esac
         objs="$objs $obj"
 
         echo "build $obj : cc $src | $deps"
@@ -176,9 +183,9 @@ buildlibrary lib8080.a \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/arch8080.c \
 
-buildprogram tinycowc-agc \
-   libmain.a \
-   libagc.a \
+#buildprogram tinycowc-agc \
+#   libmain.a \
+#   libagc.a \
 
 buildprogram tinycowc-8080 \
     libmain.a \

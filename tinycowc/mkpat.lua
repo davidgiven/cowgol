@@ -160,7 +160,7 @@ table.sort(patterns,
 
 -- Emit value enum and union.
 
-cfp:write("enum {\n")
+cfp:write("enum values {\n")
 local first = true
 for v, vd in pairs(values) do
     if first then
@@ -173,7 +173,7 @@ for v, vd in pairs(values) do
 end
 cfp:write("};\n");
 cfp:write("struct value {\n")
-cfp:write("int code;\n")
+cfp:write("enum values code;\n")
 cfp:write("union {\n")
 for v, vd in pairs(values) do
     if (#vd.args > 0) then
@@ -208,6 +208,13 @@ for v, vd in pairs(values) do
 end
 cfp:write("\t\tdefault:\n")
 cfp:write('\t\t\tfprintf(stream, "unknown(%d) ", value->code);\n')
+cfp:write("\t}\n")
+cfp:write("}\n")
+
+cfp:write("void arch_print_vstack(FILE* stream) {\n")
+cfp:write("\tfor (int i=0; i<vsp; i++) {\n")
+cfp:write("\t\tfputc(' ', stream);\n")
+cfp:write("\t\tarch_print_value(stream, &vstack[i]);\n")
 cfp:write("\t}\n")
 cfp:write("}\n")
 
@@ -255,7 +262,7 @@ for id, pattern in ipairs(patterns) do
             mc = mc + 1
         else
             element.var = "stack"..ac
-            cfp:write(string.format(" && (stack%d->code = VALUE_%s)", ac, element.name:upper()))
+            cfp:write(string.format(" && (stack%d->code == VALUE_%s)", ac, element.name:upper()))
             emit_argspec(element.var, values[element.name].args, element.args)
             ac = ac - 1
         end
@@ -306,19 +313,17 @@ for id, pattern in ipairs(patterns) do
     if (pattern.inputstackdepth > 0) then
         cfp:write(string.format("\t\tvsp -= %d;\n", pattern.inputstackdepth))
     end
-    cfp:write("\t\tstruct value __outputvalue;\n")
+    cfp:write("\t\tstruct value* __outputvalue;\n")
     for _, element in pairs(pattern.outelements) do
         if not midcodes[element.name] then
-            cfp:write("\t\t__outputvalue = &vstack[ctx.vsp++];\n")
+            cfp:write("\t\t__outputvalue = &vstack[vsp++];\n")
             cfp:write(string.format("\t\t__outputvalue->code = VALUE_%s;\n", element.name:upper()))
             local params = element.param.args
             for i = 1, #params do
                 local a = element.args[i]
-                if a:find("^[a-z]") then
-                    local p = params[i]
-                    cfp:write(string.format("\t\t__outputvalue->u.%s.%s = %s;\n",
-                        element.name:lower(), p.name, a))
-                end
+                local p = params[i]
+                cfp:write(string.format("\t\t__outputvalue->u.%s.%s = %s;\n",
+                    element.name:lower(), p.name, a))
             end
         else
             error("can't emit midcodes yet at line "..lineno)

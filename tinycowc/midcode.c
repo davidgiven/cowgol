@@ -9,40 +9,56 @@ static struct matchcontext ctx;
 #define MIDCODES_IMPLEMENTATION
 #include "midcodes.h"
 
-void midcode_init(void)
+void midend_init(void)
 {
     ctx.rdptr = 0;
-    ctx.wrptr = 1;
+    ctx.wrptr = 0;
 }
 
 static struct midcode* add_midcode(void)
 {
     struct midcode* m = &ctx.midcodes[ctx.wrptr];
+    ctx.wrptr = NEXT(ctx.wrptr);
     if (ctx.wrptr == ctx.rdptr)
         fatal("midcode buffer overflow");
 
-    ctx.wrptr = NEXT(ctx.wrptr);
     return m;
 }
 
 static void dump_buffer(void)
 {
     int ptr = ctx.rdptr;
-    printf("Buffer: ");
+    printf("Buffer:");
+    arch_print_vstack(stdout);
     for (;;)
     {
-        ptr = NEXT(ptr);
         if (ptr == ctx.wrptr)
             break;
         
         struct midcode* m = &ctx.midcodes[ptr];
-        print_midcode(stdout, m);
         putchar(' ');
+        print_midcode(stdout, m);
+
+        ptr = NEXT(ptr);
     }
     printf("\n");
 }
 
+void midend_flush(int threshold)
+{
+    for (;;)
+    {
+        int midcodedepth = (MIDBUFSIZ + ctx.wrptr - ctx.rdptr) % MIDBUFSIZ;
+        if (midcodedepth <= threshold)
+            break;
+
+        dump_buffer();
+        if (!arch_instruction_matcher(&ctx))
+            fatal("no matching instruction in pattern");
+    }
+}
+
 static void push_midend_state_machine(void)
 {
-    dump_buffer();
+    midend_flush(MIDBUFSIZ / 2);
 }

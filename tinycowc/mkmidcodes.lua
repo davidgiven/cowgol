@@ -9,7 +9,7 @@ local midcodes = loadmidcodes(infilename)
 local hfp = io.open(outfilename, "w")
 hfp:write("#ifndef MIDCODES_IMPLEMENTATION\n")
 
-hfp:write("enum {\n")
+hfp:write("enum midcodes {\n")
 local first = true
 for m, t in pairs(midcodes) do
     if not first then
