@@ -34,7 +34,7 @@ static void dump_buffer(void)
             break;
         
         struct midcode* m = &midbuf[ptr];
-        print_midcode(m);
+        print_midcode(stdout, m);
         putchar(' ');
     }
     printf("\n");

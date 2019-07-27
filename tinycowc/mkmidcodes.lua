@@ -26,7 +26,7 @@ for m, md in pairs(midcodes) do
     if (#md.args > 0) then
         hfp:write("struct { ")
         for _, a in ipairs(md.args) do
-            hfp:write(a, "; ")
+            hfp:write(a.type, " ", a.name, "; ")
         end
         hfp:write("} ", m:lower(), ";\n")
     end
@@ -43,7 +43,7 @@ for m, md in pairs(midcodes) do
             else
                 hfp:write(",")
             end
-            hfp:write(a)
+            hfp:write(a.type, " ", a.name)
         end
     else
         hfp:write("void")
@@ -65,7 +65,7 @@ for m, md in pairs(midcodes) do
             else
                 hfp:write(",")
             end
-            hfp:write(a)
+            hfp:write(a.type, " ", a.name)
         end
     else
         hfp:write("void")
@@ -74,24 +74,23 @@ for m, md in pairs(midcodes) do
     hfp:write("\tstruct midcode* m = add_midcode();\n")
     hfp:write("\tm->code = MIDCODE_", m, ";\n")
     for _, a in ipairs(md.args) do
-        local _, _, n = a:find("([^ ]+)$")
-        hfp:write("\tm->u.", m:lower(), ".", n, " = ", n, ";\n")
+        hfp:write("\tm->u.", m:lower(), ".", a.name, " = ", a.name, ";\n")
     end
     hfp:write("\tpush_midend_state_machine();\n")
     hfp:write("}\n")
 end
 
-hfp:write("void print_midcode(struct midcode* m) {\n")
+hfp:write("void print_midcode(FILE* stream, struct midcode* m) {\n")
 hfp:write("\tswitch (m->code) {\n")
 for m, md in pairs(midcodes) do
     hfp:write("\t\tcase MIDCODE_", m, ":\n")
-    hfp:write('\t\t\tprintf("', m, '(");\n')
+    hfp:write('\t\t\tfprintf(stream, "', m, '(");\n')
     local e = md.emitter
     if e then
-        e = e:gsub("%$%$", "m->u."..m:lower())
-        hfp:write("\t\t\tprintf", e, ";\n")
+        e = e:gsub("^%(", ""):gsub("%)$", ""):gsub("%$%$", "m->u."..m:lower())
+        hfp:write("\t\t\tfprintf(stream, ", e, ");\n")
     end
-    hfp:write('\t\t\tprintf(")");\n')
+    hfp:write('\t\t\tfprintf(stream, ")");\n')
     hfp:write("\t\t\tbreak;\n")
 end
 hfp:write("\t\tdefault:\n")

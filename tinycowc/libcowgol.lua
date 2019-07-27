@@ -8,6 +8,20 @@ function split(s)
     return ss
 end
 
+function parsearglist(argspec)
+    local args = {}
+    argspec = (argspec or ""):gsub("^%(", ""):gsub("%)$", "")
+    for _, word in ipairs(split(argspec or "")) do
+        _, _, type, name = word:find("^(.*) +(%w+)$")
+        if not type then
+            error("unparseable argument: '"..word.."'")
+        end
+
+        args[#args+1] = { name = name, type = type }
+    end
+    return args
+end
+
 function loadmidcodes(filename)
     local infp = io.open(filename, "r")
     local midcodes = {}
@@ -23,10 +37,7 @@ function loadmidcodes(filename)
                 error("syntax error in: "..line)
             end
 
-            args = args or ""
-            args = args:gsub("^%(", ""):gsub("%)$", "")
-
-            midcodes[name] = { args = split(args or ""), emitter = emitter }
+            midcodes[name] = { args = parsearglist(args), emitter = emitter }
         end
     end
     return midcodes

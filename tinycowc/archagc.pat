@@ -22,28 +22,28 @@ static void popping(void)
 %%
 
 constant(int32_t val) = ("%d", $$.val)
-address(struct symbol* sym, int32_t off) = ("%s+%d", sym->name, off)
+address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 s1
 
 %%
 
 STARTFILE --
 
-STARTSUB --
+STARTSUB(sub) --
     ecode("");
-    ecode("# %s", current_sub->name);
-    elabel("F%d", current_sub->arch->id);
+    ecode("# %s", sub->name);
+    elabel("F%d", sub->arch->id);
     ecode("EXTEND");
-    ecode("QXCH Q%d", current_sub->arch->id);
+    ecode("QXCH Q%d", sub->arch->id);
 
-    if (current_sub->inputparameters != 0)
+    if (sub->inputparameters != 0)
     {
         ecode("TS Q");
-        for (int i=0; i<current_sub->inputparameters; i++)
+        for (int i=0; i<sub->inputparameters; i++)
         {
             ecode("INDEX Q");
             ecode("CA %#o", i);
-            ecode("TS W%d + %#o", current_sub->arch->id, i);
+            ecode("TS W%d + %#o", sub->arch->id, i);
         }
     }
 
