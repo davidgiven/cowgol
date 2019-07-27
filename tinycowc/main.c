@@ -56,6 +56,7 @@ int main(int argc, const char* argv[])
 	yydebug = 0;
 
 	emitter_open(argv[2]);
+	emitter_open_chunk();
 
 	midend_init();
 	arch_init_types();
@@ -67,6 +68,7 @@ int main(int argc, const char* argv[])
 	emit_mid_endfile();
     midend_flush(0);
 
+	emitter_close_chunk();
 	emitter_close();
 
 	return 0;

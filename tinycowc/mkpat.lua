@@ -304,6 +304,7 @@ for id, pattern in ipairs(patterns) do
     end
 
     cfp:write(string.format("\t\t#define REJECT goto reject%d\n", id))
+    cfp:write(string.format("\t\tarch_emit_comment(%q);\n", pattern.pattern))
     emitline(pattern.lineno + 1)
     for _, line in ipairs(pattern.code) do
         cfp:write(line, "\n")

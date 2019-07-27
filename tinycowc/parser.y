@@ -223,8 +223,8 @@ statement
 		}
 	| lvalue ASSIGN expression ';'
 		{
-			check_expression_type(&$3, $1);
-			emit_mid_store($1->u.type.width);
+			check_expression_type(&$3, $1->u.type.element);
+			emit_mid_store($1->u.type.element->u.type.width);
 		}
 	;
 
@@ -247,7 +247,8 @@ lvalue
 				fatal("array indices must be numbers");
 			
 			check_expression_type(&$3, intptr_type);
-			emit_mid_constant($1->u.type.element->u.type.width);
+			/* Remember that $1 is a *pointer* to the array. */
+			emit_mid_constant($1->u.type.element->u.type.element->u.type.width);
 			emit_mid_mul(intptr_type->u.type.width);
 			emit_mid_add(intptr_type->u.type.width);
 
@@ -377,7 +378,7 @@ expression
 		{ $$ = $2; }
 	| '-' expression
 		{ 
-			emit_mid_neg($2->u.type.width);
+			emit_mid_neg($2 ? $2->u.type.width : 0);
 		}
 	| expression '+' expression
 		{ $$ = expr_add($1, $3); }

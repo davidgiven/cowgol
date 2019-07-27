@@ -165,6 +165,7 @@ buildyacc $OBJDIR/parser.c parser.y
 buildflex $OBJDIR/lexer.c lexer.l
 buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
 buildmkpat $OBJDIR/arch8080.c midcodes.tab arch8080.pat
+buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -177,16 +178,18 @@ buildlibrary libmain.a \
     midcode.c
 
 buildlibrary libagc.a \
-    archagc.c \
+    -I$OBJDIR \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/archagc.c \
 
 buildlibrary lib8080.a \
     -I$OBJDIR \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/arch8080.c \
 
-#buildprogram tinycowc-agc \
-#   libmain.a \
-#   libagc.a \
+buildprogram tinycowc-agc \
+   libmain.a \
+   libagc.a \
 
 buildprogram tinycowc-8080 \
     libmain.a \

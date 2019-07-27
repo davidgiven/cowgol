@@ -37,6 +37,11 @@ void arch_init_variable(struct symbol* var)
 {
 }
 
+void arch_emit_comment(const char* text)
+{
+    printf("\t; %s\n", text);
+}
+
 static const char* symref(struct symbol* sym, int32_t off)
 {
     static char buffer[32];
