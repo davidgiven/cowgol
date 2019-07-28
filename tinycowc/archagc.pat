@@ -220,6 +220,11 @@ JUMP(label) --
     stackisempty();
     E("\tTCF %s\n", labelref(label));
 
+JUMP(target) LABEL(label1) LABEL(label2) -- LABEL(label1) LABEL(label2)
+    stackisempty();
+    if ((target != label1) && (target != label2))
+        E("\tTCF %s\n", labelref(target));
+
 LABEL(label) --
     stackisempty();
     E("%s\n", labelref(label));
@@ -276,15 +281,25 @@ address(sym, off) i1 ADD(1) -- i1
     unvict();
     E("\tAD %s\n", constref(add_sym_constant(sym, off)));
 
+address(sym1, off1) address(sym2, off2) LOAD(1) CONSTANT(1) ADD(1) STORE(1) --
+    if ((sym1 != sym2) || (off1 != off2))
+        REJECT;
+    E("\tINCR %s\n", symref(sym1, off1));
+
 // --- Subtractions ---------------------------------------------------------
 
 i1 i1 SUB(1) -- i1
     unvict();
-    E("\tXCH S%d +%#o\n", current_sub->arch->id, sp-2);
-    E("\tEXTEND\n");
-    E("\tSU S%d +%#o\n", current_sub->arch->id, sp-2);
+    E("\tCOM\n");
+    E("\tAD %s\n", stackref(-2));
     pop(1);
 
+const1(n) i1 SUB(1) -- i1
+    unvict();
+    E("\tCOM\n");
+    E("\tAD %s\n", constref(add_num_constant(n)));
+
+i1 const1(0) SUB(1) -- i1
 i1 const1(n) SUB(1) -- i1 const1(-n) ADD(1)
 
 // --- Multiplications ------------------------------------------------------
@@ -362,6 +377,15 @@ i1 i1 OR(1) -- i1
     E("\tROR L\n");
     pop(1);
 
+i1 const1(n) OR(1) -- i1
+    unvict();
+    E("\tXCH L\n");
+    E("\tCAF %s\n", constref(add_num_constant(n)));
+    E("\tEXTEND\n");
+    E("\tROR L\n");
+
+const1(n) i1 OR(1) -- i1 const1(n) OR(1)
+
 i1 i1 EOR(1) -- i1
     unvict();
     E("\tXCH L\n");
@@ -369,6 +393,15 @@ i1 i1 EOR(1) -- i1
     E("\tEXTEND\n");
     E("\tRXOR L\n");
     pop(1);
+
+i1 const1(n) OR(1) -- i1
+    unvict();
+    E("\tXCH L\n");
+    E("\tCAF %s\n", constref(add_num_constant(n)));
+    E("\tEXTEND\n");
+    E("\tRXOR L\n");
+
+const1(n) i1 EOR(1) -- i1 const1(n) EOR(1)
 
 // --- Loads ----------------------------------------------------------------
 
@@ -407,37 +440,43 @@ address(sym, off) const1(n) STORE(1) --
 i1 i1 STORE(1) --
     unvict();
     E("\tINDEX %s\n", stackref(-2));
-    E("\tXCH A\n");
+    E("\tXCH 0\n");
     tos = false;
     pop(2);
     stackisempty();
 
 // --- Branches -------------------------------------------------------------
 
-i1 const1(0) BEQ(1, truelabel, falselabel) --
+i1 const1(0) BEQ(1, truelabel, falselabel) LABEL(nextlabel) --
     unvict();
     E("\tEXTEND\n");
     E("\tBZF %s\n", labelref(truelabel));
-    E("\tTCF %s\n", labelref(falselabel));
+    if (nextlabel != falselabel)
+        E("\tTCF %s\n", labelref(falselabel));
+    E("%s\n", labelref(nextlabel));
     pop(1);
     tos = false;
     stackisempty();
 
-i1 const1(0) BLT(1, truelabel, falselabel) --
+i1 const1(0) BLT(1, truelabel, falselabel) LABEL(nextlabel) --
     unvict();
     E("\tINCR A\n");
     E("\tEXTEND\n");
     E("\tBZMF %s\n", labelref(truelabel));
-    E("\tTCF %s\n", labelref(falselabel));
+    if (nextlabel != falselabel)
+        E("\tTCF %s\n", labelref(falselabel));
+    E("%s\n", labelref(nextlabel));
     pop(1);
     tos = false;
     stackisempty();
 
-i1 const1(0) BGT(1, truelabel, falselabel) --
+i1 const1(0) BGT(1, truelabel, falselabel) LABEL(nextlabel) --
     unvict();
     E("\tEXTEND\n");
     E("\tBZMF %s\n", labelref(falselabel));
-    E("\tTCF %s\n", labelref(truelabel));
+    if (nextlabel != truelabel)
+        E("\tTCF %s\n", labelref(truelabel));
+    E("%s\n", labelref(nextlabel));
     pop(1);
     tos = false;
     stackisempty();
