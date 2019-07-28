@@ -158,9 +158,6 @@ i2
 %%
 
 STARTFILE --
-    emitter_open_chunk();
-    E("\tTCF F%d\n", current_sub->arch->id);
-    emitter_close_chunk();
 
 ENDFILE --
     while (constants)
@@ -171,6 +168,13 @@ ENDFILE --
     }
 
 STARTSUB(sub) --
+    if (strcmp(sub->name, "__main") == 0)
+    {
+        emitter_open_chunk();
+        E("\tTCF F%d\n", sub->arch->id);
+        emitter_close_chunk();
+    }
+
     stackisempty();
     emitter_open_chunk();
     E("\n");
@@ -257,7 +261,13 @@ i1 i1 ADD(1) -- i1
     unvict();
     E("\tAD S%d +%#o\n", current_sub->arch->id, sp-2);
     pop(1);
-    
+
+i1 const1(0) ADD(1) -- i1
+
+i1 const1(1) ADD(1) -- i1
+    unvict();
+    E("\tINCR A\n");
+
 i1 const1(n) ADD(1) -- i1
     unvict();
     E("\tAD %s\n", constref(add_num_constant(n)));
@@ -285,6 +295,20 @@ i1 i1 MUL(1) -- i1
     E("\tMP %s\n", stackref(-2));
     E("\tXCH L\n");
     pop(1);
+
+i1 const1(2) MUL(1) -- i1
+    unvict();
+    E("\tAD A\n");
+
+i1 const1(n) MUL(1) -- i1
+    if (n == 2)
+        REJECT;
+    unvict();
+    E("\tEXTEND\n");
+    E("\tMP %s\n", constref(add_num_constant(n)));
+    E("\tXCH L\n");
+
+const1(n) i1 MUL(1) -- i1 const1(n) MUL(1)
 
 constant(1) MUL(1) --
 
@@ -319,6 +343,17 @@ i1 i1 AND(1) -- i1
     E("\tMASK %s\n", stackref(-2));
     pop(1);
 
+i1 const1(0) AND(1) -- const1(0)
+    unvict();
+    pop(1);
+    tos = false;
+
+i1 const1(n) AND(1) -- i1
+    unvict();
+    E("\tMASK %s\n", constref(add_num_constant(n)));
+
+const1(n) i1 AND(1) -- i1 const1(n) AND(1)
+
 i1 i1 OR(1) -- i1
     unvict();
     E("\tXCH L\n");
@@ -347,6 +382,11 @@ address(sym, off) LOAD(1) -- i1
     E("\tCAE %s\n", symref(sym, off));
     tos = true;
     push(1);
+
+address(sym, off) i1 ADD(1) LOAD(1) -- i1
+    unvict();
+    E("\tINDEX A\n");
+    E("\tCAE %s\n", symref(sym, off));
 
 // --- Stores ---------------------------------------------------------------
 
@@ -385,10 +425,9 @@ i1 const1(0) BEQ(1, truelabel, falselabel) --
 
 i1 const1(0) BLT(1, truelabel, falselabel) --
     unvict();
-    E("\tCCS A\n");
-    E("\tTCF %s\n", labelref(falselabel));
-    E("\tTCF %s\n", labelref(falselabel));
-    E("\tTCF %s\n", labelref(truelabel));
+    E("\tINCR A\n");
+    E("\tEXTEND\n");
+    E("\tBZMF %s\n", labelref(truelabel));
     E("\tTCF %s\n", labelref(falselabel));
     pop(1);
     tos = false;
@@ -396,26 +435,16 @@ i1 const1(0) BLT(1, truelabel, falselabel) --
 
 i1 const1(0) BGT(1, truelabel, falselabel) --
     unvict();
-    E("\tCCS A\n");
+    E("\tEXTEND\n");
+    E("\tBZMF %s\n", labelref(falselabel));
     E("\tTCF %s\n", labelref(truelabel));
-    E("\tTCF %s\n", labelref(falselabel));
-    E("\tTCF %s\n", labelref(falselabel));
-    E("\tTCF %s\n", labelref(falselabel));
     pop(1);
     tos = false;
     stackisempty();
 
-const1(n) BEQ(1, truelabel, falselabel) -- const1(n) SUB(1) CONSTANT(0) BEQ(1, truelabel, falselabel)
-    if (n == 0)
-        REJECT;
-
-const1(n) BLT(1, truelabel, falselabel) -- const1(n) SUB(1) CONSTANT(0) BLT(1, truelabel, falselabel)
-    if (n == 0)
-        REJECT;
-
-const1(n) BGT(1, truelabel, falselabel) -- const1(n) SUB(1) CONSTANT(0) BGT(1, truelabel, falselabel)
-    if (n == 0)
-        REJECT;
+BEQ(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BEQ(1, truelabel, falselabel)
+BLT(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BLT(1, truelabel, falselabel)
+BGT(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BGT(1, truelabel, falselabel)
 
 // --- Inline assembly ------------------------------------------------------
 

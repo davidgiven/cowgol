@@ -122,11 +122,24 @@ end
 local maxinputstackdepth = 0
 local maxinputmidcodedepth = 0
 for _, pattern in ipairs(patterns) do
+    pattern.score = 0
+    for _, element in ipairs(pattern.inelements) do
+        pattern.score = pattern.score + 3
+        for _, a in ipairs(element.args) do
+            if a:find("^[a-z]") then
+                pattern.score = pattern.score + 1
+            else
+                pattern.score = pattern.score + 2
+            end
+        end
+    end
+
     local function checkelements(elements)
         local stackdepth = 0
         local midcodedepth = 0
         local stacking = true
         for _, element in ipairs(elements) do
+
             if stacking and midcodes[element.name] then
                 stacking = false
             elseif not stacking and not midcodes[element.name] then
@@ -151,15 +164,7 @@ end
 
 -- Sort by cost.
 
-table.sort(patterns,
-    function(a, b)
-        if (a.inputmidcodedepth ~= b.inputmidcodedepth) then
-            return a.inputmidcodedepth > b.inputmidcodedepth
-        else
-            return a.inputstackdepth > b.inputstackdepth
-        end
-    end
-)
+table.sort(patterns, function(a, b) return a.score > b.score end)
 
 -- Emit value enum and union.
 
@@ -234,7 +239,7 @@ end
 cfp:write("\tint midcodedepth = (MIDBUFSIZ + ctx->wrptr - ctx->rdptr) % MIDBUFSIZ;\n")
 
 for id, pattern in ipairs(patterns) do
-    cfp:write("\n\t/* ", pattern.pattern, " */\n")
+    cfp:write("\n\t/* ", pattern.score, ": ", pattern.pattern, " */\n")
     emitline(pattern.lineno)
     cfp:write("\tif ((midcodedepth >= ", pattern.inputmidcodedepth, ")")
     if (pattern.inputstackdepth > 0) then
