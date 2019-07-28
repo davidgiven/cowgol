@@ -149,6 +149,8 @@ static const char* labelref(int label)
 %%
 
 constant(int32_t val) = ("%d", $$.val)
+const1(int32_t val) = ("%d", $$.val)
+const2(int32_t val) = ("%d", $$.val)
 address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 i1
 i2
@@ -230,7 +232,7 @@ ADDRESS(sym) -- address(sym, 0)
 
 i1 PARAM(1) -- i1
 
-constant(n) PARAM(1) -- i1
+const1(n) PARAM(1) -- i1
     evict();
     E("\tCAF %s\n", constref(add_num_constant(n)));
     tos = true;
@@ -248,7 +250,7 @@ CALL(sub) --
 
 // --- Adds -----------------------------------------------------------------
 
-address(sym, off) constant(val) ADD(1) -- address(sym, newoff)
+address(sym, off) const1(val) ADD(1) -- address(sym, newoff)
     newoff = off + val;
 
 i1 i1 ADD(1) -- i1
@@ -256,7 +258,7 @@ i1 i1 ADD(1) -- i1
     E("\tAD S%d +%#o\n", current_sub->arch->id, sp-2);
     pop(1);
     
-i1 constant(n) ADD(1) -- i1
+i1 const1(n) ADD(1) -- i1
     unvict();
     E("\tAD %s\n", constref(add_num_constant(n)));
 
@@ -273,17 +275,16 @@ i1 i1 SUB(1) -- i1
     E("\tSU S%d +%#o\n", current_sub->arch->id, sp-2);
     pop(1);
 
-i1 constant(n) SUB(1) -- i1
-    unvict();
-    E("\tAD %s\n", constref(add_num_constant(-n)));
+i1 const1(n) SUB(1) -- i1 const1(-n) ADD(1)
 
 // --- Multiplications ------------------------------------------------------
 
-i1 constant(n) MUL(1) -- i1
+i1 i1 MUL(1) -- i1
     unvict();
     E("\tEXTEND\n");
-    E("\tMP %s\n", constref(add_num_constant(n)));
+    E("\tMP %s\n", stackref(-2));
     E("\tXCH L\n");
+    pop(1);
 
 constant(1) MUL(1) --
 
@@ -300,12 +301,12 @@ constant(x) NEG(n) -- constant(-x)
 
 // --- Divisions ------------------------------------------------------------
 
-i1 constant(n) DIV(1) -- i1
-    evict();
-    E("\tCAF %s\n", constref(add_num_constant(n)));
+i1 i1 DIV(1) -- i1
+    unvict();
     E("\tTS L\n");
-    E("\tCAE %s\n", stackref(-1));
+    E("\tCAE %s\n", stackref(-2));
     E("\tTC DIV\n");
+    pop(1);
 
 constant(1) DIV(1) --
 
@@ -318,10 +319,6 @@ i1 i1 AND(1) -- i1
     E("\tMASK %s\n", stackref(-2));
     pop(1);
 
-i1 constant(n) AND(1) -- i1
-    unvict();
-    E("\tMASK %s\n", constref(add_num_constant(n)));
-
 i1 i1 OR(1) -- i1
     unvict();
     E("\tXCH L\n");
@@ -330,12 +327,13 @@ i1 i1 OR(1) -- i1
     E("\tROR L\n");
     pop(1);
 
-i1 constant(n) OR(1) -- i1
+i1 i1 EOR(1) -- i1
     unvict();
     E("\tXCH L\n");
-    E("\tCAF %s\n", constref(add_num_constant(n)));
+    E("\tCAE %s\n", stackref(-2));
     E("\tEXTEND\n");
-    E("\tROR L\n");
+    E("\tRXOR L\n");
+    pop(1);
 
 // --- Loads ----------------------------------------------------------------
 
@@ -359,7 +357,7 @@ address(sym, off) i1 STORE(1) --
     pop(1);
     stackisempty();
 
-address(sym, off) constant(n) STORE(1) --
+address(sym, off) const1(n) STORE(1) --
     evict();
     E("\tCAF %s\n", constref(add_num_constant(n)));
     E("\tXCH W%d +%#o\n", sym->u.var.sub->arch->id, sym->u.var.offset + off);
@@ -376,7 +374,7 @@ i1 i1 STORE(1) --
 
 // --- Branches -------------------------------------------------------------
 
-i1 constant(0) BEQ(1, truelabel, falselabel) --
+i1 const1(0) BEQ(1, truelabel, falselabel) --
     unvict();
     E("\tEXTEND\n");
     E("\tBZF %s\n", labelref(truelabel));
@@ -385,7 +383,7 @@ i1 constant(0) BEQ(1, truelabel, falselabel) --
     tos = false;
     stackisempty();
 
-i1 constant(0) BLT(1, truelabel, falselabel) --
+i1 const1(0) BLT(1, truelabel, falselabel) --
     unvict();
     E("\tCCS A\n");
     E("\tTCF %s\n", labelref(falselabel));
@@ -396,7 +394,7 @@ i1 constant(0) BLT(1, truelabel, falselabel) --
     tos = false;
     stackisempty();
 
-i1 constant(0) BGT(1, truelabel, falselabel) --
+i1 const1(0) BGT(1, truelabel, falselabel) --
     unvict();
     E("\tCCS A\n");
     E("\tTCF %s\n", labelref(truelabel));
@@ -407,15 +405,15 @@ i1 constant(0) BGT(1, truelabel, falselabel) --
     tos = false;
     stackisempty();
 
-constant(n) BEQ(1, truelabel, falselabel) -- constant(n) SUB(1) CONSTANT(0) BEQ(1, truelabel, falselabel)
+const1(n) BEQ(1, truelabel, falselabel) -- const1(n) SUB(1) CONSTANT(0) BEQ(1, truelabel, falselabel)
     if (n == 0)
         REJECT;
 
-constant(n) BLT(1, truelabel, falselabel) -- constant(n) SUB(1) CONSTANT(0) BLT(1, truelabel, falselabel)
+const1(n) BLT(1, truelabel, falselabel) -- const1(n) SUB(1) CONSTANT(0) BLT(1, truelabel, falselabel)
     if (n == 0)
         REJECT;
 
-constant(n) BGT(1, truelabel, falselabel) -- constant(n) SUB(1) CONSTANT(0) BGT(1, truelabel, falselabel)
+const1(n) BGT(1, truelabel, falselabel) -- const1(n) SUB(1) CONSTANT(0) BGT(1, truelabel, falselabel)
     if (n == 0)
         REJECT;
 
@@ -436,3 +434,70 @@ ASMSYMBOL(sym) --
 ASMEND --
     E("\t%s\n", asmbuffer);
 
+// --- Constant type inference ----------------------------------------------
+
+constant(c) STORE(1) -- const1(c) STORE(1)
+constant(c) STORE(2) -- const2(c) STORE(2)
+
+constant(c) PARAM(1) -- const1(c) PARAM(1)
+constant(c) PARAM(2) -- const2(c) PARAM(2)
+
+constant(c) NEG(1) -- const1(c) NEG(1)
+constant(c) NEG(2) -- const2(c) NEG(2)
+
+constant(c) ADD(1) -- const1(c) ADD(1)
+constant(c) ADD(2) -- const2(c) ADD(2)
+constant(c) (value) ADD(1) -- const1(c) (value) ADD(1)
+constant(c) (value) ADD(2) -- const2(c) (value) ADD(2)
+
+constant(c) SUB(1) -- const1(c) SUB(1)
+constant(c) SUB(2) -- const2(c) SUB(2)
+constant(c) (value) SUB(1) -- const1(c) (value) SUB(1)
+constant(c) (value) SUB(2) -- const2(c) (value) SUB(2)
+
+constant(c) MUL(1) -- const1(c) MUL(1)
+constant(c) MUL(2) -- const2(c) MUL(2)
+constant(c) (value) MUL(1) -- const1(c) (value) MUL(1)
+constant(c) (value) MUL(2) -- const2(c) (value) MUL(2)
+
+constant(c) DIV(1) -- const1(c) DIV(1)
+constant(c) DIV(2) -- const2(c) DIV(2)
+constant(c) (value) DIV(1) -- const1(c) (value) DIV(1)
+constant(c) (value) DIV(2) -- const2(c) (value) DIV(2)
+
+constant(c) REM(1) -- const1(c) REM(1)
+constant(c) REM(2) -- const2(c) REM(2)
+constant(c) (value) REM(1) -- const1(c) (value) REM(1)
+constant(c) (value) REM(2) -- const2(c) (value) REM(2)
+
+constant(c) OR(1) -- const1(c) OR(1)
+constant(c) OR(2) -- const2(c) OR(2)
+constant(c) (value) OR(1) -- const1(c) (value) OR(1)
+constant(c) (value) OR(2) -- const2(c) (value) OR(2)
+
+constant(c) AND(1) -- const1(c) AND(1)
+constant(c) AND(2) -- const2(c) AND(2)
+constant(c) (value) AND(1) -- const1(c) (value) AND(1)
+constant(c) (value) AND(2) -- const2(c) (value) AND(2)
+
+constant(c) EOR(1) -- const1(c) EOR(1)
+constant(c) EOR(2) -- const2(c) EOR(2)
+constant(c) (value) EOR(1) -- const1(c) (value) EOR(1)
+constant(c) (value) EOR(2) -- const2(c) (value) EOR(2)
+
+constant(c) BEQ(1, tl, fl) -- const1(c) BEQ(1, tl, fl)
+constant(c) BLT(1, tl, fl) -- const1(c) BLT(1, tl, fl)
+constant(c) BGT(1, tl, fl) -- const1(c) BGT(1, tl, fl)
+
+const1(c) -- i1
+    evict();
+    E("\tCAF %s\n", constref(add_num_constant(c)));
+    push(1);
+    tos = true;
+
+const1(c) i1 -- i1 i1
+    evict();
+    E("\tCAF %s\n", constref(add_num_constant(c)));
+    E("\tXCH %s\n", stackref(-1));
+    push(1);
+    tos = true;

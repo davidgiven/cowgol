@@ -20,11 +20,11 @@ local function emitline(lineno)
     --cfp:write("#line ", lineno, " \"", archpat, "\"\n")
 end
 
--- Emit C header
+-- Emit C header.
 
 while true do
     local s = readline()
-    if (s == "%%") then
+    if (not s) or (s == "%%") then
         break
     end
     cfp:write(s, "\n")
@@ -84,7 +84,7 @@ while line do
                 elements = outelements
             else
                 local name, argspec
-                _, e, name, argspec = line:find("^%s*(%w+)(%b())", s)
+                _, e, name, argspec = line:find("^%s*(%w*)(%b())", s)
                 if not e then
                     _, e, name = line:find("^%s*(%w+)", s)
                     if not e then
@@ -98,6 +98,8 @@ while line do
                     param = midcodes[name]
                 elseif values[name] then
                     param = values[name]
+                elseif name == "" then
+                    param = { args={ [1] = { type="struct value", name="value" }}}
                 else
                     error(string.format("'%s' is not a declared midcode or value", name))
                 end
@@ -256,7 +258,10 @@ for id, pattern in ipairs(patterns) do
             end
         end
 
-        if midcodes[element.name] then
+        if (element.name == "") then
+            element.var = "stack"..ac
+            ac = ac - 1
+        elseif midcodes[element.name] then
             element.var = "midcode"..mc
             cfp:write(string.format(" && (midcode%d->code == MIDCODE_%s)", mc, element.name:upper()))
             emit_argspec(element.var, midcodes[element.name].args, element.args)
@@ -281,8 +286,13 @@ for id, pattern in ipairs(patterns) do
                     error("input variable used in more than one place at line "..lineno)
                 end
                 local p = params[i]
-                cfp:write(string.format("\t\t%s %s = %s->u.%s.%s;\n",
-                    p.type, a, element.var, element.name:lower(), p.name))
+                if (element.name ~= "") then
+                    cfp:write(string.format("\t\t%s %s = %s->u.%s.%s;\n",
+                        p.type, a, element.var, element.name:lower(), p.name))
+                else
+                    cfp:write(string.format("\t\t%s %s = *%s;\n",
+                        p.type, a, element.var))
+                end
                 processedvars[a] = p
             end
         end
@@ -322,7 +332,9 @@ for id, pattern in ipairs(patterns) do
     cfp:write("\t\tstruct value* __outputvalue;\n")
     cfp:write("\t\tstruct midcode* __outputmid;\n")
     for _, element in pairs(pattern.outelements) do
-        if not midcodes[element.name] then
+        if element.name == "" then
+            cfp:write(string.format("\t\tvstack[vsp++] = %s;\n", element.args[1]))
+        elseif not midcodes[element.name] then
             cfp:write("\t\t__outputvalue = &vstack[vsp++];\n")
             cfp:write(string.format("\t\t__outputvalue->code = VALUE_%s;\n", element.name:upper()))
             local params = element.param.args
@@ -357,3 +369,16 @@ end
 
 cfp:write("\treturn false;\n")
 cfp:write("}\n")
+
+-- Read and copy any trailing text.
+
+emitline(lineno)
+while true do
+    local s = readline()
+    if (not s) or (s == "%%") then
+        break
+    end
+    cfp:write(s, "\n")
+end
+
+cfp:close()
