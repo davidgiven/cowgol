@@ -10,7 +10,7 @@ ASMSYMBOL(struct symbol* sym) = ("%s", $$.sym->name)
 ASMEND()
 
 LABEL(int label) = ("%d", $$.label)
-LABELALIAS(int oldlabel, int newlabel) = ("old=%d new=%d", $$.oldlabel, $$.newlabel)
+LABELALIAS(int newlabel, int oldlabel) = ("new=%d old=%d", $$.newlabel, $$.oldlabel)
 JUMP(int label) = ("%d", $$.label)
 CALL(struct subroutine* sub) = ("%s", $$.sub->name)
 RETURN()

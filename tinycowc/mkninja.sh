@@ -188,8 +188,9 @@ buildlibrary lib8080.a \
     $OBJDIR/arch8080.c \
 
 buildprogram tinycowc-agc \
-   libmain.a \
-   libagc.a \
+    -lbsd \
+    libmain.a \
+    libagc.a \
 
 buildprogram tinycowc-8080 \
     libmain.a \

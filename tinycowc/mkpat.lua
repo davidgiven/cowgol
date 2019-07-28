@@ -62,6 +62,7 @@ while line do
     if (line == "%%") then
         break
     end
+    line = line:gsub(" *//.*$", "")
     if (line == "") then
         line = readline()
     else
@@ -310,11 +311,16 @@ for id, pattern in ipairs(patterns) do
         cfp:write(line, "\n")
     end
 
-    -- Push stackable output elements.
+    -- Push output elements.
     if (pattern.inputstackdepth > 0) then
         cfp:write(string.format("\t\tvsp -= %d;\n", pattern.inputstackdepth))
     end
+    if (pattern.inputmidcodedepth > 0) then
+        cfp:write(string.format("\t\tctx->rdptr = (ctx->rdptr + %d) %% MIDBUFSIZ;\n", pattern.inputmidcodedepth))
+    end
+
     cfp:write("\t\tstruct value* __outputvalue;\n")
+    cfp:write("\t\tstruct midcode* __outputmid;\n")
     for _, element in pairs(pattern.outelements) do
         if not midcodes[element.name] then
             cfp:write("\t\t__outputvalue = &vstack[vsp++];\n")
@@ -326,13 +332,21 @@ for id, pattern in ipairs(patterns) do
                 cfp:write(string.format("\t\t__outputvalue->u.%s.%s = %s;\n",
                     element.name:lower(), p.name, a))
             end
-        else
-            error("can't emit midcodes yet at line "..lineno)
         end
     end
-
-    if (pattern.inputmidcodedepth > 0) then
-        cfp:write(string.format("\t\tctx->rdptr = (ctx->rdptr + %d) %% MIDBUFSIZ;\n", pattern.inputmidcodedepth))
+    for i = #pattern.outelements, 1, -1 do
+        local element = pattern.outelements[i]
+        if midcodes[element.name] then
+            cfp:write("\t\t__outputmid = midend_prepend();\n")
+            cfp:write(string.format("\t\t__outputmid->code = MIDCODE_%s;\n", element.name:upper()))
+            local params = element.param.args
+            for i = 1, #params do
+                local a = element.args[i]
+                local p = params[i]
+                cfp:write(string.format("\t\t__outputmid->u.%s.%s = %s;\n",
+                    element.name:lower(), p.name, a))
+            end
+        end
     end
         
     cfp:write("\t\t#undef REJECT\n")

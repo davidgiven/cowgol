@@ -55,7 +55,7 @@ void emitter_printf(const char* fmt, ...)
 
     va_list ap;
     va_start(ap, fmt);
-    int len = vsnprintf(NULL, 0, fmt, ap);
+    int len = vsnprintf(NULL, 0, fmt, ap) + 1;
     va_end(ap);
 
     while ((current->fill + len) > current->max)
@@ -65,9 +65,8 @@ void emitter_printf(const char* fmt, ...)
     }
 
     va_start(ap, fmt);
-    current->fill += vsnprintf(
+    current->fill += vsprintf(
         current->data + current->fill,
-        current->max - current->fill,
         fmt, ap);
     va_end(ap);
 }

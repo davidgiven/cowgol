@@ -71,7 +71,7 @@ for m, md in pairs(midcodes) do
         hfp:write("void")
     end
     hfp:write(") {\n")
-    hfp:write("\tstruct midcode* m = add_midcode();\n")
+    hfp:write("\tstruct midcode* m = midend_append();\n")
     hfp:write("\tm->code = MIDCODE_", m, ";\n")
     for _, a in ipairs(md.args) do
         hfp:write("\tm->u.", m:lower(), ".", a.name, " = ", a.name, ";\n")

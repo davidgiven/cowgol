@@ -62,7 +62,6 @@ struct subroutine
 	struct symbol* firstsymbol;
 	struct symbol* lastsymbol;
 	uint32_t workspace;
-	int label_after;
 	int inputparameters;
 	int old_break_label;
 	struct subarch* arch;

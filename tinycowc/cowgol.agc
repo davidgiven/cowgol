@@ -15,7 +15,7 @@ CYL         = 22
 RHCP        = 42
 
 NEWJOB      = 67 # Location check by Night Watchman
-            SETLOC 068
+            SETLOC 070
 CLOCK       ERASE
 KEY         ERASE
 DIVA        ERASE

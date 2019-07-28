@@ -124,7 +124,6 @@ statement
 			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
 			sub->name = $2->name;
 			sub->parent = current_sub;
-			sub->label_after = current_label++;
 			sub->old_break_label = break_label;
 			arch_init_subroutine(sub);
 			break_label = 0;
@@ -136,13 +135,11 @@ statement
 		}
 		parameterlist
 		{
-			emit_mid_jump(current_sub->label_after);
 			emit_mid_startsub(current_sub);
 		}
 		statements
 		{
 			emit_mid_endsub(current_sub);
-			emit_mid_label(current_sub->label_after);
 			break_label = current_sub->old_break_label;
 			current_sub = current_sub->parent;
 		}

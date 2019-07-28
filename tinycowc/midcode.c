@@ -4,7 +4,7 @@
 static struct matchcontext ctx;
 
 #define NEXT(ptr) ((ptr+1) % MIDBUFSIZ)
-#define PREV(ptr) ((ptr-1) % MIDBUFSIZ)
+#define PREV(ptr) ((MIDBUFSIZ+ptr-1) % MIDBUFSIZ)
 
 #define MIDCODES_IMPLEMENTATION
 #include "midcodes.h"
@@ -15,7 +15,7 @@ void midend_init(void)
     ctx.wrptr = 0;
 }
 
-static struct midcode* add_midcode(void)
+struct midcode* midend_append(void)
 {
     struct midcode* m = &ctx.midcodes[ctx.wrptr];
     ctx.wrptr = NEXT(ctx.wrptr);
@@ -23,6 +23,15 @@ static struct midcode* add_midcode(void)
         fatal("midcode buffer overflow");
 
     return m;
+}
+
+struct midcode* midend_prepend(void)
+{
+    if (ctx.rdptr == ctx.wrptr)
+        fatal("midcode buffer overflow");
+
+    ctx.rdptr = PREV(ctx.rdptr);
+    return &ctx.midcodes[ctx.rdptr];
 }
 
 static void dump_buffer(void)

@@ -23,6 +23,8 @@ struct matchcontext
 
 extern void midend_init(void);
 extern void midend_flush(int threshold);
+extern struct midcode* midend_append(void);
+extern struct midcode* midend_prepend(void);
 extern bool arch_instruction_matcher(struct matchcontext* ctx);
 extern void arch_print_vstack(FILE* stream);
 
