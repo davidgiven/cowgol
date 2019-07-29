@@ -24,7 +24,7 @@ struct constant* constants = NULL;
 static int id = 1;
 static int sp = 0;
 static int datap = 0;
-static bool tos;
+static int tos;
 static char tokenbuffer[64];
 static char asmbuffer[80];
 
@@ -93,38 +93,6 @@ static int add_sym_constant(struct symbol* sym, int32_t off)
             sym->u.var.offset + off);
 }
 
-static void evict(void)
-{
-    if (tos)
-        E("\tXCH S%d +%#o\n", current_sub->arch->id, sp-1);
-    tos = false;
-}
-
-static void unvict(void)
-{
-    if (!tos)
-        E("\tXCH S%d +%#o\n", current_sub->arch->id, sp-1);
-    tos = true;
-}
-
-static void push(int delta)
-{
-    sp += delta;
-    if (sp > current_sub->arch->maxsp)
-        current_sub->arch->maxsp = sp;
-}
-
-static void pop(int delta)
-{
-    sp -= delta;
-}
-
-static void stackisempty(void)
-{
-    if ((sp != 0) || tos)
-        fatal("stray values on stack");
-}
-
 static const char* constref(int constantid)
 {
     snprintf(tokenbuffer, sizeof(tokenbuffer), "C%d", constantid);
@@ -149,6 +117,60 @@ static const char* labelref(int label)
 {
     snprintf(tokenbuffer, sizeof(tokenbuffer), "X%d", label);
     return tokenbuffer;
+}
+
+static void evict(void)
+{
+    switch (tos)
+    {
+        case 1:
+            E("\tXCH %s\n", stackref(-1));
+            break;
+
+        case 2:
+            E("\tDXCH %s\n", stackref(-2));
+            break;
+    }
+
+    tos = 0;
+}
+
+static void unvict(int width)
+{
+    if (tos && (width != tos))
+        fatal("size mismatch of tos");
+    if (!tos)
+    {
+        switch (width)
+        {
+            case 1:
+                E("\tXCH %s\n", stackref(-1));
+                break;
+
+            case 2:
+                E("\tDXCH %s\n", stackref(-2));
+                break;
+        }
+        tos = width;
+    }
+}
+
+static void push(int delta)
+{
+    sp += delta;
+    if (sp > current_sub->arch->maxsp)
+        current_sub->arch->maxsp = sp;
+}
+
+static void pop(int delta)
+{
+    sp -= delta;
+}
+
+static void stackisempty(void)
+{
+    if ((sp != 0) || tos)
+        fatal("stray values on stack");
 }
 
 %%
@@ -199,7 +221,7 @@ STARTSUB(sub) --
         }
     }
 
-    tos = false;
+    tos = 0;
 
 ENDSUB(sub) --
     E("\tCAE Q%d\n", sub->arch->id);
@@ -249,7 +271,7 @@ i1 PARAM(1) -- i1
 const1(n) PARAM(1) -- i1
     evict();
     E("\tCAF %s\n", constref(add_num1_constant(n)));
-    tos = true;
+    tos = 1;
     push(1);
 
 CALL(sub) --
@@ -268,28 +290,28 @@ address(sym, off) const1(val) ADD(1) -- address(sym, newoff)
     newoff = off + val;
 
 i1 i1 ADD(1) -- i1
-    unvict();
+    unvict(1);
     E("\tAD S%d +%#o\n", current_sub->arch->id, sp-2);
     pop(1);
 
 i2 i2 ADD(2) -- i2
-    unvict();
-    E("\tDAS %s\n", stackref(-2));
+    unvict(2);
+    E("\tDAS %s\n", stackref(-4));
     pop(2);
-    tos = false;
+    tos = 0;
 
 i1 const1(0) ADD(1) -- i1
 
 i1 const1(1) ADD(1) -- i1
-    unvict();
+    unvict(1);
     E("\tINCR A\n");
 
 i1 const1(n) ADD(1) -- i1
-    unvict();
+    unvict(1);
     E("\tAD %s\n", constref(add_num1_constant(n)));
 
 address(sym, off) i1 ADD(1) -- i1
-    unvict();
+    unvict(1);
     E("\tAD %s\n", constref(add_sym_constant(sym, off)));
 
 address(sym1, off1) address(sym2, off2) LOAD(1) CONSTANT(1) ADD(1) STORE(1) --
@@ -300,7 +322,7 @@ address(sym1, off1) address(sym2, off2) LOAD(1) CONSTANT(1) ADD(1) STORE(1) --
 // --- Subtractions ---------------------------------------------------------
 
 i1 i1 SUB(1) -- i1
-    unvict();
+    unvict(1);
     E("\tCOM\n");
     E("\tAD %s\n", stackref(-2));
     pop(1);
@@ -308,7 +330,7 @@ i1 i1 SUB(1) -- i1
 SUB(2) -- NEG(2) ADD(2)
 
 const1(n) i1 SUB(1) -- i1
-    unvict();
+    unvict(1);
     E("\tCOM\n");
     E("\tAD %s\n", constref(add_num1_constant(n)));
 
@@ -321,24 +343,24 @@ i2 const2(n) SUB(2) -- i2 const2(-n) ADD(2)
 // --- Multiplications ------------------------------------------------------
 
 i1 i1 MUL(1) -- i1
-    unvict();
+    unvict(1);
     E("\tEXTEND\n");
     E("\tMP %s\n", stackref(-2));
     E("\tXCH L\n");
     pop(1);
 
 i1 const1(2) MUL(1) -- i1
-    unvict();
+    unvict(1);
     E("\tAD A\n");
 
 i2 const2(2) MUL(2) -- i2
-    unvict();
+    unvict(2);
     E("\tDDOUBL\n");
 
 i1 const1(n) MUL(1) -- i1
     if (n == 2)
         REJECT;
-    unvict();
+    unvict(1);
     E("\tEXTEND\n");
     E("\tMP %s\n", constref(add_num1_constant(n)));
     E("\tXCH L\n");
@@ -353,7 +375,7 @@ constant(x1) constant(x2) MUL(n) -- constant(result)
     result = x1 * x2;
 
 i1 NEG(1) -- i1
-    unvict();
+    unvict(1);
     E("\tCOM\n");
 
 constant(x) NEG(n) -- constant(-x)
@@ -361,7 +383,7 @@ constant(x) NEG(n) -- constant(-x)
 // --- Divisions ------------------------------------------------------------
 
 i1 i1 DIVS(1) -- i1
-    unvict();
+    unvict(1);
     E("\tTS L\n");
     E("\tCAE %s\n", stackref(-2));
     E("\tTC DIV\n");
@@ -374,23 +396,23 @@ constant(-1) DIVS(1) -- NEG(1)
 // --- Logic operations -----------------------------------------------------
 
 i1 i1 AND(1) -- i1
-    unvict();
+    unvict(1);
     E("\tMASK %s\n", stackref(-2));
     pop(1);
 
 i1 const1(0) AND(1) -- const1(0)
-    unvict();
+    unvict(1);
     pop(1);
-    tos = false;
+    tos = 0;
 
 i1 const1(n) AND(1) -- i1
-    unvict();
+    unvict(1);
     E("\tMASK %s\n", constref(add_num1_constant(n)));
 
 const1(n) i1 AND(1) -- i1 const1(n) AND(1)
 
 i1 i1 OR(1) -- i1
-    unvict();
+    unvict(1);
     E("\tXCH L\n");
     E("\tCAE %s\n", stackref(-2));
     E("\tEXTEND\n");
@@ -398,7 +420,7 @@ i1 i1 OR(1) -- i1
     pop(1);
 
 i1 const1(n) OR(1) -- i1
-    unvict();
+    unvict(1);
     E("\tXCH L\n");
     E("\tCAF %s\n", constref(add_num1_constant(n)));
     E("\tEXTEND\n");
@@ -407,7 +429,7 @@ i1 const1(n) OR(1) -- i1
 const1(n) i1 OR(1) -- i1 const1(n) OR(1)
 
 i1 i1 EOR(1) -- i1
-    unvict();
+    unvict(1);
     E("\tXCH L\n");
     E("\tCAE %s\n", stackref(-2));
     E("\tEXTEND\n");
@@ -415,7 +437,7 @@ i1 i1 EOR(1) -- i1
     pop(1);
 
 i1 const1(n) OR(1) -- i1
-    unvict();
+    unvict(1);
     E("\tXCH L\n");
     E("\tCAF %s\n", constref(add_num1_constant(n)));
     E("\tEXTEND\n");
@@ -426,41 +448,41 @@ const1(n) i1 EOR(1) -- i1 const1(n) EOR(1)
 // --- Loads ----------------------------------------------------------------
 
 i1 LOAD(1) -- i1
-    unvict();
+    unvict(1);
     E("\tINDEX A\n");
     E("\tCAE 0\n");
 
 address(sym, off) LOAD(1) -- i1
     evict();
     E("\tCAE %s\n", symref(sym, off));
-    tos = true;
+    tos = 1;
     push(1);
 
 address(sym, off) LOAD(2) -- i2
     evict();
     E("\tEXTEND\n");
     E("\tDCA %s\n", symref(sym, off));
-    tos = true;
+    tos = 2;
     push(2);
 
 address(sym, off) i1 ADD(1) LOAD(1) -- i1
-    unvict();
+    unvict(1);
     E("\tINDEX A\n");
     E("\tCAE %s\n", symref(sym, off));
 
 // --- Stores ---------------------------------------------------------------
 
 address(sym, off) i1 STORE(1) --
-    unvict();
+    unvict(1);
     E("\tXCH W%d +%#o\n", sym->u.var.sub->arch->id, sym->u.var.offset + off);
-    tos = false;
+    tos = 0;
     pop(1);
     stackisempty();
 
 address(sym, off) i2 STORE(2) --
-    unvict();
+    unvict(2);
     E("\tDXCH %s\n", symref(sym, off));
-    tos = false;
+    tos = 0;
     pop(2);
     stackisempty();
 
@@ -468,7 +490,7 @@ address(sym, off) const1(n) STORE(1) --
     evict();
     E("\tCAF %s\n", constref(add_num1_constant(n)));
     E("\tXCH W%d +%#o\n", sym->u.var.sub->arch->id, sym->u.var.offset + off);
-    tos = false;
+    tos = 0;
     stackisempty();
 
 address(sym, off) const2(n) STORE(2) --
@@ -476,29 +498,31 @@ address(sym, off) const2(n) STORE(2) --
     E("\tEXTEND\n");
     E("\tDCA %s\n", constref(add_num2_constant(n)));
     E("\tDXCH W%d +%#o\n", sym->u.var.sub->arch->id, sym->u.var.offset + off);
-    tos = false;
+    tos = 0;
     stackisempty();
 
 i1 i1 STORE(1) --
-    unvict();
+    unvict(1);
     E("\tINDEX %s\n", stackref(-2));
     E("\tXCH 0\n");
-    tos = false;
+    tos = 0;
     pop(2);
     stackisempty();
 
 // --- Casts ----------------------------------------------------------------
 
 i2 CAST(2, 1) -- i1
-    unvict();
+    unvict(2);
     E("\tXCH L\n");
     pop(1);
+    tos = 1;
 
 i1 CAST(1, 2) -- i2
-    unvict();
+    unvict(1);
     E("\tZL\n");
     E("\tXCH L");
     push(1);
+    tos = 2;
 
 CAST(n1, n2) --
     if (n1 != n2)
@@ -507,18 +531,18 @@ CAST(n1, n2) --
 // --- Branches -------------------------------------------------------------
 
 i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
-    unvict();
+    unvict(1);
     E("\tEXTEND\n");
     E("\tBZF %s\n", labelref(truelabel));
     if (nextlabel != falselabel)
         E("\tTCF %s\n", labelref(falselabel));
     E("%s\n", labelref(nextlabel));
     pop(1);
-    tos = false;
+    tos = 0;
     stackisempty();
 
 i2 BEQZ(2, truelabel, falselabel) --
-    unvict();
+    unvict(2);
     int label = current_label++;
     E("\tEXTEND\n");
     E("\tBZF %s\n", labelref(label));
@@ -530,7 +554,7 @@ i2 BEQZ(2, truelabel, falselabel) --
     E("\tTCF %s\n", labelref(falselabel));
 
 i1 BLTZ(1, truelabel, falselabel) LABEL(nextlabel) --
-    unvict();
+    unvict(1);
     E("\tINCR A\n");
     E("\tEXTEND\n");
     E("\tBZMF %s\n", labelref(truelabel));
@@ -538,11 +562,11 @@ i1 BLTZ(1, truelabel, falselabel) LABEL(nextlabel) --
         E("\tTCF %s\n", labelref(falselabel));
     E("%s\n", labelref(nextlabel));
     pop(1);
-    tos = false;
+    tos = 0;
     stackisempty();
 
 i2 BLTZ(2, truelabel, falselabel) --
-    unvict();
+    unvict(2);
     E("\tEXTEND\n");
     E("\tROR L\n");
     E("\tINCR A\n");
@@ -550,29 +574,29 @@ i2 BLTZ(2, truelabel, falselabel) --
     E("\tBZMF %s\n", labelref(truelabel));
     E("\tTCF %s\n", labelref(falselabel));
     pop(2);
-    tos = false;
+    tos = 0;
     stackisempty();
 
 i1 BGTZ(1, truelabel, falselabel) LABEL(nextlabel) --
-    unvict();
+    unvict(1);
     E("\tEXTEND\n");
     E("\tBZMF %s\n", labelref(falselabel));
     if (nextlabel != truelabel)
         E("\tTCF %s\n", labelref(truelabel));
     E("%s\n", labelref(nextlabel));
     pop(1);
-    tos = false;
+    tos = 0;
     stackisempty();
 
 i2 BGTZ(2, truelabel, falselabel) --
-    unvict();
+    unvict(2);
     E("\tEXTEND\n");
     E("\tROR L\n");
     E("\tEXTEND\n");
     E("\tBZMF %s\n", labelref(falselabel));
     E("\tTCF %s\n", labelref(truelabel));
     pop(2);
-    tos = false;
+    tos = 0;
     stackisempty();
 
 BEQS(1, truelabel, falselabel) -- SUB(1) BEQZ(1, truelabel, falselabel)
@@ -659,18 +683,18 @@ const1(c) -- i1
     evict();
     E("\tCAF %s\n", constref(add_num1_constant(c)));
     push(1);
-    tos = true;
+    tos = 1;
 
 const2(c) -- i2
     evict();
     E("\tEXTEND\n");
     E("\tDCA %s\n", constref(add_num2_constant(c)));
     push(2);
-    tos = true;
+    tos = 2;
 
 const1(c) i1 -- i1 i1
     evict();
     E("\tCAF %s\n", constref(add_num1_constant(c)));
     E("\tXCH %s\n", stackref(-1));
     push(1);
-    tos = true;
+    tos = 1;
