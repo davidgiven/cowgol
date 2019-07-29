@@ -21,13 +21,18 @@ struct symbol* uint8_type;
 
 static bool is_ptr(struct symbol* sym);
 static bool is_num(struct symbol* sym);
+static bool is_snum(struct symbol* sym);
 static bool is_array(struct symbol* sym);
 
 static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs);
 static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs);
 static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(int width));
+static struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
+	void (*emitteru)(int width),
+	void (*emitters)(int width));
 static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-	void (*emitter)(int width, int truelabel, int falselabel));
+	void (*emitteru)(int width, int truelabel, int falselabel),
+	void (*emitters)(int width, int truelabel, int falselabel));
 
 static struct symbol* lookup_symbol(const char* name);
 static void init_var(struct symbol* sym, struct symbol* type);
@@ -384,9 +389,9 @@ expression
 	| expression '*' expression
 		{ $$ = expr_simple($1, $3, emit_mid_mul); }
 	| expression '/' expression
-		{ $$ = expr_simple($1, $3, emit_mid_div); }
+		{ $$ = expr_signed($1, $3, emit_mid_divu, emit_mid_divs); }
 	| expression '%' expression
-		{ $$ = expr_simple($1, $3, emit_mid_rem); }
+		{ $$ = expr_signed($1, $3, emit_mid_remu, emit_mid_rems); }
 	| expression '^' expression
 		{ $$ = expr_simple($1, $3, emit_mid_eor); }
 	| expression '&' expression
@@ -427,37 +432,37 @@ conditional
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_beq);
+			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bequ, emit_mid_beqs);
 		}
 	| expression NEOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_beq);
+			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bequ, emit_mid_beqs);
 		}
 	| expression LTOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_blt);
+			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bltu, emit_mid_blts);
 		}
 	| expression GEOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_blt);
+			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bltu, emit_mid_blts);
 		}
 	| expression GTOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bgt);
+			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bgtu, emit_mid_bgts);
 		}
 	| expression LEOP expression
 		{
 			$$.truelabel = current_label++;
 			$$.falselabel = current_label++;
-			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bgt);
+			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bgtu, emit_mid_bgts);
 		}
 	;
 
@@ -496,6 +501,13 @@ static bool is_num(struct symbol* sym)
 	if (sym->kind != TYPE)
 		return false;
 	return sym->u.type.kind == TYPE_NUMBER;
+}
+
+static bool is_snum(struct symbol* sym)
+{
+	if (!sym)
+		return true; /* for numeric constants */
+	return is_num(sym);
 }
 
 static bool is_array(struct symbol* sym)
@@ -581,14 +593,27 @@ static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (
 	return lhs;
 }
 
+static struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
+	void (*emitteru)(int width),
+	void (*emitters)(int width))
+{
+	resolve_untyped_constants_simply(&lhs, &rhs);
+	if (!is_num(lhs) || !is_num(rhs))
+		fatal("number required");
+
+	(is_snum(lhs) ? emitters : emitteru)(lhs ? lhs->u.type.width : 0);
+	return lhs;
+}
+
 static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-	void (*emitter)(int width, int truelabel, int falselabel))
+	void (*emitteru)(int width, int truelabel, int falselabel),
+	void (*emitters)(int width, int truelabel, int falselabel))
 {
 	resolve_untyped_constants_simply(&lhs, &rhs);
 	if (lhs != rhs)
 		fatal("you tried to compare a %s and a %s", lhs->name, rhs->name);
 
-	emitter(lhs->u.type.width, truelabel, falselabel);
+	(is_snum(lhs) ? emitters : emitteru)(lhs->u.type.width, truelabel, falselabel);
 }
 
 struct symbol* add_new_symbol(const char* name)

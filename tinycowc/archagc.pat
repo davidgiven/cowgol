@@ -340,16 +340,16 @@ constant(x) NEG(n) -- constant(-x)
 
 // --- Divisions ------------------------------------------------------------
 
-i1 i1 DIV(1) -- i1
+i1 i1 DIVS(1) -- i1
     unvict();
     E("\tTS L\n");
     E("\tCAE %s\n", stackref(-2));
     E("\tTC DIV\n");
     pop(1);
 
-constant(1) DIV(1) --
+constant(1) DIVS(1) --
 
-constant(-1) DIV(1) -- NEG(1)
+constant(-1) DIVS(1) -- NEG(1)
 
 // --- Logic operations -----------------------------------------------------
 
@@ -447,7 +447,7 @@ i1 i1 STORE(1) --
 
 // --- Branches -------------------------------------------------------------
 
-i1 const1(0) BEQ(1, truelabel, falselabel) LABEL(nextlabel) --
+i1 const1(0) BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
     unvict();
     E("\tEXTEND\n");
     E("\tBZF %s\n", labelref(truelabel));
@@ -458,7 +458,7 @@ i1 const1(0) BEQ(1, truelabel, falselabel) LABEL(nextlabel) --
     tos = false;
     stackisempty();
 
-i1 const1(0) BLT(1, truelabel, falselabel) LABEL(nextlabel) --
+i1 const1(0) BLTS(1, truelabel, falselabel) LABEL(nextlabel) --
     unvict();
     E("\tINCR A\n");
     E("\tEXTEND\n");
@@ -470,7 +470,7 @@ i1 const1(0) BLT(1, truelabel, falselabel) LABEL(nextlabel) --
     tos = false;
     stackisempty();
 
-i1 const1(0) BGT(1, truelabel, falselabel) LABEL(nextlabel) --
+i1 const1(0) BGTS(1, truelabel, falselabel) LABEL(nextlabel) --
     unvict();
     E("\tEXTEND\n");
     E("\tBZMF %s\n", labelref(falselabel));
@@ -481,9 +481,9 @@ i1 const1(0) BGT(1, truelabel, falselabel) LABEL(nextlabel) --
     tos = false;
     stackisempty();
 
-BEQ(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BEQ(1, truelabel, falselabel)
-BLT(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BLT(1, truelabel, falselabel)
-BGT(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BGT(1, truelabel, falselabel)
+BEQS(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BEQS(1, truelabel, falselabel)
+BLTS(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BLTS(1, truelabel, falselabel)
+BGTS(1, truelabel, falselabel) -- SUB(1) CONSTANT(0) BGTS(1, truelabel, falselabel)
 
 // --- Inline assembly ------------------------------------------------------
 
@@ -528,15 +528,15 @@ constant(c) MUL(2) -- const2(c) MUL(2)
 constant(c) (value) MUL(1) -- const1(c) (value) MUL(1)
 constant(c) (value) MUL(2) -- const2(c) (value) MUL(2)
 
-constant(c) DIV(1) -- const1(c) DIV(1)
-constant(c) DIV(2) -- const2(c) DIV(2)
-constant(c) (value) DIV(1) -- const1(c) (value) DIV(1)
-constant(c) (value) DIV(2) -- const2(c) (value) DIV(2)
+constant(c) DIVS(1) -- const1(c) DIVS(1)
+constant(c) DIVS(2) -- const2(c) DIVS(2)
+constant(c) (value) DIVS(1) -- const1(c) (value) DIVS(1)
+constant(c) (value) DIVS(2) -- const2(c) (value) DIVS(2)
 
-constant(c) REM(1) -- const1(c) REM(1)
-constant(c) REM(2) -- const2(c) REM(2)
-constant(c) (value) REM(1) -- const1(c) (value) REM(1)
-constant(c) (value) REM(2) -- const2(c) (value) REM(2)
+constant(c) REMS(1) -- const1(c) REMS(1)
+constant(c) REMS(2) -- const2(c) REMS(2)
+constant(c) (value) REMS(1) -- const1(c) (value) REMS(1)
+constant(c) (value) REMS(2) -- const2(c) (value) REMS(2)
 
 constant(c) OR(1) -- const1(c) OR(1)
 constant(c) OR(2) -- const2(c) OR(2)
@@ -553,9 +553,9 @@ constant(c) EOR(2) -- const2(c) EOR(2)
 constant(c) (value) EOR(1) -- const1(c) (value) EOR(1)
 constant(c) (value) EOR(2) -- const2(c) (value) EOR(2)
 
-constant(c) BEQ(1, tl, fl) -- const1(c) BEQ(1, tl, fl)
-constant(c) BLT(1, tl, fl) -- const1(c) BLT(1, tl, fl)
-constant(c) BGT(1, tl, fl) -- const1(c) BGT(1, tl, fl)
+constant(c) BEQS(1, tl, fl) -- const1(c) BEQS(1, tl, fl)
+constant(c) BLTS(1, tl, fl) -- const1(c) BLTS(1, tl, fl)
+constant(c) BGTS(1, tl, fl) -- const1(c) BGTS(1, tl, fl)
 
 const1(c) -- i1
     evict();
