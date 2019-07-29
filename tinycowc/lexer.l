@@ -19,6 +19,7 @@ SP [ \t]+
 
 "@asm"                    { return ASM; }
 "and"                     { return AND; }
+"as"                      { return AS; }
 "break"                   { return BREAK; }
 "end"                     { return END; }
 "else"                    { return ELSE; }

@@ -23,6 +23,7 @@ static bool is_ptr(struct symbol* sym);
 static bool is_num(struct symbol* sym);
 static bool is_snum(struct symbol* sym);
 static bool is_array(struct symbol* sym);
+static bool is_scalar(struct symbol* sym);
 
 static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs);
 static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs);
@@ -65,6 +66,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 %left ','
 %left OR
 %left AND
+%left AS
 %left '|'
 %left '^'
 %left '&'
@@ -382,6 +384,13 @@ expression
 		{ 
 			emit_mid_neg($2 ? $2->u.type.width : 0);
 		}
+	| expression AS typeref
+		{
+			if (!is_scalar($1))
+				fatal("attempt to cast a %s, which is not scalar", $1->name);
+			emit_mid_cast($1->u.type.width, $3->u.type.width);
+			$$ = $3;
+		}
 	| expression '+' expression
 		{ $$ = expr_add($1, $3); }
 	| expression '-' expression
@@ -517,6 +526,11 @@ static bool is_array(struct symbol* sym)
 	if (sym->kind != TYPE)
 		return false;
 	return sym->u.type.kind == TYPE_ARRAY;
+}
+
+static bool is_scalar(struct symbol* sym)
+{
+	return (is_ptr(sym) || is_num(sym));
 }
 
 static void resolve_untyped_constants_for_add_sub(struct symbol** lhs, struct symbol** rhs)
