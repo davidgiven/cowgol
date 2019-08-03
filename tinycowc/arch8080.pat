@@ -79,6 +79,8 @@ static void unvict(int wanted)
 i1
 i2
 constant(int32_t val) = ("%d", $$.val)
+const1(int32_t val) = ("%d", $$.val)
+const2(int32_t val) = ("%d", $$.val)
 address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 
 %%
@@ -151,3 +153,76 @@ i2 constant(n) ADD(2) -- i2
 ADDRESS(sym) -- address(sym, 0)
 
 CONSTANT(val) -- constant(val)
+
+// --- Constant type inference ----------------------------------------------
+
+constant(c) STORE(1) -- const1(c) STORE(1)
+constant(c) STORE(2) -- const2(c) STORE(2)
+
+constant(c) PARAM(1) -- const1(c) PARAM(1)
+constant(c) PARAM(2) -- const2(c) PARAM(2)
+
+constant(c) NEG(1) -- const1(c) NEG(1)
+constant(c) NEG(2) -- const2(c) NEG(2)
+
+constant(c) ADD(1) -- const1(c) ADD(1)
+constant(c) ADD(2) -- const2(c) ADD(2)
+constant(c) (value) ADD(1) -- const1(c) (value) ADD(1)
+constant(c) (value) ADD(2) -- const2(c) (value) ADD(2)
+
+constant(c) SUB(1) -- const1(c) SUB(1)
+constant(c) SUB(2) -- const2(c) SUB(2)
+constant(c) (value) SUB(1) -- const1(c) (value) SUB(1)
+constant(c) (value) SUB(2) -- const2(c) (value) SUB(2)
+
+constant(c) MUL(1) -- const1(c) MUL(1)
+constant(c) MUL(2) -- const2(c) MUL(2)
+constant(c) (value) MUL(1) -- const1(c) (value) MUL(1)
+constant(c) (value) MUL(2) -- const2(c) (value) MUL(2)
+
+constant(c) DIVS(1) -- const1(c) DIVS(1)
+constant(c) DIVS(2) -- const2(c) DIVS(2)
+constant(c) (value) DIVS(1) -- const1(c) (value) DIVS(1)
+constant(c) (value) DIVS(2) -- const2(c) (value) DIVS(2)
+
+constant(c) REMS(1) -- const1(c) REMS(1)
+constant(c) REMS(2) -- const2(c) REMS(2)
+constant(c) (value) REMS(1) -- const1(c) (value) REMS(1)
+constant(c) (value) REMS(2) -- const2(c) (value) REMS(2)
+
+constant(c) OR(1) -- const1(c) OR(1)
+constant(c) OR(2) -- const2(c) OR(2)
+constant(c) (value) OR(1) -- const1(c) (value) OR(1)
+constant(c) (value) OR(2) -- const2(c) (value) OR(2)
+
+constant(c) AND(1) -- const1(c) AND(1)
+constant(c) AND(2) -- const2(c) AND(2)
+constant(c) (value) AND(1) -- const1(c) (value) AND(1)
+constant(c) (value) AND(2) -- const2(c) (value) AND(2)
+
+constant(c) EOR(1) -- const1(c) EOR(1)
+constant(c) EOR(2) -- const2(c) EOR(2)
+constant(c) (value) EOR(1) -- const1(c) (value) EOR(1)
+constant(c) (value) EOR(2) -- const2(c) (value) EOR(2)
+
+constant(c) BEQS(1, tl, fl) -- const1(c) BEQS(1, tl, fl)
+constant(c) BLTS(1, tl, fl) -- const1(c) BLTS(1, tl, fl)
+constant(c) BGTS(1, tl, fl) -- const1(c) BGTS(1, tl, fl)
+
+const1(c) -- i1
+    evict();
+	E("\tmvi a, %d\n", c & 0xff);
+    tos = 1;
+
+const2(c) -- i2
+    evict();
+	E("\tlxi h, %d\n", c & 0xffff);
+    tos = 2;
+
+const1(c) i1 -- i1 i1
+    evict();
+	E("\tmvi h, %d\n", c & 0xff);
+	E("\txthl\n");
+	E("\tmov a, h\n");
+    tos = 1;
+
