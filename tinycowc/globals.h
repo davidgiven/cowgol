@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <limits.h>
 
 extern void fatal(const char* s, ...);
 extern const char* aprintf(const char* s, ...);

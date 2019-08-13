@@ -1,6 +1,7 @@
 #include "globals.h"
 #include "midcode.h"
 #include "emitter.h"
+#include "regalloc.h"
 
 struct subarch
 {
@@ -8,6 +9,23 @@ struct subarch
 };
 
 static int id = 1;
+
+enum
+{
+    REG_A = 1<<0,
+    REG_B = 1<<1,
+    REG_C = 1<<2,
+    REG_D = 1<<3,
+    REG_E = 1<<4,
+    REG_H = 1<<5,
+    REG_L = 1<<6,
+    REG_BC = 1<<7,
+    REG_DE = 1<<8,
+    REG_HL = 1<<9,
+
+    REG_16 = REG_BC | REG_DE | REG_HL,
+    REG_8 = REG_A | REG_B | REG_C | REG_D | REG_E | REG_H | REG_L
+};
 
 static enum
 {
@@ -25,6 +43,17 @@ void arch_init_types(void)
 	make_number_type("int16", 2, true);
 	uint8_type = make_number_type("uint8", 1, false);
 	make_number_type("int8", 1, true);
+
+    regalloc_add_register("a", REG_A, REG_A);
+    regalloc_add_register("b", REG_B, REG_B | REG_BC);
+    regalloc_add_register("c", REG_C, REG_C | REG_BC);
+    regalloc_add_register("d", REG_D, REG_D | REG_DE);
+    regalloc_add_register("e", REG_E, REG_E | REG_DE);
+    regalloc_add_register("h", REG_H, REG_H | REG_HL);
+    regalloc_add_register("l", REG_L, REG_L | REG_HL);
+    regalloc_add_register("bc", REG_BC, REG_B | REG_C | REG_BC);
+    regalloc_add_register("de", REG_DE, REG_D | REG_E | REG_DE);
+    regalloc_add_register("hl", REG_HL, REG_H | REG_L | REG_HL);
 }
 
 void arch_init_subroutine(struct subroutine* sub)
@@ -74,6 +103,22 @@ static void unvict(int wanted)
     tos = wanted;
 }
 
+void arch_load_const(reg_t id, int32_t num)
+{
+    if (id & REG_16)
+        E("\tlxi %s, %d\n", regname(id), num & 0xffff);
+    else
+        E("\tmvi %s, %d\n", regname(id), num & 0xff);
+}
+
+void arch_load_var(reg_t id, struct symbol* sym, int32_t off)
+{
+    assert(id & (REG_HL|REG_A));
+    if (id & REG_HL)
+        E("\tlhld %s\n", symref(sym, off));
+    else
+        E("\tlda %s\n", symref(sym, off));
+}
 %%
 
 i1
@@ -101,14 +146,16 @@ ENDSUB(sub) --
     emitter_close_chunk();
 
 address(sym, off) constant(val) STORE(1) --
-    evict();
-    E("\tmvi a, %d\n", val);
+    regalloc_var_changing(sym, off);
+    regalloc_load_const(REG_A, val & 0xff);
     E("\tsta %s\n", symref(sym, off));
+    regalloc_reg_contains_var(REG_A, sym, off);
 
 address(sym, off) constant(val) STORE(2) --
-    evict();
-    E("\tlxi hl, %d\n", val);
+    regalloc_var_changing(sym, off);
+    regalloc_load_const(REG_HL, val & 0xffff);
     E("\tshld %s\n", symref(sym, off));
+    regalloc_reg_contains_var(REG_HL, sym, off);
 
 address(sym, off) i1 STORE(1) --
     unvict(TOS_A);
@@ -119,14 +166,10 @@ address(sym, off) i2 STORE(2) --
     E("\tshld %s\n", symref(sym, off));
 
 address(sym, off) LOAD(1) -- i1
-    evict();
-    E("\tlda %s\n", symref(sym, off));
-    tos = TOS_A;
+    regalloc_load_var(REG_A, sym, off);
 
 address(sym, off) LOAD(2) -- i2
-    evict();
-    E("\tlhld %s\n", symref(sym, off));
-    tos = TOS_HL;
+    regalloc_load_var(REG_HL, sym, off);
 
 constant(lhs) constant(rhs) ADD(n) -- constant(result)
     result = lhs + rhs;
@@ -215,9 +258,8 @@ const1(c) -- i1
     tos = 1;
 
 const2(c) -- i2
-    evict();
-	E("\tlxi h, %d\n", c & 0xffff);
-    tos = 2;
+    reg_t r = regalloc_load_const(REG_16, c & 0xffff);
+	E("\tlxi %s, %d\n", regname(r), c & 0xffff);
 
 const1(c) i1 -- i1 i1
     evict();

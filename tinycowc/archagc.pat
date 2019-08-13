@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "midcode.h"
 #include "emitter.h"
+#include "regalloc.h"
 
 #define E emitter_printf
 
@@ -172,6 +173,11 @@ static void stackisempty(void)
     if ((sp != 0) || tos)
         fatal("stray values on stack");
 }
+
+/* Used by the register allocator, which this architecture doesn't use. */
+
+void arch_load_const(reg_t id, int32_t num) {}
+void arch_load_var(reg_t id, struct symbol* sym, int32_t off) {}
 
 %%
 

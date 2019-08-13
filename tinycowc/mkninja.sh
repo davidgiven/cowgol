@@ -13,7 +13,7 @@ rule library
     description = AR \$in
 
 rule link
-    command = $CC $LDFLAGS -o \$out \$in \$flags $LIBS
+    command = $CC $LDFLAGS -o \$out -Wl,--start-group \$in -Wl,--end-group \$flags $LIBS
     description = LINK \$in
 
 rule test
@@ -175,7 +175,8 @@ buildlibrary libmain.a \
     $OBJDIR/lexer.c \
     main.c \
     emitter.c \
-    midcode.c
+    midcode.c \
+    regalloc.c
 
 buildlibrary libagc.a \
     -I$OBJDIR \

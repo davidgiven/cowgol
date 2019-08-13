@@ -1,5 +1,6 @@
 #include "globals.h"
 #include "midcode.h"
+#include "regalloc.h"
 
 static struct matchcontext ctx;
 
@@ -64,6 +65,7 @@ void midend_flush(int threshold)
         dump_buffer();
         if (!arch_instruction_matcher(&ctx))
             fatal("no matching instruction in pattern");
+        regalloc_unlock(ALL_REGS);
     }
 }
 
