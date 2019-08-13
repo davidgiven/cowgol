@@ -178,6 +178,8 @@ static void stackisempty(void)
 
 void arch_load_const(reg_t id, int32_t num) {}
 void arch_load_var(reg_t id, struct symbol* sym, int32_t off) {}
+void arch_push(reg_t id) {}
+void arch_pop(reg_t id) {}
 
 %%
 

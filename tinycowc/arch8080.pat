@@ -119,6 +119,16 @@ void arch_load_var(reg_t id, struct symbol* sym, int32_t off)
     else
         E("\tlda %s\n", symref(sym, off));
 }
+
+void arch_push(reg_t id)
+{
+    E("\tpush %s\n", regname(id));
+}
+
+void arch_pop(reg_t id)
+{
+    E("\tpop %s\n", regname(id));
+}
 %%
 
 i1
@@ -158,24 +168,32 @@ address(sym, off) constant(val) STORE(2) --
     regalloc_reg_contains_var(REG_HL, sym, off);
 
 address(sym, off) i1 STORE(1) --
-    unvict(TOS_A);
+    regalloc_var_changing(sym, off);
+    regalloc_pop(REG_A);
     E("\tsta %s\n", symref(sym, off));
+    regalloc_reg_contains_var(REG_A, sym, off);
 
 address(sym, off) i2 STORE(2) --
-    unvict(TOS_HL);
+    regalloc_var_changing(sym, off);
+    regalloc_pop(REG_A);
     E("\tshld %s\n", symref(sym, off));
+    regalloc_reg_contains_var(REG_HL, sym, off);
 
 address(sym, off) LOAD(1) -- i1
     regalloc_load_var(REG_A, sym, off);
+    regalloc_push(REG_A);
 
 address(sym, off) LOAD(2) -- i2
     regalloc_load_var(REG_HL, sym, off);
+    regalloc_push(REG_A);
 
 constant(lhs) constant(rhs) ADD(n) -- constant(result)
     result = lhs + rhs;
 
 i1 i1 ADD(1) -- i1
-    unvict(TOS_A);
+    reg_t rhs = regalloc_pop(REG_A);
+    reg_t lhs = regalloc_pop(REG_8);
+    
     E("\tpop hl\n");
     E("\tadd h\n");
 

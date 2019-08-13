@@ -6,6 +6,8 @@ typedef uint32_t reg_t;
 
 extern void arch_load_const(reg_t id, int32_t offset);
 extern void arch_load_var(reg_t id, struct symbol* sym, int32_t off);
+extern void arch_push(reg_t id);
+extern void arch_pop(reg_t id);
 
 extern void regalloc_add_register(const char* name, reg_t id, reg_t interference);
 extern const char* regname(reg_t id);
@@ -24,5 +26,8 @@ extern void regalloc_reg_contains_var(reg_t id, struct symbol* sym, int32_t offs
 
 extern void regalloc_reg_changing(reg_t mask);
 extern void regalloc_var_changing(struct symbol* sym, int32_t offset);
+
+extern void regalloc_push(reg_t id);
+extern reg_t regalloc_pop(reg_t mask);
 
 #endif
