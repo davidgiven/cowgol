@@ -74,6 +74,8 @@ const char* regname(reg_t id)
 
 reg_t regalloc_alloc(reg_t mask)
 {
+    arch_emit_comment("allocating register for 0x%x", mask);
+
     /* Find a completely unused register. */
 
     for (unsigned i=0; i<num_regs; i++)
@@ -82,6 +84,7 @@ reg_t regalloc_alloc(reg_t mask)
         if ((reg->id & mask) && !(reg->interference & used))
         {
 			locked |= reg->id;
+            arch_emit_comment("found unused register 0x%x", reg->id);
             return reg->id;
         }
     }
@@ -93,6 +96,7 @@ reg_t regalloc_alloc(reg_t mask)
         struct reg* reg = &regs[i];
         if ((reg->id & mask) && !(reg->interference & locked))
         {
+            arch_emit_comment("found used but unlocked register 0x%x", reg->id);
             regalloc_reg_changing(reg->interference);
 			locked |= reg->id;
             return reg->id;
@@ -259,12 +263,40 @@ reg_t regalloc_pop(reg_t mask)
         {
             reg_t real = regalloc_alloc(mask);
             arch_copy(found, real);
-            used &= ~found;
             found = real;
         }
         locked |= found;
     }
     return found;
+}
+
+void regalloc_flush_stack(void)
+{
+    while (pfp != psp)
+    {
+        reg_t reg = pstack[pfp++];
+        arch_push(reg);
+    }
+}
+
+void regalloc_drop_stack_items(int n)
+{
+    while (n--)
+    {
+        if (psp == 0)
+            fatal("stack underflow");
+
+        if (pfp == psp)
+        {
+            pfp--;
+            psp--;
+        }
+        else
+        {
+            reg_t reg = pstack[--psp];
+            used &= ~reg;
+        }
+    }
 }
 
 void regalloc_reg_changing(reg_t mask)
@@ -279,7 +311,6 @@ void regalloc_reg_changing(reg_t mask)
                 reg_t reg = pstack[pfp++];
                 arch_emit_comment("spilling 0x%x", reg);
                 arch_push(reg);
-                used &= ~reg;
             }
         }
     }

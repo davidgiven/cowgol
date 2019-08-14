@@ -130,6 +130,29 @@ STARTSUB(sub) --
     E("; %s\n", sub->name);
     E("f%d:\n", sub->arch->id);
 
+    if (sub->inputparameters != 0)
+    {
+        E("\tpop b\n");
+        for (int i=sub->inputparameters-1; i>=0; i--)
+        {
+                struct symbol* param = sub->firstsymbol;
+                for (int j=0; j<i; j++)
+                        param = param->next;
+
+                if (param->u.var.type->u.type.width == 1)
+                {
+                        E("\tpop psw\n");
+                        E("\tsta %s\n", symref(param, 0));
+                }
+                else
+                {
+                        E("\tpop h\n");
+                        E("\tshld %s\n", symref(param, 0));
+                }
+        }
+        E("\tpush b\n");
+    }
+
 ENDSUB(sub) --
     E("\tret\n");
 	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
@@ -156,6 +179,22 @@ CONSTANT(val) -- constant(val)
 
 ADDRESS(sym) -- address(sym, 0)
 
+// --- Function calls -------------------------------------------------------
+
+PARAM(n) --
+    regalloc_flush_stack();
+
+CALL(sub) --
+    regalloc_reg_changing(ALL_REGS);
+    E("\tcall f%d\n", sub->arch->id);
+    regalloc_drop_stack_items(sub->inputparameters);
+    vsp -= sub->inputparameters;
+
+// --- Additions ------------------------------------------------------------
+
+address(sym, off) const2(val) ADD(2) -- address(sym, newoff)
+    newoff = off + val;
+
 constant(lhs) constant(rhs) ADD(n) -- constant(result)
     result = lhs + rhs;
 
@@ -164,6 +203,23 @@ i1 i1 ADD(1) -- i1
     reg_t lhs = regalloc_pop(REG_A);
     E("\tadd %s\n", regname(lhs));
     regalloc_push(REG_A);
+
+i2 i2 ADD(2) -- i2
+    reg_t rhs = regalloc_pop(REG_16 & ~REG_HL);
+    reg_t lhs = regalloc_pop(REG_HL);
+    E("\tdad %s\n", regname(lhs));
+    regalloc_push(REG_HL);
+
+i1 const1(0) ADD(1) -- i1
+
+i2 const2(0) ADD(2) -- i2
+
+address(sym1, off1) address(sym2, off2) LOAD(1) CONSTANT(1) ADD(1) STORE(1) --
+    if ((sym1 != sym2) || (off1 != off2))
+        REJECT;
+    regalloc_alloc(REG_HL);
+    E("\tlxi h, %s\n", symref(sym1, off1));
+    E("\tinr m\n");
 
 i1 const1(n) ADD(1) -- i1
     if (n == 1)
@@ -185,12 +241,6 @@ i1 const1(n) ADD(1) -- i1
         regalloc_push(REG_A);
     }
 
-i2 i2 ADD(2) -- i2
-    reg_t rhs = regalloc_pop(REG_16 & ~REG_HL);
-    reg_t lhs = regalloc_pop(REG_HL);
-    E("\tdad %s\n", regname(lhs));
-    regalloc_push(REG_HL);
-
 i2 const2(n) ADD(2) -- i2
     if (n == 1)
     {
@@ -201,7 +251,7 @@ i2 const2(n) ADD(2) -- i2
     else if (n == -1)
     {
         reg_t val = regalloc_pop(REG_16);
-        E("\tdex %s\n", regname(val));
+        E("\tdcx %s\n", regname(val));
         regalloc_push(val);
     }
     else
@@ -211,10 +261,6 @@ i2 const2(n) ADD(2) -- i2
         E("\tdad %s\n", regname(lhs));
         regalloc_push(REG_HL);
     }
-
-ADDRESS(sym) -- address(sym, 0)
-
-CONSTANT(val) -- constant(val)
 
 // --- Subtractions ---------------------------------------------------------
 
@@ -313,16 +359,22 @@ i2 i2 STORE(2) --
 
 i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
     reg_t r = regalloc_pop(REG_A);
+    regalloc_reg_changing(ALL_REGS);
     E("\tora a\n");
     E("\tjz %s\n", labelref(truelabel));
-    E("\tjmp %s\n", labelref(falselabel));
+    if (nextlabel != falselabel)
+        E("\tjmp %s\n", labelref(falselabel));
+    E("%s:\n", labelref(nextlabel));
 
-i2 BEQZ(2, truelabel, falselabel) --
+i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
     reg_t r = regalloc_pop(REG_HL);
+    regalloc_reg_changing(ALL_REGS);
     E("\tmov a, h\n");
     E("\tora l\n");
     E("\tjz %s\n", labelref(truelabel));
-    E("\tjmp %s\n", labelref(falselabel));
+    if (nextlabel != falselabel)
+        E("\tjmp %s\n", labelref(falselabel));
+    E("%s:\n", labelref(nextlabel));
 
 BEQS(1, truelabel, falselabel) -- SUB(1) BEQZ(1, truelabel, falselabel)
 BLTS(1, truelabel, falselabel) -- SUB(1) BLTZ(1, truelabel, falselabel)

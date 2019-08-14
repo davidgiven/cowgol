@@ -29,6 +29,8 @@ extern void regalloc_reg_changing(reg_t mask);
 extern void regalloc_var_changing(struct symbol* sym, int32_t offset);
 
 extern void regalloc_push(reg_t id);
+extern void regalloc_flush_stack(void);
+extern void regalloc_drop_stack_items(int n);
 extern reg_t regalloc_pop(reg_t mask);
 
 extern void regalloc_dump(void);

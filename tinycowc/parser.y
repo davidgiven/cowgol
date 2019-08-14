@@ -264,7 +264,6 @@ lvalue
 			if (!is_ptr($2))
 				fatal("can only dereference pointers");
 
-			emit_mid_load($2->u.type.element->u.type.width);
 			$$ = $2;
 		}
 	;
