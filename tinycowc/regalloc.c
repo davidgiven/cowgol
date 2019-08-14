@@ -289,9 +289,6 @@ void regalloc_reg_changing(reg_t mask)
         struct value* val = &values[i];
         if (val->kind)
         {
-            if (val->reg & locked)
-                fatal("regalloc_reg_changing on locked register");
-
             used &= ~(val->reg & mask);
             val->reg &= ~mask;
             if (!val->reg)

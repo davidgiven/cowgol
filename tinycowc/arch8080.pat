@@ -71,6 +71,13 @@ static const char* symref(struct symbol* sym, int32_t off)
     return buffer;
 }
 
+static const char* labelref(int label)
+{
+    static char buffer[32];
+    snprintf(buffer, sizeof(buffer), "X%d", label);
+    return buffer;
+}
+
 void arch_load_const(reg_t id, int32_t num)
 {
     if (id & REG_16)
@@ -128,37 +135,26 @@ ENDSUB(sub) --
 	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
     emitter_close_chunk();
 
-address(sym, off) constant(val) STORE(1) --
-    regalloc_var_changing(sym, off);
-    regalloc_load_const(REG_A, val & 0xff);
-    E("\tsta %s\n", symref(sym, off));
-    regalloc_reg_contains_var(REG_A, sym, off);
+JUMP(label) --
+    regalloc_reg_changing(ALL_REGS);
+    E("\tjmp %s\n", labelref(label));
 
-address(sym, off) constant(val) STORE(2) --
-    regalloc_var_changing(sym, off);
-    regalloc_load_const(REG_HL, val & 0xffff);
-    E("\tshld %s\n", symref(sym, off));
-    regalloc_reg_contains_var(REG_HL, sym, off);
+JUMP(target) LABEL(label1) LABEL(label2) -- LABEL(label1) LABEL(label2)
+    regalloc_reg_changing(ALL_REGS);
+    if ((target != label1) && (target != label2))
+        E("\tjmp %s\n", labelref(target));
 
-address(sym, off) i1 STORE(1) --
-    regalloc_var_changing(sym, off);
-    regalloc_pop(REG_A);
-    E("\tsta %s\n", symref(sym, off));
-    regalloc_reg_contains_var(REG_A, sym, off);
+LABEL(label) --
+    regalloc_reg_changing(ALL_REGS);
+    E("%s:\n", labelref(label));
 
-address(sym, off) i2 STORE(2) --
-    regalloc_var_changing(sym, off);
-    regalloc_pop(REG_HL);
-    E("\tshld %s\n", symref(sym, off));
-    regalloc_reg_contains_var(REG_HL, sym, off);
+LABELALIAS(newlabel, oldlabel) --
+    E("%s\t", labelref(newlabel));
+    E("= %s\n", labelref(oldlabel));
 
-address(sym, off) LOAD(1) -- i1
-    regalloc_load_var(REG_A, sym, off);
-    regalloc_push(REG_A);
+CONSTANT(val) -- constant(val)
 
-address(sym, off) LOAD(2) -- i2
-    regalloc_load_var(REG_HL, sym, off);
-    regalloc_push(REG_HL);
+ADDRESS(sym) -- address(sym, 0)
 
 constant(lhs) constant(rhs) ADD(n) -- constant(result)
     result = lhs + rhs;
@@ -216,14 +212,125 @@ i2 const2(n) ADD(2) -- i2
         regalloc_push(REG_HL);
     }
 
-i1 const1(n) SUB(1) -- i1
-    reg_t lhs = regalloc_pop(REG_A);
-    E("\tsbi %d\n", n & 0xff);
-    regalloc_push(REG_A);
-
 ADDRESS(sym) -- address(sym, 0)
 
 CONSTANT(val) -- constant(val)
+
+// --- Subtractions ---------------------------------------------------------
+
+i1 i1 SUB(1) -- i1
+    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
+    reg_t lhs = regalloc_pop(REG_A);
+    E("\tsub %s\n", regname(rhs));
+    regalloc_push(REG_A);
+
+SUB(2) -- NEG(2) ADD(2)
+
+i1 const1(0) SUB(1) -- i1
+i1 const1(n) SUB(1) -- i1 const1(-n) ADD(1)
+
+i1 const2(0) SUB(2) -- i2
+i2 const2(n) SUB(2) -- i2 const2(-n) ADD(2)
+
+// --- Loads ----------------------------------------------------------------
+
+i2 LOAD(1) -- i1
+    reg_t r = regalloc_pop(REG_16);
+    regalloc_alloc(REG_A);
+    switch (r)
+    {
+        case REG_HL:
+            E("\tmov a, m\n");
+            break;
+
+        case REG_BC:
+            E("\tldax b\n");
+            break;
+
+        case REG_DE:
+            E("\tldax d\n");
+            break;
+    }
+    regalloc_push(REG_A);
+
+i2 LOAD(2) -- i2
+    reg_t r = regalloc_pop(REG_HL);
+    regalloc_alloc(REG_A);
+    E("\tmov a, m\n");
+    E("\tinx h\n");
+    E("\tmov h, m\n");
+    E("\tmov l, a\n");
+    regalloc_push(REG_HL);
+
+address(sym, off) LOAD(1) -- i1
+    regalloc_load_var(REG_A, sym, off);
+    regalloc_push(REG_A);
+
+address(sym, off) LOAD(2) -- i2
+    regalloc_load_var(REG_HL, sym, off);
+    regalloc_push(REG_HL);
+
+// --- Stores ---------------------------------------------------------------
+
+address(sym, off) i1 STORE(1) --
+    regalloc_var_changing(sym, off);
+    regalloc_pop(REG_A);
+    E("\tsta %s\n", symref(sym, off));
+    regalloc_reg_contains_var(REG_A, sym, off);
+
+address(sym, off) i2 STORE(2) --
+    regalloc_var_changing(sym, off);
+    regalloc_pop(REG_HL);
+    E("\tshld %s\n", symref(sym, off));
+    regalloc_reg_contains_var(REG_HL, sym, off);
+
+i2 i1 STORE(1) --
+    regalloc_pop(REG_A);
+    reg_t r = regalloc_pop(REG_16);
+    switch (r)
+    {
+        case REG_HL:
+            E("\tmov m, a\n");
+            break;
+
+        case REG_BC:
+            E("\tstax b\n");
+            break;
+
+        case REG_DE:
+            E("\tstax d\n");
+            break;
+    }
+
+i2 i2 STORE(2) --
+    reg_t r = regalloc_pop(REG_DE);
+    regalloc_pop(REG_HL);
+    E("\tmov m, e\n");
+    E("\tinx h\n");
+    E("\tmov m, d\n");
+
+// --- Branches -------------------------------------------------------------
+
+i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
+    reg_t r = regalloc_pop(REG_A);
+    E("\tora a\n");
+    E("\tjz %s\n", labelref(truelabel));
+    E("\tjmp %s\n", labelref(falselabel));
+
+i2 BEQZ(2, truelabel, falselabel) --
+    reg_t r = regalloc_pop(REG_HL);
+    E("\tmov a, h\n");
+    E("\tora l\n");
+    E("\tjz %s\n", labelref(truelabel));
+    E("\tjmp %s\n", labelref(falselabel));
+
+BEQS(1, truelabel, falselabel) -- SUB(1) BEQZ(1, truelabel, falselabel)
+BLTS(1, truelabel, falselabel) -- SUB(1) BLTZ(1, truelabel, falselabel)
+BGTS(1, truelabel, falselabel) -- SUB(1) BGTZ(1, truelabel, falselabel)
+
+BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
+BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
+BGTS(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
 
 // --- Constant type inference ----------------------------------------------
 

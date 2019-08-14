@@ -255,8 +255,7 @@ lvalue
 			emit_mid_constant($1->u.type.element->u.type.element->u.type.width);
 			emit_mid_mul(intptr_type->u.type.width);
 			emit_mid_add(intptr_type->u.type.width);
-
-			$$ = $$->u.type.element;
+			$$ = $1;
 		}
 	| '[' expression ']'
 		{
@@ -266,7 +265,7 @@ lvalue
 				fatal("can only dereference pointers");
 
 			emit_mid_load($2->u.type.element->u.type.width);
-			$$ = $2->u.type.element;
+			$$ = $2;
 		}
 	;
 
@@ -388,7 +387,8 @@ expression
 		{
 			if (!is_scalar($1))
 				fatal("attempt to cast a %s, which is not scalar", $1->name);
-			emit_mid_cast($1->u.type.width, $3->u.type.width);
+			if ($1)
+				emit_mid_cast($1->u.type.width, $3->u.type.width);
 			$$ = $3;
 		}
 	| expression '+' expression
