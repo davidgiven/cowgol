@@ -48,15 +48,15 @@ void emitter_close_chunk(void)
     free(oldchunk);
 }
 
-void emitter_printf(const char* fmt, ...)
+void emitter_vprintf(const char* fmt, va_list ap)
 {
     if (!current)
         fatal("no output chunk open");
 
-    va_list ap;
-    va_start(ap, fmt);
-    int len = vsnprintf(NULL, 0, fmt, ap) + 1;
-    va_end(ap);
+    va_list ap1;
+    va_copy(ap1, ap);
+    int len = vsnprintf(NULL, 0, fmt, ap1) + 1;
+    va_end(ap1);
 
     while ((current->fill + len) > current->max)
     {
@@ -64,9 +64,15 @@ void emitter_printf(const char* fmt, ...)
         current->data = realloc(current->data, current->max);
     }
 
-    va_start(ap, fmt);
     current->fill += vsprintf(
         current->data + current->fill,
         fmt, ap);
+}
+
+void emitter_printf(const char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    emitter_vprintf(fmt, ap);
     va_end(ap);
 }

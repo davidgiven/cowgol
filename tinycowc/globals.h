@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <limits.h>
 
 extern void fatal(const char* s, ...);
@@ -113,7 +114,7 @@ extern struct symbol* make_number_type(const char* name, int width, bool issigne
 extern void arch_init_types(void);
 extern void arch_init_subroutine(struct subroutine* sub);
 extern void arch_init_variable(struct symbol* var);
-extern void arch_emit_comment(const char* text);
+extern void arch_emit_comment(const char* text, ...);
 
 #endif
 

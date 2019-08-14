@@ -66,6 +66,7 @@ void midend_flush(int threshold)
         if (!arch_instruction_matcher(&ctx))
             fatal("no matching instruction in pattern");
         regalloc_unlock(ALL_REGS);
+        regalloc_dump();
     }
 }
 

@@ -206,7 +206,7 @@ void regalloc_reg_contains_const(reg_t id, int32_t num)
     if (!val)
     {
         val = findemptyvalue();
-        val->kind = VALUE_VAR;
+        val->kind = VALUE_CONST;
         val->u.num = num;
     }
     val->reg |= id;
@@ -232,6 +232,7 @@ void regalloc_push(reg_t id)
     if (psp == MAX_PSTACK)
         fatal("pstack overflow");
 
+    arch_emit_comment("pstack push 0x%x", id);
     pstack[psp++] = id;
     used |= id;
 }
@@ -246,14 +247,21 @@ reg_t regalloc_pop(reg_t mask)
     {
         found = regalloc_alloc(mask);
         arch_pop(found);
+        arch_emit_comment("pstack physical pop into 0x%x", found);
         psp--;
         pfp--;
     }
     else
     {
         found = pstack[--psp];
+        arch_emit_comment("pstack pop from register into 0x%x", found);
         if (!(found & mask))
-            fatal("can't move registers on pop yet");
+        {
+            reg_t real = regalloc_alloc(mask);
+            arch_copy(found, real);
+            used &= ~found;
+            found = real;
+        }
         locked |= found;
     }
     return found;
@@ -261,6 +269,21 @@ reg_t regalloc_pop(reg_t mask)
 
 void regalloc_reg_changing(reg_t mask)
 {
+    arch_emit_comment("reg changing: 0x%x", mask);
+    for (int i=psp-1; i>=pfp; i--)
+    {
+        if (pstack[i] & mask)
+        {
+            while (pfp <= i)
+            {
+                reg_t reg = pstack[pfp++];
+                arch_emit_comment("spilling 0x%x", reg);
+                arch_push(reg);
+                used &= ~reg;
+            }
+        }
+    }
+
     for (int i=0; i<MAX_VALUES; i++)
     {
         struct value* val = &values[i];
@@ -275,6 +298,7 @@ void regalloc_reg_changing(reg_t mask)
                 val->kind = VALUE_NONE;
         }
     }
+    arch_emit_comment("");
 }
 
 void regalloc_var_changing(struct symbol* sym, int32_t off)
@@ -287,5 +311,39 @@ void regalloc_var_changing(struct symbol* sym, int32_t off)
 
         val->kind = VALUE_NONE;
         used &= ~val->reg;
+    }
+}
+
+void regalloc_dump(void)
+{
+    for (int i=0; i<num_regs; i++)
+    {
+        struct reg* reg = &regs[i];
+        if (reg->id & (used|locked))
+            arch_emit_comment("reg %s: %s %s",
+                reg->name,
+                (reg->id & used) ? "used" : "",
+                (reg->id & locked) ? "locked" : "");
+    }
+
+    for (int i=pfp; i<psp; i++)
+        arch_emit_comment("stack +%d: %s", i, regname(pstack[i]));
+
+    for (int i=0; i<MAX_VALUES; i++)
+    {
+        struct value* val = &values[i];
+        switch (val->kind)
+        {
+            case VALUE_CONST:
+                arch_emit_comment("value #%d = const 0x%x in 0x%x",
+                    i, val->u.num, val->reg);
+                break;
+
+            case VALUE_VAR:
+                arch_emit_comment("value #%d = sym %s+0x%x in 0x%x",
+                    i, val->u.var.sym->name, val->u.var.sym->u.var.offset + val->u.var.off,
+                    val->reg);
+                break;
+        }
     }
 }
