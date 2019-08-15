@@ -48,7 +48,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN
+%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN EXTERN
 %token ID NUMBER STRING
 %token ASSIGN
 
@@ -151,6 +151,26 @@ statement
 			current_sub = current_sub->parent;
 		}
 		END SUB
+	| EXTERN SUB newid
+		{
+			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
+			sub->name = $3->name;
+			sub->parent = current_sub;
+			arch_init_subroutine(sub);
+			break_label = 0;
+
+			$3->kind = SUB;
+			$3->u.sub = sub;
+
+			current_sub = sub;
+		}
+		parameterlist
+		ASSIGN STRING
+		{
+			current_sub->externname = strdup(yytext);
+			current_sub = current_sub->parent;
+		}
+		';'
 	| LOOP
 		{
 			$1.looplabel = current_label++;

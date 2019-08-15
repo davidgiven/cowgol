@@ -23,6 +23,7 @@ SP [ \t]+
 "break"                   { return BREAK; }
 "end"                     { return END; }
 "else"                    { return ELSE; }
+"extern"                  { return EXTERN; }
 "if"                      { return IF; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }

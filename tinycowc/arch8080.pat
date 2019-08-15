@@ -2,6 +2,7 @@
 #include "midcode.h"
 #include "emitter.h"
 #include "regalloc.h"
+#include <ctype.h>
 
 struct subarch
 {
@@ -62,6 +63,16 @@ void arch_emit_comment(const char* text, ...)
     va_end(ap);
 }
 
+static const char* subref(struct subroutine* sub)
+{
+    if (sub->externname)
+        return sub->externname;
+    
+    static char buffer[32];
+    snprintf(buffer, sizeof(buffer), "f%d%", sub->arch->id);
+    return buffer;
+}
+
 static const char* symref(struct symbol* sym, int32_t off)
 {
     static char buffer[32];
@@ -74,7 +85,7 @@ static const char* symref(struct symbol* sym, int32_t off)
 static const char* labelref(int label)
 {
     static char buffer[32];
-    snprintf(buffer, sizeof(buffer), "X%d", label);
+    snprintf(buffer, sizeof(buffer), "x%d", label);
     return buffer;
 }
 
@@ -97,12 +108,12 @@ void arch_load_var(reg_t id, struct symbol* sym, int32_t off)
 
 void arch_push(reg_t id)
 {
-    E("\tpush %s\n", regname(id));
+    E("\tpush %s\n", (id == REG_A) ? "psw" : regname(id));
 }
 
 void arch_pop(reg_t id)
 {
-    E("\tpop %s\n", regname(id));
+    E("\tpop %s\n", (id == REG_A) ? "psw" : regname(id));
 }
 
 void arch_copy(reg_t src, reg_t dest)
@@ -128,7 +139,7 @@ STARTSUB(sub) --
     emitter_open_chunk();
     E("\n");
     E("; %s\n", sub->name);
-    E("f%d:\n", sub->arch->id);
+    E("%s:\n", subref(sub));
 
     if (sub->inputparameters != 0)
     {
@@ -186,9 +197,13 @@ PARAM(n) --
 
 CALL(sub) --
     regalloc_reg_changing(ALL_REGS);
-    E("\tcall f%d\n", sub->arch->id);
+    E("\tcall %s\n", subref(sub));
     regalloc_drop_stack_items(sub->inputparameters);
     vsp -= sub->inputparameters;
+
+RETURN() --
+    regalloc_reg_changing(ALL_REGS);
+    E("\tret\n");
 
 // --- Additions ------------------------------------------------------------
 
@@ -361,9 +376,14 @@ i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
     reg_t r = regalloc_pop(REG_A);
     regalloc_reg_changing(ALL_REGS);
     E("\tora a\n");
-    E("\tjz %s\n", labelref(truelabel));
-    if (nextlabel != falselabel)
-        E("\tjmp %s\n", labelref(falselabel));
+    if (nextlabel == truelabel)
+        E("\tjnz %s\n", labelref(falselabel));
+    else
+    {
+        E("\tjz %s\n", labelref(truelabel));
+        if (nextlabel != falselabel)
+            E("\tjmp %s\n", labelref(falselabel));
+    }
     E("%s:\n", labelref(nextlabel));
 
 i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
@@ -371,9 +391,14 @@ i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
     regalloc_reg_changing(ALL_REGS);
     E("\tmov a, h\n");
     E("\tora l\n");
-    E("\tjz %s\n", labelref(truelabel));
-    if (nextlabel != falselabel)
-        E("\tjmp %s\n", labelref(falselabel));
+    if (nextlabel == truelabel)
+        E("\tjnz %s\n", labelref(falselabel));
+    else
+    {
+        E("\tjz %s\n", labelref(truelabel));
+        if (nextlabel != falselabel)
+            E("\tjmp %s\n", labelref(falselabel));
+    }
     E("%s:\n", labelref(nextlabel));
 
 BEQS(1, truelabel, falselabel) -- SUB(1) BEQZ(1, truelabel, falselabel)
@@ -384,6 +409,53 @@ BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
 BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
 BGTS(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
 
+// --- Data -----------------------------------------------------------------
+
+STRING(s) --
+    int sid = id++;
+    emitter_open_chunk();
+    E("s%d:\n", sid);
+    E("\tdb ");
+    bool instring = false;
+    bool start = true;
+    for (;;)
+    {
+        char c = *s++;
+        if (!c)
+            break;
+        if (!start && !instring)
+            E(", ");
+        start = false;
+        if (isprint(c) && (c != '\"') && (c != '\\'))
+        {
+            if (!instring)
+            {
+                E("\"");
+                instring = true;
+            }
+            E("%c", c);
+        }
+        else
+        {
+            if (instring)
+            {
+                E("\", ");
+                instring = false;
+            }
+            E("%d", c);
+        }
+    }
+    if (instring)
+        E("\"");
+    if (!start)
+        E(", ");
+    E("0\n");
+    emitter_close_chunk();
+
+    reg_t r = regalloc_alloc(REG_16);
+    E("\tlxi %s, s%d\n", regname(r), sid);
+    regalloc_push(r);
+    
 // --- Constant type inference ----------------------------------------------
 
 constant(c) STORE(1) -- const1(c) STORE(1)

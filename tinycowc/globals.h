@@ -60,6 +60,7 @@ struct symbol
 struct subroutine
 {
 	const char* name;
+	const char* externname;
 	struct subroutine* parent;
 	struct symbol* firstsymbol;
 	struct symbol* lastsymbol;
