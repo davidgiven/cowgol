@@ -166,6 +166,7 @@ buildflex $OBJDIR/lexer.c lexer.l
 buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
 buildmkpat $OBJDIR/arch8080.c midcodes.tab arch8080.pat
 buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
+buildmkpat $OBJDIR/archc.c midcodes.tab archc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -188,6 +189,11 @@ buildlibrary lib8080.a \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/arch8080.c \
 
+buildlibrary libc.a \
+    -I$OBJDIR \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/archc.c \
+
 buildprogram tinycowc-agc \
     -lbsd \
     libmain.a \
@@ -196,3 +202,7 @@ buildprogram tinycowc-agc \
 buildprogram tinycowc-8080 \
     libmain.a \
     lib8080.a \
+
+buildprogram tinycowc-c \
+    libmain.a \
+    libc.a \
