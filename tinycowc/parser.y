@@ -758,7 +758,7 @@ static struct symbol* make_pointer_type(struct symbol* type)
 		ptr->name = aprintf("[%s]", type->name);
 		ptr->kind = TYPE;
 		ptr->u.type.kind = TYPE_POINTER;
-		ptr->u.type.width = 2;
+		ptr->u.type.width = intptr_type->u.type.width;
 		ptr->u.type.element = type;
 		type->u.type.pointerto = ptr;
 		return ptr;

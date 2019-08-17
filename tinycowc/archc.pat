@@ -11,6 +11,10 @@ struct subarch
 
 static int id = 0;
 
+#define VARSTACK_SIZE 32
+static int varstack[VARSTACK_SIZE];
+static int varsp = 0;
+
 #define E emitter_printf
 
 void arch_init_types(void)
@@ -39,9 +43,9 @@ void arch_emit_comment(const char* text, ...)
 {
     va_list ap;
     va_start(ap, text);
-    printf("\t/* ");
-    vprintf(text, ap);
-    printf(" */\n");
+    emitter_printf("\t/* ");
+    emitter_vprintf(text, ap);
+    emitter_printf(" */\n");
     va_end(ap);
 }
 
@@ -58,7 +62,7 @@ static const char* subref(struct subroutine* sub)
 static const char* symref(struct symbol* sym, int32_t off)
 {
     static char buffer[32];
-    snprintf(buffer, sizeof(buffer), "w%d%+d",
+    snprintf(buffer, sizeof(buffer), "&workspace%d[%d]",
         sym->u.var.sub->arch->id,
         sym->u.var.offset + off);
     return buffer;
@@ -71,6 +75,22 @@ static const char* labelref(int label)
     return buffer;
 }
 
+static int push(void)
+{
+    int vid = id++;
+    if (varsp == VARSTACK_SIZE)
+        fatal("varstack overflow");
+    varstack[varsp++] = vid;
+    return vid;
+}
+
+static int pop(void)
+{
+    if (varsp == 0)
+        fatal("vstack underflow");
+    return varstack[--varsp];
+}
+
 void arch_load_const(reg_t id, int32_t num) {}
 void arch_load_var(reg_t id, struct symbol* sym, int32_t off) {}
 void arch_push(reg_t id) {}
@@ -78,65 +98,64 @@ void arch_pop(reg_t id) {}
 void arch_copy(reg_t src, reg_t dest) {}
 %%
 
-i1
-i2
-i4
-p8
+i(int width) = ("%d", $$.width)
 constant(int32_t val) = ("%d", $$.val)
-const1(int32_t val) = ("%d", $$.val)
-const2(int32_t val) = ("%d", $$.val)
-const4(int32_t val) = ("%d", $$.val)
+constn(int width, int32_t val) = ("width=%d val=%d", $$.width, $$.val)
 address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 
 %%
 
 STARTFILE --
+    emitter_open_chunk();
+    E("#include \"rt/cowgol.h\"\n");
+    emitter_close_chunk();
 
 ENDFILE --
 
 STARTSUB(sub) --
     emitter_open_chunk();
     E("\n");
-    E("; %s\n", sub->name);
-    E("%s:\n", subref(sub));
+    E("/* %s */\n", sub->name);
+    E("static i1 workspace%d[];\n", sub->arch->id);
+    E("void %s(", subref(sub));
 
+    if (sub->inputparameters == 0)
+        E("void");
+    else
+    {
+        bool first = true;
+        struct symbol* param = sub->firstsymbol;
+        for (int i=0; i<sub->inputparameters; i++)
+        {
+            if (!first)
+                E(", ");
+            first = false;
+
+            E("i%d p%d", param->u.var.type->u.type.width, i);
+            param = param->next;
+        }
+    }
+    E(") {\n");
     if (sub->inputparameters != 0)
     {
-        E("\tpop b\n");
-        for (int i=sub->inputparameters-1; i>=0; i--)
+        struct symbol* param = sub->firstsymbol;
+        for (int i=0; i<sub->inputparameters; i++)
         {
-                struct symbol* param = sub->firstsymbol;
-                for (int j=0; j<i; j++)
-                        param = param->next;
-
-                if (param->u.var.type->u.type.width == 1)
-                {
-                        E("\tpop psw\n");
-                        E("\tsta %s\n", symref(param, 0));
-                }
-                else
-                {
-                        E("\tpop h\n");
-                        E("\tshld %s\n", symref(param, 0));
-                }
+            E("*(i%d)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);
+            param = param->next;
         }
-        E("\tpush b\n");
     }
 
 ENDSUB(sub) --
-    E("\tret\n");
-	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
+    E("}\n");
+    E("static i1 workspace%d[%d];\n", sub->arch->id, sub->workspace);
     emitter_close_chunk();
 
 JUMP(label) --
-    E("\tjmp %s\n", labelref(label));
-
-JUMP(target) LABEL(label1) LABEL(label2) -- LABEL(label1) LABEL(label2)
-    if ((target != label1) && (target != label2))
-        E("\tjmp %s\n", labelref(target));
+    E("goto %s;\n", labelref(label));
 
 LABEL(label) --
-    E("%s:\n", labelref(label));
+    E("%s:;\n", labelref(label));
 
 LABELALIAS(newlabel, oldlabel) --
     E("%s\t", labelref(newlabel));
@@ -148,358 +167,218 @@ ADDRESS(sym) -- address(sym, 0)
 
 // --- Function calls -------------------------------------------------------
 
-//PARAM(n) --
-//    regalloc_flush_stack();
-//
-//CALL(sub) --
-//    regalloc_reg_changing(ALL_REGS);
-//    E("\tcall %s\n", subref(sub));
-//    regalloc_drop_stack_items(sub->inputparameters);
-//    vsp -= sub->inputparameters;
-//
-//RETURN() --
-//    regalloc_reg_changing(ALL_REGS);
-//    E("\tret\n");
-//
-//// --- Additions ------------------------------------------------------------
-//
-//address(sym, off) const2(val) ADD(2) -- address(sym, newoff)
-//    newoff = off + val;
-//
-//constant(lhs) constant(rhs) ADD(n) -- constant(result)
-//    result = lhs + rhs;
-//
-//i1 i1 ADD(1) -- i1
-//    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-//    reg_t lhs = regalloc_pop(REG_A);
-//    E("\tadd %s\n", regname(lhs));
-//    regalloc_push(REG_A);
-//
-//i2 i2 ADD(2) -- i2
-//    reg_t rhs = regalloc_pop(REG_16 & ~REG_HL);
-//    reg_t lhs = regalloc_pop(REG_HL);
-//    E("\tdad %s\n", regname(lhs));
-//    regalloc_push(REG_HL);
-//
-//i1 const1(0) ADD(1) -- i1
-//
-//i2 const2(0) ADD(2) -- i2
-//
-//address(sym1, off1) address(sym2, off2) LOAD(1) CONSTANT(1) ADD(1) STORE(1) --
-//    if ((sym1 != sym2) || (off1 != off2))
-//        REJECT;
-//    regalloc_alloc(REG_HL);
-//    E("\tlxi h, %s\n", symref(sym1, off1));
-//    E("\tinr m\n");
-//
-//i1 const1(n) ADD(1) -- i1
-//    if (n == 1)
-//    {
-//        reg_t val = regalloc_pop(REG_8);
-//        E("\tinc %s\n", regname(val));
-//        regalloc_push(val);
-//    }
-//    else if (n == -1)
-//    {
-//        reg_t val = regalloc_pop(REG_8);
-//        E("\tdec %s\n", regname(val));
-//        regalloc_push(val);
-//    }
-//    else
-//    {
-//        reg_t lhs = regalloc_pop(REG_A);
-//        E("\tadi %d\n", n & 0xff);
-//        regalloc_push(REG_A);
-//    }
-//
-//i2 const2(n) ADD(2) -- i2
-//    if (n == 1)
-//    {
-//        reg_t val = regalloc_pop(REG_16);
-//        E("\tinx %s\n", regname(val));
-//        regalloc_push(val);
-//    }
-//    else if (n == -1)
-//    {
-//        reg_t val = regalloc_pop(REG_16);
-//        E("\tdcx %s\n", regname(val));
-//        regalloc_push(val);
-//    }
-//    else
-//    {
-//        reg_t lhs = regalloc_pop(REG_HL);
-//        reg_t rhs = regalloc_load_const(REG_16, n);
-//        E("\tdad %s\n", regname(lhs));
-//        regalloc_push(REG_HL);
-//    }
-//
-//ADDP(width) -- ADD(width)
-//
-//// --- Subtractions ---------------------------------------------------------
-//
-//i1 i1 SUB(1) -- i1
-//    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-//    reg_t lhs = regalloc_pop(REG_A);
-//    E("\tsub %s\n", regname(rhs));
-//    regalloc_push(REG_A);
-//
-//SUB(2) -- NEG(2) ADD(2)
-//
-//i1 const1(0) SUB(1) -- i1
-//i1 const1(n) SUB(1) -- i1 const1(-n) ADD(1)
-//
-//i1 const2(0) SUB(2) -- i2
-//i2 const2(n) SUB(2) -- i2 const2(-n) ADD(2)
-//
-//SUBP(width) -- SUB(width)
-//
-//// --- Loads ----------------------------------------------------------------
-//
-//i2 LOAD(1) -- i1
-//    reg_t r = regalloc_pop(REG_16);
-//    regalloc_alloc(REG_A);
-//    switch (r)
-//    {
-//        case REG_HL:
-//            E("\tmov a, m\n");
-//            break;
-//
-//        case REG_BC:
-//            E("\tldax b\n");
-//            break;
-//
-//        case REG_DE:
-//            E("\tldax d\n");
-//            break;
-//    }
-//    regalloc_push(REG_A);
-//
-//i2 LOAD(2) -- i2
-//    reg_t r = regalloc_pop(REG_HL);
-//    regalloc_alloc(REG_A);
-//    E("\tmov a, m\n");
-//    E("\tinx h\n");
-//    E("\tmov h, m\n");
-//    E("\tmov l, a\n");
-//    regalloc_push(REG_HL);
-//
-//address(sym, off) LOAD(1) -- i1
-//    regalloc_load_var(REG_A, sym, off);
-//    regalloc_push(REG_A);
-//
-//address(sym, off) LOAD(2) -- i2
-//    regalloc_load_var(REG_HL, sym, off);
-//    regalloc_push(REG_HL);
-//
-//// --- Stores ---------------------------------------------------------------
-//
-//address(sym, off) i1 STORE(1) --
-//    regalloc_var_changing(sym, off);
-//    regalloc_pop(REG_A);
-//    E("\tsta %s\n", symref(sym, off));
-//    regalloc_reg_contains_var(REG_A, sym, off);
-//
-//address(sym, off) i2 STORE(2) --
-//    regalloc_var_changing(sym, off);
-//    regalloc_pop(REG_HL);
-//    E("\tshld %s\n", symref(sym, off));
-//    regalloc_reg_contains_var(REG_HL, sym, off);
-//
-//i2 i1 STORE(1) --
-//    regalloc_pop(REG_A);
-//    reg_t r = regalloc_pop(REG_16);
-//    switch (r)
-//    {
-//        case REG_HL:
-//            E("\tmov m, a\n");
-//            break;
-//
-//        case REG_BC:
-//            E("\tstax b\n");
-//            break;
-//
-//        case REG_DE:
-//            E("\tstax d\n");
-//            break;
-//    }
-//
-//i2 i2 STORE(2) --
-//    reg_t r = regalloc_pop(REG_DE);
-//    regalloc_pop(REG_HL);
-//    E("\tmov m, e\n");
-//    E("\tinx h\n");
-//    E("\tmov m, d\n");
-//
-//// --- Branches -------------------------------------------------------------
-//
-//i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
-//    reg_t r = regalloc_pop(REG_A);
-//    regalloc_reg_changing(ALL_REGS);
-//    E("\tora a\n");
-//    if (nextlabel == truelabel)
-//        E("\tjnz %s\n", labelref(falselabel));
-//    else
-//    {
-//        E("\tjz %s\n", labelref(truelabel));
-//        if (nextlabel != falselabel)
-//            E("\tjmp %s\n", labelref(falselabel));
-//    }
-//    E("%s:\n", labelref(nextlabel));
-//
-//i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
-//    reg_t r = regalloc_pop(REG_HL);
-//    regalloc_reg_changing(ALL_REGS);
-//    E("\tmov a, h\n");
-//    E("\tora l\n");
-//    if (nextlabel == truelabel)
-//        E("\tjnz %s\n", labelref(falselabel));
-//    else
-//    {
-//        E("\tjz %s\n", labelref(truelabel));
-//        if (nextlabel != falselabel)
-//            E("\tjmp %s\n", labelref(falselabel));
-//    }
-//    E("%s:\n", labelref(nextlabel));
-//
-//BEQS(1, truelabel, falselabel) -- SUB(1) BEQZ(1, truelabel, falselabel)
-//BLTS(1, truelabel, falselabel) -- SUB(1) BLTZ(1, truelabel, falselabel)
-//BGTS(1, truelabel, falselabel) -- SUB(1) BGTZ(1, truelabel, falselabel)
-//
-//BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
-//BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
-//BGTS(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
-//
-//BEQP(truelabel, falselabel) -- BEQS(2, truelabel, falselabel)
-//BLTP(truelabel, falselabel) -- BLTS(2, truelabel, falselabel)
-//BGTP(truelabel, falselabel) -- BGTS(2, truelabel, falselabel)
-//
-//// --- Data -----------------------------------------------------------------
-//
-//STRING(s) --
-//    int sid = id++;
-//    emitter_open_chunk();
-//    E("s%d:\n", sid);
-//    E("\tdb ");
-//    bool instring = false;
-//    bool start = true;
-//    for (;;)
-//    {
-//        char c = *s++;
-//        if (!c)
-//            break;
-//        if (!start && !instring)
-//            E(", ");
-//        start = false;
-//        if (isprint(c) && (c != '\"') && (c != '\\'))
-//        {
-//            if (!instring)
-//            {
-//                E("\"");
-//                instring = true;
-//            }
-//            E("%c", c);
-//        }
-//        else
-//        {
-//            if (instring)
-//            {
-//                E("\", ");
-//                instring = false;
-//            }
-//            E("%d", c);
-//        }
-//    }
-//    if (instring)
-//        E("\"");
-//    if (!start)
-//        E(", ");
-//    E("0\n");
-//    emitter_close_chunk();
-//
-//    reg_t r = regalloc_alloc(REG_16);
-//    E("\tlxi %s, s%d\n", regname(r), sid);
-//    regalloc_push(r);
-    
+PARAM(n) --
+
+CALL(sub) --
+    E("%s(", subref(sub));
+    bool first = true;
+    for (int i=varsp-sub->inputparameters; i<varsp; i++)
+    {
+        if (!first)
+            E(", ");
+        first = false;
+
+        E("v%d", varstack[i]);
+    }
+    E(");\n");
+
+    vsp -= sub->inputparameters;
+    varsp -= sub->inputparameters;
+
+RETURN() --
+    E("return;\n");
+
+// --- Additions ------------------------------------------------------------
+
+address(sym, off) constn(w1, val) ADD(w2) -- address(sym, newoff)
+    assert(w1 == w2);
+    newoff = off + val;
+
+constant(lhs) constant(rhs) ADD(n) -- constant(result)
+    result = lhs + rhs;
+
+i(w1) i(w2) ADD(w3) -- i(w1)
+    assert(w1 == w2);
+    assert(w2 == w3);
+    int rhs = pop();
+    int lhs = pop();
+    E("i%d v%d = v%d + v%d;\n", w1, push(), lhs, rhs);
+
+i(w1) i(w2) ADDP(w3) -- i(w1)
+    assert(w1 == w2);
+    assert(w2 == w3);
+    int rhs = pop();
+    int lhs = pop();
+    E("i%d v%d = v%d + v%d;\n", w1, push(), lhs, rhs);
+
+address(sym1, off1) address(sym2, off2) LOAD(w1) CONSTANT(c) ADD(w2) STORE(w3) --
+    if ((sym1 != sym2) || (off1 != off2) || (w1 != w2) || (w2 != w3))
+        REJECT;
+    E("(*(i%d*)%s) += %d;\n", w1, symref(sym1, off1), c);
+
+// --- Subtractions ---------------------------------------------------------
+
+i(w1) i(w2) SUB(w3) -- i(w1)
+    assert(w1 == w2);
+    assert(w2 == w3);
+    int rhs = pop();
+    int lhs = pop();
+    E("i%d v%d = v%d - v%d;\n", w1, push(), lhs, rhs);
+
+address(sym1, off1) address(sym2, off2) LOAD(w1) CONSTANT(c) SUB(w2) STORE(w3) --
+    if ((sym1 != sym2) || (off1 != off2) || (w1 != w2) || (w2 != w3))
+        REJECT;
+    E("(*(i%d*)%s) -= %d;\n", w1, symref(sym1, off1), c);
+
+// --- Loads ----------------------------------------------------------------
+
+address(sym, off) LOAD(width) -- i(width)
+    E("i%d v%d = *(i%d*)%s;\n", width, push(), width, symref(sym, off));
+
+i(n) LOAD(width) -- i(width)
+    int ptr = pop();
+    E("i%d v%d = *(i%d*)v%d;\n", width, push(), width, ptr);
+
+// --- Stores ---------------------------------------------------------------
+
+address(sym, off) i(w1) STORE(w2) --
+    assert(w1 == w2);
+    E("*(i%d*)%s = v%d;\n", w1, symref(sym, off), pop());
+
+i(n) i(w1) STORE(w2) --
+    assert(w1 == w2);
+    int val = pop();
+    int ptr = pop();
+    E("*(i%d*)v%d = v%d;\n", w1, ptr, val);
+
+// --- Branches -------------------------------------------------------------
+
+i(w1) BEQZ(w2, truelabel, falselabel) --
+    assert(w1 == w2);
+    E("if (v%d) goto %s;\n", pop(), labelref(truelabel));
+    E("goto %s;\n", labelref(falselabel));
+
+BEQS(w, truelabel, falselabel) -- SUB(w) BEQZ(w, truelabel, falselabel)
+BLTS(w, truelabel, falselabel) -- SUB(w) BLTZ(w, truelabel, falselabel)
+BGTS(w, truelabel, falselabel) -- SUB(w) BGTZ(w, truelabel, falselabel)
+
+BEQP(truelabel, falselabel) -- SUBP(8) BEQZ(8, truelabel, falselabel)
+BLTP(truelabel, falselabel) -- SUBP(8) BLTZ(8, truelabel, falselabel)
+BGTP(truelabel, falselabel) -- SUBP(8) BGTZ(8, truelabel, falselabel)
+
+// --- Data -----------------------------------------------------------------
+
+STRING(s) --
+    int sid = id++;
+    emitter_open_chunk();
+    E("static const i1 s%d[] = { ", sid);
+    bool first = true;
+    for (;;)
+    {
+        char c = *s++;
+        if (!first)
+            E(", ");
+        first = false;
+
+        E("%d", c & 0xff);
+        if (!c)
+            break;
+    }
+    E("};\n");
+    emitter_close_chunk();
+
+    E("i8 v%d = (i8) s%d;\n", push(), sid);
+ 
 // --- Constant type inference ----------------------------------------------
 
-constant(c) STORE(1) -- const1(c) STORE(1)
-constant(c) STORE(2) -- const2(c) STORE(2)
-constant(c) STORE(4) -- const4(c) STORE(4)
+constant(c) STORE(1) -- constn(1, c) STORE(1)
+constant(c) STORE(2) -- constn(2, c) STORE(2)
+constant(c) STORE(4) -- constn(4, c) STORE(4)
 
-constant(c) PARAM(1) -- const1(c) PARAM(1)
-constant(c) PARAM(2) -- const2(c) PARAM(2)
-constant(c) PARAM(4) -- const4(c) PARAM(4)
+constant(c) PARAM(1) -- constn(1, c) PARAM(1)
+constant(c) PARAM(2) -- constn(2, c) PARAM(2)
+constant(c) PARAM(4) -- constn(4, c) PARAM(4)
 
-constant(c) NEG(1) -- const1(c) NEG(1)
-constant(c) NEG(2) -- const2(c) NEG(2)
-constant(c) NEG(4) -- const4(c) NEG(4)
+constant(c) NEG(1) -- constn(1, c) NEG(1)
+constant(c) NEG(2) -- constn(2, c) NEG(2)
+constant(c) NEG(4) -- constn(4, c) NEG(4)
 
-constant(c) ADD(1) -- const1(c) ADD(1)
-constant(c) ADD(2) -- const2(c) ADD(2)
-constant(c) ADD(4) -- const4(c) ADD(4)
-constant(c) (value) ADD(1) -- const1(c) (value) ADD(1)
-constant(c) (value) ADD(2) -- const2(c) (value) ADD(2)
-constant(c) (value) ADD(4) -- const4(c) (value) ADD(4)
+constant(c) ADD(1) -- constn(1, c) ADD(1)
+constant(c) ADD(2) -- constn(2, c) ADD(2)
+constant(c) ADD(4) -- constn(4, c) ADD(4)
+constant(c) (value) ADD(1) -- constn(1, c) (value) ADD(1)
+constant(c) (value) ADD(2) -- constn(2, c) (value) ADD(2)
+constant(c) (value) ADD(4) -- constn(4, c) (value) ADD(4)
 
-constant(c) SUB(1) -- const1(c) SUB(1)
-constant(c) SUB(2) -- const2(c) SUB(2)
-constant(c) SUB(4) -- const4(c) SUB(4)
-constant(c) (value) SUB(1) -- const1(c) (value) SUB(1)
-constant(c) (value) SUB(2) -- const2(c) (value) SUB(2)
-constant(c) (value) SUB(4) -- const4(c) (value) SUB(4)
+constant(c) ADDP(1) -- constn(1, c) ADDP(1)
+constant(c) ADDP(2) -- constn(2, c) ADDP(2)
+constant(c) ADDP(4) -- constn(4, c) ADDP(4)
+constant(c) ADDP(8) -- constn(8, c) ADDP(8)
+constant(c) (value) ADDP(1) -- constn(1, c) (value) ADDP(1)
+constant(c) (value) ADDP(2) -- constn(2, c) (value) ADDP(2)
+constant(c) (value) ADDP(4) -- constn(4, c) (value) ADDP(4)
+constant(c) (value) ADDP(8) -- constn(8, c) (value) ADDP(8)
 
-constant(c) MUL(1) -- const1(c) MUL(1)
-constant(c) MUL(2) -- const2(c) MUL(2)
-constant(c) MUL(4) -- const4(c) MUL(4)
-constant(c) (value) MUL(1) -- const1(c) (value) MUL(1)
-constant(c) (value) MUL(2) -- const2(c) (value) MUL(2)
-constant(c) (value) MUL(4) -- const4(c) (value) MUL(4)
+constant(c) SUB(1) -- constn(1, c) SUB(1)
+constant(c) SUB(2) -- constn(2, c) SUB(2)
+constant(c) SUB(4) -- constn(4, c) SUB(4)
+constant(c) (value) SUB(1) -- constn(1, c) (value) SUB(1)
+constant(c) (value) SUB(2) -- constn(2, c) (value) SUB(2)
+constant(c) (value) SUB(4) -- constn(4, c) (value) SUB(4)
 
-constant(c) DIVS(1) -- const1(c) DIVS(1)
-constant(c) DIVS(2) -- const2(c) DIVS(2)
-constant(c) DIVS(4) -- const4(c) DIVS(4)
-constant(c) (value) DIVS(1) -- const1(c) (value) DIVS(1)
-constant(c) (value) DIVS(2) -- const2(c) (value) DIVS(2)
-constant(c) (value) DIVS(4) -- const4(c) (value) DIVS(4)
+constant(c) MUL(1) -- constn(1, c) MUL(1)
+constant(c) MUL(2) -- constn(2, c) MUL(2)
+constant(c) MUL(4) -- constn(4, c) MUL(4)
+constant(c) (value) MUL(1) -- constn(1, c) (value) MUL(1)
+constant(c) (value) MUL(2) -- constn(2, c) (value) MUL(2)
+constant(c) (value) MUL(4) -- constn(4, c) (value) MUL(4)
 
-constant(c) REMS(1) -- const1(c) REMS(1)
-constant(c) REMS(2) -- const2(c) REMS(2)
-constant(c) REMS(4) -- const4(c) REMS(4)
-constant(c) (value) REMS(1) -- const1(c) (value) REMS(1)
-constant(c) (value) REMS(2) -- const2(c) (value) REMS(2)
-constant(c) (value) REMS(4) -- const4(c) (value) REMS(4)
+constant(c) DIVS(1) -- constn(1, c) DIVS(1)
+constant(c) DIVS(2) -- constn(2, c) DIVS(2)
+constant(c) DIVS(4) -- constn(4, c) DIVS(4)
+constant(c) (value) DIVS(1) -- constn(1, c) (value) DIVS(1)
+constant(c) (value) DIVS(2) -- constn(2, c) (value) DIVS(2)
+constant(c) (value) DIVS(4) -- constn(4, c) (value) DIVS(4)
 
-constant(c) OR(1) -- const1(c) OR(1)
-constant(c) OR(2) -- const2(c) OR(2)
-constant(c) OR(4) -- const4(c) OR(4)
-constant(c) (value) OR(1) -- const1(c) (value) OR(1)
-constant(c) (value) OR(2) -- const2(c) (value) OR(2)
-constant(c) (value) OR(4) -- const4(c) (value) OR(4)
+constant(c) REMS(1) -- constn(1, c) REMS(1)
+constant(c) REMS(2) -- constn(2, c) REMS(2)
+constant(c) REMS(4) -- constn(4, c) REMS(4)
+constant(c) (value) REMS(1) -- constn(1, c) (value) REMS(1)
+constant(c) (value) REMS(2) -- constn(2, c) (value) REMS(2)
+constant(c) (value) REMS(4) -- constn(4, c) (value) REMS(4)
 
-constant(c) AND(1) -- const1(c) AND(1)
-constant(c) AND(2) -- const2(c) AND(2)
-constant(c) AND(4) -- const4(c) AND(4)
-constant(c) (value) AND(1) -- const1(c) (value) AND(1)
-constant(c) (value) AND(2) -- const2(c) (value) AND(2)
-constant(c) (value) AND(4) -- const4(c) (value) AND(4)
+constant(c) OR(1) -- constn(1, c) OR(1)
+constant(c) OR(2) -- constn(2, c) OR(2)
+constant(c) OR(4) -- constn(4, c) OR(4)
+constant(c) (value) OR(1) -- constn(1, c) (value) OR(1)
+constant(c) (value) OR(2) -- constn(2, c) (value) OR(2)
+constant(c) (value) OR(4) -- constn(4, c) (value) OR(4)
 
-constant(c) EOR(1) -- const1(c) EOR(1)
-constant(c) EOR(2) -- const2(c) EOR(2)
-constant(c) EOR(4) -- const4(c) EOR(4)
-constant(c) (value) EOR(1) -- const1(c) (value) EOR(1)
-constant(c) (value) EOR(2) -- const2(c) (value) EOR(2)
-constant(c) (value) EOR(4) -- const4(c) (value) EOR(4)
+constant(c) AND(1) -- constn(1, c) AND(1)
+constant(c) AND(2) -- constn(2, c) AND(2)
+constant(c) AND(4) -- constn(4, c) AND(4)
+constant(c) (value) AND(1) -- constn(1, c) (value) AND(1)
+constant(c) (value) AND(2) -- constn(2, c) (value) AND(2)
+constant(c) (value) AND(4) -- constn(4, c) (value) AND(4)
 
-constant(c) BEQS(1, tl, fl) -- const1(c) BEQS(1, tl, fl)
-constant(c) BEQS(2, tl, fl) -- const2(c) BEQS(2, tl, fl)
-constant(c) BEQS(4, tl, fl) -- const4(c) BEQS(4, tl, fl)
-constant(c) BLTS(1, tl, fl) -- const1(c) BLTS(1, tl, fl)
-constant(c) BLTS(2, tl, fl) -- const2(c) BLTS(2, tl, fl)
-constant(c) BLTS(4, tl, fl) -- const4(c) BLTS(4, tl, fl)
-constant(c) BGTS(1, tl, fl) -- const1(c) BGTS(1, tl, fl)
-constant(c) BGTS(2, tl, fl) -- const2(c) BGTS(2, tl, fl)
-constant(c) BGTS(4, tl, fl) -- const4(c) BGTS(4, tl, fl)
+constant(c) EOR(1) -- constn(1, c) EOR(1)
+constant(c) EOR(2) -- constn(2, c) EOR(2)
+constant(c) EOR(4) -- constn(4, c) EOR(4)
+constant(c) (value) EOR(1) -- constn(1, c) (value) EOR(1)
+constant(c) (value) EOR(2) -- constn(2, c) (value) EOR(2)
+constant(c) (value) EOR(4) -- constn(4, c) (value) EOR(4)
 
-const1(c) -- i1
+constant(c) BEQS(1, tl, fl) -- constn(1, c) BEQS(1, tl, fl)
+constant(c) BEQS(2, tl, fl) -- constn(2, c) BEQS(2, tl, fl)
+constant(c) BEQS(4, tl, fl) -- constn(4, c) BEQS(4, tl, fl)
+constant(c) BLTS(1, tl, fl) -- constn(1, c) BLTS(1, tl, fl)
+constant(c) BLTS(2, tl, fl) -- constn(2, c) BLTS(2, tl, fl)
+constant(c) BLTS(4, tl, fl) -- constn(4, c) BLTS(4, tl, fl)
+constant(c) BGTS(1, tl, fl) -- constn(1, c) BGTS(1, tl, fl)
+constant(c) BGTS(2, tl, fl) -- constn(2, c) BGTS(2, tl, fl)
+constant(c) BGTS(4, tl, fl) -- constn(4, c) BGTS(4, tl, fl)
 
-const2(c) -- i2
+constn(w, c) -- i(w)
+    int vid = push();
+    E("i%d v%d = %d;\n", w, vid, c);
+    

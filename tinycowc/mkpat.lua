@@ -62,7 +62,7 @@ while line do
     if (line == "%%") then
         break
     end
-    line = line:gsub(" *//.*$", "")
+    line = line:gsub(" *//.*$", ""):gsub(" *$", "")
     if (line == "") then
         line = readline()
     else
@@ -71,6 +71,10 @@ while line do
         local code = {}
         local pattern = {inelements=inelements, outelements=outelements, code=code, lineno=lineno, pattern=line}
         patterns[#patterns+1] = pattern
+
+        if not line:find("%-%-") then
+            error("invalid pattern at line "..lineno)
+        end
 
         local s = 1
         local elements = inelements
