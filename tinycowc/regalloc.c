@@ -301,7 +301,6 @@ void regalloc_drop_stack_items(int n)
 
 void regalloc_reg_changing(reg_t mask)
 {
-    arch_emit_comment("reg changing: 0x%x", mask);
     for (int i=psp-1; i>=pfp; i--)
     {
         if (pstack[i] & mask)

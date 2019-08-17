@@ -38,9 +38,9 @@ void arch_init_types(void)
     regalloc_add_register("b", REG_B, REG_B | REG_BC);
     regalloc_add_register("d", REG_D, REG_D | REG_DE);
     regalloc_add_register("h", REG_H, REG_H | REG_HL);
-    regalloc_add_register("bc", REG_BC, REG_B | REG_BC);
-    regalloc_add_register("de", REG_DE, REG_D | REG_DE);
-    regalloc_add_register("hl", REG_HL, REG_H | REG_HL);
+    regalloc_add_register("b", REG_BC, REG_B | REG_BC);
+    regalloc_add_register("d", REG_DE, REG_D | REG_DE);
+    regalloc_add_register("h", REG_HL, REG_H | REG_HL);
 }
 
 void arch_init_subroutine(struct subroutine* sub)
@@ -57,9 +57,9 @@ void arch_emit_comment(const char* text, ...)
 {
     va_list ap;
     va_start(ap, text);
-    printf("\t; ");
-    vprintf(text, ap);
-    printf("\n");
+    emitter_printf("\t; ");
+    emitter_vprintf(text, ap);
+    emitter_printf("\n");
     va_end(ap);
 }
 
@@ -139,6 +139,9 @@ STARTSUB(sub) --
     emitter_open_chunk();
     E("\n");
     E("; %s\n", sub->name);
+    E("\tcseg\n");
+    if (sub->externname)
+        E("\tpublic %s\n", sub->externname);
     E("%s:\n", subref(sub));
 
     if (sub->inputparameters != 0)
@@ -166,6 +169,7 @@ STARTSUB(sub) --
 
 ENDSUB(sub) --
     E("\tret\n");
+    E("\tdseg\n");
 	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
     emitter_close_chunk();
 
@@ -196,6 +200,13 @@ PARAM(n) --
     regalloc_flush_stack();
 
 CALL(sub) --
+    if (sub->externname)
+    {
+        emitter_open_chunk();
+        E("\textrn %s\n", sub->externname);
+        emitter_close_chunk();
+    }
+
     regalloc_reg_changing(ALL_REGS);
     E("\tcall %s\n", subref(sub));
     regalloc_drop_stack_items(sub->inputparameters);
@@ -422,6 +433,7 @@ BGTP(truelabel, falselabel) -- BGTS(2, truelabel, falselabel)
 STRING(s) --
     int sid = id++;
     emitter_open_chunk();
+    E("\tcseg\n");
     E("s%d:\n", sid);
     E("\tdb ");
     bool instring = false;

@@ -50,6 +50,7 @@ int main(int argc, const char* argv[])
 {
 	current_sub = calloc(1, sizeof(struct subroutine));
 	current_sub->name = "__main";
+	current_sub->externname = "cmain";
 
 	yyin = fopen(argv[1], "r");
 	yylineno = 1;
