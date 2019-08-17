@@ -28,12 +28,17 @@ BLTS(int width, int truelabel, int falselabel) = ("width=%d true=%d false=%d", $
 BEQU(int width, int truelabel, int falselabel) = ("width=%d true=%d false=%d", $$.width, $$.truelabel, $$.falselabel)
 BGTU(int width, int truelabel, int falselabel) = ("width=%d true=%d false=%d", $$.width, $$.truelabel, $$.falselabel)
 BLTU(int width, int truelabel, int falselabel) = ("width=%d true=%d false=%d", $$.width, $$.truelabel, $$.falselabel)
+BEQP(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
+BGTP(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
+BLTP(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 
 CAST(int srcwidth, int destwidth) = ("srcwidth=%d destwidth=%d", $$.srcwidth, $$.destwidth)
 
 PARAM(int width) = ("%d", $$.width)
 ADD(int width) = ("%d", $$.width)
+ADDP(int width) = ("%d", $$.width)
 SUB(int width) = ("%d", $$.width)
+SUBP(int width) = ("%d", $$.width)
 MUL(int width) = ("%d", $$.width)
 DIVU(int width) = ("%d", $$.width)
 DIVS(int width) = ("%d", $$.width)

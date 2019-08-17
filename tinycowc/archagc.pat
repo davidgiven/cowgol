@@ -334,6 +334,8 @@ address(sym1, off1) address(sym2, off2) LOAD(1) CONSTANT(1) ADD(1) STORE(1) --
         REJECT;
     E("\tINCR %s\n", symref(sym1, off1));
 
+ADDP(width) -- ADD(width)
+
 // --- Subtractions ---------------------------------------------------------
 
 i1 i1 SUB(1) -- i1
@@ -354,6 +356,8 @@ i1 const1(n) SUB(1) -- i1 const1(-n) ADD(1)
 
 i1 const2(0) SUB(2) -- i2
 i2 const2(n) SUB(2) -- i2 const2(-n) ADD(2)
+
+SUBP(width) -- SUB(width)
 
 // --- Multiplications ------------------------------------------------------
 
@@ -621,6 +625,10 @@ BGTS(1, truelabel, falselabel) -- SUB(1) BGTZ(1, truelabel, falselabel)
 BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
 BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
 BGTS(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
+
+BEQP(truelabel, falselabel) -- BEQS(2, truelabel, falselabel)
+BLTP(truelabel, falselabel) -- BLTS(2, truelabel, falselabel)
+BGTP(truelabel, falselabel) -- BGTS(2, truelabel, falselabel)
 
 // --- Inline assembly ------------------------------------------------------
 
