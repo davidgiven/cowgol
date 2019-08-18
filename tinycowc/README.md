@@ -18,6 +18,19 @@ the `rt/agc/cowgol.agc` file, which includes the other two files. You'll end
 up with a (hopefully) runnable `cowgol.agc.bin` file which you can load into
 VirtualAGC.
 
+## C backend
+
+This generates C code which can then be compiled into an executable with
+a C compiler. It's intended for testing and bootstrapping. It's kinda hacky
+and right now probably only works on 64-bit architectures (because it assumes
+that pointers are eight bytes long).
+
+To use:
+
+    $ ./build-c.sh examples/helloworld.cow
+
+This will produce an executable called `cowgol`.
+
 ## 8080
 
 To use:
