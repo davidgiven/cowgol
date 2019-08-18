@@ -325,7 +325,6 @@ void regalloc_reg_changing(reg_t mask)
                 val->kind = VALUE_NONE;
         }
     }
-    arch_emit_comment("");
 }
 
 void regalloc_var_changing(struct symbol* sym, int32_t off)
@@ -373,4 +372,5 @@ void regalloc_dump(void)
                 break;
         }
     }
+    arch_emit_comment("");
 }

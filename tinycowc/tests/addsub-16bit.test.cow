@@ -1,0 +1,63 @@
+include "tests/_framework.coh";
+
+const THREE := 0x0303;
+const TWO := 0x0202;
+const ONE := 0x0101;
+const ZERO := 0;
+const MONE := -ONE;
+const MTWO := -TWO;
+const MTHREE := -THREE;
+
+var mthree: int16 := MTHREE;
+var mtwo: int16 := MTWO;
+var mone: int16 := MONE;
+var zero: int16 := ZERO;
+var one: int16 := ONE;
+var two: int16 := TWO;
+var three: int16 := THREE;
+
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
+
+print("one+two==three"); if one+two==three then yes(); else no(); end if;
+print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;
+print("one+one==two"); if one+one==two then yes(); else no(); end if;
+print("zero+one==one"); if zero+one==one then yes(); else no(); end if;
+print("two+mtwo==zero"); if two+mtwo==zero then yes(); else no(); end if;
+
+print("one+TWO==three"); if one+TWO==three then yes(); else no(); end if;
+print("one+MTWO==mone"); if one+MTWO==mone then yes(); else no(); end if;
+print("one+ONE==two"); if one+ONE==two then yes(); else no(); end if;
+print("zero+ONE==one"); if zero+ONE==one then yes(); else no(); end if;
+print("two+MTWO==zero"); if two+MTWO==zero then yes(); else no(); end if;
+
+print("ONE+two==three"); if ONE+two==three then yes(); else no(); end if;
+print("ONE+mtwo==mone"); if ONE+mtwo==mone then yes(); else no(); end if;
+print("ONE+one==two"); if ONE+one==two then yes(); else no(); end if;
+print("ZERO+one==one"); if ZERO+one==one then yes(); else no(); end if;
+print("TWO+mtwo==zero"); if TWO+mtwo==zero then yes(); else no(); end if;
+
+print("one-two==mone"); if one-two==mone then yes(); else no(); end if;
+print("one-mtwo==three"); if one-mtwo==three then yes(); else no(); end if;
+print("one-one==zero"); if one-one==zero then yes(); else no(); end if;
+print("zero-one==mone"); if zero-one==mone then yes(); else no(); end if;
+print("two-mone==three"); if two-mone==three then yes(); else no(); end if;
+
+print("one-TWO==mone"); if one-TWO==mone then yes(); else no(); end if;
+print("one-MTWO==three"); if one-MTWO==three then yes(); else no(); end if;
+print("one-ONE==zero"); if one-ONE==zero then yes(); else no(); end if;
+print("zero-ONE==mone"); if zero-ONE==mone then yes(); else no(); end if;
+print("two-MONE==three"); if two-MONE==three then yes(); else no(); end if;
+
+print("ONE-two==mone"); if ONE-two==mone then yes(); else no(); end if;
+print("ONE-mtwo==three"); if ONE-mtwo==three then yes(); else no(); end if;
+print("ONE-one==zero"); if ONE-one==zero then yes(); else no(); end if;
+print("ZERO-one==mone"); if ZERO-one==mone then yes(); else no(); end if;
+print("TWO-mone==three"); if TWO-mone==three then yes(); else no(); end if;
+
+print("-two == mtwo");  if -two == mtwo then yes(); else no(); end if;
+print("-one == mone");  if -one == mone then yes(); else no(); end if;
+print("-zero == zero"); if -zero == zero then yes(); else no(); end if;
+print("-mone == one");  if -mone == one then yes(); else no(); end if;
+print("-mtwo == two");  if -mtwo == two then yes(); else no(); end if;
+

@@ -50,7 +50,8 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
 %}
 
-%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN EXTERN
+%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN EXTERN CONST
+%token INCLUDE
 %token ID NUMBER STRING
 %token ASSIGN
 
@@ -84,6 +85,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 	struct looplabels labels;
 	struct argumentsspec argsspec;
 	int32_t value;
+	void* ptr;
 }
 
 %%
@@ -127,6 +129,11 @@ statement
 			init_var($2, $5);
 			check_expression_type(&$5, $5);
 			emit_mid_store($5->u.type.width);
+		}
+	| CONST newid ASSIGN cvalue ';'
+		{
+			$2->kind = CONST;
+			$2->u.constant = $4;
 		}
 	| SUB newid
 		{
@@ -249,9 +256,15 @@ statement
 		}
 	| lvalue ASSIGN expression ';'
 		{
+			if (!is_ptr($1))
+				fatal("you can only assign to lvalues");
 			check_expression_type(&$3, $1->u.type.element);
 			emit_mid_store($1->u.type.element->u.type.width);
 		}
+	| INCLUDE STRING
+		{ $<ptr>$ = open_file(yytext); }
+		';'
+		{ include_file($<ptr>3); }
 	;
 
 iftrailing
@@ -259,11 +272,20 @@ iftrailing
 	| ELSE statements END IF
 	;
 
+/* Returns a *pointer* to the value --- or a literal untyped number for a constant. */
 lvalue
 	: oldid
 		{
-			emit_mid_address($1);
-			$$ = make_pointer_type($1->u.var.type);
+			if ($1->kind == CONST)
+			{
+				emit_mid_constant($1->u.constant);
+				$$ = NULL;
+			}
+			else
+			{
+				emit_mid_address($1);
+				$$ = make_pointer_type($1->u.var.type);
+			}
 		}
 	| lvalue '[' expression ']'
 		{
@@ -373,6 +395,12 @@ typeref
 
 cvalue
 	: NUMBER            { $$ = number; }
+	| oldid
+		{
+			if ($1->kind != CONST)
+				fatal("only constants can be used here");
+			$$ = $1->u.constant;
+		}
     | '(' cvalue ')'    { $$ = $2; }
     | '-' cvalue        { $$ = -$2; }
     | cvalue '+' cvalue { $$ = $1 + $3; }
@@ -396,8 +424,13 @@ expression
 		}
 	| lvalue
 		{
-			emit_mid_load($1->u.type.element->u.type.width);
-			$$ = $1->u.type.element;
+			if ($1)
+			{
+				emit_mid_load($1->u.type.element->u.type.width);
+				$$ = $1->u.type.element;
+			}
+			else
+				$$ = NULL;
 		}
 	| '(' expression ')'
 		{ $$ = $2; }

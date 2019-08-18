@@ -21,10 +21,12 @@ SP [ \t]+
 "and"                     { return AND; }
 "as"                      { return AS; }
 "break"                   { return BREAK; }
+"const"                   { return CONST; }
 "end"                     { return END; }
 "else"                    { return ELSE; }
 "extern"                  { return EXTERN; }
 "if"                      { return IF; }
+"include"                 { return INCLUDE; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
@@ -72,7 +74,26 @@ SP [ \t]+
 {LF}                      { yylineno++; }
 {SP}+                     {}
 
-<<EOF>> { yyterminate(); return 0; }
+<<EOF>> {
+	yypop_buffer_state();
+	if (!YY_CURRENT_BUFFER)
+		yyterminate();
+}
 
 .       { fatal("unparseable character '%c' (0x%02x)", *yytext, *yytext); }
+
+%%
+
+void* open_file(const char* filename)
+{
+	FILE* fp = fopen(filename, "r");
+	if (!fp)
+		fatal("could not open include file '%s'", yytext);
+	return yy_create_buffer(fp, YY_BUF_SIZE);
+}
+
+void include_file(void* buffer)
+{
+	yypush_buffer_state((YY_BUFFER_STATE) buffer);
+}
 

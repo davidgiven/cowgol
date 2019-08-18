@@ -230,6 +230,9 @@ address(sym1, off1) address(sym2, off2) LOAD(w1) CONSTANT(c) SUB(w2) STORE(w3) -
         REJECT;
     E("(*(i%d*)%s) -= %d;\n", w1, symref(sym1, off1), c);
 
+i(w1) NEG(w2) -- constn(w1, 0) i(w1) SUB(w1)
+    assert(w1 == w2);
+
 // --- Loads ----------------------------------------------------------------
 
 address(sym, off) LOAD(width) -- i(width)
@@ -268,7 +271,7 @@ BGTP(truelabel, falselabel) -- SUBP(8) BGTZ(8, truelabel, falselabel)
 
 // --- Data -----------------------------------------------------------------
 
-STRING(s) --
+STRING(s) -- i(8)
     int sid = id++;
     emitter_open_chunk();
     E("static const i1 s%d[] = { ", sid);
@@ -382,3 +385,11 @@ constn(w, c) -- i(w)
     int vid = push();
     E("i%d v%d = %d;\n", w, vid, c);
     
+constn(w1, c) i(w2) -- i(w1) i(w2)
+    if (w1 != w2)
+        REJECT;
+    int rhs = pop();
+    int lhs = push();
+    int newrhs = push();
+    E("i%d v%d = %d;\n", w1, lhs, c);
+    E("i%d v%d = v%d;\n", w1, newrhs, rhs);

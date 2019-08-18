@@ -52,6 +52,7 @@ struct symbol
 		}
 		var;
 
+		int32_t constant;
 		struct subroutine* sub;
 	}
 	u;
@@ -100,6 +101,8 @@ struct argumentsspec
 };
 
 #define yyerror(s) fatal(s)
+extern void* open_file(const char* filename);
+extern void include_file(void* buffer);
 
 extern void varaccess(const char* opcode, struct symbol* var);
 

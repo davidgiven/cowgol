@@ -43,6 +43,18 @@ void arch_init_types(void)
     regalloc_add_register("h", REG_HL, REG_H | REG_HL);
 }
 
+static const char* regnamelo(reg_t id)
+{
+    switch (id)
+    {
+        case REG_BC: return "c";
+        case REG_DE: return "e";
+        case REG_HL: return "l";
+    }
+    assert(false);
+    return NULL;
+}
+
 void arch_init_subroutine(struct subroutine* sub)
 {
     sub->arch = calloc(1, sizeof(struct subarch));
@@ -118,7 +130,8 @@ void arch_pop(reg_t id)
 
 void arch_copy(reg_t src, reg_t dest)
 {
-    E("\tcopy %s -> %s\n", regname(src), regname(dest));
+    E("\tmov %s, %s\n", regnamelo(src), regnamelo(dest));
+    E("\tmov %s, %s\n", regname(src), regname(dest));
 }
 %%
 
@@ -298,7 +311,18 @@ i1 i1 SUB(1) -- i1
     E("\tsub %s\n", regname(rhs));
     regalloc_push(REG_A);
 
-SUB(2) -- NEG(2) ADD(2)
+i2 i2 SUB(2) -- i2
+    reg_t rhs = regalloc_pop(REG_16);
+    reg_t lhs = regalloc_pop(REG_16);
+    E("\tmov a, %s\n", regnamelo(lhs));
+    E("\tsub %s\n", regnamelo(rhs));
+    E("\tmov %s, a\n", regnamelo(lhs));
+    E("\tmov a, %s\n", regname(lhs));
+    E("\tsbb %s\n", regname(rhs));
+    E("\tmov %s, a\n", regname(lhs));
+    regalloc_push(lhs);
+
+i2 NEG(2) -- const2(0) i2 SUB(2)
 
 i1 const1(0) SUB(1) -- i1
 i1 const1(n) SUB(1) -- i1 const1(-n) ADD(1)
@@ -430,7 +454,7 @@ BGTP(truelabel, falselabel) -- BGTS(2, truelabel, falselabel)
 
 // --- Data -----------------------------------------------------------------
 
-STRING(s) --
+STRING(s) -- i2
     int sid = id++;
     emitter_open_chunk();
     E("\tcseg\n");
@@ -538,3 +562,9 @@ const1(c) -- i1
 const2(c) -- i2
     reg_t r = regalloc_load_const(REG_16, c & 0xffff);
     regalloc_push(r);
+
+const2(c) i2 -- i2 i2
+    reg_t rhs = regalloc_pop(REG_16);
+    reg_t lhs = regalloc_load_const(REG_16, c & 0xffff);
+    regalloc_push(rhs);
+    regalloc_push(lhs);
