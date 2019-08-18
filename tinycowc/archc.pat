@@ -107,7 +107,7 @@ address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 
 STARTFILE --
     emitter_open_chunk();
-    E("#include \"rt/cowgol.h\"\n");
+    E("#include \"rt/c/cowgol.h\"\n");
     emitter_close_chunk();
 
 ENDFILE --
@@ -141,7 +141,7 @@ STARTSUB(sub) --
         struct symbol* param = sub->firstsymbol;
         for (int i=0; i<sub->inputparameters; i++)
         {
-            E("*(i%d)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);
+            E("*(i%d*)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);
             param = param->next;
         }
     }
@@ -255,7 +255,7 @@ i(n) i(w1) STORE(w2) --
 
 i(w1) BEQZ(w2, truelabel, falselabel) --
     assert(w1 == w2);
-    E("if (v%d) goto %s;\n", pop(), labelref(truelabel));
+    E("if (!v%d) goto %s;\n", pop(), labelref(truelabel));
     E("goto %s;\n", labelref(falselabel));
 
 BEQS(w, truelabel, falselabel) -- SUB(w) BEQZ(w, truelabel, falselabel)
