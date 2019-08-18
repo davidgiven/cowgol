@@ -19,9 +19,11 @@ SP [ \t]+
 
 "@asm"                    { return ASM; }
 "and"                     { return AND; }
+"as"                      { return AS; }
 "break"                   { return BREAK; }
 "end"                     { return END; }
 "else"                    { return ELSE; }
+"extern"                  { return EXTERN; }
 "if"                      { return IF; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
@@ -43,7 +45,6 @@ SP [ \t]+
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }
 <STRINGSTATE>\"           { BEGIN(INITIAL); }
-<STRINGSTATE>{LF}         { fatal("end of line in string"); }
 <STRINGSTATE>.            { fatal("invalid string"); }
 
 [A-Za-z][A-Za-z0-9_$]*    { return ID; }

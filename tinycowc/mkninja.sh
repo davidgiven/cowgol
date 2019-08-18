@@ -13,7 +13,7 @@ rule library
     description = AR \$in
 
 rule link
-    command = $CC $LDFLAGS -o \$out \$in \$flags $LIBS
+    command = $CC $LDFLAGS -o \$out -Wl,--start-group \$in -Wl,--end-group \$flags $LIBS
     description = LINK \$in
 
 rule test
@@ -27,6 +27,14 @@ rule strip
 rule flex
     command = flex -8 -Cem -o \$out \$in
     description = FLEX \$in
+
+rule mkmidcodes
+    command = lua mkmidcodes.lua -- \$in \$out
+    description = MKMIDCODES \$in
+
+rule mkpat
+    command = lua mkpat.lua -- \$in \$out
+    description = MKPAT \$in
 
 rule yacc
     command = yacc --report=all --report-file=report.txt --defines=\$hfile -o \$cfile \$in
@@ -64,7 +72,14 @@ buildlibrary() {
     objs=
     for src in "$@"; do
         local obj
-        obj="$OBJDIR/${src%%.c*}.o"
+        case $src in
+            $OBJDIR/*)
+                obj="${src%%.c*}.o"
+                ;;
+
+            *)
+            obj="$OBJDIR/${src%%.c*}.o"
+        esac
         objs="$objs $obj"
 
         echo "build $obj : cc $src | $deps"
@@ -119,6 +134,17 @@ buildyacc() {
     echo "  hfile=$hfile"
 }
 
+buildmkmidcodes() {
+    echo "build $1 : mkmidcodes $2 | mkmidcodes.lua libcowgol.lua"
+}
+
+buildmkpat() {
+    local out
+    out=$1
+    shift
+    echo "build $out : mkpat $@ | mkpat.lua libcowgol.lua"
+}
+
 runtest() {
     local prog
     prog=$1
@@ -137,21 +163,39 @@ runtest() {
 
 buildyacc $OBJDIR/parser.c parser.y
 buildflex $OBJDIR/lexer.c lexer.l
+buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
+buildmkpat $OBJDIR/arch8080.c midcodes.tab arch8080.pat
+buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
+buildmkpat $OBJDIR/archc.c midcodes.tab archc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
 	--dep $OBJDIR/parser.h \
+	--dep $OBJDIR/midcodes.h \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
-    main.c
+    main.c \
+    emitter.c \
+    midcode.c \
+    regalloc.c
 
 buildlibrary libagc.a \
-    archagc.c \
+    -I$OBJDIR \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/archagc.c \
 
 buildlibrary lib8080.a \
-    arch8080.c \
+    -I$OBJDIR \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/arch8080.c \
+
+buildlibrary libc.a \
+    -I$OBJDIR \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/archc.c \
 
 buildprogram tinycowc-agc \
+    -lbsd \
     libmain.a \
     libagc.a \
 
@@ -159,3 +203,6 @@ buildprogram tinycowc-8080 \
     libmain.a \
     lib8080.a \
 
+buildprogram tinycowc-c \
+    libmain.a \
+    libc.a \

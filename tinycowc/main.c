@@ -3,6 +3,8 @@
 #include <stdarg.h>
 #include <string.h>
 #include "globals.h"
+#include "emitter.h"
+#include "midcode.h"
 
 #define YYDEBUG 1
 #include "parser.h"
@@ -48,16 +50,27 @@ int main(int argc, const char* argv[])
 {
 	current_sub = calloc(1, sizeof(struct subroutine));
 	current_sub->name = "__main";
+	current_sub->externname = "cmain";
 
 	yyin = fopen(argv[1], "r");
 	yylineno = 1;
 	yydebug = 0;
 
-	arch_file_prologue();
-	arch_subroutine_prologue();
+	emitter_open(argv[2]);
+	emitter_open_chunk();
+
+	midend_init();
+	arch_init_types();
+	arch_init_subroutine(current_sub);
+	emit_mid_startfile();
+	emit_mid_startsub(current_sub);
 	yyparse();
-	arch_subroutine_epilogue();
-	arch_file_epilogue();
+	emit_mid_endsub(current_sub);
+	emit_mid_endfile();
+    midend_flush(0);
+
+	emitter_close_chunk();
+	emitter_close();
 
 	return 0;
 }

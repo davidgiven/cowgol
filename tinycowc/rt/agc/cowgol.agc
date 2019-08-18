@@ -2,6 +2,7 @@
 A           = 0
 L           = 1
 Q           = 2
+Z           = 5
 ZERO        = 7
 
 ARUPT       = 10
@@ -14,15 +15,14 @@ CYL         = 22
 RHCP        = 42
 
 NEWJOB      = 67 # Location check by Night Watchman
-            SETLOC 68
-
+            SETLOC 070
 CLOCK       ERASE
 KEY         ERASE
-$cow.data.agc
 DIVA        ERASE
 DIVL        ERASE
 DIVAA       ERASE
 DIVAL       ERASE
+COWDATA     ERASE # Cowgol owns everything from here up
 
             SETLOC 4000
 GOJAM
@@ -88,7 +88,7 @@ TIMER3      DXCH      ARUPT       # T3RUPT
             NOOP
             NOOP
 
-# The interrupt-service routine for the TIME3 interrupt every 40 ms. 
+# The interrupt-service routine for the TIME3 interrupt every 40 ms.
 T3RUPT      CAF     O37774      # Schedule another TIME3 interrupt in 40 ms.
             TS      TIME3
 
@@ -99,7 +99,7 @@ T3RUPT      CAF     O37774      # Schedule another TIME3 interrupt in 40 ms.
             DXCH    ARUPT       # Restore A, L, and Q, and exit the interrupt
             EXTEND
             QXCH    QRUPT
-            RESUME       
+            RESUME
 
 STARTUP     RELINT
 

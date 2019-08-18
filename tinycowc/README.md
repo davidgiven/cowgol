@@ -14,19 +14,29 @@ To use:
     $ ./tinycowc-agc lunarlander.cow
 
 This will emit `cow.data.agc` and `cow.code.agc`. Now, use yaYUL to assemble
-the `cowgol.agc` file, which includes the other two files. You'll end up with
-a (hopefully) runnable `cowgol.agc.bin` file which you can load into
+the `rt/agc/cowgol.agc` file, which includes the other two files. You'll end
+up with a (hopefully) runnable `cowgol.agc.bin` file which you can load into
 VirtualAGC.
+
+## C backend
+
+This generates C code which can then be compiled into an executable with
+a C compiler. It's intended for testing and bootstrapping. It's kinda hacky
+and right now probably only works on 64-bit architectures (because it assumes
+that pointers are eight bytes long).
+
+To use:
+
+    $ ./build-c.sh examples/helloworld.cow
+
+This will produce an executable called `cowgol`.
 
 ## 8080
 
 To use:
 
-    $ ./tinycowc-8080 (some program which isn't the lunar lander).cow > output.asm
+    $ ./build-cpm.sh examples/helloworld.cow
 
-To turn the result into a CP/M executable, you need zmac.
-
-    $ zmac -8 output.asm -o test.cim
-    $ mv test.cim test.com
-
-Then get it onto your favourite CP/M system and it should run.
+This uses tinycowc-8080, zmac and ld80 to compile the program and the
+(incredibly small) runtime library, and will emit a `cowgol.com` file which
+you can run on your favourite CP/M system.

@@ -110,23 +110,21 @@ sub dsky_pause_for_key()
     end loop;
 end sub;
 
-var altitude: int15;
-var velocity: int15;
-var subvelocity: int15;
+var altitude: int30;
+var velocity: int30;
 var fuel: int15;
 var thrust: int15;
 
 sub reset_game()
-    altitude := 1000*10;
-    velocity := -100;
-    subvelocity := 0;
+    altitude := 1000*100;
+    velocity := -100*100;
     fuel := 3000;
 end sub;
 
 sub display_game_state()
     dsky_set_register(4, thrust);
-    dsky_set_register(1, altitude/10);
-    dsky_set_register(2, velocity);
+    dsky_set_register(1, altitude as int15);
+    dsky_set_register(2, velocity as int15);
     dsky_set_register(3, fuel/10);
 
     var lights: int15 := 0;
@@ -154,19 +152,11 @@ sub one_game_tick()
     if fuel <= 0 then
         thrust := 0;
     end if;
-    subvelocity := subvelocity + thrust*5;
+    velocity := velocity + ((thrust*5) as int30);
     fuel := fuel - thrust;
 
     altitude := altitude + velocity;
-    subvelocity := subvelocity - 5;
-    while subvelocity > 100 loop
-        velocity := velocity + 1;
-        subvelocity := subvelocity - 100;
-    end loop;
-    while subvelocity < 100 loop
-        velocity := velocity - 1;
-        subvelocity := subvelocity + 100;
-    end loop;
+    velocity := velocity - 5;
 end sub;
 
 var i: int15;

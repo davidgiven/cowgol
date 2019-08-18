@@ -1,8 +1,10 @@
 syntax: regexp
 ^bin$
-^.obj$
-^.hg$
+\.obj$
+\.hg$
+\.git$
 \.exe$
+^\.ninja
 \.exe\.c$
 \.stamp$
 .*\.orig$
