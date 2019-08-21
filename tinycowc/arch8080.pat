@@ -130,8 +130,8 @@ void arch_pop(reg_t id)
 
 void arch_copy(reg_t src, reg_t dest)
 {
-    E("\tmov %s, %s\n", regnamelo(src), regnamelo(dest));
-    E("\tmov %s, %s\n", regname(src), regname(dest));
+    E("\tmov %s, %s\n", regnamelo(dest), regnamelo(src));
+    E("\tmov %s, %s\n", regname(dest), regname(src));
 }
 %%
 
@@ -246,7 +246,7 @@ i1 i1 ADD(1) -- i1
 i2 i2 ADD(2) -- i2
     reg_t rhs = regalloc_pop(REG_16 & ~REG_HL);
     reg_t lhs = regalloc_pop(REG_HL);
-    E("\tdad %s\n", regname(lhs));
+    E("\tdad %s\n", regname(rhs));
     regalloc_push(REG_HL);
 
 i1 const1(0) ADD(1) -- i1
@@ -297,7 +297,7 @@ i2 const2(n) ADD(2) -- i2
     {
         reg_t lhs = regalloc_pop(REG_HL);
         reg_t rhs = regalloc_load_const(REG_16, n);
-        E("\tdad %s\n", regname(lhs));
+        E("\tdad %s\n", regname(rhs));
         regalloc_push(REG_HL);
     }
 
@@ -426,10 +426,10 @@ i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
     E("%s:\n", labelref(nextlabel));
 
 i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t r = regalloc_pop(REG_HL);
+    reg_t r = regalloc_pop(REG_16);
     regalloc_reg_changing(ALL_REGS);
-    E("\tmov a, h\n");
-    E("\tora l\n");
+    E("\tmov a, %s\n", regname(r));
+    E("\tora %s\n", regnamelo(r));
     if (nextlabel == truelabel)
         E("\tjnz %s\n", labelref(falselabel));
     else
@@ -566,5 +566,5 @@ const2(c) -- i2
 const2(c) i2 -- i2 i2
     reg_t rhs = regalloc_pop(REG_16);
     reg_t lhs = regalloc_load_const(REG_16, c & 0xffff);
-    regalloc_push(rhs);
     regalloc_push(lhs);
+    regalloc_push(rhs);
