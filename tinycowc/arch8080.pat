@@ -130,7 +130,8 @@ void arch_pop(reg_t id)
 
 void arch_copy(reg_t src, reg_t dest)
 {
-    E("\tmov %s, %s\n", regnamelo(dest), regnamelo(src));
+    if (src & REG_16)
+        E("\tmov %s, %s\n", regnamelo(dest), regnamelo(src));
     E("\tmov %s, %s\n", regname(dest), regname(src));
 }
 %%
@@ -240,7 +241,7 @@ constant(lhs) constant(rhs) ADD(n) -- constant(result)
 i1 i1 ADD(1) -- i1
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     reg_t lhs = regalloc_pop(REG_A);
-    E("\tadd %s\n", regname(lhs));
+    E("\tadd %s\n", regname(rhs));
     regalloc_push(REG_A);
 
 i2 i2 ADD(2) -- i2
@@ -321,6 +322,14 @@ i2 i2 SUB(2) -- i2
     E("\tsbb %s\n", regname(rhs));
     E("\tmov %s, a\n", regname(lhs));
     regalloc_push(lhs);
+
+constant(c) NEG(0) -- constant(-c)
+
+i1 NEG(1) -- i1
+    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
+    regalloc_load_const(REG_A, 0);
+    E("\tsub %s\n", regname(rhs));
+    regalloc_push(REG_A);
 
 i2 NEG(2) -- const2(0) i2 SUB(2)
 
@@ -440,10 +449,20 @@ i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
     }
     E("%s:\n", labelref(nextlabel));
 
-BEQS(1, truelabel, falselabel) -- SUB(1) BEQZ(1, truelabel, falselabel)
-BLTS(1, truelabel, falselabel) -- SUB(1) BLTZ(1, truelabel, falselabel)
-BGTS(1, truelabel, falselabel) -- SUB(1) BGTZ(1, truelabel, falselabel)
-
+i1 i1 BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
+    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
+    reg_t lhs = regalloc_pop(REG_A);
+    E("\tcmp %s\n", regname(rhs));
+    if (nextlabel == truelabel)
+        E("\tjnz %s\n", labelref(falselabel));
+    else
+    {
+        E("\tjz %s\n", labelref(truelabel));
+        if (nextlabel != falselabel)
+            E("\tjmp %s\n", labelref(falselabel));
+    }
+    E("%s:\n", labelref(nextlabel));
+    
 BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
 BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
 BGTS(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
@@ -562,6 +581,12 @@ const1(c) -- i1
 const2(c) -- i2
     reg_t r = regalloc_load_const(REG_16, c & 0xffff);
     regalloc_push(r);
+
+const1(c) i1 -- i1 i1
+    reg_t rhs = regalloc_pop(REG_8);
+    reg_t lhs = regalloc_load_const(REG_8, c & 0xff);
+    regalloc_push(lhs);
+    regalloc_push(rhs);
 
 const2(c) i2 -- i2 i2
     reg_t rhs = regalloc_pop(REG_16);
