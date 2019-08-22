@@ -29,6 +29,8 @@ enum
 
 void arch_init_types(void)
 {
+	make_number_type("uint32", 4, false);
+	make_number_type("int32", 4, true);
 	intptr_type = make_number_type("uint16", 2, false);
 	make_number_type("int16", 2, true);
 	uint8_type = make_number_type("uint8", 1, false);
@@ -138,14 +140,20 @@ void arch_copy(reg_t src, reg_t dest)
 
 i1
 i2
+i4
 constant(int32_t val) = ("%d", $$.val)
 const1(int32_t val) = ("%d", $$.val)
 const2(int32_t val) = ("%d", $$.val)
+const4(int32_t val) = ("%d", $$.val)
 address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 
 %%
 
 STARTFILE --
+    emitter_open_chunk();
+    E("\textrn add4\n");
+    E("\textrn sub4\n");
+    emitter_close_chunk();
 
 ENDFILE --
 
@@ -250,6 +258,12 @@ i2 i2 ADD(2) -- i2
     E("\tdad %s\n", regname(rhs));
     regalloc_push(REG_HL);
 
+i4 i4 ADD(4) -- i4
+    regalloc_flush_stack();
+    regalloc_reg_changing(ALL_REGS);
+    E("\tcall add4\n");
+    regalloc_drop_stack_items(2);
+
 i1 const1(0) ADD(1) -- i1
 
 i2 const2(0) ADD(2) -- i2
@@ -323,6 +337,12 @@ i2 i2 SUB(2) -- i2
     E("\tmov %s, a\n", regname(lhs));
     regalloc_push(lhs);
 
+i4 i4 SUB(4) -- i4
+    regalloc_flush_stack();
+    regalloc_reg_changing(ALL_REGS);
+    E("\tcall sub4\n");
+    regalloc_drop_stack_items(2);
+
 constant(c) NEG(0) -- constant(-c)
 
 i1 NEG(1) -- i1
@@ -379,6 +399,15 @@ address(sym, off) LOAD(2) -- i2
     regalloc_load_var(REG_HL, sym, off);
     regalloc_push(REG_HL);
 
+address(sym, off) LOAD(4) -- i4
+    regalloc_alloc(REG_HL);
+    E("\tlhld %s\n", symref(sym, off+2));
+    regalloc_push(REG_HL);
+    regalloc_unlock(REG_HL);
+    regalloc_alloc(REG_HL);
+    E("\tlhld %s\n", symref(sym, off));
+    regalloc_push(REG_HL);
+
 // --- Stores ---------------------------------------------------------------
 
 address(sym, off) i1 STORE(1) --
@@ -392,6 +421,14 @@ address(sym, off) i2 STORE(2) --
     regalloc_pop(REG_HL);
     E("\tshld %s\n", symref(sym, off));
     regalloc_reg_contains_var(REG_HL, sym, off);
+
+address(sym, off) i4 STORE(4) --
+    regalloc_var_changing(sym, off);
+    regalloc_pop(REG_HL);
+    E("\tshld %s\n", symref(sym, off));
+    regalloc_unlock(REG_HL);
+    regalloc_pop(REG_HL);
+    E("\tshld %s\n", symref(sym, off+2));
 
 i2 i1 STORE(1) --
     regalloc_pop(REG_A);
@@ -449,6 +486,24 @@ i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
     }
     E("%s:\n", labelref(nextlabel));
 
+i4 BEQZ(4, truelabel, falselabel) LABEL(nextlabel) --
+    reg_t rlo = regalloc_pop(REG_16);
+    reg_t rhi = regalloc_pop(REG_16);
+    regalloc_reg_changing(ALL_REGS);
+    E("\tmov a, %s\n", regname(rlo));
+    E("\tora %s\n", regnamelo(rlo));
+    E("\tora %s\n", regname(rhi));
+    E("\tora %s\n", regnamelo(rhi));
+    if (nextlabel == truelabel)
+        E("\tjnz %s\n", labelref(falselabel));
+    else
+    {
+        E("\tjz %s\n", labelref(truelabel));
+        if (nextlabel != falselabel)
+            E("\tjmp %s\n", labelref(falselabel));
+    }
+    E("%s:\n", labelref(nextlabel));
+
 i1 i1 BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     reg_t lhs = regalloc_pop(REG_A);
@@ -466,6 +521,10 @@ i1 i1 BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
 BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
 BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
 BGTS(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
+
+BEQS(4, truelabel, falselabel) -- SUB(4) BEQZ(4, truelabel, falselabel)
+BLTS(4, truelabel, falselabel) -- SUB(4) BLTZ(4, truelabel, falselabel)
+BGTS(4, truelabel, falselabel) -- SUB(4) BGTZ(4, truelabel, falselabel)
 
 BEQP(truelabel, falselabel) -- BEQS(2, truelabel, falselabel)
 BLTP(truelabel, falselabel) -- BLTS(2, truelabel, falselabel)
@@ -523,52 +582,71 @@ STRING(s) -- i2
 
 constant(c) STORE(1) -- const1(c) STORE(1)
 constant(c) STORE(2) -- const2(c) STORE(2)
+constant(c) STORE(4) -- const4(c) STORE(4)
 
 constant(c) PARAM(1) -- const1(c) PARAM(1)
 constant(c) PARAM(2) -- const2(c) PARAM(2)
+constant(c) PARAM(4) -- const4(c) PARAM(4)
 
 constant(c) NEG(1) -- const1(c) NEG(1)
 constant(c) NEG(2) -- const2(c) NEG(2)
+constant(c) NEG(4) -- const4(c) NEG(4)
 
 constant(c) ADD(1) -- const1(c) ADD(1)
 constant(c) ADD(2) -- const2(c) ADD(2)
+constant(c) ADD(4) -- const4(c) ADD(4)
 constant(c) (value) ADD(1) -- const1(c) (value) ADD(1)
 constant(c) (value) ADD(2) -- const2(c) (value) ADD(2)
+constant(c) (value) ADD(4) -- const4(c) (value) ADD(4)
 
 constant(c) SUB(1) -- const1(c) SUB(1)
 constant(c) SUB(2) -- const2(c) SUB(2)
+constant(c) SUB(4) -- const4(c) SUB(4)
 constant(c) (value) SUB(1) -- const1(c) (value) SUB(1)
 constant(c) (value) SUB(2) -- const2(c) (value) SUB(2)
+constant(c) (value) SUB(4) -- const4(c) (value) SUB(4)
 
 constant(c) MUL(1) -- const1(c) MUL(1)
 constant(c) MUL(2) -- const2(c) MUL(2)
+constant(c) MUL(4) -- const2(c) MUL(4)
 constant(c) (value) MUL(1) -- const1(c) (value) MUL(1)
 constant(c) (value) MUL(2) -- const2(c) (value) MUL(2)
+constant(c) (value) MUL(4) -- const4(c) (value) MUL(4)
 
 constant(c) DIVS(1) -- const1(c) DIVS(1)
 constant(c) DIVS(2) -- const2(c) DIVS(2)
+constant(c) DIVS(4) -- const4(c) DIVS(4)
 constant(c) (value) DIVS(1) -- const1(c) (value) DIVS(1)
 constant(c) (value) DIVS(2) -- const2(c) (value) DIVS(2)
+constant(c) (value) DIVS(4) -- const4(c) (value) DIVS(4)
 
 constant(c) REMS(1) -- const1(c) REMS(1)
 constant(c) REMS(2) -- const2(c) REMS(2)
+constant(c) REMS(4) -- const4(c) REMS(4)
 constant(c) (value) REMS(1) -- const1(c) (value) REMS(1)
 constant(c) (value) REMS(2) -- const2(c) (value) REMS(2)
+constant(c) (value) REMS(4) -- const4(c) (value) REMS(4)
 
 constant(c) OR(1) -- const1(c) OR(1)
 constant(c) OR(2) -- const2(c) OR(2)
+constant(c) OR(4) -- const4(c) OR(4)
 constant(c) (value) OR(1) -- const1(c) (value) OR(1)
 constant(c) (value) OR(2) -- const2(c) (value) OR(2)
+constant(c) (value) OR(4) -- const4(c) (value) OR(4)
 
 constant(c) AND(1) -- const1(c) AND(1)
 constant(c) AND(2) -- const2(c) AND(2)
+constant(c) AND(4) -- const4(c) AND(4)
 constant(c) (value) AND(1) -- const1(c) (value) AND(1)
 constant(c) (value) AND(2) -- const2(c) (value) AND(2)
+constant(c) (value) AND(4) -- const4(c) (value) AND(4)
 
 constant(c) EOR(1) -- const1(c) EOR(1)
 constant(c) EOR(2) -- const2(c) EOR(2)
+constant(c) EOR(4) -- const4(c) EOR(4)
 constant(c) (value) EOR(1) -- const1(c) (value) EOR(1)
 constant(c) (value) EOR(2) -- const2(c) (value) EOR(2)
+constant(c) (value) EOR(4) -- const4(c) (value) EOR(4)
 
 constant(c) BEQS(1, tl, fl) -- const1(c) BEQS(1, tl, fl)
 constant(c) BLTS(1, tl, fl) -- const1(c) BLTS(1, tl, fl)
@@ -582,6 +660,12 @@ const2(c) -- i2
     reg_t r = regalloc_load_const(REG_16, c & 0xffff);
     regalloc_push(r);
 
+const4(c) -- i4
+    reg_t rhi = regalloc_load_const(REG_16, (c >> 16) & 0xffff);
+    regalloc_push(rhi);
+    reg_t rlo = regalloc_load_const(REG_16, c & 0xffff);
+    regalloc_push(rlo);
+
 const1(c) i1 -- i1 i1
     reg_t rhs = regalloc_pop(REG_8);
     reg_t lhs = regalloc_load_const(REG_8, c & 0xff);
@@ -593,3 +677,14 @@ const2(c) i2 -- i2 i2
     reg_t lhs = regalloc_load_const(REG_16, c & 0xffff);
     regalloc_push(lhs);
     regalloc_push(rhs);
+
+const4(c) i4 -- i4 i4
+    reg_t rhslo = regalloc_pop(REG_16);
+    reg_t rhshi = regalloc_pop(REG_16);
+    reg_t lhshi = regalloc_load_const(REG_16, (c >> 16) & 0xffff);
+    regalloc_push(lhshi);
+    regalloc_unlock(lhshi);
+    reg_t lhslo = regalloc_load_const(REG_16, c & 0xffff);
+    regalloc_push(lhslo);
+    regalloc_push(rhshi);
+    regalloc_push(rhslo);

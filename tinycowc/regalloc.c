@@ -81,7 +81,7 @@ reg_t regalloc_alloc(reg_t mask)
     for (unsigned i=0; i<num_regs; i++)
     {
         struct reg* reg = &regs[i];
-        if ((reg->id & mask) && !(reg->interference & used))
+        if ((reg->id & mask) && !(reg->interference & (used|locked)))
         {
 			locked |= reg->id;
             arch_emit_comment("found unused register 0x%x", reg->id);
@@ -178,7 +178,8 @@ reg_t regalloc_load_const(reg_t mask, int32_t num)
     if (val && (val->reg & mask))
     {
         reg_t found = findfirstreg(val->reg & mask);
-        regalloc_lock(found);
+        if (!(locked & found))
+            regalloc_lock(found);
         return found;
     }
 
