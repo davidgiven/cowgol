@@ -65,7 +65,29 @@ sub test_pointer()
 	print("rp.d==0: "); if rp.d == 0 then yes(); else no(); end if;
 end sub;
 
+sub test_with_array()
+	record TestRecord
+		a: uint8;
+		b: uint8[10];
+		c: uint8;
+	end record;
+
+	var r4: TestRecord;
+	r4.a := 0;
+	r4.b[0] := 0;
+	r4.b[1] := 1;
+	r4.b[2] := 0;
+	r4.c := 0;
+
+	print("r4.a==0: "); if r4.a == 0 then yes(); else no(); end if;
+	print("r4.b[0]==0: "); if r4.b[0] == 0 then yes(); else no(); end if;
+	print("r4.b[1]==1: "); if r4.b[1] == 1 then yes(); else no(); end if;
+	print("r4.b[2]==0: "); if r4.b[2] == 0 then yes(); else no(); end if;
+	print("r4.c==0: "); if r4.c == 0 then yes(); else no(); end if;
+end sub;
+
 test_simple_record();
 test_nested_record();
 test_pointer();
+test_with_array();
 

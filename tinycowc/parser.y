@@ -304,14 +304,24 @@ lvalue
 		}
 	| lvalue '[' expression ']'
 		{
-			if (!is_array_ptr($1->u.type.element))
-				fatal("you can only index arrays");
+			struct symbol* array;
+			if (is_array_ptr($1))
+			{
+				/* Direct reference to array. */
+				array = $1->u.type.element;
+			}
+			else if (is_ptr($1) && is_array_ptr($1->u.type.element))
+			{
+				/* Pointer to array. */
+				array = $1->u.type.element->u.type.element;
+				emit_mid_load(intptr_type->u.type.width);
+			}
+			else
+				fatal("you can only index arrays, not a %s", $1->u.type.element->name);
 			if (!is_num($3))
 				fatal("array indices must be numbers");
 			
 			check_expression_type(&$3, intptr_type);
-			/* Remember that $1 is a *pointer* to the array. */
-			struct symbol* array = $1->u.type.element;
 			emit_mid_constant(array->u.type.element->u.type.width);
 			emit_mid_mul(intptr_type->u.type.width);
 			emit_mid_add(intptr_type->u.type.width);

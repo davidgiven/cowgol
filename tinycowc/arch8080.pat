@@ -612,6 +612,9 @@ constant(c) (value) SUB(1) -- const1(c) (value) SUB(1)
 constant(c) (value) SUB(2) -- const2(c) (value) SUB(2)
 constant(c) (value) SUB(4) -- const4(c) (value) SUB(4)
 
+constant(1) MUL(1) --
+constant(1) MUL(2) --
+constant(1) MUL(4) --
 constant(c) MUL(1) -- const1(c) MUL(1)
 constant(c) MUL(2) -- const2(c) MUL(2)
 constant(c) MUL(4) -- const2(c) MUL(4)
