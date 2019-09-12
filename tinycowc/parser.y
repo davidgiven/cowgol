@@ -9,10 +9,13 @@
 #define YYDEBUG 1
 #include "parser.h"
 
+#define TYPE_STACK_DEPTH 32
+
 int32_t number;
 
 struct subroutine* current_sub;
 struct argumentsspec* current_call;
+struct symbol* current_type;
 int current_label = 1;
 int break_label;
 
@@ -23,7 +26,10 @@ static bool is_ptr(struct symbol* sym);
 static bool is_num(struct symbol* sym);
 static bool is_snum(struct symbol* sym);
 static bool is_array(struct symbol* sym);
+static bool is_array_ptr(struct symbol* sym);
 static bool is_scalar(struct symbol* sym);
+static bool is_record(struct symbol* sym);
+static bool is_record_ptr(struct symbol* sym);
 
 static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs);
 static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs);
@@ -37,8 +43,8 @@ static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struc
 	void (*emitterp)(int truelabel, int falselabel)
 );
 
-static struct symbol* lookup_symbol(const char* name);
 static void init_var(struct symbol* sym, struct symbol* type);
+static void init_member(struct symbol* sym, struct symbol* type);
 static struct symbol* make_pointer_type(struct symbol* type);
 static struct symbol* make_array_type(struct symbol* type, int32_t size);
 
@@ -48,14 +54,18 @@ static void unescape(char* string);
 static void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off);
 static void node_is_stacked(struct exprnode* node, struct symbol* type);
 
+static void push_type(void);
+static void pop_type(void);
+
 %}
 
 %token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN EXTERN CONST
-%token INCLUDE
+%token INCLUDE RECORD
 %token ID NUMBER STRING
 %token ASSIGN
 
 %type <symbol> newid;
+%type <symbol> memberid;
 %type <symbol> oldid;
 %type <type> typeref;
 %type <type> expression;
@@ -65,6 +75,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 %type <labels> WHILE;
 %type <labels> IF;
 %type <cond> conditional;
+%type <subroutine> SUB;
 
 %left ','
 %left OR
@@ -81,6 +92,7 @@ static void node_is_stacked(struct exprnode* node, struct symbol* type);
 %union {
 	struct symbol* symbol;
 	struct symbol* type;
+	struct subroutine* subroutine;
 	struct condlabels cond;
 	struct looplabels labels;
 	struct argumentsspec argsspec;
@@ -137,9 +149,10 @@ statement
 		}
 	| SUB newid
 		{
+			$1 = current_sub;
 			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
 			sub->name = $2->name;
-			sub->parent = current_sub;
+			sub->namespace.parent = &current_sub->namespace;
 			sub->old_break_label = break_label;
 			arch_init_subroutine(sub);
 			break_label = 0;
@@ -157,14 +170,15 @@ statement
 		{
 			emit_mid_endsub(current_sub);
 			break_label = current_sub->old_break_label;
-			current_sub = current_sub->parent;
+			current_sub = $1;
 		}
 		END SUB
 	| EXTERN SUB newid
 		{
+			$2 = current_sub;
 			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
 			sub->name = $3->name;
-			sub->parent = current_sub;
+			sub->namespace.parent = &current_sub->namespace;
 			arch_init_subroutine(sub);
 			break_label = 0;
 
@@ -177,7 +191,7 @@ statement
 		ASSIGN STRING
 		{
 			current_sub->externname = strdup(yytext);
-			current_sub = current_sub->parent;
+			current_sub = $2;
 		}
 		';'
 	| LOOP
@@ -265,6 +279,7 @@ statement
 		{ $<ptr>$ = open_file(yytext); }
 		';'
 		{ include_file($<ptr>3); }
+	| record
 	;
 
 iftrailing
@@ -289,7 +304,7 @@ lvalue
 		}
 	| lvalue '[' expression ']'
 		{
-			if (!is_ptr($1) || !is_array($1->u.type.element))
+			if (!is_array_ptr($1->u.type.element))
 				fatal("you can only index arrays");
 			if (!is_num($3))
 				fatal("array indices must be numbers");
@@ -301,6 +316,21 @@ lvalue
 			emit_mid_mul(intptr_type->u.type.width);
 			emit_mid_add(intptr_type->u.type.width);
 			$$ = make_pointer_type(array->u.type.element);
+		}
+	| lvalue '.' ID
+		{
+			if (!is_record_ptr($1))
+				fatal("you can only access members of records");
+
+			/* Remember that $1 is a *pointer* to the array. */
+			struct symbol* record = $1->u.type.element;
+			struct symbol* member = lookup_symbol(&record->u.type.namespace, yytext);
+			if (!member)
+				fatal("%s does not contain member '%s'", record->name, member->name);
+
+			emit_mid_constant(member->u.var.offset);
+			emit_mid_add(intptr_type->u.type.width);
+			$$ = make_pointer_type(member->u.var.type);
 		}
 	| '[' expression ']'
 		{
@@ -314,11 +344,11 @@ lvalue
 	;
 
 newid
-	: ID { $$ = add_new_symbol(yytext); }
+	: ID { $$ = add_new_symbol(NULL, yytext); }
 	;
 
 oldid
-	: ID { $$ = lookup_symbol(yytext); }
+	: ID { $$ = lookup_symbol(NULL, yytext); }
 	;
 
 parameterlist
@@ -347,7 +377,7 @@ argumentlist
 			struct argumentsspec* spec = calloc(1, sizeof(struct argumentsspec));
 			spec->sub = $<symbol>0->u.sub;
 			spec->number = 0;
-			spec->param = spec->sub->firstsymbol;
+			spec->param = spec->sub->namespace.firstsymbol;
 			spec->previous_call = current_call;
 			current_call = spec;
 		}
@@ -549,6 +579,37 @@ asms
 	| asm ',' asms
 	;
 
+record
+	: RECORD newid
+		{
+			$2->kind = TYPE;
+			$2->u.type.kind = TYPE_RECORD;
+			current_type = $2;
+		}
+	members
+	END RECORD
+		{
+			current_type = NULL;
+		}
+	;
+
+members
+	: /* nothing */
+	| member members
+	;
+
+member
+	: memberid ':' typeref ';'
+		{
+			$1->kind = VAR;
+			init_member($1, $3);
+		}
+	;
+
+memberid
+	: ID { $$ = add_new_symbol(&current_type->u.type.namespace, yytext); }
+	;
+
 %%
 
 static bool is_ptr(struct symbol* sym)
@@ -577,15 +638,34 @@ static bool is_snum(struct symbol* sym)
 static bool is_array(struct symbol* sym)
 {
 	if (!sym)
-		return true; /* for numeric constants */
+		return false; /* for numeric constants */
 	if (sym->kind != TYPE)
 		return false;
 	return sym->u.type.kind == TYPE_ARRAY;
 }
 
+static bool is_array_ptr(struct symbol* sym)
+{
+	return is_ptr(sym) && is_array(sym->u.type.element);
+}
+
 static bool is_scalar(struct symbol* sym)
 {
 	return (is_ptr(sym) || is_num(sym));
+}
+
+static bool is_record(struct symbol* sym)
+{
+	if (!sym)
+		return false; /* for numeric constants */
+	if (sym->kind != TYPE)
+		return false;
+	return sym->u.type.kind == TYPE_RECORD;
+}
+
+static bool is_record_ptr(struct symbol* sym)
+{
+	return is_ptr(sym) && is_record(sym->u.type.element);
 }
 
 static void resolve_untyped_constants_for_add_sub(struct symbol** lhs, struct symbol** rhs)
@@ -698,13 +778,15 @@ static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struc
 		(is_snum(lhs) ? emitters : emitteru)(lhs->u.type.width, truelabel, falselabel);
 }
 
-struct symbol* add_new_symbol(const char* name)
+struct symbol* add_new_symbol(struct namespace* namespace, const char* name)
 {
-	struct symbol* sym;
+	if (!namespace)
+		namespace = &current_sub->namespace;
 	
+	struct symbol* sym;
 	if (name)
 	{
-		sym = current_sub->firstsymbol;
+		sym = namespace->firstsymbol;
 		while (sym)
 		{
 			if (strcmp(sym->name, name) == 0)
@@ -718,30 +800,32 @@ struct symbol* add_new_symbol(const char* name)
 
 	if (name)
 	{
-		if (!current_sub->lastsymbol)
-			current_sub->firstsymbol = current_sub->lastsymbol = sym;
+		if (!namespace->lastsymbol)
+			namespace->firstsymbol = namespace->lastsymbol = sym;
 		else
 		{
-			current_sub->lastsymbol->next = sym;
-			current_sub->lastsymbol = sym;
+			namespace->lastsymbol->next = sym;
+			namespace->lastsymbol = sym;
 		}
 	}
 	return sym;
 }
 
-static struct symbol* lookup_symbol(const char* name)
+struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 {
-	struct subroutine* scope = current_sub;
-	while (scope)
+	if (!namespace)
+		namespace = &current_sub->namespace;
+
+	while (namespace)
 	{
-		struct symbol* sym = scope->firstsymbol;
+		struct symbol* sym = namespace->firstsymbol;
 		while (sym)
 		{
 			if (strcmp(sym->name, name) == 0)
 				return sym;
 			sym = sym->next;
 		}
-		scope = scope->parent;
+		namespace = namespace->parent;
 	}
 
 	fatal("symbol '%s' not found", name);
@@ -755,6 +839,13 @@ static void init_var(struct symbol* sym, struct symbol* type)
 	sym->u.var.offset = current_sub->workspace;
 	arch_init_variable(sym);
 	current_sub->workspace += type->u.type.width;
+}
+
+static void init_member(struct symbol* sym, struct symbol* type)
+{
+	sym->u.var.type = type;
+	sym->u.var.offset = current_type->u.type.width;
+	current_type->u.type.width += type->u.type.width;
 }
 
 /* node must be on the top of the midend stack. */
@@ -772,7 +863,7 @@ static void check_expression_type(struct symbol** node, struct symbol* type)
 
 struct symbol* make_number_type(const char* name, int width, bool issigned)
 {
-	struct symbol* ptr = add_new_symbol(name);
+	struct symbol* ptr = add_new_symbol(NULL, name);
 	ptr->name = name;
 	ptr->kind = TYPE;
 	ptr->u.type.kind = TYPE_NUMBER;
@@ -787,7 +878,7 @@ static struct symbol* make_pointer_type(struct symbol* type)
 		return type->u.type.pointerto;
 	else
 	{
-		struct symbol* ptr = add_new_symbol(NULL);
+		struct symbol* ptr = add_new_symbol(NULL, NULL);
 		ptr->name = aprintf("[%s]", type->name);
 		ptr->kind = TYPE;
 		ptr->u.type.kind = TYPE_POINTER;
@@ -800,7 +891,7 @@ static struct symbol* make_pointer_type(struct symbol* type)
 
 static struct symbol* make_array_type(struct symbol* type, int32_t size)
 {
-	struct symbol* ptr = add_new_symbol(NULL);
+	struct symbol* ptr = add_new_symbol(NULL, NULL);
 	ptr->name = aprintf("%s[%d]", type->name, size);
 	ptr->kind = TYPE;
 	ptr->u.type.kind = TYPE_ARRAY;

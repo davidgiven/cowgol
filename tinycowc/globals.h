@@ -22,7 +22,15 @@ enum
 {
 	TYPE_NUMBER,
 	TYPE_POINTER,
-	TYPE_ARRAY
+	TYPE_ARRAY,
+	TYPE_RECORD
+};
+
+struct namespace
+{
+	struct symbol* firstsymbol;
+	struct symbol* lastsymbol;
+	struct namespace* parent;
 };
 
 struct symbol
@@ -40,6 +48,7 @@ struct symbol
 			int width;
 			struct symbol* pointerto;
 			struct symbol* element;
+			struct namespace namespace;
 			bool issigned: 1;
 		}
 		type;
@@ -47,7 +56,7 @@ struct symbol
 		struct
 		{
 			struct symbol* type;
-			struct subroutine* sub;
+			struct subroutine* sub; /* null for a member */
 			uint32_t offset;
 		}
 		var;
@@ -62,10 +71,8 @@ struct subroutine
 {
 	const char* name;
 	const char* externname;
-	struct subroutine* parent;
-	struct symbol* firstsymbol;
-	struct symbol* lastsymbol;
 	uint32_t workspace;
+	struct namespace namespace;
 	int inputparameters;
 	int old_break_label;
 	struct subarch* arch;
@@ -112,7 +119,8 @@ extern struct symbol* uint8_type;
 extern struct subroutine* current_sub;
 extern int current_label;
 
-extern struct symbol* add_new_symbol(const char* name);
+extern struct symbol* add_new_symbol(struct namespace* namespace, const char* name);
+extern struct symbol* lookup_symbol(struct namespace* namespace, const char* name);
 extern struct symbol* make_number_type(const char* name, int width, bool issigned);
 
 extern void arch_init_types(void);

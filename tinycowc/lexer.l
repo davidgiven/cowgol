@@ -30,6 +30,7 @@ SP [ \t]+
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
+"record"                  { return RECORD; }
 "return"                  { return RETURN; }
 "sub"                     { return SUB; }
 "then"                    { return THEN; }
@@ -42,7 +43,7 @@ SP [ \t]+
 ">="                      { return GEOP; }
 "<"                       { return LTOP; }
 ">"                       { return GTOP; }
-[-;:,+*/%()[\]^&|]        { return yytext[0]; }
+[-;:,+*/%()[\]^&|.]       { return yytext[0]; }
 
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }

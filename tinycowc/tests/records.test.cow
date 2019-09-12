@@ -1,0 +1,71 @@
+include "tests/_framework.coh";
+
+sub test_simple_record()
+	record TestRecord
+		a: uint8;
+		b: uint16;
+		c: uint8;
+		d: uint8;
+	end record;
+
+	var r1: TestRecord;
+	r1.a := 0;
+	r1.b := 0;
+	r1.c := 1;
+	r1.d := 0;
+
+	print("r1.a==0: "); if r1.a == 0 then yes(); else no(); end if;
+	print("r1.b==0: "); if r1.b == 0 then yes(); else no(); end if;
+	print("r1.c==1: "); if r1.c == 1 then yes(); else no(); end if;
+	print("r1.d==0: "); if r1.d == 0 then yes(); else no(); end if;
+end sub;
+
+sub test_nested_record()
+	record InnerRecord
+		a: uint8;
+		b: uint16;
+	end record;
+
+	record OuterRecord
+		a: uint8;
+		b: InnerRecord;
+		c: uint8;
+	end record;
+
+	var r2: OuterRecord;
+	r2.a := 0;
+	r2.b.a := 0;
+	r2.b.b := 1;
+	r2.c := 0;
+
+	print("r2.a==0: "); if r2.a == 0 then yes(); else no(); end if;
+	print("r2.b.a==0: "); if r2.b.a == 0 then yes(); else no(); end if;
+	print("r2.b.b==0: "); if r2.b.b == 1 then yes(); else no(); end if;
+	print("r2.c==0: "); if r2.c == 0 then yes(); else no(); end if;
+end sub;
+
+#sub test_pointer()
+#	record TestRecord
+#		a: uint8;
+#		b: uint16;
+#		c: uint8;
+#		d: uint8;
+#	end record;
+#
+#	var r3: TestRecord;
+#	var rp := &r3;
+#	rp.a := 0;
+#	rp.b := 0;
+#	rp.c := 1;
+#	rp.d := 0;
+#
+#	print("rp.a==0: "); if rp.a == 0 then yes(); else no(); end if;
+#	print("rp.b==0: "); if rp.b == 0 then yes(); else no(); end if;
+#	print("rp.c==1: "); if rp.c == 1 then yes(); else no(); end if;
+#	print("rp.d==0: "); if rp.d == 0 then yes(); else no(); end if;
+#end sub;
+
+test_simple_record();
+test_nested_record();
+#test_pointer();
+

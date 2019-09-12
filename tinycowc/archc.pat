@@ -124,7 +124,7 @@ STARTSUB(sub) --
     else
     {
         bool first = true;
-        struct symbol* param = sub->firstsymbol;
+        struct symbol* param = sub->namespace.firstsymbol;
         for (int i=0; i<sub->inputparameters; i++)
         {
             if (!first)
@@ -138,7 +138,7 @@ STARTSUB(sub) --
     E(") {\n");
     if (sub->inputparameters != 0)
     {
-        struct symbol* param = sub->firstsymbol;
+        struct symbol* param = sub->namespace.firstsymbol;
         for (int i=0; i<sub->inputparameters; i++)
         {
             E("*(i%d*)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);

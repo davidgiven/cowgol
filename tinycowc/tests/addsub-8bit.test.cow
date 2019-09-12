@@ -6,9 +6,6 @@ var zero: int8 := 0;
 var one: int8 := 1;
 var two: int8 := 2;
 
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
-
 print("zero+two == two");   if zero+two == two then yes(); else no(); end if;
 print("zero+one == one");   if zero+one == one then yes(); else no(); end if;
 print("zero+zero == zero"); if zero+zero == zero then yes(); else no(); end if;

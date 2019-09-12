@@ -19,9 +19,6 @@ var deadbeef: int32 := 0xdeadbeef;
 #var pdeadbeef: [int32] := &deadbeef;
 #var mdeadbeef: int32 := -0xdeadbeef;
 
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
-
 sub add_test()
     print("one+two==three"); if one+two==three then yes(); else no(); end if;
     print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;

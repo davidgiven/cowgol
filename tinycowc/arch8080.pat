@@ -171,7 +171,7 @@ STARTSUB(sub) --
         E("\tpop b\n");
         for (int i=sub->inputparameters-1; i>=0; i--)
         {
-                struct symbol* param = sub->firstsymbol;
+                struct symbol* param = sub->namespace.firstsymbol;
                 for (int j=0; j<i; j++)
                         param = param->next;
 
