@@ -319,11 +319,23 @@ lvalue
 		}
 	| lvalue '.' ID
 		{
-			if (!is_record_ptr($1))
+			/* Remember that $1 is a *pointer* to the record (or a pointer to a
+			 * pointer). */
+			struct symbol* record;
+			if (is_record_ptr($1))
+			{
+				/* Direct reference to record. */
+				record = $1->u.type.element;
+			}
+			else if (is_ptr($1) && is_record_ptr($1->u.type.element))
+			{
+				/* Pointer to record. */
+				record = $1->u.type.element->u.type.element;
+				emit_mid_load(intptr_type->u.type.width);
+			}
+			else
 				fatal("you can only access members of records");
 
-			/* Remember that $1 is a *pointer* to the array. */
-			struct symbol* record = $1->u.type.element;
 			struct symbol* member = lookup_symbol(&record->u.type.namespace, yytext);
 			if (!member)
 				fatal("%s does not contain member '%s'", record->name, member->name);
@@ -461,6 +473,12 @@ expression
 			}
 			else
 				$$ = NULL;
+		}
+	| '&' lvalue
+		{
+			if (!$2)
+				fatal("you cannot take the address of an untyped constant");
+			$$ = $2;
 		}
 	| '(' expression ')'
 		{ $$ = $2; }

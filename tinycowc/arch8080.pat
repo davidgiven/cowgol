@@ -255,6 +255,7 @@ i1 i1 ADD(1) -- i1
 i2 i2 ADD(2) -- i2
     reg_t rhs = regalloc_pop(REG_16 & ~REG_HL);
     reg_t lhs = regalloc_pop(REG_HL);
+    regalloc_reg_changing(REG_HL);
     E("\tdad %s\n", regname(rhs));
     regalloc_push(REG_HL);
 
@@ -299,19 +300,22 @@ i2 const2(n) ADD(2) -- i2
     if (n == 1)
     {
         reg_t val = regalloc_pop(REG_16);
+		regalloc_reg_changing(val);
         E("\tinx %s\n", regname(val));
         regalloc_push(val);
     }
     else if (n == -1)
     {
         reg_t val = regalloc_pop(REG_16);
+		regalloc_reg_changing(val);
         E("\tdcx %s\n", regname(val));
         regalloc_push(val);
     }
     else
     {
-        reg_t lhs = regalloc_pop(REG_HL);
+        regalloc_pop(REG_HL);
         reg_t rhs = regalloc_load_const(REG_16, n);
+		regalloc_reg_changing(REG_HL);
         E("\tdad %s\n", regname(rhs));
         regalloc_push(REG_HL);
     }
@@ -383,7 +387,8 @@ i2 LOAD(1) -- i1
     regalloc_push(REG_A);
 
 i2 LOAD(2) -- i2
-    reg_t r = regalloc_pop(REG_HL);
+    regalloc_pop(REG_HL);
+    regalloc_reg_changing(REG_HL);
     regalloc_alloc(REG_A);
     E("\tmov a, m\n");
     E("\tinx h\n");
@@ -451,6 +456,7 @@ i2 i1 STORE(1) --
 i2 i2 STORE(2) --
     reg_t r = regalloc_pop(REG_DE);
     regalloc_pop(REG_HL);
+    regalloc_reg_changing(REG_HL);
     E("\tmov m, e\n");
     E("\tinx h\n");
     E("\tmov m, d\n");
@@ -659,6 +665,11 @@ const1(c) -- i1
 const2(c) -- i2
     reg_t r = regalloc_load_const(REG_16, c & 0xffff);
     regalloc_push(r);
+
+address(sym, off) -- i2
+	reg_t r = regalloc_alloc(REG_16);
+    E("\tlxi %s, %s\n", regname(r), symref(sym, off));
+	regalloc_push(r);
 
 const4(c) -- i4
     reg_t rhi = regalloc_load_const(REG_16, (c >> 16) & 0xffff);
