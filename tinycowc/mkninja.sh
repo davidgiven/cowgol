@@ -57,6 +57,7 @@ rule command
 
 EOF
 
+
 rule() {
 	local cmd
 	local ins
@@ -70,6 +71,36 @@ rule() {
 	echo "build $outs : command | $ins"
 	echo "  cmd=$cmd"
 	echo "  msg=$msg"
+}
+
+cfile() {
+    local obj
+    obj=$1
+    shift
+
+    local flags
+    flags=
+	local deps
+	deps=
+    while true; do
+        case $1 in
+			--dep)
+				deps="$deps $2"
+				shift
+				shift
+				;;
+
+            -*)
+                flags="$flags $1"
+                shift
+                ;;
+
+            *)
+                break
+        esac
+    done
+
+	rule "gcc -g $flags -c -o $obj $1" "$1 $deps" "$obj" "CC $1"
 }
 
 buildlibrary() {
@@ -216,7 +247,39 @@ test_cpm() {
 	local base
 	base=$OBJDIR/tests/cpm/$1
 	cowgol_cpm tests/$1.test.cow $base.com tests/_framework.coh
-	rule "cpmemu $base.com > $base.bad" "$base.com" "$base.bad" "CPMEMU $1"
+	rule "cpmemu $base.com > $base.bad" "$base.com" "$base.bad" "TEST_CPM $1"
+	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
+}
+
+cowgol_c_c() {
+	local in
+	local out
+	local log
+	local deps
+	in=$1
+	out=$2
+	log=$3
+	deps=$4
+
+	rule "./tinycowc-c $in $out > $log" "$in $deps tinycowc-c" "$out $log" "COWGOL C $in"
+}
+
+cowgol_c() {
+	local base
+	base="$OBJDIR/${1%.cow}.c"
+	cowgol_c_c $1 $base.c $base.log "$3"
+	rule "gcc -g -c -ffunction-sections -fdata-sections -I. -o $base.o $base.c" \
+		$base.c $base.o "CC $1"
+	rule "gcc -g -o $2 $OBJDIR/rt/c/cowgol.o $base.o" \
+		"$OBJDIR/rt/c/cowgol.o $base.o" $2 \
+		"LINK $1"
+}
+
+test_c() {
+	local base
+	base=$OBJDIR/tests/c/$1
+	cowgol_c tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_C $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -269,9 +332,12 @@ buildprogram tinycowc-c \
 #runtest cpm addsub-8bit
 
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
+cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
 test_cpm addsub-16bit
 #test_cpm addsub-32bit
 test_cpm records
+
+test_c addsub-16bit
 
