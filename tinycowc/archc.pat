@@ -236,6 +236,15 @@ i(w1) NEG(w2) -- constn(w1, 0) i(w1) SUB(w1)
 
 constant(c) NEG(0) -- constant(-c)
 
+// --- Multiplications ------------------------------------------------------
+
+i(w1) i(w2) MUL(w3) -- i(w1)
+	assert(w1 == w2);
+	assert(w2 == w3);
+    int rhs = pop();
+    int lhs = pop();
+    E("i%d v%d = v%d * v%d;\n", w1, push(), lhs, rhs);
+
 // --- Loads ----------------------------------------------------------------
 
 address(sym, off) LOAD(width) -- i(width)
@@ -396,3 +405,9 @@ constn(w1, c) i(w2) -- i(w1) i(w2)
     int newrhs = push();
     E("i%d v%d = %d;\n", w1, lhs, c);
     E("i%d v%d = v%d;\n", w1, newrhs, rhs);
+
+address(sym, off) -- i(4)
+	int vid = push();
+	E("i4 v%d = (i4) %s;\n", vid, symref(sym, off));
+
+

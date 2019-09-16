@@ -342,4 +342,5 @@ test_cpm records
 test_c addsub-8bit
 test_c addsub-16bit
 test_c addsub-32bit
+test_c records
 
