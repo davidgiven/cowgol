@@ -108,6 +108,7 @@ address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 STARTFILE --
     emitter_open_chunk();
     E("#include \"rt/c/cowgol.h\"\n");
+    E("static i1 workspace0[];\n");
     emitter_close_chunk();
 
 ENDFILE --
@@ -232,6 +233,8 @@ address(sym1, off1) address(sym2, off2) LOAD(w1) CONSTANT(c) SUB(w2) STORE(w3) -
 
 i(w1) NEG(w2) -- constn(w1, 0) i(w1) SUB(w1)
     assert(w1 == w2);
+
+constant(c) NEG(0) -- constant(-c)
 
 // --- Loads ----------------------------------------------------------------
 
