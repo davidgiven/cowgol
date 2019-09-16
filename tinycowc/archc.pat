@@ -19,9 +19,9 @@ static int varsp = 0;
 
 void arch_init_types(void)
 {
-	intptr_type = make_number_type("uint64", 8, false);
+	make_number_type("uint64", 8, false);
 	make_number_type("int64", 8, true);
-	make_number_type("uint32", 4, false);
+	intptr_type = make_number_type("uint32", 4, false);
 	make_number_type("int32", 4, true);
 	make_number_type("int16", 2, true);
 	make_number_type("uint16", 2, false);
@@ -290,7 +290,7 @@ STRING(s) -- i(8)
     E("};\n");
     emitter_close_chunk();
 
-    E("i8 v%d = (i8) s%d;\n", push(), sid);
+    E("i4 v%d = (i4) s%d;\n", push(), sid);
  
 // --- Constant type inference ----------------------------------------------
 
