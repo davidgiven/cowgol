@@ -1,6 +1,13 @@
 #!/bin/sh
 set -e
 
+registertarget() {
+	eval TARGET_$1_COMPILER=$2
+	eval TARGET_$1_BUILDER=$3
+}
+
+registertarget cpm tinycowc-8080 scripts/build-cpm.sh scripts/run-cpm.sh
+
 cat <<EOF
 rule cc
     command = $CC $CFLAGS \$flags -I. -c -o \$out \$in -MMD -MF \$out.d
@@ -15,10 +22,6 @@ rule library
 rule link
     command = $CC $LDFLAGS -o \$out -Wl,--start-group \$in -Wl,--end-group \$flags $LIBS
     description = LINK \$in
-
-rule test
-    command = \$in && touch \$out
-    description = TEST \$in
 
 rule strip
     command = cp -f \$in \$out && $STRIP \$out
@@ -39,7 +42,35 @@ rule mkpat
 rule yacc
     command = yacc --report=all --report-file=report.txt --defines=\$hfile -o \$cfile \$in
     description = YACC \$in
+
+rule buildcowgol
+    command = \$builder \$in \$out
+    description = COWGOL \$target \$in
+
+rule runtest
+    command = \$skeleton \$in > \$out
+    description = TEST \$in
+
+rule command
+    command = \$cmd
+    description = \$msg
+
 EOF
+
+rule() {
+	local cmd
+	local ins
+	local outs
+	local msg
+	cmd=$1
+	ins=$2
+	outs=$3
+	msg=$4
+
+	echo "build $outs : command | $ins"
+	echo "  cmd=$cmd"
+	echo "  msg=$msg"
+}
 
 buildlibrary() {
     local lib
@@ -145,20 +176,48 @@ buildmkpat() {
     echo "build $out : mkpat $@ | mkpat.lua libcowgol.lua"
 }
 
-runtest() {
-    local prog
-    prog=$1
-    shift
+zmac8() {
+	rule "zmac -8 $1 -o $2" $1 $2 "ZMAC $1"
+}
 
-    buildlibrary lib$prog.a \
-        "$@"
+ld80() {
+	local bin
+	bin="$1"
+	shift
 
-    buildprogram $OBJDIR/$prog \
-        lib$prog.a \
-        libbackend.a \
-        libfmt.a
+	rule "ld80 -O bin -c -P0100 $* -o $bin" "$*" "$bin" "LD80 $bin"
+}
 
-    echo build $OBJDIR/$prog.stamp : test $OBJDIR/$prog-debug$EXTENSION
+cowgol_cpm_asm() {
+	local in
+	local out
+	local log
+	local deps
+	in=$1
+	out=$2
+	log=$3
+	deps=$4
+
+	rule "./tinycowc-8080 $in $out > $log" "$in $deps tinycowc-8080" "$out $log" "COWGOL 8080 $in"
+}
+
+cowgol_cpm() {
+	local base
+	base="$OBJDIR/${1%.cow}.cpm"
+	cowgol_cpm_asm $1 $base.asm $base.log "$3"
+	zmac8 $base.asm $base.rel
+	ld80 $base.bin \
+		$OBJDIR/rt/cpm/cowgol.rel \
+		$base.rel
+	rule "dd if=$base.bin of=$2 bs=128 skip=2 status=none" "$base.bin" "$2" "DD $1"
+}
+
+test_cpm() {
+	local base
+	base=$OBJDIR/tests/cpm/$1
+	cowgol_cpm tests/$1.test.cow $base.com tests/_framework.coh
+	rule "cpmemu $base.com > $base.bad" "$base.com" "$base.bad" "CPMEMU $1"
+	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
 buildyacc $OBJDIR/parser.c parser.y
@@ -207,4 +266,12 @@ buildprogram tinycowc-c \
     libmain.a \
     libc.a \
 
+#runtest cpm addsub-8bit
+
+zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
+
+test_cpm addsub-8bit
+test_cpm addsub-16bit
+#test_cpm addsub-32bit
+test_cpm records
 

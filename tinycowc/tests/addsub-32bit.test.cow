@@ -20,24 +20,24 @@ var deadbeef: int32 := 0xdeadbeef;
 #var mdeadbeef: int32 := -0xdeadbeef;
 
 sub add_test()
-    print("one+two==three"); if one+two==three then yes(); else no(); end if;
-    print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;
-    print("one+one==two"); if one+one==two then yes(); else no(); end if;
-    print("zero+one==one"); if zero+one==one then yes(); else no(); end if;
-    print("two+mtwo==zero"); if two+mtwo==zero then yes(); else no(); end if;
-
-    print("one+TWO==three"); if one+TWO==three then yes(); else no(); end if;
-    print("one+MTWO==mone"); if one+MTWO==mone then yes(); else no(); end if;
-    print("one+ONE==two"); if one+ONE==two then yes(); else no(); end if;
-    print("zero+ONE==one"); if zero+ONE==one then yes(); else no(); end if;
-    print("two+MTWO==zero"); if two+MTWO==zero then yes(); else no(); end if;
-
-    print("ONE+two==three"); if ONE+two==three then yes(); else no(); end if;
-    print("ONE+mtwo==mone"); if ONE+mtwo==mone then yes(); else no(); end if;
-    print("ONE+one==two"); if ONE+one==two then yes(); else no(); end if;
-    print("ZERO+one==one"); if ZERO+one==one then yes(); else no(); end if;
-    print("TWO+mtwo==zero"); if TWO+mtwo==zero then yes(); else no(); end if;
-end sub;
+#    print("one+two==three"); if one+two==three then yes(); else no(); end if;
+#    print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;
+#    print("one+one==two"); if one+one==two then yes(); else no(); end if;
+#    print("zero+one==one"); if zero+one==one then yes(); else no(); end if;
+#    print("two+mtwo==zero"); if two+mtwo==zero then yes(); else no(); end if;
+#
+#    print("one+TWO==three"); if one+TWO==three then yes(); else no(); end if;
+#    print("one+MTWO==mone"); if one+MTWO==mone then yes(); else no(); end if;
+#    print("one+ONE==two"); if one+ONE==two then yes(); else no(); end if;
+#    print("zero+ONE==one"); if zero+ONE==one then yes(); else no(); end if;
+#    print("two+MTWO==zero"); if two+MTWO==zero then yes(); else no(); end if;
+#
+#    print("ONE+two==three"); if ONE+two==three then yes(); else no(); end if;
+#    print("ONE+mtwo==mone"); if ONE+mtwo==mone then yes(); else no(); end if;
+#    print("ONE+one==two"); if ONE+one==two then yes(); else no(); end if;
+#    print("ZERO+one==one"); if ZERO+one==one then yes(); else no(); end if;
+#    print("TWO+mtwo==zero"); if TWO+mtwo==zero then yes(); else no(); end if;
+#end sub;
 add_test();
 #
 #sub sub_test()

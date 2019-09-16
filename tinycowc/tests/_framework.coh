@@ -11,6 +11,6 @@ sub print(s: [uint8])
         end loop;
 end sub;
 
-sub yes() print("yes\n"); end sub;
-sub no() print("no\n"); end sub;
+sub yes() print(": yes\n"); end sub;
+sub no() print(": no\n"); end sub;
 
