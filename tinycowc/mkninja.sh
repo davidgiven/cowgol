@@ -100,7 +100,7 @@ cfile() {
         esac
     done
 
-	rule "gcc -g $flags -c -o $obj $1" "$1 $deps" "$obj" "CC $1"
+	rule "$CC -g $flags -c -o $obj $1" "$1 $deps" "$obj" "CC $1"
 }
 
 buildlibrary() {
@@ -247,7 +247,7 @@ test_cpm() {
 	local base
 	base=$OBJDIR/tests/cpm/$1
 	cowgol_cpm tests/$1.test.cow $base.com tests/_framework.coh
-	rule "cpmemu $base.com > $base.bad" "$base.com" "$base.bad" "TEST_CPM $1"
+	rule "./cpmemu $base.com > $base.bad" "cpmemu $base.com" "$base.bad" "TEST_CPM $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -268,9 +268,9 @@ cowgol_c() {
 	local base
 	base="$OBJDIR/${1%.cow}.c"
 	cowgol_c_c $1 $base.c $base.log "$3"
-	rule "gcc -g -c -ffunction-sections -fdata-sections -I. -o $base.o $base.c" \
+	rule "$CC -g -c -ffunction-sections -fdata-sections -I. -o $base.o $base.c" \
 		$base.c $base.o "CC $1"
-	rule "gcc -g -o $2 $OBJDIR/rt/c/cowgol.o $base.o" \
+	rule "$CC -g -o $2 $OBJDIR/rt/c/cowgol.o $base.o" \
 		"$OBJDIR/rt/c/cowgol.o $base.o" $2 \
 		"LINK $1"
 }
@@ -281,6 +281,15 @@ test_c() {
 	cowgol_c tests/$1.test.cow $base.exe tests/_framework.coh
 	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_C $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
+}
+
+objectify() {
+	rule "./tools/objectify $3 < $1 > $2" \
+		"./tools/objectify $1" "$2" "OBJECTIFY $1"
+}
+
+pasmo() {
+	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
 
 buildyacc $OBJDIR/parser.c parser.y
@@ -329,6 +338,21 @@ buildprogram tinycowc-c \
     libmain.a \
     libc.a \
 
+pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
+pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
+objectify $OBJDIR/tools/cpmemu/bdos.img $OBJDIR/tools/cpmemu/bdos.c bdos
+objectify $OBJDIR/tools/cpmemu/ccp.img $OBJDIR/tools/cpmemu/ccp.c ccp
+
+buildlibrary libcpmemu.a \
+	$OBJDIR/tools/cpmemu/bdos.c \
+	$OBJDIR/tools/cpmemu/ccp.c \
+	tools/cpmemu/biosbdos.c \
+	tools/cpmemu/emulator.c \
+	tools/cpmemu/fileio.c \
+	tools/cpmemu/main.c \
+
+buildprogram cpmemu -lz80ex -lz80ex_dasm -lreadline libcpmemu.a
+	
 #runtest cpm addsub-8bit
 
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
