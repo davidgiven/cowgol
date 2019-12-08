@@ -320,6 +320,9 @@ i2 const2(n) ADD(2) -- i2
         regalloc_push(REG_HL);
     }
 
+const1(n) i1 ADD(1) -- i1 const1(n) ADD(1)
+const2(n) i2 ADD(2) -- i2 const2(n) ADD(2)
+
 ADDP(width) -- ADD(width)
 
 // --- Subtractions ---------------------------------------------------------
@@ -330,6 +333,12 @@ i1 i1 SUB(1) -- i1
     E("\tsub %s\n", regname(rhs));
     regalloc_push(REG_A);
 
+const1(c) i1 SUB(1) -- i1
+    reg_t rhs = regalloc_pop(REG_A);
+    reg_t lhs = regalloc_load_const(REG_8, c & 0xff);
+    E("\tsub %s\n", regname(rhs));
+    regalloc_push(REG_A);
+    
 i2 i2 SUB(2) -- i2
     reg_t rhs = regalloc_pop(REG_16);
     reg_t lhs = regalloc_pop(REG_16);
@@ -340,6 +349,16 @@ i2 i2 SUB(2) -- i2
     E("\tsbb %s\n", regname(rhs));
     E("\tmov %s, a\n", regname(lhs));
     regalloc_push(lhs);
+
+const2(n) i2 SUB(2) -- i2
+    reg_t rhs = regalloc_pop(REG_16);
+    E("\tmvi a, %d\n", n & 0xff);
+    E("\tsub %s\n", regnamelo(rhs));
+    E("\tmov %s, a\n", regnamelo(rhs));
+    E("\tmvi a, %d\n", n >> 8);
+    E("\tsbb %s\n", regname(rhs));
+    E("\tmov %s, a\n", regname(rhs));
+    regalloc_push(rhs);
 
 i4 i4 SUB(4) -- i4
     regalloc_flush_stack();
@@ -679,26 +698,3 @@ const4(c) -- i4
     regalloc_push(rhi);
     reg_t rlo = regalloc_load_const(REG_16, c & 0xffff);
     regalloc_push(rlo);
-
-const1(c) i1 -- i1 i1
-    reg_t rhs = regalloc_pop(REG_8);
-    reg_t lhs = regalloc_load_const(REG_8, c & 0xff);
-    regalloc_push(lhs);
-    regalloc_push(rhs);
-
-const2(c) i2 -- i2 i2
-    reg_t rhs = regalloc_pop(REG_16);
-    reg_t lhs = regalloc_load_const(REG_16, c & 0xffff);
-    regalloc_push(lhs);
-    regalloc_push(rhs);
-
-const4(c) i4 -- i4 i4
-    reg_t rhslo = regalloc_pop(REG_16);
-    reg_t rhshi = regalloc_pop(REG_16);
-    reg_t lhshi = regalloc_load_const(REG_16, (c >> 16) & 0xffff);
-    regalloc_push(lhshi);
-    regalloc_unlock(lhshi);
-    reg_t lhslo = regalloc_load_const(REG_16, c & 0xffff);
-    regalloc_push(lhslo);
-    regalloc_push(rhshi);
-    regalloc_push(rhslo);
