@@ -96,6 +96,7 @@ void arch_load_var(reg_t id, struct symbol* sym, int32_t off) {}
 void arch_push(reg_t id) {}
 void arch_pop(reg_t id) {}
 void arch_copy(reg_t src, reg_t dest) {}
+reg_t arch_save(reg_t src, reg_t used) { return 0; }
 %%
 
 i(int width) = ("%d", $$.width)

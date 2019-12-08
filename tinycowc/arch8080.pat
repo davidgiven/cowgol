@@ -136,6 +136,39 @@ void arch_copy(reg_t src, reg_t dest)
         E("\tmov %s, %s\n", regnamelo(dest), regnamelo(src));
     E("\tmov %s, %s\n", regname(dest), regname(src));
 }
+
+reg_t arch_save(reg_t reg, reg_t forbidden)
+{
+    arch_emit_comment("attempting to save 0x%x anywhere except 0x%x", reg, forbidden);
+
+    if ((reg == REG_HL) && !(forbidden & REG_DE))
+    {
+        E("\txchg\n");
+        return REG_DE;
+    }
+    if ((reg == REG_DE) && !(forbidden & REG_HL))
+    {
+        E("\txchg\n");
+        return REG_HL;
+    }
+    if (reg & REG_8)
+    {
+        reg_t candidates = REG_8 & ~forbidden;
+        reg_t dest = 1;
+        while (dest)
+        {
+            if (candidates & dest)
+            {
+                arch_copy(reg, dest);
+                return dest;
+            }
+            dest <<= 1;
+        }
+    }
+
+    return 0;
+}
+
 %%
 
 i1
@@ -244,16 +277,17 @@ constant(lhs) constant(rhs) ADD(n) -- constant(result)
     result = lhs + rhs;
 
 i1 i1 ADD(1) -- i1
-    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-    reg_t lhs = regalloc_pop(REG_A);
-    E("\tadd %s\n", regname(rhs));
+    reg_t rhs = regalloc_pop(REG_A);
+    reg_t lhs = regalloc_pop(REG_8);
+    regalloc_reg_changing(REG_A);
+    E("\tadd %s\n", regname(lhs));
     regalloc_push(REG_A);
 
 i2 i2 ADD(2) -- i2
-    reg_t rhs = regalloc_pop(REG_16 & ~REG_HL);
-    reg_t lhs = regalloc_pop(REG_HL);
+    reg_t rhs = regalloc_pop(REG_HL);
+    reg_t lhs = regalloc_pop(REG_16);
     regalloc_reg_changing(REG_HL);
-    E("\tdad %s\n", regname(rhs));
+    E("\tdad %s\n", regname(lhs));
     regalloc_push(REG_HL);
 
 i4 i4 ADD(4) -- i4
@@ -475,12 +509,12 @@ i2 i1 STORE(1) --
     }
 
 i2 i2 STORE(2) --
-    reg_t r = regalloc_pop(REG_DE);
+    reg_t r = regalloc_pop(REG_16);
     regalloc_pop(REG_HL);
     regalloc_reg_changing(REG_HL);
-    E("\tmov m, e\n");
+    E("\tmov m, %s\n", regnamelo(r));
     E("\tinx h\n");
-    E("\tmov m, d\n");
+    E("\tmov m, %s\n", regname(r));
 
 constant(n) STORE(1) -- i1 STORE(1)
     reg_t r = regalloc_load_const(REG_A, n);

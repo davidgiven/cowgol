@@ -1,5 +1,5 @@
 export CFLAGS = -O0 -g -ffunction-sections -fdata-sections
-export LDFLAGS = -O0
+export LDFLAGS = -O0 -g
 
 export CC = gcc -m32
 export AR = ar rcs

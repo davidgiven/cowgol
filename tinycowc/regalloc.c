@@ -262,6 +262,7 @@ reg_t regalloc_pop(reg_t mask)
         arch_emit_comment("pstack pop from register into 0x%x", found);
         if (!(found & mask))
         {
+            arch_emit_comment("required register is 0x%x, copying", mask);
             reg_t real = regalloc_alloc(mask);
             arch_copy(found, real);
             found = real;
@@ -300,21 +301,9 @@ void regalloc_drop_stack_items(int n)
     }
 }
 
-void regalloc_reg_changing(reg_t mask)
+/* Discard the contents of the supplied register. */
+static void flush_values_in_reg(reg_t mask)
 {
-    for (int i=psp-1; i>=pfp; i--)
-    {
-        if (pstack[i] & mask)
-        {
-            while (pfp <= i)
-            {
-                reg_t reg = pstack[pfp++];
-                arch_emit_comment("spilling 0x%x", reg);
-                arch_push(reg);
-            }
-        }
-    }
-
     for (int i=0; i<MAX_VALUES; i++)
     {
         struct value* val = &values[i];
@@ -326,6 +315,59 @@ void regalloc_reg_changing(reg_t mask)
                 val->kind = VALUE_NONE;
         }
     }
+}
+
+void regalloc_reg_changing(reg_t mask)
+{
+    /* Work backwards in the pstack, making sure that any conflicting
+     * registers are saved somewhere. */
+    for (int i=psp-1; i>=pfp; i--)
+    {
+        reg_t reg = pstack[i];
+        if (reg & mask)
+        {
+            /* Give the backend a chance to save it to another register. */
+            reg_t dest = arch_save(reg, mask | locked | used);
+
+            if (dest)
+            {
+                /* The backend found somewhere. */
+                arch_emit_comment("saved 0x%x in 0x%x", reg, dest);
+                pstack[i] = dest;
+
+                /* Patch any values to point to the new location. */
+                flush_values_in_reg(dest);
+                for (int i=0; i<MAX_VALUES; i++)
+                {
+                    struct value* val = &values[i];
+                    if (val->kind)
+                    {
+                        if (val->reg & reg)
+                        {
+                            val->reg &= ~reg;
+                            val->reg |= dest;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                /* Nope, the backend couldn't find anything, so we need to
+                 * flush this register to the physical stack. Remember that
+                 * the physical stack must maintain the pstack ordering so
+                 * we also need to flush any registers further up the stack
+                 * than it. */
+                while (pfp <= i)
+                {
+                    reg_t reg = pstack[pfp++];
+                    arch_emit_comment("spilling 0x%x", reg);
+                    arch_push(reg);
+                    flush_values_in_reg(reg);
+                }
+            }
+        }
+    }
+    flush_values_in_reg(mask);
 }
 
 void regalloc_var_changing(struct symbol* sym, int32_t off)

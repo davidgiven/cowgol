@@ -9,6 +9,7 @@ extern void arch_load_var(reg_t id, struct symbol* sym, int32_t off);
 extern void arch_push(reg_t id);
 extern void arch_pop(reg_t id);
 extern void arch_copy(reg_t src, reg_t dest);
+extern reg_t arch_save(reg_t src, reg_t forbidden);
 
 extern void regalloc_add_register(const char* name, reg_t id, reg_t interference);
 extern const char* regname(reg_t id);
