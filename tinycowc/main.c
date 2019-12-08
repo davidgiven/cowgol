@@ -5,8 +5,7 @@
 #include "globals.h"
 #include "emitter.h"
 #include "midcode.h"
-
-#define YYDEBUG 1
+#include "compiler.h"
 #include "parser.h"
 
 void fatal(const char* s, ...)
@@ -53,7 +52,6 @@ int main(int argc, const char* argv[])
 	current_sub->externname = "cmain";
 
 	include_file(open_file(argv[1]));
-	yydebug = 0;
 
 	emitter_open(argv[2]);
 	emitter_open_chunk();
@@ -63,7 +61,33 @@ int main(int argc, const char* argv[])
 	arch_init_subroutine(current_sub);
 	emit_mid_startfile();
 	emit_mid_startsub(current_sub);
-	yyparse();
+
+	void* parser = ParseAlloc(malloc);
+	ParseTrace(stderr, "P:");
+
+	for (;;)
+	{
+		int token = yylex();
+		if (!token)
+			break;
+		switch (token)
+		{
+			case NUMBER:
+				Parse(parser, token, make_number_token(number));
+				break;
+
+			case ID:
+			case STRING:
+				Parse(parser, token, make_string_token(yytext));
+				break;
+
+			default:
+				Parse(parser, token, NULL);
+				break;
+		}
+	}
+	Parse(parser, 0, NULL);
+
 	emit_mid_endsub(current_sub);
 	emit_mid_endfile();
     midend_flush(0);

@@ -160,8 +160,10 @@ LABEL(label) --
     E("%s:;\n", labelref(label));
 
 LABELALIAS(newlabel, oldlabel) --
-    E("%s\t", labelref(newlabel));
-    E("= %s\n", labelref(oldlabel));
+    emitter_open_chunk();
+    E("#define %s ", labelref(newlabel));
+    E(" %s\n", labelref(oldlabel));
+    emitter_close_chunk();
 
 CONSTANT(val) -- constant(val)
 

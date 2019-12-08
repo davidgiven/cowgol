@@ -1,0 +1,37 @@
+include "tests/_framework.coh";
+
+sub oneint8(i: int8)
+    print("oneint8: ");
+    if i == 42 then yes(); else no(); end if;
+end sub;
+oneint8(42);
+
+sub twoint8(i1: int8, i2: int8)
+    print("twoint8: ");
+    if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
+end sub;
+twoint8(42, 99);
+
+sub oneint16(i: int16)
+    print("oneint16: ");
+    if i == 42 then yes(); else no(); end if;
+end sub;
+oneint16(42);
+
+sub twoint16(i1: int16, i2: int16)
+    print("twoint16: ");
+    if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
+end sub;
+twoint16(42, 99);
+
+sub mixed1(i1: int8, i2: int16)
+    print("mixed1: ");
+    if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
+end sub;
+mixed1(42, 99);
+
+sub mixed2(i1: int16, i2: int8)
+    print("mixed2: ");
+    if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
+end sub;
+mixed2(42, 99);

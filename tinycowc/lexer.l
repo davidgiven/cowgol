@@ -17,16 +17,37 @@ SP [ \t]+
 
 %%
 
+"!="                      { return NEOP; }
+"%"                       { return PERCENT; }
+"&"                       { return AMPERSAND; }
+"("                       { return OPENPAREN; }
+")"                       { return CLOSEPAREN; }
+"*"                       { return STAR; }
+"+"                       { return PLUS; }
+","                       { return COMMA; }
+"-"                       { return MINUS; }
+"."                       { return DOT; }
+"/"                       { return SLASH; }
+":"                       { return COLON; }
+":="                      { return ASSIGN; }
+";"                       { return SEMICOLON; }
+"<"                       { return LTOP; }
+"<="                      { return LEOP; }
+"=="                      { return EQOP; }
+">"                       { return GTOP; }
+">="                      { return GEOP; }
 "@asm"                    { return ASM; }
+"["                       { return OPENSQ; }
+"]"                       { return CLOSESQ; }
+"^"                       { return TILDE; }
 "and"                     { return AND; }
 "as"                      { return AS; }
 "break"                   { return BREAK; }
 "const"                   { return CONST; }
-"end"                     { return END; }
 "else"                    { return ELSE; }
+"end"                     { return END; }
 "extern"                  { return EXTERN; }
 "if"                      { return IF; }
-"include"                 { return INCLUDE; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
@@ -36,14 +57,7 @@ SP [ \t]+
 "then"                    { return THEN; }
 "var"                     { return VAR; }
 "while"                   { return WHILE; }
-":="                      { return ASSIGN; }
-"=="                      { return EQOP; }
-"!="                      { return NEOP; }
-"<="                      { return LEOP; }
-">="                      { return GEOP; }
-"<"                       { return LTOP; }
-">"                       { return GTOP; }
-[-;:,+*/%()[\]^&|.]       { return yytext[0]; }
+"|"                       { return PIPE; }
 
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }
@@ -74,6 +88,14 @@ SP [ \t]+
 #[^\r\n]*                 |
 {LF}                      { yylineno++; }
 {SP}+                     {}
+
+include{SP}+\"[^"]*\"; {
+	/* The parsing here is slightly dodgy, but... let's just go with it. */
+	strtok(yytext, "\"");
+	char* filename = strtok(NULL, "\""); /* second token is the filename */
+
+	include_file(open_file(filename));
+}
 
 <<EOF>> {
 	yypop_buffer_state();

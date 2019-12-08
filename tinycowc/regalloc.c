@@ -1,6 +1,40 @@
 #include "globals.h"
 #include "regalloc.h"
 
+/* This is a very simple first-come-first-served allocator which keeps values
+ * on a stack, with the most recently used ones cached in a register. Spilling
+ * happens by pushing onto the spill stack (the physical stack). The sstack
+ * always mirrors the pstack (which is controlled by the code generator and
+ * therefore doesn't match the vstack).
+ * 
+ * In essence:
+ * 
+ * (top of pstack)
+ *   val1           on sstack
+ *   val2           on sstack
+ *   val3  <- fp    on sstack
+ *   val4           in register
+ *   val5  <- sp    in register
+ * 
+ * Spilling and, er, unspilling always happens by moving fp up and down,
+ * enforcing the order of values in the sstack.
+ * 
+ * In addition, and this is orthogonal to the main register allocator, the
+ * code generator remembers what value is stored in what register. Trying to
+ * access the same (trivial) value with regalloc_load_const() and regalloc_load_var()
+ * will attempt to find a register which already has that value. This may result in
+ * the same register appearing more than once in the pstack if the same constant
+ * is pushed more than once.
+ * 
+ * Two sets of registers are maintained:
+ * 
+ * - locked registers are ones which the current pattern is using right now.
+ *   These may not be allocated under any circumstances.
+ * 
+ * - used registers are values which contain a value. They may be spilt to the
+ *   sstack and reused if necessary.
+ */
+
 typedef enum
 {
     VALUE_NONE = 0,
@@ -252,14 +286,14 @@ reg_t regalloc_pop(reg_t mask)
     {
         found = regalloc_alloc(mask);
         arch_pop(found);
-        arch_emit_comment("pstack physical pop into 0x%x", found);
+        arch_emit_comment("pop from sstack into 0x%x", found);
         psp--;
         pfp--;
     }
     else
     {
         found = pstack[--psp];
-        arch_emit_comment("pstack pop from register into 0x%x", found);
+        arch_emit_comment("pstack value already in register 0x%x", found);
         if (!(found & mask))
         {
             arch_emit_comment("required register is 0x%x, copying", mask);
