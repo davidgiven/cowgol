@@ -5,7 +5,7 @@ To build:
 
     $ make
 
-You need ninja, flex and bison (Posix yacc probably won't work).
+You need ninja, flex, lemon, pasmo and zmac.
 
 ## Apollo Guidance Computer
 
