@@ -1,972 +1,648 @@
-%{
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include "globals.h"
-#include "midcode.h"
-
-#define YYDEBUG 1
-#include "parser.h"
-
-#define TYPE_STACK_DEPTH 32
-
-int32_t number;
-
-struct subroutine* current_sub;
-struct argumentsspec* current_call;
-struct symbol* current_type;
-int current_label = 1;
-int break_label;
-
-struct symbol* intptr_type;
-struct symbol* uint8_type;
-
-static bool is_ptr(struct symbol* sym);
-static bool is_num(struct symbol* sym);
-static bool is_snum(struct symbol* sym);
-static bool is_array(struct symbol* sym);
-static bool is_array_ptr(struct symbol* sym);
-static bool is_scalar(struct symbol* sym);
-static bool is_record(struct symbol* sym);
-static bool is_record_ptr(struct symbol* sym);
-
-static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs);
-static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs);
-static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(int width));
-static struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
-	void (*emitteru)(int width),
-	void (*emitters)(int width));
-static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-	void (*emitteru)(int width, int truelabel, int falselabel),
-	void (*emitters)(int width, int truelabel, int falselabel),
-	void (*emitterp)(int truelabel, int falselabel)
-);
-
-static void init_var(struct symbol* sym, struct symbol* type);
-static void init_member(struct symbol* sym, struct symbol* type);
-static struct symbol* make_pointer_type(struct symbol* type);
-static struct symbol* make_array_type(struct symbol* type, int32_t size);
-
-static void check_expression_type(struct symbol** node, struct symbol* type);
-static void unescape(char* string);
-
-static void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off);
-static void node_is_stacked(struct exprnode* node, struct symbol* type);
-
-static void push_type(void);
-static void pop_type(void);
-
-%}
-
-%token VAR SUB TYPE END LOOP WHILE IF THEN BREAK ASM ELSE RETURN EXTERN CONST
-%token INCLUDE RECORD
-%token ID NUMBER STRING
-%token ASSIGN
-
-%type <symbol> newid;
-%type <symbol> memberid;
-%type <symbol> oldid;
-%type <type> typeref;
-%type <type> expression;
-%type <type> lvalue;
-%type <value> cvalue;
-%type <labels> LOOP;
-%type <labels> WHILE;
-%type <labels> IF;
-%type <cond> conditional;
-%type <subroutine> SUB;
-
-%left ','
-%left OR
-%left AND
-%left AS
-%left '|'
-%left '^'
-%left '&'
-%left LTOP LEOP GTOP GEOP EQOP NEOP
-%left '+' '-'
-%left '*' '/' '%'
-%right NOT
-
-%union {
-	struct symbol* symbol;
-	struct symbol* type;
-	struct subroutine* subroutine;
-	struct condlabels cond;
-	struct looplabels labels;
-	struct argumentsspec argsspec;
-	int32_t value;
-	void* ptr;
-}
-
-%%
-
-program
-	: statements
-	;
-
-statements
-	: /* empty */
-	| statement statements
-	;
-
-statement
-	: ';'
-	| VAR newid ':' typeref ';'
-		{
-			$2->kind = VAR;
-			init_var($2, $4);
-		}
-	| VAR newid ':' typeref 
-		{
-			emit_mid_address($2);
-		}
-		ASSIGN expression ';'
-		{
-			$2->kind = VAR;
-			init_var($2, $4);
-			check_expression_type(&$7, $4);
-			emit_mid_store($4->u.type.width);
-		}
-	| VAR newid
-		{
-			emit_mid_address($2);
-		}
-		ASSIGN expression ';'
-		{
-			$2->kind = VAR;
-			if (!$5)
-				fatal("types cannot be inferred for numeric constants");
-			init_var($2, $5);
-			check_expression_type(&$5, $5);
-			emit_mid_store($5->u.type.width);
-		}
-	| CONST newid ASSIGN cvalue ';'
-		{
-			$2->kind = CONST;
-			$2->u.constant = $4;
-		}
-	| SUB newid
-		{
-			$1 = current_sub;
-			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
-			sub->name = $2->name;
-			sub->namespace.parent = &current_sub->namespace;
-			sub->old_break_label = break_label;
-			arch_init_subroutine(sub);
-			break_label = 0;
-
-			$2->kind = SUB;
-			$2->u.sub = sub;
-
-			current_sub = sub;
-		}
-		parameterlist
-		{
-			emit_mid_startsub(current_sub);
-		}
-		statements
-		{
-			emit_mid_endsub(current_sub);
-			break_label = current_sub->old_break_label;
-			current_sub = $1;
-		}
-		END SUB
-	| EXTERN SUB newid
-		{
-			$2 = current_sub;
-			struct subroutine* sub = calloc(1, sizeof(struct subroutine));
-			sub->name = $3->name;
-			sub->namespace.parent = &current_sub->namespace;
-			arch_init_subroutine(sub);
-			break_label = 0;
-
-			$3->kind = SUB;
-			$3->u.sub = sub;
-
-			current_sub = sub;
-		}
-		parameterlist
-		ASSIGN STRING
-		{
-			current_sub->externname = strdup(yytext);
-			current_sub = $2;
-		}
-		';'
-	| LOOP
-		{
-			$1.looplabel = current_label++;
-			$1.exitlabel = current_label++;
-			$1.old_break_label = break_label;
-			break_label = $1.exitlabel;
-			emit_mid_label($1.looplabel);
-		}
-		statements END LOOP
-		{
-			emit_mid_jump($1.looplabel);
-			emit_mid_label($1.exitlabel);
-			break_label = $1.old_break_label;
-		}
-	| IF
-		{
-			$1.exitlabel = current_label++;
-		}
-		conditional
-		THEN
-		{
-			emit_mid_label($3.truelabel);
-		}
-		statements
-		{
-			emit_mid_jump($1.exitlabel);
-			emit_mid_label($3.falselabel);
-		}
-		iftrailing
-		{
-			emit_mid_label($1.exitlabel);
-		}
-	| WHILE
-		{
-			$1.looplabel = current_label++;
-			$1.exitlabel = current_label++;
-			$1.old_break_label = break_label;
-			break_label = $1.exitlabel;
-			emit_mid_label($1.looplabel);
-		}
-		conditional
-		{
-			emit_mid_label($3.truelabel);
-			emit_mid_labelalias($3.falselabel, $1.exitlabel);
-		}
-		LOOP statements END LOOP
-		{
-			emit_mid_jump($1.looplabel);
-			emit_mid_label($1.exitlabel);
-			break_label = $1.old_break_label;
-		}
-	| BREAK ';'
-		{
-			if (!break_label)
-				fatal("nothing to break from");
-			emit_mid_jump(break_label);
-		}
-	| RETURN ';'
-		{
-			emit_mid_return();
-		}
-	| ASM {
-			emit_mid_asmstart();
-		}
-		asms ';'
-		{
-			emit_mid_asmend();
-		}
-	| oldid argumentlist ';'
-		{
-			if ($1->kind != SUB)
-				fatal("expected '%s' to be a subroutine", $1->name);
-			emit_mid_call($1->u.sub);
-		}
-	| lvalue ASSIGN expression ';'
-		{
-			if (!is_ptr($1))
-				fatal("you can only assign to lvalues");
-			check_expression_type(&$3, $1->u.type.element);
-			emit_mid_store($1->u.type.element->u.type.width);
-		}
-	| INCLUDE STRING
-		{ $<ptr>$ = open_file(yytext); }
-		';'
-		{ include_file($<ptr>3); }
-	| record
-	;
-
-iftrailing
-	: END IF
-	| ELSE statements END IF
-	;
-
-/* Returns a *pointer* to the value --- or a literal untyped number for a constant. */
-lvalue
-	: oldid
-		{
-			if ($1->kind == CONST)
-			{
-				emit_mid_constant($1->u.constant);
-				$$ = NULL;
-			}
-			else
-			{
-				emit_mid_address($1);
-				$$ = make_pointer_type($1->u.var.type);
-			}
-		}
-	| lvalue '[' expression ']'
-		{
-			struct symbol* array;
-			if (is_array_ptr($1))
-			{
-				/* Direct reference to array. */
-				array = $1->u.type.element;
-			}
-			else if (is_ptr($1) && is_array_ptr($1->u.type.element))
-			{
-				/* Pointer to array. */
-				array = $1->u.type.element->u.type.element;
-				emit_mid_load(intptr_type->u.type.width);
-			}
-			else
-				fatal("you can only index arrays, not a %s", $1->u.type.element->name);
-			if (!is_num($3))
-				fatal("array indices must be numbers");
-			
-			check_expression_type(&$3, intptr_type);
-			emit_mid_constant(array->u.type.element->u.type.width);
-			emit_mid_mul(intptr_type->u.type.width);
-			emit_mid_add(intptr_type->u.type.width);
-			$$ = make_pointer_type(array->u.type.element);
-		}
-	| lvalue '.' ID
-		{
-			/* Remember that $1 is a *pointer* to the record (or a pointer to a
-			 * pointer). */
-			struct symbol* record;
-			if (is_record_ptr($1))
-			{
-				/* Direct reference to record. */
-				record = $1->u.type.element;
-			}
-			else if (is_ptr($1) && is_record_ptr($1->u.type.element))
-			{
-				/* Pointer to record. */
-				record = $1->u.type.element->u.type.element;
-				emit_mid_load(intptr_type->u.type.width);
-			}
-			else
-				fatal("you can only access members of records");
-
-			struct symbol* member = lookup_symbol(&record->u.type.namespace, yytext);
-			if (!member)
-				fatal("%s does not contain member '%s'", record->name, member->name);
-
-			emit_mid_constant(member->u.var.offset);
-			emit_mid_add(intptr_type->u.type.width);
-			$$ = make_pointer_type(member->u.var.type);
-		}
-	| '[' expression ']'
-		{
-			if (!$2)
-				fatal("cannot dereference untyped constants");
-			if (!is_ptr($2))
-				fatal("can only dereference pointers");
-
-			$$ = $2;
-		}
-	;
-
-newid
-	: ID { $$ = add_new_symbol(NULL, yytext); }
-	;
-
-oldid
-	: ID { $$ = lookup_symbol(NULL, yytext); }
-	;
-
-parameterlist
-	: '(' ')'
-	| '(' parameters ')'
-	;
-
-parameters
-	: parameter
-	| parameter ',' parameters
-	;
-
-parameter
-	: newid ':' typeref
-		{
-			$1->kind = VAR;
-			init_var($1, $3);
-			current_sub->inputparameters++;
-		}
-	;
-
-argumentlist
-	: '(' ')'
-	| '('
-		{
-			struct argumentsspec* spec = calloc(1, sizeof(struct argumentsspec));
-			spec->sub = $<symbol>0->u.sub;
-			spec->number = 0;
-			spec->param = spec->sub->namespace.firstsymbol;
-			spec->previous_call = current_call;
-			current_call = spec;
-		}
-		arguments ')'
-		{
-			if (current_call->number != current_call->sub->inputparameters)
-				fatal("expected %d parameters but only got %d",
-					current_call->sub->inputparameters, current_call->number);
-			current_call = current_call->previous_call;
-		}
-	;
-
-arguments
-	: argument
-	| argument ',' arguments
-	;
-
-argument
-	: expression
-		{
-			if (current_call->number == current_call->sub->inputparameters)
-				fatal("too many input parameters");
-
-			struct symbol* param = current_call->param;
-			current_call->param = param->next;
-			current_call->number++;
-
-			check_expression_type(&$1, param->u.var.type);
-			emit_mid_param($1->u.type.width);
-		}
-	;
-
-typeref
-	: oldid
-		{
-			$$ = $1;
-			if ($$->kind != TYPE)
-				fatal("expected '%s' to be a type", $1->name);
-		}
-	| typeref '[' cvalue ']'
-		{ $$ = make_array_type($1, $3); }
-	| '[' typeref ']'
-		{ $$ = make_pointer_type($2); }
-	;
-
-cvalue
-	: NUMBER            { $$ = number; }
-	| oldid
-		{
-			if ($1->kind != CONST)
-				fatal("only constants can be used here");
-			$$ = $1->u.constant;
-		}
-    | '(' cvalue ')'    { $$ = $2; }
-    | '-' cvalue        { $$ = -$2; }
-    | cvalue '+' cvalue { $$ = $1 + $3; }
-    | cvalue '-' cvalue { $$ = $1 - $3; }
-    | cvalue '*' cvalue { $$ = $1 * $3; }
-    | cvalue '/' cvalue { $$ = $1 / $3; }
-    | cvalue '%' cvalue { $$ = $1 % $3; }
-    ;
-
-expression
-	: NUMBER
-		{
-			emit_mid_constant(number);
-			$$ = NULL;
-		}
-	| STRING
-		{
-			unescape(yytext);
-			emit_mid_string(strdup(yytext));
-			$$ = make_pointer_type(uint8_type);
-		}
-	| lvalue
-		{
-			if ($1)
-			{
-				emit_mid_load($1->u.type.element->u.type.width);
-				$$ = $1->u.type.element;
-			}
-			else
-				$$ = NULL;
-		}
-	| '&' lvalue
-		{
-			if (!$2)
-				fatal("you cannot take the address of an untyped constant");
-			$$ = $2;
-		}
-	| '(' expression ')'
-		{ $$ = $2; }
-	| '-' expression
-		{ 
-			emit_mid_neg($2 ? $2->u.type.width : 0);
-		}
-	| expression AS typeref
-		{
-			if (!is_scalar($1))
-				fatal("attempt to cast a %s, which is not scalar", $1->name);
-			if ($1)
-				emit_mid_cast($1->u.type.width, $3->u.type.width);
-			$$ = $3;
-		}
-	| expression '+' expression
-		{ $$ = expr_add($1, $3); }
-	| expression '-' expression
-		{ $$ = expr_sub($1, $3); }
-	| expression '*' expression
-		{ $$ = expr_simple($1, $3, emit_mid_mul); }
-	| expression '/' expression
-		{ $$ = expr_signed($1, $3, emit_mid_divu, emit_mid_divs); }
-	| expression '%' expression
-		{ $$ = expr_signed($1, $3, emit_mid_remu, emit_mid_rems); }
-	| expression '^' expression
-		{ $$ = expr_simple($1, $3, emit_mid_eor); }
-	| expression '&' expression
-		{ $$ = expr_simple($1, $3, emit_mid_and); }
-	| expression '|' expression
-		{ $$ = expr_simple($1, $3, emit_mid_or); }
-	;
-
-conditional
-	: '(' conditional ')'
-		{ $$ = $2; }
-	| NOT conditional
-		{
-			$$.truelabel = $2.falselabel;
-			$$.falselabel = $2.truelabel;
-		}
-	| conditional AND
-		{
-			emit_mid_label($1.truelabel);
-		}
-		conditional
-		{
-			emit_mid_labelalias($1.falselabel, $4.falselabel);
-			$$.truelabel = $4.truelabel;
-			$$.falselabel = $4.falselabel;
-		}
-	| conditional OR
-		{
-			emit_mid_label($1.falselabel);
-		}
-		conditional
-		{
-			emit_mid_labelalias($1.truelabel, $4.truelabel);
-			$$.truelabel = $4.truelabel;
-			$$.falselabel = $4.falselabel;
-		}
-	| expression EQOP expression
-		{
-			$$.truelabel = current_label++;
-			$$.falselabel = current_label++;
-			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
-		}
-	| expression NEOP expression
-		{
-			$$.truelabel = current_label++;
-			$$.falselabel = current_label++;
-			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
-		}
-	| expression LTOP expression
-		{
-			$$.truelabel = current_label++;
-			$$.falselabel = current_label++;
-			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
-		}
-	| expression GEOP expression
-		{
-			$$.truelabel = current_label++;
-			$$.falselabel = current_label++;
-			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
-		}
-	| expression GTOP expression
-		{
-			$$.truelabel = current_label++;
-			$$.falselabel = current_label++;
-			cond_simple($$.truelabel, $$.falselabel, $1, $3, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
-		}
-	| expression LEOP expression
-		{
-			$$.truelabel = current_label++;
-			$$.falselabel = current_label++;
-			cond_simple($$.falselabel, $$.truelabel, $1, $3, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
-		}
-	;
-
-asm
-	: STRING
-		{
-			unescape(yytext);
-			emit_mid_asmtext(strdup(yytext));
-		}
-	| oldid
-		{
-			if ($1->kind != VAR)
-				fatal("you can only emit references to variables");
-			emit_mid_asmsymbol($1);
-		}
-	; 
-
-asms
-	: asm
-	| asm ',' asms
-	;
-
-record
-	: RECORD newid
-		{
-			$2->kind = TYPE;
-			$2->u.type.kind = TYPE_RECORD;
-			current_type = $2;
-		}
-	members
-	END RECORD
-		{
-			current_type = NULL;
-		}
-	;
-
-members
-	: /* nothing */
-	| member members
-	;
-
-member
-	: memberid ':' typeref ';'
-		{
-			$1->kind = VAR;
-			init_member($1, $3);
-		}
-	;
-
-memberid
-	: ID { $$ = add_new_symbol(&current_type->u.type.namespace, yytext); }
-	;
-
-%%
-
-static bool is_ptr(struct symbol* sym)
+%include
 {
-	if (!sym || (sym->kind != TYPE))
-		return false;
-	return sym->u.type.kind == TYPE_POINTER;
-}
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <stdarg.h>
+    #include <string.h>
+    #include "globals.h"
+    #include "midcode.h"
+    #include "parser.h"
+	#include "compiler.h"
 
-static bool is_num(struct symbol* sym)
-{
-	if (!sym)
-		return true; /* for numeric constants */
-	if (sym->kind != TYPE)
-		return false;
-	return sym->u.type.kind == TYPE_NUMBER;
-}
+    int current_label = 1;
 
-static bool is_snum(struct symbol* sym)
-{
-	if (!sym)
-		return true; /* for numeric constants */
-	return is_num(sym);
-}
+    static int break_label;
+	static struct condlabels* last_condition;
 
-static bool is_array(struct symbol* sym)
-{
-	if (!sym)
-		return false; /* for numeric constants */
-	if (sym->kind != TYPE)
-		return false;
-	return sym->u.type.kind == TYPE_ARRAY;
-}
-
-static bool is_array_ptr(struct symbol* sym)
-{
-	return is_ptr(sym) && is_array(sym->u.type.element);
-}
-
-static bool is_scalar(struct symbol* sym)
-{
-	return (is_ptr(sym) || is_num(sym));
-}
-
-static bool is_record(struct symbol* sym)
-{
-	if (!sym)
-		return false; /* for numeric constants */
-	if (sym->kind != TYPE)
-		return false;
-	return sym->u.type.kind == TYPE_RECORD;
-}
-
-static bool is_record_ptr(struct symbol* sym)
-{
-	return is_ptr(sym) && is_record(sym->u.type.element);
-}
-
-static void resolve_untyped_constants_for_add_sub(struct symbol** lhs, struct symbol** rhs)
-{
-	if (*lhs && !*rhs)
+	struct condlabels
 	{
-		if (is_num(*lhs))
-			*rhs = *lhs;
-		else if (is_ptr(*lhs))
-			*rhs = intptr_type;
-		else
-			fatal("cannot use an untyped constant in this context");
-	}
-	if (!*lhs && *rhs)
+		int truelabel;
+		int falselabel;
+	};
+
+	struct iflabels
 	{
-		if (is_num(*rhs))
-			*lhs = *rhs;
-		else if (is_ptr(*rhs))
-			fatal("pointers may only appear on the LHS of an addition or subtraction");
-	}
+		int exitlabel;
+		int truelabel;
+		int falselabel;
+		struct iflabels* next;
+	};
+	static struct iflabels* current_if;
+
+	struct looplabels
+	{
+		int looplabel;
+		int exitlabel;
+		int old_break_label;
+	};
+
+	struct argumentsspec
+	{
+		struct subroutine* sub;
+		int number;
+		struct symbol* param;
+		struct argumentsspec* next;
+	};
+	static struct argumentsspec* current_call;
+
+	#undef NDEBUG
 }
 
-static struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs)
+%token ASM ASSIGN BREAK CLOSEPAREN CLOSESQ.
+%token COLON CONST DOT ELSE END EXTERN.
+%token IF LOOP MINUS NOT OPENPAREN OPENSQ.
+%token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
+%token SUB THEN TILDE VAR WHILE TYPE.
+
+%left COMMA.
+%left AND.
+%left OR.
+%left AS.
+%left PIPE.
+%left CARET.
+%left AMPERSAND.
+%nonassoc LTOP LEOP GTOP GEOP EQOP NEOP.
+%left PLUS MINUS.
+%left STAR SLASH PERCENT.
+%right NOT.
+
+%token_type {struct token*}
+%type typeref {struct symbol*}
+%type expression {struct symbol*}
+%type lvalue {struct symbol*}
+
+%syntax_error {
+    fatal("syntax error: unexpected %s", yyTokenName[yymajor]);
+}
+%stack_overflow {
+    fatal("stack overflow");
+}
+
+%token_destructor
 {
-	resolve_untyped_constants_for_add_sub(&lhs, &rhs);
+	free_token($$);
+}
 
-	if (is_ptr(lhs) && is_ptr(rhs))
-		fatal("you cannot add two pointers together");
-	else if (is_ptr(lhs) && (rhs != intptr_type))
-		fatal("you can only add a %s to a pointer", rhs->name);
-	else if (is_ptr(rhs))
-		fatal("add numbers to pointers, not vice versa");
-	else if (!is_ptr(lhs) && (lhs != rhs))
-		fatal("you tried to add a %s and a %s", lhs->name, rhs->name);
+program ::= statements.
 
-	if (is_ptr(lhs))
-		emit_mid_addp(intptr_type->u.type.width);
+statements ::= /* empty */.
+statements ::= statements statement.
+
+/* --- Top-level statements ---------------------------------------------- */
+
+statement ::= SEMICOLON.
+
+/* --- Simple statements ------------------------------------------------- */
+
+statement ::= RETURN SEMICOLON. { emit_mid_return(); }
+
+/* --- Variable declaration ---------------------------------------------- */
+
+statement ::= typedvardecl SEMICOLON.
+
+statement ::= typedvardecl(V) ASSIGN expression(E) SEMICOLON.
+{
+    init_var(V, V->u.var.type);
+    check_expression_type(&E, V->u.var.type);
+    emit_mid_store(E->u.type.width);
+}
+
+statement ::= untypedvardecl(V) ASSIGN expression(E) SEMICOLON.
+{
+	if (!E)
+		fatal("types cannot be inferred for numeric constants");
+	init_var(V, E);
+	check_expression_type(&E, E);
+	emit_mid_store(E->u.type.width);
+}
+
+%type typedvardecl {struct symbol*}
+typedvardecl(V) ::= VAR newid(S) COLON typeref(T).
+{
+    S->kind = VAR;
+    init_var(S, T);
+	V = S;
+	emit_mid_address(V);
+}
+
+%type untypedvardecl {struct symbol*}
+untypedvardecl(T) ::= VAR newid(S).
+{
+	S->kind = VAR;
+	emit_mid_address(S);
+	T = S;
+}
+
+/* --- If...Then...Else...End if ----------------------------------------- */
+
+statement ::= ifstatement.
+
+%destructor if_begin { current_if = current_if->next; }
+ifstatement ::= IF if_begin if_conditional THEN
+	if_statements if_optional_else END IF.
+{
+	emit_mid_label(current_if->exitlabel);
+}
+
+if_begin ::= .
+{
+	struct iflabels* i = calloc(1, sizeof(struct iflabels));
+	i->next = current_if;
+	current_if = i;
+	current_if->exitlabel = current_label++;
+}
+
+if_conditional ::= conditional(C).
+{
+	current_if->truelabel = C.truelabel;
+	current_if->falselabel = C.falselabel;
+	emit_mid_label(current_if->truelabel);
+}
+
+if_statements ::= statements.
+{
+	emit_mid_jump(current_if->exitlabel);
+	emit_mid_label(current_if->falselabel);
+}
+
+if_optional_else ::= .
+if_optional_else ::= ELSE statements.
+
+/* --- Simple loops ------------------------------------------------------ */
+
+statement ::= startloopstatement(labels) statements END LOOP.
+{
+	emit_mid_jump(labels.looplabel);
+	emit_mid_label(labels.exitlabel);
+	break_label = labels.old_break_label;
+}
+
+%type startloopstatement {struct looplabels}
+startloopstatement(labels) ::= LOOP.
+{
+	labels.looplabel = current_label++;
+	labels.exitlabel = current_label++;
+	labels.old_break_label = break_label;
+	break_label = labels.exitlabel;
+	emit_mid_label(labels.looplabel);
+}
+
+/* --- While loops ------------------------------------------------------- */
+
+%type whilestatement1 {struct looplabels}
+whilestatement1(L) ::= WHILE.
+{
+	L.looplabel = current_label++;
+	L.exitlabel = current_label++;
+	L.old_break_label = break_label;
+	break_label = L.exitlabel;
+	emit_mid_label(L.looplabel);
+}
+
+%type whilestatement2 {struct looplabels}
+whilestatement2(L) ::= whilestatement1(L1) conditional(C).
+{
+	L = L1;
+	emit_mid_label(C.truelabel);
+	emit_mid_labelalias(C.falselabel, L.exitlabel);
+}
+
+statement ::= whilestatement2(L) LOOP statements END LOOP.
+{
+	emit_mid_jump(L.looplabel);
+	emit_mid_label(L.exitlabel);
+	break_label = L.old_break_label;
+}
+
+/* --- Subroutine calls -------------------------------------------------- */
+
+statement ::= subroutinecallstatement.
+
+subcall_begin ::= oldid(S) OPENPAREN.
+{
+	if (S->kind != SUB)
+		fatal("expected '%s' to be a subroutine", S->name);
+
+	struct argumentsspec* n = calloc(1, sizeof(struct argumentsspec));
+	n->next = current_call;
+	current_call = n;
+	current_call->sub = S->u.sub;
+	current_call->param = current_call->sub->namespace.firstsymbol;
+}
+
+%destructor subroutinecallstatement { current_call = current_call->next; }
+subroutinecallstatement ::= subcall_begin optionalarguments CLOSEPAREN.
+{
+	if (current_call->number != current_call->sub->inputparameters)
+		fatal("expected %d parameters but only got %d",
+			current_call->sub->inputparameters, current_call->number);
+
+	emit_mid_call(current_call->sub);
+}
+
+optionalarguments ::= .
+optionalarguments ::= arguments.
+
+arguments ::= argument.
+arguments ::= argument COMMA arguments.
+
+argument ::= expression(T).
+{
+	if (current_call->number == current_call->sub->inputparameters)
+		fatal("too many input parameters (expected %d)",
+			current_call->sub->inputparameters);
+
+	struct symbol* param = current_call->param;
+	current_call->param = param->next;
+	current_call->number++;
+
+	check_expression_type(&T, param->u.var.type);
+	emit_mid_param(T->u.type.width);
+}
+
+/* --- Subroutine definitions -------------------------------------------- */
+
+statement ::= EXTERN startsubroutine(oldsub) parameterlist
+	ASSIGN STRING(nametoken) SEMICOLON.
+{
+	current_sub->externname = strdup(nametoken->string);
+
+	break_label = current_sub->old_break_label;
+	current_sub = oldsub;
+}
+
+/* Remember the value of this is the *old* subroutine. */
+%type startsubroutine {struct subroutine*}
+startsubroutine(oldsub) ::= SUB newid(sym).
+{
+	oldsub = current_sub;
+
+	struct subroutine* sub = calloc(1, sizeof(struct subroutine));
+	sub->name = sym->name;
+	sub->namespace.parent = &current_sub->namespace;
+	arch_init_subroutine(sub);
+	break_label = 0;
+
+	sym->kind = SUB;
+	sym->u.sub = sub;
+
+	current_sub = sub;
+}
+
+statement ::= startrealsubroutine(oldsub) statements END SUB.
+{
+	emit_mid_endsub(current_sub);
+	break_label = current_sub->old_break_label;
+	current_sub = oldsub;
+}
+
+/* Remember the value of this is the *old* subroutine. */
+%type startrealsubroutine {struct subroutine*}
+startrealsubroutine(oldsubout) ::= startsubroutine(oldsubin) parameterlist.
+{
+	oldsubout = oldsubin;
+	emit_mid_startsub(current_sub);
+}
+
+parameterlist ::= OPENPAREN CLOSEPAREN.
+parameterlist ::= OPENPAREN parameters CLOSEPAREN.
+parameters ::= parameter.
+parameters ::= parameter COMMA parameters.
+
+parameter ::= newid(id) COLON typeref(type).
+{
+	id->kind = VAR;
+	init_var(id, type);
+	current_sub->inputparameters++;
+}
+
+/* --- Assignments ------------------------------------------------------- */
+
+statement ::= lvalue(S) ASSIGN expression(T) SEMICOLON.
+{
+	if (!is_ptr(S))
+		fatal("you can only assign to lvalues");
+	check_expression_type(&T, S->u.type.element);
+	emit_mid_store(S->u.type.element->u.type.width);
+}
+
+/* --- Constant expressions ---------------------------------------------- */
+
+%type cvalue {int32_t}
+cvalue(value) ::= NUMBER(token).                   { value = token->number; }
+cvalue(value) ::= OPENPAREN cvalue(v) CLOSEPAREN.  { value = v; }
+cvalue(value) ::= MINUS cvalue(v).                 { value = -v; }
+cvalue(value) ::= cvalue(lhs) PLUS cvalue(rhs).    { value = lhs + rhs; }
+cvalue(value) ::= cvalue(lhs) MINUS cvalue(rhs).   { value = lhs - rhs; }
+cvalue(value) ::= cvalue(lhs) STAR cvalue(rhs).    { value = lhs * rhs; }
+cvalue(value) ::= cvalue(lhs) PERCENT cvalue(rhs). { value = lhs % rhs; }
+
+cvalue(value) ::= oldid(sym).
+{
+	if (sym->kind != CONST)
+		fatal("only constants can be used here");
+	value = sym->u.constant;
+}
+
+statement ::= CONST newid(S) ASSIGN cvalue(V) SEMICOLON.
+{
+	S->kind = CONST;
+	S->u.constant = V;
+}
+
+/* --- Expressions ------------------------------------------------------- */
+
+expression(T) ::= NUMBER(N).
+{
+	emit_mid_constant(N->number);
+	T = NULL;
+}
+
+expression(T) ::= STRING(S).
+{
+	unescape(S->string);
+	emit_mid_string(strdup(S->string));
+	T = make_pointer_type(uint8_type);
+}
+
+expression(T) ::= lvalue(T1).
+{
+	if (T1)
+	{
+		emit_mid_load(T1->u.type.element->u.type.width);
+		T = T1->u.type.element;
+	}
 	else
-		emit_mid_add(lhs ? lhs->u.type.width : 0);
-	return lhs;
+		T = NULL;
 }
 
-static struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs)
+expression(T) ::= AMPERSAND lvalue(T1).
 {
-	resolve_untyped_constants_for_add_sub(&lhs, &rhs);
+	if (!T1)
+		fatal("you cannot take the address of an untyped constant");
+	T = T1;
+}
 
-	if (is_ptr(lhs) && !is_ptr(rhs) && (rhs != intptr_type))
-		fatal("you can't subtrack a %s and a %s", lhs->name, rhs->name);
-	else if (is_num(lhs) && is_ptr(rhs))
-		fatal("subtract numbers from pointers, not vice versa");
-	else if (is_num(lhs) && is_num(rhs) && (lhs != rhs))
-		fatal("you tried to subtract a %s and a %s", lhs->name, rhs->name);
+expression(T) ::= MINUS expression(T1).                    { T = T1; emit_mid_neg(T1 ? T1->u.type.width : 0); }
+expression(T) ::= OPENPAREN expression(T1) CLOSEPAREN.     { T = T1; }
+expression(T) ::= expression(T1) PLUS expression(T2).      { T = expr_add(T1, T2); }
+expression(T) ::= expression(T1) MINUS expression(T2).     { T = expr_sub(T1, T2); }
+expression(T) ::= expression(T1) STAR expression(T2).      { T = expr_simple(T1, T2, emit_mid_mul); }
+expression(T) ::= expression(T1) SLASH expression(T2).     { T = expr_signed(T1, T2, emit_mid_divu, emit_mid_divs); }
+expression(T) ::= expression(T1) PERCENT expression(T2).   { T = expr_signed(T1, T2, emit_mid_remu, emit_mid_rems); }
+expression(T) ::= expression(T1) CARET expression(T2).     { T = expr_simple(T1, T2, emit_mid_eor); }
+expression(T) ::= expression(T1) AMPERSAND expression(T2). { T = expr_simple(T1, T2, emit_mid_and); }
+expression(T) ::= expression(T1) PIPE expression(T2).      { T = expr_simple(T1, T2, emit_mid_or); }
 
-	if (is_ptr(rhs))
+lvalue(T) ::= oldid(S).
+{
+	if (S->kind == CONST)
 	{
-		emit_mid_subp(intptr_type->u.type.width);
-		return intptr_type;
+		emit_mid_constant(S->u.constant);
+		T = NULL;
 	}
 	else
 	{
-		emit_mid_sub(lhs ? lhs->u.type.width : 0);
-		return lhs;
+		emit_mid_address(S);
+		T = make_pointer_type(S->u.var.type);
 	}
 }
 
-static void resolve_untyped_constants_simply(struct symbol** lhs, struct symbol** rhs)
+lvalue(T) ::= OPENSQ expression(T1) CLOSESQ.
 {
-	if (*lhs && !*rhs)
-		*rhs = *lhs;
-	else if (!*lhs && *rhs)
-		*lhs = *rhs;
-	else if (*lhs != *rhs)
-		fatal("type mismatch with %s and %s", (*lhs)->name, (*rhs)->name);
+	if (!is_ptr(T1))
+		fatal("cannot dereference non-pointers");
+	T = T1;
 }
 
-static struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(int width))
+lvalue(T) ::= lvalue(TL) OPENSQ expression(TE) CLOSESQ.
 {
-	resolve_untyped_constants_simply(&lhs, &rhs);
-	if (!is_num(lhs) || !is_num(rhs))
-		fatal("number required");
-
-	emitter(lhs ? lhs->u.type.width : 0);
-	return lhs;
-}
-
-static struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
-	void (*emitteru)(int width),
-	void (*emitters)(int width))
-{
-	resolve_untyped_constants_simply(&lhs, &rhs);
-	if (!is_num(lhs) || !is_num(rhs))
-		fatal("number required");
-
-	(is_snum(lhs) ? emitters : emitteru)(lhs ? lhs->u.type.width : 0);
-	return lhs;
-}
-
-static void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-	void (*emitteru)(int width, int truelabel, int falselabel),
-	void (*emitters)(int width, int truelabel, int falselabel),
-	void (*emitterp)(int truelabel, int falselabel))
-{
-	resolve_untyped_constants_simply(&lhs, &rhs);
-	if (lhs != rhs)
-		fatal("you tried to compare a %s and a %s", lhs->name, rhs->name);
-
-	if (is_ptr(lhs))
-		emitterp(truelabel, falselabel);
+	struct symbol* array;
+	if (is_array_ptr(TL))
+	{
+		/* Direct reference to array. */
+		array = TL->u.type.element;
+	}
+	else if (is_ptr(TL) && is_array_ptr(TL->u.type.element))
+	{
+		/* Pointer to array. */
+		array = TL->u.type.element->u.type.element;
+		emit_mid_load(intptr_type->u.type.width);
+	}
 	else
-		(is_snum(lhs) ? emitters : emitteru)(lhs->u.type.width, truelabel, falselabel);
-}
-
-struct symbol* add_new_symbol(struct namespace* namespace, const char* name)
-{
-	if (!namespace)
-		namespace = &current_sub->namespace;
+		fatal("you can only index arrays, not a %s", TL->u.type.element->name);
+	if (!is_num(TE))
+			fatal("array indices must be numbers");
 	
-	struct symbol* sym;
-	if (name)
+	check_expression_type(&TE, intptr_type);
+	emit_mid_constant(array->u.type.element->u.type.width);
+	emit_mid_mul(intptr_type->u.type.width);
+	emit_mid_add(intptr_type->u.type.width);
+	T = make_pointer_type(array->u.type.element);
+}
+
+lvalue(T) ::= lvalue(LHS) DOT ID(X).
+{
+    /* Remember that T is a *pointer* to the record (or a pointer to a
+	 * pointer). */
+	struct symbol* record;
+	if (is_record_ptr(LHS))
 	{
-		sym = namespace->firstsymbol;
-		while (sym)
-		{
-			if (strcmp(sym->name, name) == 0)
-				fatal("symbol '%s' is already defined", name);
-			sym = sym->next;
-		}
+		/* Direct reference to record. */
+		record = LHS->u.type.element;
 	}
-
-	sym = calloc(1, sizeof(struct symbol));
-	sym->name = name ? strdup(name) : NULL;
-
-	if (name)
+	else if (is_ptr(LHS) && is_record_ptr(LHS->u.type.element))
 	{
-		if (!namespace->lastsymbol)
-			namespace->firstsymbol = namespace->lastsymbol = sym;
-		else
-		{
-			namespace->lastsymbol->next = sym;
-			namespace->lastsymbol = sym;
-		}
+		/* Pointer to record. */
+		record = LHS->u.type.element->u.type.element;
+		emit_mid_load(intptr_type->u.type.width);
 	}
-	return sym;
-}
-
-struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
-{
-	if (!namespace)
-		namespace = &current_sub->namespace;
-
-	while (namespace)
-	{
-		struct symbol* sym = namespace->firstsymbol;
-		while (sym)
-		{
-			if (strcmp(sym->name, name) == 0)
-				return sym;
-			sym = sym->next;
-		}
-		namespace = namespace->parent;
-	}
-
-	fatal("symbol '%s' not found", name);
-	return NULL;
-}
-
-static void init_var(struct symbol* sym, struct symbol* type)
-{
-	sym->u.var.type = type;
-	sym->u.var.sub = current_sub;
-	sym->u.var.offset = current_sub->workspace;
-	arch_init_variable(sym);
-	current_sub->workspace += type->u.type.width;
-}
-
-static void init_member(struct symbol* sym, struct symbol* type)
-{
-	sym->u.var.type = type;
-	sym->u.var.offset = current_type->u.type.width;
-	current_type->u.type.width += type->u.type.width;
-}
-
-/* node must be on the top of the midend stack. */
-static void check_expression_type(struct symbol** node, struct symbol* type)
-{
-	if (!*node)
-		*node = type;
-
-	if (*node != type)
-		fatal("type mismatch: expression was a '%s', used when a '%s' was expected",
-			(*node)->name, type->name);
-	if (!is_ptr(type) && !is_num(type))
-		fatal("%s cannot be used in this kind of expression", type->name);
-}
-
-struct symbol* make_number_type(const char* name, int width, bool issigned)
-{
-	struct symbol* ptr = add_new_symbol(NULL, name);
-	ptr->name = name;
-	ptr->kind = TYPE;
-	ptr->u.type.kind = TYPE_NUMBER;
-	ptr->u.type.width = width;
-	ptr->u.type.issigned = issigned;
-	return ptr;
-}
-
-static struct symbol* make_pointer_type(struct symbol* type)
-{
-	if (type->u.type.pointerto)
-		return type->u.type.pointerto;
 	else
-	{
-		struct symbol* ptr = add_new_symbol(NULL, NULL);
-		ptr->name = aprintf("[%s]", type->name);
-		ptr->kind = TYPE;
-		ptr->u.type.kind = TYPE_POINTER;
-		ptr->u.type.width = intptr_type->u.type.width;
-		ptr->u.type.element = type;
-		type->u.type.pointerto = ptr;
-		return ptr;
-	}
+		fatal("you can only access members of records");
+
+	struct symbol* member = lookup_symbol(&record->u.type.namespace, X->string);
+	if (!member)
+		fatal("%s does not contain member '%s'", record->name, X->string);
+
+	emit_mid_constant(member->u.var.offset);
+	emit_mid_add(intptr_type->u.type.width);
+	T = make_pointer_type(member->u.var.type);
 }
 
-static struct symbol* make_array_type(struct symbol* type, int32_t size)
+%type newid {struct symbol*}
+newid(S) ::= ID(token).
 {
-	struct symbol* ptr = add_new_symbol(NULL, NULL);
-	ptr->name = aprintf("%s[%d]", type->name, size);
-	ptr->kind = TYPE;
-	ptr->u.type.kind = TYPE_ARRAY;
-	ptr->u.type.width = size * type->u.type.width;
-	ptr->u.type.element = type;
-	return ptr;
+    S = add_new_symbol(NULL, token->string);
 }
 
-static void unescape(char* string)
+%type oldid {struct symbol*}
+oldid(S) ::= ID(token).
 {
-	char* pin = string;
-	char* pout = string;
-	char c = *pin++;
-	for (;;)
-	{
-		if (c == '\\')
-		{
-			c = *pin++;
-			switch (c)
-			{
-				case 'n': c = '\n'; break;
-				case 'r': c = '\r'; break;
-				case '"': c = '"'; break;
-				case '\\': c = '\\'; break;
-				default: fatal("unknown string escape");
-			}
-		}
-		*pout++ = c;
-		if (!c)
-			break;
-		c = *pin++;
-	}
+    S = lookup_symbol(NULL, token->string);
 }
 
-static void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off)
+/* --- Conditional expressions ------------------------------------------- */
+
+%type conditional {struct condlabels}
+conditional(L) ::= OPENPAREN conditional(L1) CLOSEPAREN.
 {
-	node->type = type;
-	node->sym = sym;
-	node->off = off;
-	node->constant = true;
+	L = L1;
+	last_condition = &L;
 }
 
-static void node_is_stacked(struct exprnode* node, struct symbol* type)
+conditional(L) ::= NOT conditional(L1).
 {
-	node->type = type;
-	node->sym = NULL;
-	node->off = 0;
-	node->constant = false;
+	L.truelabel = L1.falselabel;
+	L.falselabel = L1.truelabel;
+	last_condition = &L;
 }
 
+conditional(L) ::= conditional(L1) AND andlabel conditional(L2).
+{
+	emit_mid_labelalias(L1.falselabel, L2.falselabel);
+	L.truelabel = L2.truelabel;
+	L.falselabel = L2.falselabel;
+	last_condition = &L;
+}
+
+conditional(L) ::= conditional(L1) OR orlabel conditional(L2).
+{
+	emit_mid_labelalias(L1.truelabel, L2.truelabel);
+	L.truelabel = L2.truelabel;
+	L.falselabel = L2.falselabel;
+	last_condition = &L;
+}
+
+andlabel ::= .
+{
+	emit_mid_label(last_condition->truelabel);
+}
+
+orlabel ::= .
+{
+	emit_mid_label(last_condition->falselabel);
+}
+
+conditional(L) ::= expression(T1) EQOP expression(T2).
+{
+	L.truelabel = current_label++;
+	L.falselabel = current_label++;
+	cond_simple(L.truelabel, L.falselabel, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
+	last_condition = &L;
+}
+
+conditional(L) ::= expression(T1) NEOP expression(T2).
+{
+	L.truelabel = current_label++;
+	L.falselabel = current_label++;
+	cond_simple(L.falselabel, L.truelabel, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
+	last_condition = &L;
+}
+
+conditional(L) ::= expression(T1) LTOP expression(T2).
+{
+	L.truelabel = current_label++;
+	L.falselabel = current_label++;
+	cond_simple(L.truelabel, L.falselabel, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
+	last_condition = &L;
+}
+
+conditional(L) ::= expression(T1) GEOP expression(T2).
+{
+	L.truelabel = current_label++;
+	L.falselabel = current_label++;
+	cond_simple(L.falselabel, L.truelabel, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
+	last_condition = &L;
+}
+
+conditional(L) ::= expression(T1) GTOP expression(T2).
+{
+	L.truelabel = current_label++;
+	L.falselabel = current_label++;
+	cond_simple(L.truelabel, L.falselabel, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
+	last_condition = &L;
+}
+
+conditional(L) ::= expression(T1) LEOP expression(T2).
+{
+	L.truelabel = current_label++;
+	L.falselabel = current_label++;
+	cond_simple(L.falselabel, L.truelabel, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
+	last_condition = &L;
+}
+
+/* --- Types ------------------------------------------------------------- */
+
+typeref(sym) ::= oldid(id).
+{
+    sym = id;
+    if (sym->kind != TYPE)
+        fatal("expected '%s' to be a type", sym->name);
+}
+
+typeref(sym) ::= typeref(basetype) OPENSQ cvalue(value) CLOSESQ.
+{
+	sym = make_array_type(basetype, value);
+}
+
+typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
+{
+	sym = make_pointer_type(basetype);
+}
+
+/* --- Records ----------------------------------------------------------- */
+
+statement ::= recordstatement.
+
+%destructor recordstatement { current_type = NULL; }
+recordstatement ::= RECORD recordstart recordmembers END RECORD.
+
+recordstart ::= newid(S).
+{
+	current_type = S;
+	current_type->kind = TYPE;
+	current_type->u.type.kind = TYPE_RECORD;
+}
+
+recordmembers ::= .
+recordmembers ::= recordmember recordmembers.
+
+recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
+{
+	S->kind = VAR;
+	init_member(S, T);
+}
+
+%type memberid {struct symbol*}
+memberid(S) ::= ID(X).
+{
+	S = add_new_symbol(&current_type->u.type.namespace, X->string);
+}
+
+/* --- Inline assembly --------------------------------------------------- */
+
+statement ::= asmstart asms SEMICOLON.
+{
+	emit_mid_asmend();
+}
+
+asmstart ::= ASM.
+{
+	emit_mid_asmstart();
+}
+
+asms ::= asm.
+asms ::= asm COMMA asms.
+
+asm ::= STRING(token).
+{
+	unescape(token->string);
+	emit_mid_asmtext(strdup(token->string));
+}
+
+asm ::= oldid(ID).
+{
+	if (ID->kind != VAR)
+		fatal("you can only emit references to variables");
+	emit_mid_asmsymbol(ID);
+}

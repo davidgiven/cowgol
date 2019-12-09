@@ -248,8 +248,19 @@ ADDRESS(sym) -- address(sym, 0)
 
 // --- Function calls -------------------------------------------------------
 
-PARAM(n) --
+i1 PARAM(1) -- i1
     regalloc_flush_stack();
+
+constant(n) PARAM(1) -- i1 PARAM(1)
+    reg_t r = regalloc_load_const(REG_A, n);
+    regalloc_push(r);
+
+i2 PARAM(2) -- i2
+    regalloc_flush_stack();
+
+constant(n) PARAM(2) -- i2 PARAM(2)
+    reg_t r = regalloc_load_const(REG_16, n);
+    regalloc_push(r);
 
 CALL(sub) --
     if (sub->externname)
@@ -260,6 +271,7 @@ CALL(sub) --
     }
 
     regalloc_reg_changing(ALL_REGS);
+    arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
     E("\tcall %s\n", subref(sub));
     regalloc_drop_stack_items(sub->inputparameters);
     vsp -= sub->inputparameters;
@@ -604,6 +616,8 @@ i1 constant(n) BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
             E("\tjmp %s\n", labelref(falselabel));
     }
     E("%s:\n", labelref(nextlabel));
+
+BEQS(n, truelabel, falselabel) LABELALIAS(newlabel, oldlabel) LABEL(nextlabel) -- BEQS(n, truelabel, falselabel) LABEL(nextlabel) LABELALIAS(newlabel, oldlabel)
 
 BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
 BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)

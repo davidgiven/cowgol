@@ -39,9 +39,9 @@ rule mkpat
     command = lua mkpat.lua -- \$in \$out
     description = MKPAT \$in
 
-rule yacc
-    command = yacc --report=all --report-file=report.txt --defines=\$hfile -o \$cfile \$in
-    description = YACC \$in
+rule lemon
+    command = mkdir -p \$cfile.temp && lemon -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    description = LEMON \$in
 
 rule buildcowgol
     command = \$builder \$in \$out
@@ -186,12 +186,12 @@ buildflex() {
     echo "build $1 : flex $2"
 }
 
-buildyacc() {
+buildlemon() {
     local cfile
     local hfile
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
-    echo "build $cfile $hfile : yacc $2"
+    echo "build $cfile $hfile : lemon $2"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -292,7 +292,7 @@ pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
 
-buildyacc $OBJDIR/parser.c parser.y
+buildlemon $OBJDIR/parser.c parser.y
 buildflex $OBJDIR/lexer.c lexer.l
 buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
 buildmkpat $OBJDIR/arch8080.c midcodes.tab arch8080.pat
@@ -308,7 +308,8 @@ buildlibrary libmain.a \
     main.c \
     emitter.c \
     midcode.c \
-    regalloc.c
+    regalloc.c \
+    compiler.c
 
 buildlibrary libagc.a \
     -I$OBJDIR \
@@ -362,9 +363,11 @@ test_cpm addsub-8bit
 test_cpm addsub-16bit
 #test_cpm addsub-32bit
 test_cpm records
+test_cpm inputparams
 
 test_c addsub-8bit
 test_c addsub-16bit
 test_c addsub-32bit
 test_c records
+test_c inputparams
 
