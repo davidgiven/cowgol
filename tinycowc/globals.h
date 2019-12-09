@@ -86,27 +86,6 @@ struct exprnode
 	bool constant : 1;
 };
 
-struct condlabels
-{
-	int truelabel;
-	int falselabel;
-};
-
-struct looplabels
-{
-	int looplabel;
-	int exitlabel;
-	int old_break_label;
-};
-
-struct argumentsspec
-{
-	struct subroutine* sub;
-	int number;
-	struct symbol* param;
-	struct argumentsspec* previous_call;
-};
-
 #define yyerror(s) fatal(s)
 extern void* open_file(const char* filename);
 extern void include_file(void* buffer);

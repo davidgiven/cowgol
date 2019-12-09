@@ -14,6 +14,37 @@
     static int break_label;
 	static struct condlabels* last_condition;
 
+	struct condlabels
+	{
+		int truelabel;
+		int falselabel;
+	};
+
+	struct iflabels
+	{
+		int exitlabel;
+		int truelabel;
+		int falselabel;
+		struct iflabels* next;
+	};
+	static struct iflabels* current_if;
+
+	struct looplabels
+	{
+		int looplabel;
+		int exitlabel;
+		int old_break_label;
+	};
+
+	struct argumentsspec
+	{
+		struct subroutine* sub;
+		int number;
+		struct symbol* param;
+		struct argumentsspec* next;
+	};
+	static struct argumentsspec* current_call;
+
 	#undef NDEBUG
 }
 
@@ -55,11 +86,15 @@
 program ::= statements.
 
 statements ::= /* empty */.
-statements ::= statement statements.
+statements ::= statements statement.
 
 /* --- Top-level statements ---------------------------------------------- */
 
 statement ::= SEMICOLON.
+
+/* --- Simple statements ------------------------------------------------- */
+
+statement ::= RETURN SEMICOLON. { emit_mid_return(); }
 
 /* --- Variable declaration ---------------------------------------------- */
 
@@ -87,6 +122,7 @@ typedvardecl(V) ::= VAR newid(S) COLON typeref(T).
     S->kind = VAR;
     init_var(S, T);
 	V = S;
+	emit_mid_address(V);
 }
 
 %type untypedvardecl {struct symbol*}
@@ -96,6 +132,41 @@ untypedvardecl(T) ::= VAR newid(S).
 	emit_mid_address(S);
 	T = S;
 }
+
+/* --- If...Then...Else...End if ----------------------------------------- */
+
+statement ::= ifstatement.
+
+%destructor if_begin { current_if = current_if->next; }
+ifstatement ::= IF if_begin if_conditional THEN
+	if_statements if_optional_else END IF.
+{
+	emit_mid_label(current_if->exitlabel);
+}
+
+if_begin ::= .
+{
+	struct iflabels* i = calloc(1, sizeof(struct iflabels));
+	i->next = current_if;
+	current_if = i;
+	current_if->exitlabel = current_label++;
+}
+
+if_conditional ::= conditional(C).
+{
+	current_if->truelabel = C.truelabel;
+	current_if->falselabel = C.falselabel;
+	emit_mid_label(current_if->truelabel);
+}
+
+if_statements ::= statements.
+{
+	emit_mid_jump(current_if->exitlabel);
+	emit_mid_label(current_if->falselabel);
+}
+
+if_optional_else ::= .
+if_optional_else ::= ELSE statements.
 
 /* --- Simple loops ------------------------------------------------------ */
 
@@ -143,8 +214,53 @@ statement ::= whilestatement2(L) LOOP statements END LOOP.
 	break_label = L.old_break_label;
 }
 
+/* --- Subroutine calls -------------------------------------------------- */
 
-/* --- Subroutines ------------------------------------------------------- */
+statement ::= subroutinecallstatement.
+
+subcall_begin ::= oldid(S) OPENPAREN.
+{
+	if (S->kind != SUB)
+		fatal("expected '%s' to be a subroutine", S->name);
+
+	struct argumentsspec* n = calloc(1, sizeof(struct argumentsspec));
+	n->next = current_call;
+	current_call = n;
+	current_call->sub = S->u.sub;
+	current_call->param = current_call->sub->namespace.firstsymbol;
+}
+
+%destructor subroutinecallstatement { current_call = current_call->next; }
+subroutinecallstatement ::= subcall_begin optionalarguments CLOSEPAREN.
+{
+	if (current_call->number != current_call->sub->inputparameters)
+		fatal("expected %d parameters but only got %d",
+			current_call->sub->inputparameters, current_call->number);
+
+	emit_mid_call(current_call->sub);
+}
+
+optionalarguments ::= .
+optionalarguments ::= arguments.
+
+arguments ::= argument.
+arguments ::= argument COMMA arguments.
+
+argument ::= expression(T).
+{
+	if (current_call->number == current_call->sub->inputparameters)
+		fatal("too many input parameters (expected %d)",
+			current_call->sub->inputparameters);
+
+	struct symbol* param = current_call->param;
+	current_call->param = param->next;
+	current_call->number++;
+
+	check_expression_type(&T, param->u.var.type);
+	emit_mid_param(T->u.type.width);
+}
+
+/* --- Subroutine definitions -------------------------------------------- */
 
 statement ::= EXTERN startsubroutine(oldsub) parameterlist
 	ASSIGN STRING(nametoken) SEMICOLON.
@@ -200,6 +316,16 @@ parameter ::= newid(id) COLON typeref(type).
 	current_sub->inputparameters++;
 }
 
+/* --- Assignments ------------------------------------------------------- */
+
+statement ::= lvalue(S) ASSIGN expression(T) SEMICOLON.
+{
+	if (!is_ptr(S))
+		fatal("you can only assign to lvalues");
+	check_expression_type(&T, S->u.type.element);
+	emit_mid_store(S->u.type.element->u.type.width);
+}
+
 /* --- Constant expressions ---------------------------------------------- */
 
 %type cvalue {int32_t}
@@ -217,12 +343,26 @@ cvalue(value) ::= oldid(sym).
 		fatal("only constants can be used here");
 	value = sym->u.constant;
 }
+
+statement ::= CONST newid(S) ASSIGN cvalue(V) SEMICOLON.
+{
+	S->kind = CONST;
+	S->u.constant = V;
+}
+
 /* --- Expressions ------------------------------------------------------- */
 
 expression(T) ::= NUMBER(N).
 {
 	emit_mid_constant(N->number);
 	T = NULL;
+}
+
+expression(T) ::= STRING(S).
+{
+	unescape(S->string);
+	emit_mid_string(strdup(S->string));
+	T = make_pointer_type(uint8_type);
 }
 
 expression(T) ::= lvalue(T1).
@@ -275,6 +415,60 @@ lvalue(T) ::= OPENSQ expression(T1) CLOSESQ.
 	T = T1;
 }
 
+lvalue(T) ::= lvalue(TL) OPENSQ expression(TE) CLOSESQ.
+{
+	struct symbol* array;
+	if (is_array_ptr(TL))
+	{
+		/* Direct reference to array. */
+		array = TL->u.type.element;
+	}
+	else if (is_ptr(TL) && is_array_ptr(TL->u.type.element))
+	{
+		/* Pointer to array. */
+		array = TL->u.type.element->u.type.element;
+		emit_mid_load(intptr_type->u.type.width);
+	}
+	else
+		fatal("you can only index arrays, not a %s", TL->u.type.element->name);
+	if (!is_num(TE))
+			fatal("array indices must be numbers");
+	
+	check_expression_type(&TE, intptr_type);
+	emit_mid_constant(array->u.type.element->u.type.width);
+	emit_mid_mul(intptr_type->u.type.width);
+	emit_mid_add(intptr_type->u.type.width);
+	T = make_pointer_type(array->u.type.element);
+}
+
+lvalue(T) ::= lvalue(LHS) DOT ID(X).
+{
+    /* Remember that T is a *pointer* to the record (or a pointer to a
+	 * pointer). */
+	struct symbol* record;
+	if (is_record_ptr(LHS))
+	{
+		/* Direct reference to record. */
+		record = LHS->u.type.element;
+	}
+	else if (is_ptr(LHS) && is_record_ptr(LHS->u.type.element))
+	{
+		/* Pointer to record. */
+		record = LHS->u.type.element->u.type.element;
+		emit_mid_load(intptr_type->u.type.width);
+	}
+	else
+		fatal("you can only access members of records");
+
+	struct symbol* member = lookup_symbol(&record->u.type.namespace, X->string);
+	if (!member)
+		fatal("%s does not contain member '%s'", record->name, X->string);
+
+	emit_mid_constant(member->u.var.offset);
+	emit_mid_add(intptr_type->u.type.width);
+	T = make_pointer_type(member->u.var.type);
+}
+
 %type newid {struct symbol*}
 newid(S) ::= ID(token).
 {
@@ -303,19 +497,13 @@ conditional(L) ::= NOT conditional(L1).
 	last_condition = &L;
 }
 
-//%type conditionaland {struct condlabels}
-//conditionaland(L) ::= conditional(L1) AND.
-//{
-//	emit_mid_label(L1.truelabel);
-//	L = L1;
-//}
-//
-//conditional(L) ::= conditionaland(L1) conditional(L2).
-//{
-//	emit_mid_labelalias(L1.falselabel, L2.falselabel);
-//	L.truelabel = L2.truelabel;
-//	L.falselabel = L2.falselabel;
-//}
+conditional(L) ::= conditional(L1) AND andlabel conditional(L2).
+{
+	emit_mid_labelalias(L1.falselabel, L2.falselabel);
+	L.truelabel = L2.truelabel;
+	L.falselabel = L2.falselabel;
+	last_condition = &L;
+}
 
 conditional(L) ::= conditional(L1) OR orlabel conditional(L2).
 {
@@ -323,6 +511,11 @@ conditional(L) ::= conditional(L1) OR orlabel conditional(L2).
 	L.truelabel = L2.truelabel;
 	L.falselabel = L2.falselabel;
 	last_condition = &L;
+}
+
+andlabel ::= .
+{
+	emit_mid_label(last_condition->truelabel);
 }
 
 orlabel ::= .
@@ -395,6 +588,35 @@ typeref(sym) ::= typeref(basetype) OPENSQ cvalue(value) CLOSESQ.
 typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
 {
 	sym = make_pointer_type(basetype);
+}
+
+/* --- Records ----------------------------------------------------------- */
+
+statement ::= recordstatement.
+
+%destructor recordstatement { current_type = NULL; }
+recordstatement ::= RECORD recordstart recordmembers END RECORD.
+
+recordstart ::= newid(S).
+{
+	current_type = S;
+	current_type->kind = TYPE;
+	current_type->u.type.kind = TYPE_RECORD;
+}
+
+recordmembers ::= .
+recordmembers ::= recordmember recordmembers.
+
+recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
+{
+	S->kind = VAR;
+	init_member(S, T);
+}
+
+%type memberid {struct symbol*}
+memberid(S) ::= ID(X).
+{
+	S = add_new_symbol(&current_type->u.type.namespace, X->string);
 }
 
 /* --- Inline assembly --------------------------------------------------- */

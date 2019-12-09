@@ -10,7 +10,6 @@
 int32_t number;
 struct subroutine* current_sub;
 struct symbol* current_type;
-struct argumentsspec* current_call;
 struct symbol* intptr_type;
 struct symbol* uint8_type;
 

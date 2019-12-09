@@ -3,7 +3,6 @@
 
 extern int32_t number;
 extern struct symbol* current_type;
-extern struct argumentsspec* current_call;
 
 extern bool is_ptr(struct symbol* sym);
 extern bool is_num(struct symbol* sym);
