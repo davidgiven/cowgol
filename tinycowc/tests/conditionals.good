@@ -1,0 +1,7 @@
+one==ONE: yes
+one!=ONE: no
+one==ONE and zero==ZERO: yes
+one==ONE and zero==ONE: no
+one==ONE or zero==ONE: yes
+one==ZERO or zero==ZERO: yes
+one==ZERO or (one==ONE and zero==ZERO: yes

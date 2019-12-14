@@ -152,10 +152,10 @@ if_begin ::= .
 	current_if->exitlabel = current_label++;
 }
 
-if_conditional ::= conditional(C).
+if_conditional ::= startconditional conditional.
 {
-	current_if->truelabel = C.truelabel;
-	current_if->falselabel = C.falselabel;
+	current_if->truelabel = condtrue;
+	current_if->falselabel = condfalse;
 	emit_mid_label(current_if->truelabel);
 }
 
@@ -193,18 +193,18 @@ startloopstatement(labels) ::= LOOP.
 whilestatement1(L) ::= WHILE.
 {
 	L.looplabel = current_label++;
-	L.exitlabel = current_label++;
+	L.exitlabel = 0;
 	L.old_break_label = break_label;
-	break_label = L.exitlabel;
+	break_label = 0;
 	emit_mid_label(L.looplabel);
 }
 
 %type whilestatement2 {struct looplabels}
-whilestatement2(L) ::= whilestatement1(L1) conditional(C).
+whilestatement2(L) ::= whilestatement1(L1) startconditional conditional.
 {
 	L = L1;
-	emit_mid_label(C.truelabel);
-	emit_mid_labelalias(C.falselabel, L.exitlabel);
+	emit_mid_label(condtrue);
+	L.exitlabel = break_label = condfalse;
 }
 
 statement ::= whilestatement2(L) LOOP statements END LOOP.
@@ -483,92 +483,70 @@ oldid(S) ::= ID(token).
 
 /* --- Conditional expressions ------------------------------------------- */
 
-%type conditional {struct condlabels}
-conditional(L) ::= OPENPAREN conditional(L1) CLOSEPAREN.
+%include
 {
-	L = L1;
-	last_condition = &L;
+	static int condtrue;
+	static int condfalse;
 }
 
-conditional(L) ::= NOT conditional(L1).
+startconditional ::= .
 {
-	L.truelabel = L1.falselabel;
-	L.falselabel = L1.truelabel;
-	last_condition = &L;
+	condtrue = current_label++;
+	condfalse = current_label++;
 }
 
-conditional(L) ::= conditional(L1) AND andlabel conditional(L2).
+conditional ::= OPENPAREN conditional CLOSEPAREN.
+
+conditional ::= NOT conditional.
 {
-	emit_mid_labelalias(L1.falselabel, L2.falselabel);
-	L.truelabel = L2.truelabel;
-	L.falselabel = L2.falselabel;
-	last_condition = &L;
+	int t = condtrue;
+	condtrue = condfalse;
+	condfalse = t;
 }
 
-conditional(L) ::= conditional(L1) OR orlabel conditional(L2).
+conditional ::= conditional AND condand conditional.
+conditional ::= conditional OR condor conditional.
+
+condand ::= .
 {
-	emit_mid_labelalias(L1.truelabel, L2.truelabel);
-	L.truelabel = L2.truelabel;
-	L.falselabel = L2.falselabel;
-	last_condition = &L;
+	emit_mid_label(condtrue);
+	condtrue = current_label++;
 }
 
-andlabel ::= .
+condor ::= .
 {
-	emit_mid_label(last_condition->truelabel);
+	emit_mid_label(condfalse);
+	condfalse = current_label++;
 }
 
-orlabel ::= .
+conditional ::= expression(T1) EQOP expression(T2).
 {
-	emit_mid_label(last_condition->falselabel);
+	cond_simple(condtrue, condfalse, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
 }
 
-conditional(L) ::= expression(T1) EQOP expression(T2).
+conditional ::= expression(T1) NEOP expression(T2).
 {
-	L.truelabel = current_label++;
-	L.falselabel = current_label++;
-	cond_simple(L.truelabel, L.falselabel, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
-	last_condition = &L;
+	cond_simple(condfalse, condtrue, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
 }
 
-conditional(L) ::= expression(T1) NEOP expression(T2).
+conditional ::= expression(T1) LTOP expression(T2).
 {
-	L.truelabel = current_label++;
-	L.falselabel = current_label++;
-	cond_simple(L.falselabel, L.truelabel, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
-	last_condition = &L;
+	cond_simple(condtrue, condfalse, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
 }
 
-conditional(L) ::= expression(T1) LTOP expression(T2).
+conditional ::= expression(T1) GEOP expression(T2).
 {
-	L.truelabel = current_label++;
-	L.falselabel = current_label++;
-	cond_simple(L.truelabel, L.falselabel, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
-	last_condition = &L;
+	cond_simple(condfalse, condtrue, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
 }
 
-conditional(L) ::= expression(T1) GEOP expression(T2).
+conditional ::= expression(T1) GTOP expression(T2).
 {
-	L.truelabel = current_label++;
-	L.falselabel = current_label++;
-	cond_simple(L.falselabel, L.truelabel, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
-	last_condition = &L;
+	cond_simple(condtrue, condfalse, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
 }
 
-conditional(L) ::= expression(T1) GTOP expression(T2).
+conditional ::= expression(T1) LEOP expression(T2).
 {
-	L.truelabel = current_label++;
-	L.falselabel = current_label++;
-	cond_simple(L.truelabel, L.falselabel, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
-	last_condition = &L;
-}
-
-conditional(L) ::= expression(T1) LEOP expression(T2).
-{
-	L.truelabel = current_label++;
-	L.falselabel = current_label++;
-	cond_simple(L.falselabel, L.truelabel, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
-	last_condition = &L;
+	cond_simple(condfalse, condtrue, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
 }
 
 /* --- Types ------------------------------------------------------------- */
