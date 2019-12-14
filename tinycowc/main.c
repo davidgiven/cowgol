@@ -63,7 +63,7 @@ int main(int argc, const char* argv[])
 	emit_mid_startsub(current_sub);
 
 	void* parser = ParseAlloc(malloc);
-	ParseTrace(stderr, "P:");
+	// ParseTrace(stderr, "P:");
 
 	for (;;)
 	{
