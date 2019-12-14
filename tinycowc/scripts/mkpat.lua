@@ -1,4 +1,4 @@
-require "./libcowgol"
+require "./scripts/libcowgol"
 
 local args = {...}
 local midcodetab = args[2]

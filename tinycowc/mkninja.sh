@@ -1,13 +1,6 @@
 #!/bin/sh
 set -e
 
-registertarget() {
-	eval TARGET_$1_COMPILER=$2
-	eval TARGET_$1_BUILDER=$3
-}
-
-registertarget cpm tinycowc-8080 scripts/build-cpm.sh scripts/run-cpm.sh
-
 cat <<EOF
 rule cc
     command = $CC $CFLAGS \$flags -I. -c -o \$out \$in -MMD -MF \$out.d
@@ -32,11 +25,11 @@ rule flex
     description = FLEX \$in
 
 rule mkmidcodes
-    command = lua mkmidcodes.lua -- \$in \$out
+    command = lua scripts/mkmidcodes.lua -- \$in \$out
     description = MKMIDCODES \$in
 
 rule mkpat
-    command = lua mkpat.lua -- \$in \$out
+    command = lua scripts/mkpat.lua -- \$in \$out
     description = MKPAT \$in
 
 rule lemon
@@ -197,14 +190,14 @@ buildlemon() {
 }
 
 buildmkmidcodes() {
-    echo "build $1 : mkmidcodes $2 | mkmidcodes.lua libcowgol.lua"
+    echo "build $1 : mkmidcodes $2 | scripts/mkmidcodes.lua scripts/libcowgol.lua"
 }
 
 buildmkpat() {
     local out
     out=$1
     shift
-    echo "build $out : mkpat $@ | mkpat.lua libcowgol.lua"
+    echo "build $out : mkpat $@ | scripts/mkpat.lua scripts/libcowgol.lua"
 }
 
 zmac8() {
@@ -292,37 +285,41 @@ pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
 
-buildlemon $OBJDIR/parser.c parser.y
-buildflex $OBJDIR/lexer.c lexer.l
-buildmkmidcodes $OBJDIR/midcodes.h midcodes.tab
-buildmkpat $OBJDIR/arch8080.c midcodes.tab arch8080.pat
-buildmkpat $OBJDIR/archagc.c midcodes.tab archagc.pat
-buildmkpat $OBJDIR/archc.c midcodes.tab archc.pat
+buildlemon $OBJDIR/parser.c src/parser.y
+buildflex $OBJDIR/lexer.c src/lexer.l
+buildmkmidcodes $OBJDIR/midcodes.h src/midcodes.tab
+buildmkpat $OBJDIR/arch8080.c src/midcodes.tab src/arch8080.pat
+buildmkpat $OBJDIR/archagc.c src/midcodes.tab src/archagc.pat
+buildmkpat $OBJDIR/archc.c src/midcodes.tab src/archc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
+    -Isrc \
 	--dep $OBJDIR/parser.h \
 	--dep $OBJDIR/midcodes.h \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
-    main.c \
-    emitter.c \
-    midcode.c \
-    regalloc.c \
-    compiler.c
+    src/main.c \
+    src/emitter.c \
+    src/midcode.c \
+    src/regalloc.c \
+    src/compiler.c
 
 buildlibrary libagc.a \
     -I$OBJDIR \
+    -Isrc \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/archagc.c \
 
 buildlibrary lib8080.a \
     -I$OBJDIR \
+    -Isrc \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/arch8080.c \
 
 buildlibrary libc.a \
     -I$OBJDIR \
+    -Isrc \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/archc.c \
 

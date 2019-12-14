@@ -1,4 +1,4 @@
-require "./libcowgol"
+require "./scripts/libcowgol"
 
 local args = {...}
 local infilename = args[2]
