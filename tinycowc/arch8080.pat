@@ -238,10 +238,6 @@ LABEL(label) --
     regalloc_reg_changing(ALL_REGS);
     E("%s:\n", labelref(label));
 
-LABELALIAS(newlabel, oldlabel) --
-    E("%s\t", labelref(newlabel));
-    E("= %s\n", labelref(oldlabel));
-
 CONSTANT(val) -- constant(val)
 
 ADDRESS(sym) -- address(sym, 0)
@@ -616,8 +612,6 @@ i1 constant(n) BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
             E("\tjmp %s\n", labelref(falselabel));
     }
     E("%s:\n", labelref(nextlabel));
-
-BEQS(n, truelabel, falselabel) LABELALIAS(newlabel, oldlabel) LABEL(nextlabel) -- BEQS(n, truelabel, falselabel) LABEL(nextlabel) LABELALIAS(newlabel, oldlabel)
 
 BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
 BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)

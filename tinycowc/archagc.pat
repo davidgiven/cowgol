@@ -272,10 +272,6 @@ LABEL(label) --
     stackisempty();
     E("%s\n", labelref(label));
 
-LABELALIAS(newlabel, oldlabel) --
-    E("%s\t", labelref(newlabel));
-    E("= %s\n", labelref(oldlabel));
-
 CONSTANT(val) -- constant(val)
 
 ADDRESS(sym) -- address(sym, 0)

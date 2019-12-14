@@ -159,12 +159,6 @@ JUMP(label) --
 LABEL(label) --
     E("%s:;\n", labelref(label));
 
-LABELALIAS(newlabel, oldlabel) --
-    emitter_open_chunk();
-    E("#define %s ", labelref(newlabel));
-    E(" %s\n", labelref(oldlabel));
-    emitter_close_chunk();
-
 CONSTANT(val) -- constant(val)
 
 ADDRESS(sym) -- address(sym, 0)
