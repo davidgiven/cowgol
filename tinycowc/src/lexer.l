@@ -109,10 +109,20 @@ include{SP}+\"[^"]*\"; {
 
 void* open_file(const char* filename)
 {
-	FILE* fp = fopen(filename, "r");
-	if (!fp)
-		fatal("could not open include file '%s'", yytext);
-	return yy_create_buffer(fp, YY_BUF_SIZE);
+	const struct includepath* i = includes;
+	while (i)
+	{
+		char path[PATH_MAX];
+		strcpy(path, i->path);
+		strcat(path, filename);
+
+		FILE* fp = fopen(path, "r");
+		if (fp)
+			return yy_create_buffer(fp, YY_BUF_SIZE);
+
+		i = i->next;
+	}
+	fatal("could not open include file '%s'", filename);
 }
 
 void include_file(void* buffer)

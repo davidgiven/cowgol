@@ -222,7 +222,7 @@ cowgol_cpm_asm() {
 	log=$3
 	deps=$4
 
-	rule "bin/tinycowc-8080 $in $out > $log" "$in $deps bin/tinycowc-8080" "$out $log" "COWGOL 8080 $in"
+	rule "bin/tinycowc-8080 -Irt/cpm $in $out > $log" "$in $deps bin/tinycowc-8080" "$out $log" "COWGOL 8080 $in"
 }
 
 cowgol_cpm() {
@@ -254,7 +254,7 @@ cowgol_c_c() {
 	log=$3
 	deps=$4
 
-	rule "bin/tinycowc-c $in $out > $log" "$in $deps bin/tinycowc-c" "$out $log" "COWGOL C $in"
+	rule "bin/tinycowc-c -Irt/c $in $out > $log" "$in $deps bin/tinycowc-c" "$out $log" "COWGOL C $in"
 }
 
 cowgol_c() {

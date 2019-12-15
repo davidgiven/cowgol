@@ -86,6 +86,14 @@ struct exprnode
 	bool constant : 1;
 };
 
+struct includepath
+{
+	const char* path;
+	const struct includepath* next;
+};
+
+extern struct includepath* includes;
+
 #define yyerror(s) fatal(s)
 extern void* open_file(const char* filename);
 extern void include_file(void* buffer);

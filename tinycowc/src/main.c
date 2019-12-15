@@ -2,11 +2,16 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 #include "globals.h"
 #include "emitter.h"
 #include "midcode.h"
 #include "compiler.h"
 #include "parser.h"
+
+struct includepath* includes;
+static const char* inputfile;
+static const char* outputfile;
 
 void fatal(const char* s, ...)
 {
@@ -45,15 +50,55 @@ const char* aprintf(const char* s, ...)
 	return buffer;
 }
 
-int main(int argc, const char* argv[])
+static void syntax_error(void)
 {
+	fatal("syntax error: cowc [-Ipath] <infile>");
+}
+
+static void add_include_path(const char* path)
+{
+	struct includepath* newinclude = calloc(sizeof(struct includepath), 1);
+	newinclude->path = path;
+	newinclude->next = includes;
+	includes = newinclude;
+}
+
+static void parse_arguments(int argc, char* argv[])
+{
+	for (;;)
+	{
+		int opt = getopt(argc, argv, "I:");
+		if (opt == -1)
+			break;
+		switch (opt)
+		{
+			case 'I':
+				add_include_path(optarg);
+				break;
+			
+			default:
+				syntax_error();
+		}
+	}
+
+	if ((argc - optind) != 2)
+		syntax_error();
+	inputfile = argv[optind+0];
+	outputfile = argv[optind+1];
+}
+
+int main(int argc, char* argv[])
+{
+	parse_arguments(argc, argv);
+	add_include_path("./");
+
 	current_sub = calloc(1, sizeof(struct subroutine));
 	current_sub->name = "__main";
 	current_sub->externname = "cmain";
 
-	include_file(open_file(argv[1]));
+	include_file(open_file(inputfile));
 
-	emitter_open(argv[2]);
+	emitter_open(outputfile);
 	emitter_open_chunk();
 
 	midend_init();
