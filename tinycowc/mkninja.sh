@@ -351,6 +351,22 @@ buildlibrary libcpmemu.a \
 
 buildprogram cpmemu -lz80ex -lz80ex_dasm -lreadline libcpmemu.a
 	
+buildlibrary libtubeemu.a \
+	tools/tubeemu/lib6502.c \
+	tools/tubeemu/bbctube.c
+
+buildprogram tubeemu libtubeemu.a
+
+buildlibrary libmkadfs.a \
+	tools/mkadfs.c
+
+buildprogram mkadfs libmkadfs.a
+
+buildlibrary libmkdfs.a \
+	tools/mkdfs.c
+
+buildprogram mkdfs libmkdfs.a
+
 #runtest cpm addsub-8bit
 
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
