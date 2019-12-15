@@ -169,10 +169,10 @@ buildprogram() {
         objs="$objs $OBJDIR/$src"
     done
 
-    echo "build $prog-debug$EXTENSION : link $objs | $deps"
+    echo "build bin/$prog-debug$EXTENSION : link $objs | $deps"
     echo "    flags=$flags"
 
-    echo build $prog$EXTENSION : strip $prog-debug$EXTENSION
+    echo build bin/$prog$EXTENSION : strip bin/$prog-debug$EXTENSION
 }
 
 buildflex() {
@@ -222,7 +222,7 @@ cowgol_cpm_asm() {
 	log=$3
 	deps=$4
 
-	rule "./tinycowc-8080 $in $out > $log" "$in $deps tinycowc-8080" "$out $log" "COWGOL 8080 $in"
+	rule "bin/tinycowc-8080 $in $out > $log" "$in $deps bin/tinycowc-8080" "$out $log" "COWGOL 8080 $in"
 }
 
 cowgol_cpm() {
@@ -240,7 +240,7 @@ test_cpm() {
 	local base
 	base=$OBJDIR/tests/cpm/$1
 	cowgol_cpm tests/$1.test.cow $base.com tests/_framework.coh
-	rule "./cpmemu $base.com > $base.bad" "cpmemu $base.com" "$base.bad" "TEST_CPM $1"
+	rule "bin/cpmemu $base.com > $base.bad" "bin/cpmemu $base.com" "$base.bad" "TEST_CPM $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -254,7 +254,7 @@ cowgol_c_c() {
 	log=$3
 	deps=$4
 
-	rule "./tinycowc-c $in $out > $log" "$in $deps tinycowc-c" "$out $log" "COWGOL C $in"
+	rule "bin/tinycowc-c $in $out > $log" "$in $deps bin/tinycowc-c" "$out $log" "COWGOL C $in"
 }
 
 cowgol_c() {
