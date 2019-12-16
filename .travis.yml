@@ -13,7 +13,8 @@ addons:
         - lua5.2
         - pasmo
         - libz80ex-dev
+        - lemon
 
 script:
-    - ninja
+    - make
 
