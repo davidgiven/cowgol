@@ -204,26 +204,55 @@ STARTSUB(sub) --
         E("\tpop b\n");
         for (int i=sub->inputparameters-1; i>=0; i--)
         {
-                struct symbol* param = sub->namespace.firstsymbol;
-                for (int j=0; j<i; j++)
-                        param = param->next;
+			struct symbol* param = sub->namespace.firstsymbol;
+			for (int j=0; j<i; j++)
+				param = param->next;
 
-                if (param->u.var.type->u.type.width == 1)
-                {
-                        E("\tpop psw\n");
-                        E("\tsta %s\n", symref(param, 0));
-                }
-                else
-                {
-                        E("\tpop h\n");
-                        E("\tshld %s\n", symref(param, 0));
-                }
+			if (param->u.var.type->u.type.width == 1)
+			{
+				E("\tpop psw\n");
+				E("\tsta %s\n", symref(param, 0));
+			}
+			else
+			{
+				E("\tpop h\n");
+				E("\tshld %s\n", symref(param, 0));
+			}
         }
         E("\tpush b\n");
     }
 
 ENDSUB(sub) --
-    E("\tret\n");
+	E("end_%s:\n", subref(sub));
+	if (sub->outputparameters != 0)
+	{
+		E("\tpop h\n");
+		E("\txchg\n"); /* put return address in DE */
+
+		for (int i=0; i<sub->outputparameters; i++)
+		{
+			struct symbol* param = sub->namespace.firstsymbol;
+			for (int j=0; j<(i + sub->inputparameters); j++)
+				param = param->next;
+
+			if (param->u.var.type->u.type.width == 1)
+			{
+				E("\tlda %s\n", symref(param, 0));
+				E("\tpush psw\n");
+			}
+			else
+			{
+				E("\tlhld %s\n", symref(param, 0));
+				E("\tpush h\n");
+			}
+		}
+
+		E("\txchg\n");
+		E("\tpchl\n");
+	}
+	else
+		E("\tret\n");
+
     E("\tdseg\n");
 	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
     emitter_close_chunk();
@@ -247,17 +276,26 @@ ADDRESS(sym) -- address(sym, 0)
 
 // --- Function calls -------------------------------------------------------
 
-i1 PARAM(1) -- i1
+i1 SETPARAM(1) -- i1
     regalloc_flush_stack();
 
-constant(n) PARAM(1) -- i1 PARAM(1)
+constant(n) SETPARAM(1) -- i1 SETPARAM(1)
     reg_t r = regalloc_load_const(REG_A, n);
     regalloc_push(r);
 
-i2 PARAM(2) -- i2
+i2 SETPARAM(2) -- i2
     regalloc_flush_stack();
 
-constant(n) PARAM(2) -- i2 PARAM(2)
+GETPARAM(1) -- i1
+	regalloc_adjust_stack(2);
+
+GETPARAM(2) -- i2
+	regalloc_adjust_stack(2);
+
+GETPARAM(4) -- i4
+	regalloc_adjust_stack(4);
+
+constant(n) SETPARAM(2) -- i2 SETPARAM(2)
     reg_t r = regalloc_load_const(REG_16, n);
     regalloc_push(r);
 

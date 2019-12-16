@@ -74,6 +74,7 @@ struct subroutine
 	uint32_t workspace;
 	struct namespace namespace;
 	int inputparameters;
+	int outputparameters;
 	int old_break_label;
 	struct subarch* arch;
 };

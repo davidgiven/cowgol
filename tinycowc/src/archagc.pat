@@ -226,6 +226,7 @@ STARTSUB(sub) --
     E("\tEXTEND\n");
     E("\tQXCH Q%d\n", sub->arch->id);
 
+	assert(sub->outputparameters == 0);
     if (sub->inputparameters != 0)
     {
         E("\tTS Q\n");
@@ -278,9 +279,9 @@ ADDRESS(sym) -- address(sym, 0)
 
 // --- Function calls -------------------------------------------------------
 
-i1 PARAM(1) -- i1
+i1 SETPARAM(1) -- i1
 
-const1(n) PARAM(1) -- i1
+const1(n) SETPARAM(1) -- i1
     evict();
     E("\tCAF %s\n", constref(add_num1_constant(n)));
     tos = 1;
@@ -649,8 +650,8 @@ ASMEND --
 constant(c) STORE(1) -- const1(c) STORE(1)
 constant(c) STORE(2) -- const2(c) STORE(2)
 
-constant(c) PARAM(1) -- const1(c) PARAM(1)
-constant(c) PARAM(2) -- const2(c) PARAM(2)
+constant(c) SETPARAM(1) -- const1(c) SETPARAM(1)
+constant(c) SETPARAM(2) -- const2(c) SETPARAM(2)
 
 constant(c) NEG(1) -- const1(c) NEG(1)
 constant(c) NEG(2) -- const2(c) NEG(2)

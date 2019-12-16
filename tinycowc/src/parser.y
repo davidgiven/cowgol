@@ -234,6 +234,9 @@ statement ::= BREAK SEMICOLON.
 
 statement ::= subroutinecallstatement.
 
+expression(T) ::= subroutinecallexpr(T1).
+{ T = T1; }
+
 subcall_begin ::= oldid(S) OPENPAREN.
 {
 	if (S->kind != SUB)
@@ -250,10 +253,32 @@ subcall_begin ::= oldid(S) OPENPAREN.
 subroutinecallstatement ::= subcall_begin optionalarguments CLOSEPAREN.
 {
 	if (current_call->number != current_call->sub->inputparameters)
-		fatal("expected %d parameters but only got %d",
+		fatal("expected %d input parameters but only got %d",
 			current_call->sub->inputparameters, current_call->number);
+	if (current_call->sub->outputparameters != 0)
+		fatal("expected 0 output parameters but got %d",
+			current_call->number);
 
 	emit_mid_call(current_call->sub);
+}
+
+%type subroutinecallexpr {struct symbol*}
+%destructor subroutinecallexpr { current_call = current_call->next; }
+subroutinecallexpr(T) ::= subcall_begin optionalarguments CLOSEPAREN.
+{
+	if (current_call->number != current_call->sub->inputparameters)
+		fatal("expected %d input parameters but only got %d",
+			current_call->sub->inputparameters, current_call->number);
+	if (current_call->sub->outputparameters != 1)
+		fatal("subroutines called as functions must return exactly one value");
+
+	emit_mid_call(current_call->sub);
+
+	struct symbol* param = current_call->sub->namespace.firstsymbol;
+	for (int i=0; i<current_call->sub->inputparameters; i++)
+		param = param->next;
+	T = param->u.var.type;
+	emit_mid_getparam(T->u.type.width);
 }
 
 optionalarguments ::= .
@@ -273,12 +298,12 @@ argument ::= expression(T).
 	current_call->number++;
 
 	check_expression_type(&T, param->u.var.type);
-	emit_mid_param(T->u.type.width);
+	emit_mid_setparam(T->u.type.width);
 }
 
 /* --- Subroutine definitions -------------------------------------------- */
 
-statement ::= EXTERN startsubroutine(oldsub) parameterlist
+statement ::= EXTERN startsubroutine(oldsub) subparameters
 	ASSIGN STRING(nametoken) SEMICOLON.
 {
 	current_sub->externname = strdup(nametoken->string);
@@ -314,22 +339,54 @@ statement ::= startrealsubroutine(oldsub) statements END SUB.
 
 /* Remember the value of this is the *old* subroutine. */
 %type startrealsubroutine {struct subroutine*}
-startrealsubroutine(oldsubout) ::= startsubroutine(oldsubin) parameterlist.
+startrealsubroutine(oldsubout) ::= startsubroutine(oldsubin) subparameters.
 {
 	oldsubout = oldsubin;
 	emit_mid_startsub(current_sub);
 }
 
-parameterlist ::= OPENPAREN CLOSEPAREN.
-parameterlist ::= OPENPAREN parameters CLOSEPAREN.
-parameters ::= parameter.
-parameters ::= parameter COMMA parameters.
+subparameters ::= parameterlist(INS).
+{
+	printf("1 ins=%d\n", INS);
+	current_sub->inputparameters = INS;
+	current_sub->outputparameters = 0;
+}
+
+subparameters ::= parameterlist(INS) COLON parameterlist(OUTS).
+{
+	printf("2 ins=%d outs=%d\n", INS, OUTS);
+	current_sub->inputparameters = INS;
+	current_sub->outputparameters = OUTS;
+}
+
+subparameters ::= parameterlist(INS) COLON OPENPAREN typeref(T) CLOSEPAREN.
+{
+	printf("3 ins=%d\n", INS);
+	current_sub->inputparameters = INS;
+	current_sub->outputparameters = 1;
+    struct symbol* id = add_new_symbol(NULL, "__result");
+	id->kind = VAR;
+	init_var(id, T);
+}
+
+%type parameterlist {int}
+parameterlist(R) ::= OPENPAREN CLOSEPAREN.
+{ R = 0; }
+
+parameterlist(R) ::= OPENPAREN parameters(R1) CLOSEPAREN.
+{ R = R1; }
+
+%type parameters {int}
+parameters(R) ::= parameter.
+{ R = 1; }
+
+parameters(R) ::= parameter COMMA parameters(R1).
+{ R = R1 + 1; }
 
 parameter ::= newid(id) COLON typeref(type).
 {
 	id->kind = VAR;
 	init_var(id, type);
-	current_sub->inputparameters++;
 }
 
 /* --- Assignments ------------------------------------------------------- */

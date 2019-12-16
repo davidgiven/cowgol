@@ -33,7 +33,8 @@ BLTP(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.fals
 
 CAST(int srcwidth, int destwidth) = ("srcwidth=%d destwidth=%d", $$.srcwidth, $$.destwidth)
 
-PARAM(int width) = ("%d", $$.width)
+SETPARAM(int width) = ("%d", $$.width)
+GETPARAM(int width) = ("%d", $$.width)
 ADD(int width) = ("%d", $$.width)
 ADDP(int width) = ("%d", $$.width)
 SUB(int width) = ("%d", $$.width)

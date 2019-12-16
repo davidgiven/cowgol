@@ -121,7 +121,7 @@ STARTSUB(sub) --
     E("static i1 workspace%d[];\n", sub->arch->id);
     E("void %s(", subref(sub));
 
-    if (sub->inputparameters == 0)
+    if ((sub->inputparameters == 0) && (sub->outputparameters == 0))
         E("void");
     else
     {
@@ -136,21 +136,36 @@ STARTSUB(sub) --
             E("i%d p%d", param->u.var.type->u.type.width, i);
             param = param->next;
         }
-    }
-    E(") {\n");
-    if (sub->inputparameters != 0)
-    {
-        struct symbol* param = sub->namespace.firstsymbol;
-        for (int i=0; i<sub->inputparameters; i++)
+        for (int i=0; i<sub->outputparameters; i++)
         {
-            E("*(i%d*)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);
+            if (!first)
+                E(", ");
+            first = false;
+
+            E("i%d* p%d", param->u.var.type->u.type.width, sub->inputparameters+i);
             param = param->next;
         }
     }
+    E(") {\n");
+	struct symbol* param = sub->namespace.firstsymbol;
+	for (int i=0; i<sub->inputparameters; i++)
+	{
+		E("*(i%d*)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);
+		param = param->next;
+	}
 
 ENDSUB(sub) --
 	if (varsp != 0)
 		fatal("vstack not empty at end of subroutine");
+	struct symbol* param = sub->namespace.firstsymbol;
+	for (int i=0; i<sub->inputparameters; i++)
+		param = param->next;
+	for (int i=0; i<sub->outputparameters; i++)
+	{
+		E("*p%d = *(i%d*)%s;\n", sub->inputparameters+i,
+			param->u.var.type->u.type.width, symref(param, 0));
+		param = param->next;
+	}
     E("}\n");
     E("static i1 workspace%d[%d];\n", sub->arch->id, sub->workspace);
     emitter_close_chunk();
@@ -167,9 +182,24 @@ ADDRESS(sym) -- address(sym, 0)
 
 // --- Function calls -------------------------------------------------------
 
-PARAM(n) --
+SETPARAM(n) --
+
+GETPARAM(n) -- i(n)
 
 CALL(sub) --
+	int outputvids[sub->outputparameters];
+
+    for (int i=0; i<sub->outputparameters; i++)
+    {
+		struct symbol* param = sub->namespace.firstsymbol;
+		for (int j=0; j<(sub->inputparameters+i); j++)
+			param = param->next;
+
+		int vid = id++;
+		E("i%d v%d;\n", param->u.var.type->u.type.width, vid);
+		outputvids[i] = vid;
+    }
+
     E("%s(", subref(sub));
     bool first = true;
     for (int i=varsp-sub->inputparameters; i<varsp; i++)
@@ -180,10 +210,22 @@ CALL(sub) --
 
         E("v%d", varstack[i]);
     }
-    E(");\n");
-
     vsp -= sub->inputparameters;
     varsp -= sub->inputparameters;
+    for (int i=0; i<sub->outputparameters; i++)
+    {
+        if (!first)
+            E(", ");
+        first = false;
+
+		int vid = outputvids[i];
+		if (varsp == VARSTACK_SIZE)
+			fatal("varstack overflow");
+		varstack[varsp++] = vid;
+        E("&v%d", vid);
+    }
+    E(");\n");
+
 
 RETURN() --
     E("return;\n");
@@ -337,9 +379,9 @@ constant(c) STORE(1) -- constn(1, c) STORE(1)
 constant(c) STORE(2) -- constn(2, c) STORE(2)
 constant(c) STORE(4) -- constn(4, c) STORE(4)
 
-constant(c) PARAM(1) -- constn(1, c) PARAM(1)
-constant(c) PARAM(2) -- constn(2, c) PARAM(2)
-constant(c) PARAM(4) -- constn(4, c) PARAM(4)
+constant(c) SETPARAM(1) -- constn(1, c) SETPARAM(1)
+constant(c) SETPARAM(2) -- constn(2, c) SETPARAM(2)
+constant(c) SETPARAM(4) -- constn(4, c) SETPARAM(4)
 
 constant(c) NEG(1) -- constn(1, c) NEG(1)
 constant(c) NEG(2) -- constn(2, c) NEG(2)

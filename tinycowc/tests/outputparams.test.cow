@@ -1,0 +1,43 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+sub oneint8()
+	sub func(): (i: int8)
+		i := 42;
+	end sub;
+	var i := func();
+    print("oneint8");
+    if i == 42 then yes(); else no(); end if;
+end sub;
+oneint8();
+
+sub oneint16()
+	sub func(): (i: int16)
+		i := 42;
+	end sub;
+	var i := func();
+	print("oneint16");
+	if i == 42 then yes(); else no(); end if;
+end sub;
+oneint16();
+
+sub inout8()
+	sub func(i1: int8): (i2: int8)
+		i2 := i1 + 1;
+	end sub;
+	var i := func(41);
+	print("inout8");
+    if i == 42 then yes(); else no(); end if;
+end sub;
+inout8();
+
+sub inout16()
+	sub func(i1: int16): (i2: int16)
+		i2 := i1 + 1;
+	end sub;
+	var i := func(41);
+	print("inout16");
+    if i == 42 then yes(); else no(); end if;
+end sub;
+inout16();
+
