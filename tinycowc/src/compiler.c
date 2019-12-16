@@ -164,6 +164,21 @@ struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
 	return lhs;
 }
 
+struct symbol* expr_shift(struct symbol* lhs, struct symbol* rhs,
+	void (*emitteru)(int width),
+	void (*emitters)(int width))
+{
+	if (!is_num(lhs))
+		fatal("number required on LHS of shift");
+	if (!rhs)
+		rhs = uint8_type;
+	if (rhs != uint8_type)
+		fatal("uint8 required on RHS of shift");
+
+	(is_snum(lhs) ? emitters : emitteru)(lhs ? lhs->u.type.width : 0);
+	return lhs;
+}
+
 void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
 	void (*emitteru)(int width, int truelabel, int falselabel),
 	void (*emitters)(int width, int truelabel, int falselabel),

@@ -315,24 +315,34 @@ void regalloc_flush_stack(void)
     }
 }
 
-void regalloc_drop_stack_items(int n)
+void regalloc_adjust_stack(int n)
 {
-    while (n--)
-    {
-        if (psp == 0)
-            fatal("stack underflow");
+	if (n < 0)
+	{
+		while (n++)
+		{
+			if (psp == 0)
+				fatal("stack underflow");
 
-        if (pfp == psp)
-        {
-            pfp--;
-            psp--;
-        }
-        else
-        {
-            reg_t reg = pstack[--psp];
-            used &= ~reg;
-        }
-    }
+			if (pfp == psp)
+			{
+				pfp--;
+				psp--;
+			}
+			else
+			{
+				reg_t reg = pstack[--psp];
+				used &= ~reg;
+			}
+		}
+	}
+	else if (n > 0)
+	{
+		if (pfp != psp)
+			fatal("cannot adust up with values on the pstack");
+		pfp += n;
+		psp += n;
+	}
 }
 
 /* Discard the contents of the supplied register. */

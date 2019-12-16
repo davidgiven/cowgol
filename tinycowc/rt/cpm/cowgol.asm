@@ -11,17 +11,6 @@ stack:
 stackend:
 
 
-    public putchar
-    cseg
-putchar:
-    pop b
-    pop psw
-    push b
-
-    mov e, a
-    mvi c, 2
-    jmp 5
-
     public add4
     cseg
 add4:

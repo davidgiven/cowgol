@@ -1,0 +1,4 @@
+include "cowgol.coh";
+
+var i := HIMEM - TOP;
+

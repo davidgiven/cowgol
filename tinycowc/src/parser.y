@@ -62,6 +62,7 @@
 %left CARET.
 %left AMPERSAND.
 %nonassoc LTOP LEOP GTOP GEOP EQOP NEOP.
+%left LSHIFT RSHIFT.
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %right NOT.
@@ -100,14 +101,14 @@ statement ::= RETURN SEMICOLON. { emit_mid_return(); }
 
 statement ::= typedvardecl SEMICOLON.
 
-statement ::= typedvardecl(V) ASSIGN expression(E) SEMICOLON.
+statement ::= pushedtypedvardecl(V) ASSIGN expression(E) SEMICOLON.
 {
     init_var(V, V->u.var.type);
     check_expression_type(&E, V->u.var.type);
     emit_mid_store(E->u.type.width);
 }
 
-statement ::= untypedvardecl(V) ASSIGN expression(E) SEMICOLON.
+statement ::= pusheduntypedvardecl(V) ASSIGN expression(E) SEMICOLON.
 {
 	if (!E)
 		fatal("types cannot be inferred for numeric constants");
@@ -122,11 +123,17 @@ typedvardecl(V) ::= VAR newid(S) COLON typeref(T).
     S->kind = VAR;
     init_var(S, T);
 	V = S;
+}
+
+%type pushedtypedvardecl {struct symbol*}
+pushedtypedvardecl(V) ::= typedvardecl(V1).
+{
+	V = V1;
 	emit_mid_address(V);
 }
 
-%type untypedvardecl {struct symbol*}
-untypedvardecl(T) ::= VAR newid(S).
+%type pusheduntypedvardecl {struct symbol*}
+pusheduntypedvardecl(T) ::= VAR newid(S).
 {
 	S->kind = VAR;
 	emit_mid_address(S);
@@ -212,6 +219,15 @@ statement ::= whilestatement2(L) LOOP statements END LOOP.
 	emit_mid_jump(L.looplabel);
 	emit_mid_label(L.exitlabel);
 	break_label = L.old_break_label;
+}
+
+/* --- Simple jumps ------------------------------------------------------ */
+
+statement ::= BREAK SEMICOLON.
+{
+	if (!break_label)
+		fatal("nothing to break to");
+	emit_mid_jump(break_label);
 }
 
 /* --- Subroutine calls -------------------------------------------------- */
@@ -393,6 +409,8 @@ expression(T) ::= expression(T1) PERCENT expression(T2).   { T = expr_signed(T1,
 expression(T) ::= expression(T1) CARET expression(T2).     { T = expr_simple(T1, T2, emit_mid_eor); }
 expression(T) ::= expression(T1) AMPERSAND expression(T2). { T = expr_simple(T1, T2, emit_mid_and); }
 expression(T) ::= expression(T1) PIPE expression(T2).      { T = expr_simple(T1, T2, emit_mid_or); }
+expression(T) ::= expression(T1) LSHIFT expression(T2).    { T = expr_shift(T1, T2, emit_mid_lshift, emit_mid_lshift); }
+expression(T) ::= expression(T1) RSHIFT expression(T2).    { T = expr_shift(T1, T2, emit_mid_rshiftu, emit_mid_rshifts); }
 
 lvalue(T) ::= oldid(S).
 {

@@ -1,0 +1,18 @@
+var TOP: [uint8];
+@asm "extrn __top";
+@asm "lxi h, __top";
+@asm "shld ", TOP;
+
+var HIMEM: [uint8];
+@asm "lhld 6";
+@asm "shld ", HIMEM;
+
+sub print_char(c: uint8)
+	@asm "lda ", c;
+	@asm "mov e, a";
+	@asm "mvi c, 2";
+	@asm "call 5";
+end sub;
+
+include "common.coh";
+

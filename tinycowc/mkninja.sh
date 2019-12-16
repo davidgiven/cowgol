@@ -209,7 +209,7 @@ ld80() {
 	bin="$1"
 	shift
 
-	rule "ld80 -O bin -c -P0100 $* -o $bin" "$*" "$bin" "LD80 $bin"
+	rule "ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" "$*" "$bin" "LD80 $bin"
 }
 
 cowgol_cpm_asm() {
@@ -222,7 +222,11 @@ cowgol_cpm_asm() {
 	log=$3
 	deps=$4
 
-	rule "bin/tinycowc-8080 -Irt/cpm $in $out > $log" "$in $deps bin/tinycowc-8080" "$out $log" "COWGOL 8080 $in"
+	rule \
+		"bin/tinycowc-8080 -Irt/ -Irt/cpm/ $in $out > $log" \
+		"$in $deps bin/tinycowc-8080 rt/cpm/cowgol.coh" \
+		"$out $log" \
+		"COWGOL 8080 $in"
 }
 
 cowgol_cpm() {
@@ -232,7 +236,8 @@ cowgol_cpm() {
 	zmac8 $base.asm $base.rel
 	ld80 $base.bin \
 		$OBJDIR/rt/cpm/cowgol.rel \
-		$base.rel
+		$base.rel \
+		$OBJDIR/rt/cpm/tail.rel
 	rule "dd if=$base.bin of=$2 bs=128 skip=2 status=none" "$base.bin" "$2" "DD $1"
 }
 
@@ -254,7 +259,11 @@ cowgol_c_c() {
 	log=$3
 	deps=$4
 
-	rule "bin/tinycowc-c -Irt/c $in $out > $log" "$in $deps bin/tinycowc-c" "$out $log" "COWGOL C $in"
+	rule \
+		"bin/tinycowc-c -Irt/ -Irt/c/ $in $out > $log" \
+		"$in $deps bin/tinycowc-c rt/c/cowgol.coh" \
+		"$out $log" \
+		"COWGOL C $in"
 }
 
 cowgol_c() {
@@ -329,6 +338,7 @@ buildprogram tinycowc-agc \
     libagc.a \
 
 buildprogram tinycowc-8080 \
+    -lbsd \
     libmain.a \
     lib8080.a \
 
@@ -370,6 +380,7 @@ buildprogram mkdfs libmkdfs.a
 #runtest cpm addsub-8bit
 
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
+zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
@@ -385,3 +396,6 @@ test_c addsub-32bit
 test_c records
 test_c inputparams
 test_c conditionals
+
+cowgol_cpm examples/malloc.cow examples/malloc.com 
+

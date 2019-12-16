@@ -1,0 +1,4 @@
+extern sub print_char(c: uint8) := "putchar";
+
+include "common.coh";
+

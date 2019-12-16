@@ -149,6 +149,8 @@ STARTSUB(sub) --
     }
 
 ENDSUB(sub) --
+	if (varsp != 0)
+		fatal("vstack not empty at end of subroutine");
     E("}\n");
     E("static i1 workspace%d[%d];\n", sub->arch->id, sub->workspace);
     emitter_close_chunk();
@@ -216,6 +218,9 @@ address(sym1, off1) address(sym2, off2) LOAD(w1) CONSTANT(c) ADD(w2) STORE(w3) -
 
 // --- Subtractions ---------------------------------------------------------
 
+constant(lhs) constant(rhs) SUB(0) -- constant(result)
+	result = lhs - rhs;
+
 i(w1) i(w2) SUB(w3) -- i(w1)
     assert(w1 == w2);
     assert(w2 == w3);
@@ -241,6 +246,26 @@ i(w1) i(w2) MUL(w3) -- i(w1)
     int rhs = pop();
     int lhs = pop();
     E("i%d v%d = v%d * v%d;\n", w1, push(), lhs, rhs);
+
+// --- Shifts ---------------------------------------------------------------
+
+i(w1) i(1) LSHIFT(w2) -- i(w1)
+	assert(w1 == w2);
+	int rhs = pop();
+	int lhs = pop();
+	E("i%d v%d = v%d << v%d;\n", w1, push(), lhs, rhs);
+
+i(w1) i(1) RSHIFTU(w2) -- i(w1)
+	assert(w1 == w2);
+	int rhs = pop();
+	int lhs = pop();
+	E("i%d v%d = v%d >> v%d;\n", w1, push(), lhs, rhs);
+
+i(w1) i(1) RSHIFTS(w2) -- i(w1)
+	assert(w1 == w2);
+	int rhs = pop();
+	int lhs = pop();
+	E("i%d v%d = v%d >> v%d;\n", w1, push(), lhs, rhs);
 
 // --- Loads ----------------------------------------------------------------
 
@@ -268,6 +293,11 @@ i(n) i(w1) STORE(w2) --
 i(w1) BEQZ(w2, truelabel, falselabel) --
     assert(w1 == w2);
     E("if (!v%d) goto %s;\n", pop(), labelref(truelabel));
+    E("goto %s;\n", labelref(falselabel));
+
+i(w1) BLTZ(w2, truelabel, falselabel) --
+    assert(w1 == w2);
+    E("if (v%d < 0) goto %s;\n", pop(), labelref(truelabel));
     E("goto %s;\n", labelref(falselabel));
 
 BEQS(w, truelabel, falselabel) -- SUB(w) BEQZ(w, truelabel, falselabel)
@@ -379,6 +409,16 @@ constant(c) EOR(4) -- constn(4, c) EOR(4)
 constant(c) (value) EOR(1) -- constn(1, c) (value) EOR(1)
 constant(c) (value) EOR(2) -- constn(2, c) (value) EOR(2)
 constant(c) (value) EOR(4) -- constn(4, c) (value) EOR(4)
+
+constant(c) LSHIFT(1) -- constn(1, c) LSHIFT(1)
+constant(c) LSHIFT(2) -- constn(2, c) LSHIFT(2)
+constant(c) LSHIFT(4) -- constn(4, c) LSHIFT(4)
+constant(c) RSHIFTS(1) -- constn(1, c) RSHIFTS(1)
+constant(c) RSHIFTS(2) -- constn(2, c) RSHIFTS(2)
+constant(c) RSHIFTS(4) -- constn(4, c) RSHIFTS(4)
+constant(c) RSHIFTU(1) -- constn(1, c) RSHIFTU(1)
+constant(c) RSHIFTU(2) -- constn(2, c) RSHIFTU(2)
+constant(c) RSHIFTU(4) -- constn(4, c) RSHIFTU(4)
 
 constant(c) BEQS(1, tl, fl) -- constn(1, c) BEQS(1, tl, fl)
 constant(c) BEQS(2, tl, fl) -- constn(2, c) BEQS(2, tl, fl)

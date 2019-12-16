@@ -1,3 +1,4 @@
+include "cowgol.coh";
 include "tests/_framework.coh";
 
 var mtwo: int8 := -2;

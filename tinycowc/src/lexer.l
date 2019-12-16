@@ -36,6 +36,8 @@ SP [ \t]+
 "=="                      { return EQOP; }
 ">"                       { return GTOP; }
 ">="                      { return GEOP; }
+">>"                      { return RSHIFT; }
+"<<"                      { return LSHIFT; }
 "@asm"                    { return ASM; }
 "["                       { return OPENSQ; }
 "]"                       { return CLOSESQ; }
@@ -84,6 +86,12 @@ SP [ \t]+
 	number += digit;
 }
 <NUMBERSTATE>.            { BEGIN(INITIAL); unput(*yytext); return NUMBER; }
+
+'[^'\\]'                  { number = yytext[1]; return NUMBER; }
+'\\n'                     { number = '\n'; return NUMBER; }
+'\\r'                     { number = '\r'; return NUMBER; }
+'\\\\'                    { number - '\\'; return NUMBER; }
+'                         { fatal("invalid character constant"); }
 
 #[^\r\n]*                 |
 {LF}                      { yylineno++; }

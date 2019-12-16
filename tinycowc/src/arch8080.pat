@@ -3,6 +3,7 @@
 #include "emitter.h"
 #include "regalloc.h"
 #include <ctype.h>
+#include <bsd/string.h>
 
 struct subarch
 {
@@ -26,6 +27,8 @@ enum
 };
 
 #define E emitter_printf
+
+static char asmbuffer[80];
 
 void arch_init_types(void)
 {
@@ -269,7 +272,7 @@ CALL(sub) --
     regalloc_reg_changing(ALL_REGS);
     arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
     E("\tcall %s\n", subref(sub));
-    regalloc_drop_stack_items(sub->inputparameters);
+    regalloc_adjust_stack(-sub->inputparameters);
     vsp -= sub->inputparameters;
 
 RETURN() --
@@ -297,12 +300,6 @@ i2 i2 ADD(2) -- i2
     regalloc_reg_changing(REG_HL);
     E("\tdad %s\n", regname(lhs));
     regalloc_push(REG_HL);
-
-i4 i4 ADD(4) -- i4
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    E("\tcall add4\n");
-    regalloc_drop_stack_items(2);
 
 i1 constant(0) ADD(1) -- i1
 
@@ -399,11 +396,8 @@ constant(n) i2 SUB(2) -- i2
     E("\tmov %s, a\n", regname(rhs));
     regalloc_push(rhs);
 
-i4 i4 SUB(4) -- i4
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    E("\tcall sub4\n");
-    regalloc_drop_stack_items(2);
+constant(lhs) constant(rhs) SUB(0) -- constant(result)
+	result = lhs - rhs;
 
 constant(c) NEG(0) -- constant(-c)
 
@@ -428,6 +422,28 @@ SUBP(width) -- SUB(width)
 constant(lhs) constant(rhs) MUL(w) -- constant(result)
     result = lhs*rhs;
 
+// --- Shifts ---------------------------------------------------------------
+
+i1 i1 RSHIFTS(1) -- i1
+    regalloc_flush_stack();
+    regalloc_reg_changing(ALL_REGS);
+    E("\tcall rshifts1\n");
+    regalloc_adjust_stack(-1);
+
+i1 constant(n) RSHIFTS(1) -- i1 i1 RSHIFTS(1)
+    reg_t r = regalloc_load_const(REG_A, n);
+    regalloc_push(r);
+
+i1 i1 LSHIFT(1) -- i1
+    regalloc_flush_stack();
+    regalloc_reg_changing(ALL_REGS);
+    E("\tcall lshift\n");
+    regalloc_adjust_stack(-1);
+
+i1 constant(n) LSHIFT(1) -- i1 i1 LSHIFT(1)
+    reg_t r = regalloc_load_const(REG_A, n);
+    regalloc_push(r);
+	
 // --- Loads ----------------------------------------------------------------
 
 i2 LOAD(1) -- i1
@@ -568,25 +584,7 @@ i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
     }
     E("%s:\n", labelref(nextlabel));
 
-i4 BEQZ(4, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t rlo = regalloc_pop(REG_16);
-    reg_t rhi = regalloc_pop(REG_16);
-    regalloc_reg_changing(ALL_REGS);
-    E("\tmov a, %s\n", regname(rlo));
-    E("\tora %s\n", regnamelo(rlo));
-    E("\tora %s\n", regname(rhi));
-    E("\tora %s\n", regnamelo(rhi));
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
-
-i1 i1 BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
+i1 i1 BEQU(1, truelabel, falselabel) LABEL(nextlabel) --
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     reg_t lhs = regalloc_pop(REG_A);
     E("\tcmp %s\n", regname(rhs));
@@ -600,7 +598,7 @@ i1 i1 BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
     }
     E("%s:\n", labelref(nextlabel));
     
-i1 constant(n) BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
+i1 constant(n) BEQU(1, truelabel, falselabel) LABEL(nextlabel) --
     reg_t lhs = regalloc_pop(REG_A);
     E("\tcpi %d\n", n & 0xff);
     if (nextlabel == truelabel)
@@ -613,17 +611,40 @@ i1 constant(n) BEQS(1, truelabel, falselabel) LABEL(nextlabel) --
     }
     E("%s:\n", labelref(nextlabel));
 
-BEQS(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
-BLTS(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
-BGTS(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
+BEQU(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
+BLTU(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
+BGTU(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
 
-BEQS(4, truelabel, falselabel) -- SUB(4) BEQZ(4, truelabel, falselabel)
-BLTS(4, truelabel, falselabel) -- SUB(4) BLTZ(4, truelabel, falselabel)
-BGTS(4, truelabel, falselabel) -- SUB(4) BGTZ(4, truelabel, falselabel)
+BEQU(4, truelabel, falselabel) -- SUB(4) BEQZ(4, truelabel, falselabel)
+BLTU(4, truelabel, falselabel) -- SUB(4) BLTZ(4, truelabel, falselabel)
+BGTU(4, truelabel, falselabel) -- SUB(4) BGTZ(4, truelabel, falselabel)
 
-BEQP(truelabel, falselabel) -- BEQS(2, truelabel, falselabel)
-BLTP(truelabel, falselabel) -- BLTS(2, truelabel, falselabel)
-BGTP(truelabel, falselabel) -- BGTS(2, truelabel, falselabel)
+BEQP(truelabel, falselabel) -- BEQU(2, truelabel, falselabel)
+BLTP(truelabel, falselabel) -- BLTU(2, truelabel, falselabel)
+BGTP(truelabel, falselabel) -- BGTU(2, truelabel, falselabel)
+
+BEQS(1, truelabel, falselabel) -- BEQU(1, truelabel, falselabel)
+BEQS(2, truelabel, falselabel) -- BEQU(2, truelabel, falselabel)
+BEQS(4, truelabel, falselabel) -- BEQU(4, truelabel, falselabel)
+
+i1 i1 BLTS(1, truelabel, falselabel) LABEL(nextlabel) --
+    regalloc_flush_stack();
+    regalloc_reg_changing(ALL_REGS);
+    E("\tcall cmpmags\n");
+    regalloc_adjust_stack(-2);
+	if (nextlabel == truelabel)
+		E("\tjnc %s\n", labelref(falselabel));
+	else
+	{
+		E("\tjc %s\n", labelref(truelabel));
+		if (nextlabel != falselabel)
+			E("\tjmp %s\n", labelref(falselabel));
+	}
+	E("%s:\n", labelref(nextlabel));
+
+i1 constant(n) BLTS(1, truelabel, falselabel) -- i1 i1 BLTS(1, truelabel, falselabel)
+    reg_t r = regalloc_load_const(REG_A, n);
+    regalloc_push(r);
 
 // --- Data -----------------------------------------------------------------
 
@@ -672,4 +693,22 @@ STRING(s) -- i2
     reg_t r = regalloc_alloc(REG_16);
     E("\tlxi %s, s%d\n", regname(r), sid);
     regalloc_push(r);
-    
+
+// --- Inline assembly ------------------------------------------------------
+
+ASMSTART --
+    regalloc_flush_stack();
+    regalloc_reg_changing(ALL_REGS);
+    asmbuffer[0] = '\0';
+
+ASMTEXT(text) --
+    strlcat(asmbuffer, text, sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+
+ASMSYMBOL(sym) --
+    strlcat(asmbuffer, symref(sym, 0), sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+
+ASMEND --
+    E("\t%s\n", asmbuffer);
+

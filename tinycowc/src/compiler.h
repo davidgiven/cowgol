@@ -19,6 +19,9 @@ extern struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (
 extern struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
         void (*emitteru)(int width),
         void (*emitters)(int width));
+extern struct symbol* expr_shift(struct symbol* lhs, struct symbol* rhs,
+        void (*emitteru)(int width),
+        void (*emitters)(int width));
 extern void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
         void (*emitteru)(int width, int truelabel, int falselabel),
         void (*emitters)(int width, int truelabel, int falselabel),
