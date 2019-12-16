@@ -1,3 +1,5 @@
+(This is a placeholder document which will be replaced ASAP.)
+
 This is just a few simple notes on using the compiler prototype. You don't
 need any other bits of Cowgol --- tinycowc is completely standalone.
 
