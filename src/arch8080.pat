@@ -276,15 +276,21 @@ ADDRESS(sym) -- address(sym, 0)
 
 // --- Function calls -------------------------------------------------------
 
-i1 SETPARAM(1) -- i1
+// SETPARAM leaves the parameter on the top of the sstack, but the code
+// generator loses track of it.
+
+i1 SETPARAM(1) -- 
     regalloc_flush_stack();
 
 constant(n) SETPARAM(1) -- i1 SETPARAM(1)
     reg_t r = regalloc_load_const(REG_A, n);
     regalloc_push(r);
 
-i2 SETPARAM(2) -- i2
+i2 SETPARAM(2) -- 
     regalloc_flush_stack();
+
+// GETPARAM recovers a parameter which has been pushed onto the sstack
+// by a subroutine call. 
 
 GETPARAM(1) -- i1
 	regalloc_adjust_stack(2);
@@ -311,7 +317,6 @@ CALL(sub) --
     arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
     E("\tcall %s\n", subref(sub));
     regalloc_adjust_stack(-sub->inputparameters);
-    vsp -= sub->inputparameters;
 
 RETURN() --
     regalloc_reg_changing(ALL_REGS);

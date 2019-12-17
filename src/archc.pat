@@ -182,7 +182,8 @@ ADDRESS(sym) -- address(sym, 0)
 
 // --- Function calls -------------------------------------------------------
 
-SETPARAM(n) --
+i(n1) SETPARAM(n2) --
+	assert(n1 == n2);
 
 GETPARAM(n) -- i(n)
 
@@ -210,7 +211,6 @@ CALL(sub) --
 
         E("v%d", varstack[i]);
     }
-    vsp -= sub->inputparameters;
     varsp -= sub->inputparameters;
     for (int i=0; i<sub->outputparameters; i++)
     {
@@ -352,7 +352,7 @@ BGTP(truelabel, falselabel) -- SUBP(8) BGTZ(8, truelabel, falselabel)
 
 // --- Data -----------------------------------------------------------------
 
-STRING(s) -- i(8)
+STRING(s) -- i(4)
     int sid = id++;
     emitter_open_chunk();
     E("static const i1 s%d[] = { ", sid);
