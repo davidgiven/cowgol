@@ -36,6 +36,10 @@ rule lemon
     command = mkdir -p \$cfile.temp && lemon -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
+rule bison
+    command = bison --defines=\$hfile -o \$cfile \$in
+    description = BISON \$in
+
 rule buildcowgol
     command = \$builder \$in \$out
     description = COWGOL \$target \$in
@@ -179,6 +183,16 @@ buildflex() {
     echo "build $1 : flex $2"
 }
 
+buildbison() {
+    local cfile
+    local hfile
+    cfile="${1%%.c*}.c"
+    hfile="${1%%.c*}.h"
+    echo "build $cfile $hfile : bison $2"
+    echo "  cfile=$cfile"
+    echo "  hfile=$hfile"
+}
+
 buildlemon() {
     local cfile
     local hfile
@@ -294,6 +308,17 @@ pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
 
+buildbison $OBJDIR/tools/iburg/parser.c tools/iburg/gram.y
+
+buildlibrary libiburg.a \
+    -Itools/iburg \
+    --dep $OBJDIR/tools/iburg/parser.h \
+    $OBJDIR/tools/iburg/parser.c \
+    tools/iburg/iburg.c
+
+buildprogram iburg \
+    libiburg.a
+
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
 buildmkmidcodes $OBJDIR/midcodes.h src/midcodes.tab
@@ -401,3 +426,4 @@ test_c conditionals
 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 
+# vim: sw=4 ts=4 et

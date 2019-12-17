@@ -5,6 +5,7 @@
 #include "iburg.h"
 static char rcsid[] = "$Id$";
 static int yylineno = 0;
+static int yylex(void);
 %}
 %union {
 	int n;
@@ -111,7 +112,7 @@ void yyerror(char *fmt, ...) {
 	errcnt++;
 }
 
-int yylex(void) {
+static int yylex(void) {
 	int c;
 
 	while ((c = get()) != EOF) {
