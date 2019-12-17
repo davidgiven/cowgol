@@ -5,11 +5,15 @@
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include "globals.h"
 #include "iburg.h"
 
 static char rcsid[] = "$Id$";
 
 int maxcost = SHRT_MAX;
+
+FILE* infp;
+FILE* outfp;
 
 static char *prefix = "burm";
 static int Iflag = 0, Tflag = 0;
@@ -26,8 +30,8 @@ static void ckreach(Nonterm p);
 static void emitclosure(Nonterm nts);
 static void emitcost(Tree t, char *v);
 static void emitdefs(Nonterm nts, int ntnumber);
-static void emitfuncs(void);
 static void emitheader(void);
+static void emitfuncs(void);
 static void emitkids(Rule rules, int nrules);
 static void emitlabel(Nonterm start);
 static void emitleaf(Term p, int ntnumber);
@@ -44,7 +48,9 @@ int main(int argc, char *argv[]) {
 	int c, i;
 	Nonterm p;
 	
-	if (sizeof (short) == sizeof (int))
+	yydebug = 0;
+
+ 	if (sizeof (short) == sizeof (int))
 		maxcost = SHRT_MAX/2;
 	for (i = 1; i < argc; i++)
 		if (strcmp(argv[i], "-I") == 0)
@@ -57,30 +63,38 @@ int main(int argc, char *argv[]) {
 			prefix = &argv[i][2];
 		else if (strncmp(argv[i], "-p", 2) == 0 && i + 1 < argc)
 			prefix = argv[++i];
-		else if (*argv[i] == '-' && argv[i][1]) {
-			yyerror("usage: %s [-T | -I | -p prefix | -maxcost=ddd ]... [ [ input ] output \n",
+		else if (*argv[i] == '-' && argv[i][1])
+			fatal("usage: %s [-T | -I | -p prefix | -maxcost=ddd ]... [ [ input ] output \n",
 				argv[0]);
-			exit(1);
-		} else if (infp == NULL) {
+		else if (infp == NULL) {
 			if (strcmp(argv[i], "-") == 0)
 				infp = stdin;
 			else if ((infp = fopen(argv[i], "r")) == NULL) {
-				yyerror("%s: can't read `%s'\n", argv[0], argv[i]);
-				exit(1);
+				fatal("%s: can't read `%s'\n", argv[0], argv[i]);
 			}
 		} else if (outfp == NULL) {
 			if (strcmp(argv[i], "-") == 0)
 				outfp = stdout;
 			if ((outfp = fopen(argv[i], "w")) == NULL) {
-				yyerror("%s: can't write `%s'\n", argv[0], argv[i]);
-				exit(1);
+				fatal("%s: can't write `%s'\n", argv[0], argv[i]);
 			}
 		}
 	if (infp == NULL)
 		infp = stdin;
 	if (outfp == NULL)
 		outfp = stdout;
+	include_file(open_file(infp));
 	yyparse();
+	if (!feof(infp))
+		while ((c = getc(infp)) != EOF)
+			putc(c, outfp);
+	return errcnt > 0;
+}
+
+void emittables(void)
+{
+	Nonterm p;
+
 	if (start)
 		ckreach(start);
 	for (p = nts; p; p = p->link)
@@ -103,10 +117,6 @@ int main(int argc, char *argv[]) {
 	emitkids(rules, nrules);
 	emitfuncs();
 	print("#endif\n");
-	if (!feof(infp))
-		while ((c = getc(infp)) != EOF)
-			putc(c, outfp);
-	return errcnt > 0;
 }
 
 /* alloc - allocate nbytes or issue fatal error */
@@ -450,7 +460,7 @@ static void emitfuncs(void) {
 }
 
 /* emitheader - emit initial definitions */
-static void emitheader(void) {
+void emitheader(void) {
 	print("#include <limits.h>\n#include <stdlib.h>\n");
 	print("#ifndef STATE_TYPE\n#define STATE_TYPE int\n#endif\n");
 	print("#ifndef ALLOC\n#define ALLOC(n) malloc(n)\n#endif\n"
@@ -491,7 +501,7 @@ static void emitkids(Rule rules, int nrules) {
 		r->kids = rc[j];
 		rc[j] = r;
 	}
-	print("NODEPTR_TYPE *%Pkids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {\n"
+	print("static NODEPTR_TYPE *%Pkids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {\n"
 "%1%Passert(p, PANIC(\"NULL tree in %Pkids\\n\"));\n"
 "%1%Passert(kids, PANIC(\"NULL kids in %Pkids\\n\"));\n"
 "%1switch (eruleno) {\n");

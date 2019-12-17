@@ -55,11 +55,11 @@ extern Rule rule(char *id, Tree pattern, int ern, int cost);
 extern int maxcost;		/* maximum cost */
 
 /* gram.y: */
-void yyerror(char *fmt, ...);
 int yyparse(void);
-void yywarn(char *fmt, ...);
 extern int errcnt;
-extern FILE *infp;
-extern FILE *outfp;
+extern FILE* infp;
+extern FILE* outfp;
+
+extern void emittables(void);
 
 #endif

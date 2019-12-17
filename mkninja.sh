@@ -309,11 +309,13 @@ pasmo() {
 }
 
 buildbison $OBJDIR/tools/iburg/parser.c tools/iburg/gram.y
+buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
 
 buildlibrary libiburg.a \
     -Itools/iburg \
     --dep $OBJDIR/tools/iburg/parser.h \
     $OBJDIR/tools/iburg/parser.c \
+    $OBJDIR/tools/iburg/lexer.c \
     tools/iburg/iburg.c
 
 buildprogram iburg \
