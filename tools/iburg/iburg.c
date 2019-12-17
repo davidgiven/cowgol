@@ -48,8 +48,6 @@ int main(int argc, char *argv[]) {
 	int c, i;
 	Nonterm p;
 	
-	yydebug = 0;
-
  	if (sizeof (short) == sizeof (int))
 		maxcost = SHRT_MAX/2;
 	for (i = 1; i < argc; i++)
@@ -84,10 +82,8 @@ int main(int argc, char *argv[]) {
 	if (outfp == NULL)
 		outfp = stdout;
 	include_file(open_file(infp));
-	yyparse();
-	if (!feof(infp))
-		while ((c = getc(infp)) != EOF)
-			putc(c, outfp);
+	parse();
+
 	return errcnt > 0;
 }
 
@@ -143,7 +139,7 @@ static char *stringf(char *fmt, ...) {
 
 struct entry {
 	union {
-		char *name;
+		const char *name;
 		struct term t;
 		struct nonterm nt;
 	} sym;
@@ -152,7 +148,7 @@ struct entry {
 #define HASHSIZE (sizeof table/sizeof table[0])
 
 /* hash - return hash number for str */
-static unsigned hash(char *str) {
+static unsigned hash(const char *str) {
 	unsigned h = 0;
 
 	while (*str)
@@ -161,7 +157,7 @@ static unsigned hash(char *str) {
 }
 
 /* lookup - lookup symbol name */
-static void *lookup(char *name) {
+static void *lookup(const char *name) {
 	struct entry *p = table[hash(name)%HASHSIZE];
 
 	for ( ; p; p = p->link)
@@ -171,7 +167,7 @@ static void *lookup(char *name) {
 }
 
 /* install - install symbol name */
-static void *install(char *name) {
+static void *install(const char *name) {
 	struct entry *p = alloc(sizeof *p);
 	int i = hash(name)%HASHSIZE;
 
@@ -182,7 +178,7 @@ static void *install(char *name) {
 }
 
 /* nonterm - create a new terminal id, if necessary */
-Nonterm nonterm(char *id) {
+Nonterm nonterm(const char *id) {
 	Nonterm p = lookup(id), *q = &nts;
 
 	if (p && p->kind == NONTERM)
@@ -203,7 +199,7 @@ Nonterm nonterm(char *id) {
 }
 
 /* term - create a new terminal id with external symbol number esn */
-Term term(char *id, int esn) {
+Term term(const char *id, int esn) {
 	Term p = lookup(id), *q = &terms;
 
 	if (p)
@@ -224,7 +220,7 @@ Term term(char *id, int esn) {
 }
 
 /* tree - create & initialize a tree node with the given fields */
-Tree tree(char *id, Tree left, Tree right) {
+Tree tree(const char *id, Tree left, Tree right) {
 	Tree t = alloc(sizeof *t);
 	Term p = lookup(id);
 	int arity = 0;
@@ -256,7 +252,7 @@ Tree tree(char *id, Tree left, Tree right) {
 }
 
 /* rule - create & initialize a rule with the given fields */
-Rule rule(char *id, Tree pattern, int ern, int cost) {
+Rule rule(const char *id, Tree pattern, int ern, int cost) {
 	Rule r = alloc(sizeof *r), *q;
 	Term p = pattern->op;
 

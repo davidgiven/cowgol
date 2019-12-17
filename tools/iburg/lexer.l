@@ -7,6 +7,8 @@
 #include "parser.h"
 
 static int base = 0;
+int number;
+const char* string;
 
 %}
 %x NUMBERSTATE
@@ -28,13 +30,13 @@ SP [ \t]+
 "%start"                  { return START; }
 "costs"                   { return COSTS; }
 
-[A-Za-z][A-Za-z0-9_$]*    { yylval.string = strdup(yytext); return ID; }
+[A-Za-z][A-Za-z0-9_$]*    { string = strdup(yytext); return ID; }
 
-0x                        { yylval.n = 0; base = 16; BEGIN(NUMBERSTATE); }
-0d                        { yylval.n = 0; base = 10; BEGIN(NUMBERSTATE); }
-0o                        { yylval.n = 0; base = 8; BEGIN(NUMBERSTATE); }
-0b                        { yylval.n = 0; base = 2; BEGIN(NUMBERSTATE); }
-[0-9]                     { yylval.n = *yytext - '0'; base = 10; BEGIN(NUMBERSTATE); }
+0x                        { number = 0; base = 16; BEGIN(NUMBERSTATE); }
+0d                        { number = 0; base = 10; BEGIN(NUMBERSTATE); }
+0o                        { number = 0; base = 8; BEGIN(NUMBERSTATE); }
+0b                        { number = 0; base = 2; BEGIN(NUMBERSTATE); }
+[0-9]                     { number = *yytext - '0'; base = 10; BEGIN(NUMBERSTATE); }
 <NUMBERSTATE>_            {}
 <NUMBERSTATE>[0-9a-fA-F]  { 
 	int digit = tolower(*yytext);
@@ -44,8 +46,8 @@ SP [ \t]+
 		digit -= '0';
 	if (digit >= base)
 		fatal("numeric digit out of range");
-	yylval.n *= base;
-	yylval.n += digit;
+	number *= base;
+	number += digit;
 }
 <NUMBERSTATE>.            { BEGIN(INITIAL); unput(*yytext); return INT; }
 

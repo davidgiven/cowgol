@@ -308,15 +308,17 @@ pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
 
-buildbison $OBJDIR/tools/iburg/parser.c tools/iburg/gram.y
+buildlemon $OBJDIR/tools/iburg/parser.c tools/iburg/parser.y
 buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
 
 buildlibrary libiburg.a \
     -Itools/iburg \
+    -I$OBJDIR/tools/iburg \
     --dep $OBJDIR/tools/iburg/parser.h \
     $OBJDIR/tools/iburg/parser.c \
     $OBJDIR/tools/iburg/lexer.c \
-    tools/iburg/iburg.c
+    tools/iburg/iburg.c \
+    tools/iburg/utils.c
 
 buildprogram iburg \
     libiburg.a

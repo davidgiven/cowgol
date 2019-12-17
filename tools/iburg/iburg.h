@@ -1,15 +1,20 @@
 #ifndef BURG_INCLUDED
 #define BURG_INCLUDED
 
-/* $Id$ */
-/* iburg.c: */
+typedef union
+{
+	const char* string;
+	int number;
+}
+Token;
+
 extern void *alloc(int nbytes);
 
 typedef enum { TERM=1, NONTERM } Kind;
 typedef struct rule *Rule;
 typedef struct term *Term;
 struct term {		/* terminals: */
-	char *name;		/* terminal name */
+	const char *name;		/* terminal name */
 	Kind kind;		/* TERM */
 	int esn;		/* external symbol number */
 	int arity;		/* operator arity */
@@ -19,7 +24,7 @@ struct term {		/* terminals: */
 
 typedef struct nonterm *Nonterm;
 struct nonterm {	/* non-terminals: */
-	char *name;		/* non-terminal name */
+	const char *name;		/* non-terminal name */
 	Kind kind;		/* NONTERM */
 	int number;		/* identifying number */
 	int lhscount;		/* # times nt appears in a rule lhs */
@@ -28,8 +33,8 @@ struct nonterm {	/* non-terminals: */
 	Rule chain;		/* chain rules w/non-terminal on rhs */
 	Nonterm link;		/* next terminal in number order */
 };
-extern Nonterm nonterm(char *id);
-extern Term term(char *id, int esn);
+extern Nonterm nonterm(const char *id);
+extern Term term(const char *id, int esn);
 
 typedef struct tree *Tree;
 struct tree {		/* tree patterns: */
@@ -37,7 +42,7 @@ struct tree {		/* tree patterns: */
 	Tree left, right;	/* operands */
 	int nterms;		/* number of terminal nodes in this tree */
 };
-extern Tree tree(char *op, Tree left, Tree right);
+extern Tree tree(const char *op, Tree left, Tree right);
 
 struct rule {		/* rules: */
 	Nonterm lhs;		/* lefthand side non-terminal */
@@ -51,7 +56,7 @@ struct rule {		/* rules: */
 	Rule decode;		/* next rule with same lhs */
 	Rule kids;		/* next rule with same burm_kids pattern */
 };
-extern Rule rule(char *id, Tree pattern, int ern, int cost);
+extern Rule rule(const char *id, Tree pattern, int ern, int cost);
 extern int maxcost;		/* maximum cost */
 
 /* gram.y: */
