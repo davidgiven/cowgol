@@ -6,6 +6,7 @@
 static char rcsid[] = "$Id$";
 static int yylineno = 0;
 static int yylex(void);
+static int id = 0;
 %}
 %union {
 	int n;
@@ -15,6 +16,7 @@ static int yylex(void);
 %term TERMINAL
 %term START
 %term PPERCENT
+%term COSTS
 
 %token  <string>        ID
 %token  <n>             INT
@@ -44,7 +46,7 @@ blist	: /* lambda */
 	;
 
 rules	: /* lambda */
-	| rules lhs ':' tree '=' INT cost ';' '\n'	{ rule($2, $4, $6, $7); }
+	| rules lhs ':' tree cost ';' '\n'	{ rule($2, $4, id++, $5); }
 	| rules '\n'
 	| rules error '\n'		{ yyerrok; }
 	;
@@ -58,7 +60,7 @@ tree	: ID                            { $$ = tree($1, NULL, NULL); }
 	;
 
 cost	: /* lambda */			{ $$ = 0; }
-	| '(' INT ')'			{ if ($2 > maxcost) {
+	| COSTS INT			{ if ($2 > maxcost) {
 						yyerror("%d exceeds maximum cost of %d\n", $2, maxcost);
 						$$ = maxcost;
 					} else
@@ -135,6 +137,10 @@ static int yylex(void) {
 		&& isspace(bp[5])) {
 			bp += 5;
 			return START;
+		} else if (strncmp(bp-1, "costs", 5) == 0
+		&& isspace(bp[4])) {
+			bp += 4;
+			return COSTS;
 		} else if (isdigit(c)) {
 			int n = 0;
 			do {
