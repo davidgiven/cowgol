@@ -24,9 +24,13 @@ rule flex
     command = flex -8 -Cem -o \$out \$in
     description = FLEX \$in
 
-rule mkmidcodes
-    command = lua scripts/mkmidcodes.lua -- \$in \$out
-    description = MKMIDCODES \$in
+rule mkmidcodesh
+    command = lua scripts/mkmidcodesh.lua -- \$in \$out
+    description = MKMIDCODESH \$in
+
+rule mkmidcodesc
+    command = lua scripts/mkmidcodesc.lua -- \$in \$out
+    description = MKMIDCODESC \$in
 
 rule mkiburgcodes
     command = lua scripts/mkiburgcodes.lua -- \$in \$out
@@ -207,8 +211,12 @@ buildlemon() {
     echo "  hfile=$hfile"
 }
 
-buildmkmidcodes() {
-    echo "build $1 : mkmidcodes $2 | scripts/mkmidcodes.lua scripts/libcowgol.lua"
+buildmkmidcodesh() {
+    echo "build $1 : mkmidcodesh $2 | scripts/mkmidcodesh.lua scripts/libcowgol.lua"
+}
+
+buildmkmidcodesc() {
+    echo "build $1 : mkmidcodesc $2 | scripts/mkmidcodesc.lua scripts/libcowgol.lua"
 }
 
 buildmkiburgcodes() {
@@ -332,7 +340,8 @@ buildlibrary libiburg.a \
 buildprogram iburg \
     libiburg.a
 
-buildmkmidcodes $OBJDIR/midcodes.h src/midcodes.tab
+buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
+buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
 #buildlemon $OBJDIR/parser.c src/parser.y
 #buildflex $OBJDIR/lexer.c src/lexer.l
 #buildmkpat $OBJDIR/arch8080.c src/midcodes.tab src/arch8080.pat

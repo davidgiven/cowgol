@@ -17,7 +17,7 @@
 - 0 0 RETURN()
 
 - 0 1 CONSTANT(int32_t value) = ("%d", $$.value)
-- 0 1 STRING(const char* text) = ("%s", $$.text)
+- 0 1 STRING(const char* text) = ("'%s'", $$.text)
 - 0 1 ADDRESS(struct symbol* sym) = ("%s", $$.sym->name)
 
 y 1 1 LOAD()
