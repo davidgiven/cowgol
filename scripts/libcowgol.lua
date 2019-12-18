@@ -53,10 +53,11 @@ function loadmidcodes(filename)
 			end
 
 			if hassizes then
-				add(name.."1", id+0)
-				add(name.."2", id+1)
-				add(name.."4", id+2)
-				id = id + 3
+				add(name.."0", id+0)
+				add(name.."1", id+1)
+				add(name.."2", id+2)
+				add(name.."4", id+3)
+				id = id + 4
 			else
 				add(name, id)
 				id = id + 1

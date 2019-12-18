@@ -7,6 +7,12 @@ struct terminal {
 	uint8_t arity;
 };
 
+struct action {
+	bool islabel;
+	const char* text;
+	struct action* next;
+};
+
 typedef union
 {
 	const char* string;
@@ -48,7 +54,7 @@ struct tree {		/* tree patterns: */
 	Tree left, right;	/* operands */
 	int nterms;		/* number of terminal nodes in this tree */
 };
-extern Tree tree(const char *op, Tree left, Tree right);
+extern Tree tree(const char *op, const char* label, Tree left, Tree right);
 
 struct rule {		/* rules: */
 	Nonterm lhs;		/* lefthand side non-terminal */
@@ -61,8 +67,9 @@ struct rule {		/* rules: */
 	Rule chain;		/* next chain rule with same rhs */
 	Rule decode;		/* next rule with same lhs */
 	Rule kids;		/* next rule with same burm_kids pattern */
+	struct action* action; /* action to perform for this rule */
 };
-extern Rule rule(const char *id, Tree pattern, int ern, int cost);
+extern Rule rule(const char *id, Tree pattern, int ern, int cost, struct action* action);
 extern int maxcost;		/* maximum cost */
 
 /* gram.y: */

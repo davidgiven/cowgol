@@ -1,12 +1,6 @@
-#include <assert.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <limits.h>
 #include "globals.h"
 #include "iburg.h"
+#include <ctype.h>
 
 static char rcsid[] = "$Id$";
 
@@ -229,7 +223,7 @@ Term term(const char *id, int esn) {
 }
 
 /* tree - create & initialize a tree node with the given fields */
-Tree tree(const char *id, Tree left, Tree right) {
+Tree tree(const char *id, const char* label, Tree left, Tree right) {
 	Tree t = alloc(sizeof *t);
 	Term p = lookup(id);
 	int arity = 0;
@@ -261,7 +255,7 @@ Tree tree(const char *id, Tree left, Tree right) {
 }
 
 /* rule - create & initialize a rule with the given fields */
-Rule rule(const char *id, Tree pattern, int ern, int cost) {
+Rule rule(const char *id, Tree pattern, int ern, int cost, struct action* action) {
 	Rule r = alloc(sizeof *r), *q;
 	Term p = pattern->op;
 

@@ -5,7 +5,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
+#include <assert.h>
+#include <limits.h>
 
 extern void fatal(const char* msg, ...);
 extern void warning(const char* msg, ...);

@@ -9,8 +9,13 @@
 
 %token_type {Token}
 %type lhs {const char*}
+%type label {const char*}
 %type tree {Tree}
 %type cost {int}
+%type action {struct action*}
+%type cstrings {struct action*}
+
+%token STRING.
 
 spec ::= body PPERCENT.
 
@@ -31,8 +36,8 @@ decl ::= START lhs(LHS) SEMICOLON.
 rules ::= .
 rules ::= rules SEMICOLON.
 rules ::= error SEMICOLON.
-rules ::= rules lhs(LHS) COLON tree(TREE) cost(COST) SEMICOLON.
-{ rule(LHS, TREE, id++, COST); }
+rules ::= rules lhs(LHS) COLON tree(TREE) cost(COST) action(A).
+{ rule(LHS, TREE, id++, COST, A); }
 
 lhs(R) ::= ID(ID).
 {
@@ -40,20 +45,53 @@ lhs(R) ::= ID(ID).
     nonterm(R);
 }
 
-tree(R) ::= ID(ID).
-{ R = tree(ID.string, NULL, NULL); }
+tree(R) ::= ID(ID) label(L).
+{ R = tree(ID.string, L, NULL, NULL); }
 
-tree(R) ::= ID(ID) OPENPAREN tree(R1) CLOSEPAREN.
-{ R = tree(ID.string, R1, NULL); }
+tree(R) ::= ID(ID) OPENPAREN tree(R1) CLOSEPAREN label(L).
+{ R = tree(ID.string, L, R1, NULL); }
 
-tree(R) ::= ID(ID) OPENPAREN tree(R1) COMMA tree(R2) CLOSEPAREN.
-{ R = tree(ID.string, R1, R2); }
+tree(R) ::= ID(ID) OPENPAREN tree(R1) COMMA tree(R2) CLOSEPAREN label(L).
+{ R = tree(ID.string, L, R1, R2); }
+
+label(R) ::= .
+{ R = NULL; }
+
+label(R) ::= COLON ID(ID).
+{ R = ID.string; }
 
 cost(R) ::= .
 { R = 0; }
 
 cost(R) ::= COSTS INT(VAL).
 { R = VAL.number; }
+
+action(A) ::= SEMICOLON.
+{ A = NULL; }
+
+action(A) ::= cstring.
+{ A = NULL; }
+
+cstring ::= BEGINCSTRING cstrings ENDCSTRING.
+
+cstrings(R) ::= .
+{ R = NULL; }
+
+cstrings(R) ::= CSTRING(LHS) cstrings(RHS).
+{
+    R = calloc(1, sizeof(struct action));
+    R->islabel = false;
+    R->text = LHS.string;
+    R->next = RHS;
+}
+
+cstrings(R) ::= CID(LHS) cstrings(RHS).
+{
+    R = calloc(1, sizeof(struct action));
+    R->islabel = true;
+    R->text = LHS.string;
+    R->next = RHS;
+}
 
 // vim: sw=4 ts=4 et
 

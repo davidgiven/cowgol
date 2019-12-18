@@ -7,15 +7,19 @@
 #include "parser.h"
 
 static int base = 0;
+static int nesting = 0;
 int number;
 const char* string;
 
 %}
+%x STRINGSTATE
+%x CSTRINGSTATE
 %x NUMBERSTATE
 %x COPYSTATE
 
 LF (\r\n)|\r|\n
 SP [ \t]+
+ID [A-Za-z][A-Za-z0-9_$]*
 
 %%
 
@@ -28,7 +32,31 @@ SP [ \t]+
 "%start"                  { return START; }
 "costs"                   { return COSTS; }
 
-[A-Za-z][A-Za-z0-9_$]*    { string = strdup(yytext); return ID; }
+\"                        { BEGIN(STRINGSTATE); }
+<STRINGSTATE>([^\"\\]|\\.)* { string = strdup(yytext); return STRING; }
+<STRINGSTATE>\"           { BEGIN(INITIAL); }
+<STRINGSTATE>.            { fatal("invalid string"); }
+
+"{"                       { BEGIN(CSTRINGSTATE); nesting = 1; return BEGINCSTRING; }
+<CSTRINGSTATE>{LF}        { yylineno++; string = strdup("\n"); return CSTRING; }
+<CSTRINGSTATE>\${ID}      { string = strdup(yytext+1); return CID; }
+<CSTRINGSTATE>"{"         { nesting++; string = strdup("{"); return CSTRING; }
+<CSTRINGSTATE>"}"         {
+                              nesting--;
+                              if (!nesting)
+                              {
+                                  BEGIN(INITIAL);
+                                  return ENDCSTRING;
+                              }
+                              else
+                              {
+                                  string = strdup("}");
+                                  return CSTRING;
+                              }
+                          }
+<CSTRINGSTATE>[^{}]*      { string = strdup(yytext); return CSTRING; }
+
+{ID}                      { string = strdup(yytext); return ID; }
 
 0x                        { number = 0; base = 16; BEGIN(NUMBERSTATE); }
 0d                        { number = 0; base = 10; BEGIN(NUMBERSTATE); }
@@ -88,4 +116,6 @@ void include_file(void* buffer)
 {
 	yypush_buffer_state((YY_BUFFER_STATE) buffer);
 }
+
+// vim: sw=4 ts=4 et
 
