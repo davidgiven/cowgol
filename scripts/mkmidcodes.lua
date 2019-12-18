@@ -22,17 +22,22 @@ for m, t in pairs(midcodes) do
 end
 hfp:write("};\n");
 
---hfp:write("union midcode_data {\n")
---for m, md in pairs(midcodes) do
---    if (#md.args > 0) then
---        hfp:write("struct { ")
---        for _, a in ipairs(md.args) do
---            hfp:write(a.type, " ", a.name, "; ")
---        end
---        hfp:write("} ", m:lower(), ";\n")
---    end
---end
---hfp:write("};\n");
+hfp:write("struct midnode {\n")
+hfp:write("uint8_t op;\n");
+hfp:write("union {\n");
+hfp:write("struct { struct midnode* left; struct midnode* right; } nt;\n")
+for m, md in pairs(midcodes) do
+    if (#md.args > 0) then
+        hfp:write("struct { ")
+        for _, a in ipairs(md.args) do
+            hfp:write(a.type, " ", a.name, "; ")
+        end
+        hfp:write("} ", m:lower(), ";\n")
+    end
+end
+hfp:write("} u;\n");
+hfp:write("};\n");
+
 --
 --for m, md in pairs(midcodes) do
 --    hfp:write("extern void emit_mid_", m:lower(), "(")
