@@ -14,23 +14,19 @@ hfp:write('#include "midcodes.h"\n')
 
 hfp:write("void print_midnode(FILE* stream, struct midnode* n) {\n")
 hfp:write("switch (n->op) {\n")
-hfp:write("enum midcodes {\n")
 for m, t in pairs(midcodes) do
 	hfp:write(string.format("case MIDCODE_%s:\n", m))
 	hfp:write('fprintf(stream, "', m, '(");\n')
 	local first = true
 	if t.ins >= 1 then
-		hfp:write('fprintf(stream, "left=");\n')
 		hfp:write('print_midnode(stream, n->left);\n')
 		first = false
 	end
 	if t.ins == 2 then
-		if first then
-			hfp:write('fprintf(stream, "right=");\n')
-		else
-			hfp:write('fprintf(stream, ", right=");\n')
+		if not first then
+			hfp:write('fprintf(stream, ", ");\n')
 		end
-		hfp:write('print_midnode(stream, n->left);\n')
+		hfp:write('print_midnode(stream, n->right);\n')
 		first = false
 	end
 		
@@ -38,7 +34,7 @@ for m, t in pairs(midcodes) do
 	if e then
 		e = e:gsub("^%(", ""):gsub("%)$", ""):gsub("%$%$", "n->u."..m:lower())
 		hfp:write(string.format('fprintf(stream, %s%s);\n',
-			(first == false) and '", " ' or 'q', e))
+			(first == false) and '", " ' or '', e))
 	end
 	hfp:write("break;\n")
 end

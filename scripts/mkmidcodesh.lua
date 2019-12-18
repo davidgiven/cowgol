@@ -24,6 +24,7 @@ hfp:write("};\n");
 
 hfp:write("struct midnode {\n")
 hfp:write("uint8_t op;\n");
+hfp:write("int iburg;\n");
 hfp:write("struct midnode* left;\n")
 hfp:write("struct midnode* right;\n")
 hfp:write("union {\n");
@@ -39,10 +40,12 @@ end
 hfp:write("} u;\n");
 hfp:write("};\n");
 
+hfp:write("extern void print_midnode(FILE* stream, struct midnode* node);\n")
+
 -- Routines for allocating midnodes.
 
 for m, t in pairs(midcodes) do
-    hfp:write("exterm struct midnode* mid_", m:lower(), "(")
+    hfp:write("extern struct midnode* mid_", m:lower(), "(")
 	local first = true
 	if t.ins >= 1 then
 		hfp:write('struct midnode* left')
