@@ -39,6 +39,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 
 "{"                       { BEGIN(CSTRINGSTATE); nesting = 1; return BEGINCSTRING; }
 <CSTRINGSTATE>{LF}        { yylineno++; string = strdup("\n"); return CSTRING; }
+<CSTRINGSTATE>\$\$        |
 <CSTRINGSTATE>\${ID}      { string = strdup(yytext+1); return CID; }
 <CSTRINGSTATE>"{"         { nesting++; string = strdup("{"); return CSTRING; }
 <CSTRINGSTATE>"}"         {
@@ -54,7 +55,8 @@ ID [A-Za-z][A-Za-z0-9_$]*
                                   return CSTRING;
                               }
                           }
-<CSTRINGSTATE>[^{}]*      { string = strdup(yytext); return CSTRING; }
+<CSTRINGSTATE>[^{}$]*     { string = strdup(yytext); return CSTRING; }
+<CSTRINGSTATE>.           { fatal("invalid cstring"); }
 
 {ID}                      { string = strdup(yytext); return ID; }
 
@@ -82,7 +84,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 <COPYSTATE>{LF}           { fputc('\n', outfp); yylineno++; }
 <COPYSTATE>.              { fputc(*yytext, outfp); }
 
-#[^\r\n]*                 |
+#[^\r\n]*                 {}
 {LF}                      { yylineno++; }
 {SP}+                     {}
 

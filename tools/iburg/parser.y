@@ -13,6 +13,7 @@
 %type tree {Tree}
 %type cost {int}
 %type action {struct action*}
+%type cstring {struct action*}
 %type cstrings {struct action*}
 
 %token STRING.
@@ -69,10 +70,11 @@ cost(R) ::= COSTS INT(VAL).
 action(A) ::= SEMICOLON.
 { A = NULL; }
 
-action(A) ::= cstring.
-{ A = NULL; }
+action(A) ::= cstring(S).
+{ A = S; }
 
-cstring ::= BEGINCSTRING cstrings ENDCSTRING.
+cstring(R) ::= BEGINCSTRING cstrings(S) ENDCSTRING.
+{ R = S; }
 
 cstrings(R) ::= .
 { R = NULL; }

@@ -24,10 +24,11 @@ hfp:write("};\n");
 
 hfp:write("struct midnode {\n")
 hfp:write("uint8_t op;\n");
-hfp:write("int iburg;\n");
+hfp:write("int32_t iburg;\n");
 hfp:write("struct midnode* left;\n")
 hfp:write("struct midnode* right;\n")
 hfp:write("union {\n");
+hfp:write("struct { struct symbol* sym; int32_t off; } action;\n");
 for m, md in pairs(midcodes) do
     if (#md.args > 0) then
         hfp:write("struct { ")

@@ -21,6 +21,7 @@ static int nrules;
 static char *stringf(char *fmt, ...);
 static void print(char *fmt, ...);
 static void ckreach(Nonterm p);
+static void emitactions(Rule rules);
 static void emitclosure(Nonterm nts);
 static void emitcost(Tree t, char *v);
 static void emitdefs(Nonterm nts, int ntnumber);
@@ -115,6 +116,7 @@ void emittables(void)
 		emitlabel(start);
 	emitkids(rules, nrules);
 	emitfuncs();
+	emitactions(rules);
 	print("#endif\n");
 }
 
@@ -282,6 +284,7 @@ Rule rule(const char *id, Tree pattern, int ern, int cost, struct action* action
 		yyerror("duplicate external rule number `%d'\n", r->ern);
 	r->link = *q;
 	*q = r;
+	r->action = action;
 	return r;
 }
 
@@ -753,3 +756,27 @@ static void emittest(Tree t, char *v, char *suffix) {
 			emittest(t->right, stringf("%s->right", v), suffix);
 	}
 }
+
+static void emitactions(Rule rules) {
+	Rule r;
+
+	print("void %Paction(STATE_TYPE state, int eruleno, NODEPTR_TYPE node) {\n");
+	print("\tswitch(eruleno) {\n");
+	for (r = rules; r; r = r->link) {
+		print("\t\tcase %d: /* %R */\n", r->ern, r);
+		struct action* a = r->action;
+		while (a)
+		{
+			if (a->islabel)
+				print("\t\t\t/* label: %s */\n", a->text);
+			else
+				print("\t\t\t/* text: %s */\n", a->text);
+			a = a->next;
+		}
+		print("\t\t\tbreak;\n");
+	}
+	print("\t}\n");
+	print("}\n");
+}
+
+

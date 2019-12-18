@@ -66,6 +66,8 @@ void parse(void)
 				t.number = number;
 				break;
 
+            case CSTRING:
+            case CID:
             case STRING:
 			case ID:
 				t.string = string;
