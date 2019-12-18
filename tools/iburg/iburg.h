@@ -60,6 +60,7 @@ struct tree
     void* op; /* a terminal or non-terminal */
     Tree left, right; /* operands */
     int nterms; /* number of terminal nodes in this tree */
+	const char* label; /* label for this node */
 };
 extern Tree tree(const char* op, const char* label, Tree left, Tree right);
 
@@ -77,11 +78,12 @@ struct rule
     Rule kids; /* next rule with same burm_kids pattern */
     struct action* action; /* action to perform for this rule */
 };
-extern Rule rule(const char* id, Tree pattern, int ern, int cost, struct action* action);
+extern Rule rule(const char* id, Tree pattern, int cost, struct action* action);
 extern int maxcost; /* maximum cost */
 
 /* gram.y: */
 int yyparse(void);
+extern int yylineno;
 extern int errcnt;
 extern FILE* infp;
 extern FILE* outfp;

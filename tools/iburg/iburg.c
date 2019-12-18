@@ -266,17 +266,19 @@ Tree tree(const char* id, const char* label, Tree left, Tree right)
         p->arity = arity;
     if (p->kind == TERM && arity != p->arity)
         yyerror("inconsistent arity for terminal `%s'\n", id);
+
     t->op = p;
     t->nterms = p->kind == TERM;
     if (t->left = left)
         t->nterms += left->nterms;
     if (t->right = right)
         t->nterms += right->nterms;
+	t->label = label;
     return t;
 }
 
 /* rule - create & initialize a rule with the given fields */
-Rule rule(const char* id, Tree pattern, int ern, int cost, struct action* action)
+Rule rule(const char* id, Tree pattern, int cost, struct action* action)
 {
     Rule r = alloc(sizeof *r), *q;
     Term p = pattern->op;
@@ -288,7 +290,7 @@ Rule rule(const char* id, Tree pattern, int ern, int cost, struct action* action
         ;
     *q = r;
     r->pattern = pattern;
-    r->ern = ern;
+    r->ern = nrules;
     r->cost = cost;
     if (p->kind == TERM)
     {
@@ -301,10 +303,9 @@ Rule rule(const char* id, Tree pattern, int ern, int cost, struct action* action
         r->chain = p->chain;
         p->chain = r;
     }
+
     for (q = &rules; *q && (*q)->ern < r->ern; q = &(*q)->link)
         ;
-    if (*q && (*q)->ern == r->ern)
-        yyerror("duplicate external rule number `%d'\n", r->ern);
     r->link = *q;
     *q = r;
     r->action = action;
@@ -321,15 +322,26 @@ static void print(char* fmt, ...)
         if (*fmt == '%')
             switch (*++fmt)
             {
+				case 'c':
+					fputc(va_arg(ap, int), outfp);
+					break;
+
                 case 'd':
                     fprintf(outfp, "%d", va_arg(ap, int));
                     break;
+
+                case 'x':
+                    fprintf(outfp, "0x%x", va_arg(ap, int));
+                    break;
+
                 case 's':
                     fputs(va_arg(ap, char*), outfp);
                     break;
+
                 case 'P':
                     fprintf(outfp, "%s_", prefix);
                     break;
+
                 case 'T':
                 {
                     Tree t = va_arg(ap, Tree);
@@ -340,15 +352,18 @@ static void print(char* fmt, ...)
                         print("(%T)", t->left);
                     break;
                 }
+
                 case 'R':
                 {
                     Rule r = va_arg(ap, Rule);
                     print("%S: %T", r->lhs, r->pattern);
                     break;
                 }
+
                 case 'S':
                     fputs(va_arg(ap, Term)->name, outfp);
                     break;
+
                 case '1':
                 case '2':
                 case '3':
@@ -360,6 +375,7 @@ static void print(char* fmt, ...)
                         putc('\t', outfp);
                     break;
                 }
+
                 default:
                     putc(*fmt, outfp);
                     break;
@@ -874,26 +890,111 @@ static void emittest(Tree t, char* v, char* suffix)
     }
 }
 
+static const uint32_t PATH_MISSING = 0xffffffff;
+
+static void print_path(uint32_t path)
+{
+	int i = 0;
+
+	while (path > 0)
+	{
+		switch (path % 3)
+		{
+			case 1: print("LEFT_CHILD("); break;
+			case 2: print("RIGHT_CHILD("); break;
+		}
+		path /= 3;
+		i++;
+	}
+
+	print("node");
+
+	while (i > 0)
+	{
+		print(")");
+		i--;
+	}
+}
+
+
+static uint32_t find_label(Tree root, const char* name, uint32_t path, Tree* found)
+{
+	uint32_t p;
+
+	if (root->label && (strcmp(root->label, name) == 0))
+	{
+		if (found)
+			*found = root;
+		return path;
+	}
+
+	p = PATH_MISSING;
+	if (root->left && (p == PATH_MISSING))
+		p = find_label(root->left, name, path*3 + 1, found);
+	if (root->right && (p == PATH_MISSING))
+		p = find_label(root->right, name, path*3 + 2, found);
+	return p;
+}
+
+static void label_not_found(Rule rule, const char* label)
+{
+	yylineno = 0;
+	yyerror("label '%s' not found", label);
+	exit(1);
+}
+
 static void emitactions(Rule rules)
 {
     Rule r;
 
-    print("void %Paction(STATE_TYPE state, int eruleno, NODEPTR_TYPE node) {\n");
-    print("\tswitch(eruleno) {\n");
+    print("void %Paction(int eruleno, NODEPTR_TYPE node) {\n");
+    print("%1switch(eruleno) {\n");
     for (r = rules; r; r = r->link)
     {
-        print("\t\tcase %d: /* %R */\n", r->ern, r);
+        print("%2case %d: /* %R */\n", r->ern, r);
+		print("%2{\n");
+
         struct action* a = r->action;
-        while (a)
-        {
-            if (a->islabel)
-                print("\t\t\t/* label: %s */\n", a->text);
-            else
-                print("\t\t\t/* text: %s */\n", a->text);
-            a = a->next;
-        }
-        print("\t\t\tbreak;\n");
+		if (a)
+		{
+			while (a)
+			{
+				if (a->islabel)
+				{
+					if (strcmp(a->text, "$") == 0)
+						print("node->u.action");
+					else
+					{
+						Tree found;
+						uint32_t path = find_label(r->pattern, a->text, 0, &found);
+						if (path == PATH_MISSING)
+							label_not_found(r, a->text);
+						print_path(path);
+
+						Term nt = found->op;
+						if (nt->kind == NONTERM)
+							print("->u.action");
+						else
+						{
+							print("->u.");
+							const char* s = nt->name;
+							while (*s)
+							{
+								print("%c", tolower(*s));
+								s++;
+							}
+						}
+					}
+				}
+				else
+					print("%s", a->text);
+				a = a->next;
+			}
+			print("\n");
+		}
+        print("%3break;\n");
+		print("%2}\n");
     }
-    print("\t}\n");
+    print("%1}\n");
     print("}\n");
 }

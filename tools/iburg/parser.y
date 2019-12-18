@@ -3,8 +3,6 @@
     #include "globals.h"
     #include "parser.h"
     #include "iburg.h"
-
-    static int id = 0;
 }
 
 %token_type {Token}
@@ -38,7 +36,7 @@ rules ::= .
 rules ::= rules SEMICOLON.
 rules ::= error SEMICOLON.
 rules ::= rules lhs(LHS) COLON tree(TREE) cost(COST) action(A).
-{ rule(LHS, TREE, id++, COST, A); }
+{ rule(LHS, TREE, COST, A); }
 
 lhs(R) ::= ID(ID).
 {
