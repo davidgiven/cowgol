@@ -86,5 +86,61 @@ for m, t in pairs(midcodes) do
     hfp:write("}\n")
 end
 
+-- And now the factory routines.
+
+for m, t in pairs(midcodes) do
+	if t.hassizes and m:find("0$") then
+		m = m:gsub("0$", "")
+
+		hfp:write("struct midnode* mid_", m:lower(), "(int width")
+		if t.ins >= 1 then
+			hfp:write(', struct midnode* left')
+		end
+		if t.ins == 2 then
+			hfp:write(', struct midnode* right')
+		end
+		if (#t.args > 0) then
+			for _, a in ipairs(t.args) do
+				hfp:write(", ", a.type, " ", a.name)
+			end
+		end
+		hfp:write(") {\n")
+
+		local function caller(name)
+			hfp:write("return mid_", name:lower(), "(")
+			local first = true
+			if t.ins >= 1 then
+				hfp:write('left')
+				first = false
+			end
+			if t.ins == 2 then
+				if not first then
+					hfp:write(", ")
+				end
+				hfp:write('right')
+				first = false
+			end
+			if (#t.args > 0) then
+				for _, a in ipairs(t.args) do
+					if not first then
+						hfp:write(", ")
+					end
+					hfp:write(a.name)
+					first = false
+				end
+			end
+			hfp:write(");\n")
+		end
+
+		hfp:write("switch (width) {\n")
+		hfp:write("case 0: ") caller(m.."0")
+		hfp:write("case 1: ") caller(m.."1")
+		hfp:write("case 2: ") caller(m.."2")
+		hfp:write("case 4: ") caller(m.."4")
+		hfp:write('default: fatal("bad midnode width %d", width);\n')
+		hfp:write("}\n")
+		hfp:write("}\n")
+	end
+end
 
 hfp:close()

@@ -35,7 +35,7 @@ y 1 1 CAST2(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
 y 1 1 CAST4(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
 
 y 1 0 SETPARAM()
-y 1 1 GETPARAM()
+y 0 1 GETPARAM()
 y 2 1 ADD()
 y 2 1 SUB()
 y 2 1 MUL()

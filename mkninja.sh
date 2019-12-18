@@ -40,6 +40,10 @@ rule mkpat
     command = lua scripts/mkpat.lua -- \$in \$out
     description = MKPAT \$in
 
+rule iburg
+    command = bin/iburg -I \$in \$out
+    description = IBURG \$in
+
 rule lemon
     command = mkdir -p \$cfile.temp && lemon -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
@@ -230,6 +234,10 @@ buildmkpat() {
     echo "build $out : mkpat $@ | scripts/mkpat.lua scripts/libcowgol.lua"
 }
 
+buildiburg() {
+    echo "build $1 : iburg $2 | bin/iburg"
+}
+
 zmac8() {
 	rule "zmac -8 $1 -o $2" $1 $2 "ZMAC $1"
 }
@@ -342,37 +350,39 @@ buildprogram iburg \
 
 buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
 buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
-#buildlemon $OBJDIR/parser.c src/parser.y
-#buildflex $OBJDIR/lexer.c src/lexer.l
+buildlemon $OBJDIR/parser.c src/parser.y
+buildflex $OBJDIR/lexer.c src/lexer.l
+buildiburg $OBJDIR/arch8080.c src/arch8080.pat
 #buildmkpat $OBJDIR/arch8080.c src/midcodes.tab src/arch8080.pat
 #buildmkpat $OBJDIR/archagc.c src/midcodes.tab src/archagc.pat
 #buildmkpat $OBJDIR/archc.c src/midcodes.tab src/archc.pat
-#
-#buildlibrary libmain.a \
-#    -I$OBJDIR \
-#    -Isrc \
-#	--dep $OBJDIR/parser.h \
-#	--dep $OBJDIR/midcodes.h \
-#    $OBJDIR/parser.c \
-#    $OBJDIR/lexer.c \
-#    src/main.c \
-#    src/emitter.c \
-#    src/midcode.c \
-#    src/regalloc.c \
-#    src/compiler.c
-#
+
+buildlibrary libmain.a \
+    -I$OBJDIR \
+    -Isrc \
+	--dep $OBJDIR/parser.h \
+	--dep $OBJDIR/midcodes.h \
+    $OBJDIR/parser.c \
+    $OBJDIR/lexer.c \
+    $OBJDIR/midcodes.c \
+    src/main.c \
+    src/emitter.c \
+    src/regalloc.c \
+    src/midcode.c \
+    src/compiler.c
+
 #buildlibrary libagc.a \
 #    -I$OBJDIR \
 #    -Isrc \
 #    --dep $OBJDIR/midcodes.h \
 #    $OBJDIR/archagc.c \
-#
-#buildlibrary lib8080.a \
-#    -I$OBJDIR \
-#    -Isrc \
-#    --dep $OBJDIR/midcodes.h \
-#    $OBJDIR/arch8080.c \
-#
+
+buildlibrary lib8080.a \
+    -I$OBJDIR \
+    -Isrc \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/arch8080.c \
+
 #buildlibrary libc.a \
 #    -I$OBJDIR \
 #    -Isrc \
@@ -383,12 +393,12 @@ buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
 #    -lbsd \
 #    libmain.a \
 #    libagc.a \
-#
-#buildprogram tinycowc-8080 \
-#    -lbsd \
-#    libmain.a \
-#    lib8080.a \
-#
+
+buildprogram tinycowc-8080 \
+    -lbsd \
+    libmain.a \
+    lib8080.a \
+
 #buildprogram tinycowc-c \
 #    libmain.a \
 #    libc.a \
@@ -430,7 +440,7 @@ zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
-#test_cpm addsub-8bit
+test_cpm addsub-8bit
 #test_cpm addsub-16bit
 ##test_cpm addsub-32bit
 #test_cpm records

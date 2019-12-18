@@ -1,3 +1,4 @@
+%{
 #include "globals.h"
 #include "midcode.h"
 #include "emitter.h"
@@ -172,6 +173,7 @@ reg_t arch_save(reg_t reg, reg_t forbidden)
     return 0;
 }
 
+#if 0
 %%
 
 i1
@@ -489,24 +491,6 @@ i1 constant(n) LSHIFT(1) -- i1 i1 LSHIFT(1)
 	
 // --- Loads ----------------------------------------------------------------
 
-i2 LOAD(1) -- i1
-    reg_t r = regalloc_pop(REG_16);
-    regalloc_alloc(REG_A);
-    switch (r)
-    {
-        case REG_HL:
-            E("\tmov a, m\n");
-            break;
-
-        case REG_BC:
-            E("\tldax b\n");
-            break;
-
-        case REG_DE:
-            E("\tldax d\n");
-            break;
-    }
-    regalloc_push(REG_A);
 
 i2 LOAD(2) -- i2
     regalloc_pop(REG_HL);
@@ -737,21 +721,125 @@ STRING(s) -- i2
     E("\tlxi %s, s%d\n", regname(r), sid);
     regalloc_push(r);
 
+#endif
+%}
+
+%%
+
+statement: STARTFILE
+{ E("\tstart\n"); }
+
+statement: ENDFILE
+{ E("\tend\n"); }
+
+statement: STARTSUB:s
+{ E("\tstart sub %s\n", $s.sub->name); }
+
+statement: ENDSUB:s
+{ E("\tend sub %s\n", $s.sub->name); }
+
+statement: LABEL:b
+{ E("%s:\n", labelref($b.label)); }
+
+// --- Core conversions --------------------------------------------------
+
+address: ADDRESS:s
+{
+	$$.sym = $s.sym;
+	$$.off = 0;
+}
+
+reg: address:s
+{
+	reg_t r = regalloc_alloc(REG_16);
+	E("\tlxi %s\n", symref($s.sym, 0));
+	regalloc_push(r);
+}
+	
+// --- Stores ---------------------------------------------------------------
+
+statement: STORE1(reg, reg)
+{
+    regalloc_pop(REG_A);
+    reg_t r = regalloc_pop(REG_16);
+    switch (r)
+    {
+        case REG_HL:
+            E("\tmov m, a\n");
+            break;
+
+        case REG_BC:
+            E("\tstax b\n");
+            break;
+
+        case REG_DE:
+            E("\tstax d\n");
+            break;
+    }
+}
+
+// --- Loads ----------------------------------------------------------------
+
+reg: LOAD1(reg)
+{
+    reg_t r = regalloc_pop(REG_16);
+    regalloc_alloc(REG_A);
+    switch (r)
+    {
+        case REG_HL:
+            E("\tmov a, m\n");
+            break;
+
+        case REG_BC:
+            E("\tldax b\n");
+            break;
+
+        case REG_DE:
+            E("\tldax d\n");
+            break;
+    }
+    regalloc_push(REG_A);
+}
+
+reg: LOAD2(reg)
+{
+    regalloc_pop(REG_HL);
+    regalloc_reg_changing(REG_HL);
+    regalloc_alloc(REG_A);
+    E("\tmov a, m\n");
+    E("\tinx h\n");
+    E("\tmov h, m\n");
+    E("\tmov l, a\n");
+    regalloc_push(REG_HL);
+}
+
+// --- Branches -------------------------------------------------------------
+
 // --- Inline assembly ------------------------------------------------------
 
-ASMSTART --
+statement: ASMSTART
+{
     regalloc_flush_stack();
     regalloc_reg_changing(ALL_REGS);
     asmbuffer[0] = '\0';
+}
 
-ASMTEXT(text) --
-    strlcat(asmbuffer, text, sizeof(asmbuffer));
+statement: ASMTEXT:t
+{
+    strlcat(asmbuffer, $t.text, sizeof(asmbuffer));
     strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
 
-ASMSYMBOL(sym) --
-    strlcat(asmbuffer, symref(sym, 0), sizeof(asmbuffer));
+statement: ASMSYMBOL:s
+{
+    strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
     strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
 
-ASMEND --
+statement: ASMEND
+{
     E("\t%s\n", asmbuffer);
+}
+
+%%
 

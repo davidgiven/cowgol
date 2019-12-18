@@ -69,8 +69,8 @@
 
 %token_type {struct token*}
 %type typeref {struct symbol*}
-%type expression {struct symbol*}
-%type lvalue {struct symbol*}
+%type expression {struct midnode*}
+%type lvalue {struct midnode*}
 
 %syntax_error {
     fatal("syntax error: unexpected %s", yyTokenName[yymajor]);
@@ -95,49 +95,35 @@ statement ::= SEMICOLON.
 
 /* --- Simple statements ------------------------------------------------- */
 
-statement ::= RETURN SEMICOLON. { emit_mid_return(); }
+statement ::= RETURN SEMICOLON.
+{ generate(mid_return()); }
 
 /* --- Variable declaration ---------------------------------------------- */
 
-statement ::= typedvardecl SEMICOLON.
-
-statement ::= pushedtypedvardecl(V) ASSIGN expression(E) SEMICOLON.
-{
-    init_var(V, V->u.var.type);
-    check_expression_type(&E, V->u.var.type);
-    emit_mid_store(E->u.type.width);
-}
-
-statement ::= pusheduntypedvardecl(V) ASSIGN expression(E) SEMICOLON.
-{
-	if (!E)
-		fatal("types cannot be inferred for numeric constants");
-	init_var(V, E);
-	check_expression_type(&E, E);
-	emit_mid_store(E->u.type.width);
-}
-
-%type typedvardecl {struct symbol*}
-typedvardecl(V) ::= VAR newid(S) COLON typeref(T).
-{
-    S->kind = VAR;
-    init_var(S, T);
-	V = S;
-}
-
-%type pushedtypedvardecl {struct symbol*}
-pushedtypedvardecl(V) ::= typedvardecl(V1).
-{
-	V = V1;
-	emit_mid_address(V);
-}
-
-%type pusheduntypedvardecl {struct symbol*}
-pusheduntypedvardecl(T) ::= VAR newid(S).
+statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
 	S->kind = VAR;
-	emit_mid_address(S);
-	T = S;
+	init_var(S, T);
+}
+
+statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
+{
+	S->kind = VAR;
+	init_var(S, T);
+    check_expression_type(&E->type, S->u.var.type);
+
+    generate(mid_store(E->type->u.type.width, mid_address(S), E));
+}
+
+statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
+{
+	if (!E->type)
+		fatal("types cannot be inferred for numeric constants");
+	S->kind = VAR;
+	init_var(S, E->type);
+	check_expression_type(&E->type, E->type);
+
+	generate(mid_store(E->type->u.type.width, mid_address(S), E));
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -148,7 +134,7 @@ statement ::= ifstatement.
 ifstatement ::= IF if_begin if_conditional THEN
 	if_statements if_optional_else END IF.
 {
-	emit_mid_label(current_if->exitlabel);
+	generate(mid_label(current_if->exitlabel));
 }
 
 if_begin ::= .
@@ -163,13 +149,13 @@ if_conditional ::= startconditional conditional.
 {
 	current_if->truelabel = condtrue;
 	current_if->falselabel = condfalse;
-	emit_mid_label(current_if->truelabel);
+	generate(mid_label(current_if->truelabel));
 }
 
 if_statements ::= statements.
 {
-	emit_mid_jump(current_if->exitlabel);
-	emit_mid_label(current_if->falselabel);
+	generate(mid_jump(current_if->exitlabel));
+	generate(mid_label(current_if->falselabel));
 }
 
 if_optional_else ::= .
@@ -179,8 +165,8 @@ if_optional_else ::= ELSE statements.
 
 statement ::= startloopstatement(labels) statements END LOOP.
 {
-	emit_mid_jump(labels.looplabel);
-	emit_mid_label(labels.exitlabel);
+	generate(mid_jump(labels.looplabel));
+	generate(mid_label(labels.exitlabel));
 	break_label = labels.old_break_label;
 }
 
@@ -191,7 +177,7 @@ startloopstatement(labels) ::= LOOP.
 	labels.exitlabel = current_label++;
 	labels.old_break_label = break_label;
 	break_label = labels.exitlabel;
-	emit_mid_label(labels.looplabel);
+	generate(mid_label(labels.looplabel));
 }
 
 /* --- While loops ------------------------------------------------------- */
@@ -203,21 +189,21 @@ whilestatement1(L) ::= WHILE.
 	L.exitlabel = 0;
 	L.old_break_label = break_label;
 	break_label = 0;
-	emit_mid_label(L.looplabel);
+	generate(mid_label(L.looplabel));
 }
 
 %type whilestatement2 {struct looplabels}
 whilestatement2(L) ::= whilestatement1(L1) startconditional conditional.
 {
 	L = L1;
-	emit_mid_label(condtrue);
+	generate(mid_label(condtrue));
 	L.exitlabel = break_label = condfalse;
 }
 
 statement ::= whilestatement2(L) LOOP statements END LOOP.
 {
-	emit_mid_jump(L.looplabel);
-	emit_mid_label(L.exitlabel);
+	generate(mid_jump(L.looplabel));
+	generate(mid_label(L.exitlabel));
 	break_label = L.old_break_label;
 }
 
@@ -227,15 +213,15 @@ statement ::= BREAK SEMICOLON.
 {
 	if (!break_label)
 		fatal("nothing to break to");
-	emit_mid_jump(break_label);
+	generate(mid_jump(break_label));
 }
 
 /* --- Subroutine calls -------------------------------------------------- */
 
 statement ::= subroutinecallstatement.
 
-expression(T) ::= subroutinecallexpr(T1).
-{ T = T1; }
+expression(E) ::= subroutinecallexpr(E1).
+{ E = E1; }
 
 subcall_begin ::= oldid(S) OPENPAREN.
 {
@@ -259,12 +245,12 @@ subroutinecallstatement ::= subcall_begin optionalarguments CLOSEPAREN.
 		fatal("expected 0 output parameters but got %d",
 			current_call->number);
 
-	emit_mid_call(current_call->sub);
+	generate(mid_call(current_call->sub));
 }
 
-%type subroutinecallexpr {struct symbol*}
+%type subroutinecallexpr {struct midnode*}
 %destructor subroutinecallexpr { current_call = current_call->next; }
-subroutinecallexpr(T) ::= subcall_begin optionalarguments CLOSEPAREN.
+subroutinecallexpr(E) ::= subcall_begin optionalarguments CLOSEPAREN.
 {
 	if (current_call->number != current_call->sub->inputparameters)
 		fatal("expected %d input parameters but only got %d",
@@ -272,13 +258,13 @@ subroutinecallexpr(T) ::= subcall_begin optionalarguments CLOSEPAREN.
 	if (current_call->sub->outputparameters != 1)
 		fatal("subroutines called as functions must return exactly one value");
 
-	emit_mid_call(current_call->sub);
+	generate(mid_call(current_call->sub));
 
 	struct symbol* param = current_call->sub->namespace.firstsymbol;
 	for (int i=0; i<current_call->sub->inputparameters; i++)
 		param = param->next;
-	T = param->u.var.type;
-	emit_mid_getparam(T->u.type.width);
+	E = mid_getparam(param->u.var.type->u.type.width);
+	E->type = param->u.var.type;
 }
 
 optionalarguments ::= .
@@ -287,7 +273,7 @@ optionalarguments ::= arguments.
 arguments ::= argument.
 arguments ::= argument COMMA arguments.
 
-argument ::= expression(T).
+argument ::= expression(E1).
 {
 	if (current_call->number == current_call->sub->inputparameters)
 		fatal("too many input parameters (expected %d)",
@@ -297,8 +283,8 @@ argument ::= expression(T).
 	current_call->param = param->next;
 	current_call->number++;
 
-	check_expression_type(&T, param->u.var.type);
-	emit_mid_setparam(T->u.type.width);
+	check_expression_type(&E1->type, param->u.var.type);
+	generate(mid_setparam(E1->type->u.type.width, E1));
 }
 
 /* --- Subroutine definitions -------------------------------------------- */
@@ -332,7 +318,7 @@ startsubroutine(oldsub) ::= SUB newid(sym).
 
 statement ::= startrealsubroutine(oldsub) statements END SUB.
 {
-	emit_mid_endsub(current_sub);
+	generate(mid_endsub(current_sub));
 	break_label = current_sub->old_break_label;
 	current_sub = oldsub;
 }
@@ -342,7 +328,7 @@ statement ::= startrealsubroutine(oldsub) statements END SUB.
 startrealsubroutine(oldsubout) ::= startsubroutine(oldsubin) subparameters.
 {
 	oldsubout = oldsubin;
-	emit_mid_startsub(current_sub);
+	generate(mid_startsub(current_sub));
 }
 
 subparameters ::= parameterlist(INS).
@@ -391,12 +377,12 @@ parameter ::= newid(id) COLON typeref(type).
 
 /* --- Assignments ------------------------------------------------------- */
 
-statement ::= lvalue(S) ASSIGN expression(T) SEMICOLON.
+statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 {
-	if (!is_ptr(S))
+	if (!is_ptr(E1->type))
 		fatal("you can only assign to lvalues");
-	check_expression_type(&T, S->u.type.element);
-	emit_mid_store(S->u.type.element->u.type.width);
+	check_expression_type(&E2->type, E1->type->u.type.element);
+	generate(mid_store(E1->type->u.type.element->u.type.width, E1, E2));
 }
 
 /* --- Constant expressions ---------------------------------------------- */
@@ -425,28 +411,28 @@ statement ::= CONST newid(S) ASSIGN cvalue(V) SEMICOLON.
 
 /* --- Expressions ------------------------------------------------------- */
 
-expression(T) ::= NUMBER(N).
+expression(E) ::= NUMBER(N).
 {
-	emit_mid_constant(N->number);
-	T = NULL;
+	E = mid_constant(N->number);
+	E->type = NULL;
 }
 
-expression(T) ::= STRING(S).
+expression(E) ::= STRING(S).
 {
 	unescape(S->string);
-	emit_mid_string(strdup(S->string));
-	T = make_pointer_type(uint8_type);
+	E = mid_string(strdup(S->string));
+	E->type = make_pointer_type(uint8_type);
 }
 
-expression(T) ::= lvalue(T1).
+expression(E) ::= lvalue(E1).
 {
-	if (T1)
+	if (E1->type)
 	{
-		emit_mid_load(T1->u.type.element->u.type.width);
-		T = T1->u.type.element;
+		E = mid_load(E1->type->u.type.element->u.type.width, E1);
+		E->type = E1->type->u.type.element;
 	}
 	else
-		T = NULL;
+		E = E1;
 }
 
 expression(T) ::= AMPERSAND lvalue(T1).
@@ -456,81 +442,82 @@ expression(T) ::= AMPERSAND lvalue(T1).
 	T = T1;
 }
 
-expression(T) ::= MINUS expression(T1).                    { T = T1; emit_mid_neg(T1 ? T1->u.type.width : 0); }
-expression(T) ::= OPENPAREN expression(T1) CLOSEPAREN.     { T = T1; }
-expression(T) ::= expression(T1) PLUS expression(T2).      { T = expr_add(T1, T2); }
-expression(T) ::= expression(T1) MINUS expression(T2).     { T = expr_sub(T1, T2); }
-expression(T) ::= expression(T1) STAR expression(T2).      { T = expr_simple(T1, T2, emit_mid_mul); }
-expression(T) ::= expression(T1) SLASH expression(T2).     { T = expr_signed(T1, T2, emit_mid_divu, emit_mid_divs); }
-expression(T) ::= expression(T1) PERCENT expression(T2).   { T = expr_signed(T1, T2, emit_mid_remu, emit_mid_rems); }
-expression(T) ::= expression(T1) CARET expression(T2).     { T = expr_simple(T1, T2, emit_mid_eor); }
-expression(T) ::= expression(T1) AMPERSAND expression(T2). { T = expr_simple(T1, T2, emit_mid_and); }
-expression(T) ::= expression(T1) PIPE expression(T2).      { T = expr_simple(T1, T2, emit_mid_or); }
-expression(T) ::= expression(T1) LSHIFT expression(T2).    { T = expr_shift(T1, T2, emit_mid_lshift, emit_mid_lshift); }
-expression(T) ::= expression(T1) RSHIFT expression(T2).    { T = expr_shift(T1, T2, emit_mid_rshiftu, emit_mid_rshifts); }
+expression(E) ::= MINUS expression(E1).                    { E = mid_neg(E1->type ? E1->type->u.type.width : 0, E1); }
+expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E = E1; }
+expression(E) ::= expression(E1) PLUS expression(E2).      { E = expr_add(E1, E2); }
+expression(E) ::= expression(E1) MINUS expression(E2).     { E = expr_sub(E1, E2); }
+expression(E) ::= expression(E1) STAR expression(E2).      { E = expr_simple(E1, E2, mid_mul); }
+expression(E) ::= expression(E1) SLASH expression(E2).     { E = expr_signed(E1, E2, mid_divu, mid_divs); }
+expression(E) ::= expression(E1) PERCENT expression(E2).   { E = expr_signed(E1, E2, mid_remu, mid_rems); }
+expression(E) ::= expression(E1) CARET expression(E2).     { E = expr_simple(E1, E2, mid_eor); }
+expression(E) ::= expression(E1) AMPERSAND expression(E2). { E = expr_simple(E1, E2, mid_and); }
+expression(E) ::= expression(E1) PIPE expression(E2).      { E = expr_simple(E1, E2, mid_or); }
+expression(E) ::= expression(E1) LSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_lshift, mid_lshift); }
+expression(E) ::= expression(E1) RSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_rshiftu, mid_rshifts); }
 
-lvalue(T) ::= oldid(S).
+lvalue(E) ::= oldid(S).
 {
 	if (S->kind == CONST)
 	{
-		emit_mid_constant(S->u.constant);
-		T = NULL;
+		E = mid_constant(S->u.constant);
+		E->type = NULL;
 	}
 	else
 	{
-		emit_mid_address(S);
-		T = make_pointer_type(S->u.var.type);
+		E = mid_address(S);
+		E->type = make_pointer_type(S->u.var.type);
 	}
 }
 
-lvalue(T) ::= OPENSQ expression(T1) CLOSESQ.
+lvalue(E) ::= OPENSQ expression(E1) CLOSESQ.
 {
-	if (!is_ptr(T1))
+	if (!is_ptr(E1->type))
 		fatal("cannot dereference non-pointers");
-	T = T1;
+	E = E1;
 }
 
-lvalue(T) ::= lvalue(TL) OPENSQ expression(TE) CLOSESQ.
+lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 {
-	struct symbol* array;
-	if (is_array_ptr(TL))
+	struct symbol* arraytype;
+	if (is_array_ptr(E1->type))
 	{
-		/* Direct reference to array. */
-		array = TL->u.type.element;
+		/* Direct reference to arraytype. */
+		arraytype = E1->type->u.type.element;
 	}
-	else if (is_ptr(TL) && is_array_ptr(TL->u.type.element))
+	else if (is_ptr(E1->type) && is_array_ptr(E1->type->u.type.element))
 	{
-		/* Pointer to array. */
-		array = TL->u.type.element->u.type.element;
-		emit_mid_load(intptr_type->u.type.width);
+		/* Pointer to arraytype. */
+		arraytype = E1->type->u.type.element->u.type.element;
+		E1 = mid_load(intptr_type->u.type.width, E1);
 	}
 	else
-		fatal("you can only index arrays, not a %s", TL->u.type.element->name);
-	if (!is_num(TE))
+		fatal("you can only index array, not a %s", E1->type->u.type.element->name);
+	if (!is_num(E2->type))
 			fatal("array indices must be numbers");
 	
-	check_expression_type(&TE, intptr_type);
-	emit_mid_constant(array->u.type.element->u.type.width);
-	emit_mid_mul(intptr_type->u.type.width);
-	emit_mid_add(intptr_type->u.type.width);
-	T = make_pointer_type(array->u.type.element);
+	check_expression_type(&E2->type, intptr_type);
+	E = mid_add(intptr_type->u.type.width,
+		E1,
+		mid_mul(intptr_type->u.type.width,
+			E2, mid_constant(arraytype->u.type.element->u.type.width)));
+	E->type = make_pointer_type(arraytype->u.type.element);
 }
 
-lvalue(T) ::= lvalue(LHS) DOT ID(X).
+lvalue(E) ::= lvalue(E1) DOT ID(X).
 {
     /* Remember that T is a *pointer* to the record (or a pointer to a
 	 * pointer). */
 	struct symbol* record;
-	if (is_record_ptr(LHS))
+	if (is_record_ptr(E1->type))
 	{
 		/* Direct reference to record. */
-		record = LHS->u.type.element;
+		record = E1->type->u.type.element;
 	}
-	else if (is_ptr(LHS) && is_record_ptr(LHS->u.type.element))
+	else if (is_ptr(E1->type) && is_record_ptr(E1->type->u.type.element))
 	{
 		/* Pointer to record. */
-		record = LHS->u.type.element->u.type.element;
-		emit_mid_load(intptr_type->u.type.width);
+		record = E1->type->u.type.element->u.type.element;
+		E1 = mid_load(intptr_type->u.type.width, E1);
 	}
 	else
 		fatal("you can only access members of records");
@@ -539,9 +526,8 @@ lvalue(T) ::= lvalue(LHS) DOT ID(X).
 	if (!member)
 		fatal("%s does not contain member '%s'", record->name, X->string);
 
-	emit_mid_constant(member->u.var.offset);
-	emit_mid_add(intptr_type->u.type.width);
-	T = make_pointer_type(member->u.var.type);
+	E = mid_add(intptr_type->u.type.width, E1, mid_constant(member->u.var.offset));
+	E->type = make_pointer_type(member->u.var.type);
 }
 
 %type newid {struct symbol*}
@@ -584,44 +570,44 @@ conditional ::= conditional OR condor conditional.
 
 condand ::= .
 {
-	emit_mid_label(condtrue);
+	generate(mid_label(condtrue));
 	condtrue = current_label++;
 }
 
 condor ::= .
 {
-	emit_mid_label(condfalse);
+	generate(mid_label(condfalse));
 	condfalse = current_label++;
 }
 
 conditional ::= expression(T1) EQOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
+	cond_simple(condtrue, condfalse, T1, T2, mid_bequ, mid_beqs);
 }
 
 conditional ::= expression(T1) NEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, emit_mid_bequ, emit_mid_beqs, emit_mid_beqp);
+	cond_simple(condfalse, condtrue, T1, T2, mid_bequ, mid_beqs);
 }
 
 conditional ::= expression(T1) LTOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
+	cond_simple(condtrue, condfalse, T1, T2, mid_bltu, mid_blts);
 }
 
 conditional ::= expression(T1) GEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, emit_mid_bltu, emit_mid_blts, emit_mid_bltp);
+	cond_simple(condfalse, condtrue, T1, T2, mid_bltu, mid_blts);
 }
 
 conditional ::= expression(T1) GTOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
+	cond_simple(condtrue, condfalse, T1, T2, mid_bgtu, mid_bgts);
 }
 
 conditional ::= expression(T1) LEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, emit_mid_bgtu, emit_mid_bgts, emit_mid_bgtp);
+	cond_simple(condfalse, condtrue, T1, T2, mid_bgtu, mid_bgts);
 }
 
 /* --- Types ------------------------------------------------------------- */
@@ -676,12 +662,12 @@ memberid(S) ::= ID(X).
 
 statement ::= asmstart asms SEMICOLON.
 {
-	emit_mid_asmend();
+	generate(mid_asmend());
 }
 
 asmstart ::= ASM.
 {
-	emit_mid_asmstart();
+	generate(mid_asmstart());
 }
 
 asms ::= asm.
@@ -690,12 +676,12 @@ asms ::= asm COMMA asms.
 asm ::= STRING(token).
 {
 	unescape(token->string);
-	emit_mid_asmtext(strdup(token->string));
+	generate(mid_asmtext(strdup(token->string)));
 }
 
 asm ::= oldid(ID).
 {
 	if (ID->kind != VAR)
 		fatal("you can only emit references to variables");
-	emit_mid_asmsymbol(ID);
+	generate(mid_asmsymbol(ID));
 }

@@ -84,7 +84,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 <COPYSTATE>{LF}           { fputc('\n', outfp); yylineno++; }
 <COPYSTATE>.              { fputc(*yytext, outfp); }
 
-#[^\r\n]*                 {}
+"//"[^\r\n]*              {}
 {LF}                      { yylineno++; }
 {SP}+                     {}
 

@@ -23,7 +23,8 @@ end
 hfp:write("};\n");
 
 hfp:write("struct midnode {\n")
-hfp:write("uint8_t op;\n");
+hfp:write("enum midcodes op;\n");
+hfp:write("struct symbol* type;\n");
 hfp:write("int32_t iburg;\n");
 hfp:write("struct midnode* left;\n")
 hfp:write("struct midnode* right;\n")
@@ -46,31 +47,46 @@ hfp:write("extern void print_midnode(FILE* stream, struct midnode* node);\n")
 -- Routines for allocating midnodes.
 
 for m, t in pairs(midcodes) do
-    hfp:write("extern struct midnode* mid_", m:lower(), "(")
-	local first = true
-	if t.ins >= 1 then
-		hfp:write('struct midnode* left')
-		first = false
-	end
-	if t.ins == 2 then
-		if not first then
-			hfp:write(', ')
-		end
-		hfp:write('struct midnode* right')
-		first = false
-	end
-    if (#t.args > 0) then
-        for _, a in ipairs(t.args) do
-            if not first then
-                hfp:write(", ")
-            end
-            hfp:write(a.type, " ", a.name)
+	local function generate(m, withwidth)
+		hfp:write("extern struct midnode* mid_", m:lower(), "(")
+		local first = true
+		if withwidth then
+			hfp:write("int width")
 			first = false
-        end
-    elseif (t.ins == 0) and (#t.args == 0) then
-        hfp:write("void")
-    end
-    hfp:write(");\n")
+		end
+		if t.ins >= 1 then
+			if not first then
+				hfp:write(', ')
+			end
+			hfp:write('struct midnode* left')
+			first = false
+		end
+		if t.ins == 2 then
+			if not first then
+				hfp:write(', ')
+			end
+			hfp:write('struct midnode* right')
+			first = false
+		end
+		if (#t.args > 0) then
+			for _, a in ipairs(t.args) do
+				if not first then
+					hfp:write(", ")
+				end
+				hfp:write(a.type, " ", a.name)
+				first = false
+			end
+		elseif (t.ins == 0) and (#t.args == 0) then
+			hfp:write("void")
+		end
+		hfp:write(");\n")
+	end
+
+	generate(m, false)
+	if t.hassizes and m:find("0$") then
+		m = m:gsub("0$", "")
+		generate(m, true)
+	end
 end
 
 hfp:write("#endif\n")
