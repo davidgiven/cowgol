@@ -23,10 +23,8 @@ SP [ \t]+
 ")"						  { return CLOSEPAREN; }
 ","                       { return COMMA; }
 ";"                       { return SEMICOLON; }
-"="                       { return EQUALS; }
 ":"                       { return COLON; }
 "%%"                      { return PPERCENT; }
-"%term"                   { return TERMINAL; }
 "%start"                  { return START; }
 "costs"                   { return COSTS; }
 

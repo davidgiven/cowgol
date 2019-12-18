@@ -20,7 +20,6 @@ body ::= decls PPERCENT rules.
 decls ::= .
 decls ::= decls decl.
 
-decl ::= TERMINAL blist SEMICOLON.
 decl ::= SEMICOLON.
 decl ::= error SEMICOLON.
 decl ::= START lhs(LHS) SEMICOLON.
@@ -28,10 +27,6 @@ decl ::= START lhs(LHS) SEMICOLON.
     if (nonterm(LHS)->number != 1)
         yyerror("redeclaration of the start symbol");
 }
-
-blist ::= .
-blist ::= blist ID(ID) EQUALS INT(VAL).
-{ term(ID.string, VAL.number); }
 
 rules ::= .
 rules ::= rules SEMICOLON.

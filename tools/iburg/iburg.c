@@ -44,6 +44,8 @@ static void emitstruct(Nonterm nts, int ntnumber);
 static void emitterms(Term terms);
 static void emittest(Tree t, char *v, char *suffix);
 
+#include "iburgcodes.h"
+
 int main(int argc, char *argv[]) {
 	int c, i;
 	Nonterm p;
@@ -81,6 +83,13 @@ int main(int argc, char *argv[]) {
 		infp = stdin;
 	if (outfp == NULL)
 		outfp = stdout;
+
+	for (int i=0; i<sizeof(terminals)/sizeof(*terminals); i++)
+	{
+		struct terminal* t = &terminals[i];
+		term(t->name, t->id);
+	}
+
 	include_file(open_file(infp));
 	parse();
 

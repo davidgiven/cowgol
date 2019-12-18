@@ -25,19 +25,42 @@ end
 function loadmidcodes(filename)
     local infp = io.open(filename, "r")
     local midcodes = {}
+	id = 1
     for line in infp:lines() do
         local tokens = {}
         line = line:gsub(" *#.*$", "")
         if (line ~= "") then
-            local _, _, name, args, emitter = line:find("^(%w+)(%b()) *= *(%b())$")
+            local _, _, hassizes, ins, outs, name, args, emitter = line:find("^%s*(%S+)%s+(%S+)%s+(%S+)%s+(%w+)(%b())%s*=%s*(%b())%s*$")
             if not name then
-                _, _, name, args = line:find("^(%w+)(%b())$")
+				_, _, hassizes, ins, outs, name, args = line:find("^%s*(%S+)%s+(%S+)%s+(%S+)%s+(%w+)(%b())%s*$")
             end
             if not name then
                 error("syntax error in: "..line)
             end
+			hassizes = (hassizes == "y")
+			ins = tonumber(ins)
+			outs = tonumber(outs)
 
-            midcodes[name] = { args = parsearglist(args), emitter = emitter }
+			local function add(name, id)
+				midcodes[name] = {
+					args = parsearglist(args),
+					emitter = emitter,
+					hassizes = hassizes,
+					ins = ins,
+					outs = outs,
+					id = id
+				}
+			end
+
+			if hassizes then
+				add(name.."1", id+0)
+				add(name.."2", id+1)
+				add(name.."4", id+2)
+				id = id + 3
+			else
+				add(name, id)
+				id = id + 1
+			end
         end
     end
     return midcodes

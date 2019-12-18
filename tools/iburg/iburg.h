@@ -1,6 +1,12 @@
 #ifndef BURG_INCLUDED
 #define BURG_INCLUDED
 
+struct terminal {
+	uint8_t id;
+	const char* name;
+	uint8_t arity;
+};
+
 typedef union
 {
 	const char* string;
