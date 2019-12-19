@@ -316,17 +316,6 @@ constant(c) i1 SUB(1) -- i1
     E("\tsub %s\n", regname(rhs));
     regalloc_push(REG_A);
     
-i2 i2 SUB(2) -- i2
-    reg_t rhs = regalloc_pop(REG_16);
-    reg_t lhs = regalloc_pop(REG_16);
-    E("\tmov a, %s\n", regnamelo(lhs));
-    E("\tsub %s\n", regnamelo(rhs));
-    E("\tmov %s, a\n", regnamelo(lhs));
-    E("\tmov a, %s\n", regname(lhs));
-    E("\tsbb %s\n", regname(rhs));
-    E("\tmov %s, a\n", regname(lhs));
-    regalloc_push(lhs);
-
 constant(n) i2 SUB(2) -- i2
     reg_t rhs = regalloc_pop(REG_16);
     E("\tmvi a, %d\n", n & 0xff);
@@ -341,8 +330,6 @@ constant(lhs) constant(rhs) SUB(0) -- constant(result)
 	result = lhs - rhs;
 
 constant(c) NEG(0) -- constant(-c)
-
-i2 NEG(2) -- constant(0) i2 SUB(2)
 
 i1 constant(0) SUB(1) -- i1
 i1 constant(n) SUB(1) -- i1 constant(-n) ADD(1)
@@ -819,6 +806,18 @@ reg1: NEG1(reg1)
     regalloc_push(REG_A);
 }
 
+reg2: NEG2(reg2)
+{
+    reg_t rhs = regalloc_pop(REG_16);
+    E("\txor a\n");
+    E("\tsub %s\n", regnamelo(rhs));
+    E("\tmov %s, a\n", regnamelo(rhs));
+	E("\tsbb a\n");
+    E("\tsub %s\n", regname(rhs));
+    E("\tmov %s, a\n", regname(rhs));
+	regalloc_push(rhs);
+}
+
 reg1: ADD1(reg1, reg1)
 {
     reg_t rhs = regalloc_pop(REG_A);
@@ -837,12 +836,28 @@ reg2: ADD2(reg2, reg2)
     regalloc_push(REG_HL);
 }
 
+constant: SUB0(constant:lhs, constant:rhs)
+{ $$.off = $lhs.off - $rhs.off; }
+
 reg1: SUB1(reg1, reg1)
 {
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     reg_t lhs = regalloc_pop(REG_A);
     E("\tsub %s\n", regname(rhs));
     regalloc_push(REG_A);
+}
+
+reg2: SUB2(reg2, reg2)
+{
+    reg_t rhs = regalloc_pop(REG_16);
+    reg_t lhs = regalloc_pop(REG_16);
+    E("\tmov a, %s\n", regnamelo(lhs));
+    E("\tsub %s\n", regnamelo(rhs));
+    E("\tmov %s, a\n", regnamelo(lhs));
+    E("\tmov a, %s\n", regname(lhs));
+    E("\tsbb %s\n", regname(rhs));
+    E("\tmov %s, a\n", regname(lhs));
+    regalloc_push(lhs);
 }
 
 constant: MUL0(constant:lhs, constant:rhs)
