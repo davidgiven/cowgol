@@ -173,6 +173,21 @@ reg_t arch_save(reg_t reg, reg_t forbidden)
     return 0;
 }
 
+static void call(struct subroutine* sub)
+{
+    if (sub->externname)
+    {
+        emitter_open_chunk();
+        E("\textrn %s\n", sub->externname);
+        emitter_close_chunk();
+    }
+
+    regalloc_reg_changing(ALL_REGS);
+    arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
+    E("\tcall %s\n", subref(sub));
+    regalloc_adjust_stack(-sub->inputparameters);
+}
+
 #if 0
 %%
 
@@ -215,18 +230,6 @@ constant(n) SETPARAM(1) -- i1 SETPARAM(1)
 
 i2 SETPARAM(2) -- 
     regalloc_flush_stack();
-
-// GETPARAM recovers a parameter which has been pushed onto the sstack
-// by a subroutine call. 
-
-GETPARAM(1) -- i1
-	regalloc_adjust_stack(2);
-
-GETPARAM(2) -- i2
-	regalloc_adjust_stack(2);
-
-GETPARAM(4) -- i4
-	regalloc_adjust_stack(4);
 
 constant(n) SETPARAM(2) -- i2 SETPARAM(2)
     reg_t r = regalloc_load_const(REG_16, n);
@@ -348,11 +351,6 @@ i1 constant(0) SUB(2) -- i2
 i2 constant(n) SUB(2) -- i2 constant(-n) ADD(2)
 
 SUBP(width) -- SUB(width)
-
-// --- Multiplications ------------------------------------------------------
-
-constant(lhs) constant(rhs) MUL(w) -- constant(result)
-    result = lhs*rhs;
 
 // --- Shifts ---------------------------------------------------------------
 
@@ -667,29 +665,33 @@ reg2: constant:c
 // SETPARAM leaves the parameter on the top of the sstack, but the code
 // generator loses track of it.
 
-statement: SETPARAM1(reg1)
+parameters: END;
+
+parameters: PARAM1(reg1, parameters)
 {
     regalloc_flush_stack();
 }
 
-statement: SETPARAM2(reg2)
+parameters: PARAM2(reg2, parameters)
 {
     regalloc_flush_stack();
 }
 
-statement: CALL:c
+statement: CALL0(parameters):c
 {
-    if ($c.sub->externname)
-    {
-        emitter_open_chunk();
-        E("\textrn %s\n", $c.sub->externname);
-        emitter_close_chunk();
-    }
+	call($c.sub);
+}
 
-    regalloc_reg_changing(ALL_REGS);
-    arch_emit_comment("subroutine with %d input parameters", $c.sub->inputparameters);
-    E("\tcall %s\n", subref($c.sub));
-    regalloc_adjust_stack(-$c.sub->inputparameters);
+reg1: CALL1(parameters):c
+{
+	call($c.sub);
+    regalloc_adjust_stack(2);
+}
+
+reg2: CALL2(parameters):c
+{
+	call($c.sub);
+    regalloc_adjust_stack(2);
 }
 
 // --- Control flow ------------------------------------------------------
@@ -786,10 +788,22 @@ statement: BEQS1(reg1, reg1):b
 	regalloc_pop(REG_A);
 	regalloc_reg_changing(ALL_REGS);
 	E("\tcmp %s\n", regname(rhs));
-	if ($b.truelabel)
-		E("\tjz %s\n", labelref($b.truelabel));
-	if ($b.falselabel)
-		E("\tjnz %s\n", labelref($b.falselabel));
+	E("\tjz %s\n", labelref($b.truelabel));
+	E("\tjnz %s\n", labelref($b.falselabel));
+}
+
+statement: BEQS2(reg2, reg2):b
+{
+	reg_t rhs = regalloc_pop(REG_16);
+	reg_t lhs = regalloc_pop(REG_16);
+	regalloc_reg_changing(ALL_REGS);
+	E("\tmov a, %s\n", regname(lhs));
+	E("\tcmp %s\n", regname(rhs));
+	E("\tjnz %s\n", labelref($b.falselabel));
+	E("\tmov a, %s\n", regnamelo(lhs));
+	E("\tcmp %s\n", regnamelo(rhs));
+	E("\tjnz %s\n", labelref($b.falselabel));
+	E("\tjmp %s\n", labelref($b.truelabel));
 }
 
 // --- Arithmetic -----------------------------------------------------------
@@ -830,6 +844,12 @@ reg1: SUB1(reg1, reg1)
     E("\tsub %s\n", regname(rhs));
     regalloc_push(REG_A);
 }
+
+constant: MUL0(constant:lhs, constant:rhs)
+{ $$.off = $lhs.off * $rhs.off; }
+
+constant: MUL2(constant:lhs, constant:rhs)
+{ $$.off = $lhs.off * $rhs.off; }
 
 // --- Inline assembly ------------------------------------------------------
 

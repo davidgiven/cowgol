@@ -36,3 +36,10 @@ sub mixed2(i1: int16, i2: int8)
     if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
 end sub;
 mixed2(42, 99);
+
+sub lots(i1: int8, i2: int8, i3: int8, i4: int8, i5: int8, i6: int8)
+	print("lots: ");
+	if (i1+i2+i3+i4+i5+i6 == 21) then yes(); else no(); end if;
+end sub;
+lots(1, 2, 3, 4, 5, 6);
+

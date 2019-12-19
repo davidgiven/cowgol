@@ -236,7 +236,7 @@ subcall_begin ::= oldid(S) OPENPAREN.
 }
 
 %destructor subroutinecallstatement { current_call = current_call->next; }
-subroutinecallstatement ::= subcall_begin optionalarguments CLOSEPAREN.
+subroutinecallstatement ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
 {
 	if (current_call->number != current_call->sub->inputparameters)
 		fatal("expected %d input parameters but only got %d",
@@ -245,12 +245,12 @@ subroutinecallstatement ::= subcall_begin optionalarguments CLOSEPAREN.
 		fatal("expected 0 output parameters but got %d",
 			current_call->number);
 
-	generate(mid_call(current_call->sub));
+	generate(mid_call0(E1, current_call->sub));
 }
 
 %type subroutinecallexpr {struct midnode*}
 %destructor subroutinecallexpr { current_call = current_call->next; }
-subroutinecallexpr(E) ::= subcall_begin optionalarguments CLOSEPAREN.
+subroutinecallexpr(E) ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
 {
 	if (current_call->number != current_call->sub->inputparameters)
 		fatal("expected %d input parameters but only got %d",
@@ -258,22 +258,29 @@ subroutinecallexpr(E) ::= subcall_begin optionalarguments CLOSEPAREN.
 	if (current_call->sub->outputparameters != 1)
 		fatal("subroutines called as functions must return exactly one value");
 
-	generate(mid_call(current_call->sub));
-
 	struct symbol* param = current_call->sub->namespace.firstsymbol;
 	for (int i=0; i<current_call->sub->inputparameters; i++)
 		param = param->next;
-	E = mid_getparam(param->u.var.type->u.type.width);
+
+	E = mid_call(param->u.var.type->u.type.width, E1, current_call->sub);
 	E->type = param->u.var.type;
 }
 
-optionalarguments ::= .
-optionalarguments ::= arguments.
+%type optionalarguments {struct midnode*}
+optionalarguments(E) ::= .
+{ E = mid_end(); }
+optionalarguments(E) ::= arguments(E1).
+{ E = E1; }
 
-arguments ::= argument.
-arguments ::= argument COMMA arguments.
+%type arguments {struct midnode*}
+arguments(E) ::= argument(E1).
+{ E = mid_param(E1->type->u.type.width, E1, mid_end()); }
 
-argument ::= expression(E1).
+arguments(E) ::= argument(E1) COMMA arguments(E2).
+{ E = mid_param(E1->type->u.type.width, E1, E2); }
+
+%type argument {struct midnode*}
+argument(E) ::= expression(E1).
 {
 	if (current_call->number == current_call->sub->inputparameters)
 		fatal("too many input parameters (expected %d)",
@@ -284,7 +291,7 @@ argument ::= expression(E1).
 	current_call->number++;
 
 	check_expression_type(&E1->type, param->u.var.type);
-	generate(mid_setparam(E1->type->u.type.width, E1));
+	E = E1;
 }
 
 /* --- Subroutine definitions -------------------------------------------- */

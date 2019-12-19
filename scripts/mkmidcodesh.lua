@@ -76,7 +76,7 @@ for m, t in pairs(midcodes) do
 				hfp:write(a.type, " ", a.name)
 				first = false
 			end
-		elseif (t.ins == 0) and (#t.args == 0) then
+		elseif (t.ins == 0) and (t.outs == 0) and (#t.args == 0) then
 			hfp:write("void")
 		end
 		hfp:write(");\n")
