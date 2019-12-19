@@ -594,7 +594,7 @@ static void emitkids(Rule rules, int nrules)
         r->kids = rc[j];
         rc[j] = r;
     }
-    print("static NODEPTR_TYPE *%Pkids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {\n"
+    print("NODEPTR_TYPE *%Pkids(NODEPTR_TYPE p, int eruleno, NODEPTR_TYPE kids[]) {\n"
           "%1%Passert(p, PANIC(\"NULL tree in %Pkids\\n\"));\n"
           "%1%Passert(kids, PANIC(\"NULL kids in %Pkids\\n\"));\n"
           "%1switch (eruleno) {\n");

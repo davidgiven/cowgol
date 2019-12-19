@@ -184,81 +184,6 @@ address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
 
 %%
 
-STARTFILE --
-    emitter_open_chunk();
-    E("\textrn add4\n");
-    E("\textrn sub4\n");
-    emitter_close_chunk();
-
-ENDFILE --
-
-STARTSUB(sub) --
-    emitter_open_chunk();
-    E("\n");
-    E("; %s\n", sub->name);
-    E("\tcseg\n");
-    if (sub->externname)
-        E("\tpublic %s\n", sub->externname);
-    E("%s:\n", subref(sub));
-
-    if (sub->inputparameters != 0)
-    {
-        E("\tpop b\n");
-        for (int i=sub->inputparameters-1; i>=0; i--)
-        {
-			struct symbol* param = sub->namespace.firstsymbol;
-			for (int j=0; j<i; j++)
-				param = param->next;
-
-			if (param->u.var.type->u.type.width == 1)
-			{
-				E("\tpop psw\n");
-				E("\tsta %s\n", symref(param, 0));
-			}
-			else
-			{
-				E("\tpop h\n");
-				E("\tshld %s\n", symref(param, 0));
-			}
-        }
-        E("\tpush b\n");
-    }
-
-ENDSUB(sub) --
-	E("end_%s:\n", subref(sub));
-	if (sub->outputparameters != 0)
-	{
-		E("\tpop h\n");
-		E("\txchg\n"); /* put return address in DE */
-
-		for (int i=0; i<sub->outputparameters; i++)
-		{
-			struct symbol* param = sub->namespace.firstsymbol;
-			for (int j=0; j<(i + sub->inputparameters); j++)
-				param = param->next;
-
-			if (param->u.var.type->u.type.width == 1)
-			{
-				E("\tlda %s\n", symref(param, 0));
-				E("\tpush psw\n");
-			}
-			else
-			{
-				E("\tlhld %s\n", symref(param, 0));
-				E("\tpush h\n");
-			}
-		}
-
-		E("\txchg\n");
-		E("\tpchl\n");
-	}
-	else
-		E("\tret\n");
-
-    E("\tdseg\n");
-	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
-    emitter_close_chunk();
-
 JUMP(label) --
     regalloc_reg_changing(ALL_REGS);
     E("\tjmp %s\n", labelref(label));
@@ -625,16 +550,85 @@ i1 constant(n) BLTS(1, truelabel, falselabel) -- i1 i1 BLTS(1, truelabel, falsel
 %%
 
 statement: STARTFILE
-{ E("\tstart\n"); }
+{
+    emitter_open_chunk();
+    E("\textrn add4\n");
+    E("\textrn sub4\n");
+    emitter_close_chunk();
+}
 
-statement: ENDFILE
-{ E("\tend\n"); }
+statement: ENDFILE;
 
 statement: STARTSUB:s
-{ E("\tstart sub %s\n", $s.sub->name); }
+{
+    emitter_open_chunk();
+    E("\n");
+    E("; %s\n", $s.sub->name);
+    E("\tcseg\n");
+    if ($s.sub->externname)
+        E("\tpublic %s\n", $s.sub->externname);
+    E("%s:\n", subref($s.sub));
+
+    if ($s.sub->inputparameters != 0)
+    {
+        E("\tpop b\n");
+        for (int i=$s.sub->inputparameters-1; i>=0; i--)
+        {
+			struct symbol* param = $s.sub->namespace.firstsymbol;
+			for (int j=0; j<i; j++)
+				param = param->next;
+
+			if (param->u.var.type->u.type.width == 1)
+			{
+				E("\tpop psw\n");
+				E("\tsta %s\n", symref(param, 0));
+			}
+			else
+			{
+				E("\tpop h\n");
+				E("\tshld %s\n", symref(param, 0));
+			}
+        }
+        E("\tpush b\n");
+    }
+}
 
 statement: ENDSUB:s
-{ E("\tend sub %s\n", $s.sub->name); }
+{
+	E("end_%s:\n", subref($s.sub));
+	if ($s.sub->outputparameters != 0)
+	{
+		E("\tpop h\n");
+		E("\txchg\n"); /* put return address in DE */
+
+		for (int i=0; i<$s.sub->outputparameters; i++)
+		{
+			struct symbol* param = $s.sub->namespace.firstsymbol;
+			for (int j=0; j<(i + $s.sub->inputparameters); j++)
+				param = param->next;
+
+			if (param->u.var.type->u.type.width == 1)
+			{
+				E("\tlda %s\n", symref(param, 0));
+				E("\tpush psw\n");
+			}
+			else
+			{
+				E("\tlhld %s\n", symref(param, 0));
+				E("\tpush h\n");
+			}
+		}
+
+		E("\txchg\n");
+		E("\tpchl\n");
+	}
+	else
+		E("\tret\n");
+
+    E("\tdseg\n");
+	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace);
+    emitter_close_chunk();
+}
 
 // --- Core conversions --------------------------------------------------
 
@@ -652,7 +646,7 @@ constant: CONSTANT:c
 reg2: address:s
 {
 	reg_t r = regalloc_alloc(REG_16);
-	E("\tlxi %s\n", symref($s.sym, 0));
+	E("\tlxi %s, %s\n", regname(r), symref($s.sym, 0));
 	regalloc_push(r);
 }
 	
@@ -702,7 +696,7 @@ statement: CALL:c
 
 statement: RETURN
 {
-	E("\treturn;\n");
+	E("\tjmp end_%s\n", subref(current_sub));
 }
 
 statement: LABEL:b
@@ -788,12 +782,14 @@ reg2: LOAD2(reg2)
 
 statement: BEQS1(reg1, reg1):b
 {
-	regalloc_pop(REG_DE);
-	regalloc_pop(REG_HL);
+	reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
+	regalloc_pop(REG_A);
 	regalloc_reg_changing(ALL_REGS);
-	E("\tcall cmps\n");
-	E("\tjc %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	E("\tcmp %s\n", regname(rhs));
+	if ($b.truelabel)
+		E("\tjz %s\n", labelref($b.truelabel));
+	if ($b.falselabel)
+		E("\tjnz %s\n", labelref($b.falselabel));
 }
 
 // --- Arithmetic -----------------------------------------------------------
