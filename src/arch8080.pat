@@ -722,6 +722,12 @@ statement: STORE1(reg2, reg1)
     }
 }
 
+statement: STORE1(address:a, reg1)
+{
+	regalloc_pop(REG_A);
+	E("\tsta %s\n", symref($a.sym, $a.off));
+}
+
 statement: STORE2(reg2, reg2)
 {
     reg_t r = regalloc_pop(REG_16 & ~REG_HL);
@@ -730,6 +736,12 @@ statement: STORE2(reg2, reg2)
     E("\tmov m, %s\n", regnamelo(r));
     E("\tinx h\n");
     E("\tmov m, %s\n", regname(r));
+}
+
+statement: STORE2(address:a, reg2)
+{
+	regalloc_pop(REG_HL);
+	E("\tshld %s\n", symref($a.sym, $a.off));
 }
 
 // --- Loads ----------------------------------------------------------------
@@ -755,6 +767,13 @@ reg1: LOAD1(reg2)
     regalloc_push(REG_A);
 }
 
+reg1: LOAD1(address:a)
+{
+	regalloc_alloc(REG_A);
+	E("\tlda %s\n", symref($a.sym, $a.off));
+	regalloc_push(REG_A);
+}
+
 reg2: LOAD2(reg2)
 {
     regalloc_pop(REG_HL);
@@ -765,6 +784,13 @@ reg2: LOAD2(reg2)
     E("\tmov h, m\n");
     E("\tmov l, a\n");
     regalloc_push(REG_HL);
+}
+
+reg2: LOAD2(address:a)
+{
+	reg_t r = regalloc_alloc(REG_HL);
+	E("\tlhld %s\n", symref($a.sym, $a.off));
+	regalloc_push(r);
 }
 
 // --- Branches -------------------------------------------------------------
@@ -809,6 +835,7 @@ reg1: NEG1(reg1)
 reg2: NEG2(reg2)
 {
     reg_t rhs = regalloc_pop(REG_16);
+    regalloc_reg_changing(rhs);
     E("\txor a\n");
     E("\tsub %s\n", regnamelo(rhs));
     E("\tmov %s, a\n", regnamelo(rhs));
@@ -827,12 +854,41 @@ reg1: ADD1(reg1, reg1)
     regalloc_push(REG_A);
 }
 
+reg1: ADD1(reg1, constant:c)
+{
+    reg_t lhs = regalloc_pop(REG_A);
+    regalloc_reg_changing(REG_A);
+    E("\tadi %d\n", $c.off);
+    regalloc_push(REG_A);
+}
+
 reg2: ADD2(reg2, reg2)
 {
-    reg_t rhs = regalloc_pop(REG_HL);
+    reg_t rhs = regalloc_pop(REG_16);
     reg_t lhs = regalloc_pop(REG_16);
+	if ((rhs != REG_HL) && (lhs != REG_HL))
+	{
+		regalloc_alloc(REG_HL);
+		if (rhs == REG_DE)
+		{
+			E("\txchg\n");
+			rhs = REG_HL;
+		}
+		else if (lhs == REG_DE)
+		{
+			E("\txchg\n");
+			lhs = REG_HL;
+		}
+		else
+		{
+			E("\tmov h, %s\n", regname(lhs));
+			E("\tmov l, %s\n", regnamelo(lhs));
+			lhs = REG_HL;
+		}
+	}
+		
     regalloc_reg_changing(REG_HL);
-    E("\tdad %s\n", regname(lhs));
+	E("\tdad %s\n", regname((lhs != REG_HL) ? lhs : rhs));
     regalloc_push(REG_HL);
 }
 
@@ -843,6 +899,7 @@ reg1: SUB1(reg1, reg1)
 {
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     reg_t lhs = regalloc_pop(REG_A);
+    regalloc_reg_changing(REG_A);
     E("\tsub %s\n", regname(rhs));
     regalloc_push(REG_A);
 }
@@ -851,6 +908,7 @@ reg2: SUB2(reg2, reg2)
 {
     reg_t rhs = regalloc_pop(REG_16);
     reg_t lhs = regalloc_pop(REG_16);
+    regalloc_reg_changing(lhs);
     E("\tmov a, %s\n", regnamelo(lhs));
     E("\tsub %s\n", regnamelo(rhs));
     E("\tmov %s, a\n", regnamelo(lhs));
