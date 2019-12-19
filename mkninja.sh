@@ -446,8 +446,8 @@ test_cpm addsub-16bit
 test_cpm records
 test_cpm inputparams
 test_cpm outputparams
-#test_cpm conditionals
-#
+test_cpm conditionals
+
 #test_c addsub-8bit
 #test_c addsub-16bit
 #test_c addsub-32bit
