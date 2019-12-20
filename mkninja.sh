@@ -227,7 +227,11 @@ ld80() {
 	bin="$1"
 	shift
 
-	rule "ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" "$*" "$bin" "LD80 $bin"
+	rule \
+		"ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" \
+		"$*" \
+		"$bin" \
+		"LD80 $bin"
 }
 
 cowgol_cpm_asm() {
