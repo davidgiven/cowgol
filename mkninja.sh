@@ -36,6 +36,10 @@ rule lemon
     command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
+rule bison
+    command = bison --defines=\$hfile -o \$cfile \$in
+    description = BISON \$in
+
 rule buildcowgol
     command = \$builder \$in \$out
     description = COWGOL \$target \$in
@@ -179,6 +183,16 @@ buildflex() {
     echo "build $1 : flex $2"
 }
 
+buildbison() {
+    local cfile
+    local hfile
+    cfile="${1%%.c*}.c"
+    hfile="${1%%.c*}.h"
+    echo "build $cfile $hfile : bison $2"
+    echo "  cfile=$cfile"
+    echo "  hfile=$hfile"
+}
+
 buildlemon() {
     local cfile
     local hfile
@@ -201,7 +215,11 @@ buildmkpat() {
 }
 
 zmac8() {
-	rule "zmac -8 $1 -o $2" $1 $2 "ZMAC $1"
+	rule \
+		"bin/zmac -8 $1 -o $2" \
+		"$1 bin/zmac" \
+		$2 \
+		"ZMAC $1"
 }
 
 ld80() {
@@ -299,6 +317,17 @@ buildlibrary liblemon.a \
 
 buildprogram lemon \
 	liblemon.a
+
+buildbison $OBJDIR/third_party/zmac/zmac.c third_party/zmac/zmac.y
+
+buildlibrary libzmac.a \
+	-Ithird_party/zmac \
+	$OBJDIR/third_party/zmac/zmac.c \
+	third_party/zmac/mio.c \
+	third_party/zmac/zi80dis.cpp
+
+buildprogram zmac \
+	libzmac.a
 
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
