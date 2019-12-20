@@ -9,7 +9,7 @@ struct midcode;
 extern void generate(struct midnode* node);
 extern void discard(struct midnode* node);
 
-#define STATE_TYPE int
+#define STATE_TYPE void*
 typedef struct midnode* NODEPTR_TYPE;
 typedef struct midnode* Tree;
 #define LEFT_CHILD(p) ((p)->left)

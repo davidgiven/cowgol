@@ -3,7 +3,7 @@
 #include "regalloc.h"
 
 extern int burm_label(struct midnode* n);
-extern int burm_rule(int state, int goal);
+extern int burm_rule(void* state, int goal);
 extern short* burm_nts[];
 extern void burm_action(int ern, struct midnode* node);
 extern const char* burm_string[];
