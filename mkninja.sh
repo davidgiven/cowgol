@@ -442,13 +442,15 @@ test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
-test_c addsub-8bit
-test_c addsub-16bit
-test_c addsub-32bit
-test_c records
-test_c inputparams
-test_c outputparams
-test_c conditionals
+if test "$(uname -m)" != "x86_64"; then
+	test_c addsub-8bit
+	test_c addsub-16bit
+	test_c addsub-32bit
+	test_c records
+	test_c inputparams
+	test_c outputparams
+	test_c conditionals
+fi
 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 

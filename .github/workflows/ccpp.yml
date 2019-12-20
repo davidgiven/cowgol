@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: apt
-      run: sudo apt install ninja-build lua5.2 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison libz80ex1:i386 libbsd0:i386 libreadline7:i386
+      run: sudo apt install ninja-build lua5.2 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison
     - name: make
       run: make
 
