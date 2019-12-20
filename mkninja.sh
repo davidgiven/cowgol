@@ -340,26 +340,6 @@ pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
 
-<<<<<<< working copy
-buildmkiburgcodes $OBJDIR/tools/iburg/iburgcodes.h src/midcodes.tab
-buildlemon $OBJDIR/tools/iburg/parser.c tools/iburg/parser.y
-buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
-
-buildlibrary libiburg.a \
-    -Itools/iburg \
-    -I$OBJDIR/tools/iburg \
-    --dep $OBJDIR/tools/iburg/parser.h \
-    $OBJDIR/tools/iburg/parser.c \
-    $OBJDIR/tools/iburg/lexer.c \
-    tools/iburg/iburg.c \
-    tools/iburg/utils.c
-
-buildprogram iburg \
-    libiburg.a
-
-buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
-buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
-=======
 buildlibrary liblemon.a \
 	tools/lemon/lemon.c
 
@@ -389,7 +369,25 @@ buildlibrary libld80.a \
 buildprogram ld80 \
 	libld80.a
 
->>>>>>> merge rev
+buildmkiburgcodes $OBJDIR/tools/iburg/iburgcodes.h src/midcodes.tab
+buildlemon $OBJDIR/tools/iburg/parser.c tools/iburg/parser.y
+buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
+
+buildlibrary libiburg.a \
+    -Itools/iburg \
+    -I$OBJDIR/tools/iburg \
+    --dep $OBJDIR/tools/iburg/parser.h \
+    $OBJDIR/tools/iburg/parser.c \
+    $OBJDIR/tools/iburg/lexer.c \
+    tools/iburg/iburg.c \
+    tools/iburg/utils.c
+
+buildprogram iburg \
+    libiburg.a
+
+buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
+buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
+
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
 buildiburg $OBJDIR/arch8080.c src/arch8080.pat
@@ -488,26 +486,16 @@ test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
-<<<<<<< working copy
-#test_c addsub-8bit
-#test_c addsub-16bit
-#test_c addsub-32bit
-#test_c records
-#test_c inputparams
-#test_c outputparams
-#test_c conditionals
-#
-#cowgol_cpm examples/malloc.cow examples/malloc.com 
-=======
-if test "$(uname -m)" != "x86_64"; then
-	test_c addsub-8bit
-	test_c addsub-16bit
-	test_c addsub-32bit
-	test_c records
-	test_c inputparams
-	test_c outputparams
-	test_c conditionals
-fi
->>>>>>> merge rev
+#if test "$(uname -m)" != "x86_64"; then
+	#test_c addsub-8bit
+	#test_c addsub-16bit
+	#test_c addsub-32bit
+	#test_c records
+	#test_c inputparams
+	#test_c outputparams
+	#test_c conditionals
+#fi
+
+cowgol_cpm examples/malloc.cow examples/malloc.com 
 
 # vim: sw=4 ts=4 et
