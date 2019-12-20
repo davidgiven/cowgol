@@ -33,8 +33,12 @@ rule mkpat
     description = MKPAT \$in
 
 rule lemon
-    command = mkdir -p \$cfile.temp && lemon -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
+
+rule bison
+    command = bison --defines=\$hfile -o \$cfile \$in
+    description = BISON \$in
 
 rule buildcowgol
     command = \$builder \$in \$out
@@ -179,12 +183,22 @@ buildflex() {
     echo "build $1 : flex $2"
 }
 
+buildbison() {
+    local cfile
+    local hfile
+    cfile="${1%%.c*}.c"
+    hfile="${1%%.c*}.h"
+    echo "build $cfile $hfile : bison $2"
+    echo "  cfile=$cfile"
+    echo "  hfile=$hfile"
+}
+
 buildlemon() {
     local cfile
     local hfile
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
-    echo "build $cfile $hfile : lemon $2"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon tools/lemon/lempar.c"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -201,7 +215,11 @@ buildmkpat() {
 }
 
 zmac8() {
-	rule "zmac -8 $1 -o $2" $1 $2 "ZMAC $1"
+	rule \
+		"bin/zmac -8 $1 -o $2" \
+		"$1 bin/zmac" \
+		$2 \
+		"ZMAC $1"
 }
 
 ld80() {
@@ -209,7 +227,11 @@ ld80() {
 	bin="$1"
 	shift
 
-	rule "ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" "$*" "$bin" "LD80 $bin"
+	rule \
+		"bin/ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" \
+		"$* bin/ld80" \
+		"$bin" \
+		"LD80 $bin"
 }
 
 cowgol_cpm_asm() {
@@ -293,6 +315,35 @@ objectify() {
 pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
+
+buildlibrary liblemon.a \
+	tools/lemon/lemon.c
+
+buildprogram lemon \
+	liblemon.a
+
+buildbison $OBJDIR/third_party/zmac/zmac.c third_party/zmac/zmac.y
+
+buildlibrary libzmac.a \
+	-Ithird_party/zmac \
+	$OBJDIR/third_party/zmac/zmac.c \
+	third_party/zmac/mio.c \
+	third_party/zmac/zi80dis.cpp
+
+buildprogram zmac \
+	libzmac.a
+
+buildlibrary libld80.a \
+	third_party/ld80/main.c \
+	third_party/ld80/readobj.c \
+	third_party/ld80/section.c \
+	third_party/ld80/symbol.c \
+	third_party/ld80/fixup.c \
+	third_party/ld80/do_out.c \
+	third_party/ld80/optget.c
+
+buildprogram ld80 \
+	libld80.a
 
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
@@ -391,13 +442,15 @@ test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
-test_c addsub-8bit
-test_c addsub-16bit
-test_c addsub-32bit
-test_c records
-test_c inputparams
-test_c outputparams
-test_c conditionals
+if test "$(uname -m)" != "x86_64"; then
+	test_c addsub-8bit
+	test_c addsub-16bit
+	test_c addsub-32bit
+	test_c records
+	test_c inputparams
+	test_c outputparams
+	test_c conditionals
+fi
 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 
