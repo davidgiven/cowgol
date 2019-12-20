@@ -33,7 +33,7 @@ rule mkpat
     description = MKPAT \$in
 
 rule lemon
-    command = mkdir -p \$cfile.temp && lemon -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
 rule buildcowgol
@@ -184,7 +184,7 @@ buildlemon() {
     local hfile
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
-    echo "build $cfile $hfile : lemon $2"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon tools/lemon/lempar.c"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -293,6 +293,12 @@ objectify() {
 pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
+
+buildlibrary liblemon.a \
+	tools/lemon/lemon.c
+
+buildprogram lemon \
+	liblemon.a
 
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
