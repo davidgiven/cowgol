@@ -55,7 +55,7 @@ static const char* subref(struct subroutine* sub)
         return sub->externname;
     
     static char buffer[32];
-    snprintf(buffer, sizeof(buffer), "f%d%", sub->arch->id);
+    snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
     return buffer;
 }
 
