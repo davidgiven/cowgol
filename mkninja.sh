@@ -228,8 +228,8 @@ ld80() {
 	shift
 
 	rule \
-		"ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" \
-		"$*" \
+		"bin/ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" \
+		"$* bin/ld80" \
 		"$bin" \
 		"LD80 $bin"
 }
@@ -332,6 +332,18 @@ buildlibrary libzmac.a \
 
 buildprogram zmac \
 	libzmac.a
+
+buildlibrary libld80.a \
+	third_party/ld80/main.c \
+	third_party/ld80/readobj.c \
+	third_party/ld80/section.c \
+	third_party/ld80/symbol.c \
+	third_party/ld80/fixup.c \
+	third_party/ld80/do_out.c \
+	third_party/ld80/optget.c
+
+buildprogram ld80 \
+	libld80.a
 
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
