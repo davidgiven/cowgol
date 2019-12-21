@@ -84,6 +84,26 @@ cpy4:
 	mov m, h
 	ret
 
+	; Shifts A left B bits.
+	; Corrupts A and B.
+	public asl1
+	cseg
+asl1:
+	dec b
+	rm
+	add a
+	jmp asl1
+
+	; Shifts HL left A bits.
+	; Corrupts A and HL.
+	public asl2
+	cseg
+asl2:
+	dec a
+	rm
+	dad h
+	jmp asl2
+
     dseg
 t1: dw 0
 t2: dw 0

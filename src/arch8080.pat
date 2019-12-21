@@ -220,16 +220,6 @@ i1 constant(n) RSHIFTS(1) -- i1 i1 RSHIFTS(1)
     reg_t r = regalloc_load_const(REG_A, n);
     regalloc_push(r);
 
-i1 i1 LSHIFT(1) -- i1
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    E("\tcall lshift\n");
-    regalloc_adjust_stack(-1);
-
-i1 constant(n) LSHIFT(1) -- i1 i1 LSHIFT(1)
-    reg_t r = regalloc_load_const(REG_A, n);
-    regalloc_push(r);
-	
 // --- Branches -------------------------------------------------------------
 
 i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
@@ -336,6 +326,8 @@ statement: STARTFILE
     E("\textrn add4\n");
     E("\textrn sub4\n");
     E("\textrn cpy4\n");
+    E("\textrn asl1\n");
+    E("\textrn asl2\n");
     emitter_close_chunk();
 }
 
@@ -909,6 +901,24 @@ constant: MUL0(constant:lhs, constant:rhs)
 
 constant: MUL2(constant:lhs, constant:rhs)
 { $$.off = $lhs.off * $rhs.off; }
+
+reg1a: LSHIFT1(reg1a, reg1)
+{
+	regalloc_pop(REG_B);
+	regalloc_pop(REG_A);
+	regalloc_reg_changing(REG_A | REG_B);
+	E("\tcall asl1\n");
+	regalloc_push(REG_A);
+}
+
+reg2hl: LSHIFT2(reg2hl, reg1a)
+{
+	regalloc_pop(REG_A);
+	regalloc_pop(REG_HL);
+	regalloc_reg_changing(REG_A | REG_HL);
+	E("\tcall asl2\n");
+	regalloc_push(REG_HL);
+}
 
 // --- Inline assembly ------------------------------------------------------
 

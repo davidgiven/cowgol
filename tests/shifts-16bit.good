@@ -1,0 +1,2 @@
+one16<<one == 2: yes
+one16<<two == 4: yes

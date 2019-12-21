@@ -1,0 +1,16 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+var zero16: uint16 := 0;
+var one16: uint16 := 1;
+
+var zero: uint8 := 0;
+var one: uint8 := 1;
+var two: uint8 := 2;
+
+sub lshift()
+	print("one16<<one == 2"); if one16<<one == 2 then yes(); else no(); end if;
+	print("one16<<two == 4"); if one16<<two == 4 then yes(); else no(); end if;
+end sub;
+lshift();
+

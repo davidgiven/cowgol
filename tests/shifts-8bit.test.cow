@@ -1,0 +1,15 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+var mtwo: int8 := -2;
+var mone: int8 := -1;
+var zero: uint8 := 0;
+var one: uint8 := 1;
+var two: uint8 := 2;
+
+sub lshift()
+	print("one<<one == 2"); if one<<one == 2 then yes(); else no(); end if;
+	print("one<<two == 4"); if one<<two == 4 then yes(); else no(); end if;
+end sub;
+lshift();
+
