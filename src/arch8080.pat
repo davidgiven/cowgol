@@ -328,6 +328,8 @@ statement: STARTFILE
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
+	E("\textrn lsr1\n");
+	E("\textrn lsr2\n");
     emitter_close_chunk();
 }
 
@@ -662,29 +664,51 @@ reg2hl: LOAD2(address:a)
 
 // --- Branches -------------------------------------------------------------
 
+%{
+	static void bequ1(int truelabel, int falselabel)
+	{
+		reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
+		regalloc_pop(REG_A);
+		regalloc_reg_changing(ALL_REGS);
+		E("\tcmp %s\n", regname(rhs));
+		E("\tjz %s\n", labelref(truelabel));
+		E("\tjnz %s\n", labelref(falselabel));
+	}
+%}
+
+statement: BEQU1(reg1a, reg1bdh):b
+{ bequ1($b.truelabel, $b.falselabel); }
+
+statement: BEQU1(reg1, reg1):b
+{ bequ1($b.truelabel, $b.falselabel); }
+
+statement: BEQS1(reg1a, reg1bdh):b
+{ bequ1($b.truelabel, $b.falselabel); }
+
 statement: BEQS1(reg1, reg1):b
-{
-	reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-	regalloc_pop(REG_A);
-	regalloc_reg_changing(ALL_REGS);
-	E("\tcmp %s\n", regname(rhs));
-	E("\tjz %s\n", labelref($b.truelabel));
-	E("\tjnz %s\n", labelref($b.falselabel));
-}
+{ bequ1($b.truelabel, $b.falselabel); }
+
+%{
+	static void bequ2(int truelabel, int falselabel)
+	{
+		reg_t rhs = regalloc_pop(REG_16);
+		reg_t lhs = regalloc_pop(REG_16);
+		regalloc_reg_changing(ALL_REGS);
+		E("\tmov a, %s\n", regname(lhs));
+		E("\tcmp %s\n", regname(rhs));
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tmov a, %s\n", regnamelo(lhs));
+		E("\tcmp %s\n", regnamelo(rhs));
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tjmp %s\n", labelref(truelabel));
+	}
+%}
+
+statement: BEQU2(reg2, reg2):b
+{ bequ2($b.truelabel, $b.falselabel); }
 
 statement: BEQS2(reg2, reg2):b
-{
-	reg_t rhs = regalloc_pop(REG_16);
-	reg_t lhs = regalloc_pop(REG_16);
-	regalloc_reg_changing(ALL_REGS);
-	E("\tmov a, %s\n", regname(lhs));
-	E("\tcmp %s\n", regname(rhs));
-	E("\tjnz %s\n", labelref($b.falselabel));
-	E("\tmov a, %s\n", regnamelo(lhs));
-	E("\tcmp %s\n", regnamelo(rhs));
-	E("\tjnz %s\n", labelref($b.falselabel));
-	E("\tjmp %s\n", labelref($b.truelabel));
-}
+{ bequ2($b.truelabel, $b.falselabel); }
 
 // --- Arithmetic -----------------------------------------------------------
 
@@ -917,6 +941,24 @@ reg2hl: LSHIFT2(reg2hl, reg1a)
 	regalloc_pop(REG_HL);
 	regalloc_reg_changing(REG_A | REG_HL);
 	E("\tcall asl2\n");
+	regalloc_push(REG_HL);
+}
+
+reg1a: RSHIFTU1(reg1a, reg1)
+{
+	regalloc_pop(REG_B);
+	regalloc_pop(REG_A);
+	regalloc_reg_changing(REG_A | REG_B);
+	E("\tcall lsr1\n");
+	regalloc_push(REG_A);
+}
+
+reg2hl: RSHIFTU2(reg2hl, reg1)
+{
+	regalloc_pop(REG_B);
+	regalloc_pop(REG_HL);
+	regalloc_reg_changing(REG_A | REG_B | REG_HL);
+	E("\tcall lsr2\n");
 	regalloc_push(REG_HL);
 }
 

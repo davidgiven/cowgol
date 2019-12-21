@@ -6,10 +6,17 @@ var mone: int8 := -1;
 var zero: uint8 := 0;
 var one: uint8 := 1;
 var two: uint8 := 2;
+var onetwoeight: uint8 := 128;
 
 sub lshift()
 	print("one<<one == 2"); if one<<one == 2 then yes(); else no(); end if;
 	print("one<<two == 4"); if one<<two == 4 then yes(); else no(); end if;
 end sub;
 lshift();
+
+sub rshiftu()
+	print("onetwoeight>>one == 64"); if onetwoeight>>one == 64 then yes(); else no(); end if;
+	print("onetwoeight>>two == 32"); if onetwoeight>>two == 32 then yes(); else no(); end if;
+end sub;
+rshiftu();
 

@@ -33,7 +33,7 @@ bool is_snum(struct symbol* sym)
 {
 	if (!sym)
 		return true; /* for numeric constants */
-	return is_num(sym);
+	return is_num(sym) && sym->u.type.issigned;
 }
 
 bool is_array(struct symbol* sym)

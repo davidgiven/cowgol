@@ -104,6 +104,33 @@ asl2:
 	dad h
 	jmp asl2
 
+	; Logical shift A right B bits.
+	; Corrupts A and B.
+	public lsr1
+	cseg
+lsr1:
+	dec b
+	rm
+	ora a
+	rar
+	jmp lsr1
+
+	; Logical shift HL right B bits.
+	; Corrupts A, B and HL.
+	public lsr2
+	cseg
+lsr2:
+	dec b
+	rm
+	ora a
+	mov a, h
+	rar
+	mov h, a
+	mov a, l
+	rar
+	mov l, a
+	jmp lsr2
+
     dseg
 t1: dw 0
 t2: dw 0
