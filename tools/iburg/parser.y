@@ -36,7 +36,7 @@ rules ::= .
 rules ::= rules SEMICOLON.
 rules ::= error SEMICOLON.
 rules ::= rules lhs(LHS) COLON tree(TREE) cost(COST) action(A).
-{ rule(LHS, TREE, COST, A); }
+{ rule(LHS, TREE, COST+1, A); }
 
 lhs(R) ::= ID(ID).
 {
@@ -60,7 +60,7 @@ label(R) ::= COLON ID(ID).
 { R = ID.string; }
 
 cost(R) ::= .
-{ R = 0; }
+{ R = 1; }
 
 cost(R) ::= COSTS INT(VAL).
 { R = VAL.number; }

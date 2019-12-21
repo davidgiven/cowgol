@@ -425,26 +425,60 @@ constant: CONSTANT:c
 	$$.off = $c.value;
 }
 
+reg1: reg1a;
+reg1: reg1bdh;
+reg2: reg2hl;
+reg2: reg2bcde;
+
+reg1a: reg1
+{ regalloc_push(regalloc_pop(REG_A)); }
+
+reg1bdh: reg1
+{ regalloc_push(regalloc_pop(REG_B | REG_D | REG_H)); }
+
+reg2hl: reg2
+{ regalloc_push(regalloc_pop(REG_HL)); }
+
+reg2bcde: reg2
+{ regalloc_push(regalloc_pop(REG_BC | REG_DE)); }
+
+%{
+	static void loadaddress(reg_t mask, struct symbol* sym, int off)
+	{
+		reg_t r = regalloc_alloc(mask);
+		E("\tlxi %s, %s\n", regname(r), symref(sym, off));
+		regalloc_push(r);
+	}
+%}
+
 reg2: address:s
-{
-	reg_t r = regalloc_alloc(REG_16);
-	E("\tlxi %s, %s\n", regname(r), symref($s.sym, 0));
-	regalloc_push(r);
-}
+{ loadaddress(REG_16, $s.sym, $s.off); }
+	
+reg2hl: address:s
+{ loadaddress(REG_HL, $s.sym, $s.off); }
+	
+reg2bcde: address:s
+{ loadaddress(REG_BC|REG_DE, $s.sym, $s.off); }
 	
 reg1: constant:c
-{
-    reg_t r = regalloc_load_const(REG_8, $c.off);
-    regalloc_push(r);
-}
+{ regalloc_push(regalloc_load_const(REG_8, $c.off)); }
+
+reg1a: constant:c
+{ regalloc_push(regalloc_load_const(REG_A, $c.off)); }
+
+reg1bdh: constant:c
+{ regalloc_push(regalloc_load_const(REG_B | REG_D | REG_H, $c.off)); }
 
 reg2: constant:c
-{
-    reg_t r = regalloc_load_const(REG_16, $c.off);
-    regalloc_push(r);
-}
+{ regalloc_push(regalloc_load_const(REG_16, $c.off)); }
 
-adr4: constant:c costs 0
+reg2hl: constant:c
+{ regalloc_push(regalloc_load_const(REG_HL, $c.off)); }
+
+reg2bcde: constant:c
+{ regalloc_push(regalloc_load_const(REG_BC | REG_DE, $c.off)); }
+
+adr4: constant:c
 {
 	$$.off = id++;
 	emitter_open_chunk();
@@ -453,7 +487,7 @@ adr4: constant:c costs 0
 	emitter_close_chunk();
 }
 
-reg4: constant:c costs 2
+reg4: constant:c
 {
 	regalloc_alloc(REG_HLDE);
 	E("\tlxi h, %d\n", $c.off >> 16);
@@ -540,9 +574,10 @@ statement: STORE1(address:a, reg1)
 {
 	regalloc_pop(REG_A);
 	E("\tsta %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_A, $a.sym, $a.off);
 }
 
-statement: STORE2(reg2, reg2)
+statement: STORE2(reg2hl, reg2)
 {
     reg_t r = regalloc_pop(REG_16 & ~REG_HL);
     regalloc_pop(REG_HL);
@@ -552,10 +587,11 @@ statement: STORE2(reg2, reg2)
     E("\tmov m, %s\n", regname(r));
 }
 
-statement: STORE2(address:a, reg2)
+statement: STORE2(address:a, reg2hl)
 {
 	regalloc_pop(REG_HL);
 	E("\tshld %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
 }
 
 statement: STORE4(reg2, adr4:a) costs 20
@@ -587,7 +623,7 @@ statement: STORE4(address:dest, reg4) costs 3
 
 // --- Loads ----------------------------------------------------------------
 
-reg1: LOAD1(reg2)
+reg1a: LOAD1(reg2)
 {
     reg_t r = regalloc_pop(REG_16);
     regalloc_alloc(REG_A);
@@ -608,14 +644,13 @@ reg1: LOAD1(reg2)
     regalloc_push(REG_A);
 }
 
-reg1: LOAD1(address:a)
+reg1a: LOAD1(address:a)
 {
-	regalloc_alloc(REG_A);
-	E("\tlda %s\n", symref($a.sym, $a.off));
-	regalloc_push(REG_A);
+	reg_t r = regalloc_load_var(REG_A, $a.sym, $a.off);
+	regalloc_push(r);
 }
 
-reg2: LOAD2(reg2)
+reg2hl: LOAD2(reg2hl)
 {
     regalloc_pop(REG_HL);
     regalloc_reg_changing(REG_HL);
@@ -627,10 +662,9 @@ reg2: LOAD2(reg2)
     regalloc_push(REG_HL);
 }
 
-reg2: LOAD2(address:a)
+reg2hl: LOAD2(address:a)
 {
-	reg_t r = regalloc_alloc(REG_HL);
-	E("\tlhld %s\n", symref($a.sym, $a.off));
+	reg_t r = regalloc_load_var(REG_HL, $a.sym, $a.off);
 	regalloc_push(r);
 }
 
@@ -665,7 +699,7 @@ statement: BEQS2(reg2, reg2):b
 constant: NEG0(constant:c)
 { $$.off = -$c.off; }
 
-reg1: NEG1(reg1)
+reg1a: NEG1(reg1bdh)
 {
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     regalloc_load_const(REG_A, 0);
@@ -686,17 +720,28 @@ reg2: NEG2(reg2)
 	regalloc_push(rhs);
 }
 
-reg1: ADD1(reg1, reg1)
-{
-    reg_t rhs = regalloc_pop(REG_A);
-    reg_t lhs = regalloc_pop(REG_8);
-    regalloc_reg_changing(REG_A);
-    E("\tadd %s\n", regname(lhs));
-    regalloc_push(REG_A);
-}
+%{
+	static void add1(void)
+	{
+		reg_t rhs = regalloc_pop(REG_A);
+		reg_t lhs = regalloc_pop(REG_8);
+		regalloc_reg_changing(REG_A);
+		E("\tadd %s\n", regname(lhs));
+		regalloc_push(REG_A);
+	}
+%}
+
+reg1a: ADD1(reg1bdh, reg1a)
+{ add1(); }
+
+reg1a: ADD1(reg1a, reg1bdh)
+{ add1(); }
+
+reg1a: ADD1(reg1, reg1)
+{ add1(); }
 
 %{
-	static void add1(uint32_t c)
+	static void add1c(uint32_t c)
 	{
 		switch (c)
 		{
@@ -733,41 +778,49 @@ reg1: ADD1(reg1, reg1)
 	}
 %}
 
-reg1: ADD1(reg1, constant:c)
-{ add1($c.off); }
+reg1a: ADD1(reg1a, constant:c)
+{ add1c($c.off); }
 
-reg1: ADD1(constant:c, reg1)
-{ add1($c.off); }
+reg1a: ADD1(constant:c, reg1a)
+{ add1c($c.off); }
 
-reg2: ADD2(reg2, reg2)
-{
-    reg_t rhs = regalloc_pop(REG_16);
-    reg_t lhs = regalloc_pop(REG_16);
-	if ((rhs != REG_HL) && (lhs != REG_HL))
+%{
+	static void add2hl(void)
 	{
-		regalloc_alloc(REG_HL);
-		if (rhs == REG_DE)
+		reg_t rhs = regalloc_pop(REG_16);
+		reg_t lhs = regalloc_pop(REG_16);
+		if ((rhs != REG_HL) && (lhs != REG_HL))
 		{
-			E("\txchg\n");
-			rhs = REG_HL;
+			regalloc_alloc(REG_HL);
+			if (rhs == REG_DE)
+			{
+				E("\txchg\n");
+				rhs = REG_HL;
+			}
+			else if (lhs == REG_DE)
+			{
+				E("\txchg\n");
+				lhs = REG_HL;
+			}
+			else
+			{
+				E("\tmov h, %s\n", regname(lhs));
+				E("\tmov l, %s\n", regnamelo(lhs));
+				lhs = REG_HL;
+			}
 		}
-		else if (lhs == REG_DE)
-		{
-			E("\txchg\n");
-			lhs = REG_HL;
-		}
-		else
-		{
-			E("\tmov h, %s\n", regname(lhs));
-			E("\tmov l, %s\n", regnamelo(lhs));
-			lhs = REG_HL;
-		}
+			
+		regalloc_reg_changing(REG_HL);
+		E("\tdad %s\n", regname((lhs != REG_HL) ? lhs : rhs));
+		regalloc_push(REG_HL);
 	}
-		
-    regalloc_reg_changing(REG_HL);
-	E("\tdad %s\n", regname((lhs != REG_HL) ? lhs : rhs));
-    regalloc_push(REG_HL);
-}
+%}
+
+reg2hl: ADD2(reg2hl, reg2bcde) costs 2
+{ add2hl(); }
+
+reg2hl: ADD2(reg2bcde, reg2hl) costs 2
+{ add2hl(); }
 
 %{
 	static void add2(uint32_t c)
@@ -813,16 +866,16 @@ reg2: ADD2(reg2, reg2)
 	}
 %}
 
-reg2: ADD2(reg2, constant:c)
+reg2hl: ADD2(reg2, constant:c)
 { add2($c.off); }
 
-reg2: ADD2(constant:c, reg2)
+reg2hl: ADD2(constant:c, reg2)
 { add2($c.off); }
 
 constant: SUB0(constant:lhs, constant:rhs)
 { $$.off = $lhs.off - $rhs.off; }
 
-reg1: SUB1(reg1, reg1)
+reg1a: SUB1(reg1a, reg1bdh)
 {
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     reg_t lhs = regalloc_pop(REG_A);
@@ -831,8 +884,8 @@ reg1: SUB1(reg1, reg1)
     regalloc_push(REG_A);
 }
 
-reg1: SUB1(reg1, constant:c)
-{ add1(-$c.off); }
+reg1a: SUB1(reg1a, constant:c)
+{ add1c(-$c.off); }
 
 reg2: SUB2(reg2, reg2)
 {
