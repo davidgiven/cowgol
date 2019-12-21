@@ -71,7 +71,7 @@ struct subroutine
 {
 	const char* name;
 	const char* externname;
-	uint32_t workspace;
+	unsigned workspace[4]; /* four workspaces should be enough */
 	struct namespace namespace;
 	int inputparameters;
 	int outputparameters;

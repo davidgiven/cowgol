@@ -6,6 +6,13 @@
 #include <ctype.h>
 #include <bsd/string.h>
 
+/* Workspaces used by the 8080 code generator:
+ *
+ * 0 = variables (this one always is)
+ * 1 = pseudostack (for 32-bit values)
+ * 2, 3 = unused
+ */
+
 struct subarch
 {
     int id;
@@ -22,6 +29,7 @@ enum
     REG_BC = 1<<4,
     REG_DE = 1<<5,
     REG_HL = 1<<6,
+	REG_HLDE = 1<<7, /* HL:DE */
 
     REG_16 = REG_BC | REG_DE | REG_HL,
     REG_8 = REG_A | REG_B | REG_D | REG_H
@@ -51,6 +59,7 @@ void arch_init_types(void)
     regalloc_add_register("b", REG_BC, REG_B | REG_BC);
     regalloc_add_register("d", REG_DE, REG_D | REG_DE);
     regalloc_add_register("h", REG_HL, REG_H | REG_HL);
+	regalloc_add_register("hlde", REG_HLDE, REG_H | REG_D | REG_HL | REG_DE);
 }
 
 static const char* regnamelo(reg_t id)
@@ -326,6 +335,7 @@ statement: STARTFILE
     emitter_open_chunk();
     E("\textrn add4\n");
     E("\textrn sub4\n");
+    E("\textrn cpy4\n");
     emitter_close_chunk();
 }
 
@@ -398,7 +408,7 @@ statement: ENDSUB:s
 		E("\tret\n");
 
     E("\tdseg\n");
-	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace);
+	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace[0]);
     emitter_close_chunk();
 }
 
@@ -432,6 +442,23 @@ reg2: constant:c
 {
     reg_t r = regalloc_load_const(REG_16, $c.off);
     regalloc_push(r);
+}
+
+adr4: constant:c costs 0
+{
+	$$.off = id++;
+	emitter_open_chunk();
+	E("\tdseg\n");
+	E("c%d: dw %d, %d\n", $$.off, $c.off >> 16, $c.off & 0xffff);
+	emitter_close_chunk();
+}
+
+reg4: constant:c costs 2
+{
+	regalloc_alloc(REG_HLDE);
+	E("\tlxi h, %d\n", $c.off >> 16);
+	E("\tlxi d, %d\n", $c.off & 0xffff);
+	regalloc_push(REG_HLDE);
 }
 
 // --- Subroutines -------------------------------------------------------
@@ -529,6 +556,33 @@ statement: STORE2(address:a, reg2)
 {
 	regalloc_pop(REG_HL);
 	E("\tshld %s\n", symref($a.sym, $a.off));
+}
+
+statement: STORE4(reg2, adr4:a) costs 20
+{
+	regalloc_pop(REG_HL); /* address */
+	regalloc_alloc(REG_DE);
+	regalloc_reg_changing(REG_HL | REG_DE);
+	E("\tlxi d, c%d\n", $a.off);
+	E("\tcall cpy4\n");
+}
+
+statement: STORE4(address:dest, adr4:src) costs 4
+{
+	regalloc_alloc(REG_HL);
+	E("\tlhld c%d\n", $src.off);
+	E("\tshld %s\n", symref($dest.sym, $dest.off));
+	E("\tlhld c%d+2\n", $src.off);
+	E("\tshld %s\n", symref($dest.sym, $dest.off+2));
+}
+
+statement: STORE4(address:dest, reg4) costs 3
+{
+	regalloc_pop(REG_HLDE);
+	regalloc_reg_changing(REG_HLDE);
+	E("\tshld %s\n", symref($dest.sym, $dest.off));
+	E("\txchg\n");
+	E("\tshld %s\n", symref($dest.sym, $dest.off+2));
 }
 
 // --- Loads ----------------------------------------------------------------

@@ -63,6 +63,27 @@ sub4:
     push b
     ret
 
+	; Copies a 32-bit value pointed to from DE to HL.
+	; Corrupts A.
+	public cpy4
+	cseg
+cpy4:
+	ldax d
+	mov m, h
+	inc d
+	inc h
+	ldax d
+	mov m, h
+	inc d
+	inc h
+	ldax d
+	mov m, h
+	inc d
+	inc h
+	ldax d
+	mov m, h
+	ret
+
     dseg
 t1: dw 0
 t2: dw 0
