@@ -2,3 +2,5 @@ one<<one == 2: yes
 one<<two == 4: yes
 onetwoeight>>one == 64: yes
 onetwoeight>>two == 32: yes
+mbig>>one == 0xc0: yes
+mbig>>two == 0xe0: yes

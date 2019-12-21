@@ -330,6 +330,8 @@ statement: STARTFILE
     E("\textrn asl2\n");
 	E("\textrn lsr1\n");
 	E("\textrn lsr2\n");
+	E("\textrn asr1\n");
+	E("\textrn asr2\n");
     emitter_close_chunk();
 }
 
@@ -926,41 +928,45 @@ constant: MUL0(constant:lhs, constant:rhs)
 constant: MUL2(constant:lhs, constant:rhs)
 { $$.off = $lhs.off * $rhs.off; }
 
-reg1a: LSHIFT1(reg1a, reg1)
-{
-	regalloc_pop(REG_B);
-	regalloc_pop(REG_A);
-	regalloc_reg_changing(REG_A | REG_B);
-	E("\tcall asl1\n");
-	regalloc_push(REG_A);
-}
+%{
+	static void shift1(const char* name)
+	{
+		regalloc_pop(REG_B);
+		regalloc_pop(REG_A);
+		regalloc_reg_changing(REG_A | REG_B | REG_BC);
+		E("\tcall %s\n", name);
+		regalloc_push(REG_A);
+	}
+%}
 
-reg2hl: LSHIFT2(reg2hl, reg1a)
-{
-	regalloc_pop(REG_A);
-	regalloc_pop(REG_HL);
-	regalloc_reg_changing(REG_A | REG_HL);
-	E("\tcall asl2\n");
-	regalloc_push(REG_HL);
-}
+reg1a: LSHIFT1(reg1a, reg1)
+{ shift1("asl1"); }
 
 reg1a: RSHIFTU1(reg1a, reg1)
-{
-	regalloc_pop(REG_B);
-	regalloc_pop(REG_A);
-	regalloc_reg_changing(REG_A | REG_B);
-	E("\tcall lsr1\n");
-	regalloc_push(REG_A);
-}
+{ shift1("lsr1"); }
+
+reg1a: RSHIFTS1(reg1a, reg1)
+{ shift1("asr1"); }
+
+%{
+	static void shift2(const char* name)
+	{
+		regalloc_pop(REG_B);
+		regalloc_pop(REG_HL);
+		regalloc_reg_changing(REG_A | REG_B | REG_HL);
+		E("\tcall %s\n", name);
+		regalloc_push(REG_HL);
+	}
+%}
+
+reg2hl: LSHIFT2(reg2hl, reg1)
+{ shift2("asl2"); }
 
 reg2hl: RSHIFTU2(reg2hl, reg1)
-{
-	regalloc_pop(REG_B);
-	regalloc_pop(REG_HL);
-	regalloc_reg_changing(REG_A | REG_B | REG_HL);
-	E("\tcall lsr2\n");
-	regalloc_push(REG_HL);
-}
+{ shift2("lsr2"); }
+
+reg2hl: RSHIFTS2(reg2hl, reg1)
+{ shift2("asr2"); }
 
 // --- Inline assembly ------------------------------------------------------
 

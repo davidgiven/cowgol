@@ -94,12 +94,12 @@ asl1:
 	add a
 	jmp asl1
 
-	; Shifts HL left A bits.
+	; Shifts HL left B bits.
 	; Corrupts A and HL.
 	public asl2
 	cseg
 asl2:
-	dec a
+	dec b
 	rm
 	dad h
 	jmp asl2
@@ -130,6 +130,38 @@ lsr2:
 	rar
 	mov l, a
 	jmp lsr2
+
+	; Arithmetic shift A right B bits.
+	; Corrupts A, B and C.
+	public asr1
+	cseg
+asr1:
+	mov c, a		; old copy of A
+asr1_loop:
+	dec b
+	rm
+	rla
+	mov a, c
+	rra
+	mov c, a
+	jmp asr1_loop
+
+	; Arithmetic shift HL right B bits.
+	; Corrupts A, B and HL.
+	public asr2
+	cseg
+asr2:
+	dec b
+	rm
+	mov a, h
+	rla
+	mov a, h
+	rra
+	mov h, a
+	mov a, l
+	rar
+	mov l, a
+	jmp asr2
 
     dseg
 t1: dw 0

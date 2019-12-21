@@ -1,12 +1,11 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-var mtwo: int8 := -2;
-var mone: int8 := -1;
+var mbig: int8 := 0x80;
 var zero: uint8 := 0;
 var one: uint8 := 1;
 var two: uint8 := 2;
-var onetwoeight: uint8 := 128;
+var onetwoeight: uint8 := 0x80;
 
 sub lshift()
 	print("one<<one == 2"); if one<<one == 2 then yes(); else no(); end if;
@@ -19,4 +18,10 @@ sub rshiftu()
 	print("onetwoeight>>two == 32"); if onetwoeight>>two == 32 then yes(); else no(); end if;
 end sub;
 rshiftu();
+
+sub rshifts()
+	print("mbig>>one == 0xc0"); if mbig>>one == 0xc0 then yes(); else no(); end if;
+	print("mbig>>two == 0xe0"); if mbig>>two == 0xe0 then yes(); else no(); end if;
+end sub;
+rshifts();
 
