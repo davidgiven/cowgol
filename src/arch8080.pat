@@ -9,8 +9,7 @@
 /* Workspaces used by the 8080 code generator:
  *
  * 0 = variables (this one always is)
- * 1 = pseudostack (for 32-bit values)
- * 2, 3 = unused
+ * 1, 2, 3 = unused
  */
 
 struct subarch
@@ -29,7 +28,6 @@ enum
     REG_BC = 1<<4,
     REG_DE = 1<<5,
     REG_HL = 1<<6,
-	REG_HLDE = 1<<7, /* HL:DE */
 
     REG_16 = REG_BC | REG_DE | REG_HL,
     REG_8 = REG_A | REG_B | REG_D | REG_H
@@ -59,7 +57,6 @@ void arch_init_types(void)
     regalloc_add_register("b", REG_BC, REG_B | REG_BC);
     regalloc_add_register("d", REG_DE, REG_D | REG_DE);
     regalloc_add_register("h", REG_HL, REG_H | REG_HL);
-	regalloc_add_register("hlde", REG_HLDE, REG_H | REG_D | REG_HL | REG_DE);
 }
 
 static const char* regnamelo(reg_t id)
@@ -82,6 +79,8 @@ void arch_init_subroutine(struct subroutine* sub)
 
 void arch_init_variable(struct symbol* var)
 {
+	/* All variables get allocated from workspace 0. */
+	current_sub->workspace[0] += var->u.var.type->u.type.width;
 }
 
 void arch_emit_comment(const char* text, ...)
@@ -325,6 +324,7 @@ statement: STARTFILE
     emitter_open_chunk();
     E("\textrn add4\n");
     E("\textrn sub4\n");
+    E("\textrn neg4\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
@@ -332,6 +332,7 @@ statement: STARTFILE
 	E("\textrn lsr2\n");
 	E("\textrn asr1\n");
 	E("\textrn asr2\n");
+	E("\textrn cmpu4\n");
     emitter_close_chunk();
 }
 
@@ -474,21 +475,15 @@ reg2hl: constant:c
 reg2bcde: constant:c
 { regalloc_push(regalloc_load_const(REG_BC | REG_DE, $c.off)); }
 
-adr4: constant:c
+stk4: constant:c
 {
-	$$.off = id++;
-	emitter_open_chunk();
-	E("\tdseg\n");
-	E("c%d: dw %d, %d\n", $$.off, $c.off >> 16, $c.off & 0xffff);
-	emitter_close_chunk();
-}
+	regalloc_flush_stack();
 
-reg4: constant:c
-{
-	regalloc_alloc(REG_HLDE);
-	E("\tlxi h, %d\n", $c.off >> 16);
-	E("\tlxi d, %d\n", $c.off & 0xffff);
-	regalloc_push(REG_HLDE);
+	reg_t r = regalloc_load_const(REG_16, $c.off >> 16);
+	E("\tpush %s\n", regname(r));
+	regalloc_unlock(r);
+	r = regalloc_load_const(REG_16, $c.off & 0xffff);
+	E("\tpush %s\n", regname(r));
 }
 
 // --- Subroutines -------------------------------------------------------
@@ -590,30 +585,12 @@ statement: STORE2(address:a, reg2hl)
 	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
 }
 
-statement: STORE4(reg2, adr4:a) costs 20
-{
-	regalloc_pop(REG_HL); /* address */
-	regalloc_alloc(REG_DE);
-	regalloc_reg_changing(REG_HL | REG_DE);
-	E("\tlxi d, c%d\n", $a.off);
-	E("\tcall cpy4\n");
-}
-
-statement: STORE4(address:dest, adr4:src) costs 4
+statement: STORE4(address:dest, stk4:src) costs 4
 {
 	regalloc_alloc(REG_HL);
-	E("\tlhld c%d\n", $src.off);
-	E("\tshld %s\n", symref($dest.sym, $dest.off));
-	E("\tlhld c%d+2\n", $src.off);
-	E("\tshld %s\n", symref($dest.sym, $dest.off+2));
-}
-
-statement: STORE4(address:dest, reg4) costs 3
-{
-	regalloc_pop(REG_HLDE);
-	regalloc_reg_changing(REG_HLDE);
-	E("\tshld %s\n", symref($dest.sym, $dest.off));
-	E("\txchg\n");
+	E("\tpop h\n");
+	E("\tshld %s\n", symref($dest.sym, $dest.off+0));
+	E("\tpop h\n");
 	E("\tshld %s\n", symref($dest.sym, $dest.off+2));
 }
 
@@ -674,6 +651,16 @@ reg2hl: LOAD2(address:a)
 {
 	reg_t r = regalloc_load_var(REG_HL, $a.sym, $a.off);
 	regalloc_push(r);
+}
+
+stk4: LOAD4(address:a)
+{
+	regalloc_flush_stack();
+	regalloc_alloc(REG_HL);
+	E("\tlhld %s\n", symref($a.sym, $a.off+2));
+	E("\tpush h\n");
+	E("\tlhld %s\n", symref($a.sym, $a.off+0));
+	E("\tpush h\n");
 }
 
 // --- Branches -------------------------------------------------------------
@@ -744,6 +731,20 @@ statement: BLTU2(reg2, reg2):b
 	E("\tjc %s\n", labelref($b.truelabel));
 	E("\tjmp %s\n", labelref($b.falselabel));
 }
+
+%{
+	static void bequ4(int truelabel, int falselabel)
+	{
+		regalloc_reg_changing(ALL_REGS);
+		E("\tcall sub4\n");
+		E("\tcall cmpu4\n");
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tjmp %s\n", labelref(truelabel));
+	}
+%}
+
+statement: BEQS4(stk4, stk4):b
+{ bequ4($b.truelabel, $b.falselabel); }
 
 // --- Arithmetic -----------------------------------------------------------
 
@@ -1000,6 +1001,17 @@ reg2hl: RSHIFTU2(reg2hl, reg1)
 
 reg2hl: RSHIFTS2(reg2hl, reg1)
 { shift2("asr2"); }
+
+// --- 32-bit arithmetic -------------------------------------------------
+
+stk4: ADD4(stk4, stk4)
+{ E("\tcall add4\n"); }
+
+stk4: SUB4(stk4, stk4)
+{ E("\tcall sub4\n"); }
+
+stk4: NEG4(stk4)
+{ E("\tcall neg4\n"); }
 
 // --- Inline assembly ------------------------------------------------------
 

@@ -252,7 +252,6 @@ void init_var(struct symbol* sym, struct symbol* type)
 	sym->u.var.sub = current_sub;
 	sym->u.var.offset = current_sub->workspace[0];
 	arch_init_variable(sym);
-	current_sub->workspace[0] += type->u.type.width;
 }
 
 void init_member(struct symbol* sym, struct symbol* type)

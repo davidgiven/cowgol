@@ -480,7 +480,7 @@ cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
 test_cpm addsub-16bit
-#test_cpm addsub-32bit
+test_cpm addsub-32bit
 test_cpm shifts-8bit
 test_cpm shifts-16bit
 test_cpm records
