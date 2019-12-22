@@ -24,15 +24,11 @@ y 1 1 LOAD()
 y 2 0 STORE()
 
 y 2 0 BEQS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
-y 2 0 BGTS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BLTS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BEQU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
-y 2 0 BGTU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BLTU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 
-y 1 1 CAST1(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
-y 1 1 CAST2(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
-y 1 1 CAST4(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
+y 1 1 CAST(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
 
 y 2 0 PARAM()
 y 2 1 ADD()

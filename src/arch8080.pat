@@ -658,6 +658,18 @@ reg2hl: LOAD2(reg2hl)
     regalloc_push(REG_HL);
 }
 
+reg2: LOAD2(reg2hl)
+{
+    regalloc_pop(REG_HL);
+    regalloc_reg_changing(REG_HL);
+    regalloc_alloc(REG_A);
+	reg_t r = regalloc_alloc(REG_16);
+    E("\tmov %s, m\n", regnamelo(r));
+    E("\tinx h\n");
+    E("\tmov %s, m\n", regname(r));
+    regalloc_push(r);
+}
+
 reg2hl: LOAD2(address:a)
 {
 	reg_t r = regalloc_load_var(REG_HL, $a.sym, $a.off);
@@ -690,6 +702,14 @@ statement: BEQS1(reg1a, reg1bdh):b
 statement: BEQS1(reg1, reg1):b
 { bequ1($b.truelabel, $b.falselabel); }
 
+statement: BLTU1(reg1a, constant:c):b
+{
+	regalloc_pop(REG_A);
+	E("\tcpi %d\n", $c.off);
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
 %{
 	static void bequ2(int truelabel, int falselabel)
 	{
@@ -711,6 +731,19 @@ statement: BEQU2(reg2, reg2):b
 
 statement: BEQS2(reg2, reg2):b
 { bequ2($b.truelabel, $b.falselabel); }
+
+statement: BLTU2(reg2, reg2):b
+{
+	reg_t rhs = regalloc_pop(REG_16);
+	reg_t lhs = regalloc_pop(REG_16);
+	regalloc_reg_changing(ALL_REGS);
+	E("\tmov a, %s\n", regnamelo(lhs));
+	E("\tsub %s\n", regnamelo(rhs));
+	E("\tmov a, %s\n", regname(lhs));
+	E("\tsbb %s\n", regname(rhs));
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
 
 // --- Arithmetic -----------------------------------------------------------
 

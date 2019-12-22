@@ -160,6 +160,7 @@ if_statements ::= statements.
 
 if_optional_else ::= .
 if_optional_else ::= ELSE statements.
+if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
 
 /* --- Simple loops ------------------------------------------------------ */
 
@@ -218,7 +219,8 @@ statement ::= BREAK SEMICOLON.
 
 /* --- Subroutine calls -------------------------------------------------- */
 
-statement ::= subroutinecallstatement.
+statement ::= simplesubroutinecallstatement.
+statement ::= complexsubroutinecallstatement.
 
 expression(E) ::= subroutinecallexpr(E1).
 { E = E1; }
@@ -235,8 +237,8 @@ subcall_begin ::= oldid(S) OPENPAREN.
 	current_call->param = current_call->sub->namespace.firstsymbol;
 }
 
-%destructor subroutinecallstatement { current_call = current_call->next; }
-subroutinecallstatement ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
+%destructor simplesubroutinecallstatement { current_call = current_call->next; }
+simplesubroutinecallstatement ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
 {
 	if (current_call->number != current_call->sub->inputparameters)
 		fatal("expected %d input parameters but only got %d",
@@ -247,6 +249,15 @@ subroutinecallstatement ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
 
 	generate(mid_call0(E1, current_call->sub));
 }
+
+complexsubroutinecallstatement ::= OPENPAREN lvaluelist CLOSEPAREN
+	ASSIGN subcall_begin optionalarguments CLOSEPAREN.
+
+%type lvaluelist {struct midnode*}
+lvaluelist(E) ::= lvalue(E1).
+{ E1 = E; }
+
+lvaluelist ::= lvaluelist COMMA lvalue.
 
 %type subroutinecallexpr {struct midnode*}
 %destructor subroutinecallexpr { current_call = current_call->next; }
@@ -462,6 +473,23 @@ expression(E) ::= expression(E1) PIPE expression(E2).      { E = expr_simple(E1,
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_lshift, mid_lshift); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_rshiftu, mid_rshifts); }
 
+expression(E) ::= expression(E1) AS typeref(T).
+{
+	if (E1->type && (E1->type->u.type.width != T->u.type.width))
+	{
+		if (is_ptr(E1->type) || is_ptr(T))
+		{
+			fatal("cast between pointer and non-pointer of a different size (%s and %s)",
+				E1->type->name, T->name);
+		}
+
+		E = mid_cast(T->u.type.width, E1, E1->type->u.type.width);
+	}
+	else
+		E = E1;
+	E->type = T;
+}
+
 lvalue(E) ::= oldid(S).
 {
 	if (S->kind == CONST)
@@ -498,7 +526,7 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 		E1 = mid_load(intptr_type->u.type.width, E1);
 	}
 	else
-		fatal("you can only index array, not a %s", E1->type->u.type.element->name);
+		fatal("you can only index an array, not a %s", E1->type->u.type.element->name);
 	if (!is_num(E2->type))
 			fatal("array indices must be numbers");
 	
@@ -609,12 +637,12 @@ conditional ::= expression(T1) GEOP expression(T2).
 
 conditional ::= expression(T1) GTOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, mid_bgtu, mid_bgts);
+	cond_simple(condtrue, condfalse, T2, T1, mid_bltu, mid_blts);
 }
 
 conditional ::= expression(T1) LEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, mid_bgtu, mid_bgts);
+	cond_simple(condfalse, condtrue, T2, T1, mid_bltu, mid_blts);
 }
 
 /* --- Types ------------------------------------------------------------- */

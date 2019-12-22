@@ -5,3 +5,6 @@ one==ONE and zero==ONE: no
 one==ONE or zero==ONE: yes
 one==ZERO or zero==ZERO: yes
 one==ZERO or (one==ONE and zero==ZERO: yes
+zero<one: yes
+one<one: no
+one<zero: no

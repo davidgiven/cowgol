@@ -47,6 +47,7 @@ SP [ \t]+
 "break"                   { return BREAK; }
 "const"                   { return CONST; }
 "else"                    { return ELSE; }
+"elseif"                  { return ELSEIF; }
 "end"                     { return END; }
 "extern"                  { return EXTERN; }
 "if"                      { return IF; }
