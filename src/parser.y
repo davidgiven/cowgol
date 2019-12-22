@@ -39,8 +39,8 @@
 	struct argumentsspec
 	{
 		struct subroutine* sub;
-		int number;
-		struct symbol* param;
+		int ins;
+		struct symbol* inputparam;
 		struct argumentsspec* next;
 	};
 	static struct argumentsspec* current_call;
@@ -234,38 +234,16 @@ subcall_begin ::= oldid(S) OPENPAREN.
 	n->next = current_call;
 	current_call = n;
 	current_call->sub = S->u.sub;
-	current_call->param = current_call->sub->namespace.firstsymbol;
+	current_call->inputparam = current_call->sub->namespace.firstsymbol;
 }
-
-%destructor simplesubroutinecallstatement { current_call = current_call->next; }
-simplesubroutinecallstatement ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
-{
-	if (current_call->number != current_call->sub->inputparameters)
-		fatal("expected %d input parameters but only got %d",
-			current_call->sub->inputparameters, current_call->number);
-	if (current_call->sub->outputparameters != 0)
-		fatal("expected 0 output parameters but got %d",
-			current_call->number);
-
-	generate(mid_call0(E1, current_call->sub));
-}
-
-complexsubroutinecallstatement ::= OPENPAREN lvaluelist CLOSEPAREN
-	ASSIGN subcall_begin optionalarguments CLOSEPAREN.
-
-%type lvaluelist {struct midnode*}
-lvaluelist(E) ::= lvalue(E1).
-{ E1 = E; }
-
-lvaluelist ::= lvaluelist COMMA lvalue.
 
 %type subroutinecallexpr {struct midnode*}
 %destructor subroutinecallexpr { current_call = current_call->next; }
-subroutinecallexpr(E) ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
+subroutinecallexpr(E) ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
 {
-	if (current_call->number != current_call->sub->inputparameters)
+	if (current_call->ins != current_call->sub->inputparameters)
 		fatal("expected %d input parameters but only got %d",
-			current_call->sub->inputparameters, current_call->number);
+			current_call->sub->inputparameters, current_call->ins);
 	if (current_call->sub->outputparameters != 1)
 		fatal("subroutines called as functions must return exactly one value");
 
@@ -277,33 +255,108 @@ subroutinecallexpr(E) ::= subcall_begin optionalarguments(E1) CLOSEPAREN.
 	E->type = param->u.var.type;
 }
 
-%type optionalarguments {struct midnode*}
-optionalarguments(E) ::= .
+%include
+{
+	static struct midnode* subcall(struct midnode* inputs, struct midnode* outputs)
+	{
+		if (current_call->ins != current_call->sub->inputparameters)
+			fatal("expected %d input parameters but got %d",
+				current_call->sub->inputparameters, current_call->ins);
+
+		/* Make the call. */
+		generate(mid_call0(inputs, current_call->sub));
+		
+		/* Write back any output parameters. Remember that the output chain
+		 * has not been type checked (or even counted), so we have to do that
+		 * here. */
+
+		struct symbol* param = current_call->sub->namespace.firstsymbol;
+		for (int i=0; i<current_call->sub->inputparameters; i++)
+			param = param->next;
+
+		int outs = 0;
+		if (outputs->op != MIDCODE_END)
+		{
+			struct midnode* n = outputs;
+			while (n->op != MIDCODE_END)
+			{
+				if (outs < current_call->sub->outputparameters)
+				{
+					check_expression_type(&n->type, param->u.var.type);
+					param = param->next;
+
+					switch (n->left->type->u.type.element->u.type.width)
+					{
+						case 1: n->op = MIDCODE_GETPARAM1; break;
+						case 2: n->op = MIDCODE_GETPARAM2; break;
+						case 4: n->op = MIDCODE_GETPARAM4; break;
+						default: assert(false);
+					}
+				}
+				outs++;
+				n = n->right;
+			}
+			generate(outputs);
+		}
+
+		if (outs != current_call->sub->outputparameters)
+			fatal("expected %d output parameters but got %d",
+				current_call->sub->outputparameters, outs);
+	}
+}
+
+%destructor simplesubroutinecallstatement { current_call = current_call->next; }
+simplesubroutinecallstatement ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
+{ subcall(E1, mid_end()); }
+
+%destructor complexsubroutinecallstatement { current_call = current_call->next; }
+complexsubroutinecallstatement ::= OPENPAREN optionaloutputarguments(E1) CLOSEPAREN
+	ASSIGN subcall_begin optionalinputarguments(E2) CLOSEPAREN.
+{ subcall(E2, E1); }
+
+%type optionalinputarguments {struct midnode*}
+optionalinputarguments(E) ::= .
 { E = mid_end(); }
-optionalarguments(E) ::= arguments(E1).
+optionalinputarguments(E) ::= inputarguments(E1).
 { E = E1; }
 
-%type arguments {struct midnode*}
-arguments(E) ::= argument(E1).
-{ E = mid_param(E1->type->u.type.width, E1, mid_end()); }
+%type inputarguments {struct midnode*}
+inputarguments(E) ::= inputargument(E1).
+{ E = mid_setparam(E1->type->u.type.width, E1, mid_end()); }
 
-arguments(E) ::= argument(E1) COMMA arguments(E2).
-{ E = mid_param(E1->type->u.type.width, E1, E2); }
+inputarguments(E) ::= inputargument(E1) COMMA inputarguments(E2).
+{ E = mid_setparam(E1->type->u.type.width, E1, E2); }
 
-%type argument {struct midnode*}
-argument(E) ::= expression(E1).
+%type inputargument {struct midnode*}
+inputargument(E) ::= expression(E1).
 {
-	if (current_call->number == current_call->sub->inputparameters)
-		fatal("too many input parameters (expected %d)",
-			current_call->sub->inputparameters);
+	if (current_call->ins < current_call->sub->inputparameters)
+	{
+		struct symbol* param = current_call->inputparam;
+		current_call->inputparam = param->next;
 
-	struct symbol* param = current_call->param;
-	current_call->param = param->next;
-	current_call->number++;
-
-	check_expression_type(&E1->type, param->u.var.type);
+		check_expression_type(&E1->type, param->u.var.type);
+	}
+	current_call->ins++;
 	E = E1;
 }
+
+/* The output argument list is a chain of PAIRs, non type checked (because
+ * we haven't read the subroutine name yet and so don't know which subroutine
+ * is being called). */
+
+%type optionaloutputarguments {struct midnode*}
+optionaloutputarguments(E) ::= .
+{ E = mid_end(); }
+optionaloutputarguments(E) ::= outputarguments(E1).
+{ E = E1; }
+
+%type outputarguments {struct midnode*}
+outputarguments(E) ::= lvalue(E1).
+{ E = mid_pair(E1, mid_end()); }
+
+outputarguments(E) ::= lvalue(E1) COMMA outputarguments(E2).
+{ E = mid_pair(E1, E2); }
 
 /* --- Subroutine definitions -------------------------------------------- */
 

@@ -491,30 +491,46 @@ stk4: constant:c
 // SETPARAM leaves the parameter on the top of the sstack, but the code
 // generator loses track of it.
 
-parameters: END;
+inputparameters: END;
 
-parameters: PARAM1(reg1, parameters)
+inputparameters: SETPARAM1(reg1, inputparameters)
+{ regalloc_flush_stack(); }
+
+inputparameters: SETPARAM2(reg2, inputparameters)
+{ regalloc_flush_stack(); }
+
+statement: outputparameters;
+
+outputparameters: END;
+
+outputparameters: GETPARAM1(address:a, outputparameters)
 {
-    regalloc_flush_stack();
+	regalloc_alloc(REG_A);
+	E("\tpop psw\n");
+	E("\tsta %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_A, $a.sym, $a.off);
 }
 
-parameters: PARAM2(reg2, parameters)
+outputparameters: GETPARAM2(address:a, outputparameters)
 {
-    regalloc_flush_stack();
+	regalloc_alloc(REG_HL);
+	E("\tpop h\n");
+	E("\tshld %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
 }
 
-statement: CALL0(parameters):c
+statement: CALL0(inputparameters):c
 {
 	call($c.sub);
 }
 
-reg1: CALL1(parameters):c
+reg1: CALL1(inputparameters):c
 {
 	call($c.sub);
     regalloc_adjust_stack(2);
 }
 
-reg2: CALL2(parameters):c
+reg2: CALL2(inputparameters):c
 {
 	call($c.sub);
     regalloc_adjust_stack(2);

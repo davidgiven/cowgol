@@ -2,3 +2,4 @@ oneint8: yes
 oneint16: yes
 inout8: yes
 inout16: yes
+multiout: yes
