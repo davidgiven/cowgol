@@ -391,9 +391,7 @@ buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
 buildiburg $OBJDIR/arch8080.c src/arch8080.pat
-#buildmkpat $OBJDIR/arch8080.c src/midcodes.tab src/arch8080.pat
-#buildmkpat $OBJDIR/archagc.c src/midcodes.tab src/archagc.pat
-#buildmkpat $OBJDIR/archc.c src/midcodes.tab src/archc.pat
+buildiburg $OBJDIR/archc.c src/archc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -421,12 +419,12 @@ buildlibrary lib8080.a \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/arch8080.c \
 
-#buildlibrary libc.a \
-#    -I$OBJDIR \
-#    -Isrc \
-#    --dep $OBJDIR/midcodes.h \
-#    $OBJDIR/archc.c \
-#
+buildlibrary libc.a \
+    -I$OBJDIR \
+    -Isrc \
+    --dep $OBJDIR/midcodes.h \
+    $OBJDIR/archc.c \
+
 #buildprogram tinycowc-agc \
 #    -lbsd \
 #    libmain.a \
@@ -437,9 +435,9 @@ buildprogram tinycowc-8080 \
     libmain.a \
     lib8080.a \
 
-#buildprogram tinycowc-c \
-#    libmain.a \
-#    libc.a \
+buildprogram tinycowc-c \
+    libmain.a \
+    libc.a \
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
 pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
@@ -472,8 +470,6 @@ buildlibrary libmkdfs.a \
 
 buildprogram mkdfs libmkdfs.a
 
-#runtest cpm addsub-8bit
-
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
@@ -488,15 +484,13 @@ test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
-#if test "$(uname -m)" != "x86_64"; then
-	#test_c addsub-8bit
-	#test_c addsub-16bit
-	#test_c addsub-32bit
-	#test_c records
-	#test_c inputparams
-	#test_c outputparams
-	#test_c conditionals
-#fi
+test_c addsub-8bit
+test_c addsub-16bit
+test_c addsub-32bit
+test_c records
+test_c inputparams
+test_c outputparams
+test_c conditionals
 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 

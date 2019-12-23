@@ -205,119 +205,7 @@ static void call(struct subroutine* sub)
     regalloc_adjust_stack(-sub->inputparameters);
 }
 
-#if 0
-
-// --- Shifts ---------------------------------------------------------------
-
-i1 i1 RSHIFTS(1) -- i1
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    E("\tcall rshifts1\n");
-    regalloc_adjust_stack(-1);
-
-i1 constant(n) RSHIFTS(1) -- i1 i1 RSHIFTS(1)
-    reg_t r = regalloc_load_const(REG_A, n);
-    regalloc_push(r);
-
-// --- Branches -------------------------------------------------------------
-
-i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t r = regalloc_pop(REG_A);
-    regalloc_reg_changing(ALL_REGS);
-    E("\tora a\n");
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
-
-i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t r = regalloc_pop(REG_16);
-    regalloc_reg_changing(ALL_REGS);
-    E("\tmov a, %s\n", regname(r));
-    E("\tora %s\n", regnamelo(r));
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
-
-i1 i1 BEQU(1, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-    reg_t lhs = regalloc_pop(REG_A);
-    E("\tcmp %s\n", regname(rhs));
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
-    
-i1 constant(n) BEQU(1, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t lhs = regalloc_pop(REG_A);
-    E("\tcpi %d\n", n & 0xff);
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
-
-BEQU(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
-BLTU(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
-BGTU(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
-
-BEQU(4, truelabel, falselabel) -- SUB(4) BEQZ(4, truelabel, falselabel)
-BLTU(4, truelabel, falselabel) -- SUB(4) BLTZ(4, truelabel, falselabel)
-BGTU(4, truelabel, falselabel) -- SUB(4) BGTZ(4, truelabel, falselabel)
-
-BEQP(truelabel, falselabel) -- BEQU(2, truelabel, falselabel)
-BLTP(truelabel, falselabel) -- BLTU(2, truelabel, falselabel)
-BGTP(truelabel, falselabel) -- BGTU(2, truelabel, falselabel)
-
-BEQS(1, truelabel, falselabel) -- BEQU(1, truelabel, falselabel)
-BEQS(2, truelabel, falselabel) -- BEQU(2, truelabel, falselabel)
-BEQS(4, truelabel, falselabel) -- BEQU(4, truelabel, falselabel)
-
-i1 i1 BLTS(1, truelabel, falselabel) LABEL(nextlabel) --
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    E("\tcall cmpmags\n");
-    regalloc_adjust_stack(-2);
-	if (nextlabel == truelabel)
-		E("\tjnc %s\n", labelref(falselabel));
-	else
-	{
-		E("\tjc %s\n", labelref(truelabel));
-		if (nextlabel != falselabel)
-			E("\tjmp %s\n", labelref(falselabel));
-	}
-	E("%s:\n", labelref(nextlabel));
-
-i1 constant(n) BLTS(1, truelabel, falselabel) -- i1 i1 BLTS(1, truelabel, falselabel)
-    reg_t r = regalloc_load_const(REG_A, n);
-    regalloc_push(r);
-
-// --- Data -----------------------------------------------------------------
-
-#endif
 %}
-
-%%
 
 statement: STARTFILE
 {
@@ -499,11 +387,7 @@ inputparameters: SETPARAM1(reg1, inputparameters)
 inputparameters: SETPARAM2(reg2, inputparameters)
 { regalloc_flush_stack(); }
 
-statement: outputparameters;
-
-outputparameters: END;
-
-outputparameters: GETPARAM1(address:a, outputparameters)
+statement: GETPARAM1(address:a)
 {
 	regalloc_alloc(REG_A);
 	E("\tpop psw\n");
@@ -511,7 +395,7 @@ outputparameters: GETPARAM1(address:a, outputparameters)
 	regalloc_reg_contains_var(REG_A, $a.sym, $a.off);
 }
 
-outputparameters: GETPARAM2(address:a, outputparameters)
+statement: GETPARAM2(address:a)
 {
 	regalloc_alloc(REG_HL);
 	E("\tpop h\n");
@@ -1105,6 +989,4 @@ reg2: STRING:s
     E("\tlxi %s, s%d\n", regname(r), sid);
     regalloc_push(r);
 }
-
-%%
 

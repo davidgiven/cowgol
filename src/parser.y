@@ -285,19 +285,16 @@ subroutinecallexpr(E) ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
 					check_expression_type(&n->type, param->u.var.type);
 					param = param->next;
 
-					switch (n->left->type->u.type.element->u.type.width)
-					{
-						case 1: n->op = MIDCODE_GETPARAM1; break;
-						case 2: n->op = MIDCODE_GETPARAM2; break;
-						case 4: n->op = MIDCODE_GETPARAM4; break;
-						default: assert(false);
-					}
+					struct midnode* lvalue = n->left;
+					n->left = NULL;
+					generate(mid_getparam(lvalue->type->u.type.element->u.type.width,
+						lvalue));
 				}
 				outs++;
 				n = n->right;
 			}
-			generate(outputs);
 		}
+		discard(outputs);
 
 		if (outs != current_call->sub->outputparameters)
 			fatal("expected %d output parameters but got %d",
@@ -355,8 +352,8 @@ optionaloutputarguments(E) ::= outputarguments(E1).
 outputarguments(E) ::= lvalue(E1).
 { E = mid_pair(E1, mid_end()); }
 
-outputarguments(E) ::= lvalue(E1) COMMA outputarguments(E2).
-{ E = mid_pair(E1, E2); }
+outputarguments(E) ::= outputarguments(E1) COMMA lvalue(E2).
+{ E = mid_pair(E2, E1); }
 
 /* --- Subroutine definitions -------------------------------------------- */
 

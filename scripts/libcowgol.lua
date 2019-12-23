@@ -57,7 +57,8 @@ function loadmidcodes(filename)
 				add(name.."1", id+1)
 				add(name.."2", id+2)
 				add(name.."4", id+3)
-				id = id + 4
+				add(name.."8", id+4)
+				id = id + 5
 			else
 				add(name, id)
 				id = id + 1

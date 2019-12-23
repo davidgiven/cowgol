@@ -1,3 +1,4 @@
+%{
 #include "globals.h"
 #include "midcode.h"
 #include "emitter.h"
@@ -19,9 +20,15 @@ static int varsp = 0;
 
 void arch_init_types(void)
 {
-	make_number_type("uint64", 8, false);
+	struct symbol* uint64_type = make_number_type("uint64", 8, false);
 	make_number_type("int64", 8, true);
-	intptr_type = make_number_type("uint32", 4, false);
+	struct symbol* uint32_type = make_number_type("uint32", 4, false);
+
+	if (sizeof(void*) == 8)
+		intptr_type = uint64_type;
+	else
+		intptr_type = uint32_type;
+
 	make_number_type("int32", 4, true);
 	make_number_type("int16", 2, true);
 	make_number_type("uint16", 2, false);
@@ -37,15 +44,17 @@ void arch_init_subroutine(struct subroutine* sub)
 
 void arch_init_variable(struct symbol* var)
 {
+	/* All variables get allocated from workspace 0. */
+	current_sub->workspace[0] += var->u.var.type->u.type.width;
 }
 
 void arch_emit_comment(const char* text, ...)
 {
     va_list ap;
     va_start(ap, text);
-    emitter_printf("\t/* ");
+    emitter_printf("\t// ");
     emitter_vprintf(text, ap);
-    emitter_printf(" */\n");
+    emitter_printf("\n");
     va_end(ap);
 }
 
@@ -97,37 +106,34 @@ void arch_push(reg_t id) {}
 void arch_pop(reg_t id) {}
 void arch_copy(reg_t src, reg_t dest) {}
 reg_t arch_save(reg_t src, reg_t used) { return 0; }
-%%
 
-i(int width) = ("%d", $$.width)
-constant(int32_t val) = ("%d", $$.val)
-constn(int width, int32_t val) = ("width=%d val=%d", $$.width, $$.val)
-address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
+%}
 
-%%
-
-STARTFILE --
+statement: STARTFILE
+{
     emitter_open_chunk();
     E("#include \"rt/c/cowgol.h\"\n");
     E("static i1 workspace0[];\n");
     emitter_close_chunk();
+}
 
-ENDFILE --
+statement: ENDFILE;
 
-STARTSUB(sub) --
+statement: STARTSUB:s
+{
     emitter_open_chunk();
     E("\n");
-    E("/* %s */\n", sub->name);
-    E("static i1 workspace%d[];\n", sub->arch->id);
-    E("void %s(", subref(sub));
+    E("/* %s */\n", $s.sub->name);
+    E("static i1 workspace%d[];\n", $s.sub->arch->id);
+    E("void %s(", subref($s.sub));
 
-    if ((sub->inputparameters == 0) && (sub->outputparameters == 0))
+    if (($s.sub->inputparameters == 0) && ($s.sub->outputparameters == 0))
         E("void");
     else
     {
         bool first = true;
-        struct symbol* param = sub->namespace.firstsymbol;
-        for (int i=0; i<sub->inputparameters; i++)
+        struct symbol* param = $s.sub->namespace.firstsymbol;
+        for (int i=0; i<$s.sub->inputparameters; i++)
         {
             if (!first)
                 E(", ");
@@ -136,357 +142,439 @@ STARTSUB(sub) --
             E("i%d p%d", param->u.var.type->u.type.width, i);
             param = param->next;
         }
-        for (int i=0; i<sub->outputparameters; i++)
+        for (int i=0; i<$s.sub->outputparameters; i++)
         {
             if (!first)
                 E(", ");
             first = false;
 
-            E("i%d* p%d", param->u.var.type->u.type.width, sub->inputparameters+i);
+            E("i%d* p%d", param->u.var.type->u.type.width, $s.sub->inputparameters+i);
             param = param->next;
         }
     }
     E(") {\n");
-	struct symbol* param = sub->namespace.firstsymbol;
-	for (int i=0; i<sub->inputparameters; i++)
+	struct symbol* param = $s.sub->namespace.firstsymbol;
+	for (int i=0; i<$s.sub->inputparameters; i++)
 	{
-		E("*(i%d*)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);
+		E("\t*(i%d*)%s = p%d;\n", param->u.var.type->u.type.width, symref(param, 0), i);
 		param = param->next;
 	}
+}
 
-ENDSUB(sub) --
+statement: ENDSUB:s
+{
+	E("end:;\n");
 	if (varsp != 0)
 		fatal("vstack not empty at end of subroutine");
-	struct symbol* param = sub->namespace.firstsymbol;
-	for (int i=0; i<sub->inputparameters; i++)
+	struct symbol* param = $s.sub->namespace.firstsymbol;
+	for (int i=0; i<$s.sub->inputparameters; i++)
 		param = param->next;
-	for (int i=0; i<sub->outputparameters; i++)
+	for (int i=0; i<$s.sub->outputparameters; i++)
 	{
-		E("*p%d = *(i%d*)%s;\n", sub->inputparameters+i,
+		E("\t*p%d = *(i%d*)%s;\n", $s.sub->inputparameters+i,
 			param->u.var.type->u.type.width, symref(param, 0));
 		param = param->next;
 	}
     E("}\n");
-    E("static i1 workspace%d[%d];\n", sub->arch->id, sub->workspace);
+    E("static i1 workspace%d[%d];\n", $s.sub->arch->id, $s.sub->workspace);
     emitter_close_chunk();
+}
 
-JUMP(label) --
-    E("goto %s;\n", labelref(label));
+// --- Core conversions --------------------------------------------------
 
-LABEL(label) --
-    E("%s:;\n", labelref(label));
+address: ADDRESS:s
+{
+	$$.sym = $s.sym;
+	$$.off = 0;
+}
 
-CONSTANT(val) -- constant(val)
+constant: CONSTANT:c
+{
+	$$.off = $c.value;
+}
 
-ADDRESS(sym) -- address(sym, 0)
+reg: address:a
+{
+	int vid = push();
+	E("\ti%d v%d = (i%d) %s;\n", sizeof(void*), vid, sizeof(void*), symref($a.sym, $a.off));
+}
 
-// --- Function calls -------------------------------------------------------
+reg: constant:c
+{
+	int vid = push();
+	E("\ti%d v%d = (i%d) %d;\n", sizeof(void*), vid, sizeof(void*), $c.off);
+}
 
-i(n1) SETPARAM(n2) --
-	assert(n1 == n2);
-
-GETPARAM(n) -- i(n)
-
-CALL(sub) --
-	int outputvids[sub->outputparameters];
-
-    for (int i=0; i<sub->outputparameters; i++)
+reg: STRING:s
+{
+	int vid = push();
+	E("\ti%d v%d = (i%d) \"", sizeof(void*), vid, sizeof(void*));
+	
+	const uint8_t* p = (const uint8_t*) $s.text;
+    for (;;)
     {
-		struct symbol* param = sub->namespace.firstsymbol;
-		for (int j=0; j<(sub->inputparameters+i); j++)
-			param = param->next;
-
-		int vid = id++;
-		E("i%d v%d;\n", param->u.var.type->u.type.width, vid);
-		outputvids[i] = vid;
+        uint8_t c = *p++;
+		if (!c)
+			break;
+		if (isprint(c))
+			E("%c", c);
+		else
+			E("\\%03o", c);
     }
+    E("\";\n");
+}
 
-    E("%s(", subref(sub));
-    bool first = true;
-    for (int i=varsp-sub->inputparameters; i<varsp; i++)
-    {
-        if (!first)
-            E(", ");
-        first = false;
+// --- Control flow ------------------------------------------------------
 
-        E("v%d", varstack[i]);
-    }
-    varsp -= sub->inputparameters;
-    for (int i=0; i<sub->outputparameters; i++)
-    {
-        if (!first)
-            E(", ");
-        first = false;
+statement: RETURN
+{
+	E("\tgoto end;\n");
+}
 
-		int vid = outputvids[i];
-		if (varsp == VARSTACK_SIZE)
-			fatal("varstack overflow");
-		varstack[varsp++] = vid;
-        E("&v%d", vid);
-    }
-    E(");\n");
+statement: LABEL:b
+{
+	E("%s:;\n", labelref($b.label));
+}
 
+statement: JUMP:j
+{
+	E("\tgoto %s;\n", labelref($j.label));
+}
 
-RETURN() --
-    E("return;\n");
+// --- Calls -------------------------------------------------------------
 
-// --- Additions ------------------------------------------------------------
+inputparameter: END;
+inputparameter: SETPARAM1(reg, inputparameter);
+inputparameter: SETPARAM2(reg, inputparameter);
+inputparameter: SETPARAM4(reg, inputparameter);
+inputparameter: SETPARAM8(reg, inputparameter);
 
-address(sym, off) constn(w1, val) ADD(w2) -- address(sym, newoff)
-    assert(w1 == w2);
-    newoff = off + val;
+%{
+	static void getparam(int width)
+	{
+		int adr = pop();
+		int val = pop();
+		E("\t*(i%d*)v%d = v%d;\n", width, adr, val);
+	}
+%}
 
-constant(lhs) constant(rhs) ADD(n) -- constant(result)
-    result = lhs + rhs;
+statement: GETPARAM1(reg)
+{ getparam(1); }
 
-i(w1) i(w2) ADD(w3) -- i(w1)
-    assert(w1 == w2);
-    assert(w2 == w3);
-    int rhs = pop();
-    int lhs = pop();
-    E("i%d v%d = v%d + v%d;\n", w1, push(), lhs, rhs);
+statement: GETPARAM2(reg)
+{ getparam(2); }
 
-i(w1) i(w2) ADDP(w3) -- i(w1)
-    assert(w1 == w2);
-    assert(w2 == w3);
-    int rhs = pop();
-    int lhs = pop();
-    E("i%d v%d = v%d + v%d;\n", w1, push(), lhs, rhs);
+statement: GETPARAM4(reg)
+{ getparam(4); }
 
-address(sym1, off1) address(sym2, off2) LOAD(w1) CONSTANT(c) ADD(w2) STORE(w3) --
-    if ((sym1 != sym2) || (off1 != off2) || (w1 != w2) || (w2 != w3))
-        REJECT;
-    E("(*(i%d*)%s) += %d;\n", w1, symref(sym1, off1), c);
+statement: GETPARAM8(reg)
+{ getparam(8); }
 
-// --- Subtractions ---------------------------------------------------------
+%{
+	static void call(struct subroutine* sub)
+	{
+		int outputvids[sub->outputparameters];
 
-constant(lhs) constant(rhs) SUB(0) -- constant(result)
-	result = lhs - rhs;
+		for (int i=0; i<sub->outputparameters; i++)
+		{
+			struct symbol* param = sub->namespace.firstsymbol;
+			for (int j=0; j<(sub->inputparameters+i); j++)
+				param = param->next;
 
-i(w1) i(w2) SUB(w3) -- i(w1)
-    assert(w1 == w2);
-    assert(w2 == w3);
-    int rhs = pop();
-    int lhs = pop();
-    E("i%d v%d = v%d - v%d;\n", w1, push(), lhs, rhs);
+			int vid = id++;
+			E("\ti%d v%d;\n", param->u.var.type->u.type.width, vid);
+			outputvids[i] = vid;
+		}
 
-address(sym1, off1) address(sym2, off2) LOAD(w1) CONSTANT(c) SUB(w2) STORE(w3) --
-    if ((sym1 != sym2) || (off1 != off2) || (w1 != w2) || (w2 != w3))
-        REJECT;
-    E("(*(i%d*)%s) -= %d;\n", w1, symref(sym1, off1), c);
+		E("\t%s(", subref(sub));
+		bool first = true;
+		for (int i=varsp-sub->inputparameters; i<varsp; i++)
+		{
+			if (!first)
+				E(", ");
+			first = false;
 
-i(w1) NEG(w2) -- constn(w1, 0) i(w1) SUB(w1)
-    assert(w1 == w2);
+			E("v%d", varstack[i]);
+		}
+		varsp -= sub->inputparameters;
+		for (int i=0; i<sub->outputparameters; i++)
+		{
+			if (!first)
+				E(", ");
+			first = false;
 
-constant(c) NEG(0) -- constant(-c)
+			int vid = outputvids[i];
+			if (varsp == VARSTACK_SIZE)
+				fatal("varstack overflow");
+			varstack[varsp++] = vid;
+			E("&v%d", vid);
+		}
+		E(");\n");
+	}
+%}
 
-// --- Multiplications ------------------------------------------------------
+statement: CALL0(inputparameter):c
+{ call($c.sub); }
 
-i(w1) i(w2) MUL(w3) -- i(w1)
-	assert(w1 == w2);
-	assert(w2 == w3);
-    int rhs = pop();
-    int lhs = pop();
-    E("i%d v%d = v%d * v%d;\n", w1, push(), lhs, rhs);
+reg: CALL1(inputparameter):c
+{ call($c.sub); }
 
-// --- Shifts ---------------------------------------------------------------
+reg: CALL2(inputparameter):c
+{ call($c.sub); }
 
-i(w1) i(1) LSHIFT(w2) -- i(w1)
-	assert(w1 == w2);
-	int rhs = pop();
-	int lhs = pop();
-	E("i%d v%d = v%d << v%d;\n", w1, push(), lhs, rhs);
+reg: CALL4(inputparameter):c
+{ call($c.sub); }
 
-i(w1) i(1) RSHIFTU(w2) -- i(w1)
-	assert(w1 == w2);
-	int rhs = pop();
-	int lhs = pop();
-	E("i%d v%d = v%d >> v%d;\n", w1, push(), lhs, rhs);
+reg: CALL8(inputparameter):c
+{ call($c.sub); }
 
-i(w1) i(1) RSHIFTS(w2) -- i(w1)
-	assert(w1 == w2);
-	int rhs = pop();
-	int lhs = pop();
-	E("i%d v%d = v%d >> v%d;\n", w1, push(), lhs, rhs);
 
 // --- Loads ----------------------------------------------------------------
 
-address(sym, off) LOAD(width) -- i(width)
-    E("i%d v%d = *(i%d*)%s;\n", width, push(), width, symref(sym, off));
+%{
+	static void loadc(int width, struct symbol* sym, int off)
+	{
+		E("\ti%d v%d = *(i%d*)%s;\n", width, push(), width, symref(sym, off));
+	}
 
-i(n) LOAD(width) -- i(width)
-    int ptr = pop();
-    E("i%d v%d = *(i%d*)v%d;\n", width, push(), width, ptr);
+	static void load(int width)
+	{
+		int val = pop();
+		E("\ti%d v%d = *(i%d*)v%d;\n", width, push(), width, val);
+	}
+%}
+
+reg: LOAD1(address:a)
+{ loadc(1, $a.sym, $a.off); }
+
+reg: LOAD2(address:a)
+{ loadc(2, $a.sym, $a.off); }
+
+reg: LOAD4(address:a)
+{ loadc(4, $a.sym, $a.off); }
+
+reg: LOAD8(address:a)
+{ loadc(8, $a.sym, $a.off); }
+
+reg: LOAD1(reg)
+{ load(1); }
+
+reg: LOAD2(reg)
+{ load(2); }
+
+reg: LOAD4(reg)
+{ load(4); }
+
+reg: LOAD8(reg)
+{ load(8); }
 
 // --- Stores ---------------------------------------------------------------
 
-address(sym, off) i(w1) STORE(w2) --
-    assert(w1 == w2);
-    E("*(i%d*)%s = v%d;\n", w1, symref(sym, off), pop());
+%{
+	static void storec(int width, struct symbol* sym, int off)
+	{
+		E("\t*(i%d*)%s = v%d;\n", width, symref(sym, off), pop());
+	}
 
-i(n) i(w1) STORE(w2) --
-    assert(w1 == w2);
-    int val = pop();
-    int ptr = pop();
-    E("*(i%d*)v%d = v%d;\n", w1, ptr, val);
+	static void store(int width)
+	{
+		int val = pop();
+		int adr = pop();
+		E("\t*(i%d*)v%d = v%d;\n", width, adr, val);
+	}
+%}
+
+statement: STORE1(address:a, reg)
+{ storec(1, $a.sym, $a.off); }
+
+statement: STORE2(address:a, reg)
+{ storec(2, $a.sym, $a.off); }
+
+statement: STORE4(address:a, reg)
+{ storec(4, $a.sym, $a.off); }
+
+statement: STORE8(address:a, reg)
+{ storec(8, $a.sym, $a.off); }
+
+statement: STORE1(reg, reg)
+{ store(1); }
+
+statement: STORE2(reg, reg)
+{ store(2); }
+
+statement: STORE4(reg, reg)
+{ store(4); }
+
+statement: STORE8(reg, reg)
+{ store(8); }
 
 // --- Branches -------------------------------------------------------------
 
-i(w1) BEQZ(w2, truelabel, falselabel) --
-    assert(w1 == w2);
-    E("if (!v%d) goto %s;\n", pop(), labelref(truelabel));
-    E("goto %s;\n", labelref(falselabel));
+%{
+	static void branch(int truelabel, int falselabel, const char* op, const char* type)
+	{
+		int rhs = pop();
+		int lhs = pop();
+		E("\tif (((%s)v%d) %s ((%s)v%d)) goto %s;",
+			type, lhs, op, type, rhs, labelref(truelabel));
+		E(" else goto %s;\n", labelref(falselabel));
+	}
+%}
 
-i(w1) BLTZ(w2, truelabel, falselabel) --
-    assert(w1 == w2);
-    E("if (v%d < 0) goto %s;\n", pop(), labelref(truelabel));
-    E("goto %s;\n", labelref(falselabel));
+statement: BEQU1(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u1"); }
 
-BEQS(w, truelabel, falselabel) -- SUB(w) BEQZ(w, truelabel, falselabel)
-BLTS(w, truelabel, falselabel) -- SUB(w) BLTZ(w, truelabel, falselabel)
-BGTS(w, truelabel, falselabel) -- SUB(w) BGTZ(w, truelabel, falselabel)
+statement: BEQU2(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u2"); }
 
-BEQP(truelabel, falselabel) -- SUBP(8) BEQZ(8, truelabel, falselabel)
-BLTP(truelabel, falselabel) -- SUBP(8) BLTZ(8, truelabel, falselabel)
-BGTP(truelabel, falselabel) -- SUBP(8) BGTZ(8, truelabel, falselabel)
+statement: BEQU4(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u4"); }
 
-// --- Data -----------------------------------------------------------------
+statement: BEQU8(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u8"); }
 
-STRING(s) -- i(4)
-    int sid = id++;
-    emitter_open_chunk();
-    E("static const i1 s%d[] = { ", sid);
-    bool first = true;
-    for (;;)
-    {
-        char c = *s++;
-        if (!first)
-            E(", ");
-        first = false;
+statement: BEQS1(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u1"); }
 
-        E("%d", c & 0xff);
-        if (!c)
-            break;
-    }
-    E("};\n");
-    emitter_close_chunk();
+statement: BEQS2(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u2"); }
 
-    E("i4 v%d = (i4) s%d;\n", push(), sid);
- 
-// --- Constant type inference ----------------------------------------------
+statement: BEQS4(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u4"); }
 
-constant(c) STORE(1) -- constn(1, c) STORE(1)
-constant(c) STORE(2) -- constn(2, c) STORE(2)
-constant(c) STORE(4) -- constn(4, c) STORE(4)
+statement: BEQS8(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "==", "u8"); }
 
-constant(c) SETPARAM(1) -- constn(1, c) SETPARAM(1)
-constant(c) SETPARAM(2) -- constn(2, c) SETPARAM(2)
-constant(c) SETPARAM(4) -- constn(4, c) SETPARAM(4)
+statement: BLTU1(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "<", "u1"); }
 
-constant(c) NEG(1) -- constn(1, c) NEG(1)
-constant(c) NEG(2) -- constn(2, c) NEG(2)
-constant(c) NEG(4) -- constn(4, c) NEG(4)
+statement: BLTU2(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "<", "u2"); }
 
-constant(c) ADD(1) -- constn(1, c) ADD(1)
-constant(c) ADD(2) -- constn(2, c) ADD(2)
-constant(c) ADD(4) -- constn(4, c) ADD(4)
-constant(c) (value) ADD(1) -- constn(1, c) (value) ADD(1)
-constant(c) (value) ADD(2) -- constn(2, c) (value) ADD(2)
-constant(c) (value) ADD(4) -- constn(4, c) (value) ADD(4)
+statement: BLTU4(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "<", "u4"); }
 
-constant(c) ADDP(1) -- constn(1, c) ADDP(1)
-constant(c) ADDP(2) -- constn(2, c) ADDP(2)
-constant(c) ADDP(4) -- constn(4, c) ADDP(4)
-constant(c) ADDP(8) -- constn(8, c) ADDP(8)
-constant(c) (value) ADDP(1) -- constn(1, c) (value) ADDP(1)
-constant(c) (value) ADDP(2) -- constn(2, c) (value) ADDP(2)
-constant(c) (value) ADDP(4) -- constn(4, c) (value) ADDP(4)
-constant(c) (value) ADDP(8) -- constn(8, c) (value) ADDP(8)
+statement: BLTU8(reg, reg):b
+{ branch($b.truelabel, $b.falselabel, "<", "u8"); }
 
-constant(c) SUB(1) -- constn(1, c) SUB(1)
-constant(c) SUB(2) -- constn(2, c) SUB(2)
-constant(c) SUB(4) -- constn(4, c) SUB(4)
-constant(c) (value) SUB(1) -- constn(1, c) (value) SUB(1)
-constant(c) (value) SUB(2) -- constn(2, c) (value) SUB(2)
-constant(c) (value) SUB(4) -- constn(4, c) (value) SUB(4)
+// --- Arithmetic --------------------------------------------------------
 
-constant(c) MUL(1) -- constn(1, c) MUL(1)
-constant(c) MUL(2) -- constn(2, c) MUL(2)
-constant(c) MUL(4) -- constn(4, c) MUL(4)
-constant(c) (value) MUL(1) -- constn(1, c) (value) MUL(1)
-constant(c) (value) MUL(2) -- constn(2, c) (value) MUL(2)
-constant(c) (value) MUL(4) -- constn(4, c) (value) MUL(4)
+%{
+	static void simplebop(int width, const char* op, const char* type)
+	{
+		int rhs = pop();
+		int lhs = pop();
+		E("\ti%d v%d = (i%d)((%s)v%d %s (%s)v%d);\n",
+			width, push(), width, type, lhs, op, type, rhs);
+	}
 
-constant(c) DIVS(1) -- constn(1, c) DIVS(1)
-constant(c) DIVS(2) -- constn(2, c) DIVS(2)
-constant(c) DIVS(4) -- constn(4, c) DIVS(4)
-constant(c) (value) DIVS(1) -- constn(1, c) (value) DIVS(1)
-constant(c) (value) DIVS(2) -- constn(2, c) (value) DIVS(2)
-constant(c) (value) DIVS(4) -- constn(4, c) (value) DIVS(4)
+	static void simpleuop(int width, const char* op, const char* type)
+	{
+		int val = pop();
+		E("\ti%d v%d = (i%d)(%s (%s)v%d);\n",
+			width, push(), width, op, type, val);
+	}
+%}
 
-constant(c) REMS(1) -- constn(1, c) REMS(1)
-constant(c) REMS(2) -- constn(2, c) REMS(2)
-constant(c) REMS(4) -- constn(4, c) REMS(4)
-constant(c) (value) REMS(1) -- constn(1, c) (value) REMS(1)
-constant(c) (value) REMS(2) -- constn(2, c) (value) REMS(2)
-constant(c) (value) REMS(4) -- constn(4, c) (value) REMS(4)
+reg: ADD1(reg, reg)
+{ simplebop(1, "+", "i1"); }
 
-constant(c) OR(1) -- constn(1, c) OR(1)
-constant(c) OR(2) -- constn(2, c) OR(2)
-constant(c) OR(4) -- constn(4, c) OR(4)
-constant(c) (value) OR(1) -- constn(1, c) (value) OR(1)
-constant(c) (value) OR(2) -- constn(2, c) (value) OR(2)
-constant(c) (value) OR(4) -- constn(4, c) (value) OR(4)
+reg: ADD2(reg, reg)
+{ simplebop(2, "+", "i2"); }
 
-constant(c) AND(1) -- constn(1, c) AND(1)
-constant(c) AND(2) -- constn(2, c) AND(2)
-constant(c) AND(4) -- constn(4, c) AND(4)
-constant(c) (value) AND(1) -- constn(1, c) (value) AND(1)
-constant(c) (value) AND(2) -- constn(2, c) (value) AND(2)
-constant(c) (value) AND(4) -- constn(4, c) (value) AND(4)
+reg: ADD4(reg, reg)
+{ simplebop(4, "+", "i4"); }
 
-constant(c) EOR(1) -- constn(1, c) EOR(1)
-constant(c) EOR(2) -- constn(2, c) EOR(2)
-constant(c) EOR(4) -- constn(4, c) EOR(4)
-constant(c) (value) EOR(1) -- constn(1, c) (value) EOR(1)
-constant(c) (value) EOR(2) -- constn(2, c) (value) EOR(2)
-constant(c) (value) EOR(4) -- constn(4, c) (value) EOR(4)
+reg: ADD8(reg, reg)
+{ simplebop(8, "+", "i8"); }
 
-constant(c) LSHIFT(1) -- constn(1, c) LSHIFT(1)
-constant(c) LSHIFT(2) -- constn(2, c) LSHIFT(2)
-constant(c) LSHIFT(4) -- constn(4, c) LSHIFT(4)
-constant(c) RSHIFTS(1) -- constn(1, c) RSHIFTS(1)
-constant(c) RSHIFTS(2) -- constn(2, c) RSHIFTS(2)
-constant(c) RSHIFTS(4) -- constn(4, c) RSHIFTS(4)
-constant(c) RSHIFTU(1) -- constn(1, c) RSHIFTU(1)
-constant(c) RSHIFTU(2) -- constn(2, c) RSHIFTU(2)
-constant(c) RSHIFTU(4) -- constn(4, c) RSHIFTU(4)
+constant: SUB0(constant:c1, constant:c2)
+{ $$.off = $c1.off - $c2.off; }
 
-constant(c) BEQS(1, tl, fl) -- constn(1, c) BEQS(1, tl, fl)
-constant(c) BEQS(2, tl, fl) -- constn(2, c) BEQS(2, tl, fl)
-constant(c) BEQS(4, tl, fl) -- constn(4, c) BEQS(4, tl, fl)
-constant(c) BLTS(1, tl, fl) -- constn(1, c) BLTS(1, tl, fl)
-constant(c) BLTS(2, tl, fl) -- constn(2, c) BLTS(2, tl, fl)
-constant(c) BLTS(4, tl, fl) -- constn(4, c) BLTS(4, tl, fl)
-constant(c) BGTS(1, tl, fl) -- constn(1, c) BGTS(1, tl, fl)
-constant(c) BGTS(2, tl, fl) -- constn(2, c) BGTS(2, tl, fl)
-constant(c) BGTS(4, tl, fl) -- constn(4, c) BGTS(4, tl, fl)
+reg: SUB1(reg, reg)
+{ simplebop(1, "-", "i1"); }
 
-constn(w, c) -- i(w)
-    int vid = push();
-    E("i%d v%d = %d;\n", w, vid, c);
-    
-constn(w1, c) i(w2) -- i(w1) i(w2)
-    if (w1 != w2)
-        REJECT;
-    int rhs = pop();
-    int lhs = push();
-    int newrhs = push();
-    E("i%d v%d = %d;\n", w1, lhs, c);
-    E("i%d v%d = v%d;\n", w1, newrhs, rhs);
+reg: SUB2(reg, reg)
+{ simplebop(2, "-", "i2"); }
 
-address(sym, off) -- i(4)
-	int vid = push();
-	E("i4 v%d = (i4) %s;\n", vid, symref(sym, off));
+reg: SUB4(reg, reg)
+{ simplebop(4, "-", "i4"); }
 
+reg: SUB8(reg, reg)
+{ simplebop(8, "-", "i8"); }
+
+constant: MUL0(constant:c1, constant:c2)
+{ $$.off = $c1.off * $c2.off; }
+
+reg: MUL1(reg, reg)
+{ simplebop(1, "*", "i1"); }
+
+reg: MUL2(reg, reg)
+{ simplebop(2, "*", "i2"); }
+
+reg: MUL4(reg, reg)
+{ simplebop(4, "*", "i4"); }
+
+reg: MUL8(reg, reg)
+{ simplebop(8, "*", "i8"); }
+
+constant: RSHIFTU1(constant:c1, constant:c2)
+{ $$.off = (unsigned)$c1.off >> (unsigned)$c2.off; }
+
+reg: RSHIFTU1(reg, reg)
+{ simplebop(1, ">>", "u1"); }
+
+reg: RSHIFTU2(reg, reg)
+{ simplebop(2, ">>", "u2"); }
+
+reg: RSHIFTU4(reg, reg)
+{ simplebop(4, ">>", "u4"); }
+
+reg: RSHIFTU8(reg, reg)
+{ simplebop(8, ">>", "u8"); }
+
+constant: LSHIFT1(constant:c1, constant:c2)
+{ $$.off = (unsigned)$c1.off << (unsigned)$c2.off; }
+
+reg: LSHIFT1(reg, reg)
+{ simplebop(1, "<<", "u1"); }
+
+reg: LSHIFT2(reg, reg)
+{ simplebop(2, "<<", "u2"); }
+
+reg: LSHIFT4(reg, reg)
+{ simplebop(4, "<<", "u4"); }
+
+reg: LSHIFT8(reg, reg)
+{ simplebop(8, "<<", "u8"); }
+
+constant: NEG0(constant:c)
+{ $$.off = -$c.off; }
+
+reg: NEG1(reg)
+{ simpleuop(1, "-", "i1"); }
+
+reg: NEG2(reg)
+{ simpleuop(2, "-", "i2"); }
+
+reg: NEG4(reg)
+{ simpleuop(4, "-", "i4"); }
+
+reg: NEG8(reg)
+{ simpleuop(8, "-", "i8"); }
+
+constant: NOT0(constant:c)
+{ $$.off = ~$c.off; }
+
+reg: NOT1(reg)
+{ simpleuop(1, "~", "i1"); }
+
+reg: NOT2(reg)
+{ simpleuop(2, "~", "i2"); }
+
+reg: NOT4(reg)
+{ simpleuop(4, "~", "i4"); }
+
+reg: NOT8(reg)
+{ simpleuop(8, "~", "i8"); }
 

@@ -34,7 +34,7 @@ y 2 0 BLTU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $
 y 1 1 CAST(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
 
 y 2 0 SETPARAM() # left is value, right is chain to next SETPARAM
-y 2 0 GETPARAM() # left is *lvalue*, right is chain to next GETPARAM
+y 1 0 GETPARAM() # left is *lvalue*
 
 y 2 1 ADD()
 y 2 1 SUB()
