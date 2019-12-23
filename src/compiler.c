@@ -192,6 +192,13 @@ void cond_simple(int truelabel, int falselabel, struct midnode* lhs, struct midn
 			(lhs->type->u.type.width, lhs, rhs, truelabel, falselabel));
 }
 
+struct symbol* dealias(struct symbol* sym)
+{
+	while (sym->kind == TYPE_ALIAS)
+		sym = sym->u.alias;
+	return sym;
+}
+
 struct symbol* add_new_symbol(struct namespace* namespace, const char* name)
 {
 	if (!namespace)
@@ -225,6 +232,14 @@ struct symbol* add_new_symbol(struct namespace* namespace, const char* name)
 	return sym;
 }
 
+struct symbol* add_alias(struct namespace* namespace, const char* name, struct symbol* real)
+{
+	struct symbol* sym = add_new_symbol(namespace, name);
+	sym->kind = TYPE_ALIAS;
+	sym->u.alias = real;
+	return sym;
+}
+
 struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 {
 	if (!namespace)
@@ -236,7 +251,7 @@ struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 		while (sym)
 		{
 			if (strcmp(sym->name, name) == 0)
-				return sym;
+				return dealias(sym);
 			sym = sym->next;
 		}
 		namespace = namespace->parent;

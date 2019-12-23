@@ -28,6 +28,7 @@ void arch_init_types(void)
 		intptr_type = uint64_type;
 	else
 		intptr_type = uint32_type;
+	add_alias(NULL, "intptr", intptr_type);
 
 	make_number_type("int32", 4, true);
 	make_number_type("int16", 2, true);
@@ -577,4 +578,50 @@ reg: NOT4(reg)
 
 reg: NOT8(reg)
 { simpleuop(8, "~", "i8"); }
+
+// --- Casts ----------------------------------------------------------------
+
+%{
+	static void cast(int destwidth, int srcwidth)
+	{
+		int val = pop();
+		E("\ti%d v%d = (i%d)v%d;\n",
+			destwidth, push(), destwidth, val);
+	}
+%}
+
+reg: CAST1(reg):c
+{ cast(1, $c.srcwidth); }
+
+reg: CAST2(reg):c
+{ cast(2, $c.srcwidth); }
+
+reg: CAST4(reg):c
+{ cast(4, $c.srcwidth); }
+
+reg: CAST8(reg):c
+{ cast(8, $c.srcwidth); }
+
+// --- Inline assembly ------------------------------------------------------
+
+statement: ASMSTART
+{
+	E("\t");
+}
+
+statement: ASMTEXT:t
+{
+	E("%s ", $t.text);
+}
+
+statement: ASMSYMBOL:s
+{
+	E("%s ", symref($s.sym, 0));
+}
+
+statement: ASMEND
+{
+    E("\n");
+}
+
 

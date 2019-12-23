@@ -493,5 +493,6 @@ test_c outputparams
 test_c conditionals
 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
+cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et

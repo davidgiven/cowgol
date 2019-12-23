@@ -46,6 +46,8 @@ void arch_init_types(void)
 	uint8_type = make_number_type("uint8", 1, false);
 	make_number_type("int8", 1, true);
 
+	add_alias(NULL, "intptr", intptr_type);
+
 	/* Registers C and E are not used by the code generator. This is so
 	 * we can push and pop any 8-bit value and have them all interoperate ---
 	 * so, AF, BC, DE use A, B, D respectively. */
