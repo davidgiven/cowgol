@@ -31,7 +31,11 @@ y 2 0 BLTS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $
 y 2 0 BEQU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BLTU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 
-y 1 1 CAST(int srcwidth) = ("srcwidth=%d", $$.srcwidth)
+# These produce all combinations of source and destination widths.
+y 1 1 CAST1()
+y 1 1 CAST2()
+y 1 1 CAST4()
+y 1 1 CAST8()
 
 y 2 0 SETPARAM() # left is value, right is chain to next SETPARAM
 y 1 0 GETPARAM() # left is *lvalue*

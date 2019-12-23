@@ -73,6 +73,18 @@ static const char* regnamelo(reg_t id)
     return NULL;
 }
 
+static reg_t eightbitof(reg_t r)
+{
+	switch (r)
+	{
+		case REG_BC: return REG_B;
+		case REG_DE: return REG_D;
+		case REG_HL: return REG_H;
+	}
+	assert(false);
+	return 0;
+}
+
 void arch_init_subroutine(struct subroutine* sub)
 {
     sub->arch = calloc(1, sizeof(struct subarch));
@@ -220,6 +232,7 @@ statement: STARTFILE
     E("\textrn asl2\n");
 	E("\textrn lsr1\n");
 	E("\textrn lsr2\n");
+	E("\textrn lsr4\n");
 	E("\textrn asr1\n");
 	E("\textrn asr2\n");
 	E("\textrn cmpu4\n");
@@ -387,6 +400,9 @@ inputparameters: SETPARAM1(reg1, inputparameters)
 { regalloc_flush_stack(); }
 
 inputparameters: SETPARAM2(reg2, inputparameters)
+{ regalloc_flush_stack(); }
+
+inputparameters: SETPARAM4(stk4, inputparameters)
 { regalloc_flush_stack(); }
 
 statement: GETPARAM1(address:a)
@@ -915,6 +931,49 @@ stk4: SUB4(stk4, stk4)
 stk4: NEG4(stk4)
 { E("\tcall neg4\n"); }
 
+stk4: RSHIFTU4(stk4, reg1)
+{
+	regalloc_pop(REG_B);
+	E("\tcall lsr4\n");
+}
+
+// --- Casts ----------------------------------------------------------------
+
+reg1: CAST21(reg2)
+{
+	reg_t val = regalloc_pop(REG_16);
+	regalloc_reg_changing(val);
+	regalloc_unlock(val);
+	regalloc_push(eightbitof(val));
+}
+	
+stk4: CAST24(reg2)
+{
+	reg_t r = regalloc_pop(REG_16);
+	regalloc_push(regalloc_load_const(REG_16, 0));
+	regalloc_push(r);
+	regalloc_flush_stack();
+}
+	
+reg1: CAST41(stk4)
+{
+	reg_t hi = regalloc_alloc(REG_16);
+	reg_t lo = regalloc_alloc(REG_16);
+	E("\tpop %s\n", regname(lo));
+	E("\tpop %s\n", regname(hi));
+	regalloc_unlock(lo);
+	regalloc_push(eightbitof(lo));
+}
+	
+reg2: CAST42(stk4)
+{
+	reg_t hi = regalloc_alloc(REG_16);
+	reg_t lo = regalloc_alloc(REG_16);
+	E("\tpop %s\n", regname(lo));
+	E("\tpop %s\n", regname(hi));
+	regalloc_push(lo);
+}
+	
 // --- Inline assembly ------------------------------------------------------
 
 statement: ASMSTART

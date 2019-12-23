@@ -582,25 +582,35 @@ reg: NOT8(reg)
 // --- Casts ----------------------------------------------------------------
 
 %{
-	static void cast(int destwidth, int srcwidth)
+	static void cast(int width)
 	{
 		int val = pop();
-		E("\ti%d v%d = (i%d)v%d;\n",
-			destwidth, push(), destwidth, val);
+		E("\ti%d v%d = (i%d)v%d;\n", width, push(), width, val);
 	}
 %}
 
-reg: CAST1(reg):c
-{ cast(1, $c.srcwidth); }
+reg: CAST11(reg);
+reg: CAST22(reg);
+reg: CAST44(reg);
+reg: CAST88(reg);
 
-reg: CAST2(reg):c
-{ cast(2, $c.srcwidth); }
+reg: CAST21(reg):c
+{ cast(1); }
 
-reg: CAST4(reg):c
-{ cast(4, $c.srcwidth); }
+reg: CAST41(reg):c
+{ cast(1); }
 
-reg: CAST8(reg):c
-{ cast(8, $c.srcwidth); }
+reg: CAST81(reg):c
+{ cast(1); }
+
+reg: CAST12(reg):c
+{ cast(2); }
+
+reg: CAST42(reg):c
+{ cast(2); }
+
+reg: CAST82(reg):c
+{ cast(2); }
 
 // --- Inline assembly ------------------------------------------------------
 

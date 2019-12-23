@@ -533,7 +533,14 @@ expression(E) ::= expression(E1) AS typeref(T).
 				E1->type->name, T->name);
 		}
 
-		E = mid_cast(T->u.type.width, E1, E1->type->u.type.width);
+		switch (E1->type->u.type.width)
+		{
+			case 1: E = mid_cast1(T->u.type.width, E1); break;
+			case 2: E = mid_cast2(T->u.type.width, E1); break;
+			case 4: E = mid_cast4(T->u.type.width, E1); break;
+			case 8: E = mid_cast8(T->u.type.width, E1); break;
+			default: assert(false);
+		}
 	}
 	else
 		E = E1;

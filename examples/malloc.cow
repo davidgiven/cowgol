@@ -110,17 +110,17 @@ end sub;
 
 var i := GetFreeMemory();
 print("Free memory: 0x");
-print_hex_i16(i as uint16);
+print_hex_i32(i as uint32);
 print_nl();
 
 var p := Alloc(100);
 print("Block allocated at: 0x");
-print_hex_i16(p as intptr as uint16);
+print_hex_i32(p as intptr as uint32);
 print_nl();
 
 i := GetFreeMemory();
 print("Free memory: 0x");
-print_hex_i16(i as uint16);
+print_hex_i32(i as uint32);
 print_nl();
 
 print("Freeing block\n");
@@ -128,6 +128,6 @@ Free(p, 100);
 
 i := GetFreeMemory();
 print("Free memory: 0x");
-print_hex_i16(i as uint16);
+print_hex_i32(i as uint32);
 print_nl();
 

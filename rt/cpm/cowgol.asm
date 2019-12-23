@@ -173,6 +173,39 @@ lsr2:
 	mov l, a
 	jmp lsr2
 
+	; Logical shift the value at the top of the stack right B bits.
+	; Corrupts A, B, HL, DE.
+	public lsr4
+	cseg
+lsr4:
+	pop h
+	shld lsr4_ret
+
+	pop h ; HL = low
+	pop d ; DE = high
+lsr4_loop:
+	dec b
+	jm lsr4_exit
+	ora a
+	mov a, h
+	rar
+	mov h, a
+	mov a, l
+	rar
+	mov l, a
+	mov a, d
+	rar
+	mov d, a
+	mov a, e
+	rar
+	mov e, a
+	jmp lsr4_loop
+lsr4_exit:
+	push d
+	push h
+lsr4_ret = $ + 1
+	jmp 0
+
 	; Arithmetic shift A right B bits.
 	; Corrupts A, B and C.
 	public asr1

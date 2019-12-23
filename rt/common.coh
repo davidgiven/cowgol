@@ -62,15 +62,13 @@ sub print_hex_i8(value: uint8)
 end sub;
 
 sub print_hex_i16(value: uint16)
-    var valuep: [uint8] := (&value) as [uint8];
-    print_hex_i8([valuep+1]);
-    print_hex_i8([valuep+0]);
+    print_hex_i8((value >> 8) as uint8);
+    print_hex_i8(value as uint8);
 end sub;
 
-#sub print_hex_i32(value: uint32)
-#    var valuep: [uint8] := (&value) as [uint8];
-#    print_hex_i8(valuep[3]);
-#    print_hex_i8(valuep[2]);
-#    print_hex_i8(valuep[1]);
-#    print_hex_i8(valuep[0]);
-#end sub;
+sub print_hex_i32(value: uint32)
+    print_hex_i8((value >> 24) as uint8);
+    print_hex_i8((value >> 16) as uint8);
+    print_hex_i8((value >> 8) as uint8);
+    print_hex_i8(value as uint8);
+end sub;
