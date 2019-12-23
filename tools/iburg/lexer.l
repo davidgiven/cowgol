@@ -14,6 +14,7 @@ const char* string;
 %}
 %x STRINGSTATE
 %x CSTRINGSTATE
+%x CSTRINGQSTATE
 %x NUMBERSTATE
 %x COPYSTATE
 
@@ -28,8 +29,6 @@ ID [A-Za-z][A-Za-z0-9_$]*
 ","                       { return COMMA; }
 ";"                       { return SEMICOLON; }
 ":"                       { return COLON; }
-"%%"                      { return PPERCENT; }
-"%start"                  { return START; }
 "costs"                   { return COSTS; }
 
 \"                        { BEGIN(STRINGSTATE); }
@@ -41,6 +40,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 <CSTRINGSTATE>{LF}        { yylineno++; string = strdup("\n"); return CSTRING; }
 <CSTRINGSTATE>\$\$        |
 <CSTRINGSTATE>\${ID}      { string = strdup(yytext+1); return CID; }
+<CSTRINGSTATE>"\""        { string = strdup("\""); BEGIN(CSTRINGQSTATE); return CSTRING; }
 <CSTRINGSTATE>"{"         { nesting++; string = strdup("{"); return CSTRING; }
 <CSTRINGSTATE>"}"         {
                               nesting--;
@@ -55,8 +55,15 @@ ID [A-Za-z][A-Za-z0-9_$]*
                                   return CSTRING;
                               }
                           }
-<CSTRINGSTATE>[^{}$]*     { string = strdup(yytext); return CSTRING; }
+<CSTRINGSTATE>'\\.'       |
+<CSTRINGSTATE>'.'         |
+<CSTRINGSTATE>[^'"{}$\n]* { string = strdup(yytext); return CSTRING; }
 <CSTRINGSTATE>.           { fatal("invalid cstring"); }
+
+<CSTRINGQSTATE>\\.        |
+<CSTRINGQSTATE>[^"\\]+    { string = strdup(yytext); return CSTRING; }
+<CSTRINGQSTATE>\"         { string = "\""; BEGIN(CSTRINGSTATE); return CSTRING; }
+<CSTRINGQSTATE>.          { fatal("invalid cstringq"); }
 
 {ID}                      { string = strdup(yytext); return ID; }
 
@@ -82,7 +89,8 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "%{"                      { BEGIN(COPYSTATE); }
 <COPYSTATE>"%}"           { BEGIN(INITIAL); }
 <COPYSTATE>{LF}           { fputc('\n', outfp); yylineno++; }
-<COPYSTATE>.              { fputc(*yytext, outfp); }
+<COPYSTATE>[^%\n\r]+      |
+<COPYSTATE>.              { fputs(yytext, outfp); }
 
 "//"[^\r\n]*              {}
 {LF}                      { yylineno++; }

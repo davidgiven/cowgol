@@ -16,25 +16,19 @@
 
 %token STRING.
 
-spec ::= body PPERCENT.
-
-body ::= decls PPERCENT rules.
-{ emittables(); }
-
-decls ::= .
-decls ::= decls decl.
-
-decl ::= SEMICOLON.
-decl ::= error SEMICOLON.
-decl ::= START lhs(LHS) SEMICOLON.
-{
-    if (nonterm(LHS)->number != 1)
-        yyerror("redeclaration of the start symbol");
+%syntax_error {
+    yyerror("syntax error: unexpected %s", yyTokenName[yymajor]);
 }
+
+%stack_overflow {
+    yyerror("parser stack overflow; giving up");
+}
+
+spec ::= rules.
+{ emittables(); }
 
 rules ::= .
 rules ::= rules SEMICOLON.
-rules ::= error SEMICOLON.
 rules ::= rules lhs(LHS) COLON tree(TREE) cost(COST) action(A).
 { rule(LHS, TREE, COST+1, A); }
 
@@ -77,20 +71,20 @@ cstring(R) ::= BEGINCSTRING cstrings(S) ENDCSTRING.
 cstrings(R) ::= .
 { R = NULL; }
 
-cstrings(R) ::= CSTRING(LHS) cstrings(RHS).
+cstrings(R) ::= cstrings(LHS) CSTRING(RHS).
 {
     R = calloc(1, sizeof(struct action));
     R->islabel = false;
-    R->text = LHS.string;
-    R->next = RHS;
+    R->text = RHS.string;
+    R->next = LHS;
 }
 
-cstrings(R) ::= CID(LHS) cstrings(RHS).
+cstrings(R) ::= cstrings(LHS) CID(RHS).
 {
     R = calloc(1, sizeof(struct action));
     R->islabel = true;
-    R->text = LHS.string;
-    R->next = RHS;
+    R->text = RHS.string;
+    R->next = LHS;
 }
 
 // vim: sw=4 ts=4 et

@@ -102,8 +102,12 @@ void emittables(void)
 {
     Nonterm p;
 
-    if (start)
-        ckreach(start);
+	if (!start)
+	{
+		yyerror("no rules found!");
+		exit(1);
+	}
+	ckreach(start);
     for (p = nts; p; p = p->link)
         if (!p->reached)
             yyerror("can't reach non-terminal `%s'\n", p->name);
@@ -116,15 +120,11 @@ void emittables(void)
         emitstring(rules);
     emitrule(nts);
     emitclosure(nts);
-    if (start)
-        emitstate(terms, start, ntnumber);
-    print("#ifdef STATE_LABEL\n");
-    if (start)
-        emitlabel(start);
+	emitstate(terms, start, ntnumber);
+	emitlabel(start);
     emitkids(rules, nrules);
     emitfuncs();
     emitactions(rules);
-    print("#endif\n");
 }
 
 /* alloc - allocate nbytes or issue fatal error */
@@ -943,6 +943,42 @@ static void label_not_found(Rule rule, const char* label)
 	exit(1);
 }
 
+static void emitaction(Rule r, struct action* a)
+{
+	if (a->next)
+		emitaction(r, a->next);
+
+	if (a->islabel)
+	{
+		if (strcmp(a->text, "$") == 0)
+			print("node->u.action");
+		else
+		{
+			Tree found;
+			uint32_t path = find_label(r->pattern, a->text, 0, &found);
+			if (path == PATH_MISSING)
+				label_not_found(r, a->text);
+			print_path(path);
+
+			Term nt = found->op;
+			if (nt->kind == NONTERM)
+				print("->u.action");
+			else
+			{
+				print("->u.");
+				const char* s = nt->name;
+				while (*s)
+				{
+					print("%c", tolower(*s));
+					s++;
+				}
+			}
+		}
+	}
+	else
+		print("%s", a->text);
+}
+
 static void emitactions(Rule rules)
 {
     Rule r;
@@ -957,39 +993,7 @@ static void emitactions(Rule rules)
         struct action* a = r->action;
 		if (a)
 		{
-			while (a)
-			{
-				if (a->islabel)
-				{
-					if (strcmp(a->text, "$") == 0)
-						print("node->u.action");
-					else
-					{
-						Tree found;
-						uint32_t path = find_label(r->pattern, a->text, 0, &found);
-						if (path == PATH_MISSING)
-							label_not_found(r, a->text);
-						print_path(path);
-
-						Term nt = found->op;
-						if (nt->kind == NONTERM)
-							print("->u.action");
-						else
-						{
-							print("->u.");
-							const char* s = nt->name;
-							while (*s)
-							{
-								print("%c", tolower(*s));
-								s++;
-							}
-						}
-					}
-				}
-				else
-					print("%s", a->text);
-				a = a->next;
-			}
+			emitaction(r, a);
 			print("\n");
 		}
         print("%3break;\n");
