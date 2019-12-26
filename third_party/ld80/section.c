@@ -451,7 +451,7 @@ int by_base(const void *a, const void *b)
 
 void print_map(FILE *f)
 {
-	char segtype[] = "APDC", buf[NAMELEN+5];
+	char segtype[] = "APDC", buf[NAMELEN+6];
 	struct segment *segp;
 	struct section **slist, *sp;
 	int secno = 0, i = 0;
