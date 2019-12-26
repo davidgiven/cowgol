@@ -238,6 +238,14 @@ buildiburg() {
     echo "build $1 : iburg $2 | bin/iburg"
 }
 
+buildnewgen() {
+    rule \
+        "bin/newgen $2 $1" \
+        "$2 bin/newgen" \
+        "$1" \
+        "NEWGEN $1"
+}
+
 zmac8() {
 	rule \
 		"bin/zmac -8 $1 -o $2" \
@@ -369,6 +377,22 @@ buildlibrary libld80.a \
 buildprogram ld80 \
 	libld80.a
 
+buildmkiburgcodes $OBJDIR/tools/newgen/iburgcodes.h src/midcodes.tab
+buildlemon $OBJDIR/tools/newgen/parser.c tools/newgen/parser.y
+buildflex $OBJDIR/tools/newgen/lexer.c tools/newgen/lexer.l
+
+buildlibrary libnewgen.a \
+    -Itools/newgen \
+    -I$OBJDIR/tools/newgen \
+    --dep $OBJDIR/tools/newgen/parser.h \
+    $OBJDIR/tools/newgen/parser.c \
+    $OBJDIR/tools/newgen/lexer.c \
+    tools/newgen/utils.c \
+    tools/newgen/main.c
+
+buildprogram newgen \
+    libnewgen.a
+
 buildmkiburgcodes $OBJDIR/tools/iburg/iburgcodes.h src/midcodes.tab
 buildlemon $OBJDIR/tools/iburg/parser.c tools/iburg/parser.y
 buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
@@ -392,6 +416,7 @@ buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
 buildiburg $OBJDIR/arch8080.c src/arch8080.pat
 buildiburg $OBJDIR/archc.c src/archc.pat
+buildnewgen $OBJDIR/arch8080-ng.c src/arch8080.ng
 
 buildlibrary libmain.a \
     -I$OBJDIR \

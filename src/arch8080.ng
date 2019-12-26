@@ -1,0 +1,35 @@
+%{
+	#include "globals.h"
+%}
+
+register a
+register b
+register c
+register d
+register e
+register h
+register l
+register bc
+register de
+register hl
+register stk
+
+gen STORE1(bc|de|hl, a);
+gen STORE2(bc|de|hl, hl);
+gen STORE1(ADDRESS(), a);
+gen STORE2(ADDRESS(), hl);
+
+gen bc|de|hl := CONSTANT();
+gen bc|de|hl := ADDRESS();
+
+gen stk := ADD4(stk, stk);
+gen hl := ADD2(hl, bc|de);
+gen hl := ADD2(hl, CONSTANT());
+gen a := ADD1(a, b|d|h);
+gen a := ADD1(a, CONSTANT());
+
+gen stk := SUB4(stk, stk);
+gen hl := SUB2(hl, bc|de);
+gen hl := SUB2(hl, CONSTANT());
+gen a := SUB1(a, b|d|h);
+gen a := SUB1(a, CONSTANT());
