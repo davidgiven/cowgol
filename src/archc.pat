@@ -177,7 +177,7 @@ statement: ENDSUB:s
 		param = param->next;
 	}
     E("}\n");
-    E("static i1 workspace%d[%d];\n", $s.sub->arch->id, $s.sub->workspace);
+    E("static i1 workspace%d[%d];\n", $s.sub->arch->id, $s.sub->workspace[0]);
     emitter_close_chunk();
 }
 
