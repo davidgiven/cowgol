@@ -1,19 +1,13 @@
 #include "globals.h"
 #include "parser.h"
-
-struct terminal
-{
-	int midcode;
-	const char* name;
-	int arity;
-};
+#include <ctype.h>
 
 typedef struct rule Rule;
 struct rule
 {
 	Node* pattern;
 	reg_t result;
-	int depth;
+	int cost;
 };
 
 struct node
@@ -23,6 +17,7 @@ struct node
 	Node* left;
 	Node* right;
 	reg_t reg;
+	Predicate* predicate;
 };
 
 #include "iburgcodes.h"
@@ -70,9 +65,9 @@ int lookup_midcode(const char* name)
 {
 	for (int i=0; i<sizeof(terminals)/sizeof(*terminals); i++)
 	{
-		struct terminal* t = &terminals[i];
-		if (strcmp(name, t->name) == 0)
-			return t->midcode;
+		const char* t = terminals[i];
+		if (strcmp(name, t) == 0)
+			return i;
 	}
 	yyerror("unknown midcode '%s'", name);
 	return 0;
@@ -86,13 +81,14 @@ Node* terminal(reg_t reg)
 	return n;
 }
 
-Node* tree(int midcode, Node* left, Node* right)
+Node* tree(int midcode, Node* left, Node* right, Predicate* predicate)
 {
 	Node* n = calloc(sizeof(Node), 1);
 	n->terminal = false;
 	n->midcode = midcode;
 	n->left = left;
 	n->right = right;
+	n->predicate = predicate;
 	return n;
 }
 
@@ -114,7 +110,7 @@ static int collect_pattern_nodes(Node* tree, Node* pattern)
 	if (tree->terminal)
 		return 0;
 
-	int depth = 1;
+	int cost = 1;
 	if (tree->left && !tree->left->terminal)
 	{
 		if (!pattern->left)
@@ -122,7 +118,7 @@ static int collect_pattern_nodes(Node* tree, Node* pattern)
 			Node* p = calloc(sizeof(Node), 1);
 			pattern->left = p;
 		}
-		depth += collect_pattern_nodes(tree->left, pattern->left);
+		cost += collect_pattern_nodes(tree->left, pattern->left);
 	}
 	if (tree->right && !tree->right->terminal)
 	{
@@ -131,18 +127,18 @@ static int collect_pattern_nodes(Node* tree, Node* pattern)
 			Node* p = calloc(sizeof(Node), 1);
 			pattern->right = p;
 		}
-		depth += collect_pattern_nodes(tree->right, pattern->right);
+		cost += collect_pattern_nodes(tree->right, pattern->right);
 	}
-	return depth;
+	return cost;
 }
 
 static int sort_rule_cb(const void* left, const void* right)
 {
 	const Rule* const* r1 = left;
 	const Rule* const* r2 = right;
-	if ((*r1)->depth > (*r2)->depth)
+	if ((*r1)->cost > (*r2)->cost)
 		return -1;
-	if ((*r1)->depth < (*r2)->depth)
+	if ((*r1)->cost < (*r2)->cost)
 		return 1;
 	return 0;
 }
@@ -163,7 +159,7 @@ static void sort_rules(void)
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
-		r->depth = collect_pattern_nodes(r->pattern, pattern);
+		r->cost = collect_pattern_nodes(r->pattern, pattern);
 	}
 
 	qsort(rules, rulescount, sizeof(Rule*), sort_rule_cb);
@@ -198,16 +194,18 @@ static void walk_template_tree(int* offset, Node* template, Node* pattern)
 
 static void dump_templates(void)
 {
-	fprintf(outfp, "const uint8_t templates[%d][%d] = {\n", rulescount, maxdepth);
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
-		fprintf(outfp, "\t{ ");
+		fprintf(outfp, "static const uint8_t template%d[%d] = { ", i, maxdepth);
 		int offset = 0;
 		walk_template_tree(&offset, r->pattern, pattern);
-		fprintf(outfp, "}, /* %d */\n", r->depth);
+		fprintf(outfp, "}; /* cost %d */\n", r->cost);
 	}
-	fprintf(outfp, "};\n");
+}
+
+static void print_action(Action* action)
+{
 }
 
 static void walk_matcher_tree(int* offset, Node* pattern)
@@ -233,11 +231,69 @@ static void walk_matcher_tree(int* offset, Node* pattern)
 	}
 }
 
+static const char* operator_name(int operator)
+{
+	switch (operator)
+	{
+		case EQUALS: return "==";
+		case NOTEQUALS: return "!=";
+	}
+	assert(false);
+}
+
+static void print_predicate(int index, Node* template, Predicate* predicate)
+{
+	while (predicate)
+	{
+		fprintf(outfp, " && (n%d->", index);
+		const char* s = terminals[template->midcode];
+		while (*s)
+			fputc(tolower(*s++), outfp);
+		fprintf(outfp, ".%s %s %d)",
+			predicate->field,
+			operator_name(predicate->operator),
+			predicate->value);
+
+		predicate = predicate->next;
+	}
+}
+
+static void walk_predicate_tree(int* offset, Node* template, Node* pattern)
+{
+	int thisoffset = *offset;
+	if (template)
+		print_predicate(thisoffset, template, template->predicate);
+
+	if (pattern->left)
+	{
+		(*offset)++;
+		walk_predicate_tree(offset, template ? template->left : NULL, pattern->left);
+	}
+	if (pattern->right)
+	{
+		(*offset)++;
+		walk_predicate_tree(offset, template ? template->right : NULL, pattern->right);
+	}
+}
+
 static void create_matcher(void)
 {
-	fprintf(outfp, "void create_matchbuf(Node* n0, uint8_t* matchbuf) {\n");
+	fprintf(outfp, "void match_rule(Node* n0) {\n");
+	fprintf(outfp, "\tstatic uint8_t matchbuf[%d] = {0};\n", maxdepth);
 	int offset = 0;
 	walk_matcher_tree(&offset, pattern);
+
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+		fprintf(outfp, "\tif ((memcmp(matchbuf, template%d, %d) == 0)", i, maxdepth);
+		offset = 0;
+		walk_predicate_tree(&offset, r->pattern, pattern);
+		fprintf(outfp, ") {\n");
+		fprintf(outfp, "\t}\n");
+	}
+
+
 	fprintf(outfp, "}\n");
 }
 

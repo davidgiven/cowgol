@@ -87,10 +87,7 @@ int main(int argc, char* argv[])
         outfp = stdout;
 
     for (int i = 0; i < sizeof(terminals) / sizeof(*terminals); i++)
-    {
-        struct terminal* t = &terminals[i];
-        term(t->name, t->id);
-    }
+        term(terminals[i], i);
 
     include_file(open_file(infp));
     parse();

@@ -19,6 +19,23 @@ union token
 	int number;
 };
 
+typedef struct action Action;
+struct action
+{
+	bool islabel;
+	const char* text;
+	Action* next;
+};
+
+typedef struct predicate Predicate;
+struct predicate
+{
+	const char* field;
+	int operator;
+	int value;
+	Predicate* next;
+};
+
 typedef struct node Node;
 
 extern int errcnt;
@@ -38,7 +55,7 @@ extern int lookup_midcode(const char* name);
 
 extern void rule(Node* pattern, reg_t result);
 
-extern Node* tree(int midcode, Node* left, Node* right);
+extern Node* tree(int midcode, Node* left, Node* right, Predicate* predicates);
 extern Node* terminal(reg_t reg);
 
 extern void parse(void);

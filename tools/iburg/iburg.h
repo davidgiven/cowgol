@@ -1,13 +1,6 @@
 #ifndef BURG_INCLUDED
 #define BURG_INCLUDED
 
-struct terminal
-{
-    uint8_t id;
-    const char* name;
-    uint8_t arity;
-};
-
 struct action
 {
     bool islabel;

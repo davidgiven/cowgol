@@ -9,6 +9,14 @@
 %type reg {uint32_t}
 %type tree {Node*}
 %type midcode {int}
+%type optionalpredicatescomma {Predicate*}
+%type optionalpredicatesnocomma {Predicate*}
+%type predicates {Predicate*}
+%type predicate {Predicate*}
+%type operator {int}
+%type int {int}
+%type cstring {Action*}
+%type cstrings {Action*}
 
 %token STRING INT.
 %token BEGINCSTRING CSTRING CID ENDCSTRING.
@@ -33,7 +41,7 @@ rules ::= rules REGISTER ID(ID).
 rules ::= rules GEN tree(TREE) SEMICOLON.
 { rule(TREE, 0); }
 
-rules ::= rules GEN regspec(LHS) EQUALS tree(TREE) SEMICOLON.
+rules ::= rules GEN regspec(LHS) ASSIGN tree(TREE) SEMICOLON.
 { rule(TREE, LHS); }
 
 regspec(R) ::= reg(R1).
@@ -51,14 +59,80 @@ midcode(R) ::= ID(ID).
 tree(R) ::= regspec(R1).
 { R = terminal(R1); }
 
-tree(R) ::= midcode(ID) OPENPAREN CLOSEPAREN.
-{ R = tree(ID, NULL, NULL); }
+tree(R) ::= midcode(ID) OPENPAREN optionalpredicatesnocomma(PRED) CLOSEPAREN.
+{ R = tree(ID, NULL, NULL, PRED); }
 
-tree(R) ::= midcode(ID) OPENPAREN tree(R1) CLOSEPAREN.
-{ R = tree(ID, R1, NULL); }
+tree(R) ::= midcode(ID) OPENPAREN tree(R1) optionalpredicatescomma(PRED) CLOSEPAREN.
+{ R = tree(ID, R1, NULL, PRED); }
 
-tree(R) ::= midcode(ID) OPENPAREN tree(R1) COMMA tree(R2) CLOSEPAREN.
-{ R = tree(ID, R1, R2); }
+tree(R) ::= midcode(ID) OPENPAREN tree(R1) COMMA tree(R2) optionalpredicatescomma(PRED) CLOSEPAREN.
+{ R = tree(ID, R1, R2, PRED); }
+
+optionalpredicatesnocomma(R) ::= .
+{ R = NULL; }
+
+optionalpredicatesnocomma(R) ::= predicates(P1).
+{ R = P1; }
+
+optionalpredicatescomma(R) ::= .
+{ R = NULL; }
+
+optionalpredicatescomma(R) ::= COMMA predicates(P1).
+{ R = P1; }
+
+predicates(R) ::= predicate(P1).
+{ R = P1; }
+
+predicates(R) ::= predicates(P1) COMMA predicate(P2).
+{ P2->next = P1; R = P2; }
+
+predicate(R) ::= ID(I1) operator(I2) int(I3).
+{
+    R = calloc(sizeof(Predicate), 1);
+    R->field = I1.string;
+    R->operator = I2;
+    R->value = I3;
+}
+
+operator(R) ::= EQUALS.
+{ R = EQUALS; }
+
+operator(R) ::= NOTEQUALS.
+{ R = NOTEQUALS; }
+
+int(R) ::= INT(I1).
+{ R = I1.number; }
+
+int(R) ::= MINUS INT(I1).
+{ R = -I1.number; }
+
+//optionalpredicate(R) ::= .
+//{ R = NULL; }
+//
+//optionalpredicate(R) ::= WHERE cstring(CS).
+//{ R = CS; }
+//
+//cstring(R) ::= BEGINCSTRING cstrings(S) ENDCSTRING.
+//{ R = S; }
+//
+//cstrings(R) ::= .
+//{ R = NULL; }
+//
+//cstrings(R) ::= cstrings(LHS) CSTRING(RHS).
+//{
+//    R = calloc(1, sizeof(struct action));
+//    R->islabel = false;
+//    R->text = RHS.string;
+//    R->next = LHS;
+//}
+//
+//cstrings(R) ::= cstrings(LHS) CID(RHS).
+//{
+//    R = calloc(1, sizeof(struct action));
+//    R->islabel = true;
+//    R->text = RHS.string;
+//    R->next = LHS;
+//}
 
 // vim: sw=4 ts=4 et
 

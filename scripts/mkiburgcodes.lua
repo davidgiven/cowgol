@@ -6,11 +6,17 @@ local outfilename = args[3]
 
 local midcodes = loadmidcodes(infilename)
 
-local hfp = io.open(outfilename, "w")
-hfp:write("static struct terminal terminals[] = {\n")
-
+local bynumber = {}
 for m, t in pairs(midcodes) do
-	hfp:write(string.format('\t{ %d, "%s", %d },\n', t.id, m, t.ins))
+	bynumber[t.id] = m
+end
+
+local hfp = io.open(outfilename, "w")
+hfp:write("static const char* terminals[] = {\n")
+hfp:write('\t"",\n')
+
+for _, m in ipairs(bynumber) do
+	hfp:write(string.format('\t%q,\n', m))
 end
 hfp:write("};\n");
 

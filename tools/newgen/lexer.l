@@ -27,7 +27,10 @@ ID [A-Za-z][A-Za-z0-9_$]*
 ")"						  { return CLOSEPAREN; }
 ","                       { return COMMA; }
 ";"                       { return SEMICOLON; }
-":="                      { return EQUALS; }
+":="                      { return ASSIGN; }
+"=="                      { return EQUALS; }
+"!="                      { return NOTEQUALS; }
+"-"                       { return MINUS; }
 "|"                       { return PIPE; }
 "register"                { return REGISTER; }
 "gen"                     { return GEN; }
