@@ -5,21 +5,24 @@
 typedef struct rule Rule;
 struct rule
 {
+	int lineno;
 	Node* pattern;
 	reg_t result;
 	int cost;
 	Label* first_label;
+	Action* action;
 };
 
 struct node
 {
-	bool terminal;
+	bool isregister;
 	int midcode;
 	Node* left;
 	Node* right;
 	reg_t reg;
 	Predicate* predicate;
 	Label* label;
+	int index;
 };
 
 #include "iburgcodes.h"
@@ -65,6 +68,7 @@ reg_t lookup_register(const char* name)
 
 int lookup_midcode(const char* name)
 {
+	/* TODO: these are not terminals, change the name */
 	for (int i=0; i<sizeof(terminals)/sizeof(*terminals); i++)
 	{
 		const char* t = terminals[i];
@@ -75,19 +79,19 @@ int lookup_midcode(const char* name)
 	return 0;
 }
 
-Node* terminal(reg_t reg, Label* label)
+Node* register_matcher(reg_t reg, Label* label)
 {
 	Node* n = calloc(sizeof(Node), 1);
-	n->terminal = true;
+	n->isregister = true;
 	n->reg = reg;
 	n->label = label;
 	return n;
 }
 
-Node* tree(int midcode, Node* left, Node* right, Predicate* predicate, Label* label)
+Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicate, Label* label)
 {
 	Node* n = calloc(sizeof(Node), 1);
-	n->terminal = false;
+	n->isregister = false;
 	n->midcode = midcode;
 	n->left = left;
 	n->right = right;
@@ -96,47 +100,47 @@ Node* tree(int midcode, Node* left, Node* right, Predicate* predicate, Label* la
 	return n;
 }
 
-void rule(Node* pattern, reg_t result)
+void rule(int lineno, Node* pattern, reg_t result, Action* action)
 {
 	struct rule* r = calloc(sizeof(Rule), 1);
+	r->lineno = lineno;
 	r->pattern = pattern;
 	r->result = result;
+	r->action = action;
 
 	if (rulescount == (sizeof(rules)/sizeof(*rules)))
 		yyerror("too many rules");
 	rules[rulescount++] = r;
 }
 
-static int collect_template_data(Node* tree, Node* pattern, Label** last_label)
+static int collect_template_data(Node* template, Node* pattern, Label** last_label)
 {
-	if (!tree)
+	if (!template)
 		return 0;
-	if (tree->label)
+	if (template->label)
 	{
-		tree->label->next = *last_label;
-		*last_label = tree->label;
+		template->label->next = *last_label;
+		*last_label = template->label;
 	}
-	if (tree->terminal)
-		return !!(tree->predicate);
 
-	int cost = 1;
-	if (tree->left)
+	int cost = 1 + !!(template->predicate);
+	if (template->left)
 	{
-		if (!pattern->left && !tree->left->terminal)
+		if (!pattern->left)
 		{
 			Node* p = calloc(sizeof(Node), 1);
 			pattern->left = p;
 		}
-		cost += collect_template_data(tree->left, pattern->left, last_label);
+		cost += collect_template_data(template->left, pattern->left, last_label);
 	}
-	if (tree->right)
+	if (template->right)
 	{
-		if (!pattern->right && !tree->right->terminal)
+		if (!pattern->right)
 		{
 			Node* p = calloc(sizeof(Node), 1);
 			pattern->right = p;
 		}
-		cost += collect_template_data(tree->right, pattern->right, last_label);
+		cost += collect_template_data(template->right, pattern->right, last_label);
 	}
 	return cost;
 }
@@ -152,20 +156,39 @@ static int sort_rule_cb(const void* left, const void* right)
 	return 0;
 }
 
-static void calculate_template_size(Node* node)
+static void calculate_pattern_size(Node* node)
 {
 	maxdepth++;
 	if (node->left)
-		calculate_template_size(node->left);
+		calculate_pattern_size(node->left);
 	if (node->right)
-		calculate_template_size(node->right);
+		calculate_pattern_size(node->right);
 }
 
-static void check_label_uniqueness(Rule* rule)
+static Node* lookup_label(Node* node, const char* name)
+{
+	Node* f = NULL;
+	if (!node)
+		return f;
+	else if (node->label && (strcmp(node->label->name, name) == 0))
+		f = node;
+	else
+	{
+		f = lookup_label(node->left, name);
+		if (!f)
+			f = lookup_label(node->right, name);
+	}
+	return f;
+}
+
+static void resolve_label_names(Rule* rule)
 {
 	Label* label = rule->first_label;
 	while (label)
 	{
+		/* Check the name of this label doesn't conflict with any other
+		 * on the rule. */
+
 		Label* other = label->next;
 		while (other)
 		{
@@ -173,7 +196,25 @@ static void check_label_uniqueness(Rule* rule)
 				fatal("duplicate label '%s'", label->name);
 			other = other->next;
 		}
+
 		label = label->next;
+	}
+}
+
+static void assign_indices_to_nodes(int* offset, Node* template, Node* pattern)
+{
+	if (template)
+		template->index = *offset;
+
+	if (pattern->left)
+	{
+		(*offset)++;
+		assign_indices_to_nodes(offset, template ? template->left : NULL, pattern->left);
+	}
+	if (pattern->right)
+	{
+		(*offset)++;
+		assign_indices_to_nodes(offset, template ? template->right : NULL, pattern->right);
 	}
 }
 
@@ -185,12 +226,21 @@ static void sort_rules(void)
 	{
 		Rule* r = rules[i];
 		r->cost = collect_template_data(r->pattern, pattern, &r->first_label);
-		check_label_uniqueness(r);
 	}
 
 	qsort(rules, rulescount, sizeof(Rule*), sort_rule_cb);
 
-	calculate_template_size(pattern);
+	calculate_pattern_size(pattern);
+
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+
+		int offset = 0;
+		assign_indices_to_nodes(&offset, r->pattern, pattern);
+
+		resolve_label_names(r);
+	}
 }
 
 static void dump_registers(void)
@@ -230,10 +280,6 @@ static void dump_templates(void)
 	}
 }
 
-static void print_action(Action* action)
-{
-}
-
 static void walk_matcher_tree(int* offset, Node* pattern)
 {
 	int thisoffset = *offset;
@@ -242,7 +288,7 @@ static void walk_matcher_tree(int* offset, Node* pattern)
 	if (pattern->left)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tNode* n%d = n%d->left;\n", *offset, thisoffset);
+		fprintf(outfp, "\tn%d = n%d->left;\n", *offset, thisoffset);
 		fprintf(outfp, "\tif (n%d) {\n", *offset);
 		walk_matcher_tree(offset, pattern->left);
 		fprintf(outfp, "\t}\n");
@@ -250,7 +296,7 @@ static void walk_matcher_tree(int* offset, Node* pattern)
 	if (pattern->right)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tNode* n%d = n%d->right;\n", *offset, thisoffset);
+		fprintf(outfp, "\tn%d = n%d->right;\n", *offset, thisoffset);
 		fprintf(outfp, "\tif (n%d) {\n", *offset);
 		walk_matcher_tree(offset, pattern->right);
 		fprintf(outfp, "\t}\n");
@@ -267,14 +313,18 @@ static const char* operator_name(int operator)
 	assert(false);
 }
 
+static void print_lower(const char* s)
+{
+	while (*s)
+		fputc(tolower(*s++), outfp);
+}
+
 static void print_predicate(int index, Node* template, Predicate* predicate)
 {
 	while (predicate)
 	{
 		fprintf(outfp, " && (n%d->", index);
-		const char* s = terminals[template->midcode];
-		while (*s)
-			fputc(tolower(*s++), outfp);
+		print_lower(terminals[template->midcode]);
 		fprintf(outfp, ".%s %s %d)",
 			predicate->field,
 			operator_name(predicate->operator),
@@ -302,24 +352,110 @@ static void walk_predicate_tree(int* offset, Node* template, Node* pattern)
 	}
 }
 
+static void push_registers(int* offset, Node* template, Node* pattern)
+{
+	int thisoffset = *offset;
+	if (template && template->isregister)
+		fprintf(outfp, "\t\tpush_register(n%d);\n", thisoffset);
+
+	if (pattern->left)
+	{
+		(*offset)++;
+		push_registers(offset, template ? template->left : NULL, pattern->left);
+	}
+	if (pattern->right)
+	{
+		(*offset)++;
+		push_registers(offset, template ? template->right : NULL, pattern->right);
+	}
+}
+
+static void print_complex_action(Rule* r, Element* e)
+{
+	if (e->next)
+		print_complex_action(r, e->next);
+
+	if (e->islabel)
+	{
+		if (e->text[0] == '$')
+			fprintf(outfp, "self->assigned_reg");
+		else
+		{
+			Node* node = lookup_label(r->pattern, e->text);
+			if (!node)
+				fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
+
+			if (node->isregister)
+				fprintf(outfp, "self->n%d->assigned_reg", node->index);
+			else
+			{
+				fprintf(outfp, "self->n%d->", node->index);
+				print_lower(terminals[node->midcode]);
+			}
+		}
+	}
+	else
+		fprintf(outfp, "%s", e->text);
+}
+
+static void print_simple_action(Rule* r, Element* e)
+{
+	fatal("simple actions not supported yet");
+}
+
+static void create_emitters(void)
+{
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+		fprintf(outfp, "void emit_rule_%d(Instruction* self) {\n", i);
+		fprintf(outfp, "#line %d\n", r->lineno);
+
+		Action* a = r->action;
+		if (a)
+		{
+			if (a->iscomplex)
+				print_complex_action(r, a->first_element);
+			else
+				print_simple_action(r, a->first_element);
+		}
+
+		fprintf(outfp, "}\n");
+	}
+}
+
 static void create_matcher(void)
 {
 	fprintf(outfp, "void match_rule(Node* n0) {\n");
 	fprintf(outfp, "\tstatic uint8_t matchbuf[%d] = {0};\n", maxdepth);
+	fprintf(outfp, "\tInstruction* insn = push_instruction();\n");
+
+	for (int i=0; i<maxdepth; i++)
+		fprintf(outfp, "\tNode* n%d = NULL;\n", i);
+
 	int offset = 0;
 	walk_matcher_tree(&offset, pattern);
+
+	for (int i=0; i<maxdepth; i++)
+		fprintf(outfp, "\tinsn->n%d = n%d;\n", i, i);
 
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
+		fprintf(outfp, "#line %d\n", r->lineno);
 		fprintf(outfp, "\tif ((memcmp(matchbuf, template%d, %d) == 0)", i, maxdepth);
 		offset = 0;
 		walk_predicate_tree(&offset, r->pattern, pattern);
 		fprintf(outfp, ") {\n");
-		fprintf(outfp, "\t}\n");
+
+		fprintf(outfp, "\t\tinsn->rule = %d;\n", i);
+
+		offset = 0;
+		push_registers(&offset, r->pattern, pattern);
+		fprintf(outfp, "\t} else\n");
 	}
 
-
+	fprintf(outfp, "\t\tfatal(\"unmatched instruction\");\n");
 	fprintf(outfp, "}\n");
 }
 
@@ -342,6 +478,7 @@ int main(int argc, const char* argv[])
 	sort_rules();
 	dump_registers();
 	dump_templates();
+	create_emitters();
 	create_matcher();
 
 	return errcnt>0;

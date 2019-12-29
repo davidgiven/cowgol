@@ -14,25 +14,61 @@ register de
 register hl
 register stk
 
-gen STORE1(bc|de|hl, a);
-gen STORE2(bc|de|hl, hl);
-gen STORE1(ADDRESS():a, a:rhs);
-gen STORE2(ADDRESS(), hl);
+gen STORE1(bc|de|hl:lhs, a)
+{
+	switch ($lhs)
+	{
+		case REG_BC:
+			emit("\tstax b\n");
+			break;
 
-gen bc|de|hl := CONSTANT();
-gen bc|de|hl := ADDRESS();
+		case REG_DE:
+			emit("\tstax d\n");
+			break;
 
-gen stk := ADD4(stk, stk);
-gen hl := ADD2(hl, bc|de);
-gen hl := ADD2(hl, CONSTANT());
-gen a := ADD1(a, b|d|h);
-gen a := ADD1(a, CONSTANT());
-gen a := ADD1(a|b|d|h, CONSTANT(value==1));
-gen a := ADD1(a|b|d|h, CONSTANT(value==-1));
+		case REG_HL:
+			emit("\tmov m, a\n");
+			break;
+	}
+}
+
+gen STORE2(bc|de|hl:lhs, hl);
+
+gen STORE1(ADDRESS():a, a:rhs)
+	{ emit("\tsta %s\n", symref($rhs.sym, $rhs.off)); }
+
+gen STORE2(ADDRESS(), hl):rhs
+	{ emit("\tshld %s\n", symref($rhs.sym, $rhs.off)); }
+
+gen bc|de|hl := CONSTANT():rhs
+	{ emit("\tlxi %s, %d\n", regref($$), $rhs.value); }
+
+gen bc|de|hl := ADDRESS():rhs
+	{ emit("\tlxi, %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
+
+gen stk := ADD4(stk, stk)
+	{ emit("\tcall add4\n"); }
+
+gen hl := ADD2(hl, bc|de:rhs)
+	{ emit("dad %s\n", regref($rhs); }
+
+gen a := ADD1(a, b|d|h:rhs)
+	{ emit("\tadd %s\n", regref($rhs)); }
+
+gen a := ADD1(a, CONSTANT():rhs)
+	{ emit("\tadi %d\n", $rhs.value); }
+
+gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==1))
+	{ emit("\tinc %s\n", regref($lhs); }
+
+gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-1))
+	{ emit("\tdec %s\n", regref($lhs); }
 
 gen stk := SUB4(stk, stk);
 gen hl := SUB2(hl, bc|de);
 gen hl := SUB2(hl, CONSTANT());
 gen a := SUB1(a, b|d|h);
 gen a := SUB1(a, CONSTANT());
+
+gen a := CAST21(RSHIFTU2(ADDRESS(), CONSTANT(value==8)));
 

@@ -16,10 +16,12 @@
 %type optionallabel {Label*}
 %type operator {int}
 %type int {int}
-%type cstring {Action*}
-%type cstrings {Action*}
+%type action {Action*}
+%type string {Element*}
+%type cstring {Element*}
+%type cstrings {Element*}
 
-%token STRING INT.
+%token INT.
 %token BEGINCSTRING CSTRING CID ENDCSTRING.
 
 %syntax_error
@@ -37,13 +39,13 @@ spec ::= rules.
 rules ::= .
 rules ::= rules SEMICOLON.
 rules ::= rules REGISTER ID(ID).
-{ define_register(ID.string); }
+{ define_register(ID.u.string); }
 
-rules ::= rules GEN tree(TREE) SEMICOLON.
-{ rule(TREE, 0); }
+rules ::= rules GEN(G) tree(TREE) action(A).
+{ rule(G.lineno, TREE, 0, A); }
 
-rules ::= rules GEN regspec(LHS) ASSIGN tree(TREE) SEMICOLON.
-{ rule(TREE, LHS); }
+rules ::= rules GEN(G) regspec(LHS) ASSIGN tree(TREE) action(A).
+{ rule(G.lineno, TREE, LHS, A); }
 
 regspec(R) ::= reg(R1).
 { R = R1; }
@@ -52,22 +54,22 @@ regspec(R) ::= regspec(R1) PIPE reg(R2).
 { R = R1|R2; }
 
 reg(R) ::= ID(ID).
-{ R = lookup_register(ID.string); }
+{ R = lookup_register(ID.u.string); }
 
 midcode(R) ::= ID(ID).
-{ R = lookup_midcode(ID.string); }
+{ R = lookup_midcode(ID.u.string); }
 
 tree(R) ::= regspec(R1) optionallabel(L).
-{ R = terminal(R1, L); }
+{ R = register_matcher(R1, L); }
 
 tree(R) ::= midcode(ID) OPENPAREN optionalpredicatesnocomma(PRED) CLOSEPAREN optionallabel(L).
-{ R = tree(ID, NULL, NULL, PRED, L); }
+{ R = tree_matcher(ID, NULL, NULL, PRED, L); }
 
 tree(R) ::= midcode(ID) OPENPAREN tree(R1) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
-{ R = tree(ID, R1, NULL, PRED, L); }
+{ R = tree_matcher(ID, R1, NULL, PRED, L); }
 
 tree(R) ::= midcode(ID) OPENPAREN tree(R1) COMMA tree(R2) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
-{ R = tree(ID, R1, R2, PRED, L); }
+{ R = tree_matcher(ID, R1, R2, PRED, L); }
 
 optionalpredicatesnocomma(R) ::= .
 { R = NULL; }
@@ -90,7 +92,7 @@ predicates(R) ::= predicates(P1) COMMA predicate(P2).
 predicate(R) ::= ID(I1) operator(I2) int(I3).
 {
     R = calloc(sizeof(Predicate), 1);
-    R->field = I1.string;
+    R->field = I1.u.string;
     R->operator = I2;
     R->value = I3;
 }
@@ -102,10 +104,10 @@ operator(R) ::= NOTEQUALS.
 { R = NOTEQUALS; }
 
 int(R) ::= INT(I1).
-{ R = I1.number; }
+{ R = I1.u.number; }
 
 int(R) ::= MINUS INT(I1).
-{ R = -I1.number; }
+{ R = -I1.u.number; }
 
 optionallabel(R) ::= .
 { R = NULL; }
@@ -113,30 +115,50 @@ optionallabel(R) ::= .
 optionallabel(R) ::= COLON ID(ID).
 {
     R = calloc(sizeof(Label), 1);
-    R->name = ID.string;
+    R->name = ID.u.string;
 }
 
-//cstring(R) ::= BEGINCSTRING cstrings(S) ENDCSTRING.
-//{ R = S; }
-//
-//cstrings(R) ::= .
-//{ R = NULL; }
-//
-//cstrings(R) ::= cstrings(LHS) CSTRING(RHS).
-//{
-//    R = calloc(1, sizeof(struct action));
-//    R->islabel = false;
-//    R->text = RHS.string;
-//    R->next = LHS;
-//}
-//
-//cstrings(R) ::= cstrings(LHS) CID(RHS).
-//{
-//    R = calloc(1, sizeof(struct action));
-//    R->islabel = true;
-//    R->text = RHS.string;
-//    R->next = LHS;
-//}
+action(R) ::= SEMICOLON.
+{ R = NULL; }
+
+action(R) ::= string(S) SEMICOLON.
+{
+    R = calloc(sizeof(Action), 1);
+    R->iscomplex = false;
+    R->first_element = S;
+}
+
+action(R) ::= cstring(S).
+{
+    R = calloc(sizeof(Action), 1);
+    R->iscomplex = true;
+    R->first_element = S;
+}
+
+string(R) ::= BEGINSTRING cstrings(S) ENDSTRING.
+{ R = S; }
+
+cstring(R) ::= BEGINCSTRING cstrings(S) ENDCSTRING.
+{ R = S; }
+
+cstrings(R) ::= .
+{ R = NULL; }
+
+cstrings(R) ::= cstrings(LHS) CSTRING(RHS).
+{
+    R = calloc(1, sizeof(Element));
+    R->islabel = false;
+    R->text = RHS.u.string;
+    R->next = LHS;
+}
+
+cstrings(R) ::= cstrings(LHS) CID(RHS).
+{
+    R = calloc(1, sizeof(Element));
+    R->islabel = true;
+    R->text = RHS.u.string;
+    R->next = LHS;
+}
 
 // vim: sw=4 ts=4 et
 

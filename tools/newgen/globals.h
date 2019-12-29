@@ -12,19 +12,33 @@
 
 typedef uint32_t reg_t;
 
-typedef union token Token;
-union token
+typedef struct node Node;
+
+typedef struct token Token;
+struct token
 {
-	const char* string;
-	int number;
+	int lineno;
+	union
+	{
+		const char* string;
+		int number;
+	} u;
+};
+
+typedef struct element Element;
+struct element
+{
+	bool islabel;
+	const char* text;
+	int lineno;
+	Element* next;
 };
 
 typedef struct action Action;
 struct action
 {
-	bool islabel;
-	const char* text;
-	Action* next;
+	bool iscomplex;
+	Element* first_element;
 };
 
 typedef struct predicate Predicate;
@@ -43,8 +57,6 @@ struct label
 	Label* next;
 };
 
-typedef struct node Node;
-
 extern int errcnt;
 extern FILE* outfp;
 
@@ -60,10 +72,10 @@ extern reg_t define_register(const char* name);
 extern reg_t lookup_register(const char* name);
 extern int lookup_midcode(const char* name);
 
-extern void rule(Node* pattern, reg_t result);
+extern void rule(int lineno, Node* pattern, reg_t result, Action* action);
 
-extern Node* tree(int midcode, Node* left, Node* right, Predicate* predicates, Label* label);
-extern Node* terminal(reg_t reg, Label* label);
+extern Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicates, Label* label);
+extern Node* register_matcher(reg_t reg, Label* label);
 
 extern void parse(void);
 

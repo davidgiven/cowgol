@@ -61,17 +61,17 @@ void parse(void)
 		int token = yylex();
 		if (!token)
 			break;
+        t.lineno = yylineno;
 		switch (token)
 		{
 			case INT:
-				t.number = number;
+				t.u.number = number;
 				break;
 
             case CSTRING:
             case CID:
-            case STRING:
 			case ID:
-				t.string = string;
+				t.u.string = string;
 				break;
 		}
 		Parse(parser, token, t);

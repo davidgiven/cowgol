@@ -36,9 +36,11 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "register"                { return REGISTER; }
 "gen"                     { return GEN; }
 
-\"                        { BEGIN(STRINGSTATE); }
-<STRINGSTATE>([^\"\\]|\\.)* { string = strdup(yytext); return STRING; }
-<STRINGSTATE>\"           { BEGIN(INITIAL); }
+\"                        { BEGIN(STRINGSTATE); return BEGINSTRING; }
+<STRINGSTATE>([^\"\\$]|\\.)* { string = strdup(yytext); return CSTRING; }
+<STRINGSTATE>\"           { BEGIN(INITIAL); return ENDSTRING; }
+<STRINGSTATE>\$\$         |
+<STRINGSTATE>\${ID}       { string = strdup(yytext+1); return CID; }
 <STRINGSTATE>.            { fatal("invalid string"); }
 
 "{"                       { BEGIN(CSTRINGSTATE); nesting = 1; return BEGINCSTRING; }
