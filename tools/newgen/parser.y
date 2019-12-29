@@ -13,7 +13,7 @@
 %type optionalpredicatesnocomma {Predicate*}
 %type predicates {Predicate*}
 %type predicate {Predicate*}
-%type optionallabel {const char*}
+%type optionallabel {Label*}
 %type operator {int}
 %type int {int}
 %type cstring {Action*}
@@ -57,8 +57,8 @@ reg(R) ::= ID(ID).
 midcode(R) ::= ID(ID).
 { R = lookup_midcode(ID.string); }
 
-tree(R) ::= regspec(R1).
-{ R = terminal(R1); }
+tree(R) ::= regspec(R1) optionallabel(L).
+{ R = terminal(R1, L); }
 
 tree(R) ::= midcode(ID) OPENPAREN optionalpredicatesnocomma(PRED) CLOSEPAREN optionallabel(L).
 { R = tree(ID, NULL, NULL, PRED, L); }
@@ -111,7 +111,10 @@ optionallabel(R) ::= .
 { R = NULL; }
 
 optionallabel(R) ::= COLON ID(ID).
-{ R = ID.string; }
+{
+    R = calloc(sizeof(Label), 1);
+    R->name = ID.string;
+}
 
 //cstring(R) ::= BEGINCSTRING cstrings(S) ENDCSTRING.
 //{ R = S; }

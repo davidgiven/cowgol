@@ -16,7 +16,7 @@ register stk
 
 gen STORE1(bc|de|hl, a);
 gen STORE2(bc|de|hl, hl);
-gen STORE1(ADDRESS():a, a);
+gen STORE1(ADDRESS():a, a:rhs);
 gen STORE2(ADDRESS(), hl);
 
 gen bc|de|hl := CONSTANT();

@@ -8,6 +8,7 @@ struct rule
 	Node* pattern;
 	reg_t result;
 	int cost;
+	Label* first_label;
 };
 
 struct node
@@ -18,7 +19,7 @@ struct node
 	Node* right;
 	reg_t reg;
 	Predicate* predicate;
-	const char* label;
+	Label* label;
 };
 
 #include "iburgcodes.h"
@@ -74,15 +75,16 @@ int lookup_midcode(const char* name)
 	return 0;
 }
 
-Node* terminal(reg_t reg)
+Node* terminal(reg_t reg, Label* label)
 {
 	Node* n = calloc(sizeof(Node), 1);
 	n->terminal = true;
 	n->reg = reg;
+	n->label = label;
 	return n;
 }
 
-Node* tree(int midcode, Node* left, Node* right, Predicate* predicate, const char* label)
+Node* tree(int midcode, Node* left, Node* right, Predicate* predicate, Label* label)
 {
 	Node* n = calloc(sizeof(Node), 1);
 	n->terminal = false;
@@ -105,31 +107,36 @@ void rule(Node* pattern, reg_t result)
 	rules[rulescount++] = r;
 }
 
-static int collect_pattern_nodes(Node* tree, Node* pattern)
+static int collect_template_data(Node* tree, Node* pattern, Label** last_label)
 {
 	if (!tree)
 		return 0;
+	if (tree->label)
+	{
+		tree->label->next = *last_label;
+		*last_label = tree->label;
+	}
 	if (tree->terminal)
-		return 0;
+		return !!(tree->predicate);
 
 	int cost = 1;
-	if (tree->left && !tree->left->terminal)
+	if (tree->left)
 	{
-		if (!pattern->left)
+		if (!pattern->left && !tree->left->terminal)
 		{
 			Node* p = calloc(sizeof(Node), 1);
 			pattern->left = p;
 		}
-		cost += collect_pattern_nodes(tree->left, pattern->left);
+		cost += collect_template_data(tree->left, pattern->left, last_label);
 	}
-	if (tree->right && !tree->right->terminal)
+	if (tree->right)
 	{
-		if (!pattern->right)
+		if (!pattern->right && !tree->right->terminal)
 		{
 			Node* p = calloc(sizeof(Node), 1);
 			pattern->right = p;
 		}
-		cost += collect_pattern_nodes(tree->right, pattern->right);
+		cost += collect_template_data(tree->right, pattern->right, last_label);
 	}
 	return cost;
 }
@@ -154,6 +161,22 @@ static void calculate_template_size(Node* node)
 		calculate_template_size(node->right);
 }
 
+static void check_label_uniqueness(Rule* rule)
+{
+	Label* label = rule->first_label;
+	while (label)
+	{
+		Label* other = label->next;
+		while (other)
+		{
+			if (strcmp(label->name, other->name) == 0)
+				fatal("duplicate label '%s'", label->name);
+			other = other->next;
+		}
+		label = label->next;
+	}
+}
+
 static void sort_rules(void)
 {
 	pattern = calloc(sizeof(Node), 1);
@@ -161,7 +184,8 @@ static void sort_rules(void)
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
-		r->cost = collect_pattern_nodes(r->pattern, pattern);
+		r->cost = collect_template_data(r->pattern, pattern, &r->first_label);
+		check_label_uniqueness(r);
 	}
 
 	qsort(rules, rulescount, sizeof(Rule*), sort_rule_cb);

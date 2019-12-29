@@ -36,6 +36,13 @@ struct predicate
 	Predicate* next;
 };
 
+typedef struct label Label;
+struct label
+{
+	const char* name;
+	Label* next;
+};
+
 typedef struct node Node;
 
 extern int errcnt;
@@ -55,8 +62,8 @@ extern int lookup_midcode(const char* name);
 
 extern void rule(Node* pattern, reg_t result);
 
-extern Node* tree(int midcode, Node* left, Node* right, Predicate* predicates, const char* label);
-extern Node* terminal(reg_t reg);
+extern Node* tree(int midcode, Node* left, Node* right, Predicate* predicates, Label* label);
+extern Node* terminal(reg_t reg, Label* label);
 
 extern void parse(void);
 
