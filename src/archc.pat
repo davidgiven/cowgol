@@ -612,6 +612,9 @@ reg: CAST42(reg):c
 reg: CAST82(reg):c
 { cast(2); }
 
+reg: CAST84(reg):c
+{ cast(4); }
+
 // --- Inline assembly ------------------------------------------------------
 
 statement: ASMSTART
