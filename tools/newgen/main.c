@@ -1,6 +1,7 @@
 #include "globals.h"
 #include "parser.h"
 #include <ctype.h>
+#include <errno.h>
 
 typedef struct rule Rule;
 struct rule
@@ -27,7 +28,7 @@ struct node
 
 #include "iburgcodes.h"
 
-static const char* registers[sizeof(reg_t) * 8];
+static Register registers[sizeof(reg_t) * 8];
 static int registercount = 0;
 
 static Rule* rules[500];
@@ -36,34 +37,40 @@ static int rulescount = 0;
 static int maxdepth = 0;
 static Node* pattern;
 
+static const char* infilename;
 FILE* outfp;
+FILE* outhfp;
 
-reg_t define_register(const char* name)
+Register* define_register(const char* name)
 {
 	for (int i=0; i<registercount; i++)
 	{
-		if (strcmp(name, registers[i]) == 0)
+		if (strcmp(name, registers[i].name) == 0)
 		{
 			yyerror("register '%s' defined twice", name);
-			return 1<<i;
+			return &registers[i];
 		}
 	}
 	if (registercount == (sizeof(reg_t)*8))
 		yyerror("too many registers (maximum %d)", sizeof(reg_t)*8);
 	
 	int i = registercount++;
-	registers[i] = name;
-	return 1<<i;
+	Register* reg = &registers[i];
+	reg->name = name;
+	reg->id = 1<<i;
+	return reg;
 }
 
-reg_t lookup_register(const char* name)
+Register* lookup_register(const char* name)
 {
 	for (int i=0; i<registercount; i++)
 	{
-		if (strcmp(name, registers[i]) == 0)
-			return 1<<i;
+		Register* reg = &registers[i];
+		if (strcmp(name, reg->name) == 0)
+			return reg;
 	}
 	yyerror("unknown register '%s'", name);
+	return &registers[0];
 }
 
 int lookup_midcode(const char* name)
@@ -243,12 +250,27 @@ static void sort_rules(void)
 	}
 }
 
+static void print_upper(FILE* fp, const char* s)
+{
+	while (*s)
+		fputc(toupper(*s++), fp);
+}
+
 static void dump_registers(void)
 {
 	fprintf(outfp, "Register registers[] = {\n");
+	fprintf(outhfp, "enum {\n");
 	for (int i=0; i<registercount; i++)
-		fprintf(outfp, "\t{ \"%s\", 0x%08x },\n", registers[i], 1<<i);
+	{
+		Register* reg = &registers[i];
+		fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x },\n",
+			reg->name, reg->id, reg->uses);
+		fprintf(outhfp, "\tREG_");
+		print_upper(outhfp, registers[i].name);
+		fprintf(outhfp, ",\n");
+	}
 	fprintf(outfp, "};\n");
+	fprintf(outhfp, "};\n");
 }
 
 static void walk_template_tree(int* offset, Node* template, Node* pattern)
@@ -323,7 +345,7 @@ static void print_predicate(int index, Node* template, Predicate* predicate)
 {
 	while (predicate)
 	{
-		fprintf(outfp, " && (n%d->", index);
+		fprintf(outfp, " && (n%d->u.", index);
 		print_lower(terminals[template->midcode]);
 		fprintf(outfp, ".%s %s %d)",
 			predicate->field,
@@ -386,10 +408,10 @@ static void print_complex_action(Rule* r, Element* e)
 				fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
 
 			if (node->isregister)
-				fprintf(outfp, "self->n%d->assigned_reg", node->index);
+				fprintf(outfp, "self->n[%d]->assigned_reg", node->index);
 			else
 			{
-				fprintf(outfp, "self->n%d->", node->index);
+				fprintf(outfp, "self->n[%d]->u.", node->index);
 				print_lower(terminals[node->midcode]);
 			}
 		}
@@ -403,13 +425,18 @@ static void print_simple_action(Rule* r, Element* e)
 	fatal("simple actions not supported yet");
 }
 
+static void print_line(int lineno)
+{
+	//fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
+}
+
 static void create_emitters(void)
 {
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		fprintf(outfp, "void emit_rule_%d(Instruction* self) {\n", i);
-		fprintf(outfp, "#line %d\n", r->lineno);
+		print_line(r->lineno);
 
 		Action* a = r->action;
 		if (a)
@@ -430,19 +457,19 @@ static void create_matcher(void)
 	fprintf(outfp, "\tstatic uint8_t matchbuf[%d] = {0};\n", maxdepth);
 	fprintf(outfp, "\tInstruction* insn = push_instruction();\n");
 
-	for (int i=0; i<maxdepth; i++)
+	for (int i=1; i<maxdepth; i++)
 		fprintf(outfp, "\tNode* n%d = NULL;\n", i);
 
 	int offset = 0;
 	walk_matcher_tree(&offset, pattern);
 
 	for (int i=0; i<maxdepth; i++)
-		fprintf(outfp, "\tinsn->n%d = n%d;\n", i, i);
+		fprintf(outfp, "\tinsn->n[%d] = n%d;\n", i, i);
 
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
-		fprintf(outfp, "#line %d\n", r->lineno);
+		print_line(r->lineno);
 		fprintf(outfp, "\tif ((memcmp(matchbuf, template%d, %d) == 0)", i, maxdepth);
 		offset = 0;
 		walk_predicate_tree(&offset, r->pattern, pattern);
@@ -455,31 +482,43 @@ static void create_matcher(void)
 		fprintf(outfp, "\t} else\n");
 	}
 
-	fprintf(outfp, "\t\tfatal(\"unmatched instruction\");\n");
+	fprintf(outfp, "\t\tunmatched_instruction(n0);\n");
 	fprintf(outfp, "}\n");
 }
 
 int main(int argc, const char* argv[])
 {
-	if (argc != 3)
-		fatal("syntax: newgen <inputfile> <outputfile>");
+	if (argc != 4)
+		fatal("syntax: newgen <inputfile> <output c file> <output h file>");
 
-	FILE* infp = fopen(argv[1], "r");
+	infilename = argv[1];
+	FILE* infp = fopen(infilename, "r");
 	if (!infp)
-		fatal("cannot open input file");
+		fatal("cannot open input file '%s': %s", infilename, strerror(errno));
 
 	outfp = fopen(argv[2], "w");
 	if (!outfp)
-		fatal("cannot open output file");
+		fatal("cannot open output C file '%s': %s", argv[2], strerror(errno));
+
+	outhfp = fopen(argv[3], "w");
+	if (!outhfp)
+		fatal("cannot open output H file '%s': %s", argv[3], strerror(errno));
+
 
 	include_file(open_file(infp));
 	parse();
+
+	fprintf(outhfp, "#ifndef NEWGEN_H\n");
+	fprintf(outhfp, "#define NEWGEN_H\n");
+	fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_DEPTH %d\n", maxdepth);
 
 	sort_rules();
 	dump_registers();
 	dump_templates();
 	create_emitters();
 	create_matcher();
+
+	fprintf(outhfp, "#endif\n");
 
 	return errcnt>0;
 }

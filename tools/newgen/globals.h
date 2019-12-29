@@ -25,6 +25,14 @@ struct token
 	} u;
 };
 
+typedef struct reg Register;
+struct reg
+{
+	const char* name;
+	uint32_t id;
+	uint32_t uses;
+};
+
 typedef struct element Element;
 struct element
 {
@@ -68,8 +76,8 @@ extern int yydebug;
 extern void* open_file(FILE* fp);
 extern void include_file(void* buffer);
 
-extern reg_t define_register(const char* name);
-extern reg_t lookup_register(const char* name);
+extern Register* define_register(const char* name);
+extern Register* lookup_register(const char* name);
 extern int lookup_midcode(const char* name);
 
 extern void rule(int lineno, Node* pattern, reg_t result, Action* action);

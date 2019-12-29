@@ -1,68 +1,124 @@
 %{
 	#include "globals.h"
+	#include "emitter.h"
+	#include "midcodes.h"
+
+	#define IMPL
+	#include "codegen.h"
+
+	#define E emitter_printf
+
+	struct subarch
+	{
+		int id;
+	};
+
+	static int id = 1;
+
+	void arch_init_types(void)
+	{
+		make_number_type("uint32", 4, false);
+		make_number_type("int32", 4, true);
+		intptr_type = make_number_type("uint16", 2, false);
+		make_number_type("int16", 2, true);
+		uint8_type = make_number_type("uint8", 1, false);
+		make_number_type("int8", 1, true);
+
+		add_alias(NULL, "intptr", intptr_type);
+	}
+
+	void arch_init_subroutine(struct subroutine* sub)
+	{
+		sub->arch = calloc(1, sizeof(struct subarch));
+		sub->arch->id = id++;
+	}
+
+	void arch_init_variable(struct symbol* var)
+	{
+		/* All variables get allocated from workspace 0. */
+		current_sub->workspace[0] += var->u.var.type->u.type.width;
+	}
+
 %}
 
-register a
-register b
-register c
-register d
-register e
-register h
-register l
-register bc
-register de
-register hl
-register stk
+register a b d h bc de hl stk;
+
+regdata a;
+regdata b uses b|bc;
+regdata d uses d|de;
+regdata h uses h|hl;
+regdata bc uses bc|b;
+regdata de uses de|d;
+regdata hl uses hl|h;
+regdata stk stacked;
+
+gen STARTFILE()
+{
+    emitter_open_chunk();
+    E("\textrn add4\n");
+    E("\textrn sub4\n");
+    E("\textrn neg4\n");
+    E("\textrn cpy4\n");
+    E("\textrn asl1\n");
+    E("\textrn asl2\n");
+	E("\textrn lsr1\n");
+	E("\textrn lsr2\n");
+	E("\textrn lsr4\n");
+	E("\textrn asr1\n");
+	E("\textrn asr2\n");
+	E("\textrn cmpu4\n");
+    emitter_close_chunk();
+}
 
 gen STORE1(bc|de|hl:lhs, a)
 {
 	switch ($lhs)
 	{
 		case REG_BC:
-			emit("\tstax b\n");
+			E("\tstax b\n");
 			break;
 
 		case REG_DE:
-			emit("\tstax d\n");
+			E("\tstax d\n");
 			break;
 
 		case REG_HL:
-			emit("\tmov m, a\n");
+			E("\tmov m, a\n");
 			break;
 	}
 }
 
 gen STORE2(bc|de|hl:lhs, hl);
 
-gen STORE1(ADDRESS():a, a:rhs)
-	{ emit("\tsta %s\n", symref($rhs.sym, $rhs.off)); }
+gen STORE1(ADDRESS():lhs, a)
+	{ E("\tsta %s\n", symref($lhs.sym, $lhs.off)); }
 
-gen STORE2(ADDRESS(), hl):rhs
-	{ emit("\tshld %s\n", symref($rhs.sym, $rhs.off)); }
+gen STORE2(ADDRESS():lhs, hl)
+	{ E("\tshld %s\n", symref($lhs.sym, $lhs.off)); }
 
 gen bc|de|hl := CONSTANT():rhs
-	{ emit("\tlxi %s, %d\n", regref($$), $rhs.value); }
+	{ E("\tlxi %s, %d\n", regref($$), $rhs.value); }
 
 gen bc|de|hl := ADDRESS():rhs
-	{ emit("\tlxi, %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
+	{ E("\tlxi, %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
 
 gen stk := ADD4(stk, stk)
-	{ emit("\tcall add4\n"); }
+	{ E("\tcall add4\n"); }
 
 gen hl := ADD2(hl, bc|de:rhs)
-	{ emit("dad %s\n", regref($rhs); }
+	{ E("dad %s\n", regref($rhs)); }
 
 gen a := ADD1(a, b|d|h:rhs)
-	{ emit("\tadd %s\n", regref($rhs)); }
+	{ E("\tadd %s\n", regref($rhs)); }
 
 gen a := ADD1(a, CONSTANT():rhs)
-	{ emit("\tadi %d\n", $rhs.value); }
+	{ E("\tadi %d\n", $rhs.value); }
 
 gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==1))
-	{ emit("\tinc %s\n", regref($lhs); }
+	{ E("\tinc %s\n", regref($lhs)); }
 
 gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-1))
-	{ emit("\tdec %s\n", regref($lhs); }
+	{ E("\tdec %s\n", regref($lhs)); }
 
 gen stk := SUB4(stk, stk);
 gen hl := SUB2(hl, bc|de);

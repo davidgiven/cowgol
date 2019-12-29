@@ -115,6 +115,7 @@ cfile() {
 buildlibrary() {
     local lib
     lib=$1
+    objdir=${lib%%.a}.obj
     shift
 
     local flags
@@ -149,7 +150,7 @@ buildlibrary() {
                 ;;
 
             *)
-            obj="$OBJDIR/${src%%.c*}.o"
+            obj="$OBJDIR/$objdir/${src%%.c*}.o"
         esac
         objs="$objs $obj"
 
@@ -240,10 +241,10 @@ buildiburg() {
 
 buildnewgen() {
     rule \
-        "bin/newgen $2 $1" \
-        "$2 bin/newgen" \
-        "$1" \
-        "NEWGEN $1"
+        "bin/newgen $3 $1 $2" \
+        "$3 bin/newgen" \
+        "$1 $2" \
+        "NEWGEN $3"
 }
 
 zmac8() {
@@ -414,9 +415,9 @@ buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
 
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
-buildiburg $OBJDIR/arch8080.c src/arch8080.pat
-buildiburg $OBJDIR/archc.c src/archc.pat
-buildnewgen $OBJDIR/arch8080-ng.c src/arch8080.ng
+#buildiburg $OBJDIR/arch8080.c src/arch8080.pat
+#buildiburg $OBJDIR/archc.c src/archc.pat
+buildnewgen $OBJDIR/arch8080/inssel.c $OBJDIR/arch8080/inssel.h src/arch8080.ng
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -428,8 +429,6 @@ buildlibrary libmain.a \
     $OBJDIR/midcodes.c \
     src/main.c \
     src/emitter.c \
-    src/regalloc.c \
-    src/midcode.c \
     src/compiler.c
 
 #buildlibrary libagc.a \
@@ -440,15 +439,18 @@ buildlibrary libmain.a \
 
 buildlibrary lib8080.a \
     -I$OBJDIR \
+    -I$OBJDIR/arch8080 \
     -Isrc \
     --dep $OBJDIR/midcodes.h \
-    $OBJDIR/arch8080.c \
+    --dep $OBJDIR/arch8080/inssel.h \
+    $OBJDIR/arch8080/inssel.c \
+    src/codegen.c \
 
-buildlibrary libc.a \
-    -I$OBJDIR \
-    -Isrc \
-    --dep $OBJDIR/midcodes.h \
-    $OBJDIR/archc.c \
+#buildlibrary libc.a \
+#    -I$OBJDIR \
+#    -Isrc \
+#    --dep $OBJDIR/midcodes.h \
+#    $OBJDIR/archc.c \
 
 #buildprogram tinycowc-agc \
 #    -lbsd \
@@ -460,9 +462,9 @@ buildprogram tinycowc-8080 \
     libmain.a \
     lib8080.a \
 
-buildprogram tinycowc-c \
-    libmain.a \
-    libc.a \
+#buildprogram tinycowc-c \
+#    libmain.a \
+#    libc.a \
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
 pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
@@ -499,25 +501,26 @@ zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
-test_cpm addsub-8bit
-test_cpm addsub-16bit
-test_cpm addsub-32bit
-test_cpm shifts-8bit
-test_cpm shifts-16bit
-test_cpm records
-test_cpm inputparams
-test_cpm outputparams
-test_cpm conditionals
+#test_cpm addsub-8bit
+#test_cpm addsub-16bit
+#test_cpm addsub-32bit
+#test_cpm shifts-8bit
+#test_cpm shifts-16bit
+#test_cpm records
+#test_cpm inputparams
+#test_cpm outputparams
+#test_cpm conditionals
 
-test_c addsub-8bit
-test_c addsub-16bit
-test_c addsub-32bit
-test_c records
-test_c inputparams
-test_c outputparams
-test_c conditionals
+#test_c addsub-8bit
+#test_c addsub-16bit
+#test_c addsub-32bit
+#test_c records
+#test_c inputparams
+#test_c outputparams
+#test_c conditionals
 
-cowgol_cpm examples/malloc.cow examples/malloc.com 
-cowgol_c examples/malloc.cow examples/malloc
+cowgol_cpm examples/empty.cow examples/empty.com
+#cowgol_cpm examples/malloc.cow examples/malloc.com 
+#cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et

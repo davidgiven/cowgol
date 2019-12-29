@@ -1,12 +1,14 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include <unistd.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <string.h>
 #include <limits.h>
 
 extern void fatal(const char* s, ...);
@@ -34,6 +36,20 @@ struct namespace
 	struct namespace* parent;
 };
 
+typedef struct midnode Node;
+
+typedef uint32_t reg_t;
+typedef struct reg Register;
+struct reg
+{
+	const char* name;
+	reg_t id;
+	reg_t uses;
+};
+
+typedef struct instruction Instruction;
+
+typedef struct symbol Symbol;
 struct symbol
 {
 	int kind;
@@ -81,14 +97,6 @@ struct subroutine
 	struct subarch* arch;
 };
 
-struct exprnode
-{
-	struct symbol* type;
-	struct symbol* sym; /* or NULL for a numeric constant */
-	int32_t off;
-	bool constant : 1;
-};
-
 struct includepath
 {
 	const char* path;
@@ -119,6 +127,9 @@ extern void arch_init_types(void);
 extern void arch_init_subroutine(struct subroutine* sub);
 extern void arch_init_variable(struct symbol* var);
 extern void arch_emit_comment(const char* text, ...);
+
+extern const char* regref(reg_t r);
+extern const char* symref(struct symbol* sym, int32_t off);
 
 #endif
 

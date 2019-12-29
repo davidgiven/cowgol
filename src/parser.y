@@ -5,9 +5,10 @@
     #include <stdarg.h>
     #include <string.h>
     #include "globals.h"
-    #include "midcode.h"
+    #include "midcodes.h"
     #include "parser.h"
 	#include "compiler.h"
+	#include "codegen.h"
 
     int current_label = 1;
 
@@ -112,7 +113,7 @@ statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 	init_var(S, T);
     check_expression_type(&E->type, S->u.var.type);
 
-    generate(mid_store(E->type->u.type.width, mid_address(S), E));
+    generate(mid_store(E->type->u.type.width, mid_address(S, 0), E));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
@@ -123,7 +124,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	init_var(S, E->type);
 	check_expression_type(&E->type, E->type);
 
-	generate(mid_store(E->type->u.type.width, mid_address(S), E));
+	generate(mid_store(E->type->u.type.width, mid_address(S, 0), E));
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -556,7 +557,7 @@ lvalue(E) ::= oldid(S).
 	}
 	else
 	{
-		E = mid_address(S);
+		E = mid_address(S, 0);
 		E->type = make_pointer_type(S->u.var.type);
 	}
 }

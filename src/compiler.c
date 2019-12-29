@@ -3,9 +3,10 @@
 #include <stdarg.h>
 #include <string.h>
 #include "globals.h"
-#include "midcode.h"
+#include "midcodes.h"
 #include "parser.h"
 #include "compiler.h"
+#include "codegen.h"
 
 int32_t number;
 struct subroutine* current_sub;
@@ -352,22 +353,6 @@ void unescape(char* string)
 			break;
 		c = *pin++;
 	}
-}
-
-void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off)
-{
-	node->type = type;
-	node->sym = sym;
-	node->off = off;
-	node->constant = true;
-}
-
-void node_is_stacked(struct exprnode* node, struct symbol* type)
-{
-	node->type = type;
-	node->sym = NULL;
-	node->off = 0;
-	node->constant = false;
 }
 
 struct token* make_string_token(const char* string)

@@ -24,6 +24,7 @@ hfp:write("};\n");
 
 hfp:write("struct midnode {\n")
 hfp:write("enum midcodes op;\n");
+hfp:write("reg_t assigned_reg;\n");
 hfp:write("struct symbol* type;\n");
 hfp:write("void* iburg;\n");
 hfp:write("struct midnode* left;\n")

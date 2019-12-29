@@ -5,8 +5,9 @@
 }
 
 %token_type {Token}
+%type regdata {Register*}
 %type regspec {uint32_t}
-%type reg {uint32_t}
+%type reg {Register*}
 %type tree {Node*}
 %type midcode {int}
 %type optionalpredicatescomma {Predicate*}
@@ -38,8 +39,24 @@ spec ::= rules.
 
 rules ::= .
 rules ::= rules SEMICOLON.
-rules ::= rules REGISTER ID(ID).
+rules ::= rules REGISTER regdecls SEMICOLON.
+rules ::= rules regdata SEMICOLON.
+
+regdecls ::= .
+regdecls ::= regdecls ID(ID).
 { define_register(ID.u.string); }
+
+regdata(R) ::= REGDATA reg(R1).
+{ R = R1; }
+
+regdata(R) ::= regdata(R1) USES regspec(R2).
+{
+    R = R1;
+    R->uses |= R2;
+}
+
+regdata(R) ::= regdata(R1) STACKED.
+{ R = R1; }
 
 rules ::= rules GEN(G) tree(TREE) action(A).
 { rule(G.lineno, TREE, 0, A); }
@@ -48,10 +65,10 @@ rules ::= rules GEN(G) regspec(LHS) ASSIGN tree(TREE) action(A).
 { rule(G.lineno, TREE, LHS, A); }
 
 regspec(R) ::= reg(R1).
-{ R = R1; }
+{ R = R1->id; }
 
 regspec(R) ::= regspec(R1) PIPE reg(R2).
-{ R = R1|R2; }
+{ R = R1 | (R2->id); }
 
 reg(R) ::= ID(ID).
 { R = lookup_register(ID.u.string); }

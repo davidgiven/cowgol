@@ -34,6 +34,9 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "|"                       { return PIPE; }
 ":"                       { return COLON; }
 "register"                { return REGISTER; }
+"regdata"                 { return REGDATA; }
+"uses"                    { return USES; }
+"stacked"                 { return STACKED; }
 "gen"                     { return GEN; }
 
 \"                        { BEGIN(STRINGSTATE); return BEGINSTRING; }
