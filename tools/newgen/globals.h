@@ -55,7 +55,7 @@ extern int lookup_midcode(const char* name);
 
 extern void rule(Node* pattern, reg_t result);
 
-extern Node* tree(int midcode, Node* left, Node* right, Predicate* predicates);
+extern Node* tree(int midcode, Node* left, Node* right, Predicate* predicates, const char* label);
 extern Node* terminal(reg_t reg);
 
 extern void parse(void);

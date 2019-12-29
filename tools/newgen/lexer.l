@@ -32,6 +32,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "!="                      { return NOTEQUALS; }
 "-"                       { return MINUS; }
 "|"                       { return PIPE; }
+":"                       { return COLON; }
 "register"                { return REGISTER; }
 "gen"                     { return GEN; }
 

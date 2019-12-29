@@ -18,6 +18,7 @@ struct node
 	Node* right;
 	reg_t reg;
 	Predicate* predicate;
+	const char* label;
 };
 
 #include "iburgcodes.h"
@@ -81,7 +82,7 @@ Node* terminal(reg_t reg)
 	return n;
 }
 
-Node* tree(int midcode, Node* left, Node* right, Predicate* predicate)
+Node* tree(int midcode, Node* left, Node* right, Predicate* predicate, const char* label)
 {
 	Node* n = calloc(sizeof(Node), 1);
 	n->terminal = false;
@@ -89,6 +90,7 @@ Node* tree(int midcode, Node* left, Node* right, Predicate* predicate)
 	n->left = left;
 	n->right = right;
 	n->predicate = predicate;
+	n->label = label;
 	return n;
 }
 

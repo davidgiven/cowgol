@@ -13,6 +13,7 @@
 %type optionalpredicatesnocomma {Predicate*}
 %type predicates {Predicate*}
 %type predicate {Predicate*}
+%type optionallabel {const char*}
 %type operator {int}
 %type int {int}
 %type cstring {Action*}
@@ -59,14 +60,14 @@ midcode(R) ::= ID(ID).
 tree(R) ::= regspec(R1).
 { R = terminal(R1); }
 
-tree(R) ::= midcode(ID) OPENPAREN optionalpredicatesnocomma(PRED) CLOSEPAREN.
-{ R = tree(ID, NULL, NULL, PRED); }
+tree(R) ::= midcode(ID) OPENPAREN optionalpredicatesnocomma(PRED) CLOSEPAREN optionallabel(L).
+{ R = tree(ID, NULL, NULL, PRED, L); }
 
-tree(R) ::= midcode(ID) OPENPAREN tree(R1) optionalpredicatescomma(PRED) CLOSEPAREN.
-{ R = tree(ID, R1, NULL, PRED); }
+tree(R) ::= midcode(ID) OPENPAREN tree(R1) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
+{ R = tree(ID, R1, NULL, PRED, L); }
 
-tree(R) ::= midcode(ID) OPENPAREN tree(R1) COMMA tree(R2) optionalpredicatescomma(PRED) CLOSEPAREN.
-{ R = tree(ID, R1, R2, PRED); }
+tree(R) ::= midcode(ID) OPENPAREN tree(R1) COMMA tree(R2) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
+{ R = tree(ID, R1, R2, PRED, L); }
 
 optionalpredicatesnocomma(R) ::= .
 { R = NULL; }
@@ -106,12 +107,12 @@ int(R) ::= INT(I1).
 int(R) ::= MINUS INT(I1).
 { R = -I1.number; }
 
-//optionalpredicate(R) ::= .
-//{ R = NULL; }
-//
-//optionalpredicate(R) ::= WHERE cstring(CS).
-//{ R = CS; }
-//
+optionallabel(R) ::= .
+{ R = NULL; }
+
+optionallabel(R) ::= COLON ID(ID).
+{ R = ID.string; }
+
 //cstring(R) ::= BEGINCSTRING cstrings(S) ENDCSTRING.
 //{ R = S; }
 //
