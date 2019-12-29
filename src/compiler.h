@@ -13,20 +13,19 @@ extern bool is_scalar(struct symbol* sym);
 extern bool is_record(struct symbol* sym);
 extern bool is_record_ptr(struct symbol* sym);
 
-extern struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs);
-extern struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs);
-extern struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(int width));
-extern struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
-        void (*emitteru)(int width),
-        void (*emitters)(int width));
-extern struct symbol* expr_shift(struct symbol* lhs, struct symbol* rhs,
-        void (*emitteru)(int width),
-        void (*emitters)(int width));
-extern void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-        void (*emitteru)(int width, int truelabel, int falselabel),
-        void (*emitters)(int width, int truelabel, int falselabel),
-        void (*emitterp)(int truelabel, int falselabel)
-);
+extern struct midnode* expr_add(struct midnode* lhs, struct midnode* rhs);
+extern struct midnode* expr_sub(struct midnode* lhs, struct midnode* rhs);
+extern struct midnode* expr_simple(struct midnode* lhs, struct midnode* rhs,
+		struct midnode* (*emitter)(int width, struct midnode* lhs, struct midnode* rhs));
+extern struct midnode* expr_signed(struct midnode* lhs, struct midnode* rhs,
+        struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs),
+        struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs));
+extern struct midnode* expr_shift(struct midnode* lhs, struct midnode* rhs,
+        struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs),
+        struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs));
+extern void cond_simple(int truelabel, int falselabel, struct midnode* lhs, struct midnode* rhs,
+        struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel),
+        struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel));
 
 extern void init_var(struct symbol* sym, struct symbol* type);
 extern void init_member(struct symbol* sym, struct symbol* type);

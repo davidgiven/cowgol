@@ -2,75 +2,54 @@
 #include "midcode.h"
 #include "regalloc.h"
 
-static struct matchcontext ctx;
+extern int burm_label(struct midnode* n);
+extern int burm_rule(void* state, int goal);
+extern short* burm_nts[];
+extern void burm_action(int ern, struct midnode* node);
+extern const char* burm_string[];
+extern struct midnode* burm_kids(struct midnode* node, int ern, struct midnode* children[]);
 
-#define NEXT(ptr) ((ptr+1) % MIDBUFSIZ)
-#define PREV(ptr) ((MIDBUFSIZ+ptr-1) % MIDBUFSIZ)
-
-#define MIDCODES_IMPLEMENTATION
-#include "midcodes.h"
-
-void midend_init(void)
+static void dump_cover(struct midnode* node, int goal)
 {
-    ctx.rdptr = 0;
-    ctx.wrptr = 0;
+	int ern = burm_rule(node->iburg, goal);
+	short* nts = burm_nts[ern];
+	struct midnode* children[2] = {0};
+
+	burm_kids(node, ern, children);
+	if (children[0])
+		dump_cover(children[0], nts[0]);
+	if (children[1])
+		dump_cover(children[1], nts[1]);
+
+	arch_emit_comment("");
+	arch_emit_comment("rule %d: %s", ern, burm_string[ern]);
+	burm_action(ern, node);
+	regalloc_unlock(ALL_REGS);
 }
 
-struct midcode* midend_append(void)
+void generate(struct midnode* node)
 {
-    struct midcode* m = &ctx.midcodes[ctx.wrptr];
-    ctx.wrptr = NEXT(ctx.wrptr);
-    if (ctx.wrptr == ctx.rdptr)
-        fatal("midcode buffer overflow");
+	if (!burm_label(node))
+	{
+		fprintf(stderr, "No matching pattern for: ");
+		print_midnode(stderr, node);
+		fprintf(stderr, "\n");
+		fatal("no matching pattern");
+	}
 
-    return m;
+	print_midnode(stdout, node);
+	fprintf(stdout, "\n");
+
+	dump_cover(node, 1);
+	discard(node);
 }
 
-struct midcode* midend_prepend(void)
+void discard(struct midnode* node)
 {
-    if (ctx.rdptr == ctx.wrptr)
-        fatal("midcode buffer overflow");
-
-    ctx.rdptr = PREV(ctx.rdptr);
-    return &ctx.midcodes[ctx.rdptr];
+	if (node->left)
+		discard(node->left);
+	if (node->right)
+		discard(node->right);
+	free(node);
 }
 
-static void dump_buffer(void)
-{
-    int ptr = ctx.rdptr;
-    printf("Buffer:");
-    arch_print_vstack(stdout);
-    for (;;)
-    {
-        if (ptr == ctx.wrptr)
-            break;
-        
-        struct midcode* m = &ctx.midcodes[ptr];
-        putchar(' ');
-        print_midcode(stdout, m);
-
-        ptr = NEXT(ptr);
-    }
-    printf("\n");
-}
-
-void midend_flush(int threshold)
-{
-    for (;;)
-    {
-        int midcodedepth = (MIDBUFSIZ + ctx.wrptr - ctx.rdptr) % MIDBUFSIZ;
-        if (midcodedepth <= threshold)
-            break;
-
-        dump_buffer();
-        if (!arch_instruction_matcher(&ctx))
-            fatal("no matching instruction in pattern");
-        regalloc_unlock(ALL_REGS);
-        regalloc_dump();
-    }
-}
-
-static void push_midend_state_machine(void)
-{
-    midend_flush(MIDBUFSIZ / 2);
-}

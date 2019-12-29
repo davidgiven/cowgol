@@ -4,15 +4,29 @@ include "tests/_framework.coh";
 const ZERO := 0;
 const ONE := 1;
 
-var zero: uint8 := 0;
-var one: uint8 := 1;
+sub equality1()
+	var zero: uint8 := 0;
+	var one: uint8 := 1;
 
-print("one==ONE"); if one == ONE then yes(); else no(); end if;
-print("one!=ONE"); if one != ONE then yes(); else no(); end if;
+	print("one==ONE"); if one == ONE then yes(); else no(); end if;
+	print("one!=ONE"); if one != ONE then yes(); else no(); end if;
 
-print("one==ONE and zero==ZERO"); if one==ONE and zero==ZERO then yes(); else no(); end if;
-print("one==ONE and zero==ONE"); if one==ONE and zero==ONE then yes(); else no(); end if;
-print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
-print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
+	print("one==ONE and zero==ZERO"); if one==ONE and zero==ZERO then yes(); else no(); end if;
+	print("one==ONE and zero==ONE"); if one==ONE and zero==ONE then yes(); else no(); end if;
+	print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
+	print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
 
-print("one==ZERO or (one==ONE and zero==ZERO"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+	print("one==ZERO or (one==ONE and zero==ZERO"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+end sub;
+equality1();
+
+sub blt2()
+	var zero: uint16 := 0;
+	var one: uint16 := 1;
+
+	print("zero<one"); if zero<one then yes(); else no(); end if;
+	print("one<one"); if one<zero then yes(); else no(); end if;
+	print("one<zero"); if one<zero then yes(); else no(); end if;
+end sub;
+blt2();
+

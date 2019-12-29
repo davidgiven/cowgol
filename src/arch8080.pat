@@ -1,9 +1,16 @@
+%{
 #include "globals.h"
 #include "midcode.h"
 #include "emitter.h"
 #include "regalloc.h"
 #include <ctype.h>
 #include <bsd/string.h>
+
+/* Workspaces used by the 8080 code generator:
+ *
+ * 0 = variables (this one always is)
+ * 1, 2, 3 = unused
+ */
 
 struct subarch
 {
@@ -39,6 +46,12 @@ void arch_init_types(void)
 	uint8_type = make_number_type("uint8", 1, false);
 	make_number_type("int8", 1, true);
 
+	add_alias(NULL, "intptr", intptr_type);
+
+	/* Registers C and E are not used by the code generator. This is so
+	 * we can push and pop any 8-bit value and have them all interoperate ---
+	 * so, AF, BC, DE use A, B, D respectively. */
+
     regalloc_add_register("a", REG_A, REG_A);
     regalloc_add_register("b", REG_B, REG_B | REG_BC);
     regalloc_add_register("d", REG_D, REG_D | REG_DE);
@@ -60,6 +73,18 @@ static const char* regnamelo(reg_t id)
     return NULL;
 }
 
+static reg_t eightbitof(reg_t r)
+{
+	switch (r)
+	{
+		case REG_BC: return REG_B;
+		case REG_DE: return REG_D;
+		case REG_HL: return REG_H;
+	}
+	assert(false);
+	return 0;
+}
+
 void arch_init_subroutine(struct subroutine* sub)
 {
     sub->arch = calloc(1, sizeof(struct subarch));
@@ -68,6 +93,8 @@ void arch_init_subroutine(struct subroutine* sub)
 
 void arch_init_variable(struct symbol* var)
 {
+	/* All variables get allocated from workspace 0. */
+	current_sub->workspace[0] += var->u.var.type->u.type.width;
 }
 
 void arch_emit_comment(const char* text, ...)
@@ -111,7 +138,12 @@ void arch_load_const(reg_t id, int32_t num)
     if (id & REG_16)
         E("\tlxi %s, %d\n", regname(id), num & 0xffff);
     else
-        E("\tmvi %s, %d\n", regname(id), num & 0xff);
+	{
+		if ((id == REG_A) && (num == 0))
+			E("\txor a\n");
+		else
+			E("\tmvi %s, %d\n", regname(id), num & 0xff);
+	}
 }
 
 void arch_load_var(reg_t id, struct symbol* sym, int32_t off)
@@ -172,39 +204,59 @@ reg_t arch_save(reg_t reg, reg_t forbidden)
     return 0;
 }
 
-%%
+static void call(struct subroutine* sub)
+{
+    if (sub->externname)
+    {
+        emitter_open_chunk();
+        E("\textrn %s\n", sub->externname);
+        emitter_close_chunk();
+    }
 
-i1
-i2
-i4
-constant(int32_t val) = ("%d", $$.val)
-address(struct symbol* sym, int32_t off) = ("%s+%d", $$.sym->name, $$.off)
+    regalloc_reg_changing(ALL_REGS);
+    arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
+    E("\tcall %s\n", subref(sub));
+    regalloc_adjust_stack(-sub->inputparameters);
+}
 
-%%
+%}
 
-STARTFILE --
+statement: STARTFILE
+{
     emitter_open_chunk();
     E("\textrn add4\n");
     E("\textrn sub4\n");
+    E("\textrn neg4\n");
+    E("\textrn cpy4\n");
+    E("\textrn asl1\n");
+    E("\textrn asl2\n");
+	E("\textrn lsr1\n");
+	E("\textrn lsr2\n");
+	E("\textrn lsr4\n");
+	E("\textrn asr1\n");
+	E("\textrn asr2\n");
+	E("\textrn cmpu4\n");
     emitter_close_chunk();
+}
 
-ENDFILE --
+statement: ENDFILE;
 
-STARTSUB(sub) --
+statement: STARTSUB:s
+{
     emitter_open_chunk();
     E("\n");
-    E("; %s\n", sub->name);
+    E("; %s\n", $s.sub->name);
     E("\tcseg\n");
-    if (sub->externname)
-        E("\tpublic %s\n", sub->externname);
-    E("%s:\n", subref(sub));
+    if ($s.sub->externname)
+        E("\tpublic %s\n", $s.sub->externname);
+    E("%s:\n", subref($s.sub));
 
-    if (sub->inputparameters != 0)
+    if ($s.sub->inputparameters != 0)
     {
         E("\tpop b\n");
-        for (int i=sub->inputparameters-1; i>=0; i--)
+        for (int i=$s.sub->inputparameters-1; i>=0; i--)
         {
-			struct symbol* param = sub->namespace.firstsymbol;
+			struct symbol* param = $s.sub->namespace.firstsymbol;
 			for (int j=0; j<i; j++)
 				param = param->next;
 
@@ -221,18 +273,20 @@ STARTSUB(sub) --
         }
         E("\tpush b\n");
     }
+}
 
-ENDSUB(sub) --
-	E("end_%s:\n", subref(sub));
-	if (sub->outputparameters != 0)
+statement: ENDSUB:s
+{
+	E("end_%s:\n", subref($s.sub));
+	if ($s.sub->outputparameters != 0)
 	{
 		E("\tpop h\n");
 		E("\txchg\n"); /* put return address in DE */
 
-		for (int i=0; i<sub->outputparameters; i++)
+		for (int i=0; i<$s.sub->outputparameters; i++)
 		{
-			struct symbol* param = sub->namespace.firstsymbol;
-			for (int j=0; j<(i + sub->inputparameters); j++)
+			struct symbol* param = $s.sub->namespace.firstsymbol;
+			for (int j=0; j<(i + $s.sub->inputparameters); j++)
 				param = param->next;
 
 			if (param->u.var.type->u.type.width == 1)
@@ -254,242 +308,214 @@ ENDSUB(sub) --
 		E("\tret\n");
 
     E("\tdseg\n");
-	E("w%d: ds %d\n", sub->arch->id, sub->workspace);
+	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace[0]);
     emitter_close_chunk();
+}
 
-JUMP(label) --
-    regalloc_reg_changing(ALL_REGS);
-    E("\tjmp %s\n", labelref(label));
+// --- Core conversions --------------------------------------------------
 
-JUMP(target) LABEL(label1) LABEL(label2) -- LABEL(label1) LABEL(label2)
-    regalloc_reg_changing(ALL_REGS);
-    if ((target != label1) && (target != label2))
-        E("\tjmp %s\n", labelref(target));
+address: ADDRESS:s
+{
+	$$.sym = $s.sym;
+	$$.off = 0;
+}
 
-LABEL(label) --
-    regalloc_reg_changing(ALL_REGS);
-    E("%s:\n", labelref(label));
+constant: CONSTANT:c
+{
+	$$.off = $c.value;
+}
 
-CONSTANT(val) -- constant(val)
+reg1: reg1a;
+reg1: reg1bdh;
+reg2: reg2hl;
+reg2: reg2bcde;
 
-ADDRESS(sym) -- address(sym, 0)
+reg1a: reg1
+{ regalloc_push(regalloc_pop(REG_A)); }
 
-// --- Function calls -------------------------------------------------------
+reg1bdh: reg1
+{ regalloc_push(regalloc_pop(REG_B | REG_D | REG_H)); }
+
+reg2hl: reg2
+{ regalloc_push(regalloc_pop(REG_HL)); }
+
+reg2bcde: reg2
+{ regalloc_push(regalloc_pop(REG_BC | REG_DE)); }
+
+%{
+	static void loadaddress(reg_t mask, struct symbol* sym, int off)
+	{
+		reg_t r = regalloc_alloc(mask);
+		E("\tlxi %s, %s\n", regname(r), symref(sym, off));
+		regalloc_push(r);
+	}
+%}
+
+reg2: address:s
+{ loadaddress(REG_16, $s.sym, $s.off); }
+	
+reg2hl: address:s
+{ loadaddress(REG_HL, $s.sym, $s.off); }
+	
+reg2bcde: address:s
+{ loadaddress(REG_BC|REG_DE, $s.sym, $s.off); }
+	
+reg1: constant:c
+{ regalloc_push(regalloc_load_const(REG_8, $c.off)); }
+
+reg1a: constant:c
+{ regalloc_push(regalloc_load_const(REG_A, $c.off)); }
+
+reg1bdh: constant:c
+{ regalloc_push(regalloc_load_const(REG_B | REG_D | REG_H, $c.off)); }
+
+reg2: constant:c
+{ regalloc_push(regalloc_load_const(REG_16, $c.off)); }
+
+reg2hl: constant:c
+{ regalloc_push(regalloc_load_const(REG_HL, $c.off)); }
+
+reg2bcde: constant:c
+{ regalloc_push(regalloc_load_const(REG_BC | REG_DE, $c.off)); }
+
+stk4: constant:c
+{
+	regalloc_flush_stack();
+
+	reg_t r = regalloc_load_const(REG_16, $c.off >> 16);
+	E("\tpush %s\n", regname(r));
+	regalloc_unlock(r);
+	r = regalloc_load_const(REG_16, $c.off & 0xffff);
+	E("\tpush %s\n", regname(r));
+}
+
+// --- Subroutines -------------------------------------------------------
 
 // SETPARAM leaves the parameter on the top of the sstack, but the code
 // generator loses track of it.
 
-i1 SETPARAM(1) -- 
-    regalloc_flush_stack();
+inputparameters: END;
 
-constant(n) SETPARAM(1) -- i1 SETPARAM(1)
-    reg_t r = regalloc_load_const(REG_A, n);
-    regalloc_push(r);
+inputparameters: SETPARAM1(reg1, inputparameters)
+{ regalloc_flush_stack(); }
 
-i2 SETPARAM(2) -- 
-    regalloc_flush_stack();
+inputparameters: SETPARAM2(reg2, inputparameters)
+{ regalloc_flush_stack(); }
 
-// GETPARAM recovers a parameter which has been pushed onto the sstack
-// by a subroutine call. 
+inputparameters: SETPARAM4(stk4, inputparameters)
+{ regalloc_flush_stack(); }
 
-GETPARAM(1) -- i1
-	regalloc_adjust_stack(2);
+statement: GETPARAM1(address:a)
+{
+	regalloc_alloc(REG_A);
+	E("\tpop psw\n");
+	E("\tsta %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_A, $a.sym, $a.off);
+}
 
-GETPARAM(2) -- i2
-	regalloc_adjust_stack(2);
+statement: GETPARAM2(address:a)
+{
+	regalloc_alloc(REG_HL);
+	E("\tpop h\n");
+	E("\tshld %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
+}
 
-GETPARAM(4) -- i4
-	regalloc_adjust_stack(4);
+statement: CALL0(inputparameters):c
+{
+	call($c.sub);
+}
 
-constant(n) SETPARAM(2) -- i2 SETPARAM(2)
-    reg_t r = regalloc_load_const(REG_16, n);
-    regalloc_push(r);
+reg1: CALL1(inputparameters):c
+{
+	call($c.sub);
+    regalloc_adjust_stack(2);
+}
 
-CALL(sub) --
-    if (sub->externname)
+reg2: CALL2(inputparameters):c
+{
+	call($c.sub);
+    regalloc_adjust_stack(2);
+}
+
+// --- Control flow ------------------------------------------------------
+
+statement: RETURN
+{
+	E("\tjmp end_%s\n", subref(current_sub));
+}
+
+statement: LABEL:b
+{
+    regalloc_reg_changing(ALL_REGS);
+	E("%s:\n", labelref($b.label));
+}
+
+statement: JUMP:j
+{
+    regalloc_reg_changing(ALL_REGS);
+	E("\tjmp %s\n", labelref($j.label));
+}
+
+// --- Stores ---------------------------------------------------------------
+
+statement: STORE1(reg2, reg1)
+{
+    regalloc_pop(REG_A);
+    reg_t r = regalloc_pop(REG_16);
+    switch (r)
     {
-        emitter_open_chunk();
-        E("\textrn %s\n", sub->externname);
-        emitter_close_chunk();
+        case REG_HL:
+            E("\tmov m, a\n");
+            break;
+
+        case REG_BC:
+            E("\tstax b\n");
+            break;
+
+        case REG_DE:
+            E("\tstax d\n");
+            break;
     }
+}
 
-    regalloc_reg_changing(ALL_REGS);
-    arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
-    E("\tcall %s\n", subref(sub));
-    regalloc_adjust_stack(-sub->inputparameters);
+statement: STORE1(address:a, reg1)
+{
+	regalloc_pop(REG_A);
+	E("\tsta %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_A, $a.sym, $a.off);
+}
 
-RETURN() --
-    regalloc_reg_changing(ALL_REGS);
-    E("\tret\n");
-
-// --- Additions ------------------------------------------------------------
-
-address(sym, off) constant(val) ADD(2) -- address(sym, newoff)
-    newoff = off + val;
-
-constant(lhs) constant(rhs) ADD(n) -- constant(result)
-    result = lhs + rhs;
-
-i1 i1 ADD(1) -- i1
-    reg_t rhs = regalloc_pop(REG_A);
-    reg_t lhs = regalloc_pop(REG_8);
-    regalloc_reg_changing(REG_A);
-    E("\tadd %s\n", regname(lhs));
-    regalloc_push(REG_A);
-
-i2 i2 ADD(2) -- i2
-    reg_t rhs = regalloc_pop(REG_HL);
-    reg_t lhs = regalloc_pop(REG_16);
+statement: STORE2(reg2hl, reg2)
+{
+    reg_t r = regalloc_pop(REG_16 & ~REG_HL);
+    regalloc_pop(REG_HL);
     regalloc_reg_changing(REG_HL);
-    E("\tdad %s\n", regname(lhs));
-    regalloc_push(REG_HL);
+    E("\tmov m, %s\n", regnamelo(r));
+    E("\tinx h\n");
+    E("\tmov m, %s\n", regname(r));
+}
 
-i1 constant(0) ADD(1) -- i1
+statement: STORE2(address:a, reg2hl)
+{
+	regalloc_pop(REG_HL);
+	E("\tshld %s\n", symref($a.sym, $a.off));
+	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
+}
 
-i2 constant(0) ADD(2) -- i2
+statement: STORE4(address:dest, stk4:src) costs 4
+{
+	regalloc_alloc(REG_HL);
+	E("\tpop h\n");
+	E("\tshld %s\n", symref($dest.sym, $dest.off+0));
+	E("\tpop h\n");
+	E("\tshld %s\n", symref($dest.sym, $dest.off+2));
+}
 
-address(sym1, off1) address(sym2, off2) LOAD(1) CONSTANT(1) ADD(1) STORE(1) --
-    if ((sym1 != sym2) || (off1 != off2))
-        REJECT;
-    regalloc_alloc(REG_HL);
-    E("\tlxi h, %s\n", symref(sym1, off1));
-    E("\tinr m\n");
-
-i1 constant(n) ADD(1) -- i1
-    if (n == 1)
-    {
-        reg_t val = regalloc_pop(REG_8);
-        E("\tinc %s\n", regname(val));
-        regalloc_push(val);
-    }
-    else if (n == -1)
-    {
-        reg_t val = regalloc_pop(REG_8);
-        E("\tdec %s\n", regname(val));
-        regalloc_push(val);
-    }
-    else
-    {
-        reg_t lhs = regalloc_pop(REG_A);
-        E("\tadi %d\n", n & 0xff);
-        regalloc_push(REG_A);
-    }
-
-i2 constant(n) ADD(2) -- i2
-    if (n == 1)
-    {
-        reg_t val = regalloc_pop(REG_16);
-		regalloc_reg_changing(val);
-        E("\tinx %s\n", regname(val));
-        regalloc_push(val);
-    }
-    else if (n == -1)
-    {
-        reg_t val = regalloc_pop(REG_16);
-		regalloc_reg_changing(val);
-        E("\tdcx %s\n", regname(val));
-        regalloc_push(val);
-    }
-    else
-    {
-        regalloc_pop(REG_HL);
-        reg_t rhs = regalloc_load_const(REG_16, n);
-		regalloc_reg_changing(REG_HL);
-        E("\tdad %s\n", regname(rhs));
-        regalloc_push(REG_HL);
-    }
-
-constant(n) i1 ADD(1) -- i1 constant(n) ADD(1)
-constant(n) i2 ADD(2) -- i2 constant(n) ADD(2)
-
-ADDP(width) -- ADD(width)
-
-// --- Subtractions ---------------------------------------------------------
-
-i1 i1 SUB(1) -- i1
-    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-    reg_t lhs = regalloc_pop(REG_A);
-    E("\tsub %s\n", regname(rhs));
-    regalloc_push(REG_A);
-
-constant(c) i1 SUB(1) -- i1
-    reg_t rhs = regalloc_pop(REG_A);
-    reg_t lhs = regalloc_load_const(REG_8, c & 0xff);
-    E("\tsub %s\n", regname(rhs));
-    regalloc_push(REG_A);
-    
-i2 i2 SUB(2) -- i2
-    reg_t rhs = regalloc_pop(REG_16);
-    reg_t lhs = regalloc_pop(REG_16);
-    E("\tmov a, %s\n", regnamelo(lhs));
-    E("\tsub %s\n", regnamelo(rhs));
-    E("\tmov %s, a\n", regnamelo(lhs));
-    E("\tmov a, %s\n", regname(lhs));
-    E("\tsbb %s\n", regname(rhs));
-    E("\tmov %s, a\n", regname(lhs));
-    regalloc_push(lhs);
-
-constant(n) i2 SUB(2) -- i2
-    reg_t rhs = regalloc_pop(REG_16);
-    E("\tmvi a, %d\n", n & 0xff);
-    E("\tsub %s\n", regnamelo(rhs));
-    E("\tmov %s, a\n", regnamelo(rhs));
-    E("\tmvi a, %d\n", n >> 8);
-    E("\tsbb %s\n", regname(rhs));
-    E("\tmov %s, a\n", regname(rhs));
-    regalloc_push(rhs);
-
-constant(lhs) constant(rhs) SUB(0) -- constant(result)
-	result = lhs - rhs;
-
-constant(c) NEG(0) -- constant(-c)
-
-i1 NEG(1) -- i1
-    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-    regalloc_load_const(REG_A, 0);
-    E("\tsub %s\n", regname(rhs));
-    regalloc_push(REG_A);
-
-i2 NEG(2) -- constant(0) i2 SUB(2)
-
-i1 constant(0) SUB(1) -- i1
-i1 constant(n) SUB(1) -- i1 constant(-n) ADD(1)
-
-i1 constant(0) SUB(2) -- i2
-i2 constant(n) SUB(2) -- i2 constant(-n) ADD(2)
-
-SUBP(width) -- SUB(width)
-
-// --- Multiplications ------------------------------------------------------
-
-constant(lhs) constant(rhs) MUL(w) -- constant(result)
-    result = lhs*rhs;
-
-// --- Shifts ---------------------------------------------------------------
-
-i1 i1 RSHIFTS(1) -- i1
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    E("\tcall rshifts1\n");
-    regalloc_adjust_stack(-1);
-
-i1 constant(n) RSHIFTS(1) -- i1 i1 RSHIFTS(1)
-    reg_t r = regalloc_load_const(REG_A, n);
-    regalloc_push(r);
-
-i1 i1 LSHIFT(1) -- i1
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    E("\tcall lshift\n");
-    regalloc_adjust_stack(-1);
-
-i1 constant(n) LSHIFT(1) -- i1 i1 LSHIFT(1)
-    reg_t r = regalloc_load_const(REG_A, n);
-    regalloc_push(r);
-	
 // --- Loads ----------------------------------------------------------------
 
-i2 LOAD(1) -- i1
+reg1a: LOAD1(reg2)
+{
     reg_t r = regalloc_pop(REG_16);
     regalloc_alloc(REG_A);
     switch (r)
@@ -507,8 +533,16 @@ i2 LOAD(1) -- i1
             break;
     }
     regalloc_push(REG_A);
+}
 
-i2 LOAD(2) -- i2
+reg1a: LOAD1(address:a)
+{
+	reg_t r = regalloc_load_var(REG_A, $a.sym, $a.off);
+	regalloc_push(r);
+}
+
+reg2hl: LOAD2(reg2hl)
+{
     regalloc_pop(REG_HL);
     regalloc_reg_changing(REG_HL);
     regalloc_alloc(REG_A);
@@ -517,181 +551,459 @@ i2 LOAD(2) -- i2
     E("\tmov h, m\n");
     E("\tmov l, a\n");
     regalloc_push(REG_HL);
+}
 
-address(sym, off) LOAD(1) -- i1
-    regalloc_load_var(REG_A, sym, off);
-    regalloc_push(REG_A);
-
-address(sym, off) LOAD(2) -- i2
-    regalloc_load_var(REG_HL, sym, off);
-    regalloc_push(REG_HL);
-
-address(sym, off) LOAD(4) -- i4
-    regalloc_alloc(REG_HL);
-    E("\tlhld %s\n", symref(sym, off+2));
-    regalloc_push(REG_HL);
-    regalloc_unlock(REG_HL);
-    regalloc_alloc(REG_HL);
-    E("\tlhld %s\n", symref(sym, off));
-    regalloc_push(REG_HL);
-
-// --- Stores ---------------------------------------------------------------
-
-address(sym, off) i1 STORE(1) --
-    regalloc_var_changing(sym, off);
-    regalloc_pop(REG_A);
-    E("\tsta %s\n", symref(sym, off));
-    regalloc_reg_contains_var(REG_A, sym, off);
-
-address(sym, off) i2 STORE(2) --
-    regalloc_var_changing(sym, off);
-    regalloc_pop(REG_HL);
-    E("\tshld %s\n", symref(sym, off));
-    regalloc_reg_contains_var(REG_HL, sym, off);
-
-address(sym, off) i4 STORE(4) --
-    regalloc_var_changing(sym, off);
-    regalloc_pop(REG_HL);
-    E("\tshld %s\n", symref(sym, off));
-    regalloc_unlock(REG_HL);
-    regalloc_pop(REG_HL);
-    E("\tshld %s\n", symref(sym, off+2));
-
-i2 i1 STORE(1) --
-    regalloc_pop(REG_A);
-    reg_t r = regalloc_pop(REG_16);
-    switch (r)
-    {
-        case REG_HL:
-            E("\tmov m, a\n");
-            break;
-
-        case REG_BC:
-            E("\tstax b\n");
-            break;
-
-        case REG_DE:
-            E("\tstax d\n");
-            break;
-    }
-
-i2 i2 STORE(2) --
-    reg_t r = regalloc_pop(REG_16);
+reg2: LOAD2(reg2hl)
+{
     regalloc_pop(REG_HL);
     regalloc_reg_changing(REG_HL);
-    E("\tmov m, %s\n", regnamelo(r));
+    regalloc_alloc(REG_A);
+	reg_t r = regalloc_alloc(REG_16);
+    E("\tmov %s, m\n", regnamelo(r));
     E("\tinx h\n");
-    E("\tmov m, %s\n", regname(r));
-
-constant(n) STORE(1) -- i1 STORE(1)
-    reg_t r = regalloc_load_const(REG_A, n);
+    E("\tmov %s, m\n", regname(r));
     regalloc_push(r);
+}
 
-constant(n) STORE(2) -- i2 STORE(2)
-    reg_t r = regalloc_load_const(REG_16, n);
-    regalloc_push(r);
+reg2hl: LOAD2(address:a)
+{
+	reg_t r = regalloc_load_var(REG_HL, $a.sym, $a.off);
+	regalloc_push(r);
+}
 
-address(sym, off) STORE(2) -- i2 STORE(2)
-    reg_t r = regalloc_alloc(REG_16);
-    E("\tlxi %s, %s\n", regname(r), symref(sym, off));
-    regalloc_push(r);
+stk4: LOAD4(address:a)
+{
+	regalloc_flush_stack();
+	regalloc_alloc(REG_HL);
+	E("\tlhld %s\n", symref($a.sym, $a.off+2));
+	E("\tpush h\n");
+	E("\tlhld %s\n", symref($a.sym, $a.off+0));
+	E("\tpush h\n");
+}
 
 // --- Branches -------------------------------------------------------------
 
-i1 BEQZ(1, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t r = regalloc_pop(REG_A);
-    regalloc_reg_changing(ALL_REGS);
-    E("\tora a\n");
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
+%{
+	static void bequ1(int truelabel, int falselabel)
+	{
+		reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
+		regalloc_pop(REG_A);
+		regalloc_reg_changing(ALL_REGS);
+		E("\tcmp %s\n", regname(rhs));
+		E("\tjz %s\n", labelref(truelabel));
+		E("\tjnz %s\n", labelref(falselabel));
+	}
+%}
 
-i2 BEQZ(2, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t r = regalloc_pop(REG_16);
-    regalloc_reg_changing(ALL_REGS);
-    E("\tmov a, %s\n", regname(r));
-    E("\tora %s\n", regnamelo(r));
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
+statement: BEQU1(reg1a, reg1bdh):b
+{ bequ1($b.truelabel, $b.falselabel); }
 
-i1 i1 BEQU(1, truelabel, falselabel) LABEL(nextlabel) --
+statement: BEQU1(reg1, reg1):b
+{ bequ1($b.truelabel, $b.falselabel); }
+
+statement: BEQS1(reg1a, reg1bdh):b
+{ bequ1($b.truelabel, $b.falselabel); }
+
+statement: BEQS1(reg1, reg1):b
+{ bequ1($b.truelabel, $b.falselabel); }
+
+statement: BLTU1(reg1a, constant:c):b
+{
+	regalloc_pop(REG_A);
+	E("\tcpi %d\n", $c.off);
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+%{
+	static void bequ2(int truelabel, int falselabel)
+	{
+		reg_t rhs = regalloc_pop(REG_16);
+		reg_t lhs = regalloc_pop(REG_16);
+		regalloc_reg_changing(ALL_REGS);
+		E("\tmov a, %s\n", regname(lhs));
+		E("\tcmp %s\n", regname(rhs));
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tmov a, %s\n", regnamelo(lhs));
+		E("\tcmp %s\n", regnamelo(rhs));
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tjmp %s\n", labelref(truelabel));
+	}
+%}
+
+statement: BEQU2(reg2, reg2):b
+{ bequ2($b.truelabel, $b.falselabel); }
+
+statement: BEQS2(reg2, reg2):b
+{ bequ2($b.truelabel, $b.falselabel); }
+
+statement: BLTU2(reg2, reg2):b
+{
+	reg_t rhs = regalloc_pop(REG_16);
+	reg_t lhs = regalloc_pop(REG_16);
+	regalloc_reg_changing(ALL_REGS);
+	E("\tmov a, %s\n", regnamelo(lhs));
+	E("\tsub %s\n", regnamelo(rhs));
+	E("\tmov a, %s\n", regname(lhs));
+	E("\tsbb %s\n", regname(rhs));
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+%{
+	static void bequ4(int truelabel, int falselabel)
+	{
+		regalloc_reg_changing(ALL_REGS);
+		E("\tcall sub4\n");
+		E("\tcall cmpu4\n");
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tjmp %s\n", labelref(truelabel));
+	}
+%}
+
+statement: BEQS4(stk4, stk4):b
+{ bequ4($b.truelabel, $b.falselabel); }
+
+// --- Arithmetic -----------------------------------------------------------
+
+constant: NEG0(constant:c)
+{ $$.off = -$c.off; }
+
+reg1a: NEG1(reg1bdh)
+{
+    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
+    regalloc_load_const(REG_A, 0);
+    E("\tsub %s\n", regname(rhs));
+    regalloc_push(REG_A);
+}
+
+reg2: NEG2(reg2)
+{
+    reg_t rhs = regalloc_pop(REG_16);
+    regalloc_reg_changing(rhs);
+    E("\txor a\n");
+    E("\tsub %s\n", regnamelo(rhs));
+    E("\tmov %s, a\n", regnamelo(rhs));
+	E("\tsbb a\n");
+    E("\tsub %s\n", regname(rhs));
+    E("\tmov %s, a\n", regname(rhs));
+	regalloc_push(rhs);
+}
+
+%{
+	static void add1(void)
+	{
+		reg_t rhs = regalloc_pop(REG_A);
+		reg_t lhs = regalloc_pop(REG_8);
+		regalloc_reg_changing(REG_A);
+		E("\tadd %s\n", regname(lhs));
+		regalloc_push(REG_A);
+	}
+%}
+
+reg1a: ADD1(reg1bdh, reg1a)
+{ add1(); }
+
+reg1a: ADD1(reg1a, reg1bdh)
+{ add1(); }
+
+reg1a: ADD1(reg1, reg1)
+{ add1(); }
+
+%{
+	static void add1c(uint32_t c)
+	{
+		switch (c)
+		{
+			case 0:
+				break;
+
+			case 1:
+			{
+				reg_t r = regalloc_pop(REG_8);
+				regalloc_reg_changing(r);
+				E("\tinc %s\n", regname(r));
+				regalloc_push(r);
+				break;
+			}
+
+			case -1:
+			{
+				reg_t r = regalloc_pop(REG_8);
+				regalloc_reg_changing(r);
+				E("\tdec %s\n", regname(r));
+				regalloc_push(r);
+				break;
+			}
+
+			default:
+			{
+				reg_t lhs = regalloc_pop(REG_A);
+				regalloc_reg_changing(REG_A);
+				E("\tadi %d\n", c);
+				regalloc_push(REG_A);
+				break;
+			}
+		}
+	}
+%}
+
+reg1a: ADD1(reg1a, constant:c)
+{ add1c($c.off); }
+
+reg1a: ADD1(constant:c, reg1a)
+{ add1c($c.off); }
+
+%{
+	static void add2hl(void)
+	{
+		reg_t rhs = regalloc_pop(REG_16);
+		reg_t lhs = regalloc_pop(REG_16);
+		if ((rhs != REG_HL) && (lhs != REG_HL))
+		{
+			regalloc_alloc(REG_HL);
+			if (rhs == REG_DE)
+			{
+				E("\txchg\n");
+				rhs = REG_HL;
+			}
+			else if (lhs == REG_DE)
+			{
+				E("\txchg\n");
+				lhs = REG_HL;
+			}
+			else
+			{
+				E("\tmov h, %s\n", regname(lhs));
+				E("\tmov l, %s\n", regnamelo(lhs));
+				lhs = REG_HL;
+			}
+		}
+			
+		regalloc_reg_changing(REG_HL);
+		E("\tdad %s\n", regname((lhs != REG_HL) ? lhs : rhs));
+		regalloc_push(REG_HL);
+	}
+%}
+
+reg2hl: ADD2(reg2hl, reg2bcde) costs 2
+{ add2hl(); }
+
+reg2hl: ADD2(reg2bcde, reg2hl) costs 2
+{ add2hl(); }
+
+%{
+	static void add2(uint32_t c)
+	{
+		switch (c)
+		{
+			case 0:
+				break;
+
+			case 1:
+			{
+				reg_t r = regalloc_pop(REG_16);
+				regalloc_reg_changing(r);
+				E("\tinx %s\n", regname(r));
+				regalloc_push(r);
+				break;
+			}
+
+			case -1:
+			{
+				reg_t r = regalloc_pop(REG_16);
+				regalloc_reg_changing(r);
+				E("\tdcx %s\n", regname(r));
+				regalloc_push(r);
+				break;
+			}
+
+			default:
+			{
+				reg_t lhs = regalloc_pop(REG_16);
+				reg_t rhs;
+				if (lhs != REG_HL)
+					rhs = regalloc_load_const(REG_HL, c);
+				else
+					rhs = regalloc_load_const(REG_16 & ~REG_HL, c);
+					
+				regalloc_reg_changing(REG_HL);
+				E("\tdad %s\n", regname((lhs != REG_HL) ? lhs : rhs));
+				regalloc_push(REG_HL);
+				break;
+			}
+		}
+	}
+%}
+
+reg2hl: ADD2(reg2, constant:c)
+{ add2($c.off); }
+
+reg2hl: ADD2(constant:c, reg2)
+{ add2($c.off); }
+
+constant: SUB0(constant:lhs, constant:rhs)
+{ $$.off = $lhs.off - $rhs.off; }
+
+reg1a: SUB1(reg1a, reg1bdh)
+{
     reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
     reg_t lhs = regalloc_pop(REG_A);
-    E("\tcmp %s\n", regname(rhs));
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
-    
-i1 constant(n) BEQU(1, truelabel, falselabel) LABEL(nextlabel) --
-    reg_t lhs = regalloc_pop(REG_A);
-    E("\tcpi %d\n", n & 0xff);
-    if (nextlabel == truelabel)
-        E("\tjnz %s\n", labelref(falselabel));
-    else
-    {
-        E("\tjz %s\n", labelref(truelabel));
-        if (nextlabel != falselabel)
-            E("\tjmp %s\n", labelref(falselabel));
-    }
-    E("%s:\n", labelref(nextlabel));
+    regalloc_reg_changing(REG_A);
+    E("\tsub %s\n", regname(rhs));
+    regalloc_push(REG_A);
+}
 
-BEQU(2, truelabel, falselabel) -- SUB(2) BEQZ(2, truelabel, falselabel)
-BLTU(2, truelabel, falselabel) -- SUB(2) BLTZ(2, truelabel, falselabel)
-BGTU(2, truelabel, falselabel) -- SUB(2) BGTZ(2, truelabel, falselabel)
+reg1a: SUB1(reg1a, constant:c)
+{ add1c(-$c.off); }
 
-BEQU(4, truelabel, falselabel) -- SUB(4) BEQZ(4, truelabel, falselabel)
-BLTU(4, truelabel, falselabel) -- SUB(4) BLTZ(4, truelabel, falselabel)
-BGTU(4, truelabel, falselabel) -- SUB(4) BGTZ(4, truelabel, falselabel)
+reg2: SUB2(reg2, reg2)
+{
+    reg_t rhs = regalloc_pop(REG_16);
+    reg_t lhs = regalloc_pop(REG_16);
+    regalloc_reg_changing(lhs);
+    E("\tmov a, %s\n", regnamelo(lhs));
+    E("\tsub %s\n", regnamelo(rhs));
+    E("\tmov %s, a\n", regnamelo(lhs));
+    E("\tmov a, %s\n", regname(lhs));
+    E("\tsbb %s\n", regname(rhs));
+    E("\tmov %s, a\n", regname(lhs));
+    regalloc_push(lhs);
+}
 
-BEQP(truelabel, falselabel) -- BEQU(2, truelabel, falselabel)
-BLTP(truelabel, falselabel) -- BLTU(2, truelabel, falselabel)
-BGTP(truelabel, falselabel) -- BGTU(2, truelabel, falselabel)
+reg2: SUB2(reg2, constant:c)
+{ add2(-$c.off); }
 
-BEQS(1, truelabel, falselabel) -- BEQU(1, truelabel, falselabel)
-BEQS(2, truelabel, falselabel) -- BEQU(2, truelabel, falselabel)
-BEQS(4, truelabel, falselabel) -- BEQU(4, truelabel, falselabel)
+constant: MUL0(constant:lhs, constant:rhs)
+{ $$.off = $lhs.off * $rhs.off; }
 
-i1 i1 BLTS(1, truelabel, falselabel) LABEL(nextlabel) --
+constant: MUL2(constant:lhs, constant:rhs)
+{ $$.off = $lhs.off * $rhs.off; }
+
+%{
+	static void shift1(const char* name)
+	{
+		regalloc_pop(REG_B);
+		regalloc_pop(REG_A);
+		regalloc_reg_changing(REG_A | REG_B | REG_BC);
+		E("\tcall %s\n", name);
+		regalloc_push(REG_A);
+	}
+%}
+
+reg1a: LSHIFT1(reg1a, reg1)
+{ shift1("asl1"); }
+
+reg1a: RSHIFTU1(reg1a, reg1)
+{ shift1("lsr1"); }
+
+reg1a: RSHIFTS1(reg1a, reg1)
+{ shift1("asr1"); }
+
+%{
+	static void shift2(const char* name)
+	{
+		regalloc_pop(REG_B);
+		regalloc_pop(REG_HL);
+		regalloc_reg_changing(REG_A | REG_B | REG_HL);
+		E("\tcall %s\n", name);
+		regalloc_push(REG_HL);
+	}
+%}
+
+reg2hl: LSHIFT2(reg2hl, reg1)
+{ shift2("asl2"); }
+
+reg2hl: RSHIFTU2(reg2hl, reg1)
+{ shift2("lsr2"); }
+
+reg2hl: RSHIFTS2(reg2hl, reg1)
+{ shift2("asr2"); }
+
+// --- 32-bit arithmetic -------------------------------------------------
+
+stk4: ADD4(stk4, stk4)
+{ E("\tcall add4\n"); }
+
+stk4: SUB4(stk4, stk4)
+{ E("\tcall sub4\n"); }
+
+stk4: NEG4(stk4)
+{ E("\tcall neg4\n"); }
+
+stk4: RSHIFTU4(stk4, reg1)
+{
+	regalloc_pop(REG_B);
+	E("\tcall lsr4\n");
+}
+
+// --- Casts ----------------------------------------------------------------
+
+reg1: CAST21(reg2)
+{
+	reg_t val = regalloc_pop(REG_16);
+	regalloc_reg_changing(val);
+	regalloc_unlock(val);
+	regalloc_push(eightbitof(val));
+}
+	
+stk4: CAST24(reg2)
+{
+	reg_t r = regalloc_pop(REG_16);
+	regalloc_push(regalloc_load_const(REG_16, 0));
+	regalloc_push(r);
+	regalloc_flush_stack();
+}
+	
+reg1: CAST41(stk4)
+{
+	reg_t hi = regalloc_alloc(REG_16);
+	reg_t lo = regalloc_alloc(REG_16);
+	E("\tpop %s\n", regname(lo));
+	E("\tpop %s\n", regname(hi));
+	regalloc_unlock(lo);
+	regalloc_push(eightbitof(lo));
+}
+	
+reg2: CAST42(stk4)
+{
+	reg_t hi = regalloc_alloc(REG_16);
+	reg_t lo = regalloc_alloc(REG_16);
+	E("\tpop %s\n", regname(lo));
+	E("\tpop %s\n", regname(hi));
+	regalloc_push(lo);
+}
+	
+// --- Inline assembly ------------------------------------------------------
+
+statement: ASMSTART
+{
     regalloc_flush_stack();
     regalloc_reg_changing(ALL_REGS);
-    E("\tcall cmpmags\n");
-    regalloc_adjust_stack(-2);
-	if (nextlabel == truelabel)
-		E("\tjnc %s\n", labelref(falselabel));
-	else
-	{
-		E("\tjc %s\n", labelref(truelabel));
-		if (nextlabel != falselabel)
-			E("\tjmp %s\n", labelref(falselabel));
-	}
-	E("%s:\n", labelref(nextlabel));
+    asmbuffer[0] = '\0';
+}
 
-i1 constant(n) BLTS(1, truelabel, falselabel) -- i1 i1 BLTS(1, truelabel, falselabel)
-    reg_t r = regalloc_load_const(REG_A, n);
-    regalloc_push(r);
+statement: ASMTEXT:t
+{
+    strlcat(asmbuffer, $t.text, sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
 
-// --- Data -----------------------------------------------------------------
+statement: ASMSYMBOL:s
+{
+    strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
 
-STRING(s) -- i2
+statement: ASMEND
+{
+    E("\t%s\n", asmbuffer);
+}
+
+// --- Strings -----------------------------------------------------------
+
+reg2: STRING:s
+{
     int sid = id++;
     emitter_open_chunk();
     E("\tcseg\n");
@@ -699,6 +1011,7 @@ STRING(s) -- i2
     E("\tdb ");
     bool instring = false;
     bool start = true;
+	const char* s = $s.text;
     for (;;)
     {
         char c = *s++;
@@ -736,22 +1049,5 @@ STRING(s) -- i2
     reg_t r = regalloc_alloc(REG_16);
     E("\tlxi %s, s%d\n", regname(r), sid);
     regalloc_push(r);
-
-// --- Inline assembly ------------------------------------------------------
-
-ASMSTART --
-    regalloc_flush_stack();
-    regalloc_reg_changing(ALL_REGS);
-    asmbuffer[0] = '\0';
-
-ASMTEXT(text) --
-    strlcat(asmbuffer, text, sizeof(asmbuffer));
-    strlcat(asmbuffer, " ", sizeof(asmbuffer));
-
-ASMSYMBOL(sym) --
-    strlcat(asmbuffer, symref(sym, 0), sizeof(asmbuffer));
-    strlcat(asmbuffer, " ", sizeof(asmbuffer));
-
-ASMEND --
-    E("\t%s\n", asmbuffer);
+}
 

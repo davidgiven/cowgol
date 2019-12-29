@@ -33,7 +33,7 @@ bool is_snum(struct symbol* sym)
 {
 	if (!sym)
 		return true; /* for numeric constants */
-	return is_num(sym);
+	return is_num(sym) && sym->u.type.issigned;
 }
 
 bool is_array(struct symbol* sym)
@@ -89,47 +89,41 @@ void resolve_untyped_constants_for_add_sub(struct symbol** lhs, struct symbol** 
 	}
 }
 
-struct symbol* expr_add(struct symbol* lhs, struct symbol* rhs)
+struct midnode* expr_add(struct midnode* lhs, struct midnode* rhs)
 {
-	resolve_untyped_constants_for_add_sub(&lhs, &rhs);
+	resolve_untyped_constants_for_add_sub(&lhs->type, &rhs->type);
 
-	if (is_ptr(lhs) && is_ptr(rhs))
+	if (is_ptr(lhs->type) && is_ptr(rhs->type))
 		fatal("you cannot add two pointers together");
-	else if (is_ptr(lhs) && (rhs != intptr_type))
-		fatal("you can only add a %s to a pointer", rhs->name);
-	else if (is_ptr(rhs))
+	else if (is_ptr(lhs->type) && (rhs->type != intptr_type))
+		fatal("you can only add a %s to a pointer", rhs->type->name);
+	else if (is_ptr(rhs->type))
 		fatal("add numbers to pointers, not vice versa");
-	else if (!is_ptr(lhs) && (lhs != rhs))
-		fatal("you tried to add a %s and a %s", lhs->name, rhs->name);
+	else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
+		fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
 
-	if (is_ptr(lhs))
-		emit_mid_addp(intptr_type->u.type.width);
-	else
-		emit_mid_add(lhs ? lhs->u.type.width : 0);
-	return lhs;
+	struct midnode* r = mid_add(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	r->type = lhs->type;
+	return r;
 }
 
-struct symbol* expr_sub(struct symbol* lhs, struct symbol* rhs)
+struct midnode* expr_sub(struct midnode* lhs, struct midnode* rhs)
 {
-	resolve_untyped_constants_for_add_sub(&lhs, &rhs);
+	resolve_untyped_constants_for_add_sub(&lhs->type, &rhs->type);
 
-	if (is_ptr(lhs) && !is_ptr(rhs) && (rhs != intptr_type))
-		fatal("you can't subtrack a %s and a %s", lhs->name, rhs->name);
-	else if (is_num(lhs) && is_ptr(rhs))
+	if (is_ptr(lhs->type) && !is_ptr(rhs->type) && (rhs->type != intptr_type))
+		fatal("you can't subtrack a %s and a %s", lhs->type->name, rhs->type->name);
+	else if (is_num(lhs->type) && is_ptr(rhs->type))
 		fatal("subtract numbers from pointers, not vice versa");
-	else if (is_num(lhs) && is_num(rhs) && (lhs != rhs))
-		fatal("you tried to subtract a %s and a %s", lhs->name, rhs->name);
+	else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
+		fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
 
-	if (is_ptr(rhs))
-	{
-		emit_mid_subp(intptr_type->u.type.width);
-		return intptr_type;
-	}
+	struct midnode* r = mid_sub(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	if (is_ptr(lhs->type))
+		r->type = intptr_type;
 	else
-	{
-		emit_mid_sub(lhs ? lhs->u.type.width : 0);
-		return lhs;
-	}
+		r->type = lhs->type;
+	return r;
 }
 
 void resolve_untyped_constants_simply(struct symbol** lhs, struct symbol** rhs)
@@ -142,56 +136,67 @@ void resolve_untyped_constants_simply(struct symbol** lhs, struct symbol** rhs)
 		fatal("type mismatch with %s and %s", (*lhs)->name, (*rhs)->name);
 }
 
-struct symbol* expr_simple(struct symbol* lhs, struct symbol* rhs, void (*emitter)(int width))
+struct midnode* expr_simple(struct midnode* lhs, struct midnode* rhs,
+	struct midnode* (*emitter)(int width, struct midnode* lhs, struct midnode* rhs))
 {
-	resolve_untyped_constants_simply(&lhs, &rhs);
-	if (!is_num(lhs) || !is_num(rhs))
+	resolve_untyped_constants_simply(&lhs->type, &rhs->type);
+	if (!is_num(lhs->type) || !is_num(rhs->type))
 		fatal("number required");
 
-	emitter(lhs ? lhs->u.type.width : 0);
-	return lhs;
+	struct midnode* r = emitter(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	r->type = lhs->type;
+	return r;
 }
 
-struct symbol* expr_signed(struct symbol* lhs, struct symbol* rhs,
-	void (*emitteru)(int width),
-	void (*emitters)(int width))
+struct midnode* expr_signed(struct midnode* lhs, struct midnode* rhs,
+	struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs),
+	struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs))
 {
-	resolve_untyped_constants_simply(&lhs, &rhs);
-	if (!is_num(lhs) || !is_num(rhs))
+	resolve_untyped_constants_simply(&lhs->type, &rhs->type);
+	if (!is_num(lhs->type) || !is_num(rhs->type))
 		fatal("number required");
 
-	(is_snum(lhs) ? emitters : emitteru)(lhs ? lhs->u.type.width : 0);
-	return lhs;
+	struct midnode* r = (is_snum(lhs->type) ? emitters : emitteru)
+		(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	r->type = lhs->type;
+	return r;
 }
 
-struct symbol* expr_shift(struct symbol* lhs, struct symbol* rhs,
-	void (*emitteru)(int width),
-	void (*emitters)(int width))
+struct midnode* expr_shift(struct midnode* lhs, struct midnode* rhs,
+	struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs),
+	struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs))
 {
-	if (!is_num(lhs))
+	if (!is_num(lhs->type))
 		fatal("number required on LHS of shift");
-	if (!rhs)
-		rhs = uint8_type;
-	if (rhs != uint8_type)
+	if (!rhs->type)
+		rhs->type = uint8_type;
+	if (rhs->type != uint8_type)
 		fatal("uint8 required on RHS of shift");
 
-	(is_snum(lhs) ? emitters : emitteru)(lhs ? lhs->u.type.width : 0);
-	return lhs;
+	struct midnode* r = (is_snum(lhs->type) ? emitters : emitteru)
+		(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	r->type = lhs->type;
+	return r;
 }
 
-void cond_simple(int truelabel, int falselabel, struct symbol* lhs, struct symbol* rhs,
-	void (*emitteru)(int width, int truelabel, int falselabel),
-	void (*emitters)(int width, int truelabel, int falselabel),
-	void (*emitterp)(int truelabel, int falselabel))
+void cond_simple(int truelabel, int falselabel, struct midnode* lhs, struct midnode* rhs,
+	struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel),
+	struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel))
 {
-	resolve_untyped_constants_simply(&lhs, &rhs);
-	if (lhs != rhs)
-		fatal("you tried to compare a %s and a %s", lhs->name, rhs->name);
+	resolve_untyped_constants_simply(&lhs->type, &rhs->type);
+	if (lhs->type != rhs->type)
+		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
 
-	if (is_ptr(lhs))
-		emitterp(truelabel, falselabel);
-	else
-		(is_snum(lhs) ? emitters : emitteru)(lhs->u.type.width, truelabel, falselabel);
+	generate(
+		(is_snum(lhs->type) ? emitters : emitteru)
+			(lhs->type->u.type.width, lhs, rhs, truelabel, falselabel));
+}
+
+struct symbol* dealias(struct symbol* sym)
+{
+	while (sym->kind == TYPE_ALIAS)
+		sym = sym->u.alias;
+	return sym;
 }
 
 struct symbol* add_new_symbol(struct namespace* namespace, const char* name)
@@ -227,6 +232,14 @@ struct symbol* add_new_symbol(struct namespace* namespace, const char* name)
 	return sym;
 }
 
+struct symbol* add_alias(struct namespace* namespace, const char* name, struct symbol* real)
+{
+	struct symbol* sym = add_new_symbol(namespace, name);
+	sym->kind = TYPE_ALIAS;
+	sym->u.alias = real;
+	return sym;
+}
+
 struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 {
 	if (!namespace)
@@ -238,7 +251,7 @@ struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 		while (sym)
 		{
 			if (strcmp(sym->name, name) == 0)
-				return sym;
+				return dealias(sym);
 			sym = sym->next;
 		}
 		namespace = namespace->parent;
@@ -252,9 +265,8 @@ void init_var(struct symbol* sym, struct symbol* type)
 {
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
-	sym->u.var.offset = current_sub->workspace;
+	sym->u.var.offset = current_sub->workspace[0];
 	arch_init_variable(sym);
-	current_sub->workspace += type->u.type.width;
 }
 
 void init_member(struct symbol* sym, struct symbol* type)

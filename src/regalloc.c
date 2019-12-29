@@ -208,6 +208,7 @@ static struct value* findvarvalue(struct symbol* sym, int32_t off)
 
 reg_t regalloc_load_const(reg_t mask, int32_t num)
 {
+	arch_emit_comment("loading constant value 0x%x into 0x%x", num, mask);
     struct value* val = findconstvalue(num);
     if (val && (val->reg & mask))
     {
@@ -370,6 +371,11 @@ void regalloc_reg_changing(reg_t mask)
         reg_t reg = pstack[i];
         if (reg & mask)
         {
+			/* This code has a bug in it where it doesn't honour interfered
+			 * registers, resulting in saving an 8-bit register on top of a
+			 * previously allocated 16-bit register. This needs fixing, but
+			 * let's just disable it for now. */
+			#if 0
             /* Give the backend a chance to save it to another register. */
             reg_t dest = arch_save(reg, mask | locked | used);
 
@@ -395,6 +401,7 @@ void regalloc_reg_changing(reg_t mask)
                 }
             }
             else
+			#endif
             {
                 /* Nope, the backend couldn't find anything, so we need to
                  * flush this register to the physical stack. Remember that

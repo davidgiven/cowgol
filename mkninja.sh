@@ -24,13 +24,25 @@ rule flex
     command = flex -8 -Cem -o \$out \$in
     description = FLEX \$in
 
-rule mkmidcodes
-    command = lua scripts/mkmidcodes.lua -- \$in \$out
-    description = MKMIDCODES \$in
+rule mkmidcodesh
+    command = lua scripts/mkmidcodesh.lua -- \$in \$out
+    description = MKMIDCODESH \$in
+
+rule mkmidcodesc
+    command = lua scripts/mkmidcodesc.lua -- \$in \$out
+    description = MKMIDCODESC \$in
+
+rule mkiburgcodes
+    command = lua scripts/mkiburgcodes.lua -- \$in \$out
+    description = MKIBURGCODES \$in
 
 rule mkpat
     command = lua scripts/mkpat.lua -- \$in \$out
     description = MKPAT \$in
+
+rule iburg
+    command = bin/iburg -I \$in \$out
+    description = IBURG \$in
 
 rule lemon
     command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
@@ -203,8 +215,16 @@ buildlemon() {
     echo "  hfile=$hfile"
 }
 
-buildmkmidcodes() {
-    echo "build $1 : mkmidcodes $2 | scripts/mkmidcodes.lua scripts/libcowgol.lua"
+buildmkmidcodesh() {
+    echo "build $1 : mkmidcodesh $2 | scripts/mkmidcodesh.lua scripts/libcowgol.lua"
+}
+
+buildmkmidcodesc() {
+    echo "build $1 : mkmidcodesc $2 | scripts/mkmidcodesc.lua scripts/libcowgol.lua"
+}
+
+buildmkiburgcodes() {
+    echo "build $1 : mkiburgcodes $2 | scripts/mkiburgcodes.lua scripts/libcowgol.lua"
 }
 
 buildmkpat() {
@@ -212,6 +232,10 @@ buildmkpat() {
     out=$1
     shift
     echo "build $out : mkpat $@ | scripts/mkpat.lua scripts/libcowgol.lua"
+}
+
+buildiburg() {
+    echo "build $1 : iburg $2 | bin/iburg"
 }
 
 zmac8() {
@@ -345,12 +369,29 @@ buildlibrary libld80.a \
 buildprogram ld80 \
 	libld80.a
 
+buildmkiburgcodes $OBJDIR/tools/iburg/iburgcodes.h src/midcodes.tab
+buildlemon $OBJDIR/tools/iburg/parser.c tools/iburg/parser.y
+buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
+
+buildlibrary libiburg.a \
+    -Itools/iburg \
+    -I$OBJDIR/tools/iburg \
+    --dep $OBJDIR/tools/iburg/parser.h \
+    $OBJDIR/tools/iburg/parser.c \
+    $OBJDIR/tools/iburg/lexer.c \
+    tools/iburg/iburg.c \
+    tools/iburg/utils.c
+
+buildprogram iburg \
+    libiburg.a
+
+buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
+buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
+
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
-buildmkmidcodes $OBJDIR/midcodes.h src/midcodes.tab
-buildmkpat $OBJDIR/arch8080.c src/midcodes.tab src/arch8080.pat
-buildmkpat $OBJDIR/archagc.c src/midcodes.tab src/archagc.pat
-buildmkpat $OBJDIR/archc.c src/midcodes.tab src/archc.pat
+buildiburg $OBJDIR/arch8080.c src/arch8080.pat
+buildiburg $OBJDIR/archc.c src/archc.pat
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -359,17 +400,18 @@ buildlibrary libmain.a \
 	--dep $OBJDIR/midcodes.h \
     $OBJDIR/parser.c \
     $OBJDIR/lexer.c \
+    $OBJDIR/midcodes.c \
     src/main.c \
     src/emitter.c \
-    src/midcode.c \
     src/regalloc.c \
+    src/midcode.c \
     src/compiler.c
 
-buildlibrary libagc.a \
-    -I$OBJDIR \
-    -Isrc \
-    --dep $OBJDIR/midcodes.h \
-    $OBJDIR/archagc.c \
+#buildlibrary libagc.a \
+#    -I$OBJDIR \
+#    -Isrc \
+#    --dep $OBJDIR/midcodes.h \
+#    $OBJDIR/archagc.c \
 
 buildlibrary lib8080.a \
     -I$OBJDIR \
@@ -383,10 +425,10 @@ buildlibrary libc.a \
     --dep $OBJDIR/midcodes.h \
     $OBJDIR/archc.c \
 
-buildprogram tinycowc-agc \
-    -lbsd \
-    libmain.a \
-    libagc.a \
+#buildprogram tinycowc-agc \
+#    -lbsd \
+#    libmain.a \
+#    libagc.a \
 
 buildprogram tinycowc-8080 \
     -lbsd \
@@ -428,29 +470,29 @@ buildlibrary libmkdfs.a \
 
 buildprogram mkdfs libmkdfs.a
 
-#runtest cpm addsub-8bit
-
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
 test_cpm addsub-16bit
-#test_cpm addsub-32bit
+test_cpm addsub-32bit
+test_cpm shifts-8bit
+test_cpm shifts-16bit
 test_cpm records
 test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
-if test "$(uname -m)" != "x86_64"; then
-	test_c addsub-8bit
-	test_c addsub-16bit
-	test_c addsub-32bit
-	test_c records
-	test_c inputparams
-	test_c outputparams
-	test_c conditionals
-fi
+test_c addsub-8bit
+test_c addsub-16bit
+test_c addsub-32bit
+test_c records
+test_c inputparams
+test_c outputparams
+test_c conditionals
 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
+cowgol_c examples/malloc.cow examples/malloc
 
+# vim: sw=4 ts=4 et

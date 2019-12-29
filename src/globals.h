@@ -23,7 +23,8 @@ enum
 	TYPE_NUMBER,
 	TYPE_POINTER,
 	TYPE_ARRAY,
-	TYPE_RECORD
+	TYPE_RECORD,
+	TYPE_ALIAS
 };
 
 struct namespace
@@ -63,6 +64,7 @@ struct symbol
 
 		int32_t constant;
 		struct subroutine* sub;
+		struct symbol* alias;
 	}
 	u;
 };
@@ -71,7 +73,7 @@ struct subroutine
 {
 	const char* name;
 	const char* externname;
-	uint32_t workspace;
+	unsigned workspace[4]; /* four workspaces should be enough */
 	struct namespace namespace;
 	int inputparameters;
 	int outputparameters;
@@ -107,7 +109,9 @@ extern struct symbol* uint8_type;
 extern struct subroutine* current_sub;
 extern int current_label;
 
+extern struct symbol* dealias(struct symbol* sym);
 extern struct symbol* add_new_symbol(struct namespace* namespace, const char* name);
+extern struct symbol* add_alias(struct namespace* namespace, const char* name, struct symbol* real);
 extern struct symbol* lookup_symbol(struct namespace* namespace, const char* name);
 extern struct symbol* make_number_type(const char* name, int width, bool issigned);
 

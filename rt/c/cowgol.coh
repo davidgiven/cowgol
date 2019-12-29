@@ -1,4 +1,11 @@
 extern sub print_char(c: uint8) := "putchar";
 
+var TOP: [uint8];
+@asm "static uint8_t memory[0x10000];";
+@asm "*(void**)", TOP, "= memory;";
+
+var HIMEM: [uint8];
+@asm "*(void**)", HIMEM, "= memory + sizeof(memory);";
+
 include "common.coh";
 

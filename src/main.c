@@ -101,11 +101,10 @@ int main(int argc, char* argv[])
 	emitter_open(outputfile);
 	emitter_open_chunk();
 
-	midend_init();
 	arch_init_types();
 	arch_init_subroutine(current_sub);
-	emit_mid_startfile();
-	emit_mid_startsub(current_sub);
+	generate(mid_startfile());
+	generate(mid_startsub(current_sub));
 
 	void* parser = ParseAlloc(malloc);
 	// ParseTrace(stderr, "P:");
@@ -133,9 +132,8 @@ int main(int argc, char* argv[])
 	}
 	Parse(parser, 0, NULL);
 
-	emit_mid_endsub(current_sub);
-	emit_mid_endfile();
-    midend_flush(0);
+	generate(mid_endsub(current_sub));
+	generate(mid_endfile());
 
 	emitter_close_chunk();
 	emitter_close();
