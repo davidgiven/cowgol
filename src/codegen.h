@@ -1,0 +1,27 @@
+#ifndef CODEGEN_H
+#define CODEGEN_H
+
+#if defined IMPL
+
+#include "inssel.h"
+
+struct instruction
+{
+	int rule;
+	reg_t assigned_reg;
+	Node* n[INSTRUCTION_TEMPLATE_DEPTH];
+};
+
+extern void unmatched_instruction(Node* node);
+extern void match_instruction(Node* node, Instruction* insn);
+extern void emit_instruction(Instruction* insn);
+
+#endif
+
+extern void generate(Node* node);
+extern void discard(Node* node);
+
+extern void push_node(Node* node);
+
+#endif
+

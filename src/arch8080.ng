@@ -39,6 +39,29 @@
 		current_sub->workspace[0] += var->u.var.type->u.type.width;
 	}
 
+	static const char* regref(reg_t reg)
+	{
+		return "";
+	}
+
+	static const char* subref(Subroutine* sub)
+	{
+		if (sub->externname)
+			return sub->externname;
+		
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
+		return buffer;
+	}
+
+	static const char* symref(Symbol* sym, int32_t off)
+	{
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "w%d%+d",
+			sym->u.var.sub->arch->id,
+			sym->u.var.offset + off);
+		return buffer;
+	}
 %}
 
 register a b d h bc de hl stk;
@@ -67,6 +90,79 @@ gen STARTFILE()
 	E("\textrn asr1\n");
 	E("\textrn asr2\n");
 	E("\textrn cmpu4\n");
+    emitter_close_chunk();
+}
+
+gen ENDFILE();
+
+gen STARTSUB():s
+{
+    emitter_open_chunk();
+    E("\n");
+    E("; %s\n", $s.sub->name);
+    E("\tcseg\n");
+    if ($s.sub->externname)
+        E("\tpublic %s\n", $s.sub->externname);
+    E("%s:\n", subref($s.sub));
+
+    if ($s.sub->inputparameters != 0)
+    {
+        E("\tpop b\n");
+        for (int i=$s.sub->inputparameters-1; i>=0; i--)
+        {
+			struct symbol* param = $s.sub->namespace.firstsymbol;
+			for (int j=0; j<i; j++)
+				param = param->next;
+
+			if (param->u.var.type->u.type.width == 1)
+			{
+				E("\tpop psw\n");
+				E("\tsta %s\n", symref(param, 0));
+			}
+			else
+			{
+				E("\tpop h\n");
+				E("\tshld %s\n", symref(param, 0));
+			}
+        }
+        E("\tpush b\n");
+    }
+}
+
+gen ENDSUB():s
+{
+	E("end_%s:\n", subref($s.sub));
+	if ($s.sub->outputparameters != 0)
+	{
+		E("\tpop h\n");
+		E("\txchg\n"); /* put return address in DE */
+
+		for (int i=0; i<$s.sub->outputparameters; i++)
+		{
+			struct symbol* param = $s.sub->namespace.firstsymbol;
+			for (int j=0; j<(i + $s.sub->inputparameters); j++)
+				param = param->next;
+
+			if (param->u.var.type->u.type.width == 1)
+			{
+				E("\tlda %s\n", symref(param, 0));
+				E("\tpush psw\n");
+			}
+			else
+			{
+				E("\tlhld %s\n", symref(param, 0));
+				E("\tpush h\n");
+			}
+		}
+
+		E("\txchg\n");
+		E("\tpchl\n");
+	}
+	else
+		E("\tret\n");
+
+    E("\tdseg\n");
+	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace[0]);
     emitter_close_chunk();
 }
 

@@ -107,25 +107,6 @@ void arch_emit_comment(const char* text, ...)
     va_end(ap);
 }
 
-static const char* subref(struct subroutine* sub)
-{
-    if (sub->externname)
-        return sub->externname;
-    
-    static char buffer[32];
-    snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
-    return buffer;
-}
-
-static const char* symref(struct symbol* sym, int32_t off)
-{
-    static char buffer[32];
-    snprintf(buffer, sizeof(buffer), "w%d%+d",
-        sym->u.var.sub->arch->id,
-        sym->u.var.offset + off);
-    return buffer;
-}
-
 static const char* labelref(int label)
 {
     static char buffer[32];

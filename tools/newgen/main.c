@@ -80,7 +80,7 @@ int lookup_midcode(const char* name)
 	{
 		const char* t = terminals[i];
 		if (strcmp(name, t) == 0)
-			return i;
+			return i; 
 	}
 	yyerror("unknown midcode '%s'", name);
 	return 0;
@@ -374,21 +374,25 @@ static void walk_predicate_tree(int* offset, Node* template, Node* pattern)
 	}
 }
 
-static void push_registers(int* offset, Node* template, Node* pattern)
+static void push_nodes(int* offset, Node* template, Node* pattern)
 {
 	int thisoffset = *offset;
 	if (template && template->isregister)
-		fprintf(outfp, "\t\tpush_register(n%d);\n", thisoffset);
+	{
+		fprintf(outfp, "\t\tn%d->desired_reg = 0x%x;\n", thisoffset, template->reg);
+		fprintf(outfp, "\t\tn%d->consumer = insn;\n", thisoffset);
+		fprintf(outfp, "\t\tpush_node(n%d);\n", thisoffset);
+	}
 
 	if (pattern->left)
 	{
 		(*offset)++;
-		push_registers(offset, template ? template->left : NULL, pattern->left);
+		push_nodes(offset, template ? template->left : NULL, pattern->left);
 	}
 	if (pattern->right)
 	{
 		(*offset)++;
-		push_registers(offset, template ? template->right : NULL, pattern->right);
+		push_nodes(offset, template ? template->right : NULL, pattern->right);
 	}
 }
 
@@ -432,10 +436,15 @@ static void print_line(int lineno)
 
 static void create_emitters(void)
 {
+	fprintf(outfp, "void emit_instruction(Instruction* self) {\n");
+	fprintf(outfp, "\tswitch (self->rule) {\n");
+
 	for (int i=0; i<rulescount; i++)
 	{
+		fprintf(outfp, "\t\tcase %d:\n", i);
+		fprintf(outfp, "\t\t{\n");
+
 		Rule* r = rules[i];
-		fprintf(outfp, "void emit_rule_%d(Instruction* self) {\n", i);
 		print_line(r->lineno);
 
 		Action* a = r->action;
@@ -447,15 +456,17 @@ static void create_emitters(void)
 				print_simple_action(r, a->first_element);
 		}
 
-		fprintf(outfp, "}\n");
+		fprintf(outfp, "\n\t\t\tbreak;\n\t\t}\n");
 	}
+
+	fprintf(outfp, "\t}\n");
+	fprintf(outfp, "}\n");
 }
 
 static void create_matcher(void)
 {
-	fprintf(outfp, "void match_rule(Node* n0) {\n");
+	fprintf(outfp, "void match_instruction(Node* n0, Instruction* insn) {\n");
 	fprintf(outfp, "\tstatic uint8_t matchbuf[%d] = {0};\n", maxdepth);
-	fprintf(outfp, "\tInstruction* insn = push_instruction();\n");
 
 	for (int i=1; i<maxdepth; i++)
 		fprintf(outfp, "\tNode* n%d = NULL;\n", i);
@@ -478,7 +489,7 @@ static void create_matcher(void)
 		fprintf(outfp, "\t\tinsn->rule = %d;\n", i);
 
 		offset = 0;
-		push_registers(&offset, r->pattern, pattern);
+		push_nodes(&offset, r->pattern, pattern);
 		fprintf(outfp, "\t} else\n");
 	}
 

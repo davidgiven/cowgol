@@ -85,6 +85,7 @@ struct symbol
 	u;
 };
 
+typedef struct subroutine Subroutine;
 struct subroutine
 {
 	const char* name;
@@ -127,9 +128,6 @@ extern void arch_init_types(void);
 extern void arch_init_subroutine(struct subroutine* sub);
 extern void arch_init_variable(struct symbol* var);
 extern void arch_emit_comment(const char* text, ...);
-
-extern const char* regref(reg_t r);
-extern const char* symref(struct symbol* sym, int32_t off);
 
 #endif
 
