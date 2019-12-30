@@ -33,6 +33,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "-"                       { return MINUS; }
 "|"                       { return PIPE; }
 ":"                       { return COLON; }
+"compatible"              { return COMPATIBLE; }
 "register"                { return REGISTER; }
 "regdata"                 { return REGDATA; }
 "uses"                    { return USES; }

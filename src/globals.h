@@ -45,6 +45,7 @@ struct reg
 	const char* name;
 	reg_t id;
 	reg_t uses;
+	reg_t compatible;
 };
 
 typedef struct instruction Instruction;

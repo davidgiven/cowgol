@@ -29,8 +29,9 @@ typedef struct reg Register;
 struct reg
 {
 	const char* name;
-	uint32_t id;
-	uint32_t uses;
+	reg_t id;
+	reg_t uses;
+	reg_t compatible;
 };
 
 typedef struct element Element;

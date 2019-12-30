@@ -55,6 +55,12 @@ regdata(R) ::= regdata(R1) USES regspec(R2).
     R->uses |= R2;
 }
 
+regdata(R) ::= regdata(R1) COMPATIBLE regspec(R2).
+{
+    R = R1;
+    R->compatible |= R2;
+}
+
 regdata(R) ::= regdata(R1) STACKED.
 { R = R1; }
 

@@ -18,6 +18,19 @@ void unmatched_instruction(Node* node)
 	fatal("Internal compiler error");
 }
 
+bool template_comparator(const uint8_t* data, const uint8_t* template)
+{
+	int i = INSTRUCTION_TEMPLATE_DEPTH;
+	while (i--)
+	{
+		uint8_t d = *data++;
+		uint8_t t = *template++;
+		if (t && (d != t))
+			return false;
+	}
+	return true;
+}
+
 void push_node(Node* node)
 {
 	nodes[nodecount++] = node;

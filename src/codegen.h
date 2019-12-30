@@ -15,6 +15,7 @@ struct instruction
 extern void unmatched_instruction(Node* node);
 extern void match_instruction(Node* node, Instruction* insn);
 extern void emit_instruction(Instruction* insn);
+extern bool template_comparator(const uint8_t* data, const uint8_t* template);
 
 #endif
 

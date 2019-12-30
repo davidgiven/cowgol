@@ -8,7 +8,8 @@ struct rule
 {
 	int lineno;
 	Node* pattern;
-	reg_t result;
+	reg_t result_reg;
+	reg_t compatible_regs;
 	int cost;
 	Label* first_label;
 	Action* action;
@@ -28,7 +29,8 @@ struct node
 
 #include "iburgcodes.h"
 
-static Register registers[sizeof(reg_t) * 8];
+#define REGISTER_COUNT (sizeof(reg_t)*8)
+static Register registers[REGISTER_COUNT];
 static int registercount = 0;
 
 static Rule* rules[500];
@@ -51,7 +53,7 @@ Register* define_register(const char* name)
 			return &registers[i];
 		}
 	}
-	if (registercount == (sizeof(reg_t)*8))
+	if (registercount == REGISTER_COUNT)
 		yyerror("too many registers (maximum %d)", sizeof(reg_t)*8);
 	
 	int i = registercount++;
@@ -70,6 +72,18 @@ Register* lookup_register(const char* name)
 			return reg;
 	}
 	yyerror("unknown register '%s'", name);
+	return &registers[0];
+}
+
+Register* lookup_register_by_id(reg_t id)
+{
+	for (int i=0; i<registercount; i++)
+	{
+		Register* reg = &registers[i];
+		if (reg->id == id)
+			return reg;
+	}
+	yyerror("unknown register 0x%x", id);
 	return &registers[0];
 }
 
@@ -112,7 +126,7 @@ void rule(int lineno, Node* pattern, reg_t result, Action* action)
 	struct rule* r = calloc(sizeof(Rule), 1);
 	r->lineno = lineno;
 	r->pattern = pattern;
-	r->result = result;
+	r->result_reg = result;
 	r->action = action;
 
 	if (rulescount == (sizeof(rules)/sizeof(*rules)))
@@ -247,6 +261,13 @@ static void sort_rules(void)
 		assign_indices_to_nodes(&offset, r->pattern, pattern);
 
 		resolve_label_names(r);
+
+		r->compatible_regs = 0;
+		for (int j=0; j<REGISTER_COUNT; j++)
+		{
+			if (r->result_reg & (1<<j))
+				r->compatible_regs |= registers[j].compatible;
+		}
 	}
 }
 
@@ -263,8 +284,8 @@ static void dump_registers(void)
 	for (int i=0; i<registercount; i++)
 	{
 		Register* reg = &registers[i];
-		fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x },\n",
-			reg->name, reg->id, reg->uses);
+		fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x },\n",
+			reg->name, reg->id, reg->uses, reg->compatible);
 		fprintf(outhfp, "\tREG_");
 		print_upper(outhfp, registers[i].name);
 		fprintf(outhfp, ",\n");
@@ -481,7 +502,8 @@ static void create_matcher(void)
 	{
 		Rule* r = rules[i];
 		print_line(r->lineno);
-		fprintf(outfp, "\tif ((memcmp(matchbuf, template%d, %d) == 0)", i, maxdepth);
+		fprintf(outfp, "\tif ((!n0->desired_reg || (n0->desired_reg & 0x%x))\n", r->compatible_regs);
+		fprintf(outfp, "\t\t&& template_comparator(matchbuf, template%d)", i, maxdepth);
 		offset = 0;
 		walk_predicate_tree(&offset, r->pattern, pattern);
 		fprintf(outfp, ") {\n");
@@ -519,11 +541,12 @@ int main(int argc, const char* argv[])
 	include_file(open_file(infp));
 	parse();
 
+	sort_rules();
+
 	fprintf(outhfp, "#ifndef NEWGEN_H\n");
 	fprintf(outhfp, "#define NEWGEN_H\n");
 	fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_DEPTH %d\n", maxdepth);
 
-	sort_rules();
 	dump_registers();
 	dump_templates();
 	create_emitters();

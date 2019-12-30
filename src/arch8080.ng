@@ -66,13 +66,13 @@
 
 register a b d h bc de hl stk;
 
-regdata a;
-regdata b uses b|bc;
-regdata d uses d|de;
-regdata h uses h|hl;
-regdata bc uses bc|b;
-regdata de uses de|d;
-regdata hl uses hl|h;
+regdata a compatible a|b|d|h;
+regdata b uses bc compatible a|b|d|h;
+regdata d uses de compatible a|b|d|h;
+regdata h uses hl compatible a|b|d|h;
+regdata bc uses bc compatible bc|de|hl;
+regdata de uses de compatible bc|de|hl;
+regdata hl uses hl compatible bc|de|hl;
 regdata stk stacked;
 
 gen STARTFILE()
@@ -181,6 +181,9 @@ gen STORE1(bc|de|hl:lhs, a)
 		case REG_HL:
 			E("\tmov m, a\n");
 			break;
+
+		default:
+			assert(false);
 	}
 }
 
@@ -191,6 +194,9 @@ gen STORE1(ADDRESS():lhs, a)
 
 gen STORE2(ADDRESS():lhs, hl)
 	{ E("\tshld %s\n", symref($lhs.sym, $lhs.off)); }
+
+gen a|b|d|h := CONSTANT():rhs
+	{ E("\tmvi %s, %d\n", regref($$), $rhs.value); }
 
 gen bc|de|hl := CONSTANT():rhs
 	{ E("\tlxi %s, %d\n", regref($$), $rhs.value); }
