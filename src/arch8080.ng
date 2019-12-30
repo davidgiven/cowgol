@@ -72,6 +72,26 @@
 			sym->u.var.offset + off);
 		return buffer;
 	}
+
+	void arch_emit_move(reg_t src, reg_t dest)
+	{
+		if (src == REG_STK)
+			E("\tpop %s\n", (dest == REG_A) ? "psw" : regref(dest));
+		else if (dest == REG_STK)
+			E("\tpush %s\n", (src == REG_A) ? "psw" : regref(src));
+		else
+			fatal("moves unimplemented");
+	}
+
+	void arch_emit_comment(const char* text, ...)
+	{
+		va_list ap;
+		va_start(ap, text);
+		emitter_printf("\t; ");
+		emitter_vprintf(text, ap);
+		emitter_printf("\n");
+		va_end(ap);
+	}
 %}
 
 register a b d h bc de hl stk;
@@ -176,6 +196,29 @@ gen ENDSUB():s
     emitter_close_chunk();
 }
 
+// --- Loads and stores --------------------------------------------------
+
+gen a := LOAD1(bc|de|hl:lhs)
+{
+	switch ($lhs)
+	{
+		case REG_BC:
+			E("\tldax b\n");
+			break;
+
+		case REG_DE:
+			E("\tldax d\n");
+			break;
+
+		case REG_HL:
+			E("\tmov a, m\n");
+			break;
+
+		default:
+			assert(false);
+	}
+}
+
 gen STORE1(bc|de|hl:lhs, a)
 {
 	switch ($lhs)
@@ -204,6 +247,9 @@ gen STORE1(ADDRESS():lhs, a)
 
 gen STORE2(ADDRESS():lhs, hl)
 	{ E("\tshld %s\n", symref($lhs.sym, $lhs.off)); }
+
+gen a := CONSTANT(value==0)
+	{ E("\txra a\n"); }
 
 gen a|b|d|h := CONSTANT():rhs
 	{ E("\tmvi %s, %d\n", regref($$), $rhs.value); }

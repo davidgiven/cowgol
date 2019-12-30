@@ -1,2 +1,5 @@
 var i: int8 := 1;
+var j: int8 := 2;
+var k := i + j + 1;
+
 

@@ -36,7 +36,7 @@ void push_node(Node* node)
 	nodes[nodecount++] = node;
 }
 
-reg_t findfirst(reg_t reg)
+static reg_t findfirst(reg_t reg)
 {
 	for (int i=0; i<REGISTER_COUNT; i++)
 	{
@@ -46,10 +46,24 @@ reg_t findfirst(reg_t reg)
 	assert(false);
 }
 
+static reg_t find_conflicting_registers(reg_t reg)
+{
+	reg_t conflicting = 0;
+	for (int i=0; i<REGISTER_COUNT; i++)
+	{
+		const Register* r = &registers[i];
+		if (r->id & reg)
+			conflicting |= r->uses;
+	}
+	return conflicting;
+}
+
 void generate(Node* node)
 {
+	arch_emit_comment("");
+
 	memset(instructions, 0, sizeof(instructions));
-	memset(nodes, 0, sizeof(Node));
+	memset(nodes, 0, sizeof(nodes));
 	instructioncount = 0;
 	nodecount = 0;
 
@@ -57,43 +71,69 @@ void generate(Node* node)
 
 	while (nodecount != 0)
 	{
-		Instruction* insn = &instructions[instructioncount++];
+		Instruction* producer = &instructions[instructioncount++];
 
 		/* Generate the instruction rooted at this node. */
 
 		Node* n = nodes[--nodecount];
-		match_instruction(n, insn);
+		match_instruction(n, producer);
+		n->producer = producer;
 
-		if (insn->producable_regs)
+		if (producer->producable_regs)
 		{
 			/* The instruction has produced a register. Locate its consumer
 			 * and allocate something. */
 
-			reg_t blocked = 0;
-			Instruction* i = insn;
-			while (i != n->consumer)
+			reg_t blocked = producer->output_regs;
+			Instruction* consumer = producer-1;
+			while (consumer > n->consumer)
 			{
-				blocked |= i->blocked_regs;
-				i--;
+				blocked |= (consumer->input_regs | consumer->output_regs);
+				consumer--;
 			}
+			blocked |= consumer->input_regs;
 
-			reg_t candidate = n->desired_reg & insn->producable_regs;
-			if (!(candidate & blocked))
+			reg_t candidate = n->desired_reg & producer->producable_regs;
+			if (candidate && !(candidate & blocked))
 			{
 				/* Good news --- we can allocate the ideal register for both
 				 * producer and consumer. */
-				candidate = findfirst(candidate);
-				n->assigned_reg = insn->assigned_reg = candidate;
 
-				do
+				candidate = findfirst(candidate);
+				n->produced_reg = producer->produced_reg = candidate;
+
+				blocked = find_conflicting_registers(candidate);
+				consumer->input_regs |= blocked;
+				for (Instruction* i=consumer+1; i<producer; i++)
 				{
-					i->blocked_regs |= candidate;
-					i++;
+					i->input_regs |= blocked;
+					i->output_regs |= blocked;
 				}
-				while (i <= insn);
+				producer->output_regs |= blocked;
 			}
 			else
-				fatal("register allocation too complex");
+			{
+				/* Bad news --- we can't allocate any registers. So, spill to the stack. */
+
+				producer->produced_reg = findfirst(producer->producable_regs & ~producer->output_regs);
+				producer->output_regs |= find_conflicting_registers(producer->produced_reg);
+				Spill* spill = calloc(sizeof(Spill), 1);
+				spill->src = producer->produced_reg;
+				spill->dest = REG_STK;
+				spill->next = producer->first_spill;
+				producer->first_spill = spill;
+
+				n->produced_reg = findfirst(n->desired_reg & ~consumer->input_regs);
+				consumer->input_regs |= find_conflicting_registers(n->produced_reg);
+				Reload* reload = calloc(sizeof(Reload), 1);
+				reload->src = REG_STK;
+				reload->dest = n->produced_reg;
+				if (!consumer->first_reload)
+					consumer->first_reload = reload;
+				if (consumer->last_reload)
+					consumer->last_reload->next = reload;
+				consumer->last_reload = reload;
+			}
 		}
 	}
 
@@ -103,7 +143,43 @@ void generate(Node* node)
 	while (instructioncount != 0)
 	{
 		Instruction* insn = &instructions[--instructioncount];
+		arch_emit_comment("insn %d rule %d produces 0x%x inputs 0x%x outputs 0x%x",
+			insn - instructions,
+			insn->rule,
+			insn->produced_reg,
+			insn->input_regs,
+			insn->output_regs);
+		for (int i=1; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
+		{
+			Node* n = insn->n[i];
+			if (n && n->produced_reg)
+				arch_emit_comment("consumes 0x%x from insn %d",
+					n->produced_reg, n->producer - instructions);
+		}
+		
+		/* Emit reloads. */
+
+		while (insn->first_reload)
+		{
+			Reload* r = insn->first_reload;
+			arch_emit_move(r->src, r->dest);
+			insn->first_reload = r->next;
+			free(r);
+		}
+
+		/* The instruction itself! */
+
 		emit_instruction(insn);
+
+		/* Emit spills. */
+
+		while (insn->first_spill)
+		{
+			Spill* s = insn->first_spill;
+			arch_emit_move(s->src, s->dest);
+			insn->first_spill = s->next;
+			free(s);
+		}
 	}
 }
 
