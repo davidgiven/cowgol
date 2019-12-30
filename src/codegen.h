@@ -8,7 +8,9 @@
 struct instruction
 {
 	int rule;
+	reg_t producable_regs;
 	reg_t assigned_reg;
+	reg_t blocked_regs;
 	Node* n[INSTRUCTION_TEMPLATE_DEPTH];
 };
 

@@ -41,7 +41,17 @@
 
 	static const char* regref(reg_t reg)
 	{
-		return "";
+		switch (reg)
+		{
+			case REG_A: return "a";
+			case REG_B: return "b";
+			case REG_D: return "d";
+			case REG_H: return "h";
+			case REG_BC: return "b";
+			case REG_DE: return "d";
+			case REG_HL: return "h";
+			default: fatal("unknown register id 0x%x", reg);
+		}
 	}
 
 	static const char* subref(Subroutine* sub)
@@ -202,7 +212,7 @@ gen bc|de|hl := CONSTANT():rhs
 	{ E("\tlxi %s, %d\n", regref($$), $rhs.value); }
 
 gen bc|de|hl := ADDRESS():rhs
-	{ E("\tlxi, %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
+	{ E("\tlxi %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
 
 gen stk := ADD4(stk, stk)
 	{ E("\tcall add4\n"); }

@@ -36,6 +36,16 @@ void push_node(Node* node)
 	nodes[nodecount++] = node;
 }
 
+reg_t findfirst(reg_t reg)
+{
+	for (int i=0; i<REGISTER_COUNT; i++)
+	{
+		if (reg & (1<<i))
+			return 1<<i;
+	}
+	assert(false);
+}
+
 void generate(Node* node)
 {
 	memset(instructions, 0, sizeof(instructions));
@@ -54,10 +64,36 @@ void generate(Node* node)
 		Node* n = nodes[--nodecount];
 		match_instruction(n, insn);
 
-		if (n->desired_reg)
+		if (insn->producable_regs)
 		{
 			/* The instruction has produced a register. Locate its consumer
 			 * and allocate something. */
+
+			reg_t blocked = 0;
+			Instruction* i = insn;
+			while (i != n->consumer)
+			{
+				blocked |= i->blocked_regs;
+				i--;
+			}
+
+			reg_t candidate = n->desired_reg & insn->producable_regs;
+			if (!(candidate & blocked))
+			{
+				/* Good news --- we can allocate the ideal register for both
+				 * producer and consumer. */
+				candidate = findfirst(candidate);
+				n->assigned_reg = insn->assigned_reg = candidate;
+
+				do
+				{
+					i->blocked_regs |= candidate;
+					i++;
+				}
+				while (i <= insn);
+			}
+			else
+				fatal("register allocation too complex");
 		}
 	}
 

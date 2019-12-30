@@ -10,6 +10,7 @@ struct rule
 	Node* pattern;
 	reg_t result_reg;
 	reg_t compatible_regs;
+	reg_t blocked_regs;
 	int cost;
 	Label* first_label;
 	Action* action;
@@ -287,8 +288,8 @@ static void dump_registers(void)
 		fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x },\n",
 			reg->name, reg->id, reg->uses, reg->compatible);
 		fprintf(outhfp, "\tREG_");
-		print_upper(outhfp, registers[i].name);
-		fprintf(outhfp, ",\n");
+		print_upper(outhfp, reg->name);
+		fprintf(outhfp, " = 0x%x,\n", reg->id);
 	}
 	fprintf(outfp, "};\n");
 	fprintf(outhfp, "};\n");
@@ -509,6 +510,8 @@ static void create_matcher(void)
 		fprintf(outfp, ") {\n");
 
 		fprintf(outfp, "\t\tinsn->rule = %d;\n", i);
+		fprintf(outfp, "\t\tinsn->producable_regs = 0x%x;\n", r->result_reg);
+		fprintf(outfp, "\t\tinsn->blocked_regs = 0x%x;\n", r->blocked_regs);
 
 		offset = 0;
 		push_nodes(&offset, r->pattern, pattern);
@@ -546,6 +549,7 @@ int main(int argc, const char* argv[])
 	fprintf(outhfp, "#ifndef NEWGEN_H\n");
 	fprintf(outhfp, "#define NEWGEN_H\n");
 	fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_DEPTH %d\n", maxdepth);
+	fprintf(outhfp, "#define REGISTER_COUNT %d\n", registercount);
 
 	dump_registers();
 	dump_templates();
