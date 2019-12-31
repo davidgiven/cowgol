@@ -501,7 +501,7 @@ zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
-#test_cpm addsub-8bit
+test_cpm addsub-8bit
 #test_cpm addsub-16bit
 #test_cpm addsub-32bit
 #test_cpm shifts-8bit

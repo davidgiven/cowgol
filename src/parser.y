@@ -239,6 +239,20 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 			if (ins < sub->inputparameters)
 			{
 				check_expression_type(&node->type, param->u.var.type);
+
+				/* The input parameter midnodes are PAIR because the parser couldn't
+				 * do constant promotion (not having a subroutine to work with). Now
+				 * we know the actual type, patch the midnode accordingly. */
+
+				switch (node->type->u.type.width)
+				{
+					case 1: node->op = MIDCODE_PUSHPARAM1; break;
+					case 2: node->op = MIDCODE_PUSHPARAM2; break;
+					case 4: node->op = MIDCODE_PUSHPARAM4; break;
+					case 8: node->op = MIDCODE_PUSHPARAM8; break;
+					default: assert(false);
+				}
+
 				param = param->next;
 			}
 			ins++;
@@ -325,11 +339,11 @@ optionalinputarguments(R) ::= inputarguments(E1).
 
 %type inputarguments {struct midnode*}
 inputarguments(R) ::= inputargument(E).
-{ R = mid_pushparam(E->type->u.type.width, E, mid_end()); }
+{ R = mid_pair(E, mid_end()); }
 
 /* First item on the chain is the *first* input argument. */
 inputarguments(R) ::= inputargument(E) COMMA inputarguments(ES).
-{ R = mid_pushparam(E->type->u.type.width, E, ES); }
+{ R = mid_pair(E, ES); }
 
 %type inputargument {struct midnode*}
 inputargument(R) ::= expression(E).
