@@ -119,7 +119,7 @@ struct midnode* expr_sub(struct midnode* lhs, struct midnode* rhs)
 	else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
 		fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
 
-	struct midnode* r = mid_sub(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	struct midnode* r = mid_c_sub(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
 	if (is_ptr(lhs->type))
 		r->type = intptr_type;
 	else
@@ -391,4 +391,23 @@ Symbol* get_output_parameters(Subroutine* sub)
 	return param;
 }
 
+Node* mid_c_neg(int width, Node* lhs)
+{
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		lhs->u.constant.value *= -1;
+		return lhs;
+	}
+	return mid_neg(width, lhs);
+}
 
+Node* mid_c_sub(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value -= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	return mid_sub(width, lhs, rhs);
+}

@@ -348,17 +348,6 @@ stk4: constant:c
 
 // --- Arithmetic -----------------------------------------------------------
 
-constant: NEG0(constant:c)
-{ $$.off = -$c.off; }
-
-reg1a: NEG1(reg1bdh)
-{
-    reg_t rhs = regalloc_pop(REG_8 & ~REG_A);
-    regalloc_load_const(REG_A, 0);
-    E("\tsub %s\n", regname(rhs));
-    regalloc_push(REG_A);
-}
-
 reg2: NEG2(reg2)
 {
     reg_t rhs = regalloc_pop(REG_16);
@@ -381,26 +370,6 @@ constant: MUL0(constant:lhs, constant:rhs)
 constant: MUL2(constant:lhs, constant:rhs)
 { $$.off = $lhs.off * $rhs.off; }
 
-%{
-	static void shift2(const char* name)
-	{
-		regalloc_pop(REG_B);
-		regalloc_pop(REG_HL);
-		regalloc_reg_changing(REG_A | REG_B | REG_HL);
-		E("\tcall %s\n", name);
-		regalloc_push(REG_HL);
-	}
-%}
-
-reg2hl: LSHIFT2(reg2hl, reg1)
-{ shift2("asl2"); }
-
-reg2hl: RSHIFTU2(reg2hl, reg1)
-{ shift2("lsr2"); }
-
-reg2hl: RSHIFTS2(reg2hl, reg1)
-{ shift2("asr2"); }
-
 // --- 32-bit arithmetic -------------------------------------------------
 
 stk4: ADD4(stk4, stk4)
@@ -412,46 +381,3 @@ stk4: SUB4(stk4, stk4)
 stk4: NEG4(stk4)
 { E("\tcall neg4\n"); }
 
-stk4: RSHIFTU4(stk4, reg1)
-{
-	regalloc_pop(REG_B);
-	E("\tcall lsr4\n");
-}
-
-// --- Casts ----------------------------------------------------------------
-
-reg1: CAST21(reg2)
-{
-	reg_t val = regalloc_pop(REG_16);
-	regalloc_reg_changing(val);
-	regalloc_unlock(val);
-	regalloc_push(eightbitof(val));
-}
-	
-stk4: CAST24(reg2)
-{
-	reg_t r = regalloc_pop(REG_16);
-	regalloc_push(regalloc_load_const(REG_16, 0));
-	regalloc_push(r);
-	regalloc_flush_stack();
-}
-	
-reg1: CAST41(stk4)
-{
-	reg_t hi = regalloc_alloc(REG_16);
-	reg_t lo = regalloc_alloc(REG_16);
-	E("\tpop %s\n", regname(lo));
-	E("\tpop %s\n", regname(hi));
-	regalloc_unlock(lo);
-	regalloc_push(eightbitof(lo));
-}
-	
-reg2: CAST42(stk4)
-{
-	reg_t hi = regalloc_alloc(REG_16);
-	reg_t lo = regalloc_alloc(REG_16);
-	E("\tpop %s\n", regname(lo));
-	E("\tpop %s\n", regname(hi));
-	regalloc_push(lo);
-}
-	

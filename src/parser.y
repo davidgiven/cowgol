@@ -516,7 +516,7 @@ expression(T) ::= AMPERSAND lvalue(T1).
 	T = T1;
 }
 
-expression(E) ::= MINUS expression(E1).                    { E = mid_neg(E1->type ? E1->type->u.type.width : 0, E1); }
+expression(E) ::= MINUS expression(E1).                    { E = mid_c_neg(E1->type ? E1->type->u.type.width : 0, E1); }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E = E1; }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E = expr_add(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E = expr_sub(E1, E2); }

@@ -317,18 +317,6 @@ gen param := POPPARAM1(ADDRESS():a, param) uses a
 	E("\tsta %s\n", symref($a.sym, $a.off));
 }
 
-//reg1: CALL1(inputparameters):c
-//{
-//	call($c.sub);
-//    regalloc_adjust_stack(2);
-//}
-//
-//reg2: CALL2(inputparameters):c
-//{
-//	call($c.sub);
-//    regalloc_adjust_stack(2);
-//}
-
 // --- Loads and stores --------------------------------------------------
 
 gen a := LOAD1(bc|de|hl:lhs)
@@ -430,7 +418,7 @@ gen stk4 := CONSTANT():c uses hl
 	E("\tpush h\n");
 }
 
-// --- Arithmetic -----------------------------------------------------------
+// --- 8-bit arithmetic -----------------------------------------------------
 
 gen a := ADD1(a, b|d|h:rhs)
 	{ E("\tadd %s\n", regref($rhs)); }
@@ -443,6 +431,35 @@ gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==1))
 
 gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-1))
 	{ E("\tdec %s\n", regref($lhs)); }
+
+gen a := SUB1(a, b|d|h:rhs)
+	{ E("\tsub %s\n", regref($rhs)); }
+
+gen a := SUB1(a, CONSTANT():rhs)
+	{ E("\tsbi %d\n", $rhs.value); }
+
+gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==1))
+	{ E("\tdec %s\n", regref($lhs)); }
+
+gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==-1))
+	{ E("\tinc %s\n", regref($lhs)); }
+
+gen a := NEG1(b|d|h:lhs)
+{
+	E("\txra a\n");
+	E("\tsub %s\n", regref($lhs));
+}
+
+gen a := LSHIFT1(a, b) uses bc
+	{ E("\tcall asl1\n"); }
+
+gen a := RSHIFTU1(a, b) uses bc
+	{ E("\tcall lsr1\n"); }
+
+gen a := RSHIFTS1(a, b) uses bc
+	{ E("\tcall asr1\n"); }
+
+// --- 16-bit arithmetic ----------------------------------------------------
 
 gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 { 
@@ -469,21 +486,6 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	E("\tdad %s\n", regref(($lhs != REG_HL) ? $lhs : $rhs));
 }
 
-gen stk4 := ADD4(stk4, stk4)
-	{ E("\tcall add4\n"); }
-
-gen a := SUB1(a, b|d|h:rhs)
-	{ E("\tsub %s\n", regref($rhs)); }
-
-gen a := SUB1(a, CONSTANT():rhs)
-	{ E("\tsbi %d\n", $rhs.value); }
-
-gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==1))
-	{ E("\tdec %s\n", regref($lhs)); }
-
-gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==-1))
-	{ E("\tinc %s\n", regref($lhs)); }
-
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 {
     E("\tmov a, %s\n", regreflo($lhs));
@@ -494,17 +496,25 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
     E("\tmov %s, a\n", regref($$));
 }
 
+gen hl := LSHIFT2(hl, b) uses a
+	{ E("\tcall asl2\n"); }
+
+gen hl := RSHIFTU2(hl, b) uses a
+	{ E("\tcall lsr2\n"); }
+
+gen hl := RSHIFTS2(hl, b) uses a
+	{ E("\tcall asr2\n"); }
+
+// --- 32-bit arithmetic ----------------------------------------------------
+
+gen stk4 := ADD4(stk4, stk4)
+	{ E("\tcall add4\n"); }
+
 gen stk4 := SUB4(stk4, stk4)
 	{ E("\tcall sub4\n"); }
 
-gen a := LSHIFT1(a, b) uses bc
-	{ E("\tcall asl1\n"); }
-
-gen a := RSHIFTU1(a, b) uses bc
-	{ E("\tcall lsr1\n"); }
-
-gen a := RSHIFTS1(a, b) uses bc
-	{ E("\tcall asr1\n"); }
+gen stk4 := RSHIFTU4(stk4, b)
+	{ E("\tcall lsr4\n"); }
 
 // --- Branches -------------------------------------------------------------
 
@@ -576,6 +586,35 @@ gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
 //statement: BEQS4(stk4, stk4):b
 //{ bequ4($b.truelabel, $b.falselabel); }
 
+// --- Casts ----------------------------------------------------------------
+
+gen a|b|d|h := CAST21(bc|de|hl:rhs)
+	{ E("\tmov %s, %s\n", regref($$), regref($rhs)); }
+	
+//stk4: CAST24(reg2)
+//{
+//	reg_t r = regalloc_pop(REG_16);
+//	regalloc_push(regalloc_load_const(REG_16, 0));
+//	regalloc_push(r);
+//	regalloc_flush_stack();
+//}
+	
+gen a|d := CAST41(stk4) uses hl|bc
+{
+	E("\tpop b\n");
+	E("\tpop h\n");
+	E("\tmov %s, c\n", regref($$));
+}
+	
+//reg2: CAST42(stk4)
+//{
+//	reg_t hi = regalloc_alloc(REG_16);
+//	reg_t lo = regalloc_alloc(REG_16);
+//	E("\tpop %s\n", regname(lo));
+//	E("\tpop %s\n", regname(hi));
+//	regalloc_push(lo);
+//}
+	
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
@@ -648,5 +687,4 @@ gen bc|de|hl := STRING():s
 
     E("\tlxi %s, s%d\n", regref($$), sid);
 }
-
 
