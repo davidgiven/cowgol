@@ -57,6 +57,13 @@
 		}
 	}
 
+	static const char* stkref(reg_t reg)
+	{
+		if (reg == REG_A)
+			return "psw";
+		return regref(reg);
+	}
+
 	static const char* regreflo(reg_t reg)
 	{
 		switch (reg)
@@ -96,10 +103,10 @@
 
 	void arch_emit_move(reg_t src, reg_t dest)
 	{
-		if (src == REG_STK)
-			E("\tpop %s\n", (dest == REG_A) ? "psw" : regref(dest));
-		else if (dest == REG_STK)
-			E("\tpush %s\n", (src == REG_A) ? "psw" : regref(src));
+		if (!src)
+			E("\tpop %s\n", stkref(dest));
+		else if (!dest)
+			E("\tpush %s\n", stkref(src));
 		else
 			fatal("moves unimplemented");
 	}
@@ -115,7 +122,8 @@
 	}
 %}
 
-register a b d h hl de bc stk;
+register a b d h hl de bc;
+register stk4 param;
 
 regdata a compatible a|b|d|h;
 regdata b uses bc compatible a|b|d|h;
@@ -124,7 +132,8 @@ regdata h uses hl compatible a|b|d|h;
 regdata bc uses bc compatible bc|de|hl;
 regdata de uses de compatible bc|de|hl;
 regdata hl uses hl compatible bc|de|hl;
-regdata stk stacked;
+regdata stk4 stacked;
+regdata param stacked;
 
 gen STARTFILE()
 {
@@ -239,11 +248,13 @@ gen JUMP():j
 // SETPARAM leaves the parameter on the top of the stack, where the
 // code generator loses track of it.
 
-gen stk := PUSHPARAM1(a|b|d|h:lhs, stk)
-{ E("\tpush %s\n", ($lhs == REG_A) ? "psw" : regref($lhs)); }
+gen param := END();
 
-gen stk := PUSHPARAM2(bc|de|hl:lhs, stk)
-{ E("\tpush %s\n", ($lhs == REG_A) ? "psw" : regref($lhs)); }
+gen param := PUSHPARAM1(a|b|d|h:lhs, param)
+	{ E("\tpush %s\n", stkref($lhs)); }
+
+gen param := PUSHPARAM2(bc|de|hl:lhs, param)
+	{ E("\tpush %s\n", stkref($lhs)); }
 
 //statement: GETPARAM1(address:a)
 //{
@@ -276,19 +287,34 @@ gen stk := PUSHPARAM2(bc|de|hl:lhs, stk)
 	}
 %}
 
-gen stk := CALL0(stk):c
+gen param := CALL0(param):c
 	{ call($c.sub); }
 
-gen a|b|d|h := CALL1(stk):c
+gen CALL0(param):c
+	{ call($c.sub); }
+
+gen a|b|d|h := CALL1(param):c
 {
 	call($c.sub);
-	E("\tpop %s\n", regref($$));
+	E("\tpop %s\n", stkref($$));
 }
 
-gen bc|de|hl := CALL2(stk):c
+gen bc|de|hl := CALL2(param):c
 {
 	call($c.sub);
-	E("\tpop %s\n", regref($$));
+	E("\tpop %s\n", stkref($$));
+}
+
+gen POPPARAM1(ADDRESS():a, param) uses a
+{
+	E("\tpop psw\n");
+	E("\tsta %s\n", symref($a.sym, $a.off));
+}
+
+gen param := POPPARAM1(ADDRESS():a, param) uses a
+{
+	E("\tpop psw\n");
+	E("\tsta %s\n", symref($a.sym, $a.off));
 }
 
 //reg1: CALL1(inputparameters):c
@@ -334,6 +360,14 @@ gen hl := LOAD2(hl:lhs) uses a
 	E("\tmov l, a\n");
 }
 
+gen stk4 := LOAD4(ADDRESS():a) uses hl
+{
+	E("\tlhld %s\n", symref($a.sym, $a.off+2));
+	E("\tpush h\n");
+	E("\tlhld %s\n", symref($a.sym, $a.off+0));
+	E("\tpush h\n");
+}
+
 gen STORE1(bc|de|hl:lhs, a)
 {
 	switch ($lhs)
@@ -368,7 +402,7 @@ gen STORE1(ADDRESS():lhs, a)
 gen STORE2(ADDRESS():lhs, hl)
 	{ E("\tshld %s\n", symref($lhs.sym, $lhs.off)); }
 
-gen STORE4(ADDRESS():lhs, stk) uses hl
+gen STORE4(ADDRESS():lhs, stk4) uses hl
 {
 	E("\tpop h\n"); 
 	E("\tshld %s\n", symref($lhs.sym, $lhs.off+0));
@@ -388,7 +422,7 @@ gen bc|de|hl := CONSTANT():rhs
 gen bc|de|hl := ADDRESS():rhs
 	{ E("\tlxi %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
 
-gen stk := CONSTANT():c uses hl
+gen stk4 := CONSTANT():c uses hl
 {
 	E("\tlxi h, %d\n", $c.value >> 16);
 	E("\tpush h\n");
@@ -435,7 +469,7 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	E("\tdad %s\n", regref(($lhs != REG_HL) ? $lhs : $rhs));
 }
 
-gen stk := ADD4(stk, stk)
+gen stk4 := ADD4(stk4, stk4)
 	{ E("\tcall add4\n"); }
 
 gen a := SUB1(a, b|d|h:rhs)
@@ -460,7 +494,7 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
     E("\tmov %s, a\n", regref($$));
 }
 
-gen stk := SUB4(stk, stk)
+gen stk4 := SUB4(stk4, stk4)
 	{ E("\tcall sub4\n"); }
 
 gen a := LSHIFT1(a, b) uses bc

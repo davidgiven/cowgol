@@ -59,6 +59,7 @@ struct reg
 	reg_t id;
 	reg_t uses;
 	reg_t compatible;
+	bool isstacked;
 };
 
 typedef struct element Element;

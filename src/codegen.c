@@ -12,7 +12,7 @@ static int nodecount;
 
 void unmatched_instruction(Node* node)
 {
-	fprintf(stderr, "Unmatched instruction: ");
+	fprintf(stderr, "No rule matches 0x%x := ", node->desired_reg);
 	print_midnode(stderr, node);
 	fprintf(stderr, "\n");
 	fatal("Internal compiler error");
@@ -46,6 +46,11 @@ static reg_t findfirst(reg_t reg)
 	assert(false);
 }
 
+static void deadlock(void)
+{
+	fatal("register allocation deadlock (rule contains impossible situation)");
+}
+
 static reg_t find_conflicting_registers(reg_t reg)
 {
 	reg_t conflicting = 0;
@@ -56,6 +61,17 @@ static reg_t find_conflicting_registers(reg_t reg)
 			conflicting |= r->uses;
 	}
 	return conflicting;
+}
+
+static bool isstacked(reg_t reg)
+{
+	for (int i=0; i<REGISTER_COUNT; i++)
+	{
+		const Register* r = &registers[i];
+		if (r->id & reg)
+			return r->isstacked;
+	}
+	assert(false);
 }
 
 void generate(Node* node)
@@ -81,58 +97,69 @@ void generate(Node* node)
 
 		if (producer->producable_regs)
 		{
-			/* The instruction has produced a register. Locate its consumer
-			 * and allocate something. */
+			/* The instruction has produced a register. For stackable registers,
+			 * stop now: we ignore them for doiing actual register allocation. */
 
-			reg_t blocked = producer->output_regs;
-			Instruction* consumer = producer-1;
-			while (consumer > n->consumer)
+			if (!isstacked(producer->producable_regs))
 			{
-				blocked |= (consumer->input_regs | consumer->output_regs);
-				consumer--;
-			}
-			blocked |= consumer->input_regs;
+				/* Locate the register's consumer and allocate something. */
 
-			reg_t candidate = n->desired_reg & producer->producable_regs;
-			if (candidate && !(candidate & blocked))
-			{
-				/* Good news --- we can allocate the ideal register for both
-				 * producer and consumer. */
-
-				candidate = findfirst(candidate);
-				n->produced_reg = producer->produced_reg = candidate;
-
-				blocked = find_conflicting_registers(candidate);
-				consumer->input_regs |= blocked;
-				for (Instruction* i=consumer+1; i<producer; i++)
+				reg_t blocked = producer->output_regs;
+				Instruction* consumer = producer-1;
+				while (consumer > n->consumer)
 				{
-					i->input_regs |= blocked;
-					i->output_regs |= blocked;
+					blocked |= (consumer->input_regs | consumer->output_regs);
+					consumer--;
 				}
-				producer->output_regs |= blocked;
-			}
-			else
-			{
-				/* Bad news --- we can't allocate any registers. So, spill to the stack. */
+				blocked |= consumer->input_regs;
 
-				producer->produced_reg = findfirst(producer->producable_regs & ~producer->output_regs);
-				producer->output_regs |= find_conflicting_registers(producer->produced_reg);
-				Spill* spill = calloc(sizeof(Spill), 1);
-				spill->src = producer->produced_reg;
-				spill->dest = REG_STK;
-				spill->next = producer->first_spill;
-				producer->first_spill = spill;
+				reg_t candidate = n->desired_reg & producer->producable_regs;
+				if (candidate && !(candidate & blocked))
+				{
+					/* Good news --- we can allocate the ideal register for both
+					 * producer and consumer. */
 
-				n->produced_reg = findfirst(n->desired_reg & ~consumer->input_regs);
-				consumer->input_regs |= find_conflicting_registers(n->produced_reg);
-				Reload* reload = calloc(sizeof(Reload), 1);
-				reload->src = REG_STK;
-				reload->dest = n->produced_reg;
-				if (!consumer->first_reload)
-					consumer->first_reload = reload;
-				if (consumer->last_reload)
-					consumer->last_reload->next = reload;
-				consumer->last_reload = reload;
+					candidate = findfirst(candidate);
+					n->produced_reg = producer->produced_reg = candidate;
+
+					blocked = find_conflicting_registers(candidate);
+					consumer->input_regs |= blocked;
+					for (Instruction* i=consumer+1; i<producer; i++)
+					{
+						i->input_regs |= blocked;
+						i->output_regs |= blocked;
+					}
+					producer->output_regs |= blocked;
+				}
+				else
+				{
+					/* Bad news --- we can't allocate any registers. So, spill to the stack. */
+
+					candidate = producer->producable_regs & ~producer->output_regs;
+					if (!candidate)
+						deadlock();
+					producer->produced_reg = findfirst(candidate);
+					producer->output_regs |= find_conflicting_registers(producer->produced_reg);
+					Spill* spill = calloc(sizeof(Spill), 1);
+					spill->src = producer->produced_reg;
+					spill->dest = 0;
+					spill->next = producer->first_spill;
+					producer->first_spill = spill;
+
+					candidate = n->desired_reg & ~consumer->input_regs;
+					if (!candidate)
+						deadlock();
+					n->produced_reg = findfirst(candidate);
+					consumer->input_regs |= find_conflicting_registers(n->produced_reg);
+					Reload* reload = calloc(sizeof(Reload), 1);
+					reload->src = 0;
+					reload->dest = n->produced_reg;
+					if (!consumer->first_reload)
+						consumer->first_reload = reload;
+					if (consumer->last_reload)
+						consumer->last_reload->next = reload;
+					consumer->last_reload = reload;
+				}
 			}
 		}
 	}

@@ -35,7 +35,7 @@ Register* define_register(const char* name)
 	int i = registercount++;
 	Register* reg = &registers[i];
 	reg->name = name;
-	reg->uses = reg->id = 1<<i;
+	reg->compatible = reg->uses = reg->id = 1<<i;
 	return reg;
 }
 
@@ -260,8 +260,8 @@ static void dump_registers(void)
 	for (int i=0; i<registercount; i++)
 	{
 		Register* reg = &registers[i];
-		fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x },\n",
-			reg->name, reg->id, reg->uses, reg->compatible);
+		fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
+			reg->name, reg->id, reg->uses, reg->compatible, reg->isstacked);
 		fprintf(outhfp, "\tREG_");
 		print_upper(outhfp, reg->name);
 		fprintf(outhfp, " = 0x%x,\n", reg->id);
@@ -493,7 +493,10 @@ static void create_matcher(void)
 	{
 		Rule* r = rules[i];
 		print_line(r->lineno);
-		fprintf(outfp, "\tif ((!n0->desired_reg || (n0->desired_reg & 0x%x))\n", r->compatible_regs);
+		if (!r->compatible_regs)
+			fprintf(outfp, "\tif (!n0->desired_reg\n");
+		else
+			fprintf(outfp, "\tif ((n0->desired_reg & 0x%x)\n", r->compatible_regs);
 		fprintf(outfp, "\t\t&& template_comparator(matchbuf, template%d)", i, maxdepth);
 		offset = 0;
 		walk_predicate_tree(&offset, r->pattern, pattern);

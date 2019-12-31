@@ -63,7 +63,10 @@ regdata(R) ::= regdata(R1) COMPATIBLE regspec(R2).
 }
 
 regdata(R) ::= regdata(R1) STACKED.
-{ R = R1; }
+{
+    R = R1;
+    R->isstacked = true;
+}
 
 rules ::= rules rule(R) action(A).
 { R->action = A; }

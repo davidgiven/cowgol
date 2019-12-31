@@ -346,36 +346,6 @@ stk4: constant:c
 	E("\tpush %s\n", regname(r));
 }
 
-// --- Stores ---------------------------------------------------------------
-
-statement: STORE2(address:a, reg2hl)
-{
-	regalloc_pop(REG_HL);
-	E("\tshld %s\n", symref($a.sym, $a.off));
-	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
-}
-
-statement: STORE4(address:dest, stk4:src) costs 4
-{
-	regalloc_alloc(REG_HL);
-	E("\tpop h\n");
-	E("\tshld %s\n", symref($dest.sym, $dest.off+0));
-	E("\tpop h\n");
-	E("\tshld %s\n", symref($dest.sym, $dest.off+2));
-}
-
-// --- Loads ----------------------------------------------------------------
-
-stk4: LOAD4(address:a)
-{
-	regalloc_flush_stack();
-	regalloc_alloc(REG_HL);
-	E("\tlhld %s\n", symref($a.sym, $a.off+2));
-	E("\tpush h\n");
-	E("\tlhld %s\n", symref($a.sym, $a.off+0));
-	E("\tpush h\n");
-}
-
 // --- Arithmetic -----------------------------------------------------------
 
 constant: NEG0(constant:c)

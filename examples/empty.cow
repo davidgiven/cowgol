@@ -9,29 +9,32 @@ var HIMEM: [uint8];
 @asm "lhld 6";
 @asm "shld ", HIMEM;
 
-var i: int32 := 1;
+sub print_char(c: uint8)
+        @asm "lda ", c;
+        @asm "mov e, a";
+        @asm "mvi c, 2";
+        @asm "call 5";
+end sub;
 
-#sub print_char(c: uint8)
-#        @asm "lda ", c;
-#        @asm "mov e, a";
-#        @asm "mvi c, 2";
-#        @asm "call 5";
-#end sub;
-#
-#sub print(ptr: [uint8])
-#    loop
-#        var c := [ptr];
-#        if c == 0 then
-#            return;
-#        end if;
-#        print_char(c);
-#        ptr := ptr + 1;
-#    end loop;
-#end sub;
-#
-#sub getchar(): (c: uint8)
-#	c := 'q';
-#end sub;
-#
-#print_char(getchar());
+sub print(ptr: [uint8])
+    loop
+        var c := [ptr];
+        if c == 0 then
+            return;
+        end if;
+        print_char(c);
+        ptr := ptr + 1;
+    end loop;
+end sub;
+
+sub outputs(): (a: int8, b: int8, c: int8)
+	a := 1;
+	b := 2;
+	c := 3;
+end sub;
+
+var a: int8;
+var b: int8;
+var c: int8;
+(a, b, c) := outputs();
 

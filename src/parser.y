@@ -260,7 +260,7 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 		{
 			if (outs < sub->outputparameters)
 			{
-				check_expression_type(&node->type->u.type.element, param->u.var.type);
+				check_expression_type(&node->type, param->u.var.type);
 				param = param->next;
 			}
 			outs++;
@@ -305,7 +305,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 
 		discard(node->right);
 		node->right = mid_call0(inputs, sub);
-		return node;
+		return outputs;
 	}
 }
 
