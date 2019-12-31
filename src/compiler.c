@@ -377,3 +377,18 @@ void free_token(struct token* token)
         free(token->string);
     free(token);
 }
+
+Symbol* get_input_parameters(Subroutine* sub)
+{
+	return sub->namespace.firstsymbol;
+}
+
+Symbol* get_output_parameters(Subroutine* sub)
+{
+	Symbol* param = sub->namespace.firstsymbol;
+	for (int i=0; i<sub->inputparameters; i++)
+		param = param->next;
+	return param;
+}
+
+

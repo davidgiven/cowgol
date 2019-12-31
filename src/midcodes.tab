@@ -16,7 +16,7 @@
 
 - 0 0 LABEL(int label) = ("%d", $$.label)
 - 0 0 JUMP(int label) = ("%d", $$.label)
-y 0 1 CALL(struct subroutine* sub) = ("%s", $$.sub->name)
+y 1 1 CALL(struct subroutine* sub) = ("%s", $$.sub->name)
 - 0 0 RETURN()
 
 - 0 1 CONSTANT(int32_t value) = ("%d", $$.value)
@@ -37,8 +37,8 @@ y 1 1 CAST2()
 y 1 1 CAST4()
 y 1 1 CAST8()
 
-y 1 0 PUSHPARAM() # left is value
-y 0 1 POPPARAM() # left is *lvalue*
+y 2 1 PUSHPARAM() # left is value, right is more params
+y 2 1 POPPARAM() # left is lvalue, right is more params or CALL
 
 y 2 1 ADD()
 y 2 1 SUB()

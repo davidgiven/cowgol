@@ -239,10 +239,10 @@ gen JUMP():j
 // SETPARAM leaves the parameter on the top of the stack, where the
 // code generator loses track of it.
 
-gen PUSHPARAM1(a|b|d|h:lhs)
+gen stk := PUSHPARAM1(a|b|d|h:lhs, stk)
 { E("\tpush %s\n", ($lhs == REG_A) ? "psw" : regref($lhs)); }
 
-gen PUSHPARAM2(bc|de|hl:lhs)
+gen stk := PUSHPARAM2(bc|de|hl:lhs, stk)
 { E("\tpush %s\n", ($lhs == REG_A) ? "psw" : regref($lhs)); }
 
 //statement: GETPARAM1(address:a)
@@ -276,16 +276,16 @@ gen PUSHPARAM2(bc|de|hl:lhs)
 	}
 %}
 
-gen CALL0():c
+gen stk := CALL0(stk):c
 	{ call($c.sub); }
 
-gen a|b|d|h := CALL1():c
+gen a|b|d|h := CALL1(stk):c
 {
 	call($c.sub);
 	E("\tpop %s\n", regref($$));
 }
 
-gen bc|de|hl := CALL2():c
+gen bc|de|hl := CALL2(stk):c
 {
 	call($c.sub);
 	E("\tpop %s\n", regref($$));
@@ -368,6 +368,14 @@ gen STORE1(ADDRESS():lhs, a)
 gen STORE2(ADDRESS():lhs, hl)
 	{ E("\tshld %s\n", symref($lhs.sym, $lhs.off)); }
 
+gen STORE4(ADDRESS():lhs, stk) uses hl
+{
+	E("\tpop h\n"); 
+	E("\tshld %s\n", symref($lhs.sym, $lhs.off+0));
+	E("\tpop h\n"); 
+	E("\tshld %s\n", symref($lhs.sym, $lhs.off+2));
+}
+
 gen a := CONSTANT(value==0)
 	{ E("\txra a\n"); }
 
@@ -379,6 +387,14 @@ gen bc|de|hl := CONSTANT():rhs
 
 gen bc|de|hl := ADDRESS():rhs
 	{ E("\tlxi %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
+
+gen stk := CONSTANT():c uses hl
+{
+	E("\tlxi h, %d\n", $c.value >> 16);
+	E("\tpush h\n");
+	E("\tlxi h, %d\n", $c.value & 0xffff);
+	E("\tpush h\n");
+}
 
 // --- Arithmetic -----------------------------------------------------------
 
