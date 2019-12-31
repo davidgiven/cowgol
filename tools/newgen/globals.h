@@ -12,7 +12,34 @@
 
 typedef uint32_t reg_t;
 
+typedef struct predicate Predicate;
+struct predicate
+{
+	const char* field;
+	int operator;
+	int value;
+	Predicate* next;
+};
+
+typedef struct label Label;
+struct label
+{
+	const char* name;
+	Label* next;
+};
+
 typedef struct node Node;
+struct node
+{
+	bool isregister;
+	int midcode;
+	Node* left;
+	Node* right;
+	reg_t reg;
+	Predicate* predicate;
+	Label* label;
+	int index;
+};
 
 typedef struct token Token;
 struct token
@@ -50,20 +77,17 @@ struct action
 	Element* first_element;
 };
 
-typedef struct predicate Predicate;
-struct predicate
+typedef struct rule Rule;
+struct rule
 {
-	const char* field;
-	int operator;
-	int value;
-	Predicate* next;
-};
-
-typedef struct label Label;
-struct label
-{
-	const char* name;
-	Label* next;
+	int lineno;
+	Node* pattern;
+	reg_t result_reg;
+	reg_t compatible_regs;
+	reg_t uses_regs;
+	int cost;
+	Label* first_label;
+	Action* action;
 };
 
 extern int errcnt;
@@ -81,7 +105,7 @@ extern Register* define_register(const char* name);
 extern Register* lookup_register(const char* name);
 extern int lookup_midcode(const char* name);
 
-extern void rule(int lineno, Node* pattern, reg_t result, Action* action);
+extern Rule* rule(int lineno, Node* pattern, reg_t result);
 
 extern Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicates, Label* label);
 extern Node* register_matcher(reg_t reg, Label* label);

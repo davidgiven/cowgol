@@ -3,31 +3,6 @@
 #include <ctype.h>
 #include <errno.h>
 
-typedef struct rule Rule;
-struct rule
-{
-	int lineno;
-	Node* pattern;
-	reg_t result_reg;
-	reg_t compatible_regs;
-	reg_t blocked_regs;
-	int cost;
-	Label* first_label;
-	Action* action;
-};
-
-struct node
-{
-	bool isregister;
-	int midcode;
-	Node* left;
-	Node* right;
-	reg_t reg;
-	Predicate* predicate;
-	Label* label;
-	int index;
-};
-
 #include "iburgcodes.h"
 
 #define REGISTER_COUNT (sizeof(reg_t)*8)
@@ -122,17 +97,17 @@ Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicate, L
 	return n;
 }
 
-void rule(int lineno, Node* pattern, reg_t result, Action* action)
+Rule* rule(int lineno, Node* pattern, reg_t result)
 {
-	struct rule* r = calloc(sizeof(Rule), 1);
+	Rule* r = calloc(sizeof(Rule), 1);
 	r->lineno = lineno;
 	r->pattern = pattern;
 	r->result_reg = result;
-	r->action = action;
 
 	if (rulescount == (sizeof(rules)/sizeof(*rules)))
 		yyerror("too many rules");
 	rules[rulescount++] = r;
+	return r;
 }
 
 static int collect_template_data(Node* template, Node* pattern, Label** last_label)
@@ -526,8 +501,8 @@ static void create_matcher(void)
 
 		fprintf(outfp, "\t\tinsn->rule = %d;\n", i);
 		fprintf(outfp, "\t\tinsn->producable_regs = 0x%x;\n", r->result_reg);
-		fprintf(outfp, "\t\tinsn->input_regs = 0x%x;\n", r->blocked_regs);
-		fprintf(outfp, "\t\tinsn->output_regs = 0x%x;\n", r->blocked_regs);
+		if (r->uses_regs)
+			fprintf(outfp, "\t\tinsn->output_regs = 0x%x;\n", r->uses_regs);
 
 		offset = 0;
 		emit_node_copiers(&offset, r->pattern, pattern);

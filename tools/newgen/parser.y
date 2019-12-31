@@ -8,6 +8,7 @@
 %type regdata {Register*}
 %type regspec {uint32_t}
 %type reg {Register*}
+%type rule {Rule*}
 %type tree {Node*}
 %type midcode {int}
 %type optionalpredicatescomma {Predicate*}
@@ -64,11 +65,17 @@ regdata(R) ::= regdata(R1) COMPATIBLE regspec(R2).
 regdata(R) ::= regdata(R1) STACKED.
 { R = R1; }
 
-rules ::= rules GEN(G) tree(TREE) action(A).
-{ rule(G.lineno, TREE, 0, A); }
+rules ::= rules rule(R) action(A).
+{ R->action = A; }
 
-rules ::= rules GEN(G) regspec(LHS) ASSIGN tree(TREE) action(A).
-{ rule(G.lineno, TREE, LHS, A); }
+rule(R) ::= GEN(G) tree(TREE).
+{ R = rule(G.lineno, TREE, 0); }
+
+rule(R) ::= GEN(G) regspec(LHS) ASSIGN tree(TREE).
+{ R = rule(G.lineno, TREE, LHS); }
+
+rule(R) ::= rule(R1) USES regspec(USES).
+{ R = R1; R->uses_regs = USES; }
 
 regspec(R) ::= reg(R1).
 { R = R1->id; }

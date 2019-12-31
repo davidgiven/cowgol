@@ -1,5 +1,35 @@
-var i: int8 := 1;
-var j: int8 := 2;
-var k := i + j + 1;
 
+
+var TOP: [uint8];
+@asm "extrn __top";
+@asm "lxi h, __top";
+@asm "shld ", TOP;
+
+var HIMEM: [uint8];
+@asm "lhld 6";
+@asm "shld ", HIMEM;
+
+sub print_char(c: uint8)
+        @asm "lda ", c;
+        @asm "mov e, a";
+        @asm "mvi c, 2";
+        @asm "call 5";
+end sub;
+
+sub print(ptr: [uint8])
+    loop
+        var c := [ptr];
+        if c == 0 then
+            return;
+        end if;
+        print_char(c);
+        ptr := ptr + 1;
+    end loop;
+end sub;
+
+sub getchar(): (c: uint8)
+	c := 'q';
+end sub;
+
+print_char(getchar());
 

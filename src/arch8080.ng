@@ -2,11 +2,14 @@
 	#include "globals.h"
 	#include "emitter.h"
 	#include "midcodes.h"
+	#include <bsd/string.h>
+	#include <ctype.h>
 
 	#define IMPL
 	#include "codegen.h"
 
 	#define E emitter_printf
+	static char asmbuffer[80];
 
 	struct subarch
 	{
@@ -54,6 +57,17 @@
 		}
 	}
 
+	static const char* regreflo(reg_t reg)
+	{
+		switch (reg)
+		{
+			case REG_BC: return "c";
+			case REG_DE: return "e";
+			case REG_HL: return "l";
+			default: assert(false);
+		}
+	}
+
 	static const char* subref(Subroutine* sub)
 	{
 		if (sub->externname)
@@ -70,6 +84,13 @@
 		snprintf(buffer, sizeof(buffer), "w%d%+d",
 			sym->u.var.sub->arch->id,
 			sym->u.var.offset + off);
+		return buffer;
+	}
+
+	static const char* labelref(int label)
+	{
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "x%d", label);
 		return buffer;
 	}
 
@@ -94,7 +115,7 @@
 	}
 %}
 
-register a b d h bc de hl stk;
+register a b d h hl de bc stk;
 
 regdata a compatible a|b|d|h;
 regdata b uses bc compatible a|b|d|h;
@@ -196,6 +217,92 @@ gen ENDSUB():s
     emitter_close_chunk();
 }
 
+// --- Control flow ------------------------------------------------------
+
+gen RETURN()
+{
+	E("\tjmp end_%s\n", subref(current_sub));
+}
+
+gen LABEL():b
+{
+	E("%s:\n", labelref($b.label));
+}
+
+gen JUMP():j
+{
+	E("\tjmp %s\n", labelref($j.label));
+}
+
+// --- Subroutines -------------------------------------------------------
+
+// SETPARAM leaves the parameter on the top of the stack, where the
+// code generator loses track of it.
+
+gen PUSHPARAM1(a|b|d|h:lhs)
+{ E("\tpush %s\n", ($lhs == REG_A) ? "psw" : regref($lhs)); }
+
+gen PUSHPARAM2(bc|de|hl:lhs)
+{ E("\tpush %s\n", ($lhs == REG_A) ? "psw" : regref($lhs)); }
+
+//statement: GETPARAM1(address:a)
+//{
+//	regalloc_alloc(REG_A);
+//	E("\tpop psw\n");
+//	E("\tsta %s\n", symref($a.sym, $a.off));
+//	regalloc_reg_contains_var(REG_A, $a.sym, $a.off);
+//}
+//
+//statement: GETPARAM2(address:a)
+//{
+//	regalloc_alloc(REG_HL);
+//	E("\tpop h\n");
+//	E("\tshld %s\n", symref($a.sym, $a.off));
+//	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
+//}
+
+%{
+	static void call(Subroutine* sub)
+	{
+		if (sub->externname)
+		{
+			emitter_open_chunk();
+			E("\textrn %s\n", sub->externname);
+			emitter_close_chunk();
+		}
+
+		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
+		E("\tcall %s\n", subref(sub));
+	}
+%}
+
+gen CALL0():c
+	{ call($c.sub); }
+
+gen a|b|d|h := CALL1():c
+{
+	call($c.sub);
+	E("\tpop %s\n", regref($$));
+}
+
+gen bc|de|hl := CALL2():c
+{
+	call($c.sub);
+	E("\tpop %s\n", regref($$));
+}
+
+//reg1: CALL1(inputparameters):c
+//{
+//	call($c.sub);
+//    regalloc_adjust_stack(2);
+//}
+//
+//reg2: CALL2(inputparameters):c
+//{
+//	call($c.sub);
+//    regalloc_adjust_stack(2);
+//}
+
 // --- Loads and stores --------------------------------------------------
 
 gen a := LOAD1(bc|de|hl:lhs)
@@ -219,6 +326,14 @@ gen a := LOAD1(bc|de|hl:lhs)
 	}
 }
 
+gen hl := LOAD2(hl:lhs) uses a
+{
+	E("\tmov a, m\n");
+	E("\tinx h\n");
+	E("\tmov h, m\n");
+	E("\tmov l, a\n");
+}
+
 gen STORE1(bc|de|hl:lhs, a)
 {
 	switch ($lhs)
@@ -240,7 +355,12 @@ gen STORE1(bc|de|hl:lhs, a)
 	}
 }
 
-gen STORE2(bc|de|hl:lhs, hl);
+gen STORE2(bc|de:lhs, hl) uses a
+{
+	E("\tmov m, %s\n", regreflo($lhs));
+	E("\tinx h\n");
+	E("\tmov m, %s\n", regref($lhs));
+}
 
 gen STORE1(ADDRESS():lhs, a)
 	{ E("\tsta %s\n", symref($lhs.sym, $lhs.off)); }
@@ -260,11 +380,7 @@ gen bc|de|hl := CONSTANT():rhs
 gen bc|de|hl := ADDRESS():rhs
 	{ E("\tlxi %s, %s\n", regref($$), symref($rhs.sym, $rhs.off)); }
 
-gen stk := ADD4(stk, stk)
-	{ E("\tcall add4\n"); }
-
-gen hl := ADD2(hl, bc|de:rhs)
-	{ E("dad %s\n", regref($rhs)); }
+// --- Arithmetic -----------------------------------------------------------
 
 gen a := ADD1(a, b|d|h:rhs)
 	{ E("\tadd %s\n", regref($rhs)); }
@@ -278,11 +394,209 @@ gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==1))
 gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-1))
 	{ E("\tdec %s\n", regref($lhs)); }
 
-gen stk := SUB4(stk, stk);
-gen hl := SUB2(hl, bc|de);
-gen hl := SUB2(hl, CONSTANT());
-gen a := SUB1(a, b|d|h);
-gen a := SUB1(a, CONSTANT());
+gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
+{ 
+	if (($rhs != REG_HL) && ($lhs != REG_HL))
+	{
+		if ($rhs == REG_DE)
+		{
+			E("\txchg\n");
+			$rhs = REG_HL;
+		}
+		else if ($lhs == REG_DE)
+		{
+			E("\txchg\n");
+			$lhs = REG_HL;
+		}
+		else
+		{
+			E("\tmov h, %s\n", regref($lhs));
+			E("\tmov l, %s\n", regreflo($lhs));
+			$lhs = REG_HL;
+		}
+	}
+		
+	E("\tdad %s\n", regref(($lhs != REG_HL) ? $lhs : $rhs));
+}
 
-gen a := CAST21(RSHIFTU2(ADDRESS(), CONSTANT(value==8)));
+gen stk := ADD4(stk, stk)
+	{ E("\tcall add4\n"); }
+
+gen a := SUB1(a, b|d|h:rhs)
+	{ E("\tsub %s\n", regref($rhs)); }
+
+gen a := SUB1(a, CONSTANT():rhs)
+	{ E("\tsbi %d\n", $rhs.value); }
+
+gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==1))
+	{ E("\tdec %s\n", regref($lhs)); }
+
+gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==-1))
+	{ E("\tinc %s\n", regref($lhs)); }
+
+gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+{
+    E("\tmov a, %s\n", regreflo($lhs));
+    E("\tsub %s\n", regreflo($rhs));
+    E("\tmov %s, a\n", regreflo($$));
+    E("\tmov a, %s\n", regref($rhs));
+    E("\tsbb %s\n", regref($rhs));
+    E("\tmov %s, a\n", regref($$));
+}
+
+gen stk := SUB4(stk, stk)
+	{ E("\tcall sub4\n"); }
+
+gen a := LSHIFT1(a, b) uses bc
+	{ E("\tcall asl1\n"); }
+
+gen a := RSHIFTU1(a, b) uses bc
+	{ E("\tcall lsr1\n"); }
+
+gen a := RSHIFTS1(a, b) uses bc
+	{ E("\tcall asr1\n"); }
+
+// --- Branches -------------------------------------------------------------
+
+%{
+	static void bequ1(int truelabel, int falselabel, reg_t nota)
+	{
+		E("\tcmp %s\n", regref(nota));
+		E("\tjz %s\n", labelref(truelabel));
+		E("\tjnz %s\n", labelref(falselabel));
+	}
+%}
+
+gen BEQU1(a, b|d|h:nota):b
+{ bequ1($b.truelabel, $b.falselabel, $nota); }
+
+gen BEQS1(a, b|d|h:nota):b
+{ bequ1($b.truelabel, $b.falselabel, $nota); }
+
+gen BLTU1(a, CONSTANT():c):b
+{
+	E("\tcpi %d\n", $c.value);
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+%{
+	static void bequ2(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
+	{
+		E("\tmov a, %s\n", regref(lhs));
+		E("\tcmp %s\n", regref(rhs));
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tmov a, %s\n", regreflo(lhs));
+		E("\tcmp %s\n", regreflo(rhs));
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tjmp %s\n", labelref(truelabel));
+	}
+%}
+
+gen BEQU2(hl|bc|de:lhs, hl|bc|de:rhs):b
+{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
+{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+//statement: BLTU2(reg2, reg2):b
+//{
+//	reg_t rhs = regalloc_pop(REG_16);
+//	reg_t lhs = regalloc_pop(REG_16);
+//	regalloc_reg_changing(ALL_REGS);
+//	E("\tmov a, %s\n", regreflo(lhs));
+//	E("\tsub %s\n", regreflo(rhs));
+//	E("\tmov a, %s\n", regref(lhs));
+//	E("\tsbb %s\n", regref(rhs));
+//	E("\tjc %s\n", labelref($b.truelabel));
+//	E("\tjmp %s\n", labelref($b.falselabel));
+//}
+//
+//%{
+//	static void bequ4(int truelabel, int falselabel)
+//	{
+//		regalloc_reg_changing(ALL_REGS);
+//		E("\tcall sub4\n");
+//		E("\tcall cmpu4\n");
+//		E("\tjnz %s\n", labelref(falselabel));
+//		E("\tjmp %s\n", labelref(truelabel));
+//	}
+//%}
+//
+//statement: BEQS4(stk4, stk4):b
+//{ bequ4($b.truelabel, $b.falselabel); }
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMSTART()
+{
+    asmbuffer[0] = '\0';
+}
+
+gen ASMTEXT():t
+{
+    strlcat(asmbuffer, $t.text, sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
+
+gen ASMSYMBOL():s
+{
+    strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
+
+gen ASMEND()
+{
+    E("\t%s\n", asmbuffer);
+}
+
+// --- Strings -----------------------------------------------------------
+
+gen bc|de|hl := STRING():s
+{
+    int sid = id++;
+    emitter_open_chunk();
+    E("\tcseg\n");
+    E("s%d:\n", sid);
+    E("\tdb ");
+    bool instring = false;
+    bool start = true;
+	const char* s = $s.text;
+    for (;;)
+    {
+        char c = *s++;
+        if (!c)
+            break;
+        if (!start && !instring)
+            E(", ");
+        start = false;
+        if (isprint(c) && (c != '\"') && (c != '\\'))
+        {
+            if (!instring)
+            {
+                E("\"");
+                instring = true;
+            }
+            E("%c", c);
+        }
+        else
+        {
+            if (instring)
+            {
+                E("\", ");
+                instring = false;
+            }
+            E("%d", c);
+        }
+    }
+    if (instring)
+        E("\"");
+    if (!start)
+        E(", ");
+    E("0\n");
+    emitter_close_chunk();
+
+    E("\tlxi %s, s%d\n", regref($$), sid);
+}
+
 

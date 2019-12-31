@@ -231,6 +231,7 @@ subcall_begin ::= oldid(S) OPENPAREN.
 	if (S->kind != SUB)
 		fatal("expected '%s' to be a subroutine", S->name);
 
+	fprintf(stderr, "begin call to '%s'\n", S->name);
 	struct argumentsspec* n = calloc(1, sizeof(struct argumentsspec));
 	n->next = current_call;
 	current_call = n;
@@ -238,9 +239,18 @@ subcall_begin ::= oldid(S) OPENPAREN.
 	current_call->inputparam = current_call->sub->namespace.firstsymbol;
 }
 
+%include
+{
+	static void subcall_end(void)
+	{
+		fprintf(stderr, "end call to '%s'\n", current_call->sub->name);
+		current_call = current_call->next;
+	}
+}
+
 %type subroutinecallexpr {struct midnode*}
-%destructor subroutinecallexpr { current_call = current_call->next; }
-subroutinecallexpr(E) ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
+%destructor subroutinecallexpr { subcall_end(); }
+subroutinecallexpr(E) ::= subcall_begin optionalinputarguments CLOSEPAREN.
 {
 	if (current_call->ins != current_call->sub->inputparameters)
 		fatal("expected %d input parameters but only got %d",
@@ -252,20 +262,21 @@ subroutinecallexpr(E) ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
 	for (int i=0; i<current_call->sub->inputparameters; i++)
 		param = param->next;
 
-	E = mid_call(param->u.var.type->u.type.width, E1, current_call->sub);
+	E = mid_call(param->u.var.type->u.type.width, current_call->sub);
 	E->type = param->u.var.type;
 }
 
 %include
 {
-	static struct midnode* subcall(struct midnode* inputs, struct midnode* outputs)
+	static struct midnode* subcall(struct midnode* outputs)
 	{
 		if (current_call->ins != current_call->sub->inputparameters)
-			fatal("expected %d input parameters but got %d",
-				current_call->sub->inputparameters, current_call->ins);
+			fatal("expected %d input parameters but got %d when calling '%s'",
+				current_call->sub->inputparameters, current_call->ins,
+				current_call->sub->name);
 
 		/* Make the call. */
-		generate(mid_call0(inputs, current_call->sub));
+		generate(mid_call0(current_call->sub));
 		
 		/* Write back any output parameters. Remember that the output chain
 		 * has not been type checked (or even counted), so we have to do that
@@ -288,8 +299,8 @@ subroutinecallexpr(E) ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
 
 					struct midnode* lvalue = n->left;
 					n->left = NULL;
-					generate(mid_getparam(lvalue->type->u.type.element->u.type.width,
-						lvalue));
+					int w = lvalue->type->u.type.element->u.type.width;
+					generate(mid_store(w, lvalue, mid_popparam(w)));
 				}
 				outs++;
 				n = n->right;
@@ -303,43 +314,35 @@ subroutinecallexpr(E) ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
 	}
 }
 
-%destructor simplesubroutinecallstatement { current_call = current_call->next; }
-simplesubroutinecallstatement ::= subcall_begin optionalinputarguments(E1) CLOSEPAREN.
-{ subcall(E1, mid_end()); }
+%destructor simplesubroutinecallstatement { subcall_end(); }
+simplesubroutinecallstatement ::= subcall_begin optionalinputarguments CLOSEPAREN.
+{ subcall(mid_end()); }
 
-%destructor complexsubroutinecallstatement { current_call = current_call->next; }
+%destructor complexsubroutinecallstatement { subcall_end(); }
 complexsubroutinecallstatement ::= OPENPAREN optionaloutputarguments(E1) CLOSEPAREN
-	ASSIGN subcall_begin optionalinputarguments(E2) CLOSEPAREN.
-{ subcall(E2, E1); }
+	ASSIGN subcall_begin optionalinputarguments CLOSEPAREN.
+{ subcall(E1); }
 
-%type optionalinputarguments {struct midnode*}
-optionalinputarguments(E) ::= .
-{ E = mid_end(); }
-optionalinputarguments(E) ::= inputarguments(E1).
-{ E = E1; }
+optionalinputarguments ::= .
+optionalinputarguments ::= inputarguments.
 
-%type inputarguments {struct midnode*}
-inputarguments(E) ::= inputargument(E1).
-{ E = mid_setparam(E1->type->u.type.width, E1, mid_end()); }
+inputarguments ::= inputargument.
+inputarguments ::= inputarguments COMMA inputargument.
 
-inputarguments(E) ::= inputargument(E1) COMMA inputarguments(E2).
-{ E = mid_setparam(E1->type->u.type.width, E1, E2); }
-
-%type inputargument {struct midnode*}
-inputargument(E) ::= expression(E1).
+inputargument ::= expression(E).
 {
 	if (current_call->ins < current_call->sub->inputparameters)
 	{
 		struct symbol* param = current_call->inputparam;
 		current_call->inputparam = param->next;
 
-		check_expression_type(&E1->type, param->u.var.type);
+		check_expression_type(&E->type, param->u.var.type);
 	}
 	current_call->ins++;
-	E = E1;
+	generate(mid_pushparam(E->type->u.type.width, E));
 }
 
-/* The output argument list is a chain of PAIRs, non type checked (because
+/* The output argument list is a chain of POPPARAMs, non type checked (because
  * we haven't read the subroutine name yet and so don't know which subroutine
  * is being called). */
 
@@ -402,21 +405,18 @@ startrealsubroutine(oldsubout) ::= startsubroutine(oldsubin) subparameters.
 
 subparameters ::= parameterlist(INS).
 {
-	printf("1 ins=%d\n", INS);
 	current_sub->inputparameters = INS;
 	current_sub->outputparameters = 0;
 }
 
 subparameters ::= parameterlist(INS) COLON parameterlist(OUTS).
 {
-	printf("2 ins=%d outs=%d\n", INS, OUTS);
 	current_sub->inputparameters = INS;
 	current_sub->outputparameters = OUTS;
 }
 
 subparameters ::= parameterlist(INS) COLON OPENPAREN typeref(T) CLOSEPAREN.
 {
-	printf("3 ins=%d\n", INS);
 	current_sub->inputparameters = INS;
 	current_sub->outputparameters = 1;
     struct symbol* id = add_new_symbol(NULL, "__result");
