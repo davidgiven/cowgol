@@ -2,6 +2,7 @@
 	#include "globals.h"
 	#include "emitter.h"
 	#include "midcodes.h"
+	#include "compiler.h"
 	#include <bsd/string.h>
 	#include <ctype.h>
 
@@ -170,7 +171,7 @@ gen STARTSUB():s
         E("\tpop b\n");
         for (int i=$s.sub->inputparameters-1; i>=0; i--)
         {
-			struct symbol* param = $s.sub->namespace.firstsymbol;
+			Symbol* param = get_input_parameters($s.sub);
 			for (int j=0; j<i; j++)
 				param = param->next;
 
@@ -250,27 +251,11 @@ gen JUMP():j
 
 gen param := END();
 
-gen param := PUSHPARAM1(a|b|d|h:lhs, param)
+gen param := PUSHPARAM1(param, a|b|d|h:lhs)
 	{ E("\tpush %s\n", stkref($lhs)); }
 
-gen param := PUSHPARAM2(bc|de|hl:lhs, param)
+gen param := PUSHPARAM2(param, bc|de|hl:lhs)
 	{ E("\tpush %s\n", stkref($lhs)); }
-
-//statement: GETPARAM1(address:a)
-//{
-//	regalloc_alloc(REG_A);
-//	E("\tpop psw\n");
-//	E("\tsta %s\n", symref($a.sym, $a.off));
-//	regalloc_reg_contains_var(REG_A, $a.sym, $a.off);
-//}
-//
-//statement: GETPARAM2(address:a)
-//{
-//	regalloc_alloc(REG_HL);
-//	E("\tpop h\n");
-//	E("\tshld %s\n", symref($a.sym, $a.off));
-//	regalloc_reg_contains_var(REG_HL, $a.sym, $a.off);
-//}
 
 %{
 	static void call(Subroutine* sub)
@@ -305,16 +290,28 @@ gen bc|de|hl := CALL2(param):c
 	E("\tpop %s\n", stkref($$));
 }
 
-gen POPPARAM1(ADDRESS():a, param) uses a
+gen POPPARAM1(param, ADDRESS():a) uses a
 {
 	E("\tpop psw\n");
 	E("\tsta %s\n", symref($a.sym, $a.off));
 }
 
-gen param := POPPARAM1(ADDRESS():a, param) uses a
+gen param := POPPARAM1(param, ADDRESS():a) uses a
 {
 	E("\tpop psw\n");
 	E("\tsta %s\n", symref($a.sym, $a.off));
+}
+
+gen POPPARAM2(param, ADDRESS():a) uses hl
+{
+	E("\tpop hl\n");
+	E("\tshld %s\n", symref($a.sym, $a.off));
+}
+
+gen param := POPPARAM2(param, ADDRESS():a) uses hl
+{
+	E("\tpop hl\n");
+	E("\tshld %s\n", symref($a.sym, $a.off));
 }
 
 // --- Loads and stores --------------------------------------------------

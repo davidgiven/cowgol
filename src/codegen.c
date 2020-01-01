@@ -78,6 +78,14 @@ void generate(Node* node)
 {
 	arch_emit_comment("");
 
+	char* buffer = NULL;
+	size_t buffersize = 0;
+	FILE* fp = open_memstream(&buffer, &buffersize);
+	print_midnode(fp, node);
+	fflush(fp);
+	arch_emit_comment("%s", buffer);
+	fclose(fp);
+
 	memset(instructions, 0, sizeof(instructions));
 	memset(nodes, 0, sizeof(nodes));
 	instructioncount = 0;

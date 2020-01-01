@@ -228,16 +228,22 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 
 %include
 {
+	/* The input parameter list is *backwards*, with the top item on the chain
+	 * being the last parameter. Codegen happens depth first so the first item
+	 * pushed will be the first parameter. */
 	static void check_input_parameters(Subroutine* sub, Node* inputs)
 	{
-		Symbol* param = get_input_parameters(sub);
-
 		int ins = 0;
 		Node* node = inputs;
 		while (node->op != MIDCODE_END)
 		{
-			if (ins < sub->inputparameters)
+			int remaining = sub->inputparameters - ins;
+			if (remaining > 0)
 			{
+				Symbol* param = get_input_parameters(sub);
+				for (int i=0; i<remaining-1; i++)
+					param = param->next;
+
 				check_expression_type(&node->type, param->u.var.type);
 
 				/* The input parameter midnodes are PAIR because the parser couldn't
@@ -252,11 +258,9 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 					case 8: node->op = MIDCODE_PUSHPARAM8; break;
 					default: assert(false);
 				}
-
-				param = param->next;
 			}
 			ins++;
-			node = node->right;
+			node = node->left;
 		}
 
 		if (ins != sub->inputparameters)
@@ -278,7 +282,7 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 				param = param->next;
 			}
 			outs++;
-			node = node->right;
+			node = node->left;
 		}
 
 		if (outs != sub->outputparameters)
@@ -312,13 +316,13 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 		/* Find the last output parameter. */
 
 		Node* node = outputs;
-		while (node->right->op != MIDCODE_END)
-			node = node->right;
+		while (node->left->op != MIDCODE_END)
+			node = node->left;
 
 		/* Splice in the call instruction. */
 
-		discard(node->right);
-		node->right = mid_call0(inputs, sub);
+		discard(node->left);
+		node->left = mid_call0(inputs, sub);
 		return outputs;
 	}
 }
@@ -339,11 +343,12 @@ optionalinputarguments(R) ::= inputarguments(E1).
 
 %type inputarguments {struct midnode*}
 inputarguments(R) ::= inputargument(E).
-{ R = mid_pair(E, mid_end()); }
+{ R = mid_pair(mid_end(), E); }
 
-/* First item on the chain is the *first* input argument. */
-inputarguments(R) ::= inputargument(E) COMMA inputarguments(ES).
-{ R = mid_pair(E, ES); }
+/* First item on the chain is the *last* input argument (so that depth-first
+ * evaluation gets them in the right order). */
+inputarguments(R) ::= inputarguments(ES) COMMA inputargument(E).
+{ R = mid_pair(ES, E); }
 
 %type inputargument {struct midnode*}
 inputargument(R) ::= expression(E).
@@ -358,11 +363,11 @@ optionaloutputarguments(E) ::= outputarguments(E1).
 
 %type outputarguments {struct midnode*}
 outputarguments(E) ::= lvalue(E).
-{ E = mid_popparam(E->type->u.type.element->u.type.width, E, mid_end()); }
+{ E = mid_popparam(E->type->u.type.element->u.type.width, mid_end(), E); }
 
 /* First item on the chain is the *first* output argument. */
 outputarguments(E) ::= lvalue(E) COMMA outputarguments(ES).
-{ E = mid_popparam(E->type->u.type.element->u.type.width, E, ES); }
+{ E = mid_popparam(E->type->u.type.element->u.type.width, ES, E); }
 
 /* --- Subroutine definitions -------------------------------------------- */
 
