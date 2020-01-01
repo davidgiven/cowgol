@@ -411,3 +411,37 @@ Node* mid_c_sub(int width, Node* lhs, Node* rhs)
 	}
 	return mid_sub(width, lhs, rhs);
 }
+
+Node* mid_c_mul(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value *= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		Node* t = rhs;
+		rhs = lhs;
+		lhs = t;
+	}
+	if (rhs->op == MIDCODE_CONSTANT)
+	{
+		switch (rhs->u.constant.value)
+		{
+			case 1:
+				discard(rhs);
+				return lhs;
+
+			case -1:
+				discard(rhs);
+				return mid_neg(width, lhs);
+
+			case 0:
+				discard(lhs);
+				return rhs;
+		}
+	}
+	return mid_mul(width, lhs, rhs);
+}

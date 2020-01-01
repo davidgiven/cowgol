@@ -340,12 +340,21 @@ gen a := LOAD1(bc|de|hl:lhs)
 	}
 }
 
-gen hl := LOAD2(hl:lhs) uses a
+gen hl|bc|de := LOAD2(hl:lhs) uses a
 {
-	E("\tmov a, m\n");
-	E("\tinx h\n");
-	E("\tmov h, m\n");
-	E("\tmov l, a\n");
+	if ($$ == REG_HL)
+	{
+		E("\tmov a, m\n");
+		E("\tinx h\n");
+		E("\tmov h, m\n");
+		E("\tmov l, a\n");
+	}
+	else
+	{
+		E("\tmov %s, m\n", regref($$));
+		E("\tinx h\n");
+		E("\tmov %s, m\n", regreflo($$));
+	}
 }
 
 gen stk4 := LOAD4(ADDRESS():a) uses hl
@@ -377,11 +386,11 @@ gen STORE1(bc|de|hl:lhs, a)
 	}
 }
 
-gen STORE2(bc|de:lhs, hl) uses a
+gen STORE2(hl, bc|de:rhs) uses a
 {
-	E("\tmov m, %s\n", regreflo($lhs));
+	E("\tmov m, %s\n", regreflo($rhs));
 	E("\tinx h\n");
-	E("\tmov m, %s\n", regref($lhs));
+	E("\tmov m, %s\n", regref($rhs));
 }
 
 gen STORE1(ADDRESS():lhs, a)
@@ -491,8 +500,18 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
     E("\tmov a, %s\n", regreflo($lhs));
     E("\tsub %s\n", regreflo($rhs));
     E("\tmov %s, a\n", regreflo($$));
-    E("\tmov a, %s\n", regref($rhs));
+    E("\tmov a, %s\n", regref($lhs));
     E("\tsbb %s\n", regref($rhs));
+    E("\tmov %s, a\n", regref($$));
+}
+
+gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
+{
+    E("\txra a\n");
+    E("\tsub %s\n", regreflo($lhs));
+    E("\tmov %s, a\n", regreflo($$));
+	E("\tsbb a\n");
+    E("\tsub %s\n", regref($lhs));
     E("\tmov %s, a\n", regref($$));
 }
 
@@ -513,6 +532,9 @@ gen stk4 := ADD4(stk4, stk4)
 gen stk4 := SUB4(stk4, stk4)
 	{ E("\tcall sub4\n"); }
 
+gen stk4 := NEG4(stk4)
+	{ E("\tcall neg4\n"); }
+
 gen stk4 := RSHIFTU4(stk4, b)
 	{ E("\tcall lsr4\n"); }
 
@@ -528,10 +550,10 @@ gen stk4 := RSHIFTU4(stk4, b)
 %}
 
 gen BEQU1(a, b|d|h:nota):b
-{ bequ1($b.truelabel, $b.falselabel, $nota); }
+	{ bequ1($b.truelabel, $b.falselabel, $nota); }
 
 gen BEQS1(a, b|d|h:nota):b
-{ bequ1($b.truelabel, $b.falselabel, $nota); }
+	{ bequ1($b.truelabel, $b.falselabel, $nota); }
 
 gen BLTU1(a, CONSTANT():c):b
 {
@@ -554,37 +576,36 @@ gen BLTU1(a, CONSTANT():c):b
 %}
 
 gen BEQU2(hl|bc|de:lhs, hl|bc|de:rhs):b
-{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
+	{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
-{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
+	{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
 
-//statement: BLTU2(reg2, reg2):b
-//{
-//	reg_t rhs = regalloc_pop(REG_16);
-//	reg_t lhs = regalloc_pop(REG_16);
-//	regalloc_reg_changing(ALL_REGS);
-//	E("\tmov a, %s\n", regreflo(lhs));
-//	E("\tsub %s\n", regreflo(rhs));
-//	E("\tmov a, %s\n", regref(lhs));
-//	E("\tsbb %s\n", regref(rhs));
-//	E("\tjc %s\n", labelref($b.truelabel));
-//	E("\tjmp %s\n", labelref($b.falselabel));
-//}
-//
-//%{
-//	static void bequ4(int truelabel, int falselabel)
-//	{
-//		regalloc_reg_changing(ALL_REGS);
-//		E("\tcall sub4\n");
-//		E("\tcall cmpu4\n");
-//		E("\tjnz %s\n", labelref(falselabel));
-//		E("\tjmp %s\n", labelref(truelabel));
-//	}
-//%}
-//
-//statement: BEQS4(stk4, stk4):b
-//{ bequ4($b.truelabel, $b.falselabel); }
+gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
+{
+	E("\tmov a, %s\n", regreflo($lhs));
+	E("\tsub %s\n", regreflo($rhs));
+	E("\tmov a, %s\n", regref($lhs));
+	E("\tsbb %s\n", regref($rhs));
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+%{
+	static void bequ4(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
+	{
+		E("\tcall sub4\n");
+		E("\tcall cmpu4\n");
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tjmp %s\n", labelref(truelabel));
+	}
+%}
+
+gen BEQU4(stk4:lhs, stk4:rhs):b
+	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BEQS4(stk4:lhs, stk4:rhs):b
+	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 // --- Casts ----------------------------------------------------------------
 

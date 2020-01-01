@@ -520,7 +520,7 @@ expression(E) ::= MINUS expression(E1).                    { E = mid_c_neg(E1->t
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E = E1; }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E = expr_add(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E = expr_sub(E1, E2); }
-expression(E) ::= expression(E1) STAR expression(E2).      { E = expr_simple(E1, E2, mid_mul); }
+expression(E) ::= expression(E1) STAR expression(E2).      { E = expr_simple(E1, E2, mid_c_mul); }
 expression(E) ::= expression(E1) SLASH expression(E2).     { E = expr_signed(E1, E2, mid_divu, mid_divs); }
 expression(E) ::= expression(E1) PERCENT expression(E2).   { E = expr_signed(E1, E2, mid_remu, mid_rems); }
 expression(E) ::= expression(E1) CARET expression(E2).     { E = expr_simple(E1, E2, mid_eor); }
@@ -596,7 +596,7 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 	check_expression_type(&E2->type, intptr_type);
 	E = mid_add(intptr_type->u.type.width,
 		E1,
-		mid_mul(intptr_type->u.type.width,
+		mid_c_mul(intptr_type->u.type.width,
 			E2, mid_constant(arraytype->u.type.element->u.type.width)));
 	E->type = make_pointer_type(arraytype->u.type.element);
 }
