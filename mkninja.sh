@@ -40,10 +40,6 @@ rule mkpat
     command = lua scripts/mkpat.lua -- \$in \$out
     description = MKPAT \$in
 
-rule iburg
-    command = bin/iburg -I \$in \$out
-    description = IBURG \$in
-
 rule lemon
     command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
@@ -235,10 +231,6 @@ buildmkpat() {
     echo "build $out : mkpat $@ | scripts/mkpat.lua scripts/libcowgol.lua"
 }
 
-buildiburg() {
-    echo "build $1 : iburg $2 | bin/iburg"
-}
-
 buildnewgen() {
     rule \
         "bin/newgen $3 $1 $2" \
@@ -393,22 +385,6 @@ buildlibrary libnewgen.a \
 
 buildprogram newgen \
     libnewgen.a
-
-buildmkiburgcodes $OBJDIR/tools/iburg/iburgcodes.h src/midcodes.tab
-buildlemon $OBJDIR/tools/iburg/parser.c tools/iburg/parser.y
-buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
-
-buildlibrary libiburg.a \
-    -Itools/iburg \
-    -I$OBJDIR/tools/iburg \
-    --dep $OBJDIR/tools/iburg/parser.h \
-    $OBJDIR/tools/iburg/parser.c \
-    $OBJDIR/tools/iburg/lexer.c \
-    tools/iburg/iburg.c \
-    tools/iburg/utils.c
-
-buildprogram iburg \
-    libiburg.a
 
 buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
 buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
