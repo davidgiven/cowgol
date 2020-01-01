@@ -40,10 +40,6 @@ rule mkpat
     command = lua scripts/mkpat.lua -- \$in \$out
     description = MKPAT \$in
 
-rule iburg
-    command = bin/iburg -I \$in \$out
-    description = IBURG \$in
-
 rule lemon
     command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
@@ -115,6 +111,7 @@ cfile() {
 buildlibrary() {
     local lib
     lib=$1
+    objdir=${lib%%.a}.obj
     shift
 
     local flags
@@ -149,7 +146,7 @@ buildlibrary() {
                 ;;
 
             *)
-            obj="$OBJDIR/${src%%.c*}.o"
+            obj="$OBJDIR/$objdir/${src%%.c*}.o"
         esac
         objs="$objs $obj"
 
@@ -234,8 +231,12 @@ buildmkpat() {
     echo "build $out : mkpat $@ | scripts/mkpat.lua scripts/libcowgol.lua"
 }
 
-buildiburg() {
-    echo "build $1 : iburg $2 | bin/iburg"
+buildnewgen() {
+    rule \
+        "bin/newgen $3 $1 $2" \
+        "$3 bin/newgen" \
+        "$1 $2" \
+        "NEWGEN $3"
 }
 
 zmac8() {
@@ -369,29 +370,30 @@ buildlibrary libld80.a \
 buildprogram ld80 \
 	libld80.a
 
-buildmkiburgcodes $OBJDIR/tools/iburg/iburgcodes.h src/midcodes.tab
-buildlemon $OBJDIR/tools/iburg/parser.c tools/iburg/parser.y
-buildflex $OBJDIR/tools/iburg/lexer.c tools/iburg/lexer.l
+buildmkiburgcodes $OBJDIR/tools/newgen/iburgcodes.h src/midcodes.tab
+buildlemon $OBJDIR/tools/newgen/parser.c tools/newgen/parser.y
+buildflex $OBJDIR/tools/newgen/lexer.c tools/newgen/lexer.l
 
-buildlibrary libiburg.a \
-    -Itools/iburg \
-    -I$OBJDIR/tools/iburg \
-    --dep $OBJDIR/tools/iburg/parser.h \
-    $OBJDIR/tools/iburg/parser.c \
-    $OBJDIR/tools/iburg/lexer.c \
-    tools/iburg/iburg.c \
-    tools/iburg/utils.c
+buildlibrary libnewgen.a \
+    -Itools/newgen \
+    -I$OBJDIR/tools/newgen \
+    --dep $OBJDIR/tools/newgen/parser.h \
+    $OBJDIR/tools/newgen/parser.c \
+    $OBJDIR/tools/newgen/lexer.c \
+    tools/newgen/utils.c \
+    tools/newgen/main.c
 
-buildprogram iburg \
-    libiburg.a
+buildprogram newgen \
+    libnewgen.a
 
 buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
 buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
 
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
-buildiburg $OBJDIR/arch8080.c src/arch8080.pat
-buildiburg $OBJDIR/archc.c src/archc.pat
+#buildiburg $OBJDIR/arch8080.c src/arch8080.pat
+#buildiburg $OBJDIR/archc.c src/archc.pat
+buildnewgen $OBJDIR/arch8080/inssel.c $OBJDIR/arch8080/inssel.h src/arch8080.ng
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -403,8 +405,6 @@ buildlibrary libmain.a \
     $OBJDIR/midcodes.c \
     src/main.c \
     src/emitter.c \
-    src/regalloc.c \
-    src/midcode.c \
     src/compiler.c
 
 #buildlibrary libagc.a \
@@ -415,15 +415,18 @@ buildlibrary libmain.a \
 
 buildlibrary lib8080.a \
     -I$OBJDIR \
+    -I$OBJDIR/arch8080 \
     -Isrc \
     --dep $OBJDIR/midcodes.h \
-    $OBJDIR/arch8080.c \
+    --dep $OBJDIR/arch8080/inssel.h \
+    $OBJDIR/arch8080/inssel.c \
+    src/codegen.c \
 
-buildlibrary libc.a \
-    -I$OBJDIR \
-    -Isrc \
-    --dep $OBJDIR/midcodes.h \
-    $OBJDIR/archc.c \
+#buildlibrary libc.a \
+#    -I$OBJDIR \
+#    -Isrc \
+#    --dep $OBJDIR/midcodes.h \
+#    $OBJDIR/archc.c \
 
 #buildprogram tinycowc-agc \
 #    -lbsd \
@@ -435,9 +438,9 @@ buildprogram tinycowc-8080 \
     libmain.a \
     lib8080.a \
 
-buildprogram tinycowc-c \
-    libmain.a \
-    libc.a \
+#buildprogram tinycowc-c \
+#    libmain.a \
+#    libc.a \
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
 pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
@@ -484,15 +487,16 @@ test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
-test_c addsub-8bit
-test_c addsub-16bit
-test_c addsub-32bit
-test_c records
-test_c inputparams
-test_c outputparams
-test_c conditionals
+#test_c addsub-8bit
+#test_c addsub-16bit
+#test_c addsub-32bit
+#test_c records
+#test_c inputparams
+#test_c outputparams
+#test_c conditionals
 
+cowgol_cpm examples/empty.cow examples/empty.com
 cowgol_cpm examples/malloc.cow examples/malloc.com 
-cowgol_c examples/malloc.cow examples/malloc
+#cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et

@@ -1,17 +1,16 @@
 %{
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include "globals.h"
-#include "iburg.h"
-#include "parser.h"
+    #include <stdio.h>
+    #include <string.h>
+    #include <ctype.h>
+    #include "globals.h"
+    #include "parser.h"
 
-static int base = 0;
-static int nesting = 0;
-int number;
-const char* string;
-
+    static int base = 0;
+    static int nesting = 0;
+    int number;
+    const char* string;
 %}
+
 %x STRINGSTATE
 %x CSTRINGSTATE
 %x CSTRINGQSTATE
@@ -28,12 +27,24 @@ ID [A-Za-z][A-Za-z0-9_$]*
 ")"						  { return CLOSEPAREN; }
 ","                       { return COMMA; }
 ";"                       { return SEMICOLON; }
+":="                      { return ASSIGN; }
+"=="                      { return EQUALS; }
+"!="                      { return NOTEQUALS; }
+"-"                       { return MINUS; }
+"|"                       { return PIPE; }
 ":"                       { return COLON; }
-"costs"                   { return COSTS; }
+"compatible"              { return COMPATIBLE; }
+"register"                { return REGISTER; }
+"regdata"                 { return REGDATA; }
+"uses"                    { return USES; }
+"stacked"                 { return STACKED; }
+"gen"                     { return GEN; }
 
-\"                        { BEGIN(STRINGSTATE); }
-<STRINGSTATE>([^\"\\]|\\.)* { string = strdup(yytext); return STRING; }
-<STRINGSTATE>\"           { BEGIN(INITIAL); }
+\"                        { BEGIN(STRINGSTATE); return BEGINSTRING; }
+<STRINGSTATE>([^\"\\$]|\\.)* { string = strdup(yytext); return CSTRING; }
+<STRINGSTATE>\"           { BEGIN(INITIAL); return ENDSTRING; }
+<STRINGSTATE>\$\$         |
+<STRINGSTATE>\${ID}       { string = strdup(yytext+1); return CID; }
 <STRINGSTATE>.            { fatal("invalid string"); }
 
 "{"                       { BEGIN(CSTRINGSTATE); nesting = 1; return BEGINCSTRING; }

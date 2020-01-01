@@ -3,9 +3,10 @@
 #include <stdarg.h>
 #include <string.h>
 #include "globals.h"
-#include "midcode.h"
+#include "midcodes.h"
 #include "parser.h"
 #include "compiler.h"
+#include "codegen.h"
 
 int32_t number;
 struct subroutine* current_sub;
@@ -102,7 +103,7 @@ struct midnode* expr_add(struct midnode* lhs, struct midnode* rhs)
 	else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
 		fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
 
-	struct midnode* r = mid_add(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	struct midnode* r = mid_c_add(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
 	r->type = lhs->type;
 	return r;
 }
@@ -118,7 +119,7 @@ struct midnode* expr_sub(struct midnode* lhs, struct midnode* rhs)
 	else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
 		fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
 
-	struct midnode* r = mid_sub(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	struct midnode* r = mid_c_sub(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
 	if (is_ptr(lhs->type))
 		r->type = intptr_type;
 	else
@@ -354,22 +355,6 @@ void unescape(char* string)
 	}
 }
 
-void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off)
-{
-	node->type = type;
-	node->sym = sym;
-	node->off = off;
-	node->constant = true;
-}
-
-void node_is_stacked(struct exprnode* node, struct symbol* type)
-{
-	node->type = type;
-	node->sym = NULL;
-	node->off = 0;
-	node->constant = false;
-}
-
 struct token* make_string_token(const char* string)
 {
     struct token* token = calloc(1, sizeof(struct token));
@@ -391,4 +376,102 @@ void free_token(struct token* token)
     if (token->string)
         free(token->string);
     free(token);
+}
+
+Symbol* get_input_parameters(Subroutine* sub)
+{
+	return sub->namespace.firstsymbol;
+}
+
+Symbol* get_output_parameters(Subroutine* sub)
+{
+	Symbol* param = sub->namespace.firstsymbol;
+	for (int i=0; i<sub->inputparameters; i++)
+		param = param->next;
+	return param;
+}
+
+Node* mid_c_neg(int width, Node* lhs)
+{
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		lhs->u.constant.value *= -1;
+		return lhs;
+	}
+	return mid_neg(width, lhs);
+}
+
+Node* mid_c_add(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value += rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		Node* t = rhs;
+		rhs = lhs;
+		lhs = t;
+	}
+	if (rhs->op == MIDCODE_CONSTANT)
+	{
+		if (rhs->u.constant.value == 0)
+		{
+			discard(rhs);
+			return lhs;
+		}
+		if (lhs->op == MIDCODE_ADDRESS)
+		{
+			lhs->u.address.off += rhs->u.constant.value;
+			discard(rhs);
+			return lhs;
+		}
+	}
+	return mid_add(width, lhs, rhs);
+}
+
+Node* mid_c_sub(int width, Node* lhs, Node* rhs)
+{
+	if (rhs->op == MIDCODE_CONSTANT)
+	{
+		rhs->u.constant.value *= -1;
+		return mid_c_add(width, lhs, rhs);
+	}
+	return mid_sub(width, lhs, rhs);
+}
+
+Node* mid_c_mul(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value *= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		Node* t = rhs;
+		rhs = lhs;
+		lhs = t;
+	}
+	if (rhs->op == MIDCODE_CONSTANT)
+	{
+		switch (rhs->u.constant.value)
+		{
+			case 1:
+				discard(rhs);
+				return lhs;
+
+			case -1:
+				discard(rhs);
+				return mid_neg(width, lhs);
+
+			case 0:
+				discard(lhs);
+				return rhs;
+		}
+	}
+	return mid_mul(width, lhs, rhs);
 }

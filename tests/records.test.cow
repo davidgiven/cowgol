@@ -15,10 +15,10 @@ sub test_simple_record()
 	r1.c := 1;
 	r1.d := 0;
 
-	print("r1.a==0: "); if r1.a == 0 then yes(); else no(); end if;
-	print("r1.b==0: "); if r1.b == 0 then yes(); else no(); end if;
-	print("r1.c==1: "); if r1.c == 1 then yes(); else no(); end if;
-	print("r1.d==0: "); if r1.d == 0 then yes(); else no(); end if;
+	print("r1.a==0"); if r1.a == 0 then yes(); else no(); end if;
+	print("r1.b==0"); if r1.b == 0 then yes(); else no(); end if;
+	print("r1.c==1"); if r1.c == 1 then yes(); else no(); end if;
+	print("r1.d==0"); if r1.d == 0 then yes(); else no(); end if;
 end sub;
 
 sub test_nested_record()
@@ -39,10 +39,10 @@ sub test_nested_record()
 	r2.b.b := 1;
 	r2.c := 0;
 
-	print("r2.a==0: "); if r2.a == 0 then yes(); else no(); end if;
-	print("r2.b.a==0: "); if r2.b.a == 0 then yes(); else no(); end if;
-	print("r2.b.b==0: "); if r2.b.b == 1 then yes(); else no(); end if;
-	print("r2.c==0: "); if r2.c == 0 then yes(); else no(); end if;
+	print("r2.a==0"); if r2.a == 0 then yes(); else no(); end if;
+	print("r2.b.a==0"); if r2.b.a == 0 then yes(); else no(); end if;
+	print("r2.b.b==0"); if r2.b.b == 1 then yes(); else no(); end if;
+	print("r2.c==0"); if r2.c == 0 then yes(); else no(); end if;
 end sub;
 
 sub test_pointer()
@@ -60,10 +60,10 @@ sub test_pointer()
 	rp.c := 1;
 	rp.d := 0;
 
-	print("rp.a==0: "); if rp.a == 0 then yes(); else no(); end if;
-	print("rp.b==0: "); if rp.b == 0 then yes(); else no(); end if;
-	print("rp.c==1: "); if rp.c == 1 then yes(); else no(); end if;
-	print("rp.d==0: "); if rp.d == 0 then yes(); else no(); end if;
+	print("rp.a==0"); if rp.a == 0 then yes(); else no(); end if;
+	print("rp.b==0"); if rp.b == 0 then yes(); else no(); end if;
+	print("rp.c==1"); if rp.c == 1 then yes(); else no(); end if;
+	print("rp.d==0"); if rp.d == 0 then yes(); else no(); end if;
 end sub;
 
 sub test_with_array()
@@ -80,15 +80,30 @@ sub test_with_array()
 	r4.b[2] := 0;
 	r4.c := 0;
 
-	print("r4.a==0: "); if r4.a == 0 then yes(); else no(); end if;
-	print("r4.b[0]==0: "); if r4.b[0] == 0 then yes(); else no(); end if;
-	print("r4.b[1]==1: "); if r4.b[1] == 1 then yes(); else no(); end if;
-	print("r4.b[2]==0: "); if r4.b[2] == 0 then yes(); else no(); end if;
-	print("r4.c==0: "); if r4.c == 0 then yes(); else no(); end if;
+	print("r4.a==0"); if r4.a == 0 then yes(); else no(); end if;
+	print("r4.b[0]==0"); if r4.b[0] == 0 then yes(); else no(); end if;
+	print("r4.b[1]==1"); if r4.b[1] == 1 then yes(); else no(); end if;
+	print("r4.b[2]==0"); if r4.b[2] == 0 then yes(); else no(); end if;
+	print("r4.c==0"); if r4.c == 0 then yes(); else no(); end if;
+end sub;
+
+sub test_chain_pointer()
+	record Pointer
+		next: [Pointer];
+	end record;
+
+	var r: Pointer;
+	r.next := &r;
+	var p := &r;
+
+	print("p==&r"); if p == &r then yes(); else no(); end if;
+	print("p.next==&r"); if p.next == &r then yes(); else no(); end if;
+	print("p.next.next==&r"); if p.next.next == &r then yes(); else no(); end if;
 end sub;
 
 test_simple_record();
 test_nested_record();
 test_pointer();
 test_with_array();
+test_chain_pointer();
 

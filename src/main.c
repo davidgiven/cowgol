@@ -1,13 +1,9 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <unistd.h>
 #include "globals.h"
 #include "emitter.h"
-#include "midcode.h"
+#include "midcodes.h"
 #include "compiler.h"
 #include "parser.h"
+#include "codegen.h"
 
 struct includepath* includes;
 static const char* inputfile;

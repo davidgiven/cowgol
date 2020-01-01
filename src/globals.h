@@ -1,12 +1,14 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include <unistd.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <string.h>
 #include <limits.h>
 
 extern void fatal(const char* s, ...);
@@ -34,6 +36,24 @@ struct namespace
 	struct namespace* parent;
 };
 
+typedef struct midnode Node;
+
+typedef uint32_t reg_t;
+typedef struct reg Register;
+struct reg
+{
+	const char* name;
+	reg_t id;
+	reg_t uses;
+	reg_t compatible;
+	bool isstacked;
+};
+
+typedef struct instruction Instruction;
+typedef struct spill Spill;
+typedef struct reload Reload;
+
+typedef struct symbol Symbol;
 struct symbol
 {
 	int kind;
@@ -69,6 +89,7 @@ struct symbol
 	u;
 };
 
+typedef struct subroutine Subroutine;
 struct subroutine
 {
 	const char* name;
@@ -79,14 +100,6 @@ struct subroutine
 	int outputparameters;
 	int old_break_label;
 	struct subarch* arch;
-};
-
-struct exprnode
-{
-	struct symbol* type;
-	struct symbol* sym; /* or NULL for a numeric constant */
-	int32_t off;
-	bool constant : 1;
 };
 
 struct includepath
@@ -119,6 +132,7 @@ extern void arch_init_types(void);
 extern void arch_init_subroutine(struct subroutine* sub);
 extern void arch_init_variable(struct symbol* var);
 extern void arch_emit_comment(const char* text, ...);
+extern void arch_emit_move(reg_t src, reg_t dest);
 
 #endif
 

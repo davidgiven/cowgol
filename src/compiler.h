@@ -35,9 +35,6 @@ extern struct symbol* make_array_type(struct symbol* type, int32_t size);
 extern void check_expression_type(struct symbol** node, struct symbol* type);
 extern void unescape(char* string);
 
-extern void node_is_constant(struct exprnode* node, struct symbol* type, struct symbol* sym, int32_t off);
-extern void node_is_stacked(struct exprnode* node, struct symbol* type);
-
 extern void push_type(void);
 extern void pop_type(void);
 
@@ -51,8 +48,16 @@ extern struct token* make_string_token(const char* string);
 extern struct token* make_number_token(int32_t number);
 extern void free_token(struct token* token);
 
+extern Symbol* get_input_parameters(Subroutine* sub);
+extern Symbol* get_output_parameters(Subroutine* sub);
+
 extern void* ParseAlloc(void *(*allocator)(size_t size));
 extern void ParseTrace(FILE* file, char* prompt);
 extern void Parse(void* parser, int token, struct token* minor);
+
+extern Node* mid_c_neg(int width, Node* lhs);
+extern Node* mid_c_add(int width, Node* lhs, Node* rhs);
+extern Node* mid_c_sub(int width, Node* lhs, Node* rhs);
+extern Node* mid_c_mul(int width, Node* lhs, Node* rhs);
 
 #endif

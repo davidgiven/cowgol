@@ -21,21 +21,21 @@ oneint16(42);
 
 sub twoint16(i1: int16, i2: int16)
     print("twoint16: ");
-    if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
+    if (i1 == 42) and (i2 == 999) then yes(); else no(); end if;
 end sub;
-twoint16(42, 99);
+twoint16(42, 999);
 
 sub mixed1(i1: int8, i2: int16)
     print("mixed1: ");
-    if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
+    if (i1 == 42) and (i2 == 999) then yes(); else no(); end if;
 end sub;
-mixed1(42, 99);
+mixed1(42, 999);
 
 sub mixed2(i1: int16, i2: int8)
     print("mixed2: ");
-    if (i1 == 42) and (i2 == 99) then yes(); else no(); end if;
+    if (i1 == 420) and (i2 == 99) then yes(); else no(); end if;
 end sub;
-mixed2(42, 99);
+mixed2(420, 99);
 
 sub lots(i1: int8, i2: int8, i3: int8, i4: int8, i5: int8, i6: int8)
 	print("lots: ");
