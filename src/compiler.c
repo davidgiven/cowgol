@@ -103,7 +103,7 @@ struct midnode* expr_add(struct midnode* lhs, struct midnode* rhs)
 	else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
 		fatal("you tried to add a %s and a %s", lhs->type->name, rhs->type->name);
 
-	struct midnode* r = mid_add(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
+	struct midnode* r = mid_c_add(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
 	r->type = lhs->type;
 	return r;
 }
@@ -401,13 +401,43 @@ Node* mid_c_neg(int width, Node* lhs)
 	return mid_neg(width, lhs);
 }
 
-Node* mid_c_sub(int width, Node* lhs, Node* rhs)
+Node* mid_c_add(int width, Node* lhs, Node* rhs)
 {
 	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
 	{
-		lhs->u.constant.value -= rhs->u.constant.value;
+		lhs->u.constant.value += rhs->u.constant.value;
 		discard(rhs);
 		return lhs;
+	}
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		Node* t = rhs;
+		rhs = lhs;
+		lhs = t;
+	}
+	if (rhs->op == MIDCODE_CONSTANT)
+	{
+		if (rhs->u.constant.value == 0)
+		{
+			discard(rhs);
+			return lhs;
+		}
+		if (lhs->op == MIDCODE_ADDRESS)
+		{
+			lhs->u.address.off += rhs->u.constant.value;
+			discard(rhs);
+			return lhs;
+		}
+	}
+	return mid_add(width, lhs, rhs);
+}
+
+Node* mid_c_sub(int width, Node* lhs, Node* rhs)
+{
+	if (rhs->op == MIDCODE_CONSTANT)
+	{
+		rhs->u.constant.value *= -1;
+		return mid_c_add(width, lhs, rhs);
 	}
 	return mid_sub(width, lhs, rhs);
 }

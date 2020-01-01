@@ -56,6 +56,7 @@ extern void ParseTrace(FILE* file, char* prompt);
 extern void Parse(void* parser, int token, struct token* minor);
 
 extern Node* mid_c_neg(int width, Node* lhs);
+extern Node* mid_c_add(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_sub(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_mul(int width, Node* lhs, Node* rhs);
 

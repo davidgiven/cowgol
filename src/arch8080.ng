@@ -168,6 +168,7 @@ gen STARTSUB():s
     E("\tcseg\n");
     if ($s.sub->externname)
         E("\tpublic %s\n", $s.sub->externname);
+    E("\tpublic %s\n", subref($s.sub));
     E("%s:\n", subref($s.sub));
 
     if ($s.sub->inputparameters != 0)
@@ -179,15 +180,27 @@ gen STARTSUB():s
 			for (int j=0; j<i; j++)
 				param = param->next;
 
-			if (param->u.var.type->u.type.width == 1)
+			switch (param->u.var.type->u.type.width)
 			{
-				E("\tpop psw\n");
-				E("\tsta %s\n", symref(param, 0));
-			}
-			else
-			{
-				E("\tpop h\n");
-				E("\tshld %s\n", symref(param, 0));
+				case 1:
+					E("\tpop psw\n");
+					E("\tsta %s\n", symref(param, 0));
+					break;
+
+				case 2:
+					E("\tpop h\n");
+					E("\tshld %s\n", symref(param, 0));
+					break;
+
+				case 4:
+					E("\tpop h\n");
+					E("\tshld %s\n", symref(param, 0));
+					E("\tpop h\n");
+					E("\tshld %s\n", symref(param, 2));
+					break;
+
+				default:
+					assert(false);
 			}
         }
         E("\tpush b\n");
@@ -260,6 +273,8 @@ gen param := PUSHPARAM1(param, a|b|d|h:lhs)
 
 gen param := PUSHPARAM2(param, bc|de|hl:lhs)
 	{ E("\tpush %s\n", stkref($lhs)); }
+
+gen param := PUSHPARAM4(param, stk4);
 
 %{
 	static void call(Subroutine* sub)
@@ -355,9 +370,9 @@ gen hl|bc|de := LOAD2(hl:lhs) uses a
 	}
 	else
 	{
-		E("\tmov %s, m\n", regref($$));
-		E("\tinx h\n");
 		E("\tmov %s, m\n", regreflo($$));
+		E("\tinx h\n");
+		E("\tmov %s, m\n", regref($$));
 	}
 }
 
@@ -667,13 +682,12 @@ gen BEQS4(stk4:lhs, stk4:rhs):b
 gen a|b|d|h := CAST21(bc|de|hl:rhs)
 	{ E("\tmov %s, %s\n", regref($$), regref($rhs)); }
 	
-//stk4: CAST24(reg2)
-//{
-//	reg_t r = regalloc_pop(REG_16);
-//	regalloc_push(regalloc_load_const(REG_16, 0));
-//	regalloc_push(r);
-//	regalloc_flush_stack();
-//}
+gen stk4 := CAST24(hl|de:rhs) uses bc
+{
+	E("\tlxi b, 0\n");
+	E("\tpush b\n");
+	E("\tpush %s\n", regref($rhs));
+}
 	
 gen a|d := CAST41(stk4) uses hl|bc
 {
@@ -682,14 +696,11 @@ gen a|d := CAST41(stk4) uses hl|bc
 	E("\tmov %s, c\n", regref($$));
 }
 	
-//reg2: CAST42(stk4)
-//{
-//	reg_t hi = regalloc_alloc(REG_16);
-//	reg_t lo = regalloc_alloc(REG_16);
-//	E("\tpop %s\n", regname(lo));
-//	E("\tpop %s\n", regname(hi));
-//	regalloc_push(lo);
-//}
+gen hl|de := CAST41(stk4) uses bc
+{
+	E("\tpop b\n");
+	E("\tpop %s\n", regref($$));
+}
 	
 // --- Inline assembly ------------------------------------------------------
 

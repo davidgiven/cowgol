@@ -9,6 +9,24 @@ var freeList: [FreeBlock] := TOP as [FreeBlock];
 freeList.next := freeList;
 freeList.size := HIMEM - TOP;
 
+sub DumpBlocks()
+	var p := freeList;
+	loop
+		print("block ");
+		print_hex_i32(p as intptr as int32);
+		print("+");
+		print_hex_i32(p.size as intptr as int32);
+		print(" -> ");
+		print_hex_i32(p.next as intptr as int32);
+		print_nl();
+
+		p := p.next;
+		if p == freeList then
+			break;
+		end if;
+	end loop;
+end sub;
+
 sub Alloc(length: intptr): (block: [uint8])
 	var prev := freeList;
 	var p := prev.next;
@@ -113,6 +131,8 @@ print("Free memory: 0x");
 print_hex_i32(i as uint32);
 print_nl();
 
+DumpBlocks();
+
 var p := Alloc(100);
 print("Block allocated at: 0x");
 print_hex_i32(p as intptr as uint32);
@@ -123,8 +143,12 @@ print("Free memory: 0x");
 print_hex_i32(i as uint32);
 print_nl();
 
+DumpBlocks();
+
 print("Freeing block\n");
 Free(p, 100);
+
+DumpBlocks();
 
 i := GetFreeMemory();
 print("Free memory: 0x");

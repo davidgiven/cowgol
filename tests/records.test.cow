@@ -87,8 +87,23 @@ sub test_with_array()
 	print("r4.c==0"); if r4.c == 0 then yes(); else no(); end if;
 end sub;
 
+sub test_chain_pointer()
+	record Pointer
+		next: [Pointer];
+	end record;
+
+	var r: Pointer;
+	r.next := &r;
+	var p := &r;
+
+	print("p==&r"); if p == &r then yes(); else no(); end if;
+	print("p.next==&r"); if p.next == &r then yes(); else no(); end if;
+	print("p.next.next==&r"); if p.next.next == &r then yes(); else no(); end if;
+end sub;
+
 test_simple_record();
 test_nested_record();
 test_pointer();
 test_with_array();
+test_chain_pointer();
 

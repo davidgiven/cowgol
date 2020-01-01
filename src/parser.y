@@ -599,7 +599,7 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 			fatal("array indices must be numbers");
 	
 	check_expression_type(&E2->type, intptr_type);
-	E = mid_add(intptr_type->u.type.width,
+	E = mid_c_add(intptr_type->u.type.width,
 		E1,
 		mid_c_mul(intptr_type->u.type.width,
 			E2, mid_constant(arraytype->u.type.element->u.type.width)));
@@ -629,7 +629,7 @@ lvalue(E) ::= lvalue(E1) DOT ID(X).
 	if (!member)
 		fatal("%s does not contain member '%s'", record->name, X->string);
 
-	E = mid_add(intptr_type->u.type.width, E1, mid_constant(member->u.var.offset));
+	E = mid_c_add(intptr_type->u.type.width, E1, mid_constant(member->u.var.offset));
 	E->type = make_pointer_type(member->u.var.type);
 }
 
