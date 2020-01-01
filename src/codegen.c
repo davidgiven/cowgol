@@ -74,6 +74,50 @@ static bool isstacked(reg_t reg)
 	assert(false);
 }
 
+static Spill* create_spill(Instruction* instruction, reg_t src, reg_t dest)
+{
+	Spill* spill = calloc(sizeof(Spill), 1);
+	spill->src = src;
+	spill->dest = dest;
+	spill->next = instruction->first_spill;
+	instruction->first_spill = spill;
+	return spill;
+}
+
+static Reload* create_reload(Instruction* instruction, reg_t src, reg_t dest)
+{
+	Reload* reload = calloc(sizeof(Reload), 1);
+	reload->src = src;
+	reload->dest = dest;
+	if (!instruction->first_reload)
+		instruction->first_reload = reload;
+	if (instruction->last_reload)
+		instruction->last_reload->next = reload;
+	instruction->last_reload = reload;
+	return reload;
+}
+
+static reg_t calculate_blocked_registers(Instruction* start, Instruction* end)
+{
+	reg_t blocked = 0;
+	while (start <= end)
+	{
+		blocked |= (start->input_regs | start->output_regs);
+		start++;
+	}
+	return blocked;
+}
+
+static void block_registers(Instruction* start, Instruction* end, reg_t blocked)
+{
+	while (start <= end)
+	{
+		start->input_regs |= blocked;
+		start->output_regs |= blocked;
+		start++;
+	}
+}
+
 void generate(Node* node)
 {
 	arch_emit_comment("");
@@ -112,32 +156,41 @@ void generate(Node* node)
 			{
 				/* Locate the register's consumer and allocate something. */
 
-				reg_t blocked = producer->output_regs;
-				Instruction* consumer = producer-1;
-				while (consumer > n->consumer)
-				{
-					blocked |= (consumer->input_regs | consumer->output_regs);
-					consumer--;
-				}
-				blocked |= consumer->input_regs;
+				Instruction* consumer = n->consumer;
+				reg_t blocked = calculate_blocked_registers(consumer+1, producer-1);
 
 				reg_t candidate = n->desired_reg & producer->producable_regs;
-				if (candidate && !(candidate & blocked))
+				if (candidate & ~(blocked | producer->output_regs | consumer->input_regs))
 				{
 					/* Good news --- we can allocate the ideal register for both
 					 * producer and consumer. */
 
-					candidate = findfirst(candidate);
+					candidate = findfirst(candidate & ~(blocked | producer->output_regs | consumer->input_regs));
 					n->produced_reg = producer->produced_reg = candidate;
 
 					blocked = find_conflicting_registers(candidate);
 					consumer->input_regs |= blocked;
+					block_registers(consumer+1, producer-1, blocked);
+					producer->output_regs |= blocked;
+				}
+				else if (producer->producable_regs & ~(blocked | producer->output_regs))
+				{
+					/* The producer and consumer want different registers, but the
+					 * producer's register works up until the consumer. */
+
+					producer->produced_reg = findfirst(
+						producer->producable_regs & ~(blocked | producer->output_regs));
+					n->produced_reg = findfirst(n->desired_reg & ~consumer->input_regs);
+
+					consumer->input_regs |= find_conflicting_registers(n->produced_reg);
+					blocked = find_conflicting_registers(producer->produced_reg);
 					for (Instruction* i=consumer+1; i<producer; i++)
 					{
 						i->input_regs |= blocked;
 						i->output_regs |= blocked;
 					}
 					producer->output_regs |= blocked;
+					create_reload(consumer, producer->produced_reg, n->produced_reg);
 				}
 				else
 				{
@@ -148,25 +201,14 @@ void generate(Node* node)
 						deadlock();
 					producer->produced_reg = findfirst(candidate);
 					producer->output_regs |= find_conflicting_registers(producer->produced_reg);
-					Spill* spill = calloc(sizeof(Spill), 1);
-					spill->src = producer->produced_reg;
-					spill->dest = 0;
-					spill->next = producer->first_spill;
-					producer->first_spill = spill;
+					create_spill(producer, producer->produced_reg, 0);
 
 					candidate = n->desired_reg & ~consumer->input_regs;
 					if (!candidate)
 						deadlock();
 					n->produced_reg = findfirst(candidate);
 					consumer->input_regs |= find_conflicting_registers(n->produced_reg);
-					Reload* reload = calloc(sizeof(Reload), 1);
-					reload->src = 0;
-					reload->dest = n->produced_reg;
-					if (!consumer->first_reload)
-						consumer->first_reload = reload;
-					if (consumer->last_reload)
-						consumer->last_reload->next = reload;
-					consumer->last_reload = reload;
+					create_reload(consumer, 0, n->produced_reg);
 				}
 			}
 		}

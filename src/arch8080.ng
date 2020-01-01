@@ -109,7 +109,11 @@
 		else if (!dest)
 			E("\tpush %s\n", stkref(src));
 		else
-			fatal("moves unimplemented");
+		{
+			E("\tmov %s, %s\n", regref(dest), regref(src));
+			if (src & (REG_HL|REG_BC|REG_DE))
+				E("\tmov %s, %s\n", regreflo(dest), regreflo(src));
+		}
 	}
 
 	void arch_emit_comment(const char* text, ...)
