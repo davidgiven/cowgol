@@ -337,6 +337,9 @@ gen a := LOAD1(bc|de|hl:lhs)
 	}
 }
 
+gen a := LOAD1(ADDRESS():a)
+	{ E("\tlda %s\n", symref($a.sym, $a.off)); }
+
 gen hl|bc|de := LOAD2(hl:lhs) uses a
 {
 	if ($$ == REG_HL)
@@ -353,6 +356,9 @@ gen hl|bc|de := LOAD2(hl:lhs) uses a
 		E("\tmov %s, m\n", regreflo($$));
 	}
 }
+
+gen hl := LOAD2(ADDRESS():a)
+	{ E("\tlhld %s\n", symref($a.sym, $a.off)); }
 
 gen stk4 := LOAD4(ADDRESS():a) uses hl
 {
@@ -552,6 +558,30 @@ gen BEQU1(a, b|d|h:nota):b
 gen BEQS1(a, b|d|h:nota):b
 	{ bequ1($b.truelabel, $b.falselabel, $nota); }
 
+%{
+	static void bequ1c(int truelabel, int falselabel, int c)
+	{
+		if (!c)
+			E("\tora a\n");
+		else
+			E("\tcpi %d\n", c);
+		E("\tjz %s\n", labelref(truelabel));
+		E("\tjnz %s\n", labelref(falselabel));
+	}
+%}
+	
+gen BEQU1(a, CONSTANT():c):b
+	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+
+gen BEQS1(a, CONSTANT():c):b
+	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+
+gen BEQU1(CONSTANT():c, a):b
+	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+
+gen BEQS1(CONSTANT():c, a):b
+	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+
 gen BLTU1(a, CONSTANT():c):b
 {
 	E("\tcpi %d\n", $c.value);
@@ -577,6 +607,30 @@ gen BEQU2(hl|bc|de:lhs, hl|bc|de:rhs):b
 
 gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
 	{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+%{
+	static void bequ2c(int truelabel, int falselabel, reg_t lhs, int c)
+	{
+		E("\tlxi d, 0x%x\n", (-c) & 0xffff);
+		E("\tdad d\n");
+		E("\tmov a, l\n");
+		E("\tora h\n");
+		E("\tjnz %s\n", labelref(falselabel));
+		E("\tjmp %s\n", labelref(truelabel));
+	}
+%}
+
+gen BEQU2(hl:lhs, CONSTANT():rhs):b uses de|a
+	{ bequ2c($b.truelabel, $b.falselabel, $lhs, $rhs.value); }
+
+gen BEQS2(hl:lhs, CONSTANT():rhs):b uses de|a
+	{ bequ2c($b.truelabel, $b.falselabel, $lhs, $rhs.value); }
+
+gen BEQU2(CONSTANT():lhs, hl:rhs):b uses de|a
+	{ bequ2c($b.truelabel, $b.falselabel, $rhs, $lhs.value); }
+
+gen BEQS2(CONSTANT():lhs, hl:rhs):b uses de|a
+	{ bequ2c($b.truelabel, $b.falselabel, $rhs, $lhs.value); }
 
 gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 {
