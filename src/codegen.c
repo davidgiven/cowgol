@@ -192,6 +192,21 @@ void generate(Node* node)
 					producer->output_regs |= blocked;
 					create_reload(consumer, producer->produced_reg, n->produced_reg);
 				}
+				else if (n->desired_reg & ~(blocked | consumer->input_regs))
+				{
+					/* The producer and consumer want different registers, but the
+					 * consumer's register works after the producer. */
+
+					producer->produced_reg = findfirst(
+						producer->producable_regs & ~producer->output_regs);
+					n->produced_reg = findfirst(n->desired_reg & ~(blocked | consumer->input_regs));
+
+					blocked = find_conflicting_registers(producer->produced_reg);
+					consumer->input_regs |= blocked;
+					block_registers(consumer+1, producer-1, blocked);
+					producer->output_regs |= find_conflicting_registers(producer->produced_reg);
+					create_spill(producer, producer->produced_reg, n->produced_reg);
+				}
 				else
 				{
 					/* Bad news --- we can't allocate any registers. So, spill to the stack. */

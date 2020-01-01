@@ -556,10 +556,10 @@ gen stk4 := RSHIFTU4(stk4, b)
 	}
 %}
 
-gen BEQU1(a, b|d|h:nota):b
+gen BEQU1(b|d|h:nota, a):b
 	{ bequ1($b.truelabel, $b.falselabel, $nota); }
 
-gen BEQS1(a, b|d|h:nota):b
+gen BEQS1(b|d|h:nota, a):b
 	{ bequ1($b.truelabel, $b.falselabel, $nota); }
 
 %{
