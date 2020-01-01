@@ -102,6 +102,7 @@
 		return buffer;
 	}
 
+	/* Note! This is allowed to destroy the source register. */
 	void arch_emit_move(reg_t src, reg_t dest)
 	{
 		if (!src)
@@ -110,9 +111,15 @@
 			E("\tpush %s\n", stkref(src));
 		else
 		{
-			E("\tmov %s, %s\n", regref(dest), regref(src));
-			if (src & (REG_HL|REG_BC|REG_DE))
-				E("\tmov %s, %s\n", regreflo(dest), regreflo(src));
+			if (((src == REG_HL) && (dest == REG_DE)) ||
+			    ((src == REG_DE) && (dest == REG_HL)))
+				E("\txchg\n");
+			else
+			{
+				E("\tmov %s, %s\n", regref(dest), regref(src));
+				if (src & (REG_HL|REG_BC|REG_DE))
+					E("\tmov %s, %s\n", regreflo(dest), regreflo(src));
+			}
 		}
 	}
 
@@ -460,8 +467,20 @@ gen a := ADD1(a, CONSTANT():rhs)
 gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==1))
 	{ E("\tinc %s\n", regref($lhs)); }
 
+gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==2))
+{
+	E("\tinc %s\n", regref($lhs));
+	E("\tinc %s\n", regref($lhs));
+}
+
 gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-1))
 	{ E("\tdec %s\n", regref($lhs)); }
+
+gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-2))
+{
+	E("\tdec %s\n", regref($lhs));
+	E("\tdec %s\n", regref($lhs));
+}
 
 gen a := SUB1(a, b|d|h:rhs)
 	{ E("\tsub %s\n", regref($rhs)); }
@@ -515,6 +534,24 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	}
 		
 	E("\tdad %s\n", regref(($lhs != REG_HL) ? $lhs : $rhs));
+}
+
+gen hl := ADD2(hl, CONSTANT(value==1))
+	{ E("\tinx h\n"); }
+
+gen hl := ADD2(hl, CONSTANT(value==2))
+{
+	E("\tinx h\n");
+	E("\tinx h\n");
+}
+
+gen hl := ADD2(hl, CONSTANT(value==-1))
+	{ E("\tdcx h\n"); }
+
+gen hl := ADD2(hl, CONSTANT(value==-2))
+{
+	E("\tdcx h\n");
+	E("\tdcx h\n");
 }
 
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
