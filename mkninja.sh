@@ -296,6 +296,14 @@ cowgol_cpm() {
 	rule "dd if=$base.bin of=$2 bs=128 skip=2 status=none" "$base.bin" "$2" "DD $1"
 }
 
+test_cpm() {
+	local base
+	base=$OBJDIR/tests/cpm/$1
+	cowgol_cpm tests/$1.test.cow $base.com tests/_framework.coh
+	rule "bin/cpmemu $base.com > $base.bad" "bin/cpmemu $base.com" "$base.bad" "TEST_CPM $1"
+	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
+}
+
 cowgol_thumb2_s() {
 	local in
 	local out
@@ -325,11 +333,11 @@ cowgol_thumb2_linux() {
         "LD $1"
 }
 
-test_cpm() {
+test_thumb2_linux() {
 	local base
-	base=$OBJDIR/tests/cpm/$1
-	cowgol_cpm tests/$1.test.cow $base.com tests/_framework.coh
-	rule "bin/cpmemu $base.com > $base.bad" "bin/cpmemu $base.com" "$base.bad" "TEST_CPM $1"
+	base=$OBJDIR/tests/thumb2-linux/$1
+	cowgol_thumb2_linux tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_THUMB2 $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -539,6 +547,8 @@ test_cpm records
 test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
+
+test_thumb2_linux addsub-32bit
 
 #test_c addsub-8bit
 #test_c addsub-16bit

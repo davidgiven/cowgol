@@ -224,12 +224,12 @@ gen ENDSUB():s
     emitter_close_chunk();
 }
 
-//// --- Control flow ------------------------------------------------------
-//
-//gen RETURN()
-//{
-//	E("\tjmp end_%s\n", subref(current_sub));
-//}
+// --- Control flow ------------------------------------------------------
+
+gen RETURN()
+{
+	E("\tb end_%s\n", subref(current_sub));
+}
 
 gen LABEL():b
 {
@@ -321,7 +321,7 @@ gen reg := CONSTANT():c
 	if (!($c.value & 0xffffff00))
 		E("\tmov %s, #0x%x\n", regref($$), $c.value);
 	else
-		fatal("constant too big");
+		E("\tldr %s, =0x%x\n", regref($$), $c.value);
 }
 
 gen reg := ADDRESS():a
@@ -329,94 +329,20 @@ gen reg := ADDRESS():a
 
 // --- Loads and stores --------------------------------------------------
 
-//gen a := LOAD1(bc|de|hl:lhs)
-//{
-//	switch ($lhs)
-//	{
-//		case REG_BC:
-//			E("\tldax b\n");
-//			break;
-//
-//		case REG_DE:
-//			E("\tldax d\n");
-//			break;
-//
-//		case REG_HL:
-//			E("\tmov a, m\n");
-//			break;
-//
-//		default:
-//			assert(false);
-//	}
-//}
-//
-//gen a := LOAD1(ADDRESS():a)
-//	{ E("\tlda %s\n", symref($a.sym, $a.off)); }
-//
-//gen hl|bc|de := LOAD2(hl:lhs) uses a
-//{
-//	if ($$ == REG_HL)
-//	{
-//		E("\tmov a, m\n");
-//		E("\tinx h\n");
-//		E("\tmov h, m\n");
-//		E("\tmov l, a\n");
-//	}
-//	else
-//	{
-//		E("\tmov %s, m\n", regreflo($$));
-//		E("\tinx h\n");
-//		E("\tmov %s, m\n", regref($$));
-//	}
-//}
-//
-//gen hl := LOAD2(ADDRESS():a)
-//	{ E("\tlhld %s\n", symref($a.sym, $a.off)); }
-//
-//gen stk4 := LOAD4(ADDRESS():a) uses hl
-//{
-//	E("\tlhld %s\n", symref($a.sym, $a.off+2));
-//	E("\tpush h\n");
-//	E("\tlhld %s\n", symref($a.sym, $a.off+0));
-//	E("\tpush h\n");
-//}
-//
-//gen STORE1(bc|de|hl:lhs, a)
-//{
-//	switch ($lhs)
-//	{
-//		case REG_BC:
-//			E("\tstax b\n");
-//			break;
-//
-//		case REG_DE:
-//			E("\tstax d\n");
-//			break;
-//
-//		case REG_HL:
-//			E("\tmov m, a\n");
-//			break;
-//
-//		default:
-//			assert(false);
-//	}
-//}
-//
-//gen STORE2(hl, bc|de:rhs) uses a
-//{
-//	E("\tmov m, %s\n", regreflo($rhs));
-//	E("\tinx h\n");
-//	E("\tmov m, %s\n", regref($rhs));
-//}
-//
-//gen STORE1(ADDRESS():lhs, a)
-//	{ E("\tsta %s\n", symref($lhs.sym, $lhs.off)); }
-//
-//gen STORE2(ADDRESS():lhs, hl)
-//	{ E("\tshld %s\n", symref($lhs.sym, $lhs.off)); }
+gen reg := LOAD1(reg:lhs)
+	{ E("\tldrb %s, [%s]\n", regref($$), regref($lhs)); }
+
+gen reg := LOAD2(reg:lhs)
+	{ E("\tldrh %s, [%s]\n", regref($$), regref($lhs)); }
 
 gen reg := LOAD4(reg:lhs)
 	{ E("\tldr %s, [%s]\n", regref($$), regref($lhs)); }
+
+gen STORE1(reg:lhs, reg:rhs)
+	{ E("\tstrb %s, [%s]\n", regref($rhs), regref($lhs)); }
+
+gen STORE2(reg:lhs, reg:rhs)
+	{ E("\tstrh %s, [%s]\n", regref($rhs), regref($lhs)); }
 
 gen STORE4(reg:lhs, reg:rhs)
 	{ E("\tstr %s, [%s]\n", regref($rhs), regref($lhs)); }
@@ -446,287 +372,95 @@ gen STORE4(ADD4(reg:lhs, CONSTANT():c), reg:rhs)
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-//gen a := ADD1(a, b|d|h:rhs)
-//	{ E("\tadd %s\n", regref($rhs)); }
-//
-//gen a := ADD1(a, CONSTANT():rhs)
-//	{ E("\tadi %d\n", $rhs.value); }
-//
-//gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==1))
-//	{ E("\tinc %s\n", regref($lhs)); }
-//
-//gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==2))
-//{
-//	E("\tinc %s\n", regref($lhs));
-//	E("\tinc %s\n", regref($lhs));
-//}
-//
-//gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-1))
-//	{ E("\tdec %s\n", regref($lhs)); }
-//
-//gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-2))
-//{
-//	E("\tdec %s\n", regref($lhs));
-//	E("\tdec %s\n", regref($lhs));
-//}
-//
-//gen a := SUB1(a, b|d|h:rhs)
-//	{ E("\tsub %s\n", regref($rhs)); }
-//
-//gen a := SUB1(a, CONSTANT():rhs)
-//	{ E("\tsbi %d\n", $rhs.value); }
-//
-//gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==1))
-//	{ E("\tdec %s\n", regref($lhs)); }
-//
-//gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==-1))
-//	{ E("\tinc %s\n", regref($lhs)); }
-//
-//gen a := NEG1(b|d|h:lhs)
-//{
-//	E("\txra a\n");
-//	E("\tsub %s\n", regref($lhs));
-//}
-//
-//gen a := LSHIFT1(a, b) uses bc
-//	{ E("\tcall asl1\n"); }
-//
-//gen a := RSHIFTU1(a, b) uses bc
-//	{ E("\tcall lsr1\n"); }
-//
-//gen a := RSHIFTS1(a, b) uses bc
-//	{ E("\tcall asr1\n"); }
-//
-//// --- 16-bit arithmetic ----------------------------------------------------
-//
-//gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
-//{ 
-//	if (($rhs != REG_HL) && ($lhs != REG_HL))
-//	{
-//		if ($rhs == REG_DE)
-//		{
-//			E("\txchg\n");
-//			$rhs = REG_HL;
-//		}
-//		else if ($lhs == REG_DE)
-//		{
-//			E("\txchg\n");
-//			$lhs = REG_HL;
-//		}
-//		else
-//		{
-//			E("\tmov h, %s\n", regref($lhs));
-//			E("\tmov l, %s\n", regreflo($lhs));
-//			$lhs = REG_HL;
-//		}
-//	}
-//		
-//	E("\tdad %s\n", regref(($lhs != REG_HL) ? $lhs : $rhs));
-//}
-//
-//gen hl := ADD2(hl, CONSTANT(value==1))
-//	{ E("\tinx h\n"); }
-//
-//gen hl := ADD2(hl, CONSTANT(value==2))
-//{
-//	E("\tinx h\n");
-//	E("\tinx h\n");
-//}
-//
-//gen hl := ADD2(hl, CONSTANT(value==-1))
-//	{ E("\tdcx h\n"); }
-//
-//gen hl := ADD2(hl, CONSTANT(value==-2))
-//{
-//	E("\tdcx h\n");
-//	E("\tdcx h\n");
-//}
-//
-//gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
-//{
-//    E("\tmov a, %s\n", regreflo($lhs));
-//    E("\tsub %s\n", regreflo($rhs));
-//    E("\tmov %s, a\n", regreflo($$));
-//    E("\tmov a, %s\n", regref($lhs));
-//    E("\tsbb %s\n", regref($rhs));
-//    E("\tmov %s, a\n", regref($$));
-//}
-//
-//gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
-//{
-//    E("\txra a\n");
-//    E("\tsub %s\n", regreflo($lhs));
-//    E("\tmov %s, a\n", regreflo($$));
-//	E("\tsbb a\n");
-//    E("\tsub %s\n", regref($lhs));
-//    E("\tmov %s, a\n", regref($$));
-//}
-//
-//gen hl := LSHIFT2(hl, b) uses a
-//	{ E("\tcall asl2\n"); }
-//
-//gen hl := RSHIFTU2(hl, b) uses a
-//	{ E("\tcall lsr2\n"); }
-//
-//gen hl := RSHIFTS2(hl, b) uses a
-//	{ E("\tcall asr2\n"); }
+rewrite ADD1(lhs, rhs) := ADD4(lhs, rhs);
+rewrite SUB1(lhs, rhs) := SUB4(lhs, rhs);
+
+rewrite LSHIFT1(lhs, rhs) := LSHIFT4(lhs, rhs);
+
+gen reg := RSHIFTU1(reg:lhs, reg:rhs)
+{
+	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
+
+// --- 16-bit arithmetic ----------------------------------------------------
+
+gen reg := RSHIFTU2(reg:lhs, reg:rhs)
+{
+	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
+	E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
 
 // --- 32-bit arithmetic ----------------------------------------------------
+
+rewrite ADD2(lhs, rhs) := ADD4(lhs, rhs);
+rewrite SUB2(lhs, rhs) := SUB4(lhs, rhs);
 
 gen reg := ADD4(reg:lhs, reg:rhs)
 	{ E("\tadd %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
 
 gen reg := SUB4(reg:lhs, reg:rhs)
-	{ E("\tadd %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+	{ E("\tsub %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
 
 gen reg := NEG4(reg:lhs)
 	{ E("\tneg %s, %s\n", regref($$), regref($lhs)); }
 
+gen reg := LSHIFT4(reg:lhs, reg:rhs)
+	{ E("\tlsl %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
 gen reg := RSHIFTU4(reg:lhs, reg:rhs)
 	{ E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
 
-//// --- Branches -------------------------------------------------------------
-//
-//%{
-//	static void bequ1(int truelabel, int falselabel, reg_t nota)
-//	{
-//		E("\tcmp %s\n", regref(nota));
-//		E("\tjz %s\n", labelref(truelabel));
-//		E("\tjnz %s\n", labelref(falselabel));
-//	}
-//%}
-//
-//gen BEQU1(b|d|h:nota, a):b
-//	{ bequ1($b.truelabel, $b.falselabel, $nota); }
-//
-//gen BEQS1(b|d|h:nota, a):b
-//	{ bequ1($b.truelabel, $b.falselabel, $nota); }
-//
-//%{
-//	static void bequ1c(int truelabel, int falselabel, int c)
-//	{
-//		if (!c)
-//			E("\tora a\n");
-//		else
-//			E("\tcpi %d\n", c);
-//		E("\tjz %s\n", labelref(truelabel));
-//		E("\tjnz %s\n", labelref(falselabel));
-//	}
-//%}
-//	
-//gen BEQU1(a, CONSTANT():c):b
-//	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
-//
-//gen BEQS1(a, CONSTANT():c):b
-//	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
-//
-//gen BEQU1(CONSTANT():c, a):b
-//	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
-//
-//gen BEQS1(CONSTANT():c, a):b
-//	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
-//
-//gen BLTU1(a, CONSTANT():c):b
-//{
-//	E("\tcpi %d\n", $c.value);
-//	E("\tjc %s\n", labelref($b.truelabel));
-//	E("\tjmp %s\n", labelref($b.falselabel));
-//}
-//
-//%{
-//	static void bequ2(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
-//	{
-//		E("\tmov a, %s\n", regref(lhs));
-//		E("\tcmp %s\n", regref(rhs));
-//		E("\tjnz %s\n", labelref(falselabel));
-//		E("\tmov a, %s\n", regreflo(lhs));
-//		E("\tcmp %s\n", regreflo(rhs));
-//		E("\tjnz %s\n", labelref(falselabel));
-//		E("\tjmp %s\n", labelref(truelabel));
-//	}
-//%}
-//
-//gen BEQU2(hl|bc|de:lhs, hl|bc|de:rhs):b
-//	{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
-//
-//gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
-//	{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
-//
-//%{
-//	static void bequ2c(int truelabel, int falselabel, reg_t lhs, int c)
-//	{
-//		E("\tlxi d, 0x%x\n", (-c) & 0xffff);
-//		E("\tdad d\n");
-//		E("\tmov a, l\n");
-//		E("\tora h\n");
-//		E("\tjnz %s\n", labelref(falselabel));
-//		E("\tjmp %s\n", labelref(truelabel));
-//	}
-//%}
-//
-//gen BEQU2(hl:lhs, CONSTANT():rhs):b uses de|a
-//	{ bequ2c($b.truelabel, $b.falselabel, $lhs, $rhs.value); }
-//
-//gen BEQS2(hl:lhs, CONSTANT():rhs):b uses de|a
-//	{ bequ2c($b.truelabel, $b.falselabel, $lhs, $rhs.value); }
-//
-//gen BEQU2(CONSTANT():lhs, hl:rhs):b uses de|a
-//	{ bequ2c($b.truelabel, $b.falselabel, $rhs, $lhs.value); }
-//
-//gen BEQS2(CONSTANT():lhs, hl:rhs):b uses de|a
-//	{ bequ2c($b.truelabel, $b.falselabel, $rhs, $lhs.value); }
-//
-//gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
-//{
-//	E("\tmov a, %s\n", regreflo($lhs));
-//	E("\tsub %s\n", regreflo($rhs));
-//	E("\tmov a, %s\n", regref($lhs));
-//	E("\tsbb %s\n", regref($rhs));
-//	E("\tjc %s\n", labelref($b.truelabel));
-//	E("\tjmp %s\n", labelref($b.falselabel));
-//}
-//
-//%{
-//	static void bequ4(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
-//	{
-//		E("\tcall sub4\n");
-//		E("\tcall cmpu4\n");
-//		E("\tjnz %s\n", labelref(falselabel));
-//		E("\tjmp %s\n", labelref(truelabel));
-//	}
-//%}
-//
-//gen BEQU4(stk4:lhs, stk4:rhs):b
-//	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
-//
-//gen BEQS4(stk4:lhs, stk4:rhs):b
-//	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
-//
-//// --- Casts ----------------------------------------------------------------
-//
-//gen a|b|d|h := CAST21(bc|de|hl:rhs)
-//	{ E("\tmov %s, %s\n", regref($$), regref($rhs)); }
-//	
-//gen stk4 := CAST24(hl|de:rhs) uses bc
-//{
-//	E("\tlxi b, 0\n");
-//	E("\tpush b\n");
-//	E("\tpush %s\n", regref($rhs));
-//}
-//	
-//gen a|d := CAST41(stk4) uses hl|bc
-//{
-//	E("\tpop b\n");
-//	E("\tpop h\n");
-//	E("\tmov %s, c\n", regref($$));
-//}
-//	
-//gen hl|de := CAST41(stk4) uses bc
-//{
-//	E("\tpop b\n");
-//	E("\tpop %s\n", regref($$));
-//}
+// --- Branches -------------------------------------------------------------
+
+%{
+	static void bequ(int truelabel, int falselabel, const char* extend, reg_t lhs, reg_t rhs)
+	{
+		if (extend)
+		{
+			E("\t%s %s, %s\n", extend, regref(lhs), regref(lhs));
+			E("\t%s %s, %s\n", extend, regref(rhs), regref(rhs));
+		}
+		E("\tcmp %s, %s\n", regref(lhs), regref(rhs));
+		E("\tbeq %s\n", labelref(truelabel));
+		E("\tbne %s\n", labelref(falselabel));
+	}
+%}
+
+gen BEQU1(reg:lhs, reg:rhs):b
+	{ bequ($b.truelabel, $b.falselabel, "uxtb", $lhs, $rhs); }
+
+gen BEQS1(reg:lhs, reg:rhs):b
+	{ bequ($b.truelabel, $b.falselabel, "sxtb", $lhs, $rhs); }
+
+gen BEQU2(reg:lhs, reg:rhs):b
+	{ bequ($b.truelabel, $b.falselabel, "uxth", $lhs, $rhs); }
+
+gen BEQS2(reg:lhs, reg:rhs):b
+	{ bequ($b.truelabel, $b.falselabel, "sxth", $lhs, $rhs); }
+
+gen BEQU4(reg:lhs, reg:rhs):b
+	{ bequ($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
+
+gen BEQS4(reg:lhs, reg:rhs):b
+	{ bequ($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
+
+gen BLTU1(reg:lhs, reg:rhs):b
+{
+	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+	E("\tblt %s\n", labelref($b.truelabel));
+	E("\tb %s\n", labelref($b.falselabel));
+}
+
+// --- Casts ----------------------------------------------------------------
+
+gen reg := CAST21(reg:rhs)
+	{ E("\tmov %s, %s\n", regref($$), regref($rhs)); }
 	
+rewrite CAST41(rhs) := CAST21(rhs);
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
@@ -751,52 +485,32 @@ gen ASMEND()
     E("\t%s\n", asmbuffer);
 }
 
-//// --- Strings -----------------------------------------------------------
-//
-//gen bc|de|hl := STRING():s
-//{
-//    int sid = id++;
-//    emitter_open_chunk();
-//    E("\tcseg\n");
-//    E("s%d:\n", sid);
-//    E("\tdb ");
-//    bool instring = false;
-//    bool start = true;
-//	const char* s = $s.text;
-//    for (;;)
-//    {
-//        char c = *s++;
-//        if (!c)
-//            break;
-//        if (!start && !instring)
-//            E(", ");
-//        start = false;
-//        if (isprint(c) && (c != '\"') && (c != '\\'))
-//        {
-//            if (!instring)
-//            {
-//                E("\"");
-//                instring = true;
-//            }
-//            E("%c", c);
-//        }
-//        else
-//        {
-//            if (instring)
-//            {
-//                E("\", ");
-//                instring = false;
-//            }
-//            E("%d", c);
-//        }
-//    }
-//    if (instring)
-//        E("\"");
-//    if (!start)
-//        E(", ");
-//    E("0\n");
-//    emitter_close_chunk();
-//
-//    E("\tlxi %s, s%d\n", regref($$), sid);
-//}
-//
+// --- Strings -----------------------------------------------------------
+
+gen reg := STRING():s
+{
+    int sid = id++;
+    emitter_open_chunk();
+    E("\t.data 1\n");
+    E("s%d:\n", sid);
+    E("\t.byte ");
+    bool start = true;
+	const char* s = $s.text;
+    for (;;)
+    {
+        char c = *s++;
+        if (!c)
+            break;
+		if (!start)
+            E(", ");
+		E("0x%02x", c);
+        start = false;
+    }
+    if (!start)
+        E(", ");
+    E("0\n");
+    emitter_close_chunk();
+
+    E("\tldr %s, =s%d\n", regref($$), sid);
+}
+

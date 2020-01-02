@@ -2,10 +2,12 @@
 # https://w3challs.com/syscalls/?arch=arm_thumb
 
 sub print_char(c: uint8)
-	@asm "mov r0, #0";
+	@asm "mov r0, #1"; # file descriptor
 	@asm "ldr r1, =", c;
 	@asm "mov r2, #1";
 	@asm "mov r7, #4"; # write()
 	@asm "svc #0";
 end sub;
+
+include "common.coh";
 
