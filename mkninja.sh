@@ -386,6 +386,30 @@ pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
 }
 
+cowgol_target() {
+    local name
+    name=$1
+    shift
+
+    buildnewgen \
+        $OBJDIR/arch$name/inssel.c $OBJDIR/arch$name/inssel.h \
+        src/arch$name.ng
+
+    buildlibrary lib$name.a \
+        -I$OBJDIR \
+        -I$OBJDIR/arch$name \
+        -Isrc \
+        --dep $OBJDIR/midcodes.h \
+        --dep $OBJDIR/arch$name/inssel.h \
+        $OBJDIR/arch$name/inssel.c \
+        src/codegen.c
+
+    buildprogram tinycowc-$name \
+        -lbsd \
+        libmain.a \
+        lib$name.a
+}
+
 buildlibrary liblemon.a \
 	tools/lemon/lemon.c
 
@@ -438,8 +462,6 @@ buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
 #buildiburg $OBJDIR/arch8080.c src/arch8080.pat
 #buildiburg $OBJDIR/archc.c src/archc.pat
-buildnewgen $OBJDIR/arch8080/inssel.c $OBJDIR/arch8080/inssel.h src/arch8080.ng
-buildnewgen $OBJDIR/archthumb2/inssel.c $OBJDIR/archthumb2/inssel.h src/archthumb2.ng
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -453,54 +475,8 @@ buildlibrary libmain.a \
     src/emitter.c \
     src/compiler.c
 
-#buildlibrary libagc.a \
-#    -I$OBJDIR \
-#    -Isrc \
-#    --dep $OBJDIR/midcodes.h \
-#    $OBJDIR/archagc.c \
-
-buildlibrary lib8080.a \
-    -I$OBJDIR \
-    -I$OBJDIR/arch8080 \
-    -Isrc \
-    --dep $OBJDIR/midcodes.h \
-    --dep $OBJDIR/arch8080/inssel.h \
-    $OBJDIR/arch8080/inssel.c \
-    src/codegen.c \
-
-buildlibrary libthumb2.a \
-    -I$OBJDIR \
-    -I$OBJDIR/archthumb2 \
-    -Isrc \
-    --dep $OBJDIR/midcodes.h \
-    --dep $OBJDIR/archthumb2/inssel.h \
-    $OBJDIR/archthumb2/inssel.c \
-    src/codegen.c \
-
-#buildlibrary libc.a \
-#    -I$OBJDIR \
-#    -Isrc \
-#    --dep $OBJDIR/midcodes.h \
-#    $OBJDIR/archc.c \
-
-#buildprogram tinycowc-agc \
-#    -lbsd \
-#    libmain.a \
-#    libagc.a \
-
-buildprogram tinycowc-8080 \
-    -lbsd \
-    libmain.a \
-    lib8080.a \
-
-buildprogram tinycowc-thumb2 \
-    -lbsd \
-    libmain.a \
-    libthumb2.a \
-
-#buildprogram tinycowc-c \
-#    libmain.a \
-#    libc.a \
+cowgol_target 8080
+cowgol_target thumb2
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
 pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
