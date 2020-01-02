@@ -548,7 +548,10 @@ test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
+test_thumb2_linux addsub-8bit
+test_thumb2_linux addsub-16bit
 test_thumb2_linux addsub-32bit
+test_thumb2_linux records
 
 #test_c addsub-8bit
 #test_c addsub-16bit

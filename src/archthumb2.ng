@@ -374,6 +374,7 @@ gen STORE4(ADD4(reg:lhs, CONSTANT():c), reg:rhs)
 
 rewrite ADD1(lhs, rhs) := ADD4(lhs, rhs);
 rewrite SUB1(lhs, rhs) := SUB4(lhs, rhs);
+rewrite NEG1(lhs) := NEG4(lhs);
 
 rewrite LSHIFT1(lhs, rhs) := LSHIFT4(lhs, rhs);
 
@@ -390,6 +391,8 @@ gen reg := RSHIFTU2(reg:lhs, reg:rhs)
 	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
 	E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
 }
+
+rewrite NEG2(lhs) := NEG4(lhs);
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
