@@ -13,7 +13,7 @@ CFLAGS += -I.
 export OBJDIR = .obj
 
 all: .obj/build.ninja
-	@ninja -f .obj/build.ninja
+	@ninja -f .obj/build.ninja -v
 
 clean:
 	@echo CLEAN

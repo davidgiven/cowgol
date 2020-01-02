@@ -247,6 +247,14 @@ zmac8() {
 		"ZMAC $1"
 }
 
+as_thumb2_linux() {
+    rule \
+        "arm-linux-gnueabihf-as -g $1 -o $2" \
+        "$1" \
+        "$2" \
+        "AS $base.s"
+}
+
 ld80() {
 	local bin
 	bin="$1"
@@ -286,6 +294,35 @@ cowgol_cpm() {
 		$base.rel \
 		$OBJDIR/rt/cpm/tail.rel
 	rule "dd if=$base.bin of=$2 bs=128 skip=2 status=none" "$base.bin" "$2" "DD $1"
+}
+
+cowgol_thumb2_s() {
+	local in
+	local out
+	local log
+	local deps
+	in=$1
+	out=$2
+	log=$3
+	deps=$4
+
+	rule \
+		"bin/tinycowc-thumb2 -Irt/ -Irt/thumb2-linux/ $in $out > $log" \
+		"$in $deps bin/tinycowc-thumb2 rt/thumb2-linux/cowgol.coh" \
+		"$out $log" \
+		"COWGOL THUMB2 $in"
+}
+
+cowgol_thumb2_linux() {
+	local base
+	base="$OBJDIR/${1%.cow}.thumb2-linux"
+	cowgol_thumb2_s $1 $base.s $base.log "$3"
+    as_thumb2_linux $base.s $base.o
+    rule \
+        "arm-linux-gnueabihf-ld $OBJDIR/rt/thumb2-linux/cowgol.o $base.o -o $2" \
+        "$OBJDIR/rt/thumb2-linux/cowgol.o $base.o" \
+        "$2" \
+        "LD $1"
 }
 
 test_cpm() {
@@ -394,6 +431,7 @@ buildflex $OBJDIR/lexer.c src/lexer.l
 #buildiburg $OBJDIR/arch8080.c src/arch8080.pat
 #buildiburg $OBJDIR/archc.c src/archc.pat
 buildnewgen $OBJDIR/arch8080/inssel.c $OBJDIR/arch8080/inssel.h src/arch8080.ng
+buildnewgen $OBJDIR/archthumb2/inssel.c $OBJDIR/archthumb2/inssel.h src/archthumb2.ng
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -422,6 +460,15 @@ buildlibrary lib8080.a \
     $OBJDIR/arch8080/inssel.c \
     src/codegen.c \
 
+buildlibrary libthumb2.a \
+    -I$OBJDIR \
+    -I$OBJDIR/archthumb2 \
+    -Isrc \
+    --dep $OBJDIR/midcodes.h \
+    --dep $OBJDIR/archthumb2/inssel.h \
+    $OBJDIR/archthumb2/inssel.c \
+    src/codegen.c \
+
 #buildlibrary libc.a \
 #    -I$OBJDIR \
 #    -Isrc \
@@ -437,6 +484,11 @@ buildprogram tinycowc-8080 \
     -lbsd \
     libmain.a \
     lib8080.a \
+
+buildprogram tinycowc-thumb2 \
+    -lbsd \
+    libmain.a \
+    libthumb2.a \
 
 #buildprogram tinycowc-c \
 #    libmain.a \
@@ -475,6 +527,7 @@ buildprogram mkdfs libmkdfs.a
 
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
+as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
@@ -495,7 +548,8 @@ test_cpm conditionals
 #test_c outputparams
 #test_c conditionals
 
-cowgol_cpm examples/empty.cow examples/empty.com
+#cowgol_cpm examples/empty.cow examples/empty.com
+cowgol_thumb2_linux examples/empty.cow examples/empty
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 #cowgol_c examples/malloc.cow examples/malloc
 
