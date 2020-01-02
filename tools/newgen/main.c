@@ -393,12 +393,23 @@ static void print_predicate(int index, Node* template, Predicate* predicate)
 {
 	while (predicate)
 	{
-		fprintf(outfp, " && (n%d->u.", index);
-		print_lower(terminals[template->midcode]);
-		fprintf(outfp, ".%s %s %d)",
-			predicate->field,
-			operator_name(predicate->operator),
-			predicate->value);
+		switch (predicate->operator)
+		{
+			case IS:
+				fprintf(outfp, " && is_%s(n%d->u.", predicate->u.callback, index);
+				print_lower(terminals[template->midcode]);
+				fprintf(outfp, ".%s)", predicate->field);
+				break;
+
+			default:
+				fprintf(outfp, " && (n%d->u.", index);
+				print_lower(terminals[template->midcode]);
+				fprintf(outfp, ".%s %s %d)",
+					predicate->field,
+					operator_name(predicate->operator),
+					predicate->u.value);
+				break;
+		}
 
 		predicate = predicate->next;
 	}

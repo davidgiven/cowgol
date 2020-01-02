@@ -155,7 +155,15 @@ predicate(R) ::= ID(I1) operator(I2) int(I3).
     R = calloc(sizeof(Predicate), 1);
     R->field = I1.u.string;
     R->operator = I2;
-    R->value = I3;
+    R->u.value = I3;
+}
+
+predicate(R) ::= ID(I1) IS ID(I2).
+{
+    R = calloc(sizeof(Predicate), 1);
+    R->field = I1.u.string;
+    R->operator = IS;
+    R->u.callback = I2.u.string;
 }
 
 operator(R) ::= EQUALS.

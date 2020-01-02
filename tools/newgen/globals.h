@@ -17,7 +17,12 @@ struct predicate
 {
 	const char* field;
 	int operator;
-	int value;
+	union
+	{
+		int value;
+		const char* callback;
+	}
+	u;
 	Predicate* next;
 };
 
