@@ -8,6 +8,7 @@
 %type regdata {Register*}
 %type regspec {uint32_t}
 %type reg {Register*}
+%type regc {reg_t}
 %type rule {Rule*}
 %type tree {Node*}
 %type midcode {int}
@@ -47,6 +48,9 @@ regdecls ::= .
 regdecls ::= regdecls ID(ID).
 { define_register(ID.u.string); }
 
+rules ::= rules REGCLASS ID(ID) ASSIGN regspec(R).
+{ define_regclass(ID.u.string, R); }
+
 regdata(R) ::= REGDATA reg(R1).
 { R = R1; }
 
@@ -80,14 +84,17 @@ rule(R) ::= GEN(G) regspec(LHS) ASSIGN tree(TREE).
 rule(R) ::= rule(R1) USES regspec(USES).
 { R = R1; R->uses_regs = USES; }
 
-regspec(R) ::= reg(R1).
-{ R = R1->id; }
+regspec(R) ::= regc(R1).
+{ R = R1; }
 
-regspec(R) ::= regspec(R1) PIPE reg(R2).
-{ R = R1 | (R2->id); }
+regspec(R) ::= regspec(R1) PIPE regc(R2).
+{ R = R1 | R2; }
 
 reg(R) ::= ID(ID).
 { R = lookup_register(ID.u.string); }
+
+regc(R) ::= ID(ID).
+{ R = lookup_register_or_class(ID.u.string); }
 
 midcode(R) ::= ID(ID).
 { R = lookup_midcode(ID.u.string); }

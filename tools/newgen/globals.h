@@ -52,14 +52,29 @@ struct token
 	} u;
 };
 
+typedef struct symbol Symbol;
+struct symbol
+{
+	const char* name;
+	const char* kind;
+	Symbol* next;
+};
+
 typedef struct reg Register;
 struct reg
 {
-	const char* name;
+	Symbol sym;
 	reg_t id;
 	reg_t uses;
 	reg_t compatible;
 	bool isstacked;
+};
+
+typedef struct regclass RegisterClass;
+struct regclass
+{
+	Symbol sym;
+	reg_t reg;
 };
 
 typedef struct element Element;
@@ -104,6 +119,8 @@ extern void include_file(void* buffer);
 
 extern Register* define_register(const char* name);
 extern Register* lookup_register(const char* name);
+extern void define_regclass(const char* name, reg_t reg);
+extern reg_t lookup_register_or_class(const char* name);
 extern int lookup_midcode(const char* name);
 
 extern Rule* rule(int lineno, Node* pattern, reg_t result);
