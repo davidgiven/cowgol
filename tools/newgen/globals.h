@@ -104,6 +104,7 @@ struct rule
 	int cost;
 	Label* first_label;
 	Action* action;
+	Node* replacement;
 };
 
 extern int errcnt;
@@ -123,7 +124,8 @@ extern void define_regclass(const char* name, reg_t reg);
 extern reg_t lookup_register_or_class(const char* name);
 extern int lookup_midcode(const char* name);
 
-extern Rule* rule(int lineno, Node* pattern, reg_t result);
+extern Rule* rewriterule(int lineno, Node* pattern, Node* replacement);
+extern Rule* genrule(int lineno, Node* pattern, reg_t result);
 
 extern Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicates, Label* label);
 extern Node* register_matcher(reg_t reg, Label* label);

@@ -9,14 +9,16 @@
 %type regspec {uint32_t}
 %type reg {Register*}
 %type regc {reg_t}
-%type rule {Rule*}
-%type tree {Node*}
+%type gen {Rule*}
+%type rewritetree {Node*}
+%type gentree {Node*}
 %type midcode {int}
 %type optionalpredicatescomma {Predicate*}
 %type optionalpredicatesnocomma {Predicate*}
 %type predicates {Predicate*}
 %type predicate {Predicate*}
 %type optionallabel {Label*}
+%type label {Label*}
 %type operator {int}
 %type int {int}
 %type action {Action*}
@@ -72,16 +74,35 @@ regdata(R) ::= regdata(R1) STACKED.
     R->isstacked = true;
 }
 
-rules ::= rules rule(R) action(A).
+/* --- Rewrite rules ----------------------------------------------------- */
+
+rules ::= rules REWRITE(R) rewritetree(TS) ASSIGN rewritetree(TD) SEMICOLON.
+{ rewriterule(R.lineno, TS, TD); }
+
+rewritetree(R) ::= label(L).
+{ R = register_matcher(0, L); }
+
+rewritetree(R) ::= midcode(M) OPENPAREN CLOSEPAREN.
+{ R = tree_matcher(M, NULL, NULL, NULL, NULL); }
+
+rewritetree(R) ::= midcode(M) OPENPAREN rewritetree(T) CLOSEPAREN.
+{ R = tree_matcher(M, T, NULL, NULL, NULL); }
+
+rewritetree(R) ::= midcode(M) OPENPAREN rewritetree(TL) COMMA rewritetree(TR) CLOSEPAREN.
+{ R = tree_matcher(M, TL, TR, NULL, NULL); }
+
+/* --- Gen rules --------------------------------------------------------- */
+
+rules ::= rules gen(R) action(A).
 { R->action = A; }
 
-rule(R) ::= GEN(G) tree(TREE).
-{ R = rule(G.lineno, TREE, 0); }
+gen(R) ::= GEN(G) gentree(TREE).
+{ R = genrule(G.lineno, TREE, 0); }
 
-rule(R) ::= GEN(G) regspec(LHS) ASSIGN tree(TREE).
-{ R = rule(G.lineno, TREE, LHS); }
+gen(R) ::= GEN(G) regspec(LHS) ASSIGN gentree(TREE).
+{ R = genrule(G.lineno, TREE, LHS); }
 
-rule(R) ::= rule(R1) USES regspec(USES).
+gen(R) ::= gen(R1) USES regspec(USES).
 { R = R1; R->uses_regs = USES; }
 
 regspec(R) ::= regc(R1).
@@ -99,16 +120,16 @@ regc(R) ::= ID(ID).
 midcode(R) ::= ID(ID).
 { R = lookup_midcode(ID.u.string); }
 
-tree(R) ::= regspec(R1) optionallabel(L).
+gentree(R) ::= regspec(R1) optionallabel(L).
 { R = register_matcher(R1, L); }
 
-tree(R) ::= midcode(ID) OPENPAREN optionalpredicatesnocomma(PRED) CLOSEPAREN optionallabel(L).
+gentree(R) ::= midcode(ID) OPENPAREN optionalpredicatesnocomma(PRED) CLOSEPAREN optionallabel(L).
 { R = tree_matcher(ID, NULL, NULL, PRED, L); }
 
-tree(R) ::= midcode(ID) OPENPAREN tree(R1) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
+gentree(R) ::= midcode(ID) OPENPAREN gentree(R1) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
 { R = tree_matcher(ID, R1, NULL, PRED, L); }
 
-tree(R) ::= midcode(ID) OPENPAREN tree(R1) COMMA tree(R2) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
+gentree(R) ::= midcode(ID) OPENPAREN gentree(R1) COMMA gentree(R2) optionalpredicatescomma(PRED) CLOSEPAREN optionallabel(L).
 { R = tree_matcher(ID, R1, R2, PRED, L); }
 
 optionalpredicatesnocomma(R) ::= .
@@ -152,7 +173,10 @@ int(R) ::= MINUS INT(I1).
 optionallabel(R) ::= .
 { R = NULL; }
 
-optionallabel(R) ::= COLON ID(ID).
+optionallabel(R) ::= COLON label(L).
+{ R = L; }
+
+label(R) ::= ID(ID).
 {
     R = calloc(sizeof(Label), 1);
     R->name = ID.u.string;

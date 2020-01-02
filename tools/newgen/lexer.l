@@ -40,6 +40,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "uses"                    { return USES; }
 "stacked"                 { return STACKED; }
 "gen"                     { return GEN; }
+"rewrite"                 { return REWRITE; }
 
 \"                        { BEGIN(STRINGSTATE); return BEGINSTRING; }
 <STRINGSTATE>([^\"\\$]|\\.)* { string = strdup(yytext); return CSTRING; }
