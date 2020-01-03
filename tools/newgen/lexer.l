@@ -35,10 +35,13 @@ ID [A-Za-z][A-Za-z0-9_$]*
 ":"                       { return COLON; }
 "compatible"              { return COMPATIBLE; }
 "register"                { return REGISTER; }
+"regclass"                { return REGCLASS; }
 "regdata"                 { return REGDATA; }
 "uses"                    { return USES; }
 "stacked"                 { return STACKED; }
 "gen"                     { return GEN; }
+"rewrite"                 { return REWRITE; }
+"is"                      { return IS; }
 
 \"                        { BEGIN(STRINGSTATE); return BEGINSTRING; }
 <STRINGSTATE>([^\"\\$]|\\.)* { string = strdup(yytext); return CSTRING; }

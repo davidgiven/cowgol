@@ -247,6 +247,14 @@ zmac8() {
 		"ZMAC $1"
 }
 
+as_thumb2_linux() {
+    rule \
+        "arm-linux-gnueabihf-as -g $1 -o $2" \
+        "$1" \
+        "$2" \
+        "AS $base.s"
+}
+
 ld80() {
 	local bin
 	bin="$1"
@@ -296,6 +304,43 @@ test_cpm() {
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
+cowgol_thumb2_s() {
+	local in
+	local out
+	local log
+	local deps
+	in=$1
+	out=$2
+	log=$3
+	deps=$4
+
+	rule \
+		"bin/tinycowc-thumb2 -Irt/ -Irt/thumb2-linux/ $in $out > $log" \
+		"$in $deps bin/tinycowc-thumb2 rt/thumb2-linux/cowgol.coh" \
+		"$out $log" \
+		"COWGOL THUMB2 $in"
+}
+
+cowgol_thumb2_linux() {
+	local base
+	base="$OBJDIR/${1%.cow}.thumb2-linux"
+	cowgol_thumb2_s $1 $base.s $base.log "$3"
+    as_thumb2_linux $base.s $base.o
+    rule \
+        "arm-linux-gnueabihf-ld $OBJDIR/rt/thumb2-linux/cowgol.o $base.o -o $2" \
+        "$OBJDIR/rt/thumb2-linux/cowgol.o $base.o" \
+        "$2" \
+        "LD $1"
+}
+
+test_thumb2_linux() {
+	local base
+	base=$OBJDIR/tests/thumb2-linux/$1
+	cowgol_thumb2_linux tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_THUMB2 $1"
+	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
+}
+
 cowgol_c_c() {
 	local in
 	local out
@@ -339,6 +384,30 @@ objectify() {
 
 pasmo() {
 	rule "pasmo $1 $2" "$1" "$2" "PASMO $1"
+}
+
+cowgol_target() {
+    local name
+    name=$1
+    shift
+
+    buildnewgen \
+        $OBJDIR/arch$name/inssel.c $OBJDIR/arch$name/inssel.h \
+        src/arch$name.ng
+
+    buildlibrary lib$name.a \
+        -I$OBJDIR \
+        -I$OBJDIR/arch$name \
+        -Isrc \
+        --dep $OBJDIR/midcodes.h \
+        --dep $OBJDIR/arch$name/inssel.h \
+        $OBJDIR/arch$name/inssel.c \
+        src/codegen.c
+
+    buildprogram tinycowc-$name \
+        -lbsd \
+        libmain.a \
+        lib$name.a
 }
 
 buildlibrary liblemon.a \
@@ -393,7 +462,6 @@ buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
 #buildiburg $OBJDIR/arch8080.c src/arch8080.pat
 #buildiburg $OBJDIR/archc.c src/archc.pat
-buildnewgen $OBJDIR/arch8080/inssel.c $OBJDIR/arch8080/inssel.h src/arch8080.ng
 
 buildlibrary libmain.a \
     -I$OBJDIR \
@@ -407,40 +475,8 @@ buildlibrary libmain.a \
     src/emitter.c \
     src/compiler.c
 
-#buildlibrary libagc.a \
-#    -I$OBJDIR \
-#    -Isrc \
-#    --dep $OBJDIR/midcodes.h \
-#    $OBJDIR/archagc.c \
-
-buildlibrary lib8080.a \
-    -I$OBJDIR \
-    -I$OBJDIR/arch8080 \
-    -Isrc \
-    --dep $OBJDIR/midcodes.h \
-    --dep $OBJDIR/arch8080/inssel.h \
-    $OBJDIR/arch8080/inssel.c \
-    src/codegen.c \
-
-#buildlibrary libc.a \
-#    -I$OBJDIR \
-#    -Isrc \
-#    --dep $OBJDIR/midcodes.h \
-#    $OBJDIR/archc.c \
-
-#buildprogram tinycowc-agc \
-#    -lbsd \
-#    libmain.a \
-#    libagc.a \
-
-buildprogram tinycowc-8080 \
-    -lbsd \
-    libmain.a \
-    lib8080.a \
-
-#buildprogram tinycowc-c \
-#    libmain.a \
-#    libc.a \
+cowgol_target 8080
+cowgol_target thumb2
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
 pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
@@ -475,6 +511,7 @@ buildprogram mkdfs libmkdfs.a
 
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
+as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
@@ -487,6 +524,16 @@ test_cpm inputparams
 test_cpm outputparams
 test_cpm conditionals
 
+test_thumb2_linux addsub-8bit
+test_thumb2_linux addsub-16bit
+test_thumb2_linux addsub-32bit
+test_thumb2_linux shifts-8bit
+test_thumb2_linux shifts-16bit
+test_thumb2_linux records
+test_thumb2_linux inputparams
+test_thumb2_linux outputparams
+test_thumb2_linux conditionals
+
 #test_c addsub-8bit
 #test_c addsub-16bit
 #test_c addsub-32bit
@@ -496,7 +543,9 @@ test_cpm conditionals
 #test_c conditionals
 
 cowgol_cpm examples/empty.cow examples/empty.com
+cowgol_thumb2_linux examples/empty.cow examples/empty
 cowgol_cpm examples/malloc.cow examples/malloc.com 
+cowgol_thumb2_linux examples/malloc.cow examples/malloc.exe 
 #cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et

@@ -17,7 +17,12 @@ struct predicate
 {
 	const char* field;
 	int operator;
-	int value;
+	union
+	{
+		int value;
+		const char* callback;
+	}
+	u;
 	Predicate* next;
 };
 
@@ -52,14 +57,29 @@ struct token
 	} u;
 };
 
+typedef struct symbol Symbol;
+struct symbol
+{
+	const char* name;
+	const char* kind;
+	Symbol* next;
+};
+
 typedef struct reg Register;
 struct reg
 {
-	const char* name;
+	Symbol sym;
 	reg_t id;
 	reg_t uses;
 	reg_t compatible;
 	bool isstacked;
+};
+
+typedef struct regclass RegisterClass;
+struct regclass
+{
+	Symbol sym;
+	reg_t reg;
 };
 
 typedef struct element Element;
@@ -89,6 +109,7 @@ struct rule
 	int cost;
 	Label* first_label;
 	Action* action;
+	Node* replacement;
 };
 
 extern int errcnt;
@@ -104,9 +125,12 @@ extern void include_file(void* buffer);
 
 extern Register* define_register(const char* name);
 extern Register* lookup_register(const char* name);
+extern void define_regclass(const char* name, reg_t reg);
+extern reg_t lookup_register_or_class(const char* name);
 extern int lookup_midcode(const char* name);
 
-extern Rule* rule(int lineno, Node* pattern, reg_t result);
+extern Rule* rewriterule(int lineno, Node* pattern, Node* replacement);
+extern Rule* genrule(int lineno, Node* pattern, reg_t result);
 
 extern Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicates, Label* label);
 extern Node* register_matcher(reg_t reg, Label* label);

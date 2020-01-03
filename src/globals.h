@@ -131,6 +131,7 @@ extern struct symbol* make_number_type(const char* name, int width, bool issigne
 extern void arch_init_types(void);
 extern void arch_init_subroutine(struct subroutine* sub);
 extern void arch_init_variable(struct symbol* var);
+extern void arch_init_member(struct symbol* record, struct symbol* member);
 extern void arch_emit_comment(const char* text, ...);
 extern void arch_emit_move(reg_t src, reg_t dest);
 

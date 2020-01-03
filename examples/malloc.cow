@@ -12,12 +12,12 @@ freeList.size := HIMEM - TOP;
 sub DumpBlocks()
 	var p := freeList;
 	loop
-		print("block ");
-		print_hex_i32(p as intptr as int32);
+		print("* block @");
+		print_hex_i32(p as intptr as uint32);
 		print("+");
-		print_hex_i32(p.size as intptr as int32);
+		print_hex_i32(p.size as intptr as uint32);
 		print(" -> ");
-		print_hex_i32(p.next as intptr as int32);
+		print_hex_i32(p.next as intptr as uint32);
 		print_nl();
 
 		p := p.next;
@@ -37,7 +37,7 @@ sub Alloc(length: intptr): (block: [uint8])
 			freeList := prev;
 			break;
 		elseif p.size > length then
-			# We found a hole bigger than we need. We shrink the holw and return
+			# We found a hole bigger than we need. We shrink the hole and return
 			# what's left.
 			p.size := p.size - length;
 			p := p + p.size;

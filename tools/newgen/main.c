@@ -5,12 +5,13 @@
 
 #include "iburgcodes.h"
 
-#define REGISTER_COUNT (sizeof(reg_t)*8)
-static Register registers[REGISTER_COUNT];
-static int registercount = 0;
+static Symbol* symbol_table = NULL;
+static const char* SYM_REGISTER = "register";
+static const char* SYM_REGCLASS = "register class";
 
 static Rule* rules[500];
 static int rulescount = 0;
+static int registercount = 0;
 
 static int maxdepth = 0;
 static Node* pattern;
@@ -19,48 +20,79 @@ static const char* infilename;
 FILE* outfp;
 FILE* outhfp;
 
+void* lookup_symbol(const char* name, const char* kind)
+{
+	Symbol* s = symbol_table;
+	while (s)
+	{
+		if (strcmp(s->name, name) == 0)
+		{
+			if (kind && (s->kind != kind))
+				fatal("symbol '%s' is not a %s", name, kind);
+			return s;
+		}
+		s = s->next;
+	}
+	return NULL;
+}
+
+void* define_symbol(const char* name, const char* kind, size_t size)
+{
+	if (lookup_symbol(name, kind))
+		fatal("symbol '%s' already exists", name);
+	Symbol* s = calloc(size, 1);
+	s->name = name;
+	s->kind = kind;
+	s->next = symbol_table;
+	symbol_table = s;
+	return s;
+}
+
 Register* define_register(const char* name)
 {
-	for (int i=0; i<registercount; i++)
-	{
-		if (strcmp(name, registers[i].name) == 0)
-		{
-			yyerror("register '%s' defined twice", name);
-			return &registers[i];
-		}
-	}
-	if (registercount == REGISTER_COUNT)
-		yyerror("too many registers (maximum %d)", sizeof(reg_t)*8);
-	
-	int i = registercount++;
-	Register* reg = &registers[i];
-	reg->name = name;
-	reg->compatible = reg->uses = reg->id = 1<<i;
+	Register* reg = define_symbol(name, SYM_REGISTER, sizeof(Register));
+	reg->compatible = reg->uses = reg->id = 1<<registercount;
+	registercount++;
 	return reg;
 }
 
 Register* lookup_register(const char* name)
 {
-	for (int i=0; i<registercount; i++)
-	{
-		Register* reg = &registers[i];
-		if (strcmp(name, reg->name) == 0)
-			return reg;
-	}
-	yyerror("unknown register '%s'", name);
-	return &registers[0];
+	Register* reg = lookup_symbol(name, SYM_REGISTER);
+	if (!reg)
+		fatal("unknown register '%s'", name);
+	return reg;
 }
 
 Register* lookup_register_by_id(reg_t id)
 {
-	for (int i=0; i<registercount; i++)
+	Register* reg = (Register*) symbol_table;
+	while (reg)
 	{
-		Register* reg = &registers[i];
-		if (reg->id == id)
+		if ((reg->sym.kind == SYM_REGISTER) && (reg->id == id))
 			return reg;
+		reg = (Register*) reg->sym.next;
 	}
-	yyerror("unknown register 0x%x", id);
-	return &registers[0];
+	fatal("unknown register 0x%x", id);
+}
+
+reg_t lookup_register_or_class(const char* name)
+{
+	Symbol* s = lookup_symbol(name, NULL);
+	if (s)
+	{
+		if (s->kind == SYM_REGISTER)
+			return ((Register*)s)->id;
+		if (s->kind == SYM_REGCLASS)
+			return ((RegisterClass*)s)->reg;
+	}
+	fatal("'%s' is not a register or register class", name);
+}
+
+void define_regclass(const char* name, reg_t reg)
+{
+	RegisterClass* rc = define_symbol(name, SYM_REGCLASS, sizeof(RegisterClass));
+	rc->reg = reg;
 }
 
 int lookup_midcode(const char* name)
@@ -97,7 +129,20 @@ Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicate, L
 	return n;
 }
 
-Rule* rule(int lineno, Node* pattern, reg_t result)
+Rule* rewriterule(int lineno, Node* pattern, Node* replacement)
+{
+	Rule* r = calloc(sizeof(Rule), 1);
+	r->lineno = lineno;
+	r->pattern = pattern;
+	r->replacement = replacement;
+
+	if (rulescount == (sizeof(rules)/sizeof(*rules)))
+		yyerror("too many rules");
+	rules[rulescount++] = r;
+	return r;
+}
+
+Rule* genrule(int lineno, Node* pattern, reg_t result)
 {
 	Rule* r = calloc(sizeof(Rule), 1);
 	r->lineno = lineno;
@@ -239,10 +284,12 @@ static void sort_rules(void)
 		resolve_label_names(r);
 
 		r->compatible_regs = 0;
-		for (int j=0; j<REGISTER_COUNT; j++)
+		Register* reg = (Register*) symbol_table;
+		while (reg)
 		{
-			if (r->result_reg & (1<<j))
-				r->compatible_regs |= registers[j].compatible;
+			if ((reg->sym.kind == SYM_REGISTER) && (r->result_reg & reg->id))
+				r->compatible_regs |= reg->compatible;
+			reg = (Register*) reg->sym.next;
 		}
 	}
 }
@@ -257,14 +304,18 @@ static void dump_registers(void)
 {
 	fprintf(outfp, "const Register registers[] = {\n");
 	fprintf(outhfp, "enum {\n");
-	for (int i=0; i<registercount; i++)
+	Register* reg = (Register*) symbol_table;
+	while(reg)
 	{
-		Register* reg = &registers[i];
-		fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
-			reg->name, reg->id, reg->uses, reg->compatible, reg->isstacked);
-		fprintf(outhfp, "\tREG_");
-		print_upper(outhfp, reg->name);
-		fprintf(outhfp, " = 0x%x,\n", reg->id);
+		if (reg->sym.kind == SYM_REGISTER)
+		{
+			fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
+				reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
+			fprintf(outhfp, "\tREG_");
+			print_upper(outhfp, reg->sym.name);
+			fprintf(outhfp, " = 0x%x,\n", reg->id);
+		}
+		reg = (Register*) reg->sym.next;
 	}
 	fprintf(outfp, "};\n");
 	fprintf(outhfp, "};\n");
@@ -342,12 +393,23 @@ static void print_predicate(int index, Node* template, Predicate* predicate)
 {
 	while (predicate)
 	{
-		fprintf(outfp, " && (n%d->u.", index);
-		print_lower(terminals[template->midcode]);
-		fprintf(outfp, ".%s %s %d)",
-			predicate->field,
-			operator_name(predicate->operator),
-			predicate->value);
+		switch (predicate->operator)
+		{
+			case IS:
+				fprintf(outfp, " && is_%s(n%d->u.", predicate->u.callback, index);
+				print_lower(terminals[template->midcode]);
+				fprintf(outfp, ".%s)", predicate->field);
+				break;
+
+			default:
+				fprintf(outfp, " && (n%d->u.", index);
+				print_lower(terminals[template->midcode]);
+				fprintf(outfp, ".%s %s %d)",
+					predicate->field,
+					operator_name(predicate->operator),
+					predicate->u.value);
+				break;
+		}
 
 		predicate = predicate->next;
 	}
@@ -428,7 +490,7 @@ static void print_simple_action(Rule* r, Element* e)
 
 static void print_line(int lineno)
 {
-	//fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
+	fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
 }
 
 static void create_emitters(void)
@@ -460,6 +522,36 @@ static void create_emitters(void)
 	fprintf(outfp, "}\n");
 }
 
+static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
+{
+	if (replacement->isregister)
+	{
+		Node* node = lookup_label(pattern, replacement->label->name);
+		if (!node)
+			fatal("nothing labelled '%s' at line %d",
+				replacement->label->name, rule->lineno);
+
+		fprintf(outfp, "n%d", node->index);
+	}
+	else
+	{
+		fprintf(outfp, "mid_");
+		print_lower(terminals[replacement->midcode]);
+		fprintf(outfp, "(");
+
+		if (replacement->left)
+		{
+			emit_replacement(rule, pattern, replacement->left);
+			if (replacement->right)
+			{
+				fprintf(outfp, ", ");
+				emit_replacement(rule, pattern, replacement->right);
+			}
+		}
+		fprintf(outfp, ")");
+	}
+}
+
 static void emit_node_copiers(int* offset, Node* template, Node* pattern)
 {
 	int thisoffset = *offset;
@@ -481,6 +573,7 @@ static void emit_node_copiers(int* offset, Node* template, Node* pattern)
 static void create_matcher(void)
 {
 	fprintf(outfp, "void match_instruction(Node* n0, Instruction* insn) {\n");
+	fprintf(outfp, "again:;\n");
 	fprintf(outfp, "\tstatic uint8_t matchbuf[%d] = {0};\n", maxdepth);
 
 	for (int i=1; i<maxdepth; i++)
@@ -493,25 +586,47 @@ static void create_matcher(void)
 	{
 		Rule* r = rules[i];
 		print_line(r->lineno);
-		if (!r->compatible_regs)
-			fprintf(outfp, "\tif (!n0->desired_reg\n");
+		if (r->replacement)
+		{
+			fprintf(outfp, "\tif (");
+		}
 		else
-			fprintf(outfp, "\tif ((n0->desired_reg & 0x%x)\n", r->compatible_regs);
-		fprintf(outfp, "\t\t&& template_comparator(matchbuf, template%d)", i, maxdepth);
+		{
+			/* Only match this rule if the destination register is appropriate. */
+			if (!r->compatible_regs)
+				fprintf(outfp, "\tif (!n0->desired_reg &&\n\t\t");
+			else
+				fprintf(outfp, "\tif ((n0->desired_reg & 0x%x) &&\n\t\t", r->compatible_regs);
+		}
+
+		fprintf(outfp, "template_comparator(matchbuf, template%d)", i, maxdepth);
 		offset = 0;
 		walk_predicate_tree(&offset, r->pattern, pattern);
 		fprintf(outfp, ") {\n");
 
-		fprintf(outfp, "\t\tinsn->rule = %d;\n", i);
-		fprintf(outfp, "\t\tinsn->producable_regs = 0x%x;\n", r->result_reg);
-		if (r->uses_regs)
-			fprintf(outfp, "\t\tinsn->output_regs = 0x%x;\n", r->uses_regs);
+		if (r->replacement)
+		{
+			fprintf(outfp, "\t\tNode* n = ");
+			emit_replacement(r, r->pattern, r->replacement);
+			fprintf(outfp, ";\n");
+			fprintf(outfp, "\t\tn->desired_reg = n0->desired_reg;\n");
+			fprintf(outfp, "\t\tn0 = n;\n");
+			fprintf(outfp, "\t\tgoto again;\n");
+		}
+		else
+		{
+			fprintf(outfp, "\t\tinsn->rule = %d;\n", i);
+			fprintf(outfp, "\t\tinsn->producable_regs = 0x%x;\n", r->result_reg);
+			if (r->uses_regs)
+				fprintf(outfp, "\t\tinsn->output_regs = 0x%x;\n", r->uses_regs);
 
-		offset = 0;
-		emit_node_copiers(&offset, r->pattern, pattern);
+			offset = 0;
+			emit_node_copiers(&offset, r->pattern, pattern);
 
-		offset = 0;
-		push_nodes(&offset, r->pattern, pattern);
+			offset = 0;
+			push_nodes(&offset, r->pattern, pattern);
+		}
+
 		fprintf(outfp, "\t} else\n");
 	}
 

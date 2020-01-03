@@ -53,7 +53,7 @@ void parse(void)
 {
     Token t;
 
-    //ParseTrace(stderr, "P:");
+//    ParseTrace(stderr, "P:");
 
 	void* parser = ParseAlloc(malloc);
 	for (;;)

@@ -40,7 +40,14 @@
 	void arch_init_variable(struct symbol* var)
 	{
 		/* All variables get allocated from workspace 0. */
+		var->u.var.offset = current_sub->workspace[0];
 		current_sub->workspace[0] += var->u.var.type->u.type.width;
+	}
+
+	void arch_init_member(struct symbol* record, struct symbol* member)
+	{
+		member->u.var.offset = record->u.type.width;
+		record->u.type.width += member->u.var.type->u.type.width;
 	}
 
 	static const char* regref(reg_t reg)
