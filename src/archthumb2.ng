@@ -19,6 +19,11 @@
 
 	static int id = 1;
 
+	static uint32_t alignup(int32_t i, int w)
+	{
+		return (i+w-1) & ~(w-1);
+	}
+
 	void arch_init_types(void)
 	{
 		make_number_type("uint32", 4, false);
@@ -40,7 +45,19 @@
 	void arch_init_variable(struct symbol* var)
 	{
 		/* All variables get allocated from workspace 0. */
+
+		int w = var->u.var.type->u.type.width;
+		var->u.var.offset = current_sub->workspace[0];
 		current_sub->workspace[0] += var->u.var.type->u.type.width;
+	}
+
+	void arch_init_member(struct symbol* record, struct symbol* member)
+	{
+		int w = member->u.var.type->u.type.width;
+
+		record->u.type.width = alignup(record->u.type.width, w);
+		member->u.var.offset = record->u.type.width;
+		record->u.type.width += w;
 	}
 
 	static const char* regref(reg_t reg)
@@ -96,6 +113,9 @@
 	/* Note! This is allowed to destroy the source register. */
 	void arch_emit_move(reg_t src, reg_t dest)
 	{
+		if (src == dest)
+			return;
+
 		if (!src)
 			E("\tpop %s\n", regref(dest));
 		else if (!dest)
@@ -192,42 +212,46 @@ gen STARTSUB():s
 gen ENDSUB():s
 {
 	E("end_%s:\n", subref($s.sub));
-//	if ($s.sub->outputparameters != 0)
-//	{
-//		E("\tpop h\n");
-//		E("\txchg\n"); /* put return address in DE */
-//
-//		for (int i=0; i<$s.sub->outputparameters; i++)
-//		{
-//			struct symbol* param = $s.sub->namespace.firstsymbol;
-//			for (int j=0; j<(i + $s.sub->inputparameters); j++)
-//				param = param->next;
-//
-//			if (param->u.var.type->u.type.width == 1)
-//			{
-//				E("\tlda %s\n", symref(param, 0));
-//				E("\tpush psw\n");
-//			}
-//			else
-//			{
-//				E("\tlhld %s\n", symref(param, 0));
-//				E("\tpush h\n");
-//			}
-//		}
-//
-//		E("\txchg\n");
-//		E("\tpchl\n");
-//	}
-//	else
-//		E("\tret\n");
-//
-	E("\tpop {r7, pc}\n");
+	if ($s.sub->outputparameters != 0)
+	{
+		E("\tpop {r1, r2}\n");
+		for (int i=0; i<$s.sub->outputparameters; i++)
+		{
+			struct symbol* param = $s.sub->namespace.firstsymbol;
+			for (int j=0; j<(i + $s.sub->inputparameters); j++)
+				param = param->next;
+
+			switch (param->u.var.type->u.type.width)
+			{
+				case 1:
+					E("\tldrb r0, [r7, %d]\n", param->u.var.offset);
+					break;
+
+				case 2:
+					E("\tldrh r0, [r7, %d]\n", param->u.var.offset);
+					break;
+
+				case 4:
+					E("\tldr r0, [r7, %d]\n", param->u.var.offset);
+					break;
+
+				default:
+					assert(false);
+			}
+			E("\tpush {r0}\n");
+		}
+		E("\tmov r7, r1\n");
+		E("\tbx r2\n");
+	}
+	else
+		E("\tpop {r7, pc}\n");
+
 	E(".bss\n");
 	E("w%d:\n", $s.sub->arch->id);
 	if ($s.sub->workspace[0])
 	{
 		E("\t.align 4\n");
-		E("\t.ds %d\n", $s.sub->workspace[0]);
+		E("\t.space %d\n", $s.sub->workspace[0]);
 	}
     emitter_close_chunk();
 }
@@ -278,49 +302,55 @@ gen param := PUSHPARAM4(param, reg:val)
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
 		E("\tbl %s\n", subref(sub));
 	}
+
+	static void calln(Subroutine* sub, reg_t reg)
+	{
+		call(sub);
+		E("\tpop {%s}\n", regref(reg));
+	}
 %}
 
-//gen param := CALL0(param):c
-//	{ call($c.sub); }
+gen param := CALL0(param):c
+	{ call($c.sub); }
 
 gen CALL0(param):c
 	{ call($c.sub); }
 
-//gen a|b|d|h := CALL1(param):c
-//{
-//	call($c.sub);
-//	E("\tpop %s\n", stkref($$));
-//}
-//
-//gen bc|de|hl := CALL2(param):c
-//{
-//	call($c.sub);
-//	E("\tpop %s\n", stkref($$));
-//}
-//
-//gen POPPARAM1(param, ADDRESS():a) uses a
-//{
-//	E("\tpop psw\n");
-//	E("\tsta %s\n", symref($a.sym, $a.off));
-//}
-//
-//gen param := POPPARAM1(param, ADDRESS():a) uses a
-//{
-//	E("\tpop psw\n");
-//	E("\tsta %s\n", symref($a.sym, $a.off));
-//}
-//
-//gen POPPARAM2(param, ADDRESS():a) uses hl
-//{
-//	E("\tpop hl\n");
-//	E("\tshld %s\n", symref($a.sym, $a.off));
-//}
-//
-//gen param := POPPARAM2(param, ADDRESS():a) uses hl
-//{
-//	E("\tpop hl\n");
-//	E("\tshld %s\n", symref($a.sym, $a.off));
-//}
+gen reg := CALL1(param):c
+	{ calln($c.sub, $$); }
+
+gen reg := CALL2(param):c
+	{ calln($c.sub, $$); }
+
+gen reg := CALL4(param):c
+	{ calln($c.sub, $$); }
+
+%{
+	static void popparam(Symbol* sym, int32_t off)
+	{
+		const char* ins = NULL;
+		switch (sym->u.var.type->u.type.width)
+		{
+			case 1: ins = "strb"; break;
+			case 2: ins = "strh"; break;
+			case 4: ins = "str"; break;
+			default: assert(false);
+		}
+
+		E("\tpop {r0}\n");
+		E("\tldr r1, =%s\n", symref(sym, off));
+		E("\t%s r0, [r1]\n", ins);
+	}
+%}
+
+rewrite POPPARAM1(p, a) := POPPARAM4(p, a);
+rewrite POPPARAM2(p, a) := POPPARAM4(p, a);
+
+gen POPPARAM4(param, ADDRESS():a) uses r0|r1
+	{ popparam($a.sym, $a.off); }
+
+gen param := POPPARAM4(param, ADDRESS():a) uses r0|r1
+	{ popparam($a.sym, $a.off); }
 
 // --- Core conversions --------------------------------------------------
 
@@ -393,12 +423,26 @@ gen reg := RSHIFTU1(reg:lhs, reg:rhs)
 	E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
 }
 
+gen reg := RSHIFTS1(reg:lhs, reg:rhs)
+{
+	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tasr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
+
 // --- 16-bit arithmetic ----------------------------------------------------
+
+rewrite LSHIFT2(lhs, rhs) := LSHIFT4(lhs, rhs);
 
 gen reg := RSHIFTU2(reg:lhs, reg:rhs)
 {
 	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
 	E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
+
+gen reg := RSHIFTS2(reg:lhs, reg:rhs)
+{
+	E("\tsxth %s, %s\n", regref($lhs), regref($lhs));
+	E("\tasr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
 }
 
 rewrite NEG2(lhs) := NEG4(lhs);
@@ -423,10 +467,13 @@ gen reg := LSHIFT4(reg:lhs, reg:rhs)
 gen reg := RSHIFTU4(reg:lhs, reg:rhs)
 	{ E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
 
+gen reg := RSHIFTU4(reg:lhs, CONSTANT():c)
+	{ E("\tlsr %s, %s, #%d\n", regref($$), regref($lhs), $c); }
+
 // --- Branches -------------------------------------------------------------
 
 %{
-	static void bequ(int truelabel, int falselabel, const char* extend, reg_t lhs, reg_t rhs)
+	static void beq(int truelabel, int falselabel, const char* extend, reg_t lhs, reg_t rhs)
 	{
 		if (extend)
 		{
@@ -437,30 +484,62 @@ gen reg := RSHIFTU4(reg:lhs, reg:rhs)
 		E("\tbeq %s\n", labelref(truelabel));
 		E("\tbne %s\n", labelref(falselabel));
 	}
+
+	static void beqc(int truelabel, int falselabel, const char* extend, reg_t lhs, int32_t c)
+	{
+		if (extend)
+			E("\t%s %s, %s\n", extend, regref(lhs), regref(lhs));
+		E("\tcmp %s, #%d\n", regref(lhs), c);
+		E("\tbeq %s\n", labelref(truelabel));
+		E("\tbne %s\n", labelref(falselabel));
+	}
 %}
 
 gen BEQU1(reg:lhs, reg:rhs):b
-	{ bequ($b.truelabel, $b.falselabel, "uxtb", $lhs, $rhs); }
+	{ beq($b.truelabel, $b.falselabel, "uxtb", $lhs, $rhs); }
 
 gen BEQS1(reg:lhs, reg:rhs):b
-	{ bequ($b.truelabel, $b.falselabel, "sxtb", $lhs, $rhs); }
+	{ beq($b.truelabel, $b.falselabel, "sxtb", $lhs, $rhs); }
 
 gen BEQU2(reg:lhs, reg:rhs):b
-	{ bequ($b.truelabel, $b.falselabel, "uxth", $lhs, $rhs); }
+	{ beq($b.truelabel, $b.falselabel, "uxth", $lhs, $rhs); }
 
 gen BEQS2(reg:lhs, reg:rhs):b
-	{ bequ($b.truelabel, $b.falselabel, "sxth", $lhs, $rhs); }
+	{ beq($b.truelabel, $b.falselabel, "sxth", $lhs, $rhs); }
 
 gen BEQU4(reg:lhs, reg:rhs):b
-	{ bequ($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
+	{ beq($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
 
 gen BEQS4(reg:lhs, reg:rhs):b
-	{ bequ($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
+	{ beq($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
 
 gen BLTU1(reg:lhs, reg:rhs):b
 {
 	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
 	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+	E("\tblo %s\n", labelref($b.truelabel));
+	E("\tb %s\n", labelref($b.falselabel));
+}
+
+gen BLTU2(reg:lhs, reg:rhs):b
+{
+	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+	E("\tblo %s\n", labelref($b.truelabel));
+	E("\tb %s\n", labelref($b.falselabel));
+}
+
+gen BLTU4(reg:lhs, reg:rhs):b
+{
+	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+	E("\tblo %s\n", labelref($b.truelabel));
+	E("\tb %s\n", labelref($b.falselabel));
+}
+
+gen BLTS4(reg:lhs, reg:rhs):b
+{
 	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
 	E("\tblt %s\n", labelref($b.truelabel));
 	E("\tb %s\n", labelref($b.falselabel));
@@ -469,9 +548,12 @@ gen BLTU1(reg:lhs, reg:rhs):b
 // --- Casts ----------------------------------------------------------------
 
 gen reg := CAST21(reg:rhs)
-	{ E("\tmov %s, %s\n", regref($$), regref($rhs)); }
+	{ arch_emit_move($rhs, $$); }
 	
 rewrite CAST41(rhs) := CAST21(rhs);
+
+gen reg := CAST24(reg:rhs)
+	{ E("\tuxth %s, %s\n", regref($$), regref($rhs)); }
 
 // --- Inline assembly ------------------------------------------------------
 

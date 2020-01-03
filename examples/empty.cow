@@ -1,43 +1,6 @@
-include "cowgol.coh";
+sub takes_int32(i: int32)
+end sub;
 
-#var TOP: [uint8];
-#@asm "extrn __top";
-#@asm "lxi h, __top";
-#@asm "shld ", TOP;
-#
-#var HIMEM: [uint8];
-#@asm "lhld 6";
-#@asm "shld ", HIMEM;
-#
-#sub print_char(c: uint8)
-#        @asm "lda ", c;
-#        @asm "mov e, a";
-#        @asm "mvi c, 2";
-#        @asm "call 5";
-#end sub;
-#
-#sub print(ptr: [uint8])
-#    loop
-#        var c := [ptr];
-#        if c == 0 then
-#            return;
-#        end if;
-#        print_char(c);
-#        ptr := ptr + 1;
-#    end loop;
-#end sub;
-#
-#sub outputs(): (a: int8, b: int8, c: int8)
-#	a := 1;
-#	b := 2;
-#	c := 3;
-#end sub;
-#
-#var a: int8;
-#var b: int8;
-#var c: int8;
-#(a, b, c) := outputs();
-#
-
-print_char('q');
+var i: int16 := 1;
+takes_int32(i as int32);
 

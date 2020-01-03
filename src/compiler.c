@@ -266,15 +266,7 @@ void init_var(struct symbol* sym, struct symbol* type)
 {
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
-	sym->u.var.offset = current_sub->workspace[0];
 	arch_init_variable(sym);
-}
-
-void init_member(struct symbol* sym, struct symbol* type)
-{
-	sym->u.var.type = type;
-	sym->u.var.offset = current_type->u.type.width;
-	current_type->u.type.width += type->u.type.width;
 }
 
 /* node must be on the top of the midend stack. */

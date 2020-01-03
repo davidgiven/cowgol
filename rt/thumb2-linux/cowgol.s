@@ -11,6 +11,11 @@ _start:
 
 .bss
 	.align 4
-	.ds 4096
+	.space 4096
 stack_top:
+
+.global _top, _himem
+_top:
+	.space 64*1024
+_himem:
 

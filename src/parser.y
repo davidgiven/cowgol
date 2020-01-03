@@ -244,13 +244,13 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 				for (int i=0; i<remaining-1; i++)
 					param = param->next;
 
-				check_expression_type(&node->type, param->u.var.type);
+				check_expression_type(&node->right->type, param->u.var.type);
 
 				/* The input parameter midnodes are PAIR because the parser couldn't
 				 * do constant promotion (not having a subroutine to work with). Now
 				 * we know the actual type, patch the midnode accordingly. */
 
-				switch (node->type->u.type.width)
+				switch (node->right->type->u.type.width)
 				{
 					case 1: node->op = MIDCODE_PUSHPARAM1; break;
 					case 2: node->op = MIDCODE_PUSHPARAM2; break;
@@ -278,7 +278,7 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 		{
 			if (outs < sub->outputparameters)
 			{
-				check_expression_type(&node->type, param->u.var.type);
+				check_expression_type(&node->right->type->u.type.element, param->u.var.type);
 				param = param->next;
 			}
 			outs++;
@@ -752,7 +752,8 @@ recordmembers ::= recordmember recordmembers.
 recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
 {
 	S->kind = VAR;
-	init_member(S, T);
+	S->u.var.type = T;
+	arch_init_member(current_type, S);
 }
 
 %type memberid {struct symbol*}

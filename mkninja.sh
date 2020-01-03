@@ -527,7 +527,12 @@ test_cpm conditionals
 test_thumb2_linux addsub-8bit
 test_thumb2_linux addsub-16bit
 test_thumb2_linux addsub-32bit
+test_thumb2_linux shifts-8bit
+test_thumb2_linux shifts-16bit
 test_thumb2_linux records
+test_thumb2_linux inputparams
+test_thumb2_linux outputparams
+test_thumb2_linux conditionals
 
 #test_c addsub-8bit
 #test_c addsub-16bit
@@ -537,9 +542,10 @@ test_thumb2_linux records
 #test_c outputparams
 #test_c conditionals
 
-#cowgol_cpm examples/empty.cow examples/empty.com
+cowgol_cpm examples/empty.cow examples/empty.com
 cowgol_thumb2_linux examples/empty.cow examples/empty
 cowgol_cpm examples/malloc.cow examples/malloc.com 
+cowgol_thumb2_linux examples/malloc.cow examples/malloc.exe 
 #cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et
