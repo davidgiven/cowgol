@@ -288,7 +288,7 @@ cowgol_cpm_asm() {
 
 cowgol_cpm() {
 	local base
-	base="$OBJDIR/${1%.cow}.cpm"
+	base="$OBJDIR/$(dirname $1)/cpm/${1%.cow}"
 	cowgol_cpm_asm $1 $base.asm $base.log "$3"
 	zmac8 $base.asm $base.rel
 	ld80 $base.bin \
@@ -325,7 +325,7 @@ cowgol_thumb2_s() {
 
 cowgol_thumb2_linux() {
 	local base
-	base="$OBJDIR/${1%.cow}.thumb2-linux"
+	base="$OBJDIR/$(dirname $1)/thumb2-linux/${1%.cow}"
 	cowgol_thumb2_s $1 $base.s $base.log "$3"
     as_thumb2_linux $base.s $base.o
     rule \
