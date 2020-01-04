@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+stdlib=$(find rt -name "*.coh" | xargs echo)
+
 cat <<EOF
 rule cc
     command = $CC $CFLAGS \$flags -I. -c -o \$out \$in -MMD -MF \$out.d
@@ -276,10 +278,10 @@ cowgol_cpm_asm() {
 	out=$2
 	log=$3
 	deps=$4
-
+    
 	rule \
 		"bin/tinycowc-8080 -Irt/ -Irt/cpm/ $in $out > $log" \
-		"$in $deps bin/tinycowc-8080 rt/cpm/cowgol.coh" \
+		"$in $deps bin/tinycowc-8080 $stdlib" \
 		"$out $log" \
 		"COWGOL 8080 $in"
 }
@@ -546,6 +548,8 @@ cowgol_cpm examples/empty.cow examples/empty.com
 cowgol_thumb2_linux examples/empty.cow examples/empty
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.exe 
+cowgol_cpm examples/argv.cow examples/argv.com 
+cowgol_thumb2_linux examples/argv.cow examples/argv.exe 
 #cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et

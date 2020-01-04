@@ -674,8 +674,11 @@ gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
 %{
 	static void bequ2c(int truelabel, int falselabel, reg_t lhs, int c)
 	{
-		E("\tlxi d, 0x%x\n", (-c) & 0xffff);
-		E("\tdad d\n");
+		if (c != 0)
+		{
+			E("\tlxi d, 0x%x\n", (-c) & 0xffff);
+			E("\tdad d\n");
+		}
 		E("\tmov a, l\n");
 		E("\tora h\n");
 		E("\tjnz %s\n", labelref(falselabel));
