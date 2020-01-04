@@ -2,18 +2,34 @@
 .global _start
 .code 32
 _start:
-	ldr sp, =stack_top
-	ldr r0, =cmain
-	blx r0
+	/* On entry, the stack looks like this:
+	 *
+     * sp+... NULL
+	 * ...
+     * sp+8   argv[1]
+     * sp+4   argv[0]
+     * sp     argc
+	 */
+
+	ldr r0, =_thumb_start
+	bx r0
+
+.thumb_func
+_thumb_start:
+	add r1, sp, #4
+	ldr r0, =_argv
+	str r1, [r0]
+
+	bl cmain
 	mov r0, #0
 	mov r7, #1 /* __exit() */
 	svc #0
 
 .bss
-	.align 4
-	.space 4096
-stack_top:
-
+.align 4
+.global _argv
+_argv:
+	.space 4
 .global _top, _himem
 _top:
 	.space 64*1024
