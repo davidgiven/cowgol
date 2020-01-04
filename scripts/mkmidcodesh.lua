@@ -29,7 +29,6 @@ hfp:write("reg_t produced_reg;\n");
 hfp:write("Instruction* producer;\n");
 hfp:write("Instruction* consumer;\n");
 hfp:write("struct symbol* type;\n");
-hfp:write("void* iburg;\n");
 hfp:write("struct midnode* left;\n")
 hfp:write("struct midnode* right;\n")
 hfp:write("union {\n");

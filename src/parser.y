@@ -13,14 +13,7 @@
     int current_label = 1;
 
     static int break_label;
-	static struct condlabels* last_condition;
 	struct subroutine* current_sub;
-
-	struct condlabels
-	{
-		int truelabel;
-		int falselabel;
-	};
 
 	struct iflabels
 	{
