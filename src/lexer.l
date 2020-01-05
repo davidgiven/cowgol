@@ -61,6 +61,7 @@ SP [ \t]+
 "var"                     { return VAR; }
 "while"                   { return WHILE; }
 "|"                       { return PIPE; }
+"@bytesof"                { return BYTESOF; }
 
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }

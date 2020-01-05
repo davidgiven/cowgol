@@ -550,6 +550,7 @@ cowgol_cpm examples/malloc.cow examples/malloc.com
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.exe 
 cowgol_cpm examples/argv.cow examples/argv.com 
 cowgol_thumb2_linux examples/argv.cow examples/argv.exe 
+cowgol_cpm examples/file.cow examples/file.com 
 #cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et

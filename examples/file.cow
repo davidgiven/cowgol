@@ -1,0 +1,33 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+
+var inputFilename: [uint8];
+var outputFilename: [uint8];
+
+ArgvInit();
+inputFilename := ArgvNext();
+outputFilename := ArgvNext();
+if (inputFilename == (0 as [uint8])) or (outputFilename == (0 as [uint8]))
+	or (ArgvNext() != (0 as [uint8])) then
+	print("Syntax error!\n");
+	return;
+end if;
+
+var inputFile: File;
+if OpenInputFile(inputFilename, &inputFile) != 0 then
+	print("Failed to open input file!\n");
+	return;
+end if;
+
+var outputFile: File;
+if OpenOutputFile(outputFilename, &outputFile) != 0 then
+	print("Failed to open output file!\n");
+	return;
+end if;
+
+if CloseFile(&outputFile) != 0 then
+	print("Disk error closing output file!\n");
+	return;
+end if;
+

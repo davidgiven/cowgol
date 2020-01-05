@@ -1,0 +1,37 @@
+include "cpm.coh";
+
+record File
+	fcb: FCB;
+	buffer: uint8[128];
+	pos: uint8;
+end record;
+
+sub OpenInputFile(filename: [uint8], file: [File]): (result: uint8)
+	result := 1;
+	CpmParseFilename(&file.fcb, filename);
+	var r := CpmOpenFile(&file.fcb);
+	if r != 0 then
+		return;
+	end if;
+	result := 0;
+end sub;
+
+sub OpenOutputFile(filename: [uint8], file: [File]): (result: uint8)
+	result := 1;
+	CpmParseFilename(&file.fcb, filename);
+	var r := CpmCreateFile(&file.fcb);
+	if r != 0 then
+		return;
+	end if;
+	result := 0;
+end sub;
+	
+sub CloseFile(file: [File]): (result: uint8)
+	result := 1;
+	var r := CpmCloseFile(&file.fcb);
+	if r != 0 then
+		return;
+	end if;
+	result := 0;
+end sub;
+

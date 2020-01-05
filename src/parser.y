@@ -475,6 +475,11 @@ cvalue(value) ::= oldid(sym).
 	value = sym->u.constant;
 }
 
+cvalue(value) ::= BYTESOF typeref(T).
+{
+	value = T->u.type.width;
+}
+
 statement ::= CONST newid(S) ASSIGN cvalue(V) SEMICOLON.
 {
 	S->kind = CONST;
@@ -494,6 +499,12 @@ expression(E) ::= STRING(S).
 	unescape(S->string);
 	E = mid_string(strdup(S->string));
 	E->type = make_pointer_type(uint8_type);
+}
+
+expression(E) ::= BYTESOF typeref(T).
+{
+	E = mid_constant(T->u.type.width);
+	E->type = NULL;
 }
 
 expression(E) ::= lvalue(E1).
