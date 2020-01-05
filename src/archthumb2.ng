@@ -3,6 +3,7 @@
 	#include "emitter.h"
 	#include "midcodes.h"
 	#include "compiler.h"
+	#include "parser.h"
 	#include <bsd/string.h>
 	#include <ctype.h>
 
@@ -470,6 +471,12 @@ gen reg := RSHIFTU4(reg:lhs, reg:rhs)
 gen reg := RSHIFTU4(reg:lhs, CONSTANT():c)
 	{ E("\tlsr %s, %s, #%d\n", regref($$), regref($lhs), $c); }
 
+gen reg := RSHIFTS4(reg:lhs, reg:rhs)
+	{ E("\tasr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
+gen reg := RSHIFTS4(reg:lhs, CONSTANT():c)
+	{ E("\tasr %s, %s, #%d\n", regref($$), regref($lhs), $c); }
+
 // --- Branches -------------------------------------------------------------
 
 %{
@@ -570,7 +577,10 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-    strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+	if ($s.sym->kind == VAR)
+		strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+	else
+		strlcat(asmbuffer, subref($s.sym->u.sub), sizeof(asmbuffer));
     strlcat(asmbuffer, " ", sizeof(asmbuffer));
 }
 

@@ -105,6 +105,8 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
 	if (!E->type)
 		fatal("types cannot be inferred for numeric constants");
+	if (!is_scalar(E->type))
+		fatal("you can only assign to lvalues");
 	S->kind = VAR;
 	init_var(S, E->type);
 	check_expression_type(&E->type, E->type);
@@ -511,6 +513,8 @@ expression(E) ::= lvalue(E1).
 {
 	if (E1->type)
 	{
+		if (!is_scalar(E1->type->u.type.element))
+			fatal("non-scalars cannot be used in this context");
 		E = mid_load(E1->type->u.type.element->u.type.width, E1);
 		E->type = E1->type->u.type.element;
 	}
@@ -789,7 +793,7 @@ asm ::= STRING(token).
 
 asm ::= oldid(ID).
 {
-	if (ID->kind != VAR)
-		fatal("you can only emit references to variables");
+	if ((ID->kind != VAR) && (ID->kind != SUB))
+		fatal("you can only emit references to variables or subroutines");
 	generate(mid_asmsymbol(ID));
 }

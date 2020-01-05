@@ -3,6 +3,7 @@
 	#include "emitter.h"
 	#include "midcodes.h"
 	#include "compiler.h"
+	#include "parser.h"
 	#include <bsd/string.h>
 	#include <ctype.h>
 
@@ -159,16 +160,20 @@ gen STARTFILE()
     emitter_open_chunk();
     E("\textrn add4\n");
     E("\textrn sub4\n");
+    E("\textrn and4\n");
     E("\textrn neg4\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
+	E("\textrn asl4\n");
 	E("\textrn lsr1\n");
 	E("\textrn lsr2\n");
 	E("\textrn lsr4\n");
 	E("\textrn asr1\n");
 	E("\textrn asr2\n");
+	E("\textrn asr4\n");
 	E("\textrn cmpu4\n");
+	E("\textrn load4\n");
     emitter_close_chunk();
 }
 
@@ -235,15 +240,24 @@ gen ENDSUB():s
 			for (int j=0; j<(i + $s.sub->inputparameters); j++)
 				param = param->next;
 
-			if (param->u.var.type->u.type.width == 1)
+			switch (param->u.var.type->u.type.width)
 			{
-				E("\tlda %s\n", symref(param, 0));
-				E("\tpush psw\n");
-			}
-			else
-			{
-				E("\tlhld %s\n", symref(param, 0));
-				E("\tpush h\n");
+				case 1:
+					E("\tlda %s\n", symref(param, 0));
+					E("\tpush psw\n");
+					break;
+
+				case 4:
+					E("\tlhld %s\n", symref(param, 2));
+					E("\tpush h\n");
+					/* fall through */
+				case 2:
+					E("\tlhld %s\n", symref(param, 0));
+					E("\tpush h\n");
+					break;
+
+				default:
+					assert(false);
 			}
 		}
 
@@ -323,6 +337,11 @@ gen bc|de|hl := CALL2(param):c
 	E("\tpop %s\n", stkref($$));
 }
 
+gen stk4 := CALL4(param):c
+{
+	call($c.sub);
+}
+
 gen POPPARAM1(param, ADDRESS():a) uses a
 {
 	E("\tpop psw\n");
@@ -400,6 +419,9 @@ gen stk4 := LOAD4(ADDRESS():a) uses hl
 	E("\tlhld %s\n", symref($a.sym, $a.off+0));
 	E("\tpush h\n");
 }
+
+gen stk4 := LOAD4(hl) uses bc|de
+	{ E("\tcall load4\n"); }
 
 gen STORE1(bc|de|hl:lhs, a)
 {
@@ -516,6 +538,12 @@ gen a := RSHIFTU1(a, b) uses bc
 gen a := RSHIFTS1(a, b) uses bc
 	{ E("\tcall asr1\n"); }
 
+gen a := AND1(a, b|d|h:rhs)
+	{ E("\tand %s\n", regref($rhs)); }
+
+gen a := AND1(a, CONSTANT():c)
+	{ E("\tani %d\n", $c.value & 0xff); }
+
 // --- 16-bit arithmetic ----------------------------------------------------
 
 gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
@@ -598,11 +626,20 @@ gen stk4 := ADD4(stk4, stk4)
 gen stk4 := SUB4(stk4, stk4)
 	{ E("\tcall sub4\n"); }
 
+gen stk4 := AND4(stk4, stk4)
+	{ E("\tcall and4\n"); }
+
 gen stk4 := NEG4(stk4)
 	{ E("\tcall neg4\n"); }
 
+gen stk4 := LSHIFT4(stk4, b)
+	{ E("\tcall asl4\n"); }
+
 gen stk4 := RSHIFTU4(stk4, b)
 	{ E("\tcall lsr4\n"); }
+
+gen stk4 := RSHIFTS4(stk4, b)
+	{ E("\tcall asr4\n"); }
 
 // --- Branches -------------------------------------------------------------
 
@@ -648,6 +685,13 @@ gen BEQS1(CONSTANT():c, a):b
 gen BLTU1(a, CONSTANT():c):b
 {
 	E("\tcpi %d\n", $c.value);
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+gen BLTU1(a, b|d|h:rhs):b
+{
+	E("\tcmp %s\n", regref($rhs));
 	E("\tjc %s\n", labelref($b.truelabel));
 	E("\tjmp %s\n", labelref($b.falselabel));
 }
@@ -743,7 +787,7 @@ gen a|d := CAST41(stk4) uses hl|bc
 	E("\tmov %s, c\n", regref($$));
 }
 	
-gen hl|de := CAST41(stk4) uses bc
+gen hl|de := CAST42(stk4) uses bc
 {
 	E("\tpop b\n");
 	E("\tpop %s\n", regref($$));
@@ -764,7 +808,10 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-    strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+	if ($s.sym->kind == VAR)
+		strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+	else
+		strlcat(asmbuffer, subref($s.sym->u.sub), sizeof(asmbuffer));
     strlcat(asmbuffer, " ", sizeof(asmbuffer));
 }
 
