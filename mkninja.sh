@@ -521,6 +521,7 @@ test_cpm addsub-16bit
 test_cpm addsub-32bit
 test_cpm shifts-8bit
 test_cpm shifts-16bit
+test_cpm shifts-32bit
 test_cpm records
 test_cpm inputparams
 test_cpm outputparams
@@ -531,6 +532,7 @@ test_thumb2_linux addsub-16bit
 test_thumb2_linux addsub-32bit
 test_thumb2_linux shifts-8bit
 test_thumb2_linux shifts-16bit
+test_thumb2_linux shifts-32bit
 test_thumb2_linux records
 test_thumb2_linux inputparams
 test_thumb2_linux outputparams

@@ -14,20 +14,24 @@ if (inputFilename == (0 as [uint8])) or (outputFilename == (0 as [uint8]))
 	return;
 end if;
 
-var inputFile: File;
-if OpenInputFile(inputFilename, &inputFile) != 0 then
+var inputFile: FCB;
+if FCBOpenIn(&inputFile, inputFilename) != 0 then
 	print("Failed to open input file!\n");
 	return;
 end if;
 
-var outputFile: File;
-if OpenOutputFile(outputFilename, &outputFile) != 0 then
+var outputFile: FCB;
+if FCBOpenOut(&outputFile, outputFilename) != 0 then
 	print("Failed to open output file!\n");
 	return;
 end if;
 
-if CloseFile(&outputFile) != 0 then
+if FCBClose(&outputFile) != 0 then
 	print("Disk error closing output file!\n");
 	return;
 end if;
+
+print("Input file length: 0x");
+print_hex_i32(FCBExt(&inputFile));
+print_nl();
 

@@ -30,17 +30,17 @@ sub ArgvNext(): (arg: [uint8])
 
 	loop
 		c := [argv_pointer];
-		if (c == ' ') or (c == '\n') then
+		if (c == ' ') or (c == '\n') or (c == 0) then
 			break;
 		end if;
 		argv_pointer := argv_pointer + 1;
 	end loop;
 	[argv_pointer] := 0;
 
-	if c == '\n' then
-		argv_pointer := 0 as [uint8];
-	else
+	if c == ' ' then
 		argv_pointer := argv_pointer + 1;
+	else
+		argv_pointer := 0 as [uint8];
 	end if;
 end sub;
 
