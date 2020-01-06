@@ -201,7 +201,7 @@ void generate(Node* node)
 						producer->producable_regs & ~producer->output_regs);
 					n->produced_reg = findfirst(n->desired_reg & ~(blocked | consumer->input_regs));
 
-					blocked = find_conflicting_registers(producer->produced_reg);
+					blocked = find_conflicting_registers(n->produced_reg);
 					consumer->input_regs |= blocked;
 					block_registers(consumer+1, producer-1, blocked);
 					producer->output_regs |= find_conflicting_registers(producer->produced_reg);
