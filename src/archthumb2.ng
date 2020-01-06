@@ -311,10 +311,9 @@ gen param := PUSHPARAM4(param, reg:val)
 	}
 %}
 
-gen param := CALL0(param):c
-	{ call($c.sub); }
+gen CALLS(param);
 
-gen CALL0(param):c
+gen param := CALL0(param):c
 	{ call($c.sub); }
 
 gen reg := CALL1(param):c

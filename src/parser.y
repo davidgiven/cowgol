@@ -306,7 +306,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 		check_output_parameters(sub, outputs);
 
 		if (sub->outputparameters == 0)
-			return mid_call0(inputs, sub);
+			return mid_calls(mid_call0(inputs, sub));
 
 		/* Find the last output parameter. */
 
@@ -318,7 +318,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 
 		discard(node->left);
 		node->left = mid_call0(inputs, sub);
-		return outputs;
+		return mid_calls(outputs);
 	}
 }
 
