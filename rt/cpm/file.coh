@@ -190,6 +190,6 @@ sub FCBGetChar(fcb: [FCB]): (c: uint8)
 	else
 		fcb.bufferptr := fcb.bufferptr + 1;
 	end if;
-	c := fcb.buffer[fcb.bufferptr as uint16];
+	c := fcb.buffer[fcb.bufferptr];
 end sub;
 

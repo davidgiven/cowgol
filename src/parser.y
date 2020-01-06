@@ -552,14 +552,7 @@ expression(E) ::= expression(E1) AS typeref(T).
 				E1->type->name, T->name);
 		}
 
-		switch (E1->type->u.type.width)
-		{
-			case 1: E = mid_cast1(T->u.type.width, E1); break;
-			case 2: E = mid_cast2(T->u.type.width, E1); break;
-			case 4: E = mid_cast4(T->u.type.width, E1); break;
-			case 8: E = mid_cast8(T->u.type.width, E1); break;
-			default: assert(false);
-		}
+		E = mid_c_cast(T->u.type.width, E1);
 	}
 	else
 		E = E1;
@@ -606,11 +599,12 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 	if (!is_num(E2->type))
 			fatal("array indices must be numbers");
 	
-	check_expression_type(&E2->type, intptr_type);
+	Symbol* indextype = arraytype->u.type.indextype;
 	E = mid_c_add(intptr_type->u.type.width,
 		E1,
 		mid_c_mul(intptr_type->u.type.width,
-			E2, mid_constant(arraytype->u.type.element->u.type.width)));
+			mid_c_cast(intptr_type->u.type.width, E2),
+			mid_constant(arraytype->u.type.element->u.type.width)));
 	E->type = make_pointer_type(arraytype->u.type.element);
 }
 

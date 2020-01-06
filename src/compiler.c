@@ -318,6 +318,7 @@ struct symbol* make_array_type(struct symbol* type, int32_t size)
 	ptr->u.type.kind = TYPE_ARRAY;
 	ptr->u.type.width = size * type->u.type.width;
 	ptr->u.type.element = type;
+	ptr->u.type.indextype = arch_guess_int_type(0, size-1);
 	return ptr;
 }
 
@@ -381,6 +382,24 @@ Symbol* get_output_parameters(Subroutine* sub)
 	for (int i=0; i<sub->inputparameters; i++)
 		param = param->next;
 	return param;
+}
+
+Node* mid_c_cast(int width, Node* lhs)
+{
+	if (!lhs->type)
+		return lhs;
+	int srcwidth = lhs->type->u.type.width;
+	if (width == srcwidth)
+		return lhs;
+
+	switch (srcwidth)
+	{
+		case 1: return mid_cast1(width, lhs);
+		case 2: return mid_cast2(width, lhs);
+		case 4: return mid_cast4(width, lhs);
+		case 8: return mid_cast8(width, lhs);
+		default: assert(false);
+	}
 }
 
 Node* mid_c_neg(int width, Node* lhs)
