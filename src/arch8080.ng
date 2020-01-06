@@ -368,26 +368,31 @@ gen param := POPPARAM2(param, ADDRESS():a) uses hl
 
 // --- Loads and stores --------------------------------------------------
 
-gen a := LOAD1(bc|de|hl:lhs)
-{
-	switch ($lhs)
+%{
+	static void load1(reg_t rhs)
 	{
-		case REG_BC:
-			E("\tldax b\n");
-			break;
+		switch (rhs)
+		{
+			case REG_BC:
+				E("\tldax b\n");
+				break;
 
-		case REG_DE:
-			E("\tldax d\n");
-			break;
+			case REG_DE:
+				E("\tldax d\n");
+				break;
 
-		case REG_HL:
-			E("\tmov a, m\n");
-			break;
+			case REG_HL:
+				E("\tmov a, m\n");
+				break;
 
-		default:
-			assert(false);
+			default:
+				assert(false);
+		}
 	}
-}
+%}
+
+gen a := LOAD1(bc|de|hl:lhs)
+	{ load1($lhs); }
 
 gen a := LOAD1(ADDRESS():a)
 	{ E("\tlda %s\n", symref($a.sym, $a.off)); }
@@ -769,6 +774,18 @@ gen BEQS4(stk4:lhs, stk4:rhs):b
 	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 // --- Casts ----------------------------------------------------------------
+
+gen hl|bc|de := CAST12(a|b|d|h:rhs)
+{
+	E("\tmov %s, %s\n", regreflo($$), regref($rhs));
+	E("\tmvi %s, 0\n", regref($$));
+}
+
+gen hl := CAST12(LOAD1(hl:rhs))
+{
+	E("\tmov %s, m\n", regreflo($$));
+	E("\tmvi %s, 0\n", regref($$));
+}
 
 gen a|b|d|h := CAST21(bc|de|hl:rhs)
 	{ E("\tmov %s, %s\n", regref($$), regref($rhs)); }

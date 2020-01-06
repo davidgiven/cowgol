@@ -13,9 +13,9 @@ end record;
 
 record FCB
 	cpm: CpmFCB;
-	buffer: uint8[128];
-	bufferptr: uint8;
+	bufferptr: uint8; # byte just read
 	dirty: uint8;
+	buffer: uint8[128];
 end record;
 
 sub memset(buf: [uint8], byte: uint8, len: uint16)
@@ -29,7 +29,7 @@ sub memset(buf: [uint8], byte: uint8, len: uint16)
 	end loop;
 end sub;
 
-sub file_i_init(file: [FCB], filename: [uint8])
+sub file_i_init(fcb: [FCB], filename: [uint8])
 	sub fill(dest: [uint8], src: [uint8], len: uint8): (srcout: [uint8])
 		loop
 			var c := [src];
@@ -54,29 +54,31 @@ sub file_i_init(file: [FCB], filename: [uint8])
 		srcout := src;
 	end sub;
 
-	memset(file as [uint8], 0, @bytesof FCB);
-	memset(&file.cpm.f[0] as [uint8], ' ', 11);
-	filename := fill(&file.cpm.f[0], filename, 8);
+	memset(fcb as [uint8], 0, @bytesof FCB);
+	memset(&fcb.cpm.f[0] as [uint8], ' ', 11);
+	filename := fill(&fcb.cpm.f[0], filename, 8);
 
+	var c: uint8;
 	loop
-		var c := [filename];
-		if c == 0 then
-			return;
-		end if;
-		if c == '.' then
+		c := [filename];
+		if (c == 0) or (c == '.') then
 			break;
 		end if;
 		filename := filename + 1;
 	end loop;
 
-	filename := fill(&file.cpm.f[8], filename+1, 3);
+	if c == '.' then
+		filename := fill(&fcb.cpm.f[8], filename+1, 3);
+	end if;
+	fcb.cpm.r := 0xffff;
+	fcb.bufferptr := 128;
 end sub;
 
 sub fcb_i_gbpb(fcb: [FCB], c: uint8)
 	var cpmfcb := &fcb.cpm;
 	var dma := &fcb.buffer[0];
 
-	@asm "mvi c, 27"; # SET DMA
+	@asm "mvi c, 26"; # SET DMA
 	@asm "lhld", dma;
 	@asm "xchg";
 	@asm "call 5";
@@ -126,10 +128,6 @@ sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
 	@asm "call 5";
 	@asm "call", fcb_i_convert_a_to_error;
 	@asm "sta", errno;
-
-	if errno == 0 then
-		fcb_i_blockin(fcb);
-	end if;
 end sub;
 
 sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8)
@@ -151,10 +149,6 @@ sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8)
 	@asm "call 5";
 	@asm "call", fcb_i_convert_a_to_error;
 	@asm "sta", errno;
-
-	if errno == 0 then
-		fcb_i_blockin(fcb);
-	end if;
 end sub;
 	
 sub FCBClose(fcb: [FCB]): (errno: uint8)
@@ -187,5 +181,15 @@ sub FCBExt(fcb: [FCB]): (len: uint32)
 
 	len := ([&fcb.cpm.r as [uint32]] & 0x00ffffff) << 7;
 	fcb.cpm.r := oldblock;
+end sub;
+
+sub FCBGetChar(fcb: [FCB]): (c: uint8)
+	if fcb.bufferptr == 128 then
+		fcb_i_changeblock(fcb, fcb.cpm.r + 1);
+		fcb.bufferptr := 0;
+	else
+		fcb.bufferptr := fcb.bufferptr + 1;
+	end if;
+	c := fcb.buffer[fcb.bufferptr as uint16];
 end sub;
 

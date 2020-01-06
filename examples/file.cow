@@ -35,3 +35,15 @@ print("Input file length: 0x");
 print_hex_i32(FCBExt(&inputFile));
 print_nl();
 
+var i: uint8 := 80;
+loop
+	i := i - 1;
+	if i == 0 then
+		break;
+	end if;
+	var c := FCBGetChar(&inputFile);
+	print_hex_i8(c);
+	print_char(' ');
+end loop;
+print_nl();
+
