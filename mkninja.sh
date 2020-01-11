@@ -254,7 +254,15 @@ as_thumb2_linux() {
         "arm-linux-gnueabihf-as -g $1 -o $2" \
         "$1" \
         "$2" \
-        "AS $base.s"
+        "AS THUMB2 $base.s"
+}
+
+as_80386_linux() {
+    rule \
+        "i686-linux-gnu-as -g $1 -o $2" \
+        "$1" \
+        "$2" \
+        "AS 80386 $base.s"
 }
 
 ld80() {
@@ -332,7 +340,36 @@ cowgol_thumb2_linux() {
         "arm-linux-gnueabihf-ld $OBJDIR/rt/thumb2-linux/cowgol.o $base.o -o $2" \
         "$OBJDIR/rt/thumb2-linux/cowgol.o $base.o" \
         "$2" \
-        "LD $1"
+        "LD THUMB2 $1"
+}
+
+cowgol_80386_s() {
+	local in
+	local out
+	local log
+	local deps
+	in=$1
+	out=$2
+	log=$3
+	deps=$4
+
+	rule \
+		"bin/tinycowc-80386 -Irt/ -Irt/80386-linux/ $in $out > $log" \
+		"$in $deps bin/tinycowc-80386 rt/80386-linux/cowgol.coh" \
+		"$out $log" \
+		"COWGOL 80386 $in"
+}
+
+cowgol_80386_linux() {
+	local base
+	base="$OBJDIR/$(dirname $1)/80386-linux/${1%.cow}"
+	cowgol_80386_s $1 $base.s $base.log "$3"
+    as_80386_linux $base.s $base.o
+    rule \
+        "i686-linux-gnu-ld $OBJDIR/rt/80386-linux/cowgol.o $base.o -o $2" \
+        "$OBJDIR/rt/80386-linux/cowgol.o $base.o" \
+        "$2" \
+        "LD 80386 $1"
 }
 
 test_thumb2_linux() {
@@ -478,6 +515,7 @@ buildlibrary libmain.a \
     src/compiler.c
 
 cowgol_target 8080
+cowgol_target 80386
 cowgol_target thumb2
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
@@ -514,6 +552,7 @@ buildprogram mkdfs libmkdfs.a
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
+as_80386_linux rt/80386-linux/cowgol.s $OBJDIR/rt/80386-linux/cowgol.o
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
@@ -548,6 +587,7 @@ test_thumb2_linux conditionals
 
 cowgol_cpm examples/empty.cow examples/empty.com
 cowgol_thumb2_linux examples/empty.cow examples/empty
+cowgol_80386_linux examples/empty.cow examples/empty-386
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.exe 
 cowgol_cpm examples/argv.cow examples/argv.com 

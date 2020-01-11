@@ -1,0 +1,338 @@
+%{
+	#include "globals.h"
+	#include "emitter.h"
+	#include "midcodes.h"
+	#include "compiler.h"
+	#include "parser.h"
+	#include <bsd/string.h>
+	#include <ctype.h>
+
+	#define IMPL
+	#include "codegen.h"
+
+	#define E emitter_printf
+	static char asmbuffer[80];
+
+	struct subarch
+	{
+		int id;
+	};
+
+	static int id = 1;
+
+	void arch_init_types(void)
+	{
+		make_number_type("uint32", 4, false);
+		make_number_type("int32", 4, true);
+		intptr_type = make_number_type("uint16", 2, false);
+		make_number_type("int16", 2, true);
+		uint8_type = make_number_type("uint8", 1, false);
+		make_number_type("int8", 1, true);
+
+		add_alias(NULL, "intptr", intptr_type);
+	}
+
+	void arch_init_subroutine(struct subroutine* sub)
+	{
+		sub->arch = calloc(1, sizeof(struct subarch));
+		sub->arch->id = id++;
+	}
+
+	void arch_init_variable(struct symbol* var)
+	{
+		/* All variables get allocated from workspace 0. */
+		var->u.var.offset = current_sub->workspace[0];
+		current_sub->workspace[0] += var->u.var.type->u.type.width;
+	}
+
+	void arch_init_member(struct symbol* record, struct symbol* member)
+	{
+		member->u.var.offset = record->u.type.width;
+		record->u.type.width += member->u.var.type->u.type.width;
+	}
+
+	static const char* regref(reg_t reg)
+	{
+		switch (reg)
+		{
+			case REG_EAX: return "%eax";
+			case REG_EBX: return "%ebx";
+			case REG_ECX: return "%ecx";
+			case REG_EDX: return "%edx";
+			case REG_ESI: return "%esi";
+			case REG_EDI: return "%edi";
+			case REG_AX: return "%ax";
+			case REG_BX: return "%bx";
+			case REG_CX: return "%cx";
+			case REG_DX: return "%dx";
+			case REG_SI: return "%si";
+			case REG_DI: return "%di";
+			case REG_AL: return "%al";
+			case REG_AH: return "%ah";
+			case REG_BL: return "%bl";
+			case REG_BH: return "%bh";
+			case REG_CL: return "%cl";
+			case REG_CH: return "%ch";
+			case REG_DL: return "%dl";
+			case REG_DH: return "%dh";
+			default: fatal("unknown register id 0x%x", reg);
+		}
+	}
+
+	static const char* subref(Subroutine* sub)
+	{
+		if (sub->externname)
+			return sub->externname;
+		
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
+		return buffer;
+	}
+
+	static const char* symref(Symbol* sym, int32_t off)
+	{
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "w%d%+d",
+			sym->u.var.sub->arch->id,
+			sym->u.var.offset + off);
+		return buffer;
+	}
+
+	static const char* labelref(int label)
+	{
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "x%d", label);
+		return buffer;
+	}
+
+	/* Note! This is allowed to destroy the source register. */
+	void arch_emit_move(reg_t src, reg_t dest)
+	{
+		if (!src)
+			E("\tpop %s\n", regref(dest));
+		else if (!dest)
+			E("\tpush %s\n", regref(src));
+		else
+			E("\tmov %s, %s\n", regref(dest), regref(src));
+	}
+
+	void arch_emit_comment(const char* text, ...)
+	{
+		va_list ap;
+		va_start(ap, text);
+		emitter_printf("\t# ");
+		emitter_vprintf(text, ap);
+		emitter_printf("\n");
+		va_end(ap);
+	}
+%}
+
+register eax ebx ecx edx esi edi;
+register ax bx cx dx si di;
+register al ah bl bh cl ch dl dh;
+register stk4 param;
+
+regclass r8 := al|ah|bl|bh|cl|ch|dl|dh;
+regclass r16 := ax|bx|cx|dx|si|di;
+regclass r32 := eax|ebx|ecx|edx|esi|edi;
+regclass ri := ebx|esi|edi;
+
+regdata eax compatible r32;
+regdata ebx compatible r32|ri;
+regdata ecx compatible r32;
+regdata edx compatible r32;
+regdata esi compatible r32|ri;
+regdata edi compatible r32|ri;
+regdata ax compatible r16;
+regdata bx compatible r16;
+regdata cx compatible r16;
+regdata dx compatible r16;
+regdata si compatible r16;
+regdata di compatible r16;
+regdata al compatible r8;
+regdata ah compatible r8;
+regdata bl compatible r8;
+regdata bh compatible r8;
+regdata cl compatible r8;
+regdata ch compatible r8;
+regdata dl compatible r8;
+regdata dh compatible r8;
+regdata stk4 stacked;
+regdata param stacked;
+
+gen STARTFILE()
+{
+    emitter_open_chunk();
+	E("\t.intel_syntax\n");
+	E("\t.code32\n");
+    emitter_close_chunk();
+}
+
+gen ENDFILE();
+
+gen STARTSUB():s
+{
+    emitter_open_chunk();
+    E("\n");
+    E("# %s\n", $s.sub->name);
+    E("\t.text\n");
+    if ($s.sub->externname)
+        E("\t.global %s\n", $s.sub->externname);
+    E("\t.global %s\n", subref($s.sub));
+    E("%s:\n", subref($s.sub));
+
+#if 0
+    if ($s.sub->inputparameters != 0)
+    {
+        E("\tpop b\n");
+        for (int i=$s.sub->inputparameters-1; i>=0; i--)
+        {
+			Symbol* param = get_input_parameters($s.sub);
+			for (int j=0; j<i; j++)
+				param = param->next;
+
+			switch (param->u.var.type->u.type.width)
+			{
+				case 1:
+					E("\tpop psw\n");
+					E("\tsta %s\n", symref(param, 0));
+					break;
+
+				case 2:
+					E("\tpop h\n");
+					E("\tshld %s\n", symref(param, 0));
+					break;
+
+				case 4:
+					E("\tpop h\n");
+					E("\tshld %s\n", symref(param, 0));
+					E("\tpop h\n");
+					E("\tshld %s\n", symref(param, 2));
+					break;
+
+				default:
+					assert(false);
+			}
+        }
+        E("\tpush b\n");
+    }
+#endif
+}
+
+gen ENDSUB():s
+{
+	E("end_%s:\n", subref($s.sub));
+#if 0
+	if ($s.sub->outputparameters != 0)
+	{
+		E("\tpop h\n");
+		E("\txchg\n"); /* put return address in DE */
+
+		for (int i=0; i<$s.sub->outputparameters; i++)
+		{
+			struct symbol* param = $s.sub->namespace.firstsymbol;
+			for (int j=0; j<(i + $s.sub->inputparameters); j++)
+				param = param->next;
+
+			switch (param->u.var.type->u.type.width)
+			{
+				case 1:
+					E("\tlda %s\n", symref(param, 0));
+					E("\tpush psw\n");
+					break;
+
+				case 4:
+					E("\tlhld %s\n", symref(param, 2));
+					E("\tpush h\n");
+					/* fall through */
+				case 2:
+					E("\tlhld %s\n", symref(param, 0));
+					E("\tpush h\n");
+					break;
+
+				default:
+					assert(false);
+			}
+		}
+
+		E("\txchg\n");
+		E("\tpchl\n");
+	}
+	else
+		E("\tret\n");
+#endif
+
+	E("\tret\n");
+    E("\t.bss\n");
+	E("w%d:\n", $s.sub->arch->id);
+	if ($s.sub->workspace[0] != 0)
+		E("\t.space %d\n", $s.sub->workspace[0]);
+    emitter_close_chunk();
+}
+
+// --- Core conversions --------------------------------------------------
+
+gen r8 := CONSTANT(): c
+	{ E("\tmovb %s, 0x%x\n", regref($$), $c.value); }
+
+gen r16 := CONSTANT():c
+	{ E("\tmovw %s, 0x%x\n", regref($$), $c.value); }
+
+gen r32 := CONSTANT():c
+	{ E("\tmov %s, 0x%x\n", regref($$), $c.value); }
+
+gen r32 := ADDRESS():a
+	{ E("\tlea %s, %s\n", regref($$), symref($a.sym, $a.off)); }
+
+// --- Loads and stores --------------------------------------------------
+
+gen r8 := LOAD1(r32:lhs)
+	{ E("\tmovb %s, [%s]\n", regref($$), regref($lhs)); }
+	
+gen r8 := LOAD1(ADDRESS():a)
+	{ E("\tmovb %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
+	
+gen r16 := LOAD2(r32:lhs)
+	{ E("\tmovw %s, [%s]\n", regref($$), regref($lhs)); }
+
+gen r16 := LOAD2(ADDRESS():a)
+	{ E("\tmovw %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
+	
+gen r32 := LOAD4(r32:lhs)
+	{ E("\tmov %s, [%s]\n", regref($$), regref($lhs)); }
+
+gen r32 := LOAD2(ADDRESS():a)
+	{ E("\tmov %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
+	
+gen STORE1(r32:lhs, r8:rhs)
+	{ E("\tmovb [%s], %s\n", regref($lhs), regref($rhs)); }
+
+gen STORE1(ADDRESS():a, r8:rhs)
+	{ E("\tmovb [%s], %s\n", symref($a.sym, $a.off), regref($rhs)); }
+
+gen STORE2(r32:lhs, r16:rhs)
+	{ E("\tmovw [%s], %s\n", regref($lhs), regref($rhs)); }
+
+gen STORE2(ADDRESS():a, r16:rhs)
+	{ E("\tmovw [%s], %s\n", symref($a.sym, $a.off), regref($rhs)); }
+
+gen STORE4(r32:lhs, r32:rhs)
+	{ E("\tmov [%s], %s\n", regref($lhs), regref($rhs)); }
+
+gen STORE4(ADDRESS():a, r32:rhs)
+	{ E("\tmov [%s], %s\n", symref($a.sym, $a.off), regref($rhs)); }
+
+// --- 8-bit arithmetic -----------------------------------------------------
+
+gen r8 := ADD1(r8:lhs, r8:rhs)
+{
+	if ($$ == $lhs)
+		E("\tadd %s, %s\n", regref($$), regref($rhs));
+	else if ($$ == $rhs)
+		E("\tadd %s, %s\n", regref($$), regref($lhs));
+	else
+	{
+		E("\tmov %s, %s\n", regref($$), regref($lhs));
+		E("\tadd %s, %s\n", regref($$), regref($rhs));
+	}
+}

@@ -498,19 +498,19 @@ gen a := ADD1(a, b|d|h:rhs)
 gen a := ADD1(a, CONSTANT():rhs)
 	{ E("\tadi %d\n", $rhs.value); }
 
-gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==1))
+gen a := ADD1(a:lhs, CONSTANT(value==1))
 	{ E("\tinc %s\n", regref($lhs)); }
 
-gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==2))
+gen a := ADD1(a:lhs, CONSTANT(value==2))
 {
 	E("\tinc %s\n", regref($lhs));
 	E("\tinc %s\n", regref($lhs));
 }
 
-gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-1))
+gen a := ADD1(a:lhs, CONSTANT(value==-1))
 	{ E("\tdec %s\n", regref($lhs)); }
 
-gen a := ADD1(a|b|d|h:lhs, CONSTANT(value==-2))
+gen a := ADD1(a:lhs, CONSTANT(value==-2))
 {
 	E("\tdec %s\n", regref($lhs));
 	E("\tdec %s\n", regref($lhs));
@@ -522,10 +522,10 @@ gen a := SUB1(a, b|d|h:rhs)
 gen a := SUB1(a, CONSTANT():rhs)
 	{ E("\tsbi %d\n", $rhs.value); }
 
-gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==1))
+gen a := SUB1(a:lhs, CONSTANT(value==1))
 	{ E("\tdec %s\n", regref($lhs)); }
 
-gen a := SUB1(a|b|d|h:lhs, CONSTANT(value==-1))
+gen a := SUB1(a:lhs, CONSTANT(value==-1))
 	{ E("\tinc %s\n", regref($lhs)); }
 
 gen a := NEG1(b|d|h:lhs)
