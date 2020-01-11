@@ -98,7 +98,7 @@ statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 	init_var(S, T);
     check_expression_type(&E->type, S->u.var.type);
 
-    generate(mid_store(E->type->u.type.width, mid_address(S, 0), E));
+    generate(mid_store(E->type->u.type.width, E, mid_address(S, 0)));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
@@ -111,7 +111,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	init_var(S, E->type);
 	check_expression_type(&E->type, E->type);
 
-	generate(mid_store(E->type->u.type.width, mid_address(S, 0), E));
+	generate(mid_store(E->type->u.type.width, E, mid_address(S, 0)));
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -456,7 +456,7 @@ statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 	if (!is_ptr(E1->type))
 		fatal("you can only assign to lvalues");
 	check_expression_type(&E2->type, E1->type->u.type.element);
-	generate(mid_store(E1->type->u.type.element->u.type.width, E1, E2));
+	generate(mid_store(E1->type->u.type.element->u.type.width, E2, E1));
 }
 
 /* --- Constant expressions ---------------------------------------------- */
@@ -517,6 +517,7 @@ expression(E) ::= lvalue(E1).
 			fatal("non-scalars cannot be used in this context");
 		E = mid_load(E1->type->u.type.element->u.type.width, E1);
 		E->type = E1->type->u.type.element;
+		assert(E->type);
 	}
 	else
 		E = E1;
@@ -529,7 +530,7 @@ expression(T) ::= AMPERSAND lvalue(T1).
 	T = T1;
 }
 
-expression(E) ::= MINUS expression(E1).                    { E = mid_c_neg(E1->type ? E1->type->u.type.width : 0, E1); }
+expression(E) ::= MINUS expression(E1).                    { E = mid_c_neg(E1->type ? E1->type->u.type.width : 0, E1); E->type = E1->type; }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E = E1; }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E = expr_add(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E = expr_sub(E1, E2); }

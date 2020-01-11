@@ -195,6 +195,7 @@ gen STARTFILE()
 	E("\textrn asr4\n");
 	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
+	E("\textrn store4\n");
     emitter_close_chunk();
 }
 
@@ -494,9 +495,9 @@ gen stk4 := LOAD4(ADDRESS():a) uses hl
 gen stk4 := LOAD4(hl) uses bc|de
 	{ E("\tcall load4\n"); }
 
-gen STORE1(bc|de|hl:lhs, a)
+gen STORE1(a, bc|de|hl:val)
 {
-	switch ($lhs)
+	switch ($val)
 	{
 		case REG_BC:
 			E("\tstax b\n");
@@ -515,25 +516,28 @@ gen STORE1(bc|de|hl:lhs, a)
 	}
 }
 
-gen STORE2(hl, bc|de:rhs) uses a
+gen STORE2(bc|de:val, hl) uses a
 {
-	E("\tmov m, %s\n", regreflo($rhs));
+	E("\tmov m, %s\n", regreflo($val));
 	E("\tinx h\n");
-	E("\tmov m, %s\n", regref($rhs));
+	E("\tmov m, %s\n", regref($val));
 }
 
-gen STORE1(ADDRESS():lhs, a)
-	{ E("\tsta %s\n", symref($lhs.sym, $lhs.off)); }
+gen STORE1(a, ADDRESS():a)
+	{ E("\tsta %s\n", symref($a.sym, $a.off)); }
 
-gen STORE2(ADDRESS():lhs, hl)
-	{ E("\tshld %s\n", symref($lhs.sym, $lhs.off)); }
+gen STORE2(hl, ADDRESS():a)
+	{ E("\tshld %s\n", symref($a.sym, $a.off)); }
 
-gen STORE4(ADDRESS():lhs, stk4) uses hl
+gen STORE4(stk4, hl) uses bc|de
+	{ E("\tcall store4\n"); }
+
+gen STORE4(stk4, ADDRESS():a) uses hl
 {
 	E("\tpop h\n"); 
-	E("\tshld %s\n", symref($lhs.sym, $lhs.off+0));
+	E("\tshld %s\n", symref($a.sym, $a.off+0));
 	E("\tpop h\n"); 
-	E("\tshld %s\n", symref($lhs.sym, $lhs.off+2));
+	E("\tshld %s\n", symref($a.sym, $a.off+2));
 }
 
 gen a := CONSTANT(value==0)
@@ -550,7 +554,7 @@ gen bc|de|hl := ADDRESS():rhs
 
 gen stk4 := CONSTANT():c uses hl
 {
-	E("\tlxi h, %d\n", $c.value >> 16);
+	E("\tlxi h, %d\n", ($c.value >> 16) & 0xffff);
 	E("\tpush h\n");
 	E("\tlxi h, %d\n", $c.value & 0xffff);
 	E("\tpush h\n");
@@ -854,7 +858,7 @@ gen hl := CAST12(LOAD1(hl:rhs))
 }
 
 gen a|b|d|h := CAST21(bc|de|hl:rhs)
-	{ E("\tmov %s, %s\n", regref($$), regref($rhs)); }
+	{ E("\tmov %s, %s\n", regref($$), regreflo($rhs)); }
 	
 gen stk4 := CAST24(hl|de:rhs) uses bc
 {

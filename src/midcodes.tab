@@ -25,7 +25,7 @@ y 1 1 CALL(struct subroutine* sub) = ("%s", $$.sub->name)
 - 0 1 ADDRESS(struct symbol* sym, int32_t off) = ("%s%+d", $$.sym->name, $$.off)
 
 y 1 1 LOAD()
-y 2 0 STORE()
+y 2 0 STORE() # left is value, right is address
 
 y 2 0 BEQS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BLTS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
