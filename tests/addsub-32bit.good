@@ -28,8 +28,15 @@ ONE-mtwo==three: yes
 ONE-one==zero: yes
 ZERO-one==mone: yes
 TWO-mone==three: yes
+0x2ff-1==0x2fe: yes
 -two == mtwo: yes
 -one == mone: yes
 -zero == zero: yes
 -mone == one: yes
 -mtwo == two: yes
+deadbeef+deadbeef=0xbd5b7dde: yes
+deadbeef-deadbeef=0x00000000: yes
+[pdeadbeef]+deadbeef=0xbd5b7dde: yes
+deadbeef+[pdeadbeef]=0xbd5b7dde: yes
+presult test: yes
+complex backwards sub: yes

@@ -43,7 +43,6 @@
 %left COMMA.
 %left AND.
 %left OR.
-%left AS.
 %left PIPE.
 %left CARET.
 %left AMPERSAND.
@@ -51,6 +50,7 @@
 %left LSHIFT RSHIFT.
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
+%left AS.
 %right NOT.
 
 %token_type {struct token*}
@@ -98,18 +98,20 @@ statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 	init_var(S, T);
     check_expression_type(&E->type, S->u.var.type);
 
-    generate(mid_store(E->type->u.type.width, mid_address(S, 0), E));
+    generate(mid_store(E->type->u.type.width, E, mid_address(S, 0)));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
 	if (!E->type)
 		fatal("types cannot be inferred for numeric constants");
+	if (!is_scalar(E->type))
+		fatal("you can only assign to lvalues");
 	S->kind = VAR;
 	init_var(S, E->type);
 	check_expression_type(&E->type, E->type);
 
-	generate(mid_store(E->type->u.type.width, mid_address(S, 0), E));
+	generate(mid_store(E->type->u.type.width, E, mid_address(S, 0)));
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -304,7 +306,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 		check_output_parameters(sub, outputs);
 
 		if (sub->outputparameters == 0)
-			return mid_call0(inputs, sub);
+			return mid_calls(mid_call0(inputs, sub));
 
 		/* Find the last output parameter. */
 
@@ -316,7 +318,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 
 		discard(node->left);
 		node->left = mid_call0(inputs, sub);
-		return outputs;
+		return mid_calls(outputs);
 	}
 }
 
@@ -454,7 +456,7 @@ statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 	if (!is_ptr(E1->type))
 		fatal("you can only assign to lvalues");
 	check_expression_type(&E2->type, E1->type->u.type.element);
-	generate(mid_store(E1->type->u.type.element->u.type.width, E1, E2));
+	generate(mid_store(E1->type->u.type.element->u.type.width, E2, E1));
 }
 
 /* --- Constant expressions ---------------------------------------------- */
@@ -473,6 +475,11 @@ cvalue(value) ::= oldid(sym).
 	if (sym->kind != CONST)
 		fatal("only constants can be used here");
 	value = sym->u.constant;
+}
+
+cvalue(value) ::= BYTESOF typeref(T).
+{
+	value = T->u.type.width;
 }
 
 statement ::= CONST newid(S) ASSIGN cvalue(V) SEMICOLON.
@@ -496,12 +503,21 @@ expression(E) ::= STRING(S).
 	E->type = make_pointer_type(uint8_type);
 }
 
+expression(E) ::= BYTESOF typeref(T).
+{
+	E = mid_constant(T->u.type.width);
+	E->type = NULL;
+}
+
 expression(E) ::= lvalue(E1).
 {
 	if (E1->type)
 	{
+		if (!is_scalar(E1->type->u.type.element))
+			fatal("non-scalars cannot be used in this context");
 		E = mid_load(E1->type->u.type.element->u.type.width, E1);
 		E->type = E1->type->u.type.element;
+		assert(E->type);
 	}
 	else
 		E = E1;
@@ -514,7 +530,7 @@ expression(T) ::= AMPERSAND lvalue(T1).
 	T = T1;
 }
 
-expression(E) ::= MINUS expression(E1).                    { E = mid_c_neg(E1->type ? E1->type->u.type.width : 0, E1); }
+expression(E) ::= MINUS expression(E1).                    { E = mid_c_neg(E1->type ? E1->type->u.type.width : 0, E1); E->type = E1->type; }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E = E1; }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E = expr_add(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E = expr_sub(E1, E2); }
@@ -537,14 +553,7 @@ expression(E) ::= expression(E1) AS typeref(T).
 				E1->type->name, T->name);
 		}
 
-		switch (E1->type->u.type.width)
-		{
-			case 1: E = mid_cast1(T->u.type.width, E1); break;
-			case 2: E = mid_cast2(T->u.type.width, E1); break;
-			case 4: E = mid_cast4(T->u.type.width, E1); break;
-			case 8: E = mid_cast8(T->u.type.width, E1); break;
-			default: assert(false);
-		}
+		E = mid_c_cast(T->u.type.width, E1);
 	}
 	else
 		E = E1;
@@ -591,11 +600,12 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 	if (!is_num(E2->type))
 			fatal("array indices must be numbers");
 	
-	check_expression_type(&E2->type, intptr_type);
+	Symbol* indextype = arraytype->u.type.indextype;
 	E = mid_c_add(intptr_type->u.type.width,
 		E1,
 		mid_c_mul(intptr_type->u.type.width,
-			E2, mid_constant(arraytype->u.type.element->u.type.width)));
+			mid_c_cast(intptr_type->u.type.width, E2),
+			mid_constant(arraytype->u.type.element->u.type.width)));
 	E->type = make_pointer_type(arraytype->u.type.element);
 }
 
@@ -778,7 +788,7 @@ asm ::= STRING(token).
 
 asm ::= oldid(ID).
 {
-	if (ID->kind != VAR)
-		fatal("you can only emit references to variables");
+	if ((ID->kind != VAR) && (ID->kind != SUB))
+		fatal("you can only emit references to variables or subroutines");
 	generate(mid_asmsymbol(ID));
 }

@@ -65,6 +65,39 @@ sub4:
 sub4_ret = $ + 1
     jmp 0
 
+	; ANDs two four-byte values from the stack.
+    public and4
+    cseg
+and4:
+	pop h
+	shld and4_ret
+
+	pop h ; HL = RHS low
+	pop d ; DE = RHS high
+	pop b ; BC = LHS low
+	
+	mov a, c
+	and l
+	mov c, a
+	mov a, b
+	and h
+	mov b, a ; BC = result low
+
+	pop h ; HL = LHS high
+
+	mov a, l
+	and e
+	mov l, a
+	mov a, h
+	and d
+	mov h, a
+
+	push h
+	push b
+
+and4_ret = $ + 1
+    jmp 0
+
 	; Negates the four-byte value on the stack.
 	public neg4
 	cseg
@@ -173,6 +206,35 @@ lsr2:
 	mov l, a
 	jmp lsr2
 
+	; Logical shift the value at the top of the stack left B bits.
+	; Corrupts A, B, HL, DE.
+	public asl4
+	cseg
+asl4:
+	pop h
+	shld lsr4_ret
+
+	pop h ; HL = low
+	pop d ; DE = high
+asl4_loop:
+	dec b
+	jm lsr4_exit
+
+	dad h
+	jnc asl4_skip
+	inx d
+asl4_skip:
+	xchg
+	dad h
+	xchg
+
+	jmp asl4_loop
+asl4_exit:
+	push d
+	push h
+asl4_ret = $ + 1
+	jmp 0
+
 	; Logical shift the value at the top of the stack right B bits.
 	; Corrupts A, B, HL, DE.
 	public lsr4
@@ -204,6 +266,40 @@ lsr4_exit:
 	push d
 	push h
 lsr4_ret = $ + 1
+	jmp 0
+
+	; Arithmetic shift the value at the top of the stack right B bits.
+	; Corrupts A, B, HL, DE.
+	public asr4
+	cseg
+asr4:
+	pop h
+	shld asr4_ret
+
+	pop h ; HL = low
+	pop d ; DE = high
+asr4_loop:
+	dec b
+	jm asr4_exit
+	mov a, h
+	rla
+	mov a, h
+	rar
+	mov h, a
+	mov a, l
+	rar
+	mov l, a
+	mov a, d
+	rar
+	mov d, a
+	mov a, e
+	rar
+	mov e, a
+	jmp asr4_loop
+asr4_exit:
+	push d
+	push h
+asr4_ret = $ + 1
 	jmp 0
 
 	; Arithmetic shift A right B bits.
@@ -238,6 +334,39 @@ asr2:
 	mov l, a
 	jmp asr2
 
-    dseg
-t1: dw 0
-t2: dw 0
+	; Loads a 32-bit value at HL and pushes it.
+	; Corrupts BC, DE.
+	public load4
+	cseg
+load4:
+	mov e, m
+	inx h
+	mov d, m
+	inx h
+	mov c, m
+	inx h
+	mov b, m
+	pop h
+	push b
+	push d
+	pchl
+
+	; Pops a 32-bit value and stores it at HL.
+	; Corrupts BC, DE.
+	public store4
+	cseg
+store4:
+	pop d ; return address
+	pop b ; low word
+	xchg ; d = address, h = return address
+	xthl ; d = address, b = low word, h = high word
+	xchg ; d = high word, b = low word, h = address
+	mov m, c
+	inx h
+	mov m, b
+	inx h
+	mov m, e
+	inx h
+	mov m, d
+	ret
+

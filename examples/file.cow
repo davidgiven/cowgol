@@ -1,0 +1,59 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+
+var inputFilename: [uint8];
+var outputFilename: [uint8];
+
+ArgvInit();
+inputFilename := ArgvNext();
+outputFilename := ArgvNext();
+if (inputFilename == (0 as [uint8])) or (outputFilename == (0 as [uint8]))
+	or (ArgvNext() != (0 as [uint8])) then
+	print("Syntax error!\n");
+	return;
+end if;
+
+var inputFile: FCB;
+print("Input filename: ");
+print(inputFilename);
+print_nl();
+if FCBOpenIn(&inputFile, inputFilename) != 0 then
+	print("Failed to open input file!\n");
+	return;
+end if;
+
+var outputFile: FCB;
+print("Output filename: ");
+print(outputFilename);
+print_nl();
+if FCBOpenOut(&outputFile, outputFilename) != 0 then
+	print("Failed to open output file!\n");
+	return;
+end if;
+
+var len := FCBExt(&inputFile);
+print("Input file length: 0x");
+print_hex_i32(len);
+print_nl();
+
+loop
+	len := len - 1;
+	if len == 0 then
+		break;
+	end if;
+	var c := FCBGetChar(&inputFile);
+	FCBPutChar(&outputFile, c);
+end loop;
+
+len := FCBExt(&outputFile);
+print("Output file length: 0x");
+print_hex_i32(len);
+print_nl();
+
+if FCBClose(&outputFile) != 0 then
+	print("Disk error closing output file!\n");
+	return;
+end if;
+
+

@@ -74,9 +74,9 @@ static bool isstacked(reg_t reg)
 	assert(false);
 }
 
-static Spill* create_spill(Instruction* instruction, reg_t src, reg_t dest)
+static Regmove* create_spill(Instruction* instruction, reg_t src, reg_t dest)
 {
-	Spill* spill = calloc(sizeof(Spill), 1);
+	Regmove* spill = calloc(sizeof(Regmove), 1);
 	spill->src = src;
 	spill->dest = dest;
 	spill->next = instruction->first_spill;
@@ -84,9 +84,9 @@ static Spill* create_spill(Instruction* instruction, reg_t src, reg_t dest)
 	return spill;
 }
 
-static Reload* create_reload(Instruction* instruction, reg_t src, reg_t dest)
+static Regmove* create_reload(Instruction* instruction, reg_t src, reg_t dest)
 {
-	Reload* reload = calloc(sizeof(Reload), 1);
+	Regmove* reload = calloc(sizeof(Regmove), 1);
 	reload->src = src;
 	reload->dest = dest;
 	if (!instruction->first_reload)
@@ -115,6 +115,108 @@ static void block_registers(Instruction* start, Instruction* end, reg_t blocked)
 		start->input_regs |= blocked;
 		start->output_regs |= blocked;
 		start++;
+	}
+}
+
+/* Deal with the theoretically simple but practically really, really annoying
+ * problem of moving one set of registers to another. All register-to-
+ * register moves have to happen simultaneously, so it's perfectly legal
+ * for the move set to consist of A->B, B->A... which means the two registers
+ * have to be swapped.
+ */
+static void shuffle_registers(Regmove* moves)
+{
+	reg_t dests = 0;
+	reg_t srcs = 0;
+
+	Regmove* m = moves;
+	while (m)
+	{
+		arch_emit_comment("spill/reload 0x%x -> 0x%x", m->src, m->dest);
+		dests |= m->dest;
+		srcs |= m->src;
+		m = m->next;
+	}
+
+	for (;;)
+	{
+		/* Attempt to do any pushes *first*, which frees up sources. */
+
+		m = moves;
+		while (m)
+		{
+			if (m->src && !m->dest)
+				break;
+			m = m->next;
+		}
+		if (m)
+		{
+			arch_emit_move(m->src, 0);
+			srcs &= ~m->src;
+			m->src = 0;
+			continue;
+		}
+
+		/* Attempt to find a move into a register which is *not* a source
+		 * (and is therefore completely safe). */
+
+		m = moves;
+		while (m)
+		{
+			if (m->src && m->dest && !(m->dest & srcs))
+				break;
+			m = m->next;
+		}
+		if (m)
+		{
+			arch_emit_move(m->src, m->dest);
+			srcs &= ~m->src;
+			dests &= ~m->dest;
+			m->src = m->dest = 0;
+			continue;
+		}
+
+		/* Only once we're done with pushes and register-to-register moves
+		 * do we deal with pops. */
+
+		m = moves;
+		while (m)
+		{
+			if (!m->src && m->dest)
+				break;
+			m = m->next;
+		}
+		if (m)
+		{
+			arch_emit_move(0, m->dest);
+			dests &= ~m->dest;
+			m->dest = 0;
+			continue;
+		}
+
+		/* If we got here and there are any undealt with moves, there's a move
+		 * loop which we need to break somehow. The best thing is to stash a
+		 * value into a temporary register but that gets gnarly if there aren't
+		 * any left. So, we do it the brute-force way and stack something. */
+
+		m = moves;
+		while (m)
+		{
+			if (m->src || m->dest)
+				break;
+			m = m->next;
+		}
+		if (m)
+		{
+			reg_t stacked = m->src;
+			arch_emit_move(stacked, 0);
+			srcs &= ~m->src;
+			m->src = 0; /* convert this to a pop */
+			continue;
+		}
+
+		/* Nothing left to do. */
+		break;
 	}
 }
 
@@ -201,7 +303,7 @@ void generate(Node* node)
 						producer->producable_regs & ~producer->output_regs);
 					n->produced_reg = findfirst(n->desired_reg & ~(blocked | consumer->input_regs));
 
-					blocked = find_conflicting_registers(producer->produced_reg);
+					blocked = find_conflicting_registers(n->produced_reg);
 					consumer->input_regs |= blocked;
 					block_registers(consumer+1, producer-1, blocked);
 					producer->output_regs |= find_conflicting_registers(producer->produced_reg);
@@ -251,10 +353,10 @@ void generate(Node* node)
 		
 		/* Emit reloads. */
 
+		shuffle_registers(insn->first_reload);
 		while (insn->first_reload)
 		{
-			Reload* r = insn->first_reload;
-			arch_emit_move(r->src, r->dest);
+			Regmove* r = insn->first_reload;
 			insn->first_reload = r->next;
 			free(r);
 		}
@@ -265,10 +367,10 @@ void generate(Node* node)
 
 		/* Emit spills. */
 
+		shuffle_registers(insn->first_spill);
 		while (insn->first_spill)
 		{
-			Spill* s = insn->first_spill;
-			arch_emit_move(s->src, s->dest);
+			Regmove* s = insn->first_spill;
 			insn->first_spill = s->next;
 			free(s);
 		}

@@ -50,8 +50,7 @@ struct reg
 };
 
 typedef struct instruction Instruction;
-typedef struct spill Spill;
-typedef struct reload Reload;
+typedef struct regmove Regmove;
 
 typedef struct symbol Symbol;
 struct symbol
@@ -69,6 +68,7 @@ struct symbol
 			int width;
 			struct symbol* pointerto;
 			struct symbol* element;
+			struct symbol* indextype;
 			struct namespace namespace;
 			bool issigned: 1;
 		}
@@ -134,6 +134,7 @@ extern void arch_init_variable(struct symbol* var);
 extern void arch_init_member(struct symbol* record, struct symbol* member);
 extern void arch_emit_comment(const char* text, ...);
 extern void arch_emit_move(reg_t src, reg_t dest);
+extern Symbol* arch_guess_int_type(uint32_t min, uint32_t max);
 
 #endif
 

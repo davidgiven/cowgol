@@ -288,7 +288,7 @@ cowgol_cpm_asm() {
 
 cowgol_cpm() {
 	local base
-	base="$OBJDIR/${1%.cow}.cpm"
+	base="$OBJDIR/$(dirname $1)/cpm/${1%.cow}"
 	cowgol_cpm_asm $1 $base.asm $base.log "$3"
 	zmac8 $base.asm $base.rel
 	ld80 $base.bin \
@@ -325,7 +325,7 @@ cowgol_thumb2_s() {
 
 cowgol_thumb2_linux() {
 	local base
-	base="$OBJDIR/${1%.cow}.thumb2-linux"
+	base="$OBJDIR/$(dirname $1)/thumb2-linux/${1%.cow}"
 	cowgol_thumb2_s $1 $base.s $base.log "$3"
     as_thumb2_linux $base.s $base.o
     rule \
@@ -521,6 +521,7 @@ test_cpm addsub-16bit
 test_cpm addsub-32bit
 test_cpm shifts-8bit
 test_cpm shifts-16bit
+test_cpm shifts-32bit
 test_cpm records
 test_cpm inputparams
 test_cpm outputparams
@@ -531,6 +532,7 @@ test_thumb2_linux addsub-16bit
 test_thumb2_linux addsub-32bit
 test_thumb2_linux shifts-8bit
 test_thumb2_linux shifts-16bit
+test_thumb2_linux shifts-32bit
 test_thumb2_linux records
 test_thumb2_linux inputparams
 test_thumb2_linux outputparams
@@ -550,6 +552,7 @@ cowgol_cpm examples/malloc.cow examples/malloc.com
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.exe 
 cowgol_cpm examples/argv.cow examples/argv.com 
 cowgol_thumb2_linux examples/argv.cow examples/argv.exe 
+cowgol_cpm examples/file.cow examples/file.com 
 #cowgol_c examples/malloc.cow examples/malloc
 
 # vim: sw=4 ts=4 et

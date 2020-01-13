@@ -30,3 +30,11 @@ sub blt2()
 end sub;
 blt2();
 
+sub and1()
+	var i: uint8 := 70;
+	print("isletter(70)"); if (i>='A') and (i<='Z') then yes(); else no(); end if;
+	i := 200;
+	print("isletter(200)"); if (i>='A') and (i<='Z') then yes(); else no(); end if;
+end sub;
+and1();
+
