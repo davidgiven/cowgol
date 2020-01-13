@@ -97,7 +97,7 @@ struct midnode* expr_add(struct midnode* lhs, struct midnode* rhs)
 	if (is_ptr(lhs->type) && is_ptr(rhs->type))
 		fatal("you cannot add two pointers together");
 	else if (is_ptr(lhs->type) && (rhs->type != intptr_type))
-		fatal("you can only add a %s to a pointer", rhs->type->name);
+		fatal("you can't add a %s to a %s", rhs->type->name, lhs->type->name);
 	else if (is_ptr(rhs->type))
 		fatal("add numbers to pointers, not vice versa");
 	else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
@@ -113,7 +113,7 @@ struct midnode* expr_sub(struct midnode* lhs, struct midnode* rhs)
 	resolve_untyped_constants_for_add_sub(&lhs->type, &rhs->type);
 
 	if (is_ptr(lhs->type) && !is_ptr(rhs->type) && (rhs->type != intptr_type))
-		fatal("you can't subtrack a %s and a %s", lhs->type->name, rhs->type->name);
+		fatal("you can't subtract a %s from a %s", rhs->type->name, lhs->type->name);
 	else if (is_num(lhs->type) && is_ptr(rhs->type))
 		fatal("subtract numbers from pointers, not vice versa");
 	else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))

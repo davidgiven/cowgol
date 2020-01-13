@@ -464,6 +464,9 @@ gen a := LOAD1(bc|de|hl:lhs)
 gen a := LOAD1(ADDRESS():a)
 	{ E("\tlda %s\n", symref($a.sym, $a.off)); }
 
+gen a := LOAD1(CONSTANT():c)
+	{ E("\tlda 0x%x\n", $c.value); }
+
 gen hl|bc|de := LOAD2(hl:lhs) uses a
 {
 	if ($$ == REG_HL)
@@ -483,6 +486,9 @@ gen hl|bc|de := LOAD2(hl:lhs) uses a
 
 gen hl := LOAD2(ADDRESS():a)
 	{ E("\tlhld %s\n", symref($a.sym, $a.off)); }
+
+gen hl := LOAD2(CONSTANT():c)
+	{ E("\tlhld 0x%x\n", $c.value); }
 
 gen stk4 := LOAD4(ADDRESS():a) uses hl
 {

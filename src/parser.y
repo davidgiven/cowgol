@@ -43,7 +43,6 @@
 %left COMMA.
 %left AND.
 %left OR.
-%left AS.
 %left PIPE.
 %left CARET.
 %left AMPERSAND.
@@ -51,6 +50,7 @@
 %left LSHIFT RSHIFT.
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
+%left AS.
 %right NOT.
 
 %token_type {struct token*}

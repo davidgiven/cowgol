@@ -12,9 +12,9 @@ record CpmFCB
 end record;
 
 record FCB
-	cpm: CpmFCB;
 	bufferptr: uint8; # byte just read
 	dirty: uint8;
+	cpm: CpmFCB;
 	buffer: uint8[128];
 end record;
 
@@ -33,7 +33,7 @@ sub file_i_init(fcb: [FCB], filename: [uint8])
 	sub fill(dest: [uint8], src: [uint8], len: uint8): (srcout: [uint8])
 		loop
 			var c := [src];
-			if (c == 0) or (c == '.') then
+			if (c < 32) or (c == '.') then
 				c := ' ';
 			elseif (c == '*') then
 				c := '?';
@@ -61,7 +61,7 @@ sub file_i_init(fcb: [FCB], filename: [uint8])
 	var c: uint8;
 	loop
 		c := [filename];
-		if (c == 0) or (c == '.') then
+		if (c < 32) or (c == '.') then
 			break;
 		end if;
 		filename := filename + 1;
@@ -71,7 +71,7 @@ sub file_i_init(fcb: [FCB], filename: [uint8])
 		filename := fill(&fcb.cpm.f[8], filename+1, 3);
 	end if;
 	fcb.cpm.r := 0xffff;
-	fcb.bufferptr := 128;
+	fcb.bufferptr := 127;
 end sub;
 
 sub fcb_i_gbpb(fcb: [FCB], c: uint8)
@@ -171,6 +171,7 @@ sub FCBSeek(fcb: [FCB], pos: uint32)
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32)
+	fcb_i_blockout(fcb);
 	var oldblock := fcb.cpm.r;
 
 	var cpmfcb := &fcb.cpm;
@@ -183,13 +184,22 @@ sub FCBExt(fcb: [FCB]): (len: uint32)
 	fcb.cpm.r := oldblock;
 end sub;
 
-sub FCBGetChar(fcb: [FCB]): (c: uint8)
+sub fcb_i_nextchar(fcb: [FCB])
+	fcb.bufferptr := fcb.bufferptr + 1;
 	if fcb.bufferptr == 128 then
 		fcb_i_changeblock(fcb, fcb.cpm.r + 1);
 		fcb.bufferptr := 0;
-	else
-		fcb.bufferptr := fcb.bufferptr + 1;
 	end if;
+end sub;
+
+sub FCBGetChar(fcb: [FCB]): (c: uint8)
+	fcb_i_nextchar(fcb);
 	c := fcb.buffer[fcb.bufferptr];
+end sub;
+
+sub FCBPutChar(fcb: [FCB], c: uint8)
+	fcb_i_nextchar(fcb);
+	fcb.buffer[fcb.bufferptr] := c;
+	fcb.dirty := 1;
 end sub;
 
