@@ -19,17 +19,38 @@
 	};
 
 	static int id = 1;
+	static Symbol* uint32_type;
+	static Symbol* int32_type;
+	static Symbol* int16_type;
+	static Symbol* uint16_type;
+	static Symbol* int8_type;
 
 	void arch_init_types(void)
 	{
-		make_number_type("uint32", 4, false);
-		make_number_type("int32", 4, true);
-		intptr_type = make_number_type("uint16", 2, false);
-		make_number_type("int16", 2, true);
+		uint32_type = make_number_type("uint32", 4, false);
+		int32_type = make_number_type("int32", 4, true);
+		uint16_type = make_number_type("uint16", 2, false);
+		int16_type = make_number_type("int16", 2, true);
 		uint8_type = make_number_type("uint8", 1, false);
-		make_number_type("int8", 1, true);
+		int8_type = make_number_type("int8", 1, true);
 
+		intptr_type = uint32_type;
 		add_alias(NULL, "intptr", intptr_type);
+	}
+
+	Symbol* arch_guess_int_type(uint32_t min, uint32_t max)
+	{
+		if ((min >= 0) && (max <= 255))
+			return uint8_type;
+		if ((min >= -128) && (max <= 127))
+			return int8_type;
+		if ((min >= 0) && (max <= 65535))
+			return uint16_type;
+		if ((min >= -32768) && (max <= 32767))
+			return int16_type;
+		if (min >= 0)
+			return uint32_type;
+		return int32_type;
 	}
 
 	void arch_init_subroutine(struct subroutine* sub)
@@ -304,23 +325,23 @@ gen r32 := LOAD4(r32:lhs)
 gen r32 := LOAD2(ADDRESS():a)
 	{ E("\tmov %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
 	
-gen STORE1(r32:lhs, r8:rhs)
-	{ E("\tmovb [%s], %s\n", regref($lhs), regref($rhs)); }
+gen STORE1(r8:val, r32:addr)
+	{ E("\tmovb [%s], %s\n", regref($addr), regref($val)); }
 
-gen STORE1(ADDRESS():a, r8:rhs)
-	{ E("\tmovb [%s], %s\n", symref($a.sym, $a.off), regref($rhs)); }
+gen STORE1(r8:val, ADDRESS():a)
+	{ E("\tmovb [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
 
-gen STORE2(r32:lhs, r16:rhs)
-	{ E("\tmovw [%s], %s\n", regref($lhs), regref($rhs)); }
+gen STORE2(r16:val, r32:addr)
+	{ E("\tmovw [%s], %s\n", regref($addr), regref($val)); }
 
-gen STORE2(ADDRESS():a, r16:rhs)
-	{ E("\tmovw [%s], %s\n", symref($a.sym, $a.off), regref($rhs)); }
+gen STORE2(r16:val, ADDRESS():a)
+	{ E("\tmovw [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
 
-gen STORE4(r32:lhs, r32:rhs)
-	{ E("\tmov [%s], %s\n", regref($lhs), regref($rhs)); }
+gen STORE4(r16:val, r32:addr)
+	{ E("\tmov [%s], %s\n", regref($addr), regref($val)); }
 
-gen STORE4(ADDRESS():a, r32:rhs)
-	{ E("\tmov [%s], %s\n", symref($a.sym, $a.off), regref($rhs)); }
+gen STORE4(r16:val, ADDRESS():a)
+	{ E("\tmov [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 

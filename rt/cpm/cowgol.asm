@@ -351,3 +351,22 @@ load4:
 	push d
 	pchl
 
+	; Pops a 32-bit value and stores it at HL.
+	; Corrupts BC, DE.
+	public store4
+	cseg
+store4:
+	pop d ; return address
+	pop b ; low word
+	xchg ; d = address, h = return address
+	xthl ; d = address, b = low word, h = high word
+	xchg ; d = high word, b = low word, h = address
+	mov m, c
+	inx h
+	mov m, b
+	inx h
+	mov m, e
+	inx h
+	mov m, d
+	ret
+

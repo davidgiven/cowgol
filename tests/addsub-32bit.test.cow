@@ -16,9 +16,6 @@ var zero: int32 := ZERO;
 var one: int32 := ONE;
 var two: int32 := TWO;
 var three: int32 := THREE;
-var deadbeef: int32 := 0xdeadbeef;
-#var pdeadbeef: [int32] := &deadbeef;
-#var mdeadbeef: int32 := -0xdeadbeef;
 
 sub add_test()
     print("one+two==three"); if one+two==three then yes(); else no(); end if;
@@ -59,6 +56,9 @@ sub sub_test()
     print("ONE-one==zero"); if ONE-one==zero then yes(); else no(); end if;
     print("ZERO-one==mone"); if ZERO-one==mone then yes(); else no(); end if;
     print("TWO-mone==three"); if TWO-mone==three then yes(); else no(); end if;
+
+	var i: int32 := 0x2ff;
+	print("0x2ff-1==0x2fe"); if i-1==0x2fe then yes(); else no(); end if;
 end sub;
 sub_test();
 
@@ -71,26 +71,30 @@ sub neg_test()
 end sub;
 neg_test();
 
-##sub extra_test()
-##    print("deadbeef+deadbeef=0xbd5b7dde");
-##    if (deadbeef+deadbeef)==0xbd5b7dde then yes(); else no(); end if;
-##    print("deadbeef-deadbeef=0x00000000");
-##    if (deadbeef-deadbeef)==0x00000000 then yes(); else no(); end if;
-##
-##    print("pdeadbeef[0]+deadbeef=0xbd5b7dde");
-##    if (pdeadbeef[0]+deadbeef)==0xbd5b7dde then yes(); else no(); end if;
-##    print("deadbeef+pdeadbeef[0]=0xbd5b7dde");
-##    if (deadbeef+pdeadbeef[0])==0xbd5b7dde then yes(); else no(); end if;
-##
-##    print("presult test");
-##    var result: int32;
-##    var presult: [int32] := &result;
-##    presult[0] := pdeadbeef[0] + pdeadbeef[0];
-##    if result==0xbd5b7dde then yes(); else no(); end if;
-##
-##    print("complex backwards sub");
-##    result := -1;
-##    if (-presult[0]) == 1 then yes(); else no(); end if;
-##end sub;
-##extra_test();
-#
+sub extra_test()
+	var deadbeef: int32 := 0xdeadbeef;
+	var pdeadbeef: [int32] := &deadbeef;
+	var mdeadbeef: int32 := -0xdeadbeef;
+
+    print("deadbeef+deadbeef=0xbd5b7dde");
+    if (deadbeef+deadbeef)==0xbd5b7dde then yes(); else no(); end if;
+    print("deadbeef-deadbeef=0x00000000");
+    if (deadbeef-deadbeef)==0x00000000 then yes(); else no(); end if;
+
+    print("[pdeadbeef]+deadbeef=0xbd5b7dde");
+    if ([pdeadbeef]+deadbeef)==0xbd5b7dde then yes(); else no(); end if;
+    print("deadbeef+[pdeadbeef]=0xbd5b7dde");
+    if (deadbeef+[pdeadbeef])==0xbd5b7dde then yes(); else no(); end if;
+
+    print("presult test");
+    var result: int32;
+    var presult: [int32] := &result;
+    [presult] := [pdeadbeef] + [pdeadbeef];
+    if result==0xbd5b7dde then yes(); else no(); end if;
+
+    print("complex backwards sub");
+    result := -1;
+    if (-[presult]) == 1 then yes(); else no(); end if;
+end sub;
+extra_test();
+
