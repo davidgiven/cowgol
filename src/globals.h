@@ -50,8 +50,7 @@ struct reg
 };
 
 typedef struct instruction Instruction;
-typedef struct spill Spill;
-typedef struct reload Reload;
+typedef struct regmove Regmove;
 
 typedef struct symbol Symbol;
 struct symbol

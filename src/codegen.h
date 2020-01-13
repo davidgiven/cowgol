@@ -13,23 +13,16 @@ struct instruction
 	reg_t input_regs;
 	reg_t output_regs;
 	Node* n[INSTRUCTION_TEMPLATE_DEPTH];
-	Spill* first_spill;
-	Reload* first_reload;
-	Reload* last_reload;
+	Regmove* first_spill;
+	Regmove* first_reload;
+	Regmove* last_reload;
 };
 
-struct spill
+struct regmove
 {
 	reg_t src;
 	reg_t dest;
-	Spill* next;
-};
-
-struct reload
-{
-	reg_t src;
-	reg_t dest;
-	Reload* next;
+	Regmove* next;
 };
 
 extern const Register registers[];
