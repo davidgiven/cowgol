@@ -328,6 +328,17 @@ void generate(Node* node)
 					create_reload(consumer, 0, n->produced_reg);
 				}
 			}
+
+			/* If any nodes which produce values consumed by this instruction
+			 * have registers which depend on the one produced by this
+			 * instruction, update them now. */
+
+			for (int i=0; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
+			{
+				Node* n = producer->n[i];
+				if (n && (n->desired_reg == REG_SAME_AS_INSTRUCTION_RESULT))
+					n->desired_reg = producer->produced_reg;
+			}
 		}
 	}
 

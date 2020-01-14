@@ -1,3 +1,3 @@
-var i: int8 := 1;
-var j: int8 := i + 1;
+var i: int32 := 1;
+var j: int32 := i + 2;
 

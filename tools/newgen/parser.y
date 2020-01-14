@@ -105,6 +105,9 @@ gen(R) ::= GEN(G) regspec(LHS) ASSIGN gentree(TREE).
 gen(R) ::= gen(R1) USES regspec(USES).
 { R = R1; R->uses_regs = USES; }
 
+regspec(R) ::= STRINGSTRING.
+{ R = REG_SAME_AS_INSTRUCTION_RESULT; }
+
 regspec(R) ::= regc(R1).
 { R = R1; }
 

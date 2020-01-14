@@ -322,7 +322,7 @@ gen r16 := LOAD2(ADDRESS():a)
 gen r32 := LOAD4(r32:lhs)
 	{ E("\tmov %s, [%s]\n", regref($$), regref($lhs)); }
 
-gen r32 := LOAD2(ADDRESS():a)
+gen r32 := LOAD4(ADDRESS():a)
 	{ E("\tmov %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
 	
 gen STORE1(r8:val, r32:addr)
@@ -337,23 +337,29 @@ gen STORE2(r16:val, r32:addr)
 gen STORE2(r16:val, ADDRESS():a)
 	{ E("\tmovw [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
 
-gen STORE4(r16:val, r32:addr)
+gen STORE4(r32:val, r32:addr)
 	{ E("\tmov [%s], %s\n", regref($addr), regref($val)); }
 
-gen STORE4(r16:val, ADDRESS():a)
+gen STORE4(r32:val, ADDRESS():a)
 	{ E("\tmov [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen r8 := ADD1(r8:lhs, r8:rhs)
-{
-	if ($$ == $lhs)
-		E("\tadd %s, %s\n", regref($$), regref($rhs));
-	else if ($$ == $rhs)
-		E("\tadd %s, %s\n", regref($$), regref($lhs));
-	else
-	{
-		E("\tmov %s, %s\n", regref($$), regref($lhs));
-		E("\tadd %s, %s\n", regref($$), regref($rhs));
-	}
-}
+gen r8 := ADD1(r8:lhs, $$:rhs)
+	{ E("\taddb %s, %s\n", regref($$), regref($lhs)); }
+
+gen r8 := ADD1(r8:lhs, CONSTANT():c)
+	{ E("\taddb %s, %d\n", regref($lhs), $c.value & 0xff); }
+	
+gen r8 := ADD1(r8:lhs, CONSTANT(value == 1):c)
+	{ E("\tincb %s\n", regref($lhs)); }
+
+// --- 16-bit arithmetic ----------------------------------------------------
+
+gen r16 := ADD2(r16:lhs, $$)
+	{ E("\taddw %s, %s\n", regref($$), regref($lhs)); }
+
+// --- 32-bit arithmetic ----------------------------------------------------
+
+gen r32 := ADD4(r32:lhs, $$)
+	{ E("\tadd %s, %s\n", regref($$), regref($lhs)); }
