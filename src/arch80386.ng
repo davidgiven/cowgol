@@ -128,6 +128,18 @@
 		}
 	}
 
+	static const char* wordregref(reg_t reg)
+	{
+		switch (reg)
+		{
+			case REG_AL: case REG_AX: case REG_EAX: return "%ax";
+			case REG_BL: case REG_BX: case REG_EBX: return "%bx";
+			case REG_CL: case REG_CX: case REG_ECX: return "%cx";
+			case REG_DL: case REG_DX: case REG_EDX: return "%dx";
+			default: fatal("unknown register id 0x%x", reg);
+		}
+	}
+
 	static const char* subref(Subroutine* sub)
 	{
 		if (sub->externname)
@@ -451,6 +463,9 @@ gen r8 := CAST21(r16:val)
 
 gen r8 := CAST41(r32:val)
 	{ E("\tmovb %s, %s\n", byteregref($val), regref($$)); }
+
+gen r16 := CAST42(r32:val)
+	{ E("\tmovw %s, %s\n", wordregref($val), regref($$)); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 

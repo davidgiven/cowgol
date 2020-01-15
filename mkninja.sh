@@ -615,6 +615,6 @@ cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
 #cowgol_c examples/malloc.cow examples/malloc
 
-#cowgol_80386_linux src/cowlink/main.cow bin/cowlink
+cowgol_80386_linux src/cowlink/main.cow bin/cowlink
 
 # vim: sw=4 ts=4 et

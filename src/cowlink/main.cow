@@ -1,0 +1,10 @@
+include "cowgol.coh";
+include "argv.coh";
+include "malloc.coh";
+#include "file.coh";
+
+print("COWLINK\n");
+print_hex_i16((GetFreeMemory() >> 10) as uint16);
+print("kB free\n");
+print_nl();
+
