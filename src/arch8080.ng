@@ -574,22 +574,22 @@ gen a := ADD1(a, b|d|h:rhs)
 gen a := ADD1(a, CONSTANT():rhs)
 	{ E("\tadi %d\n", $rhs.value); }
 
-gen a := ADD1(a:lhs, CONSTANT(value==1))
-	{ E("\tinc %s\n", regref($lhs)); }
+gen a|b|d|h := ADD1($$, CONSTANT(value==1))
+	{ E("\tinc %s\n", regref($$)); }
 
-gen a := ADD1(a:lhs, CONSTANT(value==2))
+gen a|b|d|h := ADD1($$, CONSTANT(value==2))
 {
-	E("\tinc %s\n", regref($lhs));
-	E("\tinc %s\n", regref($lhs));
+	E("\tinc %s\n", regref($$));
+	E("\tinc %s\n", regref($$));
 }
 
-gen a := ADD1(a:lhs, CONSTANT(value==-1))
-	{ E("\tdec %s\n", regref($lhs)); }
+gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
+	{ E("\tdec %s\n", regref($$)); }
 
-gen a := ADD1(a:lhs, CONSTANT(value==-2))
+gen a|b|d|h := ADD1($$, CONSTANT(value==-2))
 {
-	E("\tdec %s\n", regref($lhs));
-	E("\tdec %s\n", regref($lhs));
+	E("\tdec %s\n", regref($$));
+	E("\tdec %s\n", regref($$));
 }
 
 gen a := SUB1(a, b|d|h:rhs)
@@ -597,12 +597,6 @@ gen a := SUB1(a, b|d|h:rhs)
 
 gen a := SUB1(a, CONSTANT():rhs)
 	{ E("\tsbi %d\n", $rhs.value); }
-
-gen a := SUB1(a:lhs, CONSTANT(value==1))
-	{ E("\tdec %s\n", regref($lhs)); }
-
-gen a := SUB1(a:lhs, CONSTANT(value==-1))
-	{ E("\tinc %s\n", regref($lhs)); }
 
 gen a := NEG1(b|d|h:lhs)
 {
@@ -652,22 +646,22 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	E("\tdad %s\n", regref(($lhs != REG_HL) ? $lhs : $rhs));
 }
 
-gen hl := ADD2(hl, CONSTANT(value==1))
-	{ E("\tinx h\n"); }
+gen hl|bc|de := ADD2($$, CONSTANT(value==1))
+	{ E("\tinx %s\n", regref($$)); }
 
-gen hl := ADD2(hl, CONSTANT(value==2))
+gen hl|bc|de := ADD2($$, CONSTANT(value==2))
 {
-	E("\tinx h\n");
-	E("\tinx h\n");
+	E("\tinx %s\n", regref($$));
+	E("\tinx %s\n", regref($$));
 }
 
-gen hl := ADD2(hl, CONSTANT(value==-1))
-	{ E("\tdcx h\n"); }
+gen hl|bc|de := ADD2($$, CONSTANT(value==-1))
+	{ E("\tdcx %s\n", regref($$)); }
 
-gen hl := ADD2(hl, CONSTANT(value==-2))
+gen hl|bc|de := ADD2($$, CONSTANT(value==-2))
 {
-	E("\tdcx h\n");
-	E("\tdcx h\n");
+	E("\tdcx %s\n", regref($$));
+	E("\tdcx %s\n", regref($$));
 }
 
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
