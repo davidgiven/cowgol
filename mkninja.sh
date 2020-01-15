@@ -343,6 +343,14 @@ cowgol_thumb2_linux() {
         "LD THUMB2 $1"
 }
 
+test_thumb2_linux() {
+	local base
+	base=$OBJDIR/tests/thumb2-linux/$1
+	cowgol_thumb2_linux tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_THUMB2 $1"
+	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
+}
+
 cowgol_80386_s() {
 	local in
 	local out
@@ -372,11 +380,11 @@ cowgol_80386_linux() {
         "LD 80386 $1"
 }
 
-test_thumb2_linux() {
+test_80386_linux() {
 	local base
-	base=$OBJDIR/tests/thumb2-linux/$1
-	cowgol_thumb2_linux tests/$1.test.cow $base.exe tests/_framework.coh
-	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_THUMB2 $1"
+	base=$OBJDIR/tests/80386-linux/$1
+	cowgol_80386_linux tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_80386 $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -576,6 +584,8 @@ test_thumb2_linux records
 test_thumb2_linux inputparams
 test_thumb2_linux outputparams
 test_thumb2_linux conditionals
+
+#test_80386_linux addsub-8bit
 
 #test_c addsub-8bit
 #test_c addsub-16bit

@@ -89,13 +89,29 @@
 			case REG_SI: return "%si";
 			case REG_DI: return "%di";
 			case REG_AL: return "%al";
-			case REG_AH: return "%ah";
 			case REG_BL: return "%bl";
-			case REG_BH: return "%bh";
 			case REG_CL: return "%cl";
-			case REG_CH: return "%ch";
 			case REG_DL: return "%dl";
-			case REG_DH: return "%dh";
+			default: fatal("unknown register id 0x%x", reg);
+		}
+	}
+
+	static const char* stkref(reg_t reg)
+	{
+		switch (reg)
+		{
+			case REG_EAX: return "%eax";
+			case REG_EBX: return "%ebx";
+			case REG_ECX: return "%ecx";
+			case REG_EDX: return "%edx";
+			case REG_ESI: return "%esi";
+			case REG_EDI: return "%edi";
+			case REG_AL: case REG_AX: return "%ax";
+			case REG_BL: case REG_BX: return "%bx";
+			case REG_CL: case REG_CX: return "%cx";
+			case REG_DL: case REG_DX: return "%dx";
+			case REG_SI: return "%si";
+			case REG_DI: return "%di";
 			default: fatal("unknown register id 0x%x", reg);
 		}
 	}
@@ -113,7 +129,7 @@
 	static const char* symref(Symbol* sym, int32_t off)
 	{
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "w%d%+d",
+		snprintf(buffer, sizeof(buffer), "(w%d+%d)",
 			sym->u.var.sub->arch->id,
 			sym->u.var.offset + off);
 		return buffer;
@@ -130,9 +146,9 @@
 	void arch_emit_move(reg_t src, reg_t dest)
 	{
 		if (!src)
-			E("\tpop %s\n", regref(dest));
+			E("\tpop %s\n", stkref(dest));
 		else if (!dest)
-			E("\tpush %s\n", regref(src));
+			E("\tpush %s\n", stkref(src));
 		else
 			E("\tmov %s, %s\n", regref(dest), regref(src));
 	}
@@ -153,7 +169,7 @@ register ax bx cx dx si di;
 register al ah bl bh cl ch dl dh;
 register stk4 param;
 
-regclass r8 := al|ah|bl|bh|cl|ch|dl|dh;
+regclass r8 := al|bl|cl|dl;
 regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := eax|ebx|ecx|edx|esi|edi;
 regclass ri := ebx|esi|edi;
@@ -171,20 +187,15 @@ regdata dx compatible r16;
 regdata si compatible r16;
 regdata di compatible r16;
 regdata al compatible r8;
-regdata ah compatible r8;
 regdata bl compatible r8;
-regdata bh compatible r8;
 regdata cl compatible r8;
-regdata ch compatible r8;
 regdata dl compatible r8;
-regdata dh compatible r8;
 regdata stk4 stacked;
 regdata param stacked;
 
 gen STARTFILE()
 {
     emitter_open_chunk();
-	E("\t.intel_syntax\n");
 	E("\t.code32\n");
     emitter_close_chunk();
 }
@@ -202,52 +213,30 @@ gen STARTSUB():s
     E("\t.global %s\n", subref($s.sub));
     E("%s:\n", subref($s.sub));
 
-#if 0
     if ($s.sub->inputparameters != 0)
     {
-        E("\tpop b\n");
+        E("\tpopl %%eax\n");
         for (int i=$s.sub->inputparameters-1; i>=0; i--)
         {
 			Symbol* param = get_input_parameters($s.sub);
 			for (int j=0; j<i; j++)
 				param = param->next;
 
-			switch (param->u.var.type->u.type.width)
-			{
-				case 1:
-					E("\tpop psw\n");
-					E("\tsta %s\n", symref(param, 0));
-					break;
-
-				case 2:
-					E("\tpop h\n");
-					E("\tshld %s\n", symref(param, 0));
-					break;
-
-				case 4:
-					E("\tpop h\n");
-					E("\tshld %s\n", symref(param, 0));
-					E("\tpop h\n");
-					E("\tshld %s\n", symref(param, 2));
-					break;
-
-				default:
-					assert(false);
-			}
+			const char* insn = "popw";
+			if (param->u.var.type->u.type.width == 4)
+				insn = "popl";
+			E("\t%s %s\n", insn, symref(param, 0));
         }
-        E("\tpush b\n");
+        E("\tpushl %%eax\n");
     }
-#endif
 }
 
 gen ENDSUB():s
 {
 	E("end_%s:\n", subref($s.sub));
-#if 0
 	if ($s.sub->outputparameters != 0)
 	{
-		E("\tpop h\n");
-		E("\txchg\n"); /* put return address in DE */
+		E("\tpopl %%eax\n");
 
 		for (int i=0; i<$s.sub->outputparameters; i++)
 		{
@@ -255,35 +244,16 @@ gen ENDSUB():s
 			for (int j=0; j<(i + $s.sub->inputparameters); j++)
 				param = param->next;
 
-			switch (param->u.var.type->u.type.width)
-			{
-				case 1:
-					E("\tlda %s\n", symref(param, 0));
-					E("\tpush psw\n");
-					break;
-
-				case 4:
-					E("\tlhld %s\n", symref(param, 2));
-					E("\tpush h\n");
-					/* fall through */
-				case 2:
-					E("\tlhld %s\n", symref(param, 0));
-					E("\tpush h\n");
-					break;
-
-				default:
-					assert(false);
-			}
+			const char* insn = "pushw";
+			if (param->u.var.type->u.type.width == 4)
+				E("\t%s %s\n", insn, symref(param, 0));
 		}
 
-		E("\txchg\n");
-		E("\tpchl\n");
+		E("\tjmp %%eax\n");
 	}
 	else
 		E("\tret\n");
-#endif
 
-	E("\tret\n");
     E("\t.bss\n");
 	E("w%d:\n", $s.sub->arch->id);
 	if ($s.sub->workspace[0] != 0)
@@ -291,75 +261,209 @@ gen ENDSUB():s
     emitter_close_chunk();
 }
 
+// --- Control flow ------------------------------------------------------
+
+gen RETURN()
+{
+	E("\tjmp end_%s\n", subref(current_sub));
+}
+
+gen LABEL():b
+{
+	E("%s:\n", labelref($b.label));
+}
+
+gen JUMP():j
+{
+	E("\tjmp %s\n", labelref($j.label));
+}
+
+// --- Subroutines -------------------------------------------------------
+
+// SETPARAM leaves the parameter on the top of the stack, where the
+// code generator loses track of it.
+
+gen param := END();
+
+gen param := PUSHPARAM1(param, r8:val)
+	{ E("\tpush %s\n", stkref($val)); }
+
+gen param := PUSHPARAM2(param, r16:val)
+	{ E("\tpush %s\n", stkref($val)); }
+
+gen param := PUSHPARAM4(param, r32:val)
+	{ E("\tpush %s\n", stkref($val)); }
+
+%{
+	static void call(Subroutine* sub)
+	{
+		if (sub->externname)
+		{
+			emitter_open_chunk();
+			E("\t.extern %s\n", sub->externname);
+			emitter_close_chunk();
+		}
+
+		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
+		E("\tcall %s\n", subref(sub));
+	}
+
+	static void calln(Subroutine* sub, reg_t reg)
+	{
+		call(sub);
+		E("\tpop %s\n", regref(reg));
+	}
+%}
+
+gen CALLS(param);
+
+gen param := CALL0(param):c
+	{ call($c.sub); }
+
+gen r8 := CALL1(param):c
+	{ calln($c.sub, $$); }
+
+gen r16 := CALL2(param):c
+	{ calln($c.sub, $$); }
+
+gen r32 := CALL4(param):c
+	{ calln($c.sub, $$); }
+
+%{
+	static void popparam(Symbol* sym, int32_t off)
+	{
+		const char* ins = NULL;
+		switch (sym->u.var.type->u.type.width)
+		{
+			case 1: ins = "movb"; break;
+			case 2: ins = "movw"; break;
+			case 4: ins = "mov"; break;
+			default: assert(false);
+		}
+
+		E("\tpop %eax\n");
+		E("\t%s [%s], %eax\n", ins, symref(sym, off));
+	}
+%}
+
+rewrite POPPARAM1(p, a) := POPPARAM4(p, a);
+rewrite POPPARAM2(p, a) := POPPARAM4(p, a);
+
+gen POPPARAM4(param, ADDRESS():a) uses eax
+	{ popparam($a.sym, $a.off); }
+
+gen param := POPPARAM4(param, ADDRESS():a) uses eax
+	{ popparam($a.sym, $a.off); }
+
 // --- Core conversions --------------------------------------------------
 
 gen r8 := CONSTANT(): c
-	{ E("\tmovb %s, 0x%x\n", regref($$), $c.value); }
+	{ E("\tmovb $0x%x, %s\n", $c.value & 0xff, regref($$)); }
 
 gen r16 := CONSTANT():c
-	{ E("\tmovw %s, 0x%x\n", regref($$), $c.value); }
+	{ E("\tmovw $0x%x, %s\n", $c.value & 0xffff, regref($$)); }
 
 gen r32 := CONSTANT():c
-	{ E("\tmov %s, 0x%x\n", regref($$), $c.value); }
+	{ E("\tmov $0x%x, %s\n", $c.value, regref($$)); }
 
 gen r32 := ADDRESS():a
-	{ E("\tlea %s, %s\n", regref($$), symref($a.sym, $a.off)); }
+	{ E("\tlea %s, %s\n", symref($a.sym, $a.off), regref($$)); }
 
 // --- Loads and stores --------------------------------------------------
 
 gen r8 := LOAD1(r32:lhs)
-	{ E("\tmovb %s, [%s]\n", regref($$), regref($lhs)); }
+	{ E("\tmovb (%s), %s\n", regref($lhs), regref($$)); }
 	
 gen r8 := LOAD1(ADDRESS():a)
-	{ E("\tmovb %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
+	{ E("\tmovb %s, %s\n", symref($a.sym, $a.off), regref($$)); }
 	
 gen r16 := LOAD2(r32:lhs)
-	{ E("\tmovw %s, [%s]\n", regref($$), regref($lhs)); }
+	{ E("\tmovw (%s), %s\n", regref($lhs), regref($$)); }
 
 gen r16 := LOAD2(ADDRESS():a)
-	{ E("\tmovw %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
+	{ E("\tmovw %s, %s\n", symref($a.sym, $a.off), regref($$)); }
 	
 gen r32 := LOAD4(r32:lhs)
-	{ E("\tmov %s, [%s]\n", regref($$), regref($lhs)); }
+	{ E("\tmov (%s), %s\n", regref($lhs), regref($$)); }
 
 gen r32 := LOAD4(ADDRESS():a)
-	{ E("\tmov %s, [%s]\n", regref($$), symref($a.sym, $a.off)); }
+	{ E("\tmov %s, %s\n", symref($a.sym, $a.off), regref($$)); }
 	
 gen STORE1(r8:val, r32:addr)
-	{ E("\tmovb [%s], %s\n", regref($addr), regref($val)); }
+	{ E("\tmovb %s, (%s)\n", regref($val), regref($addr)); }
 
 gen STORE1(r8:val, ADDRESS():a)
-	{ E("\tmovb [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
+	{ E("\tmovb %s, %s\n", regref($val), symref($a.sym, $a.off)); }
 
 gen STORE2(r16:val, r32:addr)
-	{ E("\tmovw [%s], %s\n", regref($addr), regref($val)); }
+	{ E("\tmovw %s, (%s)\n", regref($val), regref($addr)); }
 
 gen STORE2(r16:val, ADDRESS():a)
-	{ E("\tmovw [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
+	{ E("\tmovw %s, %s\n", regref($val), symref($a.sym, $a.off)); }
 
 gen STORE4(r32:val, r32:addr)
-	{ E("\tmov [%s], %s\n", regref($addr), regref($val)); }
+	{ E("\tmov %s, (%s)\n", regref($val), regref($addr)); }
 
 gen STORE4(r32:val, ADDRESS():a)
-	{ E("\tmov [%s], %s\n", symref($a.sym, $a.off), regref($val)); }
+	{ E("\tmov %s, %s\n", regref($val), symref($a.sym, $a.off)); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
 gen r8 := ADD1(r8:lhs, $$:rhs)
-	{ E("\taddb %s, %s\n", regref($$), regref($lhs)); }
+	{ E("\taddb %s, %s\n", regref($lhs), regref($$)); }
 
-gen r8 := ADD1(r8:lhs, CONSTANT():c)
-	{ E("\taddb %s, %d\n", regref($lhs), $c.value & 0xff); }
-	
-gen r8 := ADD1(r8:lhs, CONSTANT(value == 1):c)
-	{ E("\tincb %s\n", regref($lhs)); }
+gen ASMSTART()
+{
+    asmbuffer[0] = '\0';
+}
 
-// --- 16-bit arithmetic ----------------------------------------------------
+gen ASMTEXT():t
+{
+    strlcat(asmbuffer, $t.text, sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
 
-gen r16 := ADD2(r16:lhs, $$)
-	{ E("\taddw %s, %s\n", regref($$), regref($lhs)); }
+gen ASMSYMBOL():s
+{
+	if ($s.sym->kind == VAR)
+		strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+	else
+		strlcat(asmbuffer, subref($s.sym->u.sub), sizeof(asmbuffer));
+    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
 
-// --- 32-bit arithmetic ----------------------------------------------------
+gen ASMEND()
+{
+    E("\t%s\n", asmbuffer);
+}
 
-gen r32 := ADD4(r32:lhs, $$)
-	{ E("\tadd %s, %s\n", regref($$), regref($lhs)); }
+// --- Strings -----------------------------------------------------------
+
+gen r32 := STRING():s
+{
+    int sid = id++;
+    emitter_open_chunk();
+    E("\t.data 1\n");
+    E("s%d:\n", sid);
+    E("\t.byte ");
+    bool start = true;
+	const char* s = $s.text;
+    for (;;)
+    {
+        char c = *s++;
+        if (!c)
+            break;
+		if (!start)
+            E(", ");
+		E("0x%02x", c);
+        start = false;
+    }
+    if (!start)
+        E(", ");
+    E("0\n");
+    emitter_close_chunk();
+
+	E("\tlea s%d, %s\n", sid, regref($$));
+}
+
+

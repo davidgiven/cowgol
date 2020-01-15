@@ -3,7 +3,6 @@
 
 .arch i386
 .code32
-.intel_syntax
 .global _start
 _start:
 	/* On entry, the stack looks like this:
@@ -15,11 +14,11 @@ _start:
      * sp     argc
 	 */
 
-    mov %eax, [%esp+4]
-    mov _argv, %eax
+    mov 4(%esp), %eax
+    mov %eax, (_argv)
     call cmain
-    mov %eax, 1
-    int 0x80
+    mov $1, %eax
+    int $0x80
 
 .bss
 .global _argv

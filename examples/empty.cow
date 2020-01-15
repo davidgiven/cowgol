@@ -1,3 +1,2 @@
-var i: int32 := 1;
-var j: int32 := i + 2;
+include "cowgol.coh";
 
