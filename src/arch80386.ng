@@ -234,6 +234,7 @@ gen STARTSUB():s
 			for (int j=0; j<i; j++)
 				param = param->next;
 
+			const char* insn = "popw";
 			int w = param->u.var.type->u.type.width;
 			switch (w)
 			{
@@ -242,14 +243,12 @@ gen STARTSUB():s
 					E("\tmovb %%bl, %s\n", symref(param, 0));
 					break;
 
-				case 2:
 				case 4:
-				{
-					const char* insn = "popw";
-						insn = "popl";
+					insn = "popl";
+					/* fall through */
+				case 2:
 					E("\t%s %s\n", insn, symref(param, 0));
 					break;
-				}
 			}
         }
         E("\tpushl %%eax\n");
@@ -271,10 +270,11 @@ gen ENDSUB():s
 
 			const char* insn = "pushw";
 			if (param->u.var.type->u.type.width == 4)
-				E("\t%s %s\n", insn, symref(param, 0));
+				insn = "pushl";
+			E("\t%s %s\n", insn, symref(param, 0));
 		}
 
-		E("\tjmp %%eax\n");
+		E("\tjmp *%%eax\n");
 	}
 	else
 		E("\tret\n");
@@ -311,13 +311,13 @@ gen JUMP():j
 gen param := END();
 
 gen param := PUSHPARAM1(param, r8:val)
-	{ E("\tpush %s\n", stkref($val)); }
+	{ E("\tpushw %s\n", stkref($val)); }
 
 gen param := PUSHPARAM2(param, r16:val)
-	{ E("\tpush %s\n", stkref($val)); }
+	{ E("\tpushw %s\n", stkref($val)); }
 
 gen param := PUSHPARAM4(param, r32:val)
-	{ E("\tpush %s\n", stkref($val)); }
+	{ E("\tpushl %s\n", stkref($val)); }
 
 %{
 	static void call(Subroutine* sub)
@@ -336,7 +336,7 @@ gen param := PUSHPARAM4(param, r32:val)
 	static void calln(Subroutine* sub, reg_t reg)
 	{
 		call(sub);
-		E("\tpop %s\n", regref(reg));
+		E("\tpop %s\n", stkref(reg));
 	}
 %}
 
@@ -357,17 +357,23 @@ gen r32 := CALL4(param):c
 %{
 	static void popparam(Symbol* sym, int32_t off)
 	{
-		const char* ins = NULL;
+		const char* ins = "popw";
 		switch (sym->u.var.type->u.type.width)
 		{
-			case 1: ins = "movb"; break;
-			case 2: ins = "movw"; break;
-			case 4: ins = "mov"; break;
+			case 1:
+				E("\tpopw %%ax\n");
+				E("\tmovb %%al, %s\n", symref(sym, off));
+				break;
+
+			case 4:
+				ins = "popl";
+				/* fall through */
+			case 2:
+				E("\t%s %s\n", ins, symref(sym, off));
+				break;
+
 			default: assert(false);
 		}
-
-		E("\tpop %eax\n");
-		E("\t%s [%s], %eax\n", ins, symref(sym, off));
 	}
 %}
 
@@ -563,11 +569,17 @@ gen BEQU2(r16:lhs, r16:rhs):b
 gen BEQS2(r16:lhs, r16:rhs):b
 	{ cmp("cmpw", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
+gen BLTU2(r16:lhs, r16:rhs):b
+	{ cmp("cmpw", "jb", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
 gen BEQU4(r32:lhs, r32:rhs):b
 	{ cmp("cmpl", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 gen BEQS4(r32:lhs, r32:rhs):b
 	{ cmp("cmpl", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BLTU4(r32:lhs, r32:rhs):b
+	{ cmp("cmpl", "jb", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 // --- Inline assembly ------------------------------------------------------
 
