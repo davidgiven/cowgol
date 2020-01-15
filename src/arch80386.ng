@@ -445,6 +445,24 @@ gen r8 := CAST41(r32:val)
 gen r8 := ADD1(r8:lhs, $$:rhs)
 	{ E("\taddb %s, %s\n", regref($lhs), regref($$)); }
 
+gen r8 := ADD1($$, CONSTANT():c)
+	{ E("\taddb $0x%x, %s\n", $c.value & 0xff, regref($$)); }
+
+gen r8 := ADD1($$, CONSTANT(value==1))
+	{ E("\tincb %s\n", regref($$)); }
+	
+gen r8 := ADD1($$, CONSTANT(value==-1))
+	{ E("\tdecb %s\n", regref($$)); }
+
+gen r8 := SUB1($$:lhs, r8:rhs)
+	{ E("\tsubb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := SUB1($$, CONSTANT():c)
+	{ E("\tsubb $0x%x, %s\n", $c.value & 0xff, regref($$)); }
+
+gen r8 := NEG1($$:val)
+	{ E("\tnegb %s\n", regref($$)); }
+
 gen r8 := LSHIFT1($$:lhs, cl:rhs)
 	{ E("\tshlb %s, %s\n", regref($rhs), regref($$)); }
 
@@ -452,6 +470,27 @@ gen r8 := RSHIFTU1($$:lhs, cl:rhs)
 	{ E("\tshrb %s, %s\n", regref($rhs), regref($$)); }
 
 // --- 16-bit arithmetic ----------------------------------------------------
+
+gen r16 := ADD2(r16:lhs, $$:rhs)
+	{ E("\taddw %s, %s\n", regref($lhs), regref($$)); }
+
+gen r16 := ADD2($$, CONSTANT():c)
+	{ E("\taddw $0x%x, %s\n", $c.value & 0xffff, regref($$)); }
+
+gen r16 := ADD2($$, CONSTANT(value==1))
+	{ E("\tincw %s\n", regref($$)); }
+	
+gen r16 := ADD2($$, CONSTANT(value==-1))
+	{ E("\tdecw %s\n", regref($$)); }
+
+gen r16 := SUB2($$:lhs, r16:rhs)
+	{ E("\tsubw %s, %s\n", regref($rhs), regref($$)); }
+
+gen r16 := SUB2($$, CONSTANT():c)
+	{ E("\tsubw $0x%x, %s\n", $c.value & 0xffff, regref($$)); }
+
+gen r16 := NEG2($$:val)
+	{ E("\tnegw %s\n", regref($$)); }
 
 gen r16 := RSHIFTU2($$:lhs, cl:rhs)
 	{ E("\tshrw %s, %s\n", regref($rhs), regref($$)); }
@@ -461,24 +500,59 @@ gen r16 := RSHIFTU2($$:lhs, cl:rhs)
 gen r32 := ADD4(r32:lhs, $$:rhs)
 	{ E("\taddl %s, %s\n", regref($lhs), regref($$)); }
 
+gen r32 := ADD4($$, CONSTANT():c)
+	{ E("\taddl $0x%x, %s\n", $c.value, regref($$)); }
+
+gen r32 := ADD4($$, CONSTANT(value==1))
+	{ E("\tincl %s\n", regref($$)); }
+	
+gen r32 := ADD4($$, CONSTANT(value==-1))
+	{ E("\tdecl %s\n", regref($$)); }
+
+gen r32 := SUB4($$:lhs, r32:rhs)
+	{ E("\tsubl %s, %s\n", regref($rhs), regref($$)); }
+
+gen r32 := SUB4($$, CONSTANT():c)
+	{ E("\tsubl $0x%x, %s\n", $c.value, regref($$)); }
+
+gen r32 := NEG4($$:val)
+	{ E("\tnegl %s\n", regref($$)); }
+
 gen r32 := RSHIFTU4($$:lhs, cl:rhs)
 	{ E("\tshrl %s, %s\n", regref($rhs), regref($$)); }
 
 // --- Branches -------------------------------------------------------------
 
+%{
+	static void cmp(const char* insn, const char* trueop,
+		int truelabel, int falselabel, reg_t lhs, reg_t rhs)
+	{
+		E("\t%s %s, %s\n", insn, regref(lhs), regref(rhs));
+		E("\t%s %s\n", trueop, labelref(truelabel));
+		E("\tjmp %s\n", labelref(falselabel));
+	}
+%}
+
 gen BEQU1(r8:lhs, r8:rhs):b
-{
-	E("\tcmpb %s, %s\n", regref($lhs), regref($rhs));
-	E("\tje %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
-}
+	{ cmp("cmpb", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BEQS1(r8:lhs, r8:rhs):b
+	{ cmp("cmpb", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 gen BLTU1(r8:lhs, r8:rhs):b
-{
-	E("\tcmpb %s, %s\n", regref($lhs), regref($rhs));
-	E("\tjb %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
-}
+	{ cmp("cmpb", "jb", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BEQU2(r16:lhs, r16:rhs):b
+	{ cmp("cmpw", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BEQS2(r16:lhs, r16:rhs):b
+	{ cmp("cmpw", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BEQU4(r32:lhs, r32:rhs):b
+	{ cmp("cmpl", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BEQS4(r32:lhs, r32:rhs):b
+	{ cmp("cmpl", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 // --- Inline assembly ------------------------------------------------------
 

@@ -585,7 +585,9 @@ test_thumb2_linux inputparams
 test_thumb2_linux outputparams
 test_thumb2_linux conditionals
 
-#test_80386_linux addsub-8bit
+test_80386_linux addsub-8bit
+test_80386_linux addsub-16bit
+test_80386_linux addsub-32bit
 
 #test_c addsub-8bit
 #test_c addsub-16bit
