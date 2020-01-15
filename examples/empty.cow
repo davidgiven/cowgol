@@ -1,2 +1,3 @@
 include "cowgol.coh";
 
+print("Hello, world!\n");

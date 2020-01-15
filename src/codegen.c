@@ -333,11 +333,29 @@ void generate(Node* node)
 			 * have registers which depend on the one produced by this
 			 * instruction, update them now. */
 
+			bool updated = false;
 			for (int i=0; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
 			{
 				Node* n = producer->n[i];
 				if (n && (n->desired_reg == REG_SAME_AS_INSTRUCTION_RESULT))
+				{
 					n->desired_reg = producer->produced_reg;
+					updated = true;
+				}
+			}
+
+			/* If we *did* update a register, then the *other* register
+             * requirements must be updated to blacklist that register,
+			 * or we very quickly run into register deadlock. */
+
+			if (updated)
+			{
+				for (int i=0; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
+				{
+					Node* n = producer->n[i];
+					if (n && (n->desired_reg != producer->produced_reg))
+						n->desired_reg &= ~producer->produced_reg;
+				}
 			}
 		}
 	}

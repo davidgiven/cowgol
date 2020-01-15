@@ -16,7 +16,6 @@ sub print_char(c: uint8)
     @asm "movl %ebx, %edx";
     @asm "int $0x80";
 end sub;
-print_char('q');
 
-#include "common.coh";
+include "common.coh";
 

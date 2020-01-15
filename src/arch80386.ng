@@ -116,6 +116,18 @@
 		}
 	}
 
+	static const char* byteregref(reg_t reg)
+	{
+		switch (reg)
+		{
+			case REG_AL: case REG_AX: case REG_EAX: return "%al";
+			case REG_BL: case REG_BX: case REG_EBX: return "%bl";
+			case REG_CL: case REG_CX: case REG_ECX: return "%cl";
+			case REG_DL: case REG_DX: case REG_EDX: return "%dl";
+			default: fatal("unknown register id 0x%x", reg);
+		}
+	}
+
 	static const char* subref(Subroutine* sub)
 	{
 		if (sub->externname)
@@ -222,10 +234,23 @@ gen STARTSUB():s
 			for (int j=0; j<i; j++)
 				param = param->next;
 
-			const char* insn = "popw";
-			if (param->u.var.type->u.type.width == 4)
-				insn = "popl";
-			E("\t%s %s\n", insn, symref(param, 0));
+			int w = param->u.var.type->u.type.width;
+			switch (w)
+			{
+				case 1:
+					E("\tpopw %%bx\n");
+					E("\tmovb %%bl, %s\n", symref(param, 0));
+					break;
+
+				case 2:
+				case 4:
+				{
+					const char* insn = "popw";
+						insn = "popl";
+					E("\t%s %s\n", insn, symref(param, 0));
+					break;
+				}
+			}
         }
         E("\tpushl %%eax\n");
     }
@@ -407,10 +432,55 @@ gen STORE4(r32:val, r32:addr)
 gen STORE4(r32:val, ADDRESS():a)
 	{ E("\tmov %s, %s\n", regref($val), symref($a.sym, $a.off)); }
 
+// --- Casts ----------------------------------------------------------------
+
+gen r8 := CAST21(r16:val)
+	{ E("\tmovb %s, %s\n", byteregref($val), regref($$)); }
+
+gen r8 := CAST41(r32:val)
+	{ E("\tmovb %s, %s\n", byteregref($val), regref($$)); }
+
 // --- 8-bit arithmetic -----------------------------------------------------
 
 gen r8 := ADD1(r8:lhs, $$:rhs)
 	{ E("\taddb %s, %s\n", regref($lhs), regref($$)); }
+
+gen r8 := LSHIFT1($$:lhs, cl:rhs)
+	{ E("\tshlb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := RSHIFTU1($$:lhs, cl:rhs)
+	{ E("\tshrb %s, %s\n", regref($rhs), regref($$)); }
+
+// --- 16-bit arithmetic ----------------------------------------------------
+
+gen r16 := RSHIFTU2($$:lhs, cl:rhs)
+	{ E("\tshrw %s, %s\n", regref($rhs), regref($$)); }
+
+// --- 32-bit arithmetic ----------------------------------------------------
+
+gen r32 := ADD4(r32:lhs, $$:rhs)
+	{ E("\taddl %s, %s\n", regref($lhs), regref($$)); }
+
+gen r32 := RSHIFTU4($$:lhs, cl:rhs)
+	{ E("\tshrl %s, %s\n", regref($rhs), regref($$)); }
+
+// --- Branches -------------------------------------------------------------
+
+gen BEQU1(r8:lhs, r8:rhs):b
+{
+	E("\tcmpb %s, %s\n", regref($lhs), regref($rhs));
+	E("\tje %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+gen BLTU1(r8:lhs, r8:rhs):b
+{
+	E("\tcmpb %s, %s\n", regref($lhs), regref($rhs));
+	E("\tjb %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+// --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
 {
@@ -465,5 +535,3 @@ gen r32 := STRING():s
 
 	E("\tlea s%d, %s\n", sid, regref($$));
 }
-
-
