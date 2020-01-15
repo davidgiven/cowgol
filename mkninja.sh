@@ -591,10 +591,10 @@ test_80386_linux addsub-32bit
 test_80386_linux shifts-8bit
 test_80386_linux shifts-16bit
 test_80386_linux shifts-32bit
-#test_80386_linux records
+test_80386_linux records
 test_80386_linux inputparams
 test_80386_linux outputparams
-#test_80386_linux conditionals
+test_80386_linux conditionals
 
 #test_c addsub-8bit
 #test_c addsub-16bit

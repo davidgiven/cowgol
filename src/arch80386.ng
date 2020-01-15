@@ -186,22 +186,22 @@ regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := eax|ebx|ecx|edx|esi|edi;
 regclass ri := ebx|esi|edi;
 
-regdata eax compatible r32;
-regdata ebx compatible r32|ri;
-regdata ecx compatible r32;
-regdata edx compatible r32;
+regdata eax compatible r32    uses eax|ax|al;
+regdata ebx compatible r32|ri uses ebx|bx|bl;
+regdata ecx compatible r32    uses ecx|cx|cl;
+regdata edx compatible r32    uses edx|dx|dl;
 regdata esi compatible r32|ri;
 regdata edi compatible r32|ri;
-regdata ax compatible r16;
-regdata bx compatible r16;
-regdata cx compatible r16;
-regdata dx compatible r16;
+regdata ax compatible r16     uses eax|ax|al;
+regdata bx compatible r16     uses ebx|bx|bl;
+regdata cx compatible r16     uses ecx|cx|cl;
+regdata dx compatible r16     uses edx|dx|dl;
 regdata si compatible r16;
 regdata di compatible r16;
-regdata al compatible r8;
-regdata bl compatible r8;
-regdata cl compatible r8;
-regdata dl compatible r8;
+regdata al compatible r8      uses eax|ax|al;
+regdata bl compatible r8      uses ebx|bx|bl;
+regdata cl compatible r8      uses ecx|cx|cl;
+regdata dl compatible r8      uses edx|dx|dl;
 regdata stk4 stacked;
 regdata param stacked;
 
@@ -426,6 +426,12 @@ gen STORE1(r8:val, r32:addr)
 gen STORE1(r8:val, ADDRESS():a)
 	{ E("\tmovb %s, %s\n", regref($val), symref($a.sym, $a.off)); }
 
+gen STORE1(r8:val, ADD4(r32:addr, r32:disp))
+	{ E("\tmovb %s, (%s,%s)\n", regref($val), regref($addr), regref($disp)); }
+	
+gen STORE1(r8:val, ADD4(r32:addr, CONSTANT():c))
+	{ E("\tmovb %s, %d(%s)\n", regref($val), $c.value, regref($addr)); }
+
 gen STORE2(r16:val, r32:addr)
 	{ E("\tmovw %s, (%s)\n", regref($val), regref($addr)); }
 
@@ -548,7 +554,7 @@ gen r32 := RSHIFTS4($$:lhs, cl:rhs)
 	static void cmp(const char* insn, const char* trueop,
 		int truelabel, int falselabel, reg_t lhs, reg_t rhs)
 	{
-		E("\t%s %s, %s\n", insn, regref(lhs), regref(rhs));
+		E("\t%s %s, %s\n", insn, regref(rhs), regref(lhs));
 		E("\t%s %s\n", trueop, labelref(truelabel));
 		E("\tjmp %s\n", labelref(falselabel));
 	}
