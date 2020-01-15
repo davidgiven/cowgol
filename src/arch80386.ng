@@ -469,6 +469,9 @@ gen r8 := LSHIFT1($$:lhs, cl:rhs)
 gen r8 := RSHIFTU1($$:lhs, cl:rhs)
 	{ E("\tshrb %s, %s\n", regref($rhs), regref($$)); }
 
+gen r8 := RSHIFTS1($$:lhs, cl:rhs)
+	{ E("\tsarb %s, %s\n", regref($rhs), regref($$)); }
+
 // --- 16-bit arithmetic ----------------------------------------------------
 
 gen r16 := ADD2(r16:lhs, $$:rhs)
@@ -492,8 +495,14 @@ gen r16 := SUB2($$, CONSTANT():c)
 gen r16 := NEG2($$:val)
 	{ E("\tnegw %s\n", regref($$)); }
 
+gen r16 := LSHIFT2($$:lhs, cl:rhs)
+	{ E("\tshlw %s, %s\n", regref($rhs), regref($$)); }
+
 gen r16 := RSHIFTU2($$:lhs, cl:rhs)
 	{ E("\tshrw %s, %s\n", regref($rhs), regref($$)); }
+
+gen r16 := RSHIFTS2($$:lhs, cl:rhs)
+	{ E("\tsarw %s, %s\n", regref($rhs), regref($$)); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
@@ -518,8 +527,14 @@ gen r32 := SUB4($$, CONSTANT():c)
 gen r32 := NEG4($$:val)
 	{ E("\tnegl %s\n", regref($$)); }
 
+gen r32 := LSHIFT4($$:lhs, cl:rhs)
+	{ E("\tshll %s, %s\n", regref($rhs), regref($$)); }
+
 gen r32 := RSHIFTU4($$:lhs, cl:rhs)
 	{ E("\tshrl %s, %s\n", regref($rhs), regref($$)); }
+
+gen r32 := RSHIFTS4($$:lhs, cl:rhs)
+	{ E("\tsarl %s, %s\n", regref($rhs), regref($$)); }
 
 // --- Branches -------------------------------------------------------------
 
