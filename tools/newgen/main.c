@@ -438,7 +438,7 @@ static void push_nodes(int* offset, Node* template, Node* pattern)
 	int thisoffset = *offset;
 	if (template && template->isregister)
 	{
-		fprintf(outfp, "\t\tn%d->desired_reg = 0x%x;\n", thisoffset, template->reg);
+		fprintf(outfp, "\t\tn%d->desired_reg = %d;\n", thisoffset, template->reg);
 		fprintf(outfp, "\t\tn%d->consumer = insn;\n", thisoffset);
 		fprintf(outfp, "\t\tpush_node(n%d);\n", thisoffset);
 	}

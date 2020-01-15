@@ -1,0 +1,21 @@
+# System call numbers are here:
+# https://w3challs.com/syscalls/?arch=x86
+
+var TOP: [uint8];
+@asm ".extern _top";
+@asm "movl $_top, ", TOP;
+
+var HIMEM: [uint8];
+@asm ".extern _himem";
+@asm "movl $_himem, ", HIMEM;
+
+sub print_char(c: uint8)
+    @asm "movl $4, %eax";
+    @asm "movl $1, %ebx";
+    @asm "lea ", c, ", %ecx";
+    @asm "movl %ebx, %edx";
+    @asm "int $0x80";
+end sub;
+
+include "common.coh";
+

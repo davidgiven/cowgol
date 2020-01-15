@@ -10,7 +10,8 @@
 #include <assert.h>
 #include <limits.h>
 
-typedef uint32_t reg_t;
+#define REG_SAME_AS_INSTRUCTION_RESULT -1
+typedef int32_t reg_t;
 
 typedef struct predicate Predicate;
 struct predicate

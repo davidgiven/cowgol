@@ -38,7 +38,12 @@ struct namespace
 
 typedef struct midnode Node;
 
-typedef uint32_t reg_t;
+enum
+{
+	REG_SAME_AS_INSTRUCTION_RESULT = -1
+};
+
+typedef int32_t reg_t;
 typedef struct reg Register;
 struct reg
 {
