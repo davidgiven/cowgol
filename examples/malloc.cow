@@ -25,6 +25,7 @@ sub DumpBlocks()
 			break;
 		end if;
 	end loop;
+	print_nl();
 end sub;
 
 sub Alloc(length: intptr): (block: [uint8])
@@ -130,7 +131,6 @@ var i := GetFreeMemory();
 print("Free memory: 0x");
 print_hex_i32(i as uint32);
 print_nl();
-
 DumpBlocks();
 
 var p := Alloc(100);
@@ -142,16 +142,14 @@ i := GetFreeMemory();
 print("Free memory: 0x");
 print_hex_i32(i as uint32);
 print_nl();
-
 DumpBlocks();
 
 print("Freeing block\n");
 Free(p, 100);
 
-DumpBlocks();
-
 i := GetFreeMemory();
 print("Free memory: 0x");
 print_hex_i32(i as uint32);
 print_nl();
+DumpBlocks();
 
