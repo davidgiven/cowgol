@@ -185,6 +185,7 @@ gen STARTFILE()
     E("\textrn neg4\n");
 	E("\textrn mul1\n");
 	E("\textrn mul2\n");
+	E("\textrn mul4\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
@@ -714,6 +715,9 @@ gen stk4 := AND4(stk4, stk4)
 
 gen stk4 := NEG4(stk4)
 	{ E("\tcall neg4\n"); }
+
+gen stk4 := MUL4(stk4, stk4)
+	{ E("\tcall mul4\n"); }
 
 gen stk4 := LSHIFT4(stk4, b)
 	{ E("\tcall asl4\n"); }
