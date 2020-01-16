@@ -5,7 +5,6 @@
 #include "globals.h"
 #include "parser.h"
 
-static int stringptr = 0;
 static int base = 0;
 
 %}
@@ -92,7 +91,7 @@ SP [ \t]+
 '[^'\\]'                  { number = yytext[1]; return NUMBER; }
 '\\n'                     { number = '\n'; return NUMBER; }
 '\\r'                     { number = '\r'; return NUMBER; }
-'\\\\'                    { number - '\\'; return NUMBER; }
+'\\\\'                    { number = '\\'; return NUMBER; }
 '                         { fatal("invalid character constant"); }
 
 #[^\r\n]*                 |
@@ -133,6 +132,7 @@ void* open_file(const char* filename)
 		i = i->next;
 	}
 	fatal("could not open include file '%s'", filename);
+	abort();
 }
 
 void include_file(void* buffer)

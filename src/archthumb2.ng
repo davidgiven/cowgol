@@ -70,7 +70,7 @@
 
 		int w = var->u.var.type->u.type.width;
 		var->u.var.offset = current_sub->workspace[0];
-		current_sub->workspace[0] += var->u.var.type->u.type.width;
+		current_sub->workspace[0] += w;
 	}
 
 	void arch_init_member(struct symbol* record, struct symbol* member)

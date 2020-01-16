@@ -11,7 +11,7 @@
 #include <string.h>
 #include <limits.h>
 
-extern void fatal(const char* s, ...);
+extern void fatal(const char* s, ...) __attribute__ ((noreturn));
 extern const char* aprintf(const char* s, ...);
 extern int yylex(void);
 extern int yylineno;

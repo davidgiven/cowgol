@@ -600,7 +600,6 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 	if (!is_num(E2->type))
 			fatal("array indices must be numbers");
 	
-	Symbol* indextype = arraytype->u.type.indextype;
 	E = mid_c_add(intptr_type->u.type.width,
 		E1,
 		mid_c_mul(intptr_type->u.type.width,
