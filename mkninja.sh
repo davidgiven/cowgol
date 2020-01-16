@@ -588,6 +588,12 @@ test_thumb2_linux conditionals
 test_80386_linux addsub-8bit
 test_80386_linux addsub-16bit
 test_80386_linux addsub-32bit
+test_80386_linux mul-8bit-u
+test_80386_linux mul-8bit-s
+test_80386_linux mul-16bit-u
+test_80386_linux mul-16bit-s
+test_80386_linux mul-32bit-u
+test_80386_linux mul-32bit-s
 test_80386_linux shifts-8bit
 test_80386_linux shifts-16bit
 test_80386_linux shifts-32bit

@@ -174,7 +174,7 @@
 		else if (!dest)
 			E("\tpush %s\n", stkref(src));
 		else
-			E("\tmov %s, %s\n", regref(dest), regref(src));
+			E("\tmov %s, %s\n", regref(src), regref(dest));
 	}
 
 	void arch_emit_comment(const char* text, ...)
@@ -490,6 +490,9 @@ gen r8 := SUB1($$, CONSTANT():c)
 gen r8 := NEG1($$:val)
 	{ E("\tnegb %s\n", regref($$)); }
 
+gen al := MUL1(r8:lhs, al)
+	{ E("\timulb %s\n", regref($lhs)); }
+
 gen r8 := LSHIFT1($$:lhs, cl:rhs)
 	{ E("\tshlb %s, %s\n", regref($rhs), regref($$)); }
 
@@ -522,6 +525,9 @@ gen r16 := SUB2($$, CONSTANT():c)
 gen r16 := NEG2($$:val)
 	{ E("\tnegw %s\n", regref($$)); }
 
+gen r16 := MUL2(r16:lhs, $$)
+	{ E("\timulw %s, %s\n", regref($lhs), regref($$)); }
+
 gen r16 := LSHIFT2($$:lhs, cl:rhs)
 	{ E("\tshlw %s, %s\n", regref($rhs), regref($$)); }
 
@@ -553,6 +559,9 @@ gen r32 := SUB4($$, CONSTANT():c)
 
 gen r32 := NEG4($$:val)
 	{ E("\tnegl %s\n", regref($$)); }
+
+gen r32 := MUL4(r32:lhs, $$)
+	{ E("\timull %s, %s\n", regref($lhs), regref($$)); }
 
 gen r32 := LSHIFT4($$:lhs, cl:rhs)
 	{ E("\tshll %s, %s\n", regref($rhs), regref($$)); }
