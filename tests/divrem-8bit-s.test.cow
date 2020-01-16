@@ -1,10 +1,10 @@
-var seven: int32 := 7;
-var three: int32 := 3;
-var mseven: int32 := -7;
-var mthree: int32 := -3;
+include "cowgol.coh";
+include "tests/_framework.coh";
 
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
+var seven: int8 := 7;
+var three: int8 := 3;
+var mseven: int8 := -7;
+var mthree: int8 := -3;
 
 print("7/3=2");    if seven/three == 2    then yes(); else no(); end if;
 print("-7/3=-2");  if mseven/three == -2  then yes(); else no(); end if;
@@ -15,10 +15,4 @@ print("7%3=1");    if seven%three == 1    then yes(); else no(); end if;
 print("-7%3=-1");  if mseven%three == -1  then yes(); else no(); end if;
 print("7%-3=1");   if seven%mthree == 1   then yes(); else no(); end if;
 print("-7%-3=-1"); if mseven%mthree == -1 then yes(); else no(); end if;
-
-var q: int32;
-var r: int32;
-(q, r) := divmods32(-7, -3);
-print("divmod -7/-3=2"); if q==2 then yes(); else no(); end if;
-print("divmod -7%-3=-1"); if r==-1 then yes(); else no(); end if;
 

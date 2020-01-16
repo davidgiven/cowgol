@@ -1,12 +1,12 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
 var big: uint32 := 0x12345678;
 var four: uint32 := 4;
 var three: uint32 := 3;
 var two: uint32 := 2;
 var one: uint32 := 1;
 var zero: uint32 := 0;
-
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
 
 print("four/two==two");  if four/two==two  then yes(); else no(); end if;
 print("three/two==one"); if three/two==one then yes(); else no(); end if;

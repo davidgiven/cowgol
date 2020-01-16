@@ -535,8 +535,8 @@ expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E = E1; }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E = expr_add(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E = expr_sub(E1, E2); }
 expression(E) ::= expression(E1) STAR expression(E2).      { E = expr_simple(E1, E2, mid_c_mul); }
-expression(E) ::= expression(E1) SLASH expression(E2).     { E = expr_signed(E1, E2, mid_divu, mid_divs); }
-expression(E) ::= expression(E1) PERCENT expression(E2).   { E = expr_signed(E1, E2, mid_remu, mid_rems); }
+expression(E) ::= expression(E1) SLASH expression(E2).     { E = expr_signed(E1, E2, mid_c_divu, mid_c_divs); }
+expression(E) ::= expression(E1) PERCENT expression(E2).   { E = expr_signed(E1, E2, mid_c_remu, mid_c_rems); }
 expression(E) ::= expression(E1) CARET expression(E2).     { E = expr_simple(E1, E2, mid_eor); }
 expression(E) ::= expression(E1) AMPERSAND expression(E2). { E = expr_simple(E1, E2, mid_and); }
 expression(E) ::= expression(E1) PIPE expression(E2).      { E = expr_simple(E1, E2, mid_or); }

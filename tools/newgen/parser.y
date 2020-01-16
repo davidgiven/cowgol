@@ -114,6 +114,9 @@ regspec(R) ::= regc(R1).
 regspec(R) ::= regspec(R1) PIPE regc(R2).
 { R = R1 | R2; }
 
+regspec(R) ::= regspec(R1) PIPE TILDE regc(R2).
+{ R = R1 & ~R2; }
+
 reg(R) ::= ID(ID).
 { R = lookup_register(ID.u.string); }
 
