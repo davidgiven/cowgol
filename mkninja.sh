@@ -568,6 +568,8 @@ test_cpm addsub-16bit
 test_cpm addsub-32bit
 test_cpm mul-8bit-u
 test_cpm mul-8bit-s
+test_cpm mul-16bit-u
+test_cpm mul-16bit-s
 test_cpm shifts-8bit
 test_cpm shifts-16bit
 test_cpm shifts-32bit

@@ -31,6 +31,33 @@ mul1_nocarry:
 	mov c, a
 	jmp mul1_again
 
+	; Multiplies two 16-bit values: HL = BC * DE.
+	; Uses A, of course.
+	public mul2
+	cseg
+mul2:
+	lxi h, 0            ; HL = result
+mul2_again:
+	mov a, b            ; if multiplier = 0 then finished
+	ora c
+	rz
+
+	xra a               ; clear carry and shift BC right
+	mov a, b 
+	rar
+	mov b, a
+	mov a, c
+	rar
+	mov c, a
+
+	jnc mul2_nocarry    ; if carry, HL = HL + DE
+	dad d
+mul2_nocarry:
+    xchg                ; HL = HL * 2
+	dad h
+	xchg
+	jmp mul2_again
+
 	; Adds two four-byte values from the stack.
 	public add4
 	cseg
