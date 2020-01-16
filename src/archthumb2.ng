@@ -435,6 +435,7 @@ gen STORE4(reg:val, ADD4(reg:addr, CONSTANT():c))
 rewrite ADD1(lhs, rhs) := ADD4(lhs, rhs);
 rewrite SUB1(lhs, rhs) := SUB4(lhs, rhs);
 rewrite NEG1(lhs) := NEG4(lhs);
+rewrite MUL1(lhs, rhs) := MUL4(lhs, rhs);
 
 rewrite LSHIFT1(lhs, rhs) := LSHIFT4(lhs, rhs);
 
@@ -453,6 +454,7 @@ gen reg := RSHIFTS1(reg:lhs, reg:rhs)
 // --- 16-bit arithmetic ----------------------------------------------------
 
 rewrite LSHIFT2(lhs, rhs) := LSHIFT4(lhs, rhs);
+rewrite MUL2(lhs, rhs) := MUL4(lhs, rhs);
 
 gen reg := RSHIFTU2(reg:lhs, reg:rhs)
 {
@@ -481,6 +483,9 @@ gen reg := SUB4(reg:lhs, reg:rhs)
 
 gen reg := NEG4(reg:lhs)
 	{ E("\tneg %s, %s\n", regref($$), regref($lhs)); }
+
+gen reg := MUL4(reg:lhs, reg:rhs)
+	{ E("\tmul %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
 
 gen reg := LSHIFT4(reg:lhs, reg:rhs)
 	{ E("\tlsl %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
