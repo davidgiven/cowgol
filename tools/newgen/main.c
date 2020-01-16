@@ -638,7 +638,7 @@ static void create_matcher(void)
 				fprintf(outfp, "\tif ((n0->desired_reg & 0x%x) &&\n\t\t", r->compatible_regs);
 		}
 
-		fprintf(outfp, "template_comparator(matchbuf, template%d)", i, maxdepth);
+		fprintf(outfp, "template_comparator(matchbuf, template%d)", i);
 		offset = 0;
 		walk_predicate_tree(&offset, r->pattern, pattern);
 		fprintf(outfp, ") {\n");
