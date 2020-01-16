@@ -26,10 +26,16 @@ struct regmove
 };
 
 extern const Register registers[];
+extern const reg_t insn_producable_regs[];
+extern const reg_t insn_uses_regs[];
+extern const reg_t insn_consumable_regs[INSTRUCTION_TEMPLATE_COUNT][INSTRUCTION_TEMPLATE_DEPTH];
+extern const uint8_t insn_copyable_nodes[];
+extern const uint8_t insn_register_nodes[];
 
 extern void unmatched_instruction(Node* node);
 extern void match_instruction(Node* node, Instruction* insn);
 extern void emit_instruction(Instruction* insn);
+extern void setup_instruction(Instruction* insn, int rule, Node** nodes);
 extern bool template_comparator(const uint8_t* data, const uint8_t* template);
 
 #endif

@@ -31,6 +31,34 @@ bool template_comparator(const uint8_t* data, const uint8_t* template)
 	return true;
 }
 
+void setup_instruction(Instruction* insn, int rule, Node** nodes)
+{
+	insn->rule = rule;
+	insn->producable_regs = insn_producable_regs[rule];
+
+	uint8_t copymask = insn_copyable_nodes[rule];
+	uint8_t regmask = insn_register_nodes[rule];
+	for (int i=0; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
+	{
+		Node* n = nodes[i];
+		if (copymask & 1)
+		{
+			insn->n[i] = n;
+			if (regmask & 1)
+				push_node(n);
+
+			/* Don't override node 0, which represents the instruction itself. */
+			if (i)
+			{
+				n->desired_reg = insn_consumable_regs[rule][i];
+				n->consumer = insn;
+			}
+		}
+		copymask >>= 1;
+		regmask >>= 1;
+	}
+}
+
 void push_node(Node* node)
 {
 	nodes[nodecount++] = node;

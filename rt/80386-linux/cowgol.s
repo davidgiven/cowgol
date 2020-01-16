@@ -14,7 +14,7 @@ _start:
      * sp     argc
 	 */
 
-    mov 4(%esp), %eax
+    lea 4(%esp), %eax
     mov %eax, (_argv)
     call cmain
     mov $1, %eax

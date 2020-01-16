@@ -2,3 +2,5 @@ two*two==4: yes
 threehundred*two==600: yes
 twofivesix*two==512: yes
 mone*two=mtwo: yes
+two*mtwo=-4: yes
+mtwo*mtwo=4: yes

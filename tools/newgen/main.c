@@ -243,20 +243,24 @@ static void resolve_label_names(Rule* rule)
 	}
 }
 
-static void assign_indices_to_nodes(int* offset, Node* template, Node* pattern)
+static void copy_nodes(int* offset, Rule* rule, Node* template, Node* pattern)
 {
+	int thisoffset = *offset;
 	if (template)
-		template->index = *offset;
+	{
+		template->index = thisoffset;
+		rule->nodes[thisoffset] = template;
+	}
 
 	if (pattern->left)
 	{
 		(*offset)++;
-		assign_indices_to_nodes(offset, template ? template->left : NULL, pattern->left);
+		copy_nodes(offset, rule, template ? template->left : NULL, pattern->left);
 	}
 	if (pattern->right)
 	{
 		(*offset)++;
-		assign_indices_to_nodes(offset, template ? template->right : NULL, pattern->right);
+		copy_nodes(offset, rule, template ? template->right : NULL, pattern->right);
 	}
 }
 
@@ -277,9 +281,10 @@ static void sort_rules(void)
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
+		r->nodes = calloc(maxdepth, sizeof(Node*));
 
 		int offset = 0;
-		assign_indices_to_nodes(&offset, r->pattern, pattern);
+		copy_nodes(&offset, r, r->pattern, pattern);
 
 		resolve_label_names(r);
 
@@ -353,21 +358,21 @@ static void dump_templates(void)
 static void walk_matcher_tree(int* offset, Node* pattern)
 {
 	int thisoffset = *offset;
-	fprintf(outfp, "\tmatchbuf[%d] = n%d->op;\n", thisoffset, thisoffset);
+	fprintf(outfp, "\tmatchbuf[%d] = n[%d]->op;\n", thisoffset, thisoffset);
 
 	if (pattern->left)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tn%d = n%d->left;\n", *offset, thisoffset);
-		fprintf(outfp, "\tif (n%d) {\n", *offset);
+		fprintf(outfp, "\tn[%d] = n[%d]->left;\n", *offset, thisoffset);
+		fprintf(outfp, "\tif (n[%d]) {\n", *offset);
 		walk_matcher_tree(offset, pattern->left);
 		fprintf(outfp, "\t}\n");
 	}
 	if (pattern->right)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tn%d = n%d->right;\n", *offset, thisoffset);
-		fprintf(outfp, "\tif (n%d) {\n", *offset);
+		fprintf(outfp, "\tn[%d] = n[%d]->right;\n", *offset, thisoffset);
+		fprintf(outfp, "\tif (n[%d]) {\n", *offset);
 		walk_matcher_tree(offset, pattern->right);
 		fprintf(outfp, "\t}\n");
 	}
@@ -396,13 +401,13 @@ static void print_predicate(int index, Node* template, Predicate* predicate)
 		switch (predicate->operator)
 		{
 			case IS:
-				fprintf(outfp, " && is_%s(n%d->u.", predicate->u.callback, index);
+				fprintf(outfp, " && is_%s(n[%d]->u.", predicate->u.callback, index);
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s)", predicate->field);
 				break;
 
 			default:
-				fprintf(outfp, " && (n%d->u.", index);
+				fprintf(outfp, " && (n[%d]->u.", index);
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s %s %d)",
 					predicate->field,
@@ -430,28 +435,6 @@ static void walk_predicate_tree(int* offset, Node* template, Node* pattern)
 	{
 		(*offset)++;
 		walk_predicate_tree(offset, template ? template->right : NULL, pattern->right);
-	}
-}
-
-static void push_nodes(int* offset, Node* template, Node* pattern)
-{
-	int thisoffset = *offset;
-	if (template && template->isregister)
-	{
-		fprintf(outfp, "\t\tn%d->desired_reg = %d;\n", thisoffset, template->reg);
-		fprintf(outfp, "\t\tn%d->consumer = insn;\n", thisoffset);
-		fprintf(outfp, "\t\tpush_node(n%d);\n", thisoffset);
-	}
-
-	if (pattern->left)
-	{
-		(*offset)++;
-		push_nodes(offset, template ? template->left : NULL, pattern->left);
-	}
-	if (pattern->right)
-	{
-		(*offset)++;
-		push_nodes(offset, template ? template->right : NULL, pattern->right);
 	}
 }
 
@@ -490,7 +473,7 @@ static void print_simple_action(Rule* r, Element* e)
 
 static void print_line(int lineno)
 {
-	fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
+//	fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
 }
 
 static void create_emitters(void)
@@ -531,7 +514,7 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 			fatal("nothing labelled '%s' at line %d",
 				replacement->label->name, rule->lineno);
 
-		fprintf(outfp, "n%d", node->index);
+		fprintf(outfp, "n[%d]", node->index);
 	}
 	else
 	{
@@ -552,32 +535,88 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 	}
 }
 
-static void emit_node_copiers(int* offset, Node* template, Node* pattern)
+static void create_producable_regs(void)
 {
-	int thisoffset = *offset;
-	if (template)
-		fprintf(outfp, "\t\tinsn->n[%d] = n%d;\n", thisoffset, thisoffset);
+	fprintf(outfp, "const reg_t insn_producable_regs[] = {\n");
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+		if (i)
+			fprintf(outfp, ", ");
+		if (r->replacement)
+			fprintf(outfp, "0");
+		else
+			fprintf(outfp, "%d", r->result_reg);
+	}
+	fprintf(outfp, "\n};\n");
+}
 
-	if (pattern->left)
+static void create_consumable_regs_table(void)
+{
+	fprintf(outfp, "const reg_t insn_consumable_regs[INSTRUCTION_TEMPLATE_COUNT][INSTRUCTION_TEMPLATE_DEPTH] = {\n");
+	for (int i=0; i<rulescount; i++)
 	{
-		(*offset)++;
-		emit_node_copiers(offset, template ? template->left : NULL, pattern->left);
+		Rule* r = rules[i];
+		fprintf(outfp, "\t{ ");
+		for (int j=0; j<maxdepth; j++)
+		{
+			Node* n = r->nodes[j];
+			if (j)
+				fprintf(outfp, ", ");
+			if (n && n->isregister)
+				fprintf(outfp, "%d", n->reg);
+			else
+				fprintf(outfp, "0");
+		}
+		fprintf(outfp, " }, /* %d */\n", i);
 	}
-	if (pattern->right)
+	fprintf(outfp, "};\n");
+}
+
+static void create_copyable_nodes_table(void)
+{
+	fprintf(outfp, "const uint8_t insn_copyable_nodes[] = {\n");
+	for (int i=0; i<rulescount; i++)
 	{
-		(*offset)++;
-		emit_node_copiers(offset, template ? template->right : NULL, pattern->right);
+		Rule* r = rules[i];
+		uint8_t copymask = 1;
+		for (int j=1; j<maxdepth; j++)
+		{
+			if (r->nodes[j])
+				copymask |= 1<<j;
+		}
+		if (i)
+			fprintf(outfp, ", ");
+		fprintf(outfp, "%d", copymask);
 	}
+	fprintf(outfp, "};\n");
+}
+
+static void create_register_nodes_table(void)
+{
+	fprintf(outfp, "const uint8_t insn_register_nodes[] = {\n");
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+		uint8_t mask = 0;
+		for (int j=1; j<maxdepth; j++)
+		{
+			if (r->nodes[j] && r->nodes[j]->isregister)
+				mask |= 1<<j;
+		}
+		if (i)
+			fprintf(outfp, ", ");
+		fprintf(outfp, "%d", mask);
+	}
+	fprintf(outfp, "};\n");
 }
 
 static void create_matcher(void)
 {
 	fprintf(outfp, "void match_instruction(Node* n0, Instruction* insn) {\n");
 	fprintf(outfp, "again:;\n");
-	fprintf(outfp, "\tstatic uint8_t matchbuf[%d] = {0};\n", maxdepth);
-
-	for (int i=1; i<maxdepth; i++)
-		fprintf(outfp, "\tNode* n%d = NULL;\n", i);
+	fprintf(outfp, "\tuint8_t matchbuf[%d] = {0};\n", maxdepth);
+	fprintf(outfp, "\tNode* n[%d] = {n0};\n", maxdepth);
 
 	int offset = 0;
 	walk_matcher_tree(&offset, pattern);
@@ -599,32 +638,26 @@ static void create_matcher(void)
 				fprintf(outfp, "\tif ((n0->desired_reg & 0x%x) &&\n\t\t", r->compatible_regs);
 		}
 
-		fprintf(outfp, "template_comparator(matchbuf, template%d)", i, maxdepth);
+		fprintf(outfp, "template_comparator(matchbuf, template%d)", i);
 		offset = 0;
 		walk_predicate_tree(&offset, r->pattern, pattern);
 		fprintf(outfp, ") {\n");
 
 		if (r->replacement)
 		{
-			fprintf(outfp, "\t\tNode* n = ");
+			fprintf(outfp, "\t\tNode* nr = ");
 			emit_replacement(r, r->pattern, r->replacement);
 			fprintf(outfp, ";\n");
-			fprintf(outfp, "\t\tn->desired_reg = n0->desired_reg;\n");
-			fprintf(outfp, "\t\tn0 = n;\n");
+			fprintf(outfp, "\t\tnr->desired_reg = n0->desired_reg;\n");
+			fprintf(outfp, "\t\tn0 = nr;\n");
 			fprintf(outfp, "\t\tgoto again;\n");
 		}
 		else
 		{
-			fprintf(outfp, "\t\tinsn->rule = %d;\n", i);
-			fprintf(outfp, "\t\tinsn->producable_regs = 0x%x;\n", r->result_reg);
 			if (r->uses_regs)
 				fprintf(outfp, "\t\tinsn->output_regs = 0x%x;\n", r->uses_regs);
 
-			offset = 0;
-			emit_node_copiers(&offset, r->pattern, pattern);
-
-			offset = 0;
-			push_nodes(&offset, r->pattern, pattern);
+			fprintf(outfp, "\t\tsetup_instruction(insn, %d, n);\n", i);
 		}
 
 		fprintf(outfp, "\t} else\n");
@@ -661,11 +694,16 @@ int main(int argc, const char* argv[])
 	fprintf(outhfp, "#ifndef NEWGEN_H\n");
 	fprintf(outhfp, "#define NEWGEN_H\n");
 	fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_DEPTH %d\n", maxdepth);
+	fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_COUNT %d\n", rulescount);
 	fprintf(outhfp, "#define REGISTER_COUNT %d\n", registercount);
 
 	dump_registers();
 	dump_templates();
 	create_emitters();
+	create_producable_regs();
+	create_consumable_regs_table();
+	create_copyable_nodes_table();
+	create_register_nodes_table();
 	create_matcher();
 
 	fprintf(outhfp, "#endif\n");

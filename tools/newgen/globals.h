@@ -111,6 +111,7 @@ struct rule
 	Label* first_label;
 	Action* action;
 	Node* replacement;
+	Node** nodes;
 };
 
 extern int errcnt;

@@ -21,7 +21,7 @@ y 1 1 CALL(struct subroutine* sub) = ("%s", $$.sub->name)
 - 0 0 RETURN()
 
 - 0 1 CONSTANT(int32_t value) = ("%d", $$.value)
-- 0 1 STRING(const char* text) = ("...", $$.text)
+- 0 1 STRING(const char* text) = ("...")
 - 0 1 ADDRESS(struct symbol* sym, int32_t off) = ("%s%+d", $$.sym->name, $$.off)
 
 y 1 1 LOAD()

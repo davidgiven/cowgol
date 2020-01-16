@@ -183,6 +183,9 @@ gen STARTFILE()
     E("\textrn sub4\n");
     E("\textrn and4\n");
     E("\textrn neg4\n");
+	E("\textrn mul1\n");
+	E("\textrn mul2\n");
+	E("\textrn mul4\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
@@ -574,22 +577,22 @@ gen a := ADD1(a, b|d|h:rhs)
 gen a := ADD1(a, CONSTANT():rhs)
 	{ E("\tadi %d\n", $rhs.value); }
 
-gen a := ADD1(a:lhs, CONSTANT(value==1))
-	{ E("\tinc %s\n", regref($lhs)); }
+gen a|b|d|h := ADD1($$, CONSTANT(value==1))
+	{ E("\tinc %s\n", regref($$)); }
 
-gen a := ADD1(a:lhs, CONSTANT(value==2))
+gen a|b|d|h := ADD1($$, CONSTANT(value==2))
 {
-	E("\tinc %s\n", regref($lhs));
-	E("\tinc %s\n", regref($lhs));
+	E("\tinc %s\n", regref($$));
+	E("\tinc %s\n", regref($$));
 }
 
-gen a := ADD1(a:lhs, CONSTANT(value==-1))
-	{ E("\tdec %s\n", regref($lhs)); }
+gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
+	{ E("\tdec %s\n", regref($$)); }
 
-gen a := ADD1(a:lhs, CONSTANT(value==-2))
+gen a|b|d|h := ADD1($$, CONSTANT(value==-2))
 {
-	E("\tdec %s\n", regref($lhs));
-	E("\tdec %s\n", regref($lhs));
+	E("\tdec %s\n", regref($$));
+	E("\tdec %s\n", regref($$));
 }
 
 gen a := SUB1(a, b|d|h:rhs)
@@ -598,18 +601,15 @@ gen a := SUB1(a, b|d|h:rhs)
 gen a := SUB1(a, CONSTANT():rhs)
 	{ E("\tsbi %d\n", $rhs.value); }
 
-gen a := SUB1(a:lhs, CONSTANT(value==1))
-	{ E("\tdec %s\n", regref($lhs)); }
-
-gen a := SUB1(a:lhs, CONSTANT(value==-1))
-	{ E("\tinc %s\n", regref($lhs)); }
-
 gen a := NEG1(b|d|h:lhs)
 {
 	E("\txra a\n");
 	E("\tsub %s\n", regref($lhs));
 }
 
+gen a := MUL1(b, d)
+	{ E("\tcall mul1\n"); }
+	
 gen a := LSHIFT1(a, b) uses bc
 	{ E("\tcall asl1\n"); }
 
@@ -652,22 +652,22 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	E("\tdad %s\n", regref(($lhs != REG_HL) ? $lhs : $rhs));
 }
 
-gen hl := ADD2(hl, CONSTANT(value==1))
-	{ E("\tinx h\n"); }
+gen hl|bc|de := ADD2($$, CONSTANT(value==1))
+	{ E("\tinx %s\n", regref($$)); }
 
-gen hl := ADD2(hl, CONSTANT(value==2))
+gen hl|bc|de := ADD2($$, CONSTANT(value==2))
 {
-	E("\tinx h\n");
-	E("\tinx h\n");
+	E("\tinx %s\n", regref($$));
+	E("\tinx %s\n", regref($$));
 }
 
-gen hl := ADD2(hl, CONSTANT(value==-1))
-	{ E("\tdcx h\n"); }
+gen hl|bc|de := ADD2($$, CONSTANT(value==-1))
+	{ E("\tdcx %s\n", regref($$)); }
 
-gen hl := ADD2(hl, CONSTANT(value==-2))
+gen hl|bc|de := ADD2($$, CONSTANT(value==-2))
 {
-	E("\tdcx h\n");
-	E("\tdcx h\n");
+	E("\tdcx %s\n", regref($$));
+	E("\tdcx %s\n", regref($$));
 }
 
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
@@ -689,6 +689,9 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
     E("\tsub %s\n", regref($lhs));
     E("\tmov %s, a\n", regref($$));
 }
+
+gen hl := MUL2(bc, de) uses a
+	{ E("\tcall mul2\n"); }
 
 gen hl := LSHIFT2(hl, b) uses a
 	{ E("\tcall asl2\n"); }
@@ -712,6 +715,9 @@ gen stk4 := AND4(stk4, stk4)
 
 gen stk4 := NEG4(stk4)
 	{ E("\tcall neg4\n"); }
+
+gen stk4 := MUL4(stk4, stk4)
+	{ E("\tcall mul4\n"); }
 
 gen stk4 := LSHIFT4(stk4, b)
 	{ E("\tcall asl4\n"); }

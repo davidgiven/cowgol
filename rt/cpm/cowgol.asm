@@ -10,6 +10,130 @@ stack:
     ds 128
 stackend:
 
+	; Multiples two 8-bit values: A = B * D.
+	; Uses DE.
+	public mul1
+	cseg
+mul1:
+	mvi c, 0            ; initial result
+	mvi e, 9            ; number of bits
+mul1_again:
+	mov a, d
+	rar                 ; rotate D, leaving result in A
+	dcr e
+	rz                  ; if finished, return with result in A
+	mov d, a
+	mov a, c
+	jnc mul1_nocarry
+	add b
+mul1_nocarry:
+	rar
+	mov c, a
+	jmp mul1_again
+
+	; Multiplies two 16-bit values: HL = BC * DE.
+	; Uses A, of course.
+	public mul2
+	cseg
+mul2:
+	lxi h, 0            ; HL = result
+mul2_again:
+	mov a, b            ; if multiplier = 0 then finished
+	ora c
+	rz
+
+	xra a               ; clear carry and shift BC right
+	mov a, b 
+	rar
+	mov b, a
+	mov a, c
+	rar
+	mov c, a
+
+	jnc mul2_nocarry    ; if carry, HL = HL + DE
+	dad d
+mul2_nocarry:
+    xchg                ; HL = HL * 2
+	dad h
+	xchg
+	jmp mul2_again
+
+	; Multiplies two 32-bit values from the stack, leaving the result
+	; on the stack.
+	; Uses EVERYTHING.
+	; This routine is taken from the ACK 8080 standard library:
+	; https://github.com/davidgiven/ack/blob/default/mach/i80/libem/mli4.s
+	; It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
+	; and is distributable under the 3-clause BSD license.
+	public mul4
+	cseg
+mul4:
+	pop h
+	shld mul4_return + 1
+
+	pop h                   ; store multiplier
+	shld block1
+	pop h
+	shld block1+2
+	pop h                   ; store multiplicand
+	shld block2
+	pop h
+	shld block2+2
+	lxi h,0
+	shld block3             ; product = 0
+	shld block3+2
+	lxi b,0
+mul4_lp1:
+    lxi h,block1
+	dad b
+	mov a,m                 ; get next byte of multiplier
+	mvi b,8
+mul4_lp2:
+    rar
+    jnc mul4_2
+    lhld block2             ; add multiplicand to product
+    xchg
+    lhld block3
+    dad d
+    shld block3
+    lhld block2+2
+    jnc mul4_1
+    inx h
+mul4_1:
+    xchg
+    lhld block3+2
+    dad d
+    shld block3+2
+
+mul4_2:
+    lhld block2             ; shift multiplicand left
+    dad h
+    shld block2
+    lhld block2+2
+    jnc mul4_3
+    dad h
+    inx h
+    jmp mul4_4
+mul4_3:
+    dad h
+mul4_4:
+    shld block2+2
+
+    dcr b
+    jnz mul4_lp2
+
+    inr c
+    mov a,c
+    cpi 4
+    jnz mul4_lp1
+
+	lhld block3+2
+	push h
+	lhld block3
+	push h
+mul4_return:
+	jmp 0
+
 	; Adds two four-byte values from the stack.
 	public add4
 	cseg
@@ -370,3 +494,7 @@ store4:
 	mov m, d
 	ret
 
+	dseg
+block1: ds 4
+block2: ds 4
+block3: ds 4
