@@ -183,6 +183,7 @@ gen STARTFILE()
     E("\textrn sub4\n");
     E("\textrn and4\n");
     E("\textrn neg4\n");
+	E("\textrn mul1\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
@@ -604,6 +605,9 @@ gen a := NEG1(b|d|h:lhs)
 	E("\tsub %s\n", regref($lhs));
 }
 
+gen a := MUL1(b, d)
+	{ E("\tcall mul1\n"); }
+	
 gen a := LSHIFT1(a, b) uses bc
 	{ E("\tcall asl1\n"); }
 

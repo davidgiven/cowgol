@@ -10,6 +10,27 @@ stack:
     ds 128
 stackend:
 
+	; Multiples two 8-bit values: A = B * D.
+	; Uses DE.
+	public mul1
+	cseg
+mul1:
+	mvi c, 0            ; initial result
+	mvi e, 9            ; number of bits
+mul1_again:
+	mov a, d
+	rar                 ; rotate D, leaving result in A
+	dcr e
+	rz                  ; if finished, return with result in A
+	mov d, a
+	mov a, c
+	jnc mul1_nocarry
+	add b
+mul1_nocarry:
+	rar
+	mov c, a
+	jmp mul1_again
+
 	; Adds two four-byte values from the stack.
 	public add4
 	cseg
