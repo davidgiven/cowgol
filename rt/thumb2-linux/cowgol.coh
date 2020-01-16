@@ -21,5 +21,31 @@ sub print_char(c: uint8)
 	@asm "svc #0";
 end sub;
 
+sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
+	@asm "ldr r0, =", lhs;
+	@asm "ldr r0, [r0]";
+	@asm "ldr r1, =", rhs;
+	@asm "ldr r1, [r1]";
+	@asm "udiv r2, r0, r1";
+	@asm "ldr r3, =", quot;
+	@asm "str r2, [r3]";
+	@asm "mls r2, r2, r1, r0";
+	@asm "ldr r3, =", rem;
+	@asm "str r2, [r3]";
+end sub;
+
+sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
+	@asm "ldr r0, =", lhs;
+	@asm "ldr r0, [r0]";
+	@asm "ldr r1, =", rhs;
+	@asm "ldr r1, [r1]";
+	@asm "sdiv r2, r0, r1";
+	@asm "ldr r3, =", quot;
+	@asm "str r2, [r3]";
+	@asm "mls r2, r2, r1, r0";
+	@asm "ldr r3, =", rem;
+	@asm "str r2, [r3]";
+end sub;
+
 include "common.coh";
 

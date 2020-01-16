@@ -589,6 +589,12 @@ test_thumb2_linux mul-16bit-u
 test_thumb2_linux mul-16bit-s
 test_thumb2_linux mul-32bit-u
 test_thumb2_linux mul-32bit-s
+test_thumb2_linux divrem-8bit-u
+test_thumb2_linux divrem-8bit-s
+test_thumb2_linux divrem-16bit-u
+test_thumb2_linux divrem-16bit-s
+test_thumb2_linux divrem-32bit-u
+test_thumb2_linux divrem-32bit-s
 test_thumb2_linux shifts-8bit
 test_thumb2_linux shifts-16bit
 test_thumb2_linux shifts-32bit
