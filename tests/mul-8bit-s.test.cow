@@ -1,3 +1,6 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
 var mtwo: int8 := -2;
 var mone: int8 := -1;
 var zero: int8 := 0;
@@ -6,10 +9,9 @@ var two: int8 := 2;
 var four: int8 := 4;
 var thirty: int8 := 30;
 
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
-
 print("two*two==4");            if (two*two) == 4            then yes(); else no(); end if;
 print("two*2==4");              if (two*2) == 4              then yes(); else no(); end if;
 print("30*two==60");            if (30*two) == 60            then yes(); else no(); end if;
 print("mone*two=mtwo");         if (mone*two) == mtwo        then yes(); else no(); end if;
+print("two*mtwo=-4");           if (two*mtwo) == -4          then yes(); else no(); end if;
+print("mtwo*mtwo=4");           if (mtwo*mtwo) == 4          then yes(); else no(); end if;

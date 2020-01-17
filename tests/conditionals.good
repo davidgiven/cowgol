@@ -8,3 +8,5 @@ one==ZERO or (one==ONE and zero==ZERO: yes
 zero<one: yes
 one<one: no
 one<zero: no
+isletter(70): yes
+isletter(200): no

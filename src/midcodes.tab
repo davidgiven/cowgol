@@ -16,15 +16,16 @@
 
 - 0 0 LABEL(int label) = ("%d", $$.label)
 - 0 0 JUMP(int label) = ("%d", $$.label)
+- 1 0 CALLS()
 y 1 1 CALL(struct subroutine* sub) = ("%s", $$.sub->name)
 - 0 0 RETURN()
 
 - 0 1 CONSTANT(int32_t value) = ("%d", $$.value)
-- 0 1 STRING(const char* text) = ("...", $$.text)
+- 0 1 STRING(const char* text) = ("...")
 - 0 1 ADDRESS(struct symbol* sym, int32_t off) = ("%s%+d", $$.sym->name, $$.off)
 
 y 1 1 LOAD()
-y 2 0 STORE()
+y 2 0 STORE() # left is value, right is address
 
 y 2 0 BEQS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BLTS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)

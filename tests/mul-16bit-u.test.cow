@@ -1,14 +1,14 @@
-var mtwo: uint32 := -2;
-var mone: uint32 := -1;
-var zero: uint32 := 0;
-var one: uint32 := 1;
-var two: uint32 := 2;
-var four: uint32 := 4;
-var twofivesix: uint32 := 256;
-var threehundred: uint32 := 300;
+include "cowgol.coh";
+include "tests/_framework.coh";
 
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
+var mtwo: uint16 := -2;
+var mone: uint16 := -1;
+var zero: uint16 := 0;
+var one: uint16 := 1;
+var two: uint16 := 2;
+var four: uint16 := 4;
+var twofivesix: uint16 := 256;
+var threehundred: uint16 := 300;
 
 print("two*two==4");            if (two*two) == 4            then yes(); else no(); end if;
 print("threehundred*two==600"); if (threehundred*two) == 600 then yes(); else no(); end if;

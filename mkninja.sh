@@ -254,7 +254,15 @@ as_thumb2_linux() {
         "arm-linux-gnueabihf-as -g $1 -o $2" \
         "$1" \
         "$2" \
-        "AS $base.s"
+        "AS THUMB2 $base.s"
+}
+
+as_80386_linux() {
+    rule \
+        "i686-linux-gnu-as -g $1 -o $2" \
+        "$1" \
+        "$2" \
+        "AS 80386 $base.s"
 }
 
 ld80() {
@@ -288,7 +296,7 @@ cowgol_cpm_asm() {
 
 cowgol_cpm() {
 	local base
-	base="$OBJDIR/${1%.cow}.cpm"
+	base="$OBJDIR/$(dirname $1)/cpm/${1%.cow}"
 	cowgol_cpm_asm $1 $base.asm $base.log "$3"
 	zmac8 $base.asm $base.rel
 	ld80 $base.bin \
@@ -325,14 +333,14 @@ cowgol_thumb2_s() {
 
 cowgol_thumb2_linux() {
 	local base
-	base="$OBJDIR/${1%.cow}.thumb2-linux"
+	base="$OBJDIR/$(dirname $1)/thumb2-linux/${1%.cow}"
 	cowgol_thumb2_s $1 $base.s $base.log "$3"
     as_thumb2_linux $base.s $base.o
     rule \
         "arm-linux-gnueabihf-ld $OBJDIR/rt/thumb2-linux/cowgol.o $base.o -o $2" \
         "$OBJDIR/rt/thumb2-linux/cowgol.o $base.o" \
         "$2" \
-        "LD $1"
+        "LD THUMB2 $1"
 }
 
 test_thumb2_linux() {
@@ -340,6 +348,43 @@ test_thumb2_linux() {
 	base=$OBJDIR/tests/thumb2-linux/$1
 	cowgol_thumb2_linux tests/$1.test.cow $base.exe tests/_framework.coh
 	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_THUMB2 $1"
+	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
+}
+
+cowgol_80386_s() {
+	local in
+	local out
+	local log
+	local deps
+	in=$1
+	out=$2
+	log=$3
+	deps=$4
+
+	rule \
+		"bin/tinycowc-80386 -Irt/ -Irt/80386-linux/ $in $out > $log" \
+		"$in $deps bin/tinycowc-80386 rt/80386-linux/cowgol.coh" \
+		"$out $log" \
+		"COWGOL 80386 $in"
+}
+
+cowgol_80386_linux() {
+	local base
+	base="$OBJDIR/$(dirname $1)/80386-linux/${1%.cow}"
+	cowgol_80386_s $1 $base.s $base.log "$3"
+    as_80386_linux $base.s $base.o
+    rule \
+        "i686-linux-gnu-ld $OBJDIR/rt/80386-linux/cowgol.o $base.o -o $2" \
+        "$OBJDIR/rt/80386-linux/cowgol.o $base.o" \
+        "$2" \
+        "LD 80386 $1"
+}
+
+test_80386_linux() {
+	local base
+	base=$OBJDIR/tests/80386-linux/$1
+	cowgol_80386_linux tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_80386 $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -478,6 +523,7 @@ buildlibrary libmain.a \
     src/compiler.c
 
 cowgol_target 8080
+cowgol_target 80386
 cowgol_target thumb2
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
@@ -514,13 +560,21 @@ buildprogram mkdfs libmkdfs.a
 zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
+as_80386_linux rt/80386-linux/cowgol.s $OBJDIR/rt/80386-linux/cowgol.o
 cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
 
 test_cpm addsub-8bit
 test_cpm addsub-16bit
 test_cpm addsub-32bit
+test_cpm mul-8bit-u
+test_cpm mul-8bit-s
+test_cpm mul-16bit-u
+test_cpm mul-16bit-s
+test_cpm mul-32bit-u
+test_cpm mul-32bit-s
 test_cpm shifts-8bit
 test_cpm shifts-16bit
+test_cpm shifts-32bit
 test_cpm records
 test_cpm inputparams
 test_cpm outputparams
@@ -529,12 +583,36 @@ test_cpm conditionals
 test_thumb2_linux addsub-8bit
 test_thumb2_linux addsub-16bit
 test_thumb2_linux addsub-32bit
+test_thumb2_linux mul-8bit-u
+test_thumb2_linux mul-8bit-s
+test_thumb2_linux mul-16bit-u
+test_thumb2_linux mul-16bit-s
+test_thumb2_linux mul-32bit-u
+test_thumb2_linux mul-32bit-s
 test_thumb2_linux shifts-8bit
 test_thumb2_linux shifts-16bit
+test_thumb2_linux shifts-32bit
 test_thumb2_linux records
 test_thumb2_linux inputparams
 test_thumb2_linux outputparams
 test_thumb2_linux conditionals
+
+test_80386_linux addsub-8bit
+test_80386_linux addsub-16bit
+test_80386_linux addsub-32bit
+test_80386_linux mul-8bit-u
+test_80386_linux mul-8bit-s
+test_80386_linux mul-16bit-u
+test_80386_linux mul-16bit-s
+test_80386_linux mul-32bit-u
+test_80386_linux mul-32bit-s
+test_80386_linux shifts-8bit
+test_80386_linux shifts-16bit
+test_80386_linux shifts-32bit
+test_80386_linux records
+test_80386_linux inputparams
+test_80386_linux outputparams
+test_80386_linux conditionals
 
 #test_c addsub-8bit
 #test_c addsub-16bit
@@ -544,12 +622,17 @@ test_thumb2_linux conditionals
 #test_c outputparams
 #test_c conditionals
 
-cowgol_cpm examples/empty.cow examples/empty.com
-cowgol_thumb2_linux examples/empty.cow examples/empty
-cowgol_cpm examples/malloc.cow examples/malloc.com 
-cowgol_thumb2_linux examples/malloc.cow examples/malloc.exe 
+cowgol_80386_linux examples/malloc.cow examples/malloc.386
+cowgol_80386_linux examples/argv.cow examples/argv.386
 cowgol_cpm examples/argv.cow examples/argv.com 
-cowgol_thumb2_linux examples/argv.cow examples/argv.exe 
+cowgol_cpm examples/empty.cow examples/empty.com
+cowgol_cpm examples/file.cow examples/file.com 
+cowgol_cpm examples/malloc.cow examples/malloc.com 
+cowgol_thumb2_linux examples/argv.cow examples/argv.thumb2 
+cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
+cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
 #cowgol_c examples/malloc.cow examples/malloc
+
+cowgol_80386_linux src/cowlink/main.cow bin/cowlink
 
 # vim: sw=4 ts=4 et

@@ -97,7 +97,7 @@ struct midnode* expr_add(struct midnode* lhs, struct midnode* rhs)
 	if (is_ptr(lhs->type) && is_ptr(rhs->type))
 		fatal("you cannot add two pointers together");
 	else if (is_ptr(lhs->type) && (rhs->type != intptr_type))
-		fatal("you can only add a %s to a pointer", rhs->type->name);
+		fatal("you can't add a %s to a %s", rhs->type->name, lhs->type->name);
 	else if (is_ptr(rhs->type))
 		fatal("add numbers to pointers, not vice versa");
 	else if (!is_ptr(lhs->type) && (lhs->type != rhs->type))
@@ -113,7 +113,7 @@ struct midnode* expr_sub(struct midnode* lhs, struct midnode* rhs)
 	resolve_untyped_constants_for_add_sub(&lhs->type, &rhs->type);
 
 	if (is_ptr(lhs->type) && !is_ptr(rhs->type) && (rhs->type != intptr_type))
-		fatal("you can't subtrack a %s and a %s", lhs->type->name, rhs->type->name);
+		fatal("you can't subtract a %s from a %s", rhs->type->name, lhs->type->name);
 	else if (is_num(lhs->type) && is_ptr(rhs->type))
 		fatal("subtract numbers from pointers, not vice versa");
 	else if (is_num(lhs->type) && is_num(rhs->type) && (lhs->type != rhs->type))
@@ -318,6 +318,7 @@ struct symbol* make_array_type(struct symbol* type, int32_t size)
 	ptr->u.type.kind = TYPE_ARRAY;
 	ptr->u.type.width = size * type->u.type.width;
 	ptr->u.type.element = type;
+	ptr->u.type.indextype = arch_guess_int_type(0, size-1);
 	return ptr;
 }
 
@@ -381,6 +382,24 @@ Symbol* get_output_parameters(Subroutine* sub)
 	for (int i=0; i<sub->inputparameters; i++)
 		param = param->next;
 	return param;
+}
+
+Node* mid_c_cast(int width, Node* lhs)
+{
+	if (!lhs->type)
+		return lhs;
+	int srcwidth = lhs->type->u.type.width;
+	if (width == srcwidth)
+		return lhs;
+
+	switch (srcwidth)
+	{
+		case 1: return mid_cast1(width, lhs);
+		case 2: return mid_cast2(width, lhs);
+		case 4: return mid_cast4(width, lhs);
+		case 8: return mid_cast8(width, lhs);
+		default: assert(false);
+	}
 }
 
 Node* mid_c_neg(int width, Node* lhs)

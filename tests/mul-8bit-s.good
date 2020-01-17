@@ -2,3 +2,5 @@ two*two==4: yes
 two*2==4: yes
 30*two==60: yes
 mone*two=mtwo: yes
+two*mtwo=-4: yes
+mtwo*mtwo=4: yes

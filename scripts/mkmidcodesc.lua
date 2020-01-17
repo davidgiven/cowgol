@@ -138,7 +138,7 @@ for m, t in pairs(midcodes) do
 		hfp:write("case 2: ") caller(m.."2")
 		hfp:write("case 4: ") caller(m.."4")
 		hfp:write("case 8: ") caller(m.."8")
-		hfp:write('default: fatal("bad midnode width %d", width);\n')
+		hfp:write('default: fatal("bad midnode width %d", width); abort();\n')
 		hfp:write("}\n")
 		hfp:write("}\n")
 	end

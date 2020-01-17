@@ -1,0 +1,126 @@
+record FreeBlock
+	next: [FreeBlock];
+	size: intptr; # bytes
+end record;
+
+var freeList: [FreeBlock] := TOP as [FreeBlock];
+freeList.next := freeList;
+freeList.size := HIMEM - TOP;
+
+sub DumpBlocks()
+	var p := freeList;
+	loop
+		print("* block @");
+		print_hex_i32(p as intptr as uint32);
+		print("+");
+		print_hex_i32(p.size as intptr as uint32);
+		print(" -> ");
+		print_hex_i32(p.next as intptr as uint32);
+		print_nl();
+
+		p := p.next;
+		if p == freeList then
+			break;
+		end if;
+	end loop;
+	print_nl();
+end sub;
+
+sub Alloc(length: intptr): (block: [uint8])
+	var prev := freeList;
+	var p := prev.next;
+	loop
+		if p.size == length then
+			# We found a hole of exactly the right size. Unlink and return it.
+			prev.next := p.next;
+			freeList := prev;
+			break;
+		elseif p.size > length then
+			# We found a hole bigger than we need. We shrink the hole and return
+			# what's left.
+			p.size := p.size - length;
+			p := p + p.size;
+			break;
+		end if;
+
+		if p == freeList then
+			# Uh-oh --- we've gone right round the ring and haven't found anything.
+			p := 0 as [FreeBlock];
+			break;
+		end if;
+
+		prev := p;
+		p := p.next;
+	end loop;
+
+	block := p as [uint8];
+end sub;
+
+sub Free(start: [uint8], length: intptr)
+	var h := start as [FreeBlock];
+	h.size := length;
+
+	# freeList points into an ordered ring of free blocks. First, we run
+	# around the ring until we find the last block *before* this one.
+
+	var p := freeList;
+	loop
+		# Is h between p and the block after p? If so, h needs to be inserted
+		# after p, so stop here.
+
+		if (p < h) and (h < p.next) then
+			break;
+		end if;
+
+		# If p the last block before the end of the address space?
+
+		if p >= p.next then
+			# Is h after p? (That is, will it become the new last block?)
+			if p < h then
+				break;
+			end if;
+
+			# Is h going to become the new *first* block?
+			if h < p.next then
+				break;
+			end if;
+		end if;
+
+		p := p.next;
+	end loop;
+
+	# If we can, merge the next block onto the end of h.
+
+	if (h + h.size) == p.next then
+		h.size := h.size + p.next.size;
+		h.next := p.next.next;
+	else
+		# Otherwise, insert h before p.next.
+		h.next := p.next;
+	end if;
+
+	# Now try to merge h onto the end of p.
+
+	if (p + p.size) == h then
+		p.size := p.size + h.size;
+		p.next := h.next;
+	else
+		# Okay, we couldn't do the merge. Fix up the linked list.
+		p.next := h;
+	end if;
+
+	# ...and update the ring pointer.
+	freeList := p;
+end sub;
+
+sub GetFreeMemory(): (bytes: intptr)
+	bytes := 0;
+	var p := freeList;
+	loop
+		bytes := bytes + p.size;
+		p := p.next;
+		if p == freeList then
+			break;
+		end if;
+	end loop;
+end sub;

@@ -1,3 +1,6 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
 var mtwo: int16 := -2;
 var mone: int16 := -1;
 var zero: int16 := 0;
@@ -7,10 +10,9 @@ var four: int16 := 4;
 var twofivesix: int16 := 256;
 var threehundred: int16 := 300;
 
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
-
 print("two*two==4");            if (two*two) == 4            then yes(); else no(); end if;
 print("threehundred*two==600"); if (threehundred*two) == 600 then yes(); else no(); end if;
 print("twofivesix*two==512");   if (twofivesix*two) == 512   then yes(); else no(); end if;
 print("mone*two=mtwo");         if (mone*two) == mtwo        then yes(); else no(); end if;
+print("two*mtwo=-4");           if (two*mtwo) == -4          then yes(); else no(); end if;
+print("mtwo*mtwo=4");           if (mtwo*mtwo) == 4          then yes(); else no(); end if;
