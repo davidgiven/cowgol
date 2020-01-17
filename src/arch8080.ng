@@ -186,6 +186,8 @@ gen STARTFILE()
 	E("\textrn mul1\n");
 	E("\textrn mul2\n");
 	E("\textrn mul4\n");
+	E("\textrn dvrmu1\n");
+	E("\textrn dvrmu2\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
@@ -610,6 +612,12 @@ gen a := NEG1(b|d|h:lhs)
 gen a := MUL1(b, d)
 	{ E("\tcall mul1\n"); }
 	
+gen b := DIVU1(b, d) uses a
+	{ E("\tcall dvrmu1\n"); }
+
+gen a := REMU1(b, d)
+	{ E("\tcall dvrmu1\n"); }
+
 gen a := LSHIFT1(a, b) uses bc
 	{ E("\tcall asl1\n"); }
 
@@ -692,6 +700,12 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 
 gen hl := MUL2(bc, de) uses a
 	{ E("\tcall mul2\n"); }
+
+gen de := DIVU2(de, bc) uses a
+	{ E("\tcall dvrmu2\n"); }
+
+gen hl := REMU2(de, bc) uses a
+	{ E("\tcall dvrmu2\n"); }
 
 gen hl := LSHIFT2(hl, b) uses a
 	{ E("\tcall asl2\n"); }

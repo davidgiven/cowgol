@@ -134,6 +134,64 @@ mul4_4:
 mul4_return:
 	jmp 0
 
+	; Divides two eight-bit unsigned numbers: B / D.
+	; The quotient is returned in A, the remainder in B.
+	public dvrmu1
+	cseg
+dvrmu1:
+	mvi c, 8            ; bit count
+	xra a               ; remainder
+dvrmu1_1:
+	mov e, a            ; temporarily store remainder in E
+	mov a, b
+	add a
+	mov b, a
+	mov a, e
+	rla
+	cmp d
+	jc dvrmu1_2
+	inc b
+	sub d
+dvrmu1_2:
+	dec c
+	jnz dvrmu1_1
+	ret
+
+	; Divides two sixteen-bit unsigned numbers: DE / BC.
+	; The quotient is returned in DE, the remainder in HL.
+	public dvrmu2
+	cseg
+dvrmu2:
+	xra a		        ; negate BC
+	sub c
+	mov c,a
+	mvi a,0
+	sbb b
+	mov b,a
+
+	lxi h, 0            ; initial value of remainder
+	mvi a, 16           ; loop counter
+dvrmu2_2:
+	push psw			; save loop counter
+	dad h               ; hl = hl << 1
+	xchg
+	dad h
+	xchg                ; de = de << 1
+	jnc dvrmu2_4
+	inx h
+dvrmu2_4:
+	push h              ; save remainder
+	dad b               ; add negative divisor
+	jnc dvrmu2_5
+	xthl
+	inx d
+dvrmu2_5:
+	pop h
+	pop psw
+	dcr a
+	jnz dvrmu2_2
+	ret
+
 	; Adds two four-byte values from the stack.
 	public add4
 	cseg
