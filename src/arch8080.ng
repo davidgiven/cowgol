@@ -911,6 +911,14 @@ gen hl := CAST12(LOAD1(hl:rhs))
 	E("\tmvi %s, 0\n", regref($$));
 }
 
+gen stk4 := CAST14(a:rhs) uses hl
+{
+	E("\tlxi h, 0\n");
+	E("\tpush h\n");
+	E("\tmov l, a\n");
+	E("\tpush h\n");
+}
+
 gen a|b|d|h := CAST21(bc|de|hl:rhs)
 	{ E("\tmov %s, %s\n", regref($$), regreflo($rhs)); }
 	

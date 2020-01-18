@@ -652,5 +652,6 @@ cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2
 #cowgol_c examples/malloc.cow examples/malloc
 
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink
+cowgol_cpm src/cowlink/main.cow bin/cowlink.com
 
 # vim: sw=4 ts=4 et
