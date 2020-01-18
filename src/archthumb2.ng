@@ -665,6 +665,9 @@ rewrite CAST41(rhs) := CAST21(rhs);
 gen reg := CAST24(reg:rhs)
 	{ E("\tuxth %s, %s\n", regref($$), regref($rhs)); }
 
+gen reg := CAST14(reg:rhs)
+	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
