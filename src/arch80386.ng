@@ -343,6 +343,15 @@ gen param := PUSHPARAM2(param, r16:val)
 gen param := PUSHPARAM4(param, r32:val)
 	{ E("\tpushl %s\n", stkref($val)); }
 
+gen param := PUSHPARAM4(param, LOAD4(ADDRESS():a))
+	{ E("\tpushl (%s)\n", symref($a.sym, $a.off)); }
+
+gen param := PUSHPARAM4(param, ADDRESS():a)
+	{ E("\tpushl $%s\n", symref($a.sym, $a.off)); }
+
+gen param := PUSHPARAM4(param, CONSTANT():c)
+	{ E("\tpushl $0x%x\n", $c.value); }
+
 %{
 	static void call(Subroutine* sub)
 	{
