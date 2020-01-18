@@ -191,8 +191,11 @@ gen STARTFILE()
 	E("\textrn dvrmu2\n");
 	E("\textrn dvrms2\n");
 	E("\textrn dvrmu4\n");
+	E("\textrn dvrms4\n");
 	E("\textrn divu4\n");
+	E("\textrn divs4\n");
 	E("\textrn remu4\n");
+	E("\textrn rems4\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
@@ -751,6 +754,12 @@ gen stk4 := DIVU4(stk4, stk4) uses a|bc|de|hl
 
 gen stk4 := REMU4(stk4, stk4) uses a|bc|de|hl
 	{ E("\tcall remu4\n"); }
+
+gen stk4 := DIVS4(stk4, stk4) uses a|bc|de|hl
+	{ E("\tcall divs4\n"); }
+
+gen stk4 := REMS4(stk4, stk4) uses a|bc|de|hl
+	{ E("\tcall rems4\n"); }
 
 gen stk4 := LSHIFT4(stk4, b) uses a|de|hl
 	{ E("\tcall asl4\n"); }

@@ -15,7 +15,6 @@ sub print_char(c: uint8)
 end sub;
 
 sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
-	var retaddr: intptr;
 	@asm "lhld 2+", lhs;
 	@asm "push h";
 	@asm "lhld 0+", lhs;
@@ -36,6 +35,23 @@ sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
 end sub;
 
 sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
+	@asm "lhld 2+", lhs;
+	@asm "push h";
+	@asm "lhld 0+", lhs;
+	@asm "push h";
+	@asm "lhld 2+", rhs;
+	@asm "push h";
+	@asm "lhld 0+", rhs;
+	@asm "push h";
+	@asm "call dvrms4";
+	@asm "pop h";
+	@asm "shld 0+", rem;
+	@asm "pop h";
+	@asm "shld 2+", rem;
+	@asm "pop h";
+	@asm "shld 0+", quot;
+	@asm "pop h";
+	@asm "shld 2+", quot;
 end sub;
 
 include "common.coh";

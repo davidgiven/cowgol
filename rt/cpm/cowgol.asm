@@ -277,8 +277,8 @@ dvrms2_remainder_positive:
     mov d, a
     ret
 
-    ; Divides two four-byte values from the stack, leaving the quotient
-    ; then the remainder pushed.
+    ; Divides two four-byte unsigned values from the stack, leaving the
+    ; quotient then the remainder pushed.
     ; Uses EVERYTHING.
     ; This routine is taken from the ACK 8080 standard library:
     ; https://github.com/davidgiven/ack/blob/default/mach/i80/libem/dvi4.s
@@ -287,8 +287,7 @@ dvrms2_remainder_positive:
     public dvrmu4
     cseg
 dvrmu4:
-    pop h
-    shld dvrmu4_ret+1
+    pop b
 
     pop h               ; store divisor
     shld block3
@@ -300,6 +299,86 @@ dvrmu4:
     shld block1
     pop h
     shld block1+2
+
+    push b
+    call dvrmu4core
+    pop d
+
+    lhld block1+2
+    push h
+    lhld block1+0
+    push h
+    lhld block2+2
+    push h
+    lhld block2+0
+    push h
+    xchg
+    pchl
+
+    ; Divides two four-byte signed values from the stack, leaving the quotient
+    ; then the remainder pushed.
+    ; Uses EVERYTHING.
+    ; This routine is taken from the ACK 8080 standard library:
+    ; https://github.com/davidgiven/ack/blob/default/mach/i80/libem/dvi4.s
+    ; It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
+    ; and is distributable under the 3-clause BSD license.
+    public dvrms4
+    cseg
+dvrms4:
+    pop b
+
+    pop h               ; store divisor
+    shld block3
+    xchg
+    pop h
+    shld block3+2
+
+    pop h               ; store dividend
+    shld block1
+    pop h
+    shld block1+2
+
+    push b              ; put return address back on stack
+
+    lxi h, block3+3
+    lda block1+3
+    xra m               ; discover sign of result
+    push psw            ; save for later
+    xra m               ; recover sign of divisor (sign of remainder)
+    push psw            ; save for later
+    lxi h, block1
+    cm neg4core         ; negate divisor if negative
+
+    lda block3+3
+    ora a               ; get sign of dividend
+    lxi h, block3
+    cm neg4core         ; negate dividend if negative
+
+    call dvrmu4core     ; actually perform the division
+
+    pop psw             ; get sign of remainder
+    lxi h, block2
+    cm neg4core
+
+    pop psw             ; get sign of result
+    lxi h, block1
+    cm neg4core
+
+    pop d               ; get return address
+    lhld block1+2       ; push result and exit
+    push h
+    lhld block1+0
+    push h
+    lhld block2+2
+    push h
+    lhld block2+0
+    push h
+    xchg
+    pchl
+
+    ; Core code for the 32-bit division. Divides block3 / block1, leaving
+    ; the quotient in block1 and the remainder in block2.
+dvrmu4core:
     lxi h,0             ; store initial value of remainder
     shld block2
     shld block2+2
@@ -351,19 +430,9 @@ dvrmu4_subloop:
 dvrmu4_gt:
     dcr b
     jnz dvrmu4_again    ; keep looping
+    ret
 
-    lhld block1+2
-    push h
-    lhld block1+0
-    push h
-    lhld block2+2
-    push h
-    lhld block2+0
-    push h
-dvrmu4_ret:
-    jmp 0
-
-    ; Divides two four-byte values from the stack, 
+    ; Divides two four-byte unsigned values from the stack, 
     public divu4
     cseg
 divu4:
@@ -375,7 +444,7 @@ divu4:
 divu4_ret
     jmp 0
 
-    ; Takes the remainder of two four-byte values from the stack, 
+    ; Takes the remainder of two four-byte unsigned values from the stack, 
     public remu4
     cseg
 remu4:
@@ -389,6 +458,34 @@ remu4:
     push d
     push b
 remu4_ret
+    jmp 0
+
+    ; Divides two four-byte signed values from the stack, 
+    public divs4
+    cseg
+divs4:
+    pop h
+    shld divs4_ret+1
+    call dvrms4
+    pop h
+    pop h
+divs4_ret
+    jmp 0
+
+    ; Takes the remainder of two four-byte nsigned values from the stack, 
+    public rems4
+    cseg
+rems4:
+    pop h
+    shld rems4_ret+1
+    call dvrms4
+    pop b
+    pop d
+    pop h
+    pop h
+    push d
+    push b
+rems4_ret
     jmp 0
 
     ; Adds two four-byte values from the stack.
@@ -483,27 +580,36 @@ and4_ret = $ + 1
     public neg4
     cseg
 neg4:
-    pop h
+    pop d
 
-    pop b ; BC = low
-    pop d ; DE = high
+    lxi h, 0
+    dad sp
+    call neg4core
 
-    xor a
-    sub c
-    mov c, a
-    mvi a, 0
-    sbb b
-    mov b, a
-    mvi a, 0
-    sbb e
-    mov e, a
-    mvi a, 0
-    sbb d
-    mov d, a
-
-    push d
-    push b
+    xchg
     pchl
+
+    ; Negates the four-byte value pointed to by hl.
+neg4core:
+    xra a
+    sub m
+    mov m, a
+    inx h
+
+    mvi a, 0
+    sbb m
+    mov m, a
+    inx h
+
+    mvi a, 0
+    sbb m
+    mov m, a
+    inx h
+
+    mvi a, 0
+    sbb m
+    mov m, a
+    ret
 
     ; Sets the Z flag based on the 32-bit number on the top of the stack.
     public cmpu4
