@@ -157,6 +157,43 @@ dvrmu1_2:
     jnz dvrmu1_1
     ret
 
+    ; Divides two eight-bit signed numbers: B / D.
+    ; The quotient is returned in D, the remainder in B.
+    public dvrms1
+    cseg
+dvrms1:
+    mov a, b
+    xor d                ; discover sign of result
+    push psw             ; save for later
+    xor d                ; recover sign of b (sign of remainder)
+    push psw             ; save for later
+    jp dvrms1_b_positive
+    xra a                ; invert b to make it positive
+    sub b
+    mov b, a
+dvrms1_b_positive:
+    mov a, d
+    or d                 ; get sign of d
+    jp dvrms1_d_positive
+    xra a                ; invert d to make it positive
+    sub d
+    mov d, a
+dvrms1_d_positive:
+    call dvrmu1          ; actually do the division
+    mov d, a
+    pop psw              ; get sign of remainder
+    jp dvrms1_remainder_positive
+    xra a
+    sub d
+    mov d, a
+dvrms1_remainder_positive:
+    pop psw              ; get sign of result
+    rp                   ; finish now if we're good
+    xra a
+    sub b
+    mov b, a
+    ret
+
     ; Divides two sixteen-bit unsigned numbers: DE / BC.
     ; The quotient is returned in DE, the remainder in HL.
     public dvrmu2
