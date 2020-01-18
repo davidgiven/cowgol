@@ -229,6 +229,54 @@ dvrmu2_5:
     jnz dvrmu2_2
     ret
 
+    ; Divides two eight-bit signed numbers: DE / BC.
+    ; The quotient is returned in DE, the remainder in HL.
+    public dvrms2
+    cseg
+dvrms2:
+    mov a, d
+    xor b                ; discover sign of result
+    push psw             ; save for later
+    xor b                ; recover sign of b (sign of remainder)
+    push psw             ; save for later
+    jp dvrms2_de_positive
+    xra a                ; invert de to make it positive
+    sub e
+    mov e, a
+    sbb a
+    sub d
+    mov d, a
+dvrms2_de_positive:
+    mov a, b
+    or b                 ; get sign of bc
+    jp dvrms2_bc_positive
+    xra a                ; invert bc to make it positive
+    sub c
+    mov c, a
+    sbb a
+    sub b
+    mov b, a
+dvrms2_bc_positive:
+    call dvrmu2          ; actually do the division
+    pop psw              ; get sign of remainder
+    jp dvrms2_remainder_positive
+    xra a
+    sub l
+    mov l, a
+    sbb a
+    sub h
+    mov h, a
+dvrms2_remainder_positive:
+    pop psw              ; get sign of result
+    rp                   ; finish now if we're good
+    xra a                ; invert bc to make it positive
+    sub e
+    mov e, a
+    sbb a
+    sub d
+    mov d, a
+    ret
+
     ; Divides two four-byte values from the stack, leaving the quotient
     ; then the remainder pushed.
     ; Uses EVERYTHING.
