@@ -576,7 +576,7 @@ test_cpm divrem-8bit-u
 #test_cpm divrem-8bit-s
 test_cpm divrem-16bit-u
 #test_cpm divrem-16bit-s
-#test_cpm divrem-32bit-u
+test_cpm divrem-32bit-u
 #test_cpm divrem-32bit-s
 test_cpm shifts-8bit
 test_cpm shifts-16bit

@@ -188,6 +188,9 @@ gen STARTFILE()
 	E("\textrn mul4\n");
 	E("\textrn dvrmu1\n");
 	E("\textrn dvrmu2\n");
+	E("\textrn dvrmu4\n");
+	E("\textrn divu4\n");
+	E("\textrn remu4\n");
     E("\textrn cpy4\n");
     E("\textrn asl1\n");
     E("\textrn asl2\n");
@@ -414,28 +417,24 @@ gen stk4 := CALL4(param):c
 gen param := CALL0(param):c
 	{ call($c.sub); }
 
-gen POPPARAM1(param, ADDRESS():a) uses a
-{
-	E("\tpop psw\n");
-	E("\tsta %s\n", symref($a.sym, $a.off));
-}
-
 gen param := POPPARAM1(param, ADDRESS():a) uses a
 {
 	E("\tpop psw\n");
 	E("\tsta %s\n", symref($a.sym, $a.off));
 }
 
-gen POPPARAM2(param, ADDRESS():a) uses hl
+gen param := POPPARAM2(param, ADDRESS():a) uses hl
 {
 	E("\tpop hl\n");
 	E("\tshld %s\n", symref($a.sym, $a.off));
 }
 
-gen param := POPPARAM2(param, ADDRESS():a) uses hl
+gen param := POPPARAM4(param, ADDRESS():a) uses hl
 {
 	E("\tpop hl\n");
-	E("\tshld %s\n", symref($a.sym, $a.off));
+	E("\tshld %s\n", symref($a.sym, $a.off+0));
+	E("\tpop hl\n");
+	E("\tshld %s\n", symref($a.sym, $a.off+2));
 }
 
 // --- Loads and stores --------------------------------------------------
@@ -718,28 +717,34 @@ gen hl := RSHIFTS2(hl, b) uses a
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
-gen stk4 := ADD4(stk4, stk4)
+gen stk4 := ADD4(stk4, stk4) uses a|bc|de|hl
 	{ E("\tcall add4\n"); }
 
-gen stk4 := SUB4(stk4, stk4)
+gen stk4 := SUB4(stk4, stk4) uses a|bc|de|hl
 	{ E("\tcall sub4\n"); }
 
-gen stk4 := AND4(stk4, stk4)
+gen stk4 := AND4(stk4, stk4) uses a|bc|de|hl
 	{ E("\tcall and4\n"); }
 
-gen stk4 := NEG4(stk4)
+gen stk4 := NEG4(stk4) uses a|bc|de|hl
 	{ E("\tcall neg4\n"); }
 
-gen stk4 := MUL4(stk4, stk4)
+gen stk4 := MUL4(stk4, stk4) uses a|bc|de|hl
 	{ E("\tcall mul4\n"); }
 
-gen stk4 := LSHIFT4(stk4, b)
+gen stk4 := DIVU4(stk4, stk4) uses a|bc|de|hl
+	{ E("\tcall divu4\n"); }
+
+gen stk4 := REMU4(stk4, stk4) uses a|bc|de|hl
+	{ E("\tcall remu4\n"); }
+
+gen stk4 := LSHIFT4(stk4, b) uses a|de|hl
 	{ E("\tcall asl4\n"); }
 
-gen stk4 := RSHIFTU4(stk4, b)
+gen stk4 := RSHIFTU4(stk4, b) uses a|de|hl
 	{ E("\tcall lsr4\n"); }
 
-gen stk4 := RSHIFTS4(stk4, b)
+gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 	{ E("\tcall asr4\n"); }
 
 // --- Branches -------------------------------------------------------------
