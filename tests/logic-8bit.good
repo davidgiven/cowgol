@@ -1,0 +1,6 @@
+two|one==three: yes
+three&two==two: yes
+two^one==three: yes
+three^one==two: yes
+~zero==mone: yes
+~four==NOTFOUR: yes

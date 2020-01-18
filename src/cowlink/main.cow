@@ -1,10 +1,42 @@
 include "cowgol.coh";
 include "argv.coh";
 include "malloc.coh";
+include "strings.coh";
 #include "file.coh";
 
-print("COWLINK\n");
+print("COWLINK: ");
 print_i16((GetFreeMemory() >> 10) as uint16);
 print("kB free\n");
-print_nl();
+
+var outputFilename: [uint8] := 0 as [uint8];
+
+sub SyntaxError()
+	print("Syntax error\n");
+end sub;
+
+sub AddInputFile(filename: [uint8])
+	print("Adding input file: ");
+	print(filename);
+	print_nl();
+end sub;
+
+ArgvInit();
+loop
+	var arg := ArgvNext();
+	if arg == (0 as [uint8]) then
+		break;
+	end if;
+
+	if (StrICmp(arg, "-o") == 0) then
+		outputFilename := ArgvNext();
+	elseif [arg] == '-' then
+		SyntaxError();
+	else
+		AddInputFile(arg);
+	end if;
+end loop;
+
+if outputFilename == 0 as [uint8] then
+	print("No output filename specified\n");
+end if;
 

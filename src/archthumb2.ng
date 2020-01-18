@@ -436,6 +436,10 @@ rewrite ADD1(lhs, rhs) := ADD4(lhs, rhs);
 rewrite SUB1(lhs, rhs) := SUB4(lhs, rhs);
 rewrite NEG1(lhs) := NEG4(lhs);
 rewrite MUL1(lhs, rhs) := MUL4(lhs, rhs);
+rewrite AND1(lhs, rhs) := AND4(lhs, rhs);
+rewrite OR1(lhs, rhs) := OR4(lhs, rhs);
+rewrite EOR1(lhs, rhs) := EOR4(lhs, rhs);
+rewrite NOT1(lhs) := NOT4(lhs);
 
 rewrite LSHIFT1(lhs, rhs) := LSHIFT4(lhs, rhs);
 
@@ -485,6 +489,10 @@ gen reg := RSHIFTS1(reg:lhs, reg:rhs)
 
 rewrite LSHIFT2(lhs, rhs) := LSHIFT4(lhs, rhs);
 rewrite MUL2(lhs, rhs) := MUL4(lhs, rhs);
+rewrite AND2(lhs, rhs) := AND4(lhs, rhs);
+rewrite OR2(lhs, rhs) := OR4(lhs, rhs);
+rewrite EOR2(lhs, rhs) := EOR4(lhs, rhs);
+rewrite NOT2(lhs) := NOT4(lhs);
 
 gen reg := DIVU2(reg:lhs, reg:rhs)
 {
@@ -564,6 +572,18 @@ gen reg := REMS4(reg:lhs, reg:rhs) uses r6
 	E("\tsdiv r6, %s, %s\n", regref($lhs), regref($rhs));
 	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
 }
+
+gen reg := AND4(reg:lhs, reg:rhs)
+	{ E("\tand %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
+gen reg := OR4(reg:lhs, reg:rhs)
+	{ E("\torr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
+gen reg := EOR4(reg:lhs, reg:rhs)
+	{ E("\teor %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
+gen reg := NOT4(reg:lhs)
+	{ E("\tmvn %s, %s\n", regref($$), regref($lhs)); }
 
 gen reg := LSHIFT4(reg:lhs, reg:rhs)
 	{ E("\tlsl %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
@@ -657,10 +677,9 @@ gen BLTS4(reg:lhs, reg:rhs):b
 
 // --- Casts ----------------------------------------------------------------
 
-gen reg := CAST21(reg:rhs)
-	{ arch_emit_move($rhs, $$); }
-	
-rewrite CAST41(rhs) := CAST21(rhs);
+gen reg := CAST21($$);
+gen reg := CAST41($$);
+gen reg := CAST42($$);
 
 gen reg := CAST24(reg:rhs)
 	{ E("\tuxth %s, %s\n", regref($$), regref($rhs)); }

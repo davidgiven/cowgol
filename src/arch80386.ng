@@ -546,6 +546,18 @@ gen al := REMS1(al, bl|cl|dl:rhs)
 	E("\tmov %%ah, %%al\n");
 }
 
+gen r8 := AND1($$:lhs, r8:rhs)
+	{ E("\tandb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := OR1($$:lhs, r8:rhs)
+	{ E("\torb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := EOR1($$:lhs, r8:rhs)
+	{ E("\txorb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := NOT1($$:val)
+	{ E("\tnotb %s\n", regref($$)); }
+
 gen r8 := LSHIFT1($$:lhs, cl:rhs)
 	{ E("\tshlb %s, %s\n", regref($rhs), regref($$)); }
 
@@ -605,6 +617,18 @@ gen dx := REMS2(ax, bx|cx:rhs)
 	E("\tidivw %s\n", regref($rhs));
 }
 
+gen r16 := AND2($$:lhs, r16:rhs)
+	{ E("\tandw %s, %s\n", regref($rhs), regref($$)); }
+
+gen r16 := OR2($$:lhs, r16:rhs)
+	{ E("\torw %s, %s\n", regref($rhs), regref($$)); }
+
+gen r16 := EOR2($$:lhs, r16:rhs)
+	{ E("\txorw %s, %s\n", regref($rhs), regref($$)); }
+
+gen r16 := NOT2($$:val)
+	{ E("\tnotw %s\n", regref($$)); }
+
 gen r16 := LSHIFT2($$:lhs, cl:rhs)
 	{ E("\tshlw %s, %s\n", regref($rhs), regref($$)); }
 
@@ -663,6 +687,18 @@ gen edx := REMS4(eax, ebx|ecx:rhs)
 	E("\tcdq\n");
 	E("\tidivl %s\n", regref($rhs));
 }
+
+gen r32 := AND4($$:lhs, r32:rhs)
+	{ E("\tandl %s, %s\n", regref($rhs), regref($$)); }
+
+gen r32 := OR4($$:lhs, r32:rhs)
+	{ E("\torl %s, %s\n", regref($rhs), regref($$)); }
+
+gen r32 := EOR4($$:lhs, r32:rhs)
+	{ E("\txorl %s, %s\n", regref($rhs), regref($$)); }
+
+gen r32 := NOT4($$:val)
+	{ E("\tnotl %s\n", regref($$)); }
 
 gen r32 := LSHIFT4($$:lhs, cl:rhs)
 	{ E("\tshll %s, %s\n", regref($rhs), regref($$)); }

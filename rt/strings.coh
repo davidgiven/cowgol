@@ -1,0 +1,30 @@
+sub StrCmp(s1: [uint8], s2: [uint8]): (res: int8)
+	loop
+		res := ([s1] - [s2]) as int8;
+		if (res != 0) or ([s1] == 0) then
+			break;
+		end if;
+		s1 := s1 + 1;
+		s2 := s2 + 1;
+	end loop;
+end sub;
+
+sub ToLower(c: uint8): (cc: uint8)
+	if (c >= 'A') and (c <= 'Z') then
+		cc := c | 32;
+	else
+		cc := c;
+	end if;
+end sub;
+
+sub StrICmp(s1: [uint8], s2: [uint8]): (res: int8)
+	loop
+		res := (ToLower([s1]) - ToLower([s2])) as int8;
+		if (res != 0) or ([s1] == 0) then
+			break;
+		end if;
+		s1 := s1 + 1;
+		s2 := s2 + 1;
+	end loop;
+end sub;
+
