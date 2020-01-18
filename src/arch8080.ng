@@ -640,6 +640,15 @@ gen a := RSHIFTS1(a, b) uses bc
 gen a := AND1(a, b|d|h:rhs)
 	{ E("\tand %s\n", regref($rhs)); }
 
+gen a := OR1(a, b|d|h:rhs)
+	{ E("\tora %s\n", regref($rhs)); }
+
+gen a := EOR1(a, b|d|h:rhs)
+	{ E("\txra %s\n", regref($rhs)); }
+
+gen a := NOT1(a)
+	{ E("\txri -1"); }
+
 gen a := AND1(a, CONSTANT():c)
 	{ E("\tani %d\n", $c.value & 0xff); }
 

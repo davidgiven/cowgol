@@ -51,7 +51,7 @@
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %left AS.
-%right NOT.
+%right NOT TILDE.
 
 %token_type {struct token*}
 %type typeref {struct symbol*}
@@ -465,6 +465,7 @@ statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 cvalue(value) ::= NUMBER(token).                   { value = token->number; }
 cvalue(value) ::= OPENPAREN cvalue(v) CLOSEPAREN.  { value = v; }
 cvalue(value) ::= MINUS cvalue(v).                 { value = -v; }
+cvalue(value) ::= TILDE cvalue(v).                 { value = ~v; }
 cvalue(value) ::= cvalue(lhs) PLUS cvalue(rhs).    { value = lhs + rhs; }
 cvalue(value) ::= cvalue(lhs) MINUS cvalue(rhs).   { value = lhs - rhs; }
 cvalue(value) ::= cvalue(lhs) STAR cvalue(rhs).    { value = lhs * rhs; }
@@ -531,6 +532,7 @@ expression(T) ::= AMPERSAND lvalue(T1).
 }
 
 expression(E) ::= MINUS expression(E1).                    { E = mid_c_neg(E1->type ? E1->type->u.type.width : 0, E1); E->type = E1->type; }
+expression(E) ::= TILDE expression(E1).                    { E = mid_c_not(E1->type ? E1->type->u.type.width : 0, E1); E->type = E1->type; }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E = E1; }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E = expr_add(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E = expr_sub(E1, E2); }

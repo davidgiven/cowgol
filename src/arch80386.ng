@@ -546,6 +546,18 @@ gen al := REMS1(al, bl|cl|dl:rhs)
 	E("\tmov %%ah, %%al\n");
 }
 
+gen r8 := AND1($$:lhs, r8:rhs)
+	{ E("\tandb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := OR1($$:lhs, r8:rhs)
+	{ E("\torb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := EOR1($$:lhs, r8:rhs)
+	{ E("\txorb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := NOT1($$:val)
+	{ E("\tnotb %s\n", regref($$)); }
+
 gen r8 := LSHIFT1($$:lhs, cl:rhs)
 	{ E("\tshlb %s, %s\n", regref($rhs), regref($$)); }
 

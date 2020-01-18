@@ -412,6 +412,16 @@ Node* mid_c_neg(int width, Node* lhs)
 	return mid_neg(width, lhs);
 }
 
+Node* mid_c_not(int width, Node* lhs)
+{
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		lhs->u.constant.value = ~lhs->u.constant.value;
+		return lhs;
+	}
+	return mid_not(width, lhs);
+}
+
 Node* mid_c_add(int width, Node* lhs, Node* rhs)
 {
 	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))

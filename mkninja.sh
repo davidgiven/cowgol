@@ -581,6 +581,7 @@ test_cpm divrem-32bit-s
 test_cpm shifts-8bit
 test_cpm shifts-16bit
 test_cpm shifts-32bit
+test_cpm logic-8bit
 test_cpm records
 test_cpm inputparams
 test_cpm outputparams
@@ -604,6 +605,7 @@ test_thumb2_linux divrem-32bit-s
 test_thumb2_linux shifts-8bit
 test_thumb2_linux shifts-16bit
 test_thumb2_linux shifts-32bit
+test_thumb2_linux logic-8bit
 test_thumb2_linux records
 test_thumb2_linux inputparams
 test_thumb2_linux outputparams
@@ -627,6 +629,7 @@ test_80386_linux divrem-32bit-s
 test_80386_linux shifts-8bit
 test_80386_linux shifts-16bit
 test_80386_linux shifts-32bit
+test_80386_linux logic-8bit
 test_80386_linux records
 test_80386_linux inputparams
 test_80386_linux outputparams

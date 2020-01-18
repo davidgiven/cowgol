@@ -40,7 +40,8 @@ SP [ \t]+
 "@asm"                    { return ASM; }
 "["                       { return OPENSQ; }
 "]"                       { return CLOSESQ; }
-"^"                       { return TILDE; }
+"~"                       { return TILDE; }
+"^"                       { return CARET; }
 "and"                     { return AND; }
 "as"                      { return AS; }
 "break"                   { return BREAK; }
