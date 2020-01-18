@@ -13,35 +13,35 @@ sub print_nl()
 	print_char('\n');
 end sub;
 
-#sub print_i8(value: uint8)
-#    print_i32(value as uint32);
-#end sub;
-#
-#sub print_i16(value: uint16)
-#    print_i32(value as uint32);
-#end sub;
-#
-#sub print_i32(value: uint32)
-#    var buffer: uint8[11];
-#    var pos: uint8 := 0;
-#    loop
-#        var rem: uint32;
-#        (value, rem) := divmodu32(value, 10);
-#        buffer[pos] := rem as uint8;
-#        if value == 0 then
-#            break;
-#        end if;
-#        pos := pos + 1;
-#    end loop;
-#
-#    loop
-#        print_char((buffer[pos] + '0') as int8);
-#        if pos == 0 then
-#            break;
-#        end if;
-#        pos := pos - 1;
-#    end loop;
-#end sub;
+sub print_i32(value: uint32)
+    var buffer: uint8[11];
+    var pos: uint8 := 0;
+    loop
+        var rem: uint32;
+        (value, rem) := divmodu32(value, 10);
+        buffer[pos] := rem as uint8;
+        if value == 0 then
+            break;
+        end if;
+        pos := pos + 1;
+    end loop;
+
+    loop
+        print_char(buffer[pos] + '0');
+        if pos == 0 then
+            break;
+        end if;
+        pos := pos - 1;
+    end loop;
+end sub;
+
+sub print_i16(value: uint16)
+    print_i32(value as uint32);
+end sub;
+
+sub print_i8(value: uint8)
+    print_i32(value as uint32);
+end sub;
 
 sub print_hex_i8(value: uint8)
     var i: uint8 := 2;

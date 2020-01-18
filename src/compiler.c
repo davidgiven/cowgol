@@ -486,3 +486,47 @@ Node* mid_c_mul(int width, Node* lhs, Node* rhs)
 	}
 	return mid_mul(width, lhs, rhs);
 }
+
+Node* mid_c_divu(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value /= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	return mid_divu(width, lhs, rhs);
+}
+
+Node* mid_c_divs(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value /= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	return mid_divs(width, lhs, rhs);
+}
+
+Node* mid_c_remu(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value %= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	return mid_remu(width, lhs, rhs);
+}
+
+Node* mid_c_rems(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value %= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	return mid_rems(width, lhs, rhs);
+}

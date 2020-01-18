@@ -17,5 +17,21 @@ sub print_char(c: uint8)
     @asm "int $0x80";
 end sub;
 
+sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
+    @asm "xorl %edx, %edx";
+    @asm "mov ", lhs, ", %eax";
+    @asm "divl ", rhs;
+    @asm "movl %eax, ", quot;
+    @asm "movl %edx, ", rem;
+end sub;
+
+sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
+    @asm "mov ", lhs, ", %eax";
+    @asm "cdq";
+    @asm "idivl ", rhs;
+    @asm "movl %eax, ", quot;
+    @asm "movl %edx, ", rem;
+end sub;
+
 include "common.coh";
 

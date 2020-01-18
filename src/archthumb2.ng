@@ -439,6 +439,36 @@ rewrite MUL1(lhs, rhs) := MUL4(lhs, rhs);
 
 rewrite LSHIFT1(lhs, rhs) := LSHIFT4(lhs, rhs);
 
+gen reg := DIVU1(reg:lhs, reg:rhs)
+{
+	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tudiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
+
+gen reg := REMU1(reg:lhs, reg:rhs) uses r6
+{
+	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tudiv r6, %s, %s\n", regref($lhs), regref($rhs));
+	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+}
+
+gen reg := DIVS1(reg:lhs, reg:rhs)
+{
+	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tsxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tsdiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
+
+gen reg := REMS1(reg:lhs, reg:rhs) uses r6
+{
+	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tsxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tsdiv r6, %s, %s\n", regref($lhs), regref($rhs));
+	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+}
+
 gen reg := RSHIFTU1(reg:lhs, reg:rhs)
 {
 	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
@@ -455,6 +485,36 @@ gen reg := RSHIFTS1(reg:lhs, reg:rhs)
 
 rewrite LSHIFT2(lhs, rhs) := LSHIFT4(lhs, rhs);
 rewrite MUL2(lhs, rhs) := MUL4(lhs, rhs);
+
+gen reg := DIVU2(reg:lhs, reg:rhs)
+{
+	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
+	E("\tuxth %s, %s\n", regref($rhs), regref($rhs));
+	E("\tudiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
+
+gen reg := REMU2(reg:lhs, reg:rhs) uses r6
+{
+	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
+	E("\tuxth %s, %s\n", regref($rhs), regref($rhs));
+	E("\tudiv r6, %s, %s\n", regref($lhs), regref($rhs));
+	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+}
+
+gen reg := DIVS2(reg:lhs, reg:rhs)
+{
+	E("\tsxth %s, %s\n", regref($lhs), regref($lhs));
+	E("\tsxth %s, %s\n", regref($rhs), regref($rhs));
+	E("\tsdiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+}
+
+gen reg := REMS2(reg:lhs, reg:rhs) uses r6
+{
+	E("\tsxth %s, %s\n", regref($lhs), regref($lhs));
+	E("\tsxth %s, %s\n", regref($rhs), regref($rhs));
+	E("\tsdiv r6, %s, %s\n", regref($lhs), regref($rhs));
+	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+}
 
 gen reg := RSHIFTU2(reg:lhs, reg:rhs)
 {
@@ -486,6 +546,24 @@ gen reg := NEG4(reg:lhs)
 
 gen reg := MUL4(reg:lhs, reg:rhs)
 	{ E("\tmul %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
+gen reg := DIVU4(reg:lhs, reg:rhs)
+	{ E("\tudiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
+gen reg := REMU4(reg:lhs, reg:rhs) uses r6
+{
+	E("\tudiv r6, %s, %s\n", regref($lhs), regref($rhs));
+	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+}
+
+gen reg := DIVS4(reg:lhs, reg:rhs)
+	{ E("\tsdiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+
+gen reg := REMS4(reg:lhs, reg:rhs) uses r6
+{
+	E("\tsdiv r6, %s, %s\n", regref($lhs), regref($rhs));
+	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+}
 
 gen reg := LSHIFT4(reg:lhs, reg:rhs)
 	{ E("\tlsl %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
@@ -586,6 +664,9 @@ rewrite CAST41(rhs) := CAST21(rhs);
 
 gen reg := CAST24(reg:rhs)
 	{ E("\tuxth %s, %s\n", regref($$), regref($rhs)); }
+
+gen reg := CAST14(reg:rhs)
+	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
 
 // --- Inline assembly ------------------------------------------------------
 

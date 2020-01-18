@@ -572,6 +572,12 @@ test_cpm mul-16bit-u
 test_cpm mul-16bit-s
 test_cpm mul-32bit-u
 test_cpm mul-32bit-s
+test_cpm divrem-8bit-u
+test_cpm divrem-8bit-s
+test_cpm divrem-16bit-u
+test_cpm divrem-16bit-s
+test_cpm divrem-32bit-u
+test_cpm divrem-32bit-s
 test_cpm shifts-8bit
 test_cpm shifts-16bit
 test_cpm shifts-32bit
@@ -589,6 +595,12 @@ test_thumb2_linux mul-16bit-u
 test_thumb2_linux mul-16bit-s
 test_thumb2_linux mul-32bit-u
 test_thumb2_linux mul-32bit-s
+test_thumb2_linux divrem-8bit-u
+test_thumb2_linux divrem-8bit-s
+test_thumb2_linux divrem-16bit-u
+test_thumb2_linux divrem-16bit-s
+test_thumb2_linux divrem-32bit-u
+test_thumb2_linux divrem-32bit-s
 test_thumb2_linux shifts-8bit
 test_thumb2_linux shifts-16bit
 test_thumb2_linux shifts-32bit
@@ -606,6 +618,12 @@ test_80386_linux mul-16bit-u
 test_80386_linux mul-16bit-s
 test_80386_linux mul-32bit-u
 test_80386_linux mul-32bit-s
+test_80386_linux divrem-8bit-u
+test_80386_linux divrem-8bit-s
+test_80386_linux divrem-16bit-u
+test_80386_linux divrem-16bit-s
+test_80386_linux divrem-32bit-u
+test_80386_linux divrem-32bit-s
 test_80386_linux shifts-8bit
 test_80386_linux shifts-16bit
 test_80386_linux shifts-32bit
@@ -634,5 +652,6 @@ cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2
 #cowgol_c examples/malloc.cow examples/malloc
 
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink
+cowgol_cpm src/cowlink/main.cow bin/cowlink.com
 
 # vim: sw=4 ts=4 et
