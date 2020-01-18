@@ -582,6 +582,7 @@ test_cpm shifts-8bit
 test_cpm shifts-16bit
 test_cpm shifts-32bit
 test_cpm logic-8bit
+test_cpm logic-16bit
 test_cpm records
 test_cpm inputparams
 test_cpm outputparams
