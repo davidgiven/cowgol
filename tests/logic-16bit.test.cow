@@ -1,3 +1,6 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
 var mone: uint16 := -1;
 var zero: uint16 := 0;
 var one: uint16 := 0x1001;
@@ -6,9 +9,6 @@ var three: uint16 := 0x3003;
 var four: uint16 := 0x4004;
 
 const NOTFOUR := ~0x4004;
-
-sub yes() print(": yes\n"); end sub;
-sub no() print(": no\n"); end sub;
 
 print("two|one==three"); if (two|one) == three then yes(); else no(); end if;
 print("three&two==two"); if (three&two) == two then yes(); else no(); end if;
