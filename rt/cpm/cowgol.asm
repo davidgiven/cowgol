@@ -555,19 +555,19 @@ and4:
     pop b ; BC = LHS low
     
     mov a, c
-    and l
+    ana l
     mov c, a
     mov a, b
-    and h
+    ana h
     mov b, a ; BC = result low
 
     pop h ; HL = LHS high
 
     mov a, l
-    and e
+    ana e
     mov l, a
     mov a, h
-    and d
+    ana d
     mov h, a
 
     push h
@@ -575,6 +575,98 @@ and4:
 
 and4_ret = $ + 1
     jmp 0
+
+    ; ORs two four-byte values from the stack.
+    public or4
+    cseg
+or4:
+    pop h
+    shld or4_ret
+
+    pop h ; HL = RHS low
+    pop d ; DE = RHS high
+    pop b ; BC = LHS low
+    
+    mov a, c
+    ora l
+    mov c, a
+    mov a, b
+    ora h
+    mov b, a ; BC = result low
+
+    pop h ; HL = LHS high
+
+    mov a, l
+    ora e
+    mov l, a
+    mov a, h
+    ora d
+    mov h, a
+
+    push h
+    push b
+
+or4_ret = $ + 1
+    jmp 0
+
+    ; Exclusive-ORs two four-byte values from the stack.
+    public eor4
+    cseg
+eor4:
+    pop h
+    shld eor4_ret
+
+    pop h ; HL = RHS low
+    pop d ; DE = RHS high
+    pop b ; BC = LHS low
+    
+    mov a, c
+    xra l
+    mov c, a
+    mov a, b
+    xra h
+    mov b, a ; BC = result low
+
+    pop h ; HL = LHS high
+
+    mov a, l
+    xra e
+    mov l, a
+    mov a, h
+    xra d
+    mov h, a
+
+    push h
+    push b
+
+eor4_ret = $ + 1
+    jmp 0
+
+    ; NOTs the four-byte value on the stack.
+    public not4
+    cseg
+not4:
+    pop h
+    pop d               ; DE = low word
+    pop b               ; BC = high word
+
+    mov a, d
+    cpl
+    mov d, a
+    mov a, e
+    cpl
+    mov e, a
+
+    mov a, b
+    cpl
+    mov b, a
+    mov a, c
+    cpl
+    mov c, a
+
+    push b
+    push d
+    pchl
 
     ; Negates the four-byte value on the stack.
     public neg4

@@ -181,7 +181,6 @@ gen STARTFILE()
     emitter_open_chunk();
     E("\textrn add4\n");
     E("\textrn sub4\n");
-    E("\textrn and4\n");
     E("\textrn neg4\n");
 	E("\textrn mul1\n");
 	E("\textrn mul2\n");
@@ -206,6 +205,10 @@ gen STARTFILE()
 	E("\textrn asr1\n");
 	E("\textrn asr2\n");
 	E("\textrn asr4\n");
+	E("\textrn and4\n");
+	E("\textrn or4\n");
+	E("\textrn eor4\n");
+	E("\textrn not4\n");
 	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
 	E("\textrn store4\n");
@@ -789,9 +792,6 @@ gen stk4 := ADD4(stk4, stk4) uses a|bc|de|hl
 gen stk4 := SUB4(stk4, stk4) uses a|bc|de|hl
 	{ E("\tcall sub4\n"); }
 
-gen stk4 := AND4(stk4, stk4) uses a|bc|de|hl
-	{ E("\tcall and4\n"); }
-
 gen stk4 := NEG4(stk4) uses a|bc|de|hl
 	{ E("\tcall neg4\n"); }
 
@@ -809,6 +809,18 @@ gen stk4 := DIVS4(stk4, stk4) uses a|bc|de|hl
 
 gen stk4 := REMS4(stk4, stk4) uses a|bc|de|hl
 	{ E("\tcall rems4\n"); }
+
+gen stk4 := AND4(stk4, stk4) uses a|bc|de|hl
+	{ E("\tcall and4\n"); }
+
+gen stk4 := OR4(stk4, stk4) uses a|bc|de|hl
+	{ E("\tcall or4\n"); }
+
+gen stk4 := EOR4(stk4, stk4) uses a|bc|de|hl
+	{ E("\tcall eor4\n"); }
+
+gen stk4 := NOT4(stk4) uses a|bc|de|hl
+	{ E("\tcall not4\n"); }
 
 gen stk4 := LSHIFT4(stk4, b) uses a|de|hl
 	{ E("\tcall asl4\n"); }
