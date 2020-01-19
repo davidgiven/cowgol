@@ -54,6 +54,7 @@ struct reg
 	bool isstacked;
 };
 
+typedef struct rule Rule;
 typedef struct instruction Instruction;
 typedef struct regmove Regmove;
 

@@ -31,34 +31,6 @@ bool template_comparator(const uint8_t* data, const uint8_t* template)
 	return true;
 }
 
-void setup_instruction(Instruction* insn, int rule, Node** nodes)
-{
-	insn->rule = rule;
-	insn->producable_regs = insn_producable_regs[rule];
-
-	uint8_t copymask = insn_copyable_nodes[rule];
-	uint8_t regmask = insn_register_nodes[rule];
-	for (int i=0; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
-	{
-		Node* n = nodes[i];
-		if (copymask & 1)
-		{
-			insn->n[i] = n;
-			if (regmask & 1)
-				push_node(n);
-
-			/* Don't override node 0, which represents the instruction itself. */
-			if (i)
-			{
-				n->desired_reg = insn_consumable_regs[rule][i];
-				n->consumer = insn;
-			}
-		}
-		copymask >>= 1;
-		regmask >>= 1;
-	}
-}
-
 void push_node(Node* node)
 {
 	nodes[nodecount++] = node;
@@ -271,22 +243,111 @@ void generate(Node* node)
 	{
 		Instruction* producer = &instructions[instructioncount++];
 
-		/* Generate the instruction rooted at this node. */
+		/* Find the first matching rule for this instruction. */
 
 		Node* n = nodes[--nodecount];
-		match_instruction(n, producer);
+	rewrite:;
+		uint8_t matchbytes[INSTRUCTION_TEMPLATE_DEPTH] = {0};
+		Node* nodes[INSTRUCTION_TEMPLATE_DEPTH] = {n};
+		populate_match_buffer(producer, nodes, matchbytes);
+
+		const Rule* r;
+		for (int i=0; i<INSTRUCTION_TEMPLATE_COUNT; i++)
+		{
+			r = &codegen_rules[i];
+			if (!r->rewriter)
+			{
+				/* If this is a generation rule, not a rewrite rule, check to
+				 * make sure the rule actually applies to this node. */
+
+				if (r->compatible_producable_regs)
+				{
+					/* This rule produces a result, so only match if the register
+					 * is compatible. */
+					if (!(n->desired_reg & r->compatible_producable_regs))
+						continue;
+				}
+				else
+				{
+					/* This rules produces no result, so only match if we likewise
+					 * don't want one. */
+					if (n->desired_reg)
+						continue;
+				}
+			}
+
+			/* Check that the tree matches. */
+
+			if (!template_comparator(matchbytes, r->matchbytes))
+				continue;
+
+			/* If there's a manual predicate, check that too. */
+
+			if (r->predicate && !r->predicate(nodes))
+				continue;
+
+			/* This rule matches! */
+
+			goto matched;
+		}
+		unmatched_instruction(n);
+	matched:
+
+		/* If this is a rewrite rule, apply it now and return to the matcher. */
+
+		if (r->rewriter)
+		{
+			Node* nr = r->rewriter(nodes);
+			nr->desired_reg = n->desired_reg;
+			nr->consumer = n->consumer;
+
+			/* Remember to patch any pointers to the old nodes in the node's
+			 * consumer. */
+			for (int i=0; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
+				if (n->consumer->n[i] == n)
+					n->consumer->n[i] = nr;
+			n = nr;
+			goto rewrite;
+		}
+
+		/* We have a matching instruction, so set it up. */
+
+		producer->rule = r;
+		producer->producable_regs = r->producable_regs;
+		producer->output_regs = r->uses_regs;
+
+		uint8_t copymask = r->copyable_nodes;
+		uint8_t regmask = r->register_nodes;
+		for (int i=0; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
+		{
+			Node* n = nodes[i];
+			if (copymask & 1)
+			{
+				producer->n[i] = n;
+				if (regmask & 1)
+				{
+					push_node(n);
+					n->desired_reg = r->consumable_regs[i];
+					n->consumer = producer;
+				}
+			}
+			copymask >>= 1;
+			regmask >>= 1;
+		}
+
 		n->producer = producer;
 
 		if (producer->producable_regs)
 		{
 			/* The instruction has produced a register. For stackable registers,
-			 * stop now: we ignore them for doiing actual register allocation. */
+			 * stop now: we ignore them for doing actual register allocation. */
 
 			if (!isstacked(producer->producable_regs))
 			{
 				/* Locate the register's consumer and allocate something. */
 
 				Instruction* consumer = n->consumer;
+				assert(consumer);
 				reg_t blocked = calculate_blocked_registers(consumer+1, producer-1);
 
 				reg_t candidate = n->desired_reg & producer->producable_regs;
@@ -394,7 +455,7 @@ void generate(Node* node)
 	while (instructioncount != 0)
 	{
 		Instruction* insn = &instructions[--instructioncount];
-		arch_emit_comment("insn %d rule %d produces 0x%x inputs 0x%x outputs 0x%x",
+		arch_emit_comment("insn %d rule %p produces 0x%x inputs 0x%x outputs 0x%x",
 			insn - instructions,
 			insn->rule,
 			insn->produced_reg,
@@ -420,7 +481,8 @@ void generate(Node* node)
 
 		/* The instruction itself! */
 
-		emit_instruction(insn);
+		if (insn->rule->emitter)
+			insn->rule->emitter(insn);
 
 		/* Emit spills. */
 
