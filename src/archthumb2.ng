@@ -165,7 +165,7 @@
 register r0 r1 r2 r3 r4 r5 r6 r7;
 register param;
 
-regclass reg := r0|r1|r2|r3|r4|r5|r6; // not r7
+regclass reg := r0|r1|r2|r3|r4|r5|r6|r7;
 regdata r0 compatible reg;
 regdata r1 compatible reg;
 regdata r2 compatible reg;
@@ -227,8 +227,8 @@ gen STARTSUB():s
         }
     }
 
-	E("\tpush {r7, lr}\n");
-	E("\tmov r7, r1\n");
+	E("\tpush {r8, lr}\n");
+	E("\tmov r8, r1\n");
 }
 
 gen ENDSUB():s
@@ -246,15 +246,15 @@ gen ENDSUB():s
 			switch (param->u.var.type->u.type.width)
 			{
 				case 1:
-					E("\tldrb r0, [r7, %d]\n", param->u.var.offset);
+					E("\tldrb r0, [r8, %d]\n", param->u.var.offset);
 					break;
 
 				case 2:
-					E("\tldrh r0, [r7, %d]\n", param->u.var.offset);
+					E("\tldrh r0, [r8, %d]\n", param->u.var.offset);
 					break;
 
 				case 4:
-					E("\tldr r0, [r7, %d]\n", param->u.var.offset);
+					E("\tldr r0, [r8, %d]\n", param->u.var.offset);
 					break;
 
 				default:
@@ -262,11 +262,11 @@ gen ENDSUB():s
 			}
 			E("\tpush {r0}\n");
 		}
-		E("\tmov r7, r1\n");
+		E("\tmov r8, r1\n");
 		E("\tbx r2\n");
 	}
 	else
-		E("\tpop {r7, pc}\n");
+		E("\tpop {r8, pc}\n");
 
 	E(".bss\n");
 	E("w%d:\n", $s.sub->arch->id);
@@ -387,42 +387,42 @@ gen reg := ADDRESS():a
 	{ E("\tldr %s, =%s\n", regref($$), symref($a.sym, $a.off)); }
 
 gen reg := ADDRESS(sym is current_sub):a
-	{ E("\tadd %s, r7, #%d\n", regref($$), $a.sym->u.var.offset + $a.off); }
+	{ E("\tadd %s, r8, #%d\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 // --- Loads and stores --------------------------------------------------
 
 gen reg := LOAD1(ADDRESS(sym is current_sub):a)
-	{ E("\tldrb %s, [r7, %d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+	{ E("\tldrb %s, [r8, %d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 gen reg := LOAD1(reg:lhs)
 	{ E("\tldrb %s, [%s]\n", regref($$), regref($lhs)); }
 
 gen reg := LOAD2(ADDRESS(sym is current_sub):a)
-	{ E("\tldrh %s, [r7, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+	{ E("\tldrh %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 gen reg := LOAD2(reg:lhs)
 	{ E("\tldrh %s, [%s]\n", regref($$), regref($lhs)); }
 
 gen reg := LOAD4(ADDRESS(sym is current_sub):a)
-	{ E("\tldr %s, [r7, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+	{ E("\tldr %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 gen reg := LOAD4(reg:lhs)
 	{ E("\tldr %s, [%s]\n", regref($$), regref($lhs)); }
 
 gen STORE1(reg:val, ADDRESS(sym is current_sub):a)
-	{ E("\tstrb %s, [r7, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+	{ E("\tstrb %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
 
 gen STORE1(reg:val, reg:addr)
 	{ E("\tstrb %s, [%s]\n", regref($val), regref($addr)); }
 
 gen STORE2(reg:val, ADDRESS(sym is current_sub):a)
-	{ E("\tstrh %s, [r7, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+	{ E("\tstrh %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
 
 gen STORE2(reg:val, reg:addr)
 	{ E("\tstrh %s, [%s]\n", regref($val), regref($addr)); }
 
 gen STORE4(reg:val, ADDRESS(sym is current_sub):a)
-	{ E("\tstr %s, [r7, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+	{ E("\tstr %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
 
 gen STORE4(reg:val, reg:addr)
 	{ E("\tstr %s, [%s]\n", regref($val), regref($addr)); }
@@ -703,10 +703,25 @@ gen ASMTEXT():t
 gen ASMSYMBOL():s
 {
 	if ($s.sym->kind == VAR)
-		strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+	{
+		if (is_current_sub($s.sym))
+		{
+			int w = strlen(asmbuffer);
+			snprintf(asmbuffer+w, sizeof(asmbuffer)-w, "[r8, #%d]",
+				$s.sym->u.var.offset);
+		}
+		else
+			strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+	}
 	else
 		strlcat(asmbuffer, subref($s.sym->u.sub), sizeof(asmbuffer));
     strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
+
+gen ASMVALUE():c
+{
+	int p = strlen(asmbuffer);
+	snprintf(asmbuffer+p, sizeof(asmbuffer)-p, "%d", $c.value);
 }
 
 gen ASMEND()

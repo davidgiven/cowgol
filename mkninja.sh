@@ -649,19 +649,20 @@ test_80386_linux conditionals
 #test_c outputparams
 #test_c conditionals
 
-cowgol_80386_linux examples/malloc.cow examples/malloc.386
 cowgol_80386_linux examples/argv.cow examples/argv.386
 cowgol_80386_linux examples/file.cow examples/file.386 
+cowgol_80386_linux examples/malloc.cow examples/malloc.386
 cowgol_cpm examples/argv.cow examples/argv.com 
 cowgol_cpm examples/empty.cow examples/empty.com
 cowgol_cpm examples/file.cow examples/file.com 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 cowgol_thumb2_linux examples/argv.cow examples/argv.thumb2 
 cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
+cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
-#cowgol_c examples/malloc.cow examples/malloc
 
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink
 cowgol_cpm src/cowlink/main.cow bin/cowlink.com
+cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2
 
 # vim: sw=4 ts=4 et
