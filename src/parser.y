@@ -787,9 +787,25 @@ asm ::= STRING(token).
 	generate(mid_asmtext(strdup(token->string)));
 }
 
+asm ::= NUMBER(token).
+{
+	generate(mid_asmvalue(token->number));
+}
+
 asm ::= oldid(ID).
 {
-	if ((ID->kind != VAR) && (ID->kind != SUB))
-		fatal("you can only emit references to variables or subroutines");
-	generate(mid_asmsymbol(ID));
+	switch (ID->kind)
+	{
+		case VAR:
+		case SUB:
+			generate(mid_asmsymbol(ID));
+			break;
+
+		case CONST:
+			generate(mid_asmvalue(ID->u.constant));
+			break;
+
+		default:
+			fatal("you can only emit references to variables, subroutines, or constants");
+	}
 }

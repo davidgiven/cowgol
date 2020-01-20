@@ -33,5 +33,12 @@ sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
     @asm "movl %edx, ", rem;
 end sub;
 
+sub MemSet(ptr: [uint8], data: uint8, length: intptr)
+	@asm "mov ", ptr, ", %edi";
+	@asm "mov ", data, ", %al";
+	@asm "mov ", length, ", %ecx";
+	@asm "rep stosb";
+end sub;
+
 include "common.coh";
 

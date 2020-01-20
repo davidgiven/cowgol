@@ -18,17 +18,6 @@ record FCB
 	buffer: uint8[128];
 end record;
 
-sub memset(buf: [uint8], byte: uint8, len: uint16)
-	var bufend := buf + len;
-	loop
-		if buf == bufend then
-			return;
-		end if;
-		[buf] := byte;
-		buf := buf + 1;
-	end loop;
-end sub;
-
 sub file_i_init(fcb: [FCB], filename: [uint8])
 	sub fill(dest: [uint8], src: [uint8], len: uint8): (srcout: [uint8])
 		loop
@@ -54,8 +43,8 @@ sub file_i_init(fcb: [FCB], filename: [uint8])
 		srcout := src;
 	end sub;
 
-	memset(fcb as [uint8], 0, @bytesof FCB);
-	memset(&fcb.cpm.f[0] as [uint8], ' ', 11);
+	MemSet(fcb as [uint8], 0, @bytesof FCB);
+	MemSet(&fcb.cpm.f[0] as [uint8], ' ', 11);
 	filename := fill(&fcb.cpm.f[0], filename, 8);
 
 	var c: uint8;
@@ -91,7 +80,7 @@ sub fcb_i_gbpb(fcb: [FCB], c: uint8)
 end sub;
 
 sub fcb_i_blockin(fcb: [FCB])
-	memset(&fcb.buffer[0], 0, 128);
+	MemSet(&fcb.buffer[0], 0, 128);
 	fcb_i_gbpb(fcb, 33); # READ RANDOM
 	fcb.dirty := 0;
 end sub;
