@@ -209,6 +209,7 @@ regclass r8 := al|bl|cl|dl;
 regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := eax|ebx|ecx|edx|esi|edi;
 regclass ri := ebx|esi|edi;
+regclass allregs := r8|r16|r32|ri;
 
 regdata eax compatible r32    uses eax|ax|al;
 regdata ebx compatible r32|ri uses ebx|bx|bl;
@@ -375,16 +376,16 @@ gen param := PUSHPARAM4(param, CONSTANT():c)
 
 gen CALLS(param);
 
-gen param := CALL0(param):c
+gen param := CALL0(param):c uses allregs
 	{ call($c.sub); }
 
-gen r8 := CALL1(param):c
+gen al := CALL1(param):c uses ebx|ecx|edx|esi|edi
 	{ calln($c.sub, $$); }
 
-gen r16 := CALL2(param):c
+gen ax := CALL2(param):c uses ebx|ecx|edx|esi|edi
 	{ calln($c.sub, $$); }
 
-gen r32 := CALL4(param):c
+gen eax := CALL4(param):c uses ebx|ecx|edx|esi|edi
 	{ calln($c.sub, $$); }
 
 %{

@@ -389,19 +389,19 @@ gen CALLS(param);
 
 // Single return values go in registers.
 
-gen CALLS(POPPARAM1(CALL0(param):c, ADDRESS():a))
+gen CALLS(POPPARAM1(CALL0(param):c, ADDRESS():a)) uses bc|de|hl
 {
 	call($c.sub);
 	E("\tsta %s\n", symref($a.sym, $a.off));
 }
 
-gen CALLS(POPPARAM2(CALL0(param):c, ADDRESS():a))
+gen CALLS(POPPARAM2(CALL0(param):c, ADDRESS():a)) uses bc|de
 {
 	call($c.sub);
 	E("\tshld %s\n", symref($a.sym, $a.off));
 }
 
-gen CALLS(POPPARAM4(CALL0(param):c, ADDRESS():a))
+gen CALLS(POPPARAM4(CALL0(param):c, ADDRESS():a)) uses bc|de
 {
 	call($c.sub);
 	E("\tshld %s\n", symref($a.sym, $a.off+0));
@@ -409,20 +409,20 @@ gen CALLS(POPPARAM4(CALL0(param):c, ADDRESS():a))
 	E("\tshld %s\n", symref($a.sym, $a.off+2));
 }
 
-gen a := CALL1(param):c
+gen a := CALL1(param):c uses bc|de|hl
 	{ call($c.sub); }
 
-gen hl := CALL2(param):c
+gen hl := CALL2(param):c uses a|bc|de
 	{ call($c.sub); }
 
-gen stk4 := CALL4(param):c
+gen stk4 := CALL4(param):c uses a|bc
 {
 	call($c.sub);
 	E("\tpush d\n");
 	E("\tpush h\n");
 }
 
-gen param := CALL0(param):c
+gen param := CALL0(param):c uses a|bc|de|hl
 	{ call($c.sub); }
 
 gen param := POPPARAM1(param, ADDRESS():a) uses a

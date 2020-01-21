@@ -139,9 +139,9 @@
 			return;
 
 		if (!src)
-			E("\tpop %s\n", regref(dest));
+			E("\tpop {%s}\n", regref(dest));
 		else if (!dest)
-			E("\tpush %s\n", regref(src));
+			E("\tpush {%s}\n", regref(src));
 		else
 			E("\tmov %s, %s\n", regref(dest), regref(src));
 	}
@@ -334,16 +334,16 @@ gen param := PUSHPARAM4(param, reg:val)
 
 gen CALLS(param);
 
-gen param := CALL0(param):c
+gen param := CALL0(param):c uses reg
 	{ call($c.sub); }
 
-gen reg := CALL1(param):c
+gen r0 := CALL1(param):c uses r1|r2|r3|r4|r5|r6|r7
 	{ calln($c.sub, $$); }
 
-gen reg := CALL2(param):c
+gen r0 := CALL2(param):c uses r1|r2|r3|r4|r5|r6|r7
 	{ calln($c.sub, $$); }
 
-gen reg := CALL4(param):c
+gen r0 := CALL4(param):c uses r1|r2|r3|r4|r5|r6|r7
 	{ calln($c.sub, $$); }
 
 %{
