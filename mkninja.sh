@@ -326,7 +326,7 @@ cowgol_thumb2_s() {
 
 	rule \
 		"bin/tinycowc-thumb2 -Irt/ -Irt/thumb2-linux/ $in $out > $log" \
-		"$in $deps bin/tinycowc-thumb2 rt/thumb2-linux/cowgol.coh" \
+		"$in $deps bin/tinycowc-thumb2 $stdlib" \
 		"$out $log" \
 		"COWGOL THUMB2 $in"
 }
@@ -363,7 +363,7 @@ cowgol_80386_s() {
 
 	rule \
 		"bin/tinycowc-80386 -Irt/ -Irt/80386-linux/ $in $out > $log" \
-		"$in $deps bin/tinycowc-80386 rt/80386-linux/cowgol.coh" \
+		"$in $deps bin/tinycowc-80386 $stdlib" \
 		"$out $log" \
 		"COWGOL 80386 $in"
 }
@@ -649,18 +649,20 @@ test_80386_linux conditionals
 #test_c outputparams
 #test_c conditionals
 
-cowgol_80386_linux examples/malloc.cow examples/malloc.386
 cowgol_80386_linux examples/argv.cow examples/argv.386
+cowgol_80386_linux examples/file.cow examples/file.386 
+cowgol_80386_linux examples/malloc.cow examples/malloc.386
 cowgol_cpm examples/argv.cow examples/argv.com 
 cowgol_cpm examples/empty.cow examples/empty.com
 cowgol_cpm examples/file.cow examples/file.com 
 cowgol_cpm examples/malloc.cow examples/malloc.com 
 cowgol_thumb2_linux examples/argv.cow examples/argv.thumb2 
 cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
+cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
-#cowgol_c examples/malloc.cow examples/malloc
 
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink
 cowgol_cpm src/cowlink/main.cow bin/cowlink.com
+cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2
 
 # vim: sw=4 ts=4 et

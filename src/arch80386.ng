@@ -421,11 +421,20 @@ gen param := POPPARAM4(param, ADDRESS():a) uses eax
 
 // --- Core conversions --------------------------------------------------
 
+gen r8 := CONSTANT(value == 0)
+	{ E("\txorb %s, %s\n", regref($$), regref($$)); }
+
 gen r8 := CONSTANT(): c
 	{ E("\tmovb $0x%x, %s\n", $c.value & 0xff, regref($$)); }
 
+gen r16 := CONSTANT(value == 0)
+	{ E("\txorw %s, %s\n", regref($$), regref($$)); }
+
 gen r16 := CONSTANT():c
 	{ E("\tmovw $0x%x, %s\n", $c.value & 0xffff, regref($$)); }
+
+gen r32 := CONSTANT(value == 0)
+	{ E("\txorl %s, %s\n", regref($$), regref($$)); }
 
 gen r32 := CONSTANT():c
 	{ E("\tmov $0x%x, %s\n", $c.value, regref($$)); }
@@ -730,6 +739,9 @@ gen BEQS1(r8:lhs, r8:rhs):b
 gen BLTU1(r8:lhs, r8:rhs):b
 	{ cmp("cmpb", "jb", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
+gen BLTS1(r8:lhs, r8:rhs):b
+	{ cmp("cmpb", "jl", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
 gen BEQU2(r16:lhs, r16:rhs):b
 	{ cmp("cmpw", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
@@ -739,6 +751,9 @@ gen BEQS2(r16:lhs, r16:rhs):b
 gen BLTU2(r16:lhs, r16:rhs):b
 	{ cmp("cmpw", "jb", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
+gen BLTS2(r16:lhs, r16:rhs):b
+	{ cmp("cmpw", "jl", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
 gen BEQU4(r32:lhs, r32:rhs):b
 	{ cmp("cmpl", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
@@ -747,6 +762,9 @@ gen BEQS4(r32:lhs, r32:rhs):b
 
 gen BLTU4(r32:lhs, r32:rhs):b
 	{ cmp("cmpl", "jb", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BLTS4(r32:lhs, r32:rhs):b
+	{ cmp("cmpl", "jl", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
 // --- Inline assembly ------------------------------------------------------
 
@@ -768,6 +786,12 @@ gen ASMSYMBOL():s
 	else
 		strlcat(asmbuffer, subref($s.sym->u.sub), sizeof(asmbuffer));
     strlcat(asmbuffer, " ", sizeof(asmbuffer));
+}
+
+gen ASMVALUE():c
+{
+	int p = strlen(asmbuffer);
+	snprintf(asmbuffer+p, sizeof(asmbuffer)-p, "%d", $c.value);
 }
 
 gen ASMEND()

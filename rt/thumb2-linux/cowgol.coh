@@ -4,47 +4,49 @@
 var TOP: [uint8];
 @asm ".extern _top";
 @asm "ldr r0, =_top";
-@asm "ldr r1, =", TOP;
-@asm "str r0, [r1]";
+@asm "str r0, ", TOP;
 
 var HIMEM: [uint8];
-@asm ".extern _top";
+@asm ".extern _himem";
 @asm "ldr r0, =_himem";
-@asm "ldr r1, =", HIMEM;
-@asm "str r0, [r1]";
+@asm "str r0, ", HIMEM;
 
 sub print_char(c: uint8)
+	var pc := &c;
 	@asm "mov r0, #1"; # file descriptor
-	@asm "ldr r1, =", c;
+	@asm "ldr r1, ", pc;
 	@asm "mov r2, #1";
 	@asm "mov r7, #4"; # write()
 	@asm "svc #0";
 end sub;
 
 sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
-	@asm "ldr r0, =", lhs;
-	@asm "ldr r0, [r0]";
-	@asm "ldr r1, =", rhs;
-	@asm "ldr r1, [r1]";
+	@asm "ldr r0, ", lhs;
+	@asm "ldr r1, ", rhs;
 	@asm "udiv r2, r0, r1";
-	@asm "ldr r3, =", quot;
-	@asm "str r2, [r3]";
+	@asm "str r2, ", quot;
 	@asm "mls r2, r2, r1, r0";
-	@asm "ldr r3, =", rem;
-	@asm "str r2, [r3]";
+	@asm "str r2, ", rem;
 end sub;
 
 sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
-	@asm "ldr r0, =", lhs;
-	@asm "ldr r0, [r0]";
-	@asm "ldr r1, =", rhs;
-	@asm "ldr r1, [r1]";
+	@asm "ldr r0, ", lhs;
+	@asm "ldr r1, ", rhs;
 	@asm "sdiv r2, r0, r1";
-	@asm "ldr r3, =", quot;
-	@asm "str r2, [r3]";
+	@asm "str r2, ", quot;
 	@asm "mls r2, r2, r1, r0";
-	@asm "ldr r3, =", rem;
-	@asm "str r2, [r3]";
+	@asm "str r2, ", rem;
+end sub;
+
+sub MemSet(buf: [uint8], byte: uint8, len: intptr)
+	var bufend := buf + len;
+	loop
+		if buf == bufend then
+			return;
+		end if;
+		[buf] := byte;
+		buf := buf + 1;
+	end loop;
 end sub;
 
 include "common.coh";

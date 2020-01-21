@@ -1,0 +1,129 @@
+# System call numbers are here:
+# https://w3challs.com/syscalls/?arch=arm_thumb
+
+const FCB_BUFFER := 512;
+record FCB
+	fd: uint32;
+	bufferptr: uint16; # byte just read
+	dirty: uint8;
+	block: uint32;
+	buffer: uint8[FCB_BUFFER];
+end record;
+
+sub fcb_i_gbpb(fcb: [FCB], s: uint8)
+	var fd := fcb.fd;
+	var dma := &fcb.buffer[0];
+	var pos := fcb.block << 9;
+
+	@asm "ldrb r0, ", s;
+	@asm "ldrb r0, ", fd;
+	@asm "ldr r1, ", dma;
+	@asm "mov r2, #", FCB_BUFFER;
+	@asm "ldr r4, ", pos;
+	@asm "ldrb r7, ", s;
+	@asm "swi 0";
+end sub;
+
+sub fcb_i_blockin(fcb: [FCB])
+	MemSet(&fcb.buffer[0], 0, FCB_BUFFER);
+	fcb_i_gbpb(fcb, 0xb4); # PREAD64
+	fcb.dirty := 0;
+end sub;
+
+sub fcb_i_blockout(fcb: [FCB])
+	if fcb.dirty != 0 then
+		fcb_i_gbpb(fcb, 0xb5); # PWRITE64
+		fcb.dirty := 0;
+	end if;
+end sub;
+
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint32)
+	if newblock != fcb.block then
+		fcb_i_blockout(fcb);
+		fcb.block := newblock;
+		fcb_i_blockin(fcb);
+	end if;
+end sub;
+
+sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8)
+	MemSet(fcb as [uint8], 0, @bytesof FCB);
+	fcb.bufferptr := FCB_BUFFER - 1;
+	fcb.block := -1;
+
+	@asm "ldr r0, ", filename;
+	@asm "ldr r1, ", flags;
+	@asm "mov r2, #", 0o666; # umask
+	@asm "mov r7, #5"; # OPEN
+	@asm "swi 0";
+	var fd: int32;
+	@asm "str r0, ", fd;
+	fcb.fd := fd as uint32;
+	if fd < 0 then
+		errno := (-fd) as uint8;
+	else
+		errno := 0;
+	end if;
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
+	(errno) := fcb_i_open(fcb, filename, 0o0000); # O_RDONLY
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8)
+	(errno) := fcb_i_open(fcb, filename, 0o0002); # O_RDWR
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8)
+	(errno) := fcb_i_open(fcb, filename, 0o1102); # O_RDWR|O_CREAT|O_TRUNC
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8)
+	fcb_i_blockout(fcb);
+
+	var fd := fcb.fd;
+	@asm "ldrb r0, ", fd;
+	@asm "mov r7, #6"; # CLOSE
+	@asm "swi 0";
+	@asm "neg r0, r0";
+	@asm "strb r0, ", errno;
+end sub;
+
+sub FCBSeek(fcb: [FCB], pos: uint32)
+	var newblock := pos >> 9;
+	var newptr := (pos as uint16) & (FCB_BUFFER-1);
+	fcb_i_changeblock(fcb, newblock);
+	fcb.bufferptr := newptr;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32)
+	fcb_i_blockout(fcb);
+
+	var fd := fcb.fd;
+	@asm "ldrb r0, ", fd;
+	@asm "mov r1, #0"; # offset
+	@asm "mov r2, #2"; # SEEK_END
+	@asm "mov r7, #19"; # LSEEK
+	@asm "swi 0";
+	@asm "str r0, ", len;
+	len := (len + FCB_BUFFER - 1) & ~(FCB_BUFFER - 1);
+end sub;
+
+sub fcb_i_nextchar(fcb: [FCB])
+	fcb.bufferptr := fcb.bufferptr + 1;
+	if fcb.bufferptr == FCB_BUFFER then
+		fcb_i_changeblock(fcb, fcb.block + 1);
+		fcb.bufferptr := 0;
+	end if;
+end sub;
+
+sub FCBGetChar(fcb: [FCB]): (c: uint8)
+	fcb_i_nextchar(fcb);
+	c := fcb.buffer[fcb.bufferptr];
+end sub;
+
+sub FCBPutChar(fcb: [FCB], c: uint8)
+	fcb_i_nextchar(fcb);
+	fcb.buffer[fcb.bufferptr] := c;
+	fcb.dirty := 1;
+end sub;
+

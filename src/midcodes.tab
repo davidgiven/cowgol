@@ -9,6 +9,7 @@
 - 0 0 ASMSTART()
 - 0 0 ASMTEXT(const char* text) = ("%s", $$.text)
 - 0 0 ASMSYMBOL(struct symbol* sym) = ("%s", $$.sym->name)
+- 0 0 ASMVALUE(int32_t value) = ("%d", $$.value)
 - 0 0 ASMEND()
 
 # This one is used internally for bookkeeping and the backend should never see it.

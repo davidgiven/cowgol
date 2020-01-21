@@ -54,5 +54,16 @@ sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
 	@asm "shld 2+", quot;
 end sub;
 
+sub MemSet(buf: [uint8], byte: uint8, len: uint16)
+	var bufend := buf + len;
+	loop
+		if buf == bufend then
+			return;
+		end if;
+		[buf] := byte;
+		buf := buf + 1;
+	end loop;
+end sub;
+
 include "common.coh";
 

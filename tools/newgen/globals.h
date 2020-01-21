@@ -112,6 +112,7 @@ struct rule
 	Action* action;
 	Node* replacement;
 	Node** nodes;
+	bool has_predicates;
 };
 
 extern int errcnt;
