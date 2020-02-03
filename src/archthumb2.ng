@@ -181,7 +181,7 @@ gen STARTFILE()
     emitter_open_chunk();
 	E(".syntax unified\n");
 	E(".code 16\n");
-    emitter_close_chunk();
+    emitter_close_chunk(NULL);
 }
 
 gen ENDFILE();
@@ -275,7 +275,7 @@ gen ENDSUB():s
 		E("\t.align 4\n");
 		E("\t.space %d\n", $s.sub->workspace[0]);
 	}
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 }
 
 // --- Control flow ------------------------------------------------------
@@ -318,7 +318,7 @@ gen param := PUSHPARAM4(param, reg:val)
 		{
 			emitter_open_chunk();
 			E("\t.extern %s\n", sub->externname);
-			emitter_close_chunk();
+			emitter_close_chunk(current_sub);
 		}
 
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
@@ -753,7 +753,7 @@ gen reg := STRING():s
     if (!start)
         E(", ");
     E("0\n");
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 
     E("\tldr %s, =s%d\n", regref($$), sid);
 }

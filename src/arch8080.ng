@@ -212,7 +212,7 @@ gen STARTFILE()
 	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
 	E("\textrn store4\n");
-    emitter_close_chunk();
+    emitter_close_chunk(NULL);
 }
 
 gen ENDFILE();
@@ -335,7 +335,7 @@ gen ENDSUB():s
 
     E("\tdseg\n");
 	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace[0]);
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 }
 
 // --- Control flow ------------------------------------------------------
@@ -377,7 +377,7 @@ gen param := PUSHPARAM4(param, stk4);
 		{
 			emitter_open_chunk();
 			E("\textrn %s\n", sub->externname);
-			emitter_close_chunk();
+			emitter_close_chunk(current_sub);
 		}
 
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
@@ -650,7 +650,7 @@ gen a := EOR1(a, b|d|h:rhs)
 	{ E("\txra %s\n", regref($rhs)); }
 
 gen a := NOT1(a)
-	{ E("\txri -1"); }
+	{ E("\txri -1\n"); }
 
 gen a := AND1(a, CONSTANT():c)
 	{ E("\tani %d\n", $c.value & 0xff); }
@@ -1074,7 +1074,7 @@ gen bc|de|hl := STRING():s
     if (!start)
         E(", ");
     E("0\n");
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 
     E("\tlxi %s, s%d\n", regref($$), sid);
 }

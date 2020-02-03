@@ -234,7 +234,7 @@ gen STARTFILE()
 {
     emitter_open_chunk();
 	E("\t.code32\n");
-    emitter_close_chunk();
+    emitter_close_chunk(NULL);
 }
 
 gen ENDFILE();
@@ -308,7 +308,7 @@ gen ENDSUB():s
 	E("w%d:\n", $s.sub->arch->id);
 	if ($s.sub->workspace[0] != 0)
 		E("\t.space %d\n", $s.sub->workspace[0]);
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 }
 
 // --- Control flow ------------------------------------------------------
@@ -360,7 +360,7 @@ gen param := PUSHPARAM4(param, CONSTANT():c)
 		{
 			emitter_open_chunk();
 			E("\t.extern %s\n", sub->externname);
-			emitter_close_chunk();
+			emitter_close_chunk(current_sub);
 		}
 
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
@@ -824,7 +824,7 @@ gen r32 := STRING():s
     if (!start)
         E(", ");
     E("0\n");
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 
 	E("\tlea s%d, %s\n", sid, regref($$));
 }

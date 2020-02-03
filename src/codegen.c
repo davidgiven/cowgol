@@ -132,7 +132,9 @@ static void shuffle_registers(Regmove* moves)
 	Regmove* m = moves;
 	while (m)
 	{
+		#if 0
 		arch_emit_comment("spill/reload 0x%x -> 0x%x", m->src, m->dest);
+		#endif
 		dests |= m->dest;
 		srcs |= m->src;
 		m = m->next;
@@ -455,6 +457,7 @@ void generate(Node* node)
 	while (instructioncount != 0)
 	{
 		Instruction* insn = &instructions[--instructioncount];
+		#if 0
 		arch_emit_comment("insn %d rule %p produces 0x%x inputs 0x%x outputs 0x%x",
 			insn - instructions,
 			insn->rule,
@@ -468,6 +471,7 @@ void generate(Node* node)
 				arch_emit_comment("consumes 0x%x from insn %d",
 					n->produced_reg, n->producer - instructions);
 		}
+		#endif
 		
 		/* Emit reloads. */
 
