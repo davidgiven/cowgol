@@ -9,6 +9,8 @@ var HIMEM: [uint8];
 @asm ".extern _himem";
 @asm "movl $_himem, ", HIMEM;
 
+extern sub Exit() := "_exit";
+
 sub print_char(c: uint8)
     @asm "movl $4, %eax";
     @asm "movl $1, %ebx";

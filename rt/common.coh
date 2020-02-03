@@ -72,3 +72,8 @@ sub print_hex_i32(value: uint32)
     print_hex_i8((value >> 8) as uint8);
     print_hex_i8(value as uint8);
 end sub;
+
+sub ExitWithError()
+	Exit();
+end sub;
+

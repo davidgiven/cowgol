@@ -14,6 +14,7 @@ _start:
 	ldr r0, =_thumb_start
 	bx r0
 
+.global _exit
 .thumb_func
 _thumb_start:
 	add r1, sp, #4
@@ -21,6 +22,7 @@ _thumb_start:
 	str r1, [r0]
 
 	bl cmain
+_exit:
 	mov r0, #0
 	mov r7, #1 /* __exit() */
 	svc #0

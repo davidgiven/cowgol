@@ -1,9 +1,11 @@
     extrn cmain
+    public _exit
 
     ; CP/M entry point at 0x100.
 
     lxi sp, stackend
     call cmain
+_exit:
     rst 0
     dseg
 stack:
