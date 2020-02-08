@@ -2,6 +2,37 @@ record Coo
 	fcb: FCB;
 end record;
 
+record Subroutine
+	id: uint16;
+	next: [Subroutine];
+	offset: uint32;
+end record;
+
+sub read_hex4(fcb: [FCB]): (val: uint16)
+	var i: uint8 := 4;
+	val := 0;
+	loop
+		var c := FCBGetChar(fcb);
+		if (c >= '0') and (c <= '9') then
+			c := c - '0';
+		else
+			c := c & ~0x20;
+			if (c >= 'A') and (c <= 'F') then
+				c := c - ('A' - 10);
+			else
+				print("error: invalid hex number in coofile\n");
+				ExitWithError();
+			end if;
+		end if;
+		val := (val << 4) + (c as uint16);
+
+		i := i - 1;
+		if i == 0 then
+			break;
+		end if;
+	end loop;
+end sub;
+
 sub OpenCoo(filename: [uint8]): (coo: [Coo])
 	coo := Alloc(@bytesof Coo) as [Coo];
 	if FCBOpenIn(&coo.fcb, filename) != 0 then
@@ -10,5 +41,22 @@ sub OpenCoo(filename: [uint8]): (coo: [Coo])
 		print("'\n");
 		ExitWithError();
 	end if;
+
+	loop
+		var c := FCBGetChar(&coo.fcb);
+		var len := read_hex4(&coo.fcb);
+		var here := FCBPos(&coo.fcb);
+		if c == 'E' then
+			break;
+		elseif c == 'R' then
+			var userid := read_hex4(&coo.fcb);
+			var usedid := read_hex4(&coo.fcb);
+			print_hex_i16(userid);
+			print_char(' ');
+			print_hex_i16(usedid);
+			print_nl();
+		end if;
+		FCBSeek(&coo.fcb, here + (len as uint32));
+	end loop;
 end sub;
 

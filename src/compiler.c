@@ -174,6 +174,9 @@ struct midnode* expr_shift(struct midnode* lhs, struct midnode* rhs,
 	if (rhs->type != uint8_type)
 		fatal("uint8 required on RHS of shift");
 
+	if (!lhs->type && rhs->type)
+		fatal("untyped constants not allowed on LHS of shift unless RHS is also an untype constant");
+
 	struct midnode* r = (is_snum(lhs->type) ? emitters : emitteru)
 		(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
 	r->type = lhs->type;
@@ -190,7 +193,7 @@ void cond_simple(int truelabel, int falselabel, struct midnode* lhs, struct midn
 
 	generate(
 		(is_snum(lhs->type) ? emitters : emitteru)
-			(lhs->type->u.type.width, lhs, rhs, truelabel, falselabel));
+			(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs, truelabel, falselabel));
 }
 
 struct symbol* dealias(struct symbol* sym)

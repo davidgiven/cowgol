@@ -990,8 +990,8 @@ gen a|d := CAST41(stk4) uses hl|bc
 	
 gen hl|de := CAST42(stk4) uses bc
 {
-	E("\tpop b\n");
 	E("\tpop %s\n", regref($$));
+	E("\tpop b\n");
 }
 	
 // --- Inline assembly ------------------------------------------------------

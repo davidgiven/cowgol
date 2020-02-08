@@ -23,7 +23,7 @@ void emitter_close(void)
 {
     if (current)
         fatal("output chunks still open");
-	fprintf(outfile, "E");
+	fprintf(outfile, "E0000");
 }
 
 static void write_record_header(char kind, uint16_t len)
@@ -33,7 +33,7 @@ static void write_record_header(char kind, uint16_t len)
 
 void emitter_reference_subroutine(Subroutine* user, Subroutine* used)
 {
-	write_record_header('R', 9);
+	write_record_header('R', 9); /* includes newline */
 	fprintf(outfile, "%04X%04X\n", user->id, used->id);
 }
 
