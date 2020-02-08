@@ -13,11 +13,6 @@
 	#define E emitter_printf
 	static char asmbuffer[80];
 
-	struct subarch
-	{
-		int id;
-	};
-
 	static int id = 1;
 	static Symbol* int8_type;
 	static Symbol* int16_type;
@@ -58,11 +53,7 @@
 		return int32_type;
 	}
 
-	void arch_init_subroutine(struct subroutine* sub)
-	{
-		sub->arch = calloc(1, sizeof(struct subarch));
-		sub->arch->id = id++;
-	}
+	void arch_init_subroutine(struct subroutine* sub) {}
 
 	void arch_init_variable(struct symbol* var)
 	{
@@ -112,7 +103,7 @@
 			return sub->externname;
 		
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
+		snprintf(buffer, sizeof(buffer), "f%d", sub->id);
 		return buffer;
 	}
 
@@ -120,7 +111,7 @@
 	{
 		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "w%d%+d",
-			sym->u.var.sub->arch->id,
+			sym->u.var.sub->id,
 			sym->u.var.offset + off);
 		return buffer;
 	}
@@ -197,7 +188,7 @@ gen STARTSUB():s
 	E(".thumb_func\n");
     E("%s:\n", subref($s.sub));
 
-	E("\tldr r1, =w%d\n", $s.sub->arch->id);
+	E("\tldr r1, =w%d\n", $s.sub->id);
     if ($s.sub->inputparameters != 0)
     {
         for (int i=$s.sub->inputparameters-1; i>=0; i--)
@@ -269,7 +260,7 @@ gen ENDSUB():s
 		E("\tpop {r8, pc}\n");
 
 	E(".bss\n");
-	E("w%d:\n", $s.sub->arch->id);
+	E("w%d:\n", $s.sub->id);
 	if ($s.sub->workspace[0])
 	{
 		E("\t.align 4\n");

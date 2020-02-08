@@ -2,7 +2,9 @@ include "cowgol.coh";
 include "argv.coh";
 include "malloc.coh";
 include "strings.coh";
-#include "file.coh";
+include "file.coh";
+
+include "src/cowlink/cooread.coh";
 
 print("COWLINK: ");
 print_i16((GetFreeMemory() >> 10) as uint16);
@@ -18,6 +20,8 @@ sub AddInputFile(filename: [uint8])
 	print("Adding input file: ");
 	print(filename);
 	print_nl();
+
+	var coo := OpenCoo(filename);
 end sub;
 
 ArgvInit();

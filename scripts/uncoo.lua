@@ -11,7 +11,8 @@ while true do
 		break
 	elseif kind == 'S' then
 		local len = tonumber("0x"..infile:read(4))
-		local data = infile:read(len)
+		local subid = tonumber("0x"..infile:read(4))
+		local data = infile:read(len - 4)
 		outfile:write(data)
 	else
 		error("unknown record")

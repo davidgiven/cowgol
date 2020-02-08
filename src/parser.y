@@ -14,6 +14,7 @@
 
     static int break_label;
 	struct subroutine* current_sub;
+	static int id = 1;
 
 	struct iflabels
 	{
@@ -384,6 +385,7 @@ startsubroutine(oldsub) ::= SUB newid(sym).
 	struct subroutine* sub = calloc(1, sizeof(struct subroutine));
 	sub->name = sym->name;
 	sub->namespace.parent = &current_sub->namespace;
+	sub->id = id++;
 	arch_init_subroutine(sub);
 	break_label = 0;
 

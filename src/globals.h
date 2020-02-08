@@ -105,6 +105,7 @@ struct subroutine
 	int inputparameters;
 	int outputparameters;
 	int old_break_label;
+	int id;
 	struct subarch* arch;
 };
 

@@ -1,0 +1,14 @@
+record Coo
+	fcb: FCB;
+end record;
+
+sub OpenCoo(filename: [uint8]): (coo: [Coo])
+	coo := Alloc(@bytesof Coo) as [Coo];
+	if FCBOpenIn(&coo.fcb, filename) != 0 then
+		print("error: unable to open '");
+		print(filename);
+		print("'\n");
+		ExitWithError();
+	end if;
+end sub;
+

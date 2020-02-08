@@ -49,7 +49,8 @@ void emitter_close_chunk(struct subroutine* sub)
 	if (current->fill > 0xffff)
 		fatal("chunk too big");
 
-	write_record_header('S', current->fill);
+	write_record_header('S', current->fill + 4);
+	fprintf(outfile, "%04X", sub ? sub->id : 0);
     fwrite(current->data, 1, current->fill, outfile);
 
     struct chunk* oldchunk = current;

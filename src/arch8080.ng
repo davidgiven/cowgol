@@ -13,11 +13,6 @@
 	#define E emitter_printf
 	static char asmbuffer[80];
 
-	struct subarch
-	{
-		int id;
-	};
-
 	static int id = 1;
 	static Symbol* uint32_type;
 	static Symbol* int32_type;
@@ -53,11 +48,7 @@
 		return int32_type;
 	}
 
-	void arch_init_subroutine(struct subroutine* sub)
-	{
-		sub->arch = calloc(1, sizeof(struct subarch));
-		sub->arch->id = id++;
-	}
+	void arch_init_subroutine(struct subroutine* sub) {}
 
 	void arch_init_variable(struct symbol* var)
 	{
@@ -111,7 +102,7 @@
 			return sub->externname;
 		
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
+		snprintf(buffer, sizeof(buffer), "f%d", sub->id);
 		return buffer;
 	}
 
@@ -119,7 +110,7 @@
 	{
 		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "w%d%+d",
-			sym->u.var.sub->arch->id,
+			sym->u.var.sub->id,
 			sym->u.var.offset + off);
 		return buffer;
 	}
@@ -334,7 +325,7 @@ gen ENDSUB():s
 	}
 
     E("\tdseg\n");
-	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace[0]);
+	E("w%d: ds %d\n", $s.sub->id, $s.sub->workspace[0]);
     emitter_close_chunk(current_sub);
 }
 

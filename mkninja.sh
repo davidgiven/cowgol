@@ -672,8 +672,9 @@ cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
 cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
 
-cowgol_80386_linux src/cowlink/main.cow bin/cowlink
-cowgol_cpm src/cowlink/main.cow bin/cowlink.com
-cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2
+cowlink_coh=$(echo src/cowlink/*.coh)
+cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"
+cowgol_cpm src/cowlink/main.cow bin/cowlink.com "$cowlink_coh"
+cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2 "$cowlink_coh"
 
 # vim: sw=4 ts=4 et
