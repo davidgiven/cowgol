@@ -9,6 +9,7 @@
     #include "parser.h"
 	#include "compiler.h"
 	#include "codegen.h"
+	#include "emitter.h"
 
     int current_label = 1;
 
@@ -297,6 +298,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 	Symbol* param = get_output_parameters(S);
 	E = mid_call(param->u.var.type->u.type.width, EIN, S);
 	E->type = param->u.var.type;
+	emitter_reference_subroutine(current_sub, S);
 }
 
 %include
@@ -319,6 +321,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 
 		discard(node->left);
 		node->left = mid_call0(inputs, sub);
+		emitter_reference_subroutine(current_sub, sub);
 		return mid_calls(outputs);
 	}
 }
@@ -393,6 +396,10 @@ startsubroutine(oldsub) ::= SUB newid(sym).
 	sym->u.sub = sub;
 
 	current_sub = sub;
+
+	/* Make sure that this subroutine refers to its lexical parent. */
+
+	emitter_reference_subroutine(current_sub, oldsub);
 }
 
 statement ::= startrealsubroutine(oldsub) statements END SUB.

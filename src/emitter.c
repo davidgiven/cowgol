@@ -31,6 +31,12 @@ static void write_record_header(char kind, uint16_t len)
 	fprintf(outfile, "%c%04X", kind, len);
 }
 
+void emitter_reference_subroutine(Subroutine* user, Subroutine* used)
+{
+	write_record_header('R', 9);
+	fprintf(outfile, "%04X%04X\n", user->id, used->id);
+}
+
 void emitter_open_chunk(void)
 {
     struct chunk* newchunk = calloc(1, sizeof(struct chunk));
@@ -41,7 +47,7 @@ void emitter_open_chunk(void)
     current = newchunk;
 }
 
-void emitter_close_chunk(struct subroutine* sub)
+void emitter_close_chunk(Subroutine* sub)
 {
     if (!current)
         fatal("no output chunk open");

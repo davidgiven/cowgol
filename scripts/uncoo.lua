@@ -14,6 +14,11 @@ while true do
 		local subid = tonumber("0x"..infile:read(4))
 		local data = infile:read(len - 4)
 		outfile:write(data)
+	elseif kind == 'R' then
+		local len = tonumber("0x"..infile:read(4))
+		local userid = tonumber("0x"..infile:read(4))
+		local usedid = tonumber("0x"..infile:read(4))
+		infile:read(len - 8)
 	else
 		error("unknown record")
 	end
