@@ -307,6 +307,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 	{
 		check_input_parameters(sub, inputs);
 		check_output_parameters(sub, outputs);
+		emitter_reference_subroutine(current_sub, sub);
 
 		if (sub->outputparameters == 0)
 			return mid_calls(mid_call0(inputs, sub));
@@ -321,7 +322,6 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 
 		discard(node->left);
 		node->left = mid_call0(inputs, sub);
-		emitter_reference_subroutine(current_sub, sub);
 		return mid_calls(outputs);
 	}
 }
