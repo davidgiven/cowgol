@@ -399,6 +399,7 @@ startsubroutine(oldsub) ::= SUB newid(sym).
 
 	/* Make sure that this subroutine refers to its lexical parent. */
 
+	emitter_declare_subroutine(current_sub);
 	emitter_reference_subroutine(current_sub, oldsub);
 }
 
@@ -556,12 +557,13 @@ expression(E) ::= expression(E1) RSHIFT expression(E2).    { E = expr_shift(E1, 
 
 expression(E) ::= expression(E1) AS typeref(T).
 {
+	check_non_partial_type(T);
 	if (E1->type && (E1->type->u.type.width != T->u.type.width))
 	{
 		if (is_ptr(E1->type) || is_ptr(T))
 		{
-			fatal("cast between pointer and non-pointer of a different size (%s and %s)",
-				E1->type->name, T->name);
+			fatal("cast between pointer and non-pointer of a different size (%s (%d) and %s (%d))",
+				E1->type->name, E1->type->u.type.width, T->name, T->u.type.width);
 		}
 
 		E = mid_c_cast(T->u.type.width, E1);
@@ -646,16 +648,26 @@ lvalue(E) ::= lvalue(E1) DOT ID(X).
 	E->type = make_pointer_type(member->u.var.type);
 }
 
-%type newid {struct symbol*}
+%type newid {Symbol*}
 newid(S) ::= ID(token).
 {
     S = add_new_symbol(NULL, token->string);
 }
 
-%type oldid {struct symbol*}
+%type oldid {Symbol*}
 oldid(S) ::= ID(token).
 {
     S = lookup_symbol(NULL, token->string);
+	if (!S)
+		fatal("symbol '%s' not found", token->string);
+}
+
+%type eitherid {Symbol*}
+eitherid(S) ::= ID(token).
+{
+	S = lookup_symbol(NULL, token->string);
+	if (!S)
+		S = add_new_symbol(NULL, token->string);
 }
 
 /* --- Conditional expressions ------------------------------------------- */
@@ -728,9 +740,15 @@ conditional ::= expression(T1) LEOP expression(T2).
 
 /* --- Types ------------------------------------------------------------- */
 
-typeref(sym) ::= oldid(id).
+typeref(sym) ::= eitherid(id).
 {
     sym = id;
+	if (!sym->kind)
+	{
+		/* Create a partial type ref. */
+		sym->kind = TYPE;
+		sym->u.type.kind = TYPE_PARTIAL;
+	}
     if (sym->kind != TYPE)
         fatal("expected '%s' to be a type", sym->name);
 }
@@ -752,9 +770,13 @@ statement ::= recordstatement.
 %destructor recordstatement { current_type = NULL; }
 recordstatement ::= RECORD recordstart recordmembers END RECORD.
 
-recordstart ::= newid(S).
+recordstart ::= eitherid(S).
 {
 	current_type = S;
+	if ((current_type->kind != 0) && (current_type->kind != TYPE))
+		symbol_redeclaration(current_type);
+	if (current_type->u.type.kind != TYPE_PARTIAL)
+		symbol_redeclaration(current_type);
 	current_type->kind = TYPE;
 	current_type->u.type.kind = TYPE_RECORD;
 }

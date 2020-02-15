@@ -261,7 +261,6 @@ struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 		namespace = namespace->parent;
 	}
 
-	fatal("symbol '%s' not found", name);
 	return NULL;
 }
 
@@ -270,6 +269,19 @@ void init_var(struct symbol* sym, struct symbol* type)
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
 	arch_init_variable(sym);
+}
+
+void symbol_redeclaration(Symbol* sym)
+{
+	fatal("attempt to redefine symbol '%s'", sym->name);
+}
+
+/* node must not be a partial type. */
+void check_non_partial_type(Symbol* sym)
+{
+	if (sym->u.type.kind == TYPE_PARTIAL)
+		fatal("attempt to use partial type '%s' in a context where it can't be partial",
+			sym->name);
 }
 
 /* node must be on the top of the midend stack. */
@@ -315,6 +327,8 @@ struct symbol* make_pointer_type(struct symbol* type)
 
 struct symbol* make_array_type(struct symbol* type, int32_t size)
 {
+	check_non_partial_type(type);
+
 	struct symbol* ptr = add_new_symbol(NULL, NULL);
 	ptr->name = aprintf("%s[%d]", type->name, size);
 	ptr->kind = TYPE;

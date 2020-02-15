@@ -1,11 +1,20 @@
-record Coo
-	fcb: FCB;
+record Subroutine
+	next: [Subroutine];
+	id: uint16;
+	offset: uint32;
+	refs: [Reference];
+	name: [uint8];
+	used: uint8;
 end record;
 
-record Subroutine
-	id: uint16;
-	next: [Subroutine];
-	offset: uint32;
+record Reference
+	next: [Reference];
+	target: [Subroutine];
+end record;
+
+record Coo
+	fcb: FCB;
+	subroutines: [Subroutine];
 end record;
 
 sub read_hex4(fcb: [FCB]): (val: uint16)
@@ -33,7 +42,56 @@ sub read_hex4(fcb: [FCB]): (val: uint16)
 	end loop;
 end sub;
 
-sub OpenCoo(filename: [uint8]): (coo: [Coo])
+sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
+	ptr := Alloc((len+1) as intptr) as [uint8];
+	var p := ptr;
+	loop
+		if len == 0 then
+			break;
+		end if;
+		[p] := FCBGetChar(fcb);
+		p := p + 1;
+		len := len - 1;
+	end loop;
+end sub;
+
+sub AddRef(user: [Subroutine], used: [Subroutine])
+	var ref := user.refs;
+	loop
+		if ref == (0 as [Reference]) then
+			break;
+		end if;
+		if ref.target == used then
+			return;
+		end if;
+		ref := ref.next;
+	end loop;
+
+	ref := Alloc(@bytesof Reference) as [Reference];
+	ref.target := used;
+	ref.next := user.refs;
+	user.refs := ref;
+end sub;
+
+sub FindSub(coo: [Coo], id: uint16): (subroutine: [Subroutine])
+	subroutine := coo.subroutines;
+	loop
+		if subroutine == (0 as [Subroutine]) then
+			break;
+		end if;
+		if subroutine.id == id then
+			return;
+		end if;
+		subroutine := subroutine.next;
+	end loop;
+
+	subroutine := Alloc(@bytesof Subroutine) as [Subroutine];
+	subroutine.id := id;
+	subroutine.next := coo.subroutines;
+	coo.subroutines := subroutine;
+end sub;
+
+sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 	coo := Alloc(@bytesof Coo) as [Coo];
 	if FCBOpenIn(&coo.fcb, filename) != 0 then
 		print("error: unable to open '");
@@ -42,19 +100,24 @@ sub OpenCoo(filename: [uint8]): (coo: [Coo])
 		ExitWithError();
 	end if;
 
+	var id: uint16;
 	loop
 		var c := FCBGetChar(&coo.fcb);
 		var len := read_hex4(&coo.fcb);
 		var here := FCBPos(&coo.fcb);
 		if c == 'E' then
 			break;
+		elseif c == 'S' then
+			id := read_hex4(&coo.fcb);
+			#var subroutine := FindSub(coo, id);
 		elseif c == 'R' then
 			var userid := read_hex4(&coo.fcb);
 			var usedid := read_hex4(&coo.fcb);
-			print_hex_i16(userid);
-			print_char(' ');
-			print_hex_i16(usedid);
-			print_nl();
+			AddRef(FindSub(coo, userid), FindSub(coo, usedid));
+		elseif c == 'N' then
+			id := read_hex4(&coo.fcb);
+			var subroutine := FindSub(coo, id);
+			subroutine.name := read_string(&coo.fcb, (len as uint8) - 5);
 		end if;
 		FCBSeek(&coo.fcb, here + (len as uint32));
 	end loop;

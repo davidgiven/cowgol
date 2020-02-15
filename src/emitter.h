@@ -7,6 +7,7 @@ void emitter_printf(const char* fmt, ...);
 void emitter_vprintf(const char* fmt, va_list ap);
 void emitter_close_chunk(Subroutine* sub);
 void emitter_reference_subroutine(Subroutine* user, Subroutine* used);
+void emitter_declare_subroutine(Subroutine* sub);
 void emitter_close(void);
 
 #endif

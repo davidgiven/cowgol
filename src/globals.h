@@ -22,6 +22,7 @@ extern int32_t number;
 
 enum
 {
+	TYPE_PARTIAL,
 	TYPE_NUMBER,
 	TYPE_POINTER,
 	TYPE_ARRAY,

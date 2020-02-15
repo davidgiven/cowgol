@@ -37,6 +37,12 @@ void emitter_reference_subroutine(Subroutine* user, Subroutine* used)
 	fprintf(outfile, "%04X%04X\n", user->id, used->id);
 }
 
+void emitter_declare_subroutine(Subroutine* sub)
+{
+	write_record_header('N', 4 + 1 + strlen(sub->name));
+	fprintf(outfile, "%04X%s\n", sub->id, sub->name);
+}
+
 void emitter_open_chunk(void)
 {
     struct chunk* newchunk = calloc(1, sizeof(struct chunk));

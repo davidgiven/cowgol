@@ -18,6 +18,8 @@ while true do
 	elseif kind == 'R' then
 		local userid = tonumber("0x"..infile:read(4))
 		local usedid = tonumber("0x"..infile:read(4))
+	elseif kind == 'N' then
+		-- ignore
 	else
 		error("unknown record")
 	end

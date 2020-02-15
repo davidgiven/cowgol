@@ -101,6 +101,7 @@ int main(int argc, char* argv[])
 	arch_init_subroutine(current_sub);
 	generate(mid_startfile());
 	generate(mid_startsub(current_sub));
+	emitter_declare_subroutine(current_sub);
 
 	void* parser = ParseAlloc(malloc);
 	// ParseTrace(stderr, "P:");

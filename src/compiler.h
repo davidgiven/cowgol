@@ -32,6 +32,8 @@ extern void init_member(struct symbol* sym, struct symbol* type);
 extern struct symbol* make_pointer_type(struct symbol* type);
 extern struct symbol* make_array_type(struct symbol* type, int32_t size);
 
+extern void check_non_partial_type(Symbol* sym);
+extern void symbol_redeclaration(Symbol* sym);
 extern void check_expression_type(struct symbol** node, struct symbol* type);
 extern void unescape(char* string);
 

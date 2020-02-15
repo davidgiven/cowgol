@@ -11,6 +11,10 @@ var HIMEM: [uint8];
 
 extern sub Exit() := "_exit";
 
+sub AlignUp(in: intptr): (out: intptr)
+	out := in;
+end sub;
+
 sub print_char(c: uint8)
     @asm "movl $4, %eax";
     @asm "movl $1, %ebx";

@@ -27,6 +27,8 @@ sub DumpBlocks()
 end sub;
 
 sub Alloc(length: intptr): (block: [uint8])
+	length := AlignUp(length);
+
 	var prev := freeList;
 	var p := prev.next;
 	loop
@@ -54,9 +56,12 @@ sub Alloc(length: intptr): (block: [uint8])
 	end loop;
 
 	block := p as [uint8];
+	MemSet(block, 0, length);
 end sub;
 
 sub Free(start: [uint8], length: intptr)
+	length := AlignUp(length);
+
 	var h := start as [FreeBlock];
 	h.size := length;
 
