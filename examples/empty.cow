@@ -1,3 +1,6 @@
 include "cowgol.coh";
 
-print("Hello, world!\n");
+var i: int8 := 0;
+var j: int8 := 99;
+var k := i + j;
+

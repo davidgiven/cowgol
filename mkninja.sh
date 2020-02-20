@@ -399,7 +399,7 @@ test_80386_linux() {
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
-cowgol_c_c() {
+cowgol_cgen_coo() {
 	local in
 	local out
 	local log
@@ -410,21 +410,17 @@ cowgol_c_c() {
 	deps=$4
 
 	rule \
-		"bin/tinycowc-c -Irt/ -Irt/c/ $in $out > $log" \
-		"$in $deps bin/tinycowc-c rt/c/cowgol.coh" \
+		"bin/tinycowc-cgen -Irt/ -Irt/cgen/ $in $out > $log" \
+		"$in $deps bin/tinycowc-cgen $stdlib" \
 		"$out $log" \
-		"COWGOL C $in"
+		"COWGOL CGEN $in"
 }
 
-cowgol_c() {
+cowgol_cgen() {
 	local base
-	base="$OBJDIR/${1%.cow}.c"
-	cowgol_c_c $1 $base.c $base.log "$3"
-	rule "$CC -g -c -ffunction-sections -fdata-sections -I. -o $base.o $base.c" \
-		$base.c $base.o "CC $1"
-	rule "$CC -g -o $2 $OBJDIR/rt/c/cowgol.o $base.o" \
-		"$OBJDIR/rt/c/cowgol.o $base.o" $2 \
-		"LINK $1"
+	base="$OBJDIR/$(dirname $1)/cgen/${1%.cow}"
+	cowgol_cgen_coo $1 $base.coo $base.log "$3"
+    uncoo $base.coo $base.c
 }
 
 test_c() {
@@ -536,6 +532,7 @@ buildlibrary libmain.a \
 cowgol_target 8080
 cowgol_target 80386
 cowgol_target thumb2
+cowgol_target cgen
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
 pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
@@ -671,6 +668,7 @@ cowgol_thumb2_linux examples/argv.cow examples/argv.thumb2
 cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
 cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
+cowgol_cgen examples/empty.cow examples/empty.cgen
 
 cowlink_coh=$(echo src/cowlink/*.coh)
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"

@@ -1,0 +1,716 @@
+
+%{
+	#include "globals.h"
+	#include "emitter.h"
+	#include "midcodes.h"
+	#include "compiler.h"
+	#include "parser.h"
+	#include <bsd/string.h>
+	#include <ctype.h>
+
+	#define IMPL
+	#include "codegen.h"
+
+	#define E emitter_printf
+	static char asmbuffer[80];
+
+	static int id = 1;
+	static Symbol* int8_type;
+	static Symbol* int16_type;
+	static Symbol* uint16_type;
+	static Symbol* int32_type;
+	static Symbol* uint32_type;
+	static Symbol* int64_type;
+	static Symbol* uint64_type;
+
+	#define VARSTACK_SIZE 32
+	static int varstack[VARSTACK_SIZE];
+	static int varsp;
+
+	static uint32_t alignup(int32_t i, int w)
+	{
+		return (i+w-1) & ~(w-1);
+	}
+
+	void arch_init_types(void)
+	{
+		uint32_type = make_number_type("uint32", 4, false);
+		int32_type = make_number_type("int32", 4, true);
+		uint16_type = make_number_type("uint16", 2, false);
+		int16_type = make_number_type("int16", 2, true);
+		uint8_type = make_number_type("uint8", 1, false);
+		int8_type = make_number_type("int8", 1, true);
+
+		intptr_type = uint32_type;
+		add_alias(NULL, "intptr", intptr_type);
+	}
+
+	Symbol* arch_guess_int_type(uint32_t min, uint32_t max)
+	{
+		if ((min >= 0) && (max <= 255))
+			return uint8_type;
+		if ((min >= -128) && (max <= 127))
+			return int8_type;
+		if ((min >= 0) && (max <= 65535))
+			return uint16_type;
+		if ((min >= -32768) && (max <= 32767))
+			return int16_type;
+		if (min >= 0)
+			return uint32_type;
+		return int32_type;
+	}
+
+	void arch_init_subroutine(struct subroutine* sub) {}
+
+	void arch_init_variable(struct symbol* var)
+	{
+		/* All variables get allocated from workspace 0. */
+
+		int w = var->u.var.type->u.type.width;
+		var->u.var.offset = current_sub->workspace[0];
+		current_sub->workspace[0] += w;
+	}
+
+	void arch_init_member(struct symbol* record, struct symbol* member)
+	{
+		int w = member->u.var.type->u.type.width;
+
+		record->u.type.width = alignup(record->u.type.width, w);
+		member->u.var.offset = record->u.type.width;
+		record->u.type.width += w;
+	}
+
+	static const char* subref(Subroutine* sub)
+	{
+		if (sub->externname)
+			return sub->externname;
+		
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "f%d", sub->id);
+		return buffer;
+	}
+
+	static const char* symref(Symbol* sym, int32_t off)
+	{
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "w%d%+d",
+			sym->u.var.sub->id,
+			sym->u.var.offset + off);
+		return buffer;
+	}
+
+	static const char* labelref(int label)
+	{
+		static char buffer[32];
+		snprintf(buffer, sizeof(buffer), "x%d", label);
+		return buffer;
+	}
+
+	/* Note! This is allowed to destroy the source register. */
+	void arch_emit_move(reg_t src, reg_t dest)
+	{ assert(false); }
+
+	void arch_emit_comment(const char* text, ...)
+	{
+		va_list ap;
+		va_start(ap, text);
+		emitter_printf("// ");
+		emitter_vprintf(text, ap);
+		emitter_printf("\n");
+		va_end(ap);
+	}
+
+	static bool is_current_sub(Symbol* sym)
+	{
+		return sym->u.var.sub == current_sub;
+	}
+
+	static int push(void)
+	{
+		int vid = id++;
+		if (varsp == VARSTACK_SIZE)
+			fatal("varstack overflow");
+		varstack[varsp++] = vid;
+		return vid;
+	}
+
+	static int pop(void)
+	{
+		if (varsp == 0)
+			fatal("vstack underflow");
+		return varstack[--varsp];
+	}
+
+%}
+
+register v1 v2 v4 param;
+
+regdata v1 stacked;
+regdata v2 stacked;
+regdata v4 stacked;
+regdata param stacked;
+
+gen STARTFILE()
+{
+    emitter_open_chunk();
+	E("#include \"cowgol-cgen.h\"");
+    emitter_close_chunk(NULL);
+}
+
+gen ENDFILE();
+
+gen STARTSUB():s
+{
+    emitter_open_chunk();
+    E("\n");
+    E("// %s\n", $s.sub->name);
+	E("void %s(", subref($s.sub));
+
+	bool first = true;
+	for (int i=$s.sub->inputparameters-1; i>=0; i--)
+	{
+		Symbol* param = get_input_parameters($s.sub);
+		for (int j=0; j<i; j++)
+			param = param->next;
+
+		if (first)
+		{
+			E(", ");
+			first = false;
+		}
+		E("i%d iparam%d", param->u.var.type->u.type.width, param->u.var.offset);
+	}
+
+	for (int i=0; i<$s.sub->outputparameters; i++)
+	{
+		struct symbol* param = $s.sub->namespace.firstsymbol;
+		for (int j=0; j<(i + $s.sub->inputparameters); j++)
+			param = param->next;
+
+		if (first)
+		{
+			E(", ");
+			first = false;
+		}
+		E("i%d* oparam%d", param->u.var.type->u.type.width, param->u.var.offset);
+	}
+	if (($s.sub->inputparameters == 0) && ($s.sub->outputparameters == 0))
+		E("void");
+	E(") {\n");
+}
+
+gen ENDSUB():s
+{
+	E("end:\n");
+	for (int i=0; i<$s.sub->outputparameters; i++)
+	{
+		struct symbol* param = $s.sub->namespace.firstsymbol;
+		for (int j=0; j<(i + $s.sub->inputparameters); j++)
+			param = param->next;
+
+		E("\t*oparam%d = var%d;\n", param->u.var.offset, param->u.var.offset);
+	}
+	E("}\n");
+    emitter_close_chunk(current_sub);
+}
+
+// --- Control flow ------------------------------------------------------
+
+gen RETURN()
+{
+	E("\tgoto end;\n");
+}
+
+gen LABEL():b
+{
+	E("%s:\n", labelref($b.label));
+}
+
+gen JUMP():j
+{
+	E("\tgoto %s;\n", labelref($j.label));
+}
+
+// --- Subroutines -------------------------------------------------------
+
+//// SETPARAM leaves the parameter on the top of the stack, where the
+//// code generator loses track of it.
+//
+//gen param := END();
+//
+//gen param := PUSHPARAM1(param, reg:val)
+//	{ E("\tpush {%s}\n", regref($val)); }
+//
+//gen param := PUSHPARAM2(param, reg:val)
+//	{ E("\tpush {%s}\n", regref($val)); }
+//
+//gen param := PUSHPARAM4(param, reg:val)
+//	{ E("\tpush {%s}\n", regref($val)); }
+//
+//%{
+//	static void call(Subroutine* sub)
+//	{
+//		if (sub->externname)
+//		{
+//			emitter_open_chunk();
+//			E("\t.extern %s\n", sub->externname);
+//			emitter_close_chunk(current_sub);
+//		}
+//
+//		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
+//		E("\tbl %s\n", subref(sub));
+//	}
+//
+//	static void calln(Subroutine* sub, reg_t reg)
+//	{
+//		call(sub);
+//		E("\tpop {%s}\n", regref(reg));
+//	}
+//%}
+//
+//gen CALLS(param);
+//
+//gen param := CALL0(param):c uses reg
+//	{ call($c.sub); }
+//
+//gen r0 := CALL1(param):c uses r1|r2|r3|r4|r5|r6|r7
+//	{ calln($c.sub, $$); }
+//
+//gen r0 := CALL2(param):c uses r1|r2|r3|r4|r5|r6|r7
+//	{ calln($c.sub, $$); }
+//
+//gen r0 := CALL4(param):c uses r1|r2|r3|r4|r5|r6|r7
+//	{ calln($c.sub, $$); }
+//
+//%{
+//	static void popparam(Symbol* sym, int32_t off)
+//	{
+//		const char* ins = NULL;
+//		switch (sym->u.var.type->u.type.width)
+//		{
+//			case 1: ins = "strb"; break;
+//			case 2: ins = "strh"; break;
+//			case 4: ins = "str"; break;
+//			default: assert(false);
+//		}
+//
+//		E("\tpop {r0}\n");
+//		E("\tldr r1, =%s\n", symref(sym, off));
+//		E("\t%s r0, [r1]\n", ins);
+//	}
+//%}
+//
+//rewrite POPPARAM1(p, a) := POPPARAM4(p, a);
+//rewrite POPPARAM2(p, a) := POPPARAM4(p, a);
+//
+//gen POPPARAM4(param, ADDRESS():a) uses r0|r1
+//	{ popparam($a.sym, $a.off); }
+//
+//gen param := POPPARAM4(param, ADDRESS():a) uses r0|r1
+//	{ popparam($a.sym, $a.off); }
+
+// --- Core conversions --------------------------------------------------
+
+gen v1 := CONSTANT():c
+	{ E("\ti1 v%d = %d;\n", push(), $c.value); }
+
+gen v4 := ADDRESS():a
+	{ E("\ti4 v%d = (i4) (%s);\n", push(), symref($a.sym, $a.off)); }
+
+// --- Loads and stores --------------------------------------------------
+
+gen STORE1(v1:val, v4:addr)
+{
+	int addrid = pop();
+	int valid = pop();
+	E("\t*(i1*)v%d = v%d;\n", addrid, valid);
+}
+
+gen v1 := LOAD1(v4:addr)
+{
+	int addrid = pop();
+	E("\ti1 v%d = *(i1)v%d;\n", push(), addrid);
+}
+
+//gen reg := LOAD1(ADDRESS(sym is current_sub):a)
+//	{ E("\tldrb %s, [r8, %d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+//
+//gen reg := LOAD1(reg:lhs)
+//	{ E("\tldrb %s, [%s]\n", regref($$), regref($lhs)); }
+//
+//rewrite CAST12(LOAD1(a)) := LOAD1(a);
+//rewrite CAST14(LOAD1(a)) := LOAD1(a);
+//
+//gen reg := LOAD2(ADDRESS(sym is current_sub):a)
+//	{ E("\tldrh %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+//
+//gen reg := LOAD2(reg:lhs)
+//	{ E("\tldrh %s, [%s]\n", regref($$), regref($lhs)); }
+//
+//rewrite CAST24(LOAD1(a)) := LOAD2(a);
+//
+//gen reg := LOAD4(ADDRESS(sym is current_sub):a)
+//	{ E("\tldr %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+//
+//gen reg := LOAD4(reg:lhs)
+//	{ E("\tldr %s, [%s]\n", regref($$), regref($lhs)); }
+//
+//gen STORE1(reg:val, ADDRESS(sym is current_sub):a)
+//	{ E("\tstrb %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+//
+//gen STORE1(reg:val, reg:addr)
+//	{ E("\tstrb %s, [%s]\n", regref($val), regref($addr)); }
+//
+//gen STORE2(reg:val, ADDRESS(sym is current_sub):a)
+//	{ E("\tstrh %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+//
+//gen STORE2(reg:val, reg:addr)
+//	{ E("\tstrh %s, [%s]\n", regref($val), regref($addr)); }
+//
+//gen STORE4(reg:val, ADDRESS(sym is current_sub):a)
+//	{ E("\tstr %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+//
+//gen STORE4(reg:val, reg:addr)
+//	{ E("\tstr %s, [%s]\n", regref($val), regref($addr)); }
+//
+//gen STORE4(reg:val, ADD4(reg:addr, CONSTANT():c))
+//	{ E("\tstr %s, [%s, #%d]\n", regref($val), regref($addr), $c.value); }
+
+// --- 8-bit arithmetic -----------------------------------------------------
+
+gen v1 := ADD1(v1:lhs, v1:rhs)
+{
+	int rhsid = pop();
+	int lhsid = pop();
+	E("\tv%d = v%d + v%d;\n", push(), lhsid, rhsid);
+}
+
+//rewrite ADD1(lhs, rhs) := ADD4(lhs, rhs);
+//rewrite SUB1(lhs, rhs) := SUB4(lhs, rhs);
+//rewrite NEG1(lhs) := NEG4(lhs);
+//rewrite MUL1(lhs, rhs) := MUL4(lhs, rhs);
+//rewrite AND1(lhs, rhs) := AND4(lhs, rhs);
+//rewrite OR1(lhs, rhs) := OR4(lhs, rhs);
+//rewrite EOR1(lhs, rhs) := EOR4(lhs, rhs);
+//rewrite NOT1(lhs) := NOT4(lhs);
+//
+//rewrite LSHIFT1(lhs, rhs) := LSHIFT4(lhs, rhs);
+//
+//gen reg := DIVU1(reg:lhs, reg:rhs)
+//{
+//	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tudiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//gen reg := REMU1(reg:lhs, reg:rhs) uses r6
+//{
+//	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tudiv r6, %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+//}
+//
+//gen reg := DIVS1(reg:lhs, reg:rhs)
+//{
+//	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tsxtb %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tsdiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//gen reg := REMS1(reg:lhs, reg:rhs) uses r6
+//{
+//	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tsxtb %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tsdiv r6, %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+//}
+//
+//gen reg := RSHIFTU1(reg:lhs, reg:rhs)
+//{
+//	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//gen reg := RSHIFTS1(reg:lhs, reg:rhs)
+//{
+//	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tasr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//// --- 16-bit arithmetic ----------------------------------------------------
+//
+//rewrite LSHIFT2(lhs, rhs) := LSHIFT4(lhs, rhs);
+//rewrite MUL2(lhs, rhs) := MUL4(lhs, rhs);
+//rewrite AND2(lhs, rhs) := AND4(lhs, rhs);
+//rewrite OR2(lhs, rhs) := OR4(lhs, rhs);
+//rewrite EOR2(lhs, rhs) := EOR4(lhs, rhs);
+//rewrite NOT2(lhs) := NOT4(lhs);
+//
+//gen reg := DIVU2(reg:lhs, reg:rhs)
+//{
+//	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tuxth %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tudiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//gen reg := REMU2(reg:lhs, reg:rhs) uses r6
+//{
+//	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tuxth %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tudiv r6, %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+//}
+//
+//gen reg := DIVS2(reg:lhs, reg:rhs)
+//{
+//	E("\tsxth %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tsxth %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tsdiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//gen reg := REMS2(reg:lhs, reg:rhs) uses r6
+//{
+//	E("\tsxth %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tsxth %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tsdiv r6, %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+//}
+//
+//gen reg := RSHIFTU2(reg:lhs, reg:rhs)
+//{
+//	E("\tuxth %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//gen reg := RSHIFTS2(reg:lhs, reg:rhs)
+//{
+//	E("\tsxth %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tasr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs));
+//}
+//
+//rewrite NEG2(lhs) := NEG4(lhs);
+//
+//// --- 32-bit arithmetic ----------------------------------------------------
+//
+//rewrite ADD2(lhs, rhs) := ADD4(lhs, rhs);
+//rewrite SUB2(lhs, rhs) := SUB4(lhs, rhs);
+//
+//gen reg := ADD4(reg:lhs, reg:rhs)
+//	{ E("\tadd %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := SUB4(reg:lhs, reg:rhs)
+//	{ E("\tsub %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := NEG4(reg:lhs)
+//	{ E("\tneg %s, %s\n", regref($$), regref($lhs)); }
+//
+//gen reg := MUL4(reg:lhs, reg:rhs)
+//	{ E("\tmul %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := DIVU4(reg:lhs, reg:rhs)
+//	{ E("\tudiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := REMU4(reg:lhs, reg:rhs) uses r6
+//{
+//	E("\tudiv r6, %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+//}
+//
+//gen reg := DIVS4(reg:lhs, reg:rhs)
+//	{ E("\tsdiv %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := REMS4(reg:lhs, reg:rhs) uses r6
+//{
+//	E("\tsdiv r6, %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tmls %s, r6, %s, %s\n", regref($$), regref($rhs), regref($lhs));
+//}
+//
+//gen reg := AND4(reg:lhs, reg:rhs)
+//	{ E("\tand %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := OR4(reg:lhs, reg:rhs)
+//	{ E("\torr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := EOR4(reg:lhs, reg:rhs)
+//	{ E("\teor %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := NOT4(reg:lhs)
+//	{ E("\tmvn %s, %s\n", regref($$), regref($lhs)); }
+//
+//gen reg := LSHIFT4(reg:lhs, reg:rhs)
+//	{ E("\tlsl %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := RSHIFTU4(reg:lhs, reg:rhs)
+//	{ E("\tlsr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := RSHIFTU4(reg:lhs, CONSTANT():c)
+//	{ E("\tlsr %s, %s, #%d\n", regref($$), regref($lhs), $c); }
+//
+//gen reg := RSHIFTS4(reg:lhs, reg:rhs)
+//	{ E("\tasr %s, %s, %s\n", regref($$), regref($lhs), regref($rhs)); }
+//
+//gen reg := RSHIFTS4(reg:lhs, CONSTANT():c)
+//	{ E("\tasr %s, %s, #%d\n", regref($$), regref($lhs), $c); }
+//
+//// --- Branches -------------------------------------------------------------
+//
+//%{
+//	static void beq(int truelabel, int falselabel, const char* extend, reg_t lhs, reg_t rhs)
+//	{
+//		if (extend)
+//		{
+//			E("\t%s %s, %s\n", extend, regref(lhs), regref(lhs));
+//			E("\t%s %s, %s\n", extend, regref(rhs), regref(rhs));
+//		}
+//		E("\tcmp %s, %s\n", regref(lhs), regref(rhs));
+//		E("\tbeq %s\n", labelref(truelabel));
+//		E("\tbne %s\n", labelref(falselabel));
+//	}
+//
+//	static void beqc(int truelabel, int falselabel, const char* extend, reg_t lhs, int32_t c)
+//	{
+//		if (extend)
+//			E("\t%s %s, %s\n", extend, regref(lhs), regref(lhs));
+//		E("\tcmp %s, #%d\n", regref(lhs), c);
+//		E("\tbeq %s\n", labelref(truelabel));
+//		E("\tbne %s\n", labelref(falselabel));
+//	}
+//%}
+//
+//gen BEQU1(reg:lhs, reg:rhs):b
+//	{ beq($b.truelabel, $b.falselabel, "uxtb", $lhs, $rhs); }
+//
+//gen BEQS1(reg:lhs, reg:rhs):b
+//	{ beq($b.truelabel, $b.falselabel, "sxtb", $lhs, $rhs); }
+//
+//gen BEQU2(reg:lhs, reg:rhs):b
+//	{ beq($b.truelabel, $b.falselabel, "uxth", $lhs, $rhs); }
+//
+//gen BEQS2(reg:lhs, reg:rhs):b
+//	{ beq($b.truelabel, $b.falselabel, "sxth", $lhs, $rhs); }
+//
+//gen BEQU4(reg:lhs, reg:rhs):b
+//	{ beq($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
+//
+//gen BEQS4(reg:lhs, reg:rhs):b
+//	{ beq($b.truelabel, $b.falselabel, NULL, $lhs, $rhs); }
+//
+//gen BLTU1(reg:lhs, reg:rhs):b
+//{
+//	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tblo %s\n", labelref($b.truelabel));
+//	E("\tb %s\n", labelref($b.falselabel));
+//}
+//
+//gen BLTU2(reg:lhs, reg:rhs):b
+//{
+//	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
+//	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
+//	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tblo %s\n", labelref($b.truelabel));
+//	E("\tb %s\n", labelref($b.falselabel));
+//}
+//
+//gen BLTU4(reg:lhs, reg:rhs):b
+//{
+//	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tblo %s\n", labelref($b.truelabel));
+//	E("\tb %s\n", labelref($b.falselabel));
+//}
+//
+//gen BLTS4(reg:lhs, reg:rhs):b
+//{
+//	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+//	E("\tblt %s\n", labelref($b.truelabel));
+//	E("\tb %s\n", labelref($b.falselabel));
+//}
+//
+//// --- Casts ----------------------------------------------------------------
+//
+//gen reg := CAST21($$);
+//gen reg := CAST41($$);
+//gen reg := CAST42($$);
+//
+//gen reg := CAST24(reg:rhs)
+//	{ E("\tuxth %s, %s\n", regref($$), regref($rhs)); }
+//
+//gen reg := CAST14(reg:rhs)
+//	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
+//
+//gen reg := CAST12(reg:rhs)
+//	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
+//
+//// --- Inline assembly ------------------------------------------------------
+//
+//gen ASMSTART()
+//{
+//    asmbuffer[0] = '\0';
+//}
+//
+//gen ASMTEXT():t
+//{
+//    strlcat(asmbuffer, $t.text, sizeof(asmbuffer));
+//    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+//}
+//
+//gen ASMSYMBOL():s
+//{
+//	if ($s.sym->kind == VAR)
+//	{
+//		if (is_current_sub($s.sym))
+//		{
+//			int w = strlen(asmbuffer);
+//			snprintf(asmbuffer+w, sizeof(asmbuffer)-w, "[r8, #%d]",
+//				$s.sym->u.var.offset);
+//		}
+//		else
+//			strlcat(asmbuffer, symref($s.sym, 0), sizeof(asmbuffer));
+//	}
+//	else
+//		strlcat(asmbuffer, subref($s.sym->u.sub), sizeof(asmbuffer));
+//    strlcat(asmbuffer, " ", sizeof(asmbuffer));
+//}
+//
+//gen ASMVALUE():c
+//{
+//	int p = strlen(asmbuffer);
+//	snprintf(asmbuffer+p, sizeof(asmbuffer)-p, "%d", $c.value);
+//}
+//
+//gen ASMEND()
+//{
+//    E("\t%s\n", asmbuffer);
+//}
+//
+//// --- Strings -----------------------------------------------------------
+//
+//gen reg := STRING():s
+//{
+//    int sid = id++;
+//    emitter_open_chunk();
+//    E("\t.data 1\n");
+//    E("s%d:\n", sid);
+//    E("\t.byte ");
+//    bool start = true;
+//	const char* s = $s.text;
+//    for (;;)
+//    {
+//        char c = *s++;
+//        if (!c)
+//            break;
+//		if (!start)
+//            E(", ");
+//		E("0x%02x", c);
+//        start = false;
+//    }
+//    if (!start)
+//        E(", ");
+//    E("0\n");
+//    emitter_close_chunk(current_sub);
+//
+//    E("\tldr %s, =s%d\n", regref($$), sid);
+//}
+//
