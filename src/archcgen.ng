@@ -173,11 +173,10 @@ gen STARTSUB():s
 		for (int j=0; j<i; j++)
 			param = param->next;
 
-		if (first)
-		{
+		if (!first)
 			E(", ");
-			first = false;
-		}
+		first = false;
+
 		E("i%d iparam%d", param->u.var.type->u.type.width, param->u.var.offset);
 	}
 
@@ -187,16 +186,27 @@ gen STARTSUB():s
 		for (int j=0; j<(i + $s.sub->inputparameters); j++)
 			param = param->next;
 
-		if (first)
-		{
+		if (!first)
 			E(", ");
-			first = false;
-		}
+		first = false;
+
 		E("i%d* oparam%d", param->u.var.type->u.type.width, param->u.var.offset);
 	}
 	if (($s.sub->inputparameters == 0) && ($s.sub->outputparameters == 0))
 		E("void");
 	E(") {\n");
+
+	for (int i=$s.sub->inputparameters-1; i>=0; i--)
+	{
+		Symbol* param = get_input_parameters($s.sub);
+		for (int j=0; j<i; j++)
+			param = param->next;
+
+		E("\t*(i%d*)(%s) = iparam%d;\n",
+			param->u.var.type->u.type.width,
+			symref(param, 0),
+			param->u.var.offset);
+	}
 }
 
 gen ENDSUB():s
@@ -208,7 +218,10 @@ gen ENDSUB():s
 		for (int j=0; j<(i + $s.sub->inputparameters); j++)
 			param = param->next;
 
-		E("\t*oparam%d = var%d;\n", param->u.var.offset, param->u.var.offset);
+		E("\t*oparam%d = *(i%d*)(%s);\n",
+			param->u.var.offset,
+			param->u.var.type->u.type.width,
+			symref(param, 0));
 	}
 	E("}\n");
     emitter_close_chunk(current_sub);
@@ -319,18 +332,47 @@ gen v4 := ADDRESS():a
 
 // --- Loads and stores --------------------------------------------------
 
-gen STORE1(v1:val, v4:addr)
-{
-	int addrid = pop();
-	int valid = pop();
-	E("\t*(i1*)v%d = v%d;\n", addrid, valid);
-}
+%{
+	static void store_vv(int width)
+	{
+		int addrid = pop();
+		int valid = pop();
+		E("\t*(i%d*)v%d = v%d;\n", width, addrid, valid);
+	}
 
-gen v1 := LOAD1(v4:addr)
-{
-	int addrid = pop();
-	E("\ti1 v%d = *(i1)v%d;\n", push(), addrid);
-}
+	static void store_va(int width, Symbol* sym, int off)
+	{
+		int valid = pop();
+		E("\t*(i%d*)(%s) = v%d;\n", width, symref(sym, off), valid);
+	}
+%}
+
+gen STORE1(v1:val, v4:addr) { store_vv(1); }
+gen STORE2(v1:val, v4:addr) { store_vv(2); }
+gen STORE4(v1:val, v4:addr) { store_vv(4); }
+gen STORE1(v1:val, ADDRESS():a) { store_va(1, $a.sym, $a.off); }
+gen STORE2(v1:val, ADDRESS():a) { store_va(2, $a.sym, $a.off); }
+gen STORE4(v1:val, ADDRESS():a) { store_va(4, $a.sym, $a.off); }
+
+%{
+	static void load_v(int width)
+	{
+		int addrid = pop();
+		E("\ti%d v%d = *(i%d*)v%d;\n", width, push(), width, addrid);
+	}
+
+	static void load_a(int width, Symbol* sym, int off)
+	{
+		E("\ti%d v%d = *(i%d*)(%s);\n", width, push(), width, symref(sym, off));
+	}
+%}
+
+gen v1 := LOAD1(v4:addr) { load_v(1); }
+gen v2 := LOAD2(v4:addr) { load_v(2); }
+gen v4 := LOAD4(v4:addr) { load_v(4); }
+gen v1 := LOAD1(ADDRESS():a) { load_a(1, $a.sym, $a.off); }
+gen v2 := LOAD2(ADDRESS():a) { load_a(2, $a.sym, $a.off); }
+gen v4 := LOAD4(ADDRESS():a) { load_a(4, $a.sym, $a.off); }
 
 //gen reg := LOAD1(ADDRESS(sym is current_sub):a)
 //	{ E("\tldrb %s, [r8, %d]\n", regref($$), $a.sym->u.var.offset + $a.off); }

@@ -1,6 +1,6 @@
 include "cowgol.coh";
 
-var i: int8 := 0;
-var j: int8 := 99;
-var k := i + j;
+sub add(i: int8, j: int8): (k: int8)
+	k := i + j;
+end sub;
 
