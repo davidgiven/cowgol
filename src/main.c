@@ -101,6 +101,7 @@ int main(int argc, char* argv[])
 	arch_init_subroutine(current_sub);
 	generate(mid_startfile());
 	generate(mid_startsub(current_sub));
+	emitter_declare_subroutine(current_sub);
 
 	void* parser = ParseAlloc(malloc);
 	// ParseTrace(stderr, "P:");
@@ -131,7 +132,7 @@ int main(int argc, char* argv[])
 	generate(mid_endsub(current_sub));
 	generate(mid_endfile());
 
-	emitter_close_chunk();
+	emitter_close_chunk(current_sub);
 	emitter_close();
 
 	return 0;

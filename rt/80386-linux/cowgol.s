@@ -4,6 +4,7 @@
 .arch i386
 .code32
 .global _start
+.global _exit
 _start:
 	/* On entry, the stack looks like this:
 	 *
@@ -17,6 +18,7 @@ _start:
     lea 4(%esp), %eax
     mov %eax, (_argv)
     call cmain
+_exit:
     mov $1, %eax
     int $0x80
 

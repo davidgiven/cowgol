@@ -1,0 +1,48 @@
+const STACK_SIZE := 32;
+var stack: [Subroutine][STACK_SIZE];
+var sp: uint8 := 0;
+
+sub CalculateDependencyGraph(coo: [Coo])
+	sp := 1;
+	stack[0] := FindSub(coo, 0);
+
+	loop
+		if sp == 0 then
+			break;
+		end if;
+
+		sp := sp - 1;
+		var subroutine := stack[sp];
+		if subroutine.used == 0 then
+			subroutine.used := 1;
+
+			var ref := subroutine.refs;
+			loop
+				if ref == (0 as [Reference]) then
+					break;
+				end if;
+
+				if ref.target.used == 0 then
+					stack[sp] := ref.target;
+					sp := sp + 1;
+				end if;
+				ref := ref.next;
+			end loop;
+		end if;
+	end loop;
+
+	subroutine := coo.subroutines;
+	loop
+		if subroutine == (0 as [Subroutine]) then
+			break;
+		end if;
+		print_hex_i16(subroutine.id);
+		print_char(' ');
+		print_hex_i8(subroutine.used);
+		print_char(' ');
+		print(subroutine.name);
+		print_nl();
+		subroutine := subroutine.next;
+	end loop;
+end sub;
+

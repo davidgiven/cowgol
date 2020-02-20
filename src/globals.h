@@ -22,6 +22,7 @@ extern int32_t number;
 
 enum
 {
+	TYPE_PARTIAL,
 	TYPE_NUMBER,
 	TYPE_POINTER,
 	TYPE_ARRAY,
@@ -105,6 +106,7 @@ struct subroutine
 	int inputparameters;
 	int outputparameters;
 	int old_break_label;
+	int id;
 	struct subarch* arch;
 };
 

@@ -277,7 +277,15 @@ ld80() {
 		"LD80 $bin"
 }
 
-cowgol_cpm_asm() {
+uncoo() {
+    rule \
+        "lua scripts/uncoo.lua $1 $2" \
+        "$1 scripts/uncoo.lua" \
+        "$2" \
+        "UNCOO $1"
+}
+
+cowgol_cpm_coo() {
 	local in
 	local out
 	local log
@@ -297,7 +305,8 @@ cowgol_cpm_asm() {
 cowgol_cpm() {
 	local base
 	base="$OBJDIR/$(dirname $1)/cpm/${1%.cow}"
-	cowgol_cpm_asm $1 $base.asm $base.log "$3"
+	cowgol_cpm_coo $1 $base.coo $base.log "$3"
+    uncoo $base.coo $base.asm
 	zmac8 $base.asm $base.rel
 	ld80 $base.bin \
 		$OBJDIR/rt/cpm/cowgol.rel \
@@ -314,7 +323,7 @@ test_cpm() {
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
-cowgol_thumb2_s() {
+cowgol_thumb2_coo() {
 	local in
 	local out
 	local log
@@ -334,7 +343,8 @@ cowgol_thumb2_s() {
 cowgol_thumb2_linux() {
 	local base
 	base="$OBJDIR/$(dirname $1)/thumb2-linux/${1%.cow}"
-	cowgol_thumb2_s $1 $base.s $base.log "$3"
+	cowgol_thumb2_coo $1 $base.coo $base.log "$3"
+    uncoo $base.coo $base.s
     as_thumb2_linux $base.s $base.o
     rule \
         "arm-linux-gnueabihf-ld $OBJDIR/rt/thumb2-linux/cowgol.o $base.o -o $2" \
@@ -351,7 +361,7 @@ test_thumb2_linux() {
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
-cowgol_80386_s() {
+cowgol_80386_coo() {
 	local in
 	local out
 	local log
@@ -371,7 +381,8 @@ cowgol_80386_s() {
 cowgol_80386_linux() {
 	local base
 	base="$OBJDIR/$(dirname $1)/80386-linux/${1%.cow}"
-	cowgol_80386_s $1 $base.s $base.log "$3"
+	cowgol_80386_coo $1 $base.coo $base.log "$3"
+    uncoo $base.coo $base.s
     as_80386_linux $base.s $base.o
     rule \
         "i686-linux-gnu-ld $OBJDIR/rt/80386-linux/cowgol.o $base.o -o $2" \
@@ -661,8 +672,9 @@ cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
 cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
 
-cowgol_80386_linux src/cowlink/main.cow bin/cowlink
-cowgol_cpm src/cowlink/main.cow bin/cowlink.com
-cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2
+cowlink_coh=$(echo src/cowlink/*.coh)
+cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"
+cowgol_cpm src/cowlink/main.cow bin/cowlink.com "$cowlink_coh"
+cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2 "$cowlink_coh"
 
 # vim: sw=4 ts=4 et

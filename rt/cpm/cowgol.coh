@@ -7,6 +7,12 @@ var HIMEM: [uint8];
 @asm "lhld 6";
 @asm "shld ", HIMEM;
 
+extern sub Exit() := "_exit";
+
+sub AlignUp(in: intptr): (out: intptr)
+	out := in;
+end sub;
+
 sub print_char(c: uint8)
 	@asm "lda ", c;
 	@asm "mov e, a";

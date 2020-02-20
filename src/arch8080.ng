@@ -13,11 +13,6 @@
 	#define E emitter_printf
 	static char asmbuffer[80];
 
-	struct subarch
-	{
-		int id;
-	};
-
 	static int id = 1;
 	static Symbol* uint32_type;
 	static Symbol* int32_type;
@@ -53,11 +48,7 @@
 		return int32_type;
 	}
 
-	void arch_init_subroutine(struct subroutine* sub)
-	{
-		sub->arch = calloc(1, sizeof(struct subarch));
-		sub->arch->id = id++;
-	}
+	void arch_init_subroutine(struct subroutine* sub) {}
 
 	void arch_init_variable(struct symbol* var)
 	{
@@ -111,7 +102,7 @@
 			return sub->externname;
 		
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
+		snprintf(buffer, sizeof(buffer), "f%d", sub->id);
 		return buffer;
 	}
 
@@ -119,7 +110,7 @@
 	{
 		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "w%d%+d",
-			sym->u.var.sub->arch->id,
+			sym->u.var.sub->id,
 			sym->u.var.offset + off);
 		return buffer;
 	}
@@ -212,7 +203,7 @@ gen STARTFILE()
 	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
 	E("\textrn store4\n");
-    emitter_close_chunk();
+    emitter_close_chunk(NULL);
 }
 
 gen ENDFILE();
@@ -334,8 +325,8 @@ gen ENDSUB():s
 	}
 
     E("\tdseg\n");
-	E("w%d: ds %d\n", $s.sub->arch->id, $s.sub->workspace[0]);
-    emitter_close_chunk();
+	E("w%d: ds %d\n", $s.sub->id, $s.sub->workspace[0]);
+    emitter_close_chunk(current_sub);
 }
 
 // --- Control flow ------------------------------------------------------
@@ -377,7 +368,7 @@ gen param := PUSHPARAM4(param, stk4);
 		{
 			emitter_open_chunk();
 			E("\textrn %s\n", sub->externname);
-			emitter_close_chunk();
+			emitter_close_chunk(current_sub);
 		}
 
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
@@ -389,19 +380,19 @@ gen CALLS(param);
 
 // Single return values go in registers.
 
-gen CALLS(POPPARAM1(CALL0(param):c, ADDRESS():a))
+gen CALLS(POPPARAM1(CALL0(param):c, ADDRESS():a)) uses bc|de|hl
 {
 	call($c.sub);
 	E("\tsta %s\n", symref($a.sym, $a.off));
 }
 
-gen CALLS(POPPARAM2(CALL0(param):c, ADDRESS():a))
+gen CALLS(POPPARAM2(CALL0(param):c, ADDRESS():a)) uses bc|de
 {
 	call($c.sub);
 	E("\tshld %s\n", symref($a.sym, $a.off));
 }
 
-gen CALLS(POPPARAM4(CALL0(param):c, ADDRESS():a))
+gen CALLS(POPPARAM4(CALL0(param):c, ADDRESS():a)) uses bc|de
 {
 	call($c.sub);
 	E("\tshld %s\n", symref($a.sym, $a.off+0));
@@ -409,20 +400,20 @@ gen CALLS(POPPARAM4(CALL0(param):c, ADDRESS():a))
 	E("\tshld %s\n", symref($a.sym, $a.off+2));
 }
 
-gen a := CALL1(param):c
+gen a := CALL1(param):c uses bc|de|hl
 	{ call($c.sub); }
 
-gen hl := CALL2(param):c
+gen hl := CALL2(param):c uses a|bc|de
 	{ call($c.sub); }
 
-gen stk4 := CALL4(param):c
+gen stk4 := CALL4(param):c uses a|bc
 {
 	call($c.sub);
 	E("\tpush d\n");
 	E("\tpush h\n");
 }
 
-gen param := CALL0(param):c
+gen param := CALL0(param):c uses a|bc|de|hl
 	{ call($c.sub); }
 
 gen param := POPPARAM1(param, ADDRESS():a) uses a
@@ -650,7 +641,7 @@ gen a := EOR1(a, b|d|h:rhs)
 	{ E("\txra %s\n", regref($rhs)); }
 
 gen a := NOT1(a)
-	{ E("\txri -1"); }
+	{ E("\txri -1\n"); }
 
 gen a := AND1(a, CONSTANT():c)
 	{ E("\tani %d\n", $c.value & 0xff); }
@@ -999,8 +990,8 @@ gen a|d := CAST41(stk4) uses hl|bc
 	
 gen hl|de := CAST42(stk4) uses bc
 {
-	E("\tpop b\n");
 	E("\tpop %s\n", regref($$));
+	E("\tpop b\n");
 }
 	
 // --- Inline assembly ------------------------------------------------------
@@ -1074,7 +1065,7 @@ gen bc|de|hl := STRING():s
     if (!start)
         E(", ");
     E("0\n");
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 
     E("\tlxi %s, s%d\n", regref($$), sid);
 }

@@ -89,10 +89,15 @@ sub FCBClose(fcb: [FCB]): (errno: uint8)
 end sub;
 
 sub FCBSeek(fcb: [FCB], pos: uint32)
+	pos := pos - 1; # seek to *previous* character
 	var newblock := pos >> 9;
 	var newptr := (pos as uint16) & (FCB_BUFFER-1);
 	fcb_i_changeblock(fcb, newblock);
 	fcb.bufferptr := newptr;
+end sub;
+
+sub FCBPos(fcb: [FCB]): (pos: uint32)
+	pos := ((fcb.block << 9) | (fcb.bufferptr as uint32)) + 1;
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32)

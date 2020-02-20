@@ -1,9 +1,11 @@
     extrn cmain
+    public _exit
 
     ; CP/M entry point at 0x100.
 
     lxi sp, stackend
     call cmain
+_exit:
     rst 0
     dseg
 stack:
@@ -791,13 +793,13 @@ lsr2:
     cseg
 asl4:
     pop h
-    shld lsr4_ret
+    shld asl4_ret
 
     pop h ; HL = low
     pop d ; DE = high
 asl4_loop:
     dec b
-    jm lsr4_exit
+    jm asl4_exit
 
     dad h
     jnc asl4_skip
@@ -828,18 +830,18 @@ lsr4_loop:
     dec b
     jm lsr4_exit
     ora a
-    mov a, h
-    rar
-    mov h, a
-    mov a, l
-    rar
-    mov l, a
     mov a, d
     rar
     mov d, a
     mov a, e
     rar
     mov e, a
+    mov a, h
+    rar
+    mov h, a
+    mov a, l
+    rar
+    mov l, a
     jmp lsr4_loop
 lsr4_exit:
     push d
@@ -860,20 +862,20 @@ asr4:
 asr4_loop:
     dec b
     jm asr4_exit
-    mov a, h
+    mov a, d
     rla
-    mov a, h
-    rar
-    mov h, a
-    mov a, l
-    rar
-    mov l, a
     mov a, d
     rar
     mov d, a
     mov a, e
     rar
     mov e, a
+    mov a, h
+    rar
+    mov h, a
+    mov a, l
+    rar
+    mov l, a
     jmp asr4_loop
 asr4_exit:
     push d

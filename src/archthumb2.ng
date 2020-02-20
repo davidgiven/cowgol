@@ -13,11 +13,6 @@
 	#define E emitter_printf
 	static char asmbuffer[80];
 
-	struct subarch
-	{
-		int id;
-	};
-
 	static int id = 1;
 	static Symbol* int8_type;
 	static Symbol* int16_type;
@@ -58,11 +53,7 @@
 		return int32_type;
 	}
 
-	void arch_init_subroutine(struct subroutine* sub)
-	{
-		sub->arch = calloc(1, sizeof(struct subarch));
-		sub->arch->id = id++;
-	}
+	void arch_init_subroutine(struct subroutine* sub) {}
 
 	void arch_init_variable(struct symbol* var)
 	{
@@ -112,7 +103,7 @@
 			return sub->externname;
 		
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
+		snprintf(buffer, sizeof(buffer), "f%d", sub->id);
 		return buffer;
 	}
 
@@ -120,7 +111,7 @@
 	{
 		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "w%d%+d",
-			sym->u.var.sub->arch->id,
+			sym->u.var.sub->id,
 			sym->u.var.offset + off);
 		return buffer;
 	}
@@ -139,9 +130,9 @@
 			return;
 
 		if (!src)
-			E("\tpop %s\n", regref(dest));
+			E("\tpop {%s}\n", regref(dest));
 		else if (!dest)
-			E("\tpush %s\n", regref(src));
+			E("\tpush {%s}\n", regref(src));
 		else
 			E("\tmov %s, %s\n", regref(dest), regref(src));
 	}
@@ -181,7 +172,7 @@ gen STARTFILE()
     emitter_open_chunk();
 	E(".syntax unified\n");
 	E(".code 16\n");
-    emitter_close_chunk();
+    emitter_close_chunk(NULL);
 }
 
 gen ENDFILE();
@@ -197,7 +188,7 @@ gen STARTSUB():s
 	E(".thumb_func\n");
     E("%s:\n", subref($s.sub));
 
-	E("\tldr r1, =w%d\n", $s.sub->arch->id);
+	E("\tldr r1, =w%d\n", $s.sub->id);
     if ($s.sub->inputparameters != 0)
     {
         for (int i=$s.sub->inputparameters-1; i>=0; i--)
@@ -268,14 +259,15 @@ gen ENDSUB():s
 	else
 		E("\tpop {r8, pc}\n");
 
+	E(".pool\n");
 	E(".bss\n");
-	E("w%d:\n", $s.sub->arch->id);
+	E("\t.align 4\n");
+	E("w%d:\n", $s.sub->id);
 	if ($s.sub->workspace[0])
 	{
-		E("\t.align 4\n");
 		E("\t.space %d\n", $s.sub->workspace[0]);
 	}
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 }
 
 // --- Control flow ------------------------------------------------------
@@ -293,6 +285,7 @@ gen LABEL():b
 gen JUMP():j
 {
 	E("\tb %s\n", labelref($j.label));
+	E(".pool\n");
 }
 
 // --- Subroutines -------------------------------------------------------
@@ -318,7 +311,7 @@ gen param := PUSHPARAM4(param, reg:val)
 		{
 			emitter_open_chunk();
 			E("\t.extern %s\n", sub->externname);
-			emitter_close_chunk();
+			emitter_close_chunk(current_sub);
 		}
 
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
@@ -334,16 +327,16 @@ gen param := PUSHPARAM4(param, reg:val)
 
 gen CALLS(param);
 
-gen param := CALL0(param):c
+gen param := CALL0(param):c uses reg
 	{ call($c.sub); }
 
-gen reg := CALL1(param):c
+gen r0 := CALL1(param):c uses r1|r2|r3|r4|r5|r6|r7
 	{ calln($c.sub, $$); }
 
-gen reg := CALL2(param):c
+gen r0 := CALL2(param):c uses r1|r2|r3|r4|r5|r6|r7
 	{ calln($c.sub, $$); }
 
-gen reg := CALL4(param):c
+gen r0 := CALL4(param):c uses r1|r2|r3|r4|r5|r6|r7
 	{ calln($c.sub, $$); }
 
 %{
@@ -397,11 +390,16 @@ gen reg := LOAD1(ADDRESS(sym is current_sub):a)
 gen reg := LOAD1(reg:lhs)
 	{ E("\tldrb %s, [%s]\n", regref($$), regref($lhs)); }
 
+rewrite CAST12(LOAD1(a)) := LOAD1(a);
+rewrite CAST14(LOAD1(a)) := LOAD1(a);
+
 gen reg := LOAD2(ADDRESS(sym is current_sub):a)
 	{ E("\tldrh %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 gen reg := LOAD2(reg:lhs)
 	{ E("\tldrh %s, [%s]\n", regref($$), regref($lhs)); }
+
+rewrite CAST24(LOAD1(a)) := LOAD2(a);
 
 gen reg := LOAD4(ADDRESS(sym is current_sub):a)
 	{ E("\tldr %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
@@ -687,6 +685,9 @@ gen reg := CAST24(reg:rhs)
 gen reg := CAST14(reg:rhs)
 	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
 
+gen reg := CAST12(reg:rhs)
+	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
@@ -753,7 +754,7 @@ gen reg := STRING():s
     if (!start)
         E(", ");
     E("0\n");
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 
     E("\tldr %s, =s%d\n", regref($$), sid);
 }

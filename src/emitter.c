@@ -15,7 +15,7 @@ static FILE* outfile;
 
 void emitter_open(const char* filename)
 {
-    outfile = filename ? fopen(filename, "w") : stdout;
+    outfile = filename ? fopen(filename, "wb") : stdout;
     current = NULL;
 }
 
@@ -23,6 +23,24 @@ void emitter_close(void)
 {
     if (current)
         fatal("output chunks still open");
+	fprintf(outfile, "E0000");
+}
+
+static void write_record_header(char kind, uint16_t len)
+{
+	fprintf(outfile, "%c%04X", kind, len);
+}
+
+void emitter_reference_subroutine(Subroutine* user, Subroutine* used)
+{
+	write_record_header('R', 9); /* includes newline */
+	fprintf(outfile, "%04X%04X\n", user->id, used->id);
+}
+
+void emitter_declare_subroutine(Subroutine* sub)
+{
+	write_record_header('N', 4 + 1 + strlen(sub->name));
+	fprintf(outfile, "%04X%s\n", sub->id, sub->name);
 }
 
 void emitter_open_chunk(void)
@@ -35,11 +53,16 @@ void emitter_open_chunk(void)
     current = newchunk;
 }
 
-void emitter_close_chunk(void)
+void emitter_close_chunk(Subroutine* sub)
 {
     if (!current)
         fatal("no output chunk open");
 
+	if (current->fill > 0xffff)
+		fatal("chunk too big");
+
+	write_record_header('S', current->fill + 4);
+	fprintf(outfile, "%04X", sub ? sub->id : 0);
     fwrite(current->data, 1, current->fill, outfile);
 
     struct chunk* oldchunk = current;

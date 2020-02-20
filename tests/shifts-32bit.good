@@ -4,5 +4,7 @@ one32<<two == 4: yes
 seven32<<7 == 896: yes
 big>>one == 0x40000000: yes
 big>>two == 0x20000000: yes
-mbig>>one == 0xc000: no
-mbig>>two == 0xe000: no
+twodtwo>>seven == 5: yes
+mbig>>one == 0xc0000000: yes
+mbig>>two == 0xe0000000: yes
+twodtwo>>seven == 5: yes

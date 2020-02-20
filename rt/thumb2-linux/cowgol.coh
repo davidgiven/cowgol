@@ -11,6 +11,12 @@ var HIMEM: [uint8];
 @asm "ldr r0, =_himem";
 @asm "str r0, ", HIMEM;
 
+extern sub Exit() := "_exit";
+
+sub AlignUp(in: intptr): (out: intptr)
+	out := (in + 3) & ~3;
+end sub;
+
 sub print_char(c: uint8)
 	var pc := &c;
 	@asm "mov r0, #1"; # file descriptor

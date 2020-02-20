@@ -13,11 +13,6 @@
 	#define E emitter_printf
 	static char asmbuffer[80];
 
-	struct subarch
-	{
-		int id;
-	};
-
 	static int id = 1;
 	static Symbol* uint32_type;
 	static Symbol* int32_type;
@@ -53,11 +48,7 @@
 		return int32_type;
 	}
 
-	void arch_init_subroutine(struct subroutine* sub)
-	{
-		sub->arch = calloc(1, sizeof(struct subarch));
-		sub->arch->id = id++;
-	}
+	void arch_init_subroutine(struct subroutine* sub) {}
 
 	void arch_init_variable(struct symbol* var)
 	{
@@ -158,7 +149,7 @@
 			return sub->externname;
 		
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "f%d", sub->arch->id);
+		snprintf(buffer, sizeof(buffer), "f%d", sub->id);
 		return buffer;
 	}
 
@@ -166,7 +157,7 @@
 	{
 		static char buffer[32];
 		snprintf(buffer, sizeof(buffer), "(w%d+%d)",
-			sym->u.var.sub->arch->id,
+			sym->u.var.sub->id,
 			sym->u.var.offset + off);
 		return buffer;
 	}
@@ -209,6 +200,7 @@ regclass r8 := al|bl|cl|dl;
 regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := eax|ebx|ecx|edx|esi|edi;
 regclass ri := ebx|esi|edi;
+regclass allregs := r8|r16|r32|ri;
 
 regdata eax compatible r32    uses eax|ax|al;
 regdata ebx compatible r32|ri uses ebx|bx|bl;
@@ -233,7 +225,7 @@ gen STARTFILE()
 {
     emitter_open_chunk();
 	E("\t.code32\n");
-    emitter_close_chunk();
+    emitter_close_chunk(NULL);
 }
 
 gen ENDFILE();
@@ -304,10 +296,10 @@ gen ENDSUB():s
 		E("\tret\n");
 
     E("\t.bss\n");
-	E("w%d:\n", $s.sub->arch->id);
+	E("w%d:\n", $s.sub->id);
 	if ($s.sub->workspace[0] != 0)
 		E("\t.space %d\n", $s.sub->workspace[0]);
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 }
 
 // --- Control flow ------------------------------------------------------
@@ -359,7 +351,7 @@ gen param := PUSHPARAM4(param, CONSTANT():c)
 		{
 			emitter_open_chunk();
 			E("\t.extern %s\n", sub->externname);
-			emitter_close_chunk();
+			emitter_close_chunk(current_sub);
 		}
 
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
@@ -375,16 +367,16 @@ gen param := PUSHPARAM4(param, CONSTANT():c)
 
 gen CALLS(param);
 
-gen param := CALL0(param):c
+gen param := CALL0(param):c uses allregs
 	{ call($c.sub); }
 
-gen r8 := CALL1(param):c
+gen al := CALL1(param):c uses ebx|ecx|edx|esi|edi
 	{ calln($c.sub, $$); }
 
-gen r16 := CALL2(param):c
+gen ax := CALL2(param):c uses ebx|ecx|edx|esi|edi
 	{ calln($c.sub, $$); }
 
-gen r32 := CALL4(param):c
+gen eax := CALL4(param):c uses ebx|ecx|edx|esi|edi
 	{ calln($c.sub, $$); }
 
 %{
@@ -496,6 +488,9 @@ gen r8 := CAST41(r32:val)
 
 gen r16 := CAST42(r32:val)
 	{ E("\tmovw %s, %s\n", wordregref($val), regref($$)); }
+
+gen r16 := CAST12(r8:val)
+	{ E("\tmovzx %s, %s\n", regref($val), longregref($$)); }
 
 gen r32 := CAST14(r8:val)
 	{ E("\tmovzx %s, %s\n", regref($val), longregref($$)); }
@@ -823,7 +818,7 @@ gen r32 := STRING():s
     if (!start)
         E(", ");
     E("0\n");
-    emitter_close_chunk();
+    emitter_close_chunk(current_sub);
 
 	E("\tlea s%d, %s\n", sid, regref($$));
 }

@@ -1,3 +1,5 @@
+# vim: ts=4 sw=4 et
+
 record CpmFCB
 	dr: uint8;
 	f: uint8[11];
@@ -153,10 +155,15 @@ sub FCBClose(fcb: [FCB]): (errno: uint8)
 end sub;
 
 sub FCBSeek(fcb: [FCB], pos: uint32)
+	pos := pos - 1; # seek to *previous* character
 	var newblock := (pos >> 7) as uint16;
 	var newptr := (pos as uint8) & 127;
 	fcb_i_changeblock(fcb, newblock);
 	fcb.bufferptr := newptr;
+end sub;
+
+sub FCBPos(fcb: [FCB]): (pos: uint32)
+	pos := (((fcb.cpm.r as uint32) << 7) | (fcb.bufferptr as uint32)) + 1;
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32)

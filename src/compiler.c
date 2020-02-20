@@ -174,6 +174,9 @@ struct midnode* expr_shift(struct midnode* lhs, struct midnode* rhs,
 	if (rhs->type != uint8_type)
 		fatal("uint8 required on RHS of shift");
 
+	if (!lhs->type && rhs->type)
+		fatal("untyped constants not allowed on LHS of shift unless RHS is also an untype constant");
+
 	struct midnode* r = (is_snum(lhs->type) ? emitters : emitteru)
 		(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
 	r->type = lhs->type;
@@ -190,7 +193,7 @@ void cond_simple(int truelabel, int falselabel, struct midnode* lhs, struct midn
 
 	generate(
 		(is_snum(lhs->type) ? emitters : emitteru)
-			(lhs->type->u.type.width, lhs, rhs, truelabel, falselabel));
+			(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs, truelabel, falselabel));
 }
 
 struct symbol* dealias(struct symbol* sym)
@@ -258,7 +261,6 @@ struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 		namespace = namespace->parent;
 	}
 
-	fatal("symbol '%s' not found", name);
 	return NULL;
 }
 
@@ -267,6 +269,19 @@ void init_var(struct symbol* sym, struct symbol* type)
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
 	arch_init_variable(sym);
+}
+
+void symbol_redeclaration(Symbol* sym)
+{
+	fatal("attempt to redefine symbol '%s'", sym->name);
+}
+
+/* node must not be a partial type. */
+void check_non_partial_type(Symbol* sym)
+{
+	if (sym->u.type.kind == TYPE_PARTIAL)
+		fatal("attempt to use partial type '%s' in a context where it can't be partial",
+			sym->name);
 }
 
 /* node must be on the top of the midend stack. */
@@ -312,6 +327,8 @@ struct symbol* make_pointer_type(struct symbol* type)
 
 struct symbol* make_array_type(struct symbol* type, int32_t size)
 {
+	check_non_partial_type(type);
+
 	struct symbol* ptr = add_new_symbol(NULL, NULL);
 	ptr->name = aprintf("%s[%d]", type->name, size);
 	ptr->kind = TYPE;
