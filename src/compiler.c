@@ -557,3 +557,32 @@ Node* mid_c_rems(int width, Node* lhs, Node* rhs)
 	}
 	return mid_rems(width, lhs, rhs);
 }
+
+Node* mid_c_beqs(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+		return mid_jump(lhs->u.constant.value == rhs->u.constant.value ? truelabel : falselabel);
+	return mid_beqs(width, lhs, rhs, truelabel, falselabel);
+}
+	
+Node* mid_c_bequ(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+		return mid_jump(lhs->u.constant.value == rhs->u.constant.value ? truelabel : falselabel);
+	return mid_bequ(width, lhs, rhs, truelabel, falselabel);
+}
+	
+Node* mid_c_blts(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+		return mid_jump(lhs->u.constant.value < rhs->u.constant.value ? truelabel : falselabel);
+	return mid_blts(width, lhs, rhs, truelabel, falselabel);
+}
+	
+Node* mid_c_bltu(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+		return mid_jump(lhs->u.constant.value < rhs->u.constant.value ? truelabel : falselabel);
+	return mid_bltu(width, lhs, rhs, truelabel, falselabel);
+}
+

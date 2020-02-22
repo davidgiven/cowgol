@@ -40,7 +40,7 @@
 %token COLON CONST DOT ELSE END EXTERN.
 %token IF LOOP MINUS NOT OPENPAREN OPENSQ.
 %token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
-%token SUB THEN TILDE VAR WHILE TYPE.
+%token SUB THEN TILDE VAR WHILE TYPE INT TYPE.
 
 %left COMMA.
 %left AND.
@@ -710,35 +710,42 @@ condor ::= .
 
 conditional ::= expression(T1) EQOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, mid_bequ, mid_beqs);
+	cond_simple(condtrue, condfalse, T1, T2, mid_c_bequ, mid_c_beqs);
 }
 
 conditional ::= expression(T1) NEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, mid_bequ, mid_beqs);
+	cond_simple(condfalse, condtrue, T1, T2, mid_c_bequ, mid_c_beqs);
 }
 
 conditional ::= expression(T1) LTOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, mid_bltu, mid_blts);
+	cond_simple(condtrue, condfalse, T1, T2, mid_c_bltu, mid_c_blts);
 }
 
 conditional ::= expression(T1) GEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, mid_bltu, mid_blts);
+	cond_simple(condfalse, condtrue, T1, T2, mid_c_bltu, mid_c_blts);
 }
 
 conditional ::= expression(T1) GTOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T2, T1, mid_bltu, mid_blts);
+	cond_simple(condtrue, condfalse, T2, T1, mid_c_bltu, mid_c_blts);
 }
 
 conditional ::= expression(T1) LEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T2, T1, mid_bltu, mid_blts);
+	cond_simple(condfalse, condtrue, T2, T1, mid_c_bltu, mid_c_blts);
 }
 
 /* --- Types ------------------------------------------------------------- */
+
+typeref(sym) ::= INT OPENPAREN cvalue(min) COMMA cvalue(max) CLOSEPAREN.
+{
+	if (max <= min)
+		fatal("invalid integer type range");
+	sym = arch_guess_int_type(min, max);
+}
 
 typeref(sym) ::= eitherid(id).
 {
@@ -761,6 +768,11 @@ typeref(sym) ::= typeref(basetype) OPENSQ cvalue(value) CLOSESQ.
 typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
 {
 	sym = make_pointer_type(basetype);
+}
+
+statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
+{
+	add_alias(NULL, X->string, T);
 }
 
 /* --- Records ----------------------------------------------------------- */

@@ -51,6 +51,7 @@ SP [ \t]+
 "end"                     { return END; }
 "extern"                  { return EXTERN; }
 "if"                      { return IF; }
+"int"                     { return INT; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
@@ -58,6 +59,7 @@ SP [ \t]+
 "return"                  { return RETURN; }
 "sub"                     { return SUB; }
 "then"                    { return THEN; }
+"typedef"                 { return TYPEDEF; }
 "var"                     { return VAR; }
 "while"                   { return WHILE; }
 "|"                       { return PIPE; }
