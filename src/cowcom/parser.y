@@ -26,4 +26,9 @@ statements ::= statements statement.
 
 statement ::= SEMICOLON.
 
+/* --- Simple statements ------------------------------------------------- */
+
+statement ::= RETURN SEMICOLON.
+{ generate(mid_return()); }
+
 
