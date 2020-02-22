@@ -64,13 +64,15 @@
 		current_sub->workspace[0] += w;
 	}
 
-	void arch_init_member(struct symbol* record, struct symbol* member)
+	void arch_init_member(struct symbol* record, struct symbol* member, int position)
 	{
-		int w = member->u.var.type->u.type.width;
-
-		record->u.type.width = alignup(record->u.type.width, w);
-		member->u.var.offset = record->u.type.width;
-		record->u.type.width += w;
+		int width = member->u.var.type->u.type.width;
+		if (position == -1)
+			position = alignup(record->u.type.width, width);
+		member->u.var.offset = position;
+		position += width;
+		if (position > record->u.type.width)
+			record->u.type.width = position;
 	}
 
 	static const char* regref(reg_t reg)

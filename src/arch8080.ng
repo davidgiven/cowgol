@@ -57,10 +57,14 @@
 		current_sub->workspace[0] += var->u.var.type->u.type.width;
 	}
 
-	void arch_init_member(struct symbol* record, struct symbol* member)
+	void arch_init_member(struct symbol* record, struct symbol* member, int position)
 	{
-		member->u.var.offset = record->u.type.width;
-		record->u.type.width += member->u.var.type->u.type.width;
+		if (position == -1)
+			position = record->u.type.width;
+		member->u.var.offset = position;
+		position += member->u.var.type->u.type.width;
+		if (position > record->u.type.width)
+			record->u.type.width = position;
 	}
 
 	static const char* regref(reg_t reg)

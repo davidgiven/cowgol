@@ -1,0 +1,23 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+record TestRecord
+	i: uint8;
+	j @at(1): uint8;
+	k @at(1): uint8;
+end record;
+
+var t: TestRecord;
+t.i := 1;
+t.k := 0;
+
+print("size");
+if @bytesof TestRecord == 2 then yes(); else no(); end if;
+
+print("read j");
+if t.j == 0 then yes(); else no(); end if;
+
+t.j := 2;
+print("read k");
+if t.k == 2 then yes(); else no(); end if;
+

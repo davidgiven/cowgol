@@ -31,16 +31,17 @@ SP [ \t]+
 ":="                      { return ASSIGN; }
 ";"                       { return SEMICOLON; }
 "<"                       { return LTOP; }
+"<<"                      { return LSHIFT; }
 "<="                      { return LEOP; }
 "=="                      { return EQOP; }
 ">"                       { return GTOP; }
 ">="                      { return GEOP; }
 ">>"                      { return RSHIFT; }
-"<<"                      { return LSHIFT; }
 "@asm"                    { return ASM; }
+"@at"                     { return AT; }
+"@bytesof"                { return BYTESOF; }
 "["                       { return OPENSQ; }
 "]"                       { return CLOSESQ; }
-"~"                       { return TILDE; }
 "^"                       { return CARET; }
 "and"                     { return AND; }
 "as"                      { return AS; }
@@ -63,7 +64,7 @@ SP [ \t]+
 "var"                     { return VAR; }
 "while"                   { return WHILE; }
 "|"                       { return PIPE; }
-"@bytesof"                { return BYTESOF; }
+"~"                       { return TILDE; }
 
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }

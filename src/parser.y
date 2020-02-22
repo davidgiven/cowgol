@@ -800,7 +800,14 @@ recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
 {
 	S->kind = VAR;
 	S->u.var.type = T;
-	arch_init_member(current_type, S);
+	arch_init_member(current_type, S, -1);
+}
+
+recordmember ::= memberid(S) AT OPENPAREN cvalue(C) CLOSEPAREN COLON typeref(T) SEMICOLON.
+{
+	S->kind = VAR;
+	S->u.var.type = T;
+	arch_init_member(current_type, S, C);
 }
 
 %type memberid {struct symbol*}
