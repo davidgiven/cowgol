@@ -43,7 +43,7 @@ rule mkpat
     description = MKPAT \$in
 
 rule lemon
-    command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    command = mkdir -p \$cfile.temp && bin/lemon -Tthird_party/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
 rule bison
@@ -209,7 +209,7 @@ buildlemon() {
     local hfile
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
-    echo "build $cfile $hfile : lemon $2 | bin/lemon tools/lemon/lempar.c"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon third_party/lemon/lempar.c"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -471,7 +471,7 @@ cowgol_target() {
 }
 
 buildlibrary liblemon.a \
-	tools/lemon/lemon.c
+	third_party/lemon/lemon.c
 
 buildprogram lemon \
 	liblemon.a
