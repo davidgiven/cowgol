@@ -5,6 +5,11 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 
 typedef uint8_t i1;
 typedef uint16_t i2;

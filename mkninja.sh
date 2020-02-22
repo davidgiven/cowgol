@@ -694,6 +694,7 @@ cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
 cowgol_cgen examples/argv.cow examples/argv.cgen
 cowgol_cgen examples/empty.cow examples/empty.cgen
+cowgol_cgen examples/file.cow examples/file.cgen
 cowgol_cgen examples/malloc.cow examples/malloc.cgen
 
 cowlink_coh=$(echo src/cowlink/*.coh)
