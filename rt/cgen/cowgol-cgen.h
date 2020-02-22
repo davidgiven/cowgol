@@ -18,6 +18,7 @@ typedef int64_t s8;
 
 extern i8* __top;
 extern i8* __himem;
+extern i8* global_argv;
 
 #endif
 

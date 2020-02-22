@@ -692,6 +692,7 @@ cowgol_thumb2_linux examples/argv.cow examples/argv.thumb2
 cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
 cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
+cowgol_cgen examples/argv.cow examples/argv.cgen
 cowgol_cgen examples/empty.cow examples/empty.cgen
 cowgol_cgen examples/malloc.cow examples/malloc.cgen
 
