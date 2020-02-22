@@ -701,5 +701,6 @@ cowlink_coh=$(echo src/cowlink/*.coh)
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"
 cowgol_cpm src/cowlink/main.cow bin/cowlink.com "$cowlink_coh"
 cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2 "$cowlink_coh"
+cowgol_cgen src/cowlink/main.cow bin/cowlink.cgen "$cowlink_coh"
 
 # vim: sw=4 ts=4 et
