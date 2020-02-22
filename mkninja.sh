@@ -411,7 +411,7 @@ cowgol_cgen_coo() {
 
 	rule \
 		"bin/tinycowc-cgen -Irt/ -Irt/cgen/ $in $out > $log" \
-		"$in $deps bin/tinycowc-cgen $stdlib" \
+		"$in $deps bin/tinycowc-cgen $stdlib rt/cgen/cowgol-cgen.h" \
 		"$out $log" \
 		"COWGOL CGEN $in"
 }
@@ -693,6 +693,7 @@ cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
 cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
 cowgol_cgen examples/empty.cow examples/empty.cgen
+cowgol_cgen examples/malloc.cow examples/malloc.cgen
 
 cowlink_coh=$(echo src/cowlink/*.coh)
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"

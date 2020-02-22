@@ -69,6 +69,7 @@
 		/* All variables get allocated from workspace 0. */
 
 		int w = var->u.var.type->u.type.width;
+		current_sub->workspace[0] = alignup(current_sub->workspace[0], w);
 		var->u.var.offset = current_sub->workspace[0];
 		current_sub->workspace[0] += w;
 	}
@@ -203,7 +204,7 @@ gen STARTSUB():s
 		E("void");
 	E(") {\n");
 
-	for (int i=$s.sub->inputparameters-1; i>=0; i--)
+	for (int i=0; i<$s.sub->inputparameters; i++)
 	{
 		Symbol* param = get_input_parameters($s.sub);
 		for (int j=0; j<i; j++)
@@ -317,7 +318,7 @@ gen v2 := CALL2(param):c
 gen v4 := CALL4(param):c
 	{ call($c.sub); }
 
-gen v8 := CALL4(param):c
+gen v8 := CALL8(param):c
 	{ call($c.sub); }
 
 %{
@@ -664,7 +665,7 @@ gen v8 := STRING():s
 {
     int sid = id++;
     emitter_open_chunk();
-	E("\ti1 s%d[] = { ", sid);
+	E("const i1 s%d[] = { ", sid);
     bool start = true;
 	const char* s = $s.text;
     for (;;)

@@ -1,11 +1,19 @@
 var TOP: [uint8];
-@asm TOP, "= (i8)(intptr_t) &__top;";
+@asm TOP, "= (i8)(intptr_t) __top;";
 
 var HIMEM: [uint8];
-@asm HIMEM, "= (i8)(intptr_t) &__himem;";
+@asm HIMEM, "= (i8)(intptr_t) __himem;";
+
+sub AlignUp(in: intptr): (out: intptr)
+	out := (in + 7) & ~7;
+end sub;
 
 sub Exit()
 	@asm "exit(0);";
+end sub;
+
+sub MemSet(buf: [uint8], byte: uint8, len: intptr)
+	@asm "memset((void*)(intptr_t)", buf, ", ", byte, ", ", len, ");";
 end sub;
 
 sub print_char(c: uint8)
