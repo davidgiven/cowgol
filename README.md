@@ -13,6 +13,7 @@ drastically simpler but also better. It targets:
 - 8080 (CP/M)
 - 80386 (Linux)
 - Thumb2 (Linux)
+- C (generic)
 
 Sadly I've removed the Apollo Guidance Computer backend --- I'd like to get
 that running again, but I'm focusing on the compiler core for now. (It should

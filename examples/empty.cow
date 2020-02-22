@@ -1,3 +1,6 @@
 include "cowgol.coh";
 
-print("Hello, world!\n");
+sub add(i: int8, j: int8): (k: int8)
+	k := i + j;
+end sub;
+

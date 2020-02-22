@@ -43,7 +43,7 @@ rule mkpat
     description = MKPAT \$in
 
 rule lemon
-    command = mkdir -p \$cfile.temp && bin/lemon -Ttools/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    command = mkdir -p \$cfile.temp && bin/lemon -Tthird_party/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
 rule bison
@@ -209,7 +209,7 @@ buildlemon() {
     local hfile
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
-    echo "build $cfile $hfile : lemon $2 | bin/lemon tools/lemon/lempar.c"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon third_party/lemon/lempar.c"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -399,7 +399,7 @@ test_80386_linux() {
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
-cowgol_c_c() {
+cowgol_cgen_coo() {
 	local in
 	local out
 	local log
@@ -410,28 +410,30 @@ cowgol_c_c() {
 	deps=$4
 
 	rule \
-		"bin/tinycowc-c -Irt/ -Irt/c/ $in $out > $log" \
-		"$in $deps bin/tinycowc-c rt/c/cowgol.coh" \
+		"bin/tinycowc-cgen -Irt/ -Irt/cgen/ $in $out > $log" \
+		"$in $deps bin/tinycowc-cgen $stdlib rt/cgen/cowgol-cgen.h" \
 		"$out $log" \
-		"COWGOL C $in"
+		"COWGOL CGEN $in"
 }
 
-cowgol_c() {
+cowgol_cgen() {
 	local base
-	base="$OBJDIR/${1%.cow}.c"
-	cowgol_c_c $1 $base.c $base.log "$3"
-	rule "$CC -g -c -ffunction-sections -fdata-sections -I. -o $base.o $base.c" \
-		$base.c $base.o "CC $1"
-	rule "$CC -g -o $2 $OBJDIR/rt/c/cowgol.o $base.o" \
-		"$OBJDIR/rt/c/cowgol.o $base.o" $2 \
-		"LINK $1"
+	base="$OBJDIR/$(dirname $1)/cgen/${1%.cow}"
+	cowgol_cgen_coo $1 $base.coo $base.log "$3"
+    uncoo $base.coo $base.c
+
+    rule \
+        "cc -O0 -g -Irt/cgen $base.c $OBJDIR/rt/cgen/cowgol-cgen.o -o $2" \
+        "$base.c $OBJDIR/rt/cgen/cowgol-cgen.o" \
+        "$2" \
+        "CC $1"
 }
 
-test_c() {
+test_cgen() {
 	local base
-	base=$OBJDIR/tests/c/$1
-	cowgol_c tests/$1.test.cow $base.exe tests/_framework.coh
-	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_C $1"
+	base=$OBJDIR/tests/cgen/$1
+	cowgol_cgen tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_CGEN $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -469,7 +471,7 @@ cowgol_target() {
 }
 
 buildlibrary liblemon.a \
-	tools/lemon/lemon.c
+	third_party/lemon/lemon.c
 
 buildprogram lemon \
 	liblemon.a
@@ -536,6 +538,7 @@ buildlibrary libmain.a \
 cowgol_target 8080
 cowgol_target 80386
 cowgol_target thumb2
+cowgol_target cgen
 
 pasmo tools/cpmemu/bdos.asm $OBJDIR/tools/cpmemu/bdos.img
 pasmo tools/cpmemu/ccp.asm $OBJDIR/tools/cpmemu/ccp.img
@@ -572,7 +575,7 @@ zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
 as_80386_linux rt/80386-linux/cowgol.s $OBJDIR/rt/80386-linux/cowgol.o
-cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
+cfile $OBJDIR/rt/cgen/cowgol-cgen.o rt/cgen/cowgol-cgen.c
 
 test_cpm addsub-8bit
 test_cpm addsub-16bit
@@ -652,13 +655,31 @@ test_80386_linux inputparams
 test_80386_linux outputparams
 test_80386_linux conditionals
 
-#test_c addsub-8bit
-#test_c addsub-16bit
-#test_c addsub-32bit
-#test_c records
-#test_c inputparams
-#test_c outputparams
-#test_c conditionals
+test_cgen addsub-8bit
+test_cgen addsub-16bit
+test_cgen addsub-32bit
+test_cgen mul-8bit-u
+test_cgen mul-8bit-s
+test_cgen mul-16bit-u
+test_cgen mul-16bit-s
+test_cgen mul-32bit-u
+test_cgen mul-32bit-s
+test_cgen divrem-8bit-u
+test_cgen divrem-8bit-s
+test_cgen divrem-16bit-u
+test_cgen divrem-16bit-s
+test_cgen divrem-32bit-u
+test_cgen divrem-32bit-s
+test_cgen shifts-8bit
+test_cgen shifts-16bit
+test_cgen shifts-32bit
+test_cgen logic-8bit
+test_cgen logic-16bit
+test_cgen logic-32bit
+test_cgen records
+test_cgen inputparams
+test_cgen outputparams
+test_cgen conditionals
 
 cowgol_80386_linux examples/argv.cow examples/argv.386
 cowgol_80386_linux examples/file.cow examples/file.386 
@@ -671,10 +692,15 @@ cowgol_thumb2_linux examples/argv.cow examples/argv.thumb2
 cowgol_thumb2_linux examples/empty.cow examples/empty.thumb2
 cowgol_thumb2_linux examples/file.cow examples/file.thumb2
 cowgol_thumb2_linux examples/malloc.cow examples/malloc.thumb2 
+cowgol_cgen examples/argv.cow examples/argv.cgen
+cowgol_cgen examples/empty.cow examples/empty.cgen
+cowgol_cgen examples/file.cow examples/file.cgen
+cowgol_cgen examples/malloc.cow examples/malloc.cgen
 
 cowlink_coh=$(echo src/cowlink/*.coh)
 cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"
 cowgol_cpm src/cowlink/main.cow bin/cowlink.com "$cowlink_coh"
 cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2 "$cowlink_coh"
+cowgol_cgen src/cowlink/main.cow bin/cowlink.cgen "$cowlink_coh"
 
 # vim: sw=4 ts=4 et

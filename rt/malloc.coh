@@ -48,6 +48,8 @@ sub Alloc(length: intptr): (block: [uint8])
 		if p == freeList then
 			# Uh-oh --- we've gone right round the ring and haven't found anything.
 			p := 0 as [FreeBlock];
+			print("Out of memory\n");
+			ExitWithError();
 			break;
 		end if;
 
