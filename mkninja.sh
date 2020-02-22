@@ -43,7 +43,7 @@ rule mkpat
     description = MKPAT \$in
 
 rule lemon
-    command = mkdir -p \$cfile.temp && bin/lemon -Tthird_party/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    command = mkdir -p \$cfile.temp && \$lemon -T\$template -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
 rule bison
@@ -210,6 +210,20 @@ buildlemon() {
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
     echo "build $cfile $hfile : lemon $2 | bin/lemon third_party/lemon/lempar.c"
+    echo "  lemon=bin/lemon"
+    echo "  template=third_party/lemon/lempar.c"
+    echo "  cfile=$cfile"
+    echo "  hfile=$hfile"
+}
+
+buildlemoncowgol() {
+    local cfile
+    local hfile
+    cfile="${1%%.c*}.c"
+    hfile="${1%%.c*}.h"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon-cowgol third_party/lemon/lempar.c"
+    echo "  lemon=bin/lemon-cowgol"
+    echo "  template=third_party/lemon/lempar.c"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -475,6 +489,13 @@ buildlibrary liblemon.a \
 
 buildprogram lemon \
 	liblemon.a
+
+buildlibrary liblemon-cowgol.a \
+    -DCOWGOL \
+	third_party/lemon/lemon.c
+
+buildprogram lemon-cowgol \
+	liblemon-cowgol.a
 
 buildbison $OBJDIR/third_party/zmac/zmac.c third_party/zmac/zmac.y
 
