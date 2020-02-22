@@ -421,13 +421,19 @@ cowgol_cgen() {
 	base="$OBJDIR/$(dirname $1)/cgen/${1%.cow}"
 	cowgol_cgen_coo $1 $base.coo $base.log "$3"
     uncoo $base.coo $base.c
+
+    rule \
+        "cc -O0 -g -Irt/cgen $base.c $OBJDIR/rt/cgen/cowgol-cgen.o -o $2" \
+        "$base.c $OBJDIR/rt/cgen/cowgol-cgen.o" \
+        "$2" \
+        "CC $1"
 }
 
-test_c() {
+test_cgen() {
 	local base
-	base=$OBJDIR/tests/c/$1
-	cowgol_c tests/$1.test.cow $base.exe tests/_framework.coh
-	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_C $1"
+	base=$OBJDIR/tests/cgen/$1
+	cowgol_cgen tests/$1.test.cow $base.exe tests/_framework.coh
+	rule "$base.exe > $base.bad" "$base.exe" "$base.bad" "TEST_CGEN $1"
 	rule "diff -u tests/$1.good $base.bad && touch $base.stamp" "tests/$1.good $base.bad" "$base.stamp" "DIFF $1"
 }
 
@@ -569,7 +575,7 @@ zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
 zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
 as_80386_linux rt/80386-linux/cowgol.s $OBJDIR/rt/80386-linux/cowgol.o
-cfile $OBJDIR/rt/c/cowgol.o rt/c/cowgol.c
+cfile $OBJDIR/rt/cgen/cowgol-cgen.o rt/cgen/cowgol-cgen.c
 
 test_cpm addsub-8bit
 test_cpm addsub-16bit
@@ -649,13 +655,31 @@ test_80386_linux inputparams
 test_80386_linux outputparams
 test_80386_linux conditionals
 
-#test_c addsub-8bit
-#test_c addsub-16bit
-#test_c addsub-32bit
-#test_c records
-#test_c inputparams
-#test_c outputparams
-#test_c conditionals
+test_cgen addsub-8bit
+test_cgen addsub-16bit
+test_cgen addsub-32bit
+test_cgen mul-8bit-u
+test_cgen mul-8bit-s
+test_cgen mul-16bit-u
+test_cgen mul-16bit-s
+test_cgen mul-32bit-u
+test_cgen mul-32bit-s
+test_cgen divrem-8bit-u
+test_cgen divrem-8bit-s
+test_cgen divrem-16bit-u
+test_cgen divrem-16bit-s
+test_cgen divrem-32bit-u
+test_cgen divrem-32bit-s
+test_cgen shifts-8bit
+test_cgen shifts-16bit
+test_cgen shifts-32bit
+test_cgen logic-8bit
+test_cgen logic-16bit
+test_cgen logic-32bit
+test_cgen records
+test_cgen inputparams
+test_cgen outputparams
+test_cgen conditionals
 
 cowgol_80386_linux examples/argv.cow examples/argv.386
 cowgol_80386_linux examples/file.cow examples/file.386 

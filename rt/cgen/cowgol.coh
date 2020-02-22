@@ -1,0 +1,26 @@
+var TOP: [uint8];
+@asm TOP, "= (i8) &__top;";
+
+var HIMEM: [uint8];
+@asm HIMEM, "= (i8) &__himem;";
+
+sub Exit()
+	@asm "exit(0);";
+end sub;
+
+sub print_char(c: uint8)
+	@asm "putchar(", c, ");";
+end sub;
+
+sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
+	@asm quot, " = ", lhs, " / ", rhs, ";";
+	@asm rem, " = ", lhs, " % ", rhs, ";";
+end sub;
+
+sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
+	@asm quot, " = (s4)", lhs, " / (s4)", rhs, ";";
+	@asm rem, " = (s4)", lhs, " % (s4)", rhs, ";";
+end sub;
+
+include "common.coh";
+
