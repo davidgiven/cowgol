@@ -12,7 +12,7 @@
 	#include "codegen.h"
 
 	#define E emitter_printf
-	static char asmbuffer[80];
+	static char asmbuffer[160];
 
 	static int id = 1;
 	static Symbol* int8_type;
@@ -209,7 +209,7 @@ gen STARTSUB():s
 		for (int j=0; j<i; j++)
 			param = param->next;
 
-		E("\t*(i%d*)(%s) = iparam%d;\n",
+		E("\t*(i%d*)(intptr_t)(%s) = iparam%d;\n",
 			param->u.var.type->u.type.width,
 			symref(param, 0),
 			param->u.var.offset);
@@ -225,7 +225,7 @@ gen ENDSUB():s
 		for (int j=0; j<(i + $s.sub->inputparameters); j++)
 			param = param->next;
 
-		E("\t*oparam%d = *(i%d*)(%s);\n",
+		E("\t*oparam%d = *(i%d*)(intptr_t)(%s);\n",
 			param->u.var.offset,
 			param->u.var.type->u.type.width,
 			symref(param, 0));
@@ -323,7 +323,7 @@ gen v8 := CALL4(param):c
 %{
 	static void popparam(int width, Symbol* sym, int off)
 	{
-		E("\t*(i%d*)(%s) = v%d;\n", width, symref(sym, off), pop());
+		E("\t*(i%d*)(intptr_t)(%s) = v%d;\n", width, symref(sym, off), pop());
 	}
 %}
 
@@ -366,7 +366,7 @@ gen v8 := CONSTANT():c
 	{ E("\ti8 v%d = %d;\n", push(), $c.value); }
 
 gen v8 := ADDRESS():a
-	{ E("\ti8 v%d = (i8) (%s);\n", push(), symref($a.sym, $a.off)); }
+	{ E("\ti8 v%d = (i8)(intptr_t)(%s);\n", push(), symref($a.sym, $a.off)); }
 
 // --- Loads and stores --------------------------------------------------
 
@@ -375,13 +375,13 @@ gen v8 := ADDRESS():a
 	{
 		int addrid = pop();
 		int valid = pop();
-		E("\t*(i%d*)v%d = v%d;\n", width, addrid, valid);
+		E("\t*(i%d*)(intptr_t)v%d = v%d;\n", width, addrid, valid);
 	}
 
 	static void store_va(int width, Symbol* sym, int off)
 	{
 		int valid = pop();
-		E("\t*(i%d*)(%s) = v%d;\n", width, symref(sym, off), valid);
+		E("\t*(i%d*)(intptr_t)(%s) = v%d;\n", width, symref(sym, off), valid);
 	}
 %}
 
@@ -398,12 +398,12 @@ gen STORE8(v8:val, ADDRESS():a) { store_va(8, $a.sym, $a.off); }
 	static void load_v(int width)
 	{
 		int addrid = pop();
-		E("\ti%d v%d = *(i%d*)v%d;\n", width, push(), width, addrid);
+		E("\ti%d v%d = *(i%d*)(intptr_t)v%d;\n", width, push(), width, addrid);
 	}
 
 	static void load_a(int width, Symbol* sym, int off)
 	{
-		E("\ti%d v%d = *(i%d*)(%s);\n", width, push(), width, symref(sym, off));
+		E("\ti%d v%d = *(i%d*)(intptr_t)(%s);\n", width, push(), width, symref(sym, off));
 	}
 %}
 
@@ -638,7 +638,7 @@ gen ASMSYMBOL():s
 	{
 		int w = strlen(asmbuffer);
 		snprintf(asmbuffer+w, sizeof(asmbuffer)-w,
-			"*(i%d*)(%s)",
+			"*(i%d*)(intptr_t)(%s)",
 			$s.sym->u.var.type->u.type.width,
 			symref($s.sym, 0));
 	}
@@ -682,6 +682,6 @@ gen v8 := STRING():s
     E("0 };\n");
     emitter_close_chunk(current_sub);
 
-	E("\ti8 v%d = (i8) s%d;\n", push(), sid);
+	E("\ti8 v%d = (i8)(intptr_t)s%d;\n", push(), sid);
 }
 
