@@ -219,11 +219,11 @@ buildlemon() {
 buildlemoncowgol() {
     local cfile
     local hfile
-    cfile="${1%%.c*}.c"
-    hfile="${1%%.c*}.h"
-    echo "build $cfile $hfile : lemon $2 | bin/lemon-cowgol third_party/lemon/lempar.c"
+    cfile="${1%%.c*}.coh"
+    hfile="${1%%.c*}.impl.coh"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon-cowgol third_party/lemon/lempar.coh"
     echo "  lemon=bin/lemon-cowgol"
-    echo "  template=third_party/lemon/lempar.c"
+    echo "  template=third_party/lemon/lempar.coh"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -491,8 +491,7 @@ buildprogram lemon \
 	liblemon.a
 
 buildlibrary liblemon-cowgol.a \
-    -DCOWGOL \
-	third_party/lemon/lemon.c
+	third_party/lemon/lemon-cowgol.c
 
 buildprogram lemon-cowgol \
 	liblemon-cowgol.a
@@ -719,9 +718,17 @@ cowgol_cgen examples/file.cow examples/file.cgen
 cowgol_cgen examples/malloc.cow examples/malloc.cgen
 
 cowlink_coh=$(echo src/cowlink/*.coh)
-cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"
+cowgol_80386_linux src/cowlink/main.cow bin/cowlink.386 "$cowlink_coh"
 cowgol_cpm src/cowlink/main.cow bin/cowlink.com "$cowlink_coh"
 cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2 "$cowlink_coh"
 cowgol_cgen src/cowlink/main.cow bin/cowlink.cgen "$cowlink_coh"
+
+buildlemoncowgol $OBJDIR/parser.coh src/cowcom/parser.y
+
+cowcom_coh=$OBJDIR/parser.coh
+cowgol_80386_linux src/cowcom/main.cow bin/cowcom.386 "$cowcom_coh"
+cowgol_cpm src/cowcom/main.cow bin/cowcom.com "$cowcom_coh"
+cowgol_thumb2_linux src/cowcom/main.cow bin/cowcom.thumb2 "$cowcom_coh"
+cowgol_cgen src/cowcom/main.cow bin/cowcom.cgen "$cowcom_coh"
 
 # vim: sw=4 ts=4 et

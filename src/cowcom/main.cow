@@ -1,0 +1,17 @@
+include "cowgol.coh";
+include "argv.coh";
+include "malloc.coh";
+include "strings.coh";
+include "file.coh";
+
+sub PrintFreeMemory()
+	print_i16((GetFreeMemory() >> 10) as uint16);
+	print("kB free\n");
+end sub;
+
+print("COWCOM: ");
+PrintFreeMemory();
+
+print("done: ");
+PrintFreeMemory();
+

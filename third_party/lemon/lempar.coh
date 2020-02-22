@@ -1,0 +1,47 @@
+# %include sections from the grammar
+%%
+
+# makeheaders token definitions
+%%
+
+# control settings
+%%
+
+# parsing tables
+%%
+
+# fallback rules
+%%
+
+# token names
+%%
+
+# rule names
+%%
+
+# destructors
+%%
+
+# stack overflow code
+%%
+
+# For rule J, yyRuleInfoLhs[J] contains the symbol on the left-hand side
+# of that rule
+%%
+
+# For rule J, yyRuleInfoNRhs[J] contains the negative of the number
+# of symbols on the right-hand side of that rule.
+%%
+
+# reduce actions
+%%
+
+# parse failure code
+%%
+
+# syntax error code
+%%
+
+# parse accept code
+%%
+
