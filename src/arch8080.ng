@@ -1030,6 +1030,53 @@ gen ASMEND()
 
 // --- Array initialisers ------------------------------------------------
 
+%{
+	static int emit_string(const char* s)
+	{
+		int sid = id++;
+		emitter_open_chunk();
+		E("\tcseg\n");
+		E("s%d:\n", sid);
+		E("\tdb ");
+		bool instring = false;
+		bool start = true;
+		for (;;)
+		{
+			char c = *s++;
+			if (!c)
+				break;
+			if (!start && !instring)
+				E(", ");
+			start = false;
+			if (isprint(c) && (c != '\"') && (c != '\\'))
+			{
+				if (!instring)
+				{
+					E("\"");
+					instring = true;
+				}
+				E("%c", c);
+			}
+			else
+			{
+				if (instring)
+				{
+					E("\", ");
+					instring = false;
+				}
+				E("%d", c);
+			}
+		}
+		if (instring)
+			E("\"");
+		if (!start)
+			E(", ");
+		E("0\n");
+		emitter_close_chunk(current_sub);
+		return sid;
+	}
+%}
+
 gen STARTINIT():s
 {
 	int sid = id++;
@@ -1043,6 +1090,7 @@ gen STARTINIT():s
 gen INIT1():c { E("\tdb %d\n", $c.value); }
 gen INIT2():c { E("\tdw %d\n", $c.value); }
 gen INIT4():c { E("\tdword %d\n", $c.value); }
+gen INITS():s { E("\tdw s%d\n", emit_string($s.text)); }
 
 gen ENDINIT()
 {
@@ -1053,48 +1101,6 @@ gen ENDINIT()
 
 gen bc|de|hl := STRING():s
 {
-    int sid = id++;
-    emitter_open_chunk();
-    E("\tcseg\n");
-    E("s%d:\n", sid);
-    E("\tdb ");
-    bool instring = false;
-    bool start = true;
-	const char* s = $s.text;
-    for (;;)
-    {
-        char c = *s++;
-        if (!c)
-            break;
-        if (!start && !instring)
-            E(", ");
-        start = false;
-        if (isprint(c) && (c != '\"') && (c != '\\'))
-        {
-            if (!instring)
-            {
-                E("\"");
-                instring = true;
-            }
-            E("%c", c);
-        }
-        else
-        {
-            if (instring)
-            {
-                E("\", ");
-                instring = false;
-            }
-            E("%d", c);
-        }
-    }
-    if (instring)
-        E("\"");
-    if (!start)
-        E(", ");
-    E("0\n");
-    emitter_close_chunk(current_sub);
-
-    E("\tlxi %s, s%d\n", regref($$), sid);
+    E("\tlxi %s, s%d\n", regref($$), emit_string($s.text));
 }
 

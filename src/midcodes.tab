@@ -8,6 +8,7 @@
 
 - 0 0 STARTINIT(struct symbol* sym) = ("%s", $$.sym->name)
 y 0 0 INIT(int32_t value) = ("%d", $$.value)
+- 0 0 INITS(const char* text) = ("...")
 - 0 0 ENDINIT()
 
 - 0 0 ASMSTART()

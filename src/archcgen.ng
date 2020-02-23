@@ -671,6 +671,31 @@ gen ASMEND()
 
 // --- Array initialisers ------------------------------------------------
 
+%{
+	static int emit_string(const char* s)
+	{
+		int sid = id++;
+		emitter_open_chunk();
+		E("const i1 s%d[] = { ", sid);
+		bool start = true;
+		for (;;)
+		{
+			char c = *s++;
+			if (!c)
+				break;
+			if (!start)
+				E(", ");
+			E("0x%02x", c);
+			start = false;
+		}
+		if (!start)
+			E(", ");
+		E("0 };\n");
+		emitter_close_chunk(current_sub);
+		return sid;
+	}
+%}
+
 gen STARTINIT():s
 {
 	int sid = id++;
@@ -685,6 +710,7 @@ gen STARTINIT():s
 gen INIT1():c { E("%d,\n", $c.value); }
 gen INIT2():c { E("%d,\n", $c.value); }
 gen INIT4():c { E("%d,\n", $c.value); }
+gen INITS():s { E("(i8)(intptr_t)s%d,\n", emit_string($s.text)); }
 
 gen ENDINIT()
 {
@@ -696,26 +722,6 @@ gen ENDINIT()
 
 gen v8 := STRING():s
 {
-    int sid = id++;
-    emitter_open_chunk();
-	E("const i1 s%d[] = { ", sid);
-    bool start = true;
-	const char* s = $s.text;
-    for (;;)
-    {
-        char c = *s++;
-        if (!c)
-            break;
-		if (!start)
-            E(", ");
-		E("0x%02x", c);
-        start = false;
-    }
-    if (!start)
-        E(", ");
-    E("0 };\n");
-    emitter_close_chunk(current_sub);
-
-	E("\ti8 v%d = (i8)(intptr_t)s%d;\n", push(), sid);
+	E("\ti8 v%d = (i8)(intptr_t)s%d;\n", push(), emit_string($s.text));
 }
 

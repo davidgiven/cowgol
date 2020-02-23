@@ -738,6 +738,33 @@ gen ASMEND()
 
 // --- Array initialisers ------------------------------------------------
 
+%{
+	static int emit_string(const char* s)
+	{
+		int sid = id++;
+		emitter_open_chunk();
+		E("\t.data 1\n");
+		E("s%d:\n", sid);
+		E("\t.byte ");
+		bool start = true;
+		for (;;)
+		{
+			char c = *s++;
+			if (!c)
+				break;
+			if (!start)
+				E(", ");
+			E("0x%02x", c);
+			start = false;
+		}
+		if (!start)
+			E(", ");
+		E("0\n");
+		emitter_close_chunk(current_sub);
+		return sid;
+	}
+%}
+
 gen STARTINIT():s
 {
 	int sid = id++;
@@ -752,6 +779,7 @@ gen STARTINIT():s
 gen INIT1():c { E("\t.byte %d\n", $c.value); }
 gen INIT2():c { E("\t.short %d\n", $c.value); }
 gen INIT4():c { E("\t.long %d\n", $c.value); }
+gen INITS():s { E("\t.long s%d\n", emit_string($s.text)); }
 
 gen ENDINIT()
 {
@@ -762,28 +790,6 @@ gen ENDINIT()
 
 gen reg := STRING():s
 {
-    int sid = id++;
-    emitter_open_chunk();
-    E("\t.data 1\n");
-    E("s%d:\n", sid);
-    E("\t.byte ");
-    bool start = true;
-	const char* s = $s.text;
-    for (;;)
-    {
-        char c = *s++;
-        if (!c)
-            break;
-		if (!start)
-            E(", ");
-		E("0x%02x", c);
-        start = false;
-    }
-    if (!start)
-        E(", ");
-    E("0\n");
-    emitter_close_chunk(current_sub);
-
-    E("\tldr %s, =s%d\n", regref($$), sid);
+    E("\tldr %s, =s%d\n", regref($$), emit_string($s.text));
 }
 

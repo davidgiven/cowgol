@@ -4,6 +4,7 @@ include "tests/_framework.coh";
 var bytes: uint8[] := {1, 2, 3, 4, 5};
 var shorts: uint16[] := {1, 2, 3, 4, 5};
 var longs: uint32[] := {1, 2, 3, 4, 5};
+var strings: [uint8][] := {"foo", "bar", "cow"};
 
 sub Subroutine()
 	print("read byte");
@@ -14,6 +15,9 @@ sub Subroutine()
 
 	print("read long");
 	if longs[1] == 2 then yes(); else no(); end if;
+
+	print("read string");
+	if [strings[1]] == 'b' then yes(); else no(); end if;
 end sub;
 
 #print("size");

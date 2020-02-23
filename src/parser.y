@@ -160,8 +160,21 @@ arraymembers ::= arraymembers COMMA arraymembers.
 
 arraymembers ::= cvalue(C).
 {
+	if (!is_scalar(current_type->u.type.element))
+		fatal("cannot initialise a non-scalar with a scalar");
 	int w = current_type->u.type.element->u.type.width;
 	generate(mid_init(w, C));
+	current_array_size++;
+}
+
+arraymembers ::= STRING(S).
+{
+	if (!is_ptr(current_type->u.type.element)
+			|| (current_type->u.type.element->u.type.element != uint8_type))
+		fatal("cannot initialise this type with a string literal");
+	
+	unescape(S->string);
+	generate(mid_inits(S->string));
 	current_array_size++;
 }
 
