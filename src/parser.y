@@ -14,6 +14,7 @@
     int current_label = 1;
 
     static int break_label;
+	static int current_array_size;
 	struct subroutine* current_sub;
 	static int id = 1;
 
@@ -41,6 +42,7 @@
 %token IF LOOP MINUS NOT OPENPAREN OPENSQ.
 %token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
 %token SUB THEN TILDE VAR WHILE TYPE INT TYPE.
+%token OPENBR CLOSEBR.
 
 %left COMMA.
 %left AND.
@@ -114,6 +116,53 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	check_expression_type(&E->type, E->type);
 
 	generate(mid_store(E->type->u.type.width, E, mid_address(S, 0)));
+}
+
+/* --- Array initialisers ------------------------------------------------ */
+
+statement ::= arraydecl OPENBR arraymembers CLOSEBR SEMICOLON.
+{
+	int memberwidth = current_type->u.type.element->u.type.width;
+	int width = current_array_size * memberwidth;
+	if (current_type->u.type.width == 0)
+		current_type->u.type.width = width;
+	if (width > current_type->u.type.width)
+		fatal("too many elements in array initialiser");
+	while (width < current_type->u.type.width)
+	{
+		generate(mid_init(memberwidth, 0));
+		width += memberwidth;
+	}
+
+	generate(mid_endinit());
+
+}
+
+arraydecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
+{
+	/* We don't call init_var() because we don't want this variable
+	 * allocated to a workspace. */
+
+	S->kind = VAR;
+	S->u.var.type = T;
+	S->u.var.sub = current_sub;
+	if (!is_array(T))
+		fatal("array initialisers only work on arrays");
+	current_type = T;
+	current_array_size = 0;
+
+	generate(mid_startinit(S));
+}
+
+arraymembers ::= .
+
+arraymembers ::= arraymembers COMMA arraymembers.
+
+arraymembers ::= cvalue(C).
+{
+	int w = current_type->u.type.element->u.type.width;
+	generate(mid_init(w, C));
+	current_array_size++;
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -761,9 +810,10 @@ typeref(sym) ::= eitherid(id).
 }
 
 typeref(sym) ::= typeref(basetype) OPENSQ cvalue(value) CLOSESQ.
-{
-	sym = make_array_type(basetype, value);
-}
+{ sym = make_array_type(basetype, value); }
+
+typeref(sym) ::= typeref(basetype) OPENSQ CLOSESQ.
+{ sym = make_array_type(basetype, 0); }
 
 typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
 {

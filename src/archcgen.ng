@@ -97,14 +97,22 @@
 
 	static const char* symref(Symbol* sym, int32_t off)
 	{
-		emitter_open_chunk();
-		E("static i1 w%d[];\n", sym->u.var.sub->id);
-		emitter_close_chunk(NULL);
-
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "w%d%+d",
-			sym->u.var.sub->id,
-			sym->u.var.offset + off);
+		if (sym->u.var.externname)
+		{
+			snprintf(buffer, sizeof(buffer), "(((i1*)%s)+%d)",
+				sym->u.var.externname, off);
+		}
+		else
+		{
+			emitter_open_chunk();
+			E("static i1 w%d[];\n", sym->u.var.sub->id);
+			emitter_close_chunk(NULL);
+
+			snprintf(buffer, sizeof(buffer), "w%d%+d",
+				sym->u.var.sub->id,
+				sym->u.var.offset + off);
+		}
 		return buffer;
 	}
 
@@ -659,6 +667,29 @@ gen ASMVALUE():c
 gen ASMEND()
 {
     E("\t%s\n", asmbuffer);
+}
+
+// --- Array initialisers ------------------------------------------------
+
+gen STARTINIT():s
+{
+	int sid = id++;
+	$s.sym->u.var.externname = aprintf("initialiser%d", sid);
+
+	emitter_open_chunk();
+	E("static i%d %s[] = {\n",
+		$s.sym->u.var.type->u.type.element->u.type.width,
+		$s.sym->u.var.externname);
+}
+	
+gen INIT1():c { E("%d,\n", $c.value); }
+gen INIT2():c { E("%d,\n", $c.value); }
+gen INIT4():c { E("%d,\n", $c.value); }
+
+gen ENDINIT()
+{
+	E("\n};\n");
+	emitter_close_chunk(current_sub);
 }
 
 // --- Strings -----------------------------------------------------------

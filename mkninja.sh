@@ -601,6 +601,7 @@ tests=" \
     addsub-16bit \
     addsub-32bit \
     addsub-8bit \
+    arrayinitialisers \
     conditionals \
     divrem-16bit-s \
     divrem-16bit-u \

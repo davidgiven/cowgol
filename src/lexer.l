@@ -63,7 +63,9 @@ SP [ \t]+
 "typedef"                 { return TYPEDEF; }
 "var"                     { return VAR; }
 "while"                   { return WHILE; }
+"{"                       { return OPENBR; }
 "|"                       { return PIPE; }
+"}"                       { return CLOSEBR; }
 "~"                       { return TILDE; }
 
 \"                        { BEGIN(STRINGSTATE); }

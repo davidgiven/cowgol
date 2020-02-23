@@ -85,6 +85,7 @@ struct symbol
 		{
 			struct symbol* type;
 			struct subroutine* sub; /* null for a member */
+			const char* externname;
 			uint32_t offset;
 		}
 		var;
