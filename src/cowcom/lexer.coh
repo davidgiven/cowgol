@@ -295,8 +295,8 @@ sub lexer_i_read_identifier()
 end sub;
 
 sub lexer_i_match_keyword(): (token: uint8)
-	var i: uint8 := 0;
-	while i < @sizeof keyword_names loop
+	var i: @indexof keyword_names := 0;
+	while i != @sizeof keyword_names loop
 		if StrCmp(&token_buffer[0], keyword_names[i]) == 0 then
 			token := keyword_ids[i];
 			return;

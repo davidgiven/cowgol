@@ -872,6 +872,16 @@ typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
 	sym = make_pointer_type(basetype);
 }
 
+typeref(sym) ::= INDEXOF oldid(S).
+{
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if ((S->kind == TYPE) && is_array(S))
+		sym = S->u.type.indextype;
+	else
+		fatal("you can only use @indexof on arrays");
+}
+
 statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 {
 	add_alias(NULL, X->string, T);
