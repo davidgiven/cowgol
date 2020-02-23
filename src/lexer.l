@@ -40,6 +40,7 @@ SP [ \t]+
 "@asm"                    { return ASM; }
 "@at"                     { return AT; }
 "@bytesof"                { return BYTESOF; }
+"@sizeof"                 { return SIZEOF; }
 "["                       { return OPENSQ; }
 "]"                       { return CLOSESQ; }
 "^"                       { return CARET; }

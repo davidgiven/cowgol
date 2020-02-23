@@ -16,6 +16,7 @@ var pushed_char: uint8 := 0;
 const TOKEN_BUFFER_SIZE := 128;
 var token_buffer: uint8[TOKEN_BUFFER_SIZE];
 var token_length: uint8 := 0;
+var token_value: int32;
 
 const CTYPE_HEXDIGIT := 0x01;
 const CTYPE_DECDIGIT := 0x02;
@@ -125,6 +126,60 @@ var lexer_ctype: uint8[] := {
 	CTYPE_TOKEN|TILDE                                                         # 0x7c ~
 };
 
+var keyword_names: string[] := {
+	"@asm",
+	"@at",
+	"@bytesof",
+	"@sizeof",
+	"and",
+	"as",
+	"break",
+	"const",
+	"else",
+	"elseif",
+	"end",
+	"extern",
+	"if",
+	"int",
+	"loop",
+	"not",
+	"or",
+	"record",
+	"return",
+	"sub",
+	"then",
+	"typedef",
+	"var",
+	"while",
+};
+
+var keyword_ids: uint8[] := {
+	ASM,
+	AT,
+	BYTESOF,
+	SIZEOF,
+	AND,
+	AS,
+	BREAK,
+	CONST,
+	ELSE,
+	ELSEIF,
+	END,
+	EXTERN,
+	IF,
+	INT,
+	LOOP,
+	NOT,
+	OR,
+	RECORD,
+	RETURN,
+	SUB,
+	THEN,
+	TYPEDEF,
+	VAR,
+	WHILE
+};
+
 sub LexerAddIncludePath(path: string)
 	var p := Alloc(@bytesof IncludePath) as [IncludePath];
 	p.next := include_paths;
@@ -145,11 +200,16 @@ sub LexerIncludeFile(path: string)
 	current_file := f;
 end sub;
 
-sub lexer_i_ctype(c: uint8): (t: uint8)
+sub lexer_i_ctype(c: uint8): (type: uint8, token: uint8)
 	if (c >= 33) and (c <= 127) then
-		t := lexer_ctype[c - 33];
+		type := lexer_ctype[c - 33];
+		if (type & CTYPE_TOKEN) != 0 then
+			token := type & ~CTYPE_TOKEN;
+			type := CTYPE_TOKEN;
+		end if;
 	else
-		t := 0;
+		type := 0;
+		token := 0;
 	end if;
 end sub;
 
@@ -161,6 +221,11 @@ sub lexer_i_getchar(): (c: uint8)
 	end if;
 
 	loop
+		if current_file == (0 as [File]) then
+			c := 0;
+			break;
+		end if;
+
 		var f := current_file;
 		c := FCBGetChar(&f.fcb);
 		if c == 26 then
@@ -173,15 +238,16 @@ sub lexer_i_getchar(): (c: uint8)
 		current_file := f.next;
 		var i := FCBClose(&f.fcb);
 		Free(f as [uint8], @bytesof File);
-		if current_file == (0 as [File]) then
-			break;
-		end if;
 	end loop;
 end sub;
 
 sub Error()
 	print("error: ");
-	print_i16(current_file.lineno);
+	if current_file == (0 as [File]) then
+		print("<eof>");
+	else
+		print_i16(current_file.lineno);
+	end if;
 	print(": ");
 end sub;
 
@@ -199,6 +265,9 @@ sub lexer_i_skipwhitespace()
 		if (c != ' ') and (c != 13) and (c != 10) and (c != 9) then
 			break;
 		end if;
+		if c == 10 then
+			current_file.lineno := current_file.lineno + 1;
+		end if;
 	end loop;
 	pushed_char := c;
 end sub;
@@ -206,8 +275,10 @@ end sub;
 sub lexer_i_read_identifier()
 	loop
 		var c := lexer_i_getchar();
-		var t := lexer_i_ctype(c);
-		if (t & CTYPE_IDCONT) != 0 then
+		var type: uint8;
+		var token: uint8;
+		(type, token) := lexer_i_ctype(c);
+		if (type & CTYPE_IDCONT) != 0 then
 			token_buffer[token_length] := c;
 			token_length := token_length + 1;
 			if token_length == TOKEN_BUFFER_SIZE then
@@ -223,17 +294,76 @@ sub lexer_i_read_identifier()
 	token_buffer[token_length] := 0;
 end sub;
 
+sub lexer_i_match_keyword(): (token: uint8)
+	var i: uint8 := 0;
+	while i < @sizeof keyword_names loop
+		if StrCmp(&token_buffer[0], keyword_names[i]) == 0 then
+			token := keyword_ids[i];
+			return;
+		end if;
+		i := i + 1;
+	end loop;
+	token := ID;
+end sub;
+
 sub lexer_i_read_number()
-	Error();
-	print("no numbers yet\n");
-	ExitWithError();
+	token_value := 0;
+	var base: int32 := 10;
+
+	var type: uint8;
+	var token: uint8;
+	var c := lexer_i_getchar();
+	if c == '0' then
+		c := lexer_i_getchar();
+		if c == 'b' then
+			base := 2;
+		elseif c == 'o' then
+			base := 8;
+		elseif c == 'd' then
+			base := 10;
+		elseif c == 'x' then
+			base := 16;
+		else
+			pushed_char := c;
+			(type, token) := lexer_i_ctype(c);
+			if (type & CTYPE_IDCONT) == 0 then
+				# Just a 0 on its own.
+				return;
+			end if;
+		end if;
+	else
+		pushed_char := c;
+	end if;
+
+	loop
+		c := ToLower(lexer_i_getchar());
+		(type, token) := lexer_i_ctype(c);
+		if (type & CTYPE_IDCONT) == 0 then
+			pushed_char := c;
+			break;
+		end if;
+		if c >= 'a' then
+			c := c - ('a' - 10);
+		else
+			c := c - '0';
+		end if;
+		if c >= (base as uint8) then
+			Error();
+			print("invalid number\n");
+			ExitWithError();
+		end if;
+
+		token_value := token_value*base + (c as int32);
+	end loop;
 end sub;
 
 sub LexerReadToken(): (token: uint8)
 	lexer_i_skipwhitespace();
 	var c := lexer_i_getchar();
 
-	if c == ':' then
+	if c == 0 then
+		token := 0;
+	elseif c == ':' then
 		c := lexer_i_getchar();
 		if c == '=' then
 			token := ASSIGN;
@@ -269,18 +399,19 @@ sub LexerReadToken(): (token: uint8)
 			token := GTOP;
 		end if;
 	else
-		var t := lexer_i_ctype(c);
-		if (t & CTYPE_TOKEN) != 0 then
-			token := t & ~CTYPE_TOKEN;
-		elseif (t & CTYPE_DECDIGIT) != 0 then
+		var type: uint8;
+		(type, token) := lexer_i_ctype(c);
+		if (type & CTYPE_TOKEN) != 0 then
+			# do nothing
+		elseif (type & CTYPE_DECDIGIT) != 0 then
 			pushed_char := c;
 			lexer_i_read_number();
-		elseif (t & CTYPE_IDSTART) != 0 then
+			token := NUMBER;
+		elseif (type & CTYPE_IDSTART) != 0 then
 			token_length := 1;
 			token_buffer[0] := c;
 			lexer_i_read_identifier();
-			print(&token_buffer[0]);
-			token := ID;
+			token := lexer_i_match_keyword();
 		else
 			lexer_i_unparseable(c);
 		end if;

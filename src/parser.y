@@ -554,9 +554,24 @@ cvalue(value) ::= oldid(sym).
 	value = sym->u.constant;
 }
 
-cvalue(value) ::= BYTESOF typeref(T).
+cvalue(value) ::= BYTESOF oldid(S).
 {
-	value = T->u.type.width;
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if (S->kind == TYPE)
+		value = S->u.type.width;
+	else
+		fatal("can't use @bytesof in this context");
+}
+
+cvalue(value) ::= SIZEOF oldid(S).
+{
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if ((S->kind == TYPE) && is_array(S))
+		value = S->u.type.width / S->u.type.element->u.type.width;
+	else
+		fatal("can't use @bytesof in this context");
 }
 
 statement ::= CONST newid(S) ASSIGN cvalue(V) SEMICOLON.
@@ -580,10 +595,30 @@ expression(E) ::= STRING(S).
 	E->type = make_pointer_type(uint8_type);
 }
 
-expression(E) ::= BYTESOF typeref(T).
+expression(E) ::= BYTESOF oldid(S).
 {
-	E = mid_constant(T->u.type.width);
-	E->type = NULL;
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if (S->kind == TYPE)
+	{
+		E = mid_constant(S->u.type.width);
+		E->type = NULL;
+	}
+	else
+		fatal("can't use @bytesof in this context");
+}
+
+expression(E) ::= SIZEOF oldid(S).
+{
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if ((S->kind == TYPE) && is_array(S))
+	{
+		E = mid_constant(S->u.type.width / S->u.type.element->u.type.width);
+		E->type = NULL;
+	}
+	else
+		fatal("can't use @bytesof in this context");
 }
 
 expression(E) ::= lvalue(E1).

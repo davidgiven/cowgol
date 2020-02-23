@@ -20,8 +20,11 @@ sub Subroutine()
 	if [strings[1]] == 'b' then yes(); else no(); end if;
 end sub;
 
-#print("size");
-#if @bytesof simple == 5 then yes(); else no(); end if;
+print("bytesof");
+if @bytesof shorts == 10 then yes(); else no(); end if;
+
+print("sizeof");
+if @sizeof shorts == 5 then yes(); else no(); end if;
 
 print("read byte");
 if bytes[1] == 2 then yes(); else no(); end if;
