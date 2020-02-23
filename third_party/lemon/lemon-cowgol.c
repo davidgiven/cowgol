@@ -3596,10 +3596,8 @@ void emit_destructor_code(
  if( sp->type==TERMINAL ){
    cp = lemp->tokendest;
    if( cp==0 ) return;
-   fprintf(out,"{\n"); (*lineno)++;
  }else if( sp->destructor ){
    cp = sp->destructor;
-   fprintf(out,"{\n"); (*lineno)++;
    if( !lemp->nolinenosflag ){
      (*lineno)++;
      tplt_linedir(out,sp->destLineno,lemp->filename);
@@ -3607,13 +3605,12 @@ void emit_destructor_code(
  }else if( lemp->vardest ){
    cp = lemp->vardest;
    if( cp==0 ) return;
-   fprintf(out,"{\n"); (*lineno)++;
  }else{
    assert( 0 );  /* Cannot happen */
  }
  for(; *cp; cp++){
    if( *cp=='$' && cp[1]=='$' ){
-     fprintf(out,"(yypminor->yy%d)",sp->dtnum);
+     fprintf(out,"yypminor.yy%d",sp->dtnum);
      cp++;
      continue;
    }
@@ -3624,7 +3621,6 @@ void emit_destructor_code(
  if (!lemp->nolinenosflag) {
    (*lineno)++; tplt_linedir(out,*lineno,lemp->outname);
  }
- fprintf(out,"}\n"); (*lineno)++;
  return;
 }
 
@@ -3736,7 +3732,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
     lhsdirect = 1;
     if( has_destructor(rp->rhs[0],lemp) ){
       append_str(0,0,0,0);
-      append_str("  yy_destructor(yypParser,%d,&yymsp[%d].minor);\n", 0,
+      append_str("  yy_destructor(%d,&[yytos + (%d * @bytesof yyStackEntry)].minor);\n", 0,
                  rp->rhs[0]->index,1-rp->nrhs);
       rp->codePrefix = Strsafe(append_str(0,0,0,0));
       rp->noCode = 0;
@@ -3872,7 +3868,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
         lemp->errorcnt++;
       }
     }else if( i>0 && has_destructor(rp->rhs[i],lemp) ){
-      append_str("  yy_destructor(yypParser,%d,&yymsp[%d].minor);\n", 0,
+      append_str("  yy_destructor(%d,&[yytos + (%d * @bytesof yyStackEntry)].minor);\n", 0,
          rp->rhs[i]->index,i-rp->nrhs+1);
     }
   }
@@ -3880,7 +3876,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
   /* If unable to write LHS values directly into the stack, write the
   ** saved LHS value now. */
   if( lhsdirect==0 ){
-    append_str("  yymsp[%d].minor.yy%d = ", 0, 1-rp->nrhs, rp->lhs->dtnum);
+    append_str("  [yytos + (%d * @bytesof yyStackEntry)].minor.yy%d := ", 0, 1-rp->nrhs, rp->lhs->dtnum);
     append_str(zLhs, 0, 0, 0);
     append_str(";\n", 0, 0, 0);
   }
@@ -4490,21 +4486,17 @@ void ReportTable(
   ** (In other words, generate the %destructor actions)
   */
   if( lemp->tokendest ){
-    int once = 1;
-    for(i=0; i<lemp->nsymbol; i++){
-      struct symbol *sp = lemp->symbols[i];
-      if( sp==0 || sp->type!=TERMINAL ) continue;
-      if( once ){
-        fprintf(out, "      /* TERMINAL Destructor */\n"); lineno++;
-        once = 0;
-      }
-      fprintf(out,"    case %d: /* %s */\n", sp->index, sp->name); lineno++;
-    }
-    for(i=0; i<lemp->nsymbol && lemp->symbols[i]->type!=TERMINAL; i++);
-    if( i<lemp->nsymbol ){
-      emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
-      fprintf(out,"      break;\n"); lineno++;
-    }
+	fprintf(out, "sub token_destructor()\n"); lineno++;
+    emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
+	fprintf(out, "end sub;\n"); lineno++;
+  }
+  for(i=0; i<lemp->nsymbol; i++){
+    struct symbol *sp = lemp->symbols[i];
+    if( sp==0 || sp->type==TERMINAL || sp->destructor==0 ) continue;
+    if( sp->destLineno<0 ) continue;  /* Already emitted */
+	fprintf(out, "sub destructor_%d() # \n", sp->index, sp->name); lineno++;
+    emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
+	fprintf(out, "end sub;\n"); lineno++;
   }
   if( lemp->vardest ){
     struct symbol *dflt_sp = 0;
@@ -4513,23 +4505,59 @@ void ReportTable(
       struct symbol *sp = lemp->symbols[i];
       if( sp==0 || sp->type==TERMINAL ||
           sp->index<=0 || sp->destructor!=0 ) continue;
-      if( once ){
-        fprintf(out, "      /* Default NON-TERMINAL Destructor */\n");lineno++;
-        once = 0;
-      }
-      fprintf(out,"    case %d: /* %s */\n", sp->index, sp->name); lineno++;
       dflt_sp = sp;
     }
     if( dflt_sp!=0 ){
+	  fprintf(out, "sub var_destructor()\n"); lineno++;
       emit_destructor_code(out,dflt_sp,lemp,&lineno);
+	  fprintf(out, "end sub;\n"); lineno++;
     }
-    fprintf(out,"      break;\n"); lineno++;
+  }
+
+  bool first = true;
+  if( lemp->tokendest ){
+  	fprintf(out, "if (yymajor != 0) and (yymajor < YYNTOKEN)\n"); lineno++;
+	fprintf(out, "  then token_destructor();\n"); lineno++;
+	first = false;
+  }
+  if( lemp->vardest ){
+    struct symbol *dflt_sp = 0;
+    int once = 1;
+    for(i=0; i<lemp->nsymbol; i++){
+      struct symbol *sp = lemp->symbols[i];
+      if( sp==0 || sp->type==TERMINAL ||
+          sp->index<=0 || sp->destructor!=0 ) continue;
+
+	  if (first)
+      {
+      	fprintf(out, "if");
+      	first = false;
+      }
+      else
+      	fprintf(out, "elseif");
+	
+	  fprintf(out, " or (yymajor == %d) # %s\n", sp->index, sp->name); lineno++;
+      dflt_sp = sp;
+    }
+    if( dflt_sp!=0 ){
+	  fprintf(out, "  then var_destructor();\n"); lineno++;
+	  first = false;
+    }
   }
   for(i=0; i<lemp->nsymbol; i++){
     struct symbol *sp = lemp->symbols[i];
     if( sp==0 || sp->type==TERMINAL || sp->destructor==0 ) continue;
     if( sp->destLineno<0 ) continue;  /* Already emitted */
-    fprintf(out,"    case %d: /* %s */\n", sp->index, sp->name); lineno++;
+
+	if (first)
+	{
+		fprintf(out, "if");
+		first = false;
+	}
+	else
+		fprintf(out, "elseif");
+	
+	fprintf(out, " (yymajor == %d) # %s\n", sp->index, sp->name); lineno++;
 
     /* Combine duplicate destructors into a single case */
     for(j=i+1; j<lemp->nsymbol; j++){
@@ -4537,15 +4565,16 @@ void ReportTable(
       if( sp2 && sp2->type!=TERMINAL && sp2->destructor
           && sp2->dtnum==sp->dtnum
           && strcmp(sp->destructor,sp2->destructor)==0 ){
-         fprintf(out,"    case %d: /* %s */\n",
-                 sp2->index, sp2->name); lineno++;
+		 fprintf(out, "  or (yymajor == %d) # %s\n", sp2->index, sp2->name); lineno++;
          sp2->destLineno = -1;  /* Avoid emitting this destructor again */
       }
     }
 
-    emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
-    fprintf(out,"      break;\n"); lineno++;
+	fprintf(out, "  then destructor_%d();\n", sp->index); lineno++;
   }
+  if (!first)
+  	fprintf(out, "end if;\n", lineno++);
+
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Generate code which executes whenever the parser stack overflows */
@@ -4577,8 +4606,9 @@ void ReportTable(
     i += translate_code(lemp, rp);
   }
   if( i ){
-    fprintf(out,"        YYMINORTYPE yylhsminor;\n"); lineno++;
+    fprintf(out,"var yylhsminor: YYMINORTYPE;\n"); lineno++;
   }
+
   /* First output rules other than the default: rule */
   for(rp=lemp->rule; rp; rp=rp->next){
     if( rp->codeEmitted ) continue;
@@ -4586,11 +4616,12 @@ void ReportTable(
       /* No C code actions, so this will be part of the "default:" rule */
       continue;
     }
-	fprintf(out, "sub ReduceAction%d()\n", rp->iRule);
+	fprintf(out, "sub action_%d()\n", rp->iRule);
     emit_code(out,rp,lemp,&lineno);
 	fprintf(out, "end sub;\n");
   }
-  bool first = true;
+
+  first = true;
   for(rp=lemp->rule; rp; rp=rp->next){
     struct rule *rp2;               /* Other rules with the same action */
     if( rp->codeEmitted ) continue;
@@ -4616,7 +4647,7 @@ void ReportTable(
         rp2->codeEmitted = 1;
       }
     }
-    fprintf(out,"  then ReduceAction%d();\n", rp->iRule); lineno++;
+    fprintf(out,"  then action_%d();\n", rp->iRule); lineno++;
     rp->codeEmitted = 1;
   }
   /* Finally, output the default: rule.  We choose as the default: all

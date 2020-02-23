@@ -681,11 +681,13 @@ lvalue(E) ::= oldid(S).
 		E = mid_constant(S->u.constant);
 		E->type = NULL;
 	}
-	else
+	else if (S->kind == VAR)
 	{
 		E = mid_address(S, 0);
 		E->type = make_pointer_type(S->u.var.type);
 	}
+	else
+		fatal("'%s' is not a value", S->name);
 }
 
 lvalue(E) ::= OPENSQ expression(E1) CLOSESQ.

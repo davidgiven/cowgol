@@ -120,7 +120,7 @@ struct midnode* expr_sub(struct midnode* lhs, struct midnode* rhs)
 		fatal("you tried to subtract a %s and a %s", lhs->type->name, rhs->type->name);
 
 	struct midnode* r = mid_c_sub(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs);
-	if (is_ptr(lhs->type))
+	if (is_ptr(lhs->type) && is_ptr(rhs->type))
 		r->type = intptr_type;
 	else
 		r->type = lhs->type;

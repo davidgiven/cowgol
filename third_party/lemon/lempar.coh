@@ -7,6 +7,18 @@
 # control settings
 %%
 
+record yyStackEntry
+	stateno: YYACTIONTYPE;
+	major: YYCODETYPE;
+	minor: YYMINORTYPE;
+end record;
+
+var yytos: [yyStackEntry];
+var yystack: yyStackEntry[YYSTACKDEPTH];
+var yystackend: [yyStackEntry];
+var yyerrcnt: int8;
+typedef YYSTACKPTR := @indexof yystack;
+
 # parsing tables
 %%
 
@@ -24,7 +36,9 @@ var yyRuleName: [uint8][YYNRULE] := {
 };
 
 # destructors
+sub yy_destructor(yymajor: YYCODETYPE, yypminor: [YYMINORTYPE])
 %%
+end sub;
 
 # stack overflow code
 %%
@@ -42,7 +56,7 @@ var yyRuleInfoNRhs: int8[] := {
 };
 
 # reduce actions
-sub PerformReduceAction(action: int8)
+sub yy_reduce(action: int8)
 %%
 end sub;
 

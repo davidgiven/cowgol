@@ -9,9 +9,11 @@ typedef string := [uint8];
 var inputfile: string := (0 as string);
 var outputfile: string := (0 as string);
 
+include "src/cowcom/types.coh";
+include "src/cowcom/allocator.coh";
 include ".obj/parser.tokens.coh";
-include ".obj/parser.coh";
 include "src/cowcom/lexer.coh";
+include "src/cowcom/parser.coh";
 
 sub PrintFreeMemory()
 	print_i16((GetFreeMemory() >> 10) as uint16);
@@ -62,14 +64,14 @@ PrintFreeMemory();
 ParseArguments();
 LexerIncludeFile(inputfile);
 
+ParserInit();
 loop
 	var token := LexerReadToken();
 	if token == 0 then
 		break;
 	end if;
-	print_i8(token);
-	print_char(' ');
 end loop;
+ParserDeinit();
 
 print("done: ");
 PrintFreeMemory();
