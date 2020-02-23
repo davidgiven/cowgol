@@ -220,7 +220,7 @@ buildlemoncowgol() {
     local cfile
     local hfile
     cfile="${1%%.c*}.coh"
-    hfile="${1%%.c*}.impl.coh"
+    hfile="${1%%.c*}.tokens.coh"
     echo "build $cfile $hfile : lemon $2 | bin/lemon-cowgol third_party/lemon/lempar.coh"
     echo "  lemon=bin/lemon-cowgol"
     echo "  template=third_party/lemon/lempar.coh"
@@ -659,7 +659,7 @@ cowgol_cgen src/cowlink/main.cow bin/cowlink.cgen "$cowlink_coh"
 
 buildlemoncowgol $OBJDIR/parser.coh src/cowcom/parser.y
 
-cowcom_coh=$OBJDIR/parser.coh
+cowcom_coh="$OBJDIR/parser.coh $(echo src/cowcom/*.coh) $OBJDIR/parser.coh $OBJDIR/parser.tokens.coh"
 cowgol_80386_linux src/cowcom/main.cow bin/cowcom.386 "$cowcom_coh"
 cowgol_cpm src/cowcom/main.cow bin/cowcom.com "$cowcom_coh"
 cowgol_thumb2_linux src/cowcom/main.cow bin/cowcom.thumb2 "$cowcom_coh"

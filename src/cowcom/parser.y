@@ -3,6 +3,7 @@
 %token IF LOOP MINUS NOT OPENPAREN OPENSQ.
 %token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
 %token SUB THEN TILDE VAR WHILE TYPE.
+%token OPENBR CLOSEBR ID.
 
 %left COMMA.
 %left AND.
@@ -17,6 +18,11 @@
 %left AS.
 %right NOT TILDE.
 
+%token_type {[Token]}
+%type typeref {[Symbol]}
+%type expression {[Midnode]}
+%type lvalue {[Midnode]}
+
 program ::= statements.
 
 statements ::= /* empty */.
@@ -29,6 +35,6 @@ statement ::= SEMICOLON.
 /* --- Simple statements ------------------------------------------------- */
 
 statement ::= RETURN SEMICOLON.
-{ generate(mid_return()); }
+{ }
 
 

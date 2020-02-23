@@ -365,16 +365,16 @@ gen param := POPPARAM8(param, ADDRESS():a)
 // --- Core conversions --------------------------------------------------
 
 gen v1 := CONSTANT():c
-	{ E("\ti1 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti1 v%d = (i1)%d;\n", push(), $c.value); }
 
 gen v2 := CONSTANT():c
-	{ E("\ti2 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti2 v%d = (i2)%d;\n", push(), $c.value); }
 
 gen v4 := CONSTANT():c
-	{ E("\ti4 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti4 v%d = (i4)%d;\n", push(), $c.value); }
 
 gen v8 := CONSTANT():c
-	{ E("\ti8 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti8 v%d = (i8)%d;\n", push(), $c.value); }
 
 gen v8 := ADDRESS():a
 	{ E("\ti8 v%d = (i8)(intptr_t)(%s);\n", push(), symref($a.sym, $a.off)); }

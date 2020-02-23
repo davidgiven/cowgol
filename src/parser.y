@@ -127,7 +127,8 @@ statement ::= arraydecl OPENBR arraymembers CLOSEBR SEMICOLON.
 	if (current_type->u.type.width == 0)
 		current_type->u.type.width = width;
 	if (width > current_type->u.type.width)
-		fatal("too many elements in array initialiser");
+		fatal("too many elements in array initialiser (got %d, wanted %d)",
+			width/memberwidth, current_type->u.type.width/memberwidth);
 	while (width < current_type->u.type.width)
 	{
 		generate(mid_init(memberwidth, 0));
@@ -534,14 +535,17 @@ statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 /* --- Constant expressions ---------------------------------------------- */
 
 %type cvalue {int32_t}
-cvalue(value) ::= NUMBER(token).                   { value = token->number; }
-cvalue(value) ::= OPENPAREN cvalue(v) CLOSEPAREN.  { value = v; }
-cvalue(value) ::= MINUS cvalue(v).                 { value = -v; }
-cvalue(value) ::= TILDE cvalue(v).                 { value = ~v; }
-cvalue(value) ::= cvalue(lhs) PLUS cvalue(rhs).    { value = lhs + rhs; }
-cvalue(value) ::= cvalue(lhs) MINUS cvalue(rhs).   { value = lhs - rhs; }
-cvalue(value) ::= cvalue(lhs) STAR cvalue(rhs).    { value = lhs * rhs; }
-cvalue(value) ::= cvalue(lhs) PERCENT cvalue(rhs). { value = lhs % rhs; }
+cvalue(value) ::= NUMBER(token).                     { value = token->number; }
+cvalue(value) ::= OPENPAREN cvalue(v) CLOSEPAREN.    { value = v; }
+cvalue(value) ::= MINUS cvalue(v).                   { value = -v; }
+cvalue(value) ::= TILDE cvalue(v).                   { value = ~v; }
+cvalue(value) ::= cvalue(lhs) PLUS cvalue(rhs).      { value = lhs + rhs; }
+cvalue(value) ::= cvalue(lhs) MINUS cvalue(rhs).     { value = lhs - rhs; }
+cvalue(value) ::= cvalue(lhs) STAR cvalue(rhs).      { value = lhs * rhs; }
+cvalue(value) ::= cvalue(lhs) PERCENT cvalue(rhs).   { value = lhs % rhs; }
+cvalue(value) ::= cvalue(lhs) AMPERSAND cvalue(rhs). { value = lhs & rhs; }
+cvalue(value) ::= cvalue(lhs) CARET cvalue(rhs).     { value = lhs ^ rhs; }
+cvalue(value) ::= cvalue(lhs) PIPE cvalue(rhs).      { value = lhs | rhs; }
 
 cvalue(value) ::= oldid(sym).
 {

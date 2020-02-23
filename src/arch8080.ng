@@ -114,7 +114,7 @@
 	{
 		static char buffer[32];
 		if (sym->u.var.externname)
-			snprintf(buffer, sizeof(buffer), "(%s+%d)",
+			snprintf(buffer, sizeof(buffer), "%s+%d",
 				sym->u.var.externname, off);
 		else
 			snprintf(buffer, sizeof(buffer), "w%d%+d",

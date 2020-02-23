@@ -14,7 +14,7 @@
 %%
 
 # token names
-var yyTokenName: [uint8][YYNTOKEN] := { 
+var yyTokenName: [uint8][] := { 
 %%
 };
 
@@ -42,7 +42,9 @@ var yyRuleInfoNRhs: int8[] := {
 };
 
 # reduce actions
+sub PerformReduceAction(action: int8)
 %%
+end sub;
 
 # parse failure code
 %%

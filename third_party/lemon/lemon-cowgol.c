@@ -4348,7 +4348,6 @@ void ReportTable(
   for(i=j=0; i<n; i++){
     int action = acttab_yyaction(pActtab, i);
     if( action<0 ) action = lemp->noAction;
-    if( j==0 ) fprintf(out," /* %5d */ ", i);
     fprintf(out, " %4d,", action);
     if( j==9 || i==n-1 ){
       fprintf(out, "\n"); lineno++;
@@ -4669,7 +4668,7 @@ void ReportHeader(struct lemon *lemp)
   if( in ){
     int nextChar;
     for(i=1; i<lemp->nterminal && fgets(line,LINESIZE,in); i++){
-      lemon_sprintf(pattern,"#define %s%-30s %3d\n",
+      lemon_sprintf(pattern,"const %s%s := %d;\n",
                     prefix,lemp->symbols[i]->name,i);
       if( strcmp(line,pattern) ) break;
     }
@@ -4683,7 +4682,7 @@ void ReportHeader(struct lemon *lemp)
   out = file_open(lemp,".h","wb");
   if( out ){
     for(i=1; i<lemp->nterminal; i++){
-      fprintf(out,"#define %s%-30s %3d\n",prefix,lemp->symbols[i]->name,i);
+      fprintf(out,"const %s%s := %d;\n",prefix,lemp->symbols[i]->name,i);
     }
     fclose(out);
   }
