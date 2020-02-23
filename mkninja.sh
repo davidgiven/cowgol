@@ -221,9 +221,9 @@ buildlemoncowgol() {
     local hfile
     cfile="${1%%.c*}.coh"
     hfile="${1%%.c*}.tokens.coh"
-    echo "build $cfile $hfile : lemon $2 | bin/lemon-cowgol third_party/lemon/lempar.coh"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon-cowgol src/cowcom/lempar.coh"
     echo "  lemon=bin/lemon-cowgol"
-    echo "  template=third_party/lemon/lempar.coh"
+    echo "  template=src/cowcom/lempar.coh"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
