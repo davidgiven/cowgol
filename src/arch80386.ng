@@ -450,6 +450,12 @@ gen r8 := LOAD1(r32:lhs)
 gen r8 := LOAD1(ADDRESS():a)
 	{ E("\tmovb %s, %s\n", symref($a.sym, $a.off), regref($$)); }
 	
+gen r8 := LOAD1(ADD4(r32: addr, r32: disp))
+	{ E("\tmovb (%s,%s), %s\n", regref($addr), regref($disp), regref($$)); }
+
+gen r8 := LOAD1(ADD4(r32: addr, CONSTANT():c))
+	{ E("\tmovb %d(%s), %s\n", $c.value, regref($addr), regref($$)); }
+
 gen r16 := LOAD2(r32:lhs)
 	{ E("\tmovw (%s), %s\n", regref($lhs), regref($$)); }
 
@@ -561,11 +567,20 @@ gen al := REMS1(al, bl|cl|dl:rhs)
 gen r8 := AND1($$:lhs, r8:rhs)
 	{ E("\tandb %s, %s\n", regref($rhs), regref($$)); }
 
+gen r8 := AND1($$:lhs, CONSTANT():c)
+	{ E("\tandb $0x%02x, %s\n", $c.value & 0xff, regref($$)); }
+
 gen r8 := OR1($$:lhs, r8:rhs)
 	{ E("\torb %s, %s\n", regref($rhs), regref($$)); }
 
+gen r8 := OR1($$:lhs, CONSTANT():c)
+	{ E("\torb $0x%02x, %s\n", $c.value & 0xff, regref($$)); }
+
 gen r8 := EOR1($$:lhs, r8:rhs)
 	{ E("\txorb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := EOR1($$:lhs, CONSTANT():c)
+	{ E("\txorb $0x%02x, %s\n", $c.value & 0xff, regref($$)); }
 
 gen r8 := NOT1($$:val)
 	{ E("\tnotb %s\n", regref($$)); }
