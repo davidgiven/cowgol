@@ -1,0 +1,78 @@
+include "cowgol.coh";
+include "argv.coh";
+include "malloc.coh";
+include "strings.coh";
+include "file.coh";
+
+typedef string := [uint8];
+
+var inputfile: string := (0 as string);
+var outputfile: string := (0 as string);
+
+include "src/cowcom/types.coh";
+include "src/cowcom/allocator.coh";
+include ".obj/parser.tokens.coh";
+include "src/cowcom/lexer.coh";
+include "src/cowcom/parser.coh";
+
+sub PrintFreeMemory()
+	print_i16((GetFreeMemory() >> 10) as uint16);
+	print("kB free\n");
+end sub;
+
+sub SyntaxError()
+	print("syntax error: cowcom [-Ipath] <infile> <outfile>\n");
+	ExitWithError();
+end sub;
+
+sub ParseArguments()
+	ArgvInit();
+
+	loop
+		var arg := ArgvNext();
+		if arg == (0 as string) then
+			break;
+		end if;
+
+		if [arg] == '-' then
+			arg := arg + 1;
+			if [arg] == 'I' then
+				arg := arg + 1;
+				LexerAddIncludePath(arg);
+			else
+				SyntaxError();
+			end if;
+		end if;
+
+		if inputfile == (0 as string) then
+			inputfile := arg;
+		elseif outputfile == (0 as string) then
+			outputfile := arg;
+		else
+			SyntaxError();
+		end if;
+	end loop;
+
+	if (inputfile == (0 as string)) or (outputfile == (0 as string)) then
+		SyntaxError();
+	end if;
+end sub;
+
+print("COWCOM: ");
+PrintFreeMemory();
+
+ParseArguments();
+LexerIncludeFile(inputfile);
+
+ParserInit();
+loop
+	var token := LexerReadToken();
+	if token == 0 then
+		break;
+	end if;
+end loop;
+ParserDeinit();
+
+print("done: ");
+PrintFreeMemory();
+

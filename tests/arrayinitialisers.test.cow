@@ -1,0 +1,39 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+var bytes: uint8[] := {1, 2, 3, 4, 5};
+var shorts: uint16[] := {1, 2, 3, 4, 5};
+var longs: uint32[] := {1, 2, 3, 4, 5};
+var strings: [uint8][] := {"foo", "bar", "cow"};
+
+sub Subroutine()
+	print("read byte");
+	if bytes[1] == 2 then yes(); else no(); end if;
+
+	print("read short");
+	if shorts[1] == 2 then yes(); else no(); end if;
+
+	print("read long");
+	if longs[1] == 2 then yes(); else no(); end if;
+
+	print("read string");
+	if [strings[1]] == 'b' then yes(); else no(); end if;
+end sub;
+
+print("bytesof");
+if @bytesof shorts == 10 then yes(); else no(); end if;
+
+print("sizeof");
+if @sizeof shorts == 5 then yes(); else no(); end if;
+
+print("read byte");
+if bytes[1] == 2 then yes(); else no(); end if;
+
+print("read short");
+if shorts[1] == 2 then yes(); else no(); end if;
+
+print("read long");
+if longs[1] == 2 then yes(); else no(); end if;
+
+Subroutine();
+

@@ -67,5 +67,9 @@ extern Node* mid_c_divu(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_divs(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_remu(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_rems(int width, Node* lhs, Node* rhs);
+extern Node* mid_c_beqs(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
+extern Node* mid_c_bequ(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
+extern Node* mid_c_blts(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
+extern Node* mid_c_bltu(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
 
 #endif

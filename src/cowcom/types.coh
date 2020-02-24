@@ -1,0 +1,5 @@
+record Token
+	number @at(0): int32;
+	string @at(0): string;
+end record;
+

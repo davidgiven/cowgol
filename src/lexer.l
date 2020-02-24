@@ -31,16 +31,19 @@ SP [ \t]+
 ":="                      { return ASSIGN; }
 ";"                       { return SEMICOLON; }
 "<"                       { return LTOP; }
+"<<"                      { return LSHIFT; }
 "<="                      { return LEOP; }
 "=="                      { return EQOP; }
 ">"                       { return GTOP; }
 ">="                      { return GEOP; }
 ">>"                      { return RSHIFT; }
-"<<"                      { return LSHIFT; }
 "@asm"                    { return ASM; }
+"@at"                     { return AT; }
+"@bytesof"                { return BYTESOF; }
+"@indexof"                { return INDEXOF; }
+"@sizeof"                 { return SIZEOF; }
 "["                       { return OPENSQ; }
 "]"                       { return CLOSESQ; }
-"~"                       { return TILDE; }
 "^"                       { return CARET; }
 "and"                     { return AND; }
 "as"                      { return AS; }
@@ -51,6 +54,7 @@ SP [ \t]+
 "end"                     { return END; }
 "extern"                  { return EXTERN; }
 "if"                      { return IF; }
+"int"                     { return INT; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
@@ -58,10 +62,13 @@ SP [ \t]+
 "return"                  { return RETURN; }
 "sub"                     { return SUB; }
 "then"                    { return THEN; }
+"typedef"                 { return TYPEDEF; }
 "var"                     { return VAR; }
 "while"                   { return WHILE; }
+"{"                       { return OPENBR; }
 "|"                       { return PIPE; }
-"@bytesof"                { return BYTESOF; }
+"}"                       { return CLOSEBR; }
+"~"                       { return TILDE; }
 
 \"                        { BEGIN(STRINGSTATE); }
 <STRINGSTATE>([^\"\\]|\\.)* { return STRING; }

@@ -1,0 +1,9 @@
+bytesof: yes
+sizeof: yes
+read byte: yes
+read short: yes
+read long: yes
+read byte: yes
+read short: yes
+read long: yes
+read string: yes

@@ -14,6 +14,7 @@
     int current_label = 1;
 
     static int break_label;
+	static int current_array_size;
 	struct subroutine* current_sub;
 	static int id = 1;
 
@@ -40,7 +41,8 @@
 %token COLON CONST DOT ELSE END EXTERN.
 %token IF LOOP MINUS NOT OPENPAREN OPENSQ.
 %token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
-%token SUB THEN TILDE VAR WHILE TYPE.
+%token SUB THEN TILDE VAR WHILE TYPE INT TYPE.
+%token OPENBR CLOSEBR.
 
 %left COMMA.
 %left AND.
@@ -114,6 +116,67 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	check_expression_type(&E->type, E->type);
 
 	generate(mid_store(E->type->u.type.width, E, mid_address(S, 0)));
+}
+
+/* --- Array initialisers ------------------------------------------------ */
+
+statement ::= arraydecl OPENBR arraymembers CLOSEBR SEMICOLON.
+{
+	int memberwidth = current_type->u.type.element->u.type.width;
+	int width = current_array_size * memberwidth;
+	if (current_type->u.type.width == 0)
+		current_type->u.type.width = width;
+	if (width > current_type->u.type.width)
+		fatal("too many elements in array initialiser (got %d, wanted %d)",
+			width/memberwidth, current_type->u.type.width/memberwidth);
+	while (width < current_type->u.type.width)
+	{
+		generate(mid_init(memberwidth, 0));
+		width += memberwidth;
+	}
+
+	generate(mid_endinit());
+
+}
+
+arraydecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
+{
+	/* We don't call init_var() because we don't want this variable
+	 * allocated to a workspace. */
+
+	S->kind = VAR;
+	S->u.var.type = T;
+	S->u.var.sub = current_sub;
+	if (!is_array(T))
+		fatal("array initialisers only work on arrays");
+	current_type = T;
+	current_array_size = 0;
+
+	generate(mid_startinit(S));
+}
+
+arraymembers ::= .
+
+arraymembers ::= arraymembers COMMA arraymembers.
+
+arraymembers ::= cvalue(C).
+{
+	if (!is_scalar(current_type->u.type.element))
+		fatal("cannot initialise a non-scalar with a scalar");
+	int w = current_type->u.type.element->u.type.width;
+	generate(mid_init(w, C));
+	current_array_size++;
+}
+
+arraymembers ::= STRING(S).
+{
+	if (!is_ptr(current_type->u.type.element)
+			|| (current_type->u.type.element->u.type.element != uint8_type))
+		fatal("cannot initialise this type with a string literal");
+	
+	unescape(S->string);
+	generate(mid_inits(S->string));
+	current_array_size++;
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -472,14 +535,17 @@ statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 /* --- Constant expressions ---------------------------------------------- */
 
 %type cvalue {int32_t}
-cvalue(value) ::= NUMBER(token).                   { value = token->number; }
-cvalue(value) ::= OPENPAREN cvalue(v) CLOSEPAREN.  { value = v; }
-cvalue(value) ::= MINUS cvalue(v).                 { value = -v; }
-cvalue(value) ::= TILDE cvalue(v).                 { value = ~v; }
-cvalue(value) ::= cvalue(lhs) PLUS cvalue(rhs).    { value = lhs + rhs; }
-cvalue(value) ::= cvalue(lhs) MINUS cvalue(rhs).   { value = lhs - rhs; }
-cvalue(value) ::= cvalue(lhs) STAR cvalue(rhs).    { value = lhs * rhs; }
-cvalue(value) ::= cvalue(lhs) PERCENT cvalue(rhs). { value = lhs % rhs; }
+cvalue(value) ::= NUMBER(token).                     { value = token->number; }
+cvalue(value) ::= OPENPAREN cvalue(v) CLOSEPAREN.    { value = v; }
+cvalue(value) ::= MINUS cvalue(v).                   { value = -v; }
+cvalue(value) ::= TILDE cvalue(v).                   { value = ~v; }
+cvalue(value) ::= cvalue(lhs) PLUS cvalue(rhs).      { value = lhs + rhs; }
+cvalue(value) ::= cvalue(lhs) MINUS cvalue(rhs).     { value = lhs - rhs; }
+cvalue(value) ::= cvalue(lhs) STAR cvalue(rhs).      { value = lhs * rhs; }
+cvalue(value) ::= cvalue(lhs) PERCENT cvalue(rhs).   { value = lhs % rhs; }
+cvalue(value) ::= cvalue(lhs) AMPERSAND cvalue(rhs). { value = lhs & rhs; }
+cvalue(value) ::= cvalue(lhs) CARET cvalue(rhs).     { value = lhs ^ rhs; }
+cvalue(value) ::= cvalue(lhs) PIPE cvalue(rhs).      { value = lhs | rhs; }
 
 cvalue(value) ::= oldid(sym).
 {
@@ -488,9 +554,24 @@ cvalue(value) ::= oldid(sym).
 	value = sym->u.constant;
 }
 
-cvalue(value) ::= BYTESOF typeref(T).
+cvalue(value) ::= BYTESOF oldid(S).
 {
-	value = T->u.type.width;
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if (S->kind == TYPE)
+		value = S->u.type.width;
+	else
+		fatal("can't use @bytesof in this context");
+}
+
+cvalue(value) ::= SIZEOF oldid(S).
+{
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if ((S->kind == TYPE) && is_array(S))
+		value = S->u.type.width / S->u.type.element->u.type.width;
+	else
+		fatal("can't use @bytesof in this context");
 }
 
 statement ::= CONST newid(S) ASSIGN cvalue(V) SEMICOLON.
@@ -514,10 +595,30 @@ expression(E) ::= STRING(S).
 	E->type = make_pointer_type(uint8_type);
 }
 
-expression(E) ::= BYTESOF typeref(T).
+expression(E) ::= BYTESOF oldid(S).
 {
-	E = mid_constant(T->u.type.width);
-	E->type = NULL;
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if (S->kind == TYPE)
+	{
+		E = mid_constant(S->u.type.width);
+		E->type = NULL;
+	}
+	else
+		fatal("can't use @bytesof in this context");
+}
+
+expression(E) ::= SIZEOF oldid(S).
+{
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if ((S->kind == TYPE) && is_array(S))
+	{
+		E = mid_constant(S->u.type.width / S->u.type.element->u.type.width);
+		E->type = NULL;
+	}
+	else
+		fatal("can't use @bytesof in this context");
 }
 
 expression(E) ::= lvalue(E1).
@@ -580,11 +681,13 @@ lvalue(E) ::= oldid(S).
 		E = mid_constant(S->u.constant);
 		E->type = NULL;
 	}
-	else
+	else if (S->kind == VAR)
 	{
 		E = mid_address(S, 0);
 		E->type = make_pointer_type(S->u.var.type);
 	}
+	else
+		fatal("'%s' is not a value", S->name);
 }
 
 lvalue(E) ::= OPENSQ expression(E1) CLOSESQ.
@@ -710,35 +813,42 @@ condor ::= .
 
 conditional ::= expression(T1) EQOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, mid_bequ, mid_beqs);
+	cond_simple(condtrue, condfalse, T1, T2, mid_c_bequ, mid_c_beqs);
 }
 
 conditional ::= expression(T1) NEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, mid_bequ, mid_beqs);
+	cond_simple(condfalse, condtrue, T1, T2, mid_c_bequ, mid_c_beqs);
 }
 
 conditional ::= expression(T1) LTOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, mid_bltu, mid_blts);
+	cond_simple(condtrue, condfalse, T1, T2, mid_c_bltu, mid_c_blts);
 }
 
 conditional ::= expression(T1) GEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, mid_bltu, mid_blts);
+	cond_simple(condfalse, condtrue, T1, T2, mid_c_bltu, mid_c_blts);
 }
 
 conditional ::= expression(T1) GTOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T2, T1, mid_bltu, mid_blts);
+	cond_simple(condtrue, condfalse, T2, T1, mid_c_bltu, mid_c_blts);
 }
 
 conditional ::= expression(T1) LEOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T2, T1, mid_bltu, mid_blts);
+	cond_simple(condfalse, condtrue, T2, T1, mid_c_bltu, mid_c_blts);
 }
 
 /* --- Types ------------------------------------------------------------- */
+
+typeref(sym) ::= INT OPENPAREN cvalue(min) COMMA cvalue(max) CLOSEPAREN.
+{
+	if (max <= min)
+		fatal("invalid integer type range");
+	sym = arch_guess_int_type(min, max);
+}
 
 typeref(sym) ::= eitherid(id).
 {
@@ -754,13 +864,29 @@ typeref(sym) ::= eitherid(id).
 }
 
 typeref(sym) ::= typeref(basetype) OPENSQ cvalue(value) CLOSESQ.
-{
-	sym = make_array_type(basetype, value);
-}
+{ sym = make_array_type(basetype, value); }
+
+typeref(sym) ::= typeref(basetype) OPENSQ CLOSESQ.
+{ sym = make_array_type(basetype, 0); }
 
 typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
 {
 	sym = make_pointer_type(basetype);
+}
+
+typeref(sym) ::= INDEXOF oldid(S).
+{
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if ((S->kind == TYPE) && is_array(S))
+		sym = S->u.type.indextype;
+	else
+		fatal("you can only use @indexof on arrays");
+}
+
+statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
+{
+	add_alias(NULL, X->string, T);
 }
 
 /* --- Records ----------------------------------------------------------- */
@@ -788,7 +914,14 @@ recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
 {
 	S->kind = VAR;
 	S->u.var.type = T;
-	arch_init_member(current_type, S);
+	arch_init_member(current_type, S, -1);
+}
+
+recordmember ::= memberid(S) AT OPENPAREN cvalue(C) CLOSEPAREN COLON typeref(T) SEMICOLON.
+{
+	S->kind = VAR;
+	S->u.var.type = T;
+	arch_init_member(current_type, S, C);
 }
 
 %type memberid {struct symbol*}

@@ -57,10 +57,14 @@
 		current_sub->workspace[0] += var->u.var.type->u.type.width;
 	}
 
-	void arch_init_member(struct symbol* record, struct symbol* member)
+	void arch_init_member(struct symbol* record, struct symbol* member, int position)
 	{
-		member->u.var.offset = record->u.type.width;
-		record->u.type.width += member->u.var.type->u.type.width;
+		if (position == -1)
+			position = record->u.type.width;
+		member->u.var.offset = position;
+		position += member->u.var.type->u.type.width;
+		if (position > record->u.type.width)
+			record->u.type.width = position;
 	}
 
 	static const char* regref(reg_t reg)
@@ -109,9 +113,13 @@
 	static const char* symref(Symbol* sym, int32_t off)
 	{
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "w%d%+d",
-			sym->u.var.sub->id,
-			sym->u.var.offset + off);
+		if (sym->u.var.externname)
+			snprintf(buffer, sizeof(buffer), "%s+%d",
+				sym->u.var.externname, off);
+		else
+			snprintf(buffer, sizeof(buffer), "w%d%+d",
+				sym->u.var.sub->id,
+				sym->u.var.offset + off);
 		return buffer;
 	}
 
@@ -216,7 +224,6 @@ gen STARTSUB():s
     E("\tcseg\n");
     if ($s.sub->externname)
         E("\tpublic %s\n", $s.sub->externname);
-    E("\tpublic %s\n", subref($s.sub));
     E("%s:\n", subref($s.sub));
 
     if ($s.sub->inputparameters != 0)
@@ -1021,52 +1028,79 @@ gen ASMEND()
     E("\t%s\n", asmbuffer);
 }
 
+// --- Array initialisers ------------------------------------------------
+
+%{
+	static int emit_string(const char* s)
+	{
+		int sid = id++;
+		emitter_open_chunk();
+		E("\tcseg\n");
+		E("s%d:\n", sid);
+		E("\tdb ");
+		bool instring = false;
+		bool start = true;
+		for (;;)
+		{
+			char c = *s++;
+			if (!c)
+				break;
+			if (!start && !instring)
+				E(", ");
+			start = false;
+			if (isprint(c) && (c != '\"') && (c != '\\'))
+			{
+				if (!instring)
+				{
+					E("\"");
+					instring = true;
+				}
+				E("%c", c);
+			}
+			else
+			{
+				if (instring)
+				{
+					E("\", ");
+					instring = false;
+				}
+				E("%d", c);
+			}
+		}
+		if (instring)
+			E("\"");
+		if (!start)
+			E(", ");
+		E("0\n");
+		emitter_close_chunk(current_sub);
+		return sid;
+	}
+%}
+
+gen STARTINIT():s
+{
+	int sid = id++;
+	$s.sym->u.var.externname = aprintf("array%d", sid);
+
+	emitter_open_chunk();
+	E("\tcseg\n"); /* yes, really */
+	E("%s:\n", $s.sym->u.var.externname);
+}
+	
+gen INIT1():c { E("\tdb %d\n", $c.value); }
+gen INIT2():c { E("\tdw %d\n", $c.value); }
+gen INIT4():c { E("\tdword %d\n", $c.value); }
+gen INITS():s { E("\tdw s%d\n", emit_string($s.text)); }
+
+gen ENDINIT()
+{
+	emitter_close_chunk(current_sub);
+}
+
 // --- Strings -----------------------------------------------------------
 
 gen bc|de|hl := STRING():s
 {
-    int sid = id++;
-    emitter_open_chunk();
-    E("\tcseg\n");
-    E("s%d:\n", sid);
-    E("\tdb ");
-    bool instring = false;
-    bool start = true;
-	const char* s = $s.text;
-    for (;;)
-    {
-        char c = *s++;
-        if (!c)
-            break;
-        if (!start && !instring)
-            E(", ");
-        start = false;
-        if (isprint(c) && (c != '\"') && (c != '\\'))
-        {
-            if (!instring)
-            {
-                E("\"");
-                instring = true;
-            }
-            E("%c", c);
-        }
-        else
-        {
-            if (instring)
-            {
-                E("\", ");
-                instring = false;
-            }
-            E("%d", c);
-        }
-    }
-    if (instring)
-        E("\"");
-    if (!start)
-        E(", ");
-    E("0\n");
-    emitter_close_chunk(current_sub);
-
-    E("\tlxi %s, s%d\n", regref($$), sid);
+    E("\tlxi %s, s%d\n", regref($$), emit_string($s.text));
 }
 

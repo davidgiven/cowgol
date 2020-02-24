@@ -1,0 +1,12 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+typedef smallint := int(0, 10);
+typedef largeint := int(0, 1000);
+
+print("smallint");
+if @bytesof smallint == 1 then yes(); else no(); end if;
+
+print("largeint");
+if @bytesof largeint == 2 then yes(); else no(); end if;
+

@@ -43,7 +43,7 @@ rule mkpat
     description = MKPAT \$in
 
 rule lemon
-    command = mkdir -p \$cfile.temp && bin/lemon -Tthird_party/lemon/lempar.c -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    command = mkdir -p \$cfile.temp && \$lemon -T\$template -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
 rule bison
@@ -210,6 +210,20 @@ buildlemon() {
     cfile="${1%%.c*}.c"
     hfile="${1%%.c*}.h"
     echo "build $cfile $hfile : lemon $2 | bin/lemon third_party/lemon/lempar.c"
+    echo "  lemon=bin/lemon"
+    echo "  template=third_party/lemon/lempar.c"
+    echo "  cfile=$cfile"
+    echo "  hfile=$hfile"
+}
+
+buildlemoncowgol() {
+    local cfile
+    local hfile
+    cfile="${1%%.c*}.coh"
+    hfile="${1%%.c*}.tokens.coh"
+    echo "build $cfile $hfile : lemon $2 | bin/lemon-cowgol src/cowcom/lempar.coh"
+    echo "  lemon=bin/lemon-cowgol"
+    echo "  template=src/cowcom/lempar.coh"
     echo "  cfile=$cfile"
     echo "  hfile=$hfile"
 }
@@ -476,6 +490,12 @@ buildlibrary liblemon.a \
 buildprogram lemon \
 	liblemon.a
 
+buildlibrary liblemon-cowgol.a \
+	third_party/lemon/lemon-cowgol.c
+
+buildprogram lemon-cowgol \
+	liblemon-cowgol.a
+
 buildbison $OBJDIR/third_party/zmac/zmac.c third_party/zmac/zmac.y
 
 buildlibrary libzmac.a \
@@ -577,109 +597,43 @@ as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
 as_80386_linux rt/80386-linux/cowgol.s $OBJDIR/rt/80386-linux/cowgol.o
 cfile $OBJDIR/rt/cgen/cowgol-cgen.o rt/cgen/cowgol-cgen.c
 
-test_cpm addsub-8bit
-test_cpm addsub-16bit
-test_cpm addsub-32bit
-test_cpm mul-8bit-u
-test_cpm mul-8bit-s
-test_cpm mul-16bit-u
-test_cpm mul-16bit-s
-test_cpm mul-32bit-u
-test_cpm mul-32bit-s
-test_cpm divrem-8bit-u
-test_cpm divrem-8bit-s
-test_cpm divrem-16bit-u
-test_cpm divrem-16bit-s
-test_cpm divrem-32bit-u
-test_cpm divrem-32bit-s
-test_cpm shifts-8bit
-test_cpm shifts-16bit
-test_cpm shifts-32bit
-test_cpm logic-8bit
-test_cpm logic-16bit
-test_cpm logic-32bit
-test_cpm records
-test_cpm inputparams
-test_cpm outputparams
-test_cpm conditionals
+tests=" \
+    addsub-16bit \
+    addsub-32bit \
+    addsub-8bit \
+    arrayinitialisers \
+    conditionals \
+    divrem-16bit-s \
+    divrem-16bit-u \
+    divrem-32bit-s \
+    divrem-32bit-u \
+    divrem-8bit-s \
+    divrem-8bit-u \
+    inputparams \
+    logic-16bit \
+    logic-32bit \
+    logic-8bit \
+    mul-16bit-s \
+    mul-16bit-u \
+    mul-32bit-s \
+    mul-32bit-u \
+    mul-8bit-s \
+    mul-8bit-u \
+    outputparams \
+    rangetypes \
+    records \
+    shifts-16bit \
+    shifts-32bit \
+    shifts-8bit \
+    unions \
+    "
+testers="test_cpm test_thumb2_linux test_80386_linux test_cgen"
 
-test_thumb2_linux addsub-8bit
-test_thumb2_linux addsub-16bit
-test_thumb2_linux addsub-32bit
-test_thumb2_linux mul-8bit-u
-test_thumb2_linux mul-8bit-s
-test_thumb2_linux mul-16bit-u
-test_thumb2_linux mul-16bit-s
-test_thumb2_linux mul-32bit-u
-test_thumb2_linux mul-32bit-s
-test_thumb2_linux divrem-8bit-u
-test_thumb2_linux divrem-8bit-s
-test_thumb2_linux divrem-16bit-u
-test_thumb2_linux divrem-16bit-s
-test_thumb2_linux divrem-32bit-u
-test_thumb2_linux divrem-32bit-s
-test_thumb2_linux shifts-8bit
-test_thumb2_linux shifts-16bit
-test_thumb2_linux shifts-32bit
-test_thumb2_linux logic-8bit
-test_thumb2_linux logic-16bit
-test_thumb2_linux logic-32bit
-test_thumb2_linux records
-test_thumb2_linux inputparams
-test_thumb2_linux outputparams
-test_thumb2_linux conditionals
-
-test_80386_linux addsub-8bit
-test_80386_linux addsub-16bit
-test_80386_linux addsub-32bit
-test_80386_linux mul-8bit-u
-test_80386_linux mul-8bit-s
-test_80386_linux mul-16bit-u
-test_80386_linux mul-16bit-s
-test_80386_linux mul-32bit-u
-test_80386_linux mul-32bit-s
-test_80386_linux divrem-8bit-u
-test_80386_linux divrem-8bit-s
-test_80386_linux divrem-16bit-u
-test_80386_linux divrem-16bit-s
-test_80386_linux divrem-32bit-u
-test_80386_linux divrem-32bit-s
-test_80386_linux shifts-8bit
-test_80386_linux shifts-16bit
-test_80386_linux shifts-32bit
-test_80386_linux logic-8bit
-test_80386_linux logic-16bit
-test_80386_linux logic-32bit
-test_80386_linux records
-test_80386_linux inputparams
-test_80386_linux outputparams
-test_80386_linux conditionals
-
-test_cgen addsub-8bit
-test_cgen addsub-16bit
-test_cgen addsub-32bit
-test_cgen mul-8bit-u
-test_cgen mul-8bit-s
-test_cgen mul-16bit-u
-test_cgen mul-16bit-s
-test_cgen mul-32bit-u
-test_cgen mul-32bit-s
-test_cgen divrem-8bit-u
-test_cgen divrem-8bit-s
-test_cgen divrem-16bit-u
-test_cgen divrem-16bit-s
-test_cgen divrem-32bit-u
-test_cgen divrem-32bit-s
-test_cgen shifts-8bit
-test_cgen shifts-16bit
-test_cgen shifts-32bit
-test_cgen logic-8bit
-test_cgen logic-16bit
-test_cgen logic-32bit
-test_cgen records
-test_cgen inputparams
-test_cgen outputparams
-test_cgen conditionals
+for test in $tests; do
+    for tester in $testers; do
+        $tester $test
+    done
+done
 
 cowgol_80386_linux examples/argv.cow examples/argv.386
 cowgol_80386_linux examples/file.cow examples/file.386 
@@ -698,9 +652,17 @@ cowgol_cgen examples/file.cow examples/file.cgen
 cowgol_cgen examples/malloc.cow examples/malloc.cgen
 
 cowlink_coh=$(echo src/cowlink/*.coh)
-cowgol_80386_linux src/cowlink/main.cow bin/cowlink "$cowlink_coh"
+cowgol_80386_linux src/cowlink/main.cow bin/cowlink.386 "$cowlink_coh"
 cowgol_cpm src/cowlink/main.cow bin/cowlink.com "$cowlink_coh"
 cowgol_thumb2_linux src/cowlink/main.cow bin/cowlink.thumb2 "$cowlink_coh"
 cowgol_cgen src/cowlink/main.cow bin/cowlink.cgen "$cowlink_coh"
+
+buildlemoncowgol $OBJDIR/parser.coh src/cowcom/parser.y
+
+cowcom_coh="$OBJDIR/parser.coh $(echo src/cowcom/*.coh) $OBJDIR/parser.coh $OBJDIR/parser.tokens.coh"
+cowgol_80386_linux src/cowcom/main.cow bin/cowcom.386 "$cowcom_coh"
+cowgol_cpm src/cowcom/main.cow bin/cowcom.com "$cowcom_coh"
+cowgol_thumb2_linux src/cowcom/main.cow bin/cowcom.thumb2 "$cowcom_coh"
+cowgol_cgen src/cowcom/main.cow bin/cowcom.cgen "$cowcom_coh"
 
 # vim: sw=4 ts=4 et

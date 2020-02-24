@@ -57,10 +57,14 @@
 		current_sub->workspace[0] += var->u.var.type->u.type.width;
 	}
 
-	void arch_init_member(struct symbol* record, struct symbol* member)
+	void arch_init_member(struct symbol* record, struct symbol* member, int position)
 	{
-		member->u.var.offset = record->u.type.width;
-		record->u.type.width += member->u.var.type->u.type.width;
+		if (position == -1)
+			position = record->u.type.width;
+		member->u.var.offset = position;
+		position += member->u.var.type->u.type.width;
+		if (position > record->u.type.width)
+			record->u.type.width = position;
 	}
 
 	static const char* regref(reg_t reg)
@@ -156,9 +160,13 @@
 	static const char* symref(Symbol* sym, int32_t off)
 	{
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "(w%d+%d)",
-			sym->u.var.sub->id,
-			sym->u.var.offset + off);
+		if (sym->u.var.externname)
+			snprintf(buffer, sizeof(buffer), "(%s+%d)",
+				sym->u.var.externname, off);
+		else
+			snprintf(buffer, sizeof(buffer), "(w%d+%d)",
+				sym->u.var.sub->id,
+				sym->u.var.offset + off);
 		return buffer;
 	}
 
@@ -442,6 +450,12 @@ gen r8 := LOAD1(r32:lhs)
 gen r8 := LOAD1(ADDRESS():a)
 	{ E("\tmovb %s, %s\n", symref($a.sym, $a.off), regref($$)); }
 	
+gen r8 := LOAD1(ADD4(r32: addr, r32: disp))
+	{ E("\tmovb (%s,%s), %s\n", regref($addr), regref($disp), regref($$)); }
+
+gen r8 := LOAD1(ADD4(r32: addr, CONSTANT():c))
+	{ E("\tmovb %d(%s), %s\n", $c.value, regref($addr), regref($$)); }
+
 gen r16 := LOAD2(r32:lhs)
 	{ E("\tmovw (%s), %s\n", regref($lhs), regref($$)); }
 
@@ -553,11 +567,20 @@ gen al := REMS1(al, bl|cl|dl:rhs)
 gen r8 := AND1($$:lhs, r8:rhs)
 	{ E("\tandb %s, %s\n", regref($rhs), regref($$)); }
 
+gen r8 := AND1($$:lhs, CONSTANT():c)
+	{ E("\tandb $0x%02x, %s\n", $c.value & 0xff, regref($$)); }
+
 gen r8 := OR1($$:lhs, r8:rhs)
 	{ E("\torb %s, %s\n", regref($rhs), regref($$)); }
 
+gen r8 := OR1($$:lhs, CONSTANT():c)
+	{ E("\torb $0x%02x, %s\n", $c.value & 0xff, regref($$)); }
+
 gen r8 := EOR1($$:lhs, r8:rhs)
 	{ E("\txorb %s, %s\n", regref($rhs), regref($$)); }
+
+gen r8 := EOR1($$:lhs, CONSTANT():c)
+	{ E("\txorb $0x%02x, %s\n", $c.value & 0xff, regref($$)); }
 
 gen r8 := NOT1($$:val)
 	{ E("\tnotb %s\n", regref($$)); }
@@ -794,31 +817,58 @@ gen ASMEND()
     E("\t%s\n", asmbuffer);
 }
 
+// --- Array initialisers ------------------------------------------------
+
+%{
+	static int emit_string(const char* s)
+	{
+		int sid = id++;
+		emitter_open_chunk();
+		E("\t.data 1\n");
+		E("s%d:\n", sid);
+		E("\t.byte ");
+		bool start = true;
+		for (;;)
+		{
+			char c = *s++;
+			if (!c)
+				break;
+			if (!start)
+				E(", ");
+			E("0x%02x", c);
+			start = false;
+		}
+		if (!start)
+			E(", ");
+		E("0\n");
+		emitter_close_chunk(current_sub);
+		return sid;
+	}
+%}
+
+gen STARTINIT():s
+{
+	int sid = id++;
+	$s.sym->u.var.externname = aprintf("array%d", sid);
+
+	emitter_open_chunk();
+	E("\t.data %d\n", $s.sym->u.var.type->u.type.element->u.type.width);
+	E("%s:\n", $s.sym->u.var.externname);
+}
+	
+gen INIT1():c { E("\t.byte %d\n", $c.value); }
+gen INIT2():c { E("\t.short %d\n", $c.value); }
+gen INIT4():c { E("\t.long %d\n", $c.value); }
+gen INITS():s { E("\t.long s%d\n", emit_string($s.text)); }
+
+gen ENDINIT()
+{
+	emitter_close_chunk(current_sub);
+}
+
 // --- Strings -----------------------------------------------------------
 
 gen r32 := STRING():s
 {
-    int sid = id++;
-    emitter_open_chunk();
-    E("\t.data 1\n");
-    E("s%d:\n", sid);
-    E("\t.byte ");
-    bool start = true;
-	const char* s = $s.text;
-    for (;;)
-    {
-        char c = *s++;
-        if (!c)
-            break;
-		if (!start)
-            E(", ");
-		E("0x%02x", c);
-        start = false;
-    }
-    if (!start)
-        E(", ");
-    E("0\n");
-    emitter_close_chunk(current_sub);
-
-	E("\tlea s%d, %s\n", sid, regref($$));
+	E("\tlea s%d, %s\n", emit_string($s.text), regref($$));
 }

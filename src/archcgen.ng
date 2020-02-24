@@ -74,13 +74,15 @@
 		current_sub->workspace[0] += w;
 	}
 
-	void arch_init_member(struct symbol* record, struct symbol* member)
+	void arch_init_member(struct symbol* record, struct symbol* member, int position)
 	{
-		int w = member->u.var.type->u.type.width;
-
-		record->u.type.width = alignup(record->u.type.width, w);
-		member->u.var.offset = record->u.type.width;
-		record->u.type.width += w;
+		int width = member->u.var.type->u.type.width;
+		if (position == -1)
+			position = alignup(record->u.type.width, width);
+		member->u.var.offset = position;
+		position += width;
+		if (position > record->u.type.width)
+			record->u.type.width = position;
 	}
 
 	static const char* subref(Subroutine* sub)
@@ -95,14 +97,22 @@
 
 	static const char* symref(Symbol* sym, int32_t off)
 	{
-		emitter_open_chunk();
-		E("static i1 w%d[];\n", sym->u.var.sub->id);
-		emitter_close_chunk(NULL);
-
 		static char buffer[32];
-		snprintf(buffer, sizeof(buffer), "w%d%+d",
-			sym->u.var.sub->id,
-			sym->u.var.offset + off);
+		if (sym->u.var.externname)
+		{
+			snprintf(buffer, sizeof(buffer), "(((i1*)%s)+%d)",
+				sym->u.var.externname, off);
+		}
+		else
+		{
+			emitter_open_chunk();
+			E("static i1 w%d[];\n", sym->u.var.sub->id);
+			emitter_close_chunk(NULL);
+
+			snprintf(buffer, sizeof(buffer), "w%d%+d",
+				sym->u.var.sub->id,
+				sym->u.var.offset + off);
+		}
 		return buffer;
 	}
 
@@ -355,16 +365,16 @@ gen param := POPPARAM8(param, ADDRESS():a)
 // --- Core conversions --------------------------------------------------
 
 gen v1 := CONSTANT():c
-	{ E("\ti1 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti1 v%d = (i1)%d;\n", push(), $c.value); }
 
 gen v2 := CONSTANT():c
-	{ E("\ti2 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti2 v%d = (i2)%d;\n", push(), $c.value); }
 
 gen v4 := CONSTANT():c
-	{ E("\ti4 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti4 v%d = (i4)%d;\n", push(), $c.value); }
 
 gen v8 := CONSTANT():c
-	{ E("\ti8 v%d = %d;\n", push(), $c.value); }
+	{ E("\ti8 v%d = (i8)%d;\n", push(), $c.value); }
 
 gen v8 := ADDRESS():a
 	{ E("\ti8 v%d = (i8)(intptr_t)(%s);\n", push(), symref($a.sym, $a.off)); }
@@ -659,30 +669,59 @@ gen ASMEND()
     E("\t%s\n", asmbuffer);
 }
 
+// --- Array initialisers ------------------------------------------------
+
+%{
+	static int emit_string(const char* s)
+	{
+		int sid = id++;
+		emitter_open_chunk();
+		E("const i1 s%d[] = { ", sid);
+		bool start = true;
+		for (;;)
+		{
+			char c = *s++;
+			if (!c)
+				break;
+			if (!start)
+				E(", ");
+			E("0x%02x", c);
+			start = false;
+		}
+		if (!start)
+			E(", ");
+		E("0 };\n");
+		emitter_close_chunk(current_sub);
+		return sid;
+	}
+%}
+
+gen STARTINIT():s
+{
+	int sid = id++;
+	$s.sym->u.var.externname = aprintf("initialiser%d", sid);
+
+	emitter_open_chunk();
+	E("static i%d %s[] = {\n",
+		$s.sym->u.var.type->u.type.element->u.type.width,
+		$s.sym->u.var.externname);
+}
+	
+gen INIT1():c { E("%d,\n", $c.value); }
+gen INIT2():c { E("%d,\n", $c.value); }
+gen INIT4():c { E("%d,\n", $c.value); }
+gen INITS():s { E("(i8)(intptr_t)s%d,\n", emit_string($s.text)); }
+
+gen ENDINIT()
+{
+	E("\n};\n");
+	emitter_close_chunk(current_sub);
+}
+
 // --- Strings -----------------------------------------------------------
 
 gen v8 := STRING():s
 {
-    int sid = id++;
-    emitter_open_chunk();
-	E("const i1 s%d[] = { ", sid);
-    bool start = true;
-	const char* s = $s.text;
-    for (;;)
-    {
-        char c = *s++;
-        if (!c)
-            break;
-		if (!start)
-            E(", ");
-		E("0x%02x", c);
-        start = false;
-    }
-    if (!start)
-        E(", ");
-    E("0 };\n");
-    emitter_close_chunk(current_sub);
-
-	E("\ti8 v%d = (i8)(intptr_t)s%d;\n", push(), sid);
+	E("\ti8 v%d = (i8)(intptr_t)s%d;\n", push(), emit_string($s.text));
 }
 
