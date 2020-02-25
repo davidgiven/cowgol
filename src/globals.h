@@ -74,6 +74,7 @@ struct symbol
 			bool issigned: 1;
 			int kind;
 			int width;
+			int stride;
 			int members;
 			int alignment;
 			struct symbol* pointerto;

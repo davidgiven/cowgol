@@ -72,3 +72,25 @@ sub test_nested()
 end sub;
 test_nested();
 
+sub test_arrays_of_records()
+	record Element
+		a: int16;
+		b: int8;
+	end record;
+
+	var array: Element[] := { { 1, 2 }, { 3, 4 } };
+
+	print("read array[0].a");
+	if array[0].a == 1 then yes(); else no(); end if;
+
+	print("read array[0].b");
+	if array[0].b == 2 then yes(); else no(); end if;
+
+	print("read array[1].a");
+	if array[1].a == 3 then yes(); else no(); end if;
+
+	print("read array[1].b");
+	if array[1].b == 4 then yes(); else no(); end if;
+end sub;
+test_arrays_of_records();
+

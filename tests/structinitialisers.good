@@ -9,3 +9,7 @@ read a outer: yes
 read inner.a outer: yes
 read inner.b outer: yes
 read b outer: yes
+read array[0].a: yes
+read array[0].b: yes
+read array[1].a: yes
+read array[1].b: yes

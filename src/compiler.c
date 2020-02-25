@@ -335,7 +335,8 @@ struct symbol* make_array_type(struct symbol* type, int32_t size)
 	ptr->name = aprintf("%s[%d]", type->name, size);
 	ptr->kind = TYPE;
 	ptr->u.type.kind = TYPE_ARRAY;
-	ptr->u.type.width = size * type->u.type.width;
+	ptr->u.type.stride = arch_align_up(type->u.type.width, type->u.type.alignment);
+	ptr->u.type.width = size * ptr->u.type.stride;
 	ptr->u.type.element = type;
 	ptr->u.type.alignment = type->u.type.alignment;
 	ptr->u.type.indextype = arch_guess_int_type(0, size-1);

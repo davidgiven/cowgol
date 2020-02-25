@@ -181,7 +181,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	{
 		if (is_array(current_type))
 		{
-			int memberwidth = current_type->u.type.element->u.type.width;
+			int memberwidth = current_type->u.type.stride;
 			int width = current_member * memberwidth;
 			if (current_type->u.type.width == 0)
 				current_type->u.type.width = width;
@@ -681,7 +681,7 @@ cvalue(value) ::= SIZEOF oldid(S).
 	if (S->kind == VAR)
 		S = S->u.var.type;
 	if ((S->kind == TYPE) && is_array(S))
-		value = S->u.type.width / S->u.type.element->u.type.width;
+		value = S->u.type.width / S->u.type.stride;
 	else
 		fatal("can't use @bytesof in this context");
 }
@@ -726,7 +726,7 @@ expression(E) ::= SIZEOF oldid(S).
 		S = S->u.var.type;
 	if ((S->kind == TYPE) && is_array(S))
 	{
-		E = mid_constant(S->u.type.width / S->u.type.element->u.type.width);
+		E = mid_constant(S->u.type.width / S->u.type.stride);
 		E->type = NULL;
 	}
 	else
@@ -832,7 +832,7 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 		E1,
 		mid_c_mul(intptr_type->u.type.width,
 			mid_c_cast(intptr_type->u.type.width, E2),
-			mid_constant(arraytype->u.type.element->u.type.width)));
+			mid_constant(arraytype->u.type.stride)));
 	E->type = make_pointer_type(arraytype->u.type.element);
 }
 
