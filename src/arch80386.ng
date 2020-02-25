@@ -33,6 +33,11 @@
 		add_alias(NULL, "intptr", intptr_type);
 	}
 
+	uint32_t arch_align_up(uint32_t value, uint8_t alignment)
+	{
+		return value;
+	}
+
 	Symbol* arch_guess_int_type(uint32_t min, uint32_t max)
 	{
 		if ((min >= 0) && (max <= 255))
@@ -852,7 +857,7 @@ gen STARTINIT():s
 	$s.sym->u.var.externname = aprintf("array%d", sid);
 
 	emitter_open_chunk();
-	E("\t.data %d\n", $s.sym->u.var.type->u.type.element->u.type.width);
+	E("\t.data 4\n"); // TODO
 	E("%s:\n", $s.sym->u.var.externname);
 }
 	

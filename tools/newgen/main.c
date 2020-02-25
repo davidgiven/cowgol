@@ -490,7 +490,7 @@ static void print_simple_action(Rule* r, Element* e)
 
 static void print_line(int lineno)
 {
-//	fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
+	fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
 }
 
 static void create_emitters(void)

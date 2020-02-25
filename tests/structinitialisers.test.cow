@@ -1,0 +1,96 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+sub test_just_ints()
+	record JustInts
+		c: int32;
+		b: int16;
+		a: int8;
+	end record;
+
+	var justInts: JustInts := { 1, 2, 3 };
+
+	print("bytesof justInts");
+	if @bytesof justInts == 7 then yes(); else no(); end if;
+
+	print("read a justInts");
+	if justInts.a == 3 then yes(); else no(); end if;
+
+	print("read b justInts");
+	if justInts.b == 2 then yes(); else no(); end if;
+
+	print("read c justInts");
+	if justInts.c == 1 then yes(); else no(); end if;
+end sub;
+test_just_ints();
+
+sub test_with_strings()
+	record WithStrings
+		a: int8;
+		s: [uint8];
+		b: int8;
+	end record;
+
+	var withStrings: WithStrings := {1, "fnord", 2};
+
+	print("read a withStrings");
+	if withStrings.a == 1 then yes(); else no(); end if;
+
+	print("read s withStrings");
+	if [withStrings.s] == 'f' then yes(); else no(); end if;
+
+	print("read b withStrings");
+	if withStrings.b == 2 then yes(); else no(); end if;
+end sub;
+test_with_strings();
+
+sub test_nested()
+	record Inner
+		a: int16;
+		b: int16;
+	end record;
+
+	record Outer
+		a: int8;
+		inner: Inner;
+		b: int8;
+	end record;
+
+	var outer: Outer := { 1, { 2, 3 }, 4 };
+
+	print("read a outer");
+	if outer.a == 1 then yes(); else no(); end if;
+
+	print("read inner.a outer");
+	if outer.inner.a == 2 then yes(); else no(); end if;
+
+	print("read inner.b outer");
+	if outer.inner.b == 3 then yes(); else no(); end if;
+
+	print("read b outer");
+	if outer.b == 4 then yes(); else no(); end if;
+end sub;
+test_nested();
+
+sub test_arrays_of_records()
+	record Element
+		a: int16;
+		b: int8;
+	end record;
+
+	var array: Element[] := { { 1, 2 }, { 3, 4 } };
+
+	print("read array[0].a");
+	if array[0].a == 1 then yes(); else no(); end if;
+
+	print("read array[0].b");
+	if array[0].b == 2 then yes(); else no(); end if;
+
+	print("read array[1].a");
+	if array[1].a == 3 then yes(); else no(); end if;
+
+	print("read array[1].b");
+	if array[1].b == 4 then yes(); else no(); end if;
+end sub;
+test_arrays_of_records();
+

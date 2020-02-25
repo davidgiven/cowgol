@@ -27,11 +27,6 @@
 	static int varstack[VARSTACK_SIZE];
 	static int varsp;
 
-	static uint32_t alignup(int32_t i, int w)
-	{
-		return (i+w-1) & ~(w-1);
-	}
-
 	void arch_init_types(void)
 	{
 		uint64_type = make_number_type("uint64", 8, false);
@@ -45,6 +40,11 @@
 
 		intptr_type = uint64_type;
 		add_alias(NULL, "intptr", intptr_type);
+	}
+
+	uint32_t arch_align_up(uint32_t i, uint8_t w)
+	{
+		return (i+w-1) & ~(w-1);
 	}
 
 	Symbol* arch_guess_int_type(uint32_t min, uint32_t max)
@@ -69,18 +69,17 @@
 		/* All variables get allocated from workspace 0. */
 
 		int w = var->u.var.type->u.type.width;
-		current_sub->workspace[0] = alignup(current_sub->workspace[0], w);
+		current_sub->workspace[0] = arch_align_up(current_sub->workspace[0], w);
 		var->u.var.offset = current_sub->workspace[0];
 		current_sub->workspace[0] += w;
 	}
 
 	void arch_init_member(struct symbol* record, struct symbol* member, int position)
 	{
-		int width = member->u.var.type->u.type.width;
 		if (position == -1)
-			position = alignup(record->u.type.width, width);
+			position = arch_align_up(record->u.type.width, member->u.var.type->u.type.alignment);
 		member->u.var.offset = position;
-		position += width;
+		position += member->u.var.type->u.type.width;
 		if (position > record->u.type.width)
 			record->u.type.width = position;
 	}
@@ -672,6 +671,16 @@ gen ASMEND()
 // --- Array initialisers ------------------------------------------------
 
 %{
+	/* This is *vile*. We need to emit differentiated bytes... but also,
+	 * occasionally, pointers. We don't have any type information. So,
+	 * we can't just emit a byte array because we might need to embed
+	 * 8-byte pointers into it, which C doesn't allow. Instead, all
+	 * static initialisers end up as arrays of i8, and we buffer up bytes
+	 * to emit them in chunks of eight. */
+
+	static uint64_t initialiser_buffer;
+	static uint8_t initialiser_buffer_fill_bits;
+
 	static int emit_string(const char* s)
 	{
 		int sid = id++;
@@ -694,6 +703,40 @@ gen ASMEND()
 		emitter_close_chunk(current_sub);
 		return sid;
 	}
+
+	static void flush_initialiser_buffer(void)
+	{
+		if (initialiser_buffer_fill_bits != 0)
+		{
+			E("\t0x%016llx,\n", initialiser_buffer);
+			initialiser_buffer = 0;
+			initialiser_buffer_fill_bits = 0;
+		}
+	}
+
+	static void check_alignment(int width)
+	{
+		int alignment = (initialiser_buffer_fill_bits / 8) & 7;
+		if (alignment & (width-1))
+			fatal("alignment error in initialiser");
+	}
+
+	static void emit_bytes(int width, uint64_t value)
+	{
+		check_alignment(width);
+
+		bool first = true;
+		while (width--)
+		{
+			uint64_t byte = value & 0xff;
+			value >>= 8;
+
+			initialiser_buffer |= byte << initialiser_buffer_fill_bits;
+			initialiser_buffer_fill_bits += 8;
+			if (initialiser_buffer_fill_bits == 64)
+				flush_initialiser_buffer();
+		}
+	}
 %}
 
 gen STARTINIT():s
@@ -702,18 +745,26 @@ gen STARTINIT():s
 	$s.sym->u.var.externname = aprintf("initialiser%d", sid);
 
 	emitter_open_chunk();
-	E("static i%d %s[] = {\n",
-		$s.sym->u.var.type->u.type.element->u.type.width,
-		$s.sym->u.var.externname);
+	E("static i8 %s[] = { // %s\n",
+		$s.sym->u.var.externname,
+		$s.sym->name);
+	initialiser_buffer = 0;
+	initialiser_buffer_fill_bits = 0;
 }
 	
-gen INIT1():c { E("%d,\n", $c.value); }
-gen INIT2():c { E("%d,\n", $c.value); }
-gen INIT4():c { E("%d,\n", $c.value); }
-gen INITS():s { E("(i8)(intptr_t)s%d,\n", emit_string($s.text)); }
+gen INIT1():c { emit_bytes(1, $c.value); }
+gen INIT2():c { emit_bytes(2, $c.value); }
+gen INIT4():c { emit_bytes(4, $c.value); }
+gen INIT8():c { emit_bytes(8, $c.value); }
+
+gen INITS():s {
+	check_alignment(8);
+	E("\t(i8)(intptr_t)s%d,\n", emit_string($s.text));
+}
 
 gen ENDINIT()
 {
+	flush_initialiser_buffer();
 	E("\n};\n");
 	emitter_close_chunk(current_sub);
 }

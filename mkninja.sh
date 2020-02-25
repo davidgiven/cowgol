@@ -625,6 +625,7 @@ tests=" \
     shifts-16bit \
     shifts-32bit \
     shifts-8bit \
+    structinitialisers \
     unions \
     "
 testers="test_cpm test_thumb2_linux test_80386_linux test_cgen"

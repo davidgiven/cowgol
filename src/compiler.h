@@ -37,9 +37,6 @@ extern void symbol_redeclaration(Symbol* sym);
 extern void check_expression_type(struct symbol** node, struct symbol* type);
 extern void unescape(char* string);
 
-extern void push_type(void);
-extern void pop_type(void);
-
 struct token
 {
     int32_t number;
