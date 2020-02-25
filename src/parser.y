@@ -14,7 +14,6 @@
     int current_label = 1;
 
     static int break_label;
-	static int current_array_size;
 	struct subroutine* current_sub;
 	static int id = 1;
 
@@ -120,26 +119,75 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 
 /* --- Array initialisers ------------------------------------------------ */
 
-statement ::= arraydecl OPENBR arraymembers CLOSEBR SEMICOLON.
+%include
 {
-	int memberwidth = current_type->u.type.element->u.type.width;
-	int width = current_array_size * memberwidth;
-	if (current_type->u.type.width == 0)
-		current_type->u.type.width = width;
-	if (width > current_type->u.type.width)
-		fatal("too many elements in array initialiser (got %d, wanted %d)",
-			width/memberwidth, current_type->u.type.width/memberwidth);
-	while (width < current_type->u.type.width)
+	static int current_member;
+	static int current_offset;
+
+	static Symbol* find_inited_member()
 	{
-		generate(mid_init(memberwidth, 0));
-		width += memberwidth;
+		if (is_array(current_type))
+			return NULL;
+		assert(is_record(current_type));
+
+		int i = current_member;
+		Symbol* member = current_type->u.type.namespace.firstsymbol;
+		while (i-- && member)
+			member = member->next;
+
+		if (!member)
+			fatal("too many elements in initialiser for %s",
+				current_type->name);
+		return member;
+	}
+
+	static Symbol* get_element_or_member_type(Symbol* member)
+	{
+		if (!member)
+			return current_type->u.type.element;
+		return member->u.var.type;
+	}
+
+	static void alignto(int alignment)
+	{
+		int new_offset = arch_align_up(current_offset, alignment);
+		while (current_offset < new_offset)
+		{
+			generate(mid_init(1, 0));
+			current_offset++;
+		}
+	}
+
+	static void check_for_overlaps(Symbol* member)
+	{
+		if (!member)
+			return;
+
+		if (member->u.var.offset < current_offset)
+			fatal("cannot statically initialise %s because it contains overlapping or out-of-order fields",
+				current_type->name);
+	}
+}
+
+statement ::= initeddecl OPENBR initialisers CLOSEBR SEMICOLON.
+{
+	if (is_array(current_type))
+	{
+		int memberwidth = current_type->u.type.element->u.type.width;
+		int width = current_member * memberwidth;
+		if (current_type->u.type.width == 0)
+			current_type->u.type.width = width;
+		if (width != current_type->u.type.width)
+			fatal("wrong number of elements in initialiser for %s (got %d, wanted %d)",
+				current_type->name,
+				width/memberwidth, current_type->u.type.width/memberwidth);
 	}
 
 	generate(mid_endinit());
 
 }
 
-arraydecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
+initeddecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 {
 	/* We don't call init_var() because we don't want this variable
 	 * allocated to a workspace. */
@@ -147,36 +195,47 @@ arraydecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 	S->kind = VAR;
 	S->u.var.type = T;
 	S->u.var.sub = current_sub;
-	if (!is_array(T))
-		fatal("array initialisers only work on arrays");
+	if (!is_array(T) && !is_record(T))
+		fatal("static initialisers only work on arrays or records");
 	current_type = T;
-	current_array_size = 0;
+	current_member = 0;
+	current_offset = 0;
 
 	generate(mid_startinit(S));
 }
 
-arraymembers ::= .
+initialisers ::= .
 
-arraymembers ::= arraymembers COMMA arraymembers.
+initialisers ::= initialisers COMMA initialisers.
 
-arraymembers ::= cvalue(C).
+initialisers ::= cvalue(C).
 {
-	if (!is_scalar(current_type->u.type.element))
-		fatal("cannot initialise a non-scalar with a scalar");
-	int w = current_type->u.type.element->u.type.width;
+	Symbol* member = find_inited_member();
+	Symbol* type = get_element_or_member_type(member);
+	if (!is_num(type))
+		fatal("cannot initialise '%s' with a number", type->name);
+	int w = type->u.type.width;
+	alignto(w);
+	check_for_overlaps(member);
 	generate(mid_init(w, C));
-	current_array_size++;
+	current_member++;
+	current_offset += w;
 }
 
-arraymembers ::= STRING(S).
+initialisers ::= STRING(S).
 {
-	if (!is_ptr(current_type->u.type.element)
-			|| (current_type->u.type.element->u.type.element != uint8_type))
+	Symbol* member = find_inited_member();
+	Symbol* type = get_element_or_member_type(member);
+	if (!is_ptr(type)
+			|| (type->u.type.element != uint8_type))
 		fatal("cannot initialise this type with a string literal");
 	
 	unescape(S->string);
+	alignto(intptr_type->u.type.width);
+	check_for_overlaps(member);
 	generate(mid_inits(S->string));
-	current_array_size++;
+	current_member++;
+	current_offset += intptr_type->u.type.width;
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -928,6 +987,7 @@ recordmember ::= memberid(S) AT OPENPAREN cvalue(C) CLOSEPAREN COLON typeref(T) 
 memberid(S) ::= ID(X).
 {
 	S = add_new_symbol(&current_type->u.type.namespace, X->string);
+	current_type->u.type.members++;
 }
 
 /* --- Inline assembly --------------------------------------------------- */

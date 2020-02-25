@@ -33,6 +33,11 @@
 		add_alias(NULL, "intptr", intptr_type);
 	}
 
+	uint32_t arch_align_up(uint32_t value, uint8_t alignment)
+	{
+		return value;
+	}
+
 	Symbol* arch_guess_int_type(uint32_t min, uint32_t max)
 	{
 		if ((min >= 0) && (max <= 255))

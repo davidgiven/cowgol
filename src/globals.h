@@ -71,13 +71,14 @@ struct symbol
 	{
 		struct
 		{
+			bool issigned: 1;
 			int kind;
 			int width;
+			int members;
 			struct symbol* pointerto;
 			struct symbol* element;
 			struct symbol* indextype;
 			struct namespace namespace;
-			bool issigned: 1;
 		}
 		type;
 
@@ -144,6 +145,7 @@ extern void arch_init_member(struct symbol* record, struct symbol* member, int p
 extern void arch_emit_comment(const char* text, ...);
 extern void arch_emit_move(reg_t src, reg_t dest);
 extern Symbol* arch_guess_int_type(uint32_t min, uint32_t max);
+extern uint32_t arch_align_up(uint32_t value, uint8_t alignment);
 
 #endif
 

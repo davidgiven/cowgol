@@ -1,0 +1,7 @@
+bytesof justInts: yes
+read a justInts: yes
+read b justInts: yes
+read c justInts: yes
+read a withStrings: yes
+read s withStrings: yes
+read b withStrings: yes
