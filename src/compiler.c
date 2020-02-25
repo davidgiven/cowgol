@@ -304,6 +304,7 @@ struct symbol* make_number_type(const char* name, int width, bool issigned)
 	ptr->kind = TYPE;
 	ptr->u.type.kind = TYPE_NUMBER;
 	ptr->u.type.width = width;
+	ptr->u.type.alignment = arch_align_up(1, width);
 	ptr->u.type.issigned = issigned;
 	return ptr;
 }
@@ -319,6 +320,7 @@ struct symbol* make_pointer_type(struct symbol* type)
 		ptr->kind = TYPE;
 		ptr->u.type.kind = TYPE_POINTER;
 		ptr->u.type.width = intptr_type->u.type.width;
+		ptr->u.type.alignment = intptr_type->u.type.alignment;
 		ptr->u.type.element = type;
 		type->u.type.pointerto = ptr;
 		return ptr;
@@ -335,6 +337,7 @@ struct symbol* make_array_type(struct symbol* type, int32_t size)
 	ptr->u.type.kind = TYPE_ARRAY;
 	ptr->u.type.width = size * type->u.type.width;
 	ptr->u.type.element = type;
+	ptr->u.type.alignment = type->u.type.alignment;
 	ptr->u.type.indextype = arch_guess_int_type(0, size-1);
 	return ptr;
 }

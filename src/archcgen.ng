@@ -76,11 +76,10 @@
 
 	void arch_init_member(struct symbol* record, struct symbol* member, int position)
 	{
-		int width = member->u.var.type->u.type.width;
 		if (position == -1)
-			position = arch_align_up(record->u.type.width, width);
+			position = arch_align_up(record->u.type.width, member->u.var.type->u.type.alignment);
 		member->u.var.offset = position;
-		position += width;
+		position += member->u.var.type->u.type.width;
 		if (position > record->u.type.width)
 			record->u.type.width = position;
 	}

@@ -44,3 +44,31 @@ sub test_with_strings()
 end sub;
 test_with_strings();
 
+sub test_nested()
+	record Inner
+		a: int16;
+		b: int16;
+	end record;
+
+	record Outer
+		a: int8;
+		inner: Inner;
+		b: int8;
+	end record;
+
+	var outer: Outer := { 1, { 2, 3 }, 4 };
+
+	print("read a outer");
+	if outer.a == 1 then yes(); else no(); end if;
+
+	print("read inner.a outer");
+	if outer.inner.a == 2 then yes(); else no(); end if;
+
+	print("read inner.b outer");
+	if outer.inner.b == 3 then yes(); else no(); end if;
+
+	print("read b outer");
+	if outer.b == 4 then yes(); else no(); end if;
+end sub;
+test_nested();
+

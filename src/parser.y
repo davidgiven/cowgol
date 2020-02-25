@@ -124,7 +124,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	static int current_member;
 	static int current_offset;
 
-	static Symbol* find_inited_member()
+	static Symbol* find_inited_member_nocheck()
 	{
 		if (is_array(current_type))
 			return NULL;
@@ -135,6 +135,15 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 		while (i-- && member)
 			member = member->next;
 
+		return member;
+	}
+
+	static Symbol* find_inited_member()
+	{
+		if (is_array(current_type))
+			return NULL;
+
+		Symbol* member = find_inited_member_nocheck();
 		if (!member)
 			fatal("too many elements in initialiser for %s",
 				current_type->name);
@@ -167,22 +176,39 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 			fatal("cannot statically initialise %s because it contains overlapping or out-of-order fields",
 				current_type->name);
 	}
+
+	static void check_end_of_initialiser(void)
+	{
+		if (is_array(current_type))
+		{
+			int memberwidth = current_type->u.type.element->u.type.width;
+			int width = current_member * memberwidth;
+			if (current_type->u.type.width == 0)
+				current_type->u.type.width = width;
+			if (width != current_type->u.type.width)
+				fatal("wrong number of elements in initialiser for %s (got %d, wanted %d)",
+					current_type->name,
+					width/memberwidth, current_type->u.type.width/memberwidth);
+		}
+		else
+		{
+			assert(is_record(current_type));
+			if (find_inited_member_nocheck() != NULL)
+				fatal("too few elements in initialiser for %s", current_member, current_type->name);
+		}
+	}
+
+	struct saved_initialiser_state
+	{
+		Symbol* current_type;
+		int current_member;
+		int current_offset;
+	};
 }
 
 statement ::= initeddecl OPENBR initialisers CLOSEBR SEMICOLON.
 {
-	if (is_array(current_type))
-	{
-		int memberwidth = current_type->u.type.element->u.type.width;
-		int width = current_member * memberwidth;
-		if (current_type->u.type.width == 0)
-			current_type->u.type.width = width;
-		if (width != current_type->u.type.width)
-			fatal("wrong number of elements in initialiser for %s (got %d, wanted %d)",
-				current_type->name,
-				width/memberwidth, current_type->u.type.width/memberwidth);
-	}
-
+	check_end_of_initialiser();
 	generate(mid_endinit());
 
 }
@@ -215,7 +241,7 @@ initialisers ::= cvalue(C).
 	if (!is_num(type))
 		fatal("cannot initialise '%s' with a number", type->name);
 	int w = type->u.type.width;
-	alignto(w);
+	alignto(type->u.type.alignment);
 	check_for_overlaps(member);
 	generate(mid_init(w, C));
 	current_member++;
@@ -231,11 +257,38 @@ initialisers ::= STRING(S).
 		fatal("cannot initialise this type with a string literal");
 	
 	unescape(S->string);
-	alignto(intptr_type->u.type.width);
+	alignto(intptr_type->u.type.alignment);
 	check_for_overlaps(member);
 	generate(mid_inits(S->string));
 	current_member++;
 	current_offset += intptr_type->u.type.width;
+}
+
+initialisers ::= begin_nested_initialiser(STATE) initialisers CLOSEBR.
+{
+	check_end_of_initialiser();
+
+	current_type = STATE.current_type;
+	current_member = STATE.current_member + 1;
+	current_offset += STATE.current_offset;
+}
+
+%type begin_nested_initialiser {struct saved_initialiser_state}
+begin_nested_initialiser(STATE) ::= OPENBR.
+{
+	STATE.current_type = current_type;
+	STATE.current_member = current_member;
+
+	Symbol* member = find_inited_member();
+	current_type = get_element_or_member_type(member);
+	if (!is_record(current_type))
+		fatal("only nested records can be statically initialised");
+	alignto(current_type->u.type.alignment);
+	check_for_overlaps(member);
+	STATE.current_offset = current_offset;
+
+	current_offset = 0;
+	current_member = 0;
 }
 
 /* --- If...Then...Else...End if ----------------------------------------- */
@@ -973,6 +1026,8 @@ recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
 {
 	S->kind = VAR;
 	S->u.var.type = T;
+	if (T->u.type.alignment > current_type->u.type.alignment)
+		current_type->u.type.alignment = T->u.type.alignment;
 	arch_init_member(current_type, S, -1);
 }
 
@@ -980,6 +1035,8 @@ recordmember ::= memberid(S) AT OPENPAREN cvalue(C) CLOSEPAREN COLON typeref(T) 
 {
 	S->kind = VAR;
 	S->u.var.type = T;
+	if (T->u.type.alignment > current_type->u.type.alignment)
+		current_type->u.type.alignment = T->u.type.alignment;
 	arch_init_member(current_type, S, C);
 }
 

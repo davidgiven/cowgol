@@ -75,6 +75,7 @@ struct symbol
 			int kind;
 			int width;
 			int members;
+			int alignment;
 			struct symbol* pointerto;
 			struct symbol* element;
 			struct symbol* indextype;

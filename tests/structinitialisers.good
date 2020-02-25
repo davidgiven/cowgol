@@ -5,3 +5,7 @@ read c justInts: yes
 read a withStrings: yes
 read s withStrings: yes
 read b withStrings: yes
+read a outer: yes
+read inner.a outer: yes
+read inner.b outer: yes
+read b outer: yes
