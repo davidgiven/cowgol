@@ -236,9 +236,18 @@ buildmkmidcodesc() {
     echo "build $1 : mkmidcodesc $2 | scripts/mkmidcodesc.lua scripts/libcowgol.lua"
 }
 
+buildmkmidcodescoh() {
+    rule \
+        "lua scripts/mkmidcodescoh.lua -- $2 $1" \
+        "scripts/mkmidcodescoh.lua $2" \
+        "$1" \
+        "MKMIDCODESCOH $1"
+}
+
 buildmkiburgcodes() {
     echo "build $1 : mkiburgcodes $2 | scripts/mkiburgcodes.lua scripts/libcowgol.lua"
 }
+
 
 buildmkpat() {
     local out
@@ -537,6 +546,7 @@ buildprogram newgen \
 
 buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
 buildmkmidcodesc $OBJDIR/midcodes.c src/midcodes.tab
+buildmkmidcodescoh $OBJDIR/midcodes.coh src/midcodes.coh.tab
 
 buildlemon $OBJDIR/parser.c src/parser.y
 buildflex $OBJDIR/lexer.c src/lexer.l
@@ -660,7 +670,13 @@ cowgol_cgen src/cowlink/main.cow bin/cowlink.cgen "$cowlink_coh"
 
 buildlemoncowgol $OBJDIR/parser.coh src/cowcom/parser.y
 
-cowcom_coh="$OBJDIR/parser.coh $(echo src/cowcom/*.coh) $OBJDIR/parser.coh $OBJDIR/parser.tokens.coh"
+cowcom_coh=" \
+    $OBJDIR/parser.coh \
+    $(echo src/cowcom/*.coh) \
+    $OBJDIR/parser.coh \
+    $OBJDIR/parser.tokens.coh \
+    $OBJDIR/midcodes.coh \
+    "
 cowgol_80386_linux src/cowcom/main.cow bin/cowcom.386 "$cowcom_coh"
 cowgol_cpm src/cowcom/main.cow bin/cowcom.com "$cowcom_coh"
 cowgol_thumb2_linux src/cowcom/main.cow bin/cowcom.thumb2 "$cowcom_coh"

@@ -12,9 +12,12 @@ function parsearglist(argspec)
     local args = {}
     argspec = (argspec or ""):gsub("^%(", ""):gsub("%)$", "")
     for _, word in ipairs(split(argspec or "")) do
-        _, _, type, name = word:find("^(.*) +(%w+)$")
-        if not type then
-            error("unparseable argument: '"..word.."'")
+		_, _, name, type = word:find("^([^:]+): *(.*)$")
+		if not name then
+			_, _, type, name = word:find("^(.*) +(%w+)$")
+			if not type then
+				error("unparseable argument: '"..word.."'")
+			end
         end
 
         args[#args+1] = { name = name, type = type }

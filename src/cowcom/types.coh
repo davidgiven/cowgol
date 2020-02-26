@@ -3,3 +3,6 @@ record Token
 	string @at(0): string;
 end record;
 
+record AbstractMidnode
+end record;
+
