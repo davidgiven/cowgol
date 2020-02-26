@@ -18,3 +18,7 @@ r4.c==0: yes
 p==&r: yes
 p.next==&r: yes
 p.next.next==&r: yes
+left.a == 1: yes
+left.b == 2: yes
+right.a == 1: yes
+right.c == 2: yes

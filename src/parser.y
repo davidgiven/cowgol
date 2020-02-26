@@ -223,6 +223,8 @@ initeddecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 	S->u.var.sub = current_sub;
 	if (!is_array(T) && !is_record(T))
 		fatal("static initialisers only work on arrays or records");
+	if (is_record(T) && T->u.type.namespace.parent)
+		fatal("you can't statically initialise an inherited record");
 	current_type = T;
 	current_member = 0;
 	current_offset = 0;
@@ -412,11 +414,11 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 			int remaining = sub->inputparameters - ins;
 			if (remaining > 0)
 			{
-				Symbol* param = get_input_parameters(sub);
-				for (int i=0; i<remaining-1; i++)
-					param = param->next;
+				Symbol* param = get_input_parameter(sub, remaining-1);
 
 				check_expression_type(&node->right->type, param->u.var.type);
+				check_non_partial_type(param->u.var.type);
+				check_non_partial_type(node->right->type);
 
 				/* The input parameter midnodes are PAIR because the parser couldn't
 				 * do constant promotion (not having a subroutine to work with). Now
@@ -442,7 +444,7 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 
 	static void check_output_parameters(Subroutine* sub, Node* outputs)
 	{
-		Symbol* param = get_output_parameters(sub);
+		Symbol* param = get_output_parameter(sub, 0);
 
 		int outs = 0;
 		Node* node = outputs;
@@ -451,7 +453,9 @@ subcall_begin(R) ::= oldid(S) OPENPAREN.
 			if (outs < sub->outputparameters)
 			{
 				check_expression_type(&node->right->type->u.type.element, param->u.var.type);
-				param = param->next;
+				check_non_partial_type(param->u.var.type);
+				check_non_partial_type(node->right->type->u.type.element);
+				param = param->u.var.next_parameter;
 			}
 			outs++;
 			node = node->left;
@@ -470,7 +474,7 @@ subroutinecallexpr(E) ::= subcall_begin(S) optionalinputarguments(EIN) CLOSEPARE
 	if (S->outputparameters != 1)
 		fatal("subroutines called as functions must return exactly one value");
 
-	Symbol* param = get_output_parameters(S);
+	Symbol* param = get_output_parameter(S, 0);
 	E = mid_call(param->u.var.type->u.type.width, EIN, S);
 	E->type = param->u.var.type;
 	emitter_reference_subroutine(current_sub, S);
@@ -593,45 +597,69 @@ startrealsubroutine(oldsubout) ::= startsubroutine(oldsubin) subparameters.
 	generate(mid_startsub(current_sub));
 }
 
+%include
+{
+	static int count_parameters(Symbol* s)
+	{
+		int count = 0;
+		while (s)
+		{
+			count++;
+			s = s->u.var.next_parameter;
+		}
+		return count;
+	}
+}
+
 subparameters ::= parameterlist(INS).
 {
-	current_sub->inputparameters = INS;
+	current_sub->first_input_parameter = INS;
+	current_sub->inputparameters = count_parameters(INS);
 	current_sub->outputparameters = 0;
 }
 
 subparameters ::= parameterlist(INS) COLON parameterlist(OUTS).
 {
-	current_sub->inputparameters = INS;
-	current_sub->outputparameters = OUTS;
+	current_sub->first_input_parameter = INS;
+	current_sub->inputparameters = count_parameters(INS);
+	current_sub->first_output_parameter = OUTS;
+	current_sub->outputparameters = count_parameters(OUTS);
 }
 
 subparameters ::= parameterlist(INS) COLON OPENPAREN typeref(T) CLOSEPAREN.
 {
-	current_sub->inputparameters = INS;
+	current_sub->first_input_parameter = INS;
+	current_sub->inputparameters = count_parameters(INS);
 	current_sub->outputparameters = 1;
     struct symbol* id = add_new_symbol(NULL, "__result");
 	id->kind = VAR;
 	init_var(id, T);
+	current_sub->first_output_parameter = id;
 }
 
-%type parameterlist {int}
+%type parameterlist {Symbol*}
 parameterlist(R) ::= OPENPAREN CLOSEPAREN.
-{ R = 0; }
+{ R = NULL; }
 
 parameterlist(R) ::= OPENPAREN parameters(R1) CLOSEPAREN.
 { R = R1; }
 
-%type parameters {int}
-parameters(R) ::= parameter.
-{ R = 1; }
+%type parameters {Symbol*}
+parameters(R) ::= parameter(P).
+{ R = P; }
 
-parameters(R) ::= parameter COMMA parameters(R1).
-{ R = R1 + 1; }
-
-parameter ::= newid(id) COLON typeref(type).
+parameters(R) ::= parameter(P) COMMA parameters(R1).
 {
-	id->kind = VAR;
-	init_var(id, type);
+	P->u.var.next_parameter = R1;
+	R = P;
+}
+
+%type parameter {Symbol*}
+parameter(R) ::= newid(S) COLON typeref(type).
+{
+	S->kind = VAR;
+	init_var(S, type);
+	R = S;
 }
 
 /* --- Assignments ------------------------------------------------------- */
@@ -671,7 +699,10 @@ cvalue(value) ::= BYTESOF oldid(S).
 	if (S->kind == VAR)
 		S = S->u.var.type;
 	if (S->kind == TYPE)
+	{
+		check_non_partial_type(S);
 		value = S->u.type.width;
+	}
 	else
 		fatal("can't use @bytesof in this context");
 }
@@ -681,7 +712,10 @@ cvalue(value) ::= SIZEOF oldid(S).
 	if (S->kind == VAR)
 		S = S->u.var.type;
 	if ((S->kind == TYPE) && is_array(S))
+	{
+		check_non_partial_type(S);
 		value = S->u.type.width / S->u.type.stride;
+	}
 	else
 		fatal("can't use @bytesof in this context");
 }
@@ -713,6 +747,7 @@ expression(E) ::= BYTESOF oldid(S).
 		S = S->u.var.type;
 	if (S->kind == TYPE)
 	{
+		check_non_partial_type(S);
 		E = mid_constant(S->u.type.width);
 		E->type = NULL;
 	}
@@ -726,6 +761,7 @@ expression(E) ::= SIZEOF oldid(S).
 		S = S->u.var.type;
 	if ((S->kind == TYPE) && is_array(S))
 	{
+		check_non_partial_type(S);
 		E = mid_constant(S->u.type.width / S->u.type.stride);
 		E->type = NULL;
 	}
@@ -838,6 +874,8 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 
 lvalue(E) ::= lvalue(E1) DOT ID(X).
 {
+	check_non_partial_type(E1->type);
+
     /* Remember that T is a *pointer* to the record (or a pointer to a
 	 * pointer). */
 	struct symbol* record;
@@ -1006,7 +1044,7 @@ statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 statement ::= recordstatement.
 
 %destructor recordstatement { current_type = NULL; }
-recordstatement ::= RECORD recordstart recordmembers END RECORD.
+recordstatement ::= RECORD recordstart recordinherits recordmembers END RECORD.
 
 recordstart ::= eitherid(S).
 {
@@ -1017,6 +1055,19 @@ recordstart ::= eitherid(S).
 		symbol_redeclaration(current_type);
 	current_type->kind = TYPE;
 	current_type->u.type.kind = TYPE_RECORD;
+}
+
+recordinherits ::= .
+
+recordinherits ::= COLON typeref(T).
+{
+	check_non_partial_type(T);
+	if (!is_record(T))
+		fatal("%s is not a record type", T->name);
+
+	current_type->u.type.alignment = T->u.type.alignment;
+	current_type->u.type.width = T->u.type.width;
+	current_type->u.type.namespace.parent = &T->u.type.namespace;
 }
 
 recordmembers ::= .

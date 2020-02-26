@@ -266,6 +266,7 @@ struct symbol* lookup_symbol(struct namespace* namespace, const char* name)
 
 void init_var(struct symbol* sym, struct symbol* type)
 {
+	check_non_partial_type(type);
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
 	arch_init_variable(sym);
@@ -392,17 +393,20 @@ void free_token(struct token* token)
     free(token);
 }
 
-Symbol* get_input_parameters(Subroutine* sub)
+Symbol* get_input_parameter(Subroutine* sub, int count)
 {
-	return sub->namespace.firstsymbol;
+	Symbol* s = sub->first_input_parameter;
+	while (count--)
+		s = s->u.var.next_parameter;
+	return s;
 }
 
-Symbol* get_output_parameters(Subroutine* sub)
+Symbol* get_output_parameter(Subroutine* sub, int count)
 {
-	Symbol* param = sub->namespace.firstsymbol;
-	for (int i=0; i<sub->inputparameters; i++)
-		param = param->next;
-	return param;
+	Symbol* s = sub->first_output_parameter;
+	while (count--)
+		s = s->u.var.next_parameter;
+	return s;
 }
 
 Node* mid_c_cast(int width, Node* lhs)

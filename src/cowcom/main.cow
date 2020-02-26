@@ -11,6 +11,15 @@ var outputfile: string := (0 as string);
 
 include "src/cowcom/types.coh";
 include "src/cowcom/allocator.coh";
+
+sub BadMidcodeWidth(width: uint8)
+	print("bad midcode width ");
+	print_i8(width);
+	print_nl();
+	ExitWithError();
+end sub;
+
+include ".obj/midcodes.coh";
 include ".obj/parser.tokens.coh";
 include "src/cowcom/lexer.coh";
 include "src/cowcom/parser.coh";
