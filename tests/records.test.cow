@@ -101,9 +101,37 @@ sub test_chain_pointer()
 	print("p.next.next==&r"); if p.next.next == &r then yes(); else no(); end if;
 end sub;
 
+sub test_inherited_records()
+	record Base
+		a: uint8;
+	end record;
+
+	record Left : Base
+		b: uint8;
+	end record;
+
+	record Right : Base
+		c: uint32;
+	end record;
+
+	var left: Left;
+	left.a := 1;
+	left.b := 2;
+
+	var right: Right;
+	right.a := 1;
+	right.c := 2;
+
+	print("left.a == 1"); if left.a == 1 then yes(); else no(); end if;
+	print("left.b == 2"); if left.b == 2 then yes(); else no(); end if;
+	print("right.a == 1"); if right.a == 1 then yes(); else no(); end if;
+	print("right.c == 2"); if right.c == 2 then yes(); else no(); end if;
+end sub;
+
 test_simple_record();
 test_nested_record();
 test_pointer();
 test_with_array();
 test_chain_pointer();
+test_inherited_records();
 

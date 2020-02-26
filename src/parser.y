@@ -223,6 +223,8 @@ initeddecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 	S->u.var.sub = current_sub;
 	if (!is_array(T) && !is_record(T))
 		fatal("static initialisers only work on arrays or records");
+	if (is_record(T) && T->u.type.namespace.parent)
+		fatal("you can't statically initialise an inherited record");
 	current_type = T;
 	current_member = 0;
 	current_offset = 0;
@@ -697,7 +699,10 @@ cvalue(value) ::= BYTESOF oldid(S).
 	if (S->kind == VAR)
 		S = S->u.var.type;
 	if (S->kind == TYPE)
+	{
+		check_non_partial_type(S);
 		value = S->u.type.width;
+	}
 	else
 		fatal("can't use @bytesof in this context");
 }
@@ -707,7 +712,10 @@ cvalue(value) ::= SIZEOF oldid(S).
 	if (S->kind == VAR)
 		S = S->u.var.type;
 	if ((S->kind == TYPE) && is_array(S))
+	{
+		check_non_partial_type(S);
 		value = S->u.type.width / S->u.type.stride;
+	}
 	else
 		fatal("can't use @bytesof in this context");
 }
@@ -739,6 +747,7 @@ expression(E) ::= BYTESOF oldid(S).
 		S = S->u.var.type;
 	if (S->kind == TYPE)
 	{
+		check_non_partial_type(S);
 		E = mid_constant(S->u.type.width);
 		E->type = NULL;
 	}
@@ -752,6 +761,7 @@ expression(E) ::= SIZEOF oldid(S).
 		S = S->u.var.type;
 	if ((S->kind == TYPE) && is_array(S))
 	{
+		check_non_partial_type(S);
 		E = mid_constant(S->u.type.width / S->u.type.stride);
 		E->type = NULL;
 	}
@@ -1034,7 +1044,7 @@ statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 statement ::= recordstatement.
 
 %destructor recordstatement { current_type = NULL; }
-recordstatement ::= RECORD recordstart recordmembers END RECORD.
+recordstatement ::= RECORD recordstart recordinherits recordmembers END RECORD.
 
 recordstart ::= eitherid(S).
 {
@@ -1045,6 +1055,19 @@ recordstart ::= eitherid(S).
 		symbol_redeclaration(current_type);
 	current_type->kind = TYPE;
 	current_type->u.type.kind = TYPE_RECORD;
+}
+
+recordinherits ::= .
+
+recordinherits ::= COLON typeref(T).
+{
+	check_non_partial_type(T);
+	if (!is_record(T))
+		fatal("%s is not a record type", T->name);
+
+	current_type->u.type.alignment = T->u.type.alignment;
+	current_type->u.type.width = T->u.type.width;
+	current_type->u.type.namespace.parent = &T->u.type.namespace;
 }
 
 recordmembers ::= .
