@@ -47,8 +47,8 @@ extern struct token* make_string_token(const char* string);
 extern struct token* make_number_token(int32_t number);
 extern void free_token(struct token* token);
 
-extern Symbol* get_input_parameters(Subroutine* sub);
-extern Symbol* get_output_parameters(Subroutine* sub);
+extern Symbol* get_input_parameter(Subroutine* sub, int count);
+extern Symbol* get_output_parameter(Subroutine* sub, int count);
 
 extern void* ParseAlloc(void *(*allocator)(size_t size));
 extern void ParseTrace(FILE* file, char* prompt);

@@ -60,6 +60,8 @@ typedef struct instruction Instruction;
 typedef struct regmove Regmove;
 
 typedef struct symbol Symbol;
+typedef struct subroutine Subroutine;
+
 struct symbol
 {
 	int kind;
@@ -88,6 +90,7 @@ struct symbol
 		{
 			struct symbol* type;
 			struct subroutine* sub; /* null for a member */
+			Symbol* next_parameter; /* for lists of parameters */
 			const char* externname;
 			uint32_t offset;
 		}
@@ -100,13 +103,14 @@ struct symbol
 	u;
 };
 
-typedef struct subroutine Subroutine;
 struct subroutine
 {
 	const char* name;
 	const char* externname;
 	unsigned workspace[4]; /* four workspaces should be enough */
 	struct namespace namespace;
+	Symbol* first_input_parameter;
+	Symbol* first_output_parameter;
 	int inputparameters;
 	int outputparameters;
 	int old_break_label;

@@ -198,9 +198,7 @@ gen STARTSUB():s
     {
         for (int i=$s.sub->inputparameters-1; i>=0; i--)
         {
-			Symbol* param = get_input_parameters($s.sub);
-			for (int j=0; j<i; j++)
-				param = param->next;
+			Symbol* param = get_input_parameter($s.sub, i);
 
 			E("\tpop {r0}\n");
 			switch (param->u.var.type->u.type.width)
@@ -235,9 +233,7 @@ gen ENDSUB():s
 		E("\tpop {r1, r2}\n");
 		for (int i=0; i<$s.sub->outputparameters; i++)
 		{
-			struct symbol* param = $s.sub->namespace.firstsymbol;
-			for (int j=0; j<(i + $s.sub->inputparameters); j++)
-				param = param->next;
+			struct symbol* param = get_output_parameter($s.sub, i);
 
 			switch (param->u.var.type->u.type.width)
 			{
