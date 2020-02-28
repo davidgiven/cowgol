@@ -315,21 +315,21 @@ sub lexer_i_read_number()
 	var c := lexer_i_getchar();
 	if c == '0' then
 		c := lexer_i_getchar();
-		if c == 'b' then
-			base := 2;
-		elseif c == 'o' then
-			base := 8;
-		elseif c == 'd' then
-			base := 10;
-		elseif c == 'x' then
-			base := 16;
-		else
-			pushed_char := c;
-			(type, token) := lexer_i_ctype(c);
-			if (type & CTYPE_IDCONT) == 0 then
-				# Just a 0 on its own.
-				return;
-			end if;
+		case c is
+			when 'b': base := 2;
+			when 'o': base := 8;
+			when 'd': base := 10;
+			when 'x': base := 16;
+			when *:
+				pushed_char := c;
+				(type, token) := lexer_i_ctype(c);
+				if (type & CTYPE_IDCONT) == 0 then
+					# Just a 0 on its own.
+					c := 0;
+				end if;
+		end case;
+		if c == 0 then
+			return;
 		end if;
 	else
 		pushed_char := c;
@@ -361,60 +361,64 @@ sub LexerReadToken(): (token: uint8)
 	lexer_i_skipwhitespace();
 	var c := lexer_i_getchar();
 
-	if c == 0 then
-		token := 0;
-	elseif c == ':' then
-		c := lexer_i_getchar();
-		if c == '=' then
-			token := ASSIGN;
-		else
-			pushed_char := c;
-			token := COLON;
-		end if;
-	elseif c == '<' then
-		c := lexer_i_getchar();
-		if c == '<' then
-			token := LSHIFT;
-		elseif c == '=' then
-			token := LEOP;
-		else
-			pushed_char := c;
-			token := LTOP;
-		end if;
-	elseif c == '=' then
-		c := lexer_i_getchar();
-		if c == '=' then
-			token := EQOP;
-		else
-			lexer_i_unparseable(c);
-		end if;
-	elseif c == '>' then
-		c := lexer_i_getchar();
-		if c == '>' then
-			token := RSHIFT;
-		elseif c == '=' then
-			token := GEOP;
-		else
-			pushed_char := c;
-			token := GTOP;
-		end if;
-	else
-		var type: uint8;
-		(type, token) := lexer_i_ctype(c);
-		if (type & CTYPE_TOKEN) != 0 then
-			# do nothing
-		elseif (type & CTYPE_DECDIGIT) != 0 then
-			pushed_char := c;
-			lexer_i_read_number();
-			token := NUMBER;
-		elseif (type & CTYPE_IDSTART) != 0 then
-			token_length := 1;
-			token_buffer[0] := c;
-			lexer_i_read_identifier();
-			token := lexer_i_match_keyword();
-		else
-			lexer_i_unparseable(c);
-		end if;
-	end if;
+	case c is
+		when 0:
+			token := 0;
+
+		when ':':
+			c := lexer_i_getchar();
+			if c == '=' then
+				token := ASSIGN;
+			else
+				pushed_char := c;
+				token := COLON;
+			end if;
+
+		when '<':
+			c := lexer_i_getchar();
+			case c is
+				when '<': token := LSHIFT;
+				when '=': token := LEOP;
+				when *:
+				pushed_char := c;
+				token := LTOP;
+			end case;
+
+		when '=':
+			c := lexer_i_getchar();
+			if c == '=' then
+				token := EQOP;
+			else
+				lexer_i_unparseable(c);
+			end if;
+
+		when '>':
+			c := lexer_i_getchar();
+			case c is
+				when '>': token := RSHIFT;
+				when '=': token := GEOP;
+				when *:
+					pushed_char := c;
+					token := GTOP;
+			end case;
+
+		when *:
+			var type: uint8;
+			(type, token) := lexer_i_ctype(c);
+			if (type & CTYPE_TOKEN) != 0 then
+				# do nothing
+			elseif (type & CTYPE_DECDIGIT) != 0 then
+				pushed_char := c;
+				lexer_i_read_number();
+				token := NUMBER;
+			elseif (type & CTYPE_IDSTART) != 0 then
+				token_length := 1;
+				token_buffer[0] := c;
+				lexer_i_read_identifier();
+				token := lexer_i_match_keyword();
+			else
+				lexer_i_unparseable(c);
+			end if;
+	end case;
 end sub;
 

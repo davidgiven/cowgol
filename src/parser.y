@@ -85,7 +85,11 @@ statement ::= SEMICOLON.
 /* --- Simple statements ------------------------------------------------- */
 
 statement ::= RETURN SEMICOLON.
-{ generate(mid_return()); }
+{
+	if (current_sub->cannot_return)
+		fatal("you cannot return from here");
+	generate(mid_return());
+}
 
 /* --- Variable declaration ---------------------------------------------- */
 
@@ -725,6 +729,7 @@ beginwhen(R) ::= WHEN.
 startcasestatements ::= .
 {
 	start_subroutine(NULL);
+	current_sub->cannot_return = true;
 	generate(mid_startsub(current_sub));
 }
 
