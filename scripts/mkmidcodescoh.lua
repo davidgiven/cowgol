@@ -46,10 +46,22 @@ hfp:write("end record;\n");
 
 -- Routines for allocating midnodes.
 
-for m, t in pairs(midcodes) do
-    hfp:write("sub mid_", m:lower(), "(")
+local function write_midcode_constructor(m, t)
 	local first = true
+	if t.hassizes then
+		if not m:find("0$") then
+			return
+		end
+		hfp:write("sub mid_", m:lower():gsub("0$", ""), "(width: uint8")
+		first = false
+	else
+		hfp:write("sub mid_", m:lower(), "(")
+	end
+
 	if t.ins >= 1 then
+		if not first then
+			hfp:write(', ')
+		end
 		hfp:write('left: [Midnode]')
 		first = false
 	end
@@ -71,7 +83,12 @@ for m, t in pairs(midcodes) do
     end
     hfp:write("): (m: [Midnode])\n")
     hfp:write("\tm := AllocBlock(@bytesof Midnode) as [Midnode];\n")
-    hfp:write("\tm.op := MIDCODE_", m, ";\n")
+    hfp:write("\tm.op := MIDCODE_", m)
+	if t.hassizes then
+		hfp:write(" + WidthToIndex(width)")
+	end
+	hfp:write(";\n")
+
 	if t.ins >= 1 then
 		hfp:write('\tm.left := left;\n')
 	end
@@ -84,61 +101,8 @@ for m, t in pairs(midcodes) do
     hfp:write("end sub;\n")
 end
 
--- And now the factory routines.
-
 for m, t in pairs(midcodes) do
-	if t.hassizes and m:find("0$") then
-		m = m:gsub("0$", "")
-
-		hfp:write("sub mid_", m:lower(), "(width: uint8")
-		if t.ins >= 1 then
-			hfp:write(', left: [Midnode]')
-		end
-		if t.ins == 2 then
-			hfp:write(', right: [Midnode]')
-		end
-		if (#t.args > 0) then
-			for _, a in ipairs(t.args) do
-				hfp:write(", ", a.name, ": ", a.type)
-			end
-		end
-		hfp:write("): (result: [Midnode])\n")
-
-		local function caller(name)
-			hfp:write("result := mid_", name:lower(), "(")
-			local first = true
-			if t.ins >= 1 then
-				hfp:write('left')
-				first = false
-			end
-			if t.ins == 2 then
-				if not first then
-					hfp:write(", ")
-				end
-				hfp:write('right')
-				first = false
-			end
-			if (#t.args > 0) then
-				for _, a in ipairs(t.args) do
-					if not first then
-						hfp:write(", ")
-					end
-					hfp:write(a.name)
-					first = false
-				end
-			end
-			hfp:write(");\n")
-		end
-
-		hfp:write("\tif width == 0 then ") caller(m.."0")
-		hfp:write("\telseif width == 1 then ") caller(m.."1")
-		hfp:write("\telseif width == 2 then ") caller(m.."2")
-		hfp:write("\telseif width == 4 then ") caller(m.."4")
-		hfp:write("\telseif width == 8 then ") caller(m.."8")
-		hfp:write("\telse BadMidcodeWidth(width);\n")
-		hfp:write("\tend if;\n")
-		hfp:write("end sub;\n")
-	end
+	write_midcode_constructor(m, t)
 end
 
 hfp:close()

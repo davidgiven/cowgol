@@ -1,0 +1,20 @@
+
+sub BadMidcodeWidth(width: uint8)
+	print("bad midcode width ");
+	print_i8(width);
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub WidthToIndex(width: uint8): (index: uint8)
+	if width == 4 then
+		index := 3;
+	elseif width == 8 then
+		index := 4;
+	else
+		index := width;
+	end if;
+end sub;
+
+include ".obj/midcodes.coh";
+
