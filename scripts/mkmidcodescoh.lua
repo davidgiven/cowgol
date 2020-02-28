@@ -46,6 +46,11 @@ hfp:write("end record;\n");
 
 -- Routines for allocating midnodes.
 
+hfp:write("sub AllocateNewMidnode(code: uint8): (m: [Midnode])\n")
+hfp:write("\tm := AllocBlock(@bytesof Midnode) as [Midnode];\n")
+hfp:write("\tm.op := code;\n")
+hfp:write("end sub;\n")
+
 local function write_midcode_constructor(m, t)
 	local first = true
 	if t.hassizes then
@@ -82,12 +87,11 @@ local function write_midcode_constructor(m, t)
         end
     end
     hfp:write("): (m: [Midnode])\n")
-    hfp:write("\tm := AllocBlock(@bytesof Midnode) as [Midnode];\n")
-    hfp:write("\tm.op := MIDCODE_", m)
+    hfp:write("\tm := AllocateNewMidnode(MIDCODE_", m)
 	if t.hassizes then
 		hfp:write(" + WidthToIndex(width)")
 	end
-	hfp:write(";\n")
+	hfp:write(");\n")
 
 	if t.ins >= 1 then
 		hfp:write('\tm.left := left;\n')
