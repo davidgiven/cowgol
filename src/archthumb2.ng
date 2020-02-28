@@ -702,7 +702,7 @@ gen CASE1(reg:value, param)
 	{
 		if (!n->u.when.isdefault)
 		{
-			E("\tcmp %s, #0x%02x\n", regref($value), n->u.when.value);
+			E("\tcmp %s, #%d\n", regref($value), n->u.when.value);
 			E("\tbeq %s\n", subref(n->u.when.sub));
 		}
 		n = n->left;
@@ -719,6 +719,7 @@ gen CASE1(reg:value, param)
 		n = n->left;
 	}
 
+	E(".type %s, %%function\n", labelref(exit_label));
 	E("%s:\n", labelref(exit_label));
 }
 
