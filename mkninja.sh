@@ -264,6 +264,14 @@ buildnewgen() {
         "NEWGEN $3"
 }
 
+buildnewgen_cowgol() {
+    rule \
+        "bin/newgen_cowgol $3 $1 $2" \
+        "$3 bin/newgen_cowgol" \
+        "$1 $2" \
+        "NEWGEN $3"
+}
+
 zmac8() {
 	rule \
 		"bin/zmac -8 $1 -o $2" \
@@ -538,10 +546,27 @@ buildlibrary libnewgen.a \
     --dep $OBJDIR/tools/newgen/parser.h \
     $OBJDIR/tools/newgen/parser.c \
     $OBJDIR/tools/newgen/lexer.c \
-    tools/newgen/utils.c \
+    tools/newgen/utils.c
+
+buildlibrary libnewgen_c.a \
+    -Itools/newgen \
+    -I$OBJDIR/tools/newgen \
+    --dep $OBJDIR/tools/newgen/parser.h \
+    tools/newgen/main.c
+
+buildlibrary libnewgen_cowgol.a \
+    -Itools/newgen \
+    -I$OBJDIR/tools/newgen \
+    --dep $OBJDIR/tools/newgen/parser.h \
+    -DCOWGOL \
     tools/newgen/main.c
 
 buildprogram newgen \
+    libnewgen_c.a \
+    libnewgen.a
+
+buildprogram newgen_cowgol \
+    libnewgen_cowgol.a \
     libnewgen.a
 
 buildmkmidcodesh $OBJDIR/midcodes.h src/midcodes.tab
@@ -681,5 +706,9 @@ cowgol_80386_linux src/cowcom/main.cow bin/cowcom.386 "$cowcom_coh"
 cowgol_cpm src/cowcom/main.cow bin/cowcom.com "$cowcom_coh"
 cowgol_thumb2_linux src/cowcom/main.cow bin/cowcom.thumb2 "$cowcom_coh"
 cowgol_cgen src/cowcom/main.cow bin/cowcom.cgen "$cowcom_coh"
+
+buildnewgen_cowgol \
+    $OBJDIR/arch8080/inssel.coh $OBJDIR/arch8080/inssel.decl.coh \
+    src/arch8080.ng
 
 # vim: sw=4 ts=4 et
