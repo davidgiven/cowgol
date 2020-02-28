@@ -540,11 +540,24 @@ gen STORE2(bc|de:val, hl) uses a
 	E("\tmov m, %s\n", regref($val));
 }
 
+gen STORE2(CONSTANT():c, hl)
+{
+	E("\tmvi m, %d\n", $c.value & 0xff);
+	E("\tinx h\n");
+	E("\tmvi m, %d\n", ($c.value >> 8) & 0xff);
+}
+
 gen STORE1(a, ADDRESS():a)
 	{ E("\tsta %s\n", symref($a.sym, $a.off)); }
 
 gen STORE2(hl, ADDRESS():a)
 	{ E("\tshld %s\n", symref($a.sym, $a.off)); }
+
+gen STORE2(CONSTANT():c, ADDRESS():a) uses hl
+{
+	E("\tlxi h, %d\n", $c.value & 0xffff);
+	E("\tshld %s\n", symref($a.sym, $a.off));
+}
 
 gen STORE4(stk4, hl) uses bc|de
 	{ E("\tcall store4\n"); }
@@ -554,6 +567,14 @@ gen STORE4(stk4, ADDRESS():a) uses hl
 	E("\tpop h\n"); 
 	E("\tshld %s\n", symref($a.sym, $a.off+0));
 	E("\tpop h\n"); 
+	E("\tshld %s\n", symref($a.sym, $a.off+2));
+}
+
+gen STORE4(CONSTANT():c, ADDRESS():a) uses hl
+{
+	E("\tlxi h, %d\n", $c.value & 0xffff);
+	E("\tshld %s\n", symref($a.sym, $a.off+0));
+	E("\tlxi h, %d\n", ($c.value >> 16) & 0xffff);
 	E("\tshld %s\n", symref($a.sym, $a.off+2));
 }
 
