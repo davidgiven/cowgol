@@ -785,6 +785,40 @@ gen BLTU4(r32:lhs, r32:rhs):b
 gen BLTS4(r32:lhs, r32:rhs):b
 	{ cmp("cmpl", "jl", $b.truelabel, $b.falselabel, $lhs, $rhs); }
 
+// --- Case statements ---------------------------------------------------
+
+gen CASE1(r8:value, param)
+{
+	int exit_label = current_label++;
+	E("\tpushl $%s\n", labelref(exit_label));
+
+	Node* n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+		{
+			E("\tcmpb $0x%02x, %s\n", n->u.when.value, regref($value));
+			E("\tje %s\n", subref(n->u.when.sub));
+		}
+		n = n->left;
+	}
+
+	n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (n->u.when.isdefault)
+		{
+			E("\tjmp %s\n", subref(n->u.when.sub));
+			break;
+		}
+		n = n->left;
+	}
+
+	E("%s:\n", labelref(exit_label));
+}
+
+gen param := WHEN(param);
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()

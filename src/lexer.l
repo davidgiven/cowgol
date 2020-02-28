@@ -48,6 +48,7 @@ SP [ \t]+
 "and"                     { return AND; }
 "as"                      { return AS; }
 "break"                   { return BREAK; }
+"case"                    { return CASE; }
 "const"                   { return CONST; }
 "else"                    { return ELSE; }
 "elseif"                  { return ELSEIF; }
@@ -55,6 +56,7 @@ SP [ \t]+
 "extern"                  { return EXTERN; }
 "if"                      { return IF; }
 "int"                     { return INT; }
+"is"                      { return IS; }
 "loop"                    { return LOOP; }
 "not"                     { return NOT; }
 "or"                      { return OR; }
@@ -64,6 +66,7 @@ SP [ \t]+
 "then"                    { return THEN; }
 "typedef"                 { return TYPEDEF; }
 "var"                     { return VAR; }
+"when"                    { return WHEN; }
 "while"                   { return WHILE; }
 "{"                       { return OPENBR; }
 "|"                       { return PIPE; }

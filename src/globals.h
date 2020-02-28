@@ -107,15 +107,16 @@ struct subroutine
 {
 	const char* name;
 	const char* externname;
-	unsigned workspace[4]; /* four workspaces should be enough */
+	struct subroutine* parent;
 	struct namespace namespace;
 	Symbol* first_input_parameter;
 	Symbol* first_output_parameter;
+	struct subarch* arch;
 	int inputparameters;
 	int outputparameters;
 	int old_break_label;
 	int id;
-	struct subarch* arch;
+	unsigned workspace[4]; /* four workspaces should be enough */
 };
 
 struct includepath

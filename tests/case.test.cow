@@ -1,0 +1,17 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+sub case_uint8()
+	var i: uint8 := 2;
+	var j: uint8;
+	case i is
+		when 0: j := 0;
+		when 1: j := 1;
+		when 2: j := 2;
+		when 3: j := 3;
+		when *: j := 0xff;
+	end case;
+	print("uint8 of 2 == 2"); if j == 2 then yes(); else no(); end if;
+end sub;
+case_uint8();
+

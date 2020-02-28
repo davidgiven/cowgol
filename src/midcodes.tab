@@ -38,6 +38,9 @@ y 2 0 BLTS(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $
 y 2 0 BEQU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BLTU(int truelabel, int falselabel) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 
+y 2 0 CASE() # left is value, right is when chain
+- 1 0 WHEN(bool isdefault, int32_t value, struct subroutine* sub) = ("%s %d => %s", $$.isdefault ? "default" : "", $$.value, $$.sub->name) # left is chain
+
 # These produce all combinations of source and destination widths.
 y 1 1 CAST1()
 y 1 1 CAST2()

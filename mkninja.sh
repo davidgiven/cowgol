@@ -637,6 +637,7 @@ tests=" \
     addsub-32bit \
     addsub-8bit \
     arrayinitialisers \
+    case \
     conditionals \
     divrem-16bit-s \
     divrem-16bit-u \

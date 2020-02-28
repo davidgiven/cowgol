@@ -1002,6 +1002,41 @@ gen hl|de := CAST42(stk4) uses bc
 	E("\tpop b\n");
 }
 	
+// --- Case statements ---------------------------------------------------
+
+gen CASE1(a, param) uses bc
+{
+	int exit_label = current_label++;
+	E("\tlxi b, %s\n", labelref(exit_label));
+	E("\tpush b\n");
+
+	Node* n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+		{
+			E("\tcpi 0x%02x\n", n->u.when.value);
+			E("\tjz %s\n", subref(n->u.when.sub));
+		}
+		n = n->left;
+	}
+
+	n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (n->u.when.isdefault)
+		{
+			E("\tjmp %s\n", subref(n->u.when.sub));
+			break;
+		}
+		n = n->left;
+	}
+
+	E("%s:\n", labelref(exit_label));
+}
+
+gen param := WHEN(param);
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
