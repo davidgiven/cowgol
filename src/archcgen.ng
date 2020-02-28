@@ -633,7 +633,7 @@ gen CASE1(v1, param)
 		if (n->u.when.isdefault)
 			E("\t\tdefault");
 		else
-			E("\t\tcase 0x%02x", n->u.when.value);
+			E("\t\tcase 0x%02x", n->u.when.value & 0xff);
 		E(": %s(); break;\n", subref(n->u.when.sub));
 		n = n->left;
 	}
