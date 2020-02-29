@@ -350,6 +350,12 @@ gen param := PUSHPARAM4(param, LOAD4(ADDRESS():a))
 gen param := PUSHPARAM4(param, ADDRESS():a)
 	{ E("\tpushl $%s\n", symref($a.sym, $a.off)); }
 
+gen param := PUSHPARAM1(param, CONSTANT():c)
+	{ E("\tpushw $0x%x\n", $c.value & 0xff); }
+
+gen param := PUSHPARAM2(param, CONSTANT():c)
+	{ E("\tpushw $0x%x\n", $c.value & 0xffff); }
+
 gen param := PUSHPARAM4(param, CONSTANT():c)
 	{ E("\tpushl $0x%x\n", $c.value); }
 
