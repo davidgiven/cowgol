@@ -482,13 +482,6 @@ static void create_rules(void)
 		}
 		fprintf(outfp, " }, ");
 
-		#if !defined COWGOL
-		if (r->action)
-			fprintf(outfp, "emitter_%d, ", i);
-		else
-			fprintf(outfp, "NULL, ");
-		#endif
-
 		fprintf(outfp, "{ ");
 		for (int j=0; j<maxdepth; j++)
 		{
@@ -561,12 +554,26 @@ static void print_line(int lineno)
 
 static void create_emitters(void)
 {
+	#if defined COWGOL
+		fprintf(outfp, "sub EmitOneInstruction(rule: uint8, self: [Instruction])\n");
+		fprintf(outfp, "case rule is\n");
+	#else
+		fprintf(outfp, "void emit_one_instruction(uint8_t rule, Instruction* self) {\n");
+		fprintf(outfp, "switch (rule) {\n");
+	#endif
+
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->action)
 		{
-			fprintf(outfp, "static void emitter_%d(Instruction* self) {\n", i);
+			#if defined COWGOL
+				fprintf(outfp, "when %d:\n", i);
+				fprintf(outfp, "sub emit_%d()\n", i);
+			#else
+				fprintf(outfp, "case %d: {\n", i);
+			#endif
+
 
 			print_line(r->lineno);
 
@@ -579,9 +586,22 @@ static void create_emitters(void)
 					print_simple_action(r, a->first_element);
 			}
 
-			fprintf(outfp, "\n}\n\n");
+			#if defined COWGOL
+				fprintf(outfp, "\nend sub;\n");
+				fprintf(outfp, "emit_%d();\n", i);
+			#else
+				fprintf(outfp, "\n} break;\n");
+			#endif
 		}
 	}
+
+	#if defined COWGOL
+		fprintf(outfp, "end case;\n");
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "}\n");
+		fprintf(outfp, "}\n");
+	#endif
 }
 
 static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)

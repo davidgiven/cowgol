@@ -315,7 +315,7 @@ void generate(Node* node)
 
 		/* We have a matching instruction, so set it up. */
 
-		producer->rule = r;
+		producer->ruleid = ruleid;
 		producer->producable_regs = r->producable_regs;
 		producer->output_regs = r->uses_regs;
 
@@ -486,8 +486,7 @@ void generate(Node* node)
 
 		/* The instruction itself! */
 
-		if (insn->rule->emitter)
-			insn->rule->emitter(insn);
+		emit_one_instruction(insn->ruleid, insn);
 
 		/* Emit spills. */
 

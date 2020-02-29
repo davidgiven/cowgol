@@ -15,7 +15,6 @@ struct rule
 	reg_t producable_regs;
 	reg_t uses_regs;
 	reg_t consumable_regs[INSTRUCTION_TEMPLATE_DEPTH];
-	void (*emitter)(Instruction* insn);
 	uint8_t matchbytes[INSTRUCTION_TEMPLATE_DEPTH];
 	uint8_t copyable_nodes;
 	uint8_t register_nodes;
@@ -23,7 +22,7 @@ struct rule
 
 struct instruction
 {
-	const Rule* rule;
+	uint8_t ruleid;
 	reg_t producable_regs;
 	reg_t produced_reg;
 	reg_t input_regs;
@@ -51,6 +50,7 @@ extern void setup_instruction(Instruction* insn, int rule, Node** nodes);
 extern bool template_comparator(const uint8_t* data, const uint8_t* template);
 extern bool match_predicate(uint8_t rule, Node** n);
 extern Node* rewrite_node(uint8_t rule, Node** n);
+extern void emit_one_instruction(uint8_t rule, Instruction* self);
 
 #endif
 
