@@ -24,11 +24,6 @@
 %type expression {[Midnode]}
 %type lvalue {[Midnode]}
 
-%token_destructor
-{
-	DerefBlock($$.string);
-}
-
 program ::= statements.
 
 statements ::= /* empty */.

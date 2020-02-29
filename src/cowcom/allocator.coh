@@ -1,36 +1,26 @@
 record Block
-	refcount: uint8;
 	size: uint8;
 	padding @at(0): intptr;
 end record;
 
 sub AllocBlock(size: uint8): (data: [uint8])
 	var b := Alloc((size as intptr) + @bytesof Block) as [Block];
-	b.refcount := 1;
 	b.size := size;
 	data := (b + @bytesof Block) as [uint8];
 end sub;
 
-sub RefBlock(data: [uint8])
+sub FreeBlock(data: [uint8])
 	if data == (0 as [uint8]) then
 		return;
 	end if;
 
 	var b := (data - @bytesof Block) as [Block];
-	b.refcount := b.refcount + 1;
+	Free(b as [uint8], (b.size as intptr) + @bytesof Block);
 end sub;
 
-sub DerefBlock(data: [uint8])
-	if data == (0 as [uint8]) then
-		return;
-	end if;
-
-	var b := (data - @bytesof Block) as [Block];
-	var count := b.refcount - 1;
-	if count == 0 then
-		Free(b as [uint8], (b.size as intptr) + @bytesof Block);
-	else
-		b.refcount := count;
-	end if
+sub StrDup(s: string): (news: string)
+	var len := (StrLen(s) as uint8) + 1;
+	news := AllocBlock(len);
+	MemCopy(s, len as intptr, news);
 end sub;
 

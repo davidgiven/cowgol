@@ -28,3 +28,24 @@ sub StrICmp(s1: [uint8], s2: [uint8]): (res: int8)
 	end loop;
 end sub;
 
+sub StrLen(s: [uint8]): (size: intptr)
+	var p := s;
+	loop
+		var c := [p];
+		if c == 0 then
+			break;
+		end if;
+		p := p + 1;
+	end loop;
+	size := p - s;
+end sub;
+
+sub MemCopy(src: [uint8], size: intptr, dest: [uint8])
+	while size != 0 loop
+		[dest] := [src];
+		dest := dest + 1;
+		src := src + 1;
+		size := size - 1;
+	end loop;
+end sub;
+
