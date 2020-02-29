@@ -545,6 +545,61 @@ sub4:
 sub4_ret = $ + 1
     jmp 0
 
+    ; Computes BC:DE - [HL], leaving the result in BC:DE.
+    ; HL is advanced.
+do_sub4:
+    mov a, e
+    sub m
+    inx h
+    mov e, a
+    mov a, d
+    sbb m
+    inx h
+    mov d, a
+    mov a, c
+    sbb m
+    inx h
+    mov c, a
+    mov a, b
+    sbb m
+    inx h
+    mov b, a
+    ret
+    
+    ; Subtracts a literal value from the four-byte value on the
+    ; stack.
+    public sublit4
+    cseg
+sublit4:
+    pop h ; HL = pointer to RHS
+    pop d ; DE = LHS low
+    pop b ; BC = LHS high
+
+    call do_sub4
+
+    push b
+    push d
+    pchl
+
+    ; Compares a literal value from the four-byte value on the
+    ; stack and returns Z or NZ.
+    public cmplit4
+    cseg
+cmplit4:
+    pop h ; HL = pointer to RHS
+    pop d ; DE = LHS low
+    pop b ; BC = LHS high
+    push b
+    push d
+
+    call do_sub4
+
+    mov a, d
+    ora e
+    ora b
+    ora c
+    pchl
+
     ; ANDs two four-byte values from the stack.
     public and4
     cseg
@@ -951,6 +1006,66 @@ store4:
     mov m, d
     ret
 
+    ; Handles a simple (non-jump) case table.
+    ; B is the number of entries. The table is inline.
+    public caset1
+    cseg
+caset1:
+    pop d               ; DE = pointer to table
+
+caset1_loop:
+    pop h               ; low word of value
+
+    ldax d
+    sub l
+    inx d
+    mov c, a
+
+    ldax d
+    sbb h
+    inx d
+    ora c
+    mov c, a
+
+    xthl                ; HL is now the high word, and TOS is the low word
+
+    ldax d
+    sbb l
+    inx d
+    ora c
+    mov c, a
+
+    ldax d
+    sbb h
+    inx d
+    ora c
+
+    xthl                ; HL is now the low word again, and TOS the high word
+    push h              ; the entire 4-byte value is on the stack
+
+    jz caset1_found     ; is Z, this value matches
+    inx d               ; otherwise bypass the jump address
+    inx d
+    dec b
+    jnz caset1_loop     ; and loop
+
+    pop h               ; remove the value
+    pop h
+
+    push d              ; return unfulfilled
+    ret
+
+caset1_found:
+    pop h               ; remove the value
+    pop h
+
+    ldax d              ; jump to the address
+    mov l, a
+    inx d
+    ldax d
+    mov h, a
+    pchl
+    
     dseg
 block1: ds 4
 block2: ds 4

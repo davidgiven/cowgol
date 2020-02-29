@@ -185,6 +185,8 @@ gen STARTFILE()
     emitter_open_chunk();
     E("\textrn add4\n");
     E("\textrn sub4\n");
+	E("\textrn sublit4\n");
+	E("\textrn cmplit4\n");
     E("\textrn neg4\n");
 	E("\textrn mul1\n");
 	E("\textrn mul2\n");
@@ -216,6 +218,7 @@ gen STARTFILE()
 	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
 	E("\textrn store4\n");
+	E("\textrn caset1\n");
     emitter_close_chunk(NULL);
 }
 
@@ -1063,7 +1066,7 @@ gen CASE2(bc, param) uses hl
 	{
 		if (!n->u.when.isdefault)
 		{
-			E("\tlxi h, 0x%04x\n", n->u.when.value);
+			E("\tlxi h, 0x%04x\n", (-n->u.when.value) & 0xffff);
 			E("\tdad b\n");
 			E("\tmov a, h\n");
 			E("\tora l\n");
@@ -1074,9 +1077,31 @@ gen CASE2(bc, param) uses hl
 	defaultcase(self);
 }
 
-gen CASE4(bc, param) uses hl
+gen CASE4(stk4, param) uses hl|bc|de|a
 {
-	fatal("case for int32s is not supported on the 8080 (it's just too expensive)");
+	int count = 0;
+	Node* n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+			count++;
+		n = n->left;
+	}
+
+	E("\tmvi b, %d\n", count);
+	E("\tcall caset1\n");
+
+	n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+		{
+			E("\tdword 0x%08x\n", n->u.when.value);
+			E("\tdw %s\n", labelref(n->u.when.label));
+		}
+		n = n->left;
+	}
+	defaultcase(self);
 }
 
 gen param := WHEN(param);
