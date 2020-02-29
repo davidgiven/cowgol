@@ -350,6 +350,12 @@ gen param := PUSHPARAM4(param, LOAD4(ADDRESS():a))
 gen param := PUSHPARAM4(param, ADDRESS():a)
 	{ E("\tpushl $%s\n", symref($a.sym, $a.off)); }
 
+gen param := PUSHPARAM1(param, CONSTANT():c)
+	{ E("\tpushw $0x%x\n", $c.value & 0xff); }
+
+gen param := PUSHPARAM2(param, CONSTANT():c)
+	{ E("\tpushw $0x%x\n", $c.value & 0xffff); }
+
 gen param := PUSHPARAM4(param, CONSTANT():c)
 	{ E("\tpushl $0x%x\n", $c.value); }
 
@@ -784,6 +790,46 @@ gen BLTU4(r32:lhs, r32:rhs):b
 
 gen BLTS4(r32:lhs, r32:rhs):b
 	{ cmp("cmpl", "jl", $b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+// --- Case statements ---------------------------------------------------
+
+%{
+	static void docase(Instruction* self, reg_t value, const char* format, uint32_t mask)
+	{
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (!n->u.when.isdefault)
+			{
+				E(format, n->u.when.value & mask);
+				E(", %s\n\tje %s\n", regref(value), labelref(n->u.when.label));
+			}
+			n = n->left;
+		}
+
+		n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (n->u.when.isdefault)
+			{
+				E("\tjmp %s\n", labelref(n->u.when.label));
+				break;
+			}
+			n = n->left;
+		}
+	}
+%}
+
+gen CASE1(r8:value, param)
+	{ docase(self, $value, "\tcmpb $0x%02x", 0xff); }
+
+gen CASE2(r16:value, param)
+	{ docase(self, $value, "\tcmpw $0x%04x", 0xffff); }
+
+gen CASE4(r32:value, param)
+	{ docase(self, $value, "\tcmpl $0x%08x", 0xffffffff); }
+
+gen param := WHEN(param);
 
 // --- Inline assembly ------------------------------------------------------
 

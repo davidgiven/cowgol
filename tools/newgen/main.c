@@ -309,8 +309,13 @@ static void print_upper(FILE* fp, const char* s)
 
 static void dump_registers(void)
 {
-	fprintf(outfp, "const Register registers[] = {\n");
-	fprintf(outhfp, "enum {\n");
+	#if defined COWGOL
+		fprintf(outfp, "var registers: Register[] := {\n");
+	#else
+		fprintf(outfp, "const Register registers[] = {\n");
+		fprintf(outhfp, "enum {\n");
+	#endif
+
 	Register* reg = (Register*) symbol_table;
 	while(reg)
 	{
@@ -318,14 +323,25 @@ static void dump_registers(void)
 		{
 			fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
 				reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
-			fprintf(outhfp, "\tREG_");
-			print_upper(outhfp, reg->sym.name);
-			fprintf(outhfp, " = 0x%x,\n", reg->id);
+
+			#if defined COWGOL
+				fprintf(outhfp, "const REG_");
+				print_upper(outhfp, reg->sym.name);
+				fprintf(outhfp, " := 0x%x;\n", reg->id);
+			#else
+				fprintf(outhfp, "\tREG_");
+				print_upper(outhfp, reg->sym.name);
+				fprintf(outhfp, " = 0x%x,\n", reg->id);
+			#endif
 		}
 		reg = (Register*) reg->sym.next;
 	}
-	fprintf(outfp, "};\n");
-	fprintf(outhfp, "};\n");
+	#if defined COWGOL
+		fprintf(outfp, "};\n");
+	#else
+		fprintf(outfp, "};\n");
+		fprintf(outhfp, "};\n");
+	#endif
 }
 
 static const char* operator_name(int operator)
@@ -392,7 +408,12 @@ static void create_match_predicates(void)
 
 static void create_rules(void)
 {
-	fprintf(outfp, "const Rule codegen_rules[] = {\n");
+	#if defined COWGOL
+		fprintf(outfp, "var codegen_rules: Rule[] := {\n");
+	#else
+		fprintf(outfp, "const Rule codegen_rules[] = {\n");
+	#endif
+
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
@@ -450,8 +471,15 @@ static void create_rules(void)
 			}
 		}
 		fprintf(outfp, "%d, %d ", copymask, regmask);
-		fprintf(outfp, "}, /* %d */\n", i);
+		fprintf(outfp, "}, ");
+
+		#if defined COWGOL
+			fprintf(outfp, "# %d\n", i);
+		#else
+			fprintf(outfp, "/* %d */\n", i);
+		#endif
 	}
+
 	fprintf(outfp, "};\n");
 }
 
@@ -624,11 +652,18 @@ int main(int argc, const char* argv[])
 
 	sort_rules();
 
-	fprintf(outhfp, "#ifndef NEWGEN_H\n");
-	fprintf(outhfp, "#define NEWGEN_H\n");
-	fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_DEPTH %d\n", maxdepth);
-	fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_COUNT %d\n", rulescount);
-	fprintf(outhfp, "#define REGISTER_COUNT %d\n", registercount);
+	#if defined COWGOL
+		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
+		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
+		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
+		fprintf(outhfp, "typedef RegisterMask := int(0, 0x%x);\n", (1<<registercount) - 1);
+	#else
+		fprintf(outhfp, "#ifndef NEWGEN_H\n");
+		fprintf(outhfp, "#define NEWGEN_H\n");
+		fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_DEPTH %d\n", maxdepth);
+		fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_COUNT %d\n", rulescount);
+		fprintf(outhfp, "#define REGISTER_COUNT %d\n", registercount);
+	#endif
 
 	dump_registers();
 	create_match_predicates();
@@ -637,7 +672,9 @@ int main(int argc, const char* argv[])
 	create_rules();
 	create_matcher();
 
-	fprintf(outhfp, "#endif\n");
+	#if !defined COWGOL
+		fprintf(outhfp, "#endif\n");
+	#endif
 
 	return errcnt>0;
 }

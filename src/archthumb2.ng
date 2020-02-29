@@ -689,6 +689,71 @@ gen reg := CAST14(reg:rhs)
 gen reg := CAST12(reg:rhs)
 	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
 
+// --- Case statements ---------------------------------------------------
+
+%{
+	static void defaultcase(Instruction* self)
+	{
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (n->u.when.isdefault)
+			{
+				E("\tb %s\n", labelref(n->u.when.label));
+				break;
+			}
+			n = n->left;
+		}
+	}
+
+	static void docase(Instruction* self, reg_t value, const char* format, uint32_t mask)
+	{
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (!n->u.when.isdefault)
+			{
+				uint32_t i = n->u.when.value & mask;
+				if (i < 0x100)
+				{
+					E("\tcmp %s, #", regref(value));
+					E(format, i);
+				}
+				else
+				{
+					E("\tldr r1, =");
+					E(format, i);
+					E("\n\tcmp %s, r1", regref(value));
+				}
+
+				E("\n\tbeq %s\n", labelref(n->u.when.label));
+			}
+			n = n->left;
+		}
+
+		defaultcase(self);
+	}
+%}
+
+gen CASE1(reg:value, param)
+{
+	E("\tuxtb %s, %s\n", regref($value), regref($value));
+	docase(self, $value, "0x%02x", 0xff);
+}
+
+gen CASE2(reg:value, param) uses r1
+{
+	E("\tuxth %s, %s\n", regref($value), regref($value));
+	docase(self, $value, "0x%04x", 0xffff);
+}
+
+gen CASE4(reg:value, param) uses r1
+{
+	docase(self, $value, "0x%08x", 0xffffffff);
+}
+
+gen param := WHEN(param);
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()

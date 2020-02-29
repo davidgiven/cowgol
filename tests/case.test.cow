@@ -1,0 +1,90 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+sub case_uint8(i: uint8): (out: uint8)
+	case i is
+		when 0: out := 0;
+		when 1: out := 1;
+		when 2: out := 2;
+		when 3: out := 3;
+		when else: out := 4;
+	end case;
+end sub;
+
+sub case_int8(i: uint8): (out: int8)
+	case i is
+		when -2: out := -2;
+		when -1: out := -1;
+		when 0: out := 0;
+		when 1: out := 1;
+		when else: out := 4;
+	end case;
+end sub;
+
+sub case_uint16(i: uint16): (out: uint8)
+	case i is
+		when 0: out := 0;
+		when 1: out := 1;
+		when 2: out := 2;
+		when 3: out := 3;
+		when else: out := 4;
+	end case;
+end sub;
+
+sub case_int16(i: uint16): (out: int8)
+	case i is
+		when -2: out := -2;
+		when -1: out := -1;
+		when 0: out := 0;
+		when 1: out := 1;
+		when else: out := 4;
+	end case;
+end sub;
+
+sub case_uint32(i: uint32): (out: uint8)
+	case i is
+		when 0: out := 0;
+		when 1: out := 1;
+		when 2: out := 2;
+		when 3: out := 3;
+		when else: out := 4;
+	end case;
+end sub;
+
+sub case_int32(i: uint32): (out: int8)
+	case i is
+		when -2: out := -2;
+		when -1: out := -1;
+		when 0: out := 0;
+		when 1: out := 1;
+		when else: out := 4;
+	end case;
+end sub;
+
+sub test_case_bytes()
+	print("uint8 of 2 == 2"); if case_uint8(2) == 2 then yes(); else no(); end if;
+	print("uint8 of 9 == 4"); if case_uint8(9) == 4 then yes(); else no(); end if;
+
+	print("int8 of -2 == -2"); if case_int8(-2) == -2 then yes(); else no(); end if;
+	print("int8 of 9 == 4"); if case_int8(9) == 4 then yes(); else no(); end if;
+end sub;
+test_case_bytes();
+
+sub test_case_shorts()
+	print("uint16 of 2 == 2"); if case_uint16(2) == 2 then yes(); else no(); end if;
+	print("uint16 of 9 == 4"); if case_uint16(9) == 4 then yes(); else no(); end if;
+
+	print("int16 of -2 == -2"); if case_int16(-2) == -2 then yes(); else no(); end if;
+	print("int16 of 9 == 4"); if case_int16(9) == 4 then yes(); else no(); end if;
+end sub;
+test_case_shorts();
+
+sub test_case_longs()
+	print("uint32 of 2 == 2"); if case_uint32(2) == 2 then yes(); else no(); end if;
+	print("uint32 of 9 == 4"); if case_uint32(9) == 4 then yes(); else no(); end if;
+
+	print("int32 of -2 == -2"); if case_int32(-2) == -2 then yes(); else no(); end if;
+	print("int32 of 9 == 4"); if case_int32(9) == 4 then yes(); else no(); end if;
+end sub;
+test_case_longs();
+

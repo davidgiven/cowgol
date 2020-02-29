@@ -621,6 +621,42 @@ gen v1 := CAST81(v8) { cast(8, 1); }
 gen v2 := CAST82(v8) { cast(8, 2); }
 gen v4 := CAST84(v8) { cast(8, 4); }
 
+// --- Case statements ---------------------------------------------------
+
+%{
+	static void docase(Instruction* self, const char* format, uint32_t mask)
+	{
+		E("\tswitch (v%d) {\n", pop());
+
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (n->u.when.isdefault)
+				E("\t\tdefault");
+			else
+			{
+				E("\t\tcase ");
+				E(format, n->u.when.value & mask);
+			}
+			E(": goto %s;\n", labelref(n->u.when.label));
+			n = n->left;
+		}
+
+		E("\t}\n");
+	}
+%}
+
+gen CASE1(v1, param)
+	{ docase(self, "0x%02x", 0xff); }
+
+gen CASE2(v2, param)
+	{ docase(self, "0x%04x", 0xffff); }
+
+gen CASE4(v4, param)
+	{ docase(self, "0x%08x", 0xffffffff); }
+
+gen param := WHEN(param);
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
@@ -700,7 +736,7 @@ gen ASMEND()
 	{
 		if (initialiser_buffer_fill_bits != 0)
 		{
-			E("\t0x%016llx,\n", initialiser_buffer);
+			E("\t{ .i8 = 0x%016llx },\n", initialiser_buffer);
 			initialiser_buffer = 0;
 			initialiser_buffer_fill_bits = 0;
 		}
@@ -737,7 +773,7 @@ gen STARTINIT():s
 	$s.sym->u.var.externname = aprintf("initialiser%d", sid);
 
 	emitter_open_chunk();
-	E("static i8 %s[] = { // %s\n",
+	E("static data %s[] = { // %s\n",
 		$s.sym->u.var.externname,
 		$s.sym->name);
 	initialiser_buffer = 0;
@@ -751,7 +787,7 @@ gen INIT8():c { emit_bytes(8, $c.value); }
 
 gen INITS():s {
 	check_alignment(8);
-	E("\t(i8)(intptr_t)s%d,\n", emit_string($s.text));
+	E("\t{ .ptr = (void*)s%d },\n", emit_string($s.text));
 }
 
 gen ENDINIT()

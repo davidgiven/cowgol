@@ -185,6 +185,8 @@ gen STARTFILE()
     emitter_open_chunk();
     E("\textrn add4\n");
     E("\textrn sub4\n");
+	E("\textrn sublit4\n");
+	E("\textrn cmplit4\n");
     E("\textrn neg4\n");
 	E("\textrn mul1\n");
 	E("\textrn mul2\n");
@@ -216,6 +218,7 @@ gen STARTFILE()
 	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
 	E("\textrn store4\n");
+	E("\textrn caset1\n");
     emitter_close_chunk(NULL);
 }
 
@@ -540,11 +543,24 @@ gen STORE2(bc|de:val, hl) uses a
 	E("\tmov m, %s\n", regref($val));
 }
 
+gen STORE2(CONSTANT():c, hl)
+{
+	E("\tmvi m, %d\n", $c.value & 0xff);
+	E("\tinx h\n");
+	E("\tmvi m, %d\n", ($c.value >> 8) & 0xff);
+}
+
 gen STORE1(a, ADDRESS():a)
 	{ E("\tsta %s\n", symref($a.sym, $a.off)); }
 
 gen STORE2(hl, ADDRESS():a)
 	{ E("\tshld %s\n", symref($a.sym, $a.off)); }
+
+gen STORE2(CONSTANT():c, ADDRESS():a) uses hl
+{
+	E("\tlxi h, %d\n", $c.value & 0xffff);
+	E("\tshld %s\n", symref($a.sym, $a.off));
+}
 
 gen STORE4(stk4, hl) uses bc|de
 	{ E("\tcall store4\n"); }
@@ -554,6 +570,14 @@ gen STORE4(stk4, ADDRESS():a) uses hl
 	E("\tpop h\n"); 
 	E("\tshld %s\n", symref($a.sym, $a.off+0));
 	E("\tpop h\n"); 
+	E("\tshld %s\n", symref($a.sym, $a.off+2));
+}
+
+gen STORE4(CONSTANT():c, ADDRESS():a) uses hl
+{
+	E("\tlxi h, %d\n", $c.value & 0xffff);
+	E("\tshld %s\n", symref($a.sym, $a.off+0));
+	E("\tlxi h, %d\n", ($c.value >> 16) & 0xffff);
 	E("\tshld %s\n", symref($a.sym, $a.off+2));
 }
 
@@ -1002,6 +1026,86 @@ gen hl|de := CAST42(stk4) uses bc
 	E("\tpop b\n");
 }
 	
+// --- Case statements ---------------------------------------------------
+
+%{
+	static void defaultcase(Instruction* self)
+	{
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (n->u.when.isdefault)
+			{
+				E("\tjmp %s\n", labelref(n->u.when.label));
+				break;
+			}
+			n = n->left;
+		}
+	}
+%}
+
+gen CASE1(a, param) uses bc
+{
+	Node* n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+		{
+			E("\tcpi 0x%02x\n", n->u.when.value);
+			E("\tjz %s\n", labelref(n->u.when.label));
+		}
+		n = n->left;
+	}
+	defaultcase(self);
+}
+
+gen CASE2(bc, param) uses hl
+{
+	Node* n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+		{
+			E("\tlxi h, 0x%04x\n", (-n->u.when.value) & 0xffff);
+			E("\tdad b\n");
+			E("\tmov a, h\n");
+			E("\tora l\n");
+			E("\tjz %s\n", labelref(n->u.when.label));
+		}
+		n = n->left;
+	}
+	defaultcase(self);
+}
+
+gen CASE4(stk4, param) uses hl|bc|de|a
+{
+	int count = 0;
+	Node* n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+			count++;
+		n = n->left;
+	}
+
+	E("\tmvi b, %d\n", count);
+	E("\tcall caset1\n");
+
+	n = self->n[0]->right;
+	while (n->op == MIDCODE_WHEN)
+	{
+		if (!n->u.when.isdefault)
+		{
+			E("\tdword 0x%08x\n", n->u.when.value);
+			E("\tdw %s\n", labelref(n->u.when.label));
+		}
+		n = n->left;
+	}
+	defaultcase(self);
+}
+
+gen param := WHEN(param);
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
