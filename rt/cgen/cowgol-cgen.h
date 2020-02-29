@@ -10,6 +10,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <endian.h>
+
+#if BYTE_ORDER == BIG_ENDIAN
+#error "Sorry, cowgol cgen doesn't work on big endian machines yet."
+#endif
 
 typedef uint8_t i1;
 typedef uint16_t i2;
