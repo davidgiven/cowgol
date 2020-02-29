@@ -360,20 +360,30 @@ static void print_lower(const char* s)
 		fputc(tolower(*s++), outfp);
 }
 
-static void print_predicate(int index, Node* template, Predicate* predicate)
+static void print_predicate(int index, bool* first, Node* template, Predicate* predicate)
 {
 	while (predicate)
 	{
+		if (!*first)
+		{
+			#if defined COWGOL
+				fprintf(outfp, " and");
+			#else
+				fprintf(outfp, " &&");
+			#endif
+		}
+		*first = false;
+
 		switch (predicate->operator)
 		{
 			case IS:
-				fprintf(outfp, " && is_%s(n[%d]->u.", predicate->u.callback, index);
+				fprintf(outfp, " is_%s(n[%d]->u.", predicate->u.callback, index);
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s)", predicate->field);
 				break;
 
 			default:
-				fprintf(outfp, " && (n[%d]->u.", index);
+				fprintf(outfp, " (n[%d]->u.", index);
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s %s %d)",
 					predicate->field,
@@ -388,22 +398,52 @@ static void print_predicate(int index, Node* template, Predicate* predicate)
 
 static void create_match_predicates(void)
 {
+	#if defined COWGOL
+		fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8)\n");
+		fprintf(outfp, "matches := 0\n");
+		fprintf(outfp, "case rule is\n");
+	#else
+		fprintf(outfp, "bool match_predicate(uint8_t rule, Node** n) {\n");
+		fprintf(outfp, "switch (rule) {\n");
+	#endif
+
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->has_predicates)
 		{
-			fprintf(outfp, "static bool predicate_%d(Node** n) {\n", i);
-			fprintf(outfp, "\treturn true");
+			#if defined COWGOL
+				fprintf(outfp, "when %d:\n", i);
+				fprintf(outfp, "if ");
+			#else
+				fprintf(outfp, "case %d:\n", i);
+				fprintf(outfp, "\treturn");
+			#endif
+
+			bool first = true;
 			for (int j=0; j<maxdepth; j++)
 			{
 				Node* n = r->nodes[j];
 				if (n)
-					print_predicate(j, n, n->predicate);
+					print_predicate(j, &first, n, n->predicate);
 			}
-			fprintf(outfp, ";\n}\n\n");
+			#if defined COWGOL
+				fprintf(outfp, " then matches := 1; end if;\n");
+			#else
+				fprintf(outfp, ";\n");
+			#endif
 		}
 	}
+
+	#if defined COWGOL
+		fprintf(outfp, "end case;\n");
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "}\n");
+		fprintf(outfp, "return false;\n");
+		fprintf(outfp, "}\n");
+	#endif
+
 }
 
 static void create_rules(void)
@@ -418,6 +458,11 @@ static void create_rules(void)
 	{
 		Rule* r = rules[i];
 		fprintf(outfp, "\t{ ");
+
+		uint8_t flags = 0;
+		if (r->has_predicates)
+			flags |= 0x01;
+		fprintf(outfp, "0x%02x, ", flags);
 
 		fprintf(outfp, "0x%x, ", r->compatible_regs);
 		fprintf(outfp, "0x%x, ", r->result_reg);
@@ -436,11 +481,7 @@ static void create_rules(void)
 		}
 		fprintf(outfp, " }, ");
 
-		if (r->has_predicates)
-			fprintf(outfp, "predicate_%d, ", i);
-		else
-			fprintf(outfp, "NULL, ");
-
+		#if !defined COWGOL
 		if (r->action)
 			fprintf(outfp, "emitter_%d, ", i);
 		else
@@ -450,6 +491,7 @@ static void create_rules(void)
 			fprintf(outfp, "rewriter_%d, ", i);
 		else
 			fprintf(outfp, "NULL, ");
+		#endif
 
 		fprintf(outfp, "{ ");
 		for (int j=0; j<maxdepth; j++)

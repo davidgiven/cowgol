@@ -5,13 +5,15 @@
 
 #include "inssel.h"
 
+#define RULE_HAS_PREDICATES 0x01
+
 struct rule
 {
+	uint8_t flags;
 	reg_t compatible_producable_regs;
 	reg_t producable_regs;
 	reg_t uses_regs;
 	reg_t consumable_regs[INSTRUCTION_TEMPLATE_DEPTH];
-	bool (*predicate)(Node** nodes);
 	void (*emitter)(Instruction* insn);
 	Node* (*rewriter)(Node** n);
 	uint8_t matchbytes[INSTRUCTION_TEMPLATE_DEPTH];
@@ -47,6 +49,7 @@ extern void populate_match_buffer(Instruction* insn, Node** n, uint8_t* matchbuf
 extern void emit_instruction(Instruction* insn);
 extern void setup_instruction(Instruction* insn, int rule, Node** nodes);
 extern bool template_comparator(const uint8_t* data, const uint8_t* template);
+extern bool match_predicate(uint8_t rule, Node** n);
 
 #endif
 

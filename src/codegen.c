@@ -285,7 +285,7 @@ void generate(Node* node)
 
 			/* If there's a manual predicate, check that too. */
 
-			if (r->predicate && !r->predicate(nodes))
+			if ((r->flags & RULE_HAS_PREDICATES) && !match_predicate(i, nodes))
 				continue;
 
 			/* This rule matches! */
