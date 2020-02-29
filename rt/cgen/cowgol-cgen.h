@@ -25,5 +25,13 @@ extern i8* __top;
 extern i8* __himem;
 extern i8* global_argv;
 
+typedef union data data;
+union data
+{
+	i8 i8;
+	i4 i4[2];
+	void* ptr;
+};
+
 #endif
 
