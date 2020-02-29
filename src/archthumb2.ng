@@ -691,36 +691,65 @@ gen reg := CAST12(reg:rhs)
 
 // --- Case statements ---------------------------------------------------
 
+%{
+	static void defaultcase(Instruction* self)
+	{
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (n->u.when.isdefault)
+			{
+				E("\tb %s\n", labelref(n->u.when.label));
+				break;
+			}
+			n = n->left;
+		}
+	}
+
+	static void docase(Instruction* self, reg_t value, const char* format, uint32_t mask)
+	{
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (!n->u.when.isdefault)
+			{
+				uint32_t i = n->u.when.value & mask;
+				if (i < 0x100)
+				{
+					E("\tcmp %s, #", regref(value));
+					E(format, i);
+				}
+				else
+				{
+					E("\tldr r1, =");
+					E(format, i);
+					E("\n\tcmp %s, r1", regref(value));
+				}
+
+				E("\n\tbeq %s\n", labelref(n->u.when.label));
+			}
+			n = n->left;
+		}
+
+		defaultcase(self);
+	}
+%}
+
 gen CASE1(reg:value, param)
 {
-	int exit_label = current_label++;
-	E("\tldr lr, =%s\n", labelref(exit_label));
 	E("\tuxtb %s, %s\n", regref($value), regref($value));
+	docase(self, $value, "0x%02x", 0xff);
+}
 
-	Node* n = self->n[0]->right;
-	while (n->op == MIDCODE_WHEN)
-	{
-		if (!n->u.when.isdefault)
-		{
-			E("\tcmp %s, #0x%02x\n", regref($value), n->u.when.value & 0xff);
-			E("\tbeq %s\n", subref(n->u.when.sub));
-		}
-		n = n->left;
-	}
+gen CASE2(reg:value, param) uses r1
+{
+	E("\tuxth %s, %s\n", regref($value), regref($value));
+	docase(self, $value, "0x%04x", 0xffff);
+}
 
-	n = self->n[0]->right;
-	while (n->op == MIDCODE_WHEN)
-	{
-		if (n->u.when.isdefault)
-		{
-			E("\tb %s\n", subref(n->u.when.sub));
-			break;
-		}
-		n = n->left;
-	}
-
-	E(".type %s, %%function\n", labelref(exit_label));
-	E("%s:\n", labelref(exit_label));
+gen CASE4(reg:value, param) uses r1
+{
+	docase(self, $value, "0x%08x", 0xffffffff);
 }
 
 gen param := WHEN(param);

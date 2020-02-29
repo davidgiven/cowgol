@@ -623,26 +623,39 @@ gen v4 := CAST84(v8) { cast(8, 4); }
 
 // --- Case statements ---------------------------------------------------
 
-gen CASE1(v1, param)
-{
-	E("\tswitch (v%d) {\n", pop());
-
-	Node* n = self->n[0]->right;
-	while (n->op == MIDCODE_WHEN)
+%{
+	static void docase(Instruction* self, const char* format, uint32_t mask)
 	{
-		if (n->u.when.isdefault)
-			E("\t\tdefault");
-		else
-			E("\t\tcase 0x%02x", n->u.when.value & 0xff);
-		E(": %s(); break;\n", subref(n->u.when.sub));
-		n = n->left;
-	}
+		E("\tswitch (v%d) {\n", pop());
 
-	E("\t}\n");
-}
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (n->u.when.isdefault)
+				E("\t\tdefault");
+			else
+			{
+				E("\t\tcase ");
+				E(format, n->u.when.value & mask);
+			}
+			E(": goto %s;\n", labelref(n->u.when.label));
+			n = n->left;
+		}
+
+		E("\t}\n");
+	}
+%}
+
+gen CASE1(v1, param)
+	{ docase(self, "0x%02x", 0xff); }
+
+gen CASE2(v2, param)
+	{ docase(self, "0x%04x", 0xffff); }
+
+gen CASE4(v4, param)
+	{ docase(self, "0x%08x", 0xffffffff); }
 
 gen param := WHEN(param);
-
 
 // --- Inline assembly ------------------------------------------------------
 

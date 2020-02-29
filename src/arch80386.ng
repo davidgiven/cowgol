@@ -793,35 +793,41 @@ gen BLTS4(r32:lhs, r32:rhs):b
 
 // --- Case statements ---------------------------------------------------
 
+%{
+	static void docase(Instruction* self, reg_t value, const char* format, uint32_t mask)
+	{
+		Node* n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (!n->u.when.isdefault)
+			{
+				E(format, n->u.when.value & mask);
+				E(", %s\n\tje %s\n", regref(value), labelref(n->u.when.label));
+			}
+			n = n->left;
+		}
+
+		n = self->n[0]->right;
+		while (n->op == MIDCODE_WHEN)
+		{
+			if (n->u.when.isdefault)
+			{
+				E("\tjmp %s\n", labelref(n->u.when.label));
+				break;
+			}
+			n = n->left;
+		}
+	}
+%}
+
 gen CASE1(r8:value, param)
-{
-	int exit_label = current_label++;
-	E("\tpushl $%s\n", labelref(exit_label));
+	{ docase(self, $value, "\tcmpb $0x%02x", 0xff); }
 
-	Node* n = self->n[0]->right;
-	while (n->op == MIDCODE_WHEN)
-	{
-		if (!n->u.when.isdefault)
-		{
-			E("\tcmpb $0x%02x, %s\n", n->u.when.value, regref($value));
-			E("\tje %s\n", subref(n->u.when.sub));
-		}
-		n = n->left;
-	}
+gen CASE2(r16:value, param)
+	{ docase(self, $value, "\tcmpw $0x%04x", 0xffff); }
 
-	n = self->n[0]->right;
-	while (n->op == MIDCODE_WHEN)
-	{
-		if (n->u.when.isdefault)
-		{
-			E("\tjmp %s\n", subref(n->u.when.sub));
-			break;
-		}
-		n = n->left;
-	}
-
-	E("%s:\n", labelref(exit_label));
-}
+gen CASE4(r32:value, param)
+	{ docase(self, $value, "\tcmpl $0x%08x", 0xffffffff); }
 
 gen param := WHEN(param);
 

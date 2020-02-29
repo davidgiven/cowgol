@@ -502,6 +502,8 @@ void generate(Node* node)
 
 void discard(struct midnode* node)
 {
+	if (!node)
+		return;
 	if (node->left)
 		discard(node->left);
 	if (node->right)

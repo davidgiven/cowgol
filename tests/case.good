@@ -2,3 +2,7 @@ uint8 of 2 == 2: yes
 uint8 of 9 == 4: yes
 int8 of -2 == -2: yes
 int8 of 9 == 4: yes
+uint8 of 2 == 2: yes
+uint8 of 9 == 4: yes
+int8 of -2 == -2: yes
+int8 of 9 == 4: yes

@@ -320,17 +320,14 @@ sub lexer_i_read_number()
 			when 'o': base := 8;
 			when 'd': base := 10;
 			when 'x': base := 16;
-			when *:
+			when else:
 				pushed_char := c;
 				(type, token) := lexer_i_ctype(c);
 				if (type & CTYPE_IDCONT) == 0 then
 					# Just a 0 on its own.
-					c := 0;
+					return;
 				end if;
 		end case;
-		if c == 0 then
-			return;
-		end if;
 	else
 		pushed_char := c;
 	end if;
@@ -379,7 +376,7 @@ sub LexerReadToken(): (token: uint8)
 			case c is
 				when '<': token := LSHIFT;
 				when '=': token := LEOP;
-				when *:
+				when else:
 				pushed_char := c;
 				token := LTOP;
 			end case;
@@ -397,12 +394,12 @@ sub LexerReadToken(): (token: uint8)
 			case c is
 				when '>': token := RSHIFT;
 				when '=': token := GEOP;
-				when *:
+				when else:
 					pushed_char := c;
 					token := GTOP;
 			end case;
 
-		when *:
+		when else:
 			var type: uint8;
 			(type, token) := lexer_i_ctype(c);
 			if (type & CTYPE_TOKEN) != 0 then

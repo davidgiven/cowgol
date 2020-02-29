@@ -14,6 +14,7 @@
     int current_label = 1;
 
     static int break_label;
+	static int case_exit_label;
 	struct subroutine* current_sub;
 	static int id = 1;
 
@@ -679,19 +680,36 @@ parameter(R) ::= newid(S) COLON typeref(type).
 
 /* --- Case..When..End Case ---------------------------------------------- */
 
-statement ::= begincasestatement(C) whens(W) END CASE SEMICOLON.
+%include
 {
-	discard(C->right);
-	C->right = W;
-	generate(C);
+	struct casestate
+	{
+		Node* node;
+		int entry_label;
+		int old_exit_label;
+	};
 }
 
-%type begincasestatement {Node*}
+statement ::= begincasestatement(C) whens(W) END CASE SEMICOLON.
+{
+	generate(mid_label(C.entry_label));
+	discard(C.node->right);
+	C.node->right = W;
+	generate(C.node);
+	generate(mid_label(case_exit_label));
+	case_exit_label = C.old_exit_label;
+}
+
+%type begincasestatement {struct casestate}
 begincasestatement(R) ::= CASE expression(E) IS.
 {
 	if (!is_num(E->type))
 		fatal("case only works on numbers");
-	R = mid_case(E->type->u.type.width, E, mid_end());
+	R.node = mid_case(E->type->u.type.width, E, mid_end());
+	R.old_exit_label = case_exit_label;
+	R.entry_label = current_label++;
+	case_exit_label = current_label++;
+	generate(mid_jump(R.entry_label));
 }
 
 %type whens {Node*}
@@ -706,39 +724,38 @@ whens(R) ::= when(W1) whens(W2).
 }
 
 %type when {Node*}
-when(R) ::= beginwhen(W) cvalue(C) COLON casestatements(SUB).
+when(R) ::= beginwhen(W) cvalue(C) COLON casestatements(L).
 {
 	W->u.when.value = C;
-	W->u.when.sub = SUB;
+	W->u.when.label = L;
 	R = W;
 }
 
-when(R) ::= beginwhen(W) STAR COLON casestatements(SUB).
+when(R) ::= beginwhen(W) ELSE COLON casestatements(L).
 {
 	W->u.when.isdefault = true;
-	W->u.when.sub = SUB;
+	W->u.when.label = L;
 	R = W;
 }
 
 %type beginwhen {Node*}
 beginwhen(R) ::= WHEN.
 {
-	R = mid_when(mid_end(), false, 0, current_sub);
+	R = mid_when(mid_end(), false, 0, 0);
 }
 
-startcasestatements ::= .
+%type startcasestatements {int}
+startcasestatements(R) ::= .
 {
-	start_subroutine(NULL);
-	current_sub->cannot_return = true;
-	generate(mid_startsub(current_sub));
+	R = current_label++;
+	generate(mid_label(R));
 }
 
-%type casestatements {Subroutine*}
-casestatements(SUB) ::= startcasestatements statements.
+%type casestatements {int}
+casestatements(R) ::= startcasestatements(L) statements.
 {
-	SUB = current_sub;
-	generate(mid_endsub(current_sub));
-	end_subroutine();
+	generate(mid_jump(case_exit_label));
+	R = L;
 }
 
 /* --- Assignments ------------------------------------------------------- */
