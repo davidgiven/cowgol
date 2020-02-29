@@ -254,10 +254,11 @@ void generate(Node* node)
 		populate_match_buffer(producer, nodes, matchbytes);
 
 		const Rule* r;
-		for (int i=0; i<INSTRUCTION_TEMPLATE_COUNT; i++)
+		int ruleid;
+		for (ruleid=0; ruleid<INSTRUCTION_TEMPLATE_COUNT; ruleid++)
 		{
-			r = &codegen_rules[i];
-			if (!r->rewriter)
+			r = &codegen_rules[ruleid];
+			if (!(r->flags & RULE_HAS_REWRITER))
 			{
 				/* If this is a generation rule, not a rewrite rule, check to
 				 * make sure the rule actually applies to this node. */
@@ -285,7 +286,7 @@ void generate(Node* node)
 
 			/* If there's a manual predicate, check that too. */
 
-			if ((r->flags & RULE_HAS_PREDICATES) && !match_predicate(i, nodes))
+			if ((r->flags & RULE_HAS_PREDICATES) && !match_predicate(ruleid, nodes))
 				continue;
 
 			/* This rule matches! */
@@ -297,9 +298,9 @@ void generate(Node* node)
 
 		/* If this is a rewrite rule, apply it now and return to the matcher. */
 
-		if (r->rewriter)
+		if (r->flags & RULE_HAS_REWRITER)
 		{
-			Node* nr = r->rewriter(nodes);
+			Node* nr = rewrite_node(ruleid, nodes);
 			nr->desired_reg = n->desired_reg;
 			nr->consumer = n->consumer;
 

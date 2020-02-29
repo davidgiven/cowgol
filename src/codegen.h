@@ -6,6 +6,7 @@
 #include "inssel.h"
 
 #define RULE_HAS_PREDICATES 0x01
+#define RULE_HAS_REWRITER 0x02
 
 struct rule
 {
@@ -15,7 +16,6 @@ struct rule
 	reg_t uses_regs;
 	reg_t consumable_regs[INSTRUCTION_TEMPLATE_DEPTH];
 	void (*emitter)(Instruction* insn);
-	Node* (*rewriter)(Node** n);
 	uint8_t matchbytes[INSTRUCTION_TEMPLATE_DEPTH];
 	uint8_t copyable_nodes;
 	uint8_t register_nodes;
@@ -50,6 +50,7 @@ extern void emit_instruction(Instruction* insn);
 extern void setup_instruction(Instruction* insn, int rule, Node** nodes);
 extern bool template_comparator(const uint8_t* data, const uint8_t* template);
 extern bool match_predicate(uint8_t rule, Node** n);
+extern Node* rewrite_node(uint8_t rule, Node** n);
 
 #endif
 

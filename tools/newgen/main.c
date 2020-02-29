@@ -443,7 +443,6 @@ static void create_match_predicates(void)
 		fprintf(outfp, "return false;\n");
 		fprintf(outfp, "}\n");
 	#endif
-
 }
 
 static void create_rules(void)
@@ -462,6 +461,8 @@ static void create_rules(void)
 		uint8_t flags = 0;
 		if (r->has_predicates)
 			flags |= 0x01;
+		if (r->replacement)
+			flags |= 0x02;
 		fprintf(outfp, "0x%02x, ", flags);
 
 		fprintf(outfp, "0x%x, ", r->compatible_regs);
@@ -484,11 +485,6 @@ static void create_rules(void)
 		#if !defined COWGOL
 		if (r->action)
 			fprintf(outfp, "emitter_%d, ", i);
-		else
-			fprintf(outfp, "NULL, ");
-
-		if (r->replacement)
-			fprintf(outfp, "rewriter_%d, ", i);
 		else
 			fprintf(outfp, "NULL, ");
 		#endif
@@ -620,21 +616,41 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 
 static void create_rewriters(void)
 {
+	#if defined COWGOL
+		fprintf(outfp, "sub RewriteNode(rule: uint8, n: [[Node]]): (result: [Node])\n");
+		fprintf(outfp, "case rule is\n");
+	#else
+		fprintf(outfp, "Node* rewrite_node(uint8_t rule, Node** n) {\n");
+		fprintf(outfp, "switch (rule) {\n");
+	#endif
+
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->replacement)
 		{
-			fprintf(outfp, "static Node* rewriter_%d(Node** n) {\n", i);
+			#if defined COWGOL
+				fprintf(outfp, "when %d:\n", i);
+				fprintf(outfp, "result :=\n");
+			#else
+				fprintf(outfp, "case %d:\n", i);
+				fprintf(outfp, "\treturn\n");
+			#endif
 
 			print_line(r->lineno);
-			fprintf(outfp, "\treturn ");
 			emit_replacement(r, r->pattern, r->replacement);
 			fprintf(outfp, ";\n");
-
-			fprintf(outfp, "\n}\n\n");
 		}
 	}
+
+	#if defined COWGOL
+		fprintf(outfp, "end case;\n");
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "}\n");
+		fprintf(outfp, "return NULL;\n");
+		fprintf(outfp, "}\n");
+	#endif
 }
 
 static void walk_matcher_tree(int* offset, Node* pattern)
