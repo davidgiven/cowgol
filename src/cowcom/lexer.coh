@@ -176,6 +176,23 @@ var keyword_ids: uint8[] := {
 	WHILE
 };
 
+sub StartError()
+	print("error: ");
+	if current_file == (0 as [File]) then
+		print("<eof>");
+	else
+		print(current_file.path);
+		print(": ");
+		print_i16(current_file.lineno);
+	end if;
+	print(": ");
+end sub;
+
+sub EndError()
+	print_nl();
+	ExitWithError();
+end sub;
+
 sub LexerAddIncludePath(path: string)
 	var p := Alloc(@bytesof IncludePath) as [IncludePath];
 	p.next := include_paths;
@@ -188,10 +205,11 @@ sub LexerIncludeFile(path: string)
 	f.next := current_file;
 	f.path := StrDup(path);
 	if FCBOpenIn(&f.fcb, path) != 0 then
-		print("error: cannot open '");
+		StartError();
+		print("cannot open '");
 		print(path);
-		print("'\n");
-		ExitWithError();
+		print("'");
+		EndError();
 	end if;
 	f.lineno := 1;
 	current_file := f;
@@ -238,22 +256,11 @@ sub lexer_i_getchar(): (c: uint8)
 	end loop;
 end sub;
 
-sub Error()
-	print("error: ");
-	if current_file == (0 as [File]) then
-		print("<eof>");
-	else
-		print_i16(current_file.lineno);
-	end if;
-	print(": ");
-end sub;
-
 sub lexer_i_unparseable(c: uint8)
-	Error();
+	StartError();
 	print("unparseable character 0x");
 	print_hex_i8(c);
-	print_nl();
-	ExitWithError();
+	EndError();
 end sub;
 
 sub lexer_i_skipwhitespace()
@@ -282,9 +289,9 @@ sub lexer_i_read_identifier()
 			token_buffer[token_length] := c;
 			token_length := token_length + 1;
 			if token_length == TOKEN_BUFFER_SIZE then
-				Error();
-				print("token too long\n");
-				ExitWithError();
+				StartError();
+				print("token too long");
+				EndError();
 			end if;
 		else
 			pushed_char := c;
@@ -345,9 +352,9 @@ sub lexer_i_read_number()
 			c := c - '0';
 		end if;
 		if c >= (base as uint8) then
-			Error();
-			print("invalid number\n");
-			ExitWithError();
+			StartError();
+			print("invalid number");
+			EndError();
 		end if;
 
 		token_value := token_value*base + (c as int32);
@@ -359,9 +366,9 @@ sub lexer_i_read_string()
 	loop
 		var c := lexer_i_getchar();
 		if c < 32 then
-			Error();
+			StartError();
 			print("malformed string constant");
-			ExitWithError();
+			EndError();
 		end if;
 
 		case c is
@@ -380,9 +387,9 @@ sub lexer_i_read_string()
 		token_buffer[token_length] := c;
 		token_length := token_length + 1;
 		if token_length == TOKEN_BUFFER_SIZE then
-			Error();
+			StartError();
 			print("string constant too long");
-			ExitWithError();
+			EndError();
 		end if;
 	end loop;
 	token_buffer[token_length] := 0;
@@ -394,9 +401,9 @@ sub lexer_i_line_directive()
 	lexer_i_skipwhitespace();
 	var c := lexer_i_getchar();
 	if c != '"' then
-		Error();
+		StartError();
 		print("malformed #line directive");
-		ExitWithError();
+		EndError();
 	end if;
 	lexer_i_read_string();
 	current_file.lineno := token_value as uint16;

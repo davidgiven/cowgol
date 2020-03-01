@@ -39,6 +39,7 @@ sub yy_find_shift_action(lookahead: YYCODETYPE, stateno: YYACTIONTYPE): (newstat
 end sub;
 
 sub yy_shift(newstateno: YYACTIONTYPE, yymajor: YYCODETYPE, yyminor: ParseTOKENTYPE)
+	print("shift\n");
 	yytos := yytos + @bytesof yyStackEntry;
 	if yytos > yystackend then
 		yytos := yytos - @bytesof yyStackEntry;
@@ -59,6 +60,18 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	var yyact := yytos.stateno;
 	loop
 		yyact := yy_find_shift_action(yymajor, yyact);
+
+		print("token ");
+		print(yyTokenName[yymajor]);
+		if yyact < YY_MIN_REDUCE then
+			print(" in state ");
+			print_i8(yyact);
+		else
+			print(" with pending reduce ");
+			print_i8(yyact - YY_MIN_REDUCE);
+		end if;
+		print_nl();
+
 		if yyact >= YY_MIN_REDUCE then
 			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
 		elseif yyact <= YY_MAX_SHIFTREDUCE then

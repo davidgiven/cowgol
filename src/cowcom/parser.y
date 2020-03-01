@@ -4,7 +4,7 @@
 %token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
 %token SUB THEN TILDE VAR WHILE TYPE.
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
-%token INT TYPEDEF SIZEOF.
+%token INT TYPEDEF SIZEOF STRING.
 
 %left COMMA.
 %left AND.
@@ -28,9 +28,9 @@
 {
 	if $$ != (0 as [Token]) then
 		if $$.string != (0 as string) then
-			Error();
+			StartError();
 			print("unconsumed string");
-			ExitWithError();
+			EndError();
 		end if;
 		FreeBlock($$ as [uint8]);
 	end if;
@@ -48,77 +48,94 @@ statement ::= SEMICOLON.
 /* --- Simple statements ------------------------------------------------- */
 
 statement ::= RETURN SEMICOLON.
-{ }
-
-/* --- Inline assembly --------------------------------------------------- */
-
-statement ::= asmstart asms SEMICOLON.
 {
-	#generate(mid_asmend());
+	print("return\n");
 }
 
-asmstart ::= ASM.
+/* --- Variable declaration ---------------------------------------------- */
+
+statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
-	#generate(mid_asmstart());
+#	S->kind = VAR;
+#	init_var(S, T);
 }
 
-asms ::= asm.
-asms ::= asm COMMA asms.
-
-asm ::= STRING(token).
-{
-	#unescape(token->string);
-	#generate(mid_asmtext(strdup(token->string)));
-}
-
-asm ::= NUMBER(token).
-{
-	#generate(mid_asmvalue(token->number));
-}
-
-asm ::= oldid(ID).
-{
-	#switch (ID->kind)
-	#{
-	#	case VAR:
-	#	case SUB:
-	#		generate(mid_asmsymbol(ID));
-	#		break;
-
-	#	case CONST:
-	#		generate(mid_asmvalue(ID->u.constant));
-	#		break;
-
-	#	default:
-	#		fatal("you can only emit references to variables, subroutines, or constants");
-	#}
-}
-
-/* --- Low level symbol stuff -------------------------------------------- */
+/* --- Types ------------------------------------------------------------- */
 
 /*
-%type newid {Symbol*}
-newid(S) ::= ID(token).
+typeref(sym) ::= INT OPENPAREN cvalue(min) COMMA cvalue(max) CLOSEPAREN.
 {
-    S = add_new_symbol(NULL, token->string);
+	if (max <= min)
+		fatal("invalid integer type range");
+	sym = arch_guess_int_type(min, max);
 }
 */
 
+typeref(sym) ::= eitherid(id).
+{
+#    sym = id;
+#	if (!sym->kind)
+#	{
+#		/* Create a partial type ref. */
+#		sym->kind = TYPE;
+#		sym->u.type.kind = TYPE_PARTIAL;
+#	}
+#    if (sym->kind != TYPE)
+#        fatal("expected '%s' to be a type", sym->name);
+}
+
+/*
+typeref(sym) ::= typeref(basetype) OPENSQ cvalue(value) CLOSESQ.
+{ sym = make_array_type(basetype, value); }
+
+typeref(sym) ::= typeref(basetype) OPENSQ CLOSESQ.
+{ sym = make_array_type(basetype, 0); }
+
+typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
+{
+	sym = make_pointer_type(basetype);
+}
+
+typeref(sym) ::= INDEXOF oldid(S).
+{
+	if (S->kind == VAR)
+		S = S->u.var.type;
+	if ((S->kind == TYPE) && is_array(S))
+		sym = S->u.type.indextype;
+	else
+		fatal("you can only use @indexof on arrays");
+}
+
+statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
+{
+	add_alias(NULL, X->string, T);
+}
+*/
+
+/* --- Low level symbol stuff -------------------------------------------- */
+
+%type newid {[Symbol]}
+newid(S) ::= ID(token).
+{
+#    S = add_new_symbol(NULL, token->string);
+}
+
+/*
 %type oldid {[Symbol]}
 oldid(S) ::= ID(token).
 {
+	print("oldid\n");
 #    S = lookup_symbol(NULL, token->string);
 #	if (!S)
 #		fatal("symbol '%s' not found", token->string);
 }
+*/
 
-/*
-%type eitherid {Symbol*}
+%type eitherid {[Symbol]}
 eitherid(S) ::= ID(token).
 {
-	S = lookup_symbol(NULL, token->string);
-	if (!S)
-		S = add_new_symbol(NULL, token->string);
+#	S = lookup_symbol(NULL, token->string);
+#	if (!S)
+#		S = add_new_symbol(NULL, token->string);
 }
-*/
 

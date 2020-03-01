@@ -71,8 +71,24 @@ var yyRuleInfoNRhs: int8[] := {
 };
 
 # reduce actions
-sub yy_reduce(action: YYACTIONTYPE, major: YYCODETYPE, minor: ParseTOKENTYPE): (newaction: YYACTIONTYPE)
+sub yy_find_reduce_action(stateno: YYACTIONTYPE, lookahead: YYCODETYPE): (action: YYACTIONTYPE)
+	action := yy_default[stateno];
+	if stateno <= YY_REDUCE_COUNT then
+		var i := (yy_reduce_ofst[stateno] as YYCODETYPE) + lookahead;
+		if (i>=0) and (i<YY_ACTTAB_COUNT) and (yy_lookahead[i] == lookahead) then
+			action := yy_action[i];
+		end if;
+	end if;
+end sub;
+
+sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken: ParseTOKENTYPE):
+	(yyact: YYACTIONTYPE)
 %%
+	var yygoto := yyRuleInfoLhs[yyruleno];
+	var yysize := yyRuleInfoNRhs[yyruleno];
+	yyact := yy_find_reduce_action([yytos + (yysize as intptr)*@bytesof yyStackEntry].stateno, yygoto);
+	yytos.stateno := yyact;
+	yytos.major := yygoto;
 end sub;
 
 # parse failure code
