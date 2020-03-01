@@ -219,6 +219,7 @@ gen STARTFILE()
 	E("\textrn load4\n");
 	E("\textrn store4\n");
 	E("\textrn caset1\n");
+	E("\textrn cmps1\n");
     emitter_close_chunk(NULL);
 }
 
@@ -906,6 +907,13 @@ gen BLTU1(a, b|d|h:rhs):b
 {
 	E("\tcmp %s\n", regref($rhs));
 	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+gen BLTS1(a, b): b
+{
+	E("\tcall cmps1\n");
+	E("\tjm %s\n", labelref($b.truelabel));
 	E("\tjmp %s\n", labelref($b.falselabel));
 }
 

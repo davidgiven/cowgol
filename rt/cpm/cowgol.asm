@@ -1066,6 +1066,23 @@ caset1_found:
     mov h, a
     pchl
     
+    ; Does a tristate signed comparison of a <> b.
+    ; Returns m flag if a < b.
+    ; Returns p flag if a >= b.
+    ; This doesn't set z coherently.
+
+    cseg
+    public cmps1
+cmps1:
+    xra b               ; test signs
+    jp cmps1_u          ; signs are the same
+    xra b               ; undo munged A and set C=0
+    ret
+cmps1_u:
+    xra b               ; undo munged A
+    sub b
+    ret
+
     dseg
 block1: ds 4
 block2: ds 4

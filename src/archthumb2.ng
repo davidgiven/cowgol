@@ -651,6 +651,15 @@ gen BLTU1(reg:lhs, reg:rhs):b
 	E("\tb %s\n", labelref($b.falselabel));
 }
 
+gen BLTS1(reg:lhs, reg:rhs):b
+{
+	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tsxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+	E("\tblt %s\n", labelref($b.truelabel));
+	E("\tb %s\n", labelref($b.falselabel));
+}
+
 gen BLTU2(reg:lhs, reg:rhs):b
 {
 	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));

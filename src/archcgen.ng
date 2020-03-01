@@ -575,25 +575,25 @@ gen BEQS8(v8:lhs, v8:rhs):b
 	{ branch_u($b.truelabel, $b.falselabel, "=="); }
 
 gen BLTU1(v1:lhs, v1:rhs):b
-	{ branch_s($b.truelabel, $b.falselabel, 1, "<"); }
+	{ branch_u($b.truelabel, $b.falselabel, "<"); }
 
 gen BLTS1(v1:lhs, v1:rhs):b
 	{ branch_s($b.truelabel, $b.falselabel, 1, "<"); }
 
 gen BLTU2(v2:lhs, v2:rhs):b
-	{ branch_s($b.truelabel, $b.falselabel, 2, "<"); }
+	{ branch_u($b.truelabel, $b.falselabel, "<"); }
 
 gen BLTS2(v2:lhs, v2:rhs):b
 	{ branch_s($b.truelabel, $b.falselabel, 2, "<"); }
 
 gen BLTU4(v4:lhs, v4:rhs):b
-	{ branch_s($b.truelabel, $b.falselabel, 4, "<"); }
+	{ branch_u($b.truelabel, $b.falselabel, "<"); }
 
 gen BLTS4(v4:lhs, v4:rhs):b
 	{ branch_s($b.truelabel, $b.falselabel, 4, "<"); }
 
 gen BLTU8(v8:lhs, v8:rhs):b
-	{ branch_s($b.truelabel, $b.falselabel, 8, "<"); }
+	{ branch_u($b.truelabel, $b.falselabel, "<"); }
 
 gen BLTS8(v8:lhs, v8:rhs):b
 	{ branch_s($b.truelabel, $b.falselabel, 8, "<"); }

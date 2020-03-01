@@ -3,6 +3,7 @@ include "tests/_framework.coh";
 
 const ZERO := 0;
 const ONE := 1;
+const MONE := -1;
 
 sub equality1()
 	var zero: uint8 := 0;
@@ -19,6 +20,28 @@ sub equality1()
 	print("one==ZERO or (one==ONE and zero==ZERO"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
 end sub;
 equality1();
+
+sub signed1()
+	var zero: int8 := 0;
+	var mone: int8 := -1;
+	var one: int8 := 1;
+
+	print("zero<ONE"); if zero<ONE then yes(); else no(); end if;
+	print("mone<ONE"); if mone<ONE then yes(); else no(); end if;
+	print("mone<=MONE"); if mone<=MONE then yes(); else no(); end if;
+end sub;
+signed1();
+
+sub unsigned1()
+	var zero: uint8 := 0;
+	var mone: uint8 := -1;
+	var one: uint8 := 1;
+
+	print("zero<ONE"); if zero<ONE then yes(); else no(); end if;
+	print("!(mone<ONE)"); if not (mone<ONE) then yes(); else no(); end if;
+	print("mone<=MONE"); if mone<=MONE then yes(); else no(); end if;
+end sub;
+unsigned1();
 
 sub blt2()
 	var zero: uint16 := 0;
