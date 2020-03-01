@@ -911,7 +911,7 @@ expression(E) ::= expression(E1) AS typeref(T).
 				E1->type->name, E1->type->u.type.width, T->name, T->u.type.width);
 		}
 
-		E = mid_c_cast(T->u.type.width, E1, T->u.type.issigned);
+		E = mid_c_cast(T->u.type.width, E1, E1->type->u.type.issigned);
 	}
 	else
 		E = E1;
