@@ -40,12 +40,11 @@ end sub;
 
 sub yy_shift(newstateno: YYACTIONTYPE, yymajor: YYCODETYPE, yyminor: ParseTOKENTYPE)
 	print("shift\n");
-	yytos := yytos + @bytesof yyStackEntry;
-	if yytos > yystackend then
-		yytos := yytos - @bytesof yyStackEntry;
+	if yytos == yystackend then
 		yy_stack_overflow();
 		return;
 	end if;
+	yytos := yytos + @bytesof yyStackEntry;
 
 	if newstateno > YY_MAX_SHIFT then
 		newstateno := newstateno + (YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE);
@@ -61,7 +60,9 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	loop
 		yyact := yy_find_shift_action(yymajor, yyact);
 
-		print("token ");
+		print("yytos @ ");
+		print_hex_i32(yytos as intptr as uint32);
+		print(" token ");
 		print(yyTokenName[yymajor]);
 		if yyact < YY_MIN_REDUCE then
 			print(" in state ");
@@ -76,10 +77,14 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
 		elseif yyact <= YY_MAX_SHIFTREDUCE then
 			yy_shift(yyact, yymajor, yyminor);
+			if yyerrcnt >= 0 then
+				yyerrcnt := yyerrcnt - 1;
+			end if;
+			break;
 		elseif yyact == YY_ACCEPT_ACTION then
 			yytos := yytos - @bytesof yyStackEntry;
 			yy_accept();
-			return;
+			break;
 		else
 			var yyminorunion: YYMINORTYPE;
 			yyminorunion.yy0 := yyminor;
@@ -92,6 +97,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 				yy_parse_failed();
 				yyerrcnt := -1;
 			end if;
+			break;
 		end if;
 	
 		if yytos == &yystack[0] then

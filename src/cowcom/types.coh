@@ -3,6 +3,61 @@ record Token
 	string @at(0): string;
 end record;
 
-record AbstractMidnode
+record HasElementSymbol
+	element: [Symbol];
+end record;
+
+record MemberTypeSymbol: HasElementSymbol
+end record;
+
+record ArrayTypeSymbol: HasElementSymbol
+end record;
+
+record NumberTypeSymbol
+	is_signed: uint8;
+end record;
+
+record TypeSymbol
+	haselementtype @at(0): HasElementSymbol;
+	numbertype @at(0): NumberTypeSymbol;
+	arraytype @at(0): ArrayTypeSymbol;
+	membertype @at(0): MemberTypeSymbol;
+
+	pointerto: [Symbol];
+	kind: uint8;
+	alignment: uint8;
+	width: uint16;
+end record;
+
+record VarSymbol
+	typesym: [Symbol];
+	owner: [Subroutine]; # null for a member
+	next_parameter: [Symbol]; # for lists of parameters
+	externname: string;
+	offset: uint32;
+end record;
+
+record ConstSymbol
+	value: int32;
+end record;
+
+record SubSymbol
+	subr: [Subroutine];
+end record;
+
+record AliasSymbol
+	target: [Symbol];
+end record;
+
+record Symbol
+	typesym @at(0): TypeSymbol;
+	varsym @at(0): VarSymbol;
+	constsym @at(0): ConstSymbol;
+	subsym @at(0): SubSymbol;
+	aliassym @at(0): AliasSymbol;
+
+	kind: uint8;
+	name: string;
+	next: [Symbol];
 end record;
 

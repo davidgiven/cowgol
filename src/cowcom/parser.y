@@ -24,14 +24,29 @@
 %type expression {[Midnode]}
 %type lvalue {[Midnode]}
 
+%syntax_error
+{
+	StartError();
+	print("unexpected ");
+	print(yyTokenName[yymajor]);
+	EndError();
+}
+
+%stack_overflow
+{
+	StartError();
+	print("parser stack overflow");
+	EndError();
+}
+
 %token_destructor
 {
 	if $$ != (0 as [Token]) then
-		if $$.string != (0 as string) then
-			StartError();
-			print("unconsumed string");
-			EndError();
-		end if;
+		#if $$.string != (0 as string) then
+		#	StartError();
+		#	print("unconsumed string");
+		#	EndError();
+		#end if;
 		FreeBlock($$ as [uint8]);
 	end if;
 }
@@ -44,6 +59,14 @@ statements ::= statements statement.
 /* --- Top-level statements ---------------------------------------------- */
 
 statement ::= SEMICOLON.
+
+/* --- Subroutine definitions -------------------------------------------- */
+
+statement ::= SUB newid(S).
+{
+	print("sub reduce\n");
+# S
+}
 
 /* --- Simple statements ------------------------------------------------- */
 
@@ -117,6 +140,7 @@ statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 %type newid {[Symbol]}
 newid(S) ::= ID(token).
 {
+	print("reduce newid\n");
 #    S = add_new_symbol(NULL, token->string);
 }
 
