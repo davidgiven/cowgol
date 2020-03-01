@@ -409,7 +409,7 @@ Symbol* get_output_parameter(Subroutine* sub, int count)
 	return s;
 }
 
-Node* mid_c_cast(int width, Node* lhs)
+Node* mid_c_cast(int width, Node* lhs, bool sext)
 {
 	if (!lhs->type)
 		return lhs;
@@ -419,10 +419,10 @@ Node* mid_c_cast(int width, Node* lhs)
 
 	switch (srcwidth)
 	{
-		case 1: return mid_cast1(width, lhs);
-		case 2: return mid_cast2(width, lhs);
-		case 4: return mid_cast4(width, lhs);
-		case 8: return mid_cast8(width, lhs);
+		case 1: return mid_cast1(width, lhs, sext);
+		case 2: return mid_cast2(width, lhs, sext);
+		case 4: return mid_cast4(width, lhs, sext);
+		case 8: return mid_cast8(width, lhs, sext);
 		default: assert(false);
 	}
 }

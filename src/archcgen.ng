@@ -601,25 +601,28 @@ gen BLTS8(v8:lhs, v8:rhs):b
 // --- Casts ----------------------------------------------------------------
 
 %{
-	static void cast(int src, int dest)
+	static void cast(int src, int dest, bool sext)
 	{
 		int vid = pop();
-		E("\ti%d v%d = v%d;\n", dest, push(), vid);
+		if (sext)
+			E("\ti%d v%d = (s%d)(s%d)v%d;\n", dest, push(), dest, src, vid);
+		else
+			E("\ti%d v%d = v%d;\n", dest, push(), vid);
 	}
 %}
 
-gen v2 := CAST12(v1) { cast(1, 2); }
-gen v4 := CAST14(v1) { cast(1, 4); }
-gen v8 := CAST18(v1) { cast(1, 8); }
-gen v1 := CAST21(v2) { cast(2, 1); }
-gen v4 := CAST24(v2) { cast(2, 4); }
-gen v8 := CAST28(v2) { cast(2, 8); }
-gen v1 := CAST41(v4) { cast(4, 1); }
-gen v2 := CAST42(v4) { cast(4, 2); }
-gen v8 := CAST48(v4) { cast(4, 8); }
-gen v1 := CAST81(v8) { cast(8, 1); }
-gen v2 := CAST82(v8) { cast(8, 2); }
-gen v4 := CAST84(v8) { cast(8, 4); }
+gen v2 := CAST12(v1):c { cast(1, 2, $c.sext); }
+gen v4 := CAST14(v1):c { cast(1, 4, $c.sext); }
+gen v8 := CAST18(v1):c { cast(1, 8, $c.sext); }
+gen v1 := CAST21(v2):c { cast(2, 1, $c.sext); }
+gen v4 := CAST24(v2):c { cast(2, 4, $c.sext); }
+gen v8 := CAST28(v2):c { cast(2, 8, $c.sext); }
+gen v1 := CAST41(v4):c { cast(4, 1, $c.sext); }
+gen v2 := CAST42(v4):c { cast(4, 2, $c.sext); }
+gen v8 := CAST48(v4):c { cast(4, 8, $c.sext); }
+gen v1 := CAST81(v8):c { cast(8, 1, $c.sext); }
+gen v2 := CAST82(v8):c { cast(8, 2, $c.sext); }
+gen v4 := CAST84(v8):c { cast(8, 4, $c.sext); }
 
 // --- Case statements ---------------------------------------------------
 

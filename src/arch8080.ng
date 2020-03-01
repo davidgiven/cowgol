@@ -165,6 +165,11 @@
 		emitter_printf("\n");
 		va_end(ap);
 	}
+
+	static bool is_sext(Symbol* sym)
+	{
+		return sym->u.var.sub == current_sub;
+	}
 %}
 
 register a b d h hl de bc;
@@ -991,19 +996,27 @@ gen BEQS4(stk4:lhs, stk4:rhs):b
 
 // --- Casts ----------------------------------------------------------------
 
-gen hl|bc|de := CAST12(a|b|d|h:rhs)
+gen hl|bc|de := CAST12(a|b|d|h:rhs, sext==0)
 {
 	E("\tmov %s, %s\n", regreflo($$), regref($rhs));
 	E("\tmvi %s, 0\n", regref($$));
 }
 
-gen hl := CAST12(LOAD1(hl:rhs))
+gen hl|bc|de := CAST12(a, sext==1)
+{
+	E("\tmov %s, a\n", regreflo($$));
+	E("\tral\n");
+	E("\tsbb a\n");
+	E("\tmov %s, a\n", regref($$));
+}
+
+gen hl := CAST12(LOAD1(hl:rhs), sext==0)
 {
 	E("\tmov %s, m\n", regreflo($$));
 	E("\tmvi %s, 0\n", regref($$));
 }
 
-gen stk4 := CAST14(a:rhs) uses hl
+gen stk4 := CAST14(a:rhs, sext==0) uses hl
 {
 	E("\tlxi h, 0\n");
 	E("\tpush h\n");
@@ -1011,12 +1024,35 @@ gen stk4 := CAST14(a:rhs) uses hl
 	E("\tpush h\n");
 }
 
+gen stk4 := CAST14(a:rhs, sext==1) uses hl
+{
+	E("\tmov l, a\n");
+	E("\tral\n");
+	E("\tsbb a\n");
+	E("\tmov h, a\n");
+	E("\tpush h\n");
+	E("\tmov l, a\n");
+	E("\txthl\n");
+	E("\tpush h\n");
+}
+
 gen a|b|d|h := CAST21(bc|de|hl:rhs)
 	{ E("\tmov %s, %s\n", regref($$), regreflo($rhs)); }
 	
-gen stk4 := CAST24(hl|de:rhs) uses bc
+gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
 	E("\tlxi b, 0\n");
+	E("\tpush b\n");
+	E("\tpush %s\n", regref($rhs));
+}
+	
+gen stk4 := CAST24(hl|de:rhs, sext==1) uses bc|a
+{
+	E("\tmov a, %s\n", regref($rhs));
+	E("\tral\n");
+	E("\tsbb a\n");
+	E("\tmov b, a\n");
+	E("\tmov c, a\n");
 	E("\tpush b\n");
 	E("\tpush %s\n", regref($rhs));
 }

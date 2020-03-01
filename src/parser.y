@@ -911,7 +911,7 @@ expression(E) ::= expression(E1) AS typeref(T).
 				E1->type->name, E1->type->u.type.width, T->name, T->u.type.width);
 		}
 
-		E = mid_c_cast(T->u.type.width, E1);
+		E = mid_c_cast(T->u.type.width, E1, T->u.type.issigned);
 	}
 	else
 		E = E1;
@@ -963,7 +963,7 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 	E = mid_c_add(intptr_type->u.type.width,
 		E1,
 		mid_c_mul(intptr_type->u.type.width,
-			mid_c_cast(intptr_type->u.type.width, E2),
+			mid_c_cast(intptr_type->u.type.width, E2, false),
 			mid_constant(arraytype->u.type.stride)));
 	E->type = make_pointer_type(arraytype->u.type.element);
 }

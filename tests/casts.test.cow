@@ -1,0 +1,99 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+sub castu1()
+	var one: uint8 := 1;
+	var mone: uint8 := -1;
+
+	print("castu1\n");
+	print("one as uint16"); if (one as uint16) == 1 then yes(); else no(); end if;
+	print("one as uint32"); if (one as uint32) == 1 then yes(); else no(); end if;
+	print("one as int16"); if (one as int16) == 1 then yes(); else no(); end if;
+	print("one as int32"); if (one as int32) == 1 then yes(); else no(); end if;
+	print("mone as uint16"); if (mone as uint16) == 0xff then yes(); else no(); end if;
+	print("mone as uint32"); if (mone as uint32) == 0xff then yes(); else no(); end if;
+	print("mone as int16"); if (mone as int16) == -1 then yes(); else no(); end if;
+	print("mone as int32"); if (mone as int32) == -1 then yes(); else no(); end if;
+end sub;
+castu1();
+
+sub casts1()
+	var one: int8 := 1;
+	var mone: int8 := -1;
+
+	print("casts1\n");
+	print("one as uint16"); if (one as uint16) == 1 then yes(); else no(); end if;
+	print("one as uint32"); if (one as uint32) == 1 then yes(); else no(); end if;
+	print("one as int16"); if (one as int16) == 1 then yes(); else no(); end if;
+	print("one as int32"); if (one as int32) == 1 then yes(); else no(); end if;
+	print("mone as uint16"); if (mone as uint16) == 0xff then yes(); else no(); end if;
+	print("mone as uint32"); if (mone as uint32) == 0xff then yes(); else no(); end if;
+	print("mone as int16"); if (mone as int16) == -1 then yes(); else no(); end if;
+	print("mone as int32"); if (mone as int32) == -1 then yes(); else no(); end if;
+end sub;
+casts1();
+
+sub castu2()
+	var one: uint16 := 1;
+	var mone: uint16 := -1;
+
+	print("castu2\n");
+	print("one as uint8"); if (one as uint8) == 1 then yes(); else no(); end if;
+	print("one as uint32"); if (one as uint32) == 1 then yes(); else no(); end if;
+	print("one as int8"); if (one as int8) == 1 then yes(); else no(); end if;
+	print("one as int32"); if (one as int32) == 1 then yes(); else no(); end if;
+	print("mone as uint8"); if (mone as uint8) == 0xff then yes(); else no(); end if;
+	print("mone as uint32"); if (mone as uint32) == 0xffff then yes(); else no(); end if;
+	print("mone as int8"); if (mone as int8) == -1 then yes(); else no(); end if;
+	print("mone as int32"); if (mone as int32) == -1 then yes(); else no(); end if;
+end sub;
+castu2();
+
+sub casts2()
+	var one: int16 := 1;
+	var mone: int16 := -1;
+
+	print("casts2\n");
+	print("one as uint8"); if (one as uint8) == 1 then yes(); else no(); end if;
+	print("one as uint32"); if (one as uint32) == 1 then yes(); else no(); end if;
+	print("one as int8"); if (one as int8) == 1 then yes(); else no(); end if;
+	print("one as int32"); if (one as int32) == 1 then yes(); else no(); end if;
+	print("mone as uint8"); if (mone as uint8) == 0xff then yes(); else no(); end if;
+	print("mone as uint32"); if (mone as uint32) == 0xffff then yes(); else no(); end if;
+	print("mone as int8"); if (mone as int8) == -1 then yes(); else no(); end if;
+	print("mone as int32"); if (mone as int32) == -1 then yes(); else no(); end if;
+end sub;
+casts2();
+
+sub castu4()
+	var one: uint32 := 1;
+	var mone: uint32 := -1;
+
+	print("castu4\n");
+	print("one as uint8"); if (one as uint8) == 1 then yes(); else no(); end if;
+	print("one as uint16"); if (one as uint16) == 1 then yes(); else no(); end if;
+	print("one as int8"); if (one as int8) == 1 then yes(); else no(); end if;
+	print("one as int16"); if (one as int16) == 1 then yes(); else no(); end if;
+	print("mone as uint8"); if (mone as uint8) == 0xff then yes(); else no(); end if;
+	print("mone as uint16"); if (mone as uint16) == 0xffff then yes(); else no(); end if;
+	print("mone as int8"); if (mone as int8) == -1 then yes(); else no(); end if;
+	print("mone as int16"); if (mone as int16) == -1 then yes(); else no(); end if;
+end sub;
+castu4();
+
+sub casts4()
+	var one: int32 := 1;
+	var mone: int32 := -1;
+
+	print("casts4\n");
+	print("one as uint8"); if (one as uint8) == 1 then yes(); else no(); end if;
+	print("one as uint16"); if (one as uint16) == 1 then yes(); else no(); end if;
+	print("one as int8"); if (one as int8) == 1 then yes(); else no(); end if;
+	print("one as int16"); if (one as int16) == 1 then yes(); else no(); end if;
+	print("mone as uint8"); if (mone as uint8) == 0xff then yes(); else no(); end if;
+	print("mone as uint16"); if (mone as uint16) == 0xffff then yes(); else no(); end if;
+	print("mone as int8"); if (mone as int8) == -1 then yes(); else no(); end if;
+	print("mone as int16"); if (mone as int16) == -1 then yes(); else no(); end if;
+end sub;
+casts4();
+

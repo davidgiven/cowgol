@@ -638,6 +638,7 @@ tests=" \
     addsub-8bit \
     arrayinitialisers \
     case \
+    casts \
     conditionals \
     divrem-16bit-s \
     divrem-16bit-u \

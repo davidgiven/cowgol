@@ -42,10 +42,10 @@ y 2 0 CASE() # left is value, right is when chain
 - 1 0 WHEN(bool isdefault, int32_t value, int label) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label) # left is chain
 
 # These produce all combinations of source and destination widths.
-y 1 1 CAST1()
-y 1 1 CAST2()
-y 1 1 CAST4()
-y 1 1 CAST8()
+y 1 1 CAST1(bool sext) = ("sext=%d", $$.sext)
+y 1 1 CAST2(bool sext) = ("sext=%d", $$.sext)
+y 1 1 CAST4(bool sext) = ("sext=%d", $$.sext)
+y 1 1 CAST8(bool sext) = ("sext=%d", $$.sext)
 
 y 2 1 PUSHPARAM() # left is chain, right is value
 y 2 1 POPPARAM() # left is chain, right is lvalue
