@@ -19,10 +19,22 @@
 %left AS.
 %right NOT TILDE.
 
-%token_type {Token}
+%token_type {[Token]}
 %type typeref {[Symbol]}
 %type expression {[Midnode]}
 %type lvalue {[Midnode]}
+
+%token_destructor
+{
+	if $$ != (0 as [Token]) then
+		if $$.string != (0 as string) then
+			Error();
+			print("unconsumed string");
+			ExitWithError();
+		end if;
+		FreeBlock($$ as [uint8]);
+	end if;
+}
 
 program ::= statements.
 

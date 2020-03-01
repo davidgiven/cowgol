@@ -8,14 +8,82 @@ sub ParserInit()
 	yystackend := &yystack[YYSTACKDEPTH];
 end sub;
 
-sub yy_pop_parser_stack()
-	yytos := yytos - @bytesof yyStackEntry;
-	yy_destructor(yytos.major, &yytos.minor);
-end sub;
-
 sub ParserDeinit()
 	while yytos != &yystack[0] loop
 		yy_pop_parser_stack();
+	end loop;
+end sub;
+
+sub MakeNumberTokenData(): (yyminor: [Token])
+	yyminor := Alloc(@bytesof Token) as [Token];
+	yyminor.number := token_value;
+end sub;
+
+sub MakeStringTokenData(): (yyminor: [Token])
+	yyminor := Alloc(@bytesof Token) as [Token];
+	yyminor.string := StrDup(&token_buffer[0]);
+end sub;
+
+sub yy_find_shift_action(lookahead: YYCODETYPE, stateno: YYACTIONTYPE): (newstateno: YYACTIONTYPE)
+	if stateno > YY_MAX_SHIFT then
+		newstateno := stateno;
+	else
+		var i := yy_shift_ofst[stateno];
+		i := i + lookahead;
+		if yy_lookahead[i] != lookahead then
+			newstateno := yy_default[stateno];
+		else
+			newstateno := yy_action[i];
+		end if;
+	end if;
+end sub;
+
+sub yy_shift(newstateno: YYACTIONTYPE, yymajor: YYCODETYPE, yyminor: ParseTOKENTYPE)
+	yytos := yytos + @bytesof yyStackEntry;
+	if yytos > yystackend then
+		yytos := yytos - @bytesof yyStackEntry;
+		yy_stack_overflow();
+		return;
+	end if;
+
+	if newstateno > YY_MAX_SHIFT then
+		newstateno := newstateno + (YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE);
+	end if;
+
+	yytos.stateno := newstateno;
+	yytos.major := yymajor;
+	yytos.minor.yy0 := yyminor;
+end sub;
+
+sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
+	var yyact := yytos.stateno;
+	loop
+		yyact := yy_find_shift_action(yymajor, yyact);
+		if yyact >= YY_MIN_REDUCE then
+			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
+		elseif yyact <= YY_MAX_SHIFTREDUCE then
+			yy_shift(yyact, yymajor, yyminor);
+		elseif yyact == YY_ACCEPT_ACTION then
+			yytos := yytos - @bytesof yyStackEntry;
+			yy_accept();
+			return;
+		else
+			var yyminorunion: YYMINORTYPE;
+			yyminorunion.yy0 := yyminor;
+			if yyerrcnt <= 0 then
+				yy_syntax_error(yymajor, yyminor);
+			end if;
+			yyerrcnt := 3;
+			yy_destructor(yymajor, &yyminorunion);
+			if yymajor == 0 then
+				yy_parse_failed();
+				yyerrcnt := -1;
+			end if;
+		end if;
+	
+		if yytos == &yystack[0] then
+			break;
+		end if;
 	end loop;
 end sub;
 

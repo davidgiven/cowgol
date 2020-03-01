@@ -67,10 +67,23 @@ LexerIncludeFile(inputfile);
 
 ParserInit();
 loop
-	var token := LexerReadToken();
-	if token == 0 then
-		break;
-	end if;
+	var yymajor := LexerReadToken();
+	case yymajor is
+		when 0:
+			break;
+
+		when NUMBER:
+			ParserFeedToken(yymajor, MakeNumberTokenData());
+
+		when ID:
+			ParserFeedToken(yymajor, MakeStringTokenData());
+
+		when STRING:
+			ParserFeedToken(yymajor, MakeStringTokenData());
+
+		when else:
+			ParserFeedToken(yymajor, 0 as [Token]);
+	end case;
 end loop;
 ParserDeinit();
 
