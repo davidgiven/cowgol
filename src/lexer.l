@@ -1,11 +1,20 @@
 %{
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include "globals.h"
 #include "parser.h"
 
 static int base = 0;
+
+struct linenumbers
+{
+	struct linenumbers* next;
+	int lineno;
+};
+
+static struct linenumbers* pushed_line_numbers = NULL;
 
 %}
 %x STRINGSTATE
@@ -119,6 +128,9 @@ include{SP}+\"[^"]*\"; {
 
 <<EOF>> {
 	yypop_buffer_state();
+	yylineno = pushed_line_numbers->lineno;
+	pushed_line_numbers = pushed_line_numbers->next;
+
 	if (!YY_CURRENT_BUFFER)
 		yyterminate();
 }
@@ -148,6 +160,12 @@ void* open_file(const char* filename)
 
 void include_file(void* buffer)
 {
+	struct linenumbers* ln = calloc(sizeof(struct linenumbers), 1);
+	ln->next = pushed_line_numbers;
+	ln->lineno = yylineno;
+	pushed_line_numbers = ln;
+	yylineno = 1;
+
 	yypush_buffer_state((YY_BUFFER_STATE) buffer);
 }
 
