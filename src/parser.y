@@ -289,7 +289,7 @@ begin_nested_initialiser(STATE) ::= OPENBR.
 
 	Symbol* member = find_inited_member();
 	current_type = get_element_or_member_type(member);
-	if (!is_record(current_type))
+	if (!is_record(current_type) && !is_array(current_type))
 		fatal("only nested records can be statically initialised");
 	alignto(current_type->u.type.alignment);
 	check_for_overlaps(member);

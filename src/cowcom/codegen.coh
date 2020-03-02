@@ -1,3 +1,26 @@
+include ".obj/arch8080/inssel.decl.coh";
+
+record Register
+	name: string;
+	id: RegId;
+	uses: RegId;
+	compatible: RegId;
+	is_stacked: uint8;
+end record;
+
+record Rule
+	flags: uint8;
+	compatible_producable_regs: RegId;
+	producable_regs: RegId;
+	uses_regs: RegId;
+	consumable_regs: RegId[INSTRUCTION_TEMPLATE_DEPTH];
+	matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
+	copyable_nodes: uint8;
+	register_nodes: uint8;
+end record;
+
+include ".obj/arch8080/inssel.coh";
+
 sub Discard(node: [Node])
 end sub;
 

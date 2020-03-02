@@ -44,6 +44,22 @@ sub test_with_strings()
 end sub;
 test_with_strings();
 
+sub test_with_array()
+	record WithArray
+		a: int8;
+		b: uint16[2];
+		c: int8;
+	end record;
+
+	var withArray: WithArray := {1, { 2, 3 }, 4};
+
+	print("read a withArray"); if withArray.a == 1 then yes(); else no(); end if;
+	print("read b[0] withArray"); if withArray.b[0] == 2 then yes(); else no(); end if;
+	print("read b[1] withArray"); if withArray.b[1] == 3 then yes(); else no(); end if;
+	print("read c withArray"); if withArray.c == 4 then yes(); else no(); end if;
+end sub;
+test_with_array();
+
 sub test_nested()
 	record Inner
 		a: int16;

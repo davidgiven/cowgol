@@ -1,0 +1,30 @@
+%{
+%}
+
+register a b d h hl de bc;
+register stk4 param;
+
+regdata a compatible a|b|d|h;
+regdata b uses bc compatible a|b|d|h;
+regdata d uses de compatible a|b|d|h;
+regdata h uses hl compatible a|b|d|h;
+regdata bc uses bc compatible bc|de|hl;
+regdata de uses de compatible bc|de|hl;
+regdata hl uses hl compatible bc|de|hl;
+regdata stk4 stacked;
+regdata param stacked;
+
+gen STARTFILE()
+{
+}
+
+gen ENDFILE();
+
+gen STARTSUB():s
+{
+}
+
+gen ENDSUB():s
+{
+}
+

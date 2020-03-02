@@ -400,7 +400,7 @@ static void create_match_predicates(void)
 {
 	#if defined COWGOL
 		fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8)\n");
-		fprintf(outfp, "matches := 0\n");
+		fprintf(outfp, "matches := 0;\n");
 		fprintf(outfp, "case rule is\n");
 	#else
 		fprintf(outfp, "bool match_predicate(uint8_t rule, Node** n) {\n");
@@ -676,34 +676,61 @@ static void create_rewriters(void)
 static void walk_matcher_tree(int* offset, Node* pattern)
 {
 	int thisoffset = *offset;
-	fprintf(outfp, "\tmatchbuf[%d] = n[%d]->op;\n", thisoffset, thisoffset);
+	#if defined COWGOL
+		fprintf(outfp, "\t[matchbuf+%d] := [n + %d*@bytesof intptr].op;\n", thisoffset, thisoffset);
+	#else
+		fprintf(outfp, "\tmatchbuf[%d] = n[%d]->op;\n", thisoffset, thisoffset);
+	#endif
 
 	if (pattern->left)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tn[%d] = n[%d]->left;\n", *offset, thisoffset);
-		fprintf(outfp, "\tif (n[%d]) {\n", *offset);
-		walk_matcher_tree(offset, pattern->left);
-		fprintf(outfp, "\t}\n");
+		#if defined COWGOL
+			fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].left;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
+			walk_matcher_tree(offset, pattern->left);
+			fprintf(outfp, "\tend if;\n");
+		#else
+			fprintf(outfp, "\tn[%d] = n[%d]->left;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif (n[%d]) {\n", *offset);
+			walk_matcher_tree(offset, pattern->left);
+			fprintf(outfp, "\t}\n");
+		#endif
 	}
 	if (pattern->right)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tn[%d] = n[%d]->right;\n", *offset, thisoffset);
-		fprintf(outfp, "\tif (n[%d]) {\n", *offset);
-		walk_matcher_tree(offset, pattern->right);
-		fprintf(outfp, "\t}\n");
+		#if defined COWGOL
+			fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].right;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
+			walk_matcher_tree(offset, pattern->right);
+			fprintf(outfp, "\tend if;\n");
+		#else
+			fprintf(outfp, "\tn[%d] = n[%d]->right;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif (n[%d]) {\n", *offset);
+			walk_matcher_tree(offset, pattern->right);
+			fprintf(outfp, "\t}\n");
+		#endif
 	}
 }
 
 static void create_matcher(void)
 {
-	fprintf(outfp, "void populate_match_buffer(Instruction* insn, Node** n, uint8_t* matchbuf) {\n");
+	#if defined COWGOL
+		fprintf(outfp, "sub PopulateMatchBuffer(insn: [Instruction], n: [[Node]], matchbuf: [uint8])\n");
+	#else
+		fprintf(outfp, "void populate_match_buffer(Instruction* insn, Node** n, uint8_t* matchbuf) {\n");
+	#endif
 
 	int offset = 0;
 	walk_matcher_tree(&offset, pattern);
 
-	fprintf(outfp, "}\n");
+	#if defined COWGOL
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "};\n");
+	#endif
+
 }
 
 int main(int argc, const char* argv[])
@@ -734,7 +761,7 @@ int main(int argc, const char* argv[])
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
-		fprintf(outhfp, "typedef RegisterMask := int(0, 0x%x);\n", (1<<registercount) - 1);
+		fprintf(outhfp, "typedef RegId := int(0, 0x%x);\n", (1<<registercount) - 1);
 	#else
 		fprintf(outhfp, "#ifndef NEWGEN_H\n");
 		fprintf(outhfp, "#define NEWGEN_H\n");
