@@ -55,6 +55,7 @@
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %left AS.
+%left DOT.
 %right NOT TILDE.
 
 %token_type {struct token*}

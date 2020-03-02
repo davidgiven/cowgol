@@ -3766,7 +3766,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
     }
   }
   if( lhsdirect ){
-    sprintf(zLhs, "yymsp[%d].minor.yy%d",1-rp->nrhs,rp->lhs->dtnum);
+    sprintf(zLhs, "[yytos + (%d*@bytesof yyStackEntry)].minor.yy%d",1-rp->nrhs,rp->lhs->dtnum);
   }else{
     rc = 1;
     sprintf(zLhs, "yylhsminor.yy%d",rp->lhs->dtnum);
@@ -3802,7 +3802,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
             }else if( cp!=rp->code && cp[-1]=='@' ){
               /* If the argument is of the form @X then substituted
               ** the token number of X, not the value of X */
-              append_str("yymsp[%d].major",-1,i-rp->nrhs+1,0);
+              append_str("[yytos + (%d*@bytesof yyStackEntry)].major",-1,i-rp->nrhs+1,0);
             }else{
               struct symbol *sp = rp->rhs[i];
               int dtnum;
@@ -3811,7 +3811,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
               }else{
                 dtnum = sp->dtnum;
               }
-              append_str("yymsp[%d].minor.yy%d",0,i-rp->nrhs+1, dtnum);
+              append_str("[yytos + (%d*@bytesof yyStackEntry)].minor.yy%d",0,i-rp->nrhs+1, dtnum);
             }
             cp = xp;
             used[i] = 1;
@@ -4487,6 +4487,7 @@ void ReportTable(
   */
   if( lemp->tokendest ){
 	fprintf(out, "sub token_destructor()\n"); lineno++;
+    for(i=0; i<lemp->nsymbol && lemp->symbols[i]->type!=TERMINAL; i++);
     emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
 	fprintf(out, "end sub;\n"); lineno++;
   }

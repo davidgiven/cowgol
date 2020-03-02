@@ -1,0 +1,7 @@
+sub Discard(node: [Node])
+end sub;
+
+sub Generate(node: [Node])
+	Discard(node);
+end sub;
+

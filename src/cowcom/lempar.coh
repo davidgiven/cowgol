@@ -83,10 +83,6 @@ end sub;
 
 sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken: ParseTOKENTYPE):
 		(yyact: YYACTIONTYPE)
-	print("reducing by rule ");
-	print_i8(yyruleno);
-	print_nl();
-
 	if yytos == yystackend then
 		yy_stack_overflow();
 	end if;

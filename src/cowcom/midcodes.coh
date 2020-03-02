@@ -1,5 +1,5 @@
 
-sub BadMidcodeWidth(width: uint8)
+sub BadNodeWidth(width: uint8)
 	print("bad midcode width ");
 	print_i8(width);
 	print_nl();

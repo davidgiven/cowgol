@@ -1,0 +1,67 @@
+var current_subr: [Subroutine];
+
+sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
+	if namespace == (0 as [Namespace]) then
+		namespace := &current_subr.namespace;
+	end if;
+	
+	while namespace != (0 as [Namespace]) loop
+		symbol := namespace.first;
+		while symbol != (0 as [Symbol]) loop
+			if StrCmp(symbol.name, name) == 0 then
+				while symbol.kind == TYPE_ALIAS loop
+					symbol := symbol.alias;
+				end loop;
+				return;
+			end if;
+			symbol := symbol.next;
+		end loop;
+		namespace := namespace.parent;
+	end loop;
+
+	symbol := (0 as [Symbol]);
+end sub;
+
+# Consumes the string in Token
+sub AddSymbol(namespace: [Namespace], token: [Token]): (symbol: [Symbol])
+	if namespace == (0 as [Namespace]) then
+		namespace := &current_subr.namespace;
+	end if;
+
+	if LookupSymbol(namespace, token.string) != (0 as [Symbol]) then
+		StartError();
+		print("symbol '");
+		print(token.string);
+		print("' is already defined");
+		EndError();
+	end if;
+
+	symbol := Alloc(@bytesof Symbol) as [Symbol];
+	symbol.name := token.string;
+	token.string := (0 as string);
+
+	if namespace.last == (0 as [Symbol]) then
+		namespace.first := symbol;
+		namespace.last := symbol;
+	else
+		namespace.last.next := symbol;
+		namespace.last := symbol;
+	end if;
+end sub;
+
+sub CheckNotPartialType(type: [Symbol])
+	if type.typedata.kind == TYPE_PARTIAL then
+		StartError();
+		print("'");
+		print(type.name);
+		print("' is a partial type");
+		EndError();
+	end if;
+end sub;
+
+sub InitVariable(symbol: [Symbol], type: [Symbol])
+	CheckNotPartialType(type);
+	symbol.vardata.type := type;
+	symbol.vardata.subr := current_subr;
+end sub;
+

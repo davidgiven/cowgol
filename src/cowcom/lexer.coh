@@ -193,6 +193,12 @@ sub EndError()
 	ExitWithError();
 end sub;
 
+sub SimpleError(message: string)
+	StartError();
+	print(message);
+	EndError();
+end sub;
+
 sub LexerAddIncludePath(path: string)
 	var p := Alloc(@bytesof IncludePath) as [IncludePath];
 	p.next := include_paths;

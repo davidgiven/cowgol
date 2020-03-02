@@ -1,6 +1,15 @@
+typedef LabelRef := uint16;
+typedef Arith := int32;
+
 record Token
 	number @at(0): int32;
 	string @at(0): string;
+end record;
+
+record Namespace
+	first: [Symbol];
+	last: [Symbol];
+	parent: [Namespace];
 end record;
 
 record HasElementSymbol
@@ -17,11 +26,17 @@ record NumberTypeSymbol
 	is_signed: uint8;
 end record;
 
-record TypeSymbol
-	haselementtype @at(0): HasElementSymbol;
-	numbertype @at(0): NumberTypeSymbol;
-	arraytype @at(0): ArrayTypeSymbol;
-	membertype @at(0): MemberTypeSymbol;
+const TYPE_PARTIAL := 1;
+const TYPE_NUMBER := 2;
+const TYPE_POINTER := 3;
+const TYPE_ARRAY := 4;
+const TYPE_RECORD := 5;
+const TYPE_ALIAS := 6;
+
+record TypeSymbol: HasElementSymbol
+	number @at(0): NumberTypeSymbol;
+	array @at(0): ArrayTypeSymbol;
+	member @at(0): MemberTypeSymbol;
 
 	pointerto: [Symbol];
 	kind: uint8;
@@ -30,34 +45,35 @@ record TypeSymbol
 end record;
 
 record VarSymbol
-	typesym: [Symbol];
-	owner: [Subroutine]; # null for a member
+	type: [Symbol];
+	subr: [Subroutine]; # null for a member
 	next_parameter: [Symbol]; # for lists of parameters
 	externname: string;
 	offset: uint32;
 end record;
 
-record ConstSymbol
-	value: int32;
-end record;
-
-record SubSymbol
-	subr: [Subroutine];
-end record;
-
-record AliasSymbol
-	target: [Symbol];
-end record;
-
 record Symbol
-	typesym @at(0): TypeSymbol;
-	varsym @at(0): VarSymbol;
-	constsym @at(0): ConstSymbol;
-	subsym @at(0): SubSymbol;
-	aliassym @at(0): AliasSymbol;
+	typedata @at(0): TypeSymbol;
+	vardata @at(0): VarSymbol;
+	constant @at(0): Arith;
+	subr @at(0): [Subroutine];
+	alias @at(0): [Symbol];
 
 	kind: uint8;
 	name: string;
 	next: [Symbol];
+end record;
+
+record Subroutine
+	name: string;
+	externname: string;
+	parent: [Subroutine];
+	namespace: Namespace;
+	first_input_parameter: [Symbol];
+	first_output_parameter: [Symbol];
+	old_break_label: uint16;
+	id: uint16;
+	num_input_parameters: uint8;
+	num_output_parameters: uint8;
 end record;
 

@@ -14,6 +14,9 @@ include "src/cowcom/allocator.coh";
 include "src/cowcom/midcodes.coh";
 include ".obj/parser.tokens.coh";
 include "src/cowcom/lexer.coh";
+include "src/cowcom/codegen.coh";
+include "src/cowcom/symbols.coh";
+include "src/cowcom/expressions.coh";
 include "src/cowcom/parser.coh";
 
 sub PrintFreeMemory()
@@ -64,6 +67,10 @@ PrintFreeMemory();
 
 ParseArguments();
 LexerIncludeFile(inputfile);
+
+current_subr := Alloc(@bytesof Subroutine) as [Subroutine];
+current_subr.name := "__main";
+current_subr.externname := "cmain";
 
 ParserInit();
 loop

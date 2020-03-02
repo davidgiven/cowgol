@@ -20,9 +20,6 @@
 %right NOT TILDE.
 
 %token_type {[Token]}
-%type typeref {[Symbol]}
-%type expression {[Midnode]}
-%type lvalue {[Midnode]}
 
 %syntax_error
 {
@@ -42,11 +39,7 @@
 %token_destructor
 {
 	if $$ != (0 as [Token]) then
-		#if $$.string != (0 as string) then
-		#	StartError();
-		#	print("unconsumed string");
-		#	EndError();
-		#end if;
+		FreeBlock($$.string as [uint8]);
 		FreeBlock($$ as [uint8]);
 	end if;
 }
@@ -60,106 +53,112 @@ statements ::= statements statement.
 
 statement ::= SEMICOLON.
 
-/* --- Subroutine definitions -------------------------------------------- */
-
-statement ::= SUB newid(S).
-{
-	print("sub reduce\n");
-# S
-}
-
 /* --- Simple statements ------------------------------------------------- */
 
 statement ::= RETURN SEMICOLON.
 {
-	print("return\n");
+	Generate(MidReturn());
 }
 
 /* --- Variable declaration ---------------------------------------------- */
 
 statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
-#	S->kind = VAR;
+	S.kind := VAR;
+	InitVariable(S, T);
+}
+
+statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
+{
+#	S.kind := VAR;
 #	init_var(S, T);
+#    check_expression_type(&E.type, S.varsym.type);
+#
+#    Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
+}
+
+statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
+{
+#	if (E.type == (0 as [Symbol]))
+#		SimpleError("types cannot be inferred for numeric constants");
+#	if (!is_scalar(E->type))
+#		SimpleError("you can only assign to lvalues");
+#	S.kind := VAR;
+#	init_var(S, E.type);
+#	check_expression_type(&E.type, E.type);
+#
+#	Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
+}
+
+/* --- Expressions ------------------------------------------------------- */
+
+%type expression {[Node]}
+expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
+expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
+expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
+expression(E) ::= expression(E1) MINUS expression(E2).     { E := ExprSub(E1, E2); }
+expression(E) ::= expression(E1) STAR expression(E2).      { E := ExprMul(E1, E2); }
+expression(E) ::= expression(E1) SLASH expression(E2).     { E := ExprDiv(E1, E2); }
+expression(E) ::= expression(E1) PERCENT expression(E2).   { E := ExprRem(E1, E2); }
+expression(E) ::= expression(E1) CARET expression(E2).     { E := ExprEor(E1, E2); }
+expression(E) ::= expression(E1) AMPERSAND expression(E2). { E := ExprAnd(E1, E2); }
+expression(E) ::= expression(E1) PIPE expression(E2).      { E := ExprOr(E1, E2); }
+expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
+expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
+
+expression(E) ::= lvalue(L).
+{
+# E L
+}
+
+/* --- Lvalues ----------------------------------------------------------- */
+
+%type lvalue {[Node]}
+lvalue(L) ::= oldid(S).
+{
+# L S
+
+}
+
+%type cvalue {Arith}
+cvalue(C) ::= expression(E).
+{
+	if E.type != (0 as [Symbol]) then
+		SimpleError("only constant values are allowed here");
+	end if;
+	C := E.constant.value;
 }
 
 /* --- Types ------------------------------------------------------------- */
 
-/*
-typeref(sym) ::= INT OPENPAREN cvalue(min) COMMA cvalue(max) CLOSEPAREN.
+%type typeref {[Symbol]}
+typeref(S) ::= INT OPENPAREN cvalue(MIN) COMMA cvalue(MAX) CLOSEPAREN.
 {
-	if (max <= min)
-		fatal("invalid integer type range");
-	sym = arch_guess_int_type(min, max);
-}
-*/
-
-typeref(sym) ::= eitherid(id).
-{
-#    sym = id;
-#	if (!sym->kind)
-#	{
-#		/* Create a partial type ref. */
-#		sym->kind = TYPE;
-#		sym->u.type.kind = TYPE_PARTIAL;
-#	}
-#    if (sym->kind != TYPE)
-#        fatal("expected '%s' to be a type", sym->name);
+#	if MAX <= MIN then
+#		SimpleError("invalid integer type range");
+#	S := ArchGuessIntType(MIN, MAX);
 }
 
-/*
-typeref(sym) ::= typeref(basetype) OPENSQ cvalue(value) CLOSESQ.
-{ sym = make_array_type(basetype, value); }
-
-typeref(sym) ::= typeref(basetype) OPENSQ CLOSESQ.
-{ sym = make_array_type(basetype, 0); }
-
-typeref(sym) ::= OPENSQ typeref(basetype) CLOSESQ.
-{
-	sym = make_pointer_type(basetype);
-}
-
-typeref(sym) ::= INDEXOF oldid(S).
-{
-	if (S->kind == VAR)
-		S = S->u.var.type;
-	if ((S->kind == TYPE) && is_array(S))
-		sym = S->u.type.indextype;
-	else
-		fatal("you can only use @indexof on arrays");
-}
-
-statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
-{
-	add_alias(NULL, X->string, T);
-}
-*/
-
-/* --- Low level symbol stuff -------------------------------------------- */
+/* --- Symbols ----------------------------------------------------------- */
 
 %type newid {[Symbol]}
-newid(S) ::= ID(token).
+newid(S) ::= ID(T).
 {
-	print("reduce newid\n");
-#    S = add_new_symbol(NULL, token->string);
+	S := AddSymbol(0 as [Namespace], T);
 }
 
-/*
 %type oldid {[Symbol]}
-oldid(S) ::= ID(token).
+oldid(S) ::= ID(T).
 {
-	print("oldid\n");
-#    S = lookup_symbol(NULL, token->string);
-#	if (!S)
-#		fatal("symbol '%s' not found", token->string);
-}
-*/
-
-%type eitherid {[Symbol]}
-eitherid(S) ::= ID(token).
-{
-#	S = lookup_symbol(NULL, token->string);
-#	if (!S)
-#		S = add_new_symbol(NULL, token->string);
+	var name := T.string;
+	var sym := LookupSymbol(0 as [Namespace], name);
+	if sym == (0 as [Symbol]) then
+		StartError();
+		print("symbol '");
+		print(name);
+		print("' not found");
+		EndError();
+	end if;
+	S := sym;
 }
 

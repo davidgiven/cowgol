@@ -1,0 +1,40 @@
+sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprAdd not supported");
+end sub;
+
+sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprSub not supported");
+end sub;
+
+sub ExprMul(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprMul not supported");
+end sub;
+
+sub ExprDiv(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprDiv not supported");
+end sub;
+
+sub ExprRem(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprRem not supported");
+end sub;
+
+sub ExprAnd(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprAnd not supported");
+end sub;
+
+sub ExprOr(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprOr not supported");
+end sub;
+
+sub ExprEor(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprEor not supported");
+end sub;
+
+sub ExprLShift(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprLShift not supported");
+end sub;
+
+sub ExprRShift(lhs: [Node], rhs: [Node]): (result: [Node])
+	SimpleError("ExprRShift not supported");
+end sub;
+
