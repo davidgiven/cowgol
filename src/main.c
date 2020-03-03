@@ -13,7 +13,7 @@ void fatal(const char* s, ...)
 {
 	va_list ap;
 	va_start(ap, s);
-	fprintf(stderr, "%d: ", yylineno);
+	fprintf(stderr, "%s:%d: ", yyfilename, yylineno);
 	vfprintf(stderr, s, ap);
 	fprintf(stderr, "\n");
 	va_end(ap);
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 	current_sub->name = "__main";
 	current_sub->externname = "cmain";
 
-	include_file(open_file(inputfile));
+	include_file(inputfile);
 
 	emitter_open(outputfile);
 	emitter_open_chunk();

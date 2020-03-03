@@ -15,6 +15,7 @@ extern void fatal(const char* s, ...) __attribute__ ((noreturn));
 extern const char* aprintf(const char* s, ...);
 extern int yylex(void);
 extern int yylineno;
+extern const char* yyfilename;
 extern FILE* yyin;
 
 extern char* yytext;
@@ -129,8 +130,7 @@ struct includepath
 extern struct includepath* includes;
 
 #define yyerror(s) fatal(s)
-extern void* open_file(const char* filename);
-extern void include_file(void* buffer);
+extern void include_file(const char* filename);
 
 extern void varaccess(const char* opcode, struct symbol* var);
 

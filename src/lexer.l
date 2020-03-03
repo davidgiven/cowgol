@@ -7,9 +7,11 @@
 #include "parser.h"
 
 static int base = 0;
+const char* yyfilename;
 
 struct linenumbers
 {
+	const char* filename;
 	struct linenumbers* next;
 	int lineno;
 };
@@ -123,12 +125,13 @@ include{SP}+\"[^"]*\"; {
 	strtok(yytext, "\"");
 	char* filename = strtok(NULL, "\""); /* second token is the filename */
 
-	include_file(open_file(filename));
+	include_file(filename);
 }
 
 <<EOF>> {
 	yypop_buffer_state();
 	yylineno = pushed_line_numbers->lineno;
+	yyfilename = pushed_line_numbers->filename;
 	pushed_line_numbers = pushed_line_numbers->next;
 
 	if (!YY_CURRENT_BUFFER)
@@ -139,7 +142,7 @@ include{SP}+\"[^"]*\"; {
 
 %%
 
-void* open_file(const char* filename)
+void include_file(const char* filename)
 {
 	const struct includepath* i = includes;
 	while (i)
@@ -150,22 +153,22 @@ void* open_file(const char* filename)
 
 		FILE* fp = fopen(path, "r");
 		if (fp)
-			return yy_create_buffer(fp, YY_BUF_SIZE);
+		{
+			struct linenumbers* ln = calloc(sizeof(struct linenumbers), 1);
+			ln->next = pushed_line_numbers;
+			ln->lineno = yylineno;
+			ln->filename = yyfilename;
+			pushed_line_numbers = ln;
+			yylineno = 1;
+			yyfilename = strdup(path);
+
+			yypush_buffer_state(yy_create_buffer(fp, YY_BUF_SIZE));
+			return;
+		}
 
 		i = i->next;
 	}
 	fatal("could not open include file '%s'", filename);
 	abort();
-}
-
-void include_file(void* buffer)
-{
-	struct linenumbers* ln = calloc(sizeof(struct linenumbers), 1);
-	ln->next = pushed_line_numbers;
-	ln->lineno = yylineno;
-	pushed_line_numbers = ln;
-	yylineno = 1;
-
-	yypush_buffer_state((YY_BUFFER_STATE) buffer);
 }
 
