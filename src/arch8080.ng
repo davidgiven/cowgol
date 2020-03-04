@@ -191,7 +191,6 @@ gen STARTFILE()
     E("\textrn add4\n");
     E("\textrn sub4\n");
 	E("\textrn sublit4\n");
-	E("\textrn cmplit4\n");
     E("\textrn neg4\n");
 	E("\textrn mul1\n");
 	E("\textrn mul2\n");
@@ -220,11 +219,14 @@ gen STARTFILE()
 	E("\textrn or4\n");
 	E("\textrn eor4\n");
 	E("\textrn not4\n");
-	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
 	E("\textrn store4\n");
 	E("\textrn caset1\n");
 	E("\textrn cmps1\n");
+	E("\textrn cmps2\n");
+	E("\textrn cmpl4\n");
+	E("\textrn cmpu4\n");
+	E("\textrn cmps4\n");
     emitter_close_chunk(NULL);
 }
 
@@ -978,21 +980,41 @@ gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 	E("\tjmp %s\n", labelref($b.falselabel));
 }
 
+gen BLTS2(de, hl):b uses a|bc
+{
+	E("\tcall cmps2\n");
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
 %{
 	static void bequ4(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
 	{
-		E("\tcall sub4\n");
 		E("\tcall cmpu4\n");
 		E("\tjnz %s\n", labelref(falselabel));
 		E("\tjmp %s\n", labelref(truelabel));
 	}
 %}
 
-gen BEQU4(stk4:lhs, stk4:rhs):b
+gen BEQU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
 
-gen BEQS4(stk4:lhs, stk4:rhs):b
+gen BEQS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
+{
+	E("\tcall cmpu4\n");
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
+{
+	E("\tcall cmps4\n");
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
 
 // --- Casts ----------------------------------------------------------------
 
