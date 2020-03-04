@@ -62,6 +62,19 @@ sub ParseArguments()
 	end if;
 end sub;
 
+# This routine is a hack and shouldn't be here.
+
+	sub ArchInitTypes()
+		uint32_type := MakeNumberType(4, 0);
+		int32_type := MakeNumberType(4, 1);
+		uint16_type := MakeNumberType(2, 0);
+		int16_type := MakeNumberType(2, 1);
+		uint8_type := MakeNumberType(1, 0);
+		int8_type := MakeNumberType(1, 1);
+
+		intptr_type := uint16_type;
+	end sub;
+
 print("COWCOM: ");
 PrintFreeMemory();
 
@@ -72,13 +85,12 @@ current_subr := Alloc(@bytesof Subroutine) as [Subroutine];
 current_subr.name := "__main";
 current_subr.externname := "cmain";
 
+ArchInitTypes();
+
 ParserInit();
 loop
 	var yymajor := LexerReadToken();
 	case yymajor is
-		when 0:
-			break;
-
 		when NUMBER:
 			ParserFeedToken(yymajor, MakeNumberTokenData());
 
@@ -91,6 +103,9 @@ loop
 		when else:
 			ParserFeedToken(yymajor, 0 as [Token]);
 	end case;
+	if yymajor == 0 then
+		break;
+	end if;
 end loop;
 ParserDeinit();
 

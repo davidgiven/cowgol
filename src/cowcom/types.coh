@@ -31,7 +31,6 @@ const TYPE_NUMBER := 2;
 const TYPE_POINTER := 3;
 const TYPE_ARRAY := 4;
 const TYPE_RECORD := 5;
-const TYPE_ALIAS := 6;
 
 record TypeSymbol: HasElementSymbol
 	number @at(0): NumberTypeSymbol;

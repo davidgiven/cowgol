@@ -21,7 +21,27 @@ end record;
 
 include ".obj/arch8080/inssel.coh";
 
+# Free up the node tree routed in the parameter. This is more exciting than it
+# should be because we don't have recursion.
 sub Discard(node: [Node])
+	var pending := node;
+	while pending != (0 as [Node]) loop
+		node := pending;
+		pending := node.dlink;
+
+		# Unlink and push any children.
+		if node.left != (0 as [Node]) then
+			node.left.dlink := pending;
+			pending := node.left;
+		end if;
+		if node.right != (0 as [Node]) then
+			node.right.dlink := pending;
+			pending := node.right;
+		end if;
+
+		# Now free this node.
+		Free(node as [uint8], @bytesof Node);
+	end loop;
 end sub;
 
 sub Generate(node: [Node])

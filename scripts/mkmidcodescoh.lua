@@ -39,10 +39,11 @@ for m, md in pairs(midcodes) do
         hfp:write("\t", m:lower(), " @at(0): Midcode", title(m), ";\n")
     end
 end
-hfp:write("\top: uint8;\n")
+hfp:write("\ttype: [Symbol];\n")
 hfp:write("\tleft: [Node];\n")
 hfp:write("\tright: [Node];\n")
-hfp:write("\ttype: [Symbol];\n")
+hfp:write("\tdlink: [Node]; # only used during destruction\n")
+hfp:write("\top: uint8;\n")
 hfp:write("end record;\n");
 
 -- Routines for allocating midnodes.

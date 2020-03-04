@@ -9,7 +9,7 @@ sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 		symbol := namespace.first;
 		while symbol != (0 as [Symbol]) loop
 			if StrCmp(symbol.name, name) == 0 then
-				while symbol.kind == TYPE_ALIAS loop
+				while symbol.kind == TYPEDEF loop
 					symbol := symbol.alias;
 				end loop;
 				return;
@@ -20,6 +20,16 @@ sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 	end loop;
 
 	symbol := (0 as [Symbol]);
+end sub;
+
+sub AddToNamespace(namespace: [Namespace], symbol: [Symbol])
+	if namespace.last == (0 as [Symbol]) then
+		namespace.first := symbol;
+		namespace.last := symbol;
+	else
+		namespace.last.next := symbol;
+		namespace.last := symbol;
+	end if;
 end sub;
 
 # Consumes the string in Token
@@ -40,13 +50,14 @@ sub AddSymbol(namespace: [Namespace], token: [Token]): (symbol: [Symbol])
 	symbol.name := token.string;
 	token.string := (0 as string);
 
-	if namespace.last == (0 as [Symbol]) then
-		namespace.first := symbol;
-		namespace.last := symbol;
-	else
-		namespace.last.next := symbol;
-		namespace.last := symbol;
-	end if;
+	AddToNamespace(namespace, symbol);
+end sub;
+
+# Consumes the string in Token
+sub AddAlias(namespace: [Namespace], token: [Token], real: [Symbol]): (symbol: [Symbol])
+	symbol := AddSymbol(namespace, token);
+	symbol.kind := TYPEDEF;
+	symbol.alias := real;
 end sub;
 
 sub CheckNotPartialType(type: [Symbol])
@@ -63,5 +74,15 @@ sub InitVariable(symbol: [Symbol], type: [Symbol])
 	CheckNotPartialType(type);
 	symbol.vardata.type := type;
 	symbol.vardata.subr := current_subr;
+end sub;
+
+sub MakeNumberType(width: uint8, is_signed: uint8): (symbol: [Symbol])
+	symbol := Alloc(@bytesof Symbol) as [Symbol];
+	symbol.kind := TYPE;
+	symbol.typedata.kind := TYPE_NUMBER;
+	symbol.typedata.width := width as uint16;
+	symbol.typedata.alignment := ArchAlignUp(1, width) as uint8;
+	symbol.typedata.number.is_signed := is_signed;
+	AddToNamespace(&current_subr.namespace, symbol);
 end sub;
 

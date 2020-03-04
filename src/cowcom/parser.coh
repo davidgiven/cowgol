@@ -58,10 +58,13 @@ end sub;
 sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	var yyact := yytos.stateno;
 	loop
+		var oldact := yyact;
 		yyact := yy_find_shift_action(yymajor, yyact);
 
 		print("yytos @ ");
 		print_hex_i32(yytos as intptr as uint32);
+		print(" oldact ");
+		print_i8(oldact);
 		print(" token ");
 		print(yyTokenName[yymajor]);
 		if yyact < YY_MIN_REDUCE then
