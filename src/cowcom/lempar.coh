@@ -81,19 +81,40 @@ sub yy_find_reduce_action(stateno: YYACTIONTYPE, lookahead: YYCODETYPE): (action
 	end if;
 end sub;
 
+sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
+	print(msg);
+	print(" '");
+	print(yyTokenName[yytos.major]);
+	print("', go to state ");
+	print_i8(stateno);
+	print_nl();
+end sub;
+
 sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken: ParseTOKENTYPE):
 		(yyact: YYACTIONTYPE)
+	var yysize := yyRuleInfoNRhs[yyruleno];
+	print("Reduce ");
+	print_i8(yyruleno);
+	print(" ");
+	print(yyRuleName[yyruleno]);
+	if yysize != 0 then
+		print(", go to state ");
+		print_i8([yytos + (yysize as intptr)*@bytesof yyStackEntry].stateno);
+	end if;
+	print_nl();
+
 	if yytos == yystackend then
 		yy_stack_overflow();
 	end if;
 %%
 	var yygoto := yyRuleInfoLhs[yyruleno];
-	var yysize := yyRuleInfoNRhs[yyruleno];
 	yytos := yytos + (yysize as intptr)*@bytesof yyStackEntry;
 	yyact := yy_find_reduce_action(yytos.stateno, yygoto);
 	yytos := yytos + @bytesof yyStackEntry;
 	yytos.stateno := yyact;
 	yytos.major := yygoto;
+
+	yy_trace_shift(yyact, "...then shift");
 end sub;
 
 # parse failure code
