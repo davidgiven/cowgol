@@ -11,6 +11,7 @@ var outputfile: string := (0 as string);
 
 include "src/cowcom/types.coh";
 include "src/cowcom/allocator.coh";
+include ".obj/arch8080/inssel.decl.coh";
 include "src/cowcom/midcodes.coh";
 include ".obj/parser.tokens.coh";
 include "src/cowcom/lexer.coh";
@@ -86,6 +87,8 @@ current_subr.name := "__main";
 current_subr.externname := "cmain";
 
 ArchInitTypes();
+Generate(MidStartfile());
+Generate(MidStartsub(current_subr));
 
 ParserInit();
 loop
@@ -108,6 +111,9 @@ loop
 	end if;
 end loop;
 ParserDeinit();
+
+Generate(MidEndsub(current_subr));
+Generate(MidEndfile());
 
 print("done: ");
 PrintFreeMemory();

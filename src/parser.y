@@ -1191,6 +1191,7 @@ recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
 {
 	S->kind = VAR;
 	S->u.var.type = T;
+	check_non_partial_type(T);
 	if (T->u.type.alignment > current_type->u.type.alignment)
 		current_type->u.type.alignment = T->u.type.alignment;
 	arch_init_member(current_type, S, -1);
@@ -1200,6 +1201,7 @@ recordmember ::= memberid(S) AT OPENPAREN cvalue(C) CLOSEPAREN COLON typeref(T) 
 {
 	S->kind = VAR;
 	S->u.var.type = T;
+	check_non_partial_type(T);
 	if (T->u.type.alignment > current_type->u.type.alignment)
 		current_type->u.type.alignment = T->u.type.alignment;
 	arch_init_member(current_type, S, C);

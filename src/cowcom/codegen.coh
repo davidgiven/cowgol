@@ -1,4 +1,4 @@
-include ".obj/arch8080/inssel.decl.coh";
+const RULE_HAS_PREDICATES := 0x01;
 
 record Register
 	name: string;
@@ -73,6 +73,35 @@ sub PushNode(node: [Node])
 	nodecount := nodecount + 1;
 end sub;
 
+sub UnmatchedInstructionError()
+	SimpleError("unmatched instruction");
+end sub;
+
+sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
+	result := 0;
+
+	var i: uint8 := INSTRUCTION_TEMPLATE_DEPTH;
+	print("comparator\n");
+	while i != 0 loop
+		var d := [data];
+		data := data + 1;
+		var t := [template];
+		template := template + 1;
+		print("t=");
+		print_hex_i8(t);
+		print(" d=");
+		print_hex_i8(d);
+		print_nl();
+		if (t != 0) and (d != t) then
+			return;
+		end if;
+
+		i := i - 1;
+	end loop;
+
+	result := 1;
+end sub;
+
 sub Generate(node: [Node])
 	MemZero(&instructions[0] as [uint8], @bytesof instructions);
 	nodecount := 0;
@@ -96,16 +125,48 @@ sub Generate(node: [Node])
 		matchnodes[0] := n;
 		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
 
-		var rule := &codegen_rules[0];
-		while rule != &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] loop
-			if rule.compatible_producable_regs != 0 then
-				# This rule produces a result, so only match if the register
-				# is compatible.
+		var ruleid: uint8 := 0xff;
+		var rule := &codegen_rules[0] - @bytesof Rule;
+		loop
+			rule := rule + @bytesof Rule;
+			ruleid := ruleid + 1;
 
-				# FIXME no continue yet!
-				#continue;
+			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
+				# Reach the end of the list of rules without matching anything.
+				UnmatchedInstructionError();
 			end if;
+
+			if rule.compatible_producable_regs != 0 then
+				# This rule produces a result, so fail if the result register
+				# isn't compatible.
+				if (n.desired_reg & rule.compatible_producable_regs) == 0 then
+					continue;
+				end if;
+			else
+				# This rule produces no result, so fail if we need one.
+				if n.desired_reg != 0 then
+					continue;
+				end if;
+			end if;
+
+			if TemplateComparator(&matchbytes[0], &rule.matchbytes[0]) == 0 then
+				# Fail if the tree doesn't match.
+				continue;
+			end if;
+
+			if ((rule.flags & RULE_HAS_PREDICATES) != 0) 
+					and (MatchPredicate(ruleid, &matchnodes[0]) != 0) then
+				# This rule has a manual predicate and the manual predicate said no.
+				continue;
+			end if;
+
+			# We have a matching rule!
+			break;
 		end loop;
+
+		print("match rule ");
+		print_i8(ruleid);
+		print_nl();
 	end loop;
 
 	Discard(node);

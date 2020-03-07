@@ -43,15 +43,18 @@ regdata param stacked;
 
 gen STARTFILE()
 {
+	print("STARTFILE\n");
 }
 
 gen ENDFILE();
 
 gen STARTSUB():s
 {
+	print("STARTSUB\n");
 }
 
 gen ENDSUB():s
 {
+	print("ENDSUB\n");
 }
 
