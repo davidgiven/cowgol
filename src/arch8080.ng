@@ -751,7 +751,7 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
     E("\tmov %s, a\n", regref($$));
 }
 
-gen hl := MUL2(bc, de) uses a
+gen hl := MUL2(hl, de) uses a|bc
 	{ E("\tcall mul2\n"); }
 
 gen hl := MUL2(hl, CONSTANT(value==2))
@@ -1054,7 +1054,7 @@ gen hl := CAST12(LOAD1(hl:rhs), sext==0)
 	E("\tmvi %s, 0\n", regref($$));
 }
 
-gen hl|bc|de := CAST12(LOAD1(ADDRESS():a), sext==0)
+gen hl := CAST12(LOAD1(ADDRESS():a), sext==0)
 {
 	E("\tlhld %s\n", symref($a.sym, $a.off));
 	E("\tmvi %s, 0\n", regref($$));

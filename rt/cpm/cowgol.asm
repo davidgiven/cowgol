@@ -33,11 +33,13 @@ mul1_nocarry:
     mov c, a
     jmp mul1_again
 
-    ; Multiplies two 16-bit values: HL = BC * DE.
-    ; Uses A, of course.
+    ; Multiplies two 16-bit values: HL = HL * DE.
+    ; Uses A and BC.
     public mul2
     cseg
 mul2:
+    mov b, h            ; BC = LHS
+    mov c, l
     lxi h, 0            ; HL = result
 mul2_again:
     mov a, b            ; if multiplier = 0 then finished
