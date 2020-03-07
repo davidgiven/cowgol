@@ -6,9 +6,11 @@
 
 static Instruction instructions[100];
 static int instructioncount;
+static int maxinstructioncount = 0;
 
 static Node* nodes[100];
 static int nodecount;
+static int maxnodecount = 0;
 
 void unmatched_instruction(Node* node)
 {
@@ -34,6 +36,8 @@ bool template_comparator(const uint8_t* data, const uint8_t* template)
 void push_node(Node* node)
 {
 	nodes[nodecount++] = node;
+	if (nodecount > maxnodecount)
+		maxnodecount = nodecount;
 }
 
 static reg_t findfirst(reg_t reg)
@@ -244,6 +248,8 @@ void generate(Node* node)
 	while (nodecount != 0)
 	{
 		Instruction* producer = &instructions[instructioncount++];
+		if (instructioncount > maxinstructioncount)
+			maxinstructioncount = instructioncount;
 
 		/* Find the first matching rule for this instruction. */
 
@@ -511,4 +517,8 @@ void discard(struct midnode* node)
 	free(node);
 }
 
+void generate_finalise(void)
+{
+	arch_emit_comment("max nodes = %d, max instructions = %d", maxnodecount, maxinstructioncount);
+}
 

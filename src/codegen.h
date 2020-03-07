@@ -56,6 +56,7 @@ extern void emit_one_instruction(uint8_t rule, Instruction* self);
 
 extern void generate(Node* node);
 extern void discard(Node* node);
+extern void generate_finalise(void);
 
 extern void push_node(Node* node);
 
