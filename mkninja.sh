@@ -650,6 +650,7 @@ tests=" \
     logic-16bit \
     logic-32bit \
     logic-8bit \
+    loops \
     mul-16bit-s \
     mul-16bit-u \
     mul-32bit-s \

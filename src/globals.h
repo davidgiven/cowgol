@@ -116,6 +116,7 @@ struct subroutine
 	int inputparameters;
 	int outputparameters;
 	int old_break_label;
+	int old_continue_label;
 	int id;
 	bool cannot_return;
 	unsigned workspace[4]; /* four workspaces should be enough */
