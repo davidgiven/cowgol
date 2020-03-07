@@ -17,7 +17,7 @@ include "src/cowcom/lexer.coh";
 include "src/cowcom/codegen.coh";
 include "src/cowcom/symbols.coh";
 include "src/cowcom/expressions.coh";
-include "src/cowcom/parser.coh";
+include ".obj/parser.coh";
 
 sub PrintFreeMemory()
 	print_i16((GetFreeMemory() >> 10) as uint16);

@@ -133,3 +133,140 @@ sub yy_accept()
 %%
 end sub;
 
+sub ParserInit()
+	yyerrcnt := -1;
+	yytos := &yystack[0];
+	yystack[0].stateno := 0;
+	yystack[0].major := 0;
+	yystackend := &yystack[YYSTACKDEPTH];
+end sub;
+
+sub ParserDeinit()
+	while yytos != &yystack[0] loop
+		yy_pop_parser_stack();
+	end loop;
+end sub;
+
+sub MakeNumberTokenData(): (yyminor: [Token])
+	yyminor := Alloc(@bytesof Token) as [Token];
+	yyminor.number := token_value;
+end sub;
+
+sub MakeStringTokenData(): (yyminor: [Token])
+	yyminor := Alloc(@bytesof Token) as [Token];
+	yyminor.string := StrDup(&token_buffer[0]);
+end sub;
+
+sub yy_find_shift_action(lookahead: YYCODETYPE, stateno: YYACTIONTYPE): (newstateno: YYACTIONTYPE)
+	if stateno > YY_MAX_SHIFT then
+		newstateno := stateno;
+	else
+		var i := yy_shift_ofst[stateno] + lookahead;
+		if yy_lookahead[i] != lookahead then
+			newstateno := yy_default[stateno];
+		else
+			newstateno := yy_action[i];
+		end if;
+	end if;
+end sub;
+
+sub yy_shift(newstateno: YYACTIONTYPE, yymajor: YYCODETYPE, yyminor: ParseTOKENTYPE)
+	if yytos == yystackend then
+		yy_stack_overflow();
+		return;
+	end if;
+	yytos := yytos + @bytesof yyStackEntry;
+
+	if newstateno > YY_MAX_SHIFT then
+		newstateno := newstateno + (YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE);
+	end if;
+
+	yytos.stateno := newstateno;
+	yytos.major := yymajor;
+	yytos.minor.yy0 := yyminor;
+	yy_trace_shift(newstateno, "Shift");
+end sub;
+
+sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
+	var yyact := yytos.stateno;
+
+	print("Input '")
+	print(yyTokenName[yymajor]);
+	if yyact < YY_MIN_REDUCE then
+		print("' in state ");
+		print_i8(yyact);
+	else
+		print("' with pending reduce ");
+		print_i8(yyact - YY_MIN_REDUCE);
+	end if;
+	print_nl();
+
+	loop
+		print("transition ");
+		print_i8(yyact);
+		print(" -> ");
+		yyact := yy_find_shift_action(yymajor, yyact);
+		print_i8(yyact);
+		print_nl();
+
+		if yyact >= YY_MIN_REDUCE then
+			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
+		elseif yyact <= YY_MAX_SHIFTREDUCE then
+			yy_shift(yyact, yymajor, yyminor);
+			if yyerrcnt >= 0 then
+				yyerrcnt := yyerrcnt - 1;
+			end if;
+			break;
+		elseif yyact == YY_ACCEPT_ACTION then
+			yytos := yytos - @bytesof yyStackEntry;
+			yy_accept();
+			break;
+		else
+			print("error!\n");
+			var yyminorunion: YYMINORTYPE;
+			yyminorunion.yy0 := yyminor;
+			if yyerrcnt <= 0 then
+				yy_syntax_error(yymajor, yyminor);
+			end if;
+			yyerrcnt := 3;
+			yy_destructor(yymajor, &yyminorunion);
+			if yymajor == 0 then
+				yy_parse_failed();
+				yyerrcnt := -1;
+			end if;
+			break;
+		end if;
+	
+		if yytos == &yystack[0] then
+			break;
+		end if;
+	end loop;
+
+	print("Return. stack=[");
+	var i := &yystack[0];
+	while i != yytos loop
+		print(" ");
+		print(yyTokenName[i.major]);
+		i := i + @bytesof yyStackEntry;
+	end loop;
+	print("]\n");
+end sub;
+
+#P:Input 'RETURN' in state 0
+#P:Reduce 126 [statements ::=].
+#P:... then shift 'statements', go to state 4
+#P:Shift 'RETURN', go to state 218
+#P:Return. Stack=[statements RETURN]
+#P:Input 'SEMICOLON' in state 218
+#P:Shift 'SEMICOLON', pending reduce 0
+#P:Return. Stack=[statements RETURN SEMICOLON]
+#P:Input '$' with pending reduce 0
+#P:Reduce 0 [statement ::= RETURN SEMICOLON], go to state 4.
+#P:... then shift 'statement', pending reduce 127
+#P:Reduce 127 [statements ::= statements statement], go to state 0.
+#P:... then shift 'statements', go to state 4
+#P:Reduce 125 [program ::= statements], go to state 0.
+#P:... then shift 'program', pending reduce -2
+#P:Accept!
+
+
