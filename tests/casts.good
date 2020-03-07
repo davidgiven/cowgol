@@ -1,0 +1,54 @@
+castu1
+one as uint16: yes
+one as uint32: yes
+one as int16: yes
+one as int32: yes
+mone as uint16: yes
+mone as uint32: yes
+mone as int16: yes
+mone as int32: yes
+casts1
+one as uint16: yes
+one as uint32: yes
+one as int16: yes
+one as int32: yes
+mone as uint16: yes
+mone as uint32: yes
+mone as int16: yes
+mone as int32: yes
+castu2
+one as uint8: yes
+one as uint32: yes
+one as int8: yes
+one as int32: yes
+mone as uint8: yes
+mone as uint32: yes
+mone as int8: yes
+mone as int32: yes
+casts2
+one as uint8: yes
+one as uint32: yes
+one as int8: yes
+one as int32: yes
+mone as uint8: yes
+mone as uint32: yes
+mone as int8: yes
+mone as int32: yes
+castu4
+one as uint8: yes
+one as uint16: yes
+one as int8: yes
+one as int16: yes
+mone as uint8: yes
+mone as uint16: yes
+mone as int8: yes
+mone as int16: yes
+casts4
+one as uint8: yes
+one as uint16: yes
+one as int8: yes
+one as int16: yes
+mone as uint8: yes
+mone as uint16: yes
+mone as int8: yes
+mone as int16: yes

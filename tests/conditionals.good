@@ -1,12 +1,51 @@
+equality1
 one==ONE: yes
 one!=ONE: no
 one==ONE and zero==ZERO: yes
 one==ONE and zero==ONE: no
 one==ONE or zero==ONE: yes
 one==ZERO or zero==ZERO: yes
-one==ZERO or (one==ONE and zero==ZERO: yes
+one==ZERO or (one==ONE and zero==ZERO): yes
+equality2
+one==ONE: yes
+one!=ONE: no
+one==ONE and zero==ZERO: yes
+one==ONE and zero==ONE: no
+one==ONE or zero==ONE: yes
+one==ZERO or zero==ZERO: yes
+one==ZERO or (one==ONE and zero==ZERO): yes
+equality2
+one==ONE: yes
+one!=ONE: no
+one==ONE and zero==ZERO: yes
+one==ONE and zero==ONE: no
+one==ONE or zero==ONE: yes
+one==ZERO or zero==ZERO: yes
+one==ZERO or (one==ONE and zero==ZERO): yes
+signed1
+zero<ONE: yes
+mone<ONE: yes
+mone<=MONE: yes
+unsigned1
+zero<ONE: yes
+!(mone<ONE): yes
+mone<=MONE: yes
+signed2
+zero<ONE: yes
+mone<ONE: yes
+mone<=MONE: yes
+unsigned2
 zero<one: yes
 one<one: no
 one<zero: no
+signed4
+zero<ONE: yes
+mone<ONE: yes
+mone<=MONE: yes
+unsigned4
+zero<one: yes
+one<one: no
+one<zero: no
+and1
 isletter(70): yes
 isletter(200): no

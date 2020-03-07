@@ -360,20 +360,30 @@ static void print_lower(const char* s)
 		fputc(tolower(*s++), outfp);
 }
 
-static void print_predicate(int index, Node* template, Predicate* predicate)
+static void print_predicate(int index, bool* first, Node* template, Predicate* predicate)
 {
 	while (predicate)
 	{
+		if (!*first)
+		{
+			#if defined COWGOL
+				fprintf(outfp, " and");
+			#else
+				fprintf(outfp, " &&");
+			#endif
+		}
+		*first = false;
+
 		switch (predicate->operator)
 		{
 			case IS:
-				fprintf(outfp, " && is_%s(n[%d]->u.", predicate->u.callback, index);
+				fprintf(outfp, " is_%s(n[%d]->u.", predicate->u.callback, index);
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s)", predicate->field);
 				break;
 
 			default:
-				fprintf(outfp, " && (n[%d]->u.", index);
+				fprintf(outfp, " (n[%d]->u.", index);
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s %s %d)",
 					predicate->field,
@@ -388,22 +398,51 @@ static void print_predicate(int index, Node* template, Predicate* predicate)
 
 static void create_match_predicates(void)
 {
+	#if defined COWGOL
+		fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8)\n");
+		fprintf(outfp, "matches := 0;\n");
+		fprintf(outfp, "case rule is\n");
+	#else
+		fprintf(outfp, "bool match_predicate(uint8_t rule, Node** n) {\n");
+		fprintf(outfp, "switch (rule) {\n");
+	#endif
+
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->has_predicates)
 		{
-			fprintf(outfp, "static bool predicate_%d(Node** n) {\n", i);
-			fprintf(outfp, "\treturn true");
+			#if defined COWGOL
+				fprintf(outfp, "when %d:\n", i);
+				fprintf(outfp, "if ");
+			#else
+				fprintf(outfp, "case %d:\n", i);
+				fprintf(outfp, "\treturn");
+			#endif
+
+			bool first = true;
 			for (int j=0; j<maxdepth; j++)
 			{
 				Node* n = r->nodes[j];
 				if (n)
-					print_predicate(j, n, n->predicate);
+					print_predicate(j, &first, n, n->predicate);
 			}
-			fprintf(outfp, ";\n}\n\n");
+			#if defined COWGOL
+				fprintf(outfp, " then matches := 1; end if;\n");
+			#else
+				fprintf(outfp, ";\n");
+			#endif
 		}
 	}
+
+	#if defined COWGOL
+		fprintf(outfp, "end case;\n");
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "}\n");
+		fprintf(outfp, "return false;\n");
+		fprintf(outfp, "}\n");
+	#endif
 }
 
 static void create_rules(void)
@@ -418,6 +457,13 @@ static void create_rules(void)
 	{
 		Rule* r = rules[i];
 		fprintf(outfp, "\t{ ");
+
+		uint8_t flags = 0;
+		if (r->has_predicates)
+			flags |= 0x01;
+		if (r->replacement)
+			flags |= 0x02;
+		fprintf(outfp, "0x%02x, ", flags);
 
 		fprintf(outfp, "0x%x, ", r->compatible_regs);
 		fprintf(outfp, "0x%x, ", r->result_reg);
@@ -435,21 +481,6 @@ static void create_rules(void)
 				fprintf(outfp, "0");
 		}
 		fprintf(outfp, " }, ");
-
-		if (r->has_predicates)
-			fprintf(outfp, "predicate_%d, ", i);
-		else
-			fprintf(outfp, "NULL, ");
-
-		if (r->action)
-			fprintf(outfp, "emitter_%d, ", i);
-		else
-			fprintf(outfp, "NULL, ");
-
-		if (r->replacement)
-			fprintf(outfp, "rewriter_%d, ", i);
-		else
-			fprintf(outfp, "NULL, ");
 
 		fprintf(outfp, "{ ");
 		for (int j=0; j<maxdepth; j++)
@@ -523,12 +554,26 @@ static void print_line(int lineno)
 
 static void create_emitters(void)
 {
+	#if defined COWGOL
+		fprintf(outfp, "sub EmitOneInstruction(rule: uint8, self: [Instruction])\n");
+		fprintf(outfp, "case rule is\n");
+	#else
+		fprintf(outfp, "void emit_one_instruction(uint8_t rule, Instruction* self) {\n");
+		fprintf(outfp, "switch (rule) {\n");
+	#endif
+
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->action)
 		{
-			fprintf(outfp, "static void emitter_%d(Instruction* self) {\n", i);
+			#if defined COWGOL
+				fprintf(outfp, "when %d:\n", i);
+				fprintf(outfp, "sub emit_%d()\n", i);
+			#else
+				fprintf(outfp, "case %d: {\n", i);
+			#endif
+
 
 			print_line(r->lineno);
 
@@ -541,9 +586,22 @@ static void create_emitters(void)
 					print_simple_action(r, a->first_element);
 			}
 
-			fprintf(outfp, "\n}\n\n");
+			#if defined COWGOL
+				fprintf(outfp, "\nend sub;\n");
+				fprintf(outfp, "emit_%d();\n", i);
+			#else
+				fprintf(outfp, "\n} break;\n");
+			#endif
 		}
 	}
+
+	#if defined COWGOL
+		fprintf(outfp, "end case;\n");
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "}\n");
+		fprintf(outfp, "}\n");
+	#endif
 }
 
 static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
@@ -578,54 +636,101 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 
 static void create_rewriters(void)
 {
+	#if defined COWGOL
+		fprintf(outfp, "sub RewriteNode(rule: uint8, n: [[Node]]): (result: [Node])\n");
+		fprintf(outfp, "case rule is\n");
+	#else
+		fprintf(outfp, "Node* rewrite_node(uint8_t rule, Node** n) {\n");
+		fprintf(outfp, "switch (rule) {\n");
+	#endif
+
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->replacement)
 		{
-			fprintf(outfp, "static Node* rewriter_%d(Node** n) {\n", i);
+			#if defined COWGOL
+				fprintf(outfp, "when %d:\n", i);
+				fprintf(outfp, "result :=\n");
+			#else
+				fprintf(outfp, "case %d:\n", i);
+				fprintf(outfp, "\treturn\n");
+			#endif
 
 			print_line(r->lineno);
-			fprintf(outfp, "\treturn ");
 			emit_replacement(r, r->pattern, r->replacement);
 			fprintf(outfp, ";\n");
-
-			fprintf(outfp, "\n}\n\n");
 		}
 	}
+
+	#if defined COWGOL
+		fprintf(outfp, "end case;\n");
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "}\n");
+		fprintf(outfp, "return NULL;\n");
+		fprintf(outfp, "}\n");
+	#endif
 }
 
 static void walk_matcher_tree(int* offset, Node* pattern)
 {
 	int thisoffset = *offset;
-	fprintf(outfp, "\tmatchbuf[%d] = n[%d]->op;\n", thisoffset, thisoffset);
+	#if defined COWGOL
+		fprintf(outfp, "\t[matchbuf+%d] := [n + %d*@bytesof intptr].op;\n", thisoffset, thisoffset);
+	#else
+		fprintf(outfp, "\tmatchbuf[%d] = n[%d]->op;\n", thisoffset, thisoffset);
+	#endif
 
 	if (pattern->left)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tn[%d] = n[%d]->left;\n", *offset, thisoffset);
-		fprintf(outfp, "\tif (n[%d]) {\n", *offset);
-		walk_matcher_tree(offset, pattern->left);
-		fprintf(outfp, "\t}\n");
+		#if defined COWGOL
+			fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].left;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
+			walk_matcher_tree(offset, pattern->left);
+			fprintf(outfp, "\tend if;\n");
+		#else
+			fprintf(outfp, "\tn[%d] = n[%d]->left;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif (n[%d]) {\n", *offset);
+			walk_matcher_tree(offset, pattern->left);
+			fprintf(outfp, "\t}\n");
+		#endif
 	}
 	if (pattern->right)
 	{
 		(*offset)++;
-		fprintf(outfp, "\tn[%d] = n[%d]->right;\n", *offset, thisoffset);
-		fprintf(outfp, "\tif (n[%d]) {\n", *offset);
-		walk_matcher_tree(offset, pattern->right);
-		fprintf(outfp, "\t}\n");
+		#if defined COWGOL
+			fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].right;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
+			walk_matcher_tree(offset, pattern->right);
+			fprintf(outfp, "\tend if;\n");
+		#else
+			fprintf(outfp, "\tn[%d] = n[%d]->right;\n", *offset, thisoffset);
+			fprintf(outfp, "\tif (n[%d]) {\n", *offset);
+			walk_matcher_tree(offset, pattern->right);
+			fprintf(outfp, "\t}\n");
+		#endif
 	}
 }
 
 static void create_matcher(void)
 {
-	fprintf(outfp, "void populate_match_buffer(Instruction* insn, Node** n, uint8_t* matchbuf) {\n");
+	#if defined COWGOL
+		fprintf(outfp, "sub PopulateMatchBuffer(insn: [Instruction], n: [[Node]], matchbuf: [uint8])\n");
+	#else
+		fprintf(outfp, "void populate_match_buffer(Instruction* insn, Node** n, uint8_t* matchbuf) {\n");
+	#endif
 
 	int offset = 0;
 	walk_matcher_tree(&offset, pattern);
 
-	fprintf(outfp, "}\n");
+	#if defined COWGOL
+		fprintf(outfp, "end sub;\n");
+	#else
+		fprintf(outfp, "};\n");
+	#endif
+
 }
 
 int main(int argc, const char* argv[])
@@ -656,7 +761,7 @@ int main(int argc, const char* argv[])
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
-		fprintf(outhfp, "typedef RegisterMask := int(0, 0x%x);\n", (1<<registercount) - 1);
+		fprintf(outhfp, "typedef RegId := int(0, 0x%x);\n", (1<<registercount) - 1);
 	#else
 		fprintf(outhfp, "#ifndef NEWGEN_H\n");
 		fprintf(outhfp, "#define NEWGEN_H\n");

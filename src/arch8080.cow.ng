@@ -1,0 +1,60 @@
+%{
+	var uint32_type: [Symbol];
+	var int32_type: [Symbol];
+	var uint16_type: [Symbol];
+	var int16_type: [Symbol];
+	var uint8_type: [Symbol];
+	var int8_type: [Symbol];
+	var intptr_type: [Symbol];
+
+	sub ArchAlignUp(value: Arith, alignment: uint8): (newvalue: Arith)
+		newvalue := value;
+	end sub;
+
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+		if (min >= 0) and (max <= 255) then
+			symbol := uint8_type;
+		elseif (min >= -128) and (max <= 127) then
+			symbol := int8_type;
+		elseif (min >= 0) and (max <= 65535) then
+			symbol := uint16_type;
+		elseif (min >= -32768) and (max <= 32767) then
+			symbol := int16_type;
+		elseif (min >= 0) then
+			symbol := uint32_type;
+		else
+			symbol := int32_type;
+		end if;
+	end sub;
+%}
+
+register a b d h hl de bc;
+register stk4 param;
+
+regdata a compatible a|b|d|h;
+regdata b uses bc compatible a|b|d|h;
+regdata d uses de compatible a|b|d|h;
+regdata h uses hl compatible a|b|d|h;
+regdata bc uses bc compatible bc|de|hl;
+regdata de uses de compatible bc|de|hl;
+regdata hl uses hl compatible bc|de|hl;
+regdata stk4 stacked;
+regdata param stacked;
+
+gen STARTFILE()
+{
+	print("STARTFILE\n");
+}
+
+gen ENDFILE();
+
+gen STARTSUB():s
+{
+	print("STARTSUB\n");
+}
+
+gen ENDSUB():s
+{
+	print("ENDSUB\n");
+}
+

@@ -6,9 +6,11 @@
 
 static Instruction instructions[100];
 static int instructioncount;
+static int maxinstructioncount = 0;
 
 static Node* nodes[100];
 static int nodecount;
+static int maxnodecount = 0;
 
 void unmatched_instruction(Node* node)
 {
@@ -34,6 +36,8 @@ bool template_comparator(const uint8_t* data, const uint8_t* template)
 void push_node(Node* node)
 {
 	nodes[nodecount++] = node;
+	if (nodecount > maxnodecount)
+		maxnodecount = nodecount;
 }
 
 static reg_t findfirst(reg_t reg)
@@ -244,6 +248,8 @@ void generate(Node* node)
 	while (nodecount != 0)
 	{
 		Instruction* producer = &instructions[instructioncount++];
+		if (instructioncount > maxinstructioncount)
+			maxinstructioncount = instructioncount;
 
 		/* Find the first matching rule for this instruction. */
 
@@ -254,10 +260,11 @@ void generate(Node* node)
 		populate_match_buffer(producer, nodes, matchbytes);
 
 		const Rule* r;
-		for (int i=0; i<INSTRUCTION_TEMPLATE_COUNT; i++)
+		int ruleid;
+		for (ruleid=0; ruleid<INSTRUCTION_TEMPLATE_COUNT; ruleid++)
 		{
-			r = &codegen_rules[i];
-			if (!r->rewriter)
+			r = &codegen_rules[ruleid];
+			if (!(r->flags & RULE_HAS_REWRITER))
 			{
 				/* If this is a generation rule, not a rewrite rule, check to
 				 * make sure the rule actually applies to this node. */
@@ -285,7 +292,7 @@ void generate(Node* node)
 
 			/* If there's a manual predicate, check that too. */
 
-			if (r->predicate && !r->predicate(nodes))
+			if ((r->flags & RULE_HAS_PREDICATES) && !match_predicate(ruleid, nodes))
 				continue;
 
 			/* This rule matches! */
@@ -297,9 +304,9 @@ void generate(Node* node)
 
 		/* If this is a rewrite rule, apply it now and return to the matcher. */
 
-		if (r->rewriter)
+		if (r->flags & RULE_HAS_REWRITER)
 		{
-			Node* nr = r->rewriter(nodes);
+			Node* nr = rewrite_node(ruleid, nodes);
 			nr->desired_reg = n->desired_reg;
 			nr->consumer = n->consumer;
 
@@ -314,7 +321,7 @@ void generate(Node* node)
 
 		/* We have a matching instruction, so set it up. */
 
-		producer->rule = r;
+		producer->ruleid = ruleid;
 		producer->producable_regs = r->producable_regs;
 		producer->output_regs = r->uses_regs;
 
@@ -485,8 +492,7 @@ void generate(Node* node)
 
 		/* The instruction itself! */
 
-		if (insn->rule->emitter)
-			insn->rule->emitter(insn);
+		emit_one_instruction(insn->ruleid, insn);
 
 		/* Emit spills. */
 
@@ -511,4 +517,8 @@ void discard(struct midnode* node)
 	free(node);
 }
 
+void generate_finalise(void)
+{
+	arch_emit_comment("max nodes = %d, max instructions = %d", maxnodecount, maxinstructioncount);
+}
 

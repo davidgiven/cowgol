@@ -11,10 +11,14 @@ var outputfile: string := (0 as string);
 
 include "src/cowcom/types.coh";
 include "src/cowcom/allocator.coh";
+include ".obj/arch8080/inssel.decl.coh";
 include "src/cowcom/midcodes.coh";
 include ".obj/parser.tokens.coh";
 include "src/cowcom/lexer.coh";
-include "src/cowcom/parser.coh";
+include "src/cowcom/codegen.coh";
+include "src/cowcom/symbols.coh";
+include "src/cowcom/expressions.coh";
+include ".obj/parser.coh";
 
 sub PrintFreeMemory()
 	print_i16((GetFreeMemory() >> 10) as uint16);
@@ -59,20 +63,57 @@ sub ParseArguments()
 	end if;
 end sub;
 
+# This routine is a hack and shouldn't be here.
+
+	sub ArchInitTypes()
+		uint32_type := MakeNumberType(4, 0);
+		int32_type := MakeNumberType(4, 1);
+		uint16_type := MakeNumberType(2, 0);
+		int16_type := MakeNumberType(2, 1);
+		uint8_type := MakeNumberType(1, 0);
+		int8_type := MakeNumberType(1, 1);
+
+		intptr_type := uint16_type;
+	end sub;
+
 print("COWCOM: ");
 PrintFreeMemory();
 
 ParseArguments();
 LexerIncludeFile(inputfile);
 
+current_subr := Alloc(@bytesof Subroutine) as [Subroutine];
+current_subr.name := "__main";
+current_subr.externname := "cmain";
+
+ArchInitTypes();
+Generate(MidStartfile());
+Generate(MidStartsub(current_subr));
+
 ParserInit();
 loop
-	var token := LexerReadToken();
-	if token == 0 then
+	var yymajor := LexerReadToken();
+	case yymajor is
+		when NUMBER:
+			ParserFeedToken(yymajor, MakeNumberTokenData());
+
+		when ID:
+			ParserFeedToken(yymajor, MakeStringTokenData());
+
+		when STRING:
+			ParserFeedToken(yymajor, MakeStringTokenData());
+
+		when else:
+			ParserFeedToken(yymajor, 0 as [Token]);
+	end case;
+	if yymajor == 0 then
 		break;
 	end if;
 end loop;
 ParserDeinit();
+
+Generate(MidEndsub(current_subr));
+Generate(MidEndfile());
 
 print("done: ");
 PrintFreeMemory();

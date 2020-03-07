@@ -1,9 +1,9 @@
-record FreeBlock
-	next: [FreeBlock];
+record MallocFreeBlock
+	next: [MallocFreeBlock];
 	size: intptr; # bytes
 end record;
 
-var freeList: [FreeBlock] := TOP as [FreeBlock];
+var freeList: [MallocFreeBlock] := TOP as [MallocFreeBlock];
 freeList.next := freeList;
 freeList.size := HIMEM - TOP;
 
@@ -47,7 +47,7 @@ sub Alloc(length: intptr): (block: [uint8])
 
 		if p == freeList then
 			# Uh-oh --- we've gone right round the ring and haven't found anything.
-			p := 0 as [FreeBlock];
+			p := 0 as [MallocFreeBlock];
 			print("Out of memory\n");
 			ExitWithError();
 			break;
@@ -64,7 +64,7 @@ end sub;
 sub Free(start: [uint8], length: intptr)
 	length := AlignUp(length);
 
-	var h := start as [FreeBlock];
+	var h := start as [MallocFreeBlock];
 	h.size := length;
 
 	# freeList points into an ordered ring of free blocks. First, we run

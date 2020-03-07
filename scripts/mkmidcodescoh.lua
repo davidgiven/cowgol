@@ -33,21 +33,27 @@ end
 
 -- Midcode structure itself.
 
-hfp:write("record Midnode\n");
+hfp:write("record Node\n");
 for m, md in pairs(midcodes) do
     if (#md.args > 0) then
         hfp:write("\t", m:lower(), " @at(0): Midcode", title(m), ";\n")
     end
 end
+hfp:write("\ttype: [Symbol];\n")
+hfp:write("\tleft: [Node];\n")
+hfp:write("\tright: [Node];\n")
+hfp:write("\tdlink: [Node]; # only used during destruction\n")
+hfp:write("\tproducer: [Instruction];\n")
+hfp:write("\tconsumer: [Instruction];\n")
+hfp:write("\tdesired_reg: RegId;\n")
+hfp:write("\tproduced_reg: RegId;\n")
 hfp:write("\top: uint8;\n")
-hfp:write("\tleft: [Midnode];\n")
-hfp:write("\tright: [Midnode];\n")
 hfp:write("end record;\n");
 
 -- Routines for allocating midnodes.
 
-hfp:write("sub AllocateNewMidnode(code: uint8): (m: [Midnode])\n")
-hfp:write("\tm := AllocBlock(@bytesof Midnode) as [Midnode];\n")
+hfp:write("sub AllocateNewNode(code: uint8): (m: [Node])\n")
+hfp:write("\tm := AllocBlock(@bytesof Node) as [Node];\n")
 hfp:write("\tm.op := code;\n")
 hfp:write("end sub;\n")
 
@@ -57,24 +63,24 @@ local function write_midcode_constructor(m, t)
 		if not m:find("0$") then
 			return
 		end
-		hfp:write("sub mid_", m:lower():gsub("0$", ""), "(width: uint8")
+		hfp:write("sub Mid", title(m):gsub("0$", ""), "(width: uint8")
 		first = false
 	else
-		hfp:write("sub mid_", m:lower(), "(")
+		hfp:write("sub Mid", title(m), "(")
 	end
 
 	if t.ins >= 1 then
 		if not first then
 			hfp:write(', ')
 		end
-		hfp:write('left: [Midnode]')
+		hfp:write('left: [Node]')
 		first = false
 	end
 	if t.ins == 2 then
 		if not first then
 			hfp:write(', ')
 		end
-		hfp:write('right: [Midnode]')
+		hfp:write('right: [Node]')
 		first = false
 	end
     if (#t.args > 0) then
@@ -86,8 +92,8 @@ local function write_midcode_constructor(m, t)
 			first = false
         end
     end
-    hfp:write("): (m: [Midnode])\n")
-    hfp:write("\tm := AllocateNewMidnode(MIDCODE_", m)
+    hfp:write("): (m: [Node])\n")
+    hfp:write("\tm := AllocateNewNode(MIDCODE_", m)
 	if t.hassizes then
 		hfp:write(" + WidthToIndex(width)")
 	end

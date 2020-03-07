@@ -3766,7 +3766,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
     }
   }
   if( lhsdirect ){
-    sprintf(zLhs, "yymsp[%d].minor.yy%d",1-rp->nrhs,rp->lhs->dtnum);
+    sprintf(zLhs, "[yytos + (%d*@bytesof yyStackEntry)].minor.yy%d",1-rp->nrhs,rp->lhs->dtnum);
   }else{
     rc = 1;
     sprintf(zLhs, "yylhsminor.yy%d",rp->lhs->dtnum);
@@ -3802,7 +3802,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
             }else if( cp!=rp->code && cp[-1]=='@' ){
               /* If the argument is of the form @X then substituted
               ** the token number of X, not the value of X */
-              append_str("yymsp[%d].major",-1,i-rp->nrhs+1,0);
+              append_str("[yytos + (%d*@bytesof yyStackEntry)].major",-1,i-rp->nrhs+1,0);
             }else{
               struct symbol *sp = rp->rhs[i];
               int dtnum;
@@ -3811,7 +3811,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
               }else{
                 dtnum = sp->dtnum;
               }
-              append_str("yymsp[%d].minor.yy%d",0,i-rp->nrhs+1, dtnum);
+              append_str("[yytos + (%d*@bytesof yyStackEntry)].minor.yy%d",0,i-rp->nrhs+1, dtnum);
             }
             cp = xp;
             used[i] = 1;
@@ -4487,6 +4487,7 @@ void ReportTable(
   */
   if( lemp->tokendest ){
 	fprintf(out, "sub token_destructor()\n"); lineno++;
+    for(i=0; i<lemp->nsymbol && lemp->symbols[i]->type!=TERMINAL; i++);
     emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
 	fprintf(out, "end sub;\n"); lineno++;
   }
@@ -4616,7 +4617,7 @@ void ReportTable(
       /* No C code actions, so this will be part of the "default:" rule */
       continue;
     }
-	fprintf(out, "sub action_%d()\n", rp->iRule);
+	fprintf(out, "sub reduce_%d()\n", rp->iRule);
     emit_code(out,rp,lemp,&lineno);
 	fprintf(out, "end sub;\n");
   }
@@ -4635,19 +4636,19 @@ void ReportTable(
 		fprintf(out, "elseif");
 	first = false;
 
-    fprintf(out," action == %d # ", rp->iRule);
+    fprintf(out," yyruleno == %d # ", rp->iRule);
     writeRuleText(out, rp);
     fprintf(out, "\n"); lineno++;
     for(rp2=rp->next; rp2; rp2=rp2->next){
       if( rp2->code==rp->code && rp2->codePrefix==rp->codePrefix
              && rp2->codeSuffix==rp->codeSuffix ){
-        fprintf(out,"  or (action == %d) # ", rp2->iRule);
+        fprintf(out,"  or (yyruleno == %d) # ", rp2->iRule);
         writeRuleText(out, rp2);
         fprintf(out,"\n", rp2->iRule); lineno++;
         rp2->codeEmitted = 1;
       }
     }
-    fprintf(out,"  then action_%d();\n", rp->iRule); lineno++;
+    fprintf(out,"  then reduce_%d();\n", rp->iRule); lineno++;
     rp->codeEmitted = 1;
   }
   /* Finally, output the default: rule.  We choose as the default: all

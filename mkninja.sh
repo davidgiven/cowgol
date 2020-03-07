@@ -638,6 +638,7 @@ tests=" \
     addsub-8bit \
     arrayinitialisers \
     case \
+    casts \
     conditionals \
     divrem-16bit-s \
     divrem-16bit-u \
@@ -649,6 +650,7 @@ tests=" \
     logic-16bit \
     logic-32bit \
     logic-8bit \
+    loops \
     mul-16bit-s \
     mul-16bit-u \
     mul-32bit-s \
@@ -702,6 +704,8 @@ cowcom_coh=" \
     $OBJDIR/parser.coh \
     $OBJDIR/parser.tokens.coh \
     $OBJDIR/midcodes.coh \
+    $OBJDIR/arch8080/inssel.decl.coh \
+    $OBJDIR/arch8080/inssel.coh \
     "
 cowgol_80386_linux src/cowcom/main.cow bin/cowcom.386 "$cowcom_coh"
 cowgol_cpm src/cowcom/main.cow bin/cowcom.com "$cowcom_coh"
@@ -710,6 +714,6 @@ cowgol_cgen src/cowcom/main.cow bin/cowcom.cgen "$cowcom_coh"
 
 buildnewgen_cowgol \
     $OBJDIR/arch8080/inssel.coh $OBJDIR/arch8080/inssel.decl.coh \
-    src/arch8080.ng
+    src/arch8080.cow.ng
 
 # vim: sw=4 ts=4 et

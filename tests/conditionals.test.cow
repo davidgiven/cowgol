@@ -3,8 +3,10 @@ include "tests/_framework.coh";
 
 const ZERO := 0;
 const ONE := 1;
+const MONE := -1;
 
 sub equality1()
+	print("equality1\n");
 	var zero: uint8 := 0;
 	var one: uint8 := 1;
 
@@ -16,21 +18,116 @@ sub equality1()
 	print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
 	print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
 
-	print("one==ZERO or (one==ONE and zero==ZERO"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
 end sub;
 equality1();
 
-sub blt2()
+sub equality2()
+	print("equality2\n");
+	var zero: uint16 := 0;
+	var one: uint16 := 1;
+
+	print("one==ONE"); if one == ONE then yes(); else no(); end if;
+	print("one!=ONE"); if one != ONE then yes(); else no(); end if;
+
+	print("one==ONE and zero==ZERO"); if one==ONE and zero==ZERO then yes(); else no(); end if;
+	print("one==ONE and zero==ONE"); if one==ONE and zero==ONE then yes(); else no(); end if;
+	print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
+	print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
+
+	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+end sub;
+equality2();
+
+sub equality4()
+	print("equality2\n");
+	var zero: uint32 := 0;
+	var one: uint32 := 1;
+
+	print("one==ONE"); if one == ONE then yes(); else no(); end if;
+	print("one!=ONE"); if one != ONE then yes(); else no(); end if;
+
+	print("one==ONE and zero==ZERO"); if one==ONE and zero==ZERO then yes(); else no(); end if;
+	print("one==ONE and zero==ONE"); if one==ONE and zero==ONE then yes(); else no(); end if;
+	print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
+	print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
+
+	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+end sub;
+equality4();
+
+sub signed1()
+	print("signed1\n");
+	var zero: int8 := 0;
+	var mone: int8 := -1;
+	var one: int8 := 1;
+
+	print("zero<ONE"); if zero<ONE then yes(); else no(); end if;
+	print("mone<ONE"); if mone<ONE then yes(); else no(); end if;
+	print("mone<=MONE"); if mone<=MONE then yes(); else no(); end if;
+end sub;
+signed1();
+
+sub unsigned1()
+	print("unsigned1\n");
+	var zero: uint8 := 0;
+	var mone: uint8 := -1;
+	var one: uint8 := 1;
+
+	print("zero<ONE"); if zero<ONE then yes(); else no(); end if;
+	print("!(mone<ONE)"); if not (mone<ONE) then yes(); else no(); end if;
+	print("mone<=MONE"); if mone<=MONE then yes(); else no(); end if;
+end sub;
+unsigned1();
+
+sub signed2()
+	print("signed2\n");
+	var zero: int16 := 0;
+	var mone: int16 := -1;
+	var one: int16 := 1;
+
+	print("zero<ONE"); if zero<ONE then yes(); else no(); end if;
+	print("mone<ONE"); if mone<ONE then yes(); else no(); end if;
+	print("mone<=MONE"); if mone<=MONE then yes(); else no(); end if;
+end sub;
+signed2();
+
+sub unsigned2()
+	print("unsigned2\n");
 	var zero: uint16 := 0;
 	var one: uint16 := 1;
 
 	print("zero<one"); if zero<one then yes(); else no(); end if;
-	print("one<one"); if one<zero then yes(); else no(); end if;
+	print("one<one"); if one<one then yes(); else no(); end if;
 	print("one<zero"); if one<zero then yes(); else no(); end if;
 end sub;
-blt2();
+unsigned2();
+
+sub signed4()
+	print("signed4\n");
+	var zero: int32 := 0;
+	var mone: int32 := -1;
+	var one: int32 := 1;
+
+	print("zero<ONE"); if zero<ONE then yes(); else no(); end if;
+	print("mone<ONE"); if mone<ONE then yes(); else no(); end if;
+	print("mone<=MONE"); if mone<=MONE then yes(); else no(); end if;
+end sub;
+signed4();
+
+sub unsigned4()
+	print("unsigned4\n");
+	var zero: uint32 := 0;
+	var one: uint32 := 1;
+
+	print("zero<one"); if zero<one then yes(); else no(); end if;
+	print("one<one"); if one<one then yes(); else no(); end if;
+	print("one<zero"); if one<zero then yes(); else no(); end if;
+end sub;
+unsigned4();
 
 sub and1()
+	print("and1\n");
 	var i: uint8 := 70;
 	print("isletter(70)"); if (i>='A') and (i<='Z') then yes(); else no(); end if;
 	i := 200;

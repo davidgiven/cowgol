@@ -5,6 +5,10 @@ read c justInts: yes
 read a withStrings: yes
 read s withStrings: yes
 read b withStrings: yes
+read a withArray: yes
+read b[0] withArray: yes
+read b[1] withArray: yes
+read c withArray: yes
 read a outer: yes
 read inner.a outer: yes
 read inner.b outer: yes

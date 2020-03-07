@@ -33,11 +33,13 @@ mul1_nocarry:
     mov c, a
     jmp mul1_again
 
-    ; Multiplies two 16-bit values: HL = BC * DE.
-    ; Uses A, of course.
+    ; Multiplies two 16-bit values: HL = HL * DE.
+    ; Uses A and BC.
     public mul2
     cseg
 mul2:
+    mov b, h            ; BC = LHS
+    mov c, l
     lxi h, 0            ; HL = result
 mul2_again:
     mov a, b            ; if multiplier = 0 then finished
@@ -581,25 +583,6 @@ sublit4:
     push d
     pchl
 
-    ; Compares a literal value from the four-byte value on the
-    ; stack and returns Z or NZ.
-    public cmplit4
-    cseg
-cmplit4:
-    pop h ; HL = pointer to RHS
-    pop d ; DE = LHS low
-    pop b ; BC = LHS high
-    push b
-    push d
-
-    call do_sub4
-
-    mov a, d
-    ora e
-    ora b
-    ora c
-    pchl
-
     ; ANDs two four-byte values from the stack.
     public and4
     cseg
@@ -759,20 +742,6 @@ neg4core:
     sbb m
     mov m, a
     ret
-
-    ; Sets the Z flag based on the 32-bit number on the top of the stack.
-    public cmpu4
-    cseg
-cmpu4:
-    pop h
-    pop b           ; low
-    pop d           ; high
-
-    mov a, d
-    or e
-    or b
-    or c
-    pchl
 
     ; Copies a 32-bit value pointed to from DE to HL.
     ; Corrupts A.
@@ -1066,6 +1035,120 @@ caset1_found:
     mov h, a
     pchl
     
+    ; Does a tristate signed comparison of a <> b.
+    ; Returns m flag if a < b.
+    ; Returns p flag if a >= b.
+    ; This doesn't set z coherently.
+
+    cseg
+    public cmps1
+cmps1:
+    xra b               ; test signs
+    jp cmps1_u          ; signs are the same
+    xra b               ; undo munged A and set C=0
+    ret
+cmps1_u:
+    xra b               ; undo munged A
+    sub b
+    ret
+
+    ; Signed comparison of de <> hl.
+    ; Returns c if de < hl.
+    public cmps2
+    cseg
+cmps2:
+    mov a, d
+    xra h               ; test signs
+    jp cmps2_u          ; jump if the signs are the same
+    xra d               ; make A=H and set !C
+    rm                  ; return with !C if de >= hl
+    stc
+    ret                 ; return with C if de < hl
+cmps2_u:
+    ; Here, we know the signs are the same, which means we can
+    ; do a simple unsigned comparison.
+    mov a, e
+    sub l
+    mov a, d
+    sbb h
+    ret
+    
+    ; Compares a literal value from the four-byte value on the
+    ; stack and returns Z or NZ.
+    public cmpl4
+    cseg
+cmpl4:
+    pop h ; HL = pointer to RHS
+    pop d ; DE = LHS low
+    pop b ; BC = LHS high
+    push b
+    push d
+
+    call do_sub4
+
+    mov a, d
+    ora e
+    ora b
+    ora c
+    pchl
+
+    ; Unsigned comparison of the two numbers on the top of the stack.
+    ; Returns z if a == b.
+    ; Returns c if a < b.
+    public cmpu4
+    cseg
+cmpu4:
+    pop h
+    shld cmpu4_ret
+
+    call sub4           ; leaves the value on the stack, sets C on overflow
+    pop b               ; low
+    pop d               ; high
+    push af             ; save flags
+
+    mov a, b
+    or c
+    or d
+    or e                ; a = 0 if the value was zero
+
+    mov b, a
+    inc b               ; a = 1 if the value was zero
+    pop af              ; restore carry flag
+    dec b               ; set Z flag, but don't disturb the carry flag
+cmpu4_ret = $ + 1
+    jmp 0
+
+    ; Signed comparison of the two numbers on the top of the stack.
+    ; Returns c if lhs < rhs.
+    public cmps4
+    cseg
+cmps4:
+    pop d
+
+    lxi h, 7
+    dad sp
+    mov a, m            ; a = high byte of lhs
+    mov b, a
+    lxi h, 3
+    dad sp
+    xra m               ; xor with high byte of rhs
+    jp cmps4_u          ; jump if the signs are the same
+    ; The signs are different, so determining C can be done from
+    ; just the top bytes. Discard the data.
+    lxi h, 8
+    dad sp
+    sphl                ; sp = sp + 8
+    push d              ; push the return address
+    xra b               ; make A=high byte of lhs and set !C
+    rm                  ; return with !C if lhs >= rhs
+    stc
+    ret                 ; return with C if lhs < rhs
+cmps4_u:
+    ; The signs are the same, so do a simple unsigned comparison.
+    push d
+    jmp cmpu4
+
+    ; Sets the M flag based on the 32
     dseg
 block1: ds 4
 block2: ds 4

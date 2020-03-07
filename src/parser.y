@@ -14,6 +14,7 @@
     int current_label = 1;
 
     static int break_label;
+	static int continue_label;
 	static int case_exit_label;
 	struct subroutine* current_sub;
 	static int id = 1;
@@ -32,6 +33,7 @@
 		int looplabel;
 		int exitlabel;
 		int old_break_label;
+		int old_continue_label;
 	};
 
 	#undef NDEBUG
@@ -42,7 +44,7 @@
 %token IF LOOP MINUS NOT OPENPAREN OPENSQ.
 %token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
 %token SUB THEN TILDE VAR WHILE TYPE INT TYPE.
-%token OPENBR CLOSEBR.
+%token OPENBR CLOSEBR CONTINUE.
 
 %left COMMA.
 %left AND.
@@ -55,6 +57,7 @@
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %left AS.
+%left DOT.
 %right NOT TILDE.
 
 %token_type {struct token*}
@@ -288,7 +291,7 @@ begin_nested_initialiser(STATE) ::= OPENBR.
 
 	Symbol* member = find_inited_member();
 	current_type = get_element_or_member_type(member);
-	if (!is_record(current_type))
+	if (!is_record(current_type) && !is_array(current_type))
 		fatal("only nested records can be statically initialised");
 	alignto(current_type->u.type.alignment);
 	check_for_overlaps(member);
@@ -341,6 +344,7 @@ statement ::= startloopstatement(labels) statements END LOOP.
 	generate(mid_jump(labels.looplabel));
 	generate(mid_label(labels.exitlabel));
 	break_label = labels.old_break_label;
+	continue_label = labels.old_continue_label;
 }
 
 %type startloopstatement {struct looplabels}
@@ -349,7 +353,9 @@ startloopstatement(labels) ::= LOOP.
 	labels.looplabel = current_label++;
 	labels.exitlabel = current_label++;
 	labels.old_break_label = break_label;
+	labels.old_continue_label = continue_label;
 	break_label = labels.exitlabel;
+	continue_label = labels.looplabel;
 	generate(mid_label(labels.looplabel));
 }
 
@@ -361,6 +367,7 @@ whilestatement1(L) ::= WHILE.
 	L.looplabel = current_label++;
 	L.exitlabel = 0;
 	L.old_break_label = break_label;
+	L.old_continue_label = continue_label;
 	break_label = 0;
 	generate(mid_label(L.looplabel));
 }
@@ -371,6 +378,7 @@ whilestatement2(L) ::= whilestatement1(L1) startconditional conditional.
 	L = L1;
 	generate(mid_label(condtrue));
 	L.exitlabel = break_label = condfalse;
+	continue_label = L.looplabel;
 }
 
 statement ::= whilestatement2(L) LOOP statements END LOOP.
@@ -378,6 +386,7 @@ statement ::= whilestatement2(L) LOOP statements END LOOP.
 	generate(mid_jump(L.looplabel));
 	generate(mid_label(L.exitlabel));
 	break_label = L.old_break_label;
+	continue_label = L.old_continue_label;
 }
 
 /* --- Simple jumps ------------------------------------------------------ */
@@ -387,6 +396,13 @@ statement ::= BREAK SEMICOLON.
 	if (!break_label)
 		fatal("nothing to break to");
 	generate(mid_jump(break_label));
+}
+
+statement ::= CONTINUE SEMICOLON.
+{
+	if (!continue_label)
+		fatal("nothing to continue to");
+	generate(mid_jump(continue_label));
 }
 
 /* --- Subroutine calls -------------------------------------------------- */
@@ -567,6 +583,7 @@ outputarguments(E) ::= lvalue(E) COMMA outputarguments(ES).
 		sub->id = id++;
 		arch_init_subroutine(sub);
 		break_label = 0;
+		continue_label = 0;
 
 		if (sym)
 		{
@@ -586,6 +603,7 @@ outputarguments(E) ::= lvalue(E) COMMA outputarguments(ES).
 	static void end_subroutine(void)
 	{
 		break_label = current_sub->old_break_label;
+		continue_label = current_sub->old_continue_label;
 		current_sub = current_sub->parent;
 	}
 }
@@ -911,7 +929,7 @@ expression(E) ::= expression(E1) AS typeref(T).
 				E1->type->name, E1->type->u.type.width, T->name, T->u.type.width);
 		}
 
-		E = mid_c_cast(T->u.type.width, E1);
+		E = mid_c_cast(T->u.type.width, E1, E1->type->u.type.issigned);
 	}
 	else
 		E = E1;
@@ -963,7 +981,7 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 	E = mid_c_add(intptr_type->u.type.width,
 		E1,
 		mid_c_mul(intptr_type->u.type.width,
-			mid_c_cast(intptr_type->u.type.width, E2),
+			mid_c_cast(intptr_type->u.type.width, E2, false),
 			mid_constant(arraytype->u.type.stride)));
 	E->type = make_pointer_type(arraytype->u.type.element);
 }
@@ -1173,6 +1191,7 @@ recordmember ::= memberid(S) COLON typeref(T) SEMICOLON.
 {
 	S->kind = VAR;
 	S->u.var.type = T;
+	check_non_partial_type(T);
 	if (T->u.type.alignment > current_type->u.type.alignment)
 		current_type->u.type.alignment = T->u.type.alignment;
 	arch_init_member(current_type, S, -1);
@@ -1182,6 +1201,7 @@ recordmember ::= memberid(S) AT OPENPAREN cvalue(C) CLOSEPAREN COLON typeref(T) 
 {
 	S->kind = VAR;
 	S->u.var.type = T;
+	check_non_partial_type(T);
 	if (T->u.type.alignment > current_type->u.type.alignment)
 		current_type->u.type.alignment = T->u.type.alignment;
 	arch_init_member(current_type, S, C);

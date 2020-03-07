@@ -391,9 +391,6 @@ gen reg := LOAD1(ADDRESS(sym is current_sub):a)
 gen reg := LOAD1(reg:lhs)
 	{ E("\tldrb %s, [%s]\n", regref($$), regref($lhs)); }
 
-rewrite CAST12(LOAD1(a)) := LOAD1(a);
-rewrite CAST14(LOAD1(a)) := LOAD1(a);
-
 gen reg := LOAD2(ADDRESS(sym is current_sub):a)
 	{ E("\tldrh %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
@@ -651,12 +648,30 @@ gen BLTU1(reg:lhs, reg:rhs):b
 	E("\tb %s\n", labelref($b.falselabel));
 }
 
+gen BLTS1(reg:lhs, reg:rhs):b
+{
+	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tsxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+	E("\tblt %s\n", labelref($b.truelabel));
+	E("\tb %s\n", labelref($b.falselabel));
+}
+
 gen BLTU2(reg:lhs, reg:rhs):b
 {
 	E("\tuxtb %s, %s\n", regref($lhs), regref($lhs));
 	E("\tuxtb %s, %s\n", regref($rhs), regref($rhs));
 	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
 	E("\tblo %s\n", labelref($b.truelabel));
+	E("\tb %s\n", labelref($b.falselabel));
+}
+
+gen BLTS2(reg:lhs, reg:rhs):b
+{
+	E("\tsxtb %s, %s\n", regref($lhs), regref($lhs));
+	E("\tsxtb %s, %s\n", regref($rhs), regref($rhs));
+	E("\tcmp %s, %s\n", regref($lhs), regref($rhs));
+	E("\tblt %s\n", labelref($b.truelabel));
 	E("\tb %s\n", labelref($b.falselabel));
 }
 
@@ -680,14 +695,14 @@ gen reg := CAST21($$);
 gen reg := CAST41($$);
 gen reg := CAST42($$);
 
-gen reg := CAST24(reg:rhs)
-	{ E("\tuxth %s, %s\n", regref($$), regref($rhs)); }
+gen reg := CAST24(reg:rhs):c
+	{ E("\t%cxth %s, %s\n", $c.sext ? 's' : 'u', regref($$), regref($rhs)); }
 
-gen reg := CAST14(reg:rhs)
-	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
+gen reg := CAST14(reg:rhs):c
+	{ E("\t%cxtb %s, %s\n", $c.sext ? 's' : 'u', regref($$), regref($rhs)); }
 
-gen reg := CAST12(reg:rhs)
-	{ E("\tuxtb %s, %s\n", regref($$), regref($rhs)); }
+gen reg := CAST12(reg:rhs):c
+	{ E("\t%cxtb %s, %s\n", $c.sext ? 's' : 'u', regref($$), regref($rhs)); }
 
 // --- Case statements ---------------------------------------------------
 

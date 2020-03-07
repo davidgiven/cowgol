@@ -5,8 +5,9 @@ end record;
 
 record File
 	next: [File];
-	fcb: FCB;
+	path: string;
 	lineno: uint16;
+	fcb: FCB;
 end record;
 
 var include_paths: [IncludePath] := 0 as [IncludePath];
@@ -18,112 +19,107 @@ var token_buffer: uint8[TOKEN_BUFFER_SIZE];
 var token_length: uint8 := 0;
 var token_value: int32;
 
-const CTYPE_HEXDIGIT := 0x01;
-const CTYPE_DECDIGIT := 0x02;
-const CTYPE_OCTDIGIT := 0x04;
-const CTYPE_BINDIGIT := 0x08;
+const CTYPE_DECDIGIT := 0x01;
 const CTYPE_IDSTART  := 0x10;
 const CTYPE_IDCONT   := 0x20;
 const CTYPE_TOKEN    := 0x80;
 
-const CTYPE_DIGIT    := CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT|CTYPE_BINDIGIT;
-
 # One entry for every character from 33..127.
 var lexer_ctype: uint8[] := {
-	0,                                                                        # 0x21 !
-	0,                                                                        # 0x22 "
-	0,                                                                        # 0x23 #
-	0,                                                                        # 0x24 $ 
-	CTYPE_TOKEN|PERCENT,                                                      # 0x25 %
-	CTYPE_TOKEN|AMPERSAND,                                                    # 0x26 &
-	0,                                                                        # 0x27 '
-	CTYPE_TOKEN|OPENPAREN,                                                    # 0x28 (
-	CTYPE_TOKEN|CLOSEPAREN,                                                   # 0x29 )
-	CTYPE_TOKEN|STAR,                                                         # 0x2a *
-	CTYPE_TOKEN|PLUS,                                                         # 0x2b +
-	CTYPE_TOKEN|COMMA,                                                        # 0x2c ,
-	CTYPE_TOKEN|MINUS,                                                        # 0x2d -
-	CTYPE_TOKEN|DOT,                                                          # 0x2e .
-	CTYPE_TOKEN|SLASH,                                                        # 0x2f /
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT|CTYPE_BINDIGIT, # 0x30 0
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT|CTYPE_BINDIGIT, # 0x31 1
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT,                # 0x32 2
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT,                # 0x33 3
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT,                # 0x34 4
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT,                # 0x35 5
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT,                # 0x36 6
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT|CTYPE_OCTDIGIT,                # 0x37 7
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT,                               # 0x38 8
-	CTYPE_IDCONT|CTYPE_HEXDIGIT|CTYPE_DECDIGIT,                               # 0x39 9
-	CTYPE_TOKEN|COLON,                                                        # 0x3a :
-	CTYPE_TOKEN|SEMICOLON,                                                    # 0x3b ;
-	0,                                                                        # 0x3c <
-	0,                                                                        # 0x3d =
-	0,                                                                        # 0x3e >
-	0,                                                                        # 0x3f ?
-	CTYPE_IDSTART,                                                            # 0x40 @
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x41 A
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x42 B
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x43 C
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x44 D
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x45 E
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x46 F
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x47 G
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x48 H
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x49 I
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x4a J
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x4b K
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x4c L
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x4d M
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x4e N
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x4f O
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x50 P
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x51 Q
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x52 R
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x53 S
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x54 T
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x55 U
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x56 V
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x57 W
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x58 X
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x59 Y
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x5a Z
-	CTYPE_TOKEN|OPENSQ,                                                       # 0x5b [
-	0,                                                                        # 0x5c \
-	CTYPE_TOKEN|CLOSESQ,                                                      # 0x5d ]
-	CTYPE_TOKEN|CARET,                                                        # 0x5e ^
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x5f _
-	0,                                                                        # 0x60 `
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x61 a
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x62 b
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x63 c
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x64 d
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x65 e
-	CTYPE_IDSTART|CTYPE_IDCONT|CTYPE_HEXDIGIT,                                # 0x66 f
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x67 g
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x68 h
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x69 i
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x6a j
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x6b k
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x6c l
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x6d m
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x6e n
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x6f o
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x70 p
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x71 q
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x72 r
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x73 s
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x74 t
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x75 u
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x76 v
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x77 w
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x78 x
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x79 y
-	CTYPE_IDSTART|CTYPE_IDCONT,                                               # 0x7a z
-	CTYPE_TOKEN|OPENBR,                                                       # 0x7b {
-	CTYPE_TOKEN|PIPE,                                                         # 0x7c |
-	CTYPE_TOKEN|CLOSEBR,                                                      # 0x7c }
-	CTYPE_TOKEN|TILDE                                                         # 0x7c ~
+	0,                           # 0x21 !
+	0,                           # 0x22 "
+	0,                           # 0x23 #
+	0,                           # 0x24 $ 
+	CTYPE_TOKEN|PERCENT,         # 0x25 %
+	CTYPE_TOKEN|AMPERSAND,       # 0x26 &
+	0,                           # 0x27 '
+	CTYPE_TOKEN|OPENPAREN,       # 0x28 (
+	CTYPE_TOKEN|CLOSEPAREN,      # 0x29 )
+	CTYPE_TOKEN|STAR,            # 0x2a *
+	CTYPE_TOKEN|PLUS,            # 0x2b +
+	CTYPE_TOKEN|COMMA,           # 0x2c ,
+	CTYPE_TOKEN|MINUS,           # 0x2d -
+	CTYPE_TOKEN|DOT,             # 0x2e .
+	CTYPE_TOKEN|SLASH,           # 0x2f /
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x30 0
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x31 1
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x32 2
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x33 3
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x34 4
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x35 5
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x36 6
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x37 7
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x38 8
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x39 9
+	CTYPE_TOKEN|COLON,           # 0x3a :
+	CTYPE_TOKEN|SEMICOLON,       # 0x3b ;
+	0,                           # 0x3c <
+	0,                           # 0x3d =
+	0,                           # 0x3e >
+	0,                           # 0x3f ?
+	CTYPE_IDSTART,               # 0x40 @
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x41 A
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x42 B
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x43 C
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x44 D
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x45 E
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x46 F
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x47 G
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x48 H
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x49 I
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4a J
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4b K
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4c L
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4d M
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4e N
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4f O
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x50 P
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x51 Q
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x52 R
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x53 S
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x54 T
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x55 U
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x56 V
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x57 W
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x58 X
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x59 Y
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x5a Z
+	CTYPE_TOKEN|OPENSQ,          # 0x5b [
+	0,                           # 0x5c \
+	CTYPE_TOKEN|CLOSESQ,         # 0x5d ]
+	CTYPE_TOKEN|CARET,           # 0x5e ^
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x5f _
+	0,                           # 0x60 `
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x61 a
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x62 b
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x63 c
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x64 d
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x65 e
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x66 f
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x67 g
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x68 h
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x69 i
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6a j
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6b k
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6c l
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6d m
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6e n
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6f o
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x70 p
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x71 q
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x72 r
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x73 s
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x74 t
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x75 u
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x76 v
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x77 w
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x78 x
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x79 y
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x7a z
+	CTYPE_TOKEN|OPENBR,          # 0x7b {
+	CTYPE_TOKEN|PIPE,            # 0x7c |
+	CTYPE_TOKEN|CLOSEBR,         # 0x7c }
+	CTYPE_TOKEN|TILDE            # 0x7c ~
 };
 
 var keyword_names: string[] := {
@@ -180,6 +176,29 @@ var keyword_ids: uint8[] := {
 	WHILE
 };
 
+sub StartError()
+	print("error: ");
+	if current_file == (0 as [File]) then
+		print("<eof>");
+	else
+		print(current_file.path);
+		print(": ");
+		print_i16(current_file.lineno);
+	end if;
+	print(": ");
+end sub;
+
+sub EndError()
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub SimpleError(message: string)
+	StartError();
+	print(message);
+	EndError();
+end sub;
+
 sub LexerAddIncludePath(path: string)
 	var p := Alloc(@bytesof IncludePath) as [IncludePath];
 	p.next := include_paths;
@@ -190,11 +209,13 @@ end sub;
 sub LexerIncludeFile(path: string)
 	var f := Alloc(@bytesof File) as [File];
 	f.next := current_file;
+	f.path := StrDup(path);
 	if FCBOpenIn(&f.fcb, path) != 0 then
-		print("error: cannot open '");
+		StartError();
+		print("cannot open '");
 		print(path);
-		print("'\n");
-		ExitWithError();
+		print("'");
+		EndError();
 	end if;
 	f.lineno := 1;
 	current_file := f;
@@ -241,33 +262,25 @@ sub lexer_i_getchar(): (c: uint8)
 	end loop;
 end sub;
 
-sub Error()
-	print("error: ");
-	if current_file == (0 as [File]) then
-		print("<eof>");
-	else
-		print_i16(current_file.lineno);
-	end if;
-	print(": ");
-end sub;
-
 sub lexer_i_unparseable(c: uint8)
-	Error();
+	StartError();
 	print("unparseable character 0x");
 	print_hex_i8(c);
-	print_nl();
-	ExitWithError();
+	EndError();
 end sub;
 
 sub lexer_i_skipwhitespace()
 	loop
 		var c := lexer_i_getchar();
-		if (c != ' ') and (c != 13) and (c != 10) and (c != 9) then
-			break;
-		end if;
-		if c == 10 then
-			current_file.lineno := current_file.lineno + 1;
-		end if;
+		case c is
+			when ' ':
+			when 13:
+			when 10:  
+				current_file.lineno := current_file.lineno + 1;
+			when 9:
+			when else:
+				break;
+		end case;
 	end loop;
 	pushed_char := c;
 end sub;
@@ -282,9 +295,9 @@ sub lexer_i_read_identifier()
 			token_buffer[token_length] := c;
 			token_length := token_length + 1;
 			if token_length == TOKEN_BUFFER_SIZE then
-				Error();
-				print("token too long\n");
-				ExitWithError();
+				StartError();
+				print("token too long");
+				EndError();
 			end if;
 		else
 			pushed_char := c;
@@ -345,13 +358,63 @@ sub lexer_i_read_number()
 			c := c - '0';
 		end if;
 		if c >= (base as uint8) then
-			Error();
-			print("invalid number\n");
-			ExitWithError();
+			StartError();
+			print("invalid number");
+			EndError();
 		end if;
 
 		token_value := token_value*base + (c as int32);
 	end loop;
+end sub;
+
+sub lexer_i_read_string()
+	token_length := 0;
+	loop
+		var c := lexer_i_getchar();
+		if c < 32 then
+			StartError();
+			print("malformed string constant");
+			EndError();
+		end if;
+
+		case c is
+			when '"':
+				break;
+
+			when '\\':
+				c := lexer_i_getchar();
+				case c is
+					when 'n': c := 10;
+					when 'r': c := 13;
+					when '0': c := 0;
+				end case;
+		end case;
+
+		token_buffer[token_length] := c;
+		token_length := token_length + 1;
+		if token_length == TOKEN_BUFFER_SIZE then
+			StartError();
+			print("string constant too long");
+			EndError();
+		end if;
+	end loop;
+	token_buffer[token_length] := 0;
+end sub;
+
+sub lexer_i_line_directive()
+	lexer_i_skipwhitespace();
+	lexer_i_read_number();
+	lexer_i_skipwhitespace();
+	var c := lexer_i_getchar();
+	if c != '"' then
+		StartError();
+		print("malformed #line directive");
+		EndError();
+	end if;
+	lexer_i_read_string();
+	current_file.lineno := token_value as uint16;
+	FreeBlock(current_file.path);
+	current_file.path := StrDup(&token_buffer[0]);
 end sub;
 
 sub LexerReadToken(): (token: uint8)
@@ -361,6 +424,20 @@ sub LexerReadToken(): (token: uint8)
 	case c is
 		when 0:
 			token := 0;
+
+		when '#':
+			token_length := 0;
+			lexer_i_read_identifier();
+			if StrCmp(&token_buffer[0], "line") == 0 then
+				lexer_i_line_directive();
+			end if;
+			loop
+				c := lexer_i_getchar();
+				if (c == 10) or (c == 0) then
+					break;
+				end if;
+				pushed_char := c;
+			end loop;
 
 		when ':':
 			c := lexer_i_getchar();
@@ -398,6 +475,10 @@ sub LexerReadToken(): (token: uint8)
 					pushed_char := c;
 					token := GTOP;
 			end case;
+
+		when '"':
+			lexer_i_read_string();
+			token := STRING;
 
 		when else:
 			var type: uint8;

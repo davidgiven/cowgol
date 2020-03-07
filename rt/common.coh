@@ -77,3 +77,7 @@ sub ExitWithError()
 	Exit();
 end sub;
 
+sub MemZero(ptr: [uint8], size: intptr)
+	MemSet(ptr, 0, size);
+end sub;
+

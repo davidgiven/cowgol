@@ -1,0 +1,174 @@
+const RULE_HAS_PREDICATES := 0x01;
+
+record Register
+	name: string;
+	id: RegId;
+	uses: RegId;
+	compatible: RegId;
+	is_stacked: uint8;
+end record;
+
+record Rule
+	flags: uint8;
+	compatible_producable_regs: RegId;
+	producable_regs: RegId;
+	uses_regs: RegId;
+	consumable_regs: RegId[INSTRUCTION_TEMPLATE_DEPTH];
+	matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
+	copyable_nodes: uint8;
+	register_nodes: uint8;
+end record;
+
+record Instruction
+	ruleid: uint8;
+	producable_regs: RegId;
+	produced_reg: RegId;
+	input_regs: RegId;
+	output_regs: RegId;
+	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
+	first_spill: [Regmove];
+	first_reload: [Regmove];
+	last_reload: [Regmove];
+end record;
+
+var instructions: Instruction[16];
+var instructioncount: uint8;
+
+var nodes: [Node][16];
+var nodecount: uint8;
+
+include ".obj/arch8080/inssel.coh";
+
+# Free up the node tree routed in the parameter. This is more exciting than it
+# should be because we don't have recursion.
+sub Discard(node: [Node])
+	var pending := node;
+	while pending != (0 as [Node]) loop
+		node := pending;
+		pending := node.dlink;
+
+		# Unlink and push any children.
+		if node.left != (0 as [Node]) then
+			node.left.dlink := pending;
+			pending := node.left;
+		end if;
+		if node.right != (0 as [Node]) then
+			node.right.dlink := pending;
+			pending := node.right;
+		end if;
+
+		# Now free this node.
+		print("discard ");
+		print_hex_i32(node as intptr as uint32);
+		print_nl();
+		Free(node as [uint8], @bytesof Node);
+	end loop;
+end sub;
+
+sub PushNode(node: [Node])
+	if nodecount == @sizeof nodes then
+		SimpleError("node stack overflow");
+	end if;
+	nodes[nodecount] := node;
+	nodecount := nodecount + 1;
+end sub;
+
+sub UnmatchedInstructionError()
+	SimpleError("unmatched instruction");
+end sub;
+
+sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
+	result := 0;
+
+	var i: uint8 := INSTRUCTION_TEMPLATE_DEPTH;
+	print("comparator\n");
+	while i != 0 loop
+		var d := [data];
+		data := data + 1;
+		var t := [template];
+		template := template + 1;
+		print("t=");
+		print_hex_i8(t);
+		print(" d=");
+		print_hex_i8(d);
+		print_nl();
+		if (t != 0) and (d != t) then
+			return;
+		end if;
+
+		i := i - 1;
+	end loop;
+
+	result := 1;
+end sub;
+
+sub Generate(node: [Node])
+	MemZero(&instructions[0] as [uint8], @bytesof instructions);
+	nodecount := 0;
+
+	PushNode(node);
+	while nodecount != 0 loop
+		if instructioncount == @sizeof instructions then
+			SimpleError("instruction queue overflow");
+		end if;
+		var producer := &instructions[instructioncount];
+		instructioncount := instructioncount + 1;
+
+		# Find the first matching rule for this instruction.
+
+		nodecount := nodecount - 1;
+		var n := nodes[nodecount];
+		var matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
+		MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
+		var matchnodes: [Node][INSTRUCTION_TEMPLATE_DEPTH];
+		MemZero(&matchnodes[0] as [uint8], @bytesof matchnodes);
+		matchnodes[0] := n;
+		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
+
+		var ruleid: uint8 := 0xff;
+		var rule := &codegen_rules[0] - @bytesof Rule;
+		loop
+			rule := rule + @bytesof Rule;
+			ruleid := ruleid + 1;
+
+			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
+				# Reach the end of the list of rules without matching anything.
+				UnmatchedInstructionError();
+			end if;
+
+			if rule.compatible_producable_regs != 0 then
+				# This rule produces a result, so fail if the result register
+				# isn't compatible.
+				if (n.desired_reg & rule.compatible_producable_regs) == 0 then
+					continue;
+				end if;
+			else
+				# This rule produces no result, so fail if we need one.
+				if n.desired_reg != 0 then
+					continue;
+				end if;
+			end if;
+
+			if TemplateComparator(&matchbytes[0], &rule.matchbytes[0]) == 0 then
+				# Fail if the tree doesn't match.
+				continue;
+			end if;
+
+			if ((rule.flags & RULE_HAS_PREDICATES) != 0) 
+					and (MatchPredicate(ruleid, &matchnodes[0]) != 0) then
+				# This rule has a manual predicate and the manual predicate said no.
+				continue;
+			end if;
+
+			# We have a matching rule!
+			break;
+		end loop;
+
+		print("match rule ");
+		print_i8(ruleid);
+		print_nl();
+	end loop;
+
+	Discard(node);
+end sub;
+

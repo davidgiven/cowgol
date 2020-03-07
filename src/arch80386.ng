@@ -510,14 +510,14 @@ gen r8 := CAST41(r32:val)
 gen r16 := CAST42(r32:val)
 	{ E("\tmovw %s, %s\n", wordregref($val), regref($$)); }
 
-gen r16 := CAST12(r8:val)
-	{ E("\tmovzx %s, %s\n", regref($val), longregref($$)); }
+gen r16 := CAST12(r8:val):c
+	{ E("\tmov%cx %s, %s\n", $c.sext ? 's' : 'z', regref($val), longregref($$)); }
 
-gen r32 := CAST14(r8:val)
-	{ E("\tmovzx %s, %s\n", regref($val), longregref($$)); }
+gen r32 := CAST14(r8:val):c
+	{ E("\tmov%cx %s, %s\n", $c.sext ? 's' : 'z', regref($val), longregref($$)); }
 
-gen r32 := CAST24(r16:val)
-	{ E("\tmovzx %s, %s\n", regref($val), longregref($$)); }
+gen r32 := CAST24(r16:val):c
+	{ E("\tmov%cx %s, %s\n", $c.sext ? 's' : 'z', regref($val), longregref($$)); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 

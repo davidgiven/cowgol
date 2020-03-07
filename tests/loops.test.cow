@@ -1,0 +1,52 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+sub loop_break_test()
+	print("loop break: ");
+	loop
+		break;
+		print("no\n");
+	end loop;
+	print("yes\n");
+end sub;
+loop_break_test();
+
+sub loop_continue_test()
+	print("loop continue: ");
+	var i: uint8 := 1;
+	loop
+		if i == 0 then
+			print("yes\n");
+			break;
+		end if;
+		i := i - 1;
+		continue;
+		print("no\n");
+		break;
+	end loop;
+end sub;
+loop_continue_test();
+
+sub while_break_test()
+	print("while break: ");
+	while 1 == 1 loop
+		break;
+		print("no\n");
+	end loop;
+	print("yes\n");
+end sub;
+while_break_test();
+
+sub while_continue_test()
+	print("loop continue: ");
+	var i: uint8 := 1;
+	while i != 0 loop
+		i := i - 1;
+		continue;
+		print("no\n");
+		break;
+	end loop;
+	print("yes\n");
+end sub;
+while_continue_test();
+

@@ -165,6 +165,11 @@
 		emitter_printf("\n");
 		va_end(ap);
 	}
+
+	static bool is_sext(Symbol* sym)
+	{
+		return sym->u.var.sub == current_sub;
+	}
 %}
 
 register a b d h hl de bc;
@@ -186,7 +191,6 @@ gen STARTFILE()
     E("\textrn add4\n");
     E("\textrn sub4\n");
 	E("\textrn sublit4\n");
-	E("\textrn cmplit4\n");
     E("\textrn neg4\n");
 	E("\textrn mul1\n");
 	E("\textrn mul2\n");
@@ -215,10 +219,14 @@ gen STARTFILE()
 	E("\textrn or4\n");
 	E("\textrn eor4\n");
 	E("\textrn not4\n");
-	E("\textrn cmpu4\n");
 	E("\textrn load4\n");
 	E("\textrn store4\n");
 	E("\textrn caset1\n");
+	E("\textrn cmps1\n");
+	E("\textrn cmps2\n");
+	E("\textrn cmpl4\n");
+	E("\textrn cmpu4\n");
+	E("\textrn cmps4\n");
     emitter_close_chunk(NULL);
 }
 
@@ -743,8 +751,24 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
     E("\tmov %s, a\n", regref($$));
 }
 
-gen hl := MUL2(bc, de) uses a
+gen hl := MUL2(hl, de) uses a|bc
 	{ E("\tcall mul2\n"); }
+
+gen hl := MUL2(hl, CONSTANT(value==2))
+	{ E("\tdad h\n"); }
+
+gen hl := MUL2(hl, CONSTANT(value==4))
+{
+	E("\tdad h\n");
+	E("\tdad h\n");
+}
+
+gen hl := MUL2(hl, CONSTANT(value==8))
+{
+	E("\tdad h\n");
+	E("\tdad h\n");
+	E("\tdad h\n");
+}
 
 gen de := DIVU2(de, bc) uses a
 	{ E("\tcall dvrmu2\n"); }
@@ -909,6 +933,13 @@ gen BLTU1(a, b|d|h:rhs):b
 	E("\tjmp %s\n", labelref($b.falselabel));
 }
 
+gen BLTS1(a, b): b
+{
+	E("\tcall cmps1\n");
+	E("\tjm %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
 %{
 	static void bequ2(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
 	{
@@ -965,37 +996,71 @@ gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 	E("\tjmp %s\n", labelref($b.falselabel));
 }
 
+gen BLTS2(de, hl):b uses a|bc
+{
+	E("\tcall cmps2\n");
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
 %{
 	static void bequ4(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
 	{
-		E("\tcall sub4\n");
 		E("\tcall cmpu4\n");
 		E("\tjnz %s\n", labelref(falselabel));
 		E("\tjmp %s\n", labelref(truelabel));
 	}
 %}
 
-gen BEQU4(stk4:lhs, stk4:rhs):b
+gen BEQU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
 
-gen BEQS4(stk4:lhs, stk4:rhs):b
+gen BEQS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
+
+gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
+{
+	E("\tcall cmpu4\n");
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
+
+gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
+{
+	E("\tcall cmps4\n");
+	E("\tjc %s\n", labelref($b.truelabel));
+	E("\tjmp %s\n", labelref($b.falselabel));
+}
 
 // --- Casts ----------------------------------------------------------------
 
-gen hl|bc|de := CAST12(a|b|d|h:rhs)
+gen hl|bc|de := CAST12(a|b|d|h:rhs, sext==0)
 {
 	E("\tmov %s, %s\n", regreflo($$), regref($rhs));
 	E("\tmvi %s, 0\n", regref($$));
 }
 
-gen hl := CAST12(LOAD1(hl:rhs))
+gen hl|bc|de := CAST12(a, sext==1)
+{
+	E("\tmov %s, a\n", regreflo($$));
+	E("\tral\n");
+	E("\tsbb a\n");
+	E("\tmov %s, a\n", regref($$));
+}
+
+gen hl := CAST12(LOAD1(hl:rhs), sext==0)
 {
 	E("\tmov %s, m\n", regreflo($$));
 	E("\tmvi %s, 0\n", regref($$));
 }
 
-gen stk4 := CAST14(a:rhs) uses hl
+gen hl := CAST12(LOAD1(ADDRESS():a), sext==0)
+{
+	E("\tlhld %s\n", symref($a.sym, $a.off));
+	E("\tmvi %s, 0\n", regref($$));
+}
+
+gen stk4 := CAST14(a:rhs, sext==0) uses hl
 {
 	E("\tlxi h, 0\n");
 	E("\tpush h\n");
@@ -1003,12 +1068,35 @@ gen stk4 := CAST14(a:rhs) uses hl
 	E("\tpush h\n");
 }
 
+gen stk4 := CAST14(a:rhs, sext==1) uses hl
+{
+	E("\tmov l, a\n");
+	E("\tral\n");
+	E("\tsbb a\n");
+	E("\tmov h, a\n");
+	E("\tpush h\n");
+	E("\tmov l, a\n");
+	E("\txthl\n");
+	E("\tpush h\n");
+}
+
 gen a|b|d|h := CAST21(bc|de|hl:rhs)
 	{ E("\tmov %s, %s\n", regref($$), regreflo($rhs)); }
 	
-gen stk4 := CAST24(hl|de:rhs) uses bc
+gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
 	E("\tlxi b, 0\n");
+	E("\tpush b\n");
+	E("\tpush %s\n", regref($rhs));
+}
+	
+gen stk4 := CAST24(hl|de:rhs, sext==1) uses bc|a
+{
+	E("\tmov a, %s\n", regref($rhs));
+	E("\tral\n");
+	E("\tsbb a\n");
+	E("\tmov b, a\n");
+	E("\tmov c, a\n");
 	E("\tpush b\n");
 	E("\tpush %s\n", regref($rhs));
 }

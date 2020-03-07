@@ -4,7 +4,7 @@
 %token PERCENT PLUS RECORD RETURN SEMICOLON SLASH STAR.
 %token SUB THEN TILDE VAR WHILE TYPE.
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
-%token INT TYPEDEF SIZEOF.
+%token INT TYPEDEF SIZEOF STRING.
 
 %left COMMA.
 %left AND.
@@ -19,14 +19,29 @@
 %left AS.
 %right NOT TILDE.
 
-%token_type {Token}
-%type typeref {[Symbol]}
-%type expression {[Midnode]}
-%type lvalue {[Midnode]}
+%token_type {[Token]}
+
+%syntax_error
+{
+	StartError();
+	print("unexpected ");
+	print(yyTokenName[yymajor]);
+	EndError();
+}
+
+%stack_overflow
+{
+	StartError();
+	print("parser stack overflow");
+	EndError();
+}
 
 %token_destructor
 {
-	DerefBlock($$.string);
+	if $$ != (0 as [Token]) then
+		FreeBlock($$.string as [uint8]);
+		FreeBlock($$ as [uint8]);
+	end if;
 }
 
 program ::= statements.
@@ -41,77 +56,110 @@ statement ::= SEMICOLON.
 /* --- Simple statements ------------------------------------------------- */
 
 statement ::= RETURN SEMICOLON.
-{ }
-
-/* --- Inline assembly --------------------------------------------------- */
-
-statement ::= asmstart asms SEMICOLON.
 {
-	#generate(mid_asmend());
+	print("!! RETURN !!\n");
+	Generate(MidReturn());
 }
 
-asmstart ::= ASM.
+/* --- Variable declaration ---------------------------------------------- */
+
+statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
-	#generate(mid_asmstart());
+	S.kind := VAR;
+	InitVariable(S, T);
 }
 
-asms ::= asm.
-asms ::= asm COMMA asms.
-
-asm ::= STRING(token).
+statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 {
-	#unescape(token->string);
-	#generate(mid_asmtext(strdup(token->string)));
+#	S.kind := VAR;
+#	init_var(S, T);
+#    check_expression_type(&E.type, S.varsym.type);
+#
+#    Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
 }
 
-asm ::= NUMBER(token).
+statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
-	#generate(mid_asmvalue(token->number));
+#	if (E.type == (0 as [Symbol]))
+#		SimpleError("types cannot be inferred for numeric constants");
+#	if (!is_scalar(E->type))
+#		SimpleError("you can only assign to lvalues");
+#	S.kind := VAR;
+#	init_var(S, E.type);
+#	check_expression_type(&E.type, E.type);
+#
+#	Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
 }
 
-asm ::= oldid(ID).
+/* --- Expressions ------------------------------------------------------- */
+
+%type expression {[Node]}
+expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
+expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
+expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
+expression(E) ::= expression(E1) MINUS expression(E2).     { E := ExprSub(E1, E2); }
+expression(E) ::= expression(E1) STAR expression(E2).      { E := ExprMul(E1, E2); }
+expression(E) ::= expression(E1) SLASH expression(E2).     { E := ExprDiv(E1, E2); }
+expression(E) ::= expression(E1) PERCENT expression(E2).   { E := ExprRem(E1, E2); }
+expression(E) ::= expression(E1) CARET expression(E2).     { E := ExprEor(E1, E2); }
+expression(E) ::= expression(E1) AMPERSAND expression(E2). { E := ExprAnd(E1, E2); }
+expression(E) ::= expression(E1) PIPE expression(E2).      { E := ExprOr(E1, E2); }
+expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
+expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
+
+expression(E) ::= lvalue(L).
 {
-	#switch (ID->kind)
-	#{
-	#	case VAR:
-	#	case SUB:
-	#		generate(mid_asmsymbol(ID));
-	#		break;
-
-	#	case CONST:
-	#		generate(mid_asmvalue(ID->u.constant));
-	#		break;
-
-	#	default:
-	#		fatal("you can only emit references to variables, subroutines, or constants");
-	#}
+# E L
 }
 
-/* --- Low level symbol stuff -------------------------------------------- */
+/* --- Lvalues ----------------------------------------------------------- */
 
-/*
-%type newid {Symbol*}
-newid(S) ::= ID(token).
+%type lvalue {[Node]}
+lvalue(L) ::= oldid(S).
 {
-    S = add_new_symbol(NULL, token->string);
+# L S
+
 }
-*/
+
+%type cvalue {Arith}
+cvalue(C) ::= expression(E).
+{
+	if E.type != (0 as [Symbol]) then
+		SimpleError("only constant values are allowed here");
+	end if;
+	C := E.constant.value;
+}
+
+/* --- Types ------------------------------------------------------------- */
+
+%type typeref {[Symbol]}
+typeref(S) ::= INT OPENPAREN cvalue(MIN) COMMA cvalue(MAX) CLOSEPAREN.
+{
+#	if MAX <= MIN then
+#		SimpleError("invalid integer type range");
+#	S := ArchGuessIntType(MIN, MAX);
+}
+
+/* --- Symbols ----------------------------------------------------------- */
+
+%type newid {[Symbol]}
+newid(S) ::= ID(T).
+{
+	S := AddSymbol(0 as [Namespace], T);
+}
 
 %type oldid {[Symbol]}
-oldid(S) ::= ID(token).
+oldid(S) ::= ID(T).
 {
-#    S = lookup_symbol(NULL, token->string);
-#	if (!S)
-#		fatal("symbol '%s' not found", token->string);
+	var name := T.string;
+	var sym := LookupSymbol(0 as [Namespace], name);
+	if sym == (0 as [Symbol]) then
+		StartError();
+		print("symbol '");
+		print(name);
+		print("' not found");
+		EndError();
+	end if;
+	S := sym;
 }
-
-/*
-%type eitherid {Symbol*}
-eitherid(S) ::= ID(token).
-{
-	S = lookup_symbol(NULL, token->string);
-	if (!S)
-		S = add_new_symbol(NULL, token->string);
-}
-*/
 
