@@ -754,6 +754,22 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 gen hl := MUL2(bc, de) uses a
 	{ E("\tcall mul2\n"); }
 
+gen hl := MUL2(hl, CONSTANT(value==2))
+	{ E("\tdad h\n"); }
+
+gen hl := MUL2(hl, CONSTANT(value==4))
+{
+	E("\tdad h\n");
+	E("\tdad h\n");
+}
+
+gen hl := MUL2(hl, CONSTANT(value==8))
+{
+	E("\tdad h\n");
+	E("\tdad h\n");
+	E("\tdad h\n");
+}
+
 gen de := DIVU2(de, bc) uses a
 	{ E("\tcall dvrmu2\n"); }
 
@@ -1035,6 +1051,12 @@ gen hl|bc|de := CAST12(a, sext==1)
 gen hl := CAST12(LOAD1(hl:rhs), sext==0)
 {
 	E("\tmov %s, m\n", regreflo($$));
+	E("\tmvi %s, 0\n", regref($$));
+}
+
+gen hl|bc|de := CAST12(LOAD1(ADDRESS():a), sext==0)
+{
+	E("\tlhld %s\n", symref($a.sym, $a.off));
 	E("\tmvi %s, 0\n", regref($$));
 }
 
