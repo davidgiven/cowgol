@@ -19,6 +19,24 @@ record Rule
 	register_nodes: uint8;
 end record;
 
+record Instruction
+	ruleid: uint8;
+	producable_regs: RegId;
+	produced_reg: RegId;
+	input_regs: RegId;
+	output_regs: RegId;
+	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
+	first_spill: [Regmove];
+	first_reload: [Regmove];
+	last_reload: [Regmove];
+end record;
+
+var instructions: Instruction[16];
+var instructioncount: uint8;
+
+var nodes: [Node][16];
+var nodecount: uint8;
+
 include ".obj/arch8080/inssel.coh";
 
 # Free up the node tree routed in the parameter. This is more exciting than it
@@ -40,11 +58,56 @@ sub Discard(node: [Node])
 		end if;
 
 		# Now free this node.
+		print("discard ");
+		print_hex_i32(node as intptr as uint32);
+		print_nl();
 		Free(node as [uint8], @bytesof Node);
 	end loop;
 end sub;
 
+sub PushNode(node: [Node])
+	if nodecount == @sizeof nodes then
+		SimpleError("node stack overflow");
+	end if;
+	nodes[nodecount] := node;
+	nodecount := nodecount + 1;
+end sub;
+
 sub Generate(node: [Node])
+	MemZero(&instructions[0] as [uint8], @bytesof instructions);
+	nodecount := 0;
+
+	PushNode(node);
+	while nodecount != 0 loop
+		if instructioncount == @sizeof instructions then
+			SimpleError("instruction queue overflow");
+		end if;
+		var producer := &instructions[instructioncount];
+		instructioncount := instructioncount + 1;
+
+		# Find the first matching rule for this instruction.
+
+		nodecount := nodecount - 1;
+		var n := nodes[nodecount];
+		var matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
+		MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
+		var matchnodes: [Node][INSTRUCTION_TEMPLATE_DEPTH];
+		MemZero(&matchnodes[0] as [uint8], @bytesof matchnodes);
+		matchnodes[0] := n;
+		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
+
+		var rule := &codegen_rules[0];
+		while rule != &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] loop
+			if rule.compatible_producable_regs != 0 then
+				# This rule produces a result, so only match if the register
+				# is compatible.
+
+				# FIXME no continue yet!
+				#continue;
+			end if;
+		end loop;
+	end loop;
+
 	Discard(node);
 end sub;
 

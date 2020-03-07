@@ -202,12 +202,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	print_nl();
 
 	loop
-		print("transition ");
-		print_i8(yyact);
-		print(" -> ");
 		yyact := yy_find_shift_action(yymajor, yyact);
-		print_i8(yyact);
-		print_nl();
 
 		if yyact >= YY_MIN_REDUCE then
 			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
