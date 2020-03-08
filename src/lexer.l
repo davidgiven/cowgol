@@ -53,6 +53,8 @@ SP [ \t]+
 "@bytesof"                { return BYTESOF; }
 "@indexof"                { return INDEXOF; }
 "@sizeof"                 { return SIZEOF; }
+"@next"                   { return NEXT; }
+"@prev"                   { return PREV; }
 "["                       { return OPENSQ; }
 "]"                       { return CLOSESQ; }
 "^"                       { return CARET; }

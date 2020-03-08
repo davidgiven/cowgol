@@ -58,6 +58,7 @@
 %left STAR SLASH PERCENT.
 %left AS.
 %left DOT.
+%right NEXT PREV.
 %right NOT TILDE.
 
 %token_type {struct token*}
@@ -883,6 +884,20 @@ expression(E) ::= SIZEOF oldid(S).
 		fatal("can't use @bytesof in this context");
 }
 
+expression(E) ::= NEXT expression(E1).
+{
+	if (!is_ptr(E1->type))
+		fatal("@next only works on pointers");
+	E = mid_c_add(intptr_type->u.type.width, E1, mid_constant(E1->type->u.type.element->u.type.stride));
+}
+
+expression(E) ::= PREV expression(E1).
+{
+	if (!is_ptr(E1->type))
+		fatal("@prev only works on pointers");
+	E = mid_c_add(intptr_type->u.type.width, E1, mid_constant(-E1->type->u.type.element->u.type.stride));
+}
+
 expression(E) ::= lvalue(E1).
 {
 	if (E1->type)
@@ -1159,6 +1174,10 @@ statement ::= recordstatement.
 
 %destructor recordstatement { current_type = NULL; }
 recordstatement ::= RECORD recordstart recordinherits recordmembers END RECORD.
+{
+	current_type->u.type.stride = arch_align_up(
+		current_type->u.type.width, current_type->u.type.alignment);
+}
 
 recordstart ::= eitherid(S).
 {

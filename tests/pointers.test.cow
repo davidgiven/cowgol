@@ -1,0 +1,14 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+record Unaligned
+	word: uint32;
+	byte: uint8;
+end record;
+
+var unaligned: Unaligned[5];
+var p := &unaligned[1];
+
+print("@next"); if @next p == &unaligned[2] then yes(); else no(); end if;
+print("@prev"); if @prev p == &unaligned[0] then yes(); else no(); end if;
+

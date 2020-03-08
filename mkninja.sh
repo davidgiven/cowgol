@@ -658,6 +658,7 @@ tests=" \
     mul-8bit-s \
     mul-8bit-u \
     outputparams \
+    pointers \
     rangetypes \
     records \
     shifts-16bit \
