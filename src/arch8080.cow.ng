@@ -58,3 +58,7 @@ gen ENDSUB():s
 	print("ENDSUB\n");
 }
 
+gen RETURN()
+{
+	print("RETURN\n");
+}

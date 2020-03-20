@@ -57,7 +57,6 @@ statement ::= SEMICOLON.
 
 statement ::= RETURN SEMICOLON.
 {
-	print("!! RETURN !!\n");
 	Generate(MidReturn());
 }
 

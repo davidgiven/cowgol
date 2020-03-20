@@ -81,17 +81,11 @@ sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 0;
 
 	var i: uint8 := INSTRUCTION_TEMPLATE_DEPTH;
-	print("comparator\n");
 	while i != 0 loop
 		var d := [data];
 		data := data + 1;
 		var t := [template];
 		template := template + 1;
-		print("t=");
-		print_hex_i8(t);
-		print(" d=");
-		print_hex_i8(d);
-		print_nl();
 		if (t != 0) and (d != t) then
 			return;
 		end if;
@@ -126,9 +120,9 @@ sub Generate(node: [Node])
 		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
 
 		var ruleid: uint8 := 0xff;
-		var rule := &codegen_rules[0] - @bytesof Rule;
+		var rule := @prev &codegen_rules[0];
 		loop
-			rule := rule + @bytesof Rule;
+			rule := @next rule;
 			ruleid := ruleid + 1;
 
 			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then

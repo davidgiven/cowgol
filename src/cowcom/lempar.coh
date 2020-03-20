@@ -43,7 +43,7 @@ end sub;
 # stack overflow code
 
 sub yy_pop_parser_stack()
-	yytos := yytos - @bytesof yyStackEntry;
+	yytos := @prev yytos;
 	yy_destructor(yytos.major, &yytos.minor);
 end sub;
 
@@ -110,7 +110,7 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken:
 	var yygoto := yyRuleInfoLhs[yyruleno];
 	yytos := yytos + (yysize as intptr)*@bytesof yyStackEntry;
 	yyact := yy_find_reduce_action(yytos.stateno, yygoto);
-	yytos := yytos + @bytesof yyStackEntry;
+	yytos := @next yytos;
 	yytos.stateno := yyact;
 	yytos.major := yygoto;
 
@@ -175,7 +175,7 @@ sub yy_shift(newstateno: YYACTIONTYPE, yymajor: YYCODETYPE, yyminor: ParseTOKENT
 		yy_stack_overflow();
 		return;
 	end if;
-	yytos := yytos + @bytesof yyStackEntry;
+	yytos := @next yytos;
 
 	if newstateno > YY_MAX_SHIFT then
 		newstateno := newstateno + (YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE);
@@ -213,7 +213,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 			end if;
 			break;
 		elseif yyact == YY_ACCEPT_ACTION then
-			yytos := yytos - @bytesof yyStackEntry;
+			yytos := @prev yytos;
 			yy_accept();
 			break;
 		else
@@ -242,7 +242,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	while i != yytos loop
 		print(" ");
 		print(yyTokenName[i.major]);
-		i := i + @bytesof yyStackEntry;
+		i := @next i;
 	end loop;
 	print("]\n");
 end sub;
