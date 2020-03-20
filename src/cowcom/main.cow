@@ -15,6 +15,7 @@ include ".obj/arch8080/inssel.decl.coh";
 include "src/cowcom/midcodes.coh";
 include ".obj/parser.tokens.coh";
 include "src/cowcom/lexer.coh";
+include "src/cowcom/emitter.coh";
 include "src/cowcom/codegen.coh";
 include "src/cowcom/symbols.coh";
 include "src/cowcom/expressions.coh";
@@ -87,6 +88,8 @@ current_subr.name := "__main";
 current_subr.externname := "cmain";
 
 ArchInitTypes();
+EmitterOpenfile(outputfile);
+EmitterPushChunk();
 Generate(MidStartfile());
 Generate(MidStartsub(current_subr));
 
@@ -114,6 +117,8 @@ ParserDeinit();
 
 Generate(MidEndsub(current_subr));
 Generate(MidEndfile());
+EmitterPopChunk('S');
+EmitterClosefile();
 
 print("done: ");
 PrintFreeMemory();

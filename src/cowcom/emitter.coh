@@ -1,0 +1,83 @@
+var outfcb: FCB;
+
+const RECORD_SIZE := 128;
+
+record EmitterRecord
+	data: uint8[RECORD_SIZE];
+	ptr: uint8;
+	next: [EmitterRecord];
+end record;
+
+record EmitterChunk
+	next: [EmitterChunk];
+	first_record: [EmitterRecord];
+	current_record: [EmitterRecord];
+	length: uint16;
+end record;
+
+var current_chunk: [EmitterChunk];
+
+sub EmitterPushChunk()
+	var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
+	chunk.current_record := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
+	chunk.first_record := chunk.current_record;
+	chunk.next := current_chunk;
+	current_chunk := chunk;
+end sub;
+
+sub EmitterPopChunk(type: uint8)
+	FCBPutChar(&outfcb, type);
+
+	var r := current_chunk.first_record;
+	while r != (0 as [EmitterRecord]) loop
+		var i: uint8 := 0;
+		while i != r.ptr loop
+			FCBPutChar(&outfcb, r.data[i]);
+			i := i + 1;
+		end loop;
+
+		var nextr := r.next;
+		Free(r as [uint8], @bytesof EmitterRecord);
+		r := nextr;
+	end loop;
+
+	var nextchunk := current_chunk.next;
+	Free(current_chunk as [uint8], @bytesof EmitterChunk);
+	current_chunk := nextchunk;
+end sub;
+
+sub EmitterOpenfile(filename: string)
+	if FCBOpenOut(&outfcb, filename) != 0 then
+		SimpleError("cannot open output file");
+	end if;
+end sub;
+
+sub EmitterClosefile()
+	if FCBClose(&outfcb) != 0 then
+		SimpleError("cannot close output file");
+	end if;
+end sub;
+
+sub EmitChar(byte: uint8)
+	var r := current_chunk.current_record;
+	if r.ptr == RECORD_SIZE then
+		r := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
+		current_chunk.current_record.next := r;
+		current_chunk.current_record := r;
+	end if;
+
+	r.data[r.ptr] := byte;
+	r.ptr := r.ptr + 1;
+end sub;
+
+sub EmitString(text: string)
+	loop
+		var c := [text];
+		text := text + 1;
+		if c == 0 then
+			break;
+		end if;
+		EmitChar(c);
+	end loop;
+end sub;
+
