@@ -889,6 +889,7 @@ expression(E) ::= NEXT expression(E1).
 	if (!is_ptr(E1->type))
 		fatal("@next only works on pointers");
 	E = mid_c_add(intptr_type->u.type.width, E1, mid_constant(E1->type->u.type.element->u.type.stride));
+	E->type = E1->type;
 }
 
 expression(E) ::= PREV expression(E1).
@@ -896,6 +897,7 @@ expression(E) ::= PREV expression(E1).
 	if (!is_ptr(E1->type))
 		fatal("@prev only works on pointers");
 	E = mid_c_add(intptr_type->u.type.width, E1, mid_constant(-E1->type->u.type.element->u.type.stride));
+	E->type = E1->type;
 }
 
 expression(E) ::= lvalue(E1).
