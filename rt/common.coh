@@ -13,26 +13,50 @@ sub print_nl()
 	print_char('\n');
 end sub;
 
-sub print_i32(value: uint32)
-    var buffer: uint8[11];
-    var pos: uint8 := 0;
-    loop
-        var rem: uint32;
-        (value, rem) := divmodu32(value, 10);
-        buffer[pos] := rem as uint8;
-        if value == 0 then
-            break;
-        end if;
-        pos := pos + 1;
-    end loop;
+sub UIToA(value: uint32, base: uint8, buffer: [uint8]): (ptr: [uint8])
+	ptr := buffer;
+	loop
+		var rem: uint32;
+		(value, rem) := divmodu32(value, base as uint32);
+		if rem < 10 then
+			rem := rem + '0';
+		else
+			rem := rem + ('a' - 10);
+		end if;
+		[ptr] := rem as uint8;
+		ptr := @next ptr;
 
-    loop
-        print_char(buffer[pos] + '0');
-        if pos == 0 then
-            break;
-        end if;
-        pos := pos - 1;
-    end loop;
+		if value == 0 then
+			break;
+		end if;
+	end loop;
+
+	var s1 := buffer;
+	var s2 := @prev ptr;
+	while s2 > s1 loop
+		var c := [s1];
+		[s1] := [s2];
+		[s2] := c;
+		s1 := @next s1;
+		s2 := @prev s2;
+	end loop;
+
+	[ptr] := 0;
+end sub;
+
+sub IToA(value: int32, base: uint8, buffer: [uint8]): (ptr: [uint8])
+	if value < 0 then
+		[buffer] := '-';
+		buffer := @next buffer;
+		value := -value;
+	end if;
+	ptr := UIToA(value as uint32, base, buffer);
+end sub;
+
+sub print_i32(value: uint32)
+    var buffer: uint8[12];
+	var pe := UIToA(value, 10, &buffer[0]);
+	print(&buffer[0]);
 end sub;
 
 sub print_i16(value: uint16)

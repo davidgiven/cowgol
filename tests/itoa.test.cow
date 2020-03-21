@@ -1,0 +1,54 @@
+include "cowgol.coh";
+include "strings.coh";
+include "tests/_framework.coh";
+
+sub test_uint(value: uint32, base: uint8, result: [uint8])
+	print(result);
+	print(" as uint: ");
+
+	var buffer: uint8[32];
+	var pe := UIToA(value, base, &buffer[0]);
+	if StrCmp(&buffer[0], result) == 0 then
+		yes();
+	else
+		no();
+	end if;
+end sub;
+
+sub test_int(value: int32, base: uint8, result: [uint8])
+	print(result);
+	print(" as int: ");
+
+	var buffer: uint8[32];
+	var pe := IToA(value, base, &buffer[0]);
+	if StrCmp(&buffer[0], result) == 0 then
+		yes();
+	else
+		no();
+	end if;
+end sub;
+
+test_uint(0b1, 2, "1");
+test_uint(0b1010, 2, "1010");
+test_uint(1, 10, "1");
+test_uint(10000, 10, "10000");
+test_uint(0xa, 16, "a");
+test_uint(0xabcde, 16, "abcde");
+test_uint(0xffffffff, 16, "ffffffff");
+test_uint(0xffffffff, 10, "4294967295");
+
+test_int(0b1, 2, "1");
+test_int(0b1010, 2, "1010");
+test_int(-0b1, 2, "-1");
+test_int(-0b1010, 2, "-1010");
+test_int(1, 10, "1");
+test_int(10000, 10, "10000");
+test_int(-1, 10, "-1");
+test_int(-10000, 10, "-10000");
+test_int(0xa, 16, "a");
+test_int(0xabcde, 16, "abcde");
+test_int(-0xa, 16, "-a");
+test_int(-0xabcde, 16, "-abcde");
+test_int(0xffffffff, 16, "-1");
+test_int(0xffffffff, 10, "-1");
+
