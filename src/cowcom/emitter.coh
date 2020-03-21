@@ -118,3 +118,17 @@ sub EmitterClosefile()
 	end if;
 end sub;
 
+sub EmitterDeclareSubroutine(subr: [Subroutine])
+	EmitterPushChunk();
+	EmitHex16(subr.id);
+	EmitString(subr.name);
+	EmitterPopChunk('N');
+end sub;
+
+sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
+	EmitterPushChunk();
+	EmitHex16(user.id);
+	EmitHex16(used.id);
+	EmitterPopChunk('R');
+end sub;
+

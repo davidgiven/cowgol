@@ -1,3 +1,41 @@
+sub IsTypeOfKind(type: [Symbol], kind: uint8): (result: uint8)
+	result := 0;
+	if (type != (0 as [Symbol])) and (type.kind == TYPE) and (type.typedata.kind == kind) then
+		result := 1;
+	end if;
+end sub;
+
+sub IsPtr(type: [Symbol]): (result: uint8)
+	result := IsTypeOfKind(type, TYPE_POINTER);
+end sub;
+
+sub IsNum(type: [Symbol]): (result: uint8)
+	result := IsTypeOfKind(type, TYPE_NUMBER);
+end sub;
+
+sub CheckExpressionType(node: [Node], type: [Symbol])
+	if node.type == (0 as [Symbol]) then
+		node.type := type;
+	end if;
+
+	if node.type != type then
+		StartError();
+		print("type mismatch: expression was a ");
+		print(node.type.name);
+		print(", used when a ");
+		print(type.name);
+		print(" was expected");
+		EndError();
+	end if;
+
+	if (IsPtr(type) == 0) and (IsNum(type) == 0) then
+		StartError();
+		print(type.name);
+		print(" cannot be used here");
+		EndError();
+	end if;
+end sub;
+
 sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 	SimpleError("ExprAdd not supported");
 end sub;

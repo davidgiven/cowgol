@@ -70,11 +70,11 @@ statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 
 statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 {
-#	S.kind := VAR;
-#	init_var(S, T);
-#    check_expression_type(&E.type, S.varsym.type);
-#
-#    Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
+	S.kind := VAR;
+	InitVariable(S, T);
+    CheckExpressionType(E, S.vardata.type);
+
+    Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
@@ -108,6 +108,7 @@ expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1,
 
 expression(E) ::= lvalue(L).
 {
+	SimpleError("lvalue to expression not supported");
 # E L
 }
 
@@ -116,6 +117,7 @@ expression(E) ::= lvalue(L).
 %type lvalue {[Node]}
 lvalue(L) ::= oldid(S).
 {
+	SimpleError("oldid to lvalue not supported");
 # L S
 
 }
@@ -134,9 +136,10 @@ cvalue(C) ::= expression(E).
 %type typeref {[Symbol]}
 typeref(S) ::= INT OPENPAREN cvalue(MIN) COMMA cvalue(MAX) CLOSEPAREN.
 {
-#	if MAX <= MIN then
-#		SimpleError("invalid integer type range");
-#	S := ArchGuessIntType(MIN, MAX);
+	if MAX <= MIN then
+		SimpleError("invalid integer type range");
+	end if;
+	S := ArchGuessIntType(MIN, MAX);
 }
 
 /* --- Symbols ----------------------------------------------------------- */

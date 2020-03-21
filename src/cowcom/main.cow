@@ -89,6 +89,7 @@ current_subr.externname := "cmain";
 
 ArchInitTypes();
 EmitterOpenfile(outputfile);
+EmitterDeclareSubroutine(current_subr);
 EmitterPushChunk();
 Generate(MidStartfile());
 Generate(MidStartsub(current_subr));
