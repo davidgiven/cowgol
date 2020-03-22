@@ -56,6 +56,14 @@ sub EmitUint(value: uint32)
 	end loop;
 end sub;
 
+sub EmitUint16(value: uint16)
+	EmitUint(value as uint32);
+end sub;
+
+sub EmitUint8(value: uint8)
+	EmitUint(value as uint32);
+end sub;
+
 sub EmitHex16(value: uint16)
 	var buffer: uint8[5];
 	var pe := UIToA(value as uint32, 16, &buffer[0]);

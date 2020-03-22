@@ -27,9 +27,16 @@
 		end if;
 	end sub;
 
+	sub ArchInitVariable(symbol: [Symbol])
+		var subr := symbol.vardata.subr;
+		var offset := subr.workspace[0];
+		symbol.vardata.offset := offset as uint32;
+		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+	end sub;
+
 	sub E_label(labelid: uint16)
 		EmitString("x");
-		EmitUint(labelid as uint32);
+		EmitUint16(labelid);
 	end sub;
 
 	sub E_subref(subr: [Subroutine])
@@ -37,7 +44,7 @@
 			EmitString(subr.externname);
 		else
 			EmitString("f");
-			EmitUint(subr.id as uint32);
+			EmitUint16(subr.id);
 		end if;
 	end sub;
 %}
@@ -78,6 +85,11 @@ gen ENDSUB():s
 	E_subref($s.subr);
 	EmitString(":\n");
 	EmitString("\tret\n");
+	EmitString("\tdseg\nw");
+	E_subref($s.subr);
+	EmitString(": ds ");
+	EmitUint16($s.subr.workspace[0]);
+	EmitString("\n");
 	EmitterPopChunk('S');
 }
 
