@@ -73,10 +73,6 @@ sub PushNode(node: [Node])
 	nodecount := nodecount + 1;
 end sub;
 
-sub UnmatchedInstructionError()
-	SimpleError("unmatched instruction");
-end sub;
-
 sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 0;
 
@@ -130,7 +126,15 @@ sub Generate(rootnode: [Node])
 
 			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
 				# Reach the end of the list of rules without matching anything.
-				UnmatchedInstructionError();
+				StartError();
+				print("unmatched instruction: ");
+				i := 0;
+				while i != INSTRUCTION_TEMPLATE_DEPTH loop
+					print_i8(matchbytes[i]);
+					print_char(' ');
+					i := i + 1;
+				end loop;
+				EndError();
 			end if;
 
 			if rule.compatible_producable_regs != 0 then
@@ -174,7 +178,7 @@ sub Generate(rootnode: [Node])
 		var regmask := rule.register_nodes;
 		i := 0;
 		while i != INSTRUCTION_TEMPLATE_DEPTH loop
-			var n := nodes[i];
+			var n := matchnodes[i];
 			if (copymask & 1) != 0 then
 				producer.n[i] := n;
 				if (regmask & 1) != 0 then

@@ -99,3 +99,14 @@ gen RETURN()
 	E_subref(current_subr);
 	EmitString("\n");
 }
+
+gen bc|de|hl := ADDRESS():a
+{
+	print("ADDRESS\n");
+}
+
+gen STORE1(a, bc|de|hl:val)
+{
+	print("STORE1\n");
+}
+
