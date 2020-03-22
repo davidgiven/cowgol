@@ -59,9 +59,10 @@
 	{
 		/* All variables get allocated from workspace 0. */
 
-		int w = var->u.var.type->u.type.width;
+		int a = var->u.var.type->u.type.alignment;
+		current_sub->workspace[0] = arch_align_up(current_sub->workspace[0], a);
 		var->u.var.offset = current_sub->workspace[0];
-		current_sub->workspace[0] += w;
+		current_sub->workspace[0] += var->u.var.type->u.type.width;
 	}
 
 	void arch_init_member(struct symbol* record, struct symbol* member, int position)
