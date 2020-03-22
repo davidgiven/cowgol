@@ -386,6 +386,7 @@ sub lexer_i_read_string()
 				case c is
 					when 'n': c := 10;
 					when 'r': c := 13;
+					when 't': c := 9;
 					when '0': c := 0;
 				end case;
 		end case;

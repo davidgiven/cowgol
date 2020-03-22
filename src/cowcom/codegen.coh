@@ -32,7 +32,7 @@ record Instruction
 end record;
 
 var instructions: Instruction[16];
-var instructioncount: uint8;
+var next_instruction: [Instruction];
 
 var nodes: [Node][16];
 var nodecount: uint8;
@@ -96,27 +96,30 @@ sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 1;
 end sub;
 
-sub Generate(node: [Node])
+sub Generate(rootnode: [Node])
+	var i: uint8;
+
 	MemZero(&instructions[0] as [uint8], @bytesof instructions);
+	next_instruction := &instructions[0];
 	nodecount := 0;
 
-	PushNode(node);
+	PushNode(rootnode);
 	while nodecount != 0 loop
-		if instructioncount == @sizeof instructions then
+		if next_instruction == &instructions[@sizeof instructions] then
 			SimpleError("instruction queue overflow");
 		end if;
-		var producer := &instructions[instructioncount];
-		instructioncount := instructioncount + 1;
+		var producer := next_instruction;
+		next_instruction := @next next_instruction;
 
 		# Find the first matching rule for this instruction.
 
 		nodecount := nodecount - 1;
-		var n := nodes[nodecount];
+		var node := nodes[nodecount];
 		var matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
 		MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
 		var matchnodes: [Node][INSTRUCTION_TEMPLATE_DEPTH];
 		MemZero(&matchnodes[0] as [uint8], @bytesof matchnodes);
-		matchnodes[0] := n;
+		matchnodes[0] := node;
 		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
 
 		var ruleid: uint8 := 0xff;
@@ -133,12 +136,12 @@ sub Generate(node: [Node])
 			if rule.compatible_producable_regs != 0 then
 				# This rule produces a result, so fail if the result register
 				# isn't compatible.
-				if (n.desired_reg & rule.compatible_producable_regs) == 0 then
+				if (node.desired_reg & rule.compatible_producable_regs) == 0 then
 					continue;
 				end if;
 			else
 				# This rule produces no result, so fail if we need one.
-				if n.desired_reg != 0 then
+				if node.desired_reg != 0 then
 					continue;
 				end if;
 			end if;
@@ -158,11 +161,46 @@ sub Generate(node: [Node])
 			break;
 		end loop;
 
-		print("match rule ");
-		print_i8(ruleid);
-		print_nl();
+		# We have found a rule for this instruction.
+
+		producer.ruleid := ruleid;
+		producer.producable_regs := rule.producable_regs;
+		producer.output_regs := rule.uses_regs;
+
+		# Copy child nodes into the current instruction and make sure they're
+		# pushed for later instruction allocation.
+
+		var copymask := rule.copyable_nodes;
+		var regmask := rule.register_nodes;
+		i := 0;
+		while i != INSTRUCTION_TEMPLATE_DEPTH loop
+			var n := nodes[i];
+			if (copymask & 1) != 0 then
+				producer.n[i] := n;
+				if (regmask & 1) != 0 then
+					PushNode(n);
+					n.desired_reg := rule.consumable_regs[i];
+					n.consumer := producer;
+				end if;
+			end if;
+			copymask := copymask >> 1;
+			regmask := regmask >> 1;
+			i := i + 1;
+		end loop;
+		node.producer := producer;
+
+		if producer.producable_regs != 0 then
+			SimpleError("producable regs");
+		end if;
 	end loop;
 
-	Discard(node);
+	# We have a set of instructions for this expression; emit them.
+
+	while next_instruction != &instructions[0] loop
+		next_instruction := @prev next_instruction;
+		EmitOneInstruction(next_instruction.ruleid, next_instruction);
+	end loop;
+
+	Discard(rootnode);
 end sub;
 

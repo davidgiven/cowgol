@@ -36,6 +36,16 @@ sub CheckExpressionType(node: [Node], type: [Symbol])
 	end if;
 end sub;
 
+sub ExprNeg(lhs: [Node]): (result: [Node])
+	if lhs.type == (0 as [Symbol]) then
+		result := lhs;
+		result.constant.value := -result.constant.value;
+	else
+		result := MidNeg(lhs.type.typedata.width as uint8, lhs);
+		result.type := lhs.type;
+	end if;
+end sub;
+
 sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 	SimpleError("ExprAdd not supported");
 end sub;

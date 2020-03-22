@@ -7,13 +7,11 @@ sub BadNodeWidth(width: uint8)
 end sub;
 
 sub WidthToIndex(width: uint8): (index: uint8)
-	if width == 4 then
-		index := 3;
-	elseif width == 8 then
-		index := 4;
-	else
-		index := width;
-	end if;
+	case width is
+		when 4: index := 3;
+		when 8: index := 4;
+		when else: index := width;
+	end case;
 end sub;
 
 include ".obj/midcodes.coh";

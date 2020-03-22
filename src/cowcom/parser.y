@@ -40,7 +40,7 @@
 {
 	if $$ != (0 as [Token]) then
 		FreeBlock($$.string as [uint8]);
-		FreeBlock($$ as [uint8]);
+		Free($$ as [uint8], @bytesof Token);
 	end if;
 }
 
@@ -95,6 +95,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 %type expression {[Node]}
 expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
+expression(E) ::= MINUS expression(E1).                    { E := ExprNeg(E1); }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E := ExprSub(E1, E2); }
 expression(E) ::= expression(E1) STAR expression(E2).      { E := ExprMul(E1, E2); }
@@ -142,6 +143,29 @@ typeref(S) ::= INT OPENPAREN cvalue(MIN) COMMA cvalue(MAX) CLOSEPAREN.
 	S := ArchGuessIntType(MIN, MAX);
 }
 
+typeref(S) ::= eitherid(ID).
+{
+	var sym := ID;
+	if sym.kind == 0 then
+		# Create a partial type.
+		sym.kind := TYPE;
+		sym.typedata.kind := TYPE_PARTIAL;
+	end if;
+	if sym.kind != TYPE then
+		StartError();
+		print("expected ");
+		print(sym.name);
+		print(" to be a type");
+		EndError();
+	end if;
+	S := sym;
+}
+
+statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
+{
+	var sym := AddAlias(0 as [Namespace], X, T);
+}
+
 /* --- Symbols ----------------------------------------------------------- */
 
 %type newid {[Symbol]}
@@ -161,6 +185,16 @@ oldid(S) ::= ID(T).
 		print(name);
 		print("' not found");
 		EndError();
+	end if;
+	S := sym;
+}
+
+%type eitherid {[Symbol]}
+eitherid(S) ::= ID(T).
+{
+	var sym := LookupSymbol(0 as [Namespace], T.string);
+	if sym == (0 as [Symbol]) then
+		sym := AddSymbol(0 as [Namespace], T);
 	end if;
 	S := sym;
 }

@@ -118,7 +118,6 @@ ParserDeinit();
 
 Generate(MidEndsub(current_subr));
 Generate(MidEndfile());
-EmitString("Hello, world!");
 EmitterPopChunk('S');
 EmitterClosefile();
 

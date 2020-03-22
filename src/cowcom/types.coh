@@ -76,3 +76,5 @@ record Subroutine
 	num_output_parameters: uint8;
 end record;
 
+var current_subr: [Subroutine];
+

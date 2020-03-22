@@ -26,6 +26,20 @@
 			symbol := int32_type;
 		end if;
 	end sub;
+
+	sub E_label(labelid: uint16)
+		EmitString("x");
+		EmitUint(labelid as uint32);
+	end sub;
+
+	sub E_subref(subr: [Subroutine])
+		if subr.externname != (0 as string) then
+			EmitString(subr.externname);
+		else
+			EmitString("f");
+			EmitUint(subr.id as uint32);
+		end if;
+	end sub;
 %}
 
 register a b d h hl de bc;
@@ -50,15 +64,26 @@ gen ENDFILE();
 
 gen STARTSUB():s
 {
-	print("STARTSUB\n");
+	EmitterPushChunk();
+	EmitHex16($s.subr.id);
+
+	EmitString("\tcseg\n");
+	E_subref($s.subr);
+	EmitString(":\n");
 }
 
 gen ENDSUB():s
 {
-	print("ENDSUB\n");
+	EmitString("end_");
+	E_subref($s.subr);
+	EmitString(":\n");
+	EmitString("\tret\n");
+	EmitterPopChunk('S');
 }
 
 gen RETURN()
 {
-	print("RETURN\n");
+	EmitString("\tjmp end_");
+	E_subref(current_subr);
+	EmitString("\n");
 }
