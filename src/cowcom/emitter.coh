@@ -88,11 +88,7 @@ sub EmitterPopChunk(type: uint8)
 
 	var buffer: uint8[5];
 	var pe := UIToA(current_chunk.length as uint32, 16, &buffer[0]);
-	var padding := 4 - (pe - &buffer[0]) as uint8;
-	while padding != 0 loop
-		FCBPutChar(&outfcb, '0');
-		padding := padding - 1;
-	end loop;
+	FCBPutString(&outfcb, "0000" + (pe - &buffer[0]));
 	FCBPutString(&outfcb, &buffer[0]);
 
 	var r := current_chunk.first_record;

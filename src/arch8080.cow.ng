@@ -47,6 +47,72 @@
 			EmitUint16(subr.id);
 		end if;
 	end sub;
+
+	sub E_symref(sym: [Symbol], off: int16)
+		EmitByte('w');
+		EmitUint16(sym.vardata.subr.id);
+		EmitByte('+');
+		EmitUint(sym.vardata.offset + (off as uint32));
+	end sub;
+
+	sub E_space()
+		EmitByte(' ');
+	end sub;
+
+	sub E_comma()
+		EmitByte(',');
+	end sub;
+
+	sub E_tab()
+		EmitByte('\t');
+	end sub;
+
+	sub E_nl();
+		EmitByte('\n');
+	end sub;
+
+	sub E_reg(reg: RegId)
+		case reg is
+			when REG_A: EmitByte('a');
+			when REG_B: EmitByte('b');
+			when REG_D: EmitByte('d');
+			when REG_H: EmitByte('h');
+			when REG_BC: EmitByte('b');
+			when REG_DE: EmitByte('d');
+			when REG_HL: EmitByte('h');
+			when else: SimpleError("invalid register");
+		end case;
+	end sub;
+
+	sub E_alui(insn: string, reg: RegId, value: int32)
+		E_tab();
+		EmitString(insn);
+		E_space();
+		E_reg(reg);
+		E_comma();
+		EmitUint8(value as uint8);
+		E_nl();
+	end sub;
+
+	sub E_lxi(reg: RegId, sym: [Symbol], off: int16)
+		EmitString("\tlxi ");
+		E_reg(reg);
+		E_comma();
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_storem(reg: RegId)
+		EmitString("\tmov m,");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_stax(ptr: RegId)
+		EmitString("\tstax ");
+		E_reg(ptr);
+		E_nl();
+	end sub;
 %}
 
 register a b d h hl de bc;
@@ -100,13 +166,22 @@ gen RETURN()
 	EmitString("\n");
 }
 
+gen a|b|d|h := CONSTANT():rhs
+{
+	E_alui("mvi", $$, $rhs.value);
+}
+
 gen bc|de|hl := ADDRESS():a
 {
-	print("ADDRESS\n");
+	E_lxi($$, $a.sym, $a.off);
 }
 
 gen STORE1(a, bc|de|hl:val)
 {
-	print("STORE1\n");
+	if $val == REG_HL then
+		E_storem(REG_A);
+	else
+		E_stax($val);
+	end if;
 }
 

@@ -73,6 +73,56 @@ sub PushNode(node: [Node])
 	nodecount := nodecount + 1;
 end sub;
 
+sub IsStackedRegister(regid: RegId): (result: uint8)
+	result := 0;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & regid) != 0 then
+			result := reg.is_stacked;
+			return;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub FindFirst(inreg: RegId): (outreg: RegId)
+	outreg := 1;
+	while outreg != 0 loop
+		if (inreg & outreg) != 0 then
+			return;
+		end if;
+		outreg := outreg << 1;
+	end loop;
+	SimpleError("failed to allocate register");
+end sub;
+
+sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocked: RegId)
+	blocked := 0;
+	while insn <= last loop
+		blocked := blocked | insn.input_regs | insn.output_regs;
+		insn := @next insn;
+	end loop;
+end sub;
+
+sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId)
+	conflicting := 0;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & inreg) != 0 then
+			conflicting := conflicting | reg.uses;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId)
+	while insn <= last loop
+		insn.input_regs := insn.input_regs | blocked;
+		insn.output_regs := insn.output_regs | blocked;
+		insn := @next insn;
+	end loop;
+end sub;
+
 sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 0;
 
@@ -194,7 +244,28 @@ sub Generate(rootnode: [Node])
 		node.producer := producer;
 
 		if producer.producable_regs != 0 then
-			SimpleError("producable regs");
+			# The instruction has produced a register. For stackable registers,
+			# stop now: we ignore them for register allocation.
+			if IsStackedRegister(producer.producable_regs) == 0 then
+				var consumer := node.consumer;
+				var blocked := CalculateBlockedRegisters(@next consumer, @prev producer);
+				var candidate := node.desired_reg & producer.producable_regs;
+
+				if (candidate & ~(blocked | producer.output_regs | consumer.input_regs)) != 0 then
+					# Good news --- we can allocate the ideal register for
+					# both producer and consumer.
+
+					candidate := FindFirst(candidate & ~(blocked | producer.output_regs | consumer.input_regs));
+					node.produced_reg := candidate;
+					producer.produced_reg := candidate;
+
+					blocked := FindConflictingRegisters(candidate);
+					BlockRegisters(@next consumer, @prev producer, blocked);
+					producer.output_regs := producer.output_regs | blocked;
+				else
+					SimpleError("regalloc");
+				end if;
+			end if;
 		end if;
 	end loop;
 

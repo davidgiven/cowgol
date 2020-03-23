@@ -116,6 +116,7 @@ SP [ \t]+
 '[^'\\]'                  { number = yytext[1]; return NUMBER; }
 '\\n'                     { number = '\n'; return NUMBER; }
 '\\r'                     { number = '\r'; return NUMBER; }
+'\\t'                     { number = '\t'; return NUMBER; }
 '\\\\'                    { number = '\\'; return NUMBER; }
 '                         { fatal("invalid character constant"); }
 
