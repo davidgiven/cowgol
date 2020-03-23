@@ -61,7 +61,7 @@ sub Discard(node: [Node])
 		print("discard ");
 		print_hex_i32(node as intptr as uint32);
 		print_nl();
-		Free(node as [uint8], @bytesof Node);
+		Free(node as [uint8]);
 	end loop;
 end sub;
 

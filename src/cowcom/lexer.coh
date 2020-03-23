@@ -258,7 +258,7 @@ sub lexer_i_getchar(): (c: uint8)
 
 		current_file := f.next;
 		var i := FCBClose(&f.fcb);
-		Free(f as [uint8], @bytesof File);
+		Free(f as [uint8]);
 	end loop;
 end sub;
 
@@ -414,7 +414,7 @@ sub lexer_i_line_directive()
 	end if;
 	lexer_i_read_string();
 	current_file.lineno := token_value as uint16;
-	FreeBlock(current_file.path);
+	Free(current_file.path as [uint8]);
 	current_file.path := StrDup(&token_buffer[0]);
 end sub;
 

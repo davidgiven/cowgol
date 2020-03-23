@@ -39,8 +39,8 @@
 %token_destructor
 {
 	if $$ != (0 as [Token]) then
-		FreeBlock($$.string as [uint8]);
-		Free($$ as [uint8], @bytesof Token);
+		Free($$.string as [uint8]);
+		Free($$ as [uint8]);
 	end if;
 }
 
@@ -107,20 +107,39 @@ expression(E) ::= expression(E1) PIPE expression(E2).      { E := ExprOr(E1, E2)
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
 
-expression(E) ::= lvalue(L).
+expression(E) ::= lvalue(E1).
 {
-	SimpleError("lvalue to expression not supported");
-# E L
+	if E1.type != (0 as [Symbol]) then
+		var dereftype := E1.type.typedata.element;
+		if IsScalar(dereftype) == 0 then
+			SimpleError("non-scalars cannot be used in this context");
+		end if;
+		E := MidLoad(dereftype.typedata.width as uint8, E1);
+		E.type := dereftype;
+	else
+		E := E1;
+	end if;
 }
 
 /* --- Lvalues ----------------------------------------------------------- */
 
 %type lvalue {[Node]}
-lvalue(L) ::= oldid(S).
+lvalue(E) ::= oldid(S).
 {
-	SimpleError("oldid to lvalue not supported");
-# L S
+	case S.kind is
+		when CONST:
+			E := MidConstant(S.constant);
 
+		when VAR:
+			E := MidAddress(S, 0);
+			E.type := MakePointerType(S.vardata.type);
+
+		when else:
+			StartError();
+			print(S.name);
+			print(" is not a value");
+			EndError();
+	end case;
 }
 
 %type cvalue {Arith}

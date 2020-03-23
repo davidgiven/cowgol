@@ -100,12 +100,12 @@ sub EmitterPopChunk(type: uint8)
 		end loop;
 
 		var nextr := r.next;
-		Free(r as [uint8], @bytesof EmitterRecord);
+		Free(r as [uint8]);
 		r := nextr;
 	end loop;
 
 	var nextchunk := current_chunk.next;
-	Free(current_chunk as [uint8], @bytesof EmitterChunk);
+	Free(current_chunk as [uint8]);
 	current_chunk := nextchunk;
 end sub;
 

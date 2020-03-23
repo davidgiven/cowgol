@@ -13,6 +13,14 @@ sub IsNum(type: [Symbol]): (result: uint8)
 	result := IsTypeOfKind(type, TYPE_NUMBER);
 end sub;
 
+sub IsScalar(type: [Symbol]): (result: uint8)
+	if (IsPtr(type) != 0) or (IsNum(type) != 0) then
+		result := 1;
+	else
+		result := 0;
+	end if;
+end sub;
+
 sub CheckExpressionType(node: [Node], type: [Symbol])
 	if node.type == (0 as [Symbol]) then
 		node.type := type;

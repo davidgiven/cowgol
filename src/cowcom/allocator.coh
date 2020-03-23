@@ -1,32 +1,20 @@
-record Block
-	size: uint8;
-	padding @at(0): intptr;
-end record;
-
-sub AllocBlock(size: uint8): (data: [uint8])
-	var b := Alloc((size as intptr) + @bytesof Block) as [Block];
-	b.size := size;
-	data := (b + @bytesof Block) as [uint8];
-	#print("allocblock ");
-	#print_hex_i32(data as intptr as uint32);
-	#print_nl();
-end sub;
-
-sub FreeBlock(data: [uint8])
-	if data == (0 as [uint8]) then
-		return;
-	end if;
-
-	#print("freeblock ");
-	#print_hex_i32(data as intptr as uint32);
-	#print_nl();
-	var b := (data - @bytesof Block) as [Block];
-	Free(b as [uint8], (b.size as intptr) + @bytesof Block);
-end sub;
-
 sub StrDup(s: string): (news: string)
-	var len := (StrLen(s) as uint8) + 1;
-	news := AllocBlock(len);
-	MemCopy(s, len as intptr, news);
+	var len := StrLen(s) + 1;
+	news := Alloc(len);
+	MemCopy(s, len, news);
 end sub;
+
+sub StrDupBraced(s: string): (news: string)
+	var len := StrLen(s);
+	news := Alloc(len + 3);
+	var p := news;
+	[p] := '[';
+	p := p + 1;
+	MemCopy(s, len, p);
+	p := p + len;
+	[p] := ']';
+	p := p + 1;
+	[p] := 0;
+end sub;
+
 

@@ -247,21 +247,3 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	print("]\n");
 end sub;
 
-#P:Input 'RETURN' in state 0
-#P:Reduce 126 [statements ::=].
-#P:... then shift 'statements', go to state 4
-#P:Shift 'RETURN', go to state 218
-#P:Return. Stack=[statements RETURN]
-#P:Input 'SEMICOLON' in state 218
-#P:Shift 'SEMICOLON', pending reduce 0
-#P:Return. Stack=[statements RETURN SEMICOLON]
-#P:Input '$' with pending reduce 0
-#P:Reduce 0 [statement ::= RETURN SEMICOLON], go to state 4.
-#P:... then shift 'statement', pending reduce 127
-#P:Reduce 127 [statements ::= statements statement], go to state 0.
-#P:... then shift 'statements', go to state 4
-#P:Reduce 125 [program ::= statements], go to state 0.
-#P:... then shift 'program', pending reduce -2
-#P:Accept!
-
-
