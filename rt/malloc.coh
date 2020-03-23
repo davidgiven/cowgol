@@ -137,7 +137,7 @@ sub AddFreeBlock(start: [uint8], length: intptr)
 	freeList := p;
 end sub;
 
-sub Free(start: [uint8], length: intptr)
+sub Free(start: [uint8])
 	var usedblock := @prev (start as [MallocUsedBlock]);
 	AddFreeBlock(usedblock as [uint8], usedblock.size);
 end sub;
@@ -153,3 +153,4 @@ sub GetFreeMemory(): (bytes: intptr)
 		end if;
 	end loop;
 end sub;
+

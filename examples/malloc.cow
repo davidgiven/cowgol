@@ -19,7 +19,7 @@ print_nl();
 DumpBlocks();
 
 print("Freeing block\n");
-Free(p, 100);
+Free(p);
 
 i := GetFreeMemory();
 print("Free memory: 0x");
