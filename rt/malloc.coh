@@ -3,6 +3,10 @@ record MallocFreeBlock
 	size: intptr; # bytes
 end record;
 
+record MallocUsedBlock
+	size: intptr; # bytes
+end record;
+
 var freeList: [MallocFreeBlock] := TOP as [MallocFreeBlock];
 freeList.next := freeList;
 freeList.size := HIMEM - TOP;
@@ -27,13 +31,14 @@ sub DumpBlocks()
 end sub;
 
 sub Alloc(length: intptr): (block: [uint8])
-	length := AlignUp(length);
+	length := AlignUp(length + @bytesof MallocUsedBlock);
 
 	var prev := freeList;
 	var p := prev.next;
 	loop
 		if p.size == length then
 			# We found a hole of exactly the right size. Unlink and return it.
+			print("exact size\n");
 			prev.next := p.next;
 			freeList := prev;
 			break;
@@ -57,7 +62,10 @@ sub Alloc(length: intptr): (block: [uint8])
 		p := p.next;
 	end loop;
 
-	block := p as [uint8];
+	var usedblock := p as [MallocUsedBlock];
+	usedblock.size := length;
+	block := (@next usedblock) as [uint8];
+
 	#print("malloc ");
 	#print_hex_i32(block as intptr as uint32);
 	#print("+");
@@ -66,8 +74,7 @@ sub Alloc(length: intptr): (block: [uint8])
 	MemSet(block, 0, length);
 end sub;
 
-sub Free(start: [uint8], length: intptr)
-	length := AlignUp(length);
+sub AddFreeBlock(start: [uint8], length: intptr)
 	#print("free ");
 	#print_hex_i32(start as intptr as uint32);
 	#print("+");
@@ -128,6 +135,11 @@ sub Free(start: [uint8], length: intptr)
 
 	# ...and update the ring pointer.
 	freeList := p;
+end sub;
+
+sub Free(start: [uint8], length: intptr)
+	var usedblock := @prev (start as [MallocUsedBlock]);
+	AddFreeBlock(usedblock as [uint8], usedblock.size);
 end sub;
 
 sub GetFreeMemory(): (bytes: intptr)
