@@ -384,11 +384,7 @@ void generate(Node* node)
 
 					consumer->input_regs |= find_conflicting_registers(n->produced_reg);
 					blocked = find_conflicting_registers(producer->produced_reg);
-					for (Instruction* i=consumer+1; i<producer; i++)
-					{
-						i->input_regs |= blocked;
-						i->output_regs |= blocked;
-					}
+					block_registers(consumer+1, producer-1, blocked);
 					producer->output_regs |= blocked;
 					create_reload(consumer, producer->produced_reg, n->produced_reg);
 				}

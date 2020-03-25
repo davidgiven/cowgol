@@ -80,7 +80,11 @@
 			when REG_BC: EmitByte('b');
 			when REG_DE: EmitByte('d');
 			when REG_HL: EmitByte('h');
-			when else: SimpleError("invalid register");
+			when else:
+				StartError();
+				print("invalid register 0x");
+				print_hex_i16(reg);
+				EndError();
 		end case;
 	end sub;
 
@@ -94,12 +98,34 @@
 		E_nl();
 	end sub;
 
+	sub E_mvi(reg: RegId, value: int32)
+		EmitString("\tmvi ");
+		E_reg(reg);
+		E_comma();
+		EmitUint8(value as uint8);
+		E_nl();
+	end sub;
+
+	sub E_alu(insn: string, rhs: RegId)
+		E_tab();
+		EmitString(insn);
+		E_space();
+		E_reg(rhs);
+		E_nl();
+	end sub;
+
 	sub E_lxi(reg: RegId, sym: [Symbol], off: int16)
 		EmitString("\tlxi ");
 		E_reg(reg);
 		E_comma();
 		E_symref(sym, off);
 		E_nl();
+	end sub;
+
+	sub E_loadm(reg: RegId)
+		EmitString("\tmov ");
+		E_reg(reg);
+		EmitString(",m\n");
 	end sub;
 
 	sub E_storem(reg: RegId)
@@ -111,6 +137,28 @@
 	sub E_stax(ptr: RegId)
 		EmitString("\tstax ");
 		E_reg(ptr);
+		E_nl();
+	end sub;
+
+	sub E_ldax(ptr: RegId)
+		EmitString("\tldax ");
+		E_reg(ptr);
+		E_nl();
+	end sub;
+
+	sub ArchEmitMove(src: RegId, dest: RegId)
+		if src == 0 then
+			EmitString("\tpop ");
+			E_reg(dest);
+		elseif dest == 0 then
+			EmitString("\tpush ");
+			E_reg(src);
+		else
+			EmitString("\tmove ");
+			E_reg(src);
+			E_comma();
+			E_reg(dest);
+		end if;
 		E_nl();
 	end sub;
 %}
@@ -168,7 +216,7 @@ gen RETURN()
 
 gen a|b|d|h := CONSTANT():rhs
 {
-	E_alui("mvi", $$, $rhs.value);
+	E_mvi($$, $rhs.value);
 }
 
 gen bc|de|hl := ADDRESS():a
@@ -176,12 +224,26 @@ gen bc|de|hl := ADDRESS():a
 	E_lxi($$, $a.sym, $a.off);
 }
 
-gen STORE1(a, bc|de|hl:val)
+gen STORE1(a, bc|de|hl:ptr)
 {
-	if $val == REG_HL then
+	if $ptr == REG_HL then
 		E_storem(REG_A);
 	else
-		E_stax($val);
+		E_stax($ptr);
 	end if;
+}
+
+gen a := LOAD1(bc|de|hl:ptr)
+{
+	if $ptr == REG_HL then
+		E_loadm(REG_A);
+	else
+		E_ldax($ptr);
+	end if;
+}
+
+gen a := ADD1(a, b|d|h:rhs)
+{
+	E_alu("add", $rhs);
 }
 

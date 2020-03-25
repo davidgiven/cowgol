@@ -18,16 +18,18 @@ end record;
 var current_chunk: [EmitterChunk];
 
 sub EmitByte(byte: uint8)
-	var r := current_chunk.current_record;
-	if r.ptr == RECORD_SIZE then
-		r := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
-		current_chunk.current_record.next := r;
-		current_chunk.current_record := r;
-	end if;
+	if current_chunk != (0 as [EmitterChunk]) then
+		var r := current_chunk.current_record;
+		if r.ptr == RECORD_SIZE then
+			r := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
+			current_chunk.current_record.next := r;
+			current_chunk.current_record := r;
+		end if;
 
-	r.data[r.ptr] := byte;
-	r.ptr := r.ptr + 1;
-	current_chunk.length := current_chunk.length + 1;
+		r.data[r.ptr] := byte;
+		r.ptr := r.ptr + 1;
+		current_chunk.length := current_chunk.length + 1;
+	end if;
 end sub;
 
 sub EmitString(text: string)

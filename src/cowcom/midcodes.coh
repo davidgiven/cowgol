@@ -16,3 +16,57 @@ end sub;
 
 include ".obj/midcodes.coh";
 
+# Free up the node tree rooted in the parameter. This is more exciting than it
+# should be because we don't have recursion.
+sub Discard(node: [Node])
+	var pending := node;
+	while pending != (0 as [Node]) loop
+		node := pending;
+		pending := node.dlink;
+
+		# Unlink and push any children.
+		if node.left != (0 as [Node]) then
+			node.left.dlink := pending;
+			pending := node.left;
+		end if;
+		if node.right != (0 as [Node]) then
+			node.right.dlink := pending;
+			pending := node.right;
+		end if;
+
+		# Now free this node.
+		print("discard ");
+		print_hex_i32(node as intptr as uint32);
+		print_nl();
+		Free(node as [uint8]);
+	end loop;
+end sub;
+
+sub NodeWidth(node: [Node]): (width: uint8)
+	width := 0;
+	if node.type != (0 as [Symbol]) then
+		width := node.type.typedata.width as uint8;
+	end if;
+end sub;
+
+sub RotateParameters(lhs: [Node], rhs: [Node]): (newlhs: [Node], newrhs: [Node])
+	if lhs.type != (0 as [Symbol]) then
+		newlhs := lhs;
+		newrhs := rhs;
+	else
+		newlhs := rhs;
+		newrhs := lhs;
+	end if;
+end sub;
+
+sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	(lhs, rhs) := RotateParameters(lhs, rhs);
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value + rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidAdd(width, lhs, rhs);
+	end if;
+end sub;
+
