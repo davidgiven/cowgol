@@ -931,7 +931,7 @@ expression(E) ::= expression(E1) SLASH expression(E2).     { E = expr_signed(E1,
 expression(E) ::= expression(E1) PERCENT expression(E2).   { E = expr_signed(E1, E2, mid_c_remu, mid_c_rems); }
 expression(E) ::= expression(E1) CARET expression(E2).     { E = expr_simple(E1, E2, mid_eor); }
 expression(E) ::= expression(E1) AMPERSAND expression(E2). { E = expr_simple(E1, E2, mid_and); }
-expression(E) ::= expression(E1) PIPE expression(E2).      { E = expr_simple(E1, E2, mid_or); }
+expression(E) ::= expression(E1) PIPE expression(E2).      { E = expr_simple(E1, E2, mid_c_or); }
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_lshift, mid_lshift); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_rshiftu, mid_rshifts); }
 
