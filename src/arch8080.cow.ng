@@ -88,6 +88,19 @@
 		end case;
 	end sub;
 
+	sub E_reglo(reg: RegId)
+		case reg is
+			when REG_BC: EmitByte('c');
+			when REG_DE: EmitByte('e');
+			when REG_HL: EmitByte('l');
+			when else:
+				StartError();
+				print("invalid reglo register 0x");
+				print_hex_i16(reg);
+				EndError();
+		end case;
+	end sub;
+
 	sub E_alui(insn: string, reg: RegId, value: int32)
 		E_tab();
 		EmitString(insn);
@@ -146,18 +159,37 @@
 		E_nl();
 	end sub;
 
+	sub E_stackreg(reg: RegId)
+		if reg == REG_A then
+			EmitString("psw");
+		else
+			E_reg(reg);
+		end if;
+	end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
 			EmitString("\tpop ");
-			E_reg(dest);
+			E_stackreg(dest);
 		elseif dest == 0 then
 			EmitString("\tpush ");
-			E_reg(src);
+			E_stackreg(src);
 		else
-			EmitString("\tmove ");
-			E_reg(src);
-			E_comma();
+			sub mov()
+				EmitString("\tmov ");
+			end sub;
+			mov();
 			E_reg(dest);
+			E_comma();
+			E_reg(src);
+
+			if (src & (REG_HL|REG_BC|REG_DE)) != 0 then
+				E_nl();
+				mov();
+				E_reglo(dest);
+				E_comma();
+				E_reglo(src);
+			end if;
 		end if;
 		E_nl();
 	end sub;
