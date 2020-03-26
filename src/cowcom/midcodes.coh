@@ -70,3 +70,13 @@ sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	end if;
 end sub;
 
+sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value - rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidSub(width, lhs, rhs);
+	end if;
+end sub;
+		

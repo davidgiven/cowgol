@@ -101,16 +101,6 @@
 		end case;
 	end sub;
 
-	sub E_alui(insn: string, reg: RegId, value: int32)
-		E_tab();
-		E(insn);
-		E_space();
-		E_reg(reg);
-		E_comma();
-		E_u8(value as uint8);
-		E_nl();
-	end sub;
-
 	sub E_mvi(reg: RegId, value: int32)
 		E("\tmvi ");
 		E_reg(reg);
@@ -127,10 +117,30 @@
 		E_nl();
 	end sub;
 
+	sub E_alui(insn: string, value: int32)
+		E_tab();
+		E(insn);
+		E_space();
+		E_u8(value as uint8);
+		E_nl();
+	end sub;
+
 	sub E_lxi(reg: RegId, sym: [Symbol], off: int16)
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_lda(sym: [Symbol], off: int16)
+		E("\tlda ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_sta(sym: [Symbol], off: int16)
+		E("\tsta ");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
@@ -256,6 +266,11 @@ gen bc|de|hl := ADDRESS():a
 	E_lxi($$, $a.sym, $a.off);
 }
 
+gen STORE1(a, ADDRESS():a)
+{
+	E_sta($a.sym, $a.off);
+}
+
 gen STORE1(a, bc|de|hl:ptr)
 {
 	if $ptr == REG_HL then
@@ -263,6 +278,11 @@ gen STORE1(a, bc|de|hl:ptr)
 	else
 		E_stax($ptr);
 	end if;
+}
+
+gen a := LOAD1(ADDRESS():a)
+{
+	E_lda($a.sym, $a.off);
 }
 
 gen a := LOAD1(bc|de|hl:ptr)
@@ -277,5 +297,20 @@ gen a := LOAD1(bc|de|hl:ptr)
 gen a := ADD1(a, b|d|h:rhs)
 {
 	E_alu("add", $rhs);
+}
+
+gen a := ADD1(a, CONSTANT():c)
+{
+	E_alui("adi", $c.value);
+}
+
+gen a := SUB1(a, b|d|h:rhs)
+{
+	E_alu("sub", $rhs);
+}
+
+gen a := SUB1(a, CONSTANT():c)
+{
+	E_alui("sbi", $c.value);
 }
 

@@ -96,10 +96,35 @@ sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 	end if;
 	
 	result := MidCAdd(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
 end sub;
 
 sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprSub not supported");
+	ResolveUntypedConstantsForAddOrSub(lhs, rhs);
+
+	sub cant_sub_that()
+		StartError();
+		print("you can't subtract a ");
+		print(lhs.type.name);
+		print(" from a ");
+		print(rhs.type.name);
+		EndError();
+	end sub;
+
+	if (IsPtr(lhs.type) != 0) and (IsPtr(rhs.type) == 0) and (rhs.type != intptr_type) then
+		cant_sub_that();
+	elseif (IsNum(lhs.type) != 0) and (IsPtr(rhs.type) != 0) then
+		cant_sub_that();
+	elseif (IsNum(lhs.type) != 0) and (IsNum(rhs.type) != 0) and (lhs.type != rhs.type) then
+		cant_sub_that();
+	end if;
+
+	result := MidCSub(NodeWidth(lhs), lhs, rhs);
+	if (IsPtr(lhs.type) != 0) and (lhs.type == rhs.type) then
+		result.type := intptr_type;
+	else
+		result.type := lhs.type;
+	end if;
 end sub;
 
 sub ExprMul(lhs: [Node], rhs: [Node]): (result: [Node])
