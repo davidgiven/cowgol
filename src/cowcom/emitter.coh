@@ -32,7 +32,7 @@ sub EmitByte(byte: uint8)
 	end if;
 end sub;
 
-sub EmitString(text: string)
+sub E(text: string)
 	loop
 		var c := [text];
 		text := text + 1;
@@ -43,7 +43,7 @@ sub EmitString(text: string)
 	end loop;
 end sub;
 
-sub EmitUint(value: uint32)
+sub E_u32(value: uint32)
 	var buffer: uint8[12];
 	var p := &buffer[0];
 	var pe := UIToA(value, 10, p);
@@ -58,15 +58,15 @@ sub EmitUint(value: uint32)
 	end loop;
 end sub;
 
-sub EmitUint16(value: uint16)
-	EmitUint(value as uint32);
+sub E_u16(value: uint16)
+	E_u32(value as uint32);
 end sub;
 
-sub EmitUint8(value: uint8)
-	EmitUint(value as uint32);
+sub E_u8(value: uint8)
+	E_u32(value as uint32);
 end sub;
 
-sub EmitHex16(value: uint16)
+sub E_h16(value: uint16)
 	var buffer: uint8[5];
 	var pe := UIToA(value as uint32, 16, &buffer[0]);
 	var padding := 4 - (pe - &buffer[0]) as uint8;
@@ -74,7 +74,7 @@ sub EmitHex16(value: uint16)
 		EmitByte('0');
 		padding := padding - 1;
 	end loop;
-	EmitString(&buffer[0]);
+	E(&buffer[0]);
 end sub;
 
 sub EmitterPushChunk()
@@ -126,15 +126,15 @@ end sub;
 
 sub EmitterDeclareSubroutine(subr: [Subroutine])
 	EmitterPushChunk();
-	EmitHex16(subr.id);
-	EmitString(subr.name);
+	E_h16(subr.id);
+	E(subr.name);
 	EmitterPopChunk('N');
 end sub;
 
 sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
 	EmitterPushChunk();
-	EmitHex16(user.id);
-	EmitHex16(used.id);
+	E_h16(user.id);
+	E_h16(used.id);
 	EmitterPopChunk('R');
 end sub;
 

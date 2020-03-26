@@ -35,24 +35,24 @@
 	end sub;
 
 	sub E_label(labelid: uint16)
-		EmitString("x");
-		EmitUint16(labelid);
+		E("x");
+		E_u16(labelid);
 	end sub;
 
 	sub E_subref(subr: [Subroutine])
 		if subr.externname != (0 as string) then
-			EmitString(subr.externname);
+			E(subr.externname);
 		else
-			EmitString("f");
-			EmitUint16(subr.id);
+			E("f");
+			E_u16(subr.id);
 		end if;
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: int16)
 		EmitByte('w');
-		EmitUint16(sym.vardata.subr.id);
+		E_u16(sym.vardata.subr.id);
 		EmitByte('+');
-		EmitUint(sym.vardata.offset + (off as uint32));
+		E_u32(sym.vardata.offset + (off as uint32));
 	end sub;
 
 	sub E_space()
@@ -103,32 +103,32 @@
 
 	sub E_alui(insn: string, reg: RegId, value: int32)
 		E_tab();
-		EmitString(insn);
+		E(insn);
 		E_space();
 		E_reg(reg);
 		E_comma();
-		EmitUint8(value as uint8);
+		E_u8(value as uint8);
 		E_nl();
 	end sub;
 
 	sub E_mvi(reg: RegId, value: int32)
-		EmitString("\tmvi ");
+		E("\tmvi ");
 		E_reg(reg);
 		E_comma();
-		EmitUint8(value as uint8);
+		E_u8(value as uint8);
 		E_nl();
 	end sub;
 
 	sub E_alu(insn: string, rhs: RegId)
 		E_tab();
-		EmitString(insn);
+		E(insn);
 		E_space();
 		E_reg(rhs);
 		E_nl();
 	end sub;
 
 	sub E_lxi(reg: RegId, sym: [Symbol], off: int16)
-		EmitString("\tlxi ");
+		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
 		E_symref(sym, off);
@@ -136,32 +136,32 @@
 	end sub;
 
 	sub E_loadm(reg: RegId)
-		EmitString("\tmov ");
+		E("\tmov ");
 		E_reg(reg);
-		EmitString(",m\n");
+		E(",m\n");
 	end sub;
 
 	sub E_storem(reg: RegId)
-		EmitString("\tmov m,");
+		E("\tmov m,");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_stax(ptr: RegId)
-		EmitString("\tstax ");
+		E("\tstax ");
 		E_reg(ptr);
 		E_nl();
 	end sub;
 
 	sub E_ldax(ptr: RegId)
-		EmitString("\tldax ");
+		E("\tldax ");
 		E_reg(ptr);
 		E_nl();
 	end sub;
 
 	sub E_stackreg(reg: RegId)
 		if reg == REG_A then
-			EmitString("psw");
+			E("psw");
 		else
 			E_reg(reg);
 		end if;
@@ -169,14 +169,14 @@
 
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
-			EmitString("\tpop ");
+			E("\tpop ");
 			E_stackreg(dest);
 		elseif dest == 0 then
-			EmitString("\tpush ");
+			E("\tpush ");
 			E_stackreg(src);
 		else
 			sub mov()
-				EmitString("\tmov ");
+				E("\tmov ");
 			end sub;
 			mov();
 			E_reg(dest);
@@ -218,32 +218,32 @@ gen ENDFILE();
 gen STARTSUB():s
 {
 	EmitterPushChunk();
-	EmitHex16($s.subr.id);
+	E_h16($s.subr.id);
 
-	EmitString("\tcseg\n");
+	E("\tcseg\n");
 	E_subref($s.subr);
-	EmitString(":\n");
+	E(":\n");
 }
 
 gen ENDSUB():s
 {
-	EmitString("end_");
+	E("end_");
 	E_subref($s.subr);
-	EmitString(":\n");
-	EmitString("\tret\n");
-	EmitString("\tdseg\nw");
+	E(":\n");
+	E("\tret\n");
+	E("\tdseg\nw");
 	E_subref($s.subr);
-	EmitString(": ds ");
-	EmitUint16($s.subr.workspace[0]);
-	EmitString("\n");
+	E(": ds ");
+	E_u16($s.subr.workspace[0]);
+	E("\n");
 	EmitterPopChunk('S');
 }
 
 gen RETURN()
 {
-	EmitString("\tjmp end_");
+	E("\tjmp end_");
 	E_subref(current_subr);
-	EmitString("\n");
+	E("\n");
 }
 
 gen a|b|d|h := CONSTANT():rhs
