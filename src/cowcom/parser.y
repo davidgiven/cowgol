@@ -79,15 +79,57 @@ statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
-#	if (E.type == (0 as [Symbol]))
-#		SimpleError("types cannot be inferred for numeric constants");
-#	if (!is_scalar(E->type))
-#		SimpleError("you can only assign to lvalues");
-#	S.kind := VAR;
-#	init_var(S, E.type);
-#	check_expression_type(&E.type, E.type);
-#
-#	Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
+	var type := E.type;
+	if type == (0 as [Symbol]) then
+		SimpleError("types cannot be inferred for numeric constants");
+	end if;
+	if IsScalar(type) == 0 then
+		SimpleError("you can only assign to lvalues");
+	end if;
+
+	S.kind := VAR;
+	InitVariable(S, type);
+	CheckExpressionType(E, S.vardata.type);
+
+	Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
+}
+
+/* --- Assignments ------------------------------------------------------- */
+
+statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
+{
+	if IsPtr(E1.type) == 0 then
+		SimpleError("you can only assign to lvalues");
+	end if;
+
+	var e := E1.type.typedata.member.element;
+	CheckExpressionType(E2, e);
+	Generate(MidStore(e.typedata.width as uint8, E2, E1));
+}
+
+/* --- Simple loops ------------------------------------------------------ */
+
+statement ::= startloopstatement(LL) statements END LOOP.
+{
+	Generate(MidJump(LL.loop_label));
+	Generate(MidLabel(LL.exit_label));
+	break_label := LL.old_break_label;
+	continue_label := LL.old_continue_label;
+	Free(LL as [uint8]);
+}
+
+%type startloopstatement {[LoopLabels]}
+startloopstatement(LL) ::= LOOP.
+{
+	var ll := Alloc(@bytesof LoopLabels) as [LoopLabels];
+	ll.loop_label := AllocLabel();
+	ll.exit_label := AllocLabel();
+	ll.old_break_label := break_label;
+	ll.old_continue_label := continue_label;
+	break_label := ll.exit_label;
+	continue_label := ll.loop_label;
+	Generate(MidLabel(continue_label));
+	LL := ll;
 }
 
 /* --- Expressions ------------------------------------------------------- */

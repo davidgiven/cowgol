@@ -308,7 +308,7 @@ sub Generate(rootnode: [Node])
 			end if;
 
 			if ((rule.flags & RULE_HAS_PREDICATES) != 0) 
-					and (MatchPredicate(ruleid, &matchnodes[0]) != 0) then
+					and (MatchPredicate(ruleid, &matchnodes[0]) == 0) then
 				# This rule has a manual predicate and the manual predicate said no.
 				continue;
 			end if;

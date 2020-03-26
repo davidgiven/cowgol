@@ -34,7 +34,7 @@
 		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
 	end sub;
 
-	sub E_label(labelid: uint16)
+	sub E_labelref(labelid: uint16)
 		E("x");
 		E_u16(labelid);
 	end sub;
@@ -69,6 +69,17 @@
 
 	sub E_nl();
 		EmitByte('\n');
+	end sub;
+
+	sub E_label(label: LabelRef)
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub E_jmp(label: LabelRef)
+		E("\tjmp ");
+		E_labelref(label);
+		E_nl();
 	end sub;
 
 	sub E_reg(reg: RegId)
@@ -177,6 +188,12 @@
 		end if;
 	end sub;
 
+	sub E_inc(reg: RegId)
+		E("\tinc ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
 			E("\tpop ");
@@ -256,6 +273,16 @@ gen RETURN()
 	E("\n");
 }
 
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jmp($j.label);
+}
+
 gen a|b|d|h := CONSTANT():rhs
 {
 	E_mvi($$, $rhs.value);
@@ -297,6 +324,11 @@ gen a := LOAD1(bc|de|hl:ptr)
 gen a := ADD1(a, b|d|h:rhs)
 {
 	E_alu("add", $rhs);
+}
+
+gen a := ADD1(a, CONSTANT(value==1))
+{
+	E_inc(REG_A);
 }
 
 gen a := ADD1(a, CONSTANT():c)

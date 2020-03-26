@@ -161,7 +161,7 @@ sub yy_find_shift_action(lookahead: YYCODETYPE, stateno: YYACTIONTYPE): (newstat
 	if stateno > YY_MAX_SHIFT then
 		newstateno := stateno;
 	else
-		var i := yy_shift_ofst[stateno] + lookahead;
+		var i := (yy_shift_ofst[stateno] as YYCODETYPE) + lookahead;
 		if yy_lookahead[i] != lookahead then
 			newstateno := yy_default[stateno];
 		else

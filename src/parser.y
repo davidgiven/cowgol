@@ -1005,24 +1005,23 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 
 lvalue(E) ::= lvalue(E1) DOT ID(X).
 {
-	check_non_partial_type(E1->type);
-
     /* Remember that T is a *pointer* to the record (or a pointer to a
 	 * pointer). */
-	struct symbol* record;
-	if (is_record_ptr(E1->type))
+
+	check_non_partial_type(E1->type);
+
+	/* Dereference pointers to pointers. */
+	while (is_ptr(E1->type) && is_ptr(E1->type->u.type.element))
 	{
-		/* Direct reference to record. */
-		record = E1->type->u.type.element;
-	}
-	else if (is_ptr(E1->type) && is_record_ptr(E1->type->u.type.element))
-	{
-		/* Pointer to record. */
-		record = E1->type->u.type.element->u.type.element;
+		Symbol* element = E1->type->u.type.element;
 		E1 = mid_load(intptr_type->u.type.width, E1);
+		E1->type = element;
 	}
-	else
-		fatal("you can only access members of records");
+
+	Symbol* record = E1->type->u.type.element;
+	check_non_partial_type(record);
+	if (!is_record(record))
+		fatal("you can only access members of records, not a %s", record->name);
 
 	struct symbol* member = lookup_symbol(&record->u.type.namespace, X->string);
 	if (!member)

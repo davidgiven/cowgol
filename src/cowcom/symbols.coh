@@ -1,3 +1,8 @@
+sub AllocLabel(): (label: LabelRef)
+	label := next_label_id;
+	next_label_id := next_label_id + 1;
+end sub;
+
 sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 	if namespace == (0 as [Namespace]) then
 		namespace := &current_subr.namespace;

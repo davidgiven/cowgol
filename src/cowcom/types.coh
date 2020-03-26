@@ -78,5 +78,15 @@ record Subroutine
 	num_output_parameters: uint8;
 end record;
 
+record LoopLabels
+	loop_label: LabelRef;
+	exit_label: LabelRef;
+	old_break_label: LabelRef;
+	old_continue_label: LabelRef;
+end record;
+	
 var current_subr: [Subroutine];
+var next_label_id: LabelRef;
+var break_label: LabelRef;
+var continue_label: LabelRef;
 
