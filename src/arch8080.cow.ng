@@ -346,3 +346,8 @@ gen a := SUB1(a, CONSTANT():c)
 	E_alui("sbi", $c.value);
 }
 
+gen a := MUL1(a, b)
+{
+	E("\t(mul a, b)\n");
+}
+

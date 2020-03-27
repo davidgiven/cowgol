@@ -35,9 +35,6 @@ sub Discard(node: [Node])
 		end if;
 
 		# Now free this node.
-		print("discard ");
-		print_hex_i32(node as intptr as uint32);
-		print_nl();
 		Free(node as [uint8]);
 	end loop;
 end sub;
@@ -56,6 +53,57 @@ sub RotateParameters(lhs: [Node], rhs: [Node]): (newlhs: [Node], newrhs: [Node])
 	else
 		newlhs := rhs;
 		newrhs := lhs;
+	end if;
+end sub;
+
+sub MidCNeg(width: uint8, lhs: [Node]): (result: [Node])
+	if lhs.type == (0 as [Symbol]) then
+		lhs.constant.value := -lhs.constant.value;
+		result := lhs;
+	else
+		result := MidNeg(width, lhs);
+	end if;
+end sub;
+
+sub MidCNot(width: uint8, lhs: [Node]): (result: [Node])
+	if lhs.type == (0 as [Symbol]) then
+		lhs.constant.value := ~lhs.constant.value;
+		result := lhs;
+	else
+		result := MidNot(width, lhs);
+	end if;
+end sub;
+
+sub MidCAnd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	(lhs, rhs) := RotateParameters(lhs, rhs);
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value & rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidAnd(width, lhs, rhs);
+	end if;
+end sub;
+
+sub MidCOr(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	(lhs, rhs) := RotateParameters(lhs, rhs);
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value | rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidOr(width, lhs, rhs);
+	end if;
+end sub;
+
+sub MidCEor(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	(lhs, rhs) := RotateParameters(lhs, rhs);
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value ^ rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidEor(width, lhs, rhs);
 	end if;
 end sub;
 
@@ -79,4 +127,58 @@ sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 		result := MidSub(width, lhs, rhs);
 	end if;
 end sub;
+
+sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	(lhs, rhs) := RotateParameters(lhs, rhs);
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value + rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidMul(width, lhs, rhs);
+	end if;
+end sub;
+		
+sub MidCDivu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value :=
+			((lhs.constant.value as uint32) / (rhs.constant.value as uint32)) as int32;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidDivu(width, lhs, rhs);
+	end if;
+end sub;
+
+sub MidCDivs(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value / rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidDivs(width, lhs, rhs);
+	end if;
+end sub;
+
+sub MidCRems(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value :=
+			((lhs.constant.value as uint32) % (rhs.constant.value as uint32)) as int32;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidRems(width, lhs, rhs);
+	end if;
+end sub;
+
+sub MidCRemu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		lhs.constant.value := lhs.constant.value % rhs.constant.value;
+		Discard(rhs);
+		result := lhs;
+	else
+		result := MidRemu(width, lhs, rhs);
+	end if;
+end sub;
+
 		
