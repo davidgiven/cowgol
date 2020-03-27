@@ -1,0 +1,140 @@
+var outfcb: FCB;
+
+const RECORD_SIZE := 128;
+
+record EmitterRecord
+	data: uint8[RECORD_SIZE];
+	ptr: uint8;
+	next: [EmitterRecord];
+end record;
+
+record EmitterChunk
+	next: [EmitterChunk];
+	first_record: [EmitterRecord];
+	current_record: [EmitterRecord];
+	length: uint16;
+end record;
+
+var current_chunk: [EmitterChunk];
+
+sub EmitByte(byte: uint8)
+	if current_chunk != (0 as [EmitterChunk]) then
+		var r := current_chunk.current_record;
+		if r.ptr == RECORD_SIZE then
+			r := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
+			current_chunk.current_record.next := r;
+			current_chunk.current_record := r;
+		end if;
+
+		r.data[r.ptr] := byte;
+		r.ptr := r.ptr + 1;
+		current_chunk.length := current_chunk.length + 1;
+	end if;
+end sub;
+
+sub EmitString(text: string)
+	loop
+		var c := [text];
+		text := text + 1;
+		if c == 0 then
+			break;
+		end if;
+		EmitByte(c);
+	end loop;
+end sub;
+
+sub EmitUint(value: uint32)
+	var buffer: uint8[12];
+	var p := &buffer[0];
+	var pe := UIToA(value, 10, p);
+
+	loop
+		var c := [p];
+		if c == 0 then
+			break;
+		end if;
+		EmitByte(c);
+		p := @next p;
+	end loop;
+end sub;
+
+sub EmitUint16(value: uint16)
+	EmitUint(value as uint32);
+end sub;
+
+sub EmitUint8(value: uint8)
+	EmitUint(value as uint32);
+end sub;
+
+sub EmitHex16(value: uint16)
+	var buffer: uint8[5];
+	var pe := UIToA(value as uint32, 16, &buffer[0]);
+	var padding := 4 - (pe - &buffer[0]) as uint8;
+	while padding != 0 loop
+		EmitByte('0');
+		padding := padding - 1;
+	end loop;
+	EmitString(&buffer[0]);
+end sub;
+
+sub EmitterPushChunk()
+	var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
+	chunk.current_record := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
+	chunk.first_record := chunk.current_record;
+	chunk.next := current_chunk;
+	current_chunk := chunk;
+end sub;
+
+sub EmitterPopChunk(type: uint8)
+	FCBPutChar(&outfcb, type);
+
+	var buffer: uint8[5];
+	var pe := UIToA(current_chunk.length as uint32, 16, &buffer[0]);
+	FCBPutString(&outfcb, "0000" + (pe - &buffer[0]));
+	FCBPutString(&outfcb, &buffer[0]);
+
+	var r := current_chunk.first_record;
+	while r != (0 as [EmitterRecord]) loop
+		var i: uint8 := 0;
+		while i != r.ptr loop
+			FCBPutChar(&outfcb, r.data[i]);
+			i := i + 1;
+		end loop;
+
+		var nextr := r.next;
+		Free(r as [uint8]);
+		r := nextr;
+	end loop;
+
+	var nextchunk := current_chunk.next;
+	Free(current_chunk as [uint8]);
+	current_chunk := nextchunk;
+end sub;
+
+sub EmitterOpenfile(filename: string)
+	if FCBOpenOut(&outfcb, filename) != 0 then
+		SimpleError("cannot open output file");
+	end if;
+end sub;
+
+sub EmitterClosefile()
+	FCBPutString(&outfcb, "E0000");
+	if FCBClose(&outfcb) != 0 then
+		SimpleError("cannot close output file");
+	end if;
+end sub;
+
+sub EmitterDeclareSubroutine(subr: [Subroutine])
+	EmitterPushChunk();
+	EmitHex16(subr.id);
+	EmitString(subr.name);
+	EmitterPopChunk('N');
+end sub;
+
+sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
+	EmitterPushChunk();
+	EmitHex16(user.id);
+	EmitHex16(used.id);
+	EmitterPopChunk('R');
+end sub;
+

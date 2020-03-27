@@ -26,6 +26,141 @@
 			symbol := int32_type;
 		end if;
 	end sub;
+
+	sub ArchInitVariable(symbol: [Symbol])
+		var subr := symbol.vardata.subr;
+		var offset := subr.workspace[0];
+		symbol.vardata.offset := offset as uint32;
+		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+	end sub;
+
+	sub E_label(labelid: uint16)
+		EmitString("x");
+		EmitUint16(labelid);
+	end sub;
+
+	sub E_subref(subr: [Subroutine])
+		if subr.externname != (0 as string) then
+			EmitString(subr.externname);
+		else
+			EmitString("f");
+			EmitUint16(subr.id);
+		end if;
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: int16)
+		EmitByte('w');
+		EmitUint16(sym.vardata.subr.id);
+		EmitByte('+');
+		EmitUint(sym.vardata.offset + (off as uint32));
+	end sub;
+
+	sub E_space()
+		EmitByte(' ');
+	end sub;
+
+	sub E_comma()
+		EmitByte(',');
+	end sub;
+
+	sub E_tab()
+		EmitByte('\t');
+	end sub;
+
+	sub E_nl();
+		EmitByte('\n');
+	end sub;
+
+	sub E_reg(reg: RegId)
+		case reg is
+			when REG_A: EmitByte('a');
+			when REG_B: EmitByte('b');
+			when REG_D: EmitByte('d');
+			when REG_H: EmitByte('h');
+			when REG_BC: EmitByte('b');
+			when REG_DE: EmitByte('d');
+			when REG_HL: EmitByte('h');
+			when else:
+				StartError();
+				print("invalid register 0x");
+				print_hex_i16(reg);
+				EndError();
+		end case;
+	end sub;
+
+	sub E_alui(insn: string, reg: RegId, value: int32)
+		E_tab();
+		EmitString(insn);
+		E_space();
+		E_reg(reg);
+		E_comma();
+		EmitUint8(value as uint8);
+		E_nl();
+	end sub;
+
+	sub E_mvi(reg: RegId, value: int32)
+		EmitString("\tmvi ");
+		E_reg(reg);
+		E_comma();
+		EmitUint8(value as uint8);
+		E_nl();
+	end sub;
+
+	sub E_alu(insn: string, rhs: RegId)
+		E_tab();
+		EmitString(insn);
+		E_space();
+		E_reg(rhs);
+		E_nl();
+	end sub;
+
+	sub E_lxi(reg: RegId, sym: [Symbol], off: int16)
+		EmitString("\tlxi ");
+		E_reg(reg);
+		E_comma();
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_loadm(reg: RegId)
+		EmitString("\tmov ");
+		E_reg(reg);
+		EmitString(",m\n");
+	end sub;
+
+	sub E_storem(reg: RegId)
+		EmitString("\tmov m,");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_stax(ptr: RegId)
+		EmitString("\tstax ");
+		E_reg(ptr);
+		E_nl();
+	end sub;
+
+	sub E_ldax(ptr: RegId)
+		EmitString("\tldax ");
+		E_reg(ptr);
+		E_nl();
+	end sub;
+
+	sub ArchEmitMove(src: RegId, dest: RegId)
+		if src == 0 then
+			EmitString("\tpop ");
+			E_reg(dest);
+		elseif dest == 0 then
+			EmitString("\tpush ");
+			E_reg(src);
+		else
+			EmitString("\tmove ");
+			E_reg(src);
+			E_comma();
+			E_reg(dest);
+		end if;
+		E_nl();
+	end sub;
 %}
 
 register a b d h hl de bc;
@@ -50,11 +185,65 @@ gen ENDFILE();
 
 gen STARTSUB():s
 {
-	print("STARTSUB\n");
+	EmitterPushChunk();
+	EmitHex16($s.subr.id);
+
+	EmitString("\tcseg\n");
+	E_subref($s.subr);
+	EmitString(":\n");
 }
 
 gen ENDSUB():s
 {
-	print("ENDSUB\n");
+	EmitString("end_");
+	E_subref($s.subr);
+	EmitString(":\n");
+	EmitString("\tret\n");
+	EmitString("\tdseg\nw");
+	E_subref($s.subr);
+	EmitString(": ds ");
+	EmitUint16($s.subr.workspace[0]);
+	EmitString("\n");
+	EmitterPopChunk('S');
+}
+
+gen RETURN()
+{
+	EmitString("\tjmp end_");
+	E_subref(current_subr);
+	EmitString("\n");
+}
+
+gen a|b|d|h := CONSTANT():rhs
+{
+	E_mvi($$, $rhs.value);
+}
+
+gen bc|de|hl := ADDRESS():a
+{
+	E_lxi($$, $a.sym, $a.off);
+}
+
+gen STORE1(a, bc|de|hl:ptr)
+{
+	if $ptr == REG_HL then
+		E_storem(REG_A);
+	else
+		E_stax($ptr);
+	end if;
+}
+
+gen a := LOAD1(bc|de|hl:ptr)
+{
+	if $ptr == REG_HL then
+		E_loadm(REG_A);
+	else
+		E_ldax($ptr);
+	end if;
+}
+
+gen a := ADD1(a, b|d|h:rhs)
+{
+	E_alu("add", $rhs);
 }
 

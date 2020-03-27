@@ -4617,12 +4617,12 @@ void ReportTable(
       /* No C code actions, so this will be part of the "default:" rule */
       continue;
     }
-	fprintf(out, "sub reduce_%d()\n", rp->iRule);
+	fprintf(out, "sub reduce_%d()\n", rp->iRule); lineno++;
     emit_code(out,rp,lemp,&lineno);
-	fprintf(out, "end sub;\n");
+	fprintf(out, "end sub;\n"); lineno++;
   }
 
-  first = true;
+  fprintf(out, "case yyruleno is\n");
   for(rp=lemp->rule; rp; rp=rp->next){
     struct rule *rp2;               /* Other rules with the same action */
     if( rp->codeEmitted ) continue;
@@ -4630,30 +4630,26 @@ void ReportTable(
       /* No C code actions, so this will be part of the "default:" rule */
       continue;
     }
-	if (first)
-		fprintf(out, "if");
-	else
-		fprintf(out, "elseif");
-	first = false;
 
-    fprintf(out," yyruleno == %d # ", rp->iRule);
+    fprintf(out,"when %d: # ", rp->iRule); lineno++;
     writeRuleText(out, rp);
     fprintf(out, "\n"); lineno++;
     for(rp2=rp->next; rp2; rp2=rp2->next){
       if( rp2->code==rp->code && rp2->codePrefix==rp->codePrefix
              && rp2->codeSuffix==rp->codeSuffix ){
+		assert(false);
         fprintf(out,"  or (yyruleno == %d) # ", rp2->iRule);
         writeRuleText(out, rp2);
         fprintf(out,"\n", rp2->iRule); lineno++;
         rp2->codeEmitted = 1;
       }
     }
-    fprintf(out,"  then reduce_%d();\n", rp->iRule); lineno++;
+    fprintf(out,"  reduce_%d();\n", rp->iRule); lineno++;
     rp->codeEmitted = 1;
   }
   /* Finally, output the default: rule.  We choose as the default: all
   ** empty actions. */
-  fprintf(out,"else\n"); lineno++;
+  fprintf(out,"when else:\n"); lineno++;
   for(rp=lemp->rule; rp; rp=rp->next){
     if( rp->codeEmitted ) continue;
     assert( rp->noCode );
@@ -4661,7 +4657,7 @@ void ReportTable(
     writeRuleText(out, rp);
     fprintf(out, "\n", rp->iRule); lineno++;
   }
-  fprintf(out,"end if;\n"); lineno++;
+  fprintf(out,"end case;\n"); lineno++;
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Generate code which executes if a parse fails */

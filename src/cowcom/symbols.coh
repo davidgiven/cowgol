@@ -1,5 +1,3 @@
-var current_subr: [Subroutine];
-
 sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 	if namespace == (0 as [Namespace]) then
 		namespace := &current_subr.namespace;
@@ -38,17 +36,19 @@ sub AddSymbol(namespace: [Namespace], token: [Token]): (symbol: [Symbol])
 		namespace := &current_subr.namespace;
 	end if;
 
-	if LookupSymbol(namespace, token.string) != (0 as [Symbol]) then
-		StartError();
-		print("symbol '");
-		print(token.string);
-		print("' is already defined");
-		EndError();
-	end if;
-
 	symbol := Alloc(@bytesof Symbol) as [Symbol];
-	symbol.name := token.string;
-	token.string := (0 as string);
+	if token != (0 as [Token]) then
+		if LookupSymbol(namespace, token.string) != (0 as [Symbol]) then
+			StartError();
+			print("symbol '");
+			print(token.string);
+			print("' is already defined");
+			EndError();
+		end if;
+
+		symbol.name := token.string;
+		token.string := (0 as string);
+	end if;
 
 	AddToNamespace(namespace, symbol);
 end sub;
@@ -74,15 +74,42 @@ sub InitVariable(symbol: [Symbol], type: [Symbol])
 	CheckNotPartialType(type);
 	symbol.vardata.type := type;
 	symbol.vardata.subr := current_subr;
+	ArchInitVariable(symbol);
+	print("var ");
+	print(symbol.name);
+	print(" at ");
+	print(current_subr.name);
+	print(" 0x");
+	print_hex_i16(symbol.vardata.offset as uint16);
+	print("+");
+	print_hex_i16(symbol.vardata.type.typedata.width as uint16);
+	print_nl();
 end sub;
 
-sub MakeNumberType(width: uint8, is_signed: uint8): (symbol: [Symbol])
+sub MakeNumberType(width: uint8, is_signed: uint8, name: string): (symbol: [Symbol])
 	symbol := Alloc(@bytesof Symbol) as [Symbol];
 	symbol.kind := TYPE;
 	symbol.typedata.kind := TYPE_NUMBER;
 	symbol.typedata.width := width as uint16;
 	symbol.typedata.alignment := ArchAlignUp(1, width) as uint8;
 	symbol.typedata.number.is_signed := is_signed;
+	symbol.name := name;
 	AddToNamespace(&current_subr.namespace, symbol);
 end sub;
+
+sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol])
+	ptrtype := type.typedata.pointerto;
+	if ptrtype == (0 as [Symbol]) then
+		ptrtype := AddSymbol(0 as [Namespace], 0 as [Token]);
+		ptrtype.name := StrDupBraced(type.name);
+		ptrtype.kind := TYPE;
+		ptrtype.typedata.kind := TYPE_POINTER;
+		ptrtype.typedata.width := intptr_type.typedata.width;
+		ptrtype.typedata.alignment := intptr_type.typedata.alignment;
+		ptrtype.typedata.member.stride := intptr_type.typedata.member.stride;
+		ptrtype.typedata.member.element := type;
+		type.typedata.pointerto := ptrtype;
+	end if;
+end sub;
+
 

@@ -38,6 +38,9 @@ y 2 0 BLTS(truelabel: uint16, falselabel: uint16) = ("true=%d false=%d", $$.true
 y 2 0 BEQU(truelabel: uint16, falselabel: uint16) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 y 2 0 BLTU(truelabel: uint16, falselabel: uint16) = ("true=%d false=%d", $$.truelabel, $$.falselabel)
 
+y 2 0 STARTCASE() # left is value, right is when chain
+- 1 0 WHENCASE(isdefault: uint8, value: int32, label: uint16) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label) # left is chain
+
 # These produce all combinations of source and destination widths.
 y 1 1 CAST1()
 y 1 1 CAST2()

@@ -269,7 +269,14 @@ void init_var(struct symbol* sym, struct symbol* type)
 	check_non_partial_type(type);
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
+	arch_emit_comment("workspace[0] is 0x%x", current_sub->workspace[0]);
 	arch_init_variable(sym);
+	arch_emit_comment("declare variable %s at %s 0x%x+0x%x aligned 0x%x",
+		sym->name,
+		sym->u.var.sub->name,
+		sym->u.var.offset,
+		sym->u.var.type->u.type.width,
+		sym->u.var.type->u.type.alignment);
 }
 
 void symbol_redeclaration(Symbol* sym)
@@ -305,6 +312,7 @@ struct symbol* make_number_type(const char* name, int width, bool issigned)
 	ptr->kind = TYPE;
 	ptr->u.type.kind = TYPE_NUMBER;
 	ptr->u.type.width = width;
+	ptr->u.type.stride = width;
 	ptr->u.type.alignment = arch_align_up(1, width);
 	ptr->u.type.issigned = issigned;
 	return ptr;
@@ -321,6 +329,7 @@ struct symbol* make_pointer_type(struct symbol* type)
 		ptr->kind = TYPE;
 		ptr->u.type.kind = TYPE_POINTER;
 		ptr->u.type.width = intptr_type->u.type.width;
+		ptr->u.type.stride = ptr->u.type.width;
 		ptr->u.type.alignment = intptr_type->u.type.alignment;
 		ptr->u.type.element = type;
 		type->u.type.pointerto = ptr;
@@ -336,8 +345,8 @@ struct symbol* make_array_type(struct symbol* type, int32_t size)
 	ptr->name = aprintf("%s[%d]", type->name, size);
 	ptr->kind = TYPE;
 	ptr->u.type.kind = TYPE_ARRAY;
-	ptr->u.type.stride = arch_align_up(type->u.type.width, type->u.type.alignment);
-	ptr->u.type.width = size * ptr->u.type.stride;
+	ptr->u.type.width = size * type->u.type.stride;
+	ptr->u.type.stride = type->u.type.stride;
 	ptr->u.type.element = type;
 	ptr->u.type.alignment = type->u.type.alignment;
 	ptr->u.type.indextype = arch_guess_int_type(0, size-1);
@@ -358,6 +367,7 @@ void unescape(char* string)
 			{
 				case 'n': c = '\n'; break;
 				case 'r': c = '\r'; break;
+				case 't': c = '\t'; break;
 				case '"': c = '"'; break;
 				case '\\': c = '\\'; break;
 				default: fatal("unknown string escape");

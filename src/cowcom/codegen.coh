@@ -1,4 +1,5 @@
 const RULE_HAS_PREDICATES := 0x01;
+const MAX_MOVE_COUNT := REGISTER_COUNT;
 
 record Register
 	name: string;
@@ -19,6 +20,11 @@ record Rule
 	register_nodes: uint8;
 end record;
 
+record RegMove
+	src: RegId;
+	dest: RegId;
+end record;
+
 record Instruction
 	ruleid: uint8;
 	producable_regs: RegId;
@@ -26,44 +32,19 @@ record Instruction
 	input_regs: RegId;
 	output_regs: RegId;
 	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
-	first_spill: [Regmove];
-	first_reload: [Regmove];
-	last_reload: [Regmove];
+	spills: RegMove[MAX_MOVE_COUNT];
+	reloads: RegMove[MAX_MOVE_COUNT];
+	num_spills: uint8;
+	num_reloads: uint8;
 end record;
 
 var instructions: Instruction[16];
-var instructioncount: uint8;
+var next_instruction: [Instruction];
 
 var nodes: [Node][16];
 var nodecount: uint8;
 
 include ".obj/arch8080/inssel.coh";
-
-# Free up the node tree routed in the parameter. This is more exciting than it
-# should be because we don't have recursion.
-sub Discard(node: [Node])
-	var pending := node;
-	while pending != (0 as [Node]) loop
-		node := pending;
-		pending := node.dlink;
-
-		# Unlink and push any children.
-		if node.left != (0 as [Node]) then
-			node.left.dlink := pending;
-			pending := node.left;
-		end if;
-		if node.right != (0 as [Node]) then
-			node.right.dlink := pending;
-			pending := node.right;
-		end if;
-
-		# Now free this node.
-		print("discard ");
-		print_hex_i32(node as intptr as uint32);
-		print_nl();
-		Free(node as [uint8], @bytesof Node);
-	end loop;
-end sub;
 
 sub PushNode(node: [Node])
 	if nodecount == @sizeof nodes then
@@ -73,25 +54,186 @@ sub PushNode(node: [Node])
 	nodecount := nodecount + 1;
 end sub;
 
-sub UnmatchedInstructionError()
-	SimpleError("unmatched instruction");
+sub IsStackedRegister(regid: RegId): (result: uint8)
+	result := 0;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & regid) != 0 then
+			result := reg.is_stacked;
+			return;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub FindFirst(inreg: RegId): (outreg: RegId)
+	outreg := 1;
+	while outreg != 0 loop
+		if (inreg & outreg) != 0 then
+			return;
+		end if;
+		outreg := outreg << 1;
+	end loop;
+	SimpleError("failed to allocate register");
+end sub;
+
+sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocked: RegId)
+	blocked := 0;
+	while insn <= last loop
+		blocked := blocked | insn.input_regs | insn.output_regs;
+		insn := @next insn;
+	end loop;
+end sub;
+
+sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId)
+	conflicting := 0;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & inreg) != 0 then
+			conflicting := conflicting | reg.uses;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId)
+	while insn <= last loop
+		insn.input_regs := insn.input_regs | blocked;
+		insn.output_regs := insn.output_regs | blocked;
+		insn := @next insn;
+	end loop;
+end sub;
+
+sub CreateSpill(insn: [Instruction], src: RegId, dest: RegId)
+	var i := insn.num_spills;
+	if i == REGISTER_COUNT then
+		SimpleError("too many spills");
+	end if;
+	var spill := &insn.spills[i];
+	spill.src := src;
+	spill.dest := dest;
+	insn.num_spills := i + 1;
+end sub;
+
+sub CreateReload(insn: [Instruction], src: RegId, dest: RegId)
+	var i := insn.num_reloads;
+	if i == REGISTER_COUNT then
+		SimpleError("too many reloads");
+	end if;
+	var reload := &insn.reloads[i];
+	reload.src := src;
+	reload.dest := dest;
+	insn.num_reloads := i + 1;
+end sub;
+
+sub ShuffleRegisters(moves: [RegMove])
+	var dests: RegId := 0;
+	var srcs: RegId := 0;
+
+	var m := moves;
+	var c: uint8 := MAX_MOVE_COUNT;
+	while c != 0 loop
+		dests := dests | m.dest;
+		srcs := srcs | m.src;
+		c := c - 1;
+		m := @next m;
+	end loop;
+
+	loop
+		# Attempt to do any pushes *first*, as this frees up sources
+		# for use as register destinations later.
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src != 0) and (m.dest == 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(m.src, 0);
+			srcs := srcs & ~m.src;
+			m.src := 0;
+			continue;
+		end if;
+
+		# Attempt to find a move into a register which is not a source
+		# (and is therefore completely safe).
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src != 0) and (m.dest != 0) and ((m.dest & srcs) == 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(m.src, m.dest);
+			srcs := srcs & ~m.src;
+			dests := dests & ~m.dest;
+			m.src := 0;
+			m.dest := 0;
+			continue;
+		end if;
+
+		# Only once we're done with pushes and register-to-register moves
+		# do we deal with pops.
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src == 0) and (m.dest != 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(0, m.dest);
+			dests := dests & ~m.dest;
+			m.dest := 0;
+			continue;
+		end if;
+
+		# If we got here and there are any undealt with moves, there's a move
+		# loop which we need to break somehow. The best thing is to stash a
+		# value into a temporary register but that gets gnarly if there aren't
+		# any left. So, we do it the brute-force way and stack something.
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src != 0) and (m.dest != 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(m.src, 0);
+			srcs := srcs & ~m.src;
+			m.src := 0; # convert this to a pop
+			continue;
+		end if;
+
+		# Nothing left to do!
+		break;
+	end loop;
 end sub;
 
 sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 0;
 
 	var i: uint8 := INSTRUCTION_TEMPLATE_DEPTH;
-	print("comparator\n");
 	while i != 0 loop
 		var d := [data];
 		data := data + 1;
 		var t := [template];
 		template := template + 1;
-		print("t=");
-		print_hex_i8(t);
-		print(" d=");
-		print_hex_i8(d);
-		print_nl();
 		if (t != 0) and (d != t) then
 			return;
 		end if;
@@ -102,49 +244,60 @@ sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 1;
 end sub;
 
-sub Generate(node: [Node])
+sub Generate(rootnode: [Node])
+	var i: uint8;
+
 	MemZero(&instructions[0] as [uint8], @bytesof instructions);
+	next_instruction := &instructions[0];
 	nodecount := 0;
 
-	PushNode(node);
+	PushNode(rootnode);
 	while nodecount != 0 loop
-		if instructioncount == @sizeof instructions then
+		if next_instruction == &instructions[@sizeof instructions] then
 			SimpleError("instruction queue overflow");
 		end if;
-		var producer := &instructions[instructioncount];
-		instructioncount := instructioncount + 1;
+		var producer := next_instruction;
+		next_instruction := @next next_instruction;
 
 		# Find the first matching rule for this instruction.
 
 		nodecount := nodecount - 1;
-		var n := nodes[nodecount];
+		var node := nodes[nodecount];
 		var matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
 		MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
 		var matchnodes: [Node][INSTRUCTION_TEMPLATE_DEPTH];
 		MemZero(&matchnodes[0] as [uint8], @bytesof matchnodes);
-		matchnodes[0] := n;
+		matchnodes[0] := node;
 		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
 
 		var ruleid: uint8 := 0xff;
-		var rule := &codegen_rules[0] - @bytesof Rule;
+		var rule := @prev &codegen_rules[0];
 		loop
-			rule := rule + @bytesof Rule;
+			rule := @next rule;
 			ruleid := ruleid + 1;
 
 			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
 				# Reach the end of the list of rules without matching anything.
-				UnmatchedInstructionError();
+				StartError();
+				print("unmatched instruction: ");
+				i := 0;
+				while i != INSTRUCTION_TEMPLATE_DEPTH loop
+					print_i8(matchbytes[i]);
+					print_char(' ');
+					i := i + 1;
+				end loop;
+				EndError();
 			end if;
 
 			if rule.compatible_producable_regs != 0 then
 				# This rule produces a result, so fail if the result register
 				# isn't compatible.
-				if (n.desired_reg & rule.compatible_producable_regs) == 0 then
+				if (node.desired_reg & rule.compatible_producable_regs) == 0 then
 					continue;
 				end if;
 			else
 				# This rule produces no result, so fail if we need one.
-				if n.desired_reg != 0 then
+				if node.desired_reg != 0 then
 					continue;
 				end if;
 			end if;
@@ -164,11 +317,115 @@ sub Generate(node: [Node])
 			break;
 		end loop;
 
-		print("match rule ");
-		print_i8(ruleid);
-		print_nl();
+		# We have found a rule for this instruction.
+
+		#EmitString("matched rule ");
+		#EmitUint8(ruleid);
+		#EmitString(" op ");
+		#EmitUint8(node.op);
+		#E_nl();
+		producer.ruleid := ruleid;
+		producer.producable_regs := rule.producable_regs;
+		producer.output_regs := rule.uses_regs;
+
+		# Copy child nodes into the current instruction and make sure they're
+		# pushed for later instruction allocation.
+
+		var copymask := rule.copyable_nodes;
+		var regmask := rule.register_nodes;
+		i := 0;
+		while i != INSTRUCTION_TEMPLATE_DEPTH loop
+			var n := matchnodes[i];
+			if (copymask & 1) != 0 then
+				producer.n[i] := n;
+				if (regmask & 1) != 0 then
+					PushNode(n);
+					n.desired_reg := rule.consumable_regs[i];
+					n.consumer := producer;
+				end if;
+			end if;
+			copymask := copymask >> 1;
+			regmask := regmask >> 1;
+			i := i + 1;
+		end loop;
+		node.producer := producer;
+
+		if producer.producable_regs != 0 then
+			# The instruction has produced a register. For stackable registers,
+			# stop now: we ignore them for register allocation.
+			if IsStackedRegister(producer.producable_regs) == 0 then
+				var consumer := node.consumer;
+				var blocked := CalculateBlockedRegisters(@next consumer, @prev producer);
+				var candidate := node.desired_reg & producer.producable_regs;
+
+				var mask := candidate & ~(blocked | producer.output_regs | consumer.input_regs);
+				if mask != 0 then
+					# Good news --- we can allocate the ideal register for
+					# both producer and consumer.
+
+					candidate := FindFirst(mask);
+					node.produced_reg := candidate;
+					producer.produced_reg := candidate;
+
+					blocked := FindConflictingRegisters(candidate);
+					BlockRegisters(@next consumer, @prev producer, blocked);
+					producer.output_regs := producer.output_regs | blocked;
+				else
+					mask := producer.producable_regs & ~(blocked | producer.output_regs);
+					if mask != 0 then
+						# The producer and consumer want different registers, but the
+						# producers register works up until the consumer.
+
+						producer.produced_reg := FindFirst(mask);
+						node.produced_reg := FindFirst(node.desired_reg & ~consumer.input_regs);
+						consumer.input_regs := consumer.input_regs
+							| FindConflictingRegisters(node.produced_reg);
+						blocked := FindConflictingRegisters(producer.produced_reg);
+						BlockRegisters(@next consumer, @prev producer, blocked);
+						producer.output_regs := producer.output_regs | blocked;
+						CreateReload(consumer, producer.produced_reg, node.produced_reg);
+					else
+						# Bad news --- we can't allocate any registers, so
+						# spill to the stack via a push and pop.
+
+						sub deadlock()
+							SimpleError("register allocation deadlock");
+						end sub;
+
+						candidate := producer.producable_regs & ~producer.output_regs;
+						if candidate == 0 then
+							deadlock();
+						end if;
+
+						producer.produced_reg := FindFirst(candidate);
+						producer.output_regs := producer.output_regs
+							| FindConflictingRegisters(producer.produced_reg);
+						CreateSpill(producer, producer.produced_reg, 0);
+
+						candidate := node.desired_reg & ~consumer.input_regs;
+						if candidate == 0 then
+							deadlock();
+						end if;
+						node.produced_reg := FindFirst(candidate);
+						consumer.input_regs := consumer.input_regs
+							| FindConflictingRegisters(node.produced_reg);
+						CreateReload(consumer, 0, node.produced_reg);
+					end if;
+				end if;
+			end if;
+		end if;
 	end loop;
 
-	Discard(node);
+	# We have a set of instructions for this expression; emit them.
+
+	while next_instruction != &instructions[0] loop
+		next_instruction := @prev next_instruction;
+
+		ShuffleRegisters(&next_instruction.reloads[0]);
+		EmitOneInstruction(next_instruction.ruleid, next_instruction);
+		ShuffleRegisters(&next_instruction.spills[0]);
+	end loop;
+
+	Discard(rootnode);
 end sub;
 

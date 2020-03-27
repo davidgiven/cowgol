@@ -199,3 +199,5 @@ sub FCBPutChar(fcb: [FCB], c: uint8)
 	fcb.dirty := 1;
 end sub;
 
+include "common-file.coh";
+

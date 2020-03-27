@@ -647,6 +647,7 @@ tests=" \
     divrem-8bit-s \
     divrem-8bit-u \
     inputparams \
+    itoa \
     logic-16bit \
     logic-32bit \
     logic-8bit \
@@ -658,6 +659,7 @@ tests=" \
     mul-8bit-s \
     mul-8bit-u \
     outputparams \
+    pointers \
     rangetypes \
     records \
     shifts-16bit \

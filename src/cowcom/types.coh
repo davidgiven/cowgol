@@ -14,6 +14,7 @@ end record;
 
 record HasElementSymbol
 	element: [Symbol];
+	stride: uint16;
 end record;
 
 record MemberTypeSymbol: HasElementSymbol
@@ -72,7 +73,10 @@ record Subroutine
 	first_output_parameter: [Symbol];
 	old_break_label: uint16;
 	id: uint16;
+	workspace: uint16[4];
 	num_input_parameters: uint8;
 	num_output_parameters: uint8;
 end record;
+
+var current_subr: [Subroutine];
 

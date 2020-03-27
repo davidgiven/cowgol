@@ -1,0 +1,11 @@
+sub FCBPutString(fcb: [FCB], test: [uint8])
+	loop
+		var c := [test];
+		if c == 0 then
+			break;
+		end if;
+		FCBPutChar(fcb, c);
+		test := @next test;
+	end loop;
+end sub;
+

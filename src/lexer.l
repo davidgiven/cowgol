@@ -53,6 +53,8 @@ SP [ \t]+
 "@bytesof"                { return BYTESOF; }
 "@indexof"                { return INDEXOF; }
 "@sizeof"                 { return SIZEOF; }
+"@next"                   { return NEXT; }
+"@prev"                   { return PREV; }
 "["                       { return OPENSQ; }
 "]"                       { return CLOSESQ; }
 "^"                       { return CARET; }
@@ -114,6 +116,7 @@ SP [ \t]+
 '[^'\\]'                  { number = yytext[1]; return NUMBER; }
 '\\n'                     { number = '\n'; return NUMBER; }
 '\\r'                     { number = '\r'; return NUMBER; }
+'\\t'                     { number = '\t'; return NUMBER; }
 '\\\\'                    { number = '\\'; return NUMBER; }
 '                         { fatal("invalid character constant"); }
 

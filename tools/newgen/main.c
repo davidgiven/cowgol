@@ -20,6 +20,12 @@ static const char* infilename;
 FILE* outfp;
 FILE* outhfp;
 
+#if defined COWGOL
+	#define DEREF "."
+#else
+	#define DEREF "->"
+#endif
+
 void* lookup_symbol(const char* name, const char* kind)
 {
 	Symbol* s = symbol_table;
@@ -522,7 +528,7 @@ static void print_complex_action(Rule* r, Element* e)
 	if (e->islabel)
 	{
 		if (e->text[0] == '$')
-			fprintf(outfp, "self->produced_reg");
+			fprintf(outfp, "self" DEREF "produced_reg");
 		else
 		{
 			Node* node = lookup_label(r->pattern, e->text);
@@ -530,10 +536,14 @@ static void print_complex_action(Rule* r, Element* e)
 				fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
 
 			if (node->isregister)
-				fprintf(outfp, "self->n[%d]->produced_reg", node->index);
+				fprintf(outfp, "self" DEREF "n[%d]" DEREF "produced_reg", node->index);
 			else
 			{
-				fprintf(outfp, "self->n[%d]->u.", node->index);
+				#if defined COWGOL
+					fprintf(outfp, "self" DEREF "n[%d]" DEREF, node->index);
+				#else
+					fprintf(outfp, "self" DEREF "n[%d]" DEREF "u.", node->index);
+				#endif
 				print_lower(terminals[node->midcode]);
 			}
 		}

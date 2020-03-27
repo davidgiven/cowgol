@@ -39,8 +39,8 @@
 %token_destructor
 {
 	if $$ != (0 as [Token]) then
-		FreeBlock($$.string as [uint8]);
-		FreeBlock($$ as [uint8]);
+		Free($$.string as [uint8]);
+		Free($$ as [uint8]);
 	end if;
 }
 
@@ -57,7 +57,6 @@ statement ::= SEMICOLON.
 
 statement ::= RETURN SEMICOLON.
 {
-	print("!! RETURN !!\n");
 	Generate(MidReturn());
 }
 
@@ -71,11 +70,11 @@ statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 
 statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 {
-#	S.kind := VAR;
-#	init_var(S, T);
-#    check_expression_type(&E.type, S.varsym.type);
-#
-#    Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
+	S.kind := VAR;
+	InitVariable(S, T);
+    CheckExpressionType(E, S.vardata.type);
+
+    Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
@@ -96,6 +95,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 %type expression {[Node]}
 expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
+expression(E) ::= MINUS expression(E1).                    { E := ExprNeg(E1); }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E := ExprSub(E1, E2); }
 expression(E) ::= expression(E1) STAR expression(E2).      { E := ExprMul(E1, E2); }
@@ -107,18 +107,39 @@ expression(E) ::= expression(E1) PIPE expression(E2).      { E := ExprOr(E1, E2)
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
 
-expression(E) ::= lvalue(L).
+expression(E) ::= lvalue(E1).
 {
-# E L
+	if E1.type != (0 as [Symbol]) then
+		var dereftype := E1.type.typedata.element;
+		if IsScalar(dereftype) == 0 then
+			SimpleError("non-scalars cannot be used in this context");
+		end if;
+		E := MidLoad(dereftype.typedata.width as uint8, E1);
+		E.type := dereftype;
+	else
+		E := E1;
+	end if;
 }
 
 /* --- Lvalues ----------------------------------------------------------- */
 
 %type lvalue {[Node]}
-lvalue(L) ::= oldid(S).
+lvalue(E) ::= oldid(S).
 {
-# L S
+	case S.kind is
+		when CONST:
+			E := MidConstant(S.constant);
 
+		when VAR:
+			E := MidAddress(S, 0);
+			E.type := MakePointerType(S.vardata.type);
+
+		when else:
+			StartError();
+			print(S.name);
+			print(" is not a value");
+			EndError();
+	end case;
 }
 
 %type cvalue {Arith}
@@ -135,9 +156,33 @@ cvalue(C) ::= expression(E).
 %type typeref {[Symbol]}
 typeref(S) ::= INT OPENPAREN cvalue(MIN) COMMA cvalue(MAX) CLOSEPAREN.
 {
-#	if MAX <= MIN then
-#		SimpleError("invalid integer type range");
-#	S := ArchGuessIntType(MIN, MAX);
+	if MAX <= MIN then
+		SimpleError("invalid integer type range");
+	end if;
+	S := ArchGuessIntType(MIN, MAX);
+}
+
+typeref(S) ::= eitherid(ID).
+{
+	var sym := ID;
+	if sym.kind == 0 then
+		# Create a partial type.
+		sym.kind := TYPE;
+		sym.typedata.kind := TYPE_PARTIAL;
+	end if;
+	if sym.kind != TYPE then
+		StartError();
+		print("expected ");
+		print(sym.name);
+		print(" to be a type");
+		EndError();
+	end if;
+	S := sym;
+}
+
+statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
+{
+	var sym := AddAlias(0 as [Namespace], X, T);
 }
 
 /* --- Symbols ----------------------------------------------------------- */
@@ -159,6 +204,16 @@ oldid(S) ::= ID(T).
 		print(name);
 		print("' not found");
 		EndError();
+	end if;
+	S := sym;
+}
+
+%type eitherid {[Symbol]}
+eitherid(S) ::= ID(T).
+{
+	var sym := LookupSymbol(0 as [Namespace], T.string);
+	if sym == (0 as [Symbol]) then
+		sym := AddSymbol(0 as [Namespace], T);
 	end if;
 	S := sym;
 }
