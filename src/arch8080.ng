@@ -741,6 +741,16 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
     E("\tmov %s, a\n", regref($$));
 }
 
+gen bc|de|hl := SUB2(CONSTANT():c, bc|de|hl:rhs) uses a
+{
+    E("\tmvi a, %d\n", $c.value & 0xff);
+    E("\tsub %s\n", regreflo($rhs));
+    E("\tmov %s, a\n", regreflo($$));
+    E("\tmvi a, %d\n", ($c.value >> 8) & 0xff);
+    E("\tsbb %s\n", regref($rhs));
+    E("\tmov %s, a\n", regref($$));
+}
+
 gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 {
     E("\txra a\n");
@@ -792,6 +802,16 @@ gen bc|de|hl := OR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 	E("\tmov %s, a\n", regref($$));
 }
 
+gen bc|de|hl := OR2(bc|de|hl:lhs, CONSTANT():c) uses a
+{
+	E("\tmov a, %s\n", regreflo($lhs));
+	E("\tori %d\n", $c.value & 0xff);
+	E("\tmov %s, a\n", regreflo($$));
+	E("\tmov a, %s\n", regref($lhs));
+	E("\tori %d\n", ($c.value >> 8) & 0xff);
+	E("\tmov %s, a\n", regref($$));
+}
+
 gen bc|de|hl := AND2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 {
 	E("\tmov a, %s\n", regreflo($lhs));
@@ -802,6 +822,16 @@ gen bc|de|hl := AND2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 	E("\tmov %s, a\n", regref($$));
 }
 
+gen bc|de|hl := AND2(bc|de|hl:lhs, CONSTANT():c) uses a
+{
+	E("\tmov a, %s\n", regreflo($lhs));
+	E("\tani %d\n", $c.value & 0xff);
+	E("\tmov %s, a\n", regreflo($$));
+	E("\tmov a, %s\n", regref($lhs));
+	E("\tani %d\n", ($c.value >> 8) & 0xff);
+	E("\tmov %s, a\n", regref($$));
+}
+
 gen bc|de|hl := EOR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 {
 	E("\tmov a, %s\n", regreflo($lhs));
@@ -809,6 +839,16 @@ gen bc|de|hl := EOR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 	E("\tmov %s, a\n", regreflo($$));
 	E("\tmov a, %s\n", regref($lhs));
 	E("\txra %s\n", regref($rhs));
+	E("\tmov %s, a\n", regref($$));
+}
+
+gen bc|de|hl := EOR2(bc|de|hl:lhs, CONSTANT():c) uses a
+{
+	E("\tmov a, %s\n", regreflo($lhs));
+	E("\txri %d\n", $c.value & 0xff);
+	E("\tmov %s, a\n", regreflo($$));
+	E("\tmov a, %s\n", regref($lhs));
+	E("\txri %d\n", ($c.value >> 8) & 0xff);
 	E("\tmov %s, a\n", regref($$));
 }
 
