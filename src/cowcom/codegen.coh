@@ -368,6 +368,7 @@ sub Generate(rootnode: [Node])
 					producer.produced_reg := candidate;
 
 					blocked := FindConflictingRegisters(candidate);
+					consumer.input_regs := consumer.input_regs | blocked;
 					BlockRegisters(@next consumer, @prev producer, blocked);
 					producer.output_regs := producer.output_regs | blocked;
 				else

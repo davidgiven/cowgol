@@ -90,6 +90,16 @@ sub ResolveUntypedConstantsNeedingNumbers(lhs: [Node], rhs: [Node])
 	CheckNumber(rhs);
 end sub;
 
+sub ExprNeg(lhs: [Node]): (result: [Node])
+	result := MidCNeg(NodeWidth(lhs), lhs);
+	result.type := lhs.type;
+end sub;
+
+sub ExprNot(lhs: [Node]): (result: [Node])
+	result := MidCNot(NodeWidth(lhs), lhs);
+	result.type := lhs.type;
+end sub;
+
 sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsForAddOrSub(lhs, rhs);
 
@@ -113,16 +123,6 @@ sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 	end if;
 	
 	result := MidCAdd(NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
-end sub;
-
-sub ExprNeg(lhs: [Node]): (result: [Node])
-	result := MidCNeg(NodeWidth(lhs), lhs);
-	result.type := lhs.type;
-end sub;
-
-sub ExprNot(lhs: [Node]): (result: [Node])
-	result := MidCNot(NodeWidth(lhs), lhs);
 	result.type := lhs.type;
 end sub;
 

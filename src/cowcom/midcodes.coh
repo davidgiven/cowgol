@@ -57,7 +57,7 @@ sub RotateParameters(lhs: [Node], rhs: [Node]): (newlhs: [Node], newrhs: [Node])
 end sub;
 
 sub MidCNeg(width: uint8, lhs: [Node]): (result: [Node])
-	if lhs.type == (0 as [Symbol]) then
+	if lhs.op == MIDCODE_CONSTANT then
 		lhs.constant.value := -lhs.constant.value;
 		result := lhs;
 	else
@@ -66,7 +66,7 @@ sub MidCNeg(width: uint8, lhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCNot(width: uint8, lhs: [Node]): (result: [Node])
-	if lhs.type == (0 as [Symbol]) then
+	if lhs.op == MIDCODE_CONSTANT then
 		lhs.constant.value := ~lhs.constant.value;
 		result := lhs;
 	else
@@ -76,7 +76,7 @@ end sub;
 
 sub MidCAnd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(lhs, rhs);
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value & rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
@@ -87,7 +87,7 @@ end sub;
 
 sub MidCOr(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(lhs, rhs);
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value | rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
@@ -98,7 +98,7 @@ end sub;
 
 sub MidCEor(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(lhs, rhs);
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value ^ rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
@@ -109,7 +109,7 @@ end sub;
 
 sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(lhs, rhs);
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value + rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
@@ -119,10 +119,13 @@ sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value - rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
+	elseif rhs.op == MIDCODE_CONSTANT then
+		rhs.constant.value := -rhs.constant.value;
+		result := MidAdd(width, lhs, rhs);
 	else
 		result := MidSub(width, lhs, rhs);
 	end if;
@@ -130,7 +133,7 @@ end sub;
 
 sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(lhs, rhs);
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value + rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
@@ -140,7 +143,7 @@ sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 		
 sub MidCDivu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value :=
 			((lhs.constant.value as uint32) / (rhs.constant.value as uint32)) as int32;
 		Discard(rhs);
@@ -151,7 +154,7 @@ sub MidCDivu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCDivs(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value / rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
@@ -161,7 +164,7 @@ sub MidCDivs(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCRems(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value :=
 			((lhs.constant.value as uint32) % (rhs.constant.value as uint32)) as int32;
 		Discard(rhs);
@@ -172,7 +175,7 @@ sub MidCRems(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCRemu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	if (lhs.type == (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value % rhs.constant.value;
 		Discard(rhs);
 		result := lhs;

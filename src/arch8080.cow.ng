@@ -136,7 +136,15 @@
 		E_nl();
 	end sub;
 
-	sub E_lxi(reg: RegId, sym: [Symbol], off: int16)
+	sub E_lxi(reg: RegId, value: int32);
+		E("\tlxi ");
+		E_reg(reg);
+		E_comma();
+		E_u16(value as uint16);
+		E_nl();
+	end sub;
+
+	sub E_lxia(reg: RegId, sym: [Symbol], off: int16)
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
@@ -156,15 +164,39 @@
 		E_nl();
 	end sub;
 
+	sub E_lhld(sym: [Symbol], off: int16)
+		E("\tlhld ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_shld(sym: [Symbol], off: int16)
+		E("\tshld ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
 	sub E_loadm(reg: RegId)
 		E("\tmov ");
 		E_reg(reg);
 		E(",m\n");
 	end sub;
 
+	sub E_loadmlo(reg: RegId)
+		E("\tmov ");
+		E_reglo(reg);
+		E(",m\n");
+	end sub;
+
 	sub E_storem(reg: RegId)
 		E("\tmov m,");
 		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_storemlo(reg: RegId)
+		E("\tmov m,");
+		E_reglo(reg);
 		E_nl();
 	end sub;
 
@@ -190,6 +222,28 @@
 
 	sub E_inc(reg: RegId)
 		E("\tinc ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_inx(reg: RegId)
+		E("\tinx ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_dcx(reg: RegId)
+		E("\tdcx ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_xchg()
+		E("\txchg\n");
+	end sub;
+
+	sub E_dad(reg: RegId)
+		E("\tdad ");
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -235,12 +289,26 @@ regdata hl uses hl compatible bc|de|hl;
 regdata stk4 stacked;
 regdata param stacked;
 
+// --- Core things ----------------------------------------------------------
+
 gen STARTFILE()
 {
 	print("STARTFILE\n");
 }
 
 gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jmp($j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
 
 gen STARTSUB():s
 {
@@ -273,24 +341,37 @@ gen RETURN()
 	E("\n");
 }
 
-gen LABEL():b
-{
-	E_label($b.label);
-}
-
-gen JUMP():j
-{
-	E_jmp($j.label);
-}
+// --- Constants ------------------------------------------------------------
 
 gen a|b|d|h := CONSTANT():rhs
 {
 	E_mvi($$, $rhs.value);
 }
 
+gen bc|de|hl := CONSTANT():rhs
+{
+	E_lxi($$, $rhs.value);
+}
+
 gen bc|de|hl := ADDRESS():a
 {
-	E_lxi($$, $a.sym, $a.off);
+	E_lxia($$, $a.sym, $a.off);
+}
+
+// --- 8-bit loads and stores -----------------------------------------------
+
+gen a := LOAD1(ADDRESS():a)
+{
+	E_lda($a.sym, $a.off);
+}
+
+gen a := LOAD1(bc|de|hl:ptr)
+{
+	if $ptr == REG_HL then
+		E_loadm(REG_A);
+	else
+		E_ldax($ptr);
+	end if;
 }
 
 gen STORE1(a, ADDRESS():a)
@@ -307,19 +388,33 @@ gen STORE1(a, bc|de|hl:ptr)
 	end if;
 }
 
-gen a := LOAD1(ADDRESS():a)
+// --- 16-bit loads and stores ----------------------------------------------
+
+gen hl := LOAD2(ADDRESS():a)
 {
-	E_lda($a.sym, $a.off);
+	E_lhld($a.sym, $a.off);
 }
 
-gen a := LOAD1(bc|de|hl:ptr)
+gen bc|de := LOAD2(hl)
 {
-	if $ptr == REG_HL then
-		E_loadm(REG_A);
-	else
-		E_ldax($ptr);
-	end if;
+	E_loadmlo($$);
+	E_inx(REG_HL);
+	E_loadm($$);
 }
+
+gen STORE2(hl, ADDRESS():a)
+{
+	E_shld($a.sym, $a.off);
+}
+
+gen STORE2(bc|de:val, hl) uses a
+{
+	E_storemlo($val);
+	E_inx(REG_HL);
+	E_storem($val);
+}
+
+// --- 8-bit arithmetic -----------------------------------------------------
 
 gen a := ADD1(a, b|d|h:rhs)
 {
@@ -349,5 +444,52 @@ gen a := SUB1(a, CONSTANT():c)
 gen a := MUL1(a, b)
 {
 	E("\t(mul a, b)\n");
+}
+
+// --- 16-bit arithmetic ----------------------------------------------------
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==1))
+{
+	E_inx($$);
+}
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==2))
+{
+	E_inx($$);
+	E_inx($$);
+}
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==-1))
+{
+	E_dcx($$);
+}
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==-2))
+{
+	E_dcx($$);
+	E_dcx($$);
+}
+
+gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
+{
+	if ($lhs != REG_HL) and ($rhs != REG_HL) then
+		if $rhs == REG_DE then
+			E_xchg();
+			$rhs := REG_HL;
+		else
+			if $lhs == REG_DE then
+				E_xchg();
+			else
+				ArchEmitMove($lhs, REG_HL);
+			end if;
+			$lhs := REG_HL;
+		end if;
+	end if;
+
+	if $lhs == REG_HL then
+		E_dad($rhs);
+	else
+		E_dad($lhs);
+	end if;
 }
 
