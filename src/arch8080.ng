@@ -921,86 +921,111 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 // --- Branches -------------------------------------------------------------
 
 %{
-	static void bequ1(int truelabel, int falselabel, reg_t nota)
+	static void bequ1(int truelabel, int falselabel, int fallthrough, reg_t nota)
 	{
 		E("\tcmp %s\n", regref(nota));
-		E("\tjz %s\n", labelref(truelabel));
-		E("\tjnz %s\n", labelref(falselabel));
+		if (truelabel != fallthrough)
+			E("\tjz %s\n", labelref(truelabel));
+		if (falselabel != fallthrough)
+			E("\tjnz %s\n", labelref(falselabel));
+	}
+
+	static void beqc(int32_t lhs, int32_t rhs, int truelabel, int falselabel, int fallthrough)
+	{
+		int label = (lhs == rhs) ? truelabel : falselabel;
+		if (label != fallthrough)
+			E("\tjmp %s\n", labelref(label));
 	}
 %}
 
+gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+	{ beqc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
+
+gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
+	{ beqc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
+
 gen BEQU1(b|d|h:nota, a):b
-	{ bequ1($b.truelabel, $b.falselabel, $nota); }
+	{ bequ1($b.truelabel, $b.falselabel, $b.fallthrough, $nota); }
 
 gen BEQS1(b|d|h:nota, a):b
-	{ bequ1($b.truelabel, $b.falselabel, $nota); }
+	{ bequ1($b.truelabel, $b.falselabel, $b.fallthrough, $nota); }
 
 %{
-	static void bequ1c(int truelabel, int falselabel, int c)
+	static void bequ1c(int truelabel, int falselabel, int fallthrough, int c)
 	{
 		if (!c)
 			E("\tora a\n");
 		else
 			E("\tcpi %d\n", c);
-		E("\tjz %s\n", labelref(truelabel));
-		E("\tjnz %s\n", labelref(falselabel));
+		if (truelabel != fallthrough)
+			E("\tjz %s\n", labelref(truelabel));
+		if (falselabel != fallthrough)
+			E("\tjnz %s\n", labelref(falselabel));
 	}
 %}
 	
 gen BEQU1(a, CONSTANT():c):b
-	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+	{ bequ1c($b.truelabel, $b.falselabel, $b.fallthrough, $c.value); }
 
 gen BEQS1(a, CONSTANT():c):b
-	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+	{ bequ1c($b.truelabel, $b.falselabel, $b.fallthrough, $c.value); }
 
 gen BEQU1(CONSTANT():c, a):b
-	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+	{ bequ1c($b.truelabel, $b.falselabel, $b.fallthrough, $c.value); }
 
 gen BEQS1(CONSTANT():c, a):b
-	{ bequ1c($b.truelabel, $b.falselabel, $c.value); }
+	{ bequ1c($b.truelabel, $b.falselabel, $b.fallthrough, $c.value); }
 
 gen BLTU1(a, CONSTANT():c):b
 {
 	E("\tcpi %d\n", $c.value);
-	E("\tjc %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	if ($b.truelabel != $b.fallthrough)
+		E("\tjc %s\n", labelref($b.truelabel));
+	if ($b.falselabel != $b.fallthrough)
+		E("\tjnc %s\n", labelref($b.falselabel));
 }
 
 gen BLTU1(a, b|d|h:rhs):b
 {
 	E("\tcmp %s\n", regref($rhs));
-	E("\tjc %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	if ($b.truelabel != $b.fallthrough)
+		E("\tjc %s\n", labelref($b.truelabel));
+	if ($b.falselabel != $b.fallthrough)
+		E("\tjnc %s\n", labelref($b.falselabel));
 }
 
 gen BLTS1(a, b): b
 {
 	E("\tcall cmps1\n");
-	E("\tjm %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	if ($b.truelabel != $b.fallthrough)
+		E("\tjm %s\n", labelref($b.truelabel));
+	if ($b.falselabel != $b.fallthrough)
+		E("\tjp %s\n", labelref($b.falselabel));
 }
 
 %{
-	static void bequ2(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
+	static void bequ2(int truelabel, int falselabel, int fallthrough, reg_t lhs, reg_t rhs)
 	{
 		E("\tmov a, %s\n", regref(lhs));
 		E("\tcmp %s\n", regref(rhs));
 		E("\tjnz %s\n", labelref(falselabel));
 		E("\tmov a, %s\n", regreflo(lhs));
 		E("\tcmp %s\n", regreflo(rhs));
-		E("\tjnz %s\n", labelref(falselabel));
-		E("\tjmp %s\n", labelref(truelabel));
+		if (falselabel != fallthrough)
+			E("\tjnz %s\n", labelref(falselabel));
+		if (truelabel != fallthrough)
+			E("\tjz %s\n", labelref(truelabel));
 	}
 %}
 
 gen BEQU2(hl|bc|de:lhs, hl|bc|de:rhs):b
-	{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
+	{ bequ2($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs); }
 
 gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
-	{ bequ2($b.truelabel, $b.falselabel, $lhs, $rhs); }
+	{ bequ2($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs); }
 
 %{
-	static void bequ2c(int truelabel, int falselabel, reg_t lhs, int c)
+	static void bequ2c(int truelabel, int falselabel, int fallthrough, reg_t lhs, int c)
 	{
 		if (c != 0)
 		{
@@ -1009,22 +1034,24 @@ gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
 		}
 		E("\tmov a, l\n");
 		E("\tora h\n");
-		E("\tjnz %s\n", labelref(falselabel));
-		E("\tjmp %s\n", labelref(truelabel));
+		if (truelabel != fallthrough)
+			E("\tjz %s\n", labelref(truelabel));
+		if (falselabel != fallthrough)
+			E("\tjnz %s\n", labelref(falselabel));
 	}
 %}
 
 gen BEQU2(hl:lhs, CONSTANT():rhs):b uses de|a
-	{ bequ2c($b.truelabel, $b.falselabel, $lhs, $rhs.value); }
+	{ bequ2c($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs.value); }
 
 gen BEQS2(hl:lhs, CONSTANT():rhs):b uses de|a
-	{ bequ2c($b.truelabel, $b.falselabel, $lhs, $rhs.value); }
+	{ bequ2c($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs.value); }
 
 gen BEQU2(CONSTANT():lhs, hl:rhs):b uses de|a
-	{ bequ2c($b.truelabel, $b.falselabel, $rhs, $lhs.value); }
+	{ bequ2c($b.truelabel, $b.falselabel, $b.fallthrough, $rhs, $lhs.value); }
 
 gen BEQS2(CONSTANT():lhs, hl:rhs):b uses de|a
-	{ bequ2c($b.truelabel, $b.falselabel, $rhs, $lhs.value); }
+	{ bequ2c($b.truelabel, $b.falselabel, $b.fallthrough, $rhs, $lhs.value); }
 
 gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 {
@@ -1032,44 +1059,54 @@ gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 	E("\tsub %s\n", regreflo($rhs));
 	E("\tmov a, %s\n", regref($lhs));
 	E("\tsbb %s\n", regref($rhs));
-	E("\tjc %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	if ($b.truelabel != $b.fallthrough)
+		E("\tjc %s\n", labelref($b.truelabel));
+	if ($b.falselabel != $b.fallthrough)
+		E("\tjnc %s\n", labelref($b.falselabel));
 }
 
 gen BLTS2(de, hl):b uses a|bc
 {
 	E("\tcall cmps2\n");
-	E("\tjc %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	if ($b.truelabel != $b.fallthrough)
+		E("\tjc %s\n", labelref($b.truelabel));
+	if ($b.falselabel != $b.fallthrough)
+		E("\tjnc %s\n", labelref($b.falselabel));
 }
 
 %{
-	static void bequ4(int truelabel, int falselabel, reg_t lhs, reg_t rhs)
+	static void bequ4(int truelabel, int falselabel, int fallthrough, reg_t lhs, reg_t rhs)
 	{
 		E("\tcall cmpu4\n");
-		E("\tjnz %s\n", labelref(falselabel));
-		E("\tjmp %s\n", labelref(truelabel));
+		if (truelabel != fallthrough)
+			E("\tjz %s\n", labelref(truelabel));
+		if (falselabel != fallthrough)
+			E("\tjnz %s\n", labelref(falselabel));
 	}
 %}
 
 gen BEQU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
-	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
+	{ bequ4($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs); }
 
 gen BEQS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
-	{ bequ4($b.truelabel, $b.falselabel, $lhs, $rhs); }
+	{ bequ4($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs); }
 
 gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E("\tcall cmpu4\n");
-	E("\tjc %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	if ($b.truelabel != $b.fallthrough)
+		E("\tjc %s\n", labelref($b.truelabel));
+	if ($b.falselabel != $b.fallthrough)
+		E("\tjnc %s\n", labelref($b.falselabel));
 }
 
 gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E("\tcall cmps4\n");
-	E("\tjc %s\n", labelref($b.truelabel));
-	E("\tjmp %s\n", labelref($b.falselabel));
+	if ($b.truelabel != $b.fallthrough)
+		E("\tjc %s\n", labelref($b.truelabel));
+	if ($b.falselabel != $b.fallthrough)
+		E("\tjnc %s\n", labelref($b.falselabel));
 }
 
 // --- Casts ----------------------------------------------------------------

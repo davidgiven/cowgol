@@ -226,6 +226,47 @@ static void shuffle_registers(Regmove* moves)
 	}
 }
 
+static void simplify(Node* node)
+{
+	if (!node)
+		return;
+
+	switch (node->op)
+	{
+		case MIDCODE_BEQS0:
+		case MIDCODE_BEQS1:
+		case MIDCODE_BEQS2:
+		case MIDCODE_BEQS4:
+		case MIDCODE_BEQS8:
+		case MIDCODE_BEQU0:
+		case MIDCODE_BEQU1:
+		case MIDCODE_BEQU2:
+		case MIDCODE_BEQU4:
+		case MIDCODE_BEQU8:
+		case MIDCODE_BLTS0:
+		case MIDCODE_BLTS1:
+		case MIDCODE_BLTS2:
+		case MIDCODE_BLTS4:
+		case MIDCODE_BLTS8:
+		case MIDCODE_BLTU0:
+		case MIDCODE_BLTU1:
+		case MIDCODE_BLTU2:
+		case MIDCODE_BLTU4:
+		case MIDCODE_BLTU8:
+			if (node->u.beqs0.negated)
+			{
+				int label = node->u.beqs0.falselabel;
+				node->u.beqs0.falselabel = node->u.beqs0.truelabel;
+				node->u.beqs0.truelabel = label;
+				node->u.beqs0.negated = 0;
+			}
+			break;
+	}
+
+	simplify(node->left);
+	simplify(node->right);
+}
+
 void generate(Node* node)
 {
 	arch_emit_comment("");
@@ -243,6 +284,7 @@ void generate(Node* node)
 	instructioncount = 0;
 	nodecount = 0;
 
+	simplify(node);
 	push_node(node);
 
 	while (nodecount != 0)

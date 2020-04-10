@@ -23,9 +23,9 @@ extern struct midnode* expr_signed(struct midnode* lhs, struct midnode* rhs,
 extern struct midnode* expr_shift(struct midnode* lhs, struct midnode* rhs,
         struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs),
         struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs));
-extern void cond_simple(int truelabel, int falselabel, struct midnode* lhs, struct midnode* rhs,
-        struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel),
-        struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel));
+extern Node* cond_simple(struct midnode* lhs, struct midnode* rhs,
+        struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel, int fallthrough, int negated),
+        struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel, int fallthrough, int negated));
 
 extern void init_var(struct symbol* sym, struct symbol* type);
 extern void init_member(struct symbol* sym, struct symbol* type);
@@ -65,9 +65,7 @@ extern Node* mid_c_divu(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_divs(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_remu(int width, Node* lhs, Node* rhs);
 extern Node* mid_c_rems(int width, Node* lhs, Node* rhs);
-extern Node* mid_c_beqs(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
-extern Node* mid_c_bequ(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
-extern Node* mid_c_blts(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
-extern Node* mid_c_bltu(int width, Node* lhs, Node* rhs, int truelabel, int falselabel);
+
+extern void rewrite_labels(Node* node, int fromlabel, int tolabel);
 
 #endif

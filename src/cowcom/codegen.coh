@@ -42,16 +42,42 @@ var instructions: Instruction[16];
 var next_instruction: [Instruction];
 
 var nodes: [Node][16];
-var nodecount: uint8;
+var next_node: [[Node]];
 
 include ".obj/arch8080/inssel.coh";
 
 sub PushNode(node: [Node])
-	if nodecount == @sizeof nodes then
-		SimpleError("node stack overflow");
+	if node != (0 as [Node]) then
+		if next_node == &nodes[@sizeof nodes] then
+			SimpleError("node stack overflow");
+		end if;
+		[next_node] := node;
+		next_node := @next next_node;
 	end if;
-	nodes[nodecount] := node;
-	nodecount := nodecount + 1;
+end sub;
+
+sub PopNode(): (node: [Node])
+	if next_node == &nodes[0] then
+		node := 0 as [Node];
+	else
+		next_node := @prev next_node;
+		node := [next_node];
+	end if;
+end sub;
+
+# This uses the same node stack as the code generator.
+
+sub WalkNodes(node: [Node])
+	nodes[0] := node;
+	next_node := @next &nodes[0];
+end sub;
+
+sub NextNode(): (node: [Node])
+	node := PopNode();
+	if node != (0 as [Node]) then
+		PushNode(node.left);
+		PushNode(node.right);
+	end if;
 end sub;
 
 sub IsStackedRegister(regid: RegId): (result: uint8)
@@ -249,10 +275,10 @@ sub Generate(rootnode: [Node])
 
 	MemZero(&instructions[0] as [uint8], @bytesof instructions);
 	next_instruction := &instructions[0];
-	nodecount := 0;
+	next_node := &nodes[0];
 
 	PushNode(rootnode);
-	while nodecount != 0 loop
+	while next_node != &nodes[0] loop
 		if next_instruction == &instructions[@sizeof instructions] then
 			SimpleError("instruction queue overflow");
 		end if;
@@ -261,8 +287,7 @@ sub Generate(rootnode: [Node])
 
 		# Find the first matching rule for this instruction.
 
-		nodecount := nodecount - 1;
-		var node := nodes[nodecount];
+		var node := PopNode();
 		var matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
 		MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
 		var matchnodes: [Node][INSTRUCTION_TEMPLATE_DEPTH];
