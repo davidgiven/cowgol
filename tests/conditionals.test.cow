@@ -136,11 +136,11 @@ end sub;
 and1();
 
 sub andor1()
-	print("andor1\n");
+	print("andor1");
 	var i: uint8 := 0;
 	var j: uint8 := 0;
 	var k: uint8 := 1;
 	if (i != 0) and ((j != 0) or (k != 0)) then yes(); else no(); end if;
 end sub;
-# andor1(); # Note! The C compiler fails this
+andor1(); # Note! The C compiler fails this
 
