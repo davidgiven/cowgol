@@ -13,6 +13,14 @@ sub IsNum(type: [Symbol]): (result: uint8)
 	result := IsTypeOfKind(type, TYPE_NUMBER);
 end sub;
 
+sub IsSNum(type: [Symbol]): (result: uint8)
+	if (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.number.is_signed != 0) then
+		result := 1;
+	else
+		result := 0;
+	end if;
+end sub;
+
 sub IsScalar(type: [Symbol]): (result: uint8)
 	if (IsPtr(type) != 0) or (IsNum(type) != 0) then
 		result := 1;
@@ -89,6 +97,19 @@ sub ResolveUntypedConstantsNeedingNumbers(lhs: [Node], rhs: [Node])
 	CheckNumber(lhs);
 	CheckNumber(rhs);
 end sub;
+
+sub CondSimple(lhs: [Node], rhs: [Node])
+	ResolveUntypedConstantsSimply(lhs, rhs);
+	if lhs.type != rhs.type then
+		StartError();
+		print("you tried to compare a ");
+		print(lhs.type.name);
+		print(" and a ");
+		print(rhs.type.name);
+		EndError();
+	end if;
+end sub;
+
 
 sub ExprNeg(lhs: [Node]): (result: [Node])
 	result := MidCNeg(NodeWidth(lhs), lhs);

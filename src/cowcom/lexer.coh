@@ -467,6 +467,14 @@ sub LexerReadToken(): (token: uint8)
 				lexer_i_unparseable(c);
 			end if;
 
+		when '!':
+			c := lexer_i_getchar();
+			if c == '=' then
+				token := NEOP;
+			else
+				lexer_i_unparseable(c);
+			end if;
+
 		when '>':
 			c := lexer_i_getchar();
 			case c is

@@ -109,28 +109,150 @@ statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 
 /* --- Simple loops ------------------------------------------------------ */
 
+%include
+{
+	sub BeginNormalLoop(): (ll: [LoopLabels])
+		ll := Alloc(@bytesof LoopLabels) as [LoopLabels];
+		ll.loop_label := AllocLabel();
+		ll.exit_label := AllocLabel();
+		ll.old_break_label := break_label;
+		ll.old_continue_label := continue_label;
+		break_label := ll.exit_label;
+		continue_label := ll.loop_label;
+	end sub;
+
+	sub TerminateNormalLoop(ll: [LoopLabels])
+		Generate(MidJump(continue_label));
+		Generate(MidLabel(break_label));
+		break_label := ll.old_break_label;
+		continue_label := ll.old_continue_label;
+		Free(ll as [uint8]);
+	end sub;
+}
+
 statement ::= startloopstatement(LL) statements END LOOP.
 {
-	Generate(MidJump(LL.loop_label));
-	Generate(MidLabel(LL.exit_label));
-	break_label := LL.old_break_label;
-	continue_label := LL.old_continue_label;
-	Free(LL as [uint8]);
+	TerminateNormalLoop(LL);
 }
 
 %type startloopstatement {[LoopLabels]}
 startloopstatement(LL) ::= LOOP.
 {
-	var ll := Alloc(@bytesof LoopLabels) as [LoopLabels];
-	ll.loop_label := AllocLabel();
-	ll.exit_label := AllocLabel();
-	ll.old_break_label := break_label;
-	ll.old_continue_label := continue_label;
-	break_label := ll.exit_label;
-	continue_label := ll.loop_label;
+	LL := BeginNormalLoop();
 	Generate(MidLabel(continue_label));
-	LL := ll;
 }
+
+/* --- While loops ------------------------------------------------------- */
+
+statement ::= startwhilestatement(LL) statements END LOOP.
+{
+	TerminateNormalLoop(LL);
+}
+
+%type startwhilestatement {[LoopLabels]}
+startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
+{
+	LL := BeginNormalLoop();
+	Generate(MidLabel(continue_label));
+	var t := C.beqs0.truelabel;
+	var f := C.beqs0.falselabel;
+	C.beqs0.fallthrough := t;
+	Generate(C);
+	Generate(MidLabel(t));
+	LL.exit_label := f;
+	break_label := f;
+}
+
+/* --- Conditional expressions ------------------------------------------- */
+
+%type conditional {[Node]}
+conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
+{
+	R := C;
+}
+
+%include
+{
+	sub Negate(node: [Node])
+		node.beqs0.negated := node.beqs0.negated ^ 1;
+	end sub;
+}
+
+conditional(R) ::= NOT conditional(C).
+{
+	R := C;
+	Negate(C);
+}
+
+conditional(R) ::= conditional(C1) AND conditional(C2).
+{
+	var t := C1.beqs0.truelabel;
+	var f := C1.beqs0.falselabel;
+	RewriteLabels(C2, C2.beqs0.falselabel, f);
+	C1.beqs0.fallthrough := t;
+	Generate(C1);
+	Generate(MidLabel(t));
+	R := C2;
+}
+
+conditional(R) ::= conditional(C1) OR conditional(C2).
+{
+	var t := C1.beqs0.truelabel;
+	var f := C1.beqs0.falselabel;
+	RewriteLabels(C2, C2.beqs0.truelabel, t);
+	C1.beqs0.fallthrough := f;
+	Generate(C1);
+	Generate(MidLabel(f));
+	R := C2;
+}
+
+%include
+{
+	sub ConditionalEq(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+		CondSimple(lhs, rhs);
+		var truelabel := AllocLabel();
+		var falselabel := AllocLabel();
+		var w := NodeWidth(lhs);
+
+		if IsSNum(lhs.type) != 0 then
+			result := MidBeqs(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		else
+			result := MidBequ(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		end if;
+	end sub;
+}
+
+conditional(R) ::= expression(T1) EQOP expression(T2).
+{
+	R := ConditionalEq(T1, T2, 0);
+}
+
+conditional(R) ::= expression(T1) NEOP expression(T2).
+{
+	R := ConditionalEq(T1, T2, 1);
+}
+/*
+
+conditional(R) ::= expression(T1) LTOP expression(T2).
+{
+	R = cond_simple(T1, T2, mid_bltu, mid_blts);
+}
+
+conditional(R) ::= expression(T1) GEOP expression(T2).
+{
+	R = negated(cond_simple(T1, T2, mid_bltu, mid_blts));
+}
+
+conditional(R) ::= expression(T1) GTOP expression(T2).
+{
+	R = cond_simple(T2, T1, mid_bltu, mid_blts);
+}
+
+conditional(R) ::= expression(T1) LEOP expression(T2).
+{
+	R = negated(cond_simple(T2, T1, mid_bltu, mid_blts));
+}
+*/
 
 /* --- Expressions ------------------------------------------------------- */
 

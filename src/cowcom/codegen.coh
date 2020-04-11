@@ -270,14 +270,33 @@ sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 1;
 end sub;
 
+sub Simplify(rootnode: [Node])
+	WalkNodes(rootnode);
+	loop
+		var node := NextNode();
+		if node == (0 as [Node]) then
+			break;
+		end if;
+
+		if (node.op >= MIDCODE_BEQS0) and (node.op <= MIDCODE_BLTU8) then
+			if node.beqs0.negated != 0 then
+				var t := node.beqs0.truelabel;
+				node.beqs0.truelabel := node.beqs0.falselabel;
+				node.beqs0.falselabel := t;
+				node.beqs0.negated := 0;
+			end if;
+		end if;
+	end loop;
+end sub;
+
 sub Generate(rootnode: [Node])
 	var i: uint8;
 
+	Simplify(rootnode);
 	MemZero(&instructions[0] as [uint8], @bytesof instructions);
 	next_instruction := &instructions[0];
-	next_node := &nodes[0];
 
-	PushNode(rootnode);
+	WalkNodes(rootnode);
 	while next_node != &nodes[0] loop
 		if next_instruction == &instructions[@sizeof instructions] then
 			SimpleError("instruction queue overflow");

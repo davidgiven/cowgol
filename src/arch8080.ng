@@ -615,7 +615,7 @@ gen a := ADD1(a, b|d|h:rhs)
 	{ E("\tadd %s\n", regref($rhs)); }
 
 gen a := ADD1(a, CONSTANT():rhs)
-	{ E("\tadi %d\n", $rhs.value); }
+	{ E("\tadi %d\n", $rhs.value & 0xff); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==1))
 	{ E("\tinc %s\n", regref($$)); }

@@ -86,7 +86,7 @@ record LoopLabels
 end record;
 	
 var current_subr: [Subroutine];
-var next_label_id: LabelRef;
+var next_label_id: LabelRef := 1;
 var break_label: LabelRef;
 var continue_label: LabelRef;
 

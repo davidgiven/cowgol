@@ -76,8 +76,10 @@
 		E(":\n");
 	end sub;
 
-	sub E_jmp(label: LabelRef)
-		E("\tjmp ");
+	sub E_jump(insn: string, label: LabelRef)
+		E_tab();
+		E(insn);
+		E_space();
 		E_labelref(label);
 		E_nl();
 	end sub;
@@ -305,7 +307,7 @@ gen LABEL():b
 
 gen JUMP():j
 {
-	E_jmp($j.label);
+	E_jump("jmp", $j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
@@ -491,5 +493,29 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	else
 		E_dad($lhs);
 	end if;
+}
+
+// --- Conditionals ---------------------------------------------------------
+
+%{
+	sub bequ1(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, nota: RegId)
+		E_alu("cmp", nota);
+		if truelabel != fallthrough then
+			E_jump("jz", truelabel);
+		end if;
+		if falselabel != fallthrough then
+			E_jump("jnz", falselabel);
+		end if;
+	end sub;
+%}
+
+gen BEQU1(b|d|h:nota, a):b
+{
+	bequ1($b.truelabel, $b.falselabel, $b.fallthrough, $nota);
+}
+
+gen BEQS1(b|d|h:nota, a):b
+{
+	bequ1($b.truelabel, $b.falselabel, $b.fallthrough, $nota);
 }
 
