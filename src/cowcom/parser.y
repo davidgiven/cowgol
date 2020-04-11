@@ -220,6 +220,19 @@ conditional(R) ::= conditional(C1) OR conditional(C2).
 			result := MidBequ(w, lhs, rhs, truelabel, falselabel, 0, negated);
 		end if;
 	end sub;
+
+	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+		CondSimple(lhs, rhs);
+		var truelabel := AllocLabel();
+		var falselabel := AllocLabel();
+		var w := NodeWidth(lhs);
+
+		if IsSNum(lhs.type) != 0 then
+			result := MidBlts(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		else
+			result := MidBltu(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		end if;
+	end sub;
 }
 
 conditional(R) ::= expression(T1) EQOP expression(T2).
@@ -231,28 +244,26 @@ conditional(R) ::= expression(T1) NEOP expression(T2).
 {
 	R := ConditionalEq(T1, T2, 1);
 }
-/*
 
 conditional(R) ::= expression(T1) LTOP expression(T2).
 {
-	R = cond_simple(T1, T2, mid_bltu, mid_blts);
+	R := ConditionalLt(T1, T2, 0);
 }
 
 conditional(R) ::= expression(T1) GEOP expression(T2).
 {
-	R = negated(cond_simple(T1, T2, mid_bltu, mid_blts));
+	R := ConditionalLt(T1, T2, 1);
 }
 
 conditional(R) ::= expression(T1) GTOP expression(T2).
 {
-	R = cond_simple(T2, T1, mid_bltu, mid_blts);
+	R := ConditionalLt(T2, T1, 0);
 }
 
 conditional(R) ::= expression(T1) LEOP expression(T2).
 {
-	R = negated(cond_simple(T2, T1, mid_bltu, mid_blts));
+	R := ConditionalLt(T2, T1, 1);
 }
-*/
 
 /* --- Expressions ------------------------------------------------------- */
 
