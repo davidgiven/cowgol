@@ -498,24 +498,34 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 // --- Conditionals ---------------------------------------------------------
 
 %{
-	sub bequ1(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, nota: RegId)
+	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+		if node.beqs0.truelabel != node.beqs0.fallthrough then
+			E_jump(trueinsn, node.beqs0.truelabel);
+		end if;
+		if node.beqs0.falselabel != node.beqs0.fallthrough then
+			E_jump(falseinsn, node.beqs0.falselabel);
+		end if;
+	end sub;
+
+	sub bequ1(node: [Node], nota: RegId)
 		E_alu("cmp", nota);
-		if truelabel != fallthrough then
-			E_jump("jz", truelabel);
-		end if;
-		if falselabel != fallthrough then
-			E_jump("jnz", falselabel);
-		end if;
+		E_jumps_with_fallthrough("jz", "jnz", node);
 	end sub;
 %}
 
 gen BEQU1(b|d|h:nota, a):b
 {
-	bequ1($b.truelabel, $b.falselabel, $b.fallthrough, $nota);
+	bequ1(self.n[0], $nota);
 }
 
 gen BEQS1(b|d|h:nota, a):b
 {
-	bequ1($b.truelabel, $b.falselabel, $b.fallthrough, $nota);
+	bequ1(self.n[0], $nota);
+}
+
+gen BLTU1(b|d|h:nota, a):b
+{
+	E_alu("cmp", $nota);
+	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
 }
 
