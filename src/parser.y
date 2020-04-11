@@ -321,10 +321,12 @@ if_begin ::= .
 	current_if->exitlabel = current_label++;
 }
 
-if_conditional ::= startconditional conditional.
+if_conditional ::= conditional(C).
 {
-	current_if->truelabel = condtrue;
-	current_if->falselabel = condfalse;
+	current_if->truelabel = C->u.beqs0.truelabel;
+	current_if->falselabel = C->u.beqs0.falselabel;
+	C->u.beqs0.fallthrough = C->u.beqs0.truelabel;
+	generate(C);
 	generate(mid_label(current_if->truelabel));
 }
 
@@ -374,11 +376,15 @@ whilestatement1(L) ::= WHILE.
 }
 
 %type whilestatement2 {struct looplabels}
-whilestatement2(L) ::= whilestatement1(L1) startconditional conditional.
+whilestatement2(L) ::= whilestatement1(L1) conditional(C).
 {
 	L = L1;
-	generate(mid_label(condtrue));
-	L.exitlabel = break_label = condfalse;
+	int t = C->u.beqs0.truelabel;
+	int f = C->u.beqs0.falselabel;
+	C->u.beqs0.fallthrough = t;
+	generate(C);
+	generate(mid_label(t));
+	L.exitlabel = break_label = f;
 	continue_label = L.looplabel;
 }
 
@@ -931,7 +937,7 @@ expression(E) ::= expression(E1) SLASH expression(E2).     { E = expr_signed(E1,
 expression(E) ::= expression(E1) PERCENT expression(E2).   { E = expr_signed(E1, E2, mid_c_remu, mid_c_rems); }
 expression(E) ::= expression(E1) CARET expression(E2).     { E = expr_simple(E1, E2, mid_eor); }
 expression(E) ::= expression(E1) AMPERSAND expression(E2). { E = expr_simple(E1, E2, mid_and); }
-expression(E) ::= expression(E1) PIPE expression(E2).      { E = expr_simple(E1, E2, mid_or); }
+expression(E) ::= expression(E1) PIPE expression(E2).      { E = expr_simple(E1, E2, mid_c_or); }
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_lshift, mid_lshift); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E = expr_shift(E1, E2, mid_rshiftu, mid_rshifts); }
 
@@ -1005,24 +1011,23 @@ lvalue(E) ::= lvalue(E1) OPENSQ expression(E2) CLOSESQ.
 
 lvalue(E) ::= lvalue(E1) DOT ID(X).
 {
-	check_non_partial_type(E1->type);
-
     /* Remember that T is a *pointer* to the record (or a pointer to a
 	 * pointer). */
-	struct symbol* record;
-	if (is_record_ptr(E1->type))
+
+	check_non_partial_type(E1->type);
+
+	/* Dereference pointers to pointers. */
+	while (is_ptr(E1->type) && is_ptr(E1->type->u.type.element))
 	{
-		/* Direct reference to record. */
-		record = E1->type->u.type.element;
-	}
-	else if (is_ptr(E1->type) && is_record_ptr(E1->type->u.type.element))
-	{
-		/* Pointer to record. */
-		record = E1->type->u.type.element->u.type.element;
+		Symbol* element = E1->type->u.type.element;
 		E1 = mid_load(intptr_type->u.type.width, E1);
+		E1->type = element;
 	}
-	else
-		fatal("you can only access members of records");
+
+	Symbol* record = E1->type->u.type.element;
+	check_non_partial_type(record);
+	if (!is_record(record))
+		fatal("you can only access members of records, not a %s", record->name);
 
 	struct symbol* member = lookup_symbol(&record->u.type.namespace, X->string);
 	if (!member)
@@ -1056,70 +1061,74 @@ eitherid(S) ::= ID(token).
 
 /* --- Conditional expressions ------------------------------------------- */
 
+%type conditional {Node*}
+conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
+{ R = C; }
+
 %include
 {
-	static int condtrue;
-	static int condfalse;
+	static Node* negated(Node* node)
+	{
+		node->u.beqs0.negated ^= 1;
+		return node;
+	}
 }
 
-startconditional ::= .
+conditional(R) ::= NOT conditional(C).
 {
-	condtrue = current_label++;
-	condfalse = current_label++;
+	R = negated(C);
 }
 
-conditional ::= OPENPAREN conditional CLOSEPAREN.
-
-conditional ::= NOT conditional.
+conditional(R) ::= conditional(C1) AND conditional(C2).
 {
-	int t = condtrue;
-	condtrue = condfalse;
-	condfalse = t;
+	int t = C1->u.beqs0.truelabel;
+	int f = C1->u.beqs0.falselabel;
+	rewrite_labels(C2, C2->u.beqs0.falselabel, f);
+	C1->u.beqs0.fallthrough = t;
+	generate(C1);
+	generate(mid_label(t));
+	R = C2;
 }
 
-conditional ::= conditional AND condand conditional.
-conditional ::= conditional OR condor conditional.
-
-condand ::= .
+conditional(R) ::= conditional(C1) OR conditional(C2).
 {
-	generate(mid_label(condtrue));
-	condtrue = current_label++;
+	int t = C1->u.beqs0.truelabel;
+	int f = C1->u.beqs0.falselabel;
+	rewrite_labels(C2, C2->u.beqs0.truelabel, t);
+	C1->u.beqs0.fallthrough = f;
+	generate(C1);
+	generate(mid_label(f));
+	R = C2;
 }
 
-condor ::= .
+conditional(R) ::= expression(T1) EQOP expression(T2).
 {
-	generate(mid_label(condfalse));
-	condfalse = current_label++;
+	R = cond_simple(T1, T2, mid_bequ, mid_beqs);
 }
 
-conditional ::= expression(T1) EQOP expression(T2).
+conditional(R) ::= expression(T1) NEOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, mid_c_bequ, mid_c_beqs);
+	R = negated(cond_simple(T1, T2, mid_bequ, mid_beqs));
 }
 
-conditional ::= expression(T1) NEOP expression(T2).
+conditional(R) ::= expression(T1) LTOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, mid_c_bequ, mid_c_beqs);
+	R = cond_simple(T1, T2, mid_bltu, mid_blts);
 }
 
-conditional ::= expression(T1) LTOP expression(T2).
+conditional(R) ::= expression(T1) GEOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T1, T2, mid_c_bltu, mid_c_blts);
+	R = negated(cond_simple(T1, T2, mid_bltu, mid_blts));
 }
 
-conditional ::= expression(T1) GEOP expression(T2).
+conditional(R) ::= expression(T1) GTOP expression(T2).
 {
-	cond_simple(condfalse, condtrue, T1, T2, mid_c_bltu, mid_c_blts);
+	R = cond_simple(T2, T1, mid_bltu, mid_blts);
 }
 
-conditional ::= expression(T1) GTOP expression(T2).
+conditional(R) ::= expression(T1) LEOP expression(T2).
 {
-	cond_simple(condtrue, condfalse, T2, T1, mid_c_bltu, mid_c_blts);
-}
-
-conditional ::= expression(T1) LEOP expression(T2).
-{
-	cond_simple(condfalse, condtrue, T2, T1, mid_c_bltu, mid_c_blts);
+	R = negated(cond_simple(T2, T1, mid_bltu, mid_blts));
 }
 
 /* --- Types ------------------------------------------------------------- */

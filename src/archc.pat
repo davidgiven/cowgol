@@ -80,6 +80,7 @@ static const char* symref(struct symbol* sym, int32_t off)
 
 static const char* labelref(int label)
 {
+	assert(label != 0);
     static char buffer[32];
     snprintf(buffer, sizeof(buffer), "x%d", label);
     return buffer;

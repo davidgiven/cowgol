@@ -383,13 +383,21 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 		switch (predicate->operator)
 		{
 			case IS:
-				fprintf(outfp, " is_%s(n[%d]->u.", predicate->u.callback, index);
+				#if defined COWGOL
+					fprintf(outfp, " is_%s([n + %d @ bytesof intptr].", predicate->u.callback, index);
+				#else
+					fprintf(outfp, " is_%s(n[%d]->u.", predicate->u.callback, index);
+				#endif
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s)", predicate->field);
 				break;
 
 			default:
-				fprintf(outfp, " (n[%d]->u.", index);
+				#if defined COWGOL
+					fprintf(outfp, " ([n + %d * @bytesof intptr].", index);
+				#else
+					fprintf(outfp, " (n[%d]->u.", index);
+				#endif
 				print_lower(terminals[template->midcode]);
 				fprintf(outfp, ".%s %s %d)",
 					predicate->field,

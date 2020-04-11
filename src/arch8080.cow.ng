@@ -34,25 +34,25 @@
 		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
 	end sub;
 
-	sub E_label(labelid: uint16)
-		EmitString("x");
-		EmitUint16(labelid);
+	sub E_labelref(labelid: uint16)
+		E("x");
+		E_u16(labelid);
 	end sub;
 
 	sub E_subref(subr: [Subroutine])
 		if subr.externname != (0 as string) then
-			EmitString(subr.externname);
+			E(subr.externname);
 		else
-			EmitString("f");
-			EmitUint16(subr.id);
+			E("f");
+			E_u16(subr.id);
 		end if;
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: int16)
 		EmitByte('w');
-		EmitUint16(sym.vardata.subr.id);
+		E_u16(sym.vardata.subr.id);
 		EmitByte('+');
-		EmitUint(sym.vardata.offset + (off as uint32));
+		E_u32(sym.vardata.offset + (off as uint32));
 	end sub;
 
 	sub E_space()
@@ -69,6 +69,19 @@
 
 	sub E_nl();
 		EmitByte('\n');
+	end sub;
+
+	sub E_label(label: LabelRef)
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub E_jump(insn: string, label: LabelRef)
+		E_tab();
+		E(insn);
+		E_space();
+		E_labelref(label);
+		E_nl();
 	end sub;
 
 	sub E_reg(reg: RegId)
@@ -88,76 +101,178 @@
 		end case;
 	end sub;
 
-	sub E_alui(insn: string, reg: RegId, value: int32)
-		E_tab();
-		EmitString(insn);
-		E_space();
-		E_reg(reg);
-		E_comma();
-		EmitUint8(value as uint8);
-		E_nl();
+	sub E_reglo(reg: RegId)
+		case reg is
+			when REG_BC: EmitByte('c');
+			when REG_DE: EmitByte('e');
+			when REG_HL: EmitByte('l');
+			when else:
+				StartError();
+				print("invalid reglo register 0x");
+				print_hex_i16(reg);
+				EndError();
+		end case;
 	end sub;
 
 	sub E_mvi(reg: RegId, value: int32)
-		EmitString("\tmvi ");
+		E("\tmvi ");
 		E_reg(reg);
 		E_comma();
-		EmitUint8(value as uint8);
+		E_u8(value as uint8);
 		E_nl();
 	end sub;
 
 	sub E_alu(insn: string, rhs: RegId)
 		E_tab();
-		EmitString(insn);
+		E(insn);
 		E_space();
 		E_reg(rhs);
 		E_nl();
 	end sub;
 
-	sub E_lxi(reg: RegId, sym: [Symbol], off: int16)
-		EmitString("\tlxi ");
+	sub E_alui(insn: string, value: int32)
+		E_tab();
+		E(insn);
+		E_space();
+		E_u8(value as uint8);
+		E_nl();
+	end sub;
+
+	sub E_lxi(reg: RegId, value: int32);
+		E("\tlxi ");
+		E_reg(reg);
+		E_comma();
+		E_u16(value as uint16);
+		E_nl();
+	end sub;
+
+	sub E_lxia(reg: RegId, sym: [Symbol], off: int16)
+		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
+	sub E_lda(sym: [Symbol], off: int16)
+		E("\tlda ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_sta(sym: [Symbol], off: int16)
+		E("\tsta ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_lhld(sym: [Symbol], off: int16)
+		E("\tlhld ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_shld(sym: [Symbol], off: int16)
+		E("\tshld ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
 	sub E_loadm(reg: RegId)
-		EmitString("\tmov ");
+		E("\tmov ");
 		E_reg(reg);
-		EmitString(",m\n");
+		E(",m\n");
+	end sub;
+
+	sub E_loadmlo(reg: RegId)
+		E("\tmov ");
+		E_reglo(reg);
+		E(",m\n");
 	end sub;
 
 	sub E_storem(reg: RegId)
-		EmitString("\tmov m,");
+		E("\tmov m,");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
+	sub E_storemlo(reg: RegId)
+		E("\tmov m,");
+		E_reglo(reg);
+		E_nl();
+	end sub;
+
 	sub E_stax(ptr: RegId)
-		EmitString("\tstax ");
+		E("\tstax ");
 		E_reg(ptr);
 		E_nl();
 	end sub;
 
 	sub E_ldax(ptr: RegId)
-		EmitString("\tldax ");
+		E("\tldax ");
 		E_reg(ptr);
+		E_nl();
+	end sub;
+
+	sub E_stackreg(reg: RegId)
+		if reg == REG_A then
+			E("psw");
+		else
+			E_reg(reg);
+		end if;
+	end sub;
+
+	sub E_inc(reg: RegId)
+		E("\tinc ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_inx(reg: RegId)
+		E("\tinx ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_dcx(reg: RegId)
+		E("\tdcx ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_xchg()
+		E("\txchg\n");
+	end sub;
+
+	sub E_dad(reg: RegId)
+		E("\tdad ");
+		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
-			EmitString("\tpop ");
-			E_reg(dest);
+			E("\tpop ");
+			E_stackreg(dest);
 		elseif dest == 0 then
-			EmitString("\tpush ");
-			E_reg(src);
+			E("\tpush ");
+			E_stackreg(src);
 		else
-			EmitString("\tmove ");
-			E_reg(src);
-			E_comma();
+			sub mov()
+				E("\tmov ");
+			end sub;
+			mov();
 			E_reg(dest);
+			E_comma();
+			E_reg(src);
+
+			if (src & (REG_HL|REG_BC|REG_DE)) != 0 then
+				E_nl();
+				mov();
+				E_reglo(dest);
+				E_comma();
+				E_reglo(src);
+			end if;
 		end if;
 		E_nl();
 	end sub;
@@ -176,6 +291,8 @@ regdata hl uses hl compatible bc|de|hl;
 regdata stk4 stacked;
 regdata param stacked;
 
+// --- Core things ----------------------------------------------------------
+
 gen STARTFILE()
 {
 	print("STARTFILE\n");
@@ -183,54 +300,71 @@ gen STARTFILE()
 
 gen ENDFILE();
 
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jump("jmp", $j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
+
 gen STARTSUB():s
 {
 	EmitterPushChunk();
-	EmitHex16($s.subr.id);
+	E_h16($s.subr.id);
 
-	EmitString("\tcseg\n");
+	E("\tcseg\n");
 	E_subref($s.subr);
-	EmitString(":\n");
+	E(":\n");
 }
 
 gen ENDSUB():s
 {
-	EmitString("end_");
+	E("end_");
 	E_subref($s.subr);
-	EmitString(":\n");
-	EmitString("\tret\n");
-	EmitString("\tdseg\nw");
+	E(":\n");
+	E("\tret\n");
+	E("\tdseg\nw");
 	E_subref($s.subr);
-	EmitString(": ds ");
-	EmitUint16($s.subr.workspace[0]);
-	EmitString("\n");
+	E(": ds ");
+	E_u16($s.subr.workspace[0]);
+	E("\n");
 	EmitterPopChunk('S');
 }
 
 gen RETURN()
 {
-	EmitString("\tjmp end_");
+	E("\tjmp end_");
 	E_subref(current_subr);
-	EmitString("\n");
+	E("\n");
 }
+
+// --- Constants ------------------------------------------------------------
 
 gen a|b|d|h := CONSTANT():rhs
 {
 	E_mvi($$, $rhs.value);
 }
 
-gen bc|de|hl := ADDRESS():a
+gen bc|de|hl := CONSTANT():rhs
 {
-	E_lxi($$, $a.sym, $a.off);
+	E_lxi($$, $rhs.value);
 }
 
-gen STORE1(a, bc|de|hl:ptr)
+gen bc|de|hl := ADDRESS():a
 {
-	if $ptr == REG_HL then
-		E_storem(REG_A);
-	else
-		E_stax($ptr);
-	end if;
+	E_lxia($$, $a.sym, $a.off);
+}
+
+// --- 8-bit loads and stores -----------------------------------------------
+
+gen a := LOAD1(ADDRESS():a)
+{
+	E_lda($a.sym, $a.off);
 }
 
 gen a := LOAD1(bc|de|hl:ptr)
@@ -242,8 +376,156 @@ gen a := LOAD1(bc|de|hl:ptr)
 	end if;
 }
 
+gen STORE1(a, ADDRESS():a)
+{
+	E_sta($a.sym, $a.off);
+}
+
+gen STORE1(a, bc|de|hl:ptr)
+{
+	if $ptr == REG_HL then
+		E_storem(REG_A);
+	else
+		E_stax($ptr);
+	end if;
+}
+
+// --- 16-bit loads and stores ----------------------------------------------
+
+gen hl := LOAD2(ADDRESS():a)
+{
+	E_lhld($a.sym, $a.off);
+}
+
+gen bc|de := LOAD2(hl)
+{
+	E_loadmlo($$);
+	E_inx(REG_HL);
+	E_loadm($$);
+}
+
+gen STORE2(hl, ADDRESS():a)
+{
+	E_shld($a.sym, $a.off);
+}
+
+gen STORE2(bc|de:val, hl) uses a
+{
+	E_storemlo($val);
+	E_inx(REG_HL);
+	E_storem($val);
+}
+
+// --- 8-bit arithmetic -----------------------------------------------------
+
 gen a := ADD1(a, b|d|h:rhs)
 {
 	E_alu("add", $rhs);
+}
+
+gen a := ADD1(a, CONSTANT(value==1))
+{
+	E_inc(REG_A);
+}
+
+gen a := ADD1(a, CONSTANT():c)
+{
+	E_alui("adi", $c.value);
+}
+
+gen a := SUB1(a, b|d|h:rhs)
+{
+	E_alu("sub", $rhs);
+}
+
+gen a := SUB1(a, CONSTANT():c)
+{
+	E_alui("sbi", $c.value);
+}
+
+gen a := MUL1(a, b)
+{
+	E("\t(mul a, b)\n");
+}
+
+// --- 16-bit arithmetic ----------------------------------------------------
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==1))
+{
+	E_inx($$);
+}
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==2))
+{
+	E_inx($$);
+	E_inx($$);
+}
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==-1))
+{
+	E_dcx($$);
+}
+
+gen hl|bc|de := ADD2($$, CONSTANT(value==-2))
+{
+	E_dcx($$);
+	E_dcx($$);
+}
+
+gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
+{
+	if ($lhs != REG_HL) and ($rhs != REG_HL) then
+		if $rhs == REG_DE then
+			E_xchg();
+			$rhs := REG_HL;
+		else
+			if $lhs == REG_DE then
+				E_xchg();
+			else
+				ArchEmitMove($lhs, REG_HL);
+			end if;
+			$lhs := REG_HL;
+		end if;
+	end if;
+
+	if $lhs == REG_HL then
+		E_dad($rhs);
+	else
+		E_dad($lhs);
+	end if;
+}
+
+// --- Conditionals ---------------------------------------------------------
+
+%{
+	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+		if node.beqs0.truelabel != node.beqs0.fallthrough then
+			E_jump(trueinsn, node.beqs0.truelabel);
+		end if;
+		if node.beqs0.falselabel != node.beqs0.fallthrough then
+			E_jump(falseinsn, node.beqs0.falselabel);
+		end if;
+	end sub;
+
+	sub bequ1(node: [Node], nota: RegId)
+		E_alu("cmp", nota);
+		E_jumps_with_fallthrough("jz", "jnz", node);
+	end sub;
+%}
+
+gen BEQU1(b|d|h:nota, a):b
+{
+	bequ1(self.n[0], $nota);
+}
+
+gen BEQS1(b|d|h:nota, a):b
+{
+	bequ1(self.n[0], $nota);
+}
+
+gen BLTU1(b|d|h:nota, a):b
+{
+	E_alu("cmp", $nota);
+	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
 }
 

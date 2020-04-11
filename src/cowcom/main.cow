@@ -18,6 +18,7 @@ include "src/cowcom/lexer.coh";
 include "src/cowcom/emitter.coh";
 include "src/cowcom/codegen.coh";
 include "src/cowcom/symbols.coh";
+include "src/cowcom/ast.coh";
 include "src/cowcom/expressions.coh";
 include ".obj/parser.coh";
 

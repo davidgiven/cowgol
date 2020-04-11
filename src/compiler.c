@@ -183,17 +183,18 @@ struct midnode* expr_shift(struct midnode* lhs, struct midnode* rhs,
 	return r;
 }
 
-void cond_simple(int truelabel, int falselabel, struct midnode* lhs, struct midnode* rhs,
-	struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel),
-	struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel))
+Node* cond_simple(struct midnode* lhs, struct midnode* rhs,
+	struct midnode* (*emitteru)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel, int fallthrough, int negated),
+	struct midnode* (*emitters)(int width, struct midnode* lhs, struct midnode* rhs, int truelabel, int falselabel, int fallthrough, int negated))
 {
 	resolve_untyped_constants_simply(&lhs->type, &rhs->type);
 	if (lhs->type != rhs->type)
 		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
 
-	generate(
-		(is_snum(lhs->type) ? emitters : emitteru)
-			(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs, truelabel, falselabel));
+	int truelabel = current_label++;
+	int falselabel = current_label++;
+	return (is_snum(lhs->type) ? emitters : emitteru)
+			(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs, truelabel, falselabel, 0, 0);
 }
 
 struct symbol* dealias(struct symbol* sym)
@@ -457,6 +458,31 @@ Node* mid_c_not(int width, Node* lhs)
 	return mid_not(width, lhs);
 }
 
+Node* mid_c_or(int width, Node* lhs, Node* rhs)
+{
+	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
+	{
+		lhs->u.constant.value |= rhs->u.constant.value;
+		discard(rhs);
+		return lhs;
+	}
+	if (lhs->op == MIDCODE_CONSTANT)
+	{
+		Node* t = rhs;
+		rhs = lhs;
+		lhs = t;
+	}
+	if (rhs->op == MIDCODE_CONSTANT)
+	{
+		if (rhs->u.constant.value == 0)
+		{
+			discard(rhs);
+			return lhs;
+		}
+	}
+	return mid_or(width, lhs, rhs);
+}
+
 Node* mid_c_add(int width, Node* lhs, Node* rhs)
 {
 	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
@@ -576,31 +602,48 @@ Node* mid_c_rems(int width, Node* lhs, Node* rhs)
 	return mid_rems(width, lhs, rhs);
 }
 
-Node* mid_c_beqs(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
+void rewrite_labels(Node* node, int fromlabel, int tolabel)
 {
-	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
-		return mid_jump(lhs->u.constant.value == rhs->u.constant.value ? truelabel : falselabel);
-	return mid_beqs(width, lhs, rhs, truelabel, falselabel);
-}
+	if (!node)
+		return;
 	
-Node* mid_c_bequ(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
-{
-	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
-		return mid_jump(lhs->u.constant.value == rhs->u.constant.value ? truelabel : falselabel);
-	return mid_bequ(width, lhs, rhs, truelabel, falselabel);
-}
-	
-Node* mid_c_blts(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
-{
-	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
-		return mid_jump(lhs->u.constant.value < rhs->u.constant.value ? truelabel : falselabel);
-	return mid_blts(width, lhs, rhs, truelabel, falselabel);
-}
-	
-Node* mid_c_bltu(int width, Node* lhs, Node* rhs, int truelabel, int falselabel)
-{
-	if ((lhs->op == MIDCODE_CONSTANT) && (rhs->op == MIDCODE_CONSTANT))
-		return mid_jump(lhs->u.constant.value < rhs->u.constant.value ? truelabel : falselabel);
-	return mid_bltu(width, lhs, rhs, truelabel, falselabel);
+	switch (node->op)
+	{
+		case MIDCODE_BEQS0:
+		case MIDCODE_BEQS1:
+		case MIDCODE_BEQS2:
+		case MIDCODE_BEQS4:
+		case MIDCODE_BEQS8:
+		case MIDCODE_BEQU0:
+		case MIDCODE_BEQU1:
+		case MIDCODE_BEQU2:
+		case MIDCODE_BEQU4:
+		case MIDCODE_BEQU8:
+		case MIDCODE_BLTS0:
+		case MIDCODE_BLTS1:
+		case MIDCODE_BLTS2:
+		case MIDCODE_BLTS4:
+		case MIDCODE_BLTS8:
+		case MIDCODE_BLTU0:
+		case MIDCODE_BLTU1:
+		case MIDCODE_BLTU2:
+		case MIDCODE_BLTU4:
+		case MIDCODE_BLTU8:
+			if (node->u.beqs0.truelabel == fromlabel)
+				node->u.beqs0.truelabel = tolabel;
+			if (node->u.beqs0.falselabel == fromlabel)
+				node->u.beqs0.falselabel = tolabel;
+			if (node->u.beqs0.fallthrough == fromlabel)
+				node->u.beqs0.fallthrough = tolabel;
+			break;
+
+		case MIDCODE_JUMP:
+			if (node->u.jump.label == fromlabel)
+				node->u.jump.label = tolabel;
+			break;
+	}
+
+	rewrite_labels(node->left, fromlabel, tolabel);
+	rewrite_labels(node->right, fromlabel, tolabel);
 }
 

@@ -620,7 +620,18 @@ gen reg := RSHIFTS4(reg:lhs, CONSTANT():c)
 		E("\tbeq %s\n", labelref(truelabel));
 		E("\tbne %s\n", labelref(falselabel));
 	}
+
+	static void beqcc(int32_t lhs, int32_t rhs, int truelabel, int falselabel, int fallthrough)
+	{
+		E("\tb %s\n", labelref((lhs == rhs) ? truelabel : falselabel));
+	}
 %}
+
+gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+	{ beqcc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
+
+gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
+	{ beqcc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
 
 gen BEQU1(reg:lhs, reg:rhs):b
 	{ beq($b.truelabel, $b.falselabel, "uxtb", $lhs, $rhs); }

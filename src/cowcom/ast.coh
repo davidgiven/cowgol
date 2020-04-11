@@ -1,0 +1,18 @@
+sub RewriteLabels(root_node: [Node], fromlabel: LabelRef, tolabel: LabelRef)
+	WalkNodes(root_node);
+	loop
+		var node := NextNode();
+		if node == (0 as [Node]) then
+			break;
+		end if;
+
+		if (node.op >= MIDCODE_BEQS0) and (node.op <= MIDCODE_BLTU8) then
+			if node.beqs0.truelabel == fromlabel then node.beqs0.truelabel := tolabel; end if;
+			if node.beqs0.falselabel == fromlabel then node.beqs0.falselabel := tolabel; end if;
+			if node.beqs0.fallthrough == fromlabel then node.beqs0.fallthrough := tolabel; end if;
+		elseif (node.op == MIDCODE_JUMP) then
+			if node.jump.label == fromlabel then node.jump.label := tolabel; end if;
+		end if;
+	end loop;
+end sub;
+

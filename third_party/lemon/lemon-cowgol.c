@@ -4634,16 +4634,6 @@ void ReportTable(
     fprintf(out,"when %d: # ", rp->iRule); lineno++;
     writeRuleText(out, rp);
     fprintf(out, "\n"); lineno++;
-    for(rp2=rp->next; rp2; rp2=rp2->next){
-      if( rp2->code==rp->code && rp2->codePrefix==rp->codePrefix
-             && rp2->codeSuffix==rp->codeSuffix ){
-		assert(false);
-        fprintf(out,"  or (yyruleno == %d) # ", rp2->iRule);
-        writeRuleText(out, rp2);
-        fprintf(out,"\n", rp2->iRule); lineno++;
-        rp2->codeEmitted = 1;
-      }
-    }
     fprintf(out,"  reduce_%d();\n", rp->iRule); lineno++;
     rp->codeEmitted = 1;
   }

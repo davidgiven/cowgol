@@ -548,7 +548,18 @@ gen v8 := RSHIFTS8(v8, v1) { shift(8, "s8", ">>"); }
 		E("\tif ((s%d)v%d %s (s%d)v%d) goto %s; ", width, lhsid, op, width, rhsid, labelref(truelabel));
 		E("else goto %s;\n", labelref(falselabel));
 	}
+
+	static void branch_cc(int32_t lhs, int32_t rhs, int truelabel, int falselabel, int fallthrough)
+	{
+		E("\tgoto %s;\n", labelref((lhs == rhs) ? truelabel : falselabel));
+	}
 %}
+
+gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+	{ branch_cc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
+
+gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
+	{ branch_cc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
 
 gen BEQU1(v1:lhs, v1:rhs):b
 	{ branch_u($b.truelabel, $b.falselabel, "=="); }

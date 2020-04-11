@@ -79,15 +79,190 @@ statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
-#	if (E.type == (0 as [Symbol]))
-#		SimpleError("types cannot be inferred for numeric constants");
-#	if (!is_scalar(E->type))
-#		SimpleError("you can only assign to lvalues");
-#	S.kind := VAR;
-#	init_var(S, E.type);
-#	check_expression_type(&E.type, E.type);
-#
-#	Generate(mid_store(E.type.typesym.width, E, mid_address(S, 0)));
+	var type := E.type;
+	if type == (0 as [Symbol]) then
+		SimpleError("types cannot be inferred for numeric constants");
+	end if;
+	if IsScalar(type) == 0 then
+		SimpleError("you can only assign to lvalues");
+	end if;
+
+	S.kind := VAR;
+	InitVariable(S, type);
+	CheckExpressionType(E, S.vardata.type);
+
+	Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
+}
+
+/* --- Assignments ------------------------------------------------------- */
+
+statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
+{
+	if IsPtr(E1.type) == 0 then
+		SimpleError("you can only assign to lvalues");
+	end if;
+
+	var e := E1.type.typedata.member.element;
+	CheckExpressionType(E2, e);
+	Generate(MidStore(e.typedata.width as uint8, E2, E1));
+}
+
+/* --- Simple loops ------------------------------------------------------ */
+
+%include
+{
+	sub BeginNormalLoop(): (ll: [LoopLabels])
+		ll := Alloc(@bytesof LoopLabels) as [LoopLabels];
+		ll.loop_label := AllocLabel();
+		ll.exit_label := AllocLabel();
+		ll.old_break_label := break_label;
+		ll.old_continue_label := continue_label;
+		break_label := ll.exit_label;
+		continue_label := ll.loop_label;
+	end sub;
+
+	sub TerminateNormalLoop(ll: [LoopLabels])
+		Generate(MidJump(continue_label));
+		Generate(MidLabel(break_label));
+		break_label := ll.old_break_label;
+		continue_label := ll.old_continue_label;
+		Free(ll as [uint8]);
+	end sub;
+}
+
+statement ::= startloopstatement(LL) statements END LOOP.
+{
+	TerminateNormalLoop(LL);
+}
+
+%type startloopstatement {[LoopLabels]}
+startloopstatement(LL) ::= LOOP.
+{
+	LL := BeginNormalLoop();
+	Generate(MidLabel(continue_label));
+}
+
+/* --- While loops ------------------------------------------------------- */
+
+statement ::= startwhilestatement(LL) statements END LOOP.
+{
+	TerminateNormalLoop(LL);
+}
+
+%type startwhilestatement {[LoopLabels]}
+startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
+{
+	LL := BeginNormalLoop();
+	Generate(MidLabel(continue_label));
+	var t := C.beqs0.truelabel;
+	var f := C.beqs0.falselabel;
+	C.beqs0.fallthrough := t;
+	Generate(C);
+	Generate(MidLabel(t));
+	LL.exit_label := f;
+	break_label := f;
+}
+
+/* --- Conditional expressions ------------------------------------------- */
+
+%type conditional {[Node]}
+conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
+{
+	R := C;
+}
+
+%include
+{
+	sub Negate(node: [Node])
+		node.beqs0.negated := node.beqs0.negated ^ 1;
+	end sub;
+}
+
+conditional(R) ::= NOT conditional(C).
+{
+	R := C;
+	Negate(C);
+}
+
+conditional(R) ::= conditional(C1) AND conditional(C2).
+{
+	var t := C1.beqs0.truelabel;
+	var f := C1.beqs0.falselabel;
+	RewriteLabels(C2, C2.beqs0.falselabel, f);
+	C1.beqs0.fallthrough := t;
+	Generate(C1);
+	Generate(MidLabel(t));
+	R := C2;
+}
+
+conditional(R) ::= conditional(C1) OR conditional(C2).
+{
+	var t := C1.beqs0.truelabel;
+	var f := C1.beqs0.falselabel;
+	RewriteLabels(C2, C2.beqs0.truelabel, t);
+	C1.beqs0.fallthrough := f;
+	Generate(C1);
+	Generate(MidLabel(f));
+	R := C2;
+}
+
+%include
+{
+	sub ConditionalEq(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+		CondSimple(lhs, rhs);
+		var truelabel := AllocLabel();
+		var falselabel := AllocLabel();
+		var w := NodeWidth(lhs);
+
+		if IsSNum(lhs.type) != 0 then
+			result := MidBeqs(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		else
+			result := MidBequ(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		end if;
+	end sub;
+
+	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+		CondSimple(lhs, rhs);
+		var truelabel := AllocLabel();
+		var falselabel := AllocLabel();
+		var w := NodeWidth(lhs);
+
+		if IsSNum(lhs.type) != 0 then
+			result := MidBlts(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		else
+			result := MidBltu(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		end if;
+	end sub;
+}
+
+conditional(R) ::= expression(T1) EQOP expression(T2).
+{
+	R := ConditionalEq(T1, T2, 0);
+}
+
+conditional(R) ::= expression(T1) NEOP expression(T2).
+{
+	R := ConditionalEq(T1, T2, 1);
+}
+
+conditional(R) ::= expression(T1) LTOP expression(T2).
+{
+	R := ConditionalLt(T1, T2, 0);
+}
+
+conditional(R) ::= expression(T1) GEOP expression(T2).
+{
+	R := ConditionalLt(T1, T2, 1);
+}
+
+conditional(R) ::= expression(T1) GTOP expression(T2).
+{
+	R := ConditionalLt(T2, T1, 0);
+}
+
+conditional(R) ::= expression(T1) LEOP expression(T2).
+{
+	R := ConditionalLt(T2, T1, 1);
 }
 
 /* --- Expressions ------------------------------------------------------- */

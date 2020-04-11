@@ -753,7 +753,18 @@ gen r32 := RSHIFTS4($$:lhs, cl:rhs)
 		E("\t%s %s\n", trueop, labelref(truelabel));
 		E("\tjmp %s\n", labelref(falselabel));
 	}
+
+	static void cmpc(int32_t lhs, int32_t rhs, int truelabel, int falselabel, int fallthrough)
+	{
+		E("\tjmp %s\n", labelref((lhs == rhs) ? truelabel : falselabel));
+	}
 %}
+
+gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+	{ cmpc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
+
+gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
+	{ cmpc($c1.value, $c2.value, $b.truelabel, $b.falselabel, $b.fallthrough); }
 
 gen BEQU1(r8:lhs, r8:rhs):b
 	{ cmp("cmpb", "je", $b.truelabel, $b.falselabel, $lhs, $rhs); }

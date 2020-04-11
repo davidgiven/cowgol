@@ -13,6 +13,14 @@ sub IsNum(type: [Symbol]): (result: uint8)
 	result := IsTypeOfKind(type, TYPE_NUMBER);
 end sub;
 
+sub IsSNum(type: [Symbol]): (result: uint8)
+	if (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.number.is_signed != 0) then
+		result := 1;
+	else
+		result := 0;
+	end if;
+end sub;
+
 sub IsScalar(type: [Symbol]): (result: uint8)
 	if (IsPtr(type) != 0) or (IsNum(type) != 0) then
 		result := 1;
@@ -44,16 +52,6 @@ sub CheckExpressionType(node: [Node], type: [Symbol])
 	end if;
 end sub;
 
-sub ExprNeg(lhs: [Node]): (result: [Node])
-	if lhs.type == (0 as [Symbol]) then
-		result := lhs;
-		result.constant.value := -result.constant.value;
-	else
-		result := MidNeg(lhs.type.typedata.width as uint8, lhs);
-		result.type := lhs.type;
-	end if;
-end sub;
-
 sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node])
 	if (lhs.type != (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
 		if IsNum(lhs.type) != 0 then
@@ -71,6 +69,56 @@ sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node])
 			SimpleError("pointers may only appear on the LHS of an addition or subtraction");
 		end if;
 	end if;
+end sub;
+
+sub ResolveUntypedConstantsSimply(lhs: [Node], rhs: [Node])
+	if (lhs.type != (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+		rhs.type := lhs.type;
+	elseif (lhs.type == (0 as [Symbol])) and (rhs.type != (0 as [Symbol])) then
+		rhs.type := lhs.type;
+	elseif lhs.type != rhs.type then
+		StartError();
+		print("type mismatch between ");
+		print(lhs.type.name);
+		print(" and ");
+		print(rhs.type.name);
+		EndError();
+	end if;
+end sub;
+
+sub CheckNumber(node: [Node])
+	if IsNum(node.type) == 0 then
+		SimpleError("number required");
+	end if;
+end sub;
+
+sub ResolveUntypedConstantsNeedingNumbers(lhs: [Node], rhs: [Node])
+	ResolveUntypedConstantsSimply(lhs, rhs);
+	CheckNumber(lhs);
+	CheckNumber(rhs);
+end sub;
+
+sub CondSimple(lhs: [Node], rhs: [Node])
+	ResolveUntypedConstantsSimply(lhs, rhs);
+	if lhs.type != rhs.type then
+		StartError();
+		print("you tried to compare a ");
+		print(lhs.type.name);
+		print(" and a ");
+		print(rhs.type.name);
+		EndError();
+	end if;
+end sub;
+
+
+sub ExprNeg(lhs: [Node]): (result: [Node])
+	result := MidCNeg(NodeWidth(lhs), lhs);
+	result.type := lhs.type;
+end sub;
+
+sub ExprNot(lhs: [Node]): (result: [Node])
+	result := MidCNot(NodeWidth(lhs), lhs);
+	result.type := lhs.type;
 end sub;
 
 sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
@@ -96,34 +144,79 @@ sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 	end if;
 	
 	result := MidCAdd(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
 end sub;
 
 sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprSub not supported");
+	ResolveUntypedConstantsForAddOrSub(lhs, rhs);
+
+	sub cant_sub_that()
+		StartError();
+		print("you can't subtract a ");
+		print(lhs.type.name);
+		print(" from a ");
+		print(rhs.type.name);
+		EndError();
+	end sub;
+
+	if (IsPtr(lhs.type) != 0) and (IsPtr(rhs.type) == 0) and (rhs.type != intptr_type) then
+		cant_sub_that();
+	elseif (IsNum(lhs.type) != 0) and (IsPtr(rhs.type) != 0) then
+		cant_sub_that();
+	elseif (IsNum(lhs.type) != 0) and (IsNum(rhs.type) != 0) and (lhs.type != rhs.type) then
+		cant_sub_that();
+	end if;
+
+	result := MidCSub(NodeWidth(lhs), lhs, rhs);
+	if (IsPtr(lhs.type) != 0) and (lhs.type == rhs.type) then
+		result.type := intptr_type;
+	else
+		result.type := lhs.type;
+	end if;
 end sub;
 
 sub ExprMul(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprMul not supported");
+	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	result := MidCMul(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
 end sub;
 
 sub ExprDiv(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprDiv not supported");
+	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	if lhs.type.typedata.number.is_signed != 0 then
+		result := MidCDivs(NodeWidth(lhs), lhs, rhs);
+	else
+		result := MidCDivu(NodeWidth(lhs), lhs, rhs);
+	end if;
+	result.type := lhs.type;
 end sub;
 
 sub ExprRem(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprRem not supported");
+	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	if lhs.type.typedata.number.is_signed != 0 then
+		result := MidCRems(NodeWidth(lhs), lhs, rhs);
+	else
+		result := MidCRemu(NodeWidth(lhs), lhs, rhs);
+	end if;
+	result.type := lhs.type;
 end sub;
 
 sub ExprAnd(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprAnd not supported");
+	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	result := MidCAnd(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
 end sub;
 
 sub ExprOr(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprOr not supported");
+	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	result := MidCOr(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
 end sub;
 
 sub ExprEor(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprEor not supported");
+	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	result := MidCEor(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
 end sub;
 
 sub ExprLShift(lhs: [Node], rhs: [Node]): (result: [Node])
