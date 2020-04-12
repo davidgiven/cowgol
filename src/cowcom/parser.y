@@ -163,6 +163,43 @@ startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
 	break_label := f;
 }
 
+/* --- If...Then...Else...End if ----------------------------------------- */
+
+statement ::= IF if_begin if_conditional THEN if_statements if_optional_else END IF.
+{
+	Generate(MidLabel(current_if.exit_label));
+	var oldif := current_if;
+	current_if := current_if.next;
+	Free(oldif as [uint8]);
+}
+
+if_begin ::= .
+{
+	var newif := Alloc(@bytesof IfLabels) as [IfLabels];
+	newif.next := current_if;
+	current_if := newif;
+	current_if.exit_label := AllocLabel();
+}
+
+if_conditional ::= conditional(C).
+{
+	current_if.true_label := C.beqs0.truelabel;
+	current_if.false_label := C.beqs0.falselabel;
+	C.beqs0.fallthrough := current_if.true_label;
+	Generate(C);
+	Generate(MidLabel(current_if.true_label));
+}
+
+if_statements ::= statements.
+{
+	Generate(MidJump(current_if.exit_label));
+	Generate(MidLabel(current_if.false_label));
+}
+
+if_optional_else ::= .
+if_optional_else ::= ELSE statements.
+if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
+
 /* --- Conditional expressions ------------------------------------------- */
 
 %type conditional {[Node]}

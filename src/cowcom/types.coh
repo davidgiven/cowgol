@@ -85,8 +85,15 @@ record LoopLabels
 	old_continue_label: LabelRef;
 end record;
 	
+record IfLabels
+	exit_label: LabelRef;
+	true_label: LabelRef;
+	false_label: LabelRef;
+	next: [IfLabels];
+end record;
+
 var current_subr: [Subroutine];
 var next_label_id: LabelRef := 1;
 var break_label: LabelRef;
 var continue_label: LabelRef;
-
+var current_if: [IfLabels];
