@@ -163,6 +163,24 @@ startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
 	break_label := f;
 }
 
+/* --- Simple jumps ------------------------------------------------------ */
+
+statement ::= BREAK SEMICOLON.
+{
+	if break_label == 0 then
+		SimpleError("nothing to break to");
+	end if;
+	Generate(MidJump(break_label));
+}
+
+statement ::= CONTINUE SEMICOLON.
+{
+	if break_label == 0 then
+		SimpleError("nothing to continue to");
+	end if;
+	Generate(MidJump(continue_label));
+}
+
 /* --- If...Then...Else...End if ----------------------------------------- */
 
 statement ::= IF if_begin if_conditional THEN if_statements if_optional_else END IF.
