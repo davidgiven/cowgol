@@ -64,9 +64,9 @@ var yyRuleInfoLhs: YYCODETYPE[] := {
 %%
 };
 
-# For rule J, yyRuleInfoNRhs[J] contains the negative of the number
-# of symbols on the right-hand side of that rule.
-var yyRuleInfoNRhs: int8[] := {
+# For rule J, yyRuleInfoNRhs[J] contains the number of symbols on the
+# right-hand side of that rule.
+var yyRuleInfoNRhs: uint8[] := {
 %%
 };
 
@@ -99,16 +99,28 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken:
 	print(yyRuleName[yyruleno]);
 	if yysize != 0 then
 		print(", go to state ");
-		print_i8([yytos + (yysize as intptr)*@bytesof yyStackEntry].stateno);
+		print_i8([yytos - (yysize as intptr)*@bytesof yyStackEntry].stateno);
 	end if;
 	print_nl();
 
 	if yytos == yystackend then
 		yy_stack_overflow();
 	end if;
+
+	var yylhs: YYMINORTYPE;
+	var yyrhs: YYMINORTYPE[YY_MAX_RHS_SYMBOLS];
+	var pout := &yyrhs[0];
+	var c := yysize;
+	while c != 0 loop
+		pout.yyall := yytos.minor.yyall;
+		yytos := @prev yytos;
+		pout := @next pout;
+		c := c - 1;
+	end loop;
 %%
+	[@next yytos].minor.yyall := yylhs.yyall;
+
 	var yygoto := yyRuleInfoLhs[yyruleno];
-	yytos := yytos + (yysize as intptr)*@bytesof yyStackEntry;
 	yyact := yy_find_reduce_action(yytos.stateno, yygoto);
 	yytos := @next yytos;
 	yytos.stateno := yyact;

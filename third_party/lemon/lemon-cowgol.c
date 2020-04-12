@@ -3694,18 +3694,13 @@ PRIVATE char *append_str(const char *zText, int n, int p1, int p2){
 /*
 ** Write and transform the rp->code string so that symbols are expanded.
 ** Populate the rp->codePrefix and rp->codeSuffix strings, as appropriate.
-**
-** Return 1 if the expanded code requires that "yylhsminor" local variable
-** to be defined.
 */
-PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
+PRIVATE void translate_code(struct lemon *lemp, struct rule *rp){
   char *cp, *xp;
   int i;
-  int rc = 0;            /* True if yylhsminor is used */
   int dontUseRhs0 = 0;   /* If true, use of left-most RHS label is illegal */
   const char *zSkip = 0; /* The zOvwrt comment within rp->code, or NULL */
   char lhsused = 0;      /* True if the LHS element has been used */
-  char lhsdirect;        /* True if LHS writes directly into stack */
   char used[MAXRHS];     /* True for each RHS element which is used */
   char zLhs[50];         /* Convert the LHS symbol into this string */
   char zOvwrt[900];      /* Comment that to allow LHS to overwrite RHS */
@@ -3722,55 +3717,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
     rp->noCode = 0;
   }
 
-
-  if( rp->nrhs==0 ){
-    /* If there are no RHS symbols, then writing directly to the LHS is ok */
-    lhsdirect = 1;
-  }else if( rp->rhsalias[0]==0 ){
-    /* The left-most RHS symbol has no value.  LHS direct is ok.  But
-    ** we have to call the distructor on the RHS symbol first. */
-    lhsdirect = 1;
-    if( has_destructor(rp->rhs[0],lemp) ){
-      append_str(0,0,0,0);
-      append_str("  yy_destructor(%d,&[yytos + (%d * @bytesof yyStackEntry)].minor);\n", 0,
-                 rp->rhs[0]->index,1-rp->nrhs);
-      rp->codePrefix = Strsafe(append_str(0,0,0,0));
-      rp->noCode = 0;
-    }
-  }else if( rp->lhsalias==0 ){
-    /* There is no LHS value symbol. */
-    lhsdirect = 1;
-  }else if( strcmp(rp->lhsalias,rp->rhsalias[0])==0 ){
-    /* The LHS symbol and the left-most RHS symbol are the same, so
-    ** direct writing is allowed */
-    lhsdirect = 1;
-    lhsused = 1;
-    used[0] = 1;
-    if( rp->lhs->dtnum!=rp->rhs[0]->dtnum ){
-      ErrorMsg(lemp->filename,rp->ruleline,
-        "%s(%s) and %s(%s) share the same label but have "
-        "different datatypes.",
-        rp->lhs->name, rp->lhsalias, rp->rhs[0]->name, rp->rhsalias[0]);
-      lemp->errorcnt++;
-    }
-  }else{
-    lemon_sprintf(zOvwrt, "/*%s-overwrites-%s*/",
-                  rp->lhsalias, rp->rhsalias[0]);
-    zSkip = strstr(rp->code, zOvwrt);
-    if( zSkip!=0 ){
-      /* The code contains a special comment that indicates that it is safe
-      ** for the LHS label to overwrite left-most RHS label. */
-      lhsdirect = 1;
-    }else{
-      lhsdirect = 0;
-    }
-  }
-  if( lhsdirect ){
-    sprintf(zLhs, "[yytos + (%d*@bytesof yyStackEntry)].minor.yy%d",1-rp->nrhs,rp->lhs->dtnum);
-  }else{
-    rc = 1;
-    sprintf(zLhs, "yylhsminor.yy%d",rp->lhs->dtnum);
-  }
+  sprintf(zLhs, "yylhs.yy%d",rp->lhs->dtnum);
 
   append_str(0,0,0,0);
 
@@ -3802,7 +3749,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
             }else if( cp!=rp->code && cp[-1]=='@' ){
               /* If the argument is of the form @X then substituted
               ** the token number of X, not the value of X */
-              append_str("[yytos + (%d*@bytesof yyStackEntry)].major",-1,i-rp->nrhs+1,0);
+              append_str("yyrhs[%d]",-1,-(i-rp->nrhs+1),0);
             }else{
               struct symbol *sp = rp->rhs[i];
               int dtnum;
@@ -3811,7 +3758,7 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
               }else{
                 dtnum = sp->dtnum;
               }
-              append_str("[yytos + (%d*@bytesof yyStackEntry)].minor.yy%d",0,i-rp->nrhs+1, dtnum);
+              append_str("yyrhs[%d].yy%d",0,-(i-rp->nrhs+1), dtnum);
             }
             cp = xp;
             used[i] = 1;
@@ -3868,17 +3815,8 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
         lemp->errorcnt++;
       }
     }else if( i>0 && has_destructor(rp->rhs[i],lemp) ){
-      append_str("  yy_destructor(%d,&[yytos + (%d * @bytesof yyStackEntry)].minor);\n", 0,
-         rp->rhs[i]->index,i-rp->nrhs+1);
+      append_str("  yy_destructor(%d,&yyrhs[%d]);\n", 0, rp->rhs[i]->index,-(i-rp->nrhs+1));
     }
-  }
-
-  /* If unable to write LHS values directly into the stack, write the
-  ** saved LHS value now. */
-  if( lhsdirect==0 ){
-    append_str("  [yytos + (%d * @bytesof yyStackEntry)].minor.yy%d := ", 0, 1-rp->nrhs, rp->lhs->dtnum);
-    append_str(zLhs, 0, 0, 0);
-    append_str(";\n", 0, 0, 0);
   }
 
   /* Suffix code generation complete */
@@ -3887,8 +3825,6 @@ PRIVATE int translate_code(struct lemon *lemp, struct rule *rp){
     rp->codeSuffix = Strsafe(cp);
     rp->noCode = 0;
   }
-
-  return rc;
 }
 
 /*
@@ -4044,7 +3980,7 @@ void print_stack_union(
     lemp->tokentype?lemp->tokentype:"void*");  lineno++;
   if( mhflag ){ fprintf(out,"#endif\n"); lineno++; }
   fprintf(out,"record YYMINORTYPE\n"); lineno++;
-  fprintf(out,"  yyinit @at(0): int32;\n"); lineno++;
+  fprintf(out,"  yyall @at(0): intptr;\n"); lineno++;
   fprintf(out,"  yy0 @at(0): %sTOKENTYPE;\n",name); lineno++;
   for(i=0; i<arraysize; i++){
     if( types[i]==0 ) continue;
@@ -4306,6 +4242,13 @@ void ReportTable(
     }
   }
 
+  /* Calculate the maximum RHS symbol count. */
+  int maxrhssymbols = 0;
+  for(i=0, rp=lemp->rule; rp; rp=rp->next, i++){
+  	if (rp->nrhs > maxrhssymbols)
+		maxrhssymbols = rp->nrhs;
+  }
+
   /* Finish rendering the constants now that the action table has
   ** been computed */
   fprintf(out,"const YYNSTATE             := %d;\n",lemp->nxstate);  lineno++;
@@ -4322,6 +4265,7 @@ void ReportTable(
   fprintf(out,"const YY_MIN_REDUCE        := %d;\n", lemp->minReduce); lineno++;
   i = lemp->minReduce + lemp->nrule;
   fprintf(out,"const YY_MAX_REDUCE        := %d;\n", i-1); lineno++;
+  fprintf(out,"const YY_MAX_RHS_SYMBOLS   := %d;\n", maxrhssymbols); lineno++;
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Now output the action table and its associates:
@@ -4595,19 +4539,15 @@ void ReportTable(
   }
   tplt_xfer(lemp->name,in,out,&lineno);
   for(i=0, rp=lemp->rule; rp; rp=rp->next, i++){
-    fprintf(out,"  %3d,  # (%d) ", -rp->nrhs, i);
+    fprintf(out,"  %3d,  # (%d) ", rp->nrhs, i);
     rule_print(out, rp);
     fprintf(out,"\n"); lineno++;
   }
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Generate code which execution during each REDUCE action */
-  i = 0;
   for(rp=lemp->rule; rp; rp=rp->next){
-    i += translate_code(lemp, rp);
-  }
-  if( i ){
-    fprintf(out,"var yylhsminor: YYMINORTYPE;\n"); lineno++;
+    translate_code(lemp, rp);
   }
 
   /* First output rules other than the default: rule */
@@ -4617,7 +4557,7 @@ void ReportTable(
       /* No C code actions, so this will be part of the "default:" rule */
       continue;
     }
-	fprintf(out, "sub reduce_%d()\n", rp->iRule); lineno++;
+	fprintf(out, "sub reduce_%d() # %d symbols on RHS\n", rp->iRule, rp->nrhs - 1); lineno++;
     emit_code(out,rp,lemp,&lineno);
 	fprintf(out, "end sub;\n"); lineno++;
   }
