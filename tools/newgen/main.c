@@ -536,7 +536,13 @@ static void print_complex_action(Rule* r, Element* e)
 	if (e->islabel)
 	{
 		if (e->text[0] == '$')
-			fprintf(outfp, "self" DEREF "produced_reg");
+		{
+			#if defined COWGOL
+				fprintf(outfp, "selfreg");
+			#else
+				fprintf(outfp, "self" DEREF "produced_reg");
+			#endif
+		}
 		else
 		{
 			Node* node = lookup_label(r->pattern, e->text);
@@ -544,11 +550,17 @@ static void print_complex_action(Rule* r, Element* e)
 				fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
 
 			if (node->isregister)
-				fprintf(outfp, "self" DEREF "n[%d]" DEREF "produced_reg", node->index);
+			{
+				#if defined COWGOL
+					fprintf(outfp, "slots[%d].reg", node->index);
+				#else
+					fprintf(outfp, "self" DEREF "n[%d]" DEREF "produced_reg", node->index);
+				#endif
+			}
 			else
 			{
 				#if defined COWGOL
-					fprintf(outfp, "self" DEREF "n[%d]" DEREF, node->index);
+					fprintf(outfp, "slots[%d].node" DEREF, node->index);
 				#else
 					fprintf(outfp, "self" DEREF "n[%d]" DEREF "u.", node->index);
 				#endif
@@ -560,11 +572,6 @@ static void print_complex_action(Rule* r, Element* e)
 		fprintf(outfp, "%s", e->text);
 }
 
-static void print_simple_action(Rule* r, Element* e)
-{
-	fatal("simple actions not supported yet");
-}
-
 static void print_line(int lineno)
 {
 	fprintf(outfp, "#line %d \"%s\"\n", lineno+1, infilename);
@@ -574,6 +581,24 @@ static void create_emitters(void)
 {
 	#if defined COWGOL
 		fprintf(outfp, "sub EmitOneInstruction(rule: uint8, self: [Instruction])\n");
+		fprintf(outfp, "record NodeSlot\n");
+		fprintf(outfp, "\tnode: [Node];\n");
+		fprintf(outfp, "\treg: RegId;\n");
+		fprintf(outfp, "end record;\n");
+		fprintf(outfp, "var slots: NodeSlot[%d];\n", maxdepth);
+		fprintf(outfp, "var psrc := &self.n[0];\n");
+		fprintf(outfp, "var pdest := &slots[0];\n");
+		fprintf(outfp, "var i: uint8 := %d;\n", maxdepth);
+		fprintf(outfp, "while i != 0 loop\n");
+		fprintf(outfp, "\tpdest.node := [psrc];\n");
+		fprintf(outfp, "\tif pdest.node != (0 as [Node]) then\n");
+		fprintf(outfp, "\t\tpdest.reg := pdest.node.produced_reg;\n");
+		fprintf(outfp, "\tend if;\n");
+		fprintf(outfp, "\tpsrc := @next psrc;\n");
+		fprintf(outfp, "\tpdest := @next pdest;\n");
+		fprintf(outfp, "\ti := i - 1;\n");
+		fprintf(outfp, "end loop;\n");
+		fprintf(outfp, "var selfreg := self.produced_reg;\n");
 		fprintf(outfp, "case rule is\n");
 	#else
 		fprintf(outfp, "void emit_one_instruction(uint8_t rule, Instruction* self) {\n");
@@ -601,7 +626,7 @@ static void create_emitters(void)
 				if (a->iscomplex)
 					print_complex_action(r, a->first_element);
 				else
-					print_simple_action(r, a->first_element);
+					fatal("simple actions not supported yet");
 			}
 
 			#if defined COWGOL
