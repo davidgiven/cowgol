@@ -1073,6 +1073,19 @@ cmps2_u:
     sbb h
     ret
     
+    ; Equality comparison of HL and DE.
+    ; Returns z if a == b.
+    ; Uses A.
+    public cmpeq2
+    cseg
+cmpeq2:
+    ld a, e
+    cmp l
+    ret nz
+    ld a, d
+    cmp h
+    ret
+
     ; Compares a literal value from the four-byte value on the
     ; stack and returns Z or NZ.
     public cmpl4
