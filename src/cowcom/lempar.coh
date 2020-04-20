@@ -86,7 +86,7 @@ sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
 	print(" '");
 	print(yyTokenName[yytos.major]);
 	print("', go to state ");
-	print_i8(stateno);
+	print_i16(stateno);
 	print_nl();
 end sub;
 
@@ -94,12 +94,12 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken:
 		(yyact: YYACTIONTYPE)
 	var yysize := yyRuleInfoNRhs[yyruleno];
 	print("Reduce ");
-	print_i8(yyruleno);
+	print_i16(yyruleno);
 	print(" ");
 	print(yyRuleName[yyruleno]);
 	if yysize != 0 then
 		print(", go to state ");
-		print_i8([yytos - (yysize as intptr)*@bytesof yyStackEntry].stateno);
+		print_i16([yytos - (yysize as intptr)*@bytesof yyStackEntry].stateno);
 	end if;
 	print_nl();
 
@@ -206,10 +206,10 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	print(yyTokenName[yymajor]);
 	if yyact < YY_MIN_REDUCE then
 		print("' in state ");
-		print_i8(yyact);
+		print_i16(yyact);
 	else
 		print("' with pending reduce ");
-		print_i8(yyact - YY_MIN_REDUCE);
+		print_i16(yyact - YY_MIN_REDUCE);
 	end if;
 	print_nl();
 

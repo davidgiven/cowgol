@@ -448,3 +448,42 @@ eitherid(S) ::= ID(T).
 	S := sym;
 }
 
+/* --- Inline assembly --------------------------------------------------- */
+
+statement ::= asmstart asms SEMICOLON.
+{
+	Generate(MidAsmend());
+}
+
+asmstart ::= ASM.
+{
+	Generate(MidAsmstart());
+}
+
+asms ::= asm.
+asms ::= asm COMMA asms.
+
+asm ::= STRING(T).
+{
+	Generate(MidAsmtext(T.string));
+	Free(T.string);
+	T.string := 0 as string;
+}
+
+asm ::= NUMBER(T).
+{
+	Generate(MidAsmvalue(T.number));
+}
+
+asm ::= oldid(S).
+{
+	var k := S.kind;
+	if (k == VAR) or (k == SUB) then
+		Generate(MidAsmsymbol(S));
+	elseif k == CONST then
+		Generate(MidAsmvalue(S.constant));
+	else
+		SimpleError("you can only emit references to variables, subroutines, or constants");
+	end if;
+}
+
