@@ -6756,7 +6756,7 @@ void error(char *as)
 		fprintf(fout, "%s\n", linebuf);
 		fflush(fout);
 	}
-	fprintf(stderr, "%s\n", as) ;
+	fprintf(stderr, "%s(%d) : %s", src_name[now_in], linein[now_in], as);
 	clean_outf();
 	exit(1);
 }
