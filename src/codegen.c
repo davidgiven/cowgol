@@ -269,6 +269,7 @@ static void simplify(Node* node)
 
 void generate(Node* node)
 {
+	#if 0
 	arch_emit_comment("");
 
 	char* buffer = NULL;
@@ -278,6 +279,7 @@ void generate(Node* node)
 	fflush(fp);
 	arch_emit_comment("%s", buffer);
 	fclose(fp);
+	#endif
 
 	memset(instructions, 0, sizeof(instructions));
 	memset(nodes, 0, sizeof(nodes));
