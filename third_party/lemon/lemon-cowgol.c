@@ -4417,12 +4417,14 @@ void ReportTable(
   ** rule in the rule set of the grammar.  This information is used
   ** when tracing REDUCE actions.
   */
+  #if 0
   for(i=0, rp=lemp->rule; rp; rp=rp->next, i++){
     assert( rp->iRule==i );
 	fprintf(out, "\t\"");
     writeRuleText(out, rp);
     fprintf(out,"\", # %d\n", i); lineno++;
   }
+  #endif
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Generate code which executes every time a symbol is popped from

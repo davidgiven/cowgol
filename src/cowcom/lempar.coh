@@ -31,9 +31,9 @@ var yyTokenName: [uint8][] := {
 };
 
 # rule names
-var yyRuleName: [uint8][YYNRULE] := {
+#var yyRuleName: [uint8][YYNRULE] := {
 %%
-};
+#};
 
 # destructors
 sub yy_destructor(yymajor: YYCODETYPE, yypminor: [YYMINORTYPE])
@@ -81,27 +81,27 @@ sub yy_find_reduce_action(stateno: YYACTIONTYPE, lookahead: YYCODETYPE): (action
 	end if;
 end sub;
 
-sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
-	print(msg);
-	print(" '");
-	print(yyTokenName[yytos.major]);
-	print("', go to state ");
-	print_i16(stateno);
-	print_nl();
-end sub;
+#sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
+	#print(msg);
+	#print(" '");
+	#print(yyTokenName[yytos.major]);
+	#print("', go to state ");
+	#print_i16(stateno);
+	#print_nl();
+#end sub;
 
 sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken: ParseTOKENTYPE):
 		(yyact: YYACTIONTYPE)
 	var yysize := yyRuleInfoNRhs[yyruleno];
-	print("Reduce ");
-	print_i16(yyruleno);
-	print(" ");
-	print(yyRuleName[yyruleno]);
-	if yysize != 0 then
-		print(", go to state ");
-		print_i16([yytos - (yysize as intptr)*@bytesof yyStackEntry].stateno);
-	end if;
-	print_nl();
+	#print("Reduce ");
+	#print_i16(yyruleno);
+	#print(" ");
+	#print(yyRuleName[yyruleno]);
+	#if yysize != 0 then
+	#	print(", go to state ");
+	#	print_i16([yytos - (yysize as intptr)*@bytesof yyStackEntry].stateno);
+	#end if;
+	#print_nl();
 
 	if yytos == yystackend then
 		yy_stack_overflow();
@@ -126,7 +126,7 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken:
 	yytos.stateno := yyact;
 	yytos.major := yygoto;
 
-	yy_trace_shift(yyact, "...then shift");
+	#yy_trace_shift(yyact, "...then shift");
 end sub;
 
 # parse failure code
@@ -196,22 +196,22 @@ sub yy_shift(newstateno: YYACTIONTYPE, yymajor: YYCODETYPE, yyminor: ParseTOKENT
 	yytos.stateno := newstateno;
 	yytos.major := yymajor;
 	yytos.minor.yy0 := yyminor;
-	yy_trace_shift(newstateno, "Shift");
+	#yy_trace_shift(newstateno, "Shift");
 end sub;
 
 sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	var yyact := yytos.stateno;
 
-	print("Input '")
-	print(yyTokenName[yymajor]);
-	if yyact < YY_MIN_REDUCE then
-		print("' in state ");
-		print_i16(yyact);
-	else
-		print("' with pending reduce ");
-		print_i16(yyact - YY_MIN_REDUCE);
-	end if;
-	print_nl();
+	#print("Input '")
+	#print(yyTokenName[yymajor]);
+	#if yyact < YY_MIN_REDUCE then
+	#	print("' in state ");
+	#	print_i16(yyact);
+	#else
+	#	print("' with pending reduce ");
+	#	print_i16(yyact - YY_MIN_REDUCE);
+	#end if;
+	#print_nl();
 
 	loop
 		yyact := yy_find_shift_action(yymajor, yyact);
@@ -229,7 +229,6 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 			yy_accept();
 			break;
 		else
-			print("error!\n");
 			var yyminorunion: YYMINORTYPE;
 			yyminorunion.yy0 := yyminor;
 			if yyerrcnt <= 0 then
@@ -249,13 +248,13 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 		end if;
 	end loop;
 
-	print("Return. stack=[");
-	var i := &yystack[0];
-	while i != yytos loop
-		print(" ");
-		print(yyTokenName[i.major]);
-		i := @next i;
-	end loop;
-	print("]\n");
+	#print("Return. stack=[");
+	#var i := &yystack[0];
+	#while i != yytos loop
+	#	print(" ");
+	#	print(yyTokenName[i.major]);
+	#	i := @next i;
+	#end loop;
+	#print("]\n");
 end sub;
 
