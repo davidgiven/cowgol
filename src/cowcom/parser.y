@@ -340,7 +340,7 @@ expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1,
 expression(E) ::= lvalue(E1).
 {
 	if E1.type != (0 as [Symbol]) then
-		var dereftype := E1.type.typedata.element;
+		var dereftype := E1.type.typedata.member.element;
 		if IsScalar(dereftype) == 0 then
 			SimpleError("non-scalars cannot be used in this context");
 		end if;

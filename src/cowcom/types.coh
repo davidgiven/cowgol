@@ -33,7 +33,7 @@ const TYPE_POINTER := 3;
 const TYPE_ARRAY := 4;
 const TYPE_RECORD := 5;
 
-record TypeSymbol: HasElementSymbol
+record TypeSymbol
 	number @at(0): NumberTypeSymbol;
 	array @at(0): ArrayTypeSymbol;
 	member @at(0): MemberTypeSymbol;
