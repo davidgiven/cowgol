@@ -102,7 +102,7 @@ statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
 		SimpleError("you can only assign to lvalues");
 	end if;
 
-	var e := E1.type.typedata.member.element;
+	var e := E1.type.typedata.pointertype.element;
 	CheckExpressionType(E2, e);
 	Generate(MidStore(e.typedata.width as uint8, E2, E1));
 }
@@ -340,7 +340,7 @@ expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1,
 expression(E) ::= lvalue(E1).
 {
 	if E1.type != (0 as [Symbol]) then
-		var dereftype := E1.type.typedata.member.element;
+		var dereftype := E1.type.typedata.pointertype.element;
 		if IsScalar(dereftype) == 0 then
 			SimpleError("non-scalars cannot be used in this context");
 		end if;
@@ -446,6 +446,86 @@ eitherid(S) ::= ID(T).
 		sym := AddSymbol(0 as [Namespace], T);
 	end if;
 	S := sym;
+}
+
+/* --- Records ----------------------------------------------------------- */
+
+%include
+{
+	sub SymbolRedeclarationError()
+		StartError();
+		print("attempt to redefine ");
+		print(current_type.name);
+		EndError();
+	end sub;
+}
+
+statement ::= RECORD recordstart recordinherits recordmembers END RECORD.
+{
+	current_type.typedata.stride := ArchAlignUp(
+		current_type.typedata.width, current_type.typedata.alignment);
+}
+
+recordstart ::= eitherid(S).
+{
+	current_type := S;
+	if (current_type.kind != 0) and (current_type.kind != TYPE) then
+		SymbolRedeclarationError();
+	end if;
+	if (current_type.typedata.kind != 0) and (current_type.typedata.kind != TYPE_PARTIAL) then
+		SymbolRedeclarationError();
+	end if;
+	current_type.kind := TYPE;
+	current_type.typedata.kind := TYPE_RECORD;
+}
+
+recordinherits ::= .
+
+recordinherits ::= COLON typeref(T).
+{
+	CheckNotPartialType(T);
+	if IsRecord(T) == 0 then
+		StartError();
+		print(T.name);
+		print(" is not a record type");
+		EndError();
+	end if;
+
+	current_type.typedata.alignment := T.typedata.alignment;
+	current_type.typedata.width := T.typedata.width;
+	current_type.typedata.recordtype.namespace.parent := &T.typedata.recordtype.namespace;
+}
+
+recordmembers ::= .
+recordmembers ::= recordmember recordmembers.
+
+recordmember ::= memberid(S) recordat(A) COLON typeref(T) SEMICOLON.
+{
+	CheckNotPartialType(T);
+	S.kind := VAR;
+	S.vardata.type := T;
+	if T.typedata.alignment > current_type.typedata.alignment then
+		current_type.typedata.alignment := T.typedata.alignment;
+	end if;
+	ArchInitMember(current_type, S, A);
+}
+
+%type recordat {Size}
+recordat(A) ::= .
+{
+	A := current_type.typedata.width;
+}
+
+recordat(A) ::= AT OPENPAREN cvalue(C) CLOSEPAREN.
+{
+	A := C as Size;
+}
+
+%type memberid {[Symbol]}
+memberid(S) ::= ID(T).
+{
+	S := AddSymbol(0 as [Namespace], T);
+	current_type.typedata.recordtype.members := current_type.typedata.recordtype.members + 1;
 }
 
 /* --- Inline assembly --------------------------------------------------- */

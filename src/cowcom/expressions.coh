@@ -14,7 +14,7 @@ sub IsNum(type: [Symbol]): (result: uint8)
 end sub;
 
 sub IsSNum(type: [Symbol]): (result: uint8)
-	if (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.number.is_signed != 0) then
+	if (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.numbertype.is_signed != 0) then
 		result := 1;
 	else
 		result := 0;
@@ -27,6 +27,10 @@ sub IsScalar(type: [Symbol]): (result: uint8)
 	else
 		result := 0;
 	end if;
+end sub;
+
+sub IsRecord(type: [Symbol]): (result: uint8)
+	result := IsTypeOfKind(type, TYPE_RECORD);
 end sub;
 
 sub CheckExpressionType(node: [Node], type: [Symbol])
@@ -183,7 +187,7 @@ end sub;
 
 sub ExprDiv(lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	if lhs.type.typedata.number.is_signed != 0 then
+	if lhs.type.typedata.numbertype.is_signed != 0 then
 		result := MidCDivs(NodeWidth(lhs), lhs, rhs);
 	else
 		result := MidCDivu(NodeWidth(lhs), lhs, rhs);
@@ -193,7 +197,7 @@ end sub;
 
 sub ExprRem(lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	if lhs.type.typedata.number.is_signed != 0 then
+	if lhs.type.typedata.numbertype.is_signed != 0 then
 		result := MidCRems(NodeWidth(lhs), lhs, rhs);
 	else
 		result := MidCRemu(NodeWidth(lhs), lhs, rhs);

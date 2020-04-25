@@ -7,7 +7,7 @@
 	var int8_type: [Symbol];
 	var intptr_type: [Symbol];
 
-	sub ArchAlignUp(value: Arith, alignment: uint8): (newvalue: Arith)
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
 		newvalue := value;
 	end sub;
 
@@ -30,8 +30,16 @@
 	sub ArchInitVariable(symbol: [Symbol])
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
-		symbol.vardata.offset := offset as uint32;
+		symbol.vardata.offset := offset;
 		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+	end sub;
+
+	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+		member.vardata.offset := position;
+		position := position + member.vardata.type.typedata.width;
+		if position > containing.typedata.width then
+			containing.typedata.width := position;
+		end if;
 	end sub;
 
 	sub E_labelref(labelid: uint16)
@@ -48,11 +56,11 @@
 		end if;
 	end sub;
 
-	sub E_symref(sym: [Symbol], off: int16)
+	sub E_symref(sym: [Symbol], off: Size)
 		EmitByte('w');
 		E_u16(sym.vardata.subr.id);
 		EmitByte('+');
-		E_u32(sym.vardata.offset + (off as uint32));
+		E_u16(sym.vardata.offset + off);
 	end sub;
 
 	sub E_space()
@@ -146,7 +154,7 @@
 		E_nl();
 	end sub;
 
-	sub E_lxia(reg: RegId, sym: [Symbol], off: int16)
+	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
@@ -154,25 +162,25 @@
 		E_nl();
 	end sub;
 
-	sub E_lda(sym: [Symbol], off: int16)
+	sub E_lda(sym: [Symbol], off: Size)
 		E("\tlda ");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
-	sub E_sta(sym: [Symbol], off: int16)
+	sub E_sta(sym: [Symbol], off: Size)
 		E("\tsta ");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
-	sub E_lhld(sym: [Symbol], off: int16)
+	sub E_lhld(sym: [Symbol], off: Size)
 		E("\tlhld ");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
-	sub E_shld(sym: [Symbol], off: int16)
+	sub E_shld(sym: [Symbol], off: Size)
 		E("\tshld ");
 		E_symref(sym, off);
 		E_nl();
@@ -295,7 +303,6 @@ regdata param stacked;
 
 gen STARTFILE()
 {
-	print("STARTFILE\n");
 }
 
 gen ENDFILE();

@@ -28,7 +28,7 @@ y 1 1 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
 
 - 0 1 CONSTANT(value: int32) = ("%d", $$.value)
 - 0 1 STRING(text: string) = ("...")
-- 0 1 ADDRESS(sym: [Symbol], off: int16) = ("%s%+d", $$.sym.name, $$.off)
+- 0 1 ADDRESS(sym: [Symbol], off: Size) = ("%s%+d", $$.sym.name, $$.off)
 
 y 1 1 LOAD()
 y 2 0 STORE() # left is value, right is address

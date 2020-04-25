@@ -96,8 +96,9 @@ sub MakeNumberType(width: uint8, is_signed: uint8, name: string): (symbol: [Symb
 	symbol.kind := TYPE;
 	symbol.typedata.kind := TYPE_NUMBER;
 	symbol.typedata.width := width as uint16;
+	symbol.typedata.stride := width as uint16;
 	symbol.typedata.alignment := ArchAlignUp(1, width) as uint8;
-	symbol.typedata.number.is_signed := is_signed;
+	symbol.typedata.numbertype.is_signed := is_signed;
 	symbol.name := name;
 	AddToNamespace(&current_subr.namespace, symbol);
 end sub;
@@ -111,8 +112,8 @@ sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol])
 		ptrtype.typedata.kind := TYPE_POINTER;
 		ptrtype.typedata.width := intptr_type.typedata.width;
 		ptrtype.typedata.alignment := intptr_type.typedata.alignment;
-		ptrtype.typedata.member.stride := intptr_type.typedata.member.stride;
-		ptrtype.typedata.member.element := type;
+		ptrtype.typedata.stride := intptr_type.typedata.stride;
+		ptrtype.typedata.pointertype.element := type;
 		type.typedata.pointerto := ptrtype;
 	end if;
 end sub;

@@ -1,5 +1,6 @@
 typedef LabelRef := uint16;
 typedef Arith := int32;
+typedef Size := uint16;
 
 record Token
 	number @at(0): int32;
@@ -14,13 +15,17 @@ end record;
 
 record HasElementSymbol
 	element: [Symbol];
-	stride: uint16;
-end record;
-
-record MemberTypeSymbol: HasElementSymbol
 end record;
 
 record ArrayTypeSymbol: HasElementSymbol
+end record;
+
+record PointerTypeSymbol: HasElementSymbol
+end record;
+
+record RecordTypeSymbol
+	namespace: Namespace;
+	members: uint8;
 end record;
 
 record NumberTypeSymbol
@@ -34,14 +39,16 @@ const TYPE_ARRAY := 4;
 const TYPE_RECORD := 5;
 
 record TypeSymbol
-	number @at(0): NumberTypeSymbol;
-	array @at(0): ArrayTypeSymbol;
-	member @at(0): MemberTypeSymbol;
+	numbertype @at(0): NumberTypeSymbol;
+	arraytype @at(0): ArrayTypeSymbol;
+	pointertype @at(0): PointerTypeSymbol;
+	recordtype @at(0): RecordTypeSymbol;
 
 	pointerto: [Symbol];
 	kind: uint8;
 	alignment: uint8;
-	width: uint16;
+	width: Size;
+	stride: Size;
 end record;
 
 record VarSymbol
@@ -49,7 +56,7 @@ record VarSymbol
 	subr: [Subroutine]; # null for a member
 	next_parameter: [Symbol]; # for lists of parameters
 	externname: string;
-	offset: uint32;
+	offset: Size;
 end record;
 
 record Symbol
@@ -73,7 +80,7 @@ record Subroutine
 	first_output_parameter: [Symbol];
 	old_break_label: uint16;
 	id: uint16;
-	workspace: uint16[4];
+	workspace: Size[4];
 	num_input_parameters: uint8;
 	num_output_parameters: uint8;
 end record;
@@ -97,3 +104,4 @@ var next_label_id: LabelRef := 1;
 var break_label: LabelRef;
 var continue_label: LabelRef;
 var current_if: [IfLabels];
+var current_type: [Symbol];
