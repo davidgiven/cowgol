@@ -78,11 +78,12 @@ record Subroutine
 	namespace: Namespace;
 	first_input_parameter: [Symbol];
 	first_output_parameter: [Symbol];
-	old_break_label: uint16;
 	id: uint16;
 	workspace: Size[4];
 	num_input_parameters: uint8;
 	num_output_parameters: uint8;
+	old_break_label: LabelRef;
+	old_continue_label: LabelRef;
 end record;
 
 record LoopLabels

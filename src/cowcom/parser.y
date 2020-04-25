@@ -448,6 +448,88 @@ eitherid(S) ::= ID(T).
 	S := sym;
 }
 
+/* --- Subroutine definitions -------------------------------------------- */
+
+statement ::= SUB substart subparams statements END SUB.
+{
+	Generate(MidEndsub(current_subr));
+
+	break_label := current_subr.old_break_label;
+	continue_label := current_subr.old_continue_label;
+	current_subr := current_subr.parent;
+}
+
+substart ::= newid(S).
+{
+	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
+	subr.name := S.name;
+	subr.namespace.parent := &current_subr.namespace;
+	subr.id := AllocLabel();
+	subr.old_break_label := break_label;
+	break_label := 0;
+	subr.old_continue_label := continue_label;
+	continue_label := 0;
+
+	S.kind := SUB;
+	S.subr := subr;
+
+	# Make sure that this subroutine refers to its lexical parent.
+
+	EmitterDeclareSubroutine(subr);
+	EmitterReferenceSubroutine(subr, current_subr);
+
+	subr.parent := current_subr;
+	current_subr := subr;
+
+	Generate(MidStartsub(current_subr));
+}
+
+subparams ::= paramlist(INS).
+{
+	current_subr.first_input_parameter := INS;
+	current_subr.num_input_parameters := CountParameters(INS);
+	current_subr.num_output_parameters := 0;
+}
+
+subparams ::= paramlist(INS) COLON paramlist(OUTS).
+{
+	current_subr.first_input_parameter := INS;
+	current_subr.num_input_parameters := CountParameters(INS);
+	current_subr.first_output_parameter := OUTS;
+	current_subr.num_output_parameters := CountParameters(OUTS);
+}
+
+%type paramlist {[Symbol]}
+paramlist(R) ::= OPENPAREN CLOSEPAREN.
+{
+	R := 0 as [Symbol];
+}
+
+paramlist(R) ::= OPENPAREN params(R1) CLOSEPAREN.
+{
+	R := R1;
+}
+
+%type params {[Symbol]}
+params(R) ::= param(P).
+{
+	R := P;
+}
+
+params(R) ::= param(P) COMMA params(R1).
+{
+	P.vardata.next_parameter := R1;
+	R := P;
+}
+
+%type param {[Symbol]}
+param(R) ::= newid(S) COLON typeref(T).
+{
+	S.kind := VAR;
+	InitVariable(S, T);
+	R := S;
+}
+
 /* --- Records ----------------------------------------------------------- */
 
 %include

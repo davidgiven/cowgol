@@ -118,4 +118,11 @@ sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol])
 	end if;
 end sub;
 
+sub CountParameters(param: [Symbol]): (count: uint8)
+	count := 0;
+	while param != (0 as [Symbol]) loop
+		count := count + 1;
+		param := param.next;
+	end loop;
+end sub;
 
