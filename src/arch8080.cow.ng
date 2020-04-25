@@ -529,3 +529,32 @@ gen BLTU1(b|d|h:nota, a):b
 	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
 }
 
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMSTART()
+{
+	E_tab();
+}
+
+gen ASMTEXT():t
+{
+	E($t.text);
+	E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	if $s.sym.kind == VAR then
+		E_symref($s.sym, 0);
+	else
+		E_subref($s.sym.subr);
+	end if;
+	E_space();
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
+
