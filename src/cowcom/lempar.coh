@@ -169,36 +169,6 @@ sub MakeStringTokenData(): (yyminor: [Token])
 	yyminor.string := StrDup(&token_buffer[0]);
 end sub;
 
-sub yy_find_shift_action(lookahead: YYCODETYPE, stateno: YYACTIONTYPE): (newstateno: YYACTIONTYPE)
-	if stateno > YY_MAX_SHIFT then
-		newstateno := stateno;
-	else
-		var i := yy_shift_ofst[stateno] + (lookahead as uint16);
-		if yy_lookahead[i] != lookahead then
-			newstateno := yy_default[stateno];
-		else
-			newstateno := yy_action[i];
-		end if;
-	end if;
-end sub;
-
-sub yy_shift(newstateno: YYACTIONTYPE, yymajor: YYCODETYPE, yyminor: ParseTOKENTYPE)
-	if yytos == yystackend then
-		yy_stack_overflow();
-		return;
-	end if;
-	yytos := @next yytos;
-
-	if newstateno > YY_MAX_SHIFT then
-		newstateno := newstateno + (YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE);
-	end if;
-
-	yytos.stateno := newstateno;
-	yytos.major := yymajor;
-	yytos.minor.yy0 := yyminor;
-	#yy_trace_shift(newstateno, "Shift");
-end sub;
-
 sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	var yyact := yytos.stateno;
 
@@ -214,12 +184,33 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 	#print_nl();
 
 	loop
-		yyact := yy_find_shift_action(yymajor, yyact);
+		if yyact <= YY_MAX_SHIFT then
+			var i := yy_shift_ofst[yyact] + (yymajor as uint16);
+			if yy_lookahead[i] != yymajor then
+				yyact := yy_default[yyact];
+			else
+				yyact := yy_action[i];
+			end if;
+		end if;
 
 		if yyact >= YY_MIN_REDUCE then
 			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
 		elseif yyact <= YY_MAX_SHIFTREDUCE then
-			yy_shift(yyact, yymajor, yyminor);
+			if yytos == yystackend then
+				yy_stack_overflow();
+				return;
+			end if;
+			yytos := @next yytos;
+
+			if yyact > YY_MAX_SHIFT then
+				yyact := yyact + (YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE);
+			end if;
+
+			yytos.stateno := yyact;
+			yytos.major := yymajor;
+			yytos.minor.yy0 := yyminor;
+			#yy_trace_shift(newstateno, "Shift");
+
 			if yyerrcnt >= 0 then
 				yyerrcnt := yyerrcnt - 1;
 			end if;

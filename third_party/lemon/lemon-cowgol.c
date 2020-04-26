@@ -4405,9 +4405,9 @@ void ReportTable(
    */
   tplt_xfer(lemp->name, in, out, &lineno);
 
-  /* Generate a table containing the symbolic name of every symbol
+  /* Generate a table containing the symbolic name of every terminal
   */
-  for(i=0; i<lemp->nsymbol; i++){
+  for(i=0; i<lemp->nterminal; i++){
     lemon_sprintf(line,"\"%s\",",lemp->symbols[i]->name);
     fprintf(out,"  \"%s\", # %d\n", lemp->symbols[i]->name, i); lineno++;
   }
