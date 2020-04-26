@@ -84,6 +84,7 @@ record Subroutine
 	num_output_parameters: uint8;
 	old_break_label: LabelRef;
 	old_continue_label: LabelRef;
+	old_call: [Subroutine];
 end record;
 
 record LoopLabels
@@ -100,9 +101,19 @@ record IfLabels
 	next: [IfLabels];
 end record;
 
+record SubroutineCall
+	subr: [Subroutine];
+	parent: [SubroutineCall];
+	input_parameter: [Symbol];
+	output_parameter: [Symbol];
+	num_input_args: uint8;
+	num_output_args: uint8;
+end record;
+
 var current_subr: [Subroutine];
 var next_label_id: LabelRef := 1;
 var break_label: LabelRef;
 var continue_label: LabelRef;
 var current_if: [IfLabels];
 var current_type: [Symbol];
+var current_call: [SubroutineCall];

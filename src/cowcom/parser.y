@@ -448,6 +448,68 @@ eitherid(S) ::= ID(T).
 	S := sym;
 }
 
+/* --- Subroutine calls -------------------------------------------------- */
+
+statement ::= startsubcall inputargs SEMICOLON.
+{
+	var subr := current_call.subr;
+	if current_call.num_input_args != subr.num_input_parameters then
+		SimpleError("wrong number of input parameters");
+	end if;
+	if current_call.num_output_args != subr.num_output_parameters then
+		SimpleError("wrong number of input parameters");
+	end if;
+
+	EmitterReferenceSubroutine(current_subr, subr);
+	Generate(MidCall(subr));
+
+	var call := current_call;
+	current_call := call.parent;
+	Free(call as [uint8]);
+}
+
+startsubcall ::= oldid(S).
+{
+	if S.kind != SUB then
+		StartError();
+		print("expected ");
+		print(S.name);
+		print(" to be a subroutine");
+		EndError();
+	end if;
+
+	var call := Alloc(@bytesof SubroutineCall) as [SubroutineCall];
+	call.parent := current_call;
+	call.subr := S.subr;
+	call.input_parameter := S.subr.first_input_parameter;
+	call.output_parameter := S.subr.first_output_parameter;
+	current_call := call;
+}
+
+inputargs ::= OPENPAREN CLOSEPAREN.
+inputargs ::= OPENPAREN inputarglist CLOSEPAREN.
+
+inputarglist ::= inputarg.
+inputarglist ::= inputarglist COMMA inputarg.
+
+inputarg ::= expression(E).
+{
+	var param := current_call.input_parameter;
+	if param == (0 as [Symbol]) then
+		StartError();
+		print("too many parameters in call to ");
+		print(current_call.subr.name);
+		EndError();
+	end if;
+
+	current_call.input_parameter := current_call.input_parameter.vardata.next_parameter;
+	CheckExpressionType(E, param.vardata.type);
+	CheckNotPartialType(param.vardata.type);
+	CheckNotPartialType(E.type);
+	Generate(MidPusharg(NodeWidth(E), E, current_call.subr, current_call.num_input_args));
+	current_call.num_input_args := current_call.num_input_args + 1;
+}
+
 /* --- Subroutine definitions -------------------------------------------- */
 
 statement ::= SUB substart subparams statements END SUB.

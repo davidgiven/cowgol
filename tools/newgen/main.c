@@ -3,7 +3,11 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "iburgcodes.h"
+#if defined COWGOL
+	#include "iburgcodes-coh.h"
+#else
+	#include "iburgcodes.h"
+#endif
 
 static Symbol* symbol_table = NULL;
 static const char* SYM_REGISTER = "register";

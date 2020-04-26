@@ -92,6 +92,13 @@
 		E_nl();
 	end sub;
 
+	sub E_call(subr: [Subroutine])
+		E_tab();
+		E("call ");
+		E_subref(subr);
+		E_nl();
+	end sub;
+
 	sub E_reg(reg: RegId)
 		case reg is
 			when REG_A: EmitByte('a');
@@ -341,6 +348,21 @@ gen ENDSUB():s
 	E_u16($s.subr.workspace[0]);
 	E("\n");
 	EmitterPopChunk('S');
+}
+
+gen CALL():s
+{
+	E_call($s.subr);
+}
+	
+gen PUSHARG1(a|b|d|h:lhs)
+{
+	ArchEmitMove($lhs, 0);
+}
+	
+gen PUSHARG2(bc|de|hl:lhs)
+{
+	ArchEmitMove($lhs, 0);
 }
 
 gen RETURN()

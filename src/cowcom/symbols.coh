@@ -125,4 +125,3 @@ sub CountParameters(param: [Symbol]): (count: uint8)
 		param := param.next;
 	end loop;
 end sub;
-
