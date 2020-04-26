@@ -24,6 +24,7 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 JUMP(label: uint16) = ("%d", $$.label)
 - 1 0 CALLS()
 - 0 0 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
+y 0 1 CALLE(subr: [Subroutine]) = ("%s", $$.subr.name)
 - 0 0 RETURN()
 
 - 0 1 CONSTANT(value: int32) = ("%d", $$.value)
@@ -48,7 +49,7 @@ y 1 1 CAST4()
 y 1 1 CAST8()
 
 y 1 0 PUSHARG(subr: [Subroutine], arg: uint8)
-y 2 1 POPARG() # left is chain, right is lvalue
+y 1 0 POPARG(subr: [Subroutine], arg: uint8)
 
 y 2 1 ADD()
 y 2 1 SUB()

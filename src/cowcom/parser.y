@@ -450,22 +450,97 @@ eitherid(S) ::= ID(T).
 
 /* --- Subroutine calls -------------------------------------------------- */
 
+%include
+{
+	sub i_check_sub_call_args()
+		var subr := current_call.subr;
+		if current_call.num_input_args != subr.num_input_parameters then
+			StartError();
+			print("subroutine ");
+			print(subr.name);
+			print(" takes ");
+			print_i8(subr.num_input_parameters);
+			print(" but was given ");
+			print_i8(current_call.num_input_args);
+			EndError();
+		end if;
+	end sub;
+
+	sub i_end_call()
+		EmitterReferenceSubroutine(current_subr, current_call.subr);
+		var call := current_call;
+		current_call := call.parent;
+		Free(call as [uint8]);
+	end sub;
+}
+
+expression(E) ::= startsubcall inputargs.
+{
+	var subr := current_call.subr;
+	current_call.num_output_args := 1;
+	i_check_sub_call_args();
+	if subr.num_output_parameters != 1 then
+		SimpleError("subroutines called as functions must have exactly one output parameter");
+	end if;
+
+	var param := subr.first_output_parameter;
+	E := MidCalle(param.vardata.type.typedata.width as uint8, subr);
+	E.type := param.vardata.type;
+
+	i_end_call();
+}
+
 statement ::= startsubcall inputargs SEMICOLON.
 {
 	var subr := current_call.subr;
-	if current_call.num_input_args != subr.num_input_parameters then
-		SimpleError("wrong number of input parameters");
-	end if;
-	if current_call.num_output_args != subr.num_output_parameters then
-		SimpleError("wrong number of input parameters");
+	i_check_sub_call_args();
+	if subr.num_output_parameters != 0 then
+		SimpleError("subroutine requires output arguments");
 	end if;
 
-	EmitterReferenceSubroutine(current_subr, subr);
 	Generate(MidCall(subr));
 
-	var call := current_call;
-	current_call := call.parent;
-	Free(call as [uint8]);
+	i_end_call();
+}
+
+statement ::= outputargs(A) ASSIGN startsubcall inputargs SEMICOLON.
+{
+	var subr := current_call.subr;
+	i_check_sub_call_args();
+
+	Generate(MidCall(subr));
+
+	var param := subr.first_output_parameter;
+	var count: uint8 := 0;
+	var node := A;
+	while node != (0 as [Node]) loop
+		if param == (0 as [Symbol]) then
+			SimpleError("too many output arguments");
+		end if;
+
+		var arg := node.left;
+		node.left := (0 as [Node]);
+		node := node.right;
+
+		if IsPtr(arg.type) == 0 then
+			SimpleError("you can only assign to lvalues");
+		end if;
+
+		CheckExpressionType(arg, MakePointerType(param.vardata.type));
+		CheckNotPartialType(param.vardata.type);
+		CheckNotPartialType(arg.type);
+		Generate(MidPoparg(param.vardata.type.typedata.width as uint8, arg, subr, count));
+
+		count := count + 1;
+		param := param.vardata.next_parameter;
+	end loop;
+	Discard(A);
+
+	if count != subr.num_output_parameters then
+		SimpleError("too few output arguments");
+	end if;
+
+	i_end_call();
 }
 
 startsubcall ::= oldid(S).
@@ -510,6 +585,28 @@ inputarg ::= expression(E).
 	current_call.num_input_args := current_call.num_input_args + 1;
 }
 
+/* Output arguments get parsed before we know what subroutine they belong
+ * to. So, we can't type check and emit code for them. Instead we assemble
+ * them into a chain of PAIRs so that the rule above which handles multi-
+ * return-value statements can do the type checking and codegen. */
+
+%type outputargs {[Node]}
+outputargs(R) ::= OPENPAREN outputarglist(A) CLOSEPAREN.
+{
+	R := A;
+}
+
+%type outputarglist {[Node]}
+outputarglist(A) ::= lvalue(E).
+{
+	A := MidPair(E, 0 as [Node]);
+}
+
+outputarglist(A) ::= outputarglist(L) COMMA lvalue(E).
+{
+	A := MidPair(E, L);
+}
+
 /* --- Subroutine definitions -------------------------------------------- */
 
 statement ::= SUB substart subparams subgen statements END SUB.
@@ -549,19 +646,21 @@ subgen ::= .
 	Generate(MidStartsub(current_subr));
 }
 
-subparams ::= paramlist(INS).
+subparams ::= inparamlist.
 {
-	current_subr.first_input_parameter := INS;
-	current_subr.num_input_parameters := CountParameters(INS);
 	current_subr.num_output_parameters := 0;
 }
 
-subparams ::= paramlist(INS) COLON paramlist(OUTS).
+subparams ::= inparamlist COLON paramlist(OUTS).
+{
+	current_subr.first_output_parameter := OUTS;
+	current_subr.num_output_parameters := CountParameters(OUTS);
+}
+
+inparamlist ::= paramlist(INS).
 {
 	current_subr.first_input_parameter := INS;
 	current_subr.num_input_parameters := CountParameters(INS);
-	current_subr.first_output_parameter := OUTS;
-	current_subr.num_output_parameters := CountParameters(OUTS);
 }
 
 %type paramlist {[Symbol]}

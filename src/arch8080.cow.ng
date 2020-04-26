@@ -259,6 +259,10 @@
 		E("\txchg\n");
 	end sub;
 
+	sub E_pchl()
+		E("\tpchl\n");
+	end sub;
+
 	sub E_dad(reg: RegId)
 		E("\tdad ");
 		E_reg(reg);
@@ -367,7 +371,37 @@ gen ENDSUB():s
 	E("end_");
 	E_subref($s.subr);
 	E(":\n");
-	E("\tret\n");
+
+    if $s.subr.num_output_parameters != 0 then
+		ArchEmitMove(REG_DE, 0);
+		var count: uint8 := 0;
+		while count != $s.subr.num_output_parameters loop
+			var param := GetOutputParameter($s.subr, count);
+
+			case param.vardata.type.typedata.width is
+				when 1:
+					E_lda(param, 0);
+					ArchEmitMove(REG_A, 0);
+
+				when 2:
+					E_lhld(param, 0);
+					ArchEmitMove(REG_HL, 0);
+
+				when 4:
+					E_lhld(param, 2);
+					ArchEmitMove(REG_HL, 0);
+					E_lhld(param, 0);
+					ArchEmitMove(REG_HL, 0);
+			end case;
+
+			count := count + 1;
+		end loop;
+		E_xchg();
+		E_pchl();
+	else
+		E("\tret\n");
+	end if;
+
 	E("\tdseg\nw");
 	E_subref($s.subr);
 	E(": ds ");
@@ -382,6 +416,18 @@ gen CALL():s
 	E_call($s.subr);
 }
 	
+gen a := CALLE1():s
+{
+	E_call($s.subr);
+	ArchEmitMove(0, REG_A);
+}
+
+gen hl := CALLE2():s
+{
+	E_call($s.subr);
+	ArchEmitMove(0, REG_HL);
+}
+
 gen PUSHARG1(a|b|d|h:lhs)
 {
 	ArchEmitMove($lhs, 0);
@@ -390,6 +436,32 @@ gen PUSHARG1(a|b|d|h:lhs)
 gen PUSHARG2(bc|de|hl:lhs)
 {
 	ArchEmitMove($lhs, 0);
+}
+
+gen POPARG1(hl) uses a
+{
+	ArchEmitMove(0, REG_A);
+	E_storem(REG_A);
+}
+
+gen POPARG1(ADDRESS():a) uses a
+{
+	ArchEmitMove(0, REG_A);
+	E_sta($a.sym, $a.off);
+}
+
+gen POPARG2(hl) uses de
+{
+	ArchEmitMove(0, REG_DE);
+	E_storemlo(REG_DE);
+	E_inx(REG_HL);
+	E_storem(REG_DE);
+}
+
+gen POPARG2(ADDRESS():a) uses hl
+{
+	ArchEmitMove(0, REG_HL);
+	E_shld($a.sym, $a.off);
 }
 
 gen RETURN()
