@@ -7,7 +7,7 @@
 	var int8_type: [Symbol];
 	var intptr_type: [Symbol];
 
-	sub ArchAlignUp(value: Arith, alignment: uint8): (newvalue: Arith)
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
 		newvalue := value;
 	end sub;
 
@@ -30,8 +30,16 @@
 	sub ArchInitVariable(symbol: [Symbol])
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
-		symbol.vardata.offset := offset as uint32;
+		symbol.vardata.offset := offset;
 		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+	end sub;
+
+	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+		member.vardata.offset := position;
+		position := position + member.vardata.type.typedata.width;
+		if position > containing.typedata.width then
+			containing.typedata.width := position;
+		end if;
 	end sub;
 
 	sub E_labelref(labelid: uint16)
@@ -48,11 +56,11 @@
 		end if;
 	end sub;
 
-	sub E_symref(sym: [Symbol], off: int16)
+	sub E_symref(sym: [Symbol], off: Size)
 		EmitByte('w');
 		E_u16(sym.vardata.subr.id);
 		EmitByte('+');
-		E_u32(sym.vardata.offset + (off as uint32));
+		E_u16(sym.vardata.offset + off);
 	end sub;
 
 	sub E_space()
@@ -81,6 +89,13 @@
 		E(insn);
 		E_space();
 		E_labelref(label);
+		E_nl();
+	end sub;
+
+	sub E_call(subr: [Subroutine])
+		E_tab();
+		E("call ");
+		E_subref(subr);
 		E_nl();
 	end sub;
 
@@ -146,7 +161,7 @@
 		E_nl();
 	end sub;
 
-	sub E_lxia(reg: RegId, sym: [Symbol], off: int16)
+	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
@@ -154,25 +169,25 @@
 		E_nl();
 	end sub;
 
-	sub E_lda(sym: [Symbol], off: int16)
+	sub E_lda(sym: [Symbol], off: Size)
 		E("\tlda ");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
-	sub E_sta(sym: [Symbol], off: int16)
+	sub E_sta(sym: [Symbol], off: Size)
 		E("\tsta ");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
-	sub E_lhld(sym: [Symbol], off: int16)
+	sub E_lhld(sym: [Symbol], off: Size)
 		E("\tlhld ");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
-	sub E_shld(sym: [Symbol], off: int16)
+	sub E_shld(sym: [Symbol], off: Size)
 		E("\tshld ");
 		E_symref(sym, off);
 		E_nl();
@@ -244,6 +259,10 @@
 		E("\txchg\n");
 	end sub;
 
+	sub E_pchl()
+		E("\tpchl\n");
+	end sub;
+
 	sub E_dad(reg: RegId)
 		E("\tdad ");
 		E_reg(reg);
@@ -295,7 +314,6 @@ regdata param stacked;
 
 gen STARTFILE()
 {
-	print("STARTFILE\n");
 }
 
 gen ENDFILE();
@@ -320,6 +338,32 @@ gen STARTSUB():s
 	E("\tcseg\n");
 	E_subref($s.subr);
 	E(":\n");
+
+	var count := $s.subr.num_input_parameters;
+    if count != 0 then
+		ArchEmitMove(REG_BC, 0);
+		while count != 0 loop
+			count := count - 1;
+			var param := GetInputParameter($s.subr, count);
+
+			case param.vardata.type.typedata.width is
+				when 1:
+					ArchEmitMove(0, REG_A);
+					E_sta(param, 0);
+
+				when 2:
+					ArchEmitMove(0, REG_HL);
+					E_shld(param, 0);
+
+				when 4:
+					ArchEmitMove(0, REG_HL);
+					E_shld(param, 0);
+					ArchEmitMove(0, REG_HL);
+					E_shld(param, 2);
+			end case;
+		end loop;
+		ArchEmitMove(0, REG_BC);
+	end if;
 }
 
 gen ENDSUB():s
@@ -327,13 +371,97 @@ gen ENDSUB():s
 	E("end_");
 	E_subref($s.subr);
 	E(":\n");
-	E("\tret\n");
+
+    if $s.subr.num_output_parameters != 0 then
+		ArchEmitMove(REG_DE, 0);
+		var count: uint8 := 0;
+		while count != $s.subr.num_output_parameters loop
+			var param := GetOutputParameter($s.subr, count);
+
+			case param.vardata.type.typedata.width is
+				when 1:
+					E_lda(param, 0);
+					ArchEmitMove(REG_A, 0);
+
+				when 2:
+					E_lhld(param, 0);
+					ArchEmitMove(REG_HL, 0);
+
+				when 4:
+					E_lhld(param, 2);
+					ArchEmitMove(REG_HL, 0);
+					E_lhld(param, 0);
+					ArchEmitMove(REG_HL, 0);
+			end case;
+
+			count := count + 1;
+		end loop;
+		E_xchg();
+		E_pchl();
+	else
+		E("\tret\n");
+	end if;
+
 	E("\tdseg\nw");
-	E_subref($s.subr);
-	E(": ds ");
+	E_u16($s.subr.id);
+	E(":\tds ");
 	E_u16($s.subr.workspace[0]);
 	E("\n");
+
 	EmitterPopChunk('S');
+}
+
+gen CALL():s
+{
+	E_call($s.subr);
+}
+	
+gen a := CALLE1():s
+{
+	E_call($s.subr);
+	ArchEmitMove(0, REG_A);
+}
+
+gen hl := CALLE2():s
+{
+	E_call($s.subr);
+	ArchEmitMove(0, REG_HL);
+}
+
+gen PUSHARG1(a|b|d|h:lhs)
+{
+	ArchEmitMove($lhs, 0);
+}
+	
+gen PUSHARG2(bc|de|hl:lhs)
+{
+	ArchEmitMove($lhs, 0);
+}
+
+gen POPARG1(hl) uses a
+{
+	ArchEmitMove(0, REG_A);
+	E_storem(REG_A);
+}
+
+gen POPARG1(ADDRESS():a) uses a
+{
+	ArchEmitMove(0, REG_A);
+	E_sta($a.sym, $a.off);
+}
+
+gen POPARG2(hl) uses de
+{
+	ArchEmitMove(0, REG_DE);
+	E_storemlo(REG_DE);
+	E_inx(REG_HL);
+	E_storem(REG_DE);
+}
+
+gen POPARG2(ADDRESS():a) uses hl
+{
+	ArchEmitMove(0, REG_HL);
+	E_shld($a.sym, $a.off);
 }
 
 gen RETURN()
@@ -528,4 +656,33 @@ gen BLTU1(b|d|h:nota, a):b
 	E_alu("cmp", $nota);
 	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
 }
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMSTART()
+{
+	E_tab();
+}
+
+gen ASMTEXT():t
+{
+	E($t.text);
+	E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	if $s.sym.kind == VAR then
+		E_symref($s.sym, 0);
+	else
+		E_subref($s.sym.subr);
+	end if;
+	E_space();
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
 

@@ -138,3 +138,28 @@ sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
 	EmitterPopChunk('R');
 end sub;
 
+sub CountParameters(param: [Symbol]): (count: uint8)
+	count := 0;
+	while param != (0 as [Symbol]) loop
+		count := count + 1;
+		param := param.vardata.next_parameter;
+	end loop;
+end sub;
+
+sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Symbol])
+	param := subr.first_input_parameter;
+	while count != 0 loop
+		param := param.vardata.next_parameter;
+		count := count - 1;
+	end loop;
+end sub;
+
+sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Symbol])
+	param := subr.first_output_parameter;
+	while count != 0 loop
+		param := param.vardata.next_parameter;
+		count := count - 1;
+	end loop;
+end sub;
+
+

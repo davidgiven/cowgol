@@ -224,6 +224,7 @@ gen STARTFILE()
 	E("\textrn caset1\n");
 	E("\textrn cmps1\n");
 	E("\textrn cmps2\n");
+	E("\textrn cmpeq2\n");
 	E("\textrn cmpl4\n");
 	E("\textrn cmpu4\n");
 	E("\textrn cmps4\n");
@@ -352,7 +353,10 @@ gen ENDSUB():s
 
 gen RETURN()
 {
-	E("\tjmp end_%s\n", subref(current_sub));
+	if (current_sub->outputparameters)
+		E("\tjmp end_%s\n", subref(current_sub));
+	else
+		E("\tret\n");
 }
 
 gen LABEL():b
@@ -1004,13 +1008,9 @@ gen BLTS1(a, b): b
 }
 
 %{
-	static void bequ2(int truelabel, int falselabel, int fallthrough, reg_t lhs, reg_t rhs)
+	static void bequ2(int truelabel, int falselabel, int fallthrough)
 	{
-		E("\tmov a, %s\n", regref(lhs));
-		E("\tcmp %s\n", regref(rhs));
-		E("\tjnz %s\n", labelref(falselabel));
-		E("\tmov a, %s\n", regreflo(lhs));
-		E("\tcmp %s\n", regreflo(rhs));
+		E("\tcall cmpeq2\n");
 		if (falselabel != fallthrough)
 			E("\tjnz %s\n", labelref(falselabel));
 		if (truelabel != fallthrough)
@@ -1018,11 +1018,11 @@ gen BLTS1(a, b): b
 	}
 %}
 
-gen BEQU2(hl|bc|de:lhs, hl|bc|de:rhs):b
-	{ bequ2($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs); }
+gen BEQU2(hl|de:lhs, hl|de:rhs):b
+	{ bequ2($b.truelabel, $b.falselabel, $b.fallthrough); }
 
-gen BEQS2(hl|bc|de:lhs, hl|bc|de:rhs):b
-	{ bequ2($b.truelabel, $b.falselabel, $b.fallthrough, $lhs, $rhs); }
+gen BEQS2(hl|de:lhs, hl|de:rhs):b
+	{ bequ2($b.truelabel, $b.falselabel, $b.fallthrough); }
 
 %{
 	static void bequ2c(int truelabel, int falselabel, int fallthrough, reg_t lhs, int c)

@@ -43,7 +43,7 @@ rule mkpat
     description = MKPAT \$in
 
 rule lemon
-    command = mkdir -p \$cfile.temp && \$lemon -T\$template -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
+    command = mkdir -p \$cfile.temp && \$lemon -l -T\$template -d\$cfile.temp \$in && mv \$cfile.temp/*.c \$cfile && mv \$cfile.temp/*.h \$hfile
     description = LEMON \$in
 
 rule bison
@@ -537,6 +537,7 @@ buildprogram ld80 \
 	libld80.a
 
 buildmkiburgcodes $OBJDIR/tools/newgen/iburgcodes.h src/midcodes.tab
+buildmkiburgcodes $OBJDIR/tools/newgen/iburgcodes-coh.h src/midcodes.coh.tab
 buildlemon $OBJDIR/tools/newgen/parser.c tools/newgen/parser.y
 buildflex $OBJDIR/tools/newgen/lexer.c tools/newgen/lexer.l
 
