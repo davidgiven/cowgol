@@ -410,6 +410,11 @@ typeref(S) ::= eitherid(ID).
 	S := sym;
 }
 
+typeref(S) ::= OPENSQ typeref(S1) CLOSESQ.
+{
+	S := MakePointerType(S1);
+}
+
 statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 {
 	var sym := AddAlias(0 as [Namespace], X, T);

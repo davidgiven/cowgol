@@ -7,7 +7,10 @@ var HIMEM: [uint8];
 @asm "lhld 6";
 @asm "shld ", HIMEM;
 
-extern sub Exit() := "_exit";
+sub Exit()
+	@asm "extrn _exit";
+	@asm "jmp _exit";
+end sub;
 
 sub AlignUp(in: intptr): (out: intptr)
 	out := in;
