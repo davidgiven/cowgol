@@ -49,14 +49,14 @@ sub ParseArguments()
 			else
 				SyntaxError();
 			end if;
-		end if;
-
-		if inputfile == (0 as string) then
-			inputfile := arg;
-		elseif outputfile == (0 as string) then
-			outputfile := arg;
 		else
-			SyntaxError();
+			if inputfile == (0 as string) then
+				inputfile := arg;
+			elseif outputfile == (0 as string) then
+				outputfile := arg;
+			else
+				SyntaxError();
+			end if;
 		end if;
 	end loop;
 
@@ -82,6 +82,7 @@ print("COWCOM: ");
 PrintFreeMemory();
 
 ParseArguments();
+LexerAddIncludePath("./");
 LexerIncludeFile(inputfile);
 
 current_subr := Alloc(@bytesof Subroutine) as [Subroutine];

@@ -136,6 +136,7 @@ var keyword_names: string[] := {
 	"end",
 	"extern",
 	"if",
+	"include",
 	"int",
 	"loop",
 	"not",
@@ -148,6 +149,8 @@ var keyword_names: string[] := {
 	"var",
 	"while",
 };
+
+const INCLUDE := 0xff; # This is special
 
 var keyword_ids: uint8[] := {
 	ASM,
@@ -163,6 +166,7 @@ var keyword_ids: uint8[] := {
 	END,
 	EXTERN,
 	IF,
+	INCLUDE,
 	INT,
 	LOOP,
 	NOT,
@@ -209,16 +213,29 @@ end sub;
 sub LexerIncludeFile(path: string)
 	var f := Alloc(@bytesof File) as [File];
 	f.next := current_file;
-	f.path := StrDup(path);
-	if FCBOpenIn(&f.fcb, path) != 0 then
-		StartError();
-		print("cannot open '");
-		print(path);
-		print("'");
-		EndError();
-	end if;
 	f.lineno := 1;
-	current_file := f;
+
+	var p := include_paths;
+	var fl := StrLen(path);
+	while p != (0 as [IncludePath]) loop
+		var il := StrLen(p.path);
+		f.path := Alloc(fl + il + 1);
+		MemCopy(p.path, il, f.path);
+		MemCopy(path, fl+1, f.path + il);
+		if FCBOpenIn(&f.fcb, f.path) == 0 then
+			current_file := f;
+			return;
+		end if;
+
+		Free(f.path);
+		p := p.next;
+	end loop;
+
+	StartError();
+	print("cannot open '");
+	print(path);
+	print("'");
+	EndError();
 end sub;
 
 sub lexer_i_ctype(c: uint8): (type: uint8, token: uint8)
@@ -402,6 +419,27 @@ sub lexer_i_read_string()
 	token_buffer[token_length] := 0;
 end sub;
 
+sub lexer_i_include()
+	sub malformed_include()
+		SimpleError("unterminated include directive");
+	end sub;
+
+	lexer_i_skipwhitespace();
+	var c := lexer_i_getchar();
+	if c != '"' then
+		malformed_include();
+	end if;
+
+	lexer_i_read_string();
+	lexer_i_skipwhitespace();
+	c := lexer_i_getchar();
+	if c != ';' then
+		malformed_include();
+	end if;
+
+	LexerIncludeFile(&token_buffer[0]);
+end sub;
+
 sub lexer_i_line_directive()
 	lexer_i_skipwhitespace();
 	lexer_i_read_number();
@@ -419,93 +457,102 @@ sub lexer_i_line_directive()
 end sub;
 
 sub LexerReadToken(): (token: uint8)
-	lexer_i_skipwhitespace();
-	var c := lexer_i_getchar();
+	loop
+		lexer_i_skipwhitespace();
+		var c := lexer_i_getchar();
 
-	case c is
-		when 0:
-			token := 0;
+		case c is
+			when 0:
+				token := 0;
 
-		when '#':
-			token_length := 0;
-			lexer_i_read_identifier();
-			if StrCmp(&token_buffer[0], "line") == 0 then
-				lexer_i_line_directive();
-			end if;
-			loop
-				c := lexer_i_getchar();
-				if (c == 10) or (c == 0) then
-					break;
-				end if;
-				pushed_char := c;
-			end loop;
-
-		when ':':
-			c := lexer_i_getchar();
-			if c == '=' then
-				token := ASSIGN;
-			else
-				pushed_char := c;
-				token := COLON;
-			end if;
-
-		when '<':
-			c := lexer_i_getchar();
-			case c is
-				when '<': token := LSHIFT;
-				when '=': token := LEOP;
-				when else:
-				pushed_char := c;
-				token := LTOP;
-			end case;
-
-		when '=':
-			c := lexer_i_getchar();
-			if c == '=' then
-				token := EQOP;
-			else
-				lexer_i_unparseable(c);
-			end if;
-
-		when '!':
-			c := lexer_i_getchar();
-			if c == '=' then
-				token := NEOP;
-			else
-				lexer_i_unparseable(c);
-			end if;
-
-		when '>':
-			c := lexer_i_getchar();
-			case c is
-				when '>': token := RSHIFT;
-				when '=': token := GEOP;
-				when else:
-					pushed_char := c;
-					token := GTOP;
-			end case;
-
-		when '"':
-			lexer_i_read_string();
-			token := STRING;
-
-		when else:
-			var type: uint8;
-			(type, token) := lexer_i_ctype(c);
-			if (type & CTYPE_TOKEN) != 0 then
-				# do nothing
-			elseif (type & CTYPE_DECDIGIT) != 0 then
-				pushed_char := c;
-				lexer_i_read_number();
-				token := NUMBER;
-			elseif (type & CTYPE_IDSTART) != 0 then
-				token_length := 1;
-				token_buffer[0] := c;
+			when '#':
+				token_length := 0;
 				lexer_i_read_identifier();
-				token := lexer_i_match_keyword();
-			else
-				lexer_i_unparseable(c);
-			end if;
-	end case;
+				if StrCmp(&token_buffer[0], "line") == 0 then
+					lexer_i_line_directive();
+				end if;
+				loop
+					c := lexer_i_getchar();
+					if (c == 10) or (c == 0) then
+						break;
+					end if;
+					pushed_char := c;
+				end loop;
+
+			when ':':
+				c := lexer_i_getchar();
+				if c == '=' then
+					token := ASSIGN;
+				else
+					pushed_char := c;
+					token := COLON;
+				end if;
+
+			when '<':
+				c := lexer_i_getchar();
+				case c is
+					when '<': token := LSHIFT;
+					when '=': token := LEOP;
+					when else:
+					pushed_char := c;
+					token := LTOP;
+				end case;
+
+			when '=':
+				c := lexer_i_getchar();
+				if c == '=' then
+					token := EQOP;
+				else
+					lexer_i_unparseable(c);
+				end if;
+
+			when '!':
+				c := lexer_i_getchar();
+				if c == '=' then
+					token := NEOP;
+				else
+					lexer_i_unparseable(c);
+				end if;
+
+			when '>':
+				c := lexer_i_getchar();
+				case c is
+					when '>': token := RSHIFT;
+					when '=': token := GEOP;
+					when else:
+						pushed_char := c;
+						token := GTOP;
+				end case;
+
+			when '"':
+				lexer_i_read_string();
+				token := STRING;
+
+			when else:
+				var type: uint8;
+				(type, token) := lexer_i_ctype(c);
+				if (type & CTYPE_TOKEN) != 0 then
+					# do nothing
+				elseif (type & CTYPE_DECDIGIT) != 0 then
+					pushed_char := c;
+					lexer_i_read_number();
+					token := NUMBER;
+				elseif (type & CTYPE_IDSTART) != 0 then
+					token_length := 1;
+					token_buffer[0] := c;
+					lexer_i_read_identifier();
+					token := lexer_i_match_keyword();
+				else
+					lexer_i_unparseable(c);
+				end if;
+		end case;
+		
+
+		if token == INCLUDE then
+			lexer_i_include();
+		else
+			break;
+		end if;
+	end loop;
 end sub;
 
