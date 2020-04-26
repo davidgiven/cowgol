@@ -512,7 +512,7 @@ inputarg ::= expression(E).
 
 /* --- Subroutine definitions -------------------------------------------- */
 
-statement ::= SUB substart subparams statements END SUB.
+statement ::= SUB substart subparams subgen statements END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
@@ -542,7 +542,10 @@ substart ::= newid(S).
 
 	subr.parent := current_subr;
 	current_subr := subr;
+}
 
+subgen ::= .
+{
 	Generate(MidStartsub(current_subr));
 }
 

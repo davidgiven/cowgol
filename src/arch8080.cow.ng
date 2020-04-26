@@ -334,6 +334,32 @@ gen STARTSUB():s
 	E("\tcseg\n");
 	E_subref($s.subr);
 	E(":\n");
+
+	var count := $s.subr.num_input_parameters;
+    if count != 0 then
+		ArchEmitMove(REG_BC, 0);
+		while count != 0 loop
+			count := count - 1;
+			var param := GetInputParameter($s.subr, count);
+
+			case param.vardata.type.typedata.width is
+				when 1:
+					ArchEmitMove(0, REG_A);
+					E_sta(param, 0);
+
+				when 2:
+					ArchEmitMove(0, REG_HL);
+					E_shld(param, 0);
+
+				when 4:
+					ArchEmitMove(0, REG_HL);
+					E_shld(param, 0);
+					ArchEmitMove(0, REG_HL);
+					E_shld(param, 2);
+			end case;
+		end loop;
+		ArchEmitMove(0, REG_BC);
+	end if;
 }
 
 gen ENDSUB():s
@@ -347,6 +373,7 @@ gen ENDSUB():s
 	E(": ds ");
 	E_u16($s.subr.workspace[0]);
 	E("\n");
+
 	EmitterPopChunk('S');
 }
 
