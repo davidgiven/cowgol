@@ -403,8 +403,8 @@ gen ENDSUB():s
 	end if;
 
 	E("\tdseg\nw");
-	E_subref($s.subr);
-	E(": ds ");
+	E_u16($s.subr.id);
+	E(":\tds ");
 	E_u16($s.subr.workspace[0]);
 	E("\n");
 

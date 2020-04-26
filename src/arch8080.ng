@@ -353,7 +353,10 @@ gen ENDSUB():s
 
 gen RETURN()
 {
-	E("\tjmp end_%s\n", subref(current_sub));
+	if (current_sub->outputparameters)
+		E("\tjmp end_%s\n", subref(current_sub));
+	else
+		E("\tret\n");
 }
 
 gen LABEL():b
