@@ -76,6 +76,7 @@ end sub;
 		int8_type := MakeNumberType(1, 1, "int8");
 
 		intptr_type := uint16_type;
+		AddAliasString("intptr", intptr_type);
 	end sub;
 
 print("COWCOM: ");

@@ -384,14 +384,31 @@ sub lexer_i_read_number()
 	end loop;
 end sub;
 
+sub lexer_i_malformed(s: string)
+	StartError();
+	print("malformed ");
+	print(s);
+	EndError();
+end sub;
+
+sub lexer_i_get_escaped(): (c: uint8)
+	c := lexer_i_getchar();
+	case c is
+		when 'n': c := 10;
+		when 'r': c := 13;
+		when 't': c := 9;
+		when '0': c := 0;
+		when else:
+			lexer_i_malformed("escape");
+	end case;
+end sub;
+
 sub lexer_i_read_string()
 	token_length := 0;
 	loop
 		var c := lexer_i_getchar();
 		if c < 32 then
-			StartError();
-			print("malformed string constant");
-			EndError();
+			lexer_i_malformed("string constant");
 		end if;
 
 		case c is
@@ -399,13 +416,7 @@ sub lexer_i_read_string()
 				break;
 
 			when '\\':
-				c := lexer_i_getchar();
-				case c is
-					when 'n': c := 10;
-					when 'r': c := 13;
-					when 't': c := 9;
-					when '0': c := 0;
-				end case;
+				c := lexer_i_get_escaped();
 		end case;
 
 		token_buffer[token_length] := c;
@@ -419,9 +430,29 @@ sub lexer_i_read_string()
 	token_buffer[token_length] := 0;
 end sub;
 
+sub lexer_i_read_char()
+	sub malformed()
+		lexer_i_malformed("character constant");
+	end sub;
+
+	var c := lexer_i_getchar();
+	if (c < 32) or (c == '\'') then
+		malformed();
+	end if;
+	if c == '\\' then
+		c := lexer_i_get_escaped();
+	end if;
+	token_value := c as Arith;
+
+	c := lexer_i_getchar();
+	if c != '\'' then
+		malformed();
+	end if;
+end sub;
+
 sub lexer_i_include()
 	sub malformed_include()
-		SimpleError("unterminated include directive");
+		lexer_i_malformed("include directive");
 	end sub;
 
 	lexer_i_skipwhitespace();
@@ -446,9 +477,7 @@ sub lexer_i_line_directive()
 	lexer_i_skipwhitespace();
 	var c := lexer_i_getchar();
 	if c != '"' then
-		StartError();
-		print("malformed #line directive");
-		EndError();
+		lexer_i_malformed("#line directive");
 	end if;
 	lexer_i_read_string();
 	current_file.lineno := token_value as uint16;
@@ -527,6 +556,10 @@ sub LexerReadToken(): (token: uint8)
 			when '"':
 				lexer_i_read_string();
 				token := STRING;
+
+			when '\'':
+				lexer_i_read_char();
+				token := NUMBER;
 
 			when else:
 				var type: uint8;

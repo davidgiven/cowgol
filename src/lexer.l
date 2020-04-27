@@ -117,6 +117,7 @@ SP [ \t]+
 '\\n'                     { number = '\n'; return NUMBER; }
 '\\r'                     { number = '\r'; return NUMBER; }
 '\\t'                     { number = '\t'; return NUMBER; }
+'\\\''                    { number = '\''; return NUMBER; }
 '\\\\'                    { number = '\\'; return NUMBER; }
 '                         { fatal("invalid character constant"); }
 

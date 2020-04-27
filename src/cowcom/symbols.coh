@@ -65,6 +65,12 @@ sub AddAlias(namespace: [Namespace], token: [Token], real: [Symbol]): (symbol: [
 	symbol.alias := real;
 end sub;
 
+sub AddAliasString(name: string, real: [Symbol])
+	var token: Token;
+	token.string := name;
+	var symbol := AddAlias(0 as [Namespace], &token, real);
+end sub;
+
 sub CheckNotPartialType(type: [Symbol])
 	if type.typedata.kind == TYPE_PARTIAL then
 		StartError();

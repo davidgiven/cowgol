@@ -337,6 +337,21 @@ expression(E) ::= expression(E1) PIPE expression(E2).      { E := ExprOr(E1, E2)
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
 
+expression(E) ::= expression(E1) AS typeref(T).
+{
+	CheckNotPartialType(T);
+	if E1.type.typedata.width != T.typedata.width then
+		if (IsPtr(E1.type) != 0) or (IsPtr(T) != 0) then
+			SimpleError("cast between pointer and non-pointer of different size");
+		end if;
+
+		E := MidCCast(T.typedata.width as uint8, E1, IsSNum(E1.type));
+	else
+		E := E1;
+	end if;
+	E.type := T;
+}
+
 expression(E) ::= lvalue(E1).
 {
 	if E1.type != (0 as [Symbol]) then
@@ -370,6 +385,14 @@ lvalue(E) ::= oldid(S).
 			print(" is not a value");
 			EndError();
 	end case;
+}
+
+lvalue(E) ::= OPENSQ expression(E1) CLOSESQ.
+{
+	if IsPtr(E1.type) == 0 then
+		SimpleError("cannot dereference non-pointers");
+	end if;
+	E := E1;
 }
 
 %type cvalue {Arith}

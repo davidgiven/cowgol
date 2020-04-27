@@ -269,6 +269,12 @@
 		E_nl();
 	end sub;
 
+	sub E_callhelper(name: string)
+		E("\tcall ");
+		E(name);
+		E_nl();
+	end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
 			E("\tpop ");
@@ -335,13 +341,17 @@ gen STARTSUB():s
 	EmitterPushChunk();
 	E_h16($s.subr.id);
 
+	E("\n\n\t; ");
+	E($s.subr.name);
+	E_nl();
+
 	E("\tcseg\n");
 	E_subref($s.subr);
 	E(":\n");
 
 	var count := $s.subr.num_input_parameters;
     if count != 0 then
-		ArchEmitMove(REG_BC, 0);
+		ArchEmitMove(0, REG_BC);
 		while count != 0 loop
 			count := count - 1;
 			var param := GetInputParameter($s.subr, count);
@@ -362,7 +372,7 @@ gen STARTSUB():s
 					E_shld(param, 2);
 			end case;
 		end loop;
-		ArchEmitMove(0, REG_BC);
+		ArchEmitMove(REG_BC, 0);
 	end if;
 }
 
@@ -373,7 +383,7 @@ gen ENDSUB():s
 	E(":\n");
 
     if $s.subr.num_output_parameters != 0 then
-		ArchEmitMove(REG_DE, 0);
+		ArchEmitMove(0, REG_DE);
 		var count: uint8 := 0;
 		while count != $s.subr.num_output_parameters loop
 			var param := GetOutputParameter($s.subr, count);
@@ -438,6 +448,8 @@ gen PUSHARG2(bc|de|hl:lhs)
 	ArchEmitMove($lhs, 0);
 }
 
+gen PUSHARG4(stk4); // already stacked
+
 gen POPARG1(hl) uses a
 {
 	ArchEmitMove(0, REG_A);
@@ -464,6 +476,11 @@ gen POPARG2(ADDRESS():a) uses hl
 	E_shld($a.sym, $a.off);
 }
 
+gen POPARG4(hl) uses bc|de
+{
+	E_callhelper("store4");
+}
+
 gen RETURN()
 {
 	E("\tjmp end_");
@@ -481,6 +498,14 @@ gen a|b|d|h := CONSTANT():rhs
 gen bc|de|hl := CONSTANT():rhs
 {
 	E_lxi($$, $rhs.value);
+}
+
+gen stk4 := CONSTANT():rhs uses hl
+{
+	E_lxi(REG_HL, $rhs.value >> 16);
+	ArchEmitMove(REG_HL, 0);
+	E_lxi(REG_HL, $rhs.value);
+	ArchEmitMove(REG_HL, 0);
 }
 
 gen bc|de|hl := ADDRESS():a
@@ -542,6 +567,18 @@ gen STORE2(bc|de:val, hl) uses a
 	E_storemlo($val);
 	E_inx(REG_HL);
 	E_storem($val);
+}
+
+// --- 32-bit loads and stores ----------------------------------------------
+
+gen stk4 := LOAD4(hl)
+{
+	E_callhelper("load4");
+}
+
+gen STORE4(stk4, hl)
+{
+	E_callhelper("store4");
 }
 
 // --- 8-bit arithmetic -----------------------------------------------------
@@ -623,6 +660,55 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	end if;
 }
 
+// --- 32-bit arithmetic ----------------------------------------------------
+
+gen stk4 := ADD4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("add4"); }
+
+gen stk4 := SUB4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("sub4"); }
+
+gen stk4 := NEG4(stk4) uses a|bc|de|hl
+        { E_callhelper("neg4"); }
+
+gen stk4 := MUL4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("mul4"); }
+
+gen stk4 := DIVU4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("divu4"); }
+
+gen stk4 := REMU4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("remu4"); }
+
+gen stk4 := DIVS4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("divs4"); }
+
+gen stk4 := REMS4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("rems4"); }
+
+gen stk4 := AND4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("and4"); }
+
+gen stk4 := OR4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("or4"); }
+
+gen stk4 := EOR4(stk4, stk4) uses a|bc|de|hl
+        { E_callhelper("eor4"); }
+
+gen stk4 := NOT4(stk4) uses a|bc|de|hl
+        { E_callhelper("not4"); }
+
+gen stk4 := LSHIFT4(stk4, b) uses a|de|hl
+        { E_callhelper("asl4"); }
+
+gen stk4 := RSHIFTU4(stk4, b) uses a|de|hl
+        { E_callhelper("lsr4"); }
+
+gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
+        { E_callhelper("asr4"); }
+
+
+
 // --- Conditionals ---------------------------------------------------------
 
 %{
@@ -637,6 +723,11 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 
 	sub bequ1(node: [Node], nota: RegId)
 		E_alu("cmp", nota);
+		E_jumps_with_fallthrough("jz", "jnz", node);
+	end sub;
+
+	sub bequ2(node: [Node])
+		E_callhelper("cmpeq2");
 		E_jumps_with_fallthrough("jz", "jnz", node);
 	end sub;
 %}
@@ -655,6 +746,39 @@ gen BLTU1(b|d|h:nota, a):b
 {
 	E_alu("cmp", $nota);
 	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+}
+
+gen BEQU2(de, hl):a
+{
+	bequ2(self.n[0]);
+}
+
+gen BEQS2(de, hl):a
+{
+	bequ2(self.n[0]);
+}
+
+gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
+{
+	E_callhelper("cmpu4");
+	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+}
+
+// --- Casts ----------------------------------------------------------------
+
+gen stk4 := CAST14(a:rhs, sext==0) uses hl
+{
+	E_lxi(REG_HL, 0);
+	ArchEmitMove(REG_HL, 0);
+	E("\tmov l, a\n");
+	ArchEmitMove(REG_HL, 0);
+}
+
+gen a := CAST41(stk4) uses hl
+{
+	ArchEmitMove(0, REG_HL);
+	E("\tmov a, l\n");
+	ArchEmitMove(0, REG_HL);
 }
 
 // --- Inline assembly ------------------------------------------------------
