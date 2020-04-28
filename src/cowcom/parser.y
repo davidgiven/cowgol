@@ -17,6 +17,7 @@
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %left AS.
+%right NEXT PREV.
 %right NOT TILDE.
 
 %token_type {[Token]}
@@ -350,6 +351,31 @@ expression(E) ::= expression(E1) AS typeref(T).
 		E := E1;
 	end if;
 	E.type := T;
+}
+
+%include
+{
+	sub parser_i_bad_next_prev()
+		SimpleError("@next and @prev only work on pointers");
+	end sub;
+}
+
+expression(E) ::= NEXT expression(E1).
+{
+	if IsPtr(E1.type) == 0 then
+		parser_i_bad_next_prev();
+	end if;
+	E := MidCAdd(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E.type := E1.type;
+}
+
+expression(E) ::= PREV expression(E1).
+{
+	if IsPtr(E1.type) == 0 then
+		parser_i_bad_next_prev();
+	end if;
+	E := MidCSub(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E.type := E1.type;
 }
 
 expression(E) ::= lvalue(E1).

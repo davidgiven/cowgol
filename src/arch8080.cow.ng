@@ -118,6 +118,7 @@
 
 	sub E_reglo(reg: RegId)
 		case reg is
+			when REG_A:  EmitByte('a');
 			when REG_BC: EmitByte('c');
 			when REG_DE: EmitByte('e');
 			when REG_HL: EmitByte('l');
@@ -127,6 +128,24 @@
 				print_hex_i16(reg);
 				EndError();
 		end case;
+	end sub;
+
+	sub E_movlo(src: RegId, dest: RegId)
+		E_tab();
+		E("mov ");
+		E_reglo(dest);
+		E_comma();
+		E_reglo(src);
+		E_nl();
+	end sub;
+
+	sub E_movhi(src: RegId, dest: RegId)
+		E_tab();
+		E("mov ");
+		E_reg(dest);
+		E_comma();
+		E_reg(src);
+		E_nl();
 	end sub;
 
 	sub E_mvi(reg: RegId, value: int32)
@@ -730,6 +749,11 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 		E_callhelper("cmpeq2");
 		E_jumps_with_fallthrough("jz", "jnz", node);
 	end sub;
+
+	sub bequ4(node: [Node])
+		E_callhelper("cmpu4");
+		E_jumps_with_fallthrough("jz", "jnz", node);
+	end sub;
 %}
 
 gen BEQU1(b|d|h:nota, a):b
@@ -758,9 +782,40 @@ gen BEQS2(de, hl):a
 	bequ2(self.n[0]);
 }
 
+gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
+{
+	E_movlo($lhs, REG_A);
+	E("\tsub ");
+	E_reglo($rhs);
+	E_nl();
+
+	E_movhi($lhs, REG_A);
+	E("\tsbb ");
+	E_reg($rhs);
+	E_nl();
+
+	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+}
+
+gen BEQU4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
+{
+	bequ4(self.n[0]);
+}
+
+gen BEQS4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
+{
+	bequ4(self.n[0]);
+}
+
 gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E_callhelper("cmpu4");
+	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+}
+
+gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
+{
+	E_callhelper("cmps4");
 	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
 }
 
