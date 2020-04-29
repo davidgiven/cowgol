@@ -415,8 +415,6 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 	var type := E1.type;
 	var address := UndoLValue(E1);
 
-	# Check array type, dereferencing a pointer if necessary.
-
 	if IsArray(type) == 0 then
 		StartError();
 		print("you can only index an array, not a ");
@@ -431,13 +429,14 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 
 	var elementtype := type.typedata.arraytype.element;
 	var w := intptr_type.typedata.width as uint8;
-	var adjustedaddress := 
-		MidCAdd(w,
-			E1,
-			MidCMul(w,
-				MidCCast(w, E2, 0),
-				MidConstant(type.typedata.stride as int32)));
+
+	var displacement := MidCMul(w, E2,
+				MidConstant(type.typedata.stride as int32));
+	displacement.type := intptr_type;
+
+	var adjustedaddress := MidCAdd(w, address, displacement);
 	adjustedaddress.type := MakePointerType(elementtype);
+
 	E := MakeLValue(adjustedaddress);
 }
 
