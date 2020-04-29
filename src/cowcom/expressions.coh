@@ -5,16 +5,26 @@ sub IsTypeOfKind(type: [Symbol], kind: uint8): (result: uint8)
 	end if;
 end sub;
 
+sub IsArray(type: [Symbol]): (result: uint8)
+	result := IsTypeOfKind(type, TYPE_ARRAY);
+end sub;
+
 sub IsPtr(type: [Symbol]): (result: uint8)
 	result := IsTypeOfKind(type, TYPE_POINTER);
 end sub;
 
 sub IsNum(type: [Symbol]): (result: uint8)
-	result := IsTypeOfKind(type, TYPE_NUMBER);
+	if type == (0 as [Symbol]) then
+		result := 1;
+	else
+		result := IsTypeOfKind(type, TYPE_NUMBER);
+	end if;
 end sub;
 
 sub IsSNum(type: [Symbol]): (result: uint8)
-	if (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.numbertype.is_signed != 0) then
+	if type == (0 as [Symbol]) then
+		result := 1;
+	elseif (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.numbertype.is_signed != 0) then
 		result := 1;
 	else
 		result := 0;
@@ -31,6 +41,35 @@ end sub;
 
 sub IsRecord(type: [Symbol]): (result: uint8)
 	result := IsTypeOfKind(type, TYPE_RECORD);
+end sub;
+
+sub MakeLValue(address: [Node]): (lvalue: [Node])
+	var w: uint8 := 0;
+	var elementtype := address.type.typedata.pointertype.element;
+	if IsScalar(elementtype) != 0 then
+		w := elementtype.typedata.width as uint8;
+	end if;
+	lvalue := MidLoad(w, address);
+	lvalue.type := elementtype;
+
+	#print("make ");
+	#print_hex_i32(lvalue as intptr as uint32);
+	#print_nl();
+end sub;
+
+sub UndoLValue(lvalue: [Node]): (address: [Node])
+	#print("undo ");
+	#print_hex_i32(lvalue as intptr as uint32);
+	#print_nl();
+
+	var k := lvalue.op;
+	if (k < MIDCODE_LOAD0) or (k > MIDCODE_LOAD8) then
+		SimpleError("lvalue required");
+	end if;
+
+	address := lvalue.left;
+	lvalue.left := (0 as [Node]);
+	Discard(lvalue);
 end sub;
 
 sub CheckExpressionType(node: [Node], type: [Symbol])

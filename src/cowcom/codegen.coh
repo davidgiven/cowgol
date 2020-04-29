@@ -363,11 +363,14 @@ sub Generate(rootnode: [Node])
 
 		# We have found a rule for this instruction.
 
-		#EmitString("matched rule ");
-		#EmitUint8(ruleid);
-		#EmitString(" op ");
-		#EmitUint8(node.op);
-		#E_nl();
+		#print("matched rule ");
+		#print_i8(ruleid);
+		#print(" op ");
+		#print_i8(node.op);
+		#print(" ");
+		#print_hex_i32(node as intptr as uint32);
+		#print_nl();
+
 		producer.ruleid := ruleid;
 		producer.producable_regs := rule.producable_regs;
 		producer.output_regs := rule.uses_regs;

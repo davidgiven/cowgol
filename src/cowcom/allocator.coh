@@ -17,4 +17,17 @@ sub StrDupBraced(s: string): (news: string)
 	[p] := 0;
 end sub;
 
+sub StrDupArrayed(s: string, i: Size): (news: string)
+	var len := StrLen(s);
+	news := Alloc(len + 2);
+	var p := news;
+	MemCopy(s, len, p);
+	p := p + len;
+	[p] := '[';
+	p := p + 1;
+	[p] := ']';
+	p := p + 1;
+	[p] := 0;
+end sub;
+
 

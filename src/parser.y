@@ -69,8 +69,9 @@
 %syntax_error {
     fatal("syntax error: unexpected %s", yyTokenName[yymajor]);
 }
+%stack_size 200
 %stack_overflow {
-    fatal("stack overflow");
+    fatal("parser stack overflow");
 }
 
 %token_destructor

@@ -124,3 +124,21 @@ sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol])
 	end if;
 end sub;
 
+sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol])
+	CheckNotPartialType(type);
+
+	arraytype := AddSymbol(0 as [Namespace], 0 as [Token]);
+	arraytype.name := StrDupArrayed(type.name, size);
+	arraytype.kind := TYPE;
+	arraytype.typedata.kind := TYPE_ARRAY;
+	var w := type.typedata.stride * (size - 1) + type.typedata.width;
+	if w < 0 then
+		w := 0;
+	end if;
+	arraytype.typedata.width := w;
+	arraytype.typedata.alignment := type.typedata.alignment;
+	arraytype.typedata.stride := type.typedata.stride * size;
+	arraytype.typedata.arraytype.element := type;
+	arraytype.typedata.arraytype.size := size;
+end sub;
+
