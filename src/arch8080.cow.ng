@@ -829,6 +829,13 @@ gen stk4 := CAST14(a:rhs, sext==0) uses hl
 	ArchEmitMove(REG_HL, 0);
 }
 
+gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
+{
+	E_lxi(REG_BC, 0);
+	ArchEmitMove(REG_BC, 0);
+	ArchEmitMove(REG_HL, 0);
+}
+
 gen a := CAST41(stk4) uses hl
 {
 	ArchEmitMove(0, REG_HL);
