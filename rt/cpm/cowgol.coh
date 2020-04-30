@@ -1,11 +1,11 @@
 var TOP: [uint8];
 @asm "extrn __top";
 @asm "lxi h, __top";
-@asm "shld ", TOP;
+@asm "shld", TOP;
 
 var HIMEM: [uint8];
 @asm "lhld 6";
-@asm "shld ", HIMEM;
+@asm "shld", HIMEM;
 
 sub Exit()
 	@asm "extrn _exit";
@@ -17,7 +17,7 @@ sub AlignUp(in: intptr): (out: intptr)
 end sub;
 
 sub print_char(c: uint8)
-	@asm "lda ", c;
+	@asm "lda", c;
 	@asm "mov e, a";
 	@asm "mvi c, 2";
 	@asm "call 5";

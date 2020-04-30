@@ -632,6 +632,16 @@ gen a := MUL1(a, b)
 	E("\t(mul a, b)\n");
 }
 
+gen a := RSHIFTU1(a, b) uses bc
+{
+	E_callhelper("lsr1");
+}
+
+gen a := LSHIFT1(a, b) uses bc
+{
+	E_callhelper("asl1");
+}
+
 // --- 16-bit arithmetic ----------------------------------------------------
 
 gen hl|bc|de := ADD2($$, CONSTANT(value==1))
@@ -677,6 +687,21 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	else
 		E_dad($lhs);
 	end if;
+}
+
+gen hl := RSHIFTU2(hl, b) uses a
+{
+	E_callhelper("lsr2");
+}
+
+gen hl := RSHIFTS2(hl, b) uses a
+{
+	E_callhelper("asr2");
+}
+
+gen hl := LSHIFT2(hl, b) uses a
+{
+	E_callhelper("asl2");
 }
 
 // --- 32-bit arithmetic ----------------------------------------------------
@@ -827,6 +852,11 @@ gen stk4 := CAST14(a:rhs, sext==0) uses hl
 	ArchEmitMove(REG_HL, 0);
 	E("\tmov l, a\n");
 	ArchEmitMove(REG_HL, 0);
+}
+
+gen a := CAST21(hl|bc|de:rhs)
+{
+	E_movlo($rhs, REG_A);
 }
 
 gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc

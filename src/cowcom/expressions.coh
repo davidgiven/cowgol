@@ -262,11 +262,51 @@ sub ExprEor(lhs: [Node], rhs: [Node]): (result: [Node])
 	result.type := lhs.type;
 end sub;
 
-sub ExprLShift(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprLShift not supported");
+sub expr_i_checkrhsconst(rhs: [Node])
+	if rhs.op != MIDCODE_CONSTANT then
+		SimpleError("LHS of shift can only be constant if the RHS is also constant");
+	end if;
+end sub;
+
+sub expr_i_checkshift(lhs: [Node], rhs: [Node])
+	if IsNum(lhs.type) == 0 then
+		SimpleError("number required on LHS of shift");
+	end if;
+	CheckExpressionType(rhs, uint8_type);
 end sub;
 
 sub ExprRShift(lhs: [Node], rhs: [Node]): (result: [Node])
-	SimpleError("ExprRShift not supported");
+	if lhs.op == MIDCODE_CONSTANT then
+		expr_i_checkrhsconst(rhs);
+		lhs.constant.value := lhs.constant.value >> (rhs.constant.value as uint8);
+		result := lhs;
+		Discard(rhs);
+		return;
+	end if;
+
+	expr_i_checkshift(lhs, rhs);
+
+	result := MidRshiftu(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
+
+	if IsSNum(lhs.type) != 0 then
+		result.op := result.op + (MIDCODE_RSHIFTS0-MIDCODE_RSHIFTU0);
+	end if;
 end sub;
+
+sub ExprLShift(lhs: [Node], rhs: [Node]): (result: [Node])
+	if lhs.op == MIDCODE_CONSTANT then
+		expr_i_checkrhsconst(rhs);
+		lhs.constant.value := lhs.constant.value << (rhs.constant.value as uint8);
+		result := lhs;
+		Discard(rhs);
+		return;
+	end if;
+
+	expr_i_checkshift(lhs, rhs);
+
+	result := MidLshift(NodeWidth(lhs), lhs, rhs);
+	result.type := lhs.type;
+end sub;
+
 
