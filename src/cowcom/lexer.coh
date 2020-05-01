@@ -227,6 +227,9 @@ sub LexerIncludeFile(path: string)
 		MemCopy(p.path, il, f.path);
 		MemCopy(path, fl+1, f.path + il);
 		if FCBOpenIn(&f.fcb, f.path) == 0 then
+			print("Opened: ");
+			print(f.path);
+			print_nl();
 			current_file := f;
 			return;
 		end if;

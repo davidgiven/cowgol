@@ -431,12 +431,7 @@ gen ENDSUB():s
 		E("\tret\n");
 	end if;
 
-	E("\tdseg\nw");
-	E_u16($s.subr.id);
-	E(":\tds ");
-	E_u16($s.subr.workspace[0]);
-	E("\n");
-
+	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
 	EmitterPopChunk('S');
 }
 

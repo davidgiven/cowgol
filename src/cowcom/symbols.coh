@@ -86,15 +86,15 @@ sub InitVariable(symbol: [Symbol], type: [Symbol])
 	symbol.vardata.type := type;
 	symbol.vardata.subr := current_subr;
 	ArchInitVariable(symbol);
-	print("var ");
-	print(symbol.name);
-	print(" at ");
-	print(current_subr.name);
-	print(" 0x");
-	print_hex_i16(symbol.vardata.offset as uint16);
-	print("+");
-	print_hex_i16(symbol.vardata.type.typedata.width as uint16);
-	print_nl();
+	#print("var ");
+	#print(symbol.name);
+	#print(" at ");
+	#print(current_subr.name);
+	#print(" 0x");
+	#print_hex_i16(symbol.vardata.offset as uint16);
+	#print("+");
+	#print_hex_i16(symbol.vardata.type.typedata.width as uint16);
+	#print_nl();
 end sub;
 
 sub MakeNumberType(width: uint8, is_signed: uint8, name: string): (symbol: [Symbol])
