@@ -17,7 +17,9 @@
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %left AS.
+%right NEXT PREV.
 %right NOT TILDE.
+%right OPENSQ CLOSESQ.
 
 %token_type {[Token]}
 
@@ -96,15 +98,13 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 
 /* --- Assignments ------------------------------------------------------- */
 
-statement ::= lvalue(E1) ASSIGN expression(E2) SEMICOLON.
+statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 {
-	if IsPtr(E1.type) == 0 then
-		SimpleError("you can only assign to lvalues");
-	end if;
+	var type := E1.type;
+	var address := UndoLValue(E1);
 
-	var e := E1.type.typedata.pointertype.element;
-	CheckExpressionType(E2, e);
-	Generate(MidStore(e.typedata.width as uint8, E2, E1));
+	CheckExpressionType(E2, type);
+	Generate(MidStore(type.typedata.width as uint8, E2, address));
 }
 
 /* --- Simple loops ------------------------------------------------------ */
@@ -337,24 +337,52 @@ expression(E) ::= expression(E1) PIPE expression(E2).      { E := ExprOr(E1, E2)
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
 
-expression(E) ::= lvalue(E1).
+expression(E) ::= expression(E1) AS typeref(T).
 {
-	if E1.type != (0 as [Symbol]) then
-		var dereftype := E1.type.typedata.pointertype.element;
-		if IsScalar(dereftype) == 0 then
-			SimpleError("non-scalars cannot be used in this context");
+	CheckNotPartialType(T);
+	if E1.type.typedata.width != T.typedata.width then
+		if (IsPtr(E1.type) != 0) or (IsPtr(T) != 0) then
+			SimpleError("cast between pointer and non-pointer of different size");
 		end if;
-		E := MidLoad(dereftype.typedata.width as uint8, E1);
-		E.type := dereftype;
+
+		E := MidCCast(T.typedata.width as uint8, E1, IsSNum(E1.type));
 	else
 		E := E1;
 	end if;
+	E.type := T;
 }
 
-/* --- Lvalues ----------------------------------------------------------- */
+expression(E) ::= AMPERSAND expression(E1).
+{
+	E := UndoLValue(E1);
+}
 
-%type lvalue {[Node]}
-lvalue(E) ::= oldid(S).
+%include
+{
+	sub parser_i_bad_next_prev()
+		SimpleError("@next and @prev only work on pointers");
+	end sub;
+}
+
+expression(E) ::= NEXT expression(E1).
+{
+	if IsPtr(E1.type) == 0 then
+		parser_i_bad_next_prev();
+	end if;
+	E := MidCAdd(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E.type := E1.type;
+}
+
+expression(E) ::= PREV expression(E1).
+{
+	if IsPtr(E1.type) == 0 then
+		parser_i_bad_next_prev();
+	end if;
+	E := MidCSub(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E.type := E1.type;
+}
+
+expression(E) ::= oldid(S).
 {
 	case S.kind is
 		when CONST:
@@ -363,6 +391,7 @@ lvalue(E) ::= oldid(S).
 		when VAR:
 			E := MidAddress(S, 0);
 			E.type := MakePointerType(S.vardata.type);
+			E := MakeLValue(E);
 
 		when else:
 			StartError();
@@ -370,6 +399,45 @@ lvalue(E) ::= oldid(S).
 			print(" is not a value");
 			EndError();
 	end case;
+}
+
+expression(E) ::= OPENSQ expression(E1) CLOSESQ.
+{
+	if IsPtr(E1.type) == 0 then
+		SimpleError("cannot dereference non-pointers");
+	end if;
+
+	E := MakeLValue(E1);
+}
+
+expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
+{
+	var type := E1.type;
+	var address := UndoLValue(E1);
+
+	if IsArray(type) == 0 then
+		StartError();
+		print("you can only index an array, not a ");
+		print(type.name);
+		EndError();
+	end if;
+
+	CheckExpressionType(E2, intptr_type);
+	if IsNum(E2.type) == 0 then
+		SimpleError("array indices must be numbers");
+	end if;
+
+	var elementtype := type.typedata.arraytype.element;
+	var w := intptr_type.typedata.width as uint8;
+
+	var displacement := MidCMul(w, E2,
+				MidConstant(type.typedata.stride as int32));
+	displacement.type := intptr_type;
+
+	var adjustedaddress := MidCAdd(w, address, displacement);
+	adjustedaddress.type := MakePointerType(elementtype);
+
+	E := MakeLValue(adjustedaddress);
 }
 
 %type cvalue {Arith}
@@ -413,6 +481,16 @@ typeref(S) ::= eitherid(ID).
 typeref(S) ::= OPENSQ typeref(S1) CLOSESQ.
 {
 	S := MakePointerType(S1);
+}
+
+typeref(S) ::= typeref(S1) OPENSQ cvalue(C) CLOSESQ.
+{
+	S := MakeArrayType(S1, C as uint16);
+}
+
+typeref(S) ::= typeref(S1) OPENSQ CLOSESQ.
+{
+	S := MakeArrayType(S1, 0);
 }
 
 statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
@@ -596,20 +674,26 @@ inputarg ::= expression(E).
  * return-value statements can do the type checking and codegen. */
 
 %type outputargs {[Node]}
-outputargs(R) ::= OPENPAREN outputarglist(A) CLOSEPAREN.
+outputargs(R) ::= OPENPAREN outputarglist(L) COMMA outputarg(E) CLOSEPAREN.
 {
-	R := A;
+	R := MidPair(E, L);
 }
 
 %type outputarglist {[Node]}
-outputarglist(A) ::= lvalue(E).
+outputarglist(A) ::= outputarg(E).
 {
 	A := MidPair(E, 0 as [Node]);
 }
 
-outputarglist(A) ::= outputarglist(L) COMMA lvalue(E).
+outputarglist(A) ::= outputarglist(L) COMMA outputarg(E).
 {
 	A := MidPair(E, L);
+}
+
+%type outputarg {[Node]}
+outputarg(E) ::= expression(E1).
+{
+	E := UndoLValue(E1);
 }
 
 /* --- Subroutine definitions -------------------------------------------- */

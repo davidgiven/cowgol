@@ -70,7 +70,7 @@ end sub;
 sub print_hex_i8(value: uint8)
     var i: uint8 := 2;
     loop
-        var digit: uint8 := value >> 4;
+        var digit := value >> 4;
         if digit < 10 then
             digit := digit + '0';
         else

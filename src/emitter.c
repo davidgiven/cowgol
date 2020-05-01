@@ -31,16 +31,16 @@ static void write_record_header(char kind, uint16_t len)
 	fprintf(outfile, "%c%04X", kind, len);
 }
 
-void emitter_reference_subroutine(Subroutine* user, Subroutine* used)
+void emitter_reference_subroutine(Subroutine* sub, Subroutine* requires)
 {
-	write_record_header('R', 9); /* includes newline */
-	fprintf(outfile, "%04X%04X\n", user->id, used->id);
+	write_record_header('R', 8);
+	fprintf(outfile, "%04X%04X", sub->id, requires->id);
 }
 
 void emitter_declare_subroutine(Subroutine* sub)
 {
-	write_record_header('N', 4 + 1 + strlen(sub->name));
-	fprintf(outfile, "%04X%s\n", sub->id, sub->name);
+	write_record_header('N', 4 + strlen(sub->name));
+	fprintf(outfile, "%04X%s", sub->id, sub->name);
 }
 
 void emitter_open_chunk(void)

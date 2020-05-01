@@ -1,6 +1,9 @@
 #include "cowgol-cgen.h"
 
-static i8 ram[0x10000 / 8];
+/* Really we should only have 64kB of RAM, but cgen intptr is 8 bytes which
+ * quickly gobbles through it (cowlink can't load the entire compiler at
+ * once). So, use 128kB. */
+static i8 ram[0x20000 / 8];
 
 i8* __top = (i8*) ram;
 i8* __himem = (i8*) ((i1*)ram + sizeof(ram));

@@ -18,6 +18,7 @@ record HasElementSymbol
 end record;
 
 record ArrayTypeSymbol: HasElementSymbol
+	size: Size;
 end record;
 
 record PointerTypeSymbol: HasElementSymbol

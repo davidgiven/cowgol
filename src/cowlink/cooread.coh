@@ -1,7 +1,6 @@
 record Subroutine
 	next: [Subroutine];
 	id: uint16;
-	offset: uint32;
 	refs: [Reference];
 	name: [uint8];
 	used: uint8;
@@ -9,12 +8,13 @@ end record;
 
 record Reference
 	next: [Reference];
-	target: [Subroutine];
+	requires: [Subroutine];
 end record;
 
 record Coo
 	fcb: FCB;
 	subroutines: [Subroutine];
+	next: [Coo];
 end record;
 
 sub read_hex4(fcb: [FCB]): (val: uint16)
@@ -55,22 +55,22 @@ sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
 	end loop;
 end sub;
 
-sub AddRef(user: [Subroutine], used: [Subroutine])
-	var ref := user.refs;
+sub AddRef(subr: [Subroutine], requires: [Subroutine])
+	var ref := subr.refs;
 	loop
 		if ref == (0 as [Reference]) then
 			break;
 		end if;
-		if ref.target == used then
+		if ref.requires == requires then
 			return;
 		end if;
 		ref := ref.next;
 	end loop;
 
 	ref := Alloc(@bytesof Reference) as [Reference];
-	ref.target := used;
-	ref.next := user.refs;
-	user.refs := ref;
+	ref.requires := requires;
+	ref.next := subr.refs;
+	subr.refs := ref;
 end sub;
 
 sub FindSub(coo: [Coo], id: uint16): (subroutine: [Subroutine])
@@ -94,10 +94,7 @@ end sub;
 sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 	coo := Alloc(@bytesof Coo) as [Coo];
 	if FCBOpenIn(&coo.fcb, filename) != 0 then
-		print("error: unable to open '");
-		print(filename);
-		print("'\n");
-		ExitWithError();
+		CannotOpen(filename);
 	end if;
 
 	var id: uint16;
@@ -105,19 +102,50 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 		var c := FCBGetChar(&coo.fcb);
 		var len := read_hex4(&coo.fcb);
 		var here := FCBPos(&coo.fcb);
+		var subroutine: [Subroutine];
 		if c == 'E' then
 			break;
 		elseif c == 'S' then
 			id := read_hex4(&coo.fcb);
-			#var subroutine := FindSub(coo, id);
+			subroutine := FindSub(coo, id);
 		elseif c == 'R' then
-			var userid := read_hex4(&coo.fcb);
-			var usedid := read_hex4(&coo.fcb);
-			AddRef(FindSub(coo, userid), FindSub(coo, usedid));
+			var subrid := read_hex4(&coo.fcb);
+			var requiresid := read_hex4(&coo.fcb);
+			AddRef(FindSub(coo, subrid), FindSub(coo, requiresid));
+		elseif c == 'W' then
+			
 		elseif c == 'N' then
 			id := read_hex4(&coo.fcb);
+			subroutine := FindSub(coo, id);
+			subroutine.name := read_string(&coo.fcb, (len as uint8) - 4);
+		else
+			print("error: unsupported record '");
+			print_char(c);
+			print("' in coofile\n");
+			ExitWithError();
+		end if;
+		FCBSeek(&coo.fcb, here + (len as uint32));
+	end loop;
+end sub;
+
+sub WriteSubroutinesToOutputFile(fcb: [FCB], coo: [Coo])
+	FCBSeek(&coo.fcb, 0);
+	loop
+		var c := FCBGetChar(&coo.fcb);
+		var len := read_hex4(&coo.fcb);
+		var here := FCBPos(&coo.fcb);
+		if c == 'E' then
+			break;
+		elseif c == 'S' then
+			var id := read_hex4(&coo.fcb);
 			var subroutine := FindSub(coo, id);
-			subroutine.name := read_string(&coo.fcb, (len as uint8) - 5);
+			if subroutine.used != 0 then
+				var length := (len - 4) as intptr;
+				var buffer := Alloc(length);
+				FCBGetBlock(&coo.fcb, buffer, length);
+				FCBPutBlock(fcb, buffer, length);
+				Free(buffer);
+			end if;
 		end if;
 		FCBSeek(&coo.fcb, here + (len as uint32));
 	end loop;

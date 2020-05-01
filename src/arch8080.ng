@@ -241,6 +241,7 @@ gen STARTSUB():s
     E("\tcseg\n");
     if ($s.sub->externname)
         E("\tpublic %s\n", $s.sub->externname);
+    E("\tpublic %s\n", subref($s.sub));
     E("%s:\n", subref($s.sub));
 
     if ($s.sub->inputparameters != 0)

@@ -4,6 +4,7 @@ include "malloc.coh";
 include "strings.coh";
 include "file.coh";
 
+include "src/cowlink/utils.coh";
 include "src/cowlink/cooread.coh";
 include "src/cowlink/graph.coh";
 
@@ -11,6 +12,7 @@ print("COWLINK: ");
 print_i16((GetFreeMemory() >> 10) as uint16);
 print("kB free\n");
 
+var coos: [Coo] := 0 as [Coo];
 var outputFilename: [uint8] := 0 as [uint8];
 
 sub SyntaxError()
@@ -23,7 +25,10 @@ sub AddInputFile(filename: [uint8])
 	print_nl();
 
 	var coo := OpenAndLoadCoo(filename);
+	print("Calculating dependency graph...\n");
 	CalculateDependencyGraph(coo);
+	coo.next := coos;
+	coos := coo;
 end sub;
 
 ArgvInit();
@@ -45,6 +50,14 @@ end loop;
 if outputFilename == 0 as [uint8] then
 	print("No output filename specified\n");
 end if;
+
+var outputFcb: FCB;
+if FCBOpenOut(&outputFcb, outputFilename) != 0 then
+	CannotOpen(outputFilename);
+end if;
+print("Writing output file...\n");
+WriteSubroutinesToOutputFile(&outputFcb, coos);
+var i := FCBClose(&outputFcb);
 
 print("done: ");
 print_i16((GetFreeMemory() >> 10) as uint16);

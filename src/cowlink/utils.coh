@@ -1,0 +1,8 @@
+sub CannotOpen(filename: [uint8])
+	print("error: unable to open '");
+	print(filename);
+	print("'\n");
+	ExitWithError();
+end sub;
+
+

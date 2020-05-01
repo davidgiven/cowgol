@@ -1,4 +1,4 @@
-const STACK_SIZE := 32;
+const STACK_SIZE := 128;
 var stack: [Subroutine][STACK_SIZE];
 var sp: uint8 := 0;
 
@@ -22,9 +22,13 @@ sub CalculateDependencyGraph(coo: [Coo])
 					break;
 				end if;
 
-				if ref.target.used == 0 then
-					stack[sp] := ref.target;
+				if ref.requires.used == 0 then
+					stack[sp] := ref.requires;
 					sp := sp + 1;
+					if sp == STACK_SIZE then
+						print("error: dependency graph overflow\n");
+						ExitWithError();
+					end if;
 				end if;
 				ref := ref.next;
 			end loop;
@@ -32,17 +36,21 @@ sub CalculateDependencyGraph(coo: [Coo])
 	end loop;
 
 	subroutine := coo.subroutines;
+	var total: uint16 := 0;
+	var used: uint16 := 0;
 	loop
 		if subroutine == (0 as [Subroutine]) then
 			break;
 		end if;
-		print_hex_i16(subroutine.id);
-		print_char(' ');
-		print_hex_i8(subroutine.used);
-		print_char(' ');
-		print(subroutine.name);
-		print_nl();
+		if subroutine.used != 0 then
+			used := used + 1;
+		end if;
+		total := total + 1;
 		subroutine := subroutine.next;
 	end loop;
+	print_i16(total);
+	print(" subroutines total, of which ");
+	print_i16(used);
+	print(" are used\n");
 end sub;
 

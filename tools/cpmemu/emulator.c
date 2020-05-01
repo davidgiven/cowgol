@@ -334,7 +334,7 @@ static void debug(void)
 			}
 			else if (strcmp(token, "bdos") == 0)
 				cmd_bdos();
-			else if (strcmp(token, "tracing") == 0)
+			else if (strcmp(token, "trace") == 0)
 				cmd_tracing();
 			else
 				printf("Bad command\n");

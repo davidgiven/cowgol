@@ -184,4 +184,17 @@ sub MidCRemu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	end if;
 end sub;
 
-		
+sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node])
+	var srcwidth := lhs.type.typedata.width as uint8;
+	if srcwidth == width then
+		result := lhs;
+	else
+		case srcwidth is
+			when 1: result := MidCast1(width, lhs, issigned);
+			when 2: result := MidCast2(width, lhs, issigned);
+			when 4: result := MidCast4(width, lhs, issigned);
+			when 8: result := MidCast8(width, lhs, issigned);
+		end case;
+	end if;
+end sub;
+

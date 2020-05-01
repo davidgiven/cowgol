@@ -66,15 +66,23 @@ sub E_u8(value: uint8)
 	E_u32(value as uint32);
 end sub;
 
-sub E_h16(value: uint16)
+sub E_h(value: uint32, width: uint8)
 	var buffer: uint8[5];
 	var pe := UIToA(value as uint32, 16, &buffer[0]);
-	var padding := 4 - (pe - &buffer[0]) as uint8;
+	var padding := width - (pe - &buffer[0]) as uint8;
 	while padding != 0 loop
 		EmitByte('0');
 		padding := padding - 1;
 	end loop;
 	E(&buffer[0]);
+end sub;
+
+sub E_h8(value: uint8)
+	E_h(value as uint32, 2);
+end sub;
+
+sub E_h16(value: uint16)
+	E_h(value as uint32, 4);
 end sub;
 
 sub EmitterPushChunk()
@@ -136,6 +144,14 @@ sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
 	E_h16(user.id);
 	E_h16(used.id);
 	EmitterPopChunk('R');
+end sub;
+
+sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size)
+	EmitterPushChunk();
+	E_h16(subr.id);
+	E_h8(wid);
+	E_h16(workspace as uint16);
+	EmitterPopChunk('W');
 end sub;
 
 sub CountParameters(param: [Symbol]): (count: uint8)

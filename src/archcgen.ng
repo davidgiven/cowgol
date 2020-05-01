@@ -428,11 +428,23 @@ gen v8 := LOAD8(ADDRESS():a) { load_a(8, $a.sym, $a.off); }
 		E("\ti%d v%d = v%d %s v%d;\n", width, push(), lhsid, op, rhsid);
 	}
 
+	static void op2_vc(int width, const char* op, int32_t value)
+	{
+		int lhsid = pop();
+		E("\ti%d v%d = v%d %s %d;\n", width, push(), lhsid, op, value);
+	}
+
 	static void op2_vv_signed(int width, const char* op)
 	{
 		int rhsid = pop();
 		int lhsid = pop();
 		E("\ti%d v%d = (s%d)v%d %s (s%d)v%d;\n", width, push(), width, lhsid, op, width, rhsid);
+	}
+
+	static void op2_vc_signed(int width, const char* op, int32_t value)
+	{
+		int lhsid = pop();
+		E("\ti%d v%d = (s%d)v%d %s (s%d)%d;\n", width, push(), width, lhsid, op, width, value);
 	}
 %}
 
@@ -440,51 +452,91 @@ gen v1 := ADD1(v1:lhs, v1:rhs) { op2_vv(1, "+"); }
 gen v2 := ADD2(v2:lhs, v2:rhs) { op2_vv(2, "+"); }
 gen v4 := ADD4(v4:lhs, v4:rhs) { op2_vv(4, "+"); }
 gen v8 := ADD8(v8:lhs, v8:rhs) { op2_vv(8, "+"); }
+gen v1 := ADD1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "+", $rhs.value); }
+gen v2 := ADD2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "+", $rhs.value); }
+gen v4 := ADD4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "+", $rhs.value); }
+gen v8 := ADD8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "+", $rhs.value); }
 
 gen v1 := SUB1(v1:lhs, v1:rhs) { op2_vv(1, "-"); }
 gen v2 := SUB2(v2:lhs, v2:rhs) { op2_vv(2, "-"); }
 gen v4 := SUB4(v4:lhs, v4:rhs) { op2_vv(4, "-"); }
 gen v8 := SUB8(v8:lhs, v8:rhs) { op2_vv(8, "-"); }
+gen v1 := SUB1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "-", $rhs.value); }
+gen v2 := SUB2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "-", $rhs.value); }
+gen v4 := SUB4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "-", $rhs.value); }
+gen v8 := SUB8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "-", $rhs.value); }
 
 gen v1 := MUL1(v1:lhs, v1:rhs) { op2_vv(1, "*"); }
 gen v2 := MUL2(v2:lhs, v2:rhs) { op2_vv(2, "*"); }
 gen v4 := MUL4(v4:lhs, v4:rhs) { op2_vv(4, "*"); }
 gen v8 := MUL8(v8:lhs, v8:rhs) { op2_vv(8, "*"); }
+gen v1 := MUL1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "*", $rhs.value); }
+gen v2 := MUL2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "*", $rhs.value); }
+gen v4 := MUL4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "*", $rhs.value); }
+gen v8 := MUL8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "*", $rhs.value); }
 
 gen v1 := DIVU1(v1:lhs, v1:rhs) { op2_vv(1, "/"); }
 gen v2 := DIVU2(v2:lhs, v2:rhs) { op2_vv(2, "/"); }
 gen v4 := DIVU4(v4:lhs, v4:rhs) { op2_vv(4, "/"); }
 gen v8 := DIVU8(v8:lhs, v8:rhs) { op2_vv(8, "/"); }
+gen v1 := DIVU1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "/", $rhs.value); }
+gen v2 := DIVU2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "/", $rhs.value); }
+gen v4 := DIVU4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "/", $rhs.value); }
+gen v8 := DIVU8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "/", $rhs.value); }
 
 gen v1 := REMU1(v1:lhs, v1:rhs) { op2_vv(1, "%"); }
 gen v2 := REMU2(v2:lhs, v2:rhs) { op2_vv(2, "%"); }
 gen v4 := REMU4(v4:lhs, v4:rhs) { op2_vv(4, "%"); }
 gen v8 := REMU8(v8:lhs, v8:rhs) { op2_vv(8, "%"); }
+gen v1 := REMU1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "%", $rhs.value); }
+gen v2 := REMU2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "%", $rhs.value); }
+gen v4 := REMU4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "%", $rhs.value); }
+gen v8 := REMU8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "%", $rhs.value); }
 
 gen v1 := DIVS1(v1:lhs, v1:rhs) { op2_vv_signed(1, "/"); }
 gen v2 := DIVS2(v2:lhs, v2:rhs) { op2_vv_signed(2, "/"); }
 gen v4 := DIVS4(v4:lhs, v4:rhs) { op2_vv_signed(4, "/"); }
 gen v8 := DIVS8(v8:lhs, v8:rhs) { op2_vv_signed(8, "/"); }
+gen v1 := DIVS1(v1:lhs, CONSTANT():rhs) { op2_vc_signed(1, "/", $rhs.value); }
+gen v2 := DIVS2(v2:lhs, CONSTANT():rhs) { op2_vc_signed(2, "/", $rhs.value); }
+gen v4 := DIVS4(v4:lhs, CONSTANT():rhs) { op2_vc_signed(4, "/", $rhs.value); }
+gen v8 := DIVS8(v8:lhs, CONSTANT():rhs) { op2_vc_signed(8, "/", $rhs.value); }
 
 gen v1 := REMS1(v1:lhs, v1:rhs) { op2_vv_signed(1, "%"); }
 gen v2 := REMS2(v2:lhs, v2:rhs) { op2_vv_signed(2, "%"); }
 gen v4 := REMS4(v4:lhs, v4:rhs) { op2_vv_signed(4, "%"); }
 gen v8 := REMS8(v8:lhs, v8:rhs) { op2_vv_signed(8, "%"); }
+gen v1 := REMS1(v1:lhs, CONSTANT():rhs) { op2_vc_signed(1, "%", $rhs.value); }
+gen v2 := REMS2(v2:lhs, CONSTANT():rhs) { op2_vc_signed(2, "%", $rhs.value); }
+gen v4 := REMS4(v4:lhs, CONSTANT():rhs) { op2_vc_signed(4, "%", $rhs.value); }
+gen v8 := REMS8(v8:lhs, CONSTANT():rhs) { op2_vc_signed(8, "%", $rhs.value); }
 
 gen v1 := AND1(v1:lhs, v1:rhs) { op2_vv(1, "&"); }
 gen v2 := AND2(v2:lhs, v2:rhs) { op2_vv(2, "&"); }
 gen v4 := AND4(v4:lhs, v4:rhs) { op2_vv(4, "&"); }
 gen v8 := AND8(v8:lhs, v8:rhs) { op2_vv(8, "&"); }
+gen v1 := AND1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "&", $rhs.value); }
+gen v2 := AND2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "&", $rhs.value); }
+gen v4 := AND4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "&", $rhs.value); }
+gen v8 := AND8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "&", $rhs.value); }
 
 gen v1 := OR1(v1:lhs, v1:rhs) { op2_vv(1, "|"); }
 gen v2 := OR2(v2:lhs, v2:rhs) { op2_vv(2, "|"); }
 gen v4 := OR4(v4:lhs, v4:rhs) { op2_vv(4, "|"); }
 gen v8 := OR8(v8:lhs, v8:rhs) { op2_vv(8, "|"); }
+gen v1 := OR1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "|", $rhs.value); }
+gen v2 := OR2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "|", $rhs.value); }
+gen v4 := OR4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "|", $rhs.value); }
+gen v8 := OR8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "|", $rhs.value); }
 
 gen v1 := EOR1(v1:lhs, v1:rhs) { op2_vv(1, "^"); }
 gen v2 := EOR2(v2:lhs, v2:rhs) { op2_vv(2, "^"); }
 gen v4 := EOR4(v4:lhs, v4:rhs) { op2_vv(4, "^"); }
 gen v8 := EOR8(v8:lhs, v8:rhs) { op2_vv(8, "^"); }
+gen v1 := EOR1(v1:lhs, CONSTANT():rhs) { op2_vc(1, "^", $rhs.value); }
+gen v2 := EOR2(v2:lhs, CONSTANT():rhs) { op2_vc(2, "^", $rhs.value); }
+gen v4 := EOR4(v4:lhs, CONSTANT():rhs) { op2_vc(4, "^", $rhs.value); }
+gen v8 := EOR8(v8:lhs, CONSTANT():rhs) { op2_vc(8, "^", $rhs.value); }
 
 %{
 	static void op1_v(int width, const char* op)
