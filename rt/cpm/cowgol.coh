@@ -1,5 +1,4 @@
 var TOP: [uint8];
-@asm "extrn __top";
 @asm "lxi h, __top";
 @asm "shld", TOP;
 
@@ -8,7 +7,6 @@ var HIMEM: [uint8];
 @asm "shld", HIMEM;
 
 sub Exit()
-	@asm "extrn _exit";
 	@asm "jmp _exit";
 end sub;
 

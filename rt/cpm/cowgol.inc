@@ -1,8 +1,8 @@
-    extrn cmain
-    public _exit
-
     ; CP/M entry point at 0x100.
 
+    org 0x100
+    cseg
+_entry:
     lxi sp, stackend
     call cmain
 _exit:
@@ -14,7 +14,6 @@ stackend:
 
     ; Multiples two 8-bit values: A = B * D.
     ; Uses DE.
-    public mul1
     cseg
 mul1:
     mvi c, 0            ; initial result
@@ -35,7 +34,6 @@ mul1_nocarry:
 
     ; Multiplies two 16-bit values: HL = HL * DE.
     ; Uses A and BC.
-    public mul2
     cseg
 mul2:
     mov b, h            ; BC = LHS
@@ -69,7 +67,6 @@ mul2_nocarry:
     ; https://github.com/davidgiven/ack/blob/default/mach/i80/libem/mli4.s
     ; It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
     ; and is distributable under the 3-clause BSD license.
-    public mul4
     cseg
 mul4:
     pop h
@@ -140,7 +137,6 @@ mul4_return:
 
     ; Divides two eight-bit unsigned numbers: B / D.
     ; The quotient is returned in A, the remainder in B.
-    public dvrmu1
     cseg
 dvrmu1:
     mvi c, 8            ; bit count
@@ -163,7 +159,6 @@ dvrmu1_2:
 
     ; Divides two eight-bit signed numbers: B / D.
     ; The quotient is returned in D, the remainder in B.
-    public dvrms1
     cseg
 dvrms1:
     mov a, b
@@ -200,7 +195,6 @@ dvrms1_remainder_positive:
 
     ; Divides two sixteen-bit unsigned numbers: DE / BC.
     ; The quotient is returned in DE, the remainder in HL.
-    public dvrmu2
     cseg
 dvrmu2:
     xra a               ; negate BC
@@ -235,7 +229,6 @@ dvrmu2_5:
 
     ; Divides two eight-bit signed numbers: DE / BC.
     ; The quotient is returned in DE, the remainder in HL.
-    public dvrms2
     cseg
 dvrms2:
     mov a, d
@@ -288,7 +281,6 @@ dvrms2_remainder_positive:
     ; https://github.com/davidgiven/ack/blob/default/mach/i80/libem/dvi4.s
     ; It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
     ; and is distributable under the 3-clause BSD license.
-    public dvrmu4
     cseg
 dvrmu4:
     pop b
@@ -326,7 +318,6 @@ dvrmu4:
     ; https://github.com/davidgiven/ack/blob/default/mach/i80/libem/dvi4.s
     ; It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
     ; and is distributable under the 3-clause BSD license.
-    public dvrms4
     cseg
 dvrms4:
     pop b
@@ -437,7 +428,6 @@ dvrmu4_gt:
     ret
 
     ; Divides two four-byte unsigned values from the stack, 
-    public divu4
     cseg
 divu4:
     pop h
@@ -449,7 +439,6 @@ divu4_ret
     jmp 0
 
     ; Takes the remainder of two four-byte unsigned values from the stack, 
-    public remu4
     cseg
 remu4:
     pop h
@@ -465,7 +454,6 @@ remu4_ret
     jmp 0
 
     ; Divides two four-byte signed values from the stack, 
-    public divs4
     cseg
 divs4:
     pop h
@@ -477,7 +465,6 @@ divs4_ret
     jmp 0
 
     ; Takes the remainder of two four-byte nsigned values from the stack, 
-    public rems4
     cseg
 rems4:
     pop h
@@ -493,7 +480,6 @@ rems4_ret
     jmp 0
 
     ; Adds two four-byte values from the stack.
-    public add4
     cseg
 add4:
     pop h
@@ -515,7 +501,6 @@ add4_ret = $ + 1
     jmp 0
 
     ; Subtracts two four-byte values from the stack.
-    public sub4
     cseg
 sub4:
     pop h
@@ -570,7 +555,6 @@ do_sub4:
     
     ; Subtracts a literal value from the four-byte value on the
     ; stack.
-    public sublit4
     cseg
 sublit4:
     pop h ; HL = pointer to RHS
@@ -584,7 +568,6 @@ sublit4:
     pchl
 
     ; ANDs two four-byte values from the stack.
-    public and4
     cseg
 and4:
     pop h
@@ -617,7 +600,6 @@ and4_ret = $ + 1
     jmp 0
 
     ; ORs two four-byte values from the stack.
-    public or4
     cseg
 or4:
     pop h
@@ -650,7 +632,6 @@ or4_ret = $ + 1
     jmp 0
 
     ; Exclusive-ORs two four-byte values from the stack.
-    public eor4
     cseg
 eor4:
     pop h
@@ -683,7 +664,6 @@ eor4_ret = $ + 1
     jmp 0
 
     ; NOTs the four-byte value on the stack.
-    public not4
     cseg
 not4:
     pop h
@@ -709,7 +689,6 @@ not4:
     pchl
 
     ; Negates the four-byte value on the stack.
-    public neg4
     cseg
 neg4:
     pop d
@@ -745,7 +724,6 @@ neg4core:
 
     ; Copies a 32-bit value pointed to from DE to HL.
     ; Corrupts A.
-    public cpy4
     cseg
 cpy4:
     ldax d
@@ -766,7 +744,6 @@ cpy4:
 
     ; Shifts A left B bits.
     ; Corrupts A and B.
-    public asl1
     cseg
 asl1:
     dec b
@@ -776,7 +753,6 @@ asl1:
 
     ; Shifts HL left B bits.
     ; Corrupts A and HL.
-    public asl2
     cseg
 asl2:
     dec b
@@ -786,7 +762,6 @@ asl2:
 
     ; Logical shift A right B bits.
     ; Corrupts A and B.
-    public lsr1
     cseg
 lsr1:
     dec b
@@ -797,7 +772,6 @@ lsr1:
 
     ; Logical shift HL right B bits.
     ; Corrupts A, B and HL.
-    public lsr2
     cseg
 lsr2:
     dec b
@@ -813,7 +787,6 @@ lsr2:
 
     ; Logical shift the value at the top of the stack left B bits.
     ; Corrupts A, B, HL, DE.
-    public asl4
     cseg
 asl4:
     pop h
@@ -842,7 +815,6 @@ asl4_ret = $ + 1
 
     ; Logical shift the value at the top of the stack right B bits.
     ; Corrupts A, B, HL, DE.
-    public lsr4
     cseg
 lsr4:
     pop h
@@ -875,7 +847,6 @@ lsr4_ret = $ + 1
 
     ; Arithmetic shift the value at the top of the stack right B bits.
     ; Corrupts A, B, HL, DE.
-    public asr4
     cseg
 asr4:
     pop h
@@ -909,7 +880,6 @@ asr4_ret = $ + 1
 
     ; Arithmetic shift A right B bits.
     ; Corrupts A, B and C.
-    public asr1
     cseg
 asr1:
     mov c, a        ; old copy of A
@@ -924,7 +894,6 @@ asr1_loop:
 
     ; Arithmetic shift HL right B bits.
     ; Corrupts A, B and HL.
-    public asr2
     cseg
 asr2:
     dec b
@@ -941,7 +910,6 @@ asr2:
 
     ; Loads a 32-bit value at HL and pushes it.
     ; Corrupts BC, DE.
-    public load4
     cseg
 load4:
     mov e, m
@@ -958,7 +926,6 @@ load4:
 
     ; Pops a 32-bit value and stores it at HL.
     ; Corrupts BC, DE.
-    public store4
     cseg
 store4:
     pop d ; return address
@@ -977,7 +944,6 @@ store4:
 
     ; Handles a simple (non-jump) case table.
     ; B is the number of entries. The table is inline.
-    public caset1
     cseg
 caset1:
     pop d               ; DE = pointer to table
@@ -1041,7 +1007,6 @@ caset1_found:
     ; This doesn't set z coherently.
 
     cseg
-    public cmps1
 cmps1:
     xra b               ; test signs
     jp cmps1_u          ; signs are the same
@@ -1054,7 +1019,6 @@ cmps1_u:
 
     ; Signed comparison of de <> hl.
     ; Returns c if de < hl.
-    public cmps2
     cseg
 cmps2:
     mov a, d
@@ -1076,7 +1040,6 @@ cmps2_u:
     ; Equality comparison of HL and DE.
     ; Returns z if a == b.
     ; Uses A.
-    public cmpeq2
     cseg
 cmpeq2:
     ld a, e
@@ -1088,7 +1051,6 @@ cmpeq2:
 
     ; Compares a literal value from the four-byte value on the
     ; stack and returns Z or NZ.
-    public cmpl4
     cseg
 cmpl4:
     pop h ; HL = pointer to RHS
@@ -1108,7 +1070,6 @@ cmpl4:
     ; Unsigned comparison of the two numbers on the top of the stack.
     ; Returns z if a == b.
     ; Returns c if a < b.
-    public cmpu4
     cseg
 cmpu4:
     pop h
@@ -1133,7 +1094,6 @@ cmpu4_ret = $ + 1
 
     ; Signed comparison of the two numbers on the top of the stack.
     ; Returns c if lhs < rhs.
-    public cmps4
     cseg
 cmps4:
     pop d

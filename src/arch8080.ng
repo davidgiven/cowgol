@@ -188,50 +188,16 @@ regdata param stacked;
 gen STARTFILE()
 {
     emitter_open_chunk();
-    E("\textrn add4\n");
-    E("\textrn sub4\n");
-	E("\textrn sublit4\n");
-    E("\textrn neg4\n");
-	E("\textrn mul1\n");
-	E("\textrn mul2\n");
-	E("\textrn mul4\n");
-	E("\textrn dvrmu1\n");
-	E("\textrn dvrms1\n");
-	E("\textrn dvrmu2\n");
-	E("\textrn dvrms2\n");
-	E("\textrn dvrmu4\n");
-	E("\textrn dvrms4\n");
-	E("\textrn divu4\n");
-	E("\textrn divs4\n");
-	E("\textrn remu4\n");
-	E("\textrn rems4\n");
-    E("\textrn cpy4\n");
-    E("\textrn asl1\n");
-    E("\textrn asl2\n");
-	E("\textrn asl4\n");
-	E("\textrn lsr1\n");
-	E("\textrn lsr2\n");
-	E("\textrn lsr4\n");
-	E("\textrn asr1\n");
-	E("\textrn asr2\n");
-	E("\textrn asr4\n");
-	E("\textrn and4\n");
-	E("\textrn or4\n");
-	E("\textrn eor4\n");
-	E("\textrn not4\n");
-	E("\textrn load4\n");
-	E("\textrn store4\n");
-	E("\textrn caset1\n");
-	E("\textrn cmps1\n");
-	E("\textrn cmps2\n");
-	E("\textrn cmpeq2\n");
-	E("\textrn cmpl4\n");
-	E("\textrn cmpu4\n");
-	E("\textrn cmps4\n");
+	E("\tinclude \"rt/cpm/cowgol.inc\"\n");
     emitter_close_chunk(NULL);
 }
 
-gen ENDFILE();
+gen ENDFILE()
+{
+	emitter_open_chunk();
+	E("\tinclude \"rt/cpm/tail.inc\"\n");
+	emitter_close_chunk(NULL);
+}
 
 gen STARTSUB():s
 {
@@ -239,8 +205,6 @@ gen STARTSUB():s
     E("\n");
     E("; %s\n", $s.sub->name);
     E("\tcseg\n");
-    if ($s.sub->externname)
-        E("\tpublic %s\n", $s.sub->externname);
     E("\tpublic %s\n", subref($s.sub));
     E("%s:\n", subref($s.sub));
 
@@ -388,13 +352,6 @@ gen param := PUSHPARAM4(param, stk4);
 %{
 	static void call(Subroutine* sub)
 	{
-		if (sub->externname)
-		{
-			emitter_open_chunk();
-			E("\textrn %s\n", sub->externname);
-			emitter_close_chunk(current_sub);
-		}
-
 		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
 		E("\tcall %s\n", subref(sub));
 	}

@@ -273,9 +273,11 @@ buildnewgen_cowgol() {
 }
 
 zmac8() {
+	local base
+	base="${2%.com}.cim"
 	rule \
-		"bin/zmac -8 $1 -o $2" \
-		"$1 bin/zmac" \
+		"bin/zmac -8 --oo cim $1 -o $base && mv $base $2" \
+		"$1 bin/zmac $3" \
 		$2 \
 		"ZMAC $1"
 }
@@ -285,7 +287,7 @@ as_thumb2_linux() {
         "arm-linux-gnueabihf-as -g $1 -o $2" \
         "$1" \
         "$2" \
-        "AS THUMB2 $base.s"
+        "AS THUMB2 $1"
 }
 
 as_80386_linux() {
@@ -293,19 +295,7 @@ as_80386_linux() {
         "i686-linux-gnu-as -g $1 -o $2" \
         "$1" \
         "$2" \
-        "AS 80386 $base.s"
-}
-
-ld80() {
-	local bin
-	bin="$1"
-	shift
-
-	rule \
-		"bin/ld80 -O bin -c -P0100 $* -s $bin.sym -o $bin" \
-		"$* bin/ld80" \
-		"$bin" \
-		"LD80 $bin"
+        "AS 80386 $1"
 }
 
 uncoo() {
@@ -338,12 +328,7 @@ cowgol_cpm() {
 	base="$OBJDIR/$(dirname $1)/cpm/${1%.cow}"
 	cowgol_cpm_coo $1 $base.coo $base.log "$3"
     uncoo $base.coo $base.asm
-	zmac8 $base.asm $base.rel
-	ld80 $base.bin \
-		$OBJDIR/rt/cpm/cowgol.rel \
-		$base.rel \
-		$OBJDIR/rt/cpm/tail.rel
-	rule "dd if=$base.bin of=$2 bs=128 skip=2 status=none" "$base.bin" "$2" "DD $1"
+	zmac8 $base.asm "$2" "rt/cpm/cowgol.inc rt/cpm/tail.inc"
 }
 
 test_cpm() {
@@ -524,18 +509,6 @@ buildlibrary libzmac.a \
 buildprogram zmac \
 	libzmac.a
 
-buildlibrary libld80.a \
-	third_party/ld80/main.c \
-	third_party/ld80/readobj.c \
-	third_party/ld80/section.c \
-	third_party/ld80/symbol.c \
-	third_party/ld80/fixup.c \
-	third_party/ld80/do_out.c \
-	third_party/ld80/optget.c
-
-buildprogram ld80 \
-	libld80.a
-
 buildmkiburgcodes $OBJDIR/tools/newgen/iburgcodes.h src/midcodes.tab
 buildmkiburgcodes $OBJDIR/tools/newgen/iburgcodes-coh.h src/midcodes.coh.tab
 buildlemon $OBJDIR/tools/newgen/parser.c tools/newgen/parser.y
@@ -627,8 +600,6 @@ buildlibrary libmkdfs.a \
 
 buildprogram mkdfs libmkdfs.a
 
-zmac8 rt/cpm/cowgol.asm $OBJDIR/rt/cpm/cowgol.rel
-zmac8 rt/cpm/tail.asm $OBJDIR/rt/cpm/tail.rel
 as_thumb2_linux rt/thumb2-linux/cowgol.s $OBJDIR/rt/thumb2-linux/cowgol.o
 as_80386_linux rt/80386-linux/cowgol.s $OBJDIR/rt/80386-linux/cowgol.o
 cfile $OBJDIR/rt/cgen/cowgol-cgen.o rt/cgen/cowgol-cgen.c
