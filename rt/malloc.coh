@@ -31,21 +31,23 @@ sub DumpBlocks()
 end sub;
 
 sub Alloc(length: intptr): (block: [uint8])
-	length := AlignUp(length + @bytesof MallocUsedBlock);
+	var totallength := AlignUp(length + @bytesof MallocUsedBlock);
 
 	var prev := freeList;
 	var p := prev.next;
 	loop
-		if p.size == length then
+		var s := p.size;
+		if s == totallength then
 			# We found a hole of exactly the right size. Unlink and return it.
-			print("exact size\n");
 			prev.next := p.next;
 			freeList := prev;
 			break;
-		elseif p.size > length then
+		elseif (s - @bytesof MallocFreeBlock) > totallength then
 			# We found a hole bigger than we need. We shrink the hole and return
-			# what's left.
-			p.size := p.size - length;
+			# what's left. We make sure to always leave enough space for the
+			# MallocFreeBlock structure (which is bigger than the
+		    # MallocUsedBlock structure).
+			p.size := s - totallength;
 			p := p + p.size;
 			break;
 		end if;
@@ -62,15 +64,16 @@ sub Alloc(length: intptr): (block: [uint8])
 		p := p.next;
 	end loop;
 
+	#print("malloc ");
+	#print_hex_i32(p as intptr as uint32);
+	#print("+");
+	#print_hex_i32(totallength as uint32);
+	#print_nl();
+
 	var usedblock := p as [MallocUsedBlock];
-	usedblock.size := length;
+	usedblock.size := totallength;
 	block := (@next usedblock) as [uint8];
 
-	#print("malloc ");
-	#print_hex_i32(block as intptr as uint32);
-	#print("+");
-	#print_hex_i32(length as uint32);
-	#print_nl();
 	MemSet(block, 0, length);
 end sub;
 
