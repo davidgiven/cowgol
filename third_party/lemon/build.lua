@@ -1,3 +1,5 @@
+include "build/yacc.lua"
+
 cprogram {
 	name = "lemon",
 	srcs = { "./lemon.c" }

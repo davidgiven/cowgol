@@ -54,3 +54,22 @@ cprogram {
     },
 }
 
+definerule("newgen",
+	{
+		srcs = { type="targets" },
+	},
+	function (e)
+		return normalrule {
+			name = e.name,
+			ins = {
+				"tools/newgen+newgen",
+				e.srcs
+			},
+			outleaves = { "inssel.c", "inssel.h" },
+			commands = {
+				"%{ins[1]} %{ins[2]} %{outs[1]} %{outs[2]}"
+			}
+		}
+	end
+)
+

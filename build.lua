@@ -11,6 +11,7 @@ installable {
 		["bin/lemon-cowgol"] = "third_party/lemon+lemon-cowgol",
 		["bin/newgen"] = "tools/newgen+newgen",
 		["bin/newgen-cowgol"] = "tools/newgen+newgen-cowgol",
+		"src/oldcom+all-oldcoms",
 	}
 }
 
