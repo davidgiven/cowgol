@@ -87,7 +87,7 @@ static void set_result(uint16_t result)
 
 void bios_coldboot(void)
 {
-	memcpy(&ram[FBASE], bdos_data, bdos_len);
+	memcpy(&ram[FBASE], biosbdosdata_data, biosbdosdata_len);
 	z80ex_set_reg(z80, regPC, COLDSTART);
 }
 
@@ -140,8 +140,9 @@ static void bios_warmboot(void)
 	}
 	else
 	{
-		memcpy(&ram[CBASE], ccp_data, ccp_len);
-		z80ex_set_reg(z80, regPC, CBASE);
+		fatal("CCP not supported in this version");
+		//memcpy(&ram[CBASE], ccp_data, ccp_len);
+		//z80ex_set_reg(z80, regPC, CBASE);
 	}
 }
 

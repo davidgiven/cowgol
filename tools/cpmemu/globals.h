@@ -14,8 +14,8 @@ extern void showregs(void);
 extern const uint8_t ccp_data[];
 extern const int ccp_len;
 
-extern const uint8_t bdos_data[];
-extern const int bdos_len;
+extern const uint8_t biosbdosdata_data[];
+extern const int biosbdosdata_len;
 
 extern void bios_coldboot(void);
 
