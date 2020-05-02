@@ -43,10 +43,10 @@ definerule("zmac",
                 "third_party/zmac+zmac",
                 e.srcs
             },
-            outleaves = { e.name..ext, e.name..".lst" },
+            outleaves = { e.name..ext },
             deps = e.deps,
             commands = {
-                "%{ins[1]} -m "..relflag.." "..archflag.." -o %{outs[1]} -o %{outs[2]} %{hdrpaths} %{ins[2]}"
+                "%{ins[1]} -m "..relflag.." "..archflag.." -o %{outs[1]} %{hdrpaths} %{ins[2]}"
             },
             vars = {
                 hdrpaths = hdrpaths,
