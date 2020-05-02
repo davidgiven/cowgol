@@ -37,3 +37,5 @@ _top:
 	.space 64*1024
 _himem:
 
+.code 16
+

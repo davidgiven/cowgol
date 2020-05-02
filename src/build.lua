@@ -4,7 +4,20 @@ definerule("cowgol",
 		toolchain = { type="string" },
 	},
 	function (e)
-		return _G[e.toolchain] {
+		return _G["compile-"..e.toolchain] {
+			name = e.name,
+			srcs = e.srcs
+		}
+	end
+)
+
+definerule("cowlink",
+	{
+		srcs = { type="targets" },
+		toolchain = { type="string" },
+	},
+	function (e)
+		return _G["link-"..e.toolchain] {
 			name = e.name,
 			srcs = e.srcs
 		}
@@ -35,7 +48,27 @@ definerule("oldcom",
 	end
 )
 
-definerule("oldcom-cpm-8080",
+definerule("uncoo",
+	{
+		srcs = { type="targets" },
+		extension = { type="string" },
+	},
+	function (e)
+		return normalrule {
+			name = e.name,
+			ins = {
+				"scripts/uncoo.lua",
+				e.srcs
+			},
+			outleaves = { e.name.."."..e.extension },
+			commands = {
+				"lua %{ins[1]} %{ins[2]} %{outs[1]}"
+			}
+		}
+	end
+)
+				
+definerule("compile-oldcom-cpm-8080",
 	{
 		srcs = { type="targets" },
 	},
@@ -49,7 +82,30 @@ definerule("oldcom-cpm-8080",
 	end
 )
 
-definerule("oldcom-linux-80386",
+definerule("link-oldcom-cpm-8080",
+	{
+		srcs = { type="targets" },
+	},
+	function (e)
+		local asm = uncoo {
+			name = e.name.."-asm",
+			srcs = e.srcs,
+			extension = "asm"
+		}
+
+		return zmac {
+			name = e.name,
+			relocatable = false,
+			srcs = { asm },
+			deps = {
+				"rt/cpm/cowgol.inc",
+				"rt/cpm/tail.inc",
+			}
+		}
+	end
+)
+
+definerule("compile-oldcom-linux-80386",
 	{
 		srcs = { type="targets" },
 	},
@@ -63,7 +119,41 @@ definerule("oldcom-linux-80386",
 	end
 )
 
-definerule("oldcom-linux-thumb2",
+definerule("link-oldcom-linux-80386",
+	{
+		srcs = { type="targets" },
+	},
+	function (e)
+		local asm = uncoo {
+			name = e.name.."-asm",
+			srcs = {
+				e.srcs,
+				"rt/80386-linux/cowgol.inc",
+			},
+			extension = "s"
+		}
+
+		local obj = normalrule {
+			name = e.name.."-o",
+			ins = { asm },
+			outleaves = { e.name..".o" },
+			commands = {
+				"i686-linux-gnu-as -g %{ins[1]} -o %{outs[1]}"
+			}
+		}
+
+		return normalrule {
+			name = e.name,
+			ins = { obj },
+			outleaves = { e.name..".386" },
+			commands = {
+				"i686-linux-gnu-ld -g %{ins[1]} -o %{outs[1]}"
+			}
+		}
+	end
+)
+
+definerule("compile-oldcom-linux-thumb2",
 	{
 		srcs = { type="targets" },
 	},
@@ -77,7 +167,41 @@ definerule("oldcom-linux-thumb2",
 	end
 )
 
-definerule("oldcom-cgen",
+definerule("link-oldcom-linux-thumb2",
+	{
+		srcs = { type="targets" },
+	},
+	function (e)
+		local asm = uncoo {
+			name = e.name.."-asm",
+			srcs = {
+				e.srcs,
+				"rt/thumb2-linux/cowgol.inc",
+			},
+			extension = "s"
+		}
+
+		local obj = normalrule {
+			name = e.name.."-o",
+			ins = { asm },
+			outleaves = { e.name..".o" },
+			commands = {
+				"arm-linux-gnueabihf-as -g %{ins[1]} -o %{outs[1]}"
+			}
+		}
+
+		return normalrule {
+			name = e.name,
+			ins = { obj },
+			outleaves = { e.name..".386" },
+			commands = {
+				"arm-linux-gnueabihf-ld -g %{ins[1]} -o %{outs[1]}"
+			}
+		}
+	end
+)
+
+definerule("compile-oldcom-cgen",
 	{
 		srcs = { type="targets" },
 	},
@@ -90,4 +214,27 @@ definerule("oldcom-cgen",
 		}
 	end
 )
+
+definerule("link-oldcom-cgen",
+	{
+		srcs = { type="targets" },
+	},
+	function (e)
+		local c = uncoo {
+			name = e.name.."-c",
+			srcs = e.srcs,
+			extension = "c"
+		}
+
+		return cprogram {
+			name = e.name,
+			srcs = { c },
+			deps = { "rt/cgen/cowgol.h" },
+			vars = {
+				["+cflags"] = "-Irt/cgen"
+			}
+		}
+	end
+)
+
 

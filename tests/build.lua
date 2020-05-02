@@ -1,10 +1,32 @@
 include "src/build.lua"
 
-for _, toolchain in ipairs(vars.toolchains) do
-	cowgol {
-		name = "addsub-8bit-"..toolchain,
-		toolchain = toolchain,
-		srcs = { "./addsub-8bit.test.cow" }
-	}
+local files = filenamesof("./*.test.cow")
+local alltests = {}
+for _, file in ipairs(files) do
+	local base = file:gsub("%.test%.cow$", "")
+	for _, toolchain in ipairs(vars.toolchains) do
+		local coo = cowgol {
+			name = base.."-"..toolchain.."-coo",
+			toolchain = toolchain,
+			srcs = { file }
+		}
+
+		local exe = cowlink {
+			name = base.."-"..toolchain.."-exe",
+			toolchain = toolchain,
+			srcs = { coo }
+		}
+
+		alltests[#alltests+1] = coo
+	end
 end
+
+normalrule {
+	name = "tests",
+	outleaves = {"stamp"},
+	ins = alltests,
+	commands = {
+		"touch %{outs}"
+	}
+}
 

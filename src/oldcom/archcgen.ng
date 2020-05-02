@@ -170,7 +170,7 @@ regdata param stacked;
 gen STARTFILE()
 {
     emitter_open_chunk();
-	E("#include \"cowgol-cgen.h\"\n");
+	E("#include \"cowgol.h\"\n");
     emitter_close_chunk(NULL);
 }
 

@@ -19,8 +19,19 @@ installable {
 		["bin/newgen"] = "tools/newgen+newgen",
 		["bin/newgen-cowgol"] = "tools/newgen+newgen-cowgol",
 		"src/oldcom+all-oldcoms",
-		["out-8080.coo"] = "tests+addsub-8bit-oldcom-cpm-8080",
-		["out-80386.coo"] = "tests+addsub-8bit-oldcom-linux-80386",
+	}
+}
+
+normalrule {
+	name = "tests",
+	ins = {
+		"tests+tests"
+	},
+	outleaves = {
+		"stamp"
+	},
+	commands = {
+		"touch %{outs}"
 	}
 }
 

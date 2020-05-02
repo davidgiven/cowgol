@@ -176,8 +176,7 @@ regdata param stacked;
 gen STARTFILE()
 {
     emitter_open_chunk();
-	E(".syntax unified\n");
-	E(".code 16\n");
+	E(".include \"rt/thumb2-linux/cowgol.inc\"\n");
     emitter_close_chunk(NULL);
 }
 
