@@ -24,6 +24,21 @@ definerule("cowlink",
 	end
 )
 
+definerule("runtest",
+	{
+		exe = { type="targets" },
+		toolchain = { type="string" },
+		goodfile = { type="targets" },
+	},
+	function (e)
+		return _G["runtest-"..e.toolchain] {
+			name = e.name,
+			exe = e.exe,
+			goodfile = e.goodfile
+		}
+	end
+)
+
 definerule("oldcom",
 	{
 		srcs = { type="targets" },
@@ -68,6 +83,30 @@ definerule("uncoo",
 	end
 )
 				
+definerule("simpletest",
+	{
+		exe = { type="targets" },
+		goodfile = { type="targets" },
+		runcmd = { type="string" },
+		deps = { type="targets", default={} },
+	},
+	function (e)
+		return normalrule {
+			name = e.name,
+			ins = {
+				e.exe,
+				e.goodfile,
+				e.deps
+			},
+			outleaves = { e.name..".bad" },
+			commands = {
+				e.runcmd.." %{ins[1]} > %{outs[1]}",
+				"diff -u %{ins[2]} %{outs[1]}"
+			}
+		}
+	end
+)
+
 definerule("compile-oldcom-cpm-8080",
 	{
 		srcs = { type="targets" },
@@ -101,6 +140,22 @@ definerule("link-oldcom-cpm-8080",
 				"rt/cpm/cowgol.inc",
 				"rt/cpm/tail.inc",
 			}
+		}
+	end
+)
+
+definerule("runtest-oldcom-cpm-8080",
+	{
+		exe = { type="targets" },
+		goodfile = { type="targets" },
+	},
+	function (e)
+		return simpletest {
+			name = e.name,
+			exe = e.exe,
+			goodfile = e.goodfile,
+			deps = { "tools/cpmemu+cpmemu" },
+			runcmd = "%{ins[3]}"
 		}
 	end
 )
@@ -153,6 +208,21 @@ definerule("link-oldcom-linux-80386",
 	end
 )
 
+definerule("runtest-oldcom-linux-80386",
+	{
+		exe = { type="targets" },
+		goodfile = { type="targets" },
+	},
+	function (e)
+		return simpletest {
+			name = e.name,
+			exe = e.exe,
+			goodfile = e.goodfile,
+			runcmd = "qemu-i386"
+		}
+	end
+)
+
 definerule("compile-oldcom-linux-thumb2",
 	{
 		srcs = { type="targets" },
@@ -201,6 +271,21 @@ definerule("link-oldcom-linux-thumb2",
 	end
 )
 
+definerule("runtest-oldcom-linux-thumb2",
+	{
+		exe = { type="targets" },
+		goodfile = { type="targets" },
+	},
+	function (e)
+		return simpletest {
+			name = e.name,
+			exe = e.exe,
+			goodfile = e.goodfile,
+			runcmd = "qemu-arm"
+		}
+	end
+)
+
 definerule("compile-oldcom-cgen",
 	{
 		srcs = { type="targets" },
@@ -233,6 +318,21 @@ definerule("link-oldcom-cgen",
 			vars = {
 				["+cflags"] = "-Irt/cgen"
 			}
+		}
+	end
+)
+
+definerule("runtest-oldcom-cgen",
+	{
+		exe = { type="targets" },
+		goodfile = { type="targets" },
+	},
+	function (e)
+		return simpletest {
+			name = e.name,
+			exe = e.exe,
+			goodfile = e.goodfile,
+			runcmd = ""
 		}
 	end
 )

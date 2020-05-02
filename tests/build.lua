@@ -17,7 +17,14 @@ for _, file in ipairs(files) do
 			srcs = { coo }
 		}
 
-		alltests[#alltests+1] = coo
+		local test = runtest {
+			name = base.."-"..toolchain.."-test",
+			toolchain = toolchain,
+			exe = { exe },
+			goodfile = { base..".good" }
+		}
+
+		alltests[#alltests+1] = test
 	end
 end
 
