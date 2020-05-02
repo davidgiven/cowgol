@@ -1,6 +1,13 @@
 vars.cflags = { "-g", "-Og" }
 vars.ldflags = { "-lm", "-g" }
 
+vars.toolchains = {
+	"oldcom-cpm-8080",
+	"oldcom-linux-80386",
+	"oldcom-linux-thumb2",
+	"oldcom-cgen"
+}
+
 installable {
 	name = "all",
 	map = {
@@ -12,6 +19,8 @@ installable {
 		["bin/newgen"] = "tools/newgen+newgen",
 		["bin/newgen-cowgol"] = "tools/newgen+newgen-cowgol",
 		"src/oldcom+all-oldcoms",
+		["out-8080.coo"] = "tests+addsub-8bit-oldcom-cpm-8080",
+		["out-80386.coo"] = "tests+addsub-8bit-oldcom-linux-80386",
 	}
 }
 
