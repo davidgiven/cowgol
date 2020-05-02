@@ -26,7 +26,7 @@ definerule("flex",
 		commands = {
 			type="strings",
 			default={
-				"flex -s -t %{ins} > %{outs[1]}"
+				"flex -8 -Cem -s -t %{ins} > %{outs[1]}"
 			}
 		}
 	},
