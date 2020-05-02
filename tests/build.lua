@@ -8,7 +8,8 @@ for _, file in ipairs(files) do
 		local coo = cowgol {
 			name = base.."-"..toolchain.."-coo",
 			toolchain = toolchain,
-			srcs = { file }
+			srcs = { file },
+			deps = { "./_framework.coh" }
 		}
 
 		local exe = cowlink {

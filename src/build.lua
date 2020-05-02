@@ -2,11 +2,13 @@ definerule("cowgol",
 	{
 		srcs = { type="targets" },
 		toolchain = { type="string" },
+		deps = { type="targets", default={} },
 	},
 	function (e)
 		return _G["compile-"..e.toolchain] {
 			name = e.name,
-			srcs = e.srcs
+			srcs = e.srcs,
+			deps = e.deps,
 		}
 	end
 )
@@ -44,6 +46,7 @@ definerule("oldcom",
 		srcs = { type="targets" },
 		rtdir = { type="string" },
 		arch = { type="string" },
+		deps = { type="targets", default={} },
 	},
 	function (e)
 		local coo = normalrule {
@@ -53,6 +56,7 @@ definerule("oldcom",
 				e.srcs,
 				"rt/*.coh",
 				"rt/"..e.rtdir.."/*.coh",
+				e.deps
 			},
 			outleaves = { e.name..".coo" },
 			commands = {
@@ -110,13 +114,15 @@ definerule("simpletest",
 definerule("compile-oldcom-cpm-8080",
 	{
 		srcs = { type="targets" },
+		deps = { type="targets", default={} },
 	},
 	function (e)
 		return oldcom {
 			name = e.name,
 			srcs = e.srcs,
 			rtdir = "cpm",
-			arch = "8080"
+			arch = "8080",
+			deps = e.deps,
 		}
 	end
 )
@@ -163,13 +169,15 @@ definerule("runtest-oldcom-cpm-8080",
 definerule("compile-oldcom-linux-80386",
 	{
 		srcs = { type="targets" },
+		deps = { type="targets", default={} },
 	},
 	function (e)
 		return oldcom {
 			name = e.name,
 			srcs = e.srcs,
 			rtdir = "80386-linux",
-			arch = "80386"
+			arch = "80386",
+			deps = e.deps,
 		}
 	end
 )
@@ -226,13 +234,15 @@ definerule("runtest-oldcom-linux-80386",
 definerule("compile-oldcom-linux-thumb2",
 	{
 		srcs = { type="targets" },
+		deps = { type="targets", default={} },
 	},
 	function (e)
 		return oldcom {
 			name = e.name,
 			srcs = e.srcs,
 			rtdir = "thumb2-linux",
-			arch = "thumb2"
+			arch = "thumb2",
+			deps = e.deps,
 		}
 	end
 )
@@ -289,13 +299,15 @@ definerule("runtest-oldcom-linux-thumb2",
 definerule("compile-oldcom-cgen",
 	{
 		srcs = { type="targets" },
+		deps = { type="targets", default={} },
 	},
 	function (e)
 		return oldcom {
 			name = e.name,
 			srcs = e.srcs,
 			rtdir = "cgen",
-			arch = "cgen"
+			arch = "cgen",
+			deps = e.deps,
 		}
 	end
 )
