@@ -1,3 +1,5 @@
+include "third_party/zmac/build.lua"
+
 definerule("cowgol",
 	{
 		srcs = { type="targets" },
@@ -49,6 +51,12 @@ definerule("oldcom",
 		deps = { type="targets", default={} },
 	},
 	function (e)
+		local includes = {}
+		for _, f in ipairs(filenamesof(e.deps)) do
+			includes[#includes+1] = "-I"..dirname(f).."/"
+		end
+		includes = uniquify(includes)
+
 		local coo = normalrule {
 			name = e.name.."-coo",
 			ins = {
@@ -60,7 +68,10 @@ definerule("oldcom",
 			},
 			outleaves = { e.name..".coo" },
 			commands = {
-				"%{ins[1]} -Irt/ -Irt/"..e.rtdir.."/ %{ins[2]} %{outs[1]}"
+				"%{ins[1]} -Irt/ -Irt/"..e.rtdir.."/ %{hdrpaths} %{ins[2]} %{outs[1]}"
+			},
+			vars = {
+				hdrpaths = includes
 			}
 		}
 		return coo

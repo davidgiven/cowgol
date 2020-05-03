@@ -73,3 +73,22 @@ definerule("newgen",
 	end
 )
 
+definerule("newgencowgol",
+	{
+		srcs = { type="targets" },
+	},
+	function (e)
+		return normalrule {
+			name = e.name,
+			ins = {
+				"tools/newgen+newgen-cowgol",
+				e.srcs
+			},
+			outleaves = { "inssel.coh", "inssel.decl.coh" },
+			commands = {
+				"%{ins[1]} %{ins[2]} %{outs[1]} %{outs[2]}"
+			}
+		}
+	end
+)
+

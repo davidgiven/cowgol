@@ -44,7 +44,7 @@ var next_instruction: [Instruction];
 var nodes: [Node][16];
 var next_node: [[Node]];
 
-include ".obj/arch8080/inssel.coh";
+include "inssel.coh";
 
 sub PushNode(node: [Node])
 	if node != (0 as [Node]) then

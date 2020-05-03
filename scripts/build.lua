@@ -50,3 +50,16 @@ normalrule {
 	}
 }
 
+normalrule {
+	name = "midcodes_coh",
+	outleaves = { "midcodes.coh" },
+	ins = {
+		"./mkmidcodescoh.lua",
+		"./libcowgol.lua",
+		"src/midcodes.coh.tab"
+	},
+	commands = {
+		"lua %{ins[1]} -- %{ins[3]} %{outs[1]}"
+	}
+}
+
