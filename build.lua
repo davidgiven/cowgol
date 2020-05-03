@@ -20,6 +20,7 @@ installable {
 		["bin/newgen-cowgol"] = "tools/newgen+newgen-cowgol",
 		"src/cowcom+all-cowcoms",
 		"src/oldcom+all-oldcoms",
+		"src/cowlink+all-cowlinks",
 	}
 }
 
