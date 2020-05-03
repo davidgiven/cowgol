@@ -14,7 +14,7 @@ sub WidthToIndex(width: uint8): (index: uint8)
 	end case;
 end sub;
 
-include ".obj/midcodes.coh";
+include "midcodes.coh";
 
 # Free up the node tree rooted in the parameter. This is more exciting than it
 # should be because we don't have recursion.

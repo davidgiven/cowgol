@@ -237,7 +237,7 @@ regdata param stacked;
 gen STARTFILE()
 {
     emitter_open_chunk();
-	E("\t.code32\n");
+	E(".include \"rt/80386-linux/cowgol.inc\"\n");
     emitter_close_chunk(NULL);
 }
 

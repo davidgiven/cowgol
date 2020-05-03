@@ -1,25 +1,21 @@
-export CFLAGS = -Og -g -ffunction-sections -fdata-sections
-export LDFLAGS = -Og -g
+OBJDIR = .obj
+LUA_5_1 = lua5.1
 
-export CC = gcc 
-export AR = ar rcs
-export STRIP = strip
-export CFLAGS += 
-export LDFLAGS +=
-export LIBS = -lfl
-
-CFLAGS += -I.
-
-export OBJDIR = .obj
-
-all: .obj/build.ninja
-	@ninja -f .obj/build.ninja
+all: $(OBJDIR)/build.ninja
+	@ninja -f $(OBJDIR)/build.ninja
 
 clean:
-	@echo CLEAN
-	@rm -rf $(OBJDIR)
+	rm -rf $(OBJDIR)
 
-.obj/build.ninja: mkninja.sh Makefile
-	@echo MKNINJA $@
+lua-files = $(shell find . -name 'build*.lua')
+$(OBJDIR)/build.ninja: build/ackbuilder.lua Makefile $(lua-files)
 	@mkdir -p $(OBJDIR)
-	@sh $< > $@
+	@$(LUA_5_1) \
+		build/ackbuilder.lua \
+		build/build.lua \
+		build.lua \
+		--ninja \
+		OBJDIR=$(OBJDIR) \
+		CC=gcc \
+		AR=ar \
+		> $@

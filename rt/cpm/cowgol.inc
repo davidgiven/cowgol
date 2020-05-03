@@ -497,7 +497,7 @@ add4_skip:
     dad b ; HL = RHS high + LHS high + carry
     push h
     push d
-add4_ret = $ + 1
+add4_ret equ $ + 1
     jmp 0
 
     ; Subtracts two four-byte values from the stack.
@@ -529,7 +529,7 @@ sub4:
     push h
     push b
 
-sub4_ret = $ + 1
+sub4_ret equ $ + 1
     jmp 0
 
     ; Computes BC:DE - [HL], leaving the result in BC:DE.
@@ -596,7 +596,7 @@ and4:
     push h
     push b
 
-and4_ret = $ + 1
+and4_ret equ $ + 1
     jmp 0
 
     ; ORs two four-byte values from the stack.
@@ -628,7 +628,7 @@ or4:
     push h
     push b
 
-or4_ret = $ + 1
+or4_ret equ $ + 1
     jmp 0
 
     ; Exclusive-ORs two four-byte values from the stack.
@@ -660,7 +660,7 @@ eor4:
     push h
     push b
 
-eor4_ret = $ + 1
+eor4_ret equ $ + 1
     jmp 0
 
     ; NOTs the four-byte value on the stack.
@@ -810,7 +810,7 @@ asl4_skip:
 asl4_exit:
     push d
     push h
-asl4_ret = $ + 1
+asl4_ret equ $ + 1
     jmp 0
 
     ; Logical shift the value at the top of the stack right B bits.
@@ -842,7 +842,7 @@ lsr4_loop:
 lsr4_exit:
     push d
     push h
-lsr4_ret = $ + 1
+lsr4_ret equ $ + 1
     jmp 0
 
     ; Arithmetic shift the value at the top of the stack right B bits.
@@ -875,7 +875,7 @@ asr4_loop:
 asr4_exit:
     push d
     push h
-asr4_ret = $ + 1
+asr4_ret equ $ + 1
     jmp 0
 
     ; Arithmetic shift A right B bits.
@@ -1089,7 +1089,7 @@ cmpu4:
     inc b               ; a = 1 if the value was zero
     pop af              ; restore carry flag
     dec b               ; set Z flag, but don't disturb the carry flag
-cmpu4_ret = $ + 1
+cmpu4_ret equ $ + 1
     jmp 0
 
     ; Signed comparison of the two numbers on the top of the stack.
