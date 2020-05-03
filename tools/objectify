@@ -1,4 +1,4 @@
-#!/usr/bin/env lua5.2
+#!/usr/bin/env lua5.1
 
 local function main(symbol)
 	print("#include <stdint.h>")

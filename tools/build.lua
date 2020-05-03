@@ -12,7 +12,7 @@ definerule("objectify",
             },
             outleaves = { e.symbol..".c" },
             commands = {
-                "%{ins[1]} "..e.symbol.." < %{ins[2]} > %{outs}"
+                "lua %{ins[1]} "..e.symbol.." < %{ins[2]} > %{outs}"
             }
         }
     end
