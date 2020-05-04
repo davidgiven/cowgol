@@ -118,7 +118,7 @@ sub ResolveUntypedConstantsSimply(lhs: [Node], rhs: [Node])
 	if (lhs.type != (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
 		rhs.type := lhs.type;
 	elseif (lhs.type == (0 as [Symbol])) and (rhs.type != (0 as [Symbol])) then
-		rhs.type := lhs.type;
+		lhs.type := rhs.type;
 	elseif lhs.type != rhs.type then
 		StartError();
 		print("type mismatch between ");
@@ -152,7 +152,6 @@ sub CondSimple(lhs: [Node], rhs: [Node])
 		EndError();
 	end if;
 end sub;
-
 
 sub ExprNeg(lhs: [Node]): (result: [Node])
 	result := MidCNeg(NodeWidth(lhs), lhs);
@@ -226,7 +225,7 @@ end sub;
 
 sub ExprDiv(lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	if lhs.type.typedata.numbertype.is_signed != 0 then
+	if IsSNum(lhs.type) != 0 then
 		result := MidCDivs(NodeWidth(lhs), lhs, rhs);
 	else
 		result := MidCDivu(NodeWidth(lhs), lhs, rhs);
@@ -236,7 +235,7 @@ end sub;
 
 sub ExprRem(lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	if lhs.type.typedata.numbertype.is_signed != 0 then
+	if IsSNum(lhs.type) != 0 then
 		result := MidCRems(NodeWidth(lhs), lhs, rhs);
 	else
 		result := MidCRemu(NodeWidth(lhs), lhs, rhs);

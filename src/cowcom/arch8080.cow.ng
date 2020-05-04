@@ -294,6 +294,37 @@
 		E_nl();
 	end sub;
 
+	var stringid: uint16 := 0;
+
+	sub E_string(data: string)
+		var sid := stringid;
+		stringid := stringid + 1;
+
+		EmitterPushChunk();
+		E_h16(current_subr.id);
+
+		E("\tcseg\n");
+		E("s");
+		E_u16(sid);
+		E(":\n\tdb ");
+
+		loop
+			var c := [data];
+			if c == 0 then
+				break;
+			end if;
+			data := data + 1;
+			
+			E_u8(c);
+			E_comma();
+		end loop;
+		E("0\n");
+		EmitterPopChunk('S');
+
+		E("s");
+		E_u16(sid);
+	end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
 			E("\tpop ");
@@ -339,9 +370,19 @@ regdata param stacked;
 
 gen STARTFILE()
 {
+	EmitterPushChunk();
+	E_h16(0);
+	E("\tinclude \"rt/cpm/cowgol.inc\"\n");
+	EmitterPopChunk('S');
 }
 
-gen ENDFILE();
+gen ENDFILE()
+{
+	EmitterPushChunk();
+	E_h16(0);
+	E("\tinclude \"rt/cpm/tail.inc\"\n");
+	EmitterPopChunk('S');
+}
 
 gen LABEL():b
 {
@@ -598,44 +639,46 @@ gen STORE4(stk4, hl)
 // --- 8-bit arithmetic -----------------------------------------------------
 
 gen a := ADD1(a, b|d|h:rhs)
-{
-	E_alu("add", $rhs);
-}
+		{ E_alu("add", $rhs); }
 
 gen a := ADD1(a, CONSTANT(value==1))
-{
-	E_inc(REG_A);
-}
+		{ E_inc(REG_A); }
 
 gen a := ADD1(a, CONSTANT():c)
-{
-	E_alui("adi", $c.value);
-}
+		{ E_alui("adi", $c.value); }
 
 gen a := SUB1(a, b|d|h:rhs)
-{
-	E_alu("sub", $rhs);
-}
+		{ E_alu("sub", $rhs); }
 
 gen a := SUB1(a, CONSTANT():c)
-{
-	E_alui("sbi", $c.value);
-}
+		{ E_alui("sbi", $c.value); }
 
 gen a := MUL1(a, b)
+		{ E_callhelper("mul1"); }
+
+gen a := NEG1(b|d|h:lhs)
 {
-	E("\t(mul a, b)\n");
+	E_alu("xra", REG_A);
+	E_alu("sub", $lhs);
 }
+
+gen b := DIVU1(b, d) uses a
+		{ E_callhelper("dvrmu1"); }
+
+gen a := REMU1(b, d)
+		{ E_callhelper("dvrmu1"); }
+
+gen b := DIVS1(b, d) uses a
+		{ E_callhelper("dvrms1"); }
+
+gen a := REMS1(b, d)
+		{ E_callhelper("dvrms1"); }
 
 gen a := RSHIFTU1(a, b) uses bc
-{
-	E_callhelper("lsr1");
-}
+		{ E_callhelper("lsr1"); }
 
 gen a := LSHIFT1(a, b) uses bc
-{
-	E_callhelper("asl1");
-}
+		{ E_callhelper("asl1"); }
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
@@ -684,20 +727,29 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	end if;
 }
 
+gen de := DIVU2(de, bc) uses a
+		{ E_callhelper("dvrmu2"); }
+
+gen hl := REMU2(de, bc) uses a
+		{ E_callhelper("dvrmu2"); }
+
+gen de := DIVS2(de, bc) uses a
+		{ E_callhelper("dvrms2"); }
+
+gen hl := REMS2(de, bc) uses a
+		{ E_callhelper("dvrms2"); }
+
+gen hl := MUL2(hl, de) uses a|bc
+		{ E_callhelper("mul2"); }
+
 gen hl := RSHIFTU2(hl, b) uses a
-{
-	E_callhelper("lsr2");
-}
+		{ E_callhelper("lsr2"); }
 
 gen hl := RSHIFTS2(hl, b) uses a
-{
-	E_callhelper("asr2");
-}
+		{ E_callhelper("asr2"); }
 
 gen hl := LSHIFT2(hl, b) uses a
-{
-	E_callhelper("asl2");
-}
+		{ E_callhelper("asl2"); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
@@ -774,7 +826,27 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 		E_callhelper("cmpu4");
 		E_jumps_with_fallthrough("jz", "jnz", node);
 	end sub;
+
+	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
+		var label := node.beqs0.falselabel;
+		if lhs == rhs then
+			label := node.beqs0.truelabel;
+		end if;
+		if label != node.beqs0.fallthrough then
+			E_jump("jmp", label);
+		end if;
+	end sub;
 %}
+
+gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+{
+	beqc(self.n[0], $c1.value, $c2.value);
+}
+
+gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
+{
+	beqc(self.n[0], $c1.value, $c2.value);
+}
 
 gen BEQU1(b|d|h:nota, a):b
 {
@@ -841,6 +913,12 @@ gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 
 // --- Casts ----------------------------------------------------------------
 
+gen hl := CAST12(a, sext==0)
+{
+	E_movlo(REG_A, REG_HL);
+	E_mvi(REG_HL, 0);
+}
+
 gen stk4 := CAST14(a:rhs, sext==0) uses hl
 {
 	E_lxi(REG_HL, 0);
@@ -866,6 +944,17 @@ gen a := CAST41(stk4) uses hl
 	ArchEmitMove(0, REG_HL);
 	E("\tmov a, l\n");
 	ArchEmitMove(0, REG_HL);
+}
+
+// --- Strings --------------------------------------------------------------
+
+gen bc|de|hl := STRING():s
+{
+	E("\tlxi ");
+	E_reg($$);
+	E_comma();
+	E_string($s.text);
+	E_nl();
 }
 
 // --- Inline assembly ------------------------------------------------------

@@ -5,7 +5,8 @@ vars.toolchains = {
 	"oldcom-cpm-8080",
 	"oldcom-linux-80386",
 	"oldcom-linux-thumb2",
-	"oldcom-cgen"
+	"oldcom-cgen",
+	"cowcom-cpm-8080",
 }
 
 installable {

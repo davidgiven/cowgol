@@ -12,6 +12,10 @@ sub Exit()
 	@asm "exit(0);";
 end sub;
 
+sub ExitWithError()
+	@asm "exit(1);";
+end sub;
+
 sub MemSet(buf: [uint8], byte: uint8, len: intptr)
 	@asm "memset((void*)(intptr_t)", buf, ", ", byte, ", ", len, ");";
 end sub;

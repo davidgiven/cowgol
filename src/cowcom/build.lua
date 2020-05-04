@@ -16,7 +16,7 @@ for _, arch in ipairs(ARCHS) do
 		srcs = { "./arch"..arch..".cow.ng" }
 	}
 
-	for _, toolchain in ipairs(vars.toolchains) do
+	for _, toolchain in ipairs({"oldcom-cgen"}) do
 		local coo = cowgol {
 			name = "cowcom-"..toolchain.."-"..arch.."-coo",
 			srcs = { "./main.cow" },
@@ -30,7 +30,7 @@ for _, arch in ipairs(ARCHS) do
 		}
 
 		local exe = cowlink {
-			name = "cowcom-"..toolchain.."-"..arch.."-exe",
+			name = "cowcom-"..toolchain.."-"..arch,
 			srcs = { coo },
 			toolchain = toolchain
 		}

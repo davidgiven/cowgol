@@ -97,10 +97,6 @@ sub print_hex_i32(value: uint32)
     print_hex_i8(value as uint8);
 end sub;
 
-sub ExitWithError()
-	Exit();
-end sub;
-
 sub MemZero(ptr: [uint8], size: intptr)
 	MemSet(ptr, 0, size);
 end sub;

@@ -1,0 +1,9 @@
+#!/bin/sh
+result=$("$@" 2>&1)
+if [ $? = 0 ]; then
+	exit 0
+else
+	echo $result
+	exit 1
+fi
+

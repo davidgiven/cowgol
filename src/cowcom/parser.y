@@ -326,6 +326,7 @@ conditional(R) ::= expression(T1) LEOP expression(T2).
 expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
 expression(E) ::= MINUS expression(E1).                    { E := ExprNeg(E1); }
+expression(E) ::= TILDE expression(E1).                    { E := ExprNot(E1); }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E := ExprSub(E1, E2); }
 expression(E) ::= expression(E1) STAR expression(E2).      { E := ExprMul(E1, E2); }
@@ -340,7 +341,7 @@ expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1,
 expression(E) ::= expression(E1) AS typeref(T).
 {
 	CheckNotPartialType(T);
-	if E1.type.typedata.width != T.typedata.width then
+	if (E1.op != MIDCODE_CONSTANT) and (E1.type.typedata.width != T.typedata.width) then
 		if (IsPtr(E1.type) != 0) or (IsPtr(T) != 0) then
 			SimpleError("cast between pointer and non-pointer of different size");
 		end if;
@@ -440,6 +441,13 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 	E := MakeLValue(adjustedaddress);
 }
 
+expression(E) ::= STRING(S).
+{
+	E := MidString(S.string);
+	S.string := 0 as string;
+	E.type := MakePointerType(uint8_type);
+}
+
 %type cvalue {Arith}
 cvalue(C) ::= expression(E).
 {
@@ -447,6 +455,12 @@ cvalue(C) ::= expression(E).
 		SimpleError("only constant values are allowed here");
 	end if;
 	C := E.constant.value;
+}
+
+statement ::= CONST newid(S) ASSIGN cvalue(C) SEMICOLON.
+{
+	S.kind := CONST;
+	S.constant := C;
 }
 
 /* --- Types ------------------------------------------------------------- */

@@ -134,7 +134,7 @@ end sub;
 sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(lhs, rhs);
 	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
-		lhs.constant.value := lhs.constant.value + rhs.constant.value;
+		lhs.constant.value := lhs.constant.value * rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
 	else
