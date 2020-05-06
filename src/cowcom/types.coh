@@ -118,3 +118,6 @@ var continue_label: LabelRef;
 var current_if: [IfLabels];
 var current_type: [Symbol];
 var current_call: [SubroutineCall];
+
+const REG_SAME_AS_INSTRUCTION_RESULT := -1;
+

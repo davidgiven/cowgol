@@ -164,6 +164,14 @@
 		E_nl();
 	end sub;
 
+	sub E_alulo(insn: string, rhs: RegId)
+		E_tab();
+		E(insn);
+		E_space();
+		E_reglo(rhs);
+		E_nl();
+	end sub;
+
 	sub E_alui(insn: string, value: int32)
 		E_tab();
 		E(insn);
@@ -280,6 +288,10 @@
 
 	sub E_pchl()
 		E("\tpchl\n");
+	end sub;
+
+	sub E_cma()
+		E("\tcma\n");
 	end sub;
 
 	sub E_dad(reg: RegId)
@@ -653,14 +665,26 @@ gen a := SUB1(a, b|d|h:rhs)
 gen a := SUB1(a, CONSTANT():c)
 		{ E_alui("sbi", $c.value); }
 
-gen a := MUL1(a, b)
+gen a := MUL1(b, d)
 		{ E_callhelper("mul1"); }
+
+gen a := NOT1(a)
+		{ E_cma(); }
 
 gen a := NEG1(b|d|h:lhs)
 {
 	E_alu("xra", REG_A);
 	E_alu("sub", $lhs);
 }
+
+gen a := OR1(a, b|d|h:lhs)
+		{ E_alu("ora", $lhs); }
+
+gen a := AND1(a, b|d|h:lhs)
+		{ E_alu("ana", $lhs); }
+
+gen a := EOR1(a, b|d|h:lhs)
+		{ E_alu("xra", $lhs); }
 
 gen b := DIVU1(b, d) uses a
 		{ E_callhelper("dvrmu1"); }
@@ -741,6 +765,36 @@ gen hl := REMS2(de, bc) uses a
 
 gen hl := MUL2(hl, de) uses a|bc
 		{ E_callhelper("mul2"); }
+
+%{
+	sub logic2(lhs: RegId, rhs: RegId, dest: RegId, insn: string)
+		E_movlo(lhs, REG_A);
+		E_alulo(insn, rhs);
+		E_movlo(REG_A, dest);
+		E_movhi(lhs, REG_A);
+		E_alu(insn, rhs);
+		E_movhi(REG_A, dest);
+	end sub;
+%}
+
+gen bc|de|hl := OR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+		{ logic2($lhs, $rhs, $$, "ora"); }
+
+gen bc|de|hl := AND2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+		{ logic2($lhs, $rhs, $$, "ana"); }
+
+gen bc|de|hl := EOR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+		{ logic2($lhs, $rhs, $$, "xra"); }
+
+gen bc|de|hl := NOT2(bc|de|hl:lhs) uses a
+{
+	E_movlo($lhs, REG_A);
+	E_cma();
+	E_movlo(REG_A, $$);
+	E_movhi($lhs, REG_A);
+	E_cma();
+	E_movhi(REG_A, $$);
+}
 
 gen hl := RSHIFTU2(hl, b) uses a
 		{ E_callhelper("lsr2"); }

@@ -4,11 +4,13 @@
 #define IMPL
 #include "codegen.h"
 
-static Instruction instructions[100];
+#define NUM_INSTRUCTIONS 200
+static Instruction instructions[NUM_INSTRUCTIONS];
 static int instructioncount;
 static int maxinstructioncount = 0;
 
-static Node* nodes[100];
+#define NUM_NODES 200
+static Node* nodes[NUM_NODES];
 static int nodecount;
 static int maxnodecount = 0;
 
@@ -35,6 +37,8 @@ bool template_comparator(const uint8_t* data, const uint8_t* template)
 
 void push_node(Node* node)
 {
+	if (nodecount == NUM_NODES)
+		fatal("ran out of nodes");
 	nodes[nodecount++] = node;
 	if (nodecount > maxnodecount)
 		maxnodecount = nodecount;
@@ -47,12 +51,32 @@ static reg_t findfirst(reg_t reg)
 		if (reg & (1<<i))
 			return 1<<i;
 	}
-	assert(false);
+	return 0;
 }
 
-static void deadlock(void)
+static void deadlock(int ruleid)
 {
-	fatal("register allocation deadlock (rule contains impossible situation)");
+	while (instructioncount != 0)
+	{
+		Instruction* insn = &instructions[--instructioncount];
+		#if 1
+		printf("insn %d ruleid %d produces 0x%x inputs 0x%x outputs 0x%x\n",
+			insn - instructions,
+			insn->ruleid,
+			insn->produced_reg,
+			insn->input_regs,
+			insn->output_regs);
+		for (int i=1; i<INSTRUCTION_TEMPLATE_DEPTH; i++)
+		{
+			Node* n = insn->n[i];
+			if (n && n->produced_reg)
+				printf("  consumes 0x%x from insn %d\n",
+					n->produced_reg, n->producer - instructions);
+		}
+		#endif
+	}
+
+	fatal("register allocation deadlock (rule %d contains impossible situation)", ruleid);
 }
 
 static reg_t find_conflicting_registers(reg_t reg)
@@ -270,15 +294,8 @@ static void simplify(Node* node)
 void generate(Node* node)
 {
 	#if 0
-	arch_emit_comment("");
-
-	char* buffer = NULL;
-	size_t buffersize = 0;
-	FILE* fp = open_memstream(&buffer, &buffersize);
-	print_midnode(fp, node);
-	fflush(fp);
-	arch_emit_comment("%s", buffer);
-	fclose(fp);
+	print_midnode(stdout, node);
+	printf("\n");
 	#endif
 
 	memset(instructions, 0, sizeof(instructions));
@@ -291,6 +308,8 @@ void generate(Node* node)
 
 	while (nodecount != 0)
 	{
+		if (instructioncount == NUM_INSTRUCTIONS)
+			fatal("instruction tree too big");
 		Instruction* producer = &instructions[instructioncount++];
 		if (instructioncount > maxinstructioncount)
 			maxinstructioncount = instructioncount;
@@ -397,73 +416,93 @@ void generate(Node* node)
 
 			if (!isstacked(producer->producable_regs))
 			{
-				/* Locate the register's consumer and allocate something. */
-
-				Instruction* consumer = n->consumer;
-				assert(consumer);
-				reg_t blocked = calculate_blocked_registers(consumer+1, producer-1);
-
-				reg_t candidate = n->desired_reg & producer->producable_regs;
-				if (candidate & ~(blocked | producer->output_regs | consumer->input_regs))
+				for (;;)
 				{
-					/* Good news --- we can allocate the ideal register for both
-					 * producer and consumer. */
+					/* Locate the register's consumer and allocate something. */
 
-					candidate = findfirst(candidate & ~(blocked | producer->output_regs | consumer->input_regs));
-					n->produced_reg = producer->produced_reg = candidate;
+					Instruction* consumer = n->consumer;
+					assert(consumer);
+					reg_t blocked = calculate_blocked_registers(consumer+1, producer-1);
 
-					blocked = find_conflicting_registers(candidate);
-					consumer->input_regs |= blocked;
-					block_registers(consumer+1, producer-1, blocked);
-					producer->output_regs |= blocked;
-				}
-				else if (producer->producable_regs & ~(blocked | producer->output_regs))
-				{
-					/* The producer and consumer want different registers, but the
-					 * producer's register works up until the consumer. */
+					reg_t current = n->desired_reg
+							& producer->producable_regs 
+							& ~(blocked | producer->output_regs | consumer->input_regs);
+					if (current)
+					{
+						/* Good news --- we can allocate the ideal register for both
+						 * producer and consumer. */
 
-					producer->produced_reg = findfirst(
-						producer->producable_regs & ~(blocked | producer->output_regs));
-					n->produced_reg = findfirst(n->desired_reg & ~consumer->input_regs);
+						current = findfirst(current);
+						n->produced_reg = producer->produced_reg = current;
 
-					consumer->input_regs |= find_conflicting_registers(n->produced_reg);
-					blocked = find_conflicting_registers(producer->produced_reg);
-					block_registers(consumer+1, producer-1, blocked);
-					producer->output_regs |= blocked;
-					create_reload(consumer, producer->produced_reg, n->produced_reg);
-				}
-				else if (n->desired_reg & ~(blocked | consumer->input_regs))
-				{
-					/* The producer and consumer want different registers, but the
-					 * consumer's register works after the producer. */
+						blocked = find_conflicting_registers(current);
+						consumer->input_regs |= blocked;
+						block_registers(consumer+1, producer-1, blocked);
+						producer->output_regs |= blocked;
+						break;
+					}
 
-					producer->produced_reg = findfirst(
-						producer->producable_regs & ~producer->output_regs);
-					n->produced_reg = findfirst(n->desired_reg & ~(blocked | consumer->input_regs));
+					current = producer->producable_regs & ~(blocked | producer->output_regs);
+					if (current)
+					{
+						/* The producer and consumer want different registers, but the
+						 * producer's register works up until the consumer. */
 
-					blocked = find_conflicting_registers(n->produced_reg);
-					consumer->input_regs |= blocked;
-					block_registers(consumer+1, producer-1, blocked);
-					producer->output_regs |= find_conflicting_registers(producer->produced_reg);
-					create_spill(producer, producer->produced_reg, n->produced_reg);
-				}
-				else
-				{
+						reg_t producerreg = findfirst(current);
+						reg_t consumerreg = findfirst(n->desired_reg & ~consumer->input_regs);
+						if (consumerreg)
+						{
+							producer->produced_reg = producerreg;
+							n->produced_reg = consumerreg;
+
+							consumer->input_regs |= find_conflicting_registers(n->produced_reg);
+							blocked = find_conflicting_registers(producer->produced_reg);
+							block_registers(consumer+1, producer-1, blocked);
+							producer->output_regs |= blocked;
+							create_reload(consumer, producer->produced_reg, n->produced_reg);
+							break;
+						}
+					}
+
+					current = n->desired_reg & ~(blocked | consumer->input_regs);
+					if (current)
+					{
+						/* The producer and consumer want different registers, but the
+						 * consumer's register works after the producer. */
+
+						reg_t producerreg = findfirst(
+							producer->producable_regs & ~producer->output_regs);
+						reg_t consumerreg = findfirst(current);
+						if (producerreg)
+						{
+							producer->produced_reg = producerreg;
+							n->produced_reg = consumerreg;
+
+							blocked = find_conflicting_registers(n->produced_reg);
+							consumer->input_regs |= blocked;
+							block_registers(consumer+1, producer-1, blocked);
+							producer->output_regs |= find_conflicting_registers(producer->produced_reg);
+							create_spill(producer, producer->produced_reg, n->produced_reg);
+							break;
+						}
+					}
+
 					/* Bad news --- we can't allocate any registers. So, spill to the stack. */
 
-					candidate = producer->producable_regs & ~producer->output_regs;
-					if (!candidate)
-						deadlock();
-					producer->produced_reg = findfirst(candidate);
+					current = producer->producable_regs & ~producer->output_regs;
+					if (!current)
+						deadlock(ruleid);
+					producer->produced_reg = findfirst(current);
 					producer->output_regs |= find_conflicting_registers(producer->produced_reg);
 					create_spill(producer, producer->produced_reg, 0);
 
-					candidate = n->desired_reg & ~consumer->input_regs;
-					if (!candidate)
-						deadlock();
-					n->produced_reg = findfirst(candidate);
+					current = n->desired_reg & ~consumer->input_regs;
+					if (!current)
+						deadlock(ruleid);
+					n->produced_reg = findfirst(current);
 					consumer->input_regs |= find_conflicting_registers(n->produced_reg);
 					create_reload(consumer, 0, n->produced_reg);
+					break;
 				}
 			}
 
@@ -505,9 +544,8 @@ void generate(Node* node)
 	{
 		Instruction* insn = &instructions[--instructioncount];
 		#if 0
-		arch_emit_comment("insn %d rule %p produces 0x%x inputs 0x%x outputs 0x%x",
+		printf("insn %d produces 0x%x inputs 0x%x outputs 0x%x\n",
 			insn - instructions,
-			insn->rule,
 			insn->produced_reg,
 			insn->input_regs,
 			insn->output_regs);
@@ -515,7 +553,7 @@ void generate(Node* node)
 		{
 			Node* n = insn->n[i];
 			if (n && n->produced_reg)
-				arch_emit_comment("consumes 0x%x from insn %d",
+				printf("consumes 0x%x from insn %d\n",
 					n->produced_reg, n->producer - instructions);
 		}
 		#endif

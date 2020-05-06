@@ -383,6 +383,11 @@ expression(E) ::= PREV expression(E1).
 	E.type := E1.type;
 }
 
+expression(E) ::= BYTESOF OPENPAREN typeref(T) CLOSEPAREN.
+{
+	E := MidConstant(T.typedata.width as Arith);
+}
+
 expression(E) ::= oldid(S).
 {
 	case S.kind is
@@ -607,13 +612,16 @@ statement ::= outputargs(A) ASSIGN startsubcall inputargs SEMICOLON.
 
 	Generate(MidCall(subr));
 
-	var param := subr.first_output_parameter;
+	var paramindex := subr.num_output_parameters;
 	var count: uint8 := 0;
 	var node := A;
 	while node != (0 as [Node]) loop
-		if param == (0 as [Symbol]) then
+		if paramindex == 0 then
 			SimpleError("too many output arguments");
 		end if;
+
+		paramindex := paramindex - 1;
+		var param := GetOutputParameter(subr, paramindex);
 
 		var arg := node.left;
 		node.left := (0 as [Node]);

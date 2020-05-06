@@ -1,4 +1,4 @@
-vars.cflags = { "-g", "-Og" }
+vars.cflags = { "-g", "-O0" }
 vars.ldflags = { "-lm", "-g" }
 
 vars.toolchains = {
