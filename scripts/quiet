@@ -1,9 +1,14 @@
 #!/bin/sh
-result=$("$@" 2>&1)
+stdout=$$.stdout
+stderr=$$.stderr
+trap "rm $stdout $stderr" EXIT
+
+"$@" >$stdout 2>$stderr
 if [ $? = 0 ]; then
 	exit 0
 else
-	echo $result
+	cat $stdout
+	cat $stderr
 	exit 1
 fi
 
