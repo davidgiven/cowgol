@@ -483,6 +483,35 @@ sub Generate(rootnode: [Node])
 					end if;
 				end if;
 			end if;
+
+			# If any nodes which produce values consumed by this instruction
+			# have registers which depend on the one produced by this
+			# instruction, update them now.
+
+			i := 0;
+			while i != INSTRUCTION_TEMPLATE_DEPTH loop
+				node := producer.n[i];
+				if (node != (0 as [Node]))
+						and (node.desired_reg == REG_SAME_AS_INSTRUCTION_RESULT) then
+					node.desired_reg := producer.produced_reg;
+
+					# We now need to update the *other* register requirements
+					# to blacklist this register, or we very quickly run into
+					# deadlock.
+
+					var j: uint8 := 0;
+					while j != INSTRUCTION_TEMPLATE_DEPTH loop
+						if i != j then
+							node := producer.n[j];
+							if (node != (0 as [Node])) then
+								node.desired_reg := node.desired_reg & ~producer.produced_reg;
+							end if;
+						end if;
+						j := j + 1;
+					end loop;
+				end if;
+				i := i + 1;
+			end loop;
 		end if;
 	end loop;
 
