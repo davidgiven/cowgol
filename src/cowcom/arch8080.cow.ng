@@ -695,8 +695,11 @@ gen a := REMU1(b, d)
 gen b := DIVS1(b, d) uses a
 		{ E_callhelper("dvrms1"); }
 
-gen a := REMS1(b, d)
+gen d := REMS1(b, d)
 		{ E_callhelper("dvrms1"); }
+
+gen a := RSHIFTS1(a, b) uses bc
+		{ E_callhelper("asr1"); }
 
 gen a := RSHIFTU1(a, b) uses bc
 		{ E_callhelper("lsr1"); }
@@ -749,6 +752,26 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	else
 		E_dad($lhs);
 	end if;
+}
+
+gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
+{
+	E_alu("xra", REG_A);
+	E_alulo("sub", $lhs);
+	E_movlo(REG_A, $$);
+	E_alu("sbb", REG_A);
+	E_alu("sub", $lhs);
+	E_movhi(REG_A, $$);
+}
+
+gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+{
+	E_movlo($lhs, REG_A);
+	E_alulo("sub", $rhs);
+	E_movlo(REG_A, $$);
+	E_movhi($lhs, REG_A);
+	E_alu("sbb", $rhs);
+	E_movhi(REG_A, $$);
 }
 
 gen de := DIVU2(de, bc) uses a
