@@ -38,9 +38,6 @@ record Instruction
 	num_reloads: uint8;
 end record;
 
-var instructions: Instruction[16];
-var next_instruction: [Instruction];
-
 var nodes: [Node][16];
 var next_node: [[Node]];
 
@@ -312,8 +309,10 @@ sub Generate(rootnode: [Node])
 	var i: uint8;
 
 	Simplify(rootnode);
+
+	var instructions: Instruction[32];
 	MemZero(&instructions[0] as [uint8], @bytesof instructions);
-	next_instruction := &instructions[0];
+	var next_instruction := &instructions[0];
 
 	#print_nl();
 	#PrintNodes(rootnode);

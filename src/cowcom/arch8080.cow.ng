@@ -1023,6 +1023,12 @@ gen a := CAST41(stk4) uses hl
 	ArchEmitMove(0, REG_HL);
 }
 
+gen hl := CAST42(stk4) uses bc
+{
+	ArchEmitMove(0, REG_HL);
+	ArchEmitMove(0, REG_BC);
+}
+
 // --- Strings --------------------------------------------------------------
 
 gen bc|de|hl := STRING():s

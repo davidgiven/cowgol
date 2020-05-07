@@ -497,23 +497,25 @@ sub LexerReadToken(): (token: uint8)
 		lexer_i_skipwhitespace();
 		var c := lexer_i_getchar();
 
+		if c == '#' then
+			token_length := 0;
+			lexer_i_read_identifier();
+			if StrCmp(&token_buffer[0], "line") == 0 then
+				lexer_i_line_directive();
+			end if;
+			loop
+				c := lexer_i_getchar();
+				if (c == 10) or (c == 0) then
+					pushed_char := c;
+					break;
+				end if;
+			end loop;
+			continue;
+		end if;
+
 		case c is
 			when 0:
 				token := 0;
-
-			when '#':
-				token_length := 0;
-				lexer_i_read_identifier();
-				if StrCmp(&token_buffer[0], "line") == 0 then
-					lexer_i_line_directive();
-				end if;
-				loop
-					c := lexer_i_getchar();
-					if (c == 10) or (c == 0) then
-						break;
-					end if;
-					pushed_char := c;
-				end loop;
 
 			when ':':
 				c := lexer_i_getchar();
@@ -587,7 +589,6 @@ sub LexerReadToken(): (token: uint8)
 				end if;
 		end case;
 		
-
 		if token == INCLUDE then
 			lexer_i_include();
 		else

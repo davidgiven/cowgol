@@ -11,15 +11,17 @@
 %left OR.
 %left PIPE.
 %left CARET.
-%left AMPERSAND.
 %nonassoc LTOP LEOP GTOP GEOP EQOP NEOP.
 %left LSHIFT RSHIFT.
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %left AS.
+%left AMPERSAND.
 %right NEXT PREV.
 %right NOT TILDE.
+%right BYTESOF.
 %right OPENSQ CLOSESQ.
+%right DOT.
 
 %token_type {[Token]}
 
@@ -383,7 +385,7 @@ expression(E) ::= PREV expression(E1).
 	E.type := E1.type;
 }
 
-expression(E) ::= BYTESOF OPENPAREN typeref(T) CLOSEPAREN.
+expression(E) ::= BYTESOF typeref(T).
 {
 	E := MidConstant(T.typedata.width as Arith);
 }
@@ -442,8 +444,43 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 
 	var adjustedaddress := MidCAdd(w, address, displacement);
 	adjustedaddress.type := MakePointerType(elementtype);
-
 	E := MakeLValue(adjustedaddress);
+}
+
+expression(E) ::= expression(E1) DOT ID(X).
+{
+	var type := E1.type;
+	var address := UndoLValue(E1);
+
+	# Dereference pointers.
+
+	while IsPtr(type) != 0 loop
+		type := type.typedata.pointertype.element;
+		CheckNotPartialType(type);
+		address := MidLoad(intptr_type.typedata.width as uint8, address);
+	end loop;
+	CheckNotPartialType(type);
+
+	if IsRecord(type) == 0 then
+		StartError();
+		print(type.name);
+		print(" is not a record or pointer to a record");
+		EndError();
+	end if;
+
+	var member := LookupSymbol(&type.typedata.recordtype.namespace, X.string);
+	if member == (0 as [Symbol]) then
+		StartError();
+		print(type.name);
+		print(" does not contain a member '");
+		print(X.string);
+		print("'");
+		EndError();
+	end if;
+
+	E := MidCAdd(intptr_type.typedata.width as uint8, address, MidConstant(member.vardata.offset as Arith));
+	E.type := MakePointerType(member.vardata.type);
+	E := MakeLValue(E);
 }
 
 expression(E) ::= STRING(S).
@@ -881,7 +918,7 @@ recordat(A) ::= AT OPENPAREN cvalue(C) CLOSEPAREN.
 %type memberid {[Symbol]}
 memberid(S) ::= ID(T).
 {
-	S := AddSymbol(0 as [Namespace], T);
+	S := AddSymbol(&current_type.typedata.recordtype.namespace, T);
 	current_type.typedata.recordtype.members := current_type.typedata.recordtype.members + 1;
 }
 

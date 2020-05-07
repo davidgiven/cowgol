@@ -58,10 +58,6 @@ sub MakeLValue(address: [Node]): (lvalue: [Node])
 end sub;
 
 sub UndoLValue(lvalue: [Node]): (address: [Node])
-	#print("undo ");
-	#print_hex_i32(lvalue as intptr as uint32);
-	#print_nl();
-
 	var k := lvalue.op;
 	if (k < MIDCODE_LOAD0) or (k > MIDCODE_LOAD8) then
 		SimpleError("lvalue required");
