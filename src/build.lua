@@ -116,7 +116,7 @@ definerule("simpletest",
 			},
 			outleaves = { e.name..".bad" },
 			commands = {
-				e.runcmd.." %{ins[1]} > %{outs[1]}",
+				"timeout 5s "..e.runcmd.." %{ins[1]} > %{outs[1]}",
 				"diff -u %{ins[2]} %{outs[1]}"
 			}
 		}
