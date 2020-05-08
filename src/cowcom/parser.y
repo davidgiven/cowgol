@@ -430,7 +430,7 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 		EndError();
 	end if;
 
-	CheckExpressionType(E2, intptr_type);
+	CheckExpressionType(E2, type.typedata.arraytype.indextype);
 	if IsNum(E2.type) == 0 then
 		SimpleError("array indices must be numbers");
 	end if;
