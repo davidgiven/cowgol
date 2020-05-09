@@ -177,7 +177,7 @@ statement ::= BREAK SEMICOLON.
 
 statement ::= CONTINUE SEMICOLON.
 {
-	if break_label == 0 then
+	if continue_label == 0 then
 		SimpleError("nothing to continue to");
 	end if;
 	Generate(MidJump(continue_label));
@@ -219,6 +219,25 @@ if_statements ::= statements.
 if_optional_else ::= .
 if_optional_else ::= ELSE statements.
 if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
+
+/* --- Case -------------------------------------------------------------- */
+
+statement ::= startcase whens END CASE SEMICOLON.
+{
+}
+
+startcase ::= CASE expression IS.
+{
+}
+
+whens ::= .
+whens ::= when whens.
+
+when ::= beginwhen cvalue COLON statements.
+
+when ::= beginwhen ELSE COLON statements.
+
+beginwhen ::= WHEN.
 
 /* --- Conditional expressions ------------------------------------------- */
 
@@ -372,7 +391,11 @@ expression(E) ::= NEXT expression(E1).
 	if IsPtr(E1.type) == 0 then
 		parser_i_bad_next_prev();
 	end if;
-	E := MidCAdd(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E := MidCAdd(
+		intptr_type.typedata.width as uint8,
+		E1,
+		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
+	);
 	E.type := E1.type;
 }
 
@@ -381,7 +404,11 @@ expression(E) ::= PREV expression(E1).
 	if IsPtr(E1.type) == 0 then
 		parser_i_bad_next_prev();
 	end if;
-	E := MidCSub(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E := MidCSub(
+		intptr_type.typedata.width as uint8,
+		E1,
+		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
+	);
 	E.type := E1.type;
 }
 
@@ -438,8 +465,9 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 	var elementtype := type.typedata.arraytype.element;
 	var w := intptr_type.typedata.width as uint8;
 
-	var displacement := MidCMul(w, E2,
-				MidConstant(type.typedata.stride as int32));
+	var displacement := MidCMul(w,
+				MidCCast(intptr_type.typedata.width as uint8, E2, 0),
+				MidConstant(elementtype.typedata.stride as int32));
 	displacement.type := intptr_type;
 
 	var adjustedaddress := MidCAdd(w, address, displacement);

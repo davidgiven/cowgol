@@ -40,7 +40,7 @@ y 2 0 BEQU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, neg
 y 2 0 BLTU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
 
 y 2 0 STARTCASE() # left is value, right is when chain
-- 1 0 WHENCASE(isdefault: uint8, value: int32, label: uint16) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label) # left is chain
+- 1 0 WHENCASE(isdefault: uint8, value: int32, falselabel: uint16) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label) # left is chain
 
 # These produce all combinations of source and destination widths.
 y 1 1 CAST1(sext: uint8)

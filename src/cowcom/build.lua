@@ -16,7 +16,7 @@ for _, arch in ipairs(ARCHS) do
 		srcs = { "./arch"..arch..".cow.ng" }
 	}
 
-	for _, toolchain in ipairs({"oldcom-cgen"}) do
+	for _, toolchain in ipairs({"oldcom-cgen", "oldcom-cpm-8080"}) do
 		local coo = cowgol {
 			name = "cowcom-"..toolchain.."-"..arch.."-coo",
 			srcs = { "./main.cow" },

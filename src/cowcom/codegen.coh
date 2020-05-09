@@ -351,6 +351,8 @@ sub Generate(rootnode: [Node])
 					print_char(' ');
 					i := i + 1;
 				end loop;
+				print("producing ");
+				print_hex_i32(node.desired_reg as uint32);
 				EndError();
 			end if;
 

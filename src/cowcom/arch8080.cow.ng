@@ -99,12 +99,35 @@
 		E_nl();
 	end sub;
 
+	sub loreg(reg: RegId): (result: RegId)
+		case reg is
+			when REG_BC: result := REG_C;
+			when REG_DE: result := REG_E;
+			when REG_HL: result := REG_L;
+			when else:
+				SimpleError("bad loreg");
+		end case;
+	end sub;
+
+	sub hireg(reg: RegId): (result: RegId)
+		case reg is
+			when REG_BC: result := REG_B;
+			when REG_DE: result := REG_D;
+			when REG_HL: result := REG_H;
+			when else:
+				SimpleError("bad hireg");
+		end case;
+	end sub;
+
 	sub E_reg(reg: RegId)
 		case reg is
 			when REG_A: EmitByte('a');
 			when REG_B: EmitByte('b');
+			when REG_C: EmitByte('c');
 			when REG_D: EmitByte('d');
+			when REG_E: EmitByte('e');
 			when REG_H: EmitByte('h');
+			when REG_L: EmitByte('l');
 			when REG_BC: EmitByte('b');
 			when REG_DE: EmitByte('d');
 			when REG_HL: EmitByte('h');
@@ -116,35 +139,34 @@
 		end case;
 	end sub;
 
-	sub E_reglo(reg: RegId)
-		case reg is
-			when REG_A:  EmitByte('a');
-			when REG_BC: EmitByte('c');
-			when REG_DE: EmitByte('e');
-			when REG_HL: EmitByte('l');
-			when else:
-				StartError();
-				print("invalid reglo register 0x");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+	sub E_stackreg(reg: RegId)
+		if reg == REG_A then
+			E("psw");
+		else
+			E_reg(reg);
+		end if;
 	end sub;
 
-	sub E_movlo(src: RegId, dest: RegId)
-		E_tab();
-		E("mov ");
-		E_reglo(dest);
-		E_comma();
-		E_reglo(src);
-		E_nl();
-	end sub;
-
-	sub E_movhi(src: RegId, dest: RegId)
+	sub E_mov(dest: RegId, src: RegId)
 		E_tab();
 		E("mov ");
 		E_reg(dest);
 		E_comma();
 		E_reg(src);
+		E_nl();
+	end sub;
+
+	sub E_push(src: RegId)
+		E_tab();
+		E("push ");
+		E_stackreg(src);
+		E_nl();
+	end sub;
+
+	sub E_pop(dest: RegId)
+		E_tab();
+		E("pop ");
+		E_stackreg(dest);
 		E_nl();
 	end sub;
 
@@ -161,14 +183,6 @@
 		E(insn);
 		E_space();
 		E_reg(rhs);
-		E_nl();
-	end sub;
-
-	sub E_alulo(insn: string, rhs: RegId)
-		E_tab();
-		E(insn);
-		E_space();
-		E_reglo(rhs);
 		E_nl();
 	end sub;
 
@@ -226,21 +240,9 @@
 		E(",m\n");
 	end sub;
 
-	sub E_loadmlo(reg: RegId)
-		E("\tmov ");
-		E_reglo(reg);
-		E(",m\n");
-	end sub;
-
 	sub E_storem(reg: RegId)
 		E("\tmov m,");
 		E_reg(reg);
-		E_nl();
-	end sub;
-
-	sub E_storemlo(reg: RegId)
-		E("\tmov m,");
-		E_reglo(reg);
 		E_nl();
 	end sub;
 
@@ -254,14 +256,6 @@
 		E("\tldax ");
 		E_reg(ptr);
 		E_nl();
-	end sub;
-
-	sub E_stackreg(reg: RegId)
-		if reg == REG_A then
-			E("psw");
-		else
-			E_reg(reg);
-		end if;
 	end sub;
 
 	sub E_inc(reg: RegId)
@@ -292,6 +286,10 @@
 
 	sub E_cma()
 		E("\tcma\n");
+	end sub;
+
+	sub E_ral()
+		E("\tral\n");
 	end sub;
 
 	sub E_dad(reg: RegId)
@@ -339,11 +337,9 @@
 
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
-			E("\tpop ");
-			E_stackreg(dest);
+			E_pop(dest);
 		elseif dest == 0 then
-			E("\tpush ");
-			E_stackreg(src);
+			E_push(src);
 		else
 			sub mov()
 				E("\tmov ");
@@ -356,16 +352,16 @@
 			if (src & (REG_HL|REG_BC|REG_DE)) != 0 then
 				E_nl();
 				mov();
-				E_reglo(dest);
+				E_reg(loreg(dest));
 				E_comma();
-				E_reglo(src);
+				E_reg(loreg(src));
 			end if;
 		end if;
 		E_nl();
 	end sub;
 %}
 
-register a b d h hl de bc;
+register a b c d e h l hl de bc;
 register stk4 param;
 
 regdata a compatible a|b|d|h;
@@ -505,41 +501,47 @@ gen hl := CALLE2():s
 	ArchEmitMove(0, REG_HL);
 }
 
+gen stk4 := CALLE4():s
+{
+	E_call($s.subr);
+	# return value left on stack by subroutine
+}
+
 gen PUSHARG1(a|b|d|h:lhs)
 {
-	ArchEmitMove($lhs, 0);
+	E_push($lhs);
 }
 	
 gen PUSHARG2(bc|de|hl:lhs)
 {
-	ArchEmitMove($lhs, 0);
+	E_push($lhs);
 }
 
 gen PUSHARG4(stk4); // already stacked
 
 gen POPARG1(hl) uses a
 {
-	ArchEmitMove(0, REG_A);
+	E_pop(REG_A);
 	E_storem(REG_A);
 }
 
 gen POPARG1(ADDRESS():a) uses a
 {
-	ArchEmitMove(0, REG_A);
+	E_pop(REG_A);
 	E_sta($a.sym, $a.off);
 }
 
 gen POPARG2(hl) uses de
 {
-	ArchEmitMove(0, REG_DE);
-	E_storemlo(REG_DE);
+	E_pop(REG_DE);
+	E_storem(REG_E);
 	E_inx(REG_HL);
-	E_storem(REG_DE);
+	E_storem(REG_D);
 }
 
 gen POPARG2(ADDRESS():a) uses hl
 {
-	ArchEmitMove(0, REG_HL);
+	E_pop(REG_HL);
 	E_shld($a.sym, $a.off);
 }
 
@@ -617,11 +619,18 @@ gen hl := LOAD2(ADDRESS():a)
 	E_lhld($a.sym, $a.off);
 }
 
-gen bc|de := LOAD2(hl)
+gen hl|bc|de := LOAD2(hl)
 {
-	E_loadmlo($$);
-	E_inx(REG_HL);
-	E_loadm($$);
+	if $$ == REG_HL then
+		E_loadm(REG_A);
+		E_inx(REG_HL);
+		E_loadm($$);
+		E_mov(loreg($$), REG_A);
+	else
+		E_loadm(loreg($$));
+		E_inx(REG_HL);
+		E_loadm($$);
+	end if;
 }
 
 gen STORE2(hl, ADDRESS():a)
@@ -631,7 +640,7 @@ gen STORE2(hl, ADDRESS():a)
 
 gen STORE2(bc|de:val, hl) uses a
 {
-	E_storemlo($val);
+	E_storem(loreg($val));
 	E_inx(REG_HL);
 	E_storem($val);
 }
@@ -757,21 +766,27 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 {
 	E_alu("xra", REG_A);
-	E_alulo("sub", $lhs);
-	E_movlo(REG_A, $$);
+	E_alu("sub", loreg($lhs));
+	E_mov(loreg($$), REG_A);
 	E_alu("sbb", REG_A);
 	E_alu("sub", $lhs);
-	E_movhi(REG_A, $$);
+	E_mov($$, REG_A);
 }
+
+%{
+	sub aluop2(lhs: RegId, rhs: RegId, dest: RegId, loinsn: string, hiinsn: string)
+		E_mov(REG_A, loreg(lhs));
+		E_alu(loinsn, loreg(rhs));
+		E_mov(loreg(dest), REG_A);
+		E_mov(REG_A, lhs);
+		E_alu(hiinsn, rhs);
+		E_mov(dest, REG_A);
+	end sub;
+%}
 
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 {
-	E_movlo($lhs, REG_A);
-	E_alulo("sub", $rhs);
-	E_movlo(REG_A, $$);
-	E_movhi($lhs, REG_A);
-	E_alu("sbb", $rhs);
-	E_movhi(REG_A, $$);
+	aluop2($lhs, $rhs, $$, "sub", "sbb");
 }
 
 gen de := DIVU2(de, bc) uses a
@@ -791,12 +806,7 @@ gen hl := MUL2(hl, de) uses a|bc
 
 %{
 	sub logic2(lhs: RegId, rhs: RegId, dest: RegId, insn: string)
-		E_movlo(lhs, REG_A);
-		E_alulo(insn, rhs);
-		E_movlo(REG_A, dest);
-		E_movhi(lhs, REG_A);
-		E_alu(insn, rhs);
-		E_movhi(REG_A, dest);
+		aluop2(lhs, rhs, dest, insn, insn);
 	end sub;
 %}
 
@@ -811,12 +821,12 @@ gen bc|de|hl := EOR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 
 gen bc|de|hl := NOT2(bc|de|hl:lhs) uses a
 {
-	E_movlo($lhs, REG_A);
+	E_mov(REG_A, loreg($lhs));
 	E_cma();
-	E_movlo(REG_A, $$);
-	E_movhi($lhs, REG_A);
+	E_mov(loreg($$), REG_A);
+	E_mov(REG_A, $lhs);
 	E_cma();
-	E_movhi(REG_A, $$);
+	E_mov($$, REG_A);
 }
 
 gen hl := RSHIFTU2(hl, b) uses a
@@ -935,10 +945,16 @@ gen BEQS1(b|d|h:nota, a):b
 	bequ1(self.n[0], $nota);
 }
 
-gen BLTU1(b|d|h:nota, a):b
+gen BLTU1(a, b|d|h:rhs):b
 {
-	E_alu("cmp", $nota);
+	E_alu("cmp", $rhs);
 	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+}
+
+gen BLTS1(a, b):b
+{
+	E_callhelper("cmps1");
+	E_jumps_with_fallthrough("jm", "jp", self.n[0]);
 }
 
 gen BEQU2(de, hl):a
@@ -953,16 +969,18 @@ gen BEQS2(de, hl):a
 
 gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 {
-	E_movlo($lhs, REG_A);
-	E("\tsub ");
-	E_reglo($rhs);
-	E_nl();
+	E_mov(REG_A, loreg($lhs));
+	E_alu("sub", loreg($rhs));
 
-	E_movhi($lhs, REG_A);
-	E("\tsbb ");
-	E_reg($rhs);
-	E_nl();
+	E_mov(REG_A, $lhs);
+	E_alu("sbb", $rhs);
 
+	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+}
+
+gen BLTS2(de, hl):b uses a|bc
+{
+	E_callhelper("cmps2");
 	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
 }
 
@@ -990,23 +1008,43 @@ gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 
 // --- Casts ----------------------------------------------------------------
 
-gen hl := CAST12(a, sext==0)
+gen hl|bc|de := CAST12(a, sext==0)
 {
-	E_movlo(REG_A, REG_HL);
-	E_mvi(REG_HL, 0);
+	E_mov(loreg($$), REG_A);
+	E_mvi($$, 0);
+}
+
+gen hl|bc|de := CAST12(a, sext!=0)
+{
+	E_mov(loreg($$), REG_A);
+	E_ral();
+	E_alu("sbb", REG_A);
+	E_mov($$, REG_A);
 }
 
 gen stk4 := CAST14(a:rhs, sext==0) uses hl
 {
 	E_lxi(REG_HL, 0);
-	ArchEmitMove(REG_HL, 0);
-	E("\tmov l, a\n");
-	ArchEmitMove(REG_HL, 0);
+	E_push(REG_HL);
+	E_mov(REG_L, REG_A);
+	E_push(REG_HL);
+}
+
+gen stk4 := CAST14(a:rhs, sext!=0) uses hl|b
+{
+	E_mov(REG_B, REG_A);
+	E_ral();
+	E_alu("sbb", REG_A);
+	E_mov(REG_H, REG_A);
+	E_mov(REG_L, REG_A);
+	E_push(REG_HL);
+	E_mov(REG_L, REG_B);
+	E_push(REG_HL);
 }
 
 gen a := CAST21(hl|bc|de:rhs)
 {
-	E_movlo($rhs, REG_A);
+	E_mov(REG_A, loreg($rhs));
 }
 
 gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
@@ -1016,17 +1054,28 @@ gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 	ArchEmitMove(REG_HL, 0);
 }
 
+gen stk4 := CAST24(hl|de:rhs, sext!=0) uses a|bc
+{
+	E_mov(REG_A, $rhs);
+	E_ral();
+	E_alu("sbb", REG_A);
+	E_mov(REG_B, REG_A);
+	E_mov(REG_C, REG_A);
+	E_push(REG_BC);
+	E_push($rhs);
+}
+
 gen a := CAST41(stk4) uses hl
 {
-	ArchEmitMove(0, REG_HL);
-	E("\tmov a, l\n");
-	ArchEmitMove(0, REG_HL);
+	E_pop(REG_HL);
+	E_mov(REG_A, REG_L);
+	E_pop(REG_HL);
 }
 
 gen hl := CAST42(stk4) uses bc
 {
-	ArchEmitMove(0, REG_HL);
-	ArchEmitMove(0, REG_BC);
+	E_pop(REG_HL);
+	E_pop(REG_BC);
 }
 
 // --- Strings --------------------------------------------------------------

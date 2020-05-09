@@ -132,12 +132,15 @@ var keyword_names: string[] := {
 	"and",
 	"as",
 	"break",
+	"case",
 	"const",
+	"continue",
 	"else",
 	"elseif",
 	"end",
 	"extern",
 	"if",
+	"is",
 	"include",
 	"int",
 	"loop",
@@ -149,6 +152,7 @@ var keyword_names: string[] := {
 	"then",
 	"typedef",
 	"var",
+	"when",
 	"while",
 };
 
@@ -164,12 +168,15 @@ var keyword_ids: uint8[] := {
 	AND,
 	AS,
 	BREAK,
+	CASE,
 	CONST,
+	CONTINUE,
 	ELSE,
 	ELSEIF,
 	END,
 	EXTERN,
 	IF,
+	IS,
 	INCLUDE,
 	INT,
 	LOOP,
@@ -181,6 +188,7 @@ var keyword_ids: uint8[] := {
 	THEN,
 	TYPEDEF,
 	VAR,
+	WHEN,
 	WHILE
 };
 
