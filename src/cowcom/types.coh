@@ -103,6 +103,15 @@ record IfLabels
 	next: [IfLabels];
 end record;
 
+record CaseLabels
+	next_label: LabelRef;
+	break_label: LabelRef;
+	old_break_label: LabelRef;
+	old_case: [CaseLabels];
+	width: uint8;
+	seenelse: uint8;
+end record;
+
 record SubroutineCall
 	subr: [Subroutine];
 	parent: [SubroutineCall];
@@ -117,6 +126,7 @@ var next_label_id: LabelRef := 1;
 var break_label: LabelRef;
 var continue_label: LabelRef;
 var current_if: [IfLabels];
+var current_case: [CaseLabels];
 var current_type: [Symbol];
 var current_call: [SubroutineCall];
 

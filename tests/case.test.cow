@@ -11,6 +11,16 @@ sub case_uint8(i: uint8): (out: uint8)
 	end case;
 end sub;
 
+sub case_uint8_noelse(i: uint8): (out: uint8)
+	out := 4;
+	case i is
+		when 0: out := 0;
+		when 1: out := 1;
+		when 2: out := 2;
+		when 3: out := 3;
+	end case;
+end sub;
+
 sub case_int8(i: uint8): (out: int8)
 	case i is
 		when -2: out := -2;
@@ -27,6 +37,16 @@ sub case_uint16(i: uint16): (out: uint8)
 		when 1: out := 1;
 		when 2: out := 2;
 		when 3: out := 3;
+		when else: out := 4;
+	end case;
+end sub;
+
+sub case_uint16_large(i: uint16): (out: uint8)
+	case i is
+		when 0: out := 0;
+		when 1000: out := 1;
+		when 2000: out := 2;
+		when 3000: out := 3;
 		when else: out := 4;
 	end case;
 end sub;
@@ -70,6 +90,12 @@ sub test_case_bytes()
 end sub;
 test_case_bytes();
 
+sub test_case_bytes_noelse()
+	print("uint8 of 2 == 2"); if case_uint8_noelse(2) == 2 then yes(); else no(); end if;
+	print("uint8 of 9 no else == 4"); if case_uint8_noelse(9) == 4 then yes(); else no(); end if;
+end sub;
+test_case_bytes_noelse();
+
 sub test_case_shorts()
 	print("uint16 of 2 == 2"); if case_uint16(2) == 2 then yes(); else no(); end if;
 	print("uint16 of 9 == 4"); if case_uint16(9) == 4 then yes(); else no(); end if;
@@ -78,6 +104,12 @@ sub test_case_shorts()
 	print("int16 of 9 == 4"); if case_int16(9) == 4 then yes(); else no(); end if;
 end sub;
 test_case_shorts();
+
+sub test_case_shorts_large()
+	print("uint16 of 2000 == 2"); if case_uint16_large(2000) == 2 then yes(); else no(); end if;
+	print("uint16 of 9000 == 4"); if case_uint16_large(9000) == 4 then yes(); else no(); end if;
+end sub;
+test_case_shorts_large();
 
 sub test_case_longs()
 	print("uint32 of 2 == 2"); if case_uint32(2) == 2 then yes(); else no(); end if;

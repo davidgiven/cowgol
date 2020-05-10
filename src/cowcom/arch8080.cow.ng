@@ -92,6 +92,10 @@
 		E_nl();
 	end sub;
 
+	sub E_jnz(label: LabelRef)
+		E_jump("jnz", label);
+	end sub;
+
 	sub E_call(subr: [Subroutine])
 		E_tab();
 		E("call ");
@@ -170,11 +174,11 @@
 		E_nl();
 	end sub;
 
-	sub E_mvi(reg: RegId, value: int32)
+	sub E_mvi(reg: RegId, value: uint8)
 		E("\tmvi ");
 		E_reg(reg);
 		E_comma();
-		E_u8(value as uint8);
+		E_u8(value);
 		E_nl();
 	end sub;
 
@@ -186,19 +190,31 @@
 		E_nl();
 	end sub;
 
-	sub E_alui(insn: string, value: int32)
+	sub E_ora(rhs: RegId)
+		E_alu("ora", rhs);
+	end sub;
+
+	sub E_alui(insn: string, value: uint8)
 		E_tab();
 		E(insn);
 		E_space();
-		E_u8(value as uint8);
+		E_u8(value);
 		E_nl();
 	end sub;
 
-	sub E_lxi(reg: RegId, value: int32);
+	sub E_cpi(value: uint8)
+		E_alui("cpi", value);
+	end sub;
+
+	sub E_sbi(value: uint8)
+		E_alui("sbi", value);
+	end sub;
+
+	sub E_lxi(reg: RegId, value: uint16);
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
-		E_u16(value as uint16);
+		E_u16(value);
 		E_nl();
 	end sub;
 
@@ -561,19 +577,19 @@ gen RETURN()
 
 gen a|b|d|h := CONSTANT():rhs
 {
-	E_mvi($$, $rhs.value);
+	E_mvi($$, $rhs.value as uint8);
 }
 
 gen bc|de|hl := CONSTANT():rhs
 {
-	E_lxi($$, $rhs.value);
+	E_lxi($$, $rhs.value as uint16);
 }
 
 gen stk4 := CONSTANT():rhs uses hl
 {
-	E_lxi(REG_HL, $rhs.value >> 16);
+	E_lxi(REG_HL, ($rhs.value >> 16) as uint16);
 	ArchEmitMove(REG_HL, 0);
-	E_lxi(REG_HL, $rhs.value);
+	E_lxi(REG_HL, $rhs.value as uint16);
 	ArchEmitMove(REG_HL, 0);
 }
 
@@ -666,13 +682,13 @@ gen a := ADD1(a, CONSTANT(value==1))
 		{ E_inc(REG_A); }
 
 gen a := ADD1(a, CONSTANT():c)
-		{ E_alui("adi", $c.value); }
+		{ E_alui("adi", $c.value as uint8); }
 
 gen a := SUB1(a, b|d|h:rhs)
 		{ E_alu("sub", $rhs); }
 
 gen a := SUB1(a, CONSTANT():c)
-		{ E_alui("sbi", $c.value); }
+		{ E_alui("sbi", $c.value as uint8); }
 
 gen a := MUL1(b, d)
 		{ E_callhelper("mul1"); }
@@ -1004,6 +1020,57 @@ gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E_callhelper("cmps4");
 	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+}
+
+// --- Case -----------------------------------------------------------------
+
+gen STARTCASE1(a);
+
+gen STARTCASE2(de);
+
+gen STARTCASE4(stk4)
+{
+	E_pop(REG_BC);
+	E_pop(REG_DE);
+}
+
+gen WHENCASE1():c
+{
+	if $c.value == 0 then
+		E_ora(REG_A);
+	else
+		E_cpi($c.value as uint8);
+	end if;
+	E_jnz($c.falselabel);
+}
+
+%{
+	sub case2(value: uint16, reg: RegId, label: LabelRef)
+		if value < 0x100 then
+			E_mov(REG_A, loreg(reg));
+			if value != 0 then
+				E_sbi(value as uint8);
+			end if;
+			E_ora(hireg(reg));
+		else
+			E_lxi(REG_HL, -value);
+			E_dad(reg);
+			E_mov(REG_A, REG_H);
+			E_ora(REG_L);
+		end if;
+		E_jnz(label);
+	end sub;
+%}
+
+gen WHENCASE2():c uses a
+{
+	case2($c.value as uint16, REG_DE, $c.falselabel);
+}
+
+gen WHENCASE4():c uses a
+{
+	case2($c.value as uint16, REG_BC, $c.falselabel);
+	case2(($c.value >> 16) as uint16, REG_DE, $c.falselabel);
 }
 
 // --- Casts ----------------------------------------------------------------

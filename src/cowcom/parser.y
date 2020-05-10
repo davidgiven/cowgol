@@ -224,20 +224,65 @@ if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
 
 statement ::= startcase whens END CASE SEMICOLON.
 {
+	if (current_case.seenelse == 0) and (current_case.next_label != 0) then
+		Generate(MidLabel(current_case.next_label));
+	end if;
+	Generate(MidLabel(current_case.break_label));
+
+	var c := current_case;
+	current_case := c.old_case;
+	Free(c as [uint8]);
 }
 
-startcase ::= CASE expression IS.
+startcase ::= CASE expression(E) IS.
 {
+	var c := Alloc(@bytesof CaseLabels) as [CaseLabels];
+	c.old_case := current_case;
+	c.old_break_label := break_label;
+	c.break_label := AllocLabel();
+	current_case := c;
+
+	if IsNum(E.type) == 0 then
+		SimpleError("case only works on numbers");
+	end if;
+
+	c.width := NodeWidth(E);
+	Generate(MidStartcase(c.width, E));
 }
 
 whens ::= .
 whens ::= when whens.
 
-when ::= beginwhen cvalue COLON statements.
+when ::= beginwhen statements.
 
-when ::= beginwhen ELSE COLON statements.
+beginwhen ::= WHEN cvalue(C) COLON.
+{
+	if current_case.seenelse != 0 then
+		SimpleError("when else must go last");
+	end if;
 
-beginwhen ::= WHEN.
+	if current_case.next_label != 0 then
+		Generate(MidJump(current_case.break_label));
+		Generate(MidLabel(current_case.next_label));
+	end if;
+	current_case.next_label := AllocLabel();
+
+	Generate(MidWhencase(current_case.width, C, current_case.next_label));
+}
+
+beginwhen ::= WHEN ELSE COLON.
+{
+	if current_case.seenelse != 0 then
+		SimpleError("only one when else allowed");
+	end if;
+	if current_case.next_label != 0 then
+		Generate(MidJump(current_case.break_label));
+		Generate(MidLabel(current_case.next_label));
+	end if;
+	current_case.next_label := 0;
+
+	current_case.seenelse := 1;
+}
 
 /* --- Conditional expressions ------------------------------------------- */
 
