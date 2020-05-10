@@ -563,11 +563,18 @@ expression(E) ::= STRING(S).
 	E.type := MakePointerType(uint8_type);
 }
 
+%include
+{
+	sub parser_i_constant_error()
+		SimpleError("only constant values are allowed here");
+	end sub;
+}
+
 %type cvalue {Arith}
 cvalue(C) ::= expression(E).
 {
-	if E.type != (0 as [Symbol]) then
-		SimpleError("only constant values are allowed here");
+	if E.op != MIDCODE_CONSTANT then
+		parser_i_constant_error();
 	end if;
 	C := E.constant.value;
 }
@@ -993,6 +1000,193 @@ memberid(S) ::= ID(T).
 {
 	S := AddSymbol(&current_type.typedata.recordtype.namespace, T);
 	current_type.typedata.recordtype.members := current_type.typedata.recordtype.members + 1;
+}
+
+/* --- Static initialisers ----------------------------------------------- */
+
+%include
+{
+	var current_member: [Symbol]; # for records only
+	var current_offset: Size;
+
+	record NestedTypeInit
+		old_current_type: [Symbol];
+		old_current_member: [Symbol];
+		old_current_offset: Size;
+	end record;
+
+	sub WrongNumberOfElementsError()
+		StartError();
+		print("wrong number of elements in initialiser for ");
+		print(current_type.name);
+		EndError();
+	end sub;
+
+	sub CheckEndOfInitialiser()
+		if IsArray(current_type) != 0 then
+			var memberwidth := current_type.typedata.arraytype.element.typedata.stride;
+			if current_type.typedata.width == 0 then
+				current_type.typedata.width := current_offset;
+				current_type.typedata.arraytype.size := current_offset / memberwidth;
+			end if;
+			if current_offset != current_type.typedata.width then
+				WrongNumberOfElementsError();
+			end if;
+		else
+			if current_member != (0 as [Symbol]) then
+				WrongNumberOfElementsError();
+			end if;
+		end if;
+	end sub;
+
+	sub GetInitedMember(): (member: [Symbol], type: [Symbol])
+		member := 0 as [Symbol];
+
+		if IsArray(current_type) != 0 then
+			type := current_type.typedata.arraytype.element;
+		else
+			if current_member == (0 as [Symbol]) then
+				type := 0 as [Symbol];
+				return;
+			end if;
+
+			member := current_member;
+			type := current_member.vardata.type;
+			current_member := current_member.next;
+		end if;
+	end sub;
+
+	sub AlignTo(alignment: uint8)
+		var newoffset := ArchAlignUp(current_offset, alignment);
+		while current_offset != newoffset loop
+			Generate(MidInit(1, 0));
+			current_offset := current_offset + 1;
+		end loop;
+	end sub;
+
+	sub CheckForOverlaps(member: [Symbol])
+		# Not for arrays.
+		if member == (0 as [Symbol]) then
+			return;
+		end if;
+
+		if member.vardata.offset < current_offset then
+			SimpleError("out of order static initialisation");
+		end if;
+	end sub;
+
+	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol])
+		(member, type) := GetInitedMember();
+		if type == (0 as [Symbol]) then
+			print("no type\n");
+			WrongNumberOfElementsError();
+		end if;
+
+		AlignTo(type.typedata.alignment);
+		CheckForOverlaps(member);
+	end sub;
+}
+
+statement ::= initdecl OPENBR initialisers CLOSEBR SEMICOLON.
+{
+	CheckEndOfInitialiser();
+	Generate(MidEndinit());
+}
+
+initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
+{
+	# We don't call InitVariable() because we don't want this variable
+	# allocated to a workspace.
+
+	CheckNotPartialType(T);
+	S.kind := VAR;
+	S.vardata.type := T;
+	S.vardata.subr := current_subr;
+	var name := Alloc(7);
+	S.vardata.externname := name;
+	[name+0] := 'a';
+	var ptr := UIToA(AllocLabel() as uint32, 10, name+1);
+
+	if (IsArray(T) == 0) and (IsRecord(T) == 0) then
+		SimpleError("static initialisers only work on arrays or records");
+	end if;
+	if (IsRecord(T) != 0) and (T.typedata.recordtype.namespace.parent != (0 as [Namespace])) then
+		SimpleError("you can't statically initialise an inherited record");
+	end if;
+
+	if IsRecord(T) != 0 then
+		current_member := T.typedata.recordtype.namespace.first;
+	end if;
+
+	current_type := T;
+	current_offset := 0;
+
+	Generate(MidStartinit(S));
+}
+
+initialisers ::= initialiser.
+initialisers ::= initialisers COMMA initialiser.
+
+initialiser ::= .
+
+initialiser ::= expression(E).
+{
+	var member: [Symbol];
+	var type: [Symbol];
+	(member, type) := GetInitedMemberChecked();
+
+	var w := type.typedata.width;
+	case E.op is
+		when MIDCODE_CONSTANT:
+			if IsNum(type) == 0 then
+				SimpleError("initialiser must be an number");
+			end if;
+			Generate(MidInit(w as uint8, E.constant.value));
+
+		when MIDCODE_STRING:
+			if (IsPtr(type) == 0) or (type.typedata.pointertype.element != uint8_type) then
+				SimpleError("initialiser must be a string");
+			end if;
+			Generate(MidInits(E.string.text));
+
+		when else:
+			parser_i_constant_error();
+	end case;
+
+	current_offset := current_offset + w;
+}
+
+initialiser ::= startbracedinitialiser(R) initialisers CLOSEBR.
+{
+	CheckEndOfInitialiser();
+
+	current_type := R.old_current_type;
+	current_member := R.old_current_member;
+	current_offset := R.old_current_offset;
+	Free(R as [uint8]);
+}
+
+%type startbracedinitialiser {[NestedTypeInit]}
+startbracedinitialiser(R) ::= OPENBR.
+{
+	var member: [Symbol];
+	var type: [Symbol];
+	(member, type) := GetInitedMemberChecked();
+
+	R := Alloc(@bytesof NestedTypeInit) as [NestedTypeInit];
+	R.old_current_type := current_type;
+	R.old_current_member := current_member;
+	R.old_current_offset := current_offset;
+
+	current_type := type;
+	current_offset := 0;
+	if IsRecord(type) != 0 then
+		current_member := type.typedata.recordtype.namespace.first;
+	elseif IsArray(type) != 0 then
+		current_member := 0 as [Symbol];
+	else
+		SimpleError("braced initialised can only initialise arrays or records");
+	end if;
 }
 
 /* --- Inline assembly --------------------------------------------------- */

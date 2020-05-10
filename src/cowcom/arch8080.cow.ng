@@ -57,10 +57,16 @@
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size)
-		EmitByte('w');
-		E_u16(sym.vardata.subr.id);
-		EmitByte('+');
-		E_u16(sym.vardata.offset + off);
+		if sym.vardata.externname != (0 as string) then
+			E(sym.vardata.externname);
+			EmitByte('+');
+			E_u16(off);
+		else
+			EmitByte('w');
+			E_u16(sym.vardata.subr.id);
+			EmitByte('+');
+			E_u16(sym.vardata.offset + off);
+		end if;
 	end sub;
 
 	sub E_space()
@@ -1152,6 +1158,50 @@ gen bc|de|hl := STRING():s
 	E("\tlxi ");
 	E_reg($$);
 	E_comma();
+	E_string($s.text);
+	E_nl();
+}
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+	EmitterPushChunk();
+	E_h16(current_subr.id);
+	E("\tcseg\n"); # yes, really
+	E($s.sym.vardata.externname);
+	E(":\n");
+}
+
+gen ENDINIT()
+{
+	EmitterPopChunk('S');
+}
+
+gen INIT1():c
+{
+	E("\tdb ");
+	E_u8($c.value as uint8);
+	E_nl();
+}
+
+gen INIT2():c
+{
+	E("\tdw ");
+	E_u16($c.value as uint16);
+	E_nl();
+}
+
+gen INIT4():c
+{
+	E("\tdword ");
+	E_u32($c.value as uint32);
+	E_nl();
+}
+
+gen INITS():s
+{
+	E("\tdw ");
 	E_string($s.text);
 	E_nl();
 }
