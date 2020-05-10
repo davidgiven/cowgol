@@ -11,15 +11,17 @@
 %left OR.
 %left PIPE.
 %left CARET.
-%left AMPERSAND.
 %nonassoc LTOP LEOP GTOP GEOP EQOP NEOP.
 %left LSHIFT RSHIFT.
 %left PLUS MINUS.
 %left STAR SLASH PERCENT.
 %left AS.
+%left AMPERSAND.
 %right NEXT PREV.
 %right NOT TILDE.
+%right BYTESOF.
 %right OPENSQ CLOSESQ.
+%right DOT.
 
 %token_type {[Token]}
 
@@ -175,7 +177,7 @@ statement ::= BREAK SEMICOLON.
 
 statement ::= CONTINUE SEMICOLON.
 {
-	if break_label == 0 then
+	if continue_label == 0 then
 		SimpleError("nothing to continue to");
 	end if;
 	Generate(MidJump(continue_label));
@@ -217,6 +219,70 @@ if_statements ::= statements.
 if_optional_else ::= .
 if_optional_else ::= ELSE statements.
 if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
+
+/* --- Case -------------------------------------------------------------- */
+
+statement ::= startcase whens END CASE SEMICOLON.
+{
+	if (current_case.seenelse == 0) and (current_case.next_label != 0) then
+		Generate(MidLabel(current_case.next_label));
+	end if;
+	Generate(MidLabel(current_case.break_label));
+
+	var c := current_case;
+	current_case := c.old_case;
+	Free(c as [uint8]);
+}
+
+startcase ::= CASE expression(E) IS.
+{
+	var c := Alloc(@bytesof CaseLabels) as [CaseLabels];
+	c.old_case := current_case;
+	c.old_break_label := break_label;
+	c.break_label := AllocLabel();
+	current_case := c;
+
+	if IsNum(E.type) == 0 then
+		SimpleError("case only works on numbers");
+	end if;
+
+	c.width := NodeWidth(E);
+	Generate(MidStartcase(c.width, E));
+}
+
+whens ::= .
+whens ::= when whens.
+
+when ::= beginwhen statements.
+
+beginwhen ::= WHEN cvalue(C) COLON.
+{
+	if current_case.seenelse != 0 then
+		SimpleError("when else must go last");
+	end if;
+
+	if current_case.next_label != 0 then
+		Generate(MidJump(current_case.break_label));
+		Generate(MidLabel(current_case.next_label));
+	end if;
+	current_case.next_label := AllocLabel();
+
+	Generate(MidWhencase(current_case.width, C, current_case.next_label));
+}
+
+beginwhen ::= WHEN ELSE COLON.
+{
+	if current_case.seenelse != 0 then
+		SimpleError("only one when else allowed");
+	end if;
+	if current_case.next_label != 0 then
+		Generate(MidJump(current_case.break_label));
+		Generate(MidLabel(current_case.next_label));
+	end if;
+	current_case.next_label := 0;
+
+	current_case.seenelse := 1;
+}
 
 /* --- Conditional expressions ------------------------------------------- */
 
@@ -326,6 +392,7 @@ conditional(R) ::= expression(T1) LEOP expression(T2).
 expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
 expression(E) ::= MINUS expression(E1).                    { E := ExprNeg(E1); }
+expression(E) ::= TILDE expression(E1).                    { E := ExprNot(E1); }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E := ExprSub(E1, E2); }
 expression(E) ::= expression(E1) STAR expression(E2).      { E := ExprMul(E1, E2); }
@@ -340,7 +407,7 @@ expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1,
 expression(E) ::= expression(E1) AS typeref(T).
 {
 	CheckNotPartialType(T);
-	if E1.type.typedata.width != T.typedata.width then
+	if (E1.op != MIDCODE_CONSTANT) and (E1.type.typedata.width != T.typedata.width) then
 		if (IsPtr(E1.type) != 0) or (IsPtr(T) != 0) then
 			SimpleError("cast between pointer and non-pointer of different size");
 		end if;
@@ -369,7 +436,11 @@ expression(E) ::= NEXT expression(E1).
 	if IsPtr(E1.type) == 0 then
 		parser_i_bad_next_prev();
 	end if;
-	E := MidCAdd(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E := MidCAdd(
+		intptr_type.typedata.width as uint8,
+		E1,
+		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
+	);
 	E.type := E1.type;
 }
 
@@ -378,8 +449,25 @@ expression(E) ::= PREV expression(E1).
 	if IsPtr(E1.type) == 0 then
 		parser_i_bad_next_prev();
 	end if;
-	E := MidCSub(intptr_type.typedata.width as uint8, E1, MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith));
+	E := MidCSub(
+		intptr_type.typedata.width as uint8,
+		E1,
+		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
+	);
 	E.type := E1.type;
+}
+
+expression(E) ::= BYTESOF varortypeid(T).
+{
+	E := MidConstant(T.typedata.width as Arith);
+}
+
+expression(E) ::= SIZEOF varortypeid(T).
+{
+	if IsArray(T) == 0 then
+		SimpleError("array expected");
+	end if;
+	E := MidConstant(T.typedata.arraytype.size as Arith);
 }
 
 expression(E) ::= oldid(S).
@@ -422,7 +510,7 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 		EndError();
 	end if;
 
-	CheckExpressionType(E2, intptr_type);
+	CheckExpressionType(E2, type.typedata.arraytype.indextype);
 	if IsNum(E2.type) == 0 then
 		SimpleError("array indices must be numbers");
 	end if;
@@ -430,23 +518,79 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 	var elementtype := type.typedata.arraytype.element;
 	var w := intptr_type.typedata.width as uint8;
 
-	var displacement := MidCMul(w, E2,
-				MidConstant(type.typedata.stride as int32));
+	var displacement := MidCMul(w,
+				MidCCast(intptr_type.typedata.width as uint8, E2, 0),
+				MidConstant(elementtype.typedata.stride as int32));
 	displacement.type := intptr_type;
 
 	var adjustedaddress := MidCAdd(w, address, displacement);
 	adjustedaddress.type := MakePointerType(elementtype);
-
 	E := MakeLValue(adjustedaddress);
+}
+
+expression(E) ::= expression(E1) DOT ID(X).
+{
+	var type := E1.type;
+	var address := UndoLValue(E1);
+
+	# Dereference pointers.
+
+	while IsPtr(type) != 0 loop
+		type := type.typedata.pointertype.element;
+		CheckNotPartialType(type);
+		address := MidLoad(intptr_type.typedata.width as uint8, address);
+	end loop;
+	CheckNotPartialType(type);
+
+	if IsRecord(type) == 0 then
+		StartError();
+		print(type.name);
+		print(" is not a record or pointer to a record");
+		EndError();
+	end if;
+
+	var member := LookupSymbol(&type.typedata.recordtype.namespace, X.string);
+	if member == (0 as [Symbol]) then
+		StartError();
+		print(type.name);
+		print(" does not contain a member '");
+		print(X.string);
+		print("'");
+		EndError();
+	end if;
+
+	E := MidCAdd(intptr_type.typedata.width as uint8, address, MidConstant(member.vardata.offset as Arith));
+	E.type := MakePointerType(member.vardata.type);
+	E := MakeLValue(E);
+}
+
+expression(E) ::= STRING(S).
+{
+	E := MidString(S.string);
+	S.string := 0 as string;
+	E.type := MakePointerType(uint8_type);
+}
+
+%include
+{
+	sub parser_i_constant_error()
+		SimpleError("only constant values are allowed here");
+	end sub;
 }
 
 %type cvalue {Arith}
 cvalue(C) ::= expression(E).
 {
-	if E.type != (0 as [Symbol]) then
-		SimpleError("only constant values are allowed here");
+	if E.op != MIDCODE_CONSTANT then
+		parser_i_constant_error();
 	end if;
 	C := E.constant.value;
+}
+
+statement ::= CONST newid(S) ASSIGN cvalue(C) SEMICOLON.
+{
+	S.kind := CONST;
+	S.constant := C;
 }
 
 /* --- Types ------------------------------------------------------------- */
@@ -531,6 +675,23 @@ eitherid(S) ::= ID(T).
 	S := sym;
 }
 
+%type varortypeid {[Symbol]}
+varortypeid(T) ::= oldid(S).
+{
+	if S.kind == VAR then
+		S := S.vardata.type;
+	end if;
+	if S.kind != TYPE then
+		SimpleError("simple type or variable name expected");
+	end if;
+	T := S;
+}
+
+varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
+{
+	T := T1;
+}
+
 /* --- Subroutine calls -------------------------------------------------- */
 
 %include
@@ -593,13 +754,16 @@ statement ::= outputargs(A) ASSIGN startsubcall inputargs SEMICOLON.
 
 	Generate(MidCall(subr));
 
-	var param := subr.first_output_parameter;
+	var paramindex := subr.num_output_parameters;
 	var count: uint8 := 0;
 	var node := A;
 	while node != (0 as [Node]) loop
-		if param == (0 as [Symbol]) then
+		if paramindex == 0 then
 			SimpleError("too many output arguments");
 		end if;
+
+		paramindex := paramindex - 1;
+		var param := GetOutputParameter(subr, paramindex);
 
 		var arg := node.left;
 		node.left := (0 as [Node]);
@@ -859,8 +1023,195 @@ recordat(A) ::= AT OPENPAREN cvalue(C) CLOSEPAREN.
 %type memberid {[Symbol]}
 memberid(S) ::= ID(T).
 {
-	S := AddSymbol(0 as [Namespace], T);
+	S := AddSymbol(&current_type.typedata.recordtype.namespace, T);
 	current_type.typedata.recordtype.members := current_type.typedata.recordtype.members + 1;
+}
+
+/* --- Static initialisers ----------------------------------------------- */
+
+%include
+{
+	var current_member: [Symbol]; # for records only
+	var current_offset: Size;
+
+	record NestedTypeInit
+		old_current_type: [Symbol];
+		old_current_member: [Symbol];
+		old_current_offset: Size;
+	end record;
+
+	sub WrongNumberOfElementsError()
+		StartError();
+		print("wrong number of elements in initialiser for ");
+		print(current_type.name);
+		EndError();
+	end sub;
+
+	sub CheckEndOfInitialiser()
+		if IsArray(current_type) != 0 then
+			var memberwidth := current_type.typedata.arraytype.element.typedata.stride;
+			if current_type.typedata.width == 0 then
+				current_type.typedata.width := current_offset;
+				current_type.typedata.arraytype.size := current_offset / memberwidth;
+			end if;
+			if current_offset != current_type.typedata.width then
+				WrongNumberOfElementsError();
+			end if;
+		else
+			if current_member != (0 as [Symbol]) then
+				WrongNumberOfElementsError();
+			end if;
+		end if;
+	end sub;
+
+	sub GetInitedMember(): (member: [Symbol], type: [Symbol])
+		member := 0 as [Symbol];
+
+		if IsArray(current_type) != 0 then
+			type := current_type.typedata.arraytype.element;
+		else
+			if current_member == (0 as [Symbol]) then
+				type := 0 as [Symbol];
+				return;
+			end if;
+
+			member := current_member;
+			type := current_member.vardata.type;
+			current_member := current_member.next;
+		end if;
+	end sub;
+
+	sub AlignTo(alignment: uint8)
+		var newoffset := ArchAlignUp(current_offset, alignment);
+		while current_offset != newoffset loop
+			Generate(MidInit(1, 0));
+			current_offset := current_offset + 1;
+		end loop;
+	end sub;
+
+	sub CheckForOverlaps(member: [Symbol])
+		# Not for arrays.
+		if member == (0 as [Symbol]) then
+			return;
+		end if;
+
+		if member.vardata.offset < current_offset then
+			SimpleError("out of order static initialisation");
+		end if;
+	end sub;
+
+	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol])
+		(member, type) := GetInitedMember();
+		if type == (0 as [Symbol]) then
+			print("no type\n");
+			WrongNumberOfElementsError();
+		end if;
+
+		AlignTo(type.typedata.alignment);
+		CheckForOverlaps(member);
+	end sub;
+}
+
+statement ::= initdecl OPENBR initialisers CLOSEBR SEMICOLON.
+{
+	CheckEndOfInitialiser();
+	Generate(MidEndinit());
+}
+
+initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
+{
+	# We don't call InitVariable() because we don't want this variable
+	# allocated to a workspace.
+
+	CheckNotPartialType(T);
+	S.kind := VAR;
+	S.vardata.type := T;
+	S.vardata.subr := current_subr;
+	var name := Alloc(7);
+	S.vardata.externname := name;
+	[name+0] := 'a';
+	var ptr := UIToA(AllocLabel() as uint32, 10, name+1);
+
+	if (IsArray(T) == 0) and (IsRecord(T) == 0) then
+		SimpleError("static initialisers only work on arrays or records");
+	end if;
+	if (IsRecord(T) != 0) and (T.typedata.recordtype.namespace.parent != (0 as [Namespace])) then
+		SimpleError("you can't statically initialise an inherited record");
+	end if;
+
+	if IsRecord(T) != 0 then
+		current_member := T.typedata.recordtype.namespace.first;
+	end if;
+
+	current_type := T;
+	current_offset := 0;
+
+	Generate(MidStartinit(S));
+}
+
+initialisers ::= initialiser.
+initialisers ::= initialisers COMMA initialiser.
+
+initialiser ::= .
+
+initialiser ::= expression(E).
+{
+	var member: [Symbol];
+	var type: [Symbol];
+	(member, type) := GetInitedMemberChecked();
+
+	var w := type.typedata.width;
+	case E.op is
+		when MIDCODE_CONSTANT:
+			if IsNum(type) == 0 then
+				SimpleError("initialiser must be an number");
+			end if;
+			Generate(MidInit(w as uint8, E.constant.value));
+
+		when MIDCODE_STRING:
+			if (IsPtr(type) == 0) or (type.typedata.pointertype.element != uint8_type) then
+				SimpleError("initialiser must be a string");
+			end if;
+			Generate(MidInits(E.string.text));
+
+		when else:
+			parser_i_constant_error();
+	end case;
+
+	current_offset := current_offset + w;
+}
+
+initialiser ::= startbracedinitialiser(R) initialisers CLOSEBR.
+{
+	CheckEndOfInitialiser();
+
+	current_type := R.old_current_type;
+	current_member := R.old_current_member;
+	current_offset := R.old_current_offset;
+	Free(R as [uint8]);
+}
+
+%type startbracedinitialiser {[NestedTypeInit]}
+startbracedinitialiser(R) ::= OPENBR.
+{
+	var member: [Symbol];
+	var type: [Symbol];
+	(member, type) := GetInitedMemberChecked();
+
+	R := Alloc(@bytesof NestedTypeInit) as [NestedTypeInit];
+	R.old_current_type := current_type;
+	R.old_current_member := current_member;
+	R.old_current_offset := current_offset;
+
+	current_type := type;
+	current_offset := 0;
+	if IsRecord(type) != 0 then
+		current_member := type.typedata.recordtype.namespace.first;
+	elseif IsArray(type) != 0 then
+		current_member := 0 as [Symbol];
+	else
+		SimpleError("braced initialised can only initialise arrays or records");
+	end if;
 }
 
 /* --- Inline assembly --------------------------------------------------- */

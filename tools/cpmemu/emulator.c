@@ -259,6 +259,31 @@ static void cmd_memory(void)
 	}
 }
 
+static void cmd_unassemble(void)
+{
+	char* w1 = strtok(NULL, " ");
+	char* w2 = strtok(NULL, " ");
+
+	if (!w2)
+		w2 = "10";
+
+	if (w1 && w2)
+	{
+		uint16_t addr = strtoul(w1, NULL, 16);
+		uint16_t endaddr = addr + strtoul(w2, NULL, 16);
+
+		while (addr < endaddr)
+		{
+			char buffer[80];
+			int tstates;
+			int len = z80ex_dasm(buffer, sizeof(buffer), 0, &tstates, &tstates, dasm_read_cb, addr, NULL);
+			printf("%04x : %s\n", addr, buffer);
+
+			addr += len;
+		}
+	}
+}
+
 static void cmd_bdos(void)
 {
 	char* w1 = strtok(NULL, " ");
@@ -288,6 +313,7 @@ static void cmd_help(void)
 		   "  w <addr>        set watchpoint\n"
 		   "  dw <addr>       delete watchpoint\n"
 		   "  m <addr> <len>  show memory\n"
+		   "  u <addr> <len>  unassemble memory\n"
 		   "  s               single step\n"
 		   "  g               continue\n"
 		   "  bdos 0|1        enable break on bdos entry\n"
@@ -322,6 +348,8 @@ static void debug(void)
 				cmd_delete_watchpoint();
 			else if (strcmp(token, "m") == 0)
 				cmd_memory();
+			else if (strcmp(token, "u") == 0)
+				cmd_unassemble();
 			else if (strcmp(token, "s") == 0)
 			{
 				singlestepping = true;

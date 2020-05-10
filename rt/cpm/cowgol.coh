@@ -10,6 +10,10 @@ sub Exit()
 	@asm "jmp _exit";
 end sub;
 
+sub ExitWithError()
+	@asm "jmp _exit";
+end sub;
+
 sub AlignUp(in: intptr): (out: intptr)
 	out := in;
 end sub;

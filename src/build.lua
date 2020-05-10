@@ -49,6 +49,7 @@ definerule("oldcom",
 		rtdir = { type="string" },
 		arch = { type="string" },
 		deps = { type="targets", default={} },
+		compiler = { type="string", default="src/oldcom+oldcom" },
 	},
 	function (e)
 		local includes = {}
@@ -60,7 +61,7 @@ definerule("oldcom",
 		local coo = normalrule {
 			name = e.name.."-coo",
 			ins = {
-				"src/oldcom+oldcom-"..e.arch,
+				e.compiler.."-"..e.arch,
 				e.srcs,
 				"rt/*.coh",
 				"rt/"..e.rtdir.."/*.coh",
@@ -68,7 +69,7 @@ definerule("oldcom",
 			},
 			outleaves = { e.name..".coo" },
 			commands = {
-				"%{ins[1]} -Irt/ -Irt/"..e.rtdir.."/ %{hdrpaths} %{ins[2]} %{outs[1]}"
+				"scripts/quiet %{ins[1]} -Irt/ -Irt/"..e.rtdir.."/ %{hdrpaths} %{ins[2]} %{outs[1]}"
 			},
 			vars = {
 				hdrpaths = includes
@@ -115,7 +116,7 @@ definerule("simpletest",
 			},
 			outleaves = { e.name..".bad" },
 			commands = {
-				e.runcmd.." %{ins[1]} > %{outs[1]}",
+				"timeout 5s "..e.runcmd.." %{ins[1]} > %{outs[1]}",
 				"diff -u %{ins[2]} %{outs[1]}"
 			}
 		}
@@ -356,6 +357,62 @@ definerule("runtest-oldcom-cgen",
 			exe = e.exe,
 			goodfile = e.goodfile,
 			runcmd = ""
+		}
+	end
+)
+
+definerule("compile-cowcom-cpm-8080",
+	{
+		srcs = { type="targets" },
+		deps = { type="targets", default={} },
+	},
+	function (e)
+		return oldcom {
+			name = e.name,
+			srcs = e.srcs,
+			rtdir = "cpm",
+			arch = "8080",
+			deps = e.deps,
+			compiler = "src/cowcom+cowcom-oldcom-cgen"
+		}
+	end
+)
+
+definerule("link-cowcom-cpm-8080",
+	{
+		srcs = { type="targets" },
+	},
+	function (e)
+		local asm = uncoo {
+			name = e.name.."-asm",
+			srcs = e.srcs,
+			extension = "asm"
+		}
+
+		return zmac {
+			name = e.name,
+			relocatable = false,
+			srcs = { asm },
+			deps = {
+				"rt/cpm/cowgol.inc",
+				"rt/cpm/tail.inc",
+			}
+		}
+	end
+)
+
+definerule("runtest-cowcom-cpm-8080",
+	{
+		exe = { type="targets" },
+		goodfile = { type="targets" },
+	},
+	function (e)
+		return simpletest {
+			name = e.name,
+			exe = e.exe,
+			goodfile = e.goodfile,
+			deps = { "tools/cpmemu+cpmemu" },
+			runcmd = "%{ins[3]}"
 		}
 	end
 )

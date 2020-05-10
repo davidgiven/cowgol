@@ -140,5 +140,6 @@ sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol])
 	arraytype.typedata.stride := type.typedata.stride * size;
 	arraytype.typedata.arraytype.element := type;
 	arraytype.typedata.arraytype.size := size;
+	arraytype.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 end sub;
 

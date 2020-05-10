@@ -18,7 +18,7 @@ sub equality1()
 	print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
 	print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
 
-	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes(); else no(); end if;
 end sub;
 equality1();
 
@@ -35,7 +35,7 @@ sub equality2()
 	print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
 	print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
 
-	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes(); else no(); end if;
 end sub;
 equality2();
 
@@ -52,7 +52,7 @@ sub equality4()
 	print("one==ONE or zero==ONE"); if one==ONE or zero==ONE then yes(); else no(); end if;
 	print("one==ZERO or zero==ZERO"); if one==ZERO or zero==ZERO then yes(); else no(); end if;
 
-	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes() else no(); end if;
+	print("one==ZERO or (one==ONE and zero==ZERO)"); if one==ZERO or (one==ONE and zero==ZERO) then yes(); else no(); end if;
 end sub;
 equality4();
 

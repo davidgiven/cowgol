@@ -113,6 +113,9 @@ sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 		lhs.constant.value := lhs.constant.value + rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
+#	elseif (rhs.op == MIDCODE_CONSTANT) and (rhs.constant.value == 0) then
+#		result := lhs;
+#		Discard(rhs);
 	else
 		result := MidAdd(width, lhs, rhs);
 	end if;
@@ -124,8 +127,13 @@ sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 		Discard(rhs);
 		result := lhs;
 	elseif rhs.op == MIDCODE_CONSTANT then
-		rhs.constant.value := -rhs.constant.value;
-		result := MidAdd(width, lhs, rhs);
+		if rhs.constant.value == 0 then
+			result := lhs;
+			Discard(rhs);
+		else
+			rhs.constant.value := -rhs.constant.value;
+			result := MidAdd(width, lhs, rhs);
+		end if;
 	else
 		result := MidSub(width, lhs, rhs);
 	end if;
@@ -134,7 +142,7 @@ end sub;
 sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(lhs, rhs);
 	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
-		lhs.constant.value := lhs.constant.value + rhs.constant.value;
+		lhs.constant.value := lhs.constant.value * rhs.constant.value;
 		Discard(rhs);
 		result := lhs;
 	else
@@ -185,6 +193,10 @@ sub MidCRemu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node])
+	if lhs.op == MIDCODE_CONSTANT then
+		result := lhs;
+		return;
+	end if;
 	var srcwidth := lhs.type.typedata.width as uint8;
 	if srcwidth == width then
 		result := lhs;

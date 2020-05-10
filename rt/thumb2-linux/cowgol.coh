@@ -13,6 +13,12 @@ var HIMEM: [uint8];
 
 extern sub Exit() := "_exit";
 
+sub ExitWithError()
+	@asm "mov r0, #0";
+	@asm "mov r7, #1"; # __exit()
+	@asm "svc #0";
+end sub;
+
 sub AlignUp(in: intptr): (out: intptr)
 	out := (in + 3) & ~3;
 end sub;

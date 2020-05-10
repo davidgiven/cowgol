@@ -1,0 +1,15 @@
+#!/bin/sh
+stdout=/tmp/$$.stdout
+stderr=/tmp/$$.stderr
+trap "rm -f $stdout $stderr" EXIT
+
+timeout 5s "$@" >$stdout 2>$stderr
+if [ $? = 0 ]; then
+	exit 0
+else
+	cat $stdout
+	cat $stderr
+	echo "$ " "$@"
+	exit 1
+fi
+
