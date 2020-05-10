@@ -46,7 +46,9 @@ sub NodeWidth(node: [Node]): (width: uint8)
 	end if;
 end sub;
 
-sub RotateParameters(lhs: [Node], rhs: [Node]): (newlhs: [Node], newrhs: [Node])
+# Called before commutative operators.
+sub RotateParameters(baseop: uint8, lhs: [Node], rhs: [Node]): (newlhs: [Node], newrhs: [Node])
+	# Ensure that x=1+y becomes x=y+1, which is easier to generate code for.
 	if lhs.type != (0 as [Symbol]) then
 		newlhs := lhs;
 		newrhs := rhs;
@@ -75,7 +77,7 @@ sub MidCNot(width: uint8, lhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCAnd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(lhs, rhs);
+	(lhs, rhs) := RotateParameters(MIDCODE_AND0, lhs, rhs);
 	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value & rhs.constant.value;
 		Discard(rhs);
@@ -86,7 +88,7 @@ sub MidCAnd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCOr(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(lhs, rhs);
+	(lhs, rhs) := RotateParameters(MIDCODE_OR0, lhs, rhs);
 	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value | rhs.constant.value;
 		Discard(rhs);
@@ -97,7 +99,7 @@ sub MidCOr(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCEor(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(lhs, rhs);
+	(lhs, rhs) := RotateParameters(MIDCODE_EOR0, lhs, rhs);
 	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
 		lhs.constant.value := lhs.constant.value ^ rhs.constant.value;
 		Discard(rhs);
@@ -108,17 +110,20 @@ sub MidCEor(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(lhs, rhs);
-	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
-		lhs.constant.value := lhs.constant.value + rhs.constant.value;
-		Discard(rhs);
-		result := lhs;
-#	elseif (rhs.op == MIDCODE_CONSTANT) and (rhs.constant.value == 0) then
-#		result := lhs;
-#		Discard(rhs);
-	else
-		result := MidAdd(width, lhs, rhs);
+	(lhs, rhs) := RotateParameters(MIDCODE_ADD0, lhs, rhs);
+	if rhs.op == MIDCODE_CONSTANT then
+		if lhs.op == MIDCODE_CONSTANT then
+			lhs.constant.value := lhs.constant.value + rhs.constant.value;
+			Discard(rhs);
+			result := lhs;
+			return;
+		elseif rhs.constant.value == 0 then
+			result := lhs;
+			Discard(rhs);
+			return;
+		end if;
 	end if;
+	result := MidAdd(width, lhs, rhs);
 end sub;
 
 sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
@@ -140,14 +145,25 @@ sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 end sub;
 
 sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(lhs, rhs);
-	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
-		lhs.constant.value := lhs.constant.value * rhs.constant.value;
-		Discard(rhs);
-		result := lhs;
-	else
-		result := MidMul(width, lhs, rhs);
+	(lhs, rhs) := RotateParameters(MIDCODE_MUL0, lhs, rhs);
+	if rhs.op == MIDCODE_CONSTANT then
+		if lhs.op == MIDCODE_CONSTANT then
+			lhs.constant.value := lhs.constant.value * rhs.constant.value;
+			Discard(rhs);
+			result := lhs;
+			return;
+		elseif rhs.constant.value == 0 then
+			Discard(lhs);
+			Discard(rhs);
+			result := MidConstant(0);
+			return;
+		elseif rhs.constant.value == 1 then
+			Discard(rhs);
+			result := lhs;
+			return;
+		end if;
 	end if;
+	result := MidMul(width, lhs, rhs);
 end sub;
 		
 sub MidCDivu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
