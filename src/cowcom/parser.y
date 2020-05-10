@@ -457,9 +457,17 @@ expression(E) ::= PREV expression(E1).
 	E.type := E1.type;
 }
 
-expression(E) ::= BYTESOF typeref(T).
+expression(E) ::= BYTESOF varortypeid(T).
 {
 	E := MidConstant(T.typedata.width as Arith);
+}
+
+expression(E) ::= SIZEOF varortypeid(T).
+{
+	if IsArray(T) == 0 then
+		SimpleError("array expected");
+	end if;
+	E := MidConstant(T.typedata.arraytype.size as Arith);
 }
 
 expression(E) ::= oldid(S).
@@ -665,6 +673,23 @@ eitherid(S) ::= ID(T).
 		sym := AddSymbol(0 as [Namespace], T);
 	end if;
 	S := sym;
+}
+
+%type varortypeid {[Symbol]}
+varortypeid(T) ::= oldid(S).
+{
+	if S.kind == VAR then
+		S := S.vardata.type;
+	end if;
+	if S.kind != TYPE then
+		SimpleError("simple type or variable name expected");
+	end if;
+	T := S;
+}
+
+varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
+{
+	T := T1;
 }
 
 /* --- Subroutine calls -------------------------------------------------- */
