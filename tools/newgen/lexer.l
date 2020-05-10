@@ -28,8 +28,12 @@ ID [A-Za-z][A-Za-z0-9_$]*
 ","                       { return COMMA; }
 ";"                       { return SEMICOLON; }
 ":="                      { return ASSIGN; }
-"=="                      { return EQUALS; }
-"!="                      { return NOTEQUALS; }
+"=="                      { return EQOP; }
+"!="                      { return NEOP; }
+"<="                      { return LEOP; }
+"<"                       { return LTOP; }
+">="                      { return GEOP; }
+">"                       { return GTOP; }
 "-"                       { return MINUS; }
 "|"                       { return PIPE; }
 ":"                       { return COLON; }

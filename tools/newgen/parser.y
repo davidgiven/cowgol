@@ -172,11 +172,23 @@ predicate(R) ::= ID(I1) IS ID(I2).
     R->u.callback = I2.u.string;
 }
 
-operator(R) ::= EQUALS.
-{ R = EQUALS; }
+operator(R) ::= EQOP.
+{ R = EQOP; }
 
-operator(R) ::= NOTEQUALS.
-{ R = NOTEQUALS; }
+operator(R) ::= NEOP.
+{ R = NEOP; }
+
+operator(R) ::= LTOP.
+{ R = LTOP; }
+
+operator(R) ::= LEOP.
+{ R = LEOP; }
+
+operator(R) ::= GTOP.
+{ R = GTOP; }
+
+operator(R) ::= GEOP.
+{ R = GEOP; }
 
 int(R) ::= INT(I1).
 { R = I1.u.number; }
