@@ -302,6 +302,12 @@
 		E_nl();
 	end sub;
 
+	sub E_dec(reg: RegId)
+		E("\tdec ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
 	sub E_inx(reg: RegId)
 		E("\tinx ");
 		E_reg(reg);
@@ -718,14 +724,17 @@ gen STORE4(stk4, hl)
 gen a := ADD1(a, b|d|h:rhs)
 		{ E_add($rhs); }
 
-gen a := ADD1(a, CONSTANT(value==1))
-		{ E_inc(REG_A); }
+gen a|b|d|h := ADD1($$, CONSTANT(value==1))
+		{ E_inc($$); }
 
 gen a := ADD1(a, CONSTANT():c)
 		{ E_alui("adi", $c.value as uint8); }
 
 gen a := SUB1(a, b|d|h:rhs)
 		{ E_alu("sub", $rhs); }
+
+gen a|b|d|h := SUB1($$, CONSTANT(value==1))
+		{ E_dec($$); }
 
 gen a := SUB1(a, CONSTANT():c)
 		{ E_alui("sbi", $c.value as uint8); }
@@ -1255,9 +1264,10 @@ gen stk4 := CAST14(a:rhs, sext!=0) uses hl|b
 }
 
 gen a := CAST21(hl|bc|de:rhs)
-{
-	E_mov(REG_A, loreg($rhs));
-}
+		{ E_mov(REG_A, loreg($rhs)); }
+
+gen a := CAST21(ADDRESS():a)
+		{ E_lda($a.sym, $a.off); }
 
 gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
@@ -1285,14 +1295,10 @@ gen a := CAST41(stk4) uses hl
 }
 
 gen a := CAST41(LOAD4(ADDRESS():a))
-{
-	E_lda($a.sym, $a.off);
-}
+		{ E_lda($a.sym, $a.off); }
 
 gen a|b|d|h := CAST41(LOAD4(hl))
-{
-	E_loadm($$);
-}
+		{ E_loadm($$); }
 
 gen hl := CAST42(stk4) uses bc
 {
@@ -1301,14 +1307,10 @@ gen hl := CAST42(stk4) uses bc
 }
 
 gen hl := CAST42(LOAD4(ADDRESS():a))
-{
-	E_lhld($a.sym, $a.off);
-}
+		{ E_lhld($a.sym, $a.off); }
 	
 gen hl|bc|de := CAST42(LOAD4(hl))
-{
-	load2($$);
-}
+		{ load2($$); }
 	
 // --- Strings --------------------------------------------------------------
 
