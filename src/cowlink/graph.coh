@@ -1,9 +1,9 @@
-const STACK_SIZE := 128;
-var stack: [Subroutine][STACK_SIZE];
-var sp: uint8 := 0;
 
 sub CalculateDependencyGraph(coo: [Coo])
-	sp := 1;
+	const STACK_SIZE := 255;
+	var stack: [Subroutine][STACK_SIZE];
+	var sp: uint8 := 1;
+
 	stack[0] := FindSub(coo, 0);
 
 	loop

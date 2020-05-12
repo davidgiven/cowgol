@@ -358,8 +358,12 @@ static const char* operator_name(int operator)
 {
 	switch (operator)
 	{
-		case EQUALS: return "==";
-		case NOTEQUALS: return "!=";
+		case EQOP: return "==";
+		case NEOP: return "!=";
+		case LTOP: return "<";
+		case LEOP: return "<=";
+		case GTOP: return ">";
+		case GEOP: return ">=";
 	}
 	assert(false);
 }

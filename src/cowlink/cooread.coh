@@ -129,6 +129,8 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 end sub;
 
 sub WriteSubroutinesToOutputFile(fcb: [FCB], coo: [Coo])
+	var buffer: uint8[512];
+
 	FCBSeek(&coo.fcb, 0);
 	loop
 		var c := FCBGetChar(&coo.fcb);
@@ -141,10 +143,14 @@ sub WriteSubroutinesToOutputFile(fcb: [FCB], coo: [Coo])
 			var subroutine := FindSub(coo, id);
 			if subroutine.used != 0 then
 				var length := (len - 4) as intptr;
-				var buffer := Alloc(length);
-				FCBGetBlock(&coo.fcb, buffer, length);
-				FCBPutBlock(fcb, buffer, length);
-				Free(buffer);
+				while length > @bytesof buffer loop
+					FCBGetBlock(&coo.fcb, &buffer[0], @bytesof buffer);
+					FCBPutBlock(fcb, &buffer[0], @bytesof buffer);
+					length := length - @bytesof buffer;
+				end loop;
+
+				FCBGetBlock(&coo.fcb, &buffer[0], length);
+				FCBPutBlock(fcb, &buffer[0], length);
 			end if;
 		end if;
 		FCBSeek(&coo.fcb, here + (len as uint32));

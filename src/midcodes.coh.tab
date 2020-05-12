@@ -48,8 +48,13 @@ y 1 1 CAST2(sext: uint8)
 y 1 1 CAST4(sext: uint8)
 y 1 1 CAST8(sext: uint8)
 
-y 1 0 PUSHARG(subr: [Subroutine], arg: uint8)
-y 1 0 POPARG(subr: [Subroutine], arg: uint8)
+# PUSHARG is a root node, but POPARG is a leaf. However, because the parameter
+# stack and the spill stack occupy the same physical space (at least on most
+# architectures), POPARG must be the first node actually generated in any
+# tree. The frontend only generates it for STORE(POPARG(), something)
+# statements, which meets this requirement.
+y 1 0 PUSHARG(subr: [Subroutine], remaining: uint8)
+y 0 1 POPARG(subr: [Subroutine], remaining: uint8)
 
 y 2 1 ADD()
 y 2 1 SUB()

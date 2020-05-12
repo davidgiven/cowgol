@@ -98,6 +98,10 @@
 		E_nl();
 	end sub;
 
+	sub E_jmp(label: LabelRef)
+		E_jump("jmp", label);
+	end sub;
+
 	sub E_jnz(label: LabelRef)
 		E_jump("jnz", label);
 	end sub;
@@ -157,6 +161,10 @@
 		end if;
 	end sub;
 
+	sub E_ret()
+		E("\tret\n");
+	end sub;
+
 	sub E_mov(dest: RegId, src: RegId)
 		E_tab();
 		E("mov ");
@@ -200,12 +208,20 @@
 		E_alu("ora", rhs);
 	end sub;
 
+	sub E_add(rhs: RegId)
+		E_alu("add", rhs);
+	end sub;
+
 	sub E_alui(insn: string, value: uint8)
 		E_tab();
 		E(insn);
 		E_space();
 		E_u8(value);
 		E_nl();
+	end sub;
+
+	sub E_cmp(reg: RegId);
+		E_alu("cmp", reg);
 	end sub;
 
 	sub E_cpi(value: uint8)
@@ -286,6 +302,12 @@
 		E_nl();
 	end sub;
 
+	sub E_dec(reg: RegId)
+		E("\tdec ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
 	sub E_inx(reg: RegId)
 		E("\tinx ");
 		E_reg(reg);
@@ -312,6 +334,10 @@
 
 	sub E_ral()
 		E("\tral\n");
+	end sub;
+
+	sub E_rar()
+		E("\trar\n");
 	end sub;
 
 	sub E_dad(reg: RegId)
@@ -421,7 +447,7 @@ gen LABEL():b
 
 gen JUMP():j
 {
-	E_jump("jmp", $j.label);
+	E_jmp($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
@@ -440,29 +466,46 @@ gen STARTSUB():s
 	E(":\n");
 
 	var count := $s.subr.num_input_parameters;
-    if count != 0 then
-		ArchEmitMove(0, REG_BC);
-		while count != 0 loop
-			count := count - 1;
-			var param := GetInputParameter($s.subr, count);
+	var lastparam := count - 1;
+	var popped: uint8 := 0;
 
-			case param.vardata.type.typedata.width is
-				when 1:
-					ArchEmitMove(0, REG_A);
-					E_sta(param, 0);
+	sub pop_return_address()
+		if popped == 0 then
+			E_pop(REG_BC);
+			popped := 1;
+		end if;
+	end sub;
 
-				when 2:
-					ArchEmitMove(0, REG_HL);
-					E_shld(param, 0);
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter($s.subr, count);
 
-				when 4:
-					ArchEmitMove(0, REG_HL);
-					E_shld(param, 0);
-					ArchEmitMove(0, REG_HL);
-					E_shld(param, 2);
-			end case;
-		end loop;
-		ArchEmitMove(REG_BC, 0);
+		case param.vardata.type.typedata.width is
+			when 1:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_A);
+				end if;
+				E_sta(param, 0);
+
+			when 2:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_HL);
+				end if;
+				E_shld(param, 0);
+
+			when 4:
+				pop_return_address();
+				E_pop(REG_HL);
+				E_shld(param, 0);
+				E_pop(REG_HL);
+				E_shld(param, 2);
+		end case;
+	end loop;
+
+	if popped != 0 then
+		E_push(REG_BC);
 	end if;
 }
 
@@ -472,111 +515,106 @@ gen ENDSUB():s
 	E_subref($s.subr);
 	E(":\n");
 
-    if $s.subr.num_output_parameters != 0 then
-		ArchEmitMove(0, REG_DE);
-		var count: uint8 := 0;
-		while count != $s.subr.num_output_parameters loop
-			var param := GetOutputParameter($s.subr, count);
+	var count: uint8 := 0;
+	var params := $s.subr.num_output_parameters;
+	var pushed: uint8 := 0;
 
-			case param.vardata.type.typedata.width is
-				when 1:
-					E_lda(param, 0);
-					ArchEmitMove(REG_A, 0);
+	sub push_return_address()
+		if pushed == 0 then
+			E_pop(REG_BC);
+			pushed := 1;
+		end if;
+	end sub;
 
-				when 2:
-					E_lhld(param, 0);
-					ArchEmitMove(REG_HL, 0);
+	while count != params loop
+		var param := GetOutputParameter($s.subr, count);
 
-				when 4:
-					E_lhld(param, 2);
-					ArchEmitMove(REG_HL, 0);
-					E_lhld(param, 0);
-					ArchEmitMove(REG_HL, 0);
-			end case;
+		case param.vardata.type.typedata.width is
+			when 1:
+				E_lda(param, 0);
+				if count != (params-1) then
+					push_return_address();
+					E_push(REG_A);
+				end if;
 
-			count := count + 1;
-		end loop;
-		E_xchg();
-		E_pchl();
-	else
-		E("\tret\n");
+			when 2:
+				E_lhld(param, 0);
+				if count != (params-1) then
+					push_return_address();
+					E_push(REG_HL);
+				end if;
+
+			when 4:
+				push_return_address();
+				E_lhld(param, 2);
+				E_push(REG_HL);
+				E_lhld(param, 0);
+				E_push(REG_HL);
+		end case;
+
+		count := count + 1;
+	end loop;
+
+	if pushed != 0 then
+		E_push(REG_BC);
 	end if;
+	E_ret();
 
 	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
 	EmitterPopChunk('S');
 }
 
 gen CALL():s
-{
-	E_call($s.subr);
-}
+		{ E_call($s.subr); }
 	
 gen a := CALLE1():s
-{
-	E_call($s.subr);
-	ArchEmitMove(0, REG_A);
-}
+		{ E_call($s.subr); }
 
 gen hl := CALLE2():s
-{
-	E_call($s.subr);
-	ArchEmitMove(0, REG_HL);
-}
+		{ E_call($s.subr); }
 
 gen stk4 := CALLE4():s
-{
-	E_call($s.subr);
-	# return value left on stack by subroutine
-}
+		{ E_call($s.subr); }
 
-gen PUSHARG1(a|b|d|h:lhs)
-{
-	E_push($lhs);
-}
+gen PUSHARG1(a, remaining==0);
+
+gen PUSHARG1(a|b|d|h:lhs, remaining!=0)
+		{ E_push($lhs); }
 	
-gen PUSHARG2(bc|de|hl:lhs)
-{
-	E_push($lhs);
-}
+gen PUSHARG2(hl, remaining==0);
+
+gen PUSHARG2(bc|de|hl:lhs, remaining!=0)
+		{ E_push($lhs); }
+
+gen PUSHARG2(CALLE2():s)
+		{ E_call($s.subr); }
 
 gen PUSHARG4(stk4); // already stacked
 
-gen POPARG1(hl) uses a
-{
-	E_pop(REG_A);
-	E_storem(REG_A);
-}
+gen PUSHARG4(CALLE4():s)
+		{ E_call($s.subr); }
 
-gen POPARG1(ADDRESS():a) uses a
-{
-	E_pop(REG_A);
-	E_sta($a.sym, $a.off);
-}
+gen a := POPARG1(remaining==0);
 
-gen POPARG2(hl) uses de
-{
-	E_pop(REG_DE);
-	E_storem(REG_E);
-	E_inx(REG_HL);
-	E_storem(REG_D);
-}
+gen a|b|d|h := POPARG1(remaining!=0)
+		{ E_pop(REG_A); }
 
-gen POPARG2(ADDRESS():a) uses hl
-{
-	E_pop(REG_HL);
-	E_shld($a.sym, $a.off);
-}
+gen hl := POPARG2(remaining==0);
 
-gen POPARG4(hl) uses bc|de
-{
-	E_callhelper("store4");
-}
+gen hl|bc|de := POPARG2()
+		{ E_pop(REG_HL); }
+
+gen stk4 := POPARG4();
 
 gen RETURN()
 {
-	E("\tjmp end_");
-	E_subref(current_subr);
-	E("\n");
+    if current_subr.num_output_parameters == 0 then
+		E_ret();
+	else
+		E("\tjmp end_");
+		E_subref(current_subr);
+		E("\n");
+	end if;
 }
 
 // --- Constants ------------------------------------------------------------
@@ -641,18 +679,24 @@ gen hl := LOAD2(ADDRESS():a)
 	E_lhld($a.sym, $a.off);
 }
 
-gen hl|bc|de := LOAD2(hl)
+%{
+	sub load2(dest: RegId)
+		if dest == REG_HL then
+			E_loadm(REG_A);
+			E_inx(REG_HL);
+			E_loadm(dest);
+			E_mov(loreg(dest), REG_A);
+		else
+			E_loadm(loreg(dest));
+			E_inx(REG_HL);
+			E_loadm(dest);
+		end if;
+	end sub;
+%}
+
+gen hl|bc|de := LOAD2(hl) uses a
 {
-	if $$ == REG_HL then
-		E_loadm(REG_A);
-		E_inx(REG_HL);
-		E_loadm($$);
-		E_mov(loreg($$), REG_A);
-	else
-		E_loadm(loreg($$));
-		E_inx(REG_HL);
-		E_loadm($$);
-	end if;
+	load2($$);
 }
 
 gen STORE2(hl, ADDRESS():a)
@@ -670,28 +714,27 @@ gen STORE2(bc|de:val, hl) uses a
 // --- 32-bit loads and stores ----------------------------------------------
 
 gen stk4 := LOAD4(hl)
-{
-	E_callhelper("load4");
-}
+		{ E_callhelper("load4"); }
 
 gen STORE4(stk4, hl)
-{
-	E_callhelper("store4");
-}
+		{ E_callhelper("store4"); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
 gen a := ADD1(a, b|d|h:rhs)
-		{ E_alu("add", $rhs); }
+		{ E_add($rhs); }
 
-gen a := ADD1(a, CONSTANT(value==1))
-		{ E_inc(REG_A); }
+gen a|b|d|h := ADD1($$, CONSTANT(value==1))
+		{ E_inc($$); }
 
 gen a := ADD1(a, CONSTANT():c)
 		{ E_alui("adi", $c.value as uint8); }
 
 gen a := SUB1(a, b|d|h:rhs)
 		{ E_alu("sub", $rhs); }
+
+gen a|b|d|h := SUB1($$, CONSTANT(value==1))
+		{ E_dec($$); }
 
 gen a := SUB1(a, CONSTANT():c)
 		{ E_alui("sbi", $c.value as uint8); }
@@ -711,11 +754,20 @@ gen a := NEG1(b|d|h:lhs)
 gen a := OR1(a, b|d|h:lhs)
 		{ E_alu("ora", $lhs); }
 
+gen a := OR1(a, CONSTANT():c)
+		{ E_alui("ori", $c.value as uint8); }
+
 gen a := AND1(a, b|d|h:lhs)
 		{ E_alu("ana", $lhs); }
 
+gen a := AND1(a, CONSTANT():c)
+		{ E_alui("ani", $c.value as uint8); }
+
 gen a := EOR1(a, b|d|h:lhs)
 		{ E_alu("xra", $lhs); }
+
+gen a := EOR1(a, CONSTANT():c)
+		{ E_alui("xri", $c.value as uint8); }
 
 gen b := DIVU1(b, d) uses a
 		{ E_callhelper("dvrmu1"); }
@@ -737,6 +789,25 @@ gen a := RSHIFTU1(a, b) uses bc
 
 gen a := LSHIFT1(a, b) uses bc
 		{ E_callhelper("asl1"); }
+
+gen a := LSHIFT1(a, CONSTANT(value<=5):c)
+{
+	var i := $c.value as uint8;
+	while i != 0 loop
+		E_add(REG_A);
+		i := i - 1;
+	end loop;
+}
+
+gen a := RSHIFTU1(a, CONSTANT(value<=2):c)
+{
+	var i := $c.value as uint8;
+	while i != 0 loop
+		E_ora(REG_A);
+		E_rar();
+		i := i - 1;
+	end loop;
+}
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
@@ -804,11 +875,25 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 		E_alu(hiinsn, rhs);
 		E_mov(dest, REG_A);
 	end sub;
+
+	sub aluop2i(lhs: RegId, value: uint16, dest: RegId, loinsn: string, hiinsn: string)
+		E_mov(REG_A, loreg(lhs));
+		E_alui(loinsn, value as uint8);
+		E_mov(loreg(dest), REG_A);
+		E_mov(REG_A, lhs);
+		E_alui(hiinsn, (value >> 8) as uint8);
+		E_mov(dest, REG_A);
+	end sub;
 %}
 
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 {
 	aluop2($lhs, $rhs, $$, "sub", "sbb");
+}
+
+gen bc|de|hl := SUB2(bc|de|hl:lhs, CONSTANT():c) uses a
+{
+	aluop2i($lhs, $c.value as uint16, $$, "sui", "sbi");
 }
 
 gen de := DIVU2(de, bc) uses a
@@ -830,16 +915,29 @@ gen hl := MUL2(hl, de) uses a|bc
 	sub logic2(lhs: RegId, rhs: RegId, dest: RegId, insn: string)
 		aluop2(lhs, rhs, dest, insn, insn);
 	end sub;
+
+	sub logic2i(lhs: RegId, value: uint16, dest: RegId, insn: string)
+		aluop2i(lhs, value, dest, insn, insn);
+	end sub;
 %}
 
 gen bc|de|hl := OR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 		{ logic2($lhs, $rhs, $$, "ora"); }
 
+gen bc|de|hl := OR2(bc|de|hl:lhs, CONSTANT():c) uses a
+		{ logic2i($lhs, $c.value as uint16, $$, "ori"); }
+
 gen bc|de|hl := AND2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 		{ logic2($lhs, $rhs, $$, "ana"); }
 
+gen bc|de|hl := AND2(bc|de|hl:lhs, CONSTANT():c) uses a
+		{ logic2i($lhs, $c.value as uint16, $$, "ani"); }
+
 gen bc|de|hl := EOR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
 		{ logic2($lhs, $rhs, $$, "xra"); }
+
+gen bc|de|hl := EOR2(bc|de|hl:lhs, CONSTANT():c) uses a
+		{ logic2i($lhs, $c.value as uint16, $$, "xri"); }
 
 gen bc|de|hl := NOT2(bc|de|hl:lhs) uses a
 {
@@ -859,6 +957,15 @@ gen hl := RSHIFTS2(hl, b) uses a
 
 gen hl := LSHIFT2(hl, b) uses a
 		{ E_callhelper("asl2"); }
+
+gen hl := LSHIFT2(hl, CONSTANT(value<=5):c)
+{
+	var i := $c.value as uint8;
+	while i != 0 loop
+		E_dad(REG_HL);
+		i := i - 1;
+	end loop;
+}
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
@@ -907,8 +1014,6 @@ gen stk4 := RSHIFTU4(stk4, b) uses a|de|hl
 gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
         { E_callhelper("asr4"); }
 
-
-
 // --- Conditionals ---------------------------------------------------------
 
 %{
@@ -921,19 +1026,46 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 		end if;
 	end sub;
 
-	sub bequ1(node: [Node], nota: RegId)
-		E_alu("cmp", nota);
+	sub E_jumps_jz_jnz(node: [Node])
 		E_jumps_with_fallthrough("jz", "jnz", node);
+	end sub;
+
+	sub E_jumps_jc_jnc(node: [Node])
+		E_jumps_with_fallthrough("jc", "jnc", node);
+	end sub;
+
+	sub bequ1(node: [Node], nota: RegId)
+		E_cmp(nota);
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ1c(node: [Node], value: uint8)
+		if value == 0 then
+			E_ora(REG_A);
+		else
+			E_cpi(value);
+		end if;
+		E_jumps_jz_jnz(node);
 	end sub;
 
 	sub bequ2(node: [Node])
 		E_callhelper("cmpeq2");
-		E_jumps_with_fallthrough("jz", "jnz", node);
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ2c(node: [Node], value: uint16)
+		if value != 0 then
+			E_lxi(REG_DE, -value);
+			E_dad(REG_DE);
+		end if;
+		E_mov(REG_A, REG_H);
+		E_ora(REG_L);
+		E_jumps_jz_jnz(node);
 	end sub;
 
 	sub bequ4(node: [Node])
 		E_callhelper("cmpu4");
-		E_jumps_with_fallthrough("jz", "jnz", node);
+		E_jumps_jz_jnz(node);
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
@@ -942,35 +1074,44 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 			label := node.beqs0.truelabel;
 		end if;
 		if label != node.beqs0.fallthrough then
-			E_jump("jmp", label);
+			E_jmp(label);
 		end if;
 	end sub;
 %}
 
 gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
-{
-	beqc(self.n[0], $c1.value, $c2.value);
-}
+		{ beqc(self.n[0], $c1.value, $c2.value); }
 
 gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
-{
-	beqc(self.n[0], $c1.value, $c2.value);
-}
+		{ beqc(self.n[0], $c1.value, $c2.value); }
 
 gen BEQU1(b|d|h:nota, a):b
-{
-	bequ1(self.n[0], $nota);
-}
+		{ bequ1(self.n[0], $nota); }
+
+gen BEQU1(a, CONSTANT():c):b
+		{ bequ1c(self.n[0], $c.value as uint8); }
 
 gen BEQS1(b|d|h:nota, a):b
-{
-	bequ1(self.n[0], $nota);
-}
+		{ bequ1(self.n[0], $nota); }
+
+gen BEQS1(a, CONSTANT():c):b
+		{ bequ1c(self.n[0], $c.value as uint8); }
 
 gen BLTU1(a, b|d|h:rhs):b
 {
-	E_alu("cmp", $rhs);
-	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+	E_cmp($rhs);
+	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTU1(a, CONSTANT():c):b
+{
+	var v := $c.value as uint8;
+	if v == 0 then
+		E_ora(REG_A);
+	else
+		E_cpi(v);
+	end if;
+	E_jumps_jc_jnc(self.n[0]);
 }
 
 gen BLTS1(a, b):b
@@ -980,14 +1121,16 @@ gen BLTS1(a, b):b
 }
 
 gen BEQU2(de, hl):a
-{
-	bequ2(self.n[0]);
-}
+		{ bequ2(self.n[0]); }
+
+gen BEQU2(hl, CONSTANT():c) uses a|de
+		{ bequ2c(self.n[0], $c.value as uint16); }
 
 gen BEQS2(de, hl):a
-{
-	bequ2(self.n[0]);
-}
+		{ bequ2(self.n[0]); }
+
+gen BEQS2(hl, CONSTANT():c) uses a|de
+		{ bequ2c(self.n[0], $c.value as uint16); }
 
 gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 {
@@ -997,35 +1140,42 @@ gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 	E_mov(REG_A, $lhs);
 	E_alu("sbb", $rhs);
 
-	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTU2(hl|bc|de:lhs, CONSTANT():c):b uses a
+{
+	E_mov(REG_A, loreg($lhs));
+	E_alui("sui", $c.value as uint8);
+
+	E_mov(REG_A, $lhs);
+	E_alui("sbi", (($c.value as uint16) >> 8) as uint8);
+
+	E_jumps_jc_jnc(self.n[0]);
 }
 
 gen BLTS2(de, hl):b uses a|bc
 {
 	E_callhelper("cmps2");
-	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+	E_jumps_jc_jnc(self.n[0]);
 }
 
 gen BEQU4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
-{
-	bequ4(self.n[0]);
-}
+		{ bequ4(self.n[0]); }
 
 gen BEQS4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
-{
-	bequ4(self.n[0]);
-}
+		{ bequ4(self.n[0]); }
 
 gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E_callhelper("cmpu4");
-	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+	E_jumps_jc_jnc(self.n[0]);
 }
 
 gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E_callhelper("cmps4");
-	E_jumps_with_fallthrough("jc", "jnc", self.n[0]);
+	E_jumps_jc_jnc(self.n[0]);
 }
 
 // --- Case -----------------------------------------------------------------
@@ -1116,9 +1266,10 @@ gen stk4 := CAST14(a:rhs, sext!=0) uses hl|b
 }
 
 gen a := CAST21(hl|bc|de:rhs)
-{
-	E_mov(REG_A, loreg($rhs));
-}
+		{ E_mov(REG_A, loreg($rhs)); }
+
+gen a := CAST21(ADDRESS():a)
+		{ E_lda($a.sym, $a.off); }
 
 gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
@@ -1145,12 +1296,24 @@ gen a := CAST41(stk4) uses hl
 	E_pop(REG_HL);
 }
 
+gen a := CAST41(LOAD4(ADDRESS():a))
+		{ E_lda($a.sym, $a.off); }
+
+gen a|b|d|h := CAST41(LOAD4(hl))
+		{ E_loadm($$); }
+
 gen hl := CAST42(stk4) uses bc
 {
 	E_pop(REG_HL);
 	E_pop(REG_BC);
 }
 
+gen hl := CAST42(LOAD4(ADDRESS():a))
+		{ E_lhld($a.sym, $a.off); }
+	
+gen hl|bc|de := CAST42(LOAD4(hl))
+		{ load2($$); }
+	
 // --- Strings --------------------------------------------------------------
 
 gen bc|de|hl := STRING():s
