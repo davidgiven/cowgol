@@ -1054,8 +1054,10 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 	end sub;
 
 	sub bequ2c(node: [Node], value: uint16)
-		E_lxi(REG_DE, -value);
-		E_dad(REG_DE);
+		if value != 0 then
+			E_lxi(REG_DE, -value);
+			E_dad(REG_DE);
+		end if;
 		E_mov(REG_A, REG_H);
 		E_ora(REG_L);
 		E_jumps_jz_jnz(node);
