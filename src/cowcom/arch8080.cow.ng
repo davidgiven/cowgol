@@ -383,11 +383,15 @@
 		E_u16(sid);
 	end sub;
 
+	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		if src == 0 then
 			E_pop(dest);
 		elseif dest == 0 then
 			E_push(src);
+		elseif ((src == REG_HL) and (dest == REG_DE))
+				or ((src == REG_DE) and (dest == REG_HL)) then
+			E_xchg();
 		else
 			sub mov()
 				E("\tmov ");
@@ -404,8 +408,8 @@
 				E_comma();
 				E_reg(loreg(src));
 			end if;
+			E_nl();
 		end if;
-		E_nl();
 	end sub;
 %}
 
@@ -723,6 +727,9 @@ gen STORE4(stk4, hl)
 
 gen a := ADD1(a, b|d|h:rhs)
 		{ E_add($rhs); }
+
+gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
+		{ E_dec($$); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==1))
 		{ E_inc($$); }

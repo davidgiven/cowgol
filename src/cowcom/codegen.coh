@@ -456,31 +456,47 @@ sub Generate(rootnode: [Node])
 						producer.output_regs := producer.output_regs | blocked;
 						CreateReload(consumer, producer.produced_reg, node.produced_reg);
 					else
-						# Bad news --- we can't allocate any registers, so
-						# spill to the stack via a push and pop.
+						mask := node.desired_reg & ~(blocked | consumer.input_regs);
+						if mask != 0 then
+							# The producer and consumer want different registers, but the
+							# consumer's register works after the producer.
 
-						sub deadlock()
-							SimpleError("register allocation deadlock");
-						end sub;
+							producer.produced_reg := FindFirst(
+									producer.producable_regs & ~producer.output_regs);
+							node.produced_reg := FindFirst(mask);
+							blocked := FindConflictingRegisters(node.produced_reg);
+							consumer.input_regs := consumer.input_regs | blocked;
+							BlockRegisters(@next consumer, @prev producer, blocked);
+							producer.output_regs := producer.output_regs |
+									FindConflictingRegisters(producer.produced_reg);
+							CreateSpill(producer, producer.produced_reg, node.produced_reg);
+						else
+							# Bad news --- we can't allocate any registers, so
+							# spill to the stack via a push and pop.
 
-						candidate := producer.producable_regs & ~producer.output_regs;
-						if candidate == 0 then
-							deadlock();
+							sub deadlock()
+								SimpleError("register allocation deadlock");
+							end sub;
+
+							candidate := producer.producable_regs & ~producer.output_regs;
+							if candidate == 0 then
+								deadlock();
+							end if;
+
+							producer.produced_reg := FindFirst(candidate);
+							producer.output_regs := producer.output_regs
+								| FindConflictingRegisters(producer.produced_reg);
+							CreateSpill(producer, producer.produced_reg, 0);
+
+							candidate := node.desired_reg & ~consumer.input_regs;
+							if candidate == 0 then
+								deadlock();
+							end if;
+							node.produced_reg := FindFirst(candidate);
+							consumer.input_regs := consumer.input_regs
+								| FindConflictingRegisters(node.produced_reg);
+							CreateReload(consumer, 0, node.produced_reg);
 						end if;
-
-						producer.produced_reg := FindFirst(candidate);
-						producer.output_regs := producer.output_regs
-							| FindConflictingRegisters(producer.produced_reg);
-						CreateSpill(producer, producer.produced_reg, 0);
-
-						candidate := node.desired_reg & ~consumer.input_regs;
-						if candidate == 0 then
-							deadlock();
-						end if;
-						node.produced_reg := FindFirst(candidate);
-						consumer.input_regs := consumer.input_regs
-							| FindConflictingRegisters(node.produced_reg);
-						CreateReload(consumer, 0, node.produced_reg);
 					end if;
 				end if;
 			end if;
