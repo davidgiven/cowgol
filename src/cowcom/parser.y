@@ -776,7 +776,14 @@ statement ::= outputargs(A) ASSIGN startsubcall inputargs SEMICOLON.
 		CheckExpressionType(arg, MakePointerType(param.vardata.type));
 		CheckNotPartialType(param.vardata.type);
 		CheckNotPartialType(arg.type);
-		Generate(MidPoparg(param.vardata.type.typedata.width as uint8, arg, subr, count));
+
+		var w := param.vardata.type.typedata.width as uint8;
+		Generate(
+			MidStore(w,
+				MidPoparg(w, subr, count),
+				arg
+			)
+		);
 
 		count := count + 1;
 		param := param.vardata.next_parameter;
@@ -828,14 +835,20 @@ inputarg ::= expression(E).
 	CheckExpressionType(E, param.vardata.type);
 	CheckNotPartialType(param.vardata.type);
 	CheckNotPartialType(E.type);
-	Generate(MidPusharg(NodeWidth(E), E, current_call.subr, current_call.num_input_args));
 	current_call.num_input_args := current_call.num_input_args + 1;
+	Generate(MidPusharg(NodeWidth(E), E,
+		current_call.subr,
+		current_call.subr.num_input_parameters - current_call.num_input_args));
 }
 
 /* Output arguments get parsed before we know what subroutine they belong
  * to. So, we can't type check and emit code for them. Instead we assemble
  * them into a chain of PAIRs so that the rule above which handles multi-
- * return-value statements can do the type checking and codegen. */
+ * return-value statements can do the type checking and codegen.
+ *
+ * Note that this list is left-recursive, which means that the *last*
+ * parameter is on the *head* of the list.
+ */
 
 %type outputargs {[Node]}
 outputargs(R) ::= OPENPAREN outputarglist(L) COMMA outputarg(E) CLOSEPAREN.

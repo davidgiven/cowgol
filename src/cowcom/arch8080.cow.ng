@@ -161,6 +161,10 @@
 		end if;
 	end sub;
 
+	sub E_ret()
+		E("\tret\n");
+	end sub;
+
 	sub E_mov(dest: RegId, src: RegId)
 		E_tab();
 		E("mov ");
@@ -456,28 +460,45 @@ gen STARTSUB():s
 	E(":\n");
 
 	var count := $s.subr.num_input_parameters;
-    if count != 0 then
-		E_pop(REG_BC);
-		while count != 0 loop
-			count := count - 1;
-			var param := GetInputParameter($s.subr, count);
+	var lastparam := count - 1;
+	var popped: uint8 := 0;
 
-			case param.vardata.type.typedata.width is
-				when 1:
+	sub pop_return_address()
+		if popped == 0 then
+			E_pop(REG_BC);
+			popped := 1;
+		end if;
+	end sub;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter($s.subr, count);
+
+		case param.vardata.type.typedata.width is
+			when 1:
+				if count != lastparam then
+					pop_return_address();
 					E_pop(REG_A);
-					E_sta(param, 0);
+				end if;
+				E_sta(param, 0);
 
-				when 2:
+			when 2:
+				if count != lastparam then
+					pop_return_address();
 					E_pop(REG_HL);
-					E_shld(param, 0);
+				end if;
+				E_shld(param, 0);
 
-				when 4:
-					E_pop(REG_HL);
-					E_shld(param, 0);
-					E_pop(REG_HL);
-					E_shld(param, 2);
-			end case;
-		end loop;
+			when 4:
+				pop_return_address();
+				E_pop(REG_HL);
+				E_shld(param, 0);
+				E_pop(REG_HL);
+				E_shld(param, 2);
+		end case;
+	end loop;
+
+	if popped != 0 then
 		E_push(REG_BC);
 	end if;
 }
@@ -488,70 +509,75 @@ gen ENDSUB():s
 	E_subref($s.subr);
 	E(":\n");
 
-    if $s.subr.num_output_parameters != 0 then
-		E_pop(REG_DE);
-		var count: uint8 := 0;
-		while count != $s.subr.num_output_parameters loop
-			var param := GetOutputParameter($s.subr, count);
+	var count: uint8 := 0;
+	var params := $s.subr.num_output_parameters;
+	var pushed: uint8 := 0;
 
-			case param.vardata.type.typedata.width is
-				when 1:
-					E_lda(param, 0);
+	sub push_return_address()
+		if pushed == 0 then
+			E_pop(REG_BC);
+			pushed := 1;
+		end if;
+	end sub;
+
+	while count != params loop
+		var param := GetOutputParameter($s.subr, count);
+
+		case param.vardata.type.typedata.width is
+			when 1:
+				E_lda(param, 0);
+				if count != (params-1) then
+					push_return_address();
 					E_push(REG_A);
+				end if;
 
-				when 2:
-					E_lhld(param, 0);
+			when 2:
+				E_lhld(param, 0);
+				if count != (params-1) then
+					push_return_address();
 					E_push(REG_HL);
+				end if;
 
-				when 4:
-					E_lhld(param, 2);
-					E_push(REG_HL);
-					E_lhld(param, 0);
-					E_push(REG_HL);
-			end case;
+			when 4:
+				push_return_address();
+				E_lhld(param, 2);
+				E_push(REG_HL);
+				E_lhld(param, 0);
+				E_push(REG_HL);
+		end case;
 
-			count := count + 1;
-		end loop;
-		E_xchg();
-		E_pchl();
-	else
-		E("\tret\n");
+		count := count + 1;
+	end loop;
+
+	if pushed != 0 then
+		E_push(REG_BC);
 	end if;
+	E_ret();
 
 	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
 	EmitterPopChunk('S');
 }
 
 gen CALL():s
-{
-	E_call($s.subr);
-}
+		{ E_call($s.subr); }
 	
 gen a := CALLE1():s
-{
-	E_call($s.subr);
-	ArchEmitMove(0, REG_A);
-}
-
-gen hl := CALLE2():s
-{
-	E_call($s.subr);
-	ArchEmitMove(0, REG_HL);
-}
-
-gen stk4 := CALLE4():s
-{
-	E_call($s.subr);
-	# return value left on stack by subroutine
-}
-
-gen PUSHARG1(a|b|d|h:lhs)
-		{ E_push($lhs); }
-	
-gen PUSHARG1(CALLE1():s)
 		{ E_call($s.subr); }
 
-gen PUSHARG2(bc|de|hl:lhs)
+gen hl := CALLE2():s
+		{ E_call($s.subr); }
+
+gen stk4 := CALLE4():s
+		{ E_call($s.subr); }
+
+gen PUSHARG1(a, remaining==0);
+
+gen PUSHARG1(a|b|d|h:lhs, remaining!=0)
+		{ E_push($lhs); }
+	
+gen PUSHARG2(hl, remaining==0);
+
+gen PUSHARG2(bc|de|hl:lhs, remaining!=0)
 		{ E_push($lhs); }
 
 gen PUSHARG2(CALLE2():s)
@@ -562,42 +588,27 @@ gen PUSHARG4(stk4); // already stacked
 gen PUSHARG4(CALLE4():s)
 		{ E_call($s.subr); }
 
-gen POPARG1(hl) uses a
-{
-	E_pop(REG_A);
-	E_storem(REG_A);
-}
+gen a := POPARG1(remaining==0);
 
-gen POPARG1(ADDRESS():a) uses a
-{
-	E_pop(REG_A);
-	E_sta($a.sym, $a.off);
-}
+gen a|b|d|h := POPARG1(remaining!=0)
+		{ E_pop(REG_A); }
 
-gen POPARG2(hl) uses de
-{
-	E_pop(REG_DE);
-	E_storem(REG_E);
-	E_inx(REG_HL);
-	E_storem(REG_D);
-}
+gen hl := POPARG2(remaining==0);
 
-gen POPARG2(ADDRESS():a) uses hl
-{
-	E_pop(REG_HL);
-	E_shld($a.sym, $a.off);
-}
+gen hl|bc|de := POPARG2()
+		{ E_pop(REG_HL); }
 
-gen POPARG4(hl) uses bc|de
-{
-	E_callhelper("store4");
-}
+gen stk4 := POPARG4();
 
 gen RETURN()
 {
-	E("\tjmp end_");
-	E_subref(current_subr);
-	E("\n");
+    if current_subr.num_output_parameters == 0 then
+		E_ret();
+	else
+		E("\tjmp end_");
+		E_subref(current_subr);
+		E("\n");
+	end if;
 }
 
 // --- Constants ------------------------------------------------------------
