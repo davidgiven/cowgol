@@ -37,6 +37,8 @@
 	};
 
 	#undef NDEBUG
+
+	static void generate_conditional(Node* node);
 }
 
 %token ASM ASSIGN BREAK CLOSEPAREN CLOSESQ.
@@ -324,10 +326,10 @@ if_begin ::= .
 
 if_conditional ::= conditional(C).
 {
-	current_if->truelabel = C->u.beqs0.truelabel;
-	current_if->falselabel = C->u.beqs0.falselabel;
+	current_if->truelabel = C->u.beqs0.truelabel = current_label++;
+	current_if->falselabel = C->u.beqs0.falselabel = current_label++;
 	C->u.beqs0.fallthrough = C->u.beqs0.truelabel;
-	generate(C);
+	generate_conditional(C);
 	generate(mid_label(current_if->truelabel));
 }
 
@@ -380,10 +382,10 @@ whilestatement1(L) ::= WHILE.
 whilestatement2(L) ::= whilestatement1(L1) conditional(C).
 {
 	L = L1;
-	int t = C->u.beqs0.truelabel;
-	int f = C->u.beqs0.falselabel;
+	int t = C->u.beqs0.truelabel = current_label++;
+	int f = C->u.beqs0.falselabel = current_label++;
 	C->u.beqs0.fallthrough = t;
-	generate(C);
+	generate_conditional(C);
 	generate(mid_label(t));
 	L.exitlabel = break_label = f;
 	continue_label = L.looplabel;
@@ -1073,6 +1075,79 @@ conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
 		node->u.beqs0.negated ^= 1;
 		return node;
 	}
+
+	static void generate_branch(Node* node)
+	{
+		if (((node->op == MIDCODE_BAND) || (node->op == MIDCODE_BOR))
+				|| ((node->op >= MIDCODE_BEQS0) && (node->op <= MIDCODE_BLTU8)))
+		{
+			if (node->u.beqs0.negated)
+			{
+				int label = node->u.beqs0.falselabel;
+				node->u.beqs0.falselabel = node->u.beqs0.truelabel;
+				node->u.beqs0.truelabel = label;
+				node->u.beqs0.negated = 0;
+			}
+		}
+
+		generate(node);
+	}
+
+	static void generate_conditional(Node* node)
+	{
+		int t = node->u.beqs0.truelabel;
+		int f = node->u.beqs0.falselabel;
+		int r = node->u.beqs0.fallthrough;
+
+		switch (node->op)
+		{
+			case MIDCODE_BOR:
+			{
+				int rr = current_label++;
+
+				node->left->u.beqs0.truelabel = t;
+				node->left->u.beqs0.falselabel = rr;
+				node->left->u.beqs0.fallthrough = rr;
+				generate_conditional(node->left);
+				generate(mid_label(rr));
+				node->left = NULL;
+
+				node->right->u.beqs0.truelabel = t;
+				node->right->u.beqs0.falselabel = f;
+				node->right->u.beqs0.fallthrough = r;
+				generate_conditional(node->right);
+				node->right = NULL;
+				discard(node);
+				break;
+			}
+
+			case MIDCODE_BAND:
+			{
+				int rr = current_label++;
+
+				node->left->u.beqs0.truelabel = rr;
+				node->left->u.beqs0.falselabel = f;
+				node->left->u.beqs0.fallthrough = rr;
+				generate_conditional(node->left);
+				generate(mid_label(rr));
+				node->left = NULL;
+
+				node->right->u.beqs0.truelabel = t;
+				node->right->u.beqs0.falselabel = f;
+				node->right->u.beqs0.fallthrough = r;
+				generate_conditional(node->right);
+				node->right = NULL;
+				discard(node);
+				break;
+			}
+
+			default:
+			{
+				generate_branch(node);
+				break;
+			}
+		}
+	}
 }
 
 conditional(R) ::= NOT conditional(C).
@@ -1082,24 +1157,12 @@ conditional(R) ::= NOT conditional(C).
 
 conditional(R) ::= conditional(C1) AND conditional(C2).
 {
-	int t = C1->u.beqs0.truelabel;
-	int f = C1->u.beqs0.falselabel;
-	rewrite_labels(C2, C2->u.beqs0.falselabel, f);
-	C1->u.beqs0.fallthrough = t;
-	generate(C1);
-	generate(mid_label(t));
-	R = C2;
+	R = mid_band(C1, C2, 0, 0, 0, 0);
 }
 
 conditional(R) ::= conditional(C1) OR conditional(C2).
 {
-	int t = C1->u.beqs0.truelabel;
-	int f = C1->u.beqs0.falselabel;
-	rewrite_labels(C2, C2->u.beqs0.truelabel, t);
-	C1->u.beqs0.fallthrough = f;
-	generate(C1);
-	generate(mid_label(f));
-	R = C2;
+	R = mid_bor(C1, C2, 0, 0, 0, 0);
 }
 
 conditional(R) ::= expression(T1) EQOP expression(T2).
