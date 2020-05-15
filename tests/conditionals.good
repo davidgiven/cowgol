@@ -49,4 +49,5 @@ one<zero: no
 and1
 isletter(70): yes
 isletter(200): no
-andor1: no
+andor1: yes
+orand1: yes

@@ -140,7 +140,15 @@ sub andor1()
 	var i: uint8 := 0;
 	var j: uint8 := 0;
 	var k: uint8 := 1;
-	if (i != 0) and ((j != 0) or (k != 0)) then yes(); else no(); end if;
+	if (i != 0) and ((j != 0) or (k != 0)) then no(); else yes(); end if;
 end sub;
-andor1(); # Note! The C compiler fails this
+andor1();
+
+sub orand1()
+	print("orand1");
+	var i: uint8 := 1;
+	var j: uint8 := 2;
+	if ((i == 1) and (j == 2)) or ((i == 3) and (j == 4)) then yes(); else no(); end if;
+end sub;
+orand1();
 

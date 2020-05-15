@@ -192,15 +192,36 @@ sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 			Discard(rhs);
 			result := lhs;
 			return;
-		elseif rhs.constant.value == 0 then
-			Discard(lhs);
-			Discard(rhs);
-			result := MidConstant(0);
-			return;
-		elseif rhs.constant.value == 1 then
-			Discard(rhs);
-			result := lhs;
-			return;
+		else
+			sub shift(amount: uint8)
+				Discard(rhs);
+				result := MidLshift(width, lhs, MidConstant(amount as int32));
+			end sub;
+
+			case rhs.constant.value is
+				when 0:
+					Discard(lhs);
+					Discard(rhs);
+					result := MidConstant(0);
+					return;
+
+				when 1:
+					Discard(rhs);
+					result := lhs;
+					return;
+
+				when 2:
+					shift(1);
+					return;
+
+				when 4:
+					shift(2);
+					return;
+
+				when 8:
+					shift(3);
+					return;
+			end case;
 		end if;
 	end if;
 	result := MidMul(width, lhs, rhs);

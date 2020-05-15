@@ -39,7 +39,7 @@ record Instruction
 end record;
 
 var nodes: [Node][16];
-var next_node: [[Node]];
+var next_node := &nodes[0];
 
 include "inssel.coh";
 
@@ -54,19 +54,8 @@ sub PushNode(node: [Node])
 end sub;
 
 sub PopNode(): (node: [Node])
-	if next_node == &nodes[0] then
-		node := 0 as [Node];
-	else
-		next_node := @prev next_node;
-		node := [next_node];
-	end if;
-end sub;
-
-# This uses the same node stack as the code generator.
-
-sub WalkNodes(node: [Node])
-	nodes[0] := node;
-	next_node := @next &nodes[0];
+	next_node := @prev next_node;
+	node := [next_node];
 end sub;
 
 sub NextNode(): (node: [Node])
@@ -267,25 +256,6 @@ sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 1;
 end sub;
 
-sub Simplify(rootnode: [Node])
-	WalkNodes(rootnode);
-	loop
-		var node := NextNode();
-		if node == (0 as [Node]) then
-			break;
-		end if;
-
-		if (node.op >= MIDCODE_BEQS0) and (node.op <= MIDCODE_BLTU8) then
-			if node.beqs0.negated != 0 then
-				var t := node.beqs0.truelabel;
-				node.beqs0.truelabel := node.beqs0.falselabel;
-				node.beqs0.falselabel := t;
-				node.beqs0.negated := 0;
-			end if;
-		end if;
-	end loop;
-end sub;
-
 #sub PrintNodes(rootnode: [Node])
 #	WalkNodes(rootnode);
 #	loop
@@ -308,8 +278,6 @@ end sub;
 sub Generate(rootnode: [Node])
 	var i: uint8;
 
-	Simplify(rootnode);
-
 	var instructions: Instruction[32];
 	MemZero(&instructions[0] as [uint8], @bytesof instructions);
 	var next_instruction := &instructions[0];
@@ -317,8 +285,9 @@ sub Generate(rootnode: [Node])
 	#print_nl();
 	#PrintNodes(rootnode);
 
-	WalkNodes(rootnode);
-	while next_node != &nodes[0] loop
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
 		if next_instruction == &instructions[@sizeof instructions] then
 			SimpleError("instruction queue overflow");
 		end if;
@@ -456,31 +425,47 @@ sub Generate(rootnode: [Node])
 						producer.output_regs := producer.output_regs | blocked;
 						CreateReload(consumer, producer.produced_reg, node.produced_reg);
 					else
-						# Bad news --- we can't allocate any registers, so
-						# spill to the stack via a push and pop.
+						mask := node.desired_reg & ~(blocked | consumer.input_regs);
+						if mask != 0 then
+							# The producer and consumer want different registers, but the
+							# consumer's register works after the producer.
 
-						sub deadlock()
-							SimpleError("register allocation deadlock");
-						end sub;
+							producer.produced_reg := FindFirst(
+									producer.producable_regs & ~producer.output_regs);
+							node.produced_reg := FindFirst(mask);
+							blocked := FindConflictingRegisters(node.produced_reg);
+							consumer.input_regs := consumer.input_regs | blocked;
+							BlockRegisters(@next consumer, @prev producer, blocked);
+							producer.output_regs := producer.output_regs |
+									FindConflictingRegisters(producer.produced_reg);
+							CreateSpill(producer, producer.produced_reg, node.produced_reg);
+						else
+							# Bad news --- we can't allocate any registers, so
+							# spill to the stack via a push and pop.
 
-						candidate := producer.producable_regs & ~producer.output_regs;
-						if candidate == 0 then
-							deadlock();
+							sub deadlock()
+								SimpleError("register allocation deadlock");
+							end sub;
+
+							candidate := producer.producable_regs & ~producer.output_regs;
+							if candidate == 0 then
+								deadlock();
+							end if;
+
+							producer.produced_reg := FindFirst(candidate);
+							producer.output_regs := producer.output_regs
+								| FindConflictingRegisters(producer.produced_reg);
+							CreateSpill(producer, producer.produced_reg, 0);
+
+							candidate := node.desired_reg & ~consumer.input_regs;
+							if candidate == 0 then
+								deadlock();
+							end if;
+							node.produced_reg := FindFirst(candidate);
+							consumer.input_regs := consumer.input_regs
+								| FindConflictingRegisters(node.produced_reg);
+							CreateReload(consumer, 0, node.produced_reg);
 						end if;
-
-						producer.produced_reg := FindFirst(candidate);
-						producer.output_regs := producer.output_regs
-							| FindConflictingRegisters(producer.produced_reg);
-						CreateSpill(producer, producer.produced_reg, 0);
-
-						candidate := node.desired_reg & ~consumer.input_regs;
-						if candidate == 0 then
-							deadlock();
-						end if;
-						node.produced_reg := FindFirst(candidate);
-						consumer.input_regs := consumer.input_regs
-							| FindConflictingRegisters(node.produced_reg);
-						CreateReload(consumer, 0, node.produced_reg);
 					end if;
 				end if;
 			end if;
@@ -527,5 +512,74 @@ sub Generate(rootnode: [Node])
 	end loop;
 
 	Discard(rootnode);
+end sub;
+
+sub AllocLabel(): (label: LabelRef)
+	label := next_label_id;
+	next_label_id := next_label_id + 1;
+end sub;
+
+sub GenerateConditional(rootnode: [Node])
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
+		var node := PopNode();
+
+		var t := node.beqs0.truelabel;
+		var f := node.beqs0.falselabel;
+		var r := node.beqs0.fallthrough;
+		var lhs := node.left;
+		var rhs := node.right;
+		var op := node.op;
+
+		sub push_and_free()
+			node.left := (0 as [Node]);
+			node.right := (0 as [Node]);
+			PushNode(rhs);
+			PushNode(lhs);
+			Discard(node);
+		end sub;
+
+		var rr: LabelRef;
+		case op is
+			when MIDCODE_BOR:
+				rr := AllocLabel();
+
+				lhs.beqs0.truelabel := t;
+				lhs.beqs0.falselabel := rr;
+				lhs.beqs0.fallthrough := rr;
+
+				rhs.beqs0.truelabel := t;
+				rhs.beqs0.falselabel := f;
+				rhs.beqs0.fallthrough := r;
+
+				push_and_free();
+
+			when MIDCODE_BAND:
+				rr := AllocLabel();
+
+				lhs.beqs0.truelabel := rr;
+				lhs.beqs0.falselabel := f;
+				lhs.beqs0.fallthrough := rr;
+
+				rhs.beqs0.truelabel := t;
+				rhs.beqs0.falselabel := f;
+				rhs.beqs0.fallthrough := r;
+
+				push_and_free();
+
+			when else:
+				if (op >= MIDCODE_BEQS0) and (op <= MIDCODE_BLTU8) then
+					if node.beqs0.negated != 0 then
+						node.beqs0.truelabel := f;
+						node.beqs0.falselabel := t;
+						node.beqs0.negated := 0;
+					end if;
+				end if;
+
+				Generate(node);
+				Generate(MidLabel(r));
+		end case;
+	end loop;
 end sub;
 

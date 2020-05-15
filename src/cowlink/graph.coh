@@ -6,11 +6,7 @@ sub CalculateDependencyGraph(coo: [Coo])
 
 	stack[0] := FindSub(coo, 0);
 
-	loop
-		if sp == 0 then
-			break;
-		end if;
-
+	while sp != 0 loop
 		sp := sp - 1;
 		var subroutine := stack[sp];
 		if subroutine.used == 0 then

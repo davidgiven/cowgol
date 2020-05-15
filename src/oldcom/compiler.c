@@ -191,10 +191,8 @@ Node* cond_simple(struct midnode* lhs, struct midnode* rhs,
 	if (lhs->type != rhs->type)
 		fatal("you tried to compare a %s and a %s", lhs->type->name, rhs->type->name);
 
-	int truelabel = current_label++;
-	int falselabel = current_label++;
 	return (is_snum(lhs->type) ? emitters : emitteru)
-			(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs, truelabel, falselabel, 0, 0);
+			(lhs->type ? lhs->type->u.type.width : 0, lhs, rhs, 0, 0, 0, 0);
 }
 
 struct symbol* dealias(struct symbol* sym)
@@ -633,6 +631,9 @@ void rewrite_labels(Node* node, int fromlabel, int tolabel)
 				node->u.beqs0.truelabel = tolabel;
 			if (node->u.beqs0.falselabel == fromlabel)
 				node->u.beqs0.falselabel = tolabel;
+			// fallthrough
+		case MIDCODE_BAND:
+		case MIDCODE_BOR:
 			if (node->u.beqs0.fallthrough == fromlabel)
 				node->u.beqs0.fallthrough = tolabel;
 			break;

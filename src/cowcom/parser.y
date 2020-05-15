@@ -156,13 +156,13 @@ startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
 {
 	LL := BeginNormalLoop();
 	Generate(MidLabel(continue_label));
-	var t := C.beqs0.truelabel;
-	var f := C.beqs0.falselabel;
+	var t := AllocLabel();
+	break_label := AllocLabel();
+	C.beqs0.truelabel := t;
+	C.beqs0.falselabel := break_label;
 	C.beqs0.fallthrough := t;
-	Generate(C);
-	Generate(MidLabel(t));
-	LL.exit_label := f;
-	break_label := f;
+	GenerateConditional(C);
+	LL.exit_label := break_label;
 }
 
 /* --- Simple jumps ------------------------------------------------------ */
@@ -203,11 +203,14 @@ if_begin ::= .
 
 if_conditional ::= conditional(C).
 {
-	current_if.true_label := C.beqs0.truelabel;
-	current_if.false_label := C.beqs0.falselabel;
-	C.beqs0.fallthrough := current_if.true_label;
-	Generate(C);
-	Generate(MidLabel(current_if.true_label));
+	var t := AllocLabel();
+	var f := AllocLabel();
+	current_if.true_label := t;
+	current_if.false_label := f;
+	C.beqs0.truelabel := t;
+	C.beqs0.falselabel := f;
+	C.beqs0.fallthrough := t;
+	GenerateConditional(C);
 }
 
 if_statements ::= statements.
@@ -307,24 +310,12 @@ conditional(R) ::= NOT conditional(C).
 
 conditional(R) ::= conditional(C1) AND conditional(C2).
 {
-	var t := C1.beqs0.truelabel;
-	var f := C1.beqs0.falselabel;
-	RewriteLabels(C2, C2.beqs0.falselabel, f);
-	C1.beqs0.fallthrough := t;
-	Generate(C1);
-	Generate(MidLabel(t));
-	R := C2;
+	R := MidBand(C1, C2, 0, 0, 0, 0);
 }
 
 conditional(R) ::= conditional(C1) OR conditional(C2).
 {
-	var t := C1.beqs0.truelabel;
-	var f := C1.beqs0.falselabel;
-	RewriteLabels(C2, C2.beqs0.truelabel, t);
-	C1.beqs0.fallthrough := f;
-	Generate(C1);
-	Generate(MidLabel(f));
-	R := C2;
+	R := MidBor(C1, C2, 0, 0, 0, 0);
 }
 
 %include

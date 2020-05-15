@@ -33,10 +33,12 @@ y 1 1 CALL(struct subroutine* sub) = ("%s", $$.sub->name)
 y 1 1 LOAD()
 y 2 0 STORE() # left is value, right is address
 
-y 2 0 BEQS(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
-y 2 0 BLTS(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
-y 2 0 BEQU(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
-y 2 0 BLTU(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+= 2 1 BAND(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+= 2 1 BOR(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BEQS(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BLTS(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BEQU(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BLTU(int truelabel, int falselabel, int fallthrough, int negated) = ("true=%d false=%d fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
 
 y 2 0 CASE() # left is value, right is when chain
 - 1 0 WHEN(bool isdefault, int32_t value, int label) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label) # left is chain
