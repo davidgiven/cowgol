@@ -34,10 +34,12 @@ y 0 1 CALLE(subr: [Subroutine]) = ("%s", $$.subr.name)
 y 1 1 LOAD()
 y 2 0 STORE() # left is value, right is address
 
-y 2 0 BEQS(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
-y 2 0 BLTS(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
-y 2 0 BEQU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
-y 2 0 BLTU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+- 2 1 BAND(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+- 2 1 BOR(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BEQS(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BLTS(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BEQU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
+y 2 1 BLTU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
 
 y 1 0 STARTCASE()
 y 0 0 WHENCASE(value: int32, falselabel: uint16) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label)
