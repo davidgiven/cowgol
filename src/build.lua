@@ -106,6 +106,32 @@ function buildzmac(e)
 	}
 end
 
+function simpletest(interpreter, e)
+	local badfile = e.ins[1]:gsub("%.[^.]*$", ".bad")
+	rule {
+		ins = e.ins,
+		outs = { badfile },
+		cmd = "timeout 5s "..interpreter.." @1 > &1 && diff -u -w &1 "..e.goodfile,
+	}
+end
+
+function nativetest(e)
+	return simpletest("", e)
+end
+
+function qemu386test(e)
+	return simpletest("qemu-i386", e)
+end
+
+function qemuarmtest(e)
+	return simpletest("qemu-arm", e)
+end
+
+function cpmtest(e)
+	e.ins = concat { e.ins, "bin/cpmemu" }
+	return simpletest("bin/cpmemu", e)
+end
+
 function cowgol(e)
 	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
 	local coo = out:gsub("%.[^.]*$", ".coo")
@@ -129,6 +155,8 @@ function cowgol(e)
 		ins = { asm },
 		outs = { out }
 	}
+
+	return out
 end
 
 --include "third_party/zmac/build.lua"

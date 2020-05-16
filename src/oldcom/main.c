@@ -48,7 +48,7 @@ const char* aprintf(const char* s, ...)
 
 static void syntax_error(void)
 {
-	fatal("syntax error: cowc [-Ipath] <infile>");
+	fatal("syntax error: oldcom [-Ipath] -o <outfile> <infile>");
 }
 
 static void add_include_path(const char* path)

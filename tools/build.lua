@@ -5,7 +5,7 @@ function objectify(e)
 			e.ins
 		},
 		outs = e.outs,
-		cmd = "$LUA @1 "..e.symbol.." < @1 > &1"
+		cmd = "$LUA @1 "..e.symbol.." < @2 > &1"
 	}
 end
 
