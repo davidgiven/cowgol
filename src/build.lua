@@ -48,6 +48,89 @@ rule {
 	cmd = "$LUA @1 -- @3 &1"
 }
 
+function uncoo(e)
+	rule {
+		ins = concat {
+			"scripts/uncoo.lua",
+			e.ins
+		},
+		outs = e.outs,
+		cmd = "$LUA @1 @2 &1"
+	}
+end
+
+function buildcgen(e)
+	cprogram {
+		ins = concat {
+			e.ins,
+			"rt/cgen/cowgol.h",
+		},
+		outs = e.outs
+	}
+end
+
+function buildgas(arch, e)
+	local obj = e.outs[1]:gsub("%.[^.]*$", ".o")
+	rule {
+		ins = e.ins,
+		outs = { obj },
+		cmd = arch.."-as -g @1 -o &1"
+	}
+
+	rule {
+		ins = { obj },
+		outs = e.outs,
+		cmd = arch.."-ld -g @1 -o &1"
+	}
+end
+
+function buildgas386(e)
+	return buildgas("i686-linux-gnu", e)
+end
+
+function buildgasarm(e)
+	return buildgas("arm-linux-gnueabihf", e)
+end
+
+function buildzmac(e)
+	local cim = e.outs[1]:gsub("%.[^.]*$", ".cim")
+	zmac {
+		ins = e.ins,
+		outs = { cim }
+	}
+
+	rule {
+		ins = { cim },
+		outs = e.outs,
+		cmd = "cp @1 &1"
+	}
+end
+
+function cowgol(e)
+	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
+	local coo = out:gsub("%.[^.]*$", ".coo")
+	local asm = out:gsub("%.[^.]*$", e.toolchain.asmext)
+
+	rule {
+		ins = concat {
+			e.toolchain.compiler,
+			e.ins,
+		},
+		outs = { coo },
+		cmd = "@1 -Irt/ -I"..e.toolchain.runtime.."/ -o &1 @2"
+	}
+
+	e.toolchain.linker {
+		ins = { coo },
+		outs = { asm }
+	}
+
+	e.toolchain.assembler {
+		ins = { asm },
+		outs = { out }
+	}
+end
+
 --include "third_party/zmac/build.lua"
 --
 --definerule("cowgol",

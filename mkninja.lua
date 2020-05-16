@@ -84,4 +84,13 @@ include "third_party/lemon/build.lua"
 include "tools/newgen/build.lua"
 include "src/build.lua"
 include "src/oldcom/build.lua"
+include "toolchains.lua"
+
+for _, toolchain in ipairs(ALL_TOOLCHAINS) do
+	cowgol {
+		toolchain = toolchain,
+		ins = { "examples/empty.cow" },
+		outs = { "out" }
+	}
+end
 

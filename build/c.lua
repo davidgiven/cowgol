@@ -1,7 +1,11 @@
 function cfile(e)
 	local hdrs = {}
 	for _, src in ipairs(e.ins) do
-		hdrs[#hdrs+1] = "-I"..src:gsub("/[^/]*$", "")
+		local f = src:gsub("[^/]*$", "")
+		if f == "" then
+			f = "."
+		end
+		hdrs[#hdrs+1] = "-I"..f
 	end
 
 	local cflags = e.cflags or ""

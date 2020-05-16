@@ -63,7 +63,7 @@ static void parse_arguments(int argc, char* argv[])
 {
 	for (;;)
 	{
-		int opt = getopt(argc, argv, "I:");
+		int opt = getopt(argc, argv, "I:o:");
 		if (opt == -1)
 			break;
 		switch (opt)
@@ -72,15 +72,18 @@ static void parse_arguments(int argc, char* argv[])
 				add_include_path(optarg);
 				break;
 			
+			case 'o':
+				outputfile = optarg;
+				break;
+
 			default:
 				syntax_error();
 		}
 	}
 
-	if ((argc - optind) != 2)
+	if ((argc - optind) != 1)
 		syntax_error();
 	inputfile = argv[optind+0];
-	outputfile = argv[optind+1];
 }
 
 int main(int argc, char* argv[])
