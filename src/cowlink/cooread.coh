@@ -4,6 +4,7 @@ record Subroutine
 	refs: [Reference];
 	name: [uint8];
 	used: uint8;
+	workspace: uint16;
 end record;
 
 record Reference
@@ -17,8 +18,7 @@ record Coo
 	next: [Coo];
 end record;
 
-sub read_hex4(fcb: [FCB]): (val: uint16)
-	var i: uint8 := 4;
+sub read_hex(fcb: [FCB], len: uint8): (val: uint32)
 	val := 0;
 	loop
 		var c := FCBGetChar(fcb);
@@ -33,13 +33,21 @@ sub read_hex4(fcb: [FCB]): (val: uint16)
 				ExitWithError();
 			end if;
 		end if;
-		val := (val << 4) + (c as uint16);
+		val := (val << 4) + (c as uint32);
 
-		i := i - 1;
-		if i == 0 then
+		len := len - 1;
+		if len == 0 then
 			break;
 		end if;
 	end loop;
+end sub;
+
+sub read_hex2(fcb: [FCB]): (val: uint8)
+	val := read_hex(fcb, 2) as uint8;
+end sub;
+
+sub read_hex4(fcb: [FCB]): (val: uint16)
+	val := read_hex(fcb, 4) as uint16;
 end sub;
 
 sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
@@ -113,7 +121,10 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 			var requiresid := read_hex4(&coo.fcb);
 			AddRef(FindSub(coo, subrid), FindSub(coo, requiresid));
 		elseif c == 'W' then
-			
+			id := read_hex4(&coo.fcb);
+			subroutine := FindSub(coo, id);
+			var wid := read_hex2(&coo.fcb);
+			subroutine.workspace := read_hex4(&coo.fcb);
 		elseif c == 'N' then
 			id := read_hex4(&coo.fcb);
 			subroutine := FindSub(coo, id);
@@ -123,35 +134,6 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 			print_char(c);
 			print("' in coofile\n");
 			ExitWithError();
-		end if;
-		FCBSeek(&coo.fcb, here + (len as uint32));
-	end loop;
-end sub;
-
-sub WriteSubroutinesToOutputFile(fcb: [FCB], coo: [Coo])
-	var buffer: uint8[512];
-
-	FCBSeek(&coo.fcb, 0);
-	loop
-		var c := FCBGetChar(&coo.fcb);
-		var len := read_hex4(&coo.fcb);
-		var here := FCBPos(&coo.fcb);
-		if c == 'E' then
-			break;
-		elseif c == 'S' then
-			var id := read_hex4(&coo.fcb);
-			var subroutine := FindSub(coo, id);
-			if subroutine.used != 0 then
-				var length := (len - 4) as intptr;
-				while length > @bytesof buffer loop
-					FCBGetBlock(&coo.fcb, &buffer[0], @bytesof buffer);
-					FCBPutBlock(fcb, &buffer[0], @bytesof buffer);
-					length := length - @bytesof buffer;
-				end loop;
-
-				FCBGetBlock(&coo.fcb, &buffer[0], length);
-				FCBPutBlock(fcb, &buffer[0], length);
-			end if;
 		end if;
 		FCBSeek(&coo.fcb, here + (len as uint32));
 	end loop;

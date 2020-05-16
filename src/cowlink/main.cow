@@ -6,6 +6,7 @@ include "file.coh";
 
 include "src/cowlink/utils.coh";
 include "src/cowlink/cooread.coh";
+include "src/cowlink/asmwrite.coh";
 include "src/cowlink/graph.coh";
 
 print("COWLINK: ");

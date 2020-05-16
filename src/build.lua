@@ -134,8 +134,8 @@ end
 
 function cowgol(e)
 	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
-	local coo = "$OBJ/"..out:ext(".coo")
-	local asm = "$OBJ/"..out:ext(e.toolchain.asmext)
+	local coo = out:ext(".coo"):obj()
+	local asm = out:ext(e.toolchain.asmext):obj()
 
 	local hdrs = {}
 	for _, src in ipairs(e.ins) do
@@ -167,5 +167,17 @@ function cowgol(e)
 	}
 
 	return out
+end
+
+function cowlink(e)
+	rule {
+		ins = concat {
+			"scripts/quiet",
+			"bin/cowlink.8080.ocgen.exe",
+			e.ins
+		},
+		outs = e.outs,
+		cmd = "@1 @2 -o &1 @3"
+	}
 end
 

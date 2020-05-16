@@ -1264,6 +1264,9 @@ asm ::= oldid(S).
 {
 	var k := S.kind;
 	if (k == VAR) or (k == SUB) then
+		if k == SUB then
+			EmitterReferenceSubroutine(current_subr, S.subr);
+		end if;
 		Generate(MidAsmsymbol(S));
 	elseif k == CONST then
 		Generate(MidAsmvalue(S.constant));
