@@ -1,94 +1,66 @@
-include "third_party/lemon/build.lua"
-
-
-flex {
-	name = "lexer",
-	srcs = { "./lexer.l" }
-}
-
 lemon {
-	name = "parser",
-	srcs = { "./parser.y" }
-}
-
-clibrary {
-	name = "libnewgen",
-	srcs = {
-		"./utils.c",
-		"+lexer",
-		matching(filenamesof("+parser"), "%.c$"),
-	},
-	deps = {
-		"+parser",
+	ins = { "tools/newgen/parser.y" },
+	outs = {
+		"$OBJ/tools/newgen/parser.c",
+		"$OBJ/tools/newgen/parser.h",
 	}
 }
 
-cprogram {
-	name = "newgen-cowgol",
-	srcs = {
-		"./main.c",
-	},
-	deps = {
-		"+parser",
-		"scripts+iburgcodes_cowgol_h",
-		"+libnewgen",
-	},
-    vars = {
-		["+cflags"] = { "-DCOWGOL" },
-        ["+ldflags"] = { "-lfl" },
-    },
+flex {
+	ins = { "tools/newgen/lexer.l" },
+	outs = { "$OBJ/tools/newgen/lexer.c" },
 }
 
 cprogram {
-	name = "newgen",
-	srcs = {
-		"./main.c",
+	ins = {
+		"tools/newgen/main.c",
+		"tools/newgen/utils.c",
+		"tools/newgen/globals.h",
+		"$OBJ/iburgcodes.h",
+		"$OBJ/tools/newgen/parser.c",
+		"$OBJ/tools/newgen/parser.h",
+		"$OBJ/tools/newgen/lexer.c",
 	},
-	deps = {
-		"+parser",
-		"scripts+iburgcodes_h",
-		"+libnewgen",
-	},
-    vars = {
-        ["+ldflags"] = { "-lfl" },
-    },
+	objdir = "$OBJ/newgen-c",
+	ldflags = "-lfl",
+	outs = { "bin/newgen" }
 }
 
-definerule("newgen",
-	{
-		srcs = { type="targets" },
+cprogram {
+	ins = {
+		"tools/newgen/main.c",
+		"tools/newgen/utils.c",
+		"tools/newgen/globals.h",
+		"$OBJ/iburgcodes-coh.h",
+		"$OBJ/tools/newgen/parser.c",
+		"$OBJ/tools/newgen/parser.h",
+		"$OBJ/tools/newgen/lexer.c",
 	},
-	function (e)
-		return normalrule {
-			name = e.name,
-			ins = {
-				"tools/newgen+newgen",
-				e.srcs
-			},
-			outleaves = { "inssel.c", "inssel.h" },
-			commands = {
-				"%{ins[1]} %{ins[2]} %{outs[1]} %{outs[2]}"
-			}
-		}
-	end
-)
+	objdir = "$OBJ/newgen-cowgol",
+	cflags = "-DCOWGOL",
+	ldflags = "-lfl",
+	outs = { "bin/newgen-cowgol" }
+}
 
-definerule("newgencowgol",
-	{
-		srcs = { type="targets" },
-	},
-	function (e)
-		return normalrule {
-			name = e.name,
-			ins = {
-				"tools/newgen+newgen-cowgol",
-				e.srcs
-			},
-			outleaves = { "inssel.coh", "inssel.decl.coh" },
-			commands = {
-				"%{ins[1]} %{ins[2]} %{outs[1]} %{outs[2]}"
-			}
-		}
-	end
-)
+function newgen(e)
+	rule {
+		ins = concat {
+			"bin/newgen",
+			e.ins,
+		},
+		outs = e.outs,
+		cmd = "@1 @2 &1 &2"
+	}
+end
+
+function newgencowgol(e)
+	rule {
+		ins = concat {
+			"bin/newgen-cowgol",
+			e.ins,
+		},
+		outs = e.outs,
+		cmd = "@1 @2 &1 &2"
+	}
+end
 

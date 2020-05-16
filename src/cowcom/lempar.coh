@@ -14,10 +14,8 @@ record yyStackEntry
 end record;
 
 var yytos: [yyStackEntry];
-var yystack: yyStackEntry[YYSTACKDEPTH];
-var yystackend: [yyStackEntry];
+var yystack: yyStackEntry[YYSTACKDEPTH+1];
 var yyerrcnt: int8;
-typedef YYSTACKPTR := @indexof yystack;
 
 # parsing tables
 %%
@@ -72,9 +70,10 @@ var yyRuleInfoNRhs: uint8[] := {
 
 # reduce actions
 sub yy_find_reduce_action(stateno: YYACTIONTYPE, lookahead: YYCODETYPE): (action: YYACTIONTYPE)
-	action := yy_default[stateno];
+	action := yy_default[stateno as @indexof yy_default];
 	if stateno <= YY_REDUCE_COUNT then
-		var i := (yy_reduce_ofst[stateno] as @indexof yy_action) + (lookahead as @indexof yy_action);
+		var i := (yy_reduce_ofst[stateno as @indexof yy_reduce_ofst] as @indexof yy_action)
+				+ (lookahead as @indexof yy_action);
 		if (i>=0) and (i<YY_ACTTAB_COUNT) and (yy_lookahead[i] == lookahead) then
 			action := yy_action[i];
 		end if;
@@ -92,7 +91,7 @@ end sub;
 
 sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken: ParseTOKENTYPE):
 		(yyact: YYACTIONTYPE)
-	var yysize := yyRuleInfoNRhs[yyruleno];
+	var yysize := yyRuleInfoNRhs[yyruleno as @indexof yyRuleInfoNRhs];
 	#print("Reduce ");
 	#print_i16(yyruleno);
 	#print(" ");
@@ -103,7 +102,7 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken:
 	#end if;
 	#print_nl();
 
-	if yytos == yystackend then
+	if yytos == &yystack[YYSTACKDEPTH] then
 		yy_stack_overflow();
 	end if;
 
@@ -120,7 +119,7 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken:
 %%
 	[@next yytos].minor.yyall := yylhs.yyall;
 
-	var yygoto := yyRuleInfoLhs[yyruleno];
+	var yygoto := yyRuleInfoLhs[yyruleno as @indexof yyRuleInfoLhs];
 	yyact := yy_find_reduce_action(yytos.stateno, yygoto);
 	yytos := @next yytos;
 	yytos.stateno := yyact;
@@ -150,7 +149,6 @@ sub ParserInit()
 	yytos := &yystack[0];
 	yystack[0].stateno := 0;
 	yystack[0].major := 0;
-	yystackend := &yystack[YYSTACKDEPTH];
 end sub;
 
 sub ParserDeinit()
@@ -185,9 +183,9 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 
 	loop
 		if yyact <= YY_MAX_SHIFT then
-			var i := yy_shift_ofst[yyact] + (yymajor as uint16);
+			var i := yy_shift_ofst[yyact as @indexof yy_shift_ofst] + (yymajor as uint16);
 			if yy_lookahead[i] != yymajor then
-				yyact := yy_default[yyact];
+				yyact := yy_default[yyact as @indexof yy_default];
 			else
 				yyact := yy_action[i];
 			end if;
@@ -196,7 +194,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 		if yyact >= YY_MIN_REDUCE then
 			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
 		elseif yyact <= YY_MAX_SHIFTREDUCE then
-			if yytos == yystackend then
+			if yytos == &yystack[YYSTACKDEPTH] then
 				yy_stack_overflow();
 				return;
 			end if;

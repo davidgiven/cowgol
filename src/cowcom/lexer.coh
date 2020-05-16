@@ -118,14 +118,15 @@ var lexer_ctype: uint8[] := {
 	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x7a z
 	CTYPE_TOKEN|OPENBR,          # 0x7b {
 	CTYPE_TOKEN|PIPE,            # 0x7c |
-	CTYPE_TOKEN|CLOSEBR,         # 0x7c }
-	CTYPE_TOKEN|TILDE            # 0x7c ~
+	CTYPE_TOKEN|CLOSEBR,         # 0x7d }
+	CTYPE_TOKEN|TILDE            # 0x7e ~
 };
 
 var keyword_names: string[] := {
 	"@asm",
 	"@at",
 	"@bytesof",
+	"@indexof",
 	"@sizeof",
 	"@next",
 	"@prev",
@@ -162,6 +163,7 @@ var keyword_ids: uint8[] := {
 	ASM,
 	AT,
 	BYTESOF,
+	INDEXOF,
 	SIZEOF,
 	NEXT,
 	PREV,
@@ -409,10 +411,13 @@ end sub;
 sub lexer_i_get_escaped(): (c: uint8)
 	c := lexer_i_getchar();
 	case c is
-		when 'n': c := 10;
-		when 'r': c := 13;
-		when 't': c := 9;
-		when '0': c := 0;
+		when 'n':  c := 10;
+		when 'r':  c := 13;
+		when 't':  c := 9;
+		when '\\': c := '\\';
+		when '\'': c := '\'';
+		when '"':  c := '"';
+		when '0':  c := 0;
 		when else:
 			lexer_i_malformed("escape");
 	end case;

@@ -1,25 +1,24 @@
-include "third_party/zmac/build.lua"
-include "tools/build.lua"
-
 zmac {
-    name = "biosbdos_cim",
-    srcs = { "./biosbdos.z80" },
-	relocatable = false
+	ins = { "tools/cpmemu/biosbdos.z80" },
+	outs = { "$OBJ/tools/cpmemu/biosbdos.cim" }
 }
 
 objectify {
-    name = "biosbdos_cim_c",
-    srcs = { "+biosbdos_cim" },
-	symbol = "biosbdosdata",
+	ins = { "$OBJ/tools/cpmemu/biosbdos.cim" },
+	outs = { "$OBJ/tools/cpmemu/biosbdosdata.c" },
+	symbol = "biosbdosdata"
 }
 
 cprogram {
-    name = "cpmemu",
-    srcs = {
-		"./*.c",
-		"+biosbdos_cim_c",
+	ins = {
+		"tools/cpmemu/main.c",
+		"tools/cpmemu/emulator.c",
+		"tools/cpmemu/fileio.c",
+		"tools/cpmemu/biosbdos.c",
+		"$OBJ/tools/cpmemu/biosbdosdata.c",
 	},
-    vars = {
-        ["+ldflags"] = { "-lz80ex", "-lz80ex_dasm", "-lreadline" } 
-    }
+	ldflags = "-lz80ex -lz80ex_dasm -lreadline",
+	outs = { "bin/cpmemu" }
 }
+
+

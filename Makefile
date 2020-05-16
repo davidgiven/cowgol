@@ -1,21 +1,19 @@
-OBJDIR = .obj
-LUA_5_1 = lua5.1
+export OBJ = .obj
+export LUA = lua
+export CFLAGS = -g -O0
+export LDFLAGS = -g
 
-all: $(OBJDIR)/build.ninja
-	@ninja -f $(OBJDIR)/build.ninja
+all: $(OBJ)/build.ninja
+	@ninja -f $(OBJ)/build.ninja
 
 clean:
-	rm -rf $(OBJDIR)
+	@echo CLEAN
+	@rm -rf $(OBJ) bin
 
-lua-files = $(shell find . -name 'build*.lua')
-$(OBJDIR)/build.ninja: build/ackbuilder.lua Makefile $(lua-files)
-	@mkdir -p $(OBJDIR)
-	@$(LUA_5_1) \
-		build/ackbuilder.lua \
-		build/build.lua \
-		build.lua \
-		--ninja \
-		OBJDIR=$(OBJDIR) \
-		CC=gcc \
-		AR=ar \
+lua-files = $(shell find . -name 'build*.lua') $(wildcard build/*.lua) toolchains.lua
+$(OBJ)/build.ninja: mkninja.lua Makefile $(lua-files)
+	@echo MKNINJA
+	@mkdir -p $(OBJ)
+	@$(LUA) \
+		mkninja.lua \
 		> $@

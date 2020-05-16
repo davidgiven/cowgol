@@ -4380,7 +4380,7 @@ void ReportTable(
   fprintf(out, "};\n"); lineno++;
 
   /* Output the default action table */
-  fprintf(out, "var yy_default: YYACTIONTYPE[] := {\n"); lineno++;
+  fprintf(out, "var yy_default: YYACTIONTYPE[YYNSTATE] := {\n"); lineno++;
   n = lemp->nxstate;
   lemp->tablesize += n*szActionType;
   for(i=j=0; i<n; i++){
