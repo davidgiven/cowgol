@@ -118,8 +118,8 @@ var lexer_ctype: uint8[] := {
 	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x7a z
 	CTYPE_TOKEN|OPENBR,          # 0x7b {
 	CTYPE_TOKEN|PIPE,            # 0x7c |
-	CTYPE_TOKEN|CLOSEBR,         # 0x7c }
-	CTYPE_TOKEN|TILDE            # 0x7c ~
+	CTYPE_TOKEN|CLOSEBR,         # 0x7d }
+	CTYPE_TOKEN|TILDE            # 0x7e ~
 };
 
 var keyword_names: string[] := {

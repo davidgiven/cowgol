@@ -33,6 +33,7 @@
 	EndError();
 }
 
+%stack_size 100
 %stack_overflow
 {
 	StartError();
@@ -254,7 +255,7 @@ startcase ::= CASE expression(E) IS.
 }
 
 whens ::= .
-whens ::= when whens.
+whens ::= whens when.
 
 when ::= beginwhen statements.
 
