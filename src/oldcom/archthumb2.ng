@@ -380,51 +380,51 @@ gen reg := CONSTANT():c
 gen reg := ADDRESS():a
 	{ E("\tldr %s, =%s\n", regref($$), symref($a.sym, $a.off)); }
 
-gen reg := ADDRESS(sym is current_sub):a
-	{ E("\tadd %s, r8, #%d\n", regref($$), $a.sym->u.var.offset + $a.off); }
+//gen reg := ADDRESS(sym is current_sub):a
+//	{ E("\tadd %s, r8, #%d\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 // --- Loads and stores --------------------------------------------------
 
-gen reg := LOAD1(ADDRESS(sym is current_sub):a)
-	{ E("\tldrb %s, [r8, %d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+//gen reg := LOAD1(ADDRESS(sym is current_sub):a)
+//	{ E("\tldrb %s, [r8, %d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 gen reg := LOAD1(reg:lhs)
 	{ E("\tldrb %s, [%s]\n", regref($$), regref($lhs)); }
 
-gen reg := LOAD2(ADDRESS(sym is current_sub):a)
-	{ E("\tldrh %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+//gen reg := LOAD2(ADDRESS(sym is current_sub):a)
+//	{ E("\tldrh %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 gen reg := LOAD2(reg:lhs)
 	{ E("\tldrh %s, [%s]\n", regref($$), regref($lhs)); }
 
 rewrite CAST24(LOAD1(a)) := LOAD2(a);
 
-gen reg := LOAD4(ADDRESS(sym is current_sub):a)
-	{ E("\tldr %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
+//gen reg := LOAD4(ADDRESS(sym is current_sub):a)
+//	{ E("\tldr %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
 gen reg := LOAD4(reg:lhs)
 	{ E("\tldr %s, [%s]\n", regref($$), regref($lhs)); }
 
-gen STORE1(reg:val, ADDRESS(sym is current_sub):a)
-	{ E("\tstrb %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+//gen STORE1(reg:val, ADDRESS(sym is current_sub):a)
+//	{ E("\tstrb %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
 
 gen STORE1(reg:val, reg:addr)
 	{ E("\tstrb %s, [%s]\n", regref($val), regref($addr)); }
 
-gen STORE2(reg:val, ADDRESS(sym is current_sub):a)
-	{ E("\tstrh %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+//gen STORE2(reg:val, ADDRESS(sym is current_sub):a)
+//	{ E("\tstrh %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
 
 gen STORE2(reg:val, reg:addr)
 	{ E("\tstrh %s, [%s]\n", regref($val), regref($addr)); }
 
-gen STORE4(reg:val, ADDRESS(sym is current_sub):a)
-	{ E("\tstr %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
+//gen STORE4(reg:val, ADDRESS(sym is current_sub):a)
+//	{ E("\tstr %s, [r8, #%d]\n", regref($val), $a.sym->u.var.offset + $a.off); }
 
 gen STORE4(reg:val, reg:addr)
 	{ E("\tstr %s, [%s]\n", regref($val), regref($addr)); }
 
-gen STORE4(reg:val, ADD4(reg:addr, CONSTANT():c))
-	{ E("\tstr %s, [%s, #%d]\n", regref($val), regref($addr), $c.value); }
+//gen STORE4(reg:val, ADD4(reg:addr, CONSTANT():c))
+//	{ E("\tstr %s, [%s, #%d]\n", regref($val), regref($addr), $c.value); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 

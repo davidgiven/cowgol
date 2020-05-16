@@ -42,10 +42,22 @@ toolchain_ocgen = {
 	tester = nativetest
 }
 
+toolchain_ncpm = {
+	name = "ncpm",
+	compiler = "bin/cowcom.8080.ocgen.exe",
+	linker = uncoo,
+	assembler = buildzmac,
+	runtime = "rt/cpm",
+	asmext = ".asm",
+	binext = ".8080.com",
+	tester = cpmtest,
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_ocpm,
 	toolchain_olx386,
 	toolchain_olxthumb2,
 	toolchain_ocgen,
+	toolchain_ncpm,
 }
 

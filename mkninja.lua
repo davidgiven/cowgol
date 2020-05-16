@@ -31,6 +31,17 @@ function include(filename)
 	end
 end
 
+function string:obj()
+	if not self:find("^%$") then
+		return "$OBJ/"..self
+	end
+	return self
+end
+
+function string:ext(newext)
+	return self:gsub("%.[^.]*$", newext)
+end
+
 function concat(...)
 	local result = {}
 
@@ -85,5 +96,7 @@ include "tools/newgen/build.lua"
 include "src/build.lua"
 include "src/oldcom/build.lua"
 include "toolchains.lua"
+include "src/cowlink/build.lua"
+include "src/cowcom/build.lua"
 include "tests/build.lua"
 

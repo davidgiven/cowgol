@@ -48,7 +48,7 @@ const char* aprintf(const char* s, ...)
 
 static void syntax_error(void)
 {
-	fatal("syntax error: oldcom [-Ipath] -o <outfile> <infile>");
+	fatal("syntax error: cowc [-Ipath] <infile>");
 }
 
 static void add_include_path(const char* path)
@@ -63,7 +63,7 @@ static void parse_arguments(int argc, char* argv[])
 {
 	for (;;)
 	{
-		int opt = getopt(argc, argv, "I:o:");
+		int opt = getopt(argc, argv, "I:");
 		if (opt == -1)
 			break;
 		switch (opt)
@@ -72,18 +72,15 @@ static void parse_arguments(int argc, char* argv[])
 				add_include_path(optarg);
 				break;
 			
-			case 'o':
-				outputfile = optarg;
-				break;
-
 			default:
 				syntax_error();
 		}
 	}
 
-	if ((argc - optind) != 1)
+	if ((argc - optind) != 2)
 		syntax_error();
 	inputfile = argv[optind+0];
+	outputfile = argv[optind+1];
 }
 
 int main(int argc, char* argv[])

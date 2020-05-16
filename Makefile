@@ -8,9 +8,9 @@ all: $(OBJ)/build.ninja
 
 clean:
 	@echo CLEAN
-	@rm -rf $(OBJ)
+	@rm -rf $(OBJ) bin
 
-lua-files = $(shell find . -name 'build*.lua') $(wildcard build/*.lua)
+lua-files = $(shell find . -name 'build*.lua') $(wildcard build/*.lua) toolchains.lua
 $(OBJ)/build.ninja: mkninja.lua Makefile $(lua-files)
 	@echo MKNINJA
 	@mkdir -p $(OBJ)
