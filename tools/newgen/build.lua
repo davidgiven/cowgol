@@ -31,7 +31,7 @@ cprogram {
 		"tools/newgen/main.c",
 		"tools/newgen/utils.c",
 		"tools/newgen/globals.h",
-		"$OBJ/iburgcodes.h",
+		"$OBJ/iburgcodes-coh.h",
 		"$OBJ/tools/newgen/parser.c",
 		"$OBJ/tools/newgen/parser.h",
 		"$OBJ/tools/newgen/lexer.c",
