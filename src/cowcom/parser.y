@@ -19,7 +19,7 @@
 %left AMPERSAND.
 %right NEXT PREV.
 %right NOT TILDE.
-%right BYTESOF.
+%right BYTESOF INDEXOF.
 %right OPENSQ CLOSESQ.
 %right DOT.
 
@@ -628,6 +628,18 @@ typeref(S) ::= typeref(S1) OPENSQ CLOSESQ.
 	S := MakeArrayType(S1, 0);
 }
 
+typeref(S) ::= INDEXOF varortypeid(S1).
+{
+	if IsArray(S1) == 0 then
+		StartError();
+		print(S1.name);
+		print(" is not an array");
+		EndError();
+	end if;
+
+	S := S1.typedata.arraytype.indextype;
+}
+
 statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 {
 	var sym := AddAlias(0 as [Namespace], X, T);
@@ -1056,7 +1068,9 @@ memberid(S) ::= ID(T).
 			var memberwidth := current_type.typedata.arraytype.element.typedata.stride;
 			if current_type.typedata.width == 0 then
 				current_type.typedata.width := current_offset;
-				current_type.typedata.arraytype.size := current_offset / memberwidth;
+				var size := current_offset / memberwidth;
+				current_type.typedata.arraytype.size := size;
+				current_type.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 			end if;
 			if current_offset != current_type.typedata.width then
 				WrongNumberOfElementsError();

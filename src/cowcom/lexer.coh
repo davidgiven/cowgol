@@ -126,6 +126,7 @@ var keyword_names: string[] := {
 	"@asm",
 	"@at",
 	"@bytesof",
+	"@indexof",
 	"@sizeof",
 	"@next",
 	"@prev",
@@ -162,6 +163,7 @@ var keyword_ids: uint8[] := {
 	ASM,
 	AT,
 	BYTESOF,
+	INDEXOF,
 	SIZEOF,
 	NEXT,
 	PREV,
@@ -409,10 +411,13 @@ end sub;
 sub lexer_i_get_escaped(): (c: uint8)
 	c := lexer_i_getchar();
 	case c is
-		when 'n': c := 10;
-		when 'r': c := 13;
-		when 't': c := 9;
-		when '0': c := 0;
+		when 'n':  c := 10;
+		when 'r':  c := 13;
+		when 't':  c := 9;
+		when '\\': c := '\\';
+		when '\'': c := '\'';
+		when '"':  c := '"';
+		when '0':  c := 0;
 		when else:
 			lexer_i_malformed("escape");
 	end case;

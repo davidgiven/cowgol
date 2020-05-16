@@ -1,19 +1,27 @@
+sub LookupSymbolInNamespace(namespace: [Namespace], name: string): (symbol: [Symbol])
+	symbol := namespace.first;
+	while symbol != (0 as [Symbol]) loop
+		if StrCmp(symbol.name, name) == 0 then
+			while symbol.kind == TYPEDEF loop
+				symbol := symbol.alias;
+			end loop;
+			return;
+		end if;
+		symbol := symbol.next;
+	end loop;
+	symbol := (0 as [Symbol]);
+end sub;
+
 sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 	if namespace == (0 as [Namespace]) then
 		namespace := &current_subr.namespace;
 	end if;
 	
 	while namespace != (0 as [Namespace]) loop
-		symbol := namespace.first;
-		while symbol != (0 as [Symbol]) loop
-			if StrCmp(symbol.name, name) == 0 then
-				while symbol.kind == TYPEDEF loop
-					symbol := symbol.alias;
-				end loop;
-				return;
-			end if;
-			symbol := symbol.next;
-		end loop;
+		symbol := LookupSymbolInNamespace(namespace, name);
+		if symbol != (0 as [Symbol]) then
+			return;
+		end if;
 		namespace := namespace.parent;
 	end loop;
 
@@ -38,7 +46,7 @@ sub AddSymbol(namespace: [Namespace], token: [Token]): (symbol: [Symbol])
 
 	symbol := Alloc(@bytesof Symbol) as [Symbol];
 	if token != (0 as [Token]) then
-		if LookupSymbol(namespace, token.string) != (0 as [Symbol]) then
+		if LookupSymbolInNamespace(namespace, token.string) != (0 as [Symbol]) then
 			StartError();
 			print("symbol '");
 			print(token.string);
