@@ -256,24 +256,25 @@ sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
 	result := 1;
 end sub;
 
-#sub PrintNodes(rootnode: [Node])
-#	WalkNodes(rootnode);
-#	loop
-#		var node := NextNode();
-#		if node == (0 as [Node]) then
-#			break;
-#		end if;
-#
-#		print_hex_i32(node as intptr as uint32);
-#		print_char(' ');
-#		print_i8(node.op);
-#		print_char(' ');
-#		print_hex_i32(node.left as intptr as uint32);
-#		print_char(' ');
-#		print_hex_i32(node.right as intptr as uint32);
-#		print_nl();
-#	end loop;
-#end sub;
+sub PrintNodes(rootnode: [Node])
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
+		var node := NextNode();
+		if node == (0 as [Node]) then
+			break;
+		end if;
+
+		print_hex_i32(node as intptr as uint32);
+		print_char(' ');
+		print_i8(node.op);
+		print_char(' ');
+		print_hex_i32(node.left as intptr as uint32);
+		print_char(' ');
+		print_hex_i32(node.right as intptr as uint32);
+		print_nl();
+	end loop;
+end sub;
 
 sub Generate(rootnode: [Node])
 	var i: uint8;

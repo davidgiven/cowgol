@@ -49,17 +49,17 @@ end sub;
 sub FoldConstant(op: uint8, lhs: Arith, rhs: Arith): (result: Arith)
 	case op is
 		when MIDCODE_ADD0: result := lhs + rhs;
-		when MIDCODE_SUB0: result := lhs - rhs;
+		#when MIDCODE_SUB0: result := lhs - rhs;
 		when MIDCODE_MUL0: result := lhs * rhs;
-		when MIDCODE_DIVU0: result := ((lhs as uint32) / (rhs as uint32)) as Arith;
-		when MIDCODE_DIVS0: result := (lhs as int32) / (rhs as int32);
-		when MIDCODE_REMU0: result := ((lhs as uint32) % (rhs as uint32)) as Arith;
-		when MIDCODE_REMS0: result := (lhs as int32) % (rhs as int32);
+		#when MIDCODE_DIVU0: result := ((lhs as uint32) / (rhs as uint32)) as Arith;
+		#when MIDCODE_DIVS0: result := (lhs as int32) / (rhs as int32);
+		#when MIDCODE_REMU0: result := ((lhs as uint32) % (rhs as uint32)) as Arith;
+		#when MIDCODE_REMS0: result := (lhs as int32) % (rhs as int32);
 		when MIDCODE_AND0: result := lhs & rhs;
 		when MIDCODE_OR0:  result := lhs | rhs;
 		when MIDCODE_EOR0: result := lhs ^ rhs;
-		when MIDCODE_NOT0: result := ~lhs;
-		when MIDCODE_NEG0: result := -lhs;
+		#when MIDCODE_NOT0: result := ~lhs;
+		#when MIDCODE_NEG0: result := -lhs;
 		when else:
 			print("bad fold");
 			ExitWithError();
@@ -184,6 +184,16 @@ sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	end if;
 end sub;
 
+sub GetPowerOfTwo(value: int32): (exp: uint8)
+	exp := 0;
+	if (value > 0) and ((value & (value - 1)) == 0) then
+		while value != 0 loop
+			exp := exp + 1;
+			value := value >> 1;
+		end loop;
+	end if;
+end sub;
+
 sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	(lhs, rhs) := RotateParameters(MIDCODE_MUL0, lhs, rhs);
 	if rhs.op == MIDCODE_CONSTANT then
@@ -198,30 +208,17 @@ sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 				result := MidLshift(width, lhs, MidConstant(amount as int32));
 			end sub;
 
-			case rhs.constant.value is
-				when 0:
-					Discard(lhs);
-					Discard(rhs);
-					result := MidConstant(0);
-					return;
-
-				when 1:
-					Discard(rhs);
-					result := lhs;
-					return;
-
-				when 2:
-					shift(1);
-					return;
-
-				when 4:
-					shift(2);
-					return;
-
-				when 8:
-					shift(3);
-					return;
-			end case;
+			var value := rhs.constant.value;
+			var exp := GetPowerOfTwo(value);
+			if exp != 0 then
+				shift(exp-1);
+				return;
+			elseif value == 0 then
+				Discard(lhs);
+				Discard(rhs);
+				result := MidConstant(0);
+				return;
+			end if;
 		end if;
 	end if;
 	result := MidMul(width, lhs, rhs);
