@@ -1,65 +1,43 @@
-include "tools/newgen/build.lua"
-include "build/yacc.lua"
-
-local ARCHS = { "80386", "8080", "cgen", "thumb2" }
-
 flex {
-	name = "lexer",
-	srcs = { "./lexer.l" }
+	ins = { "src/oldcom/lexer.l" },
+	outs = { "$OBJ/src/oldcom/lexer.c" }
 }
 
 lemon {
-	name = "parser",
-	srcs = { "./parser.y" }
-}
-
-clibrary {
-	name = "libcommon",
-	srcs = {
-		matching(filenamesof("+lexer"), "%.c$"),
-		matching(filenamesof("+parser"), "%.c$"),
-		"scripts+midcodes_c",
-		"./main.c",
-		"./emitter.c",
-		"./compiler.c",
-	},
-	deps = {
-		"+parser",
-		"+lexer",
-		"scripts+midcodes_h",
+	ins = { "src/oldcom/parser.y" },
+	outs = {
+		"$OBJ/src/oldcom/parser.c",
+		"$OBJ/src/oldcom/parser.h",
 	}
 }
 
-local installables = {}
-for _, arch in ipairs(ARCHS) do
-	local ng = newgen {
-		name = "arch-"..arch,
-		srcs = { "./arch"..arch..".ng" }
-	}
-
-	local i = cprogram {
-		name = "oldcom-"..arch,
-		srcs = {
-			"./codegen.c",
-			matching(filenamesof(ng), "%.c$")
-		},
-		deps = {
-			"scripts+midcodes_h",
-			"+parser",
-			"+lexer",
-			"+libcommon",
-			ng
-		},
-		vars = {
-			["+ldflags"] = "-lbsd -lfl"
+for _, arch in ipairs(OLDCOM_ARCHS) do
+	newgen {
+		ins = { "src/oldcom/arch"..arch..".ng" },
+		outs = {
+			"$OBJ/oldcom-"..arch.."/inssel.c",
+			"$OBJ/oldcom-"..arch.."/inssel.h",
 		}
 	}
 
-	installables["bin/oldcom-"..arch] = i
+	cprogram {
+		ins = {
+			"src/oldcom/main.c",
+			"src/oldcom/codegen.c",
+			"src/oldcom/compiler.c",
+			"src/oldcom/emitter.c",
+			"src/oldcom/globals.h",
+			"$OBJ/midcodes.h",
+			"$OBJ/midcodes.c",
+			"$OBJ/src/oldcom/lexer.c",
+			"$OBJ/src/oldcom/parser.c",
+			"$OBJ/src/oldcom/parser.h",
+			"$OBJ/oldcom-"..arch.."/inssel.c",
+			"$OBJ/oldcom-"..arch.."/inssel.h",
+		},
+		ldflags = "-lbsd -lfl",
+		outs = { "bin/oldcom-"..arch },
+		objdir = "$OBJ/oldcom-"..arch,
+	}
 end
-
-installable {
-	name = "all-oldcoms",
-	map = installables
-}
 

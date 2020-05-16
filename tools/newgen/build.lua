@@ -1,58 +1,58 @@
-include "third_party/lemon/build.lua"
-
-
-flex {
-	name = "lexer",
-	srcs = { "./lexer.l" }
-}
-
 lemon {
-	name = "parser",
-	srcs = { "./parser.y" }
-}
-
-clibrary {
-	name = "libnewgen",
-	srcs = {
-		"./utils.c",
-		"+lexer",
-		matching(filenamesof("+parser"), "%.c$"),
-	},
-	deps = {
-		"+parser",
+	ins = { "tools/newgen/parser.y" },
+	outs = {
+		"$OBJ/tools/newgen/parser.c",
+		"$OBJ/tools/newgen/parser.h",
 	}
 }
 
-cprogram {
-	name = "newgen-cowgol",
-	srcs = {
-		"./main.c",
-	},
-	deps = {
-		"+parser",
-		"scripts+iburgcodes_cowgol_h",
-		"+libnewgen",
-	},
-    vars = {
-		["+cflags"] = { "-DCOWGOL" },
-        ["+ldflags"] = { "-lfl" },
-    },
+flex {
+	ins = { "tools/newgen/lexer.l" },
+	outs = { "$OBJ/tools/newgen/lexer.c" },
 }
 
 cprogram {
-	name = "newgen",
-	srcs = {
-		"./main.c",
+	ins = {
+		"tools/newgen/main.c",
+		"tools/newgen/utils.c",
+		"tools/newgen/globals.h",
+		"$OBJ/iburgcodes.h",
+		"$OBJ/tools/newgen/parser.c",
+		"$OBJ/tools/newgen/parser.h",
+		"$OBJ/tools/newgen/lexer.c",
 	},
-	deps = {
-		"+parser",
-		"scripts+iburgcodes_h",
-		"+libnewgen",
-	},
-    vars = {
-        ["+ldflags"] = { "-lfl" },
-    },
+	objdir = "$OBJ/newgen-c",
+	ldflags = "-lfl",
+	outs = { "bin/newgen" }
 }
+
+cprogram {
+	ins = {
+		"tools/newgen/main.c",
+		"tools/newgen/utils.c",
+		"tools/newgen/globals.h",
+		"$OBJ/iburgcodes.h",
+		"$OBJ/tools/newgen/parser.c",
+		"$OBJ/tools/newgen/parser.h",
+		"$OBJ/tools/newgen/lexer.c",
+	},
+	objdir = "$OBJ/newgen-cowgol",
+	cflags = "-DCOWGOL",
+	ldflags = "-lfl",
+	outs = { "bin/newgen-cowgol" }
+}
+
+function newgen(e)
+	rule {
+		ins = concat {
+			"bin/newgen",
+			e.ins,
+		},
+		outs = e.outs,
+		cmd = "@1 @2 &1 &2"
+	}
+end
+--[[
 
 definerule("newgen",
 	{
@@ -91,4 +91,5 @@ definerule("newgencowgol",
 		}
 	end
 )
+--]]
 
