@@ -1,0 +1,50 @@
+include "cowgol.coh";
+include "argv.coh";
+include "strings.coh";
+include "malloc.coh";
+include "file.coh";
+
+typedef string := [uint8];
+typedef Size := uint16;
+typedef SubId := uint16;
+
+var inputfile: string := (0 as string);
+var outputfile: string := (0 as string);
+var infcb: FCB;
+
+print("COWWRAP: ");
+print_i16((GetFreeMemory() >> 10) as uint16);
+print("kB free\n");
+
+sub SyntaxError()
+	print("cowwrap <inputfile> <outputfile>\n");
+	ExitWithError();
+end sub;
+
+sub FatalError(s: string)
+	print("error: ");
+	print(s);
+	print_nl();
+	ExitWithError();
+end sub;
+
+include "emitter.coh";
+include "reader.coh";
+
+ArgvInit();
+inputfile := ArgvNext();
+outputfile := ArgvNext();
+
+if (inputfile == 0 as string) or (outputfile == 0 as string)
+		or (ArgvNext() != 0 as string) then
+	SyntaxError();
+end if;
+
+if FCBOpenIn(&infcb, inputfile) != 0 then
+	FatalError("cannot open input file");
+end if;
+EmitterOpenfile(outputfile);
+ProcessFile();
+CheckSymbols();
+EmitterClosefile();
+
