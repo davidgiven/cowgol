@@ -151,6 +151,10 @@ function cowgol(e)
 			e.toolchain.compiler,
 			e.ins,
 			"scripts/quiet",
+			"rt/common-file.coh",
+			"rt/common.coh",
+			"rt/malloc.coh",
+			"rt/strings.coh",
 		},
 		outs = { coo },
 		cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"

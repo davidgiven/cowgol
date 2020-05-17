@@ -1,9 +1,3 @@
-sub StrDup(s: string): (news: string)
-	var len := StrLen(s) + 1;
-	news := Alloc(len);
-	MemCopy(s, len, news);
-end sub;
-
 sub StrDupBraced(s: string): (news: string)
 	var len := StrLen(s);
 	news := Alloc(len + 3);

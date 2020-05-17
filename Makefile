@@ -1,6 +1,6 @@
 export OBJ = .obj
 export LUA = lua
-export CFLAGS = -g -O0
+export CFLAGS = -g -O3
 export LDFLAGS = -g
 
 all: $(OBJ)/build.ninja

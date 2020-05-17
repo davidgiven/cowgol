@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "argv.coh";
-include "malloc.coh";
 include "strings.coh";
+include "malloc.coh";
 include "file.coh";
 
 typedef string := [uint8];

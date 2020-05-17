@@ -98,5 +98,6 @@ include "src/oldcom/build.lua"
 include "toolchains.lua"
 include "src/cowlink/build.lua"
 include "src/cowcom/build.lua"
+include "src/cowwrap/build.lua"
 include "tests/build.lua"
 

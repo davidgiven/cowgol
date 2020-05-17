@@ -129,6 +129,7 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 			id := read_hex4(&coo.fcb);
 			subroutine := FindSub(coo, id);
 			subroutine.name := read_string(&coo.fcb, (len as uint8) - 4);
+		elseif c == 'X' then
 		else
 			print("error: unsupported record '");
 			print_char(c);
