@@ -204,12 +204,28 @@
 		E_nl();
 	end sub;
 
+	sub E_xra(rhs: RegId)
+		E_alu("xra", rhs);
+	end sub;
+
 	sub E_ora(rhs: RegId)
 		E_alu("ora", rhs);
 	end sub;
 
+	sub E_ana(rhs: RegId)
+		E_alu("ana", rhs);
+	end sub;
+
 	sub E_add(rhs: RegId)
 		E_alu("add", rhs);
+	end sub;
+
+	sub E_sub(rhs: RegId)
+		E_alu("sub", rhs);
+	end sub;
+
+	sub E_sbb(rhs: RegId)
+		E_alu("sbb", rhs);
 	end sub;
 
 	sub E_alui(insn: string, value: uint8)
@@ -228,8 +244,28 @@
 		E_alui("cpi", value);
 	end sub;
 
+	sub E_adi(value: uint8)
+		E_alui("adi", value);
+	end sub;
+
+	sub E_sui(value: uint8)
+		E_alui("sui", value);
+	end sub;
+
 	sub E_sbi(value: uint8)
 		E_alui("sbi", value);
+	end sub;
+
+	sub E_ori(value: uint8)
+		E_alui("ori", value);
+	end sub;
+
+	sub E_ani(value: uint8)
+		E_alui("ani", value);
+	end sub;
+
+	sub E_xri(value: uint8)
+		E_alui("xri", value);
 	end sub;
 
 	sub E_lxi(reg: RegId, value: uint16);
@@ -735,16 +771,16 @@ gen a|b|d|h := ADD1($$, CONSTANT(value==1))
 		{ E_inc($$); }
 
 gen a := ADD1(a, CONSTANT():c)
-		{ E_alui("adi", $c.value as uint8); }
+		{ E_adi($c.value as uint8); }
 
 gen a := SUB1(a, b|d|h:rhs)
-		{ E_alu("sub", $rhs); }
+		{ E_sub($rhs); }
 
 gen a|b|d|h := SUB1($$, CONSTANT(value==1))
 		{ E_dec($$); }
 
 gen a := SUB1(a, CONSTANT():c)
-		{ E_alui("sbi", $c.value as uint8); }
+		{ E_sbi($c.value as uint8); }
 
 gen a := MUL1(b, d)
 		{ E_callhelper("mul1"); }
@@ -754,27 +790,27 @@ gen a := NOT1(a)
 
 gen a := NEG1(b|d|h:lhs)
 {
-	E_alu("xra", REG_A);
-	E_alu("sub", $lhs);
+	E_xra(REG_A);
+	E_sub($lhs);
 }
 
 gen a := OR1(a, b|d|h:lhs)
-		{ E_alu("ora", $lhs); }
+		{ E_ora($lhs); }
 
 gen a := OR1(a, CONSTANT():c)
-		{ E_alui("ori", $c.value as uint8); }
+		{ E_ori($c.value as uint8); }
 
 gen a := AND1(a, b|d|h:lhs)
-		{ E_alu("ana", $lhs); }
+		{ E_ana($lhs); }
 
 gen a := AND1(a, CONSTANT():c)
-		{ E_alui("ani", $c.value as uint8); }
+		{ E_ani($c.value as uint8); }
 
 gen a := EOR1(a, b|d|h:lhs)
-		{ E_alu("xra", $lhs); }
+		{ E_xra($lhs); }
 
 gen a := EOR1(a, CONSTANT():c)
-		{ E_alui("xri", $c.value as uint8); }
+		{ E_xri($c.value as uint8); }
 
 gen b := DIVU1(b, d) uses a
 		{ E_callhelper("dvrmu1"); }
@@ -818,26 +854,40 @@ gen a := RSHIFTU1(a, CONSTANT(value<=2):c)
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
-gen hl|bc|de := ADD2($$, CONSTANT(value==1))
+%{
+	sub is_small_positive(value: int32): (result: uint8)
+		if (value > 0) and (value < 5) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+
+	sub is_small_negative(value: int32): (result: uint8)
+		if (value < 0) and (value > -5) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+%}
+		
+gen hl|bc|de := ADD2($$, CONSTANT(value is small_positive):c)
 {
-	E_inx($$);
+	var i: uint8 := $c.value as uint8;
+	while i != 0 loop
+		E_inx($$);
+		i := i - 1;
+	end loop;
 }
 
-gen hl|bc|de := ADD2($$, CONSTANT(value==2))
+gen hl|bc|de := ADD2($$, CONSTANT(value is small_negative):c)
 {
-	E_inx($$);
-	E_inx($$);
-}
-
-gen hl|bc|de := ADD2($$, CONSTANT(value==-1))
-{
-	E_dcx($$);
-}
-
-gen hl|bc|de := ADD2($$, CONSTANT(value==-2))
-{
-	E_dcx($$);
-	E_dcx($$);
+	var i: uint8 := $c.value as uint8;
+	while i != 0 loop
+		E_dcx($$);
+		i := i + 1;
+	end loop;
 }
 
 gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
@@ -865,11 +915,11 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 
 gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 {
-	E_alu("xra", REG_A);
-	E_alu("sub", loreg($lhs));
+	E_xra(REG_A);
+	E_sub(loreg($lhs));
 	E_mov(loreg($$), REG_A);
-	E_alu("sbb", REG_A);
-	E_alu("sub", $lhs);
+	E_sbb(REG_A);
+	E_sub($lhs);
 	E_mov($$, REG_A);
 }
 
@@ -1142,10 +1192,10 @@ gen BEQS2(hl, CONSTANT():c) uses a|de
 gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 {
 	E_mov(REG_A, loreg($lhs));
-	E_alu("sub", loreg($rhs));
+	E_sub(loreg($rhs));
 
 	E_mov(REG_A, $lhs);
-	E_alu("sbb", $rhs);
+	E_sbb($rhs);
 
 	E_jumps_jc_jnc(self.n[0]);
 }
@@ -1153,10 +1203,10 @@ gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
 gen BLTU2(hl|bc|de:lhs, CONSTANT():c):b uses a
 {
 	E_mov(REG_A, loreg($lhs));
-	E_alui("sui", $c.value as uint8);
+	E_sui($c.value as uint8);
 
 	E_mov(REG_A, $lhs);
-	E_alui("sbi", (($c.value as uint16) >> 8) as uint8);
+	E_sbi((($c.value as uint16) >> 8) as uint8);
 
 	E_jumps_jc_jnc(self.n[0]);
 }
@@ -1248,7 +1298,7 @@ gen hl|bc|de := CAST12(a, sext!=0)
 {
 	E_mov(loreg($$), REG_A);
 	E_ral();
-	E_alu("sbb", REG_A);
+	E_sbb(REG_A);
 	E_mov($$, REG_A);
 }
 
@@ -1264,7 +1314,7 @@ gen stk4 := CAST14(a:rhs, sext!=0) uses hl|b
 {
 	E_mov(REG_B, REG_A);
 	E_ral();
-	E_alu("sbb", REG_A);
+	E_sbb(REG_A);
 	E_mov(REG_H, REG_A);
 	E_mov(REG_L, REG_A);
 	E_push(REG_HL);
@@ -1289,7 +1339,7 @@ gen stk4 := CAST24(hl|de:rhs, sext!=0) uses a|bc
 {
 	E_mov(REG_A, $rhs);
 	E_ral();
-	E_alu("sbb", REG_A);
+	E_sbb(REG_A);
 	E_mov(REG_B, REG_A);
 	E_mov(REG_C, REG_A);
 	E_push(REG_BC);

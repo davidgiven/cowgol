@@ -1,6 +1,6 @@
 var outfcb: FCB;
 
-const RECORD_SIZE := 128;
+const RECORD_SIZE := 255;
 
 record EmitterRecord
 	data: uint8[RECORD_SIZE];
@@ -121,34 +121,41 @@ end sub;
 
 sub EmitterOpenfile(filename: string)
 	if FCBOpenOut(&outfcb, filename) != 0 then
-		SimpleError("cannot open output file");
+		FatalError("cannot open output file");
 	end if;
 end sub;
 
 sub EmitterClosefile()
 	FCBPutString(&outfcb, "E0000");
 	if FCBClose(&outfcb) != 0 then
-		SimpleError("cannot close output file");
+		FatalError("cannot close output file");
 	end if;
 end sub;
 
-sub EmitterDeclareSubroutine(subr: [Subroutine])
+sub EmitterDeclareSubroutine(id: SubId, name: string)
 	EmitterPushChunk();
-	E_h16(subr.id);
-	E(subr.name);
+	E_h16(id);
+	E(name);
 	EmitterPopChunk('N');
 end sub;
 
-sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
+sub EmitterDeclareExternal(id: SubId, name: string)
 	EmitterPushChunk();
-	E_h16(user.id);
-	E_h16(used.id);
+	E_h16(id);
+	E(name);
+	EmitterPopChunk('X');
+end sub;
+
+sub EmitterReferenceSubroutine(user: SubId, used: SubId)
+	EmitterPushChunk();
+	E_h16(user);
+	E_h16(used);
 	EmitterPopChunk('R');
 end sub;
 
-sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size)
+sub EmitterDeclareWorkspace(id: SubId, wid: uint8, workspace: Size)
 	EmitterPushChunk();
-	E_h16(subr.id);
+	E_h16(id);
 	E_h8(wid);
 	E_h16(workspace as uint16);
 	EmitterPopChunk('W');

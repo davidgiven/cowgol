@@ -1,0 +1,54 @@
+sub WriteSubroutinesToOutputFile(fcb: [FCB], coo: [Coo])
+	var buffer: uint8[512];
+	var id: uint16;
+	var subroutine: [Subroutine];
+
+	FCBSeek(&coo.fcb, 0);
+	loop
+		var c := FCBGetChar(&coo.fcb);
+		var len := read_hex4(&coo.fcb);
+		var here := FCBPos(&coo.fcb);
+		if c == 'E' then
+			break;
+		elseif c == 'S' then
+			id := read_hex4(&coo.fcb);
+			subroutine := FindSub(coo, id);
+			if subroutine.used != 0 then
+				var length := (len - 4) as intptr;
+				while length > @bytesof buffer loop
+					FCBGetBlock(&coo.fcb, &buffer[0], @bytesof buffer);
+					FCBPutBlock(fcb, &buffer[0], @bytesof buffer);
+					length := length - @bytesof buffer;
+				end loop;
+
+				FCBGetBlock(&coo.fcb, &buffer[0], length);
+				FCBPutBlock(fcb, &buffer[0], length);
+			end if;
+		elseif c == 'W' then
+			id := read_hex4(&coo.fcb);
+			subroutine := FindSub(coo, id);
+			if subroutine.used != 0 then
+				FCBPutString(fcb, "\tdseg\n");
+
+				buffer[0] := 'w';
+				var p := IToA(id as int32, 10, &buffer[1]);
+				[p] := ':';
+				p := p + 1;
+				[p] := '\n';
+				p := p + 1;
+				[p] := 0;
+				FCBPutString(fcb, &buffer[0]);
+
+				CopyString("\tds ", &buffer[0]);
+				p := IToA(subroutine.workspace as int32, 10, &buffer[4]);
+				[p] := '\n';
+				p := p + 1;
+				[p] := 0;
+				FCBPutString(fcb, &buffer[0]);
+			end if;
+		end if;
+		FCBSeek(&coo.fcb, here + (len as uint32));
+	end loop;
+end sub;
+
+

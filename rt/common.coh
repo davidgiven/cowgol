@@ -97,6 +97,52 @@ sub print_hex_i32(value: uint32)
     print_hex_i8(value as uint8);
 end sub;
 
+sub AToI(buffer: [uint8]): (result: int32, ptr: [uint8])
+	var negative: uint8 := 0;
+	var base: uint8 := 10;
+	ptr := buffer;
+	result := 0;
+	
+	var c := [ptr];
+	if (c == '-') then
+		negative := 1;
+		ptr := ptr + 1;
+		c := [ptr];
+	end if;
+	if (c == '0') then
+		case [ptr+1] is
+			when 'x':  base := 16;
+			when 'o':  base := 8;
+			when 'b':  base := 2;
+			when 'd':  base := 10;
+			when else: ptr := ptr - 2;
+		end case;
+		ptr := ptr + 2;
+		c := [ptr];
+	end if;
+
+	loop
+		if c >= 'a' then
+			c := c - 'a' + 10;
+		elseif c >= 'A' then
+			c := c - 'A' + 10;
+		else
+			c := c - '0';
+		end if;
+		if c >= (base as uint8) then
+			break;
+		end if;
+		result := (result * base as int32) + (c as int32);
+
+		ptr := ptr + 1;
+		c := [ptr];
+	end loop;
+
+	if negative != 0 then
+		result := -result;
+	end if;
+end sub;
+
 sub MemZero(ptr: [uint8], size: intptr)
 	MemSet(ptr, 0, size);
 end sub;
