@@ -2,6 +2,7 @@ ALL_TESTS = {
 	"addsub-16bit",
 	"addsub-32bit",
 	"addsub-8bit",
+	"atoi",
 	"arrayinitialisers",
 	"case",
 	"casts",

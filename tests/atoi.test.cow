@@ -1,0 +1,47 @@
+include "cowgol.coh";
+include "_framework.coh";
+
+sub TestAToI(data: [uint8])
+	print_char('"');
+	print(data);
+	print_char('"');
+
+	var result: int32;
+	var p: [uint8];
+	(result, p) := AToI(data);
+
+	print(" said ");
+	if result < 0 then
+		print_char('-');
+		result := -result;
+	end if;
+	print_i32(result as uint32);
+	print(" consuming ");
+	print_i8((p - data) as uint8);
+	print_nl();
+end sub;
+
+TestAToI("0");
+TestAToI("1");
+TestAToI("10");
+TestAToI("99");
+TestAToI("-0");
+TestAToI("-1");
+TestAToI("-10");
+TestAToI("-99");
+
+TestAToI("0x0");
+TestAToI("0x1");
+TestAToI("0x10");
+TestAToI("0x99");
+TestAToI("-0x0");
+TestAToI("-0x1");
+TestAToI("-0x10");
+TestAToI("-0x99");
+TestAToI("0xa");
+TestAToI("0xA");
+
+TestAToI("q");
+TestAToI("0q");
+TestAToI("1q");
+

@@ -157,3 +157,9 @@ sub GetFreeMemory(): (bytes: intptr)
 	end loop;
 end sub;
 
+sub StrDup(s: [uint8]): (news: [uint8])
+	var len := StrLen(s) + 1;
+	news := Alloc(len);
+	MemCopy(s, len, news);
+end sub;
+
