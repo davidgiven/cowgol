@@ -1,6 +1,7 @@
 const SYM_UNDECLARED := 0;
-const SYM_DEFINED    := 0b01;
-const SYM_EXPORTED   := 0b10;
+const SYM_DEFINED    := 0b001;
+const SYM_PUBLIC     := 0b010;
+const SYM_DECLARED   := 0b100;
 
 record Symbol
 	next: [Symbol];
@@ -35,6 +36,7 @@ end sub;
 	
 sub ProcessFile()
 	main_symbol.name := "@";
+	main_symbol.state := SYM_DEFINED | SYM_DECLARED;
 	EmitterPushChunk();
 	E_h16(current_subr.id);
 
@@ -44,6 +46,13 @@ sub ProcessFile()
 
 	sub GetC()
 		c := FCBGetChar(&infcb);
+	end sub;
+
+	sub ExpectC(want: uint8)
+		if c != want then
+			FatalError("malformed cowwrap directive");
+		end if;
+		GetC();
 	end sub;
 
 	sub SkipToEndOfLine()
@@ -68,7 +77,11 @@ sub ProcessFile()
 		SkipWhitespace();
 		var p := &buffer[0];
 		loop
-			if (c == 0) or (c == 26) or (c == 10) or (c == ' ') or (c == '\t') then
+			if ((c < '0') or (c > '9'))
+					and ((c < 'a') or (c > 'z'))
+					and ((c < 'A') or (c > 'Z'))
+					and (c != '_')
+					and (c != '@') then
 				break;
 			end if;
 
@@ -92,36 +105,74 @@ sub ProcessFile()
 		end if;
 	end sub;
 
-	sub ExportSubroutine()
-		GetC();
-		ReadWord();
-		var symbol := GetSymbol(&buffer[0]);
-		if (symbol.state & SYM_EXPORTED) == 0 then
-			symbol.state := symbol.state | SYM_EXPORTED;
+	sub MarkSubroutinePublic(symbol: [Symbol])
+		if (symbol.state & SYM_PUBLIC) == 0 then
+			symbol.state := symbol.state | SYM_PUBLIC;
 			EmitterDeclareExternal(symbol.id, symbol.name);
 		end if;
 	end sub;
 
-	sub CloseSubroutine()
+	sub ImportSubroutine()
+		GetC();
+		ReadWord();
+		MarkSubroutinePublic(GetSymbol(&buffer[0]));
+	end sub;
+
+	sub CloseChunk()
 		if current_subr != (0 as [Symbol]) then
 			EmitterPopChunk('S');
 			current_subr := (0 as [Symbol]);
 		end if;
 	end sub;
 
-	sub DefineSubroutine()
-		CloseSubroutine();
+	sub DeclareSubroutine(exported: uint8)
+		CloseChunk();
 
 		GetC();
 		ReadWord();
 		current_subr := GetSymbol(&buffer[0]);
 		current_subr.state := current_subr.state | SYM_DEFINED;
 
-		if current_subr != &main_symbol then
-			EmitterDeclareSubroutine(current_subr.id, current_subr.name);
+		if exported != 0 then
+			MarkSubroutinePublic(current_subr);
 		end if;
+		if (current_subr.state & SYM_DECLARED) == 0 then
+			EmitterDeclareSubroutine(current_subr.id, current_subr.name);
+			current_subr.state := current_subr.state | SYM_DECLARED;
+		end if;
+
 		EmitterPushChunk();
 		E_h16(current_subr.id);
+	end sub;
+
+	sub SetSubroutineWorkspace()
+		GetC();
+		ReadWord();
+		var symbol := GetSymbol(&buffer[0]);
+		SkipWhitespace();
+		var wid := ReadNumber() as uint8;
+		SkipWhitespace();
+		var woff := ReadNumber() as Size;
+		EmitterDeclareWorkspace(symbol.id, wid, woff);
+	end sub;
+
+	sub EmitWorkspaceRef()
+		GetC();
+		ReadWord();
+		var symbol := current_subr;
+		if buffer[0] != 0 then
+			symbol := GetSymbol(&buffer[0]);
+			EmitterReferenceSubroutine(current_subr.id, symbol.id);
+		end if;
+		ExpectC('.');
+		var wid := ReadNumber() as uint8;
+		ExpectC('.');
+		var woff := ReadNumber() as Size;
+		EmitByte('`');
+		EmitByte('$');
+		E_h16(symbol.id);
+		E_h8(wid);
+		E_h16(woff);
 	end sub;
 
 	sub SourceLine()
@@ -132,11 +183,22 @@ sub ProcessFile()
 			if c != 13 then
 				if c == '`' then
 					GetC();
-					ReadWord();
-					var subr := GetSymbol(&buffer[0]);
-					EmitByte('`');
-					E_h16(subr.id);
-					EmitterReferenceSubroutine(current_subr.id, subr.id);
+					case c is
+						when '`':
+							EmitByte('`');
+							E_h16(current_subr.id);
+							GetC();
+
+						when '$':
+							EmitWorkspaceRef();
+
+						when else:
+							ReadWord();
+							var subr := GetSymbol(&buffer[0]);
+							EmitByte('`');
+							E_h16(subr.id);
+							EmitterReferenceSubroutine(current_subr.id, subr.id);
+					end case;
 				else
 					EmitByte(c);
 					GetC();
@@ -156,10 +218,13 @@ sub ProcessFile()
 				GetC();
 				case c is
 					when 'X':
-						ExportSubroutine();
+						DeclareSubroutine(1);
 
 					when 'S':
-						DefineSubroutine();
+						DeclareSubroutine(0);
+
+					when 'W':
+						SetSubroutineWorkspace();
 
 					when else:
 						FatalError("bad cowwrap command");
@@ -174,7 +239,7 @@ sub ProcessFile()
 		end case;
 		GetC();
 	end loop;
-	CloseSubroutine();
+	CloseChunk();
 end sub;
 
 sub CheckSymbols()

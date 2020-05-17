@@ -185,3 +185,15 @@ function cowlink(e)
 	}
 end
 
+function cowwrap(e)
+	rule {
+		ins = concat {
+			"scripts/quiet",
+			"bin/cowwrap.ocgen.exe",
+			e.ins
+		},
+		outs = e.outs,
+		cmd = "@1 @2 @3 &1"
+	}
+end
+
