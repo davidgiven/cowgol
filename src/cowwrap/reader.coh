@@ -7,7 +7,6 @@ record Symbol
 	next: [Symbol];
 	name: string;
 	id: SubId;
-	workspace: Size;
 	state: uint8;
 end record;
 
@@ -153,7 +152,8 @@ sub ProcessFile()
 		SkipWhitespace();
 		var wid := ReadNumber() as uint8;
 		SkipWhitespace();
-		symbol.workspace := ReadNumber() as Size;
+		var woff := ReadNumber() as Size;
+		EmitterDeclareWorkspace(symbol.id, wid, woff);
 	end sub;
 
 	sub EmitWorkspaceRef()
