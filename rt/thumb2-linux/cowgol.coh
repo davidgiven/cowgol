@@ -1,10 +1,10 @@
 # System call numbers are here:
 # https://w3challs.com/syscalls/?arch=arm_thumb
 
-var TOP: [uint8];
-@asm ".extern _top";
-@asm "ldr r0, =_top";
-@asm "str r0, ", TOP;
+var LOMEM: [uint8];
+@asm ".extern _lomem";
+@asm "ldr r0, =_lomem";
+@asm "str r0, ", LOMEM;
 
 var HIMEM: [uint8];
 @asm ".extern _himem";

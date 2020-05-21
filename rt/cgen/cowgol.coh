@@ -1,5 +1,5 @@
-var TOP: [uint8];
-@asm TOP, "= (i8)(intptr_t) __top;";
+var LOMEM: [uint8];
+@asm LOMEM, "= (i8)(intptr_t) __lomem;";
 
 var HIMEM: [uint8];
 @asm HIMEM, "= (i8)(intptr_t) __himem;";

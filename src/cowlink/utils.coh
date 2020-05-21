@@ -1,8 +1,23 @@
-sub CannotOpen(filename: [uint8])
-	print("error: unable to open '");
-	print(filename);
-	print("'\n");
+sub StartError()
+	print("error: ");
+end sub;
+
+sub EndError()
+	print_nl();
 	ExitWithError();
 end sub;
 
+sub SimpleError(s: [uint8])
+	StartError();
+	print(s);
+	EndError();
+end sub;
+
+sub CannotOpen(filename: [uint8])
+	StartError();
+	print("unable to open '");
+	print(filename);
+	print("'");
+	EndError();
+end sub;
 

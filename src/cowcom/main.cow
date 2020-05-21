@@ -9,6 +9,7 @@ typedef string := [uint8];
 var inputfile: string := (0 as string);
 var outputfile: string := (0 as string);
 
+include "include/coodecls.coh";
 include "src/cowcom/types.coh";
 include "src/cowcom/allocator.coh";
 include "inssel.decl.coh";

@@ -1,27 +1,23 @@
-record Subroutine
-	next: [Subroutine];
-	id: uint16;
-	refs: [Reference];
-	name: [uint8];
-	used: uint8;
-	workspace: uint16;
-end record;
+var current_coo_id: uint8 := 1;
+var pushed_char: uint8 := 0;
 
-record Reference
-	next: [Reference];
-	requires: [Subroutine];
-end record;
+sub getchar(fcb: [FCB]): (c: uint8)
+	if pushed_char == 0 then
+		c := FCBGetChar(fcb);
+	else
+		c := pushed_char;
+		pushed_char := 0;
+	end if;
+end sub;
 
-record Coo
-	fcb: FCB;
-	subroutines: [Subroutine];
-	next: [Coo];
-end record;
+sub pushchar(c: uint8)
+	pushed_char := c;
+end sub;
 
 sub read_hex(fcb: [FCB], len: uint8): (val: uint32)
 	val := 0;
 	loop
-		var c := FCBGetChar(fcb);
+		var c := getchar(fcb);
 		if (c >= '0') and (c <= '9') then
 			c := c - '0';
 		else
@@ -57,57 +53,91 @@ sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
 		if len == 0 then
 			break;
 		end if;
-		[p] := FCBGetChar(fcb);
+		[p] := getchar(fcb);
 		p := p + 1;
 		len := len - 1;
 	end loop;
 end sub;
 
-sub AddRef(subr: [Subroutine], requires: [Subroutine])
-	var ref := subr.refs;
-	loop
-		if ref == (0 as [Reference]) then
-			break;
-		end if;
-		if ref.requires == requires then
-			return;
+sub AddRef(subr: [Subroutine], calls: [Subroutine])
+	var refid := subr.numRefs;
+	subr.numRefs := refid + 1;
+
+	var ref := &subr.refs;
+	while refid >= COO_REFS_SIZE loop
+		if ref.next == (0 as [References]) then
+			ref.next := Alloc(@bytesof References) as [References];
 		end if;
 		ref := ref.next;
+		refid := refid - COO_REFS_SIZE;
 	end loop;
 
-	ref := Alloc(@bytesof Reference) as [Reference];
-	ref.requires := requires;
-	ref.next := subr.refs;
-	subr.refs := ref;
+	ref.calls[refid as uint8] := calls;
 end sub;
 
-sub FindSub(coo: [Coo], id: uint16): (subroutine: [Subroutine])
-	subroutine := coo.subroutines;
-	loop
-		if subroutine == (0 as [Subroutine]) then
-			break;
+sub FindSub(coo: [Coo], id: uint16): (ptr: [[Subroutine]])
+	var subindex := &coo.index;
+	while id >= COO_INDEX_SIZE loop
+		if subindex.next == (0 as [CooIndex]) then
+			subindex.next := Alloc(@bytesof CooIndex) as [CooIndex];
 		end if;
-		if subroutine.id == id then
-			return;
-		end if;
-		subroutine := subroutine.next;
+		subindex := subindex.next;
+		id := id - COO_INDEX_SIZE;
 	end loop;
 
-	subroutine := Alloc(@bytesof Subroutine) as [Subroutine];
-	subroutine.id := id;
-	subroutine.next := coo.subroutines;
-	coo.subroutines := subroutine;
+	ptr := &subindex.subroutines[id as uint8];
+end sub;
+
+sub FindOrCreateSub(coo: [Coo], id: uint16): (subroutine: [Subroutine])
+	var ptr := FindSub(coo, id);
+	subroutine := [ptr];
+	if subroutine == (0 as [Subroutine]) then
+		subroutine := Alloc(@bytesof Subroutine) as [Subroutine];
+		subroutine.coo := coo;
+		subroutine.next := subroutines;
+		subroutines := subroutine;
+		subroutine.id := current_id;
+		[ptr] := subroutine;
+		current_id := current_id + 1;
+	end if;
+end sub;
+
+sub Deref(subin: [Subroutine]): (subout: [Subroutine])
+	subout := subin;
+	if subin != (0 as [Subroutine]) then
+		var external := subin.external;
+		if external != (0 as [External]) then
+			subout := external.impl;
+		end if;
+	end if;
+end sub;
+
+sub FindOrCreateExternal(name: string): (external: [External])
+	external := externals;
+	while external != (0 as [External]) loop
+		if StrCmp(external.name, name) == 0 then
+			return;
+		end if;
+		external := external.next;
+	end loop;
+
+	external := Alloc(@bytesof External) as [External];
+	external.next := externals;
+	external.name := StrDup(name);
+	externals := external;
 end sub;
 
 sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 	coo := Alloc(@bytesof Coo) as [Coo];
+	coo.id := current_id;
+	current_id := current_id + 1;
 	if FCBOpenIn(&coo.fcb, filename) != 0 then
 		CannotOpen(filename);
 	end if;
 
 	var id: uint16;
 	loop
-		var c := FCBGetChar(&coo.fcb);
+		var c := getchar(&coo.fcb);
 		var len := read_hex4(&coo.fcb);
 		var here := FCBPos(&coo.fcb);
 		var subroutine: [Subroutine];
@@ -115,21 +145,30 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 			break;
 		elseif c == 'S' then
 			id := read_hex4(&coo.fcb);
-			subroutine := FindSub(coo, id);
+			subroutine := FindOrCreateSub(coo, id);
+			subroutine.state := subroutine.state | SUB_IMPLEMENTATION;
 		elseif c == 'R' then
 			var subrid := read_hex4(&coo.fcb);
 			var requiresid := read_hex4(&coo.fcb);
-			AddRef(FindSub(coo, subrid), FindSub(coo, requiresid));
+			AddRef(FindOrCreateSub(coo, subrid), FindOrCreateSub(coo, requiresid));
 		elseif c == 'W' then
 			id := read_hex4(&coo.fcb);
-			subroutine := FindSub(coo, id);
+			subroutine := FindOrCreateSub(coo, id);
 			var wid := read_hex2(&coo.fcb);
-			subroutine.workspace := read_hex4(&coo.fcb);
+			subroutine.workspaceSize[wid] := read_hex4(&coo.fcb);
 		elseif c == 'N' then
 			id := read_hex4(&coo.fcb);
-			subroutine := FindSub(coo, id);
+			subroutine := FindOrCreateSub(coo, id);
 			subroutine.name := read_string(&coo.fcb, (len as uint8) - 4);
 		elseif c == 'X' then
+			id := read_hex4(&coo.fcb);
+			subroutine := FindOrCreateSub(coo, id);
+			var name := read_string(&coo.fcb, (len as uint8) - 4);
+			var external := FindOrCreateExternal(name);
+			if subroutine.external != (0 as [External]) then
+				SimpleError("multiple external declarations");
+			end if;
+			subroutine.external := external;
 		else
 			print("error: unsupported record '");
 			print_char(c);

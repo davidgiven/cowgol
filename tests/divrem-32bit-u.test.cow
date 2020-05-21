@@ -23,12 +23,12 @@ print("zero%two==zero"); if zero%two==zero then yes(); else no(); end if;
 print("big/three==bigdivthree"); if big/three==(0x12345678/3) then yes(); else no(); end if;
 print("big%three==bigmodthree"); if big%three==(0x12345678%3) then yes(); else no(); end if;
 
-var q: uint32;
-var r: uint32;
-(q, r) := divmodu32(big, three);
-print("divmod big/three==bigdivthree"); if q==(0x12345678/3) then yes(); else no(); end if;
-print("divmod big%three==bigmodthree"); if r==(0x12345678%3) then yes(); else no(); end if;
-
-(q, r) := divmodu32(0x29, 10);
-print("divmod 41/10==4"); if q==4 then yes(); else no(); end if;
-print("divmod 41%10==1"); if r==1 then yes(); else no(); end if;
+#var q: uint32;
+#var r: uint32;
+#(q, r) := divmodu32(big, three);
+#print("divmod big/three==bigdivthree"); if q==(0x12345678/3) then yes(); else no(); end if;
+#print("divmod big%three==bigmodthree"); if r==(0x12345678%3) then yes(); else no(); end if;
+#
+#(q, r) := divmodu32(0x29, 10);
+#print("divmod 41/10==4"); if q==4 then yes(); else no(); end if;
+#print("divmod 41%10==1"); if r==1 then yes(); else no(); end if;

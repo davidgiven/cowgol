@@ -308,10 +308,21 @@ sub lexer_i_skipwhitespace()
 		var c := lexer_i_getchar();
 		case c is
 			when ' ':
+				# do nothing
+
 			when 13:
+				# do nothing
+
 			when 10:  
 				current_file.lineno := current_file.lineno + 1;
+				#print(current_file.path);
+				#print(":");
+				#print_i16(current_file.lineno);
+				#print_nl();
+
 			when 9:
+				# do nothing
+
 			when else:
 				break;
 		end case;

@@ -4,7 +4,14 @@ include "strings.coh";
 include "malloc.coh";
 include "file.coh";
 
+typedef string := [uint8];
+typedef Size := uint16;
+
+include "include/coodecls.coh";
+include "src/cowlink/types.coh";
 include "src/cowlink/utils.coh";
+include "src/cowlink/emitter.coh";
+include "src/cowlink/arch8080.coh";
 include "src/cowlink/cooread.coh";
 include "src/cowlink/asmwrite.coh";
 include "src/cowlink/graph.coh";
@@ -14,10 +21,13 @@ print_i16((GetFreeMemory() >> 10) as uint16);
 print("kB free\n");
 
 var coos: [Coo] := 0 as [Coo];
+var firstCoo: [Coo] := 0 as [Coo];
 var outputFilename: [uint8] := 0 as [uint8];
+var mainSubroutine: [Subroutine] := 0 as [Subroutine];
+var mostRecentSubroutine: [Subroutine] := 0 as [Subroutine];
 
 sub SyntaxError()
-	print("Syntax error\n");
+	SimpleError("Syntax error\n");
 end sub;
 
 sub AddInputFile(filename: [uint8])
@@ -26,10 +36,24 @@ sub AddInputFile(filename: [uint8])
 	print_nl();
 
 	var coo := OpenAndLoadCoo(filename);
-	print("Calculating dependency graph...\n");
-	CalculateDependencyGraph(coo);
-	coo.next := coos;
-	coos := coo;
+	if firstCoo == (0 as [Coo]) then
+		firstCoo := coo;
+		coos := coo;
+	else
+		coos.next := coo;
+		coos := coo;
+	end if;
+
+	var thisMain := [FindSub(coo, 0)];
+	if thisMain != (0 as [Subroutine]) then
+		if mainSubroutine == (0 as [Subroutine]) then
+			mainSubroutine := thisMain;
+		end if;
+	end if;
+	if mostRecentSubroutine != (0 as [Subroutine]) then
+		AddRef(mostRecentSubroutine, thisMain);
+	end if;
+	mostRecentSubroutine := thisMain;
 end sub;
 
 ArgvInit();
@@ -48,17 +72,25 @@ loop
 	end if;
 end loop;
 
+if mainSubroutine == 0 as [Subroutine] then
+	SimpleError("No main subroutine in any coofile");
+end if;
 if outputFilename == 0 as [uint8] then
-	print("No output filename specified\n");
+	SimpleError("No output filename specified");
 end if;
 
-var outputFcb: FCB;
-if FCBOpenOut(&outputFcb, outputFilename) != 0 then
-	CannotOpen(outputFilename);
-end if;
+print("Analysing...\n");
+ResolveExternals();
+PlaceSubroutines(mainSubroutine);
+
+EmitterOpenfile(outputFilename);
+
 print("Writing output file...\n");
-WriteSubroutinesToOutputFile(&outputFcb, coos);
-var i := FCBClose(&outputFcb);
+ArchEmitHeader(firstCoo);
+WriteAllSubroutinesToOutputFile(firstCoo);
+ArchEmitFooter();
+
+EmitterClosefile();
 
 print("done: ");
 print_i16((GetFreeMemory() >> 10) as uint16);

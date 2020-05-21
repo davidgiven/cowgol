@@ -1,4 +1,4 @@
-    global __top
+    global LOMEM
 	dseg
-__top:
+LOMEM:
 

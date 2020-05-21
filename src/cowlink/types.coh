@@ -1,0 +1,47 @@
+const NUM_WORKSPACES := 4;
+
+const COO_REFS_SIZE := 16;
+record References
+	next: [References];
+	calls: [Subroutine][COO_REFS_SIZE];
+end record;
+
+const SUB_USED           := 0b01;
+const SUB_IMPLEMENTATION := 0b10;
+
+record Subroutine
+	coo: [Coo];
+	next: [Subroutine];
+	refs: References;
+	name: string;
+	external: [External];
+	workspaceSize: Size[NUM_WORKSPACES];
+	workspaceAddress: Size[NUM_WORKSPACES];
+	numRefs: uint16;
+	id: uint16;
+	state: uint8;
+end record;
+
+const COO_INDEX_SIZE := 16;
+record CooIndex
+	next: [CooIndex];
+	subroutines: [Subroutine][COO_INDEX_SIZE];
+end record;
+
+record Coo
+	fcb: FCB;
+	index: CooIndex;
+	next: [Coo];
+	id: uint16;
+end record;
+
+record External
+	next: [External];
+	name: string;
+	impl: [Subroutine];
+end record;
+
+var externals: [External] := (0 as [External]);
+var subroutines: [Subroutine] := (0 as [Subroutine]);
+var current_id: uint16 := 1;
+

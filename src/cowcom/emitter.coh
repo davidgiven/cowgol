@@ -139,6 +139,13 @@ sub EmitterDeclareSubroutine(subr: [Subroutine])
 	EmitterPopChunk('N');
 end sub;
 
+sub EmitterDeclareExternalSubroutine(id: uint16, external: string)
+	EmitterPushChunk();
+	E_h16(id);
+	E(external);
+	EmitterPopChunk('X');
+end sub;
+
 sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
 	EmitterPushChunk();
 	E_h16(user.id);

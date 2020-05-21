@@ -123,6 +123,7 @@ end record;
 
 var current_subr: [Subroutine];
 var next_label_id: LabelRef := 1;
+var next_subr_id: uint16 := 1;
 var break_label: LabelRef;
 var continue_label: LabelRef;
 var current_if: [IfLabels];

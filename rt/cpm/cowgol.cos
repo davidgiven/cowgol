@@ -1,19 +1,7 @@
-&S @
-    org 0x100
-    cseg
-    lxi sp, stackend
-    call cmain
-_exit:
-    rst 0
-    dseg
-stack:
-    ds 128
-stackend:
-
 # Multiples two 8-bit values: A = B * D.
 # Uses DE.
 &X _mul1
-    cseg
+    cseg ; _mul1
 ``:
     mvi c, 0            ; initial result
     mvi e, 9            ; number of bits
@@ -34,7 +22,7 @@ stackend:
 # Multiplies two 16-bit values: HL = HL * DE.
 # Uses A and BC.
 &X _mul2
-    cseg
+    cseg ; _mul2
 ``:
     mov b, h            ; BC = LHS
     mov c, l
@@ -72,7 +60,7 @@ stackend:
 # It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
 # and is distributable under the 3-clause BSD license.
 &X _mul4
-    cseg
+    cseg ; _mul4
 ``:
     pop h
     shld ``_return + 1
@@ -143,7 +131,7 @@ stackend:
 # Divides two eight-bit unsigned numbers: B / D.
 # The quotient is returned in A, the remainder in B.
 &X _dvrmu1
-    cseg
+    cseg ; _dvrmu1
 ``:
     mvi c, 8            ; bit count
     xra a               ; remainder
@@ -166,7 +154,7 @@ stackend:
 # Divides two eight-bit signed numbers: B / D.
 # The quotient is returned in D, the remainder in B.
 &X _dvrms1
-    cseg
+    cseg ; _dvrms1
 ``:
     mov a, b
     xor d                ; discover sign of result
@@ -203,7 +191,7 @@ stackend:
 # Divides two sixteen-bit unsigned numbers: DE / BC.
 # The quotient is returned in DE, the remainder in HL.
 &X _dvrmu2
-    cseg
+    cseg ; _dvrmu2
 ``:
     xra a               ; negate BC
     sub c
@@ -214,31 +202,31 @@ stackend:
 
     lxi h, 0            ; initial value of remainder
     mvi a, 16           ; loop counter
-``2:
+``_2:
     push psw            ; save loop counter
     dad h               ; hl = hl << 1
     xchg
     dad h
     xchg                ; de = de << 1
-    jnc ``4
+    jnc ``_4
     inx h
-``4:
+``_4:
     push h              ; save remainder
     dad b               ; add negative divisor
-    jnc ``5
+    jnc ``_5
     xthl
     inx d
-``5:
+``_5:
     pop h
     pop psw
     dcr a
-    jnz ``2
+    jnz ``_2
     ret
 
 # Divides two eight-bit signed numbers: DE / BC.
 # The quotient is returned in DE, the remainder in HL.
 &X _dvrms2
-    cseg
+    cseg ; _dvrms2
 ``:
     mov a, d
     xor b                ; discover sign of result
@@ -291,7 +279,7 @@ stackend:
 # It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
 # and is distributable under the 3-clause BSD license.
 &X _dvrmu4
-    cseg
+    cseg ; _dvrmu4
 ``:
     pop b
 
@@ -329,7 +317,7 @@ stackend:
 # It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
 # and is distributable under the 3-clause BSD license.
 &X _dvrms4
-    cseg
+    cseg ; _dvrms4
 ``:
     pop b
 
@@ -385,6 +373,7 @@ stackend:
 # Core code for the 32-bit division. Divides block+8 / block+0, leaving
 # the quotient in block+0 and the remainder in block+4.
 &S dvrmu4core
+    cseg ; dvrmu4core
 ``:
     lxi h,0             ; store initial value of remainder
     shld `$block.0.4
@@ -441,7 +430,7 @@ stackend:
 
 # Divides two four-byte unsigned values from the stack, 
 &X _divu4
-    cseg
+    cseg ; _divu4
 ``:
     pop h
     shld ``_ret+1
@@ -453,7 +442,7 @@ stackend:
 
 # Takes the remainder of two four-byte unsigned values from the stack, 
 &X _remu4
-    cseg
+    cseg ; _remu4
 ``:
     pop h
     shld ``_ret+1
@@ -469,7 +458,7 @@ stackend:
 
 # Divides two four-byte signed values from the stack, 
 &X _divs4
-    cseg
+    cseg ; _divs4
 ``:
     pop h
     shld ``_ret+1
@@ -481,11 +470,11 @@ stackend:
 
 # Takes the remainder of two four-byte nsigned values from the stack, 
 &X _rems4
-    cseg
+    cseg ; _rems4
 ``:
     pop h
     shld ``_ret+1
-    call ``_dvrms4
+    call `_dvrms4
     pop b
     pop d
     pop h
@@ -497,7 +486,7 @@ stackend:
 
 # Adds two four-byte values from the stack.
 &X _add4
-    cseg
+    cseg ; _add4
 ``:
     pop h
     shld ``_ret
@@ -519,7 +508,7 @@ stackend:
 
 # Subtracts two four-byte values from the stack.
 &X _sub4
-    cseg
+    cseg ; _sub4
 ``:
     pop h
     shld ``_ret
@@ -552,7 +541,7 @@ stackend:
 
 # ANDs two four-byte values from the stack.
 &X _and4
-    cseg
+    cseg ; _and4
 ``:
     pop h
     shld ``_ret
@@ -585,7 +574,7 @@ stackend:
 
 # ORs two four-byte values from the stack.
 &X _or4
-    cseg
+    cseg ; _or4
 ``:
     pop h
     shld ``_ret
@@ -618,7 +607,7 @@ stackend:
 
 # EORs two four-byte values from the stack.
 &X _eor4
-    cseg
+    cseg ; _eor4
 ``:
     pop h
     shld ``_ret
@@ -651,7 +640,7 @@ stackend:
 
 # NOTs the four-byte value on the stack.
 &X _not4
-    cseg
+    cseg ; _not4
 ``:
     pop h
     pop d               ; DE = low word
@@ -677,7 +666,7 @@ stackend:
 
 # Negates the four-byte value on the stack.
 &X _neg4
-    cseg
+    cseg ; _neg4
 ``:
     pop d
 
@@ -690,6 +679,8 @@ stackend:
 
 # Negates the four-byte value pointed to by hl.
 &S neg4core
+    cseg ; neg4core
+``:
     xra a
     sub m
     mov m, a
@@ -713,7 +704,7 @@ stackend:
 # Shifts A left B bits.
 # Corrupts A and B.
 &X _asl1
-    cseg
+    cseg ; _asl1
 ``:
     dec b
     rm
@@ -723,7 +714,7 @@ stackend:
 # Arithmetic shift A right B bits.
 # Corrupts A, B and C.
 &X _asr1
-    cseg
+    cseg ; _asr1
 ``:
     mov c, a        ; old copy of A
 ``_loop:
@@ -738,7 +729,7 @@ stackend:
 # Logical shift A right B bits.
 # Corrupts A and B.
 &X _lsr1
-    cseg
+    cseg ; _lsr1
 ``:
     dec b
     rm
@@ -749,7 +740,7 @@ stackend:
 # Shifts HL left B bits.
 # Corrupts A and HL.
 &X _asl2
-    cseg
+    cseg ; _asl2
 ``:
     dec b
     rm
@@ -759,7 +750,7 @@ stackend:
 # Arithmetic shift HL right B bits.
 # Corrupts A, B and HL.
 &X _asr2
-    cseg
+    cseg ; _asr2
 ``:
     dec b
     rm
@@ -776,7 +767,7 @@ stackend:
 # Logical shift HL right B bits.
 # Corrupts A, B and HL.
 &X _lsr2
-    cseg
+    cseg ; _lsr2
 ``:
     dec b
     rm
@@ -792,7 +783,7 @@ stackend:
 # Logical shift the value at the top of the stack left B bits.
 # Corrupts A, B, HL, DE.
 &X _asl4
-    cseg
+    cseg ; _asl4
 ``:
     pop h
     shld ``_ret
@@ -821,7 +812,7 @@ stackend:
 # Arithmetic shift the value at the top of the stack right B bits.
 # Corrupts A, B, HL, DE.
 &X _asr4
-    cseg
+    cseg ; _asr4
 ``:
     pop h
     shld ``_ret
@@ -855,7 +846,7 @@ stackend:
 # Logical shift the value at the top of the stack right B bits.
 # Corrupts A, B, HL, DE.
 &X _lsr4
-    cseg
+    cseg ; _lsr4
 ``:
     pop h
     shld ``_ret
@@ -888,7 +879,7 @@ stackend:
 # Loads a 32-bit value at HL and pushes it.
 # Corrupts BC, DE.
 &X _load4
-    cseg
+    cseg ; _load4
 ``:
     mov e, m
     inx h
@@ -905,7 +896,7 @@ stackend:
 # Pops a 32-bit value and stores it at HL.
 # Corrupts BC, DE.
 &X _store4
-    cseg
+    cseg ; _store4
 ``:
     pop d               ; return address
     pop b               ; low word
@@ -926,7 +917,7 @@ stackend:
 # Returns p flag if a >= b.
 # This doesn't set z coherently.
 &X _cmps1
-    cseg
+    cseg ; _cmps1
 ``:
     xra b               ; test signs
     jp ``u              ; signs are the same
@@ -941,7 +932,7 @@ stackend:
 # Returns c if de < hl.
 # Returns !c if de >= hl.
 &X _cmps2
-    cseg
+    cseg ; _cmps2
 ``:
     mov a, d
     xra h               ; test signs
@@ -976,12 +967,12 @@ stackend:
 # Returns z if a == b.
 # Returns c if a < b.
 &X _cmpu4
-    cseg
+    cseg ; _cmpu4
 ``:
     pop h
     shld ``_ret
 
-    call sub4           ; leaves the value on the stack, sets C on overflow
+    call `_sub4         ; leaves the value on the stack, sets C on overflow
     pop b               ; low
     pop d               ; high
     push af             ; save flags
@@ -1001,7 +992,7 @@ stackend:
 # Signed comparison of the two numbers on the top of the stack.
 # Returns c if lhs < rhs.
 &X _cmps4
-    cseg
+    cseg ; _cmps4
 ``:
     pop d
 
