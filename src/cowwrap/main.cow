@@ -28,6 +28,7 @@ sub FatalError(s: string)
 	ExitWithError();
 end sub;
 
+include "include/coodecls.coh";
 include "emitter.coh";
 include "reader.coh";
 

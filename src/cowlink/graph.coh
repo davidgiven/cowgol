@@ -1,52 +1,153 @@
+# Hooks up all externals.
 
-sub CalculateDependencyGraph(coo: [Coo])
-	const STACK_SIZE := 255;
-	var stack: [Subroutine][STACK_SIZE];
-	var sp: uint8 := 1;
+sub ResolveExternals()
+	var external: [External];
+	var errors: uint8 := 0;
 
-	stack[0] := FindSub(coo, 0);
-
-	while sp != 0 loop
-		sp := sp - 1;
-		var subroutine := stack[sp];
-		if subroutine.used == 0 then
-			subroutine.used := 1;
-
-			var ref := subroutine.refs;
-			loop
-				if ref == (0 as [Reference]) then
-					break;
+	# Find all external implementations.
+	
+	var subroutine := subroutines;
+	while subroutine != (0 as [Subroutine]) loop
+		if (subroutine.state & SUB_IMPLEMENTATION) != 0 then
+			external := subroutine.external;
+			if external != (0 as [External]) then
+				if (external.impl != (0 as [Subroutine])) and (external.impl != subroutine) then
+					SimpleError("conflicting externals");
 				end if;
-
-				if ref.requires.used == 0 then
-					stack[sp] := ref.requires;
-					sp := sp + 1;
-					if sp == STACK_SIZE then
-						print("error: dependency graph overflow\n");
-						ExitWithError();
-					end if;
-				end if;
-				ref := ref.next;
-			end loop;
+				external.impl := subroutine;
+			end if;
 		end if;
-	end loop;
-
-	subroutine := coo.subroutines;
-	var total: uint16 := 0;
-	var used: uint16 := 0;
-	loop
-		if subroutine == (0 as [Subroutine]) then
-			break;
-		end if;
-		if subroutine.used != 0 then
-			used := used + 1;
-		end if;
-		total := total + 1;
 		subroutine := subroutine.next;
 	end loop;
-	print_i16(total);
-	print(" subroutines total, of which ");
-	print_i16(used);
-	print(" are used\n");
+
+	# Now find any missing implementations.
+	
+	subroutine := subroutines;
+	while subroutine != (0 as [Subroutine]) loop
+		external := subroutine.external;
+		if (external != (0 as [External])) and (external.impl == (0 as [Subroutine])) then
+			print("error: external '");
+			print(external.name);
+			print("' unresolved\n");
+			errors := 1;
+		end if;
+		subroutine := subroutine.next;
+	end loop;
+
+	if errors != 0 then
+		SimpleError("aborting");
+	end if;
+end sub;
+
+# Walks the call graph, calculating both which subroutines are actually
+# used and also allocating spaces in the subroutine workspaces.
+
+sub PlaceSubroutines(subroutine: [Subroutine])
+	const STACK_SIZE := 255;
+	var stack: [Subroutine][STACK_SIZE];
+	var sp: uint8 := 0;
+	var i: uint8;
+
+	i := 0;
+	while i != NUM_WORKSPACES loop
+		workspaceSize[i] := 0;
+		i := i + 1;
+	end loop;
+
+	sub push(subr: [Subroutine])
+		# Only add this subroutine to the stack if it's not already on it.
+		var i: uint8 := sp;
+		while i != 0 loop
+			i := i - 1;
+			if stack[i] == subr then
+				return;
+			end if;
+		end loop;
+
+		if sp == STACK_SIZE then
+			print("error: dependency graph overflow\n");
+			ExitWithError();
+		end if;
+		stack[sp] := subr;
+		sp := sp + 1;
+	end sub;
+
+	push(subroutine);
+	while sp != 0 loop
+		sp := sp - 1;
+		subroutine := stack[sp];
+		subroutine.state := subroutine.state | SUB_USED;
+
+		var watermark: Size[NUM_WORKSPACES];
+		i := 0;
+		while i != NUM_WORKSPACES loop
+			var w := subroutine.workspaceAddress[i] 
+				+ subroutine.workspaceSize[i];
+			watermark[i] := w;
+			if w > workspaceSize[i] then
+				workspaceSize[i] := w;
+			end if;
+
+			i := i + 1;
+		end loop;
+
+		var refs := &subroutine.refs;
+		while refs != (0 as [References]) loop
+			var j: uint8 := 0;
+			while j != COO_REFS_SIZE loop
+				var called := refs.calls[j];
+				j := j + 1;
+
+				if called == (0 as [Subroutine]) then
+					break;
+				end if;
+				called := Deref(called);
+
+				i := 0;
+				while i != NUM_WORKSPACES loop
+					var curAddr := called.workspaceAddress[i];
+					var reqAddr := watermark[i];
+					if (reqAddr > curAddr) or ((called.state & SUB_USED) == 0) then
+						called.workspaceAddress[i] := reqAddr;
+						# The subroutine's workspace has moved, so make sure it
+						# gets reprocessed.
+						push(called);
+					end if;
+					i := i + 1;
+				end loop;
+			end loop;
+
+			refs := refs.next;
+		end loop;
+	end loop;
+
+	print("Workspace sizes:\n");
+	i := 0;
+	while i != NUM_WORKSPACES loop
+		print("  #");
+		print_i8(i);
+		print(": ");
+		print_i16(workspaceSize[i]);
+		print(" bytes\n");
+		i := i + 1;
+	end loop;
+
+#	subroutine := coo.subroutines;
+#	var total: uint16 := 0;
+#	var used: uint16 := 0;
+#	loop
+#		if subroutine == (0 as [Subroutine]) then
+#			break;
+#		end if;
+#		if subroutine.used != 0 then
+#			used := used + 1;
+#		end if;
+#		total := total + 1;
+#		subroutine := subroutine.next;
+#	end loop;
+#	print_i16(total);
+#	print(" subroutines total, of which ");
+#	print_i16(used);
+#	print(" are used\n");
 end sub;
 

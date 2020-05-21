@@ -41,6 +41,16 @@ end record;
 var nodes: [Node][16];
 var next_node := &nodes[0];
 
+sub AllocLabel(): (label: LabelRef)
+	label := next_label_id;
+	next_label_id := next_label_id + 1;
+end sub;
+
+sub AllocSubrId(): (id: uint16)
+	id := next_subr_id;
+	next_subr_id := next_subr_id + 1;
+end sub;
+
 include "inssel.coh";
 
 sub PushNode(node: [Node])
@@ -513,11 +523,6 @@ sub Generate(rootnode: [Node])
 	end loop;
 
 	Discard(rootnode);
-end sub;
-
-sub AllocLabel(): (label: LabelRef)
-	label := next_label_id;
-	next_label_id := next_label_id + 1;
 end sub;
 
 sub GenerateConditional(rootnode: [Node])

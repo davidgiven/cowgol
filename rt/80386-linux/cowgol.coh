@@ -1,9 +1,9 @@
 # System call numbers are here:
 # https://w3challs.com/syscalls/?arch=x86
 
-var TOP: [uint8];
-@asm ".extern _top";
-@asm "movl $_top, ", TOP;
+var LOMEM: [uint8];
+@asm ".extern _lomem";
+@asm "movl $_lomem, ", LOMEM;
 
 var HIMEM: [uint8];
 @asm ".extern _himem";

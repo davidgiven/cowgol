@@ -1,54 +1,108 @@
-sub WriteSubroutinesToOutputFile(fcb: [FCB], coo: [Coo])
-	var buffer: uint8[512];
+sub WriteSubroutinesToOutputFile(coo: [Coo])
 	var id: uint16;
 	var subroutine: [Subroutine];
+	var c: uint8;
+	var length: Size;
+
+	sub MalformedError(s: [uint8])
+		print("error: malformed coofile: ");
+		print(s);
+		print_nl();
+		ExitWithError();
+	end sub;
+
+	sub UnexpectedEndOfChunk()
+		MalformedError("unexpected end of chunk");
+	end sub;
+
+	sub GetC()
+		if length == 0 then
+			MalformedError("chunk size inconsistent");
+		end if;
+		length := length - 1;
+		c := getchar(&coo.fcb);
+	end sub;
+
+	sub PutC()
+		pushchar(c);
+		length := length + 1;
+	end sub;
+
+	sub ReadH2(): (result: uint8)
+		if length < 2 then
+			UnexpectedEndOfChunk();
+		end if;
+		length := length - 2;
+		result := read_hex2(&coo.fcb);
+	end sub;
+
+	sub ReadH4(): (result: uint16)
+		if length < 4 then
+			UnexpectedEndOfChunk();
+		end if;
+		length := length - 4;
+		result := read_hex4(&coo.fcb);
+	end sub;
+
+	sub CopySourceChunk()
+		var subid: uint16;
+		var subr: [Subroutine];
+
+		while length != 0 loop
+			GetC();
+			case c is
+				when COO_ESCAPE_THISCOO:
+					EmitByte('c');
+					E_h8(coo.id as uint8);
+					EmitByte('_');
+
+				when COO_ESCAPE_THISSUB:
+					ArchEmitSubRef(subroutine.id);
+
+				when COO_ESCAPE_SUBREF:
+					subid := ReadH4();
+					subr := FindOrCreateSub(coo, subid);
+					subr := Deref(subr);
+					ArchEmitSubRef(subr.id);
+
+				when COO_ESCAPE_WSREF:
+					subid := ReadH4();
+					var wid := ReadH2();
+					var off := ReadH4();
+					subr := FindOrCreateSub(coo, subid);
+					subr := Deref(subr);
+					ArchEmitWSRef(wid, subr.workspaceAddress[wid] + off);
+
+				when else:
+					EmitByte(c);
+			end case;
+		end loop;
+	end sub;
 
 	FCBSeek(&coo.fcb, 0);
 	loop
-		var c := FCBGetChar(&coo.fcb);
-		var len := read_hex4(&coo.fcb);
-		var here := FCBPos(&coo.fcb);
+		length := 255; # no length limit here
+		GetC();
+		length := ReadH4();
+		var next := FCBPos(&coo.fcb) + (length as uint32);
 		if c == 'E' then
 			break;
 		elseif c == 'S' then
-			id := read_hex4(&coo.fcb);
-			subroutine := FindSub(coo, id);
-			if subroutine.used != 0 then
-				var length := (len - 4) as intptr;
-				while length > @bytesof buffer loop
-					FCBGetBlock(&coo.fcb, &buffer[0], @bytesof buffer);
-					FCBPutBlock(fcb, &buffer[0], @bytesof buffer);
-					length := length - @bytesof buffer;
-				end loop;
-
-				FCBGetBlock(&coo.fcb, &buffer[0], length);
-				FCBPutBlock(fcb, &buffer[0], length);
-			end if;
-		elseif c == 'W' then
-			id := read_hex4(&coo.fcb);
-			subroutine := FindSub(coo, id);
-			if subroutine.used != 0 then
-				FCBPutString(fcb, "\tdseg\n");
-
-				buffer[0] := 'w';
-				var p := IToA(id as int32, 10, &buffer[1]);
-				[p] := ':';
-				p := p + 1;
-				[p] := '\n';
-				p := p + 1;
-				[p] := 0;
-				FCBPutString(fcb, &buffer[0]);
-
-				CopyString("\tds ", &buffer[0]);
-				p := IToA(subroutine.workspace as int32, 10, &buffer[4]);
-				[p] := '\n';
-				p := p + 1;
-				[p] := 0;
-				FCBPutString(fcb, &buffer[0]);
+			id := ReadH4();
+			subroutine := FindOrCreateSub(coo, id);
+			subroutine := Deref(subroutine);
+			if (subroutine.state & SUB_USED) != 0 then
+				CopySourceChunk();
 			end if;
 		end if;
-		FCBSeek(&coo.fcb, here + (len as uint32));
+		FCBSeek(&coo.fcb, next);
 	end loop;
 end sub;
 
+sub WriteAllSubroutinesToOutputFile(coos: [Coo])
+	while coos != (0 as [Coo]) loop
+		WriteSubroutinesToOutputFile(coos);
+		coos := coos.next;
+	end loop;
+end sub;
 

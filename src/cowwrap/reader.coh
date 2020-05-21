@@ -15,7 +15,7 @@ var main_symbol: Symbol;
 var symbols: [Symbol] := &main_symbol;
 
 var current_id: SubId := 1;
-var current_subr: [Symbol] := &main_symbol;
+var current_subr: [Symbol] := (0 as [Symbol]);
 
 sub GetSymbol(name: string): (symbol: [Symbol])
 	symbol := symbols;
@@ -37,8 +37,6 @@ end sub;
 sub ProcessFile()
 	main_symbol.name := "@";
 	main_symbol.state := SYM_DEFINED | SYM_DECLARED;
-	EmitterPushChunk();
-	E_h16(current_subr.id);
 
 	var c: uint8;
 	var subrid: uint16 := 0;
@@ -168,14 +166,16 @@ sub ProcessFile()
 		var wid := ReadNumber() as uint8;
 		ExpectC('.');
 		var woff := ReadNumber() as Size;
-		EmitByte('`');
-		EmitByte('$');
+		EmitByte(COO_ESCAPE_WSREF);
 		E_h16(symbol.id);
 		E_h8(wid);
 		E_h16(woff);
 	end sub;
 
 	sub SourceLine()
+		if current_subr == (0 as [Symbol]) then
+			FatalError("source text with no subroutine defined");
+		end if;
 		loop
 			if (c == 0) or (c == 10) or (c == 26) then
 				break;
@@ -185,8 +185,11 @@ sub ProcessFile()
 					GetC();
 					case c is
 						when '`':
-							EmitByte('`');
-							E_h16(current_subr.id);
+							EmitByte(COO_ESCAPE_THISSUB);
+							GetC();
+
+						when '^':
+							EmitByte(COO_ESCAPE_THISCOO);
 							GetC();
 
 						when '$':
@@ -195,7 +198,7 @@ sub ProcessFile()
 						when else:
 							ReadWord();
 							var subr := GetSymbol(&buffer[0]);
-							EmitByte('`');
+							EmitByte(COO_ESCAPE_SUBREF);
 							E_h16(subr.id);
 							EmitterReferenceSubroutine(current_subr.id, subr.id);
 					end case;

@@ -893,7 +893,7 @@ substart ::= newid(S).
 	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
 	subr.name := S.name;
 	subr.namespace.parent := &current_subr.namespace;
-	subr.id := AllocLabel();
+	subr.id := AllocSubrId();
 	subr.old_break_label := break_label;
 	break_label := 0;
 	subr.old_continue_label := continue_label;
@@ -901,11 +901,7 @@ substart ::= newid(S).
 
 	S.kind := SUB;
 	S.subr := subr;
-
-	# Make sure that this subroutine refers to its lexical parent.
-
 	EmitterDeclareSubroutine(subr);
-	EmitterReferenceSubroutine(subr, current_subr);
 
 	subr.parent := current_subr;
 	current_subr := subr;
@@ -1146,10 +1142,11 @@ initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 	S.kind := VAR;
 	S.vardata.type := T;
 	S.vardata.subr := current_subr;
-	var name := Alloc(7);
+	var name := Alloc(8);
 	S.vardata.externname := name;
-	[name+0] := 'a';
-	var ptr := UIToA(AllocLabel() as uint32, 10, name+1);
+	[name+0] := COO_ESCAPE_THISCOO;
+	[name+1] := 'a';
+	var ptr := UIToA(AllocLabel() as uint32, 16, name+2);
 
 	if (IsArray(T) == 0) and (IsRecord(T) == 0) then
 		SimpleError("static initialisers only work on arrays or records");

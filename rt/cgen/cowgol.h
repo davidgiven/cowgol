@@ -40,7 +40,7 @@ union data
  * once). So, use 256kB. */
 static i8 ram[0x400000 / 8];
 
-i8* __top = (i8*) ram;
+i8* __lomem = (i8*) ram;
 i8* __himem = (i8*) ((i1*)ram + sizeof(ram));
 i8* global_argv;
 

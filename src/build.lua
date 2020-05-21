@@ -178,10 +178,11 @@ function cowlink(e)
 		ins = concat {
 			"scripts/quiet",
 			"bin/cowlink.8080.ocgen.exe",
+			"$OBJ/rt/cpm/cowgol.coo",
 			e.ins
 		},
 		outs = e.outs,
-		cmd = "@1 @2 -o &1 @3"
+		cmd = "@1 @2 -o &1 @3 @4"
 	}
 end
 

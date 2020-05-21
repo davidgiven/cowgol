@@ -16,8 +16,8 @@ end sub;
 sub UIToA(value: uint32, base: uint8, buffer: [uint8]): (ptr: [uint8])
 	ptr := buffer;
 	loop
-		var rem: uint32;
-		(value, rem) := divmodu32(value, base as uint32);
+		var rem := value % (base as uint32);
+		value := value / (base as uint32);
 		if rem < 10 then
 			rem := rem + '0';
 		else

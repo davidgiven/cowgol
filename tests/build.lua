@@ -19,6 +19,7 @@ ALL_TESTS = {
 	"logic-32bit",
 	"logic-8bit",
 	"loops",
+	"malloc",
 	"mul-16bit-s",
 	"mul-16bit-u",
 	"mul-32bit-s",

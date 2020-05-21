@@ -1,0 +1,72 @@
+var outfcb: FCB;
+
+sub EmitByte(c: uint8)
+	FCBPutChar(&outfcb, c);
+end sub;
+
+sub E(text: string)
+	loop
+		var c := [text];
+		text := text + 1;
+		if c == 0 then
+			break;
+		end if;
+		EmitByte(c);
+	end loop;
+end sub;
+
+sub E_u32(value: uint32)
+	var buffer: uint8[12];
+	var p := &buffer[0];
+	var pe := UIToA(value, 10, p);
+
+	loop
+		var c := [p];
+		if c == 0 then
+			break;
+		end if;
+		EmitByte(c);
+		p := @next p;
+	end loop;
+end sub;
+
+sub E_u16(value: uint16)
+	E_u32(value as uint32);
+end sub;
+
+sub E_u8(value: uint8)
+	E_u32(value as uint32);
+end sub;
+
+sub E_h(value: uint32, width: uint8)
+	var buffer: uint8[5];
+	var pe := UIToA(value as uint32, 16, &buffer[0]);
+	var padding := width - (pe - &buffer[0]) as uint8;
+	while padding != 0 loop
+		EmitByte('0');
+		padding := padding - 1;
+	end loop;
+	E(&buffer[0]);
+end sub;
+
+sub E_h8(value: uint8)
+	E_h(value as uint32, 2);
+end sub;
+
+sub E_h16(value: uint16)
+	E_h(value as uint32, 4);
+end sub;
+
+sub EmitterOpenfile(filename: string)
+	if FCBOpenOut(&outfcb, filename) != 0 then
+		SimpleError("cannot open output file");
+	end if;
+end sub;
+
+sub EmitterClosefile()
+	if FCBClose(&outfcb) != 0 then
+		SimpleError("cannot close output file");
+	end if;
+end sub;
+
+

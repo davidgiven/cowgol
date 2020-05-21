@@ -7,6 +7,14 @@
 	var int8_type: [Symbol];
 	var intptr_type: [Symbol];
 
+	record Extern
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
 		newvalue := value;
 	end sub;
@@ -43,16 +51,16 @@
 	end sub;
 
 	sub E_labelref(labelid: uint16)
-		E("x");
-		E_u16(labelid);
+		EmitByte(COO_ESCAPE_THISCOO);
+		E_h16(labelid);
 	end sub;
 
 	sub E_subref(subr: [Subroutine])
-		if subr.externname != (0 as string) then
-			E(subr.externname);
+		if subr == current_subr then
+			EmitByte(COO_ESCAPE_THISSUB);
 		else
-			E("f");
-			E_u16(subr.id);
+			EmitByte(COO_ESCAPE_SUBREF);
+			E_h16(subr.id);
 		end if;
 	end sub;
 
@@ -62,10 +70,10 @@
 			EmitByte('+');
 			E_u16(off);
 		else
-			EmitByte('w');
-			E_u16(sym.vardata.subr.id);
-			EmitByte('+');
-			E_u16(sym.vardata.offset + off);
+			EmitByte(COO_ESCAPE_WSREF);
+			E_h16(sym.vardata.subr.id);
+			E_h8(0);
+			E_h16(sym.vardata.offset + off);
 		end if;
 	end sub;
 
@@ -382,9 +390,34 @@
 		E_nl();
 	end sub;
 
+	# Does not persist the name; only call this with constant strings.
 	sub E_callhelper(name: string)
+		var e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := Alloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterPushChunk();
+		E_h16(current_subr.id);
+		E_h16(e.id);
+		EmitterPopChunk('R');
+
 		E("\tcall ");
-		E(name);
+		EmitByte(COO_ESCAPE_SUBREF);
+		E_h16(e.id);
 		E_nl();
 	end sub;
 
@@ -398,7 +431,8 @@
 		E_h16(current_subr.id);
 
 		E("\tcseg\n");
-		E("s");
+		EmitByte(COO_ESCAPE_THISCOO);
+		EmitByte('c');
 		E_u16(sid);
 		E(":\n\tdb ");
 
@@ -415,7 +449,8 @@
 		E("0\n");
 		EmitterPopChunk('S');
 
-		E("s");
+		EmitByte(COO_ESCAPE_THISCOO);
+		EmitByte('c');
 		E_u16(sid);
 	end sub;
 
@@ -464,21 +499,8 @@ regdata param stacked;
 
 // --- Core things ----------------------------------------------------------
 
-gen STARTFILE()
-{
-	EmitterPushChunk();
-	E_h16(0);
-	E("\tinclude \"rt/cpm/cowgol.inc\"\n");
-	EmitterPopChunk('S');
-}
-
-gen ENDFILE()
-{
-	EmitterPushChunk();
-	E_h16(0);
-	E("\tinclude \"rt/cpm/tail.inc\"\n");
-	EmitterPopChunk('S');
-}
+gen STARTFILE();
+gen ENDFILE();
 
 gen LABEL():b
 {
@@ -502,7 +524,7 @@ gen STARTSUB():s
 	E_nl();
 
 	E("\tcseg\n");
-	E_subref($s.subr);
+	EmitByte(COO_ESCAPE_THISSUB);
 	E(":\n");
 
 	var count := $s.subr.num_input_parameters;
@@ -754,10 +776,10 @@ gen STORE2(bc|de:val, hl) uses a
 // --- 32-bit loads and stores ----------------------------------------------
 
 gen stk4 := LOAD4(hl)
-		{ E_callhelper("load4"); }
+		{ E_callhelper("_load4"); }
 
 gen STORE4(stk4, hl)
-		{ E_callhelper("store4"); }
+		{ E_callhelper("_store4"); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
@@ -783,7 +805,7 @@ gen a := SUB1(a, CONSTANT():c)
 		{ E_sbi($c.value as uint8); }
 
 gen a := MUL1(b, d)
-		{ E_callhelper("mul1"); }
+		{ E_callhelper("_mul1"); }
 
 gen a := NOT1(a)
 		{ E_cma(); }
@@ -813,25 +835,25 @@ gen a := EOR1(a, CONSTANT():c)
 		{ E_xri($c.value as uint8); }
 
 gen b := DIVU1(b, d) uses a
-		{ E_callhelper("dvrmu1"); }
+		{ E_callhelper("_dvrmu1"); }
 
 gen a := REMU1(b, d)
-		{ E_callhelper("dvrmu1"); }
+		{ E_callhelper("_dvrmu1"); }
 
 gen b := DIVS1(b, d) uses a
-		{ E_callhelper("dvrms1"); }
+		{ E_callhelper("_dvrms1"); }
 
 gen d := REMS1(b, d)
-		{ E_callhelper("dvrms1"); }
+		{ E_callhelper("_dvrms1"); }
 
 gen a := RSHIFTS1(a, b) uses bc
-		{ E_callhelper("asr1"); }
+		{ E_callhelper("_asr1"); }
 
 gen a := RSHIFTU1(a, b) uses bc
-		{ E_callhelper("lsr1"); }
+		{ E_callhelper("_lsr1"); }
 
 gen a := LSHIFT1(a, b) uses bc
-		{ E_callhelper("asl1"); }
+		{ E_callhelper("_asl1"); }
 
 gen a := LSHIFT1(a, CONSTANT(value<=5):c)
 {
@@ -954,19 +976,19 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, CONSTANT():c) uses a
 }
 
 gen de := DIVU2(de, bc) uses a
-		{ E_callhelper("dvrmu2"); }
+		{ E_callhelper("_dvrmu2"); }
 
 gen hl := REMU2(de, bc) uses a
-		{ E_callhelper("dvrmu2"); }
+		{ E_callhelper("_dvrmu2"); }
 
 gen de := DIVS2(de, bc) uses a
-		{ E_callhelper("dvrms2"); }
+		{ E_callhelper("_dvrms2"); }
 
 gen hl := REMS2(de, bc) uses a
-		{ E_callhelper("dvrms2"); }
+		{ E_callhelper("_dvrms2"); }
 
 gen hl := MUL2(hl, de) uses a|bc
-		{ E_callhelper("mul2"); }
+		{ E_callhelper("_mul2"); }
 
 %{
 	sub logic2(lhs: RegId, rhs: RegId, dest: RegId, insn: string)
@@ -1007,13 +1029,13 @@ gen bc|de|hl := NOT2(bc|de|hl:lhs) uses a
 }
 
 gen hl := RSHIFTU2(hl, b) uses a
-		{ E_callhelper("lsr2"); }
+		{ E_callhelper("_lsr2"); }
 
 gen hl := RSHIFTS2(hl, b) uses a
-		{ E_callhelper("asr2"); }
+		{ E_callhelper("_asr2"); }
 
 gen hl := LSHIFT2(hl, b) uses a
-		{ E_callhelper("asl2"); }
+		{ E_callhelper("_asl2"); }
 
 gen hl := LSHIFT2(hl, CONSTANT(value<=5):c)
 {
@@ -1027,49 +1049,49 @@ gen hl := LSHIFT2(hl, CONSTANT(value<=5):c)
 // --- 32-bit arithmetic ----------------------------------------------------
 
 gen stk4 := ADD4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("add4"); }
+        { E_callhelper("_add4"); }
 
 gen stk4 := SUB4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("sub4"); }
+        { E_callhelper("_sub4"); }
 
 gen stk4 := NEG4(stk4) uses a|bc|de|hl
-        { E_callhelper("neg4"); }
+        { E_callhelper("_neg4"); }
 
 gen stk4 := MUL4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("mul4"); }
+        { E_callhelper("_mul4"); }
 
 gen stk4 := DIVU4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("divu4"); }
+        { E_callhelper("_divu4"); }
 
 gen stk4 := REMU4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("remu4"); }
+        { E_callhelper("_remu4"); }
 
 gen stk4 := DIVS4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("divs4"); }
+        { E_callhelper("_divs4"); }
 
 gen stk4 := REMS4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("rems4"); }
+        { E_callhelper("_rems4"); }
 
 gen stk4 := AND4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("and4"); }
+        { E_callhelper("_and4"); }
 
 gen stk4 := OR4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("or4"); }
+        { E_callhelper("_or4"); }
 
 gen stk4 := EOR4(stk4, stk4) uses a|bc|de|hl
-        { E_callhelper("eor4"); }
+        { E_callhelper("_eor4"); }
 
 gen stk4 := NOT4(stk4) uses a|bc|de|hl
-        { E_callhelper("not4"); }
+        { E_callhelper("_not4"); }
 
 gen stk4 := LSHIFT4(stk4, b) uses a|de|hl
-        { E_callhelper("asl4"); }
+        { E_callhelper("_asl4"); }
 
 gen stk4 := RSHIFTU4(stk4, b) uses a|de|hl
-        { E_callhelper("lsr4"); }
+        { E_callhelper("_lsr4"); }
 
 gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
-        { E_callhelper("asr4"); }
+        { E_callhelper("_asr4"); }
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -1106,7 +1128,7 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 	end sub;
 
 	sub bequ2(node: [Node])
-		E_callhelper("cmpeq2");
+		E_callhelper("_cmpeq2");
 		E_jumps_jz_jnz(node);
 	end sub;
 
@@ -1121,7 +1143,7 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 	end sub;
 
 	sub bequ4(node: [Node])
-		E_callhelper("cmpu4");
+		E_callhelper("_cmpu4");
 		E_jumps_jz_jnz(node);
 	end sub;
 
@@ -1173,7 +1195,7 @@ gen BLTU1(a, CONSTANT():c):b
 
 gen BLTS1(a, b):b
 {
-	E_callhelper("cmps1");
+	E_callhelper("_cmps1");
 	E_jumps_with_fallthrough("jm", "jp", self.n[0]);
 }
 
@@ -1213,7 +1235,7 @@ gen BLTU2(hl|bc|de:lhs, CONSTANT():c):b uses a
 
 gen BLTS2(de, hl):b uses a|bc
 {
-	E_callhelper("cmps2");
+	E_callhelper("_cmps2");
 	E_jumps_jc_jnc(self.n[0]);
 }
 
@@ -1225,13 +1247,13 @@ gen BEQS4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
 
 gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
-	E_callhelper("cmpu4");
+	E_callhelper("_cmpu4");
 	E_jumps_jc_jnc(self.n[0]);
 }
 
 gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
-	E_callhelper("cmps4");
+	E_callhelper("_cmps4");
 	E_jumps_jc_jnc(self.n[0]);
 }
 

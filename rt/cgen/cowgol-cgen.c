@@ -5,7 +5,7 @@
  * once). So, use 128kB. */
 static i8 ram[0x20000 / 8];
 
-i8* __top = (i8*) ram;
+i8* __lomem = (i8*) ram;
 i8* __himem = (i8*) ((i1*)ram + sizeof(ram));
 i8* global_argv;
 

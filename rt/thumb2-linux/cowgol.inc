@@ -32,8 +32,8 @@ _exit:
 .global _argv
 _argv:
 	.space 4
-.global _top, _himem
-_top:
+.global _lomem, _himem
+_lomem:
 	.space 64*1024
 _himem:
 
