@@ -1,0 +1,18 @@
+include "cowgol.coh";
+include "_framework.coh";
+include "strings.coh";
+include "malloc.coh";
+
+sub AddRemove()
+	print("AddRemove");
+
+	var free := GetFreeMemory();
+	var p1 := Alloc(100);
+	var p2 := Alloc(150);
+	Free(p1);
+	Free(p2);
+
+	if GetFreeMemory() == free then yes(); else no(); end if;
+end sub;
+AddRemove();
+
