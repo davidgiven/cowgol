@@ -80,22 +80,20 @@ sub yy_find_reduce_action(stateno: YYACTIONTYPE, lookahead: YYCODETYPE): (action
 	end if;
 end sub;
 
-#sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
-	#print(msg);
-	#print(" '");
-	#print(yyTokenName[yytos.major]);
-	#print("', go to state ");
-	#print_i16(stateno);
-	#print_nl();
-#end sub;
+sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
+	print(msg);
+	print(" '");
+	print(yyTokenName[yytos.major]);
+	print("', go to state ");
+	print_i16(stateno);
+	print_nl();
+end sub;
 
 sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken: ParseTOKENTYPE):
 		(yyact: YYACTIONTYPE)
 	var yysize := yyRuleInfoNRhs[yyruleno as @indexof yyRuleInfoNRhs];
 	#print("Reduce ");
 	#print_i16(yyruleno);
-	#print(" ");
-	#print(yyRuleName[yyruleno]);
 	#if yysize != 0 then
 	#	print(", go to state ");
 	#	print_i16([yytos - (yysize as intptr)*@bytesof yyStackEntry].stateno);
@@ -207,7 +205,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 			yytos.stateno := yyact;
 			yytos.major := yymajor;
 			yytos.minor.yy0 := yyminor;
-			#yy_trace_shift(newstateno, "Shift");
+			#yy_trace_shift(yyact, "Shift");
 
 			if yyerrcnt >= 0 then
 				yyerrcnt := yyerrcnt - 1;
@@ -236,14 +234,5 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 			break;
 		end if;
 	end loop;
-
-	#print("Return. stack=[");
-	#var i := &yystack[0];
-	#while i != yytos loop
-	#	print(" ");
-	#	print(yyTokenName[i.major]);
-	#	i := @next i;
-	#end loop;
-	#print("]\n");
 end sub;
 

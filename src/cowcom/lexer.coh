@@ -619,5 +619,9 @@ sub LexerReadToken(): (token: uint8)
 			break;
 		end if;
 	end loop;
+	
+	#print("token: ");
+	#print_i8(token);
+	#print_nl();
 end sub;
 

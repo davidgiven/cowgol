@@ -96,10 +96,15 @@ sub unsigned2()
 	print("unsigned2\n");
 	var zero: uint16 := 0;
 	var one: uint16 := 1;
+	var big: uint16 := 333;
+	const MEDIUM := 191;
 
 	print("zero<one"); if zero<one then yes(); else no(); end if;
 	print("one<one"); if one<one then yes(); else no(); end if;
 	print("one<zero"); if one<zero then yes(); else no(); end if;
+
+	print("one>ZERO"); if one>ZERO then yes(); else no(); end if;
+	print("big>MEDIUM"); if big>MEDIUM then yes(); else no(); end if;
 end sub;
 unsigned2();
 

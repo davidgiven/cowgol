@@ -38,6 +38,8 @@ unsigned2
 zero<one: yes
 one<one: no
 one<zero: no
+one>ZERO: yes
+big>MEDIUM: yes
 signed4
 zero<ONE: yes
 mone<ONE: yes
