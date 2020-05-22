@@ -338,17 +338,18 @@
 	end sub;
 
 	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
-		var cache := RegCacheFindAddress(sym, off) & (REG_HL|REG_BC|REG_DE);
-		if (cache & reg) != 0 then
-			# The value is already in the desired register.
-			return;
-		elseif cache != 0 then
-			# The value is already in a register, but not this one.
-			cache := FindFirst(cache);
-			E_mov(loreg(reg), loreg(cache));
-			E_mov(hireg(reg), hireg(cache));
-			return;
-		end if;
+		# This optimisation is essentially not worth it on the 8080.
+		#var cache := RegCacheFindAddress(sym, off) & (REG_HL|REG_BC|REG_DE);
+		#if (cache & reg) != 0 then
+		#	# The value is already in the desired register.
+		#	return;
+		#elseif cache != 0 then
+		#	# The value is already in a register, but not this one.
+		#	cache := FindFirst(cache);
+		#	E_mov(loreg(reg), loreg(cache));
+		#	E_mov(hireg(reg), hireg(cache));
+		#	return;
+		#end if;
 
 		R_flush(reg);
 		E("\tlxi ");
@@ -356,33 +357,49 @@
 		E_comma();
 		E_symref(sym, off);
 		E_nl();
-		RegCacheLeavesAddress(reg, sym, off);
+		#RegCacheLeavesAddress(reg, sym, off);
 	end sub;
 
 	sub E_lda(sym: [Symbol], off: Size)
+		var cache := RegCacheFindValue(sym, off);
+		if (cache & REG_A) != 0 then
+			# Value already in the right register.
+			return;
+		end if; # Other cases don't happen on the 8080.
+
 		R_flush(REG_A);
 		E("\tlda ");
 		E_symref(sym, off);
 		E_nl();
+		RegCacheLeavesValue(REG_A, sym, off);
 	end sub;
 
 	sub E_sta(sym: [Symbol], off: Size)
 		E("\tsta ");
 		E_symref(sym, off);
 		E_nl();
+		RegCacheLeavesValue(REG_A, sym, off);
 	end sub;
 
 	sub E_lhld(sym: [Symbol], off: Size)
+		var cache := RegCacheFindValue(sym, off);
+		if (cache & REG_HL) != 0 then
+			# Value already in the right register.
+			return;
+		end if; # Other cases don't happen on the 8080.
+
 		R_flush(REG_HL);
 		E("\tlhld ");
 		E_symref(sym, off);
 		E_nl();
+		RegCacheLeavesValue(REG_HL, sym, off);
 	end sub;
 
 	sub E_shld(sym: [Symbol], off: Size)
 		E("\tshld ");
 		E_symref(sym, off);
 		E_nl();
+		RegCacheLeavesValue(REG_HL, sym, off);
 	end sub;
 
 	sub E_loadm(reg: RegId)
@@ -393,18 +410,22 @@
 	end sub;
 
 	sub E_storem(reg: RegId)
+		RegCacheFlushValues();
 		E("\tmov m,");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_stax(ptr: RegId)
+		RegCacheFlushValues();
 		E("\tstax ");
 		E_reg(ptr);
 		E_nl();
+		RegCacheFlushValues();
 	end sub;
 
 	sub E_ldax(ptr: RegId)
+		RegCacheFlushValues();
 		R_flush(REG_A);
 		E("\tldax ");
 		E_reg(ptr);

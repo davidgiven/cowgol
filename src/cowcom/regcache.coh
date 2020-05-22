@@ -3,6 +3,7 @@ const CACHE_SIZE := REGISTER_COUNT;
 const CACHE_SLOT_EMPTY    := 0;
 const CACHE_SLOT_CONSTANT := 1;
 const CACHE_SLOT_ADDRESS  := 2;
+const CACHE_SLOT_VALUE    := 3;
 
 record CacheSlot
 	symbol: [Symbol];
@@ -21,6 +22,16 @@ sub RegCacheFlush(reg: RegId)
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
 		if (p.state != CACHE_SLOT_EMPTY) and ((reg & p.reg) != 0) then
+			p.state := CACHE_SLOT_EMPTY;
+		end if;
+		p := @next p;
+	end loop;
+end sub;
+
+sub RegCacheFlushValues()
+	var p := &register_cache[0];
+	while p != &register_cache[@sizeof register_cache] loop
+		if (p.state == CACHE_SLOT_VALUE) then
 			p.state := CACHE_SLOT_EMPTY;
 		end if;
 		p := @next p;
@@ -76,6 +87,31 @@ sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size)
 	# The cache is full, so just drop this value on the floor.
 end sub;
 
+sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size)
+	var p := &register_cache[0];
+	while p != &register_cache[@sizeof register_cache] loop
+		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as Arith)) then
+			p.reg := p.reg | reg;
+			return;
+		end if;
+		p := @next p;
+	end loop;
+
+	p := &register_cache[0];
+	while p != &register_cache[@sizeof register_cache] loop
+		if (p.state == CACHE_SLOT_EMPTY) then
+			p.state := CACHE_SLOT_VALUE;
+			p.symbol := sym;
+			p.number := off as Arith;
+			p.reg := reg;
+			return;
+		end if;
+		p := @next p;
+	end loop;
+
+	# The cache is full, so just drop this value on the floor.
+end sub;
+
 sub RegCacheFindConstant(value: Arith): (reg: RegId)
 	reg := 0;
 	var p := &register_cache[0];
@@ -93,6 +129,18 @@ sub RegCacheFindAddress(sym: [Symbol], off: Size): (reg: RegId)
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
 		if (p.state == CACHE_SLOT_ADDRESS) and (p.symbol == sym) and (p.number == (off as Arith)) then
+			reg := p.reg;
+			return;
+		end if;
+		p := @next p;
+	end loop;
+end sub;
+
+sub RegCacheFindValue(sym: [Symbol], off: Size): (reg: RegId)
+	reg := 0;
+	var p := &register_cache[0];
+	while p != &register_cache[@sizeof register_cache] loop
+		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as Arith)) then
 			reg := p.reg;
 			return;
 		end if;
