@@ -24,6 +24,8 @@ static const char* infilename;
 FILE* outfp;
 FILE* outhfp;
 
+int machine_width = 0;
+
 #if defined COWGOL
 	#define DEREF "."
 #else
@@ -333,9 +335,7 @@ static void print_upper(FILE* fp, const char* s)
 static void dump_registers(void)
 {
 	#if defined COWGOL
-		fprintf(outfp, "var registers: Register[] := {\n");
 	#else
-		fprintf(outfp, "const Register registers[] = {\n");
 		fprintf(outhfp, "enum {\n");
 	#endif
 
@@ -344,9 +344,6 @@ static void dump_registers(void)
 	{
 		if (reg->sym.kind == SYM_REGISTER)
 		{
-			fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
-				reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
-
 			#if defined COWGOL
 				fprintf(outhfp, "const REG_");
 				print_upper(outhfp, reg->sym.name);
@@ -360,10 +357,35 @@ static void dump_registers(void)
 		reg = (Register*) reg->sym.next;
 	}
 	#if defined COWGOL
-		fprintf(outfp, "};\n");
+	#else
+		fprintf(outhfp, "};\n");
+	#endif
+
+	#if defined COWGOL
+		fprintf(outhfp, "var registers: Register[] := {\n");
+	#else
+		fprintf(outfp, "const Register registers[] = {\n");
+	#endif
+
+	reg = (Register*) symbol_table;
+	while(reg)
+	{
+		if (reg->sym.kind == SYM_REGISTER)
+		{
+			#if defined COWGOL
+				fprintf(outhfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
+					reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
+			#else
+				fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
+					reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
+			#endif
+		}
+		reg = (Register*) reg->sym.next;
+	}
+	#if defined COWGOL
+		fprintf(outhfp, "};\n");
 	#else
 		fprintf(outfp, "};\n");
-		fprintf(outhfp, "};\n");
 	#endif
 }
 
@@ -822,10 +844,22 @@ int main(int argc, const char* argv[])
 	sort_rules();
 
 	#if defined COWGOL
+		if (machine_width != 0)
+			fprintf(outhfp, "const MACHINE_WIDTH := %d;\n", machine_width);
+
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
-		fprintf(outhfp, "typedef RegId := int(0, 0x%x);\n", (1<<registercount) - 1);
+		fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
+		fprintf(outhfp, "typedef RegId := int(0, ALL_REGS);\n");
+		fprintf(outhfp, "record Register\n");
+		fprintf(outhfp, "	name: string;\n");
+		fprintf(outhfp, "	id: RegId;\n");
+		fprintf(outhfp, "	uses: RegId;\n");
+		fprintf(outhfp, "	compatible: RegId;\n");
+		fprintf(outhfp, "	is_stacked: uint8;\n");
+		fprintf(outhfp, "end record;\n");
+
 	#else
 		fprintf(outhfp, "#ifndef NEWGEN_H\n");
 		fprintf(outhfp, "#define NEWGEN_H\n");

@@ -268,14 +268,14 @@ void init_var(struct symbol* sym, struct symbol* type)
 	check_non_partial_type(type);
 	sym->u.var.type = type;
 	sym->u.var.sub = current_sub;
-	arch_emit_comment("workspace[0] is 0x%x", current_sub->workspace[0]);
+	//arch_emit_comment("workspace[0] is 0x%x", current_sub->workspace[0]);
 	arch_init_variable(sym);
-	arch_emit_comment("declare variable %s at %s 0x%x+0x%x aligned 0x%x",
-		sym->name,
-		sym->u.var.sub->name,
-		sym->u.var.offset,
-		sym->u.var.type->u.type.width,
-		sym->u.var.type->u.type.alignment);
+	//arch_emit_comment("declare variable %s at %s 0x%x+0x%x aligned 0x%x",
+	//	sym->name,
+	//	sym->u.var.sub->name,
+	//	sym->u.var.offset,
+	//	sym->u.var.type->u.type.width,
+	//	sym->u.var.type->u.type.alignment);
 }
 
 void symbol_redeclaration(Symbol* sym)

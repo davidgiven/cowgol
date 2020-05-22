@@ -123,6 +123,8 @@ extern void warning(const char* msg, ...);
 extern void yyerror(const char* msg, ...);
 extern int yydebug;
 
+extern int machine_width;
+
 extern void* open_file(FILE* fp);
 extern void include_file(void* buffer);
 
