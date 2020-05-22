@@ -29,5 +29,5 @@ _argv:
     .space 4
 .global _lomem, _himem
 _lomem:
-    .space 64*1024
+    .space 1024*1024
 _himem:
