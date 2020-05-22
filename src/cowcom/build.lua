@@ -30,6 +30,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowcom/expressions.coh",
 				"src/cowcom/lexer.coh",
 				"src/cowcom/midcodec.coh",
+				"src/cowcom/regcache.coh",
 				"src/cowcom/symbols.coh",
 				"src/cowcom/types.coh",
 				"$OBJ/src/cowcom/parser.coh",

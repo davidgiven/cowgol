@@ -1,14 +1,6 @@
 const RULE_HAS_PREDICATES := 0x01;
 const MAX_MOVE_COUNT := REGISTER_COUNT;
 
-record Register
-	name: string;
-	id: RegId;
-	uses: RegId;
-	compatible: RegId;
-	is_stacked: uint8;
-end record;
-
 record Rule
 	flags: uint8;
 	compatible_producable_regs: RegId;
@@ -51,6 +43,28 @@ sub AllocSubrId(): (id: uint16)
 	next_subr_id := next_subr_id + 1;
 end sub;
 
+sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId)
+	conflicting := 0;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & inreg) != 0 then
+			conflicting := conflicting | reg.uses;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub FindFirst(inreg: RegId): (outreg: RegId)
+	outreg := 1;
+	while outreg != 0 loop
+		if (inreg & outreg) != 0 then
+			return;
+		end if;
+		outreg := outreg << 1;
+	end loop;
+	SimpleError("failed to allocate register");
+end sub;
+
 include "inssel.coh";
 
 sub PushNode(node: [Node])
@@ -88,33 +102,11 @@ sub IsStackedRegister(regid: RegId): (result: uint8)
 	end loop;
 end sub;
 
-sub FindFirst(inreg: RegId): (outreg: RegId)
-	outreg := 1;
-	while outreg != 0 loop
-		if (inreg & outreg) != 0 then
-			return;
-		end if;
-		outreg := outreg << 1;
-	end loop;
-	SimpleError("failed to allocate register");
-end sub;
-
 sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocked: RegId)
 	blocked := 0;
 	while insn <= last loop
 		blocked := blocked | insn.input_regs | insn.output_regs;
 		insn := @next insn;
-	end loop;
-end sub;
-
-sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId)
-	conflicting := 0;
-	var reg := &registers[0];
-	while reg != &registers[REGISTER_COUNT] loop
-		if (reg.id & inreg) != 0 then
-			conflicting := conflicting | reg.uses;
-		end if;
-		reg := @next reg;
 	end loop;
 end sub;
 
@@ -520,6 +512,7 @@ sub Generate(rootnode: [Node])
 		ShuffleRegisters(&next_instruction.reloads[0]);
 		EmitOneInstruction(next_instruction.ruleid, next_instruction);
 		ShuffleRegisters(&next_instruction.spills[0]);
+		ArchEndInstruction();
 	end loop;
 
 	Discard(rootnode);

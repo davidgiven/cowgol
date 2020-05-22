@@ -85,6 +85,10 @@ sub E_h16(value: uint16)
 	E_h(value as uint32, 4);
 end sub;
 
+sub E_h32(value: uint32)
+	E_h(value as uint32, 8);
+end sub;
+
 sub EmitterPushChunk()
 	var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
 	chunk.current_record := Alloc(@bytesof EmitterRecord) as [EmitterRecord];

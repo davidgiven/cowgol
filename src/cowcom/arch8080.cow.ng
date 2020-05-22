@@ -93,12 +93,22 @@
 		EmitByte('\n');
 	end sub;
 
+	sub R_flushall()
+		RegCacheFlush(ALL_REGS);
+	end sub;
+
+	sub R_flush(reg: RegId)
+		RegCacheFlush(FindConflictingRegisters(reg));
+	end sub;
+
 	sub E_label(label: LabelRef)
+		R_flushall();
 		E_labelref(label);
 		E(":\n");
 	end sub;
 
 	sub E_jump(insn: string, label: LabelRef)
+		R_flushall();
 		E_tab();
 		E(insn);
 		E_space();
@@ -115,6 +125,7 @@
 	end sub;
 
 	sub E_call(subr: [Subroutine])
+		R_flushall();
 		E_tab();
 		E("call ");
 		E_subref(subr);
@@ -123,6 +134,7 @@
 
 	sub loreg(reg: RegId): (result: RegId)
 		case reg is
+			when REG_A:  result := REG_A;
 			when REG_BC: result := REG_C;
 			when REG_DE: result := REG_E;
 			when REG_HL: result := REG_L;
@@ -133,6 +145,7 @@
 
 	sub hireg(reg: RegId): (result: RegId)
 		case reg is
+			when REG_A:  result := REG_A;
 			when REG_BC: result := REG_B;
 			when REG_DE: result := REG_D;
 			when REG_HL: result := REG_H;
@@ -174,6 +187,7 @@
 	end sub;
 
 	sub E_mov(dest: RegId, src: RegId)
+		R_flush(dest);
 		E_tab();
 		E("mov ");
 		E_reg(dest);
@@ -190,6 +204,7 @@
 	end sub;
 
 	sub E_pop(dest: RegId)
+		R_flush(dest);
 		E_tab();
 		E("pop ");
 		E_stackreg(dest);
@@ -197,14 +212,32 @@
 	end sub;
 
 	sub E_mvi(reg: RegId, value: uint8)
+		if (reg & (REG_HL|REG_BC|REG_DE)) != 0 then
+			SimpleError("mvi with 16-bit reg");
+		end if;
+
+		var cache := RegCacheFindConstant(value as Arith)
+			& (REG_A|REG_B|REG_C|REG_D|REG_H|REG_L);
+		if (cache & reg) != 0 then
+			# Already in the desired register.
+			return;
+		elseif cache != 0 then
+			# Already in a register, but not the one we want.
+			E_mov(reg, FindFirst(cache));
+			return;
+		end if;
+
+		R_flush(reg);
 		E("\tmvi ");
 		E_reg(reg);
 		E_comma();
 		E_u8(value);
 		E_nl();
+		RegCacheLeavesConstant(reg, value as Arith);
 	end sub;
 
 	sub E_alu(insn: string, rhs: RegId)
+		R_flush(REG_A);
 		E_tab();
 		E(insn);
 		E_space();
@@ -214,6 +247,9 @@
 
 	sub E_xra(rhs: RegId)
 		E_alu("xra", rhs);
+		if rhs == REG_A then
+			RegCacheLeavesConstant(REG_A, 0);
+		end if;
 	end sub;
 
 	sub E_ora(rhs: RegId)
@@ -237,6 +273,7 @@
 	end sub;
 
 	sub E_alui(insn: string, value: uint8)
+		R_flush(REG_A);
 		E_tab();
 		E(insn);
 		E_space();
@@ -277,14 +314,31 @@
 	end sub;
 
 	sub E_lxi(reg: RegId, value: uint16);
+		var cache := RegCacheFindConstant(value as Arith) & (REG_HL|REG_BC|REG_DE);
+		if (cache & reg) != 0 then
+			# The value is already in the desired register.
+			return;
+		elseif cache != 0 then
+			# The value is already in a register, but not this one.
+			cache := FindFirst(cache);
+			E_mov(loreg(reg), loreg(cache));
+			E_mov(hireg(reg), hireg(cache));
+			return;
+		end if;
+
+		R_flush(reg);
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
 		E_u16(value);
 		E_nl();
+		RegCacheLeavesConstant(reg, value as Arith);
+		RegCacheLeavesConstant(loreg(reg), value as uint8 as Arith);
+		RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as Arith);
 	end sub;
 
 	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
+		R_flush(reg);
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
@@ -293,6 +347,7 @@
 	end sub;
 
 	sub E_lda(sym: [Symbol], off: Size)
+		R_flush(REG_A);
 		E("\tlda ");
 		E_symref(sym, off);
 		E_nl();
@@ -305,6 +360,7 @@
 	end sub;
 
 	sub E_lhld(sym: [Symbol], off: Size)
+		R_flush(REG_HL);
 		E("\tlhld ");
 		E_symref(sym, off);
 		E_nl();
@@ -317,6 +373,7 @@
 	end sub;
 
 	sub E_loadm(reg: RegId)
+		R_flush(reg);
 		E("\tmov ");
 		E_reg(reg);
 		E(",m\n");
@@ -335,56 +392,67 @@
 	end sub;
 
 	sub E_ldax(ptr: RegId)
+		R_flush(REG_A);
 		E("\tldax ");
 		E_reg(ptr);
 		E_nl();
 	end sub;
 
 	sub E_inc(reg: RegId)
+		R_flush(reg);
 		E("\tinc ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_dec(reg: RegId)
+		R_flush(reg);
 		E("\tdec ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_inx(reg: RegId)
+		R_flush(reg);
 		E("\tinx ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_dcx(reg: RegId)
+		R_flush(reg);
 		E("\tdcx ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_xchg()
+		R_flush(REG_HL|REG_DE);
 		E("\txchg\n");
 	end sub;
 
 	sub E_pchl()
+		R_flushall();
 		E("\tpchl\n");
 	end sub;
 
 	sub E_cma()
+		R_flush(REG_A);
 		E("\tcma\n");
 	end sub;
 
 	sub E_ral()
+		R_flush(REG_A);
 		E("\tral\n");
 	end sub;
 
 	sub E_rar()
+		R_flush(REG_A);
 		E("\trar\n");
 	end sub;
 
 	sub E_dad(reg: RegId)
+		R_flush(REG_HL);
 		E("\tdad ");
 		E_reg(reg);
 		E_nl();
@@ -415,6 +483,7 @@
 		E_h16(e.id);
 		EmitterPopChunk('R');
 
+		R_flushall();
 		E("\tcall ");
 		EmitByte(COO_ESCAPE_SUBREF);
 		E_h16(e.id);
@@ -464,23 +533,27 @@
 				or ((src == REG_DE) and (dest == REG_HL)) then
 			E_xchg();
 		else
-			sub mov()
-				E("\tmov ");
-			end sub;
-			mov();
-			E_reg(dest);
-			E_comma();
-			E_reg(src);
+			E_mov(dest, src);
 
 			if (src & (REG_HL|REG_BC|REG_DE)) != 0 then
-				E_nl();
-				mov();
-				E_reg(loreg(dest));
-				E_comma();
-				E_reg(loreg(src));
+				E_mov(loreg(dest), loreg(src));
 			end if;
-			E_nl();
 		end if;
+	end sub;
+
+	sub ArchEndInstruction()
+		#var p := &register_cache[0];
+		#while p != &register_cache[@sizeof register_cache] loop
+		#	case p.state is
+		#		when CACHE_SLOT_CONSTANT:
+		#			E("; reg 0x");
+		#			E_h16(p.reg);
+		#			E("=0x");
+		#			E_h32(p.number as uint32);
+		#			E_nl();
+		#	end case;
+		#	p := @next p;
+		#end loop;
 	end sub;
 %}
 
@@ -516,6 +589,8 @@ gen JUMP():j
 
 gen STARTSUB():s
 {
+	RegCacheReset();
+
 	EmitterPushChunk();
 	E_h16($s.subr.id);
 
@@ -573,6 +648,8 @@ gen STARTSUB():s
 
 gen ENDSUB():s
 {
+	R_flushall();
+
 	E("end_");
 	E_subref($s.subr);
 	E(":\n");
@@ -683,7 +760,11 @@ gen RETURN()
 
 gen a|b|d|h := CONSTANT():rhs
 {
-	E_mvi($$, $rhs.value as uint8);
+	if ($rhs.value == 0) and ($$ == REG_A) then
+		E_xra(REG_A);
+	else
+		E_mvi($$, $rhs.value as uint8);
+	end if;
 }
 
 gen bc|de|hl := CONSTANT():rhs
@@ -694,9 +775,9 @@ gen bc|de|hl := CONSTANT():rhs
 gen stk4 := CONSTANT():rhs uses hl
 {
 	E_lxi(REG_HL, ($rhs.value >> 16) as uint16);
-	ArchEmitMove(REG_HL, 0);
+	E_push(REG_HL);
 	E_lxi(REG_HL, $rhs.value as uint16);
-	ArchEmitMove(REG_HL, 0);
+	E_push(REG_HL);
 }
 
 gen bc|de|hl := ADDRESS():a
@@ -1313,7 +1394,7 @@ gen WHENCASE4():c uses a
 gen hl|bc|de := CAST12(a, sext==0)
 {
 	E_mov(loreg($$), REG_A);
-	E_mvi($$, 0);
+	E_mvi(hireg($$), 0);
 }
 
 gen hl|bc|de := CAST12(a, sext!=0)
@@ -1397,6 +1478,7 @@ gen hl|bc|de := CAST42(LOAD4(hl))
 
 gen bc|de|hl := STRING():s
 {
+	R_flush($$);
 	E("\tlxi ");
 	E_reg($$);
 	E_comma();
@@ -1452,6 +1534,7 @@ gen INITS():s
 
 gen ASMSTART()
 {
+	R_flushall();
 	E_tab();
 }
 
