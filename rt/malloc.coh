@@ -64,6 +64,14 @@ sub Alloc(length: intptr): (block: [uint8])
 	var prev: [MallocFreeBlock] := 0 as [MallocFreeBlock];
 	var p := freeList;
 	loop
+		if p == (0 as [MallocFreeBlock]) then
+			# Uh-oh --- we've run out of free blocks.
+			p := 0 as [MallocFreeBlock];
+			print("Out of memory\n");
+			ExitWithError();
+			break;
+		end if;
+
 		var s := p.size;
 		if s == totallength then
 			# We found a hole of exactly the right size. Unlink and return it.
@@ -80,14 +88,6 @@ sub Alloc(length: intptr): (block: [uint8])
 		    # MallocUsedBlock structure).
 			p.size := s - totallength;
 			p := p + p.size;
-			break;
-		end if;
-
-		if p == (0 as [MallocFreeBlock]) then
-			# Uh-oh --- we've run out of free blocks.
-			p := 0 as [MallocFreeBlock];
-			print("Out of memory\n");
-			ExitWithError();
 			break;
 		end if;
 
