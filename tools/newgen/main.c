@@ -99,6 +99,19 @@ reg_t lookup_register_or_class(const char* name)
 	fatal("'%s' is not a register or register class", name);
 }
 
+static reg_t find_conflicting_registers(reg_t id)
+{
+	reg_t conflicting = 0;
+	Register* reg = (Register*) symbol_table;
+	while (reg)
+	{
+		if ((reg->sym.kind == SYM_REGISTER) && (reg->id & id))
+			conflicting |= reg->uses;
+		reg = (Register*) reg->sym.next;
+	}
+	return conflicting;
+}
+
 void define_regclass(const char* name, reg_t reg)
 {
 	RegisterClass* rc = define_symbol(name, SYM_REGCLASS, sizeof(RegisterClass));
@@ -489,7 +502,7 @@ static void create_rules(void)
 
 		fprintf(outfp, "0x%x, ", r->compatible_regs);
 		fprintf(outfp, "0x%x, ", r->result_reg);
-		fprintf(outfp, "0x%x, ", r->uses_regs);
+		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs));
 
 		fprintf(outfp, "{ ");
 		for (int j=0; j<maxdepth; j++)

@@ -219,14 +219,14 @@ regdata eax compatible r32    uses eax|ax|al;
 regdata ebx compatible r32|ri uses ebx|bx|bl;
 regdata ecx compatible r32    uses ecx|cx|cl;
 regdata edx compatible r32    uses edx|dx|dl;
-regdata esi compatible r32|ri;
-regdata edi compatible r32|ri;
+regdata esi compatible r32|ri uses esi|si;
+regdata edi compatible r32|ri uses edi|di;
 regdata ax compatible r16     uses eax|ax|al;
 regdata bx compatible r16     uses ebx|bx|bl;
 regdata cx compatible r16     uses ecx|cx|cl;
 regdata dx compatible r16     uses edx|dx|dl;
-regdata si compatible r16;
-regdata di compatible r16;
+regdata si compatible r16     uses esi|si;
+regdata di compatible r16     uses edi|di;
 regdata al compatible r8      uses eax|ax|al;
 regdata bl compatible r8      uses ebx|bx|bl;
 regdata cl compatible r8      uses ecx|cx|cl;
@@ -345,7 +345,7 @@ gen param := PUSHPARAM4(param, r32:val)
 	{ E("\tpushl %s\n", stkref($val)); }
 
 gen param := PUSHPARAM4(param, LOAD4(ADDRESS():a))
-	{ E("\tpushl (%s)\n", symref($a.sym, $a.off)); }
+	{ E("\tpushl %s\n", symref($a.sym, $a.off)); }
 
 gen param := PUSHPARAM4(param, ADDRESS():a)
 	{ E("\tpushl $%s\n", symref($a.sym, $a.off)); }
