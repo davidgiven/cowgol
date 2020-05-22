@@ -25,8 +25,10 @@ sub read_hex(fcb: [FCB], len: uint8): (val: uint32)
 			if (c >= 'A') and (c <= 'F') then
 				c := c - ('A' - 10);
 			else
-				print("error: invalid hex number in coofile\n");
-				ExitWithError();
+				StartError();
+				print("invalid hex number in coofile at offset 0x");
+				print_hex_i32(FCBPos(fcb) - 1);
+				EndError();
 			end if;
 		end if;
 		val := (val << 4) + (c as uint32);
