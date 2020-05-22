@@ -178,11 +178,27 @@ function cowlink(e)
 		ins = concat {
 			"scripts/quiet",
 			"bin/cowlink.8080.ocgen.exe",
-			"$OBJ/rt/cpm/cowgol.coo",
+			e.runtime,
 			e.ins
 		},
 		outs = e.outs,
 		cmd = "@1 @2 -o &1 @3 @4"
+	}
+end
+
+function cowlink_cpm(e)
+	cowlink {
+		ins = e.ins,
+		outs = e.outs,
+		runtime = "$OBJ/rt/cpm/cowgol.coo",
+	}
+end
+
+function cowlink_cpmz(e)
+	cowlink {
+		ins = e.ins,
+		outs = e.outs,
+		runtime = "$OBJ/rt/cpmz/cowgol.coo",
 	}
 end
 

@@ -1,0 +1,129 @@
+# Logical shift A right B bits.
+&X _lsr1
+    cseg ; _lsr1
+``:
+    dec b
+    ret m
+    srl a
+    jr ``
+
+# Arithmetic shift A right B bits.
+&X _asr1
+    cseg ; _asr1
+``:
+    dec b
+    ret m
+    sra a
+    jr ``
+
+# Logical shift HL right A bits.
+&X _lsr2
+    cseg ; _lsr2
+``:
+    dec a
+    ret m
+    srl h
+    rr l
+    jr ``
+
+# Arithmetic shift HL right A bits.
+&X _asr2
+    cseg ; _asr2
+``:
+    dec a
+    ret m
+    sra h
+    rr l
+    jr ``
+
+# Logical shift HLHL right A bits.
+&X _lsr4
+    cseg ; _lsr4
+``:
+    dec a
+    ret m
+    exx
+    srl h
+    rr l
+    exx
+    rr h
+    rr l
+    jr ``
+
+# Arithmetic shift HLHL right A bits.
+&X _asr4
+    cseg ; _asr4
+``:
+    dec a
+    ret m
+    exx
+    sra h
+    rr l
+    exx
+    rr h
+    rr l
+    jr ``
+
+# 8-bit multiplication: A = D * H.
+&X _mul1
+    cseg ; _mul1
+``:
+    ld e, d             ; move D to low byte of DE
+    ld d, 0             ; clear top byte
+    sla h               ; first iteration
+    sbc a
+    and e
+    ld l, a
+
+    ld b, 7
+``_1:
+    add hl, hl
+    jr nc, $ + 3
+    add hl, de
+    djnc ``_1
+
+    ld a, h
+    ret
+
+# 32-bit multiplication: HLHL = BCBC * DEDE.
+&X _mul4
+    cseg ; _mul4
+``:
+    and a               ; reset carry
+    sbc hl, hl          ; lower result to 0
+    exx
+    sbc hl, hl          ; upper result to 0
+    ld a, 32            ; number of iterations
+``_loop:
+    sra b               ; right shift lhs
+    rr c
+    exx
+    rr b
+    rr c                ; lowest bit to carry
+    jr nc, ``_noadd
+    add hl, de          ; result += rhs
+    exx
+    adc hl, de
+``_noadd:
+    sla e               ; left shift rhs
+    rl d
+    exx
+    rl e
+    rl d
+    dec a
+    jr nz, ``_loop
+    ret
+#
+# Compares HLHL and DEDE, setting Z or NZ. Uses A.
+&X _cmpeq4
+    cseg ; _cmpeq4
+``:
+    xor a
+    sbc hl, de
+    ret nz
+    exx
+    xor a
+    sbc hl, de
+    exx
+    ret
+
