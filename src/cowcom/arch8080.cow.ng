@@ -338,12 +338,25 @@
 	end sub;
 
 	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
+		var cache := RegCacheFindAddress(sym, off) & (REG_HL|REG_BC|REG_DE);
+		if (cache & reg) != 0 then
+			# The value is already in the desired register.
+			return;
+		elseif cache != 0 then
+			# The value is already in a register, but not this one.
+			cache := FindFirst(cache);
+			E_mov(loreg(reg), loreg(cache));
+			E_mov(hireg(reg), hireg(cache));
+			return;
+		end if;
+
 		R_flush(reg);
 		E("\tlxi ");
 		E_reg(reg);
 		E_comma();
 		E_symref(sym, off);
 		E_nl();
+		RegCacheLeavesAddress(reg, sym, off);
 	end sub;
 
 	sub E_lda(sym: [Symbol], off: Size)
