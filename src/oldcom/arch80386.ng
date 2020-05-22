@@ -369,7 +369,6 @@ gen param := PUSHPARAM4(param, CONSTANT():c)
 			emitter_close_chunk(current_sub);
 		}
 
-		arch_emit_comment("subroutine with %d input parameters", sub->inputparameters);
 		E("\tcall %s\n", subref(sub));
 	}
 
