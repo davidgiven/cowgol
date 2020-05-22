@@ -74,6 +74,13 @@ regdata(R) ::= regdata(R1) STACKED.
     R->isstacked = true;
 }
 
+/* --- Width ------------------------------------------------------------- */
+
+rules ::= rules WIDTH int(R) SEMICOLON.
+{
+    machine_width = R;
+}
+
 /* --- Rewrite rules ----------------------------------------------------- */
 
 rules ::= rules REWRITE(R) rewritetree(TS) ASSIGN rewritetree(TD) SEMICOLON.

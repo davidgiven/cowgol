@@ -40,14 +40,15 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "~"                       { return TILDE; }
 "$$"                      { return STRINGSTRING; }
 "compatible"              { return COMPATIBLE; }
-"register"                { return REGISTER; }
+"gen"                     { return GEN; }
+"is"                      { return IS; }
 "regclass"                { return REGCLASS; }
 "regdata"                 { return REGDATA; }
-"uses"                    { return USES; }
-"stacked"                 { return STACKED; }
-"gen"                     { return GEN; }
+"register"                { return REGISTER; }
 "rewrite"                 { return REWRITE; }
-"is"                      { return IS; }
+"stacked"                 { return STACKED; }
+"uses"                    { return USES; }
+"width"                   { return WIDTH; }
 
 \"                        { BEGIN(STRINGSTATE); return BEGINSTRING; }
 <STRINGSTATE>([^\"\\$]|\\.)* { string = strdup(yytext); return CSTRING; }

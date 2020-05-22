@@ -810,6 +810,8 @@ cvalue(value) ::= cvalue(lhs) PERCENT cvalue(rhs).   { value = lhs % rhs; }
 cvalue(value) ::= cvalue(lhs) AMPERSAND cvalue(rhs). { value = lhs & rhs; }
 cvalue(value) ::= cvalue(lhs) CARET cvalue(rhs).     { value = lhs ^ rhs; }
 cvalue(value) ::= cvalue(lhs) PIPE cvalue(rhs).      { value = lhs | rhs; }
+cvalue(value) ::= cvalue(lhs) LSHIFT cvalue(rhs).    { value = lhs << rhs; }
+cvalue(value) ::= cvalue(lhs) RSHIFT cvalue(rhs).    { value = lhs >> rhs; }
 
 cvalue(value) ::= oldid(sym).
 {

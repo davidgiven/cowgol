@@ -5,9 +5,11 @@ const CACHE_SLOT_CONSTANT := 1;
 const CACHE_SLOT_ADDRESS  := 2;
 const CACHE_SLOT_VALUE    := 3;
 
+typedef CacheValue := int(0, (1<<MACHINE_WIDTH)-1);
+
 record CacheSlot
 	symbol: [Symbol];
-	number: Arith;
+	number: CacheValue;
 	reg: RegId;
 	state: uint8;
 end record;
@@ -49,7 +51,7 @@ sub reg_i_find_empty_slot(): (slot: [CacheSlot])
 	slot := 0 as [CacheSlot];
 end sub;
 
-sub RegCacheLeavesConstant(reg: RegId, value: Arith)
+sub RegCacheLeavesConstant(reg: RegId, value: CacheValue)
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
 		if (p.state == CACHE_SLOT_CONSTANT) and (p.number == value) then
@@ -70,7 +72,7 @@ end sub;
 sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size)
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_ADDRESS) and (p.symbol == sym) and (p.number == (off as Arith)) then
+		if (p.state == CACHE_SLOT_ADDRESS) and (p.symbol == sym) and (p.number == (off as CacheValue)) then
 			p.reg := p.reg | reg;
 			return;
 		end if;
@@ -81,7 +83,7 @@ sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size)
 	if p != (0 as [CacheSlot]) then
 		p.state := CACHE_SLOT_ADDRESS;
 		p.symbol := sym;
-		p.number := off as Arith;
+		p.number := off as CacheValue;
 		p.reg := reg;
 	end if;
 end sub;
@@ -89,7 +91,7 @@ end sub;
 sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size)
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as Arith)) then
+		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as CacheValue)) then
 			p.reg := p.reg | reg;
 			return;
 		end if;
@@ -100,12 +102,12 @@ sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size)
 	if p != (0 as [CacheSlot]) then
 			p.state := CACHE_SLOT_VALUE;
 			p.symbol := sym;
-			p.number := off as Arith;
+			p.number := off as CacheValue;
 			p.reg := reg;
 	end if;
 end sub;
 
-sub RegCacheFindConstant(value: Arith): (reg: RegId)
+sub RegCacheFindConstant(value: CacheValue): (reg: RegId)
 	reg := 0;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
@@ -121,7 +123,7 @@ sub RegCacheFindAddress(sym: [Symbol], off: Size): (reg: RegId)
 	reg := 0;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_ADDRESS) and (p.symbol == sym) and (p.number == (off as Arith)) then
+		if (p.state == CACHE_SLOT_ADDRESS) and (p.symbol == sym) and (p.number == (off as CacheValue)) then
 			reg := p.reg;
 			return;
 		end if;
@@ -133,7 +135,7 @@ sub RegCacheFindValue(sym: [Symbol], off: Size): (reg: RegId)
 	reg := 0;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as Arith)) then
+		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as CacheValue)) then
 			reg := p.reg;
 			return;
 		end if;

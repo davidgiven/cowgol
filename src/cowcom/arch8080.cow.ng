@@ -216,7 +216,7 @@
 			SimpleError("mvi with 16-bit reg");
 		end if;
 
-		var cache := RegCacheFindConstant(value as Arith)
+		var cache := RegCacheFindConstant(value as CacheValue)
 			& (REG_A|REG_B|REG_C|REG_D|REG_H|REG_L);
 		if (cache & reg) != 0 then
 			# Already in the desired register.
@@ -233,7 +233,7 @@
 		E_comma();
 		E_u8(value);
 		E_nl();
-		RegCacheLeavesConstant(reg, value as Arith);
+		RegCacheLeavesConstant(reg, value as CacheValue);
 	end sub;
 
 	sub E_alu(insn: string, rhs: RegId)
@@ -314,7 +314,7 @@
 	end sub;
 
 	sub E_lxi(reg: RegId, value: uint16);
-		var cache := RegCacheFindConstant(value as Arith) & (REG_HL|REG_BC|REG_DE);
+		var cache := RegCacheFindConstant(value as CacheValue) & (REG_HL|REG_BC|REG_DE);
 		if (cache & reg) != 0 then
 			# The value is already in the desired register.
 			return;
@@ -332,9 +332,9 @@
 		E_comma();
 		E_u16(value);
 		E_nl();
-		RegCacheLeavesConstant(reg, value as Arith);
-		RegCacheLeavesConstant(loreg(reg), value as uint8 as Arith);
-		RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as Arith);
+		RegCacheLeavesConstant(reg, value as CacheValue);
+		RegCacheLeavesConstant(loreg(reg), value as uint8 as CacheValue);
+		RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as CacheValue);
 	end sub;
 
 	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
@@ -578,6 +578,8 @@
 	sub ArchEndInstruction()
 	end sub;
 %}
+
+width 16;
 
 register a b c d e h l hl de bc;
 register stk4 param;

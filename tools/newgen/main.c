@@ -24,6 +24,8 @@ static const char* infilename;
 FILE* outfp;
 FILE* outhfp;
 
+int machine_width = 0;
+
 #if defined COWGOL
 	#define DEREF "."
 #else
@@ -842,6 +844,9 @@ int main(int argc, const char* argv[])
 	sort_rules();
 
 	#if defined COWGOL
+		if (machine_width != 0)
+			fprintf(outhfp, "const MACHINE_WIDTH := %d;\n", machine_width);
+
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
