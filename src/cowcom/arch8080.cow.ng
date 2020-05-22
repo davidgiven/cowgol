@@ -576,18 +576,6 @@
 	end sub;
 
 	sub ArchEndInstruction()
-		#var p := &register_cache[0];
-		#while p != &register_cache[@sizeof register_cache] loop
-		#	case p.state is
-		#		when CACHE_SLOT_CONSTANT:
-		#			E("; reg 0x");
-		#			E_h16(p.reg);
-		#			E("=0x");
-		#			E_h32(p.number as uint32);
-		#			E_nl();
-		#	end case;
-		#	p := @next p;
-		#end loop;
 	end sub;
 %}
 

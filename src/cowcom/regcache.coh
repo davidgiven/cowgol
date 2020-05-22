@@ -38,6 +38,17 @@ sub RegCacheFlushValues()
 	end loop;
 end sub;
 
+sub reg_i_find_empty_slot(): (slot: [CacheSlot])
+	slot := &register_cache[0];
+	while slot != &register_cache[@sizeof register_cache] loop
+		if (slot.state == CACHE_SLOT_EMPTY) then
+			return;
+		end if;
+		slot := @next slot;
+	end loop;
+	slot := 0 as [CacheSlot];
+end sub;
+
 sub RegCacheLeavesConstant(reg: RegId, value: Arith)
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
@@ -48,18 +59,12 @@ sub RegCacheLeavesConstant(reg: RegId, value: Arith)
 		p := @next p;
 	end loop;
 
-	p := &register_cache[0];
-	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_EMPTY) then
-			p.state := CACHE_SLOT_CONSTANT;
-			p.number := value;
-			p.reg := reg;
-			return;
-		end if;
-		p := @next p;
-	end loop;
-
-	# The cache is full, so just drop this value on the floor.
+	p := reg_i_find_empty_slot();
+	if p != (0 as [CacheSlot]) then
+		p.state := CACHE_SLOT_CONSTANT;
+		p.number := value;
+		p.reg := reg;
+	end if;
 end sub;
 
 sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size)
@@ -72,19 +77,13 @@ sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size)
 		p := @next p;
 	end loop;
 
-	p := &register_cache[0];
-	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_EMPTY) then
-			p.state := CACHE_SLOT_ADDRESS;
-			p.symbol := sym;
-			p.number := off as Arith;
-			p.reg := reg;
-			return;
-		end if;
-		p := @next p;
-	end loop;
-
-	# The cache is full, so just drop this value on the floor.
+	p := reg_i_find_empty_slot();
+	if p != (0 as [CacheSlot]) then
+		p.state := CACHE_SLOT_ADDRESS;
+		p.symbol := sym;
+		p.number := off as Arith;
+		p.reg := reg;
+	end if;
 end sub;
 
 sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size)
@@ -97,19 +96,13 @@ sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size)
 		p := @next p;
 	end loop;
 
-	p := &register_cache[0];
-	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_EMPTY) then
+	p := reg_i_find_empty_slot();
+	if p != (0 as [CacheSlot]) then
 			p.state := CACHE_SLOT_VALUE;
 			p.symbol := sym;
 			p.number := off as Arith;
 			p.reg := reg;
-			return;
-		end if;
-		p := @next p;
-	end loop;
-
-	# The cache is full, so just drop this value on the floor.
+	end if;
 end sub;
 
 sub RegCacheFindConstant(value: Arith): (reg: RegId)
