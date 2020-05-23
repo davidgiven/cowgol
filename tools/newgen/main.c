@@ -24,7 +24,7 @@ static const char* infilename;
 FILE* outfp;
 FILE* outhfp;
 
-int machine_width = 0;
+int machine_word = 0;
 
 #if defined COWGOL
 	#define DEREF "."
@@ -844,8 +844,8 @@ int main(int argc, const char* argv[])
 	sort_rules();
 
 	#if defined COWGOL
-		if (machine_width != 0)
-			fprintf(outhfp, "const MACHINE_WIDTH := %d;\n", machine_width);
+		if (machine_word != 0)
+			fprintf(outhfp, "const MACHINE_WORD := 0x%x;\n", machine_word);
 
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);

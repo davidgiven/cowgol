@@ -483,6 +483,7 @@
     cpl
     ld h, a
     exx
+
     ld a, l
     cpl
     ld l, a
@@ -507,7 +508,7 @@
 # Returns z if HLHL == DEDE.
 # Returns c if HLHL < DEDE.
 &X _cmpu4
-    cseg ; _cmpeq4
+    cseg ; _cmpu4
 ``:
     and a               ; clear carry
     sbc hl, de

@@ -588,7 +588,7 @@
 	end sub;
 %}
 
-width 16;
+wordsize 0xffff;
 
 register a b c d e h l hl de bc;
 register stk4 param;

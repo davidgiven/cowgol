@@ -170,6 +170,16 @@
 		end case;
 	end sub;
 
+	sub wordreg(reg: RegId): (result: RegId)
+		case reg is
+			when REG_BCBC: result := REG_BC;
+			when REG_DEDE: result := REG_DE;
+			when REG_HLHL: result := REG_HL;
+			when else:
+				SimpleError("bad wordreg");
+		end case;
+	end sub;
+
 	sub E_reg(reg: RegId)
 		case reg is
 			when REG_A:    E("a");
@@ -313,6 +323,16 @@
 		E("), ");
 		E_u8(val);
 		E_nl();
+	end sub;
+
+	sub E_loada(ptr: RegId)
+		if ptr == REG_HL then
+			E_loadm(REG_A);
+		elseif (ptr & (REG_IX|REG_IY)) != 0 then
+			E_load8i(REG_A, ptr, 0);
+		else
+			E_ldax(ptr);
+		end if;
 	end sub;
 
 	sub E_load16(dest: RegId, sym: [Symbol], off: Size)
@@ -686,7 +706,7 @@
 	end sub;
 %}
 
-width 16;
+wordsize 0xffffffff;
 
 register a b c d e h l hl de bc hlhl dede bcbc ix iy;
 register param;
@@ -783,6 +803,7 @@ gen STARTSUB():s
 					E_exx();
 					E_store16(REG_HL, param, 2);
 					E_exx();
+					RegCacheLeavesValue(REG_HLHL, param, 0);
 				end if;
 		end case;
 	end loop;
@@ -935,29 +956,47 @@ gen r16 := ADDRESS():a
 
 gen r32 := CONSTANT():c
 {
-	E_lxi($$, $c.value as uint16);
-	E_exx();
-	E_lxi($$, ($c.value>>16) as uint16);
-	E_exx();
+	var cache := RegCacheFindConstant($c.value as uint32);
+	if (cache & $$) != 0 then
+		# Value already in the right register.
+		return;
+	end if;
+
+	if ($c.value == 0) and ($$ == REG_HLHL) then
+		E_rcf();
+		E_sbc(REG_HL, REG_HL);
+		E_exx();
+		E_sbc(REG_HL, REG_HL);
+		E_exx();
+	else
+		E_lxi(wordreg($$), $c.value as uint16);
+		E_exx();
+		E_lxi(wordreg($$), ($c.value>>16) as uint16);
+		E_exx();
+	end if;
+	RegCacheLeavesConstant($$, $c.value as uint32);
 }
 
 // --- 8-bit loads and stores -----------------------------------------------
+
+%{
+	sub is_indexable_8bit(value: Arith): (result: uint8)
+		result := 1;
+		if (value < -128) or (value > 127) then
+			result := 0;
+		end if;
+	end sub;
+%}
 
 gen a := LOAD1(ADDRESS():a)
 {
 	E_lda($a.sym, $a.off);
 }
 
-gen a := LOAD1(hl|bc|de:ptr)
-{
-	if $ptr == REG_HL then
-		E_loadm(REG_A);
-	else
-		E_ldax($ptr);
-	end if;
-}
+gen a := LOAD1(r16:ptr)
+		{ E_loada($ptr); }
 
-gen r8 := LOAD1(ADD2(ix|iy:ptr, CONSTANT():c))
+gen r8 := LOAD1(ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
 {
 	E_load8i($$, $ptr, $c.value as int8);
 }
@@ -976,17 +1015,26 @@ gen STORE1(a, hl|bc|de:ptr)
 	end if;
 }
 
-gen STORE1(r8:r, ADD2(ix|iy:ptr, CONSTANT():c))
+gen STORE1(r8:r, ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
 {
 	E_store8i($r, $ptr, $c.value as int8);
 }
 
-gen STORE1(CONSTANT():v, ADD2(ix|iy:ptr, CONSTANT():c))
+gen STORE1(CONSTANT():v, ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
 {
 	E_store8ic($v.value as uint8, $ptr, $c.value as int8);
 }
 
 // --- 16-bit loads and stores ----------------------------------------------
+
+%{
+	sub is_indexable_16bit(value: Arith): (result: uint8)
+		result := 1;
+		if (value < -128) or (value > 126) then
+			result := 0;
+		end if;
+	end sub;
+%}
 
 gen r16 := LOAD2(ADDRESS():a)
 {
@@ -1010,7 +1058,7 @@ gen hl|bc|de := LOAD2(hl|ix|iy:rhs) uses a
 	end if;
 }
 
-gen hl|bc|de := LOAD2(ADD2(ix|iy:rhs, CONSTANT():c))
+gen hl|bc|de := LOAD2(ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c))
 {
 	E_load8i(loreg($$), $rhs, ($c.value as int8)+0);
 	E_load8i(hireg($$), $rhs, ($c.value as int8)+1);
@@ -1033,13 +1081,28 @@ gen STORE2(bc|de:val, hl|ix|iy:rhs) uses a
 	end if;
 }
 
-gen STORE2(hl|bc|de:val, ADD2(ix|iy:rhs, CONSTANT():c)) uses a
+gen STORE2(hl|bc|de:val, ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c)) uses a
 {
 	E_store8i(loreg($val), $rhs, ($c.value as int8)+0);
 	E_store8i(hireg($val), $rhs, ($c.value as int8)+1);
 }
 
+gen STORE2(CONSTANT():v, ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c)) uses a
+{
+	E_store8ic($v.value as uint8, $rhs, ($c.value as int8)+0);
+	E_store8ic(($v.value>>8) as uint8, $rhs, ($c.value as int8)+1);
+}
+
 // --- 32-bit loads and stores ----------------------------------------------
+
+%{
+	sub is_indexable_32bit(value: Arith): (result: uint8)
+		result := 1;
+		if (value < -128) or (value > 124) then
+			result := 0;
+		end if;
+	end sub;
+%}
 
 gen r32 := LOAD4(ix|iy:ptr)
 {
@@ -1051,7 +1114,7 @@ gen r32 := LOAD4(ix|iy:ptr)
 	E_exx();
 }
 
-gen r32 := LOAD4(ADD2(ix|iy:ptr, CONSTANT():c))
+gen r32 := LOAD4(ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c))
 {
 	E_load8i(loreg($$), $ptr, ($c.value as int8)+0);
 	E_load8i(hireg($$), $ptr, ($c.value as int8)+1);
@@ -1063,10 +1126,17 @@ gen r32 := LOAD4(ADD2(ix|iy:ptr, CONSTANT():c))
 
 gen r32 := LOAD4(ADDRESS():a)
 {
-	E_load16($$, $a.sym, $a.off);
+	var cache := RegCacheFindValue($a.sym, $a.off);
+	if (cache & $$) != 0 then
+		# Value already in the right register.
+		return;
+	end if;
+
+	E_load16(wordreg($$), $a.sym, $a.off);
 	E_exx();
-	E_load16($$, $a.sym, $a.off+2);
+	E_load16(wordreg($$), $a.sym, $a.off+2);
 	E_exx();
+	RegCacheLeavesValue($$, $a.sym, $a.off);
 }
 
 gen STORE4(r32:val, ix|iy:ptr)
@@ -1079,7 +1149,7 @@ gen STORE4(r32:val, ix|iy:ptr)
 	E_exx();
 }
 
-gen STORE4(r32:val, ADD2(ix|iy:ptr, CONSTANT():c))
+gen STORE4(r32:val, ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c))
 {
 	E_store8i(loreg($val), $ptr, ($c.value as int8)+0);
 	E_store8i(hireg($val), $ptr, ($c.value as int8)+1);
@@ -1091,10 +1161,19 @@ gen STORE4(r32:val, ADD2(ix|iy:ptr, CONSTANT():c))
 
 gen STORE4(r32:val, ADDRESS():a)
 {
-	E_store16($val, $a.sym, $a.off);
+	E_store16(wordreg($val), $a.sym, $a.off);
 	E_exx();
-	E_store16($val, $a.sym, $a.off+2);
+	E_store16(wordreg($val), $a.sym, $a.off+2);
 	E_exx();
+	RegCacheLeavesValue($$, $a.sym, $a.off);
+}
+
+gen STORE4(CONSTANT():c, ADDRESS():a) uses hl
+{
+	E_lxi(REG_HL, $c.value as uint16);
+	E_store16(REG_HL, $a.sym, $a.off);
+	E_lxi(REG_HL, ($c.value >> 16) as uint16);
+	E_store16(REG_HL, $a.sym, $a.off+2);
 }
 
 // --- 8-bit arithmetic -----------------------------------------------------
@@ -1471,18 +1550,46 @@ gen hlhl := RSHIFTS4(hlhl, b)
 		E_jumps_jz_jnz(node);
 	end sub;
 
-	sub bequ2c(node: [Node], value: uint16)
+	sub cmpeq2(value: uint16)
 		if value != 0 then
 			E_lxi(REG_DE, -value);
 			E_add(REG_HL, REG_DE);
 		end if;
 		E_mov(REG_A, REG_H);
 		E_or(REG_L);
+	end sub;
+
+	sub bequ2c(node: [Node], value: uint16)
+		cmpeq2(value);
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ2(node: [Node], lhs: RegId)
+		E_rcf();
+		E_sbc(REG_HL, lhs);
 		E_jumps_jz_jnz(node);
 	end sub;
 
 	sub bequ4(node: [Node])
 		E_callhelper("_cmpu4");
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ4c(node: [Node], value: Arith)
+		if value == 0 then
+			E_mov(REG_A, REG_H);
+			E_or(REG_L);
+			E_exx();
+			E_or(REG_H);
+			E_or(REG_L);
+		else
+			E_rcf();
+			cmpeq2(value as uint16);
+			E_jump("jp nz,", node.beqs0.falselabel);
+			E_exx();
+			cmpeq2((value>>16) as uint16);
+		end if;
+		E_exx();
 		E_jumps_jz_jnz(node);
 	end sub;
 
@@ -1540,19 +1647,25 @@ gen BLTS1(a, b|d|h:rhs):b
 	E_jumps_jm_jp(self.n[0]);
 }
 
-%{
-	sub bequ2(node: [Node], lhs: RegId)
-		E_rcf();
-		E_sbc(REG_HL, lhs);
-		E_jumps_jz_jnz(node);
-	end sub;
-%}
+gen BLTS1(a, CONSTANT():c):b
+{
+	E_subi($c.value as uint8);
+	E("\tjp po, $+5\n");
+	E_xori(0x80);
+	E_jumps_jm_jp(self.n[0]);
+}
 
 gen BEQU2(bc|de:lhs, hl):a
 		{ bequ2(self.n[0], $lhs); }
 
 gen BEQS2(bc|de:lhs, hl):a
 		{ bequ2(self.n[0], $lhs); }
+
+gen BEQU2(hl, CONSTANT():c) uses a|de
+		{ bequ2c(self.n[0], $c.value as uint16); }
+
+gen BEQS2(hl, CONSTANT():c) uses a|de
+		{ bequ2c(self.n[0], $c.value as uint16); }
 
 gen BLTU2(hl, bc|de:rhs):b
 {
@@ -1568,16 +1681,16 @@ gen BLTS2(hl, de):b uses a|bc
 }
 
 gen BEQU4(dede, hlhl):b uses a
-{
-	E_callhelper("_cmpu4");
-	E_jumps_jz_jnz(self.n[0]);
-}
+		{ bequ4(self.n[0]); }
 
 gen BEQS4(dede, hlhl):b uses a
-{
-	E_callhelper("_cmpu4");
-	E_jumps_jz_jnz(self.n[0]);
-}
+		{ bequ4(self.n[0]); }
+
+gen BEQU4(hlhl, CONSTANT():c):b uses dede|a
+		{ bequ4c(self.n[0], $c.value); }
+
+gen BEQS4(hlhl, CONSTANT():c):b uses dede|a
+		{ bequ4c(self.n[0], $c.value); }
 
 gen BLTU4(hlhl, dede):b
 {
@@ -1710,11 +1823,20 @@ gen hlhl := CAST24(hl, sext!=0) uses a
 gen a := CAST21(hl|bc|de:rhs)
 		{ E_mov(REG_A, loreg($rhs)); }
 
-gen a := CAST21(ADDRESS():a)
+gen a := CAST21(LOAD2(ADDRESS():a))
 		{ E_lda($a.sym, $a.off); }
+
+gen a := CAST21(LOAD2(r16:ptr))
+		{ E_loada($ptr); }
 
 gen a := CAST41(r32:rhs)
 		{ E_mov(REG_A, loreg($rhs)); }
+
+gen a := CAST41(LOAD4(ADDRESS():a))
+		{ E_lda($a.sym, $a.off); }
+
+gen a := CAST41(LOAD4(r16:ptr))
+		{ E_loada($ptr); }
 
 gen hl := CAST42(hlhl);
 
