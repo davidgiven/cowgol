@@ -74,6 +74,10 @@ void showregs(void)
 		z80ex_get_reg(z80, regHL),
 		z80ex_get_reg(z80, regIX),
 		z80ex_get_reg(z80, regIY));
+	printf("                 shadow  bc=%04x de=%04x hl=%04x\n",
+		z80ex_get_reg(z80, regBC_),
+		z80ex_get_reg(z80, regDE_),
+		z80ex_get_reg(z80, regHL_));
 
 	char buffer[80];
 	int tstates;
@@ -102,6 +106,12 @@ static void cmd_register(void)
 			reg = regDE;
 		else if (strcmp(w1, "hl") == 0)
 			reg = regHL;
+		else if (strcmp(w1, "bc'") == 0)
+			reg = regBC_;
+		else if (strcmp(w1, "de'") == 0)
+			reg = regDE_;
+		else if (strcmp(w1, "hl'") == 0)
+			reg = regHL_;
 		else if (strcmp(w1, "ix") == 0)
 			reg = regIX;
 		else if (strcmp(w1, "iy") == 0)

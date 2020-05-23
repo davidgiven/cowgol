@@ -7,6 +7,15 @@
     srl a
     jr ``
 
+# Shift A left B bits.
+&X _asl1
+    cseg ; _asl1
+``:
+    dec b
+    ret m
+    add a
+    jr ``
+
 # Arithmetic shift A right B bits.
 &X _asr1
     cseg ; _asr1
@@ -32,7 +41,7 @@
 ``:
     dec a
     ret m
-	add hl, hl
+    add hl, hl
     jr ``
 
 # Arithmetic shift HL right A bits.
@@ -61,16 +70,16 @@
 
 # Shifts HLHL left by B bits.
 &X _asl4
-	cseg ; _asl4
+    cseg ; _asl4
 ``:
-	add hl, hl
-	exx
-	ex de, hl
-	adc hl, hl
-	ex de, hl
-	exx
-	djnz ``
-	ret
+    add hl, hl
+    exx
+    ex de, hl
+    adc hl, hl
+    ex de, hl
+    exx
+    djnz ``
+    ret
 
 # Arithmetic shift HLHL right A bits.
 &X _asr4
@@ -90,41 +99,37 @@
 &X _mul1
     cseg ; _mul1
 ``:
-    ld e, d             ; move D to low byte of DE
-    ld d, 0             ; clear top byte
-    sla h               ; first iteration
-    sbc a
-    and e
-    ld l, a
-
-    ld b, 7
+    xor a
+    ld b, 8
+``_loop:
+    add a
+    rl h
+    jr nc, ``_1
+    add d
+    jr nc, ``_1
+    inc h
 ``_1:
-    add hl, hl
-    jr nc, $ + 3
-    add hl, de
-    djnc ``_1
-
-    ld a, h
+    djnz ``_loop
     ret
 
-# 16-bit multiplication: HL = BC * DE.
+# 16-bit multiplication: DE = BC * DE. Corrupts HL.
 &X _mul2
-	cseg ; _mul2
+    cseg ; _mul2
 ``:
-	; no need to reset HL as the existing contents will be shifted out
-	ld a, 16			; number of iterations
+    ld hl, 0
+    ld a, 16            ; number of iterations
 ``_loop:
-	sra b				; right shift lhs
-	rr c
-	jr nc, ``_noadd
-	add hl, de			; result += rhs
+    add hl, hl
+    rl e
+    rl d
+    jr nc, ``_noadd
+    add hl, bc
+    jr nc, $+3
+    inc de              ; if carry increment high word
 ``_noadd:
-	ex de, hl			; left shift rhs
-	add hl, hl
-	ex de, hl
-	dec a
-	jr nz, ``_loop
-	ret
+    dec a
+    jr nz, ``_loop
+    ret
 
 # 32-bit multiplication: HLHL = BCBC * DEDE.
 &X _mul4
@@ -134,8 +139,10 @@
     sbc hl, hl          ; lower result to 0
     exx
     sbc hl, hl          ; upper result to 0
+    exx
     ld a, 32            ; number of iterations
 ``_loop:
+    exx
     sra b               ; right shift lhs
     rr c
     exx
@@ -145,12 +152,14 @@
     add hl, de          ; result += rhs
     exx
     adc hl, de
+    exx
 ``_noadd:
     sla e               ; left shift rhs
     rl d
     exx
     rl e
     rl d
+    exx
     dec a
     jr nz, ``_loop
     ret
@@ -160,313 +169,339 @@
 &X _dvrmu1
     cseg ; _dvrmu1
 ``:
-	ld b, 8				; bit count
-	xor a				; remainder
+    ld b, 8             ; bit count
+    xor a               ; remainder
 ``_1:
-	sla h				; left shift H
-
-	add hl, hl			; left shift H
-    mvi c, 8            ; bit count
-    xra a               ; remainder
-``_1:
-	sla h
-	rla					; shift top bit of H into remainder
-	cp d
-	jr c, ``_noadd
-	inc h
-	sub d
+    sla h               ; left shift H
+    rla                 ; shift top bit of H into remainder
+    cp d
+    jr c, ``_noadd
+    inc h
+    sub d
 ``_noadd:
-	djnz ``_1
-	ret
+    djnz ``_1
+    ret
 
 # Divides two eight-bit signed numbers: A = H / D.
 # The quotient is returned in H, the remainder in D.
 &X _dvrms1
     cseg ; _dvrms1
 ``:
-	ld a, h
-	xor d				; discover sign of result
-	push af				; save for later
-	xor d				; recover h (sign of remainder)
-	push af				; save for later
+    ld a, h
+    xor d               ; discover sign of result
+    push af             ; save for later
+    xor d               ; recover h (sign of remainder)
+    push af             ; save for later
 
-	jp p, ``_h_positive
-	xor a
-	sub h				; invert h to make it positive
-	ld h, a
+    jp p, ``_h_positive
+    xor a
+    sub h               ; invert h to make it positive
+    ld h, a
 
 ``_h_positive:
-	ld a, d
-	or d				; get sign of d
-	jp p, ``_d_positive
-	xor a
-	sub d				; invert d to make it positive
-	ld d, a
+    ld a, d
+    or d                ; get sign of d
+    jp p, ``_d_positive
+    xor a
+    sub d               ; invert d to make it positive
+    ld d, a
 
 ``_d_positive:
-	call `_dvrmu1		; actually do the division
-	ld d, a				; put remainder in a
+    call `_dvrmu1       ; actually do the division
+    ld d, a             ; put remainder in a
 
-	pop af				; get sign of remainder
-	jp p, ``_remainder_positive
-	xor a
-	sub d				; invert remainder
-	ld d, a
+    pop af              ; get sign of remainder
+    jp p, ``_remainder_positive
+    xor a
+    sub d               ; invert remainder
+    ld d, a
 
 ``_remainder_positive:
-	pop af				; get sign of result
-	ret p				; finish now if we're good
-	xor a
-	sub h				; invert result
-	ld h, a
-	ret
+    pop af              ; get sign of result
+    ret p               ; finish now if we're good
+    xor a
+    sub h               ; invert result
+    ld h, a
+    ret
 
-# Divides two sixteen-bit unsigned numbers: DE = DE / BC.
-# The quotient is returned in DE, the remainder in HL.
+# Divides two sixteen-bit unsigned numbers: BC = BC / DE
+# The quotient is returned in BC, the remainder in HL.
 &X _dvrmu2
-	cseg ; _dvrmu2
+    cseg ; _dvrmu2
 ``:
-	ld a, 16			; bit count
-	ld hl, 0			; reset remainder
-	jr ``_entry
-``_loop:
-	add hl, bc
-	dec a
-	ret z
+    ld a, 16            ; bit count
+    ld hl, 0            ; reset remainder
+    jr ``_entry
+``_loop1:
+    add hl, de
+``_loop2:
+    dec a
+    ret z
 ``_entry:
-	sla e
-	rl d
-	adc hl, hl
-	sbc hl, bc
-	jr nc, ``_loop
-	inc e				; can never overflow, only increment low byte
-	jr ``_loop
+    sla c               ; left shift LHS
+    rl b
+    adc hl, hl          ; top bit of LHS goes into remainder
+    or a                ; clear carry
+    sbc hl, de          ; sets carry if remainder(hl) < de
+    jr c, ``_loop1      ; if remainder < de, undo add and go round again
+    inc c               ; we know the bottom bit is clear
+    jr ``_loop2
 
-# Divides two 16-bit signed numbers: DE = DE / BC.
-# The quotient is returned in DE, the remainder in BC.
+# Divides two 16-bit signed numbers: BC = BC / DE
+# The quotient is returned in BC, the remainder in DE..
 &X _dvrms2
-	cseg ; _dvrms2
+    cseg ; _dvrms2
 ``:
-	ld a, d
-	xor b				; discover sign of result
-	push af				; save for later
-	xor b				; recover d (and sign of remainder)
-	push af				; save for later
+    ld a, b
+    xor d               ; discover sign of result
+    push af             ; save for later
+    xor d               ; recover b (and sign of remainder)
+    push af             ; save for later
 
-	jp p, ``_de_positive
-	ld hl, 0
-	and a
-	sbc hl, de			; negate de
-	ex de, hl
-``_de_positive:
-
-	bit 7, b			; get sign of bc
-	jr z, ``_bc_positive
-	ld hl, 0
-	and a
-	sbc hl, bc			; negate bc
-	ld b, h
-	ld c, l
+    jp p, ``_bc_positive
+    ld hl, 0
+    and a
+    sbc hl, bc          ; negate bc
+    ld b, h
+    ld c, l
 ``_bc_positive:
 
-	call ``_dvrmu2		; actually do the division
-	ld b, h				; put remainder in bc as we need hl
-	ld c, l
+    bit 7, d            ; get sign of de
+    jr z, ``_de_positive
+    ld hl, 0
+    and a
+    sbc hl, de          ; negate de
+    ex de, hl
+``_de_positive:
 
-	pop af				; recover sign of remainder
-	jp p, ``_remainder_positive
-	ld hl, 0
-	and a
-	sbc hl, bc			; invert remainder
-	ld b, h
-	ld c, l
+    call `_dvrmu2       ; actually do the division
+    ex de, hl           ; put remainder in de as we need hl
+
+    pop af              ; recover sign of remainder
+    jp p, ``_remainder_positive
+    ld hl, 0
+    and a
+    sbc hl, de          ; invert remainder
+    ex de, hl
 ``_remainder_positive:
 
-	pop af				; recover sign of result
-	ret p				; return now if we're good
-	ld hl, 0
-	and a
-	sbc hl, de			; invert result
-	ex de, hl
-	ret
+    pop af              ; recover sign of result
+    ret p               ; return now if we're good
+    ld hl, 0
+    and a
+    sbc hl, bc          ; invert result
+    ld b, h
+    ld c, l
+    ret
 
-# Divides two thirty-two-bit unsigned number: DEDE = DEDE / BCBC.
-# The quotient is returned in DEDE, the remainder in HLHL.
+# Divides two thirty-two-bit unsigned number: BCBC = BCBC / DEDE
+# The quotient is returned in BCBC, the remainder in HLHL.
 &X _dvrmu4
-	cseg ; _dvrmu4
+    cseg ; _dvrmu4
 ``:
-	ld a, 32			; bit count
-	ld hl, 0			; reset remainder
-	exx
-	ld hl, 0
-	exx
-	jr ``_entry
-``_loop:
-	add hl, bc
-	exx
-	adc hl, bc
-	exx
-	dec a
-	ret z
+    ld a, 32            ; bit count
+    and a               ; reset carry
+    sbc hl, hl          ; reset remainder
+    exx
+    sbc hl, hl
+    exx
+    jr ``_entry
+``_loop1:
+    add hl, de
+    exx
+    adc hl, de
+    exx
+``_loop2:
+    dec a
+    ret z
 ``_entry:
-	sla e
-	rl d
-	exx
-	rl e
-	rl d
-	exx
-	adc hl, hl
-	exx
-	adc hl, hl
-	exx
-	sbc hl, bc
-	exx
-	sbc hl, bc
-	exx
-	jr nc, ``_loop
-	inc de				; can never overflow, only increment low word
-	jr ``_loop
+    sla c               ; left shift LHS
+    rl b
+    exx
+    rl c
+    rl b
+    exx
+    adc hl, hl          ; top bit of LHS goes into remainder
+    exx
+    adc hl, hl
+    exx
+    or a                ; clear carry
+    sbc hl, de          ; sets carry if remainder < RHS
+    exx
+    sbc hl, de
+    exx
+    jr c, ``_loop1      ; if remainder < RHS, undo add and go round again
+    inc c               ; we know the bottom bit is clear
+    jr ``_loop2
 
-# Divides two 32-bit signed numbers: DEDE = DEDE / BCBC.
-# The quotient is returned in DEDE, the remainder in BCBC.
+# Divides two 32-bit signed numbers: BCBC = BCBC / DEDE
+# The quotient is returned in BCBC, the remainder in DEDE.
 &X _dvrms4
-	cseg ; _dvrms4
+    cseg ; _dvrms4
 ``:
-	exx
-	ld a, d
-	xor b				; discover sign of result
-	push af				; save for later
-	xor b				; recover d (and sign of remainder)
-	push af				; save for later
-	exx
+    exx
+    ld a, b
+    xor d               ; discover sign of result
+    push af             ; save for later
+    xor d               ; recover b (and sign of remainder) (and clear carry)
+    push af             ; save for later
+    exx
 
-	jp p, ``_dede_positive
-	ld hl, 0
-	and a
-	sbc hl, de
-	ex de, hl
-	exx
-	ld hl, 0
-	sbc hl, de
-	ex de, hl
-	exx					; negate dede
-``_dede_positive:
-
-	exx
-	bit 7, b			; get sign of bcbc
-	exx
-	jr z, ``_bcbc_positive
-	ld hl, 0
-	and a
-	sbc hl, bc
-	ld b, h
-	ld c, l
-	exx
-	ld hl, 0
-	sbc hl, bc
-	ld b, h
-	ld c, l
-	exx					; negate bcbc
+    jp p, ``_bcbc_positive
+    sbc hl, hl          ; set hl to 0
+    sbc hl, bc          ; negate bc
+    ld b, h
+    ld c, l
+    exx
+    ld hl, 0
+    sbc hl, bc
+    ld b, h
+    ld c, l
+    exx
 ``_bcbc_positive:
 
-	call `_dvrmu4		; actually do the division
-	ld b, h				; put remainder in bc as we need hl
-	ld c, l
-	exx
-	ld b, h
-	ld c, l
-	exx
+    exx
+    bit 7, d            ; get sign of dede
+    exx
+    jr z, ``_dede_positive
+    ld hl, 0
+    and a
+    sbc hl, de
+    ex de, hl
+    exx
+    ld hl, 0
+    sbc hl, de
+    ex de, hl
+    exx                 ; negate dede
+``_dede_positive:
 
-	pop af				; recover sign of remainder
-	jp p, ``_remainder_positive
-	ld hl, 0
-	and a
-	sbc hl, bc			; invert remainder
-	ld b, h
-	ld c, l
-	exx
-	ld hl, 0
-	sbc hl, bc
-	ld b, h
-	ld c, l
-	exx
+    call `_dvrmu4       ; actually do the division
+    ex de, hl           ; put remainder in de as we need hl
+    exx
+    ex de, hl
+    exx
+
+    pop af              ; recover sign of remainder
+    jp p, ``_remainder_positive
+    and a               ; clear carry
+    sbc hl, hl
+    sbc hl, de          ; invert remainder
+    ex de, hl
+    exx
+    ld hl, 0
+    sbc hl, de
+    ex de, hl
+    exx
 ``_remainder_positive:
 
-	pop af				; recover sign of result
-	ret p				; return now if we're good
-	ld hl, 0
-	and a
-	sbc hl, de			; invert result
-	ex de, hl
-	exx
-	ld hl, 0
-	sbc hl, de
-	ex de, hl
-	exx
-	ret
+    pop af              ; recover sign of result
+    ret p               ; return now if we're good
+    and a
+    sbc hl, hl
+    sbc hl, bc          ; invert result
+    ld b, h
+    ld c, l
+    exx
+    ld hl, 0
+    sbc hl, bc
+    ld b, h
+    ld c, l
+    exx
+    ret
 
 # ANDs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
 &X _and4
-	cseg ; _and4
+    cseg ; _and4
 ``:
-	ld a, l
-	and e
-	ld l, a
-	ld a, h
-	and d
-	ld h, a
-	exx
+    ld a, l
+    and e
+    ld l, a
+    ld a, h
+    and d
+    ld h, a
+    exx
 
-	ld a, l
-	and e
-	ld l, a
-	ld a, h
-	and d
-	ld h, a
-	exx
-	ret
+    ld a, l
+    and e
+    ld l, a
+    ld a, h
+    and d
+    ld h, a
+    exx
+    ret
 
 # ORs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
 &X _or4
-	cseg ; _or4
+    cseg ; _or4
 ``:
-	ld a, l
-	or e
-	ld l, a
-	ld a, h
-	or d
-	ld h, a
-	exx
+    ld a, l
+    or e
+    ld l, a
+    ld a, h
+    or d
+    ld h, a
+    exx
 
-	ld a, l
-	or e
-	ld l, a
-	ld a, h
-	or d
-	ld h, a
-	exx
-	ret
+    ld a, l
+    or e
+    ld l, a
+    ld a, h
+    or d
+    ld h, a
+    exx
+    ret
 
 # EORs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
 &X _eor4
-	cseg ; _eor4
+    cseg ; _eor4
 ``:
-	ld a, l
-	xor e
-	ld l, a
-	ld a, h
-	xor d
-	ld h, a
-	exx
+    ld a, l
+    xor e
+    ld l, a
+    ld a, h
+    xor d
+    ld h, a
+    exx
 
-	ld a, l
-	xor e
-	ld l, a
-	ld a, h
-	xor d
-	ld h, a
-	exx
-	ret
+    ld a, l
+    xor e
+    ld l, a
+    ld a, h
+    xor d
+    ld h, a
+    exx
+    ret
+
+# NOTs the 32-bit number in HLHL. Uses A.
+&X _not4
+    cseg ; _not4
+``:
+    ld a, l
+    cpl
+    ld l, a
+    ld a, h
+    cpl
+    ld h, a
+    exx
+    ld a, l
+    cpl
+    ld l, a
+    ld a, h
+    cpl
+    ld h, a
+    exx
+    ret
+
+# Signed comparison of HL and DE. Uses A.
+# Returns m if HL < DE.
+&X _cmps2
+    cseg ; _cmps2
+``:
+    and a               ; clear carry
+    sbc hl, de
+    jp po, $+5
+    xor 0x80            ; ruins Z
+    ret
 
 # Compares HLHL and DEDE.
 # Returns z if HLHL == DEDE.
@@ -474,7 +509,7 @@
 &X _cmpu4
     cseg ; _cmpeq4
 ``:
-    and a				; clear carry
+    and a               ; clear carry
     sbc hl, de
     ret nz
     exx
@@ -487,15 +522,15 @@
 &X _cmps4
     cseg ; _cmps4
 ``:
-	and a				; clear carry
-	sbc hl, de
-	exx
-	sbc hl, de			; leaves C set on unsigned overflow
-	ld a, h				; preserve high byte
-	exx
-	jp po, $+5
-	xor 0x80			; invert sign byte
-	ret
+    and a               ; clear carry
+    sbc hl, de
+    exx
+    sbc hl, de          ; leaves C set on unsigned overflow
+    ld a, h             ; preserve high byte
+    exx
+    jp po, $+5
+    xor 0x80            ; invert sign byte, spoil Z
+    ret
 
 # vim: ts=4 sw=4 et
 
