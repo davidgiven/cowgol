@@ -146,7 +146,10 @@
 			when REG_DEDE: result := REG_E;
 			when REG_HLHL: result := REG_L;
 			when else:
-				SimpleError("bad loreg");
+				StartError();
+				print("bad loreg ");
+				print_hex_i16(reg);
+				EndError();
 		end case;
 	end sub;
 
@@ -160,7 +163,10 @@
 			when REG_DEDE: result := REG_D;
 			when REG_HLHL: result := REG_H;
 			when else:
-				SimpleError("bad hireg");
+				StartError();
+				print("bad hireg ");
+				print_hex_i16(reg);
+				EndError();
 		end case;
 	end sub;
 
@@ -655,12 +661,11 @@
 		elseif ((src|dest) & (REG_IX|REG_IY)) != 0 then
 			E_push(src);
 			E_pop(dest);
+		elseif (src & (REG_HL|REG_BC|REG_DE)) != 0 then
+			E_mov(hireg(dest), hireg(src));
+			E_mov(loreg(dest), loreg(src));
 		else
 			E_mov(dest, src);
-
-			if (src & (REG_HL|REG_BC|REG_DE)) != 0 then
-				E_mov(loreg(dest), loreg(src));
-			end if;
 		end if;
 	end sub;
 
@@ -961,24 +966,21 @@ gen r16 := LOAD2(ADDRESS():a)
 	E_load16($$, $a.sym, $a.off);
 }
 
-%{
-	sub load2(dest: RegId)
-		if dest == REG_HL then
-			E_loadm(REG_A);
-			E_inc(REG_HL);
-			E_loadm(dest);
-			E_mov(loreg(dest), REG_A);
-		else
-			E_loadm(loreg(dest));
-			E_inc(REG_HL);
-			E_loadm(dest);
-		end if;
-	end sub;
-%}
-
-gen r16 := LOAD2(hl) uses a
+gen hl|bc|de := LOAD2(hl|ix|iy:rhs) uses a
 {
-	load2($$);
+	if ($rhs & (REG_IX|REG_IY)) != 0 then
+		E_load8i(loreg($$), $rhs, 0);
+		E_load8i(hireg($$), $rhs, 1);
+	elseif $rhs == $$ then
+		E_loadm(REG_A);
+		E_inc(REG_HL);
+		E_loadm(hireg($$));
+		E_mov(loreg($$), REG_A);
+	else
+		E_loadm(loreg($$));
+		E_inc(REG_HL);
+		E_loadm(hireg($$));
+	end if;
 }
 
 gen STORE2(r16:ptr, ADDRESS():a)
@@ -986,11 +988,16 @@ gen STORE2(r16:ptr, ADDRESS():a)
 	E_store16($ptr, $a.sym, $a.off);
 }
 
-gen STORE2(bc|de:val, hl) uses a
+gen STORE2(bc|de:val, hl|ix|iy:rhs) uses a
 {
-	E_storem(loreg($val));
-	E_inc(REG_HL);
-	E_storem($val);
+	if ($rhs & (REG_IX|REG_IY)) != 0 then
+		E_store8i(loreg($val), $rhs, 0);
+		E_store8i(hireg($val), $rhs, 1);
+	else
+		E_storem(loreg($val));
+		E_inc(REG_HL);
+		E_storem(hireg($val));
+	end if;
 }
 
 // --- 32-bit loads and stores ----------------------------------------------
@@ -1084,16 +1091,16 @@ gen a := EOR1(a, b|d|h:lhs)
 gen a := EOR1(a, CONSTANT():c)
 		{ E_xori($c.value as uint8); }
 
-gen b := DIVU1(b, d) uses a
+gen h := DIVU1(h, d) uses a
 		{ E_callhelper("_dvrmu1"); }
 
-gen a := REMU1(b, d)
+gen a := REMU1(h, d)
 		{ E_callhelper("_dvrmu1"); }
 
 gen b := DIVS1(b, d) uses a
 		{ E_callhelper("_dvrms1"); }
 
-gen d := REMS1(b, d)
+gen d := REMS1(b, d) // note, result not in A
 		{ E_callhelper("_dvrms1"); }
 
 gen a := RSHIFTS1(a, b)
@@ -1213,18 +1220,18 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 		E_mov(REG_A, loreg(lhs));
 		E_alu(loinsn, loreg(rhs));
 		E_mov(loreg(dest), REG_A);
-		E_mov(REG_A, lhs);
-		E_alu(hiinsn, rhs);
-		E_mov(dest, REG_A);
+		E_mov(REG_A, hireg(lhs));
+		E_alu(hiinsn, hireg(rhs));
+		E_mov(hireg(dest), REG_A);
 	end sub;
 
 	sub aluop2i(lhs: RegId, value: uint16, dest: RegId, loinsn: string, hiinsn: string)
 		E_mov(REG_A, loreg(lhs));
 		E_alui(loinsn, value as uint8);
 		E_mov(loreg(dest), REG_A);
-		E_mov(REG_A, lhs);
+		E_mov(REG_A, hireg(lhs));
 		E_alui(hiinsn, (value >> 8) as uint8);
-		E_mov(dest, REG_A);
+		E_mov(hireg(dest), REG_A);
 	end sub;
 %}
 
@@ -1237,10 +1244,10 @@ gen hl := REMU2(de, bc) uses a
 gen de := DIVS2(de, bc) uses a
 		{ E_callhelper("_dvrms2"); }
 
-gen hl := REMS2(de, bc) uses a
+gen bc := REMS2(de, bc) uses a|hl // note, remainder not in hl
 		{ E_callhelper("_dvrms2"); }
 
-gen hl := MUL2(hl, de) uses a|bc
+gen hl := MUL2(de, bc) uses a
 		{ E_callhelper("_mul2"); }
 
 %{
@@ -1276,9 +1283,9 @@ gen bc|de|hl := NOT2(bc|de|hl:lhs) uses a
 	E_mov(REG_A, loreg($lhs));
 	E_cpl();
 	E_mov(loreg($$), REG_A);
-	E_mov(REG_A, $lhs);
+	E_mov(REG_A, hireg($lhs));
 	E_cpl();
-	E_mov($$, REG_A);
+	E_mov(hireg($$), REG_A);
 }
 
 gen hl := RSHIFTU2(hl, a)
@@ -1331,28 +1338,28 @@ gen hlhl := NEG4(hlhl) uses a|bcbc
 	E_exx();
 }
 
-gen hlhl := MUL4(bcbc, dede)
+gen hlhl := MUL4(bcbc, dede) uses a
         { E_callhelper("_mul4"); }
 
-gen r32 := DIVU4(r32, r32)
-        { E_callhelper("_divu4"); }
+gen dede := DIVU4(dede, bcbc) uses a|hlhl
+        { E_callhelper("_dvrmu4"); }
 
-gen r32 := REMU4(r32, r32)
-        { E_callhelper("_remu4"); }
+gen hlhl := REMU4(dede, bcbc) uses a
+        { E_callhelper("_dvrmu4"); }
 
-gen r32 := DIVS4(r32, r32)
-        { E_callhelper("_divs4"); }
+gen dede := DIVS4(dede, bcbc) uses a|hlhl
+        { E_callhelper("_dvrms4"); }
 
-gen r32 := REMS4(r32, r32)
-        { E_callhelper("_rems4"); }
+gen bcbc := REMS4(dede, bcbc) uses a|hlhl // note, remainder in bcbc
+        { E_callhelper("_dvrms4"); }
 
-gen hlhl := AND4(dede, hlhl)
+gen hlhl := AND4(dede, hlhl) uses a
         { E_callhelper("_and4"); }
 
-gen hlhl := OR4(dede, hlhl)
+gen hlhl := OR4(dede, hlhl) uses a
         { E_callhelper("_or4"); }
 
-gen hlhl := EOR4(dede, hlhl)
+gen hlhl := EOR4(dede, hlhl) uses a
         { E_callhelper("_eor4"); }
 
 gen r32 := NOT4($$)
@@ -1363,13 +1370,13 @@ gen r32 := NOT4($$)
 	E_exx();
 }
 
-gen hlhl := LSHIFT4(hlhl, a)
+gen hlhl := LSHIFT4(hlhl, b)
         { E_callhelper("_asl4"); }
 
-gen hlhl := RSHIFTU4(hlhl, a)
+gen hlhl := RSHIFTU4(hlhl, b)
         { E_callhelper("_lsr4"); }
 
-gen hlhl := RSHIFTS4(hlhl, a)
+gen hlhl := RSHIFTS4(hlhl, b)
         { E_callhelper("_asr4"); }
 
 // --- Conditionals ---------------------------------------------------------
@@ -1390,6 +1397,10 @@ gen hlhl := RSHIFTS4(hlhl, a)
 
 	sub E_jumps_jc_jnc(node: [Node])
 		E_jumps_with_fallthrough("jp c,", "jp nc,", node);
+	end sub;
+
+	sub E_jumps_jm_jp(node: [Node])
+		E_jumps_with_fallthrough("jp m,", "jp p,", node);
 	end sub;
 
 	sub bequ1(node: [Node], nota: RegId)
@@ -1469,8 +1480,10 @@ gen BLTU1(a, CONSTANT():c):b
 
 gen BLTS1(a, b):b
 {
-	E_callhelper("_cmps1");
-	E_jumps_with_fallthrough("jp m,", "jp p,", self.n[0]);
+	E_sub(REG_B);
+	E("\tjp p, $+5\n");
+	E_xori(0x80);
+	E_jumps_jm_jp(self.n[0]);
 }
 
 %{
@@ -1494,21 +1507,21 @@ gen BLTU2(hl, bc|de:rhs):b
 	E_jumps_jc_jnc(self.n[0]);
 }
 
-gen BLTS2(de, hl):b uses a|bc
+gen BLTS2(hl, de):b uses a|bc
 {
 	E_callhelper("_cmps2");
-	E_jumps_jc_jnc(self.n[0]);
+	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BEQU4(hlhl, dede):b uses a
+gen BEQU4(dede, hlhl):b uses a
 {
-	E_callhelper("_cmpeq4");
+	E_callhelper("_cmpu4");
 	E_jumps_jz_jnz(self.n[0]);
 }
 
-gen BEQS4(hlhl, dede):b uses a
+gen BEQS4(dede, hlhl):b uses a
 {
-	E_callhelper("_cmpeq4");
+	E_callhelper("_cmpu4");
 	E_jumps_jz_jnz(self.n[0]);
 }
 
@@ -1521,7 +1534,7 @@ gen BLTU4(hlhl, dede):b
 gen BLTS4(hlhl, dede):b
 {
 	E_callhelper("_cmps4");
-	E_jumps_jc_jnc(self.n[0]);
+	E_jumps_jm_jp(self.n[0]);
 }
 	
 // --- Case -----------------------------------------------------------------
@@ -1625,7 +1638,7 @@ gen hlhl := CAST24(hl, sext==0)
 	E_exx();
 }
 
-gen hlhl := CAST24(hl, sext==0) uses a
+gen hlhl := CAST24(hl, sext!=0) uses a
 {
 	E_mov(REG_A, REG_L);
 	E_rra();

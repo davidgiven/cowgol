@@ -74,7 +74,7 @@ sub fcb_i_gbpb(fcb: [FCB], c: uint8)
 	@asm "call 5";
 
 	@asm "ld a, (", c, ")";
-	@asm "mov c, a";
+	@asm "ld c, a";
 	@asm "ld de, (", cpmfcb, ")";
 	@asm "call 5";
 end sub;
@@ -111,7 +111,7 @@ sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
 	file_i_init(fcb, filename);
 
 	var cpmfcb := &fcb.cpm;
-	@asm "mov c, 15"; # OPEN_FILE
+	@asm "ld c, 15"; # OPEN_FILE
 	@asm "ld de, (", cpmfcb, ")";
 	@asm "call 5";
 	@asm "call", fcb_i_convert_a_to_error;

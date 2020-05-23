@@ -19,7 +19,7 @@ sub AlignUp(in: intptr): (out: intptr)
 end sub;
 
 sub print_char(c: uint8)
-	@asm "ld a, ", c;
+	@asm "ld a, (", c, ")";
 	@asm "ld e, a";
 	@asm "ld c, 2";
 	@asm "call 5";

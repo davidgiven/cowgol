@@ -26,6 +26,15 @@
     rr l
     jr ``
 
+# Logic shift HL right A bits.
+&X _asl2
+    cseg ; _asl2
+``:
+    dec a
+    ret m
+	add hl, hl
+    jr ``
+
 # Arithmetic shift HL right A bits.
 &X _asr2
     cseg ; _asr2
@@ -49,6 +58,19 @@
     rr h
     rr l
     jr ``
+
+# Shifts HLHL left by B bits.
+&X _asl4
+	cseg ; _asl4
+``:
+	add hl, hl
+	exx
+	ex de, hl
+	adc hl, hl
+	ex de, hl
+	exx
+	djnz ``
+	ret
 
 # Arithmetic shift HLHL right A bits.
 &X _asr4
@@ -85,6 +107,25 @@
     ld a, h
     ret
 
+# 16-bit multiplication: HL = BC * DE.
+&X _mul2
+	cseg ; _mul2
+``:
+	; no need to reset HL as the existing contents will be shifted out
+	ld a, 16			; number of iterations
+``_loop:
+	sra b				; right shift lhs
+	rr c
+	jr nc, ``_noadd
+	add hl, de			; result += rhs
+``_noadd:
+	ex de, hl			; left shift rhs
+	add hl, hl
+	ex de, hl
+	dec a
+	jr nz, ``_loop
+	ret
+
 # 32-bit multiplication: HLHL = BCBC * DEDE.
 &X _mul4
     cseg ; _mul4
@@ -113,17 +154,349 @@
     dec a
     jr nz, ``_loop
     ret
-#
-# Compares HLHL and DEDE, setting Z or NZ. Uses A.
-&X _cmpeq4
+
+# Divides two eight-bit unsigned numbers: A = H / D.
+# The quotient is returned in H, the remainder in A.
+&X _dvrmu1
+    cseg ; _dvrmu1
+``:
+	ld b, 8				; bit count
+	xor a				; remainder
+``_1:
+	sla h				; left shift H
+
+	add hl, hl			; left shift H
+    mvi c, 8            ; bit count
+    xra a               ; remainder
+``_1:
+	sla h
+	rla					; shift top bit of H into remainder
+	cp d
+	jr c, ``_noadd
+	inc h
+	sub d
+``_noadd:
+	djnz ``_1
+	ret
+
+# Divides two eight-bit signed numbers: A = H / D.
+# The quotient is returned in H, the remainder in D.
+&X _dvrms1
+    cseg ; _dvrms1
+``:
+	ld a, h
+	xor d				; discover sign of result
+	push af				; save for later
+	xor d				; recover h (sign of remainder)
+	push af				; save for later
+
+	jp p, ``_h_positive
+	xor a
+	sub h				; invert h to make it positive
+	ld h, a
+
+``_h_positive:
+	ld a, d
+	or d				; get sign of d
+	jp p, ``_d_positive
+	xor a
+	sub d				; invert d to make it positive
+	ld d, a
+
+``_d_positive:
+	call `_dvrmu1		; actually do the division
+	ld d, a				; put remainder in a
+
+	pop af				; get sign of remainder
+	jp p, ``_remainder_positive
+	xor a
+	sub d				; invert remainder
+	ld d, a
+
+``_remainder_positive:
+	pop af				; get sign of result
+	ret p				; finish now if we're good
+	xor a
+	sub h				; invert result
+	ld h, a
+	ret
+
+# Divides two sixteen-bit unsigned numbers: DE = DE / BC.
+# The quotient is returned in DE, the remainder in HL.
+&X _dvrmu2
+	cseg ; _dvrmu2
+``:
+	ld a, 16			; bit count
+	ld hl, 0			; reset remainder
+	jr ``_entry
+``_loop:
+	add hl, bc
+	dec a
+	ret z
+``_entry:
+	sla e
+	rl d
+	adc hl, hl
+	sbc hl, bc
+	jr nc, ``_loop
+	inc e				; can never overflow, only increment low byte
+	jr ``_loop
+
+# Divides two 16-bit signed numbers: DE = DE / BC.
+# The quotient is returned in DE, the remainder in BC.
+&X _dvrms2
+	cseg ; _dvrms2
+``:
+	ld a, d
+	xor b				; discover sign of result
+	push af				; save for later
+	xor b				; recover d (and sign of remainder)
+	push af				; save for later
+
+	jp p, ``_de_positive
+	ld hl, 0
+	and a
+	sbc hl, de			; negate de
+	ex de, hl
+``_de_positive:
+
+	bit 7, b			; get sign of bc
+	jr z, ``_bc_positive
+	ld hl, 0
+	and a
+	sbc hl, bc			; negate bc
+	ld b, h
+	ld c, l
+``_bc_positive:
+
+	call ``_dvrmu2		; actually do the division
+	ld b, h				; put remainder in bc as we need hl
+	ld c, l
+
+	pop af				; recover sign of remainder
+	jp p, ``_remainder_positive
+	ld hl, 0
+	and a
+	sbc hl, bc			; invert remainder
+	ld b, h
+	ld c, l
+``_remainder_positive:
+
+	pop af				; recover sign of result
+	ret p				; return now if we're good
+	ld hl, 0
+	and a
+	sbc hl, de			; invert result
+	ex de, hl
+	ret
+
+# Divides two thirty-two-bit unsigned number: DEDE = DEDE / BCBC.
+# The quotient is returned in DEDE, the remainder in HLHL.
+&X _dvrmu4
+	cseg ; _dvrmu4
+``:
+	ld a, 32			; bit count
+	ld hl, 0			; reset remainder
+	exx
+	ld hl, 0
+	exx
+	jr ``_entry
+``_loop:
+	add hl, bc
+	exx
+	adc hl, bc
+	exx
+	dec a
+	ret z
+``_entry:
+	sla e
+	rl d
+	exx
+	rl e
+	rl d
+	exx
+	adc hl, hl
+	exx
+	adc hl, hl
+	exx
+	sbc hl, bc
+	exx
+	sbc hl, bc
+	exx
+	jr nc, ``_loop
+	inc de				; can never overflow, only increment low word
+	jr ``_loop
+
+# Divides two 32-bit signed numbers: DEDE = DEDE / BCBC.
+# The quotient is returned in DEDE, the remainder in BCBC.
+&X _dvrms4
+	cseg ; _dvrms4
+``:
+	exx
+	ld a, d
+	xor b				; discover sign of result
+	push af				; save for later
+	xor b				; recover d (and sign of remainder)
+	push af				; save for later
+	exx
+
+	jp p, ``_dede_positive
+	ld hl, 0
+	and a
+	sbc hl, de
+	ex de, hl
+	exx
+	ld hl, 0
+	sbc hl, de
+	ex de, hl
+	exx					; negate dede
+``_dede_positive:
+
+	exx
+	bit 7, b			; get sign of bcbc
+	exx
+	jr z, ``_bcbc_positive
+	ld hl, 0
+	and a
+	sbc hl, bc
+	ld b, h
+	ld c, l
+	exx
+	ld hl, 0
+	sbc hl, bc
+	ld b, h
+	ld c, l
+	exx					; negate bcbc
+``_bcbc_positive:
+
+	call `_dvrmu4		; actually do the division
+	ld b, h				; put remainder in bc as we need hl
+	ld c, l
+	exx
+	ld b, h
+	ld c, l
+	exx
+
+	pop af				; recover sign of remainder
+	jp p, ``_remainder_positive
+	ld hl, 0
+	and a
+	sbc hl, bc			; invert remainder
+	ld b, h
+	ld c, l
+	exx
+	ld hl, 0
+	sbc hl, bc
+	ld b, h
+	ld c, l
+	exx
+``_remainder_positive:
+
+	pop af				; recover sign of result
+	ret p				; return now if we're good
+	ld hl, 0
+	and a
+	sbc hl, de			; invert result
+	ex de, hl
+	exx
+	ld hl, 0
+	sbc hl, de
+	ex de, hl
+	exx
+	ret
+
+# ANDs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
+&X _and4
+	cseg ; _and4
+``:
+	ld a, l
+	and e
+	ld l, a
+	ld a, h
+	and d
+	ld h, a
+	exx
+
+	ld a, l
+	and e
+	ld l, a
+	ld a, h
+	and d
+	ld h, a
+	exx
+	ret
+
+# ORs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
+&X _or4
+	cseg ; _or4
+``:
+	ld a, l
+	or e
+	ld l, a
+	ld a, h
+	or d
+	ld h, a
+	exx
+
+	ld a, l
+	or e
+	ld l, a
+	ld a, h
+	or d
+	ld h, a
+	exx
+	ret
+
+# EORs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
+&X _eor4
+	cseg ; _eor4
+``:
+	ld a, l
+	xor e
+	ld l, a
+	ld a, h
+	xor d
+	ld h, a
+	exx
+
+	ld a, l
+	xor e
+	ld l, a
+	ld a, h
+	xor d
+	ld h, a
+	exx
+	ret
+
+# Compares HLHL and DEDE.
+# Returns z if HLHL == DEDE.
+# Returns c if HLHL < DEDE.
+&X _cmpu4
     cseg ; _cmpeq4
 ``:
-    xor a
+    and a				; clear carry
     sbc hl, de
     ret nz
     exx
-    xor a
     sbc hl, de
     exx
     ret
+
+# Signed comparison of HLHL and DEDE. Uses A.
+# Returns m if HLHL < DEDE.
+&X _cmps4
+    cseg ; _cmps4
+``:
+	and a				; clear carry
+	sbc hl, de
+	exx
+	sbc hl, de			; leaves C set on unsigned overflow
+	ld a, h				; preserve high byte
+	exx
+	jp po, $+5
+	xor 0x80			; invert sign byte
+	ret
+
+# vim: ts=4 sw=4 et
+
 

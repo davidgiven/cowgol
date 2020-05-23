@@ -139,7 +139,10 @@
 			when REG_DE: result := REG_E;
 			when REG_HL: result := REG_L;
 			when else:
-				SimpleError("bad loreg");
+				StartError();
+				print("bad loreg ");
+				print_hex_i16(reg);
+				EndError();
 		end case;
 	end sub;
 
