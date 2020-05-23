@@ -5,7 +5,7 @@ const CACHE_SLOT_CONSTANT := 1;
 const CACHE_SLOT_ADDRESS  := 2;
 const CACHE_SLOT_VALUE    := 3;
 
-typedef CacheValue := int(0, (1<<MACHINE_WIDTH)-1);
+typedef CacheValue := uint32;
 
 record CacheSlot
 	symbol: [Symbol];

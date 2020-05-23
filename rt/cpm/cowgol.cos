@@ -129,7 +129,7 @@
     jmp 0
 
 # Divides two eight-bit unsigned numbers: B / D.
-# The quotient is returned in A, the remainder in B.
+# The quotient is returned in B, the remainder in A.
 &X _dvrmu1
     cseg ; _dvrmu1
 ``:

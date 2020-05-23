@@ -62,7 +62,7 @@ sub FindFirst(inreg: RegId): (outreg: RegId)
 		end if;
 		outreg := outreg << 1;
 	end loop;
-	SimpleError("failed to allocate register");
+	outreg := 0;
 end sub;
 
 include "inssel.coh";
@@ -400,12 +400,12 @@ sub Generate(rootnode: [Node])
 				var blocked := CalculateBlockedRegisters(@next consumer, @prev producer);
 				var candidate := node.desired_reg & producer.producable_regs;
 
-				var mask := candidate & ~(blocked | producer.output_regs | consumer.input_regs);
-				if mask != 0 then
+				var mask1 := candidate & ~(blocked | producer.output_regs | consumer.input_regs);
+				if mask1 != 0 then
 					# Good news --- we can allocate the ideal register for
 					# both producer and consumer.
 
-					candidate := FindFirst(mask);
+					candidate := FindFirst(mask1);
 					node.produced_reg := candidate;
 					producer.produced_reg := candidate;
 
@@ -414,13 +414,14 @@ sub Generate(rootnode: [Node])
 					BlockRegisters(@next consumer, @prev producer, blocked);
 					producer.output_regs := producer.output_regs | blocked;
 				else
-					mask := producer.producable_regs & ~(blocked | producer.output_regs);
-					if mask != 0 then
+					mask1 := producer.producable_regs & ~(blocked | producer.output_regs);
+					var mask2 := node.desired_reg & ~consumer.input_regs;
+					if (mask1 != 0) and (mask2 != 0) then
 						# The producer and consumer want different registers, but the
 						# producers register works up until the consumer.
 
-						producer.produced_reg := FindFirst(mask);
-						node.produced_reg := FindFirst(node.desired_reg & ~consumer.input_regs);
+						producer.produced_reg := FindFirst(mask1);
+						node.produced_reg := FindFirst(mask2);
 						consumer.input_regs := consumer.input_regs
 							| FindConflictingRegisters(node.produced_reg);
 						blocked := FindConflictingRegisters(producer.produced_reg);
@@ -428,14 +429,14 @@ sub Generate(rootnode: [Node])
 						producer.output_regs := producer.output_regs | blocked;
 						CreateReload(consumer, producer.produced_reg, node.produced_reg);
 					else
-						mask := node.desired_reg & ~(blocked | consumer.input_regs);
-						if mask != 0 then
+						mask1 := node.desired_reg & ~(blocked | consumer.input_regs);
+						mask2 := producer.producable_regs & ~producer.output_regs;
+						if (mask1 != 0) and (mask2 != 0) then
 							# The producer and consumer want different registers, but the
 							# consumer's register works after the producer.
 
-							producer.produced_reg := FindFirst(
-									producer.producable_regs & ~producer.output_regs);
-							node.produced_reg := FindFirst(mask);
+							producer.produced_reg := FindFirst(mask2);
+							node.produced_reg := FindFirst(mask1);
 							blocked := FindConflictingRegisters(node.produced_reg);
 							consumer.input_regs := consumer.input_regs | blocked;
 							BlockRegisters(@next consumer, @prev producer, blocked);
@@ -447,6 +448,21 @@ sub Generate(rootnode: [Node])
 							# spill to the stack via a push and pop.
 
 							sub deadlock()
+								print("node.op=");
+								print_i8(node.op);
+								print_nl();
+								print("producer.producable_regs=");
+								print_hex_i32(producer.producable_regs as uint32);
+								print_nl();
+								print("producer.output_regs=");
+								print_hex_i32(producer.output_regs as uint32);
+								print_nl();
+								print("node.desired_reg=");
+								print_hex_i32(node.desired_reg as uint32);
+								print_nl();
+								print("consumer.input_regs=");
+								print_hex_i32(consumer.input_regs as uint32);
+								print_nl();
 								SimpleError("register allocation deadlock");
 							end sub;
 

@@ -48,7 +48,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "rewrite"                 { return REWRITE; }
 "stacked"                 { return STACKED; }
 "uses"                    { return USES; }
-"width"                   { return WIDTH; }
+"wordsize"                { return WORDSIZE; }
 
 \"                        { BEGIN(STRINGSTATE); return BEGINSTRING; }
 <STRINGSTATE>([^\"\\$]|\\.)* { string = strdup(yytext); return CSTRING; }

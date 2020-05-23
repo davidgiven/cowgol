@@ -1,0 +1,1927 @@
+%{
+	var uint32_type: [Symbol];
+	var int32_type: [Symbol];
+	var uint16_type: [Symbol];
+	var int16_type: [Symbol];
+	var uint8_type: [Symbol];
+	var int8_type: [Symbol];
+	var intptr_type: [Symbol];
+
+	record Extern
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+		newvalue := value;
+	end sub;
+
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+		if (min >= 0) and (max <= 255) then
+			symbol := uint8_type;
+		elseif (min >= -128) and (max <= 127) then
+			symbol := int8_type;
+		elseif (min >= 0) and (max <= 65535) then
+			symbol := uint16_type;
+		elseif (min >= -32768) and (max <= 32767) then
+			symbol := int16_type;
+		elseif (min >= 0) then
+			symbol := uint32_type;
+		else
+			symbol := int32_type;
+		end if;
+	end sub;
+
+	sub ArchInitVariable(symbol: [Symbol])
+		var subr := symbol.vardata.subr;
+		var offset := subr.workspace[0];
+		symbol.vardata.offset := offset;
+		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+	end sub;
+
+	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+		member.vardata.offset := position;
+		position := position + member.vardata.type.typedata.width;
+		if position > containing.typedata.width then
+			containing.typedata.width := position;
+		end if;
+	end sub;
+
+	sub E_labelref(labelid: uint16)
+		EmitByte(COO_ESCAPE_THISCOO);
+		E_h16(labelid);
+	end sub;
+
+	sub E_subref(subr: [Subroutine])
+		if subr == current_subr then
+			EmitByte(COO_ESCAPE_THISSUB);
+		else
+			EmitByte(COO_ESCAPE_SUBREF);
+			E_h16(subr.id);
+		end if;
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size)
+		if sym.vardata.externname != (0 as string) then
+			E(sym.vardata.externname);
+			EmitByte('+');
+			E_u16(off);
+		else
+			EmitByte(COO_ESCAPE_WSREF);
+			E_h16(sym.vardata.subr.id);
+			E_h8(0);
+			E_h16(sym.vardata.offset + off);
+		end if;
+	end sub;
+
+	sub E_space()
+		EmitByte(' ');
+	end sub;
+
+	sub E_comma()
+		EmitByte(',');
+	end sub;
+
+	sub E_tab()
+		EmitByte('\t');
+	end sub;
+
+	sub E_nl();
+		EmitByte('\n');
+	end sub;
+
+	sub R_flushall()
+		RegCacheFlush(ALL_REGS);
+	end sub;
+
+	sub R_flush(reg: RegId)
+		RegCacheFlush(FindConflictingRegisters(reg));
+	end sub;
+
+	sub E_label(label: LabelRef)
+		R_flushall();
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub E_jump(insn: string, label: LabelRef)
+		R_flushall();
+		E_tab();
+		E(insn);
+		E_space();
+		E_labelref(label);
+		E_nl();
+	end sub;
+
+	sub E_jp(label: LabelRef)
+		E_jump("jp", label);
+	end sub;
+
+	sub E_jnz(label: LabelRef)
+		E_jump("jp nz,", label);
+	end sub;
+
+	sub E_ret()
+		E("\tret\n");
+	end sub;
+
+	sub E_call(subr: [Subroutine])
+		R_flushall();
+		E_tab();
+		E("call ");
+		E_subref(subr);
+		E_nl();
+	end sub;
+
+	sub loreg(reg: RegId): (result: RegId)
+		case reg is
+			when REG_A:    result := REG_A;
+			when REG_BC:   result := REG_C;
+			when REG_DE:   result := REG_E;
+			when REG_HL:   result := REG_L;
+			when REG_BCBC: result := REG_C;
+			when REG_DEDE: result := REG_E;
+			when REG_HLHL: result := REG_L;
+			when else:
+				StartError();
+				print("bad loreg ");
+				print_hex_i16(reg);
+				EndError();
+		end case;
+	end sub;
+
+	sub hireg(reg: RegId): (result: RegId)
+		case reg is
+			when REG_A:    result := REG_A;
+			when REG_BC:   result := REG_B;
+			when REG_DE:   result := REG_D;
+			when REG_HL:   result := REG_H;
+			when REG_BCBC: result := REG_B;
+			when REG_DEDE: result := REG_D;
+			when REG_HLHL: result := REG_H;
+			when else:
+				StartError();
+				print("bad hireg ");
+				print_hex_i16(reg);
+				EndError();
+		end case;
+	end sub;
+
+	sub wordreg(reg: RegId): (result: RegId)
+		case reg is
+			when REG_BCBC: result := REG_BC;
+			when REG_DEDE: result := REG_DE;
+			when REG_HLHL: result := REG_HL;
+			when else:
+				SimpleError("bad wordreg");
+		end case;
+	end sub;
+
+	sub E_reg(reg: RegId)
+		case reg is
+			when REG_A:    E("a");
+			when REG_B:    E("b");
+			when REG_C:    E("c");
+			when REG_D:    E("d");
+			when REG_E:    E("e");
+			when REG_H:    E("h");
+			when REG_L:    E("l");
+			when REG_BC:   E("bc");
+			when REG_DE:   E("de");
+			when REG_HL:   E("hl");
+			when REG_IX:   E("ix");
+			when REG_IY:   E("iy");
+			when REG_BCBC: E("bc");
+			when REG_DEDE: E("de");
+			when REG_HLHL: E("hl");
+			when else:
+				SimpleError("bad reg");
+		end case;
+	end sub;
+
+	sub E_stackref(reg: RegId)
+		if reg == REG_A then
+			E("af");
+		else
+			E_reg(reg);
+		end if;
+	end sub;
+
+	sub E_mov(dest: RegId, src: RegId)
+		R_flush(dest);
+		E_tab();
+		E("ld ");
+		E_reg(dest);
+		E_comma();
+		E_reg(src);
+		E_nl();
+	end sub;
+
+	sub E_ex()
+		R_flush(REG_HL|REG_DE);
+		E("\tex de,hl\n");
+	end sub;
+
+	sub E_exx()
+		R_flush(REG_HL|REG_DE|REG_BC);
+		E("\texx\n");
+	end sub;
+
+	sub E_push(src: RegId)
+		E("\tpush ");
+		E_stackref(src);
+		E_nl();
+	end sub;
+
+	sub E_pop(dest: RegId)
+		R_flush(dest);
+		E("\tpop ");
+		E_stackref(dest);
+		E_nl();
+	end sub;
+
+	sub E_loadm(reg: RegId)
+		R_flush(reg);
+		E("\tld ");
+		E_reg(reg);
+		E(",(hl)\n");
+	end sub;
+
+	sub E_storem(reg: RegId)
+		RegCacheFlushValues();
+		E("\tld (hl),");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_stax(ptr: RegId)
+		RegCacheFlushValues();
+		E("\tld a, (");
+		E_reg(ptr);
+		E(")\n");
+		RegCacheFlushValues();
+	end sub;
+
+	sub E_ldax(ptr: RegId)
+		RegCacheFlushValues();
+		R_flush(REG_A);
+		E("\tld (");
+		E_reg(ptr);
+		E("), a\n");
+		E_nl();
+	end sub;
+
+	sub E_lda(sym: [Symbol], off: Size)
+		var cache := RegCacheFindValue(sym, off);
+		if (cache & REG_A) != 0 then
+			# Value already in the right register.
+			return;
+		end if; # Other cases don't happen on the 8080.
+
+		R_flush(REG_A);
+		E("\tld a, (");
+		E_symref(sym, off);
+		E(")\n");
+		RegCacheLeavesValue(REG_A, sym, off);
+	end sub;
+
+	sub E_sta(sym: [Symbol], off: Size)
+		E("\tld (");
+		E_symref(sym, off);
+		E("), a\n");
+		RegCacheLeavesValue(REG_A, sym, off);
+	end sub;
+
+	sub E_load8i(dest: RegId, index: RegId, off: int8)
+		R_flush(dest);
+		E("\tld ");
+		E_reg(dest);
+		E(", (");
+		E_reg(index);
+		E_i8(off);
+		E(")\n");
+	end sub;
+
+	sub E_store8i(src: RegId, index: RegId, off: int8)
+		RegCacheFlushValues();
+		E("\tld (");
+		E_reg(index);
+		E_i8(off);
+		E("), ");
+		E_reg(src);
+		E_nl();
+	end sub;
+
+	sub E_store8ic(val: uint8, index: RegId, off: int8)
+		RegCacheFlushValues();
+		E("\tld (");
+		E_reg(index);
+		E_i8(off);
+		E("), ");
+		E_u8(val);
+		E_nl();
+	end sub;
+
+	sub E_loada(ptr: RegId)
+		if ptr == REG_HL then
+			E_loadm(REG_A);
+		elseif (ptr & (REG_IX|REG_IY)) != 0 then
+			E_load8i(REG_A, ptr, 0);
+		else
+			E_ldax(ptr);
+		end if;
+	end sub;
+
+	sub E_load16(dest: RegId, sym: [Symbol], off: Size)
+		var cache := RegCacheFindValue(sym, off);
+		if (cache & dest) != 0 then
+			# Value already in the right register.
+			E("; cache ");
+			E_reg(dest);
+			E_nl();
+			return;
+		elseif cache != 0 then
+			# Value in a register, but not the right one.
+			cache := FindFirst(cache);
+			if ((cache|dest) & (REG_IX|REG_IY)) != 0 then
+				E_push(cache);
+				E_pop(dest);
+			else
+				E_mov(hireg(dest), hireg(cache));
+				E_mov(loreg(dest), loreg(cache));
+			end if;
+			return;
+		end if;
+
+		R_flush(dest);
+		E("\tld ");
+		E_reg(dest);
+		E(", (");
+		E_symref(sym, off);
+		E(")\n");
+		RegCacheLeavesValue(dest, sym, off);
+	end sub;
+
+	sub E_store16(src: RegId, sym: [Symbol], off: Size)
+		E("\tld (");
+		E_symref(sym, off);
+		E("), ");
+		E_reg(src);
+		E_nl();
+		RegCacheLeavesValue(src, sym, off);
+	end sub;
+
+	sub E_mvi(reg: RegId, value: uint8)
+		if (reg & (REG_HL|REG_BC|REG_DE)) != 0 then
+			SimpleError("mvi with 16-bit reg");
+		end if;
+
+		var cache := RegCacheFindConstant(value as CacheValue)
+			& (REG_A|REG_B|REG_C|REG_D|REG_H|REG_L);
+		if (cache & reg) != 0 then
+			# Already in the desired register.
+			return;
+		elseif cache != 0 then
+			# Already in a register, but not the one we want.
+			E_mov(reg, FindFirst(cache));
+			return;
+		end if;
+
+		R_flush(reg);
+		E("\tld ");
+		E_reg(reg);
+		E_comma();
+		E_u8(value);
+		E_nl();
+		RegCacheLeavesConstant(reg, value as CacheValue);
+	end sub;
+
+	sub E_lxi(reg: RegId, value: uint16);
+		var cache := RegCacheFindConstant(value as CacheValue) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
+		if (cache & reg) != 0 then
+			# The value is already in the desired register.
+			return;
+		elseif cache != 0 then
+			# The value is already in a register, but not this one.
+			cache := FindFirst(cache);
+			if ((reg | cache) & (REG_IX|REG_IY)) != 0 then
+				E_mov(loreg(reg), loreg(cache));
+				E_mov(hireg(reg), hireg(cache));
+			else
+				E_push(cache);
+				E_pop(reg);
+			end if;
+			return;
+		end if;
+
+		R_flush(reg);
+		E("\tld ");
+		E_reg(reg);
+		E_comma();
+		E_u16(value);
+		E_nl();
+		RegCacheLeavesConstant(reg, value as CacheValue);
+		RegCacheLeavesConstant(loreg(reg), value as uint8 as CacheValue);
+		RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as CacheValue);
+	end sub;
+
+	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
+		var cache := RegCacheFindAddress(sym, off) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
+		if (cache & reg) != 0 then
+			# The value is already in the desired register.
+			return;
+		#elseif cache != 0 then
+		#	# The value is already in a register, but not this one.
+		#	cache := FindFirst(cache);
+		#	E_mov(loreg(reg), loreg(cache));
+		#	E_mov(hireg(reg), hireg(cache));
+		#	return;
+		end if;
+
+		R_flush(reg);
+		E("\tld ");
+		E_reg(reg);
+		E_comma();
+		E_symref(sym, off);
+		E_nl();
+		#RegCacheLeavesAddress(reg, sym, off);
+	end sub;
+
+	sub E_alu(insn: string, rhs: RegId)
+		R_flush(REG_A);
+		E_tab();
+		E(insn);
+		E_space();
+		E_reg(rhs);
+		E_nl();
+	end sub;
+
+	sub E_cp(rhs: RegId)
+		E("\tcp ");
+		E_reg(rhs);
+		E_nl();
+	end sub;
+
+	sub E_rra()
+		R_flush(REG_A);
+		E("\trra\n");
+	end sub;
+
+	sub E_cpl()
+		R_flush(REG_A);
+		E("\tcpl\n");
+	end sub;
+
+	sub E_rcf() # reset carry flag
+		# Don't use E_alu here because we don't want to flush A.
+		E("\tand a\n");
+	end sub;
+
+	sub E_sub(rhs: RegId)
+		E_alu("sub", rhs);
+	end sub;
+
+	sub E_and(rhs: RegId)
+		E_alu("and", rhs);
+	end sub;
+
+	sub E_or(rhs: RegId)
+		E_alu("or", rhs);
+	end sub;
+
+	sub E_xor(rhs: RegId)
+		E_alu("xor", rhs);
+		if rhs == REG_A then
+			RegCacheLeavesConstant(REG_A, 0);
+		end if;
+	end sub;
+
+	sub E_alui(insn: string, value: uint8)
+		R_flush(REG_A);
+		E_tab();
+		E(insn);
+		E_space();
+		E_u8(value);
+		E_nl();
+	end sub;
+
+	sub E_addi(value: uint8)
+		E_alui("add", value);
+	end sub;
+
+	sub E_adci(value: uint8)
+		E_alui("adc", value);
+	end sub;
+
+	sub E_subi(value: uint8)
+		E_alui("sub", value);
+	end sub;
+
+	sub E_sbci(value: uint8)
+		E_alui("sbc", value);
+	end sub;
+
+	sub E_ori(value: uint8)
+		E_alui("or", value);
+	end sub;
+
+	sub E_xori(value: uint8)
+		E_alui("xor", value);
+	end sub;
+
+	sub E_andi(value: uint8)
+		E_alui("and", value);
+	end sub;
+
+	sub E_cpi(value: uint8)
+		E("\tcp ");
+		E_u8(value);
+		E_nl();
+	end sub;
+
+	sub E_inc(reg: RegId)
+		R_flush(reg);
+		E("\tinc ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_dec(reg: RegId)
+		R_flush(reg);
+		E("\tdec ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_alu2(insn: string, lhs: RegId, rhs: RegId)
+		R_flush(lhs);
+		E_tab();
+		E(insn);
+		E_space();
+		E_reg(lhs);
+		E_comma();
+		E_reg(rhs);
+		E_nl();
+	end sub;
+
+	sub E_add(lhs: RegId, rhs: RegId)
+		E_alu2("add", lhs, rhs);
+	end sub;
+
+	sub E_adc(lhs: RegId, rhs: RegId)
+		E_alu2("adc", lhs, rhs);
+	end sub;
+
+	sub E_sbc(lhs: RegId, rhs: RegId)
+		E_alu2("sbc", lhs, rhs);
+	end sub;
+
+	sub E_shift(insn: string, reg: RegId)
+		R_flush(reg);
+		E_tab();
+		E(insn);
+		E_space();
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_sra(reg: RegId)
+		E_shift("sra", reg);
+	end sub;
+
+	sub E_srl(reg: RegId)
+		E_shift("srl", reg);
+	end sub;
+
+	# Does not persist the name; only call this with constant strings.
+	sub E_callhelper(name: string)
+		var e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := Alloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterPushChunk();
+		E_h16(current_subr.id);
+		E_h16(e.id);
+		EmitterPopChunk('R');
+
+		R_flushall();
+		E("\tcall ");
+		EmitByte(COO_ESCAPE_SUBREF);
+		E_h16(e.id);
+		E_nl();
+	end sub;
+
+	var stringid: uint16 := 0;
+	sub E_string(data: string)
+		var sid := stringid;
+		stringid := stringid + 1;
+
+		EmitterPushChunk();
+		E_h16(current_subr.id);
+
+		E("\tcseg\n");
+		EmitByte(COO_ESCAPE_THISCOO);
+		EmitByte('c');
+		E_u16(sid);
+		E(":\n\tdb ");
+
+		loop
+			var c := [data];
+			if c == 0 then
+				break;
+			end if;
+			data := data + 1;
+			
+			E_u8(c);
+			E_comma();
+		end loop;
+		E("0\n");
+		EmitterPopChunk('S');
+
+		EmitByte(COO_ESCAPE_THISCOO);
+		EmitByte('c');
+		E_u16(sid);
+	end sub;
+
+	sub ArchEmitMove(src: RegId, dest: RegId)
+		if src == 0 then
+			E_pop(dest);
+			if (dest & (REG_HLHL|REG_DEDE|REG_BCBC)) != 0 then
+				E_exx();
+				E_pop(dest);
+				E_exx();
+			end if;
+		elseif dest == 0 then
+			if (src & (REG_HLHL|REG_DEDE|REG_BCBC)) != 0 then
+				E_exx();
+				E_push(src);
+				E_exx();
+			end if;
+			E_push(src);
+		elseif ((src == REG_HL) and (dest == REG_DE))
+				or ((src == REG_DE) and (dest == REG_HL)) then
+			E_ex();
+		elseif ((src == REG_HLHL) and (dest == REG_DEDE))
+				or ((src == REG_DEDE) and (dest == REG_HLHL)) then
+			E_ex();
+			E_exx();
+			E_ex();
+			E_exx();
+		elseif ((src|dest) & (REG_HLHL|REG_DEDE|REG_BCBC)) != 0 then
+			E_mov(loreg(dest), loreg(src));
+			E_mov(hireg(dest), hireg(src));
+			E_exx();
+			E_mov(loreg(dest), loreg(src));
+			E_mov(hireg(dest), hireg(src));
+			E_exx();
+		elseif ((src|dest) & (REG_IX|REG_IY)) != 0 then
+			E_push(src);
+			E_pop(dest);
+		elseif (src & (REG_HL|REG_BC|REG_DE)) != 0 then
+			E_mov(hireg(dest), hireg(src));
+			E_mov(loreg(dest), loreg(src));
+		else
+			E_mov(dest, src);
+		end if;
+	end sub;
+
+	sub ArchEndInstruction()
+	end sub;
+%}
+
+wordsize 0xffffffff;
+
+register a b c d e h l hl de bc hlhl dede bcbc ix iy;
+register param;
+
+regclass r8 := a|b|d|h;
+regclass r16 := hl|de|bc|ix|iy;
+regclass r32 := hlhl|dede|bcbc;
+
+regdata a                     compatible r8;
+regdata b    uses bcbc|bc|b|c compatible r8;
+regdata d    uses dede|de|d|e compatible r8;
+regdata h    uses hlhl|hl|h|l compatible r8;
+regdata bc   uses bcbc|bc|b|c compatible r16;
+regdata de   uses dede|de|d|e compatible r16;
+regdata hl   uses hlhl|hl|h|l compatible r16;
+regdata bcbc uses bcbc|bc|b|c compatible r32;
+regdata dede uses dede|de|d|e compatible r32;
+regdata hlhl uses hlhl|hl|h|l compatible r32;
+regdata ix                    compatible r16;
+regdata iy                    compatible r16;
+regdata param stacked;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jp($j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB():s
+{
+	RegCacheReset();
+
+	EmitterPushChunk();
+	E_h16($s.subr.id);
+
+	E("\n\n\t; ");
+	E($s.subr.name);
+	E_nl();
+
+	E("\tcseg\n");
+	EmitByte(COO_ESCAPE_THISSUB);
+	E(":\n");
+
+	var count := $s.subr.num_input_parameters;
+	var lastparam := count - 1;
+	var popped: uint8 := 0;
+
+	sub pop_return_address()
+		if popped == 0 then
+			E_pop(REG_BC);
+			popped := 1;
+		end if;
+	end sub;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter($s.subr, count);
+
+		case param.vardata.type.typedata.width is
+			when 1:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_A);
+				end if;
+				E_sta(param, 0);
+
+			when 2:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_HL);
+				end if;
+				E_store16(REG_HL, param, 0);
+
+			when 4:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_HL);
+					E_store16(REG_HL, param, 0);
+					E_pop(REG_HL);
+					E_store16(REG_HL, param, 2);
+				else
+					E_store16(REG_HL, param, 0);
+					E_exx();
+					E_store16(REG_HL, param, 2);
+					E_exx();
+					RegCacheLeavesValue(REG_HLHL, param, 0);
+				end if;
+		end case;
+	end loop;
+
+	if popped != 0 then
+		E_push(REG_BC);
+	end if;
+}
+
+gen ENDSUB():s
+{
+	R_flushall();
+
+	E("end_");
+	E_subref($s.subr);
+	E(":\n");
+
+	var count: uint8 := 0;
+	var params := $s.subr.num_output_parameters;
+	var pushed: uint8 := 0;
+
+	sub push_return_address()
+		if pushed == 0 then
+			E_pop(REG_BC);
+			pushed := 1;
+		end if;
+	end sub;
+
+	while count != params loop
+		var param := GetOutputParameter($s.subr, count);
+
+		case param.vardata.type.typedata.width is
+			when 1:
+				E_lda(param, 0);
+				if count != (params-1) then
+					push_return_address();
+					E_push(REG_A);
+				end if;
+
+			when 2:
+				E_load16(REG_HL, param, 0);
+				if count != (params-1) then
+					push_return_address();
+					E_push(REG_HL);
+				end if;
+
+			when 4:
+				if count != (params-1) then
+					push_return_address();
+					E_load16(REG_HL, param, 2);
+					E_push(REG_HL);
+					E_load16(REG_HL, param, 0);
+					E_push(REG_HL);
+				else
+					E_load16(REG_HL, param, 0);
+					E_exx();
+					E_load16(REG_HL, param, 2);
+					E_exx();
+				end if;
+		end case;
+
+		count := count + 1;
+	end loop;
+
+	if pushed != 0 then
+		E_push(REG_BC);
+	end if;
+	E_ret();
+
+	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
+	EmitterPopChunk('S');
+}
+
+gen CALL():s
+		{ E_call($s.subr); }
+	
+gen a := CALLE1():s
+		{ E_call($s.subr); }
+
+gen hl := CALLE2():s
+		{ E_call($s.subr); }
+
+gen hlhl := CALLE4():s
+		{ E_call($s.subr); }
+
+gen PUSHARG1(a, remaining==0);
+
+gen PUSHARG1(a|b|d|h:lhs, remaining!=0)
+		{ E_push($lhs); }
+	
+gen PUSHARG2(hl, remaining==0);
+
+gen PUSHARG2(bc|de|hl:lhs, remaining!=0)
+		{ E_push($lhs); }
+
+gen PUSHARG2(CALLE2():s)
+		{ E_call($s.subr); }
+
+gen PUSHARG4(hlhl, remaining==0);
+
+gen PUSHARG4(r32:lhs, remaining!=0)
+		{ ArchEmitMove($lhs, 0); }
+
+gen a := POPARG1(remaining==0);
+
+gen r8 := POPARG1(remaining!=0)
+		{ E_pop($$); }
+
+gen hl := POPARG2(remaining==0);
+
+gen r16 := POPARG2(remaining!=0)
+		{ E_pop($$); }
+
+gen hlhl := POPARG4(remaining==0);
+
+gen r32 := POPARG4(remaining!=0)
+		{ ArchEmitMove(0, $$); }
+
+gen RETURN()
+{
+    if current_subr.num_output_parameters == 0 then
+		E_ret();
+	else
+		E("\tjp end_");
+		E_subref(current_subr);
+		E("\n");
+	end if;
+}
+
+// --- Constants ------------------------------------------------------------
+
+gen r8 := CONSTANT():rhs
+{
+	if ($rhs.value == 0) and ($$ == REG_A) then
+		E_xor(REG_A);
+	else
+		E_mvi($$, $rhs.value as uint8);
+	end if;
+}
+
+gen r16 := CONSTANT():rhs
+{
+	E_lxi($$, $rhs.value as uint16);
+}
+
+gen r16 := ADDRESS():a
+{
+	E_lxia($$, $a.sym, $a.off);
+}
+
+gen r32 := CONSTANT():c
+{
+	var cache := RegCacheFindConstant($c.value as uint32);
+	if (cache & $$) != 0 then
+		# Value already in the right register.
+		return;
+	end if;
+
+	if ($c.value == 0) and ($$ == REG_HLHL) then
+		E_rcf();
+		E_sbc(REG_HL, REG_HL);
+		E_exx();
+		E_sbc(REG_HL, REG_HL);
+		E_exx();
+	else
+		E_lxi(wordreg($$), $c.value as uint16);
+		E_exx();
+		E_lxi(wordreg($$), ($c.value>>16) as uint16);
+		E_exx();
+	end if;
+	RegCacheLeavesConstant($$, $c.value as uint32);
+}
+
+// --- 8-bit loads and stores -----------------------------------------------
+
+%{
+	sub is_indexable_8bit(value: Arith): (result: uint8)
+		result := 1;
+		if (value < -128) or (value > 127) then
+			result := 0;
+		end if;
+	end sub;
+%}
+
+gen a := LOAD1(ADDRESS():a)
+{
+	E_lda($a.sym, $a.off);
+}
+
+gen a := LOAD1(r16:ptr)
+		{ E_loada($ptr); }
+
+gen r8 := LOAD1(ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
+{
+	E_load8i($$, $ptr, $c.value as int8);
+}
+
+gen STORE1(a, ADDRESS():a)
+{
+	E_sta($a.sym, $a.off);
+}
+
+gen STORE1(a, hl|bc|de:ptr)
+{
+	if $ptr == REG_HL then
+		E_storem(REG_A);
+	else
+		E_stax($ptr);
+	end if;
+}
+
+gen STORE1(r8:r, ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
+{
+	E_store8i($r, $ptr, $c.value as int8);
+}
+
+gen STORE1(CONSTANT():v, ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
+{
+	E_store8ic($v.value as uint8, $ptr, $c.value as int8);
+}
+
+// --- 16-bit loads and stores ----------------------------------------------
+
+%{
+	sub is_indexable_16bit(value: Arith): (result: uint8)
+		result := 1;
+		if (value < -128) or (value > 126) then
+			result := 0;
+		end if;
+	end sub;
+%}
+
+gen r16 := LOAD2(ADDRESS():a)
+{
+	E_load16($$, $a.sym, $a.off);
+}
+
+gen hl|bc|de := LOAD2(hl|ix|iy:rhs) uses a
+{
+	if ($rhs & (REG_IX|REG_IY)) != 0 then
+		E_load8i(loreg($$), $rhs, 0);
+		E_load8i(hireg($$), $rhs, 1);
+	elseif $rhs == $$ then
+		E_loadm(REG_A);
+		E_inc(REG_HL);
+		E_loadm(hireg($$));
+		E_mov(loreg($$), REG_A);
+	else
+		E_loadm(loreg($$));
+		E_inc(REG_HL);
+		E_loadm(hireg($$));
+	end if;
+}
+
+gen hl|bc|de := LOAD2(ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c))
+{
+	E_load8i(loreg($$), $rhs, ($c.value as int8)+0);
+	E_load8i(hireg($$), $rhs, ($c.value as int8)+1);
+}
+
+gen STORE2(r16:ptr, ADDRESS():a)
+{
+	E_store16($ptr, $a.sym, $a.off);
+}
+
+gen STORE2(bc|de:val, hl|ix|iy:rhs) uses a
+{
+	if ($rhs & (REG_IX|REG_IY)) != 0 then
+		E_store8i(loreg($val), $rhs, 0);
+		E_store8i(hireg($val), $rhs, 1);
+	else
+		E_storem(loreg($val));
+		E_inc(REG_HL);
+		E_storem(hireg($val));
+	end if;
+}
+
+gen STORE2(hl|bc|de:val, ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c)) uses a
+{
+	E_store8i(loreg($val), $rhs, ($c.value as int8)+0);
+	E_store8i(hireg($val), $rhs, ($c.value as int8)+1);
+}
+
+gen STORE2(CONSTANT():v, ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c)) uses a
+{
+	E_store8ic($v.value as uint8, $rhs, ($c.value as int8)+0);
+	E_store8ic(($v.value>>8) as uint8, $rhs, ($c.value as int8)+1);
+}
+
+// --- 32-bit loads and stores ----------------------------------------------
+
+%{
+	sub is_indexable_32bit(value: Arith): (result: uint8)
+		result := 1;
+		if (value < -128) or (value > 124) then
+			result := 0;
+		end if;
+	end sub;
+%}
+
+gen r32 := LOAD4(ix|iy:ptr)
+{
+	E_load8i(loreg($$), $ptr, 0);
+	E_load8i(hireg($$), $ptr, 1);
+	E_exx();
+	E_load8i(loreg($$), $ptr, 2);
+	E_load8i(hireg($$), $ptr, 3);
+	E_exx();
+}
+
+gen r32 := LOAD4(ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c))
+{
+	E_load8i(loreg($$), $ptr, ($c.value as int8)+0);
+	E_load8i(hireg($$), $ptr, ($c.value as int8)+1);
+	E_exx();
+	E_load8i(loreg($$), $ptr, ($c.value as int8)+2);
+	E_load8i(hireg($$), $ptr, ($c.value as int8)+3);
+	E_exx();
+}
+
+gen r32 := LOAD4(ADDRESS():a)
+{
+	var cache := RegCacheFindValue($a.sym, $a.off);
+	if (cache & $$) != 0 then
+		# Value already in the right register.
+		return;
+	end if;
+
+	E_load16(wordreg($$), $a.sym, $a.off);
+	E_exx();
+	E_load16(wordreg($$), $a.sym, $a.off+2);
+	E_exx();
+	RegCacheLeavesValue($$, $a.sym, $a.off);
+}
+
+gen STORE4(r32:val, ix|iy:ptr)
+{
+	E_store8i(loreg($val), $ptr, 0);
+	E_store8i(hireg($val), $ptr, 1);
+	E_exx();
+	E_store8i(loreg($val), $ptr, 2);
+	E_store8i(hireg($val), $ptr, 3);
+	E_exx();
+}
+
+gen STORE4(r32:val, ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c))
+{
+	E_store8i(loreg($val), $ptr, ($c.value as int8)+0);
+	E_store8i(hireg($val), $ptr, ($c.value as int8)+1);
+	E_exx();
+	E_store8i(loreg($val), $ptr, ($c.value as int8)+2);
+	E_store8i(hireg($val), $ptr, ($c.value as int8)+3);
+	E_exx();
+}
+
+gen STORE4(r32:val, ADDRESS():a)
+{
+	E_store16(wordreg($val), $a.sym, $a.off);
+	E_exx();
+	E_store16(wordreg($val), $a.sym, $a.off+2);
+	E_exx();
+	RegCacheLeavesValue($$, $a.sym, $a.off);
+}
+
+gen STORE4(CONSTANT():c, ADDRESS():a) uses hl
+{
+	E_lxi(REG_HL, $c.value as uint16);
+	E_store16(REG_HL, $a.sym, $a.off);
+	E_lxi(REG_HL, ($c.value >> 16) as uint16);
+	E_store16(REG_HL, $a.sym, $a.off+2);
+}
+
+// --- 8-bit arithmetic -----------------------------------------------------
+
+gen a := ADD1(b|d|h:lhs, a)
+		{ E_add(REG_A, $lhs); }
+
+gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
+		{ E_dec($$); }
+
+gen a|b|d|h := ADD1($$, CONSTANT(value==1))
+		{ E_inc($$); }
+
+gen a := ADD1(a, CONSTANT():c)
+		{ E_addi($c.value as uint8); }
+
+gen a := SUB1(a, b|d|h:rhs)
+		{ E_sub($rhs); }
+
+gen a|b|d|h := SUB1($$, CONSTANT(value==1))
+		{ E_dec($$); }
+
+gen a := SUB1(a, CONSTANT():c)
+		{ E_subi($c.value as uint8); }
+
+gen a := MUL1(d, h) uses b
+		{ E_callhelper("_mul1"); }
+
+gen a := NOT1(a)
+		{ E_cpl(); }
+
+gen a := NEG1(b|d|h:lhs)
+{
+	E_xor(REG_A);
+	E_sub($lhs);
+}
+
+gen a := OR1(a, b|d|h:lhs)
+		{ E_or($lhs); }
+
+gen a := OR1(a, CONSTANT():c)
+		{ E_ori($c.value as uint8); }
+
+gen a := AND1(a, b|d|h:lhs)
+		{ E_and($lhs); }
+
+gen a := AND1(a, CONSTANT():c)
+		{ E_andi($c.value as uint8); }
+
+gen a := EOR1(a, b|d|h:lhs)
+		{ E_xor($lhs); }
+
+gen a := EOR1(a, CONSTANT():c)
+		{ E_xori($c.value as uint8); }
+
+gen h := DIVU1(h, d) uses a
+		{ E_callhelper("_dvrmu1"); }
+
+gen a := REMU1(h, d)
+		{ E_callhelper("_dvrmu1"); }
+
+gen h := DIVS1(h, d) uses a
+		{ E_callhelper("_dvrms1"); }
+
+gen d := REMS1(h, d) // note, result not in A
+		{ E_callhelper("_dvrms1"); }
+
+gen a := RSHIFTS1(a, b)
+		{ E_callhelper("_asr1"); }
+
+gen a := RSHIFTU1(a, b) uses bc
+		{ E_callhelper("_lsr1"); }
+
+gen a := LSHIFT1(a, b) uses bc
+		{ E_callhelper("_asl1"); }
+
+gen a := LSHIFT1(a, CONSTANT(value<=5):c)
+{
+	var i := $c.value as uint8;
+	while i != 0 loop
+		E_add(REG_A, REG_A);
+		i := i - 1;
+	end loop;
+}
+
+gen r8 := RSHIFTU1($$, CONSTANT(value<=3):c)
+{
+	var i := $c.value as uint8;
+	while i != 0 loop
+		E_srl($$);
+		i := i - 1;
+	end loop;
+}
+
+gen r8 := RSHIFTS1($$, CONSTANT(value<=3):c)
+{
+	var i := $c.value as uint8;
+	while i != 0 loop
+		E_sra($$);
+		i := i - 1;
+	end loop;
+}
+
+// --- 16-bit arithmetic ----------------------------------------------------
+
+%{
+	sub is_small_positive(value: int32): (result: uint8)
+		if (value > 0) and (value < 5) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+
+	sub is_small_negative(value: int32): (result: uint8)
+		if (value < 0) and (value > -5) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+%}
+		
+gen r16 := ADD2($$, CONSTANT(value is small_positive):c)
+{
+	var i: uint8 := $c.value as uint8;
+	while i != 0 loop
+		E_inc($$);
+		i := i - 1;
+	end loop;
+}
+
+gen r16 := ADD2($$, CONSTANT(value is small_negative):c)
+{
+	var i: uint8 := $c.value as uint8;
+	while i != 0 loop
+		E_dec($$);
+		i := i + 1;
+	end loop;
+}
+	
+gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
+{
+	if ($lhs != REG_HL) and ($rhs != REG_HL) then
+		if $rhs == REG_DE then
+			E_ex();
+			$rhs := REG_HL;
+		else
+			if $lhs == REG_DE then
+				E_ex();
+			else
+				E_mov(REG_L, loreg($lhs));
+				E_mov(REG_H, hireg($lhs));
+			end if;
+			$lhs := REG_HL;
+		end if;
+	end if;
+
+	if $lhs == REG_HL then
+		E_add(REG_HL, $rhs);
+	else
+		E_add(REG_HL, $lhs);
+	end if;
+}
+
+gen hl := NEG2(bc|de:lhs) uses a
+{
+	E_xor(REG_A);
+	E_mov(REG_L, REG_A);
+	E_mov(REG_H, REG_A);
+	E_sbc(REG_HL, $lhs);
+}
+
+gen hl := SUB2(hl:lhs, bc|de:rhs)
+{
+	E_rcf();
+	E_sbc(REG_HL, $rhs);
+}
+
+%{
+	sub aluop2(lhs: RegId, rhs: RegId, dest: RegId, loinsn: string, hiinsn: string)
+		E_mov(REG_A, loreg(lhs));
+		E_alu(loinsn, loreg(rhs));
+		E_mov(loreg(dest), REG_A);
+		E_mov(REG_A, hireg(lhs));
+		E_alu(hiinsn, hireg(rhs));
+		E_mov(hireg(dest), REG_A);
+	end sub;
+
+	sub aluop2i(lhs: RegId, value: uint16, dest: RegId, loinsn: string, hiinsn: string)
+		E_mov(REG_A, loreg(lhs));
+		E_alui(loinsn, value as uint8);
+		E_mov(loreg(dest), REG_A);
+		E_mov(REG_A, hireg(lhs));
+		E_alui(hiinsn, (value >> 8) as uint8);
+		E_mov(hireg(dest), REG_A);
+	end sub;
+%}
+
+gen bc := DIVU2(bc, de) uses a
+		{ E_callhelper("_dvrmu2"); }
+
+gen hl := REMU2(bc, de) uses a
+		{ E_callhelper("_dvrmu2"); }
+
+gen bc := DIVS2(bc, de) uses a
+		{ E_callhelper("_dvrms2"); }
+
+gen de := REMS2(bc, de) uses a
+		{ E_callhelper("_dvrms2"); }
+
+gen hl := MUL2(de, bc) uses a
+		{ E_callhelper("_mul2"); }
+
+%{
+	sub logic2(lhs: RegId, rhs: RegId, dest: RegId, insn: string)
+		aluop2(lhs, rhs, dest, insn, insn);
+	end sub;
+
+	sub logic2i(lhs: RegId, value: uint16, dest: RegId, insn: string)
+		aluop2i(lhs, value, dest, insn, insn);
+	end sub;
+%}
+
+gen bc|de|hl := OR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+		{ logic2($lhs, $rhs, $$, "or"); }
+
+gen bc|de|hl := OR2(bc|de|hl:lhs, CONSTANT():c) uses a
+		{ logic2i($lhs, $c.value as uint16, $$, "or"); }
+
+gen bc|de|hl := AND2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+		{ logic2($lhs, $rhs, $$, "and"); }
+
+gen bc|de|hl := AND2(bc|de|hl:lhs, CONSTANT():c) uses a
+		{ logic2i($lhs, $c.value as uint16, $$, "and"); }
+
+gen bc|de|hl := EOR2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
+		{ logic2($lhs, $rhs, $$, "xor"); }
+
+gen bc|de|hl := EOR2(bc|de|hl:lhs, CONSTANT():c) uses a
+		{ logic2i($lhs, $c.value as uint16, $$, "xor"); }
+
+gen bc|de|hl := NOT2(bc|de|hl:lhs) uses a
+{
+	E_mov(REG_A, loreg($lhs));
+	E_cpl();
+	E_mov(loreg($$), REG_A);
+	E_mov(REG_A, hireg($lhs));
+	E_cpl();
+	E_mov(hireg($$), REG_A);
+}
+
+gen hl := RSHIFTU2(hl, a)
+		{ E_callhelper("_lsr2"); }
+
+gen hl := RSHIFTS2(hl, a)
+		{ E_callhelper("_asr2"); }
+
+gen hl := LSHIFT2(hl, a)
+		{ E_callhelper("_asl2"); }
+
+gen hl := LSHIFT2(hl, CONSTANT(value<=5):c)
+{
+	var i := $c.value as uint8;
+	while i != 0 loop
+		E_add(REG_HL, REG_HL);
+		i := i - 1;
+	end loop;
+}
+
+// --- 32-bit arithmetic ----------------------------------------------------
+
+gen hlhl := ADD4(bcbc|dede:lhs, hlhl)
+{
+	E_add(REG_HL, $lhs);
+	E_exx();
+	E_adc(REG_HL, $lhs);
+	E_exx();
+}
+
+gen hlhl := SUB4(hlhl, bcbc|dede:rhs)
+{
+	E_rcf();
+	E_sbc(REG_HL, $rhs);
+	E_exx();
+	E_sbc(REG_HL, $rhs);
+	E_exx();
+}
+
+gen hlhl := NEG4(dede|bcbc:rhs) uses a
+{
+	E_xor(REG_A);
+	E_mov(REG_H, REG_A);
+	E_mov(REG_L, REG_A);
+	E_sbc(REG_HL, $rhs);
+	E_exx();
+	E_mov(REG_H, REG_A);
+	E_mov(REG_L, REG_A);
+	E_sbc(REG_HL, $rhs);
+	E_exx();
+}
+
+gen hlhl := MUL4(bcbc, dede) uses a
+        { E_callhelper("_mul4"); }
+
+gen bcbc := DIVU4(bcbc, dede) uses a|hlhl
+        { E_callhelper("_dvrmu4"); }
+
+gen hlhl := REMU4(bcbc, dede) uses a
+        { E_callhelper("_dvrmu4"); }
+
+gen bcbc := DIVS4(bcbc, dede) uses a|hlhl
+        { E_callhelper("_dvrms4"); }
+
+gen dede := REMS4(bcbc, dede) uses a
+        { E_callhelper("_dvrms4"); }
+
+gen hlhl := AND4(dede, hlhl) uses a
+        { E_callhelper("_and4"); }
+
+gen hlhl := OR4(dede, hlhl) uses a
+        { E_callhelper("_or4"); }
+
+gen hlhl := EOR4(dede, hlhl) uses a
+        { E_callhelper("_eor4"); }
+
+gen hlhl := NOT4(hlhl) uses a
+		{ E_callhelper("_not4"); }
+
+gen hlhl := LSHIFT4(hlhl, b)
+        { E_callhelper("_asl4"); }
+
+gen hlhl := RSHIFTU4(hlhl, b)
+        { E_callhelper("_lsr4"); }
+
+gen hlhl := RSHIFTS4(hlhl, b)
+        { E_callhelper("_asr4"); }
+
+// --- Conditionals ---------------------------------------------------------
+
+%{
+	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+		if node.beqs0.truelabel != node.beqs0.fallthrough then
+			E_jump(trueinsn, node.beqs0.truelabel);
+		end if;
+		if node.beqs0.falselabel != node.beqs0.fallthrough then
+			E_jump(falseinsn, node.beqs0.falselabel);
+		end if;
+	end sub;
+
+	sub E_jumps_jz_jnz(node: [Node])
+		E_jumps_with_fallthrough("jp z,", "jp nz,", node);
+	end sub;
+
+	sub E_jumps_jc_jnc(node: [Node])
+		E_jumps_with_fallthrough("jp c,", "jp nc,", node);
+	end sub;
+
+	sub E_jumps_jm_jp(node: [Node])
+		E_jumps_with_fallthrough("jp m,", "jp p,", node);
+	end sub;
+
+	sub bequ1(node: [Node], nota: RegId)
+		E_cp(nota);
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ1c(node: [Node], value: uint8)
+		if value == 0 then
+			E_or(REG_A);
+		else
+			E_cpi(value);
+		end if;
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub cmpeq2(value: uint16)
+		if value != 0 then
+			E_lxi(REG_DE, -value);
+			E_add(REG_HL, REG_DE);
+		end if;
+		E_mov(REG_A, REG_H);
+		E_or(REG_L);
+	end sub;
+
+	sub bequ2c(node: [Node], value: uint16)
+		cmpeq2(value);
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ2(node: [Node], lhs: RegId)
+		E_rcf();
+		E_sbc(REG_HL, lhs);
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ4(node: [Node])
+		E_callhelper("_cmpu4");
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ4c(node: [Node], value: Arith)
+		if value == 0 then
+			E_mov(REG_A, REG_H);
+			E_or(REG_L);
+			E_exx();
+			E_or(REG_H);
+			E_or(REG_L);
+		else
+			E_rcf();
+			cmpeq2(value as uint16);
+			E_jump("jp nz,", node.beqs0.falselabel);
+			E_exx();
+			cmpeq2((value>>16) as uint16);
+		end if;
+		E_exx();
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
+		var label := node.beqs0.falselabel;
+		if lhs == rhs then
+			label := node.beqs0.truelabel;
+		end if;
+		if label != node.beqs0.fallthrough then
+			E_jp(label);
+		end if;
+	end sub;
+%}
+
+gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+		{ beqc(self.n[0], $c1.value, $c2.value); }
+
+gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
+		{ beqc(self.n[0], $c1.value, $c2.value); }
+
+gen BEQU1(b|d|h:nota, a):b
+		{ bequ1(self.n[0], $nota); }
+
+gen BEQU1(a, CONSTANT():c):b
+		{ bequ1c(self.n[0], $c.value as uint8); }
+
+gen BEQS1(b|d|h:nota, a):b
+		{ bequ1(self.n[0], $nota); }
+
+gen BEQS1(a, CONSTANT():c):b
+		{ bequ1c(self.n[0], $c.value as uint8); }
+
+gen BLTU1(a, b|d|h:rhs):b
+{
+	E_cp($rhs);
+	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTU1(a, CONSTANT():c):b
+{
+	var v := $c.value as uint8;
+	if v == 0 then
+		E_or(REG_A);
+	else
+		E_cpi(v);
+	end if;
+	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTS1(a, b|d|h:rhs):b
+{
+	E_sub($rhs);
+	E("\tjp po, $+5\n");
+	E_xori(0x80);
+	E_jumps_jm_jp(self.n[0]);
+}
+
+gen BLTS1(a, CONSTANT():c):b
+{
+	E_subi($c.value as uint8);
+	E("\tjp po, $+5\n");
+	E_xori(0x80);
+	E_jumps_jm_jp(self.n[0]);
+}
+
+gen BEQU2(bc|de:lhs, hl):a
+		{ bequ2(self.n[0], $lhs); }
+
+gen BEQS2(bc|de:lhs, hl):a
+		{ bequ2(self.n[0], $lhs); }
+
+gen BEQU2(hl, CONSTANT():c) uses a|de
+		{ bequ2c(self.n[0], $c.value as uint16); }
+
+gen BEQS2(hl, CONSTANT():c) uses a|de
+		{ bequ2c(self.n[0], $c.value as uint16); }
+
+gen BLTU2(hl, bc|de:rhs):b
+{
+	E_rcf();
+	E_sbc(REG_HL, $rhs);
+	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTS2(hl, de):b uses a|bc
+{
+	E_callhelper("_cmps2");
+	E_jumps_jm_jp(self.n[0]);
+}
+
+gen BEQU4(dede, hlhl):b uses a
+		{ bequ4(self.n[0]); }
+
+gen BEQS4(dede, hlhl):b uses a
+		{ bequ4(self.n[0]); }
+
+gen BEQU4(hlhl, CONSTANT():c):b uses dede|a
+		{ bequ4c(self.n[0], $c.value); }
+
+gen BEQS4(hlhl, CONSTANT():c):b uses dede|a
+		{ bequ4c(self.n[0], $c.value); }
+
+gen BLTU4(hlhl, dede):b
+{
+	E_callhelper("_cmpu4");
+	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTS4(hlhl, dede):b
+{
+	E_callhelper("_cmps4");
+	E_jumps_jm_jp(self.n[0]);
+}
+	
+// --- Case -----------------------------------------------------------------
+
+gen STARTCASE1(a);
+
+gen STARTCASE2(de);
+
+gen STARTCASE4(r32:val)
+{
+	E_exx();
+	E_push($val);
+	E_exx();
+	if $val == REG_HLHL then
+		E_ex(); # quickly move to DE
+	elseif $val == REG_BCBC then
+		E_mov(REG_D, REG_B);
+		E_mov(REG_E, REG_C);
+	end if;
+	E_pop(REG_BC);
+}
+
+gen WHENCASE1():c
+{
+	if $c.value == 0 then
+		E_or(REG_A);
+	else
+		E_cpi($c.value as uint8);
+	end if;
+	E_jnz($c.falselabel);
+}
+
+%{
+	sub case2(value: uint16, reg: RegId, label: LabelRef)
+		if value < 0x100 then
+			E_mov(REG_A, loreg(reg));
+			if value != 0 then
+				E_subi(value as uint8);
+			end if;
+			E_or(hireg(reg));
+		else
+			E_lxi(REG_HL, -value);
+			E_add(REG_HL, reg);
+			E_mov(REG_A, REG_H);
+			E_or(REG_L);
+		end if;
+		E_jnz(label);
+	end sub;
+%}
+
+gen WHENCASE2():c uses a
+{
+	case2($c.value as uint16, REG_DE, $c.falselabel);
+}
+
+gen WHENCASE4():c uses a
+{
+	case2($c.value as uint16, REG_DE, $c.falselabel);
+	case2(($c.value >> 16) as uint16, REG_BC, $c.falselabel);
+}
+
+// --- Casts ----------------------------------------------------------------
+
+gen hl|bc|de := CAST12(a, sext==0)
+{
+	E_mov(loreg($$), REG_A);
+	E_mvi(hireg($$), 0);
+}
+
+gen hl|bc|de := CAST12(a, sext!=0)
+{
+	E_mov(loreg($$), REG_A);
+	E_add(REG_A, REG_A);
+	E_sbc(REG_A, REG_A);
+	E_mov(hireg($$), REG_A);
+}
+
+gen r32 := CAST14(a:rhs, sext==0)
+{
+	E_mov(loreg($$), REG_A);
+	E_xor(REG_A);
+	E_mov(hireg($$), REG_A);
+	E_exx();
+	E_mov(loreg($$), REG_A);
+	E_mov(hireg($$), REG_A);
+	E_exx();
+}
+
+gen r32 := CAST14(a:rhs, sext!=0)
+{
+	E_mov(loreg($$), REG_A);
+	E_add(REG_A, REG_A);
+	E_sbc(REG_A, REG_A);
+	E_mov(hireg($$), REG_A);
+	E_exx();
+	E_mov(loreg($$), REG_A);
+	E_mov(hireg($$), REG_A);
+	E_exx();
+}
+
+gen hlhl := CAST24(hl, sext==0)
+{
+	E_exx();
+	E_lxi(REG_HL, 0);
+	E_exx();
+}
+
+gen hlhl := CAST24(hl, sext!=0) uses a
+{
+	E_mov(REG_A, REG_L);
+	E_add(REG_A, REG_A);
+	E_sbc(REG_A, REG_A);
+	E_exx();
+	E_mov(REG_L, REG_A);
+	E_mov(REG_H, REG_A);
+	E_exx();
+}
+
+gen a := CAST21(hl|bc|de:rhs)
+		{ E_mov(REG_A, loreg($rhs)); }
+
+gen a := CAST21(LOAD2(ADDRESS():a))
+		{ E_lda($a.sym, $a.off); }
+
+gen a := CAST21(LOAD2(r16:ptr))
+		{ E_loada($ptr); }
+
+gen a := CAST41(r32:rhs)
+		{ E_mov(REG_A, loreg($rhs)); }
+
+gen a := CAST41(LOAD4(ADDRESS():a))
+		{ E_lda($a.sym, $a.off); }
+
+gen a := CAST41(LOAD4(r16:ptr))
+		{ E_loada($ptr); }
+
+gen hl := CAST42(hlhl);
+
+// --- Strings --------------------------------------------------------------
+
+gen bc|de|hl := STRING():s
+{
+	R_flush($$);
+	E("\tld ");
+	E_reg($$);
+	E_comma();
+	E_string($s.text);
+	E_nl();
+}
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+	EmitterPushChunk();
+	E_h16(current_subr.id);
+	E("\tcseg\n"); # yes, really
+	E($s.sym.vardata.externname);
+	E(":\n");
+}
+
+gen ENDINIT()
+{
+	EmitterPopChunk('S');
+}
+
+gen INIT1():c
+{
+	E("\tdb ");
+	E_u8($c.value as uint8);
+	E_nl();
+}
+
+gen INIT2():c
+{
+	E("\tdw ");
+	E_u16($c.value as uint16);
+	E_nl();
+}
+
+gen INIT4():c
+{
+	E("\tdword ");
+	E_u32($c.value as uint32);
+	E_nl();
+}
+
+gen INITS():s
+{
+	E("\tdw ");
+	E_string($s.text);
+	E_nl();
+}
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMSTART()
+{
+	R_flushall();
+	E_tab();
+}
+
+gen ASMTEXT():t
+{
+	E($t.text);
+	E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	if $s.sym.kind == VAR then
+		E_symref($s.sym, 0);
+	else
+		E_subref($s.sym.subr);
+	end if;
+	E_space();
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+

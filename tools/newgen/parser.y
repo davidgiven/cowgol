@@ -76,9 +76,9 @@ regdata(R) ::= regdata(R1) STACKED.
 
 /* --- Width ------------------------------------------------------------- */
 
-rules ::= rules WIDTH int(R) SEMICOLON.
+rules ::= rules WORDSIZE int(R) SEMICOLON.
 {
-    machine_width = R;
+    machine_word = R;
 }
 
 /* --- Rewrite rules ----------------------------------------------------- */

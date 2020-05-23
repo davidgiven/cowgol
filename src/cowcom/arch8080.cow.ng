@@ -139,7 +139,10 @@
 			when REG_DE: result := REG_E;
 			when REG_HL: result := REG_L;
 			when else:
-				SimpleError("bad loreg");
+				StartError();
+				print("bad loreg ");
+				print_hex_i16(reg);
+				EndError();
 		end case;
 	end sub;
 
@@ -416,6 +419,13 @@
 		E_nl();
 	end sub;
 
+	sub E_storemc(value: uint8)
+		RegCacheFlushValues();
+		E("\tmvi m,");
+		E_u8(value);
+		E_nl();
+	end sub;
+
 	sub E_stax(ptr: RegId)
 		RegCacheFlushValues();
 		E("\tstax ");
@@ -525,7 +535,6 @@
 	end sub;
 
 	var stringid: uint16 := 0;
-
 	sub E_string(data: string)
 		var sid := stringid;
 		stringid := stringid + 1;
@@ -579,18 +588,18 @@
 	end sub;
 %}
 
-width 16;
+wordsize 0xffff;
 
 register a b c d e h l hl de bc;
 register stk4 param;
 
-regdata a compatible a|b|d|h;
-regdata b uses bc compatible a|b|d|h;
-regdata d uses de compatible a|b|d|h;
-regdata h uses hl compatible a|b|d|h;
-regdata bc uses bc compatible bc|de|hl;
-regdata de uses de compatible bc|de|hl;
-regdata hl uses hl compatible bc|de|hl;
+regdata a              compatible a|b|d|h;
+regdata b  uses bc|b|c compatible a|b|d|h;
+regdata d  uses de|d|e compatible a|b|d|h;
+regdata h  uses hl|h|l compatible a|b|d|h;
+regdata bc uses bc|b|c compatible bc|de|hl;
+regdata de uses de|d|e compatible bc|de|hl;
+regdata hl uses hl|h|l compatible bc|de|hl;
 regdata stk4 stacked;
 regdata param stacked;
 
@@ -760,12 +769,12 @@ gen PUSHARG4(CALLE4():s)
 gen a := POPARG1(remaining==0);
 
 gen a|b|d|h := POPARG1(remaining!=0)
-		{ E_pop(REG_A); }
+		{ E_pop($$); }
 
 gen hl := POPARG2(remaining==0);
 
 gen hl|bc|de := POPARG2()
-		{ E_pop(REG_HL); }
+		{ E_pop($$); }
 
 gen stk4 := POPARG4();
 
@@ -839,6 +848,12 @@ gen STORE1(a, bc|de|hl:ptr)
 	end if;
 }
 
+// This looks useful, but actually produces slightly worse code.
+//gen STORE1(CONSTANT():c, hl)
+//{
+//	E_storemc($c.value as uint8);
+//}
+
 // --- 16-bit loads and stores ----------------------------------------------
 
 gen hl := LOAD2(ADDRESS():a)
@@ -888,8 +903,8 @@ gen STORE4(stk4, hl)
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a := ADD1(a, b|d|h:rhs)
-		{ E_add($rhs); }
+gen a := ADD1(b|d|h:lhs, a)
+		{ E_add($lhs); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
 		{ E_dec($$); }
