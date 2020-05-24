@@ -722,37 +722,24 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 
 static void create_rewriters(void)
 {
-	#if defined COWGOL
-		fprintf(outfp, "sub RewriteNode(rule: uint8, n: [[Node]]): (result: [Node])\n");
-		fprintf(outfp, "case rule is\n");
-	#else
+	#if !defined COWGOL
 		fprintf(outfp, "Node* rewrite_node(uint8_t rule, Node** n) {\n");
 		fprintf(outfp, "switch (rule) {\n");
-	#endif
 
-	for (int i=0; i<rulescount; i++)
-	{
-		Rule* r = rules[i];
-		if (r->replacement)
+		for (int i=0; i<rulescount; i++)
 		{
-			#if defined COWGOL
-				fprintf(outfp, "when %d:\n", i);
-				fprintf(outfp, "result :=\n");
-			#else
+			Rule* r = rules[i];
+			if (r->replacement)
+			{
 				fprintf(outfp, "case %d:\n", i);
 				fprintf(outfp, "\treturn\n");
-			#endif
 
-			print_line(r->lineno);
-			emit_replacement(r, r->pattern, r->replacement);
-			fprintf(outfp, ";\n");
+				print_line(r->lineno);
+				emit_replacement(r, r->pattern, r->replacement);
+				fprintf(outfp, ";\n");
+			}
 		}
-	}
 
-	#if defined COWGOL
-		fprintf(outfp, "end case;\n");
-		fprintf(outfp, "end sub;\n");
-	#else
 		fprintf(outfp, "}\n");
 		fprintf(outfp, "return NULL;\n");
 		fprintf(outfp, "}\n");
