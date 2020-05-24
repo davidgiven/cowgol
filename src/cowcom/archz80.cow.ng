@@ -976,7 +976,7 @@ gen r32 := CONSTANT():c
 %{
 	sub is_indexable_8bit(value: Arith): (result: uint8)
 		result := 1;
-		if (value < -128) or (value > 127) then
+		if (value < -128) or (value > 127) or ((value >= -4) and (value <= 4)) then
 			result := 0;
 		end if;
 	end sub;
@@ -1024,7 +1024,7 @@ gen STORE1(CONSTANT():v, ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
 %{
 	sub is_indexable_16bit(value: Arith): (result: uint8)
 		result := 1;
-		if (value < -128) or (value > 126) then
+		if (value < -128) or (value > 126) or ((value >= -3) and (value <= 3)) then
 			result := 0;
 		end if;
 	end sub;
@@ -1092,13 +1092,38 @@ gen STORE2(CONSTANT():v, ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c)) 
 %{
 	sub is_indexable_32bit(value: Arith): (result: uint8)
 		result := 1;
-		if (value < -128) or (value > 124) then
+		if (value < -128) or (value > 124) or ((value >= -3) and (value <= 3)) then
 			result := 0;
 		end if;
 	end sub;
 %}
 
-gen r32 := LOAD4(ix|iy:ptr)
+gen bcbc|dede := LOAD4(hl|ix|iy:ptr)
+{
+	if $ptr == REG_HL then
+		E_loadm(loreg($$));           #  7
+		E_inc(REG_HL);                #  6
+		E_loadm(hireg($$));           #  7
+		E_inc(REG_HL);                #  6
+		E_push(REG_HL);               # 11
+		E_exx();                      #  4
+		E_pop(REG_HL);                # 10
+		E_loadm(loreg($$));           #  7
+		E_inc(REG_HL);                #  6
+		E_loadm(hireg($$));           #  7
+		E_exx();                      # 71 t-states
+	else
+		E_load8i(loreg($$), $ptr, 0); # 19
+		E_load8i(hireg($$), $ptr, 1); # 19
+		E_exx();                      #  4
+		E_load8i(loreg($$), $ptr, 2); # 19
+		E_load8i(hireg($$), $ptr, 3); # 19
+		E_exx();                      #  4
+		                              # 85 t-states
+	end if;
+}
+
+gen hlhl := LOAD4(ix|iy:ptr)
 {
 	E_load8i(loreg($$), $ptr, 0);
 	E_load8i(hireg($$), $ptr, 1);
@@ -1133,14 +1158,29 @@ gen r32 := LOAD4(ADDRESS():a)
 	RegCacheLeavesValue($$, $a.sym, $a.off);
 }
 
-gen STORE4(r32:val, ix|iy:ptr)
+gen STORE4(r32:val, hl|ix|iy:ptr)
 {
-	E_store8i(loreg($val), $ptr, 0);
-	E_store8i(hireg($val), $ptr, 1);
-	E_exx();
-	E_store8i(loreg($val), $ptr, 2);
-	E_store8i(hireg($val), $ptr, 3);
-	E_exx();
+	if $ptr == REG_HL then
+		E_storem(loreg($val));           #  7
+		E_inc(REG_HL);                   #  6
+		E_storem(hireg($val));           #  7
+		E_inc(REG_HL);                   #  6
+		E_push(REG_HL);                  # 11
+		E_exx();                         #  4
+		E_pop(REG_HL);                   # 10
+		E_storem(loreg($val));           #  7
+		E_inc(REG_HL);                   #  6
+		E_storem(hireg($val));           #  7
+		E_exx();                         # 71 t-states
+	else
+		E_store8i(loreg($val), $ptr, 0); # 19
+		E_store8i(hireg($val), $ptr, 1); # 19
+		E_exx();                         #  4
+		E_store8i(loreg($val), $ptr, 2); # 19
+		E_store8i(hireg($val), $ptr, 3); # 19
+		E_exx();                         #  4
+		                                 # 84 t-states
+	end if;
 }
 
 gen STORE4(r32:val, ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c))
@@ -1332,6 +1372,9 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 		E_add(REG_HL, $lhs);
 	end if;
 }
+
+gen ix|iy := ADD2($$, bc|de:rhs)
+		{ E_add($$, $rhs); }
 
 gen hl := NEG2(bc|de:lhs) uses a
 {
