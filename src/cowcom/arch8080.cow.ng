@@ -441,16 +441,16 @@
 		E_nl();
 	end sub;
 
-	sub E_inc(reg: RegId)
+	sub E_inr(reg: RegId)
 		R_flush(reg);
-		E("\tinc ");
+		E("\tinr ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_dec(reg: RegId)
+	sub E_dcr(reg: RegId)
 		R_flush(reg);
-		E("\tdec ");
+		E("\tdcr ");
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -906,19 +906,16 @@ gen a := ADD1(b|d|h:lhs, a)
 		{ E_add($lhs); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
-		{ E_dec($$); }
+		{ E_dcr($$); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==1))
-		{ E_inc($$); }
-
-gen a := ADD1(a, CONSTANT():c)
-		{ E_adi($c.value as uint8); }
+		{ E_inr($$); }
 
 gen a := SUB1(a, b|d|h:rhs)
 		{ E_sub($rhs); }
 
 gen a|b|d|h := SUB1($$, CONSTANT(value==1))
-		{ E_dec($$); }
+		{ E_dcr($$); }
 
 gen a := SUB1(a, CONSTANT():c)
 		{ E_sbi($c.value as uint8); }
