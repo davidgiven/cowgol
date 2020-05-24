@@ -88,16 +88,19 @@ sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith)
 	var lhs := lhsp.constant.value;
 	var rhs := rhsp.constant.value;
 	case op is
-		when MIDCODE_ADD0: result := lhs + rhs;
-		when MIDCODE_SUB0: result := lhs - rhs;
-		when MIDCODE_MUL0: result := lhs * rhs;
-		when MIDCODE_DIVU0: result := ((lhs as uint32) / (rhs as uint32)) as Arith;
-		when MIDCODE_DIVS0: result := (lhs as int32) / (rhs as int32);
-		when MIDCODE_REMU0: result := ((lhs as uint32) % (rhs as uint32)) as Arith;
-		when MIDCODE_REMS0: result := (lhs as int32) % (rhs as int32);
-		when MIDCODE_AND0: result := lhs & rhs;
-		when MIDCODE_OR0:  result := lhs | rhs;
-		when MIDCODE_EOR0: result := lhs ^ rhs;
+		when MIDCODE_ADD0:      result := lhs + rhs;
+		when MIDCODE_SUB0:      result := lhs - rhs;
+		when MIDCODE_MUL0:      result := lhs * rhs;
+		when MIDCODE_DIVU0:     result := ((lhs as uint32) / (rhs as uint32)) as Arith;
+		when MIDCODE_DIVS0:     result := (lhs as int32) / (rhs as int32);
+		when MIDCODE_REMU0:     result := ((lhs as uint32) % (rhs as uint32)) as Arith;
+		when MIDCODE_REMS0:     result := (lhs as int32) % (rhs as int32);
+		when MIDCODE_AND0:      result := lhs & rhs;
+		when MIDCODE_OR0:       result := lhs | rhs;
+		when MIDCODE_EOR0:      result := lhs ^ rhs;
+		when MIDCODE_LSHIFT0:   result := lhs << (rhs as uint8);
+		when MIDCODE_RSHIFTU0:  result := ((lhs as uint32) >> (rhs as uint8)) as Arith;
+		when MIDCODE_RSHIFTS0:  result := (lhs as int32) >> (rhs as uint8);
 		when else:
 			midcodec_i_bad_fold();
 	end case;

@@ -393,8 +393,8 @@ expression(E) ::= expression(E1) PERCENT expression(E2).   { E := Expr2Simple(MI
 expression(E) ::= expression(E1) CARET expression(E2).     { E := Expr2Simple(MIDCODE_EOR0, MIDCODE_EOR0, E1, E2); }
 expression(E) ::= expression(E1) AMPERSAND expression(E2). { E := Expr2Simple(MIDCODE_AND0, MIDCODE_AND0, E1, E2); }
 expression(E) ::= expression(E1) PIPE expression(E2).      { E := Expr2Simple(MIDCODE_OR0, MIDCODE_OR0, E1, E2); }
-expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
-expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
+expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprShift(MIDCODE_LSHIFT0, MIDCODE_LSHIFT0, E1, E2); }
+expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprShift(MIDCODE_RSHIFTS0, MIDCODE_RSHIFTU0, E1, E2); }
 
 expression(E) ::= expression(E1) AS typeref(T).
 {

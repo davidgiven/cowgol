@@ -135,70 +135,126 @@
 		E_nl();
 	end sub;
 
+	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId)
+		result := 0;
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				result := [regtable];
+				return;
+			end if;
+			reg := reg >> 1;
+			regtable := @next regtable;
+		end loop;
+
+		if result == 0 then
+			StartError();
+			print("bad ");
+			print(name);
+			print_char(' ');
+			print_hex_i16(reg);
+			EndError();
+		end if;
+	end sub;
+
 	sub loreg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:    result := REG_A;
-			when REG_BC:   result := REG_C;
-			when REG_DE:   result := REG_E;
-			when REG_HL:   result := REG_L;
-			when REG_BCBC: result := REG_C;
-			when REG_DEDE: result := REG_E;
-			when REG_HLHL: result := REG_L;
-			when else:
-				StartError();
-				print("bad loreg ");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_C,  # b
+			REG_C,  # c
+			REG_E,  # d
+			REG_E,  # e
+			REG_L,  # h
+			REG_L,  # l
+			REG_L,  # hl
+			REG_E,  # de
+			REG_C,  # bc
+			REG_L,  # hlhl
+			REG_E,  # dede
+			REG_C,  # bcbc
+			0,      # ix
+			0,      # iy
+		};
+
+		result := getreg(reg, &regs[0], "loreg");
 	end sub;
 
 	sub hireg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:    result := REG_A;
-			when REG_BC:   result := REG_B;
-			when REG_DE:   result := REG_D;
-			when REG_HL:   result := REG_H;
-			when REG_BCBC: result := REG_B;
-			when REG_DEDE: result := REG_D;
-			when REG_HLHL: result := REG_H;
-			when else:
-				StartError();
-				print("bad hireg ");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_B,  # b
+			REG_B,  # c
+			REG_D,  # d
+			REG_D,  # e
+			REG_H,  # h
+			REG_H,  # l
+			REG_H,  # hl
+			REG_D,  # de
+			REG_B,  # bc
+			REG_H,  # hlhl
+			REG_D,  # dede
+			REG_B,  # bcbc
+			0,      # ix
+			0,      # iy
+		};
+
+		result := getreg(reg, &regs[0], "hireg");
 	end sub;
 
 	sub wordreg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_BCBC: result := REG_BC;
-			when REG_DEDE: result := REG_DE;
-			when REG_HLHL: result := REG_HL;
-			when else:
-				SimpleError("bad wordreg");
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_BC, # b
+			REG_BC, # c
+			REG_DE, # d
+			REG_DE, # e
+			REG_HL, # h
+			REG_HL, # l
+			REG_HL, # hl
+			REG_DE, # de
+			REG_BC, # bc
+			REG_HL, # hlhl
+			REG_DE, # dede
+			REG_BC, # bcbc
+			REG_IX, # ix
+			REG_IY, # iy
+		};
+
+		result := getreg(reg, &regs[0], "wordreg");
 	end sub;
 
 	sub E_reg(reg: RegId)
-		case reg is
-			when REG_A:    E("a");
-			when REG_B:    E("b");
-			when REG_C:    E("c");
-			when REG_D:    E("d");
-			when REG_E:    E("e");
-			when REG_H:    E("h");
-			when REG_L:    E("l");
-			when REG_BC:   E("bc");
-			when REG_DE:   E("de");
-			when REG_HL:   E("hl");
-			when REG_IX:   E("ix");
-			when REG_IY:   E("iy");
-			when REG_BCBC: E("bc");
-			when REG_DEDE: E("de");
-			when REG_HLHL: E("hl");
-			when else:
-				SimpleError("bad reg");
-		end case;
+		var names: string[] := {
+			"a",
+			"b",
+			"c",
+			"d",
+			"e",
+			"h",
+			"l",
+			"hl",
+			"de",
+			"bc",
+			"hl",
+			"de",
+			"bc",
+			"ix",
+			"iy"
+		};
+
+		var p := &names[0];
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				E([p]);
+				return;
+			end if;
+			reg := reg >> 1;
+			p := @next p;
+		end loop;
+
+		StartError();
+		print("bad reg ");
+		print_hex_i16(reg);
+		EndError();
 	end sub;
 
 	sub E_stackref(reg: RegId)
@@ -539,6 +595,18 @@
 
 	sub E_srl(reg: RegId)
 		E_shift("srl", reg);
+	end sub;
+
+	sub E_rr(reg: RegId)
+		E_shift("rr", reg);
+	end sub;
+
+	sub E_bit(bit: uint8, reg: RegId)
+		E("\tbit ");
+		E_u8(bit);
+		E_comma();
+		E_reg(reg);
+		E_nl();
 	end sub;
 
 	# Does not persist the name; only call this with constant strings.
@@ -976,7 +1044,7 @@ gen r32 := CONSTANT():c
 %{
 	sub is_indexable_8bit(value: Arith): (result: uint8)
 		result := 1;
-		if (value < -128) or (value > 127) then
+		if (value < -128) or (value > 127) or ((value >= -4) and (value <= 4)) then
 			result := 0;
 		end if;
 	end sub;
@@ -1024,7 +1092,7 @@ gen STORE1(CONSTANT():v, ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
 %{
 	sub is_indexable_16bit(value: Arith): (result: uint8)
 		result := 1;
-		if (value < -128) or (value > 126) then
+		if (value < -128) or (value > 126) or ((value >= -3) and (value <= 3)) then
 			result := 0;
 		end if;
 	end sub;
@@ -1092,13 +1160,38 @@ gen STORE2(CONSTANT():v, ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c)) 
 %{
 	sub is_indexable_32bit(value: Arith): (result: uint8)
 		result := 1;
-		if (value < -128) or (value > 124) then
+		if (value < -128) or (value > 124) or ((value >= -3) and (value <= 3)) then
 			result := 0;
 		end if;
 	end sub;
 %}
 
-gen r32 := LOAD4(ix|iy:ptr)
+gen bcbc|dede := LOAD4(hl|ix|iy:ptr)
+{
+	if $ptr == REG_HL then
+		E_loadm(loreg($$));           #  7
+		E_inc(REG_HL);                #  6
+		E_loadm(hireg($$));           #  7
+		E_inc(REG_HL);                #  6
+		E_push(REG_HL);               # 11
+		E_exx();                      #  4
+		E_pop(REG_HL);                # 10
+		E_loadm(loreg($$));           #  7
+		E_inc(REG_HL);                #  6
+		E_loadm(hireg($$));           #  7
+		E_exx();                      # 71 t-states
+	else
+		E_load8i(loreg($$), $ptr, 0); # 19
+		E_load8i(hireg($$), $ptr, 1); # 19
+		E_exx();                      #  4
+		E_load8i(loreg($$), $ptr, 2); # 19
+		E_load8i(hireg($$), $ptr, 3); # 19
+		E_exx();                      #  4
+		                              # 85 t-states
+	end if;
+}
+
+gen hlhl := LOAD4(ix|iy:ptr)
 {
 	E_load8i(loreg($$), $ptr, 0);
 	E_load8i(hireg($$), $ptr, 1);
@@ -1133,14 +1226,29 @@ gen r32 := LOAD4(ADDRESS():a)
 	RegCacheLeavesValue($$, $a.sym, $a.off);
 }
 
-gen STORE4(r32:val, ix|iy:ptr)
+gen STORE4(r32:val, hl|ix|iy:ptr)
 {
-	E_store8i(loreg($val), $ptr, 0);
-	E_store8i(hireg($val), $ptr, 1);
-	E_exx();
-	E_store8i(loreg($val), $ptr, 2);
-	E_store8i(hireg($val), $ptr, 3);
-	E_exx();
+	if $ptr == REG_HL then
+		E_storem(loreg($val));           #  7
+		E_inc(REG_HL);                   #  6
+		E_storem(hireg($val));           #  7
+		E_inc(REG_HL);                   #  6
+		E_push(REG_HL);                  # 11
+		E_exx();                         #  4
+		E_pop(REG_HL);                   # 10
+		E_storem(loreg($val));           #  7
+		E_inc(REG_HL);                   #  6
+		E_storem(hireg($val));           #  7
+		E_exx();                         # 71 t-states
+	else
+		E_store8i(loreg($val), $ptr, 0); # 19
+		E_store8i(hireg($val), $ptr, 1); # 19
+		E_exx();                         #  4
+		E_store8i(loreg($val), $ptr, 2); # 19
+		E_store8i(hireg($val), $ptr, 3); # 19
+		E_exx();                         #  4
+		                                 # 84 t-states
+	end if;
 }
 
 gen STORE4(r32:val, ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c))
@@ -1333,6 +1441,9 @@ gen hl := ADD2(hl|bc|de:lhs, hl|bc|de:rhs)
 	end if;
 }
 
+gen ix|iy := ADD2($$, bc|de:rhs)
+		{ E_add($$, $rhs); }
+
 gen hl := NEG2(bc|de:lhs) uses a
 {
 	E_xor(REG_A);
@@ -1365,19 +1476,28 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 		E_alui(hiinsn, (value >> 8) as uint8);
 		E_mov(hireg(dest), REG_A);
 	end sub;
+
+	sub E_dvrmu2()
+		E_callhelper("_dvrmu2");
+	end sub;
+
+	sub E_dvrms2()
+		E_callhelper("_dvrms2");
+	end sub;
+
 %}
 
 gen bc := DIVU2(bc, de) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ E_dvrmu2(); }
 
 gen hl := REMU2(bc, de) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ E_dvrmu2(); }
 
 gen bc := DIVS2(bc, de) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ E_dvrms2(); }
 
 gen de := REMS2(bc, de) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ E_dvrms2(); }
 
 gen hl := MUL2(de, bc) uses a
 		{ E_callhelper("_mul2"); }
@@ -1436,6 +1556,18 @@ gen hl := LSHIFT2(hl, CONSTANT(value<=5):c)
 		E_add(REG_HL, REG_HL);
 		i := i - 1;
 	end loop;
+}
+
+gen r16 := RSHIFTU2($$, CONSTANT(value==1):c)
+{
+	E_srl(hireg($$));
+	E_rr(loreg($$));
+}
+
+gen r16 := RSHIFTS2($$, CONSTANT(value==1):c)
+{
+	E_sra(hireg($$));
+	E_rr(loreg($$));
 }
 
 // --- 32-bit arithmetic ----------------------------------------------------
@@ -1520,6 +1652,10 @@ gen hlhl := RSHIFTS4(hlhl, b)
 
 	sub E_jumps_jz_jnz(node: [Node])
 		E_jumps_with_fallthrough("jp z,", "jp nz,", node);
+	end sub;
+
+	sub E_jumps_jnz_jz(node: [Node])
+		E_jumps_with_fallthrough("jp nz,", "jp z,", node);
 	end sub;
 
 	sub E_jumps_jc_jnc(node: [Node])
@@ -1674,6 +1810,12 @@ gen BLTS2(hl, de):b uses a|bc
 	E_jumps_jm_jp(self.n[0]);
 }
 
+gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)):b
+{
+	E_bit(7, hireg($lhs));
+	E_jumps_jnz_jz(self.n[0]);
+}
+
 gen BEQU4(dede, hlhl):b uses a
 		{ bequ4(self.n[0]); }
 
@@ -1697,7 +1839,15 @@ gen BLTS4(hlhl, dede):b
 	E_callhelper("_cmps4");
 	E_jumps_jm_jp(self.n[0]);
 }
-	
+
+gen BLTS4(r32:lhs, CONSTANT(value==0)):b
+{
+	E_exx();
+	E_bit(7, hireg($lhs));
+	E_exx();
+	E_jumps_jnz_jz(self.n[0]);
+}
+
 // --- Case -----------------------------------------------------------------
 
 gen STARTCASE1(a);

@@ -131,49 +131,89 @@
 		E_nl();
 	end sub;
 
+	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId)
+		result := 0;
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				result := [regtable];
+				return;
+			end if;
+			reg := reg >> 1;
+			regtable := @next regtable;
+		end loop;
+
+		if result == 0 then
+			StartError();
+			print("bad ");
+			print(name);
+			print_char(' ');
+			print_hex_i16(reg);
+			EndError();
+		end if;
+	end sub;
+
 	sub loreg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:  result := REG_A;
-			when REG_BC: result := REG_C;
-			when REG_DE: result := REG_E;
-			when REG_HL: result := REG_L;
-			when else:
-				StartError();
-				print("bad loreg ");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_C,  # b
+			REG_C,  # c
+			REG_E,  # d
+			REG_E,  # e
+			REG_L,  # h
+			REG_L,  # l
+			REG_L,  # hl
+			REG_E,  # de
+			REG_C,  # bc
+		};
+
+		result := getreg(reg, &regs[0], "loreg");
 	end sub;
 
 	sub hireg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:  result := REG_A;
-			when REG_BC: result := REG_B;
-			when REG_DE: result := REG_D;
-			when REG_HL: result := REG_H;
-			when else:
-				SimpleError("bad hireg");
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_B,  # b
+			REG_B,  # c
+			REG_D,  # d
+			REG_D,  # e
+			REG_H,  # h
+			REG_H,  # l
+			REG_H,  # hl
+			REG_D,  # de
+			REG_B,  # bc
+		};
+
+		result := getreg(reg, &regs[0], "loreg");
 	end sub;
 
 	sub E_reg(reg: RegId)
-		case reg is
-			when REG_A: EmitByte('a');
-			when REG_B: EmitByte('b');
-			when REG_C: EmitByte('c');
-			when REG_D: EmitByte('d');
-			when REG_E: EmitByte('e');
-			when REG_H: EmitByte('h');
-			when REG_L: EmitByte('l');
-			when REG_BC: EmitByte('b');
-			when REG_DE: EmitByte('d');
-			when REG_HL: EmitByte('h');
-			when else:
-				StartError();
-				print("invalid register 0x");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var names: string[] := {
+			"a",
+			"b",
+			"c",
+			"d",
+			"e",
+			"h",
+			"l",
+			"h",
+			"d",
+			"b",
+		};
+
+		var p := &names[0];
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				E([p]);
+				return;
+			end if;
+			reg := reg >> 1;
+			p := @next p;
+		end loop;
+
+		StartError();
+		print("bad reg ");
+		print_hex_i16(reg);
+		EndError();
 	end sub;
 
 	sub E_stackreg(reg: RegId)
@@ -1079,6 +1119,14 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 		E_alui(hiinsn, (value >> 8) as uint8);
 		E_mov(dest, REG_A);
 	end sub;
+
+	sub dvrmu2()
+		E_callhelper("_dvrmu2");
+	end sub;
+
+	sub dvrms2()
+		E_callhelper("_dvrms2");
+	end sub;
 %}
 
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
@@ -1092,16 +1140,16 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, CONSTANT():c) uses a
 }
 
 gen de := DIVU2(de, bc) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ dvrmu2(); }
 
 gen hl := REMU2(de, bc) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ dvrmu2(); }
 
 gen de := DIVS2(de, bc) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ dvrms2(); }
 
 gen hl := REMS2(de, bc) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ dvrms2(); }
 
 gen hl := MUL2(hl, de) uses a|bc
 		{ E_callhelper("_mul2"); }
@@ -1229,6 +1277,10 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 		E_jumps_with_fallthrough("jc", "jnc", node);
 	end sub;
 
+	sub E_jumps_jm_jp(node: [Node])
+		E_jumps_with_fallthrough("jm", "jp", node);
+	end sub;
+
 	sub bequ1(node: [Node], nota: RegId)
 		E_cmp(nota);
 		E_jumps_jz_jnz(node);
@@ -1260,6 +1312,16 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 
 	sub bequ4(node: [Node])
 		E_callhelper("_cmpu4");
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ40(node: [Node])
+		E_pop(REG_HL);
+		E_mov(REG_A, REG_H);
+		E_ora(REG_L);
+		E_pop(REG_HL);
+		E_ora(REG_H);
+		E_ora(REG_L);
 		E_jumps_jz_jnz(node);
 	end sub;
 
@@ -1312,7 +1374,13 @@ gen BLTU1(a, CONSTANT():c):b
 gen BLTS1(a, b):b
 {
 	E_callhelper("_cmps1");
-	E_jumps_with_fallthrough("jm", "jp", self.n[0]);
+	E_jumps_jm_jp(self.n[0]);
+}
+
+gen BLTS1(a, CONSTANT(value==0))
+{
+	E_ora(REG_A);
+	E_jumps_jm_jp(self.n[0]);
 }
 
 gen BEQU2(de, hl):a
@@ -1355,11 +1423,24 @@ gen BLTS2(de, hl):b uses a|bc
 	E_jumps_jc_jnc(self.n[0]);
 }
 
+gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)) uses a
+{
+	E_mov(REG_A, hireg($lhs));
+	E_ora(REG_A);
+	E_jumps_jm_jp(self.n[0]);
+}
+
 gen BEQU4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
 		{ bequ4(self.n[0]); }
 
 gen BEQS4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
 		{ bequ4(self.n[0]); }
+
+gen BEQU4(stk4:lhs, CONSTANT(value==0)) uses a|hl
+		{ bequ40(self.n[0]); }
+
+gen BEQS4(stk4:lhs, CONSTANT(value==0)) uses a|hl
+		{ bequ40(self.n[0]); }
 
 gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
@@ -1371,6 +1452,14 @@ gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E_callhelper("_cmps4");
 	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTS4(stk4:lhs, CONSTANT(value==0)) uses a
+{
+	E_pop(REG_A);
+	E_pop(REG_A); # high byte of 4-byte word ends up in A -- conveniently!
+	E_ora(REG_A);
+	E_jumps_jm_jp(self.n[0]);
 }
 
 // --- Case -----------------------------------------------------------------

@@ -68,6 +68,15 @@ sub UndoLValue(lvalue: [Node]): (address: [Node])
 	Discard(lvalue);
 end sub;
 
+sub expr_i_cant_do_that(lhs: [Node], rhs: [Node])
+	StartError();
+	print(lhs.type.name);
+	print(" and ");
+	print(rhs.type.name);
+	print(" are not compatible in this context");
+	EndError();
+end sub;
+
 sub CheckExpressionType(node: [Node], type: [Symbol])
 	if node.type == (0 as [Symbol]) then
 		node.type := type;
@@ -116,12 +125,7 @@ sub ResolveUntypedConstantsSimply(lhs: [Node], rhs: [Node])
 	elseif (lhs.type == (0 as [Symbol])) and (rhs.type != (0 as [Symbol])) then
 		lhs.type := rhs.type;
 	elseif lhs.type != rhs.type then
-		StartError();
-		print("type mismatch between ");
-		print(lhs.type.name);
-		print(" and ");
-		print(rhs.type.name);
-		EndError();
+		expr_i_cant_do_that(lhs, rhs);
 	end if;
 end sub;
 
@@ -140,12 +144,7 @@ end sub;
 sub CondSimple(lhs: [Node], rhs: [Node])
 	ResolveUntypedConstantsSimply(lhs, rhs);
 	if lhs.type != rhs.type then
-		StartError();
-		print("you tried to compare a ");
-		print(lhs.type.name);
-		print(" and a ");
-		print(rhs.type.name);
-		EndError();
+		expr_i_cant_do_that(lhs, rhs);
 	end if;
 end sub;
 
@@ -158,12 +157,7 @@ sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsForAddOrSub(lhs, rhs);
 
 	sub cant_add_that()
-		StartError();
-		print("you can't add a ");
-		print(lhs.type.name);
-		print(" to a ");
-		print(rhs.type.name);
-		EndError();
+		expr_i_cant_do_that(lhs, rhs);
 	end sub;
 
 	if (IsPtr(lhs.type) != 0) then
@@ -171,7 +165,7 @@ sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 			cant_add_that();
 		end if;
 	elseif IsPtr(rhs.type) != 0 then
-		SimpleError("add numbers to pointers, not vice versa");
+		cant_add_that();
 	elseif (IsPtr(lhs.type) == 0) and (lhs.type != rhs.type) then
 		cant_add_that();
 	end if;
@@ -184,12 +178,7 @@ sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsForAddOrSub(lhs, rhs);
 
 	sub cant_sub_that()
-		StartError();
-		print("you can't subtract a ");
-		print(lhs.type.name);
-		print(" from a ");
-		print(rhs.type.name);
-		EndError();
+		expr_i_cant_do_that(lhs, rhs);
 	end sub;
 
 	if (IsPtr(lhs.type) != 0) and (IsPtr(rhs.type) == 0) and (rhs.type != intptr_type) then
@@ -231,37 +220,22 @@ sub expr_i_checkshift(lhs: [Node], rhs: [Node])
 	CheckExpressionType(rhs, uint8_type);
 end sub;
 
-sub ExprRShift(lhs: [Node], rhs: [Node]): (result: [Node])
-	if lhs.op == MIDCODE_CONSTANT then
-		expr_i_checkrhsconst(rhs);
-		lhs.constant.value := lhs.constant.value >> (rhs.constant.value as uint8);
-		result := lhs;
-		Discard(rhs);
-		return;
-	end if;
-
-	expr_i_checkshift(lhs, rhs);
-
-	result := MidRshiftu(NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
-
+sub ExprShift(sop: uint8, uop: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	var op := uop;
 	if IsSNum(lhs.type) != 0 then
-		result.op := result.op + (MIDCODE_RSHIFTS0-MIDCODE_RSHIFTU0);
+		op := sop;
 	end if;
-end sub;
 
-sub ExprLShift(lhs: [Node], rhs: [Node]): (result: [Node])
 	if lhs.op == MIDCODE_CONSTANT then
 		expr_i_checkrhsconst(rhs);
-		lhs.constant.value := lhs.constant.value << (rhs.constant.value as uint8);
+		lhs.constant.value := FoldConstant2(op, lhs, rhs);
 		result := lhs;
 		Discard(rhs);
 		return;
 	end if;
-
 	expr_i_checkshift(lhs, rhs);
 
-	result := MidLshift(NodeWidth(lhs), lhs, rhs);
+	result := MidC2Op(op, NodeWidth(lhs), lhs, rhs);
 	result.type := lhs.type;
 end sub;
 
