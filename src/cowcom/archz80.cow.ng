@@ -67,8 +67,7 @@
 	sub E_symref(sym: [Symbol], off: Size)
 		if sym.vardata.externname != (0 as string) then
 			E(sym.vardata.externname);
-			EmitByte('+');
-			E_u16(off);
+			E_i16(off as int16);
 		else
 			EmitByte(COO_ESCAPE_WSREF);
 			E_h16(sym.vardata.subr.id);
@@ -339,9 +338,6 @@
 		var cache := RegCacheFindValue(sym, off);
 		if (cache & dest) != 0 then
 			# Value already in the right register.
-			E("; cache ");
-			E_reg(dest);
-			E_nl();
 			return;
 		elseif cache != 0 then
 			# Value in a register, but not the right one.
@@ -397,57 +393,6 @@
 		E_u8(value);
 		E_nl();
 		RegCacheLeavesConstant(reg, value as CacheValue);
-	end sub;
-
-	sub E_lxi(reg: RegId, value: uint16);
-		var cache := RegCacheFindConstant(value as CacheValue) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
-		if (cache & reg) != 0 then
-			# The value is already in the desired register.
-			return;
-		elseif cache != 0 then
-			# The value is already in a register, but not this one.
-			cache := FindFirst(cache);
-			if ((reg | cache) & (REG_IX|REG_IY)) != 0 then
-				E_mov(loreg(reg), loreg(cache));
-				E_mov(hireg(reg), hireg(cache));
-			else
-				E_push(cache);
-				E_pop(reg);
-			end if;
-			return;
-		end if;
-
-		R_flush(reg);
-		E("\tld ");
-		E_reg(reg);
-		E_comma();
-		E_u16(value);
-		E_nl();
-		RegCacheLeavesConstant(reg, value as CacheValue);
-		RegCacheLeavesConstant(loreg(reg), value as uint8 as CacheValue);
-		RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as CacheValue);
-	end sub;
-
-	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
-		var cache := RegCacheFindAddress(sym, off) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
-		if (cache & reg) != 0 then
-			# The value is already in the desired register.
-			return;
-		#elseif cache != 0 then
-		#	# The value is already in a register, but not this one.
-		#	cache := FindFirst(cache);
-		#	E_mov(loreg(reg), loreg(cache));
-		#	E_mov(hireg(reg), hireg(cache));
-		#	return;
-		end if;
-
-		R_flush(reg);
-		E("\tld ");
-		E_reg(reg);
-		E_comma();
-		E_symref(sym, off);
-		E_nl();
-		#RegCacheLeavesAddress(reg, sym, off);
 	end sub;
 
 	sub E_alu(insn: string, rhs: RegId)
@@ -700,6 +645,55 @@
 		else
 			E_mov(dest, src);
 		end if;
+	end sub;
+
+	sub E_lxi(reg: RegId, value: uint16);
+		var cache := RegCacheFindConstant(value as CacheValue) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
+		if (cache & reg) != 0 then
+			# The value is already in the desired register.
+			return;
+		elseif cache != 0 then
+			# The value is already in a register, but not this one.
+			cache := FindFirst(cache);
+			ArchEmitMove(cache, reg);
+			return;
+		end if;
+
+		R_flush(reg);
+		E("\tld ");
+		E_reg(reg);
+		E_comma();
+		E_u16(value);
+		E_nl();
+		RegCacheLeavesConstant(reg, value as CacheValue);
+		if (reg & (REG_IX|REG_IY)) != 0 then
+			RegCacheLeavesConstant(loreg(reg), value as uint8 as CacheValue);
+			RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as CacheValue);
+		end if;
+	end sub;
+
+	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
+		# This optimisation doesn't appear to be used in real life and
+		# costs about 400 bytes in the compiler, so let's leave it disabled.
+
+		#var cache := RegCacheFindAddress(sym, off) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
+		#if (cache & reg) != 0 then
+		#	# The value is already in the desired register.
+		#	return;
+		#elseif cache != 0 then
+		#	# The value is already in a register, but not this one.
+		#	cache := FindFirst(cache);
+		#	ArchEmitMove(cache, reg);
+		#	return;
+		#end if;
+
+		R_flush(reg);
+		E("\tld ");
+		E_reg(reg);
+		E_comma();
+		E_symref(sym, off);
+		E_nl();
+		#RegCacheLeavesAddress(reg, sym, off);
 	end sub;
 
 	sub ArchEndInstruction()
@@ -1069,7 +1063,7 @@ gen STORE2(r16:ptr, ADDRESS():a)
 	E_store16($ptr, $a.sym, $a.off);
 }
 
-gen STORE2(bc|de:val, hl|ix|iy:rhs) uses a
+gen STORE2(hl|bc|de:val, hl|ix|iy:rhs) uses a
 {
 	if ($rhs & (REG_IX|REG_IY)) != 0 then
 		E_store8i(loreg($val), $rhs, 0);

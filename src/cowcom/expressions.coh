@@ -149,13 +149,8 @@ sub CondSimple(lhs: [Node], rhs: [Node])
 	end if;
 end sub;
 
-sub ExprNeg(lhs: [Node]): (result: [Node])
-	result := MidCNeg(NodeWidth(lhs), lhs);
-	result.type := lhs.type;
-end sub;
-
-sub ExprNot(lhs: [Node]): (result: [Node])
-	result := MidCNot(NodeWidth(lhs), lhs);
+sub Expr1Simple(op: uint8, lhs: [Node]): (result: [Node])
+	result := MidC1Op(op, NodeWidth(lhs), lhs);
 	result.type := lhs.type;
 end sub;
 
@@ -181,7 +176,7 @@ sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 		cant_add_that();
 	end if;
 	
-	result := MidCAdd(NodeWidth(lhs), lhs, rhs);
+	result := MidC2Op(MIDCODE_ADD0, NodeWidth(lhs), lhs, rhs);
 	result.type := lhs.type;
 end sub;
 
@@ -205,7 +200,7 @@ sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
 		cant_sub_that();
 	end if;
 
-	result := MidCSub(NodeWidth(lhs), lhs, rhs);
+	result := MidC2Op(MIDCODE_SUB0, NodeWidth(lhs), lhs, rhs);
 	if (IsPtr(lhs.type) != 0) and (lhs.type == rhs.type) then
 		result.type := intptr_type;
 	else
@@ -213,47 +208,13 @@ sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
 	end if;
 end sub;
 
-sub ExprMul(lhs: [Node], rhs: [Node]): (result: [Node])
+sub Expr2Simple(sop: uint8, uop: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	result := MidCMul(NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
-end sub;
-
-sub ExprDiv(lhs: [Node], rhs: [Node]): (result: [Node])
-	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	var op := uop;
 	if IsSNum(lhs.type) != 0 then
-		result := MidCDivs(NodeWidth(lhs), lhs, rhs);
-	else
-		result := MidCDivu(NodeWidth(lhs), lhs, rhs);
+		op := sop;
 	end if;
-	result.type := lhs.type;
-end sub;
-
-sub ExprRem(lhs: [Node], rhs: [Node]): (result: [Node])
-	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	if IsSNum(lhs.type) != 0 then
-		result := MidCRems(NodeWidth(lhs), lhs, rhs);
-	else
-		result := MidCRemu(NodeWidth(lhs), lhs, rhs);
-	end if;
-	result.type := lhs.type;
-end sub;
-
-sub ExprAnd(lhs: [Node], rhs: [Node]): (result: [Node])
-	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	result := MidCAnd(NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
-end sub;
-
-sub ExprOr(lhs: [Node], rhs: [Node]): (result: [Node])
-	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	result := MidCOr(NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
-end sub;
-
-sub ExprEor(lhs: [Node], rhs: [Node]): (result: [Node])
-	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
-	result := MidCEor(NodeWidth(lhs), lhs, rhs);
+	result := MidC2Op(op, NodeWidth(lhs), lhs, rhs);
 	result.type := lhs.type;
 end sub;
 

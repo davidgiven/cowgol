@@ -76,6 +76,16 @@ sub E_i8(value: int8)
 	E_u8(value as uint8);
 end sub;
 
+sub E_i16(value: int16)
+	if value < 0 then
+		EmitByte('-');
+		value := -value;
+	else
+		EmitByte('+');
+	end if;
+	E_u16(value as uint16);
+end sub;
+
 sub E_h(value: uint32, width: uint8)
 	var buffer: uint8[5];
 	var pe := UIToA(value as uint32, 16, &buffer[0]);

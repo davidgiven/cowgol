@@ -83,7 +83,7 @@ function rule(e)
 	print("")
 end
 
-OLDCOM_ARCHS = { "8080", "80386", "thumb2", "cgen" }
+OLDCOM_ARCHS = { "80386", "thumb2", "cgen" }
 
 include "build/c.lua"
 include "build/yacc.lua"

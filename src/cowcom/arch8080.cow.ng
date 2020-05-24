@@ -67,8 +67,7 @@
 	sub E_symref(sym: [Symbol], off: Size)
 		if sym.vardata.externname != (0 as string) then
 			E(sym.vardata.externname);
-			EmitByte('+');
-			E_u16(off);
+			E_i16(off as int16);
 		else
 			EmitByte(COO_ESCAPE_WSREF);
 			E_h16(sym.vardata.subr.id);
@@ -442,16 +441,16 @@
 		E_nl();
 	end sub;
 
-	sub E_inc(reg: RegId)
+	sub E_inr(reg: RegId)
 		R_flush(reg);
-		E("\tinc ");
+		E("\tinr ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_dec(reg: RegId)
+	sub E_dcr(reg: RegId)
 		R_flush(reg);
-		E("\tdec ");
+		E("\tdcr ");
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -907,19 +906,16 @@ gen a := ADD1(b|d|h:lhs, a)
 		{ E_add($lhs); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
-		{ E_dec($$); }
+		{ E_dcr($$); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==1))
-		{ E_inc($$); }
-
-gen a := ADD1(a, CONSTANT():c)
-		{ E_adi($c.value as uint8); }
+		{ E_inr($$); }
 
 gen a := SUB1(a, b|d|h:rhs)
 		{ E_sub($rhs); }
 
 gen a|b|d|h := SUB1($$, CONSTANT(value==1))
-		{ E_dec($$); }
+		{ E_dcr($$); }
 
 gen a := SUB1(a, CONSTANT():c)
 		{ E_sbi($c.value as uint8); }
@@ -1467,8 +1463,11 @@ gen stk4 := CAST14(a:rhs, sext!=0) uses hl|b
 gen a := CAST21(hl|bc|de:rhs)
 		{ E_mov(REG_A, loreg($rhs)); }
 
-gen a := CAST21(ADDRESS():a)
+gen a := CAST21(LOAD2(ADDRESS():a))
 		{ E_lda($a.sym, $a.off); }
+
+gen a|b|d|h := CAST21(LOAD2(hl))
+		{ E_loadm($$); }
 
 gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
