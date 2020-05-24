@@ -1463,8 +1463,11 @@ gen stk4 := CAST14(a:rhs, sext!=0) uses hl|b
 gen a := CAST21(hl|bc|de:rhs)
 		{ E_mov(REG_A, loreg($rhs)); }
 
-gen a := CAST21(ADDRESS():a)
+gen a := CAST21(LOAD2(ADDRESS():a))
 		{ E_lda($a.sym, $a.off); }
+
+gen a|b|d|h := CAST21(LOAD2(hl))
+		{ E_loadm($$); }
 
 gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
