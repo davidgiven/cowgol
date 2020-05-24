@@ -1079,6 +1079,14 @@ gen bc|de|hl := NEG2(bc|de|hl:lhs) uses a
 		E_alui(hiinsn, (value >> 8) as uint8);
 		E_mov(dest, REG_A);
 	end sub;
+
+	sub dvrmu2()
+		E_callhelper("_dvrmu2");
+	end sub;
+
+	sub dvrms2()
+		E_callhelper("_dvrms2");
+	end sub;
 %}
 
 gen bc|de|hl := SUB2(bc|de|hl:lhs, bc|de|hl:rhs) uses a
@@ -1092,16 +1100,16 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, CONSTANT():c) uses a
 }
 
 gen de := DIVU2(de, bc) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ dvrmu2(); }
 
 gen hl := REMU2(de, bc) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ dvrmu2(); }
 
 gen de := DIVS2(de, bc) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ dvrms2(); }
 
 gen hl := REMS2(de, bc) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ dvrms2(); }
 
 gen hl := MUL2(hl, de) uses a|bc
 		{ E_callhelper("_mul2"); }
@@ -1229,6 +1237,10 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 		E_jumps_with_fallthrough("jc", "jnc", node);
 	end sub;
 
+	sub E_jumps_jm_jp(node: [Node])
+		E_jumps_with_fallthrough("jm", "jp", node);
+	end sub;
+
 	sub bequ1(node: [Node], nota: RegId)
 		E_cmp(nota);
 		E_jumps_jz_jnz(node);
@@ -1260,6 +1272,16 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 
 	sub bequ4(node: [Node])
 		E_callhelper("_cmpu4");
+		E_jumps_jz_jnz(node);
+	end sub;
+
+	sub bequ40(node: [Node])
+		E_pop(REG_HL);
+		E_mov(REG_A, REG_H);
+		E_ora(REG_L);
+		E_pop(REG_HL);
+		E_ora(REG_H);
+		E_ora(REG_L);
 		E_jumps_jz_jnz(node);
 	end sub;
 
@@ -1312,7 +1334,13 @@ gen BLTU1(a, CONSTANT():c):b
 gen BLTS1(a, b):b
 {
 	E_callhelper("_cmps1");
-	E_jumps_with_fallthrough("jm", "jp", self.n[0]);
+	E_jumps_jm_jp(self.n[0]);
+}
+
+gen BLTS1(a, CONSTANT(value==0))
+{
+	E_ora(REG_A);
+	E_jumps_jm_jp(self.n[0]);
 }
 
 gen BEQU2(de, hl):a
@@ -1355,11 +1383,24 @@ gen BLTS2(de, hl):b uses a|bc
 	E_jumps_jc_jnc(self.n[0]);
 }
 
+gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)) uses a
+{
+	E_mov(REG_A, hireg($lhs));
+	E_ora(REG_A);
+	E_jumps_jm_jp(self.n[0]);
+}
+
 gen BEQU4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
 		{ bequ4(self.n[0]); }
 
 gen BEQS4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
 		{ bequ4(self.n[0]); }
+
+gen BEQU4(stk4:lhs, CONSTANT(value==0)) uses a|hl
+		{ bequ40(self.n[0]); }
+
+gen BEQS4(stk4:lhs, CONSTANT(value==0)) uses a|hl
+		{ bequ40(self.n[0]); }
 
 gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
@@ -1371,6 +1412,14 @@ gen BLTS4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de
 {
 	E_callhelper("_cmps4");
 	E_jumps_jc_jnc(self.n[0]);
+}
+
+gen BLTS4(stk4:lhs, CONSTANT(value==0)) uses a
+{
+	E_pop(REG_A);
+	E_pop(REG_A); # high byte of 4-byte word ends up in A -- conveniently!
+	E_ora(REG_A);
+	E_jumps_jm_jp(self.n[0]);
 }
 
 // --- Case -----------------------------------------------------------------

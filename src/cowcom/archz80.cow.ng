@@ -541,6 +541,14 @@
 		E_shift("srl", reg);
 	end sub;
 
+	sub E_bit(bit: uint8, reg: RegId)
+		E("\tbit ");
+		E_u8(bit);
+		E_comma();
+		E_reg(reg);
+		E_nl();
+	end sub;
+
 	# Does not persist the name; only call this with constant strings.
 	sub E_callhelper(name: string)
 		var e := externs;
@@ -1408,19 +1416,28 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 		E_alui(hiinsn, (value >> 8) as uint8);
 		E_mov(hireg(dest), REG_A);
 	end sub;
+
+	sub E_dvrmu2()
+		E_callhelper("_dvrmu2");
+	end sub;
+
+	sub E_dvrms2()
+		E_callhelper("_dvrms2");
+	end sub;
+
 %}
 
 gen bc := DIVU2(bc, de) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ E_dvrmu2(); }
 
 gen hl := REMU2(bc, de) uses a
-		{ E_callhelper("_dvrmu2"); }
+		{ E_dvrmu2(); }
 
 gen bc := DIVS2(bc, de) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ E_dvrms2(); }
 
 gen de := REMS2(bc, de) uses a
-		{ E_callhelper("_dvrms2"); }
+		{ E_dvrms2(); }
 
 gen hl := MUL2(de, bc) uses a
 		{ E_callhelper("_mul2"); }
@@ -1563,6 +1580,10 @@ gen hlhl := RSHIFTS4(hlhl, b)
 
 	sub E_jumps_jz_jnz(node: [Node])
 		E_jumps_with_fallthrough("jp z,", "jp nz,", node);
+	end sub;
+
+	sub E_jumps_jnz_jz(node: [Node])
+		E_jumps_with_fallthrough("jp nz,", "jp z,", node);
 	end sub;
 
 	sub E_jumps_jc_jnc(node: [Node])
@@ -1717,6 +1738,12 @@ gen BLTS2(hl, de):b uses a|bc
 	E_jumps_jm_jp(self.n[0]);
 }
 
+gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)):b
+{
+	E_bit(7, hireg($lhs));
+	E_jumps_jnz_jz(self.n[0]);
+}
+
 gen BEQU4(dede, hlhl):b uses a
 		{ bequ4(self.n[0]); }
 
@@ -1740,7 +1767,15 @@ gen BLTS4(hlhl, dede):b
 	E_callhelper("_cmps4");
 	E_jumps_jm_jp(self.n[0]);
 }
-	
+
+gen BLTS4(r32:lhs, CONSTANT(value==0)):b
+{
+	E_exx();
+	E_bit(7, hireg($lhs));
+	E_exx();
+	E_jumps_jnz_jz(self.n[0]);
+}
+
 // --- Case -----------------------------------------------------------------
 
 gen STARTCASE1(a);
