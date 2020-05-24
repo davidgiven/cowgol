@@ -1,0 +1,13 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+sub addsub()
+	var five: uint8 := 5;
+
+	print("2+3=five"); if (2+3) == five then yes(); else no(); end if;
+	print("7-2=five"); if (7-2) == five then yes(); else no(); end if;
+	print("five+2=7"); if (five+2) == 7 then yes(); else no(); end if;
+	print("five-2=3"); if (five-2) == 3 then yes(); else no(); end if;
+end sub;
+addsub();
+

@@ -89,7 +89,7 @@ sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith)
 	var rhs := rhsp.constant.value;
 	case op is
 		when MIDCODE_ADD0: result := lhs + rhs;
-		#when MIDCODE_SUB0: result := lhs - rhs;
+		when MIDCODE_SUB0: result := lhs - rhs;
 		when MIDCODE_MUL0: result := lhs * rhs;
 		when MIDCODE_DIVU0: result := ((lhs as uint32) / (rhs as uint32)) as Arith;
 		when MIDCODE_DIVS0: result := (lhs as int32) / (rhs as int32);
@@ -150,71 +150,6 @@ sub MidCNot(width: uint8, lhs: [Node]): (result: [Node])
 	result := MidC1Op(MIDCODE_NOT0, width, lhs);
 end sub;
 
-sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
-		lhs.constant.value := FoldConstant2(op, lhs, rhs);
-		Discard(rhs);
-		result := lhs;
-	else
-		result := AllocateNewNode(op + WidthToIndex(width));
-		result.left := lhs;
-		result.right := rhs;
-	end if;
-end sub;
-
-sub MidCAnd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(MIDCODE_AND0, lhs, rhs);
-	result := MidC2Op(MIDCODE_AND0, width, lhs, rhs);
-end sub;
-
-sub MidCOr(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(MIDCODE_OR0, lhs, rhs);
-	result := MidC2Op(MIDCODE_OR0, width, lhs, rhs);
-end sub;
-
-sub MidCEor(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(MIDCODE_EOR0, lhs, rhs);
-	result := MidC2Op(MIDCODE_EOR0, width, lhs, rhs);
-end sub;
-
-sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(MIDCODE_ADD0, lhs, rhs);
-	if rhs.op == MIDCODE_CONSTANT then
-		result := lhs;
-		if lhs.op == MIDCODE_CONSTANT then
-			lhs.constant.value := lhs.constant.value + rhs.constant.value;
-			Discard(rhs);
-			return;
-		elseif lhs.op == MIDCODE_ADDRESS then
-			lhs.address.off := lhs.address.off + (rhs.constant.value as Size);
-			Discard(rhs);
-			return;
-		elseif rhs.constant.value == 0 then
-			Discard(rhs);
-			return;
-		end if;
-	end if;
-	result := MidAdd(width, lhs, rhs);
-end sub;
-
-sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
-		lhs.constant.value := lhs.constant.value - rhs.constant.value;
-		Discard(rhs);
-		result := lhs;
-	elseif rhs.op == MIDCODE_CONSTANT then
-		if rhs.constant.value == 0 then
-			result := lhs;
-			Discard(rhs);
-		else
-			rhs.constant.value := -rhs.constant.value;
-			result := MidAdd(width, lhs, rhs);
-		end if;
-	else
-		result := MidSub(width, lhs, rhs);
-	end if;
-end sub;
-
 sub GetPowerOfTwo(value: int32): (exp: uint8)
 	exp := 0;
 	if (value > 0) and ((value & (value - 1)) == 0) then
@@ -225,34 +160,101 @@ sub GetPowerOfTwo(value: int32): (exp: uint8)
 	end if;
 end sub;
 
-sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	(lhs, rhs) := RotateParameters(MIDCODE_MUL0, lhs, rhs);
-	if rhs.op == MIDCODE_CONSTANT then
-		if lhs.op == MIDCODE_CONSTANT then
-			lhs.constant.value := lhs.constant.value * rhs.constant.value;
-			Discard(rhs);
-			result := lhs;
-			return;
-		else
-			sub shift(amount: uint8)
-				Discard(rhs);
-				result := MidLshift(width, lhs, MidConstant(amount as int32));
-			end sub;
+sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	# Convert subtractions of negative constants into additions, before the
+	# rotation.
 
+	if (op == MIDCODE_SUB0) and (rhs.op == MIDCODE_CONSTANT) then
+		rhs.constant.value := -rhs.constant.value;
+		op := MIDCODE_ADD0;
+	end if;
+
+	# Rotate commutative operations so the constant is on the RHS.
+
+	if op >= MIDCODE_ADD0 then
+		(lhs, rhs) := RotateParameters(op, lhs, rhs);
+	end if;
+
+	# Special-case folding.
+
+	if (lhs.op != MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
+		if (op == MIDCODE_MUL0) or (op == MIDCODE_DIVS0) or (op == MIDCODE_DIVU0) then
 			var value := rhs.constant.value;
 			var exp := GetPowerOfTwo(value);
 			if exp != 0 then
-				shift(exp-1);
-				return;
-			elseif value == 0 then
-				Discard(lhs);
 				Discard(rhs);
-				result := MidConstant(0);
+				case op is
+					when MIDCODE_MUL0: op := MIDCODE_LSHIFT0;
+					when MIDCODE_DIVS0: op := MIDCODE_RSHIFTS0;
+					when MIDCODE_DIVU0: op := MIDCODE_RSHIFTU0;
+				end case;
+				result := AllocateNewNode(op + WidthToIndex(width));
+				result.left := lhs;
+				result.right := MidConstant((exp-1) as int32);
 				return;
+			end if;
+		elseif (op == MIDCODE_ADD0) or (op == MIDCODE_SUB0) then
+			if rhs.constant.value == 0 then
+				Discard(rhs);
+				result := lhs;
+				return;
+			end if;
+			if lhs.op == MIDCODE_ADDRESS then
+				var rvalue := rhs.constant.value as Size;
+				case op is
+					when MIDCODE_ADD0:
+						lhs.address.off := lhs.address.off + rvalue;
+						Discard(rhs);
+						result := lhs;
+						return;
+					when MIDCODE_SUB0:
+						lhs.address.off := lhs.address.off - rvalue;
+						Discard(rhs);
+						result := lhs;
+						return;
+				end case;
 			end if;
 		end if;
 	end if;
-	result := MidMul(width, lhs, rhs);
+
+	# General constant folding.
+
+	if (lhs.op == MIDCODE_CONSTANT) and (rhs.op == MIDCODE_CONSTANT) then
+		lhs.constant.value := FoldConstant2(op, lhs, rhs);
+		Discard(rhs);
+		result := lhs;
+		return;
+	end if;
+
+	# If we get this far, then actually create the new node.
+
+	result := AllocateNewNode(op + WidthToIndex(width));
+	result.left := lhs;
+	result.right := rhs;
+end sub;
+
+sub MidCAnd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	result := MidC2Op(MIDCODE_AND0, width, lhs, rhs);
+end sub;
+
+sub MidCOr(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	result := MidC2Op(MIDCODE_OR0, width, lhs, rhs);
+end sub;
+
+sub MidCEor(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	result := MidC2Op(MIDCODE_EOR0, width, lhs, rhs);
+end sub;
+
+sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	result := MidC2Op(MIDCODE_ADD0, width, lhs, rhs);
+end sub;
+
+sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	result := MidC2Op(MIDCODE_SUB0, width, lhs, rhs);
+end sub;
+
+sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+	result := MidC2Op(MIDCODE_MUL0, width, lhs, rhs);
 end sub;
 		
 sub MidCDivu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
@@ -280,12 +282,16 @@ sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node])
 	if srcwidth == width then
 		result := lhs;
 	else
+		var op: uint8;
 		case srcwidth is
-			when 1: result := MidCast1(width, lhs, issigned);
-			when 2: result := MidCast2(width, lhs, issigned);
-			when 4: result := MidCast4(width, lhs, issigned);
-			when 8: result := MidCast8(width, lhs, issigned);
+			when 1: op := MIDCODE_CAST10;
+			when 2: op := MIDCODE_CAST20;
+			when 4: op := MIDCODE_CAST40;
+			when 8: op := MIDCODE_CAST80;
 		end case;
+		result := AllocateNewNode(op + WidthToIndex(width));
+		result.left := lhs;
+		result.cast10.sext := issigned;
 	end if;
 end sub;
 

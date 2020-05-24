@@ -67,8 +67,7 @@
 	sub E_symref(sym: [Symbol], off: Size)
 		if sym.vardata.externname != (0 as string) then
 			E(sym.vardata.externname);
-			EmitByte('+');
-			E_u16(off);
+			E_i16(off as int16);
 		else
 			EmitByte(COO_ESCAPE_WSREF);
 			E_h16(sym.vardata.subr.id);
