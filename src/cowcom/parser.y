@@ -383,16 +383,16 @@ conditional(R) ::= expression(T1) LEOP expression(T2).
 %type expression {[Node]}
 expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
-expression(E) ::= MINUS expression(E1).                    { E := ExprNeg(E1); }
-expression(E) ::= TILDE expression(E1).                    { E := ExprNot(E1); }
+expression(E) ::= MINUS expression(E1).                    { E := Expr1Simple(MIDCODE_NEG0, E1); }
+expression(E) ::= TILDE expression(E1).                    { E := Expr1Simple(MIDCODE_NOT0, E1); }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
 expression(E) ::= expression(E1) MINUS expression(E2).     { E := ExprSub(E1, E2); }
-expression(E) ::= expression(E1) STAR expression(E2).      { E := ExprMul(E1, E2); }
-expression(E) ::= expression(E1) SLASH expression(E2).     { E := ExprDiv(E1, E2); }
-expression(E) ::= expression(E1) PERCENT expression(E2).   { E := ExprRem(E1, E2); }
-expression(E) ::= expression(E1) CARET expression(E2).     { E := ExprEor(E1, E2); }
-expression(E) ::= expression(E1) AMPERSAND expression(E2). { E := ExprAnd(E1, E2); }
-expression(E) ::= expression(E1) PIPE expression(E2).      { E := ExprOr(E1, E2); }
+expression(E) ::= expression(E1) STAR expression(E2).      { E := Expr2Simple(MIDCODE_MUL0, MIDCODE_MUL0, E1, E2); }
+expression(E) ::= expression(E1) SLASH expression(E2).     { E := Expr2Simple(MIDCODE_DIVS0, MIDCODE_DIVU0, E1, E2); }
+expression(E) ::= expression(E1) PERCENT expression(E2).   { E := Expr2Simple(MIDCODE_REMS0, MIDCODE_REMU0, E1, E2); }
+expression(E) ::= expression(E1) CARET expression(E2).     { E := Expr2Simple(MIDCODE_EOR0, MIDCODE_EOR0, E1, E2); }
+expression(E) ::= expression(E1) AMPERSAND expression(E2). { E := Expr2Simple(MIDCODE_AND0, MIDCODE_AND0, E1, E2); }
+expression(E) ::= expression(E1) PIPE expression(E2).      { E := Expr2Simple(MIDCODE_OR0, MIDCODE_OR0, E1, E2); }
 expression(E) ::= expression(E1) LSHIFT expression(E2).    { E := ExprLShift(E1, E2); }
 expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprRShift(E1, E2); }
 
@@ -428,7 +428,7 @@ expression(E) ::= NEXT expression(E1).
 	if IsPtr(E1.type) == 0 then
 		parser_i_bad_next_prev();
 	end if;
-	E := MidCAdd(
+	E := MidC2Op(MIDCODE_ADD0,
 		intptr_type.typedata.width as uint8,
 		E1,
 		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
@@ -441,7 +441,7 @@ expression(E) ::= PREV expression(E1).
 	if IsPtr(E1.type) == 0 then
 		parser_i_bad_next_prev();
 	end if;
-	E := MidCSub(
+	E := MidC2Op(MIDCODE_SUB0,
 		intptr_type.typedata.width as uint8,
 		E1,
 		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
@@ -510,12 +510,12 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 	var elementtype := type.typedata.arraytype.element;
 	var w := intptr_type.typedata.width as uint8;
 
-	var displacement := MidCMul(w,
+	var displacement := MidC2Op(MIDCODE_MUL0, w,
 				MidCCast(intptr_type.typedata.width as uint8, E2, 0),
 				MidConstant(elementtype.typedata.stride as int32));
 	displacement.type := intptr_type;
 
-	var adjustedaddress := MidCAdd(w, address, displacement);
+	var adjustedaddress := MidC2Op(MIDCODE_ADD0, w, address, displacement);
 	adjustedaddress.type := MakePointerType(elementtype);
 	E := MakeLValue(adjustedaddress);
 }
@@ -551,7 +551,9 @@ expression(E) ::= expression(E1) DOT ID(X).
 		EndError();
 	end if;
 
-	E := MidCAdd(intptr_type.typedata.width as uint8, address, MidConstant(member.vardata.offset as Arith));
+	E := MidC2Op(MIDCODE_ADD0,
+		intptr_type.typedata.width as uint8,
+		address, MidConstant(member.vardata.offset as Arith));
 	E.type := MakePointerType(member.vardata.type);
 	E := MakeLValue(E);
 }

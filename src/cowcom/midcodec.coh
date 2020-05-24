@@ -142,14 +142,6 @@ sub MidC1Op(op: uint8, width: uint8, lhs: [Node]): (result: [Node])
 	end if;
 end sub;
 	
-sub MidCNeg(width: uint8, lhs: [Node]): (result: [Node])
-	result := MidC1Op(MIDCODE_NEG0, width, lhs);
-end sub;
-
-sub MidCNot(width: uint8, lhs: [Node]): (result: [Node])
-	result := MidC1Op(MIDCODE_NOT0, width, lhs);
-end sub;
-
 sub GetPowerOfTwo(value: int32): (exp: uint8)
 	exp := 0;
 	if (value > 0) and ((value & (value - 1)) == 0) then
@@ -231,46 +223,6 @@ sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	result := AllocateNewNode(op + WidthToIndex(width));
 	result.left := lhs;
 	result.right := rhs;
-end sub;
-
-sub MidCAnd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_AND0, width, lhs, rhs);
-end sub;
-
-sub MidCOr(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_OR0, width, lhs, rhs);
-end sub;
-
-sub MidCEor(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_EOR0, width, lhs, rhs);
-end sub;
-
-sub MidCAdd(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_ADD0, width, lhs, rhs);
-end sub;
-
-sub MidCSub(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_SUB0, width, lhs, rhs);
-end sub;
-
-sub MidCMul(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_MUL0, width, lhs, rhs);
-end sub;
-		
-sub MidCDivu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_DIVU0, width, lhs, rhs);
-end sub;
-
-sub MidCDivs(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_DIVS0, width, lhs, rhs);
-end sub;
-
-sub MidCRems(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_REMS0, width, lhs, rhs);
-end sub;
-
-sub MidCRemu(width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
-	result := MidC2Op(MIDCODE_REMU0, width, lhs, rhs);
 end sub;
 
 sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node])
