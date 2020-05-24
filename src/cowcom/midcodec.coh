@@ -103,35 +103,6 @@ sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith)
 	end case;
 end sub;
 
-# Called before commutative operators.
-sub RotateParameters(baseop: uint8, lhs: [Node], rhs: [Node]): (newlhs: [Node], newrhs: [Node])
-	# Ensure that x=1+y becomes x=y+1, which is easier to generate code for.
-	var lop := lhs.op;
-	if lop == MIDCODE_CONSTANT then
-		newlhs := lhs;
-		newrhs := rhs;
-		return;
-	end if;
-
-	# Ensure that x=(y+1)+2 becomes x=y+(1+2).
-	if (rhs.op == MIDCODE_CONSTANT)
-			and (lhs.op >= baseop) and (lhs.op <= (baseop+4))
-			and (lhs.right.op == MIDCODE_CONSTANT)
-	then
-		newlhs := lhs.left;
-		lhs.left := 0 as [Node];
-
-		newrhs := MidConstant(
-			FoldConstant2(baseop, lhs.right, rhs));
-		Discard(lhs);
-		Discard(rhs);
-		return;
-	end if;
-
-	newlhs := lhs;
-	newrhs := rhs;
-end sub;
-
 sub MidC1Op(op: uint8, width: uint8, lhs: [Node]): (result: [Node])
 	if lhs.op == MIDCODE_CONSTANT then
 		lhs.constant.value := FoldConstant1(op, lhs);
@@ -163,8 +134,30 @@ sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 
 	# Rotate commutative operations so the constant is on the RHS.
 
+	var t: [Node];
 	if op >= MIDCODE_ADD0 then
-		(lhs, rhs) := RotateParameters(op, lhs, rhs);
+		# Ensure that x=1+y becomes x=y+1, which is easier to generate code for.
+		if lhs.op == MIDCODE_CONSTANT then
+			t := lhs;
+			lhs := rhs;
+			rhs := t;
+		end if;
+
+		# Ensure that x=(y+1)+2 becomes x=y+(1+2).
+		if (rhs.op == MIDCODE_CONSTANT)
+				and (lhs.op >= op) and (lhs.op <= (op+4))
+				and (lhs.right.op == MIDCODE_CONSTANT)
+		then
+			t := MidConstant(
+				FoldConstant2(op, lhs.right, rhs));
+			Discard(rhs);
+			rhs := t;
+
+			t := lhs.left;
+			lhs.left := 0 as [Node];
+			Discard(lhs);
+			lhs := t;
+		end if;
 	end if;
 
 	# Special-case folding.
