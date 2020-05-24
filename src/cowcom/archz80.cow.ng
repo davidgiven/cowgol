@@ -431,7 +431,7 @@
 			SimpleError("mvi with 16-bit reg");
 		end if;
 
-		var cache := RegCacheFindConstant(value as CacheValue)
+		var cache := RegCacheFindConstant(value as Word)
 			& (REG_A|REG_B|REG_C|REG_D|REG_H|REG_L);
 		if (cache & reg) != 0 then
 			# Already in the desired register.
@@ -448,7 +448,7 @@
 		E_comma();
 		E_u8(value);
 		E_nl();
-		RegCacheLeavesConstant(reg, value as CacheValue);
+		RegCacheLeavesConstant(reg, value as Word);
 	end sub;
 
 	sub E_alu(insn: string, rhs: RegId)
@@ -716,7 +716,7 @@
 	end sub;
 
 	sub E_lxi(reg: RegId, value: uint16);
-		var cache := RegCacheFindConstant(value as CacheValue) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
+		var cache := RegCacheFindConstant(value as Word) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
 		if (cache & reg) != 0 then
 			# The value is already in the desired register.
 			return;
@@ -733,10 +733,10 @@
 		E_comma();
 		E_u16(value);
 		E_nl();
-		RegCacheLeavesConstant(reg, value as CacheValue);
+		RegCacheLeavesConstant(reg, value as Word);
 		if (reg & (REG_IX|REG_IY)) != 0 then
-			RegCacheLeavesConstant(loreg(reg), value as uint8 as CacheValue);
-			RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as CacheValue);
+			RegCacheLeavesConstant(loreg(reg), value as uint8 as Word);
+			RegCacheLeavesConstant(hireg(reg), (value>>8) as uint8 as Word);
 		end if;
 	end sub;
 
@@ -768,7 +768,7 @@
 	end sub;
 %}
 
-wordsize 0xffffffff;
+wordsize uint32;
 
 register a b c d e h l hl de bc hlhl dede bcbc ix iy;
 register param;

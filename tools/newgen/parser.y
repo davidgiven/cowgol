@@ -76,9 +76,9 @@ regdata(R) ::= regdata(R1) STACKED.
 
 /* --- Width ------------------------------------------------------------- */
 
-rules ::= rules WORDSIZE int(R) SEMICOLON.
+rules ::= rules WORDSIZE ID(ID) SEMICOLON.
 {
-    machine_word = R;
+    machine_word = strdup(ID.u.string);
 }
 
 /* --- Rewrite rules ----------------------------------------------------- */
