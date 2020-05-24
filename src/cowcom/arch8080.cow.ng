@@ -131,49 +131,89 @@
 		E_nl();
 	end sub;
 
+	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId)
+		result := 0;
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				result := [regtable];
+				return;
+			end if;
+			reg := reg >> 1;
+			regtable := @next regtable;
+		end loop;
+
+		if result == 0 then
+			StartError();
+			print("bad ");
+			print(name);
+			print_char(' ');
+			print_hex_i16(reg);
+			EndError();
+		end if;
+	end sub;
+
 	sub loreg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:  result := REG_A;
-			when REG_BC: result := REG_C;
-			when REG_DE: result := REG_E;
-			when REG_HL: result := REG_L;
-			when else:
-				StartError();
-				print("bad loreg ");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_C,  # b
+			REG_C,  # c
+			REG_E,  # d
+			REG_E,  # e
+			REG_L,  # h
+			REG_L,  # l
+			REG_L,  # hl
+			REG_E,  # de
+			REG_C,  # bc
+		};
+
+		result := getreg(reg, &regs[0], "loreg");
 	end sub;
 
 	sub hireg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:  result := REG_A;
-			when REG_BC: result := REG_B;
-			when REG_DE: result := REG_D;
-			when REG_HL: result := REG_H;
-			when else:
-				SimpleError("bad hireg");
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_B,  # b
+			REG_B,  # c
+			REG_D,  # d
+			REG_D,  # e
+			REG_H,  # h
+			REG_H,  # l
+			REG_H,  # hl
+			REG_D,  # de
+			REG_B,  # bc
+		};
+
+		result := getreg(reg, &regs[0], "loreg");
 	end sub;
 
 	sub E_reg(reg: RegId)
-		case reg is
-			when REG_A: EmitByte('a');
-			when REG_B: EmitByte('b');
-			when REG_C: EmitByte('c');
-			when REG_D: EmitByte('d');
-			when REG_E: EmitByte('e');
-			when REG_H: EmitByte('h');
-			when REG_L: EmitByte('l');
-			when REG_BC: EmitByte('b');
-			when REG_DE: EmitByte('d');
-			when REG_HL: EmitByte('h');
-			when else:
-				StartError();
-				print("invalid register 0x");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var names: string[] := {
+			"a",
+			"b",
+			"c",
+			"d",
+			"e",
+			"h",
+			"l",
+			"h",
+			"d",
+			"b",
+		};
+
+		var p := &names[0];
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				E([p]);
+				return;
+			end if;
+			reg := reg >> 1;
+			p := @next p;
+		end loop;
+
+		StartError();
+		print("bad reg ");
+		print_hex_i16(reg);
+		EndError();
 	end sub;
 
 	sub E_stackreg(reg: RegId)

@@ -135,70 +135,126 @@
 		E_nl();
 	end sub;
 
+	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId)
+		result := 0;
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				result := [regtable];
+				return;
+			end if;
+			reg := reg >> 1;
+			regtable := @next regtable;
+		end loop;
+
+		if result == 0 then
+			StartError();
+			print("bad ");
+			print(name);
+			print_char(' ');
+			print_hex_i16(reg);
+			EndError();
+		end if;
+	end sub;
+
 	sub loreg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:    result := REG_A;
-			when REG_BC:   result := REG_C;
-			when REG_DE:   result := REG_E;
-			when REG_HL:   result := REG_L;
-			when REG_BCBC: result := REG_C;
-			when REG_DEDE: result := REG_E;
-			when REG_HLHL: result := REG_L;
-			when else:
-				StartError();
-				print("bad loreg ");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_C,  # b
+			REG_C,  # c
+			REG_E,  # d
+			REG_E,  # e
+			REG_L,  # h
+			REG_L,  # l
+			REG_L,  # hl
+			REG_E,  # de
+			REG_C,  # bc
+			REG_L,  # hlhl
+			REG_E,  # dede
+			REG_C,  # bcbc
+			0,      # ix
+			0,      # iy
+		};
+
+		result := getreg(reg, &regs[0], "loreg");
 	end sub;
 
 	sub hireg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_A:    result := REG_A;
-			when REG_BC:   result := REG_B;
-			when REG_DE:   result := REG_D;
-			when REG_HL:   result := REG_H;
-			when REG_BCBC: result := REG_B;
-			when REG_DEDE: result := REG_D;
-			when REG_HLHL: result := REG_H;
-			when else:
-				StartError();
-				print("bad hireg ");
-				print_hex_i16(reg);
-				EndError();
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_B,  # b
+			REG_B,  # c
+			REG_D,  # d
+			REG_D,  # e
+			REG_H,  # h
+			REG_H,  # l
+			REG_H,  # hl
+			REG_D,  # de
+			REG_B,  # bc
+			REG_H,  # hlhl
+			REG_D,  # dede
+			REG_B,  # bcbc
+			0,      # ix
+			0,      # iy
+		};
+
+		result := getreg(reg, &regs[0], "hireg");
 	end sub;
 
 	sub wordreg(reg: RegId): (result: RegId)
-		case reg is
-			when REG_BCBC: result := REG_BC;
-			when REG_DEDE: result := REG_DE;
-			when REG_HLHL: result := REG_HL;
-			when else:
-				SimpleError("bad wordreg");
-		end case;
+		var regs: RegId[] := {
+			REG_A,  # a
+			REG_BC, # b
+			REG_BC, # c
+			REG_DE, # d
+			REG_DE, # e
+			REG_HL, # h
+			REG_HL, # l
+			REG_HL, # hl
+			REG_DE, # de
+			REG_BC, # bc
+			REG_HL, # hlhl
+			REG_DE, # dede
+			REG_BC, # bcbc
+			REG_IX, # ix
+			REG_IY, # iy
+		};
+
+		result := getreg(reg, &regs[0], "wordreg");
 	end sub;
 
 	sub E_reg(reg: RegId)
-		case reg is
-			when REG_A:    E("a");
-			when REG_B:    E("b");
-			when REG_C:    E("c");
-			when REG_D:    E("d");
-			when REG_E:    E("e");
-			when REG_H:    E("h");
-			when REG_L:    E("l");
-			when REG_BC:   E("bc");
-			when REG_DE:   E("de");
-			when REG_HL:   E("hl");
-			when REG_IX:   E("ix");
-			when REG_IY:   E("iy");
-			when REG_BCBC: E("bc");
-			when REG_DEDE: E("de");
-			when REG_HLHL: E("hl");
-			when else:
-				SimpleError("bad reg");
-		end case;
+		var names: string[] := {
+			"a",
+			"b",
+			"c",
+			"d",
+			"e",
+			"h",
+			"l",
+			"hl",
+			"de",
+			"bc",
+			"hl",
+			"de",
+			"bc",
+			"ix",
+			"iy"
+		};
+
+		var p := &names[0];
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				E([p]);
+				return;
+			end if;
+			reg := reg >> 1;
+			p := @next p;
+		end loop;
+
+		StartError();
+		print("bad reg ");
+		print_hex_i16(reg);
+		EndError();
 	end sub;
 
 	sub E_stackref(reg: RegId)
@@ -539,6 +595,10 @@
 
 	sub E_srl(reg: RegId)
 		E_shift("srl", reg);
+	end sub;
+
+	sub E_rr(reg: RegId)
+		E_shift("rr", reg);
 	end sub;
 
 	sub E_bit(bit: uint8, reg: RegId)
@@ -1496,6 +1556,18 @@ gen hl := LSHIFT2(hl, CONSTANT(value<=5):c)
 		E_add(REG_HL, REG_HL);
 		i := i - 1;
 	end loop;
+}
+
+gen r16 := RSHIFTU2($$, CONSTANT(value==1):c)
+{
+	E_srl(hireg($$));
+	E_rr(loreg($$));
+}
+
+gen r16 := RSHIFTS2($$, CONSTANT(value==1):c)
+{
+	E_sra(hireg($$));
+	E_rr(loreg($$));
 }
 
 // --- 32-bit arithmetic ----------------------------------------------------
