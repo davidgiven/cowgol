@@ -1,4 +1,4 @@
-local ARCHS = { "8080", "z80" }
+local ARCHS = { "8080", "z80", "cgen" }
 
 lemoncowgol {
 	ins = { "src/cowcom/parser.y" },
@@ -30,6 +30,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowcom/expressions.coh",
 				"src/cowcom/lexer.coh",
 				"src/cowcom/midcodec.coh",
+				"src/cowcom/namespace.coh",
 				"src/cowcom/regcache.coh",
 				"src/cowcom/symbols.coh",
 				"src/cowcom/types.coh",

@@ -19,6 +19,18 @@
 		newvalue := value;
 	end sub;
 
+	sub ArchInitTypes()
+		uint32_type := MakeNumberType(4, 1, 0, "uint32");
+		int32_type := MakeNumberType(4, 1, 1, "int32");
+		uint16_type := MakeNumberType(2, 1, 0, "uint16");
+		int16_type := MakeNumberType(2, 1, 1, "int16");
+		uint8_type := MakeNumberType(1, 1, 0, "uint8");
+		int8_type := MakeNumberType(1, 1, 1, "int8");
+
+		intptr_type := uint16_type;
+		AddAliasString("intptr", intptr_type);
+	end sub;
+
 	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
 		if (min >= 0) and (max <= 255) then
 			symbol := uint8_type;
@@ -50,20 +62,6 @@
 		end if;
 	end sub;
 
-	sub E_labelref(labelid: uint16)
-		EmitByte(COO_ESCAPE_THISCOO);
-		E_h16(labelid);
-	end sub;
-
-	sub E_subref(subr: [Subroutine])
-		if subr == current_subr then
-			EmitByte(COO_ESCAPE_THISSUB);
-		else
-			EmitByte(COO_ESCAPE_SUBREF);
-			E_h16(subr.id);
-		end if;
-	end sub;
-
 	sub E_symref(sym: [Symbol], off: Size)
 		if sym.vardata.externname != (0 as string) then
 			E(sym.vardata.externname);
@@ -74,22 +72,6 @@
 			E_h8(0);
 			E_h16(sym.vardata.offset + off);
 		end if;
-	end sub;
-
-	sub E_space()
-		EmitByte(' ');
-	end sub;
-
-	sub E_comma()
-		EmitByte(',');
-	end sub;
-
-	sub E_tab()
-		EmitByte('\t');
-	end sub;
-
-	sub E_nl();
-		EmitByte('\n');
 	end sub;
 
 	sub R_flushall()
@@ -771,7 +753,6 @@
 wordsize uint32;
 
 register a b c d e h l hl de bc hlhl dede bcbc ix iy;
-register param;
 
 regclass r8 := a|b|d|h;
 regclass r16 := hl|de|bc|ix|iy;
@@ -789,7 +770,6 @@ regdata dede uses dede|de|d|e compatible r32;
 regdata hlhl uses hlhl|hl|h|l compatible r32;
 regdata ix                    compatible r16;
 regdata iy                    compatible r16;
-regdata param stacked;
 
 // --- Core things ----------------------------------------------------------
 
@@ -1906,6 +1886,8 @@ gen WHENCASE4():c uses a
 	case2($c.value as uint16, REG_DE, $c.falselabel);
 	case2(($c.value >> 16) as uint16, REG_BC, $c.falselabel);
 }
+
+gen ENDCASE();
 
 // --- Casts ----------------------------------------------------------------
 

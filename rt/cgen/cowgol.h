@@ -32,6 +32,8 @@ union data
 {
 	i8 i8;
 	i4 i4[2];
+	i2 i2[4];
+	i1 i1[8];
 	void* ptr;
 };
 
