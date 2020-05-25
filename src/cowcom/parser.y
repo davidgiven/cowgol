@@ -232,6 +232,7 @@ statement ::= startcase whens END CASE SEMICOLON.
 		Generate(MidLabel(current_case.next_label));
 	end if;
 	Generate(MidLabel(current_case.break_label));
+	Generate(MidEndcase());
 
 	var c := current_case;
 	current_case := c.old_case;
@@ -1046,8 +1047,9 @@ memberid(S) ::= ID(T).
 
 %include
 {
-	var current_member: [Symbol]; # for records only
-	var current_offset: Size;
+	var current_member: [Symbol];    # for records only
+	var current_offset: Size;        # within the current braced element
+	var current_global_offset: Size; # overall
 
 	record NestedTypeInit
 		old_current_type: [Symbol];
@@ -1072,10 +1074,16 @@ memberid(S) ::= ID(T).
 				current_type.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 			end if;
 			if current_offset != current_type.typedata.width then
+				print("current_offset=");
+				print_i16(current_offset);
+				print(" typedata.width=");
+				print_i16(current_type.typedata.width);
+				print_nl();
 				WrongNumberOfElementsError();
 			end if;
 		else
 			if current_member != (0 as [Symbol]) then
+				print("2\n");
 				WrongNumberOfElementsError();
 			end if;
 		end if;
@@ -1099,10 +1107,18 @@ memberid(S) ::= ID(T).
 	end sub;
 
 	sub AlignTo(alignment: uint8)
-		var newoffset := ArchAlignUp(current_offset, alignment);
-		while current_offset != newoffset loop
+		var newoffset := ArchAlignUp(current_global_offset, alignment);
+		print("current_global_offset=");
+		print_hex_i16(current_global_offset);
+		print(" alignment=");
+		print_hex_i8(alignment);
+		print(" newoffset=");
+		print_hex_i16(newoffset);
+		print_nl();
+		while current_global_offset != newoffset loop
 			Generate(MidInit(1, 0));
 			current_offset := current_offset + 1;
+			current_global_offset := current_global_offset + 1;
 		end loop;
 	end sub;
 
@@ -1113,6 +1129,12 @@ memberid(S) ::= ID(T).
 		end if;
 
 		if member.vardata.offset < current_offset then
+			print_i16(member.vardata.offset);
+			print_nl();
+			print_i16(current_offset);
+			print_nl();
+			print(member.name);
+			print_nl();
 			SimpleError("out of order static initialisation");
 		end if;
 	end sub;
@@ -1120,7 +1142,6 @@ memberid(S) ::= ID(T).
 	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol])
 		(member, type) := GetInitedMember();
 		if type == (0 as [Symbol]) then
-			print("no type\n");
 			WrongNumberOfElementsError();
 		end if;
 
@@ -1163,6 +1184,7 @@ initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 
 	current_type := T;
 	current_offset := 0;
+	current_global_offset := 0;
 
 	Generate(MidStartinit(S));
 }
@@ -1178,6 +1200,7 @@ initialiser ::= expression(E).
 	var type: [Symbol];
 	(member, type) := GetInitedMemberChecked();
 
+	AlignTo(type.typedata.alignment);
 	var w := type.typedata.width;
 	case E.op is
 		when MIDCODE_CONSTANT:
@@ -1197,6 +1220,7 @@ initialiser ::= expression(E).
 	end case;
 
 	current_offset := current_offset + w;
+	current_global_offset := current_global_offset + w;
 }
 
 initialiser ::= startbracedinitialiser(R) initialisers CLOSEBR.
@@ -1215,6 +1239,7 @@ startbracedinitialiser(R) ::= OPENBR.
 	var member: [Symbol];
 	var type: [Symbol];
 	(member, type) := GetInitedMemberChecked();
+	AlignTo(type.typedata.alignment);
 
 	R := Alloc(@bytesof NestedTypeInit) as [NestedTypeInit];
 	R.old_current_type := current_type;

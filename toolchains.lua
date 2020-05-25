@@ -53,11 +53,23 @@ toolchain_ncpmz = {
 	tester = cpmtest,
 }
 
+toolchain_ncgen = {
+	name = "ncgen",
+	compiler = "bin/cowcom.cgen.ocgen.exe",
+	linker = cowlink_cgen,
+	assembler = buildcgen,
+	runtime = "rt/cgen",
+	asmext = ".c",
+	binext = ".exe",
+	tester = nativetest
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_olx386,
 	toolchain_olxthumb2,
 	toolchain_ocgen,
 	toolchain_ncpm,
 	toolchain_ncpmz,
+	toolchain_ncgen,
 }
 

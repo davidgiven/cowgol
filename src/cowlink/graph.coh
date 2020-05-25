@@ -81,8 +81,9 @@ sub PlaceSubroutines(subroutine: [Subroutine])
 		var watermark: Size[NUM_WORKSPACES];
 		i := 0;
 		while i != NUM_WORKSPACES loop
-			var w := subroutine.workspaceAddress[i] 
-				+ subroutine.workspaceSize[i];
+			var w := ArchAlignUp(
+				subroutine.workspaceAddress[i] + subroutine.workspaceSize[i],
+				8);
 			watermark[i] := w;
 			if w > workspaceSize[i] then
 				workspaceSize[i] := w;

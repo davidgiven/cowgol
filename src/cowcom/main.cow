@@ -18,6 +18,7 @@ include "src/cowcom/lexer.coh";
 include "src/cowcom/midcodec.coh";
 include "src/cowcom/emitter.coh";
 include "src/cowcom/regcache.coh";
+include "src/cowcom/namespace.coh";
 include "src/cowcom/codegen.coh";
 include "src/cowcom/symbols.coh";
 include "src/cowcom/expressions.coh";
@@ -65,20 +66,6 @@ sub ParseArguments()
 		SyntaxError();
 	end if;
 end sub;
-
-# This routine is a hack and shouldn't be here.
-
-	sub ArchInitTypes()
-		uint32_type := MakeNumberType(4, 0, "uint32");
-		int32_type := MakeNumberType(4, 1, "int32");
-		uint16_type := MakeNumberType(2, 0, "uint16");
-		int16_type := MakeNumberType(2, 1, "int16");
-		uint8_type := MakeNumberType(1, 0, "uint8");
-		int8_type := MakeNumberType(1, 1, "int8");
-
-		intptr_type := uint16_type;
-		AddAliasString("intptr", intptr_type);
-	end sub;
 
 print("COWCOM: ");
 PrintFreeMemory();

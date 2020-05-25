@@ -11,7 +11,7 @@ include "include/coodecls.coh";
 include "src/cowlink/types.coh";
 include "src/cowlink/utils.coh";
 include "src/cowlink/emitter.coh";
-include "src/cowlink/arch8080.coh";
+include "archlink.coh";
 include "src/cowlink/cooread.coh";
 include "src/cowlink/asmwrite.coh";
 include "src/cowlink/graph.coh";
@@ -88,7 +88,7 @@ EmitterOpenfile(outputFilename);
 print("Writing output file...\n");
 ArchEmitHeader(firstCoo);
 WriteAllSubroutinesToOutputFile(firstCoo);
-ArchEmitFooter();
+ArchEmitFooter(firstCoo);
 
 EmitterClosefile();
 

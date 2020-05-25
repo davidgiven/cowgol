@@ -101,5 +101,6 @@ include "src/cowcom/build.lua"
 include "src/cowwrap/build.lua"
 include "rt/cpm/build.lua"
 include "rt/cpmz/build.lua"
+include "rt/cgen/build.lua"
 include "tests/build.lua"
 

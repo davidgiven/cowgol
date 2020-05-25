@@ -6,6 +6,10 @@ sub E_nl()
 	EmitByte('\n');
 end sub;
 
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+	newvalue := value;
+end sub;
+
 sub ArchEmitSubRef(subid: uint16)
 	E("f");
 	E_u16(subid);
@@ -38,7 +42,7 @@ sub ArchEmitHeader(coo: [Coo])
 	E("\trst 0\n");
 end sub;
 
-sub ArchEmitFooter()
+sub ArchEmitFooter(coo: [Coo])
 	E("\tdseg\n");
 	E("TOP:\n");
 

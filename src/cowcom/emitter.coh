@@ -32,6 +32,22 @@ sub EmitByte(byte: uint8)
 	end if;
 end sub;
 
+sub E_space()
+	EmitByte(' ');
+end sub;
+
+sub E_comma()
+	EmitByte(',');
+end sub;
+
+sub E_tab()
+	EmitByte('\t');
+end sub;
+
+sub E_nl();
+	EmitByte('\n');
+end sub;
+
 sub E(text: string)
 	loop
 		var c := [text];
@@ -86,6 +102,16 @@ sub E_i16(value: int16)
 	E_u16(value as uint16);
 end sub;
 
+sub E_i32(value: int32)
+	if value < 0 then
+		EmitByte('-');
+		value := -value;
+	else
+		EmitByte('+');
+	end if;
+	E_u32(value as uint32);
+end sub;
+
 sub E_h(value: uint32, width: uint8)
 	var buffer: uint8[5];
 	var pe := UIToA(value as uint32, 16, &buffer[0]);
@@ -107,6 +133,20 @@ end sub;
 
 sub E_h32(value: uint32)
 	E_h(value as uint32, 8);
+end sub;
+
+sub E_labelref(labelid: uint16)
+	EmitByte(COO_ESCAPE_THISCOO);
+	E_h16(labelid);
+end sub;
+
+sub E_subref(subr: [Subroutine])
+	if subr == current_subr then
+		EmitByte(COO_ESCAPE_THISSUB);
+	else
+		EmitByte(COO_ESCAPE_SUBREF);
+		E_h16(subr.id);
+	end if;
 end sub;
 
 sub EmitterPushChunk()

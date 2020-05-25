@@ -177,7 +177,7 @@ function cowlink(e)
 	rule {
 		ins = concat {
 			"scripts/quiet",
-			"bin/cowlink.8080.ocgen.exe",
+			e.linker,
 			e.runtime,
 			e.ins
 		},
@@ -190,6 +190,7 @@ function cowlink_cpm(e)
 	cowlink {
 		ins = e.ins,
 		outs = e.outs,
+		linker = "bin/cowlink.8080.ocgen.exe",
 		runtime = "$OBJ/rt/cpm/cowgol.coo",
 	}
 end
@@ -198,7 +199,17 @@ function cowlink_cpmz(e)
 	cowlink {
 		ins = e.ins,
 		outs = e.outs,
+		linker = "bin/cowlink.8080.ocgen.exe",
 		runtime = "$OBJ/rt/cpmz/cowgol.coo",
+	}
+end
+
+function cowlink_cgen(e)
+	cowlink {
+		ins = e.ins,
+		outs = e.outs,
+		linker = "bin/cowlink.cgen.ocgen.exe",
+		runtime = "$OBJ/rt/cgen/cowgol.coo",
 	}
 end
 
