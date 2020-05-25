@@ -61,6 +61,7 @@
 	sub ArchInitVariable(symbol: [Symbol])
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
+		offset := ArchAlignUp(offset, symbol.vardata.type.typedata.alignment);
 		symbol.vardata.offset := offset;
 		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
 	end sub;
@@ -156,7 +157,13 @@ gen STARTSUB():s
 	EmitterPushChunk();
 	E_h16($s.subr.id);
 
-	E("\n\nvoid ");
+	E("\n// ");
+	E($s.subr.name);
+	E_space();
+	EmitByte(COO_ESCAPE_WSREF);
+	E_h16($s.subr.id);
+	E("000000");
+	E("\nvoid ");
 	E_subref($s.subr);
 	E("(");
 
@@ -168,6 +175,8 @@ gen STARTSUB():s
 		first := 0;
 	end sub;
 
+	# Output parameters, left to right (the rightmost gets pushed last)
+
 	var count: uint8 := 0;
 	while count != $s.subr.num_output_parameters loop
 		var param := GetOutputParameter($s.subr, count);
@@ -178,11 +187,18 @@ gen STARTSUB():s
 		E("* p");
 		E_u16(Push());
 
+		E(" /* ");
+		E(param.name);
+		E(" */");
 		count := count + 1;
 	end loop;
 
-	count := 0;
-	while count != $s.subr.num_input_parameters loop
+	# Input parameters, right to left (the rightmost was pushed last
+	# and so is the first C parameter)
+
+	count := $s.subr.num_input_parameters;
+	while count != 0 loop
+		count := count - 1;
 		param := GetInputParameter($s.subr, count);
 
 		comma();
@@ -191,7 +207,9 @@ gen STARTSUB():s
 		E(" p");
 		E_u16(Push());
 
-		count := count + 1;
+		E(" /* ");
+		E(param.name);
+		E(" */");
 	end loop;
 
 	if ($s.subr.num_input_parameters + $s.subr.num_output_parameters) == 0 then
@@ -209,7 +227,9 @@ gen STARTSUB():s
 		E_symref(param, 0);
 		E(") = p");
 		E_u16(Pop());
-		E(";\n");
+		E("; /*");
+		E(param.name);
+		E(" */\n");
 
 		count := count + 1;
 	end loop;
@@ -296,7 +316,7 @@ gen v8 := POPARG8();
 			count := count + 1;
 		end loop;
 
-		# Input parameters (right to left; the last one was pushed last).
+		# Input parameters (right to left; the rightmost gets pushed last)
 
 		count := 0;
 		while count != subr.num_input_parameters loop
@@ -657,6 +677,7 @@ gen v8 := RSHIFTS8(v8, v1) { Shift(8, "s8", ">>"); }
 		else
 			E_labelref(node.beqs0.falselabel);
 		end if;
+		E(";\n");
 	end sub;
 %}
 
@@ -702,9 +723,9 @@ gen STARTCASE2(v2);
 gen STARTCASE4(v4);
 gen STARTCASE8(v8);
 
-gen WHENCASE1():c { Whencase($c.value, $c.falselabel); }
-gen WHENCASE2():c { Whencase($c.value, $c.falselabel); }
-gen WHENCASE4():c { Whencase($c.value, $c.falselabel); }
+gen WHENCASE1():c { Whencase($c.value & 0xff, $c.falselabel); }
+gen WHENCASE2():c { Whencase($c.value & 0xffff, $c.falselabel); }
+gen WHENCASE4():c { Whencase($c.value & 0xffffffff, $c.falselabel); }
 gen WHENCASE8():c { Whencase($c.value, $c.falselabel); }
 
 gen ENDCASE()
