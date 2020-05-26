@@ -518,6 +518,19 @@ static void create_rules(void)
 			fprintf(outfp, "# %d\n", i);
 		}
 		fprintf(outfp, "};\n");
+		fprintf(outfp, "var codegen_registers: RegId[] := {\n");
+		for (int i=0; i<rulescount; i++)
+		{
+			Rule* r = rules[i];
+			for (int j=0; j<maxdepth; j++)
+			{
+				Node* n = r->nodes[j];
+				if (n && n->isregister)
+					fprintf(outfp, "0x%x, ", n->reg);
+			}
+			fprintf(outfp, "# %d\n", i);
+		}
+		fprintf(outfp, "};\n");
 	#endif
 
 	#if defined COWGOL
@@ -542,20 +555,20 @@ static void create_rules(void)
 		fprintf(outfp, "0x%x, ", r->result_reg);
 		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs));
 
-		fprintf(outfp, "{ ");
-		for (int j=0; j<maxdepth; j++)
-		{
-			Node* n = r->nodes[j];
-			if (j)
-				fprintf(outfp, ", ");
-			if (n && n->isregister)
-				fprintf(outfp, "%d", n->reg);
-			else
-				fprintf(outfp, "0");
-		}
-		fprintf(outfp, " }, ");
-
 		#if !defined COWGOL
+			fprintf(outfp, "{ ");
+			for (int j=0; j<maxdepth; j++)
+			{
+				Node* n = r->nodes[j];
+				if (j)
+					fprintf(outfp, ", ");
+				if (n && n->isregister)
+					fprintf(outfp, "%d", n->reg);
+				else
+					fprintf(outfp, "0");
+			}
+			fprintf(outfp, " }, ");
+
 			fprintf(outfp, "{ ");
 			for (int j=0; j<maxdepth; j++)
 			{
