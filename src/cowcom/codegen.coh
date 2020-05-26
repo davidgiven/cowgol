@@ -6,8 +6,7 @@ record Rule
 	compatible_producable_regs: RegId;
 	producable_regs: RegId;
 	uses_regs: RegId;
-	consumable_regs: RegId[INSTRUCTION_TEMPLATE_DEPTH];
-	matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
+	significant_nodes: uint8;
 	copyable_nodes: uint8;
 	register_nodes: uint8;
 end record;
@@ -239,25 +238,6 @@ sub ShuffleRegisters(moves: [RegMove])
 	end loop;
 end sub;
 
-sub TemplateComparator(data: [uint8], template: [uint8]): (result: uint8)
-	result := 0;
-
-	var i: uint8 := INSTRUCTION_TEMPLATE_DEPTH;
-	while i != 0 loop
-		var d := [data];
-		data := data + 1;
-		var t := [template];
-		template := template + 1;
-		if (t != 0) and (d != t) then
-			return;
-		end if;
-
-		i := i - 1;
-	end loop;
-
-	result := 1;
-end sub;
-
 sub PrintNodes(rootnode: [Node])
 	var old_next_node := next_node;
 	PushNode(rootnode);
@@ -308,7 +288,53 @@ sub Generate(rootnode: [Node])
 		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
 
 		var ruleid: uint8 := 0xff;
+		var midcodeptr := &codegen_midcodes[0];
+		var regsptr := &codegen_registers[0];
 		var rule := @prev &codegen_rules[0];
+
+		sub TestRule(): (result: uint8)
+			result := 0;
+
+			if rule.compatible_producable_regs != 0 then
+				# This rule produces a result, so fail if the result register
+				# isn't compatible.
+				if (node.desired_reg & rule.compatible_producable_regs) == 0 then
+					return;
+				end if;
+			else
+				# This rule produces no result, so fail if we need one.
+				if node.desired_reg != 0 then
+					return;
+				end if;
+			end if;
+
+			var data := &matchbytes[0];
+			var template := midcodeptr;
+			var significant := rule.significant_nodes;
+			while significant != 0 loop
+				var d := [data];
+				data := @next data;
+				if (significant & 1) != 0 then
+					var t := [template];
+					template := @next template;
+					if d != t then
+						return;
+					end if;
+				end if;
+
+				significant := significant >> 1;
+			end loop;
+
+			if ((rule.flags & RULE_HAS_PREDICATES) != 0) 
+					and (MatchPredicate(ruleid, &matchnodes[0]) == 0) then
+				# This rule has a manual predicate and the manual predicate said no.
+				return;
+			end if;
+
+			# We have a matching rule!
+			result := 1;
+		end sub;
+
 		loop
 			rule := @next rule;
 			ruleid := ruleid + 1;
@@ -328,32 +354,27 @@ sub Generate(rootnode: [Node])
 				EndError();
 			end if;
 
-			if rule.compatible_producable_regs != 0 then
-				# This rule produces a result, so fail if the result register
-				# isn't compatible.
-				if (node.desired_reg & rule.compatible_producable_regs) == 0 then
-					continue;
+			if TestRule() != 0 then
+				break;
+			end if;
+
+			# Advance the midcode pointer.
+			i := rule.significant_nodes;
+			while i != 0 loop
+				if (i & 1) != 0 then
+					midcodeptr := @next midcodeptr;
 				end if;
-			else
-				# This rule produces no result, so fail if we need one.
-				if node.desired_reg != 0 then
-					continue;
+				i := i >> 1;
+			end loop;
+
+			# Advance the registers pointer.
+			i := rule.register_nodes;
+			while i != 0 loop
+				if (i & 1) != 0 then
+					regsptr := @next regsptr;
 				end if;
-			end if;
-
-			if TemplateComparator(&matchbytes[0], &rule.matchbytes[0]) == 0 then
-				# Fail if the tree doesn't match.
-				continue;
-			end if;
-
-			if ((rule.flags & RULE_HAS_PREDICATES) != 0) 
-					and (MatchPredicate(ruleid, &matchnodes[0]) == 0) then
-				# This rule has a manual predicate and the manual predicate said no.
-				continue;
-			end if;
-
-			# We have a matching rule!
-			break;
+				i := i >> 1;
+			end loop;
 		end loop;
 
 		# We have found a rule for this instruction.
@@ -382,7 +403,8 @@ sub Generate(rootnode: [Node])
 				producer.n[i] := n;
 				if (regmask & 1) != 0 then
 					PushNode(n);
-					n.desired_reg := rule.consumable_regs[i];
+					n.desired_reg := [regsptr];
+					regsptr := @next regsptr;
 					n.consumer := producer;
 				end if;
 			end if;
