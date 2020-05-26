@@ -505,6 +505,25 @@ static void create_match_predicates(void)
 static void create_rules(void)
 {
 	#if defined COWGOL
+		fprintf(outfp, "var codegen_midcodes: uint8[] := {");
+		for (int i=0; i<rulescount; i++)
+		{
+			Rule* r = rules[i];
+			for (int j=0; j<maxdepth; j++)
+			{
+				Node* n = r->nodes[j];
+				if (n && n->midcode)
+				{
+					if ((i & 15) == 0)
+						fprintf(outfp, "\n\t");
+					fprintf(outfp, "% 3d, ", n->midcode);
+				}
+			}
+		}
+		fprintf(outfp, "\n};\n");
+	#endif
+
+	#if defined COWGOL
 		fprintf(outfp, "var codegen_rules: Rule[] := {\n");
 	#else
 		fprintf(outfp, "const Rule codegen_rules[] = {\n");
@@ -539,13 +558,15 @@ static void create_rules(void)
 		}
 		fprintf(outfp, " }, ");
 
-		fprintf(outfp, "{ ");
-		for (int j=0; j<maxdepth; j++)
-		{
-			Node* n = r->nodes[j];
-			fprintf(outfp, "%d, ", n ? n->midcode : 0);
-		}
-		fprintf(outfp, "}, ");
+		#if !defined COWGOL
+			fprintf(outfp, "{ ");
+			for (int j=0; j<maxdepth; j++)
+			{
+				Node* n = r->nodes[j];
+				fprintf(outfp, "%d, ", n ? n->midcode : 0);
+			}
+			fprintf(outfp, "}, ");
+		#endif
 
 		uint8_t copymask = 1;
 		uint8_t regmask = 0;
@@ -558,6 +579,16 @@ static void create_rules(void)
 					regmask |= 1<<j;
 			}
 		}
+		#if defined COWGOL
+			uint8_t significantmask = 0;
+			for (int j=0; j<maxdepth; j++)
+			{
+				Node* n = r->nodes[j];
+				if (n && n->midcode)
+					significantmask |= 1<<j;
+			}
+			fprintf(outfp, "%d, ", significantmask);
+		#endif
 		fprintf(outfp, "%d, %d ", copymask, regmask);
 		fprintf(outfp, "}, ");
 
