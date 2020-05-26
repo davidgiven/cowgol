@@ -505,7 +505,7 @@ static void create_match_predicates(void)
 static void create_rules(void)
 {
 	#if defined COWGOL
-		fprintf(outfp, "var codegen_midcodes: uint8[] := {");
+		fprintf(outfp, "var codegen_midcodes: uint8[] := {\n");
 		for (int i=0; i<rulescount; i++)
 		{
 			Rule* r = rules[i];
@@ -513,14 +513,11 @@ static void create_rules(void)
 			{
 				Node* n = r->nodes[j];
 				if (n && n->midcode)
-				{
-					if ((i & 15) == 0)
-						fprintf(outfp, "\n\t");
 					fprintf(outfp, "% 3d, ", n->midcode);
-				}
 			}
+			fprintf(outfp, "# %d\n", i);
 		}
-		fprintf(outfp, "\n};\n");
+		fprintf(outfp, "};\n");
 	#endif
 
 	#if defined COWGOL
