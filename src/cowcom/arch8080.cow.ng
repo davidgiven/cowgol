@@ -607,6 +607,9 @@
 
 	sub ArchEndInstruction()
 	end sub;
+
+	sub ArchEndGroup()
+	end sub;
 %}
 
 wordsize uint16;
