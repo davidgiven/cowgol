@@ -1,4 +1,0 @@
-    global LOMEM
-	dseg
-LOMEM:
-
