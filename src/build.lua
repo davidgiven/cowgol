@@ -2,39 +2,9 @@ rule {
 	ins = {
 		"scripts/mkiburgcodes.lua",
 		"scripts/libcowgol.lua",
-		"src/midcodes.tab",
-	},
-	outs = { "$OBJ/iburgcodes.h" },
-	cmd = "$LUA @1 -- @3 &1"
-}
-
-rule {
-	ins = {
-		"scripts/mkiburgcodes.lua",
-		"scripts/libcowgol.lua",
 		"src/midcodes.coh.tab",
 	},
 	outs = { "$OBJ/iburgcodes-coh.h" },
-	cmd = "$LUA @1 -- @3 &1"
-}
-
-rule {
-	ins = {
-		"scripts/mkmidcodesh.lua",
-		"scripts/libcowgol.lua",
-		"src/midcodes.tab",
-	},
-	outs = { "$OBJ/midcodes.h" },
-	cmd = "$LUA @1 -- @3 &1"
-}
-
-rule {
-	ins = {
-		"scripts/mkmidcodesc.lua",
-		"scripts/libcowgol.lua",
-		"src/midcodes.tab",
-	},
-	outs = { "$OBJ/midcodes.c" },
 	cmd = "$LUA @1 -- @3 &1"
 }
 
