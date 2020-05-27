@@ -43,3 +43,14 @@ sub lots(i1: int8, i2: int8, i3: int8, i4: int8, i5: int8, i6: int8)
 end sub;
 lots(1, 2, 3, 4, 5, 6);
 
+# This tickles a bug in the old cowcom where arguments passed to
+# subroutines inside expressions weren't compiled correctly.
+sub callsinexpressions()
+print("callsinexpression");
+	sub returns(i1: uint8): (i2: uint8)
+		i2 := i1;
+	end sub;
+	if (returns(1) + returns(2)) == 3 then yes(); else no(); end if;
+end sub;
+callsinexpressions();
+

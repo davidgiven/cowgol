@@ -15,10 +15,6 @@
 	var varsp: uint8;
 	var varid: Slot := 1;
 
-	const ARGSTACK_SIZE := VARSTACK_SIZE;
-	var argstack: Slot[ARGSTACK_SIZE];
-	var argsp: uint8;
-
 	record Extern
 		name: string;
 		id: uint16;
@@ -93,11 +89,6 @@
 		end if;
 	end sub;
 
-	# Note that this *destroys* the source register.
-	sub ArchEmitMove(src: RegId, dest: RegId)
-		SimpleError("move");
-	end sub;
-
 	sub ArchEndInstruction()
 	end sub;
 
@@ -146,31 +137,20 @@
 		vid := varstack[varsp-1];
 	end sub;
 
-	sub PushArg(vid: Slot)
-		if argsp == ARGSTACK_SIZE then
-			SimpleError("argstack overflow");
-		end if;
-		argstack[argsp] := vid;
-		argsp := argsp + 1;
-	end sub;
-
-	sub PopArg(): (vid: Slot)
-		if argsp == 0 then
-			SimpleError("argstack underflow");
-		end if;
-		argsp := argsp - 1;
-		vid := argstack[argsp];
+	# Note that this *destroys* the source register.
+	sub ArchEmitMove(src: RegId, dest: RegId)
 	end sub;
 %}
 
 wordsize uint32;
 
-register v1 v2 v4 v8;
+register v1 v2 v4 v8 param;
 
 regdata v1 stacked;
 regdata v2 stacked;
 regdata v4 stacked;
 regdata v8 stacked;
+regdata param;
 
 // --- Core things ----------------------------------------------------------
 
@@ -310,15 +290,16 @@ gen ENDSUB():s
 	EmitterPopChunk('S');
 }
 
-gen PUSHARG1(v1) { PushArg(Pop()); }
-gen PUSHARG2(v2) { PushArg(Pop()); }
-gen PUSHARG4(v4) { PushArg(Pop()); }
-gen PUSHARG8(v8) { PushArg(Pop()); }
+gen param := END();
+gen param := ARG1(param, v1);
+gen param := ARG2(param, v2);
+gen param := ARG4(param, v4);
+gen param := ARG8(param, v8);
 
-gen v1 := POPARG1() { PushVid(PopArg()); }
-gen v2 := POPARG2() { PushVid(PopArg()); }
-gen v4 := POPARG4() { PushVid(PopArg()); }
-gen v8 := POPARG8() { PushVid(PopArg()); }
+gen v1 := POPARG1();
+gen v2 := POPARG2();
+gen v4 := POPARG4();
+gen v8 := POPARG8();
 
 %{
 	sub Call(subr: [Subroutine])
@@ -373,7 +354,7 @@ gen v8 := POPARG8() { PushVid(PopArg()); }
 
 		count := 0;
 		while count != subr.num_input_parameters loop
-			var vid := PopArg();
+			var vid := Pop();
 			comma();
 			E("v");
 			E_u16(vid);
@@ -389,17 +370,17 @@ gen v8 := POPARG8() { PushVid(PopArg()); }
 		count := 0;
 		while count != subr.num_output_parameters loop
 			vid := outputvid + (count as Slot);
-			PushArg(vid);
+			PushVid(vid);
 			count := count + 1;
 		end loop;
 	end sub;
 %}
 
-gen CALL():s         { Call($s.subr); }
-gen v1 := CALLE1():s { Call($s.subr); PushVid(PopArg()); }
-gen v2 := CALLE2():s { Call($s.subr); PushVid(PopArg()); }
-gen v4 := CALLE4():s { Call($s.subr); PushVid(PopArg()); }
-gen v8 := CALLE8():s { Call($s.subr); PushVid(PopArg()); }
+gen CALL(param):s         { Call($s.subr); }
+gen v1 := CALLE1(param):s { Call($s.subr); }
+gen v2 := CALLE2(param):s { Call($s.subr); }
+gen v4 := CALLE4(param):s { Call($s.subr); }
+gen v8 := CALLE8(param):s { Call($s.subr); }
 
 // --- Core conversions --------------------------------------------------
 

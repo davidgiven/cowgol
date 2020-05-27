@@ -56,6 +56,8 @@ hfp:write("sub AllocateNewNode(code: uint8): (m: [Node])\n")
 hfp:write("\tm := Alloc(@bytesof Node) as [Node];\n")
 hfp:write("\t#print(\"alloc \");\n");
 hfp:write("\t#print_hex_i32(m as intptr as uint32);\n");
+hfp:write("\t#print(\" op \");\n");
+hfp:write("\t#print_i8(code);\n");
 hfp:write("\t#print_nl();\n");
 hfp:write("\tm.op := code;\n")
 hfp:write("end sub;\n")

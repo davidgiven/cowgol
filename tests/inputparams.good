@@ -5,3 +5,4 @@ twoint16: : yes
 mixed1: : yes
 mixed2: : yes
 lots: : yes
+callsinexpression: yes

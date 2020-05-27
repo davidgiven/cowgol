@@ -115,6 +115,7 @@ sub AToI(buffer: [uint8]): (result: int32, ptr: [uint8])
 			when 'o':  base := 8;
 			when 'b':  base := 2;
 			when 'd':  base := 10;
+
 			when else: ptr := ptr - 2;
 		end case;
 		ptr := ptr + 2;

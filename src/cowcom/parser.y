@@ -725,7 +725,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 	end sub;
 }
 
-expression(E) ::= startsubcall inputargs.
+expression(E) ::= startsubcall inputargs(INA).
 {
 	var subr := current_call.subr;
 	current_call.num_output_args := 1;
@@ -735,13 +735,13 @@ expression(E) ::= startsubcall inputargs.
 	end if;
 
 	var param := subr.first_output_parameter;
-	E := MidCalle(param.vardata.type.typedata.width as uint8, subr);
+	E := MidCalle(param.vardata.type.typedata.width as uint8, INA, subr);
 	E.type := param.vardata.type;
 
 	i_end_call();
 }
 
-statement ::= startsubcall inputargs SEMICOLON.
+statement ::= startsubcall inputargs(INA) SEMICOLON.
 {
 	var subr := current_call.subr;
 	i_check_sub_call_args();
@@ -749,21 +749,21 @@ statement ::= startsubcall inputargs SEMICOLON.
 		SimpleError("subroutine requires output arguments");
 	end if;
 
-	Generate(MidCall(subr));
+	Generate(MidCall(INA, subr));
 
 	i_end_call();
 }
 
-statement ::= outputargs(A) ASSIGN startsubcall inputargs SEMICOLON.
+statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 {
 	var subr := current_call.subr;
 	i_check_sub_call_args();
 
-	Generate(MidCall(subr));
+	Generate(MidCall(INA, subr));
 
 	var paramindex := subr.num_output_parameters;
 	var count: uint8 := 0;
-	var node := A;
+	var node := OUTA;
 	while node != (0 as [Node]) loop
 		if paramindex == 0 then
 			SimpleError("too many output arguments");
@@ -795,7 +795,7 @@ statement ::= outputargs(A) ASSIGN startsubcall inputargs SEMICOLON.
 		count := count + 1;
 		param := param.vardata.next_parameter;
 	end loop;
-	Discard(A);
+	Discard(OUTA);
 
 	if count != subr.num_output_parameters then
 		SimpleError("too few output arguments");
@@ -822,13 +822,30 @@ startsubcall ::= oldid(S).
 	current_call := call;
 }
 
-inputargs ::= OPENPAREN CLOSEPAREN.
-inputargs ::= OPENPAREN inputarglist CLOSEPAREN.
+/* Produces a list of arguments to be passed into a CALL. The leftmost
+ * argument is the *deepest*, so the top of the list is the rightmost.
+ */
 
-inputarglist ::= inputarg.
-inputarglist ::= inputarglist COMMA inputarg.
+%type inputargs {[Node]}
+inputargs(R) ::= OPENPAREN inputarglist(L) CLOSEPAREN.
+{ R := L; }
 
-inputarg ::= expression(E).
+inputargs(R) ::= OPENPAREN CLOSEPAREN.
+{ R := MidEnd(); }
+
+%type inputarglist {[Node]}
+inputarglist(R) ::= inputarg(A).
+{ R := A; }
+
+inputarglist(R) ::= inputarglist(L) COMMA inputarg(A).
+{
+	Discard(A.left);
+	A.left := L;
+	R := A;
+}
+
+%type inputarg {[Node]}
+inputarg(R) ::= expression(E).
 {
 	var param := current_call.input_parameter;
 	if param == (0 as [Symbol]) then
@@ -843,9 +860,9 @@ inputarg ::= expression(E).
 	CheckNotPartialType(param.vardata.type);
 	CheckNotPartialType(E.type);
 	current_call.num_input_args := current_call.num_input_args + 1;
-	Generate(MidPusharg(NodeWidth(E), E,
+	R := MidArg(NodeWidth(E), MidEnd(), E,
 		current_call.subr,
-		current_call.subr.num_input_parameters - current_call.num_input_args));
+		current_call.subr.num_input_parameters - current_call.num_input_args);
 }
 
 /* Output arguments get parsed before we know what subroutine they belong
@@ -1108,13 +1125,6 @@ memberid(S) ::= ID(T).
 
 	sub AlignTo(alignment: uint8)
 		var newoffset := ArchAlignUp(current_global_offset, alignment);
-		print("current_global_offset=");
-		print_hex_i16(current_global_offset);
-		print(" alignment=");
-		print_hex_i8(alignment);
-		print(" newoffset=");
-		print_hex_i16(newoffset);
-		print_nl();
 		while current_global_offset != newoffset loop
 			Generate(MidInit(1, 0));
 			current_offset := current_offset + 1;

@@ -616,6 +616,7 @@ wordsize uint16;
 
 register a b c d e h l hl de bc;
 register stk4;
+register param;
 
 regdata a              compatible a|b|d|h;
 regdata b  uses bc|b|c compatible a|b|d|h;
@@ -625,6 +626,7 @@ regdata bc uses bc|b|c compatible bc|de|hl;
 regdata de uses de|d|e compatible bc|de|hl;
 regdata hl uses hl|h|l compatible bc|de|hl;
 regdata stk4 stacked;
+regdata param stacked;
 
 // --- Core things ----------------------------------------------------------
 
@@ -759,34 +761,36 @@ gen ENDSUB():s
 	EmitterPopChunk('S');
 }
 
-gen CALL():s
+gen CALL(param):s
 		{ E_call($s.subr); }
 	
-gen a := CALLE1():s
+gen a := CALLE1(param):s
 		{ E_call($s.subr); }
 
-gen hl := CALLE2():s
+gen hl := CALLE2(param):s
 		{ E_call($s.subr); }
 
-gen stk4 := CALLE4():s
+gen stk4 := CALLE4(param):s
 		{ E_call($s.subr); }
 
-gen PUSHARG1(a, remaining==0);
+gen param := END();
 
-gen PUSHARG1(a|b|d|h:lhs, remaining!=0)
+gen param := ARG1(param, a, remaining==0);
+
+gen param := ARG1(param, a|b|d|h:lhs, remaining!=0)
 		{ E_push($lhs); }
 	
-gen PUSHARG2(hl, remaining==0);
+gen param := ARG2(param, hl, remaining==0);
 
-gen PUSHARG2(bc|de|hl:lhs, remaining!=0)
+gen param := ARG2(param, bc|de|hl:lhs, remaining!=0)
 		{ E_push($lhs); }
 
-gen PUSHARG2(CALLE2():s)
+gen param := ARG2(END(), CALLE2(param):s)
 		{ E_call($s.subr); }
 
-gen PUSHARG4(stk4); // already stacked
+gen param := ARG4(param, stk4); // already stacked
 
-gen PUSHARG4(CALLE4():s)
+gen param := ARG4(END(), CALLE4(param):s)
 		{ E_call($s.subr); }
 
 gen a := POPARG1(remaining==0);
