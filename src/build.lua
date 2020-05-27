@@ -160,9 +160,15 @@ function cowgol(e)
 		cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
 	}
 
-	e.toolchain.linker {
-		ins = { coo },
-		outs = { asm }
+	rule {
+		ins = concat {
+			"scripts/quiet",
+			e.toolchain.linker,
+			(e.toolchain.runtime.."/cowgol.coo"):obj(),
+			coo
+		},
+		outs = { asm },
+		cmd = "@1 @2 -o &1 @3 @4"
 	}
 
 	e.toolchain.assembler {
@@ -173,51 +179,11 @@ function cowgol(e)
 	return out
 end
 
-function cowlink(e)
-	rule {
-		ins = concat {
-			"scripts/quiet",
-			e.linker,
-			e.runtime,
-			e.ins
-		},
-		outs = e.outs,
-		cmd = "@1 @2 -o &1 @3 @4"
-	}
-end
-
-function cowlink_cpm(e)
-	cowlink {
-		ins = e.ins,
-		outs = e.outs,
-		linker = "bin/cowlink.8080.ocgen.exe",
-		runtime = "$OBJ/rt/cpm/cowgol.coo",
-	}
-end
-
-function cowlink_cpmz(e)
-	cowlink {
-		ins = e.ins,
-		outs = e.outs,
-		linker = "bin/cowlink.8080.ocgen.exe",
-		runtime = "$OBJ/rt/cpmz/cowgol.coo",
-	}
-end
-
-function cowlink_cgen(e)
-	cowlink {
-		ins = e.ins,
-		outs = e.outs,
-		linker = "bin/cowlink.cgen.ocgen.exe",
-		runtime = "$OBJ/rt/cgen/cowgol.coo",
-	}
-end
-
 function cowwrap(e)
 	rule {
 		ins = concat {
 			"scripts/quiet",
-			"bin/cowwrap.ocgen.exe",
+			"bin/cowwrap.bootstrap.exe",
 			e.ins
 		},
 		outs = e.outs,
