@@ -157,3 +157,13 @@ sub orand1()
 end sub;
 orand1();
 
+sub andfuncs()
+	print("andfuncs");
+	sub returns(x: uint8): (result: uint8)
+		result := x;
+	end sub;
+
+	if (returns(0) == 0) and (returns(1) == 1) then yes(); else no(); end if;
+end sub;
+andfuncs();
+

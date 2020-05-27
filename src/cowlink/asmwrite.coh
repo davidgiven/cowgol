@@ -47,6 +47,8 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 	sub CopySourceChunk()
 		var subid: uint16;
 		var subr: [Subroutine];
+		var wid: uint8;
+		var off: Size;
 
 		while length != 0 loop
 			GetC();
@@ -67,11 +69,18 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 
 				when COO_ESCAPE_WSREF:
 					subid := ReadH4();
-					var wid := ReadH2();
-					var off := ReadH4();
+					wid := ReadH2();
+					off := ReadH4();
 					subr := FindOrCreateSub(coo, subid);
 					subr := Deref(subr);
 					ArchEmitWSRef(wid, subr.workspaceAddress[wid] + off);
+
+				when COO_ESCAPE_WSSIZE:
+					subid := ReadH4();
+					wid := ReadH2();
+					subr := FindOrCreateSub(coo, subid);
+					subr := Deref(subr);
+					ArchEmitWSRef(wid, subr.workspaceSize[wid]);
 
 				when else:
 					EmitByte(c);

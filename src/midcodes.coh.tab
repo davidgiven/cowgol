@@ -22,10 +22,23 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 
 - 0 0 LABEL(label: uint16) = ("%d", $$.label)
 - 0 0 JUMP(label: uint16) = ("%d", $$.label)
-- 1 0 CALLS()
-- 0 0 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
-y 0 1 CALLE(subr: [Subroutine]) = ("%s", $$.subr.name)
 - 0 0 RETURN()
+
+# These take a parameter list: a chain of ARG nodes containing the subroutine
+# arguments. Any return arguments are pushed onto the argument stack.
+- 1 0 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
+y 1 1 CALLE(subr: [Subroutine]) = ("%s", $$.subr.name)
+
+# Represents an argument to a call. The LHS points at the next argument or an
+# END. The RHS is the value. The values are left-to-right, so that the first
+# argument to be generated and pushed is the deepest in the list.
+y 2 1 ARG(subr: [Subroutine], remaining: uint8)
+
+# POPARG is a leaf. Because the parameter stack and the spill stack occupy
+# the same physical space (at least on most architectures), POPARG must be the
+# first node actually generated in any tree. The frontend only generates it
+# for STORE(POPARG(), something) statements, which meets this requirement.
+y 0 1 POPARG(subr: [Subroutine], remaining: uint8)
 
 - 0 1 CONSTANT(value: int32) = ("%d", $$.value)
 - 0 1 STRING(text: string) = ("...")
@@ -50,14 +63,6 @@ y 1 1 CAST1(sext: uint8)
 y 1 1 CAST2(sext: uint8)
 y 1 1 CAST4(sext: uint8)
 y 1 1 CAST8(sext: uint8)
-
-# PUSHARG is a root node, but POPARG is a leaf. However, because the parameter
-# stack and the spill stack occupy the same physical space (at least on most
-# architectures), POPARG must be the first node actually generated in any
-# tree. The frontend only generates it for STORE(POPARG(), something)
-# statements, which meets this requirement.
-y 1 0 PUSHARG(subr: [Subroutine], remaining: uint8)
-y 0 1 POPARG(subr: [Subroutine], remaining: uint8)
 
 # The order here is important. 
 y 1 1 NOT()

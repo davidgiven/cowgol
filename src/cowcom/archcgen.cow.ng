@@ -89,12 +89,11 @@
 		end if;
 	end sub;
 
-	# Note that this *destroys* the source register.
-	sub ArchEmitMove(src: RegId, dest: RegId)
-		SimpleError("move");
+	sub ArchEndInstruction()
 	end sub;
 
-	sub ArchEndInstruction()
+	sub ArchEndGroup()
+		E_nl();
 	end sub;
 
 	sub PushVid(vid: Slot)
@@ -109,25 +108,49 @@
 		vid := varid;
 		varid := varid + 1;
 		PushVid(vid);
+		#E("/* push v");
+		#E_u16(vid);
+		#E(" at ");
+		#E_u8(varsp);
+		#E(" */");
 	end sub;
 
-	sub Pop(): (vid: Slot)
+	sub CheckVarstackUnderflow()
 		if varsp == 0 then
 			SimpleError("varstack underflow");
 		end if;
+	end sub;
+
+	sub Pop(): (vid: Slot)
+		CheckVarstackUnderflow();
 		varsp := varsp - 1;
 		vid := varstack[varsp];
+		#E("/* pop v");
+		#E_u16(vid);
+		#E(" at ");
+		#E_u8(varsp);
+		#E(" */");
+	end sub;
+
+	sub Peek(): (vid: Slot)
+		CheckVarstackUnderflow();
+		vid := varstack[varsp-1];
+	end sub;
+
+	# Note that this *destroys* the source register.
+	sub ArchEmitMove(src: RegId, dest: RegId)
 	end sub;
 %}
 
 wordsize uint32;
 
-register v1 v2 v4 v8;
+register v1 v2 v4 v8 param;
 
 regdata v1 stacked;
 regdata v2 stacked;
 regdata v4 stacked;
 regdata v8 stacked;
+regdata param;
 
 // --- Core things ----------------------------------------------------------
 
@@ -161,10 +184,14 @@ gen STARTSUB():s
 
 	E("\n// ");
 	E($s.subr.name);
-	E_space();
+	E(" workspace at ");
 	EmitByte(COO_ESCAPE_WSREF);
 	E_h16($s.subr.id);
 	E("000000");
+	E(" length ");
+	EmitByte(COO_ESCAPE_WSSIZE);
+	E_h16($s.subr.id);
+	E("00");
 	E("\nvoid ");
 	E_subref($s.subr);
 	E("(");
@@ -182,12 +209,13 @@ gen STARTSUB():s
 	var count: uint8 := 0;
 	while count != $s.subr.num_output_parameters loop
 		var param := GetOutputParameter($s.subr, count);
+		var pid := Push();
 
 		comma();
 		E("i");
 		E_u8(param.vardata.type.typedata.width as uint8);
 		E("* p");
-		E_u16(Push());
+		E_u16(pid);
 
 		E(" /* ");
 		E(param.name);
@@ -202,12 +230,13 @@ gen STARTSUB():s
 	while count != 0 loop
 		count := count - 1;
 		param := GetInputParameter($s.subr, count);
+		pid := Push();
 
 		comma();
 		E("i");
 		E_u8(param.vardata.type.typedata.width as uint8);
 		E(" p");
-		E_u16(Push());
+		E_u16(pid);
 
 		E(" /* ");
 		E(param.name);
@@ -222,13 +251,14 @@ gen STARTSUB():s
 	count := 0;
 	while count != $s.subr.num_input_parameters loop
 		param := GetInputParameter($s.subr, count);
+		pid := Pop();
 
 		E("\t*(i");
 		E_u8(param.vardata.type.typedata.width as uint8);
 		E("*)(intptr_t)(");
 		E_symref(param, 0);
 		E(") = p");
-		E_u16(Pop());
+		E_u16(pid);
 		E("; /*");
 		E(param.name);
 		E(" */\n");
@@ -245,9 +275,10 @@ gen ENDSUB():s
 	while count != 0 loop
 		count := count - 1;
 		var param := GetOutputParameter($s.subr, count);
+		var pid := Pop();
 
 		E("\t*p");
-		E_u16(Pop());
+		E_u16(pid);
 		E(" = *(i");
 		E_u8(param.vardata.type.typedata.width as uint8);
 		E("*)(intptr_t)(");
@@ -259,10 +290,11 @@ gen ENDSUB():s
 	EmitterPopChunk('S');
 }
 
-gen PUSHARG1(v1);
-gen PUSHARG2(v2);
-gen PUSHARG4(v4);
-gen PUSHARG8(v8);
+gen param := END();
+gen param := ARG1(param, v1);
+gen param := ARG2(param, v2);
+gen param := ARG4(param, v4);
+gen param := ARG8(param, v8);
 
 gen v1 := POPARG1();
 gen v2 := POPARG2();
@@ -344,20 +376,22 @@ gen v8 := POPARG8();
 	end sub;
 %}
 
-gen CALL():s         { Call($s.subr); }
-gen v1 := CALLE1():s { Call($s.subr); }
-gen v2 := CALLE2():s { Call($s.subr); }
-gen v4 := CALLE4():s { Call($s.subr); }
-gen v8 := CALLE8():s { Call($s.subr); }
+gen CALL(param):s         { Call($s.subr); }
+gen v1 := CALLE1(param):s { Call($s.subr); }
+gen v2 := CALLE2(param):s { Call($s.subr); }
+gen v4 := CALLE4(param):s { Call($s.subr); }
+gen v8 := CALLE8(param):s { Call($s.subr); }
 
 // --- Core conversions --------------------------------------------------
 
 %{
 	sub LoadConstant(width: uint8, value: Arith)
+		var vid := Push();
+
 		E("\ti");
 		E_u8(width);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = (i");
 		E_u8(width);
 		E(")");
@@ -373,8 +407,10 @@ gen v8 := CONSTANT():c { LoadConstant(8, $c.value); }
 
 gen v8 := ADDRESS():a
 {
+	var vid := Push();
+
 	E("\ti8 v");
-	E_u16(Push());
+	E_u16(vid);
 	E(" = (i8)(intptr_t)(");
 	E_symref($a.sym, $a.off);
 	E(");\n");
@@ -426,10 +462,11 @@ gen v8 := LOAD8(v8:addr) { LoadVV(8); }
 	sub Op2VV(width: uint8, op: string)
 		var rhsid := Pop();
 		var lhsid := Pop();
+		var vid := Push();
 		E("\ti");
 		E_u8(width);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = v");
 		E_u16(lhsid);
 		E(op);
@@ -440,10 +477,11 @@ gen v8 := LOAD8(v8:addr) { LoadVV(8); }
 
 	sub Op2VC(width: uint8, op: string, rhs: Arith)
 		var lhsid := Pop();
+		var vid := Push();
 		E("\ti");
 		E_u8(width);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = v");
 		E_u16(lhsid);
 		E(op);
@@ -455,10 +493,11 @@ gen v8 := LOAD8(v8:addr) { LoadVV(8); }
 	sub Op2VVSigned(width: uint8, op: string)
 		var rhsid := Pop();
 		var lhsid := Pop();
+		var vid := Push();
 		E("\ti");
 		E_u8(width);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = (s");
 		E_u8(width);
 		E(")v");
@@ -473,10 +512,11 @@ gen v8 := LOAD8(v8:addr) { LoadVV(8); }
 
 	sub Op2VCSigned(width: uint8, op: string, rhs: Arith)
 		var lhsid := Pop();
+		var vid := Push();
 		E("\ti");
 		E_u8(width);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = v");
 		E_u16(lhsid);
 		E(op);
@@ -579,10 +619,11 @@ gen v8 := EOR8(v8:lhs, CONSTANT():rhs)  { Op2VC(8, "^", $rhs.value); }
 %{
 	sub Op1V(width: uint8, op: string)
 		var valid := Pop();
+		var vid := Push();
 		E("\ti");
 		E_u8(width);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = ");
 		E(op);
 		E("v");
@@ -606,10 +647,11 @@ gen v8 := NOT8(v8) { Op1V(8, "~"); }
 	sub Shift(width: uint8, type: string, op: string)
 		var rhsid := Pop();
 		var lhsid := Pop();
+		var vid := Push();
 		E("\ti");
 		E_u8(width);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = ((");
 		E(type);
 		E(")v");
@@ -739,11 +781,12 @@ gen ENDCASE()
 
 %{
 	sub Cast(src: uint8, dest: uint8, sext: uint8)
-		var vid := Pop();
+		var lhsid := Pop();
+		var vid := Push();
 		E("\ti");
 		E_u8(dest);
 		E(" v");
-		E_u16(Push());
+		E_u16(vid);
 		E(" = ");
 		if sext != 0 then
 			E("(s");
@@ -753,7 +796,7 @@ gen ENDCASE()
 			E(")");
 		end if;
 		E("v");
-		E_u16(vid);
+		E_u16(lhsid);
 		E(";\n");
 	end sub;
 %}
@@ -814,8 +857,9 @@ gen v4 := CAST84(v8):c { Cast(8, 4, $c.sext); }
 
 gen v8 := STRING():s
 {
+	var vid := Push();
 	E("\ti8 v");
-	E_u16(Push());
+	E_u16(vid);
 	E(" = (i8)(intptr_t)");
 	EmitByte(COO_ESCAPE_THISCOO);
 	EmitByte('s');

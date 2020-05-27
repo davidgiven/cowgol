@@ -33,7 +33,7 @@ toolchain_ocgen = {
 
 toolchain_ncpm = {
 	name = "ncpm",
-	compiler = "bin/cowcom.8080.ocgen.exe",
+	compiler = "bin/cowcom.8080.nncgen.exe",
 	linker = cowlink_cpm,
 	assembler = buildzmac,
 	runtime = "rt/cpm",
@@ -44,7 +44,7 @@ toolchain_ncpm = {
 
 toolchain_ncpmz = {
 	name = "ncpmz",
-	compiler = "bin/cowcom.z80.ocgen.exe",
+	compiler = "bin/cowcom.z80.nncgen.exe",
 	linker = cowlink_cpmz,
 	assembler = buildzmac,
 	runtime = "rt/cpmz",
@@ -64,6 +64,17 @@ toolchain_ncgen = {
 	tester = nativetest
 }
 
+toolchain_nncgen = {
+	name = "nncgen",
+	compiler = "bin/cowcom.cgen.ncgen.exe",
+	linker = cowlink_cgen,
+	assembler = buildcgen,
+	runtime = "rt/cgen",
+	asmext = ".c",
+	binext = ".exe",
+	tester = nativetest
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_olx386,
 	toolchain_olxthumb2,
@@ -71,5 +82,6 @@ ALL_TOOLCHAINS = {
 	toolchain_ncpm,
 	toolchain_ncpmz,
 	toolchain_ncgen,
+	toolchain_nncgen,
 }
 

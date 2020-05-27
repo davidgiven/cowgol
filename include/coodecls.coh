@@ -6,4 +6,5 @@ const COO_ESCAPE_SUBREF  := 1; # <01><hex4>
 const COO_ESCAPE_WSREF   := 2; # <02><hex4:sub><hex2:wsid><hex4:offset>
 const COO_ESCAPE_THISCOO := 3; # <03>
 const COO_ESCAPE_THISSUB := 4; # <04>
+const COO_ESCAPE_WSSIZE  := 5; # <05><hex4:sub><hex2:wsid>
 

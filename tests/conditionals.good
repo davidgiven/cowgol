@@ -53,3 +53,4 @@ isletter(70): yes
 isletter(200): no
 andor1: yes
 orand1: yes
+andfuncs: yes

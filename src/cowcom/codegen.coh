@@ -383,6 +383,8 @@ sub Generate(rootnode: [Node])
 		#print_i8(ruleid);
 		#print(" op ");
 		#print_i8(node.op);
+		#print(" producing ");
+		#print_hex_i32(rule.producable_regs as uint32);
 		#print(" ");
 		#print_hex_i32(node as intptr as uint32);
 		#print_nl();
@@ -552,6 +554,7 @@ sub Generate(rootnode: [Node])
 		ShuffleRegisters(&next_instruction.spills[0]);
 		ArchEndInstruction();
 	end loop;
+	ArchEndGroup();
 
 	Discard(rootnode);
 end sub;

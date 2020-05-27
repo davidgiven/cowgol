@@ -81,10 +81,8 @@ sub PlaceSubroutines(subroutine: [Subroutine])
 		var watermark: Size[NUM_WORKSPACES];
 		i := 0;
 		while i != NUM_WORKSPACES loop
-			var w := ArchAlignUp(
-				subroutine.workspaceAddress[i] + subroutine.workspaceSize[i],
-				8);
-			watermark[i] := w;
+			var w := subroutine.workspaceAddress[i] + subroutine.workspaceSize[i];
+			watermark[i] := ArchAlignUp(w, 8);
 			if w > workspaceSize[i] then
 				workspaceSize[i] := w;
 			end if;
@@ -108,11 +106,23 @@ sub PlaceSubroutines(subroutine: [Subroutine])
 				while i != NUM_WORKSPACES loop
 					var curAddr := called.workspaceAddress[i];
 					var reqAddr := watermark[i];
-					if (reqAddr > curAddr) or ((called.state & SUB_USED) == 0) then
+					if reqAddr > curAddr then
+						#print(subroutine.name);
+						#print(" calling ");
+						#print(called.name);
+						#print(" -> ");
+						#print_hex_i16(reqAddr);
+						#print_nl();
 						called.workspaceAddress[i] := reqAddr;
 						# The subroutine's workspace has moved, so make sure it
 						# gets reprocessed.
 						push(called);
+					end if;
+					if (called.state & SUB_USED) == 0 then
+						# Subroutines which we know haven't been processed yet
+						# always go on the queue.
+						push(called);
+						called.state := called.state | SUB_USED;
 					end if;
 					i := i + 1;
 				end loop;
