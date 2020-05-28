@@ -42,10 +42,22 @@ toolchain_ncpmz = {
 	tester = cpmtest,
 }
 
+toolchain_lx386 = {
+	name = "lx386",
+	compiler = "bin/cowcom.80386.nncgen.exe",
+	linker = "bin/cowlink.lx386.nncgen.exe",
+	assembler = buildgas386,
+	runtime = "rt/lx386",
+	asmext = ".s",
+	binext = ".lx386.exe",
+	tester = qemu386test
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
 	toolchain_ncpm,
 	toolchain_ncpmz,
+	toolchain_lx386,
 }
 

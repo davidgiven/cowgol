@@ -803,6 +803,14 @@ gen STARTSUB():s
 
 	E("\n\n\t; ");
 	E($s.subr.name);
+	E(" workspace at ");
+	EmitByte(COO_ESCAPE_WSREF);
+	E_h16($s.subr.id);
+	E("000000");
+	E(" length ");
+	EmitByte(COO_ESCAPE_WSSIZE);
+	E_h16($s.subr.id);
+	E("00");
 	E_nl();
 
 	E("\tcseg\n");

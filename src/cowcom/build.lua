@@ -1,4 +1,4 @@
-local ARCHS = { "6502", "z80", "8080", "cgen" }
+local ARCHS = { "6502", "z80", "8080", "80386", "cgen" }
 
 lemoncowgol {
 	ins = { "src/cowcom/parser.y" },

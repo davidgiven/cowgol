@@ -354,6 +354,12 @@ static void dump_registers(void)
 				fprintf(outhfp, " = 0x%x,\n", reg->id);
 			#endif
 		}
+		else if (reg->sym.kind == SYM_REGCLASS)
+		{
+			fprintf(outhfp, "const REGCLASS_");
+			print_upper(outhfp, reg->sym.name);
+			fprintf(outhfp, " := 0x%x;\n", reg->id);
+		}
 		reg = (Register*) reg->sym.next;
 	}
 	#if defined COWGOL
