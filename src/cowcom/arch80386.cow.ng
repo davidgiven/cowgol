@@ -1,0 +1,526 @@
+%{
+	var uint32_type: [Symbol];
+	var int32_type: [Symbol];
+	var uint16_type: [Symbol];
+	var int16_type: [Symbol];
+	var uint8_type: [Symbol];
+	var int8_type: [Symbol];
+	var intptr_type: [Symbol];
+
+	record Extern
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+		newvalue := value;
+	end sub;
+
+	sub ArchInitTypes()
+		uint32_type := MakeNumberType(4, 1, 0, "uint32");
+		int32_type := MakeNumberType(4, 1, 1, "int32");
+		uint16_type := MakeNumberType(2, 1, 0, "uint16");
+		int16_type := MakeNumberType(2, 1, 1, "int16");
+		uint8_type := MakeNumberType(1, 1, 0, "uint8");
+		int8_type := MakeNumberType(1, 1, 1, "int8");
+
+		intptr_type := uint16_type;
+		AddAliasString("intptr", intptr_type);
+	end sub;
+
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+		if (min >= 0) and (max <= 255) then
+			symbol := uint8_type;
+		elseif (min >= -128) and (max <= 127) then
+			symbol := int8_type;
+		elseif (min >= 0) and (max <= 65535) then
+			symbol := uint16_type;
+		elseif (min >= -32768) and (max <= 32767) then
+			symbol := int16_type;
+		elseif (min >= 0) then
+			symbol := uint32_type;
+		else
+			symbol := int32_type;
+		end if;
+	end sub;
+
+	sub ArchInitVariable(symbol: [Symbol])
+		var subr := symbol.vardata.subr;
+		var offset := subr.workspace[0];
+		symbol.vardata.offset := offset;
+		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+	end sub;
+
+	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+		member.vardata.offset := position;
+		position := position + member.vardata.type.typedata.width;
+		if position > containing.typedata.width then
+			containing.typedata.width := position;
+		end if;
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size)
+		if sym.vardata.externname != (0 as string) then
+			E(sym.vardata.externname);
+			E_i16(off as int16);
+		else
+			EmitByte(COO_ESCAPE_WSREF);
+			E_h16(sym.vardata.subr.id);
+			E_h8(0);
+			E_h16(sym.vardata.offset + off);
+		end if;
+	end sub;
+
+	sub R_flushall()
+		RegCacheFlush(ALL_REGS);
+	end sub;
+
+	sub R_flush(reg: RegId)
+		RegCacheFlush(FindConflictingRegisters(reg));
+	end sub;
+
+	sub E_label(label: LabelRef)
+		R_flushall();
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId)
+		result := 0;
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				result := [regtable];
+				return;
+			end if;
+			reg := reg >> 1;
+			regtable := @next regtable;
+		end loop;
+
+		if result == 0 then
+			StartError();
+			print("bad ");
+			print(name);
+			print_char(' ');
+			print_hex_i32(reg);
+			EndError();
+		end if;
+	end sub;
+
+	sub loreg(reg: RegId): (loreg: RegId)
+		var regs: RegId[] := {
+			REG_AL, REG_BL, REG_CL, REG_DL, 0, 0,
+			REG_AL, REG_BL, REG_CL, REG_DL, 0, 0,
+			REG_AL, REG_AL,
+			REG_BL, REG_BL,
+			REG_CL, REG_CL,
+			REG_DL, REG_DL
+		};
+
+		loreg := getreg(reg, &regs[0], "loreg");
+	end sub;
+
+	sub E_reg(reg: RegId)
+		var names: string[] := {
+			"eax", "ebx", "ecx", "edx", "esi", "edi",
+			"ax",  "bx",  "cx",  "dx",  "si",  "di",
+			"al", "ah", "bl", "bh", "cl", "ch", "dl", "dh"
+		};
+
+		EmitByte('%');
+		var p := &names[0];
+		while reg != 0 loop
+			if (reg & 1) != 0 then
+				E([p]);
+				return;
+			end if;
+			reg := reg >> 1;
+			p := @next p;
+		end loop;
+
+		StartError();
+		print("bad reg ");
+		print_hex_i32(reg);
+		EndError();
+	end sub;
+
+	sub E_push(reg: RegId)
+		if (reg & REGCLASS_R8) != 0 then
+			reg := loreg(reg);
+		end if;
+		if (reg & REGCLASS_R16) != 0 then
+			E("\tpushw ");
+		else
+			E("\tpushl ");
+		end if;
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_pop(reg: RegId)
+		R_flush(reg);
+		if (reg & REGCLASS_R8) != 0 then
+			reg := loreg(reg);
+		end if;
+		if (reg & REGCLASS_R16) != 0 then
+			E("\tpopw ");
+		else
+			E("\tpopl ");
+		end if;
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_loadconst(reg: RegId, value: Arith)
+		var cache := RegCacheFindConstant(value as Word) & reg;
+		if cache != 0 then
+			# The value is already in the desired register.
+			return;
+		end if;
+
+		if (reg & REGCLASS_R8) != 0 then
+			value := value & 0xff;
+			E("\tmovb ");
+		elseif (reg & REGCLASS_R16) != 0 then
+			value := value & 0xffff;
+			E("\tmovw ");
+		else
+			E("\tmovl ");
+		end if;
+		E("$");
+		E_i32(value);
+		E_comma();
+		E_reg(reg);
+		E_nl();
+		RegCacheLeavesConstant(reg, value as Word);
+	end sub;
+			
+	sub E_loadaddr(reg: RegId, sym: [Symbol], off: Size)
+		var cache := RegCacheFindAddress(sym, off) & reg;
+		if cache != 0 then
+			# The value is already in the desired register.
+			return;
+		end if;
+
+		E("\tlea ");
+		E_symref(sym, off);
+		E_comma();
+		E_reg(reg);
+		E_nl();
+		RegCacheLeavesAddress(reg, sym, off);
+	end sub;
+			
+	sub E_mov(reg: RegId)
+		if (reg & REGCLASS_R8) != 0 then
+			E("\tmovb ");
+		elseif (reg & REGCLASS_R16) != 0 then
+			E("\tmovw ");
+		else
+			E("\tmovl ");
+		end if;
+	end sub;
+
+	sub E_load(reg: RegId, sym: [Symbol], off: Size)
+		var cache := RegCacheFindValue(sym, off) & reg;
+		if cache != 0 then
+			# The value is already in the desired register.
+			return;
+		end if;
+
+		E_mov(reg);
+		E("(");
+		E_symref(sym, off);
+		E("), ");
+		E_reg(reg);
+		E_nl();
+		RegCacheLeavesValue(reg, sym, off);
+	end sub;
+
+	sub E_store(reg: RegId, sym: [Symbol], off: Size)
+		E_mov(reg);
+		E_reg(reg);
+		E(", (");
+		E_symref(sym, off);
+		E(")\n");
+		RegCacheLeavesValue(reg, sym, off);
+	end sub;
+
+	sub E_loadix(reg: RegId, ptr: RegId, index: RegId, off: Size)
+		R_flush(reg);
+		E_mov(reg);
+		if off != 0 then
+			E_u16(off);
+		end if;
+		EmitByte('(');
+		E_reg(ptr);
+		if index != 0 then
+			E_comma();
+			E_reg(index);
+		end if;
+		E("), ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_storeix(reg: RegId, ptr: RegId, index: RegId, off: Size)
+		E_mov(reg);
+		E_reg(reg);
+		E_comma();
+		if off != 0 then
+			E_u16(off);
+		end if;
+		EmitByte('(');
+		E_reg(ptr);
+		if index != 0 then
+			E_comma();
+			E_reg(index);
+		end if;
+		E(")\n");
+	end sub;
+
+	sub E_jump(insn: string, label: LabelRef)
+		R_flushall();
+		E_tab();
+		E(insn);
+		E_space();
+		E_labelref(label);
+		E_nl();
+	end sub;
+
+	sub E_jmp(label: LabelRef)
+		E_jump("jmp", label);
+	end sub;
+
+	sub E_ret()
+		E("\tret\n");
+	end sub;
+
+	sub E_alu(insn: string, src: RegId, dest: RegId)
+		R_flush(dest);
+		E_tab();
+		E(insn);
+		if (src & REGCLASS_R8) != 0 then
+			EmitByte('b');
+		elseif (src & REGCLASS_R16) != 0 then
+			EmitByte('w');
+		else
+			EmitByte('l');
+		end if;
+		E_space();
+		E_reg(src);
+		E_comma();
+		E_reg(dest);
+		E_nl();
+	end sub;
+
+	sub E_xor(src: RegId, dest: RegId)
+		E_alu("xor", src, dest);
+		if src == dest then
+			RegCacheLeavesConstant(dest, 0);
+		end if;
+	end sub;
+
+	sub E_add(src: RegId, dest: RegId)
+		E_alu("add", src, dest);
+	end sub;
+
+	sub ArchEmitMove(src: RegId, dest: RegId)
+		SimpleError("move");
+	end sub;
+
+	sub ArchEndInstruction()
+	end sub;
+
+	sub ArchEndGroup()
+	end sub;
+%}
+
+wordsize uint32;
+
+register eax ebx ecx edx esi edi;
+register  ax  bx  cx  dx  si  di;
+register al ah bl bh cl ch dl dh;
+register stk4 param;
+
+regclass r8 := al|bl|cl|dl;
+regclass r16 := ax|bx|cx|dx|si|di;
+regclass r32 := eax|ebx|ecx|edx|esi|edi;
+regclass ri := ebx|esi|edi;
+regclass allregs := r8|r16|r32|ri;
+
+regdata eax compatible r32    uses eax|ax|al;
+regdata ebx compatible r32|ri uses ebx|bx|bl;
+regdata ecx compatible r32    uses ecx|cx|cl;
+regdata edx compatible r32    uses edx|dx|dl;
+regdata esi compatible r32|ri uses esi|si;
+regdata edi compatible r32|ri uses edi|di;
+regdata ax compatible r16     uses eax|ax|al;
+regdata bx compatible r16     uses ebx|bx|bl;
+regdata cx compatible r16     uses ecx|cx|cl;
+regdata dx compatible r16     uses edx|dx|dl;
+regdata si compatible r16     uses esi|si;
+regdata di compatible r16     uses edi|di;
+regdata al compatible r8      uses eax|ax|al;
+regdata bl compatible r8      uses ebx|bx|bl;
+regdata cl compatible r8      uses ecx|cx|cl;
+regdata dl compatible r8      uses edx|dx|dl;
+regdata stk4 stacked;
+regdata param stacked;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jmp($j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB():s
+{
+	RegCacheReset();
+
+	EmitterPushChunk();
+	E_h16($s.subr.id);
+
+	E("\n\n\t# ");
+	E($s.subr.name);
+	E_nl();
+
+	E("\t.text\n");
+	EmitByte(COO_ESCAPE_THISSUB);
+	E(":\n");
+
+	var count := $s.subr.num_input_parameters;
+	var lastparam := count - 1;
+	var popped: uint8 := 0;
+
+	sub pop_return_address()
+		if popped == 0 then
+			E_pop(REG_EDX);
+			popped := 1;
+		end if;
+	end sub;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter($s.subr, count);
+
+		var reg: RegId;
+		case param.vardata.type.typedata.width is
+			when 1: reg := REG_AL;
+			when 2: reg := REG_AX;
+			when 4: reg := REG_EAX;
+		end case;
+
+		if count != lastparam then
+			pop_return_address();
+			E_pop(reg);
+		end if;
+		E_store(reg, param, 0);
+	end loop;
+
+	if popped != 0 then
+		E_push(REG_EDX);
+	end if;
+}
+
+gen ENDSUB():s
+{
+	R_flushall();
+
+	E("end_");
+	E_subref($s.subr);
+	E(":\n");
+
+	var count: uint8 := 0;
+	var params := $s.subr.num_output_parameters;
+	var pushed: uint8 := 0;
+
+	sub push_return_address()
+		if pushed == 0 then
+			E_pop(REG_EDX);
+			pushed := 1;
+		end if;
+	end sub;
+
+	while count != params loop
+		var param := GetOutputParameter($s.subr, count);
+
+		var reg: RegId;
+		case param.vardata.type.typedata.width is
+			when 1: reg := REG_AL;
+			when 2: reg := REG_AX;
+			when 4: reg := REG_EAX;
+		end case;
+		E_load(reg, param, 0);
+		if count != (params-1) then
+			push_return_address();
+			E_push(reg);
+		end if;
+
+		count := count + 1;
+	end loop;
+
+	if pushed != 0 then
+		E("\tjmp *%edx\n");
+	else
+		E_ret();
+	end if;
+
+	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
+	EmitterPopChunk('S');
+}
+
+// --- Constants ------------------------------------------------------------
+
+gen r8|r16|r32 := CONSTANT():c
+{
+	if $c.value == 0 then
+		E_xor($$, $$);
+	else
+		E_loadconst($$, $c.value);
+	end if;
+}
+
+gen r32 := ADDRESS():a
+{
+	E_loadaddr($$, $a.sym, $a.off);
+}
+
+// --- Loads ---------------------------------------------------------------
+
+gen r8 := LOAD1(r32:rhs)
+		{ E_loadix($$, $rhs, 0, 0); }
+
+gen r16 := LOAD2(r32:rhs)
+		{ E_loadix($$, $rhs, 0, 0); }
+
+gen r32 := LOAD4(r32:rhs)
+		{ E_loadix($$, $rhs, 0, 0); }
+
+// --- Stores ---------------------------------------------------------------
+
+gen STORE1(r8:lhs, r32:rhs)
+		{ E_storeix($lhs, $rhs, 0, 0); }
+
+gen STORE2(r16:lhs, r32:rhs)
+		{ E_storeix($lhs, $rhs, 0, 0); }
+
+gen STORE4(r32:lhs, r32:rhs)
+		{ E_storeix($lhs, $rhs, 0, 0); }
+
+// --- 8-bit maths ----------------------------------------------------------
+
+gen r8 := ADD1(r8:lhs, $$) { E_add($lhs, $$); }
+
