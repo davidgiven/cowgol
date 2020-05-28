@@ -412,6 +412,28 @@
 		E_shift("sar", reg);
 	end sub;
 
+	sub E_shifti(insn: string, value: Arith, reg: RegId)
+		R_flush(reg);
+		E_insn(insn, reg);
+		EmitByte('$');
+		E_i32(value);
+		E_comma();
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_shli(value: Arith, reg: RegId)
+		E_shifti("shl", value, reg);
+	end sub;
+
+	sub E_sari(value: Arith, reg: RegId)
+		E_shifti("sar", value, reg);
+	end sub;
+
+	sub E_shri(value: Arith, reg: RegId)
+		E_shifti("shr", value, reg);
+	end sub;
+
 	sub E_alu2_noflush(insn: string, src: RegId, dest: RegId)
 		E_insn(insn, src);
 		E_reg(src);
@@ -923,32 +945,41 @@ gen al  := MUL1($$, r8:rhs) uses ah	  { E_imul($rhs); }
 gen ax  := MUL2($$, r16:rhs) uses dx  { E_imul($rhs); }
 gen eax := MUL4($$, r32:rhs) uses edx { E_imul($rhs); }
 
-gen al := DIVU1(al, bl|cl|dl:rhs) { E_xor(REG_AH, REG_AH); E_div($rhs); }
-gen al := REMU1(al, bl|cl|dl:rhs) { E_xor(REG_AH, REG_AH); E_div($rhs); E_move(REG_AH, REG_AL); }
-gen al := DIVS1(al, bl|cl|dl:rhs) { E_cbw(); E_idiv($rhs); }
-gen al := REMS1(al, bl|cl|dl:rhs) { E_cbw(); E_idiv($rhs); E_move(REG_AH, REG_AL); }
+gen al := DIVU1(al, bl|cl|dl:rhs) uses ah { E_xor(REG_AH, REG_AH); E_div($rhs); }
+gen al := REMU1(al, bl|cl|dl:rhs) uses ah { E_xor(REG_AH, REG_AH); E_div($rhs); E_move(REG_AH, REG_AL); }
+gen al := DIVS1(al, bl|cl|dl:rhs) uses ah { E_cbw(); E_idiv($rhs); }
+gen al := REMS1(al, bl|cl|dl:rhs) uses ah { E_cbw(); E_idiv($rhs); E_move(REG_AH, REG_AL); }
 
-gen ax := DIVU2(ax, bx|cx|dx:rhs) { E_xor(REG_DX, REG_DX); E_div($rhs); }
-gen dx := REMU2(ax, bx|cx|dx:rhs) { E_xor(REG_DX, REG_DX); E_div($rhs); }
-gen ax := DIVS2(ax, bx|cx|dx:rhs) { E_cwd(); E_idiv($rhs); }
-gen dx := REMS2(ax, bx|cx|dx:rhs) { E_cwd(); E_idiv($rhs); }
+gen ax := DIVU2(ax, bx|cx|dx:rhs) uses dx { E_xor(REG_DX, REG_DX); E_div($rhs); }
+gen dx := REMU2(ax, bx|cx|dx:rhs)         { E_xor(REG_DX, REG_DX); E_div($rhs); }
+gen ax := DIVS2(ax, bx|cx|dx:rhs) uses dx { E_cwd(); E_idiv($rhs); }
+gen dx := REMS2(ax, bx|cx|dx:rhs)         { E_cwd(); E_idiv($rhs); }
 
-gen eax := DIVU4(eax, ebx|ecx|edx:rhs) { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
-gen edx := REMU4(eax, ebx|ecx|edx:rhs) { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
-gen eax := DIVS4(eax, ebx|ecx|edx:rhs) { E_cdq(); E_idiv($rhs); }
-gen edx := REMS4(eax, ebx|ecx|edx:rhs) { E_cdq(); E_idiv($rhs); }
+gen eax := DIVU4(eax, ebx|ecx|edx:rhs) uses edx { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
+gen edx := REMU4(eax, ebx|ecx|edx:rhs)          { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
+gen eax := DIVS4(eax, ebx|ecx|edx:rhs) uses edx { E_cdq(); E_idiv($rhs); }
+gen edx := REMS4(eax, ebx|ecx|edx:rhs)          { E_cdq(); E_idiv($rhs); }
 
 gen al|bl|dl            := LSHIFT1($$:lhs, cl:rhs) { E_shl($lhs); }
 gen ax|bx|dx|si|di      := LSHIFT2($$:lhs, cl:rhs) { E_shl($lhs); }
 gen eax|ebx|edx|esi|edi := LSHIFT4($$:lhs, cl:rhs) { E_shl($lhs); }
+gen r8                  := LSHIFT1($$:lhs, CONSTANT():c) { E_shli($c.value, $lhs); }
+gen r16                 := LSHIFT2($$:lhs, CONSTANT():c) { E_shli($c.value, $lhs); }
+gen r32                 := LSHIFT4($$:lhs, CONSTANT():c) { E_shli($c.value, $lhs); }
 
 gen al|bl|dl            := RSHIFTU1($$:lhs, cl:rhs) { E_shr($lhs); }
 gen ax|bx|dx|si|di      := RSHIFTU2($$:lhs, cl:rhs) { E_shr($lhs); }
 gen eax|ebx|edx|esi|edi := RSHIFTU4($$:lhs, cl:rhs) { E_shr($lhs); }
+gen r8                  := RSHIFTU1($$:lhs, CONSTANT():c) { E_shri($c.value, $lhs); }
+gen r16                 := RSHIFTU2($$:lhs, CONSTANT():c) { E_shri($c.value, $lhs); }
+gen r32                 := RSHIFTU4($$:lhs, CONSTANT():c) { E_shri($c.value, $lhs); }
 
 gen al|bl|dl            := RSHIFTS1($$:lhs, cl:rhs) { E_sar($lhs); }
 gen ax|bx|dx|si|di      := RSHIFTS2($$:lhs, cl:rhs) { E_sar($lhs); }
 gen eax|ebx|edx|esi|edi := RSHIFTS4($$:lhs, cl:rhs) { E_sar($lhs); }
+gen r8                  := RSHIFTS1($$:lhs, CONSTANT():c) { E_sari($c.value, $lhs); }
+gen r16                 := RSHIFTS2($$:lhs, CONSTANT():c) { E_sari($c.value, $lhs); }
+gen r32                 := RSHIFTS4($$:lhs, CONSTANT():c) { E_sari($c.value, $lhs); }
 
 // --- Conditionals ---------------------------------------------------------
 
