@@ -280,11 +280,12 @@
 		RegCacheLeavesValue(reg, sym, off);
 	end sub;
 
-	sub E_loadix(reg: RegId, ptr: RegId, index: RegId, off: Size)
+	sub E_loadix(reg: RegId, ptr: RegId, index: RegId, off: Arith)
 		R_flush(reg);
 		E_mov(reg);
 		if off != 0 then
-			E_u16(off);
+			EmitByte('0');
+			E_i32(off);
 		end if;
 		EmitByte('(');
 		E_reg(ptr);
@@ -297,12 +298,13 @@
 		E_nl();
 	end sub;
 
-	sub E_storeix(reg: RegId, ptr: RegId, index: RegId, off: Size)
+	sub E_storeix(reg: RegId, ptr: RegId, index: RegId, off: Arith)
 		E_mov(reg);
 		E_reg(reg);
 		E_comma();
 		if off != 0 then
-			E_u16(off);
+			EmitByte('0');
+			E_i32(off);
 		end if;
 		EmitByte('(');
 		E_reg(ptr);
@@ -382,6 +384,14 @@
 		E_alu1("not", reg);
 	end sub;
 
+	sub E_inc(reg: RegId)
+		E_alu1("inc", reg);
+	end sub;
+
+	sub E_dec(reg: RegId)
+		E_alu1("dec", reg);
+	end sub;
+
 	sub E_shift(insn: string, reg: RegId)
 		R_flush(reg);
 		E_insn(insn, reg);
@@ -458,6 +468,34 @@
 
 	sub E_cmpi(value: Arith, dest: RegId)
 		E_alu2i_noflush("cmp", value, dest);
+	end sub;
+
+	sub E_addi(value: Arith, dest: RegId)
+		case value is
+			when 1: E_inc(dest);
+			when -1: E_dec(dest);
+			when else: E_alu2i("add", value, dest);
+		end case;
+	end sub;
+
+	sub E_subi(value: Arith, dest: RegId)
+		case value is
+			when 1: E_dec(dest);
+			when -1: E_inc(dest);
+			when else: E_alu2i("sub", value, dest);
+		end case;
+	end sub;
+
+	sub E_andi(value: Arith, dest: RegId)
+		E_alu2i("and", value, dest);
+	end sub;
+
+	sub E_ori(value: Arith, dest: RegId)
+		E_alu2i("or", value, dest);
+	end sub;
+
+	sub E_xori(value: Arith, dest: RegId)
+		E_alu2i("xor", value, dest);
 	end sub;
 
 	sub E_imul(dest: RegId)
@@ -578,22 +616,22 @@ regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := eax|ebx|ecx|edx|esi|edi;
 regclass rix := ebx|esi|edi;
 
-regdata eax compatible r32     uses eax|ax|al;
-regdata ebx compatible r32|rix uses ebx|bx|bl;
-regdata ecx compatible r32     uses ecx|cx|cl;
-regdata edx compatible r32     uses edx|dx|dl;
-regdata esi compatible r32|rix uses esi|si;
-regdata edi compatible r32|rix uses edi|di;
-regdata ax compatible r16      uses eax|ax|al;
-regdata bx compatible r16      uses ebx|bx|bl;
-regdata cx compatible r16      uses ecx|cx|cl;
-regdata dx compatible r16      uses edx|dx|dl;
-regdata si compatible r16      uses esi|si;
-regdata di compatible r16      uses edi|di;
-regdata al compatible r8       uses eax|ax|al;
-regdata bl compatible r8       uses ebx|bx|bl;
-regdata cl compatible r8       uses ecx|cx|cl;
-regdata dl compatible r8       uses edx|dx|dl;
+regdata eax compatible r32 uses eax|ax|ah|al;
+regdata ebx compatible r32 uses ebx|bx|bh|bl;
+regdata ecx compatible r32 uses ecx|cx|ch|cl;
+regdata edx compatible r32 uses edx|dx|dh|dl;
+regdata esi compatible r32 uses esi|si;
+regdata edi compatible r32 uses edi|di;
+regdata ax compatible r16  uses eax|ax|ah|al;
+regdata bx compatible r16  uses ebx|bx|bh|bl;
+regdata cx compatible r16  uses ecx|cx|ch|cl;
+regdata dx compatible r16  uses edx|dx|dh|dl;
+regdata si compatible r16  uses esi|si;
+regdata di compatible r16  uses edi|di;
+regdata al compatible r8   uses eax|ax|ah|al;
+regdata bl compatible r8   uses ebx|bx|bh|bl;
+regdata cl compatible r8   uses ecx|cx|ch|cl;
+regdata dl compatible r8   uses edx|dx|dh|dl;
 regdata stk4 stacked;
 regdata param stacked;
 
@@ -801,6 +839,14 @@ gen r8 := LOAD1(r32:rhs)     { E_loadix($$, $rhs, 0, 0); }
 gen r16 := LOAD2(r32:rhs)    { E_loadix($$, $rhs, 0, 0); }
 gen r32 := LOAD4(r32:rhs)    { E_loadix($$, $rhs, 0, 0); }
 
+gen r8 := LOAD1(ADD4(r32:rhs, r32:idx))  { E_loadix($$, $rhs, $idx, 0); }
+gen r16 := LOAD2(ADD4(r32:rhs, r32:idx)) { E_loadix($$, $rhs, $idx, 0); }
+gen r32 := LOAD4(ADD4(r32:rhs, r32:idx)) { E_loadix($$, $rhs, $idx, 0); }
+
+gen r8 := LOAD1(ADD4(r32:rhs, CONSTANT():c))  { E_loadix($$, $rhs, 0, $c.value); }
+gen r16 := LOAD2(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
+gen r32 := LOAD4(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
+
 gen r8 := LOAD1(ADDRESS():a)  { E_load($$, $a.sym, $a.off, 0); }
 gen r16 := LOAD2(ADDRESS():a) { E_load($$, $a.sym, $a.off, 0); }
 gen r32 := LOAD4(ADDRESS():a) { E_load($$, $a.sym, $a.off, 0); }
@@ -811,43 +857,71 @@ gen STORE1(r8:lhs, r32:rhs)  { E_storeix($lhs, $rhs, 0, 0); }
 gen STORE2(r16:lhs, r32:rhs) { E_storeix($lhs, $rhs, 0, 0); }
 gen STORE4(r32:lhs, r32:rhs) { E_storeix($lhs, $rhs, 0, 0); }
 
+gen STORE1(r8:lhs, ADD4(r32:rhs, r32:idx))  { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE2(r16:lhs, ADD4(r32:rhs, r32:idx)) { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE4(r32:lhs, ADD4(r32:rhs, r32:idx)) { E_storeix($lhs, $rhs, $idx, 0); }
+
+gen STORE1(r8:lhs, ADD4(r32:rhs, CONSTANT():c))  { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE2(r16:lhs, ADD4(r32:rhs, CONSTANT():c)) { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE4(r32:lhs, ADD4(r32:rhs, CONSTANT():c)) { E_storeix($lhs, $rhs, 0, $c.value); }
+
 gen STORE1(r8:lhs, ADDRESS():a)  { E_store($lhs, $a.sym, $a.off, 0); }
 gen STORE2(r16:lhs, ADDRESS():a) { E_store($lhs, $a.sym, $a.off, 0); }
 gen STORE4(r32:lhs, ADDRESS():a) { E_store($lhs, $a.sym, $a.off, 0); }
 
 // --- Maths ----------------------------------------------------------------
 
-gen r8  := NEG1($$)          { E_neg($$); }
-gen r16 := NEG2($$)          { E_neg($$); }
-gen r32 := NEG4($$)          { E_neg($$); }
+gen r8  := NEG1($$)                   { E_neg($$); }
+gen r16 := NEG2($$)                   { E_neg($$); }
+gen r32 := NEG4($$)                   { E_neg($$); }
 
-gen r8  := NOT1($$)          { E_not($$); }
-gen r16 := NOT2($$)          { E_not($$); }
-gen r32 := NOT4($$)          { E_not($$); }
+gen r8  := NOT1($$)                   { E_not($$); }
+gen r16 := NOT2($$)                   { E_not($$); }
+gen r32 := NOT4($$)                   { E_not($$); }
 
-gen r8  := ADD1(r8:lhs, $$)  { E_add($lhs, $$); }
-gen r16 := ADD2(r16:lhs, $$) { E_add($lhs, $$); }
-gen r32 := ADD4(r32:lhs, $$) { E_add($lhs, $$); }
+gen r8  := ADD1($$, r8:rhs)           { E_add($rhs, $$); }
+gen r16 := ADD2($$, r16:rhs)          { E_add($rhs, $$); }
+gen r32 := ADD4($$, r32:rhs)          { E_add($rhs, $$); }
 
-gen r8  := SUB1($$, r8:rhs)  { E_sub($rhs, $$); }
-gen r16 := SUB2($$, r16:rhs) { E_sub($rhs, $$); }
-gen r32 := SUB4($$, r32:rhs) { E_sub($rhs, $$); }
+gen r8  := ADD1($$, CONSTANT():c)     { E_addi($c.value, $$); }
+gen r16 := ADD2($$, CONSTANT():c)     { E_addi($c.value, $$); }
+gen r32 := ADD4($$, CONSTANT():c)     { E_addi($c.value, $$); }
 
-gen r8  := AND1(r8:lhs, $$)  { E_and($lhs, $$); }
-gen r16 := AND2(r16:lhs, $$) { E_and($lhs, $$); }
-gen r32 := AND4(r32:lhs, $$) { E_and($lhs, $$); }
+gen r8  := SUB1($$, r8:rhs)           { E_sub($rhs, $$); }
+gen r16 := SUB2($$, r16:rhs)          { E_sub($rhs, $$); }
+gen r32 := SUB4($$, r32:rhs)          { E_sub($rhs, $$); }
 
-gen r8  := OR1(r8:lhs, $$)   { E_or($lhs, $$); }
-gen r16 := OR2(r16:lhs, $$)  { E_or($lhs, $$); }
-gen r32 := OR4(r32:lhs, $$)  { E_or($lhs, $$); }
+gen r8  := SUB1($$, CONSTANT():c)     { E_subi($c.value, $$); }
+gen r16 := SUB2($$, CONSTANT():c)     { E_subi($c.value, $$); }
+gen r32 := SUB4($$, CONSTANT():c)     { E_subi($c.value, $$); }
 
-gen r8  := EOR1(r8:lhs, $$)  { E_xor($lhs, $$); }
-gen r16 := EOR2(r16:lhs, $$) { E_xor($lhs, $$); }
-gen r32 := EOR4(r32:lhs, $$) { E_xor($lhs, $$); }
+gen r8  := AND1($$, r8:rhs)           { E_and($rhs, $$); }
+gen r16 := AND2($$, r16:rhs)          { E_and($rhs, $$); }
+gen r32 := AND4($$, r32:rhs)          { E_and($rhs, $$); }
 
-gen al  := MUL1(r8:rhs, $$) uses ah	  { E_imul($rhs); }
-gen ax  := MUL2(r16:rhs, $$) uses dx  { E_imul($rhs); }
-gen eax := MUL4(r32:rhs, $$) uses edx { E_imul($rhs); }
+gen r8  := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
+gen r16 := AND2($$, CONSTANT():c)     { E_andi($c.value, $$); }
+gen r32 := AND4($$, CONSTANT():c)     { E_andi($c.value, $$); }
+
+gen r8  := OR1($$, r8:rhs)            { E_or($rhs, $$); }
+gen r16 := OR2($$, r16:rhs)           { E_or($rhs, $$); }
+gen r32 := OR4($$, r32:rhs)           { E_or($rhs, $$); }
+
+gen r8  := OR1($$, CONSTANT():c)      { E_ori($c.value, $$); }
+gen r16 := OR2($$, CONSTANT():c)      { E_ori($c.value, $$); }
+gen r32 := OR4($$, CONSTANT():c)      { E_ori($c.value, $$); }
+
+gen r8  := EOR1($$, r8:rhs)           { E_xor($rhs, $$); }
+gen r16 := EOR2($$, r16:rhs)          { E_xor($rhs, $$); }
+gen r32 := EOR4($$, r32:rhs)          { E_xor($rhs, $$); }
+
+gen r8  := EOR1($$, CONSTANT():c)     { E_xori($c.value, $$); }
+gen r16 := EOR2($$, CONSTANT():c)     { E_xori($c.value, $$); }
+gen r32 := EOR4($$, CONSTANT():c)     { E_xori($c.value, $$); }
+
+gen al  := MUL1($$, r8:rhs) uses ah	  { E_imul($rhs); }
+gen ax  := MUL2($$, r16:rhs) uses dx  { E_imul($rhs); }
+gen eax := MUL4($$, r32:rhs) uses edx { E_imul($rhs); }
 
 gen al := DIVU1(al, bl|cl|dl:rhs) { E_xor(REG_AH, REG_AH); E_div($rhs); }
 gen al := REMU1(al, bl|cl|dl:rhs) { E_xor(REG_AH, REG_AH); E_div($rhs); E_move(REG_AH, REG_AL); }
@@ -879,15 +953,25 @@ gen eax|ebx|edx|esi|edi := RSHIFTS4($$:lhs, cl:rhs) { E_sar($lhs); }
 // --- Conditionals ---------------------------------------------------------
 
 %{
-	sub CompareRR(trueinsn: string, falseinsn: string, lhs: RegId, rhs: RegId, node: [Node])
-		E_cmp(rhs, lhs);
-
+	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node])
 		if node.beqs0.truelabel != node.beqs0.fallthrough then
 			E_jump(trueinsn, node.beqs0.truelabel);
 		end if;
 		if node.beqs0.falselabel != node.beqs0.fallthrough then
 			E_jump(falseinsn, node.beqs0.falselabel);
 		end if;
+	end sub;
+
+	sub CmpJumpsJe(node: [Node])
+		CmpJumps("je", "jne", node);
+	end sub;
+
+	sub CmpJumpsJb(node: [Node])
+		CmpJumps("jb", "jae", node);
+	end sub;
+
+	sub CmpJumpsJl(node: [Node])
+		CmpJumps("jl", "jge", node);
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
@@ -907,41 +991,33 @@ gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
 gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
 		{ beqc(self.n[0], $c1.value, $c2.value); }
 
-gen BEQU1(r8:lhs, r8:rhs):b
-	{ CompareRR("je", "jne", $lhs, $rhs, self.n[0]); }
+gen BEQU1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQU2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQU4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQU1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQU2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQU4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
 
-gen BEQS1(r8:lhs, r8:rhs):b
-	{ CompareRR("je", "jne", $lhs, $rhs, self.n[0]); }
+gen BEQS1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQS2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQS4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQS1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQS2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQS4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
 
-gen BLTU1(r8:lhs, r8:rhs):b
-	{ CompareRR("jb", "jae", $lhs, $rhs, self.n[0]); }
+gen BLTS1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
+gen BLTS2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
+gen BLTS4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
+gen BLTS1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
+gen BLTS2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
+gen BLTS4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
 
-gen BLTS1(r8:lhs, r8:rhs):b
-	{ CompareRR("jl", "jge", $lhs, $rhs, self.n[0]); }
-
-gen BEQU2(r16:lhs, r16:rhs):b
-	{ CompareRR("je", "jne", $lhs, $rhs, self.n[0]); }
-
-gen BEQS2(r16:lhs, r16:rhs):b
-	{ CompareRR("je", "jne", $lhs, $rhs, self.n[0]); }
-
-gen BLTU2(r16:lhs, r16:rhs):b
-	{ CompareRR("jb", "jae", $lhs, $rhs, self.n[0]); }
-
-gen BLTS2(r16:lhs, r16:rhs):b
-	{ CompareRR("jl", "jge", $lhs, $rhs, self.n[0]); }
-
-gen BEQU4(r32:lhs, r32:rhs):b
-	{ CompareRR("je", "jne", $lhs, $rhs, self.n[0]); }
-
-gen BEQS4(r32:lhs, r32:rhs):b
-	{ CompareRR("je", "jne", $lhs, $rhs, self.n[0]); }
-
-gen BLTU4(r32:lhs, r32:rhs):b
-	{ CompareRR("jb", "jae", $lhs, $rhs, self.n[0]); }
-
-gen BLTS4(r32:lhs, r32:rhs):b
-	{ CompareRR("jl", "jge", $lhs, $rhs, self.n[0]); }
+gen BLTU1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
+gen BLTU2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
+gen BLTU4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
+gen BLTU1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
+gen BLTU2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
+gen BLTU4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
 
 // --- Case -----------------------------------------------------------------
 
