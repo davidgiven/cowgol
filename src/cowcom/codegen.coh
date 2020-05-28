@@ -272,6 +272,7 @@ sub Generate(rootnode: [Node])
 	PushNode(rootnode);
 	while next_node != old_next_node loop
 		if next_instruction == &instructions[@sizeof instructions] then
+			PrintNodes(rootnode);
 			SimpleError("instruction queue overflow");
 		end if;
 		var producer := next_instruction;
@@ -472,9 +473,14 @@ sub Generate(rootnode: [Node])
 							# spill to the stack via a push and pop.
 
 							sub deadlock()
-								print("node.op=");
-								print_i8(node.op);
+								PrintNodes(rootnode);
+								print("producer: ");
+								print_hex_i32(producer.n[0] as intptr as uint32);
 								print_nl();
+								print("consumer: ");
+								print_hex_i32(consumer.n[0] as intptr as uint32);
+								print_nl();
+
 								print("producer.producable_regs=");
 								print_hex_i32(producer.producable_regs as uint32);
 								print_nl();

@@ -2,14 +2,14 @@
 # https://w3challs.com/syscalls/?arch=x86
 
 var LOMEM: [uint8];
-@asm ".extern _lomem";
-@asm "movl $_lomem, ", LOMEM;
+@asm "movl $LOMEM, ", LOMEM;
 
 var HIMEM: [uint8];
-@asm ".extern _himem";
-@asm "movl $_himem, ", HIMEM;
+@asm "movl $HIMEM, ", HIMEM;
 
-extern sub Exit() := "_exit";
+sub Exit()
+	@asm "jmp _exit";
+end sub;
 
 sub ExitWithError()
 	@asm "mov $1, %eax";

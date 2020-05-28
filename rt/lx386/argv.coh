@@ -1,7 +1,7 @@
 var argv_pointer: [[uint8]];
 
 sub ArgvInit()
-	@asm "movl (_argv), %eax";
+	@asm "movl (argv), %eax";
 	@asm "movl %eax, ", argv_pointer;
 	argv_pointer := argv_pointer + 4;
 end sub;
