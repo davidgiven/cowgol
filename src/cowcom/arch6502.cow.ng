@@ -1,0 +1,372 @@
+%{
+	var uint32_type: [Symbol];
+	var int32_type: [Symbol];
+	var uint16_type: [Symbol];
+	var int16_type: [Symbol];
+	var uint8_type: [Symbol];
+	var int8_type: [Symbol];
+	var intptr_type: [Symbol];
+
+	const VARSTACK_WS := 1;
+	const PTRSTACK_WS := 2;
+
+	const FAKE_STACK_SIZE := 32;
+
+	var varstack: uint8[FAKE_STACK_SIZE];
+	var varsp: uint8 := 0;
+
+	var ptrstack: uint8[FAKE_STACK_SIZE];
+	var ptrsp: uint8 := 0;
+
+	record Extern
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+		newvalue := value;
+	end sub;
+
+	sub ArchInitTypes()
+		uint32_type := MakeNumberType(4, 1, 0, "uint32");
+		int32_type := MakeNumberType(4, 1, 1, "int32");
+		uint16_type := MakeNumberType(2, 1, 0, "uint16");
+		int16_type := MakeNumberType(2, 1, 1, "int16");
+		uint8_type := MakeNumberType(1, 1, 0, "uint8");
+		int8_type := MakeNumberType(1, 1, 1, "int8");
+
+		intptr_type := uint16_type;
+		AddAliasString("intptr", intptr_type);
+	end sub;
+
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+		if (min >= 0) and (max <= 255) then
+			symbol := uint8_type;
+		elseif (min >= -128) and (max <= 127) then
+			symbol := int8_type;
+		elseif (min >= 0) and (max <= 65535) then
+			symbol := uint16_type;
+		elseif (min >= -32768) and (max <= 32767) then
+			symbol := int16_type;
+		elseif (min >= 0) then
+			symbol := uint32_type;
+		else
+			symbol := int32_type;
+		end if;
+	end sub;
+
+	sub ArchInitVariable(symbol: [Symbol])
+		var subr := symbol.vardata.subr;
+		var offset := subr.workspace[0];
+		symbol.vardata.offset := offset;
+		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+	end sub;
+
+	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+		member.vardata.offset := position;
+		position := position + member.vardata.type.typedata.width;
+		if position > containing.typedata.width then
+			containing.typedata.width := position;
+		end if;
+	end sub;
+
+	sub Push(reg: RegId, width: uint8): (stackaddr: uint16)
+		if (reg & REG_P16) != 0 then
+			stackaddr := (PTRSTACK_WS<<8) | (ptrsp as uint16);
+			ptrsp := ptrsp + width;
+		else
+			stackaddr := (VARSTACK_WS<<8) | (varsp as uint16);
+			varsp := varsp + width;
+		end if;
+	end sub;
+
+	sub Pop(reg: RegId, width: uint8): (stackaddr: uint16)
+		if (reg & REG_P16) != 0 then
+			ptrsp := ptrsp - width;
+			stackaddr := (PTRSTACK_WS<<8) | (ptrsp as uint16);
+		else
+			varsp := varsp - width;
+			stackaddr := (VARSTACK_WS<<8) | (varsp as uint16);
+		end if;
+	end sub;
+
+	sub E_stackref(stackaddr: uint16)
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(current_subr.id);
+		E_h8((stackaddr >> 8) as uint8);
+		E_h16(stackaddr & 0xff);
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size)
+		if sym.vardata.externname != (0 as string) then
+			E(sym.vardata.externname);
+			E_i16(off as int16);
+		else
+			EmitByte(COO_ESCAPE_WSREF);
+			E_h16(sym.vardata.subr.id);
+			E_h8(0);
+			E_h16(sym.vardata.offset + off);
+		end if;
+	end sub;
+
+	sub R_flushall()
+		RegCacheFlush(ALL_REGS);
+	end sub;
+
+	sub R_flush(reg: RegId)
+		RegCacheFlush(FindConflictingRegisters(reg));
+	end sub;
+
+	sub E_label(label: LabelRef)
+		R_flushall();
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub E_jump(insn: string, label: LabelRef)
+		R_flushall();
+		E_tab();
+		E(insn);
+		E_space();
+		E_labelref(label);
+		E_nl();
+	end sub;
+
+	sub E_jmp(label: LabelRef)
+		E_jump("jmp", label);
+	end sub;
+
+	sub E_rts()
+		E("\trts\n");
+	end sub;
+
+	sub E_loadconst(reg: RegId, value: uint8)
+		R_flush(reg);
+		case reg is
+			when REG_A: E("\tlda #");
+			when REG_X: E("\tldx #");
+			when REG_Y: E("\tldy #");
+		end case;
+		E_u8(value);
+		E_nl();
+		RegCacheLeavesConstant(reg, value as Word);
+	end sub;
+
+	# Note that this *destroys* the source register.
+	sub ArchEmitMove(src: RegId, dest: RegId)
+		E("\tmove ");
+		E_h8(src);
+		E(" -> ");
+		E_h8(dest);
+		E_nl();
+	end sub;
+
+	sub ArchEndInstruction()
+	end sub;
+
+	sub ArchEndGroup()
+	end sub;
+%}
+
+wordsize uint16;
+
+register a x y;
+register v8;  // value on fake stack
+register v16; // value on fake stack
+register p16; // pointer on fake stack
+register v32; // value on fake stack;
+register param;
+
+regclass a16 := v16|p16;
+
+regdata a;
+regdata x;
+regdata y;
+regdata v16 stacked;
+regdata p16 stacked;
+regdata v32 stacked;
+regdata param stacked;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jmp($j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB():s
+{
+	RegCacheReset();
+
+	EmitterPushChunk();
+	E_h16($s.subr.id);
+
+	E("\n\n\t; ");
+	E($s.subr.name);
+	E_nl();
+
+	E("\tcseg\n");
+	EmitByte(COO_ESCAPE_THISSUB);
+	E(":\n");
+}
+
+gen ENDSUB():s
+{
+	E_rts();
+	EmitterPopChunk('S');
+}
+
+// --- Constants ------------------------------------------------------------
+
+gen a|x|y := CONSTANT():c
+{
+	E_loadconst($$, $c.value as uint8);
+}
+
+%{
+	const MODE_NORMAL  := 0;
+	const MODE_DEREF   := 1;
+	const MODE_CONSTLO := 2;
+	const MODE_CONSTHI := 3;
+
+	sub DoStackOp(insn: string, mode: uint8, sid: uint16)
+		E_tab();
+		E(insn);
+		E_space();
+		case mode is
+			when MODE_NORMAL:
+				E_stackref(sid);
+
+			when MODE_DEREF:
+				EmitByte('(');
+				E_stackref(sid);
+				E("), y");
+
+			when MODE_CONSTLO:
+				E("#<");
+				E_u16(sid);
+
+			when MODE_CONSTHI:
+				E("#>");
+				E_u16(sid);
+		end case;
+		E_nl();
+	end sub;
+
+	sub DoAddressOp(insn: string, mode: uint8, sym: [Symbol], off: Size)
+		E_tab();
+		E(insn);
+		E_space();
+		case mode is
+			when MODE_NORMAL:
+				E_symref(sym, off);
+
+			when MODE_DEREF:
+				EmitByte('(');
+				E_symref(sym, off);
+				E("), y");
+
+			when MODE_CONSTLO:
+				E("#<");
+				E_symref(sym, off);
+
+			when MODE_CONSTHI:
+				E("#>");
+				E_symref(sym, off);
+		end case;
+		E_nl();
+	end sub;
+%}
+
+gen a16 := CONSTANT():c uses a
+{
+	var sid := Push($$, 2);
+
+	E_loadconst(REG_A, $c.value as uint8);
+	DoStackOp("sta", MODE_NORMAL, sid);
+
+	E_loadconst(REG_A, ($c.value>>16) as uint8);
+	DoStackOp("sta", MODE_NORMAL, sid);
+}
+
+gen p16 := ADDRESS():a uses a
+{
+	var sid := Push($$, 2);
+
+	DoAddressOp("lda", MODE_CONSTLO, $a.sym, $a.off);
+	DoStackOp("sta", MODE_NORMAL, sid+0);
+
+	DoAddressOp("lda", MODE_CONSTHI, $a.sym, $a.off);
+	DoStackOp("sta", MODE_NORMAL, sid+1);
+}
+
+gen STORE1(a|x|y:lhs, p16:ptr)
+{
+	var sid := Pop($ptr, 2);
+	var insn := "sta";
+	case $lhs is
+		when REG_X: insn := "stx";
+		when REG_Y: insn := "sty";
+	end case;
+	E_loadconst(REG_Y, 0);
+	DoStackOp(insn, MODE_DEREF, sid);
+}
+
+gen STORE1(a|x|y:lhs, ADDRESS():a)
+{
+	var insn := "sta";
+	case $lhs is
+		when REG_X: insn := "stx";
+		when REG_Y: insn := "sty";
+	end case;
+	DoAddressOp(insn, MODE_NORMAL, $a.sym, $a.off);
+	RegCacheLeavesValue($lhs, $a.sym, $a.off);
+}
+
+gen a|x|y := LOAD1(ADDRESS():a)
+{
+	var cache := RegCacheFindValue($a.sym, $a.off) & $$;
+	if cache != 0 then
+		return;
+	end if;
+
+	var insn := "lda";
+	case $$ is
+		when REG_X: insn := "ldx";
+		when REG_Y: insn := "ldy";
+	end case;
+	DoAddressOp(insn, MODE_NORMAL, $a.sym, $a.off);
+	RegCacheLeavesValue($$, $a.sym, $a.off);
+}
+
+gen v8 := LOAD1(ADDRESS():a) uses a
+{
+	var cache := RegCacheFindValue($a.sym, $a.off) & REG_A;
+	if cache == 0 then
+		DoAddressOp("lda", MODE_NORMAL, $a.sym, $a.off);
+		RegCacheLeavesValue($$, $a.sym, $a.off);
+	end if;
+
+	var sid := Push(REG_V8, 1);
+	DoStackOp("sta", MODE_NORMAL, sid);
+}
+
+gen a := ADD1(v8, a)
+{
+	var sid := Pop(REG_V8, 1);
+	DoStackOp("adc", MODE_NORMAL, sid);
+}
+
