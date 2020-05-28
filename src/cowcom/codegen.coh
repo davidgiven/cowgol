@@ -1,5 +1,5 @@
 const RULE_HAS_PREDICATES := 0x01;
-const MAX_MOVE_COUNT := REGISTER_COUNT;
+const MAX_MOVE_COUNT := 4; # Guessed
 
 record Rule
 	flags: uint8;
