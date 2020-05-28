@@ -17,7 +17,6 @@ record RegMove
 end record;
 
 record Instruction
-	ruleid: uint8;
 	producable_regs: RegId;
 	produced_reg: RegId;
 	input_regs: RegId;
@@ -27,6 +26,7 @@ record Instruction
 	reloads: RegMove[MAX_MOVE_COUNT];
 	num_spills: uint8;
 	num_reloads: uint8;
+	ruleid: uint8;
 end record;
 
 var nodes: [Node][16];
@@ -48,6 +48,17 @@ sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId)
 	while reg != &registers[REGISTER_COUNT] loop
 		if (reg.id & inreg) != 0 then
 			conflicting := conflicting | reg.uses;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub FindCompatibleRegisters(inreg: RegId): (compatible: RegId)
+	compatible := -1;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & inreg) != 0 then
+			compatible := compatible & reg.compatible;
 		end if;
 		reg := @next reg;
 	end loop;
@@ -439,7 +450,8 @@ sub Generate(rootnode: [Node])
 					BlockRegisters(@next consumer, @prev producer, blocked);
 					producer.output_regs := producer.output_regs | blocked;
 				else
-					mask1 := producer.producable_regs & ~(blocked | producer.output_regs);
+					var compatible := FindCompatibleRegisters(node.desired_reg);
+					mask1 := producer.producable_regs & compatible & ~(blocked | producer.output_regs);
 					var mask2 := node.desired_reg & ~consumer.input_regs;
 					if (mask1 != 0) and (mask2 != 0) then
 						# The producer and consumer want different registers, but the
@@ -455,7 +467,7 @@ sub Generate(rootnode: [Node])
 						CreateReload(consumer, producer.produced_reg, node.produced_reg);
 					else
 						mask1 := node.desired_reg & ~(blocked | consumer.input_regs);
-						mask2 := producer.producable_regs & ~producer.output_regs;
+						mask2 := producer.producable_regs & compatible & ~producer.output_regs;
 						if (mask1 != 0) and (mask2 != 0) then
 							# The producer and consumer want different registers, but the
 							# consumer's register works after the producer.
@@ -496,7 +508,7 @@ sub Generate(rootnode: [Node])
 								SimpleError("register allocation deadlock");
 							end sub;
 
-							candidate := producer.producable_regs & ~producer.output_regs;
+							candidate := producer.producable_regs & compatible & ~producer.output_regs;
 							if candidate == 0 then
 								deadlock();
 							end if;
