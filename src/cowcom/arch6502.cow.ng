@@ -313,16 +313,17 @@ gen p16 := ADDRESS():a uses a
 	DoStackOp("sta", MODE_NORMAL, sid+1);
 }
 
-gen STORE1(a|x|y:lhs, p16:ptr)
+gen STORE1(a:lhs, p16:ptr)
 {
 	var sid := Pop($ptr, 2);
-	var insn := "sta";
-	case $lhs is
-		when REG_X: insn := "stx";
-		when REG_Y: insn := "sty";
-	end case;
 	E_loadconst(REG_Y, 0);
-	DoStackOp(insn, MODE_DEREF, sid);
+	DoStackOp("sta", MODE_DEREF, sid);
+}
+
+gen STORE1(a:lhs, LOAD2(ADDRESS():a))
+{
+	E_loadconst(REG_Y, 0);
+	DoAddressOp("sta", MODE_DEREF, $a.sym, $a.off);
 }
 
 gen STORE1(a|x|y:lhs, ADDRESS():a)
@@ -334,6 +335,28 @@ gen STORE1(a|x|y:lhs, ADDRESS():a)
 	end case;
 	DoAddressOp(insn, MODE_NORMAL, $a.sym, $a.off);
 	RegCacheLeavesValue($lhs, $a.sym, $a.off);
+}
+
+gen STORE2(a16:value, ADDRESS():a) uses a
+{
+	var sid := Pop($value, 2);
+
+	DoStackOp("lda", MODE_NORMAL, sid+0);
+	DoAddressOp("sta", MODE_NORMAL, $a.sym, $a.off);
+
+	DoStackOp("lda", MODE_NORMAL, sid+1);
+	DoAddressOp("sta", MODE_NORMAL, $a.sym, $a.off+1);
+}
+
+gen a16 := LOAD2(ADDRESS():a) uses a
+{
+	var sid := Push($$, 2);
+
+	DoAddressOp("lda", MODE_NORMAL, $a.sym, $a.off+0);
+	DoStackOp("sta", MODE_NORMAL, sid+0);
+
+	DoAddressOp("lda", MODE_NORMAL, $a.sym, $a.off+1);
+	DoStackOp("sta", MODE_NORMAL, sid+1);
 }
 
 gen a|x|y := LOAD1(ADDRESS():a)
