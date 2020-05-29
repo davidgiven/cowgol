@@ -293,16 +293,24 @@ sub Generate(rootnode: [Node])
 
 		var node := PopNode();
 		var matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
-		MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
 		var matchnodes: [Node][INSTRUCTION_TEMPLATE_DEPTH];
-		MemZero(&matchnodes[0] as [uint8], @bytesof matchnodes);
-		matchnodes[0] := node;
-		PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
 
-		var ruleid: uint8 := 0xff;
-		var midcodeptr := &codegen_midcodes[0];
-		var regsptr := &codegen_registers[0];
-		var rule := @prev &codegen_rules[0];
+		var ruleid: uint8;
+		var midcodeptr: [uint8];
+		var regsptr: [RegId];
+		var rule: [Rule];
+
+		sub RewindRulePointers()
+			MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
+			MemZero(&matchnodes[0] as [uint8], @bytesof matchnodes);
+			matchnodes[0] := node;
+			PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
+
+			ruleid := 0xff;
+			midcodeptr := &codegen_midcodes[0];
+			regsptr := &codegen_registers[0];
+			rule := @prev &codegen_rules[0];
+		end sub;
 
 		sub TestRule(): (result: uint8)
 			result := 0;
@@ -347,12 +355,32 @@ sub Generate(rootnode: [Node])
 			result := 1;
 		end sub;
 
+		RewindRulePointers();
 		loop
 			rule := @next rule;
 			ruleid := ruleid + 1;
 
 			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
-				# Reach the end of the list of rules without matching anything.
+				# We've reached the end of the list of rules without matching anything.
+				if node.op != MIDCODE_FALLBACK then
+					# Wrap this node in a FALLBACK instruction, in the hope that it'll
+					# convert from whatever wanted it to the right thing.
+					var oldnode := node;
+					node := MidFallback(oldnode);
+					node.consumer := oldnode.consumer;
+					node.dlink := oldnode; # points to the node parent
+					if oldnode.dlink.left == oldnode then
+						oldnode.dlink.left := node;
+					elseif oldnode.dlink.right == oldnode then
+						oldnode.dlink.right := node;
+					else
+						SimpleError("invalid tree");
+					end if;
+					node.desired_reg := oldnode.desired_reg;
+					RewindRulePointers();
+					continue;
+				end if;
+
 				StartError();
 				print("unmatched instruction: ");
 				i := 0;
@@ -420,6 +448,10 @@ sub Generate(rootnode: [Node])
 					n.desired_reg := [regsptr];
 					regsptr := @next regsptr;
 					n.consumer := producer;
+
+					# This lets the instruction selector know what the parent
+					# node is, which is needed for tree rewriting.
+					n.dlink := node;
 				end if;
 			end if;
 			copymask := copymask >> 1;
