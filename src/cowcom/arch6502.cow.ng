@@ -93,11 +93,17 @@
 		end if;
 	end sub;
 
-	sub E_stackref(stackaddr: uint16)
+	sub E_stackref(sid: uint16)
 		EmitByte(COO_ESCAPE_WSREF);
 		E_h16(current_subr.id);
-		E_h8((stackaddr >> 8) as uint8);
-		E_h16(stackaddr & 0xff);
+		E_h8((sid >> 8) as uint8);
+		E_h16(sid & 0xff);
+	end sub;
+
+	sub E_indstackref(sid: uint16)
+		EmitByte('(');
+		E_stackref(sid);
+		E("),y");
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size)
@@ -110,6 +116,16 @@
 			E_h8(0);
 			E_h16(sym.vardata.offset + off);
 		end if;
+	end sub;
+
+	sub E_loaddr(sym: [Symbol], off: Size)
+		E("<#");
+		E_symref(sym, off);
+	end sub;
+
+	sub E_hiaddr(sym: [Symbol], off: Size)
+		E(">#");
+		E_symref(sym, off);
 	end sub;
 
 	sub R_flushall()
@@ -126,6 +142,17 @@
 		E(":\n");
 	end sub;
 
+	sub E_insn(insn: string)
+		E_tab();
+		E(insn);
+		E_space();
+	end sub;
+
+	sub E_const(value: uint8)
+		EmitByte('#');
+		E_u8(value);
+	end sub;
+
 	sub E_jump(insn: string, label: LabelRef)
 		R_flushall();
 		E_tab();
@@ -139,29 +166,85 @@
 		E_jump("jmp", label);
 	end sub;
 
-	sub E_rts()
-		E("\trts\n");
+	sub E_rts() E("\trts\n"); end sub;
+	sub E_clc() E("\tclc\n"); end sub;
+	sub E_sec() E("\tsec\n"); end sub;
+	sub E_pha() E("\tpha\n"); end sub;
+	sub E_pla() E("\tpla\n"); end sub;
+	sub E_txa() E("\ttxa\n"); end sub;
+	sub E_tya() E("\ttya\n"); end sub;
+	sub E_tax() E("\ttax\n"); end sub;
+	sub E_tay() E("\ttay\n"); end sub;
+
+	sub E_ld(reg: RegId)
+		R_flush(reg);
+		case reg is
+			when REG_A: E("\tlda");
+			when REG_X: E("\tldx");
+			when REG_Y: E("\tldy");
+		end case;
+		E_space();
+	end sub;
+
+	sub E_lda()
+		E_ld(REG_A);
+	end sub;
+
+	sub E_st(reg: RegId)
+		case reg is
+			when REG_A: E("\tsta");
+			when REG_X: E("\tstx");
+			when REG_Y: E("\tsty");
+		end case;
+		E_space();
+	end sub;
+
+	sub E_sta()
+		E_st(REG_A);
 	end sub;
 
 	sub E_loadconst(reg: RegId, value: uint8)
-		R_flush(reg);
-		case reg is
-			when REG_A: E("\tlda #");
-			when REG_X: E("\tldx #");
-			when REG_Y: E("\tldy #");
-		end case;
-		E_u8(value);
-		E_nl();
-		RegCacheLeavesConstant(reg, value as Word);
+		var cache := RegCacheFindConstant(value) & reg;
+		if cache == 0 then
+			E_ld(reg);
+			E_const(value);
+			E_nl();
+			RegCacheLeavesConstant(reg, value);
+		end if;
 	end sub;
 
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId)
-		E("\tmove ");
+		case src is
+			when REG_A:
+				case dest is
+					when REG_X: E_tax(); return;
+					when REG_Y: E_tay(); return;
+					when 0:     E_pha(); return;
+				end case;
+
+			when 0:
+				case dest is
+					when REG_A: E_pla(); return;
+				end case;
+
+			when REG_X:
+				case dest is
+					when REG_A: E_txa(); return;
+				end case;
+
+			when REG_Y:
+				case dest is
+					when REG_Y: E_tya(); return;
+				end case;
+		end case;
+
+		StartError();
+		print("bad move ");
 		E_h8(src);
 		E(" -> ");
 		E_h8(dest);
-		E_nl();
+		EndError();
 	end sub;
 
 	sub ArchEndInstruction()
@@ -171,7 +254,7 @@
 	end sub;
 %}
 
-wordsize uint16;
+wordsize uint8;
 
 register a x y;
 register v8;  // value on fake stack
@@ -182,9 +265,9 @@ register param;
 
 regclass a16 := v16|p16;
 
-regdata a;
-regdata x;
-regdata y;
+regdata a compatible a|x|y;
+regdata x compatible a|x;
+regdata y compatible a|y;
 regdata v16 stacked;
 regdata p16 stacked;
 regdata v32 stacked;
@@ -236,160 +319,245 @@ gen a|x|y := CONSTANT():c
 	E_loadconst($$, $c.value as uint8);
 }
 
-%{
-	const MODE_NORMAL  := 0;
-	const MODE_DEREF   := 1;
-	const MODE_CONSTLO := 2;
-	const MODE_CONSTHI := 3;
-
-	sub DoStackOp(insn: string, mode: uint8, sid: uint16)
-		E_tab();
-		E(insn);
-		E_space();
-		case mode is
-			when MODE_NORMAL:
-				E_stackref(sid);
-
-			when MODE_DEREF:
-				EmitByte('(');
-				E_stackref(sid);
-				E("), y");
-
-			when MODE_CONSTLO:
-				E("#<");
-				E_u16(sid);
-
-			when MODE_CONSTHI:
-				E("#>");
-				E_u16(sid);
-		end case;
-		E_nl();
-	end sub;
-
-	sub DoAddressOp(insn: string, mode: uint8, sym: [Symbol], off: Size)
-		E_tab();
-		E(insn);
-		E_space();
-		case mode is
-			when MODE_NORMAL:
-				E_symref(sym, off);
-
-			when MODE_DEREF:
-				EmitByte('(');
-				E_symref(sym, off);
-				E("), y");
-
-			when MODE_CONSTLO:
-				E("#<");
-				E_symref(sym, off);
-
-			when MODE_CONSTHI:
-				E("#>");
-				E_symref(sym, off);
-		end case;
-		E_nl();
-	end sub;
-%}
-
-gen a16 := CONSTANT():c uses a
+gen a16 := ADDRESS():a uses a
 {
 	var sid := Push($$, 2);
 
-	E_loadconst(REG_A, $c.value as uint8);
-	DoStackOp("sta", MODE_NORMAL, sid);
+	E_ld(REG_A);
+	E_loaddr($a.sym, $a.off);
+	E_nl();
+	E_st(REG_A);
+	E_stackref(sid);
+	E_nl();
 
-	E_loadconst(REG_A, ($c.value>>16) as uint8);
-	DoStackOp("sta", MODE_NORMAL, sid);
+	E_ld(REG_A);
+	E_hiaddr($a.sym, $a.off);
+	E_nl();
+	E_st(REG_A);
+	E_stackref(sid+1);
+	E_nl();
 }
 
-gen p16 := ADDRESS():a uses a
-{
-	var sid := Push($$, 2);
-
-	DoAddressOp("lda", MODE_CONSTLO, $a.sym, $a.off);
-	DoStackOp("sta", MODE_NORMAL, sid+0);
-
-	DoAddressOp("lda", MODE_CONSTHI, $a.sym, $a.off);
-	DoStackOp("sta", MODE_NORMAL, sid+1);
-}
+// --- 8-bit memory ----------------------------------------------------------
 
 gen STORE1(a:lhs, p16:ptr)
 {
 	var sid := Pop($ptr, 2);
 	E_loadconst(REG_Y, 0);
-	DoStackOp("sta", MODE_DEREF, sid);
-}
 
-gen STORE1(a:lhs, LOAD2(ADDRESS():a))
-{
-	E_loadconst(REG_Y, 0);
-	DoAddressOp("sta", MODE_DEREF, $a.sym, $a.off);
+	E_insn("sta");
+	E_indstackref(sid);
+	E_nl();
 }
 
 gen STORE1(a|x|y:lhs, ADDRESS():a)
 {
-	var insn := "sta";
-	case $lhs is
-		when REG_X: insn := "stx";
-		when REG_Y: insn := "sty";
-	end case;
-	DoAddressOp(insn, MODE_NORMAL, $a.sym, $a.off);
+	E_st($lhs);
+	E_symref($a.sym, $a.off);
+	E_nl();
 	RegCacheLeavesValue($lhs, $a.sym, $a.off);
-}
-
-gen STORE2(a16:value, ADDRESS():a) uses a
-{
-	var sid := Pop($value, 2);
-
-	DoStackOp("lda", MODE_NORMAL, sid+0);
-	DoAddressOp("sta", MODE_NORMAL, $a.sym, $a.off);
-
-	DoStackOp("lda", MODE_NORMAL, sid+1);
-	DoAddressOp("sta", MODE_NORMAL, $a.sym, $a.off+1);
-}
-
-gen a16 := LOAD2(ADDRESS():a) uses a
-{
-	var sid := Push($$, 2);
-
-	DoAddressOp("lda", MODE_NORMAL, $a.sym, $a.off+0);
-	DoStackOp("sta", MODE_NORMAL, sid+0);
-
-	DoAddressOp("lda", MODE_NORMAL, $a.sym, $a.off+1);
-	DoStackOp("sta", MODE_NORMAL, sid+1);
 }
 
 gen a|x|y := LOAD1(ADDRESS():a)
 {
 	var cache := RegCacheFindValue($a.sym, $a.off) & $$;
-	if cache != 0 then
-		return;
-	end if;
-
-	var insn := "lda";
-	case $$ is
-		when REG_X: insn := "ldx";
-		when REG_Y: insn := "ldy";
-	end case;
-	DoAddressOp(insn, MODE_NORMAL, $a.sym, $a.off);
-	RegCacheLeavesValue($$, $a.sym, $a.off);
-}
-
-gen v8 := LOAD1(ADDRESS():a) uses a
-{
-	var cache := RegCacheFindValue($a.sym, $a.off) & REG_A;
 	if cache == 0 then
-		DoAddressOp("lda", MODE_NORMAL, $a.sym, $a.off);
+		E_ld($$);
+		E_symref($a.sym, $a.off);
+		E_nl();
 		RegCacheLeavesValue($$, $a.sym, $a.off);
 	end if;
-
-	var sid := Push(REG_V8, 1);
-	DoStackOp("sta", MODE_NORMAL, sid);
 }
 
-gen a := ADD1(v8, a)
+gen v8 := FALLBACK(a)
 {
-	var sid := Pop(REG_V8, 1);
-	DoStackOp("adc", MODE_NORMAL, sid);
+	R_flush(REG_A);
+	var sid := Push(REG_V8, 1);
+	
+	E_st(REG_A);
+	E_stackref(sid);
+	E_nl();
 }
+
+// --- 8-bit maths -----------------------------------------------------------
+
+%{
+	sub DoAlu1S(insn: string)
+		var rhssid := Pop(REG_V8, 1);
+
+		R_flush(REG_A);
+		E_insn(insn);
+		E_stackref(rhssid);
+		E_nl();
+	end sub;
+
+	sub DoAlu1C(insn: string, value: uint8)
+		R_flush(REG_A);
+		E_insn(insn);
+		E_const(value);
+		E_nl();
+	end sub;
+
+	sub DoAlu1M(insn: string, sym: [Symbol], off: Size)
+		R_flush(REG_A);
+		E_insn(insn);
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub DoAlu1PS(insn: string)
+		var rhssid := Pop(REG_P16, 2);
+
+		E_loadconst(REG_Y, 0);
+		R_flush(REG_A);
+		E_insn(insn);
+		E_indstackref(rhssid);
+		E_nl();
+	end sub;
+%}
+
+gen a := ADD1(a, v8)                 { E_clc(); DoAlu1S("adc"); }
+gen a := SUB1(a, v8)                 { E_sec(); DoAlu1S("sbc"); }
+
+gen a := ADD1(a, LOAD1(ADDRESS():a)) { E_clc(); DoAlu1M("adc", $a.sym, $a.off); }
+gen a := SUB1(a, LOAD1(ADDRESS():a)) { E_sec(); DoAlu1M("sbc", $a.sym, $a.off); }
+
+gen a := ADD1(a, LOAD1(p16))         { E_clc(); DoAlu1PS("adc"); }
+gen a := SUB1(a, LOAD1(p16))         { E_sec(); DoAlu1PS("sbc"); }
+
+gen a := ADD1(a, CONSTANT():c)       { E_clc(); DoAlu1C("adc", $c.value as uint8); }
+gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8); }
+
+// --- 8-bit memory ----------------------------------------------------------
+
+%{
+	const MODE_CONST := 0;
+	const MODE_STACK := 1;
+	const MODE_SYMBOL := 2;
+
+	record Operand
+		sid @at(0): uint16;
+		off @at(0): Size;
+		val @at(0): Arith;
+		sym: [Symbol];
+		mode: uint8;
+	end record;
+
+	var paramwidth: uint8;
+	var lhsparam: Operand;
+	var rhsparam: Operand;
+	var destparam: Operand;
+
+	sub LhsConst(value: Arith)
+		lhsparam.mode := MODE_CONST;
+		lhsparam.val := value;
+	end sub;
+
+	sub RhsConst(value: Arith)
+		rhsparam.mode := MODE_CONST;
+		rhsparam.val := value;
+	end sub;
+
+	sub LhsPop(reg: RegId)
+		lhsparam.mode := MODE_STACK;
+		lhsparam.sid := Pop(paramwidth, reg);
+	end sub;
+
+	sub RhsPop(reg: RegId)
+		rhsparam.mode := MODE_STACK;
+		rhsparam.sid := Pop(paramwidth, reg);
+	end sub;
+
+	sub DestPush(reg: RegId)
+		destparam.mode := MODE_STACK;
+		destparam.sid := Push(paramwidth, reg);
+	end sub;
+
+	sub LhsSym(sym: [Symbol], off: Size)
+		lhsparam.mode := MODE_SYMBOL;
+		lhsparam.sym := sym;
+		lhsparam.off := off;
+	end sub;
+
+	sub RhsSym(sym: [Symbol], off: Size)
+		rhsparam.mode := MODE_SYMBOL;
+		rhsparam.sym := sym;
+		rhsparam.off := off;
+	end sub;
+
+	sub DestSym(sym: [Symbol], off: Size)
+		destparam.mode := MODE_SYMBOL;
+		destparam.sym := sym;
+		destparam.off := off;
+	end sub;
+
+	sub DoParam(operand: [Operand], insn: string)
+		E_insn(insn);
+		case operand.mode is
+			when MODE_CONST:
+				E_const(operand.val as uint8);
+				operand.val := operand.val >> 8;
+
+			when MODE_STACK:
+				E_stackref(operand.sid);
+				operand.sid := operand.sid + 1;
+
+			when MODE_SYMBOL:
+				E_symref(operand.sym, operand.off);
+				operand.off := operand.off + 1;
+		end case;
+		E_nl();
+	end sub;
+
+	sub DoCopy()
+		R_flush(REG_A);
+		while paramwidth != 0 loop
+			DoParam(&lhsparam, "lda");
+			DoParam(&destparam, "sta");
+			paramwidth := paramwidth - 1;
+		end loop;
+	end sub;
+
+	sub Do3Op(insn: string)
+		R_flush(REG_A);
+		while paramwidth != 0 loop
+			DoParam(&lhsparam, "lda");
+			DoParam(&rhsparam, insn);
+			DoParam(&destparam, "sta");
+			paramwidth := paramwidth - 1;
+		end loop;
+	end sub;
+
+	sub DoAdc()
+		E_clc();
+		Do3Op("adc");
+	end sub;
+%}
+
+gen a16 := CONSTANT():c uses a
+		{ paramwidth := 2; LhsConst($c.value);                                     DestPush($$);                  DoCopy(); }
+
+gen STORE2(a16:lhs, ADDRESS():rhs) uses a
+		{ paramwidth := 2; LhsPop($lhs);                                           DestSym($rhs.sym, $rhs.off);   DoCopy(); }
+gen STORE2(CONSTANT():lhs, ADDRESS():rhs) uses a
+		{ paramwidth := 2; LhsConst($lhs.value);                                   DestSym($rhs.sym, $rhs.off);   DoCopy(); }
+gen STORE2(LOAD2(ADDRESS():lhs), ADDRESS():rhs) uses a
+		{ paramwidth := 2; LhsSym($lhs.sym, $lhs.off);                             DestSym($rhs.sym, $rhs.off);   DoCopy(); }
+
+gen a16 := LOAD2(ADDRESS():lhs) uses a
+		{ paramwidth := 2; LhsSym($lhs.sym, $lhs.off);                             DestPush($$);                  DoCopy(); }
+
+gen a16 := ADD2(a16:lhs, a16:rhs) uses a
+		{ paramwidth := 2; RhsPop($rhs);               LhsPop($lhs);               DestPush($$);                  DoAdc(); }
+gen a16 := ADD2(a16:lhs, CONSTANT():rhs) uses a
+		{ paramwidth := 2; RhsConst($rhs.value);       LhsPop($lhs);               DestPush($$);                  DoAdc(); }
+gen a16 := ADD2(a16:lhs, LOAD2(ADDRESS():rhs)) uses a
+		{ paramwidth := 2; RhsSym($rhs.sym, $rhs.off); LhsPop($lhs);               DestPush($$);                  DoAdc(); }
+gen a16 := ADD2(LOAD2(ADDRESS():lhs), CONSTANT():rhs) uses a
+		{ paramwidth := 2; RhsConst($rhs.value);       LhsSym($lhs.sym, $lhs.off); DestPush($$);                  DoAdc(); }
+gen a16 := ADD2(LOAD2(ADDRESS():lhs), LOAD2(ADDRESS():rhs)) uses a
+		{ paramwidth := 2; RhsSym($rhs.sym, $rhs.off); LhsSym($lhs.sym, $lhs.off); DestPush($$);                  DoAdc(); }
+
+gen STORE2(ADD2(LOAD2(ADDRESS():lhs), LOAD2(ADDRESS():rhs)), ADDRESS():dest) uses a
+		{ paramwidth := 2; RhsSym($rhs.sym, $rhs.off); LhsSym($lhs.sym, $lhs.off); DestSym($dest.sym, $dest.off); DoAdc(); }
 
