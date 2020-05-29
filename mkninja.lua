@@ -5,6 +5,7 @@ end
 print("OBJ = "..env("OBJ", ".obj"))
 print("LUA = "..env("LUA", "lua5.1"))
 print("CC = "..env("CC", "cc"))
+print("CPP = "..env("CC", "cpp"))
 print("CFLAGS = "..env("CFLAGS", ""))
 print("LDFLAGS = "..env("LDFLAGS", ""))
 print("rule build");
@@ -85,6 +86,7 @@ end
 
 include "build/c.lua"
 include "build/yacc.lua"
+include "build/gpp.lua"
 include "tools/build.lua"
 include "third_party/zmac/build.lua"
 include "tools/cpmemu/build.lua"
