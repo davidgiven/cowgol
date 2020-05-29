@@ -429,12 +429,35 @@ sub Generate(rootnode: [Node])
 		node.producer := producer;
 
 		if producer.producable_regs != 0 then
-			# The instruction has produced a register. For stackable registers,
-			# stop now: we ignore them for register allocation.
-			if IsStackedRegister(producer.producable_regs) == 0 then
+			# This instruction produces a register, so allocate one.
+
+			if IsStackedRegister(producer.producable_regs) != 0 then
+				# Stacked registers: we don't need to worry about finding an unallocated
+				# register, but we do need to make sure that the producer and consumer use
+				# the same stack (a backend might have several).
+				
+				var candidate := node.desired_reg & producer.producable_regs;
+				if candidate != 0 then
+					# Good news --- the producer and the consumer have a register type in
+					# common.
+
+					candidate := FindFirst(candidate);
+					node.produced_reg := candidate;
+					producer.produced_reg := candidate;
+				else
+					# Otherwise, we need to copy the value from one stack to another.
+
+					producer.produced_reg := FindFirst(producer.producable_regs);
+					node.produced_reg := FindFirst(node.desired_reg);;
+					CreateSpill(producer, producer.produced_reg, node.produced_reg);
+				end if;
+			else
+				# Traditional register: use destination-driven allocation to try and allocate
+				# the best available register between the producer and consumer.
+
 				var consumer := node.consumer;
 				var blocked := CalculateBlockedRegisters(@next consumer, @prev producer);
-				var candidate := node.desired_reg & producer.producable_regs;
+				candidate := node.desired_reg & producer.producable_regs;
 
 				var mask1 := candidate & ~(blocked | producer.output_regs | consumer.input_regs);
 				if mask1 != 0 then
