@@ -278,13 +278,28 @@
 				case dest is
 					when REG_Y: E_tya(); return;
 				end case;
+
+			when REG_XA:
+				if (dest & REGCLASS_A16) != 0 then
+					var sid := Push(dest, 2);
+
+					E_st(REG_A);
+					E_stackref(sid);
+					E_nl();
+
+					E_st(REG_X);
+					E_stackref(sid+1);
+					E_nl();
+
+					return;
+				end if;
 		end case;
 
 		StartError();
 		print("bad move ");
-		E_h16(src);
-		E(" -> ");
-		E_h16(dest);
+		print_hex_i16(src);
+		print(" -> ");
+		print_hex_i16(dest);
 		EndError();
 	end sub;
 
@@ -309,9 +324,9 @@ regclass a16 := v16|p16;
 regdata a uses xa|a compatible a|x|y;
 regdata x uses xa|x compatible a|x;
 regdata y compatible a|y;
-regdata xa uses x|a;
-regdata v16 stacked;
-regdata p16 stacked;
+regdata xa uses x|a compatible a16|xa;
+regdata v16 stacked compatible a16|xa;
+regdata p16 stacked compatible a16|xa;
 regdata v32 stacked;
 regdata param stacked;
 
@@ -396,16 +411,6 @@ gen a|x|y := LOAD1(ADDRESS():a)
 		E_nl();
 		RegCacheLeavesValue($$, $a.sym, $a.off);
 	end if;
-}
-
-gen v8 := FALLBACK(a)
-{
-	R_flush(REG_A);
-	var sid := Push(REG_V8, 1);
-	
-	E_st(REG_A);
-	E_stackref(sid);
-	E_nl();
 }
 
 // --- Extended operations ---------------------------------------------------
@@ -603,22 +608,6 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 
 // --- 16-bit ---------------------------------------------------------------
 
-gen a16 := FALLBACK(xa)
-{
-	E("\t; pushing ");
-	E_h16($$);
-	E_nl();
-	var destsid := Push($$, 2);
-
-	E_st(REG_A);
-	E_stackref(destsid+0);
-	E_nl();
-
-	E_st(REG_X);
-	E_stackref(destsid+1);
-	E_nl();
-}
-
 gen xa := LOAD2(ADDRESS():a)
 {
 	var cache := RegCacheFindValue($a.sym, $a.off);
@@ -636,12 +625,6 @@ gen xa := LOAD2(ADDRESS():a)
 
 gen xa := LOAD2(p16:ptr)
 {
-	E("\t; popping ");
-	E_h16($ptr);
-	print("popping ");
-	print_hex_i32(self.n[0] as intptr as uint32);
-	print_nl();
-	E_nl();
 	var sid := Pop($ptr, 2);
 
 	E_loadconst(REG_Y, 0);

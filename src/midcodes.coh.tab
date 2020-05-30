@@ -17,9 +17,6 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 ASMVALUE(value: int32) = ("%d", $$.value)
 - 0 0 ASMEND()
 
-# Inserted automatically by the code generator if no matching rule can be found.
-- 1 1 FALLBACK()
-
 # This one is used internally for bookkeeping and the backend should never see it.
 - 2 1 PAIR()
 
