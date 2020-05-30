@@ -118,6 +118,12 @@
 		end if;
 	end sub;
 
+	sub E_symrefi(sym: [Symbol], off: Size)
+		EmitByte('(');
+		E_symref(sym, off);
+		E("),y");
+	end sub;
+
 	sub E_loaddr(sym: [Symbol], off: Size)
 		E("<#");
 		E_symref(sym, off);
@@ -201,6 +207,20 @@
 
 	sub E_sta()
 		E_st(REG_A);
+	end sub;
+
+	sub E_inc(reg: RegId)
+		case reg is
+			when REG_A:
+				E_clc();
+				E("\tadc #1\n");
+
+			when REG_X:
+				E("\tinx\n");
+
+			when REG_Y:
+				E("\tiny\n");
+		end case;
 	end sub;
 
 	sub E_loadconst(reg: RegId, value: uint8)
@@ -434,6 +454,7 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 	const MODE_CONST := 0;
 	const MODE_STACK := 1;
 	const MODE_SYMBOL := 2;
+	const MODE_SYMBOLI := 3;
 
 	record Operand
 		sid @at(0): uint16;
@@ -491,6 +512,27 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 		destparam.off := off;
 	end sub;
 
+	sub LhsSymI(sym: [Symbol], off: Size)
+		E_loadconst(REG_Y, 0);
+		lhsparam.mode := MODE_SYMBOLI;
+		lhsparam.sym := sym;
+		lhsparam.off := off;
+	end sub;
+
+	sub RhsSymI(sym: [Symbol], off: Size)
+		E_loadconst(REG_Y, 0);
+		rhsparam.mode := MODE_SYMBOLI;
+		rhsparam.sym := sym;
+		rhsparam.off := off;
+	end sub;
+
+	sub DestSymI(sym: [Symbol], off: Size)
+		E_loadconst(REG_Y, 0);
+		destparam.mode := MODE_SYMBOLI;
+		destparam.sym := sym;
+		destparam.off := off;
+	end sub;
+
 	sub DoParam(operand: [Operand], insn: string)
 		E_insn(insn);
 		case operand.mode is
@@ -505,6 +547,12 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 			when MODE_SYMBOL:
 				E_symref(operand.sym, operand.off);
 				operand.off := operand.off + 1;
+
+			when MODE_SYMBOLI:
+				E_symrefi(operand.sym, operand.off);
+				if paramwidth != 1 then
+					E("\n\tiny");
+				end if;
 		end case;
 		E_nl();
 	end sub;

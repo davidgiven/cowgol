@@ -3,6 +3,8 @@ local function writespec(mode, name)
 		io.write("a16:"..name)
 	elseif mode == "mem" then
 		io.write("LOAD2(ADDRESS():"..name..")")
+	elseif mode == "memi" then
+		io.write("LOAD2(LOAD2(ADDRESS():"..name.."))")
 	elseif mode == "constant" then
 		io.write("CONSTANT():"..name)
 	end
@@ -15,6 +17,8 @@ local function writeparm(mode, prefix, name)
 		io.write("\t"..prefix.."Push($$);\n")
 	elseif mode == "mem" then
 		io.write("\t"..prefix.."Sym($"..name..".sym, $"..name..".off);\n")
+	elseif mode == "memi" then
+		io.write("\t"..prefix.."SymI($"..name..".sym, $"..name..".off);\n")
 	elseif mode == "constant" then
 		io.write("\t"..prefix.."Const($"..name..".value);\n")
 	end
@@ -28,10 +32,10 @@ local opcodes = {
 	AND = "and"
 }
 
-for _, lhs in ipairs({"pop", "mem", "constant"}) do
-	for _, dest in ipairs({"push", "mem"}) do
+for _, lhs in ipairs({"pop", "mem", "memi", "constant"}) do
+	for _, dest in ipairs({"push", "mem", "memi"}) do
 		if (lhs ~= "pop") or (dest ~= "push") then
-			if dest == "mem" then
+			if (dest == "mem") or (dest == "memi") then
 				io.write("gen STORE2(")
 			else
 				io.write("gen a16 := ")
@@ -39,6 +43,8 @@ for _, lhs in ipairs({"pop", "mem", "constant"}) do
 			writespec(lhs, "lhs")
 			if dest == "mem" then
 				io.write(", ADDRESS():dest)\n")
+			elseif dest == "memi" then
+				io.write(", LOAD2(ADDRESS():dest))\n")
 			else
 				io.write("\n")
 			end
