@@ -281,6 +281,7 @@ sub Generate(rootnode: [Node])
 
 	var old_next_node := next_node;
 	PushNode(rootnode);
+	rootnode.dlink := 0 as [Node]; # the root node has no parent
 	while next_node != old_next_node loop
 		if next_instruction == &instructions[@sizeof instructions] then
 			PrintNodes(rootnode);
@@ -362,7 +363,7 @@ sub Generate(rootnode: [Node])
 
 			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
 				# We've reached the end of the list of rules without matching anything.
-				if node.op != MIDCODE_FALLBACK then
+				if (node.op != MIDCODE_FALLBACK) and (node.dlink != (0 as [Node])) then
 					# Wrap this node in a FALLBACK instruction, in the hope that it'll
 					# convert from whatever wanted it to the right thing.
 					var oldnode := node;
