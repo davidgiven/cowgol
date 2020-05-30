@@ -943,11 +943,11 @@ gen v8 := REMS1(v8, a)
 
 %{
 	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
-		if node.beqs0.truelabel != node.beqs0.fallthrough then
-			E_jump(trueinsn, node.beqs0.truelabel);
+		if node.beq0.truelabel != node.beq0.fallthrough then
+			E_jump(trueinsn, node.beq0.truelabel);
 		end if;
-		if node.beqs0.falselabel != node.beqs0.fallthrough then
-			E_jump(falseinsn, node.beqs0.falselabel);
+		if node.beq0.falselabel != node.beq0.fallthrough then
+			E_jump(falseinsn, node.beq0.falselabel);
 		end if;
 	end sub;
 
@@ -960,23 +960,20 @@ gen v8 := REMS1(v8, a)
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
-		var label := node.beqs0.falselabel;
+		var label := node.beq0.falselabel;
 		if lhs == rhs then
-			label := node.beqs0.truelabel;
+			label := node.beq0.truelabel;
 		end if;
-		if label != node.beqs0.fallthrough then
+		if label != node.beq0.fallthrough then
 			E_jmp(label);
 		end if;
 	end sub;
 %}
 
-gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+gen BEQ0(CONSTANT():c1, CONSTANT():c2):b
 		{ beqc(self.n[0], $c1.value, $c2.value); }
 
-gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
-		{ beqc(self.n[0], $c1.value, $c2.value); }
-
-gen BEQU1(v8, a):c
+gen BEQ1(v8, a):c
 {
 	var sid := Pop(REG_V8, 1);
 
@@ -984,11 +981,6 @@ gen BEQU1(v8, a):c
 	E_stackref(sid);
 	E_nl();
 	E_jumps_beq_bne(self.n[0]);
-}
-
-gen BEQS1(v8, a):c
-{
-	E("\tBEQS1\n");
 }
 
 gen BLTU1(a, v8):c
@@ -1001,14 +993,9 @@ gen BLTU1(a, v8):c
 	E_jumps_bcs_bcc(self.n[0]);
 }
 
-gen BEQS2(v16:lhs, xa:rhs):c
+gen BEQ2(v16:lhs, xa:rhs):c
 {
-	E("\tBEQS2\n");
-}
-
-gen BEQU2(v16:lhs, xa:rhs):c
-{
-	E("\tBEQU2\n");
+	E("\tBEQ2\n");
 }
 
 gen BLTU2(v16:lhs, xa:rhs):c
@@ -1016,16 +1003,11 @@ gen BLTU2(v16:lhs, xa:rhs):c
 	E("\tBLTU2\n");
 }
 
-gen BEQU4(v32:lhs, v32:rhs):c
+gen BEQ4(v32:lhs, v32:rhs):c
 {
 	var sid := Pop(REG_V32, 8);
 	E_callhelper("_cmp4");
 	E_jumps_beq_bne(self.n[0]);
-}
-
-gen BEQS4(v32:lhs, v32:rhs):c
-{
-	E("\tBEQS4\n");
 }
 
 gen BLTU4(v32:lhs, v32:rhs):c

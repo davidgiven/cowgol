@@ -634,9 +634,9 @@ sub GenerateConditional(rootnode: [Node])
 	while next_node != old_next_node loop
 		var node := PopNode();
 
-		var t := node.beqs0.truelabel;
-		var f := node.beqs0.falselabel;
-		var r := node.beqs0.fallthrough;
+		var t := node.beq0.truelabel;
+		var f := node.beq0.falselabel;
+		var r := node.beq0.fallthrough;
 		var lhs := node.left;
 		var rhs := node.right;
 		var op := node.op;
@@ -654,35 +654,35 @@ sub GenerateConditional(rootnode: [Node])
 			when MIDCODE_BOR:
 				rr := AllocLabel();
 
-				lhs.beqs0.truelabel := t;
-				lhs.beqs0.falselabel := rr;
-				lhs.beqs0.fallthrough := rr;
+				lhs.beq0.truelabel := t;
+				lhs.beq0.falselabel := rr;
+				lhs.beq0.fallthrough := rr;
 
-				rhs.beqs0.truelabel := t;
-				rhs.beqs0.falselabel := f;
-				rhs.beqs0.fallthrough := r;
+				rhs.beq0.truelabel := t;
+				rhs.beq0.falselabel := f;
+				rhs.beq0.fallthrough := r;
 
 				push_and_free();
 
 			when MIDCODE_BAND:
 				rr := AllocLabel();
 
-				lhs.beqs0.truelabel := rr;
-				lhs.beqs0.falselabel := f;
-				lhs.beqs0.fallthrough := rr;
+				lhs.beq0.truelabel := rr;
+				lhs.beq0.falselabel := f;
+				lhs.beq0.fallthrough := rr;
 
-				rhs.beqs0.truelabel := t;
-				rhs.beqs0.falselabel := f;
-				rhs.beqs0.fallthrough := r;
+				rhs.beq0.truelabel := t;
+				rhs.beq0.falselabel := f;
+				rhs.beq0.fallthrough := r;
 
 				push_and_free();
 
 			when else:
-				if (op >= MIDCODE_BEQS0) and (op <= MIDCODE_BLTU8) then
-					if node.beqs0.negated != 0 then
-						node.beqs0.truelabel := f;
-						node.beqs0.falselabel := t;
-						node.beqs0.negated := 0;
+				if (op >= MIDCODE_BEQ0) and (op <= MIDCODE_BLTU8) then
+					if node.beq0.negated != 0 then
+						node.beq0.truelabel := f;
+						node.beq0.falselabel := t;
+						node.beq0.negated := 0;
 					end if;
 				end if;
 

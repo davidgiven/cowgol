@@ -1638,11 +1638,11 @@ gen hlhl := RSHIFTS4(hlhl, b)
 
 %{
 	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
-		if node.beqs0.truelabel != node.beqs0.fallthrough then
-			E_jump(trueinsn, node.beqs0.truelabel);
+		if node.beq0.truelabel != node.beq0.fallthrough then
+			E_jump(trueinsn, node.beq0.truelabel);
 		end if;
-		if node.beqs0.falselabel != node.beqs0.fallthrough then
-			E_jump(falseinsn, node.beqs0.falselabel);
+		if node.beq0.falselabel != node.beq0.fallthrough then
+			E_jump(falseinsn, node.beq0.falselabel);
 		end if;
 	end sub;
 
@@ -1711,7 +1711,7 @@ gen hlhl := RSHIFTS4(hlhl, b)
 		else
 			E_rcf();
 			cmpeq2(value as uint16);
-			E_jump("jp nz,", node.beqs0.falselabel);
+			E_jump("jp nz,", node.beq0.falselabel);
 			E_exx();
 			cmpeq2((value>>16) as uint16);
 		end if;
@@ -1720,32 +1720,23 @@ gen hlhl := RSHIFTS4(hlhl, b)
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
-		var label := node.beqs0.falselabel;
+		var label := node.beq0.falselabel;
 		if lhs == rhs then
-			label := node.beqs0.truelabel;
+			label := node.beq0.truelabel;
 		end if;
-		if label != node.beqs0.fallthrough then
+		if label != node.beq0.fallthrough then
 			E_jp(label);
 		end if;
 	end sub;
 %}
 
-gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+gen BEQ0(CONSTANT():c1, CONSTANT():c2):b
 		{ beqc(self.n[0], $c1.value, $c2.value); }
 
-gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
-		{ beqc(self.n[0], $c1.value, $c2.value); }
-
-gen BEQU1(b|d|h:nota, a):b
+gen BEQ1(b|d|h:nota, a):b
 		{ bequ1(self.n[0], $nota); }
 
-gen BEQU1(a, CONSTANT():c):b
-		{ bequ1c(self.n[0], $c.value as uint8); }
-
-gen BEQS1(b|d|h:nota, a):b
-		{ bequ1(self.n[0], $nota); }
-
-gen BEQS1(a, CONSTANT():c):b
+gen BEQ1(a, CONSTANT():c):b
 		{ bequ1c(self.n[0], $c.value as uint8); }
 
 gen BLTU1(a, b|d|h:rhs):b
@@ -1781,16 +1772,10 @@ gen BLTS1(a, CONSTANT():c):b
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BEQU2(bc|de:lhs, hl):a
+gen BEQ2(bc|de:lhs, hl):a
 		{ bequ2(self.n[0], $lhs); }
 
-gen BEQS2(bc|de:lhs, hl):a
-		{ bequ2(self.n[0], $lhs); }
-
-gen BEQU2(hl, CONSTANT():c) uses a|de
-		{ bequ2c(self.n[0], $c.value as uint16); }
-
-gen BEQS2(hl, CONSTANT():c) uses a|de
+gen BEQ2(hl, CONSTANT():c) uses a|de
 		{ bequ2c(self.n[0], $c.value as uint16); }
 
 gen BLTU2(hl, bc|de:rhs):b
@@ -1812,16 +1797,10 @@ gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)):b
 	E_jumps_jnz_jz(self.n[0]);
 }
 
-gen BEQU4(dede, hlhl):b uses a
+gen BEQ4(dede, hlhl):b uses a
 		{ bequ4(self.n[0]); }
 
-gen BEQS4(dede, hlhl):b uses a
-		{ bequ4(self.n[0]); }
-
-gen BEQU4(hlhl, CONSTANT():c):b uses dede|a
-		{ bequ4c(self.n[0], $c.value); }
-
-gen BEQS4(hlhl, CONSTANT():c):b uses dede|a
+gen BEQ4(hlhl, CONSTANT():c):b uses dede|a
 		{ bequ4c(self.n[0], $c.value); }
 
 gen BLTU4(hlhl, dede):b

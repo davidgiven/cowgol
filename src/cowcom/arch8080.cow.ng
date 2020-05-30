@@ -1257,11 +1257,11 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 
 %{
 	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
-		if node.beqs0.truelabel != node.beqs0.fallthrough then
-			E_jump(trueinsn, node.beqs0.truelabel);
+		if node.beq0.truelabel != node.beq0.fallthrough then
+			E_jump(trueinsn, node.beq0.truelabel);
 		end if;
-		if node.beqs0.falselabel != node.beqs0.fallthrough then
-			E_jump(falseinsn, node.beqs0.falselabel);
+		if node.beq0.falselabel != node.beq0.fallthrough then
+			E_jump(falseinsn, node.beq0.falselabel);
 		end if;
 	end sub;
 
@@ -1322,32 +1322,23 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
-		var label := node.beqs0.falselabel;
+		var label := node.beq0.falselabel;
 		if lhs == rhs then
-			label := node.beqs0.truelabel;
+			label := node.beq0.truelabel;
 		end if;
-		if label != node.beqs0.fallthrough then
+		if label != node.beq0.fallthrough then
 			E_jmp(label);
 		end if;
 	end sub;
 %}
 
-gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+gen BEQ0(CONSTANT():c1, CONSTANT():c2):b
 		{ beqc(self.n[0], $c1.value, $c2.value); }
 
-gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
-		{ beqc(self.n[0], $c1.value, $c2.value); }
-
-gen BEQU1(b|d|h:nota, a):b
+gen BEQ1(b|d|h:nota, a):b
 		{ bequ1(self.n[0], $nota); }
 
-gen BEQU1(a, CONSTANT():c):b
-		{ bequ1c(self.n[0], $c.value as uint8); }
-
-gen BEQS1(b|d|h:nota, a):b
-		{ bequ1(self.n[0], $nota); }
-
-gen BEQS1(a, CONSTANT():c):b
+gen BEQ1(a, CONSTANT():c):b
 		{ bequ1c(self.n[0], $c.value as uint8); }
 
 gen BLTU1(a, b|d|h:rhs):b
@@ -1379,16 +1370,10 @@ gen BLTS1(a, CONSTANT(value==0))
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BEQU2(de, hl):a
+gen BEQ2(de, hl):a
 		{ bequ2(self.n[0]); }
 
-gen BEQU2(hl, CONSTANT():c) uses a|de
-		{ bequ2c(self.n[0], $c.value as uint16); }
-
-gen BEQS2(de, hl):a
-		{ bequ2(self.n[0]); }
-
-gen BEQS2(hl, CONSTANT():c) uses a|de
+gen BEQ2(hl, CONSTANT():c) uses a|de
 		{ bequ2c(self.n[0], $c.value as uint16); }
 
 gen BLTU2(hl|bc|de:lhs, hl|bc|de:rhs):b uses a
@@ -1426,16 +1411,10 @@ gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)) uses a
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BEQU4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
+gen BEQ4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
 		{ bequ4(self.n[0]); }
 
-gen BEQS4(stk4:lhs, stk4:rhs) uses a|hl|bc|de
-		{ bequ4(self.n[0]); }
-
-gen BEQU4(stk4:lhs, CONSTANT(value==0)) uses a|hl
-		{ bequ40(self.n[0]); }
-
-gen BEQS4(stk4:lhs, CONSTANT(value==0)) uses a|hl
+gen BEQ4(stk4:lhs, CONSTANT(value==0)) uses a|hl
 		{ bequ40(self.n[0]); }
 
 gen BLTU4(stk4:lhs, stk4:rhs):b uses a|hl|bc|de

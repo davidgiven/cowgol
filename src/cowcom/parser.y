@@ -159,9 +159,9 @@ startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
 	Generate(MidLabel(continue_label));
 	var t := AllocLabel();
 	break_label := AllocLabel();
-	C.beqs0.truelabel := t;
-	C.beqs0.falselabel := break_label;
-	C.beqs0.fallthrough := t;
+	C.beq0.truelabel := t;
+	C.beq0.falselabel := break_label;
+	C.beq0.fallthrough := t;
 	GenerateConditional(C);
 	LL.exit_label := break_label;
 }
@@ -208,9 +208,9 @@ if_conditional ::= conditional(C).
 	var f := AllocLabel();
 	current_if.true_label := t;
 	current_if.false_label := f;
-	C.beqs0.truelabel := t;
-	C.beqs0.falselabel := f;
-	C.beqs0.fallthrough := t;
+	C.beq0.truelabel := t;
+	C.beq0.falselabel := f;
+	C.beq0.fallthrough := t;
 	GenerateConditional(C);
 }
 
@@ -300,7 +300,7 @@ conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
 %include
 {
 	sub Negate(node: [Node])
-		node.beqs0.negated := node.beqs0.negated ^ 1;
+		node.beq0.negated := node.beq0.negated ^ 1;
 	end sub;
 }
 
@@ -328,11 +328,7 @@ conditional(R) ::= conditional(C1) OR conditional(C2).
 		var falselabel := AllocLabel();
 		var w := NodeWidth(lhs);
 
-		if IsSNum(lhs.type) != 0 then
-			result := MidBeqs(w, lhs, rhs, truelabel, falselabel, 0, negated);
-		else
-			result := MidBequ(w, lhs, rhs, truelabel, falselabel, 0, negated);
-		end if;
+		result := MidBeq(w, lhs, rhs, truelabel, falselabel, 0, negated);
 	end sub;
 
 	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
