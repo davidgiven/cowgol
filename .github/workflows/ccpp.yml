@@ -10,7 +10,7 @@ jobs:
     - name: apt update
       run: sudo apt update
     - name: apt
-      run: sudo apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu qemu-user gpp
+      run: sudo apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu qemu-user gpp 64tass
     - name: make
       run: make
 

@@ -26,6 +26,7 @@ end
 
 local threeopoperations = { "ADD", "SUB", "EOR", "OR", "AND" }
 local twoopoperations = { "NOT", "NEG" }
+local branchoperations = { "BEQ", "BLTU", "BLTS" }
 local opcodes = {
 	ADD = "adc",
 	SUB = "sbc",
@@ -153,6 +154,27 @@ for _, op in ipairs(twoopoperations) do
 	end
 end
 
+-- 32 bit branch operations
+
+for _, op in ipairs(branchoperations) do
+	for _, lhs in ipairs({"pop", "mem"}) do
+		for _, rhs in ipairs({"pop", "mem", "constant"}) do
+			io.write("gen "..op.."4(")
+			writespec(lhs, "lhs", 4)
+			io.write(", ")
+			writespec(rhs, "rhs", 4)
+			io.write(") uses a|y\n")
+
+			io.write("{\n");
+			io.write("\tparamwidth := 4;\n");
+			writeparm(lhs, "Lhs", "lhs")
+			writeparm(rhs, "Rhs", "rhs")
+			io.write("\tDoBranch4_"..op:lower().."(self.n[0]);\n")
+			io.write("}\n");
+		end
+	end
+end
+
 -- 32 bit copies
 
 for _, lhs in ipairs({"pop", "mem", "constant"}) do
@@ -181,3 +203,4 @@ for _, lhs in ipairs({"pop", "mem", "constant"}) do
 		end
 	end
 end
+

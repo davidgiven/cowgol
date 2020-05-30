@@ -31,6 +31,7 @@
 	record Constant
 		value: Arith;
 		lid: uint16;
+		subr: [Subroutine];
 		next: [Constant];
 	end record;
 
@@ -114,6 +115,14 @@
 		end if;
 	end sub;
 
+	sub Peek(reg: RegId, width: uint8): (stackaddr: uint16)
+		if (reg & REG_P16) != 0 then
+			stackaddr := (PTRSTACK_WS<<8) | ((ptrsp-width) as uint16);
+		else
+			stackaddr := (VARSTACK_WS<<8) | ((varsp-width) as uint16);
+		end if;
+	end sub;
+
 	sub E_stackref(sid: uint16)
 		EmitByte(COO_ESCAPE_WSREF);
 		E_h16(current_subr.id);
@@ -147,16 +156,6 @@
 		EmitByte('(');
 		E_symref(sym, off);
 		E("),y");
-	end sub;
-
-	sub E_loaddr(sym: [Symbol], off: Size)
-		E("#<");
-		E_symref(sym, off);
-	end sub;
-
-	sub E_hiaddr(sym: [Symbol], off: Size)
-		E("#>");
-		E_symref(sym, off);
 	end sub;
 
 	sub R_flushall()
@@ -287,6 +286,30 @@
 		end if;
 	end sub;
 
+	sub E_loadaddr(sym: [Symbol], off: Size)
+		E_ld(REG_A);
+		E("#<");
+		E_symref(sym, off);
+		E_nl();
+
+		E_ld(REG_X);
+		E("#>");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub E_loadstackref(sid: uint16)
+		E_ld(REG_A);
+		E("#<");
+		E_stackref(sid);
+		E_nl();
+
+		E_ld(REG_X);
+		E("#>");
+		E_stackref(sid);
+		E_nl();
+	end sub;
+
 	# Does not persist the name; only call this with constant strings.
 	sub E_callhelper(name: string)
 		var e := externs;
@@ -319,6 +342,27 @@
 		E_nl();
 	end sub;
 
+	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+		if node.beq0.truelabel != node.beq0.fallthrough then
+			E_jump(trueinsn, node.beq0.truelabel);
+		end if;
+		if node.beq0.falselabel != node.beq0.fallthrough then
+			E_jump(falseinsn, node.beq0.falselabel);
+		end if;
+	end sub;
+
+	sub E_jumps_beq_bne(node: [Node])
+		E_jumps_with_fallthrough("beq", "bne", node);
+	end sub;
+
+	sub E_jumps_bcs_bcc(node: [Node])
+		E_jumps_with_fallthrough("bcs", "bcc", node);
+	end sub;
+
+	sub E_jumps_bmi_bpl(node: [Node])
+		E_jumps_with_fallthrough("bmi", "bpl", node);
+	end sub;
+
 	var labelid: uint16 := 0;
 	sub E_plabelref(lid: uint16)
 		EmitByte(COO_ESCAPE_THISCOO);
@@ -329,7 +373,9 @@
 	sub AllocPlabel(): (lid: uint16)
 		lid := labelid;
 		labelid := labelid + 1;
+	end sub;
 
+	sub E_plabel(lid: uint16)
 		E_plabelref(lid);
 		E(":\n");
 	end sub;
@@ -344,8 +390,7 @@
 		end loop;
 		if c == (0 as [Constant]) then
 			c := Alloc(@bytesof Constant) as [Constant];
-			c.lid := labelid;
-			labelid := labelid + 1;
+			c.lid := AllocPlabel();
 			c.value := value;
 			c.next := constants;
 			constants := c;
@@ -354,12 +399,13 @@
 	end sub;
 
 	sub E_string(data: string): (lid: uint16)
+		lid := AllocPlabel();
+
 		EmitterPushChunk();
 		E_h16(current_subr.id);
 
-		E("\t.text\n");
-		lid := AllocPlabel();
-		E("\t.byt ");
+		E_plabel(lid);
+		E("\t.byte ");
 
 		loop
 			var c := [data];
@@ -490,6 +536,7 @@ regdata param stacked;
 // --- Core things ----------------------------------------------------------
 
 gen STARTFILE();
+
 gen ENDFILE();
 
 gen LABEL():b
@@ -517,7 +564,6 @@ gen STARTSUB():s
 	E($s.subr.name);
 	E_nl();
 
-	E("\t.text\n");
 	EmitByte(COO_ESCAPE_THISSUB);
 	E(":\n");
 }
@@ -529,6 +575,20 @@ gen ENDSUB():s
 	E(":\n");
 
 	E_rts();
+
+	while constants != (0 as [Constant]) loop
+		var c := constants;
+		constants := constants.next;
+
+		E_plabel(c.lid);
+		E("\t.word ");
+		E_u16(c.value as uint16);
+		E_comma();
+		E_u16((c.value >> 16) as uint16);
+		E_nl();
+		Free(c as [uint8]);
+	end loop;
+
 	EmitterPopChunk('S');
 
 	var i: uint8 := 0;
@@ -816,6 +876,7 @@ gen a := LOAD1(p16:ptr) uses y
 		E_loadconst(REG_Y, 0);
 		E_loadconst(REG_X, paramwidth);
 		var lid := AllocPlabel();
+		E_plabel(lid);
 
 		DoParamIndirect(&lhsparam, "lda");
 		DoParamIndirect(&destparam, "sta");
@@ -831,6 +892,7 @@ gen a := LOAD1(p16:ptr) uses y
 		E_loadconst(REG_Y, 0);
 		E_loadconst(REG_X, paramwidth);
 		var lid := AllocPlabel();
+		E_plabel(lid);
 
 		DoParamIndirect(&lhsparam, "lda");
 		DoParamIndirect(&rhsparam, insn);
@@ -849,6 +911,62 @@ gen a := LOAD1(p16:ptr) uses y
 
 	sub Do2Op_neg()
 		E("\tNEG4\n");
+	end sub;
+
+	sub DoBranch4_beq(node: [Node])
+		E_loadconst(REG_Y, 3);
+		var lid := AllocPlabel();
+		E_plabel(lid);
+
+		DoParamIndirect(&lhsparam, "lda");
+		DoParamIndirect(&rhsparam, "cmp");
+		E("\tbne ");
+		E_labelref(node.beq0.falselabel);
+		E_nl();
+		E_dey();
+		E("\tbpl ");
+		E_plabelref(lid);
+		E_nl();
+
+		if node.beq0.fallthrough != node.beq0.truelabel then
+			E("\tjmp ");
+			E_labelref(node.beq0.truelabel);
+			E_nl();
+		end if;
+	end sub;
+
+	sub DoBranch4_blts(node: [Node])
+		E_loadconst(REG_Y, 3);
+		E_sec();
+		var lid := AllocPlabel();
+		E_plabel(lid);
+
+		DoParamIndirect(&lhsparam, "lda");
+		DoParamIndirect(&rhsparam, "sbc");
+		E_dey();
+		E("\tbpl ");
+		E_plabelref(lid);
+		E_nl();
+
+		E_jumps_bmi_bpl(node);
+	end sub;
+
+	sub DoBranch4_bltu(node: [Node])
+		E_loadconst(REG_Y, 3);
+		E_sec();
+		var lid := AllocPlabel();
+		E_plabel(lid);
+
+		DoParamIndirect(&lhsparam, "lda");
+		DoParamIndirect(&rhsparam, "sbc");
+		E("\tbvc .+5\n");
+		E("\teor #$80\n");
+		E_dey();
+		E("\tbpl ");
+		E_plabelref(lid);
+		E_nl();
+
+		E_jumps_bmi_bpl(node);
 	end sub;
 %}
 
@@ -915,14 +1033,26 @@ gen a := OR1(a, v8) { E("\tOR1\n"); }
 gen a := AND1(a, v8) { E("\tAND1\n"); }
 gen a := EOR1(a, v8) { E("\tEOR1\n"); }
 
-gen v8 := LSHIFT1(v8, a)
-		{ E("\tLSHIFT1\n"); }
+gen v8 := LSHIFT1(v8, y) uses a|x|y
+{
+	var sid := Peek(REG_V8, 1);
+	E_loadstackref(sid);
+	E_callhelper("_lshift1");
+}
 
-gen v8 := RSHIFTU1(v8, a)
-		{ E("\tRSHIFTU1\n"); }
+gen v8 := RSHIFTU1(v8, y)
+{
+	var sid := Peek(REG_V8, 1);
+	E_loadstackref(sid);
+	E_callhelper("_rshiftu1");
+}
 
-gen v8 := RSHIFTS1(v8, a)
-		{ E("\tRSHIFTS1\n"); }
+gen v8 := RSHIFTS1(v8, y)
+{
+	var sid := Peek(REG_V8, 1);
+	E_loadstackref(sid);
+	E_callhelper("_rshifts1");
+}
 
 gen v8 := MUL1(v8, a)
 		{ E("\tMUL1\n"); }
@@ -942,23 +1072,6 @@ gen v8 := REMS1(v8, a)
 // --- Conditionals ---------------------------------------------------------
 
 %{
-	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
-		if node.beq0.truelabel != node.beq0.fallthrough then
-			E_jump(trueinsn, node.beq0.truelabel);
-		end if;
-		if node.beq0.falselabel != node.beq0.fallthrough then
-			E_jump(falseinsn, node.beq0.falselabel);
-		end if;
-	end sub;
-
-	sub E_jumps_beq_bne(node: [Node])
-		E_jumps_with_fallthrough("beq", "bne", node);
-	end sub;
-
-	sub E_jumps_bcs_bcc(node: [Node])
-		E_jumps_with_fallthrough("bcs", "bcc", node);
-	end sub;
-
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
 		var label := node.beq0.falselabel;
 		if lhs == rhs then
@@ -1070,15 +1183,7 @@ gen xa := CONSTANT():c
 
 gen xa := ADDRESS():a
 {
-	var sid := Push($$, 2);
-
-	E_ld(REG_A);
-	E_loaddr($a.sym, $a.off);
-	E_nl();
-
-	E_ld(REG_X);
-	E_hiaddr($a.sym, $a.off);
-	E_nl();
+	E_loadaddr($a.sym, $a.off);
 }
 
 gen STORE2(xa, ADDRESS():a)
@@ -1292,12 +1397,8 @@ gen INIT2():c
 
 gen INIT4():c
 {
-	E("\t.word ");
-	E_u16($c.value as uint16);
-	E_nl();
-
-	E("\t.word ");
-	E_u16(($c.value>>16) as uint16);
+	E("\t.dword ");
+	E_u32($c.value as uint32);
 	E_nl();
 }
 

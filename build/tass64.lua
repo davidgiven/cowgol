@@ -1,4 +1,4 @@
-function xa65(e)
+function tass64(e)
 	local hdrs = {}
 	for _, src in ipairs(e.ins) do
 		local f = src:gsub("[^/]*$", "")
@@ -12,7 +12,7 @@ function xa65(e)
 	rule {
 		ins = e.ins,
 		outs = e.outs,
-		cmd = "xa -o &1 @1"
+		cmd = "64tass --quiet --long-branch --ascii --case-sensitive --nostart -o &1 @1"
 	}
 end
 

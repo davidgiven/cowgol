@@ -23,6 +23,7 @@ sub ArchEmitWSRef(wid: uint8, address: Size)
 end sub;
 
 sub ArchEmitHeader(coo: [Coo])
+	E("* = $400\n");
 	E("ws1 = 0\n");
 	E("ws3 = ws1 + ");
 	E_u16(workspaceSize[1]);
@@ -43,15 +44,15 @@ sub ArchEmitHeader(coo: [Coo])
 end sub;
 
 sub ArchEmitFooter(coo: [Coo])
-	E("\t.bss\n");
-	E("argv: .dsb 2\n");
-	E("ws0: .dsb ");
+	E("argv: .fill 2\n");
+	E("ws0: .fill ");
 	E_u16(workspaceSize[0]);
 	E_nl();
-	E("ws2: .dsb ");
+	E("ws2: .fill ");
 	E_u16(workspaceSize[2]);
 	E_nl();
 	E("LOMEM:\n");
+	E(".end\n");
 end sub;
 
 

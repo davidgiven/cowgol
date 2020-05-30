@@ -76,9 +76,9 @@ function buildzmac(e)
 	}
 end
 
-function buildxa65(e)
+function buildtass64(e)
 	local img = e.outs[1]:ext(".img"):obj()
-	xa65 {
+	tass64 {
 		ins = e.ins,
 		outs = e.outs,
 	}
@@ -112,7 +112,7 @@ end
 
 function tubeemutest(e)
 	e.ins = concat { e.ins, "bin/tubeemu" }
-	return simpletest("bin/tubeemu", e)
+	return simpletest("bin/tubeemu -l 0x400 -e 0x400", e)
 end
 
 function cowgol(e)

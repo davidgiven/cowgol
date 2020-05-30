@@ -87,7 +87,7 @@ end
 include "build/c.lua"
 include "build/yacc.lua"
 include "build/gpp.lua"
-include "build/xa.lua"
+include "build/tass64.lua"
 include "tools/build.lua"
 include "third_party/zmac/build.lua"
 include "tools/cpmemu/build.lua"
