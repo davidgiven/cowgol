@@ -12,7 +12,7 @@ function gpp(e)
 	rule {
 		ins = e.ins,
 		outs = e.outs,
-		cmd = "gpp -U '' '' '(' ',' ')' '(' ')' '$$' '' -M '$$' '\\n' ' ' ' ' '\\n' '(' ')' "..
+		cmd = "gpp --nostdinc -U '' '' '(' ',' ')' '(' ')' '$$' '' -M '$$' '\\n' ' ' ' ' '\\n' '(' ')' "..
 			cflags.." "..joined(hdrs).." -o &1 @1"
 	}
 end

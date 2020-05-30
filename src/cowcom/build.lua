@@ -8,9 +8,22 @@ lemoncowgol {
 	}
 }
 
+local extras = {
+	["6502"] = "$OBJ/src/cowcom/arch6502.ng.h"
+}
+
+rule {
+	ins = { "src/cowcom/arch6502.lua" },
+	outs = { "$OBJ/src/cowcom/arch6502.ng.h" },
+	cmd = "$LUA @1 > &1"
+}
+
 for _, arch in ipairs(ARCHS) do
 	newgencowgol {
-		ins = { "src/cowcom/arch"..arch..".cow.ng" },
+		ins = {
+			"src/cowcom/arch"..arch..".cow.ng",
+			extras[arch]
+		},
 		outs = {
 			"$OBJ/cowcom-"..arch.."/inssel.coh",
 			"$OBJ/cowcom-"..arch.."/inssel.decl.coh",

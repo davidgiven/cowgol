@@ -32,7 +32,7 @@ function newgencowgol(e)
 	local cppfile = infile:ext(".i"):obj();
 
 	gpp {
-		ins = { infile },
+		ins = e.ins,
 		outs = { cppfile }
 	}
 

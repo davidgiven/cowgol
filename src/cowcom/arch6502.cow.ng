@@ -534,30 +534,5 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 	end sub;
 %}
 
-gen a16 := CONSTANT():c uses a
-		{ paramwidth := 2; LhsConst($c.value);                                     DestPush($$);                  DoCopy(); }
-
-gen STORE2(a16:lhs, ADDRESS():rhs) uses a
-		{ paramwidth := 2; LhsPop($lhs);                                           DestSym($rhs.sym, $rhs.off);   DoCopy(); }
-gen STORE2(CONSTANT():lhs, ADDRESS():rhs) uses a
-		{ paramwidth := 2; LhsConst($lhs.value);                                   DestSym($rhs.sym, $rhs.off);   DoCopy(); }
-gen STORE2(LOAD2(ADDRESS():lhs), ADDRESS():rhs) uses a
-		{ paramwidth := 2; LhsSym($lhs.sym, $lhs.off);                             DestSym($rhs.sym, $rhs.off);   DoCopy(); }
-
-gen a16 := LOAD2(ADDRESS():lhs) uses a
-		{ paramwidth := 2; LhsSym($lhs.sym, $lhs.off);                             DestPush($$);                  DoCopy(); }
-
-gen a16 := ADD2(a16:lhs, a16:rhs) uses a
-		{ paramwidth := 2; RhsPop($rhs);               LhsPop($lhs);               DestPush($$);                  DoAdc(); }
-gen a16 := ADD2(a16:lhs, CONSTANT():rhs) uses a
-		{ paramwidth := 2; RhsConst($rhs.value);       LhsPop($lhs);               DestPush($$);                  DoAdc(); }
-gen a16 := ADD2(a16:lhs, LOAD2(ADDRESS():rhs)) uses a
-		{ paramwidth := 2; RhsSym($rhs.sym, $rhs.off); LhsPop($lhs);               DestPush($$);                  DoAdc(); }
-gen a16 := ADD2(LOAD2(ADDRESS():lhs), CONSTANT():rhs) uses a
-		{ paramwidth := 2; RhsConst($rhs.value);       LhsSym($lhs.sym, $lhs.off); DestPush($$);                  DoAdc(); }
-gen a16 := ADD2(LOAD2(ADDRESS():lhs), LOAD2(ADDRESS():rhs)) uses a
-		{ paramwidth := 2; RhsSym($rhs.sym, $rhs.off); LhsSym($lhs.sym, $lhs.off); DestPush($$);                  DoAdc(); }
-
-gen STORE2(ADD2(LOAD2(ADDRESS():lhs), LOAD2(ADDRESS():rhs)), ADDRESS():dest) uses a
-		{ paramwidth := 2; RhsSym($rhs.sym, $rhs.off); LhsSym($lhs.sym, $lhs.off); DestSym($dest.sym, $dest.off); DoAdc(); }
+$include "arch6502.ng.h"
 
