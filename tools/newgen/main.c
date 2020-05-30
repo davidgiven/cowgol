@@ -304,6 +304,8 @@ static void sort_rules(void)
 	qsort(rules, rulescount, sizeof(Rule*), sort_rule_cb);
 
 	calculate_pattern_size(pattern);
+	if (maxdepth > 8) 
+		fatal("rules are too complex");
 
 	for (int i=0; i<rulescount; i++)
 	{
