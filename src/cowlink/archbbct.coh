@@ -1,0 +1,55 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl()
+	EmitByte('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+	newvalue := value;
+end sub;
+
+sub ArchEmitSubRef(subid: uint16)
+	E("f");
+	E_u16(subid);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size)
+	E("ws");
+	EmitByte(wid + '0');
+	EmitByte('+');
+	E_u16(address);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo])
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\tjsr ");
+			ArchEmitSubRef(main.id);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("_exit:\n");
+	E("\tbrk\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo])
+	E("\t.bss\n");
+	E("argv: .space 2\n");
+	E("ws0: .space ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("ws2: .space ");
+	E_u16(workspaceSize[2]);
+	E_nl();
+	E("ws1 = 0\n");
+	E("ws2 = ws1 + ");
+	E_u16(workspaceSize[1]);
+	E_nl();
+end sub;
+
+

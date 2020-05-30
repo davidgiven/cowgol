@@ -7,8 +7,10 @@
 	var int8_type: [Symbol];
 	var intptr_type: [Symbol];
 
-	const VARSTACK_WS := 1;
-	const PTRSTACK_WS := 2;
+	const VARMEM_WS := 0;
+	const PTRMEM_WS := 1;
+	const VARSTACK_WS := 2;
+	const PTRSTACK_WS := 3;
 
 	const FAKE_STACK_SIZE := 32;
 
@@ -59,10 +61,15 @@
 	end sub;
 
 	sub ArchInitVariable(symbol: [Symbol])
+		var wsid: uint8 := VARMEM_WS;
+		if IsPtr(symbol.vardata.type) != 0 then
+			wsid := PTRMEM_WS;
+		end if;
+
 		var subr := symbol.vardata.subr;
-		var offset := subr.workspace[0];
+		var offset := subr.workspace[wsid];
 		symbol.vardata.offset := offset;
-		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+		subr.workspace[wsid] := offset + symbol.vardata.type.typedata.width;
 	end sub;
 
 	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
@@ -77,9 +84,15 @@
 		if (reg & REG_P16) != 0 then
 			stackaddr := (PTRSTACK_WS<<8) | (ptrsp as uint16);
 			ptrsp := ptrsp + width;
+			if (current_subr.workspace[PTRSTACK_WS] as uint8) < ptrsp then
+				current_subr.workspace[PTRSTACK_WS] := ptrsp as Size;
+			end if;
 		else
 			stackaddr := (VARSTACK_WS<<8) | (varsp as uint16);
 			varsp := varsp + width;
+			if (current_subr.workspace[VARSTACK_WS] as uint8) < varsp then
+				current_subr.workspace[VARSTACK_WS] := varsp as Size;
+			end if;
 		end if;
 	end sub;
 
@@ -113,7 +126,11 @@
 		else
 			EmitByte(COO_ESCAPE_WSREF);
 			E_h16(sym.vardata.subr.id);
-			E_h8(0);
+			if IsPtr(sym.vardata.type) != 0 then
+				E_h8(PTRMEM_WS);
+			else
+				E_h8(VARMEM_WS);
+			end if;
 			E_h16(sym.vardata.offset + off);
 		end if;
 	end sub;
@@ -125,12 +142,12 @@
 	end sub;
 
 	sub E_loaddr(sym: [Symbol], off: Size)
-		E("<#");
+		E("#<");
 		E_symref(sym, off);
 	end sub;
 
 	sub E_hiaddr(sym: [Symbol], off: Size)
-		E(">#");
+		E("#>");
 		E_symref(sym, off);
 	end sub;
 
@@ -330,6 +347,12 @@ gen ENDSUB():s
 {
 	E_rts();
 	EmitterPopChunk('S');
+
+	var i: uint8 := 0;
+	while i != 4 loop
+		EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
+		i := i + 1;
+	end loop;
 }
 
 // --- Constants ------------------------------------------------------------
