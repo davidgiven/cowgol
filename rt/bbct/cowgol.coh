@@ -1,0 +1,34 @@
+var LOMEM: [uint8];
+@asm "lda #<LOMEM";
+@asm "sta ", LOMEM;
+@asm "lda #>LOMEM";
+@asm "sta ", LOMEM, "+1";
+
+var HIMEM: [uint8] := 0xf800 as [uint8];
+
+sub ExitWithError()
+	@asm "brk";
+end sub;
+
+sub AlignUp(in: intptr): (out: intptr)
+	out := in;
+end sub;
+
+sub print_char(c: uint8)
+	@asm "lda ", c;
+	@asm "jmp $ffee";
+end sub;
+
+sub MemSet(buf: [uint8], byte: uint8, len: uint16)
+	var bufend := buf + len;
+	loop
+		if buf == bufend then
+			return;
+		end if;
+		[buf] := byte;
+		buf := buf + 1;
+	end loop;
+end sub;
+
+include "common.coh";
+

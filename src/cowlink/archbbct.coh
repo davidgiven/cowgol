@@ -23,6 +23,11 @@ sub ArchEmitWSRef(wid: uint8, address: Size)
 end sub;
 
 sub ArchEmitHeader(coo: [Coo])
+	E("ws1 = 0\n");
+	E("ws3 = ws1 + ");
+	E_u16(workspaceSize[1]);
+	E_nl();
+
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
@@ -39,17 +44,14 @@ end sub;
 
 sub ArchEmitFooter(coo: [Coo])
 	E("\t.bss\n");
-	E("argv: .space 2\n");
-	E("ws0: .space ");
+	E("argv: .dsb 2\n");
+	E("ws0: .dsb ");
 	E_u16(workspaceSize[0]);
 	E_nl();
-	E("ws2: .space ");
+	E("ws2: .dsb ");
 	E_u16(workspaceSize[2]);
 	E_nl();
-	E("ws1 = 0\n");
-	E("ws3 = ws1 + ");
-	E_u16(workspaceSize[1]);
-	E_nl();
+	E("LOMEM:\n");
 end sub;
 
 

@@ -76,6 +76,14 @@ function buildzmac(e)
 	}
 end
 
+function buildxa65(e)
+	local img = e.outs[1]:ext(".img"):obj()
+	xa65 {
+		ins = e.ins,
+		outs = e.outs,
+	}
+end
+
 function simpletest(interpreter, e)
 	local badfile = e.ins[1]:ext(".bad")
 	rule {
@@ -100,6 +108,11 @@ end
 function cpmtest(e)
 	e.ins = concat { e.ins, "bin/cpmemu" }
 	return simpletest("bin/cpmemu", e)
+end
+
+function tubeemutest(e)
+	e.ins = concat { e.ins, "bin/tubeemu" }
+	return simpletest("bin/tubeemu", e)
 end
 
 function cowgol(e)

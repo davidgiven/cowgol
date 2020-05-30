@@ -1,0 +1,6 @@
+&X _mul4
+&X _divu4
+&X _remu4
+&X _cmp4
+&X _cmps4
+

@@ -28,6 +28,14 @@
 
 	var externs: [Extern] := (0 as [Extern]);
 
+	record Constant
+		value: Arith;
+		lid: uint16;
+		next: [Constant];
+	end record;
+
+	var constants: [Constant] := (0 as [Constant]);
+
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
 		newvalue := value;
 	end sub;
@@ -159,12 +167,6 @@
 		RegCacheFlush(FindConflictingRegisters(reg));
 	end sub;
 
-	sub E_label(label: LabelRef)
-		R_flushall();
-		E_labelref(label);
-		E(":\n");
-	end sub;
-
 	sub E_insn(insn: string)
 		E_tab();
 		E(insn);
@@ -189,6 +191,12 @@
 		E_jump("jmp", label);
 	end sub;
 
+	sub E_call(subr: [Subroutine])
+		E_insn("jsr");
+		E_subref(subr);
+		E_nl();
+	end sub;
+
 	sub E_rts() E("\trts\n"); end sub;
 	sub E_clc() E("\tclc\n"); end sub;
 	sub E_sec() E("\tsec\n"); end sub;
@@ -198,6 +206,7 @@
 	sub E_tya() E("\ttya\n"); end sub;
 	sub E_tax() E("\ttax\n"); end sub;
 	sub E_tay() E("\ttay\n"); end sub;
+	sub E_not() E("\teor #255\n"); end sub;
 
 	sub E_ld(reg: RegId)
 		R_flush(reg);
@@ -226,9 +235,24 @@
 		E_st(REG_A);
 	end sub;
 
+	sub E_inx()
+		R_flush(REG_X);
+		E("\tinx\n");
+	end sub;
+
 	sub E_iny()
 		R_flush(REG_Y);
 		E("\tiny\n");
+	end sub;
+
+	sub E_dex()
+		R_flush(REG_X);
+		E("\tdex\n");
+	end sub;
+
+	sub E_dey()
+		R_flush(REG_Y);
+		E("\tdey\n");
 	end sub;
 
 	sub E_inc(reg: RegId)
@@ -237,9 +261,18 @@
 				E_clc();
 				E("\tadc #1\n");
 
-			when REG_X:
-				E("\tinx\n");
+			when REG_X: E_inx();
+			when REG_Y: E_iny();
+		end case;
+	end sub;
 
+	sub E_dec(reg: RegId)
+		case reg is
+			when REG_A:
+				E_clc();
+				E("\tadc #1\n");
+
+			when REG_X: E_dex();
 			when REG_Y: E_iny();
 		end case;
 	end sub;
@@ -254,34 +287,141 @@
 		end if;
 	end sub;
 
+	# Does not persist the name; only call this with constant strings.
+	sub E_callhelper(name: string)
+		var e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := Alloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterPushChunk();
+		E_h16(current_subr.id);
+		E_h16(e.id);
+		EmitterPopChunk('R');
+
+		R_flushall();
+		E("\tjsr ");
+		EmitByte(COO_ESCAPE_SUBREF);
+		E_h16(e.id);
+		E_nl();
+	end sub;
+
+	var labelid: uint16 := 0;
+	sub E_plabelref(lid: uint16)
+		EmitByte(COO_ESCAPE_THISCOO);
+		EmitByte('c');
+		E_u16(lid);
+	end sub;
+
+	sub AllocPlabel(): (lid: uint16)
+		lid := labelid;
+		labelid := labelid + 1;
+
+		E_plabelref(lid);
+		E(":\n");
+	end sub;
+
+	sub AllocConst(value: Arith): (lid: uint16)
+		var c := constants;
+		while c != (0 as [Constant]) loop
+			if c.value == value then
+				break;
+			end if;
+			c := c.next;
+		end loop;
+		if c == (0 as [Constant]) then
+			c := Alloc(@bytesof Constant) as [Constant];
+			c.lid := labelid;
+			labelid := labelid + 1;
+			c.value := value;
+			c.next := constants;
+			constants := c;
+		end if;
+		lid := c.lid;
+	end sub;
+
+	sub E_string(data: string): (lid: uint16)
+		EmitterPushChunk();
+		E_h16(current_subr.id);
+
+		E("\t.text\n");
+		lid := AllocPlabel();
+		E("\t.byt ");
+
+		loop
+			var c := [data];
+			if c == 0 then
+				break;
+			end if;
+			data := data + 1;
+			
+			E_u8(c);
+			E_comma();
+		end loop;
+		E("0\n");
+		EmitterPopChunk('S');
+	end sub;
+
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId)
+		var sid: uint16;
+
+		sub pushv8()
+			sid := Push(dest, 1);
+			E_st(src);
+			E_stackref(sid);
+			E_nl();
+		end sub;
+
 		case src is
 			when REG_A:
 				case dest is
 					when REG_X: E_tax(); return;
 					when REG_Y: E_tay(); return;
 					when 0:     E_pha(); return;
+					when REG_V8: pushv8(); return;
 				end case;
 
 			when 0:
 				case dest is
-					when REG_A: E_pla(); return;
+					when REG_A:  E_pla(); return;
+
+					when REG_XA:
+						# Pop from spill stack: note: big endian!
+						E_pla();
+						E_tax();
+						E_pla();
+						return;
 				end case;
 
 			when REG_X:
 				case dest is
-					when REG_A: E_txa(); return;
+					when REG_A:  E_txa(); return;
+					when REG_V8: pushv8(); return;
 				end case;
 
 			when REG_Y:
 				case dest is
-					when REG_Y: E_tya(); return;
+					when REG_A:  E_tya(); return;
+					when REG_V8: pushv8(); return;
 				end case;
 
 			when REG_XA:
 				if (dest & REGCLASS_A16) != 0 then
-					var sid := Push(dest, 2);
+					sid := Push(dest, 2);
 
 					E_st(REG_A);
 					E_stackref(sid);
@@ -291,6 +431,21 @@
 					E_stackref(sid+1);
 					E_nl();
 
+					return;
+				elseif dest == 0 then
+					# Push to spill stack; note: big endian!
+					E_pha();
+					E_txa();
+					E_pha();
+					return;
+				end if;
+
+			when REG_V8:
+				if (dest & REGCLASS_R8) != 0 then
+					sid := Pop(src, 1);
+					E_ld(dest);
+					E_stackref(sid);
+					E_nl();
 					return;
 				end if;
 		end case;
@@ -319,14 +474,16 @@ register p16; // pointer on fake stack
 register v32; // value on fake stack;
 register param;
 
+regclass r8 := a|x|y;
 regclass a16 := v16|p16;
 
-regdata a uses xa|a compatible a|x|y;
-regdata x uses xa|x compatible a|x;
-regdata y compatible a|y;
-regdata xa uses x|a compatible a16|xa;
-regdata v16 stacked compatible a16|xa;
-regdata p16 stacked compatible a16|xa;
+regdata a           uses xa|a compatible v8|a|x|y;
+regdata x           uses xa|x compatible v8|a|x;
+regdata y                     compatible v8|a|y;
+regdata xa          uses x|a  compatible a16|xa;
+regdata v8  stacked           compatible v8|a|x|y;
+regdata v16 stacked           compatible a16|xa;
+regdata p16 stacked           compatible a16|xa;
 regdata v32 stacked;
 regdata param stacked;
 
@@ -337,7 +494,9 @@ gen ENDFILE();
 
 gen LABEL():b
 {
-	E_label($b.label);
+	R_flushall();
+	E_labelref($b.label);
+	E(":\n");
 }
 
 gen JUMP():j
@@ -358,13 +517,17 @@ gen STARTSUB():s
 	E($s.subr.name);
 	E_nl();
 
-	E("\tcseg\n");
+	E("\t.text\n");
 	EmitByte(COO_ESCAPE_THISSUB);
 	E(":\n");
 }
 
 gen ENDSUB():s
 {
+	E("end_");
+	E_subref(current_subr);
+	E(":\n");
+
 	E_rts();
 	EmitterPopChunk('S');
 
@@ -373,6 +536,85 @@ gen ENDSUB():s
 		EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
 		i := i + 1;
 	end loop;
+}
+
+gen CALL(param):s
+		{ E_call($s.subr); }
+	
+gen a := CALLE1(param):s
+		{ E_call($s.subr); }
+
+gen xa := CALLE2(param):s
+		{ E_call($s.subr); }
+
+gen v32 := CALLE4(param):s
+		{ E_call($s.subr); }
+
+gen param := END();
+
+gen param := ARG1(param, a, remaining==0);
+
+gen param := ARG1(param, a, remaining!=0)
+		{ E_pha(); }
+	
+gen param := ARG2(param, xa, remaining==0);
+
+// WARNING: big endian!
+gen param := ARG2(param, xa, remaining!=0)
+		{ E_pha(); E_txa(); E_pha(); }
+
+gen param := ARG2(END(), CALLE2(param):s)
+		{ E_call($s.subr); }
+
+gen param := ARG4(param, v32) uses y|a
+{
+	var sid := Pop(REG_V32, 4);
+	E_loadconst(REG_Y, 3);
+	E_ld(REG_A);
+	E_indstackref(sid);
+	E_nl();
+	E_pha();
+	E_dey();
+	E("\tbpl *-4\n");
+}
+
+gen param := ARG4(END(), CALLE4(param):s)
+		{ E_call($s.subr); }
+
+gen a := POPARG1(remaining==0);
+
+gen a := POPARG1(remaining!=0)
+		{ E_pla(); }
+
+// WARNING: big endian!
+gen xa := POPARG2(remaining==0);
+
+gen xa := POPARG2(remaining!=0)
+		{ E_pha(); E_tax(); E_pha(); }
+
+gen v32 := POPARG4() uses x|y|a
+{
+	var sid := Push(REG_V32, 4);
+	E_loadconst(REG_Y, 0);
+	E_loadconst(REG_X, 3);
+	E_pla();
+	E_st(REG_A);
+	E_indstackref(sid);
+	E_nl();
+	E_iny();
+	E_dex();
+	E("\tbpl *-5\n");
+}
+
+gen RETURN()
+{
+	if current_subr.num_output_parameters == 0 then
+		E_rts();
+	else
+		E("\tjmp end_");
+		E_subref(current_subr);
+		E_nl();
+	end if;
 }
 
 // --- Constants ------------------------------------------------------------
@@ -384,7 +626,7 @@ gen a|x|y := CONSTANT():c
 
 // --- 8-bit memory ----------------------------------------------------------
 
-gen STORE1(a:lhs, p16:ptr)
+gen STORE1(a:lhs, p16:ptr) uses y
 {
 	var sid := Pop($ptr, 2);
 	E_loadconst(REG_Y, 0);
@@ -411,6 +653,24 @@ gen a|x|y := LOAD1(ADDRESS():a)
 		E_nl();
 		RegCacheLeavesValue($$, $a.sym, $a.off);
 	end if;
+}
+
+gen a := LOAD1(LOAD2(ADDRESS():a)) uses y
+{
+	E_loadconst(REG_Y, 0);
+	E_ld($$);
+	E_symrefi($a.sym, $a.off);
+	E_nl();
+}
+
+gen a := LOAD1(p16:ptr) uses y
+{
+	var sid := Pop(REG_P16, 2);
+
+	E_loadconst(REG_Y, 0);
+	E_ld($$);
+	E_indstackref(sid);
+	E_nl();
 }
 
 // --- Extended operations ---------------------------------------------------
@@ -498,7 +758,27 @@ gen a|x|y := LOAD1(ADDRESS():a)
 		destparam.off := off;
 	end sub;
 
-	sub DoParam(operand: [Operand], insn: string)
+	sub DoParamIndirect(operand: [Operand], insn: string)
+		E_insn(insn);
+		case operand.mode is
+			when MODE_CONST:
+				E_plabelref(AllocConst(operand.val));
+
+			when MODE_STACK:
+				E_stackref(operand.sid);
+
+			when MODE_SYMBOL:
+				E_symref(operand.sym, operand.off);
+
+			when MODE_SYMBOLI:
+				EmitByte('(');
+				E_symref(operand.sym, operand.off);
+				EmitByte(')');
+		end case;
+		E(",y\n");
+	end sub;
+
+	sub DoParamDirect(operand: [Operand], insn: string)
 		E_insn(insn);
 		case operand.mode is
 			when MODE_CONST:
@@ -524,36 +804,51 @@ gen a|x|y := LOAD1(ADDRESS():a)
 
 	sub DoXA(insn: string)
 		R_flush(REG_A|REG_X|REG_XA);
-		DoParam(&rhsparam, insn);
+		DoParamDirect(&rhsparam, insn);
 		E_pha();
 		E_txa();
-		DoParam(&rhsparam, insn);
+		DoParamDirect(&rhsparam, insn);
 		E_tax();
 		E_pla();
 	end sub;
 
-	sub DoCopy()
-		R_flush(REG_A);
-		while paramwidth != 0 loop
-			DoParam(&lhsparam, "lda");
-			DoParam(&destparam, "sta");
-			paramwidth := paramwidth - 1;
-		end loop;
+	sub DoCopy4()
+		E_loadconst(REG_Y, 0);
+		E_loadconst(REG_X, paramwidth);
+		var lid := AllocPlabel();
+
+		DoParamIndirect(&lhsparam, "lda");
+		DoParamIndirect(&destparam, "sta");
+
+		E_iny();
+		E_dex();
+		E("\tbne ");
+		E_plabelref(lid);
+		E_nl();
 	end sub;
 
-	sub Do3Op(insn: string)
-		R_flush(REG_A);
-		while paramwidth != 0 loop
-			DoParam(&lhsparam, "lda");
-			DoParam(&rhsparam, insn);
-			DoParam(&destparam, "sta");
-			paramwidth := paramwidth - 1;
-		end loop;
+	sub Do3Op4(insn: string)
+		E_loadconst(REG_Y, 0);
+		E_loadconst(REG_X, paramwidth);
+		var lid := AllocPlabel();
+
+		DoParamIndirect(&lhsparam, "lda");
+		DoParamIndirect(&rhsparam, insn);
+		DoParamIndirect(&destparam, "sta");
+
+		E_iny();
+		E_dex();
+		E("\tbne ");
+		E_plabelref(lid);
+		E_nl();
 	end sub;
 
-	sub DoAdc()
-		E_clc();
-		Do3Op("adc");
+	sub Do2Op_not()
+		E("\tNOT4\n");
+	end sub;
+
+	sub Do2Op_neg()
+		E("\tNEG4\n");
 	end sub;
 %}
 
@@ -605,6 +900,147 @@ gen a := SUB1(a, LOAD1(p16))         { E_sec(); DoAlu1PS("sbc"); }
 
 gen a := ADD1(a, CONSTANT():c)       { E_clc(); DoAlu1C("adc", $c.value as uint8); }
 gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8); }
+
+gen a := NOT1(a) { E_not(); }
+
+gen a := NEG1(a)
+{
+	R_flush(REG_A);
+	E_sec();
+	E_not();
+	E("\tadc #0\n");
+}
+
+gen a := OR1(a, v8) { E("\tOR1\n"); }
+gen a := AND1(a, v8) { E("\tAND1\n"); }
+gen a := EOR1(a, v8) { E("\tEOR1\n"); }
+
+gen v8 := LSHIFT1(v8, a)
+		{ E("\tLSHIFT1\n"); }
+
+gen v8 := RSHIFTU1(v8, a)
+		{ E("\tRSHIFTU1\n"); }
+
+gen v8 := RSHIFTS1(v8, a)
+		{ E("\tRSHIFTS1\n"); }
+
+gen v8 := MUL1(v8, a)
+		{ E("\tMUL1\n"); }
+
+gen v8 := DIVU1(v8, a)
+		{ E("\tDIVU1\n"); }
+
+gen v8 := DIVS1(v8, a)
+		{ E("\tDIVS1\n"); }
+
+gen v8 := REMU1(v8, a)
+		{ E("\tREMU1\n"); }
+
+gen v8 := REMS1(v8, a)
+		{ E("\tREMS1\n"); }
+
+// --- Conditionals ---------------------------------------------------------
+
+%{
+	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+		if node.beqs0.truelabel != node.beqs0.fallthrough then
+			E_jump(trueinsn, node.beqs0.truelabel);
+		end if;
+		if node.beqs0.falselabel != node.beqs0.fallthrough then
+			E_jump(falseinsn, node.beqs0.falselabel);
+		end if;
+	end sub;
+
+	sub E_jumps_beq_bne(node: [Node])
+		E_jumps_with_fallthrough("beq", "bne", node);
+	end sub;
+
+	sub E_jumps_bcs_bcc(node: [Node])
+		E_jumps_with_fallthrough("bcs", "bcc", node);
+	end sub;
+
+	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
+		var label := node.beqs0.falselabel;
+		if lhs == rhs then
+			label := node.beqs0.truelabel;
+		end if;
+		if label != node.beqs0.fallthrough then
+			E_jmp(label);
+		end if;
+	end sub;
+%}
+
+gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
+		{ beqc(self.n[0], $c1.value, $c2.value); }
+
+gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
+		{ beqc(self.n[0], $c1.value, $c2.value); }
+
+gen BEQU1(v8, a):c
+{
+	var sid := Pop(REG_V8, 1);
+
+	E_insn("cmp");
+	E_stackref(sid);
+	E_nl();
+	E_jumps_beq_bne(self.n[0]);
+}
+
+gen BEQS1(v8, a):c
+{
+	E("\tBEQS1\n");
+}
+
+gen BLTU1(a, v8):c
+{
+	var sid := Pop(REG_V8, 1);
+
+	E_insn("cmp");
+	E_stackref(sid);
+	E_nl();
+	E_jumps_bcs_bcc(self.n[0]);
+}
+
+gen BEQS2(v16:lhs, xa:rhs):c
+{
+	E("\tBEQS2\n");
+}
+
+gen BEQU2(v16:lhs, xa:rhs):c
+{
+	E("\tBEQU2\n");
+}
+
+gen BLTU2(v16:lhs, xa:rhs):c
+{
+	E("\tBLTU2\n");
+}
+
+gen BEQU4(v32:lhs, v32:rhs):c
+{
+	var sid := Pop(REG_V32, 8);
+	E_callhelper("_cmp4");
+	E_jumps_beq_bne(self.n[0]);
+}
+
+gen BEQS4(v32:lhs, v32:rhs):c
+{
+	E("\tBEQS4\n");
+}
+
+gen BLTU4(v32:lhs, v32:rhs):c
+{
+	var sid := Pop(REG_V32, 8);
+	E_callhelper("_cmp4");
+	E_jumps_bcs_bcc(self.n[0]);
+}
+
+gen BLTS4(v32:lhs, v32:rhs):c
+{
+	var sid := Pop(REG_V32, 8);
+	E_callhelper("_cmps4");
+	E_jumps_bcs_bcc(self.n[0]);
+}
 
 // --- 16-bit ---------------------------------------------------------------
 
@@ -692,5 +1128,244 @@ gen STORE2(xa, p16:rhs)
 	E_nl();
 }
 
+gen v16 := LSHIFT2(v16, a)
+		{ E("\tLSHIFT2\n"); }
+
+gen v16 := RSHIFTU2(v16, a)
+		{ E("\tRSHIFTU2\n"); }
+
+gen v16 := RSHIFTS2(v16, a)
+		{ E("\tRSHIFTS2\n"); }
+
+gen v16 := MUL2(v16, xa)
+		{ E("\tRMUL2\n"); }
+
+gen v16 := DIVU2(v16, xa)
+		{ E("\tDIVU2\n"); }
+
+gen v16 := DIVS2(v16, xa)
+		{ E("\tDIVS2\n"); }
+
+// --- 32 bit ---------------------------------------------------------------
+
+gen v32 := MUL4(v32, v32) { E_callhelper("_mul4"); }
+gen v32 := DIVU4(v32, v32) { E_callhelper("_divu4"); }
+gen v32 := REMU4(v32, v32) { E_callhelper("_remu4"); }
+gen v32 := DIVU4(v32, v32) { E_callhelper("_divu4"); }
+
+gen v32 := LSHIFT4(v32, a)
+		{ E("\tLSHIFT4\n"); }
+
+gen v32 := RSHIFTU4(v32, a)
+		{ E("\tRSHIFTU4\n"); }
+
+gen v32 := RSHIFTS4(v32, a)
+		{ E("\tRSHIFTS4\n"); }
+
+// --- Casts ----------------------------------------------------------------
+
+gen v32 := CAST14(a, sext==0)
+{
+	var sid := Push(REG_V32, 4);
+
+	E_st(REG_A);
+	E_stackref(sid);
+	E_nl();
+
+	E_loadconst(REG_A, 0);
+
+	E_st(REG_A);
+	E_stackref(sid+1);
+	E_nl();
+
+	E_st(REG_A);
+	E_stackref(sid+2);
+	E_nl();
+
+	E_st(REG_A);
+	E_stackref(sid+3);
+	E_nl();
+}
+
+gen v32 := CAST24(xa, sext==0)
+{
+	var sid := Push(REG_V32, 4);
+
+	E_st(REG_A);
+	E_stackref(sid);
+	E_nl();
+
+	E_st(REG_X);
+	E_stackref(sid+1);
+	E_nl();
+
+	E_loadconst(REG_A, 0);
+
+	E_st(REG_A);
+	E_stackref(sid+2);
+	E_nl();
+
+	E_st(REG_A);
+	E_stackref(sid+3);
+	E_nl();
+}
+
+gen a := CAST21(xa|a16:rhs)
+{
+	if $rhs != REG_XA then
+		var sid := Pop(REG_V32, 2);
+		E_ld(REG_A);
+		E_stackref(sid);
+		E_nl();
+	end if;
+}
+
+gen a := CAST41(v32)
+{
+	var sid := Pop(REG_V32, 4);
+	E_ld(REG_A);
+	E_stackref(sid);
+	E_nl();
+}
+
+// --- Case -----------------------------------------------------------------
+
+gen STARTCASE1(a);
+
+gen STARTCASE2(xa);
+
+gen STARTCASE4(v32)
+{
+	E("\tSTARTCASE4\n");
+}
+
+gen WHENCASE1():c
+{
+	E("\tWHENCASE1\n");
+}
+
+gen WHENCASE2():c uses a
+{
+	E("\tWHENCASE2\n");
+}
+
+gen WHENCASE4():c uses a
+{
+	E("\tWHENCASE4\n");
+}
+
+gen ENDCASE();
+
+// --- Strings --------------------------------------------------------------
+
+gen xa := STRING():s
+{
+	R_flush($$);
+	var sid := E_string($s.text);
+
+	E_ld(REG_A);
+	E("#<");
+	EmitByte(COO_ESCAPE_THISCOO);
+	EmitByte('c');
+	E_u16(sid);
+	E_nl();
+
+	E_ld(REG_X);
+	E("#>");
+	EmitByte(COO_ESCAPE_THISCOO);
+	EmitByte('c');
+	E_u16(sid);
+	E_nl();
+}
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+	EmitterPushChunk();
+	E_h16(current_subr.id);
+	E("\t.data 4\n"); # yes, really
+	E($s.sym.vardata.externname);
+	E(":\n");
+}
+
+gen ENDINIT()
+{
+	EmitterPopChunk('S');
+}
+
+gen INIT1():c
+{
+	E("\t.byte ");
+	E_u8($c.value as uint8);
+	E_nl();
+}
+
+gen INIT2():c
+{
+	E("\t.word ");
+	E_u16($c.value as uint16);
+	E_nl();
+}
+
+gen INIT4():c
+{
+	E("\t.word ");
+	E_u16($c.value as uint16);
+	E_nl();
+
+	E("\t.word ");
+	E_u16(($c.value>>16) as uint16);
+	E_nl();
+}
+
+gen INITS():s
+{
+	var sid := E_string($s.text);
+
+	E("\t.word ");
+	EmitByte(COO_ESCAPE_THISCOO);
+	EmitByte('c');
+	E_u16(sid);
+	E_nl();
+}
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMSTART()
+{
+	R_flushall();
+	E_tab();
+}
+
+gen ASMTEXT():t
+{
+	E($t.text);
+	E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	if $s.sym.kind == VAR then
+		E_symref($s.sym, 0);
+	else
+		E_subref($s.sym.subr);
+	end if;
+	E_space();
+}
+
+gen ASMVALUE():c
+{
+	EmitByte('(');
+	E_i32($c.value);
+	EmitByte(')');
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
 $include "arch6502.ng.h"
+
 

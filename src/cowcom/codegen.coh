@@ -476,7 +476,7 @@ sub Generate(rootnode: [Node])
 					# Otherwise, we need to copy the value from one stack to another.
 
 					producer.produced_reg := FindFirst(producer.producable_regs);
-					node.produced_reg := FindFirst(node.desired_reg);;
+					node.produced_reg := FindFirst(node.desired_reg);
 					CreateSpill(producer, producer.produced_reg, node.produced_reg);
 				end if;
 			else
