@@ -47,7 +47,7 @@ sub ArchEmitFooter(coo: [Coo])
 	E_u16(workspaceSize[2]);
 	E_nl();
 	E("ws1 = 0\n");
-	E("ws2 = ws1 + ");
+	E("ws3 = ws1 + ");
 	E_u16(workspaceSize[1]);
 	E_nl();
 end sub;
