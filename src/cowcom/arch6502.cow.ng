@@ -226,6 +226,11 @@
 		E_st(REG_A);
 	end sub;
 
+	sub E_iny()
+		R_flush(REG_Y);
+		E("\tiny\n");
+	end sub;
+
 	sub E_inc(reg: RegId)
 		case reg is
 			when REG_A:
@@ -235,18 +240,17 @@
 			when REG_X:
 				E("\tinx\n");
 
-			when REG_Y:
-				E("\tiny\n");
+			when REG_Y: E_iny();
 		end case;
 	end sub;
 
 	sub E_loadconst(reg: RegId, value: uint8)
-		var cache := RegCacheFindConstant(value) & reg;
+		var cache := RegCacheFindConstant(value as Word) & reg;
 		if cache == 0 then
 			E_ld(reg);
 			E_const(value);
 			E_nl();
-			RegCacheLeavesConstant(reg, value);
+			RegCacheLeavesConstant(reg, value as Word);
 		end if;
 	end sub;
 
@@ -278,9 +282,9 @@
 
 		StartError();
 		print("bad move ");
-		E_h8(src);
+		E_h16(src);
 		E(" -> ");
-		E_h8(dest);
+		E_h16(dest);
 		EndError();
 	end sub;
 
@@ -291,9 +295,9 @@
 	end sub;
 %}
 
-wordsize uint8;
+wordsize uint16;
 
-register a x y;
+register a x y xa;
 register v8;  // value on fake stack
 register v16; // value on fake stack
 register p16; // pointer on fake stack
@@ -302,9 +306,10 @@ register param;
 
 regclass a16 := v16|p16;
 
-regdata a compatible a|x|y;
-regdata x compatible a|x;
+regdata a uses xa|a compatible a|x|y;
+regdata x uses xa|x compatible a|x;
 regdata y compatible a|y;
+regdata xa uses x|a;
 regdata v16 stacked;
 regdata p16 stacked;
 regdata v32 stacked;
@@ -362,25 +367,6 @@ gen a|x|y := CONSTANT():c
 	E_loadconst($$, $c.value as uint8);
 }
 
-gen a16 := ADDRESS():a uses a
-{
-	var sid := Push($$, 2);
-
-	E_ld(REG_A);
-	E_loaddr($a.sym, $a.off);
-	E_nl();
-	E_st(REG_A);
-	E_stackref(sid);
-	E_nl();
-
-	E_ld(REG_A);
-	E_hiaddr($a.sym, $a.off);
-	E_nl();
-	E_st(REG_A);
-	E_stackref(sid+1);
-	E_nl();
-}
-
 // --- 8-bit memory ----------------------------------------------------------
 
 gen STORE1(a:lhs, p16:ptr)
@@ -422,56 +408,7 @@ gen v8 := FALLBACK(a)
 	E_nl();
 }
 
-// --- 8-bit maths -----------------------------------------------------------
-
-%{
-	sub DoAlu1S(insn: string)
-		var rhssid := Pop(REG_V8, 1);
-
-		R_flush(REG_A);
-		E_insn(insn);
-		E_stackref(rhssid);
-		E_nl();
-	end sub;
-
-	sub DoAlu1C(insn: string, value: uint8)
-		R_flush(REG_A);
-		E_insn(insn);
-		E_const(value);
-		E_nl();
-	end sub;
-
-	sub DoAlu1M(insn: string, sym: [Symbol], off: Size)
-		R_flush(REG_A);
-		E_insn(insn);
-		E_symref(sym, off);
-		E_nl();
-	end sub;
-
-	sub DoAlu1PS(insn: string)
-		var rhssid := Pop(REG_P16, 2);
-
-		E_loadconst(REG_Y, 0);
-		R_flush(REG_A);
-		E_insn(insn);
-		E_indstackref(rhssid);
-		E_nl();
-	end sub;
-%}
-
-gen a := ADD1(a, v8)                 { E_clc(); DoAlu1S("adc"); }
-gen a := SUB1(a, v8)                 { E_sec(); DoAlu1S("sbc"); }
-
-gen a := ADD1(a, LOAD1(ADDRESS():a)) { E_clc(); DoAlu1M("adc", $a.sym, $a.off); }
-gen a := SUB1(a, LOAD1(ADDRESS():a)) { E_sec(); DoAlu1M("sbc", $a.sym, $a.off); }
-
-gen a := ADD1(a, LOAD1(p16))         { E_clc(); DoAlu1PS("adc"); }
-gen a := SUB1(a, LOAD1(p16))         { E_sec(); DoAlu1PS("sbc"); }
-
-gen a := ADD1(a, CONSTANT():c)       { E_clc(); DoAlu1C("adc", $c.value as uint8); }
-gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8); }
-
-// --- 8-bit memory ----------------------------------------------------------
+// --- Extended operations ---------------------------------------------------
 
 %{
 	const MODE_CONST := 0;
@@ -504,17 +441,17 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 
 	sub LhsPop(reg: RegId)
 		lhsparam.mode := MODE_STACK;
-		lhsparam.sid := Pop(paramwidth, reg);
+		lhsparam.sid := Pop(reg, paramwidth);
 	end sub;
 
 	sub RhsPop(reg: RegId)
 		rhsparam.mode := MODE_STACK;
-		rhsparam.sid := Pop(paramwidth, reg);
+		rhsparam.sid := Pop(reg, paramwidth);
 	end sub;
 
 	sub DestPush(reg: RegId)
 		destparam.mode := MODE_STACK;
-		destparam.sid := Push(paramwidth, reg);
+		destparam.sid := Push(reg, paramwidth);
 	end sub;
 
 	sub LhsSym(sym: [Symbol], off: Size)
@@ -580,6 +517,16 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 		E_nl();
 	end sub;
 
+	sub DoXA(insn: string)
+		R_flush(REG_A|REG_X|REG_XA);
+		DoParam(&rhsparam, insn);
+		E_pha();
+		E_txa();
+		DoParam(&rhsparam, insn);
+		E_tax();
+		E_pla();
+	end sub;
+
 	sub DoCopy()
 		R_flush(REG_A);
 		while paramwidth != 0 loop
@@ -604,6 +551,163 @@ gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8
 		Do3Op("adc");
 	end sub;
 %}
+
+// --- 8-bit maths -----------------------------------------------------------
+
+%{
+	sub DoAlu1S(insn: string)
+		var rhssid := Pop(REG_V8, 1);
+
+		R_flush(REG_A);
+		E_insn(insn);
+		E_stackref(rhssid);
+		E_nl();
+	end sub;
+
+	sub DoAlu1C(insn: string, value: uint8)
+		R_flush(REG_A);
+		E_insn(insn);
+		E_const(value);
+		E_nl();
+	end sub;
+
+	sub DoAlu1M(insn: string, sym: [Symbol], off: Size)
+		R_flush(REG_A);
+		E_insn(insn);
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
+	sub DoAlu1PS(insn: string)
+		var rhssid := Pop(REG_P16, 2);
+
+		E_loadconst(REG_Y, 0);
+		R_flush(REG_A);
+		E_insn(insn);
+		E_indstackref(rhssid);
+		E_nl();
+	end sub;
+%}
+
+gen a := ADD1(a, v8)                 { E_clc(); DoAlu1S("adc"); }
+gen a := SUB1(a, v8)                 { E_sec(); DoAlu1S("sbc"); }
+
+gen a := ADD1(a, LOAD1(ADDRESS():a)) { E_clc(); DoAlu1M("adc", $a.sym, $a.off); }
+gen a := SUB1(a, LOAD1(ADDRESS():a)) { E_sec(); DoAlu1M("sbc", $a.sym, $a.off); }
+
+gen a := ADD1(a, LOAD1(p16))         { E_clc(); DoAlu1PS("adc"); }
+gen a := SUB1(a, LOAD1(p16))         { E_sec(); DoAlu1PS("sbc"); }
+
+gen a := ADD1(a, CONSTANT():c)       { E_clc(); DoAlu1C("adc", $c.value as uint8); }
+gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8); }
+
+// --- 16-bit ---------------------------------------------------------------
+
+gen a16 := FALLBACK(xa)
+{
+	E("\t; pushing ");
+	E_h16($$);
+	E_nl();
+	var destsid := Push($$, 2);
+
+	E_st(REG_A);
+	E_stackref(destsid+0);
+	E_nl();
+
+	E_st(REG_X);
+	E_stackref(destsid+1);
+	E_nl();
+}
+
+gen xa := LOAD2(ADDRESS():a)
+{
+	var cache := RegCacheFindValue($a.sym, $a.off);
+	if cache != REG_XA then
+		E_ld(REG_A);
+		E_symref($a.sym, $a.off);
+		E_nl();
+
+		E_ld(REG_X);
+		E_symref($a.sym, $a.off+1);
+		E_nl();
+	end if;
+	RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
+}
+
+gen xa := LOAD2(p16:ptr)
+{
+	E("\t; popping ");
+	E_h16($ptr);
+	print("popping ");
+	print_hex_i32(self.n[0] as intptr as uint32);
+	print_nl();
+	E_nl();
+	var sid := Pop($ptr, 2);
+
+	E_loadconst(REG_Y, 0);
+
+	E_ld(REG_A);
+	E_indstackref(sid);
+	E_nl();
+
+	E_iny();
+
+	E_ld(REG_X);
+	E_indstackref(sid);
+	E_nl();
+}
+
+gen xa := CONSTANT():c
+{
+	var cache := RegCacheFindConstant($c.value as Word);
+	if cache != REG_XA then
+		E_loadconst(REG_A, $c.value as uint8);
+		E_loadconst(REG_X, ($c.value>>8) as uint8);
+	end if;
+	RegCacheLeavesConstant(REG_XA, $c.value as Word);
+}
+
+gen xa := ADDRESS():a
+{
+	var sid := Push($$, 2);
+
+	E_ld(REG_A);
+	E_loaddr($a.sym, $a.off);
+	E_nl();
+
+	E_ld(REG_X);
+	E_hiaddr($a.sym, $a.off);
+	E_nl();
+}
+
+gen STORE2(xa, ADDRESS():a)
+{
+	E_st(REG_A);
+	E_symref($a.sym, $a.off);
+	E_nl();
+
+	E_st(REG_X);
+	E_symref($a.sym, $a.off+1);
+	E_nl();
+	RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
+}
+
+gen STORE2(xa, p16:rhs)
+{
+	var sid := Pop($rhs, 2);
+
+	E_loadconst(REG_Y, 0);
+
+	E_st(REG_A);
+	E_indstackref(sid);
+	E_nl();
+
+	E_iny();
+
+	E_st(REG_X);
+	E_indstackref(sid);
+	E_nl();
+}
 
 $include "arch6502.ng.h"
 

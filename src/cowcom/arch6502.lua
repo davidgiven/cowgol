@@ -1,10 +1,10 @@
-local function writespec(mode, name)
+local function writespec(mode, name, width)
 	if mode == "pop" then
-		io.write("a16:"..name)
+		io.write("v32:"..name)
 	elseif mode == "mem" then
-		io.write("LOAD2(ADDRESS():"..name..")")
+		io.write("LOAD"..width.."(ADDRESS():"..name..")")
 	elseif mode == "memi" then
-		io.write("LOAD2(LOAD2(ADDRESS():"..name.."))")
+		io.write("LOAD"..width.."(LOAD2(ADDRESS():"..name.."))")
 	elseif mode == "constant" then
 		io.write("CONSTANT():"..name)
 	end
@@ -24,6 +24,7 @@ local function writeparm(mode, prefix, name)
 	end
 end
 
+local operations = { "ADD", "SUB", "EOR", "OR", "AND" }
 local opcodes = {
 	ADD = "adc",
 	SUB = "sbc",
@@ -32,15 +33,35 @@ local opcodes = {
 	AND = "and"
 }
 
-for _, lhs in ipairs({"pop", "mem", "memi", "constant"}) do
-	for _, dest in ipairs({"push", "mem", "memi"}) do
+for _, op in ipairs(operations) do
+	for _, rhs in ipairs({"pop", "mem", "constant"}) do
+		io.write("gen xa := "..op.."2(xa, ")
+		writespec(rhs, "rhs", 2)
+		io.write(")\n")
+
+		io.write("{\n");
+		if op == "ADD" then
+			io.write("\tE_clc();\n");
+		end
+		if op == "SUB" then
+			io.write("\tE_sec();\n");
+		end
+		io.write("\tparamwidth := 2;\n");
+		writeparm(rhs, "Rhs", "rhs")
+		io.write("\tDoXA(\"", opcodes[op], "\");\n")
+		io.write("}\n");
+	end
+end
+
+for _, lhs in ipairs({"pop", "mem", "constant"}) do
+	for _, dest in ipairs({"push", "mem"}) do
 		if (lhs ~= "pop") or (dest ~= "push") then
 			if (dest == "mem") or (dest == "memi") then
-				io.write("gen STORE2(")
+				io.write("gen STORE4(")
 			else
-				io.write("gen a16 := ")
+				io.write("gen v32 := ")
 			end
-			writespec(lhs, "lhs")
+			writespec(lhs, "lhs", 4)
 			if dest == "mem" then
 				io.write(", ADDRESS():dest)\n")
 			elseif dest == "memi" then
@@ -50,7 +71,7 @@ for _, lhs in ipairs({"pop", "mem", "memi", "constant"}) do
 			end
 
 			io.write("{\n");
-			io.write("\tparamwidth := 2;\n");
+			io.write("\tparamwidth := 4;\n");
 			writeparm(lhs, "Lhs", "lhs")
 			writeparm(dest, "Dest", "dest")
 			io.write("\tDoCopy();\n")
@@ -59,19 +80,19 @@ for _, lhs in ipairs({"pop", "mem", "memi", "constant"}) do
 	end
 end
 
-for _, op in ipairs({"ADD", "SUB", "EOR", "OR", "AND"}) do
+for _, op in ipairs(operations) do
 	for _, lhs in ipairs({"pop", "mem", "constant"}) do
 		for _, rhs in ipairs({"pop", "mem", "constant"}) do
 			for _, dest in ipairs({"push", "mem"}) do
 				if dest == "mem" then
-					io.write("gen STORE2(")
+					io.write("gen STORE4(")
 				else
-					io.write("gen a16 := ")
+					io.write("gen v32 := ")
 				end
-				io.write(op.."2(")
-				writespec(lhs, "lhs")
+				io.write(op.."4(")
+				writespec(lhs, "lhs", 4)
 				io.write(", ")
-				writespec(rhs, "rhs")
+				writespec(rhs, "rhs", 4)
 				if dest == "mem" then
 					io.write("), ADDRESS():dest)\n")
 				else
@@ -85,7 +106,7 @@ for _, op in ipairs({"ADD", "SUB", "EOR", "OR", "AND"}) do
 				if op == "SUB" then
 					io.write("\tE_sec();\n");
 				end
-				io.write("\tparamwidth := 2;\n");
+				io.write("\tparamwidth := 4;\n");
 				writeparm(rhs, "Rhs", "rhs")
 				writeparm(lhs, "Lhs", "lhs")
 				writeparm(dest, "Dest", "dest")

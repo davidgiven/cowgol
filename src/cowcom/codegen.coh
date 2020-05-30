@@ -262,6 +262,10 @@ sub PrintNodes(rootnode: [Node])
 		print_char(' ');
 		print_i8(node.op);
 		print_char(' ');
+		print_hex_i16(node.desired_reg as uint16);
+		print_char(' ');
+		print_hex_i16(node.produced_reg as uint16);
+		print_char(' ');
 		print_hex_i32(node.left as intptr as uint32);
 		print_char(' ');
 		print_hex_i32(node.right as intptr as uint32);
@@ -368,7 +372,11 @@ sub Generate(rootnode: [Node])
 					# convert from whatever wanted it to the right thing.
 					var oldnode := node;
 					node := MidFallback(oldnode);
+
 					node.consumer := oldnode.consumer;
+
+					# Patch the parent to point at the new node.
+
 					node.dlink := oldnode; # points to the node parent
 					if oldnode.dlink.left == oldnode then
 						oldnode.dlink.left := node;
@@ -378,6 +386,21 @@ sub Generate(rootnode: [Node])
 						SimpleError("invalid tree");
 					end if;
 					node.desired_reg := oldnode.desired_reg;
+
+					# Patch the parent's producer to point at the new node.
+
+					producer := oldnode.dlink.producer;
+					i := 0;
+					while i != INSTRUCTION_TEMPLATE_DEPTH loop
+						if producer.n[i] == oldnode then
+							producer.n[i] := node;
+						end if;
+						i := i + 1;
+					end loop;
+
+					print_nl();
+					PrintNodes(rootnode);
+
 					RewindRulePointers();
 					continue;
 				end if;
@@ -470,6 +493,17 @@ sub Generate(rootnode: [Node])
 				# the same stack (a backend might have several).
 				
 				var candidate := node.desired_reg & producer.producable_regs;
+				print("stacked ");
+				print_hex_i32(node as intptr as uint32);
+				print(" candidate ");
+				print_hex_i16(candidate as uint16);
+				print(" node.desired_reg ");
+				print_hex_i16(node.desired_reg as uint16);
+				print(" producer_producable_regs ");
+				print_hex_i16(producer.producable_regs as uint16);
+
+				print_nl();
+
 				if candidate != 0 then
 					# Good news --- the producer and the consumer have a register type in
 					# common.
