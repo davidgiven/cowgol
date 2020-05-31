@@ -177,9 +177,9 @@
 	lda `$.1.0
 	rts
 
-&X _div1
-&W _div1 1 2
-; Multiplies A = A / X, remainder in X.
+&X _divu1
+&W _divu1 1 2
+; Unsigned divide of A = A / X, remainder in X.
 ``:
 	sta `$.1.0
 	stx `$.1.1
@@ -233,4 +233,5 @@
 	lda `$.1.0+0
 	ldx `$.1.0+1
 	rts
+
 

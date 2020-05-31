@@ -1401,8 +1401,8 @@ gen a := RSHIFTU1(a, y) { E_callhelper("_rshiftu1"); }
 gen a := RSHIFTS1(a, y) { E_callhelper("_rshifts1"); }
 
 gen a := MUL1(a, x) uses y  { E_callhelper("_mul1"); }
-gen a := DIVU1(a, x) uses y { E_callhelper("_div1"); }
-gen x := REMU1(a, x) uses y { E_callhelper("_div1"); }
+gen a := DIVU1(a, x) uses y { E_callhelper("_divu1"); }
+gen x := REMU1(a, x) uses y { E_callhelper("_divu1"); }
 
 gen v8 := DIVS1(v8, a)
 		{ E("\tDIVS1\n"); }
