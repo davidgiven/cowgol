@@ -8,18 +8,21 @@ var two: uint8 := 2;
 var onetwoeight: uint8 := 0x80;
 
 sub lshift()
+	print("one<<zero == 1"); if one<<zero == 1 then yes(); else no(); end if;
 	print("one<<one == 2"); if one<<one == 2 then yes(); else no(); end if;
 	print("one<<two == 4"); if one<<two == 4 then yes(); else no(); end if;
 end sub;
 lshift();
 
 sub rshiftu()
+	print("onetwoeight>>zero == 128"); if onetwoeight>>zero == 128 then yes(); else no(); end if;
 	print("onetwoeight>>one == 64"); if onetwoeight>>one == 64 then yes(); else no(); end if;
 	print("onetwoeight>>two == 32"); if onetwoeight>>two == 32 then yes(); else no(); end if;
 end sub;
 rshiftu();
 
 sub rshifts()
+	print("mbig>>zero == 0x80"); if mbig>>zero == 0x80 then yes(); else no(); end if;
 	print("mbig>>one == 0xc0"); if mbig>>one == 0xc0 then yes(); else no(); end if;
 	print("mbig>>two == 0xe0"); if mbig>>two == 0xe0 then yes(); else no(); end if;
 end sub;
