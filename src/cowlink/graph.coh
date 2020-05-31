@@ -118,14 +118,14 @@ sub PlaceSubroutines(subroutine: [Subroutine])
 						# gets reprocessed.
 						push(called);
 					end if;
-					if (called.state & SUB_USED) == 0 then
-						# Subroutines which we know haven't been processed yet
-						# always go on the queue.
-						push(called);
-						called.state := called.state | SUB_USED;
-					end if;
 					i := i + 1;
 				end loop;
+				if (called.state & SUB_USED) == 0 then
+					# Subroutines which we know haven't been processed yet
+					# always go on the queue.
+					push(called);
+					called.state := called.state | SUB_USED;
+				end if;
 			end loop;
 
 			refs := refs.next;
