@@ -261,3 +261,39 @@
 	ldx `$.1.1
 	rts
 
+&X _mul4
+&W _mul4 1 13
+; Multiplication of `$.1.0to3 x `$.1.9to12 -> `$.1.0to7
+``:
+	lda #0				; clear low part of result
+	sta `$.1.4
+	sta `$.1.5
+	sta `$.1.6
+	sta `$.1.7
+	sta `$.1.8
+
+	clc
+	ldy #$21			; bit counter
+
+``_loop:
+	ldx #9				; shift right result and lhs
+-
+	ror `$.1.0-1, x
+	dex
+	bne -
+	bcc ``_noadd
+
+	ldx #$fc			; add rhs to low half of result
+	clc
+-
+	lda `$.1.4+4, x
+	adc `$.1.9+4, x
+	sta `$.1.4+4, x
+	inx
+	bne -
+
+``_noadd:
+	dey
+	bne ``_loop
+	rts
+

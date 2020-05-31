@@ -632,6 +632,7 @@ regclass in1_ops := const_op|mem1_op|memi1_op|stacki1_op|v8_op;
 regclass in2_ops := const_op|address_op|mem2_op|memi2_op|stacki2_op|a16_op;
 regclass in4_ops := const_op|mem4_op|memi4_op|stacki4_op|v32_op;
 regclass ptr_ops := mem2_op|address_op|p16_op;
+regclass deref_ops := memi1_op|memi2_op|memi4_op|stacki1_op|stacki2_op|stacki4_op;
 
 regdata a           uses xa|a compatible v8|a|x|y;
 regdata x           uses xa|x compatible v8|a|x;
@@ -829,6 +830,14 @@ gen JUMP():j
 			when MODE_STACK:
 				E_stackref(operand.sid);
 				operand.sid := operand.sid + 1;
+
+			when MODE_STACKI:
+				EmitByte('(');
+				E_stackref(operand.sid);
+				E("),y");
+				if paramwidth != 1 then
+					E("\n\tiny");
+				end if;
 
 			when MODE_SYMBOL:
 				E_symref(operand.sym, operand.off);
@@ -1573,10 +1582,61 @@ gen v32 := AND4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op
 gen v32 := OR4(in4_ops, in4_ops)  uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("ora"); }
 gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("eor"); }
 
-gen v32 := MUL4(v32, v32) { E_callhelper("_mul4"); }
-gen v32 := DIVU4(v32, v32) { E_callhelper("_divu4"); }
+%{
+	sub MulOrDiv4(name: string)
+		var e := GetHelper(name);
+
+		var dest := PopOp();
+		var rhs := PopOp();
+		var lhs := PopOp();
+
+		paramwidth := 4;
+		E_loadconst(REG_Y, 3);
+		var lid := AllocPlabel();
+		E_plabel(lid);
+
+		DoParamIndirect(lhs, "lda");
+		E("\tsta ");
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(e.id);
+		E("010000, y\n");
+
+		DoParamIndirect(rhs, "lda");
+		E("\tsta ");
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(e.id);
+		E("010009, y\n");
+
+		E_dey();
+		E("\tbpl ");
+		E_plabelref(lid);
+		E_nl();
+
+		E_callhelper(name);
+
+		paramwidth := 4;
+		E_loadconst(REG_Y, 3);
+		lid := AllocPlabel();
+		E_plabel(lid);
+
+		E("\tlda ");
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(e.id);
+		E("010000, y\n");
+		DoParamIndirect(dest, "sta");
+
+		E_dey();
+		E("\tbpl ");
+		E_plabelref(lid);
+		E_nl();
+	end sub;
+%}
+
+gen v32 := MUL4(in4_ops, in4_ops) { PushPushOp($$, 4); MulOrDiv4("_mul4"); }
+gen v32 := DIVU4(in4_ops, in4_ops) { PushPushOp($$, 4); MulOrDiv4("_divu4"); }
 gen v32 := REMU4(v32, v32) { E_callhelper("_remu4"); }
-gen v32 := DIVU4(v32, v32) { E_callhelper("_divu4"); }
+gen v32 := DIVS4(in4_ops, in4_ops) { PushPushOp($$, 4); MulOrDiv4("_divs4"); }
+gen v32 := REMS4(v32, v32) { E_callhelper("_rems4"); }
 
 gen v32 := LSHIFT4(v32, y)
 {
@@ -1650,7 +1710,12 @@ gen BEQ2(xa:lhs, in2_ops:rhs):b
 	E_bne($b.falselabel);
 
 	paramwidth := 1;
-	DoParamDirect(rhs, "cpx");
+	if ($rhs & REGCLASS_DEREF_OPS) != 0 then
+		E_txa();
+		DoParamDirect(rhs, "cmp");
+	else
+		DoParamDirect(rhs, "cpx");
+	end if;
 	E_jumps_beq_bne(self.n[0]);
 }
 
