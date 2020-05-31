@@ -123,6 +123,23 @@
 		end if;
 	end sub;
 
+	var labelid: uint16 := 0;
+	sub E_plabelref(lid: uint16)
+		EmitByte(COO_ESCAPE_THISCOO);
+		EmitByte('c');
+		E_u16(lid);
+	end sub;
+
+	sub AllocPlabel(): (lid: uint16)
+		lid := labelid;
+		labelid := labelid + 1;
+	end sub;
+
+	sub E_plabel(lid: uint16)
+		E_plabelref(lid);
+		E(":\n");
+	end sub;
+
 	sub E_stackref(sid: uint16)
 		EmitByte(COO_ESCAPE_WSREF);
 		E_h16(current_subr.id);
@@ -190,10 +207,47 @@
 		E_jump("jmp", label);
 	end sub;
 
+	sub IsSimpleSub(subr: [Subroutine]): (result: uint8)
+		result := 0;
+		if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
+			return;
+		end if;
+		if (subr.num_input_parameters == 1) and (subr.first_input_parameter.vardata.type.typedata.width == 4) then
+			return;
+		end if;
+		if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.typedata.width == 4) then
+			return;
+		end if;
+		result := 1;
+	end sub;
+
 	sub E_call(subr: [Subroutine])
-		E_insn("jsr");
-		E_subref(subr);
-		E_nl();
+		if IsSimpleSub(subr) != 0 then
+			E("\tjsr ");
+			E_subref(subr);
+			E_nl();
+		else
+			var lid := AllocPlabel();
+
+			E("\tldy #<");
+			E_plabelref(lid);
+			E_nl();
+			E("\tsty rts_");
+			E_subref(subr);
+			E_nl();
+
+			E("\tldy #>1+");
+			E_plabelref(lid);
+			E_nl();
+			E("\tsty rts_");
+			E_subref(subr);
+			E("+1\n");
+
+			E_insn("jmp");
+			E_subref(subr);
+			E_nl();
+			E_plabel(lid);
+		end if;
 	end sub;
 
 	sub E_rts() E("\trts\n"); end sub;
@@ -361,23 +415,6 @@
 
 	sub E_jumps_bmi_bpl(node: [Node])
 		E_jumps_with_fallthrough("bmi", "bpl", node);
-	end sub;
-
-	var labelid: uint16 := 0;
-	sub E_plabelref(lid: uint16)
-		EmitByte(COO_ESCAPE_THISCOO);
-		EmitByte('c');
-		E_u16(lid);
-	end sub;
-
-	sub AllocPlabel(): (lid: uint16)
-		lid := labelid;
-		labelid := labelid + 1;
-	end sub;
-
-	sub E_plabel(lid: uint16)
-		E_plabelref(lid);
-		E(":\n");
 	end sub;
 
 	sub AllocConst(value: Arith): (lid: uint16)
@@ -566,6 +603,49 @@ gen STARTSUB():s
 
 	EmitByte(COO_ESCAPE_THISSUB);
 	E(":\n");
+
+	var count := $s.subr.num_input_parameters;
+	var lastparam := count - 1;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter($s.subr, count);
+
+		case param.vardata.type.typedata.width is
+			when 1:
+				if count != lastparam then
+					E_pla();
+				end if;
+				E_st(REG_A);
+				E_symref(param, 0);
+				E_nl();
+
+			when 2:
+				if count != lastparam then
+					E_pla();
+					E_tax();
+					E_pla();
+				end if;
+				E_st(REG_A);
+				E_symref(param, 0);
+				E_nl();
+
+				E_st(REG_X);
+				E_symref(param, 1);
+				E_nl();
+
+			when 4:
+				E_loadconst(REG_Y, 0);
+				E_loadconst(REG_X, 3);
+				E_pla();
+				E_st(REG_A);
+				E_symref(param, 0);
+				E(",y\n");
+				E_iny();
+				E_dex();
+				E("\tbpl *-5\n");
+		end case;
+	end loop;
 }
 
 gen ENDSUB():s
@@ -573,8 +653,14 @@ gen ENDSUB():s
 	E("end_");
 	E_subref(current_subr);
 	E(":\n");
-
-	E_rts();
+	if IsSimpleSub(current_subr) != 0 then
+		E_rts();
+	else
+		E("rts_");
+		E_subref(current_subr);
+		E(" = *+1\n");
+		E("\tjmp $ffff\n");
+	end if;
 
 	while constants != (0 as [Constant]) loop
 		var c := constants;
@@ -596,6 +682,13 @@ gen ENDSUB():s
 		EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
 		i := i + 1;
 	end loop;
+}
+
+gen RETURN()
+{
+	E("\tjmp end_");
+	E_subref(current_subr);
+	E_nl();
 }
 
 gen CALL(param):s
@@ -631,8 +724,8 @@ gen param := ARG4(param, v32) uses y|a
 	var sid := Pop(REG_V32, 4);
 	E_loadconst(REG_Y, 3);
 	E_ld(REG_A);
-	E_indstackref(sid);
-	E_nl();
+	E_stackref(sid);
+	E(",y\n");
 	E_pha();
 	E_dey();
 	E("\tbpl *-4\n");
@@ -659,22 +752,11 @@ gen v32 := POPARG4() uses x|y|a
 	E_loadconst(REG_X, 3);
 	E_pla();
 	E_st(REG_A);
-	E_indstackref(sid);
-	E_nl();
+	E_stackref(sid);
+	E(",y\n");
 	E_iny();
 	E_dex();
 	E("\tbpl *-5\n");
-}
-
-gen RETURN()
-{
-	if current_subr.num_output_parameters == 0 then
-		E_rts();
-	else
-		E("\tjmp end_");
-		E_subref(current_subr);
-		E_nl();
-	end if;
 }
 
 // --- Constants ------------------------------------------------------------
@@ -1033,26 +1115,9 @@ gen a := OR1(a, v8) { E("\tOR1\n"); }
 gen a := AND1(a, v8) { E("\tAND1\n"); }
 gen a := EOR1(a, v8) { E("\tEOR1\n"); }
 
-gen v8 := LSHIFT1(v8, y) uses a|x|y
-{
-	var sid := Peek(REG_V8, 1);
-	E_loadstackref(sid);
-	E_callhelper("_lshift1");
-}
-
-gen v8 := RSHIFTU1(v8, y)
-{
-	var sid := Peek(REG_V8, 1);
-	E_loadstackref(sid);
-	E_callhelper("_rshiftu1");
-}
-
-gen v8 := RSHIFTS1(v8, y)
-{
-	var sid := Peek(REG_V8, 1);
-	E_loadstackref(sid);
-	E_callhelper("_rshifts1");
-}
+gen a := LSHIFT1(a, y) { E_callhelper("_lshift1"); }
+gen a := RSHIFTU1(a, y) { E_callhelper("_rshiftu1"); }
+gen a := RSHIFTS1(a, y) { E_callhelper("_rshifts1"); }
 
 gen v8 := MUL1(v8, a)
 		{ E("\tMUL1\n"); }
@@ -1371,7 +1436,6 @@ gen STARTINIT():s
 {
 	EmitterPushChunk();
 	E_h16(current_subr.id);
-	E("\t.data 4\n"); # yes, really
 	E($s.sym.vardata.externname);
 	E(":\n");
 }

@@ -138,6 +138,7 @@ function cowgol(e)
 			"rt/common.coh",
 			"rt/malloc.coh",
 			"rt/strings.coh",
+			(e.toolchain.runtime.."/cowgol.coh"),
 		},
 		outs = { coo },
 		cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"

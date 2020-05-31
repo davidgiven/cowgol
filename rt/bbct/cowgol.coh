@@ -16,7 +16,10 @@ end sub;
 
 sub print_char(c: uint8)
 	@asm "lda ", c;
-	@asm "jmp $ffee";
+	@asm "cmp #$0a";
+	@asm "bne *+4";
+	@asm "lda #$0d";
+	@asm "jsr $ffe3"; # OSASCII
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16)

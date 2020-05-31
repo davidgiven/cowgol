@@ -8,42 +8,33 @@
 &W shiftdata 0 12
 
 &X _lshift1
-; Shifts the 1-byte value at XA left Y bits.
+; Shifts A left Y bits.
 ``:
-	sta ``_ptr+0
-	stx ``_ptr+1
-``_loop:
-``_ptr = *+1
-	asl $ffff
 	dey
-	bne ``_loop
+	bmi ``_exit
+	asl
+	jmp ``
+``_exit:
 	rts
 
 &X _rshiftu1
-; Logical shift the 1-byte value at XA right Y bits.
+; Logical shift A right Y bits.
 ``:
-	sta ``_ptr+0
-	stx ``_ptr+1
-``_loop:
-``_ptr = *+1
-	lsr $ffff
 	dey
-	bne ``_loop
+	bmi ``_exit
+	lsr
+	jmp ``
+``_exit:
 	rts
 
 &X _rshifts1
-; Arithmetic shift the 1-byte value at XA right Y bits.
+; Arithmetic shift A right Y bits.
 ``:
-	sta `$shiftdata.1.0
-	stx `$shiftdata.1.1
-	tya
-	tax
-	lda (`$shiftdata.1.0), y
-``_loop:
+	dey
+	bmi ``_exit
 	cmp #$80
 	ror
-	dex
-	bne ``_loop
-	sta (`$shiftdata.1.0), y
+	jmp ``
+``_exit:
 	rts
 

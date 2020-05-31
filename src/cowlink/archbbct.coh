@@ -29,6 +29,9 @@ sub ArchEmitHeader(coo: [Coo])
 	E_u16(workspaceSize[1]);
 	E_nl();
 
+	E("\ttsx\n");
+	E("\tstx sp\n");
+
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
@@ -40,10 +43,13 @@ sub ArchEmitHeader(coo: [Coo])
 	end loop;
 
 	E("_exit:\n");
-	E("\tbrk\n");
+	E("\tldx sp\n");
+	E("\ttxs\n");
+	E("\trts\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo])
+	E("sp: .fill 1\n");
 	E("argv: .fill 2\n");
 	E("ws0: .fill ");
 	E_u16(workspaceSize[0]);
