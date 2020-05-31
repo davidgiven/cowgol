@@ -156,3 +156,24 @@
 	ror `$shiftsmem.1.2
 	jmp ``_loop
 
+&X _mul1
+&W _mul1 1 2
+; Multiplies A = A * X.
+``:
+	sta `$.1.0
+	stx `$.1.1
+	lda #0
+	ldx #8
+	lsr `$.1.0
+``_loop:
+	bcc ``_noadd
+	clc
+	adc `$.1.1
+``_noadd:
+	ror
+	ror `$.1.0
+	dex
+	bne ``_loop
+	lda `$.1.0
+	rts
+
