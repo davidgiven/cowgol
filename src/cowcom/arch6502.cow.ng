@@ -581,13 +581,14 @@ register const_op address_op;
 register mem1_op mem2_op mem4_op;
 register memi1_op memi2_op memi4_op;
 register stacki1_op stacki2_op stacki4_op;
+register v8_op a16_op v32_op p16_op;
 
 regclass r8 := a|x|y;
 regclass a16 := v16|p16;
-regclass in1_ops := const_op|mem1_op|memi1_op|stacki1_op;
-regclass in2_ops := const_op|address_op|mem2_op|memi2_op|stacki2_op;
-regclass in4_ops := const_op|mem4_op|memi4_op|stacki4_op;
-regclass ptr_ops := mem2_op|address_op;
+regclass in1_ops := const_op|mem1_op|memi1_op|stacki1_op|v8_op;
+regclass in2_ops := const_op|address_op|mem2_op|memi2_op|stacki2_op|a16_op;
+regclass in4_ops := const_op|mem4_op|memi4_op|stacki4_op|v32_op;
+regclass ptr_ops := mem2_op|address_op|p16_op;
 
 regdata a           uses xa|a compatible v8|a|x|y;
 regdata x           uses xa|x compatible v8|a|x;
@@ -608,6 +609,10 @@ regdata memi4_op stacked;
 regdata stacki1_op stacked;
 regdata stacki2_op stacked;
 regdata stacki4_op stacked;
+regdata v8_op stacked;
+regdata a16_op stacked;
+regdata p16_op stacked;
+regdata v32_op stacked;
 
 // --- Core things ----------------------------------------------------------
 
@@ -727,8 +732,8 @@ gen JUMP():j
 	sub DerefOp(op: [Operand])
 		case op.mode is
 			when MODE_ADDRESS: op.mode := MODE_SYMBOL;
-			when MODE_STACK:   op.mode := MODE_STACKI;
 			when MODE_SYMBOL:  op.mode := MODE_SYMBOLI;
+			when MODE_STACK:   op.mode := MODE_STACKI;
 			when else:         SimpleError("can't deref");
 		end case;
 	end sub;
@@ -742,6 +747,11 @@ gen JUMP():j
 			when MODE_STACK:
 				E_stackref(operand.sid);
 
+			when MODE_STACKI:
+				EmitByte('(');
+				E_stackref(operand.sid);
+				EmitByte(')');
+
 			when MODE_SYMBOL:
 				E_symref(operand.sym, operand.off);
 
@@ -749,6 +759,12 @@ gen JUMP():j
 				EmitByte('(');
 				E_symref(operand.sym, operand.off);
 				EmitByte(')');
+
+			when else:
+				StartError();
+				print("bad indirect mode ");
+				print_i8(operand.mode);
+				EndError();
 		end case;
 		E(",y\n");
 	end sub;
@@ -759,6 +775,13 @@ gen JUMP():j
 			when MODE_CONST:
 				E_const(operand.val as uint8);
 				operand.val := operand.val >> 8;
+
+			when MODE_ADDRESS:
+				case paramwidth is
+					when 0: E("#<");
+					when 1: E("#>");
+				end case;
+				E_symref(operand.sym, operand.off);
 
 			when MODE_STACK:
 				E_stackref(operand.sid);
@@ -773,6 +796,12 @@ gen JUMP():j
 				if paramwidth != 1 then
 					E("\n\tiny");
 				end if;
+
+			when else:
+				StartError();
+				print("bad direct mode ");
+				print_i8(operand.mode);
+				EndError();
 		end case;
 		E_nl();
 	end sub;
@@ -840,6 +869,49 @@ gen JUMP():j
 		E_nl();
 	end sub;
 
+	sub Do2Op4_not()
+		E("\t; do2op4 not\n");
+		var dest := PopOp();
+		var lhs := PopOp();
+
+		paramwidth := 4;
+		E_loadconst(REG_Y, 3);
+		var lid := AllocPlabel();
+		E_plabel(lid);
+
+		DoParamIndirect(lhs, "lda");
+		E("\teor #255\n");
+		DoParamIndirect(dest, "sta");
+
+		E_dey();
+		E("\tbpl ");
+		E_plabelref(lid);
+		E_nl();
+	end sub;
+
+	sub Do2Op4_neg()
+		E("\t; do2op4 neg\n");
+		var dest := PopOp();
+		var lhs := PopOp();
+
+		paramwidth := 4;
+		E_loadconst(REG_X, 4);
+		E_loadconst(REG_Y, 0);
+		E_sec();
+		var lid := AllocPlabel();
+		E_plabel(lid);
+
+		E("\tlda #0\n");
+		DoParamIndirect(lhs, "sbc");
+		DoParamIndirect(dest, "sta");
+
+		E_iny();
+		E_dex();
+		E("\tbne ");
+		E_plabelref(lid);
+		E_nl();
+	end sub;
+
 	sub Do3Op4(insn: string)
 		var dest := PopOp();
 		var rhs := PopOp();
@@ -876,17 +948,22 @@ gen JUMP():j
 	end sub;
 %}
 
-gen const_op := CONSTANT():c             { print("push const\n");   PushConstOp($c.value); }
-gen address_op := ADDRESS():a            { print("push addr\n");    PushAddressOp($a.sym, $a.off); }
-gen mem1_op := LOAD1(ADDRESS():a)        { print("push mem1\n");    PushSymOp($a.sym, $a.off); }
-gen mem2_op := LOAD2(ADDRESS():a)        { print("push mem2\n");    PushSymOp($a.sym, $a.off); }
-gen mem4_op := LOAD4(ADDRESS():a)        { print("push mem4\n");    PushSymOp($a.sym, $a.off); }
-gen memi1_op := LOAD1(ADDRESS():a)       { print("push memi1\n");   PushSymIOp($a.sym, $a.off); }
-gen memi2_op := LOAD2(ADDRESS():a)       { print("push memi2\n");   PushSymIOp($a.sym, $a.off); }
-gen memi4_op := LOAD4(ADDRESS():a)       { print("push memi4\n");   PushSymIOp($a.sym, $a.off); }
-gen stacki1_op := LOAD1(p16)             { print("push stacki1\n"); PushPopIOp(REG_P16, 2); }
-gen stacki2_op := LOAD2(p16)             { print("push stacki2\n"); PushPopIOp(REG_P16, 2); }
-gen stacki4_op := LOAD4(p16)             { print("push stacki4\n"); PushPopIOp(REG_P16, 2); }
+gen v8_op  := FALLBACK(v8:lhs)	         { PushPopOp($lhs, 1); }
+gen a16_op := FALLBACK(a16:lhs)	         { PushPopOp($lhs, 2); }
+gen p16_op := FALLBACK(p16:lhs)	         { PushPopOp($lhs, 2); }
+gen v32_op := FALLBACK(v32:lhs)	         { PushPopOp($lhs, 4); }
+
+gen const_op := CONSTANT():c             { PushConstOp($c.value); }
+gen address_op := ADDRESS():a            { PushAddressOp($a.sym, $a.off); }
+gen mem1_op := LOAD1(ADDRESS():a)        { PushSymOp($a.sym, $a.off); }
+gen mem2_op := LOAD2(ADDRESS():a)        { PushSymOp($a.sym, $a.off); }
+gen mem4_op := LOAD4(ADDRESS():a)        { PushSymOp($a.sym, $a.off); }
+gen memi1_op := LOAD1(ADDRESS():a)       { PushSymIOp($a.sym, $a.off); }
+gen memi2_op := LOAD2(ADDRESS():a)       { PushSymIOp($a.sym, $a.off); }
+gen memi4_op := LOAD4(ADDRESS():a)       { PushSymIOp($a.sym, $a.off); }
+gen stacki1_op := LOAD1(p16)             { PushPopIOp(REG_P16, 2); }
+gen stacki2_op := LOAD2(p16)             { PushPopIOp(REG_P16, 2); }
+gen stacki4_op := LOAD4(p16)             { PushPopIOp(REG_P16, 2); }
 
 // --- Subroutines ----------------------------------------------------------
 
@@ -1014,9 +1091,6 @@ gen param := ARG2(param, xa, remaining==0);
 gen param := ARG2(param, xa, remaining!=0)
 		{ E_pha(); E_txa(); E_pha(); }
 
-gen param := ARG2(END(), CALLE2(param):s)
-		{ E_call($s.subr); }
-
 gen param := ARG4(param, v32) uses y|a
 {
 	var sid := Pop(REG_V32, 4);
@@ -1028,9 +1102,6 @@ gen param := ARG4(param, v32) uses y|a
 	E_dey();
 	E("\tbpl *-4\n");
 }
-
-gen param := ARG4(END(), CALLE4(param):s)
-		{ E_call($s.subr); }
 
 gen a := POPARG1(remaining==0);
 
@@ -1182,14 +1253,6 @@ gen a := LOAD1(p16:ptr) uses y
 		destparam.mode := MODE_SYMBOLI;
 		destparam.sym := sym;
 		destparam.off := off;
-	end sub;
-
-	sub Do2Op_not()
-		E("\tNOT4\n");
-	end sub;
-
-	sub Do2Op_neg()
-		E("\tNEG4\n");
 	end sub;
 
 	sub DoBranch4_beq(node: [Node])
@@ -1411,7 +1474,6 @@ gen STORE2(xa, p16:rhs)
 
 gen xa := ADD2(xa, in2_ops:rhs)
 {
-	print("add2\n");
 	E_clc();
 	DoXA("adc");
 }
@@ -1431,9 +1493,11 @@ gen v16 := DIVS2(v16, xa)
 
 // --- 32 bit ---------------------------------------------------------------
 
-gen STORE4(in4_ops, ptr_ops) uses a|x|y       { DerefOp(PeekOp()); DoCopy4(); }
-//gen v32 := in4_ops uses a|x|y                 { PushPushOp($$, 4); DoCopy4(); }
-gen v32 := LOAD4(ptr_ops) uses a|x|y                 { DerefOp(PeekOp()); PushPushIOp($$, 4); DoCopy4(); }
+gen STORE4(in4_ops, ptr_ops) uses a|x|y      { DerefOp(PeekOp()); DoCopy4(); }
+gen v32 := LOAD4(ptr_ops) uses a|x|y         { DerefOp(PeekOp()); PushPushOp($$, 4); DoCopy4(); }
+
+gen v32 := NEG4(in4_ops) uses a|x|y          { PushPushOp($$, 4); Do2Op4_neg(); }
+gen v32 := NOT4(in4_ops) uses a|x|y          { PushPushOp($$, 4); Do2Op4_not(); }
 
 gen v32 := ADD4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_clc(); Do3Op4("adc"); }
 gen v32 := SUB4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("clc"); }
@@ -1485,7 +1549,6 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 
 gen BEQ1(a:lhs, in1_ops:rhs):b
 {
-	print("beq1\n");
 	var rhs := PopOp();
 	paramwidth := 1;
 	DoParamDirect(rhs, "cmp");
@@ -1494,7 +1557,6 @@ gen BEQ1(a:lhs, in1_ops:rhs):b
 
 gen BLTU1(a:lhs, in1_ops:rhs):b
 {
-	print("bltu1\n");
 	var rhs := PopOp();
 	paramwidth := 1;
 	DoParamDirect(rhs, "cmp");
@@ -1503,7 +1565,6 @@ gen BLTU1(a:lhs, in1_ops:rhs):b
 
 gen BLTS1(a:lhs, in1_ops:rhs):b
 {
-	print("blts1\n");
 	var rhs := PopOp();
 	paramwidth := 1;
 	E_sec();
@@ -1515,7 +1576,6 @@ gen BLTS1(a:lhs, in1_ops:rhs):b
 
 gen BEQ2(xa:lhs, in2_ops:rhs):b
 {
-	print("beq2\n");
 	var rhs := PopOp();
 	paramwidth := 2;
 	DoParamDirect(rhs, "cmp");
@@ -1747,7 +1807,4 @@ gen ASMEND()
 {
     E_nl();
 }
-
-$include "arch6502.ng.h"
-
 

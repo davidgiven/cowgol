@@ -8,15 +8,7 @@ lemoncowgol {
 	}
 }
 
-local extras = {
-	["6502"] = "$OBJ/src/cowcom/arch6502.ng.h"
-}
-
-rule {
-	ins = { "src/cowcom/arch6502.lua" },
-	outs = { "$OBJ/src/cowcom/arch6502.ng.h" },
-	cmd = "$LUA @1 > &1"
-}
+local extras = {}
 
 for _, arch in ipairs(ARCHS) do
 	newgencowgol {
