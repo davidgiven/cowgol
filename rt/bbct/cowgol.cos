@@ -201,15 +201,10 @@
 
 &X _mul2
 &W _mul2 1 6
-; Multiplies betos * XA. Returns XA.
+; Multiplies `$.1.0to1 * XA. Returns XA.
 ``:
-	sta `$.1.0+0
-	stx `$.1.0+1
-	tsx
-	lda $103,x
-	sta `$.1.2+1
-	lda $104,x
 	sta `$.1.2+0
+	stx `$.1.2+1
 	lda #0
 	sta `$.1.4+1
 	ldy #$11

@@ -295,6 +295,10 @@
 		E_st(REG_A);
 	end sub;
 
+	sub E_stx()
+		E_st(REG_X);
+	end sub;
+
 	sub E_cp(reg: RegId)
 		case reg is
 			when REG_A: E("\tcmp");
@@ -392,9 +396,8 @@
 		E_nl();
 	end sub;
 
-	# Does not persist the name; only call this with constant strings.
-	sub E_callhelper(name: string)
-		var e := externs;
+	sub GetHelper(name: string): (e: [Extern])
+		e := externs;
 		while e != (0 as [Extern]) loop
 			if StrCmp(e.name, name) == 0 then
 				break;
@@ -411,6 +414,11 @@
 
 			EmitterDeclareExternalSubroutine(e.id, name);
 		end if;
+	end sub;
+
+	# Does not persist the name; only call this with constant strings.
+	sub E_callhelper(name: string)
+		var e := GetHelper(name);
 
 		EmitterPushChunk();
 		E_h16(current_subr.id);
@@ -1509,19 +1517,23 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
 gen xa := MUL2(xa, in2_ops:rhs) uses y
 {
-	E_pha(); # big endian push
-	E_txa();
-	E_pha();
-	
+	var e := GetHelper("_mul2");
+
+	E_sta();
+	EmitByte(COO_ESCAPE_WSREF);
+	E_h16(e.id);
+	E("010000\n");
+
+	E_stx();
+	EmitByte(COO_ESCAPE_WSREF);
+	E_h16(e.id);
+	E("010001\n");
+
 	var rhs := PopOp();
 	paramwidth := 2;
 	DoParamDirect(rhs, "lda");
 	DoParamDirect(rhs, "ldx");
 	E_callhelper("_mul2");
-	E_tay();
-	E_pla();
-	E_pla();
-	E_tya();
 }
 	
 gen v16 := DIVU2(v16, xa)
