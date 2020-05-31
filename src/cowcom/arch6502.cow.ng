@@ -275,6 +275,10 @@
 		E_ld(REG_A);
 	end sub;
 
+	sub E_ldx()
+		E_ld(REG_X);
+	end sub;
+
 	sub E_st(reg: RegId)
 		case reg is
 			when REG_A: E("\tsta");
@@ -362,24 +366,24 @@
 	end sub;
 
 	sub E_loadaddr(sym: [Symbol], off: Size)
-		E_ld(REG_A);
+		E_lda();
 		E("#<");
 		E_symref(sym, off);
 		E_nl();
 
-		E_ld(REG_X);
+		E_ldx();
 		E("#>");
 		E_symref(sym, off);
 		E_nl();
 	end sub;
 
 	sub E_loadstackref(sid: uint16)
-		E_ld(REG_A);
+		E_lda();
 		E("#<");
 		E_stackref(sid);
 		E_nl();
 
-		E_ld(REG_X);
+		E_ldx();
 		E("#>");
 		E_stackref(sid);
 		E_nl();
@@ -490,6 +494,17 @@
 			E_nl();
 		end sub;
 
+		sub popa16()
+			sid := Pop(src, 1);
+			E_lda();
+			E_stackref(sid);
+			E_nl();
+
+			E_ldx();
+			E_stackref(sid+1);
+			E_nl();
+		end sub;
+
 		case src is
 			when REG_A:
 				case dest is
@@ -552,6 +567,19 @@
 					E_nl();
 					return;
 				end if;
+
+			when REG_P16:
+				if dest == REG_XA then
+					popa16();
+					return;
+				end if;
+
+			when REG_V16:
+				if dest == REG_XA then
+					popa16();
+					return;
+				end if;
+
 		end case;
 
 		StartError();
@@ -566,6 +594,10 @@
 	end sub;
 
 	sub ArchEndGroup()
+	end sub;
+
+	sub is_ptr(sym: [Symbol]): (result: uint8)
+		result := IsPtr(sym.vardata.type);
 	end sub;
 %}
 
@@ -778,8 +810,8 @@ gen JUMP():j
 
 			when MODE_ADDRESS:
 				case paramwidth is
-					when 0: E("#<");
-					when 1: E("#>");
+					when 1: E("#>"); # high byte
+					when 2: E("#<"); # low byte
 				end case;
 				E_symref(operand.sym, operand.off);
 
@@ -948,22 +980,22 @@ gen JUMP():j
 	end sub;
 %}
 
-gen v8_op  := FALLBACK(v8:lhs)	         { PushPopOp($lhs, 1); }
-gen a16_op := FALLBACK(a16:lhs)	         { PushPopOp($lhs, 2); }
-gen p16_op := FALLBACK(p16:lhs)	         { PushPopOp($lhs, 2); }
-gen v32_op := FALLBACK(v32:lhs)	         { PushPopOp($lhs, 4); }
+gen v8_op  := FALLBACK(v8:lhs)	                    { PushPopOp($lhs, 1); }
+gen a16_op := FALLBACK(a16:lhs)	                    { PushPopOp($lhs, 2); }
+gen p16_op := FALLBACK(p16:lhs)	                    { PushPopOp($lhs, 2); }
+gen v32_op := FALLBACK(v32:lhs)	                    { PushPopOp($lhs, 4); }
 
-gen const_op := CONSTANT():c             { PushConstOp($c.value); }
-gen address_op := ADDRESS():a            { PushAddressOp($a.sym, $a.off); }
-gen mem1_op := LOAD1(ADDRESS():a)        { PushSymOp($a.sym, $a.off); }
-gen mem2_op := LOAD2(ADDRESS():a)        { PushSymOp($a.sym, $a.off); }
-gen mem4_op := LOAD4(ADDRESS():a)        { PushSymOp($a.sym, $a.off); }
-gen memi1_op := LOAD1(ADDRESS():a)       { PushSymIOp($a.sym, $a.off); }
-gen memi2_op := LOAD2(ADDRESS():a)       { PushSymIOp($a.sym, $a.off); }
-gen memi4_op := LOAD4(ADDRESS():a)       { PushSymIOp($a.sym, $a.off); }
-gen stacki1_op := LOAD1(p16)             { PushPopIOp(REG_P16, 2); }
-gen stacki2_op := LOAD2(p16)             { PushPopIOp(REG_P16, 2); }
-gen stacki4_op := LOAD4(p16)             { PushPopIOp(REG_P16, 2); }
+gen const_op := CONSTANT():c                        { PushConstOp($c.value); }
+gen address_op := ADDRESS():a                       { PushAddressOp($a.sym, $a.off); }
+gen mem1_op := LOAD1(ADDRESS():a)                   { PushSymOp($a.sym, $a.off); }
+gen mem2_op := LOAD2(ADDRESS():a)                   { PushSymOp($a.sym, $a.off); }
+gen mem4_op := LOAD4(ADDRESS():a)                   { PushSymOp($a.sym, $a.off); }
+gen memi1_op := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) { PushSymIOp($a.sym, $a.off); }
+gen memi2_op := LOAD2(LOAD2(ADDRESS(sym is ptr):a)) { PushSymIOp($a.sym, $a.off); }
+gen memi4_op := LOAD4(LOAD2(ADDRESS(sym is ptr):a)) { PushSymIOp($a.sym, $a.off); }
+gen stacki1_op := LOAD1(p16)                        { PushPopIOp(REG_P16, 2); }
+gen stacki2_op := LOAD2(p16)                        { PushPopIOp(REG_P16, 2); }
+gen stacki4_op := LOAD4(p16)                        { PushPopIOp(REG_P16, 2); }
 
 // --- Subroutines ----------------------------------------------------------
 
@@ -1095,7 +1127,7 @@ gen param := ARG4(param, v32) uses y|a
 {
 	var sid := Pop(REG_V32, 4);
 	E_loadconst(REG_Y, 3);
-	E_ld(REG_A);
+	E_lda();
 	E_stackref(sid);
 	E(",y\n");
 	E_pha();
@@ -1166,7 +1198,7 @@ gen a|x|y := LOAD1(ADDRESS():a)
 	end if;
 }
 
-gen a := LOAD1(LOAD2(ADDRESS():a)) uses y
+gen a := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) uses y
 {
 	E_loadconst(REG_Y, 0);
 	E_ld($$);
@@ -1349,18 +1381,6 @@ gen a := LOAD1(p16:ptr) uses y
 	end sub;
 %}
 
-gen a := ADD1(a, v8)                 { E_clc(); DoAlu1S("adc"); }
-gen a := SUB1(a, v8)                 { E_sec(); DoAlu1S("sbc"); }
-
-gen a := ADD1(a, LOAD1(ADDRESS():a)) { E_clc(); DoAlu1M("adc", $a.sym, $a.off); }
-gen a := SUB1(a, LOAD1(ADDRESS():a)) { E_sec(); DoAlu1M("sbc", $a.sym, $a.off); }
-
-gen a := ADD1(a, LOAD1(p16))         { E_clc(); DoAlu1PS("adc"); }
-gen a := SUB1(a, LOAD1(p16))         { E_sec(); DoAlu1PS("sbc"); }
-
-gen a := ADD1(a, CONSTANT():c)       { E_clc(); DoAlu1C("adc", $c.value as uint8); }
-gen a := SUB1(a, CONSTANT():c)       { E_sec(); DoAlu1C("sbc", $c.value as uint8); }
-
 gen a := NOT1(a) { E_not(); }
 
 gen a := NEG1(a)
@@ -1371,9 +1391,11 @@ gen a := NEG1(a)
 	E("\tadc #0\n");
 }
 
-gen a := OR1(a, v8) { E("\tOR1\n"); }
-gen a := AND1(a, v8) { E("\tAND1\n"); }
-gen a := EOR1(a, v8) { E("\tEOR1\n"); }
+gen a := ADD1(a, in1_ops) { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), "adc"); }
+gen a := SUB1(a, in1_ops) { paramwidth := 1; E_sec(); DoParamDirect(PopOp(), "sbc"); }
+gen a := OR1(a, in1_ops)  { paramwidth := 1;          DoParamDirect(PopOp(), "ora"); }
+gen a := AND1(a, in1_ops) { paramwidth := 1;          DoParamDirect(PopOp(), "and"); }
+gen a := EOR1(a, in1_ops) { paramwidth := 1;          DoParamDirect(PopOp(), "eor"); }
 
 gen a := LSHIFT1(a, y) { E_callhelper("_lshift1"); }
 gen a := RSHIFTU1(a, y) { E_callhelper("_rshiftu1"); }
@@ -1400,11 +1422,11 @@ gen xa := LOAD2(ADDRESS():a)
 {
 	var cache := RegCacheFindValue($a.sym, $a.off);
 	if cache != REG_XA then
-		E_ld(REG_A);
+		E_lda();
 		E_symref($a.sym, $a.off);
 		E_nl();
 
-		E_ld(REG_X);
+		E_ldx();
 		E_symref($a.sym, $a.off+1);
 		E_nl();
 	end if;
@@ -1415,17 +1437,20 @@ gen xa := LOAD2(p16:ptr)
 {
 	var sid := Pop($ptr, 2);
 
-	E_loadconst(REG_Y, 0);
+	E_loadconst(REG_Y, 1);
 
-	E_ld(REG_A);
+	E_lda();
 	E_stackrefi(sid);
 	E_nl();
 
-	E_iny();
+	E_tax();
+	E_dey();
 
-	E_ld(REG_X);
+	E_lda();
 	E_stackrefi(sid);
 	E_nl();
+
+	RegCacheLeavesConstant(REG_Y, 0);
 }
 
 gen xa := CONSTANT():c
@@ -1466,17 +1491,20 @@ gen STORE2(xa, p16:rhs)
 	E_nl();
 
 	E_iny();
+	E_txa();
 
-	E_st(REG_X);
+	E_st(REG_A);
 	E_stackrefi(sid);
 	E_nl();
+
+	RegCacheLeavesConstant(REG_Y, 1);
 }
 
-gen xa := ADD2(xa, in2_ops:rhs)
-{
-	E_clc();
-	DoXA("adc");
-}
+gen xa := ADD2(xa, in2_ops:rhs) { E_clc(); DoXA("adc"); }
+gen xa := SUB2(xa, in2_ops:rhs) { E_sec(); DoXA("sbc"); }
+gen xa := AND2(xa, in2_ops:rhs) {          DoXA("and"); }
+gen xa := OR2(xa, in2_ops:rhs)  {          DoXA("ora"); }
+gen xa := EOR2(xa, in2_ops:rhs) {          DoXA("eor"); }
 
 gen xa := LSHIFT2(xa, y) { E_callhelper("_lshift2"); }
 gen xa := RSHIFTU2(xa, y) { E_callhelper("_rshiftu2"); }
@@ -1661,7 +1689,7 @@ gen a := CAST21(xa|a16:rhs)
 {
 	if $rhs != REG_XA then
 		var sid := Pop(REG_V32, 2);
-		E_ld(REG_A);
+		E_lda();
 		E_stackref(sid);
 		E_nl();
 	end if;
@@ -1670,7 +1698,7 @@ gen a := CAST21(xa|a16:rhs)
 gen a := CAST41(v32)
 {
 	var sid := Pop(REG_V32, 4);
-	E_ld(REG_A);
+	E_lda();
 	E_stackref(sid);
 	E_nl();
 }
@@ -1710,14 +1738,14 @@ gen xa := STRING():s
 	R_flush($$);
 	var sid := E_string($s.text);
 
-	E_ld(REG_A);
+	E_lda();
 	E("#<");
 	EmitByte(COO_ESCAPE_THISCOO);
 	EmitByte('c');
 	E_u16(sid);
 	E_nl();
 
-	E_ld(REG_X);
+	E_ldx();
 	E("#>");
 	EmitByte(COO_ESCAPE_THISCOO);
 	EmitByte('c');
