@@ -1317,14 +1317,26 @@ gen v32 := DIVU4(v32, v32) { E_callhelper("_divu4"); }
 gen v32 := REMU4(v32, v32) { E_callhelper("_remu4"); }
 gen v32 := DIVU4(v32, v32) { E_callhelper("_divu4"); }
 
-gen v32 := LSHIFT4(v32, a)
-		{ E("\tLSHIFT4\n"); }
+gen v32 := LSHIFT4(v32, y)
+{
+	var sid := Peek(REG_V32, 4);
+	E_loadstackref(sid);
+	E_callhelper("_lshift4");
+}
 
-gen v32 := RSHIFTU4(v32, a)
-		{ E("\tRSHIFTU4\n"); }
+gen v32 := RSHIFTU4(v32, y)
+{
+	var sid := Peek(REG_V32, 4);
+	E_loadstackref(sid);
+	E_callhelper("_rshiftu4");
+}
 
-gen v32 := RSHIFTS4(v32, a)
-		{ E("\tRSHIFTS4\n"); }
+gen v32 := RSHIFTS4(v32, y)
+{
+	var sid := Peek(REG_V32, 4);
+	E_loadstackref(sid);
+	E_callhelper("_rshifts4");
+}
 
 // --- Casts ----------------------------------------------------------------
 

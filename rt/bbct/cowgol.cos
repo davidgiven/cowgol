@@ -88,3 +88,71 @@
 	ldx `$_lshift2.1.1
 	rts
 
+&S shiftsmem
+&W shiftsmem 1 6
+
+&S startshift
+``:
+	sta `$shiftsmem.1.0
+	stx `$shiftsmem.1.1
+	tya
+	tax
+	ldy #3
+-
+	lda (`$shiftsmem.1.0), y
+	sta `$shiftsmem.1.2, y
+	dey
+	bpl -
+	rts
+
+&S endshift
+``:
+	ldy #3
+-
+	lda `$.1.2, y
+	sta (`$.1.0), y
+	dey
+	bpl -
+	rts
+
+&X _lshift4
+; Shifts [AX] left Y bits.
+``:
+	jsr `startshift
+``_loop:
+	dex
+	bmi `endshift
+	asl `$shiftsmem.1.2
+	rol `$shiftsmem.1.3
+	rol `$shiftsmem.1.4
+	rol `$shiftsmem.1.5
+	jmp ``_loop
+
+&X _rshiftu4
+; Logical shifts [AX] right Y bits.
+``:
+	jsr `startshift
+``_loop:
+	dex
+	bmi `endshift
+	lsr `$shiftsmem.1.5
+	ror `$shiftsmem.1.4
+	ror `$shiftsmem.1.3
+	ror `$shiftsmem.1.2
+	jmp ``_loop
+
+&X _rshifts4
+; Arithmetic shifts [AX] right Y bits.
+``:
+	jsr `startshift
+``_loop:
+	dex
+	bmi `endshift
+	lda `$shiftsmem.1.5
+	cmp #$80
+	ror `$shiftsmem.1.5
+	ror `$shiftsmem.1.4
+	ror `$shiftsmem.1.3
+	ror `$shiftsmem.1.2
+	jmp ``_loop
+
