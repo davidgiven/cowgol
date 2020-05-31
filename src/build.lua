@@ -112,7 +112,7 @@ end
 
 function tubeemutest(e)
 	e.ins = concat { e.ins, "bin/tubeemu" }
-	return simpletest("bin/tubeemu -l 0x400 -e 0x400", e)
+	return simpletest("bin/tubeemu -l 0x400 -e 0x400 -f", e)
 end
 
 function cowgol(e)

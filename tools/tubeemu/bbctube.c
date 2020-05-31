@@ -275,6 +275,11 @@ int main(int argc, char* const argv[])
 		}
 	}
 end_of_opts:
+	if (optind < argc)
+	{
+		printf("error: non-option arguments received\n");
+		exit(1);
+	}
 
 	cpu = M6502_new(NULL, ram, NULL);
 	for (int i=0xfe00; i<=0xffff; i++)
