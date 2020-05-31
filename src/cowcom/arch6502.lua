@@ -37,170 +37,171 @@ local opcodes = {
 
 -- 16 bit 3-op operations
 
-for _, op in ipairs(threeopoperations) do
-	for _, rhs in ipairs({"pop", "mem", "constant"}) do
-		io.write("gen xa := "..op.."2(xa, ")
-		writespec(rhs, "rhs", 2)
-		io.write(")\n")
-
-		io.write("{\n");
-		if op == "ADD" then
-			io.write("\tE_clc();\n");
-		end
-		if op == "SUB" then
-			io.write("\tE_sec();\n");
-		end
-		io.write("\tparamwidth := 2;\n");
-		writeparm(rhs, "Rhs", "rhs")
-		io.write("\tDoXA(\"", opcodes[op], "\");\n")
-		io.write("}\n");
-	end
-end
+--for _, op in ipairs(threeopoperations) do
+--	for _, rhs in ipairs({"pop", "mem", "constant"}) do
+--		io.write("gen xa := "..op.."2(xa, ")
+--		writespec(rhs, "rhs", 2)
+--		io.write(")\n")
+--
+--		io.write("{\n");
+--		if op == "ADD" then
+--			io.write("\tE_clc();\n");
+--		end
+--		if op == "SUB" then
+--			io.write("\tE_sec();\n");
+--		end
+--		io.write("\tparamwidth := 2;\n");
+--		writeparm(rhs, "Rhs", "rhs")
+--		io.write("\tDoXA(\"", opcodes[op], "\");\n")
+--		io.write("}\n");
+--	end
+--end
 
 -- 16 bit 2op operations
 
-for _, op in ipairs(twoopoperations) do
-	for _, lhs in ipairs({"pop", "mem"}) do
-		for _, dest in ipairs({"push", "mem"}) do
-			if dest == "mem" then
-				io.write("gen STORE2(")
-			else
-				io.write("gen v16 := ")
-			end
-			io.write(op.."2(")
-			writespec(lhs, "lhs", 2)
-			if dest == "mem" then
-				io.write("), ADDRESS():dest)")
-			else
-				io.write(")")
-			end
-			io.write(" uses a|x|y\n")
+--for _, op in ipairs(twoopoperations) do
+--	for _, lhs in ipairs({"pop", "mem"}) do
+--		for _, dest in ipairs({"push", "mem"}) do
+--			if dest == "mem" then
+--				io.write("gen STORE2(")
+--			else
+--				io.write("gen v16 := ")
+--			end
+--			io.write(op.."2(")
+--			writespec(lhs, "lhs", 2)
+--			if dest == "mem" then
+--				io.write("), ADDRESS():dest)")
+--			else
+--				io.write(")")
+--			end
+--			io.write(" uses a|x|y\n")
+--
+--			io.write("{\n");
+--			io.write("\tparamwidth := 2;\n");
+--			writeparm(lhs, "Lhs", "lhs")
+--			writeparm(dest, "Dest", "dest")
+--			io.write("\tDo2Op_"..op:lower().."();\n")
+--			io.write("}\n");
+--		end
+--	end
+--end
 
-			io.write("{\n");
-			io.write("\tparamwidth := 2;\n");
-			writeparm(lhs, "Lhs", "lhs")
-			writeparm(dest, "Dest", "dest")
-			io.write("\tDo2Op_"..op:lower().."();\n")
-			io.write("}\n");
-		end
-	end
-end
 -- 32 bit 3-op operations
 
-for _, op in ipairs(threeopoperations) do
-	for _, lhs in ipairs({"pop", "mem", "constant"}) do
-		for _, rhs in ipairs({"pop", "mem", "constant"}) do
-			for _, dest in ipairs({"push", "mem"}) do
-				if dest == "mem" then
-					io.write("gen STORE4(")
-				else
-					io.write("gen v32 := ")
-				end
-				io.write(op.."4(")
-				writespec(lhs, "lhs", 4)
-				io.write(", ")
-				writespec(rhs, "rhs", 4)
-				if dest == "mem" then
-					io.write("), ADDRESS():dest)")
-				else
-					io.write(")")
-				end
-				io.write(" uses a|x|y\n")
-
-				io.write("{\n");
-				if op == "ADD" then
-					io.write("\tE_clc();\n");
-				end
-				if op == "SUB" then
-					io.write("\tE_sec();\n");
-				end
-				io.write("\tparamwidth := 4;\n");
-				writeparm(rhs, "Rhs", "rhs")
-				writeparm(lhs, "Lhs", "lhs")
-				writeparm(dest, "Dest", "dest")
-				io.write("\tDo3Op4(\"", opcodes[op], "\");\n")
-				io.write("}\n");
-			end
-		end
-	end
-end
+--for _, op in ipairs(threeopoperations) do
+--	for _, lhs in ipairs({"pop", "mem", "constant"}) do
+--		for _, rhs in ipairs({"pop", "mem", "constant"}) do
+--			for _, dest in ipairs({"push", "mem"}) do
+--				if dest == "mem" then
+--					io.write("gen STORE4(")
+--				else
+--					io.write("gen v32 := ")
+--				end
+--				io.write(op.."4(")
+--				writespec(lhs, "lhs", 4)
+--				io.write(", ")
+--				writespec(rhs, "rhs", 4)
+--				if dest == "mem" then
+--					io.write("), ADDRESS():dest)")
+--				else
+--					io.write(")")
+--				end
+--				io.write(" uses a|x|y\n")
+--
+--				io.write("{\n");
+--				if op == "ADD" then
+--					io.write("\tE_clc();\n");
+--				end
+--				if op == "SUB" then
+--					io.write("\tE_sec();\n");
+--				end
+--				io.write("\tparamwidth := 4;\n");
+--				writeparm(rhs, "Rhs", "rhs")
+--				writeparm(lhs, "Lhs", "lhs")
+--				writeparm(dest, "Dest", "dest")
+--				io.write("\tDo3Op4(\"", opcodes[op], "\");\n")
+--				io.write("}\n");
+--			end
+--		end
+--	end
+--end
 
 -- 32 bit 2op operations
 
-for _, op in ipairs(twoopoperations) do
-	for _, lhs in ipairs({"pop", "mem"}) do
-		for _, dest in ipairs({"push", "mem"}) do
-			if dest == "mem" then
-				io.write("gen STORE4(")
-			else
-				io.write("gen v32 := ")
-			end
-			io.write(op.."4(")
-			writespec(lhs, "lhs", 4)
-			if dest == "mem" then
-				io.write("), ADDRESS():dest)")
-			else
-				io.write(")")
-			end
-			io.write(" uses a|x|y\n")
-
-			io.write("{\n");
-			io.write("\tparamwidth := 4;\n");
-			writeparm(lhs, "Lhs", "lhs")
-			writeparm(dest, "Dest", "dest")
-			io.write("\tDo2Op_"..op:lower().."();\n")
-			io.write("}\n");
-		end
-	end
-end
+--for _, op in ipairs(twoopoperations) do
+--	for _, lhs in ipairs({"pop", "mem"}) do
+--		for _, dest in ipairs({"push", "mem"}) do
+--			if dest == "mem" then
+--				io.write("gen STORE4(")
+--			else
+--				io.write("gen v32 := ")
+--			end
+--			io.write(op.."4(")
+--			writespec(lhs, "lhs", 4)
+--			if dest == "mem" then
+--				io.write("), ADDRESS():dest)")
+--			else
+--				io.write(")")
+--			end
+--			io.write(" uses a|x|y\n")
+--
+--			io.write("{\n");
+--			io.write("\tparamwidth := 4;\n");
+--			writeparm(lhs, "Lhs", "lhs")
+--			writeparm(dest, "Dest", "dest")
+--			io.write("\tDo2Op_"..op:lower().."();\n")
+--			io.write("}\n");
+--		end
+--	end
+--end
 
 -- 32 bit branch operations
 
-for _, op in ipairs(branchoperations) do
-	for _, lhs in ipairs({"pop", "mem"}) do
-		for _, rhs in ipairs({"pop", "mem", "constant"}) do
-			io.write("gen "..op.."4(")
-			writespec(lhs, "lhs", 4)
-			io.write(", ")
-			writespec(rhs, "rhs", 4)
-			io.write(") uses a|y\n")
-
-			io.write("{\n");
-			io.write("\tparamwidth := 4;\n");
-			writeparm(lhs, "Lhs", "lhs")
-			writeparm(rhs, "Rhs", "rhs")
-			io.write("\tDoBranch4_"..op:lower().."(self.n[0]);\n")
-			io.write("}\n");
-		end
-	end
-end
+--for _, op in ipairs(branchoperations) do
+--	for _, lhs in ipairs({"pop", "mem"}) do
+--		for _, rhs in ipairs({"pop", "mem", "constant"}) do
+--			io.write("gen "..op.."4(")
+--			writespec(lhs, "lhs", 4)
+--			io.write(", ")
+--			writespec(rhs, "rhs", 4)
+--			io.write(") uses a|y\n")
+--
+--			io.write("{\n");
+--			io.write("\tparamwidth := 4;\n");
+--			writeparm(lhs, "Lhs", "lhs")
+--			writeparm(rhs, "Rhs", "rhs")
+--			io.write("\tDoBranch4_"..op:lower().."(self.n[0]);\n")
+--			io.write("}\n");
+--		end
+--	end
+--end
 
 -- 32 bit copies
 
-for _, lhs in ipairs({"pop", "mem", "constant"}) do
-	for _, dest in ipairs({"push", "mem"}) do
-		if (lhs ~= "pop") or (dest ~= "push") then
-			if (dest == "mem") or (dest == "memi") then
-				io.write("gen STORE4(")
-			else
-				io.write("gen v32 := ")
-			end
-			writespec(lhs, "lhs", 4)
-			if dest == "mem" then
-				io.write(", ADDRESS():dest)\n")
-			elseif dest == "memi" then
-				io.write(", LOAD2(ADDRESS():dest))\n")
-			else
-				io.write("\n")
-			end
-
-			io.write("{\n");
-			io.write("\tparamwidth := 4;\n");
-			writeparm(lhs, "Lhs", "lhs")
-			writeparm(dest, "Dest", "dest")
-			io.write("\tDoCopy4();\n")
-			io.write("}\n");
-		end
-	end
-end
+--for _, lhs in ipairs({"pop", "mem", "constant"}) do
+--	for _, dest in ipairs({"push", "mem"}) do
+--		if (lhs ~= "pop") or (dest ~= "push") then
+--			if (dest == "mem") or (dest == "memi") then
+--				io.write("gen STORE4(")
+--			else
+--				io.write("gen v32 := ")
+--			end
+--			writespec(lhs, "lhs", 4)
+--			if dest == "mem" then
+--				io.write(", ADDRESS():dest)\n")
+--			elseif dest == "memi" then
+--				io.write(", LOAD2(ADDRESS():dest))\n")
+--			else
+--				io.write("\n")
+--			end
+--
+--			io.write("{\n");
+--			io.write("\tparamwidth := 4;\n");
+--			writeparm(lhs, "Lhs", "lhs")
+--			writeparm(dest, "Dest", "dest")
+--			io.write("\tDoCopy4();\n")
+--			io.write("}\n");
+--		end
+--	end
+--end
 
