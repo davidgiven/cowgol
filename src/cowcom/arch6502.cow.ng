@@ -1515,32 +1515,49 @@ gen xa := LSHIFT2(xa, y) { E_callhelper("_lshift2"); }
 gen xa := RSHIFTU2(xa, y) { E_callhelper("_rshiftu2"); }
 gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
-gen xa := MUL2(xa, in2_ops:rhs) uses y
-{
-	var e := GetHelper("_mul2");
+%{
+	sub MulOrDiv2(name: string)
+		var e := GetHelper(name);
 
-	E_sta();
-	EmitByte(COO_ESCAPE_WSREF);
-	E_h16(e.id);
-	E("010000\n");
+		E_sta();
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(e.id);
+		E("010000\n");
 
-	E_stx();
-	EmitByte(COO_ESCAPE_WSREF);
-	E_h16(e.id);
-	E("010001\n");
+		E_stx();
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(e.id);
+		E("010001\n");
 
-	var rhs := PopOp();
-	paramwidth := 2;
-	DoParamDirect(rhs, "lda");
-	DoParamDirect(rhs, "ldx");
-	E_callhelper("_mul2");
-}
-	
-gen v16 := DIVU2(v16, xa)
-		{ E("\tDIVU2\n"); }
+		var rhs := PopOp();
+		paramwidth := 2;
+		DoParamDirect(rhs, "lda");
+		DoParamDirect(rhs, "ldx");
+		E_callhelper(name);
+	end sub;
 
-gen v16 := DIVS2(v16, xa)
-		{ E("\tDIVS2\n"); }
+	sub Rem2(name: string)
+		MulOrDiv2(name);
+
+		var e := GetHelper(name);
+
+		E_lda();
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(e.id);
+		E("010004\n");
+
+		E_ldx();
+		EmitByte(COO_ESCAPE_WSREF);
+		E_h16(e.id);
+		E("010005\n");
+	end sub;
+%}
+
+gen xa := MUL2(xa, in2_ops) uses y { MulOrDiv2("_mul2"); }
+gen xa := DIVU2(xa, in2_ops) uses y { MulOrDiv2("_divu2"); }
+gen xa := DIVS2(xa, in2_ops) uses y { MulOrDiv2("_divs2"); }
+gen xa := REMU2(xa, in2_ops) uses y { Rem2("_divu2"); }
+gen xa := REMS2(xa, in2_ops) uses y { Rem2("_divs2"); }
 
 // --- 32 bit ---------------------------------------------------------------
 
@@ -1551,7 +1568,7 @@ gen v32 := NEG4(in4_ops) uses a|x|y          { PushPushOp($$, 4); Do2Op4_neg(); 
 gen v32 := NOT4(in4_ops) uses a|x|y          { PushPushOp($$, 4); Do2Op4_not(); }
 
 gen v32 := ADD4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_clc(); Do3Op4("adc"); }
-gen v32 := SUB4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("clc"); }
+gen v32 := SUB4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("sbc"); }
 gen v32 := AND4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("and"); }
 gen v32 := OR4(in4_ops, in4_ops)  uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("ora"); }
 gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("eor"); }

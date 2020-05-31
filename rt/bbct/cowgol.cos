@@ -200,17 +200,17 @@
 	rts
 
 &X _mul2
-&W _mul2 1 6
+&W _mul2 1 5
 ; Multiplies `$.1.0to1 * XA. Returns XA.
 ``:
 	sta `$.1.2+0
 	stx `$.1.2+1
 	lda #0
-	sta `$.1.4+1
+	sta `$.1.4
 	ldy #$11
 	clc
 ``_loop:
-	ror `$.1.4+1
+	ror `$.1.4
 	ror
 	ror `$.1.0+1
 	ror `$.1.0+0
@@ -219,8 +219,8 @@
 	adc `$.1.2+0
 	pha
 	lda `$.1.2+1
-	adc `$.1.4+1
-	sta `$.1.4+1
+	adc `$.1.4
+	sta `$.1.4
 	pla
 ``_2:
 	dey
@@ -229,4 +229,35 @@
 	ldx `$.1.0+1
 	rts
 
+&X _divu2
+&W _divu2 1 6
+; Unsigned division of `$.1.0to1 / XA. Result is in XA, remainder in `$.1.4to5.
+``:
+	sta `$.1.2 ; RHS
+	stx `$.1.3
+	lda #0
+	sta `$.1.4 ; remainder
+	sta `$.1.5
+	ldx #16
+``_loop
+	asl `$.1.0 ; LHS
+	rol `$.1.1
+	rol `$.1.4 ; remainder
+	rol `$.1.5
+	lda `$.1.4
+	sec
+	sbc `$.1.2 ; RHS
+	tay
+	lda `$.1.5
+	sbc `$.1.3
+	bcc +
+	sty `$.1.4
+	sta `$.1.5
+	inc `$.1.0
++
+	dex
+	bne ``_loop
+	lda `$.1.0
+	ldx `$.1.1
+	rts
 
