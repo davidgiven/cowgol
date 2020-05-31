@@ -254,11 +254,14 @@
 	sub E_clc() E("\tclc\n"); end sub;
 	sub E_sec() E("\tsec\n"); end sub;
 	sub E_pha() E("\tpha\n"); end sub;
+	sub E_plp() E("\tplp\n"); end sub;
 	sub E_pla() E("\tpla\n"); end sub;
 	sub E_txa() E("\ttxa\n"); end sub;
 	sub E_tya() E("\ttya\n"); end sub;
 	sub E_tax() E("\ttax\n"); end sub;
 	sub E_tay() E("\ttay\n"); end sub;
+	sub E_tsx() E("\ttsx\n"); end sub;
+	sub E_txs() E("\ttxs\n"); end sub;
 	sub E_not() E("\teor #255\n"); end sub;
 
 	sub E_ld(reg: RegId)
@@ -978,6 +981,37 @@ gen JUMP():j
 		E_tax();
 		E_pla();
 	end sub;
+
+	sub DoXA_neg()
+		var rhs := PopOp();
+
+		paramwidth := 2;
+		R_flush(REG_A|REG_X|REG_XA);
+
+		E_sec();
+		E_loadconst(REG_A, 0);
+		DoParamDirect(rhs, "sbc");
+		E_pha();
+		E_loadconst(REG_A, 0);
+		DoParamDirect(rhs, "sbc");
+		E_tax();
+		E_pla();
+	end sub;
+
+	sub DoXA_not()
+		var rhs := PopOp();
+
+		paramwidth := 2;
+		R_flush(REG_A|REG_X|REG_XA);
+
+		DoParamDirect(rhs, "lda");
+		E("\teor #255\n");
+		E_pha();
+		DoParamDirect(rhs, "lda");
+		E("\teor #255\n");
+		E_tax();
+		E_pla();
+	end sub;
 %}
 
 gen v8_op  := FALLBACK(v8:lhs)	                    { PushPopOp($lhs, 1); }
@@ -1346,41 +1380,6 @@ gen a := LOAD1(p16:ptr) uses y
 
 // --- 8-bit maths -----------------------------------------------------------
 
-%{
-	sub DoAlu1S(insn: string)
-		var rhssid := Pop(REG_V8, 1);
-
-		R_flush(REG_A);
-		E_insn(insn);
-		E_stackref(rhssid);
-		E_nl();
-	end sub;
-
-	sub DoAlu1C(insn: string, value: uint8)
-		R_flush(REG_A);
-		E_insn(insn);
-		E_const(value);
-		E_nl();
-	end sub;
-
-	sub DoAlu1M(insn: string, sym: [Symbol], off: Size)
-		R_flush(REG_A);
-		E_insn(insn);
-		E_symref(sym, off);
-		E_nl();
-	end sub;
-
-	sub DoAlu1PS(insn: string)
-		var rhssid := Pop(REG_P16, 2);
-
-		E_loadconst(REG_Y, 0);
-		R_flush(REG_A);
-		E_insn(insn);
-		E_stackrefi(rhssid);
-		E_nl();
-	end sub;
-%}
-
 gen a := NOT1(a) { E_not(); }
 
 gen a := NEG1(a)
@@ -1499,19 +1498,36 @@ gen STORE2(xa, p16:rhs)
 	RegCacheLeavesConstant(REG_Y, 1);
 }
 
-gen xa := ADD2(xa, in2_ops:rhs) { E_clc(); DoXA("adc"); }
-gen xa := SUB2(xa, in2_ops:rhs) { E_sec(); DoXA("sbc"); }
-gen xa := AND2(xa, in2_ops:rhs) {          DoXA("and"); }
-gen xa := OR2(xa, in2_ops:rhs)  {          DoXA("ora"); }
-gen xa := EOR2(xa, in2_ops:rhs) {          DoXA("eor"); }
+gen xa := NEG2(in4_ops) uses y { DoXA_neg(); }
+gen xa := NOT2(in4_ops) uses y { DoXA_not(); }
+
+gen xa := ADD2(xa, in2_ops:rhs) uses y { E_clc(); DoXA("adc"); }
+gen xa := SUB2(xa, in2_ops:rhs) uses y { E_sec(); DoXA("sbc"); }
+gen xa := AND2(xa, in2_ops:rhs) uses y {          DoXA("and"); }
+gen xa := OR2(xa, in2_ops:rhs)  uses y {          DoXA("ora"); }
+gen xa := EOR2(xa, in2_ops:rhs) uses y {          DoXA("eor"); }
 
 gen xa := LSHIFT2(xa, y) { E_callhelper("_lshift2"); }
 gen xa := RSHIFTU2(xa, y) { E_callhelper("_rshiftu2"); }
 gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
-gen v16 := MUL2(v16, xa)
-		{ E("\tRMUL2\n"); }
-
+gen xa := MUL2(xa, in2_ops:rhs) uses y
+{
+	E_pha(); # big endian push
+	E_txa();
+	E_pha();
+	
+	var rhs := PopOp();
+	paramwidth := 2;
+	DoParamDirect(rhs, "lda");
+	DoParamDirect(rhs, "ldx");
+	E_callhelper("_mul2");
+	E_tay();
+	E_pla();
+	E_pla();
+	E_tya();
+}
+	
 gen v16 := DIVU2(v16, xa)
 		{ E("\tDIVU2\n"); }
 

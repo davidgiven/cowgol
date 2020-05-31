@@ -177,3 +177,38 @@
 	lda `$.1.0
 	rts
 
+&X _mul2
+&W _mul2 1 6
+; Multiplies betos * XA. Returns XA.
+``:
+	sta `$.1.0+0
+	stx `$.1.0+1
+	tsx
+	lda $103,x
+	sta `$.1.2+1
+	lda $104,x
+	sta `$.1.2+0
+	lda #0
+	sta `$.1.4+1
+	ldy #$11
+	clc
+``_loop:
+	ror `$.1.4+1
+	ror
+	ror `$.1.0+1
+	ror `$.1.0+0
+	bcc ``_2
+	clc
+	adc `$.1.2+0
+	pha
+	lda `$.1.2+1
+	adc `$.1.4+1
+	sta `$.1.4+1
+	pla
+``_2:
+	dey
+	bne ``_loop
+	lda `$.1.0+0
+	ldx `$.1.0+1
+	rts
+
