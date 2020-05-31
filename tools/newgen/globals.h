@@ -134,7 +134,6 @@ extern void define_regclass(const char* name, reg_t reg);
 extern reg_t lookup_register_or_class(const char* name);
 extern int lookup_midcode(const char* name);
 
-extern Rule* rewriterule(int lineno, Node* pattern, Node* replacement);
 extern Rule* genrule(int lineno, Node* pattern, reg_t result);
 
 extern Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicates, Label* label);

@@ -154,19 +154,6 @@ Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicate, L
 	return n;
 }
 
-Rule* rewriterule(int lineno, Node* pattern, Node* replacement)
-{
-	Rule* r = calloc(sizeof(Rule), 1);
-	r->lineno = lineno;
-	r->pattern = pattern;
-	r->replacement = replacement;
-
-	if (rulescount == (sizeof(rules)/sizeof(*rules)))
-		yyerror("too many rules");
-	rules[rulescount++] = r;
-	return r;
-}
-
 Rule* genrule(int lineno, Node* pattern, reg_t result)
 {
 	Rule* r = calloc(sizeof(Rule), 1);
@@ -769,32 +756,6 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 	}
 }
 
-static void create_rewriters(void)
-{
-	#if !defined COWGOL
-		fprintf(outfp, "Node* rewrite_node(uint8_t rule, Node** n) {\n");
-		fprintf(outfp, "switch (rule) {\n");
-
-		for (int i=0; i<rulescount; i++)
-		{
-			Rule* r = rules[i];
-			if (r->replacement)
-			{
-				fprintf(outfp, "case %d:\n", i);
-				fprintf(outfp, "\treturn\n");
-
-				print_line(r->lineno);
-				emit_replacement(r, r->pattern, r->replacement);
-				fprintf(outfp, ";\n");
-			}
-		}
-
-		fprintf(outfp, "}\n");
-		fprintf(outfp, "return NULL;\n");
-		fprintf(outfp, "}\n");
-	#endif
-}
-
 static void walk_matcher_tree(int* offset, Node* pattern)
 {
 	int thisoffset = *offset;
@@ -907,7 +868,6 @@ int main(int argc, const char* argv[])
 	dump_registers();
 	create_match_predicates();
 	create_emitters();
-	create_rewriters();
 	create_rules();
 	create_matcher();
 
