@@ -177,6 +177,28 @@
 	lda `$.1.0
 	rts
 
+&X _div1
+&W _div1 1 2
+; Multiplies A = A / X, remainder in X.
+``:
+	sta `$.1.0
+	stx `$.1.1
+	lda #0
+	ldx #8
+	asl `$.1.0
+``_1:
+	rol
+	cmp `$.1.1
+	bcc ``_2
+	sbc `$.1.1
+``_2:
+	rol `$.1.0
+	dex
+	bne ``_1
+	tax
+	lda `$.1.0
+	rts
+
 &X _mul2
 &W _mul2 1 6
 ; Multiplies betos * XA. Returns XA.
