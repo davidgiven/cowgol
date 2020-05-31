@@ -4,9 +4,6 @@
 &X _cmp4
 &X _cmps4
 
-&S shiftdata
-&W shiftdata 0 12
-
 &X _lshift1
 ; Shifts A left Y bits.
 ``:
@@ -36,5 +33,58 @@
 	ror
 	jmp ``
 ``_exit:
+	rts
+
+&X _lshift2
+&W _lshift2 1 2
+; Shifts AX left Y bits.
+``:
+	sta `$_lshift2.1.0
+	stx `$_lshift2.1.1
+``_loop:
+	dey
+	bmi ``_exit
+	asl `$_lshift2.1.0
+	rol `$_lshift2.1.1
+	jmp ``_loop
+``_exit:
+	lda `$_lshift2.1.0
+	ldx `$_lshift2.1.1
+	rts
+
+&X _rshiftu2
+&W _rshiftu2 1 2
+; Logical shifts AX right Y bits.
+``:
+	sta `$_lshift2.1.0
+	stx `$_lshift2.1.1
+``_loop:
+	dey
+	bmi ``_exit
+	lsr `$_lshift2.1.1
+	ror `$_lshift2.1.0
+	jmp ``_loop
+``_exit:
+	lda `$_lshift2.1.0
+	ldx `$_lshift2.1.1
+	rts
+
+&X _rshifts2
+&W _rshifts2 1 2
+; Arithmetic shifts AX right Y bits.
+``:
+	sta `$_lshift2.1.0
+	stx `$_lshift2.1.1
+``_loop:
+	dey
+	bmi ``_exit
+	lda `$_lshift2.1.1
+	cmp #$80
+	ror `$_lshift2.1.1
+	ror `$_lshift2.1.0
+	jmp ``_loop
+``_exit:
+	lda `$_lshift2.1.0
+	ldx `$_lshift2.1.1
 	rts
 

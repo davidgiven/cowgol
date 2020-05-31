@@ -1171,6 +1171,23 @@ gen BLTU1(a, v8):c
 	E_jumps_bcs_bcc(self.n[0]);
 }
 
+gen BEQ2(xa:lhs, CONSTANT():c):b
+{
+	E_insn("cmp");
+	E_const($c.value as uint8);
+	E_nl();
+
+	E("\tbne ");
+	E_labelref($b.falselabel);
+	E_nl();
+
+	E_insn("cpx");
+	E_const(($c.value>>8) as uint8);
+	E_nl();
+
+	E_jumps_beq_bne(self.n[0]);
+}
+
 gen BEQ2(v16:lhs, xa:rhs):c
 {
 	E("\tBEQ2\n");
@@ -1280,14 +1297,9 @@ gen STORE2(xa, p16:rhs)
 	E_nl();
 }
 
-gen v16 := LSHIFT2(v16, a)
-		{ E("\tLSHIFT2\n"); }
-
-gen v16 := RSHIFTU2(v16, a)
-		{ E("\tRSHIFTU2\n"); }
-
-gen v16 := RSHIFTS2(v16, a)
-		{ E("\tRSHIFTS2\n"); }
+gen xa := LSHIFT2(xa, y) { E_callhelper("_lshift2"); }
+gen xa := RSHIFTU2(xa, y) { E_callhelper("_rshiftu2"); }
+gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
 gen v16 := MUL2(v16, xa)
 		{ E("\tRMUL2\n"); }
