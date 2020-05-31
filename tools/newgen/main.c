@@ -156,6 +156,9 @@ Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicate, L
 
 Rule* genrule(int lineno, Node* pattern, reg_t result)
 {
+	if (pattern->isregister)
+		yyerror("trivial rule");
+
 	Rule* r = calloc(sizeof(Rule), 1);
 	r->lineno = lineno;
 	r->pattern = pattern;
