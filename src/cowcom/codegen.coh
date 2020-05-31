@@ -368,39 +368,43 @@ sub Generate(rootnode: [Node])
 			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
 				# We've reached the end of the list of rules without matching anything.
 				if (node.op != MIDCODE_FALLBACK) and (node.dlink != (0 as [Node])) then
-					# Wrap this node in a FALLBACK instruction, in the hope that it'll
-					# convert from whatever wanted it to the right thing.
-					var oldnode := node;
-					node := MidFallback(oldnode);
+					sub ConvertNodeToFallback()
+						# Wrap this node in a FALLBACK instruction, in the hope that it'll
+						# convert from whatever wanted it to the right thing.
+						var oldnode := node;
+						node := MidFallback(oldnode);
 
-					node.consumer := oldnode.consumer;
+						node.consumer := oldnode.consumer;
 
-					# Patch the parent to point at the new node.
+						# Patch the parent to point at the new node.
 
-					node.dlink := oldnode; # points to the node parent
-					if oldnode.dlink.left == oldnode then
-						oldnode.dlink.left := node;
-					elseif oldnode.dlink.right == oldnode then
-						oldnode.dlink.right := node;
-					else
-						SimpleError("invalid tree");
-					end if;
-					node.desired_reg := oldnode.desired_reg;
-
-					# Patch the parent's producer to point at the new node.
-
-					producer := oldnode.dlink.producer;
-					i := 0;
-					while i != INSTRUCTION_TEMPLATE_DEPTH loop
-						if producer.n[i] == oldnode then
-							producer.n[i] := node;
+						node.dlink := oldnode; # points to the node parent
+						if oldnode.dlink.left == oldnode then
+							oldnode.dlink.left := node;
+						elseif oldnode.dlink.right == oldnode then
+							oldnode.dlink.right := node;
+						else
+							SimpleError("invalid tree");
 						end if;
-						i := i + 1;
-					end loop;
+						node.desired_reg := oldnode.desired_reg;
 
-					print_nl();
-					PrintNodes(rootnode);
+						# Patch the parent's producer to point at the new node.
 
+						var insn := oldnode.dlink.producer;
+						var i: uint8 := 0;
+						while i != INSTRUCTION_TEMPLATE_DEPTH loop
+							if insn.n[i] == oldnode then
+								insn.n[i] := node;
+							end if;
+							i := i + 1;
+						end loop;
+
+						#print_nl();
+						#print("FALLBACK\n");
+						#PrintNodes(rootnode);
+					end sub;
+
+					ConvertNodeToFallback();
 					RewindRulePointers();
 					continue;
 				end if;
@@ -493,16 +497,15 @@ sub Generate(rootnode: [Node])
 				# the same stack (a backend might have several).
 				
 				var candidate := node.desired_reg & producer.producable_regs;
-				print("stacked ");
-				print_hex_i32(node as intptr as uint32);
-				print(" candidate ");
-				print_hex_i16(candidate as uint16);
-				print(" node.desired_reg ");
-				print_hex_i16(node.desired_reg as uint16);
-				print(" producer_producable_regs ");
-				print_hex_i16(producer.producable_regs as uint16);
-
-				print_nl();
+				#print("stacked ");
+				#print_hex_i32(node as intptr as uint32);
+				#print(" candidate ");
+				#print_hex_i32(candidate as uint32);
+				#print(" node.desired_reg ");
+				#print_hex_i32(node.desired_reg as uint32);
+				#print(" producer_producable_regs ");
+				#print_hex_i32(producer.producable_regs as uint32);
+				#print_nl();
 
 				if candidate != 0 then
 					# Good news --- the producer and the consumer have a register type in
@@ -656,6 +659,10 @@ sub Generate(rootnode: [Node])
 
 	while next_instruction != &instructions[0] loop
 		next_instruction := @prev next_instruction;
+
+		#print("exec rule ");
+		#print_i8(next_instruction.ruleid);
+		#print_nl();
 
 		ShuffleRegisters(&next_instruction.reloads[0]);
 		EmitOneInstruction(next_instruction.ruleid, next_instruction);
