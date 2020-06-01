@@ -1489,7 +1489,7 @@ gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op
 
 %{
     sub MulOrDivOrRem4(name: string, resultoffset: uint8)
-        var e := GetHelper(name);
+        var e := GetHelper("_mathpad");
 
         var dest := PopOp();
         var rhs := PopOp();
