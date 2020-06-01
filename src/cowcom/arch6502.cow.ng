@@ -271,6 +271,7 @@
     sub E_tsx() R_flush(REG_X); E("\ttsx\n"); end sub;
     sub E_txs() E("\ttxs\n"); end sub;
     sub E_not() R_flush(REG_A); E("\teor #255\n"); end sub;
+    sub E_rol() R_flush(REG_A); E("\trol\n"); end sub;
 
     sub E_ld(reg: RegId)
         R_flush(reg);
@@ -1653,7 +1654,17 @@ gen BLTS4(in4_ops, in4_ops):b uses a|x|y
 
 // --- Casts ----------------------------------------------------------------
 
-gen v32 := CAST14(a, sext==0)
+gen xa := CAST12(a):c uses y
+{
+    E_loadconst(REG_X, 0);
+    if $c.sext != 0 then
+        E_tay(); # cheap way to set flags based on A
+        E("\tbpl *+3\n");
+        E_dex();
+    end if;
+}
+
+gen v32 := CAST14(a):c
 {
     var sid := Push(REG_V32, 4);
 
@@ -1661,7 +1672,11 @@ gen v32 := CAST14(a, sext==0)
     E_stackref(sid);
     E_nl();
 
-    E_loadconst(REG_A, 0);
+    if $c.sext != 0 then
+        E_callhelper("_signa");
+    else
+        E_loadconst(REG_A, 0);
+    end if;
 
     E_st(REG_A);
     E_stackref(sid+1);
@@ -1676,7 +1691,7 @@ gen v32 := CAST14(a, sext==0)
     E_nl();
 }
 
-gen v32 := CAST24(xa, sext==0)
+gen v32 := CAST24(xa):c
 {
     var sid := Push(REG_V32, 4);
 
@@ -1688,7 +1703,12 @@ gen v32 := CAST24(xa, sext==0)
     E_stackref(sid+1);
     E_nl();
 
-    E_loadconst(REG_A, 0);
+    if $c.sext != 0 then
+        E_txa();
+        E_callhelper("_signa");
+    else
+        E_loadconst(REG_A, 0);
+    end if;
 
     E_st(REG_A);
     E_stackref(sid+2);
@@ -1714,6 +1734,18 @@ gen a := CAST41(v32)
     var sid := Pop(REG_V32, 4);
     E_lda();
     E_stackref(sid);
+    E_nl();
+}
+
+gen xa := CAST42(v32)
+{
+    var sid := Pop(REG_V32, 4);
+    E_lda();
+    E_stackref(sid);
+    E_nl();
+
+    E_ldx();
+    E_stackref(sid+1);
     E_nl();
 }
 

@@ -343,3 +343,12 @@
 	bne ``_loop
 	rts
 
+&X _signa
+; Propagates the sign bit of A, producing 0xff or 0.
+``:
+	rol
+	lda #0
+	adc #$ff
+	eor #$ff
+	rts
+
