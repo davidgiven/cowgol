@@ -1070,13 +1070,19 @@ gen ENDSUB():s
             when 4:
                 E_loadconst(REG_Y, 0);
                 E_loadconst(REG_X, 3);
+                var lid := AllocPlabel();
+                E_plabel(lid);
+
                 E_ld(REG_A);
                 E_symref(param, 0);
                 E(",y\n");
                 E_pha();
                 E_iny();
                 E_dex();
-                E("\tbpl *-6\n");
+
+                E_insn("bpl");
+                E_plabelref(lid);
+                E_nl();
         end case;
         i := i + 1;
     end loop;
@@ -1176,13 +1182,19 @@ gen v32 := POPARG4() uses x|y|a
     var sid := Push(REG_V32, 4);
     E_loadconst(REG_Y, 0);
     E_loadconst(REG_X, 3);
+    var lid := AllocPlabel();
+    E_plabel(lid);
+
     E_pla();
     E_st(REG_A);
     E_stackref(sid);
     E(",y\n");
     E_iny();
     E_dex();
-    E("\tbpl *-5\n");
+
+    E_insn("bpl");
+    E_plabelref(lid);
+    E_nl();
 }
 
 // --- 8-bit -----------------------------------------------------------------
