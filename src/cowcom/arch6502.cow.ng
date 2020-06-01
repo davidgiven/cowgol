@@ -1068,6 +1068,9 @@ gen ENDSUB():s
                 end if;
 
             when 4:
+                # Push from low to high so the value ends up in big-endian
+                # order on the stack. This allows the caller to pop it off
+                # using smaller code.
                 E_loadconst(REG_Y, 0);
                 E_loadconst(REG_X, 3);
                 var lid := AllocPlabel();
@@ -1123,30 +1126,46 @@ gen RETURN()
     E_nl();
 }
 
-gen CALL(param):s
+gen CALL(param):s uses x|y|a
         { E_call($s.subr); }
     
-gen a := CALLE1(param):s
+gen a := CALLE1(param):s uses x|y
         { E_call($s.subr); }
 
-gen xa := CALLE2(param):s
+gen xa := CALLE2(param):s uses y
         { E_call($s.subr); }
 
-gen v32 := CALLE4(param):s
-        { E_call($s.subr); }
+%{
+    sub PopArg4()
+        var sid := Push(REG_V32, 4);
+        E_loadconst(REG_Y, 3);
+        var lid := AllocPlabel();
+        E_plabel(lid);
+
+        E_pla();
+        E_st(REG_A);
+        E_stackref(sid);
+        E(",y\n");
+        E_dey();
+
+        E_insn("bpl");
+        E_plabelref(lid);
+        E_nl();
+    end sub;
+%}
+
+gen v32 := CALLE4(param):s uses x|y|a
+{
+    E_call($s.subr);
+    PopArg4();
+}
 
 gen param := END();
 
-gen param := ARG1(param, a, remaining==0);
-
-gen param := ARG1(param, a, remaining!=0)
-        { E_pha(); }
-    
+gen param := ARG1(param, a, remaining==0); 
+gen param := ARG1(param, a, remaining!=0) { E_pha(); } 
 gen param := ARG2(param, xa, remaining==0);
-
-// WARNING: big endian!
-gen param := ARG2(param, xa, remaining!=0)
-        { E_pha(); E_txa(); E_pha(); }
+gen param := ARG2(param, xa, remaining!=0) { E_pha(); E_txa(); E_pha(); } // big endian on stack
 
 gen param := ARG4(param, v32) uses y|a
 {
@@ -1167,35 +1186,10 @@ gen param := ARG4(param, v32) uses y|a
 }
 
 gen a := POPARG1(remaining==0);
-
-gen a := POPARG1(remaining!=0)
-        { E_pla(); }
-
+gen a := POPARG1(remaining!=0) { E_pla(); } 
 gen xa := POPARG2(remaining==0);
-
-// WARNING: big endian on stack!
-gen xa := POPARG2(remaining!=0)
-        { E_pla(); E_tax(); E_pla(); }
-
-gen v32 := POPARG4() uses x|y|a
-{
-    var sid := Push(REG_V32, 4);
-    E_loadconst(REG_Y, 0);
-    E_loadconst(REG_X, 3);
-    var lid := AllocPlabel();
-    E_plabel(lid);
-
-    E_pla();
-    E_st(REG_A);
-    E_stackref(sid);
-    E(",y\n");
-    E_iny();
-    E_dex();
-
-    E_insn("bpl");
-    E_plabelref(lid);
-    E_nl();
-}
+gen xa := POPARG2(remaining!=0) { E_pla(); E_tax(); E_pla(); } // big endian on stack
+gen v32 := POPARG4() uses x|y|a { PopArg4(); }
 
 // --- 8-bit -----------------------------------------------------------------
 
@@ -1667,7 +1661,8 @@ gen BLTS2(xa:lhs, in2_ops:rhs):c
 }
 
 %{
-    sub DoCmpU(insn: string, truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef)
+    sub DoCmp4EQ(node: [Node])
+        paramwidth := 4;
         var rhs := PopOp();
         var lhs := PopOp();
 
@@ -1677,19 +1672,20 @@ gen BLTS2(xa:lhs, in2_ops:rhs):c
 
         DoParamIndirect(lhs, "lda");
         DoParamIndirect(rhs, "cmp");
-        E_jump(insn, falselabel);
+        E_bne(node.beq0.falselabel);
 
         E_dey();
         E_insn("bpl");
         E_plabelref(lid);
         E_nl();
 
-        if fallthrough != truelabel then
-            E_jmp(truelabel);
+        if node.beq0.fallthrough != node.beq0.truelabel then
+            E_jmp(node.beq0.truelabel);
         end if;
     end sub;
 
     sub DoCmp4LT(node: [Node], sext: uint8)
+        paramwidth := 4;
         var rhs := PopOp();
         var lhs := PopOp();
 
@@ -1716,15 +1712,10 @@ gen BLTS2(xa:lhs, in2_ops:rhs):c
         else
             E_jumps_bcc_bcs(node);
         end if;
-        end sub;
+    end sub;
 %}
 
-gen BEQ4(in4_ops, in4_ops):b uses a|x|y
-{
-    paramwidth := 4;
-    DoCmpU("bne", $b.truelabel, $b.falselabel, $b.fallthrough);
-}
-
+gen BEQ4(in4_ops, in4_ops):b uses a|x|y { DoCmp4EQ(self.n[0]); }
 gen BLTU4(in4_ops, in4_ops):b uses a|x|y { DoCmp4LT(self.n[0], 0); }
 gen BLTS4(in4_ops, in4_ops):b uses a|x|y { DoCmp4LT(self.n[0], 1); }
 
@@ -1857,7 +1848,12 @@ gen WHENCASE4():c uses a
     paramwidth := 4;
     PushPeekOp(REG_V32, 4);
     PushConstOp($c.value);
-    DoCmpU("bne", 0, $c.falselabel, 0);
+
+    var node: Node;
+    node.beq0.falselabel := $c.falselabel;
+    node.beq0.truelabel := 0;
+    node.beq0.fallthrough := 0;
+    DoCmp4EQ(&node);
 }
 
 gen ENDCASE1();
