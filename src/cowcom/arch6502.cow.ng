@@ -561,7 +561,7 @@ gen JUMP():j
         mode: uint8;
     end record;
 
-    const OPERAND_STACK_SIZE := 16;
+    const OPERAND_STACK_SIZE := 128;
     var opstack: Operand[OPERAND_STACK_SIZE];
     var opsp: uint8 := 0;
     var paramwidth: uint8;

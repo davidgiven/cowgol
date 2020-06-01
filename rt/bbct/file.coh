@@ -1,0 +1,159 @@
+# vim: ts=4 sw=4 et
+
+const FCB_I_READ := 0x40;
+const FCB_I_WRITE := 0x80;
+
+record FCB_GBPB
+    channel: uint8;
+    bufferlo: [uint8];
+    bufferhi: uint16;
+    count: uint16;
+    counthi: uint16;
+    blocklo: uint8;
+    block: uint16;
+    blockhi: uint8;
+end record;
+
+const FCB_BUFFER_SIZE := 256;
+record FCB
+	gbpb: FCB_GBPB;
+	block: uint16;
+	bufferptr: uint16; # byte just read
+	dirty: uint8;
+	mode: uint8;
+	buffer: uint8[FCB_BUFFER_SIZE];
+end record;
+
+sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8)
+	var t := filename;
+	loop
+		if [t] == 0 then
+			break;
+		end if;
+		t := t + 1;
+	end loop;
+	[t] := 13; # change to MOS terminator
+
+	var channel: uint8;
+	@asm "lda", mode;
+	@asm "ldx #<", filename;
+	@asm "ldy #>", filename;
+	@asm "jsr $ffce"; # OSFIND
+	@asm "sta", channel;
+	[t] := 0; # change back to Cowgol terminator
+
+	MemZero(fcb as [uint8], @bytesof FCB);
+	fcb.mode := mode;
+	fcb.gbpb.channel := channel;
+	errno := ~channel;
+end sub;
+
+sub fcb_i_gbpb(fcb: [FCB], a: uint8)
+	fcb.gbpb.bufferlo := &fcb.buffer[0];
+	fcb.gbpb.count := FCB_BUFFER_SIZE;
+	fcb.gbpb.blocklo := 0;
+	fcb.gbpb.block := fcb.block;
+	
+	@asm "lda", a;
+	@asm "ldx #<", fcb;
+	@asm "ldy #>", fcb;
+	@asm "jsr 0xffd1"; # OSGBPB
+end sub;
+
+sub fcb_i_blockin(fcb: [FCB])
+	MemSet(&fcb.buffer[0], 0, 128);
+	fcb_i_gbpb(fcb, 3); # read block with pointer
+	fcb.dirty := 0;
+end sub;
+
+sub fcb_i_blockout(fcb: [FCB])
+	if fcb.dirty != 0 then
+		fcb_i_gbpb(fcb, 1); # write block with pointer
+		fcb.dirty := 0;
+	end if;
+end sub;
+
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
+	if newblock != fcb.block then
+		fcb_i_blockout(fcb);
+		fcb.block := newblock;
+		fcb_i_blockin(fcb);
+	end if;
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
+	errno := fcb_i_init(fcb, filename, FCB_I_READ);
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8)
+	errno := fcb_i_init(fcb, filename, FCB_I_READ|FCB_I_WRITE);
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8)
+	errno := fcb_i_init(fcb, filename, FCB_I_WRITE);
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8)
+	var channel := fcb.gbpb.channel;
+	if channel != 0 then
+		fcb_i_blockout(fcb);
+
+		@asm "lda #0";
+		@asm "ldy", channel;
+		@asm "jsr $ffce"; # OSFIND
+		fcb.gbpb.channel := 0;
+	end if;
+	errno := 0;
+end sub;
+
+sub FCBSeek(fcb: [FCB], pos: uint32)
+	pos := pos - 1; # seek to *previous* character
+	var newblock := (pos >> 8) as uint16;
+	var newptr := (pos as uint16) & 0xff;
+	fcb_i_changeblock(fcb, newblock);
+	fcb.bufferptr := newptr;
+end sub;
+
+sub FCBPos(fcb: [FCB]): (pos: uint32)
+	pos := (((fcb.block as uint32) << 8) | (fcb.bufferptr as uint32)) + 1;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32)
+	fcb_i_blockout(fcb);
+
+	# Nasty hack to get 32 bytes in zero page.
+	var ptr1: [uint8];
+	var ptr2: [uint8];
+
+	var channel := fcb.gbpb.channel;
+
+	@asm "lda #2"; # read EXT#
+	@asm "ldx #<", ptr1;
+	@asm "ldy", channel;
+	@asm "jsr $ffda"; # OSARGS
+
+	len := [&ptr1 as [uint32]];
+end sub;
+
+sub fcb_i_nextchar(fcb: [FCB])
+	fcb.bufferptr := fcb.bufferptr + 1;
+	if fcb.bufferptr == FCB_BUFFER_SIZE then
+		fcb_i_changeblock(fcb, fcb.block + 1);
+		fcb.bufferptr := 0;
+	end if;
+end sub;
+
+sub FCBGetChar(fcb: [FCB]): (c: uint8)
+	fcb_i_nextchar(fcb);
+	c := fcb.buffer[fcb.bufferptr as uint8];
+end sub;
+
+sub FCBPutChar(fcb: [FCB], c: uint8)
+	fcb_i_nextchar(fcb);
+	fcb.buffer[fcb.bufferptr as uint8] := c;
+	fcb.dirty := 1;
+end sub;
+
+include "common-file.coh";
+
+
