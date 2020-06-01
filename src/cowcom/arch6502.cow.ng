@@ -195,6 +195,7 @@
     end sub;
 
     sub E_call(subr: [Subroutine])
+        R_flushall();
         if IsSimpleSub(subr) != 0 then
             E("\tjsr ");
             E_subref(subr);
@@ -738,41 +739,37 @@ gen JUMP():j
         E(",y\n");
     end sub;
 
-    sub DoParamDirect(operand: [Operand], insn: string)
+    sub DoParamDirect(operand: [Operand], insn: string, offset: uint8)
+        var m := operand.mode;
+        if (m == MODE_STACKI) or (m == MODE_SYMBOLI) then
+            E_loadconst(REG_Y, offset);
+        end if;
+
         E_insn(insn);
         case operand.mode is
             when MODE_CONST:
-                E_const(operand.val as uint8);
-                operand.val := operand.val >> 8;
+                E_const((operand.val >> (8*offset)) as uint8);
 
             when MODE_ADDRESS:
-                case paramwidth is
+                case offset is
+                    when 0: E("#<"); # low byte
                     when 1: E("#>"); # high byte
-                    when 2: E("#<"); # low byte
                 end case;
                 E_symref(operand.sym, operand.off);
 
             when MODE_STACK:
-                E_stackref(operand.sid);
-                operand.sid := operand.sid + 1;
+                E_stackref(operand.sid + (offset as uint16));
 
             when MODE_STACKI:
                 EmitByte('(');
                 E_stackref(operand.sid);
                 E("),y");
-                if paramwidth != 1 then
-                    E("\n\tiny");
-                end if;
 
             when MODE_SYMBOL:
-                E_symref(operand.sym, operand.off);
-                operand.off := operand.off + 1;
+                E_symref(operand.sym, operand.off + (offset as uint16));
 
             when MODE_SYMBOLI:
                 E_symrefi(operand.sym, operand.off);
-                if paramwidth != 1 then
-                    E("\n\tiny");
-                end if;
 
             when else:
                 StartError();
@@ -1111,11 +1108,11 @@ gen v8 := FALLBACK(a|x|y:rhs)
     E_nl();
 }
 
-gen a := FALLBACK(v8)
+gen a := FALLBACK(v8) uses y
 {
     var op := PopOp();
     paramwidth := 1;
-    DoParamDirect(op, "lda");
+    DoParamDirect(op, "lda", 0);
 }
 
 gen a|x|y := CONSTANT():c
@@ -1178,11 +1175,11 @@ gen a := NEG1(a)
     E("\tadc #0\n");
 }
 
-gen a := ADD1(a, in1s) { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), "adc"); }
-gen a := SUB1(a, in1s) { paramwidth := 1; E_sec(); DoParamDirect(PopOp(), "sbc"); }
-gen a := OR1(a, in1s)  { paramwidth := 1;          DoParamDirect(PopOp(), "ora"); }
-gen a := AND1(a, in1s) { paramwidth := 1;          DoParamDirect(PopOp(), "and"); }
-gen a := EOR1(a, in1s) { paramwidth := 1;          DoParamDirect(PopOp(), "eor"); }
+gen a := ADD1(a, in1s) uses y { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), "adc", 0); }
+gen a := SUB1(a, in1s) uses y { paramwidth := 1; E_sec(); DoParamDirect(PopOp(), "sbc", 0); }
+gen a := OR1(a, in1s)  uses y { paramwidth := 1;          DoParamDirect(PopOp(), "ora", 0); }
+gen a := AND1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "and", 0); }
+gen a := EOR1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "eor", 0); }
 
 gen a := LSHIFT1(a, y)  { E_callhelper("_lshift1"); }
 gen a := RSHIFTU1(a, y) { E_callhelper("_rshiftu1"); }
@@ -1208,12 +1205,12 @@ gen a16 := FALLBACK(xa)
     E_nl();
 }
 
-gen xa := FALLBACK(a16)
+gen xa := FALLBACK(a16) uses y
 {
     var op := PopOp();
     paramwidth := 2;
-    DoParamDirect(op, "lda");
-    DoParamDirect(op, "ldx");
+    DoParamDirect(op, "lda", 0);
+    DoParamDirect(op, "ldx", 1);
 }
 
 gen xa := LOAD2(ADDRESS():a)
@@ -1292,10 +1289,10 @@ gen STORE2(xa, p16)
 
         paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
-        DoParamDirect(rhs, insn);
+        DoParamDirect(rhs, insn, 0);
         E_pha();
         E_txa();
-        DoParamDirect(rhs, insn);
+        DoParamDirect(rhs, insn, 1);
         E_tax();
         E_pla();
     end sub;
@@ -1308,11 +1305,11 @@ gen STORE2(xa, p16)
 
         E_sec();
         E_loadconst(REG_A, 0);
-        DoParamDirect(rhs, "sbc");
+        DoParamDirect(rhs, "sbc", 0);
         E_pha();
         E_txa();
         E_loadconst(REG_A, 0);
-        DoParamDirect(rhs, "sbc");
+        DoParamDirect(rhs, "sbc", 1);
         E_tax();
         E_pla();
     end sub;
@@ -1323,10 +1320,10 @@ gen STORE2(xa, p16)
         paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
 
-        DoParamDirect(rhs, "lda");
+        DoParamDirect(rhs, "lda", 0);
         E("\teor #255\n");
         E_pha();
-        DoParamDirect(rhs, "lda");
+        DoParamDirect(rhs, "lda", 1);
         E("\teor #255\n");
         E_tax();
         E_pla();
@@ -1362,8 +1359,8 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
         var rhs := PopOp();
         paramwidth := 2;
-        DoParamDirect(rhs, "lda");
-        DoParamDirect(rhs, "ldx");
+        DoParamDirect(rhs, "lda", 0);
+        DoParamDirect(rhs, "ldx", 1);
         E_callhelper(name);
     end sub;
 
@@ -1568,7 +1565,7 @@ gen BEQ1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
     paramwidth := 1;
-    DoParamDirect(rhs, "cmp");
+    DoParamDirect(rhs, "cmp", 0);
     E_jumps_beq_bne(self.n[0]);
 }
 
@@ -1576,7 +1573,7 @@ gen BLTU1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
     paramwidth := 1;
-    DoParamDirect(rhs, "cmp");
+    DoParamDirect(rhs, "cmp", 0);
     E_jumps_bcc_bcs(self.n[0]);
 }
 
@@ -1585,7 +1582,7 @@ gen BLTS1(a:lhs, in1s:rhs):b
     var rhs := PopOp();
     paramwidth := 1;
     E_sec();
-    DoParamDirect(rhs, "sbc");
+    DoParamDirect(rhs, "sbc", 0);
     E("\tbvc *+4\n");
     E("\teor #$80\n");
     E_jumps_bmi_bpl(self.n[0]);
@@ -1595,15 +1592,15 @@ gen BEQ2(xa:lhs, in2s:rhs):b
 {
     var rhs := PopOp();
     paramwidth := 2;
-    DoParamDirect(rhs, "cmp");
+    DoParamDirect(rhs, "cmp", 0);
     E_bne($b.falselabel);
 
     paramwidth := 1;
     if ($rhs & REGCLASS_DEREFS) != 0 then
         E_txa();
-        DoParamDirect(rhs, "cmp");
+        DoParamDirect(rhs, "cmp", 1);
     else
-        DoParamDirect(rhs, "cpx");
+        DoParamDirect(rhs, "cpx", 1);
     end if;
     E_jumps_beq_bne(self.n[0]);
 }
@@ -1613,11 +1610,11 @@ gen BLTU2(xa:lhs, in2s:rhs):c
     var rhs := PopOp();
     paramwidth := 2;
     E_sec();
-    DoParamDirect(rhs, "sbc");
+    DoParamDirect(rhs, "sbc", 0);
 
     paramwidth := 1;
     E_txa();
-    DoParamDirect(rhs, "sbc");
+    DoParamDirect(rhs, "sbc", 1);
     E_jumps_bcc_bcs(self.n[0]);
 }
 
@@ -1626,11 +1623,11 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     var rhs := PopOp();
     paramwidth := 2;
     E_sec();
-    DoParamDirect(rhs, "sbc");
+    DoParamDirect(rhs, "sbc", 0);
 
     paramwidth := 1;
     E_txa();
-    DoParamDirect(rhs, "sbc");
+    DoParamDirect(rhs, "sbc", 1);
     E("\tbvc *+4\n");
     E("\teor #$80\n");
     E_jumps_bmi_bpl(self.n[0]);
@@ -1766,7 +1763,7 @@ gen a := CAST21(in2s|xa:rhs)
 {
     if $rhs != REG_XA then
         var op := PopOp();
-        DoParamDirect(op, "lda");
+        DoParamDirect(op, "lda", 0);
     end if;
 }
 
@@ -1774,15 +1771,15 @@ gen a := CAST41(in4s)
 {
     var op := PopOp();
     paramwidth := 1;
-    DoParamDirect(op, "lda");
+    DoParamDirect(op, "lda", 0);
 }
 
 gen xa := CAST42(in4s)
 {
     var op := PopOp();
     paramwidth := 2;
-    DoParamDirect(op, "lda");
-    DoParamDirect(op, "ldx");
+    DoParamDirect(op, "lda", 0);
+    DoParamDirect(op, "ldx", 1);
 }
 
 // --- Case -----------------------------------------------------------------
