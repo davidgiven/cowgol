@@ -1,615 +1,627 @@
 %{
-	var uint32_type: [Symbol];
-	var int32_type: [Symbol];
-	var uint16_type: [Symbol];
-	var int16_type: [Symbol];
-	var uint8_type: [Symbol];
-	var int8_type: [Symbol];
-	var intptr_type: [Symbol];
-
-	const VARMEM_WS := 0;
-	const PTRMEM_WS := 1;
-	const VARSTACK_WS := 2;
-	const PTRSTACK_WS := 3;
-
-	var varsp: uint8 := 0;
-	var ptrsp: uint8 := 0;
-
-	record Extern
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
-	var externs: [Extern] := (0 as [Extern]);
-
-	record Constant
-		value: Arith;
-		lid: uint16;
-		subr: [Subroutine];
-		next: [Constant];
-	end record;
-
-	var constants: [Constant] := (0 as [Constant]);
-
-	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
-		newvalue := value;
-	end sub;
-
-	sub ArchInitTypes()
-		uint32_type := MakeNumberType(4, 1, 0, "uint32");
-		int32_type := MakeNumberType(4, 1, 1, "int32");
-		uint16_type := MakeNumberType(2, 1, 0, "uint16");
-		int16_type := MakeNumberType(2, 1, 1, "int16");
-		uint8_type := MakeNumberType(1, 1, 0, "uint8");
-		int8_type := MakeNumberType(1, 1, 1, "int8");
-
-		intptr_type := uint16_type;
-		AddAliasString("intptr", intptr_type);
-	end sub;
-
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
-		if (min >= 0) and (max <= 255) then
-			symbol := uint8_type;
-		elseif (min >= -128) and (max <= 127) then
-			symbol := int8_type;
-		elseif (min >= 0) and (max <= 65535) then
-			symbol := uint16_type;
-		elseif (min >= -32768) and (max <= 32767) then
-			symbol := int16_type;
-		elseif (min >= 0) then
-			symbol := uint32_type;
-		else
-			symbol := int32_type;
-		end if;
-	end sub;
-
-	sub ArchInitVariable(symbol: [Symbol])
-		var wsid: uint8 := VARMEM_WS;
-		if IsPtr(symbol.vardata.type) != 0 then
-			wsid := PTRMEM_WS;
-		end if;
-
-		var subr := symbol.vardata.subr;
-		var offset := subr.workspace[wsid];
-		symbol.vardata.offset := offset;
-		subr.workspace[wsid] := offset + symbol.vardata.type.typedata.width;
-	end sub;
-
-	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
-		member.vardata.offset := position;
-		position := position + member.vardata.type.typedata.width;
-		if position > containing.typedata.width then
-			containing.typedata.width := position;
-		end if;
-	end sub;
-
-
-	sub Push(reg: RegId, width: uint8): (stackaddr: uint16)
-		if (reg & REG_P16) != 0 then
-			stackaddr := (PTRSTACK_WS<<8) | (ptrsp as uint16);
-			ptrsp := ptrsp + width;
-			if (current_subr.workspace[PTRSTACK_WS] as uint8) < ptrsp then
-				current_subr.workspace[PTRSTACK_WS] := ptrsp as Size;
-			end if;
-		else
-			stackaddr := (VARSTACK_WS<<8) | (varsp as uint16);
-			varsp := varsp + width;
-			if (current_subr.workspace[VARSTACK_WS] as uint8) < varsp then
-				current_subr.workspace[VARSTACK_WS] := varsp as Size;
-			end if;
-		end if;
-	end sub;
-
-	sub Pop(reg: RegId, width: uint8): (stackaddr: uint16)
-		if (reg & REG_P16) != 0 then
-			ptrsp := ptrsp - width;
-			stackaddr := (PTRSTACK_WS<<8) | (ptrsp as uint16);
-		else
-			varsp := varsp - width;
-			stackaddr := (VARSTACK_WS<<8) | (varsp as uint16);
-		end if;
-	end sub;
-
-	sub Peek(reg: RegId, width: uint8): (stackaddr: uint16)
-		if (reg & REG_P16) != 0 then
-			stackaddr := (PTRSTACK_WS<<8) | ((ptrsp-width) as uint16);
-		else
-			stackaddr := (VARSTACK_WS<<8) | ((varsp-width) as uint16);
-		end if;
-	end sub;
-
-	var labelid: uint16 := 0;
-	sub E_plabelref(lid: uint16)
-		EmitByte(COO_ESCAPE_THISCOO);
-		EmitByte('c');
-		E_u16(lid);
-	end sub;
-
-	sub AllocPlabel(): (lid: uint16)
-		lid := labelid;
-		labelid := labelid + 1;
-	end sub;
-
-	sub E_plabel(lid: uint16)
-		E_plabelref(lid);
-		E(":\n");
-	end sub;
-
-	sub E_stackref(sid: uint16)
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(current_subr.id);
-		E_h8((sid >> 8) as uint8);
-		E_h16(sid & 0xff);
-	end sub;
-
-	sub E_stackrefi(sid: uint16)
-		EmitByte('(');
-		E_stackref(sid);
-		E("),y");
-	end sub;
-
-	sub E_symref(sym: [Symbol], off: Size)
-		if sym.vardata.externname != (0 as string) then
-			E(sym.vardata.externname);
-			E_i16(off as int16);
-		else
-			EmitByte(COO_ESCAPE_WSREF);
-			E_h16(sym.vardata.subr.id);
-			if IsPtr(sym.vardata.type) != 0 then
-				E_h8(PTRMEM_WS);
-			else
-				E_h8(VARMEM_WS);
-			end if;
-			E_h16(sym.vardata.offset + off);
-		end if;
-	end sub;
-
-	sub E_symrefi(sym: [Symbol], off: Size)
-		EmitByte('(');
-		E_symref(sym, off);
-		E("),y");
-	end sub;
-
-	sub R_flushall()
-		RegCacheFlush(ALL_REGS);
-	end sub;
-
-	sub R_flush(reg: RegId)
-		RegCacheFlush(FindConflictingRegisters(reg));
-	end sub;
-
-	sub E_insn(insn: string)
-		E_tab();
-		E(insn);
-		E_space();
-	end sub;
-
-	sub E_const(value: uint8)
-		EmitByte('#');
-		E_u8(value);
-	end sub;
-
-	sub E_jump(insn: string, label: LabelRef)
-		R_flushall();
-		E_tab();
-		E(insn);
-		E_space();
-		E_labelref(label);
-		E_nl();
-	end sub;
-
-	sub E_jmp(label: LabelRef)
-		E_jump("jmp", label);
-	end sub;
-
-	sub E_bne(label: LabelRef)
-		E_jump("bne", label);
-	end sub;
-
-	sub IsSimpleSub(subr: [Subroutine]): (result: uint8)
-		result := 0;
-		if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
-			return;
-		end if;
-		if (subr.num_input_parameters == 1) and (subr.first_input_parameter.vardata.type.typedata.width == 4) then
-			return;
-		end if;
-		if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.typedata.width == 4) then
-			return;
-		end if;
-		result := 1;
-	end sub;
-
-	sub E_call(subr: [Subroutine])
-		if IsSimpleSub(subr) != 0 then
-			E("\tjsr ");
-			E_subref(subr);
-			E_nl();
-		else
-			var lid := AllocPlabel();
-
-			E("\tldy #<");
-			E_plabelref(lid);
-			E_nl();
-			E("\tsty rts_");
-			E_subref(subr);
-			E_nl();
-
-			E("\tldy #>1+");
-			E_plabelref(lid);
-			E_nl();
-			E("\tsty rts_");
-			E_subref(subr);
-			E("+1\n");
-
-			E_insn("jmp");
-			E_subref(subr);
-			E_nl();
-			E_plabel(lid);
-		end if;
-	end sub;
-
-	sub E_rts() E("\trts\n"); end sub;
-	sub E_clc() E("\tclc\n"); end sub;
-	sub E_sec() E("\tsec\n"); end sub;
-	sub E_pha() E("\tpha\n"); end sub;
-	sub E_plp() E("\tplp\n"); end sub;
-	sub E_pla() E("\tpla\n"); end sub;
-	sub E_txa() E("\ttxa\n"); end sub;
-	sub E_tya() E("\ttya\n"); end sub;
-	sub E_tax() E("\ttax\n"); end sub;
-	sub E_tay() E("\ttay\n"); end sub;
-	sub E_tsx() E("\ttsx\n"); end sub;
-	sub E_txs() E("\ttxs\n"); end sub;
-	sub E_not() E("\teor #255\n"); end sub;
-
-	sub E_ld(reg: RegId)
-		R_flush(reg);
-		case reg is
-			when REG_A: E("\tlda");
-			when REG_X: E("\tldx");
-			when REG_Y: E("\tldy");
-		end case;
-		E_space();
-	end sub;
-
-	sub E_lda()
-		E_ld(REG_A);
-	end sub;
-
-	sub E_ldx()
-		E_ld(REG_X);
-	end sub;
-
-	sub E_st(reg: RegId)
-		case reg is
-			when REG_A: E("\tsta");
-			when REG_X: E("\tstx");
-			when REG_Y: E("\tsty");
-		end case;
-		E_space();
-	end sub;
-
-	sub E_sta()
-		E_st(REG_A);
-	end sub;
-
-	sub E_stx()
-		E_st(REG_X);
-	end sub;
-
-	sub E_cp(reg: RegId)
-		case reg is
-			when REG_A: E("\tcmp");
-			when REG_X: E("\tcpx");
-			when REG_Y: E("\tcpy");
-		end case;
-		E_space();
-	end sub;
-
-	sub E_cmp()
-		E_cp(REG_A);
-	end sub;
-
-	sub E_cpx()
-		E_cp(REG_X);
-	end sub;
-
-	sub E_cpy()
-		E_cp(REG_Y);
-	end sub;
-
-	sub E_inx()
-		R_flush(REG_X);
-		E("\tinx\n");
-	end sub;
-
-	sub E_iny()
-		R_flush(REG_Y);
-		E("\tiny\n");
-	end sub;
-
-	sub E_dex()
-		R_flush(REG_X);
-		E("\tdex\n");
-	end sub;
-
-	sub E_dey()
-		R_flush(REG_Y);
-		E("\tdey\n");
-	end sub;
-
-	sub E_inc(reg: RegId)
-		case reg is
-			when REG_A:
-				E_clc();
-				E("\tadc #1\n");
-
-			when REG_X: E_inx();
-			when REG_Y: E_iny();
-		end case;
-	end sub;
-
-	sub E_dec(reg: RegId)
-		case reg is
-			when REG_A:
-				E_clc();
-				E("\tadc #1\n");
-
-			when REG_X: E_dex();
-			when REG_Y: E_iny();
-		end case;
-	end sub;
-
-	sub E_loadconst(reg: RegId, value: uint8)
-		var cache := RegCacheFindConstant(value as Word) & reg;
-		if cache == 0 then
-			E_ld(reg);
-			E_const(value);
-			E_nl();
-			RegCacheLeavesConstant(reg, value as Word);
-		end if;
-	end sub;
-
-	sub E_loadaddr(sym: [Symbol], off: Size)
-		E_lda();
-		E("#<");
-		E_symref(sym, off);
-		E_nl();
-
-		E_ldx();
-		E("#>");
-		E_symref(sym, off);
-		E_nl();
-	end sub;
-
-	sub E_loadstackref(sid: uint16)
-		E_lda();
-		E("#<");
-		E_stackref(sid);
-		E_nl();
-
-		E_ldx();
-		E("#>");
-		E_stackref(sid);
-		E_nl();
-	end sub;
-
-	sub GetHelper(name: string): (e: [Extern])
-		e := externs;
-		while e != (0 as [Extern]) loop
-			if StrCmp(e.name, name) == 0 then
-				break;
-			end if;
-			e := e.next;
-		end loop;
-
-		if e == (0 as [Extern]) then
-			e := Alloc(@bytesof Extern) as [Extern];
-			e.name := name;
-			e.id := AllocSubrId();
-			e.next := externs;
-			externs := e;
-
-			EmitterDeclareExternalSubroutine(e.id, name);
-		end if;
-	end sub;
-
-	# Does not persist the name; only call this with constant strings.
-	sub E_callhelper(name: string)
-		var e := GetHelper(name);
-
-		EmitterPushChunk();
-		E_h16(current_subr.id);
-		E_h16(e.id);
-		EmitterPopChunk('R');
-
-		R_flushall();
-		E("\tjsr ");
-		EmitByte(COO_ESCAPE_SUBREF);
-		E_h16(e.id);
-		E_nl();
-	end sub;
-
-	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
-		if node.beq0.truelabel != node.beq0.fallthrough then
-			E_jump(trueinsn, node.beq0.truelabel);
-		end if;
-		if node.beq0.falselabel != node.beq0.fallthrough then
-			E_jump(falseinsn, node.beq0.falselabel);
-		end if;
-	end sub;
-
-	sub E_jumps_beq_bne(node: [Node])
-		E_jumps_with_fallthrough("beq", "bne", node);
-	end sub;
-
-	sub E_jumps_bcs_bcc(node: [Node])
-		E_jumps_with_fallthrough("bcs", "bcc", node);
-	end sub;
-
-	sub E_jumps_bmi_bpl(node: [Node])
-		E_jumps_with_fallthrough("bmi", "bpl", node);
-	end sub;
-
-	sub AllocConst(value: Arith): (lid: uint16)
-		var c := constants;
-		while c != (0 as [Constant]) loop
-			if c.value == value then
-				break;
-			end if;
-			c := c.next;
-		end loop;
-		if c == (0 as [Constant]) then
-			c := Alloc(@bytesof Constant) as [Constant];
-			c.lid := AllocPlabel();
-			c.value := value;
-			c.next := constants;
-			constants := c;
-		end if;
-		lid := c.lid;
-	end sub;
-
-	sub E_string(data: string): (lid: uint16)
-		lid := AllocPlabel();
-
-		EmitterPushChunk();
-		E_h16(current_subr.id);
-
-		E_plabel(lid);
-		E("\t.byte ");
-
-		loop
-			var c := [data];
-			if c == 0 then
-				break;
-			end if;
-			data := data + 1;
-			
-			E_u8(c);
-			E_comma();
-		end loop;
-		E("0\n");
-		EmitterPopChunk('S');
-	end sub;
-
-	# Note that this *destroys* the source register.
-	sub ArchEmitMove(src: RegId, dest: RegId)
-		var sid: uint16;
-
-		sub pushv8()
-			sid := Push(dest, 1);
-			E_st(src);
-			E_stackref(sid);
-			E_nl();
-		end sub;
-
-		sub popa16()
-			sid := Pop(src, 1);
-			E_lda();
-			E_stackref(sid);
-			E_nl();
-
-			E_ldx();
-			E_stackref(sid+1);
-			E_nl();
-		end sub;
-
-		case src is
-			when REG_A:
-				case dest is
-					when REG_X: E_tax(); return;
-					when REG_Y: E_tay(); return;
-					when 0:     E_pha(); return;
-					when REG_V8: pushv8(); return;
-				end case;
-
-			when 0:
-				case dest is
-					when REG_A:  E_pla(); return;
-
-					when REG_XA:
-						# Pop from spill stack: note: big endian!
-						E_pla();
-						E_tax();
-						E_pla();
-						return;
-				end case;
-
-			when REG_X:
-				case dest is
-					when REG_A:  E_txa(); return;
-					when REG_V8: pushv8(); return;
-				end case;
-
-			when REG_Y:
-				case dest is
-					when REG_A:  E_tya(); return;
-					when REG_V8: pushv8(); return;
-				end case;
-
-			when REG_XA:
-				if (dest & REGCLASS_A16) != 0 then
-					sid := Push(dest, 2);
-
-					E_st(REG_A);
-					E_stackref(sid);
-					E_nl();
-
-					E_st(REG_X);
-					E_stackref(sid+1);
-					E_nl();
-
-					return;
-				elseif dest == 0 then
-					# Push to spill stack; note: big endian!
-					E_pha();
-					E_txa();
-					E_pha();
-					return;
-				end if;
-
-			when REG_V8:
-				if (dest & REGCLASS_R8) != 0 then
-					sid := Pop(src, 1);
-					E_ld(dest);
-					E_stackref(sid);
-					E_nl();
-					return;
-				end if;
-
-			when REG_P16:
-				if dest == REG_XA then
-					popa16();
-					return;
-				end if;
-
-			when REG_V16:
-				if dest == REG_XA then
-					popa16();
-					return;
-				end if;
-
-		end case;
-
-		StartError();
-		print("bad move ");
-		print_hex_i32(src);
-		print(" -> ");
-		print_hex_i32(dest);
-		EndError();
-	end sub;
-
-	sub ArchEndInstruction()
-	end sub;
-
-	sub ArchEndGroup()
-	end sub;
-
-	sub is_ptr(sym: [Symbol]): (result: uint8)
-		result := IsPtr(sym.vardata.type);
-	end sub;
+    var uint32_type: [Symbol];
+    var int32_type: [Symbol];
+    var uint16_type: [Symbol];
+    var int16_type: [Symbol];
+    var uint8_type: [Symbol];
+    var int8_type: [Symbol];
+    var intptr_type: [Symbol];
+
+    const VARMEM_WS := 0;
+    const PTRMEM_WS := 1;
+    const VARSTACK_WS := 2;
+    const PTRSTACK_WS := 3;
+
+    var varsp: uint8 := 0;
+    var ptrsp: uint8 := 0;
+
+    record Extern
+        name: string;
+        id: uint16;
+        next: [Extern];
+    end record;
+
+    var externs: [Extern] := (0 as [Extern]);
+
+    record Constant
+        value: Arith;
+        lid: uint16;
+        subr: [Subroutine];
+        next: [Constant];
+    end record;
+
+    var constants: [Constant] := (0 as [Constant]);
+
+    sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+        newvalue := value;
+    end sub;
+
+    sub ArchInitTypes()
+        uint32_type := MakeNumberType(4, 1, 0, "uint32");
+        int32_type := MakeNumberType(4, 1, 1, "int32");
+        uint16_type := MakeNumberType(2, 1, 0, "uint16");
+        int16_type := MakeNumberType(2, 1, 1, "int16");
+        uint8_type := MakeNumberType(1, 1, 0, "uint8");
+        int8_type := MakeNumberType(1, 1, 1, "int8");
+
+        intptr_type := uint16_type;
+        AddAliasString("intptr", intptr_type);
+    end sub;
+
+    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+        if (min >= 0) and (max <= 255) then
+            symbol := uint8_type;
+        elseif (min >= -128) and (max <= 127) then
+            symbol := int8_type;
+        elseif (min >= 0) and (max <= 65535) then
+            symbol := uint16_type;
+        elseif (min >= -32768) and (max <= 32767) then
+            symbol := int16_type;
+        elseif (min >= 0) then
+            symbol := uint32_type;
+        else
+            symbol := int32_type;
+        end if;
+    end sub;
+
+    sub ArchInitVariable(symbol: [Symbol])
+        var wsid: uint8 := VARMEM_WS;
+        if IsPtr(symbol.vardata.type) != 0 then
+            wsid := PTRMEM_WS;
+        end if;
+
+        var subr := symbol.vardata.subr;
+        var offset := subr.workspace[wsid];
+        symbol.vardata.offset := offset;
+        subr.workspace[wsid] := offset + symbol.vardata.type.typedata.width;
+    end sub;
+
+    sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+        member.vardata.offset := position;
+        position := position + member.vardata.type.typedata.width;
+        if position > containing.typedata.width then
+            containing.typedata.width := position;
+        end if;
+    end sub;
+
+
+    sub Push(reg: RegId, width: uint8): (stackaddr: uint16)
+        if (reg & REG_P16) != 0 then
+            stackaddr := (PTRSTACK_WS<<8) | (ptrsp as uint16);
+            ptrsp := ptrsp + width;
+            if (current_subr.workspace[PTRSTACK_WS] as uint8) < ptrsp then
+                current_subr.workspace[PTRSTACK_WS] := ptrsp as Size;
+            end if;
+        else
+            stackaddr := (VARSTACK_WS<<8) | (varsp as uint16);
+            varsp := varsp + width;
+            if (current_subr.workspace[VARSTACK_WS] as uint8) < varsp then
+                current_subr.workspace[VARSTACK_WS] := varsp as Size;
+            end if;
+        end if;
+    end sub;
+
+    sub Pop(reg: RegId, width: uint8): (stackaddr: uint16)
+        if (reg & REG_P16) != 0 then
+            ptrsp := ptrsp - width;
+            stackaddr := (PTRSTACK_WS<<8) | (ptrsp as uint16);
+        else
+            varsp := varsp - width;
+            stackaddr := (VARSTACK_WS<<8) | (varsp as uint16);
+        end if;
+    end sub;
+
+    sub Peek(reg: RegId, width: uint8): (stackaddr: uint16)
+        if (reg & REG_P16) != 0 then
+            stackaddr := (PTRSTACK_WS<<8) | ((ptrsp-width) as uint16);
+        else
+            stackaddr := (VARSTACK_WS<<8) | ((varsp-width) as uint16);
+        end if;
+    end sub;
+
+    var labelid: uint16 := 0;
+    sub E_plabelref(lid: uint16)
+        EmitByte(COO_ESCAPE_THISCOO);
+        EmitByte('c');
+        E_u16(lid);
+    end sub;
+
+    sub AllocPlabel(): (lid: uint16)
+        lid := labelid;
+        labelid := labelid + 1;
+    end sub;
+
+    sub E_plabel(lid: uint16)
+        E_plabelref(lid);
+        E(":\n");
+    end sub;
+
+    sub E_stackref(sid: uint16)
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(current_subr.id);
+        E_h8((sid >> 8) as uint8);
+        E_h16(sid & 0xff);
+    end sub;
+
+    sub E_stackrefi(sid: uint16)
+        EmitByte('(');
+        E_stackref(sid);
+        E("),y");
+    end sub;
+
+    sub E_symref(sym: [Symbol], off: Size)
+        if sym.vardata.externname != (0 as string) then
+            E(sym.vardata.externname);
+            E_i16(off as int16);
+        else
+            EmitByte(COO_ESCAPE_WSREF);
+            E_h16(sym.vardata.subr.id);
+            if IsPtr(sym.vardata.type) != 0 then
+                E_h8(PTRMEM_WS);
+            else
+                E_h8(VARMEM_WS);
+            end if;
+            E_h16(sym.vardata.offset + off);
+        end if;
+    end sub;
+
+    sub E_symrefi(sym: [Symbol], off: Size)
+        EmitByte('(');
+        E_symref(sym, off);
+        E("),y");
+    end sub;
+
+    sub R_flushall()
+        RegCacheFlush(ALL_REGS);
+    end sub;
+
+    sub R_flush(reg: RegId)
+        RegCacheFlush(FindConflictingRegisters(reg));
+    end sub;
+
+    sub E_insn(insn: string)
+        E_tab();
+        E(insn);
+        E_space();
+    end sub;
+
+    sub E_const(value: uint8)
+        EmitByte('#');
+        E_u8(value);
+    end sub;
+
+    sub E_jump(insn: string, label: LabelRef)
+        R_flushall();
+        E_tab();
+        E(insn);
+        E_space();
+        E_labelref(label);
+        E_nl();
+    end sub;
+
+    sub E_jmp(label: LabelRef)
+        E_jump("jmp", label);
+    end sub;
+
+    sub E_bne(label: LabelRef)
+        E_jump("bne", label);
+    end sub;
+
+    sub E_bcs(label: LabelRef)
+        E_jump("bcs", label);
+    end sub;
+
+    sub E_bmi(label: LabelRef)
+        E_jump("bmi", label);
+    end sub;
+
+    sub IsSimpleSub(subr: [Subroutine]): (result: uint8)
+        result := 0;
+        if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
+            return;
+        end if;
+        if (subr.num_input_parameters == 1) and (subr.first_input_parameter.vardata.type.typedata.width == 4) then
+            return;
+        end if;
+        if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.typedata.width == 4) then
+            return;
+        end if;
+        result := 1;
+    end sub;
+
+    sub E_call(subr: [Subroutine])
+        if IsSimpleSub(subr) != 0 then
+            E("\tjsr ");
+            E_subref(subr);
+            E_nl();
+        else
+            var lid := AllocPlabel();
+
+            E("\tldy #<");
+            E_plabelref(lid);
+            E_nl();
+            E("\tsty rts_");
+            E_subref(subr);
+            E_nl();
+
+            E("\tldy #>1+");
+            E_plabelref(lid);
+            E_nl();
+            E("\tsty rts_");
+            E_subref(subr);
+            E("+1\n");
+
+            E_insn("jmp");
+            E_subref(subr);
+            E_nl();
+            E_plabel(lid);
+        end if;
+    end sub;
+
+    sub E_rts() E("\trts\n"); end sub;
+    sub E_clc() E("\tclc\n"); end sub;
+    sub E_sec() E("\tsec\n"); end sub;
+    sub E_pha() E("\tpha\n"); end sub;
+    sub E_plp() E("\tplp\n"); end sub;
+    sub E_pla() R_flush(REG_A); E("\tpla\n"); end sub;
+    sub E_txa() R_flush(REG_A); E("\ttxa\n"); end sub;
+    sub E_tya() R_flush(REG_A); E("\ttya\n"); end sub;
+    sub E_tax() R_flush(REG_X); E("\ttax\n"); end sub;
+    sub E_tay() R_flush(REG_Y); E("\ttay\n"); end sub;
+    sub E_tsx() R_flush(REG_X); E("\ttsx\n"); end sub;
+    sub E_txs() E("\ttxs\n"); end sub;
+    sub E_not() R_flush(REG_A); E("\teor #255\n"); end sub;
+
+    sub E_ld(reg: RegId)
+        R_flush(reg);
+        case reg is
+            when REG_A: E("\tlda");
+            when REG_X: E("\tldx");
+            when REG_Y: E("\tldy");
+        end case;
+        E_space();
+    end sub;
+
+    sub E_lda()
+        E_ld(REG_A);
+    end sub;
+
+    sub E_ldx()
+        E_ld(REG_X);
+    end sub;
+
+    sub E_st(reg: RegId)
+        case reg is
+            when REG_A: E("\tsta");
+            when REG_X: E("\tstx");
+            when REG_Y: E("\tsty");
+        end case;
+        E_space();
+    end sub;
+
+    sub E_sta()
+        E_st(REG_A);
+    end sub;
+
+    sub E_stx()
+        E_st(REG_X);
+    end sub;
+
+    sub E_cp(reg: RegId)
+        case reg is
+            when REG_A: E("\tcmp");
+            when REG_X: E("\tcpx");
+            when REG_Y: E("\tcpy");
+        end case;
+        E_space();
+    end sub;
+
+    sub E_cmp()
+        E_cp(REG_A);
+    end sub;
+
+    sub E_cpx()
+        E_cp(REG_X);
+    end sub;
+
+    sub E_cpy()
+        E_cp(REG_Y);
+    end sub;
+
+    sub E_inx()
+        R_flush(REG_X);
+        E("\tinx\n");
+    end sub;
+
+    sub E_iny()
+        R_flush(REG_Y);
+        E("\tiny\n");
+    end sub;
+
+    sub E_dex()
+        R_flush(REG_X);
+        E("\tdex\n");
+    end sub;
+
+    sub E_dey()
+        R_flush(REG_Y);
+        E("\tdey\n");
+    end sub;
+
+    sub E_inc(reg: RegId)
+        case reg is
+            when REG_A:
+                E_clc();
+                E("\tadc #1\n");
+
+            when REG_X: E_inx();
+            when REG_Y: E_iny();
+        end case;
+    end sub;
+
+    sub E_dec(reg: RegId)
+        case reg is
+            when REG_A:
+                E_clc();
+                E("\tadc #1\n");
+
+            when REG_X: E_dex();
+            when REG_Y: E_iny();
+        end case;
+    end sub;
+
+    sub E_loadconst(reg: RegId, value: uint8)
+        var cache := RegCacheFindConstant(value as Word) & reg;
+        if cache == 0 then
+            E_ld(reg);
+            E_const(value);
+            E_nl();
+            RegCacheLeavesConstant(reg, value as Word);
+        end if;
+    end sub;
+
+    sub E_loadaddr(sym: [Symbol], off: Size)
+        E_lda();
+        E("#<");
+        E_symref(sym, off);
+        E_nl();
+
+        E_ldx();
+        E("#>");
+        E_symref(sym, off);
+        E_nl();
+    end sub;
+
+    sub E_loadstackref(sid: uint16)
+        E_lda();
+        E("#<");
+        E_stackref(sid);
+        E_nl();
+
+        E_ldx();
+        E("#>");
+        E_stackref(sid);
+        E_nl();
+    end sub;
+
+    sub GetHelper(name: string): (e: [Extern])
+        e := externs;
+        while e != (0 as [Extern]) loop
+            if StrCmp(e.name, name) == 0 then
+                break;
+            end if;
+            e := e.next;
+        end loop;
+
+        if e == (0 as [Extern]) then
+            e := Alloc(@bytesof Extern) as [Extern];
+            e.name := name;
+            e.id := AllocSubrId();
+            e.next := externs;
+            externs := e;
+
+            EmitterDeclareExternalSubroutine(e.id, name);
+        end if;
+    end sub;
+
+    # Does not persist the name; only call this with constant strings.
+    sub E_callhelper(name: string)
+        var e := GetHelper(name);
+
+        EmitterPushChunk();
+        E_h16(current_subr.id);
+        E_h16(e.id);
+        EmitterPopChunk('R');
+
+        R_flushall();
+        E("\tjsr ");
+        EmitByte(COO_ESCAPE_SUBREF);
+        E_h16(e.id);
+        E_nl();
+    end sub;
+
+    sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+        if node.beq0.truelabel != node.beq0.fallthrough then
+            E_jump(trueinsn, node.beq0.truelabel);
+        end if;
+        if node.beq0.falselabel != node.beq0.fallthrough then
+            E_jump(falseinsn, node.beq0.falselabel);
+        end if;
+    end sub;
+
+    sub E_jumps_beq_bne(node: [Node])
+        E_jumps_with_fallthrough("beq", "bne", node);
+    end sub;
+
+    sub E_jumps_bcs_bcc(node: [Node])
+        E_jumps_with_fallthrough("bcs", "bcc", node);
+    end sub;
+
+    sub E_jumps_bcc_bcs(node: [Node])
+        E_jumps_with_fallthrough("bcc", "bcs", node);
+    end sub;
+
+    sub E_jumps_bmi_bpl(node: [Node])
+        E_jumps_with_fallthrough("bmi", "bpl", node);
+    end sub;
+
+    sub AllocConst(value: Arith): (lid: uint16)
+        var c := constants;
+        while c != (0 as [Constant]) loop
+            if c.value == value then
+                break;
+            end if;
+            c := c.next;
+        end loop;
+        if c == (0 as [Constant]) then
+            c := Alloc(@bytesof Constant) as [Constant];
+            c.lid := AllocPlabel();
+            c.value := value;
+            c.next := constants;
+            constants := c;
+        end if;
+        lid := c.lid;
+    end sub;
+
+    sub E_string(data: string): (lid: uint16)
+        lid := AllocPlabel();
+
+        EmitterPushChunk();
+        E_h16(current_subr.id);
+
+        E_plabel(lid);
+        E("\t.byte ");
+
+        loop
+            var c := [data];
+            if c == 0 then
+                break;
+            end if;
+            data := data + 1;
+            
+            E_u8(c);
+            E_comma();
+        end loop;
+        E("0\n");
+        EmitterPopChunk('S');
+    end sub;
+
+    # Note that this *destroys* the source register.
+    sub ArchEmitMove(src: RegId, dest: RegId)
+        var sid: uint16;
+
+        sub pushv8()
+            sid := Push(dest, 1);
+            E_st(src);
+            E_stackref(sid);
+            E_nl();
+        end sub;
+
+        sub popa16()
+            sid := Pop(src, 1);
+            E_lda();
+            E_stackref(sid);
+            E_nl();
+
+            E_ldx();
+            E_stackref(sid+1);
+            E_nl();
+        end sub;
+
+        case src is
+            when REG_A:
+                case dest is
+                    when REG_X: E_tax(); return;
+                    when REG_Y: E_tay(); return;
+                    when 0:     E_pha(); return;
+                    when REG_V8: pushv8(); return;
+                end case;
+
+            when 0:
+                case dest is
+                    when REG_A:  E_pla(); return;
+
+                    when REG_XA:
+                        # Pop from spill stack: note: big endian!
+                        E_pla();
+                        E_tax();
+                        E_pla();
+                        return;
+                end case;
+
+            when REG_X:
+                case dest is
+                    when REG_A:  E_txa(); return;
+                    when REG_V8: pushv8(); return;
+                end case;
+
+            when REG_Y:
+                case dest is
+                    when REG_A:  E_tya(); return;
+                    when REG_V8: pushv8(); return;
+                end case;
+
+            when REG_XA:
+                if (dest & REGCLASS_A16) != 0 then
+                    sid := Push(dest, 2);
+
+                    E_st(REG_A);
+                    E_stackref(sid);
+                    E_nl();
+
+                    E_st(REG_X);
+                    E_stackref(sid+1);
+                    E_nl();
+
+                    return;
+                elseif dest == 0 then
+                    # Push to spill stack; note: big endian!
+                    E_pha();
+                    E_txa();
+                    E_pha();
+                    return;
+                end if;
+
+            when REG_V8:
+                if (dest & REGCLASS_R8) != 0 then
+                    sid := Pop(src, 1);
+                    E_ld(dest);
+                    E_stackref(sid);
+                    E_nl();
+                    return;
+                end if;
+
+            when REG_P16:
+                if dest == REG_XA then
+                    popa16();
+                    return;
+                end if;
+
+            when REG_V16:
+                if dest == REG_XA then
+                    popa16();
+                    return;
+                end if;
+
+        end case;
+
+        StartError();
+        print("bad move ");
+        print_hex_i32(src);
+        print(" -> ");
+        print_hex_i32(dest);
+        EndError();
+    end sub;
+
+    sub ArchEndInstruction()
+    end sub;
+
+    sub ArchEndGroup()
+    end sub;
+
+    sub is_ptr(sym: [Symbol]): (result: uint8)
+        result := IsPtr(sym.vardata.type);
+    end sub;
 %}
 
 wordsize uint16;
@@ -666,375 +678,268 @@ gen ENDFILE();
 
 gen LABEL():b
 {
-	R_flushall();
-	E_labelref($b.label);
-	E(":\n");
+    R_flushall();
+    E_labelref($b.label);
+    E(":\n");
 }
 
 gen JUMP():j
 {
-	E_jmp($j.label);
+    E_jmp($j.label);
 }
 
 // --- Operands -------------------------------------------------------------
 
 %{
-	const MODE_CONST := 0;
-	const MODE_ADDRESS := 1;
-	const MODE_STACK := 2;
-	const MODE_STACKI := 3;
-	const MODE_SYMBOL := 4;
-	const MODE_SYMBOLI := 5;
+    const MODE_CONST := 0;
+    const MODE_ADDRESS := 1;
+    const MODE_STACK := 2;
+    const MODE_STACKI := 3;
+    const MODE_SYMBOL := 4;
+    const MODE_SYMBOLI := 5;
 
-	record Operand
-		sid @at(0): uint16;
-		off @at(0): Size;
-		val @at(0): Arith;
-		sym: [Symbol];
-		mode: uint8;
-	end record;
+    record Operand
+        sid @at(0): uint16;
+        off @at(0): Size;
+        val @at(0): Arith;
+        sym: [Symbol];
+        mode: uint8;
+    end record;
 
-	const OPERAND_STACK_SIZE := 16;
-	var opstack: Operand[OPERAND_STACK_SIZE];
-	var opsp: uint8 := 0;
-	var paramwidth: uint8;
+    const OPERAND_STACK_SIZE := 16;
+    var opstack: Operand[OPERAND_STACK_SIZE];
+    var opsp: uint8 := 0;
+    var paramwidth: uint8;
 
-	sub PushOp(): (op: [Operand])
-		if opsp == OPERAND_STACK_SIZE then
-			SimpleError("opstack overflow");
-		end if;
-		op := &opstack[opsp];
-		opsp := opsp + 1;
-	end sub;
+    sub PushOp(): (op: [Operand])
+        if opsp == OPERAND_STACK_SIZE then
+            SimpleError("opstack overflow");
+        end if;
+        op := &opstack[opsp];
+        opsp := opsp + 1;
+    end sub;
 
-	sub PushConstOp(value: Arith)
-		var op := PushOp();
-		op.mode := MODE_CONST;
-		op.val := value;
-	end sub;
-		
-	sub PushAddressOp(sym: [Symbol], off: Size)
-		var op := PushOp();
-		op.mode := MODE_ADDRESS;
-		op.sym := sym;
-		op.off := off;
-	end sub;
-		
-	sub PushSymOp(sym: [Symbol], off: Size)
-		var op := PushOp();
-		op.mode := MODE_SYMBOL;
-		op.sym := sym;
-		op.off := off;
-	end sub;
-		
-	sub PushSymIOp(sym: [Symbol], off: Size)
-		var op := PushOp();
-		op.mode := MODE_SYMBOLI;
-		op.sym := sym;
-		op.off := off;
-	end sub;
-		
-	sub PushPushOp(reg: RegId, width: uint8)
-		var op := PushOp();
-		op.mode := MODE_STACK;
-		op.sid := Push(reg, width);
-	end sub;
-		
-	sub PushPushIOp(reg: RegId, width: uint8)
-		var op := PushOp();
-		op.mode := MODE_STACKI;
-		op.sid := Push(reg, width);
-	end sub;
-		
-	sub PushPopOp(reg: RegId, width: uint8)
-		var op := PushOp();
-		op.mode := MODE_STACK;
-		op.sid := Pop(reg, width);
-	end sub;
-		
-	sub PushPopIOp(reg: RegId, width: uint8)
-		var op := PushOp();
-		op.mode := MODE_STACKI;
-		op.sid := Pop(reg, width);
-	end sub;
-		
-	sub PopOp(): (op: [Operand])
-		if opsp == 0 then
-			SimpleError("opstack underflow");
-		end if;
-		opsp := opsp - 1;
-		op := &opstack[opsp];
-	end sub;
+    sub PushConstOp(value: Arith)
+        var op := PushOp();
+        op.mode := MODE_CONST;
+        op.val := value;
+    end sub;
+        
+    sub PushAddressOp(sym: [Symbol], off: Size)
+        var op := PushOp();
+        op.mode := MODE_ADDRESS;
+        op.sym := sym;
+        op.off := off;
+    end sub;
+        
+    sub PushSymOp(sym: [Symbol], off: Size)
+        var op := PushOp();
+        op.mode := MODE_SYMBOL;
+        op.sym := sym;
+        op.off := off;
+    end sub;
+        
+    sub PushSymIOp(sym: [Symbol], off: Size)
+        var op := PushOp();
+        op.mode := MODE_SYMBOLI;
+        op.sym := sym;
+        op.off := off;
+    end sub;
+        
+    sub PushPushOp(reg: RegId, width: uint8)
+        var op := PushOp();
+        op.mode := MODE_STACK;
+        op.sid := Push(reg, width);
+    end sub;
+        
+    sub PushPushIOp(reg: RegId, width: uint8)
+        var op := PushOp();
+        op.mode := MODE_STACKI;
+        op.sid := Push(reg, width);
+    end sub;
+        
+    sub PushPopOp(reg: RegId, width: uint8)
+        var op := PushOp();
+        op.mode := MODE_STACK;
+        op.sid := Pop(reg, width);
+    end sub;
+        
+    sub PushPopIOp(reg: RegId, width: uint8)
+        var op := PushOp();
+        op.mode := MODE_STACKI;
+        op.sid := Pop(reg, width);
+    end sub;
+        
+    sub PopOp(): (op: [Operand])
+        if opsp == 0 then
+            SimpleError("opstack underflow");
+        end if;
+        opsp := opsp - 1;
+        op := &opstack[opsp];
+    end sub;
 
-	sub PeekOp(): (op: [Operand])
-		if opsp == 0 then
-			SimpleError("opstack underflow");
-		end if;
-		op := &opstack[opsp-1];
-	end sub;
+    sub PeekOp(): (op: [Operand])
+        if opsp == 0 then
+            SimpleError("opstack underflow");
+        end if;
+        op := &opstack[opsp-1];
+    end sub;
 
-	sub DerefOp(op: [Operand])
-		case op.mode is
-			when MODE_ADDRESS: op.mode := MODE_SYMBOL;
-			when MODE_SYMBOL:  op.mode := MODE_SYMBOLI;
-			when MODE_STACK:   op.mode := MODE_STACKI;
-			when else:         SimpleError("can't deref");
-		end case;
-	end sub;
+    sub DerefOp(op: [Operand])
+        case op.mode is
+            when MODE_ADDRESS: op.mode := MODE_SYMBOL;
+            when MODE_SYMBOL:  op.mode := MODE_SYMBOLI;
+            when MODE_STACK:   op.mode := MODE_STACKI;
+            when else:         SimpleError("can't deref");
+        end case;
+    end sub;
 
-	sub DoParamIndirect(operand: [Operand], insn: string)
-		E_insn(insn);
-		case operand.mode is
-			when MODE_CONST:
-				E_plabelref(AllocConst(operand.val));
+    sub DoParamIndirect(operand: [Operand], insn: string)
+        E_insn(insn);
+        case operand.mode is
+            when MODE_CONST:
+                E_plabelref(AllocConst(operand.val));
 
-			when MODE_STACK:
-				E_stackref(operand.sid);
+            when MODE_STACK:
+                E_stackref(operand.sid);
 
-			when MODE_STACKI:
-				EmitByte('(');
-				E_stackref(operand.sid);
-				EmitByte(')');
+            when MODE_STACKI:
+                EmitByte('(');
+                E_stackref(operand.sid);
+                EmitByte(')');
 
-			when MODE_SYMBOL:
-				E_symref(operand.sym, operand.off);
+            when MODE_SYMBOL:
+                E_symref(operand.sym, operand.off);
 
-			when MODE_SYMBOLI:
-				EmitByte('(');
-				E_symref(operand.sym, operand.off);
-				EmitByte(')');
+            when MODE_SYMBOLI:
+                EmitByte('(');
+                E_symref(operand.sym, operand.off);
+                EmitByte(')');
 
-			when else:
-				StartError();
-				print("bad indirect mode ");
-				print_i8(operand.mode);
-				EndError();
-		end case;
-		E(",y\n");
-	end sub;
+            when else:
+                StartError();
+                print("bad indirect mode ");
+                print_i8(operand.mode);
+                EndError();
+        end case;
+        E(",y\n");
+    end sub;
 
-	sub DoParamDirect(operand: [Operand], insn: string)
-		E_insn(insn);
-		case operand.mode is
-			when MODE_CONST:
-				E_const(operand.val as uint8);
-				operand.val := operand.val >> 8;
+    sub DoParamDirect(operand: [Operand], insn: string)
+        E_insn(insn);
+        case operand.mode is
+            when MODE_CONST:
+                E_const(operand.val as uint8);
+                operand.val := operand.val >> 8;
 
-			when MODE_ADDRESS:
-				case paramwidth is
-					when 1: E("#>"); # high byte
-					when 2: E("#<"); # low byte
-				end case;
-				E_symref(operand.sym, operand.off);
+            when MODE_ADDRESS:
+                case paramwidth is
+                    when 1: E("#>"); # high byte
+                    when 2: E("#<"); # low byte
+                end case;
+                E_symref(operand.sym, operand.off);
 
-			when MODE_STACK:
-				E_stackref(operand.sid);
-				operand.sid := operand.sid + 1;
+            when MODE_STACK:
+                E_stackref(operand.sid);
+                operand.sid := operand.sid + 1;
 
-			when MODE_STACKI:
-				EmitByte('(');
-				E_stackref(operand.sid);
-				E("),y");
-				if paramwidth != 1 then
-					E("\n\tiny");
-				end if;
+            when MODE_STACKI:
+                EmitByte('(');
+                E_stackref(operand.sid);
+                E("),y");
+                if paramwidth != 1 then
+                    E("\n\tiny");
+                end if;
 
-			when MODE_SYMBOL:
-				E_symref(operand.sym, operand.off);
-				operand.off := operand.off + 1;
+            when MODE_SYMBOL:
+                E_symref(operand.sym, operand.off);
+                operand.off := operand.off + 1;
 
-			when MODE_SYMBOLI:
-				E_symrefi(operand.sym, operand.off);
-				if paramwidth != 1 then
-					E("\n\tiny");
-				end if;
+            when MODE_SYMBOLI:
+                E_symrefi(operand.sym, operand.off);
+                if paramwidth != 1 then
+                    E("\n\tiny");
+                end if;
 
-			when else:
-				StartError();
-				print("bad direct mode ");
-				print_i8(operand.mode);
-				EndError();
-		end case;
-		E_nl();
-	end sub;
+            when else:
+                StartError();
+                print("bad direct mode ");
+                print_i8(operand.mode);
+                EndError();
+        end case;
+        E_nl();
+    end sub;
 
-	sub DoCmpU(node: [Node], insn: string)
-		var rhs := PopOp();
-		var lhs := PopOp();
+    sub Do2Op4_not()
+        E("\t; do2op4 not\n");
+        var dest := PopOp();
+        var lhs := PopOp();
 
-		E_loadconst(REG_Y, 3);
-		var lid := AllocPlabel();
-		E_plabel(lid);
+        paramwidth := 4;
+        E_loadconst(REG_Y, 3);
+        var lid := AllocPlabel();
+        E_plabel(lid);
 
-		DoParamIndirect(lhs, "lda");
-		DoParamIndirect(rhs, "cmp");
-		E_bne(node.beq0.falselabel);
+        DoParamIndirect(lhs, "lda");
+        E("\teor #255\n");
+        DoParamIndirect(dest, "sta");
 
-		E_dey();
-		E_insn("bpl");
-		E_plabelref(lid);
-		E_nl();
+        E_dey();
+        E("\tbpl ");
+        E_plabelref(lid);
+        E_nl();
+    end sub;
 
-		if node.beq0.fallthrough != node.beq0.truelabel then
-			E_jmp(node.beq0.truelabel);
-		end if;
-	end sub;
+    sub Do2Op4_neg()
+        E("\t; do2op4 neg\n");
+        var dest := PopOp();
+        var lhs := PopOp();
 
-	sub DoCmpS(node: [Node])
-		var rhs := PopOp();
-		var lhs := PopOp();
+        paramwidth := 4;
+        E_loadconst(REG_X, 4);
+        E_loadconst(REG_Y, 0);
+        E_sec();
+        var lid := AllocPlabel();
+        E_plabel(lid);
 
-		E_sec();
-		E_loadconst(REG_Y, 3);
-		var lid := AllocPlabel();
-		E_plabel(lid);
+        E("\tlda #0\n");
+        DoParamIndirect(lhs, "sbc");
+        DoParamIndirect(dest, "sta");
 
-		DoParamIndirect(lhs, "lda");
-		DoParamIndirect(rhs, "sbc");
+        E_iny();
+        E_dex();
+        E("\tbne ");
+        E_plabelref(lid);
+        E_nl();
+    end sub;
 
-		E_dey();
-		E_insn("bpl");
-		E_plabelref(lid);
-		E_nl();
+    sub Do3Op4(insn: string)
+        var dest := PopOp();
+        var rhs := PopOp();
+        var lhs := PopOp();
 
-		E("\tbvs *+4\n");
-		E("\teor #$80\n");
-		E_jumps_bmi_bpl(node);
-	end sub;
+        paramwidth := 4;
+        E_loadconst(REG_Y, 0);
+        E_loadconst(REG_X, paramwidth);
+        var lid := AllocPlabel();
+        E_plabel(lid);
 
-	sub DoCopy4()
-		var dest := PopOp();
-		var lhs := PopOp();
+        DoParamIndirect(lhs, "lda");
+        DoParamIndirect(rhs, insn);
+        DoParamIndirect(dest, "sta");
 
-		E_loadconst(REG_Y, 0);
-		E_loadconst(REG_X, 4);
-		var lid := AllocPlabel();
-		E_plabel(lid);
-
-		DoParamIndirect(lhs, "lda");
-		DoParamIndirect(dest, "sta");
-
-		E_iny();
-		E_dex();
-		E("\tbne ");
-		E_plabelref(lid);
-		E_nl();
-	end sub;
-
-	sub Do2Op4_not()
-		E("\t; do2op4 not\n");
-		var dest := PopOp();
-		var lhs := PopOp();
-
-		paramwidth := 4;
-		E_loadconst(REG_Y, 3);
-		var lid := AllocPlabel();
-		E_plabel(lid);
-
-		DoParamIndirect(lhs, "lda");
-		E("\teor #255\n");
-		DoParamIndirect(dest, "sta");
-
-		E_dey();
-		E("\tbpl ");
-		E_plabelref(lid);
-		E_nl();
-	end sub;
-
-	sub Do2Op4_neg()
-		E("\t; do2op4 neg\n");
-		var dest := PopOp();
-		var lhs := PopOp();
-
-		paramwidth := 4;
-		E_loadconst(REG_X, 4);
-		E_loadconst(REG_Y, 0);
-		E_sec();
-		var lid := AllocPlabel();
-		E_plabel(lid);
-
-		E("\tlda #0\n");
-		DoParamIndirect(lhs, "sbc");
-		DoParamIndirect(dest, "sta");
-
-		E_iny();
-		E_dex();
-		E("\tbne ");
-		E_plabelref(lid);
-		E_nl();
-	end sub;
-
-	sub Do3Op4(insn: string)
-		var dest := PopOp();
-		var rhs := PopOp();
-		var lhs := PopOp();
-
-		paramwidth := 4;
-		E_loadconst(REG_Y, 0);
-		E_loadconst(REG_X, paramwidth);
-		var lid := AllocPlabel();
-		E_plabel(lid);
-
-		DoParamIndirect(lhs, "lda");
-		DoParamIndirect(rhs, insn);
-		DoParamIndirect(dest, "sta");
-
-		E_iny();
-		E_dex();
-		E("\tbne ");
-		E_plabelref(lid);
-		E_nl();
-	end sub;
-
-	sub DoXA(insn: string)
-		var rhs := PopOp();
-
-		paramwidth := 2;
-		R_flush(REG_A|REG_X|REG_XA);
-		DoParamDirect(rhs, insn);
-		E_pha();
-		E_txa();
-		DoParamDirect(rhs, insn);
-		E_tax();
-		E_pla();
-	end sub;
-
-	sub DoXA_neg()
-		var rhs := PopOp();
-
-		paramwidth := 2;
-		R_flush(REG_A|REG_X|REG_XA);
-
-		E_sec();
-		E_loadconst(REG_A, 0);
-		DoParamDirect(rhs, "sbc");
-		E_pha();
-		E_loadconst(REG_A, 0);
-		DoParamDirect(rhs, "sbc");
-		E_tax();
-		E_pla();
-	end sub;
-
-	sub DoXA_not()
-		var rhs := PopOp();
-
-		paramwidth := 2;
-		R_flush(REG_A|REG_X|REG_XA);
-
-		DoParamDirect(rhs, "lda");
-		E("\teor #255\n");
-		E_pha();
-		DoParamDirect(rhs, "lda");
-		E("\teor #255\n");
-		E_tax();
-		E_pla();
-	end sub;
+        E_iny();
+        E_dex();
+        E("\tbne ");
+        E_plabelref(lid);
+        E_nl();
+    end sub;
 %}
 
-gen v8_op  := FALLBACK(v8:lhs)	                    { PushPopOp($lhs, 1); }
-gen a16_op := FALLBACK(a16:lhs)	                    { PushPopOp($lhs, 2); }
-gen p16_op := FALLBACK(p16:lhs)	                    { PushPopOp($lhs, 2); }
-gen v32_op := FALLBACK(v32:lhs)	                    { PushPopOp($lhs, 4); }
+gen v8_op  := FALLBACK(v8:lhs)                      { PushPopOp($lhs, 1); }
+gen a16_op := FALLBACK(a16:lhs)                     { PushPopOp($lhs, 2); }
+gen p16_op := FALLBACK(p16:lhs)                     { PushPopOp($lhs, 2); }
+gen v32_op := FALLBACK(v32:lhs)                     { PushPopOp($lhs, 4); }
 
 gen const_op := CONSTANT():c                        { PushConstOp($c.value); }
 gen address_op := ADDRESS():a                       { PushAddressOp($a.sym, $a.off); }
@@ -1052,359 +957,227 @@ gen stacki4_op := LOAD4(p16)                        { PushPopIOp(REG_P16, 2); }
 
 gen STARTSUB():s
 {
-	RegCacheReset();
+    RegCacheReset();
 
-	EmitterPushChunk();
-	E_h16($s.subr.id);
+    EmitterPushChunk();
+    E_h16($s.subr.id);
 
-	E("\n\n\t; ");
-	E($s.subr.name);
-	E_nl();
+    E("\n\n\t; ");
+    E($s.subr.name);
+    E_nl();
 
-	EmitByte(COO_ESCAPE_THISSUB);
-	E(":\n");
+    EmitByte(COO_ESCAPE_THISSUB);
+    E(":\n");
 
-	var count := $s.subr.num_input_parameters;
-	var lastparam := count - 1;
+    var count := $s.subr.num_input_parameters;
+    var lastparam := count - 1;
 
-	while count != 0 loop
-		count := count - 1;
-		var param := GetInputParameter($s.subr, count);
+    while count != 0 loop
+        count := count - 1;
+        var param := GetInputParameter($s.subr, count);
 
-		case param.vardata.type.typedata.width is
-			when 1:
-				if count != lastparam then
-					E_pla();
-				end if;
-				E_st(REG_A);
-				E_symref(param, 0);
-				E_nl();
+        case param.vardata.type.typedata.width is
+            when 1:
+                if count != lastparam then
+                    E_pla();
+                end if;
+                E_st(REG_A);
+                E_symref(param, 0);
+                E_nl();
 
-			when 2:
-				if count != lastparam then
-					E_pla();
-					E_tax();
-					E_pla();
-				end if;
-				E_st(REG_A);
-				E_symref(param, 0);
-				E_nl();
+            when 2:
+                if count != lastparam then
+                    E_pla();
+                    E_tax();
+                    E_pla();
+                end if;
+                E_st(REG_A);
+                E_symref(param, 0);
+                E_nl();
 
-				E_st(REG_X);
-				E_symref(param, 1);
-				E_nl();
+                E_st(REG_X);
+                E_symref(param, 1);
+                E_nl();
 
-			when 4:
-				E_loadconst(REG_Y, 0);
-				E_loadconst(REG_X, 3);
-				E_pla();
-				E_st(REG_A);
-				E_symref(param, 0);
-				E(",y\n");
-				E_iny();
-				E_dex();
-				E("\tbpl *-5\n");
-		end case;
-	end loop;
+            when 4:
+                E_loadconst(REG_Y, 0);
+                E_loadconst(REG_X, 3);
+                E_pla();
+                E_st(REG_A);
+                E_symref(param, 0);
+                E(",y\n");
+                E_iny();
+                E_dex();
+                E("\tbpl *-5\n");
+        end case;
+    end loop;
 }
 
 gen ENDSUB():s
 {
-	E("end_");
-	E_subref(current_subr);
-	E(":\n");
-	if IsSimpleSub(current_subr) != 0 then
-		E_rts();
-	else
-		E("rts_");
-		E_subref(current_subr);
-		E(" = *+1\n");
-		E("\tjmp $ffff\n");
-	end if;
+    E("end_");
+    E_subref(current_subr);
+    E(":\n");
+    if IsSimpleSub(current_subr) != 0 then
+        E_rts();
+    else
+        E("rts_");
+        E_subref(current_subr);
+        E(" = *+1\n");
+        E("\tjmp $ffff\n");
+    end if;
 
-	while constants != (0 as [Constant]) loop
-		var c := constants;
-		constants := constants.next;
+    while constants != (0 as [Constant]) loop
+        var c := constants;
+        constants := constants.next;
 
-		E_plabel(c.lid);
-		E("\t.dword ");
-		E_u32(c.value as uint32);
-		E_nl();
-		Free(c as [uint8]);
-	end loop;
+        E_plabel(c.lid);
+        E("\t.dword ");
+        E_u32(c.value as uint32);
+        E_nl();
+        Free(c as [uint8]);
+    end loop;
 
-	EmitterPopChunk('S');
+    EmitterPopChunk('S');
 
-	var i: uint8 := 0;
-	while i != 4 loop
-		EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
-		i := i + 1;
-	end loop;
+    var i: uint8 := 0;
+    while i != 4 loop
+        EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
+        i := i + 1;
+    end loop;
 }
 
 gen RETURN()
 {
-	E("\tjmp end_");
-	E_subref(current_subr);
-	E_nl();
+    E("\tjmp end_");
+    E_subref(current_subr);
+    E_nl();
 }
 
 gen CALL(param):s
-		{ E_call($s.subr); }
-	
+        { E_call($s.subr); }
+    
 gen a := CALLE1(param):s
-		{ E_call($s.subr); }
+        { E_call($s.subr); }
 
 gen xa := CALLE2(param):s
-		{ E_call($s.subr); }
+        { E_call($s.subr); }
 
 gen v32 := CALLE4(param):s
-		{ E_call($s.subr); }
+        { E_call($s.subr); }
 
 gen param := END();
 
 gen param := ARG1(param, a, remaining==0);
 
 gen param := ARG1(param, a, remaining!=0)
-		{ E_pha(); }
-	
+        { E_pha(); }
+    
 gen param := ARG2(param, xa, remaining==0);
 
 // WARNING: big endian!
 gen param := ARG2(param, xa, remaining!=0)
-		{ E_pha(); E_txa(); E_pha(); }
+        { E_pha(); E_txa(); E_pha(); }
 
 gen param := ARG4(param, v32) uses y|a
 {
-	var sid := Pop(REG_V32, 4);
-	E_loadconst(REG_Y, 3);
-	E_lda();
-	E_stackref(sid);
-	E(",y\n");
-	E_pha();
-	E_dey();
-	E("\tbpl *-4\n");
+    var sid := Pop(REG_V32, 4);
+    E_loadconst(REG_Y, 3);
+    E_lda();
+    E_stackref(sid);
+    E(",y\n");
+    E_pha();
+    E_dey();
+    E("\tbpl *-4\n");
 }
 
 gen a := POPARG1(remaining==0);
 
 gen a := POPARG1(remaining!=0)
-		{ E_pla(); }
+        { E_pla(); }
 
 // WARNING: big endian!
 gen xa := POPARG2(remaining==0);
 
 gen xa := POPARG2(remaining!=0)
-		{ E_pha(); E_tax(); E_pha(); }
+        { E_pha(); E_tax(); E_pha(); }
 
 gen v32 := POPARG4() uses x|y|a
 {
-	var sid := Push(REG_V32, 4);
-	E_loadconst(REG_Y, 0);
-	E_loadconst(REG_X, 3);
-	E_pla();
-	E_st(REG_A);
-	E_stackref(sid);
-	E(",y\n");
-	E_iny();
-	E_dex();
-	E("\tbpl *-5\n");
+    var sid := Push(REG_V32, 4);
+    E_loadconst(REG_Y, 0);
+    E_loadconst(REG_X, 3);
+    E_pla();
+    E_st(REG_A);
+    E_stackref(sid);
+    E(",y\n");
+    E_iny();
+    E_dex();
+    E("\tbpl *-5\n");
 }
 
-// --- Constants ------------------------------------------------------------
+// --- 8-bit -----------------------------------------------------------------
 
 gen a|x|y := CONSTANT():c
 {
-	E_loadconst($$, $c.value as uint8);
+    E_loadconst($$, $c.value as uint8);
 }
-
-// --- 8-bit memory ----------------------------------------------------------
 
 gen STORE1(a:lhs, p16:ptr) uses y
 {
-	var sid := Pop($ptr, 2);
-	E_loadconst(REG_Y, 0);
+    var sid := Pop($ptr, 2);
+    E_loadconst(REG_Y, 0);
 
-	E_insn("sta");
-	E_stackrefi(sid);
-	E_nl();
+    E_insn("sta");
+    E_stackrefi(sid);
+    E_nl();
 }
 
 gen STORE1(a|x|y:lhs, ADDRESS():a)
 {
-	E_st($lhs);
-	E_symref($a.sym, $a.off);
-	E_nl();
-	RegCacheLeavesValue($lhs, $a.sym, $a.off);
+    E_st($lhs);
+    E_symref($a.sym, $a.off);
+    E_nl();
+    RegCacheLeavesValue($lhs, $a.sym, $a.off);
 }
 
 gen a|x|y := LOAD1(ADDRESS():a)
 {
-	var cache := RegCacheFindValue($a.sym, $a.off) & $$;
-	if cache == 0 then
-		E_ld($$);
-		E_symref($a.sym, $a.off);
-		E_nl();
-		RegCacheLeavesValue($$, $a.sym, $a.off);
-	end if;
+    var cache := RegCacheFindValue($a.sym, $a.off) & $$;
+    if cache == 0 then
+        E_ld($$);
+        E_symref($a.sym, $a.off);
+        E_nl();
+        RegCacheLeavesValue($$, $a.sym, $a.off);
+    end if;
 }
 
 gen a := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) uses y
 {
-	E_loadconst(REG_Y, 0);
-	E_ld($$);
-	E_symrefi($a.sym, $a.off);
-	E_nl();
+    E_loadconst(REG_Y, 0);
+    E_ld($$);
+    E_symrefi($a.sym, $a.off);
+    E_nl();
 }
 
 gen a := LOAD1(p16:ptr) uses y
 {
-	var sid := Pop(REG_P16, 2);
+    var sid := Pop(REG_P16, 2);
 
-	E_loadconst(REG_Y, 0);
-	E_ld($$);
-	E_stackrefi(sid);
-	E_nl();
+    E_loadconst(REG_Y, 0);
+    E_ld($$);
+    E_stackrefi(sid);
+    E_nl();
 }
-
-// --- Extended operations ---------------------------------------------------
-
-%{
-	var lhsparam: Operand;
-	var rhsparam: Operand;
-	var destparam: Operand;
-
-	sub LhsConst(value: Arith)
-		lhsparam.mode := MODE_CONST;
-		lhsparam.val := value;
-	end sub;
-
-	sub RhsConst(value: Arith)
-		rhsparam.mode := MODE_CONST;
-		rhsparam.val := value;
-	end sub;
-
-	sub LhsPop(reg: RegId)
-		lhsparam.mode := MODE_STACK;
-		lhsparam.sid := Pop(reg, paramwidth);
-	end sub;
-
-	sub RhsPop(reg: RegId)
-		rhsparam.mode := MODE_STACK;
-		rhsparam.sid := Pop(reg, paramwidth);
-	end sub;
-
-	sub DestPush(reg: RegId)
-		destparam.mode := MODE_STACK;
-		destparam.sid := Push(reg, paramwidth);
-	end sub;
-
-	sub LhsSym(sym: [Symbol], off: Size)
-		lhsparam.mode := MODE_SYMBOL;
-		lhsparam.sym := sym;
-		lhsparam.off := off;
-	end sub;
-
-	sub RhsSym(sym: [Symbol], off: Size)
-		rhsparam.mode := MODE_SYMBOL;
-		rhsparam.sym := sym;
-		rhsparam.off := off;
-	end sub;
-
-	sub DestSym(sym: [Symbol], off: Size)
-		destparam.mode := MODE_SYMBOL;
-		destparam.sym := sym;
-		destparam.off := off;
-	end sub;
-
-	sub LhsSymI(sym: [Symbol], off: Size)
-		E_loadconst(REG_Y, 0);
-		lhsparam.mode := MODE_SYMBOLI;
-		lhsparam.sym := sym;
-		lhsparam.off := off;
-	end sub;
-
-	sub RhsSymI(sym: [Symbol], off: Size)
-		E_loadconst(REG_Y, 0);
-		rhsparam.mode := MODE_SYMBOLI;
-		rhsparam.sym := sym;
-		rhsparam.off := off;
-	end sub;
-
-	sub DestSymI(sym: [Symbol], off: Size)
-		E_loadconst(REG_Y, 0);
-		destparam.mode := MODE_SYMBOLI;
-		destparam.sym := sym;
-		destparam.off := off;
-	end sub;
-
-	sub DoBranch4_beq(node: [Node])
-		E_loadconst(REG_Y, 3);
-		var lid := AllocPlabel();
-		E_plabel(lid);
-
-		DoParamIndirect(&lhsparam, "lda");
-		DoParamIndirect(&rhsparam, "cmp");
-		E("\tbne ");
-		E_labelref(node.beq0.falselabel);
-		E_nl();
-		E_dey();
-		E("\tbpl ");
-		E_plabelref(lid);
-		E_nl();
-
-		if node.beq0.fallthrough != node.beq0.truelabel then
-			E("\tjmp ");
-			E_labelref(node.beq0.truelabel);
-			E_nl();
-		end if;
-	end sub;
-
-	sub DoBranch4_blts(node: [Node])
-		E_loadconst(REG_Y, 3);
-		E_sec();
-		var lid := AllocPlabel();
-		E_plabel(lid);
-
-		DoParamIndirect(&lhsparam, "lda");
-		DoParamIndirect(&rhsparam, "sbc");
-		E_dey();
-		E("\tbpl ");
-		E_plabelref(lid);
-		E_nl();
-
-		E_jumps_bmi_bpl(node);
-	end sub;
-
-	sub DoBranch4_bltu(node: [Node])
-		E_loadconst(REG_Y, 3);
-		E_sec();
-		var lid := AllocPlabel();
-		E_plabel(lid);
-
-		DoParamIndirect(&lhsparam, "lda");
-		DoParamIndirect(&rhsparam, "sbc");
-		E("\tbvc .+5\n");
-		E("\teor #$80\n");
-		E_dey();
-		E("\tbpl ");
-		E_plabelref(lid);
-		E_nl();
-
-		E_jumps_bmi_bpl(node);
-	end sub;
-%}
-
-// --- 8-bit maths -----------------------------------------------------------
 
 gen a := NOT1(a) { E_not(); }
 
 gen a := NEG1(a)
 {
-	R_flush(REG_A);
-	E_sec();
-	E_not();
-	E("\tadc #0\n");
+    R_flush(REG_A);
+    E_sec();
+    E_not();
+    E("\tadc #0\n");
 }
 
 gen a := ADD1(a, in1_ops) { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), "adc"); }
@@ -1422,97 +1195,144 @@ gen a := DIVU1(a, x) uses y { E_callhelper("_divu1"); }
 gen x := REMU1(a, x) uses y { E_callhelper("_divu1"); }
 
 gen v8 := DIVS1(v8, a)
-		{ E("\tDIVS1\n"); }
+        { E("\tDIVS1\n"); }
 
 gen v8 := REMS1(v8, a)
-		{ E("\tREMS1\n"); }
+        { E("\tREMS1\n"); }
 
 // --- 16-bit ---------------------------------------------------------------
 
 gen xa := LOAD2(ADDRESS():a)
 {
-	var cache := RegCacheFindValue($a.sym, $a.off);
-	if cache != REG_XA then
-		E_lda();
-		E_symref($a.sym, $a.off);
-		E_nl();
+    var cache := RegCacheFindValue($a.sym, $a.off);
+    if cache != REG_XA then
+        E_lda();
+        E_symref($a.sym, $a.off);
+        E_nl();
 
-		E_ldx();
-		E_symref($a.sym, $a.off+1);
-		E_nl();
-	end if;
-	RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
+        E_ldx();
+        E_symref($a.sym, $a.off+1);
+        E_nl();
+    end if;
+    RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
 }
 
 gen xa := LOAD2(p16:ptr)
 {
-	var sid := Pop($ptr, 2);
+    var sid := Pop($ptr, 2);
 
-	E_loadconst(REG_Y, 1);
+    E_loadconst(REG_Y, 1);
 
-	E_lda();
-	E_stackrefi(sid);
-	E_nl();
+    E_lda();
+    E_stackrefi(sid);
+    E_nl();
 
-	E_tax();
-	E_dey();
+    E_tax();
+    E_dey();
 
-	E_lda();
-	E_stackrefi(sid);
-	E_nl();
+    E_lda();
+    E_stackrefi(sid);
+    E_nl();
 
-	RegCacheLeavesConstant(REG_Y, 0);
+    RegCacheLeavesConstant(REG_Y, 0);
 }
 
 gen xa := CONSTANT():c
 {
-	var cache := RegCacheFindConstant($c.value as Word);
-	if cache != REG_XA then
-		E_loadconst(REG_A, $c.value as uint8);
-		E_loadconst(REG_X, ($c.value>>8) as uint8);
-	end if;
-	RegCacheLeavesConstant(REG_XA, $c.value as Word);
+    var cache := RegCacheFindConstant($c.value as Word);
+    if cache != REG_XA then
+        E_loadconst(REG_A, $c.value as uint8);
+        E_loadconst(REG_X, ($c.value>>8) as uint8);
+    end if;
+    RegCacheLeavesConstant(REG_XA, $c.value as Word);
 }
 
 gen xa := ADDRESS():a
 {
-	E_loadaddr($a.sym, $a.off);
+    E_loadaddr($a.sym, $a.off);
 }
 
 gen STORE2(xa, ADDRESS():a)
 {
-	E_st(REG_A);
-	E_symref($a.sym, $a.off);
-	E_nl();
+    E_st(REG_A);
+    E_symref($a.sym, $a.off);
+    E_nl();
 
-	E_st(REG_X);
-	E_symref($a.sym, $a.off+1);
-	E_nl();
-	RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
+    E_st(REG_X);
+    E_symref($a.sym, $a.off+1);
+    E_nl();
+    RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
 }
 
 gen STORE2(xa, p16:rhs)
 {
-	var sid := Pop($rhs, 2);
+    var sid := Pop($rhs, 2);
 
-	E_loadconst(REG_Y, 0);
+    E_loadconst(REG_Y, 0);
 
-	E_st(REG_A);
-	E_stackrefi(sid);
-	E_nl();
+    E_st(REG_A);
+    E_stackrefi(sid);
+    E_nl();
 
-	E_iny();
-	E_txa();
+    E_iny();
+    E_txa();
 
-	E_st(REG_A);
-	E_stackrefi(sid);
-	E_nl();
+    E_st(REG_A);
+    E_stackrefi(sid);
+    E_nl();
 
-	RegCacheLeavesConstant(REG_Y, 1);
+    RegCacheLeavesConstant(REG_Y, 1);
 }
 
-gen xa := NEG2(in4_ops) uses y { DoXA_neg(); }
-gen xa := NOT2(in4_ops) uses y { DoXA_not(); }
+%{
+    sub DoXA(insn: string)
+        var rhs := PopOp();
+
+        paramwidth := 2;
+        R_flush(REG_A|REG_X|REG_XA);
+        DoParamDirect(rhs, insn);
+        E_pha();
+        E_txa();
+        DoParamDirect(rhs, insn);
+        E_tax();
+        E_pla();
+    end sub;
+
+    sub DoXA_neg()
+        var rhs := PopOp();
+
+        paramwidth := 2;
+        R_flush(REG_A|REG_X|REG_XA);
+
+        E_sec();
+        E_loadconst(REG_A, 0);
+        DoParamDirect(rhs, "sbc");
+        E_pha();
+        E_txa();
+        E_loadconst(REG_A, 0);
+        DoParamDirect(rhs, "sbc");
+        E_tax();
+        E_pla();
+    end sub;
+
+    sub DoXA_not()
+        var rhs := PopOp();
+
+        paramwidth := 2;
+        R_flush(REG_A|REG_X|REG_XA);
+
+        DoParamDirect(rhs, "lda");
+        E("\teor #255\n");
+        E_pha();
+        DoParamDirect(rhs, "lda");
+        E("\teor #255\n");
+        E_tax();
+        E_pla();
+    end sub;
+%}
+
+gen xa := NEG2(in2_ops)         uses y { DoXA_neg(); }
+gen xa := NOT2(in2_ops)         uses y { DoXA_not(); }
 
 gen xa := ADD2(xa, in2_ops:rhs) uses y { E_clc(); DoXA("adc"); }
 gen xa := SUB2(xa, in2_ops:rhs) uses y { E_sec(); DoXA("sbc"); }
@@ -1525,41 +1345,41 @@ gen xa := RSHIFTU2(xa, y) { E_callhelper("_rshiftu2"); }
 gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
 %{
-	sub MulOrDiv2(name: string)
-		var e := GetHelper(name);
+    sub MulOrDiv2(name: string)
+        var e := GetHelper(name);
 
-		E_sta();
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(e.id);
-		E("010000\n");
+        E_sta();
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(e.id);
+        E("010000\n");
 
-		E_stx();
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(e.id);
-		E("010001\n");
+        E_stx();
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(e.id);
+        E("010001\n");
 
-		var rhs := PopOp();
-		paramwidth := 2;
-		DoParamDirect(rhs, "lda");
-		DoParamDirect(rhs, "ldx");
-		E_callhelper(name);
-	end sub;
+        var rhs := PopOp();
+        paramwidth := 2;
+        DoParamDirect(rhs, "lda");
+        DoParamDirect(rhs, "ldx");
+        E_callhelper(name);
+    end sub;
 
-	sub Rem2(name: string)
-		MulOrDiv2(name);
+    sub Rem2(name: string)
+        MulOrDiv2(name);
 
-		var e := GetHelper(name);
+        var e := GetHelper(name);
 
-		E_lda();
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(e.id);
-		E("010004\n");
+        E_lda();
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(e.id);
+        E("010004\n");
 
-		E_ldx();
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(e.id);
-		E("010005\n");
-	end sub;
+        E_ldx();
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(e.id);
+        E("010005\n");
+    end sub;
 %}
 
 gen xa := MUL2(xa, in2_ops) uses y { MulOrDiv2("_mul2"); }
@@ -1570,8 +1390,28 @@ gen xa := REMS2(xa, in2_ops) uses y { Rem2("_divs2"); }
 
 // --- 32 bit ---------------------------------------------------------------
 
+%{
+    sub DoCopy4()
+        var dest := PopOp();
+        var lhs := PopOp();
+
+        E_loadconst(REG_Y, 3);
+        var lid := AllocPlabel();
+        E_plabel(lid);
+
+        DoParamIndirect(lhs, "lda");
+        DoParamIndirect(dest, "sta");
+
+        E_dey();
+        E("\tbpl ");
+        E_plabelref(lid);
+        E_nl();
+    end sub;
+%}
+
 gen STORE4(in4_ops, ptr_ops) uses a|x|y      { DerefOp(PeekOp()); DoCopy4(); }
 gen v32 := LOAD4(ptr_ops) uses a|x|y         { DerefOp(PeekOp()); PushPushOp($$, 4); DoCopy4(); }
+gen v32 := CONSTANT():c uses a|x             { PushConstOp($c.value); PushPushOp($$, 4); DoCopy4(); }
 
 gen v32 := NEG4(in4_ops) uses a|x|y          { PushPushOp($$, 4); Do2Op4_neg(); }
 gen v32 := NOT4(in4_ops) uses a|x|y          { PushPushOp($$, 4); Do2Op4_not(); }
@@ -1583,231 +1423,298 @@ gen v32 := OR4(in4_ops, in4_ops)  uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op
 gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("eor"); }
 
 %{
-	sub MulOrDivOrRem4(name: string, resultoffset: uint8)
-		var e := GetHelper(name);
+    sub MulOrDivOrRem4(name: string, resultoffset: uint8)
+        var e := GetHelper(name);
 
-		var dest := PopOp();
-		var rhs := PopOp();
-		var lhs := PopOp();
+        var dest := PopOp();
+        var rhs := PopOp();
+        var lhs := PopOp();
 
-		paramwidth := 4;
-		E_loadconst(REG_Y, 3);
-		var lid := AllocPlabel();
-		E_plabel(lid);
+        paramwidth := 4;
+        E_loadconst(REG_Y, 3);
+        var lid := AllocPlabel();
+        E_plabel(lid);
 
-		DoParamIndirect(lhs, "lda");
-		E("\tsta ");
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(e.id);
-		E("010000, y\n");
+        DoParamIndirect(lhs, "lda");
+        E("\tsta ");
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(e.id);
+        E("010000, y\n");
 
-		DoParamIndirect(rhs, "lda");
-		E("\tsta ");
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(e.id);
-		E("010008, y\n");
+        DoParamIndirect(rhs, "lda");
+        E("\tsta ");
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(e.id);
+        E("010008, y\n");
 
-		E_dey();
-		E("\tbpl ");
-		E_plabelref(lid);
-		E_nl();
+        E_dey();
+        E("\tbpl ");
+        E_plabelref(lid);
+        E_nl();
 
-		E_callhelper(name);
+        E_callhelper(name);
 
-		paramwidth := 4;
-		E_loadconst(REG_Y, 3);
-		lid := AllocPlabel();
-		E_plabel(lid);
+        paramwidth := 4;
+        E_loadconst(REG_Y, 3);
+        lid := AllocPlabel();
+        E_plabel(lid);
 
-		E("\tlda ");
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(e.id);
-		E_h8(1);
-		E_h16(resultoffset as uint16);
-		E(", y\n");
-		DoParamIndirect(dest, "sta");
+        E("\tlda ");
+        EmitByte(COO_ESCAPE_WSREF);
+        E_h16(e.id);
+        E_h8(1);
+        E_h16(resultoffset as uint16);
+        E(", y\n");
+        DoParamIndirect(dest, "sta");
 
-		E_dey();
-		E("\tbpl ");
-		E_plabelref(lid);
-		E_nl();
-	end sub;
+        E_dey();
+        E("\tbpl ");
+        E_plabelref(lid);
+        E_nl();
+    end sub;
 %}
 
 gen v32 := MUL4(in4_ops, in4_ops)  uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_mul4", 0); }
 gen v32 := DIVU4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divu4", 0); }
 gen v32 := REMU4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divu4", 4); }
 gen v32 := DIVS4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divs4", 0); }
-gen v32 := REMU4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divs4", 4); }
+gen v32 := REMS4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divs4", 4); }
 
 gen v32 := LSHIFT4(v32, y)
 {
-	E("\t; lshift4\n");
-	var sid := Peek(REG_V32, 4);
-	E_loadstackref(sid);
-	E_callhelper("_lshift4");
+    E("\t; lshift4\n");
+    var sid := Peek(REG_V32, 4);
+    E_loadstackref(sid);
+    E_callhelper("_lshift4");
 }
 
 gen v32 := RSHIFTU4(v32, y)
 {
-	E("\t; rshiftu4\n");
-	var sid := Peek(REG_V32, 4);
-	E_loadstackref(sid);
-	E_callhelper("_rshiftu4");
+    E("\t; rshiftu4\n");
+    var sid := Peek(REG_V32, 4);
+    E_loadstackref(sid);
+    E_callhelper("_rshiftu4");
 }
 
 gen v32 := RSHIFTS4(v32, y)
 {
-	E("\t; rshifts4\n");
-	var sid := Peek(REG_V32, 4);
-	E_loadstackref(sid);
-	E_callhelper("_rshifts4");
+    E("\t; rshifts4\n");
+    var sid := Peek(REG_V32, 4);
+    E_loadstackref(sid);
+    E_callhelper("_rshifts4");
 }
 
 // --- Conditionals ---------------------------------------------------------
 
 gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 {
-	var label := $b.falselabel;
-	if $lhs.value == $rhs.value then
-		label := $b.truelabel;
-	end if;
-	if label != $b.fallthrough then
-		E_jmp(label);
-	end if;
+    var label := $b.falselabel;
+    if $lhs.value == $rhs.value then
+        label := $b.truelabel;
+    end if;
+    if label != $b.fallthrough then
+        E_jmp(label);
+    end if;
 }
 
 gen BEQ1(a:lhs, in1_ops:rhs):b
 {
-	var rhs := PopOp();
-	paramwidth := 1;
-	DoParamDirect(rhs, "cmp");
-	E_jumps_beq_bne(self.n[0]);
+    var rhs := PopOp();
+    paramwidth := 1;
+    DoParamDirect(rhs, "cmp");
+    E_jumps_beq_bne(self.n[0]);
 }
 
 gen BLTU1(a:lhs, in1_ops:rhs):b
 {
-	var rhs := PopOp();
-	paramwidth := 1;
-	DoParamDirect(rhs, "cmp");
-	E_jumps_bmi_bpl(self.n[0]);
+    var rhs := PopOp();
+    paramwidth := 1;
+    DoParamDirect(rhs, "cmp");
+    E_jumps_bcc_bcs(self.n[0]);
 }
 
 gen BLTS1(a:lhs, in1_ops:rhs):b
 {
-	var rhs := PopOp();
-	paramwidth := 1;
-	E_sec();
-	DoParamDirect(rhs, "sbc");
-	E("\tbvs *+4\n");
-	E("\teor #$80\n");
-	E_jumps_bmi_bpl(self.n[0]);
+    var rhs := PopOp();
+    paramwidth := 1;
+    E_sec();
+    DoParamDirect(rhs, "sbc");
+    E("\tbvc *+4\n");
+    E("\teor #$80\n");
+    E_jumps_bmi_bpl(self.n[0]);
 }
 
 gen BEQ2(xa:lhs, in2_ops:rhs):b
 {
-	var rhs := PopOp();
-	paramwidth := 2;
-	DoParamDirect(rhs, "cmp");
-	E_bne($b.falselabel);
+    var rhs := PopOp();
+    paramwidth := 2;
+    DoParamDirect(rhs, "cmp");
+    E_bne($b.falselabel);
 
-	paramwidth := 1;
-	if ($rhs & REGCLASS_DEREF_OPS) != 0 then
-		E_txa();
-		DoParamDirect(rhs, "cmp");
-	else
-		DoParamDirect(rhs, "cpx");
-	end if;
-	E_jumps_beq_bne(self.n[0]);
+    paramwidth := 1;
+    if ($rhs & REGCLASS_DEREF_OPS) != 0 then
+        E_txa();
+        DoParamDirect(rhs, "cmp");
+    else
+        DoParamDirect(rhs, "cpx");
+    end if;
+    E_jumps_beq_bne(self.n[0]);
 }
 
-gen BLTU2(v16:lhs, xa:rhs):c
+gen BLTU2(xa:lhs, in2_ops:rhs):c
 {
-	E("\tBLTU2\n");
+    var rhs := PopOp();
+    paramwidth := 2;
+    E_sec();
+    DoParamDirect(rhs, "sbc");
+
+    paramwidth := 1;
+    E_txa();
+    DoParamDirect(rhs, "sbc");
+    E_jumps_bcc_bcs(self.n[0]);
 }
 
-gen BEQ4(in4_ops, in4_ops):c uses a|y
+gen BLTS2(xa:lhs, in2_ops:rhs):c
 {
-	paramwidth := 4;
-	DoCmpU(self.n[0], "bne");
+    var rhs := PopOp();
+    paramwidth := 2;
+    E_sec();
+    DoParamDirect(rhs, "sbc");
+
+    paramwidth := 1;
+    E_txa();
+    DoParamDirect(rhs, "sbc");
+    E("\tbvc *+4\n");
+    E("\teor #$80\n");
+    E_jumps_bmi_bpl(self.n[0]);
 }
 
-gen BLTU4(in4_ops, in4_ops):c uses a|y
+%{
+    sub DoCmpU(node: [Node], insn: string, truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef)
+        var rhs := PopOp();
+        var lhs := PopOp();
+
+        E_loadconst(REG_Y, 3);
+        var lid := AllocPlabel();
+        E_plabel(lid);
+
+        DoParamIndirect(lhs, "lda");
+        DoParamIndirect(rhs, "cmp");
+        E_jump(insn, falselabel);
+
+        E_dey();
+        E_insn("bpl");
+        E_plabelref(lid);
+        E_nl();
+
+        if fallthrough != truelabel then
+            E_jmp(truelabel);
+        end if;
+    end sub;
+%}
+
+gen BEQ4(in4_ops, in4_ops):b uses a|x|y
 {
-	paramwidth := 4;
-	DoCmpU(self.n[0], "bcs");
+    paramwidth := 4;
+    DoCmpU(self.n[0], "bne", $b.truelabel, $b.falselabel, $b.fallthrough);
 }
 
-gen BLTS4(in4_ops, in4_ops):c uses a|y
+gen BLTU4(in4_ops, in4_ops):b uses a|x|y
 {
-	paramwidth := 4;
-	DoCmpS(self.n[0]);
+    paramwidth := 4;
+    DoCmpU(self.n[0], "bcc", $b.falselabel, $b.truelabel, $b.fallthrough);
+}
+
+gen BLTS4(in4_ops, in4_ops):b uses a|x|y
+{
+    var rhs := PopOp();
+    var lhs := PopOp();
+
+    E_loadconst(REG_Y, 3);
+    var lid := AllocPlabel();
+    E_plabel(lid);
+
+    E_sec();
+    DoParamIndirect(lhs, "lda");
+    DoParamIndirect(rhs, "sbc");
+    E("\tbvc *+4\n");
+    E("\teor #$80\n");
+    E_jump("bmi", $b.truelabel);
+
+    E_dey();
+    E_insn("bpl");
+    E_plabelref(lid);
+    E_nl();
+
+    if $b.fallthrough != $b.falselabel then
+        E_jmp($b.falselabel);
+    end if;
 }
 
 // --- Casts ----------------------------------------------------------------
 
 gen v32 := CAST14(a, sext==0)
 {
-	var sid := Push(REG_V32, 4);
+    var sid := Push(REG_V32, 4);
 
-	E_st(REG_A);
-	E_stackref(sid);
-	E_nl();
+    E_st(REG_A);
+    E_stackref(sid);
+    E_nl();
 
-	E_loadconst(REG_A, 0);
+    E_loadconst(REG_A, 0);
 
-	E_st(REG_A);
-	E_stackref(sid+1);
-	E_nl();
+    E_st(REG_A);
+    E_stackref(sid+1);
+    E_nl();
 
-	E_st(REG_A);
-	E_stackref(sid+2);
-	E_nl();
+    E_st(REG_A);
+    E_stackref(sid+2);
+    E_nl();
 
-	E_st(REG_A);
-	E_stackref(sid+3);
-	E_nl();
+    E_st(REG_A);
+    E_stackref(sid+3);
+    E_nl();
 }
 
 gen v32 := CAST24(xa, sext==0)
 {
-	var sid := Push(REG_V32, 4);
+    var sid := Push(REG_V32, 4);
 
-	E_st(REG_A);
-	E_stackref(sid);
-	E_nl();
+    E_st(REG_A);
+    E_stackref(sid);
+    E_nl();
 
-	E_st(REG_X);
-	E_stackref(sid+1);
-	E_nl();
+    E_st(REG_X);
+    E_stackref(sid+1);
+    E_nl();
 
-	E_loadconst(REG_A, 0);
+    E_loadconst(REG_A, 0);
 
-	E_st(REG_A);
-	E_stackref(sid+2);
-	E_nl();
+    E_st(REG_A);
+    E_stackref(sid+2);
+    E_nl();
 
-	E_st(REG_A);
-	E_stackref(sid+3);
-	E_nl();
+    E_st(REG_A);
+    E_stackref(sid+3);
+    E_nl();
 }
 
 gen a := CAST21(xa|a16:rhs)
 {
-	if $rhs != REG_XA then
-		var sid := Pop(REG_V32, 2);
-		E_lda();
-		E_stackref(sid);
-		E_nl();
-	end if;
+    if $rhs != REG_XA then
+        var sid := Pop(REG_V32, 2);
+        E_lda();
+        E_stackref(sid);
+        E_nl();
+    end if;
 }
 
 gen a := CAST41(v32)
 {
-	var sid := Pop(REG_V32, 4);
-	E_lda();
-	E_stackref(sid);
-	E_nl();
+    var sid := Pop(REG_V32, 4);
+    E_lda();
+    E_stackref(sid);
+    E_nl();
 }
 
 // --- Case -----------------------------------------------------------------
@@ -1818,22 +1725,22 @@ gen STARTCASE2(xa);
 
 gen STARTCASE4(v32)
 {
-	E("\tSTARTCASE4\n");
+    E("\tSTARTCASE4\n");
 }
 
 gen WHENCASE1():c
 {
-	E("\tWHENCASE1\n");
+    E("\tWHENCASE1\n");
 }
 
 gen WHENCASE2():c uses a
 {
-	E("\tWHENCASE2\n");
+    E("\tWHENCASE2\n");
 }
 
 gen WHENCASE4():c uses a
 {
-	E("\tWHENCASE4\n");
+    E("\tWHENCASE4\n");
 }
 
 gen ENDCASE();
@@ -1842,104 +1749,106 @@ gen ENDCASE();
 
 gen xa := STRING():s
 {
-	R_flush($$);
-	var sid := E_string($s.text);
+    R_flush($$);
+    var sid := E_string($s.text);
 
-	E_lda();
-	E("#<");
-	EmitByte(COO_ESCAPE_THISCOO);
-	EmitByte('c');
-	E_u16(sid);
-	E_nl();
+    E_lda();
+    E("#<");
+    EmitByte(COO_ESCAPE_THISCOO);
+    EmitByte('c');
+    E_u16(sid);
+    E_nl();
 
-	E_ldx();
-	E("#>");
-	EmitByte(COO_ESCAPE_THISCOO);
-	EmitByte('c');
-	E_u16(sid);
-	E_nl();
+    E_ldx();
+    E("#>");
+    EmitByte(COO_ESCAPE_THISCOO);
+    EmitByte('c');
+    E_u16(sid);
+    E_nl();
 }
 
 // --- Initialisers ---------------------------------------------------------
 
 gen STARTINIT():s
 {
-	EmitterPushChunk();
-	E_h16(current_subr.id);
-	E($s.sym.vardata.externname);
-	E(":\n");
+    EmitterPushChunk();
+    E_h16(current_subr.id);
+    E($s.sym.vardata.externname);
+    E(":\n");
 }
 
 gen ENDINIT()
 {
-	EmitterPopChunk('S');
+    EmitterPopChunk('S');
 }
 
 gen INIT1():c
 {
-	E("\t.byte ");
-	E_u8($c.value as uint8);
-	E_nl();
+    E("\t.byte ");
+    E_u8($c.value as uint8);
+    E_nl();
 }
 
 gen INIT2():c
 {
-	E("\t.word ");
-	E_u16($c.value as uint16);
-	E_nl();
+    E("\t.word ");
+    E_u16($c.value as uint16);
+    E_nl();
 }
 
 gen INIT4():c
 {
-	E("\t.dword ");
-	E_u32($c.value as uint32);
-	E_nl();
+    E("\t.dword ");
+    E_u32($c.value as uint32);
+    E_nl();
 }
 
 gen INITS():s
 {
-	var sid := E_string($s.text);
+    var sid := E_string($s.text);
 
-	E("\t.word ");
-	EmitByte(COO_ESCAPE_THISCOO);
-	EmitByte('c');
-	E_u16(sid);
-	E_nl();
+    E("\t.word ");
+    EmitByte(COO_ESCAPE_THISCOO);
+    EmitByte('c');
+    E_u16(sid);
+    E_nl();
 }
 
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMSTART()
 {
-	R_flushall();
-	E_tab();
+    R_flushall();
+    E_tab();
 }
 
 gen ASMTEXT():t
 {
-	E($t.text);
-	E_space();
+    E($t.text);
+    E_space();
 }
 
 gen ASMSYMBOL():s
 {
-	if $s.sym.kind == VAR then
-		E_symref($s.sym, 0);
-	else
-		E_subref($s.sym.subr);
-	end if;
-	E_space();
+    if $s.sym.kind == VAR then
+        E_symref($s.sym, 0);
+    else
+        E_subref($s.sym.subr);
+    end if;
+    E_space();
 }
 
 gen ASMVALUE():c
 {
-	EmitByte('(');
-	E_i32($c.value);
-	EmitByte(')');
+    EmitByte('(');
+    E_i32($c.value);
+    EmitByte(')');
 }
 
 gen ASMEND()
 {
     E_nl();
 }
+
+// vim: sw=4 ts=4 et
 
