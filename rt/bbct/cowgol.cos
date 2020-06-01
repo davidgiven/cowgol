@@ -199,6 +199,54 @@
 	lda `$.1.0
 	rts
 
+&X _divs1
+&W _divs1 1 2
+; Signed divide of A = A / X, remainder in X.
+``:
+	sta `$.1.0
+	stx `$.1.1
+	eor `$.1.1			; determine sign of result
+	php					; save result sign for later
+	lda `$.1.0			; get LHS
+	php					; save remainder sign for later
+
+	bpl +         		; negate LHS if negative
+	lda #0
+	sec
+	sbc `$.1.0
+	sta `$.1.0
++
+	lda `$.1.1			; negate RHS if negative
+	bpl +
+	lda #0
+	sec
+	sbc `$.1.1
+	sta `$.1.1
++
+	lda `$.1.0
+	ldx `$.1.1
+	jsr `_divu1			; actually do the division
+	sta `$.1.0			; save result
+	stx `$.1.1			; save remainder
+
+	plp					; get sign of remainder
+	bpl +				; negate remainder if necessary
+	lda #0
+	sec
+	sbc `$.1.1
+	sta `$.1.1
++
+	plp					; get sign of result
+	bpl +				; negate result if necessary
+	lda #0
+	sec
+	sbc `$.1.0
+	sta `$.1.0
++
+	lda `$.1.0
+	ldx `$.1.1
+	rts
+
 &X _mul2
 &W _mul2 1 5
 ; Multiplies `$.1.0to1 * XA. Returns XA.
