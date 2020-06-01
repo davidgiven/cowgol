@@ -361,6 +361,7 @@
     jsr `_divu2
     lda `$_mathpad.1.0
     ldx `$_mathpad.1.1
+    rts
     
 &X _divs2r
 ; Signed division of `$_mathpad.1.0to1 / XA; result is in XA.
