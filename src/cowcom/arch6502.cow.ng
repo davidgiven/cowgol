@@ -771,6 +771,12 @@ gen JUMP():j
         op.sid := Pop(reg, width);
     end sub;
         
+    sub PushPeekOp(reg: RegId, width: uint8)
+        var op := PushOp();
+        op.mode := MODE_STACK;
+        op.sid := Peek(reg, width);
+    end sub;
+        
     sub PopOp(): (op: [Operand])
         if opsp == 0 then
             SimpleError("opstack underflow");
@@ -1001,15 +1007,20 @@ gen STARTSUB():s
                 E_nl();
 
             when 4:
+                # WARNING: little endian on stack!
                 E_loadconst(REG_Y, 0);
-                E_loadconst(REG_X, 3);
+                E_loadconst(REG_X, 4);
+                var lid := AllocPlabel();
+                E_plabel(lid);
                 E_pla();
                 E_st(REG_A);
                 E_symref(param, 0);
                 E(",y\n");
                 E_iny();
                 E_dex();
-                E("\tbpl *-5\n");
+                E_insn("bne");
+                E_plabelref(lid);
+                E_nl();
         end case;
     end loop;
 }
@@ -1019,6 +1030,57 @@ gen ENDSUB():s
     E("end_");
     E_subref(current_subr);
     E(":\n");
+
+    var i: uint8 := 0;
+    var count := $s.subr.num_output_parameters;
+    while i != count loop
+        var param := GetOutputParameter($s.subr, i);
+
+        case param.vardata.type.typedata.width is
+            when 1:
+                E_ld(REG_A);
+                E_symref(param, 0);
+                E_nl();
+                if i != (count-1) then
+                    E_pha();
+                end if;
+
+            when 2:
+                if i != (count-1) then
+                    # Warning: big endian!
+                    E_ld(REG_A);
+                    E_symref(param, 0);
+                    E_nl();
+                    E_pha();
+
+                    E_ld(REG_A);
+                    E_symref(param, 1);
+                    E_nl();
+                    E_pha();
+                else
+                    E_ld(REG_A);
+                    E_symref(param, 0);
+                    E_nl();
+
+                    E_ld(REG_X);
+                    E_symref(param, 1);
+                    E_nl();
+                end if;
+
+            when 4:
+                E_loadconst(REG_Y, 0);
+                E_loadconst(REG_X, 3);
+                E_ld(REG_A);
+                E_symref(param, 0);
+                E(",y\n");
+                E_pha();
+                E_iny();
+                E_dex();
+                E("\tbpl *-6\n");
+        end case;
+        i := i + 1;
+    end loop;
+
     if IsSimpleSub(current_subr) != 0 then
         E_rts();
     else
@@ -1041,7 +1103,7 @@ gen ENDSUB():s
 
     EmitterPopChunk('S');
 
-    var i: uint8 := 0;
+    i := 0;
     while i != 4 loop
         EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
         i := i + 1;
@@ -1082,14 +1144,20 @@ gen param := ARG2(param, xa, remaining!=0)
 
 gen param := ARG4(param, v32) uses y|a
 {
+    # WARNING: little endian on stack!
     var sid := Pop(REG_V32, 4);
     E_loadconst(REG_Y, 3);
+    var lid := AllocPlabel();
+    E_plabel(lid);
     E_lda();
     E_stackref(sid);
     E(",y\n");
     E_pha();
     E_dey();
-    E("\tbpl *-4\n");
+
+    E_insn("bpl");
+    E_plabelref(lid);
+    E_nl();
 }
 
 gen a := POPARG1(remaining==0);
@@ -1097,11 +1165,11 @@ gen a := POPARG1(remaining==0);
 gen a := POPARG1(remaining!=0)
         { E_pla(); }
 
-// WARNING: big endian!
 gen xa := POPARG2(remaining==0);
 
+// WARNING: big endian on stack!
 gen xa := POPARG2(remaining!=0)
-        { E_pha(); E_tax(); E_pha(); }
+        { E_pla(); E_tax(); E_pla(); }
 
 gen v32 := POPARG4() uses x|y|a
 {
@@ -1591,11 +1659,11 @@ gen BLTS2(xa:lhs, in2_ops:rhs):c
 }
 
 %{
-    sub DoCmpU(node: [Node], insn: string, truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef)
+    sub DoCmpU(insn: string, truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef)
         var rhs := PopOp();
         var lhs := PopOp();
 
-        E_loadconst(REG_Y, 3);
+        E_loadconst(REG_Y, paramwidth-1);
         var lid := AllocPlabel();
         E_plabel(lid);
 
@@ -1617,13 +1685,13 @@ gen BLTS2(xa:lhs, in2_ops:rhs):c
 gen BEQ4(in4_ops, in4_ops):b uses a|x|y
 {
     paramwidth := 4;
-    DoCmpU(self.n[0], "bne", $b.truelabel, $b.falselabel, $b.fallthrough);
+    DoCmpU("bne", $b.truelabel, $b.falselabel, $b.fallthrough);
 }
 
 gen BLTU4(in4_ops, in4_ops):b uses a|x|y
 {
     paramwidth := 4;
-    DoCmpU(self.n[0], "bcc", $b.falselabel, $b.truelabel, $b.fallthrough);
+    DoCmpU("bcc", $b.falselabel, $b.truelabel, $b.fallthrough);
 }
 
 gen BLTS4(in4_ops, in4_ops):b uses a|x|y
@@ -1752,30 +1820,41 @@ gen xa := CAST42(v32)
 // --- Case -----------------------------------------------------------------
 
 gen STARTCASE1(a);
-
 gen STARTCASE2(xa);
-
-gen STARTCASE4(v32)
-{
-    E("\tSTARTCASE4\n");
-}
+gen STARTCASE4(v32);
 
 gen WHENCASE1():c
 {
-    E("\tWHENCASE1\n");
+    E_insn("cmp");
+    E_const($c.value as uint8);
+    E_nl();
+    E_bne($c.falselabel);
 }
 
 gen WHENCASE2():c uses a
 {
-    E("\tWHENCASE2\n");
+    E_insn("cmp");
+    E_const($c.value as uint8);
+    E_nl();
+    E_bne($c.falselabel);
+
+    E_insn("cpx");
+    E_const(($c.value>>8) as uint8);
+    E_nl();
+    E_bne($c.falselabel);
 }
 
 gen WHENCASE4():c uses a
 {
-    E("\tWHENCASE4\n");
+    paramwidth := 4;
+    PushPeekOp(REG_V32, 4);
+    PushConstOp($c.value);
+    DoCmpU("bne", 0, $c.falselabel, 0);
 }
 
-gen ENDCASE();
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4() { varsp := varsp - 4; }
 
 // --- Strings --------------------------------------------------------------
 

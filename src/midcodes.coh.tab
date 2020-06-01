@@ -58,7 +58,7 @@ y 2 1 BLTU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, neg
 
 y 1 0 STARTCASE()
 y 0 0 WHENCASE(value: int32, falselabel: uint16) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label)
-- 0 0 ENDCASE()
+y 0 0 ENDCASE()
 
 # These produce all combinations of source and destination widths.
 y 1 1 CAST1(sext: uint8)

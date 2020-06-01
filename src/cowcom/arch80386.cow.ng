@@ -1066,7 +1066,9 @@ gen WHENCASE4():c
 	E_jne($c.falselabel);
 }
 
-gen ENDCASE();
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4();
 
 // --- Casts ----------------------------------------------------------------
 

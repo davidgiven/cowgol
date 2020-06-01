@@ -25,6 +25,18 @@ sub twoint16(i1: int16, i2: int16)
 end sub;
 twoint16(42, 999);
 
+sub oneint32(i: uint32)
+	print("oneint32: ");
+	if i == 12345678 then yes(); else no(); end if;
+end sub;
+oneint32(12345678);
+
+sub twoint32(i: uint32, j: uint32)
+	print("twoint32: ");
+	if (i == 12345678) and (j == 87654321) then yes(); else no(); end if;
+end sub;
+twoint32(12345678, 87654321);
+
 sub mixed1(i1: int8, i2: int16)
     print("mixed1: ");
     if (i1 == 42) and (i2 == 999) then yes(); else no(); end if;

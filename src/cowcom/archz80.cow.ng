@@ -1882,7 +1882,9 @@ gen WHENCASE4():c uses a
 	case2(($c.value >> 16) as uint16, REG_BC, $c.falselabel);
 }
 
-gen ENDCASE();
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4();
 
 // --- Casts ----------------------------------------------------------------
 

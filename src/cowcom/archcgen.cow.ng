@@ -767,10 +767,10 @@ gen WHENCASE2():c { Whencase($c.value & 0xffff, $c.falselabel); }
 gen WHENCASE4():c { Whencase($c.value & 0xffffffff, $c.falselabel); }
 gen WHENCASE8():c { Whencase($c.value, $c.falselabel); }
 
-gen ENDCASE()
-{
-	varsp := varsp - 1;
-}
+gen ENDCASE1() { varsp := varsp - 1; }
+gen ENDCASE2() { varsp := varsp - 1; }
+gen ENDCASE4() { varsp := varsp - 1; }
+gen ENDCASE8() { varsp := varsp - 1; }
 
 // --- Casts ----------------------------------------------------------------
 

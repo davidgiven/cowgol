@@ -232,7 +232,7 @@ statement ::= startcase whens END CASE SEMICOLON.
 		Generate(MidLabel(current_case.next_label));
 	end if;
 	Generate(MidLabel(current_case.break_label));
-	Generate(MidEndcase());
+	Generate(MidEndcase(current_case.width));
 
 	var c := current_case;
 	current_case := c.old_case;

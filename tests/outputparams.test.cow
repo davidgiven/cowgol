@@ -42,16 +42,18 @@ end sub;
 inout16();
 
 sub multiout()
-	sub func(): (i1: int8, i2: int16)
+	sub func(): (i1: int8, i2: int16, i3: int16)
 		i1 := 42;
 		i2 := 1234;
+		i3 := 4567;
 	end sub;
 
 	var i: int8;
 	var j: int16;
-	(i, j) := func();
+	var k: int16;
+	(i, j, k) := func();
 	print("multiout");
-	if (i == 42) and (j == 1234) then yes(); else no(); end if;
+	if (i == 42) and (j == 1234) and (k == 4567) then yes(); else no(); end if;
 end sub;
 multiout();
 
