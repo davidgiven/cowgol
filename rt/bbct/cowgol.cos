@@ -247,70 +247,6 @@
     ldx `$.1.1
     rts
 
-&X _mul2
-&W _mul2 1 5
-; Multiplies `$.1.0to1 * XA. Returns XA.
-``:
-    sta `$.1.2+0
-    stx `$.1.2+1
-    lda #0
-    sta `$.1.4
-    ldy #$11
-    clc
-``_loop:
-    ror `$.1.4
-    ror
-    ror `$.1.0+1
-    ror `$.1.0+0
-    bcc ``_2
-    clc
-    adc `$.1.2+0
-    pha
-    lda `$.1.2+1
-    adc `$.1.4
-    sta `$.1.4
-    pla
-``_2:
-    dey
-    bne ``_loop
-    lda `$.1.0+0
-    ldx `$.1.0+1
-    rts
-
-&X _divu2
-&W _divu2 1 6
-; Unsigned division of `$.1.0to1 / XA. Result is in XA, remainder in `$.1.4to5.
-``:
-    sta `$.1.2 ; RHS
-    stx `$.1.3
-    lda #0
-    sta `$.1.4 ; remainder
-    sta `$.1.5
-    ldx #16
-``_loop
-    asl `$.1.0 ; LHS
-    rol `$.1.1
-    rol `$.1.4 ; remainder
-    rol `$.1.5
-
-    lda `$.1.4
-    sec
-    sbc `$.1.2 ; RHS
-    tay
-    lda `$.1.5
-    sbc `$.1.3
-    bcc +
-
-    sty `$.1.4
-    sta `$.1.5
-    inc `$.1.0
-+
-    dex
-    bne ``_loop
-    lda `$.1.0
-    ldx `$.1.1
-    rts
-
 &X _mathpad
 &W _mathpad 1 12
 ; This is a simple buffer of 12 bytes used for multiplication and division.
@@ -319,6 +255,146 @@
 ;   +4..7  remainder for division, working space for multiplication
 ;   +8..11 RHS
 
+&S _neglhs
+; Negate the LHS of _mathpad.
+``:
+    ldx #-4
+    sec
+-
+    lda #0
+    sbc @b`$_mathpad.1.0+4, x
+    sta @b`$_mathpad.1.0+4, x
+    inx
+    bne -
+    rts
+
+&S _negrem
+; Negate the remainder part of _mathpad.
+``:
+    ldx #-4
+    sec
+-
+    lda #0
+    sbc @b`$_mathpad.1.4+4, x
+    sta @b`$_mathpad.1.4+4, x
+    inx
+    bne -
+    rts
+
+&S _negrhs
+; Negate the RHS part of _mathpad.
+``:
+    ldx #-4
+    sec
+-
+    lda #0
+    sbc @b`$_mathpad.1.8+4, x
+    sta @b`$_mathpad.1.8+4, x
+    inx
+    bne -
+    rts
+
+&X _mul2
+&W _mul2 1 5
+; Multiplies `$_mathpad.1.0to1 * XA. Returns XA.
+``:
+    sta `$_mathpad.1.2+0
+    stx `$_mathpad.1.2+1
+    lda #0
+    sta `$_mathpad.1.4
+    ldy #$11
+    clc
+``_loop:
+    ror `$_mathpad.1.4
+    ror
+    ror `$_mathpad.1.0+1
+    ror `$_mathpad.1.0+0
+    bcc ``_2
+    clc
+    adc `$_mathpad.1.2+0
+    pha
+    lda `$_mathpad.1.2+1
+    adc `$_mathpad.1.4
+    sta `$_mathpad.1.4
+    pla
+``_2:
+    dey
+    bne ``_loop
+    lda `$_mathpad.1.0+0
+    ldx `$_mathpad.1.0+1
+    rts
+
+&X _divu2
+; Unsigned division of values in _mathpad.
+``:
+    lda #0
+    sta `$_mathpad.1.4 ; remainder
+    sta `$_mathpad.1.5
+    ldx #16
+``_loop
+    asl `$_mathpad.1.0 ; LHS
+    rol `$_mathpad.1.1
+    rol `$_mathpad.1.4 ; remainder
+    rol `$_mathpad.1.5
+
+    lda `$_mathpad.1.4
+    sec
+    sbc `$_mathpad.1.8 ; RHS
+    tay
+    lda `$_mathpad.1.5
+    sbc `$_mathpad.1.9
+    bcc +
+
+    sty `$_mathpad.1.4
+    sta `$_mathpad.1.5
+    inc `$_mathpad.1.0
++
+    dex
+    bne ``_loop
+    rts
+
+&X _divu2r
+; Unsigned division of `$_mathpad.1.0to1 / XA; result is in XA.
+``:
+    sta `$_mathpad.1.8 ; RHS
+    stx `$_mathpad.1.9
+    jsr `_divu2
+    lda `$_mathpad.1.0
+    ldx `$_mathpad.1.1
+    
+&X _divs2r
+; Signed division of `$_mathpad.1.0to1 / XA; result is in XA.
+``:
+    sta `$_mathpad.1.8 ; RHS
+    stx `$_mathpad.1.9
+
+    lda `$_mathpad.1.1  ; high byte of LHS
+    eor `$_mathpad.1.9  ; high byte of RHS
+    php                 ; save sign of result for later
+    lda `$_mathpad.1.1  ; high byte of LHS
+    php                 ; save sign of remainder for later
+    bpl ``_lhs_pos      ; negate LHS if negative
+    jsr `_neglhs
+``_lhs_pos:
+    lda `$_mathpad.1.9  ; get sign of RHS
+    bpl ``_rhs_pos      ; negate RHS if negative
+    jsr `_negrhs
+``_rhs_pos:
+    jsr `_divu2         ; actually do the division
+    plp                 ; get sign of remainder
+    bpl ``_rem_pos      ; invert remainder if required
+    jsr `_negrem
+``_rem_pos:
+    plp                 ; get sign of result
+    bpl ``_res_pos      ; invert result if required
+``_invert_lhs:
+    jsr `_neglhs
+``_res_pos:
+
+    lda `$_mathpad.1.0
+    ldx `$_mathpad.1.1
+    rts
+    
 &X _mul4
 ; Multiplication of values in _mathpad.
 ``:
@@ -405,42 +481,21 @@
     lda `$_mathpad.1.3  ; high byte of LHS
     php                 ; save sign of remainder for later
     bpl ``_lhs_pos      ; negate LHS if negative
-    jsr ``_invert_lhs
+    jsr `_neglhs
 ``_lhs_pos:
     lda `$_mathpad.1.11 ; get sign of RHS
     bpl ``_rhs_pos      ; negate RHS if negative
-    ldx #-4
-    sec
--
-    lda #0
-    sbc @b`$_mathpad.1.8+4, x
-    sta @b`$_mathpad.1.8+4, x
-    inx
-    bne -
+    jsr `_negrhs
 ``_rhs_pos:
     jsr `_divu4         ; actually do the division
     plp                 ; get sign of remainder
     bpl ``_rem_pos      ; invert remainder if required
-    ldx #-4
-    sec
--
-    lda #0
-    sbc @b`$_mathpad.1.4+4, x
-    sta @b`$_mathpad.1.4+4, x
-    inx
-    bne -
+    jsr `_negrem
 ``_rem_pos:
     plp                 ; get sign of result
     bpl ``_res_pos      ; invert result if required
 ``_invert_lhs:
-    ldx #-4
-    sec
--
-    lda #0
-    sbc @b`$_mathpad.1.0+4, x
-    sta @b`$_mathpad.1.0+4, x
-    inx
-    bne -
+    jsr `_neglhs
 ``_res_pos:
     rts
 

@@ -1411,7 +1411,7 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
 %{
     sub MulOrDiv2(name: string)
-        var e := GetHelper(name);
+        var e := GetHelper("_mathpad");
 
         E_sta();
         EmitByte(COO_ESCAPE_WSREF);
@@ -1433,7 +1433,7 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
     sub Rem2(name: string)
         MulOrDiv2(name);
 
-        var e := GetHelper(name);
+        var e := GetHelper("_mathpad");
 
         E_lda();
         EmitByte(COO_ESCAPE_WSREF);
@@ -1448,10 +1448,10 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 %}
 
 gen xa := MUL2(xa, in2_ops) uses y { MulOrDiv2("_mul2"); }
-gen xa := DIVU2(xa, in2_ops) uses y { MulOrDiv2("_divu2"); }
-gen xa := DIVS2(xa, in2_ops) uses y { MulOrDiv2("_divs2"); }
-gen xa := REMU2(xa, in2_ops) uses y { Rem2("_divu2"); }
-gen xa := REMS2(xa, in2_ops) uses y { Rem2("_divs2"); }
+gen xa := DIVU2(xa, in2_ops) uses y { MulOrDiv2("_divu2r"); }
+gen xa := DIVS2(xa, in2_ops) uses y { MulOrDiv2("_divs2r"); }
+gen xa := REMU2(xa, in2_ops) uses y { Rem2("_divu2r"); }
+gen xa := REMS2(xa, in2_ops) uses y { Rem2("_divs2r"); }
 
 // --- 32 bit ---------------------------------------------------------------
 
