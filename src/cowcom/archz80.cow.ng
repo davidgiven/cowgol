@@ -1625,13 +1625,13 @@ gen hlhl := EOR4(dede, hlhl) uses a
 gen hlhl := NOT4(hlhl) uses a
 		{ E_callhelper("_not4"); }
 
-gen hlhl := LSHIFT4(hlhl, b)
+gen hlhl := LSHIFT4(hlhl, a)
         { E_callhelper("_asl4"); }
 
-gen hlhl := RSHIFTU4(hlhl, b)
+gen hlhl := RSHIFTU4(hlhl, a)
         { E_callhelper("_lsr4"); }
 
-gen hlhl := RSHIFTS4(hlhl, b)
+gen hlhl := RSHIFTS4(hlhl, a)
         { E_callhelper("_asr4"); }
 
 // --- Conditionals ---------------------------------------------------------
