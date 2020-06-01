@@ -1583,7 +1583,7 @@ gen v32 := OR4(in4_ops, in4_ops)  uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op
 gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op4("eor"); }
 
 %{
-	sub MulOrDiv4(name: string)
+	sub MulOrDivOrRem4(name: string, resultoffset: uint8)
 		var e := GetHelper(name);
 
 		var dest := PopOp();
@@ -1605,7 +1605,7 @@ gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op
 		E("\tsta ");
 		EmitByte(COO_ESCAPE_WSREF);
 		E_h16(e.id);
-		E("010009, y\n");
+		E("010008, y\n");
 
 		E_dey();
 		E("\tbpl ");
@@ -1622,7 +1622,9 @@ gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op
 		E("\tlda ");
 		EmitByte(COO_ESCAPE_WSREF);
 		E_h16(e.id);
-		E("010000, y\n");
+		E_h8(1);
+		E_h16(resultoffset as uint16);
+		E(", y\n");
 		DoParamIndirect(dest, "sta");
 
 		E_dey();
@@ -1632,11 +1634,11 @@ gen v32 := EOR4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); E_sec(); Do3Op
 	end sub;
 %}
 
-gen v32 := MUL4(in4_ops, in4_ops) { PushPushOp($$, 4); MulOrDiv4("_mul4"); }
-gen v32 := DIVU4(in4_ops, in4_ops) { PushPushOp($$, 4); MulOrDiv4("_divu4"); }
-gen v32 := REMU4(v32, v32) { E_callhelper("_remu4"); }
-gen v32 := DIVS4(in4_ops, in4_ops) { PushPushOp($$, 4); MulOrDiv4("_divs4"); }
-gen v32 := REMS4(v32, v32) { E_callhelper("_rems4"); }
+gen v32 := MUL4(in4_ops, in4_ops)  uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_mul4", 0); }
+gen v32 := DIVU4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divu4", 0); }
+gen v32 := REMU4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divu4", 4); }
+gen v32 := DIVS4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divs4", 0); }
+gen v32 := REMU4(in4_ops, in4_ops) uses a|x|y { PushPushOp($$, 4); MulOrDivOrRem4("_divs4", 4); }
 
 gen v32 := LSHIFT4(v32, y)
 {
