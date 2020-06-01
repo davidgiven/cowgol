@@ -4,7 +4,7 @@ include "tests/_framework.coh";
 
 sub test_uint(value: uint32, base: uint8, result: [uint8])
 	print(result);
-	print(" as uint: ");
+	print(" as uint");
 
 	var buffer: uint8[32];
 	var pe := UIToA(value, base, &buffer[0]);
@@ -17,7 +17,7 @@ end sub;
 
 sub test_int(value: int32, base: uint8, result: [uint8])
 	print(result);
-	print(" as int: ");
+	print(" as int");
 
 	var buffer: uint8[32];
 	var pe := IToA(value, base, &buffer[0]);

@@ -1688,6 +1688,35 @@ gen BLTS2(xa:lhs, in2_ops:rhs):c
             E_jmp(truelabel);
         end if;
     end sub;
+
+    sub DoCmp4LT(node: [Node], sext: uint8)
+        var rhs := PopOp();
+        var lhs := PopOp();
+
+        E_loadconst(REG_X, 4);
+        E_loadconst(REG_Y, 0);
+        E_sec();
+        var lid := AllocPlabel();
+        E_plabel(lid);
+
+        DoParamIndirect(lhs, "lda");
+        DoParamIndirect(rhs, "sbc");
+
+        E_iny();
+        E_dex();
+        E_insn("bne");
+        E_plabelref(lid);
+        E_nl();
+
+        if sext != 0 then
+            E_tay(); # set flags from A
+            E("\tbvc *+4\n");
+            E("\teor #$80\n");
+            E_jumps_bmi_bpl(node);
+        else
+            E_jumps_bcc_bcs(node);
+        end if;
+        end sub;
 %}
 
 gen BEQ4(in4_ops, in4_ops):b uses a|x|y
@@ -1696,37 +1725,8 @@ gen BEQ4(in4_ops, in4_ops):b uses a|x|y
     DoCmpU("bne", $b.truelabel, $b.falselabel, $b.fallthrough);
 }
 
-gen BLTU4(in4_ops, in4_ops):b uses a|x|y
-{
-    paramwidth := 4;
-    DoCmpU("bcc", $b.falselabel, $b.truelabel, $b.fallthrough);
-}
-
-gen BLTS4(in4_ops, in4_ops):b uses a|x|y
-{
-    var rhs := PopOp();
-    var lhs := PopOp();
-
-    E_loadconst(REG_Y, 3);
-    var lid := AllocPlabel();
-    E_plabel(lid);
-
-    E_sec();
-    DoParamIndirect(lhs, "lda");
-    DoParamIndirect(rhs, "sbc");
-    E("\tbvc *+4\n");
-    E("\teor #$80\n");
-    E_jump("bmi", $b.truelabel);
-
-    E_dey();
-    E_insn("bpl");
-    E_plabelref(lid);
-    E_nl();
-
-    if $b.fallthrough != $b.falselabel then
-        E_jmp($b.falselabel);
-    end if;
-}
+gen BLTU4(in4_ops, in4_ops):b uses a|x|y { DoCmp4LT(self.n[0], 0); }
+gen BLTS4(in4_ops, in4_ops):b uses a|x|y { DoCmp4LT(self.n[0], 1); }
 
 // --- Casts ----------------------------------------------------------------
 
