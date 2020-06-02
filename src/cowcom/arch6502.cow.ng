@@ -1221,6 +1221,25 @@ gen a := OR1(a, in1s)  uses y { paramwidth := 1;          DoParamDirect(PopOp(),
 gen a := AND1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "and", 0); }
 gen a := EOR1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "eor", 0); }
 
+%{
+    sub Shift1(insn: string, amount: uint8)
+        while amount != 0 loop
+            E_insn(insn);
+            E_nl();
+            amount := amount - 1;
+        end loop;
+    end sub;
+%}
+
+gen a := LSHIFT1(a, CONSTANT(value<=3):c) { Shift1("asl", $c.value as uint8); }
+gen a := RSHIFTU1(a, CONSTANT(value<=3):c) { Shift1("lsr", $c.value as uint8); }
+
+gen a := RSHIFTS1(a, CONSTANT(value==1))
+{
+    E("\tcmp #$80\n");
+    E("\tror\n");
+}
+
 gen a := LSHIFT1(a, y)  { E_callhelper("_lshift1"); }
 gen a := RSHIFTU1(a, y) { E_callhelper("_rshiftu1"); }
 gen a := RSHIFTS1(a, y) { E_callhelper("_rshifts1"); }
@@ -1400,6 +1419,14 @@ gen xa := SUB2(xa, in2s:rhs) uses y { E_sec(); DoXA("sbc"); }
 gen xa := AND2(xa, in2s:rhs) uses y {          DoXA("and"); }
 gen xa := OR2(xa, in2s:rhs)  uses y {          DoXA("ora"); }
 gen xa := EOR2(xa, in2s:rhs) uses y {          DoXA("eor"); }
+
+gen xa := LSHIFT2(CAST12(a, sext==0), CONSTANT(value==1))
+{
+    E_loadconst(REG_X, 0);
+    E("\tasl\n");
+    E("\tbcc *+4\n");
+    E("\tinx\n");
+}
 
 gen xa := LSHIFT2(xa, y) { E_callhelper("_lshift2"); }
 gen xa := RSHIFTU2(xa, y) { E_callhelper("_rshiftu2"); }
