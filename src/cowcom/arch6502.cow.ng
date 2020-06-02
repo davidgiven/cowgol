@@ -1184,20 +1184,18 @@ gen a := LOAD1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
     DoParamIndirect(src, "lda");
 }
 
-//gen a := LOAD1(ADD2(ADDRESS():a, CAST12(a, sext==0))) uses x
-//{
-//    E_tax();
-//    E_lda();
-//    E_symref($a.sym, $a.off);
-//    E(",x\n");
-//}
+gen a := LOAD1(ADD2(ADDRESS():a, CAST12(x, sext==0)))
+{
+    E_lda();
+    E_symref($a.sym, $a.off);
+    E(",x\n");
+}
 
-//gen a := LOAD1(ADD2(p16, CAST12(a, sext==0))) uses y
-//{
-//    var src := PopAndDerefOp();
-//    E_tay();
-//    DoParamIndirect(src, "lda");
-//}
+gen a := LOAD1(ADD2(ptrs, CAST12(y, sext==0)))
+{
+    var src := PopAndDerefOp();
+    DoParamIndirect(src, "lda");
+}
 
 gen a := LOAD1(ptrs) uses y
 {
