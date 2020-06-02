@@ -128,10 +128,35 @@ sub test_inherited_records()
 	print("right.c == 2"); if right.c == 2 then yes(); else no(); end if;
 end sub;
 
+sub test_int32_access()
+	record Record
+		padding: uint8[10];
+		a: uint32;
+	end record;
+
+	var r: Record;
+
+	print("r.a==12345678");
+	r.a := 12345678;
+	if r.a == 12345678 then yes(); else no(); end if;
+
+	var p := &r;
+	print("p.a==12345678");
+	if p.a == 12345678 then yes(); else no(); end if;
+
+	p.a := 87654321;
+	print("p.a==87654321");
+	if p.a == 87654321 then yes(); else no(); end if;
+
+	print("r.a==87654321");
+	if r.a == 87654321 then yes(); else no(); end if;
+end sub;
+
 test_simple_record();
 test_nested_record();
 test_pointer();
 test_with_array();
 test_chain_pointer();
 test_inherited_records();
+test_int32_access();
 

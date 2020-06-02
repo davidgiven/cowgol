@@ -1135,7 +1135,7 @@ gen a|x|y := CONSTANT():c
     E_loadconst($$, $c.value as uint8);
 }
 
-gen STORE1(a:lhs, p16) uses y
+gen STORE1(a:lhs, ptrs) uses y
 {
     var op := PopAndDerefOp();
 
@@ -1149,6 +1149,13 @@ gen STORE1(a|x|y:lhs, ADDRESS():a)
     E_symref($a.sym, $a.off);
     E_nl();
     RegCacheLeavesValue($lhs, $a.sym, $a.off);
+}
+
+gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
+{
+    var dest := PopAndDerefOp();
+    E_loadconst(REG_Y, $c.value as uint8);
+    DoParamIndirect(dest, "sta");
 }
 
 gen a|x|y := LOAD1(ADDRESS():a)
@@ -1170,7 +1177,29 @@ gen a := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) uses y
     E_nl();
 }
 
-gen a := LOAD1(p16) uses y
+gen a := LOAD1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
+{
+    var src := PopAndDerefOp();
+    E_loadconst(REG_Y, $c.value as uint8);
+    DoParamIndirect(src, "lda");
+}
+
+//gen a := LOAD1(ADD2(ADDRESS():a, CAST12(a, sext==0))) uses x
+//{
+//    E_tax();
+//    E_lda();
+//    E_symref($a.sym, $a.off);
+//    E(",x\n");
+//}
+
+//gen a := LOAD1(ADD2(p16, CAST12(a, sext==0))) uses y
+//{
+//    var src := PopAndDerefOp();
+//    E_tay();
+//    DoParamIndirect(src, "lda");
+//}
+
+gen a := LOAD1(ptrs) uses y
 {
     var op := PopAndDerefOp();
 
@@ -1243,7 +1272,7 @@ gen xa := LOAD2(ADDRESS():a)
     RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
 }
 
-gen xa := LOAD2(p16)
+gen xa := LOAD2(ptrs)
 {
     var ptr := PopAndDerefOp();
 
@@ -1254,6 +1283,17 @@ gen xa := LOAD2(p16)
     DoParamIndirect(ptr, "lda");
 
     RegCacheLeavesConstant(REG_Y, 0);
+}
+
+gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
+{
+    var src := PopAndDerefOp();
+
+    E_loadconst(REG_Y, ($c.value as uint8)+1);
+    DoParamIndirect(src, "lda");
+    E_tax();
+    E_dey();
+    DoParamIndirect(src, "lda");
 }
 
 gen xa := CONSTANT():c
@@ -1283,7 +1323,7 @@ gen STORE2(xa, ADDRESS():a)
     RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
 }
 
-gen STORE2(xa, p16)
+gen STORE2(xa, ptrs) uses y
 {
     var op := PopAndDerefOp();
 
@@ -1294,6 +1334,17 @@ gen STORE2(xa, p16)
     DoParamIndirect(op, "sta");
 
     RegCacheLeavesConstant(REG_Y, 1);
+}
+
+gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
+{
+    var dest := PopAndDerefOp();
+
+    E_loadconst(REG_Y, $c.value as uint8);
+    DoParamIndirect(dest, "sta");
+    E_txa();
+    E_iny();
+    DoParamIndirect(dest, "sta");
 }
 
 %{

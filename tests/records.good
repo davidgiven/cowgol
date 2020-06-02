@@ -22,3 +22,7 @@ left.a == 1: yes
 left.b == 2: yes
 right.a == 1: yes
 right.c == 2: yes
+r.a==12345678: yes
+p.a==12345678: yes
+p.a==87654321: yes
+r.a==87654321: yes

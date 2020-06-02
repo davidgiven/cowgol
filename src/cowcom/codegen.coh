@@ -285,7 +285,6 @@ sub Generate(rootnode: [Node])
 
 	var old_next_node := next_node;
 	PushNode(rootnode);
-	rootnode.dlink := 0 as [Node]; # the root node has no parent
 	while next_node != old_next_node loop
 		if next_instruction == &instructions[@sizeof instructions] then
 			PrintNodes(rootnode);
@@ -367,10 +366,14 @@ sub Generate(rootnode: [Node])
 
 			if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
 				# We've reached the end of the list of rules without matching anything.
-				if (node.op != MIDCODE_FALLBACK) and (node.dlink != (0 as [Node])) then
+				if (node.op != MIDCODE_FALLBACK) and (node.consumer != (0 as [Instruction])) then
 					sub ConvertNodeToFallback()
 						# Wrap this node in a FALLBACK instruction, in the hope that it'll
 						# convert from whatever wanted it to the right thing.
+						# BIG WARNING: we can't actually splice the node into the tree, so
+						# instead it's a stray node pointing into the tree. When we discard
+						# the tree all the fallback nodes will be left abandonded with
+						# pointers into hyperspace.
 						var oldnode := node;
 						node := MidFallback(oldnode);
 
@@ -378,19 +381,12 @@ sub Generate(rootnode: [Node])
 
 						# Patch the parent to point at the new node.
 
-						node.dlink := oldnode; # points to the node parent
-						if oldnode.dlink.left == oldnode then
-							oldnode.dlink.left := node;
-						elseif oldnode.dlink.right == oldnode then
-							oldnode.dlink.right := node;
-						else
-							SimpleError("invalid tree");
-						end if;
+						var parent := node.consumer.n[0];
 						node.desired_reg := oldnode.desired_reg;
 
 						# Patch the parent's producer to point at the new node.
 
-						var insn := oldnode.dlink.producer;
+						var insn := parent.producer;
 						var i: uint8 := 0;
 						while i != INSTRUCTION_TEMPLATE_DEPTH loop
 							if insn.n[i] == oldnode then
@@ -476,10 +472,6 @@ sub Generate(rootnode: [Node])
 					n.desired_reg := [regsptr];
 					regsptr := @next regsptr;
 					n.consumer := producer;
-
-					# This lets the instruction selector know what the parent
-					# node is, which is needed for tree rewriting.
-					n.dlink := node;
 				end if;
 			end if;
 			copymask := copymask >> 1;
@@ -668,6 +660,14 @@ sub Generate(rootnode: [Node])
 		EmitOneInstruction(next_instruction.ruleid, next_instruction);
 		ShuffleRegisters(&next_instruction.spills[0]);
 		ArchEndInstruction();
+
+		# If the root node of this instruction is a fallback node, it's
+		# not part of the tree and won't be discarded with the tree.
+		# Clean them up manually here.
+
+		if next_instruction.n[0].op == MIDCODE_FALLBACK then
+			Free(next_instruction.n[0] as [uint8]);
+		end if;
 	end loop;
 	ArchEndGroup();
 
