@@ -57,7 +57,7 @@ sub fcb_i_gbpb(fcb: [FCB], a: uint8)
 	@asm "lda", a;
 	@asm "ldx #<", fcb;
 	@asm "ldy #>", fcb;
-	@asm "jsr 0xffd1"; # OSGBPB
+	@asm "jsr $ffd1"; # OSGBPB
 end sub;
 
 sub fcb_i_blockin(fcb: [FCB])

@@ -14,6 +14,7 @@
 
     var varsp: uint8 := 0;
     var ptrsp: uint8 := 0;
+    var inasm: uint8 := 0;
 
     record Extern
         name: string;
@@ -476,9 +477,6 @@
     sub ArchEndInstruction()
     end sub;
 
-    sub ArchEndGroup()
-    end sub;
-
     sub is_ptr(sym: [Symbol]): (result: uint8)
         result := IsPtr(sym.vardata.type);
     end sub;
@@ -492,7 +490,7 @@ register v16; // value on fake stack
 register p16; // pointer on fake stack
 register v32; // value on fake stack;
 register const address;
-register mem1 mem2 mem4;
+register mem1 mem2 mem2p mem4;
 register memi1 memi2 memi4;
 register stacki1 stacki2 stacki4;
 register param;
@@ -502,7 +500,7 @@ regclass a16 := v16|p16;
 regclass in1s := const|mem1|memi1|stacki1|v8;
 regclass in2s := const|address|mem2|memi2|stacki2|a16;
 regclass in4s := const|mem4|memi4|stacki4|v32;
-regclass ptrs := mem2|address|p16;
+regclass ptrs := mem2p|address|p16;
 regclass derefs := memi1|memi2|memi4|stacki1|stacki2|stacki4;
 
 regdata a           uses xa|a compatible a|x|y;
@@ -517,6 +515,7 @@ regdata param stacked;
 regdata const stacked;
 regdata mem1 stacked;
 regdata mem2 stacked;
+regdata mem2p stacked;
 regdata mem4 stacked;
 regdata memi1 stacked;
 regdata memi2 stacked;
@@ -553,16 +552,24 @@ gen JUMP():j
     const MODE_STACK := 4;
     const MODE_STACKI := 5;
 
+    record StackOp
+        sid: uint16;
+        wsid: uint8;
+        width: uint8;
+    end record;
+
     record Operand
-        sid @at(0): uint16;
+        stk @at(0): StackOp;
         off @at(0): Size;
         val @at(0): Arith;
         sym: [Symbol];
         mode: uint8;
+        next: [Operand];
     end record;
 
-    const OPERAND_STACK_SIZE := 128;
-    var opstack: Operand[OPERAND_STACK_SIZE];
+    const OPERAND_STACK_SIZE := 32;
+    var opstack: [Operand][OPERAND_STACK_SIZE];
+    var first_operand: [Operand] := 0 as [Operand];
     var opsp: uint8 := 0;
     var paramwidth: uint8;
 
@@ -578,36 +585,45 @@ gen JUMP():j
         end if;
     end sub;
 
+    sub CleanupOperands()
+        while first_operand != (0 as [Operand]) loop
+            var n := first_operand.next;
+            Free(first_operand as [uint8]);
+            first_operand := n;
+        end loop;
+    end sub;
+
     sub PushOp(): (op: [Operand])
         if opsp == OPERAND_STACK_SIZE then
             SimpleError("opstack overflow");
         end if;
-        op := &opstack[opsp];
+        op := Alloc(@bytesof Operand) as [Operand];
+        opstack[opsp] := op;
         opsp := opsp + 1;
     end sub;
 
-    sub PushConstOp(value: Arith)
-        var op := PushOp();
+    sub PushConstOp(value: Arith): (op: [Operand])
+        op := PushOp();
         op.mode := MODE_CONST;
         op.val := value;
     end sub;
         
-    sub PushAddressOp(sym: [Symbol], off: Size)
-        var op := PushOp();
+    sub PushAddressOp(sym: [Symbol], off: Size): (op: [Operand])
+        op := PushOp();
         op.mode := MODE_ADDRESS;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushSymOp(sym: [Symbol], off: Size)
-        var op := PushOp();
+    sub PushSymOp(sym: [Symbol], off: Size): (op: [Operand])
+        op := PushOp();
         op.mode := MODE_SYMBOL;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushSymIOp(sym: [Symbol], off: Size)
-        var op := PushOp();
+    sub PushSymIOp(sym: [Symbol], off: Size): (op: [Operand])
+        op := PushOp();
         op.mode := MODE_SYMBOLI;
         op.sym := sym;
         op.off := off;
@@ -629,25 +645,18 @@ gen JUMP():j
         end if;
     end sub;
 
-    sub PushPushOp(reg: RegId, width: uint8): (sid: uint16)
-        var op := PushOp();
+    sub PushStackOp(reg: RegId, width: uint8): (op: [Operand])
+        op := PushOp();
         op.mode := MODE_STACK;
-        sid := FakeStackPush(reg, width);
-        op.sid := sid;
-    end sub;
-        
-    sub PushPushIOp(reg: RegId, width: uint8)
-        var op := PushOp();
-        op.mode := MODE_STACKI;
-        op.sid := FakeStackPush(reg, width);
-    end sub;
-        
-    sub PushSidOp(sid: uint16)
-        var op := PushOp();
-        op.mode := MODE_STACK;
-        op.sid := sid;
+        op.stk.sid := FakeStackPush(reg, width);
+        op.stk.wsid := (op.stk.sid >> 8) as uint8;
+        op.stk.width := width;
     end sub;
 
+    sub PushV32(): (op: [Operand])
+        op := PushStackOp(REG_V32, 4);
+    end sub;
+        
     sub FakeStackPop(reg: RegId, width: uint8): (sid: uint16)
         if (reg & REG_P16) != 0 then
             ptrsp := ptrsp - width;
@@ -658,18 +667,6 @@ gen JUMP():j
         end if;
     end sub;
 
-    sub PushPopOp(reg: RegId, width: uint8)
-        var op := PushOp();
-        op.mode := MODE_STACK;
-        op.sid := FakeStackPop(reg, width);
-    end sub;
-        
-    sub PushPopIOp(reg: RegId, width: uint8)
-        var op := PushOp();
-        op.mode := MODE_STACKI;
-        op.sid := FakeStackPop(reg, width);
-    end sub;
-        
     sub FakeStackPeek(reg: RegId, width: uint8): (sid: uint16)
         if (reg & REG_P16) != 0 then
             sid := (PTRSTACK_WS<<8) | ((ptrsp-width) as uint16);
@@ -678,25 +675,29 @@ gen JUMP():j
         end if;
     end sub;
 
-    sub PushPeekOp(reg: RegId, width: uint8)
-        var op := PushOp();
-        op.mode := MODE_STACK;
-        op.sid := FakeStackPeek(reg, width);
-    end sub;
-        
     sub PopOp(): (op: [Operand])
         if opsp == 0 then
             SimpleError("opstack underflow");
         end if;
         opsp := opsp - 1;
-        op := &opstack[opsp];
+        op := opstack[opsp];
+
+        if (op.mode == MODE_STACK) or (op.mode == MODE_STACKI) then
+            case op.stk.wsid is
+                when PTRSTACK_WS:
+                    ptrsp := ptrsp - op.stk.width;
+
+                when VARSTACK_WS:
+                    varsp := varsp - op.stk.width;
+            end case;
+        end if;
     end sub;
 
     sub PeekOp(): (op: [Operand])
         if opsp == 0 then
             SimpleError("opstack underflow");
         end if;
-        op := &opstack[opsp-1];
+        op := opstack[opsp-1];
     end sub;
 
     sub DerefOp(op: [Operand])
@@ -708,6 +709,11 @@ gen JUMP():j
         end case;
     end sub;
 
+    sub PopAndDerefOp(): (op: [Operand])
+        op := PopOp();
+        DerefOp(op);
+    end sub;
+
     sub DoParamIndirect(operand: [Operand], insn: string)
         E_insn(insn);
         case operand.mode is
@@ -715,11 +721,11 @@ gen JUMP():j
                 E_plabelref(AllocConst(operand.val));
 
             when MODE_STACK:
-                E_stackref(operand.sid);
+                E_stackref(operand.stk.sid);
 
             when MODE_STACKI:
                 EmitByte('(');
-                E_stackref(operand.sid);
+                E_stackref(operand.stk.sid);
                 EmitByte(')');
 
             when MODE_SYMBOL:
@@ -758,11 +764,11 @@ gen JUMP():j
                 E_symref(operand.sym, operand.off);
 
             when MODE_STACK:
-                E_stackref(operand.sid + (offset as uint16));
+                E_stackref(operand.stk.sid + (offset as uint16));
 
             when MODE_STACKI:
                 EmitByte('(');
-                E_stackref(operand.sid);
+                E_stackref(operand.stk.sid);
                 E("),y");
 
             when MODE_SYMBOL:
@@ -777,28 +783,6 @@ gen JUMP():j
                 print_i8(operand.mode);
                 EndError();
         end case;
-        E_nl();
-    end sub;
-
-    sub Do3Op4(insn: string)
-        var dest := PopOp();
-        var rhs := PopOp();
-        var lhs := PopOp();
-
-        paramwidth := 4;
-        E_loadconst(REG_Y, 0);
-        E_loadconst(REG_X, paramwidth);
-        var lid := AllocPlabel();
-        E_plabel(lid);
-
-        DoParamIndirect(lhs, "lda");
-        DoParamIndirect(rhs, insn);
-        DoParamIndirect(dest, "sta");
-
-        E_iny();
-        E_dex();
-        E("\tbne ");
-        E_plabelref(lid);
         E_nl();
     end sub;
 
@@ -853,19 +837,54 @@ gen JUMP():j
         EndError();
     end sub;
 
+    var cases: uint8 := 0;
+    sub ArchEndGroup()
+        # The opstack should be empty at the end of every statement. If it's
+        # not, then that means we've leaked an op somewhere. (Unless we're in
+        # a case...)
+        if cases == 0 then
+            if opsp != 0 then
+                StartError();
+                print("opstack has ");
+                print_i8(opsp);
+                print(" left after statement");
+                EndError();
+            end if;
+            if varsp != 0 then
+                StartError();
+                print("varstack has ");
+                print_i8(varsp);
+                print(" left after statement");
+                EndError();
+            end if;
+            if ptrsp != 0 then
+                StartError();
+                print("ptrstack has ");
+                print_i8(ptrsp);
+                print(" left after statement");
+                EndError();
+            end if;
+        end if;
+        if inasm == 0 then
+            E_nl();
+        end if;
+
+        CleanupOperands();
+    end sub;
 %}
 
-gen const := CONSTANT():c                        { PushConstOp($c.value); }
-gen address := ADDRESS():a                       { PushAddressOp($a.sym, $a.off); }
-gen mem1 := LOAD1(ADDRESS():a)                   { PushSymOp($a.sym, $a.off); }
-gen mem2 := LOAD2(ADDRESS():a)                   { PushSymOp($a.sym, $a.off); }
-gen mem4 := LOAD4(ADDRESS():a)                   { PushSymOp($a.sym, $a.off); }
-gen memi1 := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) { PushSymIOp($a.sym, $a.off); }
-gen memi2 := LOAD2(LOAD2(ADDRESS(sym is ptr):a)) { PushSymIOp($a.sym, $a.off); }
-gen memi4 := LOAD4(LOAD2(ADDRESS(sym is ptr):a)) { PushSymIOp($a.sym, $a.off); }
-gen stacki1 := LOAD1(p16)                        { PushPopIOp(REG_P16, 2); }
-gen stacki2 := LOAD2(p16)                        { PushPopIOp(REG_P16, 2); }
-gen stacki4 := LOAD4(p16)                        { PushPopIOp(REG_P16, 2); }
+gen const := CONSTANT():c                        { E("\t; const\n"); var op := PushConstOp($c.value); }
+gen address := ADDRESS():a                       { E("\t; address\n"); var op := PushAddressOp($a.sym, $a.off); }
+gen mem1 := LOAD1(ADDRESS():a)                   { E("\t; mem1\n"); var op := PushSymOp($a.sym, $a.off); }
+gen mem2 := LOAD2(ADDRESS():a)                   { E("\t; mem2\n"); var op := PushSymOp($a.sym, $a.off); }
+gen mem2p := LOAD2(ADDRESS(sym is ptr):a)        { E("\t; mem2p\n"); var op := PushSymOp($a.sym, $a.off); }
+gen mem4 := LOAD4(ADDRESS():a)                   { E("\t; mem4\n"); var op := PushSymOp($a.sym, $a.off); }
+gen memi1 := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) { E("\t; memi1\n"); var op := PushSymIOp($a.sym, $a.off); }
+gen memi2 := LOAD2(LOAD2(ADDRESS(sym is ptr):a)) { E("\t; memi2\n"); var op := PushSymIOp($a.sym, $a.off); }
+gen memi4 := LOAD4(LOAD2(ADDRESS(sym is ptr):a)) { E("\t; memi4\n"); var op := PushSymIOp($a.sym, $a.off); }
+gen stacki1 := LOAD1(p16)                        { E("\t; stacki1\n"); var op := PeekOp(); op.mode := MODE_STACKI; }
+gen stacki2 := LOAD2(p16)                        { E("\t; stacki2\n"); var op := PeekOp(); op.mode := MODE_STACKI; }
+gen stacki4 := LOAD4(p16)                        { E("\t; stacki4\n"); var op := PeekOp(); op.mode := MODE_STACKI; }
 
 // --- Subroutines ----------------------------------------------------------
 
@@ -1044,14 +1063,14 @@ gen xa := CALLE2(param):s uses y
 
 %{
     sub PopArg4()
-        var sid := PushPushOp(REG_V32, 4);
+        var op := PushV32();
         E_loadconst(REG_Y, 3);
         var lid := AllocPlabel();
         E_plabel(lid);
 
         E_pla();
         E_st(REG_A);
-        E_stackref(sid);
+        E_stackref(op.stk.sid);
         E(",y\n");
         E_dey();
 
@@ -1063,6 +1082,7 @@ gen xa := CALLE2(param):s uses y
 
 gen v32 := CALLE4(param):s uses x|y|a
 {
+    E("\t; calle4\n");
     E_call($s.subr);
     PopArg4();
 }
@@ -1076,14 +1096,14 @@ gen param := ARG2(param, xa, remaining!=0) { E_pha(); E_txa(); E_pha(); } // big
 
 gen param := ARG4(param, in4s) uses y|a
 {
-    var lhs := PopOp();
+    var op := PopOp();
 
     # WARNING: little endian on stack!
     E_loadconst(REG_Y, 3);
     var lid := AllocPlabel();
     E_plabel(lid);
 
-    DoParamIndirect(lhs, "lda");
+    DoParamIndirect(op, "lda");
     E_pha();
     E_dey();
 
@@ -1096,15 +1116,15 @@ gen a := POPARG1(remaining==0);
 gen a := POPARG1(remaining!=0) { E_pla(); } 
 gen xa := POPARG2(remaining==0);
 gen xa := POPARG2(remaining!=0) { E_pla(); E_tax(); E_pla(); } // big endian on stack
-gen v32 := POPARG4() uses x|y|a { PopArg4(); }
+gen v32 := POPARG4() uses x|y|a { E("\t; poparg4\n"); PopArg4(); }
 
 // --- 8-bit -----------------------------------------------------------------
 
 gen v8 := FALLBACK(a|x|y:rhs)
 {
-    var sid := PushPushOp($$, 1);
+    var op := PushStackOp($$, 1);
     E_st($rhs);
-    E_stackref(sid);
+    E_stackref(op.stk.sid);
     E_nl();
 }
 
@@ -1122,8 +1142,7 @@ gen a|x|y := CONSTANT():c
 
 gen STORE1(a:lhs, p16) uses y
 {
-    var op := PopOp();
-    DerefOp(op);
+    var op := PopAndDerefOp();
 
     E_loadconst(REG_Y, 0);
     DoParamIndirect(op, "sta");
@@ -1158,8 +1177,7 @@ gen a := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) uses y
 
 gen a := LOAD1(p16) uses y
 {
-    var op := PopOp();
-    DerefOp(op);
+    var op := PopAndDerefOp();
 
     E_loadconst(REG_Y, 0);
     DoParamIndirect(op, "lda");
@@ -1195,18 +1213,20 @@ gen x := REMS1(a, x) uses y { E_callhelper("_divs1"); }
 
 gen a16 := FALLBACK(xa)
 {
-    var sid := PushPushOp($$, 2);
+    E("\t; fallback a16\n");
+    var op := PushStackOp($$, 2);
     E_sta();
-    E_stackref(sid);
+    E_stackref(op.stk.sid);
     E_nl();
 
     E_stx();
-    E_stackref(sid+1);
+    E_stackref(op.stk.sid+1);
     E_nl();
 }
 
 gen xa := FALLBACK(a16) uses y
 {
+    E("\t; fallback a16\n");
     var op := PopOp();
     paramwidth := 2;
     DoParamDirect(op, "lda", 0);
@@ -1230,8 +1250,7 @@ gen xa := LOAD2(ADDRESS():a)
 
 gen xa := LOAD2(p16)
 {
-    var ptr := PopOp();
-    DerefOp(ptr);
+    var ptr := PopAndDerefOp();
 
     E_loadconst(REG_Y, 1);
     DoParamIndirect(ptr, "lda");
@@ -1271,8 +1290,7 @@ gen STORE2(xa, ADDRESS():a)
 
 gen STORE2(xa, p16)
 {
-    var op := PopOp();
-    DerefOp(op);
+    var op := PopAndDerefOp();
 
     E_loadconst(REG_Y, 0);
     DoParamIndirect(op, "sta");
@@ -1345,6 +1363,10 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
 %{
     sub MulOrDiv2(name: string)
+        E("\t; ");
+        E(name);
+        E_nl();
+
         var e := GetHelper("_mathpad");
 
         E_sta();
@@ -1390,10 +1412,8 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
 // --- 32 bit ---------------------------------------------------------------
 
 %{
-    sub DoCopy4()
-        var dest := PopOp();
-        var lhs := PopOp();
-
+    sub DoCopy4(dest: [Operand], lhs: [Operand])
+        E("\t; copy4\n");
         E_loadconst(REG_Y, 3);
         var lid := AllocPlabel();
         E_plabel(lid);
@@ -1408,16 +1428,12 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
     end sub;
 %}
 
-gen STORE4(in4s, ptrs) uses a|x|y { DerefOp(PeekOp()); DoCopy4(); }
-gen v32 := LOAD4(ptrs) uses a|x|y { DerefOp(PeekOp()); var sid := PushPushOp($$, 4); DoCopy4(); PushSidOp(sid); }
-gen v32 := CONSTANT():c uses a|x  { PushConstOp($c.value); var sid := PushPushOp($$, 4); DoCopy4(); PushSidOp(sid); }
+gen STORE4(in4s, ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); DoCopy4(dest, lhs); }
+gen v32 := LOAD4(ptrs) uses a|x|y { E("\t; load v32\n"); var lhs := PopAndDerefOp(); var dest := PushV32(); DoCopy4(dest, lhs); }
+//gen v32 := CONSTANT():c uses a|x  { var dest := PushV32(); var lhs := PushConstOp($c.value); DoCopy4(PopOp(), dest); }
 
 %{
-    sub Do2Op4_not()
-        E("\t; do2op4 not\n");
-        var dest := PopOp();
-        var lhs := PopOp();
-
+    sub Do2Op4_not(lhs: [Operand], dest: [Operand])
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
         var lid := AllocPlabel();
@@ -1433,11 +1449,7 @@ gen v32 := CONSTANT():c uses a|x  { PushConstOp($c.value); var sid := PushPushOp
         E_nl();
     end sub;
 
-    sub Do2Op4_neg()
-        E("\t; do2op4 neg\n");
-        var dest := PopOp();
-        var lhs := PopOp();
-
+    sub Do2Op4_neg(lhs: [Operand], dest: [Operand])
         paramwidth := 4;
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
@@ -1457,22 +1469,42 @@ gen v32 := CONSTANT():c uses a|x  { PushConstOp($c.value); var sid := PushPushOp
     end sub;
 %}
 
-gen v32 := NEG4(in4s) uses a|x|y          { var sid := PushPushOp($$, 4); Do2Op4_neg(); PushSidOp(sid); }
-gen v32 := NOT4(in4s) uses a|x|y          { var sid := PushPushOp($$, 4); Do2Op4_not(); PushSidOp(sid); }
-
-gen v32 := ADD4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); E_clc(); Do3Op4("adc"); PushSidOp(sid); }
-gen v32 := SUB4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); E_sec(); Do3Op4("sbc"); PushSidOp(sid); }
-gen v32 := AND4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); E_sec(); Do3Op4("and"); PushSidOp(sid); }
-gen v32 := OR4(in4s, in4s)  uses a|x|y { var sid := PushPushOp($$, 4); E_sec(); Do3Op4("ora"); PushSidOp(sid); }
-gen v32 := EOR4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); E_sec(); Do3Op4("eor"); PushSidOp(sid); }
+gen v32 := NEG4(in4s) uses a|x|y { var lhs := PopOp(); var dest := PushV32(); Do2Op4_neg(lhs, dest); }
+gen v32 := NOT4(in4s) uses a|x|y { var lhs := PopOp(); var dest := PushV32(); Do2Op4_not(lhs, dest); }
 
 %{
-    sub MulOrDivOrRem4(name: string, resultoffset: uint8)
-        var e := GetHelper("_mathpad");
+    sub Do3Op4(insn: string, lhs: [Operand], rhs: [Operand], dest: [Operand])
+        E("\t; ");
+        E(insn);
+        E_nl();
 
-        var dest := PopOp();
-        var rhs := PopOp();
-        var lhs := PopOp();
+        paramwidth := 4;
+        E_loadconst(REG_Y, 0);
+        E_loadconst(REG_X, paramwidth);
+        var lid := AllocPlabel();
+        E_plabel(lid);
+
+        DoParamIndirect(lhs, "lda");
+        DoParamIndirect(rhs, insn);
+        DoParamIndirect(dest, "sta");
+
+        E_iny();
+        E_dex();
+        E("\tbne ");
+        E_plabelref(lid);
+        E_nl();
+    end sub;
+%}
+
+gen v32 := ADD4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32(); E_clc(); Do3Op4("adc", lhs, rhs, dest); }
+gen v32 := SUB4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32(); E_sec(); Do3Op4("sbc", lhs, rhs, dest); }
+gen v32 := AND4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4("and", lhs, rhs, dest); }
+gen v32 := OR4(in4s, in4s)  uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4("ora", lhs, rhs, dest); }
+gen v32 := EOR4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4("eor", lhs, rhs, dest); }
+
+%{
+    sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand])
+        var e := GetHelper("_mathpad");
 
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
@@ -1516,37 +1548,44 @@ gen v32 := EOR4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); E_sec(); 
         E_plabelref(lid);
         E_nl();
     end sub;
+
+    sub MulOrDivOrRem4ToV32(name: string, resultoffset: uint8)
+        var rhs := PopOp();
+        var lhs := PopOp();
+        var dest := PushV32();
+        E("\t; lm=");
+        E_u8(lhs.mode);
+        E(" rm=");
+        E_u8(rhs.mode);
+        E(" dm=");
+        E_u8(dest.mode);
+        E_nl();
+        MulOrDivOrRem4(name, resultoffset, lhs, rhs, dest);
+    end sub;
 %}
 
-gen v32 := MUL4(in4s, in4s)  uses a|x|y { var sid := PushPushOp($$, 4); MulOrDivOrRem4("_mul4", 0); PushSidOp(sid); }
-gen v32 := DIVU4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); MulOrDivOrRem4("_divu4", 0); PushSidOp(sid); }
-gen v32 := REMU4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); MulOrDivOrRem4("_divu4", 4); PushSidOp(sid); }
-gen v32 := DIVS4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); MulOrDivOrRem4("_divs4", 0); PushSidOp(sid); }
-gen v32 := REMS4(in4s, in4s) uses a|x|y { var sid := PushPushOp($$, 4); MulOrDivOrRem4("_divs4", 4); PushSidOp(sid); }
+gen v32 := MUL4(in4s, in4s)  uses a|x|y { MulOrDivOrRem4ToV32("_mul4", 0); }
+gen v32 := DIVU4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divu4", 0); }
+gen v32 := REMU4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divu4", 4); }
+gen v32 := DIVS4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divs4", 0); }
+gen v32 := REMS4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divs4", 4); }
 
-gen v32 := LSHIFT4(v32, y)
-{
-    var op := PopOp();
-    E_loadstackref(op.sid);
-    E_callhelper("_lshift4");
-    PushSidOp(op.sid);
-}
+%{
+    sub Shift4(helper: string)
+        E("\t; shift4 ");
+        E(helper);
+        E_nl();
 
-gen v32 := RSHIFTU4(v32, y)
-{
-    var op := PopOp();
-    E_loadstackref(op.sid);
-    E_callhelper("_rshiftu4");
-    PushSidOp(op.sid);
-}
+        var lhs := PopOp();
+        var dest := PushV32();
+        E_loadstackref(lhs.stk.sid);
+        E_callhelper(helper);
+    end sub;
+%}
 
-gen v32 := RSHIFTS4(v32, y)
-{
-    var op := PopOp();
-    E_loadstackref(op.sid);
-    E_callhelper("_rshifts4");
-    PushSidOp(op.sid);
-}
+gen v32 := LSHIFT4(v32, y) { Shift4("_lshift4"); }
+gen v32 := RSHIFTU4(v32, y) { Shift4("_rshiftu4"); }
+gen v32 := RSHIFTS4(v32, y) { Shift4("_rshifts4"); }
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -1706,7 +1745,9 @@ gen xa := CAST12(a):c uses y
 
 gen v32 := CAST14(a):c
 {
-    var sid := PushPushOp(REG_V32, 4);
+    E("\t; cast14\n");
+    var dest := PushV32();
+    var sid := dest.stk.sid;
 
     E_st(REG_A);
     E_stackref(sid);
@@ -1733,7 +1774,9 @@ gen v32 := CAST14(a):c
 
 gen v32 := CAST24(xa):c
 {
-    var sid := PushPushOp(REG_V32, 4);
+    E("\t; cast24\n");
+    var dest := PushV32();
+    var sid := dest.stk.sid;
 
     E_st(REG_A);
     E_stackref(sid);
@@ -1778,15 +1821,26 @@ gen xa := CAST42(in4s)
 {
     var op := PopOp();
     paramwidth := 2;
+    DoParamDirect(op, "lda", 1);
+    E_tax();
     DoParamDirect(op, "lda", 0);
-    DoParamDirect(op, "ldx", 1);
 }
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(a);
-gen STARTCASE2(xa);
-gen STARTCASE4(v32);
+%{
+    sub StartCase()
+        cases := cases + 1;
+    end sub;
+
+    sub EndCase()
+        cases := cases - 1;
+    end sub;
+%}
+
+gen STARTCASE1(a) { StartCase(); }
+gen STARTCASE2(xa) { StartCase(); }
+gen STARTCASE4(v32) { StartCase(); }
 
 gen WHENCASE1():c
 {
@@ -1811,21 +1865,22 @@ gen WHENCASE2():c uses a
 
 gen WHENCASE4():c uses a
 {
-    var op := PeekOp();
-    paramwidth := 4;
-    PushSidOp(op.sid);
-    PushConstOp($c.value);
+    varsp := varsp - 4;
+    var lhs := PushV32(); # overlaps the stored value
+    var op := PushConstOp($c.value);
 
     var node: Node;
     node.beq0.falselabel := $c.falselabel;
     node.beq0.truelabel := 0;
     node.beq0.fallthrough := 0;
     DoCmp4EQ(&node);
+
+    varsp := varsp + 4;
 }
 
-gen ENDCASE1();
-gen ENDCASE2();
-gen ENDCASE4() { var op := PopOp(); }
+gen ENDCASE1() { EndCase(); }
+gen ENDCASE2() { EndCase(); }
+gen ENDCASE4() { var op := PopOp(); EndCase(); }
 
 // --- Strings --------------------------------------------------------------
 
@@ -1902,6 +1957,7 @@ gen ASMSTART()
 {
     R_flushall();
     E_tab();
+    inasm := 1;
 }
 
 gen ASMTEXT():t
@@ -1930,6 +1986,7 @@ gen ASMVALUE():c
 gen ASMEND()
 {
     E_nl();
+    inasm := 0;
 }
 
 // vim: sw=4 ts=4 et
