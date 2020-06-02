@@ -224,6 +224,15 @@ sub LexerAddIncludePath(path: string)
 	include_paths := p;
 end sub;
 
+var file_nesting: uint8 := 0;
+sub LexerPrintSpaces()
+	var i := file_nesting;
+	while i != 0 loop
+		print("  ");
+		i := i - 1;
+	end loop;
+end sub;
+
 sub LexerIncludeFile(path: string)
 	var f := Alloc(@bytesof File) as [File];
 	f.next := current_file;
@@ -237,7 +246,9 @@ sub LexerIncludeFile(path: string)
 		MemCopy(p.path, il, f.path);
 		MemCopy(path, fl+1, f.path + il);
 		if FCBOpenIn(&f.fcb, f.path) == 0 then
-			print("Opened: ");
+			file_nesting := file_nesting + 1;
+			LexerPrintSpaces();
+			print("> ");
 			print(f.path);
 			print_nl();
 			current_file := f;
@@ -293,6 +304,14 @@ sub lexer_i_getchar(): (c: uint8)
 		current_file := f.next;
 		var i := FCBClose(&f.fcb);
 		Free(f as [uint8]);
+
+		if current_file != (0 as [File]) then
+			file_nesting := file_nesting - 1;
+			LexerPrintSpaces();
+			print("< ");
+			print(current_file.path);
+			print_nl();
+		end if;
 	end loop;
 end sub;
 
