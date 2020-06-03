@@ -330,22 +330,56 @@
     sub E_dec(reg: RegId)
         case reg is
             when REG_A:
-                E_clc();
+                E_sec();
                 E("\tadc #1\n");
 
             when REG_X: E_dex();
-            when REG_Y: E_iny();
+            when REG_Y: E_dey();
         end case;
     end sub;
 
     sub E_loadconst(reg: RegId, value: uint8)
-        var cache := RegCacheFindConstant(value as Word) & reg;
-        if cache == 0 then
-            E_ld(reg);
-            E_const(value);
-            E_nl();
-            RegCacheLeavesConstant(reg, value as Word);
+        var cache := RegCacheFindConstant(value);
+        if (cache & reg) != 0 then
+            return;
         end if;
+        if (reg == REG_A) and ((cache & ((REG_X|REG_Y))) != 0) then
+            if (cache & REG_X) != 0 then
+                E_txa();
+            else
+                E_tya();
+            end if;
+            RegCacheLeavesConstant(reg, value);
+            return;
+        end if;
+        if ((reg & (REG_X|REG_Y)) != 0) and ((cache & REG_A) != 0) then
+            if (reg & REG_X) != 0 then
+                E_tax();
+            else
+                E_tay();
+            end if;
+            RegCacheLeavesConstant(reg, value);
+            return;
+        end if;
+
+        cache := RegCacheFindConstant(value-1) & reg & (REG_X|REG_Y);
+        if cache != 0 then
+            E_inc(reg);
+            RegCacheLeavesConstant(reg, value);
+            return;
+        end if;
+
+        cache := RegCacheFindConstant(value+1) & reg & (REG_X|REG_Y);
+        if cache != 0 then
+            E_dec(reg);
+            RegCacheLeavesConstant(reg, value);
+            return;
+        end if;
+
+        E_ld(reg);
+        E_const(value);
+        E_nl();
+        RegCacheLeavesConstant(reg, value);
     end sub;
 
     sub E_loadaddr(sym: [Symbol], off: Size)
@@ -482,7 +516,7 @@
     end sub;
 %}
 
-wordsize uint16;
+wordsize uint8;
 
 register a x y xa;
 register v8;  // value on fake stack
@@ -1315,12 +1349,8 @@ gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
 
 gen xa := CONSTANT():c
 {
-    var cache := RegCacheFindConstant($c.value as Word);
-    if cache != REG_XA then
-        E_loadconst(REG_A, $c.value as uint8);
-        E_loadconst(REG_X, ($c.value>>8) as uint8);
-    end if;
-    RegCacheLeavesConstant(REG_XA, $c.value as Word);
+    E_loadconst(REG_A, $c.value as uint8);
+    E_loadconst(REG_X, ($c.value>>8) as uint8);
 }
 
 gen xa := ADDRESS():a
