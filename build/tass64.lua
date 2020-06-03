@@ -12,7 +12,7 @@ function tass64(e)
 	rule {
 		ins = e.ins,
 		outs = e.outs,
-		cmd = "64tass --quiet --long-branch --ascii --case-sensitive --nostart -o &1 @1"
+		cmd = "64tass -Wno-wrap-addr --quiet --long-branch --ascii --case-sensitive --nostart -o &1 @1"
 	}
 end
 

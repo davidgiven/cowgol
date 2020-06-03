@@ -85,6 +85,20 @@
         end if;
     end sub;
 
+    sub R_flushall()
+        RegCacheFlush(ALL_REGS);
+    end sub;
+
+    sub R_flush(reg: RegId)
+        RegCacheFlush(FindConflictingRegisters(reg));
+    end sub;
+
+    sub E_insn(insn: string)
+        E_tab();
+        E(insn);
+        E_space();
+    end sub;
+
     var labelid: uint16 := 0;
     sub E_plabelref(lid: uint16)
         EmitByte(COO_ESCAPE_THISCOO);
@@ -98,8 +112,44 @@
     end sub;
 
     sub E_plabel(lid: uint16)
+        R_flushall();
         E_plabelref(lid);
         E(":\n");
+    end sub;
+
+    sub E_new_plabel(): (lid: uint16)
+        lid := AllocPlabel();
+        E_plabel(lid);
+    end sub;
+
+    sub E_jmp_p(label: LabelRef)
+        E_insn("jmp");
+        E_plabelref(label);
+        E_nl();
+    end sub;
+
+    sub E_bne_p(label: LabelRef)
+        E_insn("bne");
+        E_plabelref(label);
+        E_nl();
+    end sub;
+
+    sub E_bcs_p(label: LabelRef)
+        E_insn("bcs");
+        E_plabelref(label);
+        E_nl();
+    end sub;
+
+    sub E_bmi_p(label: LabelRef)
+        E_insn("bmi");
+        E_plabelref(label);
+        E_nl();
+    end sub;
+
+    sub E_bpl_p(label: LabelRef)
+        E_insn("bpl");
+        E_plabelref(label);
+        E_nl();
     end sub;
 
     sub E_stackref(sid: uint16)
@@ -131,29 +181,26 @@
         end if;
     end sub;
 
+    sub E_y_nl() E(",y\n"); end sub;
+    sub E_x_nl() E(",x\n"); end sub;
+
     sub E_symrefi(sym: [Symbol], off: Size)
         EmitByte('(');
         E_symref(sym, off);
         E("),y");
     end sub;
 
-    sub R_flushall()
-        RegCacheFlush(ALL_REGS);
-    end sub;
-
-    sub R_flush(reg: RegId)
-        RegCacheFlush(FindConflictingRegisters(reg));
-    end sub;
-
-    sub E_insn(insn: string)
-        E_tab();
-        E(insn);
-        E_space();
-    end sub;
-
     sub E_const(value: uint8)
         EmitByte('#');
         E_u8(value);
+    end sub;
+
+    sub E_constlo()
+        E("#<");
+    end sub;
+
+    sub E_consthi()
+        E("#>");
     end sub;
 
     sub E_jump(insn: string, label: LabelRef)
@@ -179,50 +226,6 @@
 
     sub E_bmi(label: LabelRef)
         E_jump("bmi", label);
-    end sub;
-
-    sub IsSimpleSub(subr: [Subroutine]): (result: uint8)
-        result := 0;
-        if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
-            return;
-        end if;
-        if (subr.num_input_parameters == 1) and (subr.first_input_parameter.vardata.type.typedata.width == 4) then
-            return;
-        end if;
-        if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.typedata.width == 4) then
-            return;
-        end if;
-        result := 1;
-    end sub;
-
-    sub E_call(subr: [Subroutine])
-        R_flushall();
-        if IsSimpleSub(subr) != 0 then
-            E("\tjsr ");
-            E_subref(subr);
-            E_nl();
-        else
-            var lid := AllocPlabel();
-
-            E("\tldy #<");
-            E_plabelref(lid);
-            E_nl();
-            E("\tsty rts_");
-            E_subref(subr);
-            E_nl();
-
-            E("\tldy #>1+");
-            E_plabelref(lid);
-            E_nl();
-            E("\tsty rts_");
-            E_subref(subr);
-            E("+1\n");
-
-            E_insn("jmp");
-            E_subref(subr);
-            E_nl();
-            E_plabel(lid);
-        end if;
     end sub;
 
     sub E_rts() E("\trts\n"); end sub;
@@ -256,6 +259,10 @@
 
     sub E_ldx()
         E_ld(REG_X);
+    end sub;
+
+    sub E_ldy()
+        E_ld(REG_Y);
     end sub;
 
     sub E_st(reg: RegId)
@@ -338,70 +345,107 @@
         end case;
     end sub;
 
+    sub IsSimpleSub(subr: [Subroutine]): (result: uint8)
+        result := 0;
+        if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
+            return;
+        end if;
+        if (subr.num_input_parameters == 1) and (subr.first_input_parameter.vardata.type.typedata.width == 4) then
+            return;
+        end if;
+        if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.typedata.width == 4) then
+            return;
+        end if;
+        result := 1;
+    end sub;
+
+    sub E_call(subr: [Subroutine])
+        R_flushall();
+        if IsSimpleSub(subr) != 0 then
+            E("\tjsr ");
+            E_subref(subr);
+            E_nl();
+        else
+            var lid := AllocPlabel();
+
+            E_ldy();
+            E_constlo();
+            E_plabelref(lid);
+            E_nl();
+            E("\tsty rts_");
+            E_subref(subr);
+            E_nl();
+
+            E_ldy();
+            E_consthi();
+            E("1+");
+            E_plabelref(lid);
+            E_nl();
+            E("\tsty rts_");
+            E_subref(subr);
+            E("+1\n");
+
+            E_insn("jmp");
+            E_subref(subr);
+            E_nl();
+            E_plabel(lid);
+        end if;
+    end sub;
+
     sub E_loadconst(reg: RegId, value: uint8)
         var cache := RegCacheFindConstant(value);
-        if (cache & reg) != 0 then
-            return;
-        end if;
-        if (reg == REG_A) and ((cache & ((REG_X|REG_Y))) != 0) then
-            if (cache & REG_X) != 0 then
-                E_txa();
+        if (cache & reg) == 0 then
+            if (reg == REG_A) and ((cache & ((REG_X|REG_Y))) != 0) then
+                if (cache & REG_X) != 0 then
+                    E_txa();
+                else
+                    E_tya();
+                end if;
+            elseif ((reg & (REG_X|REG_Y)) != 0) and ((cache & REG_A) != 0) then
+                if (reg & REG_X) != 0 then
+                    E_tax();
+                else
+                    E_tay();
+                end if;
             else
-                E_tya();
-            end if;
-            RegCacheLeavesConstant(reg, value);
-            return;
+                cache := RegCacheFindConstant(value-1) & reg & (REG_X|REG_Y);
+                if cache != 0 then
+                    E_inc(reg);
+                else
+                    cache := RegCacheFindConstant(value+1) & reg & (REG_X|REG_Y);
+                    if cache != 0 then
+                        E_dec(reg);
+                    else
+                        E_ld(reg);
+                        E_const(value);
+                        E_nl();
+                    end if;
+                end if;
+            end if
         end if;
-        if ((reg & (REG_X|REG_Y)) != 0) and ((cache & REG_A) != 0) then
-            if (reg & REG_X) != 0 then
-                E_tax();
-            else
-                E_tay();
-            end if;
-            RegCacheLeavesConstant(reg, value);
-            return;
-        end if;
-
-        cache := RegCacheFindConstant(value-1) & reg & (REG_X|REG_Y);
-        if cache != 0 then
-            E_inc(reg);
-            RegCacheLeavesConstant(reg, value);
-            return;
-        end if;
-
-        cache := RegCacheFindConstant(value+1) & reg & (REG_X|REG_Y);
-        if cache != 0 then
-            E_dec(reg);
-            RegCacheLeavesConstant(reg, value);
-            return;
-        end if;
-
-        E_ld(reg);
-        E_const(value);
-        E_nl();
         RegCacheLeavesConstant(reg, value);
     end sub;
 
     sub E_loadaddr(sym: [Symbol], off: Size)
         E_lda();
-        E("#<");
+        E_constlo();
         E_symref(sym, off);
         E_nl();
 
         E_ldx();
-        E("#>");
+        E_consthi();
         E_symref(sym, off);
         E_nl();
     end sub;
 
     sub E_loadstackref(sid: uint16)
         E_lda();
-        E("#<");
+        E_constlo();
         E_stackref(sid);
         E_nl();
 
         E_ldx();
-        E("#>");
+        E_consthi();
         E_stackref(sid);
         E_nl();
     end sub;
@@ -776,7 +820,19 @@ gen JUMP():j
                 print_i8(operand.mode);
                 EndError();
         end case;
-        E(",y\n");
+        E_y_nl();
+    end sub;
+
+    sub DoParamIndirect_lda(operand: [Operand])
+        DoParamIndirect(operand, "lda");
+    end sub;
+
+    sub DoParamIndirect_sta(operand: [Operand])
+        DoParamIndirect(operand, "sta");
+    end sub;
+
+    sub DoParamIndirect_sbc(operand: [Operand])
+        DoParamIndirect(operand, "sbc");
     end sub;
 
     sub DoParamDirect(operand: [Operand], insn: string, offset: uint8)
@@ -792,8 +848,8 @@ gen JUMP():j
 
             when MODE_ADDRESS:
                 case offset is
-                    when 0: E("#<"); # low byte
-                    when 1: E("#>"); # high byte
+                    when 0: E_constlo(); # low byte
+                    when 1: E_consthi(); # high byte
                 end case;
                 E_symref(operand.sym, operand.off);
 
@@ -818,6 +874,14 @@ gen JUMP():j
                 EndError();
         end case;
         E_nl();
+    end sub;
+
+    sub DoParamDirect_lda(operand: [Operand], offset: uint8)
+        DoParamDirect(operand, "lda", offset);
+    end sub;
+
+    sub DoParamDirect_sta(operand: [Operand], offset: uint8)
+        DoParamDirect(operand, "sta", offset);
     end sub;
 
     # Note that this *destroys* the source register.
@@ -876,29 +940,29 @@ gen JUMP():j
         # The opstack should be empty at the end of every statement. If it's
         # not, then that means we've leaked an op somewhere. (Unless we're in
         # a case...)
-        if cases == 0 then
-            if opsp != 0 then
-                StartError();
-                print("opstack has ");
-                print_i8(opsp);
-                print(" left after statement");
-                EndError();
-            end if;
-            if varsp != 0 then
-                StartError();
-                print("varstack has ");
-                print_i8(varsp);
-                print(" left after statement");
-                EndError();
-            end if;
-            if ptrsp != 0 then
-                StartError();
-                print("ptrstack has ");
-                print_i8(ptrsp);
-                print(" left after statement");
-                EndError();
-            end if;
-        end if;
+        #if cases == 0 then
+        #    if opsp != 0 then
+        #        StartError();
+        #        print("opstack has ");
+        #        print_i8(opsp);
+        #        print(" left after statement");
+        #        EndError();
+        #    end if;
+        #    if varsp != 0 then
+        #        StartError();
+        #        print("varstack has ");
+        #        print_i8(varsp);
+        #        print(" left after statement");
+        #        EndError();
+        #    end if;
+        #    if ptrsp != 0 then
+        #        StartError();
+        #        print("ptrstack has ");
+        #        print_i8(ptrsp);
+        #        print(" left after statement");
+        #        EndError();
+        #    end if;
+        #end if;
         if inasm == 0 then
             E_nl();
         end if;
@@ -907,18 +971,18 @@ gen JUMP():j
     end sub;
 %}
 
-gen const := CONSTANT():c                        { E("\t; const\n"); var op := PushConstOp($c.value); }
-gen address := ADDRESS():a                       { E("\t; address\n"); var op := PushAddressOp($a.sym, $a.off); }
-gen mem1 := LOAD1(ADDRESS():a)                   { E("\t; mem1\n"); var op := PushSymOp($a.sym, $a.off); }
-gen mem2 := LOAD2(ADDRESS():a)                   { E("\t; mem2\n"); var op := PushSymOp($a.sym, $a.off); }
-gen mem2p := LOAD2(ADDRESS(sym is ptr):a)        { E("\t; mem2p\n"); var op := PushSymOp($a.sym, $a.off); }
-gen mem4 := LOAD4(ADDRESS():a)                   { E("\t; mem4\n"); var op := PushSymOp($a.sym, $a.off); }
-gen memi1 := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) { E("\t; memi1\n"); var op := PushSymIOp($a.sym, $a.off); }
-gen memi2 := LOAD2(LOAD2(ADDRESS(sym is ptr):a)) { E("\t; memi2\n"); var op := PushSymIOp($a.sym, $a.off); }
-gen memi4 := LOAD4(LOAD2(ADDRESS(sym is ptr):a)) { E("\t; memi4\n"); var op := PushSymIOp($a.sym, $a.off); }
-gen stacki1 := LOAD1(p16)                        { E("\t; stacki1\n"); var op := PeekOp(); op.mode := MODE_STACKI; }
-gen stacki2 := LOAD2(p16)                        { E("\t; stacki2\n"); var op := PeekOp(); op.mode := MODE_STACKI; }
-gen stacki4 := LOAD4(p16)                        { E("\t; stacki4\n"); var op := PeekOp(); op.mode := MODE_STACKI; }
+gen const := CONSTANT():c                        { var op := PushConstOp($c.value); }
+gen address := ADDRESS():a                       { var op := PushAddressOp($a.sym, $a.off); }
+gen mem1 := LOAD1(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
+gen mem2 := LOAD2(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
+gen mem2p := LOAD2(ADDRESS(sym is ptr):a)        { var op := PushSymOp($a.sym, $a.off); }
+gen mem4 := LOAD4(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
+gen memi1 := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) { var op := PushSymIOp($a.sym, $a.off); }
+gen memi2 := LOAD2(LOAD2(ADDRESS(sym is ptr):a)) { var op := PushSymIOp($a.sym, $a.off); }
+gen memi4 := LOAD4(LOAD2(ADDRESS(sym is ptr):a)) { var op := PushSymIOp($a.sym, $a.off); }
+gen stacki1 := LOAD1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+gen stacki2 := LOAD2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
 
 // --- Subroutines ----------------------------------------------------------
 
@@ -970,17 +1034,15 @@ gen STARTSUB():s
                 # WARNING: little endian on stack!
                 E_loadconst(REG_Y, 0);
                 E_loadconst(REG_X, 4);
-                var lid := AllocPlabel();
-                E_plabel(lid);
+                var lid := E_new_plabel();
                 E_pla();
                 E_st(REG_A);
                 E_symref(param, 0);
-                E(",y\n");
+                E_y_nl();
                 E_iny();
                 E_dex();
-                E_insn("bne");
-                E_plabelref(lid);
-                E_nl();
+
+                E_bne_p(lid);
         end case;
     end loop;
 }
@@ -1033,19 +1095,15 @@ gen ENDSUB():s
                 # using smaller code.
                 E_loadconst(REG_Y, 0);
                 E_loadconst(REG_X, 3);
-                var lid := AllocPlabel();
-                E_plabel(lid);
+                var lid := E_new_plabel();
 
                 E_ld(REG_A);
                 E_symref(param, 0);
-                E(",y\n");
+                E_y_nl();
                 E_pha();
                 E_iny();
                 E_dex();
-
-                E_insn("bpl");
-                E_plabelref(lid);
-                E_nl();
+                E_bpl_p(lid);
         end case;
         i := i + 1;
     end loop;
@@ -1098,16 +1156,12 @@ gen xa := CALLE2(param):s uses y
 %{
     sub PopArg4(dest: [Operand])
         E_loadconst(REG_Y, 3);
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
         E_pla();
-        DoParamIndirect(dest, "sta");
+        DoParamIndirect_sta(dest);
         E_dey();
-
-        E_insn("bpl");
-        E_plabelref(lid);
-        E_nl();
+        E_bpl_p(lid);
     end sub;
 %}
 
@@ -1127,16 +1181,12 @@ gen param := ARG4(param, in4s) uses y|a
 
     # WARNING: little endian on stack!
     E_loadconst(REG_Y, 3);
-    var lid := AllocPlabel();
-    E_plabel(lid);
+    var lid := E_new_plabel();
 
-    DoParamIndirect(op, "lda");
+    DoParamIndirect_lda(op);
     E_pha();
     E_dey();
-
-    E_insn("bpl");
-    E_plabelref(lid);
-    E_nl();
+    E_bpl_p(lid);
 }
 
 gen a := POPARG1(remaining==0);
@@ -1161,7 +1211,7 @@ gen a := FALLBACK(v8) uses y cost -1000
 {
     var op := PopOp();
     paramwidth := 1;
-    DoParamDirect(op, "lda", 0);
+    DoParamDirect_lda(op, 0);
 }
 
 gen a|x|y := CONSTANT():c
@@ -1174,7 +1224,7 @@ gen STORE1(a:lhs, ptrs) uses y
     var op := PopAndDerefOp();
 
     E_loadconst(REG_Y, 0);
-    DoParamIndirect(op, "sta");
+    DoParamIndirect_sta(op);
 }
 
 gen STORE1(a|x|y:lhs, ADDRESS():a)
@@ -1189,20 +1239,20 @@ gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
 {
     var dest := PopAndDerefOp();
     E_loadconst(REG_Y, $c.value as uint8);
-    DoParamIndirect(dest, "sta");
+    DoParamIndirect_sta(dest);
 }
 
 gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
 {
     E_sta();
     E_symref($a.sym, $a.off);
-    E(",x\n");
+    E_x_nl();
 }
 
 gen STORE1(a, ADD2(ptrs, CAST12(y, sext==0)))
 {
     var dest := PopAndDerefOp();
-    DoParamIndirect(dest, "sta");
+    DoParamIndirect_sta(dest);
 }
 
 gen a|x|y := LOAD1(ADDRESS():a)
@@ -1228,20 +1278,20 @@ gen a := LOAD1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
 {
     var src := PopAndDerefOp();
     E_loadconst(REG_Y, $c.value as uint8);
-    DoParamIndirect(src, "lda");
+    DoParamIndirect_lda(src);
 }
 
 gen a := LOAD1(ADD2(ADDRESS():a, CAST12(x, sext==0)))
 {
     E_lda();
     E_symref($a.sym, $a.off);
-    E(",x\n");
+    E_x_nl();
 }
 
 gen a := LOAD1(ADD2(ptrs, CAST12(y, sext==0)))
 {
     var src := PopAndDerefOp();
-    DoParamIndirect(src, "lda");
+    DoParamIndirect_lda(src);
 }
 
 gen a := LOAD1(ptrs) uses y
@@ -1249,10 +1299,11 @@ gen a := LOAD1(ptrs) uses y
     var op := PopAndDerefOp();
 
     E_loadconst(REG_Y, 0);
-    DoParamIndirect(op, "lda");
+    DoParamIndirect_lda(op);
 }
 
-gen a := NOT1(a) { E_not(); }
+gen a := NOT1(a)
+        { E_not(); }
 
 gen a := NEG1(a)
 {
@@ -1301,7 +1352,6 @@ gen x := REMS1(a, x) uses y { E_callhelper("_divs1"); }
 
 gen a16 := FALLBACK(xa) cost -1000
 {
-    E("\t; fallback a16\n");
     var op := PushStackOp($$, 2);
     E_sta();
     E_stackref(op.stk.sid);
@@ -1314,10 +1364,9 @@ gen a16 := FALLBACK(xa) cost -1000
 
 gen xa := FALLBACK(a16) uses y cost -1000
 {
-    E("\t; fallback a16\n");
     var op := PopOp();
     paramwidth := 2;
-    DoParamDirect(op, "lda", 0);
+    DoParamDirect_lda(op, 0);
     DoParamDirect(op, "ldx", 1);
 }
 
@@ -1341,10 +1390,10 @@ gen xa := LOAD2(ptrs)
     var ptr := PopAndDerefOp();
 
     E_loadconst(REG_Y, 1);
-    DoParamIndirect(ptr, "lda");
+    DoParamIndirect_lda(ptr);
     E_tax();
     E_dey();
-    DoParamIndirect(ptr, "lda");
+    DoParamIndirect_lda(ptr);
 
     RegCacheLeavesConstant(REG_Y, 0);
 }
@@ -1354,21 +1403,21 @@ gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
     var src := PopAndDerefOp();
 
     E_loadconst(REG_Y, ($c.value as uint8)+1);
-    DoParamIndirect(src, "lda");
+    DoParamIndirect_lda(src);
     E_tax();
     E_dey();
-    DoParamIndirect(src, "lda");
+    DoParamIndirect_lda(src);
 }
 
 gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
 {
     E_lda();
     E_symref($a.sym, $a.off+0);
-    E(",y\n");
+    E_y_nl();
 
     E_ldx();
     E_symref($a.sym, $a.off+1);
-    E(",y\n");
+    E_y_nl();
 }
 
 gen xa := CONSTANT():c
@@ -1399,10 +1448,10 @@ gen STORE2(xa, ptrs) uses y
     var op := PopAndDerefOp();
 
     E_loadconst(REG_Y, 0);
-    DoParamIndirect(op, "sta");
+    DoParamIndirect_sta(op);
     E_iny();
     E_txa();
-    DoParamIndirect(op, "sta");
+    DoParamIndirect_sta(op);
 
     RegCacheLeavesConstant(REG_Y, 1);
 }
@@ -1412,10 +1461,10 @@ gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
     var dest := PopAndDerefOp();
 
     E_loadconst(REG_Y, $c.value as uint8);
-    DoParamIndirect(dest, "sta");
+    DoParamIndirect_sta(dest);
     E_txa();
     E_iny();
-    DoParamIndirect(dest, "sta");
+    DoParamIndirect_sta(dest);
 }
 
 %{
@@ -1455,11 +1504,11 @@ gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
         paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
 
-        DoParamDirect(rhs, "lda", 0);
-        E("\teor #255\n");
+        DoParamDirect_lda(rhs, 0);
+        E_not();
         E_pha();
-        DoParamDirect(rhs, "lda", 1);
-        E("\teor #255\n");
+        DoParamDirect_lda(rhs, 1);
+        E_not();
         E_tax();
         E_pla();
     end sub;
@@ -1488,10 +1537,6 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
 %{
     sub MulOrDiv2(name: string)
-        E("\t; ");
-        E(name);
-        E_nl();
-
         var e := GetHelper("_mathpad");
 
         E_sta();
@@ -1506,7 +1551,7 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
 
         var rhs := PopOp();
         paramwidth := 2;
-        DoParamDirect(rhs, "lda", 0);
+        DoParamDirect_lda(rhs, 0);
         DoParamDirect(rhs, "ldx", 1);
         E_callhelper(name);
     end sub;
@@ -1538,18 +1583,14 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
 
 %{
     sub DoCopy4(dest: [Operand], lhs: [Operand])
-        E("\t; copy4\n");
         E_loadconst(REG_Y, 3);
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
-        DoParamIndirect(lhs, "lda");
-        DoParamIndirect(dest, "sta");
+        DoParamIndirect_lda(lhs);
+        DoParamIndirect_sta(dest);
 
         E_dey();
-        E("\tbpl ");
-        E_plabelref(lid);
-        E_nl();
+        E_bpl_p(lid);
     end sub;
 %}
 
@@ -1567,57 +1608,18 @@ gen v32 := LOAD4(ptrs) uses a|x|y
     DoCopy4(dest, lhs);
 }
 
-gen STORE4(in4s, ADD2(ptrs, CONSTANT(value>=0, value<=252):c)) uses y
-{
-    var dest := PopAndDerefOp();
-    var src := PopOp();
-
-    var offset: uint8 := 0;
-    E_loadconst(REG_Y, $c.value as uint8);
-    while offset != 4 loop
-        if offset != 0 then
-            E_iny();
-        end if;
-        DoParamDirect(src, "lda", offset);
-        DoParamIndirect(dest, "sta");
-        
-        offset := offset + 1;
-    end loop;
-}
-
-gen v32 := LOAD4(ADD2(ptrs, CONSTANT(value>=1, value<=252):c)) uses y
-{
-    var src := PopAndDerefOp();
-    var dest := PushV32();
-
-    var offset: uint8 := 0;
-    E_loadconst(REG_Y, $c.value as uint8);
-    while offset != 4 loop
-        if offset != 0 then
-            E_iny();
-        end if;
-        DoParamIndirect(src, "lda");
-        DoParamDirect(dest, "sta", offset);
-        
-        offset := offset + 1;
-    end loop;
-}
-
 %{
     sub Do2Op4_not(lhs: [Operand], dest: [Operand])
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
-        DoParamIndirect(lhs, "lda");
-        E("\teor #255\n");
-        DoParamIndirect(dest, "sta");
+        DoParamIndirect_lda(lhs);
+        E_not();
+        DoParamIndirect_sta(dest);
 
         E_dey();
-        E("\tbpl ");
-        E_plabelref(lid);
-        E_nl();
+        E_bpl_p(lid);
     end sub;
 
     sub Do2Op4_neg(lhs: [Operand], dest: [Operand])
@@ -1625,18 +1627,15 @@ gen v32 := LOAD4(ADD2(ptrs, CONSTANT(value>=1, value<=252):c)) uses y
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
         E_sec();
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
-        E("\tlda #0\n");
-        DoParamIndirect(lhs, "sbc");
-        DoParamIndirect(dest, "sta");
+        E_loadconst(REG_A, 0);
+        DoParamIndirect_sbc(lhs);
+        DoParamIndirect_sta(dest);
 
         E_iny();
         E_dex();
-        E("\tbne ");
-        E_plabelref(lid);
-        E_nl();
+        E_bne_p(lid);
     end sub;
 %}
 
@@ -1647,25 +1646,18 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
 
 %{
     sub Do3Op4(insn: string, lhs: [Operand], rhs: [Operand], dest: [Operand])
-        E("\t; ");
-        E(insn);
-        E_nl();
-
         paramwidth := 4;
         E_loadconst(REG_Y, 0);
         E_loadconst(REG_X, paramwidth);
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
-        DoParamIndirect(lhs, "lda");
+        DoParamIndirect_lda(lhs);
         DoParamIndirect(rhs, insn);
-        DoParamIndirect(dest, "sta");
+        DoParamIndirect_sta(dest);
 
         E_iny();
         E_dex();
-        E("\tbne ");
-        E_plabelref(lid);
-        E_nl();
+        E_bne_p(lid);
     end sub;
 %}
 
@@ -1686,32 +1678,28 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
 
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
-        DoParamIndirect(lhs, "lda");
+        DoParamIndirect_lda(lhs);
         E("\tsta ");
         EmitByte(COO_ESCAPE_WSREF);
         E_h16(e.id);
         E("010000, y\n");
 
-        DoParamIndirect(rhs, "lda");
+        DoParamIndirect_lda(rhs);
         E("\tsta ");
         EmitByte(COO_ESCAPE_WSREF);
         E_h16(e.id);
         E("010008, y\n");
 
         E_dey();
-        E("\tbpl ");
-        E_plabelref(lid);
-        E_nl();
+        E_bpl_p(lid);
 
         E_callhelper(name);
 
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
-        lid := AllocPlabel();
-        E_plabel(lid);
+        lid := E_new_plabel();
 
         E("\tlda ");
         EmitByte(COO_ESCAPE_WSREF);
@@ -1719,12 +1707,10 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
         E_h8(1);
         E_h16(resultoffset as uint16);
         E(", y\n");
-        DoParamIndirect(dest, "sta");
+        DoParamIndirect_sta(dest);
 
         E_dey();
-        E("\tbpl ");
-        E_plabelref(lid);
-        E_nl();
+        E_bpl_p(lid);
     end sub;
 
     sub MulOrDivOrRem4ToV32(name: string, resultoffset: uint8)
@@ -1755,10 +1741,6 @@ gen STORE4(REMS4(in4s, in4s), ptrs) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 
 
 %{
     sub Shift4(helper: string)
-        E("\t; shift4 ");
-        E(helper);
-        E_nl();
-
         var lhs := PopOp();
         var dest := PushV32();
         E_loadstackref(lhs.stk.sid);
@@ -1862,17 +1844,14 @@ gen BLTS2(xa:lhs, in2s:rhs):c
         var lhs := PopOp();
 
         E_loadconst(REG_Y, paramwidth-1);
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
-        DoParamIndirect(lhs, "lda");
+        DoParamIndirect_lda(lhs);
         DoParamIndirect(rhs, "cmp");
         E_bne(node.beq0.falselabel);
 
         E_dey();
-        E_insn("bpl");
-        E_plabelref(lid);
-        E_nl();
+        E_bpl_p(lid);
 
         if node.beq0.fallthrough != node.beq0.truelabel then
             E_jmp(node.beq0.truelabel);
@@ -1887,17 +1866,14 @@ gen BLTS2(xa:lhs, in2s:rhs):c
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
         E_sec();
-        var lid := AllocPlabel();
-        E_plabel(lid);
+        var lid := E_new_plabel();
 
-        DoParamIndirect(lhs, "lda");
-        DoParamIndirect(rhs, "sbc");
+        DoParamIndirect_lda(lhs);
+        DoParamIndirect_sbc(rhs);
 
         E_iny();
         E_dex();
-        E_insn("bne");
-        E_plabelref(lid);
-        E_nl();
+        E_bne_p(lid);
 
         if sext != 0 then
             E_tay(); # set flags from A
@@ -1928,9 +1904,7 @@ gen xa := CAST12(a):c uses y
 
 %{
     sub Cast14(dest: [Operand], sext: uint8)
-        E("\t; cast14\n");
-
-        DoParamDirect(dest, "sta", 0);
+        DoParamDirect_sta(dest, 0);
 
         if sext != 0 then
             E_callhelper("_signa");
@@ -1938,9 +1912,9 @@ gen xa := CAST12(a):c uses y
             E_loadconst(REG_A, 0);
         end if;
 
-        DoParamDirect(dest, "sta", 1);
-        DoParamDirect(dest, "sta", 2);
-        DoParamDirect(dest, "sta", 3);
+        DoParamDirect_sta(dest, 1);
+        DoParamDirect_sta(dest, 2);
+        DoParamDirect_sta(dest, 3);
     end sub;
 %}
 
@@ -1949,12 +1923,10 @@ gen STORE4(CAST14(a):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast14(dest,
 
 %{
     sub Cast24(dest: [Operand], sext: uint8)
-        E("\t; cast24\n");
-
-        DoParamDirect(dest, "sta", 0);
+        DoParamDirect_sta(dest, 0);
         if dest.mode <= MODE_STACKI then
             E_txa();
-            DoParamDirect(dest, "sta", 1);
+            DoParamDirect_sta(dest, 1);
         else
             DoParamDirect(dest, "stx", 1);
         end if;
@@ -1966,8 +1938,8 @@ gen STORE4(CAST14(a):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast14(dest,
             E_loadconst(REG_A, 0);
         end if;
 
-        DoParamDirect(dest, "sta", 2);
-        DoParamDirect(dest, "sta", 3);
+        DoParamDirect_sta(dest, 2);
+        DoParamDirect_sta(dest, 3);
     end sub;
 %}
 
@@ -1978,7 +1950,7 @@ gen a := CAST21(in2s|xa:rhs)
 {
     if $rhs != REG_XA then
         var op := PopOp();
-        DoParamDirect(op, "lda", 0);
+        DoParamDirect_lda(op, 0);
     end if;
 }
 
@@ -1986,16 +1958,16 @@ gen a := CAST41(in4s)
 {
     var op := PopOp();
     paramwidth := 1;
-    DoParamDirect(op, "lda", 0);
+    DoParamDirect_lda(op, 0);
 }
 
 gen xa := CAST42(in4s)
 {
     var op := PopOp();
     paramwidth := 2;
-    DoParamDirect(op, "lda", 1);
+    DoParamDirect_lda(op, 1);
     E_tax();
-    DoParamDirect(op, "lda", 0);
+    DoParamDirect_lda(op, 0);
 }
 
 // --- Case -----------------------------------------------------------------
@@ -2062,14 +2034,14 @@ gen xa := STRING():s
     var sid := E_string($s.text);
 
     E_lda();
-    E("#<");
+    E_constlo();
     EmitByte(COO_ESCAPE_THISCOO);
     EmitByte('c');
     E_u16(sid);
     E_nl();
 
     E_ldx();
-    E("#>");
+    E_consthi();
     EmitByte(COO_ESCAPE_THISCOO);
     EmitByte('c');
     E_u16(sid);
