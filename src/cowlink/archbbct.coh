@@ -23,6 +23,7 @@ sub ArchEmitWSRef(wid: uint8, address: Size)
 end sub;
 
 sub ArchEmitHeader(coo: [Coo])
+	E(".cpu \"65c02\"\n");
 	E("* = $400\n");
 	E("ws1 = 0\n");
 	E("ws3 = ws1 + ");

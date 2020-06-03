@@ -55,7 +55,7 @@ toolchain_lx386 = {
 
 toolchain_bbct = {
 	name = "bbct",
-	compiler = "bin/cowcom.6502.nncgen.exe",
+	compiler = "bin/cowcom.65c02.nncgen.exe",
 	linker = "bin/cowlink.bbct.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbct",

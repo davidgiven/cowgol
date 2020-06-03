@@ -1,4 +1,4 @@
-local ARCHS = { "6502", "z80", "8080", "80386", "cgen" }
+local ARCHS = { "65c02", "6502", "z80", "8080", "80386", "cgen" }
 
 lemoncowgol {
 	ins = { "src/cowcom/parser.y" },
@@ -8,7 +8,9 @@ lemoncowgol {
 	}
 }
 
-local extras = {}
+local extras = {
+	["65c02"] = "src/cowcom/arch6502.cow.ng"
+}
 
 for _, arch in ipairs(ARCHS) do
 	newgencowgol {
