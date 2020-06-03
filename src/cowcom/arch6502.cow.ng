@@ -1192,6 +1192,19 @@ gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
     DoParamIndirect(dest, "sta");
 }
 
+gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
+{
+    E_sta();
+    E_symref($a.sym, $a.off);
+    E(",x\n");
+}
+
+gen STORE1(a, ADD2(ptrs, CAST12(y, sext==0)))
+{
+    var dest := PopAndDerefOp();
+    DoParamIndirect(dest, "sta");
+}
+
 gen a|x|y := LOAD1(ADDRESS():a)
 {
     var cache := RegCacheFindValue($a.sym, $a.off) & $$;
@@ -1345,6 +1358,17 @@ gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
     E_tax();
     E_dey();
     DoParamIndirect(src, "lda");
+}
+
+gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
+{
+    E_lda();
+    E_symref($a.sym, $a.off+0);
+    E(",y\n");
+
+    E_ldx();
+    E_symref($a.sym, $a.off+1);
+    E(",y\n");
 }
 
 gen xa := CONSTANT():c
@@ -1529,9 +1553,55 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
     end sub;
 %}
 
-gen STORE4(in4s, ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); DoCopy4(dest, lhs); }
-gen v32 := LOAD4(ptrs) uses a|x|y { E("\t; load v32\n"); var lhs := PopAndDerefOp(); var dest := PushV32(); DoCopy4(dest, lhs); }
-//gen v32 := CONSTANT():c uses a|x  { var dest := PushV32(); var lhs := PushConstOp($c.value); DoCopy4(PopOp(), dest); }
+gen STORE4(in4s, ptrs) uses a|x|y
+{
+    var dest := PopAndDerefOp();
+    var lhs := PopOp();
+    DoCopy4(dest, lhs);
+}
+
+gen v32 := LOAD4(ptrs) uses a|x|y
+{
+    var lhs := PopAndDerefOp();
+    var dest := PushV32();
+    DoCopy4(dest, lhs);
+}
+
+gen STORE4(in4s, ADD2(ptrs, CONSTANT(value>=0, value<=252):c)) uses y
+{
+    var dest := PopAndDerefOp();
+    var src := PopOp();
+
+    var offset: uint8 := 0;
+    E_loadconst(REG_Y, $c.value as uint8);
+    while offset != 4 loop
+        if offset != 0 then
+            E_iny();
+        end if;
+        DoParamDirect(src, "lda", offset);
+        DoParamIndirect(dest, "sta");
+        
+        offset := offset + 1;
+    end loop;
+}
+
+gen v32 := LOAD4(ADD2(ptrs, CONSTANT(value>=1, value<=252):c)) uses y
+{
+    var src := PopAndDerefOp();
+    var dest := PushV32();
+
+    var offset: uint8 := 0;
+    E_loadconst(REG_Y, $c.value as uint8);
+    while offset != 4 loop
+        if offset != 0 then
+            E_iny();
+        end if;
+        DoParamIndirect(src, "lda");
+        DoParamDirect(dest, "sta", offset);
+        
+        offset := offset + 1;
+    end loop;
+}
 
 %{
     sub Do2Op4_not(lhs: [Operand], dest: [Operand])

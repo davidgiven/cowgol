@@ -6,9 +6,9 @@ record Rule
 	compatible_producable_regs: RegId;
 	producable_regs: RegId;
 	uses_regs: RegId;
-	significant_nodes: uint8;
-	copyable_nodes: uint8;
-	register_nodes: uint8;
+	significant_nodes: NodeBitmap;
+	copyable_nodes: NodeBitmap;
+	register_nodes: NodeBitmap;
 end record;
 
 record RegMove
@@ -423,21 +423,21 @@ sub Generate(rootnode: [Node])
 			end if;
 
 			# Advance the midcode pointer.
-			i := rule.significant_nodes;
-			while i != 0 loop
-				if (i & 1) != 0 then
+			var bitmap := rule.significant_nodes;
+			while bitmap != 0 loop
+				if (bitmap & 1) != 0 then
 					midcodeptr := @next midcodeptr;
 				end if;
-				i := i >> 1;
+				bitmap := bitmap >> 1;
 			end loop;
 
 			# Advance the registers pointer.
-			i := rule.register_nodes;
-			while i != 0 loop
-				if (i & 1) != 0 then
+			bitmap := rule.register_nodes;
+			while bitmap != 0 loop
+				if (bitmap & 1) != 0 then
 					regsptr := @next regsptr;
 				end if;
-				i := i >> 1;
+				bitmap := bitmap >> 1;
 			end loop;
 		end loop;
 

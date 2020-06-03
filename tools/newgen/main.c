@@ -294,7 +294,7 @@ static void sort_rules(void)
 	qsort(rules, rulescount, sizeof(Rule*), sort_rule_cb);
 
 	calculate_pattern_size(pattern);
-	if (maxdepth > 8) 
+	if (maxdepth > 32) 
 		fatal("rules are too complex");
 
 	for (int i=0; i<rulescount; i++)
@@ -576,8 +576,8 @@ static void create_rules(void)
 			fprintf(outfp, "}, ");
 		#endif
 
-		uint8_t copymask = 1;
-		uint8_t regmask = 0;
+		uint32_t copymask = 1;
+		uint32_t regmask = 0;
 		for (int j=1; j<maxdepth; j++)
 		{
 			if (r->nodes[j])
@@ -588,7 +588,7 @@ static void create_rules(void)
 			}
 		}
 		#if defined COWGOL
-			uint16_t significantmask = 0;
+			uint32_t significantmask = 0;
 			for (int j=0; j<maxdepth; j++)
 			{
 				Node* n = r->nodes[j];
@@ -851,6 +851,7 @@ int main(int argc, const char* argv[])
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
 		fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
 		fprintf(outhfp, "typedef RegId := int(0, ALL_REGS);\n");
+		fprintf(outhfp, "typedef NodeBitmap := int(0, 0x%x);\n", (1<<maxdepth) - 1);
 		fprintf(outhfp, "record Register\n");
 		fprintf(outhfp, "	name: string;\n");
 		fprintf(outhfp, "	id: RegId;\n");
