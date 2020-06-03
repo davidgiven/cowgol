@@ -224,6 +224,15 @@ sub LexerAddIncludePath(path: string)
 	include_paths := p;
 end sub;
 
+var file_nesting: uint8 := 0;
+sub LexerPrintSpaces()
+	var i := file_nesting;
+	while i != 0 loop
+		print("  ");
+		i := i - 1;
+	end loop;
+end sub;
+
 sub LexerIncludeFile(path: string)
 	var f := Alloc(@bytesof File) as [File];
 	f.next := current_file;
@@ -237,7 +246,9 @@ sub LexerIncludeFile(path: string)
 		MemCopy(p.path, il, f.path);
 		MemCopy(path, fl+1, f.path + il);
 		if FCBOpenIn(&f.fcb, f.path) == 0 then
-			print("Opened: ");
+			file_nesting := file_nesting + 1;
+			LexerPrintSpaces();
+			print("> ");
 			print(f.path);
 			print_nl();
 			current_file := f;
@@ -255,268 +266,276 @@ sub LexerIncludeFile(path: string)
 	EndError();
 end sub;
 
-sub lexer_i_ctype(c: uint8): (type: uint8, token: uint8)
-	if (c >= 33) and (c <= 127) then
-		type := lexer_ctype[c - 33];
-		if (type & CTYPE_TOKEN) != 0 then
-			token := type & ~CTYPE_TOKEN;
-			type := CTYPE_TOKEN;
+sub LexerReadToken(): (token: uint8)
+	sub lexer_i_ctype(c: uint8): (type: uint8, token: uint8)
+		if (c >= 33) and (c <= 127) then
+			type := lexer_ctype[c - 33];
+			if (type & CTYPE_TOKEN) != 0 then
+				token := type & ~CTYPE_TOKEN;
+				type := CTYPE_TOKEN;
+			end if;
+		else
+			type := 0;
+			token := 0;
 		end if;
-	else
-		type := 0;
-		token := 0;
-	end if;
-end sub;
+	end sub;
 
-sub lexer_i_getchar(): (c: uint8)
-	if pushed_char != 0 then
-		c := pushed_char;
-		pushed_char := 0;
-		return;
-	end if;
-
-	loop
-		if current_file == (0 as [File]) then
-			c := 0;
-			break;
+	sub lexer_i_getchar(): (c: uint8)
+		if pushed_char != 0 then
+			c := pushed_char;
+			pushed_char := 0;
+			return;
 		end if;
 
-		var f := current_file;
-		c := FCBGetChar(&f.fcb);
-		if c == 26 then
-			c := 0;
-		end if;
-		if c != 0 then
-			break;
-		end if;
-
-		current_file := f.next;
-		var i := FCBClose(&f.fcb);
-		Free(f as [uint8]);
-	end loop;
-end sub;
-
-sub lexer_i_unparseable(c: uint8)
-	StartError();
-	print("unparseable character 0x");
-	print_hex_i8(c);
-	EndError();
-end sub;
-
-sub lexer_i_skipwhitespace()
-	loop
-		var c := lexer_i_getchar();
-		case c is
-			when ' ':
-				# do nothing
-
-			when 13:
-				# do nothing
-
-			when 10:  
-				current_file.lineno := current_file.lineno + 1;
-				#print(current_file.path);
-				#print(":");
-				#print_i16(current_file.lineno);
-				#print_nl();
-
-			when 9:
-				# do nothing
-
-			when else:
+		loop
+			if current_file == (0 as [File]) then
+				c := 0;
 				break;
-		end case;
-	end loop;
-	pushed_char := c;
-end sub;
+			end if;
 
-sub lexer_i_read_identifier()
-	loop
-		var c := lexer_i_getchar();
+			var f := current_file;
+			c := FCBGetChar(&f.fcb);
+			if c == 26 then
+				c := 0;
+			end if;
+			if c != 0 then
+				break;
+			end if;
+
+			current_file := f.next;
+			var i := FCBClose(&f.fcb);
+			Free(f as [uint8]);
+
+			if current_file != (0 as [File]) then
+				file_nesting := file_nesting - 1;
+				LexerPrintSpaces();
+				print("< ");
+				print(current_file.path);
+				print_nl();
+			end if;
+		end loop;
+	end sub;
+
+	sub lexer_i_unparseable(c: uint8)
+		StartError();
+		print("unparseable character 0x");
+		print_hex_i8(c);
+		EndError();
+	end sub;
+
+	sub lexer_i_skipwhitespace()
+		loop
+			var c := lexer_i_getchar();
+			case c is
+				when ' ':
+					# do nothing
+
+				when 13:
+					# do nothing
+
+				when 10:  
+					current_file.lineno := current_file.lineno + 1;
+					#print(current_file.path);
+					#print(":");
+					#print_i16(current_file.lineno);
+					#print_nl();
+
+				when 9:
+					# do nothing
+
+				when else:
+					break;
+			end case;
+		end loop;
+		pushed_char := c;
+	end sub;
+
+	sub lexer_i_read_identifier()
+		loop
+			var c := lexer_i_getchar();
+			var type: uint8;
+			var token: uint8;
+			(type, token) := lexer_i_ctype(c);
+			if (type & CTYPE_IDCONT) != 0 then
+				token_buffer[token_length] := c;
+				token_length := token_length + 1;
+				if token_length == TOKEN_BUFFER_SIZE then
+					StartError();
+					print("token too long");
+					EndError();
+				end if;
+			else
+				pushed_char := c;
+				break;
+			end if;
+		end loop;
+		token_buffer[token_length] := 0;
+	end sub;
+
+	sub lexer_i_match_keyword(): (token: uint8)
+		var i: @indexof keyword_names := 0;
+		while i != @sizeof keyword_names loop
+			if StrCmp(&token_buffer[0], keyword_names[i]) == 0 then
+				token := keyword_ids[i];
+				return;
+			end if;
+			i := i + 1;
+		end loop;
+		token := ID;
+	end sub;
+
+	sub lexer_i_read_number()
+		token_value := 0;
+		var base: int32 := 10;
+
 		var type: uint8;
 		var token: uint8;
-		(type, token) := lexer_i_ctype(c);
-		if (type & CTYPE_IDCONT) != 0 then
+		var c := lexer_i_getchar();
+		if c == '0' then
+			c := lexer_i_getchar();
+			case c is
+				when 'b': base := 2;
+				when 'o': base := 8;
+				when 'd': base := 10;
+				when 'x': base := 16;
+				when else:
+					pushed_char := c;
+					(type, token) := lexer_i_ctype(c);
+					if (type & CTYPE_IDCONT) == 0 then
+						# Just a 0 on its own.
+						return;
+					end if;
+			end case;
+		else
+			pushed_char := c;
+		end if;
+
+		loop
+			c := ToLower(lexer_i_getchar());
+			(type, token) := lexer_i_ctype(c);
+			if (type & CTYPE_IDCONT) == 0 then
+				pushed_char := c;
+				break;
+			end if;
+			if c >= 'a' then
+				c := c - ('a' - 10);
+			else
+				c := c - '0';
+			end if;
+			if c >= (base as uint8) then
+				StartError();
+				print("invalid number");
+				EndError();
+			end if;
+
+			token_value := token_value*base + (c as int32);
+		end loop;
+	end sub;
+
+	sub lexer_i_malformed(s: string)
+		StartError();
+		print("malformed ");
+		print(s);
+		EndError();
+	end sub;
+
+	sub lexer_i_get_escaped(): (c: uint8)
+		c := lexer_i_getchar();
+		case c is
+			when 'n':  c := 10;
+			when 'r':  c := 13;
+			when 't':  c := 9;
+			when '\\': c := '\\';
+			when '\'': c := '\'';
+			when '"':  c := '"';
+			when '0':  c := 0;
+			when else:
+				lexer_i_malformed("escape");
+		end case;
+	end sub;
+
+	sub lexer_i_read_string()
+		token_length := 0;
+		loop
+			var c := lexer_i_getchar();
+			if c < 32 then
+				lexer_i_malformed("string constant");
+			end if;
+
+			case c is
+				when '"':
+					break;
+
+				when '\\':
+					c := lexer_i_get_escaped();
+			end case;
+
 			token_buffer[token_length] := c;
 			token_length := token_length + 1;
 			if token_length == TOKEN_BUFFER_SIZE then
 				StartError();
-				print("token too long");
+				print("string constant too long");
 				EndError();
 			end if;
-		else
-			pushed_char := c;
-			break;
-		end if;
-	end loop;
-	token_buffer[token_length] := 0;
-end sub;
+		end loop;
+		token_buffer[token_length] := 0;
+	end sub;
 
-sub lexer_i_match_keyword(): (token: uint8)
-	var i: @indexof keyword_names := 0;
-	while i != @sizeof keyword_names loop
-		if StrCmp(&token_buffer[0], keyword_names[i]) == 0 then
-			token := keyword_ids[i];
-			return;
-		end if;
-		i := i + 1;
-	end loop;
-	token := ID;
-end sub;
+	sub lexer_i_read_char()
+		sub malformed()
+			lexer_i_malformed("character constant");
+		end sub;
 
-sub lexer_i_read_number()
-	token_value := 0;
-	var base: int32 := 10;
-
-	var type: uint8;
-	var token: uint8;
-	var c := lexer_i_getchar();
-	if c == '0' then
-		c := lexer_i_getchar();
-		case c is
-			when 'b': base := 2;
-			when 'o': base := 8;
-			when 'd': base := 10;
-			when 'x': base := 16;
-			when else:
-				pushed_char := c;
-				(type, token) := lexer_i_ctype(c);
-				if (type & CTYPE_IDCONT) == 0 then
-					# Just a 0 on its own.
-					return;
-				end if;
-		end case;
-	else
-		pushed_char := c;
-	end if;
-
-	loop
-		c := ToLower(lexer_i_getchar());
-		(type, token) := lexer_i_ctype(c);
-		if (type & CTYPE_IDCONT) == 0 then
-			pushed_char := c;
-			break;
-		end if;
-		if c >= 'a' then
-			c := c - ('a' - 10);
-		else
-			c := c - '0';
-		end if;
-		if c >= (base as uint8) then
-			StartError();
-			print("invalid number");
-			EndError();
-		end if;
-
-		token_value := token_value*base + (c as int32);
-	end loop;
-end sub;
-
-sub lexer_i_malformed(s: string)
-	StartError();
-	print("malformed ");
-	print(s);
-	EndError();
-end sub;
-
-sub lexer_i_get_escaped(): (c: uint8)
-	c := lexer_i_getchar();
-	case c is
-		when 'n':  c := 10;
-		when 'r':  c := 13;
-		when 't':  c := 9;
-		when '\\': c := '\\';
-		when '\'': c := '\'';
-		when '"':  c := '"';
-		when '0':  c := 0;
-		when else:
-			lexer_i_malformed("escape");
-	end case;
-end sub;
-
-sub lexer_i_read_string()
-	token_length := 0;
-	loop
 		var c := lexer_i_getchar();
-		if c < 32 then
-			lexer_i_malformed("string constant");
+		if (c < 32) or (c == '\'') then
+			malformed();
 		end if;
-
-		case c is
-			when '"':
-				break;
-
-			when '\\':
-				c := lexer_i_get_escaped();
-		end case;
-
-		token_buffer[token_length] := c;
-		token_length := token_length + 1;
-		if token_length == TOKEN_BUFFER_SIZE then
-			StartError();
-			print("string constant too long");
-			EndError();
+		if c == '\\' then
+			c := lexer_i_get_escaped();
 		end if;
-	end loop;
-	token_buffer[token_length] := 0;
-end sub;
+		token_value := c as Arith;
 
-sub lexer_i_read_char()
-	sub malformed()
-		lexer_i_malformed("character constant");
+		c := lexer_i_getchar();
+		if c != '\'' then
+			malformed();
+		end if;
 	end sub;
 
-	var c := lexer_i_getchar();
-	if (c < 32) or (c == '\'') then
-		malformed();
-	end if;
-	if c == '\\' then
-		c := lexer_i_get_escaped();
-	end if;
-	token_value := c as Arith;
+	sub lexer_i_include()
+		sub malformed_include()
+			lexer_i_malformed("include directive");
+		end sub;
 
-	c := lexer_i_getchar();
-	if c != '\'' then
-		malformed();
-	end if;
-end sub;
+		lexer_i_skipwhitespace();
+		var c := lexer_i_getchar();
+		if c != '"' then
+			malformed_include();
+		end if;
 
-sub lexer_i_include()
-	sub malformed_include()
-		lexer_i_malformed("include directive");
+		lexer_i_read_string();
+		lexer_i_skipwhitespace();
+		c := lexer_i_getchar();
+		if c != ';' then
+			malformed_include();
+		end if;
+
+		LexerIncludeFile(&token_buffer[0]);
 	end sub;
 
-	lexer_i_skipwhitespace();
-	var c := lexer_i_getchar();
-	if c != '"' then
-		malformed_include();
-	end if;
+	sub lexer_i_line_directive()
+		lexer_i_skipwhitespace();
+		lexer_i_read_number();
+		lexer_i_skipwhitespace();
+		var c := lexer_i_getchar();
+		if c != '"' then
+			lexer_i_malformed("#line directive");
+		end if;
+		lexer_i_read_string();
+		current_file.lineno := token_value as uint16;
+		Free(current_file.path as [uint8]);
+		current_file.path := StrDup(&token_buffer[0]);
+	end sub;
 
-	lexer_i_read_string();
-	lexer_i_skipwhitespace();
-	c := lexer_i_getchar();
-	if c != ';' then
-		malformed_include();
-	end if;
-
-	LexerIncludeFile(&token_buffer[0]);
-end sub;
-
-sub lexer_i_line_directive()
-	lexer_i_skipwhitespace();
-	lexer_i_read_number();
-	lexer_i_skipwhitespace();
-	var c := lexer_i_getchar();
-	if c != '"' then
-		lexer_i_malformed("#line directive");
-	end if;
-	lexer_i_read_string();
-	current_file.lineno := token_value as uint16;
-	Free(current_file.path as [uint8]);
-	current_file.path := StrDup(&token_buffer[0]);
-end sub;
-
-sub LexerReadToken(): (token: uint8)
 	loop
 		lexer_i_skipwhitespace();
 		var c := lexer_i_getchar();

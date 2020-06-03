@@ -42,7 +42,7 @@ end
 hfp:write("\ttype: [Symbol];\n")
 hfp:write("\tleft: [Node];\n")
 hfp:write("\tright: [Node];\n")
-hfp:write("\tdlink: [Node]; # only used during destruction\n")
+hfp:write("\tdlink: [Node]; # only used during destruction and codegen\n")
 hfp:write("\tproducer: [Instruction];\n")
 hfp:write("\tconsumer: [Instruction];\n")
 hfp:write("\tdesired_reg: RegId;\n")

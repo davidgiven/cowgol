@@ -81,23 +81,6 @@ rules ::= rules WORDSIZE ID(ID) SEMICOLON.
     machine_word = strdup(ID.u.string);
 }
 
-/* --- Rewrite rules ----------------------------------------------------- */
-
-rules ::= rules REWRITE(R) rewritetree(TS) ASSIGN rewritetree(TD) SEMICOLON.
-{ rewriterule(R.lineno, TS, TD); }
-
-rewritetree(R) ::= label(L).
-{ R = register_matcher(0, L); }
-
-rewritetree(R) ::= midcode(M) OPENPAREN CLOSEPAREN.
-{ R = tree_matcher(M, NULL, NULL, NULL, NULL); }
-
-rewritetree(R) ::= midcode(M) OPENPAREN rewritetree(T) CLOSEPAREN.
-{ R = tree_matcher(M, T, NULL, NULL, NULL); }
-
-rewritetree(R) ::= midcode(M) OPENPAREN rewritetree(TL) COMMA rewritetree(TR) CLOSEPAREN.
-{ R = tree_matcher(M, TL, TR, NULL, NULL); }
-
 /* --- Gen rules --------------------------------------------------------- */
 
 rules ::= rules gen(R) action(A).
@@ -111,6 +94,9 @@ gen(R) ::= GEN(G) regspec(LHS) ASSIGN gentree(TREE).
 
 gen(R) ::= gen(R1) USES regspec(USES).
 { R = R1; R->uses_regs = USES; }
+
+gen(R) ::= gen(R1) COST int(I).
+{ R = R1; R->cost = I; }
 
 regspec(R) ::= STRINGSTRING.
 { R = REG_SAME_AS_INSTRUCTION_RESULT; }

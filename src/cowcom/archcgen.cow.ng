@@ -689,9 +689,9 @@ gen v8 := RSHIFTS8(v8, v1) { Shift(8, "s8", ">>"); }
 		E("v");
 		E_u16(rhsid);
 		E(") goto ");
-		E_labelref(node.beqs0.truelabel);
+		E_labelref(node.beq0.truelabel);
 		E("; else goto ");
-		E_labelref(node.beqs0.falselabel);
+		E_labelref(node.beq0.falselabel);
 		E(";\n");
 	end sub;
 
@@ -708,34 +708,29 @@ gen v8 := RSHIFTS8(v8, v1) { Shift(8, "s8", ">>"); }
 		E(")v");
 		E_u16(rhsid);
 		E(") goto ");
-		E_labelref(node.beqs0.truelabel);
+		E_labelref(node.beq0.truelabel);
 		E("; else goto ");
-		E_labelref(node.beqs0.falselabel);
+		E_labelref(node.beq0.falselabel);
 		E(";\n");
 	end sub;
 
 	sub BranchConstant(node: [Node], lhs: Arith, rhs: Arith)
 		E("\tgoto ");
 		if lhs == rhs then
-			E_labelref(node.beqs0.truelabel);
+			E_labelref(node.beq0.truelabel);
 		else
-			E_labelref(node.beqs0.falselabel);
+			E_labelref(node.beq0.falselabel);
 		end if;
 		E(";\n");
 	end sub;
 %}
 
-gen BEQU0(CONSTANT():c1, CONSTANT():c2):b { BranchConstant(self.n[0], $c1.value, $c2.value); }
-gen BEQS0(CONSTANT():c1, CONSTANT():c2):b { BranchConstant(self.n[0], $c1.value, $c2.value); }
+gen BEQ0(CONSTANT():c1, CONSTANT():c2):b { BranchConstant(self.n[0], $c1.value, $c2.value); }
 
-gen BEQU1(v1:lhs, v1:rhs):b { Branch(self.n[0], "=="); }
-gen BEQS1(v1:lhs, v1:rhs):b { Branch(self.n[0], "=="); }
-gen BEQU2(v2:lhs, v2:rhs):b { Branch(self.n[0], "=="); }
-gen BEQS2(v2:lhs, v2:rhs):b { Branch(self.n[0], "=="); }
-gen BEQU4(v4:lhs, v4:rhs):b { Branch(self.n[0], "=="); }
-gen BEQS4(v4:lhs, v4:rhs):b { Branch(self.n[0], "=="); }
-gen BEQU8(v8:lhs, v8:rhs):b { Branch(self.n[0], "=="); }
-gen BEQS8(v8:lhs, v8:rhs):b { Branch(self.n[0], "=="); }
+gen BEQ1(v1:lhs, v1:rhs):b { Branch(self.n[0], "=="); }
+gen BEQ2(v2:lhs, v2:rhs):b { Branch(self.n[0], "=="); }
+gen BEQ4(v4:lhs, v4:rhs):b { Branch(self.n[0], "=="); }
+gen BEQ8(v8:lhs, v8:rhs):b { Branch(self.n[0], "=="); }
 
 gen BLTU1(v1:lhs, v1:rhs):b { Branch(self.n[0], "<"); }
 gen BLTU2(v2:lhs, v2:rhs):b { Branch(self.n[0], "<"); }
@@ -772,10 +767,10 @@ gen WHENCASE2():c { Whencase($c.value & 0xffff, $c.falselabel); }
 gen WHENCASE4():c { Whencase($c.value & 0xffffffff, $c.falselabel); }
 gen WHENCASE8():c { Whencase($c.value, $c.falselabel); }
 
-gen ENDCASE()
-{
-	varsp := varsp - 1;
-}
+gen ENDCASE1() { varsp := varsp - 1; }
+gen ENDCASE2() { varsp := varsp - 1; }
+gen ENDCASE4() { varsp := varsp - 1; }
+gen ENDCASE8() { varsp := varsp - 1; }
 
 // --- Casts ----------------------------------------------------------------
 

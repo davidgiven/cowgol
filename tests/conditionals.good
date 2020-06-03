@@ -44,10 +44,12 @@ signed4
 zero<ONE: yes
 mone<ONE: yes
 mone<=MONE: yes
+pbig>ZERO: yes
 unsigned4
 zero<one: yes
 one<one: no
 one<zero: no
+pbig>ZERO: yes
 and1
 isletter(70): yes
 isletter(200): no

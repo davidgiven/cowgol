@@ -68,18 +68,19 @@
     rr l
     jr ``
 
-# Shifts HLHL left by B bits.
+# Shifts HLHL left by A bits.
 &X _asl4
     cseg ; _asl4
 ``:
+    dec a
+    ret m
     add hl, hl
     exx
     ex de, hl
     adc hl, hl
     ex de, hl
     exx
-    djnz ``
-    ret
+    jr ``
 
 # Arithmetic shift HLHL right A bits.
 &X _asr4

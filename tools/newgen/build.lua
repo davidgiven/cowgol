@@ -28,10 +28,18 @@ cprogram {
 }
 
 function newgencowgol(e)
+	local infile = e.ins[1]
+	local cppfile = infile:ext(".i"):obj();
+
+	gpp {
+		ins = e.ins,
+		outs = { cppfile }
+	}
+
 	rule {
 		ins = concat {
 			"bin/newgen-cowgol",
-			e.ins,
+			cppfile
 		},
 		outs = e.outs,
 		cmd = "@1 @2 &1 &2"

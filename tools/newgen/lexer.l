@@ -40,12 +40,12 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "~"                       { return TILDE; }
 "$$"                      { return STRINGSTRING; }
 "compatible"              { return COMPATIBLE; }
+"cost"                    { return COST; }
 "gen"                     { return GEN; }
 "is"                      { return IS; }
 "regclass"                { return REGCLASS; }
 "regdata"                 { return REGDATA; }
 "register"                { return REGISTER; }
-"rewrite"                 { return REWRITE; }
 "stacked"                 { return STACKED; }
 "uses"                    { return USES; }
 "wordsize"                { return WORDSIZE; }
@@ -105,7 +105,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 	number *= base;
 	number += digit;
 }
-<NUMBERSTATE>.            { BEGIN(INITIAL); unput(*yytext); return INT; }
+<NUMBERSTATE>.|{LF}       { BEGIN(INITIAL); unput(*yytext); return INT; }
 
 "%{"                      { BEGIN(COPYSTATE); }
 <COPYSTATE>"%}"           { BEGIN(INITIAL); }

@@ -4,7 +4,7 @@ export CFLAGS = -g -O0
 export LDFLAGS = -g
 
 all: $(OBJ)/build.ninja
-	@ninja -f $(OBJ)/build.ninja
+	@ninja -f $(OBJ)/build.ninja -k0
 
 clean:
 	@echo CLEAN

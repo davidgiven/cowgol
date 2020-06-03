@@ -1,5 +1,6 @@
 oneint8: yes
 oneint16: yes
+oneint32: yes
 inout8: yes
 inout16: yes
 multiout: yes

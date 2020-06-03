@@ -5,6 +5,7 @@ end
 print("OBJ = "..env("OBJ", ".obj"))
 print("LUA = "..env("LUA", "lua5.1"))
 print("CC = "..env("CC", "cc"))
+print("CPP = "..env("CC", "cpp"))
 print("CFLAGS = "..env("CFLAGS", ""))
 print("LDFLAGS = "..env("LDFLAGS", ""))
 print("rule build");
@@ -70,6 +71,14 @@ function joined(t)
 	return table.concat(t, " ")
 end
 
+function set(t)
+	local s = {}
+	for _, k in ipairs(t) do
+		s[k] = true
+	end
+	return s
+end
+
 function rule(e)
 	print(string.format("build %s: build %s",
 		table.concat(e.outs, " "),
@@ -85,6 +94,8 @@ end
 
 include "build/c.lua"
 include "build/yacc.lua"
+include "build/gpp.lua"
+include "build/tass64.lua"
 include "tools/build.lua"
 include "third_party/zmac/build.lua"
 include "tools/cpmemu/build.lua"
@@ -101,5 +112,6 @@ include "rt/cpm/build.lua"
 include "rt/cpmz/build.lua"
 include "rt/cgen/build.lua"
 include "rt/lx386/build.lua"
+include "rt/bbct/build.lua"
 include "tests/build.lua"
 

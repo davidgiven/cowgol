@@ -43,9 +43,9 @@ end sub;
 # used and also allocating spaces in the subroutine workspaces.
 
 sub PlaceSubroutines(subroutine: [Subroutine])
-	const STACK_SIZE := 255;
+	const STACK_SIZE := 300;
 	var stack: [Subroutine][STACK_SIZE];
-	var sp: uint8 := 0;
+	var sp: @indexof stack := 0;
 	var i: uint8;
 
 	i := 0;
@@ -56,7 +56,7 @@ sub PlaceSubroutines(subroutine: [Subroutine])
 
 	sub push(subr: [Subroutine])
 		# Only add this subroutine to the stack if it's not already on it.
-		var i: uint8 := sp;
+		var i: @indexof stack := sp;
 		while i != 0 loop
 			i := i - 1;
 			if stack[i] == subr then
@@ -118,14 +118,14 @@ sub PlaceSubroutines(subroutine: [Subroutine])
 						# gets reprocessed.
 						push(called);
 					end if;
-					if (called.state & SUB_USED) == 0 then
-						# Subroutines which we know haven't been processed yet
-						# always go on the queue.
-						push(called);
-						called.state := called.state | SUB_USED;
-					end if;
 					i := i + 1;
 				end loop;
+				if (called.state & SUB_USED) == 0 then
+					# Subroutines which we know haven't been processed yet
+					# always go on the queue.
+					push(called);
+					called.state := called.state | SUB_USED;
+				end if;
 			end loop;
 
 			refs := refs.next;

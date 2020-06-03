@@ -76,6 +76,14 @@ function buildzmac(e)
 	}
 end
 
+function buildtass64(e)
+	local img = e.outs[1]:ext(".img"):obj()
+	tass64 {
+		ins = e.ins,
+		outs = e.outs,
+	}
+end
+
 function simpletest(interpreter, e)
 	local badfile = e.ins[1]:ext(".bad")
 	rule {
@@ -102,6 +110,11 @@ function cpmtest(e)
 	return simpletest("bin/cpmemu", e)
 end
 
+function tubeemutest(e)
+	e.ins = concat { e.ins, "bin/tubeemu" }
+	return simpletest("bin/tubeemu -l 0x400 -e 0x400 -f", e)
+end
+
 function cowgol(e)
 	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
 	local coo = out:ext(".coo"):obj()
@@ -125,6 +138,7 @@ function cowgol(e)
 			"rt/common.coh",
 			"rt/malloc.coh",
 			"rt/strings.coh",
+			(e.toolchain.runtime.."/cowgol.coh"),
 		},
 		outs = { coo },
 		cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"

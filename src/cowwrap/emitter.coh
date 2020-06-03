@@ -147,10 +147,12 @@ sub EmitterDeclareExternal(id: SubId, name: string)
 end sub;
 
 sub EmitterReferenceSubroutine(user: SubId, used: SubId)
-	EmitterPushChunk();
-	E_h16(user);
-	E_h16(used);
-	EmitterPopChunk('R');
+	if user != used then
+		EmitterPushChunk();
+		E_h16(user);
+		E_h16(used);
+		EmitterPopChunk('R');
+	end if;
 end sub;
 
 sub EmitterDeclareWorkspace(id: SubId, wid: uint8, workspace: Size)

@@ -48,6 +48,14 @@ sub E_nl();
 	EmitByte('\n');
 end sub;
 
+sub E_openp();
+	EmitByte('(');
+end sub;
+
+sub E_closep();
+	EmitByte(')');
+end sub;
+
 sub E(text: string)
 	loop
 		var c := [text];

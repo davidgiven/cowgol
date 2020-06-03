@@ -154,21 +154,11 @@ Node* tree_matcher(int midcode, Node* left, Node* right, Predicate* predicate, L
 	return n;
 }
 
-Rule* rewriterule(int lineno, Node* pattern, Node* replacement)
-{
-	Rule* r = calloc(sizeof(Rule), 1);
-	r->lineno = lineno;
-	r->pattern = pattern;
-	r->replacement = replacement;
-
-	if (rulescount == (sizeof(rules)/sizeof(*rules)))
-		yyerror("too many rules");
-	rules[rulescount++] = r;
-	return r;
-}
-
 Rule* genrule(int lineno, Node* pattern, reg_t result)
 {
+	if (pattern->isregister)
+		yyerror("trivial rule");
+
 	Rule* r = calloc(sizeof(Rule), 1);
 	r->lineno = lineno;
 	r->pattern = pattern;
@@ -298,12 +288,14 @@ static void sort_rules(void)
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
-		r->cost = collect_template_data(r->pattern, pattern, &r->first_label);
+		r->cost += collect_template_data(r->pattern, pattern, &r->first_label);
 	}
 
 	qsort(rules, rulescount, sizeof(Rule*), sort_rule_cb);
 
 	calculate_pattern_size(pattern);
+	if (maxdepth > 32) 
+		fatal("rules are too complex");
 
 	for (int i=0; i<rulescount; i++)
 	{
@@ -584,8 +576,8 @@ static void create_rules(void)
 			fprintf(outfp, "}, ");
 		#endif
 
-		uint8_t copymask = 1;
-		uint8_t regmask = 0;
+		uint32_t copymask = 1;
+		uint32_t regmask = 0;
 		for (int j=1; j<maxdepth; j++)
 		{
 			if (r->nodes[j])
@@ -596,7 +588,7 @@ static void create_rules(void)
 			}
 		}
 		#if defined COWGOL
-			uint8_t significantmask = 0;
+			uint32_t significantmask = 0;
 			for (int j=0; j<maxdepth; j++)
 			{
 				Node* n = r->nodes[j];
@@ -767,32 +759,6 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 	}
 }
 
-static void create_rewriters(void)
-{
-	#if !defined COWGOL
-		fprintf(outfp, "Node* rewrite_node(uint8_t rule, Node** n) {\n");
-		fprintf(outfp, "switch (rule) {\n");
-
-		for (int i=0; i<rulescount; i++)
-		{
-			Rule* r = rules[i];
-			if (r->replacement)
-			{
-				fprintf(outfp, "case %d:\n", i);
-				fprintf(outfp, "\treturn\n");
-
-				print_line(r->lineno);
-				emit_replacement(r, r->pattern, r->replacement);
-				fprintf(outfp, ";\n");
-			}
-		}
-
-		fprintf(outfp, "}\n");
-		fprintf(outfp, "return NULL;\n");
-		fprintf(outfp, "}\n");
-	#endif
-}
-
 static void walk_matcher_tree(int* offset, Node* pattern)
 {
 	int thisoffset = *offset;
@@ -871,7 +837,6 @@ int main(int argc, const char* argv[])
 	if (!outhfp)
 		fatal("cannot open output H file '%s': %s", argv[3], strerror(errno));
 
-
 	include_file(open_file(infp));
 	parse();
 
@@ -886,6 +851,7 @@ int main(int argc, const char* argv[])
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
 		fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
 		fprintf(outhfp, "typedef RegId := int(0, ALL_REGS);\n");
+		fprintf(outhfp, "typedef NodeBitmap := int(0, 0x%x);\n", (1<<maxdepth) - 1);
 		fprintf(outhfp, "record Register\n");
 		fprintf(outhfp, "	name: string;\n");
 		fprintf(outhfp, "	id: RegId;\n");
@@ -905,7 +871,6 @@ int main(int argc, const char* argv[])
 	dump_registers();
 	create_match_predicates();
 	create_emitters();
-	create_rewriters();
 	create_rules();
 	create_matcher();
 

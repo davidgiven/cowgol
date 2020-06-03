@@ -988,11 +988,11 @@ gen r32                 := RSHIFTS4($$:lhs, CONSTANT():c) { E_sari($c.value, $lh
 
 %{
 	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node])
-		if node.beqs0.truelabel != node.beqs0.fallthrough then
-			E_jump(trueinsn, node.beqs0.truelabel);
+		if node.beq0.truelabel != node.beq0.fallthrough then
+			E_jump(trueinsn, node.beq0.truelabel);
 		end if;
-		if node.beqs0.falselabel != node.beqs0.fallthrough then
-			E_jump(falseinsn, node.beqs0.falselabel);
+		if node.beq0.falselabel != node.beq0.fallthrough then
+			E_jump(falseinsn, node.beq0.falselabel);
 		end if;
 	end sub;
 
@@ -1009,35 +1009,25 @@ gen r32                 := RSHIFTS4($$:lhs, CONSTANT():c) { E_sari($c.value, $lh
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
-		var label := node.beqs0.falselabel;
+		var label := node.beq0.falselabel;
 		if lhs == rhs then
-			label := node.beqs0.truelabel;
+			label := node.beq0.truelabel;
 		end if;
-		if label != node.beqs0.fallthrough then
+		if label != node.beq0.fallthrough then
 			E_jmp(label);
 		end if;
 	end sub;
 %}
 
-gen BEQU0(CONSTANT():c1, CONSTANT():c2):b
-		{ beqc(self.n[0], $c1.value, $c2.value); }
+gen BEQ0(CONSTANT():c1, CONSTANT():c2):b
+	    { beqc(self.n[0], $c1.value, $c2.value); }
 
-gen BEQS0(CONSTANT():c1, CONSTANT():c2):b
-		{ beqc(self.n[0], $c1.value, $c2.value); }
-
-gen BEQU1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQU2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQU4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQU1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
-gen BEQU2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
-gen BEQU4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
-
-gen BEQS1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQS2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQS4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQS1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
-gen BEQS2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
-gen BEQS4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQ2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQ4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQ1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
 
 gen BLTS1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
 gen BLTS2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
@@ -1079,7 +1069,9 @@ gen WHENCASE4():c
 	E_jne($c.falselabel);
 }
 
-gen ENDCASE();
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4();
 
 // --- Casts ----------------------------------------------------------------
 

@@ -53,11 +53,35 @@ toolchain_lx386 = {
 	tester = qemu386test
 }
 
+toolchain_bbct = {
+	name = "bbct",
+	compiler = "bin/cowcom.65c02.nncgen.exe",
+	linker = "bin/cowlink.bbct.nncgen.exe",
+	assembler = buildtass64,
+	runtime = "rt/bbct",
+	asmext = ".asm",
+	binext = ".bbct",
+	tester = tubeemutest
+}
+
+toolchain_bbct6502 = {
+	name = "bbct6502",
+	compiler = "bin/cowcom.6502.nncgen.exe",
+	linker = "bin/cowlink.bbct.nncgen.exe",
+	assembler = buildtass64,
+	runtime = "rt/bbct",
+	asmext = ".asm",
+	binext = ".bbct6502",
+	tester = tubeemutest
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
 	toolchain_ncpm,
 	toolchain_ncpmz,
 	toolchain_lx386,
+	toolchain_bbct,
+	toolchain_bbct6502
 }
 
