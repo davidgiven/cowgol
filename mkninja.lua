@@ -71,6 +71,14 @@ function joined(t)
 	return table.concat(t, " ")
 end
 
+function set(t)
+	local s = {}
+	for _, k in ipairs(t) do
+		s[k] = true
+	end
+	return s
+end
+
 function rule(e)
 	print(string.format("build %s: build %s",
 		table.concat(e.outs, " "),

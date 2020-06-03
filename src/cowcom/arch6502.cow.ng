@@ -869,6 +869,8 @@ gen JUMP():j
                     if offset != 0 then
                         E_y_nl();
                     end if;
+                $else
+                    E_y_nl();
                 $endif
 
             when MODE_SYMBOL:
@@ -882,6 +884,8 @@ gen JUMP():j
                     if offset != 0 then
                         E_y_nl();
                     end if;
+                $else
+                    E_y_nl();
                 $endif
 
             when else:

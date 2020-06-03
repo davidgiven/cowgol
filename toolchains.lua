@@ -64,6 +64,17 @@ toolchain_bbct = {
 	tester = tubeemutest
 }
 
+toolchain_bbct6502 = {
+	name = "bbct6502",
+	compiler = "bin/cowcom.6502.nncgen.exe",
+	linker = "bin/cowlink.bbct.nncgen.exe",
+	assembler = buildtass64,
+	runtime = "rt/bbct",
+	asmext = ".asm",
+	binext = ".bbct6502",
+	tester = tubeemutest
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
@@ -71,5 +82,6 @@ ALL_TOOLCHAINS = {
 	toolchain_ncpmz,
 	toolchain_lx386,
 	toolchain_bbct,
+	toolchain_bbct6502
 }
 
