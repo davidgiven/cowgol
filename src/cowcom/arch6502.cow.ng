@@ -361,35 +361,9 @@
 
     sub E_call(subr: [Subroutine])
         R_flushall();
-        if IsSimpleSub(subr) != 0 then
-            E("\tjsr ");
-            E_subref(subr);
-            E_nl();
-        else
-            var lid := AllocPlabel();
-
-            E_ldy();
-            E_constlo();
-            E_plabelref(lid);
-            E_nl();
-            E("\tsty rts_");
-            E_subref(subr);
-            E_nl();
-
-            E_ldy();
-            E_consthi();
-            E("1+");
-            E_plabelref(lid);
-            E_nl();
-            E("\tsty rts_");
-            E_subref(subr);
-            E("+1\n");
-
-            E_insn("jmp");
-            E_subref(subr);
-            E_nl();
-            E_plabel(lid);
-        end if;
+        E("\tjsr ");
+        E_subref(subr);
+        E_nl();
     end sub;
 
     sub E_loadconst(reg: RegId, value: uint8)
@@ -1002,6 +976,29 @@ gen STARTSUB():s
 
     var count := $s.subr.num_input_parameters;
     var lastparam := count - 1;
+    var popped: uint8 := 0;
+
+    sub PopReturnAddress()
+        if popped == 0 then
+            E_pla();
+            E_tax();
+            E_pla();
+            E_tay();
+            E_inx();
+            E("\tbne *+3\n");
+            E_iny();
+
+            E("\tstx rts_");
+            E_subref($s.subr);
+            E_nl();
+
+            E("\tsty 1+rts_");
+            E_subref($s.subr);
+            E_nl();
+
+            popped := 1;
+        end if;
+    end sub;
 
     while count != 0 loop
         count := count - 1;
@@ -1010,6 +1007,7 @@ gen STARTSUB():s
         case param.vardata.type.typedata.width is
             when 1:
                 if count != lastparam then
+                    PopReturnAddress();
                     E_pla();
                 end if;
                 E_st(REG_A);
@@ -1018,6 +1016,7 @@ gen STARTSUB():s
 
             when 2:
                 if count != lastparam then
+                    PopReturnAddress();
                     E_pla();
                     E_tax();
                     E_pla();
@@ -1032,6 +1031,7 @@ gen STARTSUB():s
 
             when 4:
                 # WARNING: little endian on stack!
+                PopReturnAddress();
                 E_loadconst(REG_Y, 0);
                 E_loadconst(REG_X, 4);
                 var lid := E_new_plabel();
@@ -1045,6 +1045,10 @@ gen STARTSUB():s
                 E_bne_p(lid);
         end case;
     end loop;
+
+    if IsSimpleSub($s.subr) == 0 then
+        PopReturnAddress();
+    end if;
 }
 
 gen ENDSUB():s
