@@ -25,6 +25,7 @@ record FCB
 end record;
 
 sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8)
+    errno := 1;
 	var t := filename;
 	loop
 		if [t] == 0 then
@@ -36,8 +37,8 @@ sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8)
 
 	var channel: uint8;
 	@asm "lda", mode;
-	@asm "ldx #<", filename;
-	@asm "ldy #>", filename;
+	@asm "ldx 0+", filename;
+	@asm "ldy 1+", filename;
 	@asm "jsr $ffce"; # OSFIND
 	@asm "sta", channel;
 	[t] := 0; # change back to Cowgol terminator
@@ -45,7 +46,11 @@ sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8)
 	MemZero(fcb as [uint8], @bytesof FCB);
 	fcb.mode := mode;
 	fcb.gbpb.channel := channel;
-	errno := ~channel;
+	fcb.block := -1;
+	fcb.bufferptr := FCB_BUFFER_SIZE-1;
+    if channel != 0 then
+        errno := 0;
+    end if;
 end sub;
 
 sub fcb_i_gbpb(fcb: [FCB], a: uint8)
@@ -55,13 +60,13 @@ sub fcb_i_gbpb(fcb: [FCB], a: uint8)
 	fcb.gbpb.block := fcb.block;
 	
 	@asm "lda", a;
-	@asm "ldx #<", fcb;
-	@asm "ldy #>", fcb;
+	@asm "ldx 0+", fcb;
+	@asm "ldy 1+", fcb;
 	@asm "jsr $ffd1"; # OSGBPB
 end sub;
 
 sub fcb_i_blockin(fcb: [FCB])
-	MemSet(&fcb.buffer[0], 0, 128);
+	MemSet(&fcb.buffer[0], 0, FCB_BUFFER_SIZE);
 	fcb_i_gbpb(fcb, 3); # read block with pointer
 	fcb.dirty := 0;
 end sub;

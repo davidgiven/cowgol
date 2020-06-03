@@ -51,7 +51,6 @@ end sub;
 
 sub ArchEmitFooter(coo: [Coo])
 	E("sp: .fill 1\n");
-	E("argv: .fill 2\n");
 	E("ws0: .fill ");
 	E_u16(workspaceSize[0]);
 	E_nl();
