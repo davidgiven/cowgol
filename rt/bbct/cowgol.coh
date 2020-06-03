@@ -1,10 +1,49 @@
 var LOMEM: [uint8];
+var _args: [uint8];
 @asm "lda #<LOMEM";
 @asm "sta ", LOMEM;
+@asm "sta ", _args;
 @asm "lda #>LOMEM";
 @asm "sta ", LOMEM, "+1";
+@asm "sta ", _args, "+1";
 
 var HIMEM: [uint8] := 0xf800 as [uint8];
+
+sub _ReadArguments()
+	# So, there's some evil here. We know that pointers are allocated
+	# contiguously in zero page, so we create several for use as the
+	# OSARGS/OSWORD block.
+
+	var ioptr: [uint8]; # 16-bit I/O processor address
+	var hiptr: [uint8]; # high 16 bits of address
+	var value: [uint8]; # byte read, not really a pointer
+	@asm "lda #1";
+	@asm "ldy #0";
+	@asm "ldx #<", ioptr;
+	@asm "jsr $ffda"; # OSARGS
+
+	# OSARGS has written a 32-byte address into ioptr and hiptr. We can
+	# now use OSWORD to read bytes from the I/O processor into language
+	# processor memory where we can get at it
+
+	loop
+		@asm "lda #5";
+		@asm "ldx #<", ioptr;
+		@asm "ldy #>", ioptr;
+		@asm "jsr $fff1";
+
+		var c := value as intptr as uint8;
+		if c == 13 then
+			[LOMEM] := 0;
+			break;
+		end if;
+		[LOMEM] := c;
+		ioptr := @next ioptr;
+		LOMEM := @next LOMEM;
+	end loop;
+	LOMEM := @next LOMEM;
+end sub;
+_ReadArguments();
 
 sub ExitWithError()
 	@asm "brk";
