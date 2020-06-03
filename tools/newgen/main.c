@@ -288,7 +288,7 @@ static void sort_rules(void)
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
-		r->cost = collect_template_data(r->pattern, pattern, &r->first_label);
+		r->cost += collect_template_data(r->pattern, pattern, &r->first_label);
 	}
 
 	qsort(rules, rulescount, sizeof(Rule*), sort_rule_cb);
@@ -588,7 +588,7 @@ static void create_rules(void)
 			}
 		}
 		#if defined COWGOL
-			uint8_t significantmask = 0;
+			uint16_t significantmask = 0;
 			for (int j=0; j<maxdepth; j++)
 			{
 				Node* n = r->nodes[j];
@@ -836,7 +836,6 @@ int main(int argc, const char* argv[])
 	outhfp = fopen(argv[3], "w");
 	if (!outhfp)
 		fatal("cannot open output H file '%s': %s", argv[3], strerror(errno));
-
 
 	include_file(open_file(infp));
 	parse();

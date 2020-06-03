@@ -1149,7 +1149,7 @@ gen STORE4(POPARG4(), ptrs) uses x|y|a { PopArg4(PopAndDerefOp()); }
 
 // --- 8-bit -----------------------------------------------------------------
 
-gen v8 := FALLBACK(a|x|y:rhs)
+gen v8 := FALLBACK(a|x|y:rhs) cost -1000
 {
     var op := PushStackOp($$, 1);
     E_st($rhs);
@@ -1157,7 +1157,7 @@ gen v8 := FALLBACK(a|x|y:rhs)
     E_nl();
 }
 
-gen a := FALLBACK(v8) uses y
+gen a := FALLBACK(v8) uses y cost -1000
 {
     var op := PopOp();
     paramwidth := 1;
@@ -1286,7 +1286,7 @@ gen x := REMS1(a, x) uses y { E_callhelper("_divs1"); }
 
 // --- 16-bit ---------------------------------------------------------------
 
-gen a16 := FALLBACK(xa)
+gen a16 := FALLBACK(xa) cost -1000
 {
     E("\t; fallback a16\n");
     var op := PushStackOp($$, 2);
@@ -1299,7 +1299,7 @@ gen a16 := FALLBACK(xa)
     E_nl();
 }
 
-gen xa := FALLBACK(a16) uses y
+gen xa := FALLBACK(a16) uses y cost -1000
 {
     E("\t; fallback a16\n");
     var op := PopOp();
