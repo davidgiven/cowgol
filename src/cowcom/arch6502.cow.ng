@@ -164,7 +164,7 @@
     end sub;
 
     sub E_stackrefi(sid: uint16)
-        EmitByte('(');
+        E_openp();
         E_stackref(sid);
         E("),y");
     end sub;
@@ -801,17 +801,17 @@ gen JUMP():j
                 E_stackref(operand.stk.sid);
 
             when MODE_STACKI:
-                EmitByte('(');
+                E_openp();
                 E_stackref(operand.stk.sid);
-                EmitByte(')');
+                E_closep();
 
             when MODE_SYMBOL:
                 E_symref(operand.sym, operand.off);
 
             when MODE_SYMBOLI:
-                EmitByte('(');
+                E_openp();
                 E_symref(operand.sym, operand.off);
-                EmitByte(')');
+                E_closep();
 
             when else:
                 StartError();
@@ -862,9 +862,9 @@ gen JUMP():j
                 E_stackref(operand.stk.sid + (offset as uint16));
 
             when MODE_STACKI:
-                EmitByte('(');
+                E_openp();
                 E_stackref(operand.stk.sid);
-                EmitByte(')');
+                E_closep();
                 $ifdef ARCH_65C02
                     if offset != 0 then
                         E_y_nl();
@@ -875,9 +875,9 @@ gen JUMP():j
                 E_symref(operand.sym, operand.off + (offset as uint16));
 
             when MODE_SYMBOLI:
-                EmitByte('(');
+                E_openp();
                 E_symref(operand.sym, operand.off);
-                EmitByte(')');
+                E_closep();
                 $ifdef ARCH_65C02
                     if offset != 0 then
                         E_y_nl();
@@ -1384,7 +1384,7 @@ gen a := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) uses y
     $endif
 
     E_ld($$);
-    EmitByte('(');
+    E_openp();
     E_symref($a.sym, $a.off);
     E(")");
     $ifdef ARCH_65C02
@@ -2280,9 +2280,9 @@ gen ASMSYMBOL():s
 
 gen ASMVALUE():c
 {
-    EmitByte('(');
+    E_openp();
     E_i32($c.value);
-    EmitByte(')');
+    E_closep();
 }
 
 gen ASMEND()
