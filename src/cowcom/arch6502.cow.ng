@@ -1315,7 +1315,7 @@ gen a := NEG1(a)
 
 gen a := ADD1(a, in1s) uses y { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), "adc", 0); }
 gen a := SUB1(a, in1s) uses y { paramwidth := 1; E_sec(); DoParamDirect(PopOp(), "sbc", 0); }
-gen a := OR1(a, in1s)  uses y { paramwidth := 1;          DoParamDirect(PopOp(), "ora", 0); }
+gen a := OR1 (a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "ora", 0); }
 gen a := AND1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "and", 0); }
 gen a := EOR1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "eor", 0); }
 
@@ -1481,6 +1481,19 @@ gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
         E_pla();
     end sub;
 
+    sub DoXADest(insn: string)
+        var dest := PopAndDerefOp();
+        var rhs := PopOp();
+
+        paramwidth := 2;
+        R_flush(REG_A|REG_X|REG_XA);
+        DoParamDirect(rhs, insn, 0);
+        DoParamDirect(dest, "sta", 0);
+        E_txa();
+        DoParamDirect(rhs, insn, 1);
+        DoParamDirect(dest, "sta", 1);
+    end sub;
+
     sub DoXA_neg()
         var rhs := PopOp();
 
@@ -1517,11 +1530,17 @@ gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
 gen xa := NEG2(in2s)         uses y { DoXA_neg(); }
 gen xa := NOT2(in2s)         uses y { DoXA_not(); }
 
-gen xa := ADD2(xa, in2s:rhs) uses y { E_clc(); DoXA("adc"); }
-gen xa := SUB2(xa, in2s:rhs) uses y { E_sec(); DoXA("sbc"); }
-gen xa := AND2(xa, in2s:rhs) uses y {          DoXA("and"); }
-gen xa := OR2(xa, in2s:rhs)  uses y {          DoXA("ora"); }
-gen xa := EOR2(xa, in2s:rhs) uses y {          DoXA("eor"); }
+gen xa := ADD2(in2s, xa) uses y { E_clc(); DoXA("adc"); }
+gen xa := SUB2(xa, in2s) uses y { E_sec(); DoXA("sbc"); }
+gen xa := AND2(in2s, xa) uses y {          DoXA("and"); }
+gen xa := OR2 (in2s, xa) uses y {          DoXA("ora"); }
+gen xa := EOR2(in2s, xa) uses y {          DoXA("eor"); }
+
+// Because of some quirk of the way the code is generated, this rule helps
+// a lot --- but the same rule for SUB2, AND2 etc actually makes things
+// worse, I think because it prevents one of the pointer indexing rules from
+// firing.
+gen STORE2(ADD2(in2s, xa), ptrs) uses y cost 100 { E_clc(); DoXADest("adc"); }
 
 gen xa := LSHIFT2(CAST12(a, sext==0), CONSTANT(value==1))
 {
