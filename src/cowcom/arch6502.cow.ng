@@ -1238,10 +1238,19 @@ gen ENDSUB():s
 
 gen RETURN()
 {
-    current_subr.arch.seen_return := 1;
-    E("\tjmp end_");
-    E_subref(current_subr);
-    E_nl();
+    if (IsSimpleSub(current_subr) != 0) and (current_subr.num_output_parameters == 0) then
+        E_rts();
+    else
+        current_subr.arch.seen_return := 1;
+        $if ARCH_65C02
+            E_insn("bra");
+        $else
+            E_insn("jmp");
+        $endif
+        E("end_");
+        E_subref(current_subr);
+        E_nl();
+    end if;
 }
 
 gen CALL(param):s uses x|y|a
