@@ -1083,6 +1083,7 @@ gen STARTSUB():s
                 E_st(REG_A);
                 E_symref(param, 0);
                 E_nl();
+                RegCacheLeavesValue(REG_A, param, 0);
 
             when 2:
                 if count != lastparam then
@@ -1103,6 +1104,8 @@ gen STARTSUB():s
                 E_st(REG_X);
                 E_symref(param, 1);
                 E_nl();
+
+                RegCacheLeavesValue(REG_XA, param, 0);
 
             when 4:
                 # WARNING: little endian on stack!
