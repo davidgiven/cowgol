@@ -5,6 +5,11 @@ sub MakeJumptable(): (table: [LabelRef])
 	table := 0 as [LabelRef];
 	var range := (current_case.maximum - current_case.minimum) as uint16 + 1;
 
+	# Don't bother if there's fewer than eight items.
+	if range < 8 then
+		return;
+	end if;
+
 	# We allow 25% wasteage.
 	var mincount := range - (range / 4);
 	if current_case.count < mincount then

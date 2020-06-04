@@ -205,6 +205,11 @@
         E("#>");
     end sub;
 
+    sub E_label(label: LabelRef)
+        E_labelref(label);
+        E(":\n");
+    end sub;
+
     sub E_jump(insn: string, label: LabelRef)
         R_flushall();
         E_tab();
@@ -234,6 +239,10 @@
         E_jump("bcs", label);
     end sub;
 
+    sub E_bcc(label: LabelRef)
+        E_jump("bcc", label);
+    end sub;
+
     sub E_bmi(label: LabelRef)
         E_jump("bmi", label);
     end sub;
@@ -256,6 +265,8 @@
     sub E_txs() E("\ttxs\n"); end sub;
     sub E_not() R_flush(REG_A); E("\teor #255\n"); end sub;
     sub E_rol() R_flush(REG_A); E("\trol\n"); end sub;
+    sub E_adc() R_flush(REG_A); E("\tadc "); end sub;
+    sub E_sbc() R_flush(REG_A); E("\tsbc "); end sub;
 
     sub E_ld(reg: RegId)
         R_flush(reg);
@@ -2297,64 +2308,204 @@ gen xa := CAST42(in4s)
 
 // --- Case -----------------------------------------------------------------
 
-gen CASE1(a)
-{
-	var whenblock := current_case.whenblocks;
-	while whenblock != (0 as [WhenBlock]) loop
-		var thiswhen := &whenblock.whens[0];
-		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
-			if thiswhen.label != 0 then
-                E_cmp();
-                E_const(thiswhen.value as uint8);
-                E_nl();
+%{
+	sub CallAndEmitJumptable(jumptable: [LabelRef])
+		var tablehi := AllocLabel();
+		var tablelo := AllocLabel();
 
-                E_beq(thiswhen.label);
+        E_lda();
+        E_labelref(tablehi);
+        E_x_nl();
+
+        E_pha();
+
+        E_lda();
+        E_labelref(tablelo);
+        E_x_nl();
+
+        E_pha();
+
+        E_rts();
+
+		E_label(tablehi);
+		var p := jumptable;
+		loop
+			var label := [p];
+			if label == 0 then
+				break;
 			end if;
 
-			thiswhen := @next thiswhen;
+			E("\t.byte >(");
+			E_labelref(label);
+            E("-1)\n");
+
+			p := @next p;
 		end loop;
-		whenblock := whenblock.next;
-	end loop;
-	if current_case.else_label != 0 then
-		E_jmp(current_case.else_label);
+
+		E_label(tablelo);
+		p := jumptable;
+		loop
+			label := [p];
+			if label == 0 then
+				break;
+			end if;
+
+			E("\t.byte <(");
+			E_labelref(label);
+            E("-1)\n");
+
+			p := @next p;
+		end loop;
+
+		Free(jumptable as [uint8]);
+	end sub;
+%}
+
+gen CASE1(a)
+{
+	E("\t; CASE1 min=");
+	E_i32(current_case.minimum);
+	E(" max=");
+	E_i32(current_case.maximum);
+	E(" count=");
+	E_u16(current_case.count);
+	E_nl();
+
+	var jumptable := MakeJumptable();
+	if jumptable == (0 as [LabelRef]) then
+        var whenblock := current_case.whenblocks;
+        while whenblock != (0 as [WhenBlock]) loop
+            var thiswhen := &whenblock.whens[0];
+            while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+                if thiswhen.label != 0 then
+                    E_cmp();
+                    E_const(thiswhen.value as uint8);
+                    E_nl();
+
+                    E_beq(thiswhen.label);
+                end if;
+
+                thiswhen := @next thiswhen;
+            end loop;
+            whenblock := whenblock.next;
+        end loop;
+        if current_case.else_label != 0 then
+            E_jmp(current_case.else_label);
+        end if;
+    else
+        if current_case.minimum != 0 then
+            E_clc();
+
+            E_sbc();
+            E_const(current_case.minimum as uint8);
+            E_nl();
+        end if;
+
+		E_cmp();
+        E_const((current_case.maximum - current_case.minimum) as uint8 + 1);
+        E_nl();
+
+		E_bcs(current_case.else_label);
+
+        E_tax();
+		CallAndEmitJumptable(jumptable);
 	end if;
+
+	R_flushall();
+        
 }
 
 gen CASE2(xa)
 {
-	var whenblock := current_case.whenblocks;
-	while whenblock != (0 as [WhenBlock]) loop
-		var thiswhen := &whenblock.whens[0];
-		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
-			if thiswhen.label != 0 then
-                var next := AllocLabel();
+	E("\t; CASE2 min=");
+	E_i32(current_case.minimum);
+	E(" max=");
+	E_i32(current_case.maximum);
+	E(" count=");
+	E_u16(current_case.count);
+	E_nl();
 
-                E_cmp();
-                E_const(thiswhen.value as uint8);
-                E_nl();
+	var jumptable := MakeJumptable();
+	if jumptable == (0 as [LabelRef]) then
+        var whenblock := current_case.whenblocks;
+        while whenblock != (0 as [WhenBlock]) loop
+            var thiswhen := &whenblock.whens[0];
+            while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+                if thiswhen.label != 0 then
+                    var next := AllocLabel();
 
-                E_bne(next);
+                    E_cmp();
+                    E_const(thiswhen.value as uint8);
+                    E_nl();
 
-                E_cpx();
-                E_const((thiswhen.value>>8) as uint8);
-                E_nl();
+                    E_bne(next);
 
-                E_beq(thiswhen.label);
-                E_labelref(next);
-                E(":\n");
-			end if;
+                    E_cpx();
+                    E_const((thiswhen.value>>8) as uint8);
+                    E_nl();
 
-			thiswhen := @next thiswhen;
-		end loop;
-		whenblock := whenblock.next;
-	end loop;
-	if current_case.else_label != 0 then
-		E_jmp(current_case.else_label);
+                    E_beq(thiswhen.label);
+                    E_labelref(next);
+                    E(":\n");
+                end if;
+
+                thiswhen := @next thiswhen;
+            end loop;
+            whenblock := whenblock.next;
+        end loop;
+        if current_case.else_label != 0 then
+            E_jmp(current_case.else_label);
+        end if;
+    else
+        if current_case.minimum != 0 then
+            E_sec();
+
+            E_sbc();
+            E_const(current_case.minimum as uint8);
+            E_nl();
+
+            E_tay();
+
+            E_txa();
+
+            E_sbc();
+            E_const((current_case.minimum>>8) as uint8);
+            E_nl();
+
+            E_tax();
+            E_tya();
+        end if;
+
+        E_tay();
+
+        var range := (current_case.maximum - current_case.minimum) as uint16 + 1;
+        E_cmp();
+        E_const(range as uint8);
+        E_nl();
+
+        E_txa();
+        E_sbc();
+        E_const((range>>8) as uint8);
+        E_nl();
+
+		E_bcs(current_case.else_label);
+
+        E_tya();
+        E_tax();
+		CallAndEmitJumptable(jumptable);
 	end if;
 }
 
 gen CASE4(v32)
 {
+	E("\t; CASE4 min=");
+	E_i32(current_case.minimum);
+	E(" max=");
+	E_i32(current_case.maximum);
+	E(" count=");
+	E_u16(current_case.count);
+	E_nl();
+
     varsp := varsp - 4;
 
 	var whenblock := current_case.whenblocks;
