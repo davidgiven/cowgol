@@ -745,32 +745,75 @@ gen BLTS8(v8:lhs, v8:rhs):b { BranchSigned(self.n[0], 8, "<"); }
 // --- Case -----------------------------------------------------------------
 
 %{
-	sub Whencase(value: Arith, falselabel: LabelRef)
-		var vid := varstack[varsp-1];
-		E("\tif (v");
+	sub DoCase(width: uint8)
+		var vid := Pop();
+		E("\tswitch (v");
 		E_u16(vid);
-		E(" != ");
-		E_i32(value);
-		E(") goto ");
-		E_labelref(falselabel);
-		E(";\n");
+		E(") {\n");
+
+		var whenblock := current_case.whenblocks;
+		while whenblock != (0 as [WhenBlock]) loop
+			var thiswhen := &whenblock.whens[0];
+			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+				if thiswhen.label != 0 then
+					E("\t\tcase ");
+					var mask: uint32;
+					case width is
+						when 1: mask := 0xff;
+						when 2: mask := 0xffff;
+						when 4: mask := 0xffffffff;
+					end case;
+					E_u32((thiswhen.value as uint32) & mask);
+					E(": goto ");
+					E_labelref(thiswhen.label);
+					E(";\n");
+				end if;
+
+				thiswhen := @next thiswhen;
+			end loop;
+			whenblock := whenblock.next;
+		end loop;
+		if current_case.else_label != 0 then
+			E("\t\tdefault: goto ");
+			E_labelref(current_case.else_label);
+			E(";\n");
+		end if;
+		E("\t}\n");
 	end sub;
 %}
 
-gen STARTCASE1(v1);
-gen STARTCASE2(v2);
-gen STARTCASE4(v4);
-gen STARTCASE8(v8);
+gen CASE1(v1) { DoCase(1); }
+gen CASE2(v2) { DoCase(2); }
+gen CASE4(v4) { DoCase(4); }
+gen CASE8(v8) { DoCase(8); }
 
-gen WHENCASE1():c { Whencase($c.value & 0xff, $c.falselabel); }
-gen WHENCASE2():c { Whencase($c.value & 0xffff, $c.falselabel); }
-gen WHENCASE4():c { Whencase($c.value & 0xffffffff, $c.falselabel); }
-gen WHENCASE8():c { Whencase($c.value, $c.falselabel); }
-
-gen ENDCASE1() { varsp := varsp - 1; }
-gen ENDCASE2() { varsp := varsp - 1; }
-gen ENDCASE4() { varsp := varsp - 1; }
-gen ENDCASE8() { varsp := varsp - 1; }
+//%{
+//	sub Whencase(value: Arith, falselabel: LabelRef)
+//		var vid := varstack[varsp-1];
+//		E("\tif (v");
+//		E_u16(vid);
+//		E(" != ");
+//		E_i32(value);
+//		E(") goto ");
+//		E_labelref(falselabel);
+//		E(";\n");
+//	end sub;
+//%}
+//
+//gen STARTCASE1(v1);
+//gen STARTCASE2(v2);
+//gen STARTCASE4(v4);
+//gen STARTCASE8(v8);
+//
+//gen WHENCASE1():c { Whencase($c.value & 0xff, $c.falselabel); }
+//gen WHENCASE2():c { Whencase($c.value & 0xffff, $c.falselabel); }
+//gen WHENCASE4():c { Whencase($c.value & 0xffffffff, $c.falselabel); }
+//gen WHENCASE8():c { Whencase($c.value, $c.falselabel); }
+//
+//gen ENDCASE1() { varsp := varsp - 1; }
+//gen ENDCASE2() { varsp := varsp - 1; }
+//gen ENDCASE4() { varsp := varsp - 1; }
+//gen ENDCASE8() { varsp := varsp - 1; }
 
 // --- Casts ----------------------------------------------------------------
 

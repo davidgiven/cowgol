@@ -226,13 +226,51 @@ if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
 
 /* --- Case -------------------------------------------------------------- */
 
+%include
+{
+	sub FindSingleWhen(value: Arith): (thiswhen: [SingleWhen])
+		loop
+			var whenblock := current_case.whenblocks;
+			thiswhen := &whenblock.whens[0];
+			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+				if thiswhen.label == 0 then
+					return;
+				end if;
+				if thiswhen.value == value then
+					SimpleError("duplicate when value");
+				end if;
+				thiswhen := @next thiswhen;
+			end loop;
+
+			if whenblock.next == (0 as [WhenBlock]) then
+				var neww := Alloc(@bytesof WhenBlock) as [WhenBlock];
+				neww.next := whenblock;
+				current_case.whenblocks := neww;
+			end if;
+		end loop;
+	end sub;
+
+	sub EmitBreakIfNecessary()
+		if current_case.needsbreak != 0 then
+			Generate(MidJump(current_case.break_label));
+		end if;
+	end sub;
+}
+
 statement ::= startcase whens END CASE SEMICOLON.
 {
-	if (current_case.seenelse == 0) and (current_case.next_label != 0) then
-		Generate(MidLabel(current_case.next_label));
-	end if;
+	EmitBreakIfNecessary();
+	Generate(MidLabel(current_case.entry_label));
+	Generate(MidCase(NodeWidth(current_case.value), current_case.value));
 	Generate(MidLabel(current_case.break_label));
-	Generate(MidEndcase(current_case.width));
+
+	var whenblocks := current_case.whenblocks;
+	while whenblocks != (0 as [WhenBlock]) loop
+		var b := whenblocks;
+		whenblocks := whenblocks.next;
+
+		Free(b as [uint8]);
+	end loop;
 
 	var c := current_case;
 	current_case := c.old_case;
@@ -244,15 +282,17 @@ startcase ::= CASE expression(E) IS.
 	var c := Alloc(@bytesof CaseLabels) as [CaseLabels];
 	c.old_case := current_case;
 	c.old_break_label := break_label;
+	c.entry_label := AllocLabel();
 	c.break_label := AllocLabel();
+	c.whenblocks := Alloc(@bytesof WhenBlock) as [WhenBlock];
+	c.value := E;
 	current_case := c;
 
 	if IsNum(E.type) == 0 then
 		SimpleError("case only works on numbers");
 	end if;
 
-	c.width := NodeWidth(E);
-	Generate(MidStartcase(c.width, E));
+	Generate(MidJump(current_case.entry_label));
 }
 
 whens ::= .
@@ -262,31 +302,35 @@ when ::= beginwhen statements.
 
 beginwhen ::= WHEN cvalue(C) COLON.
 {
-	if current_case.seenelse != 0 then
-		SimpleError("when else must go last");
+	EmitBreakIfNecessary();
+
+	var thiswhen := FindSingleWhen(C);
+	thiswhen.value := C;
+	thiswhen.label := AllocLabel();
+
+	if C < current_case.minimum then
+		current_case.minimum := C;
+	end if;
+	if current_case.maximum < C then
+		current_case.maximum := C;
 	end if;
 
-	if current_case.next_label != 0 then
-		Generate(MidJump(current_case.break_label));
-		Generate(MidLabel(current_case.next_label));
-	end if;
-	current_case.next_label := AllocLabel();
-
-	Generate(MidWhencase(current_case.width, C, current_case.next_label));
+	Generate(MidLabel(thiswhen.label));
+	current_case.count := current_case.count + 1;
+	current_case.needsbreak := 1;
 }
 
 beginwhen ::= WHEN ELSE COLON.
 {
-	if current_case.seenelse != 0 then
+	EmitBreakIfNecessary();
+
+	if current_case.else_label != 0 then
 		SimpleError("only one when else allowed");
 	end if;
-	if current_case.next_label != 0 then
-		Generate(MidJump(current_case.break_label));
-		Generate(MidLabel(current_case.next_label));
-	end if;
-	current_case.next_label := 0;
-
-	current_case.seenelse := 1;
+	current_case.else_label := AllocLabel();
+	
+	Generate(MidLabel(current_case.else_label));
+	current_case.needsbreak := 1;
 }
 
 /* --- Conditional expressions ------------------------------------------- */

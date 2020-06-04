@@ -56,9 +56,8 @@ y 2 1 BEQ(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, nega
 y 2 1 BLTS(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
 y 2 1 BLTU(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
 
-y 1 0 STARTCASE()
-y 0 0 WHENCASE(value: int32, falselabel: uint16) = ("%s %d => %d", $$.isdefault ? "default" : "", $$.value, $$.label)
-y 0 0 ENDCASE()
+# Emitted after all the subclauses (there's a jump).
+y 1 0 CASE()
 
 # These produce all combinations of source and destination widths.
 y 1 1 CAST1(sext: uint8)

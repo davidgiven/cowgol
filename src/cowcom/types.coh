@@ -104,13 +104,29 @@ record IfLabels
 	next: [IfLabels];
 end record;
 
+record SingleWhen
+	label: LabelRef;
+	value: Arith;
+end record;
+
+const WHEN_BLOCK_SIZE := 16;
+record WhenBlock
+	next: [WhenBlock];
+	whens: SingleWhen[WHEN_BLOCK_SIZE];
+end record;
+
 record CaseLabels
-	next_label: LabelRef;
+	entry_label: LabelRef;
 	break_label: LabelRef;
+	else_label: LabelRef;
 	old_break_label: LabelRef;
 	old_case: [CaseLabels];
-	width: uint8;
-	seenelse: uint8;
+	value: [Node];
+	whenblocks: [WhenBlock];
+	minimum: Arith;
+	maximum: Arith;
+	count: uint16;
+	needsbreak: uint8;
 end record;
 
 record SubroutineCall
