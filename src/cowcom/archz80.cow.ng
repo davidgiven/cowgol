@@ -1920,14 +1920,6 @@ gen CASE1(a)
 
 gen CASE2(hl)
 {
-	E("\t; CASE2 min=");
-	E_i32(current_case.minimum);
-	E(" max=");
-	E_i32(current_case.maximum);
-	E(" count=");
-	E_u16(current_case.count);
-	E_nl();
-
 	var jumptable := MakeJumptable();
 	if jumptable == (0 as [LabelRef]) then
 		ArchEmitMove(REG_HL, REG_DE);
@@ -1970,34 +1962,80 @@ gen CASE2(hl)
 
 gen CASE4(dede)
 {
-	E(";\tCASE4\n");
-	E_exx();
-	E_push(REG_DE);
-	E_exx();
-	E_pop(REG_BC);
+	E("\t; CASE4 min=");
+	E_i32(current_case.minimum);
+	E(" max=");
+	E_i32(current_case.maximum);
+	E(" count=");
+	E_u16(current_case.count);
+	E_nl();
 
-	var whenblock := current_case.whenblocks;
-	while whenblock != (0 as [WhenBlock]) loop
-		var thiswhen := &whenblock.whens[0];
-		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
-			if thiswhen.label != 0 then
-				var value := thiswhen.value as uint32;
-				var next := AllocLabel();
+	var jumptable := MakeJumptable();
+	if jumptable == (0 as [LabelRef]) then
+		E_exx();
+		E_push(REG_DE);
+		E_exx();
+		E_pop(REG_BC);
 
-				case2(value as uint16, REG_DE);
-				E_jnz(next);
-				case2((value >> 16) as uint16, REG_BC);
-				E_jz(thiswhen.label);
-				E_label(next);
-			end if;
+		var whenblock := current_case.whenblocks;
+		while whenblock != (0 as [WhenBlock]) loop
+			var thiswhen := &whenblock.whens[0];
+			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+				if thiswhen.label != 0 then
+					var value := thiswhen.value as uint32;
+					var next := AllocLabel();
 
-			thiswhen := @next thiswhen;
+					case2(value as uint16, REG_DE);
+					E_jnz(next);
+					case2((value >> 16) as uint16, REG_BC);
+					E_jz(thiswhen.label);
+					E_label(next);
+				end if;
+
+				thiswhen := @next thiswhen;
+			end loop;
+			whenblock := whenblock.next;
 		end loop;
-		whenblock := whenblock.next;
-	end loop;
-	if current_case.else_label != 0 then
-		E_jp(current_case.else_label);
+		if current_case.else_label != 0 then
+			E_jp(current_case.else_label);
+		end if;
+	else
+		if current_case.minimum != 0 then
+			var delta := (-current_case.minimum) as uint32;
+			E_lxi(REG_HL, delta as uint16);
+			E_add(REG_HL, REG_DE);
+			E_ex(); # low word back to DE
+			E_exx();
+			E_lxi(REG_HL, (delta>>16) as uint16);
+			E_adc(REG_HL, REG_DE);
+			E_mov(REG_A, REG_H);
+			E_or(REG_L); # set flags from high word
+			E_exx();
+		else
+			E_exx();
+			E_mov(REG_A, REG_H);
+			E_or(REG_L); # set flags from high word
+			E_exx();
+		end if;
+
+		# Abandon anything where the high word is set.
+
+		E_jnz(current_case.else_label);
+
+		E_mov(REG_H, REG_D);
+		E_mov(REG_L, REG_E);
+
+		E_lxi(REG_BC, (current_case.maximum - current_case.minimum) as uint16 + 1);
+		E_rcf();
+		E_sbc(REG_HL, REG_BC);
+		E_jnc(current_case.else_label);
+
+		E_ex();
+
+		InvokeHelperAndEmitJumptable(jumptable);
 	end if;
+
+	R_flushall();
 }
 
 // --- Casts ----------------------------------------------------------------
