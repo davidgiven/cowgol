@@ -17,6 +17,13 @@ var one: int16 := ONE;
 var two: int16 := TWO;
 var three: int16 := THREE;
 
+print("one+ONE=TWO"); if one+ONE==TWO then yes(); else no(); end if;
+print("one-ONE=ZERO"); if one-ONE==ZERO then yes(); else no(); end if;
+
+var i: int16;
+print("i:=one+ONE=TWO"); i := one+ONE; if i==TWO then yes(); else no(); end if;
+print("i:=one-ONE=ZERO"); i := one-ONE; if i==ZERO then yes(); else no(); end if;
+
 print("one+two==three"); if one+two==three then yes(); else no(); end if;
 print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;
 print("one+one==two"); if one+one==two then yes(); else no(); end if;
