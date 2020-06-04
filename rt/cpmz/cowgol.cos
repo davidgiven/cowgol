@@ -534,6 +534,20 @@
     xor 0x80            ; invert sign byte, spoil Z
     ret
 
+# Jump to an address in a jumptable. DE points at the jumptable,
+# HL is the index.
+&X _jumptable
+    cseg ; _jumptable
+``:
+    pop bc              ; abandon return address
+    add hl, hl          ; double index
+    add hl, de
+    ld a, (hl)
+    inc hl
+    ld h, (hl)
+    ld l, a
+    jp (hl)
+
 # vim: ts=4 sw=4 et
 
 

@@ -37,6 +37,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 					"src/cowcom/codegen.coh",
 					"src/cowcom/emitter.coh",
 					"src/cowcom/expressions.coh",
+					"src/cowcom/jumptable.coh",
 					"src/cowcom/lexer.coh",
 					"src/cowcom/midcodec.coh",
 					"src/cowcom/namespace.coh",

@@ -265,6 +265,11 @@ if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
 statement ::= startcase whens END CASE SEMICOLON.
 {
 	EmitBreakIfNecessary();
+
+	if current_case.else_label == 0 then
+		current_case.else_label := current_case.break_label;
+	end if;
+
 	Generate(MidLabel(current_case.entry_label));
 	Generate(MidCase(NodeWidth(current_case.value), current_case.value));
 	Generate(MidLabel(current_case.break_label));
@@ -292,6 +297,8 @@ startcase ::= CASE expression(E) IS.
 	c.entry_label := AllocLabel();
 	c.break_label := AllocLabel();
 	c.whenblocks := Alloc(@bytesof WhenBlock) as [WhenBlock];
+	c.minimum := 0x7fffffff; # INT_MAX assuming a 32 bit arith. This is
+	c.maximum := 0x80000000; # INT_MIN assuming a 32 bit arith. a hack
 	c.value := E;
 	current_case := c;
 

@@ -19,6 +19,7 @@ include "src/cowcom/midcodec.coh";
 include "src/cowcom/emitter.coh";
 include "src/cowcom/regcache.coh";
 include "src/cowcom/namespace.coh";
+include "src/cowcom/jumptable.coh";
 include "src/cowcom/codegen.coh";
 include "src/cowcom/symbols.coh";
 include "src/cowcom/expressions.coh";

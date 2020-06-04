@@ -1,0 +1,42 @@
+# A general routine which constructs a jumptable from the current
+# case, or refuses too if it thinks it's not worth it.
+
+sub MakeJumptable(): (table: [LabelRef])
+	table := 0 as [LabelRef];
+	var range := (current_case.maximum - current_case.minimum) as uint16 + 1;
+
+	# We allow 25% wasteage.
+	var mincount := range - (range / 4);
+	if current_case.count < mincount then
+		return;
+	end if;
+
+	# Create the table and fill it with references to the default label.
+
+	table := Alloc(((range+1) * @bytesof(LabelRef)) as intptr) as [LabelRef];
+	var p := table;
+	var i := range;
+	while i != 1 loop
+		[p] := current_case.else_label;;
+		p := @next p;
+		i := i - 1;
+	end loop;
+	[p] := 0; # terminator
+
+	# Now populate it.
+
+	var whenblock := current_case.whenblocks;
+	while whenblock != (0 as [WhenBlock]) loop
+		var thiswhen := &whenblock.whens[0];
+		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+			if thiswhen.label != 0 then
+				var index := (thiswhen.value - current_case.minimum) as uint16;
+				[table + ((index*@bytesof(LabelRef)) as intptr)] := thiswhen.label;
+			end if;
+			thiswhen := @next thiswhen;
+		end loop;
+
+		whenblock := whenblock.next;
+	end loop;
+end sub;
+

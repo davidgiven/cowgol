@@ -109,6 +109,14 @@
 		E_jump("jp z,", label);
 	end sub;
 
+	sub E_jc(label: LabelRef)
+		E_jump("jp c,", label);
+	end sub;
+
+	sub E_jnc(label: LabelRef)
+		E_jump("jp nc,", label);
+	end sub;
+
 	sub E_ret()
 		E("\tret\n");
 	end sub;
@@ -1829,27 +1837,6 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 
 // --- Case -----------------------------------------------------------------
 
-gen CASE1(a)
-{
-	E(";\tCASE1\n");
-	var whenblock := current_case.whenblocks;
-	while whenblock != (0 as [WhenBlock]) loop
-		var thiswhen := &whenblock.whens[0];
-		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
-			if thiswhen.label != 0 then
-				E_cpi(thiswhen.value as uint8);
-				E_jz(thiswhen.label);
-			end if;
-
-			thiswhen := @next thiswhen;
-		end loop;
-		whenblock := whenblock.next;
-	end loop;
-	if current_case.else_label != 0 then
-		E_jp(current_case.else_label);
-	end if;
-}
-
 %{
 	sub case2(value: uint16, reg: RegId)
 		if value < 0x100 then
@@ -1865,27 +1852,120 @@ gen CASE1(a)
 			E_or(REG_L);
 		end if;
 	end sub;
+
+	sub InvokeHelperAndEmitJumptable(jumptable: [LabelRef])
+		var tableaddress := AllocLabel();
+
+		E("\tld ");
+		E_reg(REG_DE);
+		E_comma();
+		E_labelref(tableaddress);
+		E_nl();
+
+		E_callhelper("_jumptable");
+
+		E_label(tableaddress);
+		var p := jumptable;
+		loop
+			var label := [p];
+			if label == 0 then
+				break;
+			end if;
+			E("\tword ");
+			E_labelref(label);
+			E_nl();
+			p := @next p;
+		end loop;
+
+		Free(jumptable as [uint8]);
+	end sub;
 %}
 
-gen CASE2(de)
+gen CASE1(a)
 {
-	E(";\tCASE2\n");
-	var whenblock := current_case.whenblocks;
-	while whenblock != (0 as [WhenBlock]) loop
-		var thiswhen := &whenblock.whens[0];
-		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
-			if thiswhen.label != 0 then
-				case2(thiswhen.value as uint16, REG_DE);
-				E_jz(thiswhen.label);
-			end if;
+	var jumptable := MakeJumptable();
+	if jumptable == (0 as [LabelRef]) then
+		var whenblock := current_case.whenblocks;
+		while whenblock != (0 as [WhenBlock]) loop
+			var thiswhen := &whenblock.whens[0];
+			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+				if thiswhen.label != 0 then
+					E_cpi(thiswhen.value as uint8);
+					E_jz(thiswhen.label);
+				end if;
 
-			thiswhen := @next thiswhen;
+				thiswhen := @next thiswhen;
+			end loop;
+			whenblock := whenblock.next;
 		end loop;
-		whenblock := whenblock.next;
-	end loop;
-	if current_case.else_label != 0 then
-		E_jp(current_case.else_label);
+		if current_case.else_label != 0 then
+			E_jp(current_case.else_label);
+		end if;
+	else
+		if current_case.minimum != 0 then
+			E_subi(current_case.minimum as uint8);
+		end if;
+
+		E_cpi((current_case.maximum - current_case.minimum) as uint8 + 1);
+		E_jnc(current_case.else_label);
+
+		E_mov(REG_L, REG_A);
+		E_mvi(REG_H, 0);
+
+		InvokeHelperAndEmitJumptable(jumptable);
 	end if;
+
+	R_flushall();
+}
+
+gen CASE2(hl)
+{
+	E("\t; CASE2 min=");
+	E_i32(current_case.minimum);
+	E(" max=");
+	E_i32(current_case.maximum);
+	E(" count=");
+	E_u16(current_case.count);
+	E_nl();
+
+	var jumptable := MakeJumptable();
+	if jumptable == (0 as [LabelRef]) then
+		ArchEmitMove(REG_HL, REG_DE);
+		var whenblock := current_case.whenblocks;
+		while whenblock != (0 as [WhenBlock]) loop
+			var thiswhen := &whenblock.whens[0];
+			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+				if thiswhen.label != 0 then
+					case2(thiswhen.value as uint16, REG_DE);
+					E_jz(thiswhen.label);
+				end if;
+
+				thiswhen := @next thiswhen;
+			end loop;
+			whenblock := whenblock.next;
+		end loop;
+		if current_case.else_label != 0 then
+			E_jp(current_case.else_label);
+		end if;
+	else
+		if current_case.minimum != 0 then
+			E_lxi(REG_DE, -(current_case.minimum as uint16));
+			E_add(REG_HL, REG_DE);
+		end if;
+
+		E_mov(REG_D, REG_H);
+		E_mov(REG_E, REG_L);
+		E_lxi(REG_BC, (current_case.maximum - current_case.minimum) as uint16 + 1);
+		E_rcf();
+		E_sbc(REG_HL, REG_BC);
+		E_jnc(current_case.else_label);
+
+		E_ex();
+
+		InvokeHelperAndEmitJumptable(jumptable);
+	end if;
+
+	R_flushall();
 }
 
 gen CASE4(dede)
