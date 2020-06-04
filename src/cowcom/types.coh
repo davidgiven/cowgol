@@ -87,6 +87,7 @@ record Subroutine
 	old_break_label: LabelRef;
 	old_continue_label: LabelRef;
 	old_call: [Subroutine];
+	arch: [ArchSubroutine];
 end record;
 
 record LoopLabels

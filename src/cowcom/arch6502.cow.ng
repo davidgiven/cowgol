@@ -16,6 +16,10 @@
     var ptrsp: uint8 := 0;
     var inasm: uint8 := 0;
 
+    record ArchSubroutine
+        seen_return: uint8;
+    end record;
+
     record Extern
         name: string;
         id: uint16;
@@ -1024,6 +1028,8 @@ gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode :
 
 gen STARTSUB():s
 {
+    $s.subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+
     RegCacheReset();
 
     EmitterPushChunk();
@@ -1131,20 +1137,26 @@ gen STARTSUB():s
 
 gen ENDSUB():s
 {
-    E("end_");
-    E_subref(current_subr);
-    E(":\n");
+    if $s.subr.arch.seen_return != 0 then
+        E("end_");
+        E_subref(current_subr);
+        E(":\n");
+    end if;
 
     var i: uint8 := 0;
     var count := $s.subr.num_output_parameters;
     while i != count loop
         var param := GetOutputParameter($s.subr, i);
 
+        var cache: RegId;
         case param.vardata.type.typedata.width is
             when 1:
-                E_ld(REG_A);
-                E_symref(param, 0);
-                E_nl();
+                cache := RegCacheFindValue(param, 0) & REG_A;
+                if cache == 0 then
+                    E_ld(REG_A);
+                    E_symref(param, 0);
+                    E_nl();
+                end if;
                 if i != (count-1) then
                     E_pha();
                 end if;
@@ -1162,13 +1174,16 @@ gen ENDSUB():s
                     E_nl();
                     E_pha();
                 else
-                    E_ld(REG_A);
-                    E_symref(param, 0);
-                    E_nl();
+                    cache := RegCacheFindValue(param, 0) & REG_XA;
+                    if cache == 0 then
+                        E_ld(REG_A);
+                        E_symref(param, 0);
+                        E_nl();
 
-                    E_ld(REG_X);
-                    E_symref(param, 1);
-                    E_nl();
+                        E_ld(REG_X);
+                        E_symref(param, 1);
+                        E_nl();
+                    end if;
                 end if;
 
             when 4:
@@ -1217,10 +1232,13 @@ gen ENDSUB():s
         EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
         i := i + 1;
     end loop;
+
+    Free($s.subr.arch as [uint8]);
 }
 
 gen RETURN()
 {
+    current_subr.arch.seen_return := 1;
     E("\tjmp end_");
     E_subref(current_subr);
     E_nl();
