@@ -229,8 +229,8 @@ if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
 %include
 {
 	sub FindSingleWhen(value: Arith): (thiswhen: [SingleWhen])
+		var whenblock := current_case.whenblocks;
 		loop
-			var whenblock := current_case.whenblocks;
 			thiswhen := &whenblock.whens[0];
 			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
 				if thiswhen.label == 0 then
@@ -246,6 +246,9 @@ if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
 				var neww := Alloc(@bytesof WhenBlock) as [WhenBlock];
 				neww.next := whenblock;
 				current_case.whenblocks := neww;
+				whenblock := neww;
+			else
+				whenblock := whenblock.next;
 			end if;
 		end loop;
 	end sub;
@@ -275,6 +278,8 @@ statement ::= startcase whens END CASE SEMICOLON.
 	var c := current_case;
 	current_case := c.old_case;
 	Free(c as [uint8]);
+
+	CheckMemoryChain();
 }
 
 startcase ::= CASE expression(E) IS.

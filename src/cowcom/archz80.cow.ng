@@ -105,6 +105,10 @@
 		E_jump("jp nz,", label);
 	end sub;
 
+	sub E_jz(label: LabelRef)
+		E_jump("jp z,", label);
+	end sub;
+
 	sub E_ret()
 		E("\tret\n");
 	end sub;
@@ -1825,36 +1829,28 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(a);
-
-gen STARTCASE2(de);
-
-gen STARTCASE4(r32:val)
+gen CASE1(a)
 {
-	E_exx();
-	E_push($val);
-	E_exx();
-	if $val == REG_HLHL then
-		E_ex(); # quickly move to DE
-	elseif $val == REG_BCBC then
-		E_mov(REG_D, REG_B);
-		E_mov(REG_E, REG_C);
-	end if;
-	E_pop(REG_BC);
-}
+	var whenblock := current_case.whenblocks;
+	while whenblock != (0 as [WhenBlock]) loop
+		var thiswhen := &whenblock.whens[0];
+		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+			if thiswhen.label != 0 then
+				E_cpi(thiswhen.value as uint8);
+				E_jz(thiswhen.label);
+			end if;
 
-gen WHENCASE1():c
-{
-	if $c.value == 0 then
-		E_or(REG_A);
-	else
-		E_cpi($c.value as uint8);
+			thiswhen := @next thiswhen;
+		end loop;
+		whenblock := whenblock.next;
+	end loop;
+	if current_case.else_label != 0 then
+		E_jp(current_case.else_label);
 	end if;
-	E_jnz($c.falselabel);
 }
 
 %{
-	sub case2(value: uint16, reg: RegId, label: LabelRef)
+	sub case2(value: uint16, reg: RegId)
 		if value < 0x100 then
 			E_mov(REG_A, loreg(reg));
 			if value != 0 then
@@ -1867,24 +1863,59 @@ gen WHENCASE1():c
 			E_mov(REG_A, REG_H);
 			E_or(REG_L);
 		end if;
-		E_jnz(label);
 	end sub;
 %}
 
-gen WHENCASE2():c uses a
+gen CASE2(de)
 {
-	case2($c.value as uint16, REG_DE, $c.falselabel);
+	var whenblock := current_case.whenblocks;
+	while whenblock != (0 as [WhenBlock]) loop
+		var thiswhen := &whenblock.whens[0];
+		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+			if thiswhen.label != 0 then
+				case2(thiswhen.value as uint16, REG_DE);
+				E_jz(thiswhen.label);
+			end if;
+
+			thiswhen := @next thiswhen;
+		end loop;
+		whenblock := whenblock.next;
+	end loop;
+	if current_case.else_label != 0 then
+		E_jp(current_case.else_label);
+	end if;
 }
 
-gen WHENCASE4():c uses a
+gen CASE4(dede)
 {
-	case2($c.value as uint16, REG_DE, $c.falselabel);
-	case2(($c.value >> 16) as uint16, REG_BC, $c.falselabel);
-}
+	E_exx();
+	E_push(REG_DE);
+	E_exx();
+	E_pop(REG_BC);
 
-gen ENDCASE1();
-gen ENDCASE2();
-gen ENDCASE4();
+	var whenblock := current_case.whenblocks;
+	while whenblock != (0 as [WhenBlock]) loop
+		var thiswhen := &whenblock.whens[0];
+		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+			if thiswhen.label != 0 then
+				var value := thiswhen.value as uint32;
+				var next := AllocLabel();
+
+				case2(value as uint16, REG_DE);
+				E_jnz(next);
+				case2((value >> 16) as uint16, REG_BC);
+				E_jz(thiswhen.label);
+				E_label(next);
+			end if;
+
+			thiswhen := @next thiswhen;
+		end loop;
+		whenblock := whenblock.next;
+	end loop;
+	if current_case.else_label != 0 then
+		E_jp(current_case.else_label);
+	end if;
+}
 
 // --- Casts ----------------------------------------------------------------
 

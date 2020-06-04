@@ -332,6 +332,10 @@
 		E_jump("jne", label);
 	end sub;
 
+	sub E_je(label: LabelRef)
+		E_jump("je", label);
+	end sub;
+
 	sub E_call(subr: [Subroutine])
 		R_flushall();
 		E_tab();
@@ -1042,33 +1046,30 @@ gen BLTU4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(al);
+%{
+	sub DoCase(reg: RegId)
+		var whenblock := current_case.whenblocks;
+		while whenblock != (0 as [WhenBlock]) loop
+			var thiswhen := &whenblock.whens[0];
+			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+				if thiswhen.label != 0 then
+					E_cmpi(thiswhen.value, reg);
+					E_je(thiswhen.label);
+				end if;
 
-gen STARTCASE2(ax);
+				thiswhen := @next thiswhen;
+			end loop;
+			whenblock := whenblock.next;
+		end loop;
+		if current_case.else_label != 0 then
+			E_jmp(current_case.else_label);
+		end if;
+	end sub;
+%}
 
-gen STARTCASE4(eax);
-
-gen WHENCASE1():c
-{
-	E_cmpi($c.value & 0xff, REG_AL);
-	E_jne($c.falselabel);
-}
-
-gen WHENCASE2():c
-{
-	E_cmpi($c.value & 0xffff, REG_AX);
-	E_jne($c.falselabel);
-}
-
-gen WHENCASE4():c
-{
-	E_cmpi($c.value, REG_EAX);
-	E_jne($c.falselabel);
-}
-
-gen ENDCASE1();
-gen ENDCASE2();
-gen ENDCASE4();
+gen CASE1(al) { DoCase($$); }
+gen CASE2(ax) { DoCase($$); }
+gen CASE4(eax) { DoCase($$); }
 
 // --- Casts ----------------------------------------------------------------
 

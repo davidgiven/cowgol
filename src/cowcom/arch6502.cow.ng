@@ -226,6 +226,10 @@
         E_jump("bne", label);
     end sub;
 
+    sub E_beq(label: LabelRef)
+        E_jump("beq", label);
+    end sub;
+
     sub E_bcs(label: LabelRef)
         E_jump("bcs", label);
     end sub;
@@ -975,34 +979,7 @@ gen JUMP():j
         EndError();
     end sub;
 
-    var cases: uint8 := 0;
     sub ArchEndGroup()
-        # The opstack should be empty at the end of every statement. If it's
-        # not, then that means we've leaked an op somewhere. (Unless we're in
-        # a case...)
-        #if cases == 0 then
-        #    if opsp != 0 then
-        #        StartError();
-        #        print("opstack has ");
-        #        print_i8(opsp);
-        #        print(" left after statement");
-        #        EndError();
-        #    end if;
-        #    if varsp != 0 then
-        #        StartError();
-        #        print("varstack has ");
-        #        print_i8(varsp);
-        #        print(" left after statement");
-        #        EndError();
-        #    end if;
-        #    if ptrsp != 0 then
-        #        StartError();
-        #        print("ptrstack has ");
-        #        print_i8(ptrsp);
-        #        print(" left after statement");
-        #        EndError();
-        #    end if;
-        #end if;
         if inasm == 0 then
             E_nl();
         end if;
@@ -2320,59 +2297,83 @@ gen xa := CAST42(in4s)
 
 // --- Case -----------------------------------------------------------------
 
-%{
-    sub StartCase()
-        cases := cases + 1;
-    end sub;
-
-    sub EndCase()
-        cases := cases - 1;
-    end sub;
-%}
-
-gen STARTCASE1(a) { StartCase(); }
-gen STARTCASE2(xa) { StartCase(); }
-gen STARTCASE4(v32) { StartCase(); }
-
-gen WHENCASE1():c
+gen CASE1(a)
 {
-    E_insn("cmp");
-    E_const($c.value as uint8);
-    E_nl();
-    E_bne($c.falselabel);
+	var whenblock := current_case.whenblocks;
+	while whenblock != (0 as [WhenBlock]) loop
+		var thiswhen := &whenblock.whens[0];
+		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+			if thiswhen.label != 0 then
+                E_cmp();
+                E_const(thiswhen.value as uint8);
+                E_beq(thiswhen.label);
+			end if;
+
+			thiswhen := @next thiswhen;
+		end loop;
+		whenblock := whenblock.next;
+	end loop;
+	if current_case.else_label != 0 then
+		E_jmp(current_case.else_label);
+	end if;
 }
 
-gen WHENCASE2():c uses a
+gen CASE2(xa)
 {
-    E_insn("cmp");
-    E_const($c.value as uint8);
-    E_nl();
-    E_bne($c.falselabel);
+	var whenblock := current_case.whenblocks;
+	while whenblock != (0 as [WhenBlock]) loop
+		var thiswhen := &whenblock.whens[0];
+		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+			if thiswhen.label != 0 then
+                var next := AllocLabel();
+                E_cmp();
+                E_const(thiswhen.value as uint8);
+                E_bne(next);
+                E_cpx();
+                E_const((thiswhen.value>>8) as uint8);
+                E_beq(thiswhen.label);
+                E_labelref(next);
+                E(":\n");
+			end if;
 
-    E_insn("cpx");
-    E_const(($c.value>>8) as uint8);
-    E_nl();
-    E_bne($c.falselabel);
+			thiswhen := @next thiswhen;
+		end loop;
+		whenblock := whenblock.next;
+	end loop;
+	if current_case.else_label != 0 then
+		E_jmp(current_case.else_label);
+	end if;
 }
 
-gen WHENCASE4():c uses a
+gen CASE4(v32)
 {
     varsp := varsp - 4;
-    var lhs := PushV32(); # overlaps the stored value
-    var op := PushConstOp($c.value);
 
-    var node: Node;
-    node.beq0.falselabel := $c.falselabel;
-    node.beq0.truelabel := 0;
-    node.beq0.fallthrough := 0;
-    DoCmp4EQ(&node);
+	var whenblock := current_case.whenblocks;
+	while whenblock != (0 as [WhenBlock]) loop
+		var thiswhen := &whenblock.whens[0];
+		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
+			if thiswhen.label != 0 then
+                var lhs := PushV32(); # overlaps the stored value
+                var op := PushConstOp(thiswhen.value);
+
+                var node: Node;
+                node.beq0.falselabel := 0;
+                node.beq0.truelabel := thiswhen.label;
+                node.beq0.fallthrough := thiswhen.label;
+                DoCmp4EQ(&node);
+			end if;
+
+			thiswhen := @next thiswhen;
+		end loop;
+		whenblock := whenblock.next;
+	end loop;
+	if current_case.else_label != 0 then
+		E_jmp(current_case.else_label);
+	end if;
 
     varsp := varsp + 4;
 }
-
-gen ENDCASE1() { EndCase(); }
-gen ENDCASE2() { EndCase(); }
-gen ENDCASE4() { var op := PopOp(); EndCase(); }
 
 // --- Strings --------------------------------------------------------------
 
