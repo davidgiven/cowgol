@@ -1831,6 +1831,7 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 
 gen CASE1(a)
 {
+	E(";\tCASE1\n");
 	var whenblock := current_case.whenblocks;
 	while whenblock != (0 as [WhenBlock]) loop
 		var thiswhen := &whenblock.whens[0];
@@ -1868,6 +1869,7 @@ gen CASE1(a)
 
 gen CASE2(de)
 {
+	E(";\tCASE2\n");
 	var whenblock := current_case.whenblocks;
 	while whenblock != (0 as [WhenBlock]) loop
 		var thiswhen := &whenblock.whens[0];
@@ -1888,6 +1890,7 @@ gen CASE2(de)
 
 gen CASE4(dede)
 {
+	E(";\tCASE4\n");
 	E_exx();
 	E_push(REG_DE);
 	E_exx();

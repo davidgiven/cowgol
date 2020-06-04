@@ -14,3 +14,7 @@ uint32 of 2 == 2: yes
 uint32 of 9 == 4: yes
 int32 of -2 == -2: yes
 int32 of 9 == 4: yes
+0 of many == 100: yes
+13 of many == 113: yes
+19 of many == 119: yes
+39 of many == 139: yes

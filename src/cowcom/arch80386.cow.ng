@@ -1070,9 +1070,9 @@ gen BLTU4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0
 	end sub;
 %}
 
-gen CASE1(al) { DoCase($$); }
-gen CASE2(ax) { DoCase($$); }
-gen CASE4(eax) { DoCase($$); }
+gen CASE1(al:lhs) { DoCase($lhs); }
+gen CASE2(ax:lhs) { DoCase($lhs); }
+gen CASE4(eax:lhs) { DoCase($lhs); }
 
 // --- Casts ----------------------------------------------------------------
 

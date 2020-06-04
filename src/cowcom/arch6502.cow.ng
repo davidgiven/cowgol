@@ -2306,6 +2306,8 @@ gen CASE1(a)
 			if thiswhen.label != 0 then
                 E_cmp();
                 E_const(thiswhen.value as uint8);
+                E_nl();
+
                 E_beq(thiswhen.label);
 			end if;
 
@@ -2326,11 +2328,17 @@ gen CASE2(xa)
 		while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
 			if thiswhen.label != 0 then
                 var next := AllocLabel();
+
                 E_cmp();
                 E_const(thiswhen.value as uint8);
+                E_nl();
+
                 E_bne(next);
+
                 E_cpx();
                 E_const((thiswhen.value>>8) as uint8);
+                E_nl();
+
                 E_beq(thiswhen.label);
                 E_labelref(next);
                 E(":\n");
@@ -2357,11 +2365,16 @@ gen CASE4(v32)
                 var lhs := PushV32(); # overlaps the stored value
                 var op := PushConstOp(thiswhen.value);
 
+                var next := AllocLabel();
+
                 var node: Node;
-                node.beq0.falselabel := 0;
+                node.beq0.falselabel := next;
                 node.beq0.truelabel := thiswhen.label;
-                node.beq0.fallthrough := thiswhen.label;
+                node.beq0.fallthrough := next;
                 DoCmp4EQ(&node);
+
+                E_labelref(next);
+                E(":\n");
 			end if;
 
 			thiswhen := @next thiswhen;

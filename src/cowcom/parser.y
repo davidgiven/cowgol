@@ -244,9 +244,11 @@ if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
 
 			if whenblock.next == (0 as [WhenBlock]) then
 				var neww := Alloc(@bytesof WhenBlock) as [WhenBlock];
-				neww.next := whenblock;
+				neww.next := current_case.whenblocks;
 				current_case.whenblocks := neww;
 				whenblock := neww;
+				# The next iteration of the loop is guaranteed to succeed
+				# as the next head block is empty.
 			else
 				whenblock := whenblock.next;
 			end if;
