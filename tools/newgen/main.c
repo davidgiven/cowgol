@@ -425,7 +425,7 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 		{
 			case IS:
 				#if defined COWGOL
-					fprintf(outfp, " (is_%s([n + %d * @bytesof intptr].", predicate->u.callback, index);
+					fprintf(outfp, " (is_%s(slots[%d].", predicate->u.callback, index);
 				#else
 					fprintf(outfp, " (is_%s(n[%d]->u.", predicate->u.callback, index);
 				#endif
@@ -435,7 +435,7 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 
 			default:
 				#if defined COWGOL
-					fprintf(outfp, " ([n + %d * @bytesof intptr].", index);
+					fprintf(outfp, " (slots[%d].", index);
 				#else
 					fprintf(outfp, " (n[%d]->u.", index);
 				#endif
@@ -455,6 +455,8 @@ static void create_match_predicates(void)
 {
 	#if defined COWGOL
 		fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8)\n");
+		fprintf(outfp, "var slots: [Node][%d];\n", maxdepth);
+		fprintf(outfp, "MemCopy(n as [uint8], @bytesof slots, &slots[0] as [uint8]);\n");
 		fprintf(outfp, "matches := 0;\n");
 		fprintf(outfp, "case rule is\n");
 	#else
