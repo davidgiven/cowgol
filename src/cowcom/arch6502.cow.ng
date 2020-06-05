@@ -2332,7 +2332,38 @@ gen xa := CAST42(in4s)
 
 gen STARTCASE1(a) { StartCase(); }
 gen STARTCASE2(xa) { StartCase(); }
-gen STARTCASE4(v32) { StartCase(); }
+
+gen STARTCASE4(v32)
+{
+    E("\t;CASE4\n");
+    StartCase();
+
+    var e := GetHelper("_when4");
+    var op := PeekOp();
+    var sid := op.stk.sid;
+
+    E_lda();
+    E_constlo();
+    E_stackref(sid);
+    E_nl();
+
+    E_sta();
+    EmitByte(COO_ESCAPE_WSREF);
+    E_h16(e.id);
+    E("010000\n");
+    E_nl();
+    
+    E_lda();
+    E_consthi();
+    E_stackref(sid);
+    E_nl();
+
+    E_sta();
+    EmitByte(COO_ESCAPE_WSREF);
+    E_h16(e.id);
+    E("010001\n");
+    E_nl();
+}
 
 gen WHENCASE1():c
 {
@@ -2357,17 +2388,12 @@ gen WHENCASE2():c uses a
 
 gen WHENCASE4():c uses a
 {
-    varsp := varsp - 4;
-    var lhs := PushV32(); # overlaps the stored value
-    var op := PushConstOp($c.value);
+    E_callhelper("_when4");
+    E("\t.dint ");
+    E_i32($c.value);
+    E_nl();
 
-    var node: Node;
-    node.beq0.falselabel := $c.falselabel;
-    node.beq0.truelabel := 0;
-    node.beq0.fallthrough := 0;
-    DoCmp4EQ(&node);
-
-    varsp := varsp + 4;
+    E_bne($c.falselabel);
 }
 
 gen ENDCASE1() { EndCase(); }
