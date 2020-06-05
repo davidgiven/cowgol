@@ -145,6 +145,11 @@
     const OC_DEY := 43;
     const OC_INC := 44;
     const OC_DEC := 45;
+    const OC_BRA := 46;
+    const OC_BMI := 47;
+    const OC_BPL := 48;
+    const OC_ASL := 49;
+    const OC_LSR := 50;
 
     sub E_oc(oc: uint8)
         var ocs: string[] := {
@@ -153,7 +158,8 @@
             "txa", "tay", "tya", "beq", "bne", "bvs", "bcc", "bcs",
             "clc", "sec", "rts", "jsr", "jmp", "phx", "phy", "plx",
             "ply", "tsx", "txs", "rol", "stz", "cmp", "cpx", "cpy",
-            "inx", "iny", "dex", "dey", "inc", "dec"
+            "inx", "iny", "dex", "dey", "inc", "dec", "bra", "bmi",
+            "bpl", "asl", "lsr"
         };
 
         E_tab();
@@ -164,12 +170,6 @@
     sub E_ocnl(oc: uint8)
         E_oc(oc);
         E_nl();
-    end sub;
-
-    sub E_insn(insn: string)
-        E_tab();
-        E(insn);
-        E_space();
     end sub;
 
     sub E_plusone()
@@ -232,38 +232,27 @@
         E("#>");
     end sub;
 
-    sub E_jump(insn: string, label: LabelRef)
+    sub E_jump(oc: uint8, label: LabelRef)
         R_flushall();
-        E_tab();
-        E(insn);
-        E_space();
+        E_oc(oc);
         E_labelref(label);
         E_nl();
     end sub;
 
     sub E_jmp(label: LabelRef)
+        var oc: uint8;
         $ifdef ARCH_65C02
-            E_jump("bra", label);
+            oc := OC_BRA;
         $else
-            E_jump("jmp", label);
+            oc := OC_JMP;
         $endif
+        E_jump(oc, label);
     end sub;
 
-    sub E_bne(label: LabelRef)
-        E_jump("bne", label);
-    end sub;
-
-    sub E_bcs(label: LabelRef)
-        E_jump("bcs", label);
-    end sub;
-
-    sub E_bmi(label: LabelRef)
-        E_jump("bmi", label);
-    end sub;
-
-    sub E_bpl(label: LabelRef)
-        E_jump("bpl", label);
-    end sub;
+    sub E_bne(label: LabelRef) E_jump(OC_BNE, label); end sub;
+    sub E_bcs(label: LabelRef) E_jump(OC_BCS, label); end sub;
+    sub E_bmi(label: LabelRef) E_jump(OC_BMI, label); end sub;
+    sub E_bpl(label: LabelRef) E_jump(OC_BPL, label); end sub;
 
     sub E_rts() E_ocnl(OC_RTS); end sub;
     sub E_clc() E_ocnl(OC_CLC); end sub;
@@ -485,35 +474,35 @@
         EmitterPopChunk('R');
 
         R_flushall();
-        E("\tjsr ");
+        E_oc(OC_JSR);
         EmitByte(COO_ESCAPE_SUBREF);
         E_h16(e.id);
         E_nl();
     end sub;
 
-    sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+    sub E_jumps_with_fallthrough(trueoc: uint8, falseoc: uint8, node: [Node])
         if node.beq0.truelabel != node.beq0.fallthrough then
-            E_jump(trueinsn, node.beq0.truelabel);
+            E_jump(trueoc, node.beq0.truelabel);
         end if;
         if node.beq0.falselabel != node.beq0.fallthrough then
-            E_jump(falseinsn, node.beq0.falselabel);
+            E_jump(falseoc, node.beq0.falselabel);
         end if;
     end sub;
 
     sub E_jumps_beq_bne(node: [Node])
-        E_jumps_with_fallthrough("beq", "bne", node);
+        E_jumps_with_fallthrough(OC_BEQ, OC_BNE, node);
     end sub;
 
     sub E_jumps_bcs_bcc(node: [Node])
-        E_jumps_with_fallthrough("bcs", "bcc", node);
+        E_jumps_with_fallthrough(OC_BCS, OC_BCC, node);
     end sub;
 
     sub E_jumps_bcc_bcs(node: [Node])
-        E_jumps_with_fallthrough("bcc", "bcs", node);
+        E_jumps_with_fallthrough(OC_BCC, OC_BCS, node);
     end sub;
 
     sub E_jumps_bmi_bpl(node: [Node])
-        E_jumps_with_fallthrough("bmi", "bpl", node);
+        E_jumps_with_fallthrough(OC_BMI, OC_BPL, node);
     end sub;
 
     sub AllocConst(value: Arith): (lid: uint16)
@@ -797,8 +786,8 @@ gen JUMP():j
         DerefOp(op);
     end sub;
 
-    sub DoParamIndirect(operand: [Operand], insn: string)
-        E_insn(insn);
+    sub DoParamIndirect(operand: [Operand], oc: uint8)
+        E_oc(oc);
         case operand.mode is
             when MODE_CONST:
                 E_labelref(AllocConst(operand.val));
@@ -828,19 +817,11 @@ gen JUMP():j
         E_y_nl();
     end sub;
 
-    sub DoParamIndirect_lda(operand: [Operand])
-        DoParamIndirect(operand, "lda");
-    end sub;
+    sub DoParamIndirect_lda(operand: [Operand]) DoParamIndirect(operand, OC_LDA); end sub; 
+    sub DoParamIndirect_sta(operand: [Operand]) DoParamIndirect(operand, OC_STA); end sub; 
+    sub DoParamIndirect_sbc(operand: [Operand]) DoParamIndirect(operand, OC_SBC); end sub;
 
-    sub DoParamIndirect_sta(operand: [Operand])
-        DoParamIndirect(operand, "sta");
-    end sub;
-
-    sub DoParamIndirect_sbc(operand: [Operand])
-        DoParamIndirect(operand, "sbc");
-    end sub;
-
-    sub DoParamDirect(operand: [Operand], insn: string, offset: uint8)
+    sub DoParamDirect(operand: [Operand], oc: uint8, offset: uint8)
         var m := operand.mode;
         if (m == MODE_STACKI) or (m == MODE_SYMBOLI) then
             $ifdef ARCH_65C02
@@ -852,7 +833,7 @@ gen JUMP():j
             $endif
         end if;
 
-        E_insn(insn);
+        E_oc(oc);
         case operand.mode is
             when MODE_CONST:
                 E_const((operand.val >> (8*offset)) as uint8);
@@ -903,13 +884,8 @@ gen JUMP():j
         E_nl();
     end sub;
 
-    sub DoParamDirect_lda(operand: [Operand], offset: uint8)
-        DoParamDirect(operand, "lda", offset);
-    end sub;
-
-    sub DoParamDirect_sta(operand: [Operand], offset: uint8)
-        DoParamDirect(operand, "sta", offset);
-    end sub;
+    sub DoParamDirect_lda(operand: [Operand], offset: uint8) DoParamDirect(operand, OC_LDA, offset); end sub;
+    sub DoParamDirect_sta(operand: [Operand], offset: uint8) DoParamDirect(operand, OC_STA, offset); end sub;
 
     # Note that this *destroys* the source register.
     sub ArchEmitMove(src: RegId, dest: RegId)
@@ -1469,26 +1445,28 @@ gen a := NEG1(a)
 
 $ifdef ARCH_65C02
     %{
-        sub SmallAdditionOrSubtraction(insn: string, amount: uint8)
+        sub SmallAdditionOrSubtraction(oc: uint8, amount: uint8)
             R_flush(REG_A);
             while amount != 0 loop
-                E_insn(insn);
+                E_oc(oc);
+                E_a();
+                E_nl();
                 amount := amount - 1;
             end loop;
         end sub;
     %}
 
     gen a := ADD1(a, CONSTANT(value>=0, value<=3):c)
-            { SmallAdditionOrSubtraction("inc a\n", $c.value as uint8); }
+            { SmallAdditionOrSubtraction(OC_INC, $c.value as uint8); }
     gen a := ADD1(a, CONSTANT(value<0, value>=-3):c)
-            { SmallAdditionOrSubtraction("dec a\n", -($c.value as int8) as uint8); }
+            { SmallAdditionOrSubtraction(OC_DEC, -($c.value as int8) as uint8); }
 $endif
 
-gen a := ADD1(a, in1s) uses y { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), "adc", 0); }
-gen a := SUB1(a, in1s) uses y { paramwidth := 1; E_sec(); DoParamDirect(PopOp(), "sbc", 0); }
-gen a := OR1 (a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "ora", 0); }
-gen a := AND1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "and", 0); }
-gen a := EOR1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), "eor", 0); }
+gen a := ADD1(a, in1s) uses y { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), OC_ADC, 0); }
+gen a := SUB1(a, in1s) uses y { paramwidth := 1; E_sec(); DoParamDirect(PopOp(), OC_SBC, 0); }
+gen a := OR1 (a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), OC_ORA, 0); }
+gen a := AND1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), OC_AND, 0); }
+gen a := EOR1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), OC_EOR, 0); }
 
 %{
     sub is_inc_or_dec(value: Arith): (result: uint8)
@@ -1528,17 +1506,16 @@ gen STORE1(ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
 }
 
 %{
-    sub Shift1(insn: string, amount: uint8)
+    sub Shift1(oc: uint8, amount: uint8)
         while amount != 0 loop
-            E_insn(insn);
-            E_nl();
+            E_ocnl(oc);
             amount := amount - 1;
         end loop;
     end sub;
 %}
 
-gen a := LSHIFT1(a, CONSTANT(value<=3):c) { Shift1("asl", $c.value as uint8); }
-gen a := RSHIFTU1(a, CONSTANT(value<=3):c) { Shift1("lsr", $c.value as uint8); }
+gen a := LSHIFT1(a, CONSTANT(value<=3):c) { Shift1(OC_ASL, $c.value as uint8); }
+gen a := RSHIFTU1(a, CONSTANT(value<=3):c) { Shift1(OC_LSR, $c.value as uint8); }
 
 gen a := RSHIFTS1(a, CONSTANT(value==1))
 {
@@ -1575,7 +1552,7 @@ gen xa := FALLBACK(a16) uses y cost -1000
     var op := PopOp();
     paramwidth := 2;
     DoParamDirect_lda(op, 0);
-    DoParamDirect(op, "ldx", 1);
+    DoParamDirect(op, OC_LDX, 1);
 }
 
 gen xa := LOAD2(ADDRESS():a)
@@ -1771,30 +1748,30 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
 }
 
 %{
-    sub DoXA(insn: string)
+    sub DoXA(oc: uint8)
         var rhs := PopOp();
 
         paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
-        DoParamDirect(rhs, insn, 0);
+        DoParamDirect(rhs, oc, 0);
         E_pha();
         E_txa();
-        DoParamDirect(rhs, insn, 1);
+        DoParamDirect(rhs, oc, 1);
         E_tax();
         E_pla();
     end sub;
 
-    sub DoXADest(insn: string)
+    sub DoXADest(oc: uint8)
         var dest := PopAndDerefOp();
         var rhs := PopOp();
 
         paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
-        DoParamDirect(rhs, insn, 0);
-        DoParamDirect(dest, "sta", 0);
+        DoParamDirect(rhs, oc, 0);
+        DoParamDirect(dest, OC_STA, 0);
         E_txa();
-        DoParamDirect(rhs, insn, 1);
-        DoParamDirect(dest, "sta", 1);
+        DoParamDirect(rhs, oc, 1);
+        DoParamDirect(dest, OC_STA, 1);
 
         RegCacheFlushValues();
     end sub;
@@ -1807,11 +1784,11 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
 
         E_sec();
         E_loadconst(REG_A, 0);
-        DoParamDirect(rhs, "sbc", 0);
+        DoParamDirect(rhs, OC_SBC, 0);
         E_pha();
         E_txa();
         E_loadconst(REG_A, 0);
-        DoParamDirect(rhs, "sbc", 1);
+        DoParamDirect(rhs, OC_SBC, 1);
         E_tax();
         E_pla();
     end sub;
@@ -1835,17 +1812,17 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
 gen xa := NEG2(in2s)         uses y { DoXA_neg(); }
 gen xa := NOT2(in2s)         uses y { DoXA_not(); }
 
-gen xa := ADD2(in2s, xa) uses y { E_clc(); DoXA("adc"); }
-gen xa := SUB2(xa, in2s) uses y { E_sec(); DoXA("sbc"); }
-gen xa := AND2(in2s, xa) uses y {          DoXA("and"); }
-gen xa := OR2 (in2s, xa) uses y {          DoXA("ora"); }
-gen xa := EOR2(in2s, xa) uses y {          DoXA("eor"); }
+gen xa := ADD2(in2s, xa) uses y { E_clc(); DoXA(OC_ADC); }
+gen xa := SUB2(xa, in2s) uses y { E_sec(); DoXA(OC_SBC); }
+gen xa := AND2(in2s, xa) uses y {          DoXA(OC_AND); }
+gen xa := OR2 (in2s, xa) uses y {          DoXA(OC_ORA); }
+gen xa := EOR2(in2s, xa) uses y {          DoXA(OC_EOR); }
 
 // Because of some quirk of the way the code is generated, this rule helps
 // a lot --- but the same rule for SUB2, AND2 etc actually makes things
 // worse, I think because it prevents one of the pointer indexing rules from
 // firing.
-gen STORE2(ADD2(in2s, xa), ptrs) uses y cost 100 { E_clc(); DoXADest("adc"); }
+gen STORE2(ADD2(in2s, xa), ptrs) uses y cost 100 { E_clc(); DoXADest(OC_ADC); }
 
 gen xa := LSHIFT2(CAST12(a, sext==0), CONSTANT(value==1))
 {
@@ -1876,7 +1853,7 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
         var rhs := PopOp();
         paramwidth := 2;
         DoParamDirect_lda(rhs, 0);
-        DoParamDirect(rhs, "ldx", 1);
+        DoParamDirect(rhs, OC_LDX, 1);
         E_callhelper(name);
     end sub;
 
@@ -1975,14 +1952,14 @@ gen STORE4(NEG4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
 gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_not(lhs, dest); }
 
 %{
-    sub Do3Op4(insn: string, lhs: [Operand], rhs: [Operand], dest: [Operand])
+    sub Do3Op4(oc: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand])
         paramwidth := 4;
         E_loadconst(REG_Y, 0);
         E_loadconst(REG_X, paramwidth);
         var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
-        DoParamIndirect(rhs, insn);
+        DoParamIndirect(rhs, oc);
         DoParamIndirect_sta(dest);
 
         E_iny();
@@ -1993,16 +1970,16 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
     end sub;
 %}
 
-gen v32 := ADD4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32(); E_clc(); Do3Op4("adc", lhs, rhs, dest); }
-gen v32 := SUB4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32(); E_sec(); Do3Op4("sbc", lhs, rhs, dest); }
-gen v32 := AND4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4("and", lhs, rhs, dest); }
-gen v32 := OR4(in4s, in4s)  uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4("ora", lhs, rhs, dest); }
-gen v32 := EOR4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4("eor", lhs, rhs, dest); }
-gen STORE4(ADD4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_clc(); Do3Op4("adc", lhs, rhs, dest); }
-gen STORE4(SUB4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_sec(); Do3Op4("sbc", lhs, rhs, dest); }
-gen STORE4(AND4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4("and", lhs, rhs, dest); }
-gen STORE4(OR4(in4s, in4s) , ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4("ora", lhs, rhs, dest); }
-gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4("eor", lhs, rhs, dest); }
+gen v32 := ADD4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32(); E_clc(); Do3Op4(OC_ADC, lhs, rhs, dest); }
+gen v32 := SUB4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32(); E_sec(); Do3Op4(OC_SBC, lhs, rhs, dest); }
+gen v32 := AND4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_AND, lhs, rhs, dest); }
+gen v32 := OR4(in4s, in4s)  uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_ORA, lhs, rhs, dest); }
+gen v32 := EOR4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_EOR, lhs, rhs, dest); }
+gen STORE4(ADD4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_clc(); Do3Op4(OC_ADC, lhs, rhs, dest); }
+gen STORE4(SUB4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_sec(); Do3Op4(OC_SBC, lhs, rhs, dest); }
+gen STORE4(AND4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_AND, lhs, rhs, dest); }
+gen STORE4(OR4(in4s, in4s) , ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_ORA, lhs, rhs, dest); }
+gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_EOR, lhs, rhs, dest); }
 
 %{
     sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand])
@@ -2103,7 +2080,7 @@ gen BEQ1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
     paramwidth := 1;
-    DoParamDirect(rhs, "cmp", 0);
+    DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_beq_bne(self.n[0]);
 }
 
@@ -2111,7 +2088,7 @@ gen BLTU1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
     paramwidth := 1;
-    DoParamDirect(rhs, "cmp", 0);
+    DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_bcc_bcs(self.n[0]);
 }
 
@@ -2120,7 +2097,7 @@ gen BLTS1(a:lhs, in1s:rhs):b
     var rhs := PopOp();
     paramwidth := 1;
     E_sec();
-    DoParamDirect(rhs, "sbc", 0);
+    DoParamDirect(rhs, OC_SBC, 0);
     E("\tbvc *+4\n");
     E("\teor #$80\n");
     E_jumps_bmi_bpl(self.n[0]);
@@ -2130,15 +2107,15 @@ gen BEQ2(xa:lhs, in2s:rhs):b
 {
     var rhs := PopOp();
     paramwidth := 2;
-    DoParamDirect(rhs, "cmp", 0);
+    DoParamDirect(rhs, OC_CMP, 0);
     E_bne($b.falselabel);
 
     paramwidth := 1;
     if ($rhs & REGCLASS_DEREFS) != 0 then
         E_txa();
-        DoParamDirect(rhs, "cmp", 1);
+        DoParamDirect(rhs, OC_CMP, 1);
     else
-        DoParamDirect(rhs, "cpx", 1);
+        DoParamDirect(rhs, OC_CPX, 1);
     end if;
     E_jumps_beq_bne(self.n[0]);
 }
@@ -2148,11 +2125,11 @@ gen BLTU2(xa:lhs, in2s:rhs):c
     var rhs := PopOp();
     paramwidth := 2;
     E_sec();
-    DoParamDirect(rhs, "sbc", 0);
+    DoParamDirect(rhs, OC_SBC, 0);
 
     paramwidth := 1;
     E_txa();
-    DoParamDirect(rhs, "sbc", 1);
+    DoParamDirect(rhs, OC_SBC, 1);
     E_jumps_bcc_bcs(self.n[0]);
 }
 
@@ -2161,11 +2138,11 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     var rhs := PopOp();
     paramwidth := 2;
     E_sec();
-    DoParamDirect(rhs, "sbc", 0);
+    DoParamDirect(rhs, OC_SBC, 0);
 
     paramwidth := 1;
     E_txa();
-    DoParamDirect(rhs, "sbc", 1);
+    DoParamDirect(rhs, OC_SBC, 1);
     E("\tbvc *+4\n");
     E("\teor #$80\n");
     E_jumps_bmi_bpl(self.n[0]);
@@ -2181,7 +2158,7 @@ gen BLTS2(xa:lhs, in2s:rhs):c
         var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
-        DoParamIndirect(rhs, "cmp");
+        DoParamIndirect(rhs, OC_CMP);
         E_bne(node.beq0.falselabel);
 
         E_dey();
@@ -2264,7 +2241,7 @@ gen STORE4(CAST14(a):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast14(dest,
             E_txa();
             DoParamDirect_sta(dest, 1);
         else
-            DoParamDirect(dest, "stx", 1);
+            DoParamDirect(dest, OC_STX, 1);
         end if;
 
         if sext != 0 then
