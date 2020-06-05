@@ -157,6 +157,13 @@ sub E_subref(subr: [Subroutine])
 	end if;
 end sub;
 
+sub E_wsref(id: uint16, wsid: uint8, off: uint16)
+	EmitByte(COO_ESCAPE_WSREF);
+	E_h16(id);
+	E_h8(wsid);
+	E_h16(off);
+end sub;
+
 sub EmitterPushChunk()
 	var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
 	chunk.current_record := Alloc(@bytesof EmitterRecord) as [EmitterRecord];

@@ -18,6 +18,8 @@
 
     record ArchSubroutine
         seen_return: uint8;
+        end_label: LabelRef;
+        rts_label: LabelRef;
     end record;
 
     record Extern
@@ -97,10 +99,86 @@
         RegCacheFlush(FindConflictingRegisters(reg));
     end sub;
 
+    const OC_ADC := 0;
+    const OC_SBC := 1;
+    const OC_AND := 2;
+    const OC_ORA := 3;
+    const OC_EOR := 4;
+    const OC_LDA := 5;
+    const OC_LDX := 6;
+    const OC_LDY := 7;
+    const OC_STA := 8;
+    const OC_STX := 9;
+    const OC_STY := 10;
+    const OC_PHP := 11;
+    const OC_PHA := 12;
+    const OC_PLP := 13;
+    const OC_PLA := 14;
+    const OC_TAX := 15;
+    const OC_TXA := 16;
+    const OC_TAY := 17;
+    const OC_TYA := 18;
+    const OC_BEQ := 19;
+    const OC_BNE := 20;
+    const OC_BVS := 21;
+    const OC_BCC := 22;
+    const OC_BCS := 23;
+    const OC_CLC := 24;
+    const OC_SEC := 25;
+    const OC_RTS := 26;
+    const OC_JSR := 27;
+    const OC_JMP := 28;
+    const OC_PHX := 29;
+    const OC_PHY := 30;
+    const OC_PLX := 31;
+    const OC_PLY := 32;
+    const OC_TSX := 33;
+    const OC_TXS := 34;
+    const OC_ROL := 35;
+    const OC_STZ := 36;
+    const OC_CMP := 37;
+    const OC_CPX := 38;
+    const OC_CPY := 39;
+    const OC_INX := 40;
+    const OC_INY := 41;
+    const OC_DEX := 42;
+    const OC_DEY := 43;
+    const OC_INC := 44;
+    const OC_DEC := 45;
+
+    sub E_oc(oc: uint8)
+        var ocs: string[] := {
+            "adc", "sbc", "and", "ora", "eor", "lda", "ldx", "ldy",
+            "sta", "stx", "sty", "php", "pha", "plp", "pla", "tax",
+            "txa", "tay", "tya", "beq", "bne", "bvs", "bcc", "bcs",
+            "clc", "sec", "rts", "jsr", "jmp", "phx", "phy", "plx",
+            "ply", "tsx", "txs", "rol", "stz", "cmp", "cpx", "cpy",
+            "inx", "iny", "dex", "dey", "inc", "dec"
+        };
+
+        E_tab();
+        E(ocs[oc]);
+        E_space();
+    end sub;
+
+    sub E_ocnl(oc: uint8)
+        E_oc(oc);
+        E_nl();
+    end sub;
+
     sub E_insn(insn: string)
         E_tab();
         E(insn);
         E_space();
+    end sub;
+
+    sub E_plusone()
+        E("+1");
+    end sub;
+
+    sub E_label(label: LabelRef)
+        E_labelref(label);
+        E(":\n");
     end sub;
 
     var labelid: uint16 := 0;
@@ -137,13 +215,13 @@
     end sub;
 
     sub E_bne_p(label: LabelRef)
-        E_insn("bne");
+        E_oc(OC_BNE);
         E_plabelref(label);
         E_nl();
     end sub;
 
     sub E_bcs_p(label: LabelRef)
-        E_insn("bcs");
+        E_oc(OC_BCS);
         E_plabelref(label);
         E_nl();
     end sub;
@@ -234,123 +312,87 @@
         E_jump("bmi", label);
     end sub;
 
-    sub E_rts() E("\trts\n"); end sub;
-    sub E_clc() E("\tclc\n"); end sub;
-    sub E_sec() E("\tsec\n"); end sub;
-    sub E_pha() E("\tpha\n"); end sub;
-    sub E_phx() E("\tphx\n"); end sub;
-    sub E_phy() E("\tphy\n"); end sub;
-    sub E_plp() E("\tplp\n"); end sub;
-    sub E_pla() R_flush(REG_A); E("\tpla\n"); end sub;
-    sub E_plx() R_flush(REG_X); E("\tplx\n"); end sub;
-    sub E_ply() R_flush(REG_Y); E("\tply\n"); end sub;
-    sub E_txa() R_flush(REG_A); E("\ttxa\n"); end sub;
-    sub E_tya() R_flush(REG_A); E("\ttya\n"); end sub;
-    sub E_tax() R_flush(REG_X); E("\ttax\n"); end sub;
-    sub E_tay() R_flush(REG_Y); E("\ttay\n"); end sub;
-    sub E_tsx() R_flush(REG_X); E("\ttsx\n"); end sub;
-    sub E_txs() E("\ttxs\n"); end sub;
-    sub E_not() R_flush(REG_A); E("\teor #255\n"); end sub;
-    sub E_rol() R_flush(REG_A); E("\trol\n"); end sub;
+    sub E_rts() E_ocnl(OC_RTS); end sub;
+    sub E_clc() E_ocnl(OC_CLC); end sub;
+    sub E_sec() E_ocnl(OC_SEC); end sub;
+    sub E_pha() E_ocnl(OC_PHA); end sub;
+    sub E_phx() E_ocnl(OC_PHX); end sub;
+    sub E_phy() E_ocnl(OC_PHY); end sub;
+    sub E_plp() E_ocnl(OC_PLP); end sub;
+    sub E_pla() R_flush(REG_A); E_ocnl(OC_PLA); end sub;
+    sub E_plx() R_flush(REG_X); E_ocnl(OC_PLX); end sub;
+    sub E_ply() R_flush(REG_Y); E_ocnl(OC_PLY); end sub;
+    sub E_txa() R_flush(REG_A); E_ocnl(OC_TXA); end sub;
+    sub E_tya() R_flush(REG_A); E_ocnl(OC_TYA); end sub;
+    sub E_tax() R_flush(REG_X); E_ocnl(OC_TAX); end sub;
+    sub E_tay() R_flush(REG_Y); E_ocnl(OC_TAY); end sub;
+    sub E_tsx() R_flush(REG_X); E_ocnl(OC_TSX); end sub;
+    sub E_rol() R_flush(REG_A); E_ocnl(OC_ROL); end sub;
+    sub E_txs() E_ocnl(OC_TXS); end sub;
+    sub E_not() R_flush(REG_A); E_oc(OC_EOR); E("#255\n"); end sub;
 
     sub E_ld(reg: RegId)
         R_flush(reg);
         case reg is
-            when REG_A: E("\tlda");
-            when REG_X: E("\tldx");
-            when REG_Y: E("\tldy");
+            when REG_A: E_oc(OC_LDA);
+            when REG_X: E_oc(OC_LDX);
+            when REG_Y: E_oc(OC_LDY);
         end case;
-        E_space();
-    end sub;
-
-    sub E_lda()
-        E_ld(REG_A);
-    end sub;
-
-    sub E_ldx()
-        E_ld(REG_X);
-    end sub;
-
-    sub E_ldy()
-        E_ld(REG_Y);
     end sub;
 
     sub E_st(reg: RegId)
         R_flush(reg);
         case reg is
-            when REG_A: E("\tsta");
-            when REG_X: E("\tstx");
-            when REG_Y: E("\tsty");
+            when REG_A: E_oc(OC_STA);
+            when REG_X: E_oc(OC_STX);
+            when REG_Y: E_oc(OC_STY);
         end case;
-        E_space();
     end sub;
 
-    sub E_stz()
-        E("\tstz ");
-    end sub;
-
-    sub E_sta()
-        E_st(REG_A);
-    end sub;
-
-    sub E_stx()
-        E_st(REG_X);
-    end sub;
-
-    sub E_sty()
-        E_st(REG_Y);
-    end sub;
+    sub E_lda() E_ld(REG_A); end sub;
+    sub E_ldx() E_ld(REG_X); end sub;
+    sub E_ldy() E_ld(REG_Y); end sub;
+    sub E_sta() E_st(REG_A); end sub;
+    sub E_stx() E_st(REG_X); end sub;
+    sub E_sty() E_st(REG_Y); end sub;
+    sub E_stz() E_oc(OC_STZ); end sub;
 
     sub E_cp(reg: RegId)
         case reg is
-            when REG_A: E("\tcmp");
-            when REG_X: E("\tcpx");
-            when REG_Y: E("\tcpy");
+            when REG_A: E_oc(OC_CMP);
+            when REG_X: E_oc(OC_CPX);
+            when REG_Y: E_oc(OC_CPY);
         end case;
-        E_space();
     end sub;
 
-    sub E_cmp()
-        E_cp(REG_A);
-    end sub;
+    sub E_cmp() E_cp(REG_A); end sub;
+    sub E_cpx() E_cp(REG_X); end sub;
+    sub E_cpy() E_cp(REG_Y); end sub;
 
-    sub E_cpx()
-        E_cp(REG_X);
-    end sub;
+    sub E_inc() E_oc(OC_INC); end sub;
+    sub E_dec() E_oc(OC_DEC); end sub;
+    
+    sub E_a() EmitByte('a'); end sub;
 
-    sub E_cpy()
-        E_cp(REG_Y);
-    end sub;
+    sub E_ina() R_flush(REG_X); E_inc(); E_a(); end sub;
+    sub E_dea() R_flush(REG_X); E_dec(); E_a(); end sub;
 
-    sub E_inx()
-        R_flush(REG_X);
-        E("\tinx\n");
-    end sub;
+    sub E_inx() R_flush(REG_X); E_ocnl(OC_INX); end sub;
+    sub E_iny() R_flush(REG_Y); E_ocnl(OC_INY); end sub;
+    sub E_dex() R_flush(REG_X); E_ocnl(OC_DEX); end sub;
+    sub E_dey() R_flush(REG_Y); E_ocnl(OC_DEY); end sub;
 
-    sub E_iny()
-        R_flush(REG_Y);
-        E("\tiny\n");
-    end sub;
-
-    sub E_dex()
-        R_flush(REG_X);
-        E("\tdex\n");
-    end sub;
-
-    sub E_dey()
-        R_flush(REG_Y);
-        E("\tdey\n");
-    end sub;
-
-    sub E_inc(reg: RegId)
+    sub E_increment(reg: RegId)
         case reg is
             when REG_A:
                 R_flush(REG_A);
                 $ifdef ARCH_65C02
-                    E("\tinc a\n");
+                    E_inc();
+                    E("a\n");
                 $else
                     E_clc();
-                    E("\tadc #1\n");
+                    E_oc(OC_ADC);
+                    E("#1\n");
                 $endif
 
             when REG_X: E_inx();
@@ -358,15 +400,17 @@
         end case;
     end sub;
 
-    sub E_dec(reg: RegId)
+    sub E_decrement(reg: RegId)
         case reg is
             when REG_A:
                 R_flush(REG_A);
                 $ifdef ARCH_65C02
-                    E("\tdec a\n");
+                    E_dec();
+                    E("a\n");
                 $else
                     E_sec();
-                    E("\tsbc #1\n");
+                    E_oc(OC_SBC);
+                    E("#1\n");
                 $endif
 
             when REG_X: E_dex();
@@ -390,7 +434,7 @@
 
     sub E_call(subr: [Subroutine])
         R_flushall();
-        E("\tjsr ");
+        E_oc(OC_JSR);
         E_subref(subr);
         E_nl();
     end sub;
@@ -418,11 +462,11 @@
                 $endif
                 cache := RegCacheFindConstant(value-1) & reg & INCABLE;
                 if cache != 0 then
-                    E_inc(reg);
+                    E_increment(reg);
                 else
                     cache := RegCacheFindConstant(value+1) & reg & INCABLE;
                     if cache != 0 then
-                        E_dec(reg);
+                        E_decrement(reg);
                     else
                         E_ld(reg);
                         E_const(value);
@@ -1029,6 +1073,8 @@ gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode :
 gen STARTSUB():s
 {
     $s.subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+    $s.subr.arch.end_label := AllocLabel();
+    $s.subr.arch.rts_label := AllocLabel();
 
     RegCacheReset();
 
@@ -1064,12 +1110,13 @@ gen STARTSUB():s
                 E_iny();
             $endif
 
-            E("\tstx rts_");
-            E_subref($s.subr);
+            E_stx();
+            E_labelref($s.subr.arch.rts_label);
             E_nl();
 
-            E("\tsty 1+rts_");
-            E_subref($s.subr);
+            E_sty();
+            E_labelref($s.subr.arch.rts_label);
+            E_plusone();
             E_nl();
 
             popped := 1;
@@ -1137,10 +1184,8 @@ gen STARTSUB():s
 
 gen ENDSUB():s
 {
-    if $s.subr.arch.seen_return != 0 then
-        E("end_");
-        E_subref(current_subr);
-        E(":\n");
+    if current_subr.arch.seen_return != 0 then
+        E_label(current_subr.arch.end_label);
     end if;
 
     var i: uint8 := 0;
@@ -1208,9 +1253,8 @@ gen ENDSUB():s
     if IsSimpleSub(current_subr) != 0 then
         E_rts();
     else
-        E("rts_");
-        E_subref(current_subr);
-        E(" = *+1\n");
+        E_labelref(current_subr.arch.rts_label);
+        E("=*+1\n");
         E("\tjmp $ffff\n");
     end if;
 
@@ -1242,14 +1286,7 @@ gen RETURN()
         E_rts();
     else
         current_subr.arch.seen_return := 1;
-        $if ARCH_65C02
-            E_insn("bra");
-        $else
-            E_insn("jmp");
-        $endif
-        E("end_");
-        E_subref(current_subr);
-        E_nl();
+        E_jmp(current_subr.arch.end_label);
     end if;
 }
 
@@ -1513,9 +1550,9 @@ gen STORE1(ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
 {
     if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
         if $c.value < 0 then
-            E_insn("dec");
+            E_dec();
         else
-            E_insn("inc");
+            E_inc();
         end if;
         E_symref($a1.sym, $a1.off);
         E_nl();
@@ -1705,23 +1742,23 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
 
             E_bne_p(lid);
 
-            E_insn("dec");
+            E_dec();
             E_symref($a1.sym, $a1.off+1);
             E_nl();
 
             E_plabel(lid);
             
-            E_insn("dec");
+            E_dec();
             E_symref($a1.sym, $a1.off);
             E_nl();
         else
-            E_insn("inc");
+            E_inc();
             E_symref($a1.sym, $a1.off);
             E_nl();
 
             E_bne_p(lid);
 
-            E_insn("inc");
+            E_inc();
             E_symref($a1.sym, $a1.off+1);
             E_nl();
 
@@ -1757,9 +1794,9 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
             E_bne_p(lid);
             E_dex();
             E_plabel(lid);
-            E_dec(LOWREG);
+            E_decrement(LOWREG);
         else
-            E_inc(LOWREG);
+            E_increment(LOWREG);
             E_bne_p(lid);
             E_inx();
             E_plabel(lid);
@@ -2367,7 +2404,7 @@ gen STARTCASE4(v32)
 
 gen WHENCASE1():c
 {
-    E_insn("cmp");
+    E_cmp();
     E_const($c.value as uint8);
     E_nl();
     E_bne($c.falselabel);
@@ -2375,12 +2412,12 @@ gen WHENCASE1():c
 
 gen WHENCASE2():c uses a
 {
-    E_insn("cmp");
+    E_cmp();
     E_const($c.value as uint8);
     E_nl();
     E_bne($c.falselabel);
 
-    E_insn("cpx");
+    E_cpx();
     E_const(($c.value>>8) as uint8);
     E_nl();
     E_bne($c.falselabel);
