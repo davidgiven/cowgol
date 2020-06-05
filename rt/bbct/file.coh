@@ -137,7 +137,7 @@ sub FCBExt(fcb: [FCB]): (len: uint32)
 	@asm "ldy", channel;
 	@asm "jsr $ffda"; # OSARGS
 
-	len := [&ptr1 as [uint32]];
+	len := [@alias &ptr1 as [uint32]];
 end sub;
 
 sub fcb_i_nextchar(fcb: [FCB])

@@ -509,5 +509,49 @@
     eor #$ff
     rts
 
+&X _when4
+&W _when4 1 4
+; Compares the 32-bit value pointed at by `$.2.0to1 with the value immediately
+; after the call instruction and sets the flags appropriately.
+``:
+    ; Pop the return address and add one to it.
+    pla
+    sta `$.1.2
+    pla
+    sta `$.1.3
+    inc `$.1.2
+    bne +
+    inc `$.1.3
++
+    ; Now compare the two numbers.
+
+    ldy #3
+-
+    lda (`$.1.0), y
+    cmp (`$.1.2), y
+    bne +
+    dey
+    bpl -
++
+    ; Z will be unset here because Y just decremented to 0xff, so increment
+    ; it so it's zero again.
+    iny
+
+    ; Increment the address to skip the value.
+
+    php
+    clc
+    lda `$.1.2
+    adc #4
+    sta `$.1.2
+    bcc +
+    inc `$.1.3
++
+    plp
+
+    ; Return.
+
+    jmp (`$.1.2)
+    
 ; vim: sw=4 ts=4 et
 

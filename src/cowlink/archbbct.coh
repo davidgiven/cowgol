@@ -18,8 +18,7 @@ end sub;
 sub ArchEmitWSRef(wid: uint8, address: Size)
 	E("ws");
 	EmitByte(wid + '0');
-	EmitByte('+');
-	E_u16(address);
+	E_i16(address as int16);
 end sub;
 
 sub ArchEmitHeader(coo: [Coo])

@@ -81,6 +81,98 @@ sub case_int32(i: uint32): (out: int8)
 	end case;
 end sub;
 
+sub case_many_bytes(i: uint8): (out: uint8)
+	case i is
+		when  0: out := 100;
+		when  1: out := 101;
+		when  2: out := 102;
+		when  3: out := 103;
+		when  4: out := 104;
+		when  5: out := 105;
+		when  6: out := 106;
+		when  7: out := 107;
+		when  8: out := 108;
+		when  9: out := 109;
+		when 10: out := 110;
+		when 11: out := 111;
+		when 12: out := 112;
+		when 13: out := 113;
+		when 14: out := 114;
+		when 15: out := 115;
+		when 16: out := 116;
+		when 17: out := 117;
+		when 18: out := 118;
+		when 19: out := 119;
+		when 20: out := 120;
+		when 21: out := 121;
+		when 22: out := 122;
+		when 23: out := 123;
+		when 24: out := 124;
+		when 25: out := 125;
+		when 26: out := 126;
+		when 27: out := 127;
+		when 28: out := 128;
+		when 29: out := 129;
+		when 30: out := 130;
+		when 31: out := 131;
+		when 32: out := 132;
+		when 33: out := 133;
+		when 34: out := 134;
+		when 35: out := 135;
+		when 36: out := 136;
+		when 37: out := 137;
+		when 38: out := 138;
+		when 39: out := 139;
+		when else: out := 0;
+	end case;
+end sub;
+
+sub case_many_int16s(i: uint16): (out: uint8)
+	case i is
+		when  0: out := 100;
+		when  1: out := 101;
+		when  2: out := 102;
+		when  3: out := 103;
+		when  4: out := 104;
+		when  5: out := 105;
+		when  6: out := 106;
+		when  7: out := 107;
+		when  8: out := 108;
+		when  9: out := 109;
+		when 10: out := 110;
+		when 11: out := 111;
+		when 12: out := 112;
+		when 13: out := 113;
+		when 14: out := 114;
+		when 15: out := 115;
+		when 16: out := 116;
+		when 17: out := 117;
+		when 18: out := 118;
+		when 19: out := 119;
+		when 20: out := 120;
+		when 21: out := 121;
+		when 22: out := 122;
+		when 23: out := 123;
+		when 24: out := 124;
+		when 25: out := 125;
+		when 26: out := 126;
+		when 27: out := 127;
+		when 28: out := 128;
+		when 29: out := 129;
+		when 30: out := 130;
+		when 31: out := 131;
+		when 32: out := 132;
+		when 33: out := 133;
+		when 34: out := 134;
+		when 35: out := 135;
+		when 36: out := 136;
+		when 37: out := 137;
+		when 38: out := 138;
+		when 39: out := 139;
+		when else: out := 0;
+	end case;
+end sub;
+
 sub test_case_bytes()
 	print("uint8 of 2 == 2"); if case_uint8(2) == 2 then yes(); else no(); end if;
 	print("uint8 of 9 == 4"); if case_uint8(9) == 4 then yes(); else no(); end if;
@@ -119,4 +211,22 @@ sub test_case_longs()
 	print("int32 of 9 == 4"); if case_int32(9) == 4 then yes(); else no(); end if;
 end sub;
 test_case_longs();
+
+sub test_case_many_bytes()
+	print("0 of many bytes == 100"); if case_many_bytes(0) == 100 then yes(); else no(); end if;
+	print("13 of many bytes == 113"); if case_many_bytes(13) == 113 then yes(); else no(); end if;
+	print("19 of many bytes == 119"); if case_many_bytes(19) == 119 then yes(); else no(); end if;
+	print("39 of many bytes == 139"); if case_many_bytes(39) == 139 then yes(); else no(); end if;
+	print("40 of many bytes == 0"); if case_many_bytes(40) == 0 then yes(); else no(); end if;
+end sub;
+test_case_many_bytes();
+
+sub test_case_many_int16s()
+	print("0 of many int16s == 100"); if case_many_int16s(0) == 100 then yes(); else no(); end if;
+	print("13 of many int16s == 113"); if case_many_int16s(13) == 113 then yes(); else no(); end if;
+	print("19 of many int16s == 119"); if case_many_int16s(19) == 119 then yes(); else no(); end if;
+	print("39 of many int16s == 139"); if case_many_int16s(39) == 139 then yes(); else no(); end if;
+	print("40 of many int16s == 0"); if case_many_int16s(40) == 0 then yes(); else no(); end if;
+end sub;
+test_case_many_int16s();
 

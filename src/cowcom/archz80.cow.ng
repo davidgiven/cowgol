@@ -288,22 +288,18 @@
 	end sub;
 
 	sub E_storem(reg: RegId)
-		RegCacheFlushValues();
 		E("\tld (hl),");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_stax(ptr: RegId)
-		RegCacheFlushValues();
 		E("\tld a, (");
 		E_reg(ptr);
 		E(")\n");
-		RegCacheFlushValues();
 	end sub;
 
 	sub E_ldax(ptr: RegId)
-		RegCacheFlushValues();
 		R_flush(REG_A);
 		E("\tld (");
 		E_reg(ptr);
@@ -343,7 +339,6 @@
 	end sub;
 
 	sub E_store8i(src: RegId, index: RegId, off: int8)
-		RegCacheFlushValues();
 		E("\tld (");
 		E_reg(index);
 		E_i8(off);
@@ -353,7 +348,6 @@
 	end sub;
 
 	sub E_store8ic(val: uint8, index: RegId, off: int8)
-		RegCacheFlushValues();
 		E("\tld (");
 		E_reg(index);
 		E_i8(off);
