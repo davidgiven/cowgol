@@ -1,48 +1,296 @@
-(This is a placeholder document which will be replaced at some point.)
+Cowgol 2.0
+==========
 
-This is just a few simple notes on using the new compiler prototype.
 
-The _old_ compiler is the one documented at http://cowlark.com/cowgol. This is
-not it. See [WHAT-HAPPENED-TO-COWGOL.md](WHAT-HAPPENED-TO-COWGOL.md) for
-details about it (tl;dr: became too big and complex, am rewriting from
-scratch).
+What?
+-----
 
-This version of the compiler is in C and isn't self-hosting yet (I'm working on
-it, see `src/cowcom`) but is drastically simpler but also better. It targets:
+Cowgol is an experimental, Ada-inspired language for very small systems
+(6502, Z80, etc). It's different because it's intended to be self-hosted on
+these devices: the end goal is to be able to rebuild the entire compiler on
+an 8-bit micro, although we're not there yet.
 
-- 8080 (CP/M)
-- 80386 (Linux)
-- Thumb2 (Linux)
-- C (generic)
+Here's the bullet point list of features:
 
-Sadly I've removed the Apollo Guidance Computer backend --- I'd like to get
-that running again, but I'm focusing on the compiler core for now. (It should
-be easy to produce a code generator for using the new model.)
+  - a properly type safe, modern language inspired by Ada
 
-To build:
+  - the compiler is written in itself and is fully bootstrapped
 
-    $ sudo apt install ninja-build lua5.2 pasmo libz80ex-dev flex \
-	    libbsd-dev libreadline-dev bison qemu-user \
-		binutils-arm-linux-gnueabihf \
-		binutils-i686-linux-gnu
-    $ make
+  - a table-driven, easy to port backend (the 80386 backend is 1.2kloc with
+    no other compiler changes needed)
 
-Sadly, out of the box it'll probably only work on Linux; the test framework
-relies on the alien executable format stuff to run 80386 and Thumb2 binaries in
-emulation (with qemu). If you're on another platform and want to try it anyway,
-you'll need to edit the mkninja.sh script and comment out the test lines near
-the bottom.
+  - tiny: the 80386 Linux compiler binary is 65kB (including ELF overhead).
+    The 8080 CP/M compiler 49kB.
 
-To use it yourself, probably the easiest way is to patch your code into
-`examples/empty.cow` and run `make`. The less easy way is:
+  - fast: on my PC it'll compile itself in 360ms (I actually need to look
+    into why it's so slow)
 
-    $ bin/tinycowc-8080 -Irt/ -Irt/cpm/ inputfile.cow outputfile.coo
-	$ lua scripts/uncoo.lua outputfile.coo outputfile.asm
-	$ bin/zmac -8 --rel7 outputfile.asm -o outputfile.rel
-	$ bin/ld80 -O bin -c -P0100 .obj/rt/cpm/cowgol.rel outputfile.rel .obj/rt/cpm/tail.rel -o output.bin
-	$ dd if=output.bin of=output.com bs=128 skip=2 status=none
-	$ bin/cpmemu output.com
+  - global analysis: dead code removal and static variable allocation,
+    leading to small and efficient binaries
 
-Binary sizes are terrible because there's no dead code elimination or smart
-veriable packing yet --- the nascent `src/cowlink` will do that eventually;
-`scripts/uncoo.lua` is an interim hack.
+### About the compiler
+
+Right now it's in a state where you can build the cross-compiler on a PC,
+then use it to compile the compiler for your selected device, and if it's
+small enough to fit use *that* to (slowly and theoretically) compile and
+run real programs. Realistically you'll be cross-compiling on a PC.
+
+The following targets are supported. Adding more is easy.
+
+  - Z80 and 8080, on CP/M.
+
+  - 6502 and 65c02, on the BBC Micro with Tube second processor.
+
+  - 80386, on Linux.
+
+  - Generic and terrible C. This produces very big and slow binaries which
+    are used for bootstrapping the compiler if you don't have a Cowgol
+	compiler.
+
+(It _used_ to [support the Apollo Guidance
+Computer](http://cowlark.com/2019-07-20-cowgol-agc/index.html) used in the
+Apollo spacecraft, but I had to remove the code generator while rewriting the
+compiler and I haven't reworked the AGC backend.)
+
+### About the language
+
+Here's a randomly chosen example pulled from the compiler source.
+
+```
+# Free up the node tree rooted in the parameter. This is more exciting than it
+# should be because we don't have recursion.
+sub Discard(node: [Node])
+        var pending := node;
+        while pending != (0 as [Node]) loop
+                node := pending;
+                pending := node.dlink;
+
+                # Unlink and push any children.
+                if node.left != (0 as [Node]) then
+                        node.left.dlink := pending;
+                        pending := node.left;
+                end if;
+                if node.right != (0 as [Node]) then
+                        node.right.dlink := pending;
+                        pending := node.right;
+                end if;
+
+                # Now free this node.
+                Free(node as [uint8]);
+        end loop;
+end sub;
+```
+
+The bullet list set of features is:
+
+  - strongly typed --- no implicit casting (not even between integers of
+	different widths of signedness)
+
+  - records, pointers etc
+
+  - subroutines with multiple input and output arguments
+
+  - arbitrarily nested subroutines, with access to variables defined in an
+	outer subroutine
+
+  - no recursion and limited stack use (most of the platforms I'm targeting
+	don't really support stack frames)
+
+  - byte, word and quad arithmetic for efficient implementation on small
+	systems
+
+  - simple type inference of variables if they're assigned during a declaration
+
+There's more about the language in the links below.
+
+
+
+Why?
+----
+
+I've always been interested in compilers, and have had various other
+compiler projects: [the Amsterdam Compiler Kit](http://tack.sourceforge.net/)
+and [Cowbel](http://cowlark.com/cowbel/), to name two. (The
+[languages](http://cowlark.com/index/languages.html) section of my website
+contains a fair number of entries. The oldest compiler which still exists
+dates from about 1998.)
+
+Cowgol is based on what I've learnt from all this. It's supposed to be
+_useful_, not just a toy. I'm pleasantly surprised by how good the generated
+code is; not that it's anything up to that of, say, gcc, but the main code
+generation binary of gcc is 23552kB, and Cowgol's is 65kB...
+
+
+
+Where?
+------
+
+- [Check out the GitHub repository](http://github.com/davidgiven/cowgol) and
+build from source. (Alternatively, you can download a source snapshot from
+[the latest release](https://github.com/davidgiven/cowgol/releases/latest),
+but I suggect the GitHub repositories better because I don't really intend to
+make formal releases often.) Build instructions as in the README.
+
+- [Ask a question by creating a GitHub
+issue](https://github.com/davidgiven/cowgol/issues/new), or just email me
+directly at [dg@cowlark.com](mailto:dg@cowlark.com). (But I'd prefer you
+opened an issue, so other people can see them.)
+
+
+
+How?
+----
+
+We have documentation! Admittedly, not much of it.
+
+- [Everything you want to know about Cowgol, the language](doc/language.md);
+tl;dr: very strongly typed; Ada-like syntax; multiple return parameters; no
+recursion; limited aliasing; nested functions.
+
+- [An overview of Cowgol, the toolchain](doc/toolchain.md); tl;dr: single-pass
+compiler frontend; global analyser and linker feeding into a third-party
+assembler; written in pure Cowgol.
+
+To build, you'll need a Unixish machine (I develop on Linux) with some
+dependencies.
+
+  - the Ninja build tool
+
+  - Lua 5.1 (needed for the build)
+
+  - the Pasmo Z80 assembler (needed to build part of the CP/M emulator)
+
+  - the 64tass 6502 assembler (needed to build the 6502 code)
+
+  - the libz80ex Z80 emulation library (needed for the CP/M emulator)
+  
+  - flex and bison and libbsd and libreadline (these are standard)
+
+  - a C compiler and the i686-linux-gnu binutils
+
+  - the qemu userspace emulator
+
+  - the gpp preprocessor
+
+If you're on a Debianish platform, you should be able to install them
+with:
+
+    apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu qemu-user gpp 64tass
+
+Once done you can build the compiler itself with:
+
+
+```
+make
+```
+
+You'll be left with a lot of stuff in the `bin` directory. The tools are all
+labeled as (name).(toolchain).(extension); the name and the extension may also
+contain a dot. So, `cowcom.65c02.ncpmz.z80.com` is cowcom, the main compiler,
+targeting the 65c02, built with the `ncpmz` toolchain, producing a `z80.com`
+executable.
+
+These are the toolchains:
+
+  - `bootstrap`: this is the compiler shipped in C with the distribution.
+    It's only used to build the first stage compiler.
+
+  - `ncgen`: targeting C, built with the bootstrap compiler.
+
+  - `nncgen`: targeting C, built with `ncgen`.
+
+  - `lx386`: targeting Linux 80386 binaries, built with `nncgen`.
+
+  - `cpm`: targeting CP/M 8080 binaries, built with `nncgen`.
+
+  - `cpmz`: targeting CP/M Z80 binaries, built with `nncgen`.
+
+  - `bbct`: targeting BBC Tube 65c02 binaries, built with `nncgen`.
+
+  - `bbct6502`: targeting BBC Tube 6502 binaries, built with `nncgen`.
+
+`ncgen` and `nncgen` should behave identically. We build the compiler with
+itself to make sure that `nncgen` was built with a compiler built from the
+current compiler source, which is invaluable for testing.
+
+To run the cross compiler to generate a Linux 80386 binary, do:
+
+```
+$ bin/cowcom.80386.nncgen.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.coo
+$ bin/cowlink.lx386.nncgen.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
+$ i686-linux-gnu-as helloworld.s -o helloworld.o
+$ i686-linux-gnu-as helloworld.o -o helloworld
+$ ./helloworld
+Hello, world!
+```
+
+If you're on a system which can run Linux i686 binaries, this will work too:
+
+```
+$ bin/cowcom.80386.lx386.lx386.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.coo
+$ bin/cowlink.lx386.lx386.lx386.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
+$ i686-linux-gnu-as helloworld.s -o helloworld.o
+$ i686-linux-gnu-as helloworld.o -o helloworld
+$ ./helloworld
+Hello, world!
+```
+
+
+Why not?
+--------
+
+It's new, it's buggy, it's underdeveloped, and so far only one actual program
+is written in Cowgol, which is the Cowgol compiler. (And cowlink and cowwrap.)
+
+Apart from actual bugs, there are some unimplemented parts of the language.
+
+  - no forward declarations of subroutines yet; the compiler doesn't use them.
+    (I know how this will work, I just haven't done it.)
+
+  - no seperate compilation yet. cowlink supports it, but cowcom can't define
+    external subroutines. This is dependent on the forward declaration support
+	above.
+
+  - no subroutine pointers. This one's tricky; because subroutines can be
+	nested it's important to be sure that a subroutine can only be called if
+	the outer scopes still exist. Ada has a trick for this, but it would
+	require quite a lot of compiler work and it's too big as it is.
+
+  - no `null`. This one's semantic, but right now you have to cast `0` to
+	pointer types to use `null`. (I _do_ know about languages which don't have
+	`null` but they're all for larger machines than Cowgol's aimed at.)
+
+  - no debugging. Well... there's `print()`.
+
+  - no stable standard library. I hack stuff in as I need it.
+
+Your mileage (or kilometreage, depending) may very. You Have Been Warned.
+
+
+
+Who?
+----
+
+Cowgol was written, entirely so far, by me, David Given. Feel free to send me
+email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to visit
+my website](http://cowlark.com); there may or may not be something
+interesting there.
+
+
+
+License?
+--------
+
+Cowgol is open source software available [under the 2-clause BSD
+license](https://github.com/davidgiven/cowgol/blob/master/COPYING).  Simplified
+summary: do what you like with it, just don't claim you wrote it.
+
+`tools/tubeemu` contains a hacked copy of the lib6502 library, which is © 2005
+Ian Plumarta. See `tools/tubeemu/COPYING.lib6502` for the full text.
+
+`third_party/zmac` contains a copy of the venerable zmac 8080 and Z80
+assembler. It's in the public domain.
+
+`third_party/lemon` contains a copy of the lemon parser generator. It's in the
+public domain.
+
