@@ -766,7 +766,7 @@ gen JUMP():j
         DerefOp(op);
     end sub;
 
-    sub DoParamIndirect(operand: [Operand], oc: uint8)
+    sub DoParamIndirect(operand: [Operand], oc: uint8, off: Size)
         E_oc(oc);
         case operand.mode is
             when MODE_CONST:
@@ -794,12 +794,15 @@ gen JUMP():j
                 print_i8(operand.mode);
                 EndError();
         end case;
+        if off != 0 then
+            E_i16(off as int16);
+        end if;
         E_y_nl();
     end sub;
 
-    sub DoParamIndirect_lda(operand: [Operand]) DoParamIndirect(operand, OC_LDA); end sub; 
-    sub DoParamIndirect_sta(operand: [Operand]) DoParamIndirect(operand, OC_STA); end sub; 
-    sub DoParamIndirect_sbc(operand: [Operand]) DoParamIndirect(operand, OC_SBC); end sub;
+    sub DoParamIndirect_lda(operand: [Operand]) DoParamIndirect(operand, OC_LDA, 0); end sub; 
+    sub DoParamIndirect_sta(operand: [Operand]) DoParamIndirect(operand, OC_STA, 0); end sub; 
+    sub DoParamIndirect_sbc(operand: [Operand]) DoParamIndirect(operand, OC_SBC, 0); end sub;
 
     sub DoParamDirect(operand: [Operand], oc: uint8, offset: uint8)
         var m := operand.mode;
@@ -1072,16 +1075,15 @@ gen STARTSUB():s
             when 4:
                 # WARNING: little endian on stack!
                 PopReturnAddress();
-                E_loadconst(REG_Y, 0);
-                E_loadconst(REG_X, 4);
+                E_loadconst(REG_Y, -4);
                 var lid := E_new_label();
                 E_pla();
+                
                 E_st(REG_A);
-                E_symref(param, 0);
+                E_symref(param, -252);
                 E_y_nl();
-                E_iny();
-                E_dex();
 
+                E_iny();
                 E_bne(lid);
         end case;
     end loop;
@@ -1144,17 +1146,15 @@ gen ENDSUB():s
                 # Push from low to high so the value ends up in big-endian
                 # order on the stack. This allows the caller to pop it off
                 # using smaller code.
-                E_loadconst(REG_Y, 0);
-                E_loadconst(REG_X, 3);
+                E_loadconst(REG_Y, -4);
                 var lid := E_new_label();
 
                 E_ld(REG_A);
-                E_symref(param, 0);
+                E_symref(param, -252);
                 E_y_nl();
                 E_pha();
                 E_iny();
-                E_dex();
-                E_bpl(lid);
+                E_bne(lid);
         end case;
         i := i + 1;
     end loop;
@@ -1920,17 +1920,32 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
 
 %{
     sub Do3Op4(oc: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand])
-        E_loadconst(REG_Y, 0);
-        E_loadconst(REG_X, 4);
-        var lid := E_new_label();
+        var lid: LabelRef;
+        if (lhs.mode > MODE_STACKI) and (rhs.mode > MODE_STACKI) and (dest.mode > MODE_STACKI) then
+            # None of the operands are indirected, so we can use a more efficient loop.
 
-        DoParamIndirect_lda(lhs);
-        DoParamIndirect(rhs, oc);
-        DoParamIndirect_sta(dest);
+            E_loadconst(REG_Y, -4);
+            lid := E_new_label();
 
-        E_iny();
-        E_dex();
-        E_bne(lid);
+            DoParamIndirect(lhs, OC_LDA, -252);
+            DoParamIndirect(rhs, oc, -252);
+            DoParamIndirect(dest, OC_STA, -252);
+
+            E_iny();
+            E_bne(lid);
+        else
+            E_loadconst(REG_Y, 0);
+            E_loadconst(REG_X, 4);
+            lid := E_new_label();
+
+            DoParamIndirect_lda(lhs);
+            DoParamIndirect(rhs, oc, 0);
+            DoParamIndirect_sta(dest);
+
+            E_iny();
+            E_dex();
+            E_bne(lid);
+        end if;
 
         RegCacheFlushValues();
     end sub;
@@ -2107,7 +2122,7 @@ gen BLTS2(xa:lhs, in2s:rhs):c
         var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
-        DoParamIndirect(rhs, OC_CMP);
+        DoParamIndirect(rhs, OC_CMP, 0);
         E_bne(node.beq0.falselabel);
 
         E_dey();
