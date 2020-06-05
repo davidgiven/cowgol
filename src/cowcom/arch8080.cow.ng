@@ -434,29 +434,24 @@
 	end sub;
 
 	sub E_storem(reg: RegId)
-		RegCacheFlushValues();
 		E("\tmov m,");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_storemc(value: uint8)
-		RegCacheFlushValues();
 		E("\tmvi m,");
 		E_u8(value);
 		E_nl();
 	end sub;
 
 	sub E_stax(ptr: RegId)
-		RegCacheFlushValues();
 		E("\tstax ");
 		E_reg(ptr);
 		E_nl();
-		RegCacheFlushValues();
 	end sub;
 
 	sub E_ldax(ptr: RegId)
-		RegCacheFlushValues();
 		R_flush(REG_A);
 		E("\tldax ");
 		E_reg(ptr);

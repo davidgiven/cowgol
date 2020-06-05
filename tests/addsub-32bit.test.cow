@@ -71,30 +71,3 @@ sub neg_test()
 end sub;
 neg_test();
 
-sub extra_test()
-	var deadbeef: int32 := 0xdeadbeef;
-	var pdeadbeef: [int32] := &deadbeef;
-	var mdeadbeef: int32 := -0xdeadbeef;
-
-    print("deadbeef+deadbeef=0xbd5b7dde");
-    if (deadbeef+deadbeef)==0xbd5b7dde then yes(); else no(); end if;
-    print("deadbeef-deadbeef=0x00000000");
-    if (deadbeef-deadbeef)==0x00000000 then yes(); else no(); end if;
-
-    print("[pdeadbeef]+deadbeef=0xbd5b7dde");
-    if ([pdeadbeef]+deadbeef)==0xbd5b7dde then yes(); else no(); end if;
-    print("deadbeef+[pdeadbeef]=0xbd5b7dde");
-    if (deadbeef+[pdeadbeef])==0xbd5b7dde then yes(); else no(); end if;
-
-    print("presult test");
-    var result: int32;
-    var presult: [int32] := &result;
-    [presult] := [pdeadbeef] + [pdeadbeef];
-    if result==0xbd5b7dde then yes(); else no(); end if;
-
-    print("complex backwards sub");
-    result := -1;
-    if (-[presult]) == 1 then yes(); else no(); end if;
-end sub;
-extra_test();
-

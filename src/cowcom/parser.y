@@ -411,6 +411,17 @@ expression(E) ::= expression(E1) AS typeref(T).
 expression(E) ::= AMPERSAND expression(E1).
 {
 	E := UndoLValue(E1);
+	if E.op == MIDCODE_ADDRESS then
+		var sym := E.address.sym;
+		if IsScalar(sym.vardata.type) != 0 then
+			SimpleError("you cannot take the address of scalar variables");
+		end if;
+	end if;
+}
+
+expression(E) ::= ALIAS AMPERSAND expression(E1).
+{
+	E := UndoLValue(E1);
 }
 
 %include

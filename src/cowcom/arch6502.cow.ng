@@ -1302,7 +1302,6 @@ gen STORE1(a:lhs, ptrs) uses y
     var op := PopAndDerefOp();
 
     DoParamDirect_sta(op, 0);
-    RegCacheFlushValues();
 }
 
 gen STORE1(a|x|y:lhs, ADDRESS():a)
@@ -1319,7 +1318,6 @@ $ifdef ARCH_65C02
         E_stz();
         E_symref($a.sym, $a.off);
         E_nl();
-        RegCacheFlushValues();
     }
 $endif
 
@@ -1328,7 +1326,6 @@ gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
     var dest := PopAndDerefOp();
     E_loadconst(REG_Y, $c.value as uint8);
     DoParamIndirect_sta(dest);
-    RegCacheFlushValues();
 }
 
 gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
@@ -1336,7 +1333,6 @@ gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
     E_sta();
     E_symref($a.sym, $a.off);
     E_x_nl();
-    RegCacheFlushValues();
 }
 
 $ifdef ARCH_65C02
@@ -1345,7 +1341,6 @@ $ifdef ARCH_65C02
         E_stz();
         E_symref($a.sym, $a.off);
         E_x_nl();
-        RegCacheFlushValues();
     }
 $endif
 
@@ -1353,7 +1348,6 @@ gen STORE1(a, ADD2(ptrs, CAST12(y, sext==0)))
 {
     var dest := PopAndDerefOp();
     DoParamIndirect_sta(dest);
-    RegCacheFlushValues();
 }
 
 gen a|x|y := LOAD1(ADDRESS():a)
@@ -1481,7 +1475,6 @@ gen STORE1(ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
         E_symref($a2.sym, $a2.off);
         E_nl();
     end if;
-    RegCacheFlushValues();
 }
 
 %{
@@ -1611,8 +1604,6 @@ $ifdef ARCH_65C02
         E_stz();
         E_symref($a.sym, $a.off+1);
         E_nl();
-
-        RegCacheFlushValues();
     }
 $endif
 
@@ -1623,8 +1614,6 @@ gen STORE2(xa, ptrs) uses y
     DoParamDirect_sta(op, 0);
     E_txa();
     DoParamDirect_sta(op, 1);
-
-    RegCacheFlushValues();
 }
 
 gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
@@ -1635,8 +1624,6 @@ gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
     DoParamDirect_sta(dest, off+0);
     E_txa();
     DoParamDirect_sta(dest, off+1);
-
-    RegCacheFlushValues();
 }
 
 gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS():a2) uses x|y|a cost 100
@@ -1672,8 +1659,6 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
 
             E_label(lid);
         end if;
-
-        RegCacheFlushValues();
     else
         $ifdef ARCH_65C02
             const LOWREG := REG_A;
@@ -1718,7 +1703,6 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
         E_symref($a2.sym, $a2.off);
         E_nl();
 
-        RegCacheFlushValues();
         $ifdef ARCH_65C02
             RegCacheLeavesValue(REG_XA, $a2.sym, $a2.off);
         $endif
@@ -1748,8 +1732,6 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
         E_txa();
         DoParamDirect(rhs, oc, 1);
         DoParamDirect(dest, OC_STA, 1);
-
-        RegCacheFlushValues();
     end sub;
 
     sub DoXA_neg()
@@ -1870,8 +1852,6 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
 
         E_dey();
         E_bpl(lid);
-
-        RegCacheFlushValues();
     end sub;
 %}
 
@@ -1900,8 +1880,6 @@ gen v32 := LOAD4(ptrs) uses a|x|y
 
         E_dey();
         E_bpl(lid);
-
-        RegCacheFlushValues();
     end sub;
 
     sub Do2Op4_neg(lhs: [Operand], dest: [Operand])
@@ -1917,8 +1895,6 @@ gen v32 := LOAD4(ptrs) uses a|x|y
         E_iny();
         E_dex();
         E_bne(lid);
-
-        RegCacheFlushValues();
     end sub;
 %}
 
@@ -1955,8 +1931,6 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
             E_dex();
             E_bne(lid);
         end if;
-
-        RegCacheFlushValues();
     end sub;
 %}
 
@@ -2003,8 +1977,6 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
 
         E_dey();
         E_bpl(lid);
-
-        RegCacheFlushValues();
     end sub;
 
     sub MulOrDivOrRem4ToV32(name: string, resultoffset: uint8)
@@ -2198,8 +2170,6 @@ gen xa := CAST12(a):c uses y
         DoParamDirect_sta(dest, 1);
         DoParamDirect_sta(dest, 2);
         DoParamDirect_sta(dest, 3);
-
-        RegCacheFlushValues();
     end sub;
 %}
 
@@ -2225,8 +2195,6 @@ gen STORE4(CAST14(a):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast14(dest,
 
         DoParamDirect_sta(dest, 2);
         DoParamDirect_sta(dest, 3);
-
-        RegCacheFlushValues();
     end sub;
 %}
 

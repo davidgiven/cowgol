@@ -123,6 +123,7 @@ var lexer_ctype: uint8[] := {
 };
 
 var keyword_names: string[] := {
+	"@alias",
 	"@asm",
 	"@at",
 	"@bytesof",
@@ -160,6 +161,7 @@ var keyword_names: string[] := {
 const INCLUDE := 0xff; # This is special
 
 var keyword_ids: uint8[] := {
+	ALIAS,
 	ASM,
 	AT,
 	BYTESOF,
