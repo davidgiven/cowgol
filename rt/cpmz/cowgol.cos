@@ -548,6 +548,128 @@
     ld l, a
     jp (hl)
 
-# vim: ts=4 sw=4 et
+# Search a byte-size sparsetable.
+# HL points at the table, A is the value.
+# Only returns if the value isn't found.
+# The sparsetable format is:
+#   dw address
+#   db value
+#   ...
+#   dw 0
+&X _sparsetable1
+    cseg ; _sparsetable1
+``:
+    ld c, a
+``_loop:
+    ld e, (hl)          ; load destination address into DE
+    inc hl
+    ld d, (hl)
+    inc hl
 
+    ld a, e             ; check for the end of the table
+    or d
+    ret z
+
+    ld a, (hl)          ; load target value
+    inc hl
+    cp c                ; does it match?
+    jr nz, ``_loop      ; go again if not
+
+    pop bc              ; discard stack frame
+    ex de, hl
+    jp (hl)
+
+# Search a wird-size sparsetable.
+# HL points at the table, DE is the value.
+# Only returns if the value isn't found.
+# The sparsetable format is:
+#   dw address
+#   dw value
+#   ...
+#   dw 0
+&X _sparsetable2
+    cseg ; _sparsetable2
+``:
+    ld b, d
+    ld c, e
+``_loop:
+    ld e, (hl)          ; load destination address into DE
+    inc hl
+    ld d, (hl)
+    inc hl
+
+    ld a, e             ; check for the end of the table
+    or d
+    ret z
+
+    ld a, (hl)          ; compare target value
+    inc hl
+    inc hl              ; HL must point at next entry on jump
+    cp c
+    jr nz, ``_loop
+    dec hl
+    ld a, (hl)
+    inc hl
+    cp b
+    jr nz, ``_loop
+
+    pop bc              ; discard stack frame
+    ex de, hl
+    jp (hl)
+
+# Search a dwird-size sparsetable.
+# HL points at the table, DEDE is the value.
+# Only returns if the value isn't found.
+# The sparsetable format is:
+#   dw address
+#   dword value
+#   ...
+#   dw 0
+&X _sparsetable4
+    cseg ; _sparsetable4
+``:
+    ld c, (hl)          ; load destination address into BC
+    inc hl
+    ld b, (hl)
+    inc hl
+
+    ld a, c             ; check for the end of the table
+    or b
+    ret z
+
+    ld a, (hl)          ; compare target value
+    inc hl
+    cp e
+    jr nz, ``_reloop3
+    ld a, (hl)
+    inc hl
+    cp d
+    jr nz, ``_reloop2
+    ld a, (hl)
+    inc hl
+    exx
+    cp e
+    exx
+    jr nz, ``_reloop1
+    ld a, (hl)
+    inc hl
+    exx
+    cp d
+    exx
+    jr nz, ``
+
+    pop de              ; discard stack frame
+    ld h, b
+    ld l, c
+    jp (hl)
+
+``_reloop3:
+    inc hl
+``_reloop2:
+    inc hl
+``_reloop1:
+    inc hl
+    jr ``
+
+# vim: ts=4 sw=4 et
 

@@ -1879,28 +1879,57 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 
 		Free(jumptable as [uint8]);
 	end sub;
-%}
 
-gen CASE1(a)
-{
-	var jumptable := MakeJumptable();
-	if jumptable == (0 as [LabelRef]) then
+	sub InvokeHelperAndEmitSparsetable(width: uint8)
+		var tableaddress := AllocLabel();
+
+		E("\tld ");
+		E_reg(REG_HL);
+		E_comma();
+		E_labelref(tableaddress);
+		E_nl();
+
+		case width is
+			when 1: E_callhelper("_sparsetable1");
+			when 2: E_callhelper("_sparsetable2");
+			when 4: E_callhelper("_sparsetable4");
+		end case;
+		E_jp(current_case.else_label);
+
+		E_label(tableaddress);
+
 		var whenblock := current_case.whenblocks;
 		while whenblock != (0 as [WhenBlock]) loop
 			var thiswhen := &whenblock.whens[0];
 			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
 				if thiswhen.label != 0 then
-					E_cpi(thiswhen.value as uint8);
-					E_jz(thiswhen.label);
+					E("\tdw ");
+					E_labelref(thiswhen.label);
+					E_nl();
+
+					case width is
+						when 1: E("\tdb ");
+						when 2: E("\tdw ");
+						when 4: E("\tdword ");
+					end case;
+					E_i32(thiswhen.value);
+					E_nl();
 				end if;
 
 				thiswhen := @next thiswhen;
 			end loop;
 			whenblock := whenblock.next;
 		end loop;
-		if current_case.else_label != 0 then
-			E_jp(current_case.else_label);
-		end if;
+		E("\tdw 0\n");
+	end sub;
+%}
+
+gen CASE1(a)
+{
+	E("\t; CASE1\n");
+	var jumptable := MakeJumptable();
+	if jumptable == (0 as [LabelRef]) then
+		InvokeHelperAndEmitSparsetable(1);
 	else
 		if current_case.minimum != 0 then
 			E_subi(current_case.minimum as uint8);
@@ -1920,25 +1949,11 @@ gen CASE1(a)
 
 gen CASE2(hl)
 {
+	E("\t; CASE2\n");
 	var jumptable := MakeJumptable();
 	if jumptable == (0 as [LabelRef]) then
-		ArchEmitMove(REG_HL, REG_DE);
-		var whenblock := current_case.whenblocks;
-		while whenblock != (0 as [WhenBlock]) loop
-			var thiswhen := &whenblock.whens[0];
-			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
-				if thiswhen.label != 0 then
-					case2(thiswhen.value as uint16, REG_DE);
-					E_jz(thiswhen.label);
-				end if;
-
-				thiswhen := @next thiswhen;
-			end loop;
-			whenblock := whenblock.next;
-		end loop;
-		if current_case.else_label != 0 then
-			E_jp(current_case.else_label);
-		end if;
+		E_ex();
+		InvokeHelperAndEmitSparsetable(2);
 	else
 		if current_case.minimum != 0 then
 			E_lxi(REG_DE, -(current_case.minimum as uint16));
@@ -1972,33 +1987,7 @@ gen CASE4(dede)
 
 	var jumptable := MakeJumptable();
 	if jumptable == (0 as [LabelRef]) then
-		E_exx();
-		E_push(REG_DE);
-		E_exx();
-		E_pop(REG_BC);
-
-		var whenblock := current_case.whenblocks;
-		while whenblock != (0 as [WhenBlock]) loop
-			var thiswhen := &whenblock.whens[0];
-			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
-				if thiswhen.label != 0 then
-					var value := thiswhen.value as uint32;
-					var next := AllocLabel();
-
-					case2(value as uint16, REG_DE);
-					E_jnz(next);
-					case2((value >> 16) as uint16, REG_BC);
-					E_jz(thiswhen.label);
-					E_label(next);
-				end if;
-
-				thiswhen := @next thiswhen;
-			end loop;
-			whenblock := whenblock.next;
-		end loop;
-		if current_case.else_label != 0 then
-			E_jp(current_case.else_label);
-		end if;
+		InvokeHelperAndEmitSparsetable(4);
 	else
 		if current_case.minimum != 0 then
 			var delta := (-current_case.minimum) as uint32;
