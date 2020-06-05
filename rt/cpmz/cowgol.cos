@@ -534,19 +534,116 @@
     xor 0x80            ; invert sign byte, spoil Z
     ret
 
-# Jump to an address in a jumptable. DE points at the jumptable,
-# HL is the index.
-&X _jumptable
-    cseg ; _jumptable
+# Jump to an address in a byte-sized jumptable at the return address.
+# A is the index. The table format is:
+#   db minimum
+#   db range
+#   dw elselabel
+#   dw labels...
+
+&X _jumptable1
+    cseg ; _jumptable1
 ``:
-    pop bc              ; abandon return address
-    add hl, hl          ; double index
-    add hl, de
-    ld a, (hl)
+    pop hl              ; abandon stack frame, get address of table
+
+    ld b, (hl)          ; adjust minimum
     inc hl
-    ld h, (hl)
-    ld l, a
-    jp (hl)
+    sub b
+
+    ld b, (hl)
+    inc hl
+    cp b
+    jr nc, `_icall      ; call else label if out of range
+
+    inc hl              ; skip else label
+    inc hl
+
+    ld e, a
+    ld d, 0
+    jr `_ixcall
+
+# Jump to an address in a word-sized jumptable at the return address.
+# HL is the index. The table format is:
+#   dw minimum
+#   db range (note, byte)
+#   dw elselabel
+#   dw labels...
+
+&X _jumptable2
+    cseg ; _jumptable2
+``:
+    ex de, hl           ; index -> DE
+    pop hl              ; abandon stack frame, get address of table
+
+    ld c, (hl)          ; adjust minimum
+    inc hl
+    ld b, (hl)
+    inc hl
+    and a               ; clear carry
+    ex de, hl           ; index -> hl
+    sbc hl, bc
+    ex de, hl           ; index -> de
+
+    ld a, e             ; get range
+    cp (hl)
+    inc hl
+    jr nc, `_icall      ; call else label if low byte out of range
+    xor a
+    or d
+    jr nz, `_icall      ; also if high byte is non-zero
+
+    inc hl              ; skip else label
+    inc hl
+
+    jr `_ixcall
+
+# Jump to an address in a dword-sized jumptable at the return address.
+# DEDE is the index. The table format is:
+#   dword minimum
+#   dw range (note 16 bits)
+#   dw elselabel
+#   dw labels...
+
+&X _jumptable4
+    cseg ; _jumptable4
+``:
+    exx
+    push de
+    exx
+    pop bc              ; high word of index into bc
+    pop hl              ; abandon stack frame, get address of table
+
+    ld a, e             ; subtract minimum
+    sub (hl)
+    inc hl
+    ld e, a
+    ld a, d
+    sbc (hl)
+    inc hl
+    ld d, a
+    ld a, c
+    sbc (hl)
+    inc hl
+    ld c, a
+    ld a, b
+    sbc (hl)
+    inc hl
+    ld b, a
+
+    ld a, e             ; fail if low byte out of range
+    cp (hl)
+    inc hl
+    jr nc, `_icall
+
+    xor a
+    or b
+    or c
+    or d
+    jr nz, `_icall      ; fail if high bytes not zero
+
+    jr `_ixcall
+
+# Indirectly calls via a table of add
 
 # Search a byte-size sparsetable.
 # HL points at the table, A is the value.
@@ -559,6 +656,7 @@
 &X _sparsetable1
     cseg ; _sparsetable1
 ``:
+    pop hl              ; discard stack frame and get table address
     ld c, a
 ``_loop:
     ld e, (hl)          ; load destination address into DE
@@ -568,14 +666,13 @@
 
     ld a, e             ; check for the end of the table
     or d
-    ret z
+    jp z, `_icall
 
     ld a, (hl)          ; load target value
     inc hl
     cp c                ; does it match?
     jr nz, ``_loop      ; go again if not
 
-    pop bc              ; discard stack frame
     ex de, hl
     jp (hl)
 
@@ -590,6 +687,7 @@
 &X _sparsetable2
     cseg ; _sparsetable2
 ``:
+    pop hl              ; discard stack frame and get table address
     ld b, d
     ld c, e
 ``_loop:
@@ -600,7 +698,7 @@
 
     ld a, e             ; check for the end of the table
     or d
-    ret z
+    jr z, `_icall
 
     ld a, (hl)          ; compare target value
     inc hl
@@ -613,7 +711,6 @@
     cp b
     jr nz, ``_loop
 
-    pop bc              ; discard stack frame
     ex de, hl
     jp (hl)
 
@@ -628,6 +725,8 @@
 &X _sparsetable4
     cseg ; _sparsetable4
 ``:
+    pop hl              ; discard stack frame and get table address
+``_loop:
     ld c, (hl)          ; load destination address into BC
     inc hl
     ld b, (hl)
@@ -635,7 +734,7 @@
 
     ld a, c             ; check for the end of the table
     or b
-    ret z
+    jp z, `_icall
 
     ld a, (hl)          ; compare target value
     inc hl
@@ -656,9 +755,8 @@
     exx
     cp d
     exx
-    jr nz, ``
+    jr nz, ``_loop
 
-    pop de              ; discard stack frame
     ld h, b
     ld l, c
     jp (hl)
@@ -669,7 +767,25 @@
     inc hl
 ``_reloop1:
     inc hl
-    jr ``
+    jr ``_loop
+
+# Jumps to the address at the location pointed to be HL[DE].
+&X _ixcall
+    cseg ; _ixcall
+``:
+    ex de, hl
+    add hl, hl          ; double index
+    add hl, de
+    jr `_icall
+
+# Jumps to the address at the location pointed to by HL.
+&X _icall
+``:
+    ld a, (hl)
+    inc hl
+    ld h, (hl)
+    ld l, a
+    jp (hl)
 
 # vim: ts=4 sw=4 et
 

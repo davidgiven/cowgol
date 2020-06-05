@@ -1838,40 +1838,40 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 // --- Case -----------------------------------------------------------------
 
 %{
-	sub case2(value: uint16, reg: RegId)
-		if value < 0x100 then
-			E_mov(REG_A, loreg(reg));
-			if value != 0 then
-				E_subi(value as uint8);
-			end if;
-			E_or(hireg(reg));
-		else
-			E_lxi(REG_HL, -value);
-			E_add(REG_HL, reg);
-			E_mov(REG_A, REG_H);
-			E_or(REG_L);
-		end if;
+	sub E_dc(width: uint8)
+		case width is
+			when 1: E("\tdb ");
+			when 2: E("\tdw ");
+			when 4: E("\tdword ");
+		end case;
 	end sub;
 
-	sub InvokeHelperAndEmitJumptable(jumptable: [LabelRef])
-		var tableaddress := AllocLabel();
+	sub InvokeHelperAndEmitJumptable(width: uint8, jumptable: [LabelRef])
+		case width is
+			when 1: E_callhelper("_jumptable1");
+			when 2: E_callhelper("_jumptable2");
+			when 4: E_callhelper("_jumptable4");
+		end case;
 
-		E("\tld ");
-		E_reg(REG_DE);
-		E_comma();
-		E_labelref(tableaddress);
+		E_dc(width);
+		E_i32(current_case.minimum);
 		E_nl();
 
-		E_callhelper("_jumptable");
+		E_dc(1);
+		E_i32(current_case.maximum - current_case.minimum + 1);
+		E_nl();
 
-		E_label(tableaddress);
+		E_dc(2);
+		E_labelref(current_case.else_label);
+		E_nl();
+
 		var p := jumptable;
 		loop
 			var label := [p];
 			if label == 0 then
 				break;
 			end if;
-			E("\tword ");
+			E_dc(2);
 			E_labelref(label);
 			E_nl();
 			p := @next p;
@@ -1881,37 +1881,22 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 	end sub;
 
 	sub InvokeHelperAndEmitSparsetable(width: uint8)
-		var tableaddress := AllocLabel();
-
-		E("\tld ");
-		E_reg(REG_HL);
-		E_comma();
-		E_labelref(tableaddress);
-		E_nl();
-
 		case width is
 			when 1: E_callhelper("_sparsetable1");
 			when 2: E_callhelper("_sparsetable2");
 			when 4: E_callhelper("_sparsetable4");
 		end case;
-		E_jp(current_case.else_label);
-
-		E_label(tableaddress);
 
 		var whenblock := current_case.whenblocks;
 		while whenblock != (0 as [WhenBlock]) loop
 			var thiswhen := &whenblock.whens[0];
 			while thiswhen != &whenblock.whens[WHEN_BLOCK_SIZE] loop
 				if thiswhen.label != 0 then
-					E("\tdw ");
+					E_dc(2);
 					E_labelref(thiswhen.label);
 					E_nl();
 
-					case width is
-						when 1: E("\tdb ");
-						when 2: E("\tdw ");
-						when 4: E("\tdword ");
-					end case;
+					E_dc(width);
 					E_i32(thiswhen.value);
 					E_nl();
 				end if;
@@ -1921,6 +1906,10 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 			whenblock := whenblock.next;
 		end loop;
 		E("\tdw 0\n");
+
+		E_dc(2);
+		E_labelref(current_case.else_label);
+		E_nl();
 	end sub;
 %}
 
@@ -1931,17 +1920,7 @@ gen CASE1(a)
 	if jumptable == (0 as [LabelRef]) then
 		InvokeHelperAndEmitSparsetable(1);
 	else
-		if current_case.minimum != 0 then
-			E_subi(current_case.minimum as uint8);
-		end if;
-
-		E_cpi((current_case.maximum - current_case.minimum) as uint8 + 1);
-		E_jnc(current_case.else_label);
-
-		E_mov(REG_L, REG_A);
-		E_mvi(REG_H, 0);
-
-		InvokeHelperAndEmitJumptable(jumptable);
+		InvokeHelperAndEmitJumptable(1, jumptable);
 	end if;
 
 	R_flushall();
@@ -1955,21 +1934,7 @@ gen CASE2(hl)
 		E_ex();
 		InvokeHelperAndEmitSparsetable(2);
 	else
-		if current_case.minimum != 0 then
-			E_lxi(REG_DE, -(current_case.minimum as uint16));
-			E_add(REG_HL, REG_DE);
-		end if;
-
-		E_mov(REG_D, REG_H);
-		E_mov(REG_E, REG_L);
-		E_lxi(REG_BC, (current_case.maximum - current_case.minimum) as uint16 + 1);
-		E_rcf();
-		E_sbc(REG_HL, REG_BC);
-		E_jnc(current_case.else_label);
-
-		E_ex();
-
-		InvokeHelperAndEmitJumptable(jumptable);
+		InvokeHelperAndEmitJumptable(2, jumptable);
 	end if;
 
 	R_flushall();
@@ -1989,39 +1954,7 @@ gen CASE4(dede)
 	if jumptable == (0 as [LabelRef]) then
 		InvokeHelperAndEmitSparsetable(4);
 	else
-		if current_case.minimum != 0 then
-			var delta := (-current_case.minimum) as uint32;
-			E_lxi(REG_HL, delta as uint16);
-			E_add(REG_HL, REG_DE);
-			E_ex(); # low word back to DE
-			E_exx();
-			E_lxi(REG_HL, (delta>>16) as uint16);
-			E_adc(REG_HL, REG_DE);
-			E_mov(REG_A, REG_H);
-			E_or(REG_L); # set flags from high word
-			E_exx();
-		else
-			E_exx();
-			E_mov(REG_A, REG_H);
-			E_or(REG_L); # set flags from high word
-			E_exx();
-		end if;
-
-		# Abandon anything where the high word is set.
-
-		E_jnz(current_case.else_label);
-
-		E_mov(REG_H, REG_D);
-		E_mov(REG_L, REG_E);
-
-		E_lxi(REG_BC, (current_case.maximum - current_case.minimum) as uint16 + 1);
-		E_rcf();
-		E_sbc(REG_HL, REG_BC);
-		E_jnc(current_case.else_label);
-
-		E_ex();
-
-		InvokeHelperAndEmitJumptable(jumptable);
+		InvokeHelperAndEmitJumptable(4, jumptable);
 	end if;
 
 	R_flushall();
