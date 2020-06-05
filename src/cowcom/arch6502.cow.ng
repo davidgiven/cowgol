@@ -172,6 +172,10 @@
         E_nl();
     end sub;
 
+    sub E_db() E("\t.byte "); end sub;
+    sub E_dw() E("\t.word "); end sub;
+    sub E_dl() E("\t.dword "); end sub;
+
     sub E_plusone()
         E("+1");
     end sub;
@@ -188,10 +192,7 @@
     end sub;
 
     sub E_stackref(sid: uint16)
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(current_subr.id);
-        E_h8((sid >> 8) as uint8);
-        E_h16(sid & 0xff);
+        E_wsref(current_subr.id, (sid>>8) as uint8, sid & 0xff);
     end sub;
 
     sub E_stackrefi(sid: uint16)
@@ -205,31 +206,22 @@
             E(sym.vardata.externname);
             E_i16(off as int16);
         else
-            EmitByte(COO_ESCAPE_WSREF);
-            E_h16(sym.vardata.subr.id);
+            var wsid: uint8 := VARMEM_WS;
             if IsPtr(sym.vardata.type) != 0 then
-                E_h8(PTRMEM_WS);
-            else
-                E_h8(VARMEM_WS);
+                wsid := PTRMEM_WS;
             end if;
-            E_h16(sym.vardata.offset + off);
+            E_wsref(sym.vardata.subr.id, wsid, sym.vardata.offset + off);
         end if;
     end sub;
 
-    sub E_y_nl() E(",y\n"); end sub;
-    sub E_x_nl() E(",x\n"); end sub;
+    sub E_y_nl()    E(",y\n"); end sub;
+    sub E_x_nl()    E(",x\n"); end sub;
+    sub E_constlo() E("#<"); end sub; 
+    sub E_consthi() E("#>"); end sub; 
 
     sub E_const(value: uint8)
         EmitByte('#');
         E_u8(value);
-    end sub;
-
-    sub E_constlo()
-        E("#<");
-    end sub;
-
-    sub E_consthi()
-        E("#>");
     end sub;
 
     sub E_jump(oc: uint8, label: LabelRef)
@@ -489,21 +481,10 @@
         end if;
     end sub;
 
-    sub E_jumps_beq_bne(node: [Node])
-        E_jumps_with_fallthrough(OC_BEQ, OC_BNE, node);
-    end sub;
-
-    sub E_jumps_bcs_bcc(node: [Node])
-        E_jumps_with_fallthrough(OC_BCS, OC_BCC, node);
-    end sub;
-
-    sub E_jumps_bcc_bcs(node: [Node])
-        E_jumps_with_fallthrough(OC_BCC, OC_BCS, node);
-    end sub;
-
-    sub E_jumps_bmi_bpl(node: [Node])
-        E_jumps_with_fallthrough(OC_BMI, OC_BPL, node);
-    end sub;
+    sub E_jumps_beq_bne(node: [Node]) E_jumps_with_fallthrough(OC_BEQ, OC_BNE, node); end sub; 
+    sub E_jumps_bcs_bcc(node: [Node]) E_jumps_with_fallthrough(OC_BCS, OC_BCC, node); end sub; 
+    sub E_jumps_bcc_bcs(node: [Node]) E_jumps_with_fallthrough(OC_BCC, OC_BCS, node); end sub; 
+    sub E_jumps_bmi_bpl(node: [Node]) E_jumps_with_fallthrough(OC_BMI, OC_BPL, node); end sub; 
 
     sub AllocConst(value: Arith): (lid: uint16)
         var c := constants;
@@ -530,7 +511,7 @@
         E_h16(current_subr.id);
 
         E_label(lid);
-        E("\t.byte ");
+        E_db();
 
         loop
             var c := [data];
@@ -643,7 +624,6 @@ gen JUMP():j
     var opstack: [Operand][OPERAND_STACK_SIZE];
     var first_operand: [Operand] := 0 as [Operand];
     var opsp: uint8 := 0;
-    var paramwidth: uint8;
 
     sub RegWidth(reg: RegId): (width: uint8)
         if (reg & REG_V8) != 0 then
@@ -1309,7 +1289,6 @@ gen v8 := FALLBACK(a|x|y:rhs) cost -1000
 gen a := FALLBACK(v8) uses y cost -1000
 {
     var op := PopOp();
-    paramwidth := 1;
     DoParamDirect_lda(op, 0);
 }
 
@@ -1462,11 +1441,11 @@ $ifdef ARCH_65C02
             { SmallAdditionOrSubtraction(OC_DEC, -($c.value as int8) as uint8); }
 $endif
 
-gen a := ADD1(a, in1s) uses y { paramwidth := 1; E_clc(); DoParamDirect(PopOp(), OC_ADC, 0); }
-gen a := SUB1(a, in1s) uses y { paramwidth := 1; E_sec(); DoParamDirect(PopOp(), OC_SBC, 0); }
-gen a := OR1 (a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), OC_ORA, 0); }
-gen a := AND1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), OC_AND, 0); }
-gen a := EOR1(a, in1s) uses y { paramwidth := 1;          DoParamDirect(PopOp(), OC_EOR, 0); }
+gen a := ADD1(a, in1s) uses y { E_clc(); DoParamDirect(PopOp(), OC_ADC, 0); }
+gen a := SUB1(a, in1s) uses y { E_sec(); DoParamDirect(PopOp(), OC_SBC, 0); }
+gen a := OR1 (a, in1s) uses y {          DoParamDirect(PopOp(), OC_ORA, 0); }
+gen a := AND1(a, in1s) uses y {          DoParamDirect(PopOp(), OC_AND, 0); }
+gen a := EOR1(a, in1s) uses y {          DoParamDirect(PopOp(), OC_EOR, 0); }
 
 %{
     sub is_inc_or_dec(value: Arith): (result: uint8)
@@ -1550,7 +1529,6 @@ gen a16 := FALLBACK(xa) cost -1000
 gen xa := FALLBACK(a16) uses y cost -1000
 {
     var op := PopOp();
-    paramwidth := 2;
     DoParamDirect_lda(op, 0);
     DoParamDirect(op, OC_LDX, 1);
 }
@@ -1751,7 +1729,6 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
     sub DoXA(oc: uint8)
         var rhs := PopOp();
 
-        paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
         DoParamDirect(rhs, oc, 0);
         E_pha();
@@ -1765,7 +1742,6 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
         var dest := PopAndDerefOp();
         var rhs := PopOp();
 
-        paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
         DoParamDirect(rhs, oc, 0);
         DoParamDirect(dest, OC_STA, 0);
@@ -1779,7 +1755,6 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
     sub DoXA_neg()
         var rhs := PopOp();
 
-        paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
 
         E_sec();
@@ -1796,7 +1771,6 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
     sub DoXA_not()
         var rhs := PopOp();
 
-        paramwidth := 2;
         R_flush(REG_A|REG_X|REG_XA);
 
         DoParamDirect_lda(rhs, 0);
@@ -1841,17 +1815,14 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
         var e := GetHelper("_mathpad");
 
         E_sta();
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(e.id);
-        E("010000\n");
+        E_wsref(e.id, PTRMEM_WS, 0);
+        E_nl();
 
         E_stx();
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(e.id);
-        E("010001\n");
+        E_wsref(e.id, PTRMEM_WS, 1);
+        E_nl();
 
         var rhs := PopOp();
-        paramwidth := 2;
         DoParamDirect_lda(rhs, 0);
         DoParamDirect(rhs, OC_LDX, 1);
         E_callhelper(name);
@@ -1863,14 +1834,12 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
         var e := GetHelper("_mathpad");
 
         E_lda();
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(e.id);
-        E("010004\n");
+        E_wsref(e.id, PTRMEM_WS, 4);
+        E_nl();
 
         E_ldx();
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(e.id);
-        E("010005\n");
+        E_wsref(e.id, PTRMEM_WS, 5);
+        E_nl();
     end sub;
 %}
 
@@ -1913,7 +1882,6 @@ gen v32 := LOAD4(ptrs) uses a|x|y
 
 %{
     sub Do2Op4_not(lhs: [Operand], dest: [Operand])
-        paramwidth := 4;
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
@@ -1928,7 +1896,6 @@ gen v32 := LOAD4(ptrs) uses a|x|y
     end sub;
 
     sub Do2Op4_neg(lhs: [Operand], dest: [Operand])
-        paramwidth := 4;
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
         E_sec();
@@ -1953,9 +1920,8 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
 
 %{
     sub Do3Op4(oc: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand])
-        paramwidth := 4;
         E_loadconst(REG_Y, 0);
-        E_loadconst(REG_X, paramwidth);
+        E_loadconst(REG_X, 4);
         var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
@@ -1985,37 +1951,30 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
     sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand])
         var e := GetHelper("_mathpad");
 
-        paramwidth := 4;
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
-        E("\tsta ");
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(e.id);
-        E("010000, y\n");
+        E_sta();
+        E_wsref(e.id, PTRMEM_WS, 0);
+        E_y_nl();
 
         DoParamIndirect_lda(rhs);
-        E("\tsta ");
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(e.id);
-        E("010008, y\n");
+        E_sta();
+        E_wsref(e.id, PTRMEM_WS, 8);
+        E_y_nl();
 
         E_dey();
         E_bpl(lid);
 
         E_callhelper(name);
 
-        paramwidth := 4;
         E_loadconst(REG_Y, 3);
         lid := E_new_label();
 
-        E("\tlda ");
-        EmitByte(COO_ESCAPE_WSREF);
-        E_h16(e.id);
-        E_h8(1);
-        E_h16(resultoffset as uint16);
-        E(", y\n");
+        E_lda();
+        E_wsref(e.id, PTRMEM_WS, resultoffset as uint16);
+        E_y_nl();
         DoParamIndirect_sta(dest);
 
         E_dey();
@@ -2079,7 +2038,6 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 gen BEQ1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
-    paramwidth := 1;
     DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_beq_bne(self.n[0]);
 }
@@ -2087,7 +2045,6 @@ gen BEQ1(a:lhs, in1s:rhs):b
 gen BLTU1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
-    paramwidth := 1;
     DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_bcc_bcs(self.n[0]);
 }
@@ -2095,7 +2052,6 @@ gen BLTU1(a:lhs, in1s:rhs):b
 gen BLTS1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
-    paramwidth := 1;
     E_sec();
     DoParamDirect(rhs, OC_SBC, 0);
     E("\tbvc *+4\n");
@@ -2106,28 +2062,24 @@ gen BLTS1(a:lhs, in1s:rhs):b
 gen BEQ2(xa:lhs, in2s:rhs):b
 {
     var rhs := PopOp();
-    paramwidth := 2;
     DoParamDirect(rhs, OC_CMP, 0);
     E_bne($b.falselabel);
 
-    paramwidth := 1;
+    var oc: uint8 := OC_CPX;
     if ($rhs & REGCLASS_DEREFS) != 0 then
         E_txa();
-        DoParamDirect(rhs, OC_CMP, 1);
-    else
-        DoParamDirect(rhs, OC_CPX, 1);
+        oc := OC_CMP;
     end if;
+    DoParamDirect(rhs, oc, 1);
     E_jumps_beq_bne(self.n[0]);
 }
 
 gen BLTU2(xa:lhs, in2s:rhs):c
 {
     var rhs := PopOp();
-    paramwidth := 2;
     E_sec();
     DoParamDirect(rhs, OC_SBC, 0);
 
-    paramwidth := 1;
     E_txa();
     DoParamDirect(rhs, OC_SBC, 1);
     E_jumps_bcc_bcs(self.n[0]);
@@ -2136,11 +2088,9 @@ gen BLTU2(xa:lhs, in2s:rhs):c
 gen BLTS2(xa:lhs, in2s:rhs):c
 {
     var rhs := PopOp();
-    paramwidth := 2;
     E_sec();
     DoParamDirect(rhs, OC_SBC, 0);
 
-    paramwidth := 1;
     E_txa();
     DoParamDirect(rhs, OC_SBC, 1);
     E("\tbvc *+4\n");
@@ -2150,11 +2100,10 @@ gen BLTS2(xa:lhs, in2s:rhs):c
 
 %{
     sub DoCmp4EQ(node: [Node])
-        paramwidth := 4;
         var rhs := PopOp();
         var lhs := PopOp();
 
-        E_loadconst(REG_Y, paramwidth-1);
+        E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
@@ -2170,7 +2119,6 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     end sub;
 
     sub DoCmp4LT(node: [Node], sext: uint8)
-        paramwidth := 4;
         var rhs := PopOp();
         var lhs := PopOp();
 
@@ -2272,14 +2220,12 @@ gen a := CAST21(in2s|xa:rhs)
 gen a := CAST41(in4s)
 {
     var op := PopOp();
-    paramwidth := 1;
     DoParamDirect_lda(op, 0);
 }
 
 gen xa := CAST42(in4s)
 {
     var op := PopOp();
-    paramwidth := 2;
     DoParamDirect_lda(op, 1);
     E_tax();
     DoParamDirect_lda(op, 0);
@@ -2302,7 +2248,6 @@ gen STARTCASE2(xa) { StartCase(); }
 
 gen STARTCASE4(v32)
 {
-    E("\t;CASE4\n");
     StartCase();
 
     var e := GetHelper("_when4");
@@ -2315,9 +2260,7 @@ gen STARTCASE4(v32)
     E_nl();
 
     E_sta();
-    EmitByte(COO_ESCAPE_WSREF);
-    E_h16(e.id);
-    E("010000\n");
+    E_wsref(e.id, PTRMEM_WS, 0);
     E_nl();
     
     E_lda();
@@ -2326,9 +2269,7 @@ gen STARTCASE4(v32)
     E_nl();
 
     E_sta();
-    EmitByte(COO_ESCAPE_WSREF);
-    E_h16(e.id);
-    E("010001\n");
+    E_wsref(e.id, PTRMEM_WS, 1);
     E_nl();
 }
 
@@ -2356,8 +2297,8 @@ gen WHENCASE2():c uses a
 gen WHENCASE4():c uses a
 {
     E_callhelper("_when4");
-    E("\t.dint ");
-    E_i32($c.value);
+    E_dl();
+    E_u32($c.value as uint32);
     E_nl();
 
     E_bne($c.falselabel);
@@ -2402,21 +2343,21 @@ gen ENDINIT()
 
 gen INIT1():c
 {
-    E("\t.byte ");
+    E_db();
     E_u8($c.value as uint8);
     E_nl();
 }
 
 gen INIT2():c
 {
-    E("\t.word ");
+    E_dw();
     E_u16($c.value as uint16);
     E_nl();
 }
 
 gen INIT4():c
 {
-    E("\t.dword ");
+    E_dl();
     E_u32($c.value as uint32);
     E_nl();
 }
@@ -2425,7 +2366,7 @@ gen INITS():s
 {
     var sid := E_string($s.text);
 
-    E("\t.word ");
+    E_dw();
     E_labelref(sid);
     E_nl();
 }
