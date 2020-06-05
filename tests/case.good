@@ -14,3 +14,13 @@ uint32 of 2 == 2: yes
 uint32 of 9 == 4: yes
 int32 of -2 == -2: yes
 int32 of 9 == 4: yes
+0 of many bytes == 100: yes
+13 of many bytes == 113: yes
+19 of many bytes == 119: yes
+39 of many bytes == 139: yes
+40 of many bytes == 0: yes
+0 of many int16s == 100: yes
+13 of many int16s == 113: yes
+19 of many int16s == 119: yes
+39 of many int16s == 139: yes
+40 of many int16s == 0: yes
