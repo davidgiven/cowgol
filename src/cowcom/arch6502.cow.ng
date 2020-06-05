@@ -177,65 +177,14 @@
     end sub;
 
     sub E_label(label: LabelRef)
+        R_flushall();
         E_labelref(label);
         E(":\n");
     end sub;
 
-    var labelid: uint16 := 0;
-    sub E_plabelref(lid: uint16)
-        EmitByte(COO_ESCAPE_THISCOO);
-        EmitByte('c');
-        E_u16(lid);
-    end sub;
-
-    sub AllocPlabel(): (lid: uint16)
-        lid := labelid;
-        labelid := labelid + 1;
-    end sub;
-
-    sub E_plabel(lid: uint16)
-        R_flushall();
-        E_plabelref(lid);
-        E(":\n");
-    end sub;
-
-    sub E_new_plabel(): (lid: uint16)
-        lid := AllocPlabel();
-        E_plabel(lid);
-    end sub;
-
-    sub E_jmp_p(label: LabelRef)
-        $ifdef ARCH_65C02
-            E_insn("bra");
-        $else
-            E_insn("jmp");
-        $endif
-        E_plabelref(label);
-        E_nl();
-    end sub;
-
-    sub E_bne_p(label: LabelRef)
-        E_oc(OC_BNE);
-        E_plabelref(label);
-        E_nl();
-    end sub;
-
-    sub E_bcs_p(label: LabelRef)
-        E_oc(OC_BCS);
-        E_plabelref(label);
-        E_nl();
-    end sub;
-
-    sub E_bmi_p(label: LabelRef)
-        E_insn("bmi");
-        E_plabelref(label);
-        E_nl();
-    end sub;
-
-    sub E_bpl_p(label: LabelRef)
-        E_insn("bpl");
-        E_plabelref(label);
-        E_nl();
+    sub E_new_label(): (lid: uint16)
+        lid := AllocLabel();
+        E_label(lid);
     end sub;
 
     sub E_stackref(sid: uint16)
@@ -310,6 +259,10 @@
 
     sub E_bmi(label: LabelRef)
         E_jump("bmi", label);
+    end sub;
+
+    sub E_bpl(label: LabelRef)
+        E_jump("bpl", label);
     end sub;
 
     sub E_rts() E_ocnl(OC_RTS); end sub;
@@ -573,7 +526,7 @@
         end loop;
         if c == (0 as [Constant]) then
             c := Alloc(@bytesof Constant) as [Constant];
-            c.lid := AllocPlabel();
+            c.lid := AllocLabel();
             c.value := value;
             c.next := constants;
             constants := c;
@@ -582,12 +535,12 @@
     end sub;
 
     sub E_string(data: string): (lid: uint16)
-        lid := AllocPlabel();
+        lid := AllocLabel();
 
         EmitterPushChunk();
         E_h16(current_subr.id);
 
-        E_plabel(lid);
+        E_label(lid);
         E("\t.byte ");
 
         loop
@@ -848,7 +801,7 @@ gen JUMP():j
         E_insn(insn);
         case operand.mode is
             when MODE_CONST:
-                E_plabelref(AllocConst(operand.val));
+                E_labelref(AllocConst(operand.val));
 
             when MODE_STACK:
                 E_stackref(operand.stk.sid);
@@ -1165,7 +1118,7 @@ gen STARTSUB():s
                 PopReturnAddress();
                 E_loadconst(REG_Y, 0);
                 E_loadconst(REG_X, 4);
-                var lid := E_new_plabel();
+                var lid := E_new_label();
                 E_pla();
                 E_st(REG_A);
                 E_symref(param, 0);
@@ -1173,7 +1126,7 @@ gen STARTSUB():s
                 E_iny();
                 E_dex();
 
-                E_bne_p(lid);
+                E_bne(lid);
         end case;
     end loop;
 
@@ -1237,7 +1190,7 @@ gen ENDSUB():s
                 # using smaller code.
                 E_loadconst(REG_Y, 0);
                 E_loadconst(REG_X, 3);
-                var lid := E_new_plabel();
+                var lid := E_new_label();
 
                 E_ld(REG_A);
                 E_symref(param, 0);
@@ -1245,7 +1198,7 @@ gen ENDSUB():s
                 E_pha();
                 E_iny();
                 E_dex();
-                E_bpl_p(lid);
+                E_bpl(lid);
         end case;
         i := i + 1;
     end loop;
@@ -1262,7 +1215,7 @@ gen ENDSUB():s
         var c := constants;
         constants := constants.next;
 
-        E_plabel(c.lid);
+        E_label(c.lid);
         E("\t.dword ");
         E_u32(c.value as uint32);
         E_nl();
@@ -1302,12 +1255,12 @@ gen xa := CALLE2(param):s uses y
 %{
     sub PopArg4(dest: [Operand])
         E_loadconst(REG_Y, 3);
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         E_pla();
         DoParamIndirect_sta(dest);
         E_dey();
-        E_bpl_p(lid);
+        E_bpl(lid);
     end sub;
 %}
 
@@ -1339,12 +1292,12 @@ gen param := ARG4(param, in4s) uses y|a
 
     # WARNING: little endian on stack!
     E_loadconst(REG_Y, 3);
-    var lid := E_new_plabel();
+    var lid := E_new_label();
 
     DoParamIndirect_lda(op);
     E_pha();
     E_dey();
-    E_bpl_p(lid);
+    E_bpl(lid);
 }
 
 gen a := POPARG1(remaining==0);
@@ -1733,20 +1686,20 @@ gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
 
 gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS():a2) uses x|y|a cost 100
 {
-    var lid := AllocPlabel();
+    var lid := AllocLabel();
     if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
         if $c.value < 0 then
             E_lda();
             E_symref($a1.sym, $a1.off);
             E_nl();
 
-            E_bne_p(lid);
+            E_bne(lid);
 
             E_dec();
             E_symref($a1.sym, $a1.off+1);
             E_nl();
 
-            E_plabel(lid);
+            E_label(lid);
             
             E_dec();
             E_symref($a1.sym, $a1.off);
@@ -1756,13 +1709,13 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
             E_symref($a1.sym, $a1.off);
             E_nl();
 
-            E_bne_p(lid);
+            E_bne(lid);
 
             E_inc();
             E_symref($a1.sym, $a1.off+1);
             E_nl();
 
-            E_plabel(lid);
+            E_label(lid);
         end if;
 
         RegCacheFlushValues();
@@ -1791,15 +1744,15 @@ gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS()
         end if;
 
         if $c.value < 0 then
-            E_bne_p(lid);
+            E_bne(lid);
             E_dex();
-            E_plabel(lid);
+            E_label(lid);
             E_decrement(LOWREG);
         else
             E_increment(LOWREG);
-            E_bne_p(lid);
+            E_bne(lid);
             E_inx();
-            E_plabel(lid);
+            E_label(lid);
         end if;
 
         E_stx();
@@ -1955,13 +1908,13 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
 %{
     sub DoCopy4(dest: [Operand], lhs: [Operand])
         E_loadconst(REG_Y, 3);
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
         DoParamIndirect_sta(dest);
 
         E_dey();
-        E_bpl_p(lid);
+        E_bpl(lid);
 
         RegCacheFlushValues();
     end sub;
@@ -1985,14 +1938,14 @@ gen v32 := LOAD4(ptrs) uses a|x|y
     sub Do2Op4_not(lhs: [Operand], dest: [Operand])
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
         E_not();
         DoParamIndirect_sta(dest);
 
         E_dey();
-        E_bpl_p(lid);
+        E_bpl(lid);
 
         RegCacheFlushValues();
     end sub;
@@ -2002,7 +1955,7 @@ gen v32 := LOAD4(ptrs) uses a|x|y
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
         E_sec();
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         E_loadconst(REG_A, 0);
         DoParamIndirect_sbc(lhs);
@@ -2010,7 +1963,7 @@ gen v32 := LOAD4(ptrs) uses a|x|y
 
         E_iny();
         E_dex();
-        E_bne_p(lid);
+        E_bne(lid);
 
         RegCacheFlushValues();
     end sub;
@@ -2026,7 +1979,7 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
         paramwidth := 4;
         E_loadconst(REG_Y, 0);
         E_loadconst(REG_X, paramwidth);
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
         DoParamIndirect(rhs, insn);
@@ -2034,7 +1987,7 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
 
         E_iny();
         E_dex();
-        E_bne_p(lid);
+        E_bne(lid);
 
         RegCacheFlushValues();
     end sub;
@@ -2057,7 +2010,7 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
 
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
         E("\tsta ");
@@ -2072,13 +2025,13 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
         E("010008, y\n");
 
         E_dey();
-        E_bpl_p(lid);
+        E_bpl(lid);
 
         E_callhelper(name);
 
         paramwidth := 4;
         E_loadconst(REG_Y, 3);
-        lid := E_new_plabel();
+        lid := E_new_label();
 
         E("\tlda ");
         EmitByte(COO_ESCAPE_WSREF);
@@ -2089,7 +2042,7 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
         DoParamIndirect_sta(dest);
 
         E_dey();
-        E_bpl_p(lid);
+        E_bpl(lid);
 
         RegCacheFlushValues();
     end sub;
@@ -2225,14 +2178,14 @@ gen BLTS2(xa:lhs, in2s:rhs):c
         var lhs := PopOp();
 
         E_loadconst(REG_Y, paramwidth-1);
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
         DoParamIndirect(rhs, "cmp");
         E_bne(node.beq0.falselabel);
 
         E_dey();
-        E_bpl_p(lid);
+        E_bpl(lid);
 
         if node.beq0.fallthrough != node.beq0.truelabel then
             E_jmp(node.beq0.truelabel);
@@ -2247,14 +2200,14 @@ gen BLTS2(xa:lhs, in2s:rhs):c
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
         E_sec();
-        var lid := E_new_plabel();
+        var lid := E_new_label();
 
         DoParamIndirect_lda(lhs);
         DoParamIndirect_sbc(rhs);
 
         E_iny();
         E_dex();
-        E_bne_p(lid);
+        E_bne(lid);
 
         if sext != 0 then
             E_tay(); # set flags from A
@@ -2446,16 +2399,12 @@ gen xa := STRING():s
 
     E_lda();
     E_constlo();
-    EmitByte(COO_ESCAPE_THISCOO);
-    EmitByte('c');
-    E_u16(sid);
+    E_labelref(sid);
     E_nl();
 
     E_ldx();
     E_consthi();
-    EmitByte(COO_ESCAPE_THISCOO);
-    EmitByte('c');
-    E_u16(sid);
+    E_labelref(sid);
     E_nl();
 }
 
@@ -2500,9 +2449,7 @@ gen INITS():s
     var sid := E_string($s.text);
 
     E("\t.word ");
-    EmitByte(COO_ESCAPE_THISCOO);
-    EmitByte('c');
-    E_u16(sid);
+    E_labelref(sid);
     E_nl();
 }
 
