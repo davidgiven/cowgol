@@ -2075,6 +2075,21 @@ gen BEQ2(xa, CONSTANT(value==0)):b uses a|y
     E_jumps_beq_bne(self.n[0]);
 }
 
+gen BEQ2(LOAD2(ADDRESS():a), CONSTANT(value==0)):b uses a
+{
+    E_lda();
+    E_symref($a.sym, $a.off);
+    E_nl();
+
+    E_bne($b.falselabel);
+
+    E_lda();
+    E_symref($a.sym, $a.off+1);
+    E_nl();
+
+    E_jumps_beq_bne(self.n[0]);
+}
+
 gen BEQ2(xa:lhs, in2s:rhs):b
 {
     var rhs := PopOp();
