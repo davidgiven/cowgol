@@ -154,6 +154,8 @@ We have documentation! Admittedly, not much of it.
   compiler frontend; global analyser and linker feeding into a third-party
   assembler; written in pure Cowgol.
 
+- [Frequently Asked Questions](doc/faq.md); tl;dr: random.
+
 
 
 Why not?
