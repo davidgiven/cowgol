@@ -7,150 +7,235 @@ shortly describes the toolchain.
 ## Introduction
 
 Cowgol's a pretty vanilla compiler in the modern style, with the usual
-compiler passes (plus some extra). There's a shared state between all the
-passes known as the *things table* which is held in RAM, and the actual
-instructions (known as iops) are streamed through each pass via files. It
-does a lot of file access, but it means that if you have enough memory to
-hold the things table, you can compile unlimited sized programs.
+compiler passes (plus some extra). There's a lexer, a parser,
+then an AST is generated, which is then passed to a table-driven backend
+for code generation, then the resulting files are analysed and linked to
+produce assembly language text.
 
-Right now the most complex program built with Cowgol is the code generator
-itself, which needs a things table of about 35kB.
-
-There's also a strings table, which contains any constant data referred to by
-the program. These are accessed as needed so they don't have to be held in
-memory.
-
-The front end uses a stack machine representation, while the backend uses a
-memory machine representation.
+It's all heavily optimised for small systems. For example, the compiler
+is strictly single-pass, because this minimises the amount of state the
+compiler has to remember. AST generation happens one statement at a time
+to keep memory use at a minimum. And so on.
 
 ## The passes
 
 These are, in order:
 
-- **the initialiser**: creates a new, empty program, ready for adding
-tokenised and parsed code to. Normally this is only used for precompiling the
-runtime library. In normal use, you would simply take a copy of the data
-files for the runtime library and add your own code to that, so as to save
-time (the runtime library is big and takes about eight minutes to tokenise
-and parse).
+  - **the lexer**: a hand-tooled push-driven lexer. There's nothing interesting
+	here. It's about 650 lines of Cowgol.
 
-- **the tokeniser**: reads the source files and produces a token stream and
-the string table. (Since 0.2 this has been rewritten to use Flex tables.
-Slightly bigger, slightly faster, much more understandable --- the old
-hand-tooled tokeniser was pretty crufty.)
+  - **the parser**: this uses a customised version of
+	[lemon](https://www.hwaci.com/sw/lemon/) which has been modified to produce
+	Cowgol code. This is the core of the compiler frontend. Type checking and
+	AST generation happens inline with parsing so there's no intermediate
+	stage. The language grammar is defined in a [1300 loc `.y` file](https://github.com/davidgiven/cowgol/blob/master/src/cowcom/parser.y) (plus a
+	handful of support files). There's no AST rewrite stage, either.
 
-- **the parser**: reads the token stream and parses the Cowgol language out
-of it. It generates an iop stream containing stack-based front end opcodes.
+  - **the code generator**: the parser hands the AST for each statement to the
+    code generator. This is table-driven: a tool called `newgen` reads in a
+	backend definition ([here's the 8080
+	one](https://github.com/davidgiven/cowgol/blob/master/src/cowcom/arch8080.cow.ng))
+	and emits Cowgol source. The newgen files define AST matching rules and
+	register information. The code generator core then matches these rules to
+	the AST produced by the parser to select instructions and do register
+	allocation. There's more on this later. Annotated assembly is emitted to a
+	file.
 
-- **the typechecker**: reads in the iops stream containing the front end
-opcodes and does type analysis and reporting of errors; it also looks up
-symbolic names which the parser was unable to resolve (so allowing forward
-references).
+  - **the linker**: cowlink takes multiple `.coo` files produced by cowcom and
+	cowwrap and performs global analysis and variable placement. This is the
+	part which makes Cowgol possible: variables are placed statically in
+	memory, such that variables which the compiler knows aren't used at the
+	same time (based on analysing the call graph) occupy the same memory
+	locations. This is incredibly effective. For example, the 6502 has an
+	architectural limitation that pointers must occupy zero page; cowlink knows
+	about this, and assigns pointer variables to zero page. Normally the 256
+	byte zero page would very rapidly fill up, but cowcom itself only uses 146
+	bytes. This is also the reason why Cowgol forbids recursion.
 
-- **the backendifier**: reads in the iops stream containing the typechecked,
-stack-based front-end opcodes into memory-machine back-end opcodes used by
-the code generator. It also uses architecture-specific simplification rules
-to turn them into forms which can be emitted by the code generator.
+## Code generation
 
-- **the classifier**: constructs the call graph and determines which
-subroutines and variables are referred to. Once it knows which variables are
-used, it assigns them to addresses in the data segment (and in zero page on
-the 6502).
-
-- **the blockifier**: this will, eventually, do some simple basic block
-analysis and dead code removal. What it does now is to rewrite label
-references based on directives produced by the parser.
-
-- **the code generator**: turns the memory-machine opcodes into real
-processor opcodes.
-
-- **the placer**: now that the actual code has been generated, we know how
-big each subroutine is. The placer assigns them addresses in the code
-segment.
-
-- **the emitter**: assembles all the segments and writes out the executable
-image.
-
-There's architecture-specific code in every pass except the tokeniser, the
-parser and the blockifier. The 6502 version is in
-[src/arch/6502](https://github.com/davidgiven/cowgol/tree/master/src/arch/6502)
-
-## The backend model
-
-The backend uses a memory machine abstraction, where every instruction reads
-from memory and writes to memory. The code generator then caches values in
-memory in registers. This leads to pretty crummy register utilisation, but
-it's very very cheap.
-
-Given an abstract instruction like:
+The AST produced by the parser is a simple two-op tree structure. For example:
 
 ```
-a := b + c
+x := y + z
 ```
 
-...then `a`, `b` and `c` are all memory references, referred to as an
-effective address (EA). Each one may be an LEA, VALUE or DEREF, expressed as:
-
-- LEA: address of an object. `object+#numoffset+varoffset`
-- VALUE: value of an object. `[object+#numoffset+varoffset]`
-- DEREF: value pointed to by an object. `[[object]+#numoffset+varoffset]`
-
-`#numoffset` refers to a constant offset; `varoffset` refers to an offset in a
-variable. Either or both may be missing.
-
-EAs are typed, and the backend tracks their types. (Although this may be
-removed as the only thing it really cares about are the widths and the
-occasional signedness flag.) Constant values are held in memory and referred
-to by address (the code generator may optimise the fetch away if it wants
-to).
-
-The typechecker generates abstract code, and then there's a platform-specific
-simplification pass which chops instructions up into pieces which the
-architecture can understand. So:
+...produces:
 
 ```
-[i] := [[array] + offset]  # generated from i := array[offset]
+STORE1(ADD1(LOAD1(y), LOAD1(z)), x)
 ```
 
-...becomes:
+(approximately).
+
+The files fed to `newgen` then define rules which are matched against this tree from the bottom up. So if we
+have:
 
 ```
-[tmp] := array             # 16 bit load constant
-[tmp] := [tmp] + [offset]  # 16 bit add
-[i] := [[tmp]]             # load value via pointer deref
+gen STORE1(reg, ADDRESS());
+gen reg := LOAD1(ADDRESS);
+gen reg := ADD1(reg, reg);
 ```
 
-Sadly, this leads to a lot of repeated work and pretty poor generated code
-(if `[[array] + offset]` is referred to again, we should be able to avoid
-recalculating `tmp`). I'm thinking of ways to avoid this. Factoring the
-simplification phase into its own pass will be necessary to improve things
-here.
+...then the code generator will match these rules.
 
-## Porting to a new architecture
+```
+(4) STORE1(reg1, ADDRESS(x));
+(3) reg1 := ADD1(reg3, reg2);
+(2) reg2 := LOAD1(ADDRESS(z));
+(1) reg3 := LOAD1(ADDRESS(y));
+```
 
-Cowgol's intended to be portable, although it probably isn't. It certainly
-won't work on big-endian architectures --- this may be fixable, but I've
-deliberately avoided thinking about this for simplicity.
+These are in reverse, as the compiler works bottom-up, right to left. This fits
+well with the destination-driven register allocator: the consumer is seen
+first, which defines any constraints on the register; then, when the matching
+producer is seen, a matching register is allocated. If a register cannot be
+allocated, then a stack spill and reload is generated. So we end up with:
 
-All the platform-specific code should be in
-[src/arch](https://github.com/davidgiven/cowgol/tree/master/src/arch).
-The most complicated part is the code generator, which has received a proper
-overhaul since 0.3 and now generates much... more adequate... code. It uses a
-very simple value cache where it tries to remember which 8-bit values are
-stored in which register, and flushes them to memory lazily. It's important
-to remember that you need to flush the cache whenever doing a pointer access
-to maintain pointer aliasing rules. There's no attempt to track values
-between basic blocks (because it's really hard); the cache is flushed and
-values reloaded from memory as needed. 16-bit and 32-bit values aren't cached
-at all and are worked on directly in memory.
+```
+(4) STORE1(r1, ADDRESS(x));
+(3) r1 := ADD1(r2, r1);
+(2) r2 := LOAD1(ADDRESS(z));
+(1) r1 := LOAD1(ADDRESS(y));
+```
 
-This is a reasonable strategy for the very register-light old architectures,
-but would be very wasteful (although simple!) on a register-centric
-architecture like the ARM. You'll want to rewrite the code generator from
-scratch. The 6502 one is about 2.1kloc.
+Once the statement has been converted to machine instructions, they are then emitted in reverse order, producing actual machine code.
 
-You also need a simplifier, which breaks down complex backend instructions.
-This is much smaller, but pretty subtle, and I spent ages removing bugs from
-the 6502 one (and probably adding new ones); I've rewritten it completely at
-least once. If you're on a register architecture, life may be easier as there
-are fewer address modes to deal with.
+```
+(1) ld r1, y
+(2) ld r2, z
+(3) add r1, r1, r2
+(4) st r1, x
+```
+
+Consider a machine with far fewer registers, like the 8080. The rules then look like this:
+
+```
+gen STORE1(z, ADDRESS());  # memory operations only work on the accumulator
+gen a := LOAD1(ADDRESS()); # here too
+gen a := ADD1(b, a);       # add requires one parameter to be the accumulator
+```
+
+This matches in the same way. However, the ADD1 rule requires one parameter to be in `b`, but there is no rule generating b. This means that no register can be matched. This causes a spill and reload between the LOAD1 and the ADD1. 
+
+```
+(4) STORE1(x, ADDRESS(x));
+(3) a := ADD1(b, a) reloading b from (1);
+(2) a := LOAD1(ADDRESS(z));
+(1) a := LOAD1(ADDRESS(y)) spilling a for (3);
+```
+
+We fall back to spilling to the stack, but in this case we can actually spill to a register. When the code generator encounters (1) it sees that (3) requires a `b`, and that `b` is unused by the intermediate instructions, so it can annotate (1) as spilling `a` into `b` and nothing needs doing at (3). So, we generate the following code:
+
+```
+(1) lda y
+    mov b, a                # spill to b
+(2) lda z
+(3) add b
+(4) sta x
+```
+
+The end result is very cheap and surprisingly good code, where instruction
+selection and register allocation happen at the same time in a single pass. In
+particular, it almost trivially avoids the classic problem with top-to-bottom
+register allocators where you always end up leaving values in the wrong
+register.
+
+## Limitations of the code generator
+
+All is not rosy: there are limitations, mostly caused by the very simple implementation here.
+
+### No costing of rules is done
+
+The code generator always selects the first rule it sees which matches the AST. newgen itself sorts
+the rules by order of complexity, based on number of matching nodes, so we end up matching complex
+rules first. What this means is that there's no way to reason about which registers are available --- indeed, because rule matching happens in reverse, the consumer is seen before the producer, so the code generator doesn't know what registers are in use.
+
+### Strict ordering of computations
+
+In order to maintain stack nesting, spills and reloads have to be added in matched pairs. This can cause suboptimal code in some situations. Frequently code will be produced like this:
+
+```
+lda #1
+pha
+...some computation here...
+sta <temporary>
+pla
+clc
+adc <temporary>
+```
+
+This happens because the 1 occurs on the left hand side of an expression, and
+is therefore generated first; which means it gets immediately spilt to the
+stack and has to be reloaded, which in turn requires the intermediate value to
+be spilt to a temporary. It would be much cheaper to be able to evaluate the
+parameters in reverse, but the code generator can't do this.
+
+(In fact, in this specific case the compiler front end rotates `1+x` to `x+1`,
+which helps substantially, but this still happens.)
+
+### Compute once, use once
+
+Every value is produced exactly once and then consumed exactly once. Values
+can't be reused (although, see the register cache described below). This means
+that this:
+
+```
+struct.ptr.member := struct.ptr.member + 1;
+```
+
+...ends up having to computer the address of `struct.ptr.member` twice. Common
+subexpression elimination in the front end would help here, but that's very
+expensive and would require keeping state between statements.
+
+### Each statement is an island
+
+Code generation happens statement-by-statement, with no context. This means
+that referencing the same variable in multiple consecutive statements will
+reload that variable, even though it's already in a register.
+
+However:
+
+## The register cache
+
+After code generation happens, backends may implement a simple register cache.
+This tracks the values in registers and suppresses reloads if the backend knows
+it's already in memory. This is limited to constants, addresses, and the values
+of simple variables, but is extremely effective.
+
+For example, consider on the Z80:
+
+```
+ptr.a := 1;
+ptr.b := 2;
+ptr.c := 3;
+```
+
+The code generator will naively try to produce:
+
+```
+ld ix, (ptr)
+ld (ix+5), 1
+ld ix, (ptr)
+ld (ix+6), 1
+ld ix, (ptr)
+ld (ix+7), 1
+```
+
+The Z80 backend, though, every time it generates a `ld ix, (...)` instruction,
+marks the `ix` register as containing the contents of `ptr`. After it's been
+loaded once, it can omit the reload until `ix` changes. What actually gets
+omitted to the `.coo` file is:
+
+```
+ld ix, (ptr)
+ld (ix+5), 1
+ld (ix+6), 1
+ld (ix+7), 1
+```
+
+This is very cheap to implement (130 lines of code) and extremely effective.
+It's also the reason why Cowgol forbids taking the address of scalar variables:
+otherwise we would have to discard any cached values every time to dereferenced
+a pointer, just in case `ix` was pointing at `ptr` itself.
+

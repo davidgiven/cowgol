@@ -17,6 +17,7 @@ stack frames, which old processors don't really support well.
 ```
 var i: uint8 := 4; # variable declaration with initialiser
 var j: uint8;      # variable declaration without initialiser
+var k := fnord;    # you can omit the type if the RHS is non-constant
 
 j := i + 1;        # assignment and expressions
 j := i + 1 * 2;    # standard priorities; this adds 3 to i
@@ -61,10 +62,6 @@ loop
 end loop;
 
 # ...and that's your lot. Sorry, no for loops yet.
-
-label:
-# But you do get goto!
-goto label;
 ```
 
 ## Conditionals
@@ -87,7 +84,10 @@ Cowgol is strongly typed, with the usual semantics (but with a few gotchas).
 
 There are six scalar types: `int8`, `uint8`, `int16`, `uint16`, `int32`,
 `uint32`. They work exactly as you might expect. They're twos complement and
-rollover and overflow are defined to work.
+rollover and overflow are defined to work. You may also define a custom integer
+type with something like `int(-8, 7)`, which returns the smallest type which
+will fit the specified bounds; this is mostly useful with type aliases (see
+below).
 
 You get these operators: `+` `-` `*` `/` `%` `&` `|` `^`
 
@@ -133,32 +133,23 @@ special syntax.
 
 ```
 var array: uint8[42];
-var i: array@index := 9;  # automatically picks a uint8 or a uint16
+var i: @indexof array := 9;  # automatically picks a uint8 or a uint16
 print_i8(array[i]);       # always works
 ```
 
 That way you can resize your array later without having to rewrite lots of
 code.
 
-Arrays also support the `@size` modifier to return the number of elements in the array.
+Arrays also support the `@sizeof` modifier to return the number of elements
+in the array.
 
 ```
 var array: uint8[42];
-var i: array@index := 0;
-while i != array@size loop
+var i: @indexof array := 0;
+while i != @sizeof array loop
   array[i] := 9;
   i := i + 1;
 end loop;
-```
-
-There's limited support for array initialisers. These only work for
-one-dimensional arrays of scalars (so far). They work by embedding the data in
-the executable, so they generate no code; but the data is intrinsically static
-(if you use one inside a subroutine, be careful).
-
-```
-var array: uint8[42] = {1, 2, 3, 4};  # remaining items initialised to zero
-var hugearray: uint32[1024] = {};     # your executable just went up in size by 4kB
 ```
 
 ### Record types
@@ -194,75 +185,151 @@ place; so it's legal to cast a pointer to one to a pointer to another and
 have those fields still be accessible. Implicit downcasts are not done
 (although this is planned).
 
+You may use `@at()` to specify the actual offset of a member. This is useful
+for interoperation with hardware, and also to create unions.
+
+```
+record HardwareRegister
+  datareg @at(0): uint8;
+  statusreg @at(1): uint8;
+end record;
+
+record UnionRecord
+  option1 @at(0): OptionOne;
+  option2 @at(0): OptionTwo;
+  option3 @at(0): OptionThree;
+  non_union_member: uint8;  # goes after the three option members
+end record
+
+### Static initialisers
+
+You may define array and record variables statically. These work the way you
+would expect and allow arrays inside records, arrays of records, and strings:
+
+```
+var array1: uint8[3] := {1, 2, 3};    # the number of elements must match the size
+var array2: uint8[] := {4, 3, 2, 1};  # or the compiler can figure it out
+
+record Record
+	a: uint8;
+	b: uint8;
+	c: uint8;
+	d: uint8[3];
+	a_string: [uint8];
+end record;
+
+var a_record: Record := { 1, 2, 3, { 4, 5, 6 }, "foo" };
+```
+
+Variables declared in this way should be considered static --- they're
+initialised once on program startup and then never again. So, if you define one
+inside a subroutine then any changes will persist across multiple calls to the
+subroutine. I'm debating making them immutable, once the compiler gets support
+for immutable variables.
+
+There's limited support for array initialisers. These only work for
+one-dimensional arrays of scalars (so far). They work by embedding the data in
+the executable, so they generate no code; but the data is intrinsically static
+(if you use one inside a subroutine, be careful).
+
+```
+var array: uint8[42] = {1, 2, 3, 4};  # remaining items initialised to zero
+var hugearray: uint32[1024] = {};     # your executable just went up in size by 4kB
+```
+
 ### Pointer types
 
 Cowgol has pointers.
 
 ```
-var i: uint8 := 1;  # scalar type
-var p: [uint8];     # pointer type
-p := &i;            # take pointer to variable
-p[0] := p[0] + 1;   # dereference pointer
-```
+record Structure
+	i: uint8;
+end record;
 
-**Big warning.** I'm planning on changing the pointer dereference syntax to
-make them non-indexable. Please don't use indices other than 0. (They'll be
-replaced with pointers to arrays.)
-
-You may have pointers to pointers. But remember that pointers are typically
-pretty expensive on small machines.
+var v: value := { 1 }; # member of record
+var i: uint8 := 1;     # scalar type
+var p: [uint8];        # pointer type
+p := &v.i;             # allowed: taking the address of a member
+p := &i;               # disallowed: taking the address of a scalar variable
+[p] := [p] + 1;        # dereference pointer
 
 ```
-var i: uint8 := 1;
-var p: [uint8] := &i;
-var pp: [[uint8]] := &p;
-var ppp: [[[uint8]]] := &pp;
-# and the madness continues
+
+To avoid aliasing issues, you may not take the address of a scalar variable:
+that is, a simple variable containing an integer or pointer. You _can_ take the
+address of a record, or a scalar member of a record. (This restriction allows
+the backend to generate much more efficient code.) If you know what you're
+doing you can bypass this restriction with `p := @alias &i`. This doesn't make
+it safe, it just stops the compiler generating an error.
+
+Pointers are not indexable! But you _can_ do pointer arithmetic on them.
+**Pointer arithmetic always works in bytes.**
+
+```
+var p: [uint32] := &v.alignedint; # p is correctly aligned
+var badp := p + 1;                # now p is misaligned
+var goodp := @next p;             # @next advances a pointer to the next item
+goodp := @prev goodp;             # ...and back to the original item
+```
+
+You may have pointers to pointers, but remember that you can't take the address
+of a scalar variable, so they're of limited use.
+
+```
+record Structure
+	i: uint8;
+	p: [uint8];
+	pp: [[uint8]];
+end record;
+
+var v: Structure;
+v.p := &v.i;
+v.pp := &v.p;
+[[v.pp]] := 7;
 ```
 
 ### Special type tricks
 
-You can use the `@bytes` modifier to return the size of any type or variable.
+You can define type aliases.
 
 ```
-var block: SomeType;
-zero_memory(&block as [int8], SomeType@bytes);
-zero_memory(&block as [int8], block@bytes);    # this works too
+typedef ObjId := int(0, 127);      # a custom integer type (actually uint8)
+typedef MyArray := ObjId[42];
 ```
 
-## Conditional compilation
+These just define a new name for the type. Type aliases to the same type are
+compatible.
 
-There's very basic parser support for conditional compilation, which is used
-to turn on and off debug tracing.
-
-```
-$set DEBUG                # set the debugging flag
-
-$if DEBUG
-  something();            # only gets compiled if $set DEBUG was seen
-$endif
-```
-
-**Note:** No semicolon!
-
-There are no other flags which can be set (although more may arrive in the
-future).
-
-## Special tricks
-
-There's other magic stuff you can do; these are used for interfacing with the
-host platform.
+You can use `@bytesof` to return the size of any type or variable.
 
 ```
-@bytes 0x01, 0x02, 0x03;  # emit these bytes directly into the output code
+var array: MyArray;
+MemZero(&block as [uint8], @bytesof MyArray);
+MemZero(&block as [uint8], @bytesof array);         # this works too
 
-var i: int32;
-@bytes &i;                # emit a two-byte address of i
+var elementsize: intptr := @bytesof(@sizeof array); # use parentheses for type expressions
 
-var j: int8 @segment(0x81); # assign j to a specific segment
-# Beware! Segment numbers are architecture-specific. If you're on a 6502, 0x81 is zero page.
 
-@bytes >&i, <&i;          # emit the low byte, and then the high byte, of the address of i
+## Include files
+
+Yes.
+
+```
+include "cowgol.coh";     # first line of any program!
+```
+
+## Inline assembly
+
+Yes.
+
+```
+@asm "lda #1";            # emitted literally
+
+var i: uint8;
+@asm "lda", i;            # you may have references to simple variables
+
+@asm "lda", p.i;          # not allowed!
+```
 ```
 
 ## Things you need to bear in mind
@@ -270,16 +337,14 @@ var j: int8 @segment(0x81); # assign j to a specific segment
 - No floating point. Sorry. Just no.
 
 - Variables are not initialised to anything, so if you don't zero arrays and
-structures yourself before use, they'll be full of garbage.
+  structures yourself before use, they'll be full of garbage.
 
-- Just because all variables are statically assigned doesn't mean they're static (in the C sense).
-If two different subroutines never run at the same time, the compiler will
-allocate their variables to the same location. This means that you still
-can't return pointers to local variables and expect it to work.
+- Just because all variables are statically assigned doesn't mean they're
+  static (in the C sense).  If two different subroutines never run at the same
+  time, the compiler will allocate their variables to the same location. This
+  means that you still can't return pointers to local variables and expect it
+  to work.
 
-- Subroutines can be defined in any order --- you can refer to them before
-they're defined. Types must be defined before they're used.
+- The compiler is a single-pass job, so everything must be defined before it's
+  used. There's no support for forward declarations yet (working on it).
 
-- The standard library is crummy, and I'm not going to describe it here. See
-[`src/arch/bbc/lib`](https://github.com/davidgiven/cowgol/tree/master/src/arch/bbc/lib).
-At some point it's getting an overhaul.

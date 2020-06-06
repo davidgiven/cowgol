@@ -126,15 +126,16 @@ Where?
 ------
 
 - [Check out the GitHub repository](http://github.com/davidgiven/cowgol) and
-build from source. (Alternatively, you can download a source snapshot from
-[the latest release](https://github.com/davidgiven/cowgol/releases/latest),
-but I suggect the GitHub repositories better because I don't really intend to
-make formal releases often.) Build instructions as in the README.
+  build from source. (Alternatively, you can download a source snapshot from
+  [the latest release](https://github.com/davidgiven/cowgol/releases/latest),
+  but I suggect the GitHub repositories better because I don't really intend to
+  make formal releases often.) [Build instructions are on their own
+  page.](doc/building.md)
 
 - [Ask a question by creating a GitHub
-issue](https://github.com/davidgiven/cowgol/issues/new), or just email me
-directly at [dg@cowlark.com](mailto:dg@cowlark.com). (But I'd prefer you
-opened an issue, so other people can see them.)
+  issue](https://github.com/davidgiven/cowgol/issues/new), or just email me
+  directly at [dg@cowlark.com](mailto:dg@cowlark.com). (But I'd prefer you
+  opened an issue, so other people can see them.)
 
 
 
@@ -143,97 +144,16 @@ How?
 
 We have documentation! Admittedly, not much of it.
 
+- [How to build and use the compiler](doc/building.md); tl;dr: **read this**.
+
 - [Everything you want to know about Cowgol, the language](doc/language.md);
-tl;dr: very strongly typed; Ada-like syntax; multiple return parameters; no
-recursion; limited aliasing; nested functions.
+  tl;dr: very strongly typed; Ada-like syntax; multiple return parameters; no
+  recursion; limited aliasing; nested functions.
 
 - [An overview of Cowgol, the toolchain](doc/toolchain.md); tl;dr: single-pass
-compiler frontend; global analyser and linker feeding into a third-party
-assembler; written in pure Cowgol.
+  compiler frontend; global analyser and linker feeding into a third-party
+  assembler; written in pure Cowgol.
 
-To build, you'll need a Unixish machine (I develop on Linux) with some
-dependencies.
-
-  - the Ninja build tool
-
-  - Lua 5.1 (needed for the build)
-
-  - the Pasmo Z80 assembler (needed to build part of the CP/M emulator)
-
-  - the 64tass 6502 assembler (needed to build the 6502 code)
-
-  - the libz80ex Z80 emulation library (needed for the CP/M emulator)
-  
-  - flex and bison and libbsd and libreadline (these are standard)
-
-  - a C compiler and the i686-linux-gnu binutils
-
-  - the qemu userspace emulator
-
-  - the gpp preprocessor
-
-If you're on a Debianish platform, you should be able to install them
-with:
-
-    apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu qemu-user gpp 64tass
-
-Once done you can build the compiler itself with:
-
-
-```
-make
-```
-
-You'll be left with a lot of stuff in the `bin` directory. The tools are all
-labeled as (name).(toolchain).(extension); the name and the extension may also
-contain a dot. So, `cowcom.65c02.ncpmz.z80.com` is cowcom, the main compiler,
-targeting the 65c02, built with the `ncpmz` toolchain, producing a `z80.com`
-executable.
-
-These are the toolchains:
-
-  - `bootstrap`: this is the compiler shipped in C with the distribution.
-    It's only used to build the first stage compiler.
-
-  - `ncgen`: targeting C, built with the bootstrap compiler.
-
-  - `nncgen`: targeting C, built with `ncgen`.
-
-  - `lx386`: targeting Linux 80386 binaries, built with `nncgen`.
-
-  - `cpm`: targeting CP/M 8080 binaries, built with `nncgen`.
-
-  - `cpmz`: targeting CP/M Z80 binaries, built with `nncgen`.
-
-  - `bbct`: targeting BBC Tube 65c02 binaries, built with `nncgen`.
-
-  - `bbct6502`: targeting BBC Tube 6502 binaries, built with `nncgen`.
-
-`ncgen` and `nncgen` should behave identically. We build the compiler with
-itself to make sure that `nncgen` was built with a compiler built from the
-current compiler source, which is invaluable for testing.
-
-To run the cross compiler to generate a Linux 80386 binary, do:
-
-```
-$ bin/cowcom.80386.nncgen.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.coo
-$ bin/cowlink.lx386.nncgen.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
-$ i686-linux-gnu-as helloworld.s -o helloworld.o
-$ i686-linux-gnu-as helloworld.o -o helloworld
-$ ./helloworld
-Hello, world!
-```
-
-If you're on a system which can run Linux i686 binaries, this will work too:
-
-```
-$ bin/cowcom.80386.lx386.lx386.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.coo
-$ bin/cowlink.lx386.lx386.lx386.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
-$ i686-linux-gnu-as helloworld.s -o helloworld.o
-$ i686-linux-gnu-as helloworld.o -o helloworld
-$ ./helloworld
-Hello, world!
-```
 
 
 Why not?
