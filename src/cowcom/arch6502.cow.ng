@@ -71,9 +71,18 @@
         end if;
     end sub;
 
+    sub is_zp(sym: [Symbol]): (result: uint8)
+        if (sym.vardata.type == int8_type) or (sym.vardata.type == uint8_type)
+                or (IsPtr(sym.vardata.type) != 0) then
+            result := 1;
+        else
+            result := 0;
+        end if;
+    end sub;
+
     sub ArchInitVariable(symbol: [Symbol])
         var wsid: uint8 := VARMEM_WS;
-        if IsPtr(symbol.vardata.type) != 0 then
+        if is_zp(symbol) != 0 then
             wsid := PTRMEM_WS;
         end if;
 
@@ -207,7 +216,7 @@
             E_i16(off as int16);
         else
             var wsid: uint8 := VARMEM_WS;
-            if IsPtr(sym.vardata.type) != 0 then
+            if is_zp(sym) != 0 then
                 wsid := PTRMEM_WS;
             end if;
             E_wsref(sym.vardata.subr.id, wsid, sym.vardata.offset + off);
@@ -563,10 +572,6 @@
     end sub;
 
     sub ArchEndInstruction()
-    end sub;
-
-    sub is_ptr(sym: [Symbol]): (result: uint8)
-        result := IsPtr(sym.vardata.type);
     end sub;
 %}
 
@@ -947,11 +952,11 @@ gen const := CONSTANT():c                        { var op := PushConstOp($c.valu
 gen address := ADDRESS():a                       { var op := PushAddressOp($a.sym, $a.off); }
 gen mem1 := LOAD1(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
 gen mem2 := LOAD2(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
-gen mem2p := LOAD2(ADDRESS(sym is ptr):a)        { var op := PushSymOp($a.sym, $a.off); }
+gen mem2p := LOAD2(ADDRESS(sym is zp):a)         { var op := PushSymOp($a.sym, $a.off); }
 gen mem4 := LOAD4(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
-gen memi1 := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) { var op := PushSymIOp($a.sym, $a.off); }
-gen memi2 := LOAD2(LOAD2(ADDRESS(sym is ptr):a)) { var op := PushSymIOp($a.sym, $a.off); }
-gen memi4 := LOAD4(LOAD2(ADDRESS(sym is ptr):a)) { var op := PushSymIOp($a.sym, $a.off); }
+gen memi1 := LOAD1(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
+gen memi2 := LOAD2(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
+gen memi4 := LOAD4(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
 gen stacki1 := LOAD1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
 gen stacki2 := LOAD2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
 gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
@@ -1298,7 +1303,7 @@ gen a|x|y := LOAD1(ADDRESS():a)
     end if;
 }
 
-gen a := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) uses y
+gen a := LOAD1(LOAD2(ADDRESS(sym is zp):a)) uses y
 {
     $ifndef ARCH_65C02
         E_loadconst(REG_Y, 0);

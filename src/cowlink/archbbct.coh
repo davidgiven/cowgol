@@ -22,6 +22,10 @@ sub ArchEmitWSRef(wid: uint8, address: Size)
 end sub;
 
 sub ArchEmitHeader(coo: [Coo])
+	if (workspaceSize[1] + workspaceSize[3]) > 0xee then
+		SimpleError("ran out of zero page space");
+	end if;
+
 	E(".cpu \"65c02\"\n");
 	E("* = $400\n");
 	E("ws1 = 0\n");
