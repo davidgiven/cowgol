@@ -86,7 +86,6 @@ Generate(MidStartsub(current_subr));
 
 ParserInit();
 loop
-	var justbefore: uint32 := 1;
 	var yymajor := LexerReadToken();
 	case yymajor is
 		when NUMBER:

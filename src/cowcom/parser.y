@@ -1098,16 +1098,10 @@ memberid(S) ::= ID(T).
 				current_type.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 			end if;
 			if current_offset != current_type.typedata.width then
-				print("current_offset=");
-				print_i16(current_offset);
-				print(" typedata.width=");
-				print_i16(current_type.typedata.width);
-				print_nl();
 				WrongNumberOfElementsError();
 			end if;
 		else
 			if current_member != (0 as [Symbol]) then
-				print("2\n");
 				WrongNumberOfElementsError();
 			end if;
 		end if;
@@ -1146,12 +1140,6 @@ memberid(S) ::= ID(T).
 		end if;
 
 		if member.vardata.offset < current_offset then
-			print_i16(member.vardata.offset);
-			print_nl();
-			print_i16(current_offset);
-			print_nl();
-			print(member.name);
-			print_nl();
 			SimpleError("out of order static initialisation");
 		end if;
 	end sub;
