@@ -34,7 +34,7 @@ function zmac(e)
 			e.ins
 		),
 		outs = e.outs,
-		cmd = "@1 -m "..archflag.." -o &1 "..table.concat(hdrpaths, " ").." @2"
+		cmd = "@1 -j -m "..archflag.." -o &1 "..table.concat(hdrpaths, " ").." @2"
 	}
 end
 

@@ -37,7 +37,7 @@
 
 &X _lshift2
 &W _lshift2 1 2
-; Shifts AX left Y bits.
+; Shifts XA left Y bits.
 ``:
     sta `$_lshift2.1.0
     stx `$_lshift2.1.1
@@ -54,7 +54,7 @@
 
 &X _rshiftu2
 &W _rshiftu2 1 2
-; Logical shifts AX right Y bits.
+; Logical shifts XA right Y bits.
 ``:
     sta `$_lshift2.1.0
     stx `$_lshift2.1.1
@@ -71,7 +71,7 @@
 
 &X _rshifts2
 &W _rshifts2 1 2
-; Arithmetic shifts AX right Y bits.
+; Arithmetic shifts XA right Y bits.
 ``:
     sta `$_lshift2.1.0
     stx `$_lshift2.1.1

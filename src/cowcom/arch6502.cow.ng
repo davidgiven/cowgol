@@ -291,6 +291,17 @@
     sub E_sty() E_st(REG_Y); end sub;
     sub E_stz() E_oc(OC_STZ); end sub;
 
+    sub E_ldst_ws(oc: uint8, id: uint16, off: Size)
+        E_oc(oc);
+        E_wsref(id, PTRMEM_WS, off);
+        E_nl();
+    end sub;
+
+    sub E_sta_ws(id: uint16, off: Size) E_ldst_ws(OC_STA, id, off); end sub;
+    sub E_stx_ws(id: uint16, off: Size) E_ldst_ws(OC_STX, id, off); end sub;
+    sub E_lda_ws(id: uint16, off: Size) E_ldst_ws(OC_LDA, id, off); end sub;
+    sub E_ldx_ws(id: uint16, off: Size) E_ldst_ws(OC_LDX, id, off); end sub;
+
     sub E_cp(reg: RegId)
         case reg is
             when REG_A: E_oc(OC_CMP);
@@ -1805,13 +1816,9 @@ gen a := CAST21(RSHIFTS2(xa, CONSTANT(value==8))) { E_txa(); }
     sub MulOrDiv2(name: string)
         var e := GetHelper("_mathpad");
 
-        E_sta();
-        E_wsref(e.id, PTRMEM_WS, 0);
-        E_nl();
-
-        E_stx();
-        E_wsref(e.id, PTRMEM_WS, 1);
-        E_nl();
+        var subid := e.id;
+        E_sta_ws(subid, 0);
+        E_stx_ws(subid, 1);
 
         var rhs := PopOp();
         DoParamDirect_lda(rhs, 0);
@@ -1824,13 +1831,9 @@ gen a := CAST21(RSHIFTS2(xa, CONSTANT(value==8))) { E_txa(); }
 
         var e := GetHelper("_mathpad");
 
-        E_lda();
-        E_wsref(e.id, PTRMEM_WS, 4);
-        E_nl();
-
-        E_ldx();
-        E_wsref(e.id, PTRMEM_WS, 5);
-        E_nl();
+        var subid := e.id;
+        E_lda_ws(subid, 4);
+        E_ldx_ws(subid, 5);
     end sub;
 %}
 
@@ -1952,15 +1955,18 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
+        var subid := e.id;
+        sub ldst(oc: uint8, off: Size)
+            E_oc(oc);
+            E_wsref(subid, PTRMEM_WS, off);
+            E_y_nl();
+        end sub;
+
         DoParamIndirect_lda(lhs);
-        E_sta();
-        E_wsref(e.id, PTRMEM_WS, 0);
-        E_y_nl();
+        ldst(OC_STA, 0);
 
         DoParamIndirect_lda(rhs);
-        E_sta();
-        E_wsref(e.id, PTRMEM_WS, 8);
-        E_y_nl();
+        ldst(OC_STA, 8);
 
         E_dey();
         E_bpl(lid);
@@ -1970,9 +1976,7 @@ gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
         E_loadconst(REG_Y, 3);
         lid := E_new_label();
 
-        E_lda();
-        E_wsref(e.id, PTRMEM_WS, resultoffset as uint16);
-        E_y_nl();
+        ldst(OC_LDA, resultoffset as uint16);
         DoParamIndirect_sta(dest);
 
         E_dey();
@@ -2031,6 +2035,12 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
+gen BEQ1(a:lhs, CONSTANT(value==0)):b uses a|x
+{
+    E_tax();
+    E_jumps_beq_bne(self.n[0]);
+}
+
 gen BEQ1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
@@ -2045,6 +2055,12 @@ gen BLTU1(a:lhs, in1s:rhs):b
     E_jumps_bcc_bcs(self.n[0]);
 }
 
+gen BLTS1(a, CONSTANT(value==0)):b uses x
+{
+    E_tax();
+    E_jumps_beq_bne(self.n[0]);
+}
+
 gen BLTS1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
@@ -2053,6 +2069,29 @@ gen BLTS1(a:lhs, in1s:rhs):b
     E("\tbvc *+4\n");
     E("\teor #$80\n");
     E_jumps_bmi_bpl(self.n[0]);
+}
+
+gen BEQ2(xa, CONSTANT(value==0)):b uses a|y
+{
+    E_tay();
+    E_bne($b.falselabel);
+    E_txa();
+    E_jumps_beq_bne(self.n[0]);
+}
+
+gen BEQ2(LOAD2(ADDRESS():a), CONSTANT(value==0)):b uses a
+{
+    E_lda();
+    E_symref($a.sym, $a.off);
+    E_nl();
+
+    E_bne($b.falselabel);
+
+    E_lda();
+    E_symref($a.sym, $a.off+1);
+    E_nl();
+
+    E_jumps_beq_bne(self.n[0]);
 }
 
 gen BEQ2(xa:lhs, in2s:rhs):b
@@ -2091,6 +2130,12 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     DoParamDirect(rhs, OC_SBC, 1);
     E("\tbvc *+4\n");
     E("\teor #$80\n");
+    E_jumps_bmi_bpl(self.n[0]);
+}
+
+gen BLTS2(xa, CONSTANT(value==0)):b
+{
+    E_txa();
     E_jumps_bmi_bpl(self.n[0]);
 }
 
@@ -2141,9 +2186,35 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     end sub;
 %}
 
+gen BEQ4(in4s, CONSTANT(value==0)):b uses a|x|y
+{
+    var lhs := PopOp();
+
+    E_loadconst(REG_Y, 3);
+    var lid := E_new_label();
+
+    DoParamIndirect_lda(lhs);
+    E_bne($b.falselabel);
+
+    E_dey();
+    E_bpl(lid);
+
+    if $b.fallthrough != $b.truelabel then
+        E_jmp($b.truelabel);
+    end if;
+}
+
 gen BEQ4(in4s, in4s):b uses a|x|y { DoCmp4EQ(self.n[0]); }
 gen BLTU4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 0); }
 gen BLTS4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 1); }
+
+gen BLTS4(in4s, CONSTANT(value==0)):b uses a|x|y
+{
+    var lhs := PopOp();
+
+    DoParamDirect_lda(lhs, 3);
+    E_jumps_bmi_bpl(self.n[0]);
+}
 
 // --- Casts ----------------------------------------------------------------
 
@@ -2251,18 +2322,15 @@ gen STARTCASE4(v32)
     E_stackref(sid);
     E_nl();
 
-    E_sta();
-    E_wsref(e.id, PTRMEM_WS, 0);
-    E_nl();
+    var subid := e.id;
+    E_sta_ws(subid, 0);
     
     E_lda();
     E_consthi();
     E_stackref(sid);
     E_nl();
 
-    E_sta();
-    E_wsref(e.id, PTRMEM_WS, 1);
-    E_nl();
+    E_sta_ws(subid, 1);
 }
 
 gen WHENCASE1():c

@@ -98,11 +98,11 @@
 	end sub;
 
 	sub E_jp(label: LabelRef)
-		E_jump("jp", label);
+		E_jump("jr", label);
 	end sub;
 
 	sub E_jnz(label: LabelRef)
-		E_jump("jp nz,", label);
+		E_jump("jr nz,", label);
 	end sub;
 
 	sub E_ret()
@@ -979,7 +979,7 @@ gen RETURN()
     if current_subr.num_output_parameters == 0 then
 		E_ret();
 	else
-		E("\tjp end_");
+		E("\tjr end_");
 		E_subref(current_subr);
 		E("\n");
 	end if;
@@ -1641,15 +1641,15 @@ gen hlhl := RSHIFTS4(hlhl, a)
 	end sub;
 
 	sub E_jumps_jz_jnz(node: [Node])
-		E_jumps_with_fallthrough("jp z,", "jp nz,", node);
+		E_jumps_with_fallthrough("jr z,", "jr nz,", node);
 	end sub;
 
 	sub E_jumps_jnz_jz(node: [Node])
-		E_jumps_with_fallthrough("jp nz,", "jp z,", node);
+		E_jumps_with_fallthrough("jr nz,", "jr z,", node);
 	end sub;
 
 	sub E_jumps_jc_jnc(node: [Node])
-		E_jumps_with_fallthrough("jp c,", "jp nc,", node);
+		E_jumps_with_fallthrough("jr c,", "jr nc,", node);
 	end sub;
 
 	sub E_jumps_jm_jp(node: [Node])
@@ -1705,7 +1705,7 @@ gen hlhl := RSHIFTS4(hlhl, a)
 		else
 			E_rcf();
 			cmpeq2(value as uint16);
-			E_jump("jp nz,", node.beq0.falselabel);
+			E_jump("jr nz,", node.beq0.falselabel);
 			E_exx();
 			cmpeq2((value>>16) as uint16);
 		end if;
@@ -1763,6 +1763,12 @@ gen BLTS1(a, CONSTANT():c):b
 	E_subi($c.value as uint8);
 	E("\tjp po, $+5\n");
 	E_xori(0x80);
+	E_jumps_jm_jp(self.n[0]);
+}
+
+gen BLTS1(a, CONSTANT(value==0)):b
+{
+	E_or(REG_A);
 	E_jumps_jm_jp(self.n[0]);
 }
 
