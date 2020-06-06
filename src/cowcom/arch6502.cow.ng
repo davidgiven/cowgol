@@ -265,6 +265,30 @@
     sub E_txs() E_ocnl(OC_TXS); end sub;
     sub E_not() R_flush(REG_A); E_oc(OC_EOR); E("#255\n"); end sub;
 
+    # Note: big endian on stack!
+    sub E_phax()
+        $ifdef ARCH_65C02
+            E_pha();
+            E_phx();
+        $else
+            E_pha();
+            E_txa();
+            E_pha();
+        $endif
+    end sub;
+
+    # Note: big endian on stack!
+    sub E_plax()
+        $ifdef ARCH_65C02
+            E_plx();
+            E_pla();
+        $else
+            E_pla();
+            E_tax();
+            E_pla();
+        $endif
+    end sub;
+
     sub E_ld(reg: RegId)
         R_flush(reg);
         case reg is
@@ -631,7 +655,7 @@ gen JUMP():j
         next: [Operand];
     end record;
 
-    const OPERAND_STACK_SIZE := 32;
+    const OPERAND_STACK_SIZE := 16;
     var opstack: [Operand][OPERAND_STACK_SIZE];
     var first_operand: [Operand] := 0 as [Operand];
     var opsp: uint8 := 0;
@@ -692,7 +716,8 @@ gen JUMP():j
         op.off := off;
     end sub;
         
-    sub FakeStackPush(reg: RegId, width: uint8): (sid: uint16)
+    sub PushStackOp(reg: RegId, width: uint8): (op: [Operand])
+        var sid: uint16;
         if (reg & REG_P16) != 0 then
             sid := (PTRSTACK_WS<<8) | (ptrsp as uint16);
             ptrsp := ptrsp + width;
@@ -706,36 +731,16 @@ gen JUMP():j
                 current_subr.workspace[VARSTACK_WS] := varsp as Size;
             end if;
         end if;
-    end sub;
 
-    sub PushStackOp(reg: RegId, width: uint8): (op: [Operand])
         op := PushOp();
         op.mode := MODE_STACK;
-        op.stk.sid := FakeStackPush(reg, width);
+        op.stk.sid := sid;
         op.stk.wsid := (op.stk.sid >> 8) as uint8;
         op.stk.width := width;
     end sub;
 
     sub PushV32(): (op: [Operand])
         op := PushStackOp(REG_V32, 4);
-    end sub;
-        
-    sub FakeStackPop(reg: RegId, width: uint8): (sid: uint16)
-        if (reg & REG_P16) != 0 then
-            ptrsp := ptrsp - width;
-            sid := (PTRSTACK_WS<<8) | (ptrsp as uint16);
-        else
-            varsp := varsp - width;
-            sid := (VARSTACK_WS<<8) | (varsp as uint16);
-        end if;
-    end sub;
-
-    sub FakeStackPeek(reg: RegId, width: uint8): (sid: uint16)
-        if (reg & REG_P16) != 0 then
-            sid := (PTRSTACK_WS<<8) | ((ptrsp-width) as uint16);
-        else
-            sid := (VARSTACK_WS<<8) | ((varsp-width) as uint16);
-        end if;
     end sub;
 
     sub PopOp(): (op: [Operand])
@@ -817,6 +822,7 @@ gen JUMP():j
 
     sub DoParamDirect(operand: [Operand], oc: uint8, offset: uint8)
         var m := operand.mode;
+
         if (m == MODE_STACKI) or (m == MODE_SYMBOLI) then
             $ifdef ARCH_65C02
                 if offset != 0 then
@@ -898,14 +904,7 @@ gen JUMP():j
                     when REG_A:  E_pla(); return;
 
                     when REG_XA:
-                        $ifdef ARCH_65C02
-                            E_plx();
-                            E_pla();
-                        $else
-                            E_pla();
-                            E_tax();
-                            E_pla();
-                        $endif
+                        E_plax();
                         return;
                 end case;
 
@@ -922,14 +921,7 @@ gen JUMP():j
             when REG_XA:
                 case dest is
                     when 0:
-                        $ifdef ARCH_65C02
-                            E_pha();
-                            E_phx();
-                        $else
-                            E_pha();
-                            E_txa();
-                            E_pha();
-                        $endif
+                        E_phax();
                         return;
                 end case;
         end case;
@@ -942,34 +934,7 @@ gen JUMP():j
         EndError();
     end sub;
 
-    var cases: uint8 := 0;
     sub ArchEndGroup()
-        # The opstack should be empty at the end of every statement. If it's
-        # not, then that means we've leaked an op somewhere. (Unless we're in
-        # a case...)
-        #if cases == 0 then
-        #    if opsp != 0 then
-        #        StartError();
-        #        print("opstack has ");
-        #        print_i8(opsp);
-        #        print(" left after statement");
-        #        EndError();
-        #    end if;
-        #    if varsp != 0 then
-        #        StartError();
-        #        print("varstack has ");
-        #        print_i8(varsp);
-        #        print(" left after statement");
-        #        EndError();
-        #    end if;
-        #    if ptrsp != 0 then
-        #        StartError();
-        #        print("ptrstack has ");
-        #        print_i8(ptrsp);
-        #        print(" left after statement");
-        #        EndError();
-        #    end if;
-        #end if;
         if inasm == 0 then
             E_nl();
         end if;
@@ -990,6 +955,12 @@ gen memi4 := LOAD4(LOAD2(ADDRESS(sym is ptr):a)) { var op := PushSymIOp($a.sym, 
 gen stacki1 := LOAD1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
 gen stacki2 := LOAD2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
 gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+
+// ==========================================================================
+//                        STRICTLY NECESSARY RULES
+// ==========================================================================
+
+// These rules are required for the code generator to work at all.
 
 // --- Subroutines ----------------------------------------------------------
 
@@ -1056,7 +1027,7 @@ gen STARTSUB():s
                     PopReturnAddress();
                     E_pla();
                 end if;
-                E_st(REG_A);
+                E_sta();
                 E_symref(param, 0);
                 E_nl();
                 RegCacheLeavesValue(REG_A, param, 0);
@@ -1073,11 +1044,11 @@ gen STARTSUB():s
                         E_pla();
                     $endif
                 end if;
-                E_st(REG_A);
+                E_sta();
                 E_symref(param, 0);
                 E_nl();
 
-                E_st(REG_X);
+                E_stx();
                 E_symref(param, 1);
                 E_nl();
 
@@ -1090,7 +1061,7 @@ gen STARTSUB():s
                 var lid := E_new_label();
                 E_pla();
                 
-                E_st(REG_A);
+                E_sta();
                 E_symref(param, -252);
                 E_y_nl();
 
@@ -1120,7 +1091,7 @@ gen ENDSUB():s
             when 1:
                 cache := RegCacheFindValue(param, 0) & REG_A;
                 if cache == 0 then
-                    E_ld(REG_A);
+                    E_lda();
                     E_symref(param, 0);
                     E_nl();
                 end if;
@@ -1131,23 +1102,23 @@ gen ENDSUB():s
             when 2:
                 if i != (count-1) then
                     # Warning: big endian!
-                    E_ld(REG_A);
+                    E_lda();
                     E_symref(param, 0);
                     E_nl();
                     E_pha();
 
-                    E_ld(REG_A);
+                    E_lda();
                     E_symref(param, 1);
                     E_nl();
                     E_pha();
                 else
                     cache := RegCacheFindValue(param, 0) & REG_XA;
                     if cache == 0 then
-                        E_ld(REG_A);
+                        E_lda();
                         E_symref(param, 0);
                         E_nl();
 
-                        E_ld(REG_X);
+                        E_ldx();
                         E_symref(param, 1);
                         E_nl();
                     end if;
@@ -1160,7 +1131,7 @@ gen ENDSUB():s
                 E_loadconst(REG_Y, -4);
                 var lid := E_new_label();
 
-                E_ld(REG_A);
+                E_lda();
                 E_symref(param, -252);
                 E_y_nl();
                 E_pha();
@@ -1243,14 +1214,7 @@ gen param := ARG2(param, xa, remaining==0);
 gen param := ARG2(param, xa, remaining!=0)
 {
     # big endian on stack
-    $ifdef ARCH_65C02
-        E_pha();
-        E_phx();
-    $else
-        E_pha();
-        E_txa();
-        E_pha();
-    $endif
+    E_phax();
 }
 
 gen param := ARG4(param, in4s) uses y|a
@@ -1323,44 +1287,6 @@ gen STORE1(a|x|y:lhs, ADDRESS():a)
     RegCacheLeavesValue($lhs, $a.sym, $a.off);
 }
 
-$ifdef ARCH_65C02
-    gen STORE1(CONSTANT(value==0), ADDRESS():a)
-    {
-        E_stz();
-        E_symref($a.sym, $a.off);
-        E_nl();
-    }
-$endif
-
-gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
-{
-    var dest := PopAndDerefOp();
-    E_loadconst(REG_Y, $c.value as uint8);
-    DoParamIndirect_sta(dest);
-}
-
-gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
-{
-    E_sta();
-    E_symref($a.sym, $a.off);
-    E_x_nl();
-}
-
-$ifdef ARCH_65C02
-    gen STORE1(CONSTANT(value==0), ADD2(ADDRESS():a, CAST12(x, sext==0)))
-    {
-        E_stz();
-        E_symref($a.sym, $a.off);
-        E_x_nl();
-    }
-$endif
-
-gen STORE1(a, ADD2(ptrs, CAST12(y, sext==0)))
-{
-    var dest := PopAndDerefOp();
-    DoParamIndirect_sta(dest);
-}
-
 gen a|x|y := LOAD1(ADDRESS():a)
 {
     var cache := RegCacheFindValue($a.sym, $a.off) & $$;
@@ -1389,26 +1315,6 @@ gen a := LOAD1(LOAD2(ADDRESS(sym is ptr):a)) uses y
     $endif
 }
 
-gen a := LOAD1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
-{
-    var src := PopAndDerefOp();
-    E_loadconst(REG_Y, $c.value as uint8);
-    DoParamIndirect_lda(src);
-}
-
-gen a := LOAD1(ADD2(ADDRESS():a, CAST12(x, sext==0)))
-{
-    E_lda();
-    E_symref($a.sym, $a.off);
-    E_x_nl();
-}
-
-gen a := LOAD1(ADD2(ptrs, CAST12(y, sext==0)))
-{
-    var src := PopAndDerefOp();
-    DoParamIndirect_lda(src);
-}
-
 gen a := LOAD1(ptrs) uses y
 {
     var op := PopAndDerefOp();
@@ -1427,84 +1333,11 @@ gen a := NEG1(a)
     E("\tadc #0\n");
 }
 
-$ifdef ARCH_65C02
-    %{
-        sub SmallAdditionOrSubtraction(oc: uint8, amount: uint8)
-            R_flush(REG_A);
-            while amount != 0 loop
-                E_oc(oc);
-                E_a();
-                E_nl();
-                amount := amount - 1;
-            end loop;
-        end sub;
-    %}
-
-    gen a := ADD1(a, CONSTANT(value>=0, value<=3):c)
-            { SmallAdditionOrSubtraction(OC_INC, $c.value as uint8); }
-    gen a := ADD1(a, CONSTANT(value<0, value>=-3):c)
-            { SmallAdditionOrSubtraction(OC_DEC, -($c.value as int8) as uint8); }
-$endif
-
 gen a := ADD1(a, in1s) uses y { E_clc(); DoParamDirect(PopOp(), OC_ADC, 0); }
 gen a := SUB1(a, in1s) uses y { E_sec(); DoParamDirect(PopOp(), OC_SBC, 0); }
 gen a := OR1 (a, in1s) uses y {          DoParamDirect(PopOp(), OC_ORA, 0); }
 gen a := AND1(a, in1s) uses y {          DoParamDirect(PopOp(), OC_AND, 0); }
 gen a := EOR1(a, in1s) uses y {          DoParamDirect(PopOp(), OC_EOR, 0); }
-
-%{
-    sub is_inc_or_dec(value: Arith): (result: uint8)
-        result := 0;
-        if (value == 1) or (value == -1) then
-            result := 1;
-        end if;
-    end sub;
-%}
-
-gen STORE1(ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS():a2) uses x cost 100
-{
-    if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
-        if $c.value < 0 then
-            E_dec();
-        else
-            E_inc();
-        end if;
-        E_symref($a1.sym, $a1.off);
-        E_nl();
-    else
-        E_ldx();
-        E_symref($a1.sym, $a1.off);
-        E_nl();
-
-        if $c.value < 0 then
-            E_dex();
-        else
-            E_inx();
-        end if;
-
-        E_stx();
-        E_symref($a2.sym, $a2.off);
-        E_nl();
-    end if;
-}
-
-%{
-    sub Shift1(oc: uint8, amount: uint8)
-        while amount != 0 loop
-            E_ocnl(oc);
-            amount := amount - 1;
-        end loop;
-    end sub;
-%}
-
-gen a := LSHIFT1(a, CONSTANT(value<=3):c) { Shift1(OC_ASL, $c.value as uint8); }
-gen a := RSHIFTU1(a, CONSTANT(value<=3):c) { Shift1(OC_LSR, $c.value as uint8); }
-
-gen a := RSHIFTS1(a, CONSTANT(value==1))
-{
-    E("\tcmp #$80\n");
-    E("\tror\n");
-}
 
 gen a := LSHIFT1(a, y)  { E_callhelper("_lshift1"); }
 gen a := RSHIFTU1(a, y) { E_callhelper("_rshiftu1"); }
@@ -1561,27 +1394,6 @@ gen xa := LOAD2(ptrs)
     DoParamDirect_lda(ptr, 0);
 }
 
-gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
-{
-    var src := PopAndDerefOp();
-
-    var off := $c.value as uint8;
-    DoParamDirect_lda(src, off+1);
-    E_tax();
-    DoParamDirect_lda(src, off);
-}
-
-gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
-{
-    E_lda();
-    E_symref($a.sym, $a.off+0);
-    E_y_nl();
-
-    E_ldx();
-    E_symref($a.sym, $a.off+1);
-    E_y_nl();
-}
-
 gen xa := CONSTANT():c
 {
     E_loadconst(REG_A, $c.value as uint8);
@@ -1595,28 +1407,15 @@ gen xa := ADDRESS():a
 
 gen STORE2(xa, ADDRESS():a)
 {
-    E_st(REG_A);
+    E_sta();
     E_symref($a.sym, $a.off);
     E_nl();
 
-    E_st(REG_X);
+    E_stx();
     E_symref($a.sym, $a.off+1);
     E_nl();
     RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
 }
-
-$ifdef ARCH_65C02
-    gen STORE2(CONSTANT(value==0), ADDRESS():a)
-    {
-        E_stz();
-        E_symref($a.sym, $a.off);
-        E_nl();
-
-        E_stz();
-        E_symref($a.sym, $a.off+1);
-        E_nl();
-    }
-$endif
 
 gen STORE2(xa, ptrs) uses y
 {
@@ -1625,99 +1424,6 @@ gen STORE2(xa, ptrs) uses y
     DoParamDirect_sta(op, 0);
     E_txa();
     DoParamDirect_sta(op, 1);
-}
-
-gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
-{
-    var dest := PopAndDerefOp();
-
-    var off := $c.value as uint8;
-    DoParamDirect_sta(dest, off+0);
-    E_txa();
-    DoParamDirect_sta(dest, off+1);
-}
-
-gen STORE2(ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c), ADDRESS():a2) uses x|y|a cost 100
-{
-    var lid := AllocLabel();
-    if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
-        if $c.value < 0 then
-            E_lda();
-            E_symref($a1.sym, $a1.off);
-            E_nl();
-
-            E_bne(lid);
-
-            E_dec();
-            E_symref($a1.sym, $a1.off+1);
-            E_nl();
-
-            E_label(lid);
-            
-            E_dec();
-            E_symref($a1.sym, $a1.off);
-            E_nl();
-        else
-            E_inc();
-            E_symref($a1.sym, $a1.off);
-            E_nl();
-
-            E_bne(lid);
-
-            E_inc();
-            E_symref($a1.sym, $a1.off+1);
-            E_nl();
-
-            E_label(lid);
-        end if;
-    else
-        $ifdef ARCH_65C02
-            const LOWREG := REG_A;
-        $else
-            const LOWREG := REG_Y;
-        $endif
-
-        var cache := RegCacheFindValue($a1.sym, $a1.off);
-        if cache != REG_XA then
-            E_ldx();
-            E_symref($a1.sym, $a1.off+1);
-            E_nl();
-
-            E_ld(LOWREG);
-            E_symref($a1.sym, $a1.off);
-            E_nl();
-        else
-            $ifdef ARCH_65C02
-                # Highreg is already in A, where we want it.
-            $else
-                E_tay();
-            $endif
-        end if;
-
-        if $c.value < 0 then
-            E_bne(lid);
-            E_dex();
-            E_label(lid);
-            E_decrement(LOWREG);
-        else
-            E_increment(LOWREG);
-            E_bne(lid);
-            E_inx();
-            E_label(lid);
-        end if;
-
-        E_stx();
-        E_symref($a2.sym, $a2.off+1);
-        E_nl();
-
-        E_st(LOWREG);
-        E_symref($a2.sym, $a2.off);
-        E_nl();
-
-        $ifdef ARCH_65C02
-            RegCacheLeavesValue(REG_XA, $a2.sym, $a2.off);
-        $endif
-    end if;
 }
 
 %{
@@ -1785,32 +1491,9 @@ gen xa := AND2(in2s, xa) uses y {          DoXA(OC_AND); }
 gen xa := OR2 (in2s, xa) uses y {          DoXA(OC_ORA); }
 gen xa := EOR2(in2s, xa) uses y {          DoXA(OC_EOR); }
 
-// Because of some quirk of the way the code is generated, this rule helps
-// a lot --- but the same rule for SUB2, AND2 etc actually makes things
-// worse, I think because it prevents one of the pointer indexing rules from
-// firing.
-gen STORE2(ADD2(in2s, xa), ptrs) uses y cost 100 { E_clc(); DoXADest(OC_ADC); }
-
-gen xa := LSHIFT2(CAST12(a, sext==0), CONSTANT(value==1))
-{
-    E_loadconst(REG_X, 0);
-    E("\tasl\n");
-    E("\tbcc *+4\n");
-    E("\tinx\n");
-}
-
 gen xa := LSHIFT2(xa, y) { E_callhelper("_lshift2"); }
 gen xa := RSHIFTU2(xa, y) { E_callhelper("_rshiftu2"); }
 gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
-
-gen xa := RSHIFTU2(xa, CONSTANT(value==8))
-{
-    E_txa();
-    E_loadconst(REG_X, 0);
-}
-
-gen a := CAST21(RSHIFTU2(xa, CONSTANT(value==8))) { E_txa(); }
-gen a := CAST21(RSHIFTS2(xa, CONSTANT(value==8))) { E_txa(); }
 
 %{
     sub MulOrDiv2(name: string)
@@ -2035,12 +1718,6 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
-gen BEQ1(a:lhs, CONSTANT(value==0)):b uses a|x
-{
-    E_tax();
-    E_jumps_beq_bne(self.n[0]);
-}
-
 gen BEQ1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
@@ -2055,12 +1732,6 @@ gen BLTU1(a:lhs, in1s:rhs):b
     E_jumps_bcc_bcs(self.n[0]);
 }
 
-gen BLTS1(a, CONSTANT(value==0)):b uses x
-{
-    E_tax();
-    E_jumps_beq_bne(self.n[0]);
-}
-
 gen BLTS1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
@@ -2069,29 +1740,6 @@ gen BLTS1(a:lhs, in1s:rhs):b
     E("\tbvc *+4\n");
     E("\teor #$80\n");
     E_jumps_bmi_bpl(self.n[0]);
-}
-
-gen BEQ2(xa, CONSTANT(value==0)):b uses a|y
-{
-    E_tay();
-    E_bne($b.falselabel);
-    E_txa();
-    E_jumps_beq_bne(self.n[0]);
-}
-
-gen BEQ2(LOAD2(ADDRESS():a), CONSTANT(value==0)):b uses a
-{
-    E_lda();
-    E_symref($a.sym, $a.off);
-    E_nl();
-
-    E_bne($b.falselabel);
-
-    E_lda();
-    E_symref($a.sym, $a.off+1);
-    E_nl();
-
-    E_jumps_beq_bne(self.n[0]);
 }
 
 gen BEQ2(xa:lhs, in2s:rhs):b
@@ -2130,12 +1778,6 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     DoParamDirect(rhs, OC_SBC, 1);
     E("\tbvc *+4\n");
     E("\teor #$80\n");
-    E_jumps_bmi_bpl(self.n[0]);
-}
-
-gen BLTS2(xa, CONSTANT(value==0)):b
-{
-    E_txa();
     E_jumps_bmi_bpl(self.n[0]);
 }
 
@@ -2186,35 +1828,9 @@ gen BLTS2(xa, CONSTANT(value==0)):b
     end sub;
 %}
 
-gen BEQ4(in4s, CONSTANT(value==0)):b uses a|x|y
-{
-    var lhs := PopOp();
-
-    E_loadconst(REG_Y, 3);
-    var lid := E_new_label();
-
-    DoParamIndirect_lda(lhs);
-    E_bne($b.falselabel);
-
-    E_dey();
-    E_bpl(lid);
-
-    if $b.fallthrough != $b.truelabel then
-        E_jmp($b.truelabel);
-    end if;
-}
-
 gen BEQ4(in4s, in4s):b uses a|x|y { DoCmp4EQ(self.n[0]); }
 gen BLTU4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 0); }
 gen BLTS4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 1); }
-
-gen BLTS4(in4s, CONSTANT(value==0)):b uses a|x|y
-{
-    var lhs := PopOp();
-
-    DoParamDirect_lda(lhs, 3);
-    E_jumps_bmi_bpl(self.n[0]);
-}
 
 // --- Casts ----------------------------------------------------------------
 
@@ -2296,23 +1912,11 @@ gen xa := CAST42(in4s)
 
 // --- Case -----------------------------------------------------------------
 
-%{
-    sub StartCase()
-        cases := cases + 1;
-    end sub;
-
-    sub EndCase()
-        cases := cases - 1;
-    end sub;
-%}
-
-gen STARTCASE1(a) { StartCase(); }
-gen STARTCASE2(xa) { StartCase(); }
+gen STARTCASE1(a);
+gen STARTCASE2(xa);
 
 gen STARTCASE4(v32)
 {
-    StartCase();
-
     var e := GetHelper("_when4");
     var op := PeekOp();
     var sid := op.stk.sid;
@@ -2364,9 +1968,9 @@ gen WHENCASE4():c uses a
     E_bne($c.falselabel);
 }
 
-gen ENDCASE1() { EndCase(); }
-gen ENDCASE2() { EndCase(); }
-gen ENDCASE4() { var op := PopOp(); EndCase(); }
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4() { var op := PopOp(); }
 
 // --- Strings --------------------------------------------------------------
 
@@ -2468,6 +2072,387 @@ gen ASMEND()
     E_nl();
     inasm := 0;
 }
+
+// ==========================================================================
+//                               OPTIONAL RULES
+// ==========================================================================
+
+// These rules make the code better, but aren't actually necessary. They can
+// be turned off to try and make a self-hosting compiler.
+
+$ifndef TINY
+
+// --- 65C02 features -------------------------------------------------------
+
+$ifdef ARCH_65C02
+    // The 65C02 can store zero to a memory location without needing to use
+    // a register. It's kinda limited when it comes to addressing modes.
+
+    gen STORE1(CONSTANT(value==0), ADDRESS():a)
+    {
+        E_stz();
+        E_symref($a.sym, $a.off);
+        E_nl();
+    }
+
+    gen STORE1(CONSTANT(value==0), ADD2(ADDRESS():a, CAST12(x, sext==0)))
+    {
+        E_stz();
+        E_symref($a.sym, $a.off);
+        E_x_nl();
+    }
+
+    gen STORE2(CONSTANT(value==0), ADDRESS():a)
+    {
+        E_stz();
+        E_symref($a.sym, $a.off);
+        E_nl();
+
+        E_stz();
+        E_symref($a.sym, $a.off+1);
+        E_nl();
+    }
+
+    // It can also directly increment and decrement the accumulator.
+
+    %{
+        sub SmallAdditionOrSubtraction(oc: uint8, amount: uint8)
+            R_flush(REG_A);
+            while amount != 0 loop
+                E_oc(oc);
+                E_a();
+                E_nl();
+                amount := amount - 1;
+            end loop;
+        end sub;
+    %}
+
+    gen a := ADD1(a, CONSTANT(value>=0, value<=3):c)
+            { SmallAdditionOrSubtraction(OC_INC, $c.value as uint8); }
+    gen a := ADD1(a, CONSTANT(value<0, value>=-3):c)
+            { SmallAdditionOrSubtraction(OC_DEC, -($c.value as int8) as uint8); }
+$endif
+
+// --- Indexed pointers -----------------------------------------------------
+
+// The (zp),y addressing mode gives us a free addition to the pointer when
+// dereferencing.
+
+gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
+{
+    var dest := PopAndDerefOp();
+    E_loadconst(REG_Y, $c.value as uint8);
+    DoParamIndirect_sta(dest);
+}
+
+gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
+{
+    E_sta();
+    E_symref($a.sym, $a.off);
+    E_x_nl();
+}
+
+gen STORE1(a, ADD2(ptrs, CAST12(y, sext==0)))
+{
+    var dest := PopAndDerefOp();
+    DoParamIndirect_sta(dest);
+}
+
+gen a := LOAD1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
+{
+    var src := PopAndDerefOp();
+    E_loadconst(REG_Y, $c.value as uint8);
+    DoParamIndirect_lda(src);
+}
+
+gen a := LOAD1(ADD2(ADDRESS():a, CAST12(x, sext==0)))
+{
+    E_lda();
+    E_symref($a.sym, $a.off);
+    E_x_nl();
+}
+
+gen a := LOAD1(ADD2(ptrs, CAST12(y, sext==0)))
+{
+    var src := PopAndDerefOp();
+    DoParamIndirect_lda(src);
+}
+
+gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
+{
+    var dest := PopAndDerefOp();
+
+    var off := $c.value as uint8;
+    DoParamDirect_sta(dest, off+0);
+    E_txa();
+    DoParamDirect_sta(dest, off+1);
+}
+
+gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
+{
+    var src := PopAndDerefOp();
+
+    var off := $c.value as uint8;
+    DoParamDirect_lda(src, off+1);
+    E_tax();
+    DoParamDirect_lda(src, off);
+}
+
+gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
+{
+    E_lda();
+    E_symref($a.sym, $a.off+0);
+    E_y_nl();
+
+    E_ldx();
+    E_symref($a.sym, $a.off+1);
+    E_y_nl();
+}
+
+// --- In place increments or decrements ------------------------------------
+
+// Adding or subtracting one to or from a memory location is very common and
+// can be optimised.
+
+%{
+    sub is_inc_or_dec(value: Arith): (result: uint8)
+        result := 0;
+        if (value == 1) or (value == -1) then
+            result := 1;
+        end if;
+    end sub;
+%}
+
+gen STORE1(
+        ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+        ADDRESS():a2) uses x cost 100
+{
+    if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
+        if $c.value < 0 then
+            E_dec();
+        else
+            E_inc();
+        end if;
+        E_symref($a1.sym, $a1.off);
+        E_nl();
+    else
+        E_ldx();
+        E_symref($a1.sym, $a1.off);
+        E_nl();
+
+        if $c.value < 0 then
+            E_dex();
+        else
+            E_inx();
+        end if;
+
+        E_stx();
+        E_symref($a2.sym, $a2.off);
+        E_nl();
+    end if;
+}
+
+gen STORE2(
+        ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+        ADDRESS():a2) uses x|y|a cost 100
+{
+    var lid := AllocLabel();
+    if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
+        if $c.value < 0 then
+            E_lda();
+            E_symref($a1.sym, $a1.off);
+            E_nl();
+
+            E_bne(lid);
+
+            E_dec();
+            E_symref($a1.sym, $a1.off+1);
+            E_nl();
+
+            E_label(lid);
+            
+            E_dec();
+            E_symref($a1.sym, $a1.off);
+            E_nl();
+        else
+            E_inc();
+            E_symref($a1.sym, $a1.off);
+            E_nl();
+
+            E_bne(lid);
+
+            E_inc();
+            E_symref($a1.sym, $a1.off+1);
+            E_nl();
+
+            E_label(lid);
+        end if;
+    else
+        $ifdef ARCH_65C02
+            const LOWREG := REG_A;
+        $else
+            const LOWREG := REG_Y;
+        $endif
+
+        var cache := RegCacheFindValue($a1.sym, $a1.off);
+        if cache != REG_XA then
+            E_ldx();
+            E_symref($a1.sym, $a1.off+1);
+            E_nl();
+
+            E_ld(LOWREG);
+            E_symref($a1.sym, $a1.off);
+            E_nl();
+        else
+            $ifdef ARCH_65C02
+                # Highreg is already in A, where we want it.
+            $else
+                E_tay();
+            $endif
+        end if;
+
+        if $c.value < 0 then
+            E_bne(lid);
+            E_dex();
+            E_label(lid);
+            E_decrement(LOWREG);
+        else
+            E_increment(LOWREG);
+            E_bne(lid);
+            E_inx();
+            E_label(lid);
+        end if;
+
+        E_stx();
+        E_symref($a2.sym, $a2.off+1);
+        E_nl();
+
+        E_st(LOWREG);
+        E_symref($a2.sym, $a2.off);
+        E_nl();
+
+        $ifdef ARCH_65C02
+            RegCacheLeavesValue(REG_XA, $a2.sym, $a2.off);
+        $endif
+    end if;
+}
+
+// --- Comparisons against zero ---------------------------------------------
+
+gen BEQ1(a:lhs, CONSTANT(value==0)):b uses a|x
+{
+    E_tax();
+    E_jumps_beq_bne(self.n[0]);
+}
+
+gen BLTS1(a, CONSTANT(value==0)):b uses x
+{
+    E_tax();
+    E_jumps_beq_bne(self.n[0]);
+}
+
+gen BEQ2(xa, CONSTANT(value==0)):b uses a|y
+{
+    E_tay();
+    E_bne($b.falselabel);
+    E_txa();
+    E_jumps_beq_bne(self.n[0]);
+}
+
+gen BEQ2(LOAD2(ADDRESS():a), CONSTANT(value==0)):b uses a
+{
+    E_lda();
+    E_symref($a.sym, $a.off);
+    E_nl();
+
+    E_bne($b.falselabel);
+
+    E_lda();
+    E_symref($a.sym, $a.off+1);
+    E_nl();
+
+    E_jumps_beq_bne(self.n[0]);
+}
+
+gen BLTS2(xa, CONSTANT(value==0)):b
+{
+    E_txa();
+    E_jumps_bmi_bpl(self.n[0]);
+}
+
+gen BEQ4(in4s, CONSTANT(value==0)):b uses a|x|y
+{
+    var lhs := PopOp();
+
+    E_loadconst(REG_Y, 3);
+    var lid := E_new_label();
+
+    DoParamIndirect_lda(lhs);
+    E_bne($b.falselabel);
+
+    E_dey();
+    E_bpl(lid);
+
+    if $b.fallthrough != $b.truelabel then
+        E_jmp($b.truelabel);
+    end if;
+}
+
+gen BLTS4(in4s, CONSTANT(value==0)):b uses a|x|y
+{
+    var lhs := PopOp();
+
+    DoParamDirect_lda(lhs, 3);
+    E_jumps_bmi_bpl(self.n[0]);
+}
+
+%{
+    sub Shift1(oc: uint8, amount: uint8)
+        while amount != 0 loop
+            E_ocnl(oc);
+            amount := amount - 1;
+        end loop;
+    end sub;
+%}
+
+// --- Inline shifts --------------------------------------------------------
+
+gen a := LSHIFT1(a, CONSTANT(value<=3):c) { Shift1(OC_ASL, $c.value as uint8); }
+gen a := RSHIFTU1(a, CONSTANT(value<=3):c) { Shift1(OC_LSR, $c.value as uint8); }
+
+gen a := RSHIFTS1(a, CONSTANT(value==1))
+{
+    E("\tcmp #$80\n");
+    E("\tror\n");
+}
+
+gen xa := LSHIFT2(CAST12(a, sext==0), CONSTANT(value==1))
+{
+    E_loadconst(REG_X, 0);
+    E("\tasl\n");
+    E("\tbcc *+4\n");
+    E("\tinx\n");
+}
+
+gen xa := RSHIFTU2(xa, CONSTANT(value==8))
+{
+    E_txa();
+    E_loadconst(REG_X, 0);
+}
+
+gen a := CAST21(RSHIFTU2(xa, CONSTANT(value==8))) { E_txa(); }
+gen a := CAST21(RSHIFTS2(xa, CONSTANT(value==8))) { E_txa(); }
+
+// --- Weird things ---------------------------------------------------------
+
+// Because of some quirk of the way the code is generated, this rule helps a
+// lot as it has xa on the RHS --- but the same rule for SUB2, AND2 etc
+// actually makes things worse, I think because it prevents one of the pointer
+// indexing rules from firing.
+
+gen STORE2(ADD2(in2s, xa), ptrs) uses y cost 100 { E_clc(); DoXADest(OC_ADC); }
+
+$endif
 
 // vim: sw=4 ts=4 et
 

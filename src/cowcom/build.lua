@@ -1,5 +1,5 @@
-local ARCHS = { "65c02", "6502", "z80", "8080", "80386", "cgen" }
-local BLACKLISTED_TOOLCHAINS = set { "bbct", "bbct6502" }
+local ARCHS = { "65c02-tiny", "65c02", "6502", "z80", "8080", "80386", "cgen" }
+local BLACKLISTED_TOOLCHAINS = set {} -- "bbct", "bbct6502" }
 
 lemoncowgol {
 	ins = { "src/cowcom/parser.y" },
@@ -10,7 +10,8 @@ lemoncowgol {
 }
 
 local extras = {
-	["65c02"] = "src/cowcom/arch6502.cow.ng"
+	["65c02"] = "src/cowcom/arch6502.cow.ng",
+	["65c02-tiny"] = "src/cowcom/arch6502.cow.ng"
 }
 
 for _, arch in ipairs(ARCHS) do
@@ -27,31 +28,33 @@ for _, arch in ipairs(ARCHS) do
 end
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
-	if not BLACKLISTED_TOOLCHAINS[toolchain.name] then
-		for _, arch in ipairs(ARCHS) do
-			cowgol {
-				toolchain = toolchain,
-				ins = {
-					"src/cowcom/main.cow",
-					"include/coodecls.coh",
-					"src/cowcom/codegen.coh",
-					"src/cowcom/emitter.coh",
-					"src/cowcom/expressions.coh",
-					"src/cowcom/lexer.coh",
-					"src/cowcom/midcodec.coh",
-					"src/cowcom/namespace.coh",
-					"src/cowcom/regcache.coh",
-					"src/cowcom/symbols.coh",
-					"src/cowcom/types.coh",
-					"$OBJ/src/cowcom/parser.coh",
-					"$OBJ/src/cowcom/parser.tokens.coh",
-					"$OBJ/cowcom-"..arch.."/inssel.coh",
-					"$OBJ/cowcom-"..arch.."/inssel.decl.coh",
-					"$OBJ/midcodes.coh",
-				},
-				outs = { "bin/cowcom-"..arch }
-			}
-		end
+	local archs = toolchain.archs
+	if not archs then
+		archs = ARCHS
+	end
+	for _, arch in ipairs(archs) do
+		cowgol {
+			toolchain = toolchain,
+			ins = {
+				"src/cowcom/main.cow",
+				"include/coodecls.coh",
+				"src/cowcom/codegen.coh",
+				"src/cowcom/emitter.coh",
+				"src/cowcom/expressions.coh",
+				"src/cowcom/lexer.coh",
+				"src/cowcom/midcodec.coh",
+				"src/cowcom/namespace.coh",
+				"src/cowcom/regcache.coh",
+				"src/cowcom/symbols.coh",
+				"src/cowcom/types.coh",
+				"$OBJ/src/cowcom/parser.coh",
+				"$OBJ/src/cowcom/parser.tokens.coh",
+				"$OBJ/cowcom-"..arch.."/inssel.coh",
+				"$OBJ/cowcom-"..arch.."/inssel.decl.coh",
+				"$OBJ/midcodes.coh",
+			},
+			outs = { "bin/cowcom-"..arch }
+		}
 	end
 end
 
