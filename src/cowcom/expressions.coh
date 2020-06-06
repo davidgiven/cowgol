@@ -50,11 +50,13 @@ sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node])
 end sub;
 
 sub ResolveUntypedConstantsSimply(lhs: [Node], rhs: [Node])
-	if (lhs.type != (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
-		rhs.type := lhs.type;
-	elseif (lhs.type == (0 as [Symbol])) and (rhs.type != (0 as [Symbol])) then
-		lhs.type := rhs.type;
-	elseif lhs.type != rhs.type then
+	var ltype := lhs.type;
+	var rtype := rhs.type;
+	if (ltype != (0 as [Symbol])) and (rtype == (0 as [Symbol])) then
+		rhs.type := ltype;
+	elseif (ltype == (0 as [Symbol])) and (rtype != (0 as [Symbol])) then
+		lhs.type := rtype;
+	elseif ltype != rtype then
 		expr_i_cant_do_that(lhs, rhs);
 	end if;
 end sub;
@@ -90,18 +92,20 @@ sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node])
 		expr_i_cant_do_that(lhs, rhs);
 	end sub;
 
-	if (IsPtr(lhs.type) != 0) then
-		if (IsPtr(rhs.type) != 0) or (rhs.type != intptr_type) then
+	var ltype := lhs.type;
+	var rtype := rhs.type;
+	if (IsPtr(ltype) != 0) then
+		if (IsPtr(rtype) != 0) or (rtype != intptr_type) then
 			cant_add_that();
 		end if;
-	elseif IsPtr(rhs.type) != 0 then
+	elseif IsPtr(rtype) != 0 then
 		cant_add_that();
-	elseif (IsPtr(lhs.type) == 0) and (lhs.type != rhs.type) then
+	elseif (IsPtr(ltype) == 0) and (ltype != rtype) then
 		cant_add_that();
 	end if;
 	
 	result := MidC2Op(MIDCODE_ADD0, NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
+	result.type := ltype;
 end sub;
 
 sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
@@ -111,19 +115,21 @@ sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node])
 		expr_i_cant_do_that(lhs, rhs);
 	end sub;
 
-	if (IsPtr(lhs.type) != 0) and (IsPtr(rhs.type) == 0) and (rhs.type != intptr_type) then
+	var ltype := lhs.type;
+	var rtype := rhs.type;
+	if (IsPtr(ltype) != 0) and (IsPtr(rtype) == 0) and (rtype != intptr_type) then
 		cant_sub_that();
-	elseif (IsNum(lhs.type) != 0) and (IsPtr(rhs.type) != 0) then
+	elseif (IsNum(ltype) != 0) and (IsPtr(rtype) != 0) then
 		cant_sub_that();
-	elseif (IsNum(lhs.type) != 0) and (IsNum(rhs.type) != 0) and (lhs.type != rhs.type) then
+	elseif (IsNum(ltype) != 0) and (IsNum(rtype) != 0) and (ltype != rtype) then
 		cant_sub_that();
 	end if;
 
 	result := MidC2Op(MIDCODE_SUB0, NodeWidth(lhs), lhs, rhs);
-	if (IsPtr(lhs.type) != 0) and (lhs.type == rhs.type) then
+	if (IsPtr(ltype) != 0) and (ltype == rtype) then
 		result.type := intptr_type;
 	else
-		result.type := lhs.type;
+		result.type := ltype;
 	end if;
 end sub;
 

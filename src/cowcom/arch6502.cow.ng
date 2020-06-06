@@ -854,10 +854,10 @@ gen JUMP():j
                 E_closep();
                 $ifdef ARCH_65C02
                     if offset != 0 then
-                        E_y_nl();
+                        E(",y");
                     end if;
                 $else
-                    E_y_nl();
+                    E(",y");
                 $endif
 
             when MODE_SYMBOL:
@@ -869,10 +869,10 @@ gen JUMP():j
                 E_closep();
                 $ifdef ARCH_65C02
                     if offset != 0 then
-                        E_y_nl();
+                        E(",y");
                     end if;
                 $else
-                    E_y_nl();
+                    E(",y");
                 $endif
 
             when else:
