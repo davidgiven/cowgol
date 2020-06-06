@@ -1,6 +1,4 @@
 include "cowgol.coh";
 
-sub add(i: int8, j: int8): (k: int8)
-	k := i + j;
-end sub;
+# No content. Produces the smallest possible executable!
 
