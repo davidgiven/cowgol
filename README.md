@@ -207,8 +207,12 @@ Cowgol is open source software available [under the 2-clause BSD
 license](https://github.com/davidgiven/cowgol/blob/master/COPYING).  Simplified
 summary: do what you like with it, just don't claim you wrote it.
 
-`tools/tubeemu` contains a hacked copy of the lib6502 library, which is © 2005
-Ian Plumarta. See `tools/tubeemu/COPYING.lib6502` for the full text.
+The exceptions are the contents of the `third_party` directory, which were
+written by other people and are not covered by this license.
+
+`third_party/lib6502` contains a hacked copy of the lib6502 library, which is ©
+2005 Ian Plumarta and is available under the terms of the MIT license. See
+`third_party/lib6502/COPYING.lib6502` for the full text.
 
 `third_party/zmac` contains a copy of the venerable zmac 8080 and Z80
 assembler. It's in the public domain.
