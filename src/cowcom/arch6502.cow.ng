@@ -1918,7 +1918,7 @@ gen STARTCASE2(xa);
 gen STARTCASE4(v32)
 {
     var e := GetHelper("_when4");
-    var op := PeekOp();
+    var op := PopOp();
     var sid := op.stk.sid;
 
     E_lda();
@@ -1970,7 +1970,7 @@ gen WHENCASE4():c uses a
 
 gen ENDCASE1();
 gen ENDCASE2();
-gen ENDCASE4() { var op := PopOp(); }
+gen ENDCASE4();
 
 // --- Strings --------------------------------------------------------------
 
