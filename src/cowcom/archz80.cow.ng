@@ -1766,6 +1766,12 @@ gen BLTS1(a, CONSTANT():c):b
 	E_jumps_jm_jp(self.n[0]);
 }
 
+gen BLTS1(a, CONSTANT(value==0)):b
+{
+	E_or(REG_A);
+	E_jumps_jm_jp(self.n[0]);
+}
+
 gen BEQ2(bc|de:lhs, hl):a
 		{ bequ2(self.n[0], $lhs); }
 

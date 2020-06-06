@@ -1345,11 +1345,7 @@ gen BLTU1(a, b|d|h:rhs):b
 gen BLTU1(a, CONSTANT():c):b
 {
 	var v := $c.value as uint8;
-	if v == 0 then
-		E_ora(REG_A);
-	else
-		E_cpi(v);
-	end if;
+	E_cpi(v);
 	E_jumps_jc_jnc(self.n[0]);
 }
 
