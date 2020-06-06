@@ -23,7 +23,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowlink/types.coh",
 				"src/cowlink/utils.coh",
 			},
-			outs = { "bin/cowlink."..arch }
+			outs = { "bin/cowlink-"..arch }
 		}
 	end
 end

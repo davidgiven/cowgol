@@ -1,7 +1,7 @@
 toolchain_ncgen = {
 	name = "ncgen",
-	compiler = "bin/cowcom.cgen.bootstrap.exe",
-	linker = "bin/cowlink.cgen.bootstrap.exe",
+	compiler = "bin/cowcom-cgen.bootstrap.exe",
+	linker = "bin/cowlink-cgen.bootstrap.exe",
 	assembler = buildcgen,
 	runtime = "rt/cgen",
 	asmext = ".c",
@@ -11,8 +11,8 @@ toolchain_ncgen = {
 
 toolchain_nncgen = {
 	name = "nncgen",
-	compiler = "bin/cowcom.cgen.ncgen.exe",
-	linker = "bin/cowlink.cgen.ncgen.exe",
+	compiler = "bin/cowcom-cgen.ncgen.exe",
+	linker = "bin/cowlink-cgen.ncgen.exe",
 	assembler = buildcgen,
 	runtime = "rt/cgen",
 	asmext = ".c",
@@ -22,8 +22,8 @@ toolchain_nncgen = {
 
 toolchain_ncpm = {
 	name = "ncpm",
-	compiler = "bin/cowcom.8080.nncgen.exe",
-	linker = "bin/cowlink.8080.nncgen.exe",
+	compiler = "bin/cowcom-8080.nncgen.exe",
+	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
 	runtime = "rt/cpm",
 	asmext = ".asm",
@@ -33,8 +33,8 @@ toolchain_ncpm = {
 
 toolchain_ncpmz = {
 	name = "ncpmz",
-	compiler = "bin/cowcom.z80.nncgen.exe",
-	linker = "bin/cowlink.8080.nncgen.exe",
+	compiler = "bin/cowcom-z80.nncgen.exe",
+	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
 	runtime = "rt/cpmz",
 	asmext = ".z80",
@@ -44,8 +44,8 @@ toolchain_ncpmz = {
 
 toolchain_lx386 = {
 	name = "lx386",
-	compiler = "bin/cowcom.80386.nncgen.exe",
-	linker = "bin/cowlink.lx386.nncgen.exe",
+	compiler = "bin/cowcom-80386.nncgen.exe",
+	linker = "bin/cowlink-lx386.nncgen.exe",
 	assembler = buildgas386,
 	runtime = "rt/lx386",
 	asmext = ".s",
@@ -55,8 +55,8 @@ toolchain_lx386 = {
 
 toolchain_bbct = {
 	name = "bbct",
-	compiler = "bin/cowcom.65c02.nncgen.exe",
-	linker = "bin/cowlink.bbct.nncgen.exe",
+	compiler = "bin/cowcom-65c02.nncgen.exe",
+	linker = "bin/cowlink-bbct.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbct",
 	asmext = ".asm",
@@ -66,8 +66,8 @@ toolchain_bbct = {
 
 toolchain_bbct6502 = {
 	name = "bbct6502",
-	compiler = "bin/cowcom.6502.nncgen.exe",
-	linker = "bin/cowlink.bbct.nncgen.exe",
+	compiler = "bin/cowcom-6502.nncgen.exe",
+	linker = "bin/cowlink-bbct.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbct",
 	asmext = ".asm",

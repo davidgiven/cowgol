@@ -49,7 +49,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 					"$OBJ/cowcom-"..arch.."/inssel.decl.coh",
 					"$OBJ/midcodes.coh",
 				},
-				outs = { "bin/cowcom."..arch }
+				outs = { "bin/cowcom-"..arch }
 			}
 		end
 	end

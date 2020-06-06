@@ -1,7 +1,0 @@
-print("PARSER2\n");
-
-var filename_id: uint16 := 0;
-var line_no: uint16 := 0;
-
-init_string_table();
-load_thing_table(things_dat);

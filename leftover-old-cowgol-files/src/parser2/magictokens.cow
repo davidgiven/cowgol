@@ -1,3 +1,0 @@
-const TOKEN_MAGIC_FILENAME   := 255; # followed by 16-bit string id
-const TOKEN_MAGIC_LINENUMBER := 254; # followed by 16-bit line number
-const TOKEN_MAGIC_NEXT_LINE  := 253; # adds one to line number

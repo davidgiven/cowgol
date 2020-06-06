@@ -1,15 +1,4 @@
-extern sub putc(c: uint8) := "putchar";
+include "cowgol.coh";
 
-sub puts(s: [uint8])
-	loop
-		var c := [s];
-		if c == 0 then
-			return;
-		end if;
-		putc(c);
-		s := s + 1;
-	end loop;
-end sub;
-
-puts("Hello, world!\n");
+print("Hello, world!\n");
 

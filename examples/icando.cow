@@ -1,0 +1,15 @@
+include "cowgol.coh";
+
+print("I can do it!\n");
+var i: uint8 := 10;
+while i != 0 loop
+    print("I can do it ");
+    print_i8(i);
+    print(" time");
+    if i != 1 then
+        print("s");
+    end if;
+    print_nl();
+    i := i - 1;
+end loop;
+

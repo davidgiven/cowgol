@@ -1,3 +1,0 @@
-deinit_tokenreader();
-save_thing_table(things_dat);
-deinit_string_table();

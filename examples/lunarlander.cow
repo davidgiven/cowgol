@@ -1,3 +1,6 @@
+# WARNING. This was intended for the old Apollo Guidance Computer backend, and
+# doesn't work on other backends. It's left here for interest only.
+
 var dsky_buffer: int15[13];
 
 sub dsky_set_raw_opcode(address: int15, sign: int15, left: int15, right: int15)

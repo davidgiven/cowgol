@@ -1,3 +1,0 @@
-# Random oddities which need looking at and tests written for.
-
-# opcode & 0xF3 | 0x10 produces wrong result
