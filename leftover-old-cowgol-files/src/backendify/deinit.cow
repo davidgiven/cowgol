@@ -1,4 +1,0 @@
-deinit_string_table();
-save_thing_table(things_dat);
-deinit_iop_reader();
-deinit_iop_writer();

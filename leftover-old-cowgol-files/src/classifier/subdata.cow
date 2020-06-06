@@ -1,9 +1,0 @@
-record SubRecord
-    base: ArchSizes;
-end record;
-
-var subdata: SubRecord[MAXSUBROUTINES_COUNT];
-
-sub init_subdata()
-    zero_memory(&subdata[0] as [int8], subdata@bytes);
-end sub;

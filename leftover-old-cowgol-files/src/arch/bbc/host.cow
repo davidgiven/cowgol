@@ -1,4 +1,0 @@
-const STRINGTABLE_SIZE := 15000;
-const IOPTABLE_SIZE := 5000; # needs to be about 10000 to compile the compiler
-const CLASSIFICATIONGRAPH_NODES := 2000; # in nodes, node bytes
-const MAXSUBROUTINES_COUNT := 400;

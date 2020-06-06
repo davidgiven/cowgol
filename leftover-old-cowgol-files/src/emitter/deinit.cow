@@ -1,3 +1,0 @@
-deinit_string_table();
-deinit_iop_reader();
-fcb_close(&out_fcb);
