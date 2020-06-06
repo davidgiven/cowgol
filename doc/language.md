@@ -200,6 +200,7 @@ record UnionRecord
   option3 @at(0): OptionThree;
   non_union_member: uint8;  # goes after the three option members
 end record
+```
 
 ### Static initialisers
 
