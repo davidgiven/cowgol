@@ -68,8 +68,8 @@ STORE1(ADD1(LOAD1(y), LOAD1(z)), x)
 
 (approximately).
 
-The files fed to `newgen` then define rules which are matched against this tree from the bottom up. So if we
-have:
+The files fed to `newgen` then define rules which are matched against this tree
+from the bottom up. So if we have:
 
 ```
 gen STORE1(reg, ADDRESS());
@@ -99,7 +99,8 @@ allocated, then a stack spill and reload is generated. So we end up with:
 (1) r1 := LOAD1(ADDRESS(y));
 ```
 
-Once the statement has been converted to machine instructions, they are then emitted in reverse order, producing actual machine code.
+Once the statement has been converted to machine instructions, they are then
+emitted in reverse order, producing actual machine code.
 
 ```
 (1) ld r1, y
@@ -108,7 +109,8 @@ Once the statement has been converted to machine instructions, they are then emi
 (4) st r1, x
 ```
 
-Consider a machine with far fewer registers, like the 8080. The rules then look like this:
+Consider a machine with far fewer registers, like the 8080. The rules then look
+like this:
 
 ```
 gen STORE1(z, ADDRESS());  # memory operations only work on the accumulator
@@ -116,7 +118,9 @@ gen a := LOAD1(ADDRESS()); # here too
 gen a := ADD1(b, a);       # add requires one parameter to be the accumulator
 ```
 
-This matches in the same way. However, the ADD1 rule requires one parameter to be in `b`, but there is no rule generating b. This means that no register can be matched. This causes a spill and reload between the LOAD1 and the ADD1. 
+This matches in the same way. However, the ADD1 rule requires one parameter to
+be in `b`, but there is no rule generating b. This means that no register can
+be matched. This causes a spill and reload between the LOAD1 and the ADD1. 
 
 ```
 (4) STORE1(x, ADDRESS(x));
@@ -125,7 +129,11 @@ This matches in the same way. However, the ADD1 rule requires one parameter to b
 (1) a := LOAD1(ADDRESS(y)) spilling a for (3);
 ```
 
-We fall back to spilling to the stack, but in this case we can actually spill to a register. When the code generator encounters (1) it sees that (3) requires a `b`, and that `b` is unused by the intermediate instructions, so it can annotate (1) as spilling `a` into `b` and nothing needs doing at (3). So, we generate the following code:
+We fall back to spilling to the stack, but in this case we can actually spill
+to a register. When the code generator encounters (1) it sees that (3) requires
+a `b`, and that `b` is unused by the intermediate instructions, so it can
+annotate (1) as spilling `a` into `b` and nothing needs doing at (3). So, we
+generate the following code:
 
 ```
 (1) lda y
@@ -143,36 +151,57 @@ register.
 
 ## Limitations of the code generator
 
-All is not rosy: there are limitations, mostly caused by the very simple implementation here.
+All is not rosy: there are limitations, mostly caused by the very simple
+implementation here.
 
 ### No costing of rules is done
 
-The code generator always selects the first rule it sees which matches the AST. newgen itself sorts
-the rules by order of complexity, based on number of matching nodes, so we end up matching complex
-rules first. What this means is that there's no way to reason about which registers are available --- indeed, because rule matching happens in reverse, the consumer is seen before the producer, so the code generator doesn't know what registers are in use.
+The code generator always selects the first rule it sees which matches the AST.
+newgen itself sorts the rules by order of complexity, based on number of
+matching nodes, so we end up matching complex rules first. What this means is
+that there's no way to reason about which registers are available --- indeed,
+because rule matching happens in reverse, the consumer is seen before the
+producer, so the code generator doesn't know what registers are in use.
 
-### Strict ordering of computations
+For example, consider these two rules:
 
-In order to maintain stack nesting, spills and reloads have to be added in matched pairs. This can cause suboptimal code in some situations. Frequently code will be produced like this:
+```
+gen a := ADD1(v8, a);
+gen a := ADD1(a, v8);
+```
+
+These apply on the 6502, where one operand of an instruction must live in
+memory, referred to as `v8`. Except, these two rules have the same cost and the
+code generator cannot decide which one to use, even though one will be
+drastically cheaper than the other, depending on the expression. Consider:
+
+```
+ADD1(CONSTANT(1), LOAD1(x))
+```
+
+If the first rule matches, you will get:
 
 ```
 lda #1
-pha
-...some computation here...
 sta <temporary>
-pla
+lda x
 clc
 adc <temporary>
 ```
 
-This happens because the 1 occurs on the left hand side of an expression, and
-is therefore generated first; which means it gets immediately spilt to the
-stack and has to be reloaded, which in turn requires the intermediate value to
-be spilt to a temporary. It would be much cheaper to be able to evaluate the
-parameters in reverse, but the code generator can't do this.
+This happens because `CONSTANT(1)` is spilt to `v8`. The second rule would have
+been much cheaper here, producing this:
 
-(In fact, in this specific case the compiler front end rotates `1+x` to `x+1`,
-which helps substantially, but this still happens.)
+```
+lda #1
+clc
+adc x
+```
+
+(In fact, in this specific situation the compiler frontend will rotate
+`ADD1(CONSTANT(), ...)` to `ADD1(..., CONSTANT())` to make it easier to write
+matching rules. But it still happens.)
+
 
 ### Compute once, use once
 
