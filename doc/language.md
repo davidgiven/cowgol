@@ -309,7 +309,7 @@ MemZero(&block as [uint8], @bytesof MyArray);
 MemZero(&block as [uint8], @bytesof array);         # this works too
 
 var elementsize: intptr := @bytesof(@sizeof array); # use parentheses for type expressions
-
+```
 
 ## Include files
 
@@ -330,7 +330,6 @@ var i: uint8;
 @asm "lda", i;            # you may have references to simple variables
 
 @asm "lda", p.i;          # not allowed!
-```
 ```
 
 ## Things you need to bear in mind
