@@ -2031,6 +2031,12 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
+gen BEQ1(a:lhs, CONSTANT(value==0)):b uses a|x
+{
+    E_tax();
+    E_jumps_beq_bne(self.n[0]);
+}
+
 gen BEQ1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
@@ -2045,6 +2051,12 @@ gen BLTU1(a:lhs, in1s:rhs):b
     E_jumps_bcc_bcs(self.n[0]);
 }
 
+gen BLTS1(a, CONSTANT(value==0)):b uses x
+{
+    E_tax();
+    E_jumps_beq_bne(self.n[0]);
+}
+
 gen BLTS1(a:lhs, in1s:rhs):b
 {
     var rhs := PopOp();
@@ -2053,6 +2065,14 @@ gen BLTS1(a:lhs, in1s:rhs):b
     E("\tbvc *+4\n");
     E("\teor #$80\n");
     E_jumps_bmi_bpl(self.n[0]);
+}
+
+gen BEQ2(xa, CONSTANT(value==0)):b uses a|y
+{
+    E_tay();
+    E_bne($b.falselabel);
+    E_txa();
+    E_jumps_beq_bne(self.n[0]);
 }
 
 gen BEQ2(xa:lhs, in2s:rhs):b
@@ -2091,6 +2111,12 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     DoParamDirect(rhs, OC_SBC, 1);
     E("\tbvc *+4\n");
     E("\teor #$80\n");
+    E_jumps_bmi_bpl(self.n[0]);
+}
+
+gen BLTS2(xa, CONSTANT(value==0)):b
+{
+    E_txa();
     E_jumps_bmi_bpl(self.n[0]);
 }
 
@@ -2141,9 +2167,35 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     end sub;
 %}
 
+gen BEQ4(in4s, CONSTANT(value==0)):b uses a|x|y
+{
+    var lhs := PopOp();
+
+    E_loadconst(REG_Y, 3);
+    var lid := E_new_label();
+
+    DoParamIndirect_lda(lhs);
+    E_bne($b.falselabel);
+
+    E_dey();
+    E_bpl(lid);
+
+    if $b.fallthrough != $b.truelabel then
+        E_jmp($b.truelabel);
+    end if;
+}
+
 gen BEQ4(in4s, in4s):b uses a|x|y { DoCmp4EQ(self.n[0]); }
 gen BLTU4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 0); }
 gen BLTS4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 1); }
+
+gen BLTS4(in4s, CONSTANT(value==0)):b uses a|x|y
+{
+    var lhs := PopOp();
+
+    DoParamDirect_lda(lhs, 3);
+    E_jumps_bmi_bpl(self.n[0]);
+}
 
 // --- Casts ----------------------------------------------------------------
 
