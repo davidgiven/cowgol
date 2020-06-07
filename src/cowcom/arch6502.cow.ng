@@ -584,17 +584,26 @@ register p16; // pointer on fake stack
 register v32; // value on fake stack;
 register const address;
 register mem1 mem2 mem2p mem4;
-register memi1 memi2 memi4;
-register stacki1 stacki2 stacki4;
+$ifndef TINY
+    register memi1 memi2 memi4;
+    register stacki1 stacki2 stacki4;
+$endif
 register param;
 
 regclass r8 := a|x|y;
 regclass a16 := v16|p16;
-regclass in1s := const|mem1|memi1|stacki1|v8;
-regclass in2s := const|address|mem2|memi2|stacki2|a16;
-regclass in4s := const|mem4|memi4|stacki4|v32;
-regclass ptrs := mem2p|address|p16;
-regclass derefs := memi1|memi2|memi4|stacki1|stacki2|stacki4;
+$ifndef TINY
+    regclass in1s := const|mem1|memi1|stacki1|v8;
+    regclass in2s := const|address|mem2|memi2|stacki2|a16;
+    regclass in4s := const|mem4|memi4|stacki4|v32;
+    regclass ptrs := mem2p|address|p16;
+    regclass derefs := memi1|memi2|memi4|stacki1|stacki2|stacki4;
+$else
+    regclass in1s := const|mem1|v8;
+    regclass in2s := const|address|mem2|a16;
+    regclass in4s := const|mem4|v32;
+    regclass ptrs := mem2p|address|p16;
+$endif
 
 regdata a           uses xa|a compatible a|x|y;
 regdata x           uses xa|x compatible a|x;
@@ -610,12 +619,14 @@ regdata mem1 stacked;
 regdata mem2 stacked;
 regdata mem2p stacked;
 regdata mem4 stacked;
-regdata memi1 stacked;
-regdata memi2 stacked;
-regdata memi4 stacked;
-regdata stacki1 stacked;
-regdata stacki2 stacked;
-regdata stacki4 stacked;
+$ifndef TINY
+    regdata memi1 stacked;
+    regdata memi2 stacked;
+    regdata memi4 stacked;
+    regdata stacki1 stacked;
+    regdata stacki2 stacked;
+    regdata stacki4 stacked;
+$endif
 
 // --- Core things ----------------------------------------------------------
 
@@ -801,13 +812,13 @@ gen JUMP():j
                 E_stackref(operand.stk.sid);
                 E_closep();
 
-            when MODE_SYMBOL:
-                E_symref(operand.sym, operand.off);
-
             when MODE_SYMBOLI:
                 E_openp();
                 E_symref(operand.sym, operand.off);
                 E_closep();
+
+            when MODE_SYMBOL:
+                E_symref(operand.sym, operand.off);
 
             when else:
                 StartError();
@@ -853,6 +864,9 @@ gen JUMP():j
             when MODE_STACK:
                 E_stackref(operand.stk.sid + (offset as uint16));
 
+            when MODE_SYMBOL:
+                E_symref(operand.sym, operand.off + (offset as uint16));
+
             when MODE_STACKI:
                 E_openp();
                 E_stackref(operand.stk.sid);
@@ -864,9 +878,6 @@ gen JUMP():j
                 $else
                     E(",y");
                 $endif
-
-            when MODE_SYMBOL:
-                E_symref(operand.sym, operand.off + (offset as uint16));
 
             when MODE_SYMBOLI:
                 E_openp();
@@ -933,9 +944,9 @@ gen JUMP():j
 
         StartError();
         print("bad move ");
-        print_hex_i32(src);
+        print_hex_i32(src as uint32);
         print(" -> ");
-        print_hex_i32(dest);
+        print_hex_i32(dest as uint32);
         EndError();
     end sub;
 
@@ -954,12 +965,14 @@ gen mem1 := LOAD1(ADDRESS():a)                   { var op := PushSymOp($a.sym, $
 gen mem2 := LOAD2(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
 gen mem2p := LOAD2(ADDRESS(sym is zp):a)         { var op := PushSymOp($a.sym, $a.off); }
 gen mem4 := LOAD4(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
-gen memi1 := LOAD1(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
-gen memi2 := LOAD2(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
-gen memi4 := LOAD4(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
-gen stacki1 := LOAD1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
-gen stacki2 := LOAD2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
-gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+$ifndef TINY
+    gen memi1 := LOAD1(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
+    gen memi2 := LOAD2(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
+    gen memi4 := LOAD4(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
+    gen stacki1 := LOAD1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+    gen stacki2 := LOAD2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+    gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+$endif
 
 // ==========================================================================
 //                        STRICTLY NECESSARY RULES
@@ -1737,10 +1750,12 @@ gen BEQ2(xa:lhs, in2s:rhs):b
     E_bne($b.falselabel);
 
     var oc: uint8 := OC_CPX;
-    if ($rhs & REGCLASS_DEREFS) != 0 then
-        E_txa();
-        oc := OC_CMP;
-    end if;
+    $ifndef TINY
+        if ($rhs & REGCLASS_DEREFS) != 0 then
+            E_txa();
+            oc := OC_CMP;
+        end if;
+    $endif
     DoParamDirect(rhs, oc, 1);
     E_jumps_beq_bne(self.n[0]);
 }
@@ -2419,6 +2434,26 @@ gen BLTS4(in4s, CONSTANT(value==0)):b uses a|x|y
         end loop;
     end sub;
 %}
+
+// --- Combined casts -------------------------------------------------------
+
+gen a := CAST41(RSHIFTU4(in4s, CONSTANT(value==8))) uses y
+{
+    var op := PopOp();
+    DoParamDirect_lda(op, 1);
+}
+
+gen a := CAST41(RSHIFTU4(in4s, CONSTANT(value==16))) uses y
+{
+    var op := PopOp();
+    DoParamDirect_lda(op, 2);
+}
+
+gen a := CAST41(RSHIFTU4(in4s, CONSTANT(value==24))) uses y
+{
+    var op := PopOp();
+    DoParamDirect_lda(op, 3);
+}
 
 // --- Inline shifts --------------------------------------------------------
 
