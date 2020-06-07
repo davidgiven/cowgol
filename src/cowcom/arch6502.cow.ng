@@ -821,9 +821,9 @@ gen JUMP():j
         E_y_nl();
     end sub;
 
-    sub DoParamIndirect_lda(operand: [Operand]) DoParamIndirect(operand, OC_LDA, 0); end sub; 
-    sub DoParamIndirect_sta(operand: [Operand]) DoParamIndirect(operand, OC_STA, 0); end sub; 
-    sub DoParamIndirect_sbc(operand: [Operand]) DoParamIndirect(operand, OC_SBC, 0); end sub;
+    sub DoParamIndirect_lda(operand: [Operand]) R_flush(REG_A); DoParamIndirect(operand, OC_LDA, 0); end sub; 
+    sub DoParamIndirect_sta(operand: [Operand])                 DoParamIndirect(operand, OC_STA, 0); end sub; 
+    sub DoParamIndirect_sbc(operand: [Operand]) R_flush(REG_A); DoParamIndirect(operand, OC_SBC, 0); end sub;
 
     sub DoParamDirect(operand: [Operand], oc: uint8, offset: uint8)
         var m := operand.mode;
@@ -889,8 +889,8 @@ gen JUMP():j
         E_nl();
     end sub;
 
-    sub DoParamDirect_lda(operand: [Operand], offset: uint8) DoParamDirect(operand, OC_LDA, offset); end sub;
-    sub DoParamDirect_sta(operand: [Operand], offset: uint8) DoParamDirect(operand, OC_STA, offset); end sub;
+    sub DoParamDirect_lda(operand: [Operand], offset: uint8) R_flush(REG_A); DoParamDirect(operand, OC_LDA, offset); end sub;
+    sub DoParamDirect_sta(operand: [Operand], offset: uint8)                 DoParamDirect(operand, OC_STA, offset); end sub;
 
     # Note that this *destroys* the source register.
     sub ArchEmitMove(src: RegId, dest: RegId)
@@ -1301,23 +1301,6 @@ gen a|x|y := LOAD1(ADDRESS():a)
         E_nl();
         RegCacheLeavesValue($$, $a.sym, $a.off);
     end if;
-}
-
-gen a := LOAD1(LOAD2(ADDRESS(sym is zp):a)) uses y
-{
-    $ifndef ARCH_65C02
-        E_loadconst(REG_Y, 0);
-    $endif
-
-    E_ld($$);
-    E_openp();
-    E_symref($a.sym, $a.off);
-    E(")");
-    $ifdef ARCH_65C02
-        E_nl();
-    $else
-        E_y_nl();
-    $endif
 }
 
 gen a := LOAD1(ptrs) uses y
@@ -2212,6 +2195,23 @@ gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
     E_ldx();
     E_symref($a.sym, $a.off+1);
     E_y_nl();
+}
+
+gen a := LOAD1(LOAD2(ADDRESS(sym is zp):a)) uses y
+{
+    $ifndef ARCH_65C02
+        E_loadconst(REG_Y, 0);
+    $endif
+
+    E_ld($$);
+    E_openp();
+    E_symref($a.sym, $a.off);
+    E(")");
+    $ifdef ARCH_65C02
+        E_nl();
+    $else
+        E_y_nl();
+    $endif
 }
 
 // --- In place increments or decrements ------------------------------------

@@ -12,3 +12,6 @@ var p := &unaligned[1];
 print("@next"); if @next p == &unaligned[2] then yes(); else no(); end if;
 print("@prev"); if @prev p == &unaligned[0] then yes(); else no(); end if;
 
+unaligned[1].byte := 4;
+print("p.byte==4"); if p.byte==4 then yes(); else no(); end if;
+
