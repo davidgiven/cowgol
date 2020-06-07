@@ -18,6 +18,7 @@ const FCB_BUFFER_SIZE := 256;
 record FCB
 	gbpb: FCB_GBPB;
 	block: uint16;
+    blocks: uint16;
 	bufferptr: uint16; # byte just read
 	dirty: uint8;
 	mode: uint8;
@@ -51,6 +52,19 @@ sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8)
     if channel != 0 then
         errno := 0;
     end if;
+    
+    # Fetch the size of the file.
+    #
+	# Nasty hack to get 32 bits in zero page.
+	var ptr1: [uint8];
+	var ptr2: [uint8];
+
+	@asm "lda #2"; # read EXT#
+	@asm "ldx #<", ptr1;
+	@asm "ldy", channel;
+	@asm "jsr $ffda"; # OSARGS
+
+    fcb.blocks := [((@alias &ptr1)+1) as [uint16]];
 end sub;
 
 sub fcb_i_gbpb(fcb: [FCB], a: uint8)
@@ -67,14 +81,20 @@ end sub;
 
 sub fcb_i_blockin(fcb: [FCB])
 	MemSet(&fcb.buffer[0], 0, FCB_BUFFER_SIZE);
-	fcb_i_gbpb(fcb, 3); # read block with pointer
-	fcb.dirty := 0;
+    if fcb.block < fcb.blocks then
+        fcb_i_gbpb(fcb, 3); # read block with pointer
+        fcb.dirty := 0;
+    end if;
 end sub;
 
 sub fcb_i_blockout(fcb: [FCB])
 	if fcb.dirty != 0 then
 		fcb_i_gbpb(fcb, 1); # write block with pointer
 		fcb.dirty := 0;
+
+        if fcb.blocks < (fcb.block+1) then
+            fcb.blocks := fcb.block+1;
+        end if;
 	end if;
 end sub;
 
@@ -124,20 +144,7 @@ sub FCBPos(fcb: [FCB]): (pos: uint32)
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32)
-	fcb_i_blockout(fcb);
-
-	# Nasty hack to get 32 bytes in zero page.
-	var ptr1: [uint8];
-	var ptr2: [uint8];
-
-	var channel := fcb.gbpb.channel;
-
-	@asm "lda #2"; # read EXT#
-	@asm "ldx #<", ptr1;
-	@asm "ldy", channel;
-	@asm "jsr $ffda"; # OSARGS
-
-	len := [@alias &ptr1 as [uint32]];
+    len := (fcb.blocks as uint32)<<8;
 end sub;
 
 sub fcb_i_nextchar(fcb: [FCB])
