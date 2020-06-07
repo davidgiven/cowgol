@@ -969,25 +969,25 @@ gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode :
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB():s
+gen STARTSUB()
 {
-    $s.subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
-    $s.subr.arch.end_label := AllocLabel();
-    $s.subr.arch.rts_label := AllocLabel();
+    current_subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+    current_subr.arch.end_label := AllocLabel();
+    current_subr.arch.rts_label := AllocLabel();
 
     RegCacheReset();
 
     EmitterPushChunk();
-    E_h16($s.subr.id);
+    E_h16(current_subr.id);
 
     E("\n\n\t; ");
-    E($s.subr.name);
+    E(current_subr.name);
     E_nl();
 
     EmitByte(COO_ESCAPE_THISSUB);
     E(":\n");
 
-    var count := $s.subr.num_input_parameters;
+    var count := current_subr.num_input_parameters;
     var lastparam := count - 1;
     var popped: uint8 := 0;
 
@@ -1010,11 +1010,11 @@ gen STARTSUB():s
             $endif
 
             E_stx();
-            E_labelref($s.subr.arch.rts_label);
+            E_labelref(current_subr.arch.rts_label);
             E_nl();
 
             E_sty();
-            E_labelref($s.subr.arch.rts_label);
+            E_labelref(current_subr.arch.rts_label);
             E_plusone();
             E_nl();
 
@@ -1024,7 +1024,7 @@ gen STARTSUB():s
 
     while count != 0 loop
         count := count - 1;
-        var param := GetInputParameter($s.subr, count);
+        var param := GetInputParameter(current_subr, count);
 
         case param.vardata.type.typedata.width is
             when 1:
@@ -1075,21 +1075,21 @@ gen STARTSUB():s
         end case;
     end loop;
 
-    if IsSimpleSub($s.subr) == 0 then
+    if IsSimpleSub(current_subr) == 0 then
         PopReturnAddress();
     end if;
 }
 
-gen ENDSUB():s
+gen ENDSUB()
 {
     if current_subr.arch.seen_return != 0 then
         E_label(current_subr.arch.end_label);
     end if;
 
     var i: uint8 := 0;
-    var count := $s.subr.num_output_parameters;
+    var count := current_subr.num_output_parameters;
     while i != count loop
-        var param := GetOutputParameter($s.subr, i);
+        var param := GetOutputParameter(current_subr, i);
 
         var cache: RegId;
         case param.vardata.type.typedata.width is
@@ -1169,11 +1169,11 @@ gen ENDSUB():s
 
     i := 0;
     while i != 4 loop
-        EmitterDeclareWorkspace($s.subr, i, $s.subr.workspace[i]);
+        EmitterDeclareWorkspace(current_subr, i, current_subr.workspace[i]);
         i := i + 1;
     end loop;
 
-    Free($s.subr.arch as [uint8]);
+    Free(current_subr.arch as [uint8]);
 }
 
 gen RETURN()
