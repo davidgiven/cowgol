@@ -186,8 +186,10 @@ sub AddFreeBlock(start: [uint8], length: intptr)
 end sub;
 
 sub Free(start: [uint8])
-	var usedblock := @prev (start as [MallocUsedBlock]);
-	AddFreeBlock(usedblock as [uint8], usedblock.size);
+	if start != (0 as [uint8]) then
+		var usedblock := @prev (start as [MallocUsedBlock]);
+		AddFreeBlock(usedblock as [uint8], usedblock.size);
+	end if;
 end sub;
 
 sub GetFreeMemory(): (bytes: intptr)
