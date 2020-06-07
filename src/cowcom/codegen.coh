@@ -688,6 +688,10 @@ sub Generate(rootnode: [Node])
 			end if;
 			last_instruction := last_instruction.prev;
 
+			#print("rule ");
+			#print_i8(insn.ruleid);
+			#print_nl();
+
 			ShuffleRegisters(&insn.reloads[0]);
 			EmitOneInstruction(insn.ruleid, insn);
 			ShuffleRegisters(&insn.spills[0]);

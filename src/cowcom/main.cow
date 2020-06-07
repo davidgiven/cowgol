@@ -71,7 +71,7 @@ print("COWCOM: ");
 PrintFreeMemory();
 
 ParseArguments();
-LexerAddIncludePath("./");
+LexerAddIncludePath("");
 LexerIncludeFile(inputfile);
 
 current_subr := Alloc(@bytesof Subroutine) as [Subroutine];
