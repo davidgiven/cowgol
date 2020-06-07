@@ -77,8 +77,7 @@ sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
 	print_nl();
 end sub;
 
-sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE, yylookaheadtoken: ParseTOKENTYPE):
-		(yyact: YYACTIONTYPE)
+sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTIONTYPE)
 	var yysize := yyRuleInfoNRhs[yyruleno as @indexof yyRuleInfoNRhs];
 	#print("Reduce ");
 	#print_i16(yyruleno);
@@ -130,7 +129,7 @@ sub yy_parse_failed()
 end sub;
 
 # syntax error code
-sub yy_syntax_error(yymajor: YYCODETYPE, yyminor: ParseTOKENTYPE)
+sub yy_syntax_error(yymajor: YYCODETYPE, yyminor: [ParseTOKENTYPE])
 %%
 end sub;
 
@@ -152,17 +151,7 @@ sub ParserDeinit()
 	end loop;
 end sub;
 
-sub MakeNumberTokenData(): (yyminor: [Token])
-	yyminor := Alloc(@bytesof Token) as [Token];
-	yyminor.number := token_value;
-end sub;
-
-sub MakeStringTokenData(): (yyminor: [Token])
-	yyminor := Alloc(@bytesof Token) as [Token];
-	yyminor.string := StrDup(&token_buffer[0]);
-end sub;
-
-sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
+sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE])
 	var yyact := yytos.stateno;
 
 	#print("Input '")
@@ -187,7 +176,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 		end if;
 
 		if yyact >= YY_MIN_REDUCE then
-			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor, yyminor);
+			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor);
 		elseif yyact <= YY_MAX_SHIFTREDUCE then
 			if yytos == &yystack[YYSTACKDEPTH] then
 				yy_stack_overflow();
@@ -201,7 +190,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 
 			yytos.stateno := yyact;
 			yytos.major := yymajor;
-			yytos.minor.yy0 := yyminor;
+			yytos.minor.yyall := yyminor.yyall;
 			#yy_trace_shift(yyact, "Shift");
 
 			if yyerrcnt >= 0 then
@@ -213,13 +202,11 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [Token])
 			yy_accept();
 			break;
 		else
-			var yyminorunion: YYMINORTYPE;
-			yyminorunion.yy0 := yyminor;
 			if yyerrcnt <= 0 then
-				yy_syntax_error(yymajor, yyminor);
+				yy_syntax_error(yymajor, &yyminor.yy0);
 			end if;
 			yyerrcnt := 3;
-			yy_destructor(yymajor, &yyminorunion);
+			yy_destructor(yymajor, yyminor);
 			if yymajor == 0 then
 				yy_parse_failed();
 				yyerrcnt := -1;

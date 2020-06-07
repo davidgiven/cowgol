@@ -23,7 +23,7 @@
 %right OPENSQ CLOSESQ.
 %right DOT.
 
-%token_type {[Token]}
+%token_type {Token}
 
 %syntax_error
 {
@@ -43,9 +43,9 @@
 
 %token_destructor
 {
-	if $$ != (0 as [Token]) then
+	if (yymajor == STRING) or (yymajor == ID) then
+		print("free unused string\n");
 		Free($$.string as [uint8]);
-		Free($$ as [uint8]);
 	end if;
 }
 
@@ -558,6 +558,7 @@ expression(E) ::= expression(E1) DOT ID(X).
 		print("'");
 		EndError();
 	end if;
+	Free(X.string as [uint8]);
 
 	E := MidC2Op(MIDCODE_ADD0,
 		intptr_type.typedata.width as uint8,
@@ -568,8 +569,8 @@ expression(E) ::= expression(E1) DOT ID(X).
 
 expression(E) ::= STRING(S).
 {
+	# consumes S
 	E := MidString(S.string);
-	S.string := 0 as string;
 	E.type := MakePointerType(uint8_type);
 }
 
@@ -653,7 +654,8 @@ typeref(S) ::= INDEXOF varortypeid(S1).
 
 statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 {
-	var sym := AddAlias(0 as [Namespace], X, T);
+	# consumes X
+	var sym := AddAlias(0 as [Namespace], X.string, T);
 }
 
 /* --- Symbols ----------------------------------------------------------- */
@@ -661,7 +663,8 @@ statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 %type newid {[Symbol]}
 newid(S) ::= ID(T).
 {
-	S := AddSymbol(0 as [Namespace], T);
+	# consumes X
+	S := AddSymbol(0 as [Namespace], T.string);
 }
 
 %type oldid {[Symbol]}
@@ -676,15 +679,19 @@ oldid(S) ::= ID(T).
 		print("' not found");
 		EndError();
 	end if;
+	Free(name);
 	S := sym;
 }
 
 %type eitherid {[Symbol]}
 eitherid(S) ::= ID(T).
 {
-	var sym := LookupSymbol(0 as [Namespace], T.string);
+	var name := T.string;
+	var sym := LookupSymbol(0 as [Namespace], name);
 	if sym == (0 as [Symbol]) then
-		sym := AddSymbol(0 as [Namespace], T);
+		sym := AddSymbol(0 as [Namespace], name);
+	else
+		Free(name);
 	end if;
 	S := sym;
 }
@@ -1063,7 +1070,8 @@ recordat(A) ::= AT OPENPAREN cvalue(C) CLOSEPAREN.
 %type memberid {[Symbol]}
 memberid(S) ::= ID(T).
 {
-	S := AddSymbol(&current_type.typedata.recordtype.namespace, T);
+	# consumes T
+	S := AddSymbol(&current_type.typedata.recordtype.namespace, T.string);
 	current_type.typedata.recordtype.members := current_type.typedata.recordtype.members + 1;
 }
 
@@ -1281,7 +1289,6 @@ asm ::= STRING(T).
 {
 	Generate(MidAsmtext(T.string));
 	Free(T.string);
-	T.string := 0 as string;
 }
 
 asm ::= NUMBER(T).
