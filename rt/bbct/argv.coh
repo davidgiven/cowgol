@@ -8,7 +8,7 @@ end sub;
 sub ArgvNext(): (arg: [uint8])
 	# No more arguments?
 
-	if argv_pointer == (0 as [uint8]) then
+	if (argv_pointer == (0 as [uint8])) or ([argv_pointer] == 0) then
 		arg := 0 as [uint8];
 		return;
 	end if;
