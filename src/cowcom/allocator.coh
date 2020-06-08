@@ -13,7 +13,7 @@ end sub;
 
 sub StrDupArrayed(s: string, i: Size): (news: string)
 	var len := StrLen(s);
-	news := Alloc(len + 2);
+	news := Alloc(len + 3);
 	var p := news;
 	MemCopy(s, len, p);
 	p := p + len;

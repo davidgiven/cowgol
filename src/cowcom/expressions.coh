@@ -139,8 +139,10 @@ sub Expr2Simple(sop: uint8, uop: uint8, lhs: [Node], rhs: [Node]): (result: [Nod
 	if IsSNum(lhs.type) != 0 then
 		op := sop;
 	end if;
+
+	var ltype := lhs.type;
 	result := MidC2Op(op, NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
+	result.type := ltype;
 end sub;
 
 sub expr_i_checkrhsconst(rhs: [Node])
@@ -171,8 +173,9 @@ sub ExprShift(sop: uint8, uop: uint8, lhs: [Node], rhs: [Node]): (result: [Node]
 	end if;
 	expr_i_checkshift(lhs, rhs);
 
+	var ltype := lhs.type;
 	result := MidC2Op(op, NodeWidth(lhs), lhs, rhs);
-	result.type := lhs.type;
+	result.type := ltype;
 end sub;
 
 

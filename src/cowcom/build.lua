@@ -38,6 +38,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 			ins = {
 				"src/cowcom/main.cow",
 				"include/coodecls.coh",
+				"src/cowcom/allocator.coh",
 				"src/cowcom/codegen.coh",
 				"src/cowcom/emitter.coh",
 				"src/cowcom/expressions.coh",

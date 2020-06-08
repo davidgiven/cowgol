@@ -53,10 +53,11 @@ sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 			print("' is already defined");
 			EndError();
 		end if;
-	end if;
 
-	symbol.name := name;
-	AddToNamespace(namespace, symbol);
+		# Only add the symbol to the namespace if it has a name.
+		symbol.name := name;
+		AddToNamespace(namespace, symbol);
+	end if;
 end sub;
 
 # Takes ownership of the name
