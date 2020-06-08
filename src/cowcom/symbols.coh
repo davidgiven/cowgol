@@ -118,7 +118,5 @@ sub DestructSubroutineContents(subr: [Subroutine])
 		subr.namespace.first := 0 as [Symbol];
 	end if;
 	subr.namespace.last := last_parameter;
-
-	CheckMemoryChain();
 end sub;
 
