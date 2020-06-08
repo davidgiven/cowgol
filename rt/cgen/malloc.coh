@@ -1,0 +1,23 @@
+# This file overrides the standard allocator with a platform-specific one
+# which calls into the standard C allocator. This makes ncgen and nncgen
+# programs *much* easier to debug using tools like valgrind.
+
+sub Alloc(length: intptr): (block: [uint8])
+	@asm block, "=(i8)calloc(1, (size_t)", length, ");";
+end sub;
+
+sub Free(block: [uint8])
+	@asm "free((void*)", block, ");";
+end sub;
+
+sub StrDup(s: [uint8]): (sout: [uint8])
+	@asm sout, "=(i8)strdup((const char*)", s, ");";
+end sub;
+
+sub CheckMemoryChain()
+end sub;
+
+sub GetFreeMemory(): (i: intptr)
+	i := 0;
+end sub;
+
