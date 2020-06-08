@@ -159,6 +159,7 @@
     const OC_BPL := 48;
     const OC_ASL := 49;
     const OC_LSR := 50;
+    const OC_AJSR := 51;
 
     sub E_oc(oc: uint8)
         var ocs: string[] := {
@@ -168,7 +169,7 @@
             "clc", "sec", "rts", "jsr", "jmp", "phx", "phy", "plx",
             "ply", "tsx", "txs", "rol", "stz", "cmp", "cpx", "cpy",
             "inx", "iny", "dex", "dey", "inc", "dec", "bra", "bmi",
-            "bpl", "asl", "lsr"
+            "bpl", "asl", "lsr", "ajsr"
         };
 
         E_tab();
@@ -412,7 +413,7 @@
 
     sub E_call(subr: [Subroutine])
         R_flushall();
-        E_oc(OC_JSR);
+        E_oc(OC_AJSR);
         E_subref(subr);
         E_nl();
     end sub;
@@ -1008,25 +1009,18 @@ gen STARTSUB()
         if popped == 0 then
             $ifdef ARCH_65C02
                 E_plx();
-                E_ply();
-                E_inx();
-                E("\tbne *+3\n");
-                E_iny();
             $else
                 E_pla();
                 E_tax();
-                E_pla();
-                E_tay();
-                E_inx();
-                E("\tbne *+3\n");
-                E_iny();
             $endif
+            E_pla();
+            E_inx();
 
             E_stx();
             E_labelref(current_subr.arch.rts_label);
             E_nl();
 
-            E_sty();
+            E_sta();
             E_labelref(current_subr.arch.rts_label);
             E_plusone();
             E_nl();
