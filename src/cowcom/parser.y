@@ -918,9 +918,12 @@ statement ::= SUB substart subparams subgen statements END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
-	break_label := current_subr.old_break_label;
-	continue_label := current_subr.old_continue_label;
-	current_subr := current_subr.parent;
+	var subr := current_subr;
+	break_label := subr.old_break_label;
+	continue_label := subr.old_continue_label;
+	current_subr := subr.parent;
+
+	DestructSubroutineContents(subr);
 }
 
 substart ::= newid(S).
