@@ -588,6 +588,7 @@ cvalue(C) ::= expression(E).
 		parser_i_constant_error();
 	end if;
 	C := E.constant.value;
+	Discard(E);
 }
 
 statement ::= CONST newid(S) ASSIGN cvalue(C) SEMICOLON.
@@ -1231,6 +1232,7 @@ initialiser ::= expression(E).
 		when else:
 			parser_i_constant_error();
 	end case;
+	Discard(E);
 
 	current_offset := current_offset + w;
 	current_global_offset := current_global_offset + w;
