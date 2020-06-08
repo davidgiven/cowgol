@@ -59,13 +59,13 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 					EmitByte('_');
 
 				when COO_ESCAPE_THISSUB:
-					ArchEmitSubRef(subroutine.id);
+					ArchEmitSubRef(subroutine);
 
 				when COO_ESCAPE_SUBREF:
 					subid := ReadH4();
 					subr := FindOrCreateSub(coo, subid);
 					subr := Deref(subr);
-					ArchEmitSubRef(subr.id);
+					ArchEmitSubRef(subr);
 
 				when COO_ESCAPE_WSREF:
 					subid := ReadH4();

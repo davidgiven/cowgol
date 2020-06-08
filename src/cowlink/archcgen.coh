@@ -12,9 +12,11 @@ sub E_nl()
 	EmitByte('\n');
 end sub;
 
-sub ArchEmitSubRef(subid: uint16)
-	E("f");
-	E_u16(subid);
+sub ArchEmitSubRef(subr: [Subroutine])
+	EmitByte('f');
+	E_u16(subr.id);
+	EmitByte('_');
+	E(subr.name);
 end sub;
 
 sub ArchEmitWSRef(wid: uint8, address: Size)
@@ -37,7 +39,7 @@ sub ArchEmitFooter(coo: [Coo])
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
 			EmitByte('\t');
-			ArchEmitSubRef(main.id);
+			ArchEmitSubRef(main);
 			E("();\n");
 		end if;
 		coo := coo.next;
