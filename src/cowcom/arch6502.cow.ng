@@ -1807,18 +1807,35 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     sub DoCmp4LT(node: [Node], sext: uint8)
         var rhs := PopOp();
         var lhs := PopOp();
+        var lid: uint16;
 
-        E_loadconst(REG_X, 4);
-        E_loadconst(REG_Y, 0);
-        E_sec();
-        var lid := E_new_label();
+        $ifndef TINY
+        if (lhs.mode > MODE_STACKI) and (rhs.mode > MODE_STACKI) then
+            E_loadconst(REG_Y, 252);
+            E_sec();
+            lid := E_new_label();
 
-        DoParamIndirect_lda(lhs);
-        DoParamIndirect_sbc(rhs);
+            DoParamIndirect(lhs, OC_LDA, -252);
+            DoParamIndirect(rhs, OC_SBC, -252);
 
-        E_iny();
-        E_dex();
-        E_bne(lid);
+            E_iny();
+            E_bne(lid);
+        else
+        $endif
+            E_loadconst(REG_X, 4);
+            E_loadconst(REG_Y, 0);
+            E_sec();
+            lid := E_new_label();
+
+            DoParamIndirect_lda(lhs);
+            DoParamIndirect_sbc(rhs);
+
+            E_iny();
+            E_dex();
+            E_bne(lid);
+        $ifndef TINY
+        end if;
+        $endif
 
         if sext != 0 then
             E_tay(); # set flags from A
