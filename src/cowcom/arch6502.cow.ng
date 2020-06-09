@@ -238,7 +238,6 @@
     end sub;
 
     sub E_jump(oc: uint8, label: LabelRef)
-        R_flushall();
         E_oc(oc);
         E_labelref(label);
         E_nl();
@@ -1293,7 +1292,6 @@ gen xa := CALLE2(param):s uses y
 %}
 
 gen v32 := CALLE4(param):s        uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
-gen STORE4(CALLE4(param):s, ptrs) uses x|y|a { E_call($s.subr); PopArg4(PopAndDerefOp()); }
 
 gen param := END();
 
@@ -2593,15 +2591,6 @@ gen xa := RSHIFTU2(xa, CONSTANT(value==8))
 
 gen a := CAST21(RSHIFTU2(xa, CONSTANT(value==8))) { E_txa(); }
 gen a := CAST21(RSHIFTS2(xa, CONSTANT(value==8))) { E_txa(); }
-
-// --- Weird things ---------------------------------------------------------
-
-// Because of some quirk of the way the code is generated, this rule helps a
-// lot as it has xa on the RHS --- but the same rule for SUB2, AND2 etc
-// actually makes things worse, I think because it prevents one of the pointer
-// indexing rules from firing.
-
-gen STORE2(ADD2(in2s, xa), ptrs) uses y cost 100 { E_clc(); DoXADest(OC_ADC); }
 
 $endif
 
