@@ -328,23 +328,6 @@
     sub E_sty() E_st(REG_Y); end sub;
     sub E_stz() E_oc(OC_STZ); end sub;
 
-    sub E_ldst_ws(oc: uint8, id: uint16, off: Size)
-        E_oc(oc);
-        E_wsref(id, PTRMEM_WS, off);
-        E_nl();
-    end sub;
-
-    sub E_sta_ws(id: uint16, off: Size) R_flush(REG_A); E_ldst_ws(OC_STA, id, off); end sub;
-    sub E_stx_ws(id: uint16, off: Size) R_flush(REG_X); E_ldst_ws(OC_STX, id, off); end sub;
-    sub E_lda_ws(id: uint16, off: Size)                 E_ldst_ws(OC_LDA, id, off); end sub;
-    sub E_ldx_ws(id: uint16, off: Size)                 E_ldst_ws(OC_LDX, id, off); end sub;
-
-    sub E_ldst_sym(oc: uint8, sym: [Symbol], off: Size)
-        E_oc(oc);
-        E_symref(sym, off);
-        E_nl();
-    end sub;
-
     sub E_cp(reg: RegId)
         case reg is
             when REG_A: E_oc(OC_CMP);
@@ -1315,13 +1298,10 @@ gen STORE4(CALLE4(param):s, ptrs) uses x|y|a { E_call($s.subr); PopArg4(PopAndDe
 gen param := END();
 
 gen param := ARG1(param, a, remaining==0); 
-gen param := ARG1(param, a, remaining!=0) { E_pha(); } 
 gen param := ARG2(param, xa, remaining==0);
 
-gen param := ARG2(param, xa, remaining!=0)
-{
-    E_phxa();
-}
+gen param := ARG1(param, a,  remaining!=0) { E_pha(); } 
+gen param := ARG2(param, xa, remaining!=0) { E_phxa(); }
 
 gen param := ARG4(param, in4s:lhs) uses y|a
 {
@@ -1360,18 +1340,7 @@ gen a := POPARG1(remaining==0);
 gen a := POPARG1(remaining!=0) { E_pla(); } 
 gen xa := POPARG2(remaining==0);
 
-gen xa := POPARG2(remaining!=0)
-{
-    # big endian on stack
-    $ifdef ARCH_65C02
-        E_plx();
-        E_pla();
-    $else
-        E_pla();
-        E_tax();
-        E_pla();
-    $endif
-}
+gen xa := POPARG2(remaining!=0) { E_plxa(); }
 
 gen v32 := POPARG4()        uses x|y|a { PopArg4(PushV32()); }
 gen STORE4(POPARG4(), ptrs) uses x|y|a { PopArg4(PopAndDerefOp()); }
@@ -1608,8 +1577,14 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
         var e := GetHelper("_mathpad");
 
         var subid := e.id;
-        E_sta_ws(subid, 0);
-        E_stx_ws(subid, 1);
+
+        E_sta();
+        E_wsref(subid, PTRMEM_WS, 0);
+        E_nl();
+
+        E_stx();
+        E_wsref(subid, PTRMEM_WS, 1);
+        E_nl();
 
         var rhs := PopOp();
         DoParamDirect_lda(rhs, 0);
@@ -1623,8 +1598,14 @@ gen xa := RSHIFTS2(xa, y) { E_callhelper("_rshifts2"); }
         var e := GetHelper("_mathpad");
 
         var subid := e.id;
-        E_lda_ws(subid, 4);
-        E_ldx_ws(subid, 5);
+
+        E_lda();
+        E_wsref(subid, PTRMEM_WS, 4);
+        E_nl();
+
+        E_ldx();
+        E_wsref(subid, PTRMEM_WS, 5);
+        E_nl();
     end sub;
 %}
 
@@ -2054,14 +2035,20 @@ gen STARTCASE4(v32)
     E_nl();
 
     var subid := e.id;
-    E_sta_ws(subid, 0);
+
+    E_sta();
+    E_wsref(subid, PTRMEM_WS, 0);
+    E_nl();
     
     E_lda();
     E_consthi();
     E_stackref(sid);
     E_nl();
 
-    E_sta_ws(subid, 1);
+    E_sta();
+    E_wsref(subid, PTRMEM_WS, 1);
+    E_nl();
+    
 }
 
 gen WHENCASE1():c
