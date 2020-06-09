@@ -211,16 +211,19 @@
         E("),y");
     end sub;
 
+    sub GetWsId(sym: [Symbol]): (wsid: uint8)
+        wsid := VARMEM_WS;
+        if is_zp(sym) != 0 then
+            wsid := PTRMEM_WS;
+        end if;
+    end sub;
+
     sub E_symref(sym: [Symbol], off: Size)
         if sym.vardata.externname != (0 as string) then
             E(sym.vardata.externname);
             E_i16(off as int16);
         else
-            var wsid: uint8 := VARMEM_WS;
-            if is_zp(sym) != 0 then
-                wsid := PTRMEM_WS;
-            end if;
-            E_wsref(sym.vardata.subr.id, wsid, sym.vardata.offset + off);
+            E_wsref(sym.vardata.subr.id, GetWsId(sym), sym.vardata.offset + off);
         end if;
     end sub;
 
@@ -276,7 +279,7 @@
     sub E_not() R_flush(REG_A); E_oc(OC_EOR); E("#255\n"); end sub;
 
     # Note: big endian on stack!
-    sub E_phax()
+    sub E_phxa()
         $ifdef ARCH_65C02
             E_pha();
             E_phx();
@@ -288,7 +291,7 @@
     end sub;
 
     # Note: big endian on stack!
-    sub E_plax()
+    sub E_plxa()
         $ifdef ARCH_65C02
             E_plx();
             E_pla();
@@ -921,7 +924,7 @@ gen JUMP():j
                     when REG_A:  E_pla(); return;
 
                     when REG_XA:
-                        E_plax();
+                        E_plxa();
                         return;
                 end case;
 
@@ -938,7 +941,7 @@ gen JUMP():j
             when REG_XA:
                 case dest is
                     when 0:
-                        E_phax();
+                        E_phxa();
                         return;
                 end case;
         end case;
@@ -1029,58 +1032,109 @@ gen STARTSUB()
         end if;
     end sub;
 
+    var current_wsid: uint8 := 0xff;
+    var current_top: Size;
+    var current_bot: Size;
+
+    sub CloseLoop()
+        if current_wsid != 0xff then
+            E("\t; pull wsid ");
+            E_u8(current_wsid);
+            E(" from ");
+            E_wsref(current_subr.id, current_wsid, current_bot);
+            E(" to ");
+            E_wsref(current_subr.id, current_wsid, current_top);
+            E_nl();
+            var count := current_top - current_bot + 1;
+            E("\t; count=");
+            E_u16(count);
+            E_nl();
+            E("\t; start=");
+            E_u16(256 - count);
+            E_nl();
+
+            E("; ");
+            E_loadconst(REG_Y, 256-(count as uint8));
+            var lid := E_new_label();
+            E("; ");
+            E_pla();
+            
+            E("; ");
+            E_sta();
+            E_wsref(current_subr.id, current_wsid, current_bot);
+            E_y_nl();
+
+            E("; ");
+            E_iny();
+            E("; ");
+            E_bne(lid);
+        end if;
+        current_wsid := 0xff;
+    end sub;
+
+    var param: [Symbol];
+    sub Pull()
+        var wsid := GetWsId(param);
+        var w := param.vardata.type.typedata.width as uint8;
+        if (wsid != current_wsid)
+                or (param.vardata.offset != (current_bot-(w as Size))) then
+            CloseLoop();
+            current_wsid := wsid;
+            current_top := param.vardata.offset + (w as Size) - 1;
+        end if;
+        current_bot := param.vardata.offset;
+    end sub;
+
     while count != 0 loop
         count := count - 1;
-        var param := GetInputParameter(current_subr, count);
+        param := GetInputParameter(current_subr, count);
 
         case param.vardata.type.typedata.width is
             when 1:
                 if count != lastparam then
                     PopReturnAddress();
+                    Pull();
                     E_pla();
                 end if;
-                E_sta();
-                E_symref(param, 0);
-                E_nl();
-                RegCacheLeavesValue(REG_A, param, 0);
+                    E_sta();
+                    E_symref(param, 0);
+                    E_nl();
+                    RegCacheLeavesValue(REG_A, param, 0);
+                #end if;
 
             when 2:
                 if count != lastparam then
                     PopReturnAddress();
-                    $ifdef ARCH_65C02
-                        E_plx();
-                        E_pla();
-                    $else
-                        E_pla();
-                        E_tax();
-                        E_pla();
-                    $endif
+                    Pull();
+                    E_plxa();
                 end if;
-                E_sta();
-                E_symref(param, 0);
-                E_nl();
+                    E_sta();
+                    E_symref(param, 0);
+                    E_nl();
 
-                E_stx();
-                E_symref(param, 1);
-                E_nl();
+                    E_stx();
+                    E_symref(param, 1);
+                    E_nl();
 
-                RegCacheLeavesValue(REG_XA, param, 0);
+                    RegCacheLeavesValue(REG_XA, param, 0);
+                #end if;
 
             when 4:
                 # WARNING: little endian on stack!
                 PopReturnAddress();
+                Pull();
                 E_loadconst(REG_Y, -4);
                 var lid := E_new_label();
+
                 E_pla();
-                
                 E_sta();
                 E_symref(param, -252);
                 E_y_nl();
-
                 E_iny();
                 E_bne(lid);
         end case;
     end loop;
+    CloseLoop();
 
     if IsSimpleSub(current_subr) == 0 then
         PopReturnAddress();
@@ -1117,12 +1171,12 @@ gen ENDSUB()
                     E_lda();
                     E_symref(param, 0);
                     E_nl();
-                    E_pha();
 
-                    E_lda();
+                    E_ldx();
                     E_symref(param, 1);
                     E_nl();
-                    E_pha();
+
+                    E_phxa();
                 else
                     cache := RegCacheFindValue(param, 0) & REG_XA;
                     if cache == 0 then
@@ -1225,15 +1279,14 @@ gen param := ARG2(param, xa, remaining==0);
 
 gen param := ARG2(param, xa, remaining!=0)
 {
-    # big endian on stack
-    E_phax();
+    E_phxa();
 }
 
 gen param := ARG4(param, in4s) uses y|a
 {
     var op := PopOp();
 
-    # WARNING: little endian on stack!
+    # WARNING: big endian on stack!
     E_loadconst(REG_Y, 3);
     var lid := E_new_label();
 
