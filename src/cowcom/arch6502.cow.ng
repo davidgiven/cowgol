@@ -72,7 +72,7 @@
     end sub;
 
     sub is_zp(sym: [Symbol]): (result: uint8)
-        if (sym.vardata.type == int8_type) or (sym.vardata.type == uint8_type)
+        if (sym.vardata.type.typedata.width == 1)
                 or (IsPtr(sym.vardata.type) != 0) then
             result := 1;
         else
@@ -334,10 +334,16 @@
         E_nl();
     end sub;
 
-    sub E_sta_ws(id: uint16, off: Size) E_ldst_ws(OC_STA, id, off); end sub;
-    sub E_stx_ws(id: uint16, off: Size) E_ldst_ws(OC_STX, id, off); end sub;
-    sub E_lda_ws(id: uint16, off: Size) E_ldst_ws(OC_LDA, id, off); end sub;
-    sub E_ldx_ws(id: uint16, off: Size) E_ldst_ws(OC_LDX, id, off); end sub;
+    sub E_sta_ws(id: uint16, off: Size) R_flush(REG_A); E_ldst_ws(OC_STA, id, off); end sub;
+    sub E_stx_ws(id: uint16, off: Size) R_flush(REG_X); E_ldst_ws(OC_STX, id, off); end sub;
+    sub E_lda_ws(id: uint16, off: Size)                 E_ldst_ws(OC_LDA, id, off); end sub;
+    sub E_ldx_ws(id: uint16, off: Size)                 E_ldst_ws(OC_LDX, id, off); end sub;
+
+    sub E_ldst_sym(oc: uint8, sym: [Symbol], off: Size)
+        E_oc(oc);
+        E_symref(sym, off);
+        E_nl();
+    end sub;
 
     sub E_cp(reg: RegId)
         case reg is
@@ -803,6 +809,12 @@ gen JUMP():j
     end sub;
 
     sub DoParamIndirect(operand: [Operand], oc: uint8, off: Size)
+        sub CheckSize()
+            if off != 0 then
+                SimpleError("bad indirect");
+            end if;
+        end sub;
+
         E_oc(oc);
         case operand.mode is
             when MODE_CONST:
@@ -812,11 +824,13 @@ gen JUMP():j
                 E_stackref(operand.stk.sid);
 
             when MODE_STACKI:
+                CheckSize();
                 E_openp();
                 E_stackref(operand.stk.sid);
                 E_closep();
 
             when MODE_SYMBOLI:
+                CheckSize();
                 E_openp();
                 E_symref(operand.sym, operand.off);
                 E_closep();
@@ -1038,36 +1052,36 @@ gen STARTSUB()
 
     sub CloseLoop()
         if current_wsid != 0xff then
-            E("\t; pull wsid ");
-            E_u8(current_wsid);
-            E(" from ");
-            E_wsref(current_subr.id, current_wsid, current_bot);
-            E(" to ");
-            E_wsref(current_subr.id, current_wsid, current_top);
-            E_nl();
             var count := current_top - current_bot + 1;
-            E("\t; count=");
-            E_u16(count);
-            E_nl();
-            E("\t; start=");
-            E_u16(256 - count);
-            E_nl();
 
-            E("; ");
-            E_loadconst(REG_Y, 256-(count as uint8));
-            var lid := E_new_label();
-            E("; ");
-            E_pla();
-            
-            E("; ");
-            E_sta();
-            E_wsref(current_subr.id, current_wsid, current_bot);
-            E_y_nl();
+            if count == 2 then
+                E_pla();
 
-            E("; ");
-            E_iny();
-            E("; ");
-            E_bne(lid);
+                E_sta();
+                E_wsref(current_subr.id, current_wsid, current_bot+1);
+                E_nl();
+
+                count := 1;
+            end if;
+            if count == 1 then
+                E_pla();
+
+                E_sta();
+                E_wsref(current_subr.id, current_wsid, current_bot);
+                E_nl();
+            end if;
+            if count > 2 then
+                E_loadconst(REG_Y, (count as uint8)-1);
+                var lid := E_new_label();
+                E_pla();
+                
+                E_sta();
+                E_wsref(current_subr.id, current_wsid, current_bot);
+                E_y_nl();
+
+                E_dey();
+                E_bpl(lid);
+            end if;
         end if;
         current_wsid := 0xff;
     end sub;
@@ -1075,12 +1089,12 @@ gen STARTSUB()
     var param: [Symbol];
     sub Pull()
         var wsid := GetWsId(param);
-        var w := param.vardata.type.typedata.width as uint8;
+        var w := param.vardata.type.typedata.width;
         if (wsid != current_wsid)
-                or (param.vardata.offset != (current_bot-(w as Size))) then
+                or (param.vardata.offset != (current_bot-w)) then
             CloseLoop();
             current_wsid := wsid;
-            current_top := param.vardata.offset + (w as Size) - 1;
+            current_top := param.vardata.offset + w - 1;
         end if;
         current_bot := param.vardata.offset;
     end sub;
@@ -1094,20 +1108,18 @@ gen STARTSUB()
                 if count != lastparam then
                     PopReturnAddress();
                     Pull();
-                    E_pla();
-                end if;
+                else
                     E_sta();
                     E_symref(param, 0);
                     E_nl();
                     RegCacheLeavesValue(REG_A, param, 0);
-                #end if;
+                end if;
 
             when 2:
                 if count != lastparam then
                     PopReturnAddress();
                     Pull();
-                    E_plxa();
-                end if;
+                else
                     E_sta();
                     E_symref(param, 0);
                     E_nl();
@@ -1117,21 +1129,12 @@ gen STARTSUB()
                     E_nl();
 
                     RegCacheLeavesValue(REG_XA, param, 0);
-                #end if;
+                end if;
 
             when 4:
                 # WARNING: little endian on stack!
                 PopReturnAddress();
                 Pull();
-                E_loadconst(REG_Y, -4);
-                var lid := E_new_label();
-
-                E_pla();
-                E_sta();
-                E_symref(param, -252);
-                E_y_nl();
-                E_iny();
-                E_bne(lid);
         end case;
     end loop;
     CloseLoop();
@@ -1147,37 +1150,82 @@ gen ENDSUB()
         E_label(current_subr.arch.end_label);
     end if;
 
+    var current_wsid: uint8 := 0xff;
+    var current_top: Size;
+    var current_bot: Size;
+
+    sub CloseLoop()
+        if current_wsid != 0xff then
+            var count := current_top - current_bot + 1;
+
+            if count <= 2 then
+                E_lda();
+                E_wsref(current_subr.id, current_wsid, current_bot);
+                E_nl();
+
+                E_pha();
+            end if;
+            if count == 2 then
+                E_lda();
+                E_wsref(current_subr.id, current_wsid, current_bot+1);
+                E_nl();
+
+                E_pha();
+            end if;
+            if count > 2 then
+                E_loadconst(REG_Y, 256-(count as uint8));
+                var lid := E_new_label();
+                E_lda();
+                E_wsref(current_subr.id, current_wsid, current_bot - (256 - count));
+                E_y_nl();
+                
+                E_pha();
+
+                E_iny();
+                E_bne(lid);
+            end if;
+        end if;
+        current_wsid := 0xff;
+    end sub;
+
+    var param: [Symbol];
+    sub Push()
+        var wsid := GetWsId(param);
+        var w := param.vardata.type.typedata.width as uint8;
+        if (wsid != current_wsid)
+                or (param.vardata.offset != (current_top+1)) then
+            CloseLoop();
+            current_wsid := wsid;
+            current_bot := param.vardata.offset;
+        end if;
+        current_top := param.vardata.offset + (w as Size) - 1;
+    end sub;
+
     var i: uint8 := 0;
     var count := current_subr.num_output_parameters;
     while i != count loop
-        var param := GetOutputParameter(current_subr, i);
+        param := GetOutputParameter(current_subr, i);
 
         var cache: RegId;
         case param.vardata.type.typedata.width is
             when 1:
-                cache := RegCacheFindValue(param, 0) & REG_A;
-                if cache == 0 then
-                    E_lda();
-                    E_symref(param, 0);
-                    E_nl();
-                end if;
-                if i != (count-1) then
-                    E_pha();
+                if i == (count - 1) then
+                    CloseLoop();
+
+                    cache := RegCacheFindValue(param, 0) & REG_A;
+                    if cache == 0 then
+                        E_lda();
+                        E_symref(param, 0);
+                        E_nl();
+                    end if;
+                else
+                    Push();
                 end if;
 
             when 2:
-                if i != (count-1) then
-                    # Warning: big endian!
-                    E_lda();
-                    E_symref(param, 0);
-                    E_nl();
+                if i == (count - 1) then
+                    CloseLoop();
 
-                    E_ldx();
-                    E_symref(param, 1);
-                    E_nl();
-
-                    E_phxa();
-                else
                     cache := RegCacheFindValue(param, 0) & REG_XA;
                     if cache == 0 then
                         E_lda();
@@ -1188,24 +1236,16 @@ gen ENDSUB()
                         E_symref(param, 1);
                         E_nl();
                     end if;
+                else
+                    Push();
                 end if;
 
             when 4:
-                # Push from low to high so the value ends up in big-endian
-                # order on the stack. This allows the caller to pop it off
-                # using smaller code.
-                E_loadconst(REG_Y, -4);
-                var lid := E_new_label();
-
-                E_lda();
-                E_symref(param, -252);
-                E_y_nl();
-                E_pha();
-                E_iny();
-                E_bne(lid);
+                Push();
         end case;
         i := i + 1;
     end loop;
+    CloseLoop();
 
     if IsSimpleSub(current_subr) != 0 then
         E_rts();
@@ -1258,6 +1298,7 @@ gen xa := CALLE2(param):s uses y
 
 %{
     sub PopArg4(dest: [Operand])
+        # WARNING: lowest byte on stack is MSB, so pop the MSB first!
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
@@ -1282,18 +1323,37 @@ gen param := ARG2(param, xa, remaining!=0)
     E_phxa();
 }
 
-gen param := ARG4(param, in4s) uses y|a
+gen param := ARG4(param, in4s:lhs) uses y|a
 {
     var op := PopOp();
+    var lid := AllocLabel();
 
-    # WARNING: big endian on stack!
-    E_loadconst(REG_Y, 3);
-    var lid := E_new_label();
+    # WARNING: lowest byte on stack is MSB, so push the LSB first!
+    $ifndef TINY
+    if ($lhs & REGCLASS_DEREFS) != 0 then
+        E_loadconst(REG_X, 4);
+        E_loadconst(REG_Y, 0);
+        E_label(lid);
 
-    DoParamIndirect_lda(op);
-    E_pha();
-    E_dey();
-    E_bpl(lid);
+        DoParamIndirect_lda(op);
+        E_pha();
+        E_iny();
+        E_dex();
+    else
+    $endif
+
+        E_loadconst(REG_Y, 252);
+        E_label(lid);
+
+        DoParamIndirect(op, OC_LDA, -252);
+        E_pha();
+        E_iny();
+
+    $ifndef TINY
+    end if;
+    $endif
+
+    E_bne(lid);
 }
 
 gen a := POPARG1(remaining==0);
@@ -1643,7 +1703,7 @@ gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
         if (lhs.mode > MODE_STACKI) and (rhs.mode > MODE_STACKI) and (dest.mode > MODE_STACKI) then
             # None of the operands are indirected, so we can use a more efficient loop.
 
-            E_loadconst(REG_Y, -4);
+            E_loadconst(REG_Y, 252);
             lid := E_new_label();
 
             DoParamIndirect(lhs, OC_LDA, -252);
