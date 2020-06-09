@@ -23,7 +23,7 @@
 %right OPENSQ CLOSESQ.
 %right DOT.
 
-%token_type {[Token]}
+%token_type {Token}
 
 %syntax_error
 {
@@ -43,9 +43,9 @@
 
 %token_destructor
 {
-	if $$ != (0 as [Token]) then
+	if (yymajor == STRING) or (yymajor == ID) then
+		print("free unused string\n");
 		Free($$.string as [uint8]);
-		Free($$ as [uint8]);
 	end if;
 }
 
@@ -558,6 +558,7 @@ expression(E) ::= expression(E1) DOT ID(X).
 		print("'");
 		EndError();
 	end if;
+	Free(X.string as [uint8]);
 
 	E := MidC2Op(MIDCODE_ADD0,
 		intptr_type.typedata.width as uint8,
@@ -568,8 +569,8 @@ expression(E) ::= expression(E1) DOT ID(X).
 
 expression(E) ::= STRING(S).
 {
+	# consumes S
 	E := MidString(S.string);
-	S.string := 0 as string;
 	E.type := MakePointerType(uint8_type);
 }
 
@@ -587,6 +588,7 @@ cvalue(C) ::= expression(E).
 		parser_i_constant_error();
 	end if;
 	C := E.constant.value;
+	Discard(E);
 }
 
 statement ::= CONST newid(S) ASSIGN cvalue(C) SEMICOLON.
@@ -653,7 +655,8 @@ typeref(S) ::= INDEXOF varortypeid(S1).
 
 statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 {
-	var sym := AddAlias(0 as [Namespace], X, T);
+	# consumes X
+	var sym := AddAlias(0 as [Namespace], X.string, T);
 }
 
 /* --- Symbols ----------------------------------------------------------- */
@@ -661,7 +664,8 @@ statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
 %type newid {[Symbol]}
 newid(S) ::= ID(T).
 {
-	S := AddSymbol(0 as [Namespace], T);
+	# consumes X
+	S := AddSymbol(0 as [Namespace], T.string);
 }
 
 %type oldid {[Symbol]}
@@ -676,15 +680,19 @@ oldid(S) ::= ID(T).
 		print("' not found");
 		EndError();
 	end if;
+	Free(name);
 	S := sym;
 }
 
 %type eitherid {[Symbol]}
 eitherid(S) ::= ID(T).
 {
-	var sym := LookupSymbol(0 as [Namespace], T.string);
+	var name := T.string;
+	var sym := LookupSymbol(0 as [Namespace], name);
 	if sym == (0 as [Symbol]) then
-		sym := AddSymbol(0 as [Namespace], T);
+		sym := AddSymbol(0 as [Namespace], name);
+	else
+		Free(name);
 	end if;
 	S := sym;
 }
@@ -910,9 +918,12 @@ statement ::= SUB substart subparams subgen statements END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
-	break_label := current_subr.old_break_label;
-	continue_label := current_subr.old_continue_label;
-	current_subr := current_subr.parent;
+	var subr := current_subr;
+	break_label := subr.old_break_label;
+	continue_label := subr.old_continue_label;
+	current_subr := subr.parent;
+
+	DestructSubroutineContents(subr);
 }
 
 substart ::= newid(S).
@@ -1063,7 +1074,8 @@ recordat(A) ::= AT OPENPAREN cvalue(C) CLOSEPAREN.
 %type memberid {[Symbol]}
 memberid(S) ::= ID(T).
 {
-	S := AddSymbol(&current_type.typedata.recordtype.namespace, T);
+	# consumes T
+	S := AddSymbol(&current_type.typedata.recordtype.namespace, T.string);
 	current_type.typedata.recordtype.members := current_type.typedata.recordtype.members + 1;
 }
 
@@ -1098,16 +1110,10 @@ memberid(S) ::= ID(T).
 				current_type.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 			end if;
 			if current_offset != current_type.typedata.width then
-				print("current_offset=");
-				print_i16(current_offset);
-				print(" typedata.width=");
-				print_i16(current_type.typedata.width);
-				print_nl();
 				WrongNumberOfElementsError();
 			end if;
 		else
 			if current_member != (0 as [Symbol]) then
-				print("2\n");
 				WrongNumberOfElementsError();
 			end if;
 		end if;
@@ -1146,12 +1152,6 @@ memberid(S) ::= ID(T).
 		end if;
 
 		if member.vardata.offset < current_offset then
-			print_i16(member.vardata.offset);
-			print_nl();
-			print_i16(current_offset);
-			print_nl();
-			print(member.name);
-			print_nl();
 			SimpleError("out of order static initialisation");
 		end if;
 	end sub;
@@ -1235,6 +1235,7 @@ initialiser ::= expression(E).
 		when else:
 			parser_i_constant_error();
 	end case;
+	Discard(E);
 
 	current_offset := current_offset + w;
 	current_global_offset := current_global_offset + w;
@@ -1293,7 +1294,6 @@ asm ::= STRING(T).
 {
 	Generate(MidAsmtext(T.string));
 	Free(T.string);
-	T.string := 0 as string;
 }
 
 asm ::= NUMBER(T).

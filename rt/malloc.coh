@@ -60,6 +60,9 @@ end sub;
 
 sub Alloc(length: intptr): (block: [uint8])
 	var totallength := AlignUp(length + @bytesof MallocUsedBlock);
+	if totallength < @bytesof MallocFreeBlock then
+		totallength := @bytesof MallocFreeBlock;
+	end if;
 
 	var prev: [MallocFreeBlock] := 0 as [MallocFreeBlock];
 	var p := freeList;
@@ -186,8 +189,10 @@ sub AddFreeBlock(start: [uint8], length: intptr)
 end sub;
 
 sub Free(start: [uint8])
-	var usedblock := @prev (start as [MallocUsedBlock]);
-	AddFreeBlock(usedblock as [uint8], usedblock.size);
+	if start != (0 as [uint8]) then
+		var usedblock := @prev (start as [MallocUsedBlock]);
+		AddFreeBlock(usedblock as [uint8], usedblock.size);
+	end if;
 end sub;
 
 sub GetFreeMemory(): (bytes: intptr)

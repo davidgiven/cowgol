@@ -82,7 +82,9 @@ sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
 	if newblock != fcb.block then
 		fcb_i_blockout(fcb);
 		fcb.block := newblock;
-		fcb_i_blockin(fcb);
+        if newblock != 0xffff then
+            fcb_i_blockin(fcb);
+        end if;
 	end if;
 end sub;
 

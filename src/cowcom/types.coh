@@ -75,7 +75,6 @@ end record;
 
 record Subroutine
 	name: string;
-	externname: string;
 	parent: [Subroutine];
 	namespace: Namespace;
 	first_input_parameter: [Symbol];

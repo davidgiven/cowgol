@@ -38,40 +38,37 @@ sub AddToNamespace(namespace: [Namespace], symbol: [Symbol])
 	end if;
 end sub;
 
-# Consumes the string in Token
-sub AddSymbol(namespace: [Namespace], token: [Token]): (symbol: [Symbol])
+# Takes ownership of the string
+sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 	if namespace == (0 as [Namespace]) then
 		namespace := &current_subr.namespace;
 	end if;
 
 	symbol := Alloc(@bytesof Symbol) as [Symbol];
-	if token != (0 as [Token]) then
-		if LookupSymbolInNamespace(namespace, token.string) != (0 as [Symbol]) then
+	if name != (0 as string) then
+		if LookupSymbolInNamespace(namespace, name) != (0 as [Symbol]) then
 			StartError();
 			print("symbol '");
-			print(token.string);
+			print(name);
 			print("' is already defined");
 			EndError();
 		end if;
 
-		symbol.name := token.string;
-		token.string := (0 as string);
+		# Only add the symbol to the namespace if it has a name.
+		symbol.name := name;
+		AddToNamespace(namespace, symbol);
 	end if;
-
-	AddToNamespace(namespace, symbol);
 end sub;
 
-# Consumes the string in Token
-sub AddAlias(namespace: [Namespace], token: [Token], real: [Symbol]): (symbol: [Symbol])
-	symbol := AddSymbol(namespace, token);
+# Takes ownership of the name
+sub AddAlias(namespace: [Namespace], name: string, real: [Symbol]): (symbol: [Symbol])
+	symbol := AddSymbol(namespace, name);
 	symbol.kind := TYPEDEF;
 	symbol.alias := real;
 end sub;
 
 sub AddAliasString(name: string, real: [Symbol])
-	var token: Token;
-	token.string := name;
-	var symbol := AddAlias(0 as [Namespace], &token, real);
+	var symbol := AddAlias(0 as [Namespace], name, real);
 end sub;
 
 sub CheckNotPartialType(type: [Symbol])

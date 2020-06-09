@@ -10,9 +10,11 @@ sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
 	newvalue := value;
 end sub;
 
-sub ArchEmitSubRef(subid: uint16)
-	E("f");
-	E_u16(subid);
+sub ArchEmitSubRef(subr: [Subroutine])
+	EmitByte('f');
+	E_u16(subr.id);
+	EmitByte('_');
+	E(subr.name);
 end sub;
 
 sub ArchEmitWSRef(wid: uint8, address: Size)
@@ -22,10 +24,21 @@ sub ArchEmitWSRef(wid: uint8, address: Size)
 end sub;
 
 sub ArchEmitHeader(coo: [Coo])
+	if (workspaceSize[1] + workspaceSize[3]) > 0xee then
+		SimpleError("ran out of zero page space");
+	end if;
+
 	E(".cpu \"65c02\"\n");
 	E("* = $400\n");
+	E("ajsr .macro\n");
+	E("\t.if (* & $ff) == $fd\n");
+	E("\tnop\n");
+	E("\t.endif\n");
+	E("\tjsr \\1\n");
+	E("\t.endm\n");
 	E("ws1 = 0\n");
 	E("ws3 = ws1 + ");
+
 	E_u16(workspaceSize[1]);
 	E_nl();
 
@@ -36,7 +49,7 @@ sub ArchEmitHeader(coo: [Coo])
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
 			E("\tjsr ");
-			ArchEmitSubRef(main.id);
+			ArchEmitSubRef(main);
 			E_nl();
 		end if;
 		coo := coo.next;

@@ -788,22 +788,22 @@ gen JUMP():j
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB():s
+gen STARTSUB()
 {
 	RegCacheReset();
 
 	EmitterPushChunk();
-	E_h16($s.subr.id);
+	E_h16(current_subr.id);
 
 	E("\n\n\t; ");
-	E($s.subr.name);
+	E(current_subr.name);
 	E(" workspace at ");
 	EmitByte(COO_ESCAPE_WSREF);
-	E_h16($s.subr.id);
+	E_h16(current_subr.id);
 	E("000000");
 	E(" length ");
 	EmitByte(COO_ESCAPE_WSSIZE);
-	E_h16($s.subr.id);
+	E_h16(current_subr.id);
 	E("00");
 	E_nl();
 
@@ -811,7 +811,7 @@ gen STARTSUB():s
 	EmitByte(COO_ESCAPE_THISSUB);
 	E(":\n");
 
-	var count := $s.subr.num_input_parameters;
+	var count := current_subr.num_input_parameters;
 	var lastparam := count - 1;
 	var popped: uint8 := 0;
 
@@ -824,7 +824,7 @@ gen STARTSUB():s
 
 	while count != 0 loop
 		count := count - 1;
-		var param := GetInputParameter($s.subr, count);
+		var param := GetInputParameter(current_subr, count);
 
 		case param.vardata.type.typedata.width is
 			when 1:
@@ -863,16 +863,16 @@ gen STARTSUB():s
 	end if;
 }
 
-gen ENDSUB():s
+gen ENDSUB()
 {
 	R_flushall();
 
 	E("end_");
-	E_subref($s.subr);
+	E_subref(current_subr);
 	E(":\n");
 
 	var count: uint8 := 0;
-	var params := $s.subr.num_output_parameters;
+	var params := current_subr.num_output_parameters;
 	var pushed: uint8 := 0;
 
 	sub push_return_address()
@@ -883,7 +883,7 @@ gen ENDSUB():s
 	end sub;
 
 	while count != params loop
-		var param := GetOutputParameter($s.subr, count);
+		var param := GetOutputParameter(current_subr, count);
 
 		case param.vardata.type.typedata.width is
 			when 1:
@@ -923,7 +923,7 @@ gen ENDSUB():s
 	end if;
 	E_ret();
 
-	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
+	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
 	EmitterPopChunk('S');
 }
 

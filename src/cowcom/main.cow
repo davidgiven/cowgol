@@ -71,12 +71,11 @@ print("COWCOM: ");
 PrintFreeMemory();
 
 ParseArguments();
-LexerAddIncludePath("./");
+LexerAddIncludePath("");
 LexerIncludeFile(inputfile);
 
 current_subr := Alloc(@bytesof Subroutine) as [Subroutine];
 current_subr.name := "__main";
-current_subr.externname := "cmain";
 
 ArchInitTypes();
 EmitterOpenfile(outputfile);
@@ -86,21 +85,22 @@ Generate(MidStartsub(current_subr));
 
 ParserInit();
 loop
-	var justbefore: uint32 := 1;
 	var yymajor := LexerReadToken();
+	var yyminor: YYMINORTYPE;
 	case yymajor is
 		when NUMBER:
-			ParserFeedToken(yymajor, MakeNumberTokenData());
+			yyminor.yy0.number := token_value;
 
 		when ID:
-			ParserFeedToken(yymajor, MakeStringTokenData());
+			yyminor.yy0.string := StrDup(&token_buffer[0]);
 
 		when STRING:
-			ParserFeedToken(yymajor, MakeStringTokenData());
+			yyminor.yy0.string := StrDup(&token_buffer[0]);
 
 		when else:
-			ParserFeedToken(yymajor, 0 as [Token]);
+			yyminor.yy0.number := 0;
 	end case;
+	ParserFeedToken(yymajor, &yyminor);
 	if yymajor == 0 then
 		break;
 	end if;

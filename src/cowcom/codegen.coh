@@ -17,11 +17,13 @@ record RegMove
 end record;
 
 record Instruction
+	next: [Instruction];
+	prev: [Instruction];
+	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
 	producable_regs: RegId;
 	produced_reg: RegId;
 	input_regs: RegId;
 	output_regs: RegId;
-	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
 	spills: RegMove[MAX_MOVE_COUNT];
 	reloads: RegMove[MAX_MOVE_COUNT];
 	num_spills: uint8;
@@ -112,19 +114,29 @@ sub IsStackedRegister(regid: RegId): (result: uint8)
 	end loop;
 end sub;
 
+# Calculates blocked registers *between* the two bounds, not the end ones.
 sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocked: RegId)
 	blocked := 0;
-	while insn <= last loop
+	insn := insn.next;
+	while insn != last loop
 		blocked := blocked | insn.input_regs | insn.output_regs;
-		insn := @next insn;
+		if insn == last then
+			break;
+		end if;
+		insn := insn.next;
 	end loop;
 end sub;
 
+# Blocks registers *between* the two bounds, not the end ones.
 sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId)
-	while insn <= last loop
+	insn := insn.next;
+	while insn != last loop
 		insn.input_regs := insn.input_regs | blocked;
 		insn.output_regs := insn.output_regs | blocked;
-		insn := @next insn;
+		if insn == last then
+			break;
+		end if;
+		insn := insn.next;
 	end loop;
 end sub;
 
@@ -273,12 +285,14 @@ sub PrintNodes(rootnode: [Node])
 	end loop;
 end sub;
 
-sub Generate(rootnode: [Node])
+sub ReallyGenerate(rootnode: [Node])
 	var i: uint8;
 
-	var instructions: Instruction[32];
-	MemZero(&instructions[0] as [uint8], @bytesof instructions);
-	var next_instruction := &instructions[0];
+	# Remember that this list is actually emitted in *reverse* order, so
+	# last_instruction is the first machine code instruction in the clause.
+
+	var first_instruction: [Instruction] := 0 as [Instruction];
+	var last_instruction: [Instruction] := 0 as [Instruction];
 
 	#print_nl();
 	#PrintNodes(rootnode);
@@ -286,13 +300,16 @@ sub Generate(rootnode: [Node])
 	var old_next_node := next_node;
 	PushNode(rootnode);
 	while next_node != old_next_node loop
-		if next_instruction == &instructions[@sizeof instructions] then
-			PrintNodes(rootnode);
-			SimpleError("instruction queue overflow");
+		var producer := Alloc(@bytesof Instruction) as [Instruction];
+		if first_instruction == (0 as [Instruction]) then
+			first_instruction := producer;
+			last_instruction := producer;
+		else
+			last_instruction.next := producer;
+			producer.prev := last_instruction;
+			last_instruction := producer;
 		end if;
-		var producer := next_instruction;
-		next_instruction := @next next_instruction;
-
+			
 		# Find the first matching rule for this instruction.
 
 		var node := PopNode();
@@ -526,7 +543,7 @@ sub Generate(rootnode: [Node])
 					# the best available register between the producer and consumer.
 
 					var consumer := node.consumer;
-					var blocked := CalculateBlockedRegisters(@next consumer, @prev producer);
+					var blocked := CalculateBlockedRegisters(consumer, producer);
 					candidate := node.desired_reg & producer.producable_regs;
 
 					var mask1 := candidate & ~(blocked | producer.output_regs | consumer.input_regs);
@@ -540,7 +557,7 @@ sub Generate(rootnode: [Node])
 
 						blocked := FindConflictingRegisters(candidate);
 						consumer.input_regs := consumer.input_regs | blocked;
-						BlockRegisters(@next consumer, @prev producer, blocked);
+						BlockRegisters(consumer, producer, blocked);
 						producer.output_regs := producer.output_regs | blocked;
 					else
 						var compatible := FindCompatibleRegisters(node.desired_reg);
@@ -555,7 +572,7 @@ sub Generate(rootnode: [Node])
 							consumer.input_regs := consumer.input_regs
 								| FindConflictingRegisters(node.produced_reg);
 							blocked := FindConflictingRegisters(producer.produced_reg);
-							BlockRegisters(@next consumer, @prev producer, blocked);
+							BlockRegisters(consumer, producer, blocked);
 							producer.output_regs := producer.output_regs | blocked;
 							CreateReload(consumer, producer.produced_reg, node.produced_reg);
 						else
@@ -569,7 +586,7 @@ sub Generate(rootnode: [Node])
 								node.produced_reg := FindFirst(mask1);
 								blocked := FindConflictingRegisters(node.produced_reg);
 								consumer.input_regs := consumer.input_regs | blocked;
-								BlockRegisters(@next consumer, @prev producer, blocked);
+								BlockRegisters(consumer, producer, blocked);
 								producer.output_regs := producer.output_regs |
 										FindConflictingRegisters(producer.produced_reg);
 								CreateSpill(producer, producer.produced_reg, node.produced_reg);
@@ -660,31 +677,55 @@ sub Generate(rootnode: [Node])
 		end if;
 	end loop;
 
-	# We have a set of instructions for this expression; emit them.
+	# We have a set of instructions for this expression; emit them. In reverse
+	# order.
 
-	while next_instruction != &instructions[0] loop
-		next_instruction := @prev next_instruction;
+	sub EmitAndFreeInstructions()
+		loop
+			var insn := last_instruction;
+			if insn == (0 as [Instruction]) then
+				break;
+			end if;
+			last_instruction := last_instruction.prev;
 
-		#print("exec rule ");
-		#print_i8(next_instruction.ruleid);
-		#print_nl();
+			#print("rule ");
+			#print_i8(insn.ruleid);
+			#print_nl();
 
-		ShuffleRegisters(&next_instruction.reloads[0]);
-		EmitOneInstruction(next_instruction.ruleid, next_instruction);
-		ShuffleRegisters(&next_instruction.spills[0]);
-		ArchEndInstruction();
+			ShuffleRegisters(&insn.reloads[0]);
+			EmitOneInstruction(insn.ruleid, insn);
+			ShuffleRegisters(&insn.spills[0]);
+			ArchEndInstruction();
 
-		# If the root node of this instruction is a fallback node, it's
-		# not part of the tree and won't be discarded with the tree.
-		# Clean them up manually here.
+			# If the root node of this instruction is a fallback node, it's
+			# not part of the tree and won't be discarded with the tree.
+			# Clean them up manually here.
 
-		if next_instruction.n[0].op == MIDCODE_FALLBACK then
-			Free(next_instruction.n[0] as [uint8]);
-		end if;
-	end loop;
+			if insn.n[0].op == MIDCODE_FALLBACK then
+				Free(insn.n[0] as [uint8]);
+			end if;
+			Free(insn as [uint8]);
+		end loop;
+	end sub;
+	EmitAndFreeInstructions();
+
 	ArchEndGroup();
 
 	Discard(rootnode);
+end sub;
+
+var old_op: uint8 := 0;
+sub Generate(statement: [Node])
+	var op := statement.op;
+	if (old_op == MIDCODE_JUMP) or (old_op == MIDCODE_RETURN) then
+		if (op != MIDCODE_LABEL) and (op != MIDCODE_ENDSUB) then
+			Discard(statement);
+			return;
+		end if;
+	end if;
+
+	old_op := statement.op;
+	ReallyGenerate(statement);
 end sub;
 
 sub GenerateConditional(rootnode: [Node])
@@ -701,6 +742,10 @@ sub GenerateConditional(rootnode: [Node])
 		var op := node.op;
 
 		sub push_and_free()
+			rhs.beq0.truelabel := t;
+			rhs.beq0.falselabel := f;
+			rhs.beq0.fallthrough := r;
+
 			node.left := (0 as [Node]);
 			node.right := (0 as [Node]);
 			PushNode(rhs);
@@ -717,10 +762,6 @@ sub GenerateConditional(rootnode: [Node])
 				lhs.beq0.falselabel := rr;
 				lhs.beq0.fallthrough := rr;
 
-				rhs.beq0.truelabel := t;
-				rhs.beq0.falselabel := f;
-				rhs.beq0.fallthrough := r;
-
 				push_and_free();
 
 			when MIDCODE_BAND:
@@ -729,10 +770,6 @@ sub GenerateConditional(rootnode: [Node])
 				lhs.beq0.truelabel := rr;
 				lhs.beq0.falselabel := f;
 				lhs.beq0.fallthrough := rr;
-
-				rhs.beq0.truelabel := t;
-				rhs.beq0.falselabel := f;
-				rhs.beq0.fallthrough := r;
 
 				push_and_free();
 

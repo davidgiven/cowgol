@@ -17,7 +17,7 @@ end sub;
 sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol])
 	ptrtype := type.typedata.pointerto;
 	if ptrtype == (0 as [Symbol]) then
-		ptrtype := AddSymbol(0 as [Namespace], 0 as [Token]);
+		ptrtype := AddSymbol(0 as [Namespace], 0 as string);
 		ptrtype.name := StrDupBraced(type.name);
 		ptrtype.kind := TYPE;
 		ptrtype.typedata.kind := TYPE_POINTER;
@@ -32,7 +32,7 @@ end sub;
 sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol])
 	CheckNotPartialType(type);
 
-	arraytype := AddSymbol(0 as [Namespace], 0 as [Token]);
+	arraytype := AddSymbol(0 as [Namespace], 0 as string);
 	arraytype.name := StrDupArrayed(type.name, size);
 	arraytype.kind := TYPE;
 	arraytype.typedata.kind := TYPE_ARRAY;
@@ -48,4 +48,75 @@ sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol])
 	arraytype.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 end sub;
 
+# Called after a subroutine has been generated. This allows us to free up some
+# of the resources used. Note that we can't free *everything* until our parent
+# gets destructed, because parameters and types which they depend on might be
+# referred to.
+sub DestructSubroutineContents(subr: [Subroutine])
+	# Destroys a sumbol (which isn't a subroutine).
+	sub DestructSymbol(symbol: [Symbol])
+		if symbol.kind == TYPE then
+			var pointer := symbol.typedata.pointerto;
+			while pointer != (0 as [Symbol]) loop
+				var p := pointer;
+				pointer := pointer.typedata.pointerto;
+
+				Free(p.name);
+				Free(p as [uint8]);
+			end loop;
+		end if;
+		Free(symbol.name);
+		Free(symbol as [uint8]);
+	end sub;
+
+	# Destroys a subroutine, freeing all parameters, variables, types etc.
+	sub DestructSubroutine(subr: [Subroutine])
+		var symbol := subr.namespace.first;
+		while symbol != (0 as [Symbol]) loop
+			var s := symbol;
+			symbol := symbol.next;
+			DestructSymbol(s);
+		end loop;
+		Free(subr as [uint8]);
+	end sub;
+
+	# Find the last parameter.
+
+	var last_parameter := subr.first_output_parameter;
+	if last_parameter == (0 as [Symbol]) then
+		last_parameter := subr.first_input_parameter;
+	end if;
+	if last_parameter != (0 as [Symbol]) then
+		loop
+			var next := last_parameter.vardata.next_parameter;
+			if next == (0 as [Symbol]) then
+				break;
+			end if;
+			last_parameter := next;
+		end loop;
+	end if;
+
+	# last_parameter is now pointing at the last parameter, or null if there
+	# are none.
+
+	var symbol := subr.namespace.first;
+	if last_parameter != (0 as [Symbol]) then
+		symbol := last_parameter.next;
+	end if;
+	while symbol != (0 as [Symbol]) loop
+		next := symbol.next;
+		if symbol.kind == SUB then
+			DestructSubroutine(symbol.subr);
+		end if;
+		DestructSymbol(symbol);
+		symbol := next;
+	end loop;
+
+	if last_parameter != (0 as [Symbol]) then
+		last_parameter.next := 0 as [Symbol];
+	else
+		subr.namespace.first := 0 as [Symbol];
+	end if;
+	subr.namespace.last := last_parameter;
+end sub;
 

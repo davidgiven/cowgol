@@ -7,7 +7,8 @@ record File
 	next: [File];
 	path: string;
 	lineno: uint16;
-	fcb: FCB;
+	pos: uint32;
+	fcb: [FCB];
 end record;
 
 var include_paths: [IncludePath] := 0 as [IncludePath];
@@ -235,6 +236,24 @@ sub LexerPrintSpaces()
 	end loop;
 end sub;
 
+sub lexer_i_open(file: [File]): (result: uint8)
+	var fcb := Alloc(@bytesof FCB) as [FCB];
+	if FCBOpenIn(fcb, file.path) == 0 then
+		file.fcb := fcb;
+		FCBSeek(fcb, file.pos);
+		result := 0;
+	else
+		Free(fcb as [uint8]);
+		result := 1;
+	end if;
+end sub;
+
+sub lexer_i_close(file: [File])
+	file.pos := FCBPos(file.fcb);
+	var e := FCBClose(file.fcb);
+	Free(file.fcb as [uint8]);
+end sub;
+
 sub LexerIncludeFile(path: string)
 	var f := Alloc(@bytesof File) as [File];
 	f.next := current_file;
@@ -247,12 +266,16 @@ sub LexerIncludeFile(path: string)
 		f.path := Alloc(fl + il + 1);
 		MemCopy(p.path, il, f.path);
 		MemCopy(path, fl+1, f.path + il);
-		if FCBOpenIn(&f.fcb, f.path) == 0 then
+		if lexer_i_open(f) == 0 then
 			file_nesting := file_nesting + 1;
 			LexerPrintSpaces();
 			print("> ");
 			print(f.path);
 			print_nl();
+
+			if current_file != (0 as [File]) then
+				lexer_i_close(current_file);
+			end if;
 			current_file := f;
 			return;
 		end if;
@@ -296,7 +319,7 @@ sub LexerReadToken(): (token: uint8)
 			end if;
 
 			var f := current_file;
-			c := FCBGetChar(&f.fcb);
+			c := FCBGetChar(f.fcb);
 			if c == 26 then
 				c := 0;
 			end if;
@@ -305,7 +328,7 @@ sub LexerReadToken(): (token: uint8)
 			end if;
 
 			current_file := f.next;
-			var i := FCBClose(&f.fcb);
+			lexer_i_close(f);
 			Free(f as [uint8]);
 
 			if current_file != (0 as [File]) then
@@ -314,6 +337,9 @@ sub LexerReadToken(): (token: uint8)
 				print("< ");
 				print(current_file.path);
 				print_nl();
+				if lexer_i_open(current_file) != 0 then
+					SimpleError("I/O error");
+				end if;
 			end if;
 		end loop;
 	end sub;

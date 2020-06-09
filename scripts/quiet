@@ -3,7 +3,7 @@ stdout=/tmp/$$.stdout
 stderr=/tmp/$$.stderr
 trap "rm -f $stdout $stderr" EXIT
 
-timeout 5s "$@" >$stdout 2>$stderr
+"$@" >$stdout 2>$stderr
 if [ $? = 0 ]; then
 	exit 0
 else
