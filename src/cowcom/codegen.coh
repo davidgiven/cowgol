@@ -285,7 +285,7 @@ sub PrintNodes(rootnode: [Node])
 	end loop;
 end sub;
 
-sub Generate(rootnode: [Node])
+sub ReallyGenerate(rootnode: [Node])
 	var i: uint8;
 
 	# Remember that this list is actually emitted in *reverse* order, so
@@ -712,6 +712,20 @@ sub Generate(rootnode: [Node])
 	ArchEndGroup();
 
 	Discard(rootnode);
+end sub;
+
+var old_op: uint8 := 0;
+sub Generate(statement: [Node])
+	var op := statement.op;
+	if (old_op == MIDCODE_JUMP) or (old_op == MIDCODE_RETURN) then
+		if (op != MIDCODE_LABEL) and (op != MIDCODE_ENDSUB) then
+			Discard(statement);
+			return;
+		end if;
+	end if;
+
+	old_op := statement.op;
+	ReallyGenerate(statement);
 end sub;
 
 sub GenerateConditional(rootnode: [Node])
