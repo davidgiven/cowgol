@@ -92,8 +92,8 @@ toolchain_bbct6502 = {
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
---	toolchain_ncpm,
---	toolchain_ncpmz,
+	toolchain_ncpm,
+	toolchain_ncpmz,
 	toolchain_lx386,
 	toolchain_bbct,
 	toolchain_bbctiny,
