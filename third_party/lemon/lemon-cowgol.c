@@ -4564,7 +4564,7 @@ void ReportTable(
 	fprintf(out, "end sub;\n"); lineno++;
   }
 
-  fprintf(out, "case yyruleno is\n");
+  fprintf(out, "case yyruleno as uint8 is\n");
   for(rp=lemp->rule; rp; rp=rp->next){
     struct rule *rp2;               /* Other rules with the same action */
     if( rp->codeEmitted ) continue;
