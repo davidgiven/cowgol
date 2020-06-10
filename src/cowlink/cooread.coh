@@ -130,7 +130,11 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 			var name := read_string(&coo.fcb, (len as uint8) - 2);
 			var external := FindOrCreateExternal(name);
 			if subroutine.external != (0 as [External]) then
-				SimpleError("multiple external declarations");
+				StartError();
+				print("multiple external declarations of '");
+				print(name);
+				print("'");
+				EndError();
 			end if;
 			subroutine.external := external;
 		else

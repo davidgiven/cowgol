@@ -915,16 +915,29 @@ outputarg(E) ::= expression(E1).
 
 /* --- Subroutine definitions -------------------------------------------- */
 
-statement ::= namedsub subparams subgen statements END SUB.
+%include
+{
+	sub parser_i_end_sub()
+		var subr := current_subr;
+		break_label := subr.old_break_label;
+		continue_label := subr.old_continue_label;
+		current_subr := subr.parent;
+
+		DestructSubroutineContents(subr);
+	end sub;
+}
+
+// Declare and implement a subroutine.
+statement ::= namedsub subparams subgen statements END SUB SEMICOLON.
 {
 	Generate(MidEndsub(current_subr));
+	parser_i_end_sub();
+}
 
-	var subr := current_subr;
-	break_label := subr.old_break_label;
-	continue_label := subr.old_continue_label;
-	current_subr := subr.parent;
-
-	DestructSubroutineContents(subr);
+// Declare a subroutine but don't implement it.
+statement ::= DECL namedsub subparams SEMICOLON.
+{
+	parser_i_end_sub();
 }
 
 substart ::= SUB.

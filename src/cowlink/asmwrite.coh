@@ -31,6 +31,21 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 		result := read_bin2(&coo.fcb);
 	end sub;
 
+	sub CheckSubExists(subr: [Subroutine])
+		if (subr.state & SUB_IMPLEMENTATION) == 0 then
+			StartError();
+			print("reference to undefined subroutine ");
+			if subr.name != (0 as string) then
+				print("'");
+				print(subr.name);
+				print("'");
+			else
+				print("which is anonymous");
+			end if;
+			EndError();
+		end if;
+	end sub;
+
 	sub CopySourceChunk()
 		var subid: uint16;
 		var subr: [Subroutine];
@@ -52,6 +67,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 					subid := ReadB2();
 					subr := FindOrCreateSub(coo, subid);
 					subr := Deref(subr);
+					CheckSubExists(subr);
 					ArchEmitSubRef(subr);
 
 				when COO_ESCAPE_WSREF:
@@ -60,6 +76,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 					off := ReadB2();
 					subr := FindOrCreateSub(coo, subid);
 					subr := Deref(subr);
+					CheckSubExists(subr);
 					ArchEmitWSRef(wid, subr.workspaceAddress[wid] + off);
 
 				when COO_ESCAPE_WSSIZE:
@@ -67,6 +84,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 					wid := ReadB1();
 					subr := FindOrCreateSub(coo, subid);
 					subr := Deref(subr);
+					CheckSubExists(subr);
 					ArchEmitWSRef(wid, subr.workspaceSize[wid]);
 
 				when else:
