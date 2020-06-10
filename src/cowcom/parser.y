@@ -5,6 +5,7 @@
 %token SUB THEN TILDE VAR WHILE TYPE.
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
 %token INT TYPEDEF SIZEOF STRING.
+%token IMPL DECL EXTERN.
 
 %left COMMA.
 %left AND.
@@ -914,7 +915,7 @@ outputarg(E) ::= expression(E1).
 
 /* --- Subroutine definitions -------------------------------------------- */
 
-statement ::= SUB substart subparams subgen statements END SUB.
+statement ::= namedsub subparams subgen statements END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
@@ -926,10 +927,9 @@ statement ::= SUB substart subparams subgen statements END SUB.
 	DestructSubroutineContents(subr);
 }
 
-substart ::= newid(S).
+substart ::= SUB.
 {
 	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
-	subr.name := S.name;
 	subr.namespace.parent := &current_subr.namespace;
 	subr.id := AllocSubrId();
 	subr.old_break_label := break_label;
@@ -937,12 +937,29 @@ substart ::= newid(S).
 	subr.old_continue_label := continue_label;
 	continue_label := 0;
 
-	S.kind := SUB;
-	S.subr := subr;
-	EmitterDeclareSubroutine(subr);
-
 	subr.parent := current_subr;
 	current_subr := subr;
+}
+
+substart ::= substart EXTERN OPENPAREN STRING(X) CLOSEPAREN.
+{
+	EmitterDeclareExternalSubroutine(current_subr.id, X.string);
+}
+
+namedsub ::= substart ID(T).
+{
+	# Okay, so because of the rather weird order things happen here, we're
+	# actually creating the subroutine's symbol after we have created the
+	# subroutine and added it to the namespace chain. So we can't use newid.
+	# We have to explicitly invoke the parent's namespace.
+
+	# consumes T
+	var S := AddSymbol(&current_subr.parent.namespace, T.string);
+
+	current_subr.name := S.name;
+	S.kind := SUB;
+	S.subr := current_subr;
+	EmitterDeclareSubroutine(current_subr);
 }
 
 subgen ::= .

@@ -1,0 +1,8 @@
+include "cowgol.coh";
+include "_framework.coh";
+
+sub @extern("externname") Extern()
+end sub;
+
+Extern();
+
