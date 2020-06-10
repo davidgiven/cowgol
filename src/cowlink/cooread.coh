@@ -102,12 +102,8 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 	var pos: uint32 := 0;
 	loop
 		FCBSeek(&coo.fcb, pos);
-		print_hex_i32(pos);
-		print_nl();
 		var c := read_bin1(&coo.fcb);
 		var len := read_bin2(&coo.fcb);
-		print_hex_i16(len);
-		print_nl();
 		var subroutine: [Subroutine];
 		if c == 'E' then
 			break;
