@@ -790,16 +790,16 @@ gen RETURN()
 	end if;
 }
 
-gen CALL(param):s
+gen CALL(param):s uses ebx|ecx|edx|esi|edi
 		{ E_call($s.subr); }
 	
-gen al := CALLE1(param):s
+gen al := CALLE1(param):s uses ebx|ecx|edx|esi|edi
 		{ E_call($s.subr); }
 
-gen ax := CALLE2(param):s
+gen ax := CALLE2(param):s uses ebx|ecx|edx|esi|edi
 		{ E_call($s.subr); }
 
-gen eax := CALLE4(param):s
+gen eax := CALLE4(param):s uses ebx|ecx|edx|esi|edi
 		{ E_call($s.subr); }
 
 gen param := END();
