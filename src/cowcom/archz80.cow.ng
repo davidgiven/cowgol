@@ -67,10 +67,10 @@
 			E(sym.vardata.externname);
 			E_i16(off as int16);
 		else
-			EmitByte(COO_ESCAPE_WSREF);
-			E_h16(sym.vardata.subr.id);
-			E_h8(0);
-			E_h16(sym.vardata.offset + off);
+			E_b8(COO_ESCAPE_WSREF);
+			E_b16(sym.vardata.subr.id);
+			E_b8(0);
+			E_b16(sym.vardata.offset + off);
 		end if;
 	end sub;
 
@@ -606,14 +606,14 @@
 		end if;
 
 		EmitterPushChunk();
-		E_h16(current_subr.id);
-		E_h16(e.id);
+		E_b16(current_subr.id);
+		E_b16(e.id);
 		EmitterPopChunk('R');
 
 		R_flushall();
 		E("\tcall ");
-		EmitByte(COO_ESCAPE_SUBREF);
-		E_h16(e.id);
+		E_b8(COO_ESCAPE_SUBREF);
+		E_b16(e.id);
 		E_nl();
 	end sub;
 
@@ -623,11 +623,11 @@
 		stringid := stringid + 1;
 
 		EmitterPushChunk();
-		E_h16(current_subr.id);
+		E_b16(current_subr.id);
 
 		E("\tcseg\n");
-		EmitByte(COO_ESCAPE_THISCOO);
-		EmitByte('c');
+		E_b8(COO_ESCAPE_THISCOO);
+		E_b8('c');
 		E_u16(sid);
 		E(":\n\tdb ");
 
@@ -644,8 +644,8 @@
 		E("0\n");
 		EmitterPopChunk('S');
 
-		EmitByte(COO_ESCAPE_THISCOO);
-		EmitByte('c');
+		E_b8(COO_ESCAPE_THISCOO);
+		E_b8('c');
 		E_u16(sid);
 	end sub;
 
@@ -793,22 +793,23 @@ gen STARTSUB()
 	RegCacheReset();
 
 	EmitterPushChunk();
-	E_h16(current_subr.id);
+	E_b16(current_subr.id);
 
 	E("\n\n\t; ");
 	E(current_subr.name);
 	E(" workspace at ");
-	EmitByte(COO_ESCAPE_WSREF);
-	E_h16(current_subr.id);
-	E("000000");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_b16(0);
 	E(" length ");
-	EmitByte(COO_ESCAPE_WSSIZE);
-	E_h16(current_subr.id);
-	E("00");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(0);
 	E_nl();
 
 	E("\tcseg\n");
-	EmitByte(COO_ESCAPE_THISSUB);
+	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
 	var count := current_subr.num_input_parameters;
@@ -1980,7 +1981,7 @@ gen bc|de|hl := STRING():s
 gen STARTINIT():s
 {
 	EmitterPushChunk();
-	E_h16(current_subr.id);
+	E_b16(current_subr.id);
 	E("\tcseg\n"); # yes, really
 	E($s.sym.vardata.externname);
 	E(":\n");

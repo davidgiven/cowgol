@@ -1,51 +1,12 @@
 var current_coo_id: uint8 := 1;
-var pushed_char: uint8 := 0;
 
-sub getchar(fcb: [FCB]): (c: uint8)
-	if pushed_char == 0 then
-		c := FCBGetChar(fcb);
-	else
-		c := pushed_char;
-		pushed_char := 0;
-	end if;
+sub read_bin1(fcb: [FCB]): (c: uint8)
+	c := FCBGetChar(fcb);
 end sub;
 
-sub pushchar(c: uint8)
-	pushed_char := c;
-end sub;
-
-sub read_hex(fcb: [FCB], len: uint8): (val: uint32)
-	val := 0;
-	loop
-		var c := getchar(fcb);
-		if (c >= '0') and (c <= '9') then
-			c := c - '0';
-		else
-			c := c & ~0x20;
-			if (c >= 'A') and (c <= 'F') then
-				c := c - ('A' - 10);
-			else
-				StartError();
-				print("invalid hex number in coofile at offset 0x");
-				print_hex_i32(FCBPos(fcb) - 1);
-				EndError();
-			end if;
-		end if;
-		val := (val << 4) + (c as uint32);
-
-		len := len - 1;
-		if len == 0 then
-			break;
-		end if;
-	end loop;
-end sub;
-
-sub read_hex2(fcb: [FCB]): (val: uint8)
-	val := read_hex(fcb, 2) as uint8;
-end sub;
-
-sub read_hex4(fcb: [FCB]): (val: uint16)
-	val := read_hex(fcb, 4) as uint16;
+sub read_bin2(fcb: [FCB]): (val: uint16)
+	val := read_bin1(fcb) as uint16;
+	val := val | ((read_bin1(fcb) as uint16) << 8);
 end sub;
 
 sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
@@ -55,7 +16,7 @@ sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
 		if len == 0 then
 			break;
 		end if;
-		[p] := getchar(fcb);
+		[p] := read_bin1(fcb);
 		p := p + 1;
 		len := len - 1;
 	end loop;
@@ -138,34 +99,35 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 	end if;
 
 	var id: uint16;
+	var pos: uint32 := 0;
 	loop
-		var c := getchar(&coo.fcb);
-		var len := read_hex4(&coo.fcb);
-		var here := FCBPos(&coo.fcb);
+		FCBSeek(&coo.fcb, pos);
+		var c := read_bin1(&coo.fcb);
+		var len := read_bin2(&coo.fcb);
 		var subroutine: [Subroutine];
 		if c == 'E' then
 			break;
 		elseif c == 'S' then
-			id := read_hex4(&coo.fcb);
+			id := read_bin2(&coo.fcb);
 			subroutine := FindOrCreateSub(coo, id);
 			subroutine.state := subroutine.state | SUB_IMPLEMENTATION;
 		elseif c == 'R' then
-			var subrid := read_hex4(&coo.fcb);
-			var requiresid := read_hex4(&coo.fcb);
+			var subrid := read_bin2(&coo.fcb);
+			var requiresid := read_bin2(&coo.fcb);
 			AddRef(FindOrCreateSub(coo, subrid), FindOrCreateSub(coo, requiresid));
 		elseif c == 'W' then
-			id := read_hex4(&coo.fcb);
+			id := read_bin2(&coo.fcb);
 			subroutine := FindOrCreateSub(coo, id);
-			var wid := read_hex2(&coo.fcb);
-			subroutine.workspaceSize[wid] := read_hex4(&coo.fcb);
+			var wid := read_bin1(&coo.fcb);
+			subroutine.workspaceSize[wid] := read_bin2(&coo.fcb);
 		elseif c == 'N' then
-			id := read_hex4(&coo.fcb);
+			id := read_bin2(&coo.fcb);
 			subroutine := FindOrCreateSub(coo, id);
-			subroutine.name := read_string(&coo.fcb, (len as uint8) - 4);
+			subroutine.name := read_string(&coo.fcb, (len as uint8) - 2);
 		elseif c == 'X' then
-			id := read_hex4(&coo.fcb);
+			id := read_bin2(&coo.fcb);
 			subroutine := FindOrCreateSub(coo, id);
-			var name := read_string(&coo.fcb, (len as uint8) - 4);
+			var name := read_string(&coo.fcb, (len as uint8) - 2);
 			var external := FindOrCreateExternal(name);
 			if subroutine.external != (0 as [External]) then
 				SimpleError("multiple external declarations");
@@ -174,10 +136,14 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
 		else
 			print("error: unsupported record '");
 			print_char(c);
-			print("' in coofile\n");
+			print("' in ");
+			print(filename);
+			print(" at ");
+			print_hex_i32(pos);
+			print_nl();
 			ExitWithError();
 		end if;
-		FCBSeek(&coo.fcb, here + (len as uint32));
+		pos := pos + (len as uint32) + 3;
 	end loop;
 end sub;
 

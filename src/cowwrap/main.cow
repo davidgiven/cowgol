@@ -29,8 +29,8 @@ sub FatalError(s: string)
 end sub;
 
 include "include/coodecls.coh";
-include "emitter.coh";
-include "reader.coh";
+include "src/cowwrap/emitter.coh";
+include "src/cowwrap/reader.coh";
 
 ArgvInit();
 inputfile := ArgvNext();

@@ -17,7 +17,7 @@ end record;
 
 var current_chunk: [EmitterChunk];
 
-sub EmitByte(byte: uint8)
+sub E_b8(byte: uint8)
 	if current_chunk != (0 as [EmitterChunk]) then
 		var r := current_chunk.current_record;
 		if r.ptr == RECORD_SIZE then
@@ -32,28 +32,38 @@ sub EmitByte(byte: uint8)
 	end if;
 end sub;
 
+sub E_b16(word: uint16)
+	E_b8(word as uint8);
+	E_b8((word>>8) as uint8);
+end sub;
+
+sub E_b32(quad: uint32)
+	E_b16(quad as uint16);
+	E_b16((quad>>16) as uint16);
+end sub;
+
 sub E_space()
-	EmitByte(' ');
+	E_b8(' ');
 end sub;
 
 sub E_comma()
-	EmitByte(',');
+	E_b8(',');
 end sub;
 
 sub E_tab()
-	EmitByte('\t');
+	E_b8('\t');
 end sub;
 
 sub E_nl();
-	EmitByte('\n');
+	E_b8('\n');
 end sub;
 
 sub E_openp();
-	EmitByte('(');
+	E_b8('(');
 end sub;
 
 sub E_closep();
-	EmitByte(')');
+	E_b8(')');
 end sub;
 
 sub E(text: string)
@@ -63,7 +73,7 @@ sub E(text: string)
 		if c == 0 then
 			break;
 		end if;
-		EmitByte(c);
+		E_b8(c);
 	end loop;
 end sub;
 
@@ -77,7 +87,7 @@ sub E_u32(value: uint32)
 		if c == 0 then
 			break;
 		end if;
-		EmitByte(c);
+		E_b8(c);
 		p := @next p;
 	end loop;
 end sub;
@@ -92,30 +102,30 @@ end sub;
 
 sub E_i8(value: int8)
 	if value < 0 then
-		EmitByte('-');
+		E_b8('-');
 		value := -value;
 	else
-		EmitByte('+');
+		E_b8('+');
 	end if;
 	E_u8(value as uint8);
 end sub;
 
 sub E_i16(value: int16)
 	if value < 0 then
-		EmitByte('-');
+		E_b8('-');
 		value := -value;
 	else
-		EmitByte('+');
+		E_b8('+');
 	end if;
 	E_u16(value as uint16);
 end sub;
 
 sub E_i32(value: int32)
 	if value < 0 then
-		EmitByte('-');
+		E_b8('-');
 		value := -value;
 	else
-		EmitByte('+');
+		E_b8('+');
 	end if;
 	E_u32(value as uint32);
 end sub;
@@ -125,7 +135,7 @@ sub E_h(value: uint32, width: uint8)
 	var pe := UIToA(value as uint32, 16, &buffer[0]);
 	var padding := width - (pe - &buffer[0]) as uint8;
 	while padding != 0 loop
-		EmitByte('0');
+		E_b8('0');
 		padding := padding - 1;
 	end loop;
 	E(&buffer[0]);
@@ -144,24 +154,24 @@ sub E_h32(value: uint32)
 end sub;
 
 sub E_labelref(labelid: uint16)
-	EmitByte(COO_ESCAPE_THISCOO);
+	E_b8(COO_ESCAPE_THISCOO);
 	E_h16(labelid);
 end sub;
 
 sub E_subref(subr: [Subroutine])
 	if subr == current_subr then
-		EmitByte(COO_ESCAPE_THISSUB);
+		E_b8(COO_ESCAPE_THISSUB);
 	else
-		EmitByte(COO_ESCAPE_SUBREF);
-		E_h16(subr.id);
+		E_b8(COO_ESCAPE_SUBREF);
+		E_b16(subr.id);
 	end if;
 end sub;
 
 sub E_wsref(id: uint16, wsid: uint8, off: uint16)
-	EmitByte(COO_ESCAPE_WSREF);
-	E_h16(id);
-	E_h8(wsid);
-	E_h16(off);
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(id);
+	E_b8(wsid);
+	E_b16(off);
 end sub;
 
 sub EmitterPushChunk()
@@ -175,10 +185,9 @@ end sub;
 sub EmitterPopChunk(type: uint8)
 	FCBPutChar(&outfcb, type);
 
-	var buffer: uint8[5];
-	var pe := UIToA(current_chunk.length as uint32, 16, &buffer[0]);
-	FCBPutString(&outfcb, "0000" + (pe - &buffer[0]));
-	FCBPutString(&outfcb, &buffer[0]);
+	var len := current_chunk.length;
+	FCBPutChar(&outfcb, len as uint8);
+	FCBPutChar(&outfcb, (len>>8) as uint8);
 
 	var r := current_chunk.first_record;
 	while r != (0 as [EmitterRecord]) loop
@@ -205,7 +214,9 @@ sub EmitterOpenfile(filename: string)
 end sub;
 
 sub EmitterClosefile()
-	FCBPutString(&outfcb, "E0000");
+	FCBPutChar(&outfcb, 'E');
+	FCBPutChar(&outfcb, 0);
+	FCBPutChar(&outfcb, 0);
 	if FCBClose(&outfcb) != 0 then
 		SimpleError("cannot close output file");
 	end if;
@@ -213,30 +224,30 @@ end sub;
 
 sub EmitterDeclareSubroutine(subr: [Subroutine])
 	EmitterPushChunk();
-	E_h16(subr.id);
+	E_b16(subr.id);
 	E(subr.name);
 	EmitterPopChunk('N');
 end sub;
 
 sub EmitterDeclareExternalSubroutine(id: uint16, external: string)
 	EmitterPushChunk();
-	E_h16(id);
+	E_b16(id);
 	E(external);
 	EmitterPopChunk('X');
 end sub;
 
 sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
 	EmitterPushChunk();
-	E_h16(user.id);
-	E_h16(used.id);
+	E_b16(user.id);
+	E_b16(used.id);
 	EmitterPopChunk('R');
 end sub;
 
 sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size)
 	EmitterPushChunk();
-	E_h16(subr.id);
-	E_h8(wid);
-	E_h16(workspace as uint16);
+	E_b16(subr.id);
+	E_b8(wid);
+	E_b16(workspace as uint16);
 	EmitterPopChunk('W');
 end sub;
 

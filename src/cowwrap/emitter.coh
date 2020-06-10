@@ -17,7 +17,7 @@ end record;
 
 var current_chunk: [EmitterChunk];
 
-sub EmitByte(byte: uint8)
+sub E_b8(byte: uint8)
 	if current_chunk != (0 as [EmitterChunk]) then
 		var r := current_chunk.current_record;
 		if r.ptr == RECORD_SIZE then
@@ -39,50 +39,18 @@ sub E(text: string)
 		if c == 0 then
 			break;
 		end if;
-		EmitByte(c);
+		E_b8(c);
 	end loop;
 end sub;
 
-sub E_u32(value: uint32)
-	var buffer: uint8[12];
-	var p := &buffer[0];
-	var pe := UIToA(value, 10, p);
-
-	loop
-		var c := [p];
-		if c == 0 then
-			break;
-		end if;
-		EmitByte(c);
-		p := @next p;
-	end loop;
+sub E_b16(word: uint16)
+	E_b8(word as uint8);
+	E_b8((word>>8) as uint8);
 end sub;
 
-sub E_u16(value: uint16)
-	E_u32(value as uint32);
-end sub;
-
-sub E_u8(value: uint8)
-	E_u32(value as uint32);
-end sub;
-
-sub E_h(value: uint32, width: uint8)
-	var buffer: uint8[5];
-	var pe := UIToA(value as uint32, 16, &buffer[0]);
-	var padding := width - (pe - &buffer[0]) as uint8;
-	while padding != 0 loop
-		EmitByte('0');
-		padding := padding - 1;
-	end loop;
-	E(&buffer[0]);
-end sub;
-
-sub E_h8(value: uint8)
-	E_h(value as uint32, 2);
-end sub;
-
-sub E_h16(value: uint16)
-	E_h(value as uint32, 4);
+sub E_b32(quad: uint32)
+	E_b16(quad as uint16);
+	E_b16((quad>>16) as uint16);
 end sub;
 
 sub EmitterPushChunk()
@@ -96,10 +64,9 @@ end sub;
 sub EmitterPopChunk(type: uint8)
 	FCBPutChar(&outfcb, type);
 
-	var buffer: uint8[5];
-	var pe := UIToA(current_chunk.length as uint32, 16, &buffer[0]);
-	FCBPutString(&outfcb, "0000" + (pe - &buffer[0]));
-	FCBPutString(&outfcb, &buffer[0]);
+	var len := current_chunk.length;
+	FCBPutChar(&outfcb, len as uint8);
+	FCBPutChar(&outfcb, (len>>8) as uint8);
 
 	var r := current_chunk.first_record;
 	while r != (0 as [EmitterRecord]) loop
@@ -126,7 +93,9 @@ sub EmitterOpenfile(filename: string)
 end sub;
 
 sub EmitterClosefile()
-	FCBPutString(&outfcb, "E0000");
+	FCBPutChar(&outfcb, 'E');
+	FCBPutChar(&outfcb, 0);
+	FCBPutChar(&outfcb, 0);
 	if FCBClose(&outfcb) != 0 then
 		FatalError("cannot close output file");
 	end if;
@@ -134,14 +103,14 @@ end sub;
 
 sub EmitterDeclareSubroutine(id: SubId, name: string)
 	EmitterPushChunk();
-	E_h16(id);
+	E_b16(id);
 	E(name);
 	EmitterPopChunk('N');
 end sub;
 
 sub EmitterDeclareExternal(id: SubId, name: string)
 	EmitterPushChunk();
-	E_h16(id);
+	E_b16(id);
 	E(name);
 	EmitterPopChunk('X');
 end sub;
@@ -149,17 +118,17 @@ end sub;
 sub EmitterReferenceSubroutine(user: SubId, used: SubId)
 	if user != used then
 		EmitterPushChunk();
-		E_h16(user);
-		E_h16(used);
+		E_b16(user);
+		E_b16(used);
 		EmitterPopChunk('R');
 	end if;
 end sub;
 
 sub EmitterDeclareWorkspace(id: SubId, wid: uint8, workspace: Size)
 	EmitterPushChunk();
-	E_h16(id);
-	E_h8(wid);
-	E_h16(workspace as uint16);
+	E_b16(id);
+	E_b8(wid);
+	E_b16(workspace as uint16);
 	EmitterPopChunk('W');
 end sub;
 

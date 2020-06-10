@@ -233,7 +233,7 @@
     sub E_consthi() E("#>"); end sub; 
 
     sub E_const(value: uint8)
-        EmitByte('#');
+        E_b8('#');
         E_u8(value);
     end sub;
 
@@ -342,7 +342,7 @@
     sub E_inc() E_oc(OC_INC); end sub;
     sub E_dec() E_oc(OC_DEC); end sub;
     
-    sub E_a() EmitByte('a'); end sub;
+    sub E_a() E_b8('a'); end sub;
 
     sub E_ina() R_flush(REG_X); E_inc(); E_a(); end sub;
     sub E_dea() R_flush(REG_X); E_dec(); E_a(); end sub;
@@ -497,14 +497,14 @@
         var e := GetHelper(name);
 
         EmitterPushChunk();
-        E_h16(current_subr.id);
-        E_h16(e.id);
+        E_b16(current_subr.id);
+        E_b16(e.id);
         EmitterPopChunk('R');
 
         R_flushall();
         E_oc(OC_JSR);
-        EmitByte(COO_ESCAPE_SUBREF);
-        E_h16(e.id);
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(e.id);
         E_nl();
     end sub;
 
@@ -544,7 +544,7 @@
         lid := AllocLabel();
 
         EmitterPushChunk();
-        E_h16(current_subr.id);
+        E_b16(current_subr.id);
 
         E_label(lid);
         E_db();
@@ -991,13 +991,13 @@ gen STARTSUB()
     RegCacheReset();
 
     EmitterPushChunk();
-    E_h16(current_subr.id);
+    E_b16(current_subr.id);
 
     E("\n\n\t; ");
     E(current_subr.name);
     E_nl();
 
-    EmitByte(COO_ESCAPE_THISSUB);
+    E_b8(COO_ESCAPE_THISSUB);
     E(":\n");
 
     var count := current_subr.num_input_parameters;
@@ -2107,7 +2107,7 @@ gen xa := STRING():s
 gen STARTINIT():s
 {
     EmitterPushChunk();
-    E_h16(current_subr.id);
+    E_b16(current_subr.id);
     E($s.sym.vardata.externname);
     E(":\n");
 }
