@@ -3,7 +3,7 @@ const STACK_SIZE := 128;
 var workspaceSize: Size[NUM_WORKSPACES];
 
 sub E_nl()
-	EmitByte('\n');
+	E_b8('\n');
 end sub;
 
 sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
@@ -11,9 +11,9 @@ sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
 end sub;
 
 sub ArchEmitSubRef(subr: [Subroutine])
-	EmitByte('f');
+	E_b8('f');
 	E_u16(subr.id);
-	EmitByte('_');
+	E_b8('_');
 	E(subr.name);
 end sub;
 
@@ -57,6 +57,6 @@ sub ArchEmitFooter(coo: [Coo])
 	E_nl();
 
 	E("\tend\n");
-	EmitByte(26);
+	E_b8(26);
 end sub;
 

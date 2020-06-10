@@ -140,7 +140,7 @@ sub ProcessFile()
 		end if;
 
 		EmitterPushChunk();
-		E_h16(current_subr.id);
+		E_b16(current_subr.id);
 	end sub;
 
 	sub SetSubroutineWorkspace()
@@ -166,10 +166,10 @@ sub ProcessFile()
 		var wid := ReadNumber() as uint8;
 		ExpectC('.');
 		var woff := ReadNumber() as Size;
-		EmitByte(COO_ESCAPE_WSREF);
-		E_h16(symbol.id);
-		E_h8(wid);
-		E_h16(woff);
+		E_b8(COO_ESCAPE_WSREF);
+		E_b16(symbol.id);
+		E_b8(wid);
+		E_b16(woff);
 	end sub;
 
 	sub SourceLine()
@@ -185,11 +185,11 @@ sub ProcessFile()
 					GetC();
 					case c is
 						when '`':
-							EmitByte(COO_ESCAPE_THISSUB);
+							E_b8(COO_ESCAPE_THISSUB);
 							GetC();
 
 						when '^':
-							EmitByte(COO_ESCAPE_THISCOO);
+							E_b8(COO_ESCAPE_THISCOO);
 							GetC();
 
 						when '$':
@@ -198,17 +198,17 @@ sub ProcessFile()
 						when else:
 							ReadWord();
 							var subr := GetSymbol(&buffer[0]);
-							EmitByte(COO_ESCAPE_SUBREF);
-							E_h16(subr.id);
+							E_b8(COO_ESCAPE_SUBREF);
+							E_b16(subr.id);
 							EmitterReferenceSubroutine(current_subr.id, subr.id);
 					end case;
 				else
-					EmitByte(c);
+					E_b8(c);
 					GetC();
 				end if;
 			end if;
 		end loop;
-		EmitByte(10);
+		E_b8(10);
 	end sub;
 
 	GetC();

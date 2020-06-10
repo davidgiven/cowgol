@@ -9,13 +9,13 @@ sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
 end sub;
 
 sub E_nl()
-	EmitByte('\n');
+	E_b8('\n');
 end sub;
 
 sub ArchEmitSubRef(subr: [Subroutine])
-	EmitByte('f');
+	E_b8('f');
 	E_u16(subr.id);
-	EmitByte('_');
+	E_b8('_');
 	E(subr.name);
 end sub;
 
@@ -38,7 +38,7 @@ sub ArchEmitFooter(coo: [Coo])
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
-			EmitByte('\t');
+			E_b8('\t');
 			ArchEmitSubRef(main);
 			E("();\n");
 		end if;
@@ -52,7 +52,7 @@ sub ArchEmitFooter(coo: [Coo])
 
 	var padding := FCBExt(&outfcb) - FCBPos(&outfcb);
 	while padding != 0 loop
-		EmitByte(' ');
+		E_b8(' ');
 		padding := padding - 1;
 	end loop;
 end sub;

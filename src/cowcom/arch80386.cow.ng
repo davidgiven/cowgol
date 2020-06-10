@@ -67,10 +67,10 @@
 			E(sym.vardata.externname);
 			E_i16(off as int16);
 		else
-			EmitByte(COO_ESCAPE_WSREF);
-			E_h16(sym.vardata.subr.id);
-			E_h8(0);
-			E_h16(sym.vardata.offset + off);
+			E_b8(COO_ESCAPE_WSREF);
+			E_b16(sym.vardata.subr.id);
+			E_b8(0);
+			E_b16(sym.vardata.offset + off);
 		end if;
 	end sub;
 
@@ -142,7 +142,7 @@
 			"al", "ah", "bl", "bh", "cl", "ch", "dl", "dh"
 		};
 
-		EmitByte('%');
+		E_b8('%');
 		var p := &names[0];
 		while reg != 0 loop
 			if (reg & 1) != 0 then
@@ -284,10 +284,10 @@
 		R_flush(reg);
 		E_mov(reg);
 		if off != 0 then
-			EmitByte('0');
+			E_b8('0');
 			E_i32(off);
 		end if;
-		EmitByte('(');
+		E_b8('(');
 		E_reg(ptr);
 		if index != 0 then
 			E_comma();
@@ -303,10 +303,10 @@
 		E_reg(reg);
 		E_comma();
 		if off != 0 then
-			EmitByte('0');
+			E_b8('0');
 			E_i32(off);
 		end if;
-		EmitByte('(');
+		E_b8('(');
 		E_reg(ptr);
 		if index != 0 then
 			E_comma();
@@ -360,11 +360,11 @@
 		E_tab();
 		E(insn);
 		if (reg & REGCLASS_RH8) != 0 then
-			EmitByte('b');
+			E_b8('b');
 		elseif (reg & REGCLASS_R16) != 0 then
-			EmitByte('w');
+			E_b8('w');
 		else
-			EmitByte('l');
+			E_b8('l');
 		end if;
 		E_space();
 	end sub;
@@ -415,7 +415,7 @@
 	sub E_shifti(insn: string, value: Arith, reg: RegId)
 		R_flush(reg);
 		E_insn(insn, reg);
-		EmitByte('$');
+		E_b8('$');
 		E_i32(value);
 		E_comma();
 		E_reg(reg);
@@ -476,7 +476,7 @@
 
 	sub E_alu2i_noflush(insn: string, value: Arith, dest: RegId)
 		E_insn(insn, dest);
-		EmitByte('$');
+		E_b8('$');
 		E_i32(value);
 		E_comma();
 		E_reg(dest);
@@ -565,9 +565,9 @@
 		E_tab();
 		E("mov");
 		if sext != 0 then
-			EmitByte('s');
+			E_b8('s');
 		else
-			EmitByte('z');
+			E_b8('z');
 		end if;
 		E("x ");
 		E_reg(src);
@@ -582,11 +582,11 @@
 		stringid := stringid + 1;
 
 		EmitterPushChunk();
-		E_h16(current_subr.id);
+		E_b16(current_subr.id);
 
 		E("\t.text 1\n");
-		EmitByte(COO_ESCAPE_THISCOO);
-		EmitByte('c');
+		E_b8(COO_ESCAPE_THISCOO);
+		E_b8('c');
 		E_u16(sid);
 		E(":\n\t.byte ");
 
@@ -603,8 +603,8 @@
 		E("0\n");
 		EmitterPopChunk('S');
 
-		EmitByte(COO_ESCAPE_THISCOO);
-		EmitByte('c');
+		E_b8(COO_ESCAPE_THISCOO);
+		E_b8('c');
 		E_u16(sid);
 	end sub;
 
@@ -679,22 +679,23 @@ gen STARTSUB()
 	RegCacheReset();
 
 	EmitterPushChunk();
-	E_h16(current_subr.id);
+	E_b16(current_subr.id);
 
 	E("\n\n\t# ");
 	E(current_subr.name);
 	E(" workspace at ");
-	EmitByte(COO_ESCAPE_WSREF);
-	E_h16(current_subr.id);
-	E("000000");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_b16(0);
 	E(" length ");
-	EmitByte(COO_ESCAPE_WSSIZE);
-	E_h16(current_subr.id);
-	E("00");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(0);
 	E_nl();
 
 	E("\t.text\n");
-	EmitByte(COO_ESCAPE_THISSUB);
+	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
 	var count := current_subr.num_input_parameters;
@@ -1100,7 +1101,7 @@ gen r32 := STRING():s
 gen STARTINIT():s
 {
 	EmitterPushChunk();
-	E_h16(current_subr.id);
+	E_b16(current_subr.id);
 	E("\t.data 4\n"); # yes, really
 	E($s.sym.vardata.externname);
 	E(":\n");
@@ -1165,9 +1166,9 @@ gen ASMSYMBOL():s
 
 gen ASMVALUE():c
 {
-	EmitByte('(');
+	E_b8('(');
 	E_i32($c.value);
-	EmitByte(')');
+	E_b8(')');
 }
 
 gen ASMEND()

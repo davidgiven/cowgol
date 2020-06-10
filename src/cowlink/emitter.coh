@@ -1,6 +1,6 @@
 var outfcb: FCB;
 
-sub EmitByte(c: uint8)
+sub E_b8(c: uint8)
 	FCBPutChar(&outfcb, c);
 end sub;
 
@@ -11,7 +11,7 @@ sub E(text: string)
 		if c == 0 then
 			break;
 		end if;
-		EmitByte(c);
+		E_b8(c);
 	end loop;
 end sub;
 
@@ -25,7 +25,7 @@ sub E_u32(value: uint32)
 		if c == 0 then
 			break;
 		end if;
-		EmitByte(c);
+		E_b8(c);
 		p := @next p;
 	end loop;
 end sub;
@@ -40,10 +40,10 @@ end sub;
 
 sub E_i16(value: int16)
 	if value < 0 then
-		EmitByte('-');
+		E_b8('-');
 		value := -value;
 	else
-		EmitByte('+');
+		E_b8('+');
 	end if;
 	E_u16(value as uint16);
 end sub;
@@ -53,7 +53,7 @@ sub E_h(value: uint32, width: uint8)
 	var pe := UIToA(value as uint32, 16, &buffer[0]);
 	var padding := width - (pe - &buffer[0]) as uint8;
 	while padding != 0 loop
-		EmitByte('0');
+		E_b8('0');
 		padding := padding - 1;
 	end loop;
 	E(&buffer[0]);
