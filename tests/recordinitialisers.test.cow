@@ -2,7 +2,7 @@ include "cowgol.coh";
 include "tests/_framework.coh";
 
 sub test_just_ints()
-	record JustInts
+	record JustInts is
 		c: int32;
 		b: int16;
 		a: int8;
@@ -25,7 +25,7 @@ end sub;
 test_just_ints();
 
 sub test_with_strings()
-	record WithStrings
+	record WithStrings is
 		a: int8;
 		s: [uint8];
 		b: int8;
@@ -45,7 +45,7 @@ end sub;
 test_with_strings();
 
 sub test_with_array()
-	record WithArray
+	record WithArray is
 		a: int8;
 		b: uint16[2];
 		c: int8;
@@ -61,12 +61,12 @@ end sub;
 test_with_array();
 
 sub test_nested()
-	record Inner
+	record Inner is
 		a: int16;
 		b: int16;
 	end record;
 
-	record Outer
+	record Outer is
 		a: int8;
 		inner: Inner;
 		b: int8;
@@ -89,7 +89,7 @@ end sub;
 test_nested();
 
 sub test_arrays_of_records()
-	record Element
+	record Element is
 		a: int16;
 		b: int8;
 	end record;

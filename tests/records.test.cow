@@ -2,7 +2,7 @@ include "cowgol.coh";
 include "tests/_framework.coh";
 
 sub test_simple_record()
-	record TestRecord
+	record TestRecord is
 		a: uint8;
 		b: uint16;
 		c: uint8;
@@ -22,7 +22,7 @@ sub test_simple_record()
 end sub;
 
 sub test_nested_record()
-	record InnerRecord
+	record InnerRecord is
 		a: uint8;
 		b: uint16;
 	end record;
@@ -46,7 +46,7 @@ sub test_nested_record()
 end sub;
 
 sub test_pointer()
-	record TestRecord
+	record TestRecord is
 		a: uint8;
 		b: uint16;
 		c: uint8;
@@ -67,7 +67,7 @@ sub test_pointer()
 end sub;
 
 sub test_with_array()
-	record TestRecord
+	record TestRecord is
 		a: uint8;
 		b: uint8[10];
 		c: uint8;
@@ -88,7 +88,7 @@ sub test_with_array()
 end sub;
 
 sub test_chain_pointer()
-	record Pointer
+	record Pointer is
 		next: [Pointer];
 	end record;
 
@@ -102,15 +102,15 @@ sub test_chain_pointer()
 end sub;
 
 sub test_inherited_records()
-	record Base
+	record Base is
 		a: uint8;
 	end record;
 
-	record Left : Base
+	record Left : Base is
 		b: uint8;
 	end record;
 
-	record Right : Base
+	record Right : Base is
 		c: uint32;
 	end record;
 
@@ -129,7 +129,7 @@ sub test_inherited_records()
 end sub;
 
 sub test_int32_access()
-	record Record
+	record Record is
 		padding: uint8[10];
 		a: uint32;
 	end record;

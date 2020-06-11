@@ -157,7 +157,7 @@ end loop;
 Cowgol supports structured records.
 
 ```
-record ComplexNumber
+record ComplexNumber is
   i: int32;
   r: int32;
 end record;
@@ -170,7 +170,7 @@ c.r := 9;
 Records may inherit from other records.
 
 ```
-record EvenMoreComplexNumber: ComplexNumber
+record EvenMoreComplexNumber: ComplexNumber is
   q: int32;
 end record;
 
@@ -189,12 +189,12 @@ You may use `@at()` to specify the actual offset of a member. This is useful
 for interoperation with hardware, and also to create unions.
 
 ```
-record HardwareRegister
+record HardwareRegister is
   datareg @at(0): uint8;
   statusreg @at(1): uint8;
 end record;
 
-record UnionRecord
+record UnionRecord is
   option1 @at(0): OptionOne;
   option2 @at(0): OptionTwo;
   option3 @at(0): OptionThree;
@@ -211,7 +211,7 @@ would expect and allow arrays inside records, arrays of records, and strings:
 var array1: uint8[3] := {1, 2, 3};    # the number of elements must match the size
 var array2: uint8[] := {4, 3, 2, 1};  # or the compiler can figure it out
 
-record Record
+record Record is
 	a: uint8;
 	b: uint8;
 	c: uint8;
@@ -243,7 +243,7 @@ var hugearray: uint32[1024] = {};     # your executable just went up in size by 
 Cowgol has pointers.
 
 ```
-record Structure
+record Structure is
 	i: uint8;
 end record;
 
@@ -277,7 +277,7 @@ You may have pointers to pointers, but remember that you can't take the address
 of a scalar variable, so they're of limited use.
 
 ```
-record Structure
+record Structure is
 	i: uint8;
 	p: [uint8];
 	pp: [[uint8]];

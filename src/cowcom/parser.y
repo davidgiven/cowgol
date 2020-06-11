@@ -1072,7 +1072,7 @@ param(R) ::= newid(S) COLON typeref(T).
 	end sub;
 }
 
-statement ::= RECORD recordstart recordinherits recordmembers END RECORD.
+statement ::= RECORD recordstart recordinherits transitory_is recordmembers END RECORD.
 {
 	current_type.typedata.stride := ArchAlignUp(
 		current_type.typedata.width, current_type.typedata.alignment);

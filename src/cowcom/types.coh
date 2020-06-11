@@ -2,35 +2,35 @@ typedef LabelRef is uint16;
 typedef Arith is int32;
 typedef Size is uint16;
 
-record Token
+record Token is
 	number @at(0): int32;
 	string @at(0): string;
 end record;
 
-record Namespace
+record Namespace is
 	first: [Symbol];
 	last: [Symbol];
 	parent: [Namespace];
 end record;
 
-record HasElementSymbol
+record HasElementSymbol is
 	element: [Symbol];
 end record;
 
-record ArrayTypeSymbol: HasElementSymbol
+record ArrayTypeSymbol: HasElementSymbol is
 	size: Size;
 	indextype: [Symbol];
 end record;
 
-record PointerTypeSymbol: HasElementSymbol
+record PointerTypeSymbol: HasElementSymbol is
 end record;
 
-record RecordTypeSymbol
+record RecordTypeSymbol is
 	namespace: Namespace;
 	members: uint8;
 end record;
 
-record NumberTypeSymbol
+record NumberTypeSymbol is
 	is_signed: uint8;
 end record;
 
@@ -40,7 +40,7 @@ const TYPE_POINTER := 3;
 const TYPE_ARRAY := 4;
 const TYPE_RECORD := 5;
 
-record TypeSymbol
+record TypeSymbol is
 	numbertype @at(0): NumberTypeSymbol;
 	arraytype @at(0): ArrayTypeSymbol;
 	pointertype @at(0): PointerTypeSymbol;
@@ -53,7 +53,7 @@ record TypeSymbol
 	stride: Size;
 end record;
 
-record VarSymbol
+record VarSymbol is
 	type: [Symbol];
 	subr: [Subroutine]; # null for a member
 	next_parameter: [Symbol]; # for lists of parameters
@@ -61,7 +61,7 @@ record VarSymbol
 	offset: Size;
 end record;
 
-record Symbol
+record Symbol is
 	typedata @at(0): TypeSymbol;
 	vardata @at(0): VarSymbol;
 	constant @at(0): Arith;
@@ -75,7 +75,7 @@ end record;
 
 const SUB_HAS_IMPL := 1;
 
-record Subroutine
+record Subroutine is
 	name: string;
 	parent: [Subroutine];
 	namespace: Namespace;
@@ -92,21 +92,21 @@ record Subroutine
 	flags: uint8;
 end record;
 
-record LoopLabels
+record LoopLabels is
 	loop_label: LabelRef;
 	exit_label: LabelRef;
 	old_break_label: LabelRef;
 	old_continue_label: LabelRef;
 end record;
 	
-record IfLabels
+record IfLabels is
 	exit_label: LabelRef;
 	true_label: LabelRef;
 	false_label: LabelRef;
 	next: [IfLabels];
 end record;
 
-record CaseLabels
+record CaseLabels is
 	next_label: LabelRef;
 	break_label: LabelRef;
 	old_break_label: LabelRef;
@@ -115,7 +115,7 @@ record CaseLabels
 	seenelse: uint8;
 end record;
 
-record SubroutineCall
+record SubroutineCall is
 	subr: [Subroutine];
 	parent: [SubroutineCall];
 	input_parameter: [Symbol];
