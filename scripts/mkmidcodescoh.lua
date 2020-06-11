@@ -23,7 +23,7 @@ end
 
 for m, md in pairs(midcodes) do
     if (#md.args > 0) then
-        hfp:write("record Midcode", title(m), "\n")
+        hfp:write("record Midcode", title(m), " is\n")
         for _, a in ipairs(md.args) do
             hfp:write("\t", a.name, ": ", a.type, ";\n")
         end
@@ -33,7 +33,7 @@ end
 
 -- Midcode structure itself.
 
-hfp:write("record Node\n");
+hfp:write("record Node is\n");
 for m, md in pairs(midcodes) do
     if (#md.args > 0) then
         hfp:write("\t", m:lower(), " @at(0): Midcode", title(m), ";\n")
@@ -52,7 +52,7 @@ hfp:write("end record;\n");
 
 -- Routines for allocating midnodes.
 
-hfp:write("sub AllocateNewNode(code: uint8): (m: [Node])\n")
+hfp:write("sub AllocateNewNode(code: uint8): (m: [Node]) is\n")
 hfp:write("\tm := Alloc(@bytesof Node) as [Node];\n")
 hfp:write("\t#print(\"alloc \");\n");
 hfp:write("\t#print_hex_i32(m as intptr as uint32);\n");
@@ -97,7 +97,7 @@ local function write_midcode_constructor(m, t)
 			first = false
         end
     end
-    hfp:write("): (m: [Node])\n")
+    hfp:write("): (m: [Node]) is\n")
     hfp:write("\tm := AllocateNewNode(MIDCODE_", m)
 	if t.hassizes then
 		hfp:write(" + WidthToIndex(width)")

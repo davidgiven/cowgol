@@ -2,7 +2,7 @@
 # https://w3challs.com/syscalls/?arch=arm_thumb
 
 const FCB_BUFFER := 512;
-record FCB
+record FCB is
 	fd: uint32;
 	bufferptr: uint16; # byte just read
 	dirty: uint8;
@@ -10,7 +10,7 @@ record FCB
 	buffer: uint8[FCB_BUFFER];
 end record;
 
-sub fcb_i_blockin(fcb: [FCB])
+sub fcb_i_blockin(fcb: [FCB]) is
 	MemSet(&fcb.buffer[0], 0, FCB_BUFFER);
 
 	var fd := fcb.fd;
@@ -21,7 +21,7 @@ sub fcb_i_blockin(fcb: [FCB])
 	fcb.dirty := 0;
 end sub;
 
-sub fcb_i_blockout(fcb: [FCB])
+sub fcb_i_blockout(fcb: [FCB]) is
 	if fcb.dirty != 0 then
 		var fd := fcb.fd;
 		var dma := &fcb.buffer[0];
@@ -31,7 +31,7 @@ sub fcb_i_blockout(fcb: [FCB])
 	end if;
 end sub;
 
-sub fcb_i_changeblock(fcb: [FCB], newblock: uint32)
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint32) is
 	if newblock != fcb.block then
 		fcb_i_blockout(fcb);
 		fcb.block := newblock;
@@ -39,7 +39,7 @@ sub fcb_i_changeblock(fcb: [FCB], newblock: uint32)
 	end if;
 end sub;
 
-sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8)
+sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
 	MemSet(fcb as [uint8], 0, @bytesof FCB);
 	fcb.bufferptr := FCB_BUFFER - 1;
 	fcb.block := -1;
@@ -55,19 +55,19 @@ sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8)
 	end if;
 end sub;
 
-sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	(errno) := fcb_i_open(fcb, filename, 0o0000); # O_RDONLY
 end sub;
 
-sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	(errno) := fcb_i_open(fcb, filename, 0o0002); # O_RDWR
 end sub;
 
-sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	(errno) := fcb_i_open(fcb, filename, 0o1102); # O_RDWR|O_CREAT|O_TRUNC
 end sub;
 	
-sub FCBClose(fcb: [FCB]): (errno: uint8)
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	fcb_i_blockout(fcb);
 
 	var fd := fcb.fd;
@@ -76,7 +76,7 @@ sub FCBClose(fcb: [FCB]): (errno: uint8)
 	@asm errno, " = errno;";
 end sub;
 
-sub FCBSeek(fcb: [FCB], pos: uint32)
+sub FCBSeek(fcb: [FCB], pos: uint32) is
 	pos := pos - 1; # seek to *previous* character
 	var newblock := pos >> 9;
 	var newptr := (pos as uint16) & (FCB_BUFFER-1);
@@ -84,11 +84,11 @@ sub FCBSeek(fcb: [FCB], pos: uint32)
 	fcb.bufferptr := newptr;
 end sub;
 
-sub FCBPos(fcb: [FCB]): (pos: uint32)
+sub FCBPos(fcb: [FCB]): (pos: uint32) is
 	pos := ((fcb.block << 9) | (fcb.bufferptr as uint32)) + 1;
 end sub;
 
-sub FCBExt(fcb: [FCB]): (len: uint32)
+sub FCBExt(fcb: [FCB]): (len: uint32) is
 	fcb_i_blockout(fcb);
 
 	var fd := fcb.fd;
@@ -96,7 +96,7 @@ sub FCBExt(fcb: [FCB]): (len: uint32)
 	len := (len + FCB_BUFFER - 1) & ~(FCB_BUFFER - 1);
 end sub;
 
-sub fcb_i_nextchar(fcb: [FCB])
+sub fcb_i_nextchar(fcb: [FCB]) is
 	fcb.bufferptr := fcb.bufferptr + 1;
 	if fcb.bufferptr == FCB_BUFFER then
 		fcb_i_changeblock(fcb, fcb.block + 1);
@@ -104,12 +104,12 @@ sub fcb_i_nextchar(fcb: [FCB])
 	end if;
 end sub;
 
-sub FCBGetChar(fcb: [FCB]): (c: uint8)
+sub FCBGetChar(fcb: [FCB]): (c: uint8) is
 	fcb_i_nextchar(fcb);
 	c := fcb.buffer[fcb.bufferptr];
 end sub;
 
-sub FCBPutChar(fcb: [FCB], c: uint8)
+sub FCBPutChar(fcb: [FCB], c: uint8) is
 	fcb_i_nextchar(fcb);
 	fcb.buffer[fcb.bufferptr] := c;
 	fcb.dirty := 1;

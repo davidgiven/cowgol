@@ -164,7 +164,7 @@ orand1();
 
 sub andfuncs() is
 	print("andfuncs");
-	sub returns(x: uint8): (result: uint8)
+	sub returns(x: uint8): (result: uint8) is
 		result := x;
 	end sub;
 

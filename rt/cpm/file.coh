@@ -1,6 +1,6 @@
 # vim: ts=4 sw=4 et
 
-record CpmFCB
+record CpmFCB is
 	dr: uint8;
 	f: uint8[11];
 	ex: uint8;
@@ -13,15 +13,15 @@ record CpmFCB
 	r2: uint8;
 end record;
 
-record FCB
+record FCB is
 	bufferptr: uint8; # byte just read
 	dirty: uint8;
 	cpm: CpmFCB;
 	buffer: uint8[128];
 end record;
 
-sub file_i_init(fcb: [FCB], filename: [uint8])
-	sub fill(dest: [uint8], src: [uint8], len: uint8): (srcout: [uint8])
+sub file_i_init(fcb: [FCB], filename: [uint8]) is
+	sub fill(dest: [uint8], src: [uint8], len: uint8): (srcout: [uint8]) is
 		loop
 			var c := [src];
 			if (c < 32) or (c == '.') then
@@ -65,7 +65,7 @@ sub file_i_init(fcb: [FCB], filename: [uint8])
 	fcb.bufferptr := 127;
 end sub;
 
-sub fcb_i_gbpb(fcb: [FCB], c: uint8)
+sub fcb_i_gbpb(fcb: [FCB], c: uint8) is
 	var cpmfcb := &fcb.cpm;
 	var dma := &fcb.buffer[0];
 
@@ -81,20 +81,20 @@ sub fcb_i_gbpb(fcb: [FCB], c: uint8)
 	@asm "call 5";
 end sub;
 
-sub fcb_i_blockin(fcb: [FCB])
+sub fcb_i_blockin(fcb: [FCB]) is
 	MemSet(&fcb.buffer[0], 0, 128);
 	fcb_i_gbpb(fcb, 33); # READ RANDOM
 	fcb.dirty := 0;
 end sub;
 
-sub fcb_i_blockout(fcb: [FCB])
+sub fcb_i_blockout(fcb: [FCB]) is
 	if fcb.dirty != 0 then
 		fcb_i_gbpb(fcb, 34); # WRITE RANDOM
 		fcb.dirty := 0;
 	end if;
 end sub;
 
-sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint16) is
 	if newblock != fcb.cpm.r then
 		fcb_i_blockout(fcb);
 		fcb.cpm.r := newblock;
@@ -102,14 +102,14 @@ sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
 	end if;
 end sub;
 
-sub fcb_i_convert_a_to_error()
+sub fcb_i_convert_a_to_error() is
 	@asm "cpi 0xff";
 	@asm "mvi a, 0";
 	@asm "rnz";
 	@asm "inc a";
 end sub;
 
-sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	file_i_init(fcb, filename);
 
 	var cpmfcb := &fcb.cpm;
@@ -121,11 +121,11 @@ sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
 	@asm "sta", errno;
 end sub;
 
-sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	(errno) := FCBOpenIn(fcb, filename);
 end sub;
 
-sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	file_i_init(fcb, filename);
 
 	var cpmfcb := &fcb.cpm;
@@ -142,7 +142,7 @@ sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8)
 	@asm "sta", errno;
 end sub;
 	
-sub FCBClose(fcb: [FCB]): (errno: uint8)
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	fcb_i_blockout(fcb);
 
 	var cpmfcb := &fcb.cpm;
@@ -154,7 +154,7 @@ sub FCBClose(fcb: [FCB]): (errno: uint8)
 	@asm "sta", errno;
 end sub;
 
-sub FCBSeek(fcb: [FCB], pos: uint32)
+sub FCBSeek(fcb: [FCB], pos: uint32) is
 	pos := pos - 1; # seek to *previous* character
 	var newblock := (pos >> 7) as uint16;
 	var newptr := (pos as uint8) & 127;
@@ -162,11 +162,11 @@ sub FCBSeek(fcb: [FCB], pos: uint32)
 	fcb.bufferptr := newptr;
 end sub;
 
-sub FCBPos(fcb: [FCB]): (pos: uint32)
+sub FCBPos(fcb: [FCB]): (pos: uint32) is
 	pos := (((fcb.cpm.r as uint32) << 7) | (fcb.bufferptr as uint32)) + 1;
 end sub;
 
-sub FCBExt(fcb: [FCB]): (len: uint32)
+sub FCBExt(fcb: [FCB]): (len: uint32) is
 	fcb_i_blockout(fcb);
 	var oldblock := fcb.cpm.r;
 
@@ -180,7 +180,7 @@ sub FCBExt(fcb: [FCB]): (len: uint32)
 	fcb.cpm.r := oldblock;
 end sub;
 
-sub fcb_i_nextchar(fcb: [FCB])
+sub fcb_i_nextchar(fcb: [FCB]) is
 	fcb.bufferptr := fcb.bufferptr + 1;
 	if fcb.bufferptr == 128 then
 		fcb_i_changeblock(fcb, fcb.cpm.r + 1);
@@ -188,12 +188,12 @@ sub fcb_i_nextchar(fcb: [FCB])
 	end if;
 end sub;
 
-sub FCBGetChar(fcb: [FCB]): (c: uint8)
+sub FCBGetChar(fcb: [FCB]): (c: uint8) is
 	fcb_i_nextchar(fcb);
 	c := fcb.buffer[fcb.bufferptr];
 end sub;
 
-sub FCBPutChar(fcb: [FCB], c: uint8)
+sub FCBPutChar(fcb: [FCB], c: uint8) is
 	fcb_i_nextchar(fcb);
 	fcb.buffer[fcb.bufferptr] := c;
 	fcb.dirty := 1;

@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-record Unaligned
+record Unaligned is
 	word: uint32;
 	byte: uint8;
 end record;

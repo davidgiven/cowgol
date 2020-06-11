@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-sub test_simple_record()
+sub test_simple_record() is
 	record TestRecord is
 		a: uint8;
 		b: uint16;
@@ -21,13 +21,13 @@ sub test_simple_record()
 	print("r1.d==0"); if r1.d == 0 then yes(); else no(); end if;
 end sub;
 
-sub test_nested_record()
+sub test_nested_record() is
 	record InnerRecord is
 		a: uint8;
 		b: uint16;
 	end record;
 
-	record OuterRecord
+	record OuterRecord is
 		a: uint8;
 		b: InnerRecord;
 		c: uint8;
@@ -45,7 +45,7 @@ sub test_nested_record()
 	print("r2.c==0"); if r2.c == 0 then yes(); else no(); end if;
 end sub;
 
-sub test_pointer()
+sub test_pointer() is
 	record TestRecord is
 		a: uint8;
 		b: uint16;
@@ -66,7 +66,7 @@ sub test_pointer()
 	print("rp.d==0"); if rp.d == 0 then yes(); else no(); end if;
 end sub;
 
-sub test_with_array()
+sub test_with_array() is
 	record TestRecord is
 		a: uint8;
 		b: uint8[10];
@@ -87,7 +87,7 @@ sub test_with_array()
 	print("r4.c==0"); if r4.c == 0 then yes(); else no(); end if;
 end sub;
 
-sub test_chain_pointer()
+sub test_chain_pointer() is
 	record Pointer is
 		next: [Pointer];
 	end record;
@@ -101,7 +101,7 @@ sub test_chain_pointer()
 	print("p.next.next==&r"); if p.next.next == &r then yes(); else no(); end if;
 end sub;
 
-sub test_inherited_records()
+sub test_inherited_records() is
 	record Base is
 		a: uint8;
 	end record;
@@ -128,7 +128,7 @@ sub test_inherited_records()
 	print("right.c == 2"); if right.c == 2 then yes(); else no(); end if;
 end sub;
 
-sub test_int32_access()
+sub test_int32_access() is
 	record Record is
 		padding: uint8[10];
 		a: uint32;

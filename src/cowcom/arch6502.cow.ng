@@ -648,13 +648,13 @@ gen JUMP():j
     const MODE_SYMBOL := 4;
     const MODE_STACK := 5;
 
-    record StackOp
+    record StackOp is
         sid: uint16;
         wsid: uint8;
         width: uint8;
     end record;
 
-    record Operand
+    record Operand is
         stk @at(0): StackOp;
         off @at(0): Size;
         val @at(0): Arith;
