@@ -654,7 +654,7 @@ typeref(S) ::= INDEXOF varortypeid(S1).
 	S := S1.typedata.arraytype.indextype;
 }
 
-statement ::= TYPEDEF ID(X) transitory_is typeref(T) SEMICOLON.
+statement ::= TYPEDEF ID(X) IS typeref(T) SEMICOLON.
 {
 	# consumes X
 	var sym := AddAlias(0 as [Namespace], X.string, T);

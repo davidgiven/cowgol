@@ -4,8 +4,8 @@ include "strings.coh";
 include "malloc.coh";
 include "file.coh";
 
-typedef string := [uint8];
-typedef Size := uint16;
+typedef string is [uint8];
+typedef Size is uint16;
 
 include "include/coodecls.coh";
 include "src/cowlink/types.coh";

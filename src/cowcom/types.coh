@@ -1,6 +1,6 @@
-typedef LabelRef := uint16;
-typedef Arith := int32;
-typedef Size := uint16;
+typedef LabelRef is uint16;
+typedef Arith is int32;
+typedef Size is uint16;
 
 record Token
 	number @at(0): int32;

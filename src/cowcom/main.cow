@@ -4,7 +4,7 @@ include "strings.coh";
 include "malloc.coh";
 include "file.coh";
 
-typedef string := [uint8];
+typedef string is [uint8];
 
 var inputfile: string := (0 as string);
 var outputfile: string := (0 as string);

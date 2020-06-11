@@ -846,14 +846,14 @@ int main(int argc, const char* argv[])
 
 	#if defined COWGOL
 		if (machine_word)
-			fprintf(outhfp, "typedef Word := %s;\n", machine_word);
+			fprintf(outhfp, "typedef Word is %s;\n", machine_word);
 
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
 		fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
-		fprintf(outhfp, "typedef RegId := int(0, ALL_REGS);\n");
-		fprintf(outhfp, "typedef NodeBitmap := int(0, 0x%x);\n", (1<<maxdepth) - 1);
+		fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
+		fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
 		fprintf(outhfp, "record Register\n");
 		fprintf(outhfp, "	name: string;\n");
 		fprintf(outhfp, "	id: RegId;\n");

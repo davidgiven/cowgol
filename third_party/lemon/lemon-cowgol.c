@@ -3976,7 +3976,7 @@ void print_stack_union(
   name = lemp->name ? lemp->name : "Parse";
   lineno = *plineno;
   if( mhflag ){ fprintf(out,"#if INTERFACE\n"); lineno++; }
-  fprintf(out,"typedef %sTOKENTYPE := %s;\n",name,
+  fprintf(out,"typedef %sTOKENTYPE is %s;\n",name,
     lemp->tokentype?lemp->tokentype:"void*");  lineno++;
   if( mhflag ){ fprintf(out,"#endif\n"); lineno++; }
   fprintf(out,"record YYMINORTYPE\n"); lineno++;
@@ -4137,10 +4137,10 @@ void ReportTable(
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Generate the defines */
-  fprintf(out,"typedef YYCODETYPE := %s;\n",
+  fprintf(out,"typedef YYCODETYPE is %s;\n",
     minimum_size_type(0, lemp->nsymbol, &szCodeType)); lineno++;
   fprintf(out,"const YYNOCODE := %d;\n",lemp->nsymbol);  lineno++;
-  fprintf(out,"typedef YYACTIONTYPE := %s;\n",
+  fprintf(out,"typedef YYACTIONTYPE is %s;\n",
     minimum_size_type(0,lemp->maxAction,&szActionType)); lineno++;
   if( lemp->wildcard ){
     fprintf(out,"const YYWILDCARD := %d;\n",

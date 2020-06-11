@@ -294,8 +294,8 @@ v.pp := &v.p;
 You can define type aliases.
 
 ```
-typedef ObjId := int(0, 127);      # a custom integer type (actually uint8)
-typedef MyArray := ObjId[42];
+typedef ObjId is int(0, 127);      # a custom integer type (actually uint8)
+typedef MyArray is ObjId[42];
 ```
 
 These just define a new name for the type. Type aliases to the same type are

@@ -4,9 +4,9 @@ include "strings.coh";
 include "malloc.coh";
 include "file.coh";
 
-typedef string := [uint8];
-typedef Size := uint16;
-typedef SubId := uint16;
+typedef string is [uint8];
+typedef Size is uint16;
+typedef SubId is uint16;
 
 var inputfile: string := (0 as string);
 var outputfile: string := (0 as string);

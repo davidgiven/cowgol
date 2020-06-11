@@ -10,7 +10,7 @@
 	var intptr_type: [Symbol];
 
 	const VARSTACK_SIZE := 64;
-	typedef Slot := uint16;
+	typedef Slot is uint16;
 	var varstack: Slot[VARSTACK_SIZE];
 	var varsp: uint8;
 	var varid: Slot := 1;
