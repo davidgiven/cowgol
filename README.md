@@ -59,7 +59,11 @@ Here's a randomly chosen example pulled from the compiler source.
 ```
 # Free up the node tree rooted in the parameter. This is more exciting than it
 # should be because we don't have recursion.
-sub Discard(node: [Node])
+#
+# Editorial note: actually this subroutine no longer exists in the compiler
+# source code because I replaced it with something simpler and better. No
+# matter, the example still stands.
+sub Discard(node: [Node]) is
         var pending := node;
         while pending != (0 as [Node]) loop
                 node := pending;
@@ -166,17 +170,14 @@ is written in Cowgol, which is the Cowgol compiler. (And cowlink and cowwrap.)
 
 Apart from actual bugs, there are some unimplemented parts of the language.
 
-  - no forward declarations of subroutines yet; the compiler doesn't use them.
-    (I know how this will work, I just haven't done it.)
-
-  - no seperate compilation yet. cowlink supports it, but cowcom can't define
-    external subroutines. This is dependent on the forward declaration support
-	above.
+  - no seperate compilation yet. cowlink supports it, and cowcom can define
+	external subroutines, but it just can't import them yet --- it's one of the
+	next things to do on my list.
 
   - no subroutine pointers. This one's tricky; because subroutines can be
 	nested it's important to be sure that a subroutine can only be called if
-	the outer scopes still exist. Ada has a trick for this, but it would
-	require quite a lot of compiler work and it's too big as it is.
+	the outer scopes still exist. I have a potential solution which I'm working
+	on.
 
   - no `null`. This one's semantic, but right now you have to cast `0` to
 	pointer types to use `null`. (I _do_ know about languages which don't have
