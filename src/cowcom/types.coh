@@ -73,6 +73,8 @@ record Symbol
 	next: [Symbol];
 end record;
 
+const SUB_HAS_IMPL := 1;
+
 record Subroutine
 	name: string;
 	parent: [Subroutine];
@@ -81,12 +83,13 @@ record Subroutine
 	first_output_parameter: [Symbol];
 	id: uint16;
 	workspace: Size[4];
-	num_input_parameters: uint8;
-	num_output_parameters: uint8;
 	old_break_label: LabelRef;
 	old_continue_label: LabelRef;
 	old_call: [Subroutine];
 	arch: [ArchSubroutine];
+	num_input_parameters: uint8;
+	num_output_parameters: uint8;
+	flags: uint8;
 end record;
 
 record LoopLabels

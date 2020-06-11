@@ -304,6 +304,58 @@ gen v8 := POPARG8();
 
 %{
 	sub Call(subr: [Subroutine])
+		# This is madness, but has to be done: we don't know where we are in
+		# the program, and so don't know whether the function we're trying to
+		# call has been declared. So... we declare it again inline.
+
+		E("\nvoid ");
+		E_subref(subr);
+		E("(");
+
+		var first: uint8 := 1;
+		sub comma()
+			if first == 0 then
+				E(", ");
+			end if;
+			first := 0;
+		end sub;
+
+		# Output parameters, left to right (the rightmost gets pushed last)
+
+		var count: uint8 := 0;
+		while count != subr.num_output_parameters loop
+			var param := GetOutputParameter(subr, count);
+
+			comma();
+			E("i");
+			E_u8(param.vardata.type.typedata.width as uint8);
+			E("* /* ");
+			E(param.name);
+			E(" */");
+			count := count + 1;
+		end loop;
+
+		# Input parameters, right to left (the rightmost was pushed last
+		# and so is the first C parameter)
+
+		count := subr.num_input_parameters;
+		while count != 0 loop
+			count := count - 1;
+			param := GetInputParameter(subr, count);
+
+			comma();
+			E("i");
+			E_u8(param.vardata.type.typedata.width as uint8);
+			E(" /* ");
+			E(param.name);
+			E(" */");
+		end loop;
+
+		if (subr.num_input_parameters + subr.num_output_parameters) == 0 then
+			E("void");
+		end if;
+		E(");\n");
+
 		# Allocate vids for the return parameters.
 
 		var outputvid := varid;
@@ -311,9 +363,9 @@ gen v8 := POPARG8();
 
 		# Declare variables for the output parameters.
 
-		var count: uint8 := 0;
+		count := 0;
 		while count != subr.num_output_parameters loop
-			var param := GetOutputParameter(subr, count);
+			param := GetOutputParameter(subr, count);
 
 			E("\ti");
 			E_u8(param.vardata.type.typedata.width as uint8);
@@ -330,13 +382,7 @@ gen v8 := POPARG8();
 		E_subref(subr);
 		E("(");
 
-		var first: uint8 := 1;
-		sub comma()
-			if first == 0 then
-				E(", ");
-			end if;
-			first := 0;
-		end sub;
+		first := 1;
 
 		# Output parameters (left to right).
 

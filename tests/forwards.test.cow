@@ -6,5 +6,15 @@ end sub;
 
 @decl sub Declared();
 
-Extern();
+print("in main\n");
+Declared();
+
+sub CallsDeclaredBeforeImplementation()
+	Declared();
+end sub;
+CallsDeclaredBeforeImplementation();
+
+@impl sub Declared
+	print("in declared\n");
+end sub;
 

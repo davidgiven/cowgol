@@ -917,6 +917,16 @@ outputarg(E) ::= expression(E1).
 
 %include
 {
+	sub parser_i_start_sub(subr: [Subroutine])
+		subr.old_break_label := break_label;
+		break_label := 0;
+		subr.old_continue_label := continue_label;
+		continue_label := 0;
+
+		subr.parent := current_subr;
+		current_subr := subr;
+	end sub;
+
 	sub parser_i_end_sub()
 		var subr := current_subr;
 		break_label := subr.old_break_label;
@@ -928,38 +938,26 @@ outputarg(E) ::= expression(E1).
 }
 
 // Declare and implement a subroutine.
-statement ::= namedsub subparams subgen statements END SUB SEMICOLON.
+statement ::= subdecl_with_name subparams subgen statements END SUB SEMICOLON.
 {
 	Generate(MidEndsub(current_subr));
 	parser_i_end_sub();
 }
 
-// Declare a subroutine but don't implement it.
-statement ::= DECL namedsub subparams SEMICOLON.
-{
-	parser_i_end_sub();
-}
-
-substart ::= SUB.
+subdecl ::= SUB.
 {
 	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
 	subr.namespace.parent := &current_subr.namespace;
 	subr.id := AllocSubrId();
-	subr.old_break_label := break_label;
-	break_label := 0;
-	subr.old_continue_label := continue_label;
-	continue_label := 0;
-
-	subr.parent := current_subr;
-	current_subr := subr;
+	parser_i_start_sub(subr);
 }
 
-substart ::= substart EXTERN OPENPAREN STRING(X) CLOSEPAREN.
+subdecl ::= subdecl EXTERN OPENPAREN STRING(X) CLOSEPAREN.
 {
 	EmitterDeclareExternalSubroutine(current_subr.id, X.string);
 }
 
-namedsub ::= substart ID(T).
+subdecl_with_name ::= subdecl ID(T).
 {
 	# Okay, so because of the rather weird order things happen here, we're
 	# actually creating the subroutine's symbol after we have created the
@@ -975,9 +973,39 @@ namedsub ::= substart ID(T).
 	EmitterDeclareSubroutine(current_subr);
 }
 
+// Declare a subroutine but don't implement it.
+statement ::= DECL subdecl_with_name subparams SEMICOLON.
+{
+	parser_i_end_sub();
+}
+
+// Implement a previously declared subroutine.
+statement ::= subimpldecl subgen statements END SUB SEMICOLON.
+{
+	Generate(MidEndsub(current_subr));
+	parser_i_end_sub();
+}
+
+subimpldecl ::= IMPL SUB oldid(S).
+{
+	if S.kind != SUB then
+		SimpleError("not a subroutine");
+	end if;
+	var subr := S.subr;
+	if (subr.flags & SUB_HAS_IMPL) != 0 then
+		SimpleError("subroutine already implemented");
+	end if;
+	if subr.parent != current_subr then
+		SimpleError("cannot implement subroutine here");
+	end if;
+
+	parser_i_start_sub(subr);
+}
+
 subgen ::= .
 {
 	Generate(MidStartsub(current_subr));
+	current_subr.flags := current_subr.flags | SUB_HAS_IMPL;
 }
 
 subparams ::= inparamlist.
