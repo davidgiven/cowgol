@@ -923,7 +923,6 @@ outputarg(E) ::= expression(E1).
 		subr.old_continue_label := continue_label;
 		continue_label := 0;
 
-		subr.parent := current_subr;
 		current_subr := subr;
 	end sub;
 
@@ -938,52 +937,37 @@ outputarg(E) ::= expression(E1).
 }
 
 // Declare and implement a subroutine.
-statement ::= subdecl_with_name subparams subgen IS statements END SUB SEMICOLON.
-{
-	Generate(MidEndsub(current_subr));
-	parser_i_end_sub();
-}
-
-subdecl ::= SUB.
-{
-	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
-	subr.namespace.parent := &current_subr.namespace;
-	subr.id := AllocSubrId();
-	parser_i_start_sub(subr);
-}
-
-subdecl ::= subdecl EXTERN OPENPAREN STRING(X) CLOSEPAREN.
-{
-	EmitterDeclareExternalSubroutine(current_subr.id, X.string);
-}
-
-subdecl_with_name ::= subdecl ID(T).
-{
-	# Okay, so because of the rather weird order things happen here, we're
-	# actually creating the subroutine's symbol after we have created the
-	# subroutine and added it to the namespace chain. So we can't use newid.
-	# We have to explicitly invoke the parent's namespace.
-
-	# consumes T
-	var S := AddSymbol(&current_subr.parent.namespace, T.string);
-
-	current_subr.name := S.name;
-	S.kind := SUB;
-	S.subr := current_subr;
-	EmitterDeclareSubroutine(current_subr);
-}
+statement ::= subdecl subparams submodifiers substart statements subend SEMICOLON.
 
 // Declare a subroutine but don't implement it.
-statement ::= DECL subdecl_with_name subparams SEMICOLON.
+statement ::= DECL subdecl subparams submodifiers SEMICOLON.
 {
 	parser_i_end_sub();
 }
 
 // Implement a previously declared subroutine.
-statement ::= subimpldecl subgen IS statements END SUB SEMICOLON.
+statement ::= subimpldecl substart statements subend SEMICOLON.
+
+submodifiers ::= .
+
+submodifiers ::= submodifiers EXTERN OPENPAREN STRING(X) CLOSEPAREN.
 {
-	Generate(MidEndsub(current_subr));
-	parser_i_end_sub();
+	EmitterDeclareExternalSubroutine(current_subr.id, X.string);
+}
+
+subdecl ::= SUB newid(S).
+{
+	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
+	subr.namespace.parent := &current_subr.namespace;
+	subr.parent := current_subr;
+	subr.id := AllocSubrId();
+
+	subr.name := S.name;
+	S.kind := SUB;
+	S.subr := subr;
+	EmitterDeclareSubroutine(subr);
+
+	parser_i_start_sub(subr);
 }
 
 subimpldecl ::= IMPL SUB oldid(S).
@@ -1002,10 +986,16 @@ subimpldecl ::= IMPL SUB oldid(S).
 	parser_i_start_sub(subr);
 }
 
-subgen ::= .
+substart ::= IS.
 {
 	Generate(MidStartsub(current_subr));
 	current_subr.flags := current_subr.flags | SUB_HAS_IMPL;
+}
+
+subend ::= END SUB.
+{
+	Generate(MidEndsub(current_subr));
+	parser_i_end_sub();
 }
 
 subparams ::= inparamlist.
@@ -1023,6 +1013,12 @@ inparamlist ::= paramlist(INS).
 {
 	current_subr.first_input_parameter := INS;
 	current_subr.num_input_parameters := CountParameters(INS);
+}
+
+inparamlist ::= .
+{
+	current_subr.first_input_parameter := 0 as [Symbol];
+	current_subr.num_input_parameters := 0;
 }
 
 %type paramlist {[Symbol]}
