@@ -4,9 +4,9 @@ include "strings.coh";
 include "malloc.coh";
 include "file.coh";
 
-typedef string := [uint8];
-typedef Size := uint16;
-typedef SubId := uint16;
+typedef string is [uint8];
+typedef Size is uint16;
+typedef SubId is uint16;
 
 var inputfile: string := (0 as string);
 var outputfile: string := (0 as string);
@@ -16,12 +16,12 @@ print("COWWRAP: ");
 print_i16((GetFreeMemory() >> 10) as uint16);
 print("kB free\n");
 
-sub SyntaxError()
+sub SyntaxError() is
 	print("cowwrap <inputfile> <outputfile>\n");
 	ExitWithError();
 end sub;
 
-sub FatalError(s: string)
+sub FatalError(s: string) is
 	print("error: ");
 	print(s);
 	print_nl();

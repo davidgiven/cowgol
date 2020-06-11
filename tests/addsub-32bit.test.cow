@@ -17,7 +17,7 @@ var one: int32 := ONE;
 var two: int32 := TWO;
 var three: int32 := THREE;
 
-sub add_test()
+sub add_test() is
     print("one+two==three"); if one+two==three then yes(); else no(); end if;
     print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;
     print("one+one==two"); if one+one==two then yes(); else no(); end if;
@@ -38,7 +38,7 @@ sub add_test()
 end sub;
 add_test();
 
-sub sub_test()
+sub sub_test() is
     print("one-two==mone"); if one-two==mone then yes(); else no(); end if;
     print("one-mtwo==three"); if one-mtwo==three then yes(); else no(); end if;
     print("one-one==zero"); if one-one==zero then yes(); else no(); end if;
@@ -62,7 +62,7 @@ sub sub_test()
 end sub;
 sub_test();
 
-sub neg_test()
+sub neg_test() is
     print("-two == mtwo");  if -two == mtwo then yes(); else no(); end if;
     print("-one == mone");  if -one == mone then yes(); else no(); end if;
     print("-zero == zero"); if -zero == zero then yes(); else no(); end if;

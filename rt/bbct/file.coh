@@ -3,7 +3,7 @@
 const FCB_I_READ := 0x40;
 const FCB_I_WRITE := 0x80;
 
-record FCB_GBPB
+record FCB_GBPB is
     channel: uint8;
     bufferlo: [uint8];
     bufferhi: uint16;
@@ -15,7 +15,7 @@ record FCB_GBPB
 end record;
 
 const FCB_BUFFER_SIZE := 256;
-record FCB
+record FCB is
 	gbpb: FCB_GBPB;
 	block: uint16;
 	bufferptr: uint16; # byte just read
@@ -24,7 +24,7 @@ record FCB
 	buffer: uint8[FCB_BUFFER_SIZE];
 end record;
 
-sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8)
+sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8) is
     errno := 1;
 	var t := filename;
 	loop
@@ -53,7 +53,7 @@ sub fcb_i_init(fcb: [FCB], filename: [uint8], mode: uint8): (errno: uint8)
     end if;
 end sub;
 
-sub fcb_i_gbpb(fcb: [FCB], a: uint8)
+sub fcb_i_gbpb(fcb: [FCB], a: uint8) is
 	fcb.gbpb.bufferlo := &fcb.buffer[0];
 	fcb.gbpb.count := FCB_BUFFER_SIZE;
 	fcb.gbpb.blocklo := 0;
@@ -65,20 +65,20 @@ sub fcb_i_gbpb(fcb: [FCB], a: uint8)
 	@asm "jsr $ffd1"; # OSGBPB
 end sub;
 
-sub fcb_i_blockin(fcb: [FCB])
+sub fcb_i_blockin(fcb: [FCB]) is
 	MemSet(&fcb.buffer[0], 0, FCB_BUFFER_SIZE);
 	fcb_i_gbpb(fcb, 3); # read block with pointer
 	fcb.dirty := 0;
 end sub;
 
-sub fcb_i_blockout(fcb: [FCB])
+sub fcb_i_blockout(fcb: [FCB]) is
 	if fcb.dirty != 0 then
 		fcb_i_gbpb(fcb, 1); # write block with pointer
 		fcb.dirty := 0;
 	end if;
 end sub;
 
-sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint16) is
 	if newblock != fcb.block then
 		fcb_i_blockout(fcb);
 		fcb.block := newblock;
@@ -88,19 +88,19 @@ sub fcb_i_changeblock(fcb: [FCB], newblock: uint16)
 	end if;
 end sub;
 
-sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	errno := fcb_i_init(fcb, filename, FCB_I_READ);
 end sub;
 
-sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	errno := fcb_i_init(fcb, filename, FCB_I_READ|FCB_I_WRITE);
 end sub;
 
-sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8)
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	errno := fcb_i_init(fcb, filename, FCB_I_WRITE);
 end sub;
 	
-sub FCBClose(fcb: [FCB]): (errno: uint8)
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	var channel := fcb.gbpb.channel;
 	if channel != 0 then
 		fcb_i_blockout(fcb);
@@ -113,7 +113,7 @@ sub FCBClose(fcb: [FCB]): (errno: uint8)
 	errno := 0;
 end sub;
 
-sub FCBSeek(fcb: [FCB], pos: uint32)
+sub FCBSeek(fcb: [FCB], pos: uint32) is
 	pos := pos - 1; # seek to *previous* character
 	var newblock := (pos >> 8) as uint16;
 	var newptr := (pos as uint16) & 0xff;
@@ -121,11 +121,11 @@ sub FCBSeek(fcb: [FCB], pos: uint32)
 	fcb.bufferptr := newptr;
 end sub;
 
-sub FCBPos(fcb: [FCB]): (pos: uint32)
+sub FCBPos(fcb: [FCB]): (pos: uint32) is
 	pos := (((fcb.block as uint32) << 8) | (fcb.bufferptr as uint32)) + 1;
 end sub;
 
-sub FCBExt(fcb: [FCB]): (len: uint32)
+sub FCBExt(fcb: [FCB]): (len: uint32) is
 	fcb_i_blockout(fcb);
 
 	# Nasty hack to get 32 bytes in zero page.
@@ -142,7 +142,7 @@ sub FCBExt(fcb: [FCB]): (len: uint32)
 	len := [@alias &ptr1 as [uint32]];
 end sub;
 
-sub fcb_i_nextchar(fcb: [FCB])
+sub fcb_i_nextchar(fcb: [FCB]) is
 	fcb.bufferptr := fcb.bufferptr + 1;
 	if fcb.bufferptr == FCB_BUFFER_SIZE then
 		fcb_i_changeblock(fcb, fcb.block + 1);
@@ -150,12 +150,12 @@ sub fcb_i_nextchar(fcb: [FCB])
 	end if;
 end sub;
 
-sub FCBGetChar(fcb: [FCB]): (c: uint8)
+sub FCBGetChar(fcb: [FCB]): (c: uint8) is
 	fcb_i_nextchar(fcb);
 	c := fcb.buffer[fcb.bufferptr as uint8];
 end sub;
 
-sub FCBPutChar(fcb: [FCB], c: uint8)
+sub FCBPutChar(fcb: [FCB], c: uint8) is
 	fcb_i_nextchar(fcb);
 	fcb.buffer[fcb.bufferptr as uint8] := c;
 	fcb.dirty := 1;

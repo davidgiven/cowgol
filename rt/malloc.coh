@@ -1,9 +1,9 @@
-record MallocFreeBlock
+record MallocFreeBlock is
 	next: [MallocFreeBlock];
 	size: intptr; # bytes
 end record;
 
-record MallocUsedBlock
+record MallocUsedBlock is
 	size: intptr; # bytes
 end record;
 
@@ -11,7 +11,7 @@ var freeList: [MallocFreeBlock] := LOMEM as [MallocFreeBlock];
 freeList.next := 0 as [MallocFreeBlock];
 freeList.size := HIMEM - LOMEM;
 
-sub DumpBlocks()
+sub DumpBlocks() is
 	var p := freeList;
 	var bytes: intptr := 0;
 	print("* freelist: ");
@@ -37,7 +37,7 @@ sub DumpBlocks()
 	print_nl();
 end sub;
 
-sub CheckMemoryChain()
+sub CheckMemoryChain() is
 	var p := freeList;
 	while p != (0 as [MallocFreeBlock]) loop
 		var next := p.next;
@@ -58,7 +58,7 @@ sub CheckMemoryChain()
 	end loop;
 end sub;
 
-sub Alloc(length: intptr): (block: [uint8])
+sub Alloc(length: intptr): (block: [uint8]) is
 	var totallength := AlignUp(length + @bytesof MallocUsedBlock);
 	if totallength < @bytesof MallocFreeBlock then
 		totallength := @bytesof MallocFreeBlock;
@@ -118,7 +118,7 @@ sub Alloc(length: intptr): (block: [uint8])
 	#CheckMemoryChain();
 end sub;
 
-sub AddFreeBlock(start: [uint8], length: intptr)
+sub AddFreeBlock(start: [uint8], length: intptr) is
 	#print("free ");
 	#print_hex_i32(start as intptr as uint32);
 	#print("+");
@@ -188,14 +188,14 @@ sub AddFreeBlock(start: [uint8], length: intptr)
 	#CheckMemoryChain();
 end sub;
 
-sub Free(start: [uint8])
+sub Free(start: [uint8]) is
 	if start != (0 as [uint8]) then
 		var usedblock := @prev (start as [MallocUsedBlock]);
 		AddFreeBlock(usedblock as [uint8], usedblock.size);
 	end if;
 end sub;
 
-sub GetFreeMemory(): (bytes: intptr)
+sub GetFreeMemory(): (bytes: intptr) is
 	bytes := 0;
 	var p := freeList;
 	while p != (0 as [MallocFreeBlock]) loop
@@ -204,7 +204,7 @@ sub GetFreeMemory(): (bytes: intptr)
 	end loop;
 end sub;
 
-sub StrDup(s: [uint8]): (news: [uint8])
+sub StrDup(s: [uint8]): (news: [uint8]) is
 	var len := StrLen(s) + 1;
 	news := Alloc(len);
 	MemCopy(s, len, news);

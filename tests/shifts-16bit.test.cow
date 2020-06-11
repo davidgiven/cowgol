@@ -10,21 +10,21 @@ var zero: uint8 := 0;
 var one: uint8 := 1;
 var two: uint8 := 2;
 
-sub lshift()
+sub lshift() is
 	print("one16<<zero == 1"); if one16<<zero == 1 then yes(); else no(); end if;
 	print("one16<<one == 2"); if one16<<one == 2 then yes(); else no(); end if;
 	print("one16<<two == 4"); if one16<<two == 4 then yes(); else no(); end if;
 end sub;
 lshift();
 
-sub rshiftu()
+sub rshiftu() is
 	print("big>>zero == 0x8000"); if big>>zero == 0x8000 then yes(); else no(); end if;
 	print("big>>one == 0x4000"); if big>>one == 0x4000 then yes(); else no(); end if;
 	print("big>>two == 0x2000"); if big>>two == 0x2000 then yes(); else no(); end if;
 end sub;
 rshiftu();
 
-sub rshifts()
+sub rshifts() is
 	print("mbig>>zero == 0x8000"); if mbig>>zero == 0x8000 then yes(); else no(); end if;
 	print("mbig>>one == 0xc000"); if mbig>>one == 0xc000 then yes(); else no(); end if;
 	print("mbig>>two == 0xe000"); if mbig>>two == 0xe000 then yes(); else no(); end if;

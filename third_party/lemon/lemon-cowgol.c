@@ -3976,10 +3976,10 @@ void print_stack_union(
   name = lemp->name ? lemp->name : "Parse";
   lineno = *plineno;
   if( mhflag ){ fprintf(out,"#if INTERFACE\n"); lineno++; }
-  fprintf(out,"typedef %sTOKENTYPE := %s;\n",name,
+  fprintf(out,"typedef %sTOKENTYPE is %s;\n",name,
     lemp->tokentype?lemp->tokentype:"void*");  lineno++;
   if( mhflag ){ fprintf(out,"#endif\n"); lineno++; }
-  fprintf(out,"record YYMINORTYPE\n"); lineno++;
+  fprintf(out,"record YYMINORTYPE is\n"); lineno++;
   fprintf(out,"  yyall @at(0): intptr;\n"); lineno++;
   fprintf(out,"  yy0 @at(0): %sTOKENTYPE;\n",name); lineno++;
   for(i=0; i<arraysize; i++){
@@ -4137,10 +4137,10 @@ void ReportTable(
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Generate the defines */
-  fprintf(out,"typedef YYCODETYPE := %s;\n",
+  fprintf(out,"typedef YYCODETYPE is %s;\n",
     minimum_size_type(0, lemp->nsymbol, &szCodeType)); lineno++;
   fprintf(out,"const YYNOCODE := %d;\n",lemp->nsymbol);  lineno++;
-  fprintf(out,"typedef YYACTIONTYPE := %s;\n",
+  fprintf(out,"typedef YYACTIONTYPE is %s;\n",
     minimum_size_type(0,lemp->maxAction,&szActionType)); lineno++;
   if( lemp->wildcard ){
     fprintf(out,"const YYWILDCARD := %d;\n",
@@ -4432,7 +4432,7 @@ void ReportTable(
   ** (In other words, generate the %destructor actions)
   */
   if( lemp->tokendest ){
-	fprintf(out, "sub token_destructor()\n"); lineno++;
+	fprintf(out, "sub token_destructor() is\n"); lineno++;
     for(i=0; i<lemp->nsymbol && lemp->symbols[i]->type!=TERMINAL; i++);
     emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
 	fprintf(out, "end sub;\n"); lineno++;
@@ -4441,7 +4441,7 @@ void ReportTable(
     struct symbol *sp = lemp->symbols[i];
     if( sp==0 || sp->type==TERMINAL || sp->destructor==0 ) continue;
     if( sp->destLineno<0 ) continue;  /* Already emitted */
-	fprintf(out, "sub destructor_%d() # \n", sp->index, sp->name); lineno++;
+	fprintf(out, "sub destructor_%d() is # \n", sp->index, sp->name); lineno++;
     emit_destructor_code(out,lemp->symbols[i],lemp,&lineno);
 	fprintf(out, "end sub;\n"); lineno++;
   }
@@ -4455,7 +4455,7 @@ void ReportTable(
       dflt_sp = sp;
     }
     if( dflt_sp!=0 ){
-	  fprintf(out, "sub var_destructor()\n"); lineno++;
+	  fprintf(out, "sub var_destructor() is\n"); lineno++;
       emit_destructor_code(out,dflt_sp,lemp,&lineno);
 	  fprintf(out, "end sub;\n"); lineno++;
     }
@@ -4559,7 +4559,7 @@ void ReportTable(
       /* No C code actions, so this will be part of the "default:" rule */
       continue;
     }
-	fprintf(out, "sub reduce_%d() # %d symbols on RHS\n", rp->iRule, rp->nrhs - 1); lineno++;
+	fprintf(out, "sub reduce_%d() is # %d symbols on RHS\n", rp->iRule, rp->nrhs - 1); lineno++;
     emit_code(out,rp,lemp,&lineno);
 	fprintf(out, "end sub;\n"); lineno++;
   }

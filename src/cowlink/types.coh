@@ -1,7 +1,7 @@
 const NUM_WORKSPACES := 4;
 
 const COO_REFS_SIZE := 16;
-record References
+record References is
 	next: [References];
 	calls: [Subroutine][COO_REFS_SIZE];
 end record;
@@ -9,7 +9,7 @@ end record;
 const SUB_USED           := 0b01;
 const SUB_IMPLEMENTATION := 0b10;
 
-record Subroutine
+record Subroutine is
 	coo: [Coo];
 	next: [Subroutine];
 	refs: References;
@@ -23,19 +23,19 @@ record Subroutine
 end record;
 
 const COO_INDEX_SIZE := 16;
-record CooIndex
+record CooIndex is
 	next: [CooIndex];
 	subroutines: [Subroutine][COO_INDEX_SIZE];
 end record;
 
-record Coo
+record Coo is
 	fcb: FCB;
 	index: CooIndex;
 	next: [Coo];
 	id: uint16;
 end record;
 
-record External
+record External is
 	next: [External];
 	name: string;
 	impl: [Subroutine];

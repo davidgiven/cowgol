@@ -1,12 +1,12 @@
 var argv_pointer: [[uint8]];
 
-sub ArgvInit()
+sub ArgvInit() is
 	@asm argv_pointer, " = (i8)(intptr_t)global_argv;";
 	argv_pointer := @next argv_pointer;
 end sub;
 
 # Returns null is there's no next argument.
-sub ArgvNext(): (arg: [uint8])
+sub ArgvNext(): (arg: [uint8]) is
 	# No more arguments?
 
 	if argv_pointer == (0 as [[uint8]]) then

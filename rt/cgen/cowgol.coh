@@ -4,32 +4,32 @@ var LOMEM: [uint8];
 var HIMEM: [uint8];
 @asm HIMEM, "= (i8)(intptr_t) __himem;";
 
-sub AlignUp(in: intptr): (out: intptr)
+sub AlignUp(in: intptr): (out: intptr) is
 	out := (in + 7) & ~7;
 end sub;
 
-sub Exit()
+sub Exit() is
 	@asm "exit(0);";
 end sub;
 
-sub ExitWithError()
+sub ExitWithError() is
 	@asm "exit(1);";
 end sub;
 
-sub MemSet(buf: [uint8], byte: uint8, len: intptr)
+sub MemSet(buf: [uint8], byte: uint8, len: intptr) is
 	@asm "memset((void*)(intptr_t)", buf, ", ", byte, ", ", len, ");";
 end sub;
 
-sub print_char(c: uint8)
+sub print_char(c: uint8) is
 	@asm "putchar(", c, ");";
 end sub;
 
-sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
+sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32) is
 	@asm quot, " = ", lhs, " / ", rhs, ";";
 	@asm rem, " = ", lhs, " % ", rhs, ";";
 end sub;
 
-sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
+sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32) is
 	@asm quot, " = (s4)", lhs, " / (s4)", rhs, ";";
 	@asm rem, " = (s4)", lhs, " % (s4)", rhs, ";";
 end sub;

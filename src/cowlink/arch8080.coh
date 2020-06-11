@@ -2,27 +2,27 @@ const STACK_SIZE := 128;
 
 var workspaceSize: Size[NUM_WORKSPACES];
 
-sub E_nl()
+sub E_nl() is
 	E_b8('\n');
 end sub;
 
-sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 	newvalue := value;
 end sub;
 
-sub ArchEmitSubRef(subr: [Subroutine])
+sub ArchEmitSubRef(subr: [Subroutine]) is
 	E_b8('f');
 	E_u16(subr.id);
 	E_b8('_');
 	E(subr.name);
 end sub;
 
-sub ArchEmitWSRef(wid: uint8, address: Size)
+sub ArchEmitWSRef(wid: uint8, address: Size) is
 	E("ws+");
 	E_u16(address);
 end sub;
 
-sub ArchEmitHeader(coo: [Coo])
+sub ArchEmitHeader(coo: [Coo]) is
 	E("\torg 0x100\n");
 	E("\tcseg\n");
 
@@ -44,7 +44,7 @@ sub ArchEmitHeader(coo: [Coo])
 	E("\trst 0\n");
 end sub;
 
-sub ArchEmitFooter(coo: [Coo])
+sub ArchEmitFooter(coo: [Coo]) is
 	E("\tdseg\n");
 	E("TOP:\n");
 

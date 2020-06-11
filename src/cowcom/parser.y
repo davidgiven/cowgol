@@ -5,6 +5,7 @@
 %token SUB THEN TILDE VAR WHILE TYPE.
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
 %token INT TYPEDEF SIZEOF STRING.
+%token IMPL DECL EXTERN.
 
 %left COMMA.
 %left AND.
@@ -70,13 +71,13 @@ statement ::= RETURN SEMICOLON.
 statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
 	S.kind := VAR;
-	InitVariable(S, T);
+	InitVariable(current_subr, S, T);
 }
 
 statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 {
 	S.kind := VAR;
-	InitVariable(S, T);
+	InitVariable(current_subr, S, T);
     CheckExpressionType(E, S.vardata.type);
 
     Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
@@ -93,7 +94,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	end if;
 
 	S.kind := VAR;
-	InitVariable(S, type);
+	InitVariable(current_subr, S, type);
 	CheckExpressionType(E, S.vardata.type);
 
 	Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
@@ -114,7 +115,7 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 
 %include
 {
-	sub BeginNormalLoop(): (ll: [LoopLabels])
+	sub BeginNormalLoop(): (ll: [LoopLabels]) is
 		ll := Alloc(@bytesof LoopLabels) as [LoopLabels];
 		ll.loop_label := AllocLabel();
 		ll.exit_label := AllocLabel();
@@ -124,7 +125,7 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 		continue_label := ll.loop_label;
 	end sub;
 
-	sub TerminateNormalLoop(ll: [LoopLabels])
+	sub TerminateNormalLoop(ll: [LoopLabels]) is
 		Generate(MidJump(continue_label));
 		Generate(MidLabel(break_label));
 		break_label := ll.old_break_label;
@@ -299,7 +300,7 @@ conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
 
 %include
 {
-	sub Negate(node: [Node])
+	sub Negate(node: [Node]) is
 		node.beq0.negated := node.beq0.negated ^ 1;
 	end sub;
 }
@@ -322,7 +323,7 @@ conditional(R) ::= conditional(C1) OR conditional(C2).
 
 %include
 {
-	sub ConditionalEq(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+	sub ConditionalEq(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node]) is
 		CondSimple(lhs, rhs);
 		var truelabel := AllocLabel();
 		var falselabel := AllocLabel();
@@ -331,7 +332,7 @@ conditional(R) ::= conditional(C1) OR conditional(C2).
 		result := MidBeq(w, lhs, rhs, truelabel, falselabel, 0, negated);
 	end sub;
 
-	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node]) is
 		CondSimple(lhs, rhs);
 		var truelabel := AllocLabel();
 		var falselabel := AllocLabel();
@@ -426,7 +427,7 @@ expression(E) ::= ALIAS AMPERSAND expression(E1).
 
 %include
 {
-	sub parser_i_bad_next_prev()
+	sub parser_i_bad_next_prev() is
 		SimpleError("@next and @prev only work on pointers");
 	end sub;
 }
@@ -576,7 +577,7 @@ expression(E) ::= STRING(S).
 
 %include
 {
-	sub parser_i_constant_error()
+	sub parser_i_constant_error() is
 		SimpleError("only constant values are allowed here");
 	end sub;
 }
@@ -653,7 +654,7 @@ typeref(S) ::= INDEXOF varortypeid(S1).
 	S := S1.typedata.arraytype.indextype;
 }
 
-statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
+statement ::= TYPEDEF ID(X) IS typeref(T) SEMICOLON.
 {
 	# consumes X
 	var sym := AddAlias(0 as [Namespace], X.string, T);
@@ -718,7 +719,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 
 %include
 {
-	sub i_check_sub_call_args()
+	sub i_check_sub_call_args() is
 		var subr := current_call.subr;
 		if current_call.num_input_args != subr.num_input_parameters then
 			StartError();
@@ -732,7 +733,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 		end if;
 	end sub;
 
-	sub i_end_call()
+	sub i_end_call() is
 		EmitterReferenceSubroutine(current_subr, current_call.subr);
 		var call := current_call;
 		current_call := call.parent;
@@ -914,7 +915,67 @@ outputarg(E) ::= expression(E1).
 
 /* --- Subroutine definitions -------------------------------------------- */
 
-statement ::= SUB substart subparams subgen statements END SUB.
+%include
+{
+	var preparing_subr: [Subroutine];
+}
+
+// Declare and implement a subroutine.
+statement ::= subdecl subparams submodifiers substart statements subend SEMICOLON.
+
+// Declare a subroutine but don't implement it.
+statement ::= DECL subdecl subparams submodifiers SEMICOLON.
+
+// Implement a previously declared subroutine.
+statement ::= subimpldecl substart statements subend SEMICOLON.
+
+submodifiers ::= .
+
+submodifiers ::= submodifiers EXTERN OPENPAREN STRING(X) CLOSEPAREN.
+{
+	EmitterDeclareExternalSubroutine(preparing_subr.id, X.string);
+}
+
+subdecl ::= SUB newid(S).
+{
+	preparing_subr := Alloc(@bytesof Subroutine) as [Subroutine];
+	preparing_subr.namespace.parent := &current_subr.namespace;
+	preparing_subr.parent := current_subr;
+	preparing_subr.id := AllocSubrId();
+
+	preparing_subr.name := S.name;
+	S.kind := SUB;
+	S.subr := preparing_subr;
+	EmitterDeclareSubroutine(preparing_subr);
+}
+
+subimpldecl ::= IMPL SUB oldid(S).
+{
+	if S.kind != SUB then
+		SimpleError("not a subroutine");
+	end if;
+	preparing_subr := S.subr;
+	if (preparing_subr.flags & SUB_HAS_IMPL) != 0 then
+		SimpleError("subroutine already implemented");
+	end if;
+	if preparing_subr.parent != current_subr then
+		SimpleError("cannot implement subroutine here");
+	end if;
+}
+
+substart ::= IS.
+{
+	preparing_subr.old_break_label := break_label;
+	break_label := 0;
+	preparing_subr.old_continue_label := continue_label;
+	continue_label := 0;
+
+	current_subr := preparing_subr;
+	Generate(MidStartsub(current_subr));
+	current_subr.flags := current_subr.flags | SUB_HAS_IMPL;
+}
+
+subend ::= END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
@@ -926,45 +987,27 @@ statement ::= SUB substart subparams subgen statements END SUB.
 	DestructSubroutineContents(subr);
 }
 
-substart ::= newid(S).
-{
-	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
-	subr.name := S.name;
-	subr.namespace.parent := &current_subr.namespace;
-	subr.id := AllocSubrId();
-	subr.old_break_label := break_label;
-	break_label := 0;
-	subr.old_continue_label := continue_label;
-	continue_label := 0;
-
-	S.kind := SUB;
-	S.subr := subr;
-	EmitterDeclareSubroutine(subr);
-
-	subr.parent := current_subr;
-	current_subr := subr;
-}
-
-subgen ::= .
-{
-	Generate(MidStartsub(current_subr));
-}
-
 subparams ::= inparamlist.
 {
-	current_subr.num_output_parameters := 0;
+	preparing_subr.num_output_parameters := 0;
 }
 
 subparams ::= inparamlist COLON paramlist(OUTS).
 {
-	current_subr.first_output_parameter := OUTS;
-	current_subr.num_output_parameters := CountParameters(OUTS);
+	preparing_subr.first_output_parameter := OUTS;
+	preparing_subr.num_output_parameters := CountParameters(OUTS);
 }
 
 inparamlist ::= paramlist(INS).
 {
-	current_subr.first_input_parameter := INS;
-	current_subr.num_input_parameters := CountParameters(INS);
+	preparing_subr.first_input_parameter := INS;
+	preparing_subr.num_input_parameters := CountParameters(INS);
+}
+
+inparamlist ::= .
+{
+	preparing_subr.first_input_parameter := 0 as [Symbol];
+	preparing_subr.num_input_parameters := 0;
 }
 
 %type paramlist {[Symbol]}
@@ -991,18 +1034,20 @@ params(R) ::= param(P) COMMA params(R1).
 }
 
 %type param {[Symbol]}
-param(R) ::= newid(S) COLON typeref(T).
+param(R) ::= ID(X) COLON typeref(T).
 {
-	S.kind := VAR;
-	InitVariable(S, T);
-	R := S;
+	# consumes X
+	R := AddSymbol(&preparing_subr.namespace, X.string);
+
+	R.kind := VAR;
+	InitVariable(preparing_subr, R, T);
 }
 
 /* --- Records ----------------------------------------------------------- */
 
 %include
 {
-	sub SymbolRedeclarationError()
+	sub SymbolRedeclarationError() is
 		StartError();
 		print("attempt to redefine ");
 		print(current_type.name);
@@ -1010,7 +1055,7 @@ param(R) ::= newid(S) COLON typeref(T).
 	end sub;
 }
 
-statement ::= RECORD recordstart recordinherits recordmembers END RECORD.
+statement ::= RECORD recordstart recordinherits IS recordmembers END RECORD.
 {
 	current_type.typedata.stride := ArchAlignUp(
 		current_type.typedata.width, current_type.typedata.alignment);
@@ -1087,20 +1132,20 @@ memberid(S) ::= ID(T).
 	var current_offset: Size;        # within the current braced element
 	var current_global_offset: Size; # overall
 
-	record NestedTypeInit
+	record NestedTypeInit is
 		old_current_type: [Symbol];
 		old_current_member: [Symbol];
 		old_current_offset: Size;
 	end record;
 
-	sub WrongNumberOfElementsError()
+	sub WrongNumberOfElementsError() is
 		StartError();
 		print("wrong number of elements in initialiser for ");
 		print(current_type.name);
 		EndError();
 	end sub;
 
-	sub CheckEndOfInitialiser()
+	sub CheckEndOfInitialiser() is
 		if IsArray(current_type) != 0 then
 			var memberwidth := current_type.typedata.arraytype.element.typedata.stride;
 			if current_type.typedata.width == 0 then
@@ -1119,7 +1164,7 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub GetInitedMember(): (member: [Symbol], type: [Symbol])
+	sub GetInitedMember(): (member: [Symbol], type: [Symbol]) is
 		member := 0 as [Symbol];
 
 		if IsArray(current_type) != 0 then
@@ -1136,7 +1181,7 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub AlignTo(alignment: uint8)
+	sub AlignTo(alignment: uint8) is
 		var newoffset := ArchAlignUp(current_global_offset, alignment);
 		while current_global_offset != newoffset loop
 			Generate(MidInit(1, 0));
@@ -1145,7 +1190,7 @@ memberid(S) ::= ID(T).
 		end loop;
 	end sub;
 
-	sub CheckForOverlaps(member: [Symbol])
+	sub CheckForOverlaps(member: [Symbol]) is
 		# Not for arrays.
 		if member == (0 as [Symbol]) then
 			return;
@@ -1156,7 +1201,7 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol])
+	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol]) is
 		(member, type) := GetInitedMember();
 		if type == (0 as [Symbol]) then
 			WrongNumberOfElementsError();

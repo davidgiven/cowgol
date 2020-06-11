@@ -4,8 +4,8 @@ include "strings.coh";
 include "malloc.coh";
 include "file.coh";
 
-typedef string := [uint8];
-typedef Size := uint16;
+typedef string is [uint8];
+typedef Size is uint16;
 
 include "include/coodecls.coh";
 include "src/cowlink/types.coh";
@@ -26,11 +26,11 @@ var outputFilename: [uint8] := 0 as [uint8];
 var mainSubroutine: [Subroutine] := 0 as [Subroutine];
 var mostRecentSubroutine: [Subroutine] := 0 as [Subroutine];
 
-sub SyntaxError()
+sub SyntaxError() is
 	SimpleError("Syntax error\n");
 end sub;
 
-sub AddInputFile(filename: [uint8])
+sub AddInputFile(filename: [uint8]) is
 	print("Adding input file: ");
 	print(filename);
 	print_nl();

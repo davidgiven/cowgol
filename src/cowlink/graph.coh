@@ -1,6 +1,6 @@
 # Hooks up all externals.
 
-sub ResolveExternals()
+sub ResolveExternals() is
 	var external: [External];
 	var errors: uint8 := 0;
 
@@ -42,7 +42,7 @@ end sub;
 # Walks the call graph, calculating both which subroutines are actually
 # used and also allocating spaces in the subroutine workspaces.
 
-sub PlaceSubroutines(subroutine: [Subroutine])
+sub PlaceSubroutines(subroutine: [Subroutine]) is
 	const STACK_SIZE := 300;
 	var stack: [Subroutine][STACK_SIZE];
 	var sp: @indexof stack := 0;
@@ -54,7 +54,7 @@ sub PlaceSubroutines(subroutine: [Subroutine])
 		i := i + 1;
 	end loop;
 
-	sub push(subr: [Subroutine])
+	sub push(subr: [Subroutine]) is
 		# Only add this subroutine to the stack if it's not already on it.
 		var i: @indexof stack := sp;
 		while i != 0 loop

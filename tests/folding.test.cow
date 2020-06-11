@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-sub addsub()
+sub addsub() is
 	var five: uint8 := 5;
 
 	print("2+3=five"); if (2+3) == five then yes(); else no(); end if;

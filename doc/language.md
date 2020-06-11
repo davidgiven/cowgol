@@ -32,14 +32,16 @@ else
   print("no.\n");
 end if
 
-sub ThisIsASubroutine(i: uint8) # one in
-  sub ThisIsANestedSubroutine()
+# subroutine with one input parameter
+sub ThisIsASubroutine(i: uint8) is
+  # subroutine with no input or output parameters
+  sub ThisIsANestedSubroutine is
     print("nested subroutines can access upvalues!");
     print_i8(i);
   end sub;
 
-  # multiple output parameters
-  sub swap(in1: uint8, in2: uint8): (out1: uint8, out2: uint8)
+  # subroutine with multiple output parameters
+  sub swap(in1: uint8, in2: uint8): (out1: uint8, out2: uint8) is
     out1 := in2;
     out2 := in1;
   end sub;
@@ -75,6 +77,51 @@ You get: `and` `or` `not` `==` `!=` `<` `<=` `>` `>=`
 
 **Note:** remember that magnitude comparisons of signed values is usually a
 *disaster on these small systems. Try to avoid it.
+
+## Forward declarations
+
+The compiler is strictly single pass, so if you want to use a subroutine before
+it's been defined you need to split the declaration and the implementation. It
+works like this.
+
+```
+sub CombinedDeclarationAndImplementation(i: uint8) is
+  DoSomethingWith(i);
+end sub;
+
+@decl sub SplitDeclarationAndImplementation(i: uint8);
+
+...arbitrary code here...
+
+@impl sub SplitDeclarationAndImplementation is
+  DoSomethingWith(i);
+end sub;
+```
+
+Note that in the implementation, the parameters are the ones used in the
+declaration. You may want a comment to remind you of them. The implementation
+must be defined in the same subroutine as the declaration.
+
+## External subroutines
+
+If you're using separate compilation (which is currently undocumented), you can
+mark a subroutine as being external, with a link name, and the linker will
+resolve these.
+
+```
+sub DefiningAnExternal @extern("_thing") is
+  print("I can be accessed externally!\n");
+end sub;
+
+@decl sub ImportingAnExternal(i: uint8) @extern("one_uint8_in");
+
+ImportingAnExternal(4);
+```
+
+Externals may only be defined at the top level (otherwise the subroutine's
+parent subroutine would have exited and all its variables would be garbage).
+Yes, you can import an external in the same file that you define it. That might
+be useful?
 
 ## Types
 
@@ -157,7 +204,7 @@ end loop;
 Cowgol supports structured records.
 
 ```
-record ComplexNumber
+record ComplexNumber is
   i: int32;
   r: int32;
 end record;
@@ -170,7 +217,7 @@ c.r := 9;
 Records may inherit from other records.
 
 ```
-record EvenMoreComplexNumber: ComplexNumber
+record EvenMoreComplexNumber: ComplexNumber is
   q: int32;
 end record;
 
@@ -189,12 +236,12 @@ You may use `@at()` to specify the actual offset of a member. This is useful
 for interoperation with hardware, and also to create unions.
 
 ```
-record HardwareRegister
+record HardwareRegister is
   datareg @at(0): uint8;
   statusreg @at(1): uint8;
 end record;
 
-record UnionRecord
+record UnionRecord is
   option1 @at(0): OptionOne;
   option2 @at(0): OptionTwo;
   option3 @at(0): OptionThree;
@@ -211,7 +258,7 @@ would expect and allow arrays inside records, arrays of records, and strings:
 var array1: uint8[3] := {1, 2, 3};    # the number of elements must match the size
 var array2: uint8[] := {4, 3, 2, 1};  # or the compiler can figure it out
 
-record Record
+record Record is
 	a: uint8;
 	b: uint8;
 	c: uint8;
@@ -243,7 +290,7 @@ var hugearray: uint32[1024] = {};     # your executable just went up in size by 
 Cowgol has pointers.
 
 ```
-record Structure
+record Structure is
 	i: uint8;
 end record;
 
@@ -277,7 +324,7 @@ You may have pointers to pointers, but remember that you can't take the address
 of a scalar variable, so they're of limited use.
 
 ```
-record Structure
+record Structure is
 	i: uint8;
 	p: [uint8];
 	pp: [[uint8]];
@@ -294,8 +341,8 @@ v.pp := &v.p;
 You can define type aliases.
 
 ```
-typedef ObjId := int(0, 127);      # a custom integer type (actually uint8)
-typedef MyArray := ObjId[42];
+typedef ObjId is int(0, 127);      # a custom integer type (actually uint8)
+typedef MyArray is ObjId[42];
 ```
 
 These just define a new name for the type. Type aliases to the same type are
@@ -344,7 +391,4 @@ var i: uint8;
   time, the compiler will allocate their variables to the same location. This
   means that you still can't return pointers to local variables and expect it
   to work.
-
-- The compiler is a single-pass job, so everything must be defined before it's
-  used. There's no support for forward declarations yet (working on it).
 
