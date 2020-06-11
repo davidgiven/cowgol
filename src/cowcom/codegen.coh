@@ -31,9 +31,6 @@ record Instruction is
 	ruleid: uint8;
 end record;
 
-var nodes: [Node][16];
-var next_node := &nodes[0];
-
 sub AllocLabel(): (label: LabelRef) is
 	label := next_label_id;
 	next_label_id := next_label_id + 1;
@@ -78,29 +75,6 @@ sub FindFirst(inreg: RegId): (outreg: RegId) is
 end sub;
 
 include "inssel.coh";
-
-sub PushNode(node: [Node]) is
-	if node != (0 as [Node]) then
-		if next_node == &nodes[@sizeof nodes] then
-			SimpleError("node stack overflow");
-		end if;
-		[next_node] := node;
-		next_node := @next next_node;
-	end if;
-end sub;
-
-sub PopNode(): (node: [Node]) is
-	next_node := @prev next_node;
-	node := [next_node];
-end sub;
-
-sub NextNode(): (node: [Node]) is
-	node := PopNode();
-	if node != (0 as [Node]) then
-		PushNode(node.left);
-		PushNode(node.right);
-	end if;
-end sub;
 
 sub IsStackedRegister(regid: RegId): (result: uint8) is
 	result := 0;

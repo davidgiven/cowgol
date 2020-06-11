@@ -22,6 +22,7 @@ include "src/cowcom/namespace.coh";
 include "src/cowcom/codegen.coh";
 include "src/cowcom/symbols.coh";
 include "src/cowcom/expressions.coh";
+include "src/cowcom/treewalker.coh";
 include "parser.coh";
 
 sub PrintFreeMemory() is

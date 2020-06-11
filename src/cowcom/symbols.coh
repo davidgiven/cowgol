@@ -1,7 +1,7 @@
-sub InitVariable(symbol: [Symbol], type: [Symbol]) is
+sub InitVariable(subr: [Subroutine], symbol: [Symbol], type: [Symbol]) is
 	CheckNotPartialType(type);
 	symbol.vardata.type := type;
-	symbol.vardata.subr := current_subr;
+	symbol.vardata.subr := subr;
 	ArchInitVariable(symbol);
 	#print("var ");
 	#print(symbol.name);

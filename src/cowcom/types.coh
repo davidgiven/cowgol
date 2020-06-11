@@ -136,3 +136,13 @@ var current_call: [SubroutineCall];
 
 const REG_SAME_AS_INSTRUCTION_RESULT := -1;
 
+# Forward references
+
+@decl sub PushNode(node: [Node]);
+@decl sub PopNode(): (node: [Node]);
+@decl sub NextNode(): (node: [Node]);
+var nodes: [Node][16];
+var next_node := &nodes[0];
+
+@decl sub Discard(node: [Node]);
+

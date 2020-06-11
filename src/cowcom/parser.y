@@ -71,13 +71,13 @@ statement ::= RETURN SEMICOLON.
 statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
 	S.kind := VAR;
-	InitVariable(S, T);
+	InitVariable(current_subr, S, T);
 }
 
 statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 {
 	S.kind := VAR;
-	InitVariable(S, T);
+	InitVariable(current_subr, S, T);
     CheckExpressionType(E, S.vardata.type);
 
     Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
@@ -94,7 +94,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	end if;
 
 	S.kind := VAR;
-	InitVariable(S, type);
+	InitVariable(current_subr, S, type);
 	CheckExpressionType(E, S.vardata.type);
 
 	Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
@@ -917,23 +917,7 @@ outputarg(E) ::= expression(E1).
 
 %include
 {
-	sub parser_i_start_sub(subr: [Subroutine]) is
-		subr.old_break_label := break_label;
-		break_label := 0;
-		subr.old_continue_label := continue_label;
-		continue_label := 0;
-
-		current_subr := subr;
-	end sub;
-
-	sub parser_i_end_sub() is
-		var subr := current_subr;
-		break_label := subr.old_break_label;
-		continue_label := subr.old_continue_label;
-		current_subr := subr.parent;
-
-		DestructSubroutineContents(subr);
-	end sub;
+	var preparing_subr: [Subroutine];
 }
 
 // Declare and implement a subroutine.
@@ -941,9 +925,6 @@ statement ::= subdecl subparams submodifiers substart statements subend SEMICOLO
 
 // Declare a subroutine but don't implement it.
 statement ::= DECL subdecl subparams submodifiers SEMICOLON.
-{
-	parser_i_end_sub();
-}
 
 // Implement a previously declared subroutine.
 statement ::= subimpldecl substart statements subend SEMICOLON.
@@ -952,22 +933,20 @@ submodifiers ::= .
 
 submodifiers ::= submodifiers EXTERN OPENPAREN STRING(X) CLOSEPAREN.
 {
-	EmitterDeclareExternalSubroutine(current_subr.id, X.string);
+	EmitterDeclareExternalSubroutine(preparing_subr.id, X.string);
 }
 
 subdecl ::= SUB newid(S).
 {
-	var subr := Alloc(@bytesof Subroutine) as [Subroutine];
-	subr.namespace.parent := &current_subr.namespace;
-	subr.parent := current_subr;
-	subr.id := AllocSubrId();
+	preparing_subr := Alloc(@bytesof Subroutine) as [Subroutine];
+	preparing_subr.namespace.parent := &current_subr.namespace;
+	preparing_subr.parent := current_subr;
+	preparing_subr.id := AllocSubrId();
 
-	subr.name := S.name;
+	preparing_subr.name := S.name;
 	S.kind := SUB;
-	S.subr := subr;
-	EmitterDeclareSubroutine(subr);
-
-	parser_i_start_sub(subr);
+	S.subr := preparing_subr;
+	EmitterDeclareSubroutine(preparing_subr);
 }
 
 subimpldecl ::= IMPL SUB oldid(S).
@@ -975,19 +954,23 @@ subimpldecl ::= IMPL SUB oldid(S).
 	if S.kind != SUB then
 		SimpleError("not a subroutine");
 	end if;
-	var subr := S.subr;
-	if (subr.flags & SUB_HAS_IMPL) != 0 then
+	preparing_subr := S.subr;
+	if (preparing_subr.flags & SUB_HAS_IMPL) != 0 then
 		SimpleError("subroutine already implemented");
 	end if;
-	if subr.parent != current_subr then
+	if preparing_subr.parent != current_subr then
 		SimpleError("cannot implement subroutine here");
 	end if;
-
-	parser_i_start_sub(subr);
 }
 
 substart ::= IS.
 {
+	preparing_subr.old_break_label := break_label;
+	break_label := 0;
+	preparing_subr.old_continue_label := continue_label;
+	continue_label := 0;
+
+	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
 	current_subr.flags := current_subr.flags | SUB_HAS_IMPL;
 }
@@ -995,30 +978,36 @@ substart ::= IS.
 subend ::= END SUB.
 {
 	Generate(MidEndsub(current_subr));
-	parser_i_end_sub();
+
+	var subr := current_subr;
+	break_label := subr.old_break_label;
+	continue_label := subr.old_continue_label;
+	current_subr := subr.parent;
+
+	DestructSubroutineContents(subr);
 }
 
 subparams ::= inparamlist.
 {
-	current_subr.num_output_parameters := 0;
+	preparing_subr.num_output_parameters := 0;
 }
 
 subparams ::= inparamlist COLON paramlist(OUTS).
 {
-	current_subr.first_output_parameter := OUTS;
-	current_subr.num_output_parameters := CountParameters(OUTS);
+	preparing_subr.first_output_parameter := OUTS;
+	preparing_subr.num_output_parameters := CountParameters(OUTS);
 }
 
 inparamlist ::= paramlist(INS).
 {
-	current_subr.first_input_parameter := INS;
-	current_subr.num_input_parameters := CountParameters(INS);
+	preparing_subr.first_input_parameter := INS;
+	preparing_subr.num_input_parameters := CountParameters(INS);
 }
 
 inparamlist ::= .
 {
-	current_subr.first_input_parameter := 0 as [Symbol];
-	current_subr.num_input_parameters := 0;
+	preparing_subr.first_input_parameter := 0 as [Symbol];
+	preparing_subr.num_input_parameters := 0;
 }
 
 %type paramlist {[Symbol]}
@@ -1045,11 +1034,13 @@ params(R) ::= param(P) COMMA params(R1).
 }
 
 %type param {[Symbol]}
-param(R) ::= newid(S) COLON typeref(T).
+param(R) ::= ID(X) COLON typeref(T).
 {
-	S.kind := VAR;
-	InitVariable(S, T);
-	R := S;
+	# consumes X
+	R := AddSymbol(&preparing_subr.namespace, X.string);
+
+	R.kind := VAR;
+	InitVariable(preparing_subr, R, T);
 }
 
 /* --- Records ----------------------------------------------------------- */

@@ -72,7 +72,7 @@ c02_0003:;
 	i8 v28 = (i8)(intptr_t)(ws+3128);
 	i1 v29 = *(i1*)(intptr_t)v28;
 
-void f8_print_char(i1 /* c */);
+	void f8_print_char(i1 /* c */);
 	f8_print_char(v29);
 
 	i8 v30 = (i8)(intptr_t)(ws+3120);
@@ -93,7 +93,7 @@ void f12_print_nl(void) {
 
 	i1 v34 = (i1)+10;
 
-void f8_print_char(i1 /* c */);
+	void f8_print_char(i1 /* c */);
 	f8_print_char(v34);
 
 endsub:;
@@ -259,7 +259,7 @@ void f15_print_i32(i4 p140 /* value */) {
 	i1 v143 = (i1)+10;
 	i8 v144 = (i8)(intptr_t)(ws+3100);
 
-void f13_UIToA(i8* /* ptr */, i8 /* buffer */, i1 /* base */, i4 /* value */);
+	void f13_UIToA(i8* /* ptr */, i8 /* buffer */, i1 /* base */, i4 /* value */);
 	i8 v145;
 	f13_UIToA(&v145, v144, v143, v142);
 	i8 v146 = (i8)(intptr_t)(ws+3112);
@@ -267,7 +267,7 @@ void f13_UIToA(i8* /* ptr */, i8 /* buffer */, i1 /* base */, i4 /* value */);
 
 	i8 v147 = (i8)(intptr_t)(ws+3100);
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v147);
 
 endsub:;
@@ -281,7 +281,7 @@ void f16_print_i16(i2 p148 /* value */) {
 	i2 v150 = *(i2*)(intptr_t)v149;
 	i4 v151 = v150;
 
-void f15_print_i32(i4 /* value */);
+	void f15_print_i32(i4 /* value */);
 	f15_print_i32(v151);
 
 endsub:;
@@ -295,7 +295,7 @@ void f17_print_i8(i1 p152 /* value */) {
 	i1 v154 = *(i1*)(intptr_t)v153;
 	i4 v155 = v154;
 
-void f15_print_i32(i4 /* value */);
+	void f15_print_i32(i4 /* value */);
 	f15_print_i32(v155);
 
 endsub:;
@@ -346,7 +346,7 @@ c02_0021:;
 	i8 v175 = (i8)(intptr_t)(ws+730);
 	i1 v176 = *(i1*)(intptr_t)v175;
 
-void f8_print_char(i1 /* c */);
+	void f8_print_char(i1 /* c */);
 	f8_print_char(v176);
 
 	i8 v177 = (i8)(intptr_t)(ws+728);
@@ -392,7 +392,7 @@ void f20_print_hex_i32(i4 p198 /* value */) {
 	i4 v202 = ((i4)v200)>>v201;
 	i1 v203 = v202;
 
-void f18_print_hex_i8(i1 /* value */);
+	void f18_print_hex_i8(i1 /* value */);
 	f18_print_hex_i8(v203);
 
 	i8 v204 = (i8)(intptr_t)(ws+720);
@@ -401,7 +401,7 @@ void f18_print_hex_i8(i1 /* value */);
 	i4 v207 = ((i4)v205)>>v206;
 	i1 v208 = v207;
 
-void f18_print_hex_i8(i1 /* value */);
+	void f18_print_hex_i8(i1 /* value */);
 	f18_print_hex_i8(v208);
 
 	i8 v209 = (i8)(intptr_t)(ws+720);
@@ -410,14 +410,14 @@ void f18_print_hex_i8(i1 /* value */);
 	i4 v212 = ((i4)v210)>>v211;
 	i1 v213 = v212;
 
-void f18_print_hex_i8(i1 /* value */);
+	void f18_print_hex_i8(i1 /* value */);
 	f18_print_hex_i8(v213);
 
 	i8 v214 = (i8)(intptr_t)(ws+720);
 	i4 v215 = *(i4*)(intptr_t)v214;
 	i1 v216 = v215;
 
-void f18_print_hex_i8(i1 /* value */);
+	void f18_print_hex_i8(i1 /* value */);
 	f18_print_hex_i8(v216);
 
 endsub:;
@@ -601,14 +601,14 @@ c02_006b:;
 	i8 v396 = *(i8*)(intptr_t)v395;
 	i1 v397 = *(i1*)(intptr_t)v396;
 
-void f26_ToLower(i1* /* cc */, i1 /* c */);
+	void f26_ToLower(i1* /* cc */, i1 /* c */);
 	i1 v398;
 	f26_ToLower(&v398, v397);
 	i8 v399 = (i8)(intptr_t)(ws+640);
 	i8 v400 = *(i8*)(intptr_t)v399;
 	i1 v401 = *(i1*)(intptr_t)v400;
 
-void f26_ToLower(i1* /* cc */, i1 /* c */);
+	void f26_ToLower(i1* /* cc */, i1 /* c */);
 	i1 v402;
 	f26_ToLower(&v402, v401);
 	i1 v403 = v398-v402;
@@ -707,7 +707,7 @@ void f36_fcb_i_blockin(i8 p494 /* fcb */) {
 	i1 v498 = (i1)+0;
 	i8 v499 = (i8)+512;
 
-void f7_MemSet(i8 /* len */, i1 /* byte */, i8 /* buf */);
+	void f7_MemSet(i8 /* len */, i1 /* byte */, i8 /* buf */);
 	f7_MemSet(v499, v498, v497);
 
 	i8 v500 = (i8)(intptr_t)(ws+808);
@@ -831,7 +831,7 @@ c02_0091:;
 	i8 v552 = (i8)(intptr_t)(ws+792);
 	i8 v553 = *(i8*)(intptr_t)v552;
 
-void f37_fcb_i_blockout(i8 /* fcb */);
+	void f37_fcb_i_blockout(i8 /* fcb */);
 	f37_fcb_i_blockout(v553);
 
 	i8 v554 = (i8)(intptr_t)(ws+800);
@@ -844,7 +844,7 @@ void f37_fcb_i_blockout(i8 /* fcb */);
 	i8 v559 = (i8)(intptr_t)(ws+792);
 	i8 v560 = *(i8*)(intptr_t)v559;
 
-void f36_fcb_i_blockin(i8 /* fcb */);
+	void f36_fcb_i_blockin(i8 /* fcb */);
 	f36_fcb_i_blockin(v560);
 
 	goto c02_008e;
@@ -867,7 +867,7 @@ void f39_fcb_i_open(i1* p561 /* errno */, i4 p562 /* flags */, i8 p563 /* filena
 	i1 v567 = (i1)+0;
 	i8 v568 = (i8)+524;
 
-void f7_MemSet(i8 /* len */, i1 /* byte */, i8 /* buf */);
+	void f7_MemSet(i8 /* len */, i1 /* byte */, i8 /* buf */);
 	f7_MemSet(v568, v567, v566);
 
 	i2 v569 = (i2)+511;
@@ -940,7 +940,7 @@ void f40_FCBOpenIn(i1* p586 /* errno */, i8 p587 /* filename */, i8 p588 /* fcb 
 	i8 v592 = *(i8*)(intptr_t)v591;
 	i4 v593 = (i4)+0;
 
-void f39_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
+	void f39_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
 	i1 v594;
 	f39_fcb_i_open(&v594, v593, v592, v590);
 	i8 v595 = (i8)(intptr_t)(ws+736);
@@ -961,7 +961,7 @@ void f42_FCBOpenOut(i1* p606 /* errno */, i8 p607 /* filename */, i8 p608 /* fcb
 	i8 v612 = *(i8*)(intptr_t)v611;
 	i4 v613 = (i4)+578;
 
-void f39_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
+	void f39_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
 	i1 v614;
 	f39_fcb_i_open(&v614, v613, v612, v610);
 	i8 v615 = (i8)(intptr_t)(ws+656);
@@ -978,7 +978,7 @@ void f43_FCBClose(i1* p616 /* errno */, i8 p617 /* fcb */) {
 	i8 v618 = (i8)(intptr_t)(ws+632);
 	i8 v619 = *(i8*)(intptr_t)v618;
 
-void f37_fcb_i_blockout(i8 /* fcb */);
+	void f37_fcb_i_blockout(i8 /* fcb */);
 	f37_fcb_i_blockout(v619);
 
 	i8 v620 = (i8)(intptr_t)(ws+632);
@@ -1036,7 +1036,7 @@ void f44_FCBSeek(i4 p624 /* pos */, i8 p625 /* fcb */) {
 	i8 v642 = (i8)(intptr_t)(ws+732);
 	i4 v643 = *(i4*)(intptr_t)v642;
 
-void f38_fcb_i_changeblock(i4 /* newblock */, i8 /* fcb */);
+	void f38_fcb_i_changeblock(i4 /* newblock */, i8 /* fcb */);
 	f38_fcb_i_changeblock(v643, v641);
 
 	i8 v644 = (i8)(intptr_t)(ws+736);
@@ -1080,7 +1080,7 @@ void f46_FCBExt(i4* p665 /* len */, i8 p666 /* fcb */) {
 	i8 v667 = (i8)(intptr_t)(ws+656);
 	i8 v668 = *(i8*)(intptr_t)v667;
 
-void f37_fcb_i_blockout(i8 /* fcb */);
+	void f37_fcb_i_blockout(i8 /* fcb */);
 	f37_fcb_i_blockout(v668);
 
 	i8 v669 = (i8)(intptr_t)(ws+656);
@@ -1138,7 +1138,7 @@ c02_009b:;
 	i4 v697 = *(i4*)(intptr_t)v696;
 	i4 v698 = v697+(+1);
 
-void f38_fcb_i_changeblock(i4 /* newblock */, i8 /* fcb */);
+	void f38_fcb_i_changeblock(i4 /* newblock */, i8 /* fcb */);
 	f38_fcb_i_changeblock(v698, v693);
 
 	i2 v699 = (i2)+0;
@@ -1163,7 +1163,7 @@ void f48_FCBGetChar(i1* p703 /* c */, i8 p704 /* fcb */) {
 	i8 v705 = (i8)(intptr_t)(ws+768);
 	i8 v706 = *(i8*)(intptr_t)v705;
 
-void f47_fcb_i_nextchar(i8 /* fcb */);
+	void f47_fcb_i_nextchar(i8 /* fcb */);
 	f47_fcb_i_nextchar(v706);
 
 	i8 v707 = (i8)(intptr_t)(ws+768);
@@ -1191,7 +1191,7 @@ void f49_FCBPutChar(i1 p718 /* c */, i8 p719 /* fcb */) {
 	i8 v720 = (i8)(intptr_t)(ws+760);
 	i8 v721 = *(i8*)(intptr_t)v720;
 
-void f47_fcb_i_nextchar(i8 /* fcb */);
+	void f47_fcb_i_nextchar(i8 /* fcb */);
 	f47_fcb_i_nextchar(v721);
 
 	i8 v722 = (i8)(intptr_t)(ws+768);
@@ -1222,7 +1222,7 @@ void f53_StartError(void) {
 
 	i8 v798 = (i8)(intptr_t)c02_s0000;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v798);
 
 endsub:;
@@ -1232,11 +1232,11 @@ endsub:;
 void f54_EndError(void) {
 
 
-void f12_print_nl(void);
+	void f12_print_nl(void);
 	f12_print_nl();
 
 
-void f6_ExitWithError(void);
+	void f6_ExitWithError(void);
 	f6_ExitWithError();
 
 endsub:;
@@ -1247,17 +1247,17 @@ void f55_SimpleError(i8 p799 /* s */) {
 	*(i8*)(intptr_t)(ws+656) = p799; /*s */
 
 
-void f53_StartError(void);
+	void f53_StartError(void);
 	f53_StartError();
 
 	i8 v800 = (i8)(intptr_t)(ws+656);
 	i8 v801 = *(i8*)(intptr_t)v800;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v801);
 
 
-void f54_EndError(void);
+	void f54_EndError(void);
 	f54_EndError();
 
 endsub:;
@@ -1270,27 +1270,27 @@ void f56_CannotOpen(i8 p802 /* filename */) {
 	*(i8*)(intptr_t)(ws+720) = p802; /*filename */
 
 
-void f53_StartError(void);
+	void f53_StartError(void);
 	f53_StartError();
 
 	i8 v803 = (i8)(intptr_t)c02_s0001;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v803);
 
 	i8 v804 = (i8)(intptr_t)(ws+720);
 	i8 v805 = *(i8*)(intptr_t)v804;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v805);
 
 	i8 v806 = (i8)(intptr_t)c02_s0002;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v806);
 
 
-void f54_EndError(void);
+	void f54_EndError(void);
 	f54_EndError();
 
 endsub:;
@@ -1304,7 +1304,7 @@ void f57_E_b8(i1 p807 /* c */) {
 	i8 v809 = (i8)(intptr_t)(ws+752);
 	i1 v810 = *(i1*)(intptr_t)v809;
 
-void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
 	f49_FCBPutChar(v810, v808);
 
 endsub:;
@@ -1344,7 +1344,7 @@ c02_00b2:;
 	i8 v823 = (i8)(intptr_t)(ws+744);
 	i1 v824 = *(i1*)(intptr_t)v823;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v824);
 
 	goto c02_00b0;
@@ -1368,7 +1368,7 @@ void f59_E_u32(i4 p825 /* value */) {
 	i8 v831 = (i8)(intptr_t)(ws+728);
 	i8 v832 = *(i8*)(intptr_t)v831;
 
-void f13_UIToA(i8* /* ptr */, i8 /* buffer */, i1 /* base */, i4 /* value */);
+	void f13_UIToA(i8* /* ptr */, i8 /* buffer */, i1 /* base */, i4 /* value */);
 	i8 v833;
 	f13_UIToA(&v833, v832, v830, v829);
 	i8 v834 = (i8)(intptr_t)(ws+736);
@@ -1398,7 +1398,7 @@ c02_00b9:;
 	i8 v842 = (i8)(intptr_t)(ws+744);
 	i1 v843 = *(i1*)(intptr_t)v842;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v843);
 
 	i8 v844 = (i8)(intptr_t)(ws+728);
@@ -1422,7 +1422,7 @@ void f60_E_u16(i2 p848 /* value */) {
 	i2 v850 = *(i2*)(intptr_t)v849;
 	i4 v851 = v850;
 
-void f59_E_u32(i4 /* value */);
+	void f59_E_u32(i4 /* value */);
 	f59_E_u32(v851);
 
 endsub:;
@@ -1438,7 +1438,7 @@ void f63_E_h(i1 p868 /* width */, i4 p869 /* value */) {
 	i1 v872 = (i1)+16;
 	i8 v873 = (i8)(intptr_t)(ws+709);
 
-void f13_UIToA(i8* /* ptr */, i8 /* buffer */, i1 /* base */, i4 /* value */);
+	void f13_UIToA(i8* /* ptr */, i8 /* buffer */, i1 /* base */, i4 /* value */);
 	i8 v874;
 	f13_UIToA(&v874, v873, v872, v871);
 	i8 v875 = (i8)(intptr_t)(ws+720);
@@ -1466,7 +1466,7 @@ c02_00c7:;
 
 	i1 v888 = (i1)+48;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v888);
 
 	i8 v889 = (i8)(intptr_t)(ws+728);
@@ -1481,7 +1481,7 @@ c02_00c8:;
 
 	i8 v893 = (i8)(intptr_t)(ws+709);
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v893);
 
 endsub:;
@@ -1496,7 +1496,7 @@ void f64_E_h8(i1 p894 /* value */) {
 	i4 v897 = v896;
 	i1 v898 = (i1)+2;
 
-void f63_E_h(i1 /* width */, i4 /* value */);
+	void f63_E_h(i1 /* width */, i4 /* value */);
 	f63_E_h(v898, v897);
 
 endsub:;
@@ -1511,7 +1511,7 @@ void f65_E_h16(i2 p899 /* value */) {
 	i4 v902 = v901;
 	i1 v903 = (i1)+4;
 
-void f63_E_h(i1 /* width */, i4 /* value */);
+	void f63_E_h(i1 /* width */, i4 /* value */);
 	f63_E_h(v903, v902);
 
 endsub:;
@@ -1526,7 +1526,7 @@ void f66_EmitterOpenfile(i8 p904 /* filename */) {
 	i8 v906 = (i8)(intptr_t)(ws+632);
 	i8 v907 = *(i8*)(intptr_t)v906;
 
-void f42_FCBOpenOut(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
+	void f42_FCBOpenOut(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
 	i1 v908;
 	f42_FCBOpenOut(&v908, v907, v905);
 	i1 v909 = (i1)+0;
@@ -1536,7 +1536,7 @@ c02_00cc:;
 
 	i8 v910 = (i8)(intptr_t)c02_s0003;
 
-void f55_SimpleError(i8 /* s */);
+	void f55_SimpleError(i8 /* s */);
 	f55_SimpleError(v910);
 
 	goto c02_00c9;
@@ -1554,7 +1554,7 @@ void f67_EmitterClosefile(void) {
 
 	i8 v911 = (i8)(intptr_t)(ws+44);
 
-void f43_FCBClose(i1* /* errno */, i8 /* fcb */);
+	void f43_FCBClose(i1* /* errno */, i8 /* fcb */);
 	i1 v912;
 	f43_FCBClose(&v912, v911);
 	i1 v913 = (i1)+0;
@@ -1564,7 +1564,7 @@ c02_00d1:;
 
 	i8 v914 = (i8)(intptr_t)c02_s0004;
 
-void f55_SimpleError(i8 /* s */);
+	void f55_SimpleError(i8 /* s */);
 	f55_SimpleError(v914);
 
 	goto c02_00ce;
@@ -1610,7 +1610,7 @@ void f70_ArchEmitSubRef(i8 p934 /* subr */) {
 
 	i1 v935 = (i1)+102;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v935);
 
 	i8 v936 = (i8)(intptr_t)(ws+696);
@@ -1618,12 +1618,12 @@ void f57_E_b8(i1 /* c */);
 	i8 v938 = v937+(+186);
 	i2 v939 = *(i2*)(intptr_t)v938;
 
-void f60_E_u16(i2 /* value */);
+	void f60_E_u16(i2 /* value */);
 	f60_E_u16(v939);
 
 	i1 v940 = (i1)+95;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v940);
 
 	i8 v941 = (i8)(intptr_t)(ws+696);
@@ -1631,7 +1631,7 @@ void f57_E_b8(i1 /* c */);
 	i8 v943 = v942+(+152);
 	i8 v944 = *(i8*)(intptr_t)v943;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v944);
 
 endsub:;
@@ -1645,13 +1645,13 @@ void f71_ArchEmitWSRef(i2 p945 /* address */, i1 p946 /* wid */) {
 
 	i8 v947 = (i8)(intptr_t)c02_s0005;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v947);
 
 	i8 v948 = (i8)(intptr_t)(ws+698);
 	i2 v949 = *(i2*)(intptr_t)v948;
 
-void f60_E_u16(i2 /* value */);
+	void f60_E_u16(i2 /* value */);
 	f60_E_u16(v949);
 
 endsub:;
@@ -1667,12 +1667,12 @@ void f72_ArchEmitHeader(i8 p950 /* coo */) {
 
 	i8 v951 = (i8)(intptr_t)c02_s0006;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v951);
 
 	i8 v952 = (i8)(intptr_t)c02_s0007;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v952);
 
 	i8 v953 = (i8)(intptr_t)(ws+568);
@@ -1681,17 +1681,17 @@ void f58_E(i8 /* text */);
 	i1 v956 = (i1)+3;
 	i2 v957 = ((i2)v955)>>v956;
 
-void f65_E_h16(i2 /* value */);
+	void f65_E_h16(i2 /* value */);
 	f65_E_h16(v957);
 
 	i8 v958 = (i8)(intptr_t)c02_s0008;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v958);
 
 	i8 v959 = (i8)(intptr_t)c02_s0009;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v959);
 
 endsub:;
@@ -1706,7 +1706,7 @@ void f73_ArchEmitFooter(i8 p960 /* coo */) {
 
 	i8 v961 = (i8)(intptr_t)c02_s000a;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v961);
 
 c02_00d5:;
@@ -1734,18 +1734,18 @@ c02_00dc:;
 
 	i1 v973 = (i1)+9;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v973);
 
 	i8 v974 = (i8)(intptr_t)(ws+640);
 	i8 v975 = *(i8*)(intptr_t)v974;
 
-void f70_ArchEmitSubRef(i8 /* subr */);
+	void f70_ArchEmitSubRef(i8 /* subr */);
 	f70_ArchEmitSubRef(v975);
 
 	i8 v976 = (i8)(intptr_t)c02_s000b;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v976);
 
 	goto c02_00d9;
@@ -1767,17 +1767,17 @@ c02_00d8:;
 
 	i8 v982 = (i8)(intptr_t)c02_s000c;
 
-void f58_E(i8 /* text */);
+	void f58_E(i8 /* text */);
 	f58_E(v982);
 
 	i8 v983 = (i8)(intptr_t)(ws+44);
 
-void f46_FCBExt(i4* /* len */, i8 /* fcb */);
+	void f46_FCBExt(i4* /* len */, i8 /* fcb */);
 	i4 v984;
 	f46_FCBExt(&v984, v983);
 	i8 v985 = (i8)(intptr_t)(ws+44);
 
-void f45_FCBPos(i4* /* pos */, i8 /* fcb */);
+	void f45_FCBPos(i4* /* pos */, i8 /* fcb */);
 	i4 v986;
 	f45_FCBPos(&v986, v985);
 	i4 v987 = v984-v986;
@@ -1795,7 +1795,7 @@ c02_00e2:;
 
 	i1 v992 = (i1)+32;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v992);
 
 	i8 v993 = (i8)(intptr_t)(ws+648);
@@ -1818,7 +1818,7 @@ void f74_read_bin1(i1* p999 /* c */, i8 p1000 /* fcb */) {
 	i8 v1001 = (i8)(intptr_t)(ws+752);
 	i8 v1002 = *(i8*)(intptr_t)v1001;
 
-void f48_FCBGetChar(i1* /* c */, i8 /* fcb */);
+	void f48_FCBGetChar(i1* /* c */, i8 /* fcb */);
 	i1 v1003;
 	f48_FCBGetChar(&v1003, v1002);
 	i8 v1004 = (i8)(intptr_t)(ws+760);
@@ -1835,7 +1835,7 @@ void f75_read_bin2(i2* p1005 /* val */, i8 p1006 /* fcb */) {
 	i8 v1007 = (i8)(intptr_t)(ws+720);
 	i8 v1008 = *(i8*)(intptr_t)v1007;
 
-void f74_read_bin1(i1* /* c */, i8 /* fcb */);
+	void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i1 v1009;
 	f74_read_bin1(&v1009, v1008);
 	i2 v1010 = v1009;
@@ -1847,7 +1847,7 @@ void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i8 v1014 = (i8)(intptr_t)(ws+720);
 	i8 v1015 = *(i8*)(intptr_t)v1014;
 
-void f74_read_bin1(i1* /* c */, i8 /* fcb */);
+	void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i1 v1016;
 	f74_read_bin1(&v1016, v1015);
 	i2 v1017 = v1016;
@@ -1871,7 +1871,7 @@ void f76_read_string(i8* p1022 /* ptr */, i1 p1023 /* len */, i8 p1024 /* fcb */
 	i1 v1027 = v1026+(+1);
 	i8 v1028 = v1027;
 
-void f31_Alloc(i8* /* block */, i8 /* length */);
+	void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1029;
 	f31_Alloc(&v1029, v1028);
 	i8 v1030 = (i8)(intptr_t)(ws+736);
@@ -1900,7 +1900,7 @@ c02_00e6:;
 	i8 v1037 = (i8)(intptr_t)(ws+720);
 	i8 v1038 = *(i8*)(intptr_t)v1037;
 
-void f74_read_bin1(i1* /* c */, i8 /* fcb */);
+	void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i1 v1039;
 	f74_read_bin1(&v1039, v1038);
 	i8 v1040 = (i8)(intptr_t)(ws+744);
@@ -1972,7 +1972,7 @@ c02_00f4:;
 
 	i8 v1074 = (i8)+136;
 
-void f31_Alloc(i8* /* block */, i8 /* length */);
+	void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1075;
 	f31_Alloc(&v1075, v1074);
 	i8 v1076 = (i8)(intptr_t)(ws+744);
@@ -2048,7 +2048,7 @@ c02_00ff:;
 
 	i8 v1112 = (i8)+136;
 
-void f31_Alloc(i8* /* block */, i8 /* length */);
+	void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1113;
 	f31_Alloc(&v1113, v1112);
 	i8 v1114 = (i8)(intptr_t)(ws+776);
@@ -2104,7 +2104,7 @@ void f79_FindOrCreateSub(i8* p1135 /* subroutine */, i2 p1136 /* id */, i8 p1137
 	i8 v1140 = (i8)(intptr_t)(ws+728);
 	i2 v1141 = *(i2*)(intptr_t)v1140;
 
-void f78_FindSub(i8* /* ptr */, i2 /* id */, i8 /* coo */);
+	void f78_FindSub(i8* /* ptr */, i2 /* id */, i8 /* coo */);
 	i8 v1142;
 	f78_FindSub(&v1142, v1141, v1139);
 	i8 v1143 = (i8)(intptr_t)(ws+744);
@@ -2125,7 +2125,7 @@ c02_0104:;
 
 	i8 v1151 = (i8)+189;
 
-void f31_Alloc(i8* /* block */, i8 /* length */);
+	void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1152;
 	f31_Alloc(&v1152, v1151);
 	i8 v1153 = (i8)(intptr_t)(ws+736);
@@ -2256,7 +2256,7 @@ c02_0114:;
 	i8 v1212 = (i8)(intptr_t)(ws+720);
 	i8 v1213 = *(i8*)(intptr_t)v1212;
 
-void f25_StrCmp(i1* /* res */, i8 /* s2 */, i8 /* s1 */);
+	void f25_StrCmp(i1* /* res */, i8 /* s2 */, i8 /* s1 */);
 	i1 v1214;
 	f25_StrCmp(&v1214, v1213, v1211);
 	i1 v1215 = (i1)+0;
@@ -2282,7 +2282,7 @@ c02_0115:;
 
 	i8 v1220 = (i8)+24;
 
-void f31_Alloc(i8* /* block */, i8 /* length */);
+	void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1221;
 	f31_Alloc(&v1221, v1220);
 	i8 v1222 = (i8)(intptr_t)(ws+728);
@@ -2297,7 +2297,7 @@ void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1227 = (i8)(intptr_t)(ws+720);
 	i8 v1228 = *(i8*)(intptr_t)v1227;
 
-void f33_StrDup(i8* /* sout */, i8 /* s */);
+	void f33_StrDup(i8* /* sout */, i8 /* s */);
 	i8 v1229;
 	f33_StrDup(&v1229, v1228);
 	i8 v1230 = (i8)(intptr_t)(ws+728);
@@ -2325,7 +2325,7 @@ void f82_OpenAndLoadCoo(i8* p1236 /* coo */, i8 p1237 /* filename */) {
 
 	i8 v1238 = (i8)+674;
 
-void f31_Alloc(i8* /* block */, i8 /* length */);
+	void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1239;
 	f31_Alloc(&v1239, v1238);
 	i8 v1240 = (i8)(intptr_t)(ws+664);
@@ -2349,7 +2349,7 @@ void f31_Alloc(i8* /* block */, i8 /* length */);
 	i8 v1252 = (i8)(intptr_t)(ws+656);
 	i8 v1253 = *(i8*)(intptr_t)v1252;
 
-void f40_FCBOpenIn(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
+	void f40_FCBOpenIn(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
 	i1 v1254;
 	f40_FCBOpenIn(&v1254, v1253, v1251);
 	i1 v1255 = (i1)+0;
@@ -2360,7 +2360,7 @@ c02_011e:;
 	i8 v1256 = (i8)(intptr_t)(ws+656);
 	i8 v1257 = *(i8*)(intptr_t)v1256;
 
-void f56_CannotOpen(i8 /* filename */);
+	void f56_CannotOpen(i8 /* filename */);
 	f56_CannotOpen(v1257);
 
 	goto c02_011b;
@@ -2380,13 +2380,13 @@ c02_0120:;
 	i8 v1262 = (i8)(intptr_t)(ws+676);
 	i4 v1263 = *(i4*)(intptr_t)v1262;
 
-void f44_FCBSeek(i4 /* pos */, i8 /* fcb */);
+	void f44_FCBSeek(i4 /* pos */, i8 /* fcb */);
 	f44_FCBSeek(v1263, v1261);
 
 	i8 v1264 = (i8)(intptr_t)(ws+664);
 	i8 v1265 = *(i8*)(intptr_t)v1264;
 
-void f74_read_bin1(i1* /* c */, i8 /* fcb */);
+	void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i1 v1266;
 	f74_read_bin1(&v1266, v1265);
 	i8 v1267 = (i8)(intptr_t)(ws+680);
@@ -2395,7 +2395,7 @@ void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i8 v1268 = (i8)(intptr_t)(ws+664);
 	i8 v1269 = *(i8*)(intptr_t)v1268;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1270;
 	f75_read_bin2(&v1270, v1269);
 	i8 v1271 = (i8)(intptr_t)(ws+682);
@@ -2422,7 +2422,7 @@ c02_0129:;
 	i8 v1278 = (i8)(intptr_t)(ws+664);
 	i8 v1279 = *(i8*)(intptr_t)v1278;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1280;
 	f75_read_bin2(&v1280, v1279);
 	i8 v1281 = (i8)(intptr_t)(ws+672);
@@ -2433,7 +2433,7 @@ void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i8 v1284 = (i8)(intptr_t)(ws+672);
 	i2 v1285 = *(i2*)(intptr_t)v1284;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1286;
 	f79_FindOrCreateSub(&v1286, v1285, v1283);
 	i8 v1287 = (i8)(intptr_t)(ws+688);
@@ -2463,7 +2463,7 @@ c02_012d:;
 	i8 v1299 = (i8)(intptr_t)(ws+664);
 	i8 v1300 = *(i8*)(intptr_t)v1299;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1301;
 	f75_read_bin2(&v1301, v1300);
 	i8 v1302 = (i8)(intptr_t)(ws+696);
@@ -2472,7 +2472,7 @@ void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i8 v1303 = (i8)(intptr_t)(ws+664);
 	i8 v1304 = *(i8*)(intptr_t)v1303;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1305;
 	f75_read_bin2(&v1305, v1304);
 	i8 v1306 = (i8)(intptr_t)(ws+698);
@@ -2483,7 +2483,7 @@ void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i8 v1309 = (i8)(intptr_t)(ws+696);
 	i2 v1310 = *(i2*)(intptr_t)v1309;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1311;
 	f79_FindOrCreateSub(&v1311, v1310, v1308);
 	i8 v1312 = (i8)(intptr_t)(ws+664);
@@ -2491,11 +2491,11 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1314 = (i8)(intptr_t)(ws+698);
 	i2 v1315 = *(i2*)(intptr_t)v1314;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1316;
 	f79_FindOrCreateSub(&v1316, v1315, v1313);
 
-void f77_AddRef(i8 /* calls */, i8 /* subr */);
+	void f77_AddRef(i8 /* calls */, i8 /* subr */);
 	f77_AddRef(v1316, v1311);
 
 	goto c02_0122;
@@ -2512,7 +2512,7 @@ c02_0131:;
 	i8 v1320 = (i8)(intptr_t)(ws+664);
 	i8 v1321 = *(i8*)(intptr_t)v1320;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1322;
 	f75_read_bin2(&v1322, v1321);
 	i8 v1323 = (i8)(intptr_t)(ws+672);
@@ -2523,7 +2523,7 @@ void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i8 v1326 = (i8)(intptr_t)(ws+672);
 	i2 v1327 = *(i2*)(intptr_t)v1326;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1328;
 	f79_FindOrCreateSub(&v1328, v1327, v1325);
 	i8 v1329 = (i8)(intptr_t)(ws+688);
@@ -2532,7 +2532,7 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1330 = (i8)(intptr_t)(ws+664);
 	i8 v1331 = *(i8*)(intptr_t)v1330;
 
-void f74_read_bin1(i1* /* c */, i8 /* fcb */);
+	void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i1 v1332;
 	f74_read_bin1(&v1332, v1331);
 	i8 v1333 = (i8)(intptr_t)(ws+700);
@@ -2541,7 +2541,7 @@ void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i8 v1334 = (i8)(intptr_t)(ws+664);
 	i8 v1335 = *(i8*)(intptr_t)v1334;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1336;
 	f75_read_bin2(&v1336, v1335);
 	i8 v1337 = (i8)(intptr_t)(ws+688);
@@ -2569,7 +2569,7 @@ c02_0135:;
 	i8 v1349 = (i8)(intptr_t)(ws+664);
 	i8 v1350 = *(i8*)(intptr_t)v1349;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1351;
 	f75_read_bin2(&v1351, v1350);
 	i8 v1352 = (i8)(intptr_t)(ws+672);
@@ -2580,7 +2580,7 @@ void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i8 v1355 = (i8)(intptr_t)(ws+672);
 	i2 v1356 = *(i2*)(intptr_t)v1355;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1357;
 	f79_FindOrCreateSub(&v1357, v1356, v1354);
 	i8 v1358 = (i8)(intptr_t)(ws+688);
@@ -2593,7 +2593,7 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i1 v1363 = v1362;
 	i1 v1364 = v1363+(-2);
 
-void f76_read_string(i8* /* ptr */, i1 /* len */, i8 /* fcb */);
+	void f76_read_string(i8* /* ptr */, i1 /* len */, i8 /* fcb */);
 	i8 v1365;
 	f76_read_string(&v1365, v1364, v1360);
 	i8 v1366 = (i8)(intptr_t)(ws+688);
@@ -2615,7 +2615,7 @@ c02_0139:;
 	i8 v1372 = (i8)(intptr_t)(ws+664);
 	i8 v1373 = *(i8*)(intptr_t)v1372;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1374;
 	f75_read_bin2(&v1374, v1373);
 	i8 v1375 = (i8)(intptr_t)(ws+672);
@@ -2626,7 +2626,7 @@ void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i8 v1378 = (i8)(intptr_t)(ws+672);
 	i2 v1379 = *(i2*)(intptr_t)v1378;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1380;
 	f79_FindOrCreateSub(&v1380, v1379, v1377);
 	i8 v1381 = (i8)(intptr_t)(ws+688);
@@ -2639,7 +2639,7 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i1 v1386 = v1385;
 	i1 v1387 = v1386+(-2);
 
-void f76_read_string(i8* /* ptr */, i1 /* len */, i8 /* fcb */);
+	void f76_read_string(i8* /* ptr */, i1 /* len */, i8 /* fcb */);
 	i8 v1388;
 	f76_read_string(&v1388, v1387, v1383);
 	i8 v1389 = (i8)(intptr_t)(ws+704);
@@ -2648,7 +2648,7 @@ void f76_read_string(i8* /* ptr */, i1 /* len */, i8 /* fcb */);
 	i8 v1390 = (i8)(intptr_t)(ws+704);
 	i8 v1391 = *(i8*)(intptr_t)v1390;
 
-void f81_FindOrCreateExternal(i8* /* external */, i8 /* name */);
+	void f81_FindOrCreateExternal(i8* /* external */, i8 /* name */);
 	i8 v1392;
 	f81_FindOrCreateExternal(&v1392, v1391);
 	i8 v1393 = (i8)(intptr_t)(ws+712);
@@ -2664,27 +2664,27 @@ void f81_FindOrCreateExternal(i8* /* external */, i8 /* name */);
 c02_013e:;
 
 
-void f53_StartError(void);
+	void f53_StartError(void);
 	f53_StartError();
 
 	i8 v1399 = (i8)(intptr_t)c02_s000d;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1399);
 
 	i8 v1400 = (i8)(intptr_t)(ws+704);
 	i8 v1401 = *(i8*)(intptr_t)v1400;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1401);
 
 	i8 v1402 = (i8)(intptr_t)c02_s000e;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1402);
 
 
-void f54_EndError(void);
+	void f54_EndError(void);
 	f54_EndError();
 
 	goto c02_013b;
@@ -2706,43 +2706,43 @@ c02_013a:;
 
 	i8 v1408 = (i8)(intptr_t)c02_s000f;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1408);
 
 	i8 v1409 = (i8)(intptr_t)(ws+680);
 	i1 v1410 = *(i1*)(intptr_t)v1409;
 
-void f8_print_char(i1 /* c */);
+	void f8_print_char(i1 /* c */);
 	f8_print_char(v1410);
 
 	i8 v1411 = (i8)(intptr_t)c02_s0010;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1411);
 
 	i8 v1412 = (i8)(intptr_t)(ws+656);
 	i8 v1413 = *(i8*)(intptr_t)v1412;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1413);
 
 	i8 v1414 = (i8)(intptr_t)c02_s0011;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1414);
 
 	i8 v1415 = (i8)(intptr_t)(ws+676);
 	i4 v1416 = *(i4*)(intptr_t)v1415;
 
-void f20_print_hex_i32(i4 /* value */);
+	void f20_print_hex_i32(i4 /* value */);
 	f20_print_hex_i32(v1416);
 
 
-void f12_print_nl(void);
+	void f12_print_nl(void);
 	f12_print_nl();
 
 
-void f6_ExitWithError(void);
+	void f6_ExitWithError(void);
 	f6_ExitWithError();
 
 c02_0122:;
@@ -2772,21 +2772,21 @@ void f84_MalformedError(i8 p1426 /* s */) {
 
 	i8 v1427 = (i8)(intptr_t)c02_s0012;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1427);
 
 	i8 v1428 = (i8)(intptr_t)(ws+704);
 	i8 v1429 = *(i8*)(intptr_t)v1428;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1429);
 
 
-void f12_print_nl(void);
+	void f12_print_nl(void);
 	f12_print_nl();
 
 
-void f6_ExitWithError(void);
+	void f6_ExitWithError(void);
 	f6_ExitWithError();
 
 endsub:;
@@ -2798,7 +2798,7 @@ void f85_UnexpectedEndOfChunk(void) {
 
 	i8 v1430 = (i8)(intptr_t)c02_s0013;
 
-void f84_MalformedError(i8 /* s */);
+	void f84_MalformedError(i8 /* s */);
 	f84_MalformedError(v1430);
 
 endsub:;
@@ -2815,7 +2815,7 @@ void f86_ReadB1(i1* p1431 /* result */) {
 c02_0143:;
 
 
-void f85_UnexpectedEndOfChunk(void);
+	void f85_UnexpectedEndOfChunk(void);
 	f85_UnexpectedEndOfChunk();
 
 	goto c02_0140;
@@ -2833,7 +2833,7 @@ c02_0140:;
 	i8 v1439 = (i8)(intptr_t)(ws+640);
 	i8 v1440 = *(i8*)(intptr_t)v1439;
 
-void f74_read_bin1(i1* /* c */, i8 /* fcb */);
+	void f74_read_bin1(i1* /* c */, i8 /* fcb */);
 	i1 v1441;
 	f74_read_bin1(&v1441, v1440);
 	i8 v1442 = (i8)(intptr_t)(ws+696);
@@ -2854,7 +2854,7 @@ void f87_ReadB2(i2* p1443 /* result */) {
 c02_0148:;
 
 
-void f85_UnexpectedEndOfChunk(void);
+	void f85_UnexpectedEndOfChunk(void);
 	f85_UnexpectedEndOfChunk();
 
 	goto c02_0145;
@@ -2872,7 +2872,7 @@ c02_0145:;
 	i8 v1451 = (i8)(intptr_t)(ws+640);
 	i8 v1452 = *(i8*)(intptr_t)v1451;
 
-void f75_read_bin2(i2* /* val */, i8 /* fcb */);
+	void f75_read_bin2(i2* /* val */, i8 /* fcb */);
 	i2 v1453;
 	f75_read_bin2(&v1453, v1452);
 	i8 v1454 = (i8)(intptr_t)(ws+696);
@@ -2901,12 +2901,12 @@ void f88_CheckSubExists(i8 p1455 /* subr */) {
 c02_014d:;
 
 
-void f53_StartError(void);
+	void f53_StartError(void);
 	f53_StartError();
 
 	i8 v1462 = (i8)(intptr_t)c02_s0014;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1462);
 
 	i8 v1463 = (i8)(intptr_t)(ws+696);
@@ -2920,7 +2920,7 @@ c02_0152:;
 
 	i8 v1468 = (i8)(intptr_t)c02_s0015;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1468);
 
 	i8 v1469 = (i8)(intptr_t)(ws+696);
@@ -2928,12 +2928,12 @@ void f11_print(i8 /* ptr */);
 	i8 v1471 = v1470+(+152);
 	i8 v1472 = *(i8*)(intptr_t)v1471;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1472);
 
 	i8 v1473 = (i8)(intptr_t)c02_s0016;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1473);
 
 	goto c02_014f;
@@ -2942,13 +2942,13 @@ c02_0153:;
 
 	i8 v1474 = (i8)(intptr_t)c02_s0017;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1474);
 
 c02_014f:;
 
 
-void f54_EndError(void);
+	void f54_EndError(void);
 	f54_EndError();
 
 	goto c02_014a;
@@ -2973,7 +2973,7 @@ c02_0156:;
 c02_0158:;
 
 
-void f86_ReadB1(i1* /* result */);
+	void f86_ReadB1(i1* /* result */);
 	i1 v1478;
 	f86_ReadB1(&v1478);
 	i8 v1479 = (i8)(intptr_t)(ws+664);
@@ -2986,7 +2986,7 @@ void f86_ReadB1(i1* /* result */);
 
 	i1 v1482 = (i1)+99;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v1482);
 
 	i8 v1483 = (i8)(intptr_t)(ws+640);
@@ -2995,12 +2995,12 @@ void f57_E_b8(i1 /* c */);
 	i2 v1486 = *(i2*)(intptr_t)v1485;
 	i1 v1487 = v1486;
 
-void f64_E_h8(i1 /* value */);
+	void f64_E_h8(i1 /* value */);
 	f64_E_h8(v1487);
 
 	i1 v1488 = (i1)+95;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v1488);
 
 	goto c02_015a;
@@ -3012,7 +3012,7 @@ c02_015b:;
 	i8 v1489 = (i8)(intptr_t)(ws+656);
 	i8 v1490 = *(i8*)(intptr_t)v1489;
 
-void f70_ArchEmitSubRef(i8 /* subr */);
+	void f70_ArchEmitSubRef(i8 /* subr */);
 	f70_ArchEmitSubRef(v1490);
 
 	goto c02_015a;
@@ -3022,7 +3022,7 @@ c02_015c:;
 	if (v1481 != +1) goto c02_015d;
 
 
-void f87_ReadB2(i2* /* result */);
+	void f87_ReadB2(i2* /* result */);
 	i2 v1491;
 	f87_ReadB2(&v1491);
 	i8 v1492 = (i8)(intptr_t)(ws+672);
@@ -3033,7 +3033,7 @@ void f87_ReadB2(i2* /* result */);
 	i8 v1495 = (i8)(intptr_t)(ws+672);
 	i2 v1496 = *(i2*)(intptr_t)v1495;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1497;
 	f79_FindOrCreateSub(&v1497, v1496, v1494);
 	i8 v1498 = (i8)(intptr_t)(ws+680);
@@ -3042,7 +3042,7 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1499 = (i8)(intptr_t)(ws+680);
 	i8 v1500 = *(i8*)(intptr_t)v1499;
 
-void f80_Deref(i8* /* subout */, i8 /* subin */);
+	void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1501;
 	f80_Deref(&v1501, v1500);
 	i8 v1502 = (i8)(intptr_t)(ws+680);
@@ -3051,13 +3051,13 @@ void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1503 = (i8)(intptr_t)(ws+680);
 	i8 v1504 = *(i8*)(intptr_t)v1503;
 
-void f88_CheckSubExists(i8 /* subr */);
+	void f88_CheckSubExists(i8 /* subr */);
 	f88_CheckSubExists(v1504);
 
 	i8 v1505 = (i8)(intptr_t)(ws+680);
 	i8 v1506 = *(i8*)(intptr_t)v1505;
 
-void f70_ArchEmitSubRef(i8 /* subr */);
+	void f70_ArchEmitSubRef(i8 /* subr */);
 	f70_ArchEmitSubRef(v1506);
 
 	goto c02_015a;
@@ -3067,21 +3067,21 @@ c02_015d:;
 	if (v1481 != +2) goto c02_015e;
 
 
-void f87_ReadB2(i2* /* result */);
+	void f87_ReadB2(i2* /* result */);
 	i2 v1507;
 	f87_ReadB2(&v1507);
 	i8 v1508 = (i8)(intptr_t)(ws+672);
 	*(i2*)(intptr_t)v1508 = v1507;
 
 
-void f86_ReadB1(i1* /* result */);
+	void f86_ReadB1(i1* /* result */);
 	i1 v1509;
 	f86_ReadB1(&v1509);
 	i8 v1510 = (i8)(intptr_t)(ws+688);
 	*(i1*)(intptr_t)v1510 = v1509;
 
 
-void f87_ReadB2(i2* /* result */);
+	void f87_ReadB2(i2* /* result */);
 	i2 v1511;
 	f87_ReadB2(&v1511);
 	i8 v1512 = (i8)(intptr_t)(ws+690);
@@ -3092,7 +3092,7 @@ void f87_ReadB2(i2* /* result */);
 	i8 v1515 = (i8)(intptr_t)(ws+672);
 	i2 v1516 = *(i2*)(intptr_t)v1515;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1517;
 	f79_FindOrCreateSub(&v1517, v1516, v1514);
 	i8 v1518 = (i8)(intptr_t)(ws+680);
@@ -3101,7 +3101,7 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1519 = (i8)(intptr_t)(ws+680);
 	i8 v1520 = *(i8*)(intptr_t)v1519;
 
-void f80_Deref(i8* /* subout */, i8 /* subin */);
+	void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1521;
 	f80_Deref(&v1521, v1520);
 	i8 v1522 = (i8)(intptr_t)(ws+680);
@@ -3110,7 +3110,7 @@ void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1523 = (i8)(intptr_t)(ws+680);
 	i8 v1524 = *(i8*)(intptr_t)v1523;
 
-void f88_CheckSubExists(i8 /* subr */);
+	void f88_CheckSubExists(i8 /* subr */);
 	f88_CheckSubExists(v1524);
 
 	i8 v1525 = (i8)(intptr_t)(ws+688);
@@ -3129,7 +3129,7 @@ void f88_CheckSubExists(i8 /* subr */);
 	i2 v1538 = *(i2*)(intptr_t)v1537;
 	i2 v1539 = v1536+v1538;
 
-void f71_ArchEmitWSRef(i2 /* address */, i1 /* wid */);
+	void f71_ArchEmitWSRef(i2 /* address */, i1 /* wid */);
 	f71_ArchEmitWSRef(v1539, v1526);
 
 	goto c02_015a;
@@ -3139,14 +3139,14 @@ c02_015e:;
 	if (v1481 != +5) goto c02_015f;
 
 
-void f87_ReadB2(i2* /* result */);
+	void f87_ReadB2(i2* /* result */);
 	i2 v1540;
 	f87_ReadB2(&v1540);
 	i8 v1541 = (i8)(intptr_t)(ws+672);
 	*(i2*)(intptr_t)v1541 = v1540;
 
 
-void f86_ReadB1(i1* /* result */);
+	void f86_ReadB1(i1* /* result */);
 	i1 v1542;
 	f86_ReadB1(&v1542);
 	i8 v1543 = (i8)(intptr_t)(ws+688);
@@ -3157,7 +3157,7 @@ void f86_ReadB1(i1* /* result */);
 	i8 v1546 = (i8)(intptr_t)(ws+672);
 	i2 v1547 = *(i2*)(intptr_t)v1546;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1548;
 	f79_FindOrCreateSub(&v1548, v1547, v1545);
 	i8 v1549 = (i8)(intptr_t)(ws+680);
@@ -3166,7 +3166,7 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1550 = (i8)(intptr_t)(ws+680);
 	i8 v1551 = *(i8*)(intptr_t)v1550;
 
-void f80_Deref(i8* /* subout */, i8 /* subin */);
+	void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1552;
 	f80_Deref(&v1552, v1551);
 	i8 v1553 = (i8)(intptr_t)(ws+680);
@@ -3175,7 +3175,7 @@ void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1554 = (i8)(intptr_t)(ws+680);
 	i8 v1555 = *(i8*)(intptr_t)v1554;
 
-void f88_CheckSubExists(i8 /* subr */);
+	void f88_CheckSubExists(i8 /* subr */);
 	f88_CheckSubExists(v1555);
 
 	i8 v1556 = (i8)(intptr_t)(ws+688);
@@ -3191,7 +3191,7 @@ void f88_CheckSubExists(i8 /* subr */);
 	i8 v1566 = v1560+v1565;
 	i2 v1567 = *(i2*)(intptr_t)v1566;
 
-void f71_ArchEmitWSRef(i2 /* address */, i1 /* wid */);
+	void f71_ArchEmitWSRef(i2 /* address */, i1 /* wid */);
 	f71_ArchEmitWSRef(v1567, v1557);
 
 	goto c02_015a;
@@ -3201,7 +3201,7 @@ c02_015f:;
 	i8 v1568 = (i8)(intptr_t)(ws+664);
 	i1 v1569 = *(i1*)(intptr_t)v1568;
 
-void f57_E_b8(i1 /* c */);
+	void f57_E_b8(i1 /* c */);
 	f57_E_b8(v1569);
 
 c02_015a:;
@@ -3239,18 +3239,18 @@ c02_0160:;
 	i8 v1576 = (i8)(intptr_t)(ws+668);
 	i4 v1577 = *(i4*)(intptr_t)v1576;
 
-void f44_FCBSeek(i4 /* pos */, i8 /* fcb */);
+	void f44_FCBSeek(i4 /* pos */, i8 /* fcb */);
 	f44_FCBSeek(v1577, v1575);
 
 
-void f86_ReadB1(i1* /* result */);
+	void f86_ReadB1(i1* /* result */);
 	i1 v1578;
 	f86_ReadB1(&v1578);
 	i8 v1579 = (i8)(intptr_t)(ws+664);
 	*(i1*)(intptr_t)v1579 = v1578;
 
 
-void f87_ReadB2(i2* /* result */);
+	void f87_ReadB2(i2* /* result */);
 	i2 v1580;
 	f87_ReadB2(&v1580);
 	i8 v1581 = (i8)(intptr_t)(ws+666);
@@ -3285,7 +3285,7 @@ c02_0166:;
 c02_0169:;
 
 
-void f87_ReadB2(i2* /* result */);
+	void f87_ReadB2(i2* /* result */);
 	i2 v1596;
 	f87_ReadB2(&v1596);
 	i8 v1597 = (i8)(intptr_t)(ws+648);
@@ -3296,7 +3296,7 @@ void f87_ReadB2(i2* /* result */);
 	i8 v1600 = (i8)(intptr_t)(ws+648);
 	i2 v1601 = *(i2*)(intptr_t)v1600;
 
-void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
+	void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1602;
 	f79_FindOrCreateSub(&v1602, v1601, v1599);
 	i8 v1603 = (i8)(intptr_t)(ws+656);
@@ -3305,7 +3305,7 @@ void f79_FindOrCreateSub(i8* /* subroutine */, i2 /* id */, i8 /* coo */);
 	i8 v1604 = (i8)(intptr_t)(ws+656);
 	i8 v1605 = *(i8*)(intptr_t)v1604;
 
-void f80_Deref(i8* /* subout */, i8 /* subin */);
+	void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1606;
 	f80_Deref(&v1606, v1605);
 	i8 v1607 = (i8)(intptr_t)(ws+656);
@@ -3322,7 +3322,7 @@ void f80_Deref(i8* /* subout */, i8 /* subin */);
 c02_016e:;
 
 
-void f89_CopySourceChunk(void);
+	void f89_CopySourceChunk(void);
 	f89_CopySourceChunk();
 
 	goto c02_016b;
@@ -3360,7 +3360,7 @@ c02_0174:;
 	i8 v1618 = (i8)(intptr_t)(ws+632);
 	i8 v1619 = *(i8*)(intptr_t)v1618;
 
-void f83_WriteSubroutinesToOutputFile(i8 /* coo */);
+	void f83_WriteSubroutinesToOutputFile(i8 /* coo */);
 	f83_WriteSubroutinesToOutputFile(v1619);
 
 	i8 v1620 = (i8)(intptr_t)(ws+632);
@@ -3447,7 +3447,7 @@ c02_018b:;
 
 	i8 v1658 = (i8)(intptr_t)c02_s0018;
 
-void f55_SimpleError(i8 /* s */);
+	void f55_SimpleError(i8 /* s */);
 	f55_SimpleError(v1658);
 
 	goto c02_0186;
@@ -3525,7 +3525,7 @@ c02_0199:;
 
 	i8 v1688 = (i8)(intptr_t)c02_s0019;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1688);
 
 	i8 v1689 = (i8)(intptr_t)(ws+632);
@@ -3533,12 +3533,12 @@ void f11_print(i8 /* ptr */);
 	i8 v1691 = v1690+(+8);
 	i8 v1692 = *(i8*)(intptr_t)v1691;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1692);
 
 	i8 v1693 = (i8)(intptr_t)c02_s001a;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1693);
 
 	i1 v1694 = (i1)+1;
@@ -3571,7 +3571,7 @@ c02_019f:;
 
 	i8 v1704 = (i8)(intptr_t)c02_s001b;
 
-void f55_SimpleError(i8 /* s */);
+	void f55_SimpleError(i8 /* s */);
 	f55_SimpleError(v1704);
 
 	goto c02_019c;
@@ -3641,11 +3641,11 @@ c02_01b5:;
 
 	i8 v1749 = (i8)(intptr_t)c02_s001c;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1749);
 
 
-void f6_ExitWithError(void);
+	void f6_ExitWithError(void);
 	f6_ExitWithError();
 
 	goto c02_01b2;
@@ -3723,7 +3723,7 @@ c02_01a6:;
 	i8 v1763 = (i8)(intptr_t)(ws+632);
 	i8 v1764 = *(i8*)(intptr_t)v1763;
 
-void f93_push(i8 /* subr */);
+	void f93_push(i8 /* subr */);
 	f93_push(v1764);
 
 c02_01b9:;
@@ -3803,7 +3803,7 @@ c02_01c1:;
 	i2 v1817 = *(i2*)(intptr_t)v1816;
 	i1 v1818 = (i1)+8;
 
-void f68_ArchAlignUp(i2* /* newvalue */, i1 /* alignment */, i2 /* value */);
+	void f68_ArchAlignUp(i2* /* newvalue */, i1 /* alignment */, i2 /* value */);
 	i2 v1819;
 	f68_ArchAlignUp(&v1819, v1818, v1817);
 	i8 v1820 = (i8)(intptr_t)(ws+3044);
@@ -3919,7 +3919,7 @@ c02_01d4:;
 	i8 v1880 = (i8)(intptr_t)(ws+3072);
 	i8 v1881 = *(i8*)(intptr_t)v1880;
 
-void f80_Deref(i8* /* subout */, i8 /* subin */);
+	void f80_Deref(i8* /* subout */, i8 /* subin */);
 	i8 v1882;
 	f80_Deref(&v1882, v1881);
 	i8 v1883 = (i8)(intptr_t)(ws+3072);
@@ -3986,7 +3986,7 @@ c02_01e2:;
 	i8 v1924 = (i8)(intptr_t)(ws+3072);
 	i8 v1925 = *(i8*)(intptr_t)v1924;
 
-void f93_push(i8 /* subr */);
+	void f93_push(i8 /* subr */);
 	f93_push(v1925);
 
 	goto c02_01df;
@@ -4018,7 +4018,7 @@ c02_01e7:;
 	i8 v1936 = (i8)(intptr_t)(ws+3072);
 	i8 v1937 = *(i8*)(intptr_t)v1936;
 
-void f93_push(i8 /* subr */);
+	void f93_push(i8 /* subr */);
 	f93_push(v1937);
 
 	i8 v1938 = (i8)(intptr_t)(ws+3072);
@@ -4057,7 +4057,7 @@ c02_01bc:;
 
 	i8 v1950 = (i8)(intptr_t)c02_s001d;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1950);
 
 	i1 v1951 = (i1)+0;
@@ -4075,18 +4075,18 @@ c02_01ed:;
 
 	i8 v1956 = (i8)(intptr_t)c02_s001e;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1956);
 
 	i8 v1957 = (i8)(intptr_t)(ws+3042);
 	i1 v1958 = *(i1*)(intptr_t)v1957;
 
-void f17_print_i8(i1 /* value */);
+	void f17_print_i8(i1 /* value */);
 	f17_print_i8(v1958);
 
 	i8 v1959 = (i8)(intptr_t)c02_s001f;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1959);
 
 	i8 v1960 = (i8)(intptr_t)(ws+568);
@@ -4098,12 +4098,12 @@ void f11_print(i8 /* ptr */);
 	i8 v1966 = v1960+v1965;
 	i2 v1967 = *(i2*)(intptr_t)v1966;
 
-void f16_print_i16(i2 /* value */);
+	void f16_print_i16(i2 /* value */);
 	f16_print_i16(v1967);
 
 	i8 v1968 = (i8)(intptr_t)c02_s0020;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1968);
 
 	i8 v1969 = (i8)(intptr_t)(ws+3042);
@@ -4127,7 +4127,7 @@ void f94_SyntaxError(void) {
 
 	i8 v1989 = (i8)(intptr_t)c02_s0023;
 
-void f55_SimpleError(i8 /* s */);
+	void f55_SimpleError(i8 /* s */);
 	f55_SimpleError(v1989);
 
 endsub:;
@@ -4140,23 +4140,23 @@ void f95_AddInputFile(i8 p1990 /* filename */) {
 
 	i8 v1991 = (i8)(intptr_t)c02_s0024;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1991);
 
 	i8 v1992 = (i8)(intptr_t)(ws+632);
 	i8 v1993 = *(i8*)(intptr_t)v1992;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1993);
 
 
-void f12_print_nl(void);
+	void f12_print_nl(void);
 	f12_print_nl();
 
 	i8 v1994 = (i8)(intptr_t)(ws+632);
 	i8 v1995 = *(i8*)(intptr_t)v1994;
 
-void f82_OpenAndLoadCoo(i8* /* coo */, i8 /* filename */);
+	void f82_OpenAndLoadCoo(i8* /* coo */, i8 /* filename */);
 	i8 v1996;
 	f82_OpenAndLoadCoo(&v1996, v1995);
 	i8 v1997 = (i8)(intptr_t)(ws+640);
@@ -4201,7 +4201,7 @@ c02_01ef:;
 	i8 v2016 = *(i8*)(intptr_t)v2015;
 	i2 v2017 = (i2)+0;
 
-void f78_FindSub(i8* /* ptr */, i2 /* id */, i8 /* coo */);
+	void f78_FindSub(i8* /* ptr */, i2 /* id */, i8 /* coo */);
 	i8 v2018;
 	f78_FindSub(&v2018, v2017, v2016);
 	i8 v2019 = *(i8*)(intptr_t)v2018;
@@ -4251,7 +4251,7 @@ c02_0201:;
 	i8 v2035 = (i8)(intptr_t)(ws+648);
 	i8 v2036 = *(i8*)(intptr_t)v2035;
 
-void f77_AddRef(i8 /* calls */, i8 /* subr */);
+	void f77_AddRef(i8 /* calls */, i8 /* subr */);
 	f77_AddRef(v2036, v2034);
 
 	goto c02_01fe;
@@ -4389,23 +4389,23 @@ void f3___main(void) {
 
 	i8 v1973 = (i8)(intptr_t)c02_s0021;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1973);
 
 
-void f35_GetFreeMemory(i8* /* i */);
+	void f35_GetFreeMemory(i8* /* i */);
 	i8 v1974;
 	f35_GetFreeMemory(&v1974);
 	i1 v1975 = (i1)+10;
 	i8 v1976 = ((i8)v1974)>>v1975;
 	i2 v1977 = v1976;
 
-void f16_print_i16(i2 /* value */);
+	void f16_print_i16(i2 /* value */);
 	f16_print_i16(v1977);
 
 	i8 v1978 = (i8)(intptr_t)c02_s0022;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v1978);
 
 	i8 v1979 = (i8)+0;
@@ -4431,13 +4431,13 @@ void f11_print(i8 /* ptr */);
 
 
 
-void f23_ArgvInit(void);
+	void f23_ArgvInit(void);
 	f23_ArgvInit();
 
 c02_0203:;
 
 
-void f24_ArgvNext(i8* /* arg */);
+	void f24_ArgvNext(i8* /* arg */);
 	i8 v2040;
 	f24_ArgvNext(&v2040);
 	i8 v2041 = (i8)(intptr_t)(ws+624);
@@ -4460,7 +4460,7 @@ c02_0205:;
 	i8 v2046 = *(i8*)(intptr_t)v2045;
 	i8 v2047 = (i8)(intptr_t)c02_s0025;
 
-void f27_StrICmp(i1* /* res */, i8 /* s2 */, i8 /* s1 */);
+	void f27_StrICmp(i1* /* res */, i8 /* s2 */, i8 /* s1 */);
 	i1 v2048;
 	f27_StrICmp(&v2048, v2047, v2046);
 	i1 v2049 = (i1)+0;
@@ -4469,7 +4469,7 @@ void f27_StrICmp(i1* /* res */, i8 /* s2 */, i8 /* s1 */);
 c02_020d:;
 
 
-void f24_ArgvNext(i8* /* arg */);
+	void f24_ArgvNext(i8* /* arg */);
 	i8 v2050;
 	f24_ArgvNext(&v2050);
 	i8 v2051 = (i8)(intptr_t)(ws+600);
@@ -4488,7 +4488,7 @@ c02_020e:;
 c02_0211:;
 
 
-void f94_SyntaxError(void);
+	void f94_SyntaxError(void);
 	f94_SyntaxError();
 
 	goto c02_020a;
@@ -4498,7 +4498,7 @@ c02_0212:;
 	i8 v2056 = (i8)(intptr_t)(ws+624);
 	i8 v2057 = *(i8*)(intptr_t)v2056;
 
-void f95_AddInputFile(i8 /* filename */);
+	void f95_AddInputFile(i8 /* filename */);
 	f95_AddInputFile(v2057);
 
 c02_020a:;
@@ -4516,7 +4516,7 @@ c02_0216:;
 
 	i8 v2061 = (i8)(intptr_t)c02_s0026;
 
-void f55_SimpleError(i8 /* s */);
+	void f55_SimpleError(i8 /* s */);
 	f55_SimpleError(v2061);
 
 	goto c02_0213;
@@ -4534,7 +4534,7 @@ c02_021b:;
 
 	i8 v2065 = (i8)(intptr_t)c02_s0027;
 
-void f55_SimpleError(i8 /* s */);
+	void f55_SimpleError(i8 /* s */);
 	f55_SimpleError(v2065);
 
 	goto c02_0218;
@@ -4545,71 +4545,71 @@ c02_0218:;
 
 	i8 v2066 = (i8)(intptr_t)c02_s0028;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v2066);
 
 
-void f91_ResolveExternals(void);
+	void f91_ResolveExternals(void);
 	f91_ResolveExternals();
 
 	i8 v2067 = (i8)(intptr_t)(ws+608);
 	i8 v2068 = *(i8*)(intptr_t)v2067;
 
-void f92_PlaceSubroutines(i8 /* subroutine */);
+	void f92_PlaceSubroutines(i8 /* subroutine */);
 	f92_PlaceSubroutines(v2068);
 
 	i8 v2069 = (i8)(intptr_t)(ws+600);
 	i8 v2070 = *(i8*)(intptr_t)v2069;
 
-void f66_EmitterOpenfile(i8 /* filename */);
+	void f66_EmitterOpenfile(i8 /* filename */);
 	f66_EmitterOpenfile(v2070);
 
 	i8 v2071 = (i8)(intptr_t)c02_s0029;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v2071);
 
 	i8 v2072 = (i8)(intptr_t)(ws+592);
 	i8 v2073 = *(i8*)(intptr_t)v2072;
 
-void f72_ArchEmitHeader(i8 /* coo */);
+	void f72_ArchEmitHeader(i8 /* coo */);
 	f72_ArchEmitHeader(v2073);
 
 	i8 v2074 = (i8)(intptr_t)(ws+592);
 	i8 v2075 = *(i8*)(intptr_t)v2074;
 
-void f90_WriteAllSubroutinesToOutputFile(i8 /* coos */);
+	void f90_WriteAllSubroutinesToOutputFile(i8 /* coos */);
 	f90_WriteAllSubroutinesToOutputFile(v2075);
 
 	i8 v2076 = (i8)(intptr_t)(ws+592);
 	i8 v2077 = *(i8*)(intptr_t)v2076;
 
-void f73_ArchEmitFooter(i8 /* coo */);
+	void f73_ArchEmitFooter(i8 /* coo */);
 	f73_ArchEmitFooter(v2077);
 
 
-void f67_EmitterClosefile(void);
+	void f67_EmitterClosefile(void);
 	f67_EmitterClosefile();
 
 	i8 v2078 = (i8)(intptr_t)c02_s002a;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v2078);
 
 
-void f35_GetFreeMemory(i8* /* i */);
+	void f35_GetFreeMemory(i8* /* i */);
 	i8 v2079;
 	f35_GetFreeMemory(&v2079);
 	i1 v2080 = (i1)+10;
 	i8 v2081 = ((i8)v2079)>>v2080;
 	i2 v2082 = v2081;
 
-void f16_print_i16(i2 /* value */);
+	void f16_print_i16(i2 /* value */);
 	f16_print_i16(v2082);
 
 	i8 v2083 = (i8)(intptr_t)c02_s002b;
 
-void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
 	f11_print(v2083);
 
 endsub:;
@@ -4617,4 +4617,4 @@ endsub:;
 void cmain(void) {
 	f3___main();
 }
-                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

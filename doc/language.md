@@ -32,14 +32,16 @@ else
   print("no.\n");
 end if
 
-sub ThisIsASubroutine(i: uint8) # one in
-  sub ThisIsANestedSubroutine()
+# subroutine with one input parameter
+sub ThisIsASubroutine(i: uint8) is
+  # subroutine with no input or output parameters
+  sub ThisIsANestedSubroutine is
     print("nested subroutines can access upvalues!");
     print_i8(i);
   end sub;
 
-  # multiple output parameters
-  sub swap(in1: uint8, in2: uint8): (out1: uint8, out2: uint8)
+  # subroutine with multiple output parameters
+  sub swap(in1: uint8, in2: uint8): (out1: uint8, out2: uint8) is
     out1 := in2;
     out2 := in1;
   end sub;
@@ -75,6 +77,30 @@ You get: `and` `or` `not` `==` `!=` `<` `<=` `>` `>=`
 
 **Note:** remember that magnitude comparisons of signed values is usually a
 *disaster on these small systems. Try to avoid it.
+
+## Forward declarations
+
+The compiler is strictly single pass, so if you want to use a subroutine before
+it's been defined you need to split the declaration and the implementation. It
+works like this.
+
+```
+sub CombinedDeclarationAndImplementation(i: uint8) is
+  DoSomethingWith(i);
+end sub;
+
+@decl sub SplitDeclarationAndImplementation(i: uint8);
+
+...arbitrary code here...
+
+@impl sub SplitDeclarationAndImplementation is
+  DoSomethingWith(i);
+end sub;
+```
+
+Note that in the implementation, the parameters are the ones used in the
+declaration. You may want a comment to remind you of them. The implementation
+must be defined in the same subroutine as the declaration.
 
 ## Types
 
@@ -344,7 +370,4 @@ var i: uint8;
   time, the compiler will allocate their variables to the same location. This
   means that you still can't return pointers to local variables and expect it
   to work.
-
-- The compiler is a single-pass job, so everything must be defined before it's
-  used. There's no support for forward declarations yet (working on it).
 

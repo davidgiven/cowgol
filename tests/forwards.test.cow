@@ -4,17 +4,19 @@ include "_framework.coh";
 sub Extern @extern("externname") is
 end sub;
 
-@decl sub Declared;
+@decl sub Declared(i: uint8);
 
 print("in main\n");
-Declared();
+Declared(7);
 
 sub CallsDeclaredBeforeImplementation is
-	Declared();
+	Declared(3);
 end sub;
 CallsDeclaredBeforeImplementation();
 
 @impl sub Declared is
-	print("in declared\n");
+	print("in declared: i=");
+	print_i8(i);
+	print_nl();
 end sub;
 

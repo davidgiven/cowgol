@@ -308,7 +308,7 @@ gen v8 := POPARG8();
 		# the program, and so don't know whether the function we're trying to
 		# call has been declared. So... we declare it again inline.
 
-		E("\nvoid ");
+		E("\n\tvoid ");
 		E_subref(subr);
 		E("(");
 
