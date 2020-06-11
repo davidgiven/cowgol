@@ -7,6 +7,18 @@
     var int8_type: [Symbol];
     var intptr_type: [Symbol];
 
+    record ArchSubroutine
+        end_label: LabelRef;
+    end record;
+
+    record Extern
+        name: string;
+        id: uint16;
+        next: [Extern];
+    end record;
+
+    var externs: [Extern] := (0 as [Extern]);
+
     sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
         newvalue := value;
     end sub;
@@ -63,6 +75,95 @@
 	sub ArchEmitMove(src: RegId, dest: RegId)
 		SimpleError("can't move");
 	end sub;
+
+    sub GetHelper(name: string): (e: [Extern])
+        e := externs;
+        while e != (0 as [Extern]) loop
+            if StrCmp(e.name, name) == 0 then
+                break;
+            end if;
+            e := e.next;
+        end loop;
+
+        if e == (0 as [Extern]) then
+            e := Alloc(@bytesof Extern) as [Extern];
+            e.name := name;
+            e.id := AllocSubrId();
+            e.next := externs;
+            externs := e;
+
+            EmitterDeclareExternalSubroutine(e.id, name);
+        end if;
+    end sub;
+
+	sub E_dw()
+		E("\t.word ");
+	end sub;
+
+    sub E_label(label: LabelRef)
+        E_labelref(label);
+        E(":\n");
+    end sub;
+
+    sub E_new_label(): (lid: uint16)
+        lid := AllocLabel();
+        E_label(lid);
+    end sub;
+
+	sub E_wsrefi(sym: [Symbol], off: Size)
+		E_dw();
+		E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
+		E_nl();
+	end sub;
+
+	sub E_callid(id: uint16)
+		E_dw();
+		E_b8(COO_ESCAPE_SUBREF);
+		E_b16(id);
+		E_nl();
+	end sub;
+
+    # Does not persist the name; only call this with constant strings.
+    sub E_callhelper(name: string)
+        var e := GetHelper(name);
+
+        EmitterPushChunk();
+        E_b16(current_subr.id);
+        E_b16(e.id);
+        EmitterPopChunk('R');
+
+		E_callid(e.id);
+    end sub;
+
+	sub E_store8(sym: [Symbol], off: Size)
+		E_callhelper("_store8");
+		E_wsrefi(sym, off);
+	end sub;
+
+	sub E_store16(sym: [Symbol], off: Size)
+		E_callhelper("_store16");
+		E_wsrefi(sym, off);
+	end sub;
+
+	sub E_store32(sym: [Symbol], off: Size)
+		E_callhelper("_store32");
+		E_wsrefi(sym, off);
+	end sub;
+
+	sub E_load8(sym: [Symbol], off: Size)
+		E_callhelper("_load8");
+		E_wsrefi(sym, off);
+	end sub;
+
+	sub E_load16(sym: [Symbol], off: Size)
+		E_callhelper("_load16");
+		E_wsrefi(sym, off);
+	end sub;
+
+	sub E_load32(sym: [Symbol], off: Size)
+		E_callhelper("_load32");
+		E_wsrefi(sym, off);
+	end sub;
 %}
 
 wordsize uint8;
@@ -74,4 +175,69 @@ register s32;
 regdata s8  stacked;
 regdata s16 stacked;
 regdata s16 stacked;
+
+// --- Core stuff -----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB()
+{
+    current_subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+    current_subr.arch.end_label := AllocLabel();
+
+    EmitterPushChunk();
+    E_b16(current_subr.id);
+
+    E("\n\n\t; ");
+    E(current_subr.name);
+    E_nl();
+
+    E_b8(COO_ESCAPE_THISSUB);
+    E(":\n");
+
+    var count := current_subr.num_input_parameters;
+    while count != 0 loop
+        count := count - 1;
+        var param := GetInputParameter(current_subr, count);
+
+        case param.vardata.type.typedata.width is
+            when 1: E_store8(param, 0);
+			when 2: E_store16(param, 0);
+			when 4: E_store32(param, 0);
+        end case;
+    end loop;
+}
+
+gen ENDSUB()
+{
+	E_label(current_subr.arch.end_label);
+
+    var i: uint8 := 0;
+    var count := current_subr.num_output_parameters;
+    while i != count loop
+        var param := GetOutputParameter(current_subr, i);
+
+        var cache: RegId;
+        case param.vardata.type.typedata.width is
+            when 1: E_load8(param, 0);
+            when 2: E_load16(param, 0);
+            when 4: E_load32(param, 0);
+		end case;
+
+        i := i + 1;
+    end loop;
+
+    EmitterPopChunk('S');
+
+    i := 0;
+    while i != 4 loop
+        EmitterDeclareWorkspace(current_subr, i, current_subr.workspace[i]);
+        i := i + 1;
+    end loop;
+}
+
+gen RETURN() { E_callhelper("_return"); }
 
