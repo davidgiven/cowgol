@@ -3,7 +3,7 @@ const SYM_DEFINED    := 0b001;
 const SYM_PUBLIC     := 0b010;
 const SYM_DECLARED   := 0b100;
 
-record Symbol
+record Symbol is
 	next: [Symbol];
 	name: string;
 	id: SubId;
@@ -17,7 +17,7 @@ var symbols: [Symbol] := &main_symbol;
 var current_id: SubId := 1;
 var current_subr: [Symbol] := (0 as [Symbol]);
 
-sub GetSymbol(name: string): (symbol: [Symbol])
+sub GetSymbol(name: string): (symbol: [Symbol]) is
 	symbol := symbols;
 	while symbol != (0 as [Symbol]) loop
 		if StrCmp(name, symbol.name) == 0 then
@@ -34,7 +34,7 @@ sub GetSymbol(name: string): (symbol: [Symbol])
 	symbols := symbol;
 end sub;
 	
-sub ProcessFile()
+sub ProcessFile() is
 	main_symbol.name := "@";
 	main_symbol.state := SYM_DEFINED | SYM_DECLARED;
 
@@ -42,18 +42,18 @@ sub ProcessFile()
 	var subrid: uint16 := 0;
 	var buffer: uint8[32];
 
-	sub GetC()
+	sub GetC() is
 		c := FCBGetChar(&infcb);
 	end sub;
 
-	sub ExpectC(want: uint8)
+	sub ExpectC(want: uint8) is
 		if c != want then
 			FatalError("malformed cowwrap directive");
 		end if;
 		GetC();
 	end sub;
 
-	sub SkipToEndOfLine()
+	sub SkipToEndOfLine() is
 		loop
 			if (c == 0) or (c == 26) or (c == 10) then
 				break;
@@ -62,7 +62,7 @@ sub ProcessFile()
 		end loop;
 	end sub;
 
-	sub SkipWhitespace()
+	sub SkipWhitespace() is
 		loop
 			if (c != ' ') and (c != '\t') then
 				break;
@@ -71,7 +71,7 @@ sub ProcessFile()
 		end loop;
 	end sub;
 
-	sub ReadWord()
+	sub ReadWord() is
 		SkipWhitespace();
 		var p := &buffer[0];
 		loop
@@ -94,7 +94,7 @@ sub ProcessFile()
 		[p] := 0;
 	end sub;
 
-	sub ReadNumber(): (result: int32)
+	sub ReadNumber(): (result: int32) is
 		ReadWord();
 		var p: string;
 		(result, p) := AToI(&buffer[0]);
@@ -103,27 +103,27 @@ sub ProcessFile()
 		end if;
 	end sub;
 
-	sub MarkSubroutinePublic(symbol: [Symbol])
+	sub MarkSubroutinePublic(symbol: [Symbol]) is
 		if (symbol.state & SYM_PUBLIC) == 0 then
 			symbol.state := symbol.state | SYM_PUBLIC;
 			EmitterDeclareExternal(symbol.id, symbol.name);
 		end if;
 	end sub;
 
-	sub ImportSubroutine()
+	sub ImportSubroutine() is
 		GetC();
 		ReadWord();
 		MarkSubroutinePublic(GetSymbol(&buffer[0]));
 	end sub;
 
-	sub CloseChunk()
+	sub CloseChunk() is
 		if current_subr != (0 as [Symbol]) then
 			EmitterPopChunk('S');
 			current_subr := (0 as [Symbol]);
 		end if;
 	end sub;
 
-	sub DeclareSubroutine(exported: uint8)
+	sub DeclareSubroutine(exported: uint8) is
 		CloseChunk();
 
 		GetC();
@@ -143,7 +143,7 @@ sub ProcessFile()
 		E_b16(current_subr.id);
 	end sub;
 
-	sub SetSubroutineWorkspace()
+	sub SetSubroutineWorkspace() is
 		GetC();
 		ReadWord();
 		var symbol := GetSymbol(&buffer[0]);
@@ -154,7 +154,7 @@ sub ProcessFile()
 		EmitterDeclareWorkspace(symbol.id, wid, woff);
 	end sub;
 
-	sub EmitWorkspaceRef()
+	sub EmitWorkspaceRef() is
 		GetC();
 		ReadWord();
 		var symbol := current_subr;
@@ -172,7 +172,7 @@ sub ProcessFile()
 		E_b16(woff);
 	end sub;
 
-	sub SourceLine()
+	sub SourceLine() is
 		if current_subr == (0 as [Symbol]) then
 			FatalError("source text with no subroutine defined");
 		end if;
@@ -245,7 +245,7 @@ sub ProcessFile()
 	CloseChunk();
 end sub;
 
-sub CheckSymbols()
+sub CheckSymbols() is
 	var success: uint8 := 1;
 	var s := symbols;
 	while s != (0 as [Symbol]) loop

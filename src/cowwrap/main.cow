@@ -16,12 +16,12 @@ print("COWWRAP: ");
 print_i16((GetFreeMemory() >> 10) as uint16);
 print("kB free\n");
 
-sub SyntaxError()
+sub SyntaxError() is
 	print("cowwrap <inputfile> <outputfile>\n");
 	ExitWithError();
 end sub;
 
-sub FatalError(s: string)
+sub FatalError(s: string) is
 	print("error: ");
 	print(s);
 	print_nl();

@@ -3,28 +3,28 @@ const STACK_SIZE := 128;
 
 var workspaceSize: Size[NUM_WORKSPACES];
 
-sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 	var a := (alignment-1) as Size;
 	newvalue := (value+a) & ~a;
 end sub;
 
-sub E_nl()
+sub E_nl() is
 	E_b8('\n');
 end sub;
 
-sub ArchEmitSubRef(subr: [Subroutine])
+sub ArchEmitSubRef(subr: [Subroutine]) is
 	E_b8('f');
 	E_u16(subr.id);
 	E_b8('_');
 	E(subr.name);
 end sub;
 
-sub ArchEmitWSRef(wid: uint8, address: Size)
+sub ArchEmitWSRef(wid: uint8, address: Size) is
 	E("ws+");
 	E_u16(address);
 end sub;
 
-sub ArchEmitHeader(coo: [Coo])
+sub ArchEmitHeader(coo: [Coo]) is
 	E("#include \"cowgol.h\"\n");
 	E("static i8 workspace[0x");
 	E_h16((workspaceSize[0]+7) / 8);
@@ -32,7 +32,7 @@ sub ArchEmitHeader(coo: [Coo])
 	E("static i1* ws = (i1*)workspace;\n");
 end sub;
 
-sub ArchEmitFooter(coo: [Coo])
+sub ArchEmitFooter(coo: [Coo]) is
 	E("void cmain(void) {\n");
 
 	while coo != (0 as [Coo]) loop

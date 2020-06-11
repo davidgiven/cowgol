@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "_framework.coh";
 
-sub TestAToI(data: [uint8])
+sub TestAToI(data: [uint8]) is
 	print_char('"');
 	print(data);
 	print_char('"');

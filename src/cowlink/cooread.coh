@@ -1,15 +1,15 @@
 var current_coo_id: uint8 := 1;
 
-sub read_bin1(fcb: [FCB]): (c: uint8)
+sub read_bin1(fcb: [FCB]): (c: uint8) is
 	c := FCBGetChar(fcb);
 end sub;
 
-sub read_bin2(fcb: [FCB]): (val: uint16)
+sub read_bin2(fcb: [FCB]): (val: uint16) is
 	val := read_bin1(fcb) as uint16;
 	val := val | ((read_bin1(fcb) as uint16) << 8);
 end sub;
 
-sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
+sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8]) is
 	ptr := Alloc((len+1) as intptr) as [uint8];
 	var p := ptr;
 	loop
@@ -22,7 +22,7 @@ sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8])
 	end loop;
 end sub;
 
-sub AddRef(subr: [Subroutine], calls: [Subroutine])
+sub AddRef(subr: [Subroutine], calls: [Subroutine]) is
 	var refid := subr.numRefs;
 	subr.numRefs := refid + 1;
 
@@ -38,7 +38,7 @@ sub AddRef(subr: [Subroutine], calls: [Subroutine])
 	ref.calls[refid as uint8] := calls;
 end sub;
 
-sub FindSub(coo: [Coo], id: uint16): (ptr: [[Subroutine]])
+sub FindSub(coo: [Coo], id: uint16): (ptr: [[Subroutine]]) is
 	var subindex := &coo.index;
 	while id >= COO_INDEX_SIZE loop
 		if subindex.next == (0 as [CooIndex]) then
@@ -51,7 +51,7 @@ sub FindSub(coo: [Coo], id: uint16): (ptr: [[Subroutine]])
 	ptr := &subindex.subroutines[id as uint8];
 end sub;
 
-sub FindOrCreateSub(coo: [Coo], id: uint16): (subroutine: [Subroutine])
+sub FindOrCreateSub(coo: [Coo], id: uint16): (subroutine: [Subroutine]) is
 	var ptr := FindSub(coo, id);
 	subroutine := [ptr];
 	if subroutine == (0 as [Subroutine]) then
@@ -65,7 +65,7 @@ sub FindOrCreateSub(coo: [Coo], id: uint16): (subroutine: [Subroutine])
 	end if;
 end sub;
 
-sub Deref(subin: [Subroutine]): (subout: [Subroutine])
+sub Deref(subin: [Subroutine]): (subout: [Subroutine]) is
 	subout := subin;
 	if subin != (0 as [Subroutine]) then
 		var external := subin.external;
@@ -75,7 +75,7 @@ sub Deref(subin: [Subroutine]): (subout: [Subroutine])
 	end if;
 end sub;
 
-sub FindOrCreateExternal(name: string): (external: [External])
+sub FindOrCreateExternal(name: string): (external: [External]) is
 	external := externals;
 	while external != (0 as [External]) loop
 		if StrCmp(external.name, name) == 0 then
@@ -90,7 +90,7 @@ sub FindOrCreateExternal(name: string): (external: [External])
 	externals := external;
 end sub;
 
-sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo])
+sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo]) is
 	coo := Alloc(@bytesof Coo) as [Coo];
 	coo.id := current_id;
 	current_id := current_id + 1;

@@ -1,21 +1,21 @@
-sub WriteSubroutinesToOutputFile(coo: [Coo])
+sub WriteSubroutinesToOutputFile(coo: [Coo]) is
 	var id: uint16;
 	var subroutine: [Subroutine];
 	var c: uint8;
 	var length: Size;
 
-	sub MalformedError(s: [uint8])
+	sub MalformedError(s: [uint8]) is
 		print("error: malformed coofile: ");
 		print(s);
 		print_nl();
 		ExitWithError();
 	end sub;
 
-	sub UnexpectedEndOfChunk()
+	sub UnexpectedEndOfChunk() is
 		MalformedError("unexpected end of chunk");
 	end sub;
 
-	sub ReadB1(): (result: uint8)
+	sub ReadB1(): (result: uint8) is
 		if length < 1 then
 			UnexpectedEndOfChunk();
 		end if;
@@ -23,7 +23,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 		result := read_bin1(&coo.fcb);
 	end sub;
 
-	sub ReadB2(): (result: uint16)
+	sub ReadB2(): (result: uint16) is
 		if length < 2 then
 			UnexpectedEndOfChunk();
 		end if;
@@ -31,7 +31,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 		result := read_bin2(&coo.fcb);
 	end sub;
 
-	sub CheckSubExists(subr: [Subroutine])
+	sub CheckSubExists(subr: [Subroutine]) is
 		if (subr.state & SUB_IMPLEMENTATION) == 0 then
 			StartError();
 			print("reference to undefined subroutine ");
@@ -46,7 +46,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 		end if;
 	end sub;
 
-	sub CopySourceChunk()
+	sub CopySourceChunk() is
 		var subid: uint16;
 		var subr: [Subroutine];
 		var wid: uint8;
@@ -114,7 +114,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo])
 	end loop;
 end sub;
 
-sub WriteAllSubroutinesToOutputFile(coos: [Coo])
+sub WriteAllSubroutinesToOutputFile(coos: [Coo]) is
 	while coos != (0 as [Coo]) loop
 		WriteSubroutinesToOutputFile(coos);
 		coos := coos.next;

@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-sub case_uint8(i: uint8): (out: uint8)
+sub case_uint8(i: uint8): (out: uint8) is
 	case i is
 		when 0: out := 0;
 		when 1: out := 1;
@@ -11,7 +11,7 @@ sub case_uint8(i: uint8): (out: uint8)
 	end case;
 end sub;
 
-sub case_uint8_noelse(i: uint8): (out: uint8)
+sub case_uint8_noelse(i: uint8): (out: uint8) is
 	out := 4;
 	case i is
 		when 0: out := 0;
@@ -21,7 +21,7 @@ sub case_uint8_noelse(i: uint8): (out: uint8)
 	end case;
 end sub;
 
-sub case_int8(i: uint8): (out: int8)
+sub case_int8(i: uint8): (out: int8) is
 	case i is
 		when -2: out := -2;
 		when -1: out := -1;
@@ -31,7 +31,7 @@ sub case_int8(i: uint8): (out: int8)
 	end case;
 end sub;
 
-sub case_uint16(i: uint16): (out: uint8)
+sub case_uint16(i: uint16): (out: uint8) is
 	case i is
 		when 0: out := 0;
 		when 1: out := 1;
@@ -41,7 +41,7 @@ sub case_uint16(i: uint16): (out: uint8)
 	end case;
 end sub;
 
-sub case_uint16_large(i: uint16): (out: uint8)
+sub case_uint16_large(i: uint16): (out: uint8) is
 	case i is
 		when 0: out := 0;
 		when 1000: out := 1;
@@ -51,7 +51,7 @@ sub case_uint16_large(i: uint16): (out: uint8)
 	end case;
 end sub;
 
-sub case_int16(i: uint16): (out: int8)
+sub case_int16(i: uint16): (out: int8) is
 	case i is
 		when -2: out := -2;
 		when -1: out := -1;
@@ -61,7 +61,7 @@ sub case_int16(i: uint16): (out: int8)
 	end case;
 end sub;
 
-sub case_uint32(i: uint32): (out: uint8)
+sub case_uint32(i: uint32): (out: uint8) is
 	case i is
 		when 0: out := 0;
 		when 1: out := 1;
@@ -71,7 +71,7 @@ sub case_uint32(i: uint32): (out: uint8)
 	end case;
 end sub;
 
-sub case_int32(i: uint32): (out: int8)
+sub case_int32(i: uint32): (out: int8) is
 	case i is
 		when -2: out := -2;
 		when -1: out := -1;
@@ -81,7 +81,7 @@ sub case_int32(i: uint32): (out: int8)
 	end case;
 end sub;
 
-sub case_many_bytes(i: uint8): (out: uint8)
+sub case_many_bytes(i: uint8): (out: uint8) is
 	case i is
 		when  0: out := 100;
 		when  1: out := 101;
@@ -127,7 +127,7 @@ sub case_many_bytes(i: uint8): (out: uint8)
 	end case;
 end sub;
 
-sub case_many_int16s(i: uint16): (out: uint8)
+sub case_many_int16s(i: uint16): (out: uint8) is
 	case i is
 		when  0: out := 100;
 		when  1: out := 101;
@@ -173,7 +173,7 @@ sub case_many_int16s(i: uint16): (out: uint8)
 	end case;
 end sub;
 
-sub test_case_bytes()
+sub test_case_bytes() is
 	print("uint8 of 2 == 2"); if case_uint8(2) == 2 then yes(); else no(); end if;
 	print("uint8 of 9 == 4"); if case_uint8(9) == 4 then yes(); else no(); end if;
 
@@ -182,13 +182,13 @@ sub test_case_bytes()
 end sub;
 test_case_bytes();
 
-sub test_case_bytes_noelse()
+sub test_case_bytes_noelse() is
 	print("uint8 of 2 == 2"); if case_uint8_noelse(2) == 2 then yes(); else no(); end if;
 	print("uint8 of 9 no else == 4"); if case_uint8_noelse(9) == 4 then yes(); else no(); end if;
 end sub;
 test_case_bytes_noelse();
 
-sub test_case_shorts()
+sub test_case_shorts() is
 	print("uint16 of 2 == 2"); if case_uint16(2) == 2 then yes(); else no(); end if;
 	print("uint16 of 9 == 4"); if case_uint16(9) == 4 then yes(); else no(); end if;
 
@@ -197,13 +197,13 @@ sub test_case_shorts()
 end sub;
 test_case_shorts();
 
-sub test_case_shorts_large()
+sub test_case_shorts_large() is
 	print("uint16 of 2000 == 2"); if case_uint16_large(2000) == 2 then yes(); else no(); end if;
 	print("uint16 of 9000 == 4"); if case_uint16_large(9000) == 4 then yes(); else no(); end if;
 end sub;
 test_case_shorts_large();
 
-sub test_case_longs()
+sub test_case_longs() is
 	print("uint32 of 2 == 2"); if case_uint32(2) == 2 then yes(); else no(); end if;
 	print("uint32 of 9 == 4"); if case_uint32(9) == 4 then yes(); else no(); end if;
 
@@ -212,7 +212,7 @@ sub test_case_longs()
 end sub;
 test_case_longs();
 
-sub test_case_many_bytes()
+sub test_case_many_bytes() is
 	print("0 of many bytes == 100"); if case_many_bytes(0) == 100 then yes(); else no(); end if;
 	print("13 of many bytes == 113"); if case_many_bytes(13) == 113 then yes(); else no(); end if;
 	print("19 of many bytes == 119"); if case_many_bytes(19) == 119 then yes(); else no(); end if;
@@ -221,7 +221,7 @@ sub test_case_many_bytes()
 end sub;
 test_case_many_bytes();
 
-sub test_case_many_int16s()
+sub test_case_many_int16s() is
 	print("0 of many int16s == 100"); if case_many_int16s(0) == 100 then yes(); else no(); end if;
 	print("13 of many int16s == 113"); if case_many_int16s(13) == 113 then yes(); else no(); end if;
 	print("19 of many int16s == 119"); if case_many_int16s(19) == 119 then yes(); else no(); end if;

@@ -7,7 +7,7 @@
 	var int8_type: [Symbol];
 	var intptr_type: [Symbol];
 
-	record Extern
+	record Extern is
 		name: string;
 		id: uint16;
 		next: [Extern];
@@ -15,11 +15,11 @@
 
 	var externs: [Extern] := (0 as [Extern]);
 
-	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		newvalue := value;
 	end sub;
 
-	sub ArchInitTypes()
+	sub ArchInitTypes() is
 		uint32_type := MakeNumberType(4, 1, 0, "uint32");
 		int32_type := MakeNumberType(4, 1, 1, "int32");
 		uint16_type := MakeNumberType(2, 1, 0, "uint16");
@@ -31,7 +31,7 @@
 		AddAliasString("intptr", intptr_type);
 	end sub;
 
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
 		if (min >= 0) and (max <= 255) then
 			symbol := uint8_type;
 		elseif (min >= -128) and (max <= 127) then
@@ -47,14 +47,14 @@
 		end if;
 	end sub;
 
-	sub ArchInitVariable(symbol: [Symbol])
+	sub ArchInitVariable(symbol: [Symbol]) is
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
 		symbol.vardata.offset := offset;
 		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
 	end sub;
 
-	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
 		member.vardata.offset := position;
 		position := position + member.vardata.type.typedata.width;
 		if position > containing.typedata.width then
@@ -62,7 +62,7 @@
 		end if;
 	end sub;
 
-	sub E_symref(sym: [Symbol], off: Size)
+	sub E_symref(sym: [Symbol], off: Size) is
 		if sym.vardata.externname != (0 as string) then
 			E(sym.vardata.externname);
 			E_i16(off as int16);
@@ -74,21 +74,21 @@
 		end if;
 	end sub;
 
-	sub R_flushall()
+	sub R_flushall() is
 		RegCacheFlush(ALL_REGS);
 	end sub;
 
-	sub R_flush(reg: RegId)
+	sub R_flush(reg: RegId) is
 		RegCacheFlush(FindConflictingRegisters(reg));
 	end sub;
 
-	sub E_label(label: LabelRef)
+	sub E_label(label: LabelRef) is
 		R_flushall();
 		E_labelref(label);
 		E(":\n");
 	end sub;
 
-	sub E_jump(insn: string, label: LabelRef)
+	sub E_jump(insn: string, label: LabelRef) is
 		R_flushall();
 		E_tab();
 		E(insn);
@@ -97,19 +97,19 @@
 		E_nl();
 	end sub;
 
-	sub E_jp(label: LabelRef)
+	sub E_jp(label: LabelRef) is
 		E_jump("jr", label);
 	end sub;
 
-	sub E_jnz(label: LabelRef)
+	sub E_jnz(label: LabelRef) is
 		E_jump("jr nz,", label);
 	end sub;
 
-	sub E_ret()
+	sub E_ret() is
 		E("\tret\n");
 	end sub;
 
-	sub E_call(subr: [Subroutine])
+	sub E_call(subr: [Subroutine]) is
 		R_flushall();
 		E_tab();
 		E("call ");
@@ -117,7 +117,7 @@
 		E_nl();
 	end sub;
 
-	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId)
+	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId) is
 		result := 0;
 		while reg != 0 loop
 			if (reg & 1) != 0 then
@@ -138,7 +138,7 @@
 		end if;
 	end sub;
 
-	sub loreg(reg: RegId): (result: RegId)
+	sub loreg(reg: RegId): (result: RegId) is
 		var regs: RegId[] := {
 			REG_A,  # a
 			REG_C,  # b
@@ -160,7 +160,7 @@
 		result := getreg(reg, &regs[0], "loreg");
 	end sub;
 
-	sub hireg(reg: RegId): (result: RegId)
+	sub hireg(reg: RegId): (result: RegId) is
 		var regs: RegId[] := {
 			REG_A,  # a
 			REG_B,  # b
@@ -182,7 +182,7 @@
 		result := getreg(reg, &regs[0], "hireg");
 	end sub;
 
-	sub wordreg(reg: RegId): (result: RegId)
+	sub wordreg(reg: RegId): (result: RegId) is
 		var regs: RegId[] := {
 			REG_A,  # a
 			REG_BC, # b
@@ -204,7 +204,7 @@
 		result := getreg(reg, &regs[0], "wordreg");
 	end sub;
 
-	sub E_reg(reg: RegId)
+	sub E_reg(reg: RegId) is
 		var names: string[] := {
 			"a",
 			"b",
@@ -239,7 +239,7 @@
 		EndError();
 	end sub;
 
-	sub E_stackref(reg: RegId)
+	sub E_stackref(reg: RegId) is
 		if reg == REG_A then
 			E("af");
 		else
@@ -247,7 +247,7 @@
 		end if;
 	end sub;
 
-	sub E_mov(dest: RegId, src: RegId)
+	sub E_mov(dest: RegId, src: RegId) is
 		R_flush(dest);
 		E_tab();
 		E("ld ");
@@ -257,49 +257,49 @@
 		E_nl();
 	end sub;
 
-	sub E_ex()
+	sub E_ex() is
 		R_flush(REG_HL|REG_DE);
 		E("\tex de,hl\n");
 	end sub;
 
-	sub E_exx()
+	sub E_exx() is
 		R_flush(REG_HL|REG_DE|REG_BC);
 		E("\texx\n");
 	end sub;
 
-	sub E_push(src: RegId)
+	sub E_push(src: RegId) is
 		E("\tpush ");
 		E_stackref(src);
 		E_nl();
 	end sub;
 
-	sub E_pop(dest: RegId)
+	sub E_pop(dest: RegId) is
 		R_flush(dest);
 		E("\tpop ");
 		E_stackref(dest);
 		E_nl();
 	end sub;
 
-	sub E_loadm(reg: RegId)
+	sub E_loadm(reg: RegId) is
 		R_flush(reg);
 		E("\tld ");
 		E_reg(reg);
 		E(",(hl)\n");
 	end sub;
 
-	sub E_storem(reg: RegId)
+	sub E_storem(reg: RegId) is
 		E("\tld (hl),");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_stax(ptr: RegId)
+	sub E_stax(ptr: RegId) is
 		E("\tld a, (");
 		E_reg(ptr);
 		E(")\n");
 	end sub;
 
-	sub E_ldax(ptr: RegId)
+	sub E_ldax(ptr: RegId) is
 		R_flush(REG_A);
 		E("\tld (");
 		E_reg(ptr);
@@ -307,7 +307,7 @@
 		E_nl();
 	end sub;
 
-	sub E_lda(sym: [Symbol], off: Size)
+	sub E_lda(sym: [Symbol], off: Size) is
 		var cache := RegCacheFindValue(sym, off);
 		if (cache & REG_A) != 0 then
 			# Value already in the right register.
@@ -321,14 +321,14 @@
 		RegCacheLeavesValue(REG_A, sym, off);
 	end sub;
 
-	sub E_sta(sym: [Symbol], off: Size)
+	sub E_sta(sym: [Symbol], off: Size) is
 		E("\tld (");
 		E_symref(sym, off);
 		E("), a\n");
 		RegCacheLeavesValue(REG_A, sym, off);
 	end sub;
 
-	sub E_load8i(dest: RegId, index: RegId, off: int8)
+	sub E_load8i(dest: RegId, index: RegId, off: int8) is
 		R_flush(dest);
 		E("\tld ");
 		E_reg(dest);
@@ -338,7 +338,7 @@
 		E(")\n");
 	end sub;
 
-	sub E_store8i(src: RegId, index: RegId, off: int8)
+	sub E_store8i(src: RegId, index: RegId, off: int8) is
 		E("\tld (");
 		E_reg(index);
 		E_i8(off);
@@ -347,7 +347,7 @@
 		E_nl();
 	end sub;
 
-	sub E_store8ic(val: uint8, index: RegId, off: int8)
+	sub E_store8ic(val: uint8, index: RegId, off: int8) is
 		E("\tld (");
 		E_reg(index);
 		E_i8(off);
@@ -356,7 +356,7 @@
 		E_nl();
 	end sub;
 
-	sub E_loada(ptr: RegId)
+	sub E_loada(ptr: RegId) is
 		if ptr == REG_HL then
 			E_loadm(REG_A);
 		elseif (ptr & (REG_IX|REG_IY)) != 0 then
@@ -366,7 +366,7 @@
 		end if;
 	end sub;
 
-	sub E_load16(dest: RegId, sym: [Symbol], off: Size)
+	sub E_load16(dest: RegId, sym: [Symbol], off: Size) is
 		var cache := RegCacheFindValue(sym, off);
 		if (cache & dest) != 0 then
 			# Value already in the right register.
@@ -393,7 +393,7 @@
 		RegCacheLeavesValue(dest, sym, off);
 	end sub;
 
-	sub E_store16(src: RegId, sym: [Symbol], off: Size)
+	sub E_store16(src: RegId, sym: [Symbol], off: Size) is
 		E("\tld (");
 		E_symref(sym, off);
 		E("), ");
@@ -402,7 +402,7 @@
 		RegCacheLeavesValue(src, sym, off);
 	end sub;
 
-	sub E_mvi(reg: RegId, value: uint8)
+	sub E_mvi(reg: RegId, value: uint8) is
 		if (reg & (REG_HL|REG_BC|REG_DE)) != 0 then
 			SimpleError("mvi with 16-bit reg");
 		end if;
@@ -427,7 +427,7 @@
 		RegCacheLeavesConstant(reg, value as Word);
 	end sub;
 
-	sub E_alu(insn: string, rhs: RegId)
+	sub E_alu(insn: string, rhs: RegId) is
 		R_flush(REG_A);
 		E_tab();
 		E(insn);
@@ -436,47 +436,47 @@
 		E_nl();
 	end sub;
 
-	sub E_cp(rhs: RegId)
+	sub E_cp(rhs: RegId) is
 		E("\tcp ");
 		E_reg(rhs);
 		E_nl();
 	end sub;
 
-	sub E_rra()
+	sub E_rra() is
 		R_flush(REG_A);
 		E("\trra\n");
 	end sub;
 
-	sub E_cpl()
+	sub E_cpl() is
 		R_flush(REG_A);
 		E("\tcpl\n");
 	end sub;
 
-	sub E_rcf() # reset carry flag
+	sub E_rcf() is # reset carry flag
 		# Don't use E_alu here because we don't want to flush A.
 		E("\tand a\n");
 	end sub;
 
-	sub E_sub(rhs: RegId)
+	sub E_sub(rhs: RegId) is
 		E_alu("sub", rhs);
 	end sub;
 
-	sub E_and(rhs: RegId)
+	sub E_and(rhs: RegId) is
 		E_alu("and", rhs);
 	end sub;
 
-	sub E_or(rhs: RegId)
+	sub E_or(rhs: RegId) is
 		E_alu("or", rhs);
 	end sub;
 
-	sub E_xor(rhs: RegId)
+	sub E_xor(rhs: RegId) is
 		E_alu("xor", rhs);
 		if rhs == REG_A then
 			RegCacheLeavesConstant(REG_A, 0);
 		end if;
 	end sub;
 
-	sub E_alui(insn: string, value: uint8)
+	sub E_alui(insn: string, value: uint8) is
 		R_flush(REG_A);
 		E_tab();
 		E(insn);
@@ -485,55 +485,55 @@
 		E_nl();
 	end sub;
 
-	sub E_addi(value: uint8)
+	sub E_addi(value: uint8) is
 		E_alui("add", value);
 	end sub;
 
-	sub E_adci(value: uint8)
+	sub E_adci(value: uint8) is
 		E_alui("adc", value);
 	end sub;
 
-	sub E_subi(value: uint8)
+	sub E_subi(value: uint8) is
 		E_alui("sub", value);
 	end sub;
 
-	sub E_sbci(value: uint8)
+	sub E_sbci(value: uint8) is
 		E_alui("sbc", value);
 	end sub;
 
-	sub E_ori(value: uint8)
+	sub E_ori(value: uint8) is
 		E_alui("or", value);
 	end sub;
 
-	sub E_xori(value: uint8)
+	sub E_xori(value: uint8) is
 		E_alui("xor", value);
 	end sub;
 
-	sub E_andi(value: uint8)
+	sub E_andi(value: uint8) is
 		E_alui("and", value);
 	end sub;
 
-	sub E_cpi(value: uint8)
+	sub E_cpi(value: uint8) is
 		E("\tcp ");
 		E_u8(value);
 		E_nl();
 	end sub;
 
-	sub E_inc(reg: RegId)
+	sub E_inc(reg: RegId) is
 		R_flush(reg);
 		E("\tinc ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_dec(reg: RegId)
+	sub E_dec(reg: RegId) is
 		R_flush(reg);
 		E("\tdec ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_alu2(insn: string, lhs: RegId, rhs: RegId)
+	sub E_alu2(insn: string, lhs: RegId, rhs: RegId) is
 		R_flush(lhs);
 		E_tab();
 		E(insn);
@@ -544,19 +544,19 @@
 		E_nl();
 	end sub;
 
-	sub E_add(lhs: RegId, rhs: RegId)
+	sub E_add(lhs: RegId, rhs: RegId) is
 		E_alu2("add", lhs, rhs);
 	end sub;
 
-	sub E_adc(lhs: RegId, rhs: RegId)
+	sub E_adc(lhs: RegId, rhs: RegId) is
 		E_alu2("adc", lhs, rhs);
 	end sub;
 
-	sub E_sbc(lhs: RegId, rhs: RegId)
+	sub E_sbc(lhs: RegId, rhs: RegId) is
 		E_alu2("sbc", lhs, rhs);
 	end sub;
 
-	sub E_shift(insn: string, reg: RegId)
+	sub E_shift(insn: string, reg: RegId) is
 		R_flush(reg);
 		E_tab();
 		E(insn);
@@ -565,19 +565,19 @@
 		E_nl();
 	end sub;
 
-	sub E_sra(reg: RegId)
+	sub E_sra(reg: RegId) is
 		E_shift("sra", reg);
 	end sub;
 
-	sub E_srl(reg: RegId)
+	sub E_srl(reg: RegId) is
 		E_shift("srl", reg);
 	end sub;
 
-	sub E_rr(reg: RegId)
+	sub E_rr(reg: RegId) is
 		E_shift("rr", reg);
 	end sub;
 
-	sub E_bit(bit: uint8, reg: RegId)
+	sub E_bit(bit: uint8, reg: RegId) is
 		E("\tbit ");
 		E_u8(bit);
 		E_comma();
@@ -586,7 +586,7 @@
 	end sub;
 
 	# Does not persist the name; only call this with constant strings.
-	sub E_callhelper(name: string)
+	sub E_callhelper(name: string) is
 		var e := externs;
 		while e != (0 as [Extern]) loop
 			if StrCmp(e.name, name) == 0 then
@@ -618,7 +618,7 @@
 	end sub;
 
 	var stringid: uint16 := 0;
-	sub E_string(data: string)
+	sub E_string(data: string) is
 		var sid := stringid;
 		stringid := stringid + 1;
 
@@ -649,7 +649,7 @@
 		E_u16(sid);
 	end sub;
 
-	sub ArchEmitMove(src: RegId, dest: RegId)
+	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if src == 0 then
 			E_pop(dest);
 			if (dest & (REG_HLHL|REG_DEDE|REG_BCBC)) != 0 then
@@ -691,7 +691,7 @@
 		end if;
 	end sub;
 
-	sub E_lxi(reg: RegId, value: uint16);
+	sub E_lxi(reg: RegId, value: uint16) is
 		var cache := RegCacheFindConstant(value as Word) & (REG_HL|REG_BC|REG_DE|REG_IX|REG_IY);
 		if (cache & reg) != 0 then
 			# The value is already in the desired register.
@@ -716,7 +716,7 @@
 		end if;
 	end sub;
 
-	sub E_lxia(reg: RegId, sym: [Symbol], off: Size)
+	sub E_lxia(reg: RegId, sym: [Symbol], off: Size) is
 		# This optimisation doesn't appear to be used in real life and
 		# costs about 400 bytes in the compiler, so let's leave it disabled.
 
@@ -740,10 +740,10 @@
 		#RegCacheLeavesAddress(reg, sym, off);
 	end sub;
 
-	sub ArchEndInstruction()
+	sub ArchEndInstruction() is
 	end sub;
 
-	sub ArchEndGroup()
+	sub ArchEndGroup() is
 	end sub;
 %}
 
@@ -816,7 +816,7 @@ gen STARTSUB()
 	var lastparam := count - 1;
 	var popped: uint8 := 0;
 
-	sub pop_return_address()
+	sub pop_return_address() is
 		if popped == 0 then
 			E_pop(REG_BC);
 			popped := 1;
@@ -876,7 +876,7 @@ gen ENDSUB()
 	var params := current_subr.num_output_parameters;
 	var pushed: uint8 := 0;
 
-	sub push_return_address()
+	sub push_return_address() is
 		if pushed == 0 then
 			E_pop(REG_BC);
 			pushed := 1;
@@ -1033,7 +1033,7 @@ gen r32 := CONSTANT():c
 // --- 8-bit loads and stores -----------------------------------------------
 
 %{
-	sub is_indexable_8bit(value: Arith): (result: uint8)
+	sub is_indexable_8bit(value: Arith): (result: uint8) is
 		result := 1;
 		if (value < -128) or (value > 127) or ((value >= -4) and (value <= 4)) then
 			result := 0;
@@ -1081,7 +1081,7 @@ gen STORE1(CONSTANT():v, ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
 // --- 16-bit loads and stores ----------------------------------------------
 
 %{
-	sub is_indexable_16bit(value: Arith): (result: uint8)
+	sub is_indexable_16bit(value: Arith): (result: uint8) is
 		result := 1;
 		if (value < -128) or (value > 126) or ((value >= -3) and (value <= 3)) then
 			result := 0;
@@ -1149,7 +1149,7 @@ gen STORE2(CONSTANT():v, ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c)) 
 // --- 32-bit loads and stores ----------------------------------------------
 
 %{
-	sub is_indexable_32bit(value: Arith): (result: uint8)
+	sub is_indexable_32bit(value: Arith): (result: uint8) is
 		result := 1;
 		if (value < -128) or (value > 124) or ((value >= -3) and (value <= 3)) then
 			result := 0;
@@ -1373,7 +1373,7 @@ gen r8 := RSHIFTS1($$, CONSTANT(value<=3):c)
 // --- 16-bit arithmetic ----------------------------------------------------
 
 %{
-	sub is_small_positive(value: int32): (result: uint8)
+	sub is_small_positive(value: int32): (result: uint8) is
 		if (value > 0) and (value < 5) then
 			result := 1;
 		else
@@ -1381,7 +1381,7 @@ gen r8 := RSHIFTS1($$, CONSTANT(value<=3):c)
 		end if;
 	end sub;
 
-	sub is_small_negative(value: int32): (result: uint8)
+	sub is_small_negative(value: int32): (result: uint8) is
 		if (value < 0) and (value > -5) then
 			result := 1;
 		else
@@ -1450,7 +1450,7 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 }
 
 %{
-	sub aluop2(lhs: RegId, rhs: RegId, dest: RegId, loinsn: string, hiinsn: string)
+	sub aluop2(lhs: RegId, rhs: RegId, dest: RegId, loinsn: string, hiinsn: string) is
 		E_mov(REG_A, loreg(lhs));
 		E_alu(loinsn, loreg(rhs));
 		E_mov(loreg(dest), REG_A);
@@ -1459,7 +1459,7 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 		E_mov(hireg(dest), REG_A);
 	end sub;
 
-	sub aluop2i(lhs: RegId, value: uint16, dest: RegId, loinsn: string, hiinsn: string)
+	sub aluop2i(lhs: RegId, value: uint16, dest: RegId, loinsn: string, hiinsn: string) is
 		E_mov(REG_A, loreg(lhs));
 		E_alui(loinsn, value as uint8);
 		E_mov(loreg(dest), REG_A);
@@ -1468,11 +1468,11 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 		E_mov(hireg(dest), REG_A);
 	end sub;
 
-	sub E_dvrmu2()
+	sub E_dvrmu2() is
 		E_callhelper("_dvrmu2");
 	end sub;
 
-	sub E_dvrms2()
+	sub E_dvrms2() is
 		E_callhelper("_dvrms2");
 	end sub;
 
@@ -1494,11 +1494,11 @@ gen hl := MUL2(de, bc) uses a
 		{ E_callhelper("_mul2"); }
 
 %{
-	sub logic2(lhs: RegId, rhs: RegId, dest: RegId, insn: string)
+	sub logic2(lhs: RegId, rhs: RegId, dest: RegId, insn: string) is
 		aluop2(lhs, rhs, dest, insn, insn);
 	end sub;
 
-	sub logic2i(lhs: RegId, value: uint16, dest: RegId, insn: string)
+	sub logic2i(lhs: RegId, value: uint16, dest: RegId, insn: string) is
 		aluop2i(lhs, value, dest, insn, insn);
 	end sub;
 %}
@@ -1632,7 +1632,7 @@ gen hlhl := RSHIFTS4(hlhl, a)
 // --- Conditionals ---------------------------------------------------------
 
 %{
-	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node])
+	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node]) is
 		if node.beq0.truelabel != node.beq0.fallthrough then
 			E_jump(trueinsn, node.beq0.truelabel);
 		end if;
@@ -1641,28 +1641,28 @@ gen hlhl := RSHIFTS4(hlhl, a)
 		end if;
 	end sub;
 
-	sub E_jumps_jz_jnz(node: [Node])
+	sub E_jumps_jz_jnz(node: [Node]) is
 		E_jumps_with_fallthrough("jr z,", "jr nz,", node);
 	end sub;
 
-	sub E_jumps_jnz_jz(node: [Node])
+	sub E_jumps_jnz_jz(node: [Node]) is
 		E_jumps_with_fallthrough("jr nz,", "jr z,", node);
 	end sub;
 
-	sub E_jumps_jc_jnc(node: [Node])
+	sub E_jumps_jc_jnc(node: [Node]) is
 		E_jumps_with_fallthrough("jr c,", "jr nc,", node);
 	end sub;
 
-	sub E_jumps_jm_jp(node: [Node])
+	sub E_jumps_jm_jp(node: [Node]) is
 		E_jumps_with_fallthrough("jp m,", "jp p,", node);
 	end sub;
 
-	sub bequ1(node: [Node], nota: RegId)
+	sub bequ1(node: [Node], nota: RegId) is
 		E_cp(nota);
 		E_jumps_jz_jnz(node);
 	end sub;
 
-	sub bequ1c(node: [Node], value: uint8)
+	sub bequ1c(node: [Node], value: uint8) is
 		if value == 0 then
 			E_or(REG_A);
 		else
@@ -1671,7 +1671,7 @@ gen hlhl := RSHIFTS4(hlhl, a)
 		E_jumps_jz_jnz(node);
 	end sub;
 
-	sub cmpeq2(value: uint16)
+	sub cmpeq2(value: uint16) is
 		if value != 0 then
 			E_lxi(REG_DE, -value);
 			E_add(REG_HL, REG_DE);
@@ -1680,23 +1680,23 @@ gen hlhl := RSHIFTS4(hlhl, a)
 		E_or(REG_L);
 	end sub;
 
-	sub bequ2c(node: [Node], value: uint16)
+	sub bequ2c(node: [Node], value: uint16) is
 		cmpeq2(value);
 		E_jumps_jz_jnz(node);
 	end sub;
 
-	sub bequ2(node: [Node], lhs: RegId)
+	sub bequ2(node: [Node], lhs: RegId) is
 		E_rcf();
 		E_sbc(REG_HL, lhs);
 		E_jumps_jz_jnz(node);
 	end sub;
 
-	sub bequ4(node: [Node])
+	sub bequ4(node: [Node]) is
 		E_callhelper("_cmpu4");
 		E_jumps_jz_jnz(node);
 	end sub;
 
-	sub bequ4c(node: [Node], value: Arith)
+	sub bequ4c(node: [Node], value: Arith) is
 		if value == 0 then
 			E_mov(REG_A, REG_H);
 			E_or(REG_L);
@@ -1714,7 +1714,7 @@ gen hlhl := RSHIFTS4(hlhl, a)
 		E_jumps_jz_jnz(node);
 	end sub;
 
-	sub beqc(node: [Node], lhs: Arith, rhs: Arith)
+	sub beqc(node: [Node], lhs: Arith, rhs: Arith) is
 		var label := node.beq0.falselabel;
 		if lhs == rhs then
 			label := node.beq0.truelabel;
@@ -1855,7 +1855,7 @@ gen WHENCASE1():c
 }
 
 %{
-	sub case2(value: uint16, reg: RegId, label: LabelRef)
+	sub case2(value: uint16, reg: RegId, label: LabelRef) is
 		if value < 0x100 then
 			E_mov(REG_A, loreg(reg));
 			if value != 0 then

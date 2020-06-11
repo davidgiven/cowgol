@@ -2,13 +2,13 @@ var outfcb: FCB;
 
 const RECORD_SIZE := 255;
 
-record EmitterRecord
+record EmitterRecord is
 	data: uint8[RECORD_SIZE];
 	ptr: uint8;
 	next: [EmitterRecord];
 end record;
 
-record EmitterChunk
+record EmitterChunk is
 	next: [EmitterChunk];
 	first_record: [EmitterRecord];
 	current_record: [EmitterRecord];
@@ -17,7 +17,7 @@ end record;
 
 var current_chunk: [EmitterChunk];
 
-sub E_b8(byte: uint8)
+sub E_b8(byte: uint8) is
 	if current_chunk != (0 as [EmitterChunk]) then
 		var r := current_chunk.current_record;
 		if r.ptr == RECORD_SIZE then
@@ -32,7 +32,7 @@ sub E_b8(byte: uint8)
 	end if;
 end sub;
 
-sub E(text: string)
+sub E(text: string) is
 	loop
 		var c := [text];
 		text := text + 1;
@@ -43,17 +43,17 @@ sub E(text: string)
 	end loop;
 end sub;
 
-sub E_b16(word: uint16)
+sub E_b16(word: uint16) is
 	E_b8(word as uint8);
 	E_b8((word>>8) as uint8);
 end sub;
 
-sub E_b32(quad: uint32)
+sub E_b32(quad: uint32) is
 	E_b16(quad as uint16);
 	E_b16((quad>>16) as uint16);
 end sub;
 
-sub EmitterPushChunk()
+sub EmitterPushChunk() is
 	var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
 	chunk.current_record := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
 	chunk.first_record := chunk.current_record;
@@ -61,7 +61,7 @@ sub EmitterPushChunk()
 	current_chunk := chunk;
 end sub;
 
-sub EmitterPopChunk(type: uint8)
+sub EmitterPopChunk(type: uint8) is
 	FCBPutChar(&outfcb, type);
 
 	var len := current_chunk.length;
@@ -86,13 +86,13 @@ sub EmitterPopChunk(type: uint8)
 	current_chunk := nextchunk;
 end sub;
 
-sub EmitterOpenfile(filename: string)
+sub EmitterOpenfile(filename: string) is
 	if FCBOpenOut(&outfcb, filename) != 0 then
 		FatalError("cannot open output file");
 	end if;
 end sub;
 
-sub EmitterClosefile()
+sub EmitterClosefile() is
 	FCBPutChar(&outfcb, 'E');
 	FCBPutChar(&outfcb, 0);
 	FCBPutChar(&outfcb, 0);
@@ -101,21 +101,21 @@ sub EmitterClosefile()
 	end if;
 end sub;
 
-sub EmitterDeclareSubroutine(id: SubId, name: string)
+sub EmitterDeclareSubroutine(id: SubId, name: string) is
 	EmitterPushChunk();
 	E_b16(id);
 	E(name);
 	EmitterPopChunk('N');
 end sub;
 
-sub EmitterDeclareExternal(id: SubId, name: string)
+sub EmitterDeclareExternal(id: SubId, name: string) is
 	EmitterPushChunk();
 	E_b16(id);
 	E(name);
 	EmitterPopChunk('X');
 end sub;
 
-sub EmitterReferenceSubroutine(user: SubId, used: SubId)
+sub EmitterReferenceSubroutine(user: SubId, used: SubId) is
 	if user != used then
 		EmitterPushChunk();
 		E_b16(user);
@@ -124,7 +124,7 @@ sub EmitterReferenceSubroutine(user: SubId, used: SubId)
 	end if;
 end sub;
 
-sub EmitterDeclareWorkspace(id: SubId, wid: uint8, workspace: Size)
+sub EmitterDeclareWorkspace(id: SubId, wid: uint8, workspace: Size) is
 	EmitterPushChunk();
 	E_b16(id);
 	E_b8(wid);

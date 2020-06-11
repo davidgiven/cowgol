@@ -115,7 +115,7 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 
 %include
 {
-	sub BeginNormalLoop(): (ll: [LoopLabels])
+	sub BeginNormalLoop(): (ll: [LoopLabels]) is
 		ll := Alloc(@bytesof LoopLabels) as [LoopLabels];
 		ll.loop_label := AllocLabel();
 		ll.exit_label := AllocLabel();
@@ -125,7 +125,7 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 		continue_label := ll.loop_label;
 	end sub;
 
-	sub TerminateNormalLoop(ll: [LoopLabels])
+	sub TerminateNormalLoop(ll: [LoopLabels]) is
 		Generate(MidJump(continue_label));
 		Generate(MidLabel(break_label));
 		break_label := ll.old_break_label;
@@ -300,7 +300,7 @@ conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
 
 %include
 {
-	sub Negate(node: [Node])
+	sub Negate(node: [Node]) is
 		node.beq0.negated := node.beq0.negated ^ 1;
 	end sub;
 }
@@ -323,7 +323,7 @@ conditional(R) ::= conditional(C1) OR conditional(C2).
 
 %include
 {
-	sub ConditionalEq(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+	sub ConditionalEq(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node]) is
 		CondSimple(lhs, rhs);
 		var truelabel := AllocLabel();
 		var falselabel := AllocLabel();
@@ -332,7 +332,7 @@ conditional(R) ::= conditional(C1) OR conditional(C2).
 		result := MidBeq(w, lhs, rhs, truelabel, falselabel, 0, negated);
 	end sub;
 
-	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node])
+	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node]) is
 		CondSimple(lhs, rhs);
 		var truelabel := AllocLabel();
 		var falselabel := AllocLabel();
@@ -427,7 +427,7 @@ expression(E) ::= ALIAS AMPERSAND expression(E1).
 
 %include
 {
-	sub parser_i_bad_next_prev()
+	sub parser_i_bad_next_prev() is
 		SimpleError("@next and @prev only work on pointers");
 	end sub;
 }
@@ -577,7 +577,7 @@ expression(E) ::= STRING(S).
 
 %include
 {
-	sub parser_i_constant_error()
+	sub parser_i_constant_error() is
 		SimpleError("only constant values are allowed here");
 	end sub;
 }
@@ -719,7 +719,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 
 %include
 {
-	sub i_check_sub_call_args()
+	sub i_check_sub_call_args() is
 		var subr := current_call.subr;
 		if current_call.num_input_args != subr.num_input_parameters then
 			StartError();
@@ -733,7 +733,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 		end if;
 	end sub;
 
-	sub i_end_call()
+	sub i_end_call() is
 		EmitterReferenceSubroutine(current_subr, current_call.subr);
 		var call := current_call;
 		current_call := call.parent;
@@ -917,7 +917,7 @@ outputarg(E) ::= expression(E1).
 
 %include
 {
-	sub parser_i_start_sub(subr: [Subroutine])
+	sub parser_i_start_sub(subr: [Subroutine]) is
 		subr.old_break_label := break_label;
 		break_label := 0;
 		subr.old_continue_label := continue_label;
@@ -927,7 +927,7 @@ outputarg(E) ::= expression(E1).
 		current_subr := subr;
 	end sub;
 
-	sub parser_i_end_sub()
+	sub parser_i_end_sub() is
 		var subr := current_subr;
 		break_label := subr.old_break_label;
 		continue_label := subr.old_continue_label;
@@ -1064,7 +1064,7 @@ param(R) ::= newid(S) COLON typeref(T).
 
 %include
 {
-	sub SymbolRedeclarationError()
+	sub SymbolRedeclarationError() is
 		StartError();
 		print("attempt to redefine ");
 		print(current_type.name);
@@ -1149,20 +1149,20 @@ memberid(S) ::= ID(T).
 	var current_offset: Size;        # within the current braced element
 	var current_global_offset: Size; # overall
 
-	record NestedTypeInit
+	record NestedTypeInit is
 		old_current_type: [Symbol];
 		old_current_member: [Symbol];
 		old_current_offset: Size;
 	end record;
 
-	sub WrongNumberOfElementsError()
+	sub WrongNumberOfElementsError() is
 		StartError();
 		print("wrong number of elements in initialiser for ");
 		print(current_type.name);
 		EndError();
 	end sub;
 
-	sub CheckEndOfInitialiser()
+	sub CheckEndOfInitialiser() is
 		if IsArray(current_type) != 0 then
 			var memberwidth := current_type.typedata.arraytype.element.typedata.stride;
 			if current_type.typedata.width == 0 then
@@ -1181,7 +1181,7 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub GetInitedMember(): (member: [Symbol], type: [Symbol])
+	sub GetInitedMember(): (member: [Symbol], type: [Symbol]) is
 		member := 0 as [Symbol];
 
 		if IsArray(current_type) != 0 then
@@ -1198,7 +1198,7 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub AlignTo(alignment: uint8)
+	sub AlignTo(alignment: uint8) is
 		var newoffset := ArchAlignUp(current_global_offset, alignment);
 		while current_global_offset != newoffset loop
 			Generate(MidInit(1, 0));
@@ -1207,7 +1207,7 @@ memberid(S) ::= ID(T).
 		end loop;
 	end sub;
 
-	sub CheckForOverlaps(member: [Symbol])
+	sub CheckForOverlaps(member: [Symbol]) is
 		# Not for arrays.
 		if member == (0 as [Symbol]) then
 			return;
@@ -1218,7 +1218,7 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol])
+	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol]) is
 		(member, type) := GetInitedMember();
 		if type == (0 as [Symbol]) then
 			WrongNumberOfElementsError();

@@ -7,7 +7,7 @@
 # control settings
 %%
 
-record yyStackEntry
+record yyStackEntry is
 	stateno: YYACTIONTYPE;
 	major: YYCODETYPE;
 	minor: YYMINORTYPE;
@@ -34,24 +34,24 @@ var yyTokenName: [uint8][] := {
 #};
 
 # destructors
-sub yy_destructor(yymajor: YYCODETYPE, yypminor: [YYMINORTYPE])
+sub yy_destructor(yymajor: YYCODETYPE, yypminor: [YYMINORTYPE]) is
 %%
 end sub;
 
 # stack overflow code
 
-sub yy_pop_parser_stack()
+sub yy_pop_parser_stack() is
 	yytos := @prev yytos;
 	yy_destructor(yytos.major, &yytos.minor);
 end sub;
 
-sub yy_pop_all_parser_stack()
+sub yy_pop_all_parser_stack() is
 	while yytos != &yystack[0] loop
 		yy_pop_parser_stack();
 	end loop;
 end sub;
 
-sub yy_stack_overflow()
+sub yy_stack_overflow() is
 	yy_pop_all_parser_stack();
 %%
 end sub;
@@ -68,7 +68,7 @@ var yyRuleInfoNRhs: uint8[] := {
 %%
 };
 
-sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
+sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string) is
 	print(msg);
 	print(" '");
 	print(yyTokenName[yytos.major]);
@@ -77,7 +77,7 @@ sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string)
 	print_nl();
 end sub;
 
-sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTIONTYPE)
+sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTIONTYPE) is
 	var yysize := yyRuleInfoNRhs[yyruleno as @indexof yyRuleInfoNRhs];
 	#print("Reduce ");
 	#print_i16(yyruleno);
@@ -123,35 +123,35 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTION
 end sub;
 
 # parse failure code
-sub yy_parse_failed()
+sub yy_parse_failed() is
 	yy_pop_all_parser_stack();
 %%
 end sub;
 
 # syntax error code
-sub yy_syntax_error(yymajor: YYCODETYPE, yyminor: [ParseTOKENTYPE])
+sub yy_syntax_error(yymajor: YYCODETYPE, yyminor: [ParseTOKENTYPE]) is
 %%
 end sub;
 
 # parse accept code
-sub yy_accept()
+sub yy_accept() is
 %%
 end sub;
 
-sub ParserInit()
+sub ParserInit() is
 	yyerrcnt := -1;
 	yytos := &yystack[0];
 	yystack[0].stateno := 0;
 	yystack[0].major := 0;
 end sub;
 
-sub ParserDeinit()
+sub ParserDeinit() is
 	while yytos != &yystack[0] loop
 		yy_pop_parser_stack();
 	end loop;
 end sub;
 
-sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE])
+sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE]) is
 	var yyact := yytos.stateno;
 
 	#print("Input '")

@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-sub castu1()
+sub castu1() is
 	var one: uint8 := 1;
 	var mone: uint8 := -1;
 
@@ -17,7 +17,7 @@ sub castu1()
 end sub;
 castu1();
 
-sub casts1()
+sub casts1() is
 	var one: int8 := 1;
 	var mone: int8 := -1;
 
@@ -33,7 +33,7 @@ sub casts1()
 end sub;
 casts1();
 
-sub castu2()
+sub castu2() is
 	var one: uint16 := 1;
 	var mone: uint16 := -1;
 
@@ -49,7 +49,7 @@ sub castu2()
 end sub;
 castu2();
 
-sub casts2()
+sub casts2() is
 	var one: int16 := 1;
 	var mone: int16 := -1;
 
@@ -65,7 +65,7 @@ sub casts2()
 end sub;
 casts2();
 
-sub castu4()
+sub castu4() is
 	var one: uint32 := 1;
 	var mone: uint32 := -1;
 
@@ -81,7 +81,7 @@ sub castu4()
 end sub;
 castu4();
 
-sub casts4()
+sub casts4() is
 	var one: int32 := 1;
 	var mone: int32 := -1;
 

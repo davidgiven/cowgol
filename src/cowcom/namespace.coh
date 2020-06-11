@@ -1,4 +1,4 @@
-sub LookupSymbolInNamespace(namespace: [Namespace], name: string): (symbol: [Symbol])
+sub LookupSymbolInNamespace(namespace: [Namespace], name: string): (symbol: [Symbol]) is
 	symbol := namespace.first;
 	while symbol != (0 as [Symbol]) loop
 		if StrCmp(symbol.name, name) == 0 then
@@ -12,7 +12,7 @@ sub LookupSymbolInNamespace(namespace: [Namespace], name: string): (symbol: [Sym
 	symbol := (0 as [Symbol]);
 end sub;
 
-sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
+sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
 	if namespace == (0 as [Namespace]) then
 		namespace := &current_subr.namespace;
 	end if;
@@ -28,7 +28,7 @@ sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 	symbol := (0 as [Symbol]);
 end sub;
 
-sub AddToNamespace(namespace: [Namespace], symbol: [Symbol])
+sub AddToNamespace(namespace: [Namespace], symbol: [Symbol]) is
 	if namespace.last == (0 as [Symbol]) then
 		namespace.first := symbol;
 		namespace.last := symbol;
@@ -39,7 +39,7 @@ sub AddToNamespace(namespace: [Namespace], symbol: [Symbol])
 end sub;
 
 # Takes ownership of the string
-sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
+sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
 	if namespace == (0 as [Namespace]) then
 		namespace := &current_subr.namespace;
 	end if;
@@ -61,17 +61,17 @@ sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol])
 end sub;
 
 # Takes ownership of the name
-sub AddAlias(namespace: [Namespace], name: string, real: [Symbol]): (symbol: [Symbol])
+sub AddAlias(namespace: [Namespace], name: string, real: [Symbol]): (symbol: [Symbol]) is
 	symbol := AddSymbol(namespace, name);
 	symbol.kind := TYPEDEF;
 	symbol.alias := real;
 end sub;
 
-sub AddAliasString(name: string, real: [Symbol])
+sub AddAliasString(name: string, real: [Symbol]) is
 	var symbol := AddAlias(0 as [Namespace], name, real);
 end sub;
 
-sub CheckNotPartialType(type: [Symbol])
+sub CheckNotPartialType(type: [Symbol]) is
 	if type.typedata.kind == TYPE_PARTIAL then
 		StartError();
 		print("'");
@@ -81,7 +81,7 @@ sub CheckNotPartialType(type: [Symbol])
 	end if;
 end sub;
 
-sub MakeNumberType(width: uint8, alignment: uint8, is_signed: uint8, name: string): (symbol: [Symbol])
+sub MakeNumberType(width: uint8, alignment: uint8, is_signed: uint8, name: string): (symbol: [Symbol]) is
 	symbol := Alloc(@bytesof Symbol) as [Symbol];
 	symbol.kind := TYPE;
 	symbol.typedata.kind := TYPE_NUMBER;
@@ -93,22 +93,22 @@ sub MakeNumberType(width: uint8, alignment: uint8, is_signed: uint8, name: strin
 	AddToNamespace(&current_subr.namespace, symbol);
 end sub;
 
-sub IsTypeOfKind(type: [Symbol], kind: uint8): (result: uint8)
+sub IsTypeOfKind(type: [Symbol], kind: uint8): (result: uint8) is
 	result := 0;
 	if (type != (0 as [Symbol])) and (type.kind == TYPE) and (type.typedata.kind == kind) then
 		result := 1;
 	end if;
 end sub;
 
-sub IsArray(type: [Symbol]): (result: uint8)
+sub IsArray(type: [Symbol]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_ARRAY);
 end sub;
 
-sub IsPtr(type: [Symbol]): (result: uint8)
+sub IsPtr(type: [Symbol]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_POINTER);
 end sub;
 
-sub IsNum(type: [Symbol]): (result: uint8)
+sub IsNum(type: [Symbol]): (result: uint8) is
 	if type == (0 as [Symbol]) then
 		result := 1;
 	else
@@ -116,7 +116,7 @@ sub IsNum(type: [Symbol]): (result: uint8)
 	end if;
 end sub;
 
-sub IsSNum(type: [Symbol]): (result: uint8)
+sub IsSNum(type: [Symbol]): (result: uint8) is
 	if type == (0 as [Symbol]) then
 		result := 1;
 	elseif (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.numbertype.is_signed != 0) then
@@ -126,7 +126,7 @@ sub IsSNum(type: [Symbol]): (result: uint8)
 	end if;
 end sub;
 
-sub IsScalar(type: [Symbol]): (result: uint8)
+sub IsScalar(type: [Symbol]): (result: uint8) is
 	if (IsPtr(type) != 0) or (IsNum(type) != 0) then
 		result := 1;
 	else
@@ -134,11 +134,11 @@ sub IsScalar(type: [Symbol]): (result: uint8)
 	end if;
 end sub;
 
-sub IsRecord(type: [Symbol]): (result: uint8)
+sub IsRecord(type: [Symbol]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_RECORD);
 end sub;
 
-sub MakeLValue(address: [Node]): (lvalue: [Node])
+sub MakeLValue(address: [Node]): (lvalue: [Node]) is
 	var w: uint8 := 0;
 	var elementtype := address.type.typedata.pointertype.element;
 	if IsScalar(elementtype) != 0 then
@@ -152,7 +152,7 @@ sub MakeLValue(address: [Node]): (lvalue: [Node])
 	#print_nl();
 end sub;
 
-sub UndoLValue(lvalue: [Node]): (address: [Node])
+sub UndoLValue(lvalue: [Node]): (address: [Node]) is
 	var k := lvalue.op;
 	if (k < MIDCODE_LOAD0) or (k > MIDCODE_LOAD8) then
 		SimpleError("lvalue required");

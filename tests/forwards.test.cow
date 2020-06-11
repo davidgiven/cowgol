@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "_framework.coh";
 
-sub @extern("externname") Extern()
+sub @extern("externname") Extern() is
 end sub;
 
 @decl sub Declared();
@@ -9,12 +9,12 @@ end sub;
 print("in main\n");
 Declared();
 
-sub CallsDeclaredBeforeImplementation()
+sub CallsDeclaredBeforeImplementation() is
 	Declared();
 end sub;
 CallsDeclaredBeforeImplementation();
 
-@impl sub Declared
+@impl sub Declared is
 	print("in declared\n");
 end sub;
 

@@ -24,17 +24,17 @@ include "src/cowcom/symbols.coh";
 include "src/cowcom/expressions.coh";
 include "parser.coh";
 
-sub PrintFreeMemory()
+sub PrintFreeMemory() is
 	print_i16((GetFreeMemory() >> 10) as uint16);
 	print("kB free\n");
 end sub;
 
-sub SyntaxError()
+sub SyntaxError() is
 	print("syntax error: cowcom [-Ipath] <infile> <outfile>\n");
 	ExitWithError();
 end sub;
 
-sub ParseArguments()
+sub ParseArguments() is
 	ArgvInit();
 
 	loop

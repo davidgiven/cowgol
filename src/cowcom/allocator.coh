@@ -1,4 +1,4 @@
-sub StrDupBraced(s: string): (news: string)
+sub StrDupBraced(s: string): (news: string) is
 	var len := StrLen(s);
 	news := Alloc(len + 3);
 	var p := news;
@@ -11,7 +11,7 @@ sub StrDupBraced(s: string): (news: string)
 	[p] := 0;
 end sub;
 
-sub StrDupArrayed(s: string, i: Size): (news: string)
+sub StrDupArrayed(s: string, i: Size): (news: string) is
 	var len := StrLen(s);
 	news := Alloc(len + 3);
 	var p := news;

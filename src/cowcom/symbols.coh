@@ -1,4 +1,4 @@
-sub InitVariable(symbol: [Symbol], type: [Symbol])
+sub InitVariable(symbol: [Symbol], type: [Symbol]) is
 	CheckNotPartialType(type);
 	symbol.vardata.type := type;
 	symbol.vardata.subr := current_subr;
@@ -14,7 +14,7 @@ sub InitVariable(symbol: [Symbol], type: [Symbol])
 	#print_nl();
 end sub;
 
-sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol])
+sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol]) is
 	ptrtype := type.typedata.pointerto;
 	if ptrtype == (0 as [Symbol]) then
 		ptrtype := AddSymbol(0 as [Namespace], 0 as string);
@@ -29,7 +29,7 @@ sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol])
 	end if;
 end sub;
 
-sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol])
+sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol]) is
 	CheckNotPartialType(type);
 
 	arraytype := AddSymbol(0 as [Namespace], 0 as string);
@@ -52,9 +52,9 @@ end sub;
 # of the resources used. Note that we can't free *everything* until our parent
 # gets destructed, because parameters and types which they depend on might be
 # referred to.
-sub DestructSubroutineContents(subr: [Subroutine])
+sub DestructSubroutineContents(subr: [Subroutine]) is
 	# Destroys a sumbol (which isn't a subroutine).
-	sub DestructSymbol(symbol: [Symbol])
+	sub DestructSymbol(symbol: [Symbol]) is
 		if symbol.kind == TYPE then
 			var pointer := symbol.typedata.pointerto;
 			while pointer != (0 as [Symbol]) loop
@@ -70,7 +70,7 @@ sub DestructSubroutineContents(subr: [Subroutine])
 	end sub;
 
 	# Destroys a subroutine, freeing all parameters, variables, types etc.
-	sub DestructSubroutine(subr: [Subroutine])
+	sub DestructSubroutine(subr: [Subroutine]) is
 		var symbol := subr.namespace.first;
 		while symbol != (0 as [Symbol]) loop
 			var s := symbol;

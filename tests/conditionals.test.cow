@@ -6,7 +6,7 @@ const ONE := 1;
 const MONE := -1;
 const PBIG := 0xabcdef;
 
-sub equality1()
+sub equality1() is
 	print("equality1\n");
 	var zero: uint8 := 0;
 	var one: uint8 := 1;
@@ -23,7 +23,7 @@ sub equality1()
 end sub;
 equality1();
 
-sub equality2()
+sub equality2() is
 	print("equality2\n");
 	var zero: uint16 := 0;
 	var one: uint16 := 1;
@@ -40,7 +40,7 @@ sub equality2()
 end sub;
 equality2();
 
-sub equality4()
+sub equality4() is
 	print("equality2\n");
 	var zero: uint32 := 0;
 	var one: uint32 := 1;
@@ -57,7 +57,7 @@ sub equality4()
 end sub;
 equality4();
 
-sub signed1()
+sub signed1() is
 	print("signed1\n");
 	var zero: int8 := 0;
 	var mone: int8 := -1;
@@ -69,7 +69,7 @@ sub signed1()
 end sub;
 signed1();
 
-sub unsigned1()
+sub unsigned1() is
 	print("unsigned1\n");
 	var zero: uint8 := 0;
 	var mone: uint8 := -1;
@@ -81,7 +81,7 @@ sub unsigned1()
 end sub;
 unsigned1();
 
-sub signed2()
+sub signed2() is
 	print("signed2\n");
 	var zero: int16 := 0;
 	var mone: int16 := -1;
@@ -93,7 +93,7 @@ sub signed2()
 end sub;
 signed2();
 
-sub unsigned2()
+sub unsigned2() is
 	print("unsigned2\n");
 	var zero: uint16 := 0;
 	var one: uint16 := 1;
@@ -109,7 +109,7 @@ sub unsigned2()
 end sub;
 unsigned2();
 
-sub signed4()
+sub signed4() is
 	print("signed4\n");
 	var zero: int32 := 0;
 	var mone: int32 := -1;
@@ -123,7 +123,7 @@ sub signed4()
 end sub;
 signed4();
 
-sub unsigned4()
+sub unsigned4() is
 	print("unsigned4\n");
 	var zero: uint32 := 0;
 	var one: uint32 := 1;
@@ -136,7 +136,7 @@ sub unsigned4()
 end sub;
 unsigned4();
 
-sub and1()
+sub and1() is
 	print("and1\n");
 	var i: uint8 := 70;
 	print("isletter(70)"); if (i>='A') and (i<='Z') then yes(); else no(); end if;
@@ -145,7 +145,7 @@ sub and1()
 end sub;
 and1();
 
-sub andor1()
+sub andor1() is
 	print("andor1");
 	var i: uint8 := 0;
 	var j: uint8 := 0;
@@ -154,7 +154,7 @@ sub andor1()
 end sub;
 andor1();
 
-sub orand1()
+sub orand1() is
 	print("orand1");
 	var i: uint8 := 1;
 	var j: uint8 := 2;
@@ -162,7 +162,7 @@ sub orand1()
 end sub;
 orand1();
 
-sub andfuncs()
+sub andfuncs() is
 	print("andfuncs");
 	sub returns(x: uint8): (result: uint8)
 		result := x;
