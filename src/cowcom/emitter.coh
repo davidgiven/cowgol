@@ -2,13 +2,13 @@ var outfcb: FCB;
 
 const RECORD_SIZE := 128;
 
-record EmitterRecord
+record EmitterRecord is
 	data: uint8[RECORD_SIZE];
 	ptr: uint8;
 	next: [EmitterRecord];
 end record;
 
-record EmitterChunk
+record EmitterChunk is
 	next: [EmitterChunk];
 	first_record: [EmitterRecord];
 	current_record: [EmitterRecord];
@@ -17,7 +17,7 @@ end record;
 
 var current_chunk: [EmitterChunk];
 
-sub E_b8(byte: uint8)
+sub E_b8(byte: uint8) is
 	if current_chunk != (0 as [EmitterChunk]) then
 		var r := current_chunk.current_record;
 		if r.ptr == RECORD_SIZE then
@@ -32,41 +32,41 @@ sub E_b8(byte: uint8)
 	end if;
 end sub;
 
-sub E_b16(word: uint16)
+sub E_b16(word: uint16) is
 	E_b8(word as uint8);
 	E_b8((word>>8) as uint8);
 end sub;
 
-sub E_b32(quad: uint32)
+sub E_b32(quad: uint32) is
 	E_b16(quad as uint16);
 	E_b16((quad>>16) as uint16);
 end sub;
 
-sub E_space()
+sub E_space() is
 	E_b8(' ');
 end sub;
 
-sub E_comma()
+sub E_comma() is
 	E_b8(',');
 end sub;
 
-sub E_tab()
+sub E_tab() is
 	E_b8('\t');
 end sub;
 
-sub E_nl();
+sub E_nl() is
 	E_b8('\n');
 end sub;
 
-sub E_openp();
+sub E_openp() is
 	E_b8('(');
 end sub;
 
-sub E_closep();
+sub E_closep() is
 	E_b8(')');
 end sub;
 
-sub E(text: string)
+sub E(text: string) is
 	loop
 		var c := [text];
 		text := text + 1;
@@ -77,7 +77,7 @@ sub E(text: string)
 	end loop;
 end sub;
 
-sub E_u32(value: uint32)
+sub E_u32(value: uint32) is
 	var buffer: uint8[12];
 	var p := &buffer[0];
 	var pe := UIToA(value, 10, p);
@@ -92,15 +92,15 @@ sub E_u32(value: uint32)
 	end loop;
 end sub;
 
-sub E_u16(value: uint16)
+sub E_u16(value: uint16) is
 	E_u32(value as uint32);
 end sub;
 
-sub E_u8(value: uint8)
+sub E_u8(value: uint8) is
 	E_u32(value as uint32);
 end sub;
 
-sub E_i8(value: int8)
+sub E_i8(value: int8) is
 	if value < 0 then
 		E_b8('-');
 		value := -value;
@@ -110,7 +110,7 @@ sub E_i8(value: int8)
 	E_u8(value as uint8);
 end sub;
 
-sub E_i16(value: int16)
+sub E_i16(value: int16) is
 	if value < 0 then
 		E_b8('-');
 		value := -value;
@@ -120,7 +120,7 @@ sub E_i16(value: int16)
 	E_u16(value as uint16);
 end sub;
 
-sub E_i32(value: int32)
+sub E_i32(value: int32) is
 	if value < 0 then
 		E_b8('-');
 		value := -value;
@@ -130,7 +130,7 @@ sub E_i32(value: int32)
 	E_u32(value as uint32);
 end sub;
 
-sub E_h(value: uint32, width: uint8)
+sub E_h(value: uint32, width: uint8) is
 	var buffer: uint8[5];
 	var pe := UIToA(value as uint32, 16, &buffer[0]);
 	var padding := width - (pe - &buffer[0]) as uint8;
@@ -141,24 +141,24 @@ sub E_h(value: uint32, width: uint8)
 	E(&buffer[0]);
 end sub;
 
-sub E_h8(value: uint8)
+sub E_h8(value: uint8) is
 	E_h(value as uint32, 2);
 end sub;
 
-sub E_h16(value: uint16)
+sub E_h16(value: uint16) is
 	E_h(value as uint32, 4);
 end sub;
 
-sub E_h32(value: uint32)
+sub E_h32(value: uint32) is
 	E_h(value as uint32, 8);
 end sub;
 
-sub E_labelref(labelid: uint16)
+sub E_labelref(labelid: uint16) is
 	E_b8(COO_ESCAPE_THISCOO);
 	E_h16(labelid);
 end sub;
 
-sub E_subref(subr: [Subroutine])
+sub E_subref(subr: [Subroutine]) is
 	if subr == current_subr then
 		E_b8(COO_ESCAPE_THISSUB);
 	else
@@ -167,14 +167,14 @@ sub E_subref(subr: [Subroutine])
 	end if;
 end sub;
 
-sub E_wsref(id: uint16, wsid: uint8, off: uint16)
+sub E_wsref(id: uint16, wsid: uint8, off: uint16) is
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(id);
 	E_b8(wsid);
 	E_b16(off);
 end sub;
 
-sub EmitterPushChunk()
+sub EmitterPushChunk() is
 	var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
 	chunk.current_record := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
 	chunk.first_record := chunk.current_record;
@@ -182,7 +182,7 @@ sub EmitterPushChunk()
 	current_chunk := chunk;
 end sub;
 
-sub EmitterPopChunk(type: uint8)
+sub EmitterPopChunk(type: uint8) is
 	FCBPutChar(&outfcb, type);
 
 	var len := current_chunk.length;
@@ -207,13 +207,13 @@ sub EmitterPopChunk(type: uint8)
 	current_chunk := nextchunk;
 end sub;
 
-sub EmitterOpenfile(filename: string)
+sub EmitterOpenfile(filename: string) is
 	if FCBOpenOut(&outfcb, filename) != 0 then
 		SimpleError("cannot open output file");
 	end if;
 end sub;
 
-sub EmitterClosefile()
+sub EmitterClosefile() is
 	FCBPutChar(&outfcb, 'E');
 	FCBPutChar(&outfcb, 0);
 	FCBPutChar(&outfcb, 0);
@@ -222,28 +222,28 @@ sub EmitterClosefile()
 	end if;
 end sub;
 
-sub EmitterDeclareSubroutine(subr: [Subroutine])
+sub EmitterDeclareSubroutine(subr: [Subroutine]) is
 	EmitterPushChunk();
 	E_b16(subr.id);
 	E(subr.name);
 	EmitterPopChunk('N');
 end sub;
 
-sub EmitterDeclareExternalSubroutine(id: uint16, external: string)
+sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
 	EmitterPushChunk();
 	E_b16(id);
 	E(external);
 	EmitterPopChunk('X');
 end sub;
 
-sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine])
+sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine]) is
 	EmitterPushChunk();
 	E_b16(user.id);
 	E_b16(used.id);
 	EmitterPopChunk('R');
 end sub;
 
-sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size)
+sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
 	EmitterPushChunk();
 	E_b16(subr.id);
 	E_b8(wid);

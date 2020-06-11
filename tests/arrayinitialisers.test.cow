@@ -6,7 +6,7 @@ var shorts: uint16[] := {1, 2, 3, 4, 5};
 var longs: uint32[] := {1, 2, 3, 4, 5};
 var strings: [uint8][] := {"foo", "bar", "cow"};
 
-sub Subroutine()
+sub Subroutine() is
 	print("read byte");
 	if bytes[1] == 2 then yes(); else no(); end if;
 

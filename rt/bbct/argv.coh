@@ -1,11 +1,11 @@
 var argv_pointer: [uint8];
 
-sub ArgvInit()
+sub ArgvInit() is
 	argv_pointer := _args;
 end sub;
 
 # Returns null is there's no next argument.
-sub ArgvNext(): (arg: [uint8])
+sub ArgvNext(): (arg: [uint8]) is
 	# No more arguments?
 
 	if (argv_pointer == (0 as [uint8])) or ([argv_pointer] == 0) then

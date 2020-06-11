@@ -13,7 +13,7 @@ var one: uint8 := 1;
 var two: uint8 := 2;
 var seven: uint8 := 7;
 
-sub lshift()
+sub lshift() is
 	print("one32<<zero == 1"); if one32<<zero == 1 then yes(); else no(); end if;
 	print("one32<<one == 2"); if one32<<one == 2 then yes(); else no(); end if;
 	print("one32<<two == 4"); if one32<<two == 4 then yes(); else no(); end if;
@@ -22,7 +22,7 @@ sub lshift()
 end sub;
 lshift();
 
-sub rshiftu()
+sub rshiftu() is
 	print("big>>zero == 0x80000000"); if big>>zero == 0x80000000 then yes(); else no(); end if;
 	print("big>>one == 0x40000000"); if big>>one == 0x40000000 then yes(); else no(); end if;
 	print("big>>two == 0x20000000"); if big>>two == 0x20000000 then yes(); else no(); end if;
@@ -31,7 +31,7 @@ sub rshiftu()
 end sub;
 rshiftu();
 
-sub rshifts()
+sub rshifts() is
 	print("mbig>>zero == 0x80000000"); if mbig>>zero == 0x80000000 then yes(); else no(); end if;
 	print("mbig>>one == 0xc0000000"); if mbig>>one == 0xc0000000 then yes(); else no(); end if;
 	print("mbig>>two == 0xe0000000"); if mbig>>two == 0xe0000000 then yes(); else no(); end if;

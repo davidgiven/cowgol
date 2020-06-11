@@ -7,21 +7,21 @@ var LOMEM: [uint8];
 var HIMEM: [uint8];
 @asm "movl $HIMEM, ", HIMEM;
 
-sub Exit()
+sub Exit() is
 	@asm "jmp _exit";
 end sub;
 
-sub ExitWithError()
+sub ExitWithError() is
 	@asm "mov $1, %eax";
 	@asm "mov %eax, %ebx";
 	@asm "int $0x80";
 end sub;
 
-sub AlignUp(in: intptr): (out: intptr)
+sub AlignUp(in: intptr): (out: intptr) is
 	out := in;
 end sub;
 
-sub print_char(c: uint8)
+sub print_char(c: uint8) is
     @asm "movl $4, %eax";
     @asm "movl $1, %ebx";
     @asm "lea ", c, ", %ecx";
@@ -29,7 +29,7 @@ sub print_char(c: uint8)
     @asm "int $0x80";
 end sub;
 
-sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
+sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32) is
     @asm "xorl %edx, %edx";
     @asm "mov ", lhs, ", %eax";
     @asm "divl ", rhs;
@@ -37,7 +37,7 @@ sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
     @asm "movl %edx, ", rem;
 end sub;
 
-sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
+sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32) is
     @asm "mov ", lhs, ", %eax";
     @asm "cdq";
     @asm "idivl ", rhs;
@@ -45,7 +45,7 @@ sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
     @asm "movl %edx, ", rem;
 end sub;
 
-sub MemSet(ptr: [uint8], data: uint8, length: intptr)
+sub MemSet(ptr: [uint8], data: uint8, length: intptr) is
 	@asm "mov ", ptr, ", %edi";
 	@asm "mov ", data, ", %al";
 	@asm "mov ", length, ", %ecx";

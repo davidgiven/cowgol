@@ -1,8 +1,8 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-sub oneint8()
-	sub func(): (i: int8)
+sub oneint8() is
+	sub func(): (i: int8) is
 		i := 42;
 	end sub;
     print("oneint8");
@@ -11,8 +11,8 @@ sub oneint8()
 end sub;
 oneint8();
 
-sub oneint16()
-	sub func(): (i: int16)
+sub oneint16() is
+	sub func(): (i: int16) is
 		i := 42;
 	end sub;
 	print("oneint16");
@@ -21,8 +21,8 @@ sub oneint16()
 end sub;
 oneint16();
 
-sub oneint32()
-	sub func(): (i: int32)
+sub oneint32() is
+	sub func(): (i: int32) is
 		i := 12345678;
 	end sub;
 	print("oneint32");
@@ -31,8 +31,8 @@ sub oneint32()
 end sub;
 oneint32();
 
-sub inout8()
-	sub func(i1: int8): (i2: int8)
+sub inout8() is
+	sub func(i1: int8): (i2: int8) is
 		i2 := i1 + 1;
 	end sub;
 	print("inout8");
@@ -41,8 +41,8 @@ sub inout8()
 end sub;
 inout8();
 
-sub inout16()
-	sub func(i1: int16): (i2: int16)
+sub inout16() is
+	sub func(i1: int16): (i2: int16) is
 		i2 := i1 + 1;
 	end sub;
 	print("inout16");
@@ -51,8 +51,8 @@ sub inout16()
 end sub;
 inout16();
 
-sub multiout()
-	sub func(): (i1: int8, i2: int16, i3: int32, i4: int16)
+sub multiout() is
+	sub func(): (i1: int8, i2: int16, i3: int32, i4: int16) is
 		i1 := 42;
 		i2 := 1234;
 		i3 := 87654321;

@@ -1,5 +1,5 @@
 
-sub CountParameters(param: [Symbol]): (count: uint8)
+sub CountParameters(param: [Symbol]): (count: uint8) is
 	count := 0;
 	while param != (0 as [Symbol]) loop
 		count := count + 1;
@@ -7,7 +7,7 @@ sub CountParameters(param: [Symbol]): (count: uint8)
 	end loop;
 end sub;
 
-sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Symbol])
+sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
 	param := subr.first_input_parameter;
 	while count != 0 loop
 		param := param.vardata.next_parameter;
@@ -15,7 +15,7 @@ sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Symbol])
 	end loop;
 end sub;
 
-sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Symbol])
+sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
 	param := subr.first_output_parameter;
 	while count != 0 loop
 		param := param.vardata.next_parameter;
@@ -23,14 +23,14 @@ sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Symbol])
 	end loop;
 end sub;
 
-sub BadNodeWidth(width: uint8)
+sub BadNodeWidth(width: uint8) is
 	print("bad midcode width ");
 	print_i8(width);
 	print_nl();
 	ExitWithError();
 end sub;
 
-sub WidthToIndex(width: uint8): (index: uint8)
+sub WidthToIndex(width: uint8): (index: uint8) is
 	case width is
 		when 4: index := 3;
 		when 8: index := 4;
@@ -40,41 +40,18 @@ end sub;
 
 include "midcodes.coh";
 
-# Free up the node tree rooted in the parameter. This is more exciting than it
-# should be because we don't have recursion.
-sub Discard(node: [Node])
-	var pending := node;
-	while pending != (0 as [Node]) loop
-		node := pending;
-		pending := node.dlink;
-
-		# Unlink and push any children.
-		if node.left != (0 as [Node]) then
-			node.left.dlink := pending;
-			pending := node.left;
-		end if;
-		if node.right != (0 as [Node]) then
-			node.right.dlink := pending;
-			pending := node.right;
-		end if;
-
-		# Now free this node.
-		Free(node as [uint8]);
-	end loop;
-end sub;
-
-sub NodeWidth(node: [Node]): (width: uint8)
+sub NodeWidth(node: [Node]): (width: uint8) is
 	width := 0;
 	if node.type != (0 as [Symbol]) then
 		width := node.type.typedata.width as uint8;
 	end if;
 end sub;
 
-sub midcodec_i_bad_fold()
+sub midcodec_i_bad_fold() is
 	SimpleError("bad fold");
 end sub;
 
-sub FoldConstant1(op: uint8, lhsp: [Node]): (result: Arith)
+sub FoldConstant1(op: uint8, lhsp: [Node]): (result: Arith) is
 	var lhs := lhsp.constant.value;
 	case op is
 		when MIDCODE_NOT0: result := ~lhs;
@@ -84,7 +61,7 @@ sub FoldConstant1(op: uint8, lhsp: [Node]): (result: Arith)
 	end case;
 end sub;
 
-sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith)
+sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith) is
 	var lhs := lhsp.constant.value;
 	var rhs := rhsp.constant.value;
 	case op is
@@ -106,7 +83,7 @@ sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith)
 	end case;
 end sub;
 
-sub MidC1Op(op: uint8, width: uint8, lhs: [Node]): (result: [Node])
+sub MidC1Op(op: uint8, width: uint8, lhs: [Node]): (result: [Node]) is
 	if lhs.op == MIDCODE_CONSTANT then
 		lhs.constant.value := FoldConstant1(op, lhs);
 		result := lhs;
@@ -116,7 +93,7 @@ sub MidC1Op(op: uint8, width: uint8, lhs: [Node]): (result: [Node])
 	end if;
 end sub;
 	
-sub GetPowerOfTwo(value: int32): (exp: uint8)
+sub GetPowerOfTwo(value: int32): (exp: uint8) is
 	exp := 0;
 	if (value > 0) and ((value & (value - 1)) == 0) then
 		while value != 0 loop
@@ -126,7 +103,7 @@ sub GetPowerOfTwo(value: int32): (exp: uint8)
 	end if;
 end sub;
 
-sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
+sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node]) is
 	# Convert subtractions of negative constants into additions, before the
 	# rotation.
 
@@ -226,7 +203,7 @@ sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 	result.right := rhs;
 end sub;
 
-sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node])
+sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node]) is
 	if lhs.op == MIDCODE_CONSTANT then
 		result := lhs;
 		return;

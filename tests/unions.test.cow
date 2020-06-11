@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-record TestRecord
+record TestRecord is
 	i: uint8;
 	j @at(1): uint8;
 	k @at(1): uint8;

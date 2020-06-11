@@ -454,7 +454,7 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 static void create_match_predicates(void)
 {
 	#if defined COWGOL
-		fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8)\n");
+		fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8) is\n");
 		fprintf(outfp, "var slots: [Node][%d];\n", maxdepth);
 		fprintf(outfp, "MemCopy(n as [uint8], @bytesof slots, &slots[0] as [uint8]);\n");
 		fprintf(outfp, "matches := 0;\n");
@@ -664,8 +664,8 @@ static void print_line(int lineno)
 static void create_emitters(void)
 {
 	#if defined COWGOL
-		fprintf(outfp, "sub EmitOneInstruction(rule: uint8, self: [Instruction])\n");
-		fprintf(outfp, "record NodeSlot\n");
+		fprintf(outfp, "sub EmitOneInstruction(rule: uint8, self: [Instruction]) is\n");
+		fprintf(outfp, "record NodeSlot is\n");
 		fprintf(outfp, "\tnode: [Node];\n");
 		fprintf(outfp, "\treg: RegId;\n");
 		fprintf(outfp, "end record;\n");
@@ -696,7 +696,7 @@ static void create_emitters(void)
 		{
 			#if defined COWGOL
 				fprintf(outfp, "when %d:\n", i);
-				fprintf(outfp, "sub emit_%d()\n", i);
+				fprintf(outfp, "sub emit_%d() is\n", i);
 			#else
 				fprintf(outfp, "case %d: {\n", i);
 			#endif
@@ -805,7 +805,7 @@ static void walk_matcher_tree(int* offset, Node* pattern)
 static void create_matcher(void)
 {
 	#if defined COWGOL
-		fprintf(outfp, "sub PopulateMatchBuffer(insn: [Instruction], n: [[Node]], matchbuf: [uint8])\n");
+		fprintf(outfp, "sub PopulateMatchBuffer(insn: [Instruction], n: [[Node]], matchbuf: [uint8]) is\n");
 	#else
 		fprintf(outfp, "void populate_match_buffer(Instruction* insn, Node** n, uint8_t* matchbuf) {\n");
 	#endif
@@ -846,15 +846,15 @@ int main(int argc, const char* argv[])
 
 	#if defined COWGOL
 		if (machine_word)
-			fprintf(outhfp, "typedef Word := %s;\n", machine_word);
+			fprintf(outhfp, "typedef Word is %s;\n", machine_word);
 
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
 		fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
-		fprintf(outhfp, "typedef RegId := int(0, ALL_REGS);\n");
-		fprintf(outhfp, "typedef NodeBitmap := int(0, 0x%x);\n", (1<<maxdepth) - 1);
-		fprintf(outhfp, "record Register\n");
+		fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
+		fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
+		fprintf(outhfp, "record Register is\n");
 		fprintf(outhfp, "	name: string;\n");
 		fprintf(outhfp, "	id: RegId;\n");
 		fprintf(outhfp, "	uses: RegId;\n");

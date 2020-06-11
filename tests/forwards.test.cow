@@ -1,0 +1,26 @@
+include "cowgol.coh";
+include "_framework.coh";
+
+sub Extern @extern("externname") is
+	print("in extern\n");
+end sub;
+
+@decl sub Import @extern("externname");
+Import();
+
+@decl sub Declared(i: uint8);
+
+print("in main\n");
+Declared(7);
+
+sub CallsDeclaredBeforeImplementation is
+	Declared(3);
+end sub;
+CallsDeclaredBeforeImplementation();
+
+@impl sub Declared is
+	print("in declared: i=");
+	print_i8(i);
+	print_nl();
+end sub;
+

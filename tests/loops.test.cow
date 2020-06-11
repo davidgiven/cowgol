@@ -1,7 +1,7 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-sub loop_break_test()
+sub loop_break_test() is
 	print("loop break: ");
 	loop
 		break;
@@ -11,7 +11,7 @@ sub loop_break_test()
 end sub;
 loop_break_test();
 
-sub loop_continue_test()
+sub loop_continue_test() is
 	print("loop continue: ");
 	var i: uint8 := 1;
 	loop
@@ -27,7 +27,7 @@ sub loop_continue_test()
 end sub;
 loop_continue_test();
 
-sub while_break_test()
+sub while_break_test() is
 	print("while break: ");
 	while 1 == 1 loop
 		break;
@@ -37,7 +37,7 @@ sub while_break_test()
 end sub;
 while_break_test();
 
-sub while_continue_test()
+sub while_continue_test() is
 	print("loop continue: ");
 	var i: uint8 := 1;
 	while i != 0 loop

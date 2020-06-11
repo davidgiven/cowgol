@@ -14,6 +14,7 @@ ALL_TESTS = {
 	"divrem-8bit-s",
 	"divrem-8bit-u",
 	"folding",
+	"forwards",
 	"inputparams",
 	"itoa",
 	"logic-16bit",
@@ -39,20 +40,25 @@ ALL_TESTS = {
 }
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
-	for _, test in ipairs(ALL_TESTS) do
-		local exe = cowgol {
-			toolchain = toolchain,
-			ins = {
-				"tests/"..test..".test.cow",
-				"tests/_framework.coh",
-			},
-			outs = { "$OBJ/tests/"..test }
-		}
+	-- ncgen uses the bootstrap compiler, which should be tested and also
+	-- doesn't support the current language features. So, we don't need to
+	-- run the tests for it and they likely won't work anyway.
+	if toolchain.name ~= "ncgen" then
+		for _, test in ipairs(ALL_TESTS) do
+			local exe = cowgol {
+				toolchain = toolchain,
+				ins = {
+					"tests/"..test..".test.cow",
+					"tests/_framework.coh",
+				},
+				outs = { "$OBJ/tests/"..test }
+			}
 
-		toolchain.tester {
-			ins = { exe },
-			goodfile = "tests/"..test..".good"
-		}
+			toolchain.tester {
+				ins = { exe },
+				goodfile = "tests/"..test..".good"
+			}
+		end
 	end
 end
 

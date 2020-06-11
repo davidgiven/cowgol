@@ -6,19 +6,19 @@ var HIMEM: [uint8];
 @asm "lhld 6";
 @asm "shld", HIMEM;
 
-sub Exit()
+sub Exit() is
 	@asm "jmp _exit";
 end sub;
 
-sub ExitWithError()
+sub ExitWithError() is
 	@asm "jmp _exit";
 end sub;
 
-sub AlignUp(in: intptr): (out: intptr)
+sub AlignUp(in: intptr): (out: intptr) is
 	out := in;
 end sub;
 
-sub print_char(c: uint8)
+sub print_char(c: uint8) is
 	@asm "lda", c;
 	@asm "mov e, a";
 	@asm "mvi c, 2";
@@ -65,7 +65,7 @@ end sub;
 #	@asm "shld 2+", quot;
 #end sub;
 
-sub MemSet(buf: [uint8], byte: uint8, len: uint16)
+sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
 	var bufend := buf + len;
 	loop
 		if buf == bufend then

@@ -2,28 +2,28 @@ const STACK_SIZE := 128;
 
 var workspaceSize: Size[NUM_WORKSPACES];
 
-sub E_nl()
+sub E_nl() is
 	E_b8('\n');
 end sub;
 
-sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 	newvalue := value;
 end sub;
 
-sub ArchEmitSubRef(subr: [Subroutine])
+sub ArchEmitSubRef(subr: [Subroutine]) is
 	E_b8('f');
 	E_u16(subr.id);
 	E_b8('_');
 	E(subr.name);
 end sub;
 
-sub ArchEmitWSRef(wid: uint8, address: Size)
+sub ArchEmitWSRef(wid: uint8, address: Size) is
 	E("ws");
 	E_b8(wid + '0');
 	E_i16(address as int16);
 end sub;
 
-sub ArchEmitHeader(coo: [Coo])
+sub ArchEmitHeader(coo: [Coo]) is
 	if (workspaceSize[1] + workspaceSize[3]) > 0xee then
 		SimpleError("ran out of zero page space");
 	end if;
@@ -61,7 +61,7 @@ sub ArchEmitHeader(coo: [Coo])
 	E("\trts\n");
 end sub;
 
-sub ArchEmitFooter(coo: [Coo])
+sub ArchEmitFooter(coo: [Coo]) is
 	E("sp: .fill 1\n");
 	E("ws0: .fill ");
 	E_u16(workspaceSize[0]);

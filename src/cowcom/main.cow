@@ -4,7 +4,7 @@ include "strings.coh";
 include "malloc.coh";
 include "file.coh";
 
-typedef string := [uint8];
+typedef string is [uint8];
 
 var inputfile: string := (0 as string);
 var outputfile: string := (0 as string);
@@ -22,19 +22,20 @@ include "src/cowcom/namespace.coh";
 include "src/cowcom/codegen.coh";
 include "src/cowcom/symbols.coh";
 include "src/cowcom/expressions.coh";
+include "src/cowcom/treewalker.coh";
 include "parser.coh";
 
-sub PrintFreeMemory()
+sub PrintFreeMemory() is
 	print_i16((GetFreeMemory() >> 10) as uint16);
 	print("kB free\n");
 end sub;
 
-sub SyntaxError()
+sub SyntaxError() is
 	print("syntax error: cowcom [-Ipath] <infile> <outfile>\n");
 	ExitWithError();
 end sub;
 
-sub ParseArguments()
+sub ParseArguments() is
 	ArgvInit();
 
 	loop

@@ -46,6 +46,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowcom/namespace.coh",
 				"src/cowcom/regcache.coh",
 				"src/cowcom/symbols.coh",
+				"src/cowcom/treewalker.coh",
 				"src/cowcom/types.coh",
 				"$OBJ/src/cowcom/parser.coh",
 				"$OBJ/src/cowcom/parser.tokens.coh",

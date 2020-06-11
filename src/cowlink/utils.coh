@@ -1,19 +1,19 @@
-sub StartError()
+sub StartError() is
 	print("error: ");
 end sub;
 
-sub EndError()
+sub EndError() is
 	print_nl();
 	ExitWithError();
 end sub;
 
-sub SimpleError(s: [uint8])
+sub SimpleError(s: [uint8]) is
 	StartError();
 	print(s);
 	EndError();
 end sub;
 
-sub CannotOpen(filename: [uint8])
+sub CannotOpen(filename: [uint8]) is
 	StartError();
 	print("unable to open '");
 	print(filename);

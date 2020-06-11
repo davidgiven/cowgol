@@ -1,4 +1,4 @@
-sub print(ptr: [uint8])
+sub print(ptr: [uint8]) is
     loop
         var c := [ptr];
         if c == 0 then
@@ -9,11 +9,11 @@ sub print(ptr: [uint8])
     end loop;
 end sub;
 
-sub print_nl()
+sub print_nl() is
 	print_char('\n');
 end sub;
 
-sub UIToA(value: uint32, base: uint8, buffer: [uint8]): (ptr: [uint8])
+sub UIToA(value: uint32, base: uint8, buffer: [uint8]): (ptr: [uint8]) is
 	ptr := buffer;
 	loop
 		var rem := value % (base as uint32);
@@ -44,7 +44,7 @@ sub UIToA(value: uint32, base: uint8, buffer: [uint8]): (ptr: [uint8])
 	[ptr] := 0;
 end sub;
 
-sub IToA(value: int32, base: uint8, buffer: [uint8]): (ptr: [uint8])
+sub IToA(value: int32, base: uint8, buffer: [uint8]): (ptr: [uint8]) is
 	if value < 0 then
 		[buffer] := '-';
 		buffer := @next buffer;
@@ -53,21 +53,21 @@ sub IToA(value: int32, base: uint8, buffer: [uint8]): (ptr: [uint8])
 	ptr := UIToA(value as uint32, base, buffer);
 end sub;
 
-sub print_i32(value: uint32)
+sub print_i32(value: uint32) is
     var buffer: uint8[12];
 	var pe := UIToA(value, 10, &buffer[0]);
 	print(&buffer[0]);
 end sub;
 
-sub print_i16(value: uint16)
+sub print_i16(value: uint16) is
     print_i32(value as uint32);
 end sub;
 
-sub print_i8(value: uint8)
+sub print_i8(value: uint8) is
     print_i32(value as uint32);
 end sub;
 
-sub print_hex_i8(value: uint8)
+sub print_hex_i8(value: uint8) is
     var i: uint8 := 2;
     loop
         var digit := value >> 4;
@@ -85,19 +85,19 @@ sub print_hex_i8(value: uint8)
     end loop;
 end sub;
 
-sub print_hex_i16(value: uint16)
+sub print_hex_i16(value: uint16) is
     print_hex_i8((value >> 8) as uint8);
     print_hex_i8(value as uint8);
 end sub;
 
-sub print_hex_i32(value: uint32)
+sub print_hex_i32(value: uint32) is
     print_hex_i8((value >> 24) as uint8);
     print_hex_i8((value >> 16) as uint8);
     print_hex_i8((value >> 8) as uint8);
     print_hex_i8(value as uint8);
 end sub;
 
-sub AToI(buffer: [uint8]): (result: int32, ptr: [uint8])
+sub AToI(buffer: [uint8]): (result: int32, ptr: [uint8]) is
 	var negative: uint8 := 0;
 	var base: uint8 := 10;
 	ptr := buffer;
@@ -144,7 +144,7 @@ sub AToI(buffer: [uint8]): (result: int32, ptr: [uint8])
 	end if;
 end sub;
 
-sub MemZero(ptr: [uint8], size: intptr)
+sub MemZero(ptr: [uint8], size: intptr) is
 	MemSet(ptr, 0, size);
 end sub;
 

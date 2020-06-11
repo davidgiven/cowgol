@@ -3,7 +3,7 @@ include "_framework.coh";
 include "strings.coh";
 include "malloc.coh";
 
-sub AddRemove()
+sub AddRemove() is
 	print("AddRemove");
 
 	var free := GetFreeMemory();

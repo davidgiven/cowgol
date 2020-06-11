@@ -1,10 +1,10 @@
 var outfcb: FCB;
 
-sub E_b8(c: uint8)
+sub E_b8(c: uint8) is
 	FCBPutChar(&outfcb, c);
 end sub;
 
-sub E(text: string)
+sub E(text: string) is
 	loop
 		var c := [text];
 		text := text + 1;
@@ -15,7 +15,7 @@ sub E(text: string)
 	end loop;
 end sub;
 
-sub E_u32(value: uint32)
+sub E_u32(value: uint32) is
 	var buffer: uint8[12];
 	var p := &buffer[0];
 	var pe := UIToA(value, 10, p);
@@ -30,15 +30,15 @@ sub E_u32(value: uint32)
 	end loop;
 end sub;
 
-sub E_u16(value: uint16)
+sub E_u16(value: uint16) is
 	E_u32(value as uint32);
 end sub;
 
-sub E_u8(value: uint8)
+sub E_u8(value: uint8) is
 	E_u32(value as uint32);
 end sub;
 
-sub E_i16(value: int16)
+sub E_i16(value: int16) is
 	if value < 0 then
 		E_b8('-');
 		value := -value;
@@ -48,7 +48,7 @@ sub E_i16(value: int16)
 	E_u16(value as uint16);
 end sub;
 
-sub E_h(value: uint32, width: uint8)
+sub E_h(value: uint32, width: uint8) is
 	var buffer: uint8[5];
 	var pe := UIToA(value as uint32, 16, &buffer[0]);
 	var padding := width - (pe - &buffer[0]) as uint8;
@@ -59,21 +59,21 @@ sub E_h(value: uint32, width: uint8)
 	E(&buffer[0]);
 end sub;
 
-sub E_h8(value: uint8)
+sub E_h8(value: uint8) is
 	E_h(value as uint32, 2);
 end sub;
 
-sub E_h16(value: uint16)
+sub E_h16(value: uint16) is
 	E_h(value as uint32, 4);
 end sub;
 
-sub EmitterOpenfile(filename: string)
+sub EmitterOpenfile(filename: string) is
 	if FCBOpenOut(&outfcb, filename) != 0 then
 		SimpleError("cannot open output file");
 	end if;
 end sub;
 
-sub EmitterClosefile()
+sub EmitterClosefile() is
 	if FCBClose(&outfcb) != 0 then
 		SimpleError("cannot close output file");
 	end if;
