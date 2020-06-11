@@ -102,6 +102,27 @@ Note that in the implementation, the parameters are the ones used in the
 declaration. You may want a comment to remind you of them. The implementation
 must be defined in the same subroutine as the declaration.
 
+## External subroutines
+
+If you're using separate compilation (which is currently undocumented), you can
+mark a subroutine as being external, with a link name, and the linker will
+resolve these.
+
+```
+sub DefiningAnExternal @extern("_thing") is
+  print("I can be accessed externally!\n");
+end sub;
+
+@decl sub ImportingAnExternal(i: uint8) @extern("one_uint8_in");
+
+ImportingAnExternal(4);
+```
+
+Externals may only be defined at the top level (otherwise the subroutine's
+parent subroutine would have exited and all its variables would be garbage).
+Yes, you can import an external in the same file that you define it. That might
+be useful?
+
 ## Types
 
 Cowgol is strongly typed, with the usual semantics (but with a few gotchas).

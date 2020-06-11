@@ -105,6 +105,8 @@ The bullet list set of features is:
 
   - simple type inference of variables if they're assigned during a declaration
 
+  - seperate compilation with global analysis
+
 There's more about the language in the links below.
 
 
@@ -169,10 +171,6 @@ It's new, it's buggy, it's underdeveloped, and so far only one actual program
 is written in Cowgol, which is the Cowgol compiler. (And cowlink and cowwrap.)
 
 Apart from actual bugs, there are some unimplemented parts of the language.
-
-  - no seperate compilation yet. cowlink supports it, and cowcom can define
-	external subroutines, but it just can't import them yet --- it's one of the
-	next things to do on my list.
 
   - no subroutine pointers. This one's tricky; because subroutines can be
 	nested it's important to be sure that a subroutine can only be called if
