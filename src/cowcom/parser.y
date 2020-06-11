@@ -654,7 +654,7 @@ typeref(S) ::= INDEXOF varortypeid(S1).
 	S := S1.typedata.arraytype.indextype;
 }
 
-statement ::= TYPEDEF ID(X) ASSIGN typeref(T) SEMICOLON.
+statement ::= TYPEDEF ID(X) transitory_is typeref(T) SEMICOLON.
 {
 	# consumes X
 	var sym := AddAlias(0 as [Namespace], X.string, T);
@@ -938,7 +938,7 @@ outputarg(E) ::= expression(E1).
 }
 
 // Declare and implement a subroutine.
-statement ::= subdecl_with_name subparams subgen statements END SUB SEMICOLON.
+statement ::= subdecl_with_name subparams subgen transitory_is statements END SUB SEMICOLON.
 {
 	Generate(MidEndsub(current_subr));
 	parser_i_end_sub();
@@ -973,6 +973,10 @@ subdecl_with_name ::= subdecl ID(T).
 	EmitterDeclareSubroutine(current_subr);
 }
 
+transitory_is ::= .
+transitory_is ::= IS.
+transitory_is ::= ASSIGN.
+
 // Declare a subroutine but don't implement it.
 statement ::= DECL subdecl_with_name subparams SEMICOLON.
 {
@@ -980,7 +984,7 @@ statement ::= DECL subdecl_with_name subparams SEMICOLON.
 }
 
 // Implement a previously declared subroutine.
-statement ::= subimpldecl subgen statements END SUB SEMICOLON.
+statement ::= subimpldecl subgen transitory_is statements END SUB SEMICOLON.
 {
 	Generate(MidEndsub(current_subr));
 	parser_i_end_sub();
