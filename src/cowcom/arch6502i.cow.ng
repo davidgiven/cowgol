@@ -1,0 +1,77 @@
+%{
+    var uint32_type: [Symbol];
+    var int32_type: [Symbol];
+    var uint16_type: [Symbol];
+    var int16_type: [Symbol];
+    var uint8_type: [Symbol];
+    var int8_type: [Symbol];
+    var intptr_type: [Symbol];
+
+    sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+        newvalue := value;
+    end sub;
+
+    sub ArchInitTypes()
+        uint32_type := MakeNumberType(4, 1, 0, "uint32");
+        int32_type := MakeNumberType(4, 1, 1, "int32");
+        uint16_type := MakeNumberType(2, 1, 0, "uint16");
+        int16_type := MakeNumberType(2, 1, 1, "int16");
+        uint8_type := MakeNumberType(1, 1, 0, "uint8");
+        int8_type := MakeNumberType(1, 1, 1, "int8");
+
+        intptr_type := uint16_type;
+        AddAliasString("intptr", intptr_type);
+    end sub;
+
+    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+        if (min >= 0) and (max <= 255) then
+            symbol := uint8_type;
+        elseif (min >= -128) and (max <= 127) then
+            symbol := int8_type;
+        elseif (min >= 0) and (max <= 65535) then
+            symbol := uint16_type;
+        elseif (min >= -32768) and (max <= 32767) then
+            symbol := int16_type;
+        elseif (min >= 0) then
+            symbol := uint32_type;
+        else
+            symbol := int32_type;
+        end if;
+    end sub;
+
+    sub ArchInitVariable(symbol: [Symbol])
+        var subr := symbol.vardata.subr;
+        var offset := subr.workspace[0];
+        symbol.vardata.offset := offset;
+        subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+    end sub;
+
+    sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+        member.vardata.offset := position;
+        position := position + member.vardata.type.typedata.width;
+        if position > containing.typedata.width then
+            containing.typedata.width := position;
+        end if;
+    end sub;
+
+	sub ArchEndInstruction()
+	end sub;
+
+	sub ArchEndGroup()
+	end sub;
+
+	sub ArchEmitMove(src: RegId, dest: RegId)
+		SimpleError("can't move");
+	end sub;
+%}
+
+wordsize uint8;
+
+register s8;
+register s16;
+register s32;
+
+regdata s8  stacked;
+regdata s16 stacked;
+regdata s16 stacked;
+

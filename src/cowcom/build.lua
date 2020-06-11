@@ -1,5 +1,4 @@
-local ARCHS = { "65c02-tiny", "65c02", "6502", "z80", "8080", "80386", "cgen" }
-local BLACKLISTED_TOOLCHAINS = set {} -- "bbct", "bbct6502" }
+local ARCHS = { "65c02-tiny", "6502i", "65c02", "6502", "z80", "8080", "80386", "cgen" }
 
 lemoncowgol {
 	ins = { "src/cowcom/parser.y" },

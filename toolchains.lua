@@ -89,14 +89,26 @@ toolchain_bbct6502 = {
 	archs = {}
 }
 
+toolchain_bbct = {
+	name = "bbcti",
+	compiler = "bin/cowcom-6502i.nncgen.exe",
+	linker = "bin/cowlink-bbct.nncgen.exe",
+	assembler = buildtass64,
+	runtime = "rt/bbcti",
+	asmext = ".asm",
+	binext = ".bbcti",
+	tester = tubeemutest,
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
-	toolchain_ncpm,
-	toolchain_ncpmz,
+--	toolchain_ncpm,
+--	toolchain_ncpmz,
 	toolchain_lx386,
 	toolchain_bbct,
 	toolchain_bbctiny,
 	toolchain_bbct6502,
+	toolchain_bbcti,
 }
 

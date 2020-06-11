@@ -113,5 +113,6 @@ include "rt/cpmz/build.lua"
 include "rt/cgen/build.lua"
 include "rt/lx386/build.lua"
 include "rt/bbct/build.lua"
+include "rt/bbcti/build.lua"
 include "tests/build.lua"
 
