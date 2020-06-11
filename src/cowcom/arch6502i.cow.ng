@@ -7,11 +7,11 @@
     var int8_type: [Symbol];
     var intptr_type: [Symbol];
 
-    record ArchSubroutine
+    record ArchSubroutine is
         end_label: LabelRef;
     end record;
 
-    record Extern
+    record Extern is
         name: string;
         id: uint16;
         next: [Extern];
@@ -19,11 +19,11 @@
 
     var externs: [Extern] := (0 as [Extern]);
 
-    sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size)
+    sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
         newvalue := value;
     end sub;
 
-    sub ArchInitTypes()
+    sub ArchInitTypes() is
         uint32_type := MakeNumberType(4, 1, 0, "uint32");
         int32_type := MakeNumberType(4, 1, 1, "int32");
         uint16_type := MakeNumberType(2, 1, 0, "uint16");
@@ -35,7 +35,7 @@
         AddAliasString("intptr", intptr_type);
     end sub;
 
-    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol])
+    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
         if (min >= 0) and (max <= 255) then
             symbol := uint8_type;
         elseif (min >= -128) and (max <= 127) then
@@ -51,14 +51,14 @@
         end if;
     end sub;
 
-    sub ArchInitVariable(symbol: [Symbol])
+    sub ArchInitVariable(symbol: [Symbol]) is
         var subr := symbol.vardata.subr;
         var offset := subr.workspace[0];
         symbol.vardata.offset := offset;
         subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
     end sub;
 
-    sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size)
+    sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
         member.vardata.offset := position;
         position := position + member.vardata.type.typedata.width;
         if position > containing.typedata.width then
@@ -66,17 +66,17 @@
         end if;
     end sub;
 
-	sub ArchEndInstruction()
+	sub ArchEndInstruction() is
 	end sub;
 
-	sub ArchEndGroup()
+	sub ArchEndGroup() is
 	end sub;
 
-	sub ArchEmitMove(src: RegId, dest: RegId)
+	sub ArchEmitMove(src: RegId, dest: RegId) is
 		SimpleError("can't move");
 	end sub;
 
-    sub GetHelper(name: string): (e: [Extern])
+    sub GetHelper(name: string): (e: [Extern]) is
         e := externs;
         while e != (0 as [Extern]) loop
             if StrCmp(e.name, name) == 0 then
@@ -96,27 +96,27 @@
         end if;
     end sub;
 
-	sub E_dw()
+	sub E_dw() is
 		E("\t.word ");
 	end sub;
 
-    sub E_label(label: LabelRef)
+    sub E_label(label: LabelRef) is
         E_labelref(label);
         E(":\n");
     end sub;
 
-    sub E_new_label(): (lid: uint16)
+    sub E_new_label(): (lid: uint16) is
         lid := AllocLabel();
         E_label(lid);
     end sub;
 
-	sub E_wsrefi(sym: [Symbol], off: Size)
+	sub E_wsrefi(sym: [Symbol], off: Size) is
 		E_dw();
 		E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
 		E_nl();
 	end sub;
 
-	sub E_callid(id: uint16)
+	sub E_callid(id: uint16) is
 		E_dw();
 		E_b8(COO_ESCAPE_SUBREF);
 		E_b16(id);
@@ -124,7 +124,7 @@
 	end sub;
 
     # Does not persist the name; only call this with constant strings.
-    sub E_callhelper(name: string)
+    sub E_callhelper(name: string) is
         var e := GetHelper(name);
 
         EmitterPushChunk();
@@ -135,32 +135,32 @@
 		E_callid(e.id);
     end sub;
 
-	sub E_store8(sym: [Symbol], off: Size)
+	sub E_store8(sym: [Symbol], off: Size) is
 		E_callhelper("_store8");
 		E_wsrefi(sym, off);
 	end sub;
 
-	sub E_store16(sym: [Symbol], off: Size)
+	sub E_store16(sym: [Symbol], off: Size) is
 		E_callhelper("_store16");
 		E_wsrefi(sym, off);
 	end sub;
 
-	sub E_store32(sym: [Symbol], off: Size)
+	sub E_store32(sym: [Symbol], off: Size) is
 		E_callhelper("_store32");
 		E_wsrefi(sym, off);
 	end sub;
 
-	sub E_load8(sym: [Symbol], off: Size)
+	sub E_load8(sym: [Symbol], off: Size) is
 		E_callhelper("_load8");
 		E_wsrefi(sym, off);
 	end sub;
 
-	sub E_load16(sym: [Symbol], off: Size)
+	sub E_load16(sym: [Symbol], off: Size) is
 		E_callhelper("_load16");
 		E_wsrefi(sym, off);
 	end sub;
 
-	sub E_load32(sym: [Symbol], off: Size)
+	sub E_load32(sym: [Symbol], off: Size) is
 		E_callhelper("_load32");
 		E_wsrefi(sym, off);
 	end sub;
