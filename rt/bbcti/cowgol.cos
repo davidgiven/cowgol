@@ -1,0 +1,99 @@
+&X _next
+``:
+	ldy #0
+	lda (ip), y
+	sta w+0
+
+	inc ip+0
+	bne +
+	inc ip+1
++
+
+	lda (ip), y
+	sta w+1
+
+	inc ip+0
+	bne +
+	inc ip+1
++
+
+	jmp (w)
+
+&X _enter
+``:
+	lda ip+0
+	pha
+	lda ip+1
+	pha
+
+	clc
+	lda w+0
+	adc #2
+	sta ip+0
+	lda w+1
+	adc #0
+	sta ip+1
+	jmp _next
+
+&X _exit
+``:
+	pla
+	sta ip+1
+	pla
+	sta ip+0
+	jmp _next
+
+# Increments ip by A and jumps to next (useful for words which consume bytes
+# from the data stream).
+&X _inc_next
+	clc
+	adc ip+0
+	sta ip+0
+	lda #0
+	adc ip+1
+	sta ip+1
+	jmp `_next
+
+&X _w_push1
+``:
+	.word $+2
+
+	ldy #0
+	lda (ip), y
+	sta (stack, x)
+	inx
+
+	lda #1
+	jmp `_inc_next
+
+&X _w_push2
+``:
+	.word $+2
+
+	ldy #0
+	lda (ip), y
+	sta (stack, x)
+	inx
+	iny
+	lda (ip), y
+	sta (stack, x)
+
+	lda #2
+	jmp `_inc_next
+
+&X _w_push4
+``:
+	.word $+2
+
+	ldy #0
+-
+	lda (ip), y
+	sta (stack, x)
+	inx
+	iny
+	cpy #4
+	bne -
+
+	tya
+	jmp `_inc_next
+

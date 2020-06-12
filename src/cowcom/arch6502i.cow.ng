@@ -96,9 +96,9 @@
         end if;
     end sub;
 
-	sub E_dw() is
-		E("\t.word ");
-	end sub;
+	sub E_db is E("\t.byte "); end sub;
+	sub E_dw is E("\t.word "); end sub;
+	sub E_dl is E("\t.dword "); end sub;
 
     sub E_label(label: LabelRef) is
         E_labelref(label);
@@ -110,9 +110,26 @@
         E_label(lid);
     end sub;
 
+    sub E_symrefi(sym: [Symbol], off: Size) is
+		E_dw();
+        if sym.vardata.externname != (0 as string) then
+            E(sym.vardata.externname);
+            E_i16(off as int16);
+        else
+            E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
+        end if;
+		E_nl();
+    end sub;
+
 	sub E_wsrefi(sym: [Symbol], off: Size) is
 		E_dw();
 		E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
+		E_nl();
+	end sub;
+
+	sub E_subrefi(subr: [Subroutine]) is
+		E_dw();
+		E_subref(subr);
 		E_nl();
 	end sub;
 
@@ -134,6 +151,27 @@
 
 		E_callid(e.id);
     end sub;
+
+	sub E_push8(value: uint8) is
+		E_callhelper("_push8");
+		E_db();
+		E_u8(value);
+		E_nl();
+	end sub;
+
+	sub E_push16(value: uint16) is
+		E_callhelper("_push16");
+		E_dw();
+		E_u16(value);
+		E_nl();
+	end sub;
+
+	sub E_push32(value: uint32) is
+		E_callhelper("_push32");
+		E_dl();
+		E_u32(value);
+		E_nl();
+	end sub;
 
 	sub E_store8(sym: [Symbol], off: Size) is
 		E_callhelper("_store8");
@@ -171,15 +209,30 @@ wordsize uint8;
 register s8;
 register s16;
 register s32;
+register param;
 
-regdata s8  stacked;
-regdata s16 stacked;
-regdata s16 stacked;
+regdata s8    stacked;
+regdata s16   stacked;
+regdata s32   stacked;
+regdata param stacked;
 
 // --- Core stuff -----------------------------------------------------------
 
 gen STARTFILE();
 gen ENDFILE();
+
+gen LABEL():b
+{
+    E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_callhelper("_jump");
+	E_dw();
+	E_labelref($j.label);
+	E_nl();
+}
 
 // --- Subroutines ----------------------------------------------------------
 
@@ -197,6 +250,7 @@ gen STARTSUB()
 
     E_b8(COO_ESCAPE_THISSUB);
     E(":\n");
+	E_callhelper("_enter");
 
     var count := current_subr.num_input_parameters;
     while count != 0 loop
@@ -230,6 +284,8 @@ gen ENDSUB()
         i := i + 1;
     end loop;
 
+	E_callhelper("_exit");
+
     EmitterPopChunk('S');
 
     i := 0;
@@ -239,5 +295,317 @@ gen ENDSUB()
     end loop;
 }
 
-gen RETURN() { E_callhelper("_return"); }
+gen RETURN()
+{
+	E_callhelper("_jump");
+	E_dw();
+	E_labelref(current_subr.arch.end_label);
+	E_nl();
+}
+
+// --- Subroutine calls -----------------------------------------------------
+
+%{
+	sub Call(subr: [Subroutine]) is
+		E_dw();
+		E_subref(subr);
+		E_nl();
+	end sub;
+%}
+
+gen CALL(param):s { Call($s.subr); }
+gen s8 := CALLE1(param):s { Call($s.subr); }
+gen s16 := CALLE2(param):s { Call($s.subr); }
+gen s32 := CALLE4(param):s { Call($s.subr); }
+
+gen param := END();
+
+gen param := ARG1(param, s8);
+gen param := ARG2(param, s16);
+gen param := ARG4(param, s32);
+
+gen s8 := POPARG1();
+gen s16 := POPARG2();
+gen s32 := POPARG4();
+
+// --- Constants and things -------------------------------------------------
+
+gen s8 := CONSTANT():c  { E_push8($c.value as uint8); }
+gen s16 := CONSTANT():c { E_push16($c.value as uint16); }
+gen s32 := CONSTANT():c { E_push32($c.value as uint32); }
+
+gen s16 := ADDRESS():a
+{
+	E_callhelper("_push16");
+	E_symrefi($a.sym, $a.off);
+}
+
+// --- Loads and stores -----------------------------------------------------
+
+gen STORE1(s8, ADDRESS():a)  { E_store8($a.sym, $a.off); }
+gen STORE2(s16, ADDRESS():a) { E_store16($a.sym, $a.off); }
+gen STORE4(s32, ADDRESS():a) { E_store32($a.sym, $a.off); }
+
+gen s8 := LOAD1(ADDRESS():a)  { E_load8($a.sym, $a.off); }
+gen s16 := LOAD2(ADDRESS():a) { E_load16($a.sym, $a.off); }
+gen s32 := LOAD4(ADDRESS():a) { E_load32($a.sym, $a.off); }
+
+gen STORE1(s8, s16) { E_callhelper("_store8i"); }
+gen STORE2(s16, s16) { E_callhelper("_store16i"); }
+gen STORE4(s32, s16) { E_callhelper("_store32i"); }
+
+gen s8 := LOAD1(s16) { E_callhelper("_load8i"); }
+gen s16 := LOAD2(s16) { E_callhelper("_load16i"); }
+gen s32 := LOAD4(s16) { E_callhelper("_load32i"); }
+
+// --- Maths ----------------------------------------------------------------
+
+gen s8 := ADD1(s8, s8) { E_callhelper("_add1"); }
+gen s16 := ADD2(s16, s16) { E_callhelper("_add2"); }
+gen s32 := ADD4(s32, s32) { E_callhelper("_add4"); }
+
+gen s8 := SUB1(s8, s8) { E_callhelper("_sub1"); }
+gen s16 := SUB2(s16, s16) { E_callhelper("_sub2"); }
+gen s32 := SUB4(s32, s32) { E_callhelper("_sub4"); }
+
+gen s8 := MUL1(s8, s8) { E_callhelper("_mul1"); }
+gen s16 := MUL2(s16, s16) { E_callhelper("_mul2"); }
+gen s32 := MUL4(s32, s32) { E_callhelper("_mul4"); }
+
+gen s8 := DIVU1(s8, s8) { E_callhelper("_divu1"); }
+gen s16 := DIVU2(s16, s16) { E_callhelper("_divu2"); }
+gen s32 := DIVU4(s32, s32) { E_callhelper("_divu4"); }
+
+gen s8 := DIVS1(s8, s8) { E_callhelper("_divs1"); }
+gen s16 := DIVS2(s16, s16) { E_callhelper("_divs2"); }
+gen s32 := DIVS4(s32, s32) { E_callhelper("_divs4"); }
+
+gen s8 := REMU1(s8, s8) { E_callhelper("_remu1"); }
+gen s16 := REMU2(s16, s16) { E_callhelper("_remu2"); }
+gen s32 := REMU4(s32, s32) { E_callhelper("_remu4"); }
+
+gen s8 := REMS1(s8, s8) { E_callhelper("_rems1"); }
+gen s16 := REMS2(s16, s16) { E_callhelper("_rems2"); }
+gen s32 := REMS4(s32, s32) { E_callhelper("_rems4"); }
+
+gen s8 := NEG1(s8) { E_callhelper("_neg1"); }
+gen s16 := NEG2(s16) { E_callhelper("_neg2"); }
+gen s32 := NEG4(s32) { E_callhelper("_neg4"); }
+
+gen s8 := NOT1(s8) { E_callhelper("_not1"); }
+gen s16 := NOT2(s16) { E_callhelper("_not2"); }
+gen s32 := NOT4(s32) { E_callhelper("_not4"); }
+
+gen s8 := LSHIFT1(s8, s8) { E_callhelper("_lshift1"); }
+gen s16 := LSHIFT2(s16, s8) { E_callhelper("_lshift2"); }
+gen s32 := LSHIFT4(s32, s8) { E_callhelper("_lshift4"); }
+
+gen s8 := RSHIFTU1(s8, s8) { E_callhelper("_rshiftu1"); }
+gen s16 := RSHIFTU2(s16, s8) { E_callhelper("_rshiftu2"); }
+gen s32 := RSHIFTU4(s32, s8) { E_callhelper("_rshiftu4"); }
+
+gen s8 := RSHIFTS1(s8, s8) { E_callhelper("_rshifts1"); }
+gen s16 := RSHIFTS2(s16, s8) { E_callhelper("_rshifts2"); }
+gen s32 := RSHIFTS4(s32, s8) { E_callhelper("_rshifts4"); }
+
+// --- Branches -------------------------------------------------------------
+
+%{
+	sub Branch(node: [Node], truehelper: string, falsehelper: string) is
+        if node.beq0.truelabel != node.beq0.fallthrough then
+			E_callhelper(truehelper);
+			E_dw();
+			E_labelref(node.beq0.truelabel);
+			E_nl();
+        end if;
+        if node.beq0.falselabel != node.beq0.fallthrough then
+			E_callhelper(falsehelper);
+			E_dw();
+			E_labelref(node.beq0.falselabel);
+			E_nl();
+        end if;
+    end sub;
+%}
+
+gen BEQ1(s8, s8) { Branch(self.n[0], "_beq1", "_bne1"); }
+gen BEQ2(s16, s16) { Branch(self.n[0], "_beq2", "_bne2"); }
+gen BEQ4(s32, s32) { Branch(self.n[0], "_beq4", "_bne4"); }
+
+gen BLTU1(s8, s8) { Branch(self.n[0], "_bltu1", "_bgeu1"); }
+gen BLTU2(s16, s16) { Branch(self.n[0], "_bltu2", "_bgeu2"); }
+gen BLTU4(s32, s32) { Branch(self.n[0], "_bltu4", "_bgeu4"); }
+
+gen BLTS1(s8, s8) { Branch(self.n[0], "_blts1", "_bges1"); }
+gen BLTS2(s16, s16) { Branch(self.n[0], "_blts2", "_bges2"); }
+gen BLTS4(s32, s32) { Branch(self.n[0], "_blts4", "_bges4"); }
+
+// --- Casts ----------------------------------------------------------------
+
+%{
+	sub MaybeSignedCast(sext: uint8, signed: string, unsigned: string) is
+		if sext != 0 then
+			E_callhelper(signed);
+		else
+			E_callhelper(unsigned);
+		end if;
+	end sub;
+%}
+
+gen s16 := CAST12(s8):c { MaybeSignedCast($c.sext, "_cast12s", "_cast12u"); }
+gen s32 := CAST14(s8):c { MaybeSignedCast($c.sext, "_cast14s", "_cast14u"); }
+gen s32 := CAST24(s16):c { MaybeSignedCast($c.sext, "_cast24s", "_cast24u"); }
+
+gen s8 := CAST21(s16) { E_callhelper("_cast21"); }
+gen s8 := CAST41(s32) { E_callhelper("_cast41"); }
+gen s16 := CAST42(s32) { E_callhelper("_cast42"); }
+
+// --- Case -----------------------------------------------------------------
+
+%{
+	sub Whencase(node: [Node], helper: string, type: string) is
+		E_callhelper(helper);
+
+		E_dw();
+		E_labelref(node.whencase0.falselabel);
+		E_nl();
+
+		E_tab();
+		E(type);
+		E_space();
+	end sub;
+%}
+
+gen STARTCASE1(s8);
+gen STARTCASE2(s16);
+gen STARTCASE4(s32);
+
+gen WHENCASE1():c { Whencase(self.n[0], "_whencase1", "db"); E_u8($c.value as uint8); E_nl(); }
+gen WHENCASE2():c { Whencase(self.n[0], "_whencase2", "dw"); E_u16($c.value as uint16); E_nl(); }
+gen WHENCASE4():c { Whencase(self.n[0], "_whencase4", "dl"); E_u32($c.value as uint32); E_nl(); }
+
+gen ENDCASE1() { E_callhelper("_drop1"); }
+gen ENDCASE2() { E_callhelper("_drop2"); }
+gen ENDCASE4() { E_callhelper("_drop4"); }
+
+// --- Strings --------------------------------------------------------------
+
+%{
+    sub E_string(data: string): (lid: uint16) is
+        lid := AllocLabel();
+
+        EmitterPushChunk();
+        E_b16(current_subr.id);
+
+        E_label(lid);
+        E_db();
+
+        loop
+            var c := [data];
+            if c == 0 then
+                break;
+            end if;
+            data := data + 1;
+            
+            E_u8(c);
+            E_comma();
+        end loop;
+        E("0\n");
+        EmitterPopChunk('S');
+    end sub;
+%}
+
+gen s16 := STRING():s
+{
+    var sid := E_string($s.text);
+
+	E_callhelper("_push2");
+
+	E_dw();
+	E_labelref(sid);
+	E_nl();
+}
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+    EmitterPushChunk();
+    E_b16(current_subr.id);
+    E($s.sym.vardata.externname);
+    E(":\n");
+}
+
+gen ENDINIT()
+{
+    EmitterPopChunk('S');
+}
+
+gen INIT1():c
+{
+    E_db();
+    E_u8($c.value as uint8);
+    E_nl();
+}
+
+gen INIT2():c
+{
+    E_dw();
+    E_u16($c.value as uint16);
+    E_nl();
+}
+
+gen INIT4():c
+{
+    E_dl();
+    E_u32($c.value as uint32);
+    E_nl();
+}
+
+gen INITS():s
+{
+    var sid := E_string($s.text);
+
+    E_dw();
+    E_labelref(sid);
+    E_nl();
+}
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMGROUPSTART() { E_callhelper("_asmstart"); }
+gen ASMGROUPEND()   { E_callhelper("_asmend"); }
+
+gen ASMSTART()
+{
+    E_tab();
+}
+
+gen ASMTEXT():t
+{
+    E($t.text);
+    E_space();
+}
+
+gen ASMSYMBOL():s
+{
+    if $s.sym.kind == VAR then
+        E_symrefi($s.sym, 0);
+    else
+        E_subrefi($s.sym.subr);
+    end if;
+    E_space();
+}
+
+gen ASMVALUE():c
+{
+    E_openp();
+    E_i32($c.value);
+    E_closep();
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
 
