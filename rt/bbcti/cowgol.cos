@@ -1,28 +1,28 @@
 # --- Interpreter -----------------------------------------------------------
 #
-&X _next
+&X next
 ``:
+next:
 	ldy #0
-	lda (ip), y
+	lda (ip),y
 	sta w+0
 
 	inc ip+0
 	bne +
 	inc ip+1
 +
-
-	lda (ip), y
+	lda (ip),y
 	sta w+1
 
 	inc ip+0
 	bne +
 	inc ip+1
 +
-
 	jmp (w)
 
-&X _enter
+&X enter
 ``:
+enter:
 	lda ip+0
 	pha
 	lda ip+1
@@ -30,24 +30,45 @@
 
 	clc
 	lda w+0
-	adc #2
+	adc #3			; skip over the jmp instruction
 	sta ip+0
 	lda w+1
 	adc #0
 	sta ip+1
-	jmp _next
+	jmp `next
 
-&X _exit
+&X exit
 ``:
 	pla
 	sta ip+1
 	pla
 	sta ip+0
-	jmp _next
+	jmp `next
+
+&X asmstart
+``:
+	stx vsp
+	jmp (ip)
+
+&X asmend
+``:
+asmend:
+	pla
+	tax
+	pla
+	tay
+	inx
+	bne +
+	iny
++
+	stx ip+0
+	sty ip+1
+	ldx vsp
+	jmp `next
 
 # Increments ip by A and jumps to next (useful for words which consume bytes
 # from the data stream).
-&X _inc_next
+&X inc_next
 ``:
 	clc
 	adc ip+0
@@ -55,601 +76,579 @@
 	lda #0
 	adc ip+1
 	sta ip+1
-	jmp `_next
+	jmp `next
 
-&X _inc2_next
+&X inc2_next
 ``:
 	lda #2
-	jmp _inc_next
+	jmp `inc_next
 
 # --- Push/pop words --------------------------------------------------------
 
-&X _push1
+&X push1
 ``:
-	.word $+2
-
 	ldy #0
-	lda (ip), y
-	sta stack, x
+	lda (ip),y
+	sta stack,x
 	inx
 
 	lda #1
-	jmp `_inc_next
+	jmp `inc_next
 
-&X _push2
+&X push2
 ``:
-	.word $+2
-
 	ldy #0
-	lda (ip), y
-	sta stack+0, x
+	lda (ip),y
+	sta stack+0,x
 	iny
-	lda (ip), y
-	sta stack+1, x
+	lda (ip),y
+	sta stack+1,x
 	inx
 	inx
 
-	jmp `_inc2_next
+	jmp `inc2_next
 
-&X _push4
+&X push4
 ``:
-	.word $+2
-
 	ldy #0
 -
-	lda (ip), y
-	sta stack, x
+	lda (ip),y
+	sta stack,x
 	inx
 	iny
 	cpy #4
 	bne -
 
 	tya
-	jmp `_inc_next
+	jmp `inc_next
 
-&X _drop1
+&X drop1
 ``:
-	.word $+2
-
 	dex
-	jmp `_next
+	jmp `next
 
-&X _drop2
+&X drop2
 ``:
-	.word $+2
-
 	dex
 	dex
-	jmp `_next
+	jmp `next
 
-&X _drop4
+&X drop4
 ``:
-	.word $+2
-
 	dex
 	dex
 	dex
 	dex
-	jmp `_next
+	jmp `next
 
 # --- Indirect loads and stores ---------------------------------------------
 
 # (value address -- ) or (address -- value).
 
-&X _load1i
+&X load1i
 ``:
-	.word $+2
-
-	lda (stack-2, x)
-	sta stack-2, x
+	lda (stack-2,x)
+	sta stack-2,x
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _load2i
+&X load2i
 ``:
-	.word $+2
-
-	lda stack-2, x
+	lda stack-2,x
 	sta x+0
-	lda stack-1, x
+	lda stack-1,x
 	sta x+1
 
 	ldy #0
-	lda (p), y
-	sta stack-2, x
+	lda (x),y
+	sta stack-2,x
 	iny
-	lda (p), y
-	sta stack-1, x
+	lda (x),y
+	sta stack-1,x
 
-	jmp `_next
+	jmp `next
 
-&X _load4i
+&X load4i
 ``:
-	.word $+2
-
-	lda stack, x
-	sta p+0
-	lda stack+1, x
-	sta p+1
+	lda stack,x
+	sta x+0
+	lda stack+1,x
+	sta x+1
 	dex
 	dex
 
 	ldy #0
 -
-	lda (p), y
+	lda (x),y
 	inx
-	sta stack, x
+	sta stack,x
 	iny
 	cpy #4
 	bne -
 
-	jmp `_next
+	jmp `next
 
-&X _store1i
+&X store1i
 ``:
-	.word $+2
-
-	lda stack-3, x
-	sta (stack-2, x)
+	lda stack-3,x
+	sta (stack-2,x)
 	dex
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _store2i
+&X store2i
 ``:
-	.word $+2
-
-	lda stack-2, x
+	lda stack-2,x
 	sta x+0
-	lda stack-1, x
+	lda stack-1,x
 	sta x+1
 
 	ldy #0
-	lda stack-4, x
-	sta (x), y
-	lda stack-3, x
+	lda stack-4,x
+	sta (x),y
+	lda stack-3,x
 	iny
-	sta (x), y
+	sta (x),y
 
 	dex
 	dex
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _store4i
+&X store4i
 ``:
-	.word $+2
-
-	lda stack-2, x
+	lda stack-2,x
 	sta x+0
-	lda stack-1, x
+	lda stack-1,x
 	sta x+1
 
 	ldy #3
 -
 	dex
-	lda (stack, x)
-	sta (x), y
+	lda (stack,x)
+	sta (x),y
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
 # --- Direct loads and stores -----------------------------------------------
 
 # These are (value -- ) or (-- value) with the address taken from the
 # instruction stream.
 
-&X _load1
+# Fetches two bytes from ip into x. Doesn't advance ip.
+&X fetch2
 ``:
-	.word $+2
+	ldy #0
+	lda (ip),y
+	sta x+0
+	iny
+	lda (ip),y
+	sta x+1
+	rts
+
+&X load1
+``:
+	jsr `fetch2
 
 	ldy #0
-	lda (w), y
-	sta stack, y
+	lda (x), y
+	sta stack,y
 	inx
 
-	jmp `_inc2_next
+	jmp `inc2_next
 
-&X _load2
+&X load2
 ``:
-	.word $+2
-
+	jsr `fetch2
 	ldy #0
 -
-	lda (w), y
-	sta stack, x
+	lda (x),y
+	sta stack,x
 	inx
 	iny
 	cpy #2
 	bne -
 
-	jmp `_inc2_next
+	jmp `inc2_next
 
-&X _load4
+&X load4
 ``:
-	.word $+2
-
+	jsr `fetch2
 	ldy #0
 -
-	lda (w), y
-	sta stack, x
+	lda (x),y
+	sta stack,x
 	inx
 	iny
 	cpy #4
 	bne -
 
-	jmp `_inc2_next
+	jmp `inc2_next
 
-&X _store1
+&X store1
 ``:
-	.word $+2
-
-	lda stack-1, x
+	jsr `fetch2
+	lda stack-1,x
 	ldy #0
-	sta (w), y
+	sta (x),y
 	dex
 
-	jmp `_inc2_next
+	jmp `inc2_next
 
-&X _store2
+&X store2
 ``:
-	.word $+2
-
+	jsr `fetch2
 	ldy #1
 -
-	lda stack-1, x
+	lda stack-1,x
 	dex
-	sta (w), y
+	sta (x),y
 	dey
 	bpl -
 
-	jmp `_inc2_next
+	jmp `inc2_next
 
-&X _store4
+&X store4
 ``:
-	.word $+2
-
+	jsr `fetch2
 	ldy #3
 -
-	lda stack-1, x
+	lda stack-1,x
 	dex
-	sta (w), y
+	sta (x),y
 	dey
 	bpl -
 
-	jmp `_inc2_next
+	jmp `inc2_next
 
 # --- Maths -----------------------------------------------------------------
 
-&X _add1
+&X add1
 ``:
-	.word $+2
-
 	clc
-	lda stack-2, x
-	adc stack-1, x
-	sta stack-2, x
+	lda stack-2,x
+	adc stack-1,x
+	sta stack-2,x
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _add2
+&X add2
 ``:
-	.word $+2
-
 	clc
-	lda stack-4, x
-	adc stack-2, x
-	sta stack-4, x
-	lda stack-3, x
-	adc stack-1, x
-	sta stack-3, x
+	lda stack-4,x
+	adc stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	adc stack-1,x
+	sta stack-3,x
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _add4
+&X add4
 ``:
-	.word $+2
-
 	clc
-	lda stack-8, x
-	adc stack-4, x
-	sta stack-8, x
-	lda stack-7, x
-	adc stack-3, x
-	sta stack-7, x
-	lda stack-6, x
-	adc stack-2, x
-	sta stack-6, x
-	lda stack-5, x
-	adc stack-1, x
-	sta stack-5, x
+	lda stack-8,x
+	adc stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	adc stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	adc stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	adc stack-1,x
+	sta stack-5,x
 	dex
 	dex
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _sub1
+&X sub1
 ``:
-	.word $+2
-
 	sec
-	lda stack-2, x
-	sbc stack-1, x
-	sta stack-2, x
+	lda stack-2,x
+	sbc stack-1,x
+	sta stack-2,x
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _sub2
+&X sub2
 ``:
-	.word $+2
-
 	sec
-	lda stack-4, x
-	sbc stack-2, x
-	sta stack-4, x
-	lda stack-3, x
-	sbc stack-1, x
-	sta stack-3, x
+	lda stack-4,x
+	sbc stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	sbc stack-1,x
+	sta stack-3,x
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _sub4
+&X sub4
 ``:
-	.word $+2
-
 	sec
-	lda stack-8, x
-	sbc stack-4, x
-	sta stack-8, x
-	lda stack-7, x
-	sbc stack-3, x
-	sta stack-7, x
-	lda stack-6, x
-	sbc stack-2, x
-	sta stack-6, x
-	lda stack-5, x
-	sbc stack-1, x
-	sta stack-5, x
+	lda stack-8,x
+	sbc stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	sbc stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	sbc stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	sbc stack-1,x
+	sta stack-5,x
 	dex
 	dex
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _or1
+&X or1
 ``:
-	.word $+2
-
-	lda stack-2, x
-	ora stack-1, x
-	sta stack-2, x
+	lda stack-2,x
+	ora stack-1,x
+	sta stack-2,x
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _or2
+&X or2
 ``:
-	.word $+2
-
-	lda stack-4, x
-	ora stack-2, x
-	sta stack-4, x
-	lda stack-3, x
-	ora stack-1, x
-	sta stack-3, x
+	lda stack-4,x
+	ora stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	ora stack-1,x
+	sta stack-3,x
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _or4
+&X or4
 ``:
-	.word $+2
-
-	lda stack-8, x
-	ora stack-4, x
-	sta stack-8, x
-	lda stack-7, x
-	ora stack-3, x
-	sta stack-7, x
-	lda stack-6, x
-	ora stack-2, x
-	sta stack-6, x
-	lda stack-5, x
-	ora stack-1, x
-	sta stack-5, x
+	lda stack-8,x
+	ora stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	ora stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	ora stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	ora stack-1,x
+	sta stack-5,x
 	dex
 	dex
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _and1
+&X and1
 ``:
-	.word $+2
-
-	lda stack-2, x
-	and stack-1, x
-	sta stack-2, x
+	lda stack-2,x
+	and stack-1,x
+	sta stack-2,x
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _and2
+&X and2
 ``:
-	.word $+2
-
-	lda stack-4, x
-	and stack-2, x
-	sta stack-4, x
-	lda stack-3, x
-	and stack-1, x
-	sta stack-3, x
+	lda stack-4,x
+	and stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	and stack-1,x
+	sta stack-3,x
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _and4
+&X and4
 ``:
-	.word $+2
-
-	lda stack-8, x
-	and stack-4, x
-	sta stack-8, x
-	lda stack-7, x
-	and stack-3, x
-	sta stack-7, x
-	lda stack-6, x
-	and stack-2, x
-	sta stack-6, x
-	lda stack-5, x
-	and stack-1, x
-	sta stack-5, x
+	lda stack-8,x
+	and stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	and stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	and stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	and stack-1,x
+	sta stack-5,x
 	dex
 	dex
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _eor1
+&X eor1
 ``:
-	.word $+2
-
-	lda stack-2, x
-	eor stack-1, x
-	sta stack-2, x
+	lda stack-2,x
+	eor stack-1,x
+	sta stack-2,x
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _eor2
+&X eor2
 ``:
-	.word $+2
-
-	lda stack-4, x
-	eor stack-2, x
-	sta stack-4, x
-	lda stack-3, x
-	eor stack-1, x
-	sta stack-3, x
+	lda stack-4,x
+	eor stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	eor stack-1,x
+	sta stack-3,x
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _eor4
+&X eor4
 ``:
-	.word $+2
-
-	lda stack-8, x
-	eor stack-4, x
-	sta stack-8, x
-	lda stack-7, x
-	eor stack-3, x
-	sta stack-7, x
-	lda stack-6, x
-	eor stack-2, x
-	sta stack-6, x
-	lda stack-5, x
-	eor stack-1, x
-	sta stack-5, x
+	lda stack-8,x
+	eor stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	eor stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	eor stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	eor stack-1,x
+	sta stack-5,x
 	dex
 	dex
 	dex
 	dex
 
-	jmp `_next
+	jmp `next
 
-&X _neg1
+&X neg1
 ``:
-	.word $+2
-
 	sec
 	lda #0
-	sbc stack-1, x
-	sta stack-1, x
+	sbc stack-1,x
+	sta stack-1,x
 
-	jmp `_next
+	jmp `next
 
-&X _neg2
+&X neg2
 ``:
-	.word $+2
-
 	sec
 	lda #0
-	sbc stack-2, x
-	sta stack-2, x
+	sbc stack-2,x
+	sta stack-2,x
 	lda #0
-	sbc stack-1, x
-	sta stack-1, x
+	sbc stack-1,x
+	sta stack-1,x
 
-	jmp `_next
+	jmp `next
 
-&X _neg4
+&X neg4
 ``:
-	.word $+2
-
 	sec
 	lda #0
-	sbc stack-4, x
-	sta stack-4, x
+	sbc stack-4,x
+	sta stack-4,x
 	lda #0
-	sbc stack-3, x
-	sta stack-3, x
+	sbc stack-3,x
+	sta stack-3,x
 	lda #0
-	sbc stack-2, x
-	sta stack-2, x
+	sbc stack-2,x
+	sta stack-2,x
 	lda #0
-	sbc stack-1, x
-	sta stack-1, x
+	sbc stack-1,x
+	sta stack-1,x
 
-	jmp `_next
+	jmp `next
+
+&X not1
+``:
+	lda stack-1,x
+	eor #$ff
+	sta stack-1,x
+
+	jmp `next
+
+&X not2
+``:
+	lda stack-2,x
+	eor #$ff
+	sta stack-2,x
+	lda stack-1,x
+	eor #$ff
+	sta stack-1,x
+
+	jmp `next
+
+&X not4
+``:
+	lda stack-4,x
+	eor #$ff
+	sta stack-4,x
+	lda stack-3,x
+	eor #$ff
+	sta stack-3,x
+	lda stack-2,x
+	eor #$ff
+	sta stack-2,x
+	lda stack-1,x
+	eor #$ff
+	sta stack-1,x
+
+	jmp `next
 
 # --- Multiplication --------------------------------------------------------
 
-&X _mul1
+&X mul1
 ``:
-	.word $+2
-
     lda #0
     ldy #8
-	lsr stack-2, x
+	lsr stack-2,x
 -
     bcc +
     clc
-    adc stack-1, x
+    adc stack-1,x
 +
     ror
-    ror stack-2, x
-    deu
+    ror stack-2,x
+    dex
     bne -
-    lda stack-2, x
+    lda stack-2,x
 
 	dex
-    jmp `_next
+    jmp `next
 	
-&X _mul2
+&X mul2
 ``:
-	.word $+2
-
 	lda #0			; low byte of high word
 	sta x+0			; high byte of high word
 	ldy #$11
@@ -657,13 +656,13 @@
 -
 	ror x+0
 	ror
-	ror stack-4, x
-	ror stack-3, x
+	ror stack-4,x
+	ror stack-3,x
 	bcc +
 	clc
-	adc stack-2, x
+	adc stack-2,x
 	pha
-	lda stack-1, x
+	lda stack-1,x
 	adc x
 	sta x
 	pla
@@ -673,12 +672,10 @@
 
 	dex
 	dex
-	jmp `_next
+	jmp `next
 
-&X _mul4
+&X mul4
 ``:
-	.word $+2
-
 	lda #0
 	sta x+0				; high word of result
 	sta x+1
@@ -692,25 +689,25 @@
 	ror x+2
 	ror x+1
 	ror x+0
-	ror stack-8, x
-	ror stack-7, x
-	ror stack-6, x
-	ror stack-5, x
+	ror stack-8,x
+	ror stack-7,x
+	ror stack-6,x
+	ror stack-5,x
 	bcc +
 
 	clc
-	lda stack-8, x
-	adc stack-4, x
-	sta stack-8, x
-	lda stack-7, x
-	adc stack-3, x
-	sta stack-7, x
-	lda stack-6, x
-	adc stack-2, x
-	sta stack-6, x
-	lda stack-5, x
-	adc stack-1, x
-	sta stack-5, x
+	lda stack-8,x
+	adc stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	adc stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	adc stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	adc stack-1,x
+	sta stack-5,x
 +
 	dey
 	bne -
@@ -719,24 +716,24 @@
 	dex
 	dex
 	dex
-	jmp `_next
+	jmp `next
 	
 # --- Division (unsigned) ---------------------------------------------------
 
 # divrem does: (lhs rhs -- result) and leaves the remainder in x.
 
-&X _divremu1
+&X divremu1
 ``:
     lda #0
     ldy #8
-    asl stack-2, x
+    asl stack-2,x
 -
     rol
-    cmp stack-1, x
+    cmp stack-1,x
     bcc +
-    sbc stack-1, x
+    sbc stack-1,x
 +
-    rol stack-2, x
+    rol stack-2,x
     dey
     bne -
 
@@ -744,46 +741,42 @@
 	dex
 	rts
 
-&X _divu1
+&X divu1
 ``:
-	.word $+2
+	jsr `divremu1
+	jmp `next
 
-	jsr _divremu1
-	jmp `_next
-
-&X _remu1
+&X remu1
 ``:
-	.word $+2
-
-	jsr _divremu1
+	jsr `divremu1
 	lda x
-	sta stack-1, x
-	jmp `_next
+	sta stack-1,x
+	jmp `next
 
-&X _divremu2
+&X divremu2
 ``:
 	lda #0
 	sta x+0
 	sta x+1
 	ldy #16
 -
-	asl stack-4, x
-	rol stack-3, x
+	asl stack-4,x
+	rol stack-3,x
 	rol x+0
 	rol x+1
 
 	lda x+0
 	sec
-	sbc stack-2, x
+	sbc stack-2,x
 	pha
 	lda x+1
-	sbc stack-1, x
+	sbc stack-1,x
 	bcc +
 
 	sta x+1
 	pla
 	sta x+0
-	inc stack-4, x
+	inc stack-4,x
 +
 	dey
 	bne -
@@ -792,25 +785,21 @@
 	dex
 	rts
 
-&X _divu2
+&X divu2
 ``:
-	.word $+2
+	jsr `divremu2
+	jmp `next
 
-	jsr _divremu2
-	jmp `_next
-
-&X _remu2
+&X remu2
 ``:
-	.word $+2
-
-	jsr _divremu2
+	jsr `divremu2
 	lda x+0
-	sta stack-2, x
+	sta stack-2,x
 	lda x+1
-	sta stack-1, x
-	jmp `_next
+	sta stack-1,x
+	jmp `next
 
-&X _divremu4
+&X divremu4
 ``:
 	lda #0
 	sta x+0
@@ -819,39 +808,39 @@
 	sta x+3
 	ldy #32
 -
-	asl stack-8, x		; left shift result
-	rol stack-7, x
-	rol stack-6, x
-	rol stack-5, x
+	asl stack-8,x		; left shift result
+	rol stack-7,x
+	rol stack-6,x
+	rol stack-5,x
 	rol x+0				; and remainder
 	rol x+1
 	rol x+2
 	rol x+3
 
 	lda x+0				; if remainder < lhs
-	cmp stack-4, x
+	cmp stack-4,x
 	lda x+1
-	sbc stack-3, x
+	sbc stack-3,x
 	lda x+2
-	sbc stack-2, x
+	sbc stack-2,x
 	lda x+3
-	sbc stack-1, x
+	sbc stack-1,x
 	bcc +
 	; (carry is clear here)
 
 	lda x+0				; remainder := remainder - lhs
-	sbc stack-4, x
+	sbc stack-4,x
 	sta x+0
 	lda x+1
-	sbc stack-3, x
+	sbc stack-3,x
 	sta x+1
 	lda x+2
-	sbc stack-2, x
+	sbc stack-2,x
 	sta x+2
 	lda x+3
-	sbc stack-1, x
+	sbc stack-1,x
 	sta x+3
-	inc stack-8, x
+	inc stack-8,x
 +
 	dey
 	bne -
@@ -859,527 +848,445 @@
 	dex
 	dex
 	dex
-	dev
+	dex
 	rts
 
-&X _divu4
+&X divu4
 ``:
-	.word $+2
+	jsr `divremu4
+	jmp `next
 
-	jsr _divremu4
-	jmp `_next
-
-&X _remu4
+&X remu4
 ``:
-	.word $+2
-
-	jsr _divremu2
+	jsr `divremu2
 	lda x+0
-	sta stack-3, x
+	sta stack-3,x
 	lda x+1
-	sta stack-3, x
+	sta stack-3,x
 	lda x+2
-	sta stack-2, x
+	sta stack-2,x
 	lda x+3
-	sta stack-1, x
-	jmp `_next
+	sta stack-1,x
+	jmp `next
 
 # --- Conditionals and branches ---------------------------------------------
 
-&X _jump
+&X jump
 ``:
-	.word $+2
-
 	ldy #1
-	lda (w), y
+	lda (ip),y
 	pha
 	dey
-	lda (w), y
-	sta w+0
+	lda (ip),y
+	sta ip+0
 	pla
-	sta w+1
-	jmp _next
+	sta ip+1
+	jmp `next
 
-&X _cmp1
+&X cmp1
 ``:
-	.word $+2
-
 	dex
 	dex
-	lda stack+0, x
-	cmp stack+1, x
+	lda stack+0,x
+	cmp stack+1,x
 	rts
 
-&X _beq1
+&X beq1
 ``:
-	.word $+2
+	jsr `cmp1
+	beq `jump
+	jmp `inc2_next
 
-	jsr `_cmp1
-	beq `_jump
-	jmp `_inc2_next
-
-&X _bne1
+&X bne1
 ``:
-	.word $+2
+	jsr `cmp1
+	bne `jump
+	jmp `inc2_next
 
-	jsr `_cmp1
-	bne `_jump
-	jmp `_inc2_next
-
-&X _bltu1
+&X bltu1
 ``:
-	.word $+2
+	jsr `cmp1
+	bcs `jump
+	jmp `inc2_next
 
-	jsr `_cmp1
-	bcs `_jump
-	jmp `_inc2_next
-
-&X _bgeu1
+&X bgeu1
 ``:
-	.word $+2
+	jsr `cmp1
+	bcc `jump
+	jmp `inc2_next
 
-	jsr `_cmp1
-	bcc `_jump
-	jmp `_inc2_next
-
-&X _blts1
+&X blts1
 ``:
-	.word $+2
-
-	jsr `_cmp1
+	jsr `cmp1
 	bvc *+4
 	eor #$80
-	bmi `_jump
-	jmp `_inc2_next
+	bmi `jump
+	jmp `inc2_next
 
-&X _bges1
+&X bges1
 ``:
-	.word $+2
-
-	jsr `_cmp1
+	jsr `cmp1
 	bvc *+4
 	eor #$80
-	bpl `_jump
-	jmp `_inc2_next
+	bpl `jump
+	jmp `inc2_next
 
-&X _cmp2
-	.word $+2
-
+&X cmp2
+``:
 	dex
 	dex
 	dex
 	dex
-	lda stack+0, x
-	cmp stack+2, x
-	lda stack+1, x
-	sbc stack+3, x
+	lda stack+0,x
+	cmp stack+2,x
+	lda stack+1,x
+	sbc stack+3,x
 	rts
 
-&X _beq2
+&X beq2
 ``:
-	.word $+2
+	jsr `cmp2
+	beq `jump
+	jmp `inc2_next
 
-	jsr `_cmp2
-	beq `_jump
-	jmp `_inc2_next
-
-&X _bne2
+&X bne2
 ``:
-	.word $+2
+	jsr `cmp2
+	bne `jump
+	jmp `inc2_next
 
-	jsr `_cmp2
-	bne `_jump
-	jmp `_inc2_next
-
-&X _bltu2
+&X bltu2
 ``:
-	.word $+2
+	jsr `cmp2
+	bcs `jump
+	jmp `inc2_next
 
-	jsr `_cmp2
-	bcs `_jump
-	jmp `_inc2_next
-
-&X _bgeu2
+&X bgeu2
 ``:
-	.word $+2
+	jsr `cmp2
+	bcc `jump
+	jmp `inc2_next
 
-	jsr `_cmp2
-	bcc `_jump
-	jmp `_inc2_next
-
-&X _blts2
+&X blts2
 ``:
-	.word $+2
-
-	jsr `_cmp2
+	jsr `cmp2
 	bvc *+4
 	eor #$80
-	bmi `_jump
-	jmp `_inc2_next
+	bmi `jump
+	jmp `inc2_next
 
-&X _bges2
+&X bges2
 ``:
-	.word $+2
-
-	jsr `_cmp2
+	jsr `cmp2
 	bvc *+4
 	eor #$80
-	bpl `_jump
-	jmp `_inc2_next
+	bpl `jump
+	jmp `inc2_next
 
-&X _cmp4
-	.word $+2
-
+&X cmp4
+``:
 	txa
-	clc
+	sec
 	sbc #8
 	tax
-	lda stack+0, x
-	cmp stack+4, x
-	lda stack+1, x
-	sbc stack+5, x
-	lda stack+2, x
-	sbc stack+6, x
-	lda stack+3, x
-	sbc stack+7, x
+	lda stack+0,x
+	cmp stack+4,x
+	lda stack+1,x
+	sbc stack+5,x
+	lda stack+2,x
+	sbc stack+6,x
+	lda stack+3,x
+	sbc stack+7,x
 	rts
 
-&X _beq4
+&X beq4
 ``:
-	.word $+2
+	jsr `cmp4
+	beq `jump
+	jmp `inc2_next
 
-	jsr `_cmp4
-	beq `_jump
-	jmp `_inc2_next
-
-&X _bne4
+&X bne4
 ``:
-	.word $+2
+	jsr `cmp4
+	bne `jump
+	jmp `inc2_next
 
-	jsr `_cmp4
-	bne `_jump
-	jmp `_inc2_next
-
-&X _bltu4
+&X bltu4
 ``:
-	.word $+2
+	jsr `cmp4
+	bcs `jump
+	jmp `inc2_next
 
-	jsr `_cmp4
-	bcs `_jump
-	jmp `_inc2_next
-
-&X _bgeu4
+&X bgeu4
 ``:
-	.word $+2
+	jsr `cmp4
+	bcc `jump
+	jmp `inc2_next
 
-	jsr `_cmp4
-	bcc `_jump
-	jmp `_inc2_next
-
-&X _blts4
+&X blts4
 ``:
-	.word $+2
-
-	jsr `_cmp4
+	jsr `cmp4
 	bvc *+4
 	eor #$80
-	bmi `_jump
-	jmp `_inc2_next
+	bmi `jump
+	jmp `inc2_next
 
-&X _bges4
+&X bges4
 ``:
-	.word $+2
-
-	jsr `_cmp4
+	jsr `cmp4
 	bvc *+4
 	eor #$80
-	bpl `_jump
-	jmp `_inc2_next
+	bpl `jump
+	jmp `inc2_next
 
 # --- Casts -----------------------------------------------------------------
 
-&X _cast21
+&X cast21
 ``:
-	.word $+2
-
 	dex
-	jmp `_next
+	jmp `next
 
-&X _cast41
+&X cast41
 ``:
-	.word $+2
+	dex
+	dex
+	dex
+	jmp `next
 
-	dex
-	dex
-	dex
-	jmp `_next
-
-&X _cast42
+&X cast42
 ``:
-	.word $+2
-
 	dex
 	dex
-	jmp `_next
+	jmp `next
 
-&X _cast12u
+&X cast12u
 ``:
-	.word $+2
-
 	lda #0
-	sta (stack, x)
+	sta (stack,x)
 	inx
 
-	jmp `_next
+	jmp `next
 
-&X _cast14u
+&X cast14u
 ``:
-	.word $+2
-
 	lda #0
-	sta stack, x
+	sta stack,x
 	inx
-	sta stack, x
+	sta stack,x
 	inx
-	sta stack, x
+	sta stack,x
 	inx
 
-	jmp `_next
+	jmp `next
 
-&X _cast24u
+&X cast24u
 ``:
-	.word $+2
-
 	lda #0
-	sta stack, x
+	sta stack,x
 	inx
-	sta stack, x
+	sta stack,x
 	inx
 
-	jmp `_next
+	jmp `next
 
-&X _cast12s
+&X cast12s
 ``:
-	.word $+2
-
-	lda stack-1, x
+	lda stack-1,x
 	ora #$7f
 	bmi *+4
 	lda #0
 	
-	sta stack, x
+	sta stack,x
 	inx
 
-	jmp `_next
+	jmp `next
 
-&X _cast14s
+&X cast14s
 ``:
-	.word $+2
-
-	lda stack-1, x
+	lda stack-1,x
 	ora #$7f
 	bmi *+4
 	lda #0
 
-	sta stack, x
+	sta stack,x
 	inx
-	sta stack, x
+	sta stack,x
 	inx
-	sta stack, x
+	sta stack,x
 	inx
 
-	jmp `_next
+	jmp `next
 
-&X _cast24s
+&X cast24s
 ``:
-	.word $+2
-
-	lda stack-1, x
+	lda stack-1,x
 	ora #$7f
 	bmi *+4
 	lda #0
 
-	sta stack, x
+	sta stack,x
 	inx
-	sta stack, x
+	sta stack,x
 	inx
 
-	jmp `_next
+	jmp `next
 
 # --- Shifts ----------------------------------------------------------------
 
 # (value shift8 -- value)
 
-&X _lshift1
+&X lshift1
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	asl stack-1, x
+	asl stack-1,x
 +
 	dey
 	bpl -
-	jmp `_next
+	jmp `next
 
-&X _lshift2
+&X lshift2
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	asl stack-2, x
-	rol stack-1, x
+	asl stack-2,x
+	rol stack-1,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
-&X _lshift4
+&X lshift4
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	asl stack-4, x
-	rol stack-3, x
-	rol stack-2, x
-	rol stack-1, x
+	asl stack-4,x
+	rol stack-3,x
+	rol stack-2,x
+	rol stack-1,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
-&X _rshiftu1
+&X rshiftu1
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	lsr stack-1, x
+	lsr stack-1,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
-&X _rshiftu2
+&X rshiftu2
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	lsr stack-1, x
-	ror stack-2, x
+	lsr stack-1,x
+	ror stack-2,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
-&X _rshiftu4
+&X rshiftu4
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	lsr stack-1, x
-	ror stack-2, x
-	ror stack-3, x
-	ror stack-4, x
+	lsr stack-1,x
+	ror stack-2,x
+	ror stack-3,x
+	ror stack-4,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
 
-&X _rshifts1
+&X rshifts1
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	lda stack-1, x
+	lda stack-1,x
 	rol
-	ror stack-1, x
+	ror stack-1,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
-&X _rshifts2
+&X rshifts2
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	lda stack-1, x
+	lda stack-1,x
 	rol
-	ror stack-1, x
-	ror stack-2, x
+	ror stack-1,x
+	ror stack-2,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
-&X _rshifts4
+&X rshifts4
 ``:
-	.word $+2
-
-	lda (stack-1, x)
+	lda (stack-1,x)
 	tay
 	dex
 
 	jmp +
 -
-	lda stack-1, x
+	lda stack-1,x
 	rol
-	ror stack-1, x
-	ror stack-2, x
-	ror stack-3, x
-	ror stack-4, x
+	ror stack-1,x
+	ror stack-2,x
+	ror stack-3,x
+	ror stack-4,x
 +
 	dey
 	bpl -
 
-	jmp `_next
+	jmp `next
 
 # --- Case ------------------------------------------------------------------
 
@@ -1387,63 +1294,57 @@
 # value inline in the instruction stream. If it does *not* match, it jumps.
 # The instruction stream format is <address> <value>.
 
-&X _falsecase
+&X falsecase
 ``:
 	ldy #1
-	lda (w), y
+	lda (ip),y
 	pha
 	dey
-	lda (w), y
+	lda (ip),y
 	sta w+0
 	pla
 	sta w+1
-	jmp `_next
+	jmp `next
 
-&X _whencase1
+&X whencase1
 ``:
-	.word $+2
-
 	ldy #2
 	lda x+0
-	cmp (w), y
-	bne `_falsecase
+	cmp (ip),y
+	bne `falsecase
 	
 	lda #3
-	jmp `_inc_next
+	jmp `inc_next
 
-&X _whencase2
+&X whencase2
 ``:
-	.word $+2
-
 	ldy #2
 	lda x+0
-	cmp (w), y
+	cmp (ip),y
 	iny
 	lda x+1
-	sbc (w), y
-	bne `_falsecase
+	sbc (ip),y
+	bne `falsecase
 	
 	lda #4
-	jmp `_inc_next
+	jmp `inc_next
 
-&X _whencase4
+&X whencase4
 ``:
-	.word $+2
-
 	ldy #2
 	lda x+0
-	cmp (w), y
+	cmp (ip),y
 	iny
 	lda x+1
-	sbc (w), y
+	sbc (ip),y
 	iny
 	lda x+2
-	sbc (w), y
+	sbc (ip),y
 	iny
 	lda x+3
-	sbc (w), y
-	bne `_falsecase
+	sbc (ip),y
+	bne `falsecase
 	
 	lda #6
-	jmp `_inc_next
+	jmp `inc_next
 

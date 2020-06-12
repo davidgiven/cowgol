@@ -10,6 +10,7 @@ var _args: [uint8];
 var HIMEM: [uint8] := 0xf800 as [uint8];
 
 sub _ReadArguments() is
+	return;
 	# So, there's some evil here. We know that pointers are allocated
 	# contiguously in zero page, so we create several for use as the
 	# OSARGS/OSWORD block.

@@ -94,6 +94,11 @@
 
             EmitterDeclareExternalSubroutine(e.id, name);
         end if;
+
+		EmitterPushChunk();
+		E_b16(current_subr.id);
+		E_b16(e.id);
+		EmitterPopChunk('R');
     end sub;
 
 	sub E_db is E("\t.byte "); end sub;
@@ -110,14 +115,18 @@
         E_label(lid);
     end sub;
 
-    sub E_symrefi(sym: [Symbol], off: Size) is
-		E_dw();
+    sub E_symref(sym: [Symbol], off: Size) is
         if sym.vardata.externname != (0 as string) then
             E(sym.vardata.externname);
             E_i16(off as int16);
         else
             E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
         end if;
+    end sub;
+
+    sub E_symrefi(sym: [Symbol], off: Size) is
+		E_dw();
+		E_symref(sym, off);
 		E_nl();
     end sub;
 
@@ -143,63 +152,75 @@
     # Does not persist the name; only call this with constant strings.
     sub E_callhelper(name: string) is
         var e := GetHelper(name);
-
-        EmitterPushChunk();
-        E_b16(current_subr.id);
-        E_b16(e.id);
-        EmitterPopChunk('R');
-
 		E_callid(e.id);
     end sub;
 
+    # Does not persist the name; only call this with constant strings.
+    sub E_jsrhelper(name: string) is
+        var e := GetHelper(name);
+		E("\tjsr ");
+		E_b8(COO_ESCAPE_SUBREF);
+		E_b16(e.id);
+		E_nl();
+    end sub;
+
+    # Does not persist the name; only call this with constant strings.
+    sub E_jmphelper(name: string) is
+        var e := GetHelper(name);
+		E("\tjmp ");
+		E_b8(COO_ESCAPE_SUBREF);
+		E_b16(e.id);
+		E_nl();
+    end sub;
+
 	sub E_push1(value: uint8) is
-		E_callhelper("_push1");
+		E_callhelper("push1");
 		E_db();
 		E_u8(value);
 		E_nl();
 	end sub;
 
 	sub E_push2(value: uint16) is
-		E_callhelper("_push2");
+		E_callhelper("push2");
 		E_dw();
 		E_u16(value);
 		E_nl();
 	end sub;
 
 	sub E_push4(value: uint32) is
-		E_callhelper("_push4");
+		E_callhelper("push4");
 		E_dl();
 		E_u32(value);
 		E_nl();
 	end sub;
 
 	sub E_store1(sym: [Symbol], off: Size) is
-		E_callhelper("_store1");
+		E_callhelper("store1");
 		E_wsrefi(sym, off);
 	end sub;
 
 	sub E_store2(sym: [Symbol], off: Size) is
-		E_callhelper("_store2");
+		E_callhelper("store2");
 		E_wsrefi(sym, off);
 	end sub;
 
 	sub E_store4(sym: [Symbol], off: Size) is
-		E_callhelper("_store4");
+		E_callhelper("store4");
 		E_wsrefi(sym, off);
 	end sub;
 
 	sub E_load1(sym: [Symbol], off: Size) is
-		E_callhelper("_load1");
+		E_callhelper("load1");
 		E_wsrefi(sym, off);
 	end sub;
 
 	sub E_load2(sym: [Symbol], off: Size) is
-		E_callhelper("_load2");
+		E_callhelper("load2");
 		E_wsrefi(sym, off);
 	end sub;
 
 	sub E_load4(sym: [Symbol], off: Size) is
-		E_callhelper("_load4");
+		E_callhelper("load4");
 		E_wsrefi(sym, off);
 	end sub;
 %}
@@ -228,7 +249,7 @@ gen LABEL():b
 
 gen JUMP():j
 {
-	E_callhelper("_jump");
+	E_callhelper("jump");
 	E_dw();
 	E_labelref($j.label);
 	E_nl();
@@ -250,7 +271,7 @@ gen STARTSUB()
 
     E_b8(COO_ESCAPE_THISSUB);
     E(":\n");
-	E_callhelper("_enter");
+	E_jmphelper("enter");
 
     var count := current_subr.num_input_parameters;
     while count != 0 loop
@@ -284,7 +305,7 @@ gen ENDSUB()
         i := i + 1;
     end loop;
 
-	E_callhelper("_exit");
+	E_callhelper("exit");
 
     EmitterPopChunk('S');
 
@@ -297,7 +318,7 @@ gen ENDSUB()
 
 gen RETURN()
 {
-	E_callhelper("_jump");
+	E_callhelper("jump");
 	E_dw();
 	E_labelref(current_subr.arch.end_label);
 	E_nl();
@@ -336,7 +357,7 @@ gen s4 := CONSTANT():c { E_push4($c.value as uint32); }
 
 gen s2 := ADDRESS():a
 {
-	E_callhelper("_push2");
+	E_callhelper("push2");
 	E_symrefi($a.sym, $a.off);
 }
 
@@ -350,75 +371,75 @@ gen s1 := LOAD1(ADDRESS():a)  { E_load1($a.sym, $a.off); }
 gen s2 := LOAD2(ADDRESS():a) { E_load2($a.sym, $a.off); }
 gen s4 := LOAD4(ADDRESS():a) { E_load4($a.sym, $a.off); }
 
-gen STORE1(s1, s2) { E_callhelper("_store1i"); }
-gen STORE2(s2, s2) { E_callhelper("_store2"); }
-gen STORE4(s4, s2) { E_callhelper("_store4"); }
+gen STORE1(s1, s2) { E_callhelper("store1i"); }
+gen STORE2(s2, s2) { E_callhelper("store2"); }
+gen STORE4(s4, s2) { E_callhelper("store4"); }
 
-gen s1 := LOAD1(s2) { E_callhelper("_load1i"); }
-gen s2 := LOAD2(s2) { E_callhelper("_load2i"); }
-gen s4 := LOAD4(s2) { E_callhelper("_load4i"); }
+gen s1 := LOAD1(s2) { E_callhelper("load1i"); }
+gen s2 := LOAD2(s2) { E_callhelper("load2i"); }
+gen s4 := LOAD4(s2) { E_callhelper("load4i"); }
 
 // --- Maths ----------------------------------------------------------------
 
-gen s1 := ADD1(s1, s1) { E_callhelper("_add1"); }
-gen s2 := ADD2(s2, s2) { E_callhelper("_add2"); }
-gen s4 := ADD4(s4, s4) { E_callhelper("_add4"); }
+gen s1 := ADD1(s1, s1) { E_callhelper("add1"); }
+gen s2 := ADD2(s2, s2) { E_callhelper("add2"); }
+gen s4 := ADD4(s4, s4) { E_callhelper("add4"); }
 
-gen s1 := SUB1(s1, s1) { E_callhelper("_sub1"); }
-gen s2 := SUB2(s2, s2) { E_callhelper("_sub2"); }
-gen s4 := SUB4(s4, s4) { E_callhelper("_sub4"); }
+gen s1 := SUB1(s1, s1) { E_callhelper("sub1"); }
+gen s2 := SUB2(s2, s2) { E_callhelper("sub2"); }
+gen s4 := SUB4(s4, s4) { E_callhelper("sub4"); }
 
-gen s1 := MUL1(s1, s1) { E_callhelper("_mul1"); }
-gen s2 := MUL2(s2, s2) { E_callhelper("_mul2"); }
-gen s4 := MUL4(s4, s4) { E_callhelper("_mul4"); }
+gen s1 := MUL1(s1, s1) { E_callhelper("mul1"); }
+gen s2 := MUL2(s2, s2) { E_callhelper("mul2"); }
+gen s4 := MUL4(s4, s4) { E_callhelper("mul4"); }
 
-gen s1 := DIVU1(s1, s1) { E_callhelper("_divu1"); }
-gen s2 := DIVU2(s2, s2) { E_callhelper("_divu2"); }
-gen s4 := DIVU4(s4, s4) { E_callhelper("_divu4"); }
+gen s1 := DIVU1(s1, s1) { E_callhelper("divu1"); }
+gen s2 := DIVU2(s2, s2) { E_callhelper("divu2"); }
+gen s4 := DIVU4(s4, s4) { E_callhelper("divu4"); }
 
-gen s1 := DIVS1(s1, s1) { E_callhelper("_divs1"); }
-gen s2 := DIVS2(s2, s2) { E_callhelper("_divs2"); }
-gen s4 := DIVS4(s4, s4) { E_callhelper("_divs4"); }
+gen s1 := DIVS1(s1, s1) { E_callhelper("divs1"); }
+gen s2 := DIVS2(s2, s2) { E_callhelper("divs2"); }
+gen s4 := DIVS4(s4, s4) { E_callhelper("divs4"); }
 
-gen s1 := REMU1(s1, s1) { E_callhelper("_remu1"); }
-gen s2 := REMU2(s2, s2) { E_callhelper("_remu2"); }
-gen s4 := REMU4(s4, s4) { E_callhelper("_remu4"); }
+gen s1 := REMU1(s1, s1) { E_callhelper("remu1"); }
+gen s2 := REMU2(s2, s2) { E_callhelper("remu2"); }
+gen s4 := REMU4(s4, s4) { E_callhelper("remu4"); }
 
-gen s1 := REMS1(s1, s1) { E_callhelper("_rems1"); }
-gen s2 := REMS2(s2, s2) { E_callhelper("_rems2"); }
-gen s4 := REMS4(s4, s4) { E_callhelper("_rems4"); }
+gen s1 := REMS1(s1, s1) { E_callhelper("rems1"); }
+gen s2 := REMS2(s2, s2) { E_callhelper("rems2"); }
+gen s4 := REMS4(s4, s4) { E_callhelper("rems4"); }
 
-gen s1 := NEG1(s1) { E_callhelper("_neg1"); }
-gen s2 := NEG2(s2) { E_callhelper("_neg2"); }
-gen s4 := NEG4(s4) { E_callhelper("_neg4"); }
+gen s1 := NEG1(s1) { E_callhelper("neg1"); }
+gen s2 := NEG2(s2) { E_callhelper("neg2"); }
+gen s4 := NEG4(s4) { E_callhelper("neg4"); }
 
-gen s1 := NOT1(s1) { E_callhelper("_not1"); }
-gen s2 := NOT2(s2) { E_callhelper("_not2"); }
-gen s4 := NOT4(s4) { E_callhelper("_not4"); }
+gen s1 := NOT1(s1) { E_callhelper("not1"); }
+gen s2 := NOT2(s2) { E_callhelper("not2"); }
+gen s4 := NOT4(s4) { E_callhelper("not4"); }
 
-gen s1 := LSHIFT1(s1, s1) { E_callhelper("_lshift1"); }
-gen s2 := LSHIFT2(s2, s1) { E_callhelper("_lshift2"); }
-gen s4 := LSHIFT4(s4, s1) { E_callhelper("_lshift4"); }
+gen s1 := LSHIFT1(s1, s1) { E_callhelper("lshift1"); }
+gen s2 := LSHIFT2(s2, s1) { E_callhelper("lshift2"); }
+gen s4 := LSHIFT4(s4, s1) { E_callhelper("lshift4"); }
 
-gen s1 := RSHIFTU1(s1, s1) { E_callhelper("_rshiftu1"); }
-gen s2 := RSHIFTU2(s2, s1) { E_callhelper("_rshiftu2"); }
-gen s4 := RSHIFTU4(s4, s1) { E_callhelper("_rshiftu4"); }
+gen s1 := RSHIFTU1(s1, s1) { E_callhelper("rshiftu1"); }
+gen s2 := RSHIFTU2(s2, s1) { E_callhelper("rshiftu2"); }
+gen s4 := RSHIFTU4(s4, s1) { E_callhelper("rshiftu4"); }
 
-gen s1 := RSHIFTS1(s1, s1) { E_callhelper("_rshifts1"); }
-gen s2 := RSHIFTS2(s2, s1) { E_callhelper("_rshifts2"); }
-gen s4 := RSHIFTS4(s4, s1) { E_callhelper("_rshifts4"); }
+gen s1 := RSHIFTS1(s1, s1) { E_callhelper("rshifts1"); }
+gen s2 := RSHIFTS2(s2, s1) { E_callhelper("rshifts2"); }
+gen s4 := RSHIFTS4(s4, s1) { E_callhelper("rshifts4"); }
 
-gen s1 := AND1(s1, s1) { E_callhelper("_and1"); }
-gen s2 := AND2(s2, s2) { E_callhelper("_and2"); }
-gen s4 := AND4(s4, s4) { E_callhelper("_and4"); }
+gen s1 := AND1(s1, s1) { E_callhelper("and1"); }
+gen s2 := AND2(s2, s2) { E_callhelper("and2"); }
+gen s4 := AND4(s4, s4) { E_callhelper("and4"); }
 
-gen s1 := OR1(s1, s1) { E_callhelper("_or1"); }
-gen s2 := OR2(s2, s2) { E_callhelper("_or2"); }
-gen s4 := OR4(s4, s4) { E_callhelper("_or4"); }
+gen s1 := OR1(s1, s1) { E_callhelper("or1"); }
+gen s2 := OR2(s2, s2) { E_callhelper("or2"); }
+gen s4 := OR4(s4, s4) { E_callhelper("or4"); }
 
-gen s1 := EOR1(s1, s1) { E_callhelper("_eor1"); }
-gen s2 := EOR2(s2, s2) { E_callhelper("_eor2"); }
-gen s4 := EOR4(s4, s4) { E_callhelper("_eor4"); }
+gen s1 := EOR1(s1, s1) { E_callhelper("eor1"); }
+gen s2 := EOR2(s2, s2) { E_callhelper("eor2"); }
+gen s4 := EOR4(s4, s4) { E_callhelper("eor4"); }
 
 // --- Branches -------------------------------------------------------------
 
@@ -446,24 +467,24 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
         label := $b.truelabel;
     end if;
     if label != $b.fallthrough then
-		E_callhelper("_jump");
+		E_callhelper("jump");
 		E_dw();
 		E_labelref(label);
 		E_nl();
     end if;
 }
 
-gen BEQ1(s1, s1) { Branch(self.n[0], "_beq1", "_bne1"); }
-gen BEQ2(s2, s2) { Branch(self.n[0], "_beq2", "_bne2"); }
-gen BEQ4(s4, s4) { Branch(self.n[0], "_beq4", "_bne4"); }
+gen BEQ1(s1, s1) { Branch(self.n[0], "beq1", "bne1"); }
+gen BEQ2(s2, s2) { Branch(self.n[0], "beq2", "bne2"); }
+gen BEQ4(s4, s4) { Branch(self.n[0], "beq4", "bne4"); }
 
-gen BLTU1(s1, s1) { Branch(self.n[0], "_bltu1", "_bgeu1"); }
-gen BLTU2(s2, s2) { Branch(self.n[0], "_bltu2", "_bgeu2"); }
-gen BLTU4(s4, s4) { Branch(self.n[0], "_bltu4", "_bgeu4"); }
+gen BLTU1(s1, s1) { Branch(self.n[0], "bltu1", "bgeu1"); }
+gen BLTU2(s2, s2) { Branch(self.n[0], "bltu2", "bgeu2"); }
+gen BLTU4(s4, s4) { Branch(self.n[0], "bltu4", "bgeu4"); }
 
-gen BLTS1(s1, s1) { Branch(self.n[0], "_blts1", "_bges1"); }
-gen BLTS2(s2, s2) { Branch(self.n[0], "_blts2", "_bges2"); }
-gen BLTS4(s4, s4) { Branch(self.n[0], "_blts4", "_bges4"); }
+gen BLTS1(s1, s1) { Branch(self.n[0], "blts1", "bges1"); }
+gen BLTS2(s2, s2) { Branch(self.n[0], "blts2", "bges2"); }
+gen BLTS4(s4, s4) { Branch(self.n[0], "blts4", "bges4"); }
 
 // --- Casts ----------------------------------------------------------------
 
@@ -477,13 +498,13 @@ gen BLTS4(s4, s4) { Branch(self.n[0], "_blts4", "_bges4"); }
 	end sub;
 %}
 
-gen s2 := CAST12(s1):c { MaybeSignedCast($c.sext, "_cast12s", "_cast12u"); }
-gen s4 := CAST14(s1):c { MaybeSignedCast($c.sext, "_cast14s", "_cast14u"); }
-gen s4 := CAST24(s2):c { MaybeSignedCast($c.sext, "_cast24s", "_cast24u"); }
+gen s2 := CAST12(s1):c { MaybeSignedCast($c.sext, "cast12s", "cast12u"); }
+gen s4 := CAST14(s1):c { MaybeSignedCast($c.sext, "cast14s", "cast14u"); }
+gen s4 := CAST24(s2):c { MaybeSignedCast($c.sext, "cast24s", "cast24u"); }
 
-gen s1 := CAST21(s2) { E_callhelper("_cast21"); }
-gen s1 := CAST41(s4) { E_callhelper("_cast41"); }
-gen s2 := CAST42(s4) { E_callhelper("_cast42"); }
+gen s1 := CAST21(s2) { E_callhelper("cast21"); }
+gen s1 := CAST41(s4) { E_callhelper("cast41"); }
+gen s2 := CAST42(s4) { E_callhelper("cast42"); }
 
 // --- Case -----------------------------------------------------------------
 
@@ -501,13 +522,13 @@ gen s2 := CAST42(s4) { E_callhelper("_cast42"); }
 	end sub;
 %}
 
-gen STARTCASE1(s1) { E_callhelper("_store1i"); E_dw(); E("x\n"); }
-gen STARTCASE2(s2) { E_callhelper("_store2i"); E_dw(); E("x\n"); }
-gen STARTCASE4(s4) { E_callhelper("_store4i"); E_dw(); E("x\n"); }
+gen STARTCASE1(s1) { E_callhelper("store1i"); E_dw(); E("x\n"); }
+gen STARTCASE2(s2) { E_callhelper("store2i"); E_dw(); E("x\n"); }
+gen STARTCASE4(s4) { E_callhelper("store4i"); E_dw(); E("x\n"); }
 
-gen WHENCASE1():c { Whencase(self.n[0], "_whencase1", "db"); E_u8($c.value as uint8); E_nl(); }
-gen WHENCASE2():c { Whencase(self.n[0], "_whencase2", "dw"); E_u16($c.value as uint16); E_nl(); }
-gen WHENCASE4():c { Whencase(self.n[0], "_whencase4", "dl"); E_u32($c.value as uint32); E_nl(); }
+gen WHENCASE1():c { Whencase(self.n[0], "whencase1", ".byte"); E_u8($c.value as uint8); E_nl(); }
+gen WHENCASE2():c { Whencase(self.n[0], "whencase2", ".word"); E_u16($c.value as uint16); E_nl(); }
+gen WHENCASE4():c { Whencase(self.n[0], "whencase4", ".dword"); E_u32($c.value as uint32); E_nl(); }
 
 gen ENDCASE1();
 gen ENDCASE2();
@@ -544,7 +565,7 @@ gen s2 := STRING():s
 {
     var sid := E_string($s.text);
 
-	E_callhelper("_push2");
+	E_callhelper("push2");
 
 	E_dw();
 	E_labelref(sid);
@@ -598,8 +619,8 @@ gen INITS():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART() { E_callhelper("_asmstart"); }
-gen ASMGROUPEND()   { E_callhelper("_asmend"); }
+gen ASMGROUPSTART() { E_callhelper("asmstart"); }
+gen ASMGROUPEND()   { E_jsrhelper("asmend"); }
 
 gen ASMSTART()
 {
@@ -615,9 +636,9 @@ gen ASMTEXT():t
 gen ASMSYMBOL():s
 {
     if $s.sym.kind == VAR then
-        E_symrefi($s.sym, 0);
+        E_symref($s.sym, 0);
     else
-        E_subrefi($s.sym.subr);
+        E_subref($s.sym.subr);
     end if;
     E_space();
 }

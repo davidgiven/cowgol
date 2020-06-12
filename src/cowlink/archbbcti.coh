@@ -1,0 +1,66 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws");
+	E_b8(wid + '0');
+	E_i16(address as int16);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E(".cpu \"65c02\"\n");
+	E("* = $400\n");
+	E("ip = 0\n");
+	E("w = 2\n"); 
+	E("x = 4\n");
+	E("stack = x+4\n");
+
+	E("\ttsx\n");
+	E("\tstx sp\n");
+	E("\tlda #0\n");
+	E("\tsta vsp\n");
+	E("\tjsr asmend\n");
+
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\t.word ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+	E("\t.word exit\n");
+	E("exit:\n");
+	E("\tldx sp\n");
+	E("\ttxs\n");
+	E("\trts\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("sp: .fill 1\n");
+	E("vsp: .fill 1\n");
+	E("ws0: .fill ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("LOMEM:\n");
+	E(".end\n");
+end sub;
+
+
