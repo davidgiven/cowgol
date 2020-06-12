@@ -501,17 +501,17 @@ gen s2 := CAST42(s4) { E_callhelper("_cast42"); }
 	end sub;
 %}
 
-gen STARTCASE1(s1);
-gen STARTCASE2(s2);
-gen STARTCASE4(s4);
+gen STARTCASE1(s1) { E_callhelper("_store1i"); E_dw(); E("x\n"); }
+gen STARTCASE2(s2) { E_callhelper("_store2i"); E_dw(); E("x\n"); }
+gen STARTCASE4(s4) { E_callhelper("_store4i"); E_dw(); E("x\n"); }
 
 gen WHENCASE1():c { Whencase(self.n[0], "_whencase1", "db"); E_u8($c.value as uint8); E_nl(); }
 gen WHENCASE2():c { Whencase(self.n[0], "_whencase2", "dw"); E_u16($c.value as uint16); E_nl(); }
 gen WHENCASE4():c { Whencase(self.n[0], "_whencase4", "dl"); E_u32($c.value as uint32); E_nl(); }
 
-gen ENDCASE1() { E_callhelper("_drop1"); }
-gen ENDCASE2() { E_callhelper("_drop2"); }
-gen ENDCASE4() { E_callhelper("_drop4"); }
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4();
 
 // --- Strings --------------------------------------------------------------
 
