@@ -1,3 +1,5 @@
+# --- Interpreter -----------------------------------------------------------
+#
 &X _next
 ``:
 	ldy #0
@@ -46,6 +48,7 @@
 # Increments ip by A and jumps to next (useful for words which consume bytes
 # from the data stream).
 &X _inc_next
+``:
 	clc
 	adc ip+0
 	sta ip+0
@@ -54,41 +57,48 @@
 	sta ip+1
 	jmp `_next
 
-&X _w_push1
+&X _inc2_next
+``:
+	lda #2
+	jmp _inc_next
+
+# --- Push/pop words --------------------------------------------------------
+
+&X _push1
 ``:
 	.word $+2
 
 	ldy #0
 	lda (ip), y
-	sta (stack, x)
+	sta stack, x
 	inx
 
 	lda #1
 	jmp `_inc_next
 
-&X _w_push2
+&X _push2
 ``:
 	.word $+2
 
 	ldy #0
 	lda (ip), y
-	sta (stack, x)
-	inx
+	sta stack+0, x
 	iny
 	lda (ip), y
-	sta (stack, x)
+	sta stack+1, x
+	inx
+	inx
 
-	lda #2
-	jmp `_inc_next
+	jmp `_inc2_next
 
-&X _w_push4
+&X _push4
 ``:
 	.word $+2
 
 	ldy #0
 -
 	lda (ip), y
-	sta (stack, x)
+	sta stack, x
 	inx
 	iny
 	cpy #4
@@ -96,4 +106,385 @@
 
 	tya
 	jmp `_inc_next
+
+&X _drop1
+``:
+	.word $+2
+
+	dex
+	jmp `_next
+
+&X _drop2
+``:
+	.word $+2
+
+	dex
+	dex
+	jmp `_next
+
+&X _drop4
+``:
+	.word $+2
+
+	dex
+	dex
+	dex
+	dex
+	jmp `_next
+
+# --- Indirect loads and stores ---------------------------------------------
+
+# (value address -- ) or (address -- value).
+
+&X _load1i
+``:
+	.word $+2
+
+	lda (stack-2, x)
+	sta stack-2, x
+	dex
+
+	jmp `_next
+
+&X _load2i
+``:
+	.word $+2
+
+	lda stack, x
+	sta x+0
+	lda stack+1, x
+	sta x+1
+
+	ldy #0
+	lda (p), y
+	sta stack-2, x
+	iny
+	lda (p), y
+	sta stack-1, x
+
+	jmp `_next
+
+&X _load4i
+``:
+	.word $+2
+
+	lda stack, x
+	sta p+0
+	lda stack+1, x
+	sta p+1
+	dex
+	dex
+
+	ldy #0
+-
+	lda (p), y
+	inx
+	sta stack, x
+	iny
+	cpy #4
+	bne -
+
+	jmp `_next
+
+# --- Direct loads and stores -----------------------------------------------
+
+# These are (value -- ) or (-- value) with the address taken from the
+# instruction stream.
+
+&X _load1
+``:
+	.word $+2
+
+	ldy #0
+	lda (w), y
+	sta (stack), y
+	inx
+
+	jmp `_inc2_next
+
+&X _load2
+``:
+	.word $+2
+
+	ldy #0
+-
+	lda (w), y
+	sta (stack, x)
+	inx
+	iny
+	cpy #2
+	bne -
+
+	jmp `_inc2_next
+
+&X _load2
+``:
+	.word $+2
+
+	ldy #0
+-
+	lda (w), y
+	sta (stack, x)
+	inx
+	iny
+	cpy #4
+	bne -
+
+	jmp `_inc2_next
+
+&X _store1
+``:
+	.word $+2
+
+	lda (stack-1, x)
+	ldy #0
+	sta (w), y
+	dex
+
+	jmp `_inc2_next
+
+&X _store2
+``:
+	.word $+2
+
+	ldy #1
+-
+	lda (stack-1, x)
+	dex
+	sta (w), y
+	dey
+	bpl -
+
+	jmp `_inc2_next
+
+&X _store4
+``:
+	.word $+2
+
+	ldy #3
+-
+	lda (stack-1, x)
+	dex
+	sta (w), y
+	dey
+	bpl -
+
+	jmp `_inc2_next
+
+# --- Maths -----------------------------------------------------------------
+
+&X _add1
+``:
+	clc
+	lda (stack-2, x)
+	adc (stack-1, x)
+	sta (stack-2, x)
+	dex
+
+	jmp `_next
+
+&X _add2
+``:
+	clc
+	lda (stack-4, x)
+	adc (stack-2, x)
+	sta (stack-4, x)
+	lda (stack-3, x)
+	adc (stack-1, x)
+	sta (stack-3, x)
+	dex
+	dex
+
+	jmp `_next
+
+&X _add4
+``:
+	clc
+	lda (stack-8, x)
+	adc (stack-4, x)
+	sta (stack-8, x)
+	lda (stack-7, x)
+	adc (stack-3, x)
+	sta (stack-7, x)
+	lda (stack-6, x)
+	adc (stack-2, x)
+	sta (stack-6, x)
+	lda (stack-5, x)
+	adc (stack-1, x)
+	sta (stack-5, x)
+	dex
+	dex
+	dex
+	dex
+
+	jmp `_next
+
+&X _sub1
+``:
+	sec
+	lda (stack-2, x)
+	sbc (stack-1, x)
+	sta (stack-2, x)
+	dex
+
+	jmp `_next
+
+&X _sub2
+``:
+	sec
+	lda (stack-4, x)
+	sbc (stack-2, x)
+	sta (stack-4, x)
+	lda (stack-3, x)
+	sbc (stack-1, x)
+	sta (stack-3, x)
+	dex
+	dex
+
+	jmp `_next
+
+&X _sub4
+``:
+	sec
+	lda (stack-8, x)
+	sbc (stack-4, x)
+	sta (stack-8, x)
+	lda (stack-7, x)
+	sbc (stack-3, x)
+	sta (stack-7, x)
+	lda (stack-6, x)
+	sbc (stack-2, x)
+	sta (stack-6, x)
+	lda (stack-5, x)
+	sbc (stack-1, x)
+	sta (stack-5, x)
+	dex
+	dex
+	dex
+	dex
+
+	jmp `_next
+
+&X _neg1
+``:
+	sec
+	lda #0
+	sbc (stack-1, x)
+	sta (stack-1, x)
+
+	jmp `_next
+
+&X _neg2
+``:
+	sec
+	lda #0
+	sbc (stack-2, x)
+	sta (stack-2, x)
+	lda #0
+	sbc (stack-1, x)
+	sta (stack-1, x)
+
+	jmp `_next
+
+&X _neg4
+``:
+	sec
+	lda #0
+	sbc (stack-4, x)
+	sta (stack-4, x)
+	lda #0
+	sbc (stack-3, x)
+	sta (stack-3, x)
+	lda #0
+	sbc (stack-2, x)
+	sta (stack-2, x)
+	lda #0
+	sbc (stack-1, x)
+	sta (stack-1, x)
+
+	jmp `_next
+
+# --- Conditionals and branches ---------------------------------------------
+
+&X _jump
+``:
+	ldy #1
+	lda (w), y
+	pha
+	dey
+	lda (w), y
+	sta w+0
+	pla
+	sta w+1
+	jmp _next
+
+&X _cmp1
+``:
+	dex
+	dex
+	lda (stack+0, x)
+	cmp (stack+1, x)
+	rts
+
+&X _beq1
+``:
+	jsr `_cmp1
+	beq `_jump
+	jmp `_inc2_next
+
+&X _bne1
+``:
+	jsr `_cmp1
+	bne `_jump
+	jmp `_inc2_next
+
+&X _cmp2
+	dex
+	dex
+	dex
+	dex
+	lda (stack+0, x)
+	cmp (stack+2, x)
+	lda (stack+1, x)
+	sbc (stack+3, x)
+	rts
+
+&X _beq2
+``:
+	jsr `_cmp2
+	beq `_jump
+	jmp `_inc2_next
+
+&X _bne2
+``:
+	jsr `_cmp2
+	bne `_jump
+	jmp `_inc2_next
+
+&X _cmp4
+	txa
+	clc
+	sbc #8
+	tax
+	lda (stack+0, x)
+	cmp (stack+4, x)
+	lda (stack+1, x)
+	sbc (stack+5, x)
+	lda (stack+2, x)
+	sbc (stack+6, x)
+	lda (stack+3, x)
+	sbc (stack+7, x)
+	rts
+
+&X _beq4
+``:
+	jsr `_cmp4
+	beq `_jump
+	jmp `_inc2_next
+
+&X _bne4
+``:
+	jsr `_cmp4
+	bne `_jump
+	jmp `_inc2_next
 
