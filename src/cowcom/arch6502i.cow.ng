@@ -130,12 +130,6 @@
 		E_nl();
     end sub;
 
-	sub E_wsrefi(sym: [Symbol], off: Size) is
-		E_dw();
-		E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
-		E_nl();
-	end sub;
-
 	sub E_subrefi(subr: [Subroutine]) is
 		E_dw();
 		E_subref(subr);
@@ -195,33 +189,33 @@
 	end sub;
 
 	sub E_store1(sym: [Symbol], off: Size) is
-		E_callhelper("store1");
-		E_wsrefi(sym, off);
+		E_callhelper("store1i");
+		E_symrefi(sym, off);
 	end sub;
 
 	sub E_store2(sym: [Symbol], off: Size) is
-		E_callhelper("store2");
-		E_wsrefi(sym, off);
+		E_callhelper("store2i");
+		E_symrefi(sym, off);
 	end sub;
 
 	sub E_store4(sym: [Symbol], off: Size) is
-		E_callhelper("store4");
-		E_wsrefi(sym, off);
+		E_callhelper("store4i");
+		E_symrefi(sym, off);
 	end sub;
 
 	sub E_load1(sym: [Symbol], off: Size) is
-		E_callhelper("load1");
-		E_wsrefi(sym, off);
+		E_callhelper("load1i");
+		E_symrefi(sym, off);
 	end sub;
 
 	sub E_load2(sym: [Symbol], off: Size) is
-		E_callhelper("load2");
-		E_wsrefi(sym, off);
+		E_callhelper("load2i");
+		E_symrefi(sym, off);
 	end sub;
 
 	sub E_load4(sym: [Symbol], off: Size) is
-		E_callhelper("load4");
-		E_wsrefi(sym, off);
+		E_callhelper("load4i");
+		E_symrefi(sym, off);
 	end sub;
 %}
 
@@ -371,13 +365,13 @@ gen s1 := LOAD1(ADDRESS():a)  { E_load1($a.sym, $a.off); }
 gen s2 := LOAD2(ADDRESS():a) { E_load2($a.sym, $a.off); }
 gen s4 := LOAD4(ADDRESS():a) { E_load4($a.sym, $a.off); }
 
-gen STORE1(s1, s2) { E_callhelper("store1i"); }
+gen STORE1(s1, s2) { E_callhelper("store1"); }
 gen STORE2(s2, s2) { E_callhelper("store2"); }
 gen STORE4(s4, s2) { E_callhelper("store4"); }
 
-gen s1 := LOAD1(s2) { E_callhelper("load1i"); }
-gen s2 := LOAD2(s2) { E_callhelper("load2i"); }
-gen s4 := LOAD4(s2) { E_callhelper("load4i"); }
+gen s1 := LOAD1(s2) { E_callhelper("load1"); }
+gen s2 := LOAD2(s2) { E_callhelper("load2"); }
+gen s4 := LOAD4(s2) { E_callhelper("load4"); }
 
 // --- Maths ----------------------------------------------------------------
 
@@ -522,9 +516,9 @@ gen s2 := CAST42(s4) { E_callhelper("cast42"); }
 	end sub;
 %}
 
-gen STARTCASE1(s1) { E_callhelper("store1i"); E_dw(); E("x\n"); }
-gen STARTCASE2(s2) { E_callhelper("store2i"); E_dw(); E("x\n"); }
-gen STARTCASE4(s4) { E_callhelper("store4i"); E_dw(); E("x\n"); }
+gen STARTCASE1(s1) { E_callhelper("store1i"); E_dw(); E("x+2\n"); }
+gen STARTCASE2(s2) { E_callhelper("store2i"); E_dw(); E("x+2\n"); }
+gen STARTCASE4(s4) { E_callhelper("store4i"); E_dw(); E("x+2\n"); }
 
 gen WHENCASE1():c { Whencase(self.n[0], "whencase1", ".byte"); E_u8($c.value as uint8); E_nl(); }
 gen WHENCASE2():c { Whencase(self.n[0], "whencase2", ".word"); E_u16($c.value as uint16); E_nl(); }

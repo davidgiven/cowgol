@@ -1,5 +1,273 @@
-# --- Interpreter -----------------------------------------------------------
+# --- Conditionals and branches ---------------------------------------------
 #
+&X jump
+``:
+	ldy #1
+	lda (ip),y
+	pha
+	dey
+	lda (ip),y
+	sta ip+0
+	pla
+	sta ip+1
+	jmp `next
+
+&X cmp1
+``:
+	dex
+	dex
+	lda stack+0,x
+	cmp stack+1,x
+	rts
+
+&X beq1
+``:
+	jsr `cmp1
+	beq `jump
+	jmp `inc2_next
+
+&X bne1
+``:
+	jsr `cmp1
+	bne `jump
+	jmp `inc2_next
+
+&X bltu1
+``:
+	jsr `cmp1
+	bcc `jump
+	jmp `inc2_next
+
+&X bgeu1
+``:
+	jsr `cmp1
+	bcs `jump
+	jmp `inc2_next
+
+&X blts1
+``:
+	jsr `cmp1
+	bvc *+4
+	eor #$80
+	bmi `jump
+	jmp `inc2_next
+
+&X bges1
+``:
+	jsr `cmp1
+	bvc *+4
+	eor #$80
+	bpl `jump
+	jmp `inc2_next
+
+&X cmpe2
+``:
+	dex
+	dex
+	dex
+	dex
+	lda stack+0,x
+	cmp stack+2,x
+	bne +
+	lda stack+1,x
+	cmp stack+3,x
++
+	rts
+
+&X cmpm2
+``:
+	dex
+	dex
+	dex
+	dex
+	lda stack+0,x
+	cmp stack+2,x
+	lda stack+1,x
+	sbc stack+3,x
+	rts
+
+&X beq2
+``:
+	jsr `cmpe2
+	beq `jump
+	jmp `inc2_next
+
+&X bne2
+``:
+	jsr `cmpe2
+	bne `jump
+	jmp `inc2_next
+
+&X bltu2
+``:
+	jsr `cmpm2
+	bcc `jump
+	jmp `inc2_next
+
+&X bgeu2
+``:
+	jsr `cmpm2
+	bcs `jump
+	jmp `inc2_next
+
+&X blts2
+``:
+	jsr `cmpm2
+	bvc *+4
+	eor #$80
+	bmi `jump
+	jmp `inc2_next
+
+&X bges2
+``:
+	jsr `cmpm2
+	bvc *+4
+	eor #$80
+	bpl `jump
+	jmp `inc2_next
+
+&X cmpe4
+``:
+	txa
+	sec
+	sbc #8
+	tax
+	lda stack+0,x
+	cmp stack+4,x
+	bne +
+	lda stack+1,x
+	cmp stack+5,x
+	bne +
+	lda stack+2,x
+	cmp stack+6,x
+	bne +
+	lda stack+3,x
+	cmp stack+7,x
++
+	rts
+
+&X cmpm4
+``:
+	txa
+	sec
+	sbc #8
+	tax
+	lda stack+0,x
+	cmp stack+4,x
+	lda stack+1,x
+	sbc stack+5,x
+	lda stack+2,x
+	sbc stack+6,x
+	lda stack+3,x
+	sbc stack+7,x
+	rts
+
+&X beq4
+``:
+	jsr `cmpe4
+	beq `jump
+	jmp `inc2_next
+
+&X bne4
+``:
+	jsr `cmpe4
+	bne `jump
+	jmp `inc2_next
+
+&X bltu4
+``:
+	jsr `cmpm4
+	bcc `jump
+	jmp `inc2_next
+
+&X bgeu4
+``:
+	jsr `cmpm4
+	bcs `jump
+	jmp `inc2_next
+
+&X blts4
+``:
+	jsr `cmpm4
+	bvc *+4
+	eor #$80
+	bmi `jump
+	jmp `inc2_next
+
+&X bges4
+``:
+	jsr `cmpm4
+	bvc *+4
+	eor #$80
+	bpl `jump
+	jmp `inc2_next
+
+# --- Case ------------------------------------------------------------------
+
+# whencase compares the value in x+2 (which can be 1, 2 or 4 bytes) with a
+# value inline in the instruction stream. If it does *not* match, it jumps.
+# The instruction stream format is <address> <value>.
+
+&X falsecase
+``:
+	ldy #1
+	lda (ip),y
+	pha
+	dey
+	lda (ip),y
+	sta ip+0
+	pla
+	sta ip+1
+	jmp `next
+
+&X whencase1
+``:
+	ldy #2
+	lda x+2
+	cmp (ip),y
+	bne `falsecase
+	
+	lda #3
+	jmp `inc_next
+
+&X whencase2
+``:
+	ldy #2
+	lda x+2
+	cmp (ip),y
+	bne `falsecase
+	iny
+	lda x+3
+	cmp (ip),y
+	bne `falsecase
+	
+	lda #4
+	jmp `inc_next
+
+&X whencase4
+``:
+	ldy #2
+	lda x+2
+	cmp (ip),y
+	bne `falsecase
+	iny
+	lda x+3
+	cmp (ip),y
+	bne `falsecase
+	iny
+	lda x+4
+	cmp (ip),y
+	bne `falsecase
+	iny
+	lda x+5
+	cmp (ip),y
+	bne `falsecase
+	
+	lda #6
+	jmp `inc_next
+
+# --- Interpreter -----------------------------------------------------------
+
 &X next
 ``:
 next:
@@ -145,7 +413,7 @@ asmend:
 
 # (value address -- ) or (address -- value).
 
-&X load1i
+&X load1
 ``:
 	lda (stack-2,x)
 	sta stack-2,x
@@ -153,7 +421,7 @@ asmend:
 
 	jmp `next
 
-&X load2i
+&X load2
 ``:
 	lda stack-2,x
 	sta x+0
@@ -169,11 +437,11 @@ asmend:
 
 	jmp `next
 
-&X load4i
+&X load4
 ``:
-	lda stack,x
+	lda stack-2,x
 	sta x+0
-	lda stack+1,x
+	lda stack-1,x
 	sta x+1
 	dex
 	dex
@@ -181,15 +449,15 @@ asmend:
 	ldy #0
 -
 	lda (x),y
-	inx
 	sta stack,x
+	inx
 	iny
 	cpy #4
 	bne -
 
 	jmp `next
 
-&X store1i
+&X store1
 ``:
 	lda stack-3,x
 	sta (stack-2,x)
@@ -199,7 +467,7 @@ asmend:
 
 	jmp `next
 
-&X store2i
+&X store2
 ``:
 	lda stack-2,x
 	sta x+0
@@ -220,17 +488,19 @@ asmend:
 
 	jmp `next
 
-&X store4i
+&X store4
 ``:
 	lda stack-2,x
 	sta x+0
 	lda stack-1,x
 	sta x+1
+	dex
+	dex
 
 	ldy #3
 -
 	dex
-	lda (stack,x)
+	lda stack,x
 	sta (x),y
 	dey
 	bpl -
@@ -253,18 +523,18 @@ asmend:
 	sta x+1
 	rts
 
-&X load1
+&X load1i
 ``:
 	jsr `fetch2
 
 	ldy #0
 	lda (x), y
-	sta stack,y
+	sta stack,x
 	inx
 
 	jmp `inc2_next
 
-&X load2
+&X load2i
 ``:
 	jsr `fetch2
 	ldy #0
@@ -278,7 +548,7 @@ asmend:
 
 	jmp `inc2_next
 
-&X load4
+&X load4i
 ``:
 	jsr `fetch2
 	ldy #0
@@ -292,7 +562,7 @@ asmend:
 
 	jmp `inc2_next
 
-&X store1
+&X store1i
 ``:
 	jsr `fetch2
 	lda stack-1,x
@@ -302,7 +572,7 @@ asmend:
 
 	jmp `inc2_next
 
-&X store2
+&X store2i
 ``:
 	jsr `fetch2
 	ldy #1
@@ -315,7 +585,7 @@ asmend:
 
 	jmp `inc2_next
 
-&X store4
+&X store4i
 ``:
 	jsr `fetch2
 	ldy #3
@@ -551,16 +821,15 @@ asmend:
 
 	jmp `next
 
-&X neg1
+&X negtos1
 ``:
 	sec
 	lda #0
 	sbc stack-1,x
 	sta stack-1,x
+	rts
 
-	jmp `next
-
-&X neg2
+&X negtos2
 ``:
 	sec
 	lda #0
@@ -569,10 +838,9 @@ asmend:
 	lda #0
 	sbc stack-1,x
 	sta stack-1,x
+	rts
 
-	jmp `next
-
-&X neg4
+&X negtos4
 ``:
 	sec
 	lda #0
@@ -587,7 +855,21 @@ asmend:
 	lda #0
 	sbc stack-1,x
 	sta stack-1,x
+	rts
 
+&X neg1
+``:
+	jsr `negtos1
+	jmp `next
+
+&X neg2
+``:
+	jsr `negtos2
+	jmp `next
+
+&X neg4
+``:
+	jsr `negtos4
 	jmp `next
 
 &X not1
@@ -640,7 +922,7 @@ asmend:
 +
     ror
     ror stack-2,x
-    dex
+    dey
     bne -
     lda stack-2,x
 
@@ -656,15 +938,15 @@ asmend:
 -
 	ror x+0
 	ror
-	ror stack-4,x
 	ror stack-3,x
+	ror stack-4,x
 	bcc +
 	clc
 	adc stack-2,x
 	pha
 	lda stack-1,x
-	adc x
-	sta x
+	adc x+0
+	sta x+0
 	pla
 +
 	dey
@@ -689,25 +971,25 @@ asmend:
 	ror x+2
 	ror x+1
 	ror x+0
-	ror stack-8,x
-	ror stack-7,x
-	ror stack-6,x
 	ror stack-5,x
+	ror stack-6,x
+	ror stack-7,x
+	ror stack-8,x
 	bcc +
 
-	clc
-	lda stack-8,x
+	clc					; add rhs to high half of result
+	lda x+0
 	adc stack-4,x
-	sta stack-8,x
-	lda stack-7,x
+	sta x+0
+	lda x+1
 	adc stack-3,x
-	sta stack-7,x
-	lda stack-6,x
+	sta x+1
+	lda x+2
 	adc stack-2,x
-	sta stack-6,x
-	lda stack-5,x
+	sta x+2
+	lda x+3
 	adc stack-1,x
-	sta stack-5,x
+	sta x+3
 +
 	dey
 	bne -
@@ -768,16 +1050,17 @@ asmend:
 	lda x+0
 	sec
 	sbc stack-2,x
-	pha
+	sta x+2
 	lda x+1
 	sbc stack-1,x
 	bcc +
 
 	sta x+1
-	pla
+	lda x+2
 	sta x+0
 	inc stack-4,x
 +
+
 	dey
 	bne -
 
@@ -858,9 +1141,9 @@ asmend:
 
 &X remu4
 ``:
-	jsr `divremu2
+	jsr `divremu4
 	lda x+0
-	sta stack-3,x
+	sta stack-4,x
 	lda x+1
 	sta stack-3,x
 	lda x+2
@@ -869,175 +1152,174 @@ asmend:
 	sta stack-1,x
 	jmp `next
 
-# --- Conditionals and branches ---------------------------------------------
+# --- Signed division -------------------------------------------------------
 
-&X jump
+&X divrems1
 ``:
-	ldy #1
-	lda (ip),y
-	pha
-	dey
-	lda (ip),y
-	sta ip+0
-	pla
-	sta ip+1
+	lda stack-2,x
+	eor stack-1,x		; determine sign of result
+	php					; save result sign for later
+	lda stack-2,x
+	php					; save remainder sign for later
+
+	bpl +				; negate LHS if negative
+	lda #0
+	sec
+	sbc stack-2,x
+	sta stack-2,x
++
+	lda stack-1,x		; negate RHS is negative
+	bpl +
+	lda #0
+	sec
+	sbc stack-1,x
+	sta stack-1,x
++
+	jsr `divremu1		; actually do the division (and adjust stack)
+
+	plp					; get sign of remainder
+	bpl +				; negate remainder if necessary
+	lda #0
+	sec
+	sbc x+0
+	sta x+0
++
+	plp					; get sign of result
+	bpl +				; negate result if necessary
+	lda #0
+	sec
+	sbc stack-1,x
+	sta stack-1,x
++
+	rts
+
+&X divs1
+``:
+	jsr `divrems1
 	jmp `next
 
-&X cmp1
+&X rems1
 ``:
+	jsr `divrems1
+	lda x
+	sta stack-1,x
+	jmp `next
+
+&X divrems2
+``:
+	lda stack-3,x
+	eor stack-1,x		; determine sign of result
+	php					; save result sign for later
+	lda stack-3,x
+	php					; save remainder sign for later
+
+	bpl +				; negate LHS if negative
 	dex
 	dex
-	lda stack+0,x
-	cmp stack+1,x
-	rts
+	jsr `negtos2		; code reuse!
+	inx
+	inx
++
+	lda stack-1,x		; negate RHS if negative
+	bpl +
+	jsr `negtos2
++
+	jsr `divremu2		; actually do the division (and adjust stack)
 
-&X beq1
-``:
-	jsr `cmp1
-	beq `jump
-	jmp `inc2_next
-
-&X bne1
-``:
-	jsr `cmp1
-	bne `jump
-	jmp `inc2_next
-
-&X bltu1
-``:
-	jsr `cmp1
-	bcs `jump
-	jmp `inc2_next
-
-&X bgeu1
-``:
-	jsr `cmp1
-	bcc `jump
-	jmp `inc2_next
-
-&X blts1
-``:
-	jsr `cmp1
-	bvc *+4
-	eor #$80
-	bmi `jump
-	jmp `inc2_next
-
-&X bges1
-``:
-	jsr `cmp1
-	bvc *+4
-	eor #$80
-	bpl `jump
-	jmp `inc2_next
-
-&X cmp2
-``:
-	dex
-	dex
-	dex
-	dex
-	lda stack+0,x
-	cmp stack+2,x
-	lda stack+1,x
-	sbc stack+3,x
-	rts
-
-&X beq2
-``:
-	jsr `cmp2
-	beq `jump
-	jmp `inc2_next
-
-&X bne2
-``:
-	jsr `cmp2
-	bne `jump
-	jmp `inc2_next
-
-&X bltu2
-``:
-	jsr `cmp2
-	bcs `jump
-	jmp `inc2_next
-
-&X bgeu2
-``:
-	jsr `cmp2
-	bcc `jump
-	jmp `inc2_next
-
-&X blts2
-``:
-	jsr `cmp2
-	bvc *+4
-	eor #$80
-	bmi `jump
-	jmp `inc2_next
-
-&X bges2
-``:
-	jsr `cmp2
-	bvc *+4
-	eor #$80
-	bpl `jump
-	jmp `inc2_next
-
-&X cmp4
-``:
-	txa
+	plp					; get sign of remainder
+	bpl +				; negate remainder if necessary
 	sec
-	sbc #8
-	tax
-	lda stack+0,x
-	cmp stack+4,x
-	lda stack+1,x
-	sbc stack+5,x
-	lda stack+2,x
-	sbc stack+6,x
-	lda stack+3,x
-	sbc stack+7,x
+	lda #0
+	sbc x+0
+	sta x+0
+	lda #0
+	sbc x+1
+	sta x+1
++
+	plp					; get sign of result
+	bpl +				; negate result if necessary
+	jsr `negtos2
++
 	rts
 
-&X beq4
+&X divs2
 ``:
-	jsr `cmp4
-	beq `jump
-	jmp `inc2_next
+	jsr `divrems2
+	jmp `next
 
-&X bne4
+&X rems2
 ``:
-	jsr `cmp4
-	bne `jump
-	jmp `inc2_next
+	jsr `divrems2
+	lda x+0
+	sta stack-2,x
+	lda x+1
+	sta stack-1,x
+	jmp `next
 
-&X bltu4
+&X divrems4
 ``:
-	jsr `cmp4
-	bcs `jump
-	jmp `inc2_next
+	lda stack-5,x
+	eor stack-1,x		; determine sign of result
+	php					; save result sign for later
+	lda stack-5,x
+	php					; save remainder sign for later
 
-&X bgeu4
-``:
-	jsr `cmp4
-	bcc `jump
-	jmp `inc2_next
+	bpl +				; negate LHS if negative
+	dex
+	dex
+	dex
+	dex
+	jsr `negtos4		; code reuse!
+	inx
+	inx
+	inx
+	inx
++
+	lda stack-1,x		; negate RHS is negative
+	bpl +
+	jsr `negtos4
++
+	jsr `divremu4		; actually do the division (and adjust stack)
 
-&X blts4
-``:
-	jsr `cmp4
-	bvc *+4
-	eor #$80
-	bmi `jump
-	jmp `inc2_next
+	plp					; get sign of remainder
+	bpl +				; negate remainder if necessary
+	sec
+	lda #0
+	sbc x+0
+	sta x+0
+	lda #0
+	sbc x+1
+	sta x+1
+	lda #0
+	sbc x+2
+	sta x+2
+	lda #0
+	sbc x+3
+	sta x+3
++
+	plp					; get sign of result
+	bpl +				; negate result if necessary
+	jsr `negtos4
++
+	rts
 
-&X bges4
+&X divs4
 ``:
-	jsr `cmp4
-	bvc *+4
-	eor #$80
-	bpl `jump
-	jmp `inc2_next
+	jsr `divrems4
+	jmp `next
+
+&X rems4
+``:
+	jsr `divrems4
+	lda x+0
+	sta stack-4,x
+	lda x+1
+	sta stack-3,x
+	lda x+2
+	sta stack-2,x
+	lda x+3
+	sta stack-1,x
+	jmp `next
 
 # --- Casts -----------------------------------------------------------------
 
@@ -1137,7 +1419,7 @@ asmend:
 
 &X lshift1
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1151,7 +1433,7 @@ asmend:
 
 &X lshift2
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1167,7 +1449,7 @@ asmend:
 
 &X lshift4
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1185,7 +1467,7 @@ asmend:
 
 &X rshiftu1
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1200,7 +1482,7 @@ asmend:
 
 &X rshiftu2
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1216,7 +1498,7 @@ asmend:
 
 &X rshiftu4
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1235,7 +1517,7 @@ asmend:
 
 &X rshifts1
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1252,7 +1534,7 @@ asmend:
 
 &X rshifts2
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1270,7 +1552,7 @@ asmend:
 
 &X rshifts4
 ``:
-	lda (stack-1,x)
+	lda stack-1,x
 	tay
 	dex
 
@@ -1287,64 +1569,4 @@ asmend:
 	bpl -
 
 	jmp `next
-
-# --- Case ------------------------------------------------------------------
-
-# whencase compares the value in x (which can be 1, 2 or 4 bytes) with a
-# value inline in the instruction stream. If it does *not* match, it jumps.
-# The instruction stream format is <address> <value>.
-
-&X falsecase
-``:
-	ldy #1
-	lda (ip),y
-	pha
-	dey
-	lda (ip),y
-	sta w+0
-	pla
-	sta w+1
-	jmp `next
-
-&X whencase1
-``:
-	ldy #2
-	lda x+0
-	cmp (ip),y
-	bne `falsecase
-	
-	lda #3
-	jmp `inc_next
-
-&X whencase2
-``:
-	ldy #2
-	lda x+0
-	cmp (ip),y
-	iny
-	lda x+1
-	sbc (ip),y
-	bne `falsecase
-	
-	lda #4
-	jmp `inc_next
-
-&X whencase4
-``:
-	ldy #2
-	lda x+0
-	cmp (ip),y
-	iny
-	lda x+1
-	sbc (ip),y
-	iny
-	lda x+2
-	sbc (ip),y
-	iny
-	lda x+3
-	sbc (ip),y
-	bne `falsecase
-	
-	lda #6
-	jmp `inc_next
 

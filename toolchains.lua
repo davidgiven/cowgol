@@ -98,6 +98,7 @@ toolchain_bbcti = {
 	asmext = ".asm",
 	binext = ".bbcti",
 	tester = tubeemutest,
+	archs = { "65c02-tiny", "6502i" },
 }
 
 ALL_TOOLCHAINS = {
