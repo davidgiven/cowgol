@@ -108,8 +108,8 @@ sub IsPtr(type: [Symbol]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_POINTER);
 end sub;
 
-sub IsInterface(type: [Symbol]): (result: uint8) is
-	result := IsTypeOfKind(type, TYPE_INTERFACE);
+sub IsSubroutine(type: [Symbol]): (result: uint8) is
+	result := IsTypeOfKind(type, TYPE_SUBROUTINE);
 end sub;
 
 sub IsNum(type: [Symbol]): (result: uint8) is

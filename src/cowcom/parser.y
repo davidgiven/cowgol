@@ -378,9 +378,12 @@ conditional(R) ::= expression(T1) LEOP expression(T2).
 
 /* --- Expressions ------------------------------------------------------- */
 
+%type leafexpression {[Node]}
+leafexpression(E) ::= NUMBER(T).                           { E := MidConstant(T.number); }
+leafexpression(E) ::= OPENPAREN expression(E1) CLOSEPAREN. { E := E1; }
+
 %type expression {[Node]}
-expression(E) ::= NUMBER(T).                               { E := MidConstant(T.number); }
-expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.     { E := E1; }
+expression(E) ::= leafexpression(E1).                      { E := E1; }
 expression(E) ::= MINUS expression(E1).                    { E := Expr1Simple(MIDCODE_NEG0, E1); }
 expression(E) ::= TILDE expression(E1).                    { E := Expr1Simple(MIDCODE_NOT0, E1); }
 expression(E) ::= expression(E1) PLUS expression(E2).      { E := ExprAdd(E1, E2); }
@@ -471,7 +474,7 @@ expression(E) ::= SIZEOF varortypeid(T).
 	E := MidConstant(T.typedata.arraytype.size as Arith);
 }
 
-expression(E) ::= oldid(S).
+leafexpression(E) ::= oldid(S).
 {
 	case S.kind is
 		when CONST:
@@ -482,6 +485,10 @@ expression(E) ::= oldid(S).
 			E.type := MakePointerType(S.vardata.type);
 			E := MakeLValue(E);
 
+		when SUB:
+			E := MidSubref(S.subr);
+			E.type := MakeSubroutineType(S.subr);
+
 		when else:
 			StartError();
 			print(S.name);
@@ -490,7 +497,7 @@ expression(E) ::= oldid(S).
 	end case;
 }
 
-expression(E) ::= OPENSQ expression(E1) CLOSESQ.
+leafexpression(E) ::= OPENSQ expression(E1) CLOSESQ.
 {
 	if IsPtr(E1.type) == 0 then
 		SimpleError("cannot dereference non-pointers");
@@ -568,7 +575,7 @@ expression(E) ::= expression(E1) DOT ID(X).
 	E := MakeLValue(E);
 }
 
-expression(E) ::= STRING(S).
+leafexpression(E) ::= STRING(S).
 {
 	# consumes S
 	E := MidString(S.string);
@@ -720,7 +727,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 %include
 {
 	sub i_check_sub_call_args() is
-		var subr := current_call.subr;
+		var subr := current_call.intfsubr;
 		if current_call.num_input_args != subr.num_input_parameters then
 			StartError();
 			print("subroutine ");
@@ -734,7 +741,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 	end sub;
 
 	sub i_end_call() is
-		EmitterReferenceSubroutine(current_subr, current_call.subr);
+		EmitterReferenceSubroutine(current_subr, current_call.intfsubr);
 		var call := current_call;
 		current_call := call.parent;
 		Free(call as [uint8]);
@@ -743,7 +750,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 
 expression(E) ::= startsubcall inputargs(INA).
 {
-	var subr := current_call.subr;
+	var subr := current_call.intfsubr;
 	current_call.num_output_args := 1;
 	i_check_sub_call_args();
 	if subr.num_output_parameters != 1 then
@@ -751,7 +758,7 @@ expression(E) ::= startsubcall inputargs(INA).
 	end if;
 
 	var param := subr.first_output_parameter;
-	E := MidCalle(param.vardata.type.typedata.width as uint8, MidSubref(subr), INA, subr);
+	E := MidCalle(param.vardata.type.typedata.width as uint8, current_call.expr, INA, subr);
 	E.type := param.vardata.type;
 
 	i_end_call();
@@ -759,23 +766,23 @@ expression(E) ::= startsubcall inputargs(INA).
 
 statement ::= startsubcall inputargs(INA) SEMICOLON.
 {
-	var subr := current_call.subr;
+	var subr := current_call.intfsubr;
 	i_check_sub_call_args();
 	if subr.num_output_parameters != 0 then
 		SimpleError("subroutine requires output arguments");
 	end if;
 
-	Generate(MidCall(MidSubref(subr), INA, subr));
+	Generate(MidCall(current_call.expr, INA, subr));
 
 	i_end_call();
 }
 
 statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 {
-	var subr := current_call.subr;
+	var subr := current_call.intfsubr;
 	i_check_sub_call_args();
 
-	Generate(MidCall(MidSubref(subr), INA, subr));
+	Generate(MidCall(current_call.expr, INA, subr));
 
 	var paramindex := subr.num_output_parameters;
 	var count: uint8 := 0;
@@ -820,23 +827,26 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 	i_end_call();
 }
 
-startsubcall ::= oldid(S).
+startsubcall ::= leafexpression(E).
 {
-	if (S.kind != SUB) and (S.kind != IMPLEMENTS) then
+	if IsSubroutine(E.type) == 0 then
 		StartError();
 		print("expected ");
-		print(S.name);
+		print(E.type.name);
 		print(" to be a subroutine");
 		EndError();
 	end if;
 
 	var call := Alloc(@bytesof SubroutineCall) as [SubroutineCall];
 	call.parent := current_call;
-	call.subr := S.subr;
-	call.input_parameter := S.subr.first_input_parameter;
-	call.output_parameter := S.subr.first_output_parameter;
+	var subr := E.type.typedata.subrtype.subr;
+	call.expr := E;
+	call.intfsubr := subr;
+	call.input_parameter := subr.first_input_parameter;
+	call.output_parameter := subr.first_output_parameter;
 	current_call := call;
 }
+
 
 /* Produces a list of arguments to be passed into a CALL. The leftmost
  * argument is the *deepest*, so the top of the list is the rightmost.
@@ -867,7 +877,7 @@ inputarg(R) ::= expression(E).
 	if param == (0 as [Symbol]) then
 		StartError();
 		print("too many parameters in call to ");
-		print(current_call.subr.name);
+		print(current_call.intfsubr.name);
 		EndError();
 	end if;
 
@@ -877,8 +887,8 @@ inputarg(R) ::= expression(E).
 	CheckNotPartialType(E.type);
 	current_call.num_input_args := current_call.num_input_args + 1;
 	R := MidArg(NodeWidth(E), MidEnd(), E,
-		current_call.subr,
-		current_call.subr.num_input_parameters - current_call.num_input_args);
+		current_call.intfsubr,
+		current_call.intfsubr.num_input_parameters - current_call.num_input_args);
 }
 
 /* Output arguments get parsed before we know what subroutine they belong
@@ -936,11 +946,11 @@ statement ::= INTERFACE newsubid(S) subparams submodifiers SEMICOLON.
 	# be a type.
 
 	S.kind := TYPE;
-	S.typedata.kind := TYPE_INTERFACE;
+	S.typedata.kind := TYPE_SUBROUTINE;
 	S.typedata.width := intptr_type.typedata.width;
 	S.typedata.alignment := intptr_type.typedata.alignment;
 	S.typedata.stride := intptr_type.typedata.stride;
-	S.typedata.interfacetype.subr := preparing_subr;
+	S.typedata.subrtype.subr := preparing_subr;
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_INTERFACE;
 
 	current_subr := preparing_subr;
@@ -952,15 +962,21 @@ statement ::= INTERFACE newsubid(S) subparams submodifiers SEMICOLON.
 // Implement an interface.
 statement ::= implementsstart substart statements subend SEMICOLON.
 
-implementsstart ::= SUB newsubid(S) IMPLEMENTS typeref(T).
+implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 {
-	if IsInterface(T) == 0 then
+	sub not_an_interface is
 		SimpleError("type is not an interface");
+	end sub;
+
+	if IsSubroutine(T) == 0 then
+		not_an_interface();
 	end if;
-	S.kind := IMPLEMENTS;
-	S.implementsdata.implsubr := preparing_subr;
-	var intfsubr := T.typedata.interfacetype.subr;
-	S.implementsdata.intfsubr := intfsubr;
+	var intfsubr := T.typedata.subrtype.subr;
+	if (intfsubr.flags & SUB_IS_INTERFACE) == 0 then
+		not_an_interface();
+	end if;
+
+	preparing_subr.intfsubr := intfsubr;
 	EmitterReferenceSubroutine(current_subr, preparing_subr);
 
 	preparing_subr.first_input_parameter :=
