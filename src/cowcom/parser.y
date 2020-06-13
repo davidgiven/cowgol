@@ -942,16 +942,36 @@ statement ::= INTERFACE newsubid(S) subparams submodifiers SEMICOLON.
 	S.typedata.stride := intptr_type.typedata.stride;
 	S.typedata.interfacetype.subr := preparing_subr;
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_INTERFACE;
+
+	current_subr := preparing_subr;
+	Generate(MidStartsub(current_subr));
+	Generate(MidEndsub(current_subr));
+	current_subr := current_subr.parent;
 }
 
 // Implement an interface.
-statement ::= SUB newsubid(S) IMPLEMENTS typeref(T) substart statements subend SEMICOLON.
+statement ::= implementsstart substart statements subend SEMICOLON.
+
+implementsstart ::= SUB newsubid(S) IMPLEMENTS typeref(T).
 {
 	if IsInterface(T) == 0 then
 		SimpleError("type is not an interface");
 	end if;
 	S.kind := IMPLEMENTS;
+	S.implementsdata.implsubr := preparing_subr;
+	var intfsubr := T.typedata.interfacetype.subr;
+	S.implementsdata.intfsubr := intfsubr;
 	EmitterReferenceSubroutine(current_subr, preparing_subr);
+
+	preparing_subr.first_input_parameter :=
+			CopyParameterList(intfsubr.first_input_parameter, preparing_subr);
+	preparing_subr.num_input_parameters :=
+			CountParameters(preparing_subr.first_input_parameter);
+
+	preparing_subr.first_output_parameter :=
+			CopyParameterList(intfsubr.first_output_parameter, preparing_subr);
+	preparing_subr.num_output_parameters :=
+			CountParameters(preparing_subr.first_output_parameter);
 }
 
 submodifiers ::= .

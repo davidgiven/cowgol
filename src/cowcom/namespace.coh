@@ -167,4 +167,10 @@ sub UndoLValue(lvalue: [Node]): (address: [Node]) is
 	Discard(lvalue);
 end sub;
 
+# Copies a parameter symbol to the new subroutine. The parameter is still owned
+# by the old subroutine. (This is used for copying parameters from interfaces
+# to their implementations.)
+sub CopyParameter(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol]) is
+end sub;
+
 

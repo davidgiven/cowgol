@@ -67,9 +67,15 @@ record VarSymbol is
 	offset: Size;
 end record;
 
+record ImplementsSymbol is
+	implsubr: [Subroutine];
+	intfsubr: [Subroutine];
+end record;
+
 record Symbol is
 	typedata @at(0): TypeSymbol;
 	vardata @at(0): VarSymbol;
+	implementsdata @at(0): ImplementsSymbol;
 	constant @at(0): Arith;
 	subr @at(0): [Subroutine];
 	alias @at(0): [Symbol];

@@ -120,3 +120,25 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 	subr.namespace.last := last_parameter;
 end sub;
 
+sub CopyParameterList(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol]) is
+	newparam := 0 as [Symbol];
+	var lastparam := 0 as [Symbol];
+
+	while param != 0 as [Symbol] loop
+		var p := AddSymbol(&subr.namespace, StrDup(param.name));
+		p.kind := VAR;
+		p.vardata.type := param.vardata.type;
+		p.vardata.subr := param.vardata.subr;
+		p.vardata.offset := param.vardata.offset;
+		if lastparam != 0 as [Symbol] then
+			lastparam.vardata.next_parameter := p;
+			lastparam := p;
+		end if;
+		if newparam != 0 as [Symbol] then
+			newparam := p;
+		end if;
+
+		param := param.vardata.next_parameter;
+	end loop;
+end sub;
+
