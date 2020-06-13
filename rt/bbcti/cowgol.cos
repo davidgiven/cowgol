@@ -1765,8 +1765,8 @@ addconstant2:
 	sta stack-2,x
 	iny
 	lda (ip),y
-	adc stack-2,x
-	sta stack-2,x
+	adc stack-1,x
+	sta stack-1,x
 
 	clc
 	lda ip+0
