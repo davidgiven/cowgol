@@ -1,0 +1,1742 @@
+&X asmend
+
+# --- Main entry point ------------------------------------------------------
+
+# Starts executing bytecode following the call to this routine.
+
+``:
+asmend:
+	pla
+	tax
+	pla
+	tay
+	inx
+	bne +
+	iny
++
+	stx ip+0
+	sty ip+1
+	ldx vsp
+	jmp next
+
+# Stops executing bytecode and switches to native machine code again.
+
+asmstart:
+	stx vsp
+	jmp (ip)
+
+# --- Instruction table -----------------------------------------------------
+
+insn .segment
+op_\1 = *-instab + 1
+	.word \1
+	.endm
+
+instab:
+	insn jump
+	insn beq1
+	insn bne1
+	insn bltu1
+	insn bgeu1
+	insn blts1
+	insn bges1
+	insn beq2
+	insn bne2
+	insn bltu2
+	insn bgeu2
+	insn blts2
+	insn bges2
+	insn beq4
+	insn bne4
+	insn bltu4
+	insn bgeu4
+	insn blts4
+	insn bges4
+	insn whencase1
+	insn whencase2
+	insn whencase4
+	insn exit
+	insn asmstart
+	insn push1
+	insn push1_m1
+	insn push1_0
+	insn push1_1
+	insn push2
+	insn push2_m1
+	insn push2_0
+	insn push2_1
+	insn push4
+	insn push4_m1
+	insn push4_0
+	insn push4_1
+	insn load1
+	insn load2
+	insn load4
+	insn store1
+	insn store2
+	insn store4
+	insn load1i
+	insn load2i
+	insn load4i
+	insn store1i
+	insn store2i
+	insn store4i
+	insn add1i
+	insn add2i
+	insn add4i
+	insn sub1i
+	insn sub2i
+	insn sub4i
+	insn add1
+	insn add2
+	insn add4
+	insn sub1
+	insn sub2
+	insn sub4
+	insn or1
+	insn or2
+	insn or4
+	insn and1
+	insn and2
+	insn and4
+	insn eor1
+	insn eor2
+	insn eor4
+	insn neg1
+	insn neg2
+	insn neg4
+	insn not1
+	insn not2
+	insn not4
+	insn mul1
+	insn mul2
+	insn mul4
+	insn divu1
+	insn remu1
+	insn divu2
+	insn remu2
+	insn divu4
+	insn remu4
+	insn divs1
+	insn rems1
+	insn divs2
+	insn rems2
+	insn divs4
+	insn rems4
+	insn cast21
+	insn cast41
+	insn cast42
+	insn cast12u
+	insn cast14u
+	insn cast24u
+	insn cast12s
+	insn cast14s
+	insn cast24s
+	insn lshift1
+	insn lshift2
+	insn lshift4
+	insn rshiftu1
+	insn rshiftu2
+	insn rshiftu4
+	insn rshifts1
+	insn rshifts2
+	insn rshifts4
+	insn load1x
+	insn load2x
+	insn load4x
+	insn store1x
+	insn store2x
+	insn store4x
+
+# --- Conditionals and branches ---------------------------------------------
+
+jump:
+	ldy #1
+	lda (ip),y
+	pha
+	dey
+	lda (ip),y
+	sta ip+0
+	pla
+	sta ip+1
+	jmp next
+
+cmp1:
+	dex
+	dex
+	lda stack+0,x
+	cmp stack+1,x
+	rts
+
+beq1:
+	jsr cmp1
+	beq jump
+	jmp inc2_next
+
+bne1:
+	jsr cmp1
+	bne jump
+	jmp inc2_next
+
+bltu1:
+	jsr cmp1
+	bcc jump
+	jmp inc2_next
+
+bgeu1:
+	jsr cmp1
+	bcs jump
+	jmp inc2_next
+
+blts1:
+	jsr cmp1
+	bvc *+4
+	eor #$80
+	bmi jump
+	jmp inc2_next
+
+bges1:
+	jsr cmp1
+	bvc *+4
+	eor #$80
+	bpl jump
+	jmp inc2_next
+
+cmpe2:
+	dex
+	dex
+	dex
+	dex
+	lda stack+0,x
+	cmp stack+2,x
+	bne +
+	lda stack+1,x
+	cmp stack+3,x
++
+	rts
+
+cmpm2:
+	dex
+	dex
+	dex
+	dex
+	lda stack+0,x
+	cmp stack+2,x
+	lda stack+1,x
+	sbc stack+3,x
+	rts
+
+beq2:
+	jsr cmpe2
+	beq jump
+	jmp inc2_next
+
+bne2:
+	jsr cmpe2
+	bne jump
+	jmp inc2_next
+
+bltu2:
+	jsr cmpm2
+	bcc jump
+	jmp inc2_next
+
+bgeu2:
+	jsr cmpm2
+	bcs jump
+	jmp inc2_next
+
+blts2:
+	jsr cmpm2
+	bvc *+4
+	eor #$80
+	bmi jump
+	jmp inc2_next
+
+bges2:
+	jsr cmpm2
+	bvc *+4
+	eor #$80
+	bpl jump
+	jmp inc2_next
+
+cmpe4:
+	txa
+	sec
+	sbc #8
+	tax
+	lda stack+0,x
+	cmp stack+4,x
+	bne +
+	lda stack+1,x
+	cmp stack+5,x
+	bne +
+	lda stack+2,x
+	cmp stack+6,x
+	bne +
+	lda stack+3,x
+	cmp stack+7,x
++
+	rts
+
+cmpm4:
+	txa
+	sec
+	sbc #8
+	tax
+	lda stack+0,x
+	cmp stack+4,x
+	lda stack+1,x
+	sbc stack+5,x
+	lda stack+2,x
+	sbc stack+6,x
+	lda stack+3,x
+	sbc stack+7,x
+	rts
+
+beq4:
+	jsr cmpe4
+	beq jump
+	jmp inc2_next
+
+bne4:
+	jsr cmpe4
+	bne jump
+	jmp inc2_next
+
+bltu4:
+	jsr cmpm4
+	bcc jump
+	jmp inc2_next
+
+bgeu4:
+	jsr cmpm4
+	bcs jump
+	jmp inc2_next
+
+blts4:
+	jsr cmpm4
+	bvc *+4
+	eor #$80
+	bmi jump
+	jmp inc2_next
+
+bges4:
+	jsr cmpm4
+	bvc *+4
+	eor #$80
+	bpl jump
+	jmp inc2_next
+
+# --- Case ------------------------------------------------------------------
+
+# whencase compares the value in x+2 (which can be 1, 2 or 4 bytes) with a
+# value inline in the instruction stream. If it does *not* match, it jumps.
+# The instruction stream format is <address> <value>.
+
+falsecase:
+	ldy #1
+	lda (ip),y
+	pha
+	dey
+	lda (ip),y
+	sta ip+0
+	pla
+	sta ip+1
+	jmp next
+
+whencase1:
+	ldy #2
+	lda x+2
+	cmp (ip),y
+	bne falsecase
+	
+	lda #3
+	jmp inc_next
+
+whencase2:
+	ldy #2
+	lda x+2
+	cmp (ip),y
+	bne falsecase
+	iny
+	lda x+3
+	cmp (ip),y
+	bne falsecase
+	
+	jmp inc4_next
+
+whencase4:
+	ldy #2
+	lda x+2
+	cmp (ip),y
+	bne falsecase
+	iny
+	lda x+3
+	cmp (ip),y
+	bne falsecase
+	iny
+	lda x+4
+	cmp (ip),y
+	bne falsecase
+	iny
+	lda x+5
+	cmp (ip),y
+	bne falsecase
+	
+	lda #6
+	jmp inc_next
+
+# --- Interpreter -----------------------------------------------------------
+
+next:
+	ldy #0			; read the first byte of the instruction
+	lda (ip),y
+	inc ip+0
+	bne +
+	inc ip+1
++
+	bit #1
+	beq address		; is this a real address?
+	tay				; dispatch via bytecode table
+	lda instab-1, y
+	sta w+0
+	lda instab-0, y
+	sta w+1
+	jmp (w)
+
+address:
+	sta w+0
+
+	lda (ip),y
+	sta w+1
+	inc ip+0
+	bne +
+	inc ip+1
++
+	jmp (w)
+
+bytecode:
+
+enter:
+	lda ip+0
+	pha
+	lda ip+1
+	pha
+
+	clc
+	lda w+0
+	adc #3			; skip over the jmp instruction
+	sta ip+0
+	lda w+1
+	adc #0
+	sta ip+1
+	jmp next
+
+exit:
+	pla
+	sta ip+1
+	pla
+	sta ip+0
+	jmp next
+
+# Increments ip by A and jumps to next (useful for words which consume bytes
+# from the data stream).
+inc_next:
+	clc
+	adc ip+0
+	sta ip+0
+	lda #0
+	adc ip+1
+	sta ip+1
+	jmp next
+
+inc1_next:
+	lda #1
+	jmp inc_next
+
+inc2_next:
+	lda #2
+	jmp inc_next
+
+inc4_next:
+	lda #4
+	jmp inc_next
+
+# --- Push/pop words --------------------------------------------------------
+
+push1:
+	ldy #0
+	lda (ip),y
+	sta stack,x
+	inx
+
+	jmp inc1_next
+
+push1_m1:
+	ldy #$ff
+	jmp push_one_y_byte
+
+push1_0:
+	ldy #0
+	jmp push_one_y_byte
+
+push1_1:
+	ldy #1
+	jmp push_one_y_byte
+
+push2:
+	ldy #0
+	lda (ip),y
+	sta stack+0,x
+	iny
+	lda (ip),y
+	sta stack+1,x
+	inx
+	inx
+
+	jmp inc2_next
+
+push2_m1:
+	ldy #$ff
+	jmp push_two_y_bytes
+
+push2_0:
+	ldy #0
+	jmp push_two_y_bytes
+
+push2_1:
+	ldy #1
+	sty stack+0,x
+	inx
+	dey
+	jmp push_one_y_byte
+
+push4:
+	ldy #0
+-
+	lda (ip),y
+	sta stack,x
+	inx
+	iny
+	cpy #4
+	bne -
+
+	jmp inc4_next
+
+push4_0:
+	ldy #0
+	jmp push_four_y_bytes
+
+push4_1:
+	ldy #1
+	sty stack+0,x
+	inx
+	dey
+	jmp push_three_y_bytes
+
+push4_m1:
+	ldy #$ff
+	; fall through
+push_four_y_bytes:
+	sty stack,x
+	inx
+push_three_y_bytes:
+	sty stack,x
+	inx
+push_two_y_bytes:
+	sty stack,x
+	inx
+push_one_y_byte:
+	sty stack,x
+	inx
+	jmp next
+
+# --- Indirect loads and stores ---------------------------------------------
+
+# (value address -- ) or (address -- value).
+
+load1:
+	lda (stack-2,x)
+	sta stack-2,x
+	dex
+
+	jmp next
+
+load2:
+	lda stack-2,x
+	sta x+0
+	lda stack-1,x
+	sta x+1
+
+	ldy #0
+	lda (x),y
+	sta stack-2,x
+	iny
+	lda (x),y
+	sta stack-1,x
+
+	jmp next
+
+load4:
+	lda stack-2,x
+	sta x+0
+	lda stack-1,x
+	sta x+1
+	dex
+	dex
+
+	ldy #0
+-
+	lda (x),y
+	sta stack,x
+	inx
+	iny
+	cpy #4
+	bne -
+
+	jmp next
+
+store1:
+	lda stack-3,x
+	sta (stack-2,x)
+	dex
+	dex
+	dex
+
+	jmp next
+
+store2:
+	lda stack-2,x
+	sta x+0
+	lda stack-1,x
+	sta x+1
+
+	ldy #0
+	lda stack-4,x
+	sta (x),y
+	lda stack-3,x
+	iny
+	sta (x),y
+
+	dex
+	dex
+	dex
+	dex
+
+	jmp next
+
+store4:
+	lda stack-2,x
+	sta x+0
+	lda stack-1,x
+	sta x+1
+	dex
+	dex
+
+	ldy #3
+-
+	dex
+	lda stack,x
+	sta (x),y
+	dey
+	bpl -
+
+	jmp next
+
+# --- Direct loads and stores -----------------------------------------------
+
+# These are (value -- ) or (-- value) with the address taken from the
+# instruction stream.
+
+# Fetches two bytes from ip into x. Doesn't advance ip.
+fetch2:
+	ldy #0
+	lda (ip),y
+	sta x+0
+	iny
+	lda (ip),y
+	sta x+1
+	rts
+
+load1i:
+	jsr fetch2
+
+	ldy #0
+	lda (x), y
+	sta stack,x
+	inx
+
+	jmp inc2_next
+
+load2i:
+	jsr fetch2
+	ldy #0
+-
+	lda (x),y
+	sta stack,x
+	inx
+	iny
+	cpy #2
+	bne -
+
+	jmp inc2_next
+
+load4i:
+	jsr fetch2
+	ldy #0
+-
+	lda (x),y
+	sta stack,x
+	inx
+	iny
+	cpy #4
+	bne -
+
+	jmp inc2_next
+
+store1i:
+	jsr fetch2
+	lda stack-1,x
+	ldy #0
+	sta (x),y
+	dex
+
+	jmp inc2_next
+
+store2i:
+	jsr fetch2
+	ldy #1
+-
+	lda stack-1,x
+	dex
+	sta (x),y
+	dey
+	bpl -
+
+	jmp inc2_next
+
+store4i:
+	jsr fetch2
+	ldy #3
+-
+	lda stack-1,x
+	dex
+	sta (x),y
+	dey
+	bpl -
+
+	jmp inc2_next
+
+# --- Direct maths ----------------------------------------------------------
+
+# These operate on TOS and take the RHS from the instruction stream.
+
+add1i:
+	ldy #0
+	clc
+	lda stack-1,x
+	adc (ip),y
+	sta stack-1,x
+
+	jmp inc1_next
+
+add2i:
+	ldy #0
+	clc
+	lda stack-2,x
+	adc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	adc (ip),y
+	sta stack-1,x
+
+	jmp inc2_next
+
+add4i:
+	ldy #0
+	clc
+	lda stack-4,x
+	adc (ip),y
+	sta stack-4,x
+	iny
+	lda stack-3,x
+	adc (ip),y
+	sta stack-3,x
+	iny
+	lda stack-2,x
+	adc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	adc (ip),y
+	sta stack-1,x
+
+	jmp inc4_next
+
+sub1i:
+	ldy #0
+	sec
+	lda stack-1,x
+	sbc (ip),y
+	sta stack-1,x
+
+	jmp inc1_next
+
+sub2i:
+	ldy #0
+	sec
+	lda stack-2,x
+	sbc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	sbc (ip),y
+	sta stack-1,x
+
+	jmp inc2_next
+
+sub4i:
+	ldy #0
+	sec
+	lda stack-4,x
+	sbc (ip),y
+	sta stack-4,x
+	iny
+	lda stack-3,x
+	sbc (ip),y
+	sta stack-3,x
+	iny
+	lda stack-2,x
+	sbc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	sbc (ip),y
+	sta stack-1,x
+
+	jmp inc4_next
+
+# --- Maths -----------------------------------------------------------------
+
+add1:
+	clc
+	lda stack-2,x
+	adc stack-1,x
+	sta stack-2,x
+	dex
+
+	jmp next
+
+add2:
+	clc
+	lda stack-4,x
+	adc stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	adc stack-1,x
+	sta stack-3,x
+	dex
+	dex
+
+	jmp next
+
+add4:
+	clc
+	lda stack-8,x
+	adc stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	adc stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	adc stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	adc stack-1,x
+	sta stack-5,x
+	dex
+	dex
+	dex
+	dex
+
+	jmp next
+
+sub1:
+	sec
+	lda stack-2,x
+	sbc stack-1,x
+	sta stack-2,x
+	dex
+
+	jmp next
+
+sub2:
+	sec
+	lda stack-4,x
+	sbc stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	sbc stack-1,x
+	sta stack-3,x
+	dex
+	dex
+
+	jmp next
+
+sub4:
+	sec
+	lda stack-8,x
+	sbc stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	sbc stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	sbc stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	sbc stack-1,x
+	sta stack-5,x
+	dex
+	dex
+	dex
+	dex
+
+	jmp next
+
+or1:
+	lda stack-2,x
+	ora stack-1,x
+	sta stack-2,x
+	dex
+
+	jmp next
+
+or2:
+	lda stack-4,x
+	ora stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	ora stack-1,x
+	sta stack-3,x
+	dex
+	dex
+
+	jmp next
+
+or4:
+	lda stack-8,x
+	ora stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	ora stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	ora stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	ora stack-1,x
+	sta stack-5,x
+	dex
+	dex
+	dex
+	dex
+
+	jmp next
+
+and1:
+	lda stack-2,x
+	and stack-1,x
+	sta stack-2,x
+	dex
+
+	jmp next
+
+and2:
+	lda stack-4,x
+	and stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	and stack-1,x
+	sta stack-3,x
+	dex
+	dex
+
+	jmp next
+
+and4:
+	lda stack-8,x
+	and stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	and stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	and stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	and stack-1,x
+	sta stack-5,x
+	dex
+	dex
+	dex
+	dex
+
+	jmp next
+
+eor1:
+	lda stack-2,x
+	eor stack-1,x
+	sta stack-2,x
+	dex
+
+	jmp next
+
+eor2:
+	lda stack-4,x
+	eor stack-2,x
+	sta stack-4,x
+	lda stack-3,x
+	eor stack-1,x
+	sta stack-3,x
+	dex
+	dex
+
+	jmp next
+
+eor4:
+	lda stack-8,x
+	eor stack-4,x
+	sta stack-8,x
+	lda stack-7,x
+	eor stack-3,x
+	sta stack-7,x
+	lda stack-6,x
+	eor stack-2,x
+	sta stack-6,x
+	lda stack-5,x
+	eor stack-1,x
+	sta stack-5,x
+	dex
+	dex
+	dex
+	dex
+
+	jmp next
+
+negtos1:
+	sec
+	lda #0
+	sbc stack-1,x
+	sta stack-1,x
+	rts
+
+negtos2:
+	sec
+	lda #0
+	sbc stack-2,x
+	sta stack-2,x
+	lda #0
+	sbc stack-1,x
+	sta stack-1,x
+	rts
+
+negtos4:
+	sec
+	lda #0
+	sbc stack-4,x
+	sta stack-4,x
+	lda #0
+	sbc stack-3,x
+	sta stack-3,x
+	lda #0
+	sbc stack-2,x
+	sta stack-2,x
+	lda #0
+	sbc stack-1,x
+	sta stack-1,x
+	rts
+
+neg1:
+	jsr negtos1
+	jmp next
+
+neg2:
+	jsr negtos2
+	jmp next
+
+neg4:
+	jsr negtos4
+	jmp next
+
+not1:
+	lda stack-1,x
+	eor #$ff
+	sta stack-1,x
+
+	jmp next
+
+not2:
+	lda stack-2,x
+	eor #$ff
+	sta stack-2,x
+	lda stack-1,x
+	eor #$ff
+	sta stack-1,x
+
+	jmp next
+
+not4:
+	lda stack-4,x
+	eor #$ff
+	sta stack-4,x
+	lda stack-3,x
+	eor #$ff
+	sta stack-3,x
+	lda stack-2,x
+	eor #$ff
+	sta stack-2,x
+	lda stack-1,x
+	eor #$ff
+	sta stack-1,x
+
+	jmp next
+
+# --- Multiplication --------------------------------------------------------
+
+mul1:
+    lda #0
+    ldy #8
+	lsr stack-2,x
+-
+    bcc +
+    clc
+    adc stack-1,x
++
+    ror
+    ror stack-2,x
+    dey
+    bne -
+    lda stack-2,x
+
+	dex
+    jmp next
+	
+mul2:
+	lda #0			; low byte of high word
+	sta x+0			; high byte of high word
+	ldy #$11
+	clc
+-
+	ror x+0
+	ror
+	ror stack-3,x
+	ror stack-4,x
+	bcc +
+	clc
+	adc stack-2,x
+	pha
+	lda stack-1,x
+	adc x+0
+	sta x+0
+	pla
++
+	dey
+	bne -
+
+	dex
+	dex
+	jmp next
+
+mul4:
+	lda #0
+	sta x+0				; high word of result
+	sta x+1
+	sta x+2
+	sta x+3
+
+	clc
+	ldy #$21			; bit counter
+-
+	ror x+3
+	ror x+2
+	ror x+1
+	ror x+0
+	ror stack-5,x
+	ror stack-6,x
+	ror stack-7,x
+	ror stack-8,x
+	bcc +
+
+	clc					; add rhs to high half of result
+	lda x+0
+	adc stack-4,x
+	sta x+0
+	lda x+1
+	adc stack-3,x
+	sta x+1
+	lda x+2
+	adc stack-2,x
+	sta x+2
+	lda x+3
+	adc stack-1,x
+	sta x+3
++
+	dey
+	bne -
+
+	dex
+	dex
+	dex
+	dex
+	jmp next
+	
+# --- Division (unsigned) ---------------------------------------------------
+
+# divrem does: (lhs rhs -- result) and leaves the remainder in x.
+
+divremu1:
+    lda #0
+    ldy #8
+    asl stack-2,x
+-
+    rol
+    cmp stack-1,x
+    bcc +
+    sbc stack-1,x
++
+    rol stack-2,x
+    dey
+    bne -
+
+	sta x
+	dex
+	rts
+
+divu1:
+	jsr divremu1
+	jmp next
+
+remu1:
+	jsr divremu1
+	lda x
+	sta stack-1,x
+	jmp next
+
+divremu2:
+	lda #0
+	sta x+0
+	sta x+1
+	ldy #16
+-
+	asl stack-4,x
+	rol stack-3,x
+	rol x+0
+	rol x+1
+
+	lda x+0
+	sec
+	sbc stack-2,x
+	sta x+2
+	lda x+1
+	sbc stack-1,x
+	bcc +
+
+	sta x+1
+	lda x+2
+	sta x+0
+	inc stack-4,x
++
+
+	dey
+	bne -
+
+	dex
+	dex
+	rts
+
+divu2:
+	jsr divremu2
+	jmp next
+
+remu2:
+	jsr divremu2
+	lda x+0
+	sta stack-2,x
+	lda x+1
+	sta stack-1,x
+	jmp next
+
+divremu4:
+	lda #0
+	sta x+0
+	sta x+1
+	sta x+2
+	sta x+3
+	ldy #32
+-
+	asl stack-8,x		; left shift result
+	rol stack-7,x
+	rol stack-6,x
+	rol stack-5,x
+	rol x+0				; and remainder
+	rol x+1
+	rol x+2
+	rol x+3
+
+	lda x+0				; if remainder < lhs
+	cmp stack-4,x
+	lda x+1
+	sbc stack-3,x
+	lda x+2
+	sbc stack-2,x
+	lda x+3
+	sbc stack-1,x
+	bcc +
+	; (carry is clear here)
+
+	lda x+0				; remainder := remainder - lhs
+	sbc stack-4,x
+	sta x+0
+	lda x+1
+	sbc stack-3,x
+	sta x+1
+	lda x+2
+	sbc stack-2,x
+	sta x+2
+	lda x+3
+	sbc stack-1,x
+	sta x+3
+	inc stack-8,x
++
+	dey
+	bne -
+
+	dex
+	dex
+	dex
+	dex
+	rts
+
+divu4:
+	jsr divremu4
+	jmp next
+
+remu4:
+	jsr divremu4
+	lda x+0
+	sta stack-4,x
+	lda x+1
+	sta stack-3,x
+	lda x+2
+	sta stack-2,x
+	lda x+3
+	sta stack-1,x
+	jmp next
+
+# --- Signed division -------------------------------------------------------
+
+divrems1:
+	lda stack-2,x
+	eor stack-1,x		; determine sign of result
+	php					; save result sign for later
+	lda stack-2,x
+	php					; save remainder sign for later
+
+	bpl +				; negate LHS if negative
+	lda #0
+	sec
+	sbc stack-2,x
+	sta stack-2,x
++
+	lda stack-1,x		; negate RHS is negative
+	bpl +
+	lda #0
+	sec
+	sbc stack-1,x
+	sta stack-1,x
++
+	jsr divremu1		; actually do the division (and adjust stack)
+
+	plp					; get sign of remainder
+	bpl +				; negate remainder if necessary
+	lda #0
+	sec
+	sbc x+0
+	sta x+0
++
+	plp					; get sign of result
+	bpl +				; negate result if necessary
+	lda #0
+	sec
+	sbc stack-1,x
+	sta stack-1,x
++
+	rts
+
+divs1:
+	jsr divrems1
+	jmp next
+
+rems1:
+	jsr divrems1
+	lda x
+	sta stack-1,x
+	jmp next
+
+divrems2:
+	lda stack-3,x
+	eor stack-1,x		; determine sign of result
+	php					; save result sign for later
+	lda stack-3,x
+	php					; save remainder sign for later
+
+	bpl +				; negate LHS if negative
+	dex
+	dex
+	jsr negtos2		; code reuse!
+	inx
+	inx
++
+	lda stack-1,x		; negate RHS if negative
+	bpl +
+	jsr negtos2
++
+	jsr divremu2		; actually do the division (and adjust stack)
+
+	plp					; get sign of remainder
+	bpl +				; negate remainder if necessary
+	sec
+	lda #0
+	sbc x+0
+	sta x+0
+	lda #0
+	sbc x+1
+	sta x+1
++
+	plp					; get sign of result
+	bpl +				; negate result if necessary
+	jsr negtos2
++
+	rts
+
+divs2:
+	jsr divrems2
+	jmp next
+
+rems2:
+	jsr divrems2
+	lda x+0
+	sta stack-2,x
+	lda x+1
+	sta stack-1,x
+	jmp next
+
+divrems4:
+	lda stack-5,x
+	eor stack-1,x		; determine sign of result
+	php					; save result sign for later
+	lda stack-5,x
+	php					; save remainder sign for later
+
+	bpl +				; negate LHS if negative
+	dex
+	dex
+	dex
+	dex
+	jsr negtos4		; code reuse!
+	inx
+	inx
+	inx
+	inx
++
+	lda stack-1,x		; negate RHS is negative
+	bpl +
+	jsr negtos4
++
+	jsr divremu4		; actually do the division (and adjust stack)
+
+	plp					; get sign of remainder
+	bpl +				; negate remainder if necessary
+	sec
+	lda #0
+	sbc x+0
+	sta x+0
+	lda #0
+	sbc x+1
+	sta x+1
+	lda #0
+	sbc x+2
+	sta x+2
+	lda #0
+	sbc x+3
+	sta x+3
++
+	plp					; get sign of result
+	bpl +				; negate result if necessary
+	jsr negtos4
++
+	rts
+
+divs4:
+	jsr divrems4
+	jmp next
+
+rems4:
+	jsr divrems4
+	lda x+0
+	sta stack-4,x
+	lda x+1
+	sta stack-3,x
+	lda x+2
+	sta stack-2,x
+	lda x+3
+	sta stack-1,x
+	jmp next
+
+# --- Casts -----------------------------------------------------------------
+
+cast41:
+	dex
+cast42:
+	dex
+cast21:
+	dex
+	jmp next
+
+cast12u:
+	lda #0
+	sta stack,x
+	inx
+
+	jmp next
+
+cast14u:
+	ldy #0
+	jmp push_three_y_bytes
+
+cast24u:
+	ldy #0
+	jmp push_two_y_bytes
+
+get_sign_extension_byte:
+	lda stack-1,x
+	ora #$7f
+	bmi +
+	lda #0
++
+	tay
+	rts
+
+cast12s:
+	jsr get_sign_extension_byte
+	jmp push_one_y_byte
+
+cast14s:
+	jsr get_sign_extension_byte
+	jmp push_three_y_bytes
+
+cast24s:
+	jsr get_sign_extension_byte
+	jmp push_two_y_bytes
+
+# --- Shifts ----------------------------------------------------------------
+
+# (value shift8 -- value)
+
+lshift1:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	asl stack-1,x
++
+	dey
+	bpl -
+	jmp next
+
+lshift2:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	asl stack-2,x
+	rol stack-1,x
++
+	dey
+	bpl -
+
+	jmp next
+
+lshift4:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	asl stack-4,x
+	rol stack-3,x
+	rol stack-2,x
+	rol stack-1,x
++
+	dey
+	bpl -
+
+	jmp next
+
+rshiftu1:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	lsr stack-1,x
++
+	dey
+	bpl -
+
+	jmp next
+
+rshiftu2:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	lsr stack-1,x
+	ror stack-2,x
++
+	dey
+	bpl -
+
+	jmp next
+
+rshiftu4:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	lsr stack-1,x
+	ror stack-2,x
+	ror stack-3,x
+	ror stack-4,x
++
+	dey
+	bpl -
+
+	jmp next
+
+
+rshifts1:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	lda stack-1,x
+	rol
+	ror stack-1,x
++
+	dey
+	bpl -
+
+	jmp next
+
+rshifts2:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	lda stack-1,x
+	rol
+	ror stack-1,x
+	ror stack-2,x
++
+	dey
+	bpl -
+
+	jmp next
+
+rshifts4:
+	lda stack-1,x
+	tay
+	dex
+
+	jmp +
+-
+	lda stack-1,x
+	rol
+	ror stack-1,x
+	ror stack-2,x
+	ror stack-3,x
+	ror stack-4,x
++
+	dey
+	bpl -
+
+	jmp next
+
+# --- Indexed loads and stores ----------------------------------------------
+
+# These do (value address -- ) or (address -- value) but with an additional
+# 16-bit offset read from the instruction stream.
+
+addconstant2:
+	ldy #0
+	clc
+	lda (ip),y
+	adc stack-2,x
+	sta stack-2,x
+	iny
+	lda (ip),y
+	adc stack-1,x
+	sta stack-1,x
+
+	clc
+	lda ip+0
+	adc #2
+	sta ip+0
+	bcc +
+	inc ip+1
++
+	rts
+
+load1x:
+	jsr addconstant2
+	jmp load1
+
+load2x:
+	jsr addconstant2
+	jmp load2
+
+load4x:
+	jsr addconstant2
+	jmp load4
+
+store1x:
+	jsr addconstant2
+	jmp store1
+
+store2x:
+	jsr addconstant2
+	jmp store2
+
+store4x:
+	jsr addconstant2
+	jmp store4
+
+

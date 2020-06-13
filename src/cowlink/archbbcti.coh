@@ -24,40 +24,31 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	if (workspaceSize[1] + workspaceSize[3]) > 0xee then
-		SimpleError("ran out of zero page space");
-	end if;
-
 	E(".cpu \"65c02\"\n");
 	E("* = $400\n");
-	E("ajsr .macro\n");
-	E("\t.if (* & $ff) == $fd\n");
-	E("\tnop\n");
-	E("\t.endif\n");
-	E("\tjsr \\1\n");
-	E("\t.endm\n");
-	E("ws1 = 0\n");
-	E("ws3 = ws1 + ");
-	E_u16(workspaceSize[1]);
-	E_nl();
-	E("mos = ws3 + ");
-	E_u16(workspaceSize[3]);
-	E_nl();
+	E("ip = 0\n");
+	E("w = 2\n"); 
+	E("x = 4\n");
+	E("mos = x+6\n");
+	E("stack = mos+6\n");
 
 	E("\ttsx\n");
 	E("\tstx sp\n");
+	E("\tlda #0\n");
+	E("\tsta vsp\n");
+	E("\tjsr asmend\n");
 
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
-			E("\tjsr ");
+			E("\t.word ");
 			ArchEmitSubRef(main);
 			E_nl();
 		end if;
 		coo := coo.next;
 	end loop;
-
-	E("_exit:\n");
+	E("\t.word sys_exit\n");
+	E("sys_exit:\n");
 	E("\tldx sp\n");
 	E("\ttxs\n");
 	E("\trts\n");
@@ -65,11 +56,9 @@ end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
 	E("sp: .fill 1\n");
+	E("vsp: .fill 1\n");
 	E("ws0: .fill ");
 	E_u16(workspaceSize[0]);
-	E_nl();
-	E("ws2: .fill ");
-	E_u16(workspaceSize[2]);
 	E_nl();
 	E("LOMEM:\n");
 	E(".end\n");

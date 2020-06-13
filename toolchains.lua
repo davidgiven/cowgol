@@ -62,7 +62,7 @@ toolchain_bbct = {
 	asmext = ".asm",
 	binext = ".bbct",
 	tester = tubeemutest,
-	archs = { "65c02-tiny" }
+	archs = { "65c02-tiny", "6502i", "8080", "80386" }
 }
 
 toolchain_bbctiny = {
@@ -89,6 +89,17 @@ toolchain_bbct6502 = {
 	archs = {}
 }
 
+toolchain_bbcti = {
+	name = "bbcti",
+	compiler = "bin/cowcom-6502i.nncgen.exe",
+	linker = "bin/cowlink-bbcti.nncgen.exe",
+	assembler = buildtass64,
+	runtime = "rt/bbcti",
+	asmext = ".asm",
+	binext = ".bbcti",
+	tester = tubeemutest,
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
@@ -98,5 +109,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbct,
 	toolchain_bbctiny,
 	toolchain_bbct6502,
+	toolchain_bbcti,
 }
 

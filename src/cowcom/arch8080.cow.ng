@@ -1630,6 +1630,9 @@ gen INITS():s
 
 // --- Inline assembly ------------------------------------------------------
 
+gen ASMGROUPSTART();
+gen ASMGROUPEND();
+
 gen ASMSTART()
 {
 	R_flushall();
