@@ -351,10 +351,10 @@ gen RETURN()
 	end sub;
 %}
 
-gen CALL(param):s { Call($s.subr); }
-gen s1 := CALLE1(param):s { Call($s.subr); }
-gen s2 := CALLE2(param):s { Call($s.subr); }
-gen s4 := CALLE4(param):s { Call($s.subr); }
+gen CALL(SUBREF(), param):s { Call($s.subr); }
+gen s1 := CALLE1(SUBREF(), param):s { Call($s.subr); }
+gen s2 := CALLE2(SUBREF(), param):s { Call($s.subr); }
+gen s4 := CALLE4(SUBREF(), param):s { Call($s.subr); }
 
 gen param := END();
 
