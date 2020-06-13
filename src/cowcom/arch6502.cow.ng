@@ -997,256 +997,260 @@ gen STARTSUB()
     E(current_subr.name);
     E_nl();
 
-    E_b8(COO_ESCAPE_THISSUB);
-    E(":\n");
+    if (current_subr.flags & SUB_IS_INTERFACE) == 0 then
+        E_b8(COO_ESCAPE_THISSUB);
+        E(":\n");
 
-    var count := current_subr.num_input_parameters;
-    var lastparam := count - 1;
-    var popped: uint8 := 0;
+        var count := current_subr.num_input_parameters;
+        var lastparam := count - 1;
+        var popped: uint8 := 0;
 
-    sub PopReturnAddress() is
-        if popped == 0 then
-            $ifdef ARCH_65C02
-                E_plx();
-            $else
+        sub PopReturnAddress() is
+            if popped == 0 then
+                $ifdef ARCH_65C02
+                    E_plx();
+                $else
+                    E_pla();
+                    E_tax();
+                $endif
                 E_pla();
-                E_tax();
-            $endif
-            E_pla();
-            E_inx();
+                E_inx();
 
-            E_stx();
-            E_labelref(current_subr.arch.rts_label);
-            E_nl();
-
-            E_sta();
-            E_labelref(current_subr.arch.rts_label);
-            E_plusone();
-            E_nl();
-
-            popped := 1;
-        end if;
-    end sub;
-
-    var current_wsid: uint8 := 0xff;
-    var current_top: Size;
-    var current_bot: Size;
-
-    sub CloseLoop() is
-        if current_wsid != 0xff then
-            var count := current_top - current_bot + 1;
-
-            if count == 2 then
-                E_pla();
-
-                E_sta();
-                E_wsref(current_subr.id, current_wsid, current_bot+1);
+                E_stx();
+                E_labelref(current_subr.arch.rts_label);
                 E_nl();
 
-                count := 1;
-            end if;
-            if count == 1 then
-                E_pla();
-
                 E_sta();
-                E_wsref(current_subr.id, current_wsid, current_bot);
+                E_labelref(current_subr.arch.rts_label);
+                E_plusone();
                 E_nl();
+
+                popped := 1;
             end if;
-            if count > 2 then
-                E_loadconst(REG_Y, (count as uint8)-1);
-                var lid := E_new_label();
-                E_pla();
-                
-                E_sta();
-                E_wsref(current_subr.id, current_wsid, current_bot);
-                E_y_nl();
+        end sub;
 
-                E_dey();
-                E_bpl(lid);
+        var current_wsid: uint8 := 0xff;
+        var current_top: Size;
+        var current_bot: Size;
+
+        sub CloseLoop() is
+            if current_wsid != 0xff then
+                var count := current_top - current_bot + 1;
+
+                if count == 2 then
+                    E_pla();
+
+                    E_sta();
+                    E_wsref(current_subr.id, current_wsid, current_bot+1);
+                    E_nl();
+
+                    count := 1;
+                end if;
+                if count == 1 then
+                    E_pla();
+
+                    E_sta();
+                    E_wsref(current_subr.id, current_wsid, current_bot);
+                    E_nl();
+                end if;
+                if count > 2 then
+                    E_loadconst(REG_Y, (count as uint8)-1);
+                    var lid := E_new_label();
+                    E_pla();
+                    
+                    E_sta();
+                    E_wsref(current_subr.id, current_wsid, current_bot);
+                    E_y_nl();
+
+                    E_dey();
+                    E_bpl(lid);
+                end if;
             end if;
-        end if;
-        current_wsid := 0xff;
-    end sub;
+            current_wsid := 0xff;
+        end sub;
 
-    var param: [Symbol];
-    sub Pull() is
-        var wsid := GetWsId(param);
-        var w := param.vardata.type.typedata.width;
-        if (wsid != current_wsid)
-                or (param.vardata.offset != (current_bot-w)) then
-            CloseLoop();
-            current_wsid := wsid;
-            current_top := param.vardata.offset + w - 1;
-        end if;
-        current_bot := param.vardata.offset;
-    end sub;
+        var param: [Symbol];
+        sub Pull() is
+            var wsid := GetWsId(param);
+            var w := param.vardata.type.typedata.width;
+            if (wsid != current_wsid)
+                    or (param.vardata.offset != (current_bot-w)) then
+                CloseLoop();
+                current_wsid := wsid;
+                current_top := param.vardata.offset + w - 1;
+            end if;
+            current_bot := param.vardata.offset;
+        end sub;
 
-    while count != 0 loop
-        count := count - 1;
-        param := GetInputParameter(current_subr, count);
+        while count != 0 loop
+            count := count - 1;
+            param := GetInputParameter(current_subr, count);
 
-        case param.vardata.type.typedata.width is
-            when 1:
-                if count != lastparam then
+            case param.vardata.type.typedata.width is
+                when 1:
+                    if count != lastparam then
+                        PopReturnAddress();
+                        Pull();
+                    else
+                        E_sta();
+                        E_symref(param, 0);
+                        E_nl();
+                        RegCacheLeavesValue(REG_A, param, 0);
+                    end if;
+
+                when 2:
+                    if count != lastparam then
+                        PopReturnAddress();
+                        Pull();
+                    else
+                        E_sta();
+                        E_symref(param, 0);
+                        E_nl();
+
+                        E_stx();
+                        E_symref(param, 1);
+                        E_nl();
+
+                        RegCacheLeavesValue(REG_XA, param, 0);
+                    end if;
+
+                when 4:
+                    # WARNING: little endian on stack!
                     PopReturnAddress();
                     Pull();
-                else
-                    E_sta();
-                    E_symref(param, 0);
-                    E_nl();
-                    RegCacheLeavesValue(REG_A, param, 0);
-                end if;
+            end case;
+        end loop;
+        CloseLoop();
 
-            when 2:
-                if count != lastparam then
-                    PopReturnAddress();
-                    Pull();
-                else
-                    E_sta();
-                    E_symref(param, 0);
-                    E_nl();
-
-                    E_stx();
-                    E_symref(param, 1);
-                    E_nl();
-
-                    RegCacheLeavesValue(REG_XA, param, 0);
-                end if;
-
-            when 4:
-                # WARNING: little endian on stack!
-                PopReturnAddress();
-                Pull();
-        end case;
-    end loop;
-    CloseLoop();
-
-    if IsSimpleSub(current_subr) == 0 then
-        PopReturnAddress();
+        if IsSimpleSub(current_subr) == 0 then
+            PopReturnAddress();
+        end if;
     end if;
 }
 
 gen ENDSUB()
 {
-    if current_subr.arch.seen_return != 0 then
-        E_label(current_subr.arch.end_label);
-    end if;
-
-    var current_wsid: uint8 := 0xff;
-    var current_top: Size;
-    var current_bot: Size;
-
-    sub CloseLoop() is
-        if current_wsid != 0xff then
-            var count := current_top - current_bot + 1;
-
-            if count <= 2 then
-                E_lda();
-                E_wsref(current_subr.id, current_wsid, current_bot);
-                E_nl();
-
-                E_pha();
-            end if;
-            if count == 2 then
-                E_lda();
-                E_wsref(current_subr.id, current_wsid, current_bot+1);
-                E_nl();
-
-                E_pha();
-            end if;
-            if count > 2 then
-                E_loadconst(REG_Y, 256-(count as uint8));
-                var lid := E_new_label();
-                E_lda();
-                E_wsref(current_subr.id, current_wsid, current_bot - (256 - count));
-                E_y_nl();
-                
-                E_pha();
-
-                E_iny();
-                E_bne(lid);
-            end if;
+    if (current_subr.flags & SUB_IS_INTERFACE) == 0 then
+        if current_subr.arch.seen_return != 0 then
+            E_label(current_subr.arch.end_label);
         end if;
-        current_wsid := 0xff;
-    end sub;
 
-    var param: [Symbol];
-    sub Push() is
-        var wsid := GetWsId(param);
-        var w := param.vardata.type.typedata.width as uint8;
-        if (wsid != current_wsid)
-                or (param.vardata.offset != (current_top+1)) then
-            CloseLoop();
-            current_wsid := wsid;
-            current_bot := param.vardata.offset;
+        var current_wsid: uint8 := 0xff;
+        var current_top: Size;
+        var current_bot: Size;
+
+        sub CloseLoop() is
+            if current_wsid != 0xff then
+                var count := current_top - current_bot + 1;
+
+                if count <= 2 then
+                    E_lda();
+                    E_wsref(current_subr.id, current_wsid, current_bot);
+                    E_nl();
+
+                    E_pha();
+                end if;
+                if count == 2 then
+                    E_lda();
+                    E_wsref(current_subr.id, current_wsid, current_bot+1);
+                    E_nl();
+
+                    E_pha();
+                end if;
+                if count > 2 then
+                    E_loadconst(REG_Y, 256-(count as uint8));
+                    var lid := E_new_label();
+                    E_lda();
+                    E_wsref(current_subr.id, current_wsid, current_bot - (256 - count));
+                    E_y_nl();
+                    
+                    E_pha();
+
+                    E_iny();
+                    E_bne(lid);
+                end if;
+            end if;
+            current_wsid := 0xff;
+        end sub;
+
+        var param: [Symbol];
+        sub Push() is
+            var wsid := GetWsId(param);
+            var w := param.vardata.type.typedata.width as uint8;
+            if (wsid != current_wsid)
+                    or (param.vardata.offset != (current_top+1)) then
+                CloseLoop();
+                current_wsid := wsid;
+                current_bot := param.vardata.offset;
+            end if;
+            current_top := param.vardata.offset + (w as Size) - 1;
+        end sub;
+
+        var i: uint8 := 0;
+        var count := current_subr.num_output_parameters;
+        while i != count loop
+            param := GetOutputParameter(current_subr, i);
+
+            var cache: RegId;
+            case param.vardata.type.typedata.width is
+                when 1:
+                    if i == (count - 1) then
+                        CloseLoop();
+
+                        cache := RegCacheFindValue(param, 0) & REG_A;
+                        if cache == 0 then
+                            E_lda();
+                            E_symref(param, 0);
+                            E_nl();
+                        end if;
+                    else
+                        Push();
+                    end if;
+
+                when 2:
+                    if i == (count - 1) then
+                        CloseLoop();
+
+                        cache := RegCacheFindValue(param, 0) & REG_XA;
+                        if cache == 0 then
+                            E_lda();
+                            E_symref(param, 0);
+                            E_nl();
+
+                            E_ldx();
+                            E_symref(param, 1);
+                            E_nl();
+                        end if;
+                    else
+                        Push();
+                    end if;
+
+                when 4:
+                    Push();
+            end case;
+            i := i + 1;
+        end loop;
+        CloseLoop();
+
+        if IsSimpleSub(current_subr) != 0 then
+            E_rts();
+        else
+            E_labelref(current_subr.arch.rts_label);
+            E("=*+1\n");
+            E("\tjmp $ffff\n");
         end if;
-        current_top := param.vardata.offset + (w as Size) - 1;
-    end sub;
 
-    var i: uint8 := 0;
-    var count := current_subr.num_output_parameters;
-    while i != count loop
-        param := GetOutputParameter(current_subr, i);
+        while constants != (0 as [Constant]) loop
+            var c := constants;
+            constants := constants.next;
 
-        var cache: RegId;
-        case param.vardata.type.typedata.width is
-            when 1:
-                if i == (count - 1) then
-                    CloseLoop();
-
-                    cache := RegCacheFindValue(param, 0) & REG_A;
-                    if cache == 0 then
-                        E_lda();
-                        E_symref(param, 0);
-                        E_nl();
-                    end if;
-                else
-                    Push();
-                end if;
-
-            when 2:
-                if i == (count - 1) then
-                    CloseLoop();
-
-                    cache := RegCacheFindValue(param, 0) & REG_XA;
-                    if cache == 0 then
-                        E_lda();
-                        E_symref(param, 0);
-                        E_nl();
-
-                        E_ldx();
-                        E_symref(param, 1);
-                        E_nl();
-                    end if;
-                else
-                    Push();
-                end if;
-
-            when 4:
-                Push();
-        end case;
-        i := i + 1;
-    end loop;
-    CloseLoop();
-
-    if IsSimpleSub(current_subr) != 0 then
-        E_rts();
-    else
-        E_labelref(current_subr.arch.rts_label);
-        E("=*+1\n");
-        E("\tjmp $ffff\n");
+            E_label(c.lid);
+            E("\t.dword ");
+            E_u32(c.value as uint32);
+            E_nl();
+            Free(c as [uint8]);
+        end loop;
     end if;
-
-    while constants != (0 as [Constant]) loop
-        var c := constants;
-        constants := constants.next;
-
-        E_label(c.lid);
-        E("\t.dword ");
-        E_u32(c.value as uint32);
-        E_nl();
-        Free(c as [uint8]);
-    end loop;
 
     EmitterPopChunk('S');
 
@@ -1282,10 +1286,10 @@ gen RETURN()
     end sub;
 %}
 
-gen CALL(SUBREF(), param):s uses x|y|a          { E_call($s.subr); }
-gen a := CALLE1(SUBREF(), param):s uses x|y     { E_call($s.subr); }
-gen xa := CALLE2(SUBREF(), param):s uses y      { E_call($s.subr); }
-gen v32 := CALLE4(SUBREF(), param):s uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
+gen CALL(SUBREF():s, param) uses x|y|a          { E_call($s.subr); }
+gen a := CALLE1(SUBREF():s, param) uses x|y     { E_call($s.subr); }
+gen xa := CALLE2(SUBREF():s, param) uses y      { E_call($s.subr); }
+gen v32 := CALLE4(SUBREF():s, param) uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
 
 gen param := END();
 
@@ -1336,6 +1340,20 @@ gen xa := POPARG2(remaining!=0) { E_plxa(); }
 
 gen v32 := POPARG4()        uses x|y|a { PopArg4(PushV32()); }
 gen STORE4(POPARG4(), ptrs) uses x|y|a { PopArg4(PopAndDerefOp()); }
+
+gen xa := SUBREF():s
+{
+    E_lda();
+    E_constlo();
+    E_subref($s.subr);
+    E_nl();
+
+    E_ldx();
+    E_consthi();
+    E_subref($s.subr);
+    E_nl();
+
+}
 
 // --- 8-bit -----------------------------------------------------------------
 

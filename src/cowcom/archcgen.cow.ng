@@ -463,6 +463,17 @@ gen v8 := ADDRESS():a
 	E(");\n");
 }
 
+gen v8 := SUBREF():s
+{
+	var vid := Push();
+
+	E("\ti8 v");
+	E_u16(vid);
+	E(" = (i8)(intptr_t)(");
+	E_subref($s.subr);
+	E(");\n");
+}
+
 // --- Loads and stores -----------------------------------------------------
 
 %{

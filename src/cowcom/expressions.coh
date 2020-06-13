@@ -22,7 +22,7 @@ sub CheckExpressionType(node: [Node], type: [Symbol]) is
 		EndError();
 	end if;
 
-	if (IsPtr(type) == 0) and (IsNum(type) == 0) then
+	if IsScalar(type) == 0 then
 		StartError();
 		print(type.name);
 		print(" cannot be used here");

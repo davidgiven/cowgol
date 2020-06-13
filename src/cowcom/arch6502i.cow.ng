@@ -378,6 +378,12 @@ gen s2 := ADDRESS():a
 	E_symrefi($a.sym, $a.off);
 }
 
+gen s2 := SUBREF():s
+{
+	E_callhelper("push2");
+	E_subrefi($s.subr);
+}
+
 // --- Loads and stores -----------------------------------------------------
 
 gen STORE1(s1, ADDRESS():a)  { E_store1($a.sym, $a.off); }

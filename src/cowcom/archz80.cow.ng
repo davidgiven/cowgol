@@ -1000,6 +1000,16 @@ gen r16 := ADDRESS():a
 	E_lxia($$, $a.sym, $a.off);
 }
 
+gen r16 := SUBREF():s
+{
+	R_flush($$);
+	E("\tld ");
+	E_reg($$);
+	E_comma();
+	E_subref($s.subr);
+	E_nl();
+}
+
 gen r32 := CONSTANT():c
 {
 	var cache := RegCacheFindConstant($c.value as uint32);

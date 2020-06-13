@@ -750,15 +750,15 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 
 expression(E) ::= startsubcall inputargs(INA).
 {
-	var subr := current_call.intfsubr;
+	var intfsubr := current_call.intfsubr;
 	current_call.num_output_args := 1;
 	i_check_sub_call_args();
-	if subr.num_output_parameters != 1 then
+	if intfsubr.num_output_parameters != 1 then
 		SimpleError("subroutines called as functions must have exactly one output parameter");
 	end if;
 
-	var param := subr.first_output_parameter;
-	E := MidCalle(param.vardata.type.typedata.width as uint8, current_call.expr, INA, subr);
+	var param := intfsubr.first_output_parameter;
+	E := MidCalle(param.vardata.type.typedata.width as uint8, current_call.expr, INA, intfsubr);
 	E.type := param.vardata.type;
 
 	i_end_call();
@@ -766,25 +766,25 @@ expression(E) ::= startsubcall inputargs(INA).
 
 statement ::= startsubcall inputargs(INA) SEMICOLON.
 {
-	var subr := current_call.intfsubr;
+	var intfsubr := current_call.intfsubr;
 	i_check_sub_call_args();
-	if subr.num_output_parameters != 0 then
+	if intfsubr.num_output_parameters != 0 then
 		SimpleError("subroutine requires output arguments");
 	end if;
 
-	Generate(MidCall(current_call.expr, INA, subr));
+	Generate(MidCall(current_call.expr, INA, intfsubr));
 
 	i_end_call();
 }
 
 statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 {
-	var subr := current_call.intfsubr;
+	var intfsubr := current_call.intfsubr;
 	i_check_sub_call_args();
 
-	Generate(MidCall(current_call.expr, INA, subr));
+	Generate(MidCall(current_call.expr, INA, intfsubr));
 
-	var paramindex := subr.num_output_parameters;
+	var paramindex := intfsubr.num_output_parameters;
 	var count: uint8 := 0;
 	var node := OUTA;
 	while node != (0 as [Node]) loop
@@ -793,7 +793,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		end if;
 
 		paramindex := paramindex - 1;
-		var param := GetOutputParameter(subr, paramindex);
+		var param := GetOutputParameter(intfsubr, paramindex);
 
 		var arg := node.left;
 		node.left := (0 as [Node]);
@@ -810,7 +810,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		var w := param.vardata.type.typedata.width as uint8;
 		Generate(
 			MidStore(w,
-				MidPoparg(w, subr, count),
+				MidPoparg(w, intfsubr, count),
 				arg
 			)
 		);
@@ -820,7 +820,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 	end loop;
 	Discard(OUTA);
 
-	if count != subr.num_output_parameters then
+	if count != intfsubr.num_output_parameters then
 		SimpleError("too few output arguments");
 	end if;
 
@@ -977,7 +977,9 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	end if;
 
 	preparing_subr.intfsubr := intfsubr;
-	EmitterReferenceSubroutine(current_subr, preparing_subr);
+	preparing_subr.type := T;
+	EmitterReferenceSubroutine(current_subr, intfsubr);
+	EmitterReferenceSubroutine(intfsubr, preparing_subr);
 
 	preparing_subr.first_input_parameter :=
 			CopyParameterList(intfsubr.first_input_parameter, preparing_subr);

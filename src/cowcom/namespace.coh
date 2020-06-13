@@ -131,7 +131,7 @@ sub IsSNum(type: [Symbol]): (result: uint8) is
 end sub;
 
 sub IsScalar(type: [Symbol]): (result: uint8) is
-	if (IsPtr(type) != 0) or (IsNum(type) != 0) then
+	if (IsPtr(type) != 0) or (IsNum(type) != 0) or (IsSubroutine(type) != 0) then
 		result := 1;
 	else
 		result := 0;

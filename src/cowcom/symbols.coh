@@ -59,6 +59,7 @@ sub MakeSubroutineType(subr: [Subroutine]): (type: [Symbol]) is
 		type.typedata.alignment := intptr_type.typedata.alignment;
 		type.typedata.stride := intptr_type.typedata.stride;
 		type.typedata.subrtype.subr := subr;
+		subr.type := type;
 	end if;
 end sub;
 
@@ -146,9 +147,9 @@ sub CopyParameterList(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol])
 		p.vardata.offset := param.vardata.offset;
 		if lastparam != 0 as [Symbol] then
 			lastparam.vardata.next_parameter := p;
-			lastparam := p;
 		end if;
-		if newparam != 0 as [Symbol] then
+		lastparam := p;
+		if newparam == 0 as [Symbol] then
 			newparam := p;
 		end if;
 

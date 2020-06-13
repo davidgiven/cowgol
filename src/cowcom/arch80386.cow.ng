@@ -852,6 +852,16 @@ gen r32 := ADDRESS():a
 	E_loadaddr($$, $a.sym, $a.off);
 }
 
+gen r32 := SUBREF():s
+{
+	R_flush($$);
+	E("\tlea ");
+	E_subref($s.subr);
+	E_comma();
+	E_reg($$);
+	E_nl();
+}
+
 // --- Loads ---------------------------------------------------------------
 
 gen r8 := LOAD1(r32:rhs)     { E_loadix($$, $rhs, 0, 0); }
