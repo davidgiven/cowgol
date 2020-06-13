@@ -168,24 +168,45 @@
     end sub;
 
 	sub E_push1(value: uint8) is
-		E_callhelper("push1");
-		E_db();
-		E_u8(value);
-		E_nl();
+		case value is
+			when 0:    E_callhelper("push1_0");
+			when 1:    E_callhelper("push1_1");
+			when 0xff: E_callhelper("push1_m1");
+
+			when else:
+				E_callhelper("push1");
+				E_db();
+				E_u8(value);
+				E_nl();
+		end case;
 	end sub;
 
 	sub E_push2(value: uint16) is
-		E_callhelper("push2");
-		E_dw();
-		E_u16(value);
-		E_nl();
+		case value is
+			when 0:      E_callhelper("push2_0");
+			when 1:      E_callhelper("push2_1");
+			when 0xffff: E_callhelper("push2_m1");
+
+			when else:
+				E_callhelper("push2");
+				E_dw();
+				E_u16(value);
+				E_nl();
+		end case;
 	end sub;
 
 	sub E_push4(value: uint32) is
-		E_callhelper("push4");
-		E_dl();
-		E_u32(value);
-		E_nl();
+		case value is
+			when 0:  E_callhelper("push4_0");
+			when 1:  E_callhelper("push4_1");
+			when -1: E_callhelper("push4_m1");
+
+			when else:
+				E_callhelper("push4");
+				E_dl();
+				E_u32(value);
+				E_nl();
+		end case;
 	end sub;
 
 	sub E_store1(sym: [Symbol], off: Size) is
@@ -345,7 +366,7 @@ gen s4 := POPARG4();
 
 // --- Constants and things -------------------------------------------------
 
-gen s1 := CONSTANT():c  { E_push1($c.value as uint8); }
+gen s1 := CONSTANT():c { E_push1($c.value as uint8); }
 gen s2 := CONSTANT():c { E_push2($c.value as uint16); }
 gen s4 := CONSTANT():c { E_push4($c.value as uint32); }
 
@@ -369,11 +390,23 @@ gen STORE1(s1, s2) { E_callhelper("store1"); }
 gen STORE2(s2, s2) { E_callhelper("store2"); }
 gen STORE4(s4, s2) { E_callhelper("store4"); }
 
+gen STORE1(s1, ADD2(s2, CONSTANT():c)) { E_callhelper("store1x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen STORE2(s2, ADD2(s2, CONSTANT():c)) { E_callhelper("store2x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen STORE4(s4, ADD2(s2, CONSTANT():c)) { E_callhelper("store4x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+
 gen s1 := LOAD1(s2) { E_callhelper("load1"); }
 gen s2 := LOAD2(s2) { E_callhelper("load2"); }
 gen s4 := LOAD4(s2) { E_callhelper("load4"); }
 
+gen s1 := LOAD1(ADD2(s2, CONSTANT():c)) { E_callhelper("load1x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen s2 := LOAD2(ADD2(s2, CONSTANT():c)) { E_callhelper("load2x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen s4 := LOAD4(ADD2(s2, CONSTANT():c)) { E_callhelper("load4x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+
 // --- Maths ----------------------------------------------------------------
+
+gen s1 := ADD1(s1, CONSTANT():c) { E_callhelper("add1i"); E_db(); E_u8($c.value as uint8); E_nl();}
+gen s2 := ADD2(s2, CONSTANT():c) { E_callhelper("add2i"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen s4 := ADD4(s4, CONSTANT():c) { E_callhelper("add4i"); E_dl(); E_u32($c.value as uint32); E_nl(); }
 
 gen s1 := ADD1(s1, s1) { E_callhelper("add1"); }
 gen s2 := ADD2(s2, s2) { E_callhelper("add2"); }
@@ -382,6 +415,10 @@ gen s4 := ADD4(s4, s4) { E_callhelper("add4"); }
 gen s1 := SUB1(s1, s1) { E_callhelper("sub1"); }
 gen s2 := SUB2(s2, s2) { E_callhelper("sub2"); }
 gen s4 := SUB4(s4, s4) { E_callhelper("sub4"); }
+
+gen s1 := SUB1(s1, CONSTANT():c) { E_callhelper("sub1i"); E_db(); E_u8($c.value as uint8); E_nl();}
+gen s2 := SUB2(s2, CONSTANT():c) { E_callhelper("sub2i"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen s4 := SUB4(s4, CONSTANT():c) { E_callhelper("sub4i"); E_dl(); E_u32($c.value as uint32); E_nl(); }
 
 gen s1 := MUL1(s1, s1) { E_callhelper("mul1"); }
 gen s2 := MUL2(s2, s2) { E_callhelper("mul2"); }

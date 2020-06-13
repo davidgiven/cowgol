@@ -241,8 +241,7 @@
 	cmp (ip),y
 	bne `falsecase
 	
-	lda #4
-	jmp `inc_next
+	jmp `inc4_next
 
 &X whencase4
 ``:
@@ -346,9 +345,19 @@ asmend:
 	sta ip+1
 	jmp `next
 
+&X inc1_next
+``:
+	lda #1
+	jmp `inc_next
+
 &X inc2_next
 ``:
 	lda #2
+	jmp `inc_next
+
+&X inc4_next
+``:
+	lda #4
 	jmp `inc_next
 
 # --- Push/pop words --------------------------------------------------------
@@ -360,8 +369,28 @@ asmend:
 	sta stack,x
 	inx
 
+	jmp `inc1_next
+
+&X push1_m1
+``:
+	lda #$ff
+	sta stack,x
+	inx
+	jmp `next
+
+&X push1_0
+``:
+	lda #0
+	sta stack,x
+	inx
+	jmp `next
+
+&X push1_1
+``:
 	lda #1
-	jmp `inc_next
+	sta stack,x
+	inx
+	jmp `next
 
 &X push2
 ``:
@@ -376,6 +405,34 @@ asmend:
 
 	jmp `inc2_next
 
+&X push2_m1
+``:
+	lda #$ff
+	sta stack+0,x
+	sta stack+1,x
+	inx
+	inx
+	jmp `next
+
+&X push2_0
+``:
+	lda #0
+	sta stack+0,x
+	sta stack+1,x
+	inx
+	inx
+	jmp `next
+
+&X push2_1
+``:
+	ldy #1
+	sty stack+0,x
+	dey
+	sty stack+1,x
+	inx
+	inx
+	jmp `next
+
 &X push4
 ``:
 	ldy #0
@@ -387,8 +444,47 @@ asmend:
 	cpy #4
 	bne -
 
-	tya
-	jmp `inc_next
+	jmp `inc4_next
+
+&X push4_m1
+``:
+	lda #$ff
+	sta stack+0,x
+	sta stack+1,x
+	sta stack+2,x
+	sta stack+3,x
+	inx
+	inx
+	inx
+	inx
+	jmp `next
+
+&X push4_0
+``:
+	lda #0
+	sta stack+0,x
+	sta stack+1,x
+	sta stack+2,x
+	sta stack+3,x
+	inx
+	inx
+	inx
+	inx
+	jmp `next
+
+&X push4_1
+``:
+	ldy #1
+	sty stack+0,x
+	dey
+	sty stack+1,x
+	sty stack+2,x
+	sty stack+3,x
+	inx
+	inx
+	inx
+	inx
+	jmp `next
 
 &X drop1
 ``:
@@ -597,6 +693,102 @@ asmend:
 	bpl -
 
 	jmp `inc2_next
+
+# --- Direct maths ----------------------------------------------------------
+
+# These operate on TOS and take the RHS from the instruction stream.
+
+&X add1i
+``:
+	ldy #0
+	clc
+	lda stack-1,x
+	adc (ip),y
+	sta stack-1,x
+
+	jmp `inc1_next
+
+&X add2i
+``:
+	ldy #0
+	clc
+	lda stack-2,x
+	adc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	adc (ip),y
+	sta stack-1,x
+
+	jmp `inc2_next
+
+&X add4i
+``:
+	ldy #0
+	clc
+	lda stack-4,x
+	adc (ip),y
+	sta stack-4,x
+	iny
+	lda stack-3,x
+	adc (ip),y
+	sta stack-3,x
+	iny
+	lda stack-2,x
+	adc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	adc (ip),y
+	sta stack-1,x
+
+	jmp `inc4_next
+
+&X sub1i
+``:
+	ldy #0
+	sec
+	lda stack-1,x
+	sbc (ip),y
+	sta stack-1,x
+
+	jmp `inc1_next
+
+&X sub2i
+``:
+	ldy #0
+	sec
+	lda stack-2,x
+	sbc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	sbc (ip),y
+	sta stack-1,x
+
+	jmp `inc2_next
+
+&X sub4i
+``:
+	ldy #0
+	sec
+	lda stack-4,x
+	sbc (ip),y
+	sta stack-4,x
+	iny
+	lda stack-3,x
+	sbc (ip),y
+	sta stack-3,x
+	iny
+	lda stack-2,x
+	sbc (ip),y
+	sta stack-2,x
+	iny
+	lda stack-1,x
+	sbc (ip),y
+	sta stack-1,x
+
+	jmp `inc4_next
 
 # --- Maths -----------------------------------------------------------------
 
@@ -1344,7 +1536,7 @@ asmend:
 &X cast12u
 ``:
 	lda #0
-	sta (stack,x)
+	sta stack,x
 	inx
 
 	jmp `next
@@ -1569,4 +1761,61 @@ asmend:
 	bpl -
 
 	jmp `next
+
+# --- Indexed loads and stores ----------------------------------------------
+
+# These do (value address -- ) or (address -- value) but with an additional
+# 16-bit offset read from the instruction stream.
+
+&X addconstant2
+``:
+	ldy #0
+	clc
+	lda (ip),y
+	adc stack-2,x
+	sta stack-2,x
+	iny
+	lda (ip),y
+	adc stack-2,x
+	sta stack-2,x
+
+	clc
+	lda ip+0
+	adc #2
+	sta ip+0
+	bcc +
+	inc ip+1
++
+	rts
+
+&X load1x
+``:
+	jsr `addconstant2
+	jmp `load1
+
+&X load2x
+``:
+	jsr `addconstant2
+	jmp `load2
+
+&X load4x
+``:
+	jsr `addconstant2
+	jmp `load4
+
+&X store1x
+``:
+	jsr `addconstant2
+	jmp `store1
+
+&X store2x
+``:
+	jsr `addconstant2
+	jmp `store2
+
+&X store4x
+``:
+	jsr `addconstant2
+	jmp `store4
+
 
