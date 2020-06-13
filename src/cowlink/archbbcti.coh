@@ -46,8 +46,8 @@ sub ArchEmitHeader(coo: [Coo]) is
 		end if;
 		coo := coo.next;
 	end loop;
-	E("\t.word exit\n");
-	E("exit:\n");
+	E("\t.word sys_exit\n");
+	E("sys_exit:\n");
 	E("\tldx sp\n");
 	E("\ttxs\n");
 	E("\trts\n");

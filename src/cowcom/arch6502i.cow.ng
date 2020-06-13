@@ -143,10 +143,11 @@
 		E_nl();
 	end sub;
 
-    # Does not persist the name; only call this with constant strings.
     sub E_callhelper(name: string) is
-        var e := GetHelper(name);
-		E_callid(e.id);
+		E_db();
+		E("op_");
+		E(name);
+		E_nl();
     end sub;
 
     # Does not persist the name; only call this with constant strings.
@@ -284,9 +285,10 @@ gen STARTSUB()
     E(current_subr.name);
     E_nl();
 
+	E("\t.align 2\n");
     E_b8(COO_ESCAPE_THISSUB);
     E(":\n");
-	E_jmphelper("enter");
+	E("\tjmp enter\n");
 
     var count := current_subr.num_input_parameters;
     while count != 0 loop
