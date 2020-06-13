@@ -396,14 +396,20 @@ next:
 	bne +
 	inc ip+1
 +
-
 	bit #1
-	bne bytecode	; is this a bytecode?
-	sta w+0			; no, it's an address
+	beq address		; is this a real address?
+	tay				; dispatch via bytecode table
+	lda instab-1, y
+	sta w+0
+	lda instab-0, y
+	sta w+1
+	jmp (w)
+
+address:
+	sta w+0
 
 	lda (ip),y
 	sta w+1
-
 	inc ip+0
 	bne +
 	inc ip+1
@@ -411,12 +417,6 @@ next:
 	jmp (w)
 
 bytecode:
-	tay				; dispatch via bytecode table
-	lda instab-1, y
-	sta w+0
-	lda instab-0, y
-	sta w+1
-	jmp (w)
 
 enter:
 	lda ip+0
@@ -474,22 +474,16 @@ push1:
 	jmp inc1_next
 
 push1_m1:
-	lda #$ff
-	sta stack,x
-	inx
-	jmp next
+	ldy #$ff
+	jmp push_one_y_byte
 
 push1_0:
-	lda #0
-	sta stack,x
-	inx
-	jmp next
+	ldy #0
+	jmp push_one_y_byte
 
 push1_1:
-	lda #1
-	sta stack,x
-	inx
-	jmp next
+	ldy #1
+	jmp push_one_y_byte
 
 push2:
 	ldy #0
@@ -504,29 +498,19 @@ push2:
 	jmp inc2_next
 
 push2_m1:
-	lda #$ff
-	sta stack+0,x
-	sta stack+1,x
-	inx
-	inx
-	jmp next
+	ldy #$ff
+	jmp push_two_y_bytes
 
 push2_0:
-	lda #0
-	sta stack+0,x
-	sta stack+1,x
-	inx
-	inx
-	jmp next
+	ldy #0
+	jmp push_two_y_bytes
 
 push2_1:
 	ldy #1
 	sty stack+0,x
+	inx
 	dey
-	sty stack+1,x
-	inx
-	inx
-	jmp next
+	jmp push_one_y_byte
 
 push4:
 	ldy #0
@@ -540,40 +524,31 @@ push4:
 
 	jmp inc4_next
 
-push4_m1:
-	lda #$ff
-	sta stack+0,x
-	sta stack+1,x
-	sta stack+2,x
-	sta stack+3,x
-	inx
-	inx
-	inx
-	inx
-	jmp next
-
 push4_0:
-	lda #0
-	sta stack+0,x
-	sta stack+1,x
-	sta stack+2,x
-	sta stack+3,x
-	inx
-	inx
-	inx
-	inx
-	jmp next
+	ldy #0
+	jmp push_four_y_bytes
 
 push4_1:
 	ldy #1
 	sty stack+0,x
+	inx
 	dey
-	sty stack+1,x
-	sty stack+2,x
-	sty stack+3,x
+	jmp push_three_y_bytes
+
+push4_m1:
+	ldy #$ff
+	; fall through
+push_four_y_bytes:
+	sty stack,x
 	inx
+push_three_y_bytes:
+	sty stack,x
 	inx
+push_two_y_bytes:
+	sty stack,x
 	inx
+push_one_y_byte:
+	sty stack,x
 	inx
 	jmp next
 
@@ -1523,18 +1498,11 @@ rems4:
 
 # --- Casts -----------------------------------------------------------------
 
-cast21:
-	dex
-	jmp next
-
 cast41:
 	dex
-	dex
-	dex
-	jmp next
-
 cast42:
 	dex
+cast21:
 	dex
 	jmp next
 
@@ -1546,63 +1514,33 @@ cast12u:
 	jmp next
 
 cast14u:
-	lda #0
-	sta stack,x
-	inx
-	sta stack,x
-	inx
-	sta stack,x
-	inx
-
-	jmp next
+	ldy #0
+	jmp push_three_y_bytes
 
 cast24u:
-	lda #0
-	sta stack,x
-	inx
-	sta stack,x
-	inx
+	ldy #0
+	jmp push_two_y_bytes
 
-	jmp next
+get_sign_extension_byte:
+	lda stack-1,x
+	ora #$7f
+	bmi +
+	lda #0
++
+	tay
+	rts
 
 cast12s:
-	lda stack-1,x
-	ora #$7f
-	bmi *+4
-	lda #0
-	
-	sta stack,x
-	inx
-
-	jmp next
+	jsr get_sign_extension_byte
+	jmp push_one_y_byte
 
 cast14s:
-	lda stack-1,x
-	ora #$7f
-	bmi *+4
-	lda #0
-
-	sta stack,x
-	inx
-	sta stack,x
-	inx
-	sta stack,x
-	inx
-
-	jmp next
+	jsr get_sign_extension_byte
+	jmp push_three_y_bytes
 
 cast24s:
-	lda stack-1,x
-	ora #$7f
-	bmi *+4
-	lda #0
-
-	sta stack,x
-	inx
-	sta stack,x
-	inx
-
-	jmp next
+	jsr get_sign_extension_byte
+	jmp push_two_y_bytes
 
 # --- Shifts ----------------------------------------------------------------
 
