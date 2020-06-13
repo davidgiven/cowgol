@@ -41,6 +41,10 @@ The following targets are supported. Adding more is easy.
 
   - 6502 and 65c02, on the BBC Micro with Tube second processor.
 
+  - 6502 interpreted bytecode, on the BBC Micro with Tube second processor;
+	this works just like above, but produces a stack-based bytecode with
+	integrated interpreter. It's much smaller, but also slower.
+
   - 80386, on Linux.
 
   - Generic and terrible C. This produces very big and slow binaries which

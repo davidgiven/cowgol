@@ -10,16 +10,23 @@ var _args: [uint8];
 var HIMEM: [uint8] := 0xf800 as [uint8];
 
 sub _ReadArguments() is
-	# So, there's some evil here. We know that pointers are allocated
-	# contiguously in zero page, so we create several for use as the
-	# OSARGS/OSWORD block.
+	# The system provides a zero-page block for calling MOS routines.
 
-	var ioptr: [uint8]; # 16-bit I/O processor address
-	var hiptr: [uint8]; # high 16 bits of address
-	var value: [uint8]; # byte read, not really a pointer
+	record MosBlock is
+		ioptr: uint16;
+		hiptr: uint16;
+		value: uint8;
+	end record;
+	var p: [MosBlock];
+
+	@asm "lda #<mos";
+	@asm "sta 0+", p;
+	@asm "lda #0";
+	@asm "sta 1+", p;
+
 	@asm "lda #1";
 	@asm "ldy #0";
-	@asm "ldx #<", ioptr;
+	@asm "ldx #<mos";
 	@asm "jsr $ffda"; # OSARGS
 
 	# OSARGS has written a 32-byte address into ioptr and hiptr. We can
@@ -28,17 +35,17 @@ sub _ReadArguments() is
 
 	loop
 		@asm "lda #5";
-		@asm "ldx #<", ioptr;
-		@asm "ldy #>", ioptr;
+		@asm "ldx #<mos";
+		@asm "ldy #>mos";
 		@asm "jsr $fff1";
 
-		var c := value as intptr as uint8;
+		var c := p.value as intptr as uint8;
 		if c == 13 then
 			[LOMEM] := 0;
 			break;
 		end if;
 		[LOMEM] := c;
-		ioptr := @next ioptr;
+		p.ioptr := p.ioptr + 1;
 		LOMEM := @next LOMEM;
 	end loop;
 	LOMEM := @next LOMEM;

@@ -69,9 +69,11 @@ Cowgol defines these toolchains:
 
   - `bbct`: targeting BBC Tube 65c02 binaries, built with `nncgen`.
 
+  - `bbcti`: targeting BBC Tube 6502 bytecode binaries, built with `nncgen`.
+
   - `bbct6502`: targeting BBC Tube 6502 binaries, built with `nncgen`.
 
-`ncgen` and `nncgen` should behave identically. We build the compiler with
+`ncgen` and `nncgen` should behave identically. The compiler is built with
 itself to make sure that `nncgen` was built with a compiler built from the
 current compiler source, which is invaluable for testing. On a PC when you're
 cross-compiling you'll most likely want to be using the `nncgen` binaries (with
