@@ -108,6 +108,10 @@ sub IsPtr(type: [Symbol]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_POINTER);
 end sub;
 
+sub IsInterface(type: [Symbol]): (result: uint8) is
+	result := IsTypeOfKind(type, TYPE_INTERFACE);
+end sub;
+
 sub IsNum(type: [Symbol]): (result: uint8) is
 	if type == (0 as [Symbol]) then
 		result := 1;

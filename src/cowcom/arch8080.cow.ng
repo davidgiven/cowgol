@@ -765,17 +765,10 @@ gen ENDSUB()
 	EmitterPopChunk('S');
 }
 
-gen CALL(param):s
-		{ E_call($s.subr); }
-	
-gen a := CALLE1(param):s
-		{ E_call($s.subr); }
-
-gen hl := CALLE2(param):s
-		{ E_call($s.subr); }
-
-gen stk4 := CALLE4(param):s
-		{ E_call($s.subr); }
+gen CALL(SUBREF(), param):s           { E_call($s.subr); }
+gen a := CALLE1(SUBREF(), param):s    { E_call($s.subr); }
+gen hl := CALLE2(SUBREF(), param):s   { E_call($s.subr); }
+gen stk4 := CALLE4(SUBREF(), param):s { E_call($s.subr); }
 
 gen param := END();
 
@@ -789,12 +782,12 @@ gen param := ARG2(param, hl, remaining==0);
 gen param := ARG2(param, bc|de|hl:lhs, remaining!=0)
 		{ E_push($lhs); }
 
-gen param := ARG2(END(), CALLE2(param):s)
+gen param := ARG2(END(), CALLE2(SUBREF(), param):s)
 		{ E_call($s.subr); }
 
 gen param := ARG4(param, stk4); // already stacked
 
-gen param := ARG4(END(), CALLE4(param):s)
+gen param := ARG4(END(), CALLE4(SUBREF(), param):s)
 		{ E_call($s.subr); }
 
 gen a := POPARG1(remaining==0);
@@ -847,6 +840,16 @@ gen stk4 := CONSTANT():rhs uses hl
 gen bc|de|hl := ADDRESS():a
 {
 	E_lxia($$, $a.sym, $a.off);
+}
+
+gen bc|de|hl := SUBREF():a
+{
+	R_flush($$);
+	E("\tlxi ");
+	E_reg($$);
+	E_comma();
+	E_subref($a.subr);
+	E_nl();
 }
 
 // --- 8-bit loads and stores -----------------------------------------------

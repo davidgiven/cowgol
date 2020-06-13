@@ -16,6 +16,7 @@ ALL_TESTS = {
 	"folding",
 	"forwards",
 	"inputparams",
+	"interfaces",
 	"itoa",
 	"logic-16bit",
 	"logic-32bit",

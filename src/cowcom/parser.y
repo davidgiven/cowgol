@@ -5,7 +5,7 @@
 %token SUB THEN TILDE VAR WHILE TYPE.
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
 %token INT TYPEDEF SIZEOF STRING.
-%token IMPL DECL EXTERN.
+%token IMPL DECL EXTERN INTERFACE.
 
 %left COMMA.
 %left AND.
@@ -751,7 +751,7 @@ expression(E) ::= startsubcall inputargs(INA).
 	end if;
 
 	var param := subr.first_output_parameter;
-	E := MidCalle(param.vardata.type.typedata.width as uint8, INA, subr);
+	E := MidCalle(param.vardata.type.typedata.width as uint8, MidSubref(subr), INA, subr);
 	E.type := param.vardata.type;
 
 	i_end_call();
@@ -765,7 +765,7 @@ statement ::= startsubcall inputargs(INA) SEMICOLON.
 		SimpleError("subroutine requires output arguments");
 	end if;
 
-	Generate(MidCall(INA, subr));
+	Generate(MidCall(MidSubref(subr), INA, subr));
 
 	i_end_call();
 }
@@ -775,7 +775,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 	var subr := current_call.subr;
 	i_check_sub_call_args();
 
-	Generate(MidCall(INA, subr));
+	Generate(MidCall(MidSubref(subr), INA, subr));
 
 	var paramindex := subr.num_output_parameters;
 	var count: uint8 := 0;
@@ -822,7 +822,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 
 startsubcall ::= oldid(S).
 {
-	if S.kind != SUB then
+	if (S.kind != SUB) and (S.kind != IMPLEMENTS) then
 		StartError();
 		print("expected ");
 		print(S.name);
@@ -921,13 +921,38 @@ outputarg(E) ::= expression(E1).
 }
 
 // Declare and implement a subroutine.
-statement ::= subdecl subparams submodifiers substart statements subend SEMICOLON.
+statement ::= SUB newsubid subparams submodifiers substart statements subend SEMICOLON.
 
 // Declare a subroutine but don't implement it.
-statement ::= DECL subdecl subparams submodifiers SEMICOLON.
+statement ::= DECL SUB newsubid subparams submodifiers SEMICOLON.
 
 // Implement a previously declared subroutine.
 statement ::= subimpldecl substart statements subend SEMICOLON.
+
+// Declare an interface.
+statement ::= INTERFACE newsubid(S) subparams submodifiers SEMICOLON.
+{
+	# newsubid created a subroutine symbol; we actually want this to
+	# be a type.
+
+	S.kind := TYPE;
+	S.typedata.kind := TYPE_INTERFACE;
+	S.typedata.width := intptr_type.typedata.width;
+	S.typedata.alignment := intptr_type.typedata.alignment;
+	S.typedata.stride := intptr_type.typedata.stride;
+	S.typedata.interfacetype.subr := preparing_subr;
+	preparing_subr.flags := preparing_subr.flags | SUB_IS_INTERFACE;
+}
+
+// Implement an interface.
+statement ::= SUB newsubid(S) IMPLEMENTS typeref(T) substart statements subend SEMICOLON.
+{
+	if IsInterface(T) == 0 then
+		SimpleError("type is not an interface");
+	end if;
+	S.kind := IMPLEMENTS;
+	EmitterReferenceSubroutine(current_subr, preparing_subr);
+}
 
 submodifiers ::= .
 
@@ -936,7 +961,8 @@ submodifiers ::= submodifiers EXTERN OPENPAREN STRING(X) CLOSEPAREN.
 	EmitterDeclareExternalSubroutine(preparing_subr.id, X.string);
 }
 
-subdecl ::= SUB newid(S).
+%type newsubid {[Symbol]}
+newsubid(R) ::= newid(S).
 {
 	preparing_subr := Alloc(@bytesof Subroutine) as [Subroutine];
 	preparing_subr.namespace.parent := &current_subr.namespace;
@@ -947,6 +973,7 @@ subdecl ::= SUB newid(S).
 	S.kind := SUB;
 	S.subr := preparing_subr;
 	EmitterDeclareSubroutine(preparing_subr);
+	R := S;
 }
 
 subimpldecl ::= IMPL SUB oldid(S).

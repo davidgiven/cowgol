@@ -928,17 +928,10 @@ gen ENDSUB()
 	EmitterPopChunk('S');
 }
 
-gen CALL(param):s
-		{ E_call($s.subr); }
-	
-gen a := CALLE1(param):s
-		{ E_call($s.subr); }
-
-gen hl := CALLE2(param):s
-		{ E_call($s.subr); }
-
-gen hlhl := CALLE4(param):s
-		{ E_call($s.subr); }
+gen CALL(SUBREF(), param):s           { E_call($s.subr); }
+gen a := CALLE1(SUBREF(), param):s    { E_call($s.subr); }
+gen hl := CALLE2(SUBREF(), param):s   { E_call($s.subr); }
+gen hlhl := CALLE4(SUBREF(), param):s { E_call($s.subr); }
 
 gen param := END();
 

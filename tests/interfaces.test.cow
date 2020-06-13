@@ -1,0 +1,10 @@
+include "cowgol.coh";
+include "_framework.coh";
+
+interface Interface(in1: uint8, in2: uint32): (out1: uint32, out2: uint8);
+
+sub Fnord implements Interface is
+end sub;
+
+Fnord();
+

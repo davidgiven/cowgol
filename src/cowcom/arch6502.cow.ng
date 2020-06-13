@@ -1269,15 +1269,6 @@ gen RETURN()
     end if;
 }
 
-gen CALL(param):s uses x|y|a
-        { E_call($s.subr); }
-    
-gen a := CALLE1(param):s uses x|y
-        { E_call($s.subr); }
-
-gen xa := CALLE2(param):s uses y
-        { E_call($s.subr); }
-
 %{
     sub PopArg4(dest: [Operand]) is
         # WARNING: lowest byte on stack is MSB, so pop the MSB first!
@@ -1291,7 +1282,10 @@ gen xa := CALLE2(param):s uses y
     end sub;
 %}
 
-gen v32 := CALLE4(param):s        uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
+gen CALL(SUBREF(), param):s uses x|y|a          { E_call($s.subr); }
+gen a := CALLE1(SUBREF(), param):s uses x|y     { E_call($s.subr); }
+gen xa := CALLE2(SUBREF(), param):s uses y      { E_call($s.subr); }
+gen v32 := CALLE4(SUBREF(), param):s uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
 
 gen param := END();
 

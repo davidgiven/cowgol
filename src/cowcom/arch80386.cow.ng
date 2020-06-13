@@ -790,17 +790,10 @@ gen RETURN()
 	end if;
 }
 
-gen CALL(param):s uses ebx|ecx|edx|esi|edi
-		{ E_call($s.subr); }
-	
-gen al := CALLE1(param):s uses ebx|ecx|edx|esi|edi
-		{ E_call($s.subr); }
-
-gen ax := CALLE2(param):s uses ebx|ecx|edx|esi|edi
-		{ E_call($s.subr); }
-
-gen eax := CALLE4(param):s uses ebx|ecx|edx|esi|edi
-		{ E_call($s.subr); }
+gen CALL(SUBREF(), param):s uses ebx|ecx|edx|esi|edi          { E_call($s.subr); }
+gen al := CALLE1(SUBREF(), param):s uses ebx|ecx|edx|esi|edi  { E_call($s.subr); }
+gen ax := CALLE2(SUBREF(), param):s uses ebx|ecx|edx|esi|edi  { E_call($s.subr); }
+gen eax := CALLE4(SUBREF(), param):s uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
 
 gen param := END();
 
@@ -809,7 +802,7 @@ gen param := ARG1(param, al, remaining==0);
 gen param := ARG1(param, r8:lhs, remaining!=0)
 		{ E_push($lhs); }
 	
-gen param := ARG1(END(), CALLE1(param):s, remaining==0)
+gen param := ARG1(END(), CALLE1(SUBREF(), param):s, remaining==0)
 		{ E_call($s.subr); }
 
 gen param := ARG2(param, ax, remaining==0);
@@ -817,7 +810,7 @@ gen param := ARG2(param, ax, remaining==0);
 gen param := ARG2(param, r16:lhs, remaining!=0)
 		{ E_push($lhs); }
 
-gen param := ARG2(END(), CALLE2(param):s, remaining==0)
+gen param := ARG2(END(), CALLE2(SUBREF(), param):s, remaining==0)
 		{ E_call($s.subr); }
 
 gen param := ARG4(param, eax, remaining==0);
@@ -825,7 +818,7 @@ gen param := ARG4(param, eax, remaining==0);
 gen param := ARG4(param, r32:lhs, remaining!=0)
 		{ E_push($lhs); }
 
-gen param := ARG4(END(), CALLE4(param):s, remaining==0)
+gen param := ARG4(END(), CALLE4(SUBREF(), param):s, remaining==0)
 		{ E_call($s.subr); }
 
 gen al := POPARG1(remaining==0);

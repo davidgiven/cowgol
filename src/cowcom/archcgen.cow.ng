@@ -423,11 +423,11 @@ gen v8 := POPARG8();
 	end sub;
 %}
 
-gen CALL(param):s         { Call($s.subr); }
-gen v1 := CALLE1(param):s { Call($s.subr); }
-gen v2 := CALLE2(param):s { Call($s.subr); }
-gen v4 := CALLE4(param):s { Call($s.subr); }
-gen v8 := CALLE8(param):s { Call($s.subr); }
+gen CALL(SUBREF(), param):s         { Call($s.subr); }
+gen v1 := CALLE1(SUBREF(), param):s { Call($s.subr); }
+gen v2 := CALLE2(SUBREF(), param):s { Call($s.subr); }
+gen v4 := CALLE4(SUBREF(), param):s { Call($s.subr); }
+gen v8 := CALLE8(SUBREF(), param):s { Call($s.subr); }
 
 // --- Core conversions --------------------------------------------------
 
