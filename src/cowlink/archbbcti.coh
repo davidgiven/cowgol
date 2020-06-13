@@ -29,7 +29,8 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("ip = 0\n");
 	E("w = 2\n"); 
 	E("x = 4\n");
-	E("stack = x+6\n");
+	E("mos = x+6\n");
+	E("stack = mos+6\n");
 
 	E("\ttsx\n");
 	E("\tstx sp\n");

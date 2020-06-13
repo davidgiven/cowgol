@@ -38,8 +38,10 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\t.endm\n");
 	E("ws1 = 0\n");
 	E("ws3 = ws1 + ");
-
 	E_u16(workspaceSize[1]);
+	E_nl();
+	E("mos = ws3 + ");
+	E_u16(workspaceSize[3]);
 	E_nl();
 
 	E("\ttsx\n");

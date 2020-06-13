@@ -129,17 +129,20 @@ sub FCBExt(fcb: [FCB]): (len: uint32) is
 	fcb_i_blockout(fcb);
 
 	# Nasty hack to get 32 bytes in zero page.
-	var ptr1: [uint8];
-	var ptr2: [uint8];
+    var ptr: [uint32];
+    @asm "lda #<mos";
+    @asm "sta 0+", ptr;
+    @asm "lda #>mos";
+    @asm "sta 1+", ptr;
 
 	var channel := fcb.gbpb.channel;
 
 	@asm "lda #2"; # read EXT#
-	@asm "ldx #<", ptr1;
+	@asm "ldx #<mos";
 	@asm "ldy", channel;
 	@asm "jsr $ffda"; # OSARGS
 
-	len := [@alias &ptr1 as [uint32]];
+	len := [ptr];
 end sub;
 
 sub fcb_i_nextchar(fcb: [FCB]) is
