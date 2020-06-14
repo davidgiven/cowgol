@@ -1,6 +1,5 @@
 sub WriteSubroutinesToOutputFile(coo: [Coo]) is
 	var id: uint16;
-	var subroutine: [Subroutine];
 	var c: uint8;
 	var length: Size;
 
@@ -31,68 +30,15 @@ sub WriteSubroutinesToOutputFile(coo: [Coo]) is
 		result := read_bin2(&coo.fcb);
 	end sub;
 
-	sub CheckSubExists(subr: [Subroutine]) is
-		if (subr.state & SUB_IMPLEMENTATION) == 0 then
-			StartError();
-			print("reference to undefined subroutine ");
-			if subr.name != (0 as string) then
-				print("'");
-				print(subr.name);
-				print("'");
-			else
-				print("which is anonymous");
-			end if;
-			EndError();
-		end if;
-	end sub;
-
 	sub CopySourceChunk() is
-		var subid: uint16;
-		var subr: [Subroutine];
-		var wid: uint8;
-		var off: Size;
-
+		print("new chunk\n");
 		while length != 0 loop
 			c := ReadB1();
-			case c is
-				when COO_ESCAPE_THISCOO:
-					E_b8('c');
-					E_h8(coo.id as uint8);
-					E_b8('_');
-
-				when COO_ESCAPE_THISSUB:
-					ArchEmitSubRef(subroutine);
-
-				when COO_ESCAPE_SUBREF:
-					subid := ReadB2();
-					subr := FindOrCreateSub(coo, subid);
-					subr := Deref(subr);
-					CheckSubExists(subr);
-					ArchEmitSubRef(subr);
-
-				when COO_ESCAPE_WSREF:
-					subid := ReadB2();
-					wid := ReadB1();
-					off := ReadB2();
-					subr := FindOrCreateSub(coo, subid);
-					subr := Deref(subr);
-					CheckSubExists(subr);
-					ArchEmitWSRef(wid, subr.workspaceAddress[wid] + off);
-
-				when COO_ESCAPE_WSSIZE:
-					subid := ReadB2();
-					wid := ReadB1();
-					subr := FindOrCreateSub(coo, subid);
-					subr := Deref(subr);
-					CheckSubExists(subr);
-					ArchEmitWSRef(wid, subr.workspaceSize[wid]);
-
-				when else:
-					E_b8(c);
-			end case;
+			WriteStream(c);
 		end loop;
 	end sub;
 
+	var sid: uint8;
 	var pos: uint32 := 0;
 	loop
 		length := 255; # no length limit here
@@ -105,10 +51,24 @@ sub WriteSubroutinesToOutputFile(coo: [Coo]) is
 			break;
 		elseif c == 'S' then
 			id := ReadB2();
-			subroutine := FindOrCreateSub(coo, id);
-			subroutine := Deref(subroutine);
-			if (subroutine.state & SUB_USED) != 0 then
+			current_subroutine := FindOrCreateSub(coo, id);
+			current_subroutine := Deref(current_subroutine);
+			if (current_subroutine.state & SUB_USED) != 0 then
+				SetStream(7);
 				CopySourceChunk();
+				FlushStream();
+			end if;
+		elseif c == 'F' then
+			sid := ReadB1();
+			id := ReadB2();
+			current_subroutine := FindOrCreateSub(coo, id);
+			current_subroutine := Deref(current_subroutine);
+			if (current_subroutine.state & SUB_USED) != 0 then
+				SetStream(sid & 0x7f);
+				CopySourceChunk();
+				if (sid & 0x80) != 0 then
+					FlushStream();
+				end if;
 			end if;
 		end if;
 	end loop;

@@ -98,6 +98,7 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo]) is
 		CannotOpen(filename);
 	end if;
 
+	var streamid: uint8;
 	var id: uint16;
 	var pos: uint32 := 0;
 	loop
@@ -108,6 +109,11 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo]) is
 		if c == 'E' then
 			break;
 		elseif c == 'S' then
+			id := read_bin2(&coo.fcb);
+			subroutine := FindOrCreateSub(coo, id);
+			subroutine.state := subroutine.state | SUB_IMPLEMENTATION;
+		elseif c == 'F' then
+			streamid := read_bin1(&coo.fcb);
 			id := read_bin2(&coo.fcb);
 			subroutine := FindOrCreateSub(coo, id);
 			subroutine.state := subroutine.state | SUB_IMPLEMENTATION;

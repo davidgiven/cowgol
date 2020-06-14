@@ -544,10 +544,7 @@
 			EmitterDeclareExternalSubroutine(e.id, name);
 		end if;
 
-		EmitterPushChunk();
-		E_b16(current_subr.id);
-		E_b16(e.id);
-		EmitterPopChunk('R');
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
 
 		R_flushall();
 		E("\tcall ");
@@ -561,8 +558,7 @@
 		var sid := stringid;
 		stringid := stringid + 1;
 
-		EmitterPushChunk();
-		E_b16(current_subr.id);
+		EmitterOpenStream(current_subr);
 
 		E("\tcseg\n");
 		E_b8(COO_ESCAPE_THISCOO);
@@ -581,7 +577,7 @@
 			E_comma();
 		end loop;
 		E("0\n");
-		EmitterPopChunk('S');
+		EmitterCloseStream();
 
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('c');
@@ -650,8 +646,7 @@ gen STARTSUB()
 {
 	RegCacheReset();
 
-	EmitterPushChunk();
-	E_b16(current_subr.id);
+	EmitterOpenStream(current_subr);
 
 	E("\n\n\t; ");
 	E(current_subr.name);
@@ -768,7 +763,7 @@ gen ENDSUB()
 	E_ret();
 
 	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
-	EmitterPopChunk('S');
+	EmitterCloseStream();
 }
 
 %{
@@ -1600,8 +1595,7 @@ gen bc|de|hl := STRING():s
 
 gen STARTINIT():s
 {
-	EmitterPushChunk();
-	E_b16(current_subr.id);
+	EmitterOpenStream(current_subr);
 	E("\tcseg\n"); # yes, really
 	E($s.sym.vardata.externname);
 	E(":\n");
@@ -1609,7 +1603,7 @@ gen STARTINIT():s
 
 gen ENDINIT()
 {
-	EmitterPopChunk('S');
+	EmitterCloseStream();
 }
 
 gen INIT1():c

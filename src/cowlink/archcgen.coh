@@ -46,14 +46,5 @@ sub ArchEmitFooter(coo: [Coo]) is
 	end loop;
 
 	E("}\n");
-
-	# This is ridiculous, but can't be helped: write spaces to pad the end
-	# of the file. Unix C compilers don't like trailing nuls.
-
-	var padding := FCBExt(&outfcb) - FCBPos(&outfcb);
-	while padding != 0 loop
-		E_b8(' ');
-		padding := padding - 1;
-	end loop;
 end sub;
 

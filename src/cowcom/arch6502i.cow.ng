@@ -95,10 +95,7 @@
             EmitterDeclareExternalSubroutine(e.id, name);
         end if;
 
-		EmitterPushChunk();
-		E_b16(current_subr.id);
-		E_b16(e.id);
-		EmitterPopChunk('R');
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
     end sub;
 
 	sub E_db is E("\t.byte "); end sub;
@@ -284,8 +281,7 @@ gen STARTSUB()
     current_subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
     current_subr.arch.end_label := AllocLabel();
 
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
 
     E("\n\n\t; ");
     E(current_subr.name);
@@ -330,7 +326,7 @@ gen ENDSUB()
 
 	E_callhelper("exit");
 
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 
     i := 0;
     while i != 4 loop
@@ -586,8 +582,7 @@ gen ENDCASE4();
     sub E_string(data: string): (lid: uint16) is
         lid := AllocLabel();
 
-        EmitterPushChunk();
-        E_b16(current_subr.id);
+        EmitterOpenStream(current_subr);
 
         E_label(lid);
         E_db();
@@ -603,7 +598,7 @@ gen ENDCASE4();
             E_comma();
         end loop;
         E("0\n");
-        EmitterPopChunk('S');
+        EmitterCloseStream();
     end sub;
 %}
 
@@ -622,15 +617,14 @@ gen s2 := STRING():s
 
 gen STARTINIT():s
 {
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
     E($s.sym.vardata.externname);
     E(":\n");
 }
 
 gen ENDINIT()
 {
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 }
 
 gen INIT1():c

@@ -505,10 +505,7 @@
     sub E_callhelper(name: string) is
         var e := GetHelper(name);
 
-        EmitterPushChunk();
-        E_b16(current_subr.id);
-        E_b16(e.id);
-        EmitterPopChunk('R');
+        EmitterReferenceSubroutineById(current_subr.id, e.id);
 
         R_flushall();
         E_oc(OC_JSR);
@@ -552,8 +549,7 @@
     sub E_string(data: string): (lid: uint16) is
         lid := AllocLabel();
 
-        EmitterPushChunk();
-        E_b16(current_subr.id);
+        EmitterOpenStream(current_subr);
 
         E_label(lid);
         E_db();
@@ -569,7 +565,7 @@
             E_comma();
         end loop;
         E("0\n");
-        EmitterPopChunk('S');
+        EmitterCloseStream();
     end sub;
 
     sub ArchEndInstruction() is
@@ -1000,8 +996,7 @@ gen STARTSUB()
 
     RegCacheReset();
 
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
 
     E("\n\n\t; ");
     E(current_subr.name);
@@ -1270,7 +1265,7 @@ gen ENDSUB()
         end loop;
     end if;
 
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 
     i := 0;
     while i != 4 loop
@@ -2148,15 +2143,14 @@ gen xa := STRING():s
 
 gen STARTINIT():s
 {
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
     E($s.sym.vardata.externname);
     E(":\n");
 }
 
 gen ENDINIT()
 {
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 }
 
 gen INIT1():c

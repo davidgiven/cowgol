@@ -125,15 +125,14 @@
 	sub E_symref(sym: [Symbol], off: Size) is
 		case sym.kind is
 			when SUB:
-				EmitterPushChunk();
-				E_b16(current_subr.id);
+				EmitterOpenStream(current_subr);
 
 				E("\tvoid ");
 				E_subref(sym.subr);
 				EmitFunctionSignature(sym.subr);
 				E(";\n");
 
-				EmitterPopChunk('S');
+				EmitterCloseStream();
 				E_subref(sym.subr);
 
 			when VAR:
@@ -241,8 +240,7 @@ gen RETURN()
 
 gen STARTSUB():s
 {
-	EmitterPushChunk();
-	E_b16($s.subr.id);
+	EmitterOpenStream(current_subr);
 
 	E("\n// ");
 	E($s.subr.name);
@@ -350,7 +348,7 @@ gen ENDSUB():s
 	end loop;
 	E("}\n");
 	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
-	EmitterPopChunk('S');
+	EmitterCloseStream();
 }
 
 %{
@@ -888,8 +886,7 @@ gen v4 := CAST84(v8):c { Cast(8, 4, $c.sext); }
 		sid := current_string_id;
 		current_string_id := current_string_id + 1;
 
-		EmitterPushChunk();
-		E_b16(current_subr.id);
+		EmitterOpenStream(current_subr);
 
 		E("const i1 ");
 		E_b8(COO_ESCAPE_THISCOO);
@@ -916,7 +913,7 @@ gen v4 := CAST84(v8):c { Cast(8, 4, $c.sext); }
 			E_comma();
 		end if;
 		E("0 };\n");
-		EmitterPopChunk('S');
+		EmitterCloseStream();
 	end sub;
 %}
 
@@ -987,8 +984,7 @@ gen v8 := STRING():s
 
 gen STARTINIT():s
 {
-	EmitterPushChunk();
-	E_b16(current_subr.id);
+	EmitterOpenStream(current_subr);
 
 	E("static data ");
 	E($s.sym.vardata.externname);
@@ -1028,7 +1024,7 @@ gen ENDINIT()
 {
 	FlushInitialiserBuffer();
 	E("};\n");
-	EmitterPopChunk('S');
+	EmitterCloseStream();
 }
 
 // --- Inline assembly ------------------------------------------------------

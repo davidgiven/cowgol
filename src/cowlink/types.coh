@@ -44,4 +44,5 @@ end record;
 var externals: [External] := (0 as [External]);
 var subroutines: [Subroutine] := (0 as [Subroutine]);
 var current_id: uint16 := 1;
+var current_subroutine: [Subroutine];
 

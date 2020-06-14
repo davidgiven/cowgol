@@ -74,6 +74,15 @@ sub EmitterOpenfile(filename: string) is
 end sub;
 
 sub EmitterClosefile() is
+	# This is ridiculous, but can't be helped: write spaces to pad the end
+	# of the file. Unix C compilers don't like trailing nuls.
+
+	var padding := FCBExt(&outfcb) - FCBPos(&outfcb);
+	while padding != 0 loop
+		FCBPutChar(&outfcb, ' ');
+		padding := padding - 1;
+	end loop;
+
 	if FCBClose(&outfcb) != 0 then
 		SimpleError("cannot close output file");
 	end if;
