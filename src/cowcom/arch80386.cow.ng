@@ -1147,6 +1147,13 @@ gen INIT4():c
 	E_nl();
 }
 
+gen INITA():a
+{
+	E("\t.long ");
+	E_symref($a.sym, $a.off);
+	E_nl();
+}
+
 gen INITS():s
 {
 	E("\t.long ");

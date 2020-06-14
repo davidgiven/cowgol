@@ -2030,6 +2030,13 @@ gen INIT4():c
 	E_nl();
 }
 
+gen INITA():a
+{
+	E("\tdw ");
+	E_symref($a.sym, $a.off);
+	E_nl();
+}
+
 gen INITS():s
 {
 	E("\tdw ");

@@ -1640,6 +1640,13 @@ gen INITS():s
 	E_nl();
 }
 
+gen INITA():a
+{
+	E("\tdw ");
+	E_symref($a.sym, $a.off);
+	E_nl();
+}
+
 // --- Inline assembly ------------------------------------------------------
 
 gen ASMGROUPSTART();

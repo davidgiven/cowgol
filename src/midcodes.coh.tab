@@ -9,6 +9,7 @@
 - 0 0 STARTINIT(sym: [Symbol]) = ("%s", $$.sym.name)
 y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 INITS(text: string) = ("...")
+- 0 0 INITA(sym: [Symbol], off: Size)
 - 0 0 ENDINIT()
 
 - 0 0 ASMGROUPSTART()

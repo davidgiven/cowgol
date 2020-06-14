@@ -654,6 +654,11 @@ gen INIT4():c
     E_nl();
 }
 
+gen INITA():a
+{
+    E_symrefi($a.sym, $a.off);
+}
+
 gen INITS():s
 {
     var sid := E_string($s.text);

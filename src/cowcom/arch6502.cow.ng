@@ -2180,6 +2180,13 @@ gen INIT4():c
     E_nl();
 }
 
+gen INITA():a
+{
+    E_dw();
+    E_symref($a.sym, $a.off);
+    E_nl();
+}
+
 gen INITS():s
 {
     var sid := E_string($s.text);

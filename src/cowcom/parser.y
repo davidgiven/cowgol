@@ -1343,6 +1343,12 @@ initialiser ::= expression(E).
 			end if;
 			Generate(MidInits(E.string.text));
 
+		when MIDCODE_ADDRESS:
+			if type != E.type then
+				SimpleError("initialiser of wrong type");
+			end if;
+			Generate(MidInita(E.address.sym, E.address.off));
+
 		when else:
 			parser_i_constant_error();
 	end case;

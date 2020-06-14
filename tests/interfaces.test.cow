@@ -32,3 +32,7 @@ CheckReturn1();
 (i32, i8) := a(1, 2);
 CheckReturn1();
 
+var array: Interface[] := { Impl1, Impl2 };
+(i32, i8) := (array[0])(1, 2);
+CheckReturn1();
+

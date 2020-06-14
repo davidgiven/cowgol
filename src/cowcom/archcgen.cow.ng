@@ -974,6 +974,15 @@ gen v8 := STRING():s
 			width := width - 1;
 		end loop;
 	end sub;
+
+	sub CheckBufferAlignment() is
+		if initialiser_buffer_fill_bytes != 0 then
+			StartError();
+			print("bad initialiser alignment: ");
+			print_i8(initialiser_buffer_fill_bytes);
+			EndError();
+		end if;
+	end sub;
 %}
 
 gen STARTINIT():s
@@ -995,14 +1004,18 @@ gen INIT2():c { E_bytes(&$c.value as [uint8], 2); }
 gen INIT4():c { E_bytes(&$c.value as [uint8], 4); }
 gen INIT8():c { E_bytes(&$c.value as [uint8], 8); }
 
+gen INITA():a
+{
+	CheckBufferAlignment();
+
+	E("\t{ .ptr = (void*)");
+	E_symref($a.sym, $a.off);
+	E(" },\n");
+}
+
 gen INITS():s
 {
-	if initialiser_buffer_fill_bytes != 0 then
-		StartError();
-		print("bad initialiser alignment: ");
-		print_i8(initialiser_buffer_fill_bytes);
-		EndError();
-	end if;
+	CheckBufferAlignment();
 
 	E("\t{ .ptr = (void*)");
 	E_b8(COO_ESCAPE_THISCOO);
