@@ -29,7 +29,6 @@ toolchain_ncpm = {
 	asmext = ".asm",
 	binext = ".8080.com",
 	tester = cpmtest,
-	archs = { "65c02-tiny", "6502i", "8080", "z80", "80386", "cgen" }
 }
 
 toolchain_ncpmz = {
@@ -63,7 +62,7 @@ toolchain_bbct = {
 	asmext = ".asm",
 	binext = ".bbct",
 	tester = tubeemutest,
-	archs = { "65c02-tiny", "6502i" }
+	archs = { "65c02-tiny", "6502i", "8080", "z80" }
 }
 
 toolchain_bbctiny = {
@@ -87,7 +86,7 @@ toolchain_bbct6502 = {
 	asmext = ".asm",
 	binext = ".bbct6502",
 	tester = tubeemutest,
-	archs = {}
+	archs = { "6502i", "8080" },
 }
 
 toolchain_bbcti = {
