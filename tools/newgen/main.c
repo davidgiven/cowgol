@@ -664,7 +664,7 @@ static void print_line(int lineno)
 static void create_emitters(void)
 {
 	#if defined COWGOL
-		fprintf(outfp, "sub EmitOneInstruction(rule: uint8, self: [Instruction]) is\n");
+		fprintf(outfp, "sub EmitOneInstruction(ruleid: uint8, self: [Instruction]) is\n");
 		fprintf(outfp, "record NodeSlot is\n");
 		fprintf(outfp, "\tnode: [Node];\n");
 		fprintf(outfp, "\treg: RegId;\n");
@@ -683,7 +683,7 @@ static void create_emitters(void)
 		fprintf(outfp, "\ti := i - 1;\n");
 		fprintf(outfp, "end loop;\n");
 		fprintf(outfp, "var selfreg := self.produced_reg;\n");
-		fprintf(outfp, "case rule is\n");
+		fprintf(outfp, "interface Emitter();\n");
 	#else
 		fprintf(outfp, "void emit_one_instruction(uint8_t rule, Instruction* self) {\n");
 		fprintf(outfp, "switch (rule) {\n");
@@ -695,8 +695,7 @@ static void create_emitters(void)
 		if (r->action)
 		{
 			#if defined COWGOL
-				fprintf(outfp, "when %d:\n", i);
-				fprintf(outfp, "sub emit_%d() is\n", i);
+				fprintf(outfp, "sub emit_%d implements Emitter is\n", i);
 			#else
 				fprintf(outfp, "case %d: {\n", i);
 			#endif
@@ -715,7 +714,6 @@ static void create_emitters(void)
 
 			#if defined COWGOL
 				fprintf(outfp, "\nend sub;\n");
-				fprintf(outfp, "emit_%d();\n", i);
 			#else
 				fprintf(outfp, "\n} break;\n");
 			#endif
@@ -723,7 +721,19 @@ static void create_emitters(void)
 	}
 
 	#if defined COWGOL
-		fprintf(outfp, "end case;\n");
+		fprintf(outfp, "sub nop_emitter implements Emitter is end sub;\n");
+		fprintf(outfp, "var emitters: Emitter[] := {\n");
+		for (int i=0; i<rulescount; i++)
+		{
+			Rule* r = rules[i];
+			if (r->action)
+				fprintf(outfp, "\temit_%d,\n", i);
+			else
+				fprintf(outfp, "\tnop_emitter,\n");
+		}
+		fprintf(outfp, "};\n");
+
+		fprintf(outfp, "(emitters[ruleid])();\n");
 		fprintf(outfp, "end sub;\n");
 	#else
 		fprintf(outfp, "}\n");
