@@ -147,6 +147,7 @@ instab:
 	insn store1x
 	insn store2x
 	insn store4x
+	insn calli
 
 # --- Conditionals and branches ---------------------------------------------
 
@@ -416,6 +417,15 @@ address:
 +
 	jmp (w)
 
+calli:
+	lda stack-2,x
+	sta w+0
+	lda stack-1,x
+	sta w+1
+	dex
+	dex
+	jmp (w)
+	
 bytecode:
 
 enter:

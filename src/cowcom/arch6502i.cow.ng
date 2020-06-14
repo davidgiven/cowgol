@@ -349,12 +349,21 @@ gen RETURN()
 		E_subref(subr);
 		E_nl();
 	end sub;
+
+	sub CallI is
+		E_callhelper("calli");
+	end sub;
 %}
 
-gen CALL(SUBREF(), param):s { Call($s.subr); }
-gen s1 := CALLE1(SUBREF(), param):s { Call($s.subr); }
-gen s2 := CALLE2(SUBREF(), param):s { Call($s.subr); }
-gen s4 := CALLE4(SUBREF(), param):s { Call($s.subr); }
+gen       CALL(  param, SUBREF():s) { Call($s.subr); }
+gen s1 := CALLE1(param, SUBREF():s) { Call($s.subr); }
+gen s2 := CALLE2(param, SUBREF():s) { Call($s.subr); }
+gen s4 := CALLE4(param, SUBREF():s) { Call($s.subr); }
+
+gen       CALL(  param, s2) { CallI(); }
+gen s1 := CALLE1(param, s2) { CallI(); }
+gen s2 := CALLE2(param, s2) { CallI(); }
+gen s4 := CALLE4(param, s2) { CallI(); }
 
 gen param := END();
 

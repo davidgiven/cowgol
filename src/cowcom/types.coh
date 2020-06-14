@@ -79,8 +79,9 @@ record Symbol is
 	next: [Symbol];
 end record;
 
-const SUB_HAS_IMPL     := 0b01;
-const SUB_IS_INTERFACE := 0b10;
+const SUB_HAS_IMPL          := 0b001;
+const SUB_IS_INTERFACE      := 0b010;
+const SUB_IS_IMPLEMENTATION := 0b100;
 
 record Subroutine is
 	name: string;

@@ -340,6 +340,13 @@
 		E_nl();
 	end sub;
 
+	sub E_callebx is
+		R_flushall();
+		E_tab();
+		E("call *%ebx");
+		E_nl();
+	end sub;
+
 	sub E_ret() is
 		E("\tret\n");
 	end sub;
@@ -790,51 +797,53 @@ gen RETURN()
 	end if;
 }
 
-gen CALL(SUBREF(), param):s uses ebx|ecx|edx|esi|edi          { E_call($s.subr); }
-gen al := CALLE1(SUBREF(), param):s uses ebx|ecx|edx|esi|edi  { E_call($s.subr); }
-gen ax := CALLE2(SUBREF(), param):s uses ebx|ecx|edx|esi|edi  { E_call($s.subr); }
-gen eax := CALLE4(SUBREF(), param):s uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen        CALL(       param,       SUBREF():s) uses r32                 { E_call($s.subr); }
+gen        CALL(  ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen        CALL(  ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen        CALL(  ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen al :=  CALLE1(     param,       SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen al :=  CALLE1(ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen al :=  CALLE1(ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen al :=  CALLE1(ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen ax :=  CALLE2(     param,       SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen ax :=  CALLE2(ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen ax :=  CALLE2(ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen ax :=  CALLE2(ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen eax := CALLE4(     param,       SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen eax := CALLE4(ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen eax := CALLE4(ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+gen eax := CALLE4(ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+
+gen        CALL(       param,       ebx) uses r32                 { E_callebx(); }
+gen        CALL(  ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen        CALL(  ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen        CALL(  ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen al :=  CALLE1(     param,       ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen al :=  CALLE1(ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen al :=  CALLE1(ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen al :=  CALLE1(ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen ax :=  CALLE2(     param,       ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen ax :=  CALLE2(ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen ax :=  CALLE2(ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen ax :=  CALLE2(ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen eax := CALLE4(     param,       ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen eax := CALLE4(ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen eax := CALLE4(ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+gen eax := CALLE4(ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
 
 gen param := END();
 
-gen param := ARG1(param, al, remaining==0);
+gen param := ARG1(param, r8:lhs)  { E_push($lhs); }
+gen param := ARG2(param, r16:lhs) { E_push($lhs); }
+gen param := ARG4(param, r32:lhs) { E_push($lhs); }
 
-gen param := ARG1(param, r8:lhs, remaining!=0)
-		{ E_push($lhs); }
-	
-gen param := ARG1(END(), CALLE1(SUBREF(), param):s, remaining==0)
-		{ E_call($s.subr); }
-
-gen param := ARG2(param, ax, remaining==0);
-
-gen param := ARG2(param, r16:lhs, remaining!=0)
-		{ E_push($lhs); }
-
-gen param := ARG2(END(), CALLE2(SUBREF(), param):s, remaining==0)
-		{ E_call($s.subr); }
-
-gen param := ARG4(param, eax, remaining==0);
-
-gen param := ARG4(param, r32:lhs, remaining!=0)
-		{ E_push($lhs); }
-
-gen param := ARG4(END(), CALLE4(SUBREF(), param):s, remaining==0)
-		{ E_call($s.subr); }
-
-gen al := POPARG1(remaining==0);
-
-gen r8 := POPARG1(remaining!=0)
-		{ E_pop($$); }
-
-gen ax := POPARG2(remaining==0);
-
-gen r16 := POPARG2()
-		{ E_pop($$); }
-
+gen al  := POPARG1(remaining==0);
+gen ax  := POPARG2(remaining==0);
 gen eax := POPARG4(remaining==0);
 
-gen r32 := POPARG4()
-		{ E_pop($$); }
+gen r8  := POPARG1(remaining!=0) { E_pop($$); }
+gen r16 := POPARG2(remaining!=0) { E_pop($$); }
+gen r32 := POPARG4(remaining!=0) { E_pop($$); }
 
 // --- Constants ------------------------------------------------------------
 

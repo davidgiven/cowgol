@@ -1019,5 +1019,12 @@
     push d
     jmp `_cmpu4
 
+# Jumps to the address in de.
+&X _jmpde
+    cseg ; _jmpbc
+``:
+    push d
+    ret
+ 
 # vim: ts=4 sw=4 et
 

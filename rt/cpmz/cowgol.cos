@@ -534,6 +534,13 @@
     xor 0x80            ; invert sign byte, spoil Z
     ret
 
+# Jumps to the address in de.
+&X _jpde
+    cseg ; _jpbc
+``:
+    push de
+    ret
+ 
 # vim: ts=4 sw=4 et
 
 

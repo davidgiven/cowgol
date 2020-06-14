@@ -928,45 +928,59 @@ gen ENDSUB()
 	EmitterPopChunk('S');
 }
 
-gen CALL(SUBREF(), param):s           { E_call($s.subr); }
-gen a := CALLE1(SUBREF(), param):s    { E_call($s.subr); }
-gen hl := CALLE2(SUBREF(), param):s   { E_call($s.subr); }
-gen hlhl := CALLE4(SUBREF(), param):s { E_call($s.subr); }
+%{
+	sub CallI is
+		E_callhelper("_jpde");
+	end sub;
+%}
+
+gen         CALL(       param,        SUBREF():s) uses a|bc|de|hl { E_call($s.subr); }
+gen         CALL(  ARG1(param, a),    SUBREF():s) uses   bc|de|hl { E_call($s.subr); }
+gen         CALL(  ARG2(param, hl),   SUBREF():s) uses a|bc|de    { E_call($s.subr); }
+gen         CALL(  ARG4(param, hlhl), SUBREF():s) uses a|bc|de    { E_call($s.subr); }
+gen a :=    CALLE1(     param,        SUBREF():s) uses   bc|de|hl { E_call($s.subr); }
+gen a :=    CALLE1(ARG1(param, a),    SUBREF():s) uses   bc|de|hl { E_call($s.subr); }
+gen a :=    CALLE1(ARG2(param, hl),   SUBREF():s) uses   bc|de    { E_call($s.subr); }
+gen a :=    CALLE1(ARG4(param, hlhl), SUBREF():s) uses   bc|de    { E_call($s.subr); }
+gen hl :=   CALLE2(     param,        SUBREF():s) uses a|bc|de    { E_call($s.subr); }
+gen hl :=   CALLE2(ARG1(param, a),    SUBREF():s) uses   bc|de    { E_call($s.subr); }
+gen hl :=   CALLE2(ARG2(param, hl),   SUBREF():s) uses a|bc|de    { E_call($s.subr); }
+gen hl :=   CALLE2(ARG4(param, hlhl), SUBREF():s) uses   bc|de    { E_call($s.subr); }
+gen hlhl := CALLE4(     param,        SUBREF():s) uses a|bc|de    { E_call($s.subr); }
+gen hlhl := CALLE4(ARG1(param, a),    SUBREF():s) uses   bc|de    { E_call($s.subr); }
+gen hlhl := CALLE4(ARG2(param, hl),   SUBREF():s) uses a|bc|de    { E_call($s.subr); }
+gen hlhl := CALLE4(ARG4(param, hlhl), SUBREF():s) uses   bc|de    { E_call($s.subr); }
+
+gen         CALL(       param,        de) uses a|bc|hl { CallI(); }
+gen         CALL(  ARG1(param, a),    de) uses   bc|hl { CallI(); }
+gen         CALL(  ARG2(param, hl),   de) uses a|bc    { CallI(); }
+gen         CALL(  ARG4(param, hlhl), de) uses a|bc    { CallI(); }
+gen a :=    CALLE1(     param,        de) uses   bc|hl { CallI(); }
+gen a :=    CALLE1(ARG1(param, a),    de) uses   bc|hl { CallI(); }
+gen a :=    CALLE1(ARG2(param, hl),   de) uses   bc    { CallI(); }
+gen a :=    CALLE1(ARG4(param, hlhl), de) uses   bc    { CallI(); }
+gen hl :=   CALLE2(     param,        de) uses a|bc    { CallI(); }
+gen hl :=   CALLE2(ARG1(param, a),    de) uses   bc    { CallI(); }
+gen hl :=   CALLE2(ARG2(param, hl),   de) uses a|bc    { CallI(); }
+gen hl :=   CALLE2(ARG4(param, hlhl), de) uses a|bc    { CallI(); }
+gen hlhl := CALLE4(     param,        de) uses a|bc    { CallI(); }
+gen hlhl := CALLE4(ARG1(param, a),    de) uses   bc    { CallI(); }
+gen hlhl := CALLE4(ARG2(param, hl),   de) uses a|bc    { CallI(); }
+gen hlhl := CALLE4(ARG4(param, hlhl), de) uses a|bc    { CallI(); }
 
 gen param := END();
 
-gen param := ARG1(param, a, remaining==0);
+gen param := ARG1(param, a|b|d|h:lhs)  { E_push($lhs); }
+gen param := ARG2(param, bc|de|hl:lhs) { E_push($lhs); }
+gen param := ARG4(param, r32:lhs)      { ArchEmitMove($lhs, 0); }
 
-gen param := ARG1(param, a|b|d|h:lhs, remaining!=0)
-		{ E_push($lhs); }
-	
-gen param := ARG2(param, hl, remaining==0);
-
-gen param := ARG2(param, bc|de|hl:lhs, remaining!=0)
-		{ E_push($lhs); }
-
-gen param := ARG2(CALLE2(param):s)
-		{ E_call($s.subr); }
-
-gen param := ARG4(param, hlhl, remaining==0);
-
-gen param := ARG4(param, r32:lhs, remaining!=0)
-		{ ArchEmitMove($lhs, 0); }
-
-gen a := POPARG1(remaining==0);
-
-gen r8 := POPARG1(remaining!=0)
-		{ E_pop($$); }
-
-gen hl := POPARG2(remaining==0);
-
-gen r16 := POPARG2(remaining!=0)
-		{ E_pop($$); }
-
+gen a    := POPARG1(remaining==0);
+gen hl   := POPARG2(remaining==0);
 gen hlhl := POPARG4(remaining==0);
 
-gen r32 := POPARG4(remaining!=0)
-		{ ArchEmitMove(0, $$); }
+gen r8  := POPARG1(remaining!=0) { E_pop($$); }
+gen r16 := POPARG2(remaining!=0) { E_pop($$); }
+gen r32 := POPARG4(remaining!=0) { ArchEmitMove(0, $$); }
 
 gen RETURN()
 {

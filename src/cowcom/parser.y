@@ -758,7 +758,7 @@ expression(E) ::= startsubcall inputargs(INA).
 	end if;
 
 	var param := intfsubr.first_output_parameter;
-	E := MidCalle(param.vardata.type.typedata.width as uint8, current_call.expr, INA, intfsubr);
+	E := MidCalle(param.vardata.type.typedata.width as uint8, INA, current_call.expr, intfsubr);
 	E.type := param.vardata.type;
 
 	i_end_call();
@@ -772,7 +772,7 @@ statement ::= startsubcall inputargs(INA) SEMICOLON.
 		SimpleError("subroutine requires output arguments");
 	end if;
 
-	Generate(MidCall(current_call.expr, INA, intfsubr));
+	Generate(MidCall(INA, current_call.expr, intfsubr));
 
 	i_end_call();
 }
@@ -782,7 +782,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 	var intfsubr := current_call.intfsubr;
 	i_check_sub_call_args();
 
-	Generate(MidCall(current_call.expr, INA, intfsubr));
+	Generate(MidCall(INA, current_call.expr, intfsubr));
 
 	var paramindex := intfsubr.num_output_parameters;
 	var count: uint8 := 0;
@@ -976,6 +976,7 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 		not_an_interface();
 	end if;
 
+	preparing_subr.flags := preparing_subr.flags | SUB_IS_IMPLEMENTATION;
 	preparing_subr.intfsubr := intfsubr;
 	preparing_subr.type := T;
 	EmitterReferenceSubroutine(current_subr, intfsubr);

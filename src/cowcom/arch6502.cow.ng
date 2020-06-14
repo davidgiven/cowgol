@@ -390,6 +390,9 @@
 
     sub IsSimpleSub(subr: [Subroutine]): (result: uint8) is
         result := 0;
+        if ((subr.flags & SUB_IS_IMPLEMENTATION) != 0) and (subr.num_input_parameters > 0) then
+            return;
+        end if;
         if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
             return;
         end if;
@@ -901,6 +904,7 @@ gen JUMP():j
     end sub;
 
     sub DoParamDirect_lda(operand: [Operand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDA, offset); end sub;
+    sub DoParamDirect_ldy(operand: [Operand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDY, offset); end sub;
     sub DoParamDirect_sta(operand: [Operand], offset: uint8) is                 DoParamDirect(operand, OC_STA, offset); end sub;
 
     # Note that this *destroys* the source register.
@@ -1029,6 +1033,7 @@ gen STARTSUB()
             end if;
         end sub;
 
+        var current_subrid: uint16;
         var current_wsid: uint8 := 0xff;
         var current_top: Size;
         var current_bot: Size;
@@ -1041,7 +1046,7 @@ gen STARTSUB()
                     E_pla();
 
                     E_sta();
-                    E_wsref(current_subr.id, current_wsid, current_bot+1);
+                    E_wsref(current_subrid, current_wsid, current_bot+1);
                     E_nl();
 
                     count := 1;
@@ -1050,7 +1055,7 @@ gen STARTSUB()
                     E_pla();
 
                     E_sta();
-                    E_wsref(current_subr.id, current_wsid, current_bot);
+                    E_wsref(current_subrid, current_wsid, current_bot);
                     E_nl();
                 end if;
                 if count > 2 then
@@ -1059,7 +1064,7 @@ gen STARTSUB()
                     E_pla();
                     
                     E_sta();
-                    E_wsref(current_subr.id, current_wsid, current_bot);
+                    E_wsref(current_subrid, current_wsid, current_bot);
                     E_y_nl();
 
                     E_dey();
@@ -1073,10 +1078,11 @@ gen STARTSUB()
         sub Pull() is
             var wsid := GetWsId(param);
             var w := param.vardata.type.typedata.width;
-            if (wsid != current_wsid)
+            if (wsid != current_wsid) or (param.vardata.subr.id != current_subrid)
                     or (param.vardata.offset != (current_bot-w)) then
                 CloseLoop();
                 current_wsid := wsid;
+                current_subrid := param.vardata.subr.id;
                 current_top := param.vardata.offset + w - 1;
             end if;
             current_bot := param.vardata.offset;
@@ -1086,9 +1092,13 @@ gen STARTSUB()
             count := count - 1;
             param := GetInputParameter(current_subr, count);
 
+            var inregister: uint8 := 0;
+            if (count == lastparam) and ((current_subr.flags & SUB_IS_IMPLEMENTATION) == 0) then
+                inregister := 1;
+            end if;
             case param.vardata.type.typedata.width is
                 when 1:
-                    if count != lastparam then
+                    if inregister == 0 then
                         PopReturnAddress();
                         Pull();
                     else
@@ -1099,7 +1109,7 @@ gen STARTSUB()
                     end if;
 
                 when 2:
-                    if count != lastparam then
+                    if inregister == 0 then
                         PopReturnAddress();
                         Pull();
                     else
@@ -1135,6 +1145,7 @@ gen ENDSUB()
             E_label(current_subr.arch.end_label);
         end if;
 
+        var current_subrid: uint16;
         var current_wsid: uint8 := 0xff;
         var current_top: Size;
         var current_bot: Size;
@@ -1145,14 +1156,14 @@ gen ENDSUB()
 
                 if count <= 2 then
                     E_lda();
-                    E_wsref(current_subr.id, current_wsid, current_bot);
+                    E_wsref(current_subrid, current_wsid, current_bot);
                     E_nl();
 
                     E_pha();
                 end if;
                 if count == 2 then
                     E_lda();
-                    E_wsref(current_subr.id, current_wsid, current_bot+1);
+                    E_wsref(current_subrid, current_wsid, current_bot+1);
                     E_nl();
 
                     E_pha();
@@ -1161,7 +1172,7 @@ gen ENDSUB()
                     E_loadconst(REG_Y, 256-(count as uint8));
                     var lid := E_new_label();
                     E_lda();
-                    E_wsref(current_subr.id, current_wsid, current_bot - (256 - count));
+                    E_wsref(current_subrid, current_wsid, current_bot - (256 - count));
                     E_y_nl();
                     
                     E_pha();
@@ -1177,9 +1188,10 @@ gen ENDSUB()
         sub Push() is
             var wsid := GetWsId(param);
             var w := param.vardata.type.typedata.width as uint8;
-            if (wsid != current_wsid)
+            if (wsid != current_wsid) or (param.vardata.subr.id != current_subrid)
                     or (param.vardata.offset != (current_top+1)) then
                 CloseLoop();
+                current_subrid := param.vardata.subr.id;
                 current_wsid := wsid;
                 current_bot := param.vardata.offset;
             end if;
@@ -1284,20 +1296,43 @@ gen RETURN()
         E_dey();
         E_bpl(lid);
     end sub;
+
+    # Must not modify XA.
+    sub CallI is
+        E_callhelper("_jmpxa");
+    end sub;
+
+    sub is_fast(subr: [Subroutine]): (result: uint8) is
+        if (subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
+            result := 1;
+        else
+            result := 0;
+        end if;
+    end sub;
 %}
 
-gen CALL(SUBREF():s, param) uses x|y|a          { E_call($s.subr); }
-gen a := CALLE1(SUBREF():s, param) uses x|y     { E_call($s.subr); }
-gen xa := CALLE2(SUBREF():s, param) uses y      { E_call($s.subr); }
-gen v32 := CALLE4(SUBREF():s, param) uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
+gen        CALL(       param,      SUBREF():s)             uses x|y|a { E_call($s.subr); }
+gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); }
+gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); }
+gen a :=   CALLE1(     param,      SUBREF():s)             uses x|y   { E_call($s.subr); }
+gen a :=   CALLE1(ARG1(param, a),  SUBREF(subr is fast):s) uses x|y   { E_call($s.subr); }
+gen a :=   CALLE1(ARG2(param, xa), SUBREF(subr is fast):s) uses x|y   { E_call($s.subr); }
+gen xa :=  CALLE2(     param,      SUBREF():s)             uses y     { E_call($s.subr); }
+gen xa :=  CALLE2(ARG1(param, a),  SUBREF(subr is fast):s) uses y     { E_call($s.subr); }
+gen xa :=  CALLE2(ARG2(param, xa), SUBREF(subr is fast):s) uses y     { E_call($s.subr); }
+gen v32 := CALLE4(     param,      SUBREF():s)             uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG1(param, a),  SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG2(param, xa), SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
+
+gen        CALL(  param, xa) uses y { CallI(); }
+gen a :=   CALLE1(param, xa) uses y { CallI(); }
+gen xa :=  CALLE2(param, xa) uses y { CallI(); }
+gen v32 := CALLE4(param, xa) uses y { CallI(); PopArg4(PushV32()); }
 
 gen param := END();
 
-gen param := ARG1(param, a, remaining==0); 
-gen param := ARG2(param, xa, remaining==0);
-
-gen param := ARG1(param, a,  remaining!=0) { E_pha(); } 
-gen param := ARG2(param, xa, remaining!=0) { E_phxa(); }
+gen param := ARG1(param, a) { E_pha(); } 
+gen param := ARG2(param, xa) { E_phxa(); }
 
 gen param := ARG4(param, in4s:lhs) uses y|a
 {

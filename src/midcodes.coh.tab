@@ -30,7 +30,7 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 JUMP(label: uint16) = ("%d", $$.label)
 - 0 0 RETURN()
 
-# These take the thing to be called on the LHS and a parameter list on the RHS.
+# These take a parameter list on the LHS and the thing to be called on the LHS.
 # The parameter list is a chain of ARG nodes containing the subroutine
 # arguments. Any return arguments are pushed onto the argument stack.  subr
 # points at the real subroutine or the interface.

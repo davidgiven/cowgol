@@ -291,27 +291,9 @@ gen ENDSUB():s
 	EmitterPopChunk('S');
 }
 
-gen param := END();
-gen param := ARG1(param, v1);
-gen param := ARG2(param, v2);
-gen param := ARG4(param, v4);
-gen param := ARG8(param, v8);
-
-gen v1 := POPARG1();
-gen v2 := POPARG2();
-gen v4 := POPARG4();
-gen v8 := POPARG8();
-
 %{
-	sub Call(subr: [Subroutine]) is
-		# This is madness, but has to be done: we don't know where we are in
-		# the program, and so don't know whether the function we're trying to
-		# call has been declared. So... we declare it again inline.
-
-		E("\n\tvoid ");
-		E_subref(subr);
+	sub EmitFunctionSignature(subr: [Subroutine]) is
 		E("(");
-
 		var first: uint8 := 1;
 		sub comma() is
 			if first == 0 then
@@ -354,7 +336,12 @@ gen v8 := POPARG8();
 		if (subr.num_input_parameters + subr.num_output_parameters) == 0 then
 			E("void");
 		end if;
-		E(");\n");
+		E(")");
+	end sub;
+
+	# subr here is the *interface*.
+	sub Call(subr: [Subroutine]) is
+		var pid := Pop();
 
 		# Allocate vids for the return parameters.
 
@@ -363,9 +350,9 @@ gen v8 := POPARG8();
 
 		# Declare variables for the output parameters.
 
-		count := 0;
+		var count: uint8 := 0;
 		while count != subr.num_output_parameters loop
-			param := GetOutputParameter(subr, count);
+			var param := GetOutputParameter(subr, count);
 
 			E("\ti");
 			E_u8(param.vardata.type.typedata.width as uint8);
@@ -376,13 +363,23 @@ gen v8 := POPARG8();
 			count := count + 1;
 		end loop;
 
-		# Emit the function call.
+		# Emit the typecast to make the function call work.
 
-		E("\t");
-		E_subref(subr);
-		E("(");
+		E("\n\t((void(*)");
+		EmitFunctionSignature(subr);
+		E(")(intptr_t)v");
+		E_u16(pid);
+		E(")(");
 
-		first := 1;
+		# Emit the function call itself.
+
+		var first: uint8 := 1;
+		sub comma() is
+			if first == 0 then
+				E(", ");
+			end if;
+			first := 0;
+		end sub;
 
 		# Output parameters (left to right).
 
@@ -423,11 +420,22 @@ gen v8 := POPARG8();
 	end sub;
 %}
 
-gen CALL(SUBREF(), param):s         { Call($s.subr); }
-gen v1 := CALLE1(SUBREF(), param):s { Call($s.subr); }
-gen v2 := CALLE2(SUBREF(), param):s { Call($s.subr); }
-gen v4 := CALLE4(SUBREF(), param):s { Call($s.subr); }
-gen v8 := CALLE8(SUBREF(), param):s { Call($s.subr); }
+gen       CALL(  param, v8):s { Call($s.subr); }
+gen v1 := CALLE1(param, v8):s { Call($s.subr); }
+gen v2 := CALLE2(param, v8):s { Call($s.subr); }
+gen v4 := CALLE4(param, v8):s { Call($s.subr); }
+gen v8 := CALLE8(param, v8):s { Call($s.subr); }
+
+gen param := END();
+gen param := ARG1(param, v1);
+gen param := ARG2(param, v2);
+gen param := ARG4(param, v4);
+gen param := ARG8(param, v8);
+
+gen v1 := POPARG1();
+gen v2 := POPARG2();
+gen v4 := POPARG4();
+gen v8 := POPARG8();
 
 // --- Core conversions --------------------------------------------------
 
@@ -466,6 +474,11 @@ gen v8 := ADDRESS():a
 gen v8 := SUBREF():s
 {
 	var vid := Push();
+
+	E("\tvoid ");
+	E_subref($s.subr);
+	EmitFunctionSignature($s.subr);
+	E(";\n");
 
 	E("\ti8 v");
 	E_u16(vid);
