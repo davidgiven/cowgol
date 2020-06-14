@@ -9,6 +9,7 @@
 - 0 0 STARTINIT(sym: [Symbol]) = ("%s", $$.sym.name)
 y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 INITS(text: string) = ("...")
+- 0 0 INITA(sym: [Symbol], off: Size)
 - 0 0 ENDINIT()
 
 - 0 0 ASMGROUPSTART()
@@ -30,10 +31,12 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 JUMP(label: uint16) = ("%d", $$.label)
 - 0 0 RETURN()
 
-# These take a parameter list: a chain of ARG nodes containing the subroutine
-# arguments. Any return arguments are pushed onto the argument stack.
-- 1 0 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
-y 1 1 CALLE(subr: [Subroutine]) = ("%s", $$.subr.name)
+# These take a parameter list on the LHS and the thing to be called on the LHS.
+# The parameter list is a chain of ARG nodes containing the subroutine
+# arguments. Any return arguments are pushed onto the argument stack.  subr
+# points at the real subroutine or the interface.
+- 2 0 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
+y 2 1 CALLE(subr: [Subroutine]) = ("%s", $$.subr.name)
 
 # Represents an argument to a call. The LHS points at the next argument or an
 # END. The RHS is the value. The values are left-to-right, so that the first

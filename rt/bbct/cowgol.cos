@@ -511,7 +511,7 @@
 
 &X _when4
 &W _when4 1 4
-; Compares the 32-bit value pointed at by `$.2.0to1 with the value immediately
+; Compares the 32-bit value pointed at by `$.1.0to1 with the value immediately
 ; after the call instruction and sets the flags appropriately.
 ``:
     ; Pop the return address and add one to it.
@@ -553,5 +553,13 @@
 
     jmp (`$.1.2)
     
+&X _jmpxa
+&W _jmpxa 1 2
+; Jumps to the address in XA.
+``:
+    sta `$.1.0
+    stx `$.1.1
+    jmp (`$.1.0)
+
 ; vim: sw=4 ts=4 et
 

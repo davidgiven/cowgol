@@ -1,0 +1,38 @@
+include "cowgol.coh";
+include "_framework.coh";
+
+interface Interface(in1: uint32, in2: uint8): (out1: uint32, out2: uint8);
+
+sub Impl1 implements Interface is
+	print("Impl1");
+	if (in1 == 1) and (in2 == 2) then yes(); else no(); end if;
+
+	out1 := 9;
+	out2 := 10;
+end sub;
+
+sub Impl2 implements Interface is
+	out1 := 1;
+	out2 := 2;
+end sub;
+
+var a: Interface := Impl1;
+
+var i8: uint8;
+var i32: uint32;
+
+sub CheckReturn1 is
+	print("return");
+	if (i32 == 9) and (i8 == 10) then yes(); else no(); end if;
+end sub;
+
+(i32, i8) := Impl1(1, 2);
+CheckReturn1();
+
+(i32, i8) := a(1, 2);
+CheckReturn1();
+
+var array: Interface[] := { Impl1, Impl2 };
+(i32, i8) := (array[0])(1, 2);
+CheckReturn1();
+

@@ -34,17 +34,23 @@ record NumberTypeSymbol is
 	is_signed: uint8;
 end record;
 
+record SubroutineTypeSymbol is
+	subr: [Subroutine];
+end record;
+
 const TYPE_PARTIAL := 1;
 const TYPE_NUMBER := 2;
 const TYPE_POINTER := 3;
 const TYPE_ARRAY := 4;
 const TYPE_RECORD := 5;
+const TYPE_SUBROUTINE := 6;
 
 record TypeSymbol is
 	numbertype @at(0): NumberTypeSymbol;
 	arraytype @at(0): ArrayTypeSymbol;
 	pointertype @at(0): PointerTypeSymbol;
 	recordtype @at(0): RecordTypeSymbol;
+	subrtype @at(0): SubroutineTypeSymbol;
 
 	pointerto: [Symbol];
 	kind: uint8;
@@ -73,7 +79,9 @@ record Symbol is
 	next: [Symbol];
 end record;
 
-const SUB_HAS_IMPL := 1;
+const SUB_HAS_IMPL          := 0b001;
+const SUB_IS_INTERFACE      := 0b010;
+const SUB_IS_IMPLEMENTATION := 0b100;
 
 record Subroutine is
 	name: string;
@@ -81,6 +89,8 @@ record Subroutine is
 	namespace: Namespace;
 	first_input_parameter: [Symbol];
 	first_output_parameter: [Symbol];
+	type: [Symbol];
+	intfsubr: [Subroutine];
 	id: uint16;
 	workspace: Size[4];
 	old_break_label: LabelRef;
@@ -116,7 +126,8 @@ record CaseLabels is
 end record;
 
 record SubroutineCall is
-	subr: [Subroutine];
+	expr: [Node];
+	intfsubr: [Subroutine];
 	parent: [SubroutineCall];
 	input_parameter: [Symbol];
 	output_parameter: [Symbol];

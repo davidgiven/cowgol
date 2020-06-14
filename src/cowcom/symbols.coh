@@ -48,6 +48,21 @@ sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol]) is
 	arraytype.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 end sub;
 
+sub MakeSubroutineType(subr: [Subroutine]): (type: [Symbol]) is
+	type := subr.type;
+	if type == (0 as [Symbol]) then
+		type := AddSymbol(0 as [Namespace], 0 as string);
+		type.name := subr.name;
+		type.kind := TYPE;
+		type.typedata.kind := TYPE_SUBROUTINE;
+		type.typedata.width := intptr_type.typedata.width;
+		type.typedata.alignment := intptr_type.typedata.alignment;
+		type.typedata.stride := intptr_type.typedata.stride;
+		type.typedata.subrtype.subr := subr;
+		subr.type := type;
+	end if;
+end sub;
+
 # Called after a subroutine has been generated. This allows us to free up some
 # of the resources used. Note that we can't free *everything* until our parent
 # gets destructed, because parameters and types which they depend on might be
@@ -118,5 +133,27 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 		subr.namespace.first := 0 as [Symbol];
 	end if;
 	subr.namespace.last := last_parameter;
+end sub;
+
+sub CopyParameterList(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol]) is
+	newparam := 0 as [Symbol];
+	var lastparam := 0 as [Symbol];
+
+	while param != 0 as [Symbol] loop
+		var p := AddSymbol(&subr.namespace, StrDup(param.name));
+		p.kind := VAR;
+		p.vardata.type := param.vardata.type;
+		p.vardata.subr := param.vardata.subr;
+		p.vardata.offset := param.vardata.offset;
+		if lastparam != 0 as [Symbol] then
+			lastparam.vardata.next_parameter := p;
+		end if;
+		lastparam := p;
+		if newparam == 0 as [Symbol] then
+			newparam := p;
+		end if;
+
+		param := param.vardata.next_parameter;
+	end loop;
 end sub;
 

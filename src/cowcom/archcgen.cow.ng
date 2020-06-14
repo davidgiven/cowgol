@@ -75,18 +75,80 @@
 		end if;
 	end sub;
 
-	sub E_symref(sym: [Symbol], off: Size) is
-		if sym.vardata.externname != (0 as string) then
-			E("((i1*)");
-			E(sym.vardata.externname);
-			E_i16(off as int16);
-			E(")");
-		else
-			E_b8(COO_ESCAPE_WSREF);
-			E_b16(sym.vardata.subr.id);
-			E_b8(0);
-			E_b16(sym.vardata.offset + off);
+	sub EmitFunctionSignature(subr: [Subroutine]) is
+		E("(");
+		var first: uint8 := 1;
+		sub comma() is
+			if first == 0 then
+				E(", ");
+			end if;
+			first := 0;
+		end sub;
+
+		# Output parameters, left to right (the rightmost gets pushed last)
+
+		var count: uint8 := 0;
+		while count != subr.num_output_parameters loop
+			var param := GetOutputParameter(subr, count);
+
+			comma();
+			E("i");
+			E_u8(param.vardata.type.typedata.width as uint8);
+			E("* /* ");
+			E(param.name);
+			E(" */");
+			count := count + 1;
+		end loop;
+
+		# Input parameters, right to left (the rightmost was pushed last
+		# and so is the first C parameter)
+
+		count := subr.num_input_parameters;
+		while count != 0 loop
+			count := count - 1;
+			param := GetInputParameter(subr, count);
+
+			comma();
+			E("i");
+			E_u8(param.vardata.type.typedata.width as uint8);
+			E(" /* ");
+			E(param.name);
+			E(" */");
+		end loop;
+
+		if (subr.num_input_parameters + subr.num_output_parameters) == 0 then
+			E("void");
 		end if;
+		E(")");
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		case sym.kind is
+			when SUB:
+				EmitterPushChunk();
+				E_b16(current_subr.id);
+
+				E("\tvoid ");
+				E_subref(sym.subr);
+				EmitFunctionSignature(sym.subr);
+				E(";\n");
+
+				EmitterPopChunk('S');
+				E_subref(sym.subr);
+
+			when VAR:
+				if sym.vardata.externname != (0 as string) then
+					E("((i1*)");
+					E(sym.vardata.externname);
+					E_i16(off as int16);
+					E(")");
+				else
+					E_b8(COO_ESCAPE_WSREF);
+					E_b16(sym.vardata.subr.id);
+					E_b8(0);
+					E_b16(sym.vardata.offset + off);
+				end if;
+		end case;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -291,70 +353,10 @@ gen ENDSUB():s
 	EmitterPopChunk('S');
 }
 
-gen param := END();
-gen param := ARG1(param, v1);
-gen param := ARG2(param, v2);
-gen param := ARG4(param, v4);
-gen param := ARG8(param, v8);
-
-gen v1 := POPARG1();
-gen v2 := POPARG2();
-gen v4 := POPARG4();
-gen v8 := POPARG8();
-
 %{
+	# subr here is the *interface*.
 	sub Call(subr: [Subroutine]) is
-		# This is madness, but has to be done: we don't know where we are in
-		# the program, and so don't know whether the function we're trying to
-		# call has been declared. So... we declare it again inline.
-
-		E("\n\tvoid ");
-		E_subref(subr);
-		E("(");
-
-		var first: uint8 := 1;
-		sub comma() is
-			if first == 0 then
-				E(", ");
-			end if;
-			first := 0;
-		end sub;
-
-		# Output parameters, left to right (the rightmost gets pushed last)
-
-		var count: uint8 := 0;
-		while count != subr.num_output_parameters loop
-			var param := GetOutputParameter(subr, count);
-
-			comma();
-			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
-			E("* /* ");
-			E(param.name);
-			E(" */");
-			count := count + 1;
-		end loop;
-
-		# Input parameters, right to left (the rightmost was pushed last
-		# and so is the first C parameter)
-
-		count := subr.num_input_parameters;
-		while count != 0 loop
-			count := count - 1;
-			param := GetInputParameter(subr, count);
-
-			comma();
-			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
-			E(" /* ");
-			E(param.name);
-			E(" */");
-		end loop;
-
-		if (subr.num_input_parameters + subr.num_output_parameters) == 0 then
-			E("void");
-		end if;
-		E(");\n");
+		var pid := Pop();
 
 		# Allocate vids for the return parameters.
 
@@ -363,9 +365,9 @@ gen v8 := POPARG8();
 
 		# Declare variables for the output parameters.
 
-		count := 0;
+		var count: uint8 := 0;
 		while count != subr.num_output_parameters loop
-			param := GetOutputParameter(subr, count);
+			var param := GetOutputParameter(subr, count);
 
 			E("\ti");
 			E_u8(param.vardata.type.typedata.width as uint8);
@@ -376,13 +378,23 @@ gen v8 := POPARG8();
 			count := count + 1;
 		end loop;
 
-		# Emit the function call.
+		# Emit the typecast to make the function call work.
 
-		E("\t");
-		E_subref(subr);
-		E("(");
+		E("\n\t((void(*)");
+		EmitFunctionSignature(subr);
+		E(")(intptr_t)v");
+		E_u16(pid);
+		E(")(");
 
-		first := 1;
+		# Emit the function call itself.
+
+		var first: uint8 := 1;
+		sub comma() is
+			if first == 0 then
+				E(", ");
+			end if;
+			first := 0;
+		end sub;
 
 		# Output parameters (left to right).
 
@@ -423,11 +435,22 @@ gen v8 := POPARG8();
 	end sub;
 %}
 
-gen CALL(param):s         { Call($s.subr); }
-gen v1 := CALLE1(param):s { Call($s.subr); }
-gen v2 := CALLE2(param):s { Call($s.subr); }
-gen v4 := CALLE4(param):s { Call($s.subr); }
-gen v8 := CALLE8(param):s { Call($s.subr); }
+gen       CALL(  param, v8):s { Call($s.subr); }
+gen v1 := CALLE1(param, v8):s { Call($s.subr); }
+gen v2 := CALLE2(param, v8):s { Call($s.subr); }
+gen v4 := CALLE4(param, v8):s { Call($s.subr); }
+gen v8 := CALLE8(param, v8):s { Call($s.subr); }
+
+gen param := END();
+gen param := ARG1(param, v1);
+gen param := ARG2(param, v2);
+gen param := ARG4(param, v4);
+gen param := ARG8(param, v8);
+
+gen v1 := POPARG1();
+gen v2 := POPARG2();
+gen v4 := POPARG4();
+gen v8 := POPARG8();
 
 // --- Core conversions --------------------------------------------------
 
@@ -951,6 +974,15 @@ gen v8 := STRING():s
 			width := width - 1;
 		end loop;
 	end sub;
+
+	sub CheckBufferAlignment() is
+		if initialiser_buffer_fill_bytes != 0 then
+			StartError();
+			print("bad initialiser alignment: ");
+			print_i8(initialiser_buffer_fill_bytes);
+			EndError();
+		end if;
+	end sub;
 %}
 
 gen STARTINIT():s
@@ -972,14 +1004,18 @@ gen INIT2():c { E_bytes(&$c.value as [uint8], 2); }
 gen INIT4():c { E_bytes(&$c.value as [uint8], 4); }
 gen INIT8():c { E_bytes(&$c.value as [uint8], 8); }
 
+gen INITA():a
+{
+	CheckBufferAlignment();
+
+	E("\t{ .ptr = (void*)");
+	E_symref($a.sym, $a.off);
+	E(" },\n");
+}
+
 gen INITS():s
 {
-	if initialiser_buffer_fill_bytes != 0 then
-		StartError();
-		print("bad initialiser alignment: ");
-		print_i8(initialiser_buffer_fill_bytes);
-		EndError();
-	end if;
+	CheckBufferAlignment();
 
 	E("\t{ .ptr = (void*)");
 	E_b8(COO_ESCAPE_THISCOO);

@@ -4552,6 +4552,8 @@ void ReportTable(
     translate_code(lemp, rp);
   }
 
+  fprintf(out, "interface Reducer();\n"); lineno++;
+
   /* First output rules other than the default: rule */
   for(rp=lemp->rule; rp; rp=rp->next){
     if( rp->codeEmitted ) continue;
@@ -4559,29 +4561,15 @@ void ReportTable(
       /* No C code actions, so this will be part of the "default:" rule */
       continue;
     }
-	fprintf(out, "sub reduce_%d() is # %d symbols on RHS\n", rp->iRule, rp->nrhs - 1); lineno++;
+	fprintf(out, "sub reduce_%d implements Reducer is # %d symbols on RHS\n", rp->iRule, rp->nrhs - 1); lineno++;
     emit_code(out,rp,lemp,&lineno);
 	fprintf(out, "end sub;\n"); lineno++;
+	rp->codeEmitted = 1;
   }
 
-  fprintf(out, "case yyruleno as uint8 is\n");
-  for(rp=lemp->rule; rp; rp=rp->next){
-    struct rule *rp2;               /* Other rules with the same action */
-    if( rp->codeEmitted ) continue;
-    if( rp->noCode ){
-      /* No C code actions, so this will be part of the "default:" rule */
-      continue;
-    }
-
-    fprintf(out,"when %d: # ", rp->iRule); lineno++;
-    writeRuleText(out, rp);
-    fprintf(out, "\n"); lineno++;
-    fprintf(out,"  reduce_%d();\n", rp->iRule); lineno++;
-    rp->codeEmitted = 1;
-  }
-  /* Finally, output the default: rule.  We choose as the default: all
+  /* Output the default: rule.  We choose as the default: all
   ** empty actions. */
-  fprintf(out,"when else:\n"); lineno++;
+  fprintf(out,"sub reduce_default implements Reducer is\n"); lineno++;
   for(rp=lemp->rule; rp; rp=rp->next){
     if( rp->codeEmitted ) continue;
     assert( rp->noCode );
@@ -4589,7 +4577,20 @@ void ReportTable(
     writeRuleText(out, rp);
     fprintf(out, "\n", rp->iRule); lineno++;
   }
-  fprintf(out,"end case;\n"); lineno++;
+  fprintf(out,"end sub;\n"); lineno++;
+
+  /* Emit the table of reducer callbacks. */
+  fprintf(out, "var reducers: Reducer[] := {\n"); lineno++;
+  for(rp=lemp->rule; rp; rp=rp->next){
+    if (rp->noCode) {
+	  fprintf(out, "\treduce_default,\n"); lineno++;
+	} else {
+	  fprintf(out, "\treduce_%d,\n", rp->iRule); lineno++;
+	}
+  }
+  fprintf(out, "};\n"); lineno++;
+  fprintf(out, "(reducers[yyruleno as uint8])();\n"); lineno++;
+
   tplt_xfer(lemp->name,in,out,&lineno);
 
   /* Generate code which executes if a parse fails */

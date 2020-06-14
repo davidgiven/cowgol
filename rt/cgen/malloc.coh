@@ -3,15 +3,15 @@
 # programs *much* easier to debug using tools like valgrind.
 
 sub Alloc(length: intptr): (block: [uint8]) is
-	@asm block, "=(i8)calloc(1, (size_t)", length, ");";
+	@asm block, "=(intptr_t)calloc(1, (size_t)", length, ");";
 end sub;
 
 sub Free(block: [uint8]) is
-	@asm "free((void*)", block, ");";
+	@asm "free((void*)(intptr_t)", block, ");";
 end sub;
 
 sub StrDup(s: [uint8]): (sout: [uint8]) is
-	@asm sout, "=(i8)strdup((const char*)", s, ");";
+	@asm sout, "=(intptr_t)strdup((const char*)(intptr_t)", s, ");";
 end sub;
 
 sub CheckMemoryChain() is

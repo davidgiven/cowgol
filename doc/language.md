@@ -358,6 +358,59 @@ MemZero(&block as [uint8], @bytesof array);         # this works too
 var elementsize: intptr := @bytesof(@sizeof array); # use parentheses for type expressions
 ```
 
+### Interfaces and implementations
+
+There's an analogue of function pointers. It's stricter than in C; you may only
+take the address of subroutines which have been explicitly declared to be a
+member of a particular interface.
+
+```
+interface Comparator(o1: [Object], o2: [Object]): (result: int8);
+
+sub PointerComparator implements Comparator is
+    result := 0;
+	if o1 >= o2 then
+        result := 1;
+ 	end if;
+end sub;
+
+sub StringComparator implements Comparator is
+    result := StrCmp(o1 as [uint8], o2 as [uint8]);
+end sub;
+
+var someComparator: Comparator := PointerComparator;
+if isString() != 0 then
+    someComparator := StringComparator;
+end if;
+var r := someComparator(&object1, &object2);
+```
+
+Implementation references (e.g. `PointerComparator` or `StringComparator`
+above) are opaque pointer-sized objects, but not actually pointers. As with
+`@impl`, they use the parameter list of the interface. They behave exactly like
+normal subroutines and are constant values which can be used in initialiser lists.
+
+The language syntax makes it possible but slightly hard to return a subroutine
+reference to an outer scope. Don't do this, because as the outer scope exits
+its variables will be reused and the subroutine reference's upvalues will
+become garbage. On the other hand, you _can_ use them to call into a scope:
+
+```
+interface FileObserver(filename: [uint8]);
+@decl sub ScanDirectory(path: [uint8], callback: FileObserver);
+
+...
+
+sub ShowDirectoryContents() is
+    sub Callback implements FileObserver is
+	    print(filename);
+		print_nl();
+	end sub;
+
+	ScanDirectory(".", Callback);
+end sub
+```
+
 ## Include files
 
 Yes.

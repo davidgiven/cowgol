@@ -63,15 +63,21 @@
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
-		if sym.vardata.externname != (0 as string) then
-			E(sym.vardata.externname);
-			E_i16(off as int16);
-		else
-			E_b8(COO_ESCAPE_WSREF);
-			E_b16(sym.vardata.subr.id);
-			E_b8(0);
-			E_b16(sym.vardata.offset + off);
-		end if;
+		case sym.kind is
+			when SUB:
+				E_subref(sym.subr);
+
+			when VAR:
+				if sym.vardata.externname != (0 as string) then
+					E(sym.vardata.externname);
+					E_i16(off as int16);
+				else
+					E_b8(COO_ESCAPE_WSREF);
+					E_b16(sym.vardata.subr.id);
+					E_b8(0);
+					E_b16(sym.vardata.offset + off);
+				end if;
+		end case;
 	end sub;
 
 	sub R_flushall() is
@@ -765,47 +771,53 @@ gen ENDSUB()
 	EmitterPopChunk('S');
 }
 
-gen CALL(param):s
-		{ E_call($s.subr); }
-	
-gen a := CALLE1(param):s
-		{ E_call($s.subr); }
+%{
+	sub Call(addr: [MidcodeAddress]) is
+		E_call(addr.sym.subr);
+	end sub;
 
-gen hl := CALLE2(param):s
-		{ E_call($s.subr); }
+	sub CallI is
+		E_callhelper("_jmpde");
+	end sub;
+%}
 
-gen stk4 := CALLE4(param):s
-		{ E_call($s.subr); }
+gen         CALL(       param,      ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen         CALL(  ARG1(param, a),  ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen         CALL(  ARG2(param, hl), ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(     param,      ADDRESS():a) uses   bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(ARG1(param, a),  ADDRESS():a) uses   bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, hl), ADDRESS():a) uses   bc|de|hl { Call(&$a); }
+gen hl :=   CALLE2(     param,      ADDRESS():a) uses a|bc|de    { Call(&$a); }
+gen hl :=   CALLE2(ARG1(param, a),  ADDRESS():a) uses a|bc|de    { Call(&$a); }
+gen hl :=   CALLE2(ARG2(param, hl), ADDRESS():a) uses a|bc|de    { Call(&$a); }
+gen stk4 := CALLE4(     param,      ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen stk4 := CALLE4(ARG1(param, a),  ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen stk4 := CALLE4(ARG2(param, hl), ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+
+gen         CALL(       param,      de) uses a|bc|hl { CallI(); }
+gen         CALL(  ARG1(param, a),  de) uses   bc|hl { CallI(); }
+gen         CALL(  ARG2(param, hl), de) uses a|bc    { CallI(); }
+gen a :=    CALLE1(     param,      de) uses   bc|hl { CallI(); }
+gen a :=    CALLE1(ARG1(param, a),  de) uses   bc|hl { CallI(); }
+gen a :=    CALLE1(ARG2(param, hl), de) uses   bc    { CallI(); }
+gen hl :=   CALLE2(     param,      de) uses a|bc    { CallI(); }
+gen hl :=   CALLE2(ARG1(param, a),  de) uses   bc    { CallI(); }
+gen hl :=   CALLE2(ARG2(param, hl), de) uses a|bc    { CallI(); }
+gen stk4 := CALLE4(     param,      de) uses a|bc|hl { CallI(); }
+gen stk4 := CALLE4(ARG1(param, a),  de) uses   bc|hl { CallI(); }
+gen stk4 := CALLE4(ARG2(param, hl), de) uses a|bc    { CallI(); }
 
 gen param := END();
 
-gen param := ARG1(param, a, remaining==0);
+gen param := ARG1(param, a|b|d|h:lhs)  { E_push($lhs); }
+gen param := ARG2(param, bc|de|hl:lhs) { E_push($lhs); }
+gen param := ARG4(param, stk4);        // already stacked
 
-gen param := ARG1(param, a|b|d|h:lhs, remaining!=0)
-		{ E_push($lhs); }
-	
-gen param := ARG2(param, hl, remaining==0);
+gen a        := POPARG1(remaining==0);
+gen hl       := POPARG2(remaining==0);
 
-gen param := ARG2(param, bc|de|hl:lhs, remaining!=0)
-		{ E_push($lhs); }
-
-gen param := ARG2(END(), CALLE2(param):s)
-		{ E_call($s.subr); }
-
-gen param := ARG4(param, stk4); // already stacked
-
-gen param := ARG4(END(), CALLE4(param):s)
-		{ E_call($s.subr); }
-
-gen a := POPARG1(remaining==0);
-
-gen a|b|d|h := POPARG1(remaining!=0)
-		{ E_pop($$); }
-
-gen hl := POPARG2(remaining==0);
-
-gen hl|bc|de := POPARG2()
-		{ E_pop($$); }
+gen a|b|d|h  := POPARG1(remaining!=0) { E_pop($$); }
+gen hl|bc|de := POPARG2(remaining!=0) { E_pop($$); }
 
 gen stk4 := POPARG4();
 
@@ -1625,6 +1637,13 @@ gen INITS():s
 {
 	E("\tdw ");
 	E_string($s.text);
+	E_nl();
+}
+
+gen INITA():a
+{
+	E("\tdw ");
+	E_symref($a.sym, $a.off);
 	E_nl();
 }
 

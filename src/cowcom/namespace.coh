@@ -108,6 +108,10 @@ sub IsPtr(type: [Symbol]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_POINTER);
 end sub;
 
+sub IsSubroutine(type: [Symbol]): (result: uint8) is
+	result := IsTypeOfKind(type, TYPE_SUBROUTINE);
+end sub;
+
 sub IsNum(type: [Symbol]): (result: uint8) is
 	if type == (0 as [Symbol]) then
 		result := 1;
@@ -127,7 +131,7 @@ sub IsSNum(type: [Symbol]): (result: uint8) is
 end sub;
 
 sub IsScalar(type: [Symbol]): (result: uint8) is
-	if (IsPtr(type) != 0) or (IsNum(type) != 0) then
+	if (IsPtr(type) != 0) or (IsNum(type) != 0) or (IsSubroutine(type) != 0) then
 		result := 1;
 	else
 		result := 0;
@@ -161,6 +165,12 @@ sub UndoLValue(lvalue: [Node]): (address: [Node]) is
 	address := lvalue.left;
 	lvalue.left := (0 as [Node]);
 	Discard(lvalue);
+end sub;
+
+# Copies a parameter symbol to the new subroutine. The parameter is still owned
+# by the old subroutine. (This is used for copying parameters from interfaces
+# to their implementations.)
+sub CopyParameter(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol]) is
 end sub;
 
 
