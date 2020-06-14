@@ -486,7 +486,7 @@ leafexpression(E) ::= oldid(S).
 			E := MakeLValue(E);
 
 		when SUB:
-			E := MidSubref(S.subr);
+			E := MidAddress(S, 0);
 			E.type := MakeSubroutineType(S.subr);
 
 		when else:

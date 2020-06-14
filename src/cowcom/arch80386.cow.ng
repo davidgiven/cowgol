@@ -63,15 +63,21 @@
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
-		if sym.vardata.externname != (0 as string) then
-			E(sym.vardata.externname);
-			E_i16(off as int16);
-		else
-			E_b8(COO_ESCAPE_WSREF);
-			E_b16(sym.vardata.subr.id);
-			E_b8(0);
-			E_b16(sym.vardata.offset + off);
-		end if;
+		case sym.kind is
+			when SUB:
+				E_subref(sym.subr);
+
+			when VAR:
+				if sym.vardata.externname != (0 as string) then
+					E(sym.vardata.externname);
+					E_i16(off as int16);
+				else
+					E_b8(COO_ESCAPE_WSREF);
+					E_b16(sym.vardata.subr.id);
+					E_b8(0);
+					E_b16(sym.vardata.offset + off);
+				end if;
+			end case;
 	end sub;
 
 	sub R_flushall() is
@@ -797,22 +803,28 @@ gen RETURN()
 	end if;
 }
 
-gen        CALL(       param,       SUBREF():s) uses r32                 { E_call($s.subr); }
-gen        CALL(  ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen        CALL(  ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen        CALL(  ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen al :=  CALLE1(     param,       SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen al :=  CALLE1(ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen al :=  CALLE1(ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen al :=  CALLE1(ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen ax :=  CALLE2(     param,       SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen ax :=  CALLE2(ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen ax :=  CALLE2(ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen ax :=  CALLE2(ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen eax := CALLE4(     param,       SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen eax := CALLE4(ARG1(param, al),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen eax := CALLE4(ARG2(param, ax),  SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
-gen eax := CALLE4(ARG4(param, eax), SUBREF():s) uses ebx|ecx|edx|esi|edi { E_call($s.subr); }
+%{
+	sub Call(addr: [MidcodeAddress]) is
+		E_call(addr.sym.subr);
+	end sub;
+%}
+
+gen        CALL(       param,       ADDRESS():a) uses r32                 { Call(&$a); }
+gen        CALL(  ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(  ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(  ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
 
 gen        CALL(       param,       ebx) uses r32                 { E_callebx(); }
 gen        CALL(  ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
@@ -859,16 +871,6 @@ gen r8|r16|r32 := CONSTANT():c
 gen r32 := ADDRESS():a
 {
 	E_loadaddr($$, $a.sym, $a.off);
-}
-
-gen r32 := SUBREF():s
-{
-	R_flush($$);
-	E("\tlea ");
-	E_subref($s.subr);
-	E_comma();
-	E_reg($$);
-	E_nl();
 }
 
 // --- Loads ---------------------------------------------------------------

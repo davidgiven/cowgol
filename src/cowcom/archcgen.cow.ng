@@ -75,18 +75,80 @@
 		end if;
 	end sub;
 
-	sub E_symref(sym: [Symbol], off: Size) is
-		if sym.vardata.externname != (0 as string) then
-			E("((i1*)");
-			E(sym.vardata.externname);
-			E_i16(off as int16);
-			E(")");
-		else
-			E_b8(COO_ESCAPE_WSREF);
-			E_b16(sym.vardata.subr.id);
-			E_b8(0);
-			E_b16(sym.vardata.offset + off);
+	sub EmitFunctionSignature(subr: [Subroutine]) is
+		E("(");
+		var first: uint8 := 1;
+		sub comma() is
+			if first == 0 then
+				E(", ");
+			end if;
+			first := 0;
+		end sub;
+
+		# Output parameters, left to right (the rightmost gets pushed last)
+
+		var count: uint8 := 0;
+		while count != subr.num_output_parameters loop
+			var param := GetOutputParameter(subr, count);
+
+			comma();
+			E("i");
+			E_u8(param.vardata.type.typedata.width as uint8);
+			E("* /* ");
+			E(param.name);
+			E(" */");
+			count := count + 1;
+		end loop;
+
+		# Input parameters, right to left (the rightmost was pushed last
+		# and so is the first C parameter)
+
+		count := subr.num_input_parameters;
+		while count != 0 loop
+			count := count - 1;
+			param := GetInputParameter(subr, count);
+
+			comma();
+			E("i");
+			E_u8(param.vardata.type.typedata.width as uint8);
+			E(" /* ");
+			E(param.name);
+			E(" */");
+		end loop;
+
+		if (subr.num_input_parameters + subr.num_output_parameters) == 0 then
+			E("void");
 		end if;
+		E(")");
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		case sym.kind is
+			when SUB:
+				EmitterPushChunk();
+				E_b16(current_subr.id);
+
+				E("\tvoid ");
+				E_subref(sym.subr);
+				EmitFunctionSignature(sym.subr);
+				E(";\n");
+
+				EmitterPopChunk('S');
+				E_subref(sym.subr);
+
+			when VAR:
+				if sym.vardata.externname != (0 as string) then
+					E("((i1*)");
+					E(sym.vardata.externname);
+					E_i16(off as int16);
+					E(")");
+				else
+					E_b8(COO_ESCAPE_WSREF);
+					E_b16(sym.vardata.subr.id);
+					E_b8(0);
+					E_b16(sym.vardata.offset + off);
+				end if;
+		end case;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -292,53 +354,6 @@ gen ENDSUB():s
 }
 
 %{
-	sub EmitFunctionSignature(subr: [Subroutine]) is
-		E("(");
-		var first: uint8 := 1;
-		sub comma() is
-			if first == 0 then
-				E(", ");
-			end if;
-			first := 0;
-		end sub;
-
-		# Output parameters, left to right (the rightmost gets pushed last)
-
-		var count: uint8 := 0;
-		while count != subr.num_output_parameters loop
-			var param := GetOutputParameter(subr, count);
-
-			comma();
-			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
-			E("* /* ");
-			E(param.name);
-			E(" */");
-			count := count + 1;
-		end loop;
-
-		# Input parameters, right to left (the rightmost was pushed last
-		# and so is the first C parameter)
-
-		count := subr.num_input_parameters;
-		while count != 0 loop
-			count := count - 1;
-			param := GetInputParameter(subr, count);
-
-			comma();
-			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
-			E(" /* ");
-			E(param.name);
-			E(" */");
-		end loop;
-
-		if (subr.num_input_parameters + subr.num_output_parameters) == 0 then
-			E("void");
-		end if;
-		E(")");
-	end sub;
-
 	# subr here is the *interface*.
 	sub Call(subr: [Subroutine]) is
 		var pid := Pop();
@@ -468,22 +483,6 @@ gen v8 := ADDRESS():a
 	E_u16(vid);
 	E(" = (i8)(intptr_t)(");
 	E_symref($a.sym, $a.off);
-	E(");\n");
-}
-
-gen v8 := SUBREF():s
-{
-	var vid := Push();
-
-	E("\tvoid ");
-	E_subref($s.subr);
-	EmitFunctionSignature($s.subr);
-	E(";\n");
-
-	E("\ti8 v");
-	E_u16(vid);
-	E(" = (i8)(intptr_t)(");
-	E_subref($s.subr);
 	E(");\n");
 }
 

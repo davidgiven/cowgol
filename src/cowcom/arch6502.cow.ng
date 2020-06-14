@@ -219,12 +219,18 @@
     end sub;
 
     sub E_symref(sym: [Symbol], off: Size) is
-        if sym.vardata.externname != (0 as string) then
-            E(sym.vardata.externname);
-            E_i16(off as int16);
-        else
-            E_wsref(sym.vardata.subr.id, GetWsId(sym), sym.vardata.offset + off);
-        end if;
+        case sym.kind is
+            when SUB:
+                E_subref(sym.subr);
+
+            when VAR:
+                if sym.vardata.externname != (0 as string) then
+                    E(sym.vardata.externname);
+                    E_i16(off as int16);
+                else
+                    E_wsref(sym.vardata.subr.id, GetWsId(sym), sym.vardata.offset + off);
+                end if;
+        end case;
     end sub;
 
     sub E_y_nl()    is E(",y\n"); end sub;
@@ -1297,13 +1303,16 @@ gen RETURN()
         E_bpl(lid);
     end sub;
 
-    # Must not modify XA.
+    sub Call(addr: [MidcodeAddress]) is
+        E_call(addr.sym.subr);
+    end sub;
+
     sub CallI is
         E_callhelper("_jmpxa");
     end sub;
 
-    sub is_fast(subr: [Subroutine]): (result: uint8) is
-        if (subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
+    sub is_fast(sym: [Symbol]): (result: uint8) is
+        if (sym.subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
             result := 1;
         else
             result := 0;
@@ -1311,18 +1320,18 @@ gen RETURN()
     end sub;
 %}
 
-gen        CALL(       param,      SUBREF():s)             uses x|y|a { E_call($s.subr); }
-gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); }
-gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); }
-gen a :=   CALLE1(     param,      SUBREF():s)             uses x|y   { E_call($s.subr); }
-gen a :=   CALLE1(ARG1(param, a),  SUBREF(subr is fast):s) uses x|y   { E_call($s.subr); }
-gen a :=   CALLE1(ARG2(param, xa), SUBREF(subr is fast):s) uses x|y   { E_call($s.subr); }
-gen xa :=  CALLE2(     param,      SUBREF():s)             uses y     { E_call($s.subr); }
-gen xa :=  CALLE2(ARG1(param, a),  SUBREF(subr is fast):s) uses y     { E_call($s.subr); }
-gen xa :=  CALLE2(ARG2(param, xa), SUBREF(subr is fast):s) uses y     { E_call($s.subr); }
-gen v32 := CALLE4(     param,      SUBREF():s)             uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG1(param, a),  SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG2(param, xa), SUBREF(subr is fast):s) uses x|y|a { E_call($s.subr); PopArg4(PushV32()); }
+gen        CALL(       param,      ADDRESS():a)            uses x|y|a { Call(&$a); }
+gen        CALL(  ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); }
+gen        CALL(  ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); }
+gen a :=   CALLE1(     param,      ADDRESS():a)            uses x|y   { Call(&$a); }
+gen a :=   CALLE1(ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y   { Call(&$a); }
+gen a :=   CALLE1(ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y   { Call(&$a); }
+gen xa :=  CALLE2(     param,      ADDRESS():a)            uses y     { Call(&$a); }
+gen xa :=  CALLE2(ARG1(param, a),  ADDRESS(sym is fast):a) uses y     { Call(&$a); }
+gen xa :=  CALLE2(ARG2(param, xa), ADDRESS(sym is fast):a) uses y     { Call(&$a); }
+gen v32 := CALLE4(     param,      ADDRESS():a)            uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
 
 gen        CALL(  param, xa) uses y { CallI(); }
 gen a :=   CALLE1(param, xa) uses y { CallI(); }
@@ -1375,20 +1384,6 @@ gen xa := POPARG2(remaining!=0) { E_plxa(); }
 
 gen v32 := POPARG4()        uses x|y|a { PopArg4(PushV32()); }
 gen STORE4(POPARG4(), ptrs) uses x|y|a { PopArg4(PopAndDerefOp()); }
-
-gen xa := SUBREF():s
-{
-    E_lda();
-    E_constlo();
-    E_subref($s.subr);
-    E_nl();
-
-    E_ldx();
-    E_consthi();
-    E_subref($s.subr);
-    E_nl();
-
-}
 
 // --- 8-bit -----------------------------------------------------------------
 

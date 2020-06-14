@@ -116,12 +116,18 @@
     end sub;
 
     sub E_symref(sym: [Symbol], off: Size) is
-        if sym.vardata.externname != (0 as string) then
-            E(sym.vardata.externname);
-            E_i16(off as int16);
-        else
-            E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
-        end if;
+		case sym.kind is
+			when SUB:
+				E_subref(sym.subr);
+
+			when VAR:
+				if sym.vardata.externname != (0 as string) then
+					E(sym.vardata.externname);
+					E_i16(off as int16);
+				else
+					E_wsref(sym.vardata.subr.id, 0, sym.vardata.offset + off);
+				end if;
+		end case;
     end sub;
 
     sub E_symrefi(sym: [Symbol], off: Size) is
@@ -344,10 +350,8 @@ gen RETURN()
 // --- Subroutine calls -----------------------------------------------------
 
 %{
-	sub Call(subr: [Subroutine]) is
-		E_dw();
-		E_subref(subr);
-		E_nl();
+	sub Call(addr: [MidcodeAddress]) is
+		E_symrefi(addr.sym, 0);
 	end sub;
 
 	sub CallI is
@@ -355,10 +359,10 @@ gen RETURN()
 	end sub;
 %}
 
-gen       CALL(  param, SUBREF():s) { Call($s.subr); }
-gen s1 := CALLE1(param, SUBREF():s) { Call($s.subr); }
-gen s2 := CALLE2(param, SUBREF():s) { Call($s.subr); }
-gen s4 := CALLE4(param, SUBREF():s) { Call($s.subr); }
+gen       CALL(  param, ADDRESS():a) { Call(&$a); }
+gen s1 := CALLE1(param, ADDRESS():a) { Call(&$a); }
+gen s2 := CALLE2(param, ADDRESS():a) { Call(&$a); }
+gen s4 := CALLE4(param, ADDRESS():a) { Call(&$a); }
 
 gen       CALL(  param, s2) { CallI(); }
 gen s1 := CALLE1(param, s2) { CallI(); }
@@ -385,12 +389,6 @@ gen s2 := ADDRESS():a
 {
 	E_callhelper("push2");
 	E_symrefi($a.sym, $a.off);
-}
-
-gen s2 := SUBREF():s
-{
-	E_callhelper("push2");
-	E_subrefi($s.subr);
 }
 
 // --- Loads and stores -----------------------------------------------------

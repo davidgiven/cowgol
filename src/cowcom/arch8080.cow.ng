@@ -63,15 +63,21 @@
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
-		if sym.vardata.externname != (0 as string) then
-			E(sym.vardata.externname);
-			E_i16(off as int16);
-		else
-			E_b8(COO_ESCAPE_WSREF);
-			E_b16(sym.vardata.subr.id);
-			E_b8(0);
-			E_b16(sym.vardata.offset + off);
-		end if;
+		case sym.kind is
+			when SUB:
+				E_subref(sym.subr);
+
+			when VAR:
+				if sym.vardata.externname != (0 as string) then
+					E(sym.vardata.externname);
+					E_i16(off as int16);
+				else
+					E_b8(COO_ESCAPE_WSREF);
+					E_b16(sym.vardata.subr.id);
+					E_b8(0);
+					E_b16(sym.vardata.offset + off);
+				end if;
+		end case;
 	end sub;
 
 	sub R_flushall() is
@@ -766,23 +772,27 @@ gen ENDSUB()
 }
 
 %{
+	sub Call(addr: [MidcodeAddress]) is
+		E_call(addr.sym.subr);
+	end sub;
+
 	sub CallI is
 		E_callhelper("_jmpde");
 	end sub;
 %}
 
-gen         CALL(       param,      SUBREF():s) uses a|bc|de|hl { E_call($s.subr); }
-gen         CALL(  ARG1(param, a),  SUBREF():s) uses a|bc|de|hl { E_call($s.subr); }
-gen         CALL(  ARG2(param, hl), SUBREF():s) uses a|bc|de|hl { E_call($s.subr); }
-gen a :=    CALLE1(     param,      SUBREF():s) uses   bc|de|hl { E_call($s.subr); }
-gen a :=    CALLE1(ARG1(param, a),  SUBREF():s) uses   bc|de|hl { E_call($s.subr); }
-gen a :=    CALLE1(ARG2(param, hl), SUBREF():s) uses   bc|de|hl { E_call($s.subr); }
-gen hl :=   CALLE2(     param,      SUBREF():s) uses a|bc|de    { E_call($s.subr); }
-gen hl :=   CALLE2(ARG1(param, a),  SUBREF():s) uses a|bc|de    { E_call($s.subr); }
-gen hl :=   CALLE2(ARG2(param, hl), SUBREF():s) uses a|bc|de    { E_call($s.subr); }
-gen stk4 := CALLE4(     param,      SUBREF():s) uses a|bc|de|hl { E_call($s.subr); }
-gen stk4 := CALLE4(ARG1(param, a),  SUBREF():s) uses a|bc|de|hl { E_call($s.subr); }
-gen stk4 := CALLE4(ARG2(param, hl), SUBREF():s) uses a|bc|de|hl { E_call($s.subr); }
+gen         CALL(       param,      ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen         CALL(  ARG1(param, a),  ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen         CALL(  ARG2(param, hl), ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(     param,      ADDRESS():a) uses   bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(ARG1(param, a),  ADDRESS():a) uses   bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, hl), ADDRESS():a) uses   bc|de|hl { Call(&$a); }
+gen hl :=   CALLE2(     param,      ADDRESS():a) uses a|bc|de    { Call(&$a); }
+gen hl :=   CALLE2(ARG1(param, a),  ADDRESS():a) uses a|bc|de    { Call(&$a); }
+gen hl :=   CALLE2(ARG2(param, hl), ADDRESS():a) uses a|bc|de    { Call(&$a); }
+gen stk4 := CALLE4(     param,      ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen stk4 := CALLE4(ARG1(param, a),  ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen stk4 := CALLE4(ARG2(param, hl), ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
 
 gen         CALL(       param,      de) uses a|bc|hl { CallI(); }
 gen         CALL(  ARG1(param, a),  de) uses   bc|hl { CallI(); }
@@ -849,16 +859,6 @@ gen stk4 := CONSTANT():rhs uses hl
 gen bc|de|hl := ADDRESS():a
 {
 	E_lxia($$, $a.sym, $a.off);
-}
-
-gen bc|de|hl := SUBREF():a
-{
-	R_flush($$);
-	E("\tlxi ");
-	E_reg($$);
-	E_comma();
-	E_subref($a.subr);
-	E_nl();
 }
 
 // --- 8-bit loads and stores -----------------------------------------------
