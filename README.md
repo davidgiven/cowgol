@@ -176,11 +176,6 @@ is written in Cowgol, which is the Cowgol compiler. (And cowlink and cowwrap.)
 
 Apart from actual bugs, there are some unimplemented parts of the language.
 
-  - no subroutine pointers. This one's tricky; because subroutines can be
-	nested it's important to be sure that a subroutine can only be called if
-	the outer scopes still exist. I have a potential solution which I'm working
-	on.
-
   - no `null`. This one's semantic, but right now you have to cast `0` to
 	pointer types to use `null`. (I _do_ know about languages which don't have
 	`null` but they're all for larger machines than Cowgol's aimed at.)
