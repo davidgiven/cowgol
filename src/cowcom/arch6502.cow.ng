@@ -999,7 +999,7 @@ gen STARTSUB()
     EmitterOpenStream(current_subr);
 
     E("\n\n\t; ");
-    E(current_subr.name);
+    E(current_subr.symbol.name);
     E_nl();
 
     if (current_subr.flags & SUB_IS_INTERFACE) == 0 then

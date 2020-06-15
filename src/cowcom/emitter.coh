@@ -218,12 +218,12 @@ sub EmitterClosefile() is
 end sub;
 
 sub EmitterDeclareSubroutine(subr: [Subroutine]) is
-	var len := StrLen(subr.name) as uint16;
+	var len := StrLen(subr.symbol.name) as uint16;
 
 	WriteB8('N');
 	WriteB16(len + 2);
 	WriteB16(subr.id);
-	FCBPutBlock(&outfcb, subr.name, len as intptr);
+	FCBPutBlock(&outfcb, subr.symbol.name, len as intptr);
 end sub;
 
 sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is

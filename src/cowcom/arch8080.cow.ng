@@ -649,7 +649,7 @@ gen STARTSUB()
 	EmitterOpenStream(current_subr);
 
 	E("\n\n\t; ");
-	E(current_subr.name);
+	E(current_subr.symbol.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(current_subr.id);

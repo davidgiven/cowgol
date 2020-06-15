@@ -230,23 +230,23 @@ gen RETURN()
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB():s
+gen STARTSUB()
 {
 	EmitterOpenStream(current_subr);
 
 	E("\n// ");
-	E($s.subr.name);
+	E(current_subr.symbol.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
-	E_b16($s.subr.id);
+	E_b16(current_subr.id);
 	E_b8(0);
 	E_b16(0);
 	E(" length ");
 	E_b8(COO_ESCAPE_WSSIZE);
-	E_b16($s.subr.id);
+	E_b16(current_subr.id);
 	E_b8(0);
 	E("\nvoid ");
-	E_subref($s.subr);
+	E_subref(current_subr);
 	E("(");
 
 	var first: uint8 := 1;
@@ -260,8 +260,8 @@ gen STARTSUB():s
 	# Output parameters, left to right (the rightmost gets pushed last)
 
 	var count: uint8 := 0;
-	while count != $s.subr.num_output_parameters loop
-		var param := GetOutputParameter($s.subr, count);
+	while count != current_subr.num_output_parameters loop
+		var param := GetOutputParameter(current_subr, count);
 		var pid := Push();
 
 		comma();
@@ -279,10 +279,10 @@ gen STARTSUB():s
 	# Input parameters, right to left (the rightmost was pushed last
 	# and so is the first C parameter)
 
-	count := $s.subr.num_input_parameters;
+	count := current_subr.num_input_parameters;
 	while count != 0 loop
 		count := count - 1;
-		param := GetInputParameter($s.subr, count);
+		param := GetInputParameter(current_subr, count);
 		pid := Push();
 
 		comma();
@@ -296,14 +296,14 @@ gen STARTSUB():s
 		E(" */");
 	end loop;
 
-	if ($s.subr.num_input_parameters + $s.subr.num_output_parameters) == 0 then
+	if (current_subr.num_input_parameters + current_subr.num_output_parameters) == 0 then
 		E("void");
 	end if;
 	E(") {\n");
 
 	count := 0;
-	while count != $s.subr.num_input_parameters loop
-		param := GetInputParameter($s.subr, count);
+	while count != current_subr.num_input_parameters loop
+		param := GetInputParameter(current_subr, count);
 		pid := Pop();
 
 		E("\t*(i");
@@ -320,14 +320,14 @@ gen STARTSUB():s
 	end loop;
 }
 
-gen ENDSUB():s
+gen ENDSUB()
 {
 	E("endsub:;\n");
 
-	var count: uint8 := $s.subr.num_output_parameters;
+	var count: uint8 := current_subr.num_output_parameters;
 	while count != 0 loop
 		count := count - 1;
-		var param := GetOutputParameter($s.subr, count);
+		var param := GetOutputParameter(current_subr, count);
 		var pid := Pop();
 
 		E("\t*p");
@@ -339,7 +339,7 @@ gen ENDSUB():s
 		E(");\n");
 	end loop;
 	E("}\n");
-	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
+	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
 	EmitterCloseStream();
 }
 

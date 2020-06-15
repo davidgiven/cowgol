@@ -59,7 +59,7 @@ sub MakeSubroutineType(subr: [Subroutine]): (type: [Type]) is
 		type.subrtype.subr := subr;
 		subr.type := type;
 
-		AddTypeToNamespace(&subr.parent.namespace, type, InternalStrDup(subr.name));
+		AddTypeToNamespace(subr.symbol.namespace, type, InternalStrDup(subr.symbol.name));
 	end if;
 end sub;
 

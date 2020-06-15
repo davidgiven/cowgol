@@ -284,7 +284,7 @@ gen STARTSUB()
     EmitterOpenStream(current_subr);
 
     E("\n\n\t; ");
-    E(current_subr.name);
+    E(current_subr.symbol.name);
     E_nl();
 
 	E("\t.align 2\n");

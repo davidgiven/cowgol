@@ -738,7 +738,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 		if current_call.num_input_args != subr.num_input_parameters then
 			StartError();
 			print("subroutine ");
-			print(subr.name);
+			print(subr.symbol.name);
 			print(" takes ");
 			print_i8(subr.num_input_parameters);
 			print(" but was given ");
@@ -884,7 +884,7 @@ inputarg(R) ::= expression(E).
 	if param == (0 as [Symbol]) then
 		StartError();
 		print("too many parameters in call to ");
-		print(current_call.intfsubr.name);
+		print(current_call.intfsubr.symbol.name);
 		EndError();
 	end if;
 
@@ -1019,7 +1019,7 @@ newsubid(R) ::= newid(S).
 	preparing_subr.parent := current_subr;
 	preparing_subr.id := AllocSubrId();
 
-	preparing_subr.name := S.name;
+	preparing_subr.symbol := S;
 	S.kind := SUB;
 	S.subr := preparing_subr;
 	EmitterDeclareSubroutine(preparing_subr);
