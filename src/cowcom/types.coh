@@ -13,28 +13,28 @@ record Namespace is
 	parent: [Namespace];
 end record;
 
-record HasElementSymbol is
-	element: [Symbol];
+record HasElement is
+	element: [Type];
 end record;
 
-record ArrayTypeSymbol: HasElementSymbol is
+record ArrayType: HasElement is
 	size: Size;
-	indextype: [Symbol];
+	indextype: [Type];
 end record;
 
-record PointerTypeSymbol: HasElementSymbol is
+record PointerType: HasElement is
 end record;
 
-record RecordTypeSymbol is
+record RecordType is
 	namespace: Namespace;
 	members: uint8;
 end record;
 
-record NumberTypeSymbol is
+record NumberType is
 	is_signed: uint8;
 end record;
 
-record SubroutineTypeSymbol is
+record SubroutineType is
 	subr: [Subroutine];
 end record;
 
@@ -45,22 +45,23 @@ const TYPE_ARRAY := 4;
 const TYPE_RECORD := 5;
 const TYPE_SUBROUTINE := 6;
 
-record TypeSymbol is
-	numbertype @at(0): NumberTypeSymbol;
-	arraytype @at(0): ArrayTypeSymbol;
-	pointertype @at(0): PointerTypeSymbol;
-	recordtype @at(0): RecordTypeSymbol;
-	subrtype @at(0): SubroutineTypeSymbol;
+record Type is
+	numbertype @at(0): NumberType;
+	arraytype @at(0): ArrayType;
+	pointertype @at(0): PointerType;
+	recordtype @at(0): RecordType;
+	subrtype @at(0): SubroutineType;
 
-	pointerto: [Symbol];
-	kind: uint8;
-	alignment: uint8;
+	symbol: [Symbol];
+	pointerto: [Type];
 	width: Size;
 	stride: Size;
+	kind: uint8;
+	alignment: uint8;
 end record;
 
 record VarSymbol is
-	type: [Symbol];
+	type: [Type];
 	subr: [Subroutine]; # null for a member
 	next_parameter: [Symbol]; # for lists of parameters
 	externname: string;
@@ -68,15 +69,16 @@ record VarSymbol is
 end record;
 
 record Symbol is
-	typedata @at(0): TypeSymbol;
+	typedata @at(0): [Type];
 	vardata @at(0): VarSymbol;
 	constant @at(0): Arith;
 	subr @at(0): [Subroutine];
 	alias @at(0): [Symbol];
 
-	kind: uint8;
 	name: string;
+	namespace: [Namespace];
 	next: [Symbol];
+	kind: uint8;
 end record;
 
 const SUB_HAS_IMPL          := 0b001;
@@ -89,7 +91,7 @@ record Subroutine is
 	namespace: Namespace;
 	first_input_parameter: [Symbol];
 	first_output_parameter: [Symbol];
-	type: [Symbol];
+	type: [Type];
 	intfsubr: [Subroutine];
 	id: uint16;
 	workspace: Size[4];
@@ -142,7 +144,7 @@ var break_label: LabelRef;
 var continue_label: LabelRef;
 var current_if: [IfLabels];
 var current_case: [CaseLabels];
-var current_type: [Symbol];
+var current_type: [Type];
 var current_call: [SubroutineCall];
 
 const REG_SAME_AS_INSTRUCTION_RESULT := -1;
@@ -156,4 +158,10 @@ var nodes: [Node][16];
 var next_node := &nodes[0];
 
 @decl sub Discard(node: [Node]);
+
+@decl sub AllocNewSymbol(): (symbol: [Symbol]);
+@decl sub FreeSymbol(symbol: [Symbol]);
+
+@decl sub AllocNewType(): (type: [Type]);
+@decl sub FreeType(type: [Type]);
 

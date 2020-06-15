@@ -1,46 +1,52 @@
 sub expr_i_cant_do_that(lhs: [Node], rhs: [Node]) is
 	StartError();
-	print(lhs.type.name);
+	print(lhs.type.symbol.name);
 	print(" and ");
-	print(rhs.type.name);
+	print(rhs.type.symbol.name);
 	print(" are not compatible in this context");
 	EndError();
 end sub;
 
-sub CheckExpressionType(node: [Node], type: [Symbol]) is
-	if node.type == (0 as [Symbol]) then
+sub CheckExpressionType(node: [Node], type: [Type]) is
+	if node.type == (0 as [Type]) then
 		node.type := type;
 	end if;
 
 	if node.type != type then
 		StartError();
 		print("type mismatch: expression was a ");
-		print(node.type.name);
+		print(node.type.symbol.name);
 		print(", used when a ");
-		print(type.name);
+		print(type.symbol.name);
 		print(" was expected");
 		EndError();
 	end if;
 
 	if IsScalar(type) == 0 then
 		StartError();
-		print(type.name);
+		print(type.symbol.name);
 		print(" cannot be used here");
 		EndError();
 	end if;
 end sub;
 
 sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node]) is
-	if (lhs.type != (0 as [Symbol])) and (rhs.type == (0 as [Symbol])) then
+	if (lhs.type != (0 as [Type])) and (rhs.type == (0 as [Type])) then
 		if IsNum(lhs.type) != 0 then
 			rhs.type := lhs.type;
 		elseif IsPtr(lhs.type) != 0 then
 			rhs.type := intptr_type;
 		else
+			print("lhs.type=");
+			print_hex_i32(lhs.type as intptr as uint32);
+			print_nl();
+			print("rhs.type=");
+			print_hex_i32(rhs.type as intptr as uint32);
+			print_nl();
 			SimpleError("cannot use an untyped constant in this context");
 		end if;
 	end if;
-	if (lhs.type == (0 as [Symbol])) and (rhs.type != (0 as [Symbol])) then
+	if (lhs.type == (0 as [Type])) and (rhs.type != (0 as [Type])) then
 		if IsNum(rhs.type) != 0 then
 			lhs.type := rhs.type;
 		elseif IsPtr(rhs.type) != 0 then
@@ -52,9 +58,9 @@ end sub;
 sub ResolveUntypedConstantsSimply(lhs: [Node], rhs: [Node]) is
 	var ltype := lhs.type;
 	var rtype := rhs.type;
-	if (ltype != (0 as [Symbol])) and (rtype == (0 as [Symbol])) then
+	if (ltype != (0 as [Type])) and (rtype == (0 as [Type])) then
 		rhs.type := ltype;
-	elseif (ltype == (0 as [Symbol])) and (rtype != (0 as [Symbol])) then
+	elseif (ltype == (0 as [Type])) and (rtype != (0 as [Type])) then
 		lhs.type := rtype;
 	elseif ltype != rtype then
 		expr_i_cant_do_that(lhs, rhs);

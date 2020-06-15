@@ -28,7 +28,7 @@ end sub;
 	PushNode(node);
 	while next_node != old_next_node loop
 		var n := PopNode();
-		Free(n as [uint8]);
+		FreeNode(n);
 	end loop;
 end sub;
 

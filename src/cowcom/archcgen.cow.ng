@@ -1,27 +1,19 @@
 %{
-	var uint64_type: [Symbol];
-	var int64_type: [Symbol];
-	var uint32_type: [Symbol];
-	var int32_type: [Symbol];
-	var uint16_type: [Symbol];
-	var int16_type: [Symbol];
-	var uint8_type: [Symbol];
-	var int8_type: [Symbol];
-	var intptr_type: [Symbol];
+	var uint64_type: [Type];
+	var int64_type: [Type];
+	var uint32_type: [Type];
+	var int32_type: [Type];
+	var uint16_type: [Type];
+	var int16_type: [Type];
+	var uint8_type: [Type];
+	var int8_type: [Type];
+	var intptr_type: [Type];
 
 	const VARSTACK_SIZE := 64;
 	typedef Slot is uint16;
 	var varstack: Slot[VARSTACK_SIZE];
 	var varsp: uint8;
 	var varid: Slot := 1;
-
-	record Extern is
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
-	var externs: [Extern] := (0 as [Extern]);
 
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		var a := (alignment-1) as Size;
@@ -39,10 +31,10 @@
 		int8_type := MakeNumberType(1, 1, 1, "int8");
 
 		intptr_type := uint64_type;
-		AddAliasString("intptr", intptr_type);
+		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint64"));
 	end sub;
 
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 		if (min >= 0) and (max <= 255) then
 			symbol := uint8_type;
 		elseif (min >= -128) and (max <= 127) then
@@ -61,17 +53,17 @@
 	sub ArchInitVariable(symbol: [Symbol]) is
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
-		offset := ArchAlignUp(offset, symbol.vardata.type.typedata.alignment);
+		offset := ArchAlignUp(offset, symbol.vardata.type.alignment);
 		symbol.vardata.offset := offset;
-		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+		subr.workspace[0] := offset + symbol.vardata.type.width;
 	end sub;
 
-	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
-		position := ArchAlignUp(position, member.vardata.type.typedata.alignment);
+	sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
+		position := ArchAlignUp(position, member.vardata.type.alignment);
 		member.vardata.offset := position;
-		position := position + member.vardata.type.typedata.width;
-		if position > containing.typedata.width then
-			containing.typedata.width := position;
+		position := position + member.vardata.type.width;
+		if position > containing.width then
+			containing.width := position;
 		end if;
 	end sub;
 
@@ -93,7 +85,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
+			E_u8(param.vardata.type.width as uint8);
 			E("* /* ");
 			E(param.name);
 			E(" */");
@@ -110,7 +102,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
+			E_u8(param.vardata.type.width as uint8);
 			E(" /* ");
 			E(param.name);
 			E(" */");
@@ -274,7 +266,7 @@ gen STARTSUB():s
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E("* p");
 		E_u16(pid);
 
@@ -295,7 +287,7 @@ gen STARTSUB():s
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E(" p");
 		E_u16(pid);
 
@@ -315,7 +307,7 @@ gen STARTSUB():s
 		pid := Pop();
 
 		E("\t*(i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E("*)(intptr_t)(");
 		E_symref(param, 0);
 		E(") = p");
@@ -341,7 +333,7 @@ gen ENDSUB():s
 		E("\t*p");
 		E_u16(pid);
 		E(" = *(i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E("*)(intptr_t)(");
 		E_symref(param, 0);
 		E(");\n");
@@ -368,7 +360,7 @@ gen ENDSUB():s
 			var param := GetOutputParameter(subr, count);
 
 			E("\ti");
-			E_u8(param.vardata.type.typedata.width as uint8);
+			E_u8(param.vardata.type.width as uint8);
 			E(" v");
 			E_u16(outputvid + (count as Slot));
 			E(";\n");
@@ -1047,7 +1039,7 @@ gen ASMSYMBOL():s
 {
 	if $s.sym.kind == VAR then
 		E("*(i");
-		E_u8($s.sym.vardata.type.typedata.width as uint8);
+		E_u8($s.sym.vardata.type.width as uint8);
 		E("*)(intptr_t)(");
 		E_symref($s.sym, 0);
 		E(")");

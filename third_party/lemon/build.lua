@@ -17,7 +17,7 @@ function lemon(e)
 			e.ins,
 		},
 		outs = e.outs,
-		cmd = "mkdir -p "..dir.." && @1 -l -T@2 -d"..dir.." @3"
+		cmd = "mkdir -p "..dir.." && @1 -T@2 -d"..dir.." @3"
 			.." && mv "..dir.."/parser.c &1"
 			.." && mv "..dir.."/parser.h &2"
 	}
@@ -32,7 +32,7 @@ function lemoncowgol(e)
 			e.ins,
 		},
 		outs = e.outs,
-		cmd = "mkdir -p "..dir.." && @1 -l -T@2 -d"..dir.." @3"
+		cmd = "mkdir -p "..dir.." && @1 -T@2 -d"..dir.." @3"
 			.." && mv "..dir.."/parser.c &1"
 			.." && mv "..dir.."/parser.h &2"
 	}

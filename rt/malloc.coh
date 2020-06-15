@@ -58,23 +58,21 @@ sub CheckMemoryChain() is
 	end loop;
 end sub;
 
-sub Alloc(length: intptr): (block: [uint8]) is
+sub RawAlloc(length: intptr): (block: [uint8]) is
 	var totallength := AlignUp(length + @bytesof MallocUsedBlock);
 	if totallength < @bytesof MallocFreeBlock then
 		totallength := @bytesof MallocFreeBlock;
 	end if;
+	# Make sure everything's rounded to 8 bytes to try and reduce
+	# fragmentation.
+	totallength := (totallength + 7) & ~7;
+
+	# Fragmentation is a killer on small systems, so first let's try and find a
+	# block which fits us exactly.
 
 	var prev: [MallocFreeBlock] := 0 as [MallocFreeBlock];
 	var p := freeList;
-	loop
-		if p == (0 as [MallocFreeBlock]) then
-			# Uh-oh --- we've run out of free blocks.
-			p := 0 as [MallocFreeBlock];
-			print("Out of memory\n");
-			ExitWithError();
-			break;
-		end if;
-
+	while p != (0 as [MallocFreeBlock]) loop
 		var s := p.size;
 		if s == totallength then
 			# We found a hole of exactly the right size. Unlink and return it.
@@ -84,19 +82,39 @@ sub Alloc(length: intptr): (block: [uint8]) is
 				freeList := p.next;
 			end if;
 			break;
-		elseif (s - @bytesof MallocFreeBlock) > totallength then
-			# We found a hole bigger than we need. We shrink the hole and return
-			# what's left. We make sure to always leave enough space for the
-			# MallocFreeBlock structure (which is bigger than the
-		    # MallocUsedBlock structure).
-			p.size := s - totallength;
-			p := p + p.size;
-			break;
 		end if;
 
 		prev := p;
 		p := p.next;
 	end loop;
+	if p == (0 as [MallocFreeBlock]) then
+		# We didn't find a block of the right size, so only now try subdividing
+		# a bigger block.
+
+		prev := 0 as [MallocFreeBlock];
+		p := freeList;
+		loop
+			if p == (0 as [MallocFreeBlock]) then
+				# Uh-oh --- we've run out of free blocks.
+				block := 0 as [uint8];
+				return;
+			end if;
+
+			s := p.size;
+			if (s - @bytesof MallocFreeBlock) > totallength then
+				# We found a hole bigger than we need. We shrink the hole and return
+				# what's left. We make sure to always leave enough space for the
+				# MallocFreeBlock structure (which is bigger than the
+				# MallocUsedBlock structure).
+				p.size := s - totallength;
+				p := p + p.size;
+				break;
+			end if;
+
+			prev := p;
+			p := p.next;
+		end loop;
+	end if;
 
 	#print("malloc ");
 	#print_hex_i32(p as intptr as uint32);
@@ -114,8 +132,16 @@ sub Alloc(length: intptr): (block: [uint8]) is
 	#print_hex_i32(length as uint32);
 	#print_nl();
 
-	MemSet(block, 0, length);
+	MemSet(block, 0, totallength - @bytesof MallocUsedBlock);
 	#CheckMemoryChain();
+end sub;
+
+sub Alloc(length: intptr): (block: [uint8]) is
+	block := RawAlloc(length);
+	if block == (0 as [uint8]) then
+		print("Out of memory");
+		ExitWithError();
+	end if;
 end sub;
 
 sub AddFreeBlock(start: [uint8], length: intptr) is
@@ -124,6 +150,8 @@ sub AddFreeBlock(start: [uint8], length: intptr) is
 	#print("+");
 	#print_hex_i32(length as uint32);
 	#print_nl();
+
+	MemSet(start, 0xaa, length);
 
 	var h := start as [MallocFreeBlock];
 	h.size := length;

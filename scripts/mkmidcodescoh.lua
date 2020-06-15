@@ -39,7 +39,7 @@ for m, md in pairs(midcodes) do
         hfp:write("\t", m:lower(), " @at(0): Midcode", title(m), ";\n")
     end
 end
-hfp:write("\ttype: [Symbol];\n")
+hfp:write("\ttype: [Type];\n")
 hfp:write("\tleft: [Node];\n")
 hfp:write("\tright: [Node];\n")
 hfp:write("\tproducer: [Instruction];\n")
@@ -50,16 +50,6 @@ hfp:write("\top: uint8;\n")
 hfp:write("end record;\n");
 
 -- Routines for allocating midnodes.
-
-hfp:write("sub AllocateNewNode(code: uint8): (m: [Node]) is\n")
-hfp:write("\tm := Alloc(@bytesof Node) as [Node];\n")
-hfp:write("\t#print(\"alloc \");\n");
-hfp:write("\t#print_hex_i32(m as intptr as uint32);\n");
-hfp:write("\t#print(\" op \");\n");
-hfp:write("\t#print_i8(code);\n");
-hfp:write("\t#print_nl();\n");
-hfp:write("\tm.op := code;\n")
-hfp:write("end sub;\n")
 
 local function write_midcode_constructor(m, t)
 	local first = true

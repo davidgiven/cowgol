@@ -1,19 +1,11 @@
 %{
-	var uint32_type: [Symbol];
-	var int32_type: [Symbol];
-	var uint16_type: [Symbol];
-	var int16_type: [Symbol];
-	var uint8_type: [Symbol];
-	var int8_type: [Symbol];
-	var intptr_type: [Symbol];
-
-	record Extern is
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
-	var externs: [Extern] := (0 as [Extern]);
+	var uint32_type: [Type];
+	var int32_type: [Type];
+	var uint16_type: [Type];
+	var int16_type: [Type];
+	var uint8_type: [Type];
+	var int8_type: [Type];
+	var intptr_type: [Type];
 
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		newvalue := value;
@@ -28,10 +20,10 @@
 		int8_type := MakeNumberType(1, 1, 1, "int8");
 
 		intptr_type := uint32_type;
-		AddAliasString("intptr", intptr_type);
+		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint32"));
 	end sub;
 
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 		if (min >= 0) and (max <= 255) then
 			symbol := uint8_type;
 		elseif (min >= -128) and (max <= 127) then
@@ -51,14 +43,14 @@
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
 		symbol.vardata.offset := offset;
-		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+		subr.workspace[0] := offset + symbol.vardata.type.width;
 	end sub;
 
-	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
+	sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
 		member.vardata.offset := position;
-		position := position + member.vardata.type.typedata.width;
-		if position > containing.typedata.width then
-			containing.typedata.width := position;
+		position := position + member.vardata.type.width;
+		if position > containing.width then
+			containing.width := position;
 		end if;
 	end sub;
 
@@ -725,7 +717,7 @@ gen STARTSUB()
 		var param := GetInputParameter(current_subr, count);
 
 		var reg: RegId;
-		case param.vardata.type.typedata.width is
+		case param.vardata.type.width is
 			when 1: reg := REG_AL;
 			when 2: reg := REG_AX;
 			when 4: reg := REG_EAX;
@@ -766,7 +758,7 @@ gen ENDSUB()
 		var param := GetOutputParameter(current_subr, count);
 
 		var reg: RegId;
-		case param.vardata.type.typedata.width is
+		case param.vardata.type.width is
 			when 1: reg := REG_AL;
 			when 2: reg := REG_AX;
 			when 4: reg := REG_EAX;

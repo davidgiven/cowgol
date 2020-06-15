@@ -28,6 +28,7 @@ sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
 	symbol := (0 as [Symbol]);
 end sub;
 
+# Note: does not check for name duplications (deliberately)
 sub AddToNamespace(namespace: [Namespace], symbol: [Symbol]) is
 	if namespace.last == (0 as [Symbol]) then
 		namespace.first := symbol;
@@ -36,6 +37,7 @@ sub AddToNamespace(namespace: [Namespace], symbol: [Symbol]) is
 		namespace.last.next := symbol;
 		namespace.last := symbol;
 	end if;
+	symbol.namespace := namespace;
 end sub;
 
 # Takes ownership of the string
@@ -44,7 +46,7 @@ sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
 		namespace := &current_subr.namespace;
 	end if;
 
-	symbol := Alloc(@bytesof Symbol) as [Symbol];
+	symbol := AllocNewSymbol();
 	if name != (0 as string) then
 		if LookupSymbolInNamespace(namespace, name) != (0 as [Symbol]) then
 			StartError();
@@ -71,66 +73,76 @@ sub AddAliasString(name: string, real: [Symbol]) is
 	var symbol := AddAlias(0 as [Namespace], name, real);
 end sub;
 
-sub CheckNotPartialType(type: [Symbol]) is
-	if type.typedata.kind == TYPE_PARTIAL then
+sub CheckNotPartialType(type: [Type]) is
+	if type.kind == TYPE_PARTIAL then
 		StartError();
 		print("'");
-		print(type.name);
+		print(type.symbol.name);
 		print("' is a partial type");
 		EndError();
 	end if;
 end sub;
 
-sub MakeNumberType(width: uint8, alignment: uint8, is_signed: uint8, name: string): (symbol: [Symbol]) is
-	symbol := Alloc(@bytesof Symbol) as [Symbol];
+# Takes ownership of the string.
+sub AddTypeToNamespace(namespace: [Namespace], type: [Type], name: string) is
+	var symbol := AllocNewSymbol();
 	symbol.kind := TYPE;
-	symbol.typedata.kind := TYPE_NUMBER;
-	symbol.typedata.width := width as uint16;
-	symbol.typedata.stride := width as uint16;
-	symbol.typedata.alignment := alignment;
-	symbol.typedata.numbertype.is_signed := is_signed;
+	symbol.typedata := type;
 	symbol.name := name;
-	AddToNamespace(&current_subr.namespace, symbol);
+	type.symbol := symbol;
+
+	AddToNamespace(namespace, symbol);
 end sub;
 
-sub IsTypeOfKind(type: [Symbol], kind: uint8): (result: uint8) is
+sub MakeNumberType(width: uint8, alignment: uint8, is_signed: uint8, name: string): (type: [Type]) is
+	type := AllocNewType();
+	type.kind := TYPE_NUMBER;
+	type.width := width as uint16;
+	type.stride := width as uint16;
+	type.alignment := alignment;
+	type.numbertype.is_signed := is_signed;
+
+	AddTypeToNamespace(&current_subr.namespace, type, name);
+end sub;
+
+sub IsTypeOfKind(type: [Type], kind: uint8): (result: uint8) is
 	result := 0;
-	if (type != (0 as [Symbol])) and (type.kind == TYPE) and (type.typedata.kind == kind) then
+	if (type != (0 as [Type])) and (type.kind == kind) then
 		result := 1;
 	end if;
 end sub;
 
-sub IsArray(type: [Symbol]): (result: uint8) is
+sub IsArray(type: [Type]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_ARRAY);
 end sub;
 
-sub IsPtr(type: [Symbol]): (result: uint8) is
+sub IsPtr(type: [Type]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_POINTER);
 end sub;
 
-sub IsSubroutine(type: [Symbol]): (result: uint8) is
+sub IsSubroutine(type: [Type]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_SUBROUTINE);
 end sub;
 
-sub IsNum(type: [Symbol]): (result: uint8) is
-	if type == (0 as [Symbol]) then
+sub IsNum(type: [Type]): (result: uint8) is
+	if type == (0 as [Type]) then
 		result := 1;
 	else
 		result := IsTypeOfKind(type, TYPE_NUMBER);
 	end if;
 end sub;
 
-sub IsSNum(type: [Symbol]): (result: uint8) is
-	if type == (0 as [Symbol]) then
+sub IsSNum(type: [Type]): (result: uint8) is
+	if type == (0 as [Type]) then
 		result := 1;
-	elseif (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.typedata.numbertype.is_signed != 0) then
+	elseif (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.numbertype.is_signed != 0) then
 		result := 1;
 	else
 		result := 0;
 	end if;
 end sub;
 
-sub IsScalar(type: [Symbol]): (result: uint8) is
+sub IsScalar(type: [Type]): (result: uint8) is
 	if (IsPtr(type) != 0) or (IsNum(type) != 0) or (IsSubroutine(type) != 0) then
 		result := 1;
 	else
@@ -138,15 +150,15 @@ sub IsScalar(type: [Symbol]): (result: uint8) is
 	end if;
 end sub;
 
-sub IsRecord(type: [Symbol]): (result: uint8) is
+sub IsRecord(type: [Type]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_RECORD);
 end sub;
 
 sub MakeLValue(address: [Node]): (lvalue: [Node]) is
 	var w: uint8 := 0;
-	var elementtype := address.type.typedata.pointertype.element;
+	var elementtype := address.type.pointertype.element;
 	if IsScalar(elementtype) != 0 then
-		w := elementtype.typedata.width as uint8;
+		w := elementtype.width as uint8;
 	end if;
 	lvalue := MidLoad(w, address);
 	lvalue.type := elementtype;
@@ -166,11 +178,4 @@ sub UndoLValue(lvalue: [Node]): (address: [Node]) is
 	lvalue.left := (0 as [Node]);
 	Discard(lvalue);
 end sub;
-
-# Copies a parameter symbol to the new subroutine. The parameter is still owned
-# by the old subroutine. (This is used for copying parameters from interfaces
-# to their implementations.)
-sub CopyParameter(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol]) is
-end sub;
-
 

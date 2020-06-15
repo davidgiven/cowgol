@@ -231,7 +231,7 @@ sub SimpleError(message: string) is
 end sub;
 
 sub LexerAddIncludePath(path: string) is
-	var p := Alloc(@bytesof IncludePath) as [IncludePath];
+	var p := InternalAlloc(@bytesof IncludePath) as [IncludePath];
 	p.next := include_paths;
 	p.path := path;
 	include_paths := p;
@@ -247,7 +247,7 @@ sub LexerPrintSpaces() is
 end sub;
 
 sub lexer_i_open(file: [File]): (result: uint8) is
-	var fcb := Alloc(@bytesof FCB) as [FCB];
+	var fcb := InternalAlloc(@bytesof FCB) as [FCB];
 	if FCBOpenIn(fcb, file.path) == 0 then
 		file.fcb := fcb;
 		FCBSeek(fcb, file.pos);
@@ -265,7 +265,7 @@ sub lexer_i_close(file: [File]) is
 end sub;
 
 sub LexerIncludeFile(path: string) is
-	var f := Alloc(@bytesof File) as [File];
+	var f := InternalAlloc(@bytesof File) as [File];
 	f.next := current_file;
 	f.lineno := 1;
 
@@ -273,7 +273,7 @@ sub LexerIncludeFile(path: string) is
 	var fl := StrLen(path);
 	while p != (0 as [IncludePath]) loop
 		var il := StrLen(p.path);
-		f.path := Alloc(fl + il + 1);
+		f.path := InternalAlloc(fl + il + 1);
 		MemCopy(p.path, il, f.path);
 		MemCopy(path, fl+1, f.path + il);
 		if lexer_i_open(f) == 0 then
@@ -571,7 +571,7 @@ sub LexerReadToken(): (token: uint8) is
 		lexer_i_read_string();
 		current_file.lineno := token_value as uint16;
 		Free(current_file.path as [uint8]);
-		current_file.path := StrDup(&token_buffer[0]);
+		current_file.path := InternalStrDup(&token_buffer[0]);
 	end sub;
 
 	loop
