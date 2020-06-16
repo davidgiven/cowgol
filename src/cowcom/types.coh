@@ -72,7 +72,6 @@ record Symbol is
 	typedata @at(0): [Type];
 	vardata @at(0): VarSymbol;
 	constant @at(0): Arith;
-	subr @at(0): [Subroutine];
 	alias @at(0): [Symbol];
 
 	name: string;

@@ -476,6 +476,13 @@ expression(E) ::= SIZEOF varortypeid(T).
 
 leafexpression(E) ::= oldid(S).
 {
+	sub not_a_value() is
+		StartError();
+		print(S.name);
+		print(" is not a value");
+		EndError();
+	end sub;
+
 	case S.kind is
 		when CONST:
 			E := MidConstant(S.constant);
@@ -485,15 +492,20 @@ leafexpression(E) ::= oldid(S).
 			E.type := MakePointerType(S.vardata.type);
 			E := MakeLValue(E);
 
-		when SUB:
-			E := MidAddress(S, 0);
-			E.type := MakeSubroutineType(S.subr);
+		when TYPE:
+			# Subroutine instances are passed around as their type, even if it
+			# does not *really* make sense. Every type must have a symbol, so
+			# by using the type as a subroutine literal, we save on having to
+			# create an extra symbol for it.
+			if S.typedata.kind == TYPE_SUBROUTINE then
+				E := MidAddress(S, 0);
+				E.type := S.typedata.subrtype.subr.intfsubr.type;
+			else
+				not_a_value();
+			end if;
 
 		when else:
-			StartError();
-			print(S.name);
-			print(" is not a value");
-			EndError();
+			not_a_value();
 	end case;
 }
 
@@ -947,21 +959,8 @@ statement ::= DECL SUB newsubid subparams submodifiers SEMICOLON.
 statement ::= subimpldecl substart statements subend SEMICOLON.
 
 // Declare an interface.
-statement ::= INTERFACE newsubid(S) subparams submodifiers SEMICOLON.
+statement ::= INTERFACE newsubid subparams submodifiers SEMICOLON.
 {
-	# newsubid created a subroutine symbol; we actually want this to
-	# be a type.
-
-	S.kind := TYPE;
-	var type := AllocNewType();
-	S.typedata := type;
-	type.symbol := S;
-
-	type.kind := TYPE_SUBROUTINE;
-	type.width := intptr_type.width;
-	type.alignment := intptr_type.alignment;
-	type.stride := intptr_type.stride;
-	type.subrtype.subr := preparing_subr;
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_INTERFACE;
 
 	current_subr := preparing_subr;
@@ -1019,19 +1018,31 @@ newsubid(R) ::= newid(S).
 	preparing_subr.parent := current_subr;
 	preparing_subr.id := AllocSubrId();
 
+	var type := AllocNewType();
+	type.kind := TYPE_SUBROUTINE;
+	type.width := intptr_type.width;
+	type.alignment := intptr_type.alignment;
+	type.stride := intptr_type.stride;
+	type.subrtype.subr := preparing_subr;
+	preparing_subr.type := type;
+	preparing_subr.intfsubr := preparing_subr;
+
+	S.kind := TYPE;
+	S.typedata := type;
+	type.symbol := S;
 	preparing_subr.symbol := S;
-	S.kind := SUB;
-	S.subr := preparing_subr;
+
 	EmitterDeclareSubroutine(preparing_subr);
 	R := S;
 }
 
 subimpldecl ::= IMPL SUB oldid(S).
 {
-	if S.kind != SUB then
+	if (S.kind != TYPE) or (IsSubroutine(S.typedata) == 0) then
 		SimpleError("not a subroutine");
 	end if;
-	preparing_subr := S.subr;
+	preparing_subr := S.typedata.subrtype.subr;
+
 	if (preparing_subr.flags & SUB_HAS_IMPL) != 0 then
 		SimpleError("subroutine already implemented");
 	end if;
@@ -1439,16 +1450,24 @@ asm ::= NUMBER(T).
 
 asm ::= oldid(S).
 {
+	sub bad_reference() is
+		SimpleError("you can only emit references to variables, subroutines, or constants");
+	end sub;
+
 	var k := S.kind;
-	if (k == VAR) or (k == SUB) then
-		if k == SUB then
-			EmitterReferenceSubroutine(current_subr, S.subr);
+	if (k == VAR) or (k == TYPE) then
+		if (k == TYPE) then
+			if IsSubroutine(S.typedata) != 0 then
+				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr);
+			else
+				bad_reference();
+			end if;
 		end if;
 		Generate(MidAsmsymbol(S));
 	elseif k == CONST then
 		Generate(MidAsmvalue(S.constant));
 	else
-		SimpleError("you can only emit references to variables, subroutines, or constants");
+		bad_reference();
 	end if;
 }
 

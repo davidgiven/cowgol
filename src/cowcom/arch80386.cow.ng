@@ -56,8 +56,8 @@
 
 	sub E_symref(sym: [Symbol], off: Size) is
 		case sym.kind is
-			when SUB:
-				E_subref(sym.subr);
+			when TYPE:
+                E_subref(sym.typedata.subrtype.subr);
 
 			when VAR:
 				if sym.vardata.externname != (0 as string) then
@@ -795,7 +795,7 @@ gen RETURN()
 
 %{
 	sub Call(addr: [MidcodeAddress]) is
-		E_call(addr.sym.subr);
+		E_call(addr.sym.typedata.subrtype.subr);
 	end sub;
 %}
 
@@ -1169,12 +1169,14 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	if $s.sym.kind == VAR then
-		E_symref($s.sym, 0);
-	else
-		E_subref($s.sym.subr);
-	end if;
-	E_space();
+	case $s.sym.kind is
+		when VAR:
+			E_symref($s.sym, 0);
+
+		when TYPE:
+			E_subref($s.sym.typedata.subrtype.subr);
+    end case;
+    E_space();
 }
 
 gen ASMVALUE():c

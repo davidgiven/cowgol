@@ -116,16 +116,17 @@
 
 	sub E_symref(sym: [Symbol], off: Size) is
 		case sym.kind is
-			when SUB:
+			when TYPE:
 				EmitterOpenStream(current_subr);
 
+                var subr := sym.typedata.subrtype.subr;
 				E("\tvoid ");
-				E_subref(sym.subr);
-				EmitFunctionSignature(sym.subr);
+				E_subref(subr);
+				EmitFunctionSignature(subr);
 				E(";\n");
 
 				EmitterCloseStream();
-				E_subref(sym.subr);
+				E_subref(subr);
 
 			when VAR:
 				if sym.vardata.externname != (0 as string) then
@@ -1037,15 +1038,17 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	if $s.sym.kind == VAR then
-		E("*(i");
-		E_u8($s.sym.vardata.type.width as uint8);
-		E("*)(intptr_t)(");
-		E_symref($s.sym, 0);
-		E(")");
-	else
-		E_subref($s.sym.subr);
-	end if;
+	case $s.sym.kind is
+		when VAR:
+			E("*(i");
+			E_u8($s.sym.vardata.type.width as uint8);
+			E("*)(intptr_t)(");
+			E_symref($s.sym, 0);
+			E(")");
+
+		when TYPE:
+			E_subref($s.sym.typedata.subrtype.subr);
+	end case;
 	E_space();
 }
 

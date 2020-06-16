@@ -74,14 +74,7 @@ PrintFreeMemory();
 ParseArguments();
 LexerAddIncludePath("");
 LexerIncludeFile(inputfile);
-
-var main_sym := AllocNewSymbol();
-main_sym.kind := SUB;
-main_sym.name := "__main";
-current_subr := InternalAlloc(@bytesof Subroutine) as [Subroutine];
-current_subr.symbol := main_sym;
-main_sym.subr := current_subr;
-AddToNamespace(&current_subr.namespace, main_sym);
+CreateMainSubroutine();
 
 ArchInitTypes();
 EmitterOpenfile(outputfile);

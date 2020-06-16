@@ -48,21 +48,6 @@ sub MakeArrayType(type: [Type], size: Size): (arraytype: [Type]) is
 	AddTypeToNamespace(type.symbol.namespace, arraytype, StrDupArrayed(type.symbol.name, size));
 end sub;
 
-sub MakeSubroutineType(subr: [Subroutine]): (type: [Type]) is
-	type := subr.type;
-	if type == (0 as [Type]) then
-		type := AllocNewType();
-		type.kind := TYPE_SUBROUTINE;
-		type.width := intptr_type.width;
-		type.alignment := intptr_type.alignment;
-		type.stride := intptr_type.stride;
-		type.subrtype.subr := subr;
-		subr.type := type;
-
-		AddTypeToNamespace(subr.symbol.namespace, type, InternalStrDup(subr.symbol.name));
-	end if;
-end sub;
-
 # Called after a subroutine has been generated. This allows us to free up some
 # of the resources used. Note that we can't free *everything* until our parent
 # gets destructed, because parameters and types which they depend on might be
@@ -122,13 +107,16 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 		pending := pending.next;
 		
 		case symbol.kind is
-			when SUB:
-				QueueSubroutine(symbol.subr);
-
 			when TYPE:
-				if symbol.typedata.kind == TYPE_RECORD then
-					QueueNamespace(&symbol.typedata.recordtype.namespace);
-				end if;
+				var type := symbol.typedata;
+				case type.kind is
+					when TYPE_RECORD:
+						QueueNamespace(&type.recordtype.namespace);
+
+					when TYPE_SUBROUTINE:
+						QueueNamespace(&type.subrtype.subr.namespace);
+				end case;
+				FreeType(type);
 
 			when VAR:
 				# Do not destruct the variable type, as it will be destructed
@@ -165,5 +153,24 @@ sub CopyParameterList(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol])
 
 		param := param.vardata.next_parameter;
 	end loop;
+end sub;
+
+sub CreateMainSubroutine() is
+	var type := AllocNewType();
+	type.kind := TYPE_SUBROUTINE;
+
+	var sym := AllocNewSymbol();
+	sym.kind := TYPE;
+	sym.name := "__main";
+	sym.typedata := type;
+	type.symbol := sym;
+
+	current_subr := InternalAlloc(@bytesof Subroutine) as [Subroutine];
+	current_subr.symbol := sym;
+	current_subr.type := type;
+	current_subr.intfsubr := current_subr;
+	type.subrtype.subr := current_subr;
+
+	AddToNamespace(&current_subr.namespace, sym);
 end sub;
 
