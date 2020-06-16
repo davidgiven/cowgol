@@ -70,13 +70,11 @@ statement ::= RETURN SEMICOLON.
 
 statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
-	S.kind := VAR;
 	InitVariable(current_subr, S, T);
 }
 
 statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 {
-	S.kind := VAR;
 	InitVariable(current_subr, S, T);
     CheckExpressionType(E, S.vardata.type);
 
@@ -93,7 +91,6 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 		SimpleError("you can only assign to lvalues");
 	end if;
 
-	S.kind := VAR;
 	InitVariable(current_subr, S, type);
 	CheckExpressionType(E, S.vardata.type);
 
@@ -1127,7 +1124,6 @@ param(R) ::= ID(X) COLON typeref(T).
 	# consumes X
 	R := AddSymbol(&preparing_subr.namespace, X.string);
 
-	R.kind := VAR;
 	InitVariable(preparing_subr, R, T);
 }
 
@@ -1193,11 +1189,12 @@ recordmembers ::= recordmember recordmembers.
 recordmember ::= memberid(S) recordat(A) COLON typeref(T) SEMICOLON.
 {
 	CheckNotPartialType(T);
-	S.kind := VAR;
-	S.vardata.type := T;
 	if T.alignment > current_type.alignment then
 		current_type.alignment := T.alignment;
 	end if;
+	S.kind := VAR;
+	S.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
+	S.vardata.type := T;
 	ArchInitMember(current_type, S, A);
 }
 
@@ -1321,6 +1318,7 @@ initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 
 	CheckNotPartialType(T);
 	S.kind := VAR;
+	S.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 	S.vardata.type := T;
 	S.vardata.subr := current_subr;
 	var name := InternalAlloc(8);

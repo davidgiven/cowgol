@@ -70,7 +70,7 @@ end record;
 
 record Symbol is
 	typedata @at(0): [Type];
-	vardata @at(0): VarSymbol;
+	vardata @at(0): [VarSymbol];
 	constant @at(0): Arith;
 	alias @at(0): [Symbol];
 

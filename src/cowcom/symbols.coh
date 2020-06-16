@@ -1,5 +1,7 @@
 sub InitVariable(subr: [Subroutine], symbol: [Symbol], type: [Type]) is
 	CheckNotPartialType(type);
+	symbol.kind := VAR;
+	symbol.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 	symbol.vardata.type := type;
 	symbol.vardata.subr := subr;
 	ArchInitVariable(symbol);
@@ -140,6 +142,7 @@ sub CopyParameterList(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol])
 	while param != 0 as [Symbol] loop
 		var p := AddSymbol(&subr.namespace, InternalStrDup(param.name));
 		p.kind := VAR;
+		p.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 		p.vardata.type := param.vardata.type;
 		p.vardata.subr := param.vardata.subr;
 		p.vardata.offset := param.vardata.offset;
