@@ -57,12 +57,6 @@ end sub;
 sub DestructSubroutineContents(subr: [Subroutine]) is
 	var pending: [Symbol] := 0 as [Symbol];
 
-	# Destroys a sumbol (which isn't a subroutine).
-	sub DestructSymbol(symbol: [Symbol]) is
-		Free(symbol.name);
-		FreeSymbol(symbol);
-	end sub;
-
 	# Adds all members of the namespace to the pending list.
 	sub QueueNamespace(namespace: [Namespace]) is
 		while namespace.first != (0 as [Symbol]) loop
@@ -72,12 +66,6 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 			s.next := pending;
 			pending := s;
 		end loop;
-	end sub;
-
-	# Destroys a subroutine, freeing all parameters, variables, types etc.
-	sub QueueSubroutine(subr: [Subroutine]) is
-		QueueNamespace(&subr.namespace);
-		Free(subr as [uint8]);
 	end sub;
 
 	# Find the last parameter.
@@ -112,13 +100,15 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 
 					when TYPE_SUBROUTINE:
 						QueueNamespace(&type.subrtype.subr.namespace);
+						Free(type.subrtype.subr as [uint8]);
 				end case;
 				FreeType(type);
 
 			when VAR:
 				Free(symbol.vardata as [uint8]);
 		end case;
-		DestructSymbol(symbol);
+		Free(symbol.name);
+		FreeSymbol(symbol);
 	end loop;
 
 	if last_parameter != (0 as [Symbol]) then
