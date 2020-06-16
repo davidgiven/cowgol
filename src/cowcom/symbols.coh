@@ -82,18 +82,13 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 
 	# Find the last parameter.
 
-	var last_parameter := subr.first_output_parameter;
-	if last_parameter == (0 as [Symbol]) then
-		last_parameter := subr.first_input_parameter;
-	end if;
-	if last_parameter != (0 as [Symbol]) then
-		loop
-			var next := last_parameter.vardata.next_parameter;
-			if next == (0 as [Symbol]) then
-				break;
-			end if;
-			last_parameter := next;
-		end loop;
+	var last_parameter: [Symbol];
+	if subr.num_output_parameters != 0 then
+		last_parameter := GetOutputParameter(subr, subr.num_output_parameters - 1);
+	elseif subr.num_input_parameters != 0 then
+		last_parameter := GetInputParameter(subr, subr.num_input_parameters - 1);
+	else
+		last_parameter := 0 as [Symbol];
 	end if;
 
 	# last_parameter is now pointing at the last parameter, or null if there

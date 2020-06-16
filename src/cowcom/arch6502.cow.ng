@@ -402,7 +402,7 @@
         if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
             return;
         end if;
-        if (subr.num_input_parameters == 1) and (subr.first_input_parameter.vardata.type.width == 4) then
+        if (subr.num_input_parameters == 1) and (subr.namespace.first.vardata.type.width == 4) then
             return;
         end if;
         if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.width == 4) then

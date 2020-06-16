@@ -88,7 +88,6 @@ record Subroutine is
 	symbol: [Symbol];
 	parent: [Subroutine];
 	namespace: Namespace;
-	first_input_parameter: [Symbol];
 	first_output_parameter: [Symbol];
 	type: [Type];
 	intfsubr: [Subroutine];

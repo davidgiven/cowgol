@@ -858,8 +858,8 @@ startsubcall ::= leafexpression(E).
 	var subr := E.type.subrtype.subr;
 	call.expr := E;
 	call.intfsubr := subr;
-	call.input_parameter := subr.first_input_parameter;
-	call.output_parameter := subr.first_output_parameter;
+	call.input_parameter := GetInputParameter(subr, 0);
+	call.output_parameter := GetOutputParameter(subr, 0);
 	current_call := call;
 }
 
@@ -989,15 +989,17 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	EmitterReferenceSubroutine(current_subr, intfsubr);
 	EmitterReferenceSubroutine(intfsubr, preparing_subr);
 
-	preparing_subr.first_input_parameter :=
-			CopyParameterList(intfsubr.first_input_parameter, preparing_subr);
-	preparing_subr.num_input_parameters :=
-			CountParameters(preparing_subr.first_input_parameter);
+	preparing_subr.num_input_parameters := intfsubr.num_input_parameters;
+	if preparing_subr.num_input_parameters != 0 then
+		var first_input_parameter :=
+				CopyParameterList(intfsubr.namespace.first, preparing_subr);
+	end if;
 
-	preparing_subr.first_output_parameter :=
-			CopyParameterList(intfsubr.first_output_parameter, preparing_subr);
-	preparing_subr.num_output_parameters :=
-			CountParameters(preparing_subr.first_output_parameter);
+	preparing_subr.num_output_parameters := intfsubr.num_output_parameters;
+	if preparing_subr.num_output_parameters != 0 then
+		preparing_subr.first_output_parameter :=
+				CopyParameterList(intfsubr.first_output_parameter, preparing_subr);
+	end if;
 }
 
 submodifiers ::= .
@@ -1092,13 +1094,11 @@ subparams ::= inparamlist COLON paramlist(OUTS).
 
 inparamlist ::= paramlist(INS).
 {
-	preparing_subr.first_input_parameter := INS;
 	preparing_subr.num_input_parameters := CountParameters(INS);
 }
 
 inparamlist ::= .
 {
-	preparing_subr.first_input_parameter := 0 as [Symbol];
 	preparing_subr.num_input_parameters := 0;
 }
 

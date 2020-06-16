@@ -8,19 +8,27 @@ sub CountParameters(param: [Symbol]): (count: uint8) is
 end sub;
 
 sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
-	param := subr.first_input_parameter;
-	while count != 0 loop
-		param := param.vardata.next_parameter;
-		count := count - 1;
-	end loop;
+	if subr.num_input_parameters != 0 then
+		param := subr.namespace.first;
+		while count != 0 loop
+			param := param.vardata.next_parameter;
+			count := count - 1;
+		end loop;
+	else
+		param := 0 as [Symbol];
+	end if;
 end sub;
 
 sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
-	param := subr.first_output_parameter;
-	while count != 0 loop
-		param := param.vardata.next_parameter;
-		count := count - 1;
-	end loop;
+	if subr.num_output_parameters != 0 then
+		param := subr.first_output_parameter;
+		while count != 0 loop
+			param := param.vardata.next_parameter;
+			count := count - 1;
+		end loop;
+	else
+		param := 0 as [Symbol];
+	end if;
 end sub;
 
 sub BadNodeWidth(width: uint8) is
