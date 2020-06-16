@@ -121,8 +121,7 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 				FreeType(type);
 
 			when VAR:
-				# Do not destruct the variable type, as it will be destructed
-				# via the owning namespace or type.
+				Free(symbol.vardata as [uint8]);
 		end case;
 		DestructSymbol(symbol);
 	end loop;

@@ -1050,10 +1050,13 @@ subimpldecl ::= IMPL SUB oldid(S).
 
 substart ::= IS.
 {
-	preparing_subr.old_break_label := break_label;
+	var sl := InternalAlloc(@bytesof SubroutineLabels) as [SubroutineLabels];
+	sl.old_labels := current_subr_def;
+	sl.old_break_label := break_label;
 	break_label := 0;
-	preparing_subr.old_continue_label := continue_label;
+	sl.old_continue_label := continue_label;
 	continue_label := 0;
+	current_subr_def := sl;
 
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
@@ -1064,9 +1067,13 @@ subend ::= END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
+	break_label := current_subr_def.old_break_label;
+	continue_label := current_subr_def.old_continue_label;
+	var ll := current_subr_def;
+	current_subr_def := ll.old_labels;
+	Free(ll as [uint8]);
+
 	var subr := current_subr;
-	break_label := subr.old_break_label;
-	continue_label := subr.old_continue_label;
 	current_subr := subr.parent;
 
 	DestructSubroutineContents(subr);

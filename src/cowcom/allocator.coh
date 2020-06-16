@@ -113,7 +113,10 @@ end sub;
 		block := RawAlloc(length);
 		if block == (0 as [uint8]) then
 			print("Out of memory\n");
-			DumpBlocks();
+			#print("Out of memory allocating ");
+			#print_hex_i32(length as uint32);
+			#print_nl();
+			#DumpBlocks();
 			ExitWithError();
 		end if;
 	end if;

@@ -94,13 +94,16 @@ record Subroutine is
 	intfsubr: [Subroutine];
 	id: uint16;
 	workspace: Size[4];
-	old_break_label: LabelRef;
-	old_continue_label: LabelRef;
-	old_call: [Subroutine];
 	arch: [ArchSubroutine];
 	num_input_parameters: uint8;
 	num_output_parameters: uint8;
 	flags: uint8;
+end record;
+
+record SubroutineLabels is
+	old_break_label: LabelRef;
+	old_continue_label: LabelRef;
+	old_labels: [SubroutineLabels];
 end record;
 
 record LoopLabels is
@@ -145,6 +148,7 @@ var current_if: [IfLabels];
 var current_case: [CaseLabels];
 var current_type: [Type];
 var current_call: [SubroutineCall];
+var current_subr_def: [SubroutineLabels] := 0 as [SubroutineLabels];
 
 const REG_SAME_AS_INSTRUCTION_RESULT := -1;
 
