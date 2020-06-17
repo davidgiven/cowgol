@@ -773,7 +773,7 @@ expression(E) ::= startsubcall inputargs(INA).
 		SimpleError("subroutines called as functions must have exactly one output parameter");
 	end if;
 
-	var param := intfsubr.first_output_parameter;
+	var param := GetOutputParameter(intfsubr, 0);
 	E := MidCalle(param.vardata.type.width as uint8, INA, current_call.expr, intfsubr);
 	E.type := param.vardata.type;
 
@@ -991,14 +991,12 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 
 	preparing_subr.num_input_parameters := intfsubr.num_input_parameters;
 	if preparing_subr.num_input_parameters != 0 then
-		var first_input_parameter :=
-				CopyParameterList(intfsubr.namespace.first, preparing_subr);
+		CopyParameterList(intfsubr.namespace.first, preparing_subr);
 	end if;
 
 	preparing_subr.num_output_parameters := intfsubr.num_output_parameters;
 	if preparing_subr.num_output_parameters != 0 then
-		preparing_subr.first_output_parameter :=
-				CopyParameterList(intfsubr.first_output_parameter, preparing_subr);
+		CopyParameterList(GetOutputParameter(intfsubr, 0), preparing_subr);
 	end if;
 }
 
@@ -1088,7 +1086,6 @@ subparams ::= inparamlist.
 
 subparams ::= inparamlist COLON paramlist(OUTS).
 {
-	preparing_subr.first_output_parameter := OUTS;
 	preparing_subr.num_output_parameters := CountParameters(OUTS);
 }
 

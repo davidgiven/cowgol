@@ -402,11 +402,17 @@
         if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
             return;
         end if;
-        if (subr.num_input_parameters == 1) and (subr.namespace.first.vardata.type.width == 4) then
-            return;
+        if subr.num_input_parameters == 1 then
+            var param := GetInputParameter(subr, 0);
+            if param.vardata.type.width == 4 then
+                return;
+            end if;
         end if;
-        if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.width == 4) then
-            return;
+        if subr.num_output_parameters == 1 then
+            param := GetOutputParameter(subr, 0);
+            if param.vardata.type.width == 4 then
+                return;
+            end if;
         end if;
         result := 1;
     end sub;

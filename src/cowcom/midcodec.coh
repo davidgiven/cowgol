@@ -11,7 +11,7 @@ sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
 	if subr.num_input_parameters != 0 then
 		param := subr.namespace.first;
 		while count != 0 loop
-			param := param.vardata.next_parameter;
+			param := param.next;
 			count := count - 1;
 		end loop;
 	else
@@ -21,9 +21,10 @@ end sub;
 
 sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
 	if subr.num_output_parameters != 0 then
-		param := subr.first_output_parameter;
+		count := count + subr.num_input_parameters;
+		param := subr.namespace.first;
 		while count != 0 loop
-			param := param.vardata.next_parameter;
+			param := param.next;
 			count := count - 1;
 		end loop;
 	else
