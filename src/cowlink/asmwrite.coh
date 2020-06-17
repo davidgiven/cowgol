@@ -49,15 +49,6 @@ sub WriteSubroutinesToOutputFile(coo: [Coo]) is
 
 		if c == 'E' then
 			break;
-		elseif c == 'S' then
-			id := ReadB2();
-			current_subroutine := FindOrCreateSub(coo, id);
-			current_subroutine := Deref(current_subroutine);
-			if (current_subroutine.state & SUB_USED) != 0 then
-				SetStream(7);
-				CopySourceChunk();
-				FlushStream();
-			end if;
 		elseif c == 'F' then
 			sid := ReadB1();
 			id := ReadB2();

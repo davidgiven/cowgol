@@ -2,7 +2,7 @@
 static i8 workspace[0x00a9];
 static i1* ws = (i1*)workspace;
 
-// ExitWithError workspace at ws+1240 length ws+0
+// ExitWithError workspace at ws+1264 length ws+0
 void f6_ExitWithError(void) {
 
 
@@ -35,14 +35,14 @@ memset((void*)(intptr_t)
 endsub:;
 }
 
-// print_char workspace at ws+1256 length ws+1
+// print_char workspace at ws+1280 length ws+1
 void f8_print_char(i1 p11 /* c */) {
-	*(i1*)(intptr_t)(ws+1256) = p11; /*c */
+	*(i1*)(intptr_t)(ws+1280) = p11; /*c */
 
 
 	
 putchar( 
-*(i1*)(intptr_t)(ws+1256) 
+*(i1*)(intptr_t)(ws+1280) 
 ); 
 
 
@@ -51,19 +51,19 @@ endsub:;
 }
 	void f8_print_char(i1 /* c */);
 
-// print workspace at ws+1240 length ws+9
+// print workspace at ws+1264 length ws+9
 void f11_print(i8 p20 /* ptr */) {
-	*(i8*)(intptr_t)(ws+1240) = p20; /*ptr */
+	*(i8*)(intptr_t)(ws+1264) = p20; /*ptr */
 
 c02_0001:;
 
-	i8 v21 = (i8)(intptr_t)(ws+1240);
+	i8 v21 = (i8)(intptr_t)(ws+1264);
 	i8 v22 = *(i8*)(intptr_t)v21;
 	i1 v23 = *(i1*)(intptr_t)v22;
-	i8 v24 = (i8)(intptr_t)(ws+1248);
+	i8 v24 = (i8)(intptr_t)(ws+1272);
 	*(i1*)(intptr_t)v24 = v23;
 
-	i8 v25 = (i8)(intptr_t)(ws+1248);
+	i8 v25 = (i8)(intptr_t)(ws+1272);
 	i1 v26 = *(i1*)(intptr_t)v25;
 	i1 v27 = (i1)+0;
 	if (v26==v27) goto c02_0006; else goto c02_0007;
@@ -76,16 +76,16 @@ c02_0007:;
 
 c02_0003:;
 
-	i8 v28 = (i8)(intptr_t)(ws+1248);
+	i8 v28 = (i8)(intptr_t)(ws+1272);
 	i1 v29 = *(i1*)(intptr_t)v28;
 	i8 v30 = (i8)(intptr_t)(f8_print_char);
 
 	((void(*)(i1 /* c */))(intptr_t)v30)(v29);
 
-	i8 v31 = (i8)(intptr_t)(ws+1240);
+	i8 v31 = (i8)(intptr_t)(ws+1264);
 	i8 v32 = *(i8*)(intptr_t)v31;
 	i8 v33 = v32+(+1);
-	i8 v34 = (i8)(intptr_t)(ws+1240);
+	i8 v34 = (i8)(intptr_t)(ws+1264);
 	*(i8*)(intptr_t)v34 = v33;
 
 	goto c02_0001;
@@ -674,26 +674,69 @@ endsub:;
 	*p366 = *(i1*)(intptr_t)(ws+1240);
 }
 
-// Alloc workspace at ws+1248 length ws+16
-void f31_Alloc(i8* p503 /* block */, i8 p504 /* length */) {
-	*(i8*)(intptr_t)(ws+1248) = p504; /*length */
+// RawAlloc workspace at ws+1264 length ws+16
+void f31_RawAlloc(i8* p503 /* block */, i8 p504 /* length */) {
+	*(i8*)(intptr_t)(ws+1264) = p504; /*length */
 
 
 	
-*(i8*)(intptr_t)(ws+1256) 
+*(i8*)(intptr_t)(ws+1272) 
 =(intptr_t)calloc(1, (size_t) 
-*(i8*)(intptr_t)(ws+1248) 
+*(i8*)(intptr_t)(ws+1264) 
 ); 
 
 
 
 endsub:;
-	*p503 = *(i8*)(intptr_t)(ws+1256);
+	*p503 = *(i8*)(intptr_t)(ws+1272);
+}
+	void f31_RawAlloc(i8* /* block */, i8 /* length */);
+const i1 c02_s0000[] = { 0x4f,0x75,0x74,0x20,0x6f,0x66,0x20,0x6d,0x65,0x6d,0x6f,0x72,0x79,0 };
+	void f11_print(i8 /* ptr */);
+	void f6_ExitWithError(void);
+
+// Alloc workspace at ws+1248 length ws+16
+void f32_Alloc(i8* p505 /* block */, i8 p506 /* length */) {
+	*(i8*)(intptr_t)(ws+1248) = p506; /*length */
+
+	i8 v507 = (i8)(intptr_t)(ws+1248);
+	i8 v508 = *(i8*)(intptr_t)v507;
+	i8 v509 = (i8)(intptr_t)(f31_RawAlloc);
+	i8 v510;
+
+	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v509)(&v510, v508);
+	i8 v511 = (i8)(intptr_t)(ws+1256);
+	*(i8*)(intptr_t)v511 = v510;
+
+	i8 v512 = (i8)(intptr_t)(ws+1256);
+	i8 v513 = *(i8*)(intptr_t)v512;
+	i8 v514 = (i8)+0;
+	if (v513==v514) goto c02_008c; else goto c02_008d;
+
+c02_008c:;
+
+	i8 v515 = (i8)(intptr_t)c02_s0000;
+	i8 v516 = (i8)(intptr_t)(f11_print);
+
+	((void(*)(i8 /* ptr */))(intptr_t)v516)(v515);
+
+	i8 v517 = (i8)(intptr_t)(f6_ExitWithError);
+
+	((void(*)(void))(intptr_t)v517)();
+
+	goto c02_0089;
+
+c02_008d:;
+
+c02_0089:;
+
+endsub:;
+	*p505 = *(i8*)(intptr_t)(ws+1256);
 }
 
 // Free workspace at ws+1256 length ws+8
-void f32_Free(i8 p505 /* block */) {
-	*(i8*)(intptr_t)(ws+1256) = p505; /*block */
+void f33_Free(i8 p518 /* block */) {
+	*(i8*)(intptr_t)(ws+1256) = p518; /*block */
 
 
 	
@@ -707,8 +750,8 @@ endsub:;
 }
 
 // StrDup workspace at ws+1224 length ws+16
-void f33_StrDup(i8* p506 /* sout */, i8 p507 /* s */) {
-	*(i8*)(intptr_t)(ws+1224) = p507; /*s */
+void f34_StrDup(i8* p519 /* sout */, i8 p520 /* s */) {
+	*(i8*)(intptr_t)(ws+1224) = p520; /*s */
 
 
 	
@@ -720,54 +763,54 @@ void f33_StrDup(i8* p506 /* sout */, i8 p507 /* s */) {
 
 
 endsub:;
-	*p506 = *(i8*)(intptr_t)(ws+1232);
+	*p519 = *(i8*)(intptr_t)(ws+1232);
 }
 
 // GetFreeMemory workspace at ws+1144 length ws+8
-void f35_GetFreeMemory(i8* p508 /* i */) {
+void f37_GetFreeMemory(i8* p521 /* i */) {
 
-	i8 v509 = (i8)+0;
-	i8 v510 = (i8)(intptr_t)(ws+1144);
-	*(i8*)(intptr_t)v510 = v509;
+	i8 v522 = (i8)+0;
+	i8 v523 = (i8)(intptr_t)(ws+1144);
+	*(i8*)(intptr_t)v523 = v522;
 
 endsub:;
-	*p508 = *(i8*)(intptr_t)(ws+1144);
+	*p521 = *(i8*)(intptr_t)(ws+1144);
 }
 	void f7_MemSet(i8 /* len */, i1 /* byte */, i8 /* buf */);
 
 // fcb_i_blockin workspace at ws+1296 length ws+28
-void f36_fcb_i_blockin(i8 p511 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1296) = p511; /*fcb */
+void f38_fcb_i_blockin(i8 p524 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1296) = p524; /*fcb */
 
-	i8 v512 = (i8)(intptr_t)(ws+1296);
-	i8 v513 = *(i8*)(intptr_t)v512;
-	i8 v514 = v513+(+12);
-	i1 v515 = (i1)+0;
-	i8 v516 = (i8)+512;
-	i8 v517 = (i8)(intptr_t)(f7_MemSet);
+	i8 v525 = (i8)(intptr_t)(ws+1296);
+	i8 v526 = *(i8*)(intptr_t)v525;
+	i8 v527 = v526+(+12);
+	i1 v528 = (i1)+0;
+	i8 v529 = (i8)+512;
+	i8 v530 = (i8)(intptr_t)(f7_MemSet);
 
-	((void(*)(i8 /* len */, i1 /* byte */, i8 /* buf */))(intptr_t)v517)(v516, v515, v514);
+	((void(*)(i8 /* len */, i1 /* byte */, i8 /* buf */))(intptr_t)v530)(v529, v528, v527);
 
-	i8 v518 = (i8)(intptr_t)(ws+1296);
-	i8 v519 = *(i8*)(intptr_t)v518;
-	i4 v520 = *(i4*)(intptr_t)v519;
-	i8 v521 = (i8)(intptr_t)(ws+1304);
-	*(i4*)(intptr_t)v521 = v520;
+	i8 v531 = (i8)(intptr_t)(ws+1296);
+	i8 v532 = *(i8*)(intptr_t)v531;
+	i4 v533 = *(i4*)(intptr_t)v532;
+	i8 v534 = (i8)(intptr_t)(ws+1304);
+	*(i4*)(intptr_t)v534 = v533;
 
-	i8 v522 = (i8)(intptr_t)(ws+1296);
-	i8 v523 = *(i8*)(intptr_t)v522;
-	i8 v524 = v523+(+12);
-	i8 v525 = (i8)(intptr_t)(ws+1312);
-	*(i8*)(intptr_t)v525 = v524;
+	i8 v535 = (i8)(intptr_t)(ws+1296);
+	i8 v536 = *(i8*)(intptr_t)v535;
+	i8 v537 = v536+(+12);
+	i8 v538 = (i8)(intptr_t)(ws+1312);
+	*(i8*)(intptr_t)v538 = v537;
 
-	i8 v526 = (i8)(intptr_t)(ws+1296);
-	i8 v527 = *(i8*)(intptr_t)v526;
-	i8 v528 = v527+(+8);
-	i4 v529 = *(i4*)(intptr_t)v528;
-	i1 v530 = (i1)+9;
-	i4 v531 = ((i4)v529)<<v530;
-	i8 v532 = (i8)(intptr_t)(ws+1320);
-	*(i4*)(intptr_t)v532 = v531;
+	i8 v539 = (i8)(intptr_t)(ws+1296);
+	i8 v540 = *(i8*)(intptr_t)v539;
+	i8 v541 = v540+(+8);
+	i4 v542 = *(i4*)(intptr_t)v541;
+	i1 v543 = (i1)+9;
+	i4 v544 = ((i4)v542)<<v543;
+	i8 v545 = (i8)(intptr_t)(ws+1320);
+	*(i4*)(intptr_t)v545 = v544;
 
 
 	
@@ -783,48 +826,48 @@ pread(
 
 
 
-	i1 v533 = (i1)+0;
-	i8 v534 = (i8)(intptr_t)(ws+1296);
-	i8 v535 = *(i8*)(intptr_t)v534;
-	i8 v536 = v535+(+6);
-	*(i1*)(intptr_t)v536 = v533;
+	i1 v546 = (i1)+0;
+	i8 v547 = (i8)(intptr_t)(ws+1296);
+	i8 v548 = *(i8*)(intptr_t)v547;
+	i8 v549 = v548+(+6);
+	*(i1*)(intptr_t)v549 = v546;
 
 endsub:;
 }
 
 // fcb_i_blockout workspace at ws+1296 length ws+28
-void f37_fcb_i_blockout(i8 p537 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1296) = p537; /*fcb */
-
-	i8 v538 = (i8)(intptr_t)(ws+1296);
-	i8 v539 = *(i8*)(intptr_t)v538;
-	i8 v540 = v539+(+6);
-	i1 v541 = *(i1*)(intptr_t)v540;
-	i1 v542 = (i1)+0;
-	if (v541==v542) goto c02_008d; else goto c02_008c;
-
-c02_008c:;
-
-	i8 v543 = (i8)(intptr_t)(ws+1296);
-	i8 v544 = *(i8*)(intptr_t)v543;
-	i4 v545 = *(i4*)(intptr_t)v544;
-	i8 v546 = (i8)(intptr_t)(ws+1304);
-	*(i4*)(intptr_t)v546 = v545;
-
-	i8 v547 = (i8)(intptr_t)(ws+1296);
-	i8 v548 = *(i8*)(intptr_t)v547;
-	i8 v549 = v548+(+12);
-	i8 v550 = (i8)(intptr_t)(ws+1312);
-	*(i8*)(intptr_t)v550 = v549;
+void f39_fcb_i_blockout(i8 p550 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1296) = p550; /*fcb */
 
 	i8 v551 = (i8)(intptr_t)(ws+1296);
 	i8 v552 = *(i8*)(intptr_t)v551;
-	i8 v553 = v552+(+8);
-	i4 v554 = *(i4*)(intptr_t)v553;
-	i1 v555 = (i1)+9;
-	i4 v556 = ((i4)v554)<<v555;
-	i8 v557 = (i8)(intptr_t)(ws+1320);
-	*(i4*)(intptr_t)v557 = v556;
+	i8 v553 = v552+(+6);
+	i1 v554 = *(i1*)(intptr_t)v553;
+	i1 v555 = (i1)+0;
+	if (v554==v555) goto c02_0092; else goto c02_0091;
+
+c02_0091:;
+
+	i8 v556 = (i8)(intptr_t)(ws+1296);
+	i8 v557 = *(i8*)(intptr_t)v556;
+	i4 v558 = *(i4*)(intptr_t)v557;
+	i8 v559 = (i8)(intptr_t)(ws+1304);
+	*(i4*)(intptr_t)v559 = v558;
+
+	i8 v560 = (i8)(intptr_t)(ws+1296);
+	i8 v561 = *(i8*)(intptr_t)v560;
+	i8 v562 = v561+(+12);
+	i8 v563 = (i8)(intptr_t)(ws+1312);
+	*(i8*)(intptr_t)v563 = v562;
+
+	i8 v564 = (i8)(intptr_t)(ws+1296);
+	i8 v565 = *(i8*)(intptr_t)v564;
+	i8 v566 = v565+(+8);
+	i4 v567 = *(i4*)(intptr_t)v566;
+	i1 v568 = (i1)+9;
+	i4 v569 = ((i4)v567)<<v568;
+	i8 v570 = (i8)(intptr_t)(ws+1320);
+	*(i4*)(intptr_t)v570 = v569;
 
 
 	
@@ -840,56 +883,11 @@ pwrite(
 
 
 
-	i1 v558 = (i1)+0;
-	i8 v559 = (i8)(intptr_t)(ws+1296);
-	i8 v560 = *(i8*)(intptr_t)v559;
-	i8 v561 = v560+(+6);
-	*(i1*)(intptr_t)v561 = v558;
-
-	goto c02_0089;
-
-c02_008d:;
-
-c02_0089:;
-
-endsub:;
-}
-	void f37_fcb_i_blockout(i8 /* fcb */);
-	void f36_fcb_i_blockin(i8 /* fcb */);
-
-// fcb_i_changeblock workspace at ws+1280 length ws+12
-void f38_fcb_i_changeblock(i4 p562 /* newblock */, i8 p563 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1280) = p563; /*fcb */
-	*(i4*)(intptr_t)(ws+1288) = p562; /*newblock */
-
-	i8 v564 = (i8)(intptr_t)(ws+1288);
-	i4 v565 = *(i4*)(intptr_t)v564;
-	i8 v566 = (i8)(intptr_t)(ws+1280);
-	i8 v567 = *(i8*)(intptr_t)v566;
-	i8 v568 = v567+(+8);
-	i4 v569 = *(i4*)(intptr_t)v568;
-	if (v565==v569) goto c02_0092; else goto c02_0091;
-
-c02_0091:;
-
-	i8 v570 = (i8)(intptr_t)(ws+1280);
-	i8 v571 = *(i8*)(intptr_t)v570;
-	i8 v572 = (i8)(intptr_t)(f37_fcb_i_blockout);
-
-	((void(*)(i8 /* fcb */))(intptr_t)v572)(v571);
-
-	i8 v573 = (i8)(intptr_t)(ws+1288);
-	i4 v574 = *(i4*)(intptr_t)v573;
-	i8 v575 = (i8)(intptr_t)(ws+1280);
-	i8 v576 = *(i8*)(intptr_t)v575;
-	i8 v577 = v576+(+8);
-	*(i4*)(intptr_t)v577 = v574;
-
-	i8 v578 = (i8)(intptr_t)(ws+1280);
-	i8 v579 = *(i8*)(intptr_t)v578;
-	i8 v580 = (i8)(intptr_t)(f36_fcb_i_blockin);
-
-	((void(*)(i8 /* fcb */))(intptr_t)v580)(v579);
+	i1 v571 = (i1)+0;
+	i8 v572 = (i8)(intptr_t)(ws+1296);
+	i8 v573 = *(i8*)(intptr_t)v572;
+	i8 v574 = v573+(+6);
+	*(i1*)(intptr_t)v574 = v571;
 
 	goto c02_008e;
 
@@ -899,33 +897,78 @@ c02_008e:;
 
 endsub:;
 }
+	void f39_fcb_i_blockout(i8 /* fcb */);
+	void f38_fcb_i_blockin(i8 /* fcb */);
+
+// fcb_i_changeblock workspace at ws+1280 length ws+12
+void f40_fcb_i_changeblock(i4 p575 /* newblock */, i8 p576 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1280) = p576; /*fcb */
+	*(i4*)(intptr_t)(ws+1288) = p575; /*newblock */
+
+	i8 v577 = (i8)(intptr_t)(ws+1288);
+	i4 v578 = *(i4*)(intptr_t)v577;
+	i8 v579 = (i8)(intptr_t)(ws+1280);
+	i8 v580 = *(i8*)(intptr_t)v579;
+	i8 v581 = v580+(+8);
+	i4 v582 = *(i4*)(intptr_t)v581;
+	if (v578==v582) goto c02_0097; else goto c02_0096;
+
+c02_0096:;
+
+	i8 v583 = (i8)(intptr_t)(ws+1280);
+	i8 v584 = *(i8*)(intptr_t)v583;
+	i8 v585 = (i8)(intptr_t)(f39_fcb_i_blockout);
+
+	((void(*)(i8 /* fcb */))(intptr_t)v585)(v584);
+
+	i8 v586 = (i8)(intptr_t)(ws+1288);
+	i4 v587 = *(i4*)(intptr_t)v586;
+	i8 v588 = (i8)(intptr_t)(ws+1280);
+	i8 v589 = *(i8*)(intptr_t)v588;
+	i8 v590 = v589+(+8);
+	*(i4*)(intptr_t)v590 = v587;
+
+	i8 v591 = (i8)(intptr_t)(ws+1280);
+	i8 v592 = *(i8*)(intptr_t)v591;
+	i8 v593 = (i8)(intptr_t)(f38_fcb_i_blockin);
+
+	((void(*)(i8 /* fcb */))(intptr_t)v593)(v592);
+
+	goto c02_0093;
+
+c02_0097:;
+
+c02_0093:;
+
+endsub:;
+}
 	void f7_MemSet(i8 /* len */, i1 /* byte */, i8 /* buf */);
 
 // fcb_i_open workspace at ws+1176 length ws+28
-void f39_fcb_i_open(i1* p581 /* errno */, i4 p582 /* flags */, i8 p583 /* filename */, i8 p584 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1176) = p584; /*fcb */
-	*(i8*)(intptr_t)(ws+1184) = p583; /*filename */
-	*(i4*)(intptr_t)(ws+1192) = p582; /*flags */
+void f41_fcb_i_open(i1* p594 /* errno */, i4 p595 /* flags */, i8 p596 /* filename */, i8 p597 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1176) = p597; /*fcb */
+	*(i8*)(intptr_t)(ws+1184) = p596; /*filename */
+	*(i4*)(intptr_t)(ws+1192) = p595; /*flags */
 
-	i8 v585 = (i8)(intptr_t)(ws+1176);
-	i8 v586 = *(i8*)(intptr_t)v585;
-	i1 v587 = (i1)+0;
-	i8 v588 = (i8)+524;
-	i8 v589 = (i8)(intptr_t)(f7_MemSet);
+	i8 v598 = (i8)(intptr_t)(ws+1176);
+	i8 v599 = *(i8*)(intptr_t)v598;
+	i1 v600 = (i1)+0;
+	i8 v601 = (i8)+524;
+	i8 v602 = (i8)(intptr_t)(f7_MemSet);
 
-	((void(*)(i8 /* len */, i1 /* byte */, i8 /* buf */))(intptr_t)v589)(v588, v587, v586);
+	((void(*)(i8 /* len */, i1 /* byte */, i8 /* buf */))(intptr_t)v602)(v601, v600, v599);
 
-	i2 v590 = (i2)+511;
-	i8 v591 = (i8)(intptr_t)(ws+1176);
-	i8 v592 = *(i8*)(intptr_t)v591;
-	i8 v593 = v592+(+4);
-	*(i2*)(intptr_t)v593 = v590;
+	i2 v603 = (i2)+511;
+	i8 v604 = (i8)(intptr_t)(ws+1176);
+	i8 v605 = *(i8*)(intptr_t)v604;
+	i8 v606 = v605+(+4);
+	*(i2*)(intptr_t)v606 = v603;
 
-	i4 v594 = (i4)-1;
-	i8 v595 = (i8)(intptr_t)(ws+1176);
-	i8 v596 = *(i8*)(intptr_t)v595;
-	i8 v597 = v596+(+8);
-	*(i4*)(intptr_t)v597 = v594;
+	i4 v607 = (i4)-1;
+	i8 v608 = (i8)(intptr_t)(ws+1176);
+	i8 v609 = *(i8*)(intptr_t)v608;
+	i8 v610 = v609+(+8);
+	*(i4*)(intptr_t)v610 = v607;
 
 
 	
@@ -944,18 +987,18 @@ errno = 0;
 
 
 
-	i8 v598 = (i8)(intptr_t)(ws+1200);
-	i4 v599 = *(i4*)(intptr_t)v598;
-	i8 v600 = (i8)(intptr_t)(ws+1176);
-	i8 v601 = *(i8*)(intptr_t)v600;
-	*(i4*)(intptr_t)v601 = v599;
+	i8 v611 = (i8)(intptr_t)(ws+1200);
+	i4 v612 = *(i4*)(intptr_t)v611;
+	i8 v613 = (i8)(intptr_t)(ws+1176);
+	i8 v614 = *(i8*)(intptr_t)v613;
+	*(i4*)(intptr_t)v614 = v612;
 
-	i8 v602 = (i8)(intptr_t)(ws+1200);
-	i4 v603 = *(i4*)(intptr_t)v602;
-	i4 v604 = (i4)+0;
-	if ((s4)v603<(s4)v604) goto c02_0096; else goto c02_0097;
+	i8 v615 = (i8)(intptr_t)(ws+1200);
+	i4 v616 = *(i4*)(intptr_t)v615;
+	i4 v617 = (i4)+0;
+	if ((s4)v616<(s4)v617) goto c02_009b; else goto c02_009c;
 
-c02_0096:;
+c02_009b:;
 
 
 	
@@ -964,80 +1007,80 @@ c02_0096:;
 
 
 
-	goto c02_0093;
+	goto c02_0098;
 
-c02_0097:;
+c02_009c:;
 
-	i1 v605 = (i1)+0;
-	i8 v606 = (i8)(intptr_t)(ws+1196);
-	*(i1*)(intptr_t)v606 = v605;
+	i1 v618 = (i1)+0;
+	i8 v619 = (i8)(intptr_t)(ws+1196);
+	*(i1*)(intptr_t)v619 = v618;
 
-c02_0093:;
+c02_0098:;
 
 endsub:;
-	*p581 = *(i1*)(intptr_t)(ws+1196);
+	*p594 = *(i1*)(intptr_t)(ws+1196);
 }
-	void f39_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
+	void f41_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
 
 // FCBOpenIn workspace at ws+1144 length ws+17
-void f40_FCBOpenIn(i1* p607 /* errno */, i8 p608 /* filename */, i8 p609 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1144) = p609; /*fcb */
-	*(i8*)(intptr_t)(ws+1152) = p608; /*filename */
+void f42_FCBOpenIn(i1* p620 /* errno */, i8 p621 /* filename */, i8 p622 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1144) = p622; /*fcb */
+	*(i8*)(intptr_t)(ws+1152) = p621; /*filename */
 
-	i8 v610 = (i8)(intptr_t)(ws+1144);
-	i8 v611 = *(i8*)(intptr_t)v610;
-	i8 v612 = (i8)(intptr_t)(ws+1152);
-	i8 v613 = *(i8*)(intptr_t)v612;
-	i4 v614 = (i4)+0;
-	i8 v615 = (i8)(intptr_t)(f39_fcb_i_open);
-	i1 v616;
+	i8 v623 = (i8)(intptr_t)(ws+1144);
+	i8 v624 = *(i8*)(intptr_t)v623;
+	i8 v625 = (i8)(intptr_t)(ws+1152);
+	i8 v626 = *(i8*)(intptr_t)v625;
+	i4 v627 = (i4)+0;
+	i8 v628 = (i8)(intptr_t)(f41_fcb_i_open);
+	i1 v629;
 
-	((void(*)(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */))(intptr_t)v615)(&v616, v614, v613, v611);
-	i8 v617 = (i8)(intptr_t)(ws+1160);
-	*(i1*)(intptr_t)v617 = v616;
+	((void(*)(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */))(intptr_t)v628)(&v629, v627, v626, v624);
+	i8 v630 = (i8)(intptr_t)(ws+1160);
+	*(i1*)(intptr_t)v630 = v629;
 
 endsub:;
-	*p607 = *(i1*)(intptr_t)(ws+1160);
+	*p620 = *(i1*)(intptr_t)(ws+1160);
 }
-	void f39_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
+	void f41_fcb_i_open(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */);
 
 // FCBOpenOut workspace at ws+1152 length ws+17
-void f42_FCBOpenOut(i1* p629 /* errno */, i8 p630 /* filename */, i8 p631 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1152) = p631; /*fcb */
-	*(i8*)(intptr_t)(ws+1160) = p630; /*filename */
+void f44_FCBOpenOut(i1* p642 /* errno */, i8 p643 /* filename */, i8 p644 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1152) = p644; /*fcb */
+	*(i8*)(intptr_t)(ws+1160) = p643; /*filename */
 
-	i8 v632 = (i8)(intptr_t)(ws+1152);
-	i8 v633 = *(i8*)(intptr_t)v632;
-	i8 v634 = (i8)(intptr_t)(ws+1160);
-	i8 v635 = *(i8*)(intptr_t)v634;
-	i4 v636 = (i4)+578;
-	i8 v637 = (i8)(intptr_t)(f39_fcb_i_open);
-	i1 v638;
+	i8 v645 = (i8)(intptr_t)(ws+1152);
+	i8 v646 = *(i8*)(intptr_t)v645;
+	i8 v647 = (i8)(intptr_t)(ws+1160);
+	i8 v648 = *(i8*)(intptr_t)v647;
+	i4 v649 = (i4)+578;
+	i8 v650 = (i8)(intptr_t)(f41_fcb_i_open);
+	i1 v651;
 
-	((void(*)(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */))(intptr_t)v637)(&v638, v636, v635, v633);
-	i8 v639 = (i8)(intptr_t)(ws+1168);
-	*(i1*)(intptr_t)v639 = v638;
+	((void(*)(i1* /* errno */, i4 /* flags */, i8 /* filename */, i8 /* fcb */))(intptr_t)v650)(&v651, v649, v648, v646);
+	i8 v652 = (i8)(intptr_t)(ws+1168);
+	*(i1*)(intptr_t)v652 = v651;
 
 endsub:;
-	*p629 = *(i1*)(intptr_t)(ws+1168);
+	*p642 = *(i1*)(intptr_t)(ws+1168);
 }
-	void f37_fcb_i_blockout(i8 /* fcb */);
+	void f39_fcb_i_blockout(i8 /* fcb */);
 
 // FCBClose workspace at ws+1144 length ws+16
-void f43_FCBClose(i1* p640 /* errno */, i8 p641 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1144) = p641; /*fcb */
+void f45_FCBClose(i1* p653 /* errno */, i8 p654 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1144) = p654; /*fcb */
 
-	i8 v642 = (i8)(intptr_t)(ws+1144);
-	i8 v643 = *(i8*)(intptr_t)v642;
-	i8 v644 = (i8)(intptr_t)(f37_fcb_i_blockout);
+	i8 v655 = (i8)(intptr_t)(ws+1144);
+	i8 v656 = *(i8*)(intptr_t)v655;
+	i8 v657 = (i8)(intptr_t)(f39_fcb_i_blockout);
 
-	((void(*)(i8 /* fcb */))(intptr_t)v644)(v643);
+	((void(*)(i8 /* fcb */))(intptr_t)v657)(v656);
 
-	i8 v645 = (i8)(intptr_t)(ws+1144);
-	i8 v646 = *(i8*)(intptr_t)v645;
-	i4 v647 = *(i4*)(intptr_t)v646;
-	i8 v648 = (i8)(intptr_t)(ws+1156);
-	*(i4*)(intptr_t)v648 = v647;
+	i8 v658 = (i8)(intptr_t)(ws+1144);
+	i8 v659 = *(i8*)(intptr_t)v658;
+	i4 v660 = *(i4*)(intptr_t)v659;
+	i8 v661 = (i8)(intptr_t)(ws+1156);
+	*(i4*)(intptr_t)v661 = v660;
 
 
 	
@@ -1057,227 +1100,265 @@ close(
 
 
 endsub:;
-	*p640 = *(i1*)(intptr_t)(ws+1152);
+	*p653 = *(i1*)(intptr_t)(ws+1152);
 }
-	void f38_fcb_i_changeblock(i4 /* newblock */, i8 /* fcb */);
+	void f40_fcb_i_changeblock(i4 /* newblock */, i8 /* fcb */);
 
 // fcb_i_nextchar workspace at ws+1272 length ws+8
-void f47_fcb_i_nextchar(i8 p705 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1272) = p705; /*fcb */
-
-	i8 v706 = (i8)(intptr_t)(ws+1272);
-	i8 v707 = *(i8*)(intptr_t)v706;
-	i8 v708 = v707+(+4);
-	i2 v709 = *(i2*)(intptr_t)v708;
-	i2 v710 = v709+(+1);
-	i8 v711 = (i8)(intptr_t)(ws+1272);
-	i8 v712 = *(i8*)(intptr_t)v711;
-	i8 v713 = v712+(+4);
-	*(i2*)(intptr_t)v713 = v710;
-
-	i8 v714 = (i8)(intptr_t)(ws+1272);
-	i8 v715 = *(i8*)(intptr_t)v714;
-	i8 v716 = v715+(+4);
-	i2 v717 = *(i2*)(intptr_t)v716;
-	i2 v718 = (i2)+512;
-	if (v717==v718) goto c02_009b; else goto c02_009c;
-
-c02_009b:;
+void f49_fcb_i_nextchar(i8 p718 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1272) = p718; /*fcb */
 
 	i8 v719 = (i8)(intptr_t)(ws+1272);
 	i8 v720 = *(i8*)(intptr_t)v719;
-	i8 v721 = (i8)(intptr_t)(ws+1272);
-	i8 v722 = *(i8*)(intptr_t)v721;
-	i8 v723 = v722+(+8);
-	i4 v724 = *(i4*)(intptr_t)v723;
-	i4 v725 = v724+(+1);
-	i8 v726 = (i8)(intptr_t)(f38_fcb_i_changeblock);
+	i8 v721 = v720+(+4);
+	i2 v722 = *(i2*)(intptr_t)v721;
+	i2 v723 = v722+(+1);
+	i8 v724 = (i8)(intptr_t)(ws+1272);
+	i8 v725 = *(i8*)(intptr_t)v724;
+	i8 v726 = v725+(+4);
+	*(i2*)(intptr_t)v726 = v723;
 
-	((void(*)(i4 /* newblock */, i8 /* fcb */))(intptr_t)v726)(v725, v720);
+	i8 v727 = (i8)(intptr_t)(ws+1272);
+	i8 v728 = *(i8*)(intptr_t)v727;
+	i8 v729 = v728+(+4);
+	i2 v730 = *(i2*)(intptr_t)v729;
+	i2 v731 = (i2)+512;
+	if (v730==v731) goto c02_00a0; else goto c02_00a1;
 
-	i2 v727 = (i2)+0;
-	i8 v728 = (i8)(intptr_t)(ws+1272);
-	i8 v729 = *(i8*)(intptr_t)v728;
-	i8 v730 = v729+(+4);
-	*(i2*)(intptr_t)v730 = v727;
+c02_00a0:;
 
-	goto c02_0098;
+	i8 v732 = (i8)(intptr_t)(ws+1272);
+	i8 v733 = *(i8*)(intptr_t)v732;
+	i8 v734 = (i8)(intptr_t)(ws+1272);
+	i8 v735 = *(i8*)(intptr_t)v734;
+	i8 v736 = v735+(+8);
+	i4 v737 = *(i4*)(intptr_t)v736;
+	i4 v738 = v737+(+1);
+	i8 v739 = (i8)(intptr_t)(f40_fcb_i_changeblock);
 
-c02_009c:;
+	((void(*)(i4 /* newblock */, i8 /* fcb */))(intptr_t)v739)(v738, v733);
 
-c02_0098:;
+	i2 v740 = (i2)+0;
+	i8 v741 = (i8)(intptr_t)(ws+1272);
+	i8 v742 = *(i8*)(intptr_t)v741;
+	i8 v743 = v742+(+4);
+	*(i2*)(intptr_t)v743 = v740;
+
+	goto c02_009d;
+
+c02_00a1:;
+
+c02_009d:;
 
 endsub:;
 }
-	void f47_fcb_i_nextchar(i8 /* fcb */);
+	void f49_fcb_i_nextchar(i8 /* fcb */);
 
 // FCBGetChar workspace at ws+1232 length ws+9
-void f48_FCBGetChar(i1* p731 /* c */, i8 p732 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1232) = p732; /*fcb */
+void f50_FCBGetChar(i1* p744 /* c */, i8 p745 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1232) = p745; /*fcb */
 
-	i8 v733 = (i8)(intptr_t)(ws+1232);
-	i8 v734 = *(i8*)(intptr_t)v733;
-	i8 v735 = (i8)(intptr_t)(f47_fcb_i_nextchar);
+	i8 v746 = (i8)(intptr_t)(ws+1232);
+	i8 v747 = *(i8*)(intptr_t)v746;
+	i8 v748 = (i8)(intptr_t)(f49_fcb_i_nextchar);
 
-	((void(*)(i8 /* fcb */))(intptr_t)v735)(v734);
+	((void(*)(i8 /* fcb */))(intptr_t)v748)(v747);
 
-	i8 v736 = (i8)(intptr_t)(ws+1232);
-	i8 v737 = *(i8*)(intptr_t)v736;
-	i8 v738 = v737+(+12);
-	i8 v739 = (i8)(intptr_t)(ws+1232);
-	i8 v740 = *(i8*)(intptr_t)v739;
-	i8 v741 = v740+(+4);
-	i2 v742 = *(i2*)(intptr_t)v741;
-	i8 v743 = v742;
-	i8 v744 = v738+v743;
-	i1 v745 = *(i1*)(intptr_t)v744;
-	i8 v746 = (i8)(intptr_t)(ws+1240);
-	*(i1*)(intptr_t)v746 = v745;
+	i8 v749 = (i8)(intptr_t)(ws+1232);
+	i8 v750 = *(i8*)(intptr_t)v749;
+	i8 v751 = v750+(+12);
+	i8 v752 = (i8)(intptr_t)(ws+1232);
+	i8 v753 = *(i8*)(intptr_t)v752;
+	i8 v754 = v753+(+4);
+	i2 v755 = *(i2*)(intptr_t)v754;
+	i8 v756 = v755;
+	i8 v757 = v751+v756;
+	i1 v758 = *(i1*)(intptr_t)v757;
+	i8 v759 = (i8)(intptr_t)(ws+1240);
+	*(i1*)(intptr_t)v759 = v758;
 
 endsub:;
-	*p731 = *(i1*)(intptr_t)(ws+1240);
+	*p744 = *(i1*)(intptr_t)(ws+1240);
 }
-	void f47_fcb_i_nextchar(i8 /* fcb */);
+	void f49_fcb_i_nextchar(i8 /* fcb */);
 
 // FCBPutChar workspace at ws+1256 length ws+9
-void f49_FCBPutChar(i1 p747 /* c */, i8 p748 /* fcb */) {
-	*(i8*)(intptr_t)(ws+1256) = p748; /*fcb */
-	*(i1*)(intptr_t)(ws+1264) = p747; /*c */
+void f51_FCBPutChar(i1 p760 /* c */, i8 p761 /* fcb */) {
+	*(i8*)(intptr_t)(ws+1256) = p761; /*fcb */
+	*(i1*)(intptr_t)(ws+1264) = p760; /*c */
 
-	i8 v749 = (i8)(intptr_t)(ws+1256);
-	i8 v750 = *(i8*)(intptr_t)v749;
-	i8 v751 = (i8)(intptr_t)(f47_fcb_i_nextchar);
+	i8 v762 = (i8)(intptr_t)(ws+1256);
+	i8 v763 = *(i8*)(intptr_t)v762;
+	i8 v764 = (i8)(intptr_t)(f49_fcb_i_nextchar);
 
-	((void(*)(i8 /* fcb */))(intptr_t)v751)(v750);
+	((void(*)(i8 /* fcb */))(intptr_t)v764)(v763);
 
-	i8 v752 = (i8)(intptr_t)(ws+1264);
-	i1 v753 = *(i1*)(intptr_t)v752;
-	i8 v754 = (i8)(intptr_t)(ws+1256);
-	i8 v755 = *(i8*)(intptr_t)v754;
-	i8 v756 = v755+(+12);
-	i8 v757 = (i8)(intptr_t)(ws+1256);
-	i8 v758 = *(i8*)(intptr_t)v757;
-	i8 v759 = v758+(+4);
-	i2 v760 = *(i2*)(intptr_t)v759;
-	i8 v761 = v760;
-	i8 v762 = v756+v761;
-	*(i1*)(intptr_t)v762 = v753;
+	i8 v765 = (i8)(intptr_t)(ws+1264);
+	i1 v766 = *(i1*)(intptr_t)v765;
+	i8 v767 = (i8)(intptr_t)(ws+1256);
+	i8 v768 = *(i8*)(intptr_t)v767;
+	i8 v769 = v768+(+12);
+	i8 v770 = (i8)(intptr_t)(ws+1256);
+	i8 v771 = *(i8*)(intptr_t)v770;
+	i8 v772 = v771+(+4);
+	i2 v773 = *(i2*)(intptr_t)v772;
+	i8 v774 = v773;
+	i8 v775 = v769+v774;
+	*(i1*)(intptr_t)v775 = v766;
 
-	i1 v763 = (i1)+1;
-	i8 v764 = (i8)(intptr_t)(ws+1256);
-	i8 v765 = *(i8*)(intptr_t)v764;
-	i8 v766 = v765+(+6);
-	*(i1*)(intptr_t)v766 = v763;
+	i1 v776 = (i1)+1;
+	i8 v777 = (i8)(intptr_t)(ws+1256);
+	i8 v778 = *(i8*)(intptr_t)v777;
+	i8 v779 = v778+(+6);
+	*(i1*)(intptr_t)v779 = v776;
 
 endsub:;
 }
-const i1 c02_s0000[] = { 0x43,0x4f,0x57,0x57,0x52,0x41,0x50,0x3a,0x20,0 };
+const i1 c02_s0001[] = { 0x43,0x4f,0x57,0x57,0x52,0x41,0x50,0x3a,0x20,0 };
 	void f11_print(i8 /* ptr */);
-	void f35_GetFreeMemory(i8* /* i */);
+	void f37_GetFreeMemory(i8* /* i */);
 	void f16_print_i16(i2 /* value */);
-const i1 c02_s0001[] = { 0x6b,0x42,0x20,0x66,0x72,0x65,0x65,0x0a,0 };
+const i1 c02_s0002[] = { 0x6b,0x42,0x20,0x66,0x72,0x65,0x65,0x0a,0 };
 	void f11_print(i8 /* ptr */);
-const i1 c02_s0002[] = { 0x63,0x6f,0x77,0x77,0x72,0x61,0x70,0x20,0x3c,0x69,0x6e,0x70,0x75,0x74,0x66,0x69,0x6c,0x65,0x3e,0x20,0x3c,0x6f,0x75,0x74,0x70,0x75,0x74,0x66,0x69,0x6c,0x65,0x3e,0x0a,0 };
+const i1 c02_s0003[] = { 0x63,0x6f,0x77,0x77,0x72,0x61,0x70,0x20,0x3c,0x69,0x6e,0x70,0x75,0x74,0x66,0x69,0x6c,0x65,0x3e,0x20,0x3c,0x6f,0x75,0x74,0x70,0x75,0x74,0x66,0x69,0x6c,0x65,0x3e,0x0a,0 };
 	void f11_print(i8 /* ptr */);
 	void f6_ExitWithError(void);
 
 // SyntaxError workspace at ws+1144 length ws+0
-void f53_SyntaxError(void) {
+void f55_SyntaxError(void) {
 
-	i8 v839 = (i8)(intptr_t)c02_s0002;
-	i8 v840 = (i8)(intptr_t)(f11_print);
+	i8 v852 = (i8)(intptr_t)c02_s0003;
+	i8 v853 = (i8)(intptr_t)(f11_print);
 
-	((void(*)(i8 /* ptr */))(intptr_t)v840)(v839);
+	((void(*)(i8 /* ptr */))(intptr_t)v853)(v852);
 
-	i8 v841 = (i8)(intptr_t)(f6_ExitWithError);
+	i8 v854 = (i8)(intptr_t)(f6_ExitWithError);
 
-	((void(*)(void))(intptr_t)v841)();
+	((void(*)(void))(intptr_t)v854)();
 
 endsub:;
 }
-const i1 c02_s0003[] = { 0x65,0x72,0x72,0x6f,0x72,0x3a,0x20,0 };
+const i1 c02_s0004[] = { 0x65,0x72,0x72,0x6f,0x72,0x3a,0x20,0 };
 	void f11_print(i8 /* ptr */);
 	void f11_print(i8 /* ptr */);
 	void f12_print_nl(void);
 	void f6_ExitWithError(void);
 
 // FatalError workspace at ws+1232 length ws+8
-void f54_FatalError(i8 p842 /* s */) {
-	*(i8*)(intptr_t)(ws+1232) = p842; /*s */
+void f56_FatalError(i8 p855 /* s */) {
+	*(i8*)(intptr_t)(ws+1232) = p855; /*s */
 
-	i8 v843 = (i8)(intptr_t)c02_s0003;
-	i8 v844 = (i8)(intptr_t)(f11_print);
+	i8 v856 = (i8)(intptr_t)c02_s0004;
+	i8 v857 = (i8)(intptr_t)(f11_print);
 
-	((void(*)(i8 /* ptr */))(intptr_t)v844)(v843);
+	((void(*)(i8 /* ptr */))(intptr_t)v857)(v856);
 
-	i8 v845 = (i8)(intptr_t)(ws+1232);
-	i8 v846 = *(i8*)(intptr_t)v845;
-	i8 v847 = (i8)(intptr_t)(f11_print);
+	i8 v858 = (i8)(intptr_t)(ws+1232);
+	i8 v859 = *(i8*)(intptr_t)v858;
+	i8 v860 = (i8)(intptr_t)(f11_print);
 
-	((void(*)(i8 /* ptr */))(intptr_t)v847)(v846);
+	((void(*)(i8 /* ptr */))(intptr_t)v860)(v859);
 
-	i8 v848 = (i8)(intptr_t)(f12_print_nl);
+	i8 v861 = (i8)(intptr_t)(f12_print_nl);
 
-	((void(*)(void))(intptr_t)v848)();
+	((void(*)(void))(intptr_t)v861)();
 
-	i8 v849 = (i8)(intptr_t)(f6_ExitWithError);
+	i8 v862 = (i8)(intptr_t)(f6_ExitWithError);
 
-	((void(*)(void))(intptr_t)v849)();
+	((void(*)(void))(intptr_t)v862)();
 
 endsub:;
 }
-	void f31_Alloc(i8* /* block */, i8 /* length */);
+	void f32_Alloc(i8* /* block */, i8 /* length */);
 
 // E_b8 workspace at ws+1232 length ws+16
-void f55_E_b8(i1 p850 /* byte */) {
-	*(i1*)(intptr_t)(ws+1232) = p850; /*byte */
+void f57_E_b8(i1 p863 /* byte */) {
+	*(i1*)(intptr_t)(ws+1232) = p863; /*byte */
 
-	i8 v851 = (i8)(intptr_t)(ws+1088);
-	i8 v852 = *(i8*)(intptr_t)v851;
-	i8 v853 = (i8)+0;
-	if (v852==v853) goto c02_00b4; else goto c02_00b3;
-
-c02_00b3:;
-
-	i8 v854 = (i8)(intptr_t)(ws+1088);
-	i8 v855 = *(i8*)(intptr_t)v854;
-	i8 v856 = v855+(+16);
-	i8 v857 = *(i8*)(intptr_t)v856;
-	i8 v858 = (i8)(intptr_t)(ws+1240);
-	*(i8*)(intptr_t)v858 = v857;
-
-	i8 v859 = (i8)(intptr_t)(ws+1240);
-	i8 v860 = *(i8*)(intptr_t)v859;
-	i8 v861 = v860+(+255);
-	i1 v862 = *(i1*)(intptr_t)v861;
-	i1 v863 = (i1)+255;
-	if (v862==v863) goto c02_00b8; else goto c02_00b9;
+	i8 v864 = (i8)(intptr_t)(ws+1088);
+	i8 v865 = *(i8*)(intptr_t)v864;
+	i8 v866 = (i8)+0;
+	if (v865==v866) goto c02_00b9; else goto c02_00b8;
 
 c02_00b8:;
 
-	i8 v864 = (i8)+264;
-	i8 v865 = (i8)(intptr_t)(f31_Alloc);
-	i8 v866;
+	i8 v867 = (i8)(intptr_t)(ws+1088);
+	i8 v868 = *(i8*)(intptr_t)v867;
+	i8 v869 = v868+(+16);
+	i8 v870 = *(i8*)(intptr_t)v869;
+	i8 v871 = (i8)(intptr_t)(ws+1240);
+	*(i8*)(intptr_t)v871 = v870;
 
-	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v865)(&v866, v864);
-	i8 v867 = (i8)(intptr_t)(ws+1240);
-	*(i8*)(intptr_t)v867 = v866;
-
-	i8 v868 = (i8)(intptr_t)(ws+1240);
-	i8 v869 = *(i8*)(intptr_t)v868;
-	i8 v870 = (i8)(intptr_t)(ws+1088);
-	i8 v871 = *(i8*)(intptr_t)v870;
-	i8 v872 = v871+(+16);
+	i8 v872 = (i8)(intptr_t)(ws+1240);
 	i8 v873 = *(i8*)(intptr_t)v872;
-	i8 v874 = v873+(+256);
-	*(i8*)(intptr_t)v874 = v869;
+	i8 v874 = v873+(+255);
+	i1 v875 = *(i1*)(intptr_t)v874;
+	i1 v876 = (i1)+255;
+	if (v875==v876) goto c02_00bd; else goto c02_00be;
 
-	i8 v875 = (i8)(intptr_t)(ws+1240);
-	i8 v876 = *(i8*)(intptr_t)v875;
-	i8 v877 = (i8)(intptr_t)(ws+1088);
-	i8 v878 = *(i8*)(intptr_t)v877;
-	i8 v879 = v878+(+16);
-	*(i8*)(intptr_t)v879 = v876;
+c02_00bd:;
+
+	i8 v877 = (i8)+264;
+	i8 v878 = (i8)(intptr_t)(f32_Alloc);
+	i8 v879;
+
+	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v878)(&v879, v877);
+	i8 v880 = (i8)(intptr_t)(ws+1240);
+	*(i8*)(intptr_t)v880 = v879;
+
+	i8 v881 = (i8)(intptr_t)(ws+1240);
+	i8 v882 = *(i8*)(intptr_t)v881;
+	i8 v883 = (i8)(intptr_t)(ws+1088);
+	i8 v884 = *(i8*)(intptr_t)v883;
+	i8 v885 = v884+(+16);
+	i8 v886 = *(i8*)(intptr_t)v885;
+	i8 v887 = v886+(+256);
+	*(i8*)(intptr_t)v887 = v882;
+
+	i8 v888 = (i8)(intptr_t)(ws+1240);
+	i8 v889 = *(i8*)(intptr_t)v888;
+	i8 v890 = (i8)(intptr_t)(ws+1088);
+	i8 v891 = *(i8*)(intptr_t)v890;
+	i8 v892 = v891+(+16);
+	*(i8*)(intptr_t)v892 = v889;
+
+	goto c02_00ba;
+
+c02_00be:;
+
+c02_00ba:;
+
+	i8 v893 = (i8)(intptr_t)(ws+1232);
+	i1 v894 = *(i1*)(intptr_t)v893;
+	i8 v895 = (i8)(intptr_t)(ws+1240);
+	i8 v896 = *(i8*)(intptr_t)v895;
+	i8 v897 = (i8)(intptr_t)(ws+1240);
+	i8 v898 = *(i8*)(intptr_t)v897;
+	i8 v899 = v898+(+255);
+	i1 v900 = *(i1*)(intptr_t)v899;
+	i8 v901 = v900;
+	i8 v902 = v896+v901;
+	*(i1*)(intptr_t)v902 = v894;
+
+	i8 v903 = (i8)(intptr_t)(ws+1240);
+	i8 v904 = *(i8*)(intptr_t)v903;
+	i8 v905 = v904+(+255);
+	i1 v906 = *(i1*)(intptr_t)v905;
+	i1 v907 = v906+(+1);
+	i8 v908 = (i8)(intptr_t)(ws+1240);
+	i8 v909 = *(i8*)(intptr_t)v908;
+	i8 v910 = v909+(+255);
+	*(i1*)(intptr_t)v910 = v907;
+
+	i8 v911 = (i8)(intptr_t)(ws+1088);
+	i8 v912 = *(i8*)(intptr_t)v911;
+	i8 v913 = v912+(+24);
+	i2 v914 = *(i2*)(intptr_t)v913;
+	i2 v915 = v914+(+1);
+	i8 v916 = (i8)(intptr_t)(ws+1088);
+	i8 v917 = *(i8*)(intptr_t)v916;
+	i8 v918 = v917+(+24);
+	*(i2*)(intptr_t)v918 = v915;
 
 	goto c02_00b5;
 
@@ -1285,375 +1366,286 @@ c02_00b9:;
 
 c02_00b5:;
 
-	i8 v880 = (i8)(intptr_t)(ws+1232);
-	i1 v881 = *(i1*)(intptr_t)v880;
-	i8 v882 = (i8)(intptr_t)(ws+1240);
-	i8 v883 = *(i8*)(intptr_t)v882;
-	i8 v884 = (i8)(intptr_t)(ws+1240);
-	i8 v885 = *(i8*)(intptr_t)v884;
-	i8 v886 = v885+(+255);
-	i1 v887 = *(i1*)(intptr_t)v886;
-	i8 v888 = v887;
-	i8 v889 = v883+v888;
-	*(i1*)(intptr_t)v889 = v881;
-
-	i8 v890 = (i8)(intptr_t)(ws+1240);
-	i8 v891 = *(i8*)(intptr_t)v890;
-	i8 v892 = v891+(+255);
-	i1 v893 = *(i1*)(intptr_t)v892;
-	i1 v894 = v893+(+1);
-	i8 v895 = (i8)(intptr_t)(ws+1240);
-	i8 v896 = *(i8*)(intptr_t)v895;
-	i8 v897 = v896+(+255);
-	*(i1*)(intptr_t)v897 = v894;
-
-	i8 v898 = (i8)(intptr_t)(ws+1088);
-	i8 v899 = *(i8*)(intptr_t)v898;
-	i8 v900 = v899+(+24);
-	i2 v901 = *(i2*)(intptr_t)v900;
-	i2 v902 = v901+(+1);
-	i8 v903 = (i8)(intptr_t)(ws+1088);
-	i8 v904 = *(i8*)(intptr_t)v903;
-	i8 v905 = v904+(+24);
-	*(i2*)(intptr_t)v905 = v902;
-
-	goto c02_00b0;
-
-c02_00b4:;
-
-c02_00b0:;
-
 endsub:;
 }
-	void f55_E_b8(i1 /* byte */);
+	void f57_E_b8(i1 /* byte */);
 
 // E workspace at ws+1216 length ws+9
-void f56_E(i8 p906 /* text */) {
-	*(i8*)(intptr_t)(ws+1216) = p906; /*text */
-
-c02_00ba:;
-
-	i8 v907 = (i8)(intptr_t)(ws+1216);
-	i8 v908 = *(i8*)(intptr_t)v907;
-	i1 v909 = *(i1*)(intptr_t)v908;
-	i8 v910 = (i8)(intptr_t)(ws+1224);
-	*(i1*)(intptr_t)v910 = v909;
-
-	i8 v911 = (i8)(intptr_t)(ws+1216);
-	i8 v912 = *(i8*)(intptr_t)v911;
-	i8 v913 = v912+(+1);
-	i8 v914 = (i8)(intptr_t)(ws+1216);
-	*(i8*)(intptr_t)v914 = v913;
-
-	i8 v915 = (i8)(intptr_t)(ws+1224);
-	i1 v916 = *(i1*)(intptr_t)v915;
-	i1 v917 = (i1)+0;
-	if (v916==v917) goto c02_00bf; else goto c02_00c0;
+void f58_E(i8 p919 /* text */) {
+	*(i8*)(intptr_t)(ws+1216) = p919; /*text */
 
 c02_00bf:;
 
-	goto c02_00bb;
+	i8 v920 = (i8)(intptr_t)(ws+1216);
+	i8 v921 = *(i8*)(intptr_t)v920;
+	i1 v922 = *(i1*)(intptr_t)v921;
+	i8 v923 = (i8)(intptr_t)(ws+1224);
+	*(i1*)(intptr_t)v923 = v922;
 
-c02_00c0:;
+	i8 v924 = (i8)(intptr_t)(ws+1216);
+	i8 v925 = *(i8*)(intptr_t)v924;
+	i8 v926 = v925+(+1);
+	i8 v927 = (i8)(intptr_t)(ws+1216);
+	*(i8*)(intptr_t)v927 = v926;
 
-c02_00bc:;
+	i8 v928 = (i8)(intptr_t)(ws+1224);
+	i1 v929 = *(i1*)(intptr_t)v928;
+	i1 v930 = (i1)+0;
+	if (v929==v930) goto c02_00c4; else goto c02_00c5;
 
-	i8 v918 = (i8)(intptr_t)(ws+1224);
-	i1 v919 = *(i1*)(intptr_t)v918;
-	i8 v920 = (i8)(intptr_t)(f55_E_b8);
+c02_00c4:;
 
-	((void(*)(i1 /* byte */))(intptr_t)v920)(v919);
-
-	goto c02_00ba;
-
-c02_00bb:;
-
-endsub:;
-}
-	void f55_E_b8(i1 /* byte */);
-	void f55_E_b8(i1 /* byte */);
-
-// E_b16 workspace at ws+1216 length ws+2
-void f57_E_b16(i2 p921 /* word */) {
-	*(i2*)(intptr_t)(ws+1216) = p921; /*word */
-
-	i8 v922 = (i8)(intptr_t)(ws+1216);
-	i2 v923 = *(i2*)(intptr_t)v922;
-	i1 v924 = v923;
-	i8 v925 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v925)(v924);
-
-	i8 v926 = (i8)(intptr_t)(ws+1216);
-	i2 v927 = *(i2*)(intptr_t)v926;
-	i1 v928 = (i1)+8;
-	i2 v929 = ((i2)v927)>>v928;
-	i1 v930 = v929;
-	i8 v931 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v931)(v930);
-
-endsub:;
-}
-	void f31_Alloc(i8* /* block */, i8 /* length */);
-	void f31_Alloc(i8* /* block */, i8 /* length */);
-
-// EmitterPushChunk workspace at ws+1216 length ws+8
-void f59_EmitterPushChunk(void) {
-
-	i8 v943 = (i8)+26;
-	i8 v944 = (i8)(intptr_t)(f31_Alloc);
-	i8 v945;
-
-	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v944)(&v945, v943);
-	i8 v946 = (i8)(intptr_t)(ws+1216);
-	*(i8*)(intptr_t)v946 = v945;
-
-	i8 v947 = (i8)+264;
-	i8 v948 = (i8)(intptr_t)(f31_Alloc);
-	i8 v949;
-
-	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v948)(&v949, v947);
-	i8 v950 = (i8)(intptr_t)(ws+1216);
-	i8 v951 = *(i8*)(intptr_t)v950;
-	i8 v952 = v951+(+16);
-	*(i8*)(intptr_t)v952 = v949;
-
-	i8 v953 = (i8)(intptr_t)(ws+1216);
-	i8 v954 = *(i8*)(intptr_t)v953;
-	i8 v955 = v954+(+16);
-	i8 v956 = *(i8*)(intptr_t)v955;
-	i8 v957 = (i8)(intptr_t)(ws+1216);
-	i8 v958 = *(i8*)(intptr_t)v957;
-	i8 v959 = v958+(+8);
-	*(i8*)(intptr_t)v959 = v956;
-
-	i8 v960 = (i8)(intptr_t)(ws+1088);
-	i8 v961 = *(i8*)(intptr_t)v960;
-	i8 v962 = (i8)(intptr_t)(ws+1216);
-	i8 v963 = *(i8*)(intptr_t)v962;
-	*(i8*)(intptr_t)v963 = v961;
-
-	i8 v964 = (i8)(intptr_t)(ws+1216);
-	i8 v965 = *(i8*)(intptr_t)v964;
-	i8 v966 = (i8)(intptr_t)(ws+1088);
-	*(i8*)(intptr_t)v966 = v965;
-
-endsub:;
-}
-	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
-	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
-	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
-	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
-	void f32_Free(i8 /* block */);
-	void f32_Free(i8 /* block */);
-
-// EmitterPopChunk workspace at ws+1216 length ws+40
-void f60_EmitterPopChunk(i1 p967 /* type */) {
-	*(i1*)(intptr_t)(ws+1216) = p967; /*type */
-
-	i8 v968 = (i8)(intptr_t)(ws+564);
-	i8 v969 = (i8)(intptr_t)(ws+1216);
-	i1 v970 = *(i1*)(intptr_t)v969;
-	i8 v971 = (i8)(intptr_t)(f49_FCBPutChar);
-
-	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v971)(v970, v968);
-
-	i8 v972 = (i8)(intptr_t)(ws+1088);
-	i8 v973 = *(i8*)(intptr_t)v972;
-	i8 v974 = v973+(+24);
-	i2 v975 = *(i2*)(intptr_t)v974;
-	i8 v976 = (i8)(intptr_t)(ws+1218);
-	*(i2*)(intptr_t)v976 = v975;
-
-	i8 v977 = (i8)(intptr_t)(ws+564);
-	i8 v978 = (i8)(intptr_t)(ws+1218);
-	i2 v979 = *(i2*)(intptr_t)v978;
-	i1 v980 = v979;
-	i8 v981 = (i8)(intptr_t)(f49_FCBPutChar);
-
-	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v981)(v980, v977);
-
-	i8 v982 = (i8)(intptr_t)(ws+564);
-	i8 v983 = (i8)(intptr_t)(ws+1218);
-	i2 v984 = *(i2*)(intptr_t)v983;
-	i1 v985 = (i1)+8;
-	i2 v986 = ((i2)v984)>>v985;
-	i1 v987 = v986;
-	i8 v988 = (i8)(intptr_t)(f49_FCBPutChar);
-
-	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v988)(v987, v982);
-
-	i8 v989 = (i8)(intptr_t)(ws+1088);
-	i8 v990 = *(i8*)(intptr_t)v989;
-	i8 v991 = v990+(+8);
-	i8 v992 = *(i8*)(intptr_t)v991;
-	i8 v993 = (i8)(intptr_t)(ws+1224);
-	*(i8*)(intptr_t)v993 = v992;
-
-c02_00c3:;
-
-	i8 v994 = (i8)(intptr_t)(ws+1224);
-	i8 v995 = *(i8*)(intptr_t)v994;
-	i8 v996 = (i8)+0;
-	if (v995==v996) goto c02_00c6; else goto c02_00c5;
+	goto c02_00c0;
 
 c02_00c5:;
 
-	i1 v997 = (i1)+0;
-	i8 v998 = (i8)(intptr_t)(ws+1232);
-	*(i1*)(intptr_t)v998 = v997;
+c02_00c1:;
 
-c02_00c9:;
+	i8 v931 = (i8)(intptr_t)(ws+1224);
+	i1 v932 = *(i1*)(intptr_t)v931;
+	i8 v933 = (i8)(intptr_t)(f57_E_b8);
 
-	i8 v999 = (i8)(intptr_t)(ws+1232);
-	i1 v1000 = *(i1*)(intptr_t)v999;
-	i8 v1001 = (i8)(intptr_t)(ws+1224);
-	i8 v1002 = *(i8*)(intptr_t)v1001;
-	i8 v1003 = v1002+(+255);
-	i1 v1004 = *(i1*)(intptr_t)v1003;
-	if (v1000==v1004) goto c02_00cc; else goto c02_00cb;
+	((void(*)(i1 /* byte */))(intptr_t)v933)(v932);
 
-c02_00cb:;
+	goto c02_00bf;
 
-	i8 v1005 = (i8)(intptr_t)(ws+564);
-	i8 v1006 = (i8)(intptr_t)(ws+1224);
-	i8 v1007 = *(i8*)(intptr_t)v1006;
-	i8 v1008 = (i8)(intptr_t)(ws+1232);
-	i1 v1009 = *(i1*)(intptr_t)v1008;
-	i8 v1010 = v1009;
-	i8 v1011 = v1007+v1010;
-	i1 v1012 = *(i1*)(intptr_t)v1011;
-	i8 v1013 = (i8)(intptr_t)(f49_FCBPutChar);
-
-	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1013)(v1012, v1005);
-
-	i8 v1014 = (i8)(intptr_t)(ws+1232);
-	i1 v1015 = *(i1*)(intptr_t)v1014;
-	i1 v1016 = v1015+(+1);
-	i8 v1017 = (i8)(intptr_t)(ws+1232);
-	*(i1*)(intptr_t)v1017 = v1016;
-
-	goto c02_00c9;
-
-c02_00cc:;
-
-	i8 v1018 = (i8)(intptr_t)(ws+1224);
-	i8 v1019 = *(i8*)(intptr_t)v1018;
-	i8 v1020 = v1019+(+256);
-	i8 v1021 = *(i8*)(intptr_t)v1020;
-	i8 v1022 = (i8)(intptr_t)(ws+1240);
-	*(i8*)(intptr_t)v1022 = v1021;
-
-	i8 v1023 = (i8)(intptr_t)(ws+1224);
-	i8 v1024 = *(i8*)(intptr_t)v1023;
-	i8 v1025 = (i8)(intptr_t)(f32_Free);
-
-	((void(*)(i8 /* block */))(intptr_t)v1025)(v1024);
-
-	i8 v1026 = (i8)(intptr_t)(ws+1240);
-	i8 v1027 = *(i8*)(intptr_t)v1026;
-	i8 v1028 = (i8)(intptr_t)(ws+1224);
-	*(i8*)(intptr_t)v1028 = v1027;
-
-	goto c02_00c3;
-
-c02_00c6:;
-
-	i8 v1029 = (i8)(intptr_t)(ws+1088);
-	i8 v1030 = *(i8*)(intptr_t)v1029;
-	i8 v1031 = *(i8*)(intptr_t)v1030;
-	i8 v1032 = (i8)(intptr_t)(ws+1248);
-	*(i8*)(intptr_t)v1032 = v1031;
-
-	i8 v1033 = (i8)(intptr_t)(ws+1088);
-	i8 v1034 = *(i8*)(intptr_t)v1033;
-	i8 v1035 = (i8)(intptr_t)(f32_Free);
-
-	((void(*)(i8 /* block */))(intptr_t)v1035)(v1034);
-
-	i8 v1036 = (i8)(intptr_t)(ws+1248);
-	i8 v1037 = *(i8*)(intptr_t)v1036;
-	i8 v1038 = (i8)(intptr_t)(ws+1088);
-	*(i8*)(intptr_t)v1038 = v1037;
+c02_00c0:;
 
 endsub:;
 }
-	void f42_FCBOpenOut(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
-const i1 c02_s0004[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
-	void f54_FatalError(i8 /* s */);
+	void f57_E_b8(i1 /* byte */);
+	void f57_E_b8(i1 /* byte */);
 
-// EmitterOpenfile workspace at ws+1144 length ws+8
-void f61_EmitterOpenfile(i8 p1039 /* filename */) {
-	*(i8*)(intptr_t)(ws+1144) = p1039; /*filename */
+// E_b16 workspace at ws+1216 length ws+2
+void f59_E_b16(i2 p934 /* word */) {
+	*(i2*)(intptr_t)(ws+1216) = p934; /*word */
 
-	i8 v1040 = (i8)(intptr_t)(ws+564);
-	i8 v1041 = (i8)(intptr_t)(ws+1144);
-	i8 v1042 = *(i8*)(intptr_t)v1041;
-	i8 v1043 = (i8)(intptr_t)(f42_FCBOpenOut);
-	i1 v1044;
+	i8 v935 = (i8)(intptr_t)(ws+1216);
+	i2 v936 = *(i2*)(intptr_t)v935;
+	i1 v937 = v936;
+	i8 v938 = (i8)(intptr_t)(f57_E_b8);
 
-	((void(*)(i1* /* errno */, i8 /* filename */, i8 /* fcb */))(intptr_t)v1043)(&v1044, v1042, v1040);
-	i1 v1045 = (i1)+0;
-	if (v1044==v1045) goto c02_00d1; else goto c02_00d0;
+	((void(*)(i1 /* byte */))(intptr_t)v938)(v937);
+
+	i8 v939 = (i8)(intptr_t)(ws+1216);
+	i2 v940 = *(i2*)(intptr_t)v939;
+	i1 v941 = (i1)+8;
+	i2 v942 = ((i2)v940)>>v941;
+	i1 v943 = v942;
+	i8 v944 = (i8)(intptr_t)(f57_E_b8);
+
+	((void(*)(i1 /* byte */))(intptr_t)v944)(v943);
+
+endsub:;
+}
+	void f32_Alloc(i8* /* block */, i8 /* length */);
+	void f32_Alloc(i8* /* block */, i8 /* length */);
+
+// EmitterPushChunk workspace at ws+1216 length ws+8
+void f61_EmitterPushChunk(void) {
+
+	i8 v956 = (i8)+26;
+	i8 v957 = (i8)(intptr_t)(f32_Alloc);
+	i8 v958;
+
+	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v957)(&v958, v956);
+	i8 v959 = (i8)(intptr_t)(ws+1216);
+	*(i8*)(intptr_t)v959 = v958;
+
+	i8 v960 = (i8)+264;
+	i8 v961 = (i8)(intptr_t)(f32_Alloc);
+	i8 v962;
+
+	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v961)(&v962, v960);
+	i8 v963 = (i8)(intptr_t)(ws+1216);
+	i8 v964 = *(i8*)(intptr_t)v963;
+	i8 v965 = v964+(+16);
+	*(i8*)(intptr_t)v965 = v962;
+
+	i8 v966 = (i8)(intptr_t)(ws+1216);
+	i8 v967 = *(i8*)(intptr_t)v966;
+	i8 v968 = v967+(+16);
+	i8 v969 = *(i8*)(intptr_t)v968;
+	i8 v970 = (i8)(intptr_t)(ws+1216);
+	i8 v971 = *(i8*)(intptr_t)v970;
+	i8 v972 = v971+(+8);
+	*(i8*)(intptr_t)v972 = v969;
+
+	i8 v973 = (i8)(intptr_t)(ws+1088);
+	i8 v974 = *(i8*)(intptr_t)v973;
+	i8 v975 = (i8)(intptr_t)(ws+1216);
+	i8 v976 = *(i8*)(intptr_t)v975;
+	*(i8*)(intptr_t)v976 = v974;
+
+	i8 v977 = (i8)(intptr_t)(ws+1216);
+	i8 v978 = *(i8*)(intptr_t)v977;
+	i8 v979 = (i8)(intptr_t)(ws+1088);
+	*(i8*)(intptr_t)v979 = v978;
+
+endsub:;
+}
+	void f51_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f51_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f51_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f51_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f33_Free(i8 /* block */);
+	void f33_Free(i8 /* block */);
+
+// EmitterPopChunk workspace at ws+1216 length ws+40
+void f62_EmitterPopChunk(i1 p980 /* type */) {
+	*(i1*)(intptr_t)(ws+1216) = p980; /*type */
+
+	i8 v981 = (i8)(intptr_t)(ws+564);
+	i8 v982 = (i8)(intptr_t)(ws+1216);
+	i1 v983 = *(i1*)(intptr_t)v982;
+	i8 v984 = (i8)(intptr_t)(f51_FCBPutChar);
+
+	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v984)(v983, v981);
+
+	i8 v985 = (i8)(intptr_t)(ws+1088);
+	i8 v986 = *(i8*)(intptr_t)v985;
+	i8 v987 = v986+(+24);
+	i2 v988 = *(i2*)(intptr_t)v987;
+	i8 v989 = (i8)(intptr_t)(ws+1218);
+	*(i2*)(intptr_t)v989 = v988;
+
+	i8 v990 = (i8)(intptr_t)(ws+564);
+	i8 v991 = (i8)(intptr_t)(ws+1218);
+	i2 v992 = *(i2*)(intptr_t)v991;
+	i1 v993 = v992;
+	i8 v994 = (i8)(intptr_t)(f51_FCBPutChar);
+
+	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v994)(v993, v990);
+
+	i8 v995 = (i8)(intptr_t)(ws+564);
+	i8 v996 = (i8)(intptr_t)(ws+1218);
+	i2 v997 = *(i2*)(intptr_t)v996;
+	i1 v998 = (i1)+8;
+	i2 v999 = ((i2)v997)>>v998;
+	i1 v1000 = v999;
+	i8 v1001 = (i8)(intptr_t)(f51_FCBPutChar);
+
+	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1001)(v1000, v995);
+
+	i8 v1002 = (i8)(intptr_t)(ws+1088);
+	i8 v1003 = *(i8*)(intptr_t)v1002;
+	i8 v1004 = v1003+(+8);
+	i8 v1005 = *(i8*)(intptr_t)v1004;
+	i8 v1006 = (i8)(intptr_t)(ws+1224);
+	*(i8*)(intptr_t)v1006 = v1005;
+
+c02_00c8:;
+
+	i8 v1007 = (i8)(intptr_t)(ws+1224);
+	i8 v1008 = *(i8*)(intptr_t)v1007;
+	i8 v1009 = (i8)+0;
+	if (v1008==v1009) goto c02_00cb; else goto c02_00ca;
+
+c02_00ca:;
+
+	i1 v1010 = (i1)+0;
+	i8 v1011 = (i8)(intptr_t)(ws+1232);
+	*(i1*)(intptr_t)v1011 = v1010;
+
+c02_00ce:;
+
+	i8 v1012 = (i8)(intptr_t)(ws+1232);
+	i1 v1013 = *(i1*)(intptr_t)v1012;
+	i8 v1014 = (i8)(intptr_t)(ws+1224);
+	i8 v1015 = *(i8*)(intptr_t)v1014;
+	i8 v1016 = v1015+(+255);
+	i1 v1017 = *(i1*)(intptr_t)v1016;
+	if (v1013==v1017) goto c02_00d1; else goto c02_00d0;
 
 c02_00d0:;
 
-	i8 v1046 = (i8)(intptr_t)c02_s0004;
-	i8 v1047 = (i8)(intptr_t)(f54_FatalError);
+	i8 v1018 = (i8)(intptr_t)(ws+564);
+	i8 v1019 = (i8)(intptr_t)(ws+1224);
+	i8 v1020 = *(i8*)(intptr_t)v1019;
+	i8 v1021 = (i8)(intptr_t)(ws+1232);
+	i1 v1022 = *(i1*)(intptr_t)v1021;
+	i8 v1023 = v1022;
+	i8 v1024 = v1020+v1023;
+	i1 v1025 = *(i1*)(intptr_t)v1024;
+	i8 v1026 = (i8)(intptr_t)(f51_FCBPutChar);
 
-	((void(*)(i8 /* s */))(intptr_t)v1047)(v1046);
+	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1026)(v1025, v1018);
 
-	goto c02_00cd;
+	i8 v1027 = (i8)(intptr_t)(ws+1232);
+	i1 v1028 = *(i1*)(intptr_t)v1027;
+	i1 v1029 = v1028+(+1);
+	i8 v1030 = (i8)(intptr_t)(ws+1232);
+	*(i1*)(intptr_t)v1030 = v1029;
+
+	goto c02_00ce;
 
 c02_00d1:;
 
-c02_00cd:;
+	i8 v1031 = (i8)(intptr_t)(ws+1224);
+	i8 v1032 = *(i8*)(intptr_t)v1031;
+	i8 v1033 = v1032+(+256);
+	i8 v1034 = *(i8*)(intptr_t)v1033;
+	i8 v1035 = (i8)(intptr_t)(ws+1240);
+	*(i8*)(intptr_t)v1035 = v1034;
+
+	i8 v1036 = (i8)(intptr_t)(ws+1224);
+	i8 v1037 = *(i8*)(intptr_t)v1036;
+	i8 v1038 = (i8)(intptr_t)(f33_Free);
+
+	((void(*)(i8 /* block */))(intptr_t)v1038)(v1037);
+
+	i8 v1039 = (i8)(intptr_t)(ws+1240);
+	i8 v1040 = *(i8*)(intptr_t)v1039;
+	i8 v1041 = (i8)(intptr_t)(ws+1224);
+	*(i8*)(intptr_t)v1041 = v1040;
+
+	goto c02_00c8;
+
+c02_00cb:;
+
+	i8 v1042 = (i8)(intptr_t)(ws+1088);
+	i8 v1043 = *(i8*)(intptr_t)v1042;
+	i8 v1044 = *(i8*)(intptr_t)v1043;
+	i8 v1045 = (i8)(intptr_t)(ws+1248);
+	*(i8*)(intptr_t)v1045 = v1044;
+
+	i8 v1046 = (i8)(intptr_t)(ws+1088);
+	i8 v1047 = *(i8*)(intptr_t)v1046;
+	i8 v1048 = (i8)(intptr_t)(f33_Free);
+
+	((void(*)(i8 /* block */))(intptr_t)v1048)(v1047);
+
+	i8 v1049 = (i8)(intptr_t)(ws+1248);
+	i8 v1050 = *(i8*)(intptr_t)v1049;
+	i8 v1051 = (i8)(intptr_t)(ws+1088);
+	*(i8*)(intptr_t)v1051 = v1050;
 
 endsub:;
 }
-	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
-	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
-	void f49_FCBPutChar(i1 /* c */, i8 /* fcb */);
-	void f43_FCBClose(i1* /* errno */, i8 /* fcb */);
-const i1 c02_s0005[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x63,0x6c,0x6f,0x73,0x65,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
-	void f54_FatalError(i8 /* s */);
+	void f44_FCBOpenOut(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
+const i1 c02_s0005[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
+	void f56_FatalError(i8 /* s */);
 
-// EmitterClosefile workspace at ws+1144 length ws+0
-void f62_EmitterClosefile(void) {
+// EmitterOpenfile workspace at ws+1144 length ws+8
+void f63_EmitterOpenfile(i8 p1052 /* filename */) {
+	*(i8*)(intptr_t)(ws+1144) = p1052; /*filename */
 
-	i8 v1048 = (i8)(intptr_t)(ws+564);
-	i1 v1049 = (i1)+69;
-	i8 v1050 = (i8)(intptr_t)(f49_FCBPutChar);
+	i8 v1053 = (i8)(intptr_t)(ws+564);
+	i8 v1054 = (i8)(intptr_t)(ws+1144);
+	i8 v1055 = *(i8*)(intptr_t)v1054;
+	i8 v1056 = (i8)(intptr_t)(f44_FCBOpenOut);
+	i1 v1057;
 
-	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1050)(v1049, v1048);
-
-	i8 v1051 = (i8)(intptr_t)(ws+564);
-	i1 v1052 = (i1)+0;
-	i8 v1053 = (i8)(intptr_t)(f49_FCBPutChar);
-
-	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1053)(v1052, v1051);
-
-	i8 v1054 = (i8)(intptr_t)(ws+564);
-	i1 v1055 = (i1)+0;
-	i8 v1056 = (i8)(intptr_t)(f49_FCBPutChar);
-
-	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1056)(v1055, v1054);
-
-	i8 v1057 = (i8)(intptr_t)(ws+564);
-	i8 v1058 = (i8)(intptr_t)(f43_FCBClose);
-	i1 v1059;
-
-	((void(*)(i1* /* errno */, i8 /* fcb */))(intptr_t)v1058)(&v1059, v1057);
-	i1 v1060 = (i1)+0;
-	if (v1059==v1060) goto c02_00d6; else goto c02_00d5;
+	((void(*)(i1* /* errno */, i8 /* filename */, i8 /* fcb */))(intptr_t)v1056)(&v1057, v1055, v1053);
+	i1 v1058 = (i1)+0;
+	if (v1057==v1058) goto c02_00d6; else goto c02_00d5;
 
 c02_00d5:;
 
-	i8 v1061 = (i8)(intptr_t)c02_s0005;
-	i8 v1062 = (i8)(intptr_t)(f54_FatalError);
+	i8 v1059 = (i8)(intptr_t)c02_s0005;
+	i8 v1060 = (i8)(intptr_t)(f56_FatalError);
 
-	((void(*)(i8 /* s */))(intptr_t)v1062)(v1061);
+	((void(*)(i8 /* s */))(intptr_t)v1060)(v1059);
 
 	goto c02_00d2;
 
@@ -1663,110 +1655,48 @@ c02_00d2:;
 
 endsub:;
 }
-	void f59_EmitterPushChunk(void);
-	void f57_E_b16(i2 /* word */);
-	void f56_E(i8 /* text */);
-	void f60_EmitterPopChunk(i1 /* type */);
+	void f51_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f51_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f51_FCBPutChar(i1 /* c */, i8 /* fcb */);
+	void f45_FCBClose(i1* /* errno */, i8 /* fcb */);
+const i1 c02_s0006[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x63,0x6c,0x6f,0x73,0x65,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
+	void f56_FatalError(i8 /* s */);
 
-// EmitterDeclareSubroutine workspace at ws+1192 length ws+16
-void f63_EmitterDeclareSubroutine(i8 p1063 /* name */, i2 p1064 /* id */) {
-	*(i2*)(intptr_t)(ws+1192) = p1064; /*id */
-	*(i8*)(intptr_t)(ws+1200) = p1063; /*name */
+// EmitterClosefile workspace at ws+1144 length ws+0
+void f64_EmitterClosefile(void) {
 
-	i8 v1065 = (i8)(intptr_t)(f59_EmitterPushChunk);
+	i8 v1061 = (i8)(intptr_t)(ws+564);
+	i1 v1062 = (i1)+69;
+	i8 v1063 = (i8)(intptr_t)(f51_FCBPutChar);
 
-	((void(*)(void))(intptr_t)v1065)();
+	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1063)(v1062, v1061);
 
-	i8 v1066 = (i8)(intptr_t)(ws+1192);
-	i2 v1067 = *(i2*)(intptr_t)v1066;
-	i8 v1068 = (i8)(intptr_t)(f57_E_b16);
+	i8 v1064 = (i8)(intptr_t)(ws+564);
+	i1 v1065 = (i1)+0;
+	i8 v1066 = (i8)(intptr_t)(f51_FCBPutChar);
 
-	((void(*)(i2 /* word */))(intptr_t)v1068)(v1067);
+	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1066)(v1065, v1064);
 
-	i8 v1069 = (i8)(intptr_t)(ws+1200);
-	i8 v1070 = *(i8*)(intptr_t)v1069;
-	i8 v1071 = (i8)(intptr_t)(f56_E);
+	i8 v1067 = (i8)(intptr_t)(ws+564);
+	i1 v1068 = (i1)+0;
+	i8 v1069 = (i8)(intptr_t)(f51_FCBPutChar);
 
-	((void(*)(i8 /* text */))(intptr_t)v1071)(v1070);
+	((void(*)(i1 /* c */, i8 /* fcb */))(intptr_t)v1069)(v1068, v1067);
 
-	i1 v1072 = (i1)+78;
-	i8 v1073 = (i8)(intptr_t)(f60_EmitterPopChunk);
+	i8 v1070 = (i8)(intptr_t)(ws+564);
+	i8 v1071 = (i8)(intptr_t)(f45_FCBClose);
+	i1 v1072;
 
-	((void(*)(i1 /* type */))(intptr_t)v1073)(v1072);
-
-endsub:;
-}
-	void f59_EmitterPushChunk(void);
-	void f57_E_b16(i2 /* word */);
-	void f56_E(i8 /* text */);
-	void f60_EmitterPopChunk(i1 /* type */);
-
-// EmitterDeclareExternal workspace at ws+1200 length ws+16
-void f64_EmitterDeclareExternal(i8 p1074 /* name */, i2 p1075 /* id */) {
-	*(i2*)(intptr_t)(ws+1200) = p1075; /*id */
-	*(i8*)(intptr_t)(ws+1208) = p1074; /*name */
-
-	i8 v1076 = (i8)(intptr_t)(f59_EmitterPushChunk);
-
-	((void(*)(void))(intptr_t)v1076)();
-
-	i8 v1077 = (i8)(intptr_t)(ws+1200);
-	i2 v1078 = *(i2*)(intptr_t)v1077;
-	i8 v1079 = (i8)(intptr_t)(f57_E_b16);
-
-	((void(*)(i2 /* word */))(intptr_t)v1079)(v1078);
-
-	i8 v1080 = (i8)(intptr_t)(ws+1208);
-	i8 v1081 = *(i8*)(intptr_t)v1080;
-	i8 v1082 = (i8)(intptr_t)(f56_E);
-
-	((void(*)(i8 /* text */))(intptr_t)v1082)(v1081);
-
-	i1 v1083 = (i1)+88;
-	i8 v1084 = (i8)(intptr_t)(f60_EmitterPopChunk);
-
-	((void(*)(i1 /* type */))(intptr_t)v1084)(v1083);
-
-endsub:;
-}
-	void f59_EmitterPushChunk(void);
-	void f57_E_b16(i2 /* word */);
-	void f57_E_b16(i2 /* word */);
-	void f60_EmitterPopChunk(i1 /* type */);
-
-// EmitterReferenceSubroutine workspace at ws+1208 length ws+4
-void f65_EmitterReferenceSubroutine(i2 p1085 /* used */, i2 p1086 /* user */) {
-	*(i2*)(intptr_t)(ws+1208) = p1086; /*user */
-	*(i2*)(intptr_t)(ws+1210) = p1085; /*used */
-
-	i8 v1087 = (i8)(intptr_t)(ws+1208);
-	i2 v1088 = *(i2*)(intptr_t)v1087;
-	i8 v1089 = (i8)(intptr_t)(ws+1210);
-	i2 v1090 = *(i2*)(intptr_t)v1089;
-	if (v1088==v1090) goto c02_00db; else goto c02_00da;
+	((void(*)(i1* /* errno */, i8 /* fcb */))(intptr_t)v1071)(&v1072, v1070);
+	i1 v1073 = (i1)+0;
+	if (v1072==v1073) goto c02_00db; else goto c02_00da;
 
 c02_00da:;
 
-	i8 v1091 = (i8)(intptr_t)(f59_EmitterPushChunk);
+	i8 v1074 = (i8)(intptr_t)c02_s0006;
+	i8 v1075 = (i8)(intptr_t)(f56_FatalError);
 
-	((void(*)(void))(intptr_t)v1091)();
-
-	i8 v1092 = (i8)(intptr_t)(ws+1208);
-	i2 v1093 = *(i2*)(intptr_t)v1092;
-	i8 v1094 = (i8)(intptr_t)(f57_E_b16);
-
-	((void(*)(i2 /* word */))(intptr_t)v1094)(v1093);
-
-	i8 v1095 = (i8)(intptr_t)(ws+1210);
-	i2 v1096 = *(i2*)(intptr_t)v1095;
-	i8 v1097 = (i8)(intptr_t)(f57_E_b16);
-
-	((void(*)(i2 /* word */))(intptr_t)v1097)(v1096);
-
-	i1 v1098 = (i1)+82;
-	i8 v1099 = (i8)(intptr_t)(f60_EmitterPopChunk);
-
-	((void(*)(i1 /* type */))(intptr_t)v1099)(v1098);
+	((void(*)(i8 /* s */))(intptr_t)v1075)(v1074);
 
 	goto c02_00d7;
 
@@ -1776,437 +1706,492 @@ c02_00d7:;
 
 endsub:;
 }
-	void f59_EmitterPushChunk(void);
-	void f57_E_b16(i2 /* word */);
-	void f55_E_b8(i1 /* byte */);
-	void f57_E_b16(i2 /* word */);
-	void f60_EmitterPopChunk(i1 /* type */);
+	void f61_EmitterPushChunk(void);
+	void f59_E_b16(i2 /* word */);
+	void f58_E(i8 /* text */);
+	void f62_EmitterPopChunk(i1 /* type */);
+
+// EmitterDeclareSubroutine workspace at ws+1192 length ws+16
+void f65_EmitterDeclareSubroutine(i8 p1076 /* name */, i2 p1077 /* id */) {
+	*(i2*)(intptr_t)(ws+1192) = p1077; /*id */
+	*(i8*)(intptr_t)(ws+1200) = p1076; /*name */
+
+	i8 v1078 = (i8)(intptr_t)(f61_EmitterPushChunk);
+
+	((void(*)(void))(intptr_t)v1078)();
+
+	i8 v1079 = (i8)(intptr_t)(ws+1192);
+	i2 v1080 = *(i2*)(intptr_t)v1079;
+	i8 v1081 = (i8)(intptr_t)(f59_E_b16);
+
+	((void(*)(i2 /* word */))(intptr_t)v1081)(v1080);
+
+	i8 v1082 = (i8)(intptr_t)(ws+1200);
+	i8 v1083 = *(i8*)(intptr_t)v1082;
+	i8 v1084 = (i8)(intptr_t)(f58_E);
+
+	((void(*)(i8 /* text */))(intptr_t)v1084)(v1083);
+
+	i1 v1085 = (i1)+78;
+	i8 v1086 = (i8)(intptr_t)(f62_EmitterPopChunk);
+
+	((void(*)(i1 /* type */))(intptr_t)v1086)(v1085);
+
+endsub:;
+}
+	void f61_EmitterPushChunk(void);
+	void f59_E_b16(i2 /* word */);
+	void f58_E(i8 /* text */);
+	void f62_EmitterPopChunk(i1 /* type */);
+
+// EmitterDeclareExternal workspace at ws+1200 length ws+16
+void f66_EmitterDeclareExternal(i8 p1087 /* name */, i2 p1088 /* id */) {
+	*(i2*)(intptr_t)(ws+1200) = p1088; /*id */
+	*(i8*)(intptr_t)(ws+1208) = p1087; /*name */
+
+	i8 v1089 = (i8)(intptr_t)(f61_EmitterPushChunk);
+
+	((void(*)(void))(intptr_t)v1089)();
+
+	i8 v1090 = (i8)(intptr_t)(ws+1200);
+	i2 v1091 = *(i2*)(intptr_t)v1090;
+	i8 v1092 = (i8)(intptr_t)(f59_E_b16);
+
+	((void(*)(i2 /* word */))(intptr_t)v1092)(v1091);
+
+	i8 v1093 = (i8)(intptr_t)(ws+1208);
+	i8 v1094 = *(i8*)(intptr_t)v1093;
+	i8 v1095 = (i8)(intptr_t)(f58_E);
+
+	((void(*)(i8 /* text */))(intptr_t)v1095)(v1094);
+
+	i1 v1096 = (i1)+88;
+	i8 v1097 = (i8)(intptr_t)(f62_EmitterPopChunk);
+
+	((void(*)(i1 /* type */))(intptr_t)v1097)(v1096);
+
+endsub:;
+}
+	void f61_EmitterPushChunk(void);
+	void f59_E_b16(i2 /* word */);
+	void f59_E_b16(i2 /* word */);
+	void f62_EmitterPopChunk(i1 /* type */);
+
+// EmitterReferenceSubroutine workspace at ws+1208 length ws+4
+void f67_EmitterReferenceSubroutine(i2 p1098 /* used */, i2 p1099 /* user */) {
+	*(i2*)(intptr_t)(ws+1208) = p1099; /*user */
+	*(i2*)(intptr_t)(ws+1210) = p1098; /*used */
+
+	i8 v1100 = (i8)(intptr_t)(ws+1208);
+	i2 v1101 = *(i2*)(intptr_t)v1100;
+	i8 v1102 = (i8)(intptr_t)(ws+1210);
+	i2 v1103 = *(i2*)(intptr_t)v1102;
+	if (v1101==v1103) goto c02_00e0; else goto c02_00df;
+
+c02_00df:;
+
+	i8 v1104 = (i8)(intptr_t)(f61_EmitterPushChunk);
+
+	((void(*)(void))(intptr_t)v1104)();
+
+	i8 v1105 = (i8)(intptr_t)(ws+1208);
+	i2 v1106 = *(i2*)(intptr_t)v1105;
+	i8 v1107 = (i8)(intptr_t)(f59_E_b16);
+
+	((void(*)(i2 /* word */))(intptr_t)v1107)(v1106);
+
+	i8 v1108 = (i8)(intptr_t)(ws+1210);
+	i2 v1109 = *(i2*)(intptr_t)v1108;
+	i8 v1110 = (i8)(intptr_t)(f59_E_b16);
+
+	((void(*)(i2 /* word */))(intptr_t)v1110)(v1109);
+
+	i1 v1111 = (i1)+82;
+	i8 v1112 = (i8)(intptr_t)(f62_EmitterPopChunk);
+
+	((void(*)(i1 /* type */))(intptr_t)v1112)(v1111);
+
+	goto c02_00dc;
+
+c02_00e0:;
+
+c02_00dc:;
+
+endsub:;
+}
+	void f61_EmitterPushChunk(void);
+	void f59_E_b16(i2 /* word */);
+	void f57_E_b8(i1 /* byte */);
+	void f59_E_b16(i2 /* word */);
+	void f62_EmitterPopChunk(i1 /* type */);
 
 // EmitterDeclareWorkspace workspace at ws+1200 length ws+6
-void f66_EmitterDeclareWorkspace(i2 p1100 /* workspace */, i1 p1101 /* wid */, i2 p1102 /* id */) {
-	*(i2*)(intptr_t)(ws+1200) = p1102; /*id */
-	*(i1*)(intptr_t)(ws+1202) = p1101; /*wid */
-	*(i2*)(intptr_t)(ws+1204) = p1100; /*workspace */
+void f68_EmitterDeclareWorkspace(i2 p1113 /* workspace */, i1 p1114 /* wid */, i2 p1115 /* id */) {
+	*(i2*)(intptr_t)(ws+1200) = p1115; /*id */
+	*(i1*)(intptr_t)(ws+1202) = p1114; /*wid */
+	*(i2*)(intptr_t)(ws+1204) = p1113; /*workspace */
 
-	i8 v1103 = (i8)(intptr_t)(f59_EmitterPushChunk);
+	i8 v1116 = (i8)(intptr_t)(f61_EmitterPushChunk);
 
-	((void(*)(void))(intptr_t)v1103)();
+	((void(*)(void))(intptr_t)v1116)();
 
-	i8 v1104 = (i8)(intptr_t)(ws+1200);
-	i2 v1105 = *(i2*)(intptr_t)v1104;
-	i8 v1106 = (i8)(intptr_t)(f57_E_b16);
+	i8 v1117 = (i8)(intptr_t)(ws+1200);
+	i2 v1118 = *(i2*)(intptr_t)v1117;
+	i8 v1119 = (i8)(intptr_t)(f59_E_b16);
 
-	((void(*)(i2 /* word */))(intptr_t)v1106)(v1105);
+	((void(*)(i2 /* word */))(intptr_t)v1119)(v1118);
 
-	i8 v1107 = (i8)(intptr_t)(ws+1202);
-	i1 v1108 = *(i1*)(intptr_t)v1107;
-	i8 v1109 = (i8)(intptr_t)(f55_E_b8);
+	i8 v1120 = (i8)(intptr_t)(ws+1202);
+	i1 v1121 = *(i1*)(intptr_t)v1120;
+	i8 v1122 = (i8)(intptr_t)(f57_E_b8);
 
-	((void(*)(i1 /* byte */))(intptr_t)v1109)(v1108);
+	((void(*)(i1 /* byte */))(intptr_t)v1122)(v1121);
 
-	i8 v1110 = (i8)(intptr_t)(ws+1204);
-	i2 v1111 = *(i2*)(intptr_t)v1110;
-	i8 v1112 = (i8)(intptr_t)(f57_E_b16);
+	i8 v1123 = (i8)(intptr_t)(ws+1204);
+	i2 v1124 = *(i2*)(intptr_t)v1123;
+	i8 v1125 = (i8)(intptr_t)(f59_E_b16);
 
-	((void(*)(i2 /* word */))(intptr_t)v1112)(v1111);
+	((void(*)(i2 /* word */))(intptr_t)v1125)(v1124);
 
-	i1 v1113 = (i1)+87;
-	i8 v1114 = (i8)(intptr_t)(f60_EmitterPopChunk);
+	i1 v1126 = (i1)+87;
+	i8 v1127 = (i8)(intptr_t)(f62_EmitterPopChunk);
 
-	((void(*)(i1 /* type */))(intptr_t)v1114)(v1113);
+	((void(*)(i1 /* type */))(intptr_t)v1127)(v1126);
 
 endsub:;
 }
 	void f25_StrCmp(i1* /* res */, i8 /* s2 */, i8 /* s1 */);
-	void f31_Alloc(i8* /* block */, i8 /* length */);
-	void f33_StrDup(i8* /* sout */, i8 /* s */);
+	void f32_Alloc(i8* /* block */, i8 /* length */);
+	void f34_StrDup(i8* /* sout */, i8 /* s */);
 
 // GetSymbol workspace at ws+1208 length ws+16
-void f67_GetSymbol(i8* p1121 /* symbol */, i8 p1122 /* name */) {
-	*(i8*)(intptr_t)(ws+1208) = p1122; /*name */
+void f69_GetSymbol(i8* p1134 /* symbol */, i8 p1135 /* name */) {
+	*(i8*)(intptr_t)(ws+1208) = p1135; /*name */
 
-	i8 v1123 = (i8)(intptr_t)(ws+1120);
-	i8 v1124 = *(i8*)(intptr_t)v1123;
-	i8 v1125 = (i8)(intptr_t)(ws+1216);
-	*(i8*)(intptr_t)v1125 = v1124;
+	i8 v1136 = (i8)(intptr_t)(ws+1120);
+	i8 v1137 = *(i8*)(intptr_t)v1136;
+	i8 v1138 = (i8)(intptr_t)(ws+1216);
+	*(i8*)(intptr_t)v1138 = v1137;
 
-c02_00de:;
+c02_00e3:;
 
-	i8 v1126 = (i8)(intptr_t)(ws+1216);
-	i8 v1127 = *(i8*)(intptr_t)v1126;
-	i8 v1128 = (i8)+0;
-	if (v1127==v1128) goto c02_00e1; else goto c02_00e0;
-
-c02_00e0:;
-
-	i8 v1129 = (i8)(intptr_t)(ws+1208);
-	i8 v1130 = *(i8*)(intptr_t)v1129;
-	i8 v1131 = (i8)(intptr_t)(ws+1216);
-	i8 v1132 = *(i8*)(intptr_t)v1131;
-	i8 v1133 = v1132+(+8);
-	i8 v1134 = *(i8*)(intptr_t)v1133;
-	i8 v1135 = (i8)(intptr_t)(f25_StrCmp);
-	i1 v1136;
-
-	((void(*)(i1* /* res */, i8 /* s2 */, i8 /* s1 */))(intptr_t)v1135)(&v1136, v1134, v1130);
-	i1 v1137 = (i1)+0;
-	if (v1136==v1137) goto c02_00e5; else goto c02_00e6;
+	i8 v1139 = (i8)(intptr_t)(ws+1216);
+	i8 v1140 = *(i8*)(intptr_t)v1139;
+	i8 v1141 = (i8)+0;
+	if (v1140==v1141) goto c02_00e6; else goto c02_00e5;
 
 c02_00e5:;
 
-	goto endsub;
-
-c02_00e6:;
-
-c02_00e2:;
-
-	i8 v1138 = (i8)(intptr_t)(ws+1216);
-	i8 v1139 = *(i8*)(intptr_t)v1138;
-	i8 v1140 = *(i8*)(intptr_t)v1139;
-	i8 v1141 = (i8)(intptr_t)(ws+1216);
-	*(i8*)(intptr_t)v1141 = v1140;
-
-	goto c02_00de;
-
-c02_00e1:;
-
-	i8 v1142 = (i8)+19;
-	i8 v1143 = (i8)(intptr_t)(f31_Alloc);
-	i8 v1144;
-
-	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v1143)(&v1144, v1142);
-	i8 v1145 = (i8)(intptr_t)(ws+1216);
-	*(i8*)(intptr_t)v1145 = v1144;
-
-	i8 v1146 = (i8)(intptr_t)(ws+1208);
+	i8 v1142 = (i8)(intptr_t)(ws+1208);
+	i8 v1143 = *(i8*)(intptr_t)v1142;
+	i8 v1144 = (i8)(intptr_t)(ws+1216);
+	i8 v1145 = *(i8*)(intptr_t)v1144;
+	i8 v1146 = v1145+(+8);
 	i8 v1147 = *(i8*)(intptr_t)v1146;
-	i8 v1148 = (i8)(intptr_t)(f33_StrDup);
-	i8 v1149;
+	i8 v1148 = (i8)(intptr_t)(f25_StrCmp);
+	i1 v1149;
 
-	((void(*)(i8* /* sout */, i8 /* s */))(intptr_t)v1148)(&v1149, v1147);
-	i8 v1150 = (i8)(intptr_t)(ws+1216);
-	i8 v1151 = *(i8*)(intptr_t)v1150;
-	i8 v1152 = v1151+(+8);
-	*(i8*)(intptr_t)v1152 = v1149;
-
-	i8 v1153 = (i8)(intptr_t)(ws+1128);
-	i2 v1154 = *(i2*)(intptr_t)v1153;
-	i8 v1155 = (i8)(intptr_t)(ws+1216);
-	i8 v1156 = *(i8*)(intptr_t)v1155;
-	i8 v1157 = v1156+(+16);
-	*(i2*)(intptr_t)v1157 = v1154;
-
-	i8 v1158 = (i8)(intptr_t)(ws+1128);
-	i2 v1159 = *(i2*)(intptr_t)v1158;
-	i2 v1160 = v1159+(+1);
-	i8 v1161 = (i8)(intptr_t)(ws+1128);
-	*(i2*)(intptr_t)v1161 = v1160;
-
-	i8 v1162 = (i8)(intptr_t)(ws+1120);
-	i8 v1163 = *(i8*)(intptr_t)v1162;
-	i8 v1164 = (i8)(intptr_t)(ws+1216);
-	i8 v1165 = *(i8*)(intptr_t)v1164;
-	*(i8*)(intptr_t)v1165 = v1163;
-
-	i8 v1166 = (i8)(intptr_t)(ws+1216);
-	i8 v1167 = *(i8*)(intptr_t)v1166;
-	i8 v1168 = (i8)(intptr_t)(ws+1120);
-	*(i8*)(intptr_t)v1168 = v1167;
-
-endsub:;
-	*p1121 = *(i8*)(intptr_t)(ws+1216);
-}
-const i1 c02_s0006[] = { 0x40,0 };
-	void f48_FCBGetChar(i1* /* c */, i8 /* fcb */);
-
-// GetC workspace at ws+1232 length ws+0
-void f69_GetC(void) {
-
-	i8 v1175 = (i8)(intptr_t)(ws+40);
-	i8 v1176 = (i8)(intptr_t)(f48_FCBGetChar);
-	i1 v1177;
-
-	((void(*)(i1* /* c */, i8 /* fcb */))(intptr_t)v1176)(&v1177, v1175);
-	i8 v1178 = (i8)(intptr_t)(ws+1144);
-	*(i1*)(intptr_t)v1178 = v1177;
-
-endsub:;
-}
-const i1 c02_s0007[] = { 0x6d,0x61,0x6c,0x66,0x6f,0x72,0x6d,0x65,0x64,0x20,0x63,0x6f,0x77,0x77,0x72,0x61,0x70,0x20,0x64,0x69,0x72,0x65,0x63,0x74,0x69,0x76,0x65,0 };
-	void f54_FatalError(i8 /* s */);
-	void f69_GetC(void);
-
-// ExpectC workspace at ws+1208 length ws+1
-void f70_ExpectC(i1 p1179 /* want */) {
-	*(i1*)(intptr_t)(ws+1208) = p1179; /*want */
-
-	i8 v1180 = (i8)(intptr_t)(ws+1144);
-	i1 v1181 = *(i1*)(intptr_t)v1180;
-	i8 v1182 = (i8)(intptr_t)(ws+1208);
-	i1 v1183 = *(i1*)(intptr_t)v1182;
-	if (v1181==v1183) goto c02_00eb; else goto c02_00ea;
+	((void(*)(i1* /* res */, i8 /* s2 */, i8 /* s1 */))(intptr_t)v1148)(&v1149, v1147, v1143);
+	i1 v1150 = (i1)+0;
+	if (v1149==v1150) goto c02_00ea; else goto c02_00eb;
 
 c02_00ea:;
 
-	i8 v1184 = (i8)(intptr_t)c02_s0007;
-	i8 v1185 = (i8)(intptr_t)(f54_FatalError);
-
-	((void(*)(i8 /* s */))(intptr_t)v1185)(v1184);
-
-	goto c02_00e7;
+	goto endsub;
 
 c02_00eb:;
 
 c02_00e7:;
 
-	i8 v1186 = (i8)(intptr_t)(f69_GetC);
+	i8 v1151 = (i8)(intptr_t)(ws+1216);
+	i8 v1152 = *(i8*)(intptr_t)v1151;
+	i8 v1153 = *(i8*)(intptr_t)v1152;
+	i8 v1154 = (i8)(intptr_t)(ws+1216);
+	*(i8*)(intptr_t)v1154 = v1153;
 
-	((void(*)(void))(intptr_t)v1186)();
+	goto c02_00e3;
+
+c02_00e6:;
+
+	i8 v1155 = (i8)+19;
+	i8 v1156 = (i8)(intptr_t)(f32_Alloc);
+	i8 v1157;
+
+	((void(*)(i8* /* block */, i8 /* length */))(intptr_t)v1156)(&v1157, v1155);
+	i8 v1158 = (i8)(intptr_t)(ws+1216);
+	*(i8*)(intptr_t)v1158 = v1157;
+
+	i8 v1159 = (i8)(intptr_t)(ws+1208);
+	i8 v1160 = *(i8*)(intptr_t)v1159;
+	i8 v1161 = (i8)(intptr_t)(f34_StrDup);
+	i8 v1162;
+
+	((void(*)(i8* /* sout */, i8 /* s */))(intptr_t)v1161)(&v1162, v1160);
+	i8 v1163 = (i8)(intptr_t)(ws+1216);
+	i8 v1164 = *(i8*)(intptr_t)v1163;
+	i8 v1165 = v1164+(+8);
+	*(i8*)(intptr_t)v1165 = v1162;
+
+	i8 v1166 = (i8)(intptr_t)(ws+1128);
+	i2 v1167 = *(i2*)(intptr_t)v1166;
+	i8 v1168 = (i8)(intptr_t)(ws+1216);
+	i8 v1169 = *(i8*)(intptr_t)v1168;
+	i8 v1170 = v1169+(+16);
+	*(i2*)(intptr_t)v1170 = v1167;
+
+	i8 v1171 = (i8)(intptr_t)(ws+1128);
+	i2 v1172 = *(i2*)(intptr_t)v1171;
+	i2 v1173 = v1172+(+1);
+	i8 v1174 = (i8)(intptr_t)(ws+1128);
+	*(i2*)(intptr_t)v1174 = v1173;
+
+	i8 v1175 = (i8)(intptr_t)(ws+1120);
+	i8 v1176 = *(i8*)(intptr_t)v1175;
+	i8 v1177 = (i8)(intptr_t)(ws+1216);
+	i8 v1178 = *(i8*)(intptr_t)v1177;
+	*(i8*)(intptr_t)v1178 = v1176;
+
+	i8 v1179 = (i8)(intptr_t)(ws+1216);
+	i8 v1180 = *(i8*)(intptr_t)v1179;
+	i8 v1181 = (i8)(intptr_t)(ws+1120);
+	*(i8*)(intptr_t)v1181 = v1180;
+
+endsub:;
+	*p1134 = *(i8*)(intptr_t)(ws+1216);
+}
+const i1 c02_s0007[] = { 0x40,0 };
+	void f50_FCBGetChar(i1* /* c */, i8 /* fcb */);
+
+// GetC workspace at ws+1232 length ws+0
+void f71_GetC(void) {
+
+	i8 v1188 = (i8)(intptr_t)(ws+40);
+	i8 v1189 = (i8)(intptr_t)(f50_FCBGetChar);
+	i1 v1190;
+
+	((void(*)(i1* /* c */, i8 /* fcb */))(intptr_t)v1189)(&v1190, v1188);
+	i8 v1191 = (i8)(intptr_t)(ws+1144);
+	*(i1*)(intptr_t)v1191 = v1190;
 
 endsub:;
 }
-	void f69_GetC(void);
+const i1 c02_s0008[] = { 0x6d,0x61,0x6c,0x66,0x6f,0x72,0x6d,0x65,0x64,0x20,0x63,0x6f,0x77,0x77,0x72,0x61,0x70,0x20,0x64,0x69,0x72,0x65,0x63,0x74,0x69,0x76,0x65,0 };
+	void f56_FatalError(i8 /* s */);
+	void f71_GetC(void);
 
-// SkipToEndOfLine workspace at ws+1184 length ws+0
-void f71_SkipToEndOfLine(void) {
-
-c02_00ec:;
-
-	i8 v1187 = (i8)(intptr_t)(ws+1144);
-	i1 v1188 = *(i1*)(intptr_t)v1187;
-	i1 v1189 = (i1)+0;
-	if (v1188==v1189) goto c02_00f5; else goto c02_00f8;
-
-c02_00f8:;
-
-	i8 v1190 = (i8)(intptr_t)(ws+1144);
-	i1 v1191 = *(i1*)(intptr_t)v1190;
-	i1 v1192 = (i1)+26;
-	if (v1191==v1192) goto c02_00f5; else goto c02_00f7;
-
-c02_00f7:;
+// ExpectC workspace at ws+1208 length ws+1
+void f72_ExpectC(i1 p1192 /* want */) {
+	*(i1*)(intptr_t)(ws+1208) = p1192; /*want */
 
 	i8 v1193 = (i8)(intptr_t)(ws+1144);
 	i1 v1194 = *(i1*)(intptr_t)v1193;
-	i1 v1195 = (i1)+10;
-	if (v1194==v1195) goto c02_00f5; else goto c02_00f6;
+	i8 v1195 = (i8)(intptr_t)(ws+1208);
+	i1 v1196 = *(i1*)(intptr_t)v1195;
+	if (v1194==v1196) goto c02_00f0; else goto c02_00ef;
 
-c02_00f5:;
+c02_00ef:;
 
-	goto c02_00ed;
+	i8 v1197 = (i8)(intptr_t)c02_s0008;
+	i8 v1198 = (i8)(intptr_t)(f56_FatalError);
 
-c02_00f6:;
-
-c02_00ee:;
-
-	i8 v1196 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1196)();
+	((void(*)(i8 /* s */))(intptr_t)v1198)(v1197);
 
 	goto c02_00ec;
 
-c02_00ed:;
+c02_00f0:;
+
+c02_00ec:;
+
+	i8 v1199 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1199)();
 
 endsub:;
 }
-	void f69_GetC(void);
+	void f71_GetC(void);
 
-// SkipWhitespace workspace at ws+1232 length ws+0
-void f72_SkipWhitespace(void) {
+// SkipToEndOfLine workspace at ws+1184 length ws+0
+void f73_SkipToEndOfLine(void) {
 
-c02_00f9:;
-
-	i8 v1197 = (i8)(intptr_t)(ws+1144);
-	i1 v1198 = *(i1*)(intptr_t)v1197;
-	i1 v1199 = (i1)+32;
-	if (v1198==v1199) goto c02_0101; else goto c02_0102;
-
-c02_0102:;
+c02_00f1:;
 
 	i8 v1200 = (i8)(intptr_t)(ws+1144);
 	i1 v1201 = *(i1*)(intptr_t)v1200;
-	i1 v1202 = (i1)+9;
-	if (v1201==v1202) goto c02_0101; else goto c02_0100;
+	i1 v1202 = (i1)+0;
+	if (v1201==v1202) goto c02_00fa; else goto c02_00fd;
 
-c02_0100:;
+c02_00fd:;
 
-	goto c02_00fa;
+	i8 v1203 = (i8)(intptr_t)(ws+1144);
+	i1 v1204 = *(i1*)(intptr_t)v1203;
+	i1 v1205 = (i1)+26;
+	if (v1204==v1205) goto c02_00fa; else goto c02_00fc;
 
-c02_0101:;
+c02_00fc:;
 
-c02_00fb:;
-
-	i8 v1203 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1203)();
-
-	goto c02_00f9;
+	i8 v1206 = (i8)(intptr_t)(ws+1144);
+	i1 v1207 = *(i1*)(intptr_t)v1206;
+	i1 v1208 = (i1)+10;
+	if (v1207==v1208) goto c02_00fa; else goto c02_00fb;
 
 c02_00fa:;
 
+	goto c02_00f2;
+
+c02_00fb:;
+
+c02_00f3:;
+
+	i8 v1209 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1209)();
+
+	goto c02_00f1;
+
+c02_00f2:;
+
 endsub:;
 }
-	void f72_SkipWhitespace(void);
-const i1 c02_s0008[] = { 0x77,0x6f,0x72,0x64,0x20,0x74,0x6f,0x6f,0x20,0x6c,0x6f,0x6e,0x67,0 };
-	void f54_FatalError(i8 /* s */);
-	void f69_GetC(void);
+	void f71_GetC(void);
 
-// ReadWord workspace at ws+1224 length ws+8
-void f73_ReadWord(void) {
+// SkipWhitespace workspace at ws+1232 length ws+0
+void f74_SkipWhitespace(void) {
 
-	i8 v1204 = (i8)(intptr_t)(f72_SkipWhitespace);
+c02_00fe:;
 
-	((void(*)(void))(intptr_t)v1204)();
+	i8 v1210 = (i8)(intptr_t)(ws+1144);
+	i1 v1211 = *(i1*)(intptr_t)v1210;
+	i1 v1212 = (i1)+32;
+	if (v1211==v1212) goto c02_0106; else goto c02_0107;
 
-	i8 v1205 = (i8)(intptr_t)(ws+1148);
-	i8 v1206 = (i8)(intptr_t)(ws+1224);
-	*(i8*)(intptr_t)v1206 = v1205;
-
-c02_0103:;
-
-	i8 v1207 = (i8)(intptr_t)(ws+1144);
-	i1 v1208 = *(i1*)(intptr_t)v1207;
-	i1 v1209 = (i1)+48;
-	if (v1208<v1209) goto c02_011b; else goto c02_011c;
-
-c02_011c:;
-
-	i1 v1210 = (i1)+57;
-	i8 v1211 = (i8)(intptr_t)(ws+1144);
-	i1 v1212 = *(i1*)(intptr_t)v1211;
-	if (v1210<v1212) goto c02_011b; else goto c02_0117;
-
-c02_011b:;
+c02_0107:;
 
 	i8 v1213 = (i8)(intptr_t)(ws+1144);
 	i1 v1214 = *(i1*)(intptr_t)v1213;
-	i1 v1215 = (i1)+97;
-	if (v1214<v1215) goto c02_011a; else goto c02_011d;
-
-c02_011d:;
-
-	i1 v1216 = (i1)+122;
-	i8 v1217 = (i8)(intptr_t)(ws+1144);
-	i1 v1218 = *(i1*)(intptr_t)v1217;
-	if (v1216<v1218) goto c02_011a; else goto c02_0117;
-
-c02_011a:;
-
-	i8 v1219 = (i8)(intptr_t)(ws+1144);
-	i1 v1220 = *(i1*)(intptr_t)v1219;
-	i1 v1221 = (i1)+65;
-	if (v1220<v1221) goto c02_0119; else goto c02_011e;
-
-c02_011e:;
-
-	i1 v1222 = (i1)+90;
-	i8 v1223 = (i8)(intptr_t)(ws+1144);
-	i1 v1224 = *(i1*)(intptr_t)v1223;
-	if (v1222<v1224) goto c02_0119; else goto c02_0117;
-
-c02_0119:;
-
-	i8 v1225 = (i8)(intptr_t)(ws+1144);
-	i1 v1226 = *(i1*)(intptr_t)v1225;
-	i1 v1227 = (i1)+95;
-	if (v1226==v1227) goto c02_0117; else goto c02_0118;
-
-c02_0118:;
-
-	i8 v1228 = (i8)(intptr_t)(ws+1144);
-	i1 v1229 = *(i1*)(intptr_t)v1228;
-	i1 v1230 = (i1)+64;
-	if (v1229==v1230) goto c02_0117; else goto c02_0116;
-
-c02_0116:;
-
-	goto c02_0104;
-
-c02_0117:;
+	i1 v1215 = (i1)+9;
+	if (v1214==v1215) goto c02_0106; else goto c02_0105;
 
 c02_0105:;
 
-	i8 v1231 = (i8)(intptr_t)(ws+1144);
-	i1 v1232 = *(i1*)(intptr_t)v1231;
-	i8 v1233 = (i8)(intptr_t)(ws+1224);
-	i8 v1234 = *(i8*)(intptr_t)v1233;
-	*(i1*)(intptr_t)v1234 = v1232;
+	goto c02_00ff;
 
-	i8 v1235 = (i8)(intptr_t)(ws+1224);
-	i8 v1236 = *(i8*)(intptr_t)v1235;
-	i8 v1237 = v1236+(+1);
-	i8 v1238 = (i8)(intptr_t)(ws+1224);
-	*(i8*)(intptr_t)v1238 = v1237;
+c02_0106:;
 
-	i8 v1239 = (i8)(intptr_t)(ws+1224);
-	i8 v1240 = *(i8*)(intptr_t)v1239;
-	i8 v1241 = (i8)(intptr_t)(ws+1180);
-	if (v1240==v1241) goto c02_0122; else goto c02_0123;
+c02_0100:;
+
+	i8 v1216 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1216)();
+
+	goto c02_00fe;
+
+c02_00ff:;
+
+endsub:;
+}
+	void f74_SkipWhitespace(void);
+const i1 c02_s0009[] = { 0x77,0x6f,0x72,0x64,0x20,0x74,0x6f,0x6f,0x20,0x6c,0x6f,0x6e,0x67,0 };
+	void f56_FatalError(i8 /* s */);
+	void f71_GetC(void);
+
+// ReadWord workspace at ws+1224 length ws+8
+void f75_ReadWord(void) {
+
+	i8 v1217 = (i8)(intptr_t)(f74_SkipWhitespace);
+
+	((void(*)(void))(intptr_t)v1217)();
+
+	i8 v1218 = (i8)(intptr_t)(ws+1148);
+	i8 v1219 = (i8)(intptr_t)(ws+1224);
+	*(i8*)(intptr_t)v1219 = v1218;
+
+c02_0108:;
+
+	i8 v1220 = (i8)(intptr_t)(ws+1144);
+	i1 v1221 = *(i1*)(intptr_t)v1220;
+	i1 v1222 = (i1)+48;
+	if (v1221<v1222) goto c02_0120; else goto c02_0121;
+
+c02_0121:;
+
+	i1 v1223 = (i1)+57;
+	i8 v1224 = (i8)(intptr_t)(ws+1144);
+	i1 v1225 = *(i1*)(intptr_t)v1224;
+	if (v1223<v1225) goto c02_0120; else goto c02_011c;
+
+c02_0120:;
+
+	i8 v1226 = (i8)(intptr_t)(ws+1144);
+	i1 v1227 = *(i1*)(intptr_t)v1226;
+	i1 v1228 = (i1)+97;
+	if (v1227<v1228) goto c02_011f; else goto c02_0122;
 
 c02_0122:;
 
-	i8 v1242 = (i8)(intptr_t)c02_s0008;
-	i8 v1243 = (i8)(intptr_t)(f54_FatalError);
-
-	((void(*)(i8 /* s */))(intptr_t)v1243)(v1242);
-
-	goto c02_011f;
-
-c02_0123:;
+	i1 v1229 = (i1)+122;
+	i8 v1230 = (i8)(intptr_t)(ws+1144);
+	i1 v1231 = *(i1*)(intptr_t)v1230;
+	if (v1229<v1231) goto c02_011f; else goto c02_011c;
 
 c02_011f:;
 
-	i8 v1244 = (i8)(intptr_t)(f69_GetC);
+	i8 v1232 = (i8)(intptr_t)(ws+1144);
+	i1 v1233 = *(i1*)(intptr_t)v1232;
+	i1 v1234 = (i1)+65;
+	if (v1233<v1234) goto c02_011e; else goto c02_0123;
 
-	((void(*)(void))(intptr_t)v1244)();
+c02_0123:;
 
-	goto c02_0103;
+	i1 v1235 = (i1)+90;
+	i8 v1236 = (i8)(intptr_t)(ws+1144);
+	i1 v1237 = *(i1*)(intptr_t)v1236;
+	if (v1235<v1237) goto c02_011e; else goto c02_011c;
 
-c02_0104:;
+c02_011e:;
 
-	i1 v1245 = (i1)+0;
+	i8 v1238 = (i8)(intptr_t)(ws+1144);
+	i1 v1239 = *(i1*)(intptr_t)v1238;
+	i1 v1240 = (i1)+95;
+	if (v1239==v1240) goto c02_011c; else goto c02_011d;
+
+c02_011d:;
+
+	i8 v1241 = (i8)(intptr_t)(ws+1144);
+	i1 v1242 = *(i1*)(intptr_t)v1241;
+	i1 v1243 = (i1)+64;
+	if (v1242==v1243) goto c02_011c; else goto c02_011b;
+
+c02_011b:;
+
+	goto c02_0109;
+
+c02_011c:;
+
+c02_010a:;
+
+	i8 v1244 = (i8)(intptr_t)(ws+1144);
+	i1 v1245 = *(i1*)(intptr_t)v1244;
 	i8 v1246 = (i8)(intptr_t)(ws+1224);
 	i8 v1247 = *(i8*)(intptr_t)v1246;
 	*(i1*)(intptr_t)v1247 = v1245;
 
-endsub:;
-}
-	void f73_ReadWord(void);
-	void f21_AToI(i4* /* result */, i8* /* ptr */, i8 /* buffer */);
-const i1 c02_s0009[] = { 0x6d,0x61,0x6c,0x66,0x6f,0x72,0x6d,0x65,0x64,0x20,0x6e,0x75,0x6d,0x62,0x65,0x72,0 };
-	void f54_FatalError(i8 /* s */);
+	i8 v1248 = (i8)(intptr_t)(ws+1224);
+	i8 v1249 = *(i8*)(intptr_t)v1248;
+	i8 v1250 = v1249+(+1);
+	i8 v1251 = (i8)(intptr_t)(ws+1224);
+	*(i8*)(intptr_t)v1251 = v1250;
 
-// ReadNumber workspace at ws+1208 length ws+16
-void f74_ReadNumber(i4* p1248 /* result */) {
-
-	i8 v1249 = (i8)(intptr_t)(f73_ReadWord);
-
-	((void(*)(void))(intptr_t)v1249)();
-
-	i8 v1250 = (i8)(intptr_t)(ws+1148);
-	i8 v1251 = (i8)(intptr_t)(f21_AToI);
-	i4 v1252;
-	i8 v1253;
-
-	((void(*)(i4* /* result */, i8* /* ptr */, i8 /* buffer */))(intptr_t)v1251)(&v1252, &v1253, v1250);
-
-	i8 v1254 = (i8)(intptr_t)(ws+1216);
-	*(i8*)(intptr_t)v1254 = v1253;
-
-	i8 v1255 = (i8)(intptr_t)(ws+1208);
-	*(i4*)(intptr_t)v1255 = v1252;
-
-	i8 v1256 = (i8)(intptr_t)(ws+1216);
-	i8 v1257 = *(i8*)(intptr_t)v1256;
-	i8 v1258 = (i8)(intptr_t)(ws+1148);
-	if (v1257==v1258) goto c02_0127; else goto c02_0128;
+	i8 v1252 = (i8)(intptr_t)(ws+1224);
+	i8 v1253 = *(i8*)(intptr_t)v1252;
+	i8 v1254 = (i8)(intptr_t)(ws+1180);
+	if (v1253==v1254) goto c02_0127; else goto c02_0128;
 
 c02_0127:;
 
-	i8 v1259 = (i8)(intptr_t)c02_s0009;
-	i8 v1260 = (i8)(intptr_t)(f54_FatalError);
+	i8 v1255 = (i8)(intptr_t)c02_s0009;
+	i8 v1256 = (i8)(intptr_t)(f56_FatalError);
 
-	((void(*)(i8 /* s */))(intptr_t)v1260)(v1259);
+	((void(*)(i8 /* s */))(intptr_t)v1256)(v1255);
 
 	goto c02_0124;
 
@@ -2214,46 +2199,57 @@ c02_0128:;
 
 c02_0124:;
 
+	i8 v1257 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1257)();
+
+	goto c02_0108;
+
+c02_0109:;
+
+	i1 v1258 = (i1)+0;
+	i8 v1259 = (i8)(intptr_t)(ws+1224);
+	i8 v1260 = *(i8*)(intptr_t)v1259;
+	*(i1*)(intptr_t)v1260 = v1258;
+
 endsub:;
-	*p1248 = *(i4*)(intptr_t)(ws+1208);
 }
-	void f64_EmitterDeclareExternal(i8 /* name */, i2 /* id */);
+	void f75_ReadWord(void);
+	void f21_AToI(i4* /* result */, i8* /* ptr */, i8 /* buffer */);
+const i1 c02_s000a[] = { 0x6d,0x61,0x6c,0x66,0x6f,0x72,0x6d,0x65,0x64,0x20,0x6e,0x75,0x6d,0x62,0x65,0x72,0 };
+	void f56_FatalError(i8 /* s */);
 
-// MarkSubroutinePublic workspace at ws+1192 length ws+8
-void f75_MarkSubroutinePublic(i8 p1261 /* symbol */) {
-	*(i8*)(intptr_t)(ws+1192) = p1261; /*symbol */
+// ReadNumber workspace at ws+1208 length ws+16
+void f76_ReadNumber(i4* p1261 /* result */) {
 
-	i8 v1262 = (i8)(intptr_t)(ws+1192);
-	i8 v1263 = *(i8*)(intptr_t)v1262;
-	i8 v1264 = v1263+(+18);
-	i1 v1265 = *(i1*)(intptr_t)v1264;
-	i1 v1266 = v1265&(+2);
-	i1 v1267 = (i1)+0;
-	if (v1266==v1267) goto c02_012c; else goto c02_012d;
+	i8 v1262 = (i8)(intptr_t)(f75_ReadWord);
+
+	((void(*)(void))(intptr_t)v1262)();
+
+	i8 v1263 = (i8)(intptr_t)(ws+1148);
+	i8 v1264 = (i8)(intptr_t)(f21_AToI);
+	i4 v1265;
+	i8 v1266;
+
+	((void(*)(i4* /* result */, i8* /* ptr */, i8 /* buffer */))(intptr_t)v1264)(&v1265, &v1266, v1263);
+
+	i8 v1267 = (i8)(intptr_t)(ws+1216);
+	*(i8*)(intptr_t)v1267 = v1266;
+
+	i8 v1268 = (i8)(intptr_t)(ws+1208);
+	*(i4*)(intptr_t)v1268 = v1265;
+
+	i8 v1269 = (i8)(intptr_t)(ws+1216);
+	i8 v1270 = *(i8*)(intptr_t)v1269;
+	i8 v1271 = (i8)(intptr_t)(ws+1148);
+	if (v1270==v1271) goto c02_012c; else goto c02_012d;
 
 c02_012c:;
 
-	i8 v1268 = (i8)(intptr_t)(ws+1192);
-	i8 v1269 = *(i8*)(intptr_t)v1268;
-	i8 v1270 = v1269+(+18);
-	i1 v1271 = *(i1*)(intptr_t)v1270;
-	i1 v1272 = v1271|(+2);
-	i8 v1273 = (i8)(intptr_t)(ws+1192);
-	i8 v1274 = *(i8*)(intptr_t)v1273;
-	i8 v1275 = v1274+(+18);
-	*(i1*)(intptr_t)v1275 = v1272;
+	i8 v1272 = (i8)(intptr_t)c02_s000a;
+	i8 v1273 = (i8)(intptr_t)(f56_FatalError);
 
-	i8 v1276 = (i8)(intptr_t)(ws+1192);
-	i8 v1277 = *(i8*)(intptr_t)v1276;
-	i8 v1278 = v1277+(+16);
-	i2 v1279 = *(i2*)(intptr_t)v1278;
-	i8 v1280 = (i8)(intptr_t)(ws+1192);
-	i8 v1281 = *(i8*)(intptr_t)v1280;
-	i8 v1282 = v1281+(+8);
-	i8 v1283 = *(i8*)(intptr_t)v1282;
-	i8 v1284 = (i8)(intptr_t)(f64_EmitterDeclareExternal);
-
-	((void(*)(i8 /* name */, i2 /* id */))(intptr_t)v1284)(v1283, v1279);
+	((void(*)(i8 /* s */))(intptr_t)v1273)(v1272);
 
 	goto c02_0129;
 
@@ -2262,27 +2258,45 @@ c02_012d:;
 c02_0129:;
 
 endsub:;
+	*p1261 = *(i4*)(intptr_t)(ws+1208);
 }
-	void f60_EmitterPopChunk(i1 /* type */);
+	void f66_EmitterDeclareExternal(i8 /* name */, i2 /* id */);
 
-// CloseChunk workspace at ws+1192 length ws+0
-void f77_CloseChunk(void) {
+// MarkSubroutinePublic workspace at ws+1192 length ws+8
+void f77_MarkSubroutinePublic(i8 p1274 /* symbol */) {
+	*(i8*)(intptr_t)(ws+1192) = p1274; /*symbol */
 
-	i8 v1291 = (i8)(intptr_t)(ws+1136);
-	i8 v1292 = *(i8*)(intptr_t)v1291;
-	i8 v1293 = (i8)+0;
-	if (v1292==v1293) goto c02_0132; else goto c02_0131;
+	i8 v1275 = (i8)(intptr_t)(ws+1192);
+	i8 v1276 = *(i8*)(intptr_t)v1275;
+	i8 v1277 = v1276+(+18);
+	i1 v1278 = *(i1*)(intptr_t)v1277;
+	i1 v1279 = v1278&(+2);
+	i1 v1280 = (i1)+0;
+	if (v1279==v1280) goto c02_0131; else goto c02_0132;
 
 c02_0131:;
 
-	i1 v1294 = (i1)+83;
-	i8 v1295 = (i8)(intptr_t)(f60_EmitterPopChunk);
+	i8 v1281 = (i8)(intptr_t)(ws+1192);
+	i8 v1282 = *(i8*)(intptr_t)v1281;
+	i8 v1283 = v1282+(+18);
+	i1 v1284 = *(i1*)(intptr_t)v1283;
+	i1 v1285 = v1284|(+2);
+	i8 v1286 = (i8)(intptr_t)(ws+1192);
+	i8 v1287 = *(i8*)(intptr_t)v1286;
+	i8 v1288 = v1287+(+18);
+	*(i1*)(intptr_t)v1288 = v1285;
 
-	((void(*)(i1 /* type */))(intptr_t)v1295)(v1294);
+	i8 v1289 = (i8)(intptr_t)(ws+1192);
+	i8 v1290 = *(i8*)(intptr_t)v1289;
+	i8 v1291 = v1290+(+16);
+	i2 v1292 = *(i2*)(intptr_t)v1291;
+	i8 v1293 = (i8)(intptr_t)(ws+1192);
+	i8 v1294 = *(i8*)(intptr_t)v1293;
+	i8 v1295 = v1294+(+8);
+	i8 v1296 = *(i8*)(intptr_t)v1295;
+	i8 v1297 = (i8)(intptr_t)(f66_EmitterDeclareExternal);
 
-	i8 v1296 = (i8)+0;
-	i8 v1297 = (i8)(intptr_t)(ws+1136);
-	*(i8*)(intptr_t)v1297 = v1296;
+	((void(*)(i8 /* name */, i2 /* id */))(intptr_t)v1297)(v1296, v1292);
 
 	goto c02_012e;
 
@@ -2292,61 +2306,26 @@ c02_012e:;
 
 endsub:;
 }
-	void f77_CloseChunk(void);
-	void f69_GetC(void);
-	void f73_ReadWord(void);
-	void f67_GetSymbol(i8* /* symbol */, i8 /* name */);
-	void f75_MarkSubroutinePublic(i8 /* symbol */);
-	void f63_EmitterDeclareSubroutine(i8 /* name */, i2 /* id */);
-	void f59_EmitterPushChunk(void);
-	void f57_E_b16(i2 /* word */);
+	void f62_EmitterPopChunk(i1 /* type */);
 
-// DeclareSubroutine workspace at ws+1184 length ws+1
-void f78_DeclareSubroutine(i1 p1298 /* exported */) {
-	*(i1*)(intptr_t)(ws+1184) = p1298; /*exported */
+// CloseChunk workspace at ws+1192 length ws+0
+void f79_CloseChunk(void) {
 
-	i8 v1299 = (i8)(intptr_t)(f77_CloseChunk);
-
-	((void(*)(void))(intptr_t)v1299)();
-
-	i8 v1300 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1300)();
-
-	i8 v1301 = (i8)(intptr_t)(f73_ReadWord);
-
-	((void(*)(void))(intptr_t)v1301)();
-
-	i8 v1302 = (i8)(intptr_t)(ws+1148);
-	i8 v1303 = (i8)(intptr_t)(f67_GetSymbol);
-	i8 v1304;
-
-	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1303)(&v1304, v1302);
-	i8 v1305 = (i8)(intptr_t)(ws+1136);
-	*(i8*)(intptr_t)v1305 = v1304;
-
-	i8 v1306 = (i8)(intptr_t)(ws+1136);
-	i8 v1307 = *(i8*)(intptr_t)v1306;
-	i8 v1308 = v1307+(+18);
-	i1 v1309 = *(i1*)(intptr_t)v1308;
-	i1 v1310 = v1309|(+1);
-	i8 v1311 = (i8)(intptr_t)(ws+1136);
-	i8 v1312 = *(i8*)(intptr_t)v1311;
-	i8 v1313 = v1312+(+18);
-	*(i1*)(intptr_t)v1313 = v1310;
-
-	i8 v1314 = (i8)(intptr_t)(ws+1184);
-	i1 v1315 = *(i1*)(intptr_t)v1314;
-	i1 v1316 = (i1)+0;
-	if (v1315==v1316) goto c02_0137; else goto c02_0136;
+	i8 v1304 = (i8)(intptr_t)(ws+1136);
+	i8 v1305 = *(i8*)(intptr_t)v1304;
+	i8 v1306 = (i8)+0;
+	if (v1305==v1306) goto c02_0137; else goto c02_0136;
 
 c02_0136:;
 
-	i8 v1317 = (i8)(intptr_t)(ws+1136);
-	i8 v1318 = *(i8*)(intptr_t)v1317;
-	i8 v1319 = (i8)(intptr_t)(f75_MarkSubroutinePublic);
+	i1 v1307 = (i1)+70;
+	i8 v1308 = (i8)(intptr_t)(f62_EmitterPopChunk);
 
-	((void(*)(i8 /* symbol */))(intptr_t)v1319)(v1318);
+	((void(*)(i1 /* type */))(intptr_t)v1308)(v1307);
+
+	i8 v1309 = (i8)+0;
+	i8 v1310 = (i8)(intptr_t)(ws+1136);
+	*(i8*)(intptr_t)v1310 = v1309;
 
 	goto c02_0133;
 
@@ -2354,37 +2333,64 @@ c02_0137:;
 
 c02_0133:;
 
-	i8 v1320 = (i8)(intptr_t)(ws+1136);
-	i8 v1321 = *(i8*)(intptr_t)v1320;
-	i8 v1322 = v1321+(+18);
-	i1 v1323 = *(i1*)(intptr_t)v1322;
-	i1 v1324 = v1323&(+4);
-	i1 v1325 = (i1)+0;
-	if (v1324==v1325) goto c02_013b; else goto c02_013c;
+endsub:;
+}
+	void f79_CloseChunk(void);
+	void f71_GetC(void);
+	void f75_ReadWord(void);
+	void f69_GetSymbol(i8* /* symbol */, i8 /* name */);
+	void f77_MarkSubroutinePublic(i8 /* symbol */);
+	void f65_EmitterDeclareSubroutine(i8 /* name */, i2 /* id */);
+	void f61_EmitterPushChunk(void);
+	void f57_E_b8(i1 /* byte */);
+	void f59_E_b16(i2 /* word */);
+
+// DeclareSubroutine workspace at ws+1184 length ws+1
+void f80_DeclareSubroutine(i1 p1311 /* exported */) {
+	*(i1*)(intptr_t)(ws+1184) = p1311; /*exported */
+
+	i8 v1312 = (i8)(intptr_t)(f79_CloseChunk);
+
+	((void(*)(void))(intptr_t)v1312)();
+
+	i8 v1313 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1313)();
+
+	i8 v1314 = (i8)(intptr_t)(f75_ReadWord);
+
+	((void(*)(void))(intptr_t)v1314)();
+
+	i8 v1315 = (i8)(intptr_t)(ws+1148);
+	i8 v1316 = (i8)(intptr_t)(f69_GetSymbol);
+	i8 v1317;
+
+	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1316)(&v1317, v1315);
+	i8 v1318 = (i8)(intptr_t)(ws+1136);
+	*(i8*)(intptr_t)v1318 = v1317;
+
+	i8 v1319 = (i8)(intptr_t)(ws+1136);
+	i8 v1320 = *(i8*)(intptr_t)v1319;
+	i8 v1321 = v1320+(+18);
+	i1 v1322 = *(i1*)(intptr_t)v1321;
+	i1 v1323 = v1322|(+1);
+	i8 v1324 = (i8)(intptr_t)(ws+1136);
+	i8 v1325 = *(i8*)(intptr_t)v1324;
+	i8 v1326 = v1325+(+18);
+	*(i1*)(intptr_t)v1326 = v1323;
+
+	i8 v1327 = (i8)(intptr_t)(ws+1184);
+	i1 v1328 = *(i1*)(intptr_t)v1327;
+	i1 v1329 = (i1)+0;
+	if (v1328==v1329) goto c02_013c; else goto c02_013b;
 
 c02_013b:;
 
-	i8 v1326 = (i8)(intptr_t)(ws+1136);
-	i8 v1327 = *(i8*)(intptr_t)v1326;
-	i8 v1328 = v1327+(+16);
-	i2 v1329 = *(i2*)(intptr_t)v1328;
 	i8 v1330 = (i8)(intptr_t)(ws+1136);
 	i8 v1331 = *(i8*)(intptr_t)v1330;
-	i8 v1332 = v1331+(+8);
-	i8 v1333 = *(i8*)(intptr_t)v1332;
-	i8 v1334 = (i8)(intptr_t)(f63_EmitterDeclareSubroutine);
+	i8 v1332 = (i8)(intptr_t)(f77_MarkSubroutinePublic);
 
-	((void(*)(i8 /* name */, i2 /* id */))(intptr_t)v1334)(v1333, v1329);
-
-	i8 v1335 = (i8)(intptr_t)(ws+1136);
-	i8 v1336 = *(i8*)(intptr_t)v1335;
-	i8 v1337 = v1336+(+18);
-	i1 v1338 = *(i1*)(intptr_t)v1337;
-	i1 v1339 = v1338|(+4);
-	i8 v1340 = (i8)(intptr_t)(ws+1136);
-	i8 v1341 = *(i8*)(intptr_t)v1340;
-	i8 v1342 = v1341+(+18);
-	*(i1*)(intptr_t)v1342 = v1339;
+	((void(*)(i8 /* symbol */))(intptr_t)v1332)(v1331);
 
 	goto c02_0138;
 
@@ -2392,141 +2398,37 @@ c02_013c:;
 
 c02_0138:;
 
-	i8 v1343 = (i8)(intptr_t)(f59_EmitterPushChunk);
-
-	((void(*)(void))(intptr_t)v1343)();
-
-	i8 v1344 = (i8)(intptr_t)(ws+1136);
-	i8 v1345 = *(i8*)(intptr_t)v1344;
-	i8 v1346 = v1345+(+16);
-	i2 v1347 = *(i2*)(intptr_t)v1346;
-	i8 v1348 = (i8)(intptr_t)(f57_E_b16);
-
-	((void(*)(i2 /* word */))(intptr_t)v1348)(v1347);
-
-endsub:;
-}
-	void f69_GetC(void);
-	void f73_ReadWord(void);
-	void f67_GetSymbol(i8* /* symbol */, i8 /* name */);
-	void f72_SkipWhitespace(void);
-	void f74_ReadNumber(i4* /* result */);
-	void f72_SkipWhitespace(void);
-	void f74_ReadNumber(i4* /* result */);
-	void f66_EmitterDeclareWorkspace(i2 /* workspace */, i1 /* wid */, i2 /* id */);
-
-// SetSubroutineWorkspace workspace at ws+1184 length ws+12
-void f79_SetSubroutineWorkspace(void) {
-
-	i8 v1349 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1349)();
-
-	i8 v1350 = (i8)(intptr_t)(f73_ReadWord);
-
-	((void(*)(void))(intptr_t)v1350)();
-
-	i8 v1351 = (i8)(intptr_t)(ws+1148);
-	i8 v1352 = (i8)(intptr_t)(f67_GetSymbol);
-	i8 v1353;
-
-	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1352)(&v1353, v1351);
-	i8 v1354 = (i8)(intptr_t)(ws+1184);
-	*(i8*)(intptr_t)v1354 = v1353;
-
-	i8 v1355 = (i8)(intptr_t)(f72_SkipWhitespace);
-
-	((void(*)(void))(intptr_t)v1355)();
-
-	i8 v1356 = (i8)(intptr_t)(f74_ReadNumber);
-	i4 v1357;
-
-	((void(*)(i4* /* result */))(intptr_t)v1356)(&v1357);
-	i1 v1358 = (s1)(s4)v1357;
-	i8 v1359 = (i8)(intptr_t)(ws+1192);
-	*(i1*)(intptr_t)v1359 = v1358;
-
-	i8 v1360 = (i8)(intptr_t)(f72_SkipWhitespace);
-
-	((void(*)(void))(intptr_t)v1360)();
-
-	i8 v1361 = (i8)(intptr_t)(f74_ReadNumber);
-	i4 v1362;
-
-	((void(*)(i4* /* result */))(intptr_t)v1361)(&v1362);
-	i2 v1363 = (s2)(s4)v1362;
-	i8 v1364 = (i8)(intptr_t)(ws+1194);
-	*(i2*)(intptr_t)v1364 = v1363;
-
-	i8 v1365 = (i8)(intptr_t)(ws+1184);
-	i8 v1366 = *(i8*)(intptr_t)v1365;
-	i8 v1367 = v1366+(+16);
-	i2 v1368 = *(i2*)(intptr_t)v1367;
-	i8 v1369 = (i8)(intptr_t)(ws+1192);
-	i1 v1370 = *(i1*)(intptr_t)v1369;
-	i8 v1371 = (i8)(intptr_t)(ws+1194);
-	i2 v1372 = *(i2*)(intptr_t)v1371;
-	i8 v1373 = (i8)(intptr_t)(f66_EmitterDeclareWorkspace);
-
-	((void(*)(i2 /* workspace */, i1 /* wid */, i2 /* id */))(intptr_t)v1373)(v1372, v1370, v1368);
-
-endsub:;
-}
-	void f69_GetC(void);
-	void f73_ReadWord(void);
-	void f67_GetSymbol(i8* /* symbol */, i8 /* name */);
-	void f65_EmitterReferenceSubroutine(i2 /* used */, i2 /* user */);
-	void f70_ExpectC(i1 /* want */);
-	void f74_ReadNumber(i4* /* result */);
-	void f70_ExpectC(i1 /* want */);
-	void f74_ReadNumber(i4* /* result */);
-	void f55_E_b8(i1 /* byte */);
-	void f57_E_b16(i2 /* word */);
-	void f55_E_b8(i1 /* byte */);
-	void f57_E_b16(i2 /* word */);
-
-// EmitWorkspaceRef workspace at ws+1192 length ws+12
-void f80_EmitWorkspaceRef(void) {
-
-	i8 v1374 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1374)();
-
-	i8 v1375 = (i8)(intptr_t)(f73_ReadWord);
-
-	((void(*)(void))(intptr_t)v1375)();
-
-	i8 v1376 = (i8)(intptr_t)(ws+1136);
-	i8 v1377 = *(i8*)(intptr_t)v1376;
-	i8 v1378 = (i8)(intptr_t)(ws+1192);
-	*(i8*)(intptr_t)v1378 = v1377;
-
-	i8 v1379 = (i8)(intptr_t)(ws+1148);
-	i1 v1380 = *(i1*)(intptr_t)v1379;
-	i1 v1381 = (i1)+0;
-	if (v1380==v1381) goto c02_0141; else goto c02_0140;
+	i8 v1333 = (i8)(intptr_t)(ws+1136);
+	i8 v1334 = *(i8*)(intptr_t)v1333;
+	i8 v1335 = v1334+(+18);
+	i1 v1336 = *(i1*)(intptr_t)v1335;
+	i1 v1337 = v1336&(+4);
+	i1 v1338 = (i1)+0;
+	if (v1337==v1338) goto c02_0140; else goto c02_0141;
 
 c02_0140:;
 
-	i8 v1382 = (i8)(intptr_t)(ws+1148);
-	i8 v1383 = (i8)(intptr_t)(f67_GetSymbol);
-	i8 v1384;
+	i8 v1339 = (i8)(intptr_t)(ws+1136);
+	i8 v1340 = *(i8*)(intptr_t)v1339;
+	i8 v1341 = v1340+(+16);
+	i2 v1342 = *(i2*)(intptr_t)v1341;
+	i8 v1343 = (i8)(intptr_t)(ws+1136);
+	i8 v1344 = *(i8*)(intptr_t)v1343;
+	i8 v1345 = v1344+(+8);
+	i8 v1346 = *(i8*)(intptr_t)v1345;
+	i8 v1347 = (i8)(intptr_t)(f65_EmitterDeclareSubroutine);
 
-	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1383)(&v1384, v1382);
-	i8 v1385 = (i8)(intptr_t)(ws+1192);
-	*(i8*)(intptr_t)v1385 = v1384;
+	((void(*)(i8 /* name */, i2 /* id */))(intptr_t)v1347)(v1346, v1342);
 
-	i8 v1386 = (i8)(intptr_t)(ws+1136);
-	i8 v1387 = *(i8*)(intptr_t)v1386;
-	i8 v1388 = v1387+(+16);
-	i2 v1389 = *(i2*)(intptr_t)v1388;
-	i8 v1390 = (i8)(intptr_t)(ws+1192);
-	i8 v1391 = *(i8*)(intptr_t)v1390;
-	i8 v1392 = v1391+(+16);
-	i2 v1393 = *(i2*)(intptr_t)v1392;
-	i8 v1394 = (i8)(intptr_t)(f65_EmitterReferenceSubroutine);
-
-	((void(*)(i2 /* used */, i2 /* user */))(intptr_t)v1394)(v1393, v1389);
+	i8 v1348 = (i8)(intptr_t)(ws+1136);
+	i8 v1349 = *(i8*)(intptr_t)v1348;
+	i8 v1350 = v1349+(+18);
+	i1 v1351 = *(i1*)(intptr_t)v1350;
+	i1 v1352 = v1351|(+4);
+	i8 v1353 = (i8)(intptr_t)(ws+1136);
+	i8 v1354 = *(i8*)(intptr_t)v1353;
+	i8 v1355 = v1354+(+18);
+	*(i1*)(intptr_t)v1355 = v1352;
 
 	goto c02_013d;
 
@@ -2534,90 +2436,146 @@ c02_0141:;
 
 c02_013d:;
 
-	i1 v1395 = (i1)+46;
-	i8 v1396 = (i8)(intptr_t)(f70_ExpectC);
+	i8 v1356 = (i8)(intptr_t)(f61_EmitterPushChunk);
 
-	((void(*)(i1 /* want */))(intptr_t)v1396)(v1395);
+	((void(*)(void))(intptr_t)v1356)();
 
-	i8 v1397 = (i8)(intptr_t)(f74_ReadNumber);
-	i4 v1398;
+	i1 v1357 = (i1)+128;
+	i8 v1358 = (i8)(intptr_t)(f57_E_b8);
 
-	((void(*)(i4* /* result */))(intptr_t)v1397)(&v1398);
-	i1 v1399 = (s1)(s4)v1398;
-	i8 v1400 = (i8)(intptr_t)(ws+1200);
-	*(i1*)(intptr_t)v1400 = v1399;
+	((void(*)(i1 /* byte */))(intptr_t)v1358)(v1357);
 
-	i1 v1401 = (i1)+46;
-	i8 v1402 = (i8)(intptr_t)(f70_ExpectC);
+	i8 v1359 = (i8)(intptr_t)(ws+1136);
+	i8 v1360 = *(i8*)(intptr_t)v1359;
+	i8 v1361 = v1360+(+16);
+	i2 v1362 = *(i2*)(intptr_t)v1361;
+	i8 v1363 = (i8)(intptr_t)(f59_E_b16);
 
-	((void(*)(i1 /* want */))(intptr_t)v1402)(v1401);
-
-	i8 v1403 = (i8)(intptr_t)(f74_ReadNumber);
-	i4 v1404;
-
-	((void(*)(i4* /* result */))(intptr_t)v1403)(&v1404);
-	i2 v1405 = (s2)(s4)v1404;
-	i8 v1406 = (i8)(intptr_t)(ws+1202);
-	*(i2*)(intptr_t)v1406 = v1405;
-
-	i1 v1407 = (i1)+2;
-	i8 v1408 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v1408)(v1407);
-
-	i8 v1409 = (i8)(intptr_t)(ws+1192);
-	i8 v1410 = *(i8*)(intptr_t)v1409;
-	i8 v1411 = v1410+(+16);
-	i2 v1412 = *(i2*)(intptr_t)v1411;
-	i8 v1413 = (i8)(intptr_t)(f57_E_b16);
-
-	((void(*)(i2 /* word */))(intptr_t)v1413)(v1412);
-
-	i8 v1414 = (i8)(intptr_t)(ws+1200);
-	i1 v1415 = *(i1*)(intptr_t)v1414;
-	i8 v1416 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v1416)(v1415);
-
-	i8 v1417 = (i8)(intptr_t)(ws+1202);
-	i2 v1418 = *(i2*)(intptr_t)v1417;
-	i8 v1419 = (i8)(intptr_t)(f57_E_b16);
-
-	((void(*)(i2 /* word */))(intptr_t)v1419)(v1418);
+	((void(*)(i2 /* word */))(intptr_t)v1363)(v1362);
 
 endsub:;
 }
-const i1 c02_s000a[] = { 0x73,0x6f,0x75,0x72,0x63,0x65,0x20,0x74,0x65,0x78,0x74,0x20,0x77,0x69,0x74,0x68,0x20,0x6e,0x6f,0x20,0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x20,0x64,0x65,0x66,0x69,0x6e,0x65,0x64,0 };
-	void f54_FatalError(i8 /* s */);
-	void f69_GetC(void);
-	void f55_E_b8(i1 /* byte */);
-	void f69_GetC(void);
-	void f55_E_b8(i1 /* byte */);
-	void f69_GetC(void);
-	void f80_EmitWorkspaceRef(void);
-	void f73_ReadWord(void);
-	void f67_GetSymbol(i8* /* symbol */, i8 /* name */);
-	void f55_E_b8(i1 /* byte */);
-	void f57_E_b16(i2 /* word */);
-	void f65_EmitterReferenceSubroutine(i2 /* used */, i2 /* user */);
-	void f55_E_b8(i1 /* byte */);
-	void f69_GetC(void);
-	void f55_E_b8(i1 /* byte */);
+	void f71_GetC(void);
+	void f75_ReadWord(void);
+	void f69_GetSymbol(i8* /* symbol */, i8 /* name */);
+	void f74_SkipWhitespace(void);
+	void f76_ReadNumber(i4* /* result */);
+	void f74_SkipWhitespace(void);
+	void f76_ReadNumber(i4* /* result */);
+	void f68_EmitterDeclareWorkspace(i2 /* workspace */, i1 /* wid */, i2 /* id */);
 
-// SourceLine workspace at ws+1184 length ws+8
-void f81_SourceLine(void) {
+// SetSubroutineWorkspace workspace at ws+1184 length ws+12
+void f81_SetSubroutineWorkspace(void) {
 
-	i8 v1420 = (i8)(intptr_t)(ws+1136);
-	i8 v1421 = *(i8*)(intptr_t)v1420;
-	i8 v1422 = (i8)+0;
-	if (v1421==v1422) goto c02_0145; else goto c02_0146;
+	i8 v1364 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1364)();
+
+	i8 v1365 = (i8)(intptr_t)(f75_ReadWord);
+
+	((void(*)(void))(intptr_t)v1365)();
+
+	i8 v1366 = (i8)(intptr_t)(ws+1148);
+	i8 v1367 = (i8)(intptr_t)(f69_GetSymbol);
+	i8 v1368;
+
+	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1367)(&v1368, v1366);
+	i8 v1369 = (i8)(intptr_t)(ws+1184);
+	*(i8*)(intptr_t)v1369 = v1368;
+
+	i8 v1370 = (i8)(intptr_t)(f74_SkipWhitespace);
+
+	((void(*)(void))(intptr_t)v1370)();
+
+	i8 v1371 = (i8)(intptr_t)(f76_ReadNumber);
+	i4 v1372;
+
+	((void(*)(i4* /* result */))(intptr_t)v1371)(&v1372);
+	i1 v1373 = (s1)(s4)v1372;
+	i8 v1374 = (i8)(intptr_t)(ws+1192);
+	*(i1*)(intptr_t)v1374 = v1373;
+
+	i8 v1375 = (i8)(intptr_t)(f74_SkipWhitespace);
+
+	((void(*)(void))(intptr_t)v1375)();
+
+	i8 v1376 = (i8)(intptr_t)(f76_ReadNumber);
+	i4 v1377;
+
+	((void(*)(i4* /* result */))(intptr_t)v1376)(&v1377);
+	i2 v1378 = (s2)(s4)v1377;
+	i8 v1379 = (i8)(intptr_t)(ws+1194);
+	*(i2*)(intptr_t)v1379 = v1378;
+
+	i8 v1380 = (i8)(intptr_t)(ws+1184);
+	i8 v1381 = *(i8*)(intptr_t)v1380;
+	i8 v1382 = v1381+(+16);
+	i2 v1383 = *(i2*)(intptr_t)v1382;
+	i8 v1384 = (i8)(intptr_t)(ws+1192);
+	i1 v1385 = *(i1*)(intptr_t)v1384;
+	i8 v1386 = (i8)(intptr_t)(ws+1194);
+	i2 v1387 = *(i2*)(intptr_t)v1386;
+	i8 v1388 = (i8)(intptr_t)(f68_EmitterDeclareWorkspace);
+
+	((void(*)(i2 /* workspace */, i1 /* wid */, i2 /* id */))(intptr_t)v1388)(v1387, v1385, v1383);
+
+endsub:;
+}
+	void f71_GetC(void);
+	void f75_ReadWord(void);
+	void f69_GetSymbol(i8* /* symbol */, i8 /* name */);
+	void f67_EmitterReferenceSubroutine(i2 /* used */, i2 /* user */);
+	void f72_ExpectC(i1 /* want */);
+	void f76_ReadNumber(i4* /* result */);
+	void f72_ExpectC(i1 /* want */);
+	void f76_ReadNumber(i4* /* result */);
+	void f57_E_b8(i1 /* byte */);
+	void f59_E_b16(i2 /* word */);
+	void f57_E_b8(i1 /* byte */);
+	void f59_E_b16(i2 /* word */);
+
+// EmitWorkspaceRef workspace at ws+1192 length ws+12
+void f82_EmitWorkspaceRef(void) {
+
+	i8 v1389 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1389)();
+
+	i8 v1390 = (i8)(intptr_t)(f75_ReadWord);
+
+	((void(*)(void))(intptr_t)v1390)();
+
+	i8 v1391 = (i8)(intptr_t)(ws+1136);
+	i8 v1392 = *(i8*)(intptr_t)v1391;
+	i8 v1393 = (i8)(intptr_t)(ws+1192);
+	*(i8*)(intptr_t)v1393 = v1392;
+
+	i8 v1394 = (i8)(intptr_t)(ws+1148);
+	i1 v1395 = *(i1*)(intptr_t)v1394;
+	i1 v1396 = (i1)+0;
+	if (v1395==v1396) goto c02_0146; else goto c02_0145;
 
 c02_0145:;
 
-	i8 v1423 = (i8)(intptr_t)c02_s000a;
-	i8 v1424 = (i8)(intptr_t)(f54_FatalError);
+	i8 v1397 = (i8)(intptr_t)(ws+1148);
+	i8 v1398 = (i8)(intptr_t)(f69_GetSymbol);
+	i8 v1399;
 
-	((void(*)(i8 /* s */))(intptr_t)v1424)(v1423);
+	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1398)(&v1399, v1397);
+	i8 v1400 = (i8)(intptr_t)(ws+1192);
+	*(i8*)(intptr_t)v1400 = v1399;
+
+	i8 v1401 = (i8)(intptr_t)(ws+1136);
+	i8 v1402 = *(i8*)(intptr_t)v1401;
+	i8 v1403 = v1402+(+16);
+	i2 v1404 = *(i2*)(intptr_t)v1403;
+	i8 v1405 = (i8)(intptr_t)(ws+1192);
+	i8 v1406 = *(i8*)(intptr_t)v1405;
+	i8 v1407 = v1406+(+16);
+	i2 v1408 = *(i2*)(intptr_t)v1407;
+	i8 v1409 = (i8)(intptr_t)(f67_EmitterReferenceSubroutine);
+
+	((void(*)(i2 /* used */, i2 /* user */))(intptr_t)v1409)(v1408, v1404);
 
 	goto c02_0142;
 
@@ -2625,198 +2583,287 @@ c02_0146:;
 
 c02_0142:;
 
+	i1 v1410 = (i1)+46;
+	i8 v1411 = (i8)(intptr_t)(f72_ExpectC);
+
+	((void(*)(i1 /* want */))(intptr_t)v1411)(v1410);
+
+	i8 v1412 = (i8)(intptr_t)(f76_ReadNumber);
+	i4 v1413;
+
+	((void(*)(i4* /* result */))(intptr_t)v1412)(&v1413);
+	i1 v1414 = (s1)(s4)v1413;
+	i8 v1415 = (i8)(intptr_t)(ws+1200);
+	*(i1*)(intptr_t)v1415 = v1414;
+
+	i1 v1416 = (i1)+46;
+	i8 v1417 = (i8)(intptr_t)(f72_ExpectC);
+
+	((void(*)(i1 /* want */))(intptr_t)v1417)(v1416);
+
+	i8 v1418 = (i8)(intptr_t)(f76_ReadNumber);
+	i4 v1419;
+
+	((void(*)(i4* /* result */))(intptr_t)v1418)(&v1419);
+	i2 v1420 = (s2)(s4)v1419;
+	i8 v1421 = (i8)(intptr_t)(ws+1202);
+	*(i2*)(intptr_t)v1421 = v1420;
+
+	i1 v1422 = (i1)+2;
+	i8 v1423 = (i8)(intptr_t)(f57_E_b8);
+
+	((void(*)(i1 /* byte */))(intptr_t)v1423)(v1422);
+
+	i8 v1424 = (i8)(intptr_t)(ws+1192);
+	i8 v1425 = *(i8*)(intptr_t)v1424;
+	i8 v1426 = v1425+(+16);
+	i2 v1427 = *(i2*)(intptr_t)v1426;
+	i8 v1428 = (i8)(intptr_t)(f59_E_b16);
+
+	((void(*)(i2 /* word */))(intptr_t)v1428)(v1427);
+
+	i8 v1429 = (i8)(intptr_t)(ws+1200);
+	i1 v1430 = *(i1*)(intptr_t)v1429;
+	i8 v1431 = (i8)(intptr_t)(f57_E_b8);
+
+	((void(*)(i1 /* byte */))(intptr_t)v1431)(v1430);
+
+	i8 v1432 = (i8)(intptr_t)(ws+1202);
+	i2 v1433 = *(i2*)(intptr_t)v1432;
+	i8 v1434 = (i8)(intptr_t)(f59_E_b16);
+
+	((void(*)(i2 /* word */))(intptr_t)v1434)(v1433);
+
+endsub:;
+}
+const i1 c02_s000b[] = { 0x73,0x6f,0x75,0x72,0x63,0x65,0x20,0x74,0x65,0x78,0x74,0x20,0x77,0x69,0x74,0x68,0x20,0x6e,0x6f,0x20,0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x20,0x64,0x65,0x66,0x69,0x6e,0x65,0x64,0 };
+	void f56_FatalError(i8 /* s */);
+	void f71_GetC(void);
+	void f57_E_b8(i1 /* byte */);
+	void f71_GetC(void);
+	void f57_E_b8(i1 /* byte */);
+	void f71_GetC(void);
+	void f82_EmitWorkspaceRef(void);
+	void f75_ReadWord(void);
+	void f69_GetSymbol(i8* /* symbol */, i8 /* name */);
+	void f57_E_b8(i1 /* byte */);
+	void f59_E_b16(i2 /* word */);
+	void f67_EmitterReferenceSubroutine(i2 /* used */, i2 /* user */);
+	void f57_E_b8(i1 /* byte */);
+	void f71_GetC(void);
+	void f57_E_b8(i1 /* byte */);
+
+// SourceLine workspace at ws+1184 length ws+8
+void f83_SourceLine(void) {
+
+	i8 v1435 = (i8)(intptr_t)(ws+1136);
+	i8 v1436 = *(i8*)(intptr_t)v1435;
+	i8 v1437 = (i8)+0;
+	if (v1436==v1437) goto c02_014a; else goto c02_014b;
+
+c02_014a:;
+
+	i8 v1438 = (i8)(intptr_t)c02_s000b;
+	i8 v1439 = (i8)(intptr_t)(f56_FatalError);
+
+	((void(*)(i8 /* s */))(intptr_t)v1439)(v1438);
+
+	goto c02_0147;
+
+c02_014b:;
+
 c02_0147:;
 
-	i8 v1425 = (i8)(intptr_t)(ws+1144);
-	i1 v1426 = *(i1*)(intptr_t)v1425;
-	i1 v1427 = (i1)+0;
-	if (v1426==v1427) goto c02_0150; else goto c02_0153;
+c02_014c:;
 
-c02_0153:;
+	i8 v1440 = (i8)(intptr_t)(ws+1144);
+	i1 v1441 = *(i1*)(intptr_t)v1440;
+	i1 v1442 = (i1)+0;
+	if (v1441==v1442) goto c02_0155; else goto c02_0158;
 
-	i8 v1428 = (i8)(intptr_t)(ws+1144);
-	i1 v1429 = *(i1*)(intptr_t)v1428;
-	i1 v1430 = (i1)+10;
-	if (v1429==v1430) goto c02_0150; else goto c02_0152;
+c02_0158:;
 
-c02_0152:;
-
-	i8 v1431 = (i8)(intptr_t)(ws+1144);
-	i1 v1432 = *(i1*)(intptr_t)v1431;
-	i1 v1433 = (i1)+26;
-	if (v1432==v1433) goto c02_0150; else goto c02_0151;
-
-c02_0150:;
-
-	goto c02_0148;
-
-c02_0151:;
-
-c02_0149:;
-
-	i8 v1434 = (i8)(intptr_t)(ws+1144);
-	i1 v1435 = *(i1*)(intptr_t)v1434;
-	i1 v1436 = (i1)+13;
-	if (v1435==v1436) goto c02_0158; else goto c02_0157;
+	i8 v1443 = (i8)(intptr_t)(ws+1144);
+	i1 v1444 = *(i1*)(intptr_t)v1443;
+	i1 v1445 = (i1)+10;
+	if (v1444==v1445) goto c02_0155; else goto c02_0157;
 
 c02_0157:;
 
-	i8 v1437 = (i8)(intptr_t)(ws+1144);
-	i1 v1438 = *(i1*)(intptr_t)v1437;
-	i1 v1439 = (i1)+96;
-	if (v1438==v1439) goto c02_015c; else goto c02_015d;
+	i8 v1446 = (i8)(intptr_t)(ws+1144);
+	i1 v1447 = *(i1*)(intptr_t)v1446;
+	i1 v1448 = (i1)+26;
+	if (v1447==v1448) goto c02_0155; else goto c02_0156;
+
+c02_0155:;
+
+	goto c02_014d;
+
+c02_0156:;
+
+c02_014e:;
+
+	i8 v1449 = (i8)(intptr_t)(ws+1144);
+	i1 v1450 = *(i1*)(intptr_t)v1449;
+	i1 v1451 = (i1)+13;
+	if (v1450==v1451) goto c02_015d; else goto c02_015c;
 
 c02_015c:;
 
-	i8 v1440 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1440)();
-
-	i8 v1441 = (i8)(intptr_t)(ws+1144);
-	i1 v1442 = *(i1*)(intptr_t)v1441;
-
-	if (v1442 != +96) goto c02_015f;
-
-	i1 v1443 = (i1)+4;
-	i8 v1444 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v1444)(v1443);
-
-	i8 v1445 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1445)();
-
-	goto c02_015e;
-
-c02_015f:;
-
-	if (v1442 != +94) goto c02_0160;
-
-	i1 v1446 = (i1)+3;
-	i8 v1447 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v1447)(v1446);
-
-	i8 v1448 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1448)();
-
-	goto c02_015e;
-
-c02_0160:;
-
-	if (v1442 != +36) goto c02_0161;
-
-	i8 v1449 = (i8)(intptr_t)(f80_EmitWorkspaceRef);
-
-	((void(*)(void))(intptr_t)v1449)();
-
-	goto c02_015e;
+	i8 v1452 = (i8)(intptr_t)(ws+1144);
+	i1 v1453 = *(i1*)(intptr_t)v1452;
+	i1 v1454 = (i1)+96;
+	if (v1453==v1454) goto c02_0161; else goto c02_0162;
 
 c02_0161:;
 
-	i8 v1450 = (i8)(intptr_t)(f73_ReadWord);
+	i8 v1455 = (i8)(intptr_t)(f71_GetC);
 
-	((void(*)(void))(intptr_t)v1450)();
+	((void(*)(void))(intptr_t)v1455)();
 
-	i8 v1451 = (i8)(intptr_t)(ws+1148);
-	i8 v1452 = (i8)(intptr_t)(f67_GetSymbol);
-	i8 v1453;
+	i8 v1456 = (i8)(intptr_t)(ws+1144);
+	i1 v1457 = *(i1*)(intptr_t)v1456;
 
-	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1452)(&v1453, v1451);
-	i8 v1454 = (i8)(intptr_t)(ws+1184);
-	*(i8*)(intptr_t)v1454 = v1453;
+	if (v1457 != +96) goto c02_0164;
 
-	i1 v1455 = (i1)+1;
-	i8 v1456 = (i8)(intptr_t)(f55_E_b8);
+	i1 v1458 = (i1)+4;
+	i8 v1459 = (i8)(intptr_t)(f57_E_b8);
 
-	((void(*)(i1 /* byte */))(intptr_t)v1456)(v1455);
+	((void(*)(i1 /* byte */))(intptr_t)v1459)(v1458);
 
-	i8 v1457 = (i8)(intptr_t)(ws+1184);
-	i8 v1458 = *(i8*)(intptr_t)v1457;
-	i8 v1459 = v1458+(+16);
-	i2 v1460 = *(i2*)(intptr_t)v1459;
-	i8 v1461 = (i8)(intptr_t)(f57_E_b16);
+	i8 v1460 = (i8)(intptr_t)(f71_GetC);
 
-	((void(*)(i2 /* word */))(intptr_t)v1461)(v1460);
+	((void(*)(void))(intptr_t)v1460)();
 
-	i8 v1462 = (i8)(intptr_t)(ws+1136);
-	i8 v1463 = *(i8*)(intptr_t)v1462;
-	i8 v1464 = v1463+(+16);
-	i2 v1465 = *(i2*)(intptr_t)v1464;
-	i8 v1466 = (i8)(intptr_t)(ws+1184);
-	i8 v1467 = *(i8*)(intptr_t)v1466;
-	i8 v1468 = v1467+(+16);
-	i2 v1469 = *(i2*)(intptr_t)v1468;
-	i8 v1470 = (i8)(intptr_t)(f65_EmitterReferenceSubroutine);
+	goto c02_0163;
 
-	((void(*)(i2 /* used */, i2 /* user */))(intptr_t)v1470)(v1469, v1465);
+c02_0164:;
+
+	if (v1457 != +94) goto c02_0165;
+
+	i1 v1461 = (i1)+3;
+	i8 v1462 = (i8)(intptr_t)(f57_E_b8);
+
+	((void(*)(i1 /* byte */))(intptr_t)v1462)(v1461);
+
+	i8 v1463 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1463)();
+
+	goto c02_0163;
+
+c02_0165:;
+
+	if (v1457 != +36) goto c02_0166;
+
+	i8 v1464 = (i8)(intptr_t)(f82_EmitWorkspaceRef);
+
+	((void(*)(void))(intptr_t)v1464)();
+
+	goto c02_0163;
+
+c02_0166:;
+
+	i8 v1465 = (i8)(intptr_t)(f75_ReadWord);
+
+	((void(*)(void))(intptr_t)v1465)();
+
+	i8 v1466 = (i8)(intptr_t)(ws+1148);
+	i8 v1467 = (i8)(intptr_t)(f69_GetSymbol);
+	i8 v1468;
+
+	((void(*)(i8* /* symbol */, i8 /* name */))(intptr_t)v1467)(&v1468, v1466);
+	i8 v1469 = (i8)(intptr_t)(ws+1184);
+	*(i8*)(intptr_t)v1469 = v1468;
+
+	i1 v1470 = (i1)+1;
+	i8 v1471 = (i8)(intptr_t)(f57_E_b8);
+
+	((void(*)(i1 /* byte */))(intptr_t)v1471)(v1470);
+
+	i8 v1472 = (i8)(intptr_t)(ws+1184);
+	i8 v1473 = *(i8*)(intptr_t)v1472;
+	i8 v1474 = v1473+(+16);
+	i2 v1475 = *(i2*)(intptr_t)v1474;
+	i8 v1476 = (i8)(intptr_t)(f59_E_b16);
+
+	((void(*)(i2 /* word */))(intptr_t)v1476)(v1475);
+
+	i8 v1477 = (i8)(intptr_t)(ws+1136);
+	i8 v1478 = *(i8*)(intptr_t)v1477;
+	i8 v1479 = v1478+(+16);
+	i2 v1480 = *(i2*)(intptr_t)v1479;
+	i8 v1481 = (i8)(intptr_t)(ws+1184);
+	i8 v1482 = *(i8*)(intptr_t)v1481;
+	i8 v1483 = v1482+(+16);
+	i2 v1484 = *(i2*)(intptr_t)v1483;
+	i8 v1485 = (i8)(intptr_t)(f67_EmitterReferenceSubroutine);
+
+	((void(*)(i2 /* used */, i2 /* user */))(intptr_t)v1485)(v1484, v1480);
+
+c02_0163:;
+
+
+	goto c02_015e;
+
+c02_0162:;
+
+	i8 v1486 = (i8)(intptr_t)(ws+1144);
+	i1 v1487 = *(i1*)(intptr_t)v1486;
+	i8 v1488 = (i8)(intptr_t)(f57_E_b8);
+
+	((void(*)(i1 /* byte */))(intptr_t)v1488)(v1487);
+
+	i8 v1489 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1489)();
 
 c02_015e:;
-
 
 	goto c02_0159;
 
 c02_015d:;
 
-	i8 v1471 = (i8)(intptr_t)(ws+1144);
-	i1 v1472 = *(i1*)(intptr_t)v1471;
-	i8 v1473 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v1473)(v1472);
-
-	i8 v1474 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1474)();
-
 c02_0159:;
 
-	goto c02_0154;
+	goto c02_014c;
 
-c02_0158:;
+c02_014d:;
 
-c02_0154:;
+	i1 v1490 = (i1)+10;
+	i8 v1491 = (i8)(intptr_t)(f57_E_b8);
 
-	goto c02_0147;
-
-c02_0148:;
-
-	i1 v1475 = (i1)+10;
-	i8 v1476 = (i8)(intptr_t)(f55_E_b8);
-
-	((void(*)(i1 /* byte */))(intptr_t)v1476)(v1475);
+	((void(*)(i1 /* byte */))(intptr_t)v1491)(v1490);
 
 endsub:;
 }
-	void f69_GetC(void);
-	void f69_GetC(void);
-	void f78_DeclareSubroutine(i1 /* exported */);
-	void f78_DeclareSubroutine(i1 /* exported */);
-	void f79_SetSubroutineWorkspace(void);
-const i1 c02_s000b[] = { 0x62,0x61,0x64,0x20,0x63,0x6f,0x77,0x77,0x72,0x61,0x70,0x20,0x63,0x6f,0x6d,0x6d,0x61,0x6e,0x64,0 };
-	void f54_FatalError(i8 /* s */);
-	void f71_SkipToEndOfLine(void);
-	void f71_SkipToEndOfLine(void);
-	void f81_SourceLine(void);
-	void f69_GetC(void);
-	void f77_CloseChunk(void);
+	void f71_GetC(void);
+	void f71_GetC(void);
+	void f80_DeclareSubroutine(i1 /* exported */);
+	void f80_DeclareSubroutine(i1 /* exported */);
+	void f81_SetSubroutineWorkspace(void);
+const i1 c02_s000c[] = { 0x62,0x61,0x64,0x20,0x63,0x6f,0x77,0x77,0x72,0x61,0x70,0x20,0x63,0x6f,0x6d,0x6d,0x61,0x6e,0x64,0 };
+	void f56_FatalError(i8 /* s */);
+	void f73_SkipToEndOfLine(void);
+	void f73_SkipToEndOfLine(void);
+	void f83_SourceLine(void);
+	void f71_GetC(void);
+	void f79_CloseChunk(void);
 
 // ProcessFile workspace at ws+1144 length ws+36
-void f68_ProcessFile(void) {
+void f70_ProcessFile(void) {
 
-	i8 v1169 = (i8)(intptr_t)c02_s0006;
-	i8 v1170 = (i8)(intptr_t)(ws+1104);
-	*(i8*)(intptr_t)v1170 = v1169;
+	i8 v1182 = (i8)(intptr_t)c02_s0007;
+	i8 v1183 = (i8)(intptr_t)(ws+1104);
+	*(i8*)(intptr_t)v1183 = v1182;
 
-	i1 v1171 = (i1)+5;
-	i8 v1172 = (i8)(intptr_t)(ws+1114);
-	*(i1*)(intptr_t)v1172 = v1171;
+	i1 v1184 = (i1)+5;
+	i8 v1185 = (i8)(intptr_t)(ws+1114);
+	*(i1*)(intptr_t)v1185 = v1184;
 
-	i2 v1173 = (i2)+0;
-	i8 v1174 = (i8)(intptr_t)(ws+1146);
-	*(i2*)(intptr_t)v1174 = v1173;
-
-
+	i2 v1186 = (i2)+0;
+	i8 v1187 = (i8)(intptr_t)(ws+1146);
+	*(i2*)(intptr_t)v1187 = v1186;
 
 
 
@@ -2829,210 +2876,184 @@ void f68_ProcessFile(void) {
 
 
 
-	i8 v1477 = (i8)(intptr_t)(f69_GetC);
 
-	((void(*)(void))(intptr_t)v1477)();
 
-c02_0162:;
+	i8 v1492 = (i8)(intptr_t)(f71_GetC);
 
-	i8 v1478 = (i8)(intptr_t)(ws+1144);
-	i1 v1479 = *(i1*)(intptr_t)v1478;
-	i1 v1480 = (i1)+0;
-	if (v1479==v1480) goto c02_0169; else goto c02_016b;
+	((void(*)(void))(intptr_t)v1492)();
 
-c02_016b:;
+c02_0167:;
 
-	i8 v1481 = (i8)(intptr_t)(ws+1144);
-	i1 v1482 = *(i1*)(intptr_t)v1481;
-	i1 v1483 = (i1)+26;
-	if (v1482==v1483) goto c02_0169; else goto c02_016a;
-
-c02_0169:;
-
-	goto c02_0163;
-
-c02_016a:;
-
-c02_0164:;
-
-	i8 v1484 = (i8)(intptr_t)(ws+1144);
-	i1 v1485 = *(i1*)(intptr_t)v1484;
-
-	if (v1485 != +38) goto c02_016d;
-
-	i8 v1486 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1486)();
-
-	i8 v1487 = (i8)(intptr_t)(ws+1144);
-	i1 v1488 = *(i1*)(intptr_t)v1487;
-
-	if (v1488 != +88) goto c02_016f;
-
-	i1 v1489 = (i1)+1;
-	i8 v1490 = (i8)(intptr_t)(f78_DeclareSubroutine);
-
-	((void(*)(i1 /* exported */))(intptr_t)v1490)(v1489);
-
-	goto c02_016e;
-
-c02_016f:;
-
-	if (v1488 != +83) goto c02_0170;
-
-	i1 v1491 = (i1)+0;
-	i8 v1492 = (i8)(intptr_t)(f78_DeclareSubroutine);
-
-	((void(*)(i1 /* exported */))(intptr_t)v1492)(v1491);
-
-	goto c02_016e;
+	i8 v1493 = (i8)(intptr_t)(ws+1144);
+	i1 v1494 = *(i1*)(intptr_t)v1493;
+	i1 v1495 = (i1)+0;
+	if (v1494==v1495) goto c02_016e; else goto c02_0170;
 
 c02_0170:;
 
-	if (v1488 != +87) goto c02_0171;
-
-	i8 v1493 = (i8)(intptr_t)(f79_SetSubroutineWorkspace);
-
-	((void(*)(void))(intptr_t)v1493)();
-
-	goto c02_016e;
-
-c02_0171:;
-
-	i8 v1494 = (i8)(intptr_t)c02_s000b;
-	i8 v1495 = (i8)(intptr_t)(f54_FatalError);
-
-	((void(*)(i8 /* s */))(intptr_t)v1495)(v1494);
+	i8 v1496 = (i8)(intptr_t)(ws+1144);
+	i1 v1497 = *(i1*)(intptr_t)v1496;
+	i1 v1498 = (i1)+26;
+	if (v1497==v1498) goto c02_016e; else goto c02_016f;
 
 c02_016e:;
 
+	goto c02_0168;
 
-	i8 v1496 = (i8)(intptr_t)(f71_SkipToEndOfLine);
+c02_016f:;
 
-	((void(*)(void))(intptr_t)v1496)();
+c02_0169:;
 
-	goto c02_016c;
+	i8 v1499 = (i8)(intptr_t)(ws+1144);
+	i1 v1500 = *(i1*)(intptr_t)v1499;
 
-c02_016d:;
+	if (v1500 != +38) goto c02_0172;
 
-	if (v1485 != +35) goto c02_0172;
+	i8 v1501 = (i8)(intptr_t)(f71_GetC);
 
-	i8 v1497 = (i8)(intptr_t)(f71_SkipToEndOfLine);
+	((void(*)(void))(intptr_t)v1501)();
 
-	((void(*)(void))(intptr_t)v1497)();
-
-	goto c02_016c;
-
-c02_0172:;
-
-	i8 v1498 = (i8)(intptr_t)(f81_SourceLine);
-
-	((void(*)(void))(intptr_t)v1498)();
-
-c02_016c:;
-
-
-	i8 v1499 = (i8)(intptr_t)(f69_GetC);
-
-	((void(*)(void))(intptr_t)v1499)();
-
-	goto c02_0162;
-
-c02_0163:;
-
-	i8 v1500 = (i8)(intptr_t)(f77_CloseChunk);
-
-	((void(*)(void))(intptr_t)v1500)();
-
-endsub:;
-}
-const i1 c02_s000c[] = { 0x72,0x65,0x66,0x65,0x72,0x65,0x6e,0x63,0x65,0x20,0x74,0x6f,0x20,0x75,0x6e,0x64,0x65,0x63,0x6c,0x61,0x72,0x65,0x64,0x20,0x73,0x79,0x6d,0x62,0x6f,0x6c,0x20,0x27,0 };
-	void f11_print(i8 /* ptr */);
-	void f11_print(i8 /* ptr */);
-const i1 c02_s000d[] = { 0x27,0x0a,0 };
-	void f11_print(i8 /* ptr */);
-const i1 c02_s000e[] = { 0x66,0x61,0x69,0x6c,0x65,0x64,0 };
-	void f54_FatalError(i8 /* s */);
-
-// CheckSymbols workspace at ws+1144 length ws+16
-void f82_CheckSymbols(void) {
-
-	i1 v1501 = (i1)+1;
 	i8 v1502 = (i8)(intptr_t)(ws+1144);
-	*(i1*)(intptr_t)v1502 = v1501;
+	i1 v1503 = *(i1*)(intptr_t)v1502;
 
-	i8 v1503 = (i8)(intptr_t)(ws+1120);
-	i8 v1504 = *(i8*)(intptr_t)v1503;
-	i8 v1505 = (i8)(intptr_t)(ws+1152);
-	*(i8*)(intptr_t)v1505 = v1504;
+	if (v1503 != +88) goto c02_0174;
+
+	i1 v1504 = (i1)+1;
+	i8 v1505 = (i8)(intptr_t)(f80_DeclareSubroutine);
+
+	((void(*)(i1 /* exported */))(intptr_t)v1505)(v1504);
+
+	goto c02_0173;
+
+c02_0174:;
+
+	if (v1503 != +83) goto c02_0175;
+
+	i1 v1506 = (i1)+0;
+	i8 v1507 = (i8)(intptr_t)(f80_DeclareSubroutine);
+
+	((void(*)(i1 /* exported */))(intptr_t)v1507)(v1506);
+
+	goto c02_0173;
 
 c02_0175:;
 
-	i8 v1506 = (i8)(intptr_t)(ws+1152);
-	i8 v1507 = *(i8*)(intptr_t)v1506;
-	i8 v1508 = (i8)+0;
-	if (v1507==v1508) goto c02_0178; else goto c02_0177;
+	if (v1503 != +87) goto c02_0176;
+
+	i8 v1508 = (i8)(intptr_t)(f81_SetSubroutineWorkspace);
+
+	((void(*)(void))(intptr_t)v1508)();
+
+	goto c02_0173;
+
+c02_0176:;
+
+	i8 v1509 = (i8)(intptr_t)c02_s000c;
+	i8 v1510 = (i8)(intptr_t)(f56_FatalError);
+
+	((void(*)(i8 /* s */))(intptr_t)v1510)(v1509);
+
+c02_0173:;
+
+
+	i8 v1511 = (i8)(intptr_t)(f73_SkipToEndOfLine);
+
+	((void(*)(void))(intptr_t)v1511)();
+
+	goto c02_0171;
+
+c02_0172:;
+
+	if (v1500 != +35) goto c02_0177;
+
+	i8 v1512 = (i8)(intptr_t)(f73_SkipToEndOfLine);
+
+	((void(*)(void))(intptr_t)v1512)();
+
+	goto c02_0171;
 
 c02_0177:;
 
-	i8 v1509 = (i8)(intptr_t)(ws+1152);
-	i8 v1510 = *(i8*)(intptr_t)v1509;
-	i8 v1511 = v1510+(+18);
-	i1 v1512 = *(i1*)(intptr_t)v1511;
-	i1 v1513 = (i1)+0;
-	if (v1512==v1513) goto c02_017c; else goto c02_017d;
+	i8 v1513 = (i8)(intptr_t)(f83_SourceLine);
+
+	((void(*)(void))(intptr_t)v1513)();
+
+c02_0171:;
+
+
+	i8 v1514 = (i8)(intptr_t)(f71_GetC);
+
+	((void(*)(void))(intptr_t)v1514)();
+
+	goto c02_0167;
+
+c02_0168:;
+
+	i8 v1515 = (i8)(intptr_t)(f79_CloseChunk);
+
+	((void(*)(void))(intptr_t)v1515)();
+
+endsub:;
+}
+const i1 c02_s000d[] = { 0x72,0x65,0x66,0x65,0x72,0x65,0x6e,0x63,0x65,0x20,0x74,0x6f,0x20,0x75,0x6e,0x64,0x65,0x63,0x6c,0x61,0x72,0x65,0x64,0x20,0x73,0x79,0x6d,0x62,0x6f,0x6c,0x20,0x27,0 };
+	void f11_print(i8 /* ptr */);
+	void f11_print(i8 /* ptr */);
+const i1 c02_s000e[] = { 0x27,0x0a,0 };
+	void f11_print(i8 /* ptr */);
+const i1 c02_s000f[] = { 0x66,0x61,0x69,0x6c,0x65,0x64,0 };
+	void f56_FatalError(i8 /* s */);
+
+// CheckSymbols workspace at ws+1144 length ws+16
+void f84_CheckSymbols(void) {
+
+	i1 v1516 = (i1)+1;
+	i8 v1517 = (i8)(intptr_t)(ws+1144);
+	*(i1*)(intptr_t)v1517 = v1516;
+
+	i8 v1518 = (i8)(intptr_t)(ws+1120);
+	i8 v1519 = *(i8*)(intptr_t)v1518;
+	i8 v1520 = (i8)(intptr_t)(ws+1152);
+	*(i8*)(intptr_t)v1520 = v1519;
+
+c02_017a:;
+
+	i8 v1521 = (i8)(intptr_t)(ws+1152);
+	i8 v1522 = *(i8*)(intptr_t)v1521;
+	i8 v1523 = (i8)+0;
+	if (v1522==v1523) goto c02_017d; else goto c02_017c;
 
 c02_017c:;
 
-	i8 v1514 = (i8)(intptr_t)c02_s000c;
-	i8 v1515 = (i8)(intptr_t)(f11_print);
-
-	((void(*)(i8 /* ptr */))(intptr_t)v1515)(v1514);
-
-	i8 v1516 = (i8)(intptr_t)(ws+1152);
-	i8 v1517 = *(i8*)(intptr_t)v1516;
-	i8 v1518 = v1517+(+8);
-	i8 v1519 = *(i8*)(intptr_t)v1518;
-	i8 v1520 = (i8)(intptr_t)(f11_print);
-
-	((void(*)(i8 /* ptr */))(intptr_t)v1520)(v1519);
-
-	i8 v1521 = (i8)(intptr_t)c02_s000d;
-	i8 v1522 = (i8)(intptr_t)(f11_print);
-
-	((void(*)(i8 /* ptr */))(intptr_t)v1522)(v1521);
-
-	i1 v1523 = (i1)+0;
-	i8 v1524 = (i8)(intptr_t)(ws+1144);
-	*(i1*)(intptr_t)v1524 = v1523;
-
-	goto c02_0179;
-
-c02_017d:;
-
-c02_0179:;
-
-	i8 v1525 = (i8)(intptr_t)(ws+1152);
-	i8 v1526 = *(i8*)(intptr_t)v1525;
-	i8 v1527 = *(i8*)(intptr_t)v1526;
-	i8 v1528 = (i8)(intptr_t)(ws+1152);
-	*(i8*)(intptr_t)v1528 = v1527;
-
-	goto c02_0175;
-
-c02_0178:;
-
-	i8 v1529 = (i8)(intptr_t)(ws+1144);
-	i1 v1530 = *(i1*)(intptr_t)v1529;
-	i1 v1531 = (i1)+0;
-	if (v1530==v1531) goto c02_0181; else goto c02_0182;
+	i8 v1524 = (i8)(intptr_t)(ws+1152);
+	i8 v1525 = *(i8*)(intptr_t)v1524;
+	i8 v1526 = v1525+(+18);
+	i1 v1527 = *(i1*)(intptr_t)v1526;
+	i1 v1528 = (i1)+0;
+	if (v1527==v1528) goto c02_0181; else goto c02_0182;
 
 c02_0181:;
 
-	i8 v1532 = (i8)(intptr_t)c02_s000e;
-	i8 v1533 = (i8)(intptr_t)(f54_FatalError);
+	i8 v1529 = (i8)(intptr_t)c02_s000d;
+	i8 v1530 = (i8)(intptr_t)(f11_print);
 
-	((void(*)(i8 /* s */))(intptr_t)v1533)(v1532);
+	((void(*)(i8 /* ptr */))(intptr_t)v1530)(v1529);
+
+	i8 v1531 = (i8)(intptr_t)(ws+1152);
+	i8 v1532 = *(i8*)(intptr_t)v1531;
+	i8 v1533 = v1532+(+8);
+	i8 v1534 = *(i8*)(intptr_t)v1533;
+	i8 v1535 = (i8)(intptr_t)(f11_print);
+
+	((void(*)(i8 /* ptr */))(intptr_t)v1535)(v1534);
+
+	i8 v1536 = (i8)(intptr_t)c02_s000e;
+	i8 v1537 = (i8)(intptr_t)(f11_print);
+
+	((void(*)(i8 /* ptr */))(intptr_t)v1537)(v1536);
+
+	i1 v1538 = (i1)+0;
+	i8 v1539 = (i8)(intptr_t)(ws+1144);
+	*(i1*)(intptr_t)v1539 = v1538;
 
 	goto c02_017e;
 
@@ -3040,20 +3061,48 @@ c02_0182:;
 
 c02_017e:;
 
+	i8 v1540 = (i8)(intptr_t)(ws+1152);
+	i8 v1541 = *(i8*)(intptr_t)v1540;
+	i8 v1542 = *(i8*)(intptr_t)v1541;
+	i8 v1543 = (i8)(intptr_t)(ws+1152);
+	*(i8*)(intptr_t)v1543 = v1542;
+
+	goto c02_017a;
+
+c02_017d:;
+
+	i8 v1544 = (i8)(intptr_t)(ws+1144);
+	i1 v1545 = *(i1*)(intptr_t)v1544;
+	i1 v1546 = (i1)+0;
+	if (v1545==v1546) goto c02_0186; else goto c02_0187;
+
+c02_0186:;
+
+	i8 v1547 = (i8)(intptr_t)c02_s000f;
+	i8 v1548 = (i8)(intptr_t)(f56_FatalError);
+
+	((void(*)(i8 /* s */))(intptr_t)v1548)(v1547);
+
+	goto c02_0183;
+
+c02_0187:;
+
+c02_0183:;
+
 endsub:;
 }
 	void f23_ArgvInit(void);
 	void f24_ArgvNext(i8* /* arg */);
 	void f24_ArgvNext(i8* /* arg */);
 	void f24_ArgvNext(i8* /* arg */);
-	void f53_SyntaxError(void);
-	void f40_FCBOpenIn(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
-const i1 c02_s000f[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,0x20,0x69,0x6e,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
-	void f54_FatalError(i8 /* s */);
-	void f61_EmitterOpenfile(i8 /* filename */);
-	void f68_ProcessFile(void);
-	void f82_CheckSymbols(void);
-	void f62_EmitterClosefile(void);
+	void f55_SyntaxError(void);
+	void f42_FCBOpenIn(i1* /* errno */, i8 /* filename */, i8 /* fcb */);
+const i1 c02_s0010[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,0x20,0x69,0x6e,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
+	void f56_FatalError(i8 /* s */);
+	void f63_EmitterOpenfile(i8 /* filename */);
+	void f70_ProcessFile(void);
+	void f84_CheckSymbols(void);
+	void f64_EmitterClosefile(void);
 
 // __main workspace at ws+0 length ws+1144
 void f3___main(void) {
@@ -3119,38 +3168,36 @@ void f3___main(void) {
 
 
 
-	i8 v825 = (i8)+0;
-	i8 v826 = (i8)(intptr_t)(ws+24);
-	*(i8*)(intptr_t)v826 = v825;
-
-	i8 v827 = (i8)+0;
-	i8 v828 = (i8)(intptr_t)(ws+32);
-	*(i8*)(intptr_t)v828 = v827;
-
-	i8 v829 = (i8)(intptr_t)c02_s0000;
-	i8 v830 = (i8)(intptr_t)(f11_print);
-
-	((void(*)(i8 /* ptr */))(intptr_t)v830)(v829);
-
-	i8 v831 = (i8)(intptr_t)(f35_GetFreeMemory);
-	i8 v832;
-
-	((void(*)(i8* /* i */))(intptr_t)v831)(&v832);
-	i1 v833 = (i1)+10;
-	i8 v834 = ((i8)v832)>>v833;
-	i2 v835 = v834;
-	i8 v836 = (i8)(intptr_t)(f16_print_i16);
-
-	((void(*)(i2 /* value */))(intptr_t)v836)(v835);
-
-	i8 v837 = (i8)(intptr_t)c02_s0001;
-	i8 v838 = (i8)(intptr_t)(f11_print);
-
-	((void(*)(i8 /* ptr */))(intptr_t)v838)(v837);
 
 
+	i8 v838 = (i8)+0;
+	i8 v839 = (i8)(intptr_t)(ws+24);
+	*(i8*)(intptr_t)v839 = v838;
 
+	i8 v840 = (i8)+0;
+	i8 v841 = (i8)(intptr_t)(ws+32);
+	*(i8*)(intptr_t)v841 = v840;
 
+	i8 v842 = (i8)(intptr_t)c02_s0001;
+	i8 v843 = (i8)(intptr_t)(f11_print);
+
+	((void(*)(i8 /* ptr */))(intptr_t)v843)(v842);
+
+	i8 v844 = (i8)(intptr_t)(f37_GetFreeMemory);
+	i8 v845;
+
+	((void(*)(i8* /* i */))(intptr_t)v844)(&v845);
+	i1 v846 = (i1)+10;
+	i8 v847 = ((i8)v845)>>v846;
+	i2 v848 = v847;
+	i8 v849 = (i8)(intptr_t)(f16_print_i16);
+
+	((void(*)(i2 /* value */))(intptr_t)v849)(v848);
+
+	i8 v850 = (i8)(intptr_t)c02_s0002;
+	i8 v851 = (i8)(intptr_t)(f11_print);
+
+	((void(*)(i8 /* ptr */))(intptr_t)v851)(v850);
 
 
 
@@ -3162,116 +3209,120 @@ void f3___main(void) {
 
 
 
-	i8 v1115 = (i8)(intptr_t)(ws+1096);
-	i8 v1116 = (i8)(intptr_t)(ws+1120);
-	*(i8*)(intptr_t)v1116 = v1115;
-
-	i2 v1117 = (i2)+1;
-	i8 v1118 = (i8)(intptr_t)(ws+1128);
-	*(i2*)(intptr_t)v1118 = v1117;
-
-	i8 v1119 = (i8)+0;
-	i8 v1120 = (i8)(intptr_t)(ws+1136);
-	*(i8*)(intptr_t)v1120 = v1119;
 
 
 
 
-	i8 v1534 = (i8)(intptr_t)(f23_ArgvInit);
+	i8 v1128 = (i8)(intptr_t)(ws+1096);
+	i8 v1129 = (i8)(intptr_t)(ws+1120);
+	*(i8*)(intptr_t)v1129 = v1128;
 
-	((void(*)(void))(intptr_t)v1534)();
+	i2 v1130 = (i2)+1;
+	i8 v1131 = (i8)(intptr_t)(ws+1128);
+	*(i2*)(intptr_t)v1131 = v1130;
 
-	i8 v1535 = (i8)(intptr_t)(f24_ArgvNext);
-	i8 v1536;
+	i8 v1132 = (i8)+0;
+	i8 v1133 = (i8)(intptr_t)(ws+1136);
+	*(i8*)(intptr_t)v1133 = v1132;
 
-	((void(*)(i8* /* arg */))(intptr_t)v1535)(&v1536);
-	i8 v1537 = (i8)(intptr_t)(ws+24);
-	*(i8*)(intptr_t)v1537 = v1536;
 
-	i8 v1538 = (i8)(intptr_t)(f24_ArgvNext);
-	i8 v1539;
 
-	((void(*)(i8* /* arg */))(intptr_t)v1538)(&v1539);
-	i8 v1540 = (i8)(intptr_t)(ws+32);
-	*(i8*)(intptr_t)v1540 = v1539;
 
-	i8 v1541 = (i8)(intptr_t)(ws+24);
-	i8 v1542 = *(i8*)(intptr_t)v1541;
-	i8 v1543 = (i8)+0;
-	if (v1542==v1543) goto c02_018a; else goto c02_018d;
+	i8 v1549 = (i8)(intptr_t)(f23_ArgvInit);
 
-c02_018d:;
+	((void(*)(void))(intptr_t)v1549)();
 
-	i8 v1544 = (i8)(intptr_t)(ws+32);
-	i8 v1545 = *(i8*)(intptr_t)v1544;
-	i8 v1546 = (i8)+0;
-	if (v1545==v1546) goto c02_018a; else goto c02_018c;
+	i8 v1550 = (i8)(intptr_t)(f24_ArgvNext);
+	i8 v1551;
 
-c02_018c:;
-
-	i8 v1547 = (i8)(intptr_t)(f24_ArgvNext);
-	i8 v1548;
-
-	((void(*)(i8* /* arg */))(intptr_t)v1547)(&v1548);
-	i8 v1549 = (i8)+0;
-	if (v1548==v1549) goto c02_018b; else goto c02_018a;
-
-c02_018a:;
-
-	i8 v1550 = (i8)(intptr_t)(f53_SyntaxError);
-
-	((void(*)(void))(intptr_t)v1550)();
-
-	goto c02_0183;
-
-c02_018b:;
-
-c02_0183:;
-
-	i8 v1551 = (i8)(intptr_t)(ws+40);
+	((void(*)(i8* /* arg */))(intptr_t)v1550)(&v1551);
 	i8 v1552 = (i8)(intptr_t)(ws+24);
-	i8 v1553 = *(i8*)(intptr_t)v1552;
-	i8 v1554 = (i8)(intptr_t)(f40_FCBOpenIn);
-	i1 v1555;
+	*(i8*)(intptr_t)v1552 = v1551;
 
-	((void(*)(i1* /* errno */, i8 /* filename */, i8 /* fcb */))(intptr_t)v1554)(&v1555, v1553, v1551);
-	i1 v1556 = (i1)+0;
-	if (v1555==v1556) goto c02_0192; else goto c02_0191;
+	i8 v1553 = (i8)(intptr_t)(f24_ArgvNext);
+	i8 v1554;
 
-c02_0191:;
+	((void(*)(i8* /* arg */))(intptr_t)v1553)(&v1554);
+	i8 v1555 = (i8)(intptr_t)(ws+32);
+	*(i8*)(intptr_t)v1555 = v1554;
 
-	i8 v1557 = (i8)(intptr_t)c02_s000f;
-	i8 v1558 = (i8)(intptr_t)(f54_FatalError);
-
-	((void(*)(i8 /* s */))(intptr_t)v1558)(v1557);
-
-	goto c02_018e;
+	i8 v1556 = (i8)(intptr_t)(ws+24);
+	i8 v1557 = *(i8*)(intptr_t)v1556;
+	i8 v1558 = (i8)+0;
+	if (v1557==v1558) goto c02_018f; else goto c02_0192;
 
 c02_0192:;
 
-c02_018e:;
-
 	i8 v1559 = (i8)(intptr_t)(ws+32);
 	i8 v1560 = *(i8*)(intptr_t)v1559;
-	i8 v1561 = (i8)(intptr_t)(f61_EmitterOpenfile);
+	i8 v1561 = (i8)+0;
+	if (v1560==v1561) goto c02_018f; else goto c02_0191;
 
-	((void(*)(i8 /* filename */))(intptr_t)v1561)(v1560);
+c02_0191:;
 
-	i8 v1562 = (i8)(intptr_t)(f68_ProcessFile);
+	i8 v1562 = (i8)(intptr_t)(f24_ArgvNext);
+	i8 v1563;
 
-	((void(*)(void))(intptr_t)v1562)();
+	((void(*)(i8* /* arg */))(intptr_t)v1562)(&v1563);
+	i8 v1564 = (i8)+0;
+	if (v1563==v1564) goto c02_0190; else goto c02_018f;
 
-	i8 v1563 = (i8)(intptr_t)(f82_CheckSymbols);
+c02_018f:;
 
-	((void(*)(void))(intptr_t)v1563)();
+	i8 v1565 = (i8)(intptr_t)(f55_SyntaxError);
 
-	i8 v1564 = (i8)(intptr_t)(f62_EmitterClosefile);
+	((void(*)(void))(intptr_t)v1565)();
 
-	((void(*)(void))(intptr_t)v1564)();
+	goto c02_0188;
+
+c02_0190:;
+
+c02_0188:;
+
+	i8 v1566 = (i8)(intptr_t)(ws+40);
+	i8 v1567 = (i8)(intptr_t)(ws+24);
+	i8 v1568 = *(i8*)(intptr_t)v1567;
+	i8 v1569 = (i8)(intptr_t)(f42_FCBOpenIn);
+	i1 v1570;
+
+	((void(*)(i1* /* errno */, i8 /* filename */, i8 /* fcb */))(intptr_t)v1569)(&v1570, v1568, v1566);
+	i1 v1571 = (i1)+0;
+	if (v1570==v1571) goto c02_0197; else goto c02_0196;
+
+c02_0196:;
+
+	i8 v1572 = (i8)(intptr_t)c02_s0010;
+	i8 v1573 = (i8)(intptr_t)(f56_FatalError);
+
+	((void(*)(i8 /* s */))(intptr_t)v1573)(v1572);
+
+	goto c02_0193;
+
+c02_0197:;
+
+c02_0193:;
+
+	i8 v1574 = (i8)(intptr_t)(ws+32);
+	i8 v1575 = *(i8*)(intptr_t)v1574;
+	i8 v1576 = (i8)(intptr_t)(f63_EmitterOpenfile);
+
+	((void(*)(i8 /* filename */))(intptr_t)v1576)(v1575);
+
+	i8 v1577 = (i8)(intptr_t)(f70_ProcessFile);
+
+	((void(*)(void))(intptr_t)v1577)();
+
+	i8 v1578 = (i8)(intptr_t)(f84_CheckSymbols);
+
+	((void(*)(void))(intptr_t)v1578)();
+
+	i8 v1579 = (i8)(intptr_t)(f64_EmitterClosefile);
+
+	((void(*)(void))(intptr_t)v1579)();
 
 endsub:;
 }
 void cmain(void) {
 	f3___main();
 }
-                                                                                                                                                                                                                                                                                           
+                                                       

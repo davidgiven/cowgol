@@ -118,7 +118,7 @@ sub ProcessFile() is
 
 	sub CloseChunk() is
 		if current_subr != (0 as [Symbol]) then
-			EmitterPopChunk('S');
+			EmitterPopChunk('F');
 			current_subr := (0 as [Symbol]);
 		end if;
 	end sub;
@@ -140,6 +140,7 @@ sub ProcessFile() is
 		end if;
 
 		EmitterPushChunk();
+		E_b8(0x80);
 		E_b16(current_subr.id);
 	end sub;
 
