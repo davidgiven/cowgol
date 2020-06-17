@@ -27,7 +27,7 @@ end sub;
 	var old_next_node := next_node;
 	PushNode(node);
 	while next_node != old_next_node loop
-		var n := PopNode();
+		var n := NextNode();
 		FreeNode(n);
 	end loop;
 end sub;
