@@ -1,19 +1,11 @@
 %{
-	var uint32_type: [Symbol];
-	var int32_type: [Symbol];
-	var uint16_type: [Symbol];
-	var int16_type: [Symbol];
-	var uint8_type: [Symbol];
-	var int8_type: [Symbol];
-	var intptr_type: [Symbol];
-
-	record Extern is
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
-	var externs: [Extern] := (0 as [Extern]);
+	var uint32_type: [Type];
+	var int32_type: [Type];
+	var uint16_type: [Type];
+	var int16_type: [Type];
+	var uint8_type: [Type];
+	var int8_type: [Type];
+	var intptr_type: [Type];
 
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		newvalue := value;
@@ -28,10 +20,10 @@
 		int8_type := MakeNumberType(1, 1, 1, "int8");
 
 		intptr_type := uint32_type;
-		AddAliasString("intptr", intptr_type);
+		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint32"));
 	end sub;
 
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 		if (min >= 0) and (max <= 255) then
 			symbol := uint8_type;
 		elseif (min >= -128) and (max <= 127) then
@@ -51,21 +43,21 @@
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
 		symbol.vardata.offset := offset;
-		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+		subr.workspace[0] := offset + symbol.vardata.type.width;
 	end sub;
 
-	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
+	sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
 		member.vardata.offset := position;
-		position := position + member.vardata.type.typedata.width;
-		if position > containing.typedata.width then
-			containing.typedata.width := position;
+		position := position + member.vardata.type.width;
+		if position > containing.width then
+			containing.width := position;
 		end if;
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
 		case sym.kind is
-			when SUB:
-				E_subref(sym.subr);
+			when TYPE:
+                E_subref(sym.typedata.subrtype.subr);
 
 			when VAR:
 				if sym.vardata.externname != (0 as string) then
@@ -594,8 +586,7 @@
 		var sid := stringid;
 		stringid := stringid + 1;
 
-		EmitterPushChunk();
-		E_b16(current_subr.id);
+		EmitterOpenStream(current_subr);
 
 		E("\t.text 1\n");
 		E_b8(COO_ESCAPE_THISCOO);
@@ -614,7 +605,7 @@
 			E_comma();
 		end loop;
 		E("0\n");
-		EmitterPopChunk('S');
+		EmitterCloseStream();
 
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('c');
@@ -691,11 +682,10 @@ gen STARTSUB()
 {
 	RegCacheReset();
 
-	EmitterPushChunk();
-	E_b16(current_subr.id);
+	EmitterOpenStream(current_subr);
 
 	E("\n\n\t# ");
-	E(current_subr.name);
+	E(current_subr.symbol.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(current_subr.id);
@@ -727,7 +717,7 @@ gen STARTSUB()
 		var param := GetInputParameter(current_subr, count);
 
 		var reg: RegId;
-		case param.vardata.type.typedata.width is
+		case param.vardata.type.width is
 			when 1: reg := REG_AL;
 			when 2: reg := REG_AX;
 			when 4: reg := REG_EAX;
@@ -768,7 +758,7 @@ gen ENDSUB()
 		var param := GetOutputParameter(current_subr, count);
 
 		var reg: RegId;
-		case param.vardata.type.typedata.width is
+		case param.vardata.type.width is
 			when 1: reg := REG_AL;
 			when 2: reg := REG_AX;
 			when 4: reg := REG_EAX;
@@ -789,7 +779,7 @@ gen ENDSUB()
 	end if;
 
 	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
-	EmitterPopChunk('S');
+	EmitterCloseStream();
 }
 
 gen RETURN()
@@ -805,7 +795,7 @@ gen RETURN()
 
 %{
 	sub Call(addr: [MidcodeAddress]) is
-		E_call(addr.sym.subr);
+		E_call(addr.sym.typedata.subrtype.subr);
 	end sub;
 %}
 
@@ -1114,8 +1104,7 @@ gen r32 := STRING():s
 
 gen STARTINIT():s
 {
-	EmitterPushChunk();
-	E_b16(current_subr.id);
+	EmitterOpenStream(current_subr);
 	E("\t.data 4\n"); # yes, really
 	E($s.sym.vardata.externname);
 	E(":\n");
@@ -1123,7 +1112,7 @@ gen STARTINIT():s
 
 gen ENDINIT()
 {
-	EmitterPopChunk('S');
+	EmitterCloseStream();
 }
 
 gen INIT1():c
@@ -1180,12 +1169,14 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	if $s.sym.kind == VAR then
-		E_symref($s.sym, 0);
-	else
-		E_subref($s.sym.subr);
-	end if;
-	E_space();
+	case $s.sym.kind is
+		when VAR:
+			E_symref($s.sym, 0);
+
+		when TYPE:
+			E_subref($s.sym.typedata.subrtype.subr);
+    end case;
+    E_space();
 }
 
 gen ASMVALUE():c

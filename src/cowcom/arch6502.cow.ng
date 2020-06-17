@@ -1,11 +1,11 @@
 %{
-    var uint32_type: [Symbol];
-    var int32_type: [Symbol];
-    var uint16_type: [Symbol];
-    var int16_type: [Symbol];
-    var uint8_type: [Symbol];
-    var int8_type: [Symbol];
-    var intptr_type: [Symbol];
+    var uint32_type: [Type];
+    var int32_type: [Type];
+    var uint16_type: [Type];
+    var int16_type: [Type];
+    var uint8_type: [Type];
+    var int8_type: [Type];
+    var intptr_type: [Type];
 
     const VARMEM_WS := 0;
     const PTRMEM_WS := 1;
@@ -51,11 +51,11 @@
         uint8_type := MakeNumberType(1, 1, 0, "uint8");
         int8_type := MakeNumberType(1, 1, 1, "int8");
 
-        intptr_type := uint16_type;
-        AddAliasString("intptr", intptr_type);
+		intptr_type := uint16_type;
+		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint16"));
     end sub;
 
-    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
+    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
         if (min >= 0) and (max <= 255) then
             symbol := uint8_type;
         elseif (min >= -128) and (max <= 127) then
@@ -72,7 +72,7 @@
     end sub;
 
     sub is_zp(sym: [Symbol]): (result: uint8) is
-        if (sym.vardata.type.typedata.width == 1)
+        if (sym.vardata.type.width == 1)
                 or (IsPtr(sym.vardata.type) != 0) then
             result := 1;
         else
@@ -89,14 +89,14 @@
         var subr := symbol.vardata.subr;
         var offset := subr.workspace[wsid];
         symbol.vardata.offset := offset;
-        subr.workspace[wsid] := offset + symbol.vardata.type.typedata.width;
+        subr.workspace[wsid] := offset + symbol.vardata.type.width;
     end sub;
 
-    sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
+    sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
         member.vardata.offset := position;
-        position := position + member.vardata.type.typedata.width;
-        if position > containing.typedata.width then
-            containing.typedata.width := position;
+        position := position + member.vardata.type.width;
+        if position > containing.width then
+            containing.width := position;
         end if;
     end sub;
 
@@ -220,8 +220,8 @@
 
     sub E_symref(sym: [Symbol], off: Size) is
         case sym.kind is
-            when SUB:
-                E_subref(sym.subr);
+            when TYPE:
+                E_subref(sym.typedata.subrtype.subr);
 
             when VAR:
                 if sym.vardata.externname != (0 as string) then
@@ -402,11 +402,17 @@
         if (subr.num_output_parameters > 1) or (subr.num_input_parameters > 1) then
             return;
         end if;
-        if (subr.num_input_parameters == 1) and (subr.first_input_parameter.vardata.type.typedata.width == 4) then
-            return;
+        if subr.num_input_parameters == 1 then
+            var param := GetInputParameter(subr, 0);
+            if param.vardata.type.width == 4 then
+                return;
+            end if;
         end if;
-        if (subr.num_output_parameters == 1) and (subr.first_output_parameter.vardata.type.typedata.width == 4) then
-            return;
+        if subr.num_output_parameters == 1 then
+            param := GetOutputParameter(subr, 0);
+            if param.vardata.type.width == 4 then
+                return;
+            end if;
         end if;
         result := 1;
     end sub;
@@ -491,7 +497,7 @@
         end loop;
 
         if e == (0 as [Extern]) then
-            e := Alloc(@bytesof Extern) as [Extern];
+            e := InternalAlloc(@bytesof Extern) as [Extern];
             e.name := name;
             e.id := AllocSubrId();
             e.next := externs;
@@ -505,10 +511,7 @@
     sub E_callhelper(name: string) is
         var e := GetHelper(name);
 
-        EmitterPushChunk();
-        E_b16(current_subr.id);
-        E_b16(e.id);
-        EmitterPopChunk('R');
+        EmitterReferenceSubroutineById(current_subr.id, e.id);
 
         R_flushall();
         E_oc(OC_JSR);
@@ -540,7 +543,7 @@
             c := c.next;
         end loop;
         if c == (0 as [Constant]) then
-            c := Alloc(@bytesof Constant) as [Constant];
+            c := InternalAlloc(@bytesof Constant) as [Constant];
             c.lid := AllocLabel();
             c.value := value;
             c.next := constants;
@@ -552,8 +555,7 @@
     sub E_string(data: string): (lid: uint16) is
         lid := AllocLabel();
 
-        EmitterPushChunk();
-        E_b16(current_subr.id);
+        EmitterOpenStream(current_subr);
 
         E_label(lid);
         E_db();
@@ -569,7 +571,7 @@
             E_comma();
         end loop;
         E("0\n");
-        EmitterPopChunk('S');
+        EmitterCloseStream();
     end sub;
 
     sub ArchEndInstruction() is
@@ -701,7 +703,7 @@ gen JUMP():j
         if opsp == OPERAND_STACK_SIZE then
             SimpleError("opstack overflow");
         end if;
-        op := Alloc(@bytesof Operand) as [Operand];
+        op := InternalAlloc(@bytesof Operand) as [Operand];
         opstack[opsp] := op;
         opsp := opsp + 1;
     end sub;
@@ -994,17 +996,16 @@ $endif
 
 gen STARTSUB()
 {
-    current_subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+    current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
     current_subr.arch.end_label := AllocLabel();
     current_subr.arch.rts_label := AllocLabel();
 
     RegCacheReset();
 
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
 
     E("\n\n\t; ");
-    E(current_subr.name);
+    E(current_subr.symbol.name);
     E_nl();
 
     if (current_subr.flags & SUB_IS_INTERFACE) == 0 then
@@ -1083,7 +1084,7 @@ gen STARTSUB()
         var param: [Symbol];
         sub Pull() is
             var wsid := GetWsId(param);
-            var w := param.vardata.type.typedata.width;
+            var w := param.vardata.type.width;
             if (wsid != current_wsid) or (param.vardata.subr.id != current_subrid)
                     or (param.vardata.offset != (current_bot-w)) then
                 CloseLoop();
@@ -1102,7 +1103,7 @@ gen STARTSUB()
             if (count == lastparam) and ((current_subr.flags & SUB_IS_IMPLEMENTATION) == 0) then
                 inregister := 1;
             end if;
-            case param.vardata.type.typedata.width is
+            case param.vardata.type.width is
                 when 1:
                     if inregister == 0 then
                         PopReturnAddress();
@@ -1193,7 +1194,7 @@ gen ENDSUB()
         var param: [Symbol];
         sub Push() is
             var wsid := GetWsId(param);
-            var w := param.vardata.type.typedata.width as uint8;
+            var w := param.vardata.type.width as uint8;
             if (wsid != current_wsid) or (param.vardata.subr.id != current_subrid)
                     or (param.vardata.offset != (current_top+1)) then
                 CloseLoop();
@@ -1210,7 +1211,7 @@ gen ENDSUB()
             param := GetOutputParameter(current_subr, i);
 
             var cache: RegId;
-            case param.vardata.type.typedata.width is
+            case param.vardata.type.width is
                 when 1:
                     if i == (count - 1) then
                         CloseLoop();
@@ -1270,7 +1271,7 @@ gen ENDSUB()
         end loop;
     end if;
 
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 
     i := 0;
     while i != 4 loop
@@ -1304,7 +1305,7 @@ gen RETURN()
     end sub;
 
     sub Call(addr: [MidcodeAddress]) is
-        E_call(addr.sym.subr);
+        E_call(addr.sym.typedata.subrtype.subr);
     end sub;
 
     sub CallI is
@@ -1312,7 +1313,7 @@ gen RETURN()
     end sub;
 
     sub is_fast(sym: [Symbol]): (result: uint8) is
-        if (sym.subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
+        if (sym.typedata.subrtype.subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
             result := 1;
         else
             result := 0;
@@ -2148,15 +2149,14 @@ gen xa := STRING():s
 
 gen STARTINIT():s
 {
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
     E($s.sym.vardata.externname);
     E(":\n");
 }
 
 gen ENDINIT()
 {
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 }
 
 gen INIT1():c
@@ -2216,11 +2216,13 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-    if $s.sym.kind == VAR then
-        E_symref($s.sym, 0);
-    else
-        E_subref($s.sym.subr);
-    end if;
+	case $s.sym.kind is
+		when VAR:
+			E_symref($s.sym, 0);
+
+		when TYPE:
+			E_subref($s.sym.typedata.subrtype.subr);
+    end case;
     E_space();
 }
 

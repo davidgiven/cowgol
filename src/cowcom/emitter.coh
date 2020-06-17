@@ -1,34 +1,41 @@
+record EmitterStream is
+	subid: uint16;
+end record;
+
 var outfcb: FCB;
 
-const RECORD_SIZE := 128;
+var outputbuffer: uint8[255];
+var outputbufferpos: @indexof outputbuffer := 0;
 
-record EmitterRecord is
-	data: uint8[RECORD_SIZE];
-	ptr: uint8;
-	next: [EmitterRecord];
-end record;
+var streams: EmitterStream[8];
+var current_stream: [EmitterStream] := 0 as [EmitterStream];
+var current_stream_id: uint8 := 0;
 
-record EmitterChunk is
-	next: [EmitterChunk];
-	first_record: [EmitterRecord];
-	current_record: [EmitterRecord];
-	length: uint16;
-end record;
+sub WriteB8(b: uint8) is
+	FCBPutChar(&outfcb, b);
+end sub;
 
-var current_chunk: [EmitterChunk];
+sub WriteB16(w: uint16) is
+	WriteB8(w as uint8);
+	WriteB8((w>>8) as uint8);
+end sub;
 
+sub FlushCurrentStream(close: uint8) is
+	WriteB8('F');
+	WriteB16((outputbufferpos as uint16)+3);
+	WriteB8(current_stream_id | close);
+	WriteB16(current_stream.subid);
+	FCBPutBlock(&outfcb, &outputbuffer[0], outputbufferpos as intptr);
+	outputbufferpos := 0;
+end sub;
+	
 sub E_b8(byte: uint8) is
-	if current_chunk != (0 as [EmitterChunk]) then
-		var r := current_chunk.current_record;
-		if r.ptr == RECORD_SIZE then
-			r := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
-			current_chunk.current_record.next := r;
-			current_chunk.current_record := r;
+	if current_stream != (0 as [EmitterStream]) then
+		outputbuffer[outputbufferpos] := byte;
+		outputbufferpos := outputbufferpos + 1;
+		if outputbufferpos == @bytesof outputbuffer then
+			FlushCurrentStream(0);
 		end if;
-
-		r.data[r.ptr] := byte;
-		r.ptr := r.ptr + 1;
-		current_chunk.length := current_chunk.length + 1;
 	end if;
 end sub;
 
@@ -174,37 +181,26 @@ sub E_wsref(id: uint16, wsid: uint8, off: uint16) is
 	E_b16(off);
 end sub;
 
-sub EmitterPushChunk() is
-	var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
-	chunk.current_record := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
-	chunk.first_record := chunk.current_record;
-	chunk.next := current_chunk;
-	current_chunk := chunk;
+sub EmitterOpenStream(subr: [Subroutine]) is
+	if current_stream == (0 as [EmitterStream]) then
+		current_stream := &streams[0];
+		current_stream_id := 0;
+	else
+		FlushCurrentStream(0);
+		current_stream := @next current_stream;
+		current_stream_id := current_stream_id + 1;
+	end if;
+	current_stream.subid := subr.id;
 end sub;
 
-sub EmitterPopChunk(type: uint8) is
-	FCBPutChar(&outfcb, type);
-
-	var len := current_chunk.length;
-	FCBPutChar(&outfcb, len as uint8);
-	FCBPutChar(&outfcb, (len>>8) as uint8);
-
-	var r := current_chunk.first_record;
-	while r != (0 as [EmitterRecord]) loop
-		var i: uint8 := 0;
-		while i != r.ptr loop
-			FCBPutChar(&outfcb, r.data[i]);
-			i := i + 1;
-		end loop;
-
-		var nextr := r.next;
-		Free(r as [uint8]);
-		r := nextr;
-	end loop;
-
-	var nextchunk := current_chunk.next;
-	Free(current_chunk as [uint8]);
-	current_chunk := nextchunk;
+sub EmitterCloseStream() is
+	FlushCurrentStream(0x80);
+	if current_stream == &streams[0] then
+		current_stream := 0 as [EmitterStream];
+	else
+		current_stream := @prev current_stream;
+		current_stream_id := current_stream_id - 1;
+	end if;
 end sub;
 
 sub EmitterOpenfile(filename: string) is
@@ -214,40 +210,47 @@ sub EmitterOpenfile(filename: string) is
 end sub;
 
 sub EmitterClosefile() is
-	FCBPutChar(&outfcb, 'E');
-	FCBPutChar(&outfcb, 0);
-	FCBPutChar(&outfcb, 0);
+	WriteB8('E');
+	WriteB16(0);
 	if FCBClose(&outfcb) != 0 then
 		SimpleError("cannot close output file");
 	end if;
 end sub;
 
 sub EmitterDeclareSubroutine(subr: [Subroutine]) is
-	EmitterPushChunk();
-	E_b16(subr.id);
-	E(subr.name);
-	EmitterPopChunk('N');
+	var len := StrLen(subr.symbol.name) as uint16;
+
+	WriteB8('N');
+	WriteB16(len + 2);
+	WriteB16(subr.id);
+	FCBPutBlock(&outfcb, subr.symbol.name, len as intptr);
 end sub;
 
 sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
-	EmitterPushChunk();
-	E_b16(id);
-	E(external);
-	EmitterPopChunk('X');
+	var len := StrLen(external) as uint16;
+
+	WriteB8('X');
+	WriteB16(len + 2);
+	WriteB16(id);
+	FCBPutBlock(&outfcb, external, len as intptr);
+end sub;
+
+sub EmitterReferenceSubroutineById(user: uint16, used: uint16) is
+	WriteB8('R');
+	WriteB16(4);
+	WriteB16(user);
+	WriteB16(used);
 end sub;
 
 sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine]) is
-	EmitterPushChunk();
-	E_b16(user.id);
-	E_b16(used.id);
-	EmitterPopChunk('R');
+	EmitterReferenceSubroutineById(user.id, used.id);
 end sub;
 
 sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
-	EmitterPushChunk();
-	E_b16(subr.id);
-	E_b8(wid);
-	E_b16(workspace as uint16);
-	EmitterPopChunk('W');
+	WriteB8('W');
+	WriteB16(5);
+	WriteB16(subr.id);
+	WriteB8(wid);
+	WriteB16(workspace as uint16);
 end sub;
 

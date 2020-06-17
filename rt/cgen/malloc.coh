@@ -2,8 +2,16 @@
 # which calls into the standard C allocator. This makes ncgen and nncgen
 # programs *much* easier to debug using tools like valgrind.
 
-sub Alloc(length: intptr): (block: [uint8]) is
+sub RawAlloc(length: intptr): (block: [uint8]) is
 	@asm block, "=(intptr_t)calloc(1, (size_t)", length, ");";
+end sub;
+
+sub Alloc(length: intptr): (block: [uint8]) is
+	block := RawAlloc(length);
+	if block == (0 as [uint8]) then
+		print("Out of memory");
+		ExitWithError();
+	end if;
 end sub;
 
 sub Free(block: [uint8]) is
@@ -15,6 +23,9 @@ sub StrDup(s: [uint8]): (sout: [uint8]) is
 end sub;
 
 sub CheckMemoryChain() is
+end sub;
+
+sub DumpBlocks() is
 end sub;
 
 sub GetFreeMemory(): (i: intptr) is

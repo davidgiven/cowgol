@@ -20,6 +20,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowlink/cooread.coh",
 				"src/cowlink/emitter.coh",
 				"src/cowlink/graph.coh",
+				"src/cowlink/streams.coh",
 				"src/cowlink/types.coh",
 				"src/cowlink/utils.coh",
 			},

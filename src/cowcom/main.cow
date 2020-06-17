@@ -74,9 +74,7 @@ PrintFreeMemory();
 ParseArguments();
 LexerAddIncludePath("");
 LexerIncludeFile(inputfile);
-
-current_subr := Alloc(@bytesof Subroutine) as [Subroutine];
-current_subr.name := "__main";
+CreateMainSubroutine();
 
 ArchInitTypes();
 EmitterOpenfile(outputfile);
@@ -93,10 +91,10 @@ loop
 			yyminor.yy0.number := token_value;
 
 		when ID:
-			yyminor.yy0.string := StrDup(&token_buffer[0]);
+			yyminor.yy0.string := InternalStrDup(&token_buffer[0]);
 
 		when STRING:
-			yyminor.yy0.string := StrDup(&token_buffer[0]);
+			yyminor.yy0.string := InternalStrDup(&token_buffer[0]);
 
 		when else:
 			yyminor.yy0.number := 0;

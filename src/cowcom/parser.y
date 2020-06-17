@@ -70,34 +70,31 @@ statement ::= RETURN SEMICOLON.
 
 statement ::= VAR newid(S) COLON typeref(T) SEMICOLON.
 {
-	S.kind := VAR;
 	InitVariable(current_subr, S, T);
 }
 
 statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 {
-	S.kind := VAR;
 	InitVariable(current_subr, S, T);
     CheckExpressionType(E, S.vardata.type);
 
-    Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
+    Generate(MidStore(E.type.width as uint8, E, MidAddress(S, 0)));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
 	var type := E.type;
-	if type == (0 as [Symbol]) then
+	if type == (0 as [Type]) then
 		SimpleError("types cannot be inferred for numeric constants");
 	end if;
 	if IsScalar(type) == 0 then
 		SimpleError("you can only assign to lvalues");
 	end if;
 
-	S.kind := VAR;
 	InitVariable(current_subr, S, type);
 	CheckExpressionType(E, S.vardata.type);
 
-	Generate(MidStore(E.type.typedata.width as uint8, E, MidAddress(S, 0)));
+	Generate(MidStore(E.type.width as uint8, E, MidAddress(S, 0)));
 }
 
 /* --- Assignments ------------------------------------------------------- */
@@ -108,7 +105,7 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 	var address := UndoLValue(E1);
 
 	CheckExpressionType(E2, type);
-	Generate(MidStore(type.typedata.width as uint8, E2, address));
+	Generate(MidStore(type.width as uint8, E2, address));
 }
 
 /* --- Simple loops ------------------------------------------------------ */
@@ -116,7 +113,7 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 %include
 {
 	sub BeginNormalLoop(): (ll: [LoopLabels]) is
-		ll := Alloc(@bytesof LoopLabels) as [LoopLabels];
+		ll := InternalAlloc(@bytesof LoopLabels) as [LoopLabels];
 		ll.loop_label := AllocLabel();
 		ll.exit_label := AllocLabel();
 		ll.old_break_label := break_label;
@@ -197,7 +194,7 @@ statement ::= IF if_begin if_conditional THEN if_statements if_optional_else END
 
 if_begin ::= .
 {
-	var newif := Alloc(@bytesof IfLabels) as [IfLabels];
+	var newif := InternalAlloc(@bytesof IfLabels) as [IfLabels];
 	newif.next := current_if;
 	current_if := newif;
 	current_if.exit_label := AllocLabel();
@@ -242,7 +239,7 @@ statement ::= startcase whens END CASE SEMICOLON.
 
 startcase ::= CASE expression(E) IS.
 {
-	var c := Alloc(@bytesof CaseLabels) as [CaseLabels];
+	var c := InternalAlloc(@bytesof CaseLabels) as [CaseLabels];
 	c.old_case := current_case;
 	c.old_break_label := break_label;
 	c.break_label := AllocLabel();
@@ -400,12 +397,12 @@ expression(E) ::= expression(E1) RSHIFT expression(E2).    { E := ExprShift(MIDC
 expression(E) ::= expression(E1) AS typeref(T).
 {
 	CheckNotPartialType(T);
-	if (E1.op != MIDCODE_CONSTANT) and (E1.type.typedata.width != T.typedata.width) then
+	if (E1.op != MIDCODE_CONSTANT) and (E1.type.width != T.width) then
 		if (IsPtr(E1.type) != 0) or (IsPtr(T) != 0) then
 			SimpleError("cast between pointer and non-pointer of different size");
 		end if;
 
-		E := MidCCast(T.typedata.width as uint8, E1, IsSNum(E1.type));
+		E := MidCCast(T.width as uint8, E1, IsSNum(E1.type));
 	else
 		E := E1;
 	end if;
@@ -441,9 +438,9 @@ expression(E) ::= NEXT expression(E1).
 		parser_i_bad_next_prev();
 	end if;
 	E := MidC2Op(MIDCODE_ADD0,
-		intptr_type.typedata.width as uint8,
+		intptr_type.width as uint8,
 		E1,
-		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
+		MidConstant(E1.type.pointertype.element.stride as Arith)
 	);
 	E.type := E1.type;
 }
@@ -454,16 +451,16 @@ expression(E) ::= PREV expression(E1).
 		parser_i_bad_next_prev();
 	end if;
 	E := MidC2Op(MIDCODE_SUB0,
-		intptr_type.typedata.width as uint8,
+		intptr_type.width as uint8,
 		E1,
-		MidConstant(E1.type.typedata.pointertype.element.typedata.stride as Arith)
+		MidConstant(E1.type.pointertype.element.stride as Arith)
 	);
 	E.type := E1.type;
 }
 
 expression(E) ::= BYTESOF varortypeid(T).
 {
-	E := MidConstant(T.typedata.width as Arith);
+	E := MidConstant(T.width as Arith);
 }
 
 expression(E) ::= SIZEOF varortypeid(T).
@@ -471,11 +468,18 @@ expression(E) ::= SIZEOF varortypeid(T).
 	if IsArray(T) == 0 then
 		SimpleError("array expected");
 	end if;
-	E := MidConstant(T.typedata.arraytype.size as Arith);
+	E := MidConstant(T.arraytype.size as Arith);
 }
 
 leafexpression(E) ::= oldid(S).
 {
+	sub not_a_value() is
+		StartError();
+		print(S.name);
+		print(" is not a value");
+		EndError();
+	end sub;
+
 	case S.kind is
 		when CONST:
 			E := MidConstant(S.constant);
@@ -485,15 +489,20 @@ leafexpression(E) ::= oldid(S).
 			E.type := MakePointerType(S.vardata.type);
 			E := MakeLValue(E);
 
-		when SUB:
-			E := MidAddress(S, 0);
-			E.type := MakeSubroutineType(S.subr);
+		when TYPE:
+			# Subroutine instances are passed around as their type, even if it
+			# does not *really* make sense. Every type must have a symbol, so
+			# by using the type as a subroutine literal, we save on having to
+			# create an extra symbol for it.
+			if S.typedata.kind == TYPE_SUBROUTINE then
+				E := MidAddress(S, 0);
+				E.type := S.typedata.subrtype.subr.intfsubr.type;
+			else
+				not_a_value();
+			end if;
 
 		when else:
-			StartError();
-			print(S.name);
-			print(" is not a value");
-			EndError();
+			not_a_value();
 	end case;
 }
 
@@ -514,21 +523,21 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 	if IsArray(type) == 0 then
 		StartError();
 		print("you can only index an array, not a ");
-		print(type.name);
+		print(type.symbol.name);
 		EndError();
 	end if;
 
-	CheckExpressionType(E2, type.typedata.arraytype.indextype);
+	CheckExpressionType(E2, type.arraytype.indextype);
 	if IsNum(E2.type) == 0 then
 		SimpleError("array indices must be numbers");
 	end if;
 
-	var elementtype := type.typedata.arraytype.element;
-	var w := intptr_type.typedata.width as uint8;
+	var elementtype := type.arraytype.element;
+	var w := intptr_type.width as uint8;
 
 	var displacement := MidC2Op(MIDCODE_MUL0, w,
-				MidCCast(intptr_type.typedata.width as uint8, E2, 0),
-				MidConstant(elementtype.typedata.stride as int32));
+				MidCCast(intptr_type.width as uint8, E2, 0),
+				MidConstant(elementtype.stride as int32));
 	displacement.type := intptr_type;
 
 	var adjustedaddress := MidC2Op(MIDCODE_ADD0, w, address, displacement);
@@ -544,23 +553,23 @@ expression(E) ::= expression(E1) DOT ID(X).
 	# Dereference pointers.
 
 	while IsPtr(type) != 0 loop
-		type := type.typedata.pointertype.element;
+		type := type.pointertype.element;
 		CheckNotPartialType(type);
-		address := MidLoad(intptr_type.typedata.width as uint8, address);
+		address := MidLoad(intptr_type.width as uint8, address);
 	end loop;
 	CheckNotPartialType(type);
 
 	if IsRecord(type) == 0 then
 		StartError();
-		print(type.name);
+		print(type.symbol.name);
 		print(" is not a record or pointer to a record");
 		EndError();
 	end if;
 
-	var member := LookupSymbol(&type.typedata.recordtype.namespace, X.string);
+	var member := LookupSymbol(&type.recordtype.namespace, X.string);
 	if member == (0 as [Symbol]) then
 		StartError();
-		print(type.name);
+		print(type.symbol.name);
 		print(" does not contain a member '");
 		print(X.string);
 		print("'");
@@ -569,7 +578,7 @@ expression(E) ::= expression(E1) DOT ID(X).
 	Free(X.string as [uint8]);
 
 	E := MidC2Op(MIDCODE_ADD0,
-		intptr_type.typedata.width as uint8,
+		intptr_type.width as uint8,
 		address, MidConstant(member.vardata.offset as Arith));
 	E.type := MakePointerType(member.vardata.type);
 	E := MakeLValue(E);
@@ -607,7 +616,7 @@ statement ::= CONST newid(S) ASSIGN cvalue(C) SEMICOLON.
 
 /* --- Types ------------------------------------------------------------- */
 
-%type typeref {[Symbol]}
+%type typeref {[Type]}
 typeref(S) ::= INT OPENPAREN cvalue(MIN) COMMA cvalue(MAX) CLOSEPAREN.
 {
 	if MAX <= MIN then
@@ -621,8 +630,12 @@ typeref(S) ::= eitherid(ID).
 	var sym := ID;
 	if sym.kind == 0 then
 		# Create a partial type.
+		var type := AllocNewType();
+		type.kind := TYPE_PARTIAL;
+
 		sym.kind := TYPE;
-		sym.typedata.kind := TYPE_PARTIAL;
+		sym.typedata := type;
+		type.symbol := sym;
 	end if;
 	if sym.kind != TYPE then
 		StartError();
@@ -631,7 +644,7 @@ typeref(S) ::= eitherid(ID).
 		print(" to be a type");
 		EndError();
 	end if;
-	S := sym;
+	S := sym.typedata;
 }
 
 typeref(S) ::= OPENSQ typeref(S1) CLOSESQ.
@@ -653,18 +666,18 @@ typeref(S) ::= INDEXOF varortypeid(S1).
 {
 	if IsArray(S1) == 0 then
 		StartError();
-		print(S1.name);
+		print(S1.symbol.name);
 		print(" is not an array");
 		EndError();
 	end if;
 
-	S := S1.typedata.arraytype.indextype;
+	S := S1.arraytype.indextype;
 }
 
 statement ::= TYPEDEF ID(X) IS typeref(T) SEMICOLON.
 {
 	# consumes X
-	var sym := AddAlias(0 as [Namespace], X.string, T);
+	var sym := AddAlias(0 as [Namespace], X.string, T.symbol);
 }
 
 /* --- Symbols ----------------------------------------------------------- */
@@ -705,16 +718,19 @@ eitherid(S) ::= ID(T).
 	S := sym;
 }
 
-%type varortypeid {[Symbol]}
+%type varortypeid {[Type]}
 varortypeid(T) ::= oldid(S).
 {
-	if S.kind == VAR then
-		S := S.vardata.type;
-	end if;
-	if S.kind != TYPE then
-		SimpleError("simple type or variable name expected");
-	end if;
-	T := S;
+	case S.kind is
+		when VAR:
+			T := S.vardata.type;
+
+		when TYPE:
+			T := S.typedata;
+
+		when else:
+			SimpleError("simple type or variable name expected");
+	end case;
 }
 
 varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
@@ -731,7 +747,7 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 		if current_call.num_input_args != subr.num_input_parameters then
 			StartError();
 			print("subroutine ");
-			print(subr.name);
+			print(subr.symbol.name);
 			print(" takes ");
 			print_i8(subr.num_input_parameters);
 			print(" but was given ");
@@ -757,8 +773,8 @@ expression(E) ::= startsubcall inputargs(INA).
 		SimpleError("subroutines called as functions must have exactly one output parameter");
 	end if;
 
-	var param := intfsubr.first_output_parameter;
-	E := MidCalle(param.vardata.type.typedata.width as uint8, INA, current_call.expr, intfsubr);
+	var param := GetOutputParameter(intfsubr, 0);
+	E := MidCalle(param.vardata.type.width as uint8, INA, current_call.expr, intfsubr);
 	E.type := param.vardata.type;
 
 	i_end_call();
@@ -807,7 +823,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		CheckNotPartialType(param.vardata.type);
 		CheckNotPartialType(arg.type);
 
-		var w := param.vardata.type.typedata.width as uint8;
+		var w := param.vardata.type.width as uint8;
 		Generate(
 			MidStore(w,
 				MidPoparg(w, intfsubr, count),
@@ -832,18 +848,18 @@ startsubcall ::= leafexpression(E).
 	if IsSubroutine(E.type) == 0 then
 		StartError();
 		print("expected ");
-		print(E.type.name);
+		print(E.type.symbol.name);
 		print(" to be a subroutine");
 		EndError();
 	end if;
 
-	var call := Alloc(@bytesof SubroutineCall) as [SubroutineCall];
+	var call := InternalAlloc(@bytesof SubroutineCall) as [SubroutineCall];
 	call.parent := current_call;
-	var subr := E.type.typedata.subrtype.subr;
+	var subr := E.type.subrtype.subr;
 	call.expr := E;
 	call.intfsubr := subr;
-	call.input_parameter := subr.first_input_parameter;
-	call.output_parameter := subr.first_output_parameter;
+	call.input_parameter := GetInputParameter(subr, 0);
+	call.output_parameter := GetOutputParameter(subr, 0);
 	current_call := call;
 }
 
@@ -877,7 +893,7 @@ inputarg(R) ::= expression(E).
 	if param == (0 as [Symbol]) then
 		StartError();
 		print("too many parameters in call to ");
-		print(current_call.intfsubr.name);
+		print(current_call.intfsubr.symbol.name);
 		EndError();
 	end if;
 
@@ -940,17 +956,8 @@ statement ::= DECL SUB newsubid subparams submodifiers SEMICOLON.
 statement ::= subimpldecl substart statements subend SEMICOLON.
 
 // Declare an interface.
-statement ::= INTERFACE newsubid(S) subparams submodifiers SEMICOLON.
+statement ::= INTERFACE newsubid subparams submodifiers SEMICOLON.
 {
-	# newsubid created a subroutine symbol; we actually want this to
-	# be a type.
-
-	S.kind := TYPE;
-	S.typedata.kind := TYPE_SUBROUTINE;
-	S.typedata.width := intptr_type.typedata.width;
-	S.typedata.alignment := intptr_type.typedata.alignment;
-	S.typedata.stride := intptr_type.typedata.stride;
-	S.typedata.subrtype.subr := preparing_subr;
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_INTERFACE;
 
 	current_subr := preparing_subr;
@@ -971,7 +978,7 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	if IsSubroutine(T) == 0 then
 		not_an_interface();
 	end if;
-	var intfsubr := T.typedata.subrtype.subr;
+	var intfsubr := T.subrtype.subr;
 	if (intfsubr.flags & SUB_IS_INTERFACE) == 0 then
 		not_an_interface();
 	end if;
@@ -982,15 +989,15 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	EmitterReferenceSubroutine(current_subr, intfsubr);
 	EmitterReferenceSubroutine(intfsubr, preparing_subr);
 
-	preparing_subr.first_input_parameter :=
-			CopyParameterList(intfsubr.first_input_parameter, preparing_subr);
-	preparing_subr.num_input_parameters :=
-			CountParameters(preparing_subr.first_input_parameter);
+	preparing_subr.num_input_parameters := intfsubr.num_input_parameters;
+	if preparing_subr.num_input_parameters != 0 then
+		CopyParameterList(intfsubr.namespace.first, preparing_subr);
+	end if;
 
-	preparing_subr.first_output_parameter :=
-			CopyParameterList(intfsubr.first_output_parameter, preparing_subr);
-	preparing_subr.num_output_parameters :=
-			CountParameters(preparing_subr.first_output_parameter);
+	preparing_subr.num_output_parameters := intfsubr.num_output_parameters;
+	if preparing_subr.num_output_parameters != 0 then
+		CopyParameterList(GetOutputParameter(intfsubr, 0), preparing_subr);
+	end if;
 }
 
 submodifiers ::= .
@@ -1003,24 +1010,36 @@ submodifiers ::= submodifiers EXTERN OPENPAREN STRING(X) CLOSEPAREN.
 %type newsubid {[Symbol]}
 newsubid(R) ::= newid(S).
 {
-	preparing_subr := Alloc(@bytesof Subroutine) as [Subroutine];
+	preparing_subr := InternalAlloc(@bytesof Subroutine) as [Subroutine];
 	preparing_subr.namespace.parent := &current_subr.namespace;
 	preparing_subr.parent := current_subr;
 	preparing_subr.id := AllocSubrId();
 
-	preparing_subr.name := S.name;
-	S.kind := SUB;
-	S.subr := preparing_subr;
+	var type := AllocNewType();
+	type.kind := TYPE_SUBROUTINE;
+	type.width := intptr_type.width;
+	type.alignment := intptr_type.alignment;
+	type.stride := intptr_type.stride;
+	type.subrtype.subr := preparing_subr;
+	preparing_subr.type := type;
+	preparing_subr.intfsubr := preparing_subr;
+
+	S.kind := TYPE;
+	S.typedata := type;
+	type.symbol := S;
+	preparing_subr.symbol := S;
+
 	EmitterDeclareSubroutine(preparing_subr);
 	R := S;
 }
 
 subimpldecl ::= IMPL SUB oldid(S).
 {
-	if S.kind != SUB then
+	if (S.kind != TYPE) or (IsSubroutine(S.typedata) == 0) then
 		SimpleError("not a subroutine");
 	end if;
-	preparing_subr := S.subr;
+	preparing_subr := S.typedata.subrtype.subr;
+
 	if (preparing_subr.flags & SUB_HAS_IMPL) != 0 then
 		SimpleError("subroutine already implemented");
 	end if;
@@ -1031,10 +1050,13 @@ subimpldecl ::= IMPL SUB oldid(S).
 
 substart ::= IS.
 {
-	preparing_subr.old_break_label := break_label;
+	var sl := InternalAlloc(@bytesof SubroutineLabels) as [SubroutineLabels];
+	sl.old_labels := current_subr_def;
+	sl.old_break_label := break_label;
 	break_label := 0;
-	preparing_subr.old_continue_label := continue_label;
+	sl.old_continue_label := continue_label;
 	continue_label := 0;
+	current_subr_def := sl;
 
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
@@ -1045,9 +1067,13 @@ subend ::= END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
+	break_label := current_subr_def.old_break_label;
+	continue_label := current_subr_def.old_continue_label;
+	var ll := current_subr_def;
+	current_subr_def := ll.old_labels;
+	Free(ll as [uint8]);
+
 	var subr := current_subr;
-	break_label := subr.old_break_label;
-	continue_label := subr.old_continue_label;
 	current_subr := subr.parent;
 
 	DestructSubroutineContents(subr);
@@ -1060,19 +1086,16 @@ subparams ::= inparamlist.
 
 subparams ::= inparamlist COLON paramlist(OUTS).
 {
-	preparing_subr.first_output_parameter := OUTS;
 	preparing_subr.num_output_parameters := CountParameters(OUTS);
 }
 
 inparamlist ::= paramlist(INS).
 {
-	preparing_subr.first_input_parameter := INS;
 	preparing_subr.num_input_parameters := CountParameters(INS);
 }
 
 inparamlist ::= .
 {
-	preparing_subr.first_input_parameter := 0 as [Symbol];
 	preparing_subr.num_input_parameters := 0;
 }
 
@@ -1105,7 +1128,6 @@ param(R) ::= ID(X) COLON typeref(T).
 	# consumes X
 	R := AddSymbol(&preparing_subr.namespace, X.string);
 
-	R.kind := VAR;
 	InitVariable(preparing_subr, R, T);
 }
 
@@ -1116,28 +1138,36 @@ param(R) ::= ID(X) COLON typeref(T).
 	sub SymbolRedeclarationError() is
 		StartError();
 		print("attempt to redefine ");
-		print(current_type.name);
+		print(current_type.symbol.name);
 		EndError();
 	end sub;
 }
 
 statement ::= RECORD recordstart recordinherits IS recordmembers END RECORD.
 {
-	current_type.typedata.stride := ArchAlignUp(
-		current_type.typedata.width, current_type.typedata.alignment);
+	current_type.stride := ArchAlignUp(current_type.width, current_type.alignment);
 }
 
 recordstart ::= eitherid(S).
 {
-	current_type := S;
-	if (current_type.kind != 0) and (current_type.kind != TYPE) then
-		SymbolRedeclarationError();
-	end if;
-	if (current_type.typedata.kind != 0) and (current_type.typedata.kind != TYPE_PARTIAL) then
-		SymbolRedeclarationError();
-	end if;
-	current_type.kind := TYPE;
-	current_type.typedata.kind := TYPE_RECORD;
+	case S.kind is
+		when TYPE:
+			current_type := S.typedata;
+			if current_type.kind != TYPE_PARTIAL then
+				SymbolRedeclarationError();
+			end if;
+
+		when 0:
+			current_type := AllocNewType();
+			S.kind := TYPE;
+			S.typedata := current_type;
+			current_type.symbol := S;
+
+		when else:
+			SymbolRedeclarationError();
+	end case;
+
+	current_type.kind := TYPE_RECORD;
 }
 
 recordinherits ::= .
@@ -1147,14 +1177,14 @@ recordinherits ::= COLON typeref(T).
 	CheckNotPartialType(T);
 	if IsRecord(T) == 0 then
 		StartError();
-		print(T.name);
+		print(T.symbol.name);
 		print(" is not a record type");
 		EndError();
 	end if;
 
-	current_type.typedata.alignment := T.typedata.alignment;
-	current_type.typedata.width := T.typedata.width;
-	current_type.typedata.recordtype.namespace.parent := &T.typedata.recordtype.namespace;
+	current_type.alignment := T.alignment;
+	current_type.width := T.width;
+	current_type.recordtype.namespace.parent := &T.recordtype.namespace;
 }
 
 recordmembers ::= .
@@ -1163,18 +1193,19 @@ recordmembers ::= recordmember recordmembers.
 recordmember ::= memberid(S) recordat(A) COLON typeref(T) SEMICOLON.
 {
 	CheckNotPartialType(T);
-	S.kind := VAR;
-	S.vardata.type := T;
-	if T.typedata.alignment > current_type.typedata.alignment then
-		current_type.typedata.alignment := T.typedata.alignment;
+	if T.alignment > current_type.alignment then
+		current_type.alignment := T.alignment;
 	end if;
+	S.kind := VAR;
+	S.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
+	S.vardata.type := T;
 	ArchInitMember(current_type, S, A);
 }
 
 %type recordat {Size}
 recordat(A) ::= .
 {
-	A := current_type.typedata.width;
+	A := current_type.width;
 }
 
 recordat(A) ::= AT OPENPAREN cvalue(C) CLOSEPAREN.
@@ -1186,8 +1217,8 @@ recordat(A) ::= AT OPENPAREN cvalue(C) CLOSEPAREN.
 memberid(S) ::= ID(T).
 {
 	# consumes T
-	S := AddSymbol(&current_type.typedata.recordtype.namespace, T.string);
-	current_type.typedata.recordtype.members := current_type.typedata.recordtype.members + 1;
+	S := AddSymbol(&current_type.recordtype.namespace, T.string);
+	current_type.recordtype.members := current_type.recordtype.members + 1;
 }
 
 /* --- Static initialisers ----------------------------------------------- */
@@ -1199,7 +1230,7 @@ memberid(S) ::= ID(T).
 	var current_global_offset: Size; # overall
 
 	record NestedTypeInit is
-		old_current_type: [Symbol];
+		old_current_type: [Type];
 		old_current_member: [Symbol];
 		old_current_offset: Size;
 	end record;
@@ -1207,20 +1238,20 @@ memberid(S) ::= ID(T).
 	sub WrongNumberOfElementsError() is
 		StartError();
 		print("wrong number of elements in initialiser for ");
-		print(current_type.name);
+		print(current_type.symbol.name);
 		EndError();
 	end sub;
 
 	sub CheckEndOfInitialiser() is
 		if IsArray(current_type) != 0 then
-			var memberwidth := current_type.typedata.arraytype.element.typedata.stride;
-			if current_type.typedata.width == 0 then
-				current_type.typedata.width := current_offset;
+			var memberwidth := current_type.arraytype.element.stride;
+			if current_type.width == 0 then
+				current_type.width := current_offset;
 				var size := current_offset / memberwidth;
-				current_type.typedata.arraytype.size := size;
-				current_type.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
+				current_type.arraytype.size := size;
+				current_type.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 			end if;
-			if current_offset != current_type.typedata.width then
+			if current_offset != current_type.width then
 				WrongNumberOfElementsError();
 			end if;
 		else
@@ -1230,14 +1261,14 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub GetInitedMember(): (member: [Symbol], type: [Symbol]) is
+	sub GetInitedMember(): (member: [Symbol], type: [Type]) is
 		member := 0 as [Symbol];
 
 		if IsArray(current_type) != 0 then
-			type := current_type.typedata.arraytype.element;
+			type := current_type.arraytype.element;
 		else
 			if current_member == (0 as [Symbol]) then
-				type := 0 as [Symbol];
+				type := 0 as [Type];
 				return;
 			end if;
 
@@ -1267,13 +1298,13 @@ memberid(S) ::= ID(T).
 		end if;
 	end sub;
 
-	sub GetInitedMemberChecked(): (member: [Symbol], type: [Symbol]) is
+	sub GetInitedMemberChecked(): (member: [Symbol], type: [Type]) is
 		(member, type) := GetInitedMember();
-		if type == (0 as [Symbol]) then
+		if type == (0 as [Type]) then
 			WrongNumberOfElementsError();
 		end if;
 
-		AlignTo(type.typedata.alignment);
+		AlignTo(type.alignment);
 		CheckForOverlaps(member);
 	end sub;
 }
@@ -1291,9 +1322,10 @@ initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 
 	CheckNotPartialType(T);
 	S.kind := VAR;
+	S.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 	S.vardata.type := T;
 	S.vardata.subr := current_subr;
-	var name := Alloc(8);
+	var name := InternalAlloc(8);
 	S.vardata.externname := name;
 	[name+0] := COO_ESCAPE_THISCOO;
 	[name+1] := 'a';
@@ -1302,12 +1334,12 @@ initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 	if (IsArray(T) == 0) and (IsRecord(T) == 0) then
 		SimpleError("static initialisers only work on arrays or records");
 	end if;
-	if (IsRecord(T) != 0) and (T.typedata.recordtype.namespace.parent != (0 as [Namespace])) then
+	if (IsRecord(T) != 0) and (T.recordtype.namespace.parent != (0 as [Namespace])) then
 		SimpleError("you can't statically initialise an inherited record");
 	end if;
 
 	if IsRecord(T) != 0 then
-		current_member := T.typedata.recordtype.namespace.first;
+		current_member := T.recordtype.namespace.first;
 	end if;
 
 	current_type := T;
@@ -1325,11 +1357,11 @@ initialiser ::= .
 initialiser ::= expression(E).
 {
 	var member: [Symbol];
-	var type: [Symbol];
+	var type: [Type];
 	(member, type) := GetInitedMemberChecked();
 
-	AlignTo(type.typedata.alignment);
-	var w := type.typedata.width;
+	AlignTo(type.alignment);
+	var w := type.width;
 	case E.op is
 		when MIDCODE_CONSTANT:
 			if IsNum(type) == 0 then
@@ -1338,7 +1370,7 @@ initialiser ::= expression(E).
 			Generate(MidInit(w as uint8, E.constant.value));
 
 		when MIDCODE_STRING:
-			if (IsPtr(type) == 0) or (type.typedata.pointertype.element != uint8_type) then
+			if (IsPtr(type) == 0) or (type.pointertype.element != uint8_type) then
 				SimpleError("initialiser must be a string");
 			end if;
 			Generate(MidInits(E.string.text));
@@ -1372,11 +1404,11 @@ initialiser ::= startbracedinitialiser(R) initialisers CLOSEBR.
 startbracedinitialiser(R) ::= OPENBR.
 {
 	var member: [Symbol];
-	var type: [Symbol];
+	var type: [Type];
 	(member, type) := GetInitedMemberChecked();
-	AlignTo(type.typedata.alignment);
+	AlignTo(type.alignment);
 
-	R := Alloc(@bytesof NestedTypeInit) as [NestedTypeInit];
+	R := InternalAlloc(@bytesof NestedTypeInit) as [NestedTypeInit];
 	R.old_current_type := current_type;
 	R.old_current_member := current_member;
 	R.old_current_offset := current_offset;
@@ -1384,7 +1416,7 @@ startbracedinitialiser(R) ::= OPENBR.
 	current_type := type;
 	current_offset := 0;
 	if IsRecord(type) != 0 then
-		current_member := type.typedata.recordtype.namespace.first;
+		current_member := type.recordtype.namespace.first;
 	elseif IsArray(type) != 0 then
 		current_member := 0 as [Symbol];
 	else
@@ -1420,16 +1452,24 @@ asm ::= NUMBER(T).
 
 asm ::= oldid(S).
 {
+	sub bad_reference() is
+		SimpleError("you can only emit references to variables, subroutines, or constants");
+	end sub;
+
 	var k := S.kind;
-	if (k == VAR) or (k == SUB) then
-		if k == SUB then
-			EmitterReferenceSubroutine(current_subr, S.subr);
+	if (k == VAR) or (k == TYPE) then
+		if (k == TYPE) then
+			if IsSubroutine(S.typedata) != 0 then
+				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr);
+			else
+				bad_reference();
+			end if;
 		end if;
 		Generate(MidAsmsymbol(S));
 	elseif k == CONST then
 		Generate(MidAsmvalue(S.constant));
 	else
-		SimpleError("you can only emit references to variables, subroutines, or constants");
+		bad_reference();
 	end if;
 }
 

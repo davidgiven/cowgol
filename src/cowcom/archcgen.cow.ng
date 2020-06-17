@@ -1,27 +1,19 @@
 %{
-	var uint64_type: [Symbol];
-	var int64_type: [Symbol];
-	var uint32_type: [Symbol];
-	var int32_type: [Symbol];
-	var uint16_type: [Symbol];
-	var int16_type: [Symbol];
-	var uint8_type: [Symbol];
-	var int8_type: [Symbol];
-	var intptr_type: [Symbol];
+	var uint64_type: [Type];
+	var int64_type: [Type];
+	var uint32_type: [Type];
+	var int32_type: [Type];
+	var uint16_type: [Type];
+	var int16_type: [Type];
+	var uint8_type: [Type];
+	var int8_type: [Type];
+	var intptr_type: [Type];
 
 	const VARSTACK_SIZE := 64;
 	typedef Slot is uint16;
 	var varstack: Slot[VARSTACK_SIZE];
 	var varsp: uint8;
 	var varid: Slot := 1;
-
-	record Extern is
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
-	var externs: [Extern] := (0 as [Extern]);
 
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		var a := (alignment-1) as Size;
@@ -39,10 +31,10 @@
 		int8_type := MakeNumberType(1, 1, 1, "int8");
 
 		intptr_type := uint64_type;
-		AddAliasString("intptr", intptr_type);
+		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint64"));
 	end sub;
 
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
+	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 		if (min >= 0) and (max <= 255) then
 			symbol := uint8_type;
 		elseif (min >= -128) and (max <= 127) then
@@ -61,17 +53,17 @@
 	sub ArchInitVariable(symbol: [Symbol]) is
 		var subr := symbol.vardata.subr;
 		var offset := subr.workspace[0];
-		offset := ArchAlignUp(offset, symbol.vardata.type.typedata.alignment);
+		offset := ArchAlignUp(offset, symbol.vardata.type.alignment);
 		symbol.vardata.offset := offset;
-		subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+		subr.workspace[0] := offset + symbol.vardata.type.width;
 	end sub;
 
-	sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
-		position := ArchAlignUp(position, member.vardata.type.typedata.alignment);
+	sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
+		position := ArchAlignUp(position, member.vardata.type.alignment);
 		member.vardata.offset := position;
-		position := position + member.vardata.type.typedata.width;
-		if position > containing.typedata.width then
-			containing.typedata.width := position;
+		position := position + member.vardata.type.width;
+		if position > containing.width then
+			containing.width := position;
 		end if;
 	end sub;
 
@@ -93,7 +85,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
+			E_u8(param.vardata.type.width as uint8);
 			E("* /* ");
 			E(param.name);
 			E(" */");
@@ -110,7 +102,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.typedata.width as uint8);
+			E_u8(param.vardata.type.width as uint8);
 			E(" /* ");
 			E(param.name);
 			E(" */");
@@ -124,17 +116,17 @@
 
 	sub E_symref(sym: [Symbol], off: Size) is
 		case sym.kind is
-			when SUB:
-				EmitterPushChunk();
-				E_b16(current_subr.id);
+			when TYPE:
+				EmitterOpenStream(current_subr);
 
+                var subr := sym.typedata.subrtype.subr;
 				E("\tvoid ");
-				E_subref(sym.subr);
-				EmitFunctionSignature(sym.subr);
+				E_subref(subr);
+				EmitFunctionSignature(subr);
 				E(";\n");
 
-				EmitterPopChunk('S');
-				E_subref(sym.subr);
+				EmitterCloseStream();
+				E_subref(subr);
 
 			when VAR:
 				if sym.vardata.externname != (0 as string) then
@@ -239,24 +231,23 @@ gen RETURN()
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB():s
+gen STARTSUB()
 {
-	EmitterPushChunk();
-	E_b16($s.subr.id);
+	EmitterOpenStream(current_subr);
 
 	E("\n// ");
-	E($s.subr.name);
+	E(current_subr.symbol.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
-	E_b16($s.subr.id);
+	E_b16(current_subr.id);
 	E_b8(0);
 	E_b16(0);
 	E(" length ");
 	E_b8(COO_ESCAPE_WSSIZE);
-	E_b16($s.subr.id);
+	E_b16(current_subr.id);
 	E_b8(0);
 	E("\nvoid ");
-	E_subref($s.subr);
+	E_subref(current_subr);
 	E("(");
 
 	var first: uint8 := 1;
@@ -270,13 +261,13 @@ gen STARTSUB():s
 	# Output parameters, left to right (the rightmost gets pushed last)
 
 	var count: uint8 := 0;
-	while count != $s.subr.num_output_parameters loop
-		var param := GetOutputParameter($s.subr, count);
+	while count != current_subr.num_output_parameters loop
+		var param := GetOutputParameter(current_subr, count);
 		var pid := Push();
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E("* p");
 		E_u16(pid);
 
@@ -289,15 +280,15 @@ gen STARTSUB():s
 	# Input parameters, right to left (the rightmost was pushed last
 	# and so is the first C parameter)
 
-	count := $s.subr.num_input_parameters;
+	count := current_subr.num_input_parameters;
 	while count != 0 loop
 		count := count - 1;
-		param := GetInputParameter($s.subr, count);
+		param := GetInputParameter(current_subr, count);
 		pid := Push();
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E(" p");
 		E_u16(pid);
 
@@ -306,18 +297,18 @@ gen STARTSUB():s
 		E(" */");
 	end loop;
 
-	if ($s.subr.num_input_parameters + $s.subr.num_output_parameters) == 0 then
+	if (current_subr.num_input_parameters + current_subr.num_output_parameters) == 0 then
 		E("void");
 	end if;
 	E(") {\n");
 
 	count := 0;
-	while count != $s.subr.num_input_parameters loop
-		param := GetInputParameter($s.subr, count);
+	while count != current_subr.num_input_parameters loop
+		param := GetInputParameter(current_subr, count);
 		pid := Pop();
 
 		E("\t*(i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E("*)(intptr_t)(");
 		E_symref(param, 0);
 		E(") = p");
@@ -330,27 +321,27 @@ gen STARTSUB():s
 	end loop;
 }
 
-gen ENDSUB():s
+gen ENDSUB()
 {
 	E("endsub:;\n");
 
-	var count: uint8 := $s.subr.num_output_parameters;
+	var count: uint8 := current_subr.num_output_parameters;
 	while count != 0 loop
 		count := count - 1;
-		var param := GetOutputParameter($s.subr, count);
+		var param := GetOutputParameter(current_subr, count);
 		var pid := Pop();
 
 		E("\t*p");
 		E_u16(pid);
 		E(" = *(i");
-		E_u8(param.vardata.type.typedata.width as uint8);
+		E_u8(param.vardata.type.width as uint8);
 		E("*)(intptr_t)(");
 		E_symref(param, 0);
 		E(");\n");
 	end loop;
 	E("}\n");
-	EmitterDeclareWorkspace($s.subr, 0, $s.subr.workspace[0]);
-	EmitterPopChunk('S');
+	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
+	EmitterCloseStream();
 }
 
 %{
@@ -370,7 +361,7 @@ gen ENDSUB():s
 			var param := GetOutputParameter(subr, count);
 
 			E("\ti");
-			E_u8(param.vardata.type.typedata.width as uint8);
+			E_u8(param.vardata.type.width as uint8);
 			E(" v");
 			E_u16(outputvid + (count as Slot));
 			E(";\n");
@@ -888,8 +879,7 @@ gen v4 := CAST84(v8):c { Cast(8, 4, $c.sext); }
 		sid := current_string_id;
 		current_string_id := current_string_id + 1;
 
-		EmitterPushChunk();
-		E_b16(current_subr.id);
+		EmitterOpenStream(current_subr);
 
 		E("const i1 ");
 		E_b8(COO_ESCAPE_THISCOO);
@@ -916,7 +906,7 @@ gen v4 := CAST84(v8):c { Cast(8, 4, $c.sext); }
 			E_comma();
 		end if;
 		E("0 };\n");
-		EmitterPopChunk('S');
+		EmitterCloseStream();
 	end sub;
 %}
 
@@ -987,8 +977,7 @@ gen v8 := STRING():s
 
 gen STARTINIT():s
 {
-	EmitterPushChunk();
-	E_b16(current_subr.id);
+	EmitterOpenStream(current_subr);
 
 	E("static data ");
 	E($s.sym.vardata.externname);
@@ -1028,7 +1017,7 @@ gen ENDINIT()
 {
 	FlushInitialiserBuffer();
 	E("};\n");
-	EmitterPopChunk('S');
+	EmitterCloseStream();
 }
 
 // --- Inline assembly ------------------------------------------------------
@@ -1049,15 +1038,17 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	if $s.sym.kind == VAR then
-		E("*(i");
-		E_u8($s.sym.vardata.type.typedata.width as uint8);
-		E("*)(intptr_t)(");
-		E_symref($s.sym, 0);
-		E(")");
-	else
-		E_subref($s.sym.subr);
-	end if;
+	case $s.sym.kind is
+		when VAR:
+			E("*(i");
+			E_u8($s.sym.vardata.type.width as uint8);
+			E("*)(intptr_t)(");
+			E_symref($s.sym, 0);
+			E(")");
+
+		when TYPE:
+			E_subref($s.sym.typedata.subrtype.subr);
+	end case;
 	E_space();
 }
 

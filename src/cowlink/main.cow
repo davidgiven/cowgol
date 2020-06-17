@@ -13,6 +13,7 @@ include "src/cowlink/utils.coh";
 include "src/cowlink/emitter.coh";
 include "archlink.coh";
 include "src/cowlink/cooread.coh";
+include "src/cowlink/streams.coh";
 include "src/cowlink/asmwrite.coh";
 include "src/cowlink/graph.coh";
 
@@ -86,9 +87,13 @@ PlaceSubroutines(mainSubroutine);
 EmitterOpenfile(outputFilename);
 
 print("Writing output file...\n");
+SetStream(7);
 ArchEmitHeader(firstCoo);
+FlushStream();
 WriteAllSubroutinesToOutputFile(firstCoo);
+SetStream(7);
 ArchEmitFooter(firstCoo);
+FlushStream();
 
 EmitterClosefile();
 

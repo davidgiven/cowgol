@@ -1,6 +1,8 @@
+@decl sub InternalAlloc(length: intptr): (block: [uint8]);
+
 sub StrDupBraced(s: string): (news: string) is
 	var len := StrLen(s);
-	news := Alloc(len + 3);
+	news := InternalAlloc(len + 3);
 	var p := news;
 	[p] := '[';
 	p := p + 1;
@@ -13,7 +15,7 @@ end sub;
 
 sub StrDupArrayed(s: string, i: Size): (news: string) is
 	var len := StrLen(s);
-	news := Alloc(len + 3);
+	news := InternalAlloc(len + 3);
 	var p := news;
 	MemCopy(s, len, p);
 	p := p + len;
@@ -24,4 +26,99 @@ sub StrDupArrayed(s: string, i: Size): (news: string) is
 	[p] := 0;
 end sub;
 
+sub InternalStrDup(s: string): (news: string) is
+	var len := StrLen(s) + 1;
+	news := InternalAlloc(len);
+	MemCopy(s, len, news);
+end sub;
+
+var symbol_freelist: [Symbol] := 0 as [Symbol];
+@impl sub AllocNewSymbol is
+	if symbol_freelist != (0 as [Symbol]) then
+		symbol := symbol_freelist;
+		symbol_freelist := symbol_freelist.next;
+		MemSet(symbol as [uint8], 0, @bytesof Symbol);
+	else
+		symbol := InternalAlloc(@bytesof Symbol) as [Symbol];
+	end if;
+
+	#print("new symbol ");
+	#print_hex_i32(symbol as intptr as uint32);
+	#print_nl();
+end sub;
+
+@impl sub FreeSymbol is
+	symbol.next := symbol_freelist;
+	symbol_freelist := symbol;
+
+	#print("free symbol ");
+	#print_hex_i32(symbol as intptr as uint32);
+	#print_nl();
+end sub;
+
+var type_freelist: [Type] := 0 as [Type];
+@impl sub AllocNewType is
+	if type_freelist != (0 as [Type]) then
+		type := type_freelist;
+		type_freelist := type_freelist.pointerto;
+		MemSet(type as [uint8], 0, @bytesof Type);
+	else
+		type := InternalAlloc(@bytesof Type) as [Type];
+	end if;
+
+	#print("new type ");
+	#print_hex_i32(type as intptr as uint32);
+	#print_nl();
+end sub;
+
+@impl sub FreeType is
+	type.pointerto := type_freelist;
+	type_freelist := type;
+
+	#print("free type ");
+	#print_hex_i32(type as intptr as uint32);
+	#print_nl();
+end sub;
+
+@decl sub PurgeAllFreeNodes();
+@decl sub PurgeAllFreeInstructions();
+
+@impl sub InternalAlloc is
+	block := RawAlloc(length);
+	if block == (0 as [uint8]) then
+		#print("Emergency purge\n");
+		#print("before: ");
+		#print_i32(GetFreeMemory() as uint32);
+		#print_nl();
+
+		while symbol_freelist != (0 as [Symbol]) loop
+			block := symbol_freelist as [uint8];
+			symbol_freelist := symbol_freelist.next;
+			Free(block);
+		end loop;
+
+		while type_freelist != (0 as [Type]) loop
+			block := type_freelist as [uint8];
+			type_freelist := type_freelist.pointerto;
+			Free(block);
+		end loop;
+
+		PurgeAllFreeNodes();
+		PurgeAllFreeInstructions();
+
+		#print("after: ");
+		#print_i32(GetFreeMemory() as uint32);
+		#print_nl();
+
+		block := RawAlloc(length);
+		if block == (0 as [uint8]) then
+			print("Out of memory\n");
+			#print("Out of memory allocating ");
+			#print_hex_i32(length as uint32);
+			#print_nl();
+			#DumpBlocks();
+			ExitWithError();
+		end if;
+	end if;
+end sub;
 

@@ -1,0 +1,142 @@
+const CHUNK_LEN := 255;
+record EmitterChunk is
+	buffer: uint8[CHUNK_LEN];
+	len: uint8;
+	next: [EmitterChunk];
+end record;
+
+record Stream is
+	first_chunk: [EmitterChunk];
+	last_chunk: [EmitterChunk];
+end record;
+
+var streams: Stream[8];
+var current_stream: [Stream];
+
+sub SetStream(sid: uint8) is
+	if sid >= @sizeof streams then
+		SimpleError("stream ID out of range");
+	end if;
+	current_stream := &streams[sid];
+	if current_stream.last_chunk == (0 as [EmitterChunk]) then
+		var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
+		current_stream.first_chunk := chunk;
+		current_stream.last_chunk := chunk;
+	end if;
+end sub;
+
+sub CheckSubExists(subr: [Subroutine]) is
+	if (subr.state & SUB_IMPLEMENTATION) == 0 then
+		StartError();
+		print("reference to undefined subroutine ");
+		if subr.name != (0 as string) then
+			print("'");
+			print(subr.name);
+			print("'");
+		else
+			print("which is anonymous");
+		end if;
+		EndError();
+	end if;
+end sub;
+
+var stream_output_buffer: uint8[8];
+var stream_output_buffer_wanted: uint8 := 0;
+var stream_output_buffer_fill: uint8 := 0;
+sub WriteCharacterFromStream(c: uint8) is
+	if stream_output_buffer_wanted == 0 then
+		case c is
+			when COO_ESCAPE_THISCOO:
+				E_b8('c');
+				E_h8(current_subroutine.coo.id as uint8);
+				E_b8('_');
+				return;
+
+			when COO_ESCAPE_THISSUB:
+				ArchEmitSubRef(current_subroutine);
+				return;
+
+			when COO_ESCAPE_SUBREF:
+				stream_output_buffer_wanted := 3;
+
+			when COO_ESCAPE_WSREF:
+				stream_output_buffer_wanted := 6;
+
+			when COO_ESCAPE_WSSIZE:
+				stream_output_buffer_wanted := 4;
+
+			when else:
+				E_b8(c);
+				return;
+		end case;
+		stream_output_buffer[0] := c;
+		stream_output_buffer_fill := 1;
+	else
+		stream_output_buffer[stream_output_buffer_fill] := c;
+		stream_output_buffer_fill := stream_output_buffer_fill + 1;
+		if stream_output_buffer_fill != stream_output_buffer_wanted then
+			return;
+		end if;
+
+		var subid: uint16;
+		var subr: [Subroutine];
+		var wid: uint8;
+		var off: uint16;
+
+		case stream_output_buffer[0] is
+			when COO_ESCAPE_SUBREF:
+				subid := (stream_output_buffer[1] as uint16) | (stream_output_buffer[2] as uint16 << 8);
+				subr := FindOrCreateSub(current_subroutine.coo, subid);
+				subr := Deref(subr);
+				CheckSubExists(subr);
+				ArchEmitSubRef(subr);
+
+			when COO_ESCAPE_WSREF:
+				subid := (stream_output_buffer[1] as uint16) | (stream_output_buffer[2] as uint16 << 8);
+				wid := stream_output_buffer[3];
+				off := (stream_output_buffer[4] as uint16) | (stream_output_buffer[5] as uint16 << 8);
+				subr := FindOrCreateSub(current_subroutine.coo, subid);
+				subr := Deref(subr);
+				CheckSubExists(subr);
+				ArchEmitWSRef(wid, subr.workspaceAddress[wid] + off);
+
+			when COO_ESCAPE_WSSIZE:
+				subid := (stream_output_buffer[1] as uint16) | (stream_output_buffer[2] as uint16 << 8);
+				wid := stream_output_buffer[3];
+				subr := FindOrCreateSub(current_subroutine.coo, subid);
+				subr := Deref(subr);
+				CheckSubExists(subr);
+				ArchEmitWSRef(wid, subr.workspaceSize[wid]);
+		end case;
+
+		stream_output_buffer_wanted := 0;
+	end if;
+end sub;
+
+sub FlushStream() is
+	var chunk := current_stream.first_chunk;
+	while chunk != (0 as [EmitterChunk]) loop
+		var i: uint8 := 0;
+		while i != chunk.len loop
+			WriteCharacterFromStream(chunk.buffer[i]);
+			i := i + 1;
+		end loop;
+		var oldchunk := chunk;
+		chunk := chunk.next;
+		Free(oldchunk as [uint8]);
+	end loop;
+	current_stream.first_chunk := 0 as [EmitterChunk];
+	current_stream.last_chunk := 0 as [EmitterChunk];
+end sub;
+
+sub WriteStream(c: uint8) is
+	var chunk := current_stream.last_chunk;
+	if chunk.len == CHUNK_LEN then
+		chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
+		current_stream.last_chunk.next := chunk;
+		current_stream.last_chunk := chunk;
+	end if;
+	chunk.buffer[chunk.len] := c;
+	chunk.len := chunk.len + 1;
+end sub;
+

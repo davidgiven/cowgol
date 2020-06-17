@@ -8,19 +8,28 @@ sub CountParameters(param: [Symbol]): (count: uint8) is
 end sub;
 
 sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
-	param := subr.first_input_parameter;
-	while count != 0 loop
-		param := param.vardata.next_parameter;
-		count := count - 1;
-	end loop;
+	if subr.num_input_parameters != 0 then
+		param := subr.namespace.first;
+		while count != 0 loop
+			param := param.next;
+			count := count - 1;
+		end loop;
+	else
+		param := 0 as [Symbol];
+	end if;
 end sub;
 
 sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Symbol]) is
-	param := subr.first_output_parameter;
-	while count != 0 loop
-		param := param.vardata.next_parameter;
-		count := count - 1;
-	end loop;
+	if subr.num_output_parameters != 0 then
+		count := count + subr.num_input_parameters;
+		param := subr.namespace.first;
+		while count != 0 loop
+			param := param.next;
+			count := count - 1;
+		end loop;
+	else
+		param := 0 as [Symbol];
+	end if;
 end sub;
 
 sub BadNodeWidth(width: uint8) is
@@ -38,12 +47,44 @@ sub WidthToIndex(width: uint8): (index: uint8) is
 	end case;
 end sub;
 
+@decl sub AllocateNewNode(code: uint8): (m: [Node]);
+
 include "midcodes.coh";
+
+var node_freelist: [Node] := 0 as [Node];
+@impl sub AllocateNewNode is
+	if node_freelist != (0 as [Node]) then
+		m := node_freelist;
+		node_freelist := node_freelist.left;
+		MemSet(m as [uint8], 0, @bytesof Node);
+	else
+		m := InternalAlloc(@bytesof Node) as [Node];
+	end if;
+	#print("alloc ");
+	#print_hex_i32(m as intptr as uint32);
+	#print(" op ");
+	#print_i8(code);
+	#print_nl();
+	m.op := code;
+end sub;
+
+sub FreeNode(node: [Node]) is
+	node.left := node_freelist;
+	node_freelist := node;
+end sub;
+
+@impl sub PurgeAllFreeNodes is
+	while node_freelist != (0 as [Node]) loop
+		var b := node_freelist as [uint8];
+		node_freelist := node_freelist.left;
+		Free(b);
+	end loop;
+end sub;
 
 sub NodeWidth(node: [Node]): (width: uint8) is
 	width := 0;
-	if node.type != (0 as [Symbol]) then
-		width := node.type.typedata.width as uint8;
+	if node.type != (0 as [Type]) then
+		width := node.type.width as uint8;
 	end if;
 end sub;
 
@@ -208,7 +249,7 @@ sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node]) is
 		result := lhs;
 		return;
 	end if;
-	var srcwidth := lhs.type.typedata.width as uint8;
+	var srcwidth := lhs.type.width as uint8;
 	if srcwidth == width then
 		result := lhs;
 	else

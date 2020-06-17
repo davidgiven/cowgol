@@ -41,6 +41,30 @@ sub AllocSubrId(): (id: uint16) is
 	next_subr_id := next_subr_id + 1;
 end sub;
 
+var insn_freelist := (0 as [Instruction]);
+sub AllocNewInstruction(): (insn: [Instruction]) is
+	if insn_freelist != (0 as [Instruction]) then
+		insn := insn_freelist;
+		insn_freelist := insn_freelist.next;
+		MemSet(insn as [uint8], 0, @bytesof Instruction);
+	else
+		insn := InternalAlloc(@bytesof Instruction) as [Instruction];
+	end if;
+end sub;
+
+sub FreeInstruction(insn: [Instruction]) is
+	insn.next := insn_freelist;
+	insn_freelist := insn;
+end sub;
+
+@impl sub PurgeAllFreeInstructions is
+	while insn_freelist != (0 as [Instruction]) loop
+		var b := insn_freelist as [uint8];
+		insn_freelist := insn_freelist.next;
+		Free(b);
+	end loop;
+end sub;
+
 sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId) is
 	conflicting := 0;
 	var reg := &registers[0];
@@ -274,7 +298,7 @@ sub ReallyGenerate(rootnode: [Node]) is
 	var old_next_node := next_node;
 	PushNode(rootnode);
 	while next_node != old_next_node loop
-		var producer := Alloc(@bytesof Instruction) as [Instruction];
+		var producer := AllocNewInstruction();
 		if first_instruction == (0 as [Instruction]) then
 			first_instruction := producer;
 			last_instruction := producer;
@@ -676,9 +700,9 @@ sub ReallyGenerate(rootnode: [Node]) is
 			# Clean them up manually here.
 
 			if insn.n[0].op == MIDCODE_FALLBACK then
-				Free(insn.n[0] as [uint8]);
+				FreeNode(insn.n[0]);
 			end if;
-			Free(insn as [uint8]);
+			FreeInstruction(insn);
 		end loop;
 	end sub;
 	EmitAndFreeInstructions();

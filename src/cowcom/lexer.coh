@@ -8,7 +8,6 @@ record File is
 	path: string;
 	lineno: uint16;
 	pos: uint32;
-	fcb: [FCB];
 end record;
 
 var include_paths: [IncludePath] := 0 as [IncludePath];
@@ -19,6 +18,8 @@ const TOKEN_BUFFER_SIZE := 128;
 var token_buffer: uint8[TOKEN_BUFFER_SIZE];
 var token_length: uint8 := 0;
 var token_value: int32;
+
+var infcb: FCB;
 
 const CTYPE_DECDIGIT := 0x01;
 const CTYPE_IDSTART  := 0x10;
@@ -231,7 +232,7 @@ sub SimpleError(message: string) is
 end sub;
 
 sub LexerAddIncludePath(path: string) is
-	var p := Alloc(@bytesof IncludePath) as [IncludePath];
+	var p := InternalAlloc(@bytesof IncludePath) as [IncludePath];
 	p.next := include_paths;
 	p.path := path;
 	include_paths := p;
@@ -247,33 +248,33 @@ sub LexerPrintSpaces() is
 end sub;
 
 sub lexer_i_open(file: [File]): (result: uint8) is
-	var fcb := Alloc(@bytesof FCB) as [FCB];
-	if FCBOpenIn(fcb, file.path) == 0 then
-		file.fcb := fcb;
-		FCBSeek(fcb, file.pos);
+	if FCBOpenIn(&infcb, file.path) == 0 then
+		FCBSeek(&infcb, file.pos);
 		result := 0;
 	else
-		Free(fcb as [uint8]);
 		result := 1;
 	end if;
 end sub;
 
 sub lexer_i_close(file: [File]) is
-	file.pos := FCBPos(file.fcb);
-	var e := FCBClose(file.fcb);
-	Free(file.fcb as [uint8]);
+	file.pos := FCBPos(&infcb);
+	var e := FCBClose(&infcb);
 end sub;
 
 sub LexerIncludeFile(path: string) is
-	var f := Alloc(@bytesof File) as [File];
+	var f := InternalAlloc(@bytesof File) as [File];
 	f.next := current_file;
 	f.lineno := 1;
+
+	if current_file != (0 as [File]) then
+		lexer_i_close(current_file);
+	end if;
 
 	var p := include_paths;
 	var fl := StrLen(path);
 	while p != (0 as [IncludePath]) loop
 		var il := StrLen(p.path);
-		f.path := Alloc(fl + il + 1);
+		f.path := InternalAlloc(fl + il + 1);
 		MemCopy(p.path, il, f.path);
 		MemCopy(path, fl+1, f.path + il);
 		if lexer_i_open(f) == 0 then
@@ -283,9 +284,6 @@ sub LexerIncludeFile(path: string) is
 			print(f.path);
 			print_nl();
 
-			if current_file != (0 as [File]) then
-				lexer_i_close(current_file);
-			end if;
 			current_file := f;
 			return;
 		end if;
@@ -329,7 +327,7 @@ sub LexerReadToken(): (token: uint8) is
 			end if;
 
 			var f := current_file;
-			c := FCBGetChar(f.fcb);
+			c := FCBGetChar(&infcb);
 			if c == 26 then
 				c := 0;
 			end if;
@@ -571,7 +569,7 @@ sub LexerReadToken(): (token: uint8) is
 		lexer_i_read_string();
 		current_file.lineno := token_value as uint16;
 		Free(current_file.path as [uint8]);
-		current_file.path := StrDup(&token_buffer[0]);
+		current_file.path := InternalStrDup(&token_buffer[0]);
 	end sub;
 
 	loop

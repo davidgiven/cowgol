@@ -1,5 +1,7 @@
-sub InitVariable(subr: [Subroutine], symbol: [Symbol], type: [Symbol]) is
+sub InitVariable(subr: [Subroutine], symbol: [Symbol], type: [Type]) is
 	CheckNotPartialType(type);
+	symbol.kind := VAR;
+	symbol.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 	symbol.vardata.type := type;
 	symbol.vardata.subr := subr;
 	ArchInitVariable(symbol);
@@ -14,53 +16,38 @@ sub InitVariable(subr: [Subroutine], symbol: [Symbol], type: [Symbol]) is
 	#print_nl();
 end sub;
 
-sub MakePointerType(type: [Symbol]): (ptrtype: [Symbol]) is
-	ptrtype := type.typedata.pointerto;
-	if ptrtype == (0 as [Symbol]) then
-		ptrtype := AddSymbol(0 as [Namespace], 0 as string);
-		ptrtype.name := StrDupBraced(type.name);
-		ptrtype.kind := TYPE;
-		ptrtype.typedata.kind := TYPE_POINTER;
-		ptrtype.typedata.width := intptr_type.typedata.width;
-		ptrtype.typedata.alignment := intptr_type.typedata.alignment;
-		ptrtype.typedata.stride := intptr_type.typedata.stride;
-		ptrtype.typedata.pointertype.element := type;
-		type.typedata.pointerto := ptrtype;
+sub MakePointerType(type: [Type]): (ptrtype: [Type]) is
+	ptrtype := type.pointerto;
+	if ptrtype == (0 as [Type]) then
+		ptrtype := AllocNewType();
+		ptrtype.kind := TYPE_POINTER;
+		ptrtype.width := intptr_type.width;
+		ptrtype.alignment := intptr_type.alignment;
+		ptrtype.stride := intptr_type.stride;
+		ptrtype.pointertype.element := type;
+		type.pointerto := ptrtype;
+
+		AddTypeToNamespace(type.symbol.namespace, ptrtype, StrDupBraced(type.symbol.name));
 	end if;
 end sub;
 
-sub MakeArrayType(type: [Symbol], size: Size): (arraytype: [Symbol]) is
+sub MakeArrayType(type: [Type], size: Size): (arraytype: [Type]) is
 	CheckNotPartialType(type);
 
-	arraytype := AddSymbol(0 as [Namespace], 0 as string);
-	arraytype.name := StrDupArrayed(type.name, size);
-	arraytype.kind := TYPE;
-	arraytype.typedata.kind := TYPE_ARRAY;
+	arraytype := AllocNewType();
+	arraytype.kind := TYPE_ARRAY;
 	var w: Size := 0;
 	if size > 0 then
-		w := type.typedata.stride * (size - 1) + type.typedata.width;
+		w := type.stride * (size - 1) + type.width;
 	end if;
-	arraytype.typedata.width := w;
-	arraytype.typedata.alignment := type.typedata.alignment;
-	arraytype.typedata.stride := type.typedata.stride * size;
-	arraytype.typedata.arraytype.element := type;
-	arraytype.typedata.arraytype.size := size;
-	arraytype.typedata.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
-end sub;
+	arraytype.width := w;
+	arraytype.alignment := type.alignment;
+	arraytype.stride := type.stride * size;
+	arraytype.arraytype.element := type;
+	arraytype.arraytype.size := size;
+	arraytype.arraytype.indextype := ArchGuessIntType(0, (size-1) as Arith);
 
-sub MakeSubroutineType(subr: [Subroutine]): (type: [Symbol]) is
-	type := subr.type;
-	if type == (0 as [Symbol]) then
-		type := AddSymbol(0 as [Namespace], 0 as string);
-		type.name := subr.name;
-		type.kind := TYPE;
-		type.typedata.kind := TYPE_SUBROUTINE;
-		type.typedata.width := intptr_type.typedata.width;
-		type.typedata.alignment := intptr_type.typedata.alignment;
-		type.typedata.stride := intptr_type.typedata.stride;
-		type.typedata.subrtype.subr := subr;
-		subr.type := type;
-	end if;
+	AddTypeToNamespace(type.symbol.namespace, arraytype, StrDupArrayed(type.symbol.name, size));
 end sub;
 
 # Called after a subroutine has been generated. This allows us to free up some
@@ -68,63 +55,60 @@ end sub;
 # gets destructed, because parameters and types which they depend on might be
 # referred to.
 sub DestructSubroutineContents(subr: [Subroutine]) is
-	# Destroys a sumbol (which isn't a subroutine).
-	sub DestructSymbol(symbol: [Symbol]) is
-		if symbol.kind == TYPE then
-			var pointer := symbol.typedata.pointerto;
-			while pointer != (0 as [Symbol]) loop
-				var p := pointer;
-				pointer := pointer.typedata.pointerto;
+	var pending: [Symbol] := 0 as [Symbol];
 
-				Free(p.name);
-				Free(p as [uint8]);
-			end loop;
-		end if;
-		Free(symbol.name);
-		Free(symbol as [uint8]);
-	end sub;
+	# Adds all members of the namespace to the pending list.
+	sub QueueNamespace(namespace: [Namespace]) is
+		while namespace.first != (0 as [Symbol]) loop
+			var s := namespace.first;
+			namespace.first := s.next;
 
-	# Destroys a subroutine, freeing all parameters, variables, types etc.
-	sub DestructSubroutine(subr: [Subroutine]) is
-		var symbol := subr.namespace.first;
-		while symbol != (0 as [Symbol]) loop
-			var s := symbol;
-			symbol := symbol.next;
-			DestructSymbol(s);
+			s.next := pending;
+			pending := s;
 		end loop;
-		Free(subr as [uint8]);
 	end sub;
 
 	# Find the last parameter.
 
-	var last_parameter := subr.first_output_parameter;
-	if last_parameter == (0 as [Symbol]) then
-		last_parameter := subr.first_input_parameter;
-	end if;
-	if last_parameter != (0 as [Symbol]) then
-		loop
-			var next := last_parameter.vardata.next_parameter;
-			if next == (0 as [Symbol]) then
-				break;
-			end if;
-			last_parameter := next;
-		end loop;
+	var last_parameter: [Symbol];
+	if subr.num_output_parameters != 0 then
+		last_parameter := GetOutputParameter(subr, subr.num_output_parameters - 1);
+	elseif subr.num_input_parameters != 0 then
+		last_parameter := GetInputParameter(subr, subr.num_input_parameters - 1);
+	else
+		last_parameter := 0 as [Symbol];
 	end if;
 
 	# last_parameter is now pointing at the last parameter, or null if there
 	# are none.
 
-	var symbol := subr.namespace.first;
+	pending := subr.namespace.first;
 	if last_parameter != (0 as [Symbol]) then
-		symbol := last_parameter.next;
+		pending := last_parameter.next;
 	end if;
-	while symbol != (0 as [Symbol]) loop
-		next := symbol.next;
-		if symbol.kind == SUB then
-			DestructSubroutine(symbol.subr);
-		end if;
-		DestructSymbol(symbol);
-		symbol := next;
+
+	while pending != (0 as [Symbol]) loop
+		var symbol := pending;
+		pending := pending.next;
+		
+		case symbol.kind is
+			when TYPE:
+				var type := symbol.typedata;
+				case type.kind is
+					when TYPE_RECORD:
+						QueueNamespace(&type.recordtype.namespace);
+
+					when TYPE_SUBROUTINE:
+						QueueNamespace(&type.subrtype.subr.namespace);
+						Free(type.subrtype.subr as [uint8]);
+				end case;
+				FreeType(type);
+
+			when VAR:
+				Free(symbol.vardata as [uint8]);
+		end case;
+		Free(symbol.name);
+		FreeSymbol(symbol);
 	end loop;
 
 	if last_parameter != (0 as [Symbol]) then
@@ -135,13 +119,13 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 	subr.namespace.last := last_parameter;
 end sub;
 
-sub CopyParameterList(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol]) is
-	newparam := 0 as [Symbol];
+sub CopyParameterList(param: [Symbol], subr: [Subroutine]) is
 	var lastparam := 0 as [Symbol];
 
 	while param != 0 as [Symbol] loop
-		var p := AddSymbol(&subr.namespace, StrDup(param.name));
+		var p := AddSymbol(&subr.namespace, InternalStrDup(param.name));
 		p.kind := VAR;
+		p.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 		p.vardata.type := param.vardata.type;
 		p.vardata.subr := param.vardata.subr;
 		p.vardata.offset := param.vardata.offset;
@@ -149,11 +133,27 @@ sub CopyParameterList(param: [Symbol], subr: [Subroutine]): (newparam: [Symbol])
 			lastparam.vardata.next_parameter := p;
 		end if;
 		lastparam := p;
-		if newparam == 0 as [Symbol] then
-			newparam := p;
-		end if;
 
 		param := param.vardata.next_parameter;
 	end loop;
+end sub;
+
+sub CreateMainSubroutine() is
+	var type := AllocNewType();
+	type.kind := TYPE_SUBROUTINE;
+
+	var sym := AllocNewSymbol();
+	sym.kind := TYPE;
+	sym.name := "__main";
+	sym.typedata := type;
+	type.symbol := sym;
+
+	current_subr := InternalAlloc(@bytesof Subroutine) as [Subroutine];
+	current_subr.symbol := sym;
+	current_subr.type := type;
+	current_subr.intfsubr := current_subr;
+	type.subrtype.subr := current_subr;
+
+	AddToNamespace(&current_subr.namespace, sym);
 end sub;
 

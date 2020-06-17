@@ -1,11 +1,11 @@
 %{
-    var uint32_type: [Symbol];
-    var int32_type: [Symbol];
-    var uint16_type: [Symbol];
-    var int16_type: [Symbol];
-    var uint8_type: [Symbol];
-    var int8_type: [Symbol];
-    var intptr_type: [Symbol];
+    var uint32_type: [Type];
+    var int32_type: [Type];
+    var uint16_type: [Type];
+    var int16_type: [Type];
+    var uint8_type: [Type];
+    var int8_type: [Type];
+    var intptr_type: [Type];
 
     record ArchSubroutine is
         end_label: LabelRef;
@@ -32,10 +32,10 @@
         int8_type := MakeNumberType(1, 1, 1, "int8");
 
         intptr_type := uint16_type;
-        AddAliasString("intptr", intptr_type);
+        AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint16"));
     end sub;
 
-    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Symbol]) is
+    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
         if (min >= 0) and (max <= 255) then
             symbol := uint8_type;
         elseif (min >= -128) and (max <= 127) then
@@ -55,14 +55,14 @@
         var subr := symbol.vardata.subr;
         var offset := subr.workspace[0];
         symbol.vardata.offset := offset;
-        subr.workspace[0] := offset + symbol.vardata.type.typedata.width;
+        subr.workspace[0] := offset + symbol.vardata.type.width;
     end sub;
 
-    sub ArchInitMember(containing: [Symbol], member: [Symbol], position: Size) is
+    sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
         member.vardata.offset := position;
-        position := position + member.vardata.type.typedata.width;
-        if position > containing.typedata.width then
-            containing.typedata.width := position;
+        position := position + member.vardata.type.width;
+        if position > containing.width then
+            containing.width := position;
         end if;
     end sub;
 
@@ -86,7 +86,7 @@
         end loop;
 
         if e == (0 as [Extern]) then
-            e := Alloc(@bytesof Extern) as [Extern];
+            e := InternalAlloc(@bytesof Extern) as [Extern];
             e.name := name;
             e.id := AllocSubrId();
             e.next := externs;
@@ -95,10 +95,7 @@
             EmitterDeclareExternalSubroutine(e.id, name);
         end if;
 
-		EmitterPushChunk();
-		E_b16(current_subr.id);
-		E_b16(e.id);
-		EmitterPopChunk('R');
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
     end sub;
 
 	sub E_db is E("\t.byte "); end sub;
@@ -117,8 +114,8 @@
 
     sub E_symref(sym: [Symbol], off: Size) is
 		case sym.kind is
-			when SUB:
-				E_subref(sym.subr);
+			when TYPE:
+                E_subref(sym.typedata.subrtype.subr);
 
 			when VAR:
 				if sym.vardata.externname != (0 as string) then
@@ -281,14 +278,13 @@ gen JUMP():j
 
 gen STARTSUB()
 {
-    current_subr.arch := Alloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+    current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
     current_subr.arch.end_label := AllocLabel();
 
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
 
     E("\n\n\t; ");
-    E(current_subr.name);
+    E(current_subr.symbol.name);
     E_nl();
 
 	E("\t.align 2\n");
@@ -301,7 +297,7 @@ gen STARTSUB()
         count := count - 1;
         var param := GetInputParameter(current_subr, count);
 
-        case param.vardata.type.typedata.width is
+        case param.vardata.type.width is
             when 1: E_store1(param, 0);
 			when 2: E_store2(param, 0);
 			when 4: E_store4(param, 0);
@@ -319,7 +315,7 @@ gen ENDSUB()
         var param := GetOutputParameter(current_subr, i);
 
         var cache: RegId;
-        case param.vardata.type.typedata.width is
+        case param.vardata.type.width is
             when 1: E_load1(param, 0);
             when 2: E_load2(param, 0);
             when 4: E_load4(param, 0);
@@ -330,7 +326,7 @@ gen ENDSUB()
 
 	E_callhelper("exit");
 
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 
     i := 0;
     while i != 4 loop
@@ -586,8 +582,7 @@ gen ENDCASE4();
     sub E_string(data: string): (lid: uint16) is
         lid := AllocLabel();
 
-        EmitterPushChunk();
-        E_b16(current_subr.id);
+        EmitterOpenStream(current_subr);
 
         E_label(lid);
         E_db();
@@ -603,7 +598,7 @@ gen ENDCASE4();
             E_comma();
         end loop;
         E("0\n");
-        EmitterPopChunk('S');
+        EmitterCloseStream();
     end sub;
 %}
 
@@ -622,15 +617,14 @@ gen s2 := STRING():s
 
 gen STARTINIT():s
 {
-    EmitterPushChunk();
-    E_b16(current_subr.id);
+    EmitterOpenStream(current_subr);
     E($s.sym.vardata.externname);
     E(":\n");
 }
 
 gen ENDINIT()
 {
-    EmitterPopChunk('S');
+    EmitterCloseStream();
 }
 
 gen INIT1():c
@@ -686,11 +680,13 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-    if $s.sym.kind == VAR then
-        E_symref($s.sym, 0);
-    else
-        E_subref($s.sym.subr);
-    end if;
+	case $s.sym.kind is
+		when VAR:
+			E_symref($s.sym, 0);
+
+		when TYPE:
+			E_subref($s.sym.typedata.subrtype.subr);
+    end case;
     E_space();
 }
 
