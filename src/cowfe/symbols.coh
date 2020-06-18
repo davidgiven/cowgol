@@ -4,7 +4,6 @@ sub InitVariable(subr: [Subroutine], symbol: [Symbol], type: [Type]) is
 	symbol.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 	symbol.vardata.type := type;
 	symbol.vardata.subr := subr;
-	ArchInitVariable(symbol);
 	#print("var ");
 	#print(symbol.name);
 	#print(" at ");

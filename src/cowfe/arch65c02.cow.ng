@@ -1,3 +1,0 @@
-$define ARCH_65C02
-$include "arch6502.cow.ng"
-

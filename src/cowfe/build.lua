@@ -1,4 +1,12 @@
-local ARCHS = { "65c02-tiny", "6502i", "65c02", "6502", "z80", "8080", "80386", "cgen" }
+local ARCHS = { "6502i", "65c02", "6502", "z80", "8080", "80386", "cgen" }
+
+for _, arch in ipairs(ARCHS) do
+	rule {
+		ins = { "src/cowfe/arch"..arch..".coh" },
+		outs = { "$OBJ/cowfe-"..arch.."/arch.coh" },
+		cmd = "cp @1 &1",
+	}
+end
 
 lemoncowgol {
 	ins = { "src/cowfe/parser.y" },
@@ -7,24 +15,6 @@ lemoncowgol {
 		"$OBJ/src/cowfe/parser.tokens.coh",
 	}
 }
-
-local extras = {
-	["65c02"] = "src/cowfe/arch6502.cow.ng",
-	["65c02-tiny"] = "src/cowfe/arch6502.cow.ng"
-}
-
-for _, arch in ipairs(ARCHS) do
-	newgencowgol {
-		ins = {
-			"src/cowfe/arch"..arch..".cow.ng",
-			extras[arch]
-		},
-		outs = {
-			"$OBJ/cowfe-"..arch.."/inssel.coh",
-			"$OBJ/cowfe-"..arch.."/inssel.decl.coh",
-		}
-	}
-end
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 	local archs = toolchain.archs
@@ -50,8 +40,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowfe/types.coh",
 				"$OBJ/src/cowfe/parser.coh",
 				"$OBJ/src/cowfe/parser.tokens.coh",
-				"$OBJ/cowfe-"..arch.."/inssel.coh",
-				"$OBJ/cowfe-"..arch.."/inssel.decl.coh",
+				"$OBJ/cowfe-"..arch.."/arch.coh",
 				"$OBJ/midcodes.coh",
 			},
 			outs = { "bin/cowfe-"..arch }

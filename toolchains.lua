@@ -62,7 +62,7 @@ toolchain_bbct = {
 	asmext = ".asm",
 	binext = ".bbct",
 	tester = tubeemutest,
-	archs = { "65c02-tiny", "6502i", "8080" }
+	archs = { "6502i", "8080" }
 }
 
 toolchain_bbctiny = {

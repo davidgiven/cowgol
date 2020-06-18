@@ -81,7 +81,6 @@ end sub;
 end sub;
 
 @decl sub PurgeAllFreeNodes();
-@decl sub PurgeAllFreeInstructions();
 
 @impl sub InternalAlloc is
 	block := RawAlloc(length);
@@ -104,7 +103,6 @@ end sub;
 		end loop;
 
 		PurgeAllFreeNodes();
-		PurgeAllFreeInstructions();
 
 		#print("after: ");
 		#print_i32(GetFreeMemory() as uint32);
