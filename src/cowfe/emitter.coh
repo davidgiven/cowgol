@@ -3,40 +3,9 @@ record EmitterStream is
 end record;
 
 var outfcb: FCB;
-
-var outputbuffer: uint8[255];
-var outputbufferpos: @indexof outputbuffer := 0;
-
-var streams: EmitterStream[8];
-var current_stream: [EmitterStream] := 0 as [EmitterStream];
-var current_stream_id: uint8 := 0;
-
-sub WriteB8(b: uint8) is
-	FCBPutChar(&outfcb, b);
-end sub;
-
-sub WriteB16(w: uint16) is
-	WriteB8(w as uint8);
-	WriteB8((w>>8) as uint8);
-end sub;
-
-sub FlushCurrentStream(close: uint8) is
-	WriteB8('F');
-	WriteB16((outputbufferpos as uint16)+3);
-	WriteB8(current_stream_id | close);
-	WriteB16(current_stream.subid);
-	FCBPutBlock(&outfcb, &outputbuffer[0], outputbufferpos as intptr);
-	outputbufferpos := 0;
-end sub;
 	
 sub E_b8(byte: uint8) is
-	if current_stream != (0 as [EmitterStream]) then
-		outputbuffer[outputbufferpos] := byte;
-		outputbufferpos := outputbufferpos + 1;
-		if outputbufferpos == @bytesof outputbuffer then
-			FlushCurrentStream(0);
-		end if;
-	end if;
+	FCBPutChar(&outfcb, byte);
 end sub;
 
 sub E_b16(word: uint16) is
@@ -160,49 +129,6 @@ sub E_h32(value: uint32) is
 	E_h(value as uint32, 8);
 end sub;
 
-sub E_labelref(labelid: uint16) is
-	E_b8(COO_ESCAPE_THISCOO);
-	E_h16(labelid);
-end sub;
-
-sub E_subref(subr: [Subroutine]) is
-	if subr == current_subr then
-		E_b8(COO_ESCAPE_THISSUB);
-	else
-		E_b8(COO_ESCAPE_SUBREF);
-		E_b16(subr.id);
-	end if;
-end sub;
-
-sub E_wsref(id: uint16, wsid: uint8, off: uint16) is
-	E_b8(COO_ESCAPE_WSREF);
-	E_b16(id);
-	E_b8(wsid);
-	E_b16(off);
-end sub;
-
-sub EmitterOpenStream(subr: [Subroutine]) is
-	if current_stream == (0 as [EmitterStream]) then
-		current_stream := &streams[0];
-		current_stream_id := 0;
-	else
-		FlushCurrentStream(0);
-		current_stream := @next current_stream;
-		current_stream_id := current_stream_id + 1;
-	end if;
-	current_stream.subid := subr.id;
-end sub;
-
-sub EmitterCloseStream() is
-	FlushCurrentStream(0x80);
-	if current_stream == &streams[0] then
-		current_stream := 0 as [EmitterStream];
-	else
-		current_stream := @prev current_stream;
-		current_stream_id := current_stream_id - 1;
-	end if;
-end sub;
-
 sub EmitterOpenfile(filename: string) is
 	if FCBOpenOut(&outfcb, filename) != 0 then
 		SimpleError("cannot open output file");
@@ -210,47 +136,45 @@ sub EmitterOpenfile(filename: string) is
 end sub;
 
 sub EmitterClosefile() is
-	WriteB8('E');
-	WriteB16(0);
 	if FCBClose(&outfcb) != 0 then
 		SimpleError("cannot close output file");
 	end if;
 end sub;
 
 sub EmitterDeclareSubroutine(subr: [Subroutine]) is
-	var len := StrLen(subr.symbol.name) as uint16;
-
-	WriteB8('N');
-	WriteB16(len + 2);
-	WriteB16(subr.id);
-	FCBPutBlock(&outfcb, subr.symbol.name, len as intptr);
+#	var len := StrLen(subr.symbol.name) as uint16;
+#
+#	WriteB8('N');
+#	WriteB16(len + 2);
+#	WriteB16(subr.id);
+#	FCBPutBlock(&outfcb, subr.symbol.name, len as intptr);
 end sub;
 
 sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
-	var len := StrLen(external) as uint16;
-
-	WriteB8('X');
-	WriteB16(len + 2);
-	WriteB16(id);
-	FCBPutBlock(&outfcb, external, len as intptr);
+#	var len := StrLen(external) as uint16;
+#
+#	WriteB8('X');
+#	WriteB16(len + 2);
+#	WriteB16(id);
+#	FCBPutBlock(&outfcb, external, len as intptr);
 end sub;
 
 sub EmitterReferenceSubroutineById(user: uint16, used: uint16) is
-	WriteB8('R');
-	WriteB16(4);
-	WriteB16(user);
-	WriteB16(used);
+#	WriteB8('R');
+#	WriteB16(4);
+#	WriteB16(user);
+#	WriteB16(used);
 end sub;
 
 sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine]) is
-	EmitterReferenceSubroutineById(user.id, used.id);
+#	EmitterReferenceSubroutineById(user.id, used.id);
 end sub;
 
 sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
-	WriteB8('W');
-	WriteB16(5);
-	WriteB16(subr.id);
-	WriteB8(wid);
-	WriteB16(workspace as uint16);
+#	WriteB8('W');
+#	WriteB16(5);
+#	WriteB16(subr.id);
+#	WriteB8(wid);
+#	WriteB16(workspace as uint16);
 end sub;
 
