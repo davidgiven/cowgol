@@ -1,0 +1,187 @@
+sub expr_i_cant_do_that(lhs: [Node], rhs: [Node]) is
+	StartError();
+	print(lhs.type.symbol.name);
+	print(" and ");
+	print(rhs.type.symbol.name);
+	print(" are not compatible in this context");
+	EndError();
+end sub;
+
+sub CheckExpressionType(node: [Node], type: [Type]) is
+	if node.type == (0 as [Type]) then
+		node.type := type;
+	end if;
+
+	if node.type != type then
+		StartError();
+		print("type mismatch: expression was a ");
+		print(node.type.symbol.name);
+		print(", used when a ");
+		print(type.symbol.name);
+		print(" was expected");
+		EndError();
+	end if;
+
+	if IsScalar(type) == 0 then
+		StartError();
+		print(type.symbol.name);
+		print(" cannot be used here");
+		EndError();
+	end if;
+end sub;
+
+sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node]) is
+	if (lhs.type != (0 as [Type])) and (rhs.type == (0 as [Type])) then
+		if IsNum(lhs.type) != 0 then
+			rhs.type := lhs.type;
+		elseif IsPtr(lhs.type) != 0 then
+			rhs.type := intptr_type;
+		else
+			print("lhs.type=");
+			print_hex_i32(lhs.type as intptr as uint32);
+			print_nl();
+			print("rhs.type=");
+			print_hex_i32(rhs.type as intptr as uint32);
+			print_nl();
+			SimpleError("cannot use an untyped constant in this context");
+		end if;
+	end if;
+	if (lhs.type == (0 as [Type])) and (rhs.type != (0 as [Type])) then
+		if IsNum(rhs.type) != 0 then
+			lhs.type := rhs.type;
+		elseif IsPtr(rhs.type) != 0 then
+			SimpleError("pointers may only appear on the LHS of an addition or subtraction");
+		end if;
+	end if;
+end sub;
+
+sub ResolveUntypedConstantsSimply(lhs: [Node], rhs: [Node]) is
+	var ltype := lhs.type;
+	var rtype := rhs.type;
+	if (ltype != (0 as [Type])) and (rtype == (0 as [Type])) then
+		rhs.type := ltype;
+	elseif (ltype == (0 as [Type])) and (rtype != (0 as [Type])) then
+		lhs.type := rtype;
+	elseif ltype != rtype then
+		expr_i_cant_do_that(lhs, rhs);
+	end if;
+end sub;
+
+sub CheckNumber(node: [Node]) is
+	if IsNum(node.type) == 0 then
+		SimpleError("number required");
+	end if;
+end sub;
+
+sub ResolveUntypedConstantsNeedingNumbers(lhs: [Node], rhs: [Node]) is
+	ResolveUntypedConstantsSimply(lhs, rhs);
+	CheckNumber(lhs);
+	CheckNumber(rhs);
+end sub;
+
+sub CondSimple(lhs: [Node], rhs: [Node]) is
+	ResolveUntypedConstantsSimply(lhs, rhs);
+	if lhs.type != rhs.type then
+		expr_i_cant_do_that(lhs, rhs);
+	end if;
+end sub;
+
+sub Expr1Simple(op: uint8, lhs: [Node]): (result: [Node]) is
+	result := MidC1Op(op, NodeWidth(lhs), lhs);
+	result.type := lhs.type;
+end sub;
+
+sub ExprAdd(lhs: [Node], rhs: [Node]): (result: [Node]) is
+	ResolveUntypedConstantsForAddOrSub(lhs, rhs);
+
+	sub cant_add_that() is
+		expr_i_cant_do_that(lhs, rhs);
+	end sub;
+
+	var ltype := lhs.type;
+	var rtype := rhs.type;
+	if (IsPtr(ltype) != 0) then
+		if (IsPtr(rtype) != 0) or (rtype != intptr_type) then
+			cant_add_that();
+		end if;
+	elseif IsPtr(rtype) != 0 then
+		cant_add_that();
+	elseif (IsPtr(ltype) == 0) and (ltype != rtype) then
+		cant_add_that();
+	end if;
+	
+	result := MidC2Op(MIDCODE_ADD0, NodeWidth(lhs), lhs, rhs);
+	result.type := ltype;
+end sub;
+
+sub ExprSub(lhs: [Node], rhs: [Node]): (result: [Node]) is
+	ResolveUntypedConstantsForAddOrSub(lhs, rhs);
+
+	sub cant_sub_that() is
+		expr_i_cant_do_that(lhs, rhs);
+	end sub;
+
+	var ltype := lhs.type;
+	var rtype := rhs.type;
+	if (IsPtr(ltype) != 0) and (IsPtr(rtype) == 0) and (rtype != intptr_type) then
+		cant_sub_that();
+	elseif (IsNum(ltype) != 0) and (IsPtr(rtype) != 0) then
+		cant_sub_that();
+	elseif (IsNum(ltype) != 0) and (IsNum(rtype) != 0) and (ltype != rtype) then
+		cant_sub_that();
+	end if;
+
+	result := MidC2Op(MIDCODE_SUB0, NodeWidth(lhs), lhs, rhs);
+	if (IsPtr(ltype) != 0) and (ltype == rtype) then
+		result.type := intptr_type;
+	else
+		result.type := ltype;
+	end if;
+end sub;
+
+sub Expr2Simple(sop: uint8, uop: uint8, lhs: [Node], rhs: [Node]): (result: [Node]) is
+	ResolveUntypedConstantsNeedingNumbers(lhs, rhs);
+	var op := uop;
+	if IsSNum(lhs.type) != 0 then
+		op := sop;
+	end if;
+
+	var ltype := lhs.type;
+	result := MidC2Op(op, NodeWidth(lhs), lhs, rhs);
+	result.type := ltype;
+end sub;
+
+sub expr_i_checkrhsconst(rhs: [Node]) is
+	if rhs.op != MIDCODE_CONSTANT then
+		SimpleError("LHS of shift can only be constant if the RHS is also constant");
+	end if;
+end sub;
+
+sub expr_i_checkshift(lhs: [Node], rhs: [Node]) is
+	if IsNum(lhs.type) == 0 then
+		SimpleError("number required on LHS of shift");
+	end if;
+	CheckExpressionType(rhs, uint8_type);
+end sub;
+
+sub ExprShift(sop: uint8, uop: uint8, lhs: [Node], rhs: [Node]): (result: [Node]) is
+	var op := uop;
+	if IsSNum(lhs.type) != 0 then
+		op := sop;
+	end if;
+
+	if lhs.op == MIDCODE_CONSTANT then
+		expr_i_checkrhsconst(rhs);
+		lhs.constant.value := FoldConstant2(op, lhs, rhs);
+		result := lhs;
+		Discard(rhs);
+		return;
+	end if;
+	expr_i_checkshift(lhs, rhs);
+
+	var ltype := lhs.type;
+	result := MidC2Op(op, NodeWidth(lhs), lhs, rhs);
+	result.type := ltype;
+end sub;
+
+
