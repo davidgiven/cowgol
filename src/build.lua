@@ -15,7 +15,17 @@ rule {
 		"src/midcodes.coh.tab",
 	},
 	outs = { "$OBJ/midcodes.coh" },
-	cmd = "$LUA @1 -- @3 &1"
+	cmd = "$LUA @1 -- @3 &1 combined"
+}
+
+rule {
+	ins = {
+		"scripts/mkmidcodescoh.lua",
+		"scripts/libcowgol.lua",
+		"src/midcodes.coh.tab",
+	},
+	outs = { "$OBJ/midcodesfe.coh" },
+	cmd = "$LUA @1 -- @3 &1 fe"
 }
 
 function uncoo(e)

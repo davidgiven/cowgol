@@ -23,10 +23,6 @@ sub PrintNodes(rootnode: [Node]) is
 		print_char(' ');
 		print_i8(node.op);
 		print_char(' ');
-		print_hex_i16(node.desired_reg as uint16);
-		print_char(' ');
-		print_hex_i16(node.produced_reg as uint16);
-		print_char(' ');
 		print_hex_i32(node.left as intptr as uint32);
 		print_char(' ');
 		print_hex_i32(node.right as intptr as uint32);

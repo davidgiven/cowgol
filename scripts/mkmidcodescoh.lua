@@ -3,6 +3,11 @@ require "./scripts/libcowgol"
 local args = {...}
 local infilename = args[2]
 local outfilename = args[3]
+local mode = args[4]
+
+if mode == nil then
+	error("must supply mode")
+end
 
 local midcodes = loadmidcodes(infilename)
 
@@ -42,10 +47,12 @@ end
 hfp:write("\ttype: [Type];\n")
 hfp:write("\tleft: [Node];\n")
 hfp:write("\tright: [Node];\n")
-hfp:write("\tproducer: [Instruction];\n")
-hfp:write("\tconsumer: [Instruction];\n")
-hfp:write("\tdesired_reg: RegId;\n")
-hfp:write("\tproduced_reg: RegId;\n")
+if mode == "combined" then
+	hfp:write("\tproducer: [Instruction];\n")
+	hfp:write("\tconsumer: [Instruction];\n")
+	hfp:write("\tdesired_reg: RegId;\n")
+	hfp:write("\tproduced_reg: RegId;\n")
+end
 hfp:write("\top: uint8;\n")
 hfp:write("end record;\n");
 
