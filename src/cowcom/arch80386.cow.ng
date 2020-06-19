@@ -225,6 +225,15 @@
 		RegCacheLeavesAddress(reg, sym, off);
 	end sub;
 			
+	sub E_loadsubref(reg: RegId, subr: [Subroutine]) is
+		R_flush(reg);
+		E("\tlea ");
+		E_subref(subr);
+		E_comma();
+		E_reg(reg);
+		E_nl();
+	end sub;
+			
 	sub E_mov(reg: RegId) is
 		if (reg & REGCLASS_RH8) != 0 then
 			E("\tmovb ");
@@ -794,27 +803,27 @@ gen RETURN()
 }
 
 %{
-	sub Call(addr: [MidcodeAddress]) is
-		E_call(addr.sym.typedata.subrtype.subr);
+	sub Call(addr: [MidcodeSubref]) is
+		E_call(addr.subr);
 	end sub;
 %}
 
-gen        CALL(       param,       ADDRESS():a) uses r32                 { Call(&$a); }
-gen        CALL(  ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen        CALL(  ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen        CALL(  ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(       param,       SUBREF():a) uses r32                 { Call(&$a); }
+gen        CALL(  ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(  ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(  ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(     param,       SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(     param,       SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(     param,       SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
 
 gen        CALL(       param,       ebx) uses r32                 { E_callebx(); }
 gen        CALL(  ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
@@ -861,6 +870,11 @@ gen r8|r16|r32 := CONSTANT():c
 gen r32 := ADDRESS():a
 {
 	E_loadaddr($$, $a.sym, $a.off);
+}
+
+gen r32 := SUBREF():a
+{
+	E_loadsubref($$, $a.subr);
 }
 
 // --- Loads ---------------------------------------------------------------
@@ -1136,19 +1150,27 @@ gen INIT4():c
 	E_nl();
 }
 
-gen INITA():a
+gen INITADDRESS():a
 {
 	E("\t.long ");
-	E_symref($a.sym, $a.off);
-	E_nl();
+    E_symref($a.sym, $a.off);
+    E_nl();
 }
 
-gen INITS():s
+gen INITSUBREF():a
 {
 	E("\t.long ");
-	E_string($s.text);
-	E_nl();
+    E_subref($a.subr);
+    E_nl();
 }
+
+gen INITSTRING():s
+{
+	E("\t.long ");
+    E_string($s.text);
+    E_nl();
+}
+
 
 // --- Inline assembly ------------------------------------------------------
 

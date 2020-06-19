@@ -216,6 +216,10 @@
 		E("\tret\n");
 	end sub;
 
+	sub E_dw() is
+		E("\tdw ");
+	end sub;
+
 	sub E_mov(dest: RegId, src: RegId) is
 		R_flush(dest);
 		E_tab();
@@ -388,6 +392,15 @@
 		E_symref(sym, off);
 		E_nl();
 		#RegCacheLeavesAddress(reg, sym, off);
+	end sub;
+
+	sub E_lxisub(reg: RegId, subr: [Subroutine]) is
+		R_flush(reg);
+		E("\tlxi ");
+		E_reg(reg);
+		E_comma();
+		E_subref(subr);
+		E_nl();
 	end sub;
 
 	sub E_lda(sym: [Symbol], off: Size) is
@@ -767,8 +780,8 @@ gen ENDSUB()
 }
 
 %{
-	sub Call(addr: [MidcodeAddress]) is
-		E_call(addr.sym.typedata.subrtype.subr);
+	sub Call(addr: [MidcodeSubref]) is
+		E_call(addr.subr);
 	end sub;
 
 	sub CallI is
@@ -776,18 +789,18 @@ gen ENDSUB()
 	end sub;
 %}
 
-gen         CALL(       param,      ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
-gen         CALL(  ARG1(param, a),  ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
-gen         CALL(  ARG2(param, hl), ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
-gen a :=    CALLE1(     param,      ADDRESS():a) uses   bc|de|hl { Call(&$a); }
-gen a :=    CALLE1(ARG1(param, a),  ADDRESS():a) uses   bc|de|hl { Call(&$a); }
-gen a :=    CALLE1(ARG2(param, hl), ADDRESS():a) uses   bc|de|hl { Call(&$a); }
-gen hl :=   CALLE2(     param,      ADDRESS():a) uses a|bc|de    { Call(&$a); }
-gen hl :=   CALLE2(ARG1(param, a),  ADDRESS():a) uses a|bc|de    { Call(&$a); }
-gen hl :=   CALLE2(ARG2(param, hl), ADDRESS():a) uses a|bc|de    { Call(&$a); }
-gen stk4 := CALLE4(     param,      ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
-gen stk4 := CALLE4(ARG1(param, a),  ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
-gen stk4 := CALLE4(ARG2(param, hl), ADDRESS():a) uses a|bc|de|hl { Call(&$a); }
+gen         CALL(       param,      SUBREF():a) uses a|bc|de|hl { Call(&$a); }
+gen         CALL(  ARG1(param, a),  SUBREF():a) uses a|bc|de|hl { Call(&$a); }
+gen         CALL(  ARG2(param, hl), SUBREF():a) uses a|bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(     param,      SUBREF():a) uses   bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(ARG1(param, a),  SUBREF():a) uses   bc|de|hl { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, hl), SUBREF():a) uses   bc|de|hl { Call(&$a); }
+gen hl :=   CALLE2(     param,      SUBREF():a) uses a|bc|de    { Call(&$a); }
+gen hl :=   CALLE2(ARG1(param, a),  SUBREF():a) uses a|bc|de    { Call(&$a); }
+gen hl :=   CALLE2(ARG2(param, hl), SUBREF():a) uses a|bc|de    { Call(&$a); }
+gen stk4 := CALLE4(     param,      SUBREF():a) uses a|bc|de|hl { Call(&$a); }
+gen stk4 := CALLE4(ARG1(param, a),  SUBREF():a) uses a|bc|de|hl { Call(&$a); }
+gen stk4 := CALLE4(ARG2(param, hl), SUBREF():a) uses a|bc|de|hl { Call(&$a); }
 
 gen         CALL(       param,      de) uses a|bc|hl { CallI(); }
 gen         CALL(  ARG1(param, a),  de) uses   bc|hl { CallI(); }
@@ -854,6 +867,11 @@ gen stk4 := CONSTANT():rhs uses hl
 gen bc|de|hl := ADDRESS():a
 {
 	E_lxia($$, $a.sym, $a.off);
+}
+
+gen bc|de|hl := SUBREF():a
+{
+	E_lxisub($$, $a.subr);
 }
 
 // --- 8-bit loads and stores -----------------------------------------------
@@ -1627,18 +1645,25 @@ gen INIT4():c
 	E_nl();
 }
 
-gen INITS():s
+gen INITADDRESS():a
 {
-	E("\tdw ");
-	E_string($s.text);
-	E_nl();
+    E_dw();
+    E_symref($a.sym, $a.off);
+    E_nl();
 }
 
-gen INITA():a
+gen INITSUBREF():a
 {
-	E("\tdw ");
-	E_symref($a.sym, $a.off);
-	E_nl();
+    E_dw();
+    E_subref($a.subr);
+    E_nl();
+}
+
+gen INITSTRING():s
+{
+    E_dw();
+    E_string($s.text);
+    E_nl();
 }
 
 // --- Inline assembly ------------------------------------------------------

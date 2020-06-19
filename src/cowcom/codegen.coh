@@ -422,6 +422,7 @@ sub ReallyGenerate(rootnode: [Node]) is
 						continue;
 					end if;
 
+					PrintNodes(rootnode);
 					StartError();
 					print("unmatched instruction: ");
 					i := 0;

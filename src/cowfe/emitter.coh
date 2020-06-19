@@ -18,6 +18,10 @@ sub E_b32(quad: uint32) is
 	E_b16((quad>>16) as uint16);
 end sub;
 
+sub E_bsize(size: Size) is
+	E_b32(size as uint32);
+end sub;
+
 sub E_space() is
 	E_b8(' ');
 end sub;
@@ -51,6 +55,11 @@ sub E(text: string) is
 		end if;
 		E_b8(c);
 	end loop;
+end sub;
+
+sub E_countedstring(text: string) is
+	E_b8(StrLen(text) as uint8);
+	E(text);
 end sub;
 
 sub E_u32(value: uint32) is
@@ -145,15 +154,13 @@ end sub;
 sub EmitterDeclareSubroutine(subr: [Subroutine]) is
 	E_b8('N');
 	E_b16(subr.id);
-	E(subr.symbol.name);
-	E_b8(0);
+	E_countedstring(subr.symbol.name);
 end sub;
 
 sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
 	E_b8('N');
 	E_b16(id);
-	E(external);
-	E_b8(0);
+	E_countedstring(external);
 end sub;
 
 sub EmitterReferenceSubroutineById(user: uint16, used: uint16) is

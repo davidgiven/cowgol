@@ -8,7 +8,10 @@ sub AllocSubrId(): (id: uint16) is
 	next_subr_id := next_subr_id + 1;
 end sub;
 
+interface MidWriter(node: [Node]);
+
 include "arch.coh";
+include "cobout.coh";
 
 sub PrintNodes(rootnode: [Node]) is
 	var old_next_node := next_node;
@@ -37,6 +40,8 @@ sub ReallyGenerate(rootnode: [Node]) is
 	while next_node != old_next_node loop
 		var n := NextNode();
 		E_b8(n.op);
+		var sig := signatures[n.op - 1]; # array starts at midcode 1
+		(writers[sig])(n);
 	end loop;
 	Discard(rootnode);
 end sub;

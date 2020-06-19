@@ -475,6 +475,18 @@
         E_nl();
     end sub;
 
+    sub E_loadsubref(subr: [Subroutine]) is
+        E_lda();
+        E_constlo();
+        E_subref(subr);
+        E_nl();
+
+        E_ldx();
+        E_consthi();
+        E_subref(subr);
+        E_nl();
+    end sub;
+
     sub E_loadstackref(sid: uint16) is
         E_lda();
         E_constlo();
@@ -1304,16 +1316,16 @@ gen RETURN()
         E_bpl(lid);
     end sub;
 
-    sub Call(addr: [MidcodeAddress]) is
-        E_call(addr.sym.typedata.subrtype.subr);
+    sub Call(addr: [MidcodeSubref]) is
+        E_call(addr.subr);
     end sub;
 
     sub CallI is
         E_callhelper("_jmpxa");
     end sub;
 
-    sub is_fast(sym: [Symbol]): (result: uint8) is
-        if (sym.typedata.subrtype.subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
+    sub is_fast(subr: [Subroutine]): (result: uint8) is
+        if (subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
             result := 1;
         else
             result := 0;
@@ -1321,18 +1333,18 @@ gen RETURN()
     end sub;
 %}
 
-gen        CALL(       param,      ADDRESS():a)            uses x|y|a { Call(&$a); }
-gen        CALL(  ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); }
-gen        CALL(  ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); }
-gen a :=   CALLE1(     param,      ADDRESS():a)            uses x|y   { Call(&$a); }
-gen a :=   CALLE1(ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y   { Call(&$a); }
-gen a :=   CALLE1(ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y   { Call(&$a); }
-gen xa :=  CALLE2(     param,      ADDRESS():a)            uses y     { Call(&$a); }
-gen xa :=  CALLE2(ARG1(param, a),  ADDRESS(sym is fast):a) uses y     { Call(&$a); }
-gen xa :=  CALLE2(ARG2(param, xa), ADDRESS(sym is fast):a) uses y     { Call(&$a); }
-gen v32 := CALLE4(     param,      ADDRESS():a)            uses x|y|a { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen        CALL(       param,      SUBREF():a)             uses x|y|a { Call(&$a); }
+gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):a) uses x|y|a { Call(&$a); }
+gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):a) uses x|y|a { Call(&$a); }
+gen a :=   CALLE1(     param,      SUBREF():a)             uses x|y   { Call(&$a); }
+gen a :=   CALLE1(ARG1(param, a),  SUBREF(subr is fast):a) uses x|y   { Call(&$a); }
+gen a :=   CALLE1(ARG2(param, xa), SUBREF(subr is fast):a) uses x|y   { Call(&$a); }
+gen xa :=  CALLE2(     param,      SUBREF():a)             uses y     { Call(&$a); }
+gen xa :=  CALLE2(ARG1(param, a),  SUBREF(subr is fast):a) uses y     { Call(&$a); }
+gen xa :=  CALLE2(ARG2(param, xa), SUBREF(subr is fast):a) uses y     { Call(&$a); }
+gen v32 := CALLE4(     param,      SUBREF():a)             uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG1(param, a),  SUBREF(subr is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG2(param, xa), SUBREF(subr is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
 
 gen        CALL(  param, xa) uses y { CallI(); }
 gen a :=   CALLE1(param, xa) uses y { CallI(); }
@@ -1521,6 +1533,11 @@ gen xa := CONSTANT():c
 gen xa := ADDRESS():a
 {
     E_loadaddr($a.sym, $a.off);
+}
+
+gen xa := SUBREF():a
+{
+    E_loadsubref($a.subr);
 }
 
 gen STORE2(xa, ADDRESS():a)
@@ -2180,14 +2197,21 @@ gen INIT4():c
     E_nl();
 }
 
-gen INITA():a
+gen INITADDRESS():a
 {
     E_dw();
     E_symref($a.sym, $a.off);
     E_nl();
 }
 
-gen INITS():s
+gen INITSUBREF():a
+{
+    E_dw();
+    E_subref($a.subr);
+    E_nl();
+}
+
+gen INITSTRING():s
 {
     var sid := E_string($s.text);
 

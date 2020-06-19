@@ -495,7 +495,7 @@ leafexpression(E) ::= oldid(S).
 			# by using the type as a subroutine literal, we save on having to
 			# create an extra symbol for it.
 			if S.typedata.kind == TYPE_SUBROUTINE then
-				E := MidAddress(S, 0);
+				E := MidSubref(S.typedata.subrtype.subr);
 				E.type := S.typedata.subrtype.subr.intfsubr.type;
 			else
 				not_a_value();
@@ -1373,13 +1373,19 @@ initialiser ::= expression(E).
 			if (IsPtr(type) == 0) or (type.pointertype.element != uint8_type) then
 				SimpleError("initialiser must be a string");
 			end if;
-			Generate(MidInits(E.string.text));
+			Generate(MidInitstring(E.string.text));
 
 		when MIDCODE_ADDRESS:
 			if type != E.type then
 				SimpleError("initialiser of wrong type");
 			end if;
-			Generate(MidInita(E.address.sym, E.address.off));
+			Generate(MidInitaddress(E.address.sym, E.address.off));
+
+		when MIDCODE_SUBREF:
+			if type != E.type then
+				SimpleError("initialiser of wrong type");
+			end if;
+			Generate(MidInitsubref(E.subref.subr));
 
 		when else:
 			parser_i_constant_error();

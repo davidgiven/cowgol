@@ -20,6 +20,16 @@ rule {
 
 rule {
 	ins = {
+		"scripts/mkcobout.lua",
+		"scripts/libcowgol.lua",
+		"src/midcodes.coh.tab",
+	},
+	outs = { "$OBJ/cobout.coh" },
+	cmd = "$LUA @1 -- @3 &1"
+}
+
+rule {
+	ins = {
 		"scripts/mkmidcodescoh.lua",
 		"scripts/libcowgol.lua",
 		"src/midcodes.coh.tab",

@@ -8,14 +8,6 @@ for _, arch in ipairs(ARCHS) do
 	}
 end
 
-lemoncowgol {
-	ins = { "src/cowfe/parser.y" },
-	outs = {
-		"$OBJ/src/cowfe/parser.coh",
-		"$OBJ/src/cowfe/parser.tokens.coh",
-	}
-}
-
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 	for _, arch in ipairs(ARCHS) do
 		cowgol {
@@ -38,6 +30,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"$OBJ/src/cowfe/parser.tokens.coh",
 				"$OBJ/cowfe-"..arch.."/arch.coh",
 				"$OBJ/midcodesfe.coh",
+				"$OBJ/cobout.coh",
 			},
 			outs = { "bin/cowfe-"..arch }
 		}

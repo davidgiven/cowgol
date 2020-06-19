@@ -114,33 +114,30 @@
 		E(")");
 	end sub;
 
+	sub E_subref_sig(subr: [Subroutine]) is
+		EmitterOpenStream(current_subr);
+
+		E("\tvoid ");
+		E_subref(subr);
+		EmitFunctionSignature(subr);
+		E(";\n");
+
+		EmitterCloseStream();
+		E_subref(subr);
+	end sub;
+
 	sub E_symref(sym: [Symbol], off: Size) is
-		case sym.kind is
-			when TYPE:
-				EmitterOpenStream(current_subr);
-
-                var subr := sym.typedata.subrtype.subr;
-				E("\tvoid ");
-				E_subref(subr);
-				EmitFunctionSignature(subr);
-				E(";\n");
-
-				EmitterCloseStream();
-				E_subref(subr);
-
-			when VAR:
-				if sym.vardata.externname != (0 as string) then
-					E("((i1*)");
-					E(sym.vardata.externname);
-					E_i16(off as int16);
-					E(")");
-				else
-					E_b8(COO_ESCAPE_WSREF);
-					E_b16(sym.vardata.subr.id);
-					E_b8(0);
-					E_b16(sym.vardata.offset + off);
-				end if;
-		end case;
+		if sym.vardata.externname != (0 as string) then
+			E("((i1*)");
+			E(sym.vardata.externname);
+			E_i16(off as int16);
+			E(")");
+		else
+			E_b8(COO_ESCAPE_WSREF);
+			E_b16(sym.vardata.subr.id);
+			E_b8(0);
+			E_b16(sym.vardata.offset + off);
+		end if;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -474,6 +471,17 @@ gen v8 := ADDRESS():a
 	E_u16(vid);
 	E(" = (i8)(intptr_t)(");
 	E_symref($a.sym, $a.off);
+	E(");\n");
+}
+
+gen v8 := SUBREF():a
+{
+	var vid := Push();
+
+	E("\ti8 v");
+	E_u16(vid);
+	E(" = (i8)(intptr_t)(");
+	E_subref_sig($a.subr);
 	E(");\n");
 }
 
@@ -993,7 +1001,16 @@ gen INIT2():c { E_bytes(&$c.value as [uint8], 2); }
 gen INIT4():c { E_bytes(&$c.value as [uint8], 4); }
 gen INIT8():c { E_bytes(&$c.value as [uint8], 8); }
 
-gen INITA():a
+gen INITSUBREF():a
+{
+	CheckBufferAlignment();
+
+	E("\t{ .ptr = (void*)");
+	E_subref($a.subr);
+	E(" },\n");
+}
+
+gen INITADDRESS():a
 {
 	CheckBufferAlignment();
 
@@ -1002,7 +1019,7 @@ gen INITA():a
 	E(" },\n");
 }
 
-gen INITS():s
+gen INITSTRING():s
 {
 	CheckBufferAlignment();
 

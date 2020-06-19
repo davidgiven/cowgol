@@ -1,8 +1,8 @@
 require "./scripts/libcowgol"
 
 local args = {...}
-local infilename = args[1]
-local outfilename = args[2]
+local infilename = args[2]
+local outfilename = args[3]
 
 local midcodes = loadmidcodes(infilename)
 
@@ -49,16 +49,16 @@ for sig, sigd in pairs(signatures) do
 			hfp:write("\tE_b16(", n, ".id);\n")
 		elseif a.type == "[Symbol]" then
 			hfp:write("\tE_b16(", n, ".vardata.subr.id);\n")
-			hfp:write("\tE_bsize(", n, ".vardata.subr.offset);\n")
+			hfp:write("\tE_bsize(", n, ".vardata.offset);\n")
 		elseif a.type == "string" then
-			hfp:write("\tE_countedstring(", n, ".text);\n")
+			hfp:write("\tE_countedstring(", n, ");\n")
 		else
 			error("unknown type "..a.type)
 		end
 	end
 	hfp:write("end sub;\n")
 end
-hfp:write("var writers: MidWriter[] = {\n")
+hfp:write("var writers: MidWriter[] := {\n")
 for i = 1, sigid-1 do
 	hfp:write("\tWriteMid"..i..",\n")
 end
@@ -68,7 +68,7 @@ local bynumber = {}
 for m, md in pairs(midcodes) do
 	bynumber[md.id] = md
 end
-hfp:write("var signatures: uint8[] = {\n")
+hfp:write("var signatures: uint8[] := {\n")
 for _, md in ipairs(bynumber) do
 	hfp:write("\t", signatures[md.signature].id-1, ", # ", md.name, "\n")
 end
