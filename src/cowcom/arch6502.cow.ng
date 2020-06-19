@@ -521,11 +521,11 @@
     end sub;
 
     sub E_jumps_with_fallthrough(trueoc: uint8, falseoc: uint8, node: [Node]) is
-        if node.beq0.truelabel != node.beq0.fallthrough then
-            E_jump(trueoc, node.beq0.truelabel);
+        if node.beq.truelabel != node.beq.fallthrough then
+            E_jump(trueoc, node.beq.truelabel);
         end if;
-        if node.beq0.falselabel != node.beq0.fallthrough then
-            E_jump(falseoc, node.beq0.falselabel);
+        if node.beq.falselabel != node.beq.fallthrough then
+            E_jump(falseoc, node.beq.falselabel);
         end if;
     end sub;
 
@@ -1923,13 +1923,13 @@ gen BLTS2(xa:lhs, in2s:rhs):c
 
         DoParamIndirect_lda(lhs);
         DoParamIndirect(rhs, OC_CMP, 0);
-        E_bne(node.beq0.falselabel);
+        E_bne(node.beq.falselabel);
 
         E_dey();
         E_bpl(lid);
 
-        if node.beq0.fallthrough != node.beq0.truelabel then
-            E_jmp(node.beq0.truelabel);
+        if node.beq.fallthrough != node.beq.truelabel then
+            E_jmp(node.beq.truelabel);
         end if;
     end sub;
 

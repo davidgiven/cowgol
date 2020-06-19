@@ -487,16 +487,16 @@ gen s4 := EOR4(s4, s4) { E_callhelper("eor4"); }
 
 %{
 	sub Branch(node: [Node], truehelper: string, falsehelper: string) is
-        if node.beq0.truelabel != node.beq0.fallthrough then
+        if node.beq.truelabel != node.beq.fallthrough then
 			E_callhelper(truehelper);
 			E_dw();
-			E_labelref(node.beq0.truelabel);
+			E_labelref(node.beq.truelabel);
 			E_nl();
         end if;
-        if node.beq0.falselabel != node.beq0.fallthrough then
+        if node.beq.falselabel != node.beq.fallthrough then
 			E_callhelper(falsehelper);
 			E_dw();
-			E_labelref(node.beq0.falselabel);
+			E_labelref(node.beq.falselabel);
 			E_nl();
         end if;
     end sub;
@@ -555,7 +555,7 @@ gen s2 := CAST42(s4) { E_callhelper("cast42"); }
 		E_callhelper(helper);
 
 		E_dw();
-		E_labelref(node.whencase0.falselabel);
+		E_labelref(node.whencase.falselabel);
 		E_nl();
 
 		E_tab();

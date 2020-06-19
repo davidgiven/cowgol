@@ -750,9 +750,9 @@ gen v8 := RSHIFTS8(v8, v1) { Shift(8, "s8", ">>"); }
 		E("v");
 		E_u16(rhsid);
 		E(") goto ");
-		E_labelref(node.beq0.truelabel);
+		E_labelref(node.beq.truelabel);
 		E("; else goto ");
-		E_labelref(node.beq0.falselabel);
+		E_labelref(node.beq.falselabel);
 		E(";\n");
 	end sub;
 
@@ -769,18 +769,18 @@ gen v8 := RSHIFTS8(v8, v1) { Shift(8, "s8", ">>"); }
 		E(")v");
 		E_u16(rhsid);
 		E(") goto ");
-		E_labelref(node.beq0.truelabel);
+		E_labelref(node.beq.truelabel);
 		E("; else goto ");
-		E_labelref(node.beq0.falselabel);
+		E_labelref(node.beq.falselabel);
 		E(";\n");
 	end sub;
 
 	sub BranchConstant(node: [Node], lhs: Arith, rhs: Arith) is
 		E("\tgoto ");
 		if lhs == rhs then
-			E_labelref(node.beq0.truelabel);
+			E_labelref(node.beq.truelabel);
 		else
-			E_labelref(node.beq0.falselabel);
+			E_labelref(node.beq.falselabel);
 		end if;
 		E(";\n");
 	end sub;

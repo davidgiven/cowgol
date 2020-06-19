@@ -26,7 +26,11 @@ end
 
 -- Midcode subrecords.
 
+local basemidcodes = {}
 for m, md in pairs(midcodes) do
+	basemidcodes[md.base] = md
+end
+for m, md in pairs(basemidcodes) do
     if (#md.args > 0) then
         hfp:write("record Midcode", title(m), " is\n")
         for _, a in ipairs(md.args) do
@@ -39,9 +43,9 @@ end
 -- Midcode structure itself.
 
 hfp:write("record Node is\n");
-for m, md in pairs(midcodes) do
+for m, md in pairs(basemidcodes) do
     if (#md.args > 0) then
-        hfp:write("\t", m:lower(), " @at(0): Midcode", title(m), ";\n")
+        hfp:write("\t", m:lower(), " @at(0): Midcode", title(md.base), ";\n")
     end
 end
 hfp:write("\ttype: [Type];\n")
@@ -107,7 +111,7 @@ local function write_midcode_constructor(m, t)
 		hfp:write('\tm.right := right;\n')
 	end
     for _, a in ipairs(t.args) do
-        hfp:write("\tm.", m:lower(), ".", a.name, " := ", a.name, ";\n")
+        hfp:write("\tm.", t.base:lower(), ".", a.name, " := ", a.name, ";\n")
     end
     hfp:write("end sub;\n")
 end

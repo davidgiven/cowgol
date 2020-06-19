@@ -262,7 +262,7 @@ sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node]) is
 		end case;
 		result := AllocateNewNode(op + WidthToIndex(width));
 		result.left := lhs;
-		result.cast10.sext := issigned;
+		result.cast1.sext := issigned;
 	end if;
 end sub;
 

@@ -429,7 +429,7 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 				#else
 					fprintf(outfp, " (is_%s(n[%d]->u.", predicate->u.callback, index);
 				#endif
-				print_lower(terminals[template->midcode]);
+				print_lower(midcodetypes[template->midcode]);
 				fprintf(outfp, ".%s) != 0)", predicate->field);
 				break;
 
@@ -439,7 +439,7 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 				#else
 					fprintf(outfp, " (n[%d]->u.", index);
 				#endif
-				print_lower(terminals[template->midcode]);
+				print_lower(midcodetypes[template->midcode]);
 				fprintf(outfp, ".%s %s %d)",
 					predicate->field,
 					operator_name(predicate->operator),
@@ -648,7 +648,7 @@ static void print_complex_action(Rule* r, Element* e)
 				#else
 					fprintf(outfp, "self" DEREF "n[%d]" DEREF "u.", node->index);
 				#endif
-				print_lower(terminals[node->midcode]);
+				print_lower(midcodetypes[node->midcode]);
 			}
 		}
 	}

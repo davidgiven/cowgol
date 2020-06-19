@@ -157,9 +157,9 @@ startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
 	Generate(MidLabel(continue_label));
 	var t := AllocLabel();
 	break_label := AllocLabel();
-	C.beq0.truelabel := t;
-	C.beq0.falselabel := break_label;
-	C.beq0.fallthrough := t;
+	C.beq.truelabel := t;
+	C.beq.falselabel := break_label;
+	C.beq.fallthrough := t;
 	GenerateConditional(C);
 	LL.exit_label := break_label;
 }
@@ -206,9 +206,9 @@ if_conditional ::= conditional(C).
 	var f := AllocLabel();
 	current_if.true_label := t;
 	current_if.false_label := f;
-	C.beq0.truelabel := t;
-	C.beq0.falselabel := f;
-	C.beq0.fallthrough := t;
+	C.beq.truelabel := t;
+	C.beq.falselabel := f;
+	C.beq.fallthrough := t;
 	GenerateConditional(C);
 }
 
@@ -298,7 +298,7 @@ conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
 %include
 {
 	sub Negate(node: [Node]) is
-		node.beq0.negated := node.beq0.negated ^ 1;
+		node.beq.negated := node.beq.negated ^ 1;
 	end sub;
 }
 

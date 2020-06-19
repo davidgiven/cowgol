@@ -1260,11 +1260,11 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 
 %{
 	sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node]) is
-		if node.beq0.truelabel != node.beq0.fallthrough then
-			E_jump(trueinsn, node.beq0.truelabel);
+		if node.beq.truelabel != node.beq.fallthrough then
+			E_jump(trueinsn, node.beq.truelabel);
 		end if;
-		if node.beq0.falselabel != node.beq0.fallthrough then
-			E_jump(falseinsn, node.beq0.falselabel);
+		if node.beq.falselabel != node.beq.fallthrough then
+			E_jump(falseinsn, node.beq.falselabel);
 		end if;
 	end sub;
 
@@ -1325,11 +1325,11 @@ gen stk4 := RSHIFTS4(stk4, b) uses a|de|hl
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith) is
-		var label := node.beq0.falselabel;
+		var label := node.beq.falselabel;
 		if lhs == rhs then
-			label := node.beq0.truelabel;
+			label := node.beq.truelabel;
 		end if;
-		if label != node.beq0.fallthrough then
+		if label != node.beq.fallthrough then
 			E_jmp(label);
 		end if;
 	end sub;
