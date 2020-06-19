@@ -136,41 +136,38 @@ sub EmitterOpenfile(filename: string) is
 end sub;
 
 sub EmitterClosefile() is
+	E_b8('E');
 	if FCBClose(&outfcb) != 0 then
 		SimpleError("cannot close output file");
 	end if;
 end sub;
 
 sub EmitterDeclareSubroutine(subr: [Subroutine]) is
-#	var len := StrLen(subr.symbol.name) as uint16;
-#
-#	WriteB8('N');
-#	WriteB16(len + 2);
-#	WriteB16(subr.id);
-#	FCBPutBlock(&outfcb, subr.symbol.name, len as intptr);
+	E_b8('N');
+	E_b16(subr.id);
+	E(subr.symbol.name);
+	E_b8(0);
 end sub;
 
 sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
-#	var len := StrLen(external) as uint16;
-#
-#	WriteB8('X');
-#	WriteB16(len + 2);
-#	WriteB16(id);
-#	FCBPutBlock(&outfcb, external, len as intptr);
+	E_b8('N');
+	E_b16(id);
+	E(external);
+	E_b8(0);
 end sub;
 
 sub EmitterReferenceSubroutineById(user: uint16, used: uint16) is
-#	WriteB8('R');
-#	WriteB16(4);
-#	WriteB16(user);
-#	WriteB16(used);
+	E_b8('R');
+	E_b16(user);
+	E_b16(used);
 end sub;
 
 sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine]) is
-#	EmitterReferenceSubroutineById(user.id, used.id);
+	EmitterReferenceSubroutineById(user.id, used.id);
 end sub;
 
 sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
+	E_b8('W');
 #	WriteB8('W');
 #	WriteB16(5);
 #	WriteB16(subr.id);

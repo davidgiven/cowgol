@@ -31,6 +31,13 @@ sub PrintNodes(rootnode: [Node]) is
 end sub;
 
 sub ReallyGenerate(rootnode: [Node]) is
+	E_b8('M');
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
+		var n := NextNode();
+		E_b8(n.op);
+	end loop;
 	Discard(rootnode);
 end sub;
 
