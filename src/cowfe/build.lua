@@ -17,11 +17,7 @@ lemoncowgol {
 }
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
-	local archs = toolchain.archs
-	if not archs then
-		archs = ARCHS
-	end
-	for _, arch in ipairs(archs) do
+	for _, arch in ipairs(ARCHS) do
 		cowgol {
 			toolchain = toolchain,
 			ins = {

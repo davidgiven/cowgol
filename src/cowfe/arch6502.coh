@@ -6,6 +6,11 @@ var uint8_type: [Type];
 var int8_type: [Type];
 var intptr_type: [Type];
 
+const VARMEM_WS := 0;
+const PTRMEM_WS := 1;
+const VARSTACK_WS := 2;
+const PTRSTACK_WS := 3;
+
 sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 	newvalue := value;
 end sub;
@@ -36,6 +41,27 @@ sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 	else
 		symbol := int32_type;
 	end if;
+end sub;
+
+sub is_zp(sym: [Symbol]): (result: uint8) is
+	if (sym.vardata.type.width == 1)
+			or (IsPtr(sym.vardata.type) != 0) then
+		result := 1;
+	else
+		result := 0;
+	end if;
+end sub;
+
+sub ArchInitVariable(symbol: [Symbol]) is
+	var wsid: uint8 := VARMEM_WS;
+	if is_zp(symbol) != 0 then
+		wsid := PTRMEM_WS;
+	end if;
+
+	var subr := symbol.vardata.subr;
+	var offset := subr.workspace[wsid];
+	symbol.vardata.offset := offset;
+	subr.workspace[wsid] := offset + symbol.vardata.type.width;
 end sub;
 
 sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is

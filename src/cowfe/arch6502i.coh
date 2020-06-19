@@ -38,6 +38,13 @@ sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 	end if;
 end sub;
 
+sub ArchInitVariable(symbol: [Symbol]) is
+	var subr := symbol.vardata.subr;
+	var offset := subr.workspace[0];
+	symbol.vardata.offset := offset;
+	subr.workspace[0] := offset + symbol.vardata.type.width;
+end sub;
+
 sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
 	member.vardata.offset := position;
 	position := position + member.vardata.type.width;
