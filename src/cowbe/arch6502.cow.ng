@@ -1,12 +1,4 @@
 %{
-    var uint32_type: [Type];
-    var int32_type: [Type];
-    var uint16_type: [Type];
-    var int16_type: [Type];
-    var uint8_type: [Type];
-    var int8_type: [Type];
-    var intptr_type: [Type];
-
     const VARMEM_WS := 0;
     const PTRMEM_WS := 1;
     const VARSTACK_WS := 2;
@@ -43,60 +35,11 @@
         newvalue := value;
     end sub;
 
-    sub ArchInitTypes() is
-        uint32_type := MakeNumberType(4, 1, 0, "uint32");
-        int32_type := MakeNumberType(4, 1, 1, "int32");
-        uint16_type := MakeNumberType(2, 1, 0, "uint16");
-        int16_type := MakeNumberType(2, 1, 1, "int16");
-        uint8_type := MakeNumberType(1, 1, 0, "uint8");
-        int8_type := MakeNumberType(1, 1, 1, "int8");
-
-		intptr_type := uint16_type;
-		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint16"));
-    end sub;
-
-    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
-        if (min >= 0) and (max <= 255) then
-            symbol := uint8_type;
-        elseif (min >= -128) and (max <= 127) then
-            symbol := int8_type;
-        elseif (min >= 0) and (max <= 65535) then
-            symbol := uint16_type;
-        elseif (min >= -32768) and (max <= 32767) then
-            symbol := int16_type;
-        elseif (min >= 0) then
-            symbol := uint32_type;
-        else
-            symbol := int32_type;
-        end if;
-    end sub;
-
     sub is_zp(sym: [Symbol]): (result: uint8) is
-        if (sym.vardata.type.width == 1)
-                or (IsPtr(sym.vardata.type) != 0) then
+        if (sym.wsid == PTRMEM_WS) or (sym.wsid == PTRSTACK_WS) then
             result := 1;
         else
             result := 0;
-        end if;
-    end sub;
-
-    sub ArchInitVariable(symbol: [Symbol]) is
-        var wsid: uint8 := VARMEM_WS;
-        if is_zp(symbol) != 0 then
-            wsid := PTRMEM_WS;
-        end if;
-
-        var subr := symbol.vardata.subr;
-        var offset := subr.workspace[wsid];
-        symbol.vardata.offset := offset;
-        subr.workspace[wsid] := offset + symbol.vardata.type.width;
-    end sub;
-
-    sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
-        member.vardata.offset := position;
-        position := position + member.vardata.type.width;
-        if position > containing.width then
-            containing.width := position;
         end if;
     end sub;
 
@@ -219,18 +162,12 @@
     end sub;
 
     sub E_symref(sym: [Symbol], off: Size) is
-        case sym.kind is
-            when TYPE:
-                E_subref(sym.typedata.subrtype.subr);
-
-            when VAR:
-                if sym.vardata.externname != (0 as string) then
-                    E(sym.vardata.externname);
-                    E_i16(off as int16);
-                else
-                    E_wsref(sym.vardata.subr.id, GetWsId(sym), sym.vardata.offset + off);
-                end if;
-        end case;
+        if sym.vardata.externname != (0 as string) then
+            E(sym.vardata.externname);
+            E_i16(off as int16);
+        else
+            E_wsref(sym.vardata.subr.id, GetWsId(sym), sym.vardata.offset + off);
+        end if;
     end sub;
 
     sub E_y_nl()    is E(",y\n"); end sub;
@@ -2240,13 +2177,7 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	case $s.sym.kind is
-		when VAR:
-			E_symref($s.sym, 0);
-
-		when TYPE:
-			E_subref($s.sym.typedata.subrtype.subr);
-    end case;
+    E_symref($s.sym, 0);
     E_space();
 }
 

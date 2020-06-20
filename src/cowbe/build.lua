@@ -1,13 +1,5 @@
 local ARCHS = { "65c02-tiny", "6502i", "65c02", "6502", "z80", "8080", "80386", "cgen" }
 
-lemoncowgol {
-	ins = { "src/cowbe/parser.y" },
-	outs = {
-		"$OBJ/src/cowbe/parser.coh",
-		"$OBJ/src/cowbe/parser.tokens.coh",
-	}
-}
-
 local extras = {
 	["65c02"] = "src/cowbe/arch6502.cow.ng",
 	["65c02-tiny"] = "src/cowbe/arch6502.cow.ng"
@@ -27,11 +19,7 @@ for _, arch in ipairs(ARCHS) do
 end
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
-	local archs = toolchain.archs
-	if not archs then
-		archs = ARCHS
-	end
-	for _, arch in ipairs(archs) do
+	for _, arch in ipairs(ARCHS) do
 		cowgol {
 			toolchain = toolchain,
 			ins = {
@@ -40,16 +28,12 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowbe/allocator.coh",
 				"src/cowbe/codegen.coh",
 				"src/cowbe/emitter.coh",
-				"src/cowbe/expressions.coh",
-				"src/cowbe/lexer.coh",
+				"src/cowbe/inputter.coh",
 				"src/cowbe/midcodec.coh",
-				"src/cowbe/namespace.coh",
 				"src/cowbe/regcache.coh",
-				"src/cowbe/symbols.coh",
 				"src/cowbe/treewalker.coh",
 				"src/cowbe/types.coh",
-				"$OBJ/src/cowbe/parser.coh",
-				"$OBJ/src/cowbe/parser.tokens.coh",
+				"src/cowbe/utils.coh",
 				"$OBJ/cowbe-"..arch.."/inssel.coh",
 				"$OBJ/cowbe-"..arch.."/inssel.decl.coh",
 				"$OBJ/midcodes.coh",

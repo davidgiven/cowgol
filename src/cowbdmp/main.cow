@@ -8,9 +8,9 @@ print("COWBDMP: ");
 print_i16((GetFreeMemory() >> 10) as uint16);
 print("kB free\n");
 
-include "types.coh";
-include "utils.coh";
-include "inputter.coh";
+include "src/cowbdmp/types.coh";
+include "src/cowbe/utils.coh";
+include "src/cowbe/inputter.coh";
 include "cobin.coh";
 
 sub SyntaxError() is

@@ -78,6 +78,7 @@ record Symbol is
 	namespace: [Namespace];
 	next: [Symbol];
 	kind: uint8;
+	wsid: uint8;
 end record;
 
 const SUB_HAS_IMPL          := 0b001;
