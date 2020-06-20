@@ -34,7 +34,17 @@ for m, md in pairs(basemidcodes) do
     if (#md.args > 0) then
         hfp:write("record Midcode", title(m), " is\n")
         for _, a in ipairs(md.args) do
-            hfp:write("\t", a.name, ": ", a.type, ";\n")
+			if mode == "be" then
+				if a.type == "[Subroutine]" then
+					hfp:write("\t", a.name, ": SubrId;\n")
+				elseif a.type == "[Symbol]" then
+					hfp:write("\t", a.name, ": Symbol;\n")
+				else
+					hfp:write("\t", a.name, ": ", a.type, ";\n")
+				end
+			else
+				hfp:write("\t", a.name, ": ", a.type, ";\n")
+			end
         end
         hfp:write("end record;\n")
     end
@@ -51,7 +61,7 @@ end
 hfp:write("\ttype: [Type];\n")
 hfp:write("\tleft: [Node];\n")
 hfp:write("\tright: [Node];\n")
-if mode == "combined" then
+if (mode == "combined") or (mode == "be") then
 	hfp:write("\tproducer: [Instruction];\n")
 	hfp:write("\tconsumer: [Instruction];\n")
 	hfp:write("\tdesired_reg: RegId;\n")
@@ -62,62 +72,64 @@ hfp:write("end record;\n");
 
 -- Routines for allocating midnodes.
 
-local function write_midcode_constructor(m, t)
-	local first = true
-	if t.hassizes then
-		if not m:find("0$") then
-			return
-		end
-		hfp:write("sub Mid", title(m):gsub("0$", ""), "(width: uint8")
-		first = false
-	else
-		hfp:write("sub Mid", title(m), "(")
-	end
-
-	if t.ins >= 1 then
-		if not first then
-			hfp:write(', ')
-		end
-		hfp:write('left: [Node]')
-		first = false
-	end
-	if t.ins == 2 then
-		if not first then
-			hfp:write(', ')
-		end
-		hfp:write('right: [Node]')
-		first = false
-	end
-    if (#t.args > 0) then
-        for _, a in ipairs(t.args) do
-            if not first then
-                hfp:write(", ")
-            end
-            hfp:write(a.name, ": ", a.type)
+if mode ~= "be" then
+	local function write_midcode_constructor(m, t)
+		local first = true
+		if t.hassizes then
+			if not m:find("0$") then
+				return
+			end
+			hfp:write("sub Mid", title(m):gsub("0$", ""), "(width: uint8")
 			first = false
-        end
-    end
-    hfp:write("): (m: [Node]) is\n")
-    hfp:write("\tm := AllocateNewNode(MIDCODE_", m)
-	if t.hassizes then
-		hfp:write(" + WidthToIndex(width)")
-	end
-	hfp:write(");\n")
+		else
+			hfp:write("sub Mid", title(m), "(")
+		end
 
-	if t.ins >= 1 then
-		hfp:write('\tm.left := left;\n')
-	end
-	if t.ins == 2 then
-		hfp:write('\tm.right := right;\n')
-	end
-    for _, a in ipairs(t.args) do
-        hfp:write("\tm.", t.base:lower(), ".", a.name, " := ", a.name, ";\n")
-    end
-    hfp:write("end sub;\n")
-end
+		if t.ins >= 1 then
+			if not first then
+				hfp:write(', ')
+			end
+			hfp:write('left: [Node]')
+			first = false
+		end
+		if t.ins == 2 then
+			if not first then
+				hfp:write(', ')
+			end
+			hfp:write('right: [Node]')
+			first = false
+		end
+		if (#t.args > 0) then
+			for _, a in ipairs(t.args) do
+				if not first then
+					hfp:write(", ")
+				end
+				hfp:write(a.name, ": ", a.type)
+				first = false
+			end
+		end
+		hfp:write("): (m: [Node]) is\n")
+		hfp:write("\tm := AllocateNewNode(MIDCODE_", m)
+		if t.hassizes then
+			hfp:write(" + WidthToIndex(width)")
+		end
+		hfp:write(");\n")
 
-for m, t in pairs(midcodes) do
-	write_midcode_constructor(m, t)
+		if t.ins >= 1 then
+			hfp:write('\tm.left := left;\n')
+		end
+		if t.ins == 2 then
+			hfp:write('\tm.right := right;\n')
+		end
+		for _, a in ipairs(t.args) do
+			hfp:write("\tm.", t.base:lower(), ".", a.name, " := ", a.name, ";\n")
+		end
+		hfp:write("end sub;\n")
+	end
+
+	for m, t in pairs(midcodes) do
+		write_midcode_constructor(m, t)
+	end
 end
 
 hfp:close()

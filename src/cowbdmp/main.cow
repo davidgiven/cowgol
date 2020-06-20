@@ -1,0 +1,14 @@
+include "cowgol.coh";
+include "strings.coh";
+include "malloc.coh";
+include "file.coh";
+
+print("COWBDMP: ");
+print_i16((GetFreeMemory() >> 10) as uint16);
+print("kB free\n");
+
+include "types.coh";
+include "utils.coh";
+include "inputter.coh";
+include "cobin.coh";
+

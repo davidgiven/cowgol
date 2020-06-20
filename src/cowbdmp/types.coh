@@ -1,0 +1,15 @@
+interface MidReader(node: [Node]);
+
+typedef string is [uint8];
+typedef SubrId is uint16;
+typedef Size is uint32;
+typedef LabelRef is uint16;
+typedef RegId is uint8; # unused but required by midcodesbe
+
+record Symbol is
+	subr: SubrId;
+	off: Size;
+end record;
+
+include "midcodesbe.coh";
+

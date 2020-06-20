@@ -20,6 +20,16 @@ rule {
 
 rule {
 	ins = {
+		"scripts/mkcobin.lua",
+		"scripts/libcowgol.lua",
+		"src/midcodes.coh.tab",
+	},
+	outs = { "$OBJ/cobin.coh" },
+	cmd = "$LUA @1 -- @3 &1"
+}
+
+rule {
+	ins = {
 		"scripts/mkcobout.lua",
 		"scripts/libcowgol.lua",
 		"src/midcodes.coh.tab",
@@ -36,6 +46,16 @@ rule {
 	},
 	outs = { "$OBJ/midcodesfe.coh" },
 	cmd = "$LUA @1 -- @3 &1 fe"
+}
+
+rule {
+	ins = {
+		"scripts/mkmidcodescoh.lua",
+		"scripts/libcowgol.lua",
+		"src/midcodes.coh.tab",
+	},
+	outs = { "$OBJ/midcodesbe.coh" },
+	cmd = "$LUA @1 -- @3 &1 be"
 }
 
 function uncoo(e)
