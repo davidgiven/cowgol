@@ -31,7 +31,7 @@ sub I_countedstring(): (s: string) is
 end sub;
 
 sub InputterOpenfile(filename: string) is
-	if FCBOpenOut(&infcb, filename) != 0 then
+	if FCBOpenIn(&infcb, filename) != 0 then
 		CannotOpen(filename);
 	end if;
 end sub;

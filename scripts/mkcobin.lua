@@ -27,14 +27,16 @@ for m, md in pairs(midcodes) do
 end
 
 local sigid = 1
+local signaturesbynumber = {}
 for sig, sigd in pairs(signatures) do
 	sigd.id = sigid
 	sigid = sigid + 1
+	signaturesbynumber[sigd.id] = sigd
 end
 
 for sig, sigd in pairs(signatures) do
 	hfp:write("# ", sig, "\n")
-	hfp:write("sub ReadMid", sigd.id, " implements MidReader is\n")
+	hfp:write("sub ReadMid", (sigd.id-1), " implements MidReader is\n")
 	for _, a in ipairs(sigd.md.args) do
 		n = "node."..sigd.md.base:lower().."."..a.name
 		if a.type == "uint8" then
@@ -58,9 +60,10 @@ for sig, sigd in pairs(signatures) do
 	end
 	hfp:write("end sub;\n")
 end
-hfp:write("var readers: MidReader[] := {\n")
+
+hfp:write("var midcode_readers: MidReader[] := {\n")
 for i = 1, sigid-1 do
-	hfp:write("\tReadMid"..i..",\n")
+	hfp:write("\tReadMid"..(i-1)..",\n")
 end
 hfp:write("};\n")
 
@@ -73,4 +76,11 @@ for _, md in ipairs(bynumber) do
 	hfp:write("\t", signatures[md.signature].id-1, ", # ", md.name, "\n")
 end
 hfp:write("};\n")
+
+hfp:write("var midcode_ins: uint8[] := {\n")
+for _, md in ipairs(bynumber) do
+	hfp:write("\t", md.ins, ", # ", md.name, "\n")
+end
+hfp:write("};\n")
+
 

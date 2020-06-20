@@ -2,6 +2,7 @@ include "cowgol.coh";
 include "strings.coh";
 include "malloc.coh";
 include "file.coh";
+include "argv.coh";
 
 print("COWBDMP: ");
 print_i16((GetFreeMemory() >> 10) as uint16);
@@ -12,3 +13,95 @@ include "utils.coh";
 include "inputter.coh";
 include "cobin.coh";
 
+sub SyntaxError() is
+	SimpleError("syntax: cowbdmp <cobfile>");
+end sub;
+
+sub ParseArguments() is
+	ArgvInit();
+	var inputfilename := ArgvNext();
+	if inputfilename == (0 as string) then
+		SyntaxError();
+	end if;
+	if ArgvNext() != (0 as string) then
+		SyntaxError();
+	end if;
+
+	InputterOpenfile(inputfilename);
+end sub;
+
+sub ReadN() is
+	var subrid := I_b16();
+	var name := I_countedstring();
+	print("N: ");
+	print_hex_i16(subrid);
+	print(" ");
+	print(name);
+	print_nl();
+	Free(name);
+end sub;
+
+sub ReadX() is
+	var subrid := I_b16();
+	var name := I_countedstring();
+	print("X: ");
+	print_hex_i16(subrid);
+	print(" ");
+	print(name);
+	print_nl();
+	Free(name);
+end sub;
+
+sub ReadM() is
+	print("M: ");
+
+	var count: uint8 := 1;
+	while count != 0 loop
+		var node: Node;
+		var op := I_b8();
+		print_i8(op);
+		print_char(' ');
+		var sig := signatures[op-1];
+		(midcode_readers[sig])(&node);
+		count := count + midcode_ins[op-1] - 1;
+	end loop;
+	print_nl();
+end sub;
+
+sub ReadR() is
+	var userid := I_b16();
+	var usedid := I_b16();
+	print("R: ");
+	print_hex_i16(userid);
+	print(" ");
+	print_hex_i16(usedid);
+	print_nl();
+end sub;
+
+sub DumpRecords() is
+	loop
+		print_hex_i32(FCBPos(&infcb));
+		print_char(' ');
+		var r := I_b8();
+		case r is
+			when 'E': print("E\n"); return;
+			when 'N': ReadN();
+			when 'X': ReadX();
+			when 'M': ReadM();
+			when 'R': ReadR();
+
+			when else:
+				StartError();
+				print("unsupported record 0x");
+				print_hex_i8(r);
+				print(" at 0x");
+				print_hex_i32(FCBPos(&infcb));
+				EndError();
+		end case;
+	end loop;
+end sub;
+
+ParseArguments();
+DumpRecords();
+InputterClosefile();
+	
