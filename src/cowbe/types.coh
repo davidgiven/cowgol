@@ -2,64 +2,6 @@ typedef LabelRef is uint16;
 typedef Arith is int32;
 typedef Size is uint16;
 
-record Token is
-	number @at(0): int32;
-	string @at(0): string;
-end record;
-
-record Namespace is
-	first: [Symbol];
-	last: [Symbol];
-	parent: [Namespace];
-end record;
-
-record HasElement is
-	element: [Type];
-end record;
-
-record ArrayType: HasElement is
-	size: Size;
-	indextype: [Type];
-end record;
-
-record PointerType: HasElement is
-end record;
-
-record RecordType is
-	namespace: Namespace;
-	members: uint8;
-end record;
-
-record NumberType is
-	is_signed: uint8;
-end record;
-
-record SubroutineType is
-	subr: [Subroutine];
-end record;
-
-const TYPE_PARTIAL := 1;
-const TYPE_NUMBER := 2;
-const TYPE_POINTER := 3;
-const TYPE_ARRAY := 4;
-const TYPE_RECORD := 5;
-const TYPE_SUBROUTINE := 6;
-
-record Type is
-	numbertype @at(0): NumberType;
-	arraytype @at(0): ArrayType;
-	pointertype @at(0): PointerType;
-	recordtype @at(0): RecordType;
-	subrtype @at(0): SubroutineType;
-
-	symbol: [Symbol];
-	pointerto: [Type];
-	width: Size;
-	stride: Size;
-	kind: uint8;
-	alignment: uint8;
-end record;
-
 record VarSymbol is
 	type: [Type];
 	subr: [Subroutine]; # null for a member
@@ -88,8 +30,6 @@ const SUB_IS_IMPLEMENTATION := 0b100;
 record Subroutine is
 	symbol: [Symbol];
 	parent: [Subroutine];
-	namespace: Namespace;
-	type: [Type];
 	intfsubr: [Subroutine];
 	id: uint16;
 	workspace: Size[4];
@@ -99,55 +39,10 @@ record Subroutine is
 	flags: uint8;
 end record;
 
-record SubroutineLabels is
-	old_break_label: LabelRef;
-	old_continue_label: LabelRef;
-	old_labels: [SubroutineLabels];
-end record;
-
-record LoopLabels is
-	loop_label: LabelRef;
-	exit_label: LabelRef;
-	old_break_label: LabelRef;
-	old_continue_label: LabelRef;
-end record;
-	
-record IfLabels is
-	exit_label: LabelRef;
-	true_label: LabelRef;
-	false_label: LabelRef;
-	next: [IfLabels];
-end record;
-
-record CaseLabels is
-	next_label: LabelRef;
-	break_label: LabelRef;
-	old_break_label: LabelRef;
-	old_case: [CaseLabels];
-	width: uint8;
-	seenelse: uint8;
-end record;
-
-record SubroutineCall is
-	expr: [Node];
-	intfsubr: [Subroutine];
-	parent: [SubroutineCall];
-	input_parameter: [Symbol];
-	output_parameter: [Symbol];
-	num_input_args: uint8;
-	num_output_args: uint8;
-end record;
 
 var current_subr: [Subroutine];
-var next_label_id: LabelRef := 1;
-var next_subr_id: uint16 := 1;
-var break_label: LabelRef;
-var continue_label: LabelRef;
-var current_if: [IfLabels];
-var current_case: [CaseLabels];
-var current_type: [Type];
-var current_call: [SubroutineCall];
-var current_subr_def: [SubroutineLabels] := 0 as [SubroutineLabels];
+var next_label_id: uint16 := 0;
+var next_subr_id: uint16 := 0;
 
 const REG_SAME_AS_INSTRUCTION_RESULT := -1;
 

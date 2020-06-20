@@ -36,7 +36,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowbe/utils.coh",
 				"$OBJ/cowbe-"..arch.."/inssel.coh",
 				"$OBJ/cowbe-"..arch.."/inssel.decl.coh",
-				"$OBJ/midcodes.coh",
+				"$OBJ/midcodesbe.coh",
 			},
 			outs = { "bin/cowbe-"..arch }
 		}
