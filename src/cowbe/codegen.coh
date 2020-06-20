@@ -1,0 +1,795 @@
+const RULE_HAS_PREDICATES := 0x01;
+const MAX_MOVE_COUNT := 4; # Guessed
+
+record Rule is
+	flags: uint8;
+	compatible_producable_regs: RegId;
+	producable_regs: RegId;
+	uses_regs: RegId;
+	significant_nodes: NodeBitmap;
+	copyable_nodes: NodeBitmap;
+	register_nodes: NodeBitmap;
+end record;
+
+record RegMove is
+	src: RegId;
+	dest: RegId;
+end record;
+
+record Instruction is
+	next: [Instruction];
+	prev: [Instruction];
+	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
+	producable_regs: RegId;
+	produced_reg: RegId;
+	input_regs: RegId;
+	output_regs: RegId;
+	spills: RegMove[MAX_MOVE_COUNT];
+	reloads: RegMove[MAX_MOVE_COUNT];
+	num_spills: uint8;
+	num_reloads: uint8;
+	ruleid: uint8;
+end record;
+
+sub AllocLabel(): (label: LabelRef) is
+	label := next_label_id;
+	next_label_id := next_label_id + 1;
+end sub;
+
+sub AllocSubrId(): (id: uint16) is
+	id := next_subr_id;
+	next_subr_id := next_subr_id + 1;
+end sub;
+
+var insn_freelist := (0 as [Instruction]);
+sub AllocNewInstruction(): (insn: [Instruction]) is
+	if insn_freelist != (0 as [Instruction]) then
+		insn := insn_freelist;
+		insn_freelist := insn_freelist.next;
+		MemSet(insn as [uint8], 0, @bytesof Instruction);
+	else
+		insn := InternalAlloc(@bytesof Instruction) as [Instruction];
+	end if;
+end sub;
+
+sub FreeInstruction(insn: [Instruction]) is
+	insn.next := insn_freelist;
+	insn_freelist := insn;
+end sub;
+
+@impl sub PurgeAllFreeInstructions is
+	while insn_freelist != (0 as [Instruction]) loop
+		var b := insn_freelist as [uint8];
+		insn_freelist := insn_freelist.next;
+		Free(b);
+	end loop;
+end sub;
+
+sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId) is
+	conflicting := 0;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & inreg) != 0 then
+			conflicting := conflicting | reg.uses;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub FindCompatibleRegisters(inreg: RegId): (compatible: RegId) is
+	compatible := -1;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & inreg) != 0 then
+			compatible := compatible & reg.compatible;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+sub FindFirst(inreg: RegId): (outreg: RegId) is
+	outreg := 1;
+	while outreg != 0 loop
+		if (inreg & outreg) != 0 then
+			return;
+		end if;
+		outreg := outreg << 1;
+	end loop;
+	outreg := 0;
+end sub;
+
+include "inssel.coh";
+
+sub IsStackedRegister(regid: RegId): (result: uint8) is
+	result := 0;
+	var reg := &registers[0];
+	while reg != &registers[REGISTER_COUNT] loop
+		if (reg.id & regid) != 0 then
+			result := reg.is_stacked;
+			return;
+		end if;
+		reg := @next reg;
+	end loop;
+end sub;
+
+# Calculates blocked registers *between* the two bounds, not the end ones.
+sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocked: RegId) is
+	blocked := 0;
+	insn := insn.next;
+	while insn != last loop
+		blocked := blocked | insn.input_regs | insn.output_regs;
+		if insn == last then
+			break;
+		end if;
+		insn := insn.next;
+	end loop;
+end sub;
+
+# Blocks registers *between* the two bounds, not the end ones.
+sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
+	insn := insn.next;
+	while insn != last loop
+		insn.input_regs := insn.input_regs | blocked;
+		insn.output_regs := insn.output_regs | blocked;
+		if insn == last then
+			break;
+		end if;
+		insn := insn.next;
+	end loop;
+end sub;
+
+sub CreateSpill(insn: [Instruction], src: RegId, dest: RegId) is
+	var i := insn.num_spills;
+	if i == REGISTER_COUNT then
+		SimpleError("too many spills");
+	end if;
+	var spill := &insn.spills[i];
+	spill.src := src;
+	spill.dest := dest;
+	insn.num_spills := i + 1;
+end sub;
+
+sub CreateReload(insn: [Instruction], src: RegId, dest: RegId) is
+	var i := insn.num_reloads;
+	if i == REGISTER_COUNT then
+		SimpleError("too many reloads");
+	end if;
+	var reload := &insn.reloads[i];
+	reload.src := src;
+	reload.dest := dest;
+	insn.num_reloads := i + 1;
+end sub;
+
+sub ShuffleRegisters(moves: [RegMove]) is
+	var dests: RegId := 0;
+	var srcs: RegId := 0;
+
+	var m := moves;
+	var c: uint8 := MAX_MOVE_COUNT;
+	while c != 0 loop
+		dests := dests | m.dest;
+		srcs := srcs | m.src;
+		c := c - 1;
+		m := @next m;
+	end loop;
+
+	loop
+		# Attempt to do any pushes *first*, as this frees up sources
+		# for use as register destinations later.
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src != 0) and (m.dest == 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(m.src, 0);
+			srcs := srcs & ~m.src;
+			m.src := 0;
+			continue;
+		end if;
+
+		# Attempt to find a move into a register which is not a source
+		# (and is therefore completely safe).
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src != 0) and (m.dest != 0) and ((m.dest & srcs) == 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(m.src, m.dest);
+			srcs := srcs & ~m.src;
+			dests := dests & ~m.dest;
+			m.src := 0;
+			m.dest := 0;
+			continue;
+		end if;
+
+		# Only once we're done with pushes and register-to-register moves
+		# do we deal with pops.
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src == 0) and (m.dest != 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(0, m.dest);
+			dests := dests & ~m.dest;
+			m.dest := 0;
+			continue;
+		end if;
+
+		# If we got here and there are any undealt with moves, there's a move
+		# loop which we need to break somehow. The best thing is to stash a
+		# value into a temporary register but that gets gnarly if there aren't
+		# any left. So, we do it the brute-force way and stack something.
+
+		m := moves;
+		c := MAX_MOVE_COUNT;
+		while c != 0 loop
+			if (m.src != 0) and (m.dest != 0) then
+				break;
+			end if;
+			m := @next m;
+			c := c - 1;
+		end loop;
+		if c != 0 then
+			ArchEmitMove(m.src, 0);
+			srcs := srcs & ~m.src;
+			m.src := 0; # convert this to a pop
+			continue;
+		end if;
+
+		# Nothing left to do!
+		break;
+	end loop;
+end sub;
+
+sub PrintNodes(rootnode: [Node]) is
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
+		var node := NextNode();
+		if node == (0 as [Node]) then
+			break;
+		end if;
+
+		print_hex_i32(node as intptr as uint32);
+		print_char(' ');
+		print_i8(node.op);
+		print_char(' ');
+		print_hex_i16(node.desired_reg as uint16);
+		print_char(' ');
+		print_hex_i16(node.produced_reg as uint16);
+		print_char(' ');
+		print_hex_i32(node.left as intptr as uint32);
+		print_char(' ');
+		print_hex_i32(node.right as intptr as uint32);
+		print_nl();
+	end loop;
+end sub;
+
+sub ReallyGenerate(rootnode: [Node]) is
+	var i: uint8;
+
+	# Remember that this list is actually emitted in *reverse* order, so
+	# last_instruction is the first machine code instruction in the clause.
+
+	var first_instruction: [Instruction] := 0 as [Instruction];
+	var last_instruction: [Instruction] := 0 as [Instruction];
+
+	#print_nl();
+	#PrintNodes(rootnode);
+
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
+		var producer := AllocNewInstruction();
+		if first_instruction == (0 as [Instruction]) then
+			first_instruction := producer;
+			last_instruction := producer;
+		else
+			last_instruction.next := producer;
+			producer.prev := last_instruction;
+			last_instruction := producer;
+		end if;
+			
+		# Find the first matching rule for this instruction.
+
+		var node := PopNode();
+
+		var ruleid: uint8;
+		var rule: [Rule];
+
+		sub InstructionMatcher() is
+			var matchbytes: uint8[INSTRUCTION_TEMPLATE_DEPTH];
+			var matchnodes: [Node][INSTRUCTION_TEMPLATE_DEPTH];
+			var midcodeptr: [uint8];
+			var regsptr: [RegId];
+
+			sub RewindRulePointers() is
+				MemZero(&matchbytes[0] as [uint8], @bytesof matchbytes);
+				MemZero(&matchnodes[0] as [uint8], @bytesof matchnodes);
+				matchnodes[0] := node;
+				PopulateMatchBuffer(producer, &matchnodes[0], &matchbytes[0]);
+
+				ruleid := 0xff;
+				midcodeptr := &codegen_midcodes[0];
+				regsptr := &codegen_registers[0];
+				rule := @prev &codegen_rules[0];
+			end sub;
+
+			sub TestRule(): (result: uint8) is
+				result := 0;
+
+				if rule.compatible_producable_regs != 0 then
+					# This rule produces a result, so fail if the result register
+					# isn't compatible.
+					if (node.desired_reg & rule.compatible_producable_regs) == 0 then
+						return;
+					end if;
+				else
+					# This rule produces no result, so fail if we need one.
+					if node.desired_reg != 0 then
+						return;
+					end if;
+				end if;
+
+				var data := &matchbytes[0];
+				var template := midcodeptr;
+				var significant := rule.significant_nodes;
+				while significant != 0 loop
+					var d := [data];
+					data := @next data;
+					if (significant & 1) != 0 then
+						var t := [template];
+						template := @next template;
+						if d != t then
+							return;
+						end if;
+					end if;
+
+					significant := significant >> 1;
+				end loop;
+
+				if ((rule.flags & RULE_HAS_PREDICATES) != 0) 
+						and (MatchPredicate(ruleid, &matchnodes[0]) == 0) then
+					# This rule has a manual predicate and the manual predicate said no.
+					return;
+				end if;
+
+				# We have a matching rule!
+				result := 1;
+			end sub;
+
+			RewindRulePointers();
+			loop
+				rule := @next rule;
+				ruleid := ruleid + 1;
+
+				if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
+					# We've reached the end of the list of rules without matching anything.
+					if (node.op != MIDCODE_FALLBACK) and (node.consumer != (0 as [Instruction])) then
+						sub ConvertNodeToFallback() is
+							# Wrap this node in a FALLBACK instruction, in the hope that it'll
+							# convert from whatever wanted it to the right thing.
+							# BIG WARNING: we can't actually splice the node into the tree, so
+							# instead it's a stray node pointing into the tree. When we discard
+							# the tree all the fallback nodes will be left abandonded with
+							# pointers into hyperspace.
+							var oldnode := node;
+							node := MidFallback(oldnode);
+
+							node.consumer := oldnode.consumer;
+
+							# Patch the parent to point at the new node.
+
+							var parent := node.consumer.n[0];
+							node.desired_reg := oldnode.desired_reg;
+
+							# Patch the parent's producer to point at the new node.
+
+							var insn := parent.producer;
+							var i: uint8 := 0;
+							while i != INSTRUCTION_TEMPLATE_DEPTH loop
+								if insn.n[i] == oldnode then
+									insn.n[i] := node;
+								end if;
+								i := i + 1;
+							end loop;
+
+							#print_nl();
+							#print("FALLBACK\n");
+							#PrintNodes(rootnode);
+						end sub;
+
+						ConvertNodeToFallback();
+						RewindRulePointers();
+						continue;
+					end if;
+
+					PrintNodes(rootnode);
+					StartError();
+					print("unmatched instruction: ");
+					i := 0;
+					while i != INSTRUCTION_TEMPLATE_DEPTH loop
+						print_i8(matchbytes[i]);
+						print_char(' ');
+						i := i + 1;
+					end loop;
+					print("producing ");
+					print_hex_i32(node.desired_reg as uint32);
+					EndError();
+				end if;
+
+				if TestRule() != 0 then
+					break;
+				end if;
+
+				# Advance the midcode pointer.
+				var bitmap := rule.significant_nodes;
+				while bitmap != 0 loop
+					if (bitmap & 1) != 0 then
+						midcodeptr := @next midcodeptr;
+					end if;
+					bitmap := bitmap >> 1;
+				end loop;
+
+				# Advance the registers pointer.
+				bitmap := rule.register_nodes;
+				while bitmap != 0 loop
+					if (bitmap & 1) != 0 then
+						regsptr := @next regsptr;
+					end if;
+					bitmap := bitmap >> 1;
+				end loop;
+			end loop;
+
+			# We have found a rule for this instruction.
+
+			#print("matched rule ");
+			#print_i8(ruleid);
+			#print(" op ");
+			#print_i8(node.op);
+			#print(" producing ");
+			#print_hex_i32(rule.producable_regs as uint32);
+			#print(" ");
+			#print_hex_i32(node as intptr as uint32);
+			#print_nl();
+
+			producer.ruleid := ruleid;
+			producer.producable_regs := rule.producable_regs;
+			producer.output_regs := rule.uses_regs;
+
+			# Copy child nodes into the current instruction and make sure they're
+			# pushed for later instruction allocation.
+
+			sub CopyChildNodes() is
+				var copymask := rule.copyable_nodes;
+				var regmask := rule.register_nodes;
+				i := 0;
+				while i != INSTRUCTION_TEMPLATE_DEPTH loop
+					var n := matchnodes[i];
+					if (copymask & 1) != 0 then
+						producer.n[i] := n;
+						if (regmask & 1) != 0 then
+							PushNode(n);
+							n.desired_reg := [regsptr];
+							regsptr := @next regsptr;
+							n.consumer := producer;
+						end if;
+					end if;
+					copymask := copymask >> 1;
+					regmask := regmask >> 1;
+					i := i + 1;
+				end loop;
+				node.producer := producer;
+			end sub;
+			CopyChildNodes();
+		end sub;
+		InstructionMatcher();
+
+		if producer.producable_regs != 0 then
+			# This instruction produces a register, so allocate one.
+
+			sub AllocateRegister() is
+				if IsStackedRegister(producer.producable_regs) != 0 then
+					# Stacked registers: we don't need to worry about finding an unallocated
+					# register, but we do need to make sure that the producer and consumer use
+					# the same stack (a backend might have several).
+					
+					var candidate := node.desired_reg & producer.producable_regs;
+					#print("stacked ");
+					#print_hex_i32(node as intptr as uint32);
+					#print(" candidate ");
+					#print_hex_i32(candidate as uint32);
+					#print(" node.desired_reg ");
+					#print_hex_i32(node.desired_reg as uint32);
+					#print(" producer_producable_regs ");
+					#print_hex_i32(producer.producable_regs as uint32);
+					#print_nl();
+
+					if candidate != 0 then
+						# Good news --- the producer and the consumer have a register type in
+						# common.
+
+						candidate := FindFirst(candidate);
+						node.produced_reg := candidate;
+						producer.produced_reg := candidate;
+					else
+						# Otherwise, we need to copy the value from one stack to another.
+
+						producer.produced_reg := FindFirst(producer.producable_regs);
+						node.produced_reg := FindFirst(node.desired_reg);
+						CreateSpill(producer, producer.produced_reg, node.produced_reg);
+					end if;
+				else
+					# Traditional register: use destination-driven allocation to try and allocate
+					# the best available register between the producer and consumer.
+
+					var consumer := node.consumer;
+					var blocked := CalculateBlockedRegisters(consumer, producer);
+					candidate := node.desired_reg & producer.producable_regs;
+
+					var mask1 := candidate & ~(blocked | producer.output_regs | consumer.input_regs);
+					if mask1 != 0 then
+						# Good news --- we can allocate the ideal register for
+						# both producer and consumer.
+
+						candidate := FindFirst(mask1);
+						node.produced_reg := candidate;
+						producer.produced_reg := candidate;
+
+						blocked := FindConflictingRegisters(candidate);
+						consumer.input_regs := consumer.input_regs | blocked;
+						BlockRegisters(consumer, producer, blocked);
+						producer.output_regs := producer.output_regs | blocked;
+					else
+						var compatible := FindCompatibleRegisters(node.desired_reg);
+						mask1 := producer.producable_regs & compatible & ~(blocked | producer.output_regs);
+						var mask2 := node.desired_reg & ~consumer.input_regs;
+						if (mask1 != 0) and (mask2 != 0) then
+							# The producer and consumer want different registers, but the
+							# producers register works up until the consumer.
+
+							producer.produced_reg := FindFirst(mask1);
+							node.produced_reg := FindFirst(mask2);
+							consumer.input_regs := consumer.input_regs
+								| FindConflictingRegisters(node.produced_reg);
+							blocked := FindConflictingRegisters(producer.produced_reg);
+							BlockRegisters(consumer, producer, blocked);
+							producer.output_regs := producer.output_regs | blocked;
+							CreateReload(consumer, producer.produced_reg, node.produced_reg);
+						else
+							mask1 := node.desired_reg & ~(blocked | consumer.input_regs);
+							mask2 := producer.producable_regs & compatible & ~producer.output_regs;
+							if (mask1 != 0) and (mask2 != 0) then
+								# The producer and consumer want different registers, but the
+								# consumer's register works after the producer.
+
+								producer.produced_reg := FindFirst(mask2);
+								node.produced_reg := FindFirst(mask1);
+								blocked := FindConflictingRegisters(node.produced_reg);
+								consumer.input_regs := consumer.input_regs | blocked;
+								BlockRegisters(consumer, producer, blocked);
+								producer.output_regs := producer.output_regs |
+										FindConflictingRegisters(producer.produced_reg);
+								CreateSpill(producer, producer.produced_reg, node.produced_reg);
+							else
+								# Bad news --- we can't allocate any registers, so
+								# spill to the stack via a push and pop.
+
+								sub deadlock() is
+									PrintNodes(rootnode);
+									print("producer: ");
+									print_hex_i32(producer.n[0] as intptr as uint32);
+									print_nl();
+									print("consumer: ");
+									print_hex_i32(consumer.n[0] as intptr as uint32);
+									print_nl();
+
+									print("producer.producable_regs=");
+									print_hex_i32(producer.producable_regs as uint32);
+									print_nl();
+									print("producer.output_regs=");
+									print_hex_i32(producer.output_regs as uint32);
+									print_nl();
+									print("node.desired_reg=");
+									print_hex_i32(node.desired_reg as uint32);
+									print_nl();
+									print("consumer.input_regs=");
+									print_hex_i32(consumer.input_regs as uint32);
+									print_nl();
+									SimpleError("register allocation deadlock");
+								end sub;
+
+								candidate := producer.producable_regs & compatible & ~producer.output_regs;
+								if candidate == 0 then
+									deadlock();
+								end if;
+
+								producer.produced_reg := FindFirst(candidate);
+								producer.output_regs := producer.output_regs
+									| FindConflictingRegisters(producer.produced_reg);
+								CreateSpill(producer, producer.produced_reg, 0);
+
+								candidate := node.desired_reg & ~consumer.input_regs;
+								if candidate == 0 then
+									deadlock();
+								end if;
+								node.produced_reg := FindFirst(candidate);
+								consumer.input_regs := consumer.input_regs
+									| FindConflictingRegisters(node.produced_reg);
+								CreateReload(consumer, 0, node.produced_reg);
+							end if;
+						end if;
+					end if;
+				end if;
+			end sub;
+			AllocateRegister();
+
+			# If any nodes which produce values consumed by this instruction
+			# have registers which depend on the one produced by this
+			# instruction, update them now.
+
+			sub UpdateProducedRegisters() is
+				i := 0;
+				while i != INSTRUCTION_TEMPLATE_DEPTH loop
+					node := producer.n[i];
+					if (node != (0 as [Node]))
+							and (node.desired_reg == REG_SAME_AS_INSTRUCTION_RESULT) then
+						node.desired_reg := producer.produced_reg;
+
+						# We now need to update the *other* register requirements
+						# to blacklist this register, or we very quickly run into
+						# deadlock.
+
+						var j: uint8 := 0;
+						while j != INSTRUCTION_TEMPLATE_DEPTH loop
+							if i != j then
+								node := producer.n[j];
+								if (node != (0 as [Node])) then
+									node.desired_reg := node.desired_reg & ~producer.produced_reg;
+								end if;
+							end if;
+							j := j + 1;
+						end loop;
+					end if;
+					i := i + 1;
+				end loop;
+			end sub;
+			UpdateProducedRegisters();
+		end if;
+	end loop;
+
+	# We have a set of instructions for this expression; emit them. In reverse
+	# order.
+
+	sub EmitAndFreeInstructions() is
+		loop
+			var insn := last_instruction;
+			if insn == (0 as [Instruction]) then
+				break;
+			end if;
+			last_instruction := last_instruction.prev;
+
+			#print("rule ");
+			#print_i8(insn.ruleid);
+			#print_nl();
+
+			ShuffleRegisters(&insn.reloads[0]);
+			EmitOneInstruction(insn.ruleid, insn);
+			ShuffleRegisters(&insn.spills[0]);
+			ArchEndInstruction();
+
+			# If the root node of this instruction is a fallback node, it's
+			# not part of the tree and won't be discarded with the tree.
+			# Clean them up manually here.
+
+			if insn.n[0].op == MIDCODE_FALLBACK then
+				FreeNode(insn.n[0]);
+			end if;
+			FreeInstruction(insn);
+		end loop;
+	end sub;
+	EmitAndFreeInstructions();
+
+	ArchEndGroup();
+
+	Discard(rootnode);
+end sub;
+
+var old_op: uint8 := 0;
+sub Generate(statement: [Node]) is
+	var op := statement.op;
+	if (old_op == MIDCODE_JUMP) or (old_op == MIDCODE_RETURN) then
+		if (op != MIDCODE_LABEL) and (op != MIDCODE_ENDSUB) then
+			Discard(statement);
+			return;
+		end if;
+	end if;
+
+	if (op == MIDCODE_ASMSTART) and (old_op != MIDCODE_ASMEND) then
+		ReallyGenerate(MidAsmgroupstart());
+	end if;
+	if (old_op == MIDCODE_ASMEND) and (op != MIDCODE_ASMSTART) then
+		ReallyGenerate(MidAsmgroupend());
+	end if;
+	old_op := op;
+	ReallyGenerate(statement);
+end sub;
+
+sub GenerateConditional(rootnode: [Node]) is
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
+		var node := PopNode();
+
+		var t := node.beq.truelabel;
+		var f := node.beq.falselabel;
+		var r := node.beq.fallthrough;
+		var lhs := node.left;
+		var rhs := node.right;
+		var op := node.op;
+
+		sub push_and_free() is
+			rhs.beq.truelabel := t;
+			rhs.beq.falselabel := f;
+			rhs.beq.fallthrough := r;
+
+			node.left := (0 as [Node]);
+			node.right := (0 as [Node]);
+			PushNode(rhs);
+			PushNode(lhs);
+			Discard(node);
+		end sub;
+
+		var rr: LabelRef;
+		case op is
+			when MIDCODE_BOR:
+				rr := AllocLabel();
+
+				lhs.beq.truelabel := t;
+				lhs.beq.falselabel := rr;
+				lhs.beq.fallthrough := rr;
+
+				push_and_free();
+
+			when MIDCODE_BAND:
+				rr := AllocLabel();
+
+				lhs.beq.truelabel := rr;
+				lhs.beq.falselabel := f;
+				lhs.beq.fallthrough := rr;
+
+				push_and_free();
+
+			when else:
+				if (op >= MIDCODE_BEQ0) and (op <= MIDCODE_BLTU8) then
+					if node.beq.negated != 0 then
+						node.beq.truelabel := f;
+						node.beq.falselabel := t;
+						node.beq.negated := 0;
+					end if;
+				end if;
+
+				Generate(node);
+				Generate(MidLabel(r));
+		end case;
+	end loop;
+end sub;
+

@@ -1,0 +1,35 @@
+@impl sub PushNode is
+	if node != (0 as [Node]) then
+		if next_node == &nodes[@sizeof nodes] then
+			SimpleError("node stack overflow");
+		end if;
+		[next_node] := node;
+		next_node := @next next_node;
+	end if;
+end sub;
+
+@impl sub PopNode is
+	next_node := @prev next_node;
+	node := [next_node];
+end sub;
+
+@impl sub NextNode is
+	node := PopNode();
+	if node != (0 as [Node]) then
+		PushNode(node.left);
+		PushNode(node.right);
+	end if;
+end sub;
+
+# Free up the node tree rooted in the parameter. This is more exciting than it
+# should be because we don't have recursion.
+@impl sub Discard is
+	var old_next_node := next_node;
+	PushNode(node);
+	while next_node != old_next_node loop
+		var n := NextNode();
+		FreeNode(n);
+	end loop;
+end sub;
+
+

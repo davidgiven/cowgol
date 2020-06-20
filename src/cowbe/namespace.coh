@@ -1,0 +1,181 @@
+sub LookupSymbolInNamespace(namespace: [Namespace], name: string): (symbol: [Symbol]) is
+	symbol := namespace.first;
+	while symbol != (0 as [Symbol]) loop
+		if StrCmp(symbol.name, name) == 0 then
+			while symbol.kind == TYPEDEF loop
+				symbol := symbol.alias;
+			end loop;
+			return;
+		end if;
+		symbol := symbol.next;
+	end loop;
+	symbol := (0 as [Symbol]);
+end sub;
+
+sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
+	if namespace == (0 as [Namespace]) then
+		namespace := &current_subr.namespace;
+	end if;
+	
+	while namespace != (0 as [Namespace]) loop
+		symbol := LookupSymbolInNamespace(namespace, name);
+		if symbol != (0 as [Symbol]) then
+			return;
+		end if;
+		namespace := namespace.parent;
+	end loop;
+
+	symbol := (0 as [Symbol]);
+end sub;
+
+# Note: does not check for name duplications (deliberately)
+sub AddToNamespace(namespace: [Namespace], symbol: [Symbol]) is
+	if namespace.last == (0 as [Symbol]) then
+		namespace.first := symbol;
+		namespace.last := symbol;
+	else
+		namespace.last.next := symbol;
+		namespace.last := symbol;
+	end if;
+	symbol.namespace := namespace;
+end sub;
+
+# Takes ownership of the string
+sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
+	if namespace == (0 as [Namespace]) then
+		namespace := &current_subr.namespace;
+	end if;
+
+	symbol := AllocNewSymbol();
+	if name != (0 as string) then
+		if LookupSymbolInNamespace(namespace, name) != (0 as [Symbol]) then
+			StartError();
+			print("symbol '");
+			print(name);
+			print("' is already defined");
+			EndError();
+		end if;
+
+		# Only add the symbol to the namespace if it has a name.
+		symbol.name := name;
+		AddToNamespace(namespace, symbol);
+	end if;
+end sub;
+
+# Takes ownership of the name
+sub AddAlias(namespace: [Namespace], name: string, real: [Symbol]): (symbol: [Symbol]) is
+	symbol := AddSymbol(namespace, name);
+	symbol.kind := TYPEDEF;
+	symbol.alias := real;
+end sub;
+
+sub AddAliasString(name: string, real: [Symbol]) is
+	var symbol := AddAlias(0 as [Namespace], name, real);
+end sub;
+
+sub CheckNotPartialType(type: [Type]) is
+	if type.kind == TYPE_PARTIAL then
+		StartError();
+		print("'");
+		print(type.symbol.name);
+		print("' is a partial type");
+		EndError();
+	end if;
+end sub;
+
+# Takes ownership of the string.
+sub AddTypeToNamespace(namespace: [Namespace], type: [Type], name: string) is
+	var symbol := AllocNewSymbol();
+	symbol.kind := TYPE;
+	symbol.typedata := type;
+	symbol.name := name;
+	type.symbol := symbol;
+
+	AddToNamespace(namespace, symbol);
+end sub;
+
+sub MakeNumberType(width: uint8, alignment: uint8, is_signed: uint8, name: string): (type: [Type]) is
+	type := AllocNewType();
+	type.kind := TYPE_NUMBER;
+	type.width := width as uint16;
+	type.stride := width as uint16;
+	type.alignment := alignment;
+	type.numbertype.is_signed := is_signed;
+
+	AddTypeToNamespace(&current_subr.namespace, type, name);
+end sub;
+
+sub IsTypeOfKind(type: [Type], kind: uint8): (result: uint8) is
+	result := 0;
+	if (type != (0 as [Type])) and (type.kind == kind) then
+		result := 1;
+	end if;
+end sub;
+
+sub IsArray(type: [Type]): (result: uint8) is
+	result := IsTypeOfKind(type, TYPE_ARRAY);
+end sub;
+
+sub IsPtr(type: [Type]): (result: uint8) is
+	result := IsTypeOfKind(type, TYPE_POINTER);
+end sub;
+
+sub IsSubroutine(type: [Type]): (result: uint8) is
+	result := IsTypeOfKind(type, TYPE_SUBROUTINE);
+end sub;
+
+sub IsNum(type: [Type]): (result: uint8) is
+	if type == (0 as [Type]) then
+		result := 1;
+	else
+		result := IsTypeOfKind(type, TYPE_NUMBER);
+	end if;
+end sub;
+
+sub IsSNum(type: [Type]): (result: uint8) is
+	if type == (0 as [Type]) then
+		result := 1;
+	elseif (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.numbertype.is_signed != 0) then
+		result := 1;
+	else
+		result := 0;
+	end if;
+end sub;
+
+sub IsScalar(type: [Type]): (result: uint8) is
+	if (IsPtr(type) != 0) or (IsNum(type) != 0) or (IsSubroutine(type) != 0) then
+		result := 1;
+	else
+		result := 0;
+	end if;
+end sub;
+
+sub IsRecord(type: [Type]): (result: uint8) is
+	result := IsTypeOfKind(type, TYPE_RECORD);
+end sub;
+
+sub MakeLValue(address: [Node]): (lvalue: [Node]) is
+	var w: uint8 := 0;
+	var elementtype := address.type.pointertype.element;
+	if IsScalar(elementtype) != 0 then
+		w := elementtype.width as uint8;
+	end if;
+	lvalue := MidLoad(w, address);
+	lvalue.type := elementtype;
+
+	#print("make ");
+	#print_hex_i32(lvalue as intptr as uint32);
+	#print_nl();
+end sub;
+
+sub UndoLValue(lvalue: [Node]): (address: [Node]) is
+	var k := lvalue.op;
+	if (k < MIDCODE_LOAD0) or (k > MIDCODE_LOAD8) then
+		SimpleError("lvalue required");
+	end if;
+
+	address := lvalue.left;
+	lvalue.left := (0 as [Node]);
+	Discard(lvalue);
+end sub;
+

@@ -1,0 +1,222 @@
+# %include sections from the grammar
+%%
+
+# makeheaders token definitions
+%%
+
+# control settings
+%%
+
+record yyStackEntry is
+	stateno: YYACTIONTYPE;
+	major: YYCODETYPE;
+	minor: YYMINORTYPE;
+end record;
+
+var yytos: [yyStackEntry];
+var yystack: yyStackEntry[YYSTACKDEPTH+1];
+var yyerrcnt: int8;
+
+# parsing tables
+%%
+
+# fallback rules
+%%
+
+# token names
+var yyTokenName: [uint8][] := { 
+%%
+};
+
+# rule names
+#var yyRuleName: [uint8][YYNRULE] := {
+%%
+#};
+
+# destructors
+sub yy_destructor(yymajor: YYCODETYPE, yypminor: [YYMINORTYPE]) is
+%%
+end sub;
+
+# stack overflow code
+
+sub yy_pop_parser_stack() is
+	yytos := @prev yytos;
+	yy_destructor(yytos.major, &yytos.minor);
+end sub;
+
+sub yy_pop_all_parser_stack() is
+	while yytos != &yystack[0] loop
+		yy_pop_parser_stack();
+	end loop;
+end sub;
+
+sub yy_stack_overflow() is
+	yy_pop_all_parser_stack();
+%%
+end sub;
+
+# For rule J, yyRuleInfoLhs[J] contains the symbol on the left-hand side
+# of that rule
+var yyRuleInfoLhs: YYCODETYPE[] := {
+%%
+};
+
+# For rule J, yyRuleInfoNRhs[J] contains the number of symbols on the
+# right-hand side of that rule.
+var yyRuleInfoNRhs: uint8[] := {
+%%
+};
+
+sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string) is
+	print(msg);
+	print(" '");
+	print(yyTokenName[yytos.major]);
+	print("', go to state ");
+	print_i16(stateno);
+	print_nl();
+end sub;
+
+sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTIONTYPE) is
+	var yysize := yyRuleInfoNRhs[yyruleno as @indexof yyRuleInfoNRhs];
+	#print("Reduce ");
+	#print_i16(yyruleno);
+	#if yysize != 0 then
+	#	print(", go to state ");
+	#	print_i16([yytos - (yysize as intptr)*@bytesof yyStackEntry].stateno);
+	#end if;
+	#print_nl();
+
+	if yytos == &yystack[YYSTACKDEPTH] then
+		yy_stack_overflow();
+	end if;
+
+	var yylhs: YYMINORTYPE;
+	var yyrhs: YYMINORTYPE[YY_MAX_RHS_SYMBOLS];
+	var pout := &yyrhs[0];
+	var c := yysize;
+	while c != 0 loop
+		pout.yyall := yytos.minor.yyall;
+		yytos := @prev yytos;
+		pout := @next pout;
+		c := c - 1;
+	end loop;
+%%
+	[@next yytos].minor.yyall := yylhs.yyall;
+
+	var yygoto := yyRuleInfoLhs[yyruleno as @indexof yyRuleInfoLhs];
+	var stateno := yytos.stateno;
+	yyact := yy_default[stateno as @indexof yy_default];
+	if stateno <= YY_REDUCE_COUNT then
+		var i := (yy_reduce_ofst[stateno as @indexof yy_reduce_ofst] as @indexof yy_action)
+				+ (yygoto as @indexof yy_action);
+		if (i>=0) and (i<YY_ACTTAB_COUNT) and (yy_lookahead[i] == yygoto) then
+			yyact := yy_action[i];
+		end if;
+	end if;
+
+	yytos := @next yytos;
+	yytos.stateno := yyact;
+	yytos.major := yygoto;
+
+	#yy_trace_shift(yyact, "...then shift");
+end sub;
+
+# parse failure code
+sub yy_parse_failed() is
+	yy_pop_all_parser_stack();
+%%
+end sub;
+
+# syntax error code
+sub yy_syntax_error(yymajor: YYCODETYPE, yyminor: [ParseTOKENTYPE]) is
+%%
+end sub;
+
+# parse accept code
+sub yy_accept() is
+%%
+end sub;
+
+sub ParserInit() is
+	yyerrcnt := -1;
+	yytos := &yystack[0];
+	yystack[0].stateno := 0;
+	yystack[0].major := 0;
+end sub;
+
+sub ParserDeinit() is
+	while yytos != &yystack[0] loop
+		yy_pop_parser_stack();
+	end loop;
+end sub;
+
+sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE]) is
+	var yyact := yytos.stateno;
+
+	#print("Input '")
+	#print(yyTokenName[yymajor]);
+	#if yyact < YY_MIN_REDUCE then
+	#	print("' in state ");
+	#	print_i16(yyact);
+	#else
+	#	print("' with pending reduce ");
+	#	print_i16(yyact - YY_MIN_REDUCE);
+	#end if;
+	#print_nl();
+
+	loop
+		if yyact <= YY_MAX_SHIFT then
+			var i := yy_shift_ofst[yyact as @indexof yy_shift_ofst] + (yymajor as uint16);
+			if yy_lookahead[i] != yymajor then
+				yyact := yy_default[yyact as @indexof yy_default];
+			else
+				yyact := yy_action[i];
+			end if;
+		end if;
+
+		if yyact >= YY_MIN_REDUCE then
+			yyact := yy_reduce(yyact - YY_MIN_REDUCE, yymajor);
+		elseif yyact <= YY_MAX_SHIFTREDUCE then
+			if yytos == &yystack[YYSTACKDEPTH] then
+				yy_stack_overflow();
+				return;
+			end if;
+			yytos := @next yytos;
+
+			if yyact > YY_MAX_SHIFT then
+				yyact := yyact + (YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE);
+			end if;
+
+			yytos.stateno := yyact;
+			yytos.major := yymajor;
+			yytos.minor.yyall := yyminor.yyall;
+			#yy_trace_shift(yyact, "Shift");
+
+			if yyerrcnt >= 0 then
+				yyerrcnt := yyerrcnt - 1;
+			end if;
+			break;
+		elseif yyact == YY_ACCEPT_ACTION then
+			yytos := @prev yytos;
+			yy_accept();
+			break;
+		else
+			if yyerrcnt <= 0 then
+				yy_syntax_error(yymajor, &yyminor.yy0);
+			end if;
+			yyerrcnt := 3;
+			yy_destructor(yymajor, yyminor);
+			if yymajor == 0 then
+				yy_parse_failed();
+				yyerrcnt := -1;
+			end if;
+			break;
+		end if;
+	
+		if yytos == &yystack[0] then
+			break;
+		end if;
+	end loop;
+end sub;
+

@@ -1,0 +1,115 @@
+include "cowgol.coh";
+include "argv.coh";
+include "strings.coh";
+include "malloc.coh";
+include "file.coh";
+
+typedef string is [uint8];
+
+var inputfile: string := (0 as string);
+var outputfile: string := (0 as string);
+
+include "include/coodecls.coh";
+include "src/cowbe/types.coh";
+include "src/cowbe/allocator.coh";
+include "inssel.decl.coh";
+include "parser.tokens.coh";
+include "src/cowbe/lexer.coh";
+include "src/cowbe/midcodec.coh";
+include "src/cowbe/emitter.coh";
+include "src/cowbe/regcache.coh";
+include "src/cowbe/namespace.coh";
+include "src/cowbe/codegen.coh";
+include "src/cowbe/symbols.coh";
+include "src/cowbe/expressions.coh";
+include "src/cowbe/treewalker.coh";
+include "parser.coh";
+
+sub PrintFreeMemory() is
+	print_i16((GetFreeMemory() >> 10) as uint16);
+	print("kB free\n");
+end sub;
+
+sub SyntaxError() is
+	print("syntax error: cowcom [-Ipath] <infile> <outfile>\n");
+	ExitWithError();
+end sub;
+
+sub ParseArguments() is
+	ArgvInit();
+
+	loop
+		var arg := ArgvNext();
+		if arg == (0 as string) then
+			break;
+		end if;
+
+		if [arg] == '-' then
+			arg := arg + 1;
+			if [arg] == 'I' then
+				arg := arg + 1;
+				LexerAddIncludePath(arg);
+			else
+				SyntaxError();
+			end if;
+		else
+			if inputfile == (0 as string) then
+				inputfile := arg;
+			elseif outputfile == (0 as string) then
+				outputfile := arg;
+			else
+				SyntaxError();
+			end if;
+		end if;
+	end loop;
+
+	if (inputfile == (0 as string)) or (outputfile == (0 as string)) then
+		SyntaxError();
+	end if;
+end sub;
+
+print("COWBE: ");
+PrintFreeMemory();
+
+ParseArguments();
+LexerAddIncludePath("");
+LexerIncludeFile(inputfile);
+CreateMainSubroutine();
+
+ArchInitTypes();
+EmitterOpenfile(outputfile);
+EmitterDeclareSubroutine(current_subr);
+Generate(MidStartfile());
+Generate(MidStartsub(current_subr));
+
+ParserInit();
+loop
+	var yymajor := LexerReadToken();
+	var yyminor: YYMINORTYPE;
+	case yymajor is
+		when NUMBER:
+			yyminor.yy0.number := token_value;
+
+		when ID:
+			yyminor.yy0.string := InternalStrDup(&token_buffer[0]);
+
+		when STRING:
+			yyminor.yy0.string := InternalStrDup(&token_buffer[0]);
+
+		when else:
+			yyminor.yy0.number := 0;
+	end case;
+	ParserFeedToken(yymajor, &yyminor);
+	if yymajor == 0 then
+		break;
+	end if;
+end loop;
+ParserDeinit();
+
+Generate(MidEndsub(current_subr));
+Generate(MidEndfile());
+EmitterClosefile();
+
+print("done: ");
+PrintFreeMemory();
+
