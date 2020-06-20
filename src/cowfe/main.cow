@@ -73,7 +73,7 @@ sub ParseArguments() is
 	end if;
 end sub;
 
-print("COWCOM: ");
+print("COWFE: ");
 PrintFreeMemory();
 
 ParseArguments();
@@ -112,6 +112,7 @@ end loop;
 ParserDeinit();
 
 Generate(MidEndsub(current_subr));
+ReportWorkspaces(current_subr);
 Generate(MidEndfile());
 EmitterClosefile();
 

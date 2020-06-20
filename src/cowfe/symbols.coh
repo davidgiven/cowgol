@@ -157,3 +157,14 @@ sub CreateMainSubroutine() is
 	AddToNamespace(&current_subr.namespace, sym);
 end sub;
 
+sub ReportWorkspaces(subr: [Subroutine]) is
+    var i: uint8 := 0;
+    while i != 4 loop
+		var w := subr.workspace[i];
+		if w != 0 then
+			EmitterDeclareWorkspace(subr, i, w);
+		end if;
+        i := i + 1;
+    end loop;
+end sub;
+

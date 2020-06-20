@@ -175,10 +175,8 @@ end sub;
 
 sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
 	E_b8('W');
-#	WriteB8('W');
-#	WriteB16(5);
-#	WriteB16(subr.id);
-#	WriteB8(wid);
-#	WriteB16(workspace as uint16);
+	E_b16(subr.id);
+	E_b8(wid);
+	E_bsize(workspace);
 end sub;
 

@@ -963,6 +963,7 @@ statement ::= INTERFACE newsubid subparams submodifiers SEMICOLON.
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
 	Generate(MidEndsub(current_subr));
+
 	current_subr := current_subr.parent;
 }
 
@@ -1067,6 +1068,7 @@ subend ::= END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
+	ReportWorkspaces(current_subr);
 	break_label := current_subr_def.old_break_label;
 	continue_label := current_subr_def.old_continue_label;
 	var ll := current_subr_def;
