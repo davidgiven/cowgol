@@ -1,5 +1,13 @@
 local ARCHS = { "6502i", "65c02", "6502", "z80", "8080", "80386", "cgen" }
 
+lemoncowgol {
+	ins = { "src/cowfe/parser.y" },
+	outs = {
+		"$OBJ/src/cowfe/parser.coh",
+		"$OBJ/src/cowfe/parser.tokens.coh",
+	}
+}
+
 for _, arch in ipairs(ARCHS) do
 	rule {
 		ins = { "src/cowfe/arch"..arch..".coh" },
