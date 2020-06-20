@@ -49,6 +49,7 @@ for sig, sigd in pairs(signatures) do
 			hfp:write("\tE_b16(", n, ".id);\n")
 		elseif a.type == "[Symbol]" then
 			hfp:write("\tE_b16(", n, ".vardata.subr.id);\n")
+			hfp:write("\tE_b8(", n, ".vardata.wsid);\n")
 			hfp:write("\tE_bsize(", n, ".vardata.offset);\n")
 		elseif a.type == "string" then
 			hfp:write("\tE_countedstring(", n, ");\n")

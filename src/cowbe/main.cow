@@ -20,6 +20,7 @@ include "src/cowbe/inputter.coh";
 include "src/cowbe/regcache.coh";
 include "src/cowbe/codegen.coh";
 include "src/cowbe/treewalker.coh";
+include "src/cowbe/processor.coh";
 
 sub PrintFreeMemory() is
 	print_i16((GetFreeMemory() >> 10) as uint16);
@@ -40,23 +41,6 @@ sub ParseArguments() is
 			or (outputfile == (0 as string)) then
 		SyntaxError();
 	end if;
-end sub;
-
-sub ProcessFile() is
-	loop
-		var r := I_b8();
-		case r is
-			when 'E': return;
-
-			when else:
-				StartError();
-				print("unsupported record 0x");
-				print_hex_i8(r);
-				print(" at 0x");
-				print_hex_i32(FCBPos(&infcb));
-				EndError();
-		end case;
-	end loop;
 end sub;
 
 print("COWBE: ");

@@ -2,25 +2,15 @@ typedef LabelRef is uint16;
 typedef Arith is int32;
 typedef Size is uint16;
 
-record VarSymbol is
-	type: [Type];
-	subr: [Subroutine]; # null for a member
-	next_parameter: [Symbol]; # for lists of parameters
-	externname: string;
-	offset: Size;
+record Symbol is
+	subrid: uint16;
+	wsid: uint8;
+	off: Size;
+	width: uint8;
 end record;
 
-record Symbol is
-	typedata @at(0): [Type];
-	vardata @at(0): [VarSymbol];
-	constant @at(0): Arith;
-	alias @at(0): [Symbol];
-
+record Parameter: Symbol is
 	name: string;
-	namespace: [Namespace];
-	next: [Symbol];
-	kind: uint8;
-	wsid: uint8;
 end record;
 
 const SUB_HAS_IMPL          := 0b001;
@@ -28,17 +18,15 @@ const SUB_IS_INTERFACE      := 0b010;
 const SUB_IS_IMPLEMENTATION := 0b100;
 
 record Subroutine is
-	symbol: [Symbol];
-	parent: [Subroutine];
-	intfsubr: [Subroutine];
+	name: string;
 	id: uint16;
-	workspace: Size[4];
 	arch: [ArchSubroutine];
+	input_parameters: [Symbol];
+	output_parameters: [Symbol];
 	num_input_parameters: uint8;
 	num_output_parameters: uint8;
 	flags: uint8;
 end record;
-
 
 var current_subr: [Subroutine];
 var next_label_id: uint16 := 0;
@@ -56,9 +44,5 @@ var next_node := &nodes[0];
 
 @decl sub Discard(node: [Node]);
 
-@decl sub AllocNewSymbol(): (symbol: [Symbol]);
-@decl sub FreeSymbol(symbol: [Symbol]);
-
-@decl sub AllocNewType(): (type: [Type]);
-@decl sub FreeType(type: [Type]);
+@decl sub FindSub(subrid: uint16): (subr: [Subroutine]);
 

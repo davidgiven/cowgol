@@ -1059,6 +1059,9 @@ substart ::= IS.
 	continue_label := 0;
 	current_subr_def := sl;
 
+	EmitterEmitInputParameters(preparing_subr);
+	EmitterEmitOutputParameters(preparing_subr);
+
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
 	current_subr.flags := current_subr.flags | SUB_HAS_IMPL;

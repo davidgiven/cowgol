@@ -1,0 +1,29 @@
+const SUBR_INDEX_SIZE := 16;
+record SubrIndex is
+	next: [SubrIndex];
+	subr: [Subroutine][SUBR_INDEX_SIZE];
+end record;
+
+var subrindex: SubrIndex;
+
+@impl sub FindSub is
+end sub;
+
+sub ProcessFile() is
+	loop
+		var r := I_b8();
+		case r is
+			when 'E': return;
+
+			when else:
+				StartError();
+				print("unsupported record 0x");
+				print_hex_i8(r);
+				print(" at 0x");
+				print_hex_i32(FCBPos(&infcb));
+				EndError();
+		end case;
+	end loop;
+end sub;
+
+

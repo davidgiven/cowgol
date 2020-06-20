@@ -15,7 +15,7 @@ sub I_b32(): (b: uint32) is
 end sub;
 
 sub I_bsize(): (s: Size) is
-	s := I_b32() as Size;
+	s := I_b16() as Size;
 end sub;
 
 sub I_countedstring(): (s: string) is

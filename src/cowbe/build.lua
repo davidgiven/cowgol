@@ -1,4 +1,5 @@
-local ARCHS = { "65c02-tiny", "6502i", "65c02", "6502", "z80", "8080", "80386", "cgen" }
+--local ARCHS = { "65c02-tiny", "6502i", "65c02", "6502", "z80", "8080", "80386", "cgen" }
+local ARCHS = { "cgen" }
 
 local extras = {
 	["65c02"] = "src/cowbe/arch6502.cow.ng",
@@ -30,6 +31,7 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				"src/cowbe/emitter.coh",
 				"src/cowbe/inputter.coh",
 				"src/cowbe/midcodec.coh",
+				"src/cowbe/processor.coh",
 				"src/cowbe/regcache.coh",
 				"src/cowbe/treewalker.coh",
 				"src/cowbe/types.coh",

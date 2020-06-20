@@ -116,7 +116,7 @@ sub IsArray(type: [Type]): (result: uint8) is
 	result := IsTypeOfKind(type, TYPE_ARRAY);
 end sub;
 
-sub IsPtr(type: [Type]): (result: uint8) is
+@impl sub IsPtr is
 	result := IsTypeOfKind(type, TYPE_POINTER);
 end sub;
 

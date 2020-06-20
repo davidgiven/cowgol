@@ -19,7 +19,7 @@ sub E_b32(quad: uint32) is
 end sub;
 
 sub E_bsize(size: Size) is
-	E_b32(size as uint32);
+	E_b16(size as uint16);
 end sub;
 
 sub E_space() is
@@ -178,5 +178,31 @@ sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
 	E_b16(subr.id);
 	E_b8(wid);
 	E_bsize(workspace);
+end sub;
+
+sub EmitParameterList(param: [Symbol]) is
+	while param != (0 as [Symbol]) loop
+		E_b16(param.vardata.subr.id);
+		E_b8(param.vardata.wsid);
+		E_bsize(param.vardata.offset);
+		E_countedstring(param.name);
+		E_b8(param.vardata.type.width as uint8);
+
+		param := param.vardata.next_parameter;
+	end loop;
+end sub;
+
+sub EmitterEmitInputParameters(subr: [Subroutine]) is
+	E_b8('I');
+	E_b16(subr.id);
+	E_b8(subr.num_input_parameters);
+	EmitParameterList(GetInputParameter(subr, 0));
+end sub;
+
+sub EmitterEmitOutputParameters(subr: [Subroutine]) is
+	E_b8('O');
+	E_b16(subr.id);
+	E_b8(subr.num_output_parameters);
+	EmitParameterList(GetOutputParameter(subr, 0));
 end sub;
 

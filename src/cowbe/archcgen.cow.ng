@@ -28,7 +28,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.width as uint8);
+			E_u8(param.width);
 			E("* /* ");
 			E(param.name);
 			E(" */");
@@ -45,7 +45,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.width as uint8);
+			E_u8(param.width);
 			E(" /* ");
 			E(param.name);
 			E(" */");
@@ -70,17 +70,10 @@
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
-		if sym.vardata.externname != (0 as string) then
-			E("((i1*)");
-			E(sym.vardata.externname);
-			E_i16(off as int16);
-			E(")");
-		else
-			E_b8(COO_ESCAPE_WSREF);
-			E_b16(sym.vardata.subr.id);
-			E_b8(0);
-			E_b16(sym.vardata.offset + off);
-		end if;
+		E_b8(COO_ESCAPE_WSREF);
+		E_b16(sym.subrid);
+		E_b8(0);
+		E_b16(sym.off + off);
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -176,7 +169,7 @@ gen STARTSUB()
 	EmitterOpenStream(current_subr);
 
 	E("\n// ");
-	E(current_subr.symbol.name);
+	E(current_subr.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(current_subr.id);
@@ -207,7 +200,7 @@ gen STARTSUB()
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E("* p");
 		E_u16(pid);
 
@@ -228,7 +221,7 @@ gen STARTSUB()
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E(" p");
 		E_u16(pid);
 
@@ -248,9 +241,9 @@ gen STARTSUB()
 		pid := Pop();
 
 		E("\t*(i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E("*)(intptr_t)(");
-		E_symref(param, 0);
+		E_symref(param as [Symbol], 0);
 		E(") = p");
 		E_u16(pid);
 		E("; /*");
@@ -274,13 +267,12 @@ gen ENDSUB()
 		E("\t*p");
 		E_u16(pid);
 		E(" = *(i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E("*)(intptr_t)(");
-		E_symref(param, 0);
+		E_symref(param as [Symbol], 0);
 		E(");\n");
 	end loop;
 	E("}\n");
-	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
 	EmitterCloseStream();
 }
 
@@ -301,7 +293,7 @@ gen ENDSUB()
 			var param := GetOutputParameter(subr, count);
 
 			E("\ti");
-			E_u8(param.vardata.type.width as uint8);
+			E_u8(param.width as uint8);
 			E(" v");
 			E_u16(outputvid + (count as Slot));
 			E(";\n");
@@ -931,10 +923,8 @@ gen STARTINIT():s
 	EmitterOpenStream(current_subr);
 
 	E("static data ");
-	E($s.sym.vardata.externname);
-	E("[] = { // ");
-	E($s.sym.name);
-	E_nl();
+	E_symref($s.sym, 0);
+	E("[] = {\n");
 
 	initialiser_buffer_fill_bytes := 0;
 }
@@ -999,7 +989,7 @@ gen ASMTEXT():t
 gen ASMSYMBOL():s
 {
 	E("*(i");
-	E_u8($s.sym.vardata.type.width as uint8);
+	E_u8($s.sym.width as uint8);
 	E("*)(intptr_t)(");
 	E_symref($s.sym, 0);
 	E(")");

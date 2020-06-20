@@ -53,15 +53,15 @@ sub is_zp(sym: [Symbol]): (result: uint8) is
 end sub;
 
 sub ArchInitVariable(symbol: [Symbol]) is
-	var wsid: uint8 := VARMEM_WS;
+	symbol.vardata.wsid := VARMEM_WS;
 	if is_zp(symbol) != 0 then
-		wsid := PTRMEM_WS;
+		symbol.vardata.wsid := PTRMEM_WS;
 	end if;
 
 	var subr := symbol.vardata.subr;
-	var offset := subr.workspace[wsid];
+	var offset := subr.workspace[symbol.vardata.wsid];
 	symbol.vardata.offset := offset;
-	subr.workspace[wsid] := offset + symbol.vardata.type.width;
+	subr.workspace[symbol.vardata.wsid] := offset + symbol.vardata.type.width;
 end sub;
 
 sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
