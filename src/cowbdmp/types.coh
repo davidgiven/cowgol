@@ -13,5 +13,15 @@ record Symbol is
 	name: string;
 end record;
 
-include "midcodesbe.coh";
+# Forward references
+
+@decl sub PushNode(node: [Node]);
+@decl sub PopNode(): (node: [Node]);
+@decl sub NextNode(): (node: [Node]);
+var nodes: [Node][16];
+var next_node := &nodes[0];
+
+@decl sub AllocateNewNode(op: uint8): (node: [Node]);
+@decl sub Discard(node: [Node]);
+@decl sub FreeNode(node: [Node]);
 

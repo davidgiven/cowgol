@@ -44,5 +44,5 @@ var next_node := &nodes[0];
 
 @decl sub Discard(node: [Node]);
 
-@decl sub FindSub(subrid: uint16): (subr: [Subroutine]);
+@decl sub FindSubr(subrid: uint16): (subr: [Subroutine]);
 

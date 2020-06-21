@@ -6,7 +6,46 @@ end record;
 
 var subrindex: SubrIndex;
 
-@impl sub FindSub is
+sub AddSubr(subrid: uint16): (subr: [Subroutine]) is
+	var index := &subrindex;
+	while subrid >= SUBR_INDEX_SIZE loop
+		if index.next == (0 as [SubrIndex]) then
+			index.next := Alloc(@bytesof SubrIndex) as [SubrIndex];
+		end if;
+		index := index.next;
+		subrid := subrid - SUBR_INDEX_SIZE;
+	end loop;
+
+	var slot := &index.subr[subrid as uint8];
+	if [slot] != (0 as [Subroutine]) then
+		SimpleError("duplicate subrid");
+	end if;
+	subr := Alloc(@bytesof Subroutine) as [Subroutine];
+	[slot] := subr;
+	subr.id := subrid;
+end sub;
+
+@impl sub FindSubr is
+	var index := &subrindex;
+	while subrid >= SUBR_INDEX_SIZE loop
+		if index.next == (0 as [SubrIndex]) then
+			SimpleError("unknown subrid");
+		end if;
+		index := index.next;
+		subrid := subrid - SUBR_INDEX_SIZE;
+	end loop;
+
+	subr := index.subr[subrid as uint8];
+end sub;
+
+sub ReadN() is
+	var subrid := I_b16();
+	var subr := AddSubr(subrid);
+	subr.name := I_countedstring();
+end sub;
+
+sub ReadM() is
+	SimpleError("can't do M");
 end sub;
 
 sub ProcessFile() is
@@ -14,6 +53,9 @@ sub ProcessFile() is
 		var r := I_b8();
 		case r is
 			when 'E': return;
+
+			when 'N': ReadN();
+			when 'M': ReadM();
 
 			when else:
 				StartError();

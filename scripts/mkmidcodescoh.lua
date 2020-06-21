@@ -58,7 +58,9 @@ for m, md in pairs(basemidcodes) do
         hfp:write("\t", m:lower(), " @at(0): Midcode", title(md.base), ";\n")
     end
 end
-hfp:write("\ttype: [Type];\n")
+if mode ~= "be" then
+	hfp:write("\ttype: [Type];\n")
+end
 hfp:write("\tleft: [Node];\n")
 hfp:write("\tright: [Node];\n")
 if (mode == "combined") or (mode == "be") then
@@ -66,6 +68,9 @@ if (mode == "combined") or (mode == "be") then
 	hfp:write("\tconsumer: [Instruction];\n")
 	hfp:write("\tdesired_reg: RegId;\n")
 	hfp:write("\tproduced_reg: RegId;\n")
+end
+if mode == "be" then
+	hfp:write("\tnext: [Node];\n")
 end
 hfp:write("\top: uint8;\n")
 hfp:write("end record;\n");
@@ -132,4 +137,19 @@ if mode ~= "be" then
 	end
 end
 
+-- Midcode labels.
+
+local bynumber = {}
+for m, md in pairs(midcodes) do
+	bynumber[md.id] = md
+end
+
+hfp:write("sub MidcodeName(op: uint8): (name: string) is\n")
+hfp:write("\tvar labels: string[] := {\n")
+for _, md in ipairs(bynumber) do
+	hfp:write('\t\t"', md.name, '",\n')
+end
+hfp:write("\t};\n")
+hfp:write("\tname := labels[op-1];\n")
+hfp:write("end sub;\n")
 hfp:close()
