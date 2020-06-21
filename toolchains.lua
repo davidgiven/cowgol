@@ -36,7 +36,8 @@ toolchain_ncpm = {
 
 toolchain_ncpmz = {
 	name = "ncpmz",
-	compiler = "bin/cowcom-z80.nncgen.exe",
+	cowfe = "bin/cowfe-z80.nncgen.exe",
+	cowbe = "bin/cowbe-z80.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
 	runtime = "rt/cpmz",
