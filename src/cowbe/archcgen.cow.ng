@@ -164,8 +164,11 @@ gen RETURN()
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB():s
 {
+	var subr := FindSubr($s.subrid);
+	subr.parent := current_subr;
+	current_subr := subr;
 	EmitterOpenStream(current_subr);
 
 	E("\n// ");
@@ -274,6 +277,8 @@ gen ENDSUB()
 	end loop;
 	E("}\n");
 	EmitterCloseStream();
+
+	current_subr := current_subr.parent;
 }
 
 %{

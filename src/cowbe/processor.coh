@@ -18,7 +18,10 @@ sub AddSubr(subrid: uint16): (subr: [Subroutine]) is
 
 	var slot := &index.subr[subrid as uint8];
 	if [slot] != (0 as [Subroutine]) then
-		SimpleError("duplicate subrid");
+		StartError();
+		print("duplicate subrid ");
+		print_i16(subrid);
+		EndError();
 	end if;
 	subr := Alloc(@bytesof Subroutine) as [Subroutine];
 	[slot] := subr;
@@ -45,7 +48,8 @@ sub ReadN() is
 end sub;
 
 sub ReadM() is
-	SimpleError("can't do M");
+	var node := I_node();
+	Generate(node);
 end sub;
 
 sub ProcessFile() is
