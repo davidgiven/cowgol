@@ -959,6 +959,7 @@ statement ::= subimpldecl substart statements subend SEMICOLON.
 statement ::= INTERFACE newsubid subparams submodifiers SEMICOLON.
 {
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_INTERFACE;
+	EmitterEmitSubroutineFlags(preparing_subr);
 
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
@@ -1003,6 +1004,7 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 
 	EmitterEmitInputParameters(preparing_subr);
 	EmitterEmitOutputParameters(preparing_subr);
+	EmitterEmitSubroutineFlags(preparing_subr);
 }
 
 submodifiers ::= .

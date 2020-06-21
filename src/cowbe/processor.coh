@@ -66,6 +66,8 @@ sub ReadM() is
 		var subr := node.startsub.subr;
 		subr.parent := current_subr;
 		current_subr := subr;
+		print(current_subr.name);
+		print_nl();
 	end if;
 	Generate(node);
 	if op == MIDCODE_ENDSUB then
@@ -119,6 +121,11 @@ sub ReadR() is
 	EmitterReferenceSubroutineById(user.id, used.id);
 end sub;
 
+sub ReadF() is
+	var subr := FindSubr(I_b16());
+	subr.flags := I_b8();
+end sub;
+
 sub ProcessFile() is
 	loop
 		var r := I_b8();
@@ -132,6 +139,7 @@ sub ProcessFile() is
 			when 'O': ReadO();
 			when 'W': ReadW();
 			when 'R': ReadR();
+			when 'F': ReadF();
 
 			when else:
 				StartError();

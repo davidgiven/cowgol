@@ -44,8 +44,7 @@ sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 end sub;
 
 sub is_zp(sym: [Symbol]): (result: uint8) is
-	if (sym.vardata.type.width == 1)
-			or (IsPtr(sym.vardata.type) != 0) then
+	if (sym.vardata.type.width == 1) or (IsPtr(sym.vardata.type) != 0) then
 		result := 1;
 	else
 		result := 0;

@@ -206,3 +206,9 @@ sub EmitterEmitOutputParameters(subr: [Subroutine]) is
 	EmitParameterList(GetOutputParameter(subr, 0));
 end sub;
 
+sub EmitterEmitSubroutineFlags(subr: [Subroutine]) is
+	E_b8('F');
+	E_b16(subr.id);
+	E_b8(subr.flags);
+end sub;
+

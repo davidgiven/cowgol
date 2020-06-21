@@ -116,6 +116,16 @@ sub ReadW() is
 	print_nl();
 end sub;
 
+sub ReadF() is
+	var subrid := I_b16();
+	var flags := I_b8();
+	print("F: ");
+	print_hex_i16(subrid);
+	print_char(' ');
+	print_hex_i8(flags);
+	print_nl();
+end sub;
+
 sub ReadP(type: uint8) is
 	var subrid := I_b16();
 
@@ -165,6 +175,7 @@ sub DumpRecords() is
 			when 'W': ReadW();
 			when 'I': ReadP('I');
 			when 'O': ReadP('O');
+			when 'F': ReadF();
 
 			when else:
 				StartError();
