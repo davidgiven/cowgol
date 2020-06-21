@@ -23,13 +23,15 @@ toolchain_nncgen = {
 
 toolchain_ncpm = {
 	name = "ncpm",
-	compiler = "bin/cowcom-8080.nncgen.exe",
+	cowfe = "bin/cowfe-8080.nncgen.exe",
+	cowbe = "bin/cowbe-8080.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
 	runtime = "rt/cpm",
 	asmext = ".asm",
 	binext = ".8080.com",
 	tester = cpmtest,
+	archs = { "8080" }
 }
 
 toolchain_ncpmz = {
@@ -45,7 +47,8 @@ toolchain_ncpmz = {
 
 toolchain_lx386 = {
 	name = "lx386",
-	compiler = "bin/cowcom-80386.nncgen.exe",
+	cowfe = "bin/cowfe-80386.nncgen.exe",
+	cowbe = "bin/cowbe-80386.nncgen.exe",
 	linker = "bin/cowlink-lx386.nncgen.exe",
 	assembler = buildgas386,
 	runtime = "rt/lx386",

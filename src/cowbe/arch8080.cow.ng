@@ -1630,6 +1630,12 @@ gen ASMSYMBOL():s
 	E_space();
 }
 
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
+	E_space();
+}
+
 gen ASMEND()
 {
     E_nl();

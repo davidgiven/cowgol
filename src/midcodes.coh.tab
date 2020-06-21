@@ -19,6 +19,7 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 ASMSTART()
 - 0 0 ASMTEXT(text: string) = ("%s", $$.text)
 - 0 0 ASMSYMBOL(sym: [Symbol]) = ("%s", $$.sym.name)
+- 0 0 ASMSUBREF(subr: [Subroutine])
 - 0 0 ASMVALUE(value: int32) = ("%d", $$.value)
 - 0 0 ASMEND()
 

@@ -1136,6 +1136,12 @@ gen ASMSYMBOL():s
     E_space();
 }
 
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
+    E_space();
+}
+
 gen ASMVALUE():c
 {
 	E_b8('(');

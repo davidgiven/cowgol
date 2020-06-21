@@ -1466,20 +1466,23 @@ asm ::= oldid(S).
 		SimpleError("you can only emit references to variables, subroutines, or constants");
 	end sub;
 
-	var k := S.kind;
-	if (k == VAR) or (k == TYPE) then
-		if (k == TYPE) then
+	case S.kind is
+		when TYPE:
 			if IsSubroutine(S.typedata) != 0 then
 				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr);
+				Generate(MidAsmsubref(S.typedata.subrtype.subr));
 			else
 				bad_reference();
 			end if;
-		end if;
-		Generate(MidAsmsymbol(S));
-	elseif k == CONST then
-		Generate(MidAsmvalue(S.constant));
-	else
-		bad_reference();
-	end if;
+
+		when VAR:
+			Generate(MidAsmsymbol(S));
+
+		when CONST:
+			Generate(MidAsmvalue(S.constant));
+
+		when else:
+			bad_reference();
+	end case;
 }
 

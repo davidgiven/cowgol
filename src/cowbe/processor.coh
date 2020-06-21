@@ -95,30 +95,28 @@ sub ReadParameters(count: uint8, paramp: [[[Parameter]]]) is
 end sub;
 
 sub ReadI() is
-	var subrid := I_b16();
-	var subr := FindSubr(subrid);
+	var subr := FindSubr(I_b16());
 	subr.num_input_parameters := I_b8();
 	ReadParameters(subr.num_input_parameters, &subr.input_parameters);
 end sub;
 
 sub ReadO() is
-	var subrid := I_b16();
-	var subr := FindSubr(subrid);
+	var subr := FindSubr(I_b16());
 	subr.num_output_parameters := I_b8();
 	ReadParameters(subr.num_output_parameters, &subr.output_parameters);
 end sub;
 
 sub ReadW() is
-	var subrid := I_b16();
+	var subr := FindSubr(I_b16());
 	var wsid := I_b8();
 	var size := I_bsize();
-	EmitterDeclareWorkspace(subrid, wsid, size);
+	EmitterDeclareWorkspace(subr.id, wsid, size);
 end sub;
 
 sub ReadR() is
-	var userid := I_b16();
-	var usedid := I_b16();
-	EmitterReferenceSubroutineById(userid, usedid);
+	var user := FindSubr(I_b16());
+	var used := FindSubr(I_b16());
+	EmitterReferenceSubroutineById(user.id, used.id);
 end sub;
 
 sub ProcessFile() is

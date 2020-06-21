@@ -1002,6 +1002,14 @@ gen ASMSYMBOL():s
 	E_space();
 }
 
+gen ASMSUBREF():s
+{
+	E("(intptr_t)(");
+	E_subref_sig($s.subr);
+	E(")");
+	E_space();
+}
+
 gen ASMVALUE():c
 {
 	E_b8('(');
