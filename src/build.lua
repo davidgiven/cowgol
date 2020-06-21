@@ -169,20 +169,48 @@ function cowgol(e)
 		hdrs[#hdrs+1] = "-I"..f
 	end
 
-	rule {
-		ins = concat {
-			e.toolchain.compiler,
-			e.ins,
-			"scripts/quiet",
-			"rt/common-file.coh",
-			"rt/common.coh",
-			"rt/malloc.coh",
-			"rt/strings.coh",
-			(e.toolchain.runtime.."/cowgol.coh"),
-		},
-		outs = { coo },
-		cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
-	}
+	if e.toolchain.compiler then
+		rule {
+			ins = concat {
+				e.toolchain.compiler,
+				e.ins,
+				"scripts/quiet",
+				"rt/common-file.coh",
+				"rt/common.coh",
+				"rt/malloc.coh",
+				"rt/strings.coh",
+				(e.toolchain.runtime.."/cowgol.coh"),
+			},
+			outs = { coo },
+			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
+		}
+	else
+		local cob = out:ext(".cob"):obj()
+		rule {
+			ins = concat {
+				e.toolchain.cowfe,
+				e.ins,
+				"scripts/quiet",
+				"rt/common-file.coh",
+				"rt/common.coh",
+				"rt/malloc.coh",
+				"rt/strings.coh",
+				(e.toolchain.runtime.."/cowgol.coh"),
+			},
+			outs = { cob },
+			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
+		}
+
+		rule {
+			ins = concat {
+				e.toolchain.cowbe,
+				"scripts/quiet",
+				cob,
+			},
+			outs = { coo },
+			cmd = "scripts/quiet @1 @3 &1"
+		}
+	end
 
 	rule {
 		ins = concat {

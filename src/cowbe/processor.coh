@@ -45,6 +45,7 @@ sub ReadN() is
 	var subrid := I_b16();
 	var subr := AddSubr(subrid);
 	subr.name := I_countedstring();
+	EmitterDeclareSubroutine(subr);
 end sub;
 
 sub ReadM() is

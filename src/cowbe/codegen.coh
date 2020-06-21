@@ -36,10 +36,10 @@ sub AllocLabel(): (label: LabelRef) is
 	next_label_id := next_label_id + 1;
 end sub;
 
-sub AllocSubrId(): (id: uint16) is
-	id := next_subr_id;
-	next_subr_id := next_subr_id + 1;
-end sub;
+#sub AllocSubrId(): (id: uint16) is
+#	id := next_subr_id;
+#	next_subr_id := next_subr_id + 1;
+#end sub;
 
 var insn_freelist := (0 as [Instruction]);
 sub AllocNewInstruction(): (insn: [Instruction]) is

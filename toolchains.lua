@@ -11,7 +11,8 @@ toolchain_ncgen = {
 
 toolchain_nncgen = {
 	name = "nncgen",
-	compiler = "bin/cowcom-cgen.ncgen.exe",
+	cowbe = "bin/cowbe-cgen.ncgen.exe",
+	cowfe = "bin/cowfe-cgen.ncgen.exe",
 	linker = "bin/cowlink-cgen.ncgen.exe",
 	assembler = buildcgen,
 	runtime = "rt/cgen",
