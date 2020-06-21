@@ -38,7 +38,11 @@ for sig, sigd in pairs(signatures) do
 	hfp:write("# ", sig, "\n")
 	hfp:write("sub ReadMid", (sigd.id-1), " implements MidReader is\n")
 	for _, a in ipairs(sigd.md.args) do
-		n = "node."..sigd.md.base:lower().."."..a.name
+		local name = a.name
+		if name == "subr" then
+			name = "subrid"
+		end
+		local n = "node."..sigd.md.base:lower().."."..name
 		if a.type == "uint8" then
 			hfp:write("\t", n, " := I_b8();\n")
 		elseif (a.type == "uint16") or (a.type == "LabelRef") then
@@ -50,7 +54,7 @@ for sig, sigd in pairs(signatures) do
 		elseif a.type == "[Subroutine]" then
 			hfp:write("\t", n, " := I_b16();\n")
 		elseif a.type == "[Symbol]" then
-			hfp:write("\t", n, ".subr := I_b16();\n")
+			hfp:write("\t", n, ".subrid := I_b16();\n")
 			hfp:write("\t", n, ".wsid := I_b8();\n")
 			hfp:write("\t", n, ".off := I_bsize();\n")
 		elseif a.type == "string" then

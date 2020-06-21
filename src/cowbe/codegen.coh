@@ -283,7 +283,7 @@ sub PrintNodes(rootnode: [Node]) is
 	end loop;
 end sub;
 
-sub ReallyGenerate(rootnode: [Node]) is
+sub Generate(rootnode: [Node]) is
 	var i: uint8;
 
 	# Remember that this list is actually emitted in *reverse* order, so
@@ -392,7 +392,8 @@ sub ReallyGenerate(rootnode: [Node]) is
 							# the tree all the fallback nodes will be left abandonded with
 							# pointers into hyperspace.
 							var oldnode := node;
-							node := MidFallback(oldnode);
+							node := AllocateNewNode(MIDCODE_FALLBACK);
+							node.left := oldnode;
 
 							node.consumer := oldnode.consumer;
 
@@ -713,26 +714,6 @@ sub ReallyGenerate(rootnode: [Node]) is
 	Discard(rootnode);
 end sub;
 
-var old_op: uint8 := 0;
-sub Generate(statement: [Node]) is
-	var op := statement.op;
-	if (old_op == MIDCODE_JUMP) or (old_op == MIDCODE_RETURN) then
-		if (op != MIDCODE_LABEL) and (op != MIDCODE_ENDSUB) then
-			Discard(statement);
-			return;
-		end if;
-	end if;
-
-	if (op == MIDCODE_ASMSTART) and (old_op != MIDCODE_ASMEND) then
-		ReallyGenerate(MidAsmgroupstart());
-	end if;
-	if (old_op == MIDCODE_ASMEND) and (op != MIDCODE_ASMSTART) then
-		ReallyGenerate(MidAsmgroupend());
-	end if;
-	old_op := op;
-	ReallyGenerate(statement);
-end sub;
-
 sub GenerateConditional(rootnode: [Node]) is
 	var old_next_node := next_node;
 	PushNode(rootnode);
@@ -788,7 +769,10 @@ sub GenerateConditional(rootnode: [Node]) is
 				end if;
 
 				Generate(node);
-				Generate(MidLabel(r));
+
+				node := AllocateNewNode(MIDCODE_LABEL);
+				node.label.label := r;
+				Generate(node);
 		end case;
 	end loop;
 end sub;

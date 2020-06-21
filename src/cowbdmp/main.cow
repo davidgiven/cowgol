@@ -11,7 +11,6 @@ print("kB free\n");
 include "src/cowbdmp/types.coh";
 include "src/cowbe/utils.coh";
 include "midcodesbe.coh";
-include "src/cowbe/treewalker.coh";
 
 @impl sub AllocateNewNode is
 	node := Alloc(@bytesof Node) as [Node];
@@ -30,6 +29,7 @@ end sub;
 
 include "src/cowbe/inputter.coh";
 include "cobin.coh";
+include "src/cowbe/treewalker.coh";
 
 sub SyntaxError() is
 	SimpleError("syntax: cowbdmp <cobfile>");
@@ -46,61 +46,6 @@ sub ParseArguments() is
 	end if;
 
 	InputterOpenfile(inputfilename);
-end sub;
-
-sub I_node(): (rootnode: [Node]) is
-	var count: uint8 := 1;
-	rootnode := 0 as [Node];
-	while count != 0 loop
-		var op := I_b8();
-		var node: [Node] := AllocateNewNode(op);
-		node.next := rootnode;
-		rootnode := node;
-		var sig := signatures[op-1];
-		(midcode_readers[sig])(node);
-		count := count + midcode_ins[op-1] - 1;
-	end loop;
-
-	# We should now have a chain of nodes in right-to-left order starting at
-	# rootnode, hooked together via their next links. We need to convert this
-	# to a tree. We do this by popping nodes on at a time and queueing them.
-	# Each time we pop a node which takes children, we remove that many from
-	# the queue and add them to the node before queuing it. Eventually we will
-	# end up with a single node on the queue which is the root of the tree.
-
-	var queue: [Node] := (0 as [Node]);
-	while rootnode != 0 as [Node] loop
-		# Remove one item from the list.
-
-		node := rootnode;
-		rootnode := node.next;
-
-		# Does it take children?
-
-		var children := midcode_ins[node.op-1];
-		if children >= 1 then
-			# At least one child; pop item and place it on the left branch.
-
-			node.left := queue;
-			queue := node.left.next;
-		end if;
-		if children == 2 then
-			# Two children; pop another item. Note that as we're reading
-			# nodes backwards, this is actually the *left* branch, and we
-			# need to move the node read previously into the right branch.
-
-			node.right := node.left;
-			node.left := queue;
-			queue := node.left.next;
-		end if;
-
-		# Add this node to the queue.
-
-		node.next := queue;
-		queue := node;
-	end loop;
-
-	rootnode := queue;
 end sub;
 
 sub ReadN() is

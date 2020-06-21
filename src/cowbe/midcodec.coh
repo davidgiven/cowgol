@@ -43,7 +43,7 @@ end sub;
 
 @decl sub AllocateNewNode(code: uint8): (m: [Node]);
 
-include "midcodes.coh";
+include "midcodesbe.coh";
 
 var node_freelist: [Node] := 0 as [Node];
 @impl sub AllocateNewNode is

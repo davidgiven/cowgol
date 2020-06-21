@@ -17,6 +17,7 @@ include "inssel.decl.coh";
 include "src/cowbe/midcodec.coh";
 include "src/cowbe/emitter.coh";
 include "src/cowbe/inputter.coh";
+include "cobin.coh";
 include "src/cowbe/regcache.coh";
 include "src/cowbe/codegen.coh";
 include "src/cowbe/treewalker.coh";

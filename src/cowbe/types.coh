@@ -1,6 +1,7 @@
 typedef LabelRef is uint16;
 typedef Arith is int32;
 typedef Size is uint16;
+typedef SubrId is uint16;
 
 record Symbol is
 	subrid: uint16;
@@ -21,8 +22,8 @@ record Subroutine is
 	name: string;
 	id: uint16;
 	arch: [ArchSubroutine];
-	input_parameters: [Symbol];
-	output_parameters: [Symbol];
+	input_parameters: [Parameter];
+	output_parameters: [Parameter];
 	num_input_parameters: uint8;
 	num_output_parameters: uint8;
 	flags: uint8;
@@ -35,6 +36,8 @@ var next_subr_id: uint16 := 0;
 const REG_SAME_AS_INSTRUCTION_RESULT := -1;
 
 # Forward references
+
+interface MidReader(node: [Node]);
 
 @decl sub PushNode(node: [Node]);
 @decl sub PopNode(): (node: [Node]);

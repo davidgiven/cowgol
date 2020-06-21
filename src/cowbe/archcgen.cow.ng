@@ -278,7 +278,8 @@ gen ENDSUB()
 
 %{
 	# subr here is the *interface*.
-	sub Call(subr: [Subroutine]) is
+	sub Call(subrid: SubrId) is
+		var subr := FindSubr(subrid);
 		var pid := Pop();
 
 		# Allocate vids for the return parameters.
@@ -358,11 +359,11 @@ gen ENDSUB()
 	end sub;
 %}
 
-gen       CALL(  param, v8):s { Call($s.subr); }
-gen v1 := CALLE1(param, v8):s { Call($s.subr); }
-gen v2 := CALLE2(param, v8):s { Call($s.subr); }
-gen v4 := CALLE4(param, v8):s { Call($s.subr); }
-gen v8 := CALLE8(param, v8):s { Call($s.subr); }
+gen       CALL(  param, v8):s { Call($s.subrid); }
+gen v1 := CALLE1(param, v8):s { Call($s.subrid); }
+gen v2 := CALLE2(param, v8):s { Call($s.subrid); }
+gen v4 := CALLE4(param, v8):s { Call($s.subrid); }
+gen v8 := CALLE8(param, v8):s { Call($s.subrid); }
 
 gen param := END();
 gen param := ARG1(param, v1);
@@ -405,7 +406,7 @@ gen v8 := ADDRESS():a
 	E("\ti8 v");
 	E_u16(vid);
 	E(" = (i8)(intptr_t)(");
-	E_symref($a.sym, $a.off);
+	E_symref(&$a.sym, $a.off);
 	E(");\n");
 }
 
@@ -416,7 +417,7 @@ gen v8 := SUBREF():a
 	E("\ti8 v");
 	E_u16(vid);
 	E(" = (i8)(intptr_t)(");
-	E_subref_sig($a.subr);
+	E_subref_sig(FindSubr($a.subrid));
 	E(");\n");
 }
 
@@ -923,7 +924,7 @@ gen STARTINIT():s
 	EmitterOpenStream(current_subr);
 
 	E("static data ");
-	E_symref($s.sym, 0);
+	E_symref(&$s.sym, 0);
 	E("[] = {\n");
 
 	initialiser_buffer_fill_bytes := 0;
@@ -939,7 +940,7 @@ gen INITSUBREF():a
 	CheckBufferAlignment();
 
 	E("\t{ .ptr = (void*)");
-	E_subref($a.subr);
+	E_subref(FindSubr($a.subrid));
 	E(" },\n");
 }
 
@@ -948,7 +949,7 @@ gen INITADDRESS():a
 	CheckBufferAlignment();
 
 	E("\t{ .ptr = (void*)");
-	E_symref($a.sym, $a.off);
+	E_symref(&$a.sym, $a.off);
 	E(" },\n");
 }
 
@@ -991,7 +992,7 @@ gen ASMSYMBOL():s
 	E("*(i");
 	E_u8($s.sym.width as uint8);
 	E("*)(intptr_t)(");
-	E_symref($s.sym, 0);
+	E_symref(&$s.sym, 0);
 	E(")");
 	E_space();
 }

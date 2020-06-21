@@ -1,5 +1,3 @@
-interface MidReader(node: [Node]);
-
 typedef string is [uint8];
 typedef SubrId is uint16;
 typedef Size is uint16;
@@ -7,13 +5,15 @@ typedef LabelRef is uint16;
 typedef RegId is uint8; # unused but required by midcodesbe
 
 record Symbol is
-	subr: SubrId;
+	subrid: uint16;
 	wsid: uint8;
 	off: Size;
 	name: string;
 end record;
 
 # Forward references
+
+interface MidReader(node: [Node]);
 
 @decl sub PushNode(node: [Node]);
 @decl sub PopNode(): (node: [Node]);
