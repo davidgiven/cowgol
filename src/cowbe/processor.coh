@@ -61,7 +61,16 @@ end sub;
 
 sub ReadM() is
 	var node := I_node();
+	var op := node.op;
+	if op == MIDCODE_STARTSUB then
+		var subr := node.startsub.subr;
+		subr.parent := current_subr;
+		current_subr := subr;
+	end if;
 	Generate(node);
+	if op == MIDCODE_ENDSUB then
+		current_subr := current_subr.parent;
+	end if;
 end sub;
 
 sub ReadParameters(count: uint8, paramp: [[[Parameter]]]) is
