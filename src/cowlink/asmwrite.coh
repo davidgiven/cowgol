@@ -31,7 +31,6 @@ sub WriteSubroutinesToOutputFile(coo: [Coo]) is
 	end sub;
 
 	sub CopySourceChunk() is
-		print("new chunk\n");
 		while length != 0 loop
 			c := ReadB1();
 			WriteStream(c);
