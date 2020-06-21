@@ -246,10 +246,10 @@ sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine]) is
 	EmitterReferenceSubroutineById(user.id, used.id);
 end sub;
 
-sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
+sub EmitterDeclareWorkspace(subrid: SubrId, wid: uint8, workspace: Size) is
 	WriteB8('W');
 	WriteB16(5);
-	WriteB16(subr.id);
+	WriteB16(subrid);
 	WriteB8(wid);
 	WriteB16(workspace as uint16);
 end sub;

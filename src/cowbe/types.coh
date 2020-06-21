@@ -23,8 +23,8 @@ record Subroutine is
 	id: uint16;
 	parent: [Subroutine];
 	arch: [ArchSubroutine];
-	input_parameters: [Parameter];
-	output_parameters: [Parameter];
+	input_parameters: [[Parameter]];
+	output_parameters: [[Parameter]];
 	num_input_parameters: uint8;
 	num_output_parameters: uint8;
 	flags: uint8;
