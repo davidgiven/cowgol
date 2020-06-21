@@ -12,14 +12,13 @@
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
-		if sym.vardata.externname != (0 as string) then
-			E(sym.vardata.externname);
-			E_i16(off as int16);
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
 		else
-			E_b8(COO_ESCAPE_WSREF);
-			E_b16(sym.vardata.subr.id);
-			E_b8(0);
-			E_b16(sym.vardata.offset + off);
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
 		end if;
 	end sub;
 
@@ -605,7 +604,7 @@ gen STARTSUB()
 	EmitterOpenStream(current_subr);
 
 	E("\n\n\t; ");
-	E(current_subr.symbol.name);
+	E(current_subr.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(current_subr.id);
@@ -636,27 +635,27 @@ gen STARTSUB()
 		count := count - 1;
 		var param := GetInputParameter(current_subr, count);
 
-		case param.vardata.type.width is
+		case param.width is
 			when 1:
 				if count != lastparam then
 					pop_return_address();
 					E_pop(REG_A);
 				end if;
-				E_sta(param, 0);
+				E_sta(param as [Symbol], 0);
 
 			when 2:
 				if count != lastparam then
 					pop_return_address();
 					E_pop(REG_HL);
 				end if;
-				E_shld(param, 0);
+				E_shld(param as [Symbol], 0);
 
 			when 4:
 				pop_return_address();
 				E_pop(REG_HL);
-				E_shld(param, 0);
+				E_shld(param as [Symbol], 0);
 				E_pop(REG_HL);
-				E_shld(param, 2);
+				E_shld(param as [Symbol], 2);
 		end case;
 	end loop;
 
@@ -687,16 +686,16 @@ gen ENDSUB()
 	while count != params loop
 		var param := GetOutputParameter(current_subr, count);
 
-		case param.vardata.type.width is
+		case param.width is
 			when 1:
-				E_lda(param, 0);
+				E_lda(param as [Symbol], 0);
 				if count != (params-1) then
 					push_return_address();
 					E_push(REG_A);
 				end if;
 
 			when 2:
-				E_lhld(param, 0);
+				E_lhld(param as [Symbol], 0);
 				if count != (params-1) then
 					push_return_address();
 					E_push(REG_HL);
@@ -704,9 +703,9 @@ gen ENDSUB()
 
 			when 4:
 				push_return_address();
-				E_lhld(param, 2);
+				E_lhld(param as [Symbol], 2);
 				E_push(REG_HL);
-				E_lhld(param, 0);
+				E_lhld(param as [Symbol], 0);
 				E_push(REG_HL);
 		end case;
 
@@ -718,7 +717,6 @@ gen ENDSUB()
 	end if;
 	E_ret();
 
-	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
 	EmitterCloseStream();
 }
 
@@ -809,7 +807,7 @@ gen stk4 := CONSTANT():rhs uses hl
 
 gen bc|de|hl := ADDRESS():a
 {
-	E_lxia($$, $a.sym, $a.off);
+	E_lxia($$, &$a.sym, $a.off);
 }
 
 gen bc|de|hl := SUBREF():a
@@ -821,7 +819,7 @@ gen bc|de|hl := SUBREF():a
 
 gen a := LOAD1(ADDRESS():a)
 {
-	E_lda($a.sym, $a.off);
+	E_lda(&$a.sym, $a.off);
 }
 
 gen a := LOAD1(bc|de|hl:ptr)
@@ -835,7 +833,7 @@ gen a := LOAD1(bc|de|hl:ptr)
 
 gen STORE1(a, ADDRESS():a)
 {
-	E_sta($a.sym, $a.off);
+	E_sta(&$a.sym, $a.off);
 }
 
 gen STORE1(a, bc|de|hl:ptr)
@@ -857,7 +855,7 @@ gen STORE1(a, bc|de|hl:ptr)
 
 gen hl := LOAD2(ADDRESS():a)
 {
-	E_lhld($a.sym, $a.off);
+	E_lhld(&$a.sym, $a.off);
 }
 
 %{
@@ -882,7 +880,7 @@ gen hl|bc|de := LOAD2(hl) uses a
 
 gen STORE2(hl, ADDRESS():a)
 {
-	E_shld($a.sym, $a.off);
+	E_shld(&$a.sym, $a.off);
 }
 
 gen STORE2(bc|de:val, hl) uses a
@@ -1492,7 +1490,7 @@ gen a := CAST21(hl|bc|de:rhs)
 		{ E_mov(REG_A, loreg($rhs)); }
 
 gen a := CAST21(LOAD2(ADDRESS():a))
-		{ E_lda($a.sym, $a.off); }
+		{ E_lda(&$a.sym, $a.off); }
 
 gen a|b|d|h := CAST21(LOAD2(hl))
 		{ E_loadm($$); }
@@ -1523,7 +1521,7 @@ gen a := CAST41(stk4) uses hl
 }
 
 gen a := CAST41(LOAD4(ADDRESS():a))
-		{ E_lda($a.sym, $a.off); }
+		{ E_lda(&$a.sym, $a.off); }
 
 gen a|b|d|h := CAST41(LOAD4(hl))
 		{ E_loadm($$); }
@@ -1535,7 +1533,7 @@ gen hl := CAST42(stk4) uses bc
 }
 
 gen hl := CAST42(LOAD4(ADDRESS():a))
-		{ E_lhld($a.sym, $a.off); }
+		{ E_lhld(&$a.sym, $a.off); }
 	
 gen hl|bc|de := CAST42(LOAD4(hl))
 		{ load2($$); }
@@ -1558,7 +1556,7 @@ gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
 	E("\tcseg\n"); # yes, really
-	E($s.sym.vardata.externname);
+	E_symref(&$s.sym, 0);
 	E(":\n");
 }
 
@@ -1591,7 +1589,7 @@ gen INIT4():c
 gen INITADDRESS():a
 {
     E_dw();
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E_nl();
 }
 
@@ -1628,7 +1626,7 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	E_symref($s.sym, 0);
+	E_symref(&$s.sym, 0);
 	E_space();
 }
 
