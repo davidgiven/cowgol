@@ -175,10 +175,17 @@ sub E_subref(subr: [Subroutine]) is
 end sub;
 
 sub E_wsref(id: uint16, wsid: uint8, off: uint16) is
-	E_b8(COO_ESCAPE_WSREF);
-	E_b16(id);
-	E_b8(wsid);
-	E_b16(off);
+	if wsid == WSID_STATIC then
+		E_b8(COO_ESCAPE_SUBREF);
+		E_b16(id);
+		E("_s");
+		E_h16(off);
+	else
+		E_b8(COO_ESCAPE_WSREF);
+		E_b16(id);
+		E_b8(wsid);
+		E_b16(off);
+	end if;
 end sub;
 
 sub EmitterOpenStream(subr: [Subroutine]) is

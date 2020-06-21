@@ -98,9 +98,9 @@
 		EmitterReferenceSubroutineById(current_subr.id, e.id);
     end sub;
 
-	sub E_db is E("\t.byte "); end sub;
-	sub E_dw is E("\t.word "); end sub;
-	sub E_dl is E("\t.dword "); end sub;
+	sub E_db() is E("\t.byte "); end sub;
+	sub E_dw() is E("\t.word "); end sub;
+	sub E_dl() is E("\t.dword "); end sub;
 
     sub E_label(label: LabelRef) is
         E_labelref(label);
@@ -344,7 +344,7 @@ gen RETURN()
 		E_subrefi(addr.subr);
 	end sub;
 
-	sub CallI is
+	sub CallI() is
 		E_callhelper("calli");
 	end sub;
 %}

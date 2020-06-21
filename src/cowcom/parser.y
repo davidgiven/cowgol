@@ -971,7 +971,7 @@ statement ::= implementsstart substart statements subend SEMICOLON.
 
 implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 {
-	sub not_an_interface is
+	sub not_an_interface() is
 		SimpleError("type is not an interface");
 	end sub;
 

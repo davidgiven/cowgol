@@ -158,7 +158,7 @@ sub EmitterDeclareSubroutine(subr: [Subroutine]) is
 end sub;
 
 sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
-	E_b8('N');
+	E_b8('X');
 	E_b16(id);
 	E_countedstring(external);
 end sub;

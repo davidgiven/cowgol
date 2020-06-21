@@ -9,6 +9,7 @@ record Symbol is
 	wsid: uint8;
 	off: Size;
 	name: string;
+	width: uint8;
 end record;
 
 # Forward references

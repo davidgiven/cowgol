@@ -11,7 +11,7 @@ end sub;
 
 sub I_b32(): (b: uint32) is
 	b := I_b16() as uint32;
-	b := b | (I_b16() as uint32 << 8);
+	b := b | (I_b16() as uint32 << 16);
 end sub;
 
 sub I_bsize(): (s: Size) is

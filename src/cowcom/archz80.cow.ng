@@ -934,7 +934,7 @@ gen ENDSUB()
 		E_call(addr.subr);
 	end sub;
 
-	sub CallI is
+	sub CallI() is
 		E_callhelper("_jpde");
 	end sub;
 %}

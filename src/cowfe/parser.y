@@ -963,6 +963,7 @@ statement ::= INTERFACE newsubid subparams submodifiers SEMICOLON.
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
 	Generate(MidEndsub(current_subr));
+	ReportWorkspaces(current_subr);
 
 	current_subr := current_subr.parent;
 }
@@ -972,7 +973,7 @@ statement ::= implementsstart substart statements subend SEMICOLON.
 
 implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 {
-	sub not_an_interface is
+	sub not_an_interface() is
 		SimpleError("type is not an interface");
 	end sub;
 
@@ -999,6 +1000,9 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	if preparing_subr.num_output_parameters != 0 then
 		CopyParameterList(GetOutputParameter(intfsubr, 0), preparing_subr);
 	end if;
+
+	EmitterEmitInputParameters(preparing_subr);
+	EmitterEmitOutputParameters(preparing_subr);
 }
 
 submodifiers ::= .
@@ -1059,9 +1063,6 @@ substart ::= IS.
 	continue_label := 0;
 	current_subr_def := sl;
 
-	EmitterEmitInputParameters(preparing_subr);
-	EmitterEmitOutputParameters(preparing_subr);
-
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
 	current_subr.flags := current_subr.flags | SUB_HAS_IMPL;
@@ -1087,21 +1088,22 @@ subend ::= END SUB.
 subparams ::= inparamlist.
 {
 	preparing_subr.num_output_parameters := 0;
+
+	EmitterEmitInputParameters(preparing_subr);
+	EmitterEmitOutputParameters(preparing_subr);
 }
 
 subparams ::= inparamlist COLON paramlist(OUTS).
 {
 	preparing_subr.num_output_parameters := CountParameters(OUTS);
+
+	EmitterEmitInputParameters(preparing_subr);
+	EmitterEmitOutputParameters(preparing_subr);
 }
 
 inparamlist ::= paramlist(INS).
 {
 	preparing_subr.num_input_parameters := CountParameters(INS);
-}
-
-inparamlist ::= .
-{
-	preparing_subr.num_input_parameters := 0;
 }
 
 %type paramlist {[Symbol]}
@@ -1330,11 +1332,8 @@ initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 	S.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 	S.vardata.type := T;
 	S.vardata.subr := current_subr;
-	var name := InternalAlloc(8);
-	S.vardata.externname := name;
-	[name+0] := COO_ESCAPE_THISCOO;
-	[name+1] := 'a';
-	var ptr := UIToA(AllocLabel() as uint32, 16, name+2);
+	S.vardata.wsid := WSID_STATIC;
+	S.vardata.offset := AllocLabel();
 
 	if (IsArray(T) == 0) and (IsRecord(T) == 0) then
 		SimpleError("static initialisers only work on arrays or records");

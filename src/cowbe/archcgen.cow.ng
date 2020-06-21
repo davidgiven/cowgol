@@ -70,10 +70,15 @@
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
-		E_b8(COO_ESCAPE_WSREF);
-		E_b16(sym.subrid);
-		E_b8(0);
-		E_b16(sym.off + off);
+		if sym.wsid == WSID_STATIC then
+			E("(i1*)");
+			E_wsref(sym.subrid, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_wsref(sym.subrid, sym.wsid, sym.off + off);
+		end if;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -929,7 +934,7 @@ gen STARTINIT():s
 	EmitterOpenStream(current_subr);
 
 	E("static data ");
-	E_symref(&$s.sym, 0);
+	E_wsref($s.sym.subrid, $s.sym.wsid, $s.sym.off);
 	E("[] = {\n");
 
 	initialiser_buffer_fill_bytes := 0;
@@ -945,7 +950,7 @@ gen INITSUBREF():a
 	CheckBufferAlignment();
 
 	E("\t{ .ptr = (void*)");
-	E_subref(FindSubr($a.subrid));
+	E_subref_sig(FindSubr($a.subrid));
 	E(" },\n");
 }
 

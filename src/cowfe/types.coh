@@ -64,7 +64,6 @@ record VarSymbol is
 	type: [Type];
 	subr: [Subroutine]; # null for a member
 	next_parameter: [Symbol]; # for lists of parameters
-	externname: string;
 	offset: Size;
 	wsid: uint8;
 end record;

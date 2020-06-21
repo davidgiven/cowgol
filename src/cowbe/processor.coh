@@ -7,25 +7,28 @@ end record;
 var subrindex: SubrIndex;
 
 sub AddSubr(subrid: uint16): (subr: [Subroutine]) is
+	var id := subrid;
 	var index := &subrindex;
-	while subrid >= SUBR_INDEX_SIZE loop
+	while id >= SUBR_INDEX_SIZE loop
 		if index.next == (0 as [SubrIndex]) then
 			index.next := Alloc(@bytesof SubrIndex) as [SubrIndex];
 		end if;
 		index := index.next;
-		subrid := subrid - SUBR_INDEX_SIZE;
+		id := id - SUBR_INDEX_SIZE;
 	end loop;
 
-	var slot := &index.subr[subrid as uint8];
+	var slot := &index.subr[id as uint8];
 	if [slot] != (0 as [Subroutine]) then
 		StartError();
-		print("duplicate subrid ");
-		print_i16(subrid);
+		print("duplicate subrid 0x");
+		print_hex_i16(subrid);
+		print(" at 0x");
+		print_hex_i32(FCBPos(&infcb));
 		EndError();
 	end if;
 	subr := Alloc(@bytesof Subroutine) as [Subroutine];
-	[slot] := subr;
 	subr.id := subrid;
+	[slot] := subr;
 end sub;
 
 @impl sub FindSubr is
@@ -46,6 +49,14 @@ sub ReadN() is
 	var subr := AddSubr(subrid);
 	subr.name := I_countedstring();
 	EmitterDeclareSubroutine(subr);
+end sub;
+
+sub ReadX() is
+	var subrid := I_b16();
+	var subr := FindSubr(subrid);
+	var externname := I_countedstring();
+	EmitterDeclareExternalSubroutine(subr.id, externname);
+	Free(externname);
 end sub;
 
 sub ReadM() is
@@ -108,6 +119,7 @@ sub ProcessFile() is
 			when 'E': return;
 
 			when 'N': ReadN();
+			when 'X': ReadX();
 			when 'M': ReadM();
 			when 'I': ReadI();
 			when 'O': ReadO();

@@ -290,7 +290,7 @@
 		E_nl();
 	end sub;
 
-	sub E_callebx is
+	sub E_callebx() is
 		R_flushall();
 		E_tab();
 		E("call *%ebx");

@@ -57,6 +57,7 @@ for sig, sigd in pairs(signatures) do
 			hfp:write("\t", n, ".subrid := I_b16();\n")
 			hfp:write("\t", n, ".wsid := I_b8();\n")
 			hfp:write("\t", n, ".off := I_bsize();\n")
+			hfp:write("\t", n, ".width := I_b8();\n")
 		elseif a.type == "string" then
 			hfp:write("\t", n, " := I_countedstring();\n")
 		else
