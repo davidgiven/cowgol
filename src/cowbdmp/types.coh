@@ -5,7 +5,7 @@ typedef LabelRef is uint16;
 typedef RegId is uint8; # unused but required by midcodesbe
 
 record Symbol is
-	subrid: uint16;
+	subr: [Subroutine];
 	wsid: uint8;
 	off: Size;
 	name: string;

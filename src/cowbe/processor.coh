@@ -27,7 +27,7 @@ sub AddSubr(subrid: uint16): (subr: [Subroutine]) is
 		EndError();
 	end if;
 	subr := Alloc(@bytesof Subroutine) as [Subroutine];
-	subr.id := subrid;
+	subr.id := AllocSubrId();
 	[slot] := subr;
 end sub;
 
@@ -76,7 +76,7 @@ sub ReadParameters(count: uint8, paramp: [[[Parameter]]]) is
 		[p] := pp;
 		p := @next p;
 
-		pp.subrid := I_b16();
+		pp.subr := FindSubr(I_b16());
 		pp.wsid := I_b8();
 		pp.off := I_bsize();
 		pp.name := I_countedstring();

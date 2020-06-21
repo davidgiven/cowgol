@@ -27,6 +27,10 @@ end sub;
 	Free(node as [uint8]);
 end sub;
 
+sub FindSubr(id: SubrId): (subr: [Subroutine]) is
+	subr := 0 as [Subroutine];
+end sub;
+
 include "src/cowbe/inputter.coh";
 include "cobin.coh";
 include "src/cowbe/treewalker.coh";

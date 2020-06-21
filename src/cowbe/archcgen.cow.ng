@@ -72,12 +72,12 @@
 	sub E_symref(sym: [Symbol], off: Size) is
 		if sym.wsid == WSID_STATIC then
 			E("(i1*)");
-			E_wsref(sym.subrid, sym.wsid, sym.off);
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
 			if off != 0 then
 				E_i16(off as int16);
 			end if;
 		else
-			E_wsref(sym.subrid, sym.wsid, sym.off + off);
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
 		end if;
 	end sub;
 
@@ -171,7 +171,7 @@ gen RETURN()
 
 gen STARTSUB():s
 {
-	var subr := FindSubr($s.subrid);
+	var subr := $s.subr;
 	subr.parent := current_subr;
 	current_subr := subr;
 	EmitterOpenStream(current_subr);
@@ -369,11 +369,11 @@ gen ENDSUB()
 	end sub;
 %}
 
-gen       CALL(  param, v8):s { Call($s.subrid); }
-gen v1 := CALLE1(param, v8):s { Call($s.subrid); }
-gen v2 := CALLE2(param, v8):s { Call($s.subrid); }
-gen v4 := CALLE4(param, v8):s { Call($s.subrid); }
-gen v8 := CALLE8(param, v8):s { Call($s.subrid); }
+gen       CALL(  param, v8):s { Call($s.subr.id); }
+gen v1 := CALLE1(param, v8):s { Call($s.subr.id); }
+gen v2 := CALLE2(param, v8):s { Call($s.subr.id); }
+gen v4 := CALLE4(param, v8):s { Call($s.subr.id); }
+gen v8 := CALLE8(param, v8):s { Call($s.subr.id); }
 
 gen param := END();
 gen param := ARG1(param, v1);
@@ -427,7 +427,7 @@ gen v8 := SUBREF():a
 	E("\ti8 v");
 	E_u16(vid);
 	E(" = (i8)(intptr_t)(");
-	E_subref_sig(FindSubr($a.subrid));
+	E_subref_sig($a.subr);
 	E(");\n");
 }
 
@@ -934,7 +934,7 @@ gen STARTINIT():s
 	EmitterOpenStream(current_subr);
 
 	E("static data ");
-	E_wsref($s.sym.subrid, $s.sym.wsid, $s.sym.off);
+	E_wsref($s.sym.subr.id, $s.sym.wsid, $s.sym.off);
 	E("[] = {\n");
 
 	initialiser_buffer_fill_bytes := 0;
@@ -950,7 +950,7 @@ gen INITSUBREF():a
 	CheckBufferAlignment();
 
 	E("\t{ .ptr = (void*)");
-	E_subref_sig(FindSubr($a.subrid));
+	E_subref_sig($a.subr);
 	E(" },\n");
 }
 

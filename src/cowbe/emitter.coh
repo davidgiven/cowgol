@@ -233,12 +233,12 @@ sub EmitterDeclareSubroutine(subr: [Subroutine]) is
 	FCBPutBlock(&outfcb, subr.name, len as intptr);
 end sub;
 
-sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
+sub EmitterDeclareExternalSubroutine(subrid: uint16, external: string) is
 	var len := StrLen(external) as uint16;
 
 	WriteB8('X');
 	WriteB16(len + 2);
-	WriteB16(id);
+	WriteB16(subrid);
 	FCBPutBlock(&outfcb, external, len as intptr);
 end sub;
 

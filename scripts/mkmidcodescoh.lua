@@ -36,11 +36,8 @@ for m, md in pairs(basemidcodes) do
         for _, a in ipairs(md.args) do
 			if mode == "be" then
 				local name = a.name
-				if name == "subr" then
-					name = "subrid"
-				end
 				if a.type == "[Subroutine]" then
-					hfp:write("\t", name, ": SubrId;\n")
+					hfp:write("\t", name, ": [Subroutine];\n")
 				elseif a.type == "[Symbol]" then
 					hfp:write("\t", name, ": Symbol;\n")
 				else
