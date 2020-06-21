@@ -6,7 +6,8 @@ const CACHE_SLOT_ADDRESS  := 2;
 const CACHE_SLOT_VALUE    := 3;
 
 record CacheSlot is
-	symbol: [Symbol];
+	subr: [Subroutine];
+	wsid: uint8;
 	number: Word;
 	reg: RegId;
 	state: uint8;
@@ -58,9 +59,11 @@ sub RegCacheLeavesConstant(reg: RegId, value: Word) is
 end sub;
 
 sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size) is
+	off := sym.off + off;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_ADDRESS) and (p.symbol == sym) and (p.number == (off as Word)) then
+		if (p.state == CACHE_SLOT_ADDRESS) and (p.subr == sym.subr) 
+				and (p.wsid == sym.wsid) and (p.number == (off as Word)) then
 			p.reg := p.reg | reg;
 			return;
 		end if;
@@ -70,16 +73,19 @@ sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size) is
 	p := reg_i_find_empty_slot();
 	if p != (0 as [CacheSlot]) then
 		p.state := CACHE_SLOT_ADDRESS;
-		p.symbol := sym;
+		p.subr := sym.subr;
+		p.wsid := sym.wsid;
 		p.number := off as Word;
 		p.reg := reg;
 	end if;
 end sub;
 
 sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size) is
+	off := sym.off + off;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as Word)) then
+		if (p.state == CACHE_SLOT_VALUE) and (p.subr == sym.subr)
+				and (p.wsid == sym.wsid) and (p.number == (off as Word)) then
 			p.reg := p.reg | reg;
 			return;
 		end if;
@@ -88,10 +94,11 @@ sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size) is
 
 	p := reg_i_find_empty_slot();
 	if p != (0 as [CacheSlot]) then
-			p.state := CACHE_SLOT_VALUE;
-			p.symbol := sym;
-			p.number := off as Word;
-			p.reg := reg;
+		p.state := CACHE_SLOT_VALUE;
+		p.subr := sym.subr;
+		p.wsid := sym.wsid;
+		p.number := off as Word;
+		p.reg := reg;
 	end if;
 end sub;
 
@@ -109,9 +116,11 @@ end sub;
 
 sub RegCacheFindAddress(sym: [Symbol], off: Size): (reg: RegId) is
 	reg := 0;
+	off := sym.off + off;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_ADDRESS) and (p.symbol == sym) and (p.number == (off as Word)) then
+		if (p.state == CACHE_SLOT_ADDRESS) and (p.subr == sym.subr) 
+				and (p.wsid == sym.wsid) and (p.number == (off as Word)) then
 			reg := p.reg;
 			return;
 		end if;
@@ -121,9 +130,11 @@ end sub;
 
 sub RegCacheFindValue(sym: [Symbol], off: Size): (reg: RegId) is
 	reg := 0;
+	off := sym.off + off;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_VALUE) and (p.symbol == sym) and (p.number == (off as Word)) then
+		if (p.state == CACHE_SLOT_VALUE) and (p.subr == sym.subr)
+				and (p.wsid == sym.wsid) and (p.number == (off as Word)) then
 			reg := p.reg;
 			return;
 		end if;
