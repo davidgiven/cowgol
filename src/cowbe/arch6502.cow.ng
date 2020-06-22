@@ -2603,7 +2603,7 @@ gen xa := LSHIFT2(CAST12(a, sext==0), CONSTANT(value==1))
 {
     E_loadconst(REG_X, 0);
     E("\tasl\n");
-    E("\tbcc *+4\n");
+    E("\tbcc *+3\n");
     E("\tinx\n");
 }
 
