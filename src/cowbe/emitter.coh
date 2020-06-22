@@ -4,7 +4,7 @@ end record;
 
 var outfcb: FCB;
 
-var outputbuffer: uint8[255];
+var outputbuffer: uint8[2048];
 var outputbufferpos: @indexof outputbuffer := 0;
 
 var streams: EmitterStream[8];

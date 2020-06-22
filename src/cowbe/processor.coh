@@ -127,6 +127,8 @@ sub ReadF() is
 end sub;
 
 sub ProcessFile() is
+	MemZero(&subrindex as [uint8], @bytesof subrindex);
+
 	loop
 		var r := I_b8();
 		case r is
