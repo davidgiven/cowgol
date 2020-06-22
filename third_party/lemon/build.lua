@@ -28,7 +28,7 @@ function lemoncowgol(e)
 	rule {
 		ins = concat {
 			"bin/lemon-cowgol",
-			"src/cowcom/lempar.coh",
+			"src/cowfe/lempar.coh",
 			e.ins,
 		},
 		outs = e.outs,

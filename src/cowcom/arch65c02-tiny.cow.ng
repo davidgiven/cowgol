@@ -1,4 +1,0 @@
-$define ARCH_65C02
-$define TINY
-$include "arch6502.cow.ng"
-
