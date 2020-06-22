@@ -60,7 +60,7 @@ toolchain_lx386 = {
 
 toolchain_bbct = {
 	name = "bbct",
-	cowfe = "bin/cowfe-65c02.nncgen.exe",
+	cowfe = "bin/cowfe-6502.nncgen.exe",
 	cowbe = "bin/cowbe-65c02.nncgen.exe",
 	linker = "bin/cowlink-bbct.nncgen.exe",
 	assembler = buildtass64,
@@ -73,7 +73,7 @@ toolchain_bbct = {
 
 toolchain_bbctiny = {
 	name = "bbctiny",
-	cowfe = "bin/cowfe-65c02-tiny.nncgen.exe",
+	cowfe = "bin/cowfe-6502.nncgen.exe",
 	cowbe = "bin/cowbe-65c02-tiny.nncgen.exe",
 	linker = "bin/cowlink-bbct.nncgen.exe",
 	assembler = buildtass64,
