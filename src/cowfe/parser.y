@@ -184,7 +184,7 @@ statement ::= CONTINUE SEMICOLON.
 
 /* --- If...Then...Else...End if ----------------------------------------- */
 
-statement ::= IF if_begin if_conditional THEN if_statements if_optional_else END IF.
+statement ::= IF if_begin if_conditional THEN statements if_optional_else END IF.
 {
 	Generate(MidLabel(current_if.exit_label));
 	var oldif := current_if;
@@ -212,15 +212,25 @@ if_conditional ::= conditional(C).
 	GenerateConditional(C);
 }
 
-if_statements ::= statements.
+if_optional_else ::= .
+{
+	Generate(MidLabel(current_if.false_label));
+}
+
+if_optional_else ::= if_else statements.
+if_optional_else ::= if_elseif if_conditional THEN statements if_optional_else.
+
+if_else ::= ELSE.
 {
 	Generate(MidJump(current_if.exit_label));
 	Generate(MidLabel(current_if.false_label));
 }
 
-if_optional_else ::= .
-if_optional_else ::= ELSE statements.
-if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
+if_elseif ::= ELSEIF.
+{
+	Generate(MidJump(current_if.exit_label));
+	Generate(MidLabel(current_if.false_label));
+}
 
 /* --- Case -------------------------------------------------------------- */
 
