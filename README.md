@@ -19,11 +19,10 @@ Here's the bullet point list of features:
   - a table-driven, easy to port backend (the 80386 backend is 1.2kloc with
     no other compiler changes needed)
 
-  - tiny: the 80386 Linux compiler binary is 65kB (including ELF overhead).
-    The 8080 CP/M compiler 49kB.
+  - tiny: the 80386 Linux compiler binary is 70kB (including ELF overhead).
+	The 8080 CP/M compiler 58kB (split across two executables).
 
-  - fast: on my PC it'll compile itself in 360ms (I actually need to look
-    into why it's so slow)
+  - fast: on my PC it'll compile itself in ~~360ms~~ ~~130ms~~ ~~80ms~~.
 
   - global analysis: dead code removal and static variable allocation,
     leading to small and efficient binaries
