@@ -28,20 +28,22 @@ These are, in order:
 	[lemon](https://www.hwaci.com/sw/lemon/) which has been modified to produce
 	Cowgol code. This is the core of the compiler frontend. Type checking and
 	AST generation happens inline with parsing so there's no intermediate
-	stage. The language grammar is defined in a [1300 loc `.y` file](https://github.com/davidgiven/cowgol/blob/master/src/cowcom/parser.y) (plus a
-	handful of support files). There's no AST rewrite stage, either.
+	stage. The language grammar is defined in a [1300 loc `.y`
+	file](https://github.com/davidgiven/cowgol/blob/master/src/cowfe/parser.y)
+	(plus a handful of support files). There's no AST rewrite stage, either.
 
-  - **the code generator**: the parser hands the AST for each statement to the
-    code generator. This is table-driven: a tool called `newgen` reads in a
+  - **the code generator**: cowfe writes bytecode which represents the AST and
+	additional metadata to a temporary file, which is then passed to cowbe, the
+	code generator. This is table-driven: a tool called `newgen` reads in a
 	backend definition ([here's the 8080
-	one](https://github.com/davidgiven/cowgol/blob/master/src/cowcom/arch8080.cow.ng))
+	one](https://github.com/davidgiven/cowgol/blob/master/src/cowbe/arch8080.cow.ng))
 	and emits Cowgol source. The newgen files define AST matching rules and
 	register information. The code generator core then matches these rules to
 	the AST produced by the parser to select instructions and do register
 	allocation. There's more on this later. Annotated assembly is emitted to a
 	file.
 
-  - **the linker**: cowlink takes multiple `.coo` files produced by cowcom and
+  - **the linker**: cowlink takes multiple `.coo` files produced by cowbe and
 	cowwrap and performs global analysis and variable placement. This is the
 	part which makes Cowgol possible: variables are placed statically in
 	memory, such that variables which the compiler knows aren't used at the
@@ -49,7 +51,7 @@ These are, in order:
 	locations. This is incredibly effective. For example, the 6502 has an
 	architectural limitation that pointers must occupy zero page; cowlink knows
 	about this, and assigns pointer variables to zero page. Normally the 256
-	byte zero page would very rapidly fill up, but cowcom itself only uses 146
+	byte zero page would very rapidly fill up, but cowbe itself only uses 146
 	bytes. This is also the reason why Cowgol forbids recursion.
 
 ## Code generation
