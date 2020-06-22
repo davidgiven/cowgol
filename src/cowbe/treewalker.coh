@@ -29,6 +29,16 @@ end sub;
 	PushNode(node);
 	while next_node != old_next_node loop
 		var n := NextNode();
+		case n.op is
+			when MIDCODE_ASMTEXT:
+				Free(n.asmtext.text);
+
+			when MIDCODE_INITSTRING:
+				Free(n.initstring.text);
+
+			when MIDCODE_STRING:
+				Free(n.string.text);
+		end case;
 		FreeNode(n);
 	end loop;
 end sub;
