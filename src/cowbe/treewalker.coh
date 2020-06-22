@@ -1,0 +1,101 @@
+@impl sub PushNode is
+	if node != (0 as [Node]) then
+		if next_node == &nodes[@sizeof nodes] then
+			SimpleError("node stack overflow");
+		end if;
+		[next_node] := node;
+		next_node := @next next_node;
+	end if;
+end sub;
+
+@impl sub PopNode is
+	next_node := @prev next_node;
+	node := [next_node];
+end sub;
+
+# Note: returns children right to left.
+@impl sub NextNode is
+	node := PopNode();
+	if node != (0 as [Node]) then
+		PushNode(node.left);
+		PushNode(node.right);
+	end if;
+end sub;
+
+# Free up the node tree rooted in the parameter. This is more exciting than it
+# should be because we don't have recursion.
+@impl sub Discard is
+	var old_next_node := next_node;
+	PushNode(node);
+	while next_node != old_next_node loop
+		var n := NextNode();
+		case n.op is
+			when MIDCODE_ASMTEXT:
+				Free(n.asmtext.text);
+
+			when MIDCODE_INITSTRING:
+				Free(n.initstring.text);
+
+			when MIDCODE_STRING:
+				Free(n.string.text);
+		end case;
+		FreeNode(n);
+	end loop;
+end sub;
+
+sub I_node(): (rootnode: [Node]) is
+	var count: uint8 := 1;
+	rootnode := 0 as [Node];
+	while count != 0 loop
+		var op := I_b8();
+		var node: [Node] := AllocateNewNode(op);
+		node.next := rootnode;
+		rootnode := node;
+		var sig := signatures[op-1];
+		(midcode_readers[sig])(node);
+		count := count + midcode_ins[op-1] - 1;
+	end loop;
+
+	# We should now have a chain of nodes in right-to-left order starting at
+	# rootnode, hooked together via their next links. We need to convert this
+	# to a tree. We do this by popping nodes on at a time and queueing them.
+	# Each time we pop a node which takes children, we remove that many from
+	# the queue and add them to the node before queuing it. Eventually we will
+	# end up with a single node on the queue which is the root of the tree.
+
+	var queue: [Node] := (0 as [Node]);
+	while rootnode != 0 as [Node] loop
+		# Remove one item from the list.
+
+		node := rootnode;
+		rootnode := node.next;
+
+		# Does it take children?
+
+		var children := midcode_ins[node.op-1];
+		if children >= 1 then
+			# At least one child; pop item and place it on the left branch.
+
+			node.left := queue;
+			queue := node.left.next;
+		end if;
+		if children == 2 then
+			# Two children; pop another item. Note that as we're reading
+			# nodes backwards, this is actually the *left* branch, and we
+			# need to move the node read previously into the right branch.
+
+			node.right := node.left;
+			node.left := queue;
+			queue := node.left.next;
+		end if;
+
+		# Add this node to the queue.
+
+		node.next := queue;
+		queue := node;
+	end loop;
+
+	rootnode := queue;
+end sub;
+
+

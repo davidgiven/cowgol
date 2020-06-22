@@ -44,8 +44,10 @@ function loadmidcodes(filename)
 			ins = tonumber(ins)
 			outs = tonumber(outs)
 
-			local function add(name, id)
+			local function add(base, name, id)
 				midcodes[name] = {
+					base = base,
+					name = name,
 					args = parsearglist(args),
 					emitter = emitter,
 					hassizes = hassizes,
@@ -56,14 +58,14 @@ function loadmidcodes(filename)
 			end
 
 			if hassizes then
-				add(name.."0", id+0)
-				add(name.."1", id+1)
-				add(name.."2", id+2)
-				add(name.."4", id+3)
-				add(name.."8", id+4)
+				add(name, name.."0", id+0)
+				add(name, name.."1", id+1)
+				add(name, name.."2", id+2)
+				add(name, name.."4", id+3)
+				add(name, name.."8", id+4)
 				id = id + 5
 			else
-				add(name, id)
+				add(name, name, id)
 				id = id + 1
 			end
         end

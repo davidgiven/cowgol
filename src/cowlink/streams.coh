@@ -29,6 +29,8 @@ sub CheckSubExists(subr: [Subroutine]) is
 	if (subr.state & SUB_IMPLEMENTATION) == 0 then
 		StartError();
 		print("reference to undefined subroutine ");
+		print_hex_i16(subr.id);
+		print_char(' ');
 		if subr.name != (0 as string) then
 			print("'");
 			print(subr.name);

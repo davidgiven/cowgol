@@ -12,11 +12,18 @@ for m, t in pairs(midcodes) do
 end
 
 local hfp = io.open(outfilename, "w")
+
 hfp:write("static const char* terminals[] = {\n")
 hfp:write('\t"",\n')
-
 for _, m in ipairs(bynumber) do
 	hfp:write(string.format('\t%q,\n', m))
+end
+hfp:write("};\n");
+
+hfp:write("static const char* midcodetypes[] = {\n")
+hfp:write('\t"",\n')
+for _, m in ipairs(bynumber) do
+	hfp:write(string.format('\t%q,\n', midcodes[m].base))
 end
 hfp:write("};\n");
 

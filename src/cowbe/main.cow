@@ -1,0 +1,59 @@
+include "cowgol.coh";
+include "argv.coh";
+include "strings.coh";
+include "malloc.coh";
+include "file.coh";
+
+typedef string is [uint8];
+
+var inputfile: string := (0 as string);
+var outputfile: string := (0 as string);
+
+include "include/coodecls.coh";
+include "src/cowbe/types.coh";
+include "src/cowbe/utils.coh";
+include "src/cowbe/allocator.coh";
+include "inssel.decl.coh";
+include "src/cowbe/midcodec.coh";
+include "src/cowbe/emitter.coh";
+include "src/cowbe/inputter.coh";
+include "cobin.coh";
+include "src/cowbe/regcache.coh";
+include "src/cowbe/codegen.coh";
+include "src/cowbe/treewalker.coh";
+include "src/cowbe/processor.coh";
+
+sub PrintFreeMemory() is
+	print_i16((GetFreeMemory() >> 10) as uint16);
+	print("kB free\n");
+end sub;
+
+sub SyntaxError() is
+	print("syntax error: cowcom [-Ipath] <infile> <outfile>\n");
+	ExitWithError();
+end sub;
+
+sub ParseArguments() is
+	ArgvInit();
+
+	inputfile := ArgvNext();
+	outputfile := ArgvNext();
+	if (ArgvNext() != (0 as string)) or (inputfile == (0 as string))
+			or (outputfile == (0 as string)) then
+		SyntaxError();
+	end if;
+end sub;
+
+print("COWBE: ");
+PrintFreeMemory();
+
+ParseArguments();
+InputterOpenfile(inputfile);
+EmitterOpenfile(outputfile);
+ProcessFile();
+EmitterClosefile();
+InputterClosefile();
+
+print("done: ");
+PrintFreeMemory();
+

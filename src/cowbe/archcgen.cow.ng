@@ -1,14 +1,4 @@
 %{
-	var uint64_type: [Type];
-	var int64_type: [Type];
-	var uint32_type: [Type];
-	var int32_type: [Type];
-	var uint16_type: [Type];
-	var int16_type: [Type];
-	var uint8_type: [Type];
-	var int8_type: [Type];
-	var intptr_type: [Type];
-
 	const VARSTACK_SIZE := 64;
 	typedef Slot is uint16;
 	var varstack: Slot[VARSTACK_SIZE];
@@ -18,53 +8,6 @@
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		var a := (alignment-1) as Size;
 		newvalue := (value+a) & ~a;
-	end sub;
-
-	sub ArchInitTypes() is
-		uint64_type := MakeNumberType(8, 8, 0, "uint64");
-		int64_type := MakeNumberType(8, 8, 1, "int64");
-		uint32_type := MakeNumberType(4, 4, 0, "uint32");
-		int32_type := MakeNumberType(4, 4, 1, "int32");
-		uint16_type := MakeNumberType(2, 2, 0, "uint16");
-		int16_type := MakeNumberType(2, 2, 1, "int16");
-		uint8_type := MakeNumberType(1, 1, 0, "uint8");
-		int8_type := MakeNumberType(1, 1, 1, "int8");
-
-		intptr_type := uint64_type;
-		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint64"));
-	end sub;
-
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
-		if (min >= 0) and (max <= 255) then
-			symbol := uint8_type;
-		elseif (min >= -128) and (max <= 127) then
-			symbol := int8_type;
-		elseif (min >= 0) and (max <= 65535) then
-			symbol := uint16_type;
-		elseif (min >= -32768) and (max <= 32767) then
-			symbol := int16_type;
-		elseif (min >= 0) then
-			symbol := uint32_type;
-		else
-			symbol := int32_type;
-		end if;
-	end sub;
-
-	sub ArchInitVariable(symbol: [Symbol]) is
-		var subr := symbol.vardata.subr;
-		var offset := subr.workspace[0];
-		offset := ArchAlignUp(offset, symbol.vardata.type.alignment);
-		symbol.vardata.offset := offset;
-		subr.workspace[0] := offset + symbol.vardata.type.width;
-	end sub;
-
-	sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
-		position := ArchAlignUp(position, member.vardata.type.alignment);
-		member.vardata.offset := position;
-		position := position + member.vardata.type.width;
-		if position > containing.width then
-			containing.width := position;
-		end if;
 	end sub;
 
 	sub EmitFunctionSignature(subr: [Subroutine]) is
@@ -85,7 +28,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.width as uint8);
+			E_u8(param.width);
 			E("* /* ");
 			E(param.name);
 			E(" */");
@@ -102,7 +45,7 @@
 
 			comma();
 			E("i");
-			E_u8(param.vardata.type.width as uint8);
+			E_u8(param.width);
 			E(" /* ");
 			E(param.name);
 			E(" */");
@@ -114,33 +57,28 @@
 		E(")");
 	end sub;
 
+	sub E_subref_sig(subr: [Subroutine]) is
+		EmitterOpenStream(current_subr);
+
+		E("\tvoid ");
+		E_subref(subr);
+		EmitFunctionSignature(subr);
+		E(";\n");
+
+		EmitterCloseStream();
+		E_subref(subr);
+	end sub;
+
 	sub E_symref(sym: [Symbol], off: Size) is
-		case sym.kind is
-			when TYPE:
-				EmitterOpenStream(current_subr);
-
-                var subr := sym.typedata.subrtype.subr;
-				E("\tvoid ");
-				E_subref(subr);
-				EmitFunctionSignature(subr);
-				E(";\n");
-
-				EmitterCloseStream();
-				E_subref(subr);
-
-			when VAR:
-				if sym.vardata.externname != (0 as string) then
-					E("((i1*)");
-					E(sym.vardata.externname);
-					E_i16(off as int16);
-					E(")");
-				else
-					E_b8(COO_ESCAPE_WSREF);
-					E_b16(sym.vardata.subr.id);
-					E_b8(0);
-					E_b16(sym.vardata.offset + off);
-				end if;
-		end case;
+		if sym.wsid == WSID_STATIC then
+			E("(i1*)");
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -231,12 +169,12 @@ gen RETURN()
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB():s
 {
 	EmitterOpenStream(current_subr);
 
 	E("\n// ");
-	E(current_subr.symbol.name);
+	E(current_subr.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(current_subr.id);
@@ -267,7 +205,7 @@ gen STARTSUB()
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E("* p");
 		E_u16(pid);
 
@@ -288,7 +226,7 @@ gen STARTSUB()
 
 		comma();
 		E("i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E(" p");
 		E_u16(pid);
 
@@ -308,9 +246,9 @@ gen STARTSUB()
 		pid := Pop();
 
 		E("\t*(i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E("*)(intptr_t)(");
-		E_symref(param, 0);
+		E_symref(param as [Symbol], 0);
 		E(") = p");
 		E_u16(pid);
 		E("; /*");
@@ -334,19 +272,19 @@ gen ENDSUB()
 		E("\t*p");
 		E_u16(pid);
 		E(" = *(i");
-		E_u8(param.vardata.type.width as uint8);
+		E_u8(param.width as uint8);
 		E("*)(intptr_t)(");
-		E_symref(param, 0);
+		E_symref(param as [Symbol], 0);
 		E(");\n");
 	end loop;
 	E("}\n");
-	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
 	EmitterCloseStream();
 }
 
 %{
 	# subr here is the *interface*.
-	sub Call(subr: [Subroutine]) is
+	sub Call(subrid: SubrId) is
+		var subr := FindSubr(subrid);
 		var pid := Pop();
 
 		# Allocate vids for the return parameters.
@@ -361,7 +299,7 @@ gen ENDSUB()
 			var param := GetOutputParameter(subr, count);
 
 			E("\ti");
-			E_u8(param.vardata.type.width as uint8);
+			E_u8(param.width as uint8);
 			E(" v");
 			E_u16(outputvid + (count as Slot));
 			E(";\n");
@@ -426,11 +364,11 @@ gen ENDSUB()
 	end sub;
 %}
 
-gen       CALL(  param, v8):s { Call($s.subr); }
-gen v1 := CALLE1(param, v8):s { Call($s.subr); }
-gen v2 := CALLE2(param, v8):s { Call($s.subr); }
-gen v4 := CALLE4(param, v8):s { Call($s.subr); }
-gen v8 := CALLE8(param, v8):s { Call($s.subr); }
+gen       CALL(  param, v8):s { Call($s.subr.id); }
+gen v1 := CALLE1(param, v8):s { Call($s.subr.id); }
+gen v2 := CALLE2(param, v8):s { Call($s.subr.id); }
+gen v4 := CALLE4(param, v8):s { Call($s.subr.id); }
+gen v8 := CALLE8(param, v8):s { Call($s.subr.id); }
 
 gen param := END();
 gen param := ARG1(param, v1);
@@ -473,7 +411,18 @@ gen v8 := ADDRESS():a
 	E("\ti8 v");
 	E_u16(vid);
 	E(" = (i8)(intptr_t)(");
-	E_symref($a.sym, $a.off);
+	E_symref(&$a.sym, $a.off);
+	E(");\n");
+}
+
+gen v8 := SUBREF():a
+{
+	var vid := Push();
+
+	E("\ti8 v");
+	E_u16(vid);
+	E(" = (i8)(intptr_t)(");
+	E_subref_sig($a.subr);
 	E(");\n");
 }
 
@@ -750,9 +699,9 @@ gen v8 := RSHIFTS8(v8, v1) { Shift(8, "s8", ">>"); }
 		E("v");
 		E_u16(rhsid);
 		E(") goto ");
-		E_labelref(node.beq0.truelabel);
+		E_labelref(node.beq.truelabel);
 		E("; else goto ");
-		E_labelref(node.beq0.falselabel);
+		E_labelref(node.beq.falselabel);
 		E(";\n");
 	end sub;
 
@@ -769,18 +718,18 @@ gen v8 := RSHIFTS8(v8, v1) { Shift(8, "s8", ">>"); }
 		E(")v");
 		E_u16(rhsid);
 		E(") goto ");
-		E_labelref(node.beq0.truelabel);
+		E_labelref(node.beq.truelabel);
 		E("; else goto ");
-		E_labelref(node.beq0.falselabel);
+		E_labelref(node.beq.falselabel);
 		E(";\n");
 	end sub;
 
 	sub BranchConstant(node: [Node], lhs: Arith, rhs: Arith) is
 		E("\tgoto ");
 		if lhs == rhs then
-			E_labelref(node.beq0.truelabel);
+			E_labelref(node.beq.truelabel);
 		else
-			E_labelref(node.beq0.falselabel);
+			E_labelref(node.beq.falselabel);
 		end if;
 		E(";\n");
 	end sub;
@@ -980,10 +929,8 @@ gen STARTINIT():s
 	EmitterOpenStream(current_subr);
 
 	E("static data ");
-	E($s.sym.vardata.externname);
-	E("[] = { // ");
-	E($s.sym.name);
-	E_nl();
+	E_wsref($s.sym.subr.id, $s.sym.wsid, $s.sym.off);
+	E("[] = {\n");
 
 	initialiser_buffer_fill_bytes := 0;
 }
@@ -993,16 +940,25 @@ gen INIT2():c { E_bytes(&$c.value as [uint8], 2); }
 gen INIT4():c { E_bytes(&$c.value as [uint8], 4); }
 gen INIT8():c { E_bytes(&$c.value as [uint8], 8); }
 
-gen INITA():a
+gen INITSUBREF():a
 {
 	CheckBufferAlignment();
 
 	E("\t{ .ptr = (void*)");
-	E_symref($a.sym, $a.off);
+	E_subref_sig($a.subr);
 	E(" },\n");
 }
 
-gen INITS():s
+gen INITADDRESS():a
+{
+	CheckBufferAlignment();
+
+	E("\t{ .ptr = (void*)");
+	E_symref(&$a.sym, $a.off);
+	E(" },\n");
+}
+
+gen INITSTRING():s
 {
 	CheckBufferAlignment();
 
@@ -1038,17 +994,19 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	case $s.sym.kind is
-		when VAR:
-			E("*(i");
-			E_u8($s.sym.vardata.type.width as uint8);
-			E("*)(intptr_t)(");
-			E_symref($s.sym, 0);
-			E(")");
+	E("*(i");
+	E_u8($s.sym.width as uint8);
+	E("*)(intptr_t)(");
+	E_symref(&$s.sym, 0);
+	E(")");
+	E_space();
+}
 
-		when TYPE:
-			E_subref($s.sym.typedata.subrtype.subr);
-	end case;
+gen ASMSUBREF():s
+{
+	E("(intptr_t)(");
+	E_subref_sig($s.subr);
+	E(")");
 	E_space();
 }
 

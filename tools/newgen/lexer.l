@@ -38,6 +38,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "|"                       { return PIPE; }
 ":"                       { return COLON; }
 "~"                       { return TILDE; }
+"&"                       { return AMPERSAND; }
 "$$"                      { return STRINGSTRING; }
 "compatible"              { return COMPATIBLE; }
 "cost"                    { return COST; }

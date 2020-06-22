@@ -165,6 +165,24 @@ predicate(R) ::= ID(I1) IS ID(I2).
     R->u.callback = I2.u.string;
 }
 
+predicate(R) ::= AMPERSAND ID(I1) operator(I2) int(I3).
+{
+    R = calloc(sizeof(Predicate), 1);
+    R->field = I1.u.string;
+    R->deref = true;
+    R->operator = I2;
+    R->u.value = I3;
+}
+
+predicate(R) ::= AMPERSAND ID(I1) IS ID(I2).
+{
+    R = calloc(sizeof(Predicate), 1);
+    R->field = I1.u.string;
+    R->deref = true;
+    R->operator = IS;
+    R->u.callback = I2.u.string;
+}
+
 operator(R) ::= EQOP.
 { R = EQOP; }
 

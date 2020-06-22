@@ -64,8 +64,8 @@ record VarSymbol is
 	type: [Type];
 	subr: [Subroutine]; # null for a member
 	next_parameter: [Symbol]; # for lists of parameters
-	externname: string;
 	offset: Size;
+	wsid: uint8;
 end record;
 
 record Symbol is
@@ -166,3 +166,4 @@ var next_node := &nodes[0];
 @decl sub AllocNewType(): (type: [Type]);
 @decl sub FreeType(type: [Type]);
 
+@decl sub IsPtr(type: [Type]): (result: uint8);

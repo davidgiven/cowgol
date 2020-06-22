@@ -9,20 +9,25 @@ typedef string is [uint8];
 var inputfile: string := (0 as string);
 var outputfile: string := (0 as string);
 
+typedef RegId is uint8; # FIXME
+typedef Word is uint8;
+typedef NodeBitmap is uint8;
+const REGISTER_COUNT := 0;
+const INSTRUCTION_TEMPLATE_DEPTH := 0;
+
 include "include/coodecls.coh";
-include "src/cowcom/types.coh";
-include "src/cowcom/allocator.coh";
-include "inssel.decl.coh";
+include "src/cowfe/types.coh";
+include "src/cowfe/allocator.coh";
 include "parser.tokens.coh";
-include "src/cowcom/lexer.coh";
-include "src/cowcom/midcodec.coh";
-include "src/cowcom/emitter.coh";
-include "src/cowcom/regcache.coh";
-include "src/cowcom/namespace.coh";
-include "src/cowcom/codegen.coh";
-include "src/cowcom/symbols.coh";
-include "src/cowcom/expressions.coh";
-include "src/cowcom/treewalker.coh";
+include "src/cowfe/lexer.coh";
+include "src/cowfe/midcodec.coh";
+include "src/cowfe/emitter.coh";
+include "src/cowfe/regcache.coh";
+include "src/cowfe/namespace.coh";
+include "src/cowfe/codegen.coh";
+include "src/cowfe/symbols.coh";
+include "src/cowfe/expressions.coh";
+include "src/cowfe/treewalker.coh";
 include "parser.coh";
 
 sub PrintFreeMemory() is
@@ -68,7 +73,7 @@ sub ParseArguments() is
 	end if;
 end sub;
 
-print("COWCOM: ");
+print("COWFE: ");
 PrintFreeMemory();
 
 ParseArguments();
@@ -107,6 +112,7 @@ end loop;
 ParserDeinit();
 
 Generate(MidEndsub(current_subr));
+ReportWorkspaces(current_subr);
 Generate(MidEndfile());
 EmitterClosefile();
 

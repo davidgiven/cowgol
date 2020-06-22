@@ -1,12 +1,4 @@
 %{
-    var uint32_type: [Type];
-    var int32_type: [Type];
-    var uint16_type: [Type];
-    var int16_type: [Type];
-    var uint8_type: [Type];
-    var int8_type: [Type];
-    var intptr_type: [Type];
-
     const VARMEM_WS := 0;
     const PTRMEM_WS := 1;
     const VARSTACK_WS := 2;
@@ -20,6 +12,8 @@
         seen_return: uint8;
         end_label: LabelRef;
         rts_label: LabelRef;
+        ptr_stack: uint8;
+        var_stack: uint8;
     end record;
 
     record Extern is
@@ -43,60 +37,11 @@
         newvalue := value;
     end sub;
 
-    sub ArchInitTypes() is
-        uint32_type := MakeNumberType(4, 1, 0, "uint32");
-        int32_type := MakeNumberType(4, 1, 1, "int32");
-        uint16_type := MakeNumberType(2, 1, 0, "uint16");
-        int16_type := MakeNumberType(2, 1, 1, "int16");
-        uint8_type := MakeNumberType(1, 1, 0, "uint8");
-        int8_type := MakeNumberType(1, 1, 1, "int8");
-
-		intptr_type := uint16_type;
-		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint16"));
-    end sub;
-
-    sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
-        if (min >= 0) and (max <= 255) then
-            symbol := uint8_type;
-        elseif (min >= -128) and (max <= 127) then
-            symbol := int8_type;
-        elseif (min >= 0) and (max <= 65535) then
-            symbol := uint16_type;
-        elseif (min >= -32768) and (max <= 32767) then
-            symbol := int16_type;
-        elseif (min >= 0) then
-            symbol := uint32_type;
-        else
-            symbol := int32_type;
-        end if;
-    end sub;
-
     sub is_zp(sym: [Symbol]): (result: uint8) is
-        if (sym.vardata.type.width == 1)
-                or (IsPtr(sym.vardata.type) != 0) then
+        if (sym.wsid == PTRMEM_WS) or (sym.wsid == PTRSTACK_WS) then
             result := 1;
         else
             result := 0;
-        end if;
-    end sub;
-
-    sub ArchInitVariable(symbol: [Symbol]) is
-        var wsid: uint8 := VARMEM_WS;
-        if is_zp(symbol) != 0 then
-            wsid := PTRMEM_WS;
-        end if;
-
-        var subr := symbol.vardata.subr;
-        var offset := subr.workspace[wsid];
-        symbol.vardata.offset := offset;
-        subr.workspace[wsid] := offset + symbol.vardata.type.width;
-    end sub;
-
-    sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
-        member.vardata.offset := position;
-        position := position + member.vardata.type.width;
-        if position > containing.width then
-            containing.width := position;
         end if;
     end sub;
 
@@ -196,8 +141,14 @@
         E(":\n");
     end sub;
 
+    sub AllocPLabel(): (lid: uint16) is
+        # Cheap and cheerful private label which doesn't conflict with anything
+        # the front end allocated.
+        lid := -AllocLabel();
+    end sub;
+
     sub E_new_label(): (lid: uint16) is
-        lid := AllocLabel();
+        lid := AllocPLabel();
         E_label(lid);
     end sub;
 
@@ -219,18 +170,14 @@
     end sub;
 
     sub E_symref(sym: [Symbol], off: Size) is
-        case sym.kind is
-            when TYPE:
-                E_subref(sym.typedata.subrtype.subr);
-
-            when VAR:
-                if sym.vardata.externname != (0 as string) then
-                    E(sym.vardata.externname);
-                    E_i16(off as int16);
-                else
-                    E_wsref(sym.vardata.subr.id, GetWsId(sym), sym.vardata.offset + off);
-                end if;
-        end case;
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
     end sub;
 
     sub E_y_nl()    is E(",y\n"); end sub;
@@ -404,13 +351,13 @@
         end if;
         if subr.num_input_parameters == 1 then
             var param := GetInputParameter(subr, 0);
-            if param.vardata.type.width == 4 then
+            if param.width == 4 then
                 return;
             end if;
         end if;
         if subr.num_output_parameters == 1 then
             param := GetOutputParameter(subr, 0);
-            if param.vardata.type.width == 4 then
+            if param.width == 4 then
                 return;
             end if;
         end if;
@@ -475,6 +422,18 @@
         E_nl();
     end sub;
 
+    sub E_loadsubref(subr: [Subroutine]) is
+        E_lda();
+        E_constlo();
+        E_subref(subr);
+        E_nl();
+
+        E_ldx();
+        E_consthi();
+        E_subref(subr);
+        E_nl();
+    end sub;
+
     sub E_loadstackref(sid: uint16) is
         E_lda();
         E_constlo();
@@ -521,11 +480,11 @@
     end sub;
 
     sub E_jumps_with_fallthrough(trueoc: uint8, falseoc: uint8, node: [Node]) is
-        if node.beq0.truelabel != node.beq0.fallthrough then
-            E_jump(trueoc, node.beq0.truelabel);
+        if node.beq.truelabel != node.beq.fallthrough then
+            E_jump(trueoc, node.beq.truelabel);
         end if;
-        if node.beq0.falselabel != node.beq0.fallthrough then
-            E_jump(falseoc, node.beq0.falselabel);
+        if node.beq.falselabel != node.beq.fallthrough then
+            E_jump(falseoc, node.beq.falselabel);
         end if;
     end sub;
 
@@ -544,7 +503,7 @@
         end loop;
         if c == (0 as [Constant]) then
             c := InternalAlloc(@bytesof Constant) as [Constant];
-            c.lid := AllocLabel();
+            c.lid := AllocPLabel();
             c.value := value;
             c.next := constants;
             constants := c;
@@ -553,7 +512,7 @@
     end sub;
 
     sub E_string(data: string): (lid: uint16) is
-        lid := AllocLabel();
+        lid := AllocPLabel();
 
         EmitterOpenStream(current_subr);
 
@@ -740,14 +699,14 @@ gen JUMP():j
         if (reg & REG_P16) != 0 then
             sid := (PTRSTACK_WS<<8) | (ptrsp as uint16);
             ptrsp := ptrsp + width;
-            if (current_subr.workspace[PTRSTACK_WS] as uint8) < ptrsp then
-                current_subr.workspace[PTRSTACK_WS] := ptrsp as Size;
+            if current_subr.arch.ptr_stack < ptrsp then
+                current_subr.arch.ptr_stack := ptrsp;
             end if;
         else
             sid := (VARSTACK_WS<<8) | (varsp as uint16);
             varsp := varsp + width;
-            if (current_subr.workspace[VARSTACK_WS] as uint8) < varsp then
-                current_subr.workspace[VARSTACK_WS] := varsp as Size;
+            if current_subr.arch.var_stack < varsp then
+                current_subr.arch.var_stack := varsp;
             end if;
         end if;
 
@@ -972,15 +931,15 @@ gen JUMP():j
 %}
 
 gen const := CONSTANT():c                        { var op := PushConstOp($c.value); }
-gen address := ADDRESS():a                       { var op := PushAddressOp($a.sym, $a.off); }
-gen mem1 := LOAD1(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
-gen mem2 := LOAD2(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
-gen mem2p := LOAD2(ADDRESS(sym is zp):a)         { var op := PushSymOp($a.sym, $a.off); }
-gen mem4 := LOAD4(ADDRESS():a)                   { var op := PushSymOp($a.sym, $a.off); }
+gen address := ADDRESS():a                       { var op := PushAddressOp(&$a.sym, $a.off); }
+gen mem1 := LOAD1(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
+gen mem2 := LOAD2(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
+gen mem2p := LOAD2(ADDRESS(&sym is zp):a)         { var op := PushSymOp(&$a.sym, $a.off); }
+gen mem4 := LOAD4(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
 $ifndef TINY
-    gen memi1 := LOAD1(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
-    gen memi2 := LOAD2(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
-    gen memi4 := LOAD4(LOAD2(ADDRESS(sym is zp):a))  { var op := PushSymIOp($a.sym, $a.off); }
+    gen memi1 := LOAD1(LOAD2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
+    gen memi2 := LOAD2(LOAD2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
+    gen memi4 := LOAD4(LOAD2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
     gen stacki1 := LOAD1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
     gen stacki2 := LOAD2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
     gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
@@ -997,15 +956,15 @@ $endif
 gen STARTSUB()
 {
     current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
-    current_subr.arch.end_label := AllocLabel();
-    current_subr.arch.rts_label := AllocLabel();
+    current_subr.arch.end_label := AllocPLabel();
+    current_subr.arch.rts_label := AllocPLabel();
 
     RegCacheReset();
 
     EmitterOpenStream(current_subr);
 
     E("\n\n\t; ");
-    E(current_subr.symbol.name);
+    E(current_subr.name);
     E_nl();
 
     if (current_subr.flags & SUB_IS_INTERFACE) == 0 then
@@ -1084,26 +1043,26 @@ gen STARTSUB()
         var param: [Symbol];
         sub Pull() is
             var wsid := GetWsId(param);
-            var w := param.vardata.type.width;
-            if (wsid != current_wsid) or (param.vardata.subr.id != current_subrid)
-                    or (param.vardata.offset != (current_bot-w)) then
+            var w := param.width as Size;
+            if (wsid != current_wsid) or (param.subr.id != current_subrid)
+                    or (param.off != (current_bot-w)) then
                 CloseLoop();
                 current_wsid := wsid;
-                current_subrid := param.vardata.subr.id;
-                current_top := param.vardata.offset + w - 1;
+                current_subrid := param.subr.id;
+                current_top := param.off + w - 1;
             end if;
-            current_bot := param.vardata.offset;
+            current_bot := param.off;
         end sub;
 
         while count != 0 loop
             count := count - 1;
-            param := GetInputParameter(current_subr, count);
+            param := GetInputParameter(current_subr, count) as [Symbol];
 
             var inregister: uint8 := 0;
             if (count == lastparam) and ((current_subr.flags & SUB_IS_IMPLEMENTATION) == 0) then
                 inregister := 1;
             end if;
-            case param.vardata.type.width is
+            case param.width is
                 when 1:
                     if inregister == 0 then
                         PopReturnAddress();
@@ -1194,24 +1153,24 @@ gen ENDSUB()
         var param: [Symbol];
         sub Push() is
             var wsid := GetWsId(param);
-            var w := param.vardata.type.width as uint8;
-            if (wsid != current_wsid) or (param.vardata.subr.id != current_subrid)
-                    or (param.vardata.offset != (current_top+1)) then
+            var w := param.width;
+            if (wsid != current_wsid) or (param.subr.id != current_subrid)
+                    or (param.off != (current_top+1)) then
                 CloseLoop();
-                current_subrid := param.vardata.subr.id;
+                current_subrid := param.subr.id;
                 current_wsid := wsid;
-                current_bot := param.vardata.offset;
+                current_bot := param.off;
             end if;
-            current_top := param.vardata.offset + (w as Size) - 1;
+            current_top := param.off + (w as Size) - 1;
         end sub;
 
         var i: uint8 := 0;
         var count := current_subr.num_output_parameters;
         while i != count loop
-            param := GetOutputParameter(current_subr, i);
+            param := GetOutputParameter(current_subr, i) as [Symbol];
 
             var cache: RegId;
-            case param.vardata.type.width is
+            case param.width is
                 when 1:
                     if i == (count - 1) then
                         CloseLoop();
@@ -1273,11 +1232,8 @@ gen ENDSUB()
 
     EmitterCloseStream();
 
-    i := 0;
-    while i != 4 loop
-        EmitterDeclareWorkspace(current_subr, i, current_subr.workspace[i]);
-        i := i + 1;
-    end loop;
+    EmitterDeclareWorkspace(current_subr.id, PTRSTACK_WS, current_subr.arch.ptr_stack as uint16);
+    EmitterDeclareWorkspace(current_subr.id, VARSTACK_WS, current_subr.arch.var_stack as uint16);
 
     Free(current_subr.arch as [uint8]);
 }
@@ -1304,16 +1260,16 @@ gen RETURN()
         E_bpl(lid);
     end sub;
 
-    sub Call(addr: [MidcodeAddress]) is
-        E_call(addr.sym.typedata.subrtype.subr);
+    sub Call(addr: [MidcodeSubref]) is
+        E_call(addr.subr);
     end sub;
 
-    sub CallI is
+    sub CallI() is
         E_callhelper("_jmpxa");
     end sub;
 
-    sub is_fast(sym: [Symbol]): (result: uint8) is
-        if (sym.typedata.subrtype.subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
+    sub is_fast(subr: [Subroutine]): (result: uint8) is
+        if (subr.flags & SUB_IS_IMPLEMENTATION) == 0 then
             result := 1;
         else
             result := 0;
@@ -1321,18 +1277,18 @@ gen RETURN()
     end sub;
 %}
 
-gen        CALL(       param,      ADDRESS():a)            uses x|y|a { Call(&$a); }
-gen        CALL(  ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); }
-gen        CALL(  ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); }
-gen a :=   CALLE1(     param,      ADDRESS():a)            uses x|y   { Call(&$a); }
-gen a :=   CALLE1(ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y   { Call(&$a); }
-gen a :=   CALLE1(ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y   { Call(&$a); }
-gen xa :=  CALLE2(     param,      ADDRESS():a)            uses y     { Call(&$a); }
-gen xa :=  CALLE2(ARG1(param, a),  ADDRESS(sym is fast):a) uses y     { Call(&$a); }
-gen xa :=  CALLE2(ARG2(param, xa), ADDRESS(sym is fast):a) uses y     { Call(&$a); }
-gen v32 := CALLE4(     param,      ADDRESS():a)            uses x|y|a { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG1(param, a),  ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG2(param, xa), ADDRESS(sym is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen        CALL(       param,      SUBREF():a)             uses x|y|a { Call(&$a); }
+gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):a) uses x|y|a { Call(&$a); }
+gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):a) uses x|y|a { Call(&$a); }
+gen a :=   CALLE1(     param,      SUBREF():a)             uses x|y   { Call(&$a); }
+gen a :=   CALLE1(ARG1(param, a),  SUBREF(subr is fast):a) uses x|y   { Call(&$a); }
+gen a :=   CALLE1(ARG2(param, xa), SUBREF(subr is fast):a) uses x|y   { Call(&$a); }
+gen xa :=  CALLE2(     param,      SUBREF():a)             uses y     { Call(&$a); }
+gen xa :=  CALLE2(ARG1(param, a),  SUBREF(subr is fast):a) uses y     { Call(&$a); }
+gen xa :=  CALLE2(ARG2(param, xa), SUBREF(subr is fast):a) uses y     { Call(&$a); }
+gen v32 := CALLE4(     param,      SUBREF():a)             uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG1(param, a),  SUBREF(subr is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen v32 := CALLE4(ARG2(param, xa), SUBREF(subr is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
 
 gen        CALL(  param, xa) uses y { CallI(); }
 gen a :=   CALLE1(param, xa) uses y { CallI(); }
@@ -1347,7 +1303,7 @@ gen param := ARG2(param, xa) { E_phxa(); }
 gen param := ARG4(param, in4s:lhs) uses y|a
 {
     var op := PopOp();
-    var lid := AllocLabel();
+    var lid := AllocPLabel();
 
     # WARNING: lowest byte on stack is MSB, so push the LSB first!
     $ifndef TINY
@@ -1417,19 +1373,19 @@ gen STORE1(a:lhs, ptrs) uses y
 gen STORE1(a|x|y:lhs, ADDRESS():a)
 {
     E_st($lhs);
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E_nl();
-    RegCacheLeavesValue($lhs, $a.sym, $a.off);
+    RegCacheLeavesValue($lhs, &$a.sym, $a.off);
 }
 
 gen a|x|y := LOAD1(ADDRESS():a)
 {
-    var cache := RegCacheFindValue($a.sym, $a.off) & $$;
+    var cache := RegCacheFindValue(&$a.sym, $a.off) & $$;
     if cache == 0 then
         E_ld($$);
-        E_symref($a.sym, $a.off);
+        E_symref(&$a.sym, $a.off);
         E_nl();
-        RegCacheLeavesValue($$, $a.sym, $a.off);
+        RegCacheLeavesValue($$, &$a.sym, $a.off);
     end if;
 }
 
@@ -1490,17 +1446,17 @@ gen xa := FALLBACK(a16) uses y cost -1000
 
 gen xa := LOAD2(ADDRESS():a)
 {
-    var cache := RegCacheFindValue($a.sym, $a.off);
+    var cache := RegCacheFindValue(&$a.sym, $a.off);
     if cache != REG_XA then
         E_lda();
-        E_symref($a.sym, $a.off);
+        E_symref(&$a.sym, $a.off);
         E_nl();
 
         E_ldx();
-        E_symref($a.sym, $a.off+1);
+        E_symref(&$a.sym, $a.off+1);
         E_nl();
     end if;
-    RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
+    RegCacheLeavesValue(REG_XA, &$a.sym, $a.off);
 }
 
 gen xa := LOAD2(ptrs)
@@ -1520,19 +1476,24 @@ gen xa := CONSTANT():c
 
 gen xa := ADDRESS():a
 {
-    E_loadaddr($a.sym, $a.off);
+    E_loadaddr(&$a.sym, $a.off);
+}
+
+gen xa := SUBREF():a
+{
+    E_loadsubref($a.subr);
 }
 
 gen STORE2(xa, ADDRESS():a)
 {
     E_sta();
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E_nl();
 
     E_stx();
-    E_symref($a.sym, $a.off+1);
+    E_symref(&$a.sym, $a.off+1);
     E_nl();
-    RegCacheLeavesValue(REG_XA, $a.sym, $a.off);
+    RegCacheLeavesValue(REG_XA, &$a.sym, $a.off);
 }
 
 gen STORE2(xa, ptrs) uses y
@@ -1923,13 +1884,13 @@ gen BLTS2(xa:lhs, in2s:rhs):c
 
         DoParamIndirect_lda(lhs);
         DoParamIndirect(rhs, OC_CMP, 0);
-        E_bne(node.beq0.falselabel);
+        E_bne(node.beq.falselabel);
 
         E_dey();
         E_bpl(lid);
 
-        if node.beq0.fallthrough != node.beq0.truelabel then
-            E_jmp(node.beq0.truelabel);
+        if node.beq.fallthrough != node.beq.truelabel then
+            E_jmp(node.beq.truelabel);
         end if;
     end sub;
 
@@ -2150,7 +2111,7 @@ gen xa := STRING():s
 gen STARTINIT():s
 {
     EmitterOpenStream(current_subr);
-    E($s.sym.vardata.externname);
+    E_symref(&$s.sym, 0);
     E(":\n");
 }
 
@@ -2180,14 +2141,21 @@ gen INIT4():c
     E_nl();
 }
 
-gen INITA():a
+gen INITADDRESS():a
 {
     E_dw();
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E_nl();
 }
 
-gen INITS():s
+gen INITSUBREF():a
+{
+    E_dw();
+    E_subref($a.subr);
+    E_nl();
+}
+
+gen INITSTRING():s
 {
     var sid := E_string($s.text);
 
@@ -2216,13 +2184,13 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	case $s.sym.kind is
-		when VAR:
-			E_symref($s.sym, 0);
+    E_symref(&$s.sym, 0);
+    E_space();
+}
 
-		when TYPE:
-			E_subref($s.sym.typedata.subrtype.subr);
-    end case;
+gen ASMSUBREF():s
+{
+    E_subref($s.subr);
     E_space();
 }
 
@@ -2257,25 +2225,25 @@ $ifdef ARCH_65C02
     gen STORE1(CONSTANT(value==0), ADDRESS():a)
     {
         E_stz();
-        E_symref($a.sym, $a.off);
+        E_symref(&$a.sym, $a.off);
         E_nl();
     }
 
     gen STORE1(CONSTANT(value==0), ADD2(ADDRESS():a, CAST12(x, sext==0)))
     {
         E_stz();
-        E_symref($a.sym, $a.off);
+        E_symref(&$a.sym, $a.off);
         E_x_nl();
     }
 
     gen STORE2(CONSTANT(value==0), ADDRESS():a)
     {
         E_stz();
-        E_symref($a.sym, $a.off);
+        E_symref(&$a.sym, $a.off);
         E_nl();
 
         E_stz();
-        E_symref($a.sym, $a.off+1);
+        E_symref(&$a.sym, $a.off+1);
         E_nl();
     }
 
@@ -2314,7 +2282,7 @@ gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
 gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
 {
     E_sta();
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E_x_nl();
 }
 
@@ -2334,7 +2302,7 @@ gen a := LOAD1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
 gen a := LOAD1(ADD2(ADDRESS():a, CAST12(x, sext==0)))
 {
     E_lda();
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E_x_nl();
 }
 
@@ -2367,15 +2335,15 @@ gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
 gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
 {
     E_lda();
-    E_symref($a.sym, $a.off+0);
+    E_symref(&$a.sym, $a.off+0);
     E_y_nl();
 
     E_ldx();
-    E_symref($a.sym, $a.off+1);
+    E_symref(&$a.sym, $a.off+1);
     E_y_nl();
 }
 
-gen a := LOAD1(LOAD2(ADDRESS(sym is zp):a)) uses y
+gen a := LOAD1(LOAD2(ADDRESS(&sym is zp):a)) uses y
 {
     $ifndef ARCH_65C02
         E_loadconst(REG_Y, 0);
@@ -2383,7 +2351,7 @@ gen a := LOAD1(LOAD2(ADDRESS(sym is zp):a)) uses y
 
     E_ld($$);
     E_openp();
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E(")");
     $ifdef ARCH_65C02
         E_nl();
@@ -2410,17 +2378,18 @@ gen STORE1(
         ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
         ADDRESS():a2) uses x cost 100
 {
-    if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
+    if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
+            and ($a1.off == $a2.off) then
         if $c.value < 0 then
             E_dec();
         else
             E_inc();
         end if;
-        E_symref($a1.sym, $a1.off);
+        E_symref(&$a1.sym, $a1.off);
         E_nl();
     else
         E_ldx();
-        E_symref($a1.sym, $a1.off);
+        E_symref(&$a1.sym, $a1.off);
         E_nl();
 
         if $c.value < 0 then
@@ -2430,7 +2399,7 @@ gen STORE1(
         end if;
 
         E_stx();
-        E_symref($a2.sym, $a2.off);
+        E_symref(&$a2.sym, $a2.off);
         E_nl();
     end if;
 }
@@ -2439,33 +2408,34 @@ gen STORE2(
         ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
         ADDRESS():a2) uses x|y|a cost 100
 {
-    var lid := AllocLabel();
-    if ($a1.sym == $a2.sym) and ($a1.off == $a2.off) then
+    var lid := AllocPLabel();
+    if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
+            and ($a1.off == $a2.off) then
         if $c.value < 0 then
             E_lda();
-            E_symref($a1.sym, $a1.off);
+            E_symref(&$a1.sym, $a1.off);
             E_nl();
 
             E_bne(lid);
 
             E_dec();
-            E_symref($a1.sym, $a1.off+1);
+            E_symref(&$a1.sym, $a1.off+1);
             E_nl();
 
             E_label(lid);
             
             E_dec();
-            E_symref($a1.sym, $a1.off);
+            E_symref(&$a1.sym, $a1.off);
             E_nl();
         else
             E_inc();
-            E_symref($a1.sym, $a1.off);
+            E_symref(&$a1.sym, $a1.off);
             E_nl();
 
             E_bne(lid);
 
             E_inc();
-            E_symref($a1.sym, $a1.off+1);
+            E_symref(&$a1.sym, $a1.off+1);
             E_nl();
 
             E_label(lid);
@@ -2477,14 +2447,14 @@ gen STORE2(
             const LOWREG := REG_Y;
         $endif
 
-        var cache := RegCacheFindValue($a1.sym, $a1.off);
+        var cache := RegCacheFindValue(&$a1.sym, $a1.off);
         if cache != REG_XA then
             E_ldx();
-            E_symref($a1.sym, $a1.off+1);
+            E_symref(&$a1.sym, $a1.off+1);
             E_nl();
 
             E_ld(LOWREG);
-            E_symref($a1.sym, $a1.off);
+            E_symref(&$a1.sym, $a1.off);
             E_nl();
         else
             $ifdef ARCH_65C02
@@ -2507,15 +2477,15 @@ gen STORE2(
         end if;
 
         E_stx();
-        E_symref($a2.sym, $a2.off+1);
+        E_symref(&$a2.sym, $a2.off+1);
         E_nl();
 
         E_st(LOWREG);
-        E_symref($a2.sym, $a2.off);
+        E_symref(&$a2.sym, $a2.off);
         E_nl();
 
         $ifdef ARCH_65C02
-            RegCacheLeavesValue(REG_XA, $a2.sym, $a2.off);
+            RegCacheLeavesValue(REG_XA, &$a2.sym, $a2.off);
         $endif
     end if;
 }
@@ -2545,13 +2515,13 @@ gen BEQ2(xa, CONSTANT(value==0)):b uses a|y
 gen BEQ2(LOAD2(ADDRESS():a), CONSTANT(value==0)):b uses a
 {
     E_lda();
-    E_symref($a.sym, $a.off);
+    E_symref(&$a.sym, $a.off);
     E_nl();
 
     E_bne($b.falselabel);
 
     E_lda();
-    E_symref($a.sym, $a.off+1);
+    E_symref(&$a.sym, $a.off+1);
     E_nl();
 
     E_jumps_beq_bne(self.n[0]);
@@ -2633,7 +2603,7 @@ gen xa := LSHIFT2(CAST12(a, sext==0), CONSTANT(value==1))
 {
     E_loadconst(REG_X, 0);
     E("\tasl\n");
-    E("\tbcc *+4\n");
+    E("\tbcc *+3\n");
     E("\tinx\n");
 }
 

@@ -39,9 +39,9 @@ make
 
 You'll be left with a lot of stuff in the `bin` directory. The tools are all
 labeled as (name).(toolchain).(extension); however, several extensions also
-contain a dot.  So, `cowcom-65c02.ncpmz.z80.com` is cowcom, the main compiler,
-targeting the 65c02, built with the `ncpmz` toolchain, producing a `z80.com`
-executable.
+contain a dot.  So, `cowfe-65c02.ncpmz.z80.com` is cowfe, the main front-end
+compiler, targeting the 65c02, built with the `ncpmz` toolchain, which produced
+a `z80.com` executable.
 
 
 
@@ -82,7 +82,8 @@ the `nncgen.exe` extension).
 To run the cross compiler to generate a Linux 80386 binary, do:
 
 ```
-$ bin/cowcom.80386.nncgen.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.coo
+$ bin/cowfe.80386.nncgen.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.cob
+$ bin/cowbe.80386.nncgen.exe helloworld.cob helloworld.coo
 $ bin/cowlink.lx386.nncgen.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
 $ i686-linux-gnu-as helloworld.s -o helloworld.o
 $ i686-linux-gnu-as helloworld.o -o helloworld
@@ -93,7 +94,8 @@ Hello, world!
 If you're on a system which can run Linux i686 binaries, this will work too:
 
 ```
-$ bin/cowcom.80386.lx386.lx386.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.coo
+$ bin/cowfe.80386.lx386.lx386.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.cob
+$ bin/cowbe.80386.lx386.lx386.exe helloworld.cob helloworld.coo
 $ bin/cowlink.lx386.lx386.lx386.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
 $ i686-linux-gnu-as helloworld.s -o helloworld.o
 $ i686-linux-gnu-as helloworld.o -o helloworld
@@ -101,10 +103,20 @@ $ ./helloworld
 Hello, world!
 ```
 
-Currently cowcom doesn't support incremental compilation, so you have to pass
-exactly two `.coo` files into cowlink: one for the runtime and one for your
-actual program. (cowlink actually supports multiple `.coo` files. It's just
-that cowcom doesn't allow defining or referring to externals yet.)
+cowfe and cowbe
+---------------
+
+The compiler is split into two binaries, for the front end (cowfe) and the back
+end (cowbe). cowfe parses the Cowgol language, does type checking, generates
+the AST, determines variable and record sizes, etc. It emits a temporary file,
+the `.cob` file. cowbe then takes this temporary file and generates actual
+machine code, emitting a `.coo` file.
+
+The `.cob` file is an implementation detail of the compiler and can be
+completely ignored. Don't try to use mismatched cowfe and cowbe binaries ---
+weird things will happen. If you're interested, you can see the contents using
+the `cowbdmp` tool, but that's primarily intended for my debugging, so it's not
+very user friendly.
 
 
 Cowwrap and cowlink
@@ -112,7 +124,7 @@ Cowwrap and cowlink
 
 The general build process is:
 
-  - cowcom compiles `.cow` files into `.coo` files.
+  - cowfe and cowbe compile `.cow` files into `.coo` files.
 
   - cowwrap compiles `.cos` 'assembly' files into `.coo` files.
 

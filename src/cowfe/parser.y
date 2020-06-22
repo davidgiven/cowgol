@@ -157,9 +157,9 @@ startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
 	Generate(MidLabel(continue_label));
 	var t := AllocLabel();
 	break_label := AllocLabel();
-	C.beq0.truelabel := t;
-	C.beq0.falselabel := break_label;
-	C.beq0.fallthrough := t;
+	C.beq.truelabel := t;
+	C.beq.falselabel := break_label;
+	C.beq.fallthrough := t;
 	GenerateConditional(C);
 	LL.exit_label := break_label;
 }
@@ -184,7 +184,7 @@ statement ::= CONTINUE SEMICOLON.
 
 /* --- If...Then...Else...End if ----------------------------------------- */
 
-statement ::= IF if_begin if_conditional THEN if_statements if_optional_else END IF.
+statement ::= IF if_begin if_conditional THEN statements if_optional_else END IF.
 {
 	Generate(MidLabel(current_if.exit_label));
 	var oldif := current_if;
@@ -206,21 +206,31 @@ if_conditional ::= conditional(C).
 	var f := AllocLabel();
 	current_if.true_label := t;
 	current_if.false_label := f;
-	C.beq0.truelabel := t;
-	C.beq0.falselabel := f;
-	C.beq0.fallthrough := t;
+	C.beq.truelabel := t;
+	C.beq.falselabel := f;
+	C.beq.fallthrough := t;
 	GenerateConditional(C);
 }
 
-if_statements ::= statements.
+if_optional_else ::= .
+{
+	Generate(MidLabel(current_if.false_label));
+}
+
+if_optional_else ::= if_else statements.
+if_optional_else ::= if_elseif if_conditional THEN statements if_optional_else.
+
+if_else ::= ELSE.
 {
 	Generate(MidJump(current_if.exit_label));
 	Generate(MidLabel(current_if.false_label));
 }
 
-if_optional_else ::= .
-if_optional_else ::= ELSE statements.
-if_optional_else ::= ELSEIF if_conditional THEN if_statements if_optional_else.
+if_elseif ::= ELSEIF.
+{
+	Generate(MidJump(current_if.exit_label));
+	Generate(MidLabel(current_if.false_label));
+}
 
 /* --- Case -------------------------------------------------------------- */
 
@@ -298,7 +308,7 @@ conditional(R) ::= OPENPAREN conditional(C) CLOSEPAREN.
 %include
 {
 	sub Negate(node: [Node]) is
-		node.beq0.negated := node.beq0.negated ^ 1;
+		node.beq.negated := node.beq.negated ^ 1;
 	end sub;
 }
 
@@ -495,7 +505,7 @@ leafexpression(E) ::= oldid(S).
 			# by using the type as a subroutine literal, we save on having to
 			# create an extra symbol for it.
 			if S.typedata.kind == TYPE_SUBROUTINE then
-				E := MidAddress(S, 0);
+				E := MidSubref(S.typedata.subrtype.subr);
 				E.type := S.typedata.subrtype.subr.intfsubr.type;
 			else
 				not_a_value();
@@ -959,10 +969,13 @@ statement ::= subimpldecl substart statements subend SEMICOLON.
 statement ::= INTERFACE newsubid subparams submodifiers SEMICOLON.
 {
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_INTERFACE;
+	EmitterEmitSubroutineFlags(preparing_subr);
 
 	current_subr := preparing_subr;
 	Generate(MidStartsub(current_subr));
 	Generate(MidEndsub(current_subr));
+	ReportWorkspaces(current_subr);
+
 	current_subr := current_subr.parent;
 }
 
@@ -971,7 +984,7 @@ statement ::= implementsstart substart statements subend SEMICOLON.
 
 implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 {
-	sub not_an_interface is
+	sub not_an_interface() is
 		SimpleError("type is not an interface");
 	end sub;
 
@@ -998,6 +1011,10 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	if preparing_subr.num_output_parameters != 0 then
 		CopyParameterList(GetOutputParameter(intfsubr, 0), preparing_subr);
 	end if;
+
+	EmitterEmitInputParameters(preparing_subr);
+	EmitterEmitOutputParameters(preparing_subr);
+	EmitterEmitSubroutineFlags(preparing_subr);
 }
 
 submodifiers ::= .
@@ -1067,6 +1084,7 @@ subend ::= END SUB.
 {
 	Generate(MidEndsub(current_subr));
 
+	ReportWorkspaces(current_subr);
 	break_label := current_subr_def.old_break_label;
 	continue_label := current_subr_def.old_continue_label;
 	var ll := current_subr_def;
@@ -1082,21 +1100,22 @@ subend ::= END SUB.
 subparams ::= inparamlist.
 {
 	preparing_subr.num_output_parameters := 0;
+
+	EmitterEmitInputParameters(preparing_subr);
+	EmitterEmitOutputParameters(preparing_subr);
 }
 
 subparams ::= inparamlist COLON paramlist(OUTS).
 {
 	preparing_subr.num_output_parameters := CountParameters(OUTS);
+
+	EmitterEmitInputParameters(preparing_subr);
+	EmitterEmitOutputParameters(preparing_subr);
 }
 
 inparamlist ::= paramlist(INS).
 {
 	preparing_subr.num_input_parameters := CountParameters(INS);
-}
-
-inparamlist ::= .
-{
-	preparing_subr.num_input_parameters := 0;
 }
 
 %type paramlist {[Symbol]}
@@ -1325,11 +1344,8 @@ initdecl ::= VAR newid(S) COLON typeref(T) ASSIGN.
 	S.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 	S.vardata.type := T;
 	S.vardata.subr := current_subr;
-	var name := InternalAlloc(8);
-	S.vardata.externname := name;
-	[name+0] := COO_ESCAPE_THISCOO;
-	[name+1] := 'a';
-	var ptr := UIToA(AllocLabel() as uint32, 16, name+2);
+	S.vardata.wsid := WSID_STATIC;
+	S.vardata.offset := AllocLabel();
 
 	if (IsArray(T) == 0) and (IsRecord(T) == 0) then
 		SimpleError("static initialisers only work on arrays or records");
@@ -1373,13 +1389,19 @@ initialiser ::= expression(E).
 			if (IsPtr(type) == 0) or (type.pointertype.element != uint8_type) then
 				SimpleError("initialiser must be a string");
 			end if;
-			Generate(MidInits(E.string.text));
+			Generate(MidInitstring(E.string.text));
 
 		when MIDCODE_ADDRESS:
 			if type != E.type then
 				SimpleError("initialiser of wrong type");
 			end if;
-			Generate(MidInita(E.address.sym, E.address.off));
+			Generate(MidInitaddress(E.address.sym, E.address.off));
+
+		when MIDCODE_SUBREF:
+			if type != E.type then
+				SimpleError("initialiser of wrong type");
+			end if;
+			Generate(MidInitsubref(E.subref.subr));
 
 		when else:
 			parser_i_constant_error();
@@ -1456,20 +1478,23 @@ asm ::= oldid(S).
 		SimpleError("you can only emit references to variables, subroutines, or constants");
 	end sub;
 
-	var k := S.kind;
-	if (k == VAR) or (k == TYPE) then
-		if (k == TYPE) then
+	case S.kind is
+		when TYPE:
 			if IsSubroutine(S.typedata) != 0 then
 				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr);
+				Generate(MidAsmsubref(S.typedata.subrtype.subr));
 			else
 				bad_reference();
 			end if;
-		end if;
-		Generate(MidAsmsymbol(S));
-	elseif k == CONST then
-		Generate(MidAsmvalue(S.constant));
-	else
-		bad_reference();
-	end if;
+
+		when VAR:
+			Generate(MidAsmsymbol(S));
+
+		when CONST:
+			Generate(MidAsmvalue(S.constant));
+
+		when else:
+			bad_reference();
+	end case;
 }
 

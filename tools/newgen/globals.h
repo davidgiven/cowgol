@@ -17,6 +17,7 @@ typedef struct predicate Predicate;
 struct predicate
 {
 	const char* field;
+	bool deref;
 	int operator;
 	union
 	{

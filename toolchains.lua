@@ -1,6 +1,7 @@
 toolchain_ncgen = {
 	name = "ncgen",
-	compiler = "bin/cowcom-cgen.bootstrap.exe",
+	cowfe = "bin/cowfe-cgen.bootstrap.exe",
+	cowbe = "bin/cowbe-cgen.bootstrap.exe",
 	linker = "bin/cowlink-cgen.bootstrap.exe",
 	assembler = buildcgen,
 	runtime = "rt/cgen",
@@ -11,7 +12,8 @@ toolchain_ncgen = {
 
 toolchain_nncgen = {
 	name = "nncgen",
-	compiler = "bin/cowcom-cgen.ncgen.exe",
+	cowbe = "bin/cowbe-cgen.ncgen.exe",
+	cowfe = "bin/cowfe-cgen.ncgen.exe",
 	linker = "bin/cowlink-cgen.ncgen.exe",
 	assembler = buildcgen,
 	runtime = "rt/cgen",
@@ -22,18 +24,21 @@ toolchain_nncgen = {
 
 toolchain_ncpm = {
 	name = "ncpm",
-	compiler = "bin/cowcom-8080.nncgen.exe",
+	cowfe = "bin/cowfe-8080.nncgen.exe",
+	cowbe = "bin/cowbe-8080.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
 	runtime = "rt/cpm",
 	asmext = ".asm",
 	binext = ".8080.com",
 	tester = cpmtest,
+	archs = { "8080" }
 }
 
 toolchain_ncpmz = {
 	name = "ncpmz",
-	compiler = "bin/cowcom-z80.nncgen.exe",
+	cowfe = "bin/cowfe-z80.nncgen.exe",
+	cowbe = "bin/cowbe-z80.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
 	runtime = "rt/cpmz",
@@ -44,7 +49,8 @@ toolchain_ncpmz = {
 
 toolchain_lx386 = {
 	name = "lx386",
-	compiler = "bin/cowcom-80386.nncgen.exe",
+	cowfe = "bin/cowfe-80386.nncgen.exe",
+	cowbe = "bin/cowbe-80386.nncgen.exe",
 	linker = "bin/cowlink-lx386.nncgen.exe",
 	assembler = buildgas386,
 	runtime = "rt/lx386",
@@ -55,19 +61,21 @@ toolchain_lx386 = {
 
 toolchain_bbct = {
 	name = "bbct",
-	compiler = "bin/cowcom-65c02.nncgen.exe",
+	cowfe = "bin/cowfe-6502.nncgen.exe",
+	cowbe = "bin/cowbe-65c02.nncgen.exe",
 	linker = "bin/cowlink-bbct.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbct",
 	asmext = ".asm",
 	binext = ".bbct",
 	tester = tubeemutest,
-	archs = { "65c02-tiny", "6502i", "8080" }
+	archs = { "6502i", "8080" }
 }
 
 toolchain_bbctiny = {
 	name = "bbctiny",
-	compiler = "bin/cowcom-65c02-tiny.nncgen.exe",
+	cowfe = "bin/cowfe-6502.nncgen.exe",
+	cowbe = "bin/cowbe-65c02-tiny.nncgen.exe",
 	linker = "bin/cowlink-bbct.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbct",
@@ -79,7 +87,8 @@ toolchain_bbctiny = {
 
 toolchain_bbct6502 = {
 	name = "bbct6502",
-	compiler = "bin/cowcom-6502.nncgen.exe",
+	cowfe = "bin/cowfe-6502.nncgen.exe",
+	cowbe = "bin/cowbe-6502.nncgen.exe",
 	linker = "bin/cowlink-bbct.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbct",
@@ -91,7 +100,8 @@ toolchain_bbct6502 = {
 
 toolchain_bbcti = {
 	name = "bbcti",
-	compiler = "bin/cowcom-6502i.nncgen.exe",
+	cowfe = "bin/cowfe-6502i.nncgen.exe",
+	cowbe = "bin/cowbe-6502i.nncgen.exe",
 	linker = "bin/cowlink-bbcti.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbcti",

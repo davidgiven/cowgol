@@ -1,75 +1,17 @@
 %{
-	var uint32_type: [Type];
-	var int32_type: [Type];
-	var uint16_type: [Type];
-	var int16_type: [Type];
-	var uint8_type: [Type];
-	var int8_type: [Type];
-	var intptr_type: [Type];
-
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		newvalue := value;
 	end sub;
 
-	sub ArchInitTypes() is
-		uint32_type := MakeNumberType(4, 1, 0, "uint32");
-		int32_type := MakeNumberType(4, 1, 1, "int32");
-		uint16_type := MakeNumberType(2, 1, 0, "uint16");
-		int16_type := MakeNumberType(2, 1, 1, "int16");
-		uint8_type := MakeNumberType(1, 1, 0, "uint8");
-		int8_type := MakeNumberType(1, 1, 1, "int8");
-
-		intptr_type := uint32_type;
-		AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint32"));
-	end sub;
-
-	sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
-		if (min >= 0) and (max <= 255) then
-			symbol := uint8_type;
-		elseif (min >= -128) and (max <= 127) then
-			symbol := int8_type;
-		elseif (min >= 0) and (max <= 65535) then
-			symbol := uint16_type;
-		elseif (min >= -32768) and (max <= 32767) then
-			symbol := int16_type;
-		elseif (min >= 0) then
-			symbol := uint32_type;
-		else
-			symbol := int32_type;
-		end if;
-	end sub;
-
-	sub ArchInitVariable(symbol: [Symbol]) is
-		var subr := symbol.vardata.subr;
-		var offset := subr.workspace[0];
-		symbol.vardata.offset := offset;
-		subr.workspace[0] := offset + symbol.vardata.type.width;
-	end sub;
-
-	sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
-		member.vardata.offset := position;
-		position := position + member.vardata.type.width;
-		if position > containing.width then
-			containing.width := position;
-		end if;
-	end sub;
-
 	sub E_symref(sym: [Symbol], off: Size) is
-		case sym.kind is
-			when TYPE:
-                E_subref(sym.typedata.subrtype.subr);
-
-			when VAR:
-				if sym.vardata.externname != (0 as string) then
-					E(sym.vardata.externname);
-					E_i16(off as int16);
-				else
-					E_b8(COO_ESCAPE_WSREF);
-					E_b16(sym.vardata.subr.id);
-					E_b8(0);
-					E_b16(sym.vardata.offset + off);
-				end if;
-			end case;
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
 	end sub;
 
 	sub R_flushall() is
@@ -225,6 +167,15 @@
 		RegCacheLeavesAddress(reg, sym, off);
 	end sub;
 			
+	sub E_loadsubref(reg: RegId, subr: [Subroutine]) is
+		R_flush(reg);
+		E("\tlea ");
+		E_subref(subr);
+		E_comma();
+		E_reg(reg);
+		E_nl();
+	end sub;
+			
 	sub E_mov(reg: RegId) is
 		if (reg & REGCLASS_RH8) != 0 then
 			E("\tmovb ");
@@ -338,7 +289,7 @@
 		E_nl();
 	end sub;
 
-	sub E_callebx is
+	sub E_callebx() is
 		R_flushall();
 		E_tab();
 		E("call *%ebx");
@@ -685,7 +636,7 @@ gen STARTSUB()
 	EmitterOpenStream(current_subr);
 
 	E("\n\n\t# ");
-	E(current_subr.symbol.name);
+	E(current_subr.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(current_subr.id);
@@ -717,7 +668,7 @@ gen STARTSUB()
 		var param := GetInputParameter(current_subr, count);
 
 		var reg: RegId;
-		case param.vardata.type.width is
+		case param.width is
 			when 1: reg := REG_AL;
 			when 2: reg := REG_AX;
 			when 4: reg := REG_EAX;
@@ -727,7 +678,7 @@ gen STARTSUB()
 			pop_return_address();
 			E_pop(reg);
 		end if;
-		E_store(reg, param, 0, 0);
+		E_store(reg, param as [Symbol], 0, 0);
 	end loop;
 
 	if popped != 0 then
@@ -758,12 +709,12 @@ gen ENDSUB()
 		var param := GetOutputParameter(current_subr, count);
 
 		var reg: RegId;
-		case param.vardata.type.width is
+		case param.width is
 			when 1: reg := REG_AL;
 			when 2: reg := REG_AX;
 			when 4: reg := REG_EAX;
 		end case;
-		E_load(reg, param, 0, 0);
+		E_load(reg, param as [Symbol], 0, 0);
 		if count != (params-1) then
 			push_return_address();
 			E_push(reg);
@@ -778,7 +729,6 @@ gen ENDSUB()
 		E_ret();
 	end if;
 
-	EmitterDeclareWorkspace(current_subr, 0, current_subr.workspace[0]);
 	EmitterCloseStream();
 }
 
@@ -794,27 +744,27 @@ gen RETURN()
 }
 
 %{
-	sub Call(addr: [MidcodeAddress]) is
-		E_call(addr.sym.typedata.subrtype.subr);
+	sub Call(addr: [MidcodeSubref]) is
+		E_call(addr.subr);
 	end sub;
 %}
 
-gen        CALL(       param,       ADDRESS():a) uses r32                 { Call(&$a); }
-gen        CALL(  ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen        CALL(  ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen        CALL(  ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen al :=  CALLE1(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen ax :=  CALLE2(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(     param,       ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(ARG1(param, al),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(ARG2(param, ax),  ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
-gen eax := CALLE4(ARG4(param, eax), ADDRESS():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(       param,       SUBREF():a) uses r32                 { Call(&$a); }
+gen        CALL(  ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(  ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen        CALL(  ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(     param,       SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen al :=  CALLE1(ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(     param,       SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen ax :=  CALLE2(ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(     param,       SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG1(param, al),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG2(param, ax),  SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
+gen eax := CALLE4(ARG4(param, eax), SUBREF():a) uses ebx|ecx|edx|esi|edi { Call(&$a); }
 
 gen        CALL(       param,       ebx) uses r32                 { E_callebx(); }
 gen        CALL(  ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
@@ -860,7 +810,12 @@ gen r8|r16|r32 := CONSTANT():c
 
 gen r32 := ADDRESS():a
 {
-	E_loadaddr($$, $a.sym, $a.off);
+	E_loadaddr($$, &$a.sym, $a.off);
+}
+
+gen r32 := SUBREF():a
+{
+	E_loadsubref($$, $a.subr);
 }
 
 // --- Loads ---------------------------------------------------------------
@@ -877,9 +832,9 @@ gen r8 := LOAD1(ADD4(r32:rhs, CONSTANT():c))  { E_loadix($$, $rhs, 0, $c.value);
 gen r16 := LOAD2(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
 gen r32 := LOAD4(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
 
-gen r8 := LOAD1(ADDRESS():a)  { E_load($$, $a.sym, $a.off, 0); }
-gen r16 := LOAD2(ADDRESS():a) { E_load($$, $a.sym, $a.off, 0); }
-gen r32 := LOAD4(ADDRESS():a) { E_load($$, $a.sym, $a.off, 0); }
+gen r8 := LOAD1(ADDRESS():a)  { E_load($$, &$a.sym, $a.off, 0); }
+gen r16 := LOAD2(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
+gen r32 := LOAD4(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
 
 // --- Stores ---------------------------------------------------------------
 
@@ -895,9 +850,9 @@ gen STORE1(r8:lhs, ADD4(r32:rhs, CONSTANT():c))  { E_storeix($lhs, $rhs, 0, $c.v
 gen STORE2(r16:lhs, ADD4(r32:rhs, CONSTANT():c)) { E_storeix($lhs, $rhs, 0, $c.value); }
 gen STORE4(r32:lhs, ADD4(r32:rhs, CONSTANT():c)) { E_storeix($lhs, $rhs, 0, $c.value); }
 
-gen STORE1(r8:lhs, ADDRESS():a)  { E_store($lhs, $a.sym, $a.off, 0); }
-gen STORE2(r16:lhs, ADDRESS():a) { E_store($lhs, $a.sym, $a.off, 0); }
-gen STORE4(r32:lhs, ADDRESS():a) { E_store($lhs, $a.sym, $a.off, 0); }
+gen STORE1(r8:lhs, ADDRESS():a)  { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE2(r16:lhs, ADDRESS():a) { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE4(r32:lhs, ADDRESS():a) { E_store($lhs, &$a.sym, $a.off, 0); }
 
 // --- Maths ----------------------------------------------------------------
 
@@ -993,11 +948,11 @@ gen r32                 := RSHIFTS4($$:lhs, CONSTANT():c) { E_sari($c.value, $lh
 
 %{
 	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node]) is
-		if node.beq0.truelabel != node.beq0.fallthrough then
-			E_jump(trueinsn, node.beq0.truelabel);
+		if node.beq.truelabel != node.beq.fallthrough then
+			E_jump(trueinsn, node.beq.truelabel);
 		end if;
-		if node.beq0.falselabel != node.beq0.fallthrough then
-			E_jump(falseinsn, node.beq0.falselabel);
+		if node.beq.falselabel != node.beq.fallthrough then
+			E_jump(falseinsn, node.beq.falselabel);
 		end if;
 	end sub;
 
@@ -1014,11 +969,11 @@ gen r32                 := RSHIFTS4($$:lhs, CONSTANT():c) { E_sari($c.value, $lh
 	end sub;
 
 	sub beqc(node: [Node], lhs: Arith, rhs: Arith) is
-		var label := node.beq0.falselabel;
+		var label := node.beq.falselabel;
 		if lhs == rhs then
-			label := node.beq0.truelabel;
+			label := node.beq.truelabel;
 		end if;
-		if label != node.beq0.fallthrough then
+		if label != node.beq.fallthrough then
 			E_jmp(label);
 		end if;
 	end sub;
@@ -1106,7 +1061,7 @@ gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
 	E("\t.data 4\n"); # yes, really
-	E($s.sym.vardata.externname);
+	E_symref(&$s.sym, 0);
 	E(":\n");
 }
 
@@ -1136,19 +1091,27 @@ gen INIT4():c
 	E_nl();
 }
 
-gen INITA():a
+gen INITADDRESS():a
 {
 	E("\t.long ");
-	E_symref($a.sym, $a.off);
-	E_nl();
+    E_symref(&$a.sym, $a.off);
+    E_nl();
 }
 
-gen INITS():s
+gen INITSUBREF():a
 {
 	E("\t.long ");
-	E_string($s.text);
-	E_nl();
+    E_subref($a.subr);
+    E_nl();
 }
+
+gen INITSTRING():s
+{
+	E("\t.long ");
+    E_string($s.text);
+    E_nl();
+}
+
 
 // --- Inline assembly ------------------------------------------------------
 
@@ -1169,13 +1132,13 @@ gen ASMTEXT():t
 
 gen ASMSYMBOL():s
 {
-	case $s.sym.kind is
-		when VAR:
-			E_symref($s.sym, 0);
+	E_symref(&$s.sym, 0);
+    E_space();
+}
 
-		when TYPE:
-			E_subref($s.sym.typedata.subrtype.subr);
-    end case;
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
     E_space();
 }
 

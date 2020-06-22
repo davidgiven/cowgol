@@ -8,8 +8,9 @@
 
 - 0 0 STARTINIT(sym: [Symbol]) = ("%s", $$.sym.name)
 y 0 0 INIT(value: int32) = ("%d", $$.value)
-- 0 0 INITS(text: string) = ("...")
-- 0 0 INITA(sym: [Symbol], off: Size)
+- 0 0 INITSTRING(text: string) = ("...")
+- 0 0 INITADDRESS(sym: [Symbol], off: Size)
+- 0 0 INITSUBREF(subr: [Subroutine])
 - 0 0 ENDINIT()
 
 - 0 0 ASMGROUPSTART()
@@ -18,6 +19,7 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 - 0 0 ASMSTART()
 - 0 0 ASMTEXT(text: string) = ("%s", $$.text)
 - 0 0 ASMSYMBOL(sym: [Symbol]) = ("%s", $$.sym.name)
+- 0 0 ASMSUBREF(subr: [Subroutine])
 - 0 0 ASMVALUE(value: int32) = ("%d", $$.value)
 - 0 0 ASMEND()
 
@@ -52,6 +54,7 @@ y 0 1 POPARG(subr: [Subroutine], remaining: uint8)
 - 0 1 CONSTANT(value: int32) = ("%d", $$.value)
 - 0 1 STRING(text: string) = ("...")
 - 0 1 ADDRESS(sym: [Symbol], off: Size) = ("%s%+d", $$.sym.name, $$.off)
+- 0 1 SUBREF(subr: [Subroutine])
 
 y 1 1 LOAD()
 y 2 0 STORE() # left is value, right is address

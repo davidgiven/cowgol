@@ -1,0 +1,194 @@
+include "cowgol.coh";
+include "strings.coh";
+include "malloc.coh";
+include "file.coh";
+include "argv.coh";
+
+print("COWBDMP: ");
+print_i16((GetFreeMemory() >> 10) as uint16);
+print("kB free\n");
+
+include "src/cowbdmp/types.coh";
+include "src/cowbe/utils.coh";
+include "midcodesbe.coh";
+
+@impl sub AllocateNewNode is
+	node := Alloc(@bytesof Node) as [Node];
+	#print("alloc ");
+	#print_hex_i32(node as intptr as uint32);
+	#print_nl();
+	node.op := op;
+end sub;
+
+@impl sub FreeNode is
+	#print("free ");
+	#print_hex_i32(node as intptr as uint32);
+	#print_nl();
+	Free(node as [uint8]);
+end sub;
+
+sub FindSubr(id: SubrId): (subr: [Subroutine]) is
+	subr := 0 as [Subroutine];
+end sub;
+
+include "src/cowbe/inputter.coh";
+include "cobin.coh";
+include "src/cowbe/treewalker.coh";
+
+sub SyntaxError() is
+	SimpleError("syntax: cowbdmp <cobfile>");
+end sub;
+
+sub ParseArguments() is
+	ArgvInit();
+	var inputfilename := ArgvNext();
+	if inputfilename == (0 as string) then
+		SyntaxError();
+	end if;
+	if ArgvNext() != (0 as string) then
+		SyntaxError();
+	end if;
+
+	InputterOpenfile(inputfilename);
+end sub;
+
+sub ReadN() is
+	var subrid := I_b16();
+	var name := I_countedstring();
+	print("N: ");
+	print_hex_i16(subrid);
+	print(" ");
+	print(name);
+	print_nl();
+	Free(name);
+end sub;
+
+sub ReadX() is
+	var subrid := I_b16();
+	var name := I_countedstring();
+	print("X: ");
+	print_hex_i16(subrid);
+	print(" ");
+	print(name);
+	print_nl();
+	Free(name);
+end sub;
+
+sub ReadM() is
+	print("M:");
+	var rootnode := I_node();
+
+	var old_next_node := next_node;
+	PushNode(rootnode);
+	while next_node != old_next_node loop
+		var node := NextNode();
+		if node == (0 as [Node]) then
+			break;
+		end if;
+
+		print_char(' ');
+		print(MidcodeName(node.op));
+	end loop;
+	print_nl();
+	Discard(rootnode);
+end sub;
+
+sub ReadR() is
+	var userid := I_b16();
+	var usedid := I_b16();
+	print("R: ");
+	print_hex_i16(userid);
+	print(" ");
+	print_hex_i16(usedid);
+	print_nl();
+end sub;
+
+sub ReadW() is
+	var subrid := I_b16();
+	var wsid := I_b8();
+	var size := I_bsize();
+	print("W: ");
+	print_hex_i16(subrid);
+	print_char(' ');
+	print_hex_i8(wsid);
+	print_char(' ');
+	print_hex_i16(size);
+	print_nl();
+end sub;
+
+sub ReadF() is
+	var subrid := I_b16();
+	var flags := I_b8();
+	print("F: ");
+	print_hex_i16(subrid);
+	print_char(' ');
+	print_hex_i8(flags);
+	print_nl();
+end sub;
+
+sub ReadP(type: uint8) is
+	var subrid := I_b16();
+
+	print_char(type);
+	print(": ");
+	print_hex_i16(subrid);
+	print(" ");
+	var count := I_b8();
+	print_i8(count);
+	print(":");
+
+	while count != 0 loop
+		var psubrid := I_b16();
+		var wsid := I_b8();
+		var off := I_bsize();
+		var name := I_countedstring();
+		var width := I_b8();
+		print(" [");
+		print_hex_i16(psubrid);
+		print(" ");
+		print_hex_i8(wsid);
+		print(" ");
+		print_hex_i16(off);
+		print(" ");
+		print(name);
+		print(" ");
+		print_hex_i8(width);
+		print("]");
+		Free(name);
+
+		count := count - 1;
+	end loop;
+	print_nl();
+end sub;
+
+sub DumpRecords() is
+	loop
+		print_hex_i32(FCBPos(&infcb));
+		print_char(' ');
+		var r := I_b8();
+		case r is
+			when 'E': print("E\n"); return;
+			when 'N': ReadN();
+			when 'X': ReadX();
+			when 'M': ReadM();
+			when 'R': ReadR();
+			when 'W': ReadW();
+			when 'I': ReadP('I');
+			when 'O': ReadP('O');
+			when 'F': ReadF();
+
+			when else:
+				StartError();
+				print("unsupported record 0x");
+				print_hex_i8(r);
+				print(" at 0x");
+				print_hex_i32(FCBPos(&infcb));
+				EndError();
+		end case;
+	end loop;
+end sub;
+
+ParseArguments();
+DumpRecords();
+InputterClosefile();
+	

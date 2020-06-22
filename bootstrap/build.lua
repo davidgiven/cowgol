@@ -1,6 +1,11 @@
 buildcgen {
-	ins = { "bootstrap/cowcom-cgen.bootstrap.c" },
-	outs = { "bin/cowcom-cgen.bootstrap.exe" }
+	ins = { "bootstrap/cowfe-cgen.bootstrap.c" },
+	outs = { "bin/cowfe-cgen.bootstrap.exe" }
+}
+
+buildcgen {
+	ins = { "bootstrap/cowbe-cgen.bootstrap.c" },
+	outs = { "bin/cowbe-cgen.bootstrap.exe" }
 }
 
 buildcgen {

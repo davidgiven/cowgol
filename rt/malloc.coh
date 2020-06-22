@@ -66,7 +66,7 @@ sub RawAlloc(length: intptr): (block: [uint8]) is
 
 	# Make sure everything's rounded to 8 bytes to try and reduce
 	# fragmentation.
-	totallength := (totallength + 15) & ~15;
+	totallength := (totallength + 7) & ~7;
 
 	# Fragmentation is a killer on small systems, so we use best fit.
 
@@ -114,7 +114,7 @@ sub RawAlloc(length: intptr): (block: [uint8]) is
 	end if;
 
 	#print("malloc ");
-	#print_hex_i32(p as intptr as uint32);
+	#print_hex_i32(candidate as intptr as uint32);
 	#print("+");
 	#print_hex_i32(totallength as uint32);
 	#print_nl();

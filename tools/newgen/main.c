@@ -425,21 +425,21 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 		{
 			case IS:
 				#if defined COWGOL
-					fprintf(outfp, " (is_%s(slots[%d].", predicate->u.callback, index);
+					fprintf(outfp, " (is_%s(%sslots[%d].", predicate->u.callback, predicate->deref ? "&" : "", index);
 				#else
 					fprintf(outfp, " (is_%s(n[%d]->u.", predicate->u.callback, index);
 				#endif
-				print_lower(terminals[template->midcode]);
+				print_lower(midcodetypes[template->midcode]);
 				fprintf(outfp, ".%s) != 0)", predicate->field);
 				break;
 
 			default:
 				#if defined COWGOL
-					fprintf(outfp, " (slots[%d].", index);
+					fprintf(outfp, " (%sslots[%d].", predicate->deref ? "&" : "", index);
 				#else
 					fprintf(outfp, " (n[%d]->u.", index);
 				#endif
-				print_lower(terminals[template->midcode]);
+				print_lower(midcodetypes[template->midcode]);
 				fprintf(outfp, ".%s %s %d)",
 					predicate->field,
 					operator_name(predicate->operator),
@@ -648,7 +648,7 @@ static void print_complex_action(Rule* r, Element* e)
 				#else
 					fprintf(outfp, "self" DEREF "n[%d]" DEREF "u.", node->index);
 				#endif
-				print_lower(terminals[node->midcode]);
+				print_lower(midcodetypes[node->midcode]);
 			}
 		}
 	}

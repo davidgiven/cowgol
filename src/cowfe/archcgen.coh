@@ -1,0 +1,63 @@
+var uint64_type: [Type];
+var int64_type: [Type];
+var uint32_type: [Type];
+var int32_type: [Type];
+var uint16_type: [Type];
+var int16_type: [Type];
+var uint8_type: [Type];
+var int8_type: [Type];
+var intptr_type: [Type];
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	var a := (alignment-1) as Size;
+	newvalue := (value+a) & ~a;
+end sub;
+
+sub ArchInitTypes() is
+	uint64_type := MakeNumberType(8, 8, 0, "uint64");
+	int64_type := MakeNumberType(8, 8, 1, "int64");
+	uint32_type := MakeNumberType(4, 4, 0, "uint32");
+	int32_type := MakeNumberType(4, 4, 1, "int32");
+	uint16_type := MakeNumberType(2, 2, 0, "uint16");
+	int16_type := MakeNumberType(2, 2, 1, "int16");
+	uint8_type := MakeNumberType(1, 1, 0, "uint8");
+	int8_type := MakeNumberType(1, 1, 1, "int8");
+
+	intptr_type := uint64_type;
+	AddAliasString("intptr", LookupSymbol(0 as [Namespace], "uint64"));
+end sub;
+
+sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
+	if (min >= 0) and (max <= 255) then
+		symbol := uint8_type;
+	elseif (min >= -128) and (max <= 127) then
+		symbol := int8_type;
+	elseif (min >= 0) and (max <= 65535) then
+		symbol := uint16_type;
+	elseif (min >= -32768) and (max <= 32767) then
+		symbol := int16_type;
+	elseif (min >= 0) then
+		symbol := uint32_type;
+	else
+		symbol := int32_type;
+	end if;
+end sub;
+
+sub ArchInitVariable(symbol: [Symbol]) is
+	var subr := symbol.vardata.subr;
+	var offset := subr.workspace[0];
+	offset := ArchAlignUp(offset, symbol.vardata.type.alignment);
+	symbol.vardata.offset := offset;
+	subr.workspace[0] := offset + symbol.vardata.type.width;
+end sub;
+
+sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
+	position := ArchAlignUp(position, member.vardata.type.alignment);
+	member.vardata.offset := position;
+	position := position + member.vardata.type.width;
+	if position > containing.width then
+		containing.width := position;
+	end if;
+end sub;
+
+

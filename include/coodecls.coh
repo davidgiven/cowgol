@@ -9,3 +9,7 @@ const COO_ESCAPE_THISSUB := 4; # <04>
 const COO_ESCAPE_WSSIZE  := 5; # <05><hex4:sub><hex2:wsid>
 const COO_ESCAPE__COUNT  := 6;
 
+# Special workspace IDs.
+
+const WSID_STATIC := 0xff; # static data
+

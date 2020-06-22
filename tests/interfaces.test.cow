@@ -21,7 +21,7 @@ var a: Interface := Impl1;
 var i8: uint8;
 var i32: uint32;
 
-sub CheckReturn1 is
+sub CheckReturn1() is
 	print("return");
 	if (i32 == 9) and (i8 == 10) then yes(); else no(); end if;
 end sub;

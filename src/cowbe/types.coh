@@ -1,0 +1,53 @@
+typedef LabelRef is uint16;
+typedef Arith is int32;
+typedef Size is uint16;
+typedef SubrId is uint16;
+
+record Symbol is
+	subr: [Subroutine];
+	id: uint16;
+	wsid: uint8;
+	off: Size;
+	width: uint8;
+end record;
+
+record Parameter: Symbol is
+	name: string;
+end record;
+
+const SUB_HAS_IMPL          := 0b001;
+const SUB_IS_INTERFACE      := 0b010;
+const SUB_IS_IMPLEMENTATION := 0b100;
+
+record Subroutine is
+	name: string;
+	id: uint16;
+	parent: [Subroutine];
+	arch: [ArchSubroutine];
+	input_parameters: [[Parameter]];
+	output_parameters: [[Parameter]];
+	num_input_parameters: uint8;
+	num_output_parameters: uint8;
+	flags: uint8;
+end record;
+
+var current_subr: [Subroutine];
+var next_label_id: uint16 := 0;
+var next_subr_id: uint16 := 0;
+
+const REG_SAME_AS_INSTRUCTION_RESULT := -1;
+
+# Forward references
+
+interface MidReader(node: [Node]);
+
+@decl sub PushNode(node: [Node]);
+@decl sub PopNode(): (node: [Node]);
+@decl sub NextNode(): (node: [Node]);
+var nodes: [Node][16];
+var next_node := &nodes[0];
+
+@decl sub Discard(node: [Node]);
+
+@decl sub FindSubr(subrid: uint16): (subr: [Subroutine]);
+

@@ -1,0 +1,64 @@
+
+sub GetInputParameter(subr: [Subroutine], count: uint8): (param: [Parameter]) is
+	param := 0 as [Parameter];
+	if subr.num_input_parameters != 0 then
+		param := [subr.input_parameters + (count as intptr * @bytesof intptr)];
+	end if;
+end sub;
+
+sub GetOutputParameter(subr: [Subroutine], count: uint8): (param: [Parameter]) is
+	param := 0 as [Parameter];
+	if subr.num_output_parameters != 0 then
+		param := [subr.output_parameters + (count as intptr * @bytesof intptr)];
+	end if;
+end sub;
+
+sub BadNodeWidth(width: uint8) is
+	print("bad midcode width ");
+	print_i8(width);
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub WidthToIndex(width: uint8): (index: uint8) is
+	case width is
+		when 4: index := 3;
+		when 8: index := 4;
+		when else: index := width;
+	end case;
+end sub;
+
+@decl sub AllocateNewNode(code: uint8): (m: [Node]);
+
+include "midcodesbe.coh";
+
+var node_freelist: [Node] := 0 as [Node];
+@impl sub AllocateNewNode is
+	if node_freelist != (0 as [Node]) then
+		m := node_freelist;
+		node_freelist := node_freelist.left;
+		MemSet(m as [uint8], 0, @bytesof Node);
+	else
+		m := InternalAlloc(@bytesof Node) as [Node];
+	end if;
+	#print("alloc ");
+	#print_hex_i32(m as intptr as uint32);
+	#print(" op ");
+	#print_i8(code);
+	#print_nl();
+	m.op := code;
+end sub;
+
+sub FreeNode(node: [Node]) is
+	node.left := node_freelist;
+	node_freelist := node;
+end sub;
+
+@impl sub PurgeAllFreeNodes is
+	while node_freelist != (0 as [Node]) loop
+		var b := node_freelist as [uint8];
+		node_freelist := node_freelist.left;
+		Free(b);
+	end loop;
+end sub;
+

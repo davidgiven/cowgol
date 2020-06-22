@@ -1,0 +1,28 @@
+typedef string is [uint8];
+typedef SubrId is uint16;
+typedef Size is uint16;
+typedef LabelRef is uint16;
+typedef RegId is uint8; # unused but required by midcodesbe
+
+record Symbol is
+	subr: [Subroutine];
+	wsid: uint8;
+	off: Size;
+	name: string;
+	width: uint8;
+end record;
+
+# Forward references
+
+interface MidReader(node: [Node]);
+
+@decl sub PushNode(node: [Node]);
+@decl sub PopNode(): (node: [Node]);
+@decl sub NextNode(): (node: [Node]);
+var nodes: [Node][16];
+var next_node := &nodes[0];
+
+@decl sub AllocateNewNode(op: uint8): (node: [Node]);
+@decl sub Discard(node: [Node]);
+@decl sub FreeNode(node: [Node]);
+

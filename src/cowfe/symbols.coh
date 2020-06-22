@@ -8,11 +8,13 @@ sub InitVariable(subr: [Subroutine], symbol: [Symbol], type: [Type]) is
 	#print("var ");
 	#print(symbol.name);
 	#print(" at ");
-	#print(current_subr.name);
-	#print(" 0x");
+	#print(current_subr.symbol.name);
+	#print(" ");
+	#print_hex_i8(symbol.vardata.wsid);
+	#print(".0x");
 	#print_hex_i16(symbol.vardata.offset as uint16);
 	#print("+");
-	#print_hex_i16(symbol.vardata.type.typedata.width as uint16);
+	#print_hex_i16(symbol.vardata.type.width as uint16);
 	#print_nl();
 end sub;
 
@@ -128,6 +130,7 @@ sub CopyParameterList(param: [Symbol], subr: [Subroutine]) is
 		p.vardata := InternalAlloc(@bytesof VarSymbol) as [VarSymbol];
 		p.vardata.type := param.vardata.type;
 		p.vardata.subr := param.vardata.subr;
+		p.vardata.wsid := param.vardata.wsid;
 		p.vardata.offset := param.vardata.offset;
 		if lastparam != 0 as [Symbol] then
 			lastparam.vardata.next_parameter := p;
@@ -155,5 +158,16 @@ sub CreateMainSubroutine() is
 	type.subrtype.subr := current_subr;
 
 	AddToNamespace(&current_subr.namespace, sym);
+end sub;
+
+sub ReportWorkspaces(subr: [Subroutine]) is
+    var i: uint8 := 0;
+    while i != 4 loop
+		var w := subr.workspace[i];
+		if w != 0 then
+			EmitterDeclareWorkspace(subr, i, w);
+		end if;
+        i := i + 1;
+    end loop;
 end sub;
 

@@ -49,7 +49,7 @@ end sub;
 
 @decl sub AllocateNewNode(code: uint8): (m: [Node]);
 
-include "midcodes.coh";
+include "midcodesfe.coh";
 
 var node_freelist: [Node] := 0 as [Node];
 @impl sub AllocateNewNode is
@@ -262,7 +262,7 @@ sub MidCCast(width: uint8, lhs: [Node], issigned: uint8): (result: [Node]) is
 		end case;
 		result := AllocateNewNode(op + WidthToIndex(width));
 		result.left := lhs;
-		result.cast10.sext := issigned;
+		result.cast1.sext := issigned;
 	end if;
 end sub;
 

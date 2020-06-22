@@ -283,7 +283,7 @@ sub PrintNodes(rootnode: [Node]) is
 	end loop;
 end sub;
 
-sub ReallyGenerate(rootnode: [Node]) is
+sub Generate(rootnode: [Node]) is
 	var i: uint8;
 
 	# Remember that this list is actually emitted in *reverse* order, so
@@ -392,7 +392,8 @@ sub ReallyGenerate(rootnode: [Node]) is
 							# the tree all the fallback nodes will be left abandonded with
 							# pointers into hyperspace.
 							var oldnode := node;
-							node := MidFallback(oldnode);
+							node := AllocateNewNode(MIDCODE_FALLBACK);
+							node.left := oldnode;
 
 							node.consumer := oldnode.consumer;
 
@@ -422,6 +423,7 @@ sub ReallyGenerate(rootnode: [Node]) is
 						continue;
 					end if;
 
+					PrintNodes(rootnode);
 					StartError();
 					print("unmatched instruction: ");
 					i := 0;
@@ -712,43 +714,23 @@ sub ReallyGenerate(rootnode: [Node]) is
 	Discard(rootnode);
 end sub;
 
-var old_op: uint8 := 0;
-sub Generate(statement: [Node]) is
-	var op := statement.op;
-	if (old_op == MIDCODE_JUMP) or (old_op == MIDCODE_RETURN) then
-		if (op != MIDCODE_LABEL) and (op != MIDCODE_ENDSUB) then
-			Discard(statement);
-			return;
-		end if;
-	end if;
-
-	if (op == MIDCODE_ASMSTART) and (old_op != MIDCODE_ASMEND) then
-		ReallyGenerate(MidAsmgroupstart());
-	end if;
-	if (old_op == MIDCODE_ASMEND) and (op != MIDCODE_ASMSTART) then
-		ReallyGenerate(MidAsmgroupend());
-	end if;
-	old_op := op;
-	ReallyGenerate(statement);
-end sub;
-
 sub GenerateConditional(rootnode: [Node]) is
 	var old_next_node := next_node;
 	PushNode(rootnode);
 	while next_node != old_next_node loop
 		var node := PopNode();
 
-		var t := node.beq0.truelabel;
-		var f := node.beq0.falselabel;
-		var r := node.beq0.fallthrough;
+		var t := node.beq.truelabel;
+		var f := node.beq.falselabel;
+		var r := node.beq.fallthrough;
 		var lhs := node.left;
 		var rhs := node.right;
 		var op := node.op;
 
 		sub push_and_free() is
-			rhs.beq0.truelabel := t;
-			rhs.beq0.falselabel := f;
-			rhs.beq0.fallthrough := r;
+			rhs.beq.truelabel := t;
+			rhs.beq.falselabel := f;
+			rhs.beq.fallthrough := r;
 
 			node.left := (0 as [Node]);
 			node.right := (0 as [Node]);
@@ -762,32 +744,35 @@ sub GenerateConditional(rootnode: [Node]) is
 			when MIDCODE_BOR:
 				rr := AllocLabel();
 
-				lhs.beq0.truelabel := t;
-				lhs.beq0.falselabel := rr;
-				lhs.beq0.fallthrough := rr;
+				lhs.beq.truelabel := t;
+				lhs.beq.falselabel := rr;
+				lhs.beq.fallthrough := rr;
 
 				push_and_free();
 
 			when MIDCODE_BAND:
 				rr := AllocLabel();
 
-				lhs.beq0.truelabel := rr;
-				lhs.beq0.falselabel := f;
-				lhs.beq0.fallthrough := rr;
+				lhs.beq.truelabel := rr;
+				lhs.beq.falselabel := f;
+				lhs.beq.fallthrough := rr;
 
 				push_and_free();
 
 			when else:
 				if (op >= MIDCODE_BEQ0) and (op <= MIDCODE_BLTU8) then
-					if node.beq0.negated != 0 then
-						node.beq0.truelabel := f;
-						node.beq0.falselabel := t;
-						node.beq0.negated := 0;
+					if node.beq.negated != 0 then
+						node.beq.truelabel := f;
+						node.beq.falselabel := t;
+						node.beq.negated := 0;
 					end if;
 				end if;
 
 				Generate(node);
-				Generate(MidLabel(r));
+
+				node := AllocateNewNode(MIDCODE_LABEL);
+				node.label.label := r;
+				Generate(node);
 		end case;
 	end loop;
 end sub;

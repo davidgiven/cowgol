@@ -1,0 +1,157 @@
+const SUBR_INDEX_SIZE := 16;
+record SubrIndex is
+	next: [SubrIndex];
+	subr: [Subroutine][SUBR_INDEX_SIZE];
+end record;
+
+var subrindex: SubrIndex;
+
+sub AddSubr(subrid: uint16): (subr: [Subroutine]) is
+	var id := subrid;
+	var index := &subrindex;
+	while id >= SUBR_INDEX_SIZE loop
+		if index.next == (0 as [SubrIndex]) then
+			index.next := Alloc(@bytesof SubrIndex) as [SubrIndex];
+		end if;
+		index := index.next;
+		id := id - SUBR_INDEX_SIZE;
+	end loop;
+
+	var slot := &index.subr[id as uint8];
+	if [slot] != (0 as [Subroutine]) then
+		StartError();
+		print("duplicate subrid 0x");
+		print_hex_i16(subrid);
+		print(" at 0x");
+		print_hex_i32(FCBPos(&infcb));
+		EndError();
+	end if;
+	subr := Alloc(@bytesof Subroutine) as [Subroutine];
+	subr.id := AllocSubrId();
+	[slot] := subr;
+end sub;
+
+@impl sub FindSubr is
+	var index := &subrindex;
+	while subrid >= SUBR_INDEX_SIZE loop
+		if index.next == (0 as [SubrIndex]) then
+			SimpleError("unknown subrid");
+		end if;
+		index := index.next;
+		subrid := subrid - SUBR_INDEX_SIZE;
+	end loop;
+
+	subr := index.subr[subrid as uint8];
+end sub;
+
+sub ReadN() is
+	var subrid := I_b16();
+	var subr := AddSubr(subrid);
+	subr.name := I_countedstring();
+	EmitterDeclareSubroutine(subr);
+end sub;
+
+sub ReadX() is
+	var subrid := I_b16();
+	var subr := FindSubr(subrid);
+	var externname := I_countedstring();
+	EmitterDeclareExternalSubroutine(subr.id, externname);
+	Free(externname);
+end sub;
+
+sub ReadM() is
+	var node := I_node();
+	var op := node.op;
+	if op == MIDCODE_STARTSUB then
+		var subr := node.startsub.subr;
+		subr.parent := current_subr;
+		current_subr := subr;
+		print(current_subr.name);
+		print_nl();
+	end if;
+	Generate(node);
+	if op == MIDCODE_ENDSUB then
+		current_subr := current_subr.parent;
+	end if;
+end sub;
+
+sub ReadParameters(count: uint8, paramp: [[[Parameter]]]) is
+	if [paramp] != (0 as [[Parameter]]) then
+		SimpleError("parameters specified twice");
+	end if;
+	var p := Alloc(count as intptr * @bytesof intptr) as [[Parameter]];
+	[paramp] := p;
+
+	while count != 0 loop
+		var pp := Alloc(@bytesof Parameter) as [Parameter];
+		[p] := pp;
+		p := @next p;
+
+		pp.subr := FindSubr(I_b16());
+		pp.wsid := I_b8();
+		pp.off := I_bsize();
+		pp.name := I_countedstring();
+		pp.width := I_b8();
+		count := count - 1;
+	end loop;
+end sub;
+
+sub ReadI() is
+	var subr := FindSubr(I_b16());
+	subr.num_input_parameters := I_b8();
+	ReadParameters(subr.num_input_parameters, &subr.input_parameters);
+end sub;
+
+sub ReadO() is
+	var subr := FindSubr(I_b16());
+	subr.num_output_parameters := I_b8();
+	ReadParameters(subr.num_output_parameters, &subr.output_parameters);
+end sub;
+
+sub ReadW() is
+	var subr := FindSubr(I_b16());
+	var wsid := I_b8();
+	var size := I_bsize();
+	EmitterDeclareWorkspace(subr.id, wsid, size);
+end sub;
+
+sub ReadR() is
+	var user := FindSubr(I_b16());
+	var used := FindSubr(I_b16());
+	EmitterReferenceSubroutineById(user.id, used.id);
+end sub;
+
+sub ReadF() is
+	var subr := FindSubr(I_b16());
+	subr.flags := I_b8();
+end sub;
+
+sub ProcessFile() is
+	MemZero(&subrindex as [uint8], @bytesof subrindex);
+
+	loop
+		var r := I_b8();
+		case r is
+			when 'E': return;
+
+			when 'N': ReadN();
+			when 'X': ReadX();
+			when 'M': ReadM();
+			when 'I': ReadI();
+			when 'O': ReadO();
+			when 'W': ReadW();
+			when 'R': ReadR();
+			when 'F': ReadF();
+
+			when else:
+				StartError();
+				print("unsupported record 0x");
+				print_hex_i8(r);
+				print(" at 0x");
+				print_hex_i32(FCBPos(&infcb));
+				EndError();
+		end case;
+	end loop;
+end sub;
+
+
