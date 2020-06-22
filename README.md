@@ -22,7 +22,7 @@ Here's the bullet point list of features:
   - tiny: the 80386 Linux compiler binary is 70kB (including ELF overhead).
 	The 8080 CP/M compiler 58kB (split across two executables).
 
-  - fast: on my PC it'll compile itself in ~~360ms~~ ~~130ms~~ ~~80ms~~.
+  - fast: on my PC it'll compile itself in ~~360ms~~ ~~130ms~~ 80ms.
 
   - global analysis: dead code removal and static variable allocation,
     leading to small and efficient binaries
