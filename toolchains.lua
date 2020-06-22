@@ -1,6 +1,7 @@
 toolchain_ncgen = {
 	name = "ncgen",
-	compiler = "bin/cowcom-cgen.bootstrap.exe",
+	cowfe = "bin/cowfe-cgen.bootstrap.exe",
+	cowbe = "bin/cowbe-cgen.bootstrap.exe",
 	linker = "bin/cowlink-cgen.bootstrap.exe",
 	assembler = buildcgen,
 	runtime = "rt/cgen",
