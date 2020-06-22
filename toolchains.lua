@@ -99,7 +99,8 @@ toolchain_bbct6502 = {
 
 toolchain_bbcti = {
 	name = "bbcti",
-	compiler = "bin/cowcom-6502i.nncgen.exe",
+	cowfe = "bin/cowfe-6502i.nncgen.exe",
+	cowbe = "bin/cowbe-6502i.nncgen.exe",
 	linker = "bin/cowlink-bbcti.nncgen.exe",
 	assembler = buildtass64,
 	runtime = "rt/bbcti",

@@ -1,5 +1,4 @@
--- local ARCHS = { "6502i" }
-local ARCHS = { "65c02-tiny", "65c02", "6502", "z80", "8080", "80386", "cgen" }
+local ARCHS = { "6502i", "65c02-tiny", "65c02", "6502", "z80", "8080", "80386", "cgen" }
 
 local extras = {
 	["65c02"] = "src/cowbe/arch6502.cow.ng",
