@@ -13,6 +13,10 @@ end record;
 var streams: Stream[8];
 var current_stream: [Stream];
 
+sub InitStreams() is
+	MemZero(&streams as [uint8], @bytesof streams);
+end sub;
+
 sub SetStream(sid: uint8) is
 	if sid >= @sizeof streams then
 		SimpleError("stream ID out of range");
