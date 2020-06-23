@@ -3,7 +3,7 @@ const STACK_SIZE := 128;
 var workspaceSize: Size[NUM_WORKSPACES];
 
 sub E_nl() is
-	E_b8('\n');
+	E_b8(13); # BBC Micro (and Mac) newline character
 end sub;
 
 sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
@@ -28,37 +28,26 @@ sub ArchEmitHeader(coo: [Coo]) is
 		SimpleError("ran out of zero page space");
 	end if;
 
-	E(".cpu \"65c02\"\n");
-	E("* = $400\n");
-	E("ajsr .macro\n");
-	E("\t.if (* & $ff) == $fd\n");
-	E("\tnop\n");
-	E("\t.endif\n");
-	E("\tjsr \\1\n");
-	E("\t.endm\n");
-
-	E("db .macro\n");
-	E("\t.byte \\@\n");
-	E("\t.endm\n");
-
-	E("dw .macro\n");
-	E("\t.word \\@\n");
-	E("\t.endm\n");
-
-	E("dl .macro\n");
-	E("\t.dword \\@\n");
-	E("\t.endm\n");
-
-	E("ws1 = 0\n");
-	E("ws3 = ws1 + ");
+	E("\tload $400\r");
+	E("\texec $400\r");
+	E("\tmsw 0\r");
+	E("\torg $400\r");
+	E("ajsr macro\r");
+	E("\tif (* & $ff) = $fd\r");
+	E("\tnop\r");
+	E("\tfi\r");
+	E("\tjsr @P1\r");
+	E("\tendm\r");
+	E("ws1 equ 0\r");
+	E("ws3 equ ws1 + ");
 	E_u16(workspaceSize[1]);
 	E_nl();
-	E("mos = ws3 + ");
+	E("mos equ ws3 + ");
 	E_u16(workspaceSize[3]);
 	E_nl();
 
-	E("\ttsx\n");
-	E("\tstx sp\n");
+	E("\ttsx\r");
+	E("\tstx sp\r");
 
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
@@ -70,21 +59,20 @@ sub ArchEmitHeader(coo: [Coo]) is
 		coo := coo.next;
 	end loop;
 
-	E("\tldx sp\n");
-	E("\ttxs\n");
-	E("\trts\n");
+	E("\tldx sp\r");
+	E("\ttxs\r");
+	E("\trts\r");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-	E("sp: .fill 1\n");
-	E("ws0: .fill ");
+	E("sp: ds 1\r");
+	E("ws0: ds ");
 	E_u16(workspaceSize[0]);
 	E_nl();
-	E("ws2: .fill ");
+	E("ws2: ds ");
 	E_u16(workspaceSize[2]);
 	E_nl();
-	E("LOMEM:\n");
-	E(".end\n");
+	E("LOMEM:\r");
 end sub;
 
 

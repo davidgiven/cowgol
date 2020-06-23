@@ -71,6 +71,10 @@ sub WriteCharacterFromStream(c: uint8) is
 			when COO_ESCAPE_WSSIZE:
 				stream_output_buffer_wanted := 4;
 
+			when '\n':
+				E_nl();
+				return;
+
 			when else:
 				E_b8(c);
 				return;
