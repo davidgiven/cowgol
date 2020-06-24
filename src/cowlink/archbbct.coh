@@ -36,6 +36,26 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\t.endif\n");
 	E("\tjsr \\1\n");
 	E("\t.endm\n");
+
+	sub AliasMacro(srcname: string, destname: string) is
+		E(srcname);
+		E(" .macro\n\t");
+		E(destname);
+		E(" \\@\n\t.endm\n");
+	end sub;
+
+	AliasMacro("db", ".byte");
+	AliasMacro("dw", ".word");
+	AliasMacro("dl", ".dword");
+
+	AliasMacro("jra", "bra");
+	AliasMacro("jpl", "bpl");
+	AliasMacro("jmi", "bmi");
+	AliasMacro("jne", "bne");
+	AliasMacro("jeq", "beq");
+	AliasMacro("jcc", "bcc");
+	AliasMacro("jcs", "bcs");
+
 	E("ws1 = 0\n");
 	E("ws3 = ws1 + ");
 	E_u16(workspaceSize[1]);
@@ -57,7 +77,6 @@ sub ArchEmitHeader(coo: [Coo]) is
 		coo := coo.next;
 	end loop;
 
-	E("_exit:\n");
 	E("\tldx sp\n");
 	E("\ttxs\n");
 	E("\trts\n");

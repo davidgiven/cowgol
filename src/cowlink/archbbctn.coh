@@ -1,0 +1,102 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8(13); # BBC Micro (and Mac) newline character
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws");
+	E_b8(wid + '0');
+	E_i16(address as int16);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	if (workspaceSize[1] + workspaceSize[3]) > 0xee then
+		SimpleError("ran out of zero page space");
+	end if;
+
+	E("\tload $400\r");
+	E("\texec $400\r");
+	E("\tmsw 0\r");
+	E("\torg $400\r");
+	E("ajsr macro\r");
+	E("\tif (* & $ff) = $fd\r");
+	E("\tnop\r");
+	E("\tfi\r");
+	E("\tjsr @P1\r");
+	E("\tendm\r");
+
+	sub AliasMacro(srcname: string, destname: string) is
+		E(srcname);
+		E(" macro\r\t");
+		E(destname);
+		E(" @P1\r\tendm\r");
+	end sub;
+
+	sub JumpMacro(srcname: string, posname: string, negname: string) is
+		E(srcname);
+		E(" macro\r\t");
+		E(negname);
+		E(" *+5\r\tjmp @P1\r\tendm\r");
+	end sub;
+
+	AliasMacro("jra", "jmp");
+
+	JumpMacro("jpl", "bpl", "bmi");
+	JumpMacro("jmi", "bmi", "bpl");
+	JumpMacro("jne", "bne", "beq");
+	JumpMacro("jeq", "beq", "bne");
+	JumpMacro("jcc", "bcc", "bcs");
+	JumpMacro("jcs", "bcs", "bcc");
+
+	E("ws1 equ 0\r");
+	E("ws3 equ ws1 + ");
+	E_u16(workspaceSize[1]);
+	E_nl();
+	E("mos equ ws3 + ");
+	E_u16(workspaceSize[3]);
+	E_nl();
+
+	E("\ttsx\r");
+	E("\tstx sp\r");
+
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\tjsr ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("\tldx sp\r");
+	E("\ttxs\r");
+	E("\trts\r");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("sp: ds 1\r");
+	E("ws0: ds ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("ws2: ds ");
+	E_u16(workspaceSize[2]);
+	E_nl();
+	E("LOMEM:\r");
+end sub;
+
+

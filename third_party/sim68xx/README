@@ -1,0 +1,165 @@
+sim68xx - simulator for the 6800/6801/6303/6805/6811 family.
+
+Developed by Arne Riiber (1994 - 2004) <riiber at systek.no>
+Some additions, patches and H6303 architecture by Felix Erckenbrecht (2011) <dg1yfe at gmx.de>
+
+An archived version of the projetcs original homepage is available at
+http://www.oocities.org/thetropics/harbor/8707/simulator/sim68xx/
+
+Directory structure:
+
+src	Source files (*.c)
+inc	Include files (*.h)
+doc	Documentation
+test	Test files for the simulator
+
+The executables are located in src/boards/.
+
+To produce the executables, enter the src/ directory and type make. If
+this does not work, see the documentation in the doc/ directory.
+
+
+Change log:
+
+Archive name	Date and News
+
+sim68xx-2011.01 May 08 2011 (and before -> see Git History)
+		Make code compile on OS-X
+		Add HD6303 target
+		Extend OPTAB for 6303 to include more adressing modes
+		Removed support for MSDOS
+		Include all missing interrupt sources for 6303 (OCF2, CMI, TOF, ICI)
+		Include warning if return address changed during ISR
+
+sim68xx-0.9.9	May 02 2004
+		Fixes for 6811 disassembling after bug report from bkolby@c2i.net
+		- Corrected disasm INY/DEY (was "-")
+		- Corrected disasm and cycles of LDY/STY
+		- Adjusted display of CPD 0,X and CPD ffff
+
+sim68xx-0.9.8	Apr 08 2003
+		Enhancement of sim68xx-0.9.7:
+		- Added support for TOC2-TOC5 for sim6811
+		  requested by bkolby@c2i.net
+
+sim68xx-0.9.7	Nov 11 1999
+		bugfix of sim68xx-0.9.6:
+		- fix for sim6811 interrupt push order bug for A/B,
+		  reported by tonyp@acm.org
+
+sim68xx-0.9.6	Oct 15 1999
+		bugfix of sim68xx-0.9.5:
+		- fix for sim6811 brclr bug reported by tonyp@acm.org
+		- new brset/brclr test program test/arch/m6811/brtst11
+
+sim68xx-0.9.5	Aug 20 1999
+		- Compiled on Win95
+		- Users Guide written
+		- Cleaned up
+
+sim68xx-0.9.4	Dec 13  1997
+		- Fixed bug for trap 6811.
+		- More robust load of .S19 files.
+		- New programs simulating boards: sim_nc24re (6811E9)
+		- Added display of triac/relay output for simnccpu
+		- Added display of I2C-like commands (chip X924C) for
+		  simnccpu
+		- Added user commands EXEC_FUNC_ON/OFF sending to SCI
+		  for simnccpu
+		- Added system flag hints in src/Makefile for compiling
+		  and optimizing with (using GNU make):
+		  - Linux, SunOS 4, Solaris 2.x, GNU CC
+		  - SunOS 4, native cc
+		  - Solaris 2.x, native cc (SPARCompiler 3.0.1, 4.0.1)
+		  - SCO SYSVR3 cc
+		- Added timing result for the simulator sim6301 to file
+		  test/arch/h6301/readme. Real 6301 use 1.0 seconds:
+		  - 2.8s 486DX25   Linux 2.0   gcc -O2 -finline-functions
+		  - 0.5s P90       SCO SYSVR3  cc  -O
+		  - 1.2s SPARC20?  SunOS 4     gcc -O2 -finline-functions
+		  - 1.7s SPARC20?  SunOS 4     cc  -O2
+
+sim68xx-0.9.3	Oct 23  1996
+		No functional change.
+		Removed break storage from command.c to memory.c
+
+sim68xx-0.9.2	Dec 19  1996!
+		Functional:
+		  - compiling:
+		    - flags exported when make'ing
+		    - dependencies for executables now OK
+		Structural:
+		  - moved src/*.c to src/base/*.c
+
+sim68xx-0.9.1	Oct  4  1996
+		Chip simulators: sim6301, sim6805, and sim6811.
+		Board simulators: simncpan, simnccpu.
+		- Doubled performance by inlining and macros.
+		- Compiled under Linux only, not DOS or Sun.
+		- Fixed 6805 spi bug (iregtab.c)
+		- Documentation:
+		  - Performance analysis report (file: doc/performace).
+		  - GUI layout and possible implementations (file:
+		    doc/sim68xxtool.txt). GUI prototype (src/gui).
+		  - User guide: extending the simulator chapter written.
+		  - Unix man page (doc/linuxdoc/sim68xx.man)
+
+sim68xx-0.5.g	Apr  2  1996
+		As sim68xx-0.5.e, plus:
+		- Support for 6805 timer output compare
+		- Sci output modes in ascii,\ascii,hex, io_poll
+		- Buffalo 3.4/K4/D3 is a single checkout-able file
+		- test/*/*.s19 files removed
+		- Fixed bugs in 6811 SCI output and SPI, now OK.
+		- Added Memory dump/modify command
+		- Added repetition of last command on Enter key
+		- Added list [symbol] command
+
+sim68xx-0.5.e	Oct  9  1995
+		sim6301 (6800 compatible) and sim6811 simulator programs.
+		- Simulator core passed through extensive test program
+		  (src/68xx/test/bigtst00.s19).
+		- Many test programs in the test/ tree.
+		- Added support for asm68xx symbol files.
+		- Compiled/tested on platforms:
+		  - DOS 5 with Turbo-C 2.0 tcc and GNU make (sim6800).
+		  - Linux 1.1 with gcc
+		  - Solaris 2.4 with gcc and SUNWSpro
+		- To make executables:
+ 		   DOS  : cd src; gmake -f makefile.tcc
+		   Unix : cd src; make
+		
+sim68xx-0.1.0	Jul 24  1995
+		6800 simulator only.
+		- Restructured source tree so I/O can be reused with
+		different chips in the 68xx family.
+		- Automatic generation of *.h files.
+		To make the single executable sim6800: cd src; make 
+
+sim68xx-0.0.2	Jun 18  1995
+		Added support for:
+		 - symbol support (symtab.c,command.c) for aslink .map
+		 (6800.c,6805.c,6811a.c,callstack.c,command.c)
+		 - SCI input from keyboard (6811a.c, tty.c)
+		 - SPI support (6811a.c)
+		 - stack check for subroutine calls
+		Bugfixed:
+		 - bset/bclr for indexed x (6811a.c)
+		 - idiv, fdiv (6811a.c)
+		 - clock cycles (6811a.c)
+		New files:
+		 - symtab.c, tty.c
+		To make executables: Type: make
+
+sim68xx-0.0.1	Apr  1  1995
+		Basic simulator for 6301,6805,6811 + 2 example boards.
+		Character user interface commands: Run, Break, Disasm.
+		Compiled on: Linux 1.1 and SunOS4 with gcc-2.5.8
+		To make executables: Type: make
+
+		  
+	
+
+
+
+
