@@ -1,0 +1,56 @@
+include "cowgol.coh";
+
+const ROWS := 40;
+const COLUMNS := 60;
+const MAX_ITERATIONS := 255;
+
+typedef Value is int16;
+
+sub Out(v: uint8) is
+	var p := "****++++++----  ";
+	print_char([p + (v/16) as intptr]);
+end sub;
+
+const VIEW_R := -230;
+const VIEW_I := -100;
+const ZOOM := 5;
+
+var x: uint8;
+var y: uint8;
+var n: uint8;
+
+y := 0;
+while y != ROWS loop
+	var c_i := VIEW_I + (y as Value)*ZOOM;
+
+	x := 0;
+	while x != COLUMNS loop
+		var c_r := VIEW_R + (x as Value)*ZOOM;
+		var z_r := c_r;
+		var z_i := c_i;
+
+		n := 0;
+		while n != MAX_ITERATIONS loop
+			var z_r2 := (z_r * z_r) / 100;
+			var z_i2 := (z_i * z_i) / 100;
+
+			# Have we escaped?
+
+			if (z_r2 + z_i2) > 400 then
+				break;
+			end if;
+
+			z_i := (z_r*z_i) / 50 + c_i;
+			z_r := z_r2 - z_i2 + c_r;
+
+			n := n + 1;
+		end loop;
+		Out(n);
+
+		x := x + 1;
+	end loop;
+
+	print_nl();
+	y := y + 1;
+end loop;
+
