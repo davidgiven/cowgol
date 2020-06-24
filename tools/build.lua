@@ -19,3 +19,21 @@ cprogram {
 	outs = { "bin/mkdfs" },
 }
 
+function mkdfs(e)
+	local ins = {}
+	for _, f in ipairs(e.ins) do
+		if not f:find("^-") then
+			ins[#ins+1] = f
+		end
+	end
+
+	rule {
+		ins = concat {
+			"bin/mkdfs",
+			ins,
+		},
+		outs = e.outs,
+		cmd = "@1 -O &1 "..table.concat(e.ins, " ")
+	}
+end
+
