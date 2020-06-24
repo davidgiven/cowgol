@@ -2,55 +2,70 @@ include "cowgol.coh";
 
 const ROWS := 40;
 const COLUMNS := 60;
-const MAX_ITERATIONS := 255;
+const MAX_ITERATIONS := 16;
 
 typedef Value is int16;
 
 sub Out(v: uint8) is
-	var p := "****++++++----  ";
-	print_char([p + (v/16) as intptr]);
+	var p := "###**==+++---... ";
+	print_char([p + v as intptr]);
 end sub;
 
-const VIEW_R := -230;
-const VIEW_I := -100;
-const ZOOM := 5;
+# 128-scaled fixed point arithmetic.
+const VIEW_R := -220;
+const VIEW_I := -128;
+const ZOOM := 6;
 
-var x: uint8;
-var y: uint8;
-var n: uint8;
+sub Render() is
+	var x: uint8;
+	var y: uint8;
+	var n: uint8;
 
-y := 0;
-while y != ROWS loop
-	var c_i := VIEW_I + (y as Value)*ZOOM;
+	y := 0;
+	while y != ROWS loop
+		var c_i := VIEW_I + (y as Value)*ZOOM;
 
-	x := 0;
-	while x != COLUMNS loop
-		var c_r := VIEW_R + (x as Value)*ZOOM;
-		var z_r := c_r;
-		var z_i := c_i;
+		x := 0;
+		while x != COLUMNS loop
+			var c_r := VIEW_R + (x as Value)*ZOOM;
+			var z_r := c_r;
+			var z_i := c_i;
 
-		n := 0;
-		while n != MAX_ITERATIONS loop
-			var z_r2 := (z_r * z_r) / 100;
-			var z_i2 := (z_i * z_i) / 100;
+			n := 0;
+			while n != MAX_ITERATIONS loop
+				# Have we escaped?
 
-			# Have we escaped?
+				var p_z_r := z_r;
+				if p_z_r < 0 then
+					p_z_r := -p_z_r;
+				end if;
 
-			if (z_r2 + z_i2) > 400 then
-				break;
-			end if;
+				var p_z_i := z_i;
+				if p_z_i < 0 then
+					p_z_i := -p_z_i;
+				end if;
+				if (p_z_r + p_z_i) > 256 then
+					break;
+				end if;
 
-			z_i := (z_r*z_i) / 50 + c_i;
-			z_r := z_r2 - z_i2 + c_r;
+				# No, so perform the next iteration.
 
-			n := n + 1;
+				var z_r2 := (z_r * z_r) / 128;
+				var z_i2 := (z_i * z_i) / 128;
+
+				z_i := (z_r*z_i) / 64 + c_i;
+				z_r := z_r2 - z_i2 + c_r;
+
+				n := n + 1;
+			end loop;
+			Out(n);
+
+			x := x + 1;
 		end loop;
-		Out(n);
 
-		x := x + 1;
+		print_nl();
+		y := y + 1;
 	end loop;
-
-	print_nl();
-	y := y + 1;
-end loop;
+end sub;
+Render();
 
