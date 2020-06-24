@@ -110,11 +110,11 @@
         var ocs: string[] := {
             "adc", "sbc", "and", "ora", "eor", "lda", "ldx", "ldy",
             "sta", "stx", "sty", "php", "pha", "plp", "pla", "tax",
-            "txa", "tay", "tya", "beq", "bne", "bvs", "bcc", "bcs",
+            "txa", "tay", "tya", "jeq", "jne", "jvs", "jcc", "jcs",
             "clc", "sec", "rts", "jsr", "jmp", "phx", "phy", "plx",
             "ply", "tsx", "txs", "rol", "stz", "cmp", "cpx", "cpy",
-            "inx", "iny", "dex", "dey", "inc", "dec", "bra", "bmi",
-            "bpl", "asl", "lsr", "ajsr"
+            "inx", "iny", "dex", "dey", "inc", "dec", "jra", "jmi",
+            "jpl", "asl", "lsr", "ajsr"
         };
 
         E_tab();

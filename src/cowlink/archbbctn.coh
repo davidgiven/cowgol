@@ -38,6 +38,30 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\tfi\r");
 	E("\tjsr @P1\r");
 	E("\tendm\r");
+
+	sub AliasMacro(srcname: string, destname: string) is
+		E(srcname);
+		E(" macro\r\t");
+		E(destname);
+		E(" @P1\r\tendm\r");
+	end sub;
+
+	sub JumpMacro(srcname: string, posname: string, negname: string) is
+		E(srcname);
+		E(" macro\r\t");
+		E(negname);
+		E(" *+5\r\tjmp @P1\r\tendm\r");
+	end sub;
+
+	AliasMacro("jra", "jmp");
+
+	JumpMacro("jpl", "bpl", "bmi");
+	JumpMacro("jmi", "bmi", "bpl");
+	JumpMacro("jne", "bne", "beq");
+	JumpMacro("jeq", "beq", "bne");
+	JumpMacro("jcc", "bcc", "bcs");
+	JumpMacro("jcs", "bcs", "bcc");
+
 	E("ws1 equ 0\r");
 	E("ws3 equ ws1 + ");
 	E_u16(workspaceSize[1]);

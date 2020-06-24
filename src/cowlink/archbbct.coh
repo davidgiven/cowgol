@@ -37,17 +37,24 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\tjsr \\1\n");
 	E("\t.endm\n");
 
-	E("db .macro\n");
-	E("\t.byte \\@\n");
-	E("\t.endm\n");
+	sub AliasMacro(srcname: string, destname: string) is
+		E(srcname);
+		E(" .macro\n\t");
+		E(destname);
+		E(" \\@\n\t.endm\n");
+	end sub;
 
-	E("dw .macro\n");
-	E("\t.word \\@\n");
-	E("\t.endm\n");
+	AliasMacro("db", ".byte");
+	AliasMacro("dw", ".word");
+	AliasMacro("dl", ".dword");
 
-	E("dl .macro\n");
-	E("\t.dword \\@\n");
-	E("\t.endm\n");
+	AliasMacro("jra", "bra");
+	AliasMacro("jpl", "bpl");
+	AliasMacro("jmi", "bmi");
+	AliasMacro("jne", "bne");
+	AliasMacro("jeq", "beq");
+	AliasMacro("jcc", "bcc");
+	AliasMacro("jcs", "bcs");
 
 	E("ws1 = 0\n");
 	E("ws3 = ws1 + ");
