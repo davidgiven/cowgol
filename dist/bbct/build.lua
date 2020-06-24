@@ -2,7 +2,7 @@ function bbcify(e)
 	rule {
 		ins = e.ins,
 		outs = e.outs,
-		cmd = [[sed 's/include "\(.*\)\.coh"/include "h.\1"/' < @1 > &1]]
+		cmd = [[sed -e 's/include "\(.*\)\.coh"/include "h.\1"/' < @1 | expand -t4 | tr '\n' '\r' > &1]]
 	}
 end
 
