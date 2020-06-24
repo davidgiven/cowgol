@@ -50,10 +50,10 @@ sub Render() is
 
 				# No, so perform the next iteration.
 
-				var z_r2 := (z_r * z_r) / 128;
-				var z_i2 := (z_i * z_i) / 128;
+				var z_r2 := (z_r * z_r) >> 7;
+				var z_i2 := (z_i * z_i) >> 7;
 
-				z_i := (z_r*z_i) / 64 + c_i;
+				z_i := ((z_r*z_i) >> 6) + c_i;
 				z_r := z_r2 - z_i2 + c_r;
 
 				n := n + 1;

@@ -38,6 +38,6 @@ mkdfs {
 
 mkdfs {
 	ins = {},
-	outs = { "workdisk.ssd" }
+	outs = { "bbctwork.ssd" }
 }
 
