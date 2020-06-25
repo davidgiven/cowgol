@@ -584,7 +584,7 @@ sub LexerReadToken(): (token: uint8) is
 			end if;
 			loop
 				c := lexer_i_getchar();
-				if (c == 10) or (c == 0) then
+				if (c == 10) or (c == 13) or (c == 0) then
 					pushed_char := c;
 					break;
 				end if;
