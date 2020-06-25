@@ -31,7 +31,7 @@ mkdfs {
 		"-f", "$OBJ/dist/bbct/cowgol.coh", "-nh.cowgol",
 		"-f", "$OBJ/dist/bbct/common.coh", "-nh.common",
 		"-f", "$OBJ/dist/bbct/mandel.cow", "-nw.source",
-		"-B4"
+		"-B3"
 	},
 	outs = { "bbct.ssd" }
 }
