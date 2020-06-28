@@ -172,3 +172,19 @@ sub andfuncs() is
 end sub;
 andfuncs();
 
+sub notand() is
+	print("notand");
+	var i: uint8 := 1;
+	var j: uint8 := 2;
+	if not ((i == 1) and (j == 3)) then yes(); else no(); end if;
+end sub;
+notand();
+
+sub notandf() is
+	print("notandf");
+	var i: uint8 := 1;
+	var j: uint8 := 2;
+	if not ((i == 1) and (j == 2)) then no(); else yes(); end if;
+end sub;
+notand();
+
