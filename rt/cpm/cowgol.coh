@@ -7,11 +7,11 @@ var HIMEM: [uint8];
 @asm "shld", HIMEM;
 
 sub Exit() is
-	@asm "jmp _exit";
+	@asm "rst 0";
 end sub;
 
 sub ExitWithError() is
-	@asm "jmp _exit";
+	@asm "rst 0";
 end sub;
 
 sub AlignUp(in: intptr): (out: intptr) is
@@ -19,51 +19,56 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
+	if c == 10 then
+		@asm "mvi e, 13";
+		@asm "mvi c, 2";
+		@asm "call 5";
+	end if;
 	@asm "lda", c;
 	@asm "mov e, a";
 	@asm "mvi c, 2";
 	@asm "call 5";
 end sub;
 
-#sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
-#	@asm "lhld", lhs, "+2";
-#	@asm "push h";
-#	@asm "lhld", lhs, "+0";
-#	@asm "push h";
-#	@asm "lhld", rhs, "+2";
-#	@asm "push h";
-#	@asm "lhld", rhs, "+0";
-#	@asm "push h";
-#	@asm "call dvrmu4";
-#	@asm "pop h";
-#	@asm "shld", rem, "+0";
-#	@asm "pop h";
-#	@asm "shld", rem, "+2";
-#	@asm "pop h";
-#	@asm "shld", quot, "+0";
-#	@asm "pop h";
-#	@asm "shld", quot, "+2";
-#end sub;
-#
-#sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
-#	@asm "lhld 2+", lhs;
-#	@asm "push h";
-#	@asm "lhld 0+", lhs;
-#	@asm "push h";
-#	@asm "lhld 2+", rhs;
-#	@asm "push h";
-#	@asm "lhld 0+", rhs;
-#	@asm "push h";
-#	@asm "call dvrms4";
-#	@asm "pop h";
-#	@asm "shld 0+", rem;
-#	@asm "pop h";
-#	@asm "shld 2+", rem;
-#	@asm "pop h";
-#	@asm "shld 0+", quot;
-#	@asm "pop h";
-#	@asm "shld 2+", quot;
-#end sub;
+sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32) is
+	@asm "lhld", lhs, "+2";
+	@asm "push h";
+	@asm "lhld", lhs, "+0";
+	@asm "push h";
+	@asm "lhld", rhs, "+2";
+	@asm "push h";
+	@asm "lhld", rhs, "+0";
+	@asm "push h";
+	@asm "call dvrmu4";
+	@asm "pop h";
+	@asm "shld", rem, "+0";
+	@asm "pop h";
+	@asm "shld", rem, "+2";
+	@asm "pop h";
+	@asm "shld", quot, "+0";
+	@asm "pop h";
+	@asm "shld", quot, "+2";
+end sub;
+
+sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32) is
+	@asm "lhld 2+", lhs;
+	@asm "push h";
+	@asm "lhld 0+", lhs;
+	@asm "push h";
+	@asm "lhld 2+", rhs;
+	@asm "push h";
+	@asm "lhld 0+", rhs;
+	@asm "push h";
+	@asm "call dvrms4";
+	@asm "pop h";
+	@asm "shld 0+", rem;
+	@asm "pop h";
+	@asm "shld 2+", rem;
+	@asm "pop h";
+	@asm "shld 0+", quot;
+	@asm "pop h";
+	@asm "shld 2+", quot;
+end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
 	var bufend := buf + len;

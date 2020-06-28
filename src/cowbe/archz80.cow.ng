@@ -569,7 +569,6 @@
 
 		EmitterOpenStream(current_subr);
 
-		E("\tcseg\n");
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('c');
 		E_u16(sid);
@@ -699,6 +698,7 @@ register param;
 regclass r8 := a|b|d|h;
 regclass r16 := hl|de|bc|ix|iy;
 regclass r32 := hlhl|dede|bcbc;
+regclass rx := ix|iy;
 
 regdata a                     compatible r8;
 regdata b    uses bcbc|bc|b|c compatible r8;
@@ -751,7 +751,6 @@ gen STARTSUB()
 	E_b8(0);
 	E_nl();
 
-	E("\tcseg\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -880,39 +879,39 @@ gen ENDSUB()
 	end sub;
 %}
 
-gen         CALL(       param,        SUBREF():a) uses a|bc|de|hl { Call(&$a); }
-gen         CALL(  ARG1(param, a),    SUBREF():a) uses   bc|de|hl { Call(&$a); }
-gen         CALL(  ARG2(param, hl),   SUBREF():a) uses a|bc|de    { Call(&$a); }
-gen         CALL(  ARG4(param, hlhl), SUBREF():a) uses a|bc|de    { Call(&$a); }
-gen a :=    CALLE1(     param,        SUBREF():a) uses   bc|de|hl { Call(&$a); }
-gen a :=    CALLE1(ARG1(param, a),    SUBREF():a) uses   bc|de|hl { Call(&$a); }
-gen a :=    CALLE1(ARG2(param, hl),   SUBREF():a) uses   bc|de    { Call(&$a); }
-gen a :=    CALLE1(ARG4(param, hlhl), SUBREF():a) uses   bc|de    { Call(&$a); }
-gen hl :=   CALLE2(     param,        SUBREF():a) uses a|bc|de    { Call(&$a); }
-gen hl :=   CALLE2(ARG1(param, a),    SUBREF():a) uses   bc|de    { Call(&$a); }
-gen hl :=   CALLE2(ARG2(param, hl),   SUBREF():a) uses a|bc|de    { Call(&$a); }
-gen hl :=   CALLE2(ARG4(param, hlhl), SUBREF():a) uses   bc|de    { Call(&$a); }
-gen hlhl := CALLE4(     param,        SUBREF():a) uses a|bc|de    { Call(&$a); }
-gen hlhl := CALLE4(ARG1(param, a),    SUBREF():a) uses   bc|de    { Call(&$a); }
-gen hlhl := CALLE4(ARG2(param, hl),   SUBREF():a) uses a|bc|de    { Call(&$a); }
-gen hlhl := CALLE4(ARG4(param, hlhl), SUBREF():a) uses   bc|de    { Call(&$a); }
+gen         CALL(       param,        SUBREF():a) uses a|bc|de|hl|rx { Call(&$a); }
+gen         CALL(  ARG1(param, a),    SUBREF():a) uses   bc|de|hl|rx { Call(&$a); }
+gen         CALL(  ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
+gen         CALL(  ARG4(param, hlhl), SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
+gen a :=    CALLE1(     param,        SUBREF():a) uses   bc|de|hl|rx { Call(&$a); }
+gen a :=    CALLE1(ARG1(param, a),    SUBREF():a) uses   bc|de|hl|rx { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, hl),   SUBREF():a) uses   bc|de   |rx { Call(&$a); }
+gen a :=    CALLE1(ARG4(param, hlhl), SUBREF():a) uses   bc|de   |rx { Call(&$a); }
+gen hl :=   CALLE2(     param,        SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
+gen hl :=   CALLE2(ARG1(param, a),    SUBREF():a) uses   bc|de   |rx { Call(&$a); }
+gen hl :=   CALLE2(ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
+gen hl :=   CALLE2(ARG4(param, hlhl), SUBREF():a) uses   bc|de   |rx { Call(&$a); }
+gen hlhl := CALLE4(     param,        SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
+gen hlhl := CALLE4(ARG1(param, a),    SUBREF():a) uses   bc|de   |rx { Call(&$a); }
+gen hlhl := CALLE4(ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
+gen hlhl := CALLE4(ARG4(param, hlhl), SUBREF():a) uses   bc|de   |rx { Call(&$a); }
 
-gen         CALL(       param,        de) uses a|bc|hl { CallI(); }
-gen         CALL(  ARG1(param, a),    de) uses   bc|hl { CallI(); }
-gen         CALL(  ARG2(param, hl),   de) uses a|bc    { CallI(); }
-gen         CALL(  ARG4(param, hlhl), de) uses a|bc    { CallI(); }
-gen a :=    CALLE1(     param,        de) uses   bc|hl { CallI(); }
-gen a :=    CALLE1(ARG1(param, a),    de) uses   bc|hl { CallI(); }
-gen a :=    CALLE1(ARG2(param, hl),   de) uses   bc    { CallI(); }
-gen a :=    CALLE1(ARG4(param, hlhl), de) uses   bc    { CallI(); }
-gen hl :=   CALLE2(     param,        de) uses a|bc    { CallI(); }
-gen hl :=   CALLE2(ARG1(param, a),    de) uses   bc    { CallI(); }
-gen hl :=   CALLE2(ARG2(param, hl),   de) uses a|bc    { CallI(); }
-gen hl :=   CALLE2(ARG4(param, hlhl), de) uses a|bc    { CallI(); }
-gen hlhl := CALLE4(     param,        de) uses a|bc    { CallI(); }
-gen hlhl := CALLE4(ARG1(param, a),    de) uses   bc    { CallI(); }
-gen hlhl := CALLE4(ARG2(param, hl),   de) uses a|bc    { CallI(); }
-gen hlhl := CALLE4(ARG4(param, hlhl), de) uses a|bc    { CallI(); }
+gen         CALL(       param,        de) uses a|bc|hl|rx { CallI(); }
+gen         CALL(  ARG1(param, a),    de) uses   bc|hl|rx { CallI(); }
+gen         CALL(  ARG2(param, hl),   de) uses a|bc   |rx { CallI(); }
+gen         CALL(  ARG4(param, hlhl), de) uses a|bc   |rx { CallI(); }
+gen a :=    CALLE1(     param,        de) uses   bc|hl|rx { CallI(); }
+gen a :=    CALLE1(ARG1(param, a),    de) uses   bc|hl|rx { CallI(); }
+gen a :=    CALLE1(ARG2(param, hl),   de) uses   bc   |rx { CallI(); }
+gen a :=    CALLE1(ARG4(param, hlhl), de) uses   bc   |rx { CallI(); }
+gen hl :=   CALLE2(     param,        de) uses a|bc   |rx { CallI(); }
+gen hl :=   CALLE2(ARG1(param, a),    de) uses   bc   |rx { CallI(); }
+gen hl :=   CALLE2(ARG2(param, hl),   de) uses a|bc   |rx { CallI(); }
+gen hl :=   CALLE2(ARG4(param, hlhl), de) uses a|bc   |rx { CallI(); }
+gen hlhl := CALLE4(     param,        de) uses a|bc   |rx { CallI(); }
+gen hlhl := CALLE4(ARG1(param, a),    de) uses   bc   |rx { CallI(); }
+gen hlhl := CALLE4(ARG2(param, hl),   de) uses a|bc   |rx { CallI(); }
+gen hlhl := CALLE4(ARG4(param, hlhl), de) uses a|bc   |rx { CallI(); }
 
 gen param := END();
 
@@ -1944,7 +1943,6 @@ gen bc|de|hl := STRING():s
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	E("\tcseg\n"); # yes, really
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }

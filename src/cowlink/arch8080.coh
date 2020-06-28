@@ -23,8 +23,7 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E("\torg 0x100\n");
-	E("\tcseg\n");
+	E("\torg 100h\n");
 
 	E("\tlxi sp, TOP+");
 	E_u16(STACK_SIZE);
@@ -40,7 +39,6 @@ sub ArchEmitHeader(coo: [Coo]) is
 		coo := coo.next;
 	end loop;
 
-	E("_exit:\n");
 	E("\trst 0\n");
 end sub;
 

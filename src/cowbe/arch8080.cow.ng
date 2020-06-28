@@ -515,7 +515,6 @@
 
 		EmitterOpenStream(current_subr);
 
-		E("\tcseg\n");
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('c');
 		E_u16(sid);
@@ -616,7 +615,6 @@ gen STARTSUB()
 	E_b8(0);
 	E_nl();
 
-	E("\tcseg\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -1555,7 +1553,6 @@ gen bc|de|hl := STRING():s
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	E("\tcseg\n"); # yes, really
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }

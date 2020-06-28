@@ -93,6 +93,7 @@ end sub;
 sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo]) is
 	coo := Alloc(@bytesof Coo) as [Coo];
 	coo.id := current_id;
+	coo.name := filename;
 	current_id := current_id + 1;
 	if FCBOpenIn(&coo.fcb, filename) != 0 then
 		CannotOpen(filename);

@@ -30,6 +30,7 @@ end record;
 
 record Coo is
 	fcb: FCB;
+	name: string;
 	index: CooIndex;
 	next: [Coo];
 	id: uint16;
