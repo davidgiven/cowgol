@@ -17,3 +17,4 @@ read array[0].a: yes
 read array[0].b: yes
 read array[1].a: yes
 read array[1].b: yes
+@sizeof array: yes
