@@ -104,7 +104,7 @@ sub fcb_i_changeblock(fcb: [FCB], newblock: uint16) is
 end sub;
 
 sub fcb_i_convert_a_to_error() is
-	@asm "cpi 0xff";
+	@asm "cpi 255";
 	@asm "mvi a, 0";
 	@asm "rnz";
 	@asm "inc a";
