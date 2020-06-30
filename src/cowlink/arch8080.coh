@@ -43,7 +43,6 @@ sub ArchEmitHeader(coo: [Coo]) is
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-	E("\tdseg\n");
 	E("TOP:\n");
 
 	E("ws equ TOP+");
