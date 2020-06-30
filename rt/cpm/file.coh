@@ -107,7 +107,7 @@ sub fcb_i_convert_a_to_error() is
 	@asm "cpi 255";
 	@asm "mvi a, 0";
 	@asm "rnz";
-	@asm "inc a";
+	@asm "inr a";
 end sub;
 
 sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is

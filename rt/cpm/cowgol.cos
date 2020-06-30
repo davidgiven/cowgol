@@ -157,9 +157,9 @@
     ; _dvrms1
 ``:
     mov a, b
-    xor d                ; discover sign of result
+    xra d                ; discover sign of result
     push psw             ; save for later
-    xor d                ; recover sign of b (sign of remainder)
+    xra d                ; recover sign of b (sign of remainder)
     push psw             ; save for later
     jp ``_b_positive
     xra a                ; invert b to make it positive
@@ -229,9 +229,9 @@
     ; _dvrms2
 ``:
     mov a, d
-    xor b                ; discover sign of result
+    xra b                ; discover sign of result
     push psw             ; save for later
-    xor b                ; recover sign of b (sign of remainder)
+    xra b                ; recover sign of b (sign of remainder)
     push psw             ; save for later
     jp ``_de_positive
     xra a                ; invert de to make it positive
@@ -956,10 +956,10 @@
 &X _cmpeq2
     ; _cmpeq2
 ``:
-    ld a, e
+    mov a, e
     cmp l
-    ret nz
-    ld a, d
+    rnz
+    mov a, d
     cmp h
     ret
 
@@ -975,16 +975,16 @@
     call `_sub4         ; leaves the value on the stack, sets C on overflow
     pop b               ; low
     pop d               ; high
-    push af             ; save flags
+    push psw            ; save flags
 
     mov a, b
-    or c
-    or d
-    or e                ; a = 0 if the value was zero
+    ora c
+    ora d
+    ora e                ; a = 0 if the value was zero
 
     mov b, a
     inr b               ; a = 1 if the value was zero
-    pop af              ; restore carry flag
+    pop psw             ; restore carry flag
     dcr b               ; set Z flag, but don't disturb the carry flag
 ``_ret equ $ + 1
     jmp 0
