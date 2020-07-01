@@ -1578,8 +1578,10 @@ gen INIT2():c
 
 gen INIT4():c
 {
-	E("\tdword ");
-	E_u32($c.value as uint32);
+	E("\tdw ");
+	E_u16($c.value as uint16);
+	E_comma();
+	E_u16(($c.value>>16) as uint16);
 	E_nl();
 }
 

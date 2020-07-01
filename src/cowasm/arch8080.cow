@@ -191,7 +191,7 @@ sub HeapifyToken(): (sout: string) is
 	CopyString(&tokenBuffer[0], sout);
 end sub;
 
-sub AddSymbol(psymbol: [[Symbol]], name: string): (symbol: [Symbol]) is
+sub AddSymbol(psymbol: [[Symbol]], name: string) is
 	tokenSymbol := LOMEM as [Symbol];
 	LOMEM := AlignUp((LOMEM as intptr) + @bytesof Symbol) as [uint8];
 
@@ -199,7 +199,7 @@ sub AddSymbol(psymbol: [[Symbol]], name: string): (symbol: [Symbol]) is
 	tokenSymbol.callback := UndefinedLabelCb;
 	tokenSymbol.next := [psymbol];
 	tokenSymbol.name := name;
-	[psymbol] := symbol;
+	[psymbol] := tokenSymbol;
 end sub;
 
 var pushedc: uint8 := 0;
@@ -337,7 +337,7 @@ sub ReadToken(): (token: Token) is
 
 		var psymbol := FindSymbol(&tokenBuffer[0]);
 		if [psymbol] == (0 as [Symbol]) then
-			tokenSymbol := AddSymbol(psymbol, HeapifyToken());
+			AddSymbol(psymbol, HeapifyToken());
 		else
 			tokenSymbol := [psymbol];
 		end if;
@@ -588,7 +588,11 @@ sub ReadExpression(): (token: Token) is
                         PushValue(tokenSymbol.value);
                         seenValue := 1;
                     else
-                        SyntaxError();
+                        StartError();
+                        print_char('\'');
+                        print(&tokenBuffer[0]);
+                        print("' is not a value");
+                        EndError();
                     end if;
 
                 when else:

@@ -141,7 +141,7 @@
     add a
     mov b, a
     mov a, e
-    rla
+    ral
     cmp d
     jc ``_2
     inr b
@@ -167,7 +167,7 @@
     mov b, a
 ``_b_positive:
     mov a, d
-    or d                 ; get sign of d
+    ora d                ; get sign of d
     jp ``_d_positive
     xra a                ; invert d to make it positive
     sub d
@@ -242,7 +242,7 @@
     mov d, a
 ``_de_positive:
     mov a, b
-    or b                 ; get sign of bc
+    ora b                ; get sign of bc
     jp ``_bc_positive
     xra a                ; invert bc to make it positive
     sub c
@@ -647,17 +647,17 @@
     pop b               ; BC = high word
 
     mov a, d
-    cpl
+    cma
     mov d, a
     mov a, e
-    cpl
+    cma
     mov e, a
 
     mov a, b
-    cpl
+    cma
     mov b, a
     mov a, c
-    cpl
+    cma
     mov c, a
 
     push b
@@ -720,9 +720,9 @@
 ``_loop:
     dcr b
     rm
-    rla
+    ral
     mov a, c
-    rra
+    rar
     mov c, a
     jmp ``_loop
 
@@ -755,9 +755,9 @@
     dcr b
     rm
     mov a, h
-    rla
+    ral
     mov a, h
-    rra
+    rar
     mov h, a
     mov a, l
     rar
@@ -823,7 +823,7 @@
     dcr b
     jm ``_exit
     mov a, d
-    rla
+    ral
     mov a, d
     rar
     mov d, a
