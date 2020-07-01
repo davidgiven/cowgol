@@ -1,0 +1,33 @@
+var uint8_type: [Type];
+var intptr_type: [Type];
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+end sub;
+
+sub ArchInitTypes() is
+	uint8_type := MakeNumberType(1, 1, 1, "int");
+
+	intptr_type := uint8_type;
+	AddAliasString("intptr", LookupSymbol(0 as [Namespace], "int"));
+end sub;
+
+sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
+	symbol := uint8_type;
+end sub;
+
+sub ArchInitVariable(symbol: [Symbol]) is
+	var subr := symbol.vardata.subr;
+	var offset := subr.workspace[0];
+	symbol.vardata.offset := offset;
+	subr.workspace[0] := offset + symbol.vardata.type.width;
+end sub;
+
+sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
+	member.vardata.offset := position;
+	position := position + member.vardata.type.width;
+	if position > containing.width then
+		containing.width := position;
+	end if;
+end sub;
+
