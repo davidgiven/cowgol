@@ -29,7 +29,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("static i8 workspace[0x");
 	E_h16((workspaceSize[0]+7) / 8);
 	E("];\n");
-	E("static i1* ws = (i1*)workspace;\n");
+	E("#define ws ((i1*)workspace)\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
