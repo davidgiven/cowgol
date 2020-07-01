@@ -116,6 +116,20 @@ function buildzmac(e)
 	}
 end
 
+function buildcowasm8080(e)
+	local com = e.outs[1]:ext(".com"):obj()
+	local lst = e.outs[1]:ext(".lst"):obj()
+	rule {
+		ins = concat {
+			"scripts/quiet",
+			"bin/cowasm-8080.nncgen.exe",
+			e.ins
+		},
+		outs = { com, lst },
+		cmd = "@1 @2 @3 -o &1 -l &2"
+	}
+end
+
 function buildtass64(e)
 	local img = e.outs[1]:ext(".img"):obj()
 	tass64 {

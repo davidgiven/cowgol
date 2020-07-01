@@ -78,6 +78,10 @@ sub EmitterClosefile() is
 	# of the file. Unix C compilers don't like trailing nuls.
 
 	var padding := FCBExt(&outfcb) - FCBPos(&outfcb);
+	if (padding as int32) < 0 then
+		padding := -padding; # CP/M...
+	end if;
+
 	while padding != 0 loop
 		FCBPutChar(&outfcb, ' ');
 		padding := padding - 1;

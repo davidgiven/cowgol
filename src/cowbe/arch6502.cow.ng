@@ -882,6 +882,16 @@ gen JUMP():j
     sub ArchEmitMove(src: RegId, dest: RegId) is
         var sid: uint16;
 
+        sub PopXY(transoc: uint8) is
+            var op := PushStackOp(REG_V8, 1);
+            DoParamDirect_sta(op, 0);
+            E_pla();
+            E_ocnl(transoc);
+            R_flush(REG_A);
+            DoParamDirect_lda(op, 0);
+            op := PopOp();
+        end sub;
+
         case src is
             when REG_A:
                 case dest is
@@ -893,6 +903,13 @@ gen JUMP():j
             when 0:
                 case dest is
                     when REG_A:  E_pla(); return;
+                    $ifdef ARCH_65C02
+                        when REG_X: E_plx(); return;
+                        when REG_Y: E_ply(); return;
+                    $else
+                        when REG_X: PopXY(OC_TAX); return;
+                        when REG_Y: PopXY(OC_TAY); return;
+                    $endif
 
                     when REG_XA:
                         E_plxa();
@@ -902,11 +919,17 @@ gen JUMP():j
             when REG_X:
                 case dest is
                     when REG_A:  E_txa(); return;
+                    $ifdef ARCH_65C02
+                        when 0: E_phx(); return;
+                    $endif
                 end case;
 
             when REG_Y:
                 case dest is
                     when REG_A:  E_tya(); return;
+                    $ifdef ARCH_65C02
+                        when 0: E_phy(); return;
+                    $endif
                 end case;
 
             when REG_XA:

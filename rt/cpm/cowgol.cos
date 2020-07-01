@@ -1,7 +1,7 @@
 # Multiples two 8-bit values: A = B * D.
 # Uses DE.
 &X _mul1
-    cseg ; _mul1
+    ; _mul1
 ``:
     mvi c, 0            ; initial result
     mvi e, 9            ; number of bits
@@ -22,7 +22,7 @@
 # Multiplies two 16-bit values: HL = HL * DE.
 # Uses A and BC.
 &X _mul2
-    cseg ; _mul2
+    ; _mul2
 ``:
     mov b, h            ; BC = LHS
     mov c, l
@@ -60,7 +60,7 @@
 # It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
 # and is distributable under the 3-clause BSD license.
 &X _mul4
-    cseg ; _mul4
+    ; _mul4
 ``:
     pop h
     shld ``_return + 1
@@ -131,7 +131,7 @@
 # Divides two eight-bit unsigned numbers: B / D.
 # The quotient is returned in B, the remainder in A.
 &X _dvrmu1
-    cseg ; _dvrmu1
+    ; _dvrmu1
 ``:
     mvi c, 8            ; bit count
     xra a               ; remainder
@@ -141,25 +141,25 @@
     add a
     mov b, a
     mov a, e
-    rla
+    ral
     cmp d
     jc ``_2
-    inc b
+    inr b
     sub d
 ``_2:
-    dec c
+    dcr c
     jnz ``_1
     ret
 
 # Divides two eight-bit signed numbers: B / D.
 # The quotient is returned in D, the remainder in B.
 &X _dvrms1
-    cseg ; _dvrms1
+    ; _dvrms1
 ``:
     mov a, b
-    xor d                ; discover sign of result
+    xra d                ; discover sign of result
     push psw             ; save for later
-    xor d                ; recover sign of b (sign of remainder)
+    xra d                ; recover sign of b (sign of remainder)
     push psw             ; save for later
     jp ``_b_positive
     xra a                ; invert b to make it positive
@@ -167,7 +167,7 @@
     mov b, a
 ``_b_positive:
     mov a, d
-    or d                 ; get sign of d
+    ora d                ; get sign of d
     jp ``_d_positive
     xra a                ; invert d to make it positive
     sub d
@@ -191,7 +191,7 @@
 # Divides two sixteen-bit unsigned numbers: DE / BC.
 # The quotient is returned in DE, the remainder in HL.
 &X _dvrmu2
-    cseg ; _dvrmu2
+    ; _dvrmu2
 ``:
     xra a               ; negate BC
     sub c
@@ -226,12 +226,12 @@
 # Divides two eight-bit signed numbers: DE / BC.
 # The quotient is returned in DE, the remainder in HL.
 &X _dvrms2
-    cseg ; _dvrms2
+    ; _dvrms2
 ``:
     mov a, d
-    xor b                ; discover sign of result
+    xra b                ; discover sign of result
     push psw             ; save for later
-    xor b                ; recover sign of b (sign of remainder)
+    xra b                ; recover sign of b (sign of remainder)
     push psw             ; save for later
     jp ``_de_positive
     xra a                ; invert de to make it positive
@@ -242,7 +242,7 @@
     mov d, a
 ``_de_positive:
     mov a, b
-    or b                 ; get sign of bc
+    ora b                ; get sign of bc
     jp ``_bc_positive
     xra a                ; invert bc to make it positive
     sub c
@@ -279,7 +279,7 @@
 # It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
 # and is distributable under the 3-clause BSD license.
 &X _dvrmu4
-    cseg ; _dvrmu4
+    ; _dvrmu4
 ``:
     pop b
 
@@ -317,7 +317,7 @@
 # It's (c) 1987, 1990, 1993, 2005 Vrije Universiteit, Amsterdam, The Netherlands,
 # and is distributable under the 3-clause BSD license.
 &X _dvrms4
-    cseg ; _dvrms4
+    ; _dvrms4
 ``:
     pop b
 
@@ -373,7 +373,7 @@
 # Core code for the 32-bit division. Divides block+8 / block+0, leaving
 # the quotient in block+0 and the remainder in block+4.
 &S dvrmu4core
-    cseg ; dvrmu4core
+    ; dvrmu4core
 ``:
     lxi h,0             ; store initial value of remainder
     shld `$block.0.4
@@ -430,7 +430,7 @@
 
 # Divides two four-byte unsigned values from the stack, 
 &X _divu4
-    cseg ; _divu4
+    ; _divu4
 ``:
     pop h
     shld ``_ret+1
@@ -442,7 +442,7 @@
 
 # Takes the remainder of two four-byte unsigned values from the stack, 
 &X _remu4
-    cseg ; _remu4
+    ; _remu4
 ``:
     pop h
     shld ``_ret+1
@@ -458,7 +458,7 @@
 
 # Divides two four-byte signed values from the stack, 
 &X _divs4
-    cseg ; _divs4
+    ; _divs4
 ``:
     pop h
     shld ``_ret+1
@@ -470,7 +470,7 @@
 
 # Takes the remainder of two four-byte nsigned values from the stack, 
 &X _rems4
-    cseg ; _rems4
+    ; _rems4
 ``:
     pop h
     shld ``_ret+1
@@ -486,7 +486,7 @@
 
 # Adds two four-byte values from the stack.
 &X _add4
-    cseg ; _add4
+    ; _add4
 ``:
     pop h
     shld ``_ret
@@ -508,7 +508,7 @@
 
 # Subtracts two four-byte values from the stack.
 &X _sub4
-    cseg ; _sub4
+    ; _sub4
 ``:
     pop h
     shld ``_ret
@@ -541,7 +541,7 @@
 
 # ANDs two four-byte values from the stack.
 &X _and4
-    cseg ; _and4
+    ; _and4
 ``:
     pop h
     shld ``_ret
@@ -574,7 +574,7 @@
 
 # ORs two four-byte values from the stack.
 &X _or4
-    cseg ; _or4
+    ; _or4
 ``:
     pop h
     shld ``_ret
@@ -607,7 +607,7 @@
 
 # EORs two four-byte values from the stack.
 &X _eor4
-    cseg ; _eor4
+    ; _eor4
 ``:
     pop h
     shld ``_ret
@@ -640,24 +640,24 @@
 
 # NOTs the four-byte value on the stack.
 &X _not4
-    cseg ; _not4
+    ; _not4
 ``:
     pop h
     pop d               ; DE = low word
     pop b               ; BC = high word
 
     mov a, d
-    cpl
+    cma
     mov d, a
     mov a, e
-    cpl
+    cma
     mov e, a
 
     mov a, b
-    cpl
+    cma
     mov b, a
     mov a, c
-    cpl
+    cma
     mov c, a
 
     push b
@@ -666,7 +666,7 @@
 
 # Negates the four-byte value on the stack.
 &X _neg4
-    cseg ; _neg4
+    ; _neg4
 ``:
     pop d
 
@@ -679,7 +679,7 @@
 
 # Negates the four-byte value pointed to by hl.
 &S neg4core
-    cseg ; neg4core
+    ; neg4core
 ``:
     xra a
     sub m
@@ -704,9 +704,9 @@
 # Shifts A left B bits.
 # Corrupts A and B.
 &X _asl1
-    cseg ; _asl1
+    ; _asl1
 ``:
-    dec b
+    dcr b
     rm
     add a
     jmp ``
@@ -714,24 +714,24 @@
 # Arithmetic shift A right B bits.
 # Corrupts A, B and C.
 &X _asr1
-    cseg ; _asr1
+    ; _asr1
 ``:
     mov c, a        ; old copy of A
 ``_loop:
-    dec b
+    dcr b
     rm
-    rla
+    ral
     mov a, c
-    rra
+    rar
     mov c, a
     jmp ``_loop
 
 # Logical shift A right B bits.
 # Corrupts A and B.
 &X _lsr1
-    cseg ; _lsr1
+    ; _lsr1
 ``:
-    dec b
+    dcr b
     rm
     ora a
     rar
@@ -740,9 +740,9 @@
 # Shifts HL left B bits.
 # Corrupts A and HL.
 &X _asl2
-    cseg ; _asl2
+    ; _asl2
 ``:
-    dec b
+    dcr b
     rm
     dad h
     jmp ``
@@ -750,14 +750,14 @@
 # Arithmetic shift HL right B bits.
 # Corrupts A, B and HL.
 &X _asr2
-    cseg ; _asr2
+    ; _asr2
 ``:
-    dec b
+    dcr b
     rm
     mov a, h
-    rla
+    ral
     mov a, h
-    rra
+    rar
     mov h, a
     mov a, l
     rar
@@ -767,9 +767,9 @@
 # Logical shift HL right B bits.
 # Corrupts A, B and HL.
 &X _lsr2
-    cseg ; _lsr2
+    ; _lsr2
 ``:
-    dec b
+    dcr b
     rm
     ora a
     mov a, h
@@ -783,7 +783,7 @@
 # Logical shift the value at the top of the stack left B bits.
 # Corrupts A, B, HL, DE.
 &X _asl4
-    cseg ; _asl4
+    ; _asl4
 ``:
     pop h
     shld ``_ret
@@ -791,7 +791,7 @@
     pop h               ; HL = low
     pop d               ; DE = high
 ``_loop:
-    dec b
+    dcr b
     jm ``_exit
 
     dad h
@@ -812,7 +812,7 @@
 # Arithmetic shift the value at the top of the stack right B bits.
 # Corrupts A, B, HL, DE.
 &X _asr4
-    cseg ; _asr4
+    ; _asr4
 ``:
     pop h
     shld ``_ret
@@ -820,10 +820,10 @@
     pop h               ; HL = low
     pop d               ; DE = high
 ``_loop:
-    dec b
+    dcr b
     jm ``_exit
     mov a, d
-    rla
+    ral
     mov a, d
     rar
     mov d, a
@@ -846,7 +846,7 @@
 # Logical shift the value at the top of the stack right B bits.
 # Corrupts A, B, HL, DE.
 &X _lsr4
-    cseg ; _lsr4
+    ; _lsr4
 ``:
     pop h
     shld ``_ret
@@ -854,7 +854,7 @@
     pop h               ; HL = low
     pop d               ; DE = high
 ``_loop:
-    dec b
+    dcr b
     jm ``_exit
     ora a
     mov a, d
@@ -879,7 +879,7 @@
 # Loads a 32-bit value at HL and pushes it.
 # Corrupts BC, DE.
 &X _load4
-    cseg ; _load4
+    ; _load4
 ``:
     mov e, m
     inx h
@@ -896,7 +896,7 @@
 # Pops a 32-bit value and stores it at HL.
 # Corrupts BC, DE.
 &X _store4
-    cseg ; _store4
+    ; _store4
 ``:
     pop d               ; return address
     pop b               ; low word
@@ -917,7 +917,7 @@
 # Returns p flag if a >= b.
 # This doesn't set z coherently.
 &X _cmps1
-    cseg ; _cmps1
+    ; _cmps1
 ``:
     xra b               ; test signs
     jp ``u              ; signs are the same
@@ -930,15 +930,15 @@
 
 # Signed comparison of de <> hl.
 # Returns c if de < hl.
-# Returns !c if de >= hl.
+# Returns ~c if de >= hl.
 &X _cmps2
-    cseg ; _cmps2
+    ; _cmps2
 ``:
     mov a, d
     xra h               ; test signs
     jp ``u             ; jump if the signs are the same
-    xra d               ; make A=H and set !C
-    rm                  ; return with !C if de >= hl
+    xra d               ; make A=H and set ~C
+    rm                  ; return with ~C if de >= hl
     stc
     ret                 ; return with C if de < hl
 ``u:
@@ -954,12 +954,12 @@
 # Returns z if a == b.
 # Uses A.
 &X _cmpeq2
-    cseg
+    ; _cmpeq2
 ``:
-    ld a, e
+    mov a, e
     cmp l
-    ret nz
-    ld a, d
+    rnz
+    mov a, d
     cmp h
     ret
 
@@ -967,7 +967,7 @@
 # Returns z if a == b.
 # Returns c if a < b.
 &X _cmpu4
-    cseg ; _cmpu4
+    ; _cmpu4
 ``:
     pop h
     shld ``_ret
@@ -975,24 +975,24 @@
     call `_sub4         ; leaves the value on the stack, sets C on overflow
     pop b               ; low
     pop d               ; high
-    push af             ; save flags
+    push psw            ; save flags
 
     mov a, b
-    or c
-    or d
-    or e                ; a = 0 if the value was zero
+    ora c
+    ora d
+    ora e                ; a = 0 if the value was zero
 
     mov b, a
-    inc b               ; a = 1 if the value was zero
-    pop af              ; restore carry flag
-    dec b               ; set Z flag, but don't disturb the carry flag
+    inr b               ; a = 1 if the value was zero
+    pop psw             ; restore carry flag
+    dcr b               ; set Z flag, but don't disturb the carry flag
 ``_ret equ $ + 1
     jmp 0
 
 # Signed comparison of the two numbers on the top of the stack.
 # Returns c if lhs < rhs.
 &X _cmps4
-    cseg ; _cmps4
+    ; _cmps4
 ``:
     pop d
 
@@ -1010,8 +1010,8 @@
     dad sp
     sphl                ; sp = sp + 8
     push d              ; push the return address
-    xra b               ; make A=high byte of lhs and set !C
-    rm                  ; return with !C if lhs >= rhs
+    xra b               ; make A=high byte of lhs and set ~C
+    rm                  ; return with ~C if lhs >= rhs
     stc
     ret                 ; return with C if lhs < rhs
 ``_u:
@@ -1021,7 +1021,7 @@
 
 # Jumps to the address in de.
 &X _jmpde
-    cseg ; _jmpbc
+    ; _jmpbc
 ``:
     push d
     ret

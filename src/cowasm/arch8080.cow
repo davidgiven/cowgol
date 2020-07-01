@@ -1,0 +1,1179 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+include "strings.coh";
+
+typedef string is [uint8];
+typedef Token is uint8;
+
+var inputFilename := 0 as string;
+var outputFilename := "output.bin";
+var listingFilename := 0 as string;
+
+var inputFile: FCB;
+var outputFile: FCB;
+var listingFile: FCB;
+
+var eol: uint8;
+var lineno: uint16 := 0;
+var tokenLength: uint8;
+var tokenBuffer: uint8[64];
+var tokenNumber: uint16;
+var tokenSymbol: [Symbol];
+
+var programCounter: uint16;
+var programCounterSet: uint8;
+var currentInsn: [Symbol];
+var currentLabel: [Symbol];
+var pass: uint8;
+
+const X_LINENO := 0;
+const X_LINENO_END := X_LINENO + 5;
+const X_PROGRAMCOUNTER := X_LINENO_END + 2;
+const X_PROGRAMCOUNTER_END := X_PROGRAMCOUNTER + 4;
+const X_BYTES := X_PROGRAMCOUNTER_END + 2;
+const X_TEXT := X_BYTES + (8*3);
+const X_END := 79;
+var listingByteX: uint8;
+var listingCharX: uint8;
+var doListing: uint8 := 0;
+
+# 0000: 0000: 00 11 22 33 44 55 66 77 <text>
+var listingBuffer: uint8[80];
+
+var dbStringConstantHack: uint8 := 0;
+
+const TOKEN_EOF        := 26;
+const TOKEN_NL         := '\n';
+const TOKEN_IDENTIFIER := 0xff;
+const TOKEN_NUMBER     := 0xfe;
+const TOKEN_STRING     := 0xfd;
+const TOKEN_STRINGHACK := 0xfc;
+
+const OP_ADD := 0;
+const OP_AND := 1;
+const OP_DIV := 2;
+const OP_MOD := 3;
+const OP_MUL := 4;
+const OP_NEG := 5;
+const OP_NOT := 6;
+const OP_OR  := 7;
+const OP_SHL := 8;
+const OP_SHR := 9;
+const OP_SUB := 10;
+const OP_XOR := 11;
+const OP_PAR := 12;
+
+interface SymbolCallback();
+
+record Symbol is
+	name: string;
+	value: uint16;
+	callback: SymbolCallback;
+	next: [Symbol];
+end record;
+
+var symbolTable: [Symbol][32];
+MemZero(&symbolTable[0] as [uint8], @bytesof symbolTable);
+
+sub StartError() is
+	if lineno != 0 then
+		print("error at line ");
+		print_i16(lineno);
+		print(": ");
+	else
+		print("error: ");
+	end if;
+end sub;
+
+sub EndError() is
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub SimpleError(s: string) is
+	StartError();
+	print(s);
+	EndError();
+end sub;
+
+sub ToUpper(cin: uint8): (cout: uint8) is
+	if (cin >= 'a') and (cin <= 'z') then
+		cout := cin - ('a' - 'A');
+	else
+		cout := cin;
+	end if;
+end sub;
+
+sub UndefinedLabelCb implements SymbolCallback is
+	SimpleError("unrecognised instruction");
+end sub;
+
+sub OperatorCb implements SymbolCallback is
+	SimpleError("operators are not instructions");
+end sub;
+
+sub SetLabelCb implements SymbolCallback is
+	SimpleError("values are not instructions");
+end sub;
+
+sub EquLabelCb implements SymbolCallback is
+	SetLabelCb();
+end sub;
+
+sub Hex8(b: uint8, buffer: string) is
+    var i := b >> 4;
+    if i >= 10 then
+        i := i + ('a' - '0' - 10);
+    end if;
+    [buffer] := i + '0';
+
+    i := b & 0x0f;
+    if i >= 10 then
+        i := i + ('a' - '0' - 10);
+    end if;
+    [buffer+1] := i + '0';
+end sub;
+
+sub Hex16(w: uint16, buffer: string) is
+    Hex8((w >> 8) as uint8, buffer);
+    Hex8(w as uint8, buffer+2);
+end sub;
+
+sub Emit8(b: uint8) is
+    if pass == 2 then
+        FCBPutChar(&outputFile, b);
+
+        if (doListing != 0) and (listingByteX != X_TEXT) then
+            Hex8(b, &listingBuffer[listingByteX]);
+            listingByteX := listingByteX + 3;
+        end if;
+    end if;
+
+    programCounter := programCounter + 1;
+end sub;
+
+sub Emit16(w: uint16) is
+    Emit8(w as uint8);
+    Emit8((w>>8) as uint8);
+end sub;
+
+sub FindSymbol(name: string): (psymbol: [[Symbol]]) is
+    var p := name;
+    var hash: uint8 := 0;
+    loop
+        var c := [p];
+        if c == 0 then
+            break;
+        end if;
+        hash := hash + c;
+        p := @next p;
+    end loop;
+
+	psymbol := &symbolTable[hash & 0x1f];
+	loop
+		var symbol := [psymbol];
+		if symbol == (0 as [Symbol]) then
+			break;
+		end if;
+
+		if StrCmp(symbol.name, name) == 0 then
+			return;
+		end if;
+		psymbol := &symbol.next;
+	end loop;
+end sub;
+
+sub HeapifyToken(): (sout: string) is
+	sout := LOMEM;
+	LOMEM := AlignUp((LOMEM as intptr) + (tokenLength as intptr) + 1) as [uint8];
+
+	CopyString(&tokenBuffer[0], sout);
+end sub;
+
+sub AddSymbol(psymbol: [[Symbol]], name: string) is
+	tokenSymbol := LOMEM as [Symbol];
+	LOMEM := AlignUp((LOMEM as intptr) + @bytesof Symbol) as [uint8];
+
+	tokenSymbol.value := 0;
+	tokenSymbol.callback := UndefinedLabelCb;
+	tokenSymbol.next := [psymbol];
+	tokenSymbol.name := name;
+	[psymbol] := tokenSymbol;
+end sub;
+
+var pushedc: uint8 := 0;
+sub ReadToken(): (token: Token) is
+	sub GetC(): (c: uint8) is
+		if pushedc == 0 then
+			c := FCBGetChar(&inputFile);
+		else
+			c := pushedc;
+			pushedc := 0;
+		end if;
+        if (doListing != 0) and (listingCharX != X_END) and (c >= 32) then
+            listingBuffer[listingCharX] := c;
+            listingCharX := listingCharX + 1;
+        end if;
+	end sub;
+
+	sub UngetC(c: uint8) is
+		pushedc := c;
+        if (doListing != 0) and (listingCharX != X_TEXT) and (c != '\n') then
+            listingCharX := listingCharX - 1;
+        end if;
+	end sub;
+
+	if eol != 0 then
+		lineno := lineno + 1;
+		eol := 0;
+	end if;
+
+	var c: uint8;
+	loop
+		c := GetC();
+		if (c != ' ') and (c != '\t') and (c != '\r') then
+			break;
+		end if;
+	end loop;
+
+	if c == ';' then
+		loop
+			c := GetC();
+			if (c == '!') or (c == '\n') or (c == 26) then
+				break;
+			end if;
+		end loop;
+	end if;
+
+	sub CheckTokenBufferSize() is
+		if tokenLength == @sizeof tokenBuffer then
+			SimpleError("token too long");
+		end if;
+	end sub;
+
+	sub AccumulateTokenByte() is
+		CheckTokenBufferSize();
+		tokenBuffer[tokenLength] := c;
+		tokenLength := tokenLength + 1;
+
+		loop
+			c := ToUpper(GetC());
+			if c != '$' then
+				break;
+			end if;
+		end loop;
+	end sub;
+
+	c := ToUpper(c);
+	tokenLength := 0;
+	if (c >= '0') and (c <= '9') then
+		loop
+			AccumulateTokenByte();
+
+			if not (((c >= 'A') and (c <= 'Z')) or ((c >= '0') and (c <= '9'))) then
+				break;
+			end if;
+		end loop;
+		UngetC(c);
+
+		var base: uint8;
+		tokenLength := tokenLength - 1;
+		c := tokenBuffer[tokenLength];
+		case c is
+			when 'B': base := 2;
+			when 'O': base := 8;
+			when 'Q': base := 8;
+			when 'D': base := 10;
+			when 'H': base := 16;
+			when else:
+				if (c >= '0') and (c <= '9') then
+					tokenLength := tokenLength + 1;
+					base := 10;
+				else
+					tokenBuffer[tokenLength+1] := 0;
+					print(&tokenBuffer[0]);
+					print_nl();
+					StartError();
+					print("invalid base '");
+					print_char(c);
+					print("'");
+					EndError();
+				end if;
+		end case;
+		tokenBuffer[tokenLength] := 0;
+
+		tokenNumber := 0;
+		var p := &tokenBuffer[0];
+		loop
+			c := [p];
+			p := p + 1;
+			if c == 0 then
+				break;
+			end if;
+
+			if c >= 'A' then
+				c := c - ('A' + 10);
+			else
+				c := c - '0';
+			end if;
+			if c >= base then
+				SimpleError("invalid number");
+			end if;
+			tokenNumber := tokenNumber*(base as uint16) + (c as uint16);
+		end loop;
+		token := TOKEN_NUMBER;
+	elseif (c >= 'A') and (c <= 'Z') then
+		loop
+			AccumulateTokenByte();
+
+			if not (((c >= 'A') and (c <= 'Z')) or ((c >= '0') and (c <= '9')) or (c == '_')) then
+				break;
+			end if;
+		end loop;
+		UngetC(c);
+
+		tokenBuffer[tokenLength] := 0;
+
+		var psymbol := FindSymbol(&tokenBuffer[0]);
+		if [psymbol] == (0 as [Symbol]) then
+			AddSymbol(psymbol, HeapifyToken());
+		else
+			tokenSymbol := [psymbol];
+		end if;
+		token := TOKEN_IDENTIFIER;
+	elseif (c == '\'') then
+		c := GetC();
+		loop
+			AccumulateTokenByte();
+			if c < 32 then
+				SimpleError("unterminated string constant");
+			end if;
+			if c == '\'' then
+				break;
+			end if;
+		end loop;
+		tokenBuffer[tokenLength] := 0;
+		token := TOKEN_STRING;
+	elseif (c == '\n') then
+		eol := 1;
+        token := TOKEN_NL;
+	elseif (c == '!') then
+		token := TOKEN_NL;
+	elseif (c == 0) then
+		token := TOKEN_EOF;
+	else
+		# Everything else is a single-character token.
+		token := c;
+	end if;
+end sub;
+
+sub IsLabel(): (result: uint8) is
+    if (tokenSymbol.callback == UndefinedLabelCb)
+        or (tokenSymbol.callback == EquLabelCb)
+        or (tokenSymbol.callback == SetLabelCb)
+    then
+        result := 1;
+    else
+        result := 0;
+    end if;
+end sub;
+
+sub SyntaxError() is
+    SimpleError("syntax error");
+end sub;
+
+sub Expect(token: Token) is
+    if ReadToken() != token then
+        SyntaxError();
+    end if;
+end sub;
+
+sub ReadExpression(): (token: Token) is
+    interface OperatorCallback(left: uint16, right: uint16): (result: uint16);
+
+    record Operator is
+        callback: OperatorCallback;
+        precedence: uint8;
+        binary: uint8;
+    end record;
+
+    sub AddCb implements OperatorCallback is result := left + right; end sub;
+    sub AndCb implements OperatorCallback is result := left & right; end sub;
+    sub DivCb implements OperatorCallback is result := left / right; end sub;
+    sub ModCb implements OperatorCallback is result := left % right; end sub;
+    sub MulCb implements OperatorCallback is result := left * right; end sub;
+    sub NegCb implements OperatorCallback is result := -left;        end sub;
+    sub NotCb implements OperatorCallback is result := ~left;        end sub;
+    sub OrCb  implements OperatorCallback is result := left | right; end sub;
+    sub ShlCb implements OperatorCallback is result := left << (right as uint8); end sub;
+    sub ShrCb implements OperatorCallback is result := left >> (right as uint8); end sub;
+    sub SubCb implements OperatorCallback is result := left - right; end sub;
+    sub XorCb implements OperatorCallback is result := left ^ right; end sub;
+        
+    var operatorTable: Operator[] := {
+        { AddCb, 2, 1 },
+        { AndCb, 4, 1 },
+        { DivCb, 1, 1 },
+        { ModCb, 1, 1 },
+        { MulCb, 1, 1 },
+        { NegCb, 0, 0 },
+        { NotCb, 3, 0 },
+        { OrCb,  5, 1 },
+        { ShlCb, 1, 1 },
+        { ShrCb, 1, 1 },
+        { SubCb, 2, 1 },
+        { XorCb, 2, 1 },
+        { NotCb, 0xff, 0 }, # actually parenthesis
+    };
+
+    const STACK_DEPTH := 32;
+    var values: uint16[STACK_DEPTH];
+    var operators: [Operator][STACK_DEPTH];
+    var valueSp: @indexof values := 0;
+    var operatorSp: @indexof operators := 0;
+    var seenValue: uint8 := 0;
+
+    sub PushValue(value: uint16) is
+        if valueSp == STACK_DEPTH then
+            SimpleError("expression stack overflow");
+        end if;
+        values[valueSp] := value;
+        valueSp := valueSp + 1;
+    end sub;
+
+    sub PopValue(): (value: uint16) is
+        if valueSp == 0 then
+            SimpleError("expression stack underflow");
+        end if;
+        valueSp := valueSp - 1;
+        value := values[valueSp];
+    end sub;
+
+    sub ApplyOperator(op: [Operator]) is
+        var cb := op.callback;
+
+        var rhs := PopValue();
+        if op.binary != 0 then
+            var lhs := PopValue();
+            PushValue(cb(lhs, rhs));
+        else
+            PushValue(cb(rhs, 0));
+        end if;
+    end sub;
+
+    sub PushOperator(opid: uint8) is
+        if operatorSp == STACK_DEPTH then
+            SimpleError("operator stack overflow");
+        end if;
+        operators[operatorSp] := &operatorTable[opid as @indexof operatorTable];
+        operatorSp := operatorSp + 1;
+    end sub;
+
+    sub PushAndApplyOperator(opid: uint8) is
+        var op := &operatorTable[opid as @indexof operatorTable];
+        while operatorSp != 0 loop
+            var topop := operators[operatorSp-1];
+            if topop.precedence <= op.precedence then
+                ApplyOperator(topop);
+                operatorSp := operatorSp - 1;
+            else
+                break;
+            end if;
+        end loop;
+
+        PushOperator(opid);
+    end sub;
+
+    sub WantOperator() is
+        if seenValue == 0 then
+            SimpleError("expected operator, got value");
+        end if;
+    end sub;
+
+    sub WantValue() is
+        if seenValue != 0 then
+            SimpleError("expected value, got operator");
+        end if;
+    end sub;
+
+    var op: [Operator];
+    sub ReadAndStack() is
+        loop
+            token := ReadToken();
+            case token is
+                when '$':
+                    WantValue();
+                    PushValue(programCounter);
+                    seenValue := 1;
+                
+                when TOKEN_NUMBER:
+                    WantValue();
+                    PushValue(tokenNumber);
+                    seenValue := 1;
+
+                when TOKEN_STRING:
+                    WantValue();
+
+                    if (dbStringConstantHack != 0) and (valueSp == 0) and (operatorSp == 0) then
+                        token := TOKEN_STRINGHACK;
+                        return;
+                    end if;
+
+                    var v: uint16 := tokenBuffer[0] as uint16;
+                    if tokenLength == 2 then
+                        v := (v<<8) | (tokenBuffer[1] as uint16);
+                    end if;
+                    if (tokenLength != 1) and (tokenLength != 2) then
+                        SimpleError("invalid character constant");
+                    end if;
+
+                    PushValue(v);
+                    seenValue := 1;
+
+                when '+':
+                    if seenValue != 0 then
+                        PushAndApplyOperator(OP_ADD);
+                    end if;
+                    seenValue := 0;
+
+                when '-':
+                    if seenValue != 0 then
+                        PushAndApplyOperator(OP_SUB);
+                    else
+                        PushAndApplyOperator(OP_NEG);
+                    end if;
+                    seenValue := 0;
+
+                when '*':
+                    WantOperator();
+                    PushAndApplyOperator(OP_MUL);
+                    seenValue := 0;
+
+                when '/':
+                    WantOperator();
+                    PushAndApplyOperator(OP_DIV);
+                    seenValue := 0;
+
+                when '(':
+                    WantValue();
+                    PushOperator(OP_PAR);
+                    seenValue := 0;
+
+                when ')':
+                    WantOperator();
+
+                    loop
+                        if operatorSp == 0 then
+                            SimpleError("unbalanced parentheses");
+                        end if;
+                        operatorSp := operatorSp - 1;
+                        op := operators[operatorSp];
+                        if op == &operatorTable[OP_PAR] then
+                            break;
+                        end if;
+                        ApplyOperator(op);
+                    end loop;
+
+                when TOKEN_IDENTIFIER:
+                    if tokenSymbol.callback == OperatorCb then
+                        op := &operatorTable[tokenSymbol.value as uint8];
+                        if op.binary != seenValue then
+                            SyntaxError();
+                        end if;
+                        PushAndApplyOperator(tokenSymbol.value as uint8);
+                        seenValue := 0;
+                    elseif IsLabel() != 0 then
+                        WantValue();
+                        PushValue(tokenSymbol.value);
+                        seenValue := 1;
+                    else
+                        StartError();
+                        print_char('\'');
+                        print(&tokenBuffer[0]);
+                        print("' is not a value");
+                        EndError();
+                    end if;
+
+                when else:
+                    return;
+            end case;
+        end loop;
+    end sub;
+    ReadAndStack();
+
+    while operatorSp != 0 loop
+        operatorSp := operatorSp - 1;
+        op := operators[operatorSp];
+        ApplyOperator(op);
+    end loop;
+
+    if valueSp != 1 then
+        SimpleError("missing expression");
+    end if;
+    tokenNumber := values[0];
+end sub;
+
+sub ExpectExpression() is
+    if ReadExpression() != TOKEN_NL then
+        SimpleError("expected a single expression");
+    end if;
+end sub;
+
+sub BadSeparator() is
+    SimpleError("bad separator");
+end sub;
+
+sub SetImplicitLabel() is
+    if currentLabel == 0 as [Symbol] then
+        return;
+    end if;
+
+    if (currentLabel.value != programCounter)
+        and (currentLabel.callback != UndefinedLabelCb)
+    then
+        StartError();
+        print("label already defined (");
+        print_hex_i16(currentLabel.value);
+        print("h vs ");
+        print_hex_i16(programCounter);
+        print("h)");
+        EndError();
+    end if;
+
+    currentLabel.value := programCounter;
+    currentLabel.callback := EquLabelCb;
+end sub;
+    
+sub TitleCb implements SymbolCallback is
+    Expect(TOKEN_STRING);
+    if pass == 1 then
+        print("Title: ");
+        print(&tokenBuffer[0]);
+        print_nl();
+    end if;
+    Expect(TOKEN_NL);
+end sub;
+
+sub EquCb implements SymbolCallback is
+    if currentLabel == (0 as [Symbol]) then
+        SimpleError("equ with no label");
+    end if;
+
+    ExpectExpression();
+    if (currentLabel.value != tokenNumber) and (currentLabel.callback != UndefinedLabelCb) then
+        SimpleError("label already defined");
+    end if;
+
+    currentLabel.value := tokenNumber;
+    currentLabel.callback := EquLabelCb;
+end sub;
+
+sub SetCb implements SymbolCallback is
+    if currentLabel == (0 as [Symbol]) then
+        SimpleError("set with no label");
+    end if;
+
+    ExpectExpression();
+    if currentLabel.callback == EquLabelCb then
+        SimpleError("label already defined");
+    end if;
+
+    currentLabel.value := tokenNumber;
+    currentLabel.callback := SetLabelCb;
+end sub;
+
+sub EndIfCb implements SymbolCallback is
+    Expect(TOKEN_NL);
+end sub;
+
+sub ElseCb implements SymbolCallback is
+    # If this pseudoop actually gets executed, then we've been executing the
+    # true branch of the if...endif. Skip to the end.
+    loop
+        var t := ReadToken();
+        if t == TOKEN_EOF then
+            SimpleError("unexpected end of file");
+        elseif t == TOKEN_IDENTIFIER then
+            if tokenSymbol.callback == EndIfCb then
+                break;
+            end if;
+        end if;
+    end loop;
+    Expect(TOKEN_NL);
+end sub;
+
+sub IfCb implements SymbolCallback is
+    ExpectExpression();
+    if tokenNumber != 0 then
+        # do nothing --- true case
+    else
+        pass := pass + 10; # Suppress listing file
+        loop
+            var t := ReadToken();
+            if t == TOKEN_EOF then
+                SimpleError("unexpected end of file");
+            elseif t == TOKEN_IDENTIFIER then
+                if (tokenSymbol.callback == EndIfCb) or (tokenSymbol.callback == ElseCb) then
+                    break;
+                end if;
+            end if;
+        end loop;
+        Expect(TOKEN_NL);
+        pass := pass - 10; # Enable listing file again
+   end if;
+end sub;
+
+sub DbCb implements SymbolCallback is
+    dbStringConstantHack := 1;
+    loop
+        var t := ReadExpression();
+        case t is
+            when TOKEN_STRINGHACK:
+                var p := &tokenBuffer[0];
+                while [p] != 0 loop
+                    Emit8([p]);
+                    p := p + 1;
+                end loop;
+                t := ReadToken();
+
+            when else:
+                Emit8(tokenNumber as uint8);
+        end case;
+        if t != ',' then
+            break;
+        end if;
+    end loop;
+    if t != TOKEN_NL then
+        BadSeparator();
+    end if;
+    dbStringConstantHack := 0;
+end sub;
+
+sub DsCb implements SymbolCallback is
+    ExpectExpression();
+    programCounter := programCounter + tokenNumber;
+end sub;
+
+sub DwCb implements SymbolCallback is
+    loop
+        var t := ReadExpression();
+        Emit16(tokenNumber);
+        if t != ',' then
+            break;
+        end if;
+    end loop;
+    if t != TOKEN_NL then
+        BadSeparator();
+    end if;
+end sub;
+
+sub RpCb implements SymbolCallback is
+    ExpectExpression();
+    Emit8((currentInsn.value as uint8) | (((tokenNumber as uint8) & 6) << 3));
+end sub;
+
+sub OrgCb implements SymbolCallback is
+    ExpectExpression();
+    if tokenNumber < programCounter then
+        SimpleError("program counter moved backwards");
+    end if;
+
+    if programCounterSet == 0 then
+        programCounterSet := 1;
+    else
+        var delta := tokenNumber - programCounter;
+        while delta != 0 loop
+            Emit8(0);
+            delta := delta - 1;
+        end loop;
+    end if;
+
+    programCounter := tokenNumber;
+end sub;
+
+sub AluSrcCb implements SymbolCallback is
+    ExpectExpression();
+    Emit8((currentInsn.value as uint8) | (tokenNumber as uint8));
+end sub;
+
+sub AluDstCb implements SymbolCallback is
+    ExpectExpression();
+    Emit8((currentInsn.value as uint8) | ((tokenNumber as uint8) << 3));
+end sub;
+
+sub Simple1BCb implements SymbolCallback is
+    Expect(TOKEN_NL);
+    Emit8(currentInsn.value as uint8);
+end sub;
+
+sub Simple2BCb implements SymbolCallback is
+    ExpectExpression();
+    Emit8(currentInsn.value as uint8);
+    Emit8(tokenNumber as uint8);
+end sub;
+
+sub Simple3BCb implements SymbolCallback is
+    ExpectExpression();
+    Emit8(currentInsn.value as uint8);
+    Emit16(tokenNumber);
+end sub;
+
+sub LxiCb implements SymbolCallback is
+    if ReadExpression() != ',' then
+        BadSeparator();
+    end if;
+    Emit8(0x01 | ((tokenNumber as uint8 & 6) << 3));
+
+    ExpectExpression();
+    Emit16(tokenNumber);
+end sub;
+
+sub MviCb implements SymbolCallback is
+    if ReadExpression() != ',' then
+        BadSeparator();
+    end if;
+    Emit8(0x06 | ((tokenNumber as uint8) << 3));
+
+    ExpectExpression();
+    Emit8(tokenNumber as uint8);
+end sub;
+
+sub MovCb implements SymbolCallback is
+    if ReadExpression() != ',' then
+        BadSeparator();
+    end if;
+    var dest := tokenNumber as uint8;
+    ExpectExpression();
+    var src := tokenNumber as uint8;
+
+    Emit8(0x40 | (dest<<3) | src);
+end sub;
+
+sub EndCb implements SymbolCallback is
+end sub;
+
+sub InitialiseSymbolTable() is
+	var s: Symbol;
+	var symbols: Symbol[] := {
+		{ "AND",   OP_AND, OperatorCb, &s },
+		{ "A",     7,      EquLabelCb, &s },
+		{ "ANA",   0xa0,   AluSrcCb,   &s },
+		{ "ADD",   0x80,   AluSrcCb,   &s },
+		{ "ADC",   0x88,   AluSrcCb,   &s },
+		{ "ANI",   0xe6,   Simple2BCb, &s },
+		{ "ADI",   0xc6,   Simple2BCb, &s },
+		{ "ACI",   0xce,   Simple2BCb, &s },
+		{ "B",     0,      EquLabelCb, &s },
+		{ "C",     1,      EquLabelCb, &s },
+		{ "CALL",  0xcd,   Simple3BCb, &s },
+		{ "CMP",   0xb8,   AluSrcCb,   &s },
+		{ "CPI",   0xfe,   Simple2BCb, &s },
+		{ "CNZ",   0xc4,   Simple3BCb, &s },
+		{ "CZ",    0xcc,   Simple3BCb, &s },
+		{ "CNC",   0xd4,   Simple3BCb, &s },
+		{ "CC",    0xdc,   Simple3BCb, &s },
+		{ "CPO",   0xe4,   Simple3BCb, &s },
+		{ "CPE",   0xec,   Simple3BCb, &s },
+		{ "CP",    0xf4,   Simple3BCb, &s },
+		{ "CM",    0xfc,   Simple3BCb, &s },
+		{ "CMA",   0x2f,   Simple1BCb, &s },
+		{ "CMC",   0x3f,   Simple1BCb, &s },
+		{ "DB",    0,      DbCb,       &s },
+		{ "DS",    0,      DsCb,       &s },
+		{ "DW",    0,      DwCb,       &s },
+		{ "D",     2,      EquLabelCb, &s },
+		{ "DCX",   0x0b,   RpCb,       &s },
+		{ "DAD",   0x09,   RpCb,       &s },
+		{ "DCR",   0x05,   AluDstCb,   &s },
+		{ "DAA",   0x27,   Simple1BCb, &s },
+		{ "DI",    0xf3,   Simple1BCb, &s },
+		{ "EQU",   0,      EquCb,      &s },
+		{ "ELSE",  0,      ElseCb,     &s },
+		{ "ENDIF", 0,      EndIfCb,    &s },
+		{ "E",     3,      EquLabelCb, &s },
+		{ "END",   0,      EndCb,      &s },
+		{ "EI",    0xfb,   Simple1BCb, &s },
+		{ "H",     4,      EquLabelCb, &s },
+		{ "HLT",   0x76,   Simple1BCb, &s },
+		{ "IF",    0,      IfCb,       &s },
+		{ "INX",   0x03,   RpCb,       &s },
+		{ "INR",   0x04,   AluDstCb,   &s },
+		{ "IN",    0xdb,   Simple2BCb, &s },
+		{ "JMP",   0xc3,   Simple3BCb, &s },
+		{ "JNZ",   0xc2,   Simple3BCb, &s },
+		{ "JZ",    0xca,   Simple3BCb, &s },
+		{ "JNC",   0xd2,   Simple3BCb, &s },
+		{ "JC",    0xda,   Simple3BCb, &s },
+		{ "JPO",   0xe2,   Simple3BCb, &s },
+		{ "JPE",   0xea,   Simple3BCb, &s },
+		{ "JP",    0xf2,   Simple3BCb, &s },
+		{ "JM",    0xfa,   Simple3BCb, &s },
+		{ "L",     5,      EquLabelCb, &s },
+		{ "LDAX",  0x0a,   RpCb,       &s },
+		{ "LDA",   0x3a,   Simple3BCb, &s },
+		{ "LXI",   0,      LxiCb,      &s },
+		{ "LHLD",  0x2a,   Simple3BCb, &s },
+		{ "MOD",   OP_MOD, OperatorCb, &s },
+		{ "M",     6,      EquLabelCb, &s },
+		{ "MOV",   0,      MovCb,      &s },
+		{ "MVI",   0,      MviCb,      &s },
+		{ "NOT",   OP_NOT, OperatorCb, &s },
+		{ "NOP",   0x00,   Simple1BCb, &s },
+		{ "OR",    OP_OR,  OperatorCb, &s },
+		{ "ORG",   0,      OrgCb,      &s },
+		{ "ORA",   0xb0,   AluSrcCb,   &s },
+		{ "ORI",   0xf6,   Simple2BCb, &s },
+		{ "OUT",   0xd3,   Simple2BCb, &s },
+		{ "PSW",   6,      EquLabelCb, &s },
+		{ "PUSH",  0xc5,   RpCb,       &s },
+		{ "POP",   0xc1,   RpCb,       &s },
+		{ "PCHL",  0xe9,   Simple1BCb, &s },
+		{ "RET",   0xc9,   Simple1BCb, &s },
+		{ "RNZ",   0xc0,   Simple1BCb, &s },
+		{ "RZ",    0xc8,   Simple1BCb, &s },
+		{ "RNC",   0xd0,   Simple1BCb, &s },
+		{ "RC",    0xd8,   Simple1BCb, &s },
+		{ "RPO",   0xe0,   Simple1BCb, &s },
+		{ "RPE",   0xe8,   Simple1BCb, &s },
+		{ "RP",    0xf0,   Simple1BCb, &s },
+		{ "RM",    0xf8,   Simple1BCb, &s },
+		{ "RST",   0xc7,   AluDstCb,   &s },
+		{ "RAL",   0x17,   Simple1BCb, &s },
+		{ "RAR",   0x1f,   Simple1BCb, &s },
+		{ "RLC",   0x07,   Simple1BCb, &s },
+		{ "RRC",   0x0f,   Simple1BCb, &s },
+		{ "SHL",   OP_SHL, OperatorCb, &s },
+		{ "SHR",   OP_SHR, OperatorCb, &s },
+		{ "SET",   0,      SetCb,      &s },
+		{ "SP",    6,      EquLabelCb, &s },
+		{ "STAX",  0x02,   RpCb,       &s },
+		{ "STA",   0x32,   Simple3BCb, &s },
+		{ "SUB",   0x90,   AluSrcCb,   &s },
+		{ "SBB",   0x98,   AluSrcCb,   &s },
+		{ "SBI",   0xde,   Simple2BCb, &s },
+		{ "SUI",   0xd6,   Simple2BCb, &s },
+		{ "SHLD",  0x22,   Simple3BCb, &s },
+		{ "SPHL",  0xf9,   Simple1BCb, &s },
+		{ "STC",   0x37,   Simple1BCb, &s },
+		{ "TITLE", 0,      TitleCb,    &s },
+		{ "XOR",   OP_XOR, OperatorCb, &s },
+		{ "XRA",   0xa8,   AluSrcCb,   &s },
+		{ "XRI",   0xee,   Simple2BCb, &s },
+		{ "XCHG",  0xeb,   Simple1BCb, &s },
+		{ "XTHL",  0xe3,   Simple1BCb, &s },
+	};
+
+	var p := &symbols[0];
+    while p != &symbols[@sizeof symbols] loop
+		var psymbol := FindSymbol(p.name);
+		if [psymbol] != (0 as [Symbol]) then
+			StartError();
+			print("duplicate symbol during init ");
+			print(p.name);
+			EndError();
+		end if;
+		p.next := (0 as [Symbol]);
+		[psymbol] := p;
+
+		p := @next p;
+	end loop;
+end sub;
+
+sub Pass() is
+    eol := 1;
+    lineno := 0;
+    programCounter := 0;
+    programCounterSet := 0;
+    
+    if (listingFilename != 0 as string) and (pass == 2) then
+        doListing := 1;
+    end if;
+
+    print("Pass ");
+    print_i8(pass);
+    print_nl();
+ 
+    # Each statement consists of:
+    # LABEL [:] INSTRUCTION [operands...]
+    #
+    # foo: mvi a, 1
+    # foo mvi a, 1
+    # mvi a, 1
+    # foo
+    #
+    # ...are all valid.
+
+    loop
+        if (listingFilename != 0 as string) and (pass == 2) then
+            listingByteX := X_BYTES;
+            listingCharX := X_TEXT;
+
+            MemSet(&listingBuffer[0], ' ', X_TEXT);
+            listingBuffer[X_TEXT] := 0;
+            var p := UIToA(lineno as uint32, 10, &listingBuffer[X_LINENO]);
+            [p] := ':';
+            Hex16(programCounter, &listingBuffer[X_PROGRAMCOUNTER]);
+            listingBuffer[X_PROGRAMCOUNTER_END] := ':';
+        end if;
+
+        var t := ReadToken();
+        if t == TOKEN_EOF then
+            return;
+        end if;
+        if t == TOKEN_NL then
+            continue;
+        end if;
+        if t != TOKEN_IDENTIFIER then
+            SimpleError("expected an identifier");
+        end if;
+        if tokenSymbol.callback == EndCb then
+            return;
+        end if;
+
+        currentLabel := 0 as [Symbol];
+        currentInsn := 0 as [Symbol];
+
+        if IsLabel() != 0 then
+            currentLabel := tokenSymbol;
+            t := ReadToken();
+            if t == ':' then
+                t := ReadToken();
+            end if;
+        end if;
+
+        if t != TOKEN_NL then
+            if t != TOKEN_IDENTIFIER then
+                SimpleError("expected an identifier");
+            end if;
+            currentInsn := tokenSymbol;
+        end if;
+
+        if currentInsn != 0 as [Symbol] then
+            var cb := currentInsn.callback;
+            if (cb != SetCb) and (cb != EquCb) then
+                SetImplicitLabel();
+            end if;
+            cb();
+        else
+            SetImplicitLabel();
+        end if;
+
+        if doListing != 0 then
+            listingBuffer[listingCharX] := 0;
+            FCBPutString(&listingFile, &listingBuffer[0]);
+            FCBPutChar(&listingFile, 10);
+        end if;
+    end loop;
+end sub;
+
+sub CheckForUndefinedSymbols() is
+    lineno := 0;
+    var error: uint8 := 0;
+    var psymbol := &symbolTable[0];
+    while psymbol != &symbolTable[@sizeof symbolTable] loop
+        var symbol := [psymbol];
+        while symbol != (0 as [Symbol]) loop
+            if symbol.callback == UndefinedLabelCb then
+                print("undefined symbol: ");
+                print(symbol.name);
+                print_nl();
+                error := 1;
+            end if;
+            symbol := symbol.next;
+        end loop;
+        psymbol := @next psymbol;
+    end loop;
+
+    if error != 0 then
+        SimpleError("undefined symbols");
+    end if;
+end sub;
+
+sub ParseArguments() is
+	sub SyntaxError() is
+		StartError();
+		print("syntax: cowasm <inputfilename> [-o <outputfilename>] [-l <listingfilename>\n");
+		EndError();
+	end sub;
+
+	ArgvInit();
+	loop
+		var s := ArgvNext();
+		if s == (0 as string) then
+			break;
+		end if;
+
+		if [s] == '-' then
+			case ToUpper([s+1]) is
+				when 'O':
+					outputFilename := ArgvNext();
+
+				when 'L':
+					listingFilename := ArgvNext();
+
+				when else:
+					SyntaxError();
+			end case;
+		else
+			if inputFilename != (0 as string) then
+				SyntaxError();
+			end if;
+			inputFilename := s;
+		end if;
+	end loop;
+
+	if (inputFilename == (0 as string)) or (outputFilename == (0 as string)) then
+		SyntaxError();
+	end if;
+
+	sub CheckFCBOpen(e: uint8, s: string) is
+		if e != 0 then
+			StartError();
+			print("cannot open ");
+			print(s);
+			EndError();
+		end if;
+	end sub;
+
+	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
+	CheckFCBOpen(FCBOpenOut(&outputFile, outputFilename), outputFilename);
+	if listingFilename != (0 as string) then
+		CheckFCBOpen(FCBOpenOut(&listingFile, listingFilename), listingFilename);
+	end if;
+end sub;
+
+print("CP/M Assembler (C) 2020 David Given; ");
+print_i32(((HIMEM - LOMEM) / 1024) as uint32);
+print("kB free\n");
+
+ParseArguments();
+InitialiseSymbolTable();
+
+pass := 1;
+Pass();
+CheckForUndefinedSymbols();
+FCBSeek(&inputFile, 0);
+pass := 2;
+Pass();
+
+sub SafeFCBClose(fcb: [FCB], name: string) is
+    if FCBClose(fcb) != 0 then
+        StartError();
+        print("failed to close ");
+        print(name);
+        print(" file");
+        EndError();
+    end if;
+end sub;
+SafeFCBClose(&outputFile, "output");
+if listingFilename != 0 as string then
+    FCBPutChar(&listingFile, 26);
+    SafeFCBClose(&listingFile, "listing");
+end if;
+
+print("Finished with ");
+print_i32(((HIMEM - LOMEM) / 1024) as uint32);
+print("kB free\n");
+
+# vim: sw=4 ts=4 et

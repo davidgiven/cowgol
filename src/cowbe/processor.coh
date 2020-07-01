@@ -33,15 +33,21 @@ end sub;
 
 @impl sub FindSubr is
 	var index := &subrindex;
-	while subrid >= SUBR_INDEX_SIZE loop
+	var i := subrid;
+	while i >= SUBR_INDEX_SIZE loop
 		if index.next == (0 as [SubrIndex]) then
-			SimpleError("unknown subrid");
+			StartError();
+			print("unknown subrid ");
+			print_hex_i16(subrid);
+			print(" at 0x");
+			print_hex_i32(FCBPos(&infcb));
+			EndError();
 		end if;
 		index := index.next;
-		subrid := subrid - SUBR_INDEX_SIZE;
+		i := i - SUBR_INDEX_SIZE;
 	end loop;
 
-	subr := index.subr[subrid as uint8];
+	subr := index.subr[i as uint8];
 end sub;
 
 sub ReadN() is

@@ -135,7 +135,7 @@ static void bios_warmboot(void)
 				offset++;
 			}
 		}
-		ram[0x0080] = offset;
+		ram[0x0080] = offset-1;
 		ram[0x0080+offset] = 0xe5; /* deliberately not zero-terminated */
 	}
 	else
