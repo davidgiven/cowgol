@@ -6,10 +6,10 @@ sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 end sub;
 
 sub ArchInitTypes() is
-	uint8_type := MakeNumberType(1, 1, 1, "int");
+	uint8_type := MakeNumberType(1, 1, 1, "int1");
 
 	intptr_type := uint8_type;
-	AddAliasString("intptr", LookupSymbol(0 as [Namespace], "int"));
+	AddAliasString("intptr", LookupSymbol(0 as [Namespace], "int1"));
 end sub;
 
 sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is

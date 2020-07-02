@@ -1,0 +1,150 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+
+typedef string is [uint8];
+
+var infcb: FCB;
+var outfcb: FCB;
+var lineno: uint16;
+var labels: uint16[1000];
+
+sub StartError() is
+	print("error: ");
+end sub;
+
+sub EndError() is
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub SimpleError(s: string) is
+	StartError();
+	print(s);
+	EndError();
+end sub;
+
+sub CheckFCBOpen(e: uint8, s: string) is
+	if e != 0 then
+		StartError();
+		print("cannot open ");
+		print(s);
+		EndError();
+	end if;
+end sub;
+
+sub SafeFCBClose(fcb: [FCB], name: string) is
+    if FCBClose(fcb) != 0 then
+        StartError();
+        print("failed to close ");
+        print(name);
+        print(" file");
+        EndError();
+    end if;
+end sub;
+
+sub ReadHex(): (h: uint8) is
+	h := FCBGetChar(&infcb);
+	if h >= 'a' then
+		h := h - ('a' - 10);
+	elseif h >= 'A' then
+		h := h - ('A' - 10);
+	else
+		h := h - '0';
+	end if;
+end sub;
+
+sub ReadLabel(): (label: uint16) is
+	label := ReadHex() as uint16;
+	label := (label << 4) | (ReadHex() as uint16);
+	label := (label << 4) | (ReadHex() as uint16);
+	label := (label << 4) | (ReadHex() as uint16);
+	if label >= @sizeof labels then
+		StartError();
+		print("label ");
+		print_hex_i16(label);
+		print(" out of range");
+		EndError();
+	end if;
+end sub;
+
+sub E_label(label: uint16) is
+	var buffer: uint8[16];
+	var e := UIToA(label as uint32, 10, &buffer[0]);
+	FCBPutString(&outfcb, &buffer[0]);
+	FCBPutChar(&outfcb, '0');
+end sub;
+
+sub Pass1() is
+	var bol: uint8 := 1;
+	lineno := 1;
+	loop
+		var c := FCBGetChar(&infcb);
+		case c is
+			when 0: return;
+			when 26: return;
+
+			when '`':
+				var label := ReadLabel();
+				if bol != 0 then
+					labels[label] := lineno;
+				end if;
+				continue;
+
+			when 10:
+				lineno := lineno + 1;
+				bol := 1;
+
+			when else:
+				bol := 0;
+		end case;
+	end loop;
+end sub;
+
+sub Pass2() is
+	var bol: uint8 := 1;
+	lineno := 1;
+	E_label(1);
+	loop
+		var c := FCBGetChar(&infcb);
+		case c is
+			when 0: return;
+			when 26: return;
+			
+			when '`':
+				var label := ReadLabel();
+				if bol == 0 then
+					E_label(labels[label]);
+				end if;
+				continue;
+
+			when 10:
+				lineno := lineno + 1;
+				FCBPutChar(&outfcb, '\n');
+				E_label(lineno);
+				bol := 1;
+				continue;
+			
+			when else:
+				bol := 0;
+		end case;
+		FCBPutChar(&outfcb, c);
+	end loop;
+end sub;
+
+ArgvInit();
+var infile := ArgvNext();
+var outfile := ArgvNext();
+if (infile == 0 as string) or (outfile == 0 as string) then
+	SimpleError("syntax: basicify <infile> <outfile>\n");
+end if;
+
+CheckFCBOpen(FCBOpenIn(&infcb, infile), infile);
+CheckFCBOpen(FCBOpenOut(&outfcb, outfile), outfile);
+Pass1();
+FCBSeek(&infcb, 0);
+Pass2();
+FCBPutString(&outfcb, "stop\n");
+SafeFCBClose(&infcb, infile);
+SafeFCBClose(&outfcb, outfile);
+
