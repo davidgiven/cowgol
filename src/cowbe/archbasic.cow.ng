@@ -311,8 +311,6 @@ gen v := LOAD1(v)
 gen v := ADD1(v, v)  { Op2VV("+"); }
 gen v := SUB1(v, v)  { Op2VV("-"); }
 gen v := MUL1(v, v)  { Op2VV("*"); }
-gen v := DIVU1(v, v) { Op2VV("/"); }
-gen v := REMU1(v, v) { Op2VV(" mod "); }
 gen v := DIVS1(v, v) { Op2VV("/"); }
 gen v := REMS1(v, v) { Op2VV(" mod "); }
 gen v := NEG1(v)     { Op1V("-"); }
@@ -323,8 +321,6 @@ gen v := OR1(v, v)   { Op2VV(" or "); }
 gen v := ADD1(v, CONSTANT():c)  { Op2VC("+", $c.value); }
 gen v := SUB1(v, CONSTANT():c)  { Op2VC("-", $c.value); }
 gen v := MUL1(v, CONSTANT():c)  { Op2VC("*", $c.value); }
-gen v := DIVU1(v, CONSTANT():c) { Op2VC("/", $c.value); }
-gen v := REMU1(v, CONSTANT():c) { Op2VC(" mod ", $c.value); }
 gen v := DIVS1(v, CONSTANT():c) { Op2VC("/", $c.value); }
 gen v := REMS1(v, CONSTANT():c) { Op2VC(" mod ", $c.value); }
 gen v := AND1(v, CONSTANT():c)  { Op2VC(" and ", $c.value); }
@@ -339,27 +335,25 @@ gen v := LSHIFT1(v, v)
 	E_varref(res);
 	E("=");
 	E_varref(lhs);
-	E("*(2^");
-	E_varref(rhs);
-	E(")\n");
+	E("*");
+	var one: uint8 := 1;
+	E_varref(one << rhs);
+	E("\n");
 }
 
-%{
-	sub RShift() is
-		var rhs := PopVar();
-		var lhs := PopVar();
-		var res := PushVar();
-		E_varref(res);
-		E("=int(");
-		E_varref(lhs);
-		E("/(2^");
-		E_varref(rhs);
-		E("))\n");
-	end sub;
-%}
-
-gen v := RSHIFTS1(v, v) { RShift(); }
-gen v := RSHIFTU1(v, v) { RShift(); }
+gen v := RSHIFTS1(v, v)
+{
+	var rhs := PopVar();
+	var lhs := PopVar();
+	var res := PushVar();
+	E_varref(res);
+	E("=int(");
+	E_varref(lhs);
+	E("/");
+	var one: uint8 := 1;
+	E_varref(one << rhs);
+	E(")\n");
+}
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -428,8 +422,6 @@ gen v := RSHIFTU1(v, v) { RShift(); }
 gen BEQ0(CONSTANT():c1, CONSTANT():c2):b { beqc(self.n[0], $c1.value, $c2.value); }
 gen BEQ1(v, v):b                         { branch(self.n[0], "=", "<>"); }
 gen BEQ1(v, CONSTANT():c):b              { branchc(self.n[0], "=", "<>", $c.value); }
-gen BLTU1(v, v):b                        { branch(self.n[0], "<", ">="); }
-gen BLTU1(v, CONSTANT():c):b             { branchc(self.n[0], "<", ">=", $c.value); }
 gen BLTS1(v, v):b                        { branch(self.n[0], "<", ">="); }
 gen BLTS1(v, CONSTANT():c):b             { branchc(self.n[0], "<", ">=", $c.value); }
 
