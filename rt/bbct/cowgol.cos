@@ -98,21 +98,21 @@
     tya
     tax
     ldy #3
--
+``_1:
     lda (`$shiftsmem.1.0), y
     sta `$shiftsmem.1.2, y
     dey
-    bpl -
+    bpl ``_1
     rts
 
 &S endshift
 ``:
     ldy #3
--
+``_1
     lda `$.1.2, y
     sta (`$.1.0), y
     dey
-    bpl -
+    bpl ``_1
     rts
 
 &X _lshift4
@@ -210,19 +210,19 @@
     lda `$.1.0          ; get LHS
     php                 ; save remainder sign for later
 
-    bpl +               ; negate LHS if negative
+    bpl ``_1            ; negate LHS if negative
     lda #0
     sec
     sbc `$.1.0
     sta `$.1.0
-+
+``_1:
     lda `$.1.1          ; negate RHS if negative
-    bpl +
+    bpl ``_2
     lda #0
     sec
     sbc `$.1.1
     sta `$.1.1
-+
+``_2:
     lda `$.1.0
     ldx `$.1.1
     jsr `_divu1         ; actually do the division
@@ -230,19 +230,19 @@
     stx `$.1.1          ; save remainder
 
     plp                 ; get sign of remainder
-    bpl +               ; negate remainder if necessary
+    bpl ``_3            ; negate remainder if necessary
     lda #0
     sec
     sbc `$.1.1
     sta `$.1.1
-+
+``_3:
     plp                 ; get sign of result
-    bpl +               ; negate result if necessary
+    bpl ``_4            ; negate result if necessary
     lda #0
     sec
     sbc `$.1.0
     sta `$.1.0
-+
+``_4:
     lda `$.1.0
     ldx `$.1.1
     rts
@@ -260,12 +260,12 @@
 ``:
     ldx #-4
     sec
--
+``_1:
     lda #0
     sbc @b`$_mathpad.1.0+4, x
     sta @b`$_mathpad.1.0+4, x
     inx
-    bne -
+    bne ``_1
     rts
 
 &S _negrem
@@ -273,12 +273,12 @@
 ``:
     ldx #-4
     sec
--
+``_1:
     lda #0
     sbc @b`$_mathpad.1.4+4, x
     sta @b`$_mathpad.1.4+4, x
     inx
-    bne -
+    bne ``_1
     rts
 
 &S _negrhs
@@ -286,12 +286,12 @@
 ``:
     ldx #-4
     sec
--
+``_1:
     lda #0
     sbc @b`$_mathpad.1.8+4, x
     sta @b`$_mathpad.1.8+4, x
     inx
-    bne -
+    bne ``_1
     rts
 
 &X _mul2
@@ -343,12 +343,12 @@
     tay
     lda `$_mathpad.1.5
     sbc `$_mathpad.1.9
-    bcc +
+    bcc ``_1
 
     sty `$_mathpad.1.4
     sta `$_mathpad.1.5
     inc `$_mathpad.1.0
-+
+``_1
     dex
     bne ``_loop
     rts
@@ -410,20 +410,20 @@
 
 ``_loop:
     ldx #8              ; shift right result and lhs
--
+``_1:
     ror `$_mathpad.1.0-1, x
     dex
-    bne -
+    bne ``_1
     bcc ``_noadd
 
     ldx #-4             ; add rhs to low half of result
     clc
--
+``_2:
     lda `$_mathpad.1.4+4, x
     adc `$_mathpad.1.8+4, x
     sta `$_mathpad.1.4+4, x
     inx
-    bne -
+    bne ``_2
 
 ``_noadd:
     dey
@@ -435,37 +435,37 @@
 ``:
     lda #0              ; clear remainder
     ldx #3
--
+``_1:
     sta `$_mathpad.1.4, x
     dex
-    bpl -
+    bpl ``_1
 
     ldy #32             ; bit counter
 ``_loop:
     ldx #-8             ; left shift result and remainder
     clc
--
+``_2:
     rol `$_mathpad.1.0+8, x
     inx
-    bne -
+    bne ``_2
 
     sec                 ; if remainder < rhs
     ldx #-4
--
+``_3:
     lda `$_mathpad.1.4+4, x
     sbc `$_mathpad.1.8+4, x
     inx
-    bne -
+    bne ``_3
     bcc ``_nosub
     ; carry is set here
 
     ldx #-4             ; remainder := remainder - rhs
--
+``_4:
     lda `$_mathpad.1.4+4, x
     sbc `$_mathpad.1.8+4, x
     sta `$_mathpad.1.4+4, x
     inx
-    bne -
+    bne ``_4
     inc `$_mathpad.1.0
 
 ``_nosub;
@@ -520,19 +520,19 @@
     pla
     sta `$.1.3
     inc `$.1.2
-    bne +
+    bne ``_1
     inc `$.1.3
-+
+``_1:
     ; Now compare the two numbers.
 
     ldy #3
--
+``_2:
     lda (`$.1.0), y
     cmp (`$.1.2), y
-    bne +
+    bne ``_3
     dey
-    bpl -
-+
+    bpl ``_2
+``_3:
     ; Z will be unset here because Y just decremented to 0xff, so increment
     ; it so it's zero again.
     iny
@@ -544,9 +544,9 @@
     lda `$.1.2
     adc #4
     sta `$.1.2
-    bcc +
+    bcc ``_4
     inc `$.1.3
-+
+``_4:
     plp
 
     ; Return.

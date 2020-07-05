@@ -1,6 +1,6 @@
 # Logical shift A right B bits.
 &X _lsr1
-    cseg ; _lsr1
+    ; _lsr1
 ``:
     dec b
     ret m
@@ -9,7 +9,7 @@
 
 # Shift A left B bits.
 &X _asl1
-    cseg ; _asl1
+    ; _asl1
 ``:
     dec b
     ret m
@@ -18,7 +18,7 @@
 
 # Arithmetic shift A right B bits.
 &X _asr1
-    cseg ; _asr1
+    ; _asr1
 ``:
     dec b
     ret m
@@ -27,7 +27,7 @@
 
 # Logical shift HL right A bits.
 &X _lsr2
-    cseg ; _lsr2
+    ; _lsr2
 ``:
     dec a
     ret m
@@ -37,7 +37,7 @@
 
 # Logic shift HL right A bits.
 &X _asl2
-    cseg ; _asl2
+    ; _asl2
 ``:
     dec a
     ret m
@@ -46,7 +46,7 @@
 
 # Arithmetic shift HL right A bits.
 &X _asr2
-    cseg ; _asr2
+    ; _asr2
 ``:
     dec a
     ret m
@@ -56,7 +56,7 @@
 
 # Logical shift HLHL right A bits.
 &X _lsr4
-    cseg ; _lsr4
+    ; _lsr4
 ``:
     dec a
     ret m
@@ -70,7 +70,7 @@
 
 # Shifts HLHL left by A bits.
 &X _asl4
-    cseg ; _asl4
+    ; _asl4
 ``:
     dec a
     ret m
@@ -84,7 +84,7 @@
 
 # Arithmetic shift HLHL right A bits.
 &X _asr4
-    cseg ; _asr4
+    ; _asr4
 ``:
     dec a
     ret m
@@ -98,7 +98,7 @@
 
 # 8-bit multiplication: A = D * H.
 &X _mul1
-    cseg ; _mul1
+    ; _mul1
 ``:
     xor a
     ld b, 8
@@ -115,7 +115,7 @@
 
 # 16-bit multiplication: DE = BC * DE. Corrupts HL.
 &X _mul2
-    cseg ; _mul2
+    ; _mul2
 ``:
     ld hl, 0
     ld a, 16            ; number of iterations
@@ -134,7 +134,7 @@
 
 # 32-bit multiplication: HLHL = BCBC * DEDE.
 &X _mul4
-    cseg ; _mul4
+    ; _mul4
 ``:
     and a               ; reset carry
     sbc hl, hl          ; lower result to 0
@@ -168,7 +168,7 @@
 # Divides two eight-bit unsigned numbers: A = H / D.
 # The quotient is returned in H, the remainder in A.
 &X _dvrmu1
-    cseg ; _dvrmu1
+    ; _dvrmu1
 ``:
     ld b, 8             ; bit count
     xor a               ; remainder
@@ -186,7 +186,7 @@
 # Divides two eight-bit signed numbers: A = H / D.
 # The quotient is returned in H, the remainder in D.
 &X _dvrms1
-    cseg ; _dvrms1
+    ; _dvrms1
 ``:
     ld a, h
     xor d               ; discover sign of result
@@ -228,7 +228,7 @@
 # Divides two sixteen-bit unsigned numbers: BC = BC / DE
 # The quotient is returned in BC, the remainder in HL.
 &X _dvrmu2
-    cseg ; _dvrmu2
+    ; _dvrmu2
 ``:
     ld a, 16            ; bit count
     ld hl, 0            ; reset remainder
@@ -251,7 +251,7 @@
 # Divides two 16-bit signed numbers: BC = BC / DE
 # The quotient is returned in BC, the remainder in DE..
 &X _dvrms2
-    cseg ; _dvrms2
+    ; _dvrms2
 ``:
     ld a, b
     xor d               ; discover sign of result
@@ -298,7 +298,7 @@
 # Divides two thirty-two-bit unsigned number: BCBC = BCBC / DEDE
 # The quotient is returned in BCBC, the remainder in HLHL.
 &X _dvrmu4
-    cseg ; _dvrmu4
+    ; _dvrmu4
 ``:
     ld a, 32            ; bit count
     and a               ; reset carry
@@ -338,7 +338,7 @@
 # Divides two 32-bit signed numbers: BCBC = BCBC / DEDE
 # The quotient is returned in BCBC, the remainder in DEDE.
 &X _dvrms4
-    cseg ; _dvrms4
+    ; _dvrms4
 ``:
     exx
     ld a, b
@@ -412,7 +412,7 @@
 
 # ANDs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
 &X _and4
-    cseg ; _and4
+    ; _and4
 ``:
     ld a, l
     and e
@@ -433,7 +433,7 @@
 
 # ORs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
 &X _or4
-    cseg ; _or4
+    ; _or4
 ``:
     ld a, l
     or e
@@ -454,7 +454,7 @@
 
 # EORs two 32-bit numbers: HLHL = HLHL & DEDE. Uses A.
 &X _eor4
-    cseg ; _eor4
+    ; _eor4
 ``:
     ld a, l
     xor e
@@ -475,7 +475,7 @@
 
 # NOTs the 32-bit number in HLHL. Uses A.
 &X _not4
-    cseg ; _not4
+    ; _not4
 ``:
     ld a, l
     cpl
@@ -497,7 +497,7 @@
 # Signed comparison of HL and DE. Uses A.
 # Returns m if HL < DE.
 &X _cmps2
-    cseg ; _cmps2
+    ; _cmps2
 ``:
     and a               ; clear carry
     sbc hl, de
@@ -509,7 +509,7 @@
 # Returns z if HLHL == DEDE.
 # Returns c if HLHL < DEDE.
 &X _cmpu4
-    cseg ; _cmpu4
+    ; _cmpu4
 ``:
     and a               ; clear carry
     sbc hl, de
@@ -522,7 +522,7 @@
 # Signed comparison of HLHL and DEDE. Uses A.
 # Returns m if HLHL < DEDE.
 &X _cmps4
-    cseg ; _cmps4
+    ; _cmps4
 ``:
     and a               ; clear carry
     sbc hl, de
@@ -536,7 +536,7 @@
 
 # Jumps to the address in de.
 &X _jpde
-    cseg ; _jpbc
+    ; _jpbc
 ``:
     push de
     ret

@@ -7,11 +7,11 @@ var HIMEM: [uint8];
 @asm "ld (", HIMEM, "), hl";
 
 sub Exit() is
-	@asm "jp _exit";
+	@asm "rst 0";
 end sub;
 
 sub ExitWithError() is
-	@asm "jp _exit";
+	@asm "rst 0";
 end sub;
 
 sub AlignUp(in: intptr): (out: intptr) is
@@ -19,6 +19,11 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
+	if c == 10 then
+		@asm "ld e, 13";
+		@asm "ld c, 2";
+		@asm "call 5";
+	end if;
 	@asm "ld a, (", c, ")";
 	@asm "ld e, a";
 	@asm "ld c, 2";

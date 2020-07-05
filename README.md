@@ -19,8 +19,8 @@ Here's the bullet point list of features:
   - a table-driven, easy to port backend (the 80386 backend is 1.2kloc with
     no other compiler changes needed)
 
-  - tiny: the 80386 Linux compiler binary is 70kB (including ELF overhead).
-	The 8080 CP/M compiler 58kB (split across two executables).
+  - tiny: the 80386 Linux compiler binary is 70kB (including ELF overhead)
+	The 8080 CP/M compiler 58kB (split across two executables)
 
   - fast: on my PC it'll compile itself in ~~360ms~~ ~~130ms~~ 80ms.
 
@@ -29,10 +29,10 @@ Here's the bullet point list of features:
 
 ### About the compiler
 
-Right now it's in a state where you can build the cross-compiler on a PC,
-then use it to compile the compiler for your selected device, and if it's
-small enough to fit use *that* to (slowly and theoretically) compile and
-run real programs. Realistically you'll be cross-compiling on a PC.
+Right now it's in a state where you can build the cross-compiler on a PC, then
+use it to compile the compiler for your selected device, and if it's small
+enough to fit use *that* to compile and run real programs. Realistically you'll
+be cross-compiling on a PC.
 
 The following targets are supported. Adding more is easy.
 
@@ -54,6 +54,19 @@ The following targets are supported. Adding more is easy.
 Computer](http://cowlark.com/2019-07-20-cowgol-agc/index.html) used in the
 Apollo spacecraft, but I had to remove the code generator while rewriting the
 compiler and I haven't reworked the AGC backend.)
+
+In terms of machines you can run the compiler _on_:
+
+  - A BBC Micro with Tube second processor. [Follow this link for a live
+	in-browser
+	demo](https://bbc.godbolt.org/?&model=MasterTurbo&disc1=https://cowlark.com/cowgol/bbct.ssd&disc2=https://cowlark.com/cowgol/bbctwork.ssd&rom=https://cowlark.com/cowgol/assembler.rom)
+	courtesy of Matt Godbolt's excellent JSBeeb emulator: press SHIFT+F12
+	(that's SHIFT+BREAK on a BBC Micro) to start the compiler, and when it's
+	done type OUT to run the result. This is generating full 65c02 machine
+	code.
+
+  - Generic CP/M (untested). There's no reason why this shouldn't work, but I
+	haven't tried it yet.
 
 ### About the language
 

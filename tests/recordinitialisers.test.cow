@@ -107,6 +107,9 @@ sub test_arrays_of_records() is
 
 	print("read array[1].b");
 	if array[1].b == 4 then yes(); else no(); end if;
+
+	print("@sizeof array");
+	if @sizeof array == 2 then yes(); else no(); end if;
 end sub;
 test_arrays_of_records();
 

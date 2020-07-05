@@ -1264,6 +1264,7 @@ memberid(S) ::= ID(T).
 	sub CheckEndOfInitialiser() is
 		if IsArray(current_type) != 0 then
 			var memberwidth := current_type.arraytype.element.stride;
+			current_offset := ArchAlignUp(current_offset, current_type.arraytype.element.alignment);
 			if current_type.width == 0 then
 				current_type.width := current_offset;
 				var size := current_offset / memberwidth;
@@ -1416,9 +1417,9 @@ initialiser ::= startbracedinitialiser(R) initialisers CLOSEBR.
 {
 	CheckEndOfInitialiser();
 
+	current_offset := current_offset + R.old_current_offset;
 	current_type := R.old_current_type;
 	current_member := R.old_current_member;
-	current_offset := R.old_current_offset;
 	Free(R as [uint8]);
 }
 
