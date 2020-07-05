@@ -32,7 +32,6 @@ toolchain_ncpm = {
 	asmext = ".asm",
 	binext = ".8080.com",
 	tester = cpmtest,
-	archs = { "8080" }
 }
 
 toolchain_ncpmz = {
@@ -82,7 +81,6 @@ toolchain_bbctiny = {
 	asmext = ".asm",
 	binext = ".bbctiny",
 	tester = tubeemutest,
-	archs = {},
 }
 
 toolchain_bbct6502 = {
