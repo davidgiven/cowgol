@@ -117,7 +117,6 @@ function buildzmac(e)
 end
 
 function buildcowasm8080(e)
-	local com = e.outs[1]:ext(".com"):obj()
 	local lst = e.outs[1]:ext(".lst"):obj()
 	rule {
 		ins = concat {
@@ -125,7 +124,7 @@ function buildcowasm8080(e)
 			"bin/cowasm-8080.nncgen.exe",
 			e.ins
 		},
-		outs = { com, lst },
+		outs = { e.outs[1], lst },
 		cmd = "@1 @2 @3 -o &1 -l &2"
 	}
 end
