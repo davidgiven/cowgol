@@ -5,9 +5,11 @@ sub oneint8() is
 	sub func(): (i: int8) is
 		i := 42;
 	end sub;
-    print("oneint8");
+    print("oneint8-1");
 	var i := func();
     if i == 42 then yes(); else no(); end if;
+    print("oneint8-2");
+    if func() == 42 then yes(); else no(); end if;
 end sub;
 oneint8();
 
@@ -15,9 +17,11 @@ sub oneint16() is
 	sub func(): (i: int16) is
 		i := 42;
 	end sub;
-	print("oneint16");
+	print("oneint16-1");
 	var i := func();
 	if i == 42 then yes(); else no(); end if;
+	print("oneint16-2");
+	if func() == 42 then yes(); else no(); end if;
 end sub;
 oneint16();
 
@@ -25,9 +29,11 @@ sub oneint32() is
 	sub func(): (i: int32) is
 		i := 12345678;
 	end sub;
-	print("oneint32");
+	print("oneint32-1");
 	var i := func();
 	if i == 12345678 then yes(); else no(); end if;
+	print("oneint32-2");
+	if func() == 12345678 then yes(); else no(); end if;
 end sub;
 oneint32();
 
