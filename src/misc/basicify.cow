@@ -120,6 +120,7 @@ sub Pass2() is
 
 			when 10:
 				lineno := lineno + 1;
+				FCBPutChar(&outfcb, '\r');
 				FCBPutChar(&outfcb, '\n');
 				E_label(lineno);
 				bol := 1;
@@ -136,7 +137,7 @@ ArgvInit();
 var infile := ArgvNext();
 var outfile := ArgvNext();
 if (infile == 0 as string) or (outfile == 0 as string) then
-	SimpleError("syntax: basicify <infile> <outfile>\n");
+	SimpleError("syntax: basicify <infile> <outfile>");
 end if;
 
 CheckFCBOpen(FCBOpenIn(&infcb, infile), infile);
@@ -144,7 +145,7 @@ CheckFCBOpen(FCBOpenOut(&outfcb, outfile), outfile);
 Pass1();
 FCBSeek(&infcb, 0);
 Pass2();
-FCBPutString(&outfcb, "stop\n");
+FCBPutString(&outfcb, "end\r\n");
 SafeFCBClose(&infcb, infile);
 SafeFCBClose(&outfcb, outfile);
 
