@@ -198,7 +198,7 @@ gen v := CONSTANT():rhs
 	var vid := PushVar();
 	E_varref(vid);
 	E("=");
-	E_i16($rhs.value as int16);
+	E_i32($rhs.value as int32);
 	E_nl();
 }
 
@@ -336,8 +336,8 @@ gen v := LSHIFT1(v, v)
 	E("=");
 	E_varref(lhs);
 	E("*");
-	var one: uint8 := 1;
-	E_varref(one << rhs);
+	var one: int32 := 1;
+	E_i32(one << rhs);
 	E("\n");
 }
 
@@ -350,8 +350,8 @@ gen v := RSHIFTS1(v, v)
 	E("=int(");
 	E_varref(lhs);
 	E("/");
-	var one: uint8 := 1;
-	E_varref(one << rhs);
+	var one: int32 := 1;
+	E_i32(one << rhs);
 	E(")\n");
 }
 
