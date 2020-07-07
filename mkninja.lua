@@ -122,4 +122,5 @@ include "rt/bbcti/build.lua"
 include "tests/build.lua"
 include "dist/bbct/build.lua"
 include "dist/cpm/build.lua"
+include "dist/cpmbasic/build.lua"
 
