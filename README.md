@@ -50,6 +50,10 @@ The following targets are supported. Adding more is easy.
     are used for bootstrapping the compiler if you don't have a Cowgol
 	compiler.
 
+  - Basic. Yes, really --- there's a backend which will transpile into terrible
+	Microsoft Basic. I wrote this mainly as a joke and only a subset of the
+	language is supported, but it does work.
+
 (It _used_ to [support the Apollo Guidance
 Computer](http://cowlark.com/2019-07-20-cowgol-agc/index.html) used in the
 Apollo spacecraft, but I had to remove the code generator while rewriting the
