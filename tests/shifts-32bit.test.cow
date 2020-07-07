@@ -7,6 +7,7 @@ var seven32: uint32 := 7;
 var big: uint32 := 0x80000000;
 var mbig: int32 := 0x80000000;
 var twodtwo: uint32 := 0x2d2;
+var mone: uint32 := -1;
 
 var zero: uint8 := 0;
 var one: uint8 := 1;
@@ -17,8 +18,11 @@ sub lshift() is
 	print("one32<<zero == 1"); if one32<<zero == 1 then yes(); else no(); end if;
 	print("one32<<one == 2"); if one32<<one == 2 then yes(); else no(); end if;
 	print("one32<<two == 4"); if one32<<two == 4 then yes(); else no(); end if;
-	print("one32<<two == 4"); if one32<<two == 4 then yes(); else no(); end if;
+	print("one32<<0 == 1"); if one32<<0 == 1 then yes(); else no(); end if;
+	print("one32<<1 == 2"); if one32<<1 == 2 then yes(); else no(); end if;
+	print("one32<<2 == 4"); if one32<<2 == 4 then yes(); else no(); end if;
 	print("seven32<<7 == 896"); if seven32<<7 == 896 then yes(); else no(); end if;
+	print("mone<<16 = 0xffff0000"); if mone<<16 == 0xffff0000 then yes(); else no(); end if;
 end sub;
 lshift();
 
@@ -26,6 +30,9 @@ sub rshiftu() is
 	print("big>>zero == 0x80000000"); if big>>zero == 0x80000000 then yes(); else no(); end if;
 	print("big>>one == 0x40000000"); if big>>one == 0x40000000 then yes(); else no(); end if;
 	print("big>>two == 0x20000000"); if big>>two == 0x20000000 then yes(); else no(); end if;
+	print("big>>0 == 0x80000000"); if big>>0 == 0x80000000 then yes(); else no(); end if;
+	print("big>>1 == 0x40000000"); if big>>1 == 0x40000000 then yes(); else no(); end if;
+	print("big>>2 == 0x20000000"); if big>>2 == 0x20000000 then yes(); else no(); end if;
 	print("twodtwo>>seven == 5");    if twodtwo>>seven == 5 then yes(); else no(); end if;
 
 end sub;
@@ -35,7 +42,19 @@ sub rshifts() is
 	print("mbig>>zero == 0x80000000"); if mbig>>zero == 0x80000000 then yes(); else no(); end if;
 	print("mbig>>one == 0xc0000000"); if mbig>>one == 0xc0000000 then yes(); else no(); end if;
 	print("mbig>>two == 0xe0000000"); if mbig>>two == 0xe0000000 then yes(); else no(); end if;
+	print("mbig>>0 == 0x80000000"); if mbig>>0 == 0x80000000 then yes(); else no(); end if;
+	print("mbig>>1 == 0xc0000000"); if mbig>>1 == 0xc0000000 then yes(); else no(); end if;
+	print("mbig>>2 == 0xe0000000"); if mbig>>2 == 0xe0000000 then yes(); else no(); end if;
 	print("twodtwo>>seven == 5");     if twodtwo>>seven == 5 then yes(); else no(); end if;
 end sub;
 rshifts();
+
+sub lshiftsub() is
+	sub returns_m1(): (result: uint16) is result := -1; end sub;
+
+	print("lshiftsub");
+	var b: uint32 := ((returns_m1() as uint32) << 16);
+	if b == 0xffff0000 then yes(); else no(); end if;
+end sub;
+lshiftsub();
 

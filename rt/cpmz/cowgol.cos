@@ -76,9 +76,7 @@
     ret m
     add hl, hl
     exx
-    ex de, hl
     adc hl, hl
-    ex de, hl
     exx
     jr ``
 

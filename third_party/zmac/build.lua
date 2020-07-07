@@ -22,6 +22,7 @@ function zmac(e)
 	local f = e.ins[1]
 	local _, _, ext = f:find("%.(%w+)$")
 	local archflag = (ext == "z80") and "-z" or "-8"
+	local lstfile = e.outs[1]:ext(".lst")
 
 	local hdrpaths = {}
 	for _, t in ipairs(e.ins) do
@@ -33,8 +34,11 @@ function zmac(e)
 			"bin/zmac",
 			e.ins
 		),
-		outs = e.outs,
-		cmd = "@1 -j -m "..archflag.." -o &1 "..table.concat(hdrpaths, " ").." @2"
+		outs = {
+			e.outs[1],
+			lstfile
+		},
+		cmd = "@1 -j -m "..archflag.." -o &1 -o &2 "..table.concat(hdrpaths, " ").." @2"
 	}
 end
 

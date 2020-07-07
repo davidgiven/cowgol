@@ -1,0 +1,177 @@
+typedef num is int1;
+
+var pushedChar: num := 0;
+
+@asm "open \"i\",#1,\"music.dat\"";
+
+sub PrintChar(c: num) is
+	@asm "print;chr$(a(", c, "));";
+end sub;
+
+sub PrintNL() is
+	@asm "print";
+end sub;
+
+sub PrintInt(i: num) is
+	@asm "print;a(", i, ");";
+end sub;
+
+sub Sound(midi: num, length: num) is
+	var freq: num;
+	@asm "a(", freq, ") = 2^((a(", midi, ")-69)/12)*440";
+	PrintInt(freq);
+	@asm "sound a(", freq, "), a(", length, ")";
+end sub;
+
+sub UngetChar(c: num) is
+	pushedChar := c;
+end sub;
+
+sub GetChar(): (c: num) is
+	if pushedChar == 0 then
+		@asm "a(", c, ")=asc(input$(1,#1))";
+	else
+		c := pushedChar;
+		pushedChar := 0;
+	end if;
+end sub;
+
+sub Eof(): (result: num) is 
+	@asm "a(", result, ")=eof(1)";
+end sub;
+
+const OCTAVES := 4;
+var accidentals: num[12];
+var nextdot: num := 0;
+
+sub ResetAccidentals() is
+	var i: num := 0;
+	while i != @sizeof accidentals loop
+		accidentals[i] := 0;
+		i := i + 1;
+	end loop;
+end sub;
+
+sub ReadNote(): (pitch: num, duration: num) is
+	var pitchshift: num := 0;
+	var pitchshifted: num := 0;
+	var octaveshift: num := -1;
+	var dscale: num := 0;
+	var largeorsmall: num := 1;
+	var thisdot: num := 0;
+	
+	var c: num;
+	loop
+		if Eof() != 0 then
+			pitch := 0;
+			return;
+		end if;
+		c := GetChar();
+		if c == '|' then
+			PrintChar(c);
+			ResetAccidentals();
+		elseif (c == ' ') or (c == '\n') or (c == '\r') then
+			continue;
+		elseif c == '^' then
+			PrintChar(c);
+			pitchshift := pitchshift + 1;
+			pitchshifted := 1;
+		elseif c == '_' then
+			PrintChar(c);
+			pitchshift := pitchshift - 1;
+			pitchshifted := 1;
+		elseif c == '=' then
+			PrintChar(c);
+			pitchshift := 0;
+			pitchshifted := 1;
+		end if;
+		if (c >= 'a') and (c <= 'g') then
+			octaveshift := octaveshift + 1;
+			c := c - ('a' - 'A');
+		end if;
+		if (c >= 'A') and (c <= 'G') then
+			PrintChar(c);
+			if c < 'C' then
+				pitch := (c - 'A')*2 + 12;
+			elseif c < 'F' then
+				pitch := (c - 'C')*2 + 3;
+			else
+				pitch := (c - 'F')*2 + 8;
+			end if;
+			break;
+		end if;
+	end loop;
+	if pitchshifted != 0 then
+		accidentals[pitch] := pitchshift;
+	end if;
+
+	loop
+		if Eof() != 0 then
+			break;
+		end if;
+		c := GetChar();
+		if c == ',' then
+			PrintChar(c);
+			octaveshift := octaveshift - 1;
+		elseif c == '\'' then
+			PrintChar(c);
+			octaveshift := octaveshift + 1;
+		elseif (c >= '0') and (c <= '9') then
+			PrintChar(c);
+			dscale := (dscale*10) + (c-'0');
+		elseif c == '/' then
+			PrintChar(c);
+			largeorsmall := -1;
+		elseif c == '<' then
+			PrintChar(c);
+			thisdot := -1;
+		elseif c == '>' then
+			PrintChar(c);
+			thisdot := 1;
+		else
+			UngetChar(c);
+			break;
+		end if;
+	end loop;
+
+	pitch := pitch + accidentals[pitch] + (octaveshift * 12) + 69;
+	duration := 10;
+	if nextdot == -1 then
+		duration := duration / 2;
+		nextdot := 0;
+	elseif thisdot == 1 then
+		duration := (duration * 3) / 2;
+		nextdot := 0;
+	end if;
+	if thisdot == -1 then
+		duration := duration / 2;
+		nextdot := 1;
+	elseif thisdot == 1 then
+		duration := (duration * 3) / 2;
+		nextdot := -1;
+	end if;
+	if dscale != 0 then
+		if largeorsmall != 0 then
+			duration := duration * dscale;
+		else
+			duration := duration / dscale;
+		end if;
+	end if;
+end sub;
+
+ResetAccidentals();
+loop
+	var pitch: num;
+	var duration: num;
+	(pitch, duration) := ReadNote();
+	if pitch == 0 then
+		break;
+	end if;
+	PrintInt(pitch);
+	PrintChar(' ');
+	PrintInt(duration);
+	PrintChar(' ');
+	Sound(pitch, duration);
+	PrintNL();
+end loop;
+
