@@ -1,0 +1,5 @@
+cowfe crisps.cow crisps.cob
+cowbe crisps.cob crisps.coo
+era crisps.cob
+cowlink crisps.coo -o crisps.tmp
+basicify crisps.tmp crisps.bas
