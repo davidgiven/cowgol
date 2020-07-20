@@ -1,0 +1,56 @@
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('`');
+	E_h16(subr.id + 900);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	case wid is
+		when 0: # 'dynamic memory'
+			E_u16(address);
+
+		when 1: # 'static memory'
+			address := address + 1; # reserve A
+			loop
+				E_b8('a' + (address % 26) as uint8);
+				address := address / 26;
+				if address == 0 then
+					break;
+				end if;
+			end loop;
+	end case;
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E("dim a(");
+	E_u16(workspaceSize[0]);
+	E(")\n");
+	E("dim b(16)\n");
+	E("a=0\n");
+
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("gosub ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("end\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E_b8(26);
+end sub;
+

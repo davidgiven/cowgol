@@ -130,15 +130,15 @@ sub FCBExt(fcb: [FCB]): (len: uint32) is
 
 	# Nasty hack to get 32 bytes in zero page.
     var ptr: [uint32];
-    @asm "lda #<mos";
+    @asm "lda #mos & 255";
     @asm "sta 0+", ptr;
-    @asm "lda #>mos";
+    @asm "lda #mos / 256";
     @asm "sta 1+", ptr;
 
 	var channel := fcb.gbpb.channel;
 
 	@asm "lda #2"; # read EXT#
-	@asm "ldx #<mos";
+	@asm "ldx #mos & 255";
 	@asm "ldy", channel;
 	@asm "jsr $ffda"; # OSARGS
 

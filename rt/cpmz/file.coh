@@ -61,6 +61,7 @@ sub file_i_init(fcb: [FCB], filename: [uint8]) is
 	if c == '.' then
 		filename := fill(&fcb.cpm.f[8], filename+1, 3);
 	end if;
+
 	fcb.cpm.r := 0xffff;
 	fcb.bufferptr := 127;
 end sub;
@@ -161,10 +162,13 @@ sub FCBPos(fcb: [FCB]): (pos: uint32) is
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32) is
-	fcb_i_blockout(fcb);
 	var oldblock := fcb.cpm.r;
-
 	var cpmfcb := &fcb.cpm;
+
+	@asm "ld c, 16"; # CLOSE_FILE (actually flushing it to disk)
+	@asm "ld de, (", cpmfcb, ")";
+	@asm "call 5";
+
 	@asm "ld c, 35"; # COMPUTE FILE SIZE
 	@asm "ld de, (", cpmfcb, ")";
 	@asm "call 5";

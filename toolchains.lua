@@ -27,12 +27,11 @@ toolchain_ncpm = {
 	cowfe = "bin/cowfe-8080.nncgen.exe",
 	cowbe = "bin/cowbe-8080.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
-	assembler = buildzmac,
+	assembler = buildcowasm8080,
 	runtime = "rt/cpm",
 	asmext = ".asm",
 	binext = ".8080.com",
 	tester = cpmtest,
-	archs = { "8080" }
 }
 
 toolchain_ncpmz = {
@@ -82,7 +81,6 @@ toolchain_bbctiny = {
 	asmext = ".asm",
 	binext = ".bbctiny",
 	tester = tubeemutest,
-	archs = {},
 }
 
 toolchain_bbct6502 = {

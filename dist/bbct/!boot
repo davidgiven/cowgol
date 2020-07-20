@@ -1,0 +1,1 @@
+*basicMODE 3:PRINT "Now compiling W.SOURCE, and producing an executable called OUT.":PRINT "This will take a couple of minutes."''':CALL &F800cowfe w.source :1.b.testcowbe :1.b.test o.testcowlink o.cowgol o.test -o :1.s.testcliassemble :1.s.test out -b4go f800*|*| Now run OUT to see the program.

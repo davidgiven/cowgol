@@ -79,6 +79,12 @@ sub GenerateConditional(rootnode: [Node]) is
 		var rhs := node.right;
 		var op := node.op;
 
+		if node.beq.negated != 0 then
+			var x := t;
+			t := f;
+			f := x;
+		end if;
+
 		sub push_and_free() is
 			rhs.beq.truelabel := t;
 			rhs.beq.falselabel := f;
@@ -112,14 +118,8 @@ sub GenerateConditional(rootnode: [Node]) is
 				push_and_free();
 
 			when else:
-				if (op >= MIDCODE_BEQ0) and (op <= MIDCODE_BLTU8) then
-					if node.beq.negated != 0 then
-						node.beq.truelabel := f;
-						node.beq.falselabel := t;
-						node.beq.negated := 0;
-					end if;
-				end if;
-
+				node.beq.truelabel := t;
+				node.beq.falselabel := f;
 				Generate(node);
 				Generate(MidLabel(r));
 		end case;

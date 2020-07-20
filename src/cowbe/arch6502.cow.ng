@@ -110,11 +110,11 @@
         var ocs: string[] := {
             "adc", "sbc", "and", "ora", "eor", "lda", "ldx", "ldy",
             "sta", "stx", "sty", "php", "pha", "plp", "pla", "tax",
-            "txa", "tay", "tya", "beq", "bne", "bvs", "bcc", "bcs",
+            "txa", "tay", "tya", "jeq", "jne", "jvs", "jcc", "jcs",
             "clc", "sec", "rts", "jsr", "jmp", "phx", "phy", "plx",
             "ply", "tsx", "txs", "rol", "stz", "cmp", "cpx", "cpy",
-            "inx", "iny", "dex", "dey", "inc", "dec", "bra", "bmi",
-            "bpl", "asl", "lsr", "ajsr"
+            "inx", "iny", "dex", "dey", "inc", "dec", "jra", "jmi",
+            "jpl", "asl", "lsr", "ajsr"
         };
 
         E_tab();
@@ -127,9 +127,9 @@
         E_nl();
     end sub;
 
-    sub E_db() is E("\t.byte "); end sub;
-    sub E_dw() is E("\t.word "); end sub;
-    sub E_dl() is E("\t.dword "); end sub;
+    sub E_db() is E("\tdb "); end sub;
+    sub E_dw() is E("\tdw "); end sub;
+    sub E_dl() is E("\tdl "); end sub;
 
     sub E_plusone() is
         E("+1");
@@ -182,13 +182,10 @@
 
     sub E_y_nl()    is E(",y\n"); end sub;
     sub E_x_nl()    is E(",x\n"); end sub;
-    sub E_constlo() is E("#<"); end sub; 
-    sub E_consthi() is E("#>"); end sub; 
-
-    sub E_const(value: uint8) is
-        E_b8('#');
-        E_u8(value);
-    end sub;
+    sub E_lobyte()  is E(") & $ff\n"); end sub;
+    sub E_hibyte()  is E(") / 256\n"); end sub;
+    sub E_const()   is E_b8('#'); end sub;
+    sub E_constop() is E("#("); end sub;
 
     sub E_jump(oc: uint8, label: LabelRef) is
         E_oc(oc);
@@ -401,7 +398,8 @@
                         E_decrement(reg);
                     else
                         E_ld(reg);
-                        E_const(value);
+                        E_const();
+                        E_u8(value);
                         E_nl();
                     end if;
                 end if;
@@ -412,37 +410,41 @@
 
     sub E_loadaddr(sym: [Symbol], off: Size) is
         E_lda();
-        E_constlo();
+        E_constop();
         E_symref(sym, off);
-        E_nl();
+        E_lobyte();
 
         E_ldx();
-        E_consthi();
+        E_constop();
         E_symref(sym, off);
-        E_nl();
+        E_hibyte();
     end sub;
 
     sub E_loadsubref(subr: [Subroutine]) is
         E_lda();
-        E_constlo();
+        E_constop();
         E_subref(subr);
+        E_lobyte();
         E_nl();
 
         E_ldx();
-        E_consthi();
+        E_constop();
         E_subref(subr);
+        E_hibyte();
         E_nl();
     end sub;
 
     sub E_loadstackref(sid: uint16) is
         E_lda();
-        E_constlo();
+        E_constop();
         E_stackref(sid);
+        E_lobyte();
         E_nl();
 
         E_ldx();
-        E_consthi();
+        E_constop();
         E_stackref(sid);
+        E_hibyte();
         E_nl();
     end sub;
 
@@ -822,14 +824,16 @@ gen JUMP():j
         E_oc(oc);
         case operand.mode is
             when MODE_CONST:
-                E_const((operand.val >> (8*offset)) as uint8);
+                E_const();
+                E_u8((operand.val >> (8*offset)) as uint8);
 
             when MODE_ADDRESS:
-                case offset is
-                    when 0: E_constlo(); # low byte
-                    when 1: E_consthi(); # high byte
-                end case;
+                E_constop();
                 E_symref(operand.sym, operand.off);
+                case offset is
+                    when 0: E_lobyte();
+                    when 1: E_hibyte();
+                end case;
 
             when MODE_STACK:
                 E_stackref(operand.stk.sid + (offset as uint16));
@@ -878,6 +882,16 @@ gen JUMP():j
     sub ArchEmitMove(src: RegId, dest: RegId) is
         var sid: uint16;
 
+        sub PopXY(transoc: uint8) is
+            var op := PushStackOp(REG_V8, 1);
+            DoParamDirect_sta(op, 0);
+            E_pla();
+            E_ocnl(transoc);
+            R_flush(REG_A);
+            DoParamDirect_lda(op, 0);
+            op := PopOp();
+        end sub;
+
         case src is
             when REG_A:
                 case dest is
@@ -889,6 +903,13 @@ gen JUMP():j
             when 0:
                 case dest is
                     when REG_A:  E_pla(); return;
+                    $ifdef ARCH_65C02
+                        when REG_X: E_plx(); return;
+                        when REG_Y: E_ply(); return;
+                    $else
+                        when REG_X: PopXY(OC_TAX); return;
+                        when REG_Y: PopXY(OC_TAY); return;
+                    $endif
 
                     when REG_XA:
                         E_plxa();
@@ -898,11 +919,17 @@ gen JUMP():j
             when REG_X:
                 case dest is
                     when REG_A:  E_txa(); return;
+                    $ifdef ARCH_65C02
+                        when 0: E_phx(); return;
+                    $endif
                 end case;
 
             when REG_Y:
                 case dest is
                     when REG_A:  E_tya(); return;
+                    $ifdef ARCH_65C02
+                        when 0: E_phy(); return;
+                    $endif
                 end case;
 
             when REG_XA:
@@ -2032,9 +2059,9 @@ gen STARTCASE4(v32)
     var sid := op.stk.sid;
 
     E_lda();
-    E_constlo();
+    E_constop();
     E_stackref(sid);
-    E_nl();
+    E_lobyte();
 
     var subid := e.id;
 
@@ -2043,9 +2070,9 @@ gen STARTCASE4(v32)
     E_nl();
     
     E_lda();
-    E_consthi();
+    E_constop();
     E_stackref(sid);
-    E_nl();
+    E_hibyte();
 
     E_sta();
     E_wsref(subid, PTRMEM_WS, 1);
@@ -2056,7 +2083,8 @@ gen STARTCASE4(v32)
 gen WHENCASE1():c
 {
     E_cmp();
-    E_const($c.value as uint8);
+    E_const();
+    E_u8($c.value as uint8);
     E_nl();
     E_bne($c.falselabel);
 }
@@ -2064,12 +2092,14 @@ gen WHENCASE1():c
 gen WHENCASE2():c uses a
 {
     E_cmp();
-    E_const($c.value as uint8);
+    E_const();
+    E_u8($c.value as uint8);
     E_nl();
     E_bne($c.falselabel);
 
     E_cpx();
-    E_const(($c.value>>8) as uint8);
+    E_const();
+    E_u8(($c.value>>8) as uint8);
     E_nl();
     E_bne($c.falselabel);
 }
@@ -2096,14 +2126,14 @@ gen xa := STRING():s
     var sid := E_string($s.text);
 
     E_lda();
-    E_constlo();
+    E_constop();
     E_labelref(sid);
-    E_nl();
+    E_lobyte();
 
     E_ldx();
-    E_consthi();
+    E_constop();
     E_labelref(sid);
-    E_nl();
+    E_hibyte();
 }
 
 // --- Initialisers ---------------------------------------------------------

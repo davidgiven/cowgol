@@ -2,7 +2,7 @@ function yacc(e)
 	rule {
 		ins = e.ins,
 		outs = e.outs,
-		cmd = "yacc -t -o &1 --defines=&2 @1"
+		cmd = "bison -y -t -o &1 --defines=&2 @1"
 	}
 end
 

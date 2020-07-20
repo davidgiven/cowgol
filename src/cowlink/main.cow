@@ -86,7 +86,10 @@ PlaceSubroutines(mainSubroutine);
 
 EmitterOpenfile(outputFilename);
 
-print("Writing output file...\n");
+print("Creating output file: ");
+print(outputFilename);
+print_nl();
+InitStreams();
 SetStream(7);
 ArchEmitHeader(firstCoo);
 FlushStream();

@@ -1,9 +1,9 @@
 var LOMEM: [uint8];
 var _args: [uint8];
-@asm "lda #<LOMEM";
+@asm "lda #LOMEM & 255";
 @asm "sta ", LOMEM;
 @asm "sta ", _args;
-@asm "lda #>LOMEM";
+@asm "lda #LOMEM / 256";
 @asm "sta ", LOMEM, "+1";
 @asm "sta ", _args, "+1";
 
@@ -19,14 +19,14 @@ sub _ReadArguments() is
 	end record;
 	var p: [MosBlock];
 
-	@asm "lda #<mos";
+	@asm "lda #mos & 255";
 	@asm "sta 0+", p;
 	@asm "lda #0";
 	@asm "sta 1+", p;
 
 	@asm "lda #1";
 	@asm "ldy #0";
-	@asm "ldx #<mos";
+	@asm "ldx #mos & 255";
 	@asm "jsr $ffda"; # OSARGS
 
 	# OSARGS has written a 32-byte address into ioptr and hiptr. We can
@@ -35,8 +35,8 @@ sub _ReadArguments() is
 
 	loop
 		@asm "lda #5";
-		@asm "ldx #<mos";
-		@asm "ldy #>mos";
+		@asm "ldx #mos & 255";
+		@asm "ldy #mos / 256";
 		@asm "jsr $fff1";
 
 		var c := p.value as intptr as uint8;
