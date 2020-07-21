@@ -1,0 +1,29 @@
+var LOMEM: [uint8];
+var HIMEM: [uint8];
+
+sub Exit() is
+end sub;
+
+sub ExitWithError() is
+end sub;
+
+sub AlignUp(in: intptr): (out: intptr) is
+	out := in;
+end sub;
+
+sub print_char(c: uint8) is
+end sub;
+
+sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
+	var bufend := buf + len;
+	loop
+		if buf == bufend then
+			return;
+		end if;
+		[buf] := byte;
+		buf := buf + 1;
+	end loop;
+end sub;
+
+include "common.coh";
+

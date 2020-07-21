@@ -1,0 +1,28 @@
+%{
+	record Extern is
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+		newvalue := value;
+	end sub;
+
+	# Note that this *destroys* the source register.
+	sub ArchEmitMove(src: RegId, dest: RegId) is
+	end sub;
+
+	sub ArchEndInstruction() is
+	end sub;
+
+	sub ArchEndGroup() is
+	end sub;
+%}
+
+wordsize uint16;
+
+register a b x;
+

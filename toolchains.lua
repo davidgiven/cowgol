@@ -108,6 +108,18 @@ toolchain_bbcti = {
 	tester = tubeemutest,
 }
 
+toolchain_bare6303 = {
+	name = "bare6303",
+	cowfe = "bin/cowfe-6303.nncgen.exe",
+	cowbe = "bin/cowbe-6303.nncgen.exe",
+	linker = "bin/cowlink-bare6303.nncgen.exe",
+	assembler = buildcrasm,
+	runtime = "rt/bare6303",
+	asmext = ".asm",
+	binext = ".6303.srec",
+	tester = h6303test,
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
@@ -118,5 +130,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbctiny,
 	toolchain_bbct6502,
 	toolchain_bbcti,
+	--toolchain_bare6303,
 }
 
