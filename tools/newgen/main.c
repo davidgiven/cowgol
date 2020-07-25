@@ -733,7 +733,7 @@ static void create_emitters(void)
 		}
 		fprintf(outfp, "};\n");
 
-		fprintf(outfp, "(emitters[ruleid])();\n");
+		fprintf(outfp, "(emitters[ruleid as @indexof emitters])();\n");
 		fprintf(outfp, "end sub;\n");
 	#else
 		fprintf(outfp, "}\n");

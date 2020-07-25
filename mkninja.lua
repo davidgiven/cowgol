@@ -68,6 +68,7 @@ function joined(t)
 	for i in pairs(m) do
 		t[#t+1] = i
 	end
+	table.sort(t)
 	return table.concat(t, " ")
 end
 
@@ -112,12 +113,16 @@ include "src/cowbe/build.lua"
 include "src/cowwrap/build.lua"
 include "src/cowbdmp/build.lua"
 include "src/cowasm/build.lua"
+include "src/misc/build.lua"
 include "rt/cpm/build.lua"
 include "rt/cpmz/build.lua"
 include "rt/cgen/build.lua"
 include "rt/lx386/build.lua"
 include "rt/bbct/build.lua"
 include "rt/bbcti/build.lua"
+include "rt/bare6303/build.lua"
 include "tests/build.lua"
 include "dist/bbct/build.lua"
+include "dist/cpm/build.lua"
+include "dist/cpmbasic/build.lua"
 

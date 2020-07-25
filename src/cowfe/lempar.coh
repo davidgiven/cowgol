@@ -77,6 +77,10 @@ sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string) is
 	print_nl();
 end sub;
 
+sub CopyMinor(src: [YYMINORTYPE], dest: [YYMINORTYPE]) is
+	MemCopy(src as [uint8], @bytesof YYMINORTYPE, dest as [uint8]);
+end sub;
+
 sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTIONTYPE) is
 	var yysize := yyRuleInfoNRhs[yyruleno as @indexof yyRuleInfoNRhs];
 	#print("Reduce ");
@@ -96,13 +100,13 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTION
 	var pout := &yyrhs[0];
 	var c := yysize;
 	while c != 0 loop
-		pout.yyall := yytos.minor.yyall;
+		CopyMinor(&yytos.minor, pout);
 		yytos := @prev yytos;
 		pout := @next pout;
 		c := c - 1;
 	end loop;
 %%
-	[@next yytos].minor.yyall := yylhs.yyall;
+	CopyMinor(&yylhs, &([@next yytos].minor));
 
 	var yygoto := yyRuleInfoLhs[yyruleno as @indexof yyRuleInfoLhs];
 	var stateno := yytos.stateno;
@@ -190,7 +194,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE]) is
 
 			yytos.stateno := yyact;
 			yytos.major := yymajor;
-			yytos.minor.yyall := yyminor.yyall;
+			CopyMinor(yyminor, &yytos.minor);
 			#yy_trace_shift(yyact, "Shift");
 
 			if yyerrcnt >= 0 then

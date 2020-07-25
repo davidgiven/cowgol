@@ -117,7 +117,6 @@ function buildzmac(e)
 end
 
 function buildcowasm8080(e)
-	local com = e.outs[1]:ext(".com"):obj()
 	local lst = e.outs[1]:ext(".lst"):obj()
 	rule {
 		ins = concat {
@@ -125,7 +124,7 @@ function buildcowasm8080(e)
 			"bin/cowasm-8080.nncgen.exe",
 			e.ins
 		},
-		outs = { com, lst },
+		outs = { e.outs[1], lst },
 		cmd = "@1 @2 @3 -o &1 -l &2"
 	}
 end
@@ -135,6 +134,15 @@ function buildtass64(e)
 	tass64 {
 		ins = e.ins,
 		outs = e.outs,
+	}
+end
+
+function buildcrasm(e)
+	local srec = e.outs[1]:ext(".srec"):obj()
+	rule {
+		ins = e.ins,
+		outs = { srec },
+		cmd = "crasm -o &1 -l @1"
 	}
 end
 
@@ -167,6 +175,11 @@ end
 function tubeemutest(e)
 	e.ins = concat { e.ins, "bin/tubeemu" }
 	return simpletest("bin/tubeemu -l 0x400 -e 0x400 -f", e)
+end
+
+function h6303test(e)
+	e.ins = concat { e.ins, "bin/h6303" }
+	return simpletest("bin/h6303", e)
 end
 
 function cowgol(e)

@@ -3980,7 +3980,6 @@ void print_stack_union(
     lemp->tokentype?lemp->tokentype:"void*");  lineno++;
   if( mhflag ){ fprintf(out,"#endif\n"); lineno++; }
   fprintf(out,"record YYMINORTYPE is\n"); lineno++;
-  fprintf(out,"  yyall @at(0): intptr;\n"); lineno++;
   fprintf(out,"  yy0 @at(0): %sTOKENTYPE;\n",name); lineno++;
   for(i=0; i<arraysize; i++){
     if( types[i]==0 ) continue;
