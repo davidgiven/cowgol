@@ -108,6 +108,17 @@ toolchain_bbcti = {
 	tester = tubeemutest,
 }
 
+toolchain_rt11 = {
+	name = "rt11",
+	compiler = "bin/cowcom-rt11.nncgen.exe",
+	linker = "bin/cowlink-rt11.nncgen.exe",
+	assembler = buildmacro11,
+	runtime = "rt/rt11",
+	asmext = ".mac",
+	binext = ".obj",
+	tester = simhtest
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,

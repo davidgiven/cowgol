@@ -137,6 +137,14 @@ function buildtass64(e)
 	}
 end
 
+function buildmacro11(e)
+	local img = e.outs[1]:ext(".obj"):obj()
+	macro11 {
+		ins = e.ins,
+		outs = e.outs,
+	}
+end
+
 function simpletest(interpreter, e)
 	local badfile = e.ins[1]:ext(".bad")
 	rule {
