@@ -124,4 +124,5 @@ include "dist/bbct/build.lua"
 include "dist/cpm/build.lua"
 include "dist/cpmbasic/build.lua"
 include "third_party/apout/build.lua"
+include "third_party/macro11/build.lua"
 
