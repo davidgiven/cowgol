@@ -244,3 +244,6 @@ primarily written by Warren Toomey and Eric A. Edwards. It is distributed under
 the terms of the MIT license; see `third_party/apout/COPYRIGHT` for the full
 text.
 
+`third_party/macro11` contains a copy of the macro11 PDP-11 macro assembler,
+primarily written by Richard Krehbiel. It is distributed under the terms of the
+3-clause BSD license; see `third_party/macro11/LICENSE` for the full text.
