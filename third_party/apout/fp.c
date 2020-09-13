@@ -43,7 +43,7 @@ int INTMODE=0;		/* 0 = integers, 1 = longs */
 /* Temporary variables */
 FLOAT Srcflt;		/* Float specified by FSRC field */
 pdpfloat *fladdr;	/* Address of float  in dspace */
-int   AC;		/* Accumulator field in ir */
+extern int   AC;		/* Accumulator field in ir */
 int32_t srclong;	/* Longword from source address */
 int32_t dstlong;	/* Longword for destination address */
 static char *buf, *buf2; /* for copylong */
