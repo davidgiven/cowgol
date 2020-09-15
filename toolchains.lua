@@ -110,13 +110,14 @@ toolchain_bbcti = {
 
 toolchain_rt11 = {
 	name = "rt11",
-	compiler = "bin/cowcom-rt11.nncgen.exe",
+	cowfe = "bin/cowfe-rt11.nncgen.exe",
+	cowbe = "bin/cowbe-rt11.nncgen.exe",
 	linker = "bin/cowlink-rt11.nncgen.exe",
 	assembler = buildmacro11,
 	runtime = "rt/rt11",
 	asmext = ".mac",
 	binext = ".obj",
-	tester = simhtest
+	tester = apouttest
 }
 
 ALL_TOOLCHAINS = {
@@ -129,5 +130,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbctiny,
 	toolchain_bbct6502,
 	toolchain_bbcti,
+	toolchain_rt11,
 }
 

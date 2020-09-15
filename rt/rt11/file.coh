@@ -249,11 +249,11 @@ sub FCBClose(fcb: [FCB]): (errno: uint8) is
     errno := carry as uint8;
 end sub;
 
-sub FCBSeek(fcb: [FCB], pos: uint32): (errno: uint8) is
+sub FCBSeek(fcb: [FCB], pos: uint32) is
     pos := pos - 1; # seek to *previous* character
     var newblock := (pos >> 9) as uint16;
     var newptr := (pos & 511) as uint16;
-    errno := fcb_i_changeblock(fcb, newblock);
+    var errno := fcb_i_changeblock(fcb, newblock);
     if errno == 0 then
         fcb.bufferptr := newptr;
     end if;

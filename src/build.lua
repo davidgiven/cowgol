@@ -176,6 +176,11 @@ function tubeemutest(e)
 	return simpletest("bin/tubeemu -l 0x400 -e 0x400 -f", e)
 end
 
+function apouttest(e)
+	e.ins = concat { e.ins, "bin/apout" }
+	return simpletest("bin/apout ", e)
+end
+
 function cowgol(e)
 	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
 	local coo = out:ext(".coo"):obj()
