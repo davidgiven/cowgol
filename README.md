@@ -247,3 +247,9 @@ text.
 `third_party/macro11` contains a copy of the macro11 PDP-11 macro assembler,
 primarily written by Richard Krehbiel. It is distributed under the terms of the
 3-clause BSD license; see `third_party/macro11/LICENSE` for the full text.
+
+`third_party/ak6dn-obj2bin` contains a copy of the macro11
+object-file-to-absolute simple linker, written by Don North. It is distributed
+under the terms of the 3-clause BSD license; see
+`third_party/ak6dn-obj2bin/LICENSE` for the full text.
+
