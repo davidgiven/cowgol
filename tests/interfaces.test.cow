@@ -1,5 +1,5 @@
 include "cowgol.coh";
-include "_framework.coh";
+include "tests/_framework.coh";
 
 interface Interface(in1: uint32, in2: uint8): (out1: uint32, out2: uint8);
 
