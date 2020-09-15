@@ -7,8 +7,7 @@ var int8_type: [Type];
 var intptr_type: [Type];
 
 sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
-	var a := (alignment-1) as Size;
-	newvalue := (value+a) & ~a;
+	newvalue := value;
 end sub;
 
 sub ArchInitTypes() is
