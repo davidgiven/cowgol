@@ -899,20 +899,6 @@ end sub;
 
 sub OrgCb implements SymbolCallback is
     ExpectExpression();
-    if tokenNumber < programCounter then
-        SimpleError("program counter moved backwards");
-    end if;
-
-    if programCounterSet == 0 then
-        programCounterSet := 1;
-    else
-        var delta := tokenNumber - programCounter;
-        while delta != 0 loop
-            Emit8(0);
-            delta := delta - 1;
-        end loop;
-    end if;
-
     programCounter := tokenNumber;
 end sub;
 
