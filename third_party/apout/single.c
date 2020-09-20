@@ -1,29 +1,28 @@
 /* single.c - Single operand instructions.
  *
- * $Revision: 1.1.1.1 $
- * $Date: 2005/04/08 22:00:27 $
+ * $Revision: 2.10 $
+ * $Date: 1999/01/05 23:46:04 $
  */
 #include "defines.h"
 
 /* adc() - Add Carry Instruction. */
-void 
-adc()
+void adc()
 {
     load_dst();
 
-    if (CC_C) {		/* do if carry is set */
-	if (dstword == MPI)
-	    SET_CC_V();
-	else
-	    CLR_CC_V();
-	if (dstword == NEG_1)
-	    SET_CC_C();
-	else
-	    CLR_CC_C();
-	dstword++;			/* add the carry */
+    if (CC_C) {			/* do if carry is set */
+        if (dstword == MPI)
+            SET_CC_V();
+        else
+            CLR_CC_V();
+        if (dstword == NEG_1)
+            SET_CC_C();
+        else
+            CLR_CC_C();
+        dstword++;		/* add the carry */
     } else {
-	CLR_CC_V();
-	CLR_CC_C();
+        CLR_CC_V();
+        CLR_CC_C();
     }
 
     CHG_CC_N(dstword);
@@ -34,15 +33,14 @@ adc()
 
 
 /* asl() - Arithmetic Shift Left Instruction. */
-void 
-asl()
+void asl()
 {
     load_dst();
 
     if (dstword & SIGN)
-	SET_CC_C();
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
     dstword <<= 1;
 
@@ -54,17 +52,16 @@ asl()
 }
 
 /* asr() - Arithmetic Shift Right Instruction. */
-void 
-asr()
+void asr()
 {
     load_dst();
 
     if (dstword & LSBIT)
-	SET_CC_C();
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
-    dstword = (dstword >> 1) + (dstword & SIGN);     /* shift and replicate */
+    dstword = (dstword >> 1) + (dstword & SIGN);	/* shift and replicate */
 
     CHG_CC_N(dstword);
     CHG_CC_Z(dstword);
@@ -75,16 +72,16 @@ asr()
 }
 
 /* clr() - Clear Instruction. */
-void 
-clr()
+void clr()
 {
-    CLR_CC_ALL(); SET_CC_Z();
-    dstword=0; store_dst();
+    CLR_CC_ALL();
+    SET_CC_Z();
+    dstword = 0;
+    store_dst();
 }
 
 /* com() - Complement Instruction. */
-void 
-com()
+void com()
 {
     load_dst();
 
@@ -99,15 +96,14 @@ com()
 }
 
 /* dec() - Decrement Instruction. */
-void 
-dec()
+void dec()
 {
     load_dst();
 
     if (dstword == MNI)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
     --dstword;
 
@@ -118,15 +114,14 @@ dec()
 }
 
 /* inc() - Increment Instruction. */
-void 
-inc()
+void inc()
 {
     load_dst();
 
     if (dstword == MPI)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
     ++dstword;
 
@@ -138,8 +133,7 @@ inc()
 
 /* neg() - Negate Instruction. */
 
-void 
-neg()
+void neg()
 {
     load_dst();
 
@@ -149,34 +143,33 @@ neg()
     CHG_CC_Z(dstword);
 
     if (dstword == MNI)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
     if (dstword == 0)
-	CLR_CC_C();
+        CLR_CC_C();
     else
-	SET_CC_C();
+        SET_CC_C();
 
     store_dst_2();
 }
 
 /* rol() - Rotate Left Instruction. */
-void 
-rol()
+void rol()
 {
     load_dst();
 
-    tmpword = dstword & SIGN;		/* get sign bit */
-    dstword <<= 1;			/* shift */
+    tmpword = dstword & SIGN;	/* get sign bit */
+    dstword <<= 1;		/* shift */
 
-    if (CC_C)		/* roll in carry */
-	dstword += LSBIT;
+    if (CC_C)			/* roll in carry */
+        dstword += LSBIT;
 
-    if (tmpword)			/* roll out to carry */
-	SET_CC_C();
+    if (tmpword)		/* roll out to carry */
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
     CHG_CC_N(dstword);
     CHG_CC_Z(dstword);
@@ -187,21 +180,20 @@ rol()
 
 
 /* ror() - Rotate Right Instruction. */
-void 
-ror()
+void ror()
 {
     load_dst();
 
     tmpword = dstword & LSBIT;	/* get low bit */
-    dstword >>= 1;			/* shift */
+    dstword >>= 1;		/* shift */
 
-    if (CC_C)		/* roll in carry */
-	dstword += SIGN;
+    if (CC_C)			/* roll in carry */
+        dstword += SIGN;
 
-    if (tmpword)			/* roll out to carry */
-	SET_CC_C();
+    if (tmpword)		/* roll out to carry */
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
     CHG_CC_N(dstword);
     CHG_CC_Z(dstword);
@@ -211,24 +203,23 @@ ror()
 }
 
 /* sbc() - Subtract Carry Instruction. */
-void 
-sbc()
+void sbc()
 {
     load_dst();
 
     if (dstword == MNI)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
-    if (CC_C) {		/* do if carry is set */
-	if (dstword)
-	    CLR_CC_C();
-	else
-	    SET_CC_C();
-	--dstword;			/* subtract carry */
+    if (CC_C) {			/* do if carry is set */
+        if (dstword)
+            CLR_CC_C();
+        else
+            SET_CC_C();
+        --dstword;		/* subtract carry */
     } else {
-	CLR_CC_C();
+        CLR_CC_C();
     }
 
     CHG_CC_N(dstword);
@@ -238,8 +229,7 @@ sbc()
 }
 
 /* swabi() - Swap Bytes Instruction. */
-void 
-swabi()
+void swabi()
 {
     u_int16_t data2;
     u_int16_t data3;
@@ -258,15 +248,14 @@ swabi()
 }
 
 /* sxt() - Sign Extend Instruction. */
-void 
-sxt()
+void sxt()
 {
     if (CC_N) {
-	dstword = NEG_1;
-	CLR_CC_Z();
+        dstword = NEG_1;
+        CLR_CC_Z();
     } else {
-	dstword = 0;
-	SET_CC_Z();
+        dstword = 0;
+        SET_CC_Z();
     }
     CLR_CC_V();
 
@@ -274,8 +263,7 @@ sxt()
 }
 
 /* tst() - Test Instruction. */
-void 
-tst()
+void tst()
 {
     load_dst();
 
@@ -285,8 +273,7 @@ tst()
 }
 
 /* tstb() - Test Byte Instruction. */
-void 
-tstb()
+void tstb()
 {
     loadb_dst();
 
@@ -298,15 +285,14 @@ tstb()
 }
 
 /* aslb() - Arithmetic Shift Left Byte Instruction. */
-void 
-aslb()
+void aslb()
 {
     loadb_dst();
 
     if (dstbyte & SIGN_B)
-	SET_CC_C();
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
     dstbyte <<= 1;
 
@@ -318,17 +304,16 @@ aslb()
 }
 
 /* asrb() - Arithmetic Shift Right Byte Instruction. */
-void 
-asrb()
+void asrb()
 {
     loadb_dst();
 
     if (dstbyte & LSBIT)
-	SET_CC_C();
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
-    dstbyte = (dstbyte >> 1) + (dstbyte & SIGN_B);    /* shift and replicate */
+    dstbyte = (dstbyte >> 1) + (dstbyte & SIGN_B);	/* shift and replicate */
 
     CHGB_CC_N(dstbyte);
     CHGB_CC_Z(dstbyte);
@@ -338,17 +323,17 @@ asrb()
 }
 
 /* clrb() - Clear Byte Instruction. */
-void 
-clrb()
+void clrb()
 {
-    CLR_CC_ALL(); SET_CC_Z();
-    srcbyte=0; storeb_dst();
+    CLR_CC_ALL();
+    SET_CC_Z();
+    srcbyte = 0;
+    storeb_dst();
 }
 
 
 /* comb() - Complement Byte Instruction. */
-void 
-comb()
+void comb()
 {
     loadb_dst();
 
@@ -363,15 +348,14 @@ comb()
 }
 
 /* decb() - Decrement Byte Instruction. */
-void 
-decb()
+void decb()
 {
     loadb_dst();
 
     if (dstbyte == MNI_B)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
     --dstbyte;
 
@@ -382,15 +366,14 @@ decb()
 }
 
 /* incb() - Increment Byte Instruction. */
-void 
-incb()
+void incb()
 {
     loadb_dst();
 
     if (dstbyte == MPI_B)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
     ++dstbyte;
 
@@ -401,45 +384,43 @@ incb()
 }
 
 /* negb() - Negate Byte Instruction. */
-void 
-negb()
+void negb()
 {
     loadb_dst();
 
-    dstbyte = (NEG_1_B - dstbyte) + 1;/* hope this is right */
+    dstbyte = (NEG_1_B - dstbyte) + 1;	/* hope this is right */
 
     CHGB_CC_N(dstbyte);
     CHGB_CC_Z(dstbyte);
 
     if (dstbyte == MNI_B)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
     if (dstbyte)
-	SET_CC_C();
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
     storeb_dst_2();
 }
 
 /* rolb() - Rotate Left Byte Instruction. */
-void 
-rolb()
+void rolb()
 {
     loadb_dst();
 
-    tmpbyte = dstbyte & SIGN_B; /* get top bit */
-    dstbyte <<= 1;			/* shift */
+    tmpbyte = dstbyte & SIGN_B;	/* get top bit */
+    dstbyte <<= 1;		/* shift */
 
-    if (CC_C)		/* roll in carry */
-	dstbyte = dstbyte + LSBIT;
+    if (CC_C)			/* roll in carry */
+        dstbyte = dstbyte + LSBIT;
 
-    if (tmpbyte)			/* roll out to carry */
-	SET_CC_C();
+    if (tmpbyte)		/* roll out to carry */
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
     CHGB_CC_N(dstbyte);
     CHGB_CC_Z(dstbyte);
@@ -449,21 +430,20 @@ rolb()
 }
 
 /* rorb() - Rotate Right Byte Instruction. */
-void 
-rorb()
+void rorb()
 {
     loadb_dst();
 
     tmpbyte = dstbyte & LSBIT;	/* get low bit */
-    dstbyte >>= 1;			/* shift */
+    dstbyte >>= 1;		/* shift */
 
-    if (CC_C)		/* roll in carry */
-	dstbyte += SIGN_B;
+    if (CC_C)			/* roll in carry */
+        dstbyte += SIGN_B;
 
-    if (tmpbyte)			/* roll out to carry */
-	SET_CC_C();
+    if (tmpbyte)		/* roll out to carry */
+        SET_CC_C();
     else
-	CLR_CC_C();
+        CLR_CC_C();
 
     CHGB_CC_N(dstbyte);
     CHGB_CC_Z(dstbyte);
@@ -473,24 +453,23 @@ rorb()
 }
 
 /* adcb() - Add Carry Byte Instruction. */
-void 
-adcb()
+void adcb()
 {
     loadb_dst();
 
-    if (CC_C) {		/* do if carry is set */
-	if (dstbyte == MPI_B)
-	    SET_CC_V();
-	else
-	    CLR_CC_V();
-	if (dstbyte == NEG_1_B)
-	    SET_CC_C();
-	else
-	    CLR_CC_C();
-	++dstbyte;			/* add the carry */
+    if (CC_C) {			/* do if carry is set */
+        if (dstbyte == MPI_B)
+            SET_CC_V();
+        else
+            CLR_CC_V();
+        if (dstbyte == NEG_1_B)
+            SET_CC_C();
+        else
+            CLR_CC_C();
+        ++dstbyte;		/* add the carry */
     } else {
-	CLR_CC_V();
-	CLR_CC_C();
+        CLR_CC_V();
+        CLR_CC_C();
     }
 
     CHGB_CC_N(dstbyte);
@@ -500,26 +479,25 @@ adcb()
 }
 
 /* sbcb() - Subtract Carry Byte Instruction. */
-void 
-sbcb()
+void sbcb()
 {
     loadb_dst();
 
-    if (CC_C) {		/* do if carry is set */
-	if (dstbyte)
-	    CLR_CC_C();
-	else
-	    SET_CC_C();
+    if (CC_C) {			/* do if carry is set */
+        if (dstbyte)
+            CLR_CC_C();
+        else
+            SET_CC_C();
 
-	--dstbyte;			/* subtract carry */
+        --dstbyte;		/* subtract carry */
     } else {
-	CLR_CC_C();
+        CLR_CC_C();
     }
 
     if (dstbyte == MNI_B)
-	SET_CC_V();
+        SET_CC_V();
     else
-	CLR_CC_V();
+        CLR_CC_V();
 
     CHGB_CC_N(dstbyte);
     CHGB_CC_Z(dstbyte);

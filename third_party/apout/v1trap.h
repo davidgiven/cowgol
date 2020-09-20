@@ -1,7 +1,7 @@
 /* v1trap.h - Deal with 1st Edition trap instructions.
  *
- * $Revision: 1.1.1.1 $
- * $Date: 2005/04/08 22:00:09 $
+ * $Revision: 1.1 $
+ * $Date: 1999/12/26 08:16:33 $
  */
 
 /* In this file, we list the trap number for each system call,
@@ -45,54 +45,54 @@
 #define V1_ILGINS  33
 
 
-char *v1trap_name[]= {
-	"rele",
-	"exit",
-	"fork",
-	"read",
-	"write",
-	"open",
-	"close",
-	"wait",
-	"creat",
-	"link",
-	"unlink",
-	"exec",
-	"chdir",
-	"time",
-	"mkdir",
-	"chmod",
-	"chown",
-	"break",
-	"stat",
-	"seek",
-	"tell",
-	"mount",
-	"umount",
-	"setuid",
-	"getuid",
-	"stime",
-	"quit",
-	"intr",
-	"fstat",
-	"cemt",
-	"smdate",
-	"stty",
-	"gtty",
-	"ilgins"
+char *v1trap_name[] = {
+    "rele",
+    "exit",
+    "fork",
+    "read",
+    "write",
+    "open",
+    "close",
+    "wait",
+    "creat",
+    "link",
+    "unlink",
+    "exec",
+    "chdir",
+    "time",
+    "mkdir",
+    "chmod",
+    "chown",
+    "break",
+    "stat",
+    "seek",
+    "tell",
+    "mount",
+    "umount",
+    "setuid",
+    "getuid",
+    "stime",
+    "quit",
+    "intr",
+    "fstat",
+    "cemt",
+    "smdate",
+    "stty",
+    "gtty",
+    "ilgins"
 };
 
 
 struct tr_v1stat {
-	u_int16_t	inum;
-	u_int16_t	iflags;		/* Mode */
-	u_int8_t	inl;		/* Links */
-	u_int8_t	iuid;
-	u_int16_t 	isize;
-	int16_t		iaddr[8];	/* Not used, I hope! */
-	u_int32_t 	ctime;
-	u_int32_t 	mtime;
-	u_int16_t 	unused;
+    u_int16_t inum;
+    u_int16_t iflags;		/* Mode */
+    u_int8_t inl;		/* Links */
+    u_int8_t iuid;
+    u_int16_t isize;
+    int16_t iaddr[8];		/* Not used, I hope! */
+    u_int32_t ctime;
+    u_int32_t mtime;
+    u_int16_t unused;
 };
 
 /* Values for v1stat iflags */
@@ -111,7 +111,7 @@ struct tr_v1stat {
  * we can get at the various args of different types
  */
 typedef union {
-    int16_t   sarg[4];		/* Signed 16-bit args */
+    int16_t sarg[4];		/* Signed 16-bit args */
     u_int16_t uarg[4];		/* Unsigned 16-bit args */
 } arglist;
 

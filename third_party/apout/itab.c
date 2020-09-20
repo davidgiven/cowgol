@@ -1,7 +1,7 @@
 /* itab.c - Instruction decode table.
  *
- * $Revision: 1.1.1.1 $
- * $Date: 2005/04/08 22:00:23 $
+ * $Revision: 2.12 $
+ * $Date: 1999/12/27 10:19:40 $
  */
 
 #include "defines.h"
@@ -28,14 +28,12 @@ static _itab sitab1[64] = {
     scc, scc, scc, scc, scc, scc, scc, scc
 };
 
-void 
-dositab0(void)
+void dositab0(void)
 {
     sitab0[ir & 077] ();
 }
 
-void 
-dositab1(void)
+void dositab1(void)
 {
     sitab1[ir & 077] ();
 }
@@ -49,8 +47,9 @@ _itab itab[1024] = {
     clr, com, inc, dec, neg, adc, sbc, tst,
     ror, rol, asr, asl, mark, mfpi, mtpi, sxt,
     illegal, illegal, illegal, illegal, illegal, illegal, illegal, illegal,
-    movsreg,movsreg,movsreg,movsreg,movsreg,movsreg,movsreg,movsreg,
-    movsreg1,movsreg1,movsreg1,movsreg1,movsreg1,movsreg1,movsreg1,movsreg1pc,
+    movsreg, movsreg, movsreg, movsreg, movsreg, movsreg, movsreg, movsreg,
+    movsreg1, movsreg1, movsreg1, movsreg1, movsreg1, movsreg1, movsreg1,
+    movsreg1pc,
     mov, mov, mov, mov, mov, mov, mov, mov,
     mov, mov, mov, mov, mov, mov, mov, mov,
     mov, mov, mov, mov, mov, mov, mov, mov,
@@ -110,8 +109,8 @@ _itab itab[1024] = {
     bvc, bvc, bvc, bvc, bvs, bvs, bvs, bvs,
     bcc, bcc, bcc, bcc, bcs, bcs, bcs, bcs,
 
-			/* emt  at itab[544] to itab[547] */
-			/* trap at itab[548] to itab[551] */
+    /* emt  at itab[544] to itab[547] */
+    /* trap at itab[548] to itab[551] */
 
     emt, emt, emt, emt, trap, trap, trap, trap,
     clrb, comb, incb, decb, negb, adcb, sbcb, tstb,

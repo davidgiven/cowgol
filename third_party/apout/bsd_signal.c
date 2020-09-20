@@ -10,6 +10,7 @@
 #include <signal.h>
 #include "bsdtrap.h"
 
+
 #define NBSDSIG	32
 
 #define	BSDSIGHUP	1	/* hangup */
@@ -33,7 +34,7 @@
 #define	BSDSIGCONT	19	/* continue a stopped process */
 #define	BSDSIGCHLD	20	/* to parent on child stop or exit */
 #define	BSDSIGTTIN	21	/* to readers pgrp upon background tty read */
-#define	BSDSIGTTOU	22   /* like TTIN for output if (tp->t_local&LTOSTOP) */
+#define	BSDSIGTTOU	22	/* like TTIN for output if (tp->t_local&LTOSTOP) */
 #define	BSDSIGIO	23	/* input/output possible signal */
 #define	BSDSIGXCPU	24	/* exceeded CPU time limit */
 #define	BSDSIGXFSZ	25	/* exceeded file size limit */
@@ -51,10 +52,10 @@
 /*
  * Signal vector "template" used in sigaction call.
  */
-struct	bsd_sigaction {
-	int16_t	bsd_sa_handler;		/* signal handler */
-	u_int32_t bsd_sa_mask;		/* signal mask to apply */
-	int16_t	bsd_sa_flags;		/* see signal options below */
+struct bsd_sigaction {
+    int16_t sig_handler;	/* signal handler */
+    u_int32_t sa_mask;		/* signal mask to apply */
+    int16_t sa_flags;		/* see signal options below */
 };
 
 #define BSD_ONSTACK	0x0001	/* take signal on signal stack */
@@ -66,11 +67,11 @@ struct	bsd_sigaction {
 /* Translate 2.11BSD signal value to our value */
 
 static int bsdsig[] = {
-	0, SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGTRAP, SIGIOT, SIGEMT,
-	SIGFPE, SIGKILL, SIGBUS, SIGSEGV, SIGSYS, SIGPIPE, SIGALRM,
-	SIGTERM, SIGURG, SIGSTOP, SIGTSTP, SIGCONT, SIGCHLD, SIGTTIN,
-	SIGTTOU, SIGIO, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF, SIGWINCH,
-	SIGUSR1, SIGUSR2
+    0, SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGTRAP, SIGIOT, SIGEMT,
+    SIGFPE, SIGKILL, SIGBUS, SIGSEGV, SIGSYS, SIGPIPE, SIGALRM,
+    SIGTERM, SIGURG, SIGSTOP, SIGTSTP, SIGCONT, SIGCHLD, SIGTTIN,
+    SIGTTOU, SIGIO, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF, SIGWINCH,
+    SIGUSR1, SIGUSR2
 };
 
 /* We keep a set of struct sigactions
@@ -82,50 +83,54 @@ struct bsd_sigaction Sigact[NBSDSIG];
 /* Set all signals to their default value */
 void set_bsdsig_dfl(void)
 {
-  int i;
+    int i;
 
-  for (i=0;i<NBSDSIG;i++) {
-	if (bsdsig[i]) signal(bsdsig[i], SIG_DFL);
-	Sigact[i].bsd_sa_handler= BSDSIG_DFL;
-	Sigact[i].bsd_sa_mask= Sigact[i].bsd_sa_flags= 0;
-  }
+    for (i = 0; i < NBSDSIG; i++) {
+        if (bsdsig[i])
+            signal(bsdsig[i], SIG_DFL);
+        Sigact[i].sig_handler = BSDSIG_DFL;
+        Sigact[i].sa_mask = Sigact[i].sa_flags = 0;
+    }
 }
 
 int do_sigaction(int sig, int a, int oa)
 {
-  int i;
-  struct bsd_sigaction *act, *oact;
-  struct sigaction ouraction;
+    int i;
+    struct bsd_sigaction *act, *oact;
+    struct sigaction ouraction;
 
-  if ((sig<0) || (sig >= NBSDSIG)) return(EINVAL);
+    if ((sig < 0) || (sig >= NBSDSIG))
+        return (EINVAL);
 
-  if (oa) {
-    oact= (struct bsd_sigaction *)&dspace[oa];
-    memcpy(oact, &Sigact[sig], sizeof(struct bsd_sigaction));
-  }
-
-  if (a) {
-    act= (struct bsd_sigaction *)&dspace[a];
-
-		/* If required, map mask here */
-		/* Currently, the assumption is a 1-1 match */
-    sigemptyset(&(ouraction.sa_mask));
-    for (i=1; i<NBSDSIG;i++) {
-	if bsdsigismember(&(act->bsd_sa_mask), i)
-		sigaddset(&(ouraction.sa_mask), i);
+    if (oa) {
+        oact = (struct bsd_sigaction *) &dspace[oa];
+        memcpy(oact, &Sigact[sig], sizeof(struct bsd_sigaction));
     }
-		/* If required, map flags here */
-    ouraction.sa_flags= act->bsd_sa_flags;
-    ouraction.sa_handler= sigcatcher;
-  }
 
-  i= sigaction(bsdsig[sig], &ouraction, NULL);
-  if (i==-1) return(i);
+    if (a) {
+        act = (struct bsd_sigaction *) &dspace[a];
 
-		/* Else save the new sigaction */
-  act= (struct bsd_sigaction *)&dspace[a];
-  memcpy(&Sigact[sig], act, sizeof(struct bsd_sigaction));
-  return(i);
+        /* If required, map mask here */
+        /* Currently, the assumption is a 1-1 match */
+        sigemptyset(&(ouraction.sa_mask));
+        for (i = 1; i < NBSDSIG; i++) {
+            if bsdsigismember
+            (&(act->sa_mask), i)
+                sigaddset(&(ouraction.sa_mask), i);
+        }
+        /* If required, map flags here */
+        ouraction.sa_flags = act->sa_flags;
+        ouraction.sa_handler = sigcatcher;
+    }
+
+    i = sigaction(bsdsig[sig], &ouraction, NULL);
+    if (i == -1)
+        return (i);
+
+    /* Else save the new sigaction */
+    act = (struct bsd_sigaction *) &dspace[a];
+    memcpy(&Sigact[sig], act, sizeof(struct bsd_sigaction));
+    return (i);
 }
 
 
@@ -151,7 +156,7 @@ int do_sigaction(int sig, int a, int oa)
  */
 
 #if 0
-int	(*signal())();
+int (*signal()) ();
 
 typedef unsigned long sigset_t;
 
@@ -163,39 +168,39 @@ typedef unsigned long sigset_t;
 #define	BSDSIG_UNBLOCK	2	/* unblock specified signal set */
 #define	BSDSIG_SETMASK	3	/* set specified signal set */
 
-typedef	int (*sig_t)();		/* type of signal function */
+typedef int (*sig_t) ();	/* type of signal function */
 
 /*
  * Structure used in sigaltstack call.
  */
-struct	sigaltstack {
-	char	*ss_base;		/* signal stack base */
-	int	ss_size;		/* signal stack length */
-	int	ss_flags;		/* SA_DISABLE and/or SA_ONSTACK */
+struct sigaltstack {
+    char *ss_base;		/* signal stack base */
+    int ss_size;		/* signal stack length */
+    int ss_flags;		/* SA_DISABLE and/or SA_ONSTACK */
 };
-#define	MINBSDSIGSTKSZ	128			/* minimum allowable stack */
+#define	MINBSDSIGSTKSZ	128	/* minimum allowable stack */
 #define	BSDSIGSTKSZ	(MINBSDSIGSTKSZ + 384)	/* recommended stack size */
 
 /*
  * 4.3 compatibility:
  * Signal vector "template" used in sigvec call.
  */
-struct	sigvec {
-	int	(*sv_handler)();	/* signal handler */
-	long	sv_mask;		/* signal mask to apply */
-	int	sv_flags;		/* see signal options below */
+struct sigvec {
+    int (*sv_handler) ();	/* signal handler */
+    long sv_mask;		/* signal mask to apply */
+    int sv_flags;		/* see signal options below */
 };
 #define SV_ONSTACK	SA_ONSTACK	/* take signal on signal stack */
 #define SV_INTERRUPT	SA_RESTART	/* same bit, opposite sense */
-#define sv_onstack sv_flags		/* isn't compatibility wonderful! */
+#define sv_onstack sv_flags	/* isn't compatibility wonderful! */
 
 /*
  * 4.3 compatibility:
  * Structure used in sigstack call.
  */
-struct	sigstack {
-	char	*ss_sp;			/* signal stack pointer */
-	int	ss_onstack;		/* current status */
+struct sigstack {
+    char *ss_sp;		/* signal stack pointer */
+    int ss_onstack;		/* current status */
 };
 
 /*
@@ -205,16 +210,16 @@ struct	sigstack {
  * to the handler to allow it to properly restore state if
  * a non-standard exit is performed.
  */
-struct	sigcontext {
-	int	sc_onstack;		/* sigstack state to restore */
-	long	sc_mask;		/* signal mask to restore */
-	int	sc_sp;			/* sp to restore */
-	int	sc_fp;			/* fp to restore */
-	int	sc_r1;			/* r1 to restore */
-	int	sc_r0;			/* r0 to restore */
-	int	sc_pc;			/* pc to restore */
-	int	sc_ps;			/* psl to restore */
-	int	sc_ovno			/* overlay to restore */
+struct sigcontext {
+    int sc_onstack;		/* sigstack state to restore */
+    long sc_mask;		/* signal mask to restore */
+    int sc_sp;			/* sp to restore */
+    int sc_fp;			/* fp to restore */
+    int sc_r1;			/* r1 to restore */
+    int sc_r0;			/* r0 to restore */
+    int sc_pc;			/* pc to restore */
+    int sc_ps;			/* psl to restore */
+    int sc_ovno			/* overlay to restore */
 };
 
 /*
@@ -228,4 +233,4 @@ struct	sigcontext {
 #define sigfillset(set)         (*(set) = ~(sigset_t)0, (int)0)
 #define sigismember(set, signo) ((*(set) & (1L << ((signo) - 1))) != 0)
 
-#endif /* 0 */
+#endif				/* 0 */

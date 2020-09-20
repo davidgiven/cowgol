@@ -1,7 +1,7 @@
 /* v7trap.h - Deal with V7 trap instructions. Also do V5 and V6 syscalls.
  *
- * $Revision: 1.1.1.1 $
- * $Date: 2005/04/08 22:00:23 $
+ * $Revision: 2.17 $
+ * $Date: 1999/12/26 08:16:33 $
  */
 
 /* In this file, we list the trap number for each system call,
@@ -63,69 +63,69 @@
 #define S_CHROOT	61
 
 
-char *v7trap_name[]= {
-	"indir",
-	"exit",
-	"fork",
-	"read",
-	"write",
-	"open",
-	"close",
-	"wait",
-	"creat",
-	"link",
-	"unlink",
-	"exec",
-	"chdir",
-	"time",
-	"mknod",
-	"chmod",
-	"chown",
-	"break",
-	"stat",
-	"lseek",
-	"getpid",
-	"mount",
-	"umount",
-	"setuid",
-	"getuid",
-	"stime",
-	"ptrace",
-	"alarm",
-	"fstat",
-	"pause",
-	"utime",
-	"stty",
-	"gtty",
-	"access",
-	"nice",
-	"ftime",
-	"sync",
-	"kill",
-	"unknown",
-	"unknown",
-	"unknown",
-	"dup",
-	"pipe",
-	"times",
-	"prof",
-	"unknown",
-	"setgid",
-	"getgid",
-	"signal",
-	"unknown",
-	"unknown",
-	"acct",
-	"phys",
-	"lock",
-	"ioctl",
-	"unknown",
-	"unknown",
-	"unknown",
-	"unknown",
-	"exece",
-	"umask",
-	"chroot"
+char *v7trap_name[] = {
+    "indir",
+    "exit",
+    "fork",
+    "read",
+    "write",
+    "open",
+    "close",
+    "wait",
+    "creat",
+    "link",
+    "unlink",
+    "exec",
+    "chdir",
+    "time",
+    "mknod",
+    "chmod",
+    "chown",
+    "break",
+    "stat",
+    "lseek",
+    "getpid",
+    "mount",
+    "umount",
+    "setuid",
+    "getuid",
+    "stime",
+    "ptrace",
+    "alarm",
+    "fstat",
+    "pause",
+    "utime",
+    "stty",
+    "gtty",
+    "access",
+    "nice",
+    "ftime",
+    "sync",
+    "kill",
+    "unknown",
+    "unknown",
+    "unknown",
+    "dup",
+    "pipe",
+    "times",
+    "prof",
+    "unknown",
+    "setgid",
+    "getgid",
+    "signal",
+    "unknown",
+    "unknown",
+    "acct",
+    "phys",
+    "lock",
+    "ioctl",
+    "unknown",
+    "unknown",
+    "unknown",
+    "unknown",
+    "exece",
+    "umask",
+    "chroot"
 };
 
 
@@ -144,32 +144,32 @@ struct tr_v7stat {
 };
 
 struct tr_v6stat {
-	int16_t	idev;		/* Device */
-	int16_t	inum;
-	int16_t	iflags;		/* Mode */
-	int8_t	inl;		/* Links */
-	int8_t	iuid;
-	int8_t	igid;
-	u_int8_t isize0;	/* Most significant 8 bits */
-	u_int16_t isize;
-	int16_t	iaddr[8];	/* Not used, I hope! */
-	u_int32_t atime;	/* Alignment problems */
-	u_int32_t mtime;	/* Alignment problems */
+    int16_t idev;		/* Device */
+    int16_t inum;
+    int16_t iflags;		/* Mode */
+    int8_t inl;			/* Links */
+    int8_t iuid;
+    int8_t igid;
+    u_int8_t isize0;		/* Most significant 8 bits */
+    u_int16_t isize;
+    int16_t iaddr[8];		/* Not used, I hope! */
+    u_int32_t atime;		/* Alignment problems */
+    u_int32_t mtime;		/* Alignment problems */
 };
 
 struct tr_timeb {
-	u_int32_t time;
-	u_int16_t millitm;
-	int16_t	 timezone;
-	int16_t	 dstflag;
+    u_int32_t time;
+    u_int16_t millitm;
+    int16_t timezone;
+    int16_t dstflag;
 };
 
 struct tr_sgttyb {
-	int8_t	  sg_ispeed;		  /* input speed */
-	int8_t	  sg_ospeed;		  /* output speed */
-	int8_t	  sg_erase;		  /* erase character */
-	int8_t	  sg_kill;		  /* kill character */
-	int16_t	  sg_flags;		  /* mode flags */
+    int8_t sg_ispeed;		/* input speed */
+    int8_t sg_ospeed;		/* output speed */
+    int8_t sg_erase;		/* erase character */
+    int8_t sg_kill;		/* kill character */
+    int16_t sg_flags;		/* mode flags */
 };
 
 /*
@@ -194,28 +194,28 @@ struct tr_sgttyb {
 
 #define V7_NSIG 15
 
-#define V7_SIGHUP  1	/* hangup */
-#define V7_SIGINT  2	/* interrupt */
-#define V7_SIGQUIT 3	/* quit */
-#define V7_SIGILL  4	/* illegal instruction (not reset when caught) */
-#define V7_SIGTRAP 5	/* trace trap (not reset when caught) */
-#define V7_SIGIOT  6	/* IOT instruction */
-#define V7_SIGEMT  7	/* EMT instruction */
-#define V7_SIGFPE  8	/* floating point exception */
-#define V7_SIGKILL 9	/* kill (cannot be caught or ignored) */
-#define V7_SIGBUS  10	/* bus error */
-#define V7_SIGSEGV 11	/* segmentation violation */
-#define V7_SIGSYS  12	/* bad argument to system call */
-#define V7_SIGPIPE 13	/* write on a pipe with no one to read it */
-#define V7_SIGALRM 14	/* alarm clock */
-#define V7_SIGTERM 15	/* software termination signal from kill */
+#define V7_SIGHUP  1		/* hangup */
+#define V7_SIGINT  2		/* interrupt */
+#define V7_SIGQUIT 3		/* quit */
+#define V7_SIGILL  4		/* illegal instruction (not reset when caught) */
+#define V7_SIGTRAP 5		/* trace trap (not reset when caught) */
+#define V7_SIGIOT  6		/* IOT instruction */
+#define V7_SIGEMT  7		/* EMT instruction */
+#define V7_SIGFPE  8		/* floating point exception */
+#define V7_SIGKILL 9		/* kill (cannot be caught or ignored) */
+#define V7_SIGBUS  10		/* bus error */
+#define V7_SIGSEGV 11		/* segmentation violation */
+#define V7_SIGSYS  12		/* bad argument to system call */
+#define V7_SIGPIPE 13		/* write on a pipe with no one to read it */
+#define V7_SIGALRM 14		/* alarm clock */
+#define V7_SIGTERM 15		/* software termination signal from kill */
 
 
 /* A union which will point at the trap args, so that
  * we can get at the various args of different types
  */
 typedef union {
-    int16_t   sarg[4];		/* Signed 16-bit args */
+    int16_t sarg[4];		/* Signed 16-bit args */
     u_int16_t uarg[4];		/* Unsigned 16-bit args */
 } arglist;
 

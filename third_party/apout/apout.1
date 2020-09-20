@@ -1,7 +1,7 @@
 .\" Copyright Warren Toomey
 .\"
-.\" $Revision: 1.1.1.1 $
-.\" $Date: 2005/04/08 22:00:09 $
+.\" $Revision: 1.10 $
+.\" $Date: 2008/05/15 03:20:52 $
 .\"
 .Dd December, 2000
 .Dt APOUT 1
@@ -104,6 +104,17 @@ Note that you must set
 .Ev APOUT_ROOT
 before you can run 
 .Nm apout.
+.Pp
+There is one other optional environment variable:
+.Ev APOUT_UNIX_VERSION.
+This is mainly required for UNIX binaries that use the 0407 header,
+which was used across several versions of UNIX, each with a different set
+of system calls. If APOUT_UNIX_VERSION is set,
+.Nm apout
+will use the given version when it cannot determine which version of UNIX a
+binary belongs to. The available values are "V1", "V2", "V3", "V4", "V5", "V6",
+"V7", "2.9BSD" and "2.11BSD".
+.Pp
 .Sh EMULATED ENVIRONMENT VARIABLES
 Initially, PDP-11 binaries run via
 .Nm apout
@@ -221,11 +232,11 @@ in the source directory for
 .Sh SEE ALSO
 The latest source for
 .Nm apout
-can be obtained via anonymous ftp at minnie.cs.adfa.edu.au in the directory
+can be obtained via anonymous ftp at minnie.tuhs.org in the directory
 pub/PDP-11/Sims/Apout. The directory pub/PDP-11/Sims/Apout/UnixBins
 contains tar archives of a.out binaries from several versions of UNIX.
 Information on PDP-11 UNIX can be found on the PUPS web page at
-http://minnie.cs.adfa.edu.au/PUPS/
+http://minnie.tuhs.org/PUPS/
 .Sh HISTORY
 The first version of
 .Nm apout

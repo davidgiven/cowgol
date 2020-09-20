@@ -1,7 +1,7 @@
 /* bsdtrap.h. Definitions for values and structures used in bsdtrap.c
  *
- * $Revision: 1.1.1.1 $
- * $Date: 2005/04/08 22:00:23 $
+ * $Revision: 1.30 $
+ * $Date: 1999/03/01 19:14:16 $
  */
 
 /* In this file, we list the trap number for each system call,
@@ -149,229 +149,228 @@
  */
 #ifdef BSDTRAP_NAME
 char *bsdtrap_name[] = {
-	"indir",		/*   0 = indir */
-	"exit",			/*   1 = exit */
-	"fork",			/*   2 = fork */
-	"read",			/*   3 = read */
-	"write",		/*   4 = write */
-	"open",			/*   5 = open */
-	"close",		/*   6 = close */
-	"wait4",		/*   7 = wait4 */
-	"creat",		/*   8 = creat */
-	"link",			/*   9 = link */
-	"unlink",		/*  10 = unlink */
-	"execv",		/*  11 = execv */
-	"chdir",		/*  12 = chdir */
-	"fchdir",		/*  13 = fchdir */
-	"mknod",		/*  14 = mknod */
-	"chmod",		/*  15 = chmod */
-	"chown",		/*  16 = chown; now 3 args */
-	"chflags",		/*  17 = chflags */
-	"fchflags",		/*  18 = fchflags */
-	"lseek",		/*  19 = lseek */
-	"getpid",		/*  20 = getpid */
-	"mount",		/*  21 = mount */
-	"umount",		/*  22 = umount */
-	"__sysctl",		/*  23 = __sysctl */
-	"getuid",		/*  24 = getuid */
-	"geteuid",		/*  25 = geteuid */
-	"ptrace",		/*  26 = ptrace */
-	"getppid",		/*  27 = getppid */
-	"statfs",		/*  28 = statfs */
-	"fstatfs",		/*  29 = fstatfs */
-	"getfsstat",		/*  30 = getfsstat */
-	"sigaction",		/*  31 = sigaction */
-	"sigprocmask",		/*  32 = sigprocmask */
-	"access",		/*  33 = access */
-	"sigpending",		/*  34 = sigpending */
-	"sigaltstack",		/*  35 = sigaltstack */
-	"sync",			/*  36 = sync */
-	"kill",			/*  37 = kill */
-	"stat",			/*  38 = stat */
-	"getlogin",		/*  39 = getlogin */
-	"lstat",		/*  40 = lstat */
-	"dup",			/*  41 = dup */
-	"pipe",			/*  42 = pipe */
-	"setlogin",		/*  43 = setlogin */
-	"profil",		/*  44 = profil */
-	"setuid",		/*  45 = setuid */
-	"seteuid",		/*  46 = seteuid */
-	"getgid",		/*  47 = getgid */
-	"getegid",		/*  48 = getegid */
-	"setgid",		/*  49 = setgid */
-	"setegid",		/*  50 = setegid */
-	"acct",			/*  51 = turn acct off/on */
-	"old phys",		/*  52 = old set phys addr */
-	"old lock",		/*  53 = old lock in core */
-	"ioctl",		/*  54 = ioctl */
-	"reboot",		/*  55 = reboot */
-	"old mpx - nosys",	/*  56 = old mpxchan */
-	"symlink",		/*  57 = symlink */
-	"readlink",		/*  58 = readlink */
-	"execve",		/*  59 = execve */
-	"umask",		/*  60 = umask */
-	"chroot",		/*  61 = chroot */
-	"fstat",		/*  62 = fstat */
-	"#63",			/*  63 = used internally */
-	"getpagesize",		/*  64 = getpagesize */
-	"4.3 mremap - nosys",	/*  65 = mremap */
-	"vfork",		/*  66 = vfork */
-	"old vread - nosys",	/*  67 = old vread */
-	"old vwrite - nosys",	/*  68 = old vwrite */
-	"sbrk",			/*  69 = sbrk */
-	"4.3 sstk - nosys",	/*  70 = sstk */
-	"4.3 mmap - nosys",	/*  71 = mmap */
-	"old vadvise - nosys",	/*  72 = old vadvise */
-	"4.3 munmap - nosys",	/*  73 = munmap */
-	"4.3 mprotect - nosys", /*  74 = mprotect */
-	"4.3 madvise - nosys",	/*  75 = madvise */
-	"vhangup",		/*  76 = vhangup */
-	"old vlimit - nosys",	/*  77 = old vlimit */
-	"4.3 mincore - nosys",	/*  78 = mincore */
-	"getgroups",		/*  79 = getgroups */
-	"setgroups",		/*  80 = setgroups */
-	"getpgrp",		/*  81 = getpgrp */
-	"setpgrp",		/*  82 = setpgrp */
-	"setitimer",		/*  83 = setitimer */
-	"wait",			/*  84 = wait */
-	"4.3 swapon - nosys",	/*  85 = swapon */
-	"getitimer",		/*  86 = getitimer */
-	"gethostname",		/*  87 = gethostname */
-	"sethostname",		/*  88 = sethostname */
-	"getdtablesize",	/*  89 = getdtablesize */
-	"dup2",			/*  90 = dup2 */
-	"nosys",		/*  91 = unused */
-	"fcntl",		/*  92 = fcntl */
-	"select",		/*  93 = select */
-	"nosys",		/*  94 = unused */
-	"fsync",		/*  95 = fsync */
-	"setpriority",		/*  96 = setpriority */
-	"socket",		/*  97 = socket */
-	"connect",		/*  98 = connect */
-	"accept",		/*  99 = accept */
-	"getpriority",		/* 100 = getpriority */
-	"send",			/* 101 = send */
-	"recv",			/* 102 = recv */
-	"sigreturn",		/* 103 = sigreturn */
-	"bind",			/* 104 = bind */
-	"setsockopt",		/* 105 = setsockopt */
-	"listen",		/* 106 = listen */
-	"sigsuspend",		/* 107 = sigsuspend */
-	"sigvec",		/* 108 = sigvec */
-	"sigblock",		/* 109 = sigblock */
-	"sigsetmask",		/* 110 = sigsetmask */
-	"sigpause",		/* 111 = sigpause */
-	"sigstack",		/* 112 = sigstack */
-	"recvmsg",		/* 113 = recvmsg */
-	"sendmsg",		/* 114 = sendmsg */
-	"old vtrace - nosys",	/* 115 = old vtrace */
-	"gettimeofday",		/* 116 = gettimeofday */
-	"getrusage",		/* 117 = getrusage */
-	"getsockopt",		/* 118 = getsockopt */
-	"4.3 resuba - nosys",	/* 119 = resuba */
-	"readv",		/* 120 = readv */
-	"writev",		/* 121 = writev */
-	"settimeofday",		/* 122 = settimeofday */
-	"fchown",		/* 123 = fchown */
-	"fchmod",		/* 124 = fchmod */
-	"recvfrom",		/* 125 = recvfrom */
-	"setreuid",		/* 126 = setreuid */
-	"setregid",		/* 127 = setregid */
-	"rename",		/* 128 = rename */
-	"truncate",		/* 129 = truncate */
-	"ftruncate",		/* 130 = ftruncate */
-	"flock",		/* 131 = flock */
-	"old portal - nosys",	/* 132 = old portal */
-	"sendto",		/* 133 = sendto */
-	"shutdown",		/* 134 = shutdown */
-	"socketpair",		/* 135 = socketpair */
-	"mkdir",		/* 136 = mkdir */
-	"rmdir",		/* 137 = rmdir */
-	"utimes",		/* 138 = utimes */
-	"4.2 sigreturn - nosys",	/* 139 = old 4.2 sigreturn */
-	"adjtime",		/* 140 = adjtime */
-	"getpeername",		/* 141 = getpeername */
-	"gethostid",		/* 142 = gethostid */
-	"sethostid",		/* 143 = sethostid */
-	"getrlimit",		/* 144 = getrlimit */
-	"setrlimit",		/* 145 = setrlimit */
-	"killpg",		/* 146 = killpg */
-	"#147",			/* 147 = nosys */
-	"setquota",		/* 148 = setquota */
-	"quota",		/* 149 = quota */
-	"getsockname",		/* 150 = getsockname */
+    "indir",			/*   0 = indir */
+    "exit",			/*   1 = exit */
+    "fork",			/*   2 = fork */
+    "read",			/*   3 = read */
+    "write",			/*   4 = write */
+    "open",			/*   5 = open */
+    "close",			/*   6 = close */
+    "wait4",			/*   7 = wait4 */
+    "creat",			/*   8 = creat */
+    "link",			/*   9 = link */
+    "unlink",			/*  10 = unlink */
+    "execv",			/*  11 = execv */
+    "chdir",			/*  12 = chdir */
+    "fchdir",			/*  13 = fchdir */
+    "mknod",			/*  14 = mknod */
+    "chmod",			/*  15 = chmod */
+    "chown",			/*  16 = chown; now 3 args */
+    "chflags",			/*  17 = chflags */
+    "fchflags",			/*  18 = fchflags */
+    "lseek",			/*  19 = lseek */
+    "getpid",			/*  20 = getpid */
+    "mount",			/*  21 = mount */
+    "umount",			/*  22 = umount */
+    "__sysctl",			/*  23 = __sysctl */
+    "getuid",			/*  24 = getuid */
+    "geteuid",			/*  25 = geteuid */
+    "ptrace",			/*  26 = ptrace */
+    "getppid",			/*  27 = getppid */
+    "statfs",			/*  28 = statfs */
+    "fstatfs",			/*  29 = fstatfs */
+    "getfsstat",		/*  30 = getfsstat */
+    "sigaction",		/*  31 = sigaction */
+    "sigprocmask",		/*  32 = sigprocmask */
+    "access",			/*  33 = access */
+    "sigpending",		/*  34 = sigpending */
+    "sigaltstack",		/*  35 = sigaltstack */
+    "sync",			/*  36 = sync */
+    "kill",			/*  37 = kill */
+    "stat",			/*  38 = stat */
+    "getlogin",			/*  39 = getlogin */
+    "lstat",			/*  40 = lstat */
+    "dup",			/*  41 = dup */
+    "pipe",			/*  42 = pipe */
+    "setlogin",			/*  43 = setlogin */
+    "profil",			/*  44 = profil */
+    "setuid",			/*  45 = setuid */
+    "seteuid",			/*  46 = seteuid */
+    "getgid",			/*  47 = getgid */
+    "getegid",			/*  48 = getegid */
+    "setgid",			/*  49 = setgid */
+    "setegid",			/*  50 = setegid */
+    "acct",			/*  51 = turn acct off/on */
+    "old phys",			/*  52 = old set phys addr */
+    "old lock",			/*  53 = old lock in core */
+    "ioctl",			/*  54 = ioctl */
+    "reboot",			/*  55 = reboot */
+    "old mpx - nosys",		/*  56 = old mpxchan */
+    "symlink",			/*  57 = symlink */
+    "readlink",			/*  58 = readlink */
+    "execve",			/*  59 = execve */
+    "umask",			/*  60 = umask */
+    "chroot",			/*  61 = chroot */
+    "fstat",			/*  62 = fstat */
+    "#63",			/*  63 = used internally */
+    "getpagesize",		/*  64 = getpagesize */
+    "4.3 mremap - nosys",	/*  65 = mremap */
+    "vfork",			/*  66 = vfork */
+    "old vread - nosys",	/*  67 = old vread */
+    "old vwrite - nosys",	/*  68 = old vwrite */
+    "sbrk",			/*  69 = sbrk */
+    "4.3 sstk - nosys",		/*  70 = sstk */
+    "4.3 mmap - nosys",		/*  71 = mmap */
+    "old vadvise - nosys",	/*  72 = old vadvise */
+    "4.3 munmap - nosys",	/*  73 = munmap */
+    "4.3 mprotect - nosys",	/*  74 = mprotect */
+    "4.3 madvise - nosys",	/*  75 = madvise */
+    "vhangup",			/*  76 = vhangup */
+    "old vlimit - nosys",	/*  77 = old vlimit */
+    "4.3 mincore - nosys",	/*  78 = mincore */
+    "getgroups",		/*  79 = getgroups */
+    "setgroups",		/*  80 = setgroups */
+    "getpgrp",			/*  81 = getpgrp */
+    "setpgrp",			/*  82 = setpgrp */
+    "setitimer",		/*  83 = setitimer */
+    "wait",			/*  84 = wait */
+    "4.3 swapon - nosys",	/*  85 = swapon */
+    "getitimer",		/*  86 = getitimer */
+    "gethostname",		/*  87 = gethostname */
+    "sethostname",		/*  88 = sethostname */
+    "getdtablesize",		/*  89 = getdtablesize */
+    "dup2",			/*  90 = dup2 */
+    "nosys",			/*  91 = unused */
+    "fcntl",			/*  92 = fcntl */
+    "select",			/*  93 = select */
+    "nosys",			/*  94 = unused */
+    "fsync",			/*  95 = fsync */
+    "setpriority",		/*  96 = setpriority */
+    "socket",			/*  97 = socket */
+    "connect",			/*  98 = connect */
+    "accept",			/*  99 = accept */
+    "getpriority",		/* 100 = getpriority */
+    "send",			/* 101 = send */
+    "recv",			/* 102 = recv */
+    "sigreturn",		/* 103 = sigreturn */
+    "bind",			/* 104 = bind */
+    "setsockopt",		/* 105 = setsockopt */
+    "listen",			/* 106 = listen */
+    "sigsuspend",		/* 107 = sigsuspend */
+    "sigvec",			/* 108 = sigvec */
+    "sigblock",			/* 109 = sigblock */
+    "sigsetmask",		/* 110 = sigsetmask */
+    "sigpause",			/* 111 = sigpause */
+    "sigstack",			/* 112 = sigstack */
+    "recvmsg",			/* 113 = recvmsg */
+    "sendmsg",			/* 114 = sendmsg */
+    "old vtrace - nosys",	/* 115 = old vtrace */
+    "gettimeofday",		/* 116 = gettimeofday */
+    "getrusage",		/* 117 = getrusage */
+    "getsockopt",		/* 118 = getsockopt */
+    "4.3 resuba - nosys",	/* 119 = resuba */
+    "readv",			/* 120 = readv */
+    "writev",			/* 121 = writev */
+    "settimeofday",		/* 122 = settimeofday */
+    "fchown",			/* 123 = fchown */
+    "fchmod",			/* 124 = fchmod */
+    "recvfrom",			/* 125 = recvfrom */
+    "setreuid",			/* 126 = setreuid */
+    "setregid",			/* 127 = setregid */
+    "rename",			/* 128 = rename */
+    "truncate",			/* 129 = truncate */
+    "ftruncate",		/* 130 = ftruncate */
+    "flock",			/* 131 = flock */
+    "old portal - nosys",	/* 132 = old portal */
+    "sendto",			/* 133 = sendto */
+    "shutdown",			/* 134 = shutdown */
+    "socketpair",		/* 135 = socketpair */
+    "mkdir",			/* 136 = mkdir */
+    "rmdir",			/* 137 = rmdir */
+    "utimes",			/* 138 = utimes */
+    "4.2 sigreturn - nosys",	/* 139 = old 4.2 sigreturn */
+    "adjtime",			/* 140 = adjtime */
+    "getpeername",		/* 141 = getpeername */
+    "gethostid",		/* 142 = gethostid */
+    "sethostid",		/* 143 = sethostid */
+    "getrlimit",		/* 144 = getrlimit */
+    "setrlimit",		/* 145 = setrlimit */
+    "killpg",			/* 146 = killpg */
+    "#147",			/* 147 = nosys */
+    "setquota",			/* 148 = setquota */
+    "quota",			/* 149 = quota */
+    "getsockname",		/* 150 = getsockname */
 };
 #endif
 
 /* fcntl defines used by open */
-#define BSD_RDONLY        0x0000          /* open for reading only */
-#define BSD_WRONLY        0x0001          /* open for writing only */
-#define BSD_RDWR          0x0002          /* open for reading and writing */
-#define BSD_NONBLOCK      0x0004          /* no delay */
-#define BSD_APPEND        0x0008          /* set append mode */
-#define BSD_SHLOCK        0x0010          /* open with shared file lock */
-#define BSD_EXLOCK        0x0020          /* open with exclusive file lock */
-#define BSD_ASYNC         0x0040          /* signal pgrp when data ready */
-#define BSD_FSYNC         0x0080          /* synchronous writes */
-#define BSD_CREAT         0x0200          /* create if nonexistant */
-#define BSD_TRUNC         0x0400          /* truncate to zero length */
-#define BSD_EXCL          0x0800          /* error if already exists */
+#define BSD_RDONLY        0x0000	/* open for reading only */
+#define BSD_WRONLY        0x0001	/* open for writing only */
+#define BSD_RDWR          0x0002	/* open for reading and writing */
+#define BSD_NONBLOCK      0x0004	/* no delay */
+#define BSD_APPEND        0x0008	/* set append mode */
+#define BSD_SHLOCK        0x0010	/* open with shared file lock */
+#define BSD_EXLOCK        0x0020	/* open with exclusive file lock */
+#define BSD_ASYNC         0x0040	/* signal pgrp when data ready */
+#define BSD_FSYNC         0x0080	/* synchronous writes */
+#define BSD_CREAT         0x0200	/* create if nonexistant */
+#define BSD_TRUNC         0x0400	/* truncate to zero length */
+#define BSD_EXCL          0x0800	/* error if already exists */
 
 
 /* stat struct, used by S_STAT, S_FSTAT, S_LSTAT */
-struct tr_stat
-{
-	int16_t	   st_dev;
-	u_int16_t   st_ino;
-	u_int16_t   st_mode;
-	int16_t	   st_nlink;
-	u_int16_t   st_uid;
-	u_int16_t   st_gid;
-	int16_t	   st_rdev;
-	int8_t	   st_size[4];		/* Alignment problems */
-	int8_t	   st_atim[4];		/* Alignment problems */
-	int16_t	   st_spare1;
-	int8_t	   st_mtim[4];		/* Alignment problems */
-	int16_t	   st_spare2;
-	int8_t	   st_ctim[4];		/* Alignment problems */
-	int16_t	   st_spare3;
-	int8_t	   st_blksize[4];	/* Alignment problems */
-	int8_t	   st_blocks[4];	/* Alignment problems */
-	u_int16_t   st_flags;
-	u_int16_t   st_spare4[3];
+struct tr_stat {
+    int16_t st_dev;
+    u_int16_t st_ino;
+    u_int16_t st_mode;
+    int16_t st_nlink;
+    u_int16_t st_uid;
+    u_int16_t st_gid;
+    int16_t st_rdev;
+    int8_t st_size[4];		/* Alignment problems */
+    int8_t st_atim[4];		/* Alignment problems */
+    int16_t st_spare1;
+    int8_t st_mtim[4];		/* Alignment problems */
+    int16_t st_spare2;
+    int8_t st_ctim[4];		/* Alignment problems */
+    int16_t st_spare3;
+    int8_t st_blksize[4];	/* Alignment problems */
+    int8_t st_blocks[4];	/* Alignment problems */
+    u_int16_t st_flags;
+    u_int16_t st_spare4[3];
 };
 
 /* Directory entry */
 #define TR_DIRBLKSIZ	512
 #define TR_MAXNAMLEN	63
-struct	tr_direct {
-    u_int16_t d_ino;			/* inode number of entry */
-    u_int16_t d_reclen;			/* length of this record */
-    u_int16_t d_namlen;			/* length of string in d_name */
-    char d_name[TR_MAXNAMLEN+1];	/* name must be no longer than this */
+struct tr_direct {
+    u_int16_t d_ino;		/* inode number of entry */
+    u_int16_t d_reclen;		/* length of this record */
+    u_int16_t d_namlen;		/* length of string in d_name */
+    char d_name[TR_MAXNAMLEN + 1];	/* name must be no longer than this */
 };
 
 /* used by S_ADJTIME */
 struct tr_timeval {
-    u_int32_t    tv_sec;	    /* seconds */
-    u_int32_t    tv_usec;	    /* and microseconds */
+    u_int32_t tv_sec;		/* seconds */
+    u_int32_t tv_usec;		/* and microseconds */
 };
 /* Used by S_GETTIMEOFDAY */
 struct tr_timezone {
-    int16_t	    tz_minuteswest; /* minutes west of Greenwich */
-    int16_t	    tz_dsttime;	    /* type of dst correction */
+    int16_t tz_minuteswest;	/* minutes west of Greenwich */
+    int16_t tz_dsttime;		/* type of dst correction */
 };
 
 /* used in itimer calls */
-struct	tr_itimerval {
-    struct	tr_timeval it_interval;	   /* timer interval */
-    struct	tr_timeval it_value;	   /* current value */
+struct tr_itimerval {
+    struct tr_timeval it_interval;	/* timer interval */
+    struct tr_timeval it_value;	/* current value */
 };
 
 /* Used by socket calls */
 struct tr_sockaddr {
-    u_int16_t sa_family;		/* address family */
-    char	 sa_data[14];		/* up to 14 bytes of direct address */
+    u_int16_t sa_family;	/* address family */
+    char sa_data[14];		/* up to 14 bytes of direct address */
 };
 
 /* used in rlimit calls */
@@ -380,30 +379,30 @@ struct tr_rlimit {
     int32_t rlim_max;		/* maximum value for rlim_cur */
 };
 
-struct  tr_rusage {
-        struct tr_timeval ru_utime;        /* user time used */
-        struct tr_timeval ru_stime;        /* system time used */
-        u_int32_t  ru_maxrss;
-        u_int32_t  ru_ixrss;               /* integral shared memory size */
-        u_int32_t  ru_idrss;               /* integral unshared data size */
-        u_int32_t  ru_isrss;               /* integral unshared stack size */
-        u_int32_t  ru_minflt;              /* page reclaims */
-        u_int32_t  ru_majflt;              /* page faults */
-        u_int32_t  ru_ovly;                /* overlay changes */
-        u_int32_t  ru_nswap;               /* swaps */
-        u_int32_t  ru_inblock;             /* block input operations */
-        u_int32_t  ru_oublock;             /* block output operations */
-        u_int32_t  ru_msgsnd;              /* messages sent */
-        u_int32_t  ru_msgrcv;              /* messages received */
-        u_int32_t  ru_nsignals;            /* signals received */
-        u_int32_t  ru_nvcsw;               /* voluntary context switches */
-        u_int32_t  ru_nivcsw;              /* involuntary context switches */
+struct tr_rusage {
+    struct tr_timeval ru_utime;	/* user time used */
+    struct tr_timeval ru_stime;	/* system time used */
+    u_int32_t ru_maxrss;
+    u_int32_t ru_ixrss;		/* integral shared memory size */
+    u_int32_t ru_idrss;		/* integral unshared data size */
+    u_int32_t ru_isrss;		/* integral unshared stack size */
+    u_int32_t ru_minflt;	/* page reclaims */
+    u_int32_t ru_majflt;	/* page faults */
+    u_int32_t ru_ovly;		/* overlay changes */
+    u_int32_t ru_nswap;		/* swaps */
+    u_int32_t ru_inblock;	/* block input operations */
+    u_int32_t ru_oublock;	/* block output operations */
+    u_int32_t ru_msgsnd;	/* messages sent */
+    u_int32_t ru_msgrcv;	/* messages received */
+    u_int32_t ru_nsignals;	/* signals received */
+    u_int32_t ru_nvcsw;		/* voluntary context switches */
+    u_int32_t ru_nivcsw;	/* involuntary context switches */
 };
 
 /* for writev, readv */
 struct tr_iovec {
-    u_int16_t   iov_base;
-    u_int16_t   iov_len;
+    u_int16_t iov_base;
+    u_int16_t iov_len;
 };
 
 
@@ -411,8 +410,8 @@ struct tr_iovec {
  * we can get at the various args of different types
  */
 typedef union {
-    int16_t   sarg[6];	/* Signed 16-bit args */
-    u_int16_t uarg[6];	/* Unsigned 16-bit args */
+    int16_t sarg[6];		/* Signed 16-bit args */
+    u_int16_t uarg[6];		/* Unsigned 16-bit args */
 } arglist;
 
 #define sarg1	A->sarg[0]

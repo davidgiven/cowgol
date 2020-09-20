@@ -1,8 +1,8 @@
 	       Apout -- Simulate PDP-11 Unix a.out binaries
-			    Version 2.3 Alpha
+			    Version 2.3 Beta 1
 
-		     Warren Toomey  wkt@cs.adfa.edu.au
-			       January 2000
+		     Warren Toomey  wkt@tuhs.org
+			        June 2002
 
 Introduction
 ------------
@@ -17,7 +17,7 @@ The advantages of an a.out simulator over a full-blown PDP-11 simulator are:
    + the simulator is less of a CPU-hog than a full-blown PDP-11 simulator
    + you don't need a simulated operating system or a simulated file system
 
-Apout can be obtained via anonymous ftp at minnie.cs.adfa.edu.au in the
+Apout can be obtained via anonymous ftp at minnie.tuhs.org in the
 directory pub/PDP-11/Sims/Apout. The directory pub/PDP-11/Sims/Apout/UnixBins
 contains tar archives of a.out binaries from several versions of UNIX.
 

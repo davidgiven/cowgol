@@ -1,3 +1,25 @@
+2.3 Beta1: to 10th June 2002
+----------------------------
+
+Changed debug statements in cpu.c to be TrapDebug statements as I was
+seeing output from these in the output file of 2.11BSD /lib/cpp.
+
+The problem with scripts has also been fixed, finally. I was passing
+the wrong path into the shell arguments.
+
+On a 1.6GHz Pentium 4 running FreeBSD 4.5, a make depend; make of the
+2.11BSD GENERIC kernel takes 72 seconds.
+
+2.3 Alpha3: to 1st June 2001
+----------------------------
+
+Added patches from Wilhelm B. Kloke wb@vestein.arb-phys.uni-dortmund.de
+to get Apout to run the Algol 68 binaries found which were added into
+the Unix Archive.
+
+A few changes for better Linux compilation. However, stream buffering
+doesn't seem to work on Linux, at least RedHat 6.2.
+
 2.3 Alpha2: to 10th Jan 2000
 ----------------------------
 
