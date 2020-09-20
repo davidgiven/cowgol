@@ -1,12 +1,8 @@
 var LOMEM: [uint8];
 var HIMEM: [uint8];
 
-@asm "; set LOMEM and HIMEM";
-@asm "mov limit+2,", LOMEM;
-@asm ".gval #limit, #^O266";
-@asm ".setto r0";
-@asm "mov r0,", HIMEM;
-@asm ";";
+@asm "\tmov bss_end+2,", LOMEM;
+@asm "\tmov r0,", HIMEM;
 
 sub Exit() is
 	@asm "\tbr exit";
@@ -23,8 +19,8 @@ end sub;
 
 sub print_char(c: uint8) is
 	@asm "\tmov #1, r0";
-	@asm "\tmov r0, (sp)+";
-	@asm "\tmov #", c, ", (sp)+";
+	@asm "\tmov (r0), (sp)+";
+	@asm "\tmov ", c, ", (sp)+";
 	@asm "\ttrap 4";
 end sub;
 

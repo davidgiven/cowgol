@@ -116,17 +116,25 @@ function buildzmac(e)
 	}
 end
 
-function buildcowasm8080(e)
+function buildcowasm(e, asm)
 	local lst = e.outs[1]:ext(".lst"):obj()
 	rule {
 		ins = concat {
 			"scripts/quiet",
-			"bin/cowasm-8080.nncgen.exe",
+			"bin/cowasm-"..asm..".nncgen.exe",
 			e.ins
 		},
 		outs = { e.outs[1], lst },
 		cmd = "@1 @2 @3 -o &1 -l &2"
 	}
+end
+
+function buildcowasm8080(e)
+	buildcowasm(e, "8080")
+end
+
+function buildcowasmpdp11(e)
+	buildcowasm(e, "pdp11")
 end
 
 function buildtass64(e)

@@ -108,15 +108,15 @@ toolchain_bbcti = {
 	tester = tubeemutest,
 }
 
-toolchain_rt11 = {
+toolchain_unixv7 = {
 	name = "rt11",
 	cowfe = "bin/cowfe-rt11.nncgen.exe",
 	cowbe = "bin/cowbe-rt11.nncgen.exe",
-	linker = "bin/cowlink-rt11.nncgen.exe",
-	assembler = buildmacro11,
-	runtime = "rt/rt11",
-	asmext = ".mac",
-	binext = ".obj",
+	linker = "bin/cowlink-v7unix.nncgen.exe",
+	assembler = buildcowasmpdp11,
+	runtime = "rt/unixv7",
+	asmext = ".asm",
+	binext = ".exe",
 	tester = apouttest
 }
 
@@ -130,6 +130,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbctiny,
 	toolchain_bbct6502,
 	toolchain_bbcti,
---	toolchain_rt11,
+	toolchain_unixv7,
 }
 

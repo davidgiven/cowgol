@@ -1,0 +1,30 @@
+# Divides two four-byte signed values from the stack in registers.
+# via 2.11bsd lib/libc/pdp/crt/uldiv.s
+&X _divu4
+	; _divu4
+``:
+	return
+
+# Takes the remainder of two four-byte unsigned values in registers.
+# via 2.11bsd lib/libc/pdp/crt/ulrem.s
+&X _remu4
+	; _remu4
+``:
+	return
+
+# Divides two four-byte signed values in registers.
+# via 2.11bsd lib/libc/pdp/crt/ldiv.s
+&X _divs4
+	; _divs4
+``:
+	return
+
+# Takes the remainder of two four-byte signed values in registers.
+# via 2.11bsd lib/libc/pdp/crt/lrem.s
+&X _rems4
+	; _rems4
+``:
+	return
+
+# vim: ts=8 sw=8 noet
+

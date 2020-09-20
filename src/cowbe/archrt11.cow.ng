@@ -273,7 +273,7 @@
 	end sub;
 
 	sub E_jmp(label: LabelRef) is
-		E_jump("LBR", label);
+		E_jump("BR", label);
 	end sub;
 
 	sub E_call(subr: [Subroutine]) is
@@ -285,7 +285,7 @@
 	end sub;
 
 	sub E_ret() is
-		E("\tRETURN\n");
+		E("\tret\n");
 	end sub;
 
 #
@@ -358,7 +358,7 @@
 
 	sub E_cmp4(src: RegId, dest: RegId) is
 		E_alu2_noflush("CMP", hireg(src), hireg(dest));
-		E("\tbne\t.+4\n");
+		E("\tbne\t$+4\n");
 		E_alu2_noflush("CMP", loreg(src), loreg(dest));
 	end sub;
 
@@ -453,7 +453,7 @@
 
 	sub E_cmpi4(value: Arith, reg: RegId) is
 		E_cmpi(value >> 16, hireg(reg));
-		E("\tbne\t.+6\n");
+		E("\tbne\t$+6\n");
 		E_cmpi(value & 0xffff, loreg(reg));
 	end sub;
 
@@ -469,7 +469,7 @@
 		case value is
 			when 1:
 				E_inc(loreg(dest));
-				E("\tbne\t.+4\n");
+				E("\tbne\t$+4\n");
 				E_inc(hireg(dest));
 #			when -1:
 #				E_dec(loreg(dest));
@@ -500,7 +500,7 @@
 #				E_sbc(hireg(dest));
 			when -1:
 				E_inc(loreg(dest));
-				E("\tbne\t.+4\n");
+				E("\tbne\t$+4\n");
 				E_inc(hireg(dest));
 			when else:
 				if (value & 0xffff) != 0 then
@@ -523,7 +523,7 @@
 
 	sub E_sxtb(reg: RegId) is
 		E_alu1("TST", reg);
-		E("\tbpl\t.+4\n");
+		E("\tbpl\t$+4\n");
 		E_ori(0xff00, hireg(reg));
 	end sub;
 
@@ -844,12 +844,12 @@
 		var i: uint16 := 0;
 
 		EmitterOpenStream(current_subr);
-		E("\t.even\n");
+		E("\talign 2\n");
 
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('z');
 		E_u16(sid);
-		E(":\n\t.byte\t");
+		E(":\n\tdb\t");
 
 		loop
 			var c := [data];
@@ -861,7 +861,7 @@
 
 			E_u8(c);
 			if (i % 16) == 0 then
-				E("\n\t.byte\t");
+				E("\n\tdb\t");
 			else
 				E_comma();
 			end if;
@@ -973,8 +973,7 @@ gen STARTSUB()
 	E_b8(0);
 	E_nl();
 
-	E("\t.enabl\tlsb\n");
-	E("\t.even\n");
+	E("\talign 2\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -1087,7 +1086,7 @@ gen RETURN()
 	if current_subr.num_output_parameters == 0 then
 		E_ret();
 	else
-		E("\tLBR\tend_");
+		E("\tBR\tend_");
 		E_subref(current_subr);
 		E_nl();
 	end if;
@@ -1340,8 +1339,8 @@ gen r3b := REMU1(r3b, r8:rhs) uses r2b { E_clr(REG_R2); E_div(REG_R2, $rhs); }
 gen r5b := REMU1(r5b, r8:rhs) uses r4b { E_clr(REG_R4); E_div(REG_R4, $rhs); }
 gen r4  := DIVU2(r5, r16:rhs)          { E_clr(REG_R4); E_div(REG_R4, $rhs); }
 gen r5  := REMU2(r5, r16:rhs) uses r4  { E_clr(REG_R4); E_div(REG_R4, $rhs); }
-//n r2r3 := DIVU4(r2r3, r0r1)          { E_callhelper("_divu4"); }
-//n r4r5 := REMU4(r2r3, r0r1)          { E_callhelper("_remu4"); }
+gen r2r3 := DIVU4(r2r3, r0r1)          { E_callhelper("_divu4"); }
+gen r4r5 := REMU4(r2r3, r0r1)          { E_callhelper("_remu4"); }
 
 gen r2b := DIVS1(r2b, r8:rhs) uses r3  { E_movb(REG_R2, REG_R3); E_sxt(REG_R2); E_sxtb($rhs); E_div(REG_R2, $rhs); }
 gen r4b := DIVS1(r4b, r8:rhs) uses r5  { E_movb(REG_R4, REG_R5); E_sxt(REG_R4); E_sxtb($rhs); E_div(REG_R4, $rhs); }
@@ -1351,8 +1350,8 @@ gen r2  := DIVS2(r3, r16:rhs)          { E_tst(REG_R3); E_sxt(REG_R2); E_div(REG
 gen r4  := DIVS2(r5, r16:rhs)          { E_tst(REG_R5); E_sxt(REG_R4); E_div(REG_R4, $rhs); }
 gen r3  := REMS2(r3, r16:rhs) uses r2  { E_tst(REG_R3); E_sxt(REG_R2); E_div(REG_R2, $rhs); }
 gen r5  := REMS2(r5, r16:rhs) uses r4  { E_tst(REG_R5); E_sxt(REG_R4); E_div(REG_R4, $rhs); }
-//n r2r3 := DIVS4(r2r3, r0r1)          { E_callhelper("_divs4"); }
-//n r4r5 := REMS4(r2r3, r0r1)          { E_callhelper("_rems4"); }
+gen r2r3 := DIVS4(r2r3, r0r1)          { E_callhelper("_divs4"); }
+gen r4r5 := REMS4(r2r3, r0r1)          { E_callhelper("_rems4"); }
 
 gen r8  := LSHIFT1($$:lhs, r8:rhs)           { E_shl($rhs, $lhs); }
 gen r8  := LSHIFT1($$:lhs, CONSTANT():c)     { E_shli($c.value, $lhs); }
@@ -1389,7 +1388,7 @@ gen r32 := RSHIFTS4($$:lhs, CONSTANT():c)    { E_sari4($c.value, $lhs); }
 	end sub;
 
 	sub CmpJumpsJe(node: [Node]) is
-		CmpJumps("LBEQ", "LBNE", node);
+		CmpJumps("BEQ", "BNE", node);
 	end sub;
 
 	# unsigned
@@ -1447,19 +1446,19 @@ gen STARTCASE4(r4r5);
 gen WHENCASE1():c uses r5b
 {
 	E_cmpi($c.value & 0xff, REG_R5B);
-	E_jump("LBNE", $c.falselabel);
+	E_jump("bne", $c.falselabel);
 }
 
 gen WHENCASE2():c uses r5
 {
 	E_cmpi($c.value & 0xffff, REG_R5);
-	E_jump("LBNE", $c.falselabel);
+	E_jump("bne", $c.falselabel);
 }
 
 gen WHENCASE4():c uses r4r5
 {
 	E_cmpi4($c.value, REG_R4R5);
-	E_jump("LBNE", $c.falselabel);
+	E_jump("bne", $c.falselabel);
 }
 
 gen ENDCASE1();
@@ -1487,7 +1486,7 @@ gen r16 := STRING():s
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	E("\t.even\n");
+	E("\talign 2\n");
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }
@@ -1499,44 +1498,44 @@ gen ENDINIT()
 
 gen INIT1():c
 {
-	E("\t.byte\t");
+	E("\tdb\t");
 	E_u8($c.value as uint8);
 	E_nl();
 }
 
 gen INIT2():c
 {
-	E("\t.word\t");
+	E("\tdw\t");
 	E_u16($c.value as uint16);
 	E_nl();
 }
 
 gen INIT4():c
 {
-	E("\t.word\t");
+	E("\tdw\t");
 	E_u16($c.value as uint16);
-	E(", ");
-	E_u16(($c.value>>16) as uint16);
+	E_comma();
+	E_u16((($c.value as uint32) >> 16) as uint16);
 	E_nl();
 }
 
 gen INITADDRESS():a
 {
-	E("\t.word\t");
+	E("\tdw\t");
 	E_symref(&$a.sym, $a.off);
 	E_nl();
 }
 
 gen INITSUBREF():a
 {
-	E("\t.word\t");
+	E("\tdw\t");
 	E_subref($a.subr);
 	E_nl();
 }
 
 gen INITSTRING():s
 {
-	E("\t.word\t");
+	E("\tdw\t");
 	E_string($s.text);
 	E_nl();
 }

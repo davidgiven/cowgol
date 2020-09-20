@@ -784,7 +784,10 @@ sub EquCb implements SymbolCallback is
     end if;
 
     ExpectExpression();
-    if (currentLabel.value != tokenNumber) and (currentLabel.callback != UndefinedLabelCb) then
+    if (pass == 1)
+        and (currentLabel.value != tokenNumber)
+        and (currentLabel.callback != UndefinedLabelCb)
+    then
         SimpleError("label already defined");
     end if;
 
@@ -1418,7 +1421,7 @@ sub ParseArguments() is
 	end if;
 end sub;
 
-print("CP/M Assembler (C) 2020 David Given; ");
+print("PDP-11 Assembler (C) 2020 David Given; ");
 print_i32(((HIMEM - LOMEM) / 1024) as uint32);
 print("kB free\n");
 
