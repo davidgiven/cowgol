@@ -916,6 +916,18 @@ sub OrgCb implements SymbolCallback is
     programCounter := tokenNumber;
 end sub;
 
+sub AlignCb implements SymbolCallback is
+    ExpectExpression();
+    if (tokenNumber & (tokenNumber-1)) != 0 then
+        SimpleError("alignment must be a power of two");
+    end if;
+
+    var newpc := (programCounter + tokenNumber) & ~(tokenNumber - 1);
+    while programCounter != newpc loop
+        Emit8(0);
+    end loop;
+end sub;
+
 sub EmitExtension(addressingMode: uint8, extensionWord: uint16) is
     if (addressingMode & AM__EXTENSION) == 0 then
         return;
@@ -1219,7 +1231,7 @@ sub InitialiseSymbolTable() is
         { "JMP",   0o000100, JmpCb,      &s },
         { "MARK",  0o006400, MarkCb,     &s },
 
-		{ "AND",   OP_AND,   OperatorCb, &s },
+		{ "ORG",   0,        OrgCb,      &s },
 		{ "DB",    0,        DbCb,       &s },
 		{ "DS",    0,        DsCb,       &s },
 		{ "DW",    0,        DwCb,       &s },
@@ -1228,14 +1240,16 @@ sub InitialiseSymbolTable() is
 		{ "ENDIF", 0,        EndIfCb,    &s },
 		{ "END",   0,        EndCb,      &s },
 		{ "IF",    0,        IfCb,       &s },
+		{ "SET",   0,        SetCb,      &s },
+		{ "TITLE", 0,        TitleCb,    &s },
+        { "ALIGN", 0,        AlignCb,    &s },
+
+		{ "AND",   OP_AND,   OperatorCb, &s },
 		{ "MOD",   OP_MOD,   OperatorCb, &s },
 		{ "NOT",   OP_NOT,   OperatorCb, &s },
 		{ "OR",    OP_OR,    OperatorCb, &s },
-		{ "ORG",   0,        OrgCb,      &s },
 		{ "SHL",   OP_SHL,   OperatorCb, &s },
 		{ "SHR",   OP_SHR,   OperatorCb, &s },
-		{ "SET",   0,        SetCb,      &s },
-		{ "TITLE", 0,        TitleCb,    &s },
 		{ "EOR",   OP_XOR,   OperatorCb, &s },
 	};
 
