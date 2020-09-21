@@ -1055,7 +1055,7 @@ sub SobCb implements SymbolCallback is
             Emit16(currentInsn.value | (((-delta as uint16) >> 1) & 0o77));
         elseif (delta >= -128) and (delta <= 126) then
             Emit16(0o000401);
-            Emit16(0o000400 | (((delta as uint16) >> 1) & 0xff));
+            Emit16(0o000400 | (((delta as uint16) >> 1) & 0o77));
             Emit16((currentInsn.value ^ 0o400) | 2);
         else
             Emit16(0o000402);
@@ -1068,7 +1068,7 @@ end sub;
 
 sub EmtTrapCb implements SymbolCallback is
     ExpectExpression();
-    if tokenNumber > 0xff then
+    if tokenNumber > 0o77 then
         SimpleError("EMT/TRAP value out of range");
     end if;
 
