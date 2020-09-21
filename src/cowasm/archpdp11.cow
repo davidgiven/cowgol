@@ -1031,8 +1031,8 @@ sub Op2RegCb implements SymbolCallback is
     end if;
 
     Emit16(currentInsn.value
-        | ((addressingMode & 0o07) as uint16 << 6)
-        | (param1addressingMode & 0o77) as uint16);
+        | ((param1addressingMode & 0o07) as uint16 << 6)
+        | (addressingMode & 0o77) as uint16);
 
     EmitExtension(param1addressingMode, param2extensionWord);
 end sub;
