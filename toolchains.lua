@@ -109,7 +109,7 @@ toolchain_bbcti = {
 }
 
 toolchain_unixv7 = {
-	name = "rt11",
+	name = "unixv7",
 	cowfe = "bin/cowfe-rt11.nncgen.exe",
 	cowbe = "bin/cowbe-rt11.nncgen.exe",
 	linker = "bin/cowlink-v7unix.nncgen.exe",

@@ -1,7 +1,7 @@
 var LOMEM: [uint8];
 var HIMEM: [uint8];
 
-@asm "\tmov bss_end+2,", LOMEM;
+@asm "\tmov #bss_end+2,", LOMEM;
 @asm "\tmov r0,", HIMEM;
 
 sub Exit() is
@@ -18,10 +18,10 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
-	@asm "\tmov #1, r0";
-	@asm "\tmov (r0), (sp)+";
-	@asm "\tmov ", c, ", (sp)+";
+	@asm "\tmov #1, r0"; # param 1
 	@asm "\ttrap 4";
+	@asm "\tdw ", c;     # param 2
+	@asm "\tdw 1";       # param 3
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
