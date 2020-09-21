@@ -1023,6 +1023,25 @@ sub Op2RegCb implements SymbolCallback is
     if ReadOperand() != ',' then
         BadSeparator();
     end if;
+    if (addressingMode & 0o370) != AM_REG then
+        SimpleError("second parameter must be a register");
+    end if;
+    var param1addressingMode := addressingMode;
+    ExpectOperand();
+
+    Emit16(currentInsn.value
+        | (addressingMode & 0o77) as uint16
+        | ((param1addressingMode & 0o07) as uint16 << 6));
+
+    EmitExtension(addressingMode, extensionWord);
+end sub;
+
+# Reversed operands in the instruction encoding: the source is in
+# what's normally the destination field, and vice versa.
+sub Op2RegRCb implements SymbolCallback is
+    if ReadOperand() != ',' then
+        BadSeparator();
+    end if;
     var param1addressingMode := addressingMode;
     var param2extensionWord := extensionWord;
     ExpectOperand();
@@ -1031,8 +1050,8 @@ sub Op2RegCb implements SymbolCallback is
     end if;
 
     Emit16(currentInsn.value
-        | ((param1addressingMode & 0o07) as uint16 << 6)
-        | (addressingMode & 0o77) as uint16);
+        | (param1addressingMode & 0o77) as uint16
+        | ((addressingMode & 0o07) as uint16 << 6));
 
     EmitExtension(param1addressingMode, param2extensionWord);
 end sub;
@@ -1211,10 +1230,10 @@ sub InitialiseSymbolTable() is
         { "BHIS",  0o103000, CondCb,     &s },
         { "BLO",   0o103400, CondCb,     &s },
 
-        { "MUL",   0o070000, Op2RegCb,   &s },
-        { "DIV",   0o071000, Op2RegCb,   &s },
-        { "ASH",   0o072000, Op2RegCb,   &s },
-        { "ASHC",  0o073000, Op2RegCb,   &s },
+        { "MUL",   0o070000, Op2RegRCb,  &s },
+        { "DIV",   0o071000, Op2RegRCb,  &s },
+        { "ASH",   0o072000, Op2RegRCb,  &s },
+        { "ASHC",  0o073000, Op2RegRCb,  &s },
         { "XOR",   0o074000, Op2RegCb,   &s },
         { "SOB",   0o077000, SobCb,      &s },
         { "JMP",   0o000100, JmpCb,      &s },
