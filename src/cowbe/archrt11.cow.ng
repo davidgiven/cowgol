@@ -91,7 +91,7 @@
 		var names: string[] := {
 			"R0", "R1", "R2", "R3", "R4", "R5", # 1, 2, 4, 8, 10, 20
 			"r0", "r1", "r2", "r3", "r4", "r5", # 40, 80, 100, 200, 400, 800
-			"%0", "%2", "%4", # 1000, 2000, 4000
+			"r0", "r2", "r4", # 1000, 2000, 4000
 		};
 		var oreg: RegId := reg;
 
@@ -124,6 +124,11 @@
 		E_tab();
 		E(insn);
 		E_tab();
+	end sub;
+
+	sub E_imm(value: int16) is
+		E("#");
+		E_i16(value);
 	end sub;
 
 	sub E_push(src: RegId) is
@@ -421,7 +426,11 @@
 	sub E_alu2i_noflush(insn: string, value: Arith, dest: RegId) is
 		E_insn(insn, dest);
 		E_b8('#');
-		E_i32(value);
+		if value < 0 then
+			E_b8('-');
+			value := -value;
+		end if;
+		E_u32(value as uint32);
 		E(", ");
 		E_reg(dest);
 		E_nl();
@@ -436,7 +445,11 @@
 		R_flush(dest);
 		E_insn16(insn);
 		E_b8('#');
-		E_i32(value);
+		if value < 0 then
+			E_b8('-');
+			value := -value;
+		end if;
+		E_u32(value as uint32);
 		E(", ");
 		E_reg(dest);
 		E_nl();
@@ -522,9 +535,16 @@
 	end sub;
 
 	sub E_sxtb(reg: RegId) is
-		E_alu1("TST", reg);
-		E("\tbpl\t$+4\n");
-		E_ori(0xff00, hireg(reg));
+		R_flush(reg);
+		E_insn16("movb");
+		E_reg(reg);
+		E(", ");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_uxtb(reg: RegId) is
+		E_andi(0x00ff, reg);
 	end sub;
 
 	sub E_shl(value: RegId, reg: RegId) is
@@ -536,7 +556,7 @@
 		E_nl();
 	end sub;
 
-	sub E_shli(value: Arith, reg: RegId) is
+	sub E_shli(value: uint8, reg: RegId) is
 		R_flush(reg);
 		if value > 7 then
 			E_insn16("SWAB");
@@ -545,63 +565,67 @@
 			E_clr(loreg(reg));
 			value := value - 8;
 		end if;
-		while value > 0 loop
-			E_insn("ASL", reg);
-			E_reg(reg);
-			E_nl();
-			value := value - 1;
-		end loop;
-	end sub;
-
-	sub E_sar1(value: RegId, reg: RegId) is
-		R_flush(reg);
-		R_flush(value);
-		R_flush(REG_R5);
-		E_movb(reg, REG_R5);
-		E_neg(value);
-		E_insn16("ASH");
-		E_reg(value);
-		E(", ");
-		E_reg(REG_R5);
-		E_nl();
-		E_move(REG_R5, reg);
-	end sub;
-
-	sub E_sar(value: RegId, reg: RegId) is
-		R_flush(reg);
-		R_flush(value);
-		E_neg(value);
-		E_insn16("ASH");
-		E_reg(value);
-		E(", ");
+		E_insn16("ash");
+		E(" #");
+		E_u8(value);
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_shr(value: RegId, reg: RegId) is
-		R_flush(value);
+	sub E_sar1(amount: RegId, value: RegId) is
+		R_flush(amount|value);
+		E_neg(amount);
+		E_insn16("ASH");
+		E_reg(amount);
+		E(", ");
+		E_reg(value);
+		E_nl();
+		E_sxtb(value);
+	end sub;
+
+	sub E_sar(amount: RegId, value: RegId) is
+		R_flush(amount|value);
+		E_neg(amount);
+		E_insn16("ASH");
+		E_reg(amount);
+		E(", ");
+		E_reg(value);
+		E_nl();
+	end sub;
+
+	# ASH is signed, so this needs work
+	sub E_shr(amount: RegId, value: RegId) is
+		R_flush(amount|value);
+
 		# load mask
 		E_mov(REG_R5);
 		E("#");
-		E_i32(0x8000);
-		E(", ");
+		E_u32(0x8000);
+		E_comma();
 		E_reg(REG_R5);
 		E_nl();
-		E_neg(value);
+
+		E_neg(amount);
+
 		E_insn16("ASH");
+		E_reg(amount);
+		E_comma();
 		E_reg(value);
-		E(", ");
+		E_nl();
+
+		E_inc(amount);
+
+		E_insn16("ASH");
+		E_reg(amount);
+		E_comma();
 		E_reg(REG_R5);
 		E_nl();
-		E_insn16("ASH");
-		E_reg(value);
-		E(", ");
-		E_reg(reg);
-		E_nl();
-		E_shli(1, REG_R5);
-		E_alu2("BIC", REG_R5, reg);
+
+		E_alu2("BIC", REG_R5, value);
 	end sub;
 
+	# ASH is signed, and this is unsigned
 	sub E_shr1(value: RegId, reg: RegId) is
 		R_flush(value);
 		E_andi(255, hireg(reg));
@@ -613,7 +637,8 @@
 		E_nl();
 	end sub;
 
-	sub E_shri(value: Arith, reg: RegId) is
+	# ASH is signed, and this is unsigned
+	sub E_shri(value: uint8, reg: RegId) is
 		R_flush(reg);
 		if value > 7 then
 			E_insn16("SWAB");
@@ -641,26 +666,26 @@
 		E_insn16("ASHC");
 		E_reg(value);
 		E(", ");
-		E_reg(hireg(reg));
+		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_shli4(value: Arith, reg: RegId) is
+	sub E_shli4(value: uint8, reg: RegId) is
 		R_flush(loreg(reg));
 		R_flush(hireg(reg));
 		E_insn16("ASHC");
-		E_b8('#');
-		E_i32(value);
+		E("#");
+		E_u8(value);
 		E(", ");
-		E_reg(hireg(reg));
+		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_sari(value: Arith, reg: RegId) is
+	sub E_sari(value: uint8, reg: RegId) is
 		R_flush(reg);
 		E_insn16("ASH");
-		E_b8('#');
-		E_i32(-value);
+		E("#-");
+		E_u8(value);
 		E(", ");
 		E_reg(reg);
 		E_nl();
@@ -679,56 +704,54 @@
 		E_movb(REG_R5, reg);
 	end sub;
 
-	sub E_shr4(value: RegId, reg: RegId) is
-		R_flush(value);
+	sub E_shr4(amount: RegId, value: RegId) is
+		R_flush(amount);
 		# load mask
+
 		E_clr(REG_R5);
-		E_mov(REG_R4);
-		E("#");
-		E_i32(0x8000);
+		E_insn16("mov #8000h, r4\n");
+
+		E_neg(amount);
+
+		E_insn16("ASHC");
+		E_reg(amount);
+		E(", ");
+		E_reg(value);
+		E_nl();
+
+		E_inc(amount);
+
+		E_insn16("ASHC");
+		E_reg(amount);
 		E(", ");
 		E_reg(REG_R4);
 		E_nl();
-		E_neg(value);
-		E_insn16("ASHC");
-		E_reg(value);
-		E(", ");
-		E_reg(REG_R4);
-		E_nl();
-		E_insn16("ASHC");
-		E_reg(value);
-		E(", ");
-		E_reg(hireg(reg));
-		E_nl();
-		E_shli4(1, REG_R4R5);
-		E_alu2("BIC", REG_R4, hireg(reg));
-		E_alu2("BIC", REG_R5, hireg(reg));
+
+		E_alu2("BIC", REG_R4, hireg(value));
+		E_alu2("BIC", REG_R5, loreg(value));
 	end sub;
 
-	sub E_sar4(value: RegId, reg: RegId) is
-		R_flush(value);
-		R_flush(loreg(reg));
-		R_flush(hireg(reg));
-		E_neg(value);
+	sub E_sar4(amount: RegId, value: RegId) is
+		R_flush(amount|value);
+		E_neg(amount);
 		E_insn16("ASHC");
-		E_reg(value);
+		E_reg(amount);
 		E(", ");
-		E_reg(hireg(reg));
+		E_reg(value);
 		E_nl();
 	end sub;
 
-	sub E_sari4(value: Arith, reg: RegId) is
-		R_flush(loreg(reg));
-		R_flush(hireg(reg));
+	sub E_sari4(value: uint8, reg: RegId) is
+		R_flush(reg);
 		E_insn16("ASHC");
-		E_b8('#');
-		E_i32(-value);
-		E(", ");
-		E_reg(hireg(reg));
+		E("#-");
+		E_u8(value);
+		E_comma();
+		E_reg(reg);
 		E_nl();
 	end sub;
 
-	sub E_shri4(value: Arith, reg: RegId) is
+	sub E_shri4(value: uint8, reg: RegId) is
 		if (value > 15) then
 			E_shri(value - 16, hireg(reg));
 			E_move(hireg(reg), loreg(reg));
@@ -914,23 +937,24 @@ register param;
 
 regclass r8 := r0b|r1b|r2b|r3b|r4b|r5b;
 regclass r16 := r0|r1|r2|r3|r4|r5;
-// XXX force better register allocation in "a := b << x" etc.
-regclass rh8 := r1b|r2b|r3b|r4b|r5b;
-regclass rhi := r4|r5;
 regclass r32 := r0r1|r2r3|r4r5;
 
-regdata r0 compatible r16|rhi uses r0|r0b|r0r1;
-regdata r1 compatible r16|rhi uses r1|r1b|r0r1;
-regdata r2 compatible r16|rhi uses r2|r2b|r2r3;
-regdata r3 compatible r16|rhi uses r3|r3b|r2r3;
-regdata r4 compatible r16|rhi uses r4|r4b|r4r5;
-regdata r5 compatible r16|rhi uses r5|r5b|r4r5;
-regdata r0b compatible r8|rh8 uses r0|r0b|r0r1;
-regdata r1b compatible r8|rh8 uses r1|r1b|r0r1;
-regdata r2b compatible r8|rh8 uses r2|r2b|r2r3;
-regdata r3b compatible r8|rh8 uses r3|r3b|r2r3;
-regdata r4b compatible r8|rh8 uses r4|r4b|r4r5;
-regdata r5b compatible r8|rh8 uses r5|r5b|r4r5;
+regclass r8n0 := r1b|r2b|r3b|r4b|r5b;
+regclass r16n0 := r1|r2|r3|r4|r5;
+regclass r32n0 := r2r3|r4r5;
+
+regdata r0b compatible r8 uses r0|r0b|r0r1;
+regdata r1b compatible r8 uses r1|r1b|r0r1;
+regdata r2b compatible r8 uses r2|r2b|r2r3;
+regdata r3b compatible r8 uses r3|r3b|r2r3;
+regdata r4b compatible r8 uses r4|r4b|r4r5;
+regdata r5b compatible r8 uses r5|r5b|r4r5;
+regdata r0 compatible r16 uses r0|r0b|r0r1;
+regdata r1 compatible r16 uses r1|r1b|r0r1;
+regdata r2 compatible r16 uses r2|r2b|r2r3;
+regdata r3 compatible r16 uses r3|r3b|r2r3;
+regdata r4 compatible r16 uses r4|r4b|r4r5;
+regdata r5 compatible r16 uses r5|r5b|r4r5;
 regdata r0r1 compatible r32 uses r0|r1|r0b|r1b;
 regdata r2r3 compatible r32 uses r2|r3|r2b|r3b;
 regdata r4r5 compatible r32 uses r4|r5|r4b|r5b;
@@ -1171,7 +1195,7 @@ gen r32 := CAST24(r16:val):c  { E_move($val, loreg($$)); if ($c.sext != 0) then 
 
 gen r8  := LOAD1(r16:rhs)     { E_loadix($$, $rhs, 0, 1); }
 gen r16 := LOAD2(r16:rhs)     { E_loadix($$, $rhs, 0, 0); }
-//n r32 := LOAD4(r16:rhs)     { E_loadix(loreg($$), $rhs, 0, 0); E_loadix(hireg($$), $rhs, 2, 0); }
+gen r32 := LOAD4(r16:rhs)     { E_loadix(loreg($$), $rhs, 0, 0); E_loadix(hireg($$), $rhs, 2, 0); }
 
 gen r8  := LOAD1(ADD1(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 1); }
 gen r16 := LOAD2(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 0); }
@@ -1251,8 +1275,8 @@ gen r8  := NOT1($$)                   { E_not($$); }
 gen r16 := NOT2($$)                   { E_not($$); }
 gen r32 := NOT4($$)                   { E_not(loreg($$)); E_not(hireg($$)); }
 
-gen rh8 := ADD1($$, r8:rhs)           { E_add($rhs, $$); }
-gen rh8 := ADD1($$, CONSTANT():c)     { E_addi($c.value, $$); }
+gen r8  := ADD1($$, r8:rhs)           { E_add($rhs, $$); }
+gen r8  := ADD1($$, CONSTANT():c)     { E_addi($c.value, $$); }
 gen r16 := ADD2($$, r16:rhs)          { E_add($rhs, $$); }
 gen r16 := ADD1($$, CONSTANT():c)     { E_addi($c.value, $$); }
 gen r16 := ADD2($$, CONSTANT():c)     { E_addi($c.value, $$); }
@@ -1265,8 +1289,8 @@ gen r32 := ADD4($$, r32:rhs)
 }
 gen r32 := ADD4($$, CONSTANT():c)     { E_addi4($c.value, $$); }
 
-gen rh8 := SUB1($$, r8:rhs)           { E_sub($rhs, $$); }
-gen rh8 := SUB1($$, CONSTANT():c)     { E_subi($c.value, $$); }
+gen r8  := SUB1($$, r8:rhs)           { E_sub($rhs, $$); }
+gen r8  := SUB1($$, CONSTANT():c)     { E_subi($c.value, $$); }
 gen r16 := SUB2($$, r16:rhs)          { E_sub($rhs, $$); }
 gen r16 := SUB1($$, CONSTANT():c)     { E_subi($c.value, $$); }
 gen r16 := SUB2($$, CONSTANT():c)     { E_subi($c.value, $$); }
@@ -1280,8 +1304,8 @@ gen r32 := SUB4($$, r32:rhs)
 gen r32 := SUB4($$, CONSTANT():c)     { E_subi4($c.value, $$); }
 
 // XXX use BIT when BEQx(ANDx())
-gen rh8 := AND1($$, r8:rhs) uses r5b  { E_and($rhs, $$); }
-gen rh8 := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
+gen r8  := AND1($$, r8:rhs) uses r5b  { E_and($rhs, $$); }
+gen r8  := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
 gen r16 := AND2($$, r16:rhs) uses r5  { E_and($rhs, $$); }
 gen r16 := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
 gen r16 := AND2($$, CONSTANT():c)     { E_andi($c.value, $$); }
@@ -1297,8 +1321,8 @@ gen r32 := AND4($$, CONSTANT():c)
 	E_andi($c.value >> 16, hireg($$));
 }
 
-gen rh8 := OR1($$, r8:rhs)            { E_or($rhs, $$); }
-gen rh8 := OR1($$, CONSTANT():c)      { E_ori($c.value, $$); }
+gen r8  := OR1($$, r8:rhs)            { E_or($rhs, $$); }
+gen r8  := OR1($$, CONSTANT():c)      { E_ori($c.value, $$); }
 gen r16 := OR2($$, r16:rhs)           { E_or($rhs, $$); }
 gen r16 := OR1($$, CONSTANT():c)      { E_ori($c.value, $$); }
 gen r16 := OR2($$, CONSTANT():c)      { E_ori($c.value, $$); }
@@ -1315,7 +1339,7 @@ gen r32 := OR4($$, CONSTANT():c)
 }
 
 // no XOR with constant
-gen rh8 := EOR1($$, r8:rhs)           { E_xor($rhs, $$); }
+gen r8  := EOR1($$, r8:rhs)           { E_xor($rhs, $$); }
 gen r16 := EOR2($$, r16:rhs)          { E_xor($rhs, $$); }
 
 gen r32 := EOR4($$, r32:rhs)
@@ -1325,55 +1349,44 @@ gen r32 := EOR4($$, r32:rhs)
 }
 
 // always use odd registers for 8- and 16-bit multiply and division
-gen r1b := MUL1(r1b, r8:rhs)           { E_mul(REG_R1, $rhs); }
-gen r3b := MUL1(r3b, r8:rhs)           { E_mul(REG_R3, $rhs); }
-gen r5b := MUL1(r5b, r8:rhs)           { E_mul(REG_R5, $rhs); }
-gen r1  := MUL2(r1, r16:rhs)           { E_mul(REG_R1, $rhs); }
-gen r3  := MUL2(r3, r16:rhs)           { E_mul(REG_R3, $rhs); }
-gen r5  := MUL2(r5, r16:rhs)           { E_mul(REG_R5, $rhs); }
-gen r4r5 := MUL4(r2r3:lhs, r0r1:rhs)   { E_mul4($$, $lhs, $rhs); }
+gen r1b|r3b|r5b := MUL1($$, r0b|r2b|r4b:rhs)     { E_mul($rhs, $$); }
+gen r1|r3|r5 := MUL2($$, r0|r2|r4:rhs)           { E_mul($rhs, $$); }
+gen r4r5 := MUL4(r2r3:lhs, r0r1:rhs)             { E_mul4($$, $lhs, $rhs); }
 
-gen r2b := DIVU1(r3b, r8:rhs)          { E_clr(REG_R2); E_div(REG_R2, $rhs); }
-gen r4b := DIVU1(r5b, r8:rhs)          { E_clr(REG_R4); E_div(REG_R4, $rhs); }
-gen r3b := REMU1(r3b, r8:rhs) uses r2b { E_clr(REG_R2); E_div(REG_R2, $rhs); }
-gen r5b := REMU1(r5b, r8:rhs) uses r4b { E_clr(REG_R4); E_div(REG_R4, $rhs); }
-gen r4  := DIVU2(r5, r16:rhs)          { E_clr(REG_R4); E_div(REG_R4, $rhs); }
-gen r5  := REMU2(r5, r16:rhs) uses r4  { E_clr(REG_R4); E_div(REG_R4, $rhs); }
-gen r2r3 := DIVU4(r2r3, r0r1)          { E_callhelper("_divu4"); }
-gen r4r5 := REMU4(r2r3, r0r1)          { E_callhelper("_remu4"); }
+gen r0b := DIVU1(r8:rhs, $$) uses r1b            { E_uxtb($rhs); E_uxtb(REG_R0); E_clr(REG_R1); E_div($rhs, $$); }
+gen r1b := REMU1(r8:rhs, $$)                     { E_uxtb($rhs); E_uxtb(REG_R0); E_clr(REG_R1); E_div($rhs, $$); }
+gen r0  := DIVU1(r16:rhs, $$) uses r1            { E_clr(REG_R1); E_div($rhs, $$); }
+gen r1  := REMU1(r16:rhs, $$)                    { E_clr(REG_R1); E_div($rhs, $$); }
+gen r2r3 := DIVU4(r2r3, r0r1)                    { E_callhelper("_divu4"); }
+gen r4r5 := REMU4(r2r3, r0r1)                    { E_callhelper("_remu4"); }
 
-gen r2b := DIVS1(r2b, r8:rhs) uses r3  { E_movb(REG_R2, REG_R3); E_sxt(REG_R2); E_sxtb($rhs); E_div(REG_R2, $rhs); }
-gen r4b := DIVS1(r4b, r8:rhs) uses r5  { E_movb(REG_R4, REG_R5); E_sxt(REG_R4); E_sxtb($rhs); E_div(REG_R4, $rhs); }
-gen r3b := REMS1(r2b, r8:rhs)          { E_movb(REG_R2, REG_R3); E_sxt(REG_R2); E_sxtb($rhs); E_div(REG_R2, $rhs); }
-gen r5b := REMS1(r4b, r8:rhs)          { E_movb(REG_R4, REG_R5); E_sxt(REG_R4); E_sxtb($rhs); E_div(REG_R4, $rhs); }
-gen r2  := DIVS2(r3, r16:rhs)          { E_tst(REG_R3); E_sxt(REG_R2); E_div(REG_R2, $rhs); }
-gen r4  := DIVS2(r5, r16:rhs)          { E_tst(REG_R5); E_sxt(REG_R4); E_div(REG_R4, $rhs); }
-gen r3  := REMS2(r3, r16:rhs) uses r2  { E_tst(REG_R3); E_sxt(REG_R2); E_div(REG_R2, $rhs); }
-gen r5  := REMS2(r5, r16:rhs) uses r4  { E_tst(REG_R5); E_sxt(REG_R4); E_div(REG_R4, $rhs); }
-gen r2r3 := DIVS4(r2r3, r0r1)          { E_callhelper("_divs4"); }
-gen r4r5 := REMS4(r2r3, r0r1)          { E_callhelper("_rems4"); }
+gen r0b := DIVS1(r8:rhs, $$) uses r1b            { E_sxtb($rhs); E_sxtb(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
+gen r1b := REMS1(r8:rhs, $$)                     { E_sxtb($rhs); E_sxtb(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
+gen r0  := DIVS1(r16:rhs, $$) uses r1            { E_tst(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
+gen r1  := REMS1(r16:rhs, $$)                    { E_tst(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
+gen r2r3 := DIVS4(r2r3, r0r1)                    { E_callhelper("_divs4"); }
+gen r4r5 := REMS4(r2r3, r0r1)                    { E_callhelper("_rems4"); }
 
-gen r8  := LSHIFT1($$:lhs, r8:rhs)           { E_shl($rhs, $lhs); }
-gen r8  := LSHIFT1($$:lhs, CONSTANT():c)     { E_shli($c.value, $lhs); }
-gen r16 := LSHIFT2($$:lhs, r16:rhs)          { E_shl($rhs, $lhs); }
-gen r16 := LSHIFT2($$:lhs, CONSTANT():c)     { E_shli($c.value, $lhs); }
-gen r32 := LSHIFT4($$:lhs, r16:rhs)          { E_shl4($rhs, $lhs); }
-gen r32 := LSHIFT4($$:lhs, CONSTANT():c)     { E_shli4($c.value, $lhs); }
+gen r8n0  := LSHIFT1($$:lhs, r0b:rhs)            { E_shl($rhs, $lhs); }
+gen r8    := LSHIFT1($$:lhs, CONSTANT():c)       { E_shli($c.value as uint8, $lhs); }
+gen r16n0 := LSHIFT2($$:lhs, r0b:rhs)            { E_shl($rhs, $lhs); }
+gen r16   := LSHIFT2($$:lhs, CONSTANT():c)       { E_shli($c.value as uint8, $lhs); }
+gen r32n0 := LSHIFT4($$:lhs, r0b:rhs)            { E_shl4($rhs, $lhs); }
+gen r32   := LSHIFT4($$:lhs, CONSTANT():c)       { E_shli4($c.value as uint8, $lhs); }
 
-gen r8  := RSHIFTU1($$:lhs, r8:rhs)          { E_shr1($rhs, $lhs); }
-gen r8  := RSHIFTU1($$:lhs, CONSTANT():c)    { E_shri($c.value, $lhs); }
-gen r16 := RSHIFTU2($$:lhs, r16:rhs) uses r5 { E_shr($rhs, $lhs); }
-gen r16 := RSHIFTU2($$:lhs, CONSTANT():c)    { E_shri($c.value, $lhs); }
-gen r32 := RSHIFTU4($$:lhs, r16:rhs) uses r4r5 { E_shr4($rhs, $lhs); }
-gen r32 := RSHIFTU4($$:lhs, CONSTANT():c) uses r5 { E_shri4($c.value, $lhs); }
+gen r8n0  := RSHIFTU1($$:lhs, r0b:rhs)           { E_shr1($rhs, $lhs); }
+gen r8    := RSHIFTU1($$:lhs, CONSTANT():c)      { E_shri($c.value as uint8, $lhs); }
+gen r16n0 := RSHIFTU2($$:lhs, r0b:rhs) uses r5   { E_shr($rhs, $lhs); }
+gen r16   := RSHIFTU2($$:lhs, CONSTANT():c)      { E_shri($c.value as uint8, $lhs); }
+gen r32n0 := RSHIFTU4($$:lhs, r0b:rhs) uses r4r5 { E_shr4($rhs, $lhs); }
+gen r32   := RSHIFTU4($$:lhs, CONSTANT():c) uses r5 { E_shri4($c.value as uint8, $lhs); }
 
-// arithmetic shifts
-gen r8  := RSHIFTS1($$:lhs, r8:rhs) uses r5  { E_sar1($rhs, $lhs); }
-gen r8  := RSHIFTS1($$:lhs, CONSTANT():c) uses r5 { E_sari1($c.value, $lhs); }
-gen r16 := RSHIFTS2($$:lhs, r16:rhs)         { E_sar($rhs, $lhs); }
-gen r16 := RSHIFTS2($$:lhs, CONSTANT():c)    { E_sari($c.value, $lhs); }
-gen r32 := RSHIFTS4($$:lhs, r16:rhs)         { E_sar4($rhs, $lhs); }
-gen r32 := RSHIFTS4($$:lhs, CONSTANT():c)    { E_sari4($c.value, $lhs); }
+gen r8n0  := RSHIFTS1($$:lhs, r0b:rhs)           { E_sar1($rhs, $lhs); }
+gen r8    := RSHIFTS1($$:lhs, CONSTANT():c)      { E_sari($c.value as uint8, $lhs); }
+gen r16n0 := RSHIFTS2($$:lhs, r0b:rhs)           { E_sar($rhs, $lhs); }
+gen r16   := RSHIFTS2($$:lhs, CONSTANT():c)      { E_sari($c.value as uint8, $lhs); }
+gen r32n0 := RSHIFTS4($$:lhs, r0b:rhs) uses r4r5 { E_sar4($rhs, $lhs); }
+gen r32   := RSHIFTS4($$:lhs, CONSTANT():c) uses r5 { E_sari4($c.value as uint8, $lhs); }
 
 // --- Conditionals ---------------------------------------------------------
 
