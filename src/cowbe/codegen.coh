@@ -594,13 +594,16 @@ sub Generate(rootnode: [Node]) is
 								# Bad news --- we can't allocate any registers, so
 								# spill to the stack via a push and pop.
 
-								sub deadlock() is
+								sub deadlock(s: [uint8]) is
 									PrintNodes(rootnode);
 									print("producer: ");
 									print_hex_i32(producer.n[0] as intptr as uint32);
 									print_nl();
 									print("consumer: ");
 									print_hex_i32(consumer.n[0] as intptr as uint32);
+									print_nl();
+									print("node: ");
+									print_hex_i32(node as intptr as uint32);
 									print_nl();
 
 									print("producer.producable_regs=");
@@ -615,12 +618,18 @@ sub Generate(rootnode: [Node]) is
 									print("consumer.input_regs=");
 									print_hex_i32(consumer.input_regs as uint32);
 									print_nl();
-									SimpleError("register allocation deadlock");
+									print("compatible=");
+									print_hex_i32(compatible as uint32);
+									print_nl();
+									StartError();
+									print("register allocation deadlock: ");
+									print(s);
+									EndError();
 								end sub;
 
 								candidate := producer.producable_regs & compatible & ~producer.output_regs;
 								if candidate == 0 then
-									deadlock();
+									deadlock("producer");
 								end if;
 
 								producer.produced_reg := FindFirst(candidate);
@@ -630,7 +639,7 @@ sub Generate(rootnode: [Node]) is
 
 								candidate := node.desired_reg & ~consumer.input_regs;
 								if candidate == 0 then
-									deadlock();
+									deadlock("consumer");
 								end if;
 								node.produced_reg := FindFirst(candidate);
 								consumer.input_regs := consumer.input_regs
