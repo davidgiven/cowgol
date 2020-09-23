@@ -72,8 +72,13 @@ void run()
             default:
                 name = iname[i];
             }
+			#if defined HEX
+            TrapDebug((dbg_file, "%04x %04x %4s ", regs[7], ir, name));
+            TrapDebug((dbg_file, "%04x %04x %04x %04x %04x %04x %04x   ",
+			#else
             TrapDebug((dbg_file, "%06o %06o %4s ", regs[7], ir, name));
             TrapDebug((dbg_file, "%06o %06o %06o %06o %06o %06o %06o   ",
+			#endif
                        regs[0], regs[1], regs[2], regs[3],
                        regs[4], regs[5], regs[6]));
             TrapDebug((dbg_file, "NZVC1 %d%d%d%d\n", CC_N, CC_Z, CC_V,

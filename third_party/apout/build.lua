@@ -19,7 +19,7 @@ cprogram {
 		"third_party/apout/v7trap.c",
 	},
 	ldflags = "-lm",
-	cflags = "-DEMUV1 -DNATIVES -DRUN_V1_RAW -DDEBUG -DZERO_MEMORY -DWRITEBASE",
+	cflags = "-DEMUV1 -DNATIVES -DRUN_V1_RAW -DDEBUG -DZERO_MEMORY -DWRITEBASE -DHEX",
 	outs = { "bin/apout" }
 }
 
