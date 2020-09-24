@@ -791,13 +791,12 @@
 		E_sub(r3, hireg(dest));			# sub	r3,r0
 	end sub;
 
-	sub E_div(src: RegId, dest: RegId) is
-		R_flush(hireg(src));
-		R_flush(loreg(src));
+	sub E_div(rhs: RegId, lhs: RegId) is
+		R_flush(lhs);
 		E_insn16("DIV");
-		E_reg(dest);
+		E_reg(rhs);
 		E(", ");
-		E_reg(src);
+		E_reg(lhs);
 		E_nl();
 	end sub;
 
@@ -940,7 +939,9 @@ regclass r16 := r0|r1|r2|r3|r4|r5;
 regclass r32 := r0r1|r2r3|r4r5;
 
 regclass r8n0 := r1b|r2b|r3b|r4b|r5b;
+regclass r8n01 := r2b|r3b|r4b|r5b;
 regclass r16n0 := r1|r2|r3|r4|r5;
+regclass r16n01 := r2|r3|r4|r5;
 regclass r32n0 := r2r3|r4r5;
 
 regdata r0b compatible r8 uses r0|r0b|r0r1;
@@ -1353,17 +1354,17 @@ gen r1b|r3b|r5b := MUL1($$, r0b|r2b|r4b:rhs)     { E_mul($rhs, $$); }
 gen r1|r3|r5 := MUL2($$, r0|r2|r4:rhs)           { E_mul($rhs, $$); }
 gen r4r5 := MUL4(r2r3:lhs, r0r1:rhs)             { E_mul4($$, $lhs, $rhs); }
 
-gen r0b := DIVU1(r8:rhs, $$) uses r1b            { E_uxtb($rhs); E_uxtb(REG_R0); E_clr(REG_R1); E_div($rhs, $$); }
-gen r1b := REMU1(r8:rhs, $$)                     { E_uxtb($rhs); E_uxtb(REG_R0); E_clr(REG_R1); E_div($rhs, $$); }
-gen r0  := DIVU1(r16:rhs, $$) uses r1            { E_clr(REG_R1); E_div($rhs, $$); }
-gen r1  := REMU1(r16:rhs, $$)                    { E_clr(REG_R1); E_div($rhs, $$); }
+gen r0b := DIVU1(r1b, r8n01:rhs)                 { E_uxtb($rhs); E_uxtb(REG_R1); E_clr(REG_R0); E_div($rhs, REG_R0); }
+gen r1b := REMU1(r1b, r8n01:rhs)                 { E_uxtb($rhs); E_uxtb(REG_R1); E_clr(REG_R0); E_div($rhs, REG_R0); }
+gen r0  := DIVU2(r1, r16n01:rhs)                 { E_clr(REG_R0); E_div($rhs, REG_R0); }
+gen r1  := REMU2(r1, r16n01:rhs)                 { E_clr(REG_R0); E_div($rhs, REG_R0); }
 gen r2r3 := DIVU4(r2r3, r0r1)                    { E_callhelper("_divu4"); }
 gen r4r5 := REMU4(r2r3, r0r1)                    { E_callhelper("_remu4"); }
 
-gen r0b := DIVS1(r8:rhs, $$) uses r1b            { E_sxtb($rhs); E_sxtb(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
-gen r1b := REMS1(r8:rhs, $$)                     { E_sxtb($rhs); E_sxtb(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
-gen r0  := DIVS1(r16:rhs, $$) uses r1            { E_tst(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
-gen r1  := REMS1(r16:rhs, $$)                    { E_tst(REG_R0); E_sxt(REG_R1); E_div($rhs, $$); }
+gen r0b := DIVS1(r1b, r8n01:rhs)                 { E_sxtb($rhs); E_sxtb(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
+gen r1b := REMS1(r1b, r8n01:rhs)                 { E_sxtb($rhs); E_sxtb(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
+gen r0  := DIVS2(r1, r16n01:rhs)                 { E_tst(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
+gen r1  := REMS2(r1, r16n01:rhs)                 { E_tst(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
 gen r2r3 := DIVS4(r2r3, r0r1)                    { E_callhelper("_divs4"); }
 gen r4r5 := REMS4(r2r3, r0r1)                    { E_callhelper("_rems4"); }
 
