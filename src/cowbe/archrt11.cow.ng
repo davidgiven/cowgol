@@ -289,6 +289,14 @@
 		E_nl();
 	end sub;
 
+	sub E_callreg(reg: RegId) is
+		R_flushall();
+		E_tab();
+		E_insn16("call");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
 	sub E_ret() is
 		E("\tret\n");
 	end sub;
@@ -1121,6 +1129,10 @@ gen RETURN()
 	sub Call(addr: [MidcodeSubref]) is
 		E_call(addr.subr);
 	end sub;
+
+	sub CallR2() is
+		E_callreg(REG_R2);
+	end sub;
 %}
 
 gen CALL(param):s { E_call($s.subr); }
@@ -1141,6 +1153,23 @@ gen r0r1 := CALLE4(     param,        SUBREF():a) uses r2r3|r4r5    { Call(&$a);
 gen r0r1 := CALLE4(ARG1(param, r0b),  SUBREF():a) uses r2r3|r4r5    { Call(&$a); }
 gen r0r1 := CALLE4(ARG2(param, r0),   SUBREF():a) uses r2r3|r4r5    { Call(&$a); }
 gen r0r1 := CALLE4(ARG4(param, r0r1), SUBREF():a) uses r2r3|r4r5    { Call(&$a); }
+
+gen         CALL(       param,        r2) uses r0|r1|r3|r4r5 { CallR2(); }
+gen         CALL(  ARG1(param, r0b),  r2) uses r1|r3|r4r5    { CallR2(); }
+gen         CALL(  ARG2(param, r0),   r2) uses r1|r3|r4r5    { CallR2(); }
+gen         CALL(  ARG4(param, r0r1), r2) uses r3|r4r5       { CallR2(); }
+gen r0b :=  CALLE1(     param,        r2) uses r1|r3|r4r5    { CallR2(); }
+gen r0b :=  CALLE1(ARG1(param, r0b),  r2) uses r1|r3|r4r5    { CallR2(); }
+gen r0b :=  CALLE1(ARG2(param, r0),   r2) uses r1|r3|r4r5    { CallR2(); }
+gen r0b :=  CALLE1(ARG4(param, r0r1), r2) uses r3|r4r5       { CallR2(); }
+gen r0  :=  CALLE2(     param,        r2) uses r1|r3|r4r5    { CallR2(); }
+gen r0  :=  CALLE2(ARG1(param, r0b),  r2) uses r1|r3|r4r5    { CallR2(); }
+gen r0  :=  CALLE2(ARG2(param, r0),   r2) uses r1|r3|r4r5    { CallR2(); }
+gen r0  :=  CALLE2(ARG4(param, r0r1), r2) uses r3|r4r5       { CallR2(); }
+gen r0r1 := CALLE4(     param,        r2) uses r3|r4r5       { CallR2(); }
+gen r0r1 := CALLE4(ARG1(param, r0b),  r2) uses r3|r4r5       { CallR2(); }
+gen r0r1 := CALLE4(ARG2(param, r0),   r2) uses r3|r4r5       { CallR2(); }
+gen r0r1 := CALLE4(ARG4(param, r0r1), r2) uses r3|r4r5       { CallR2(); }
 
 gen param := END();
 
