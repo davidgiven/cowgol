@@ -110,8 +110,8 @@ toolchain_bbcti = {
 
 toolchain_unixv7 = {
 	name = "unixv7",
-	cowfe = "bin/cowfe-rt11.nncgen.exe",
-	cowbe = "bin/cowbe-rt11.nncgen.exe",
+	cowfe = "bin/cowfe-pdp11.nncgen.exe",
+	cowbe = "bin/cowbe-pdp11.nncgen.exe",
 	linker = "bin/cowlink-v7unix.nncgen.exe",
 	assembler = buildcowasmpdp11,
 	runtime = "rt/unixv7",
