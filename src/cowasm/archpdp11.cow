@@ -1219,7 +1219,7 @@ sub InitialiseSymbolTable() is
         { "BLT",   0o002400, CondCb,     &s },
         { "BGT",   0o003000, CondCb,     &s },
         { "BLE",   0o003400, CondCb,     &s },
-        { "BPL",   0o000000, CondCb,     &s },
+        { "BPL",   0o100000, CondCb,     &s },
         { "BMI",   0o100400, CondCb,     &s },
         { "BHI",   0o101000, CondCb,     &s },
         { "BLOS",  0o101400, CondCb,     &s },
