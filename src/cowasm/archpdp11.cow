@@ -25,6 +25,7 @@ var programCounter: uint16;
 var programCounterSet: uint8;
 var currentInsn: [Symbol];
 var currentLabel: [Symbol];
+var labelsChanged: uint8;
 var pass: uint8;
 
 const X_LINENO := 0;
@@ -37,6 +38,7 @@ const X_END := 79;
 var listingByteX: uint8;
 var listingCharX: uint8;
 var doListing: uint8 := 0;
+var lastPass: uint8 := 0;
 
 # 0000: 0000: 00 11 22 33 44 55 66 77 <text>
 var listingBuffer: uint8[80];
@@ -152,7 +154,7 @@ sub Hex16(w: uint16, buffer: string) is
 end sub;
 
 sub Emit8(b: uint8) is
-    if pass == 3 then
+    if lastPass != 0 then
         FCBPutChar(&outputFile, b);
 
         if (doListing != 0) and (listingByteX != X_TEXT) then
@@ -762,6 +764,8 @@ sub SetImplicitLabel() is
         print_hex_i16(programCounter);
         print("h)");
         EndError();
+    elseif currentLabel.value != programCounter then
+        labelsChanged := 1;
     end if;
 
     currentLabel.value := programCounter;
@@ -789,6 +793,8 @@ sub EquCb implements SymbolCallback is
         and (currentLabel.callback != UndefinedLabelCb)
     then
         SimpleError("label already defined");
+    elseif currentLabel.value != tokenNumber then
+        labelsChanged := 1;
     end if;
 
     currentLabel.value := tokenNumber;
@@ -1282,8 +1288,9 @@ sub Pass() is
     lineno := 0;
     programCounter := 0;
     programCounterSet := 0;
+    labelsChanged := 0;
     
-    if (listingFilename != 0 as string) and (pass == 3) then
+    if (listingFilename != 0 as string) and (lastPass != 0) then
         doListing := 1;
     end if;
 
@@ -1302,7 +1309,7 @@ sub Pass() is
     # ...are all valid.
 
     loop
-        if (listingFilename != 0 as string) and (pass == 3) then
+        if (listingFilename != 0 as string) and (lastPass != 0) then
             listingByteX := X_BYTES;
             listingCharX := X_TEXT;
 
@@ -1448,12 +1455,16 @@ ParseArguments();
 InitialiseSymbolTable();
 
 pass := 1;
-Pass();
-CheckForUndefinedSymbols();
-pass := 2;
-FCBSeek(&inputFile, 0);
-Pass();
-pass := 3;
+loop
+    FCBSeek(&inputFile, 0);
+    Pass();
+    CheckForUndefinedSymbols();
+    pass := pass + 1;
+    if labelsChanged == 0 then
+        break;
+    end if;
+end loop;
+lastPass := 1;
 FCBSeek(&inputFile, 0);
 Pass();
 
