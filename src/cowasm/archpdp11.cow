@@ -235,6 +235,9 @@ sub ReadToken(): (token: Token) is
 			c := pushedc;
 			pushedc := 0;
 		end if;
+        if c == '\t' then
+            c := ' ';
+        end if;
         if (doListing != 0) and (listingCharX != X_END) and (c >= 32) then
             listingBuffer[listingCharX] := c;
             listingCharX := listingCharX + 1;
@@ -256,7 +259,7 @@ sub ReadToken(): (token: Token) is
 	var c: uint8;
 	loop
 		c := GetC();
-		if (c != ' ') and (c != '\t') and (c != '\r') then
+		if (c != ' ') and (c != '\r') then
 			break;
 		end if;
 	end loop;
