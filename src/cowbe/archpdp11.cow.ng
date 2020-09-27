@@ -1291,15 +1291,12 @@ gen STORE4(r32:val, ADDRESS():a)
 
 gen r8  := NEG1($$)                   { E_neg($$); }
 gen r16 := NEG2($$)                   { E_neg($$); }
-gen r32 := NEG4($$) uses r2r3 // XXX use NEG?
+gen r32 := NEG4($$)
 {
-	E_clr(REG_R2);
-	E_clr(REG_R3);
-	E_sub(loreg($$), REG_R3);
-	E_sbc(REG_R2);
-	E_sub(hireg($$), REG_R2);
-	E_move(REG_R3, loreg($$));
-	E_move(REG_R2, hireg($$));;
+	E_not(hireg($$));
+	E_not(loreg($$));
+	E_alu2wi("add", 1, loreg($$)); # inc does not set the carry
+	E_adc(hireg($$));
 }
 
 gen r8  := NOT1($$)                   { E_not($$); }
