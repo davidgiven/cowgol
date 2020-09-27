@@ -1,5 +1,5 @@
 include "cowgol.coh";
-include "_framework.coh";
+include "tests/_framework.coh";
 
 sub TestAToI(data: [uint8]) is
 	print_char('"');

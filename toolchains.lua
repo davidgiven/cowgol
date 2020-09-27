@@ -108,6 +108,18 @@ toolchain_bbcti = {
 	tester = tubeemutest,
 }
 
+toolchain_unixv7 = {
+	name = "unixv7",
+	cowfe = "bin/cowfe-pdp11.nncgen.exe",
+	cowbe = "bin/cowbe-pdp11.nncgen.exe",
+	linker = "bin/cowlink-v7unix.nncgen.exe",
+	assembler = buildcowasmpdp11,
+	runtime = "rt/unixv7",
+	asmext = ".asm",
+	binext = ".exe",
+	tester = apouttest
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
@@ -118,5 +130,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbctiny,
 	toolchain_bbct6502,
 	toolchain_bbcti,
+	toolchain_unixv7,
 }
 

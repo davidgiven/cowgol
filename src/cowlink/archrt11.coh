@@ -1,0 +1,63 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	var a := (alignment-1) as Size;
+	newvalue := (value+a) & ~a;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws+");
+	E_u16(address);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E("\t.mcall\t.serr, .herr, .exit, .qset, .mrkt, .cmkt, .print, .ttyou\n");
+	E("\t.mcall\t.csisp, .looku, .cstat, .enter, .close, .readw, .writw\n");
+	E("\t.mcall\t.setto, .gval, .mfps, .mtps, .readc\n");
+	E("\t.radix\t10\n\n");
+	E("start:\n");
+	E("\t.serr\n");
+
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\tcall\t");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("exit:\n");
+	E("\t.setto\t#0\n");
+	E("\t.exit\n\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("\n\t.even\n");
+	E("limit:\t.limit\n");
+	E("ws:\t.blkb\t");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("\t.end\tstart\n");
+
+	var padding := FCBExt(&outfcb) - FCBPos(&outfcb);
+	while padding != 0 loop
+		E_b8(' ');
+		padding := padding - 1;
+	end loop;
+end sub;
+

@@ -116,17 +116,25 @@ function buildzmac(e)
 	}
 end
 
-function buildcowasm8080(e)
+function buildcowasm(e, asm)
 	local lst = e.outs[1]:ext(".lst"):obj()
 	rule {
 		ins = concat {
 			"scripts/quiet",
-			"bin/cowasm-8080.nncgen.exe",
+			"bin/cowasm-"..asm..".nncgen.exe",
 			e.ins
 		},
 		outs = { e.outs[1], lst },
 		cmd = "@1 @2 @3 -o &1 -l &2"
 	}
+end
+
+function buildcowasm8080(e)
+	buildcowasm(e, "8080")
+end
+
+function buildcowasmpdp11(e)
+	buildcowasm(e, "pdp11")
 end
 
 function buildtass64(e)
@@ -168,6 +176,11 @@ function tubeemutest(e)
 	return simpletest("bin/tubeemu -l 0x400 -e 0x400 -f", e)
 end
 
+function apouttest(e)
+	e.ins = concat { e.ins, "bin/apout" }
+	return simpletest("bin/apout ", e)
+end
+
 function cowgol(e)
 	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
 	local coo = out:ext(".coo"):obj()
@@ -193,6 +206,8 @@ function cowgol(e)
 				"rt/malloc.coh",
 				"rt/strings.coh",
 				(e.toolchain.runtime.."/cowgol.coh"),
+				(e.toolchain.runtime.."/file.coh"),
+				(e.toolchain.runtime.."/argv.coh"),
 			},
 			outs = { coo },
 			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
@@ -209,6 +224,8 @@ function cowgol(e)
 				"rt/malloc.coh",
 				"rt/strings.coh",
 				(e.toolchain.runtime.."/cowgol.coh"),
+				(e.toolchain.runtime.."/file.coh"),
+				(e.toolchain.runtime.."/argv.coh"),
 			},
 			outs = { cob },
 			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"

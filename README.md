@@ -46,6 +46,10 @@ The following targets are supported. Adding more is easy.
 
   - 80386, on Linux.
 
+  - PDP11, on V7 Unix (thanks to
+	[shattered@github](https://github.com/shattered) for contributing the PDP11
+	backend for this).
+
   - Generic and terrible C. This produces very big and slow binaries which
     are used for bootstrapping the compiler if you don't have a Cowgol
 	compiler.
@@ -61,6 +65,8 @@ compiler and I haven't reworked the AGC backend.)
 
 In terms of machines you can run the compiler _on_:
 
+  - 80386 Linux, duh.
+
   - A BBC Micro with Tube second processor. [Follow this link for a live
 	in-browser
 	demo](https://bbc.godbolt.org/?&model=MasterTurbo&disc1=https://cowlark.com/cowgol/bbct.ssd&disc2=https://cowlark.com/cowgol/bbctwork.ssd&rom=https://cowlark.com/cowgol/assembler.rom)
@@ -71,6 +77,12 @@ In terms of machines you can run the compiler _on_:
 
   - Generic CP/M (untested). There's no reason why this shouldn't work, but I
 	haven't tried it yet.
+
+Machines which you _cannot_ run the compiler on are:
+
+  - PDP11 V7 Unix. Unfortunately the cowasm integrated assembler relies on
+	binaries having a writable text segment, which V7 Unix prohibits. This is
+	very much a case of me breaking my own rules and at some point I'll fix it.
 
 ### About the language
 
@@ -237,5 +249,10 @@ public domain.
 `third_party/sim68xx` contains a copy of the sim68xx emulation library,
 primarily written by Arne Riiber and Felix Erckenbrecht. It is distributed
 under the terms of the GPL 2.0; see `third_party/sim68xx/LICENSE` for the full
+text.
+
+`third_party/apout` contains a copy of the apout PDP-11 SysV binary emulator,
+primarily written by Warren Toomey and Eric A. Edwards. It is distributed under
+the terms of the MIT license; see `third_party/apout/COPYRIGHT` for the full
 text.
 
