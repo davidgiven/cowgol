@@ -658,9 +658,9 @@
 		end if;
 		var v := value as uint8;
 		if v > 0 then
-			E_insn16("CLC");
-			E_nl();
 			while value > 0 loop
+				E_insn16("CLC");
+				E_nl();
 				E_insn("ROR", reg);
 				E_reg(reg);
 				E_nl();

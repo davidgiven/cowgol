@@ -13,6 +13,7 @@ big>>0 == 0x80000000: yes
 big>>1 == 0x40000000: yes
 big>>2 == 0x20000000: yes
 twodtwo>>seven == 5: yes
+bug1>>10 == 0x30: yes
 mbig>>zero == 0x80000000: yes
 mbig>>one == 0xc0000000: yes
 mbig>>two == 0xe0000000: yes

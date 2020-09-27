@@ -4,6 +4,7 @@ one16<<two == 4: yes
 big>>zero == 0x8000: yes
 big>>one == 0x4000: yes
 big>>two == 0x2000: yes
+bug1>>10 == 0x30: yes
 mbig>>zero == 0x8000: yes
 mbig>>one == 0xc000: yes
 mbig>>two == 0xe000: yes

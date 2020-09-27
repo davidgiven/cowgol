@@ -5,6 +5,7 @@ var zero16: uint16 := 0;
 var one16: uint16 := 1;
 var big: uint16 := 0x8000;
 var mbig: int16 := 0x8000;
+var bug1: uint16 := 0xc388;
 
 var zero: uint8 := 0;
 var one: uint8 := 1;
@@ -19,8 +20,9 @@ lshift();
 
 sub rshiftu() is
 	print("big>>zero == 0x8000"); if big>>zero == 0x8000 then yes(); else no(); end if;
-	print("big>>one == 0x4000"); if big>>one == 0x4000 then yes(); else no(); end if;
-	print("big>>two == 0x2000"); if big>>two == 0x2000 then yes(); else no(); end if;
+	print("big>>one == 0x4000");  if big>>one == 0x4000 then yes(); else no(); end if;
+	print("big>>two == 0x2000");  if big>>two == 0x2000 then yes(); else no(); end if;
+	print("bug1>>10 == 0x30");    if bug1>>10 == 0x30 then yes(); else no(); end if;
 end sub;
 rshiftu();
 
