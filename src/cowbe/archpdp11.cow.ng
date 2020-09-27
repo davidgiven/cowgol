@@ -293,6 +293,7 @@
 		R_flushall();
 		E_tab();
 		E_insn16("call");
+		E(" @");
 		E_reg(reg);
 		E_nl();
 	end sub;
