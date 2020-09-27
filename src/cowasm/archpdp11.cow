@@ -999,7 +999,7 @@ sub CondCb implements SymbolCallback is
         programCounter := programCounter + 6;
     else
         var delta := (tokenNumber - programCounter - 2) as int16 >> 1;
-        if (delta >= -256) and (delta <= 255) then
+        if (delta >= -128) and (delta <= 127) then
             Emit16(currentInsn.value | (delta as uint16 & 0xff));
         else
             Emit16((currentInsn.value ^ 0o400) | 2);
@@ -1016,7 +1016,7 @@ sub BrCb implements SymbolCallback is
         programCounter := programCounter + 4;
     else
         var delta := (tokenNumber - programCounter - 2) as int16 >> 1;
-        if (delta >= -256) and (delta <= 255) then
+        if (delta >= -128) and (delta <= 127) then
             Emit16(currentInsn.value | (delta as uint16 & 0xff));
         else
             Emit16(0o000167);
