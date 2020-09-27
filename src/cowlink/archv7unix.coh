@@ -33,6 +33,10 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\torg 0\n");
 	E("\tdw 0, 0016600o\n"); # required to make apout think this is a UnixV7 binary
 	E("\tstart:\n");
+	E("\tmov sp, r0\n");
+	E("\tmov r0, himem\n");
+	E("\tadd #2, r0\n");
+	E("\tmov r0, argv\n");
 	E("\tmov #stack_end, sp\n");
 
 	while coo != (0 as [Coo]) loop
@@ -61,7 +65,9 @@ sub ArchEmitFooter(coo: [Coo]) is
 	E_u16(STACK_SIZE);
 	E_nl();
 
-	E("ws: equ stack_end\n");
+	E("argv: equ stack_end\n");
+	E("himem: equ stack_end+2\n");
+	E("ws: equ himem+2\n");
 
 	E("bss_end: equ ws+");
 	E_u16(workspaceSize[0]);

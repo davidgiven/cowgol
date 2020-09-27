@@ -1,16 +1,32 @@
 var LOMEM: [uint8];
 var HIMEM: [uint8];
 
+sub _find_himem() is
+	@asm "mov #0087h, -(sp)"; # ret
+	@asm "mov himem, -(sp)"; # brk address
+	@asm "mov #8911h, -(sp)"; # trap 17, brk
+
+	@asm "find_himem_loop:";
+	@asm "call @sp";
+	@asm "bcc find_himem_done";
+	@asm "sub #256, 2(sp)";
+	@asm "br find_himem_loop";
+	@asm "find_himem_done:";
+
+	@asm "mov r0, ", HIMEM;
+	@asm "add #6, sp";
+end sub;
+
 @asm "\tmov #bss_end+2,", LOMEM;
-@asm "\tmov r0,", HIMEM;
+_find_himem();
 
 sub Exit() is
-	@asm "\tbr exit";
+	@asm "br exit";
 end sub;
 
 sub ExitWithError() is
-	@asm "\tmov #1, r0";
-	@asm "\ttrap 0";
+	@asm "mov #1, r0";
+	@asm "trap 1"; # exit
 end sub;
 
 sub AlignUp(in: intptr): (out: intptr) is
@@ -18,10 +34,10 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
-	@asm "\tmov #1, r0"; # param 1
-	@asm "\ttrap 4";
-	@asm "\tdw ", c;     # param 2
-	@asm "\tdw 1";       # param 3
+	@asm "mov #1, r0"; # param 1
+	@asm "trap 4";
+	@asm "dw ", c;     # param 2
+	@asm "dw 1";       # param 3
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16) is

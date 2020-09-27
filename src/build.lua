@@ -207,6 +207,7 @@ function cowgol(e)
 				"rt/strings.coh",
 				(e.toolchain.runtime.."/cowgol.coh"),
 				(e.toolchain.runtime.."/file.coh"),
+				(e.toolchain.runtime.."/argv.coh"),
 			},
 			outs = { coo },
 			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
@@ -224,6 +225,7 @@ function cowgol(e)
 				"rt/strings.coh",
 				(e.toolchain.runtime.."/cowgol.coh"),
 				(e.toolchain.runtime.."/file.coh"),
+				(e.toolchain.runtime.."/argv.coh"),
 			},
 			outs = { cob },
 			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
