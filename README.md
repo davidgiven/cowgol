@@ -219,9 +219,10 @@ Your mileage (or kilometreage, depending) may very. You Have Been Warned.
 Who?
 ----
 
-Cowgol was written, entirely so far, by me, David Given. Feel free to send me
-email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to visit
-my website](http://cowlark.com); there may or may not be something
+Cowgol was written mostly by me, David Given, with additional contributions
+from [shattered@github](https://github.com/shattered). Feel free to contact me
+by email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to
+visit my website](http://cowlark.com); there may or may not be something
 interesting there.
 
 
