@@ -1137,8 +1137,6 @@ gen RETURN()
 	end sub;
 %}
 
-gen CALL(param):s { E_call($s.subr); }
-
 gen         CALL(       param,        SUBREF():a) uses r32          { Call(&$a); }
 gen         CALL(  ARG1(param, r0b),  SUBREF():a) uses r1|r2r3|r4r5 { Call(&$a); }
 gen         CALL(  ARG2(param, r0),   SUBREF():a) uses r1|r2r3|r4r5 { Call(&$a); }
