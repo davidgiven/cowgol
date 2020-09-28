@@ -875,7 +875,7 @@
 		var i: uint16 := 0;
 
 		EmitterOpenStream(current_subr);
-		E("\talign 2\n");
+		E("\tdseg\n");
 
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('z');
@@ -898,6 +898,7 @@
 			end if;
 		end loop;
 		E("0\n");
+		E("\tcseg\n");
 		EmitterCloseStream();
 
 		E_b8(COO_ESCAPE_THISCOO);
@@ -1135,8 +1136,6 @@ gen RETURN()
 		E_callreg(REG_R2);
 	end sub;
 %}
-
-gen CALL(param):s { E_call($s.subr); }
 
 gen         CALL(       param,        SUBREF():a) uses r32          { Call(&$a); }
 gen         CALL(  ARG1(param, r0b),  SUBREF():a) uses r1|r2r3|r4r5 { Call(&$a); }
@@ -1527,6 +1526,7 @@ gen r16 := STRING():s
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
+	E("\tdseg\n");
 	E("\talign 2\n");
 	E_symref(&$s.sym, 0);
 	E(":\n");
@@ -1534,6 +1534,7 @@ gen STARTINIT():s
 
 gen ENDINIT()
 {
+	E("\tcseg\n");
 	EmitterCloseStream();
 }
 

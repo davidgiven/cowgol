@@ -78,11 +78,7 @@ In terms of machines you can run the compiler _on_:
   - Generic CP/M (untested). There's no reason why this shouldn't work, but I
 	haven't tried it yet.
 
-Machines which you _cannot_ run the compiler on are:
-
-  - PDP11 V7 Unix. Unfortunately the cowasm integrated assembler relies on
-	binaries having a writable text segment, which V7 Unix prohibits. This is
-	very much a case of me breaking my own rules and at some point I'll fix it.
+  - PDP11 V7 Unix (untested). Likewise not tried.
 
 ### About the language
 
@@ -219,9 +215,10 @@ Your mileage (or kilometreage, depending) may very. You Have Been Warned.
 Who?
 ----
 
-Cowgol was written, entirely so far, by me, David Given. Feel free to send me
-email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to visit
-my website](http://cowlark.com); there may or may not be something
+Cowgol was written mostly by me, David Given, with additional contributions
+from [shattered@github](https://github.com/shattered). Feel free to contact me
+by email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to
+visit my website](http://cowlark.com); there may or may not be something
 interesting there.
 
 
