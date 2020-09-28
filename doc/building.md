@@ -82,11 +82,11 @@ the `nncgen.exe` extension).
 To run the cross compiler to generate a Linux 80386 binary, do:
 
 ```
-$ bin/cowfe.80386.nncgen.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.cob
-$ bin/cowbe.80386.nncgen.exe helloworld.cob helloworld.coo
-$ bin/cowlink.lx386.nncgen.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
+$ bin/cowfe-80386.nncgen.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.cob
+$ bin/cowbe-80386.nncgen.exe helloworld.cob helloworld.coo
+$ bin/cowlink-lx386.nncgen.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
 $ i686-linux-gnu-as helloworld.s -o helloworld.o
-$ i686-linux-gnu-as helloworld.o -o helloworld
+$ i686-linux-gnu-ld helloworld.o -o helloworld
 $ ./helloworld
 Hello, world!
 ```
@@ -94,11 +94,11 @@ Hello, world!
 If you're on a system which can run Linux i686 binaries, this will work too:
 
 ```
-$ bin/cowfe.80386.lx386.lx386.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.cob
-$ bin/cowbe.80386.lx386.lx386.exe helloworld.cob helloworld.coo
-$ bin/cowlink.lx386.lx386.lx386.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
+$ bin/cowfe-80386.lx386.lx386.exe -Irt/ -Irt/lx386/ examples/helloworld.cow helloworld.cob
+$ bin/cowbe-80386.lx386.lx386.exe helloworld.cob helloworld.coo
+$ bin/cowlink-lx386.lx386.lx386.exe .obj/rt/lx386/cowgol.coo helloworld.coo -o helloworld.s
 $ i686-linux-gnu-as helloworld.s -o helloworld.o
-$ i686-linux-gnu-as helloworld.o -o helloworld
+$ i686-linux-gnu-ld helloworld.o -o helloworld
 $ ./helloworld
 Hello, world!
 ```
