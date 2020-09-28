@@ -78,11 +78,7 @@ In terms of machines you can run the compiler _on_:
   - Generic CP/M (untested). There's no reason why this shouldn't work, but I
 	haven't tried it yet.
 
-Machines which you _cannot_ run the compiler on are:
-
-  - PDP11 V7 Unix. Unfortunately the cowasm integrated assembler relies on
-	binaries having a writable text segment, which V7 Unix prohibits. This is
-	very much a case of me breaking my own rules and at some point I'll fix it.
+  - PDP11 V7 Unix (untested). Likewise not tried.
 
 ### About the language
 
