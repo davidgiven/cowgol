@@ -1,0 +1,89 @@
+%{
+	record Extern is
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+		newvalue := value;
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
+	end sub;
+
+	sub R_flushall() is
+		RegCacheFlush(ALL_REGS);
+	end sub;
+
+	sub R_flush(reg: RegId) is
+		RegCacheFlush(FindConflictingRegisters(reg));
+	end sub;
+
+	sub E_label(label: LabelRef) is
+		R_flushall();
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub E_jump(insn: string, label: LabelRef) is
+		R_flushall();
+		E_tab();
+		E(insn);
+		E_space();
+		E_labelref(label);
+		E_nl();
+	end sub;
+
+	# Note that this *destroys* the source register.
+	sub ArchEmitMove(src: RegId, dest: RegId) is
+	end sub;
+
+	sub ArchEndInstruction() is
+	end sub;
+
+	sub ArchEndGroup() is
+	end sub;
+%}
+
+wordsize uint16;
+
+register a b d x;
+register vs mem;
+register stk4 param;
+
+regdata a uses d       compatible a|b;
+regdata b uses d       compatible a|b;
+regdata d uses a|b     compatible d|x;
+regdata x              compatible d|x;
+regdata vs stacked;
+regdata mem stacked;
+regdata stk4 stacked;
+regdata param stacked;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jump("jmp", $j.label);
+}
+
+

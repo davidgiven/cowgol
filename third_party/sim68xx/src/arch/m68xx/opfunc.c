@@ -97,27 +97,27 @@ void asr_addr (u_int addr)
 	u_int operand = mem_getb (addr);
 	mem_putb (addr, alu_shrbyte (operand, operand & 0x80));
 }
-void clr_addr (addr) {mem_putb (addr, alu_clrbyte (mem_getb (addr)));}
-void com_addr (addr) {mem_putb (addr, alu_combyte (mem_getb (addr)));}
-void dec_addr (addr) {mem_putb (addr, alu_decbyte (mem_getb (addr)));}
-void jsr_addr (addr)
+void clr_addr (int addr) {mem_putb (addr, alu_clrbyte (mem_getb (addr)));}
+void com_addr (int addr) {mem_putb (addr, alu_combyte (mem_getb (addr)));}
+void dec_addr (int addr) {mem_putb (addr, alu_decbyte (mem_getb (addr)));}
+void jsr_addr (int addr)
 {
 	pushword (reg_getpc ());	/* Return address */
 	reg_setpc (addr);
 	callstack_push (addr);		/* subroutine ref. */
 	call_level++;
 }
-void inc_addr (addr)		{mem_putb (addr, alu_incbyte (mem_getb (addr))); }
-void lsl_addr (addr)		{mem_putb (addr, alu_shlbyte (mem_getb (addr), 0));}
-void lsr_addr (addr)		{mem_putb (addr, alu_shrbyte (mem_getb (addr), 0));}
-void neg_addr (addr)		{mem_putb (addr, alu_negbyte (mem_getb (addr)));}
-void rol_addr (addr)		{mem_putb (addr, alu_shlbyte (mem_getb (addr), C));}
-void ror_addr (addr)		{mem_putb (addr, alu_shrbyte (mem_getb (addr), C));}
-void staa_addr (addr)	{mem_putb (addr, alu_bittestbyte (reg_getacca ()));}
-void stab_addr (addr)	{mem_putb (addr, alu_bittestbyte (reg_getaccb ()));}
-void sts_addr (addr)		{mem_putw (addr, alu_bittestword (reg_getsp ()));}
-void stx_addr (addr)		{mem_putw (addr, alu_bittestword (reg_getix ()));}
-void tst_addr (addr)		{alu_testbyte (mem_getb (addr));}
+void inc_addr (int addr)		{mem_putb (addr, alu_incbyte (mem_getb (addr))); }
+void lsl_addr (int addr)		{mem_putb (addr, alu_shlbyte (mem_getb (addr), 0));}
+void lsr_addr (int addr)		{mem_putb (addr, alu_shrbyte (mem_getb (addr), 0));}
+void neg_addr (int addr)		{mem_putb (addr, alu_negbyte (mem_getb (addr)));}
+void rol_addr (int addr)		{mem_putb (addr, alu_shlbyte (mem_getb (addr), C));}
+void ror_addr (int addr)		{mem_putb (addr, alu_shrbyte (mem_getb (addr), C));}
+void staa_addr (int addr)	{mem_putb (addr, alu_bittestbyte (reg_getacca ()));}
+void stab_addr (int addr)	{mem_putb (addr, alu_bittestbyte (reg_getaccb ()));}
+void sts_addr (int addr)		{mem_putw (addr, alu_bittestword (reg_getsp ()));}
+void stx_addr (int addr)		{mem_putw (addr, alu_bittestword (reg_getix ()));}
+void tst_addr (int addr)		{alu_testbyte (mem_getb (addr));}
 /*
  * int_addr - generate interrupt at the given vector address
  */

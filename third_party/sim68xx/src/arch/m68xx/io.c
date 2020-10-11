@@ -51,7 +51,7 @@ int out_in (u_char *buf, int nbytes)
 /*
  * out_print - print current output mode
  */
-int out_print (buf, nbytes)
+int out_print (int buf, int nbytes)
 {
 	printf ("io output mode: ");
 	switch (io_mode)

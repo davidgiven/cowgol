@@ -145,6 +145,15 @@ function buildtass64(e)
 	}
 end
 
+function buildcrasm(e)
+	local srec = e.outs[1]:ext(".srec"):obj()
+	rule {
+		ins = e.ins,
+		outs = { srec },
+		cmd = "crasm -o &1 -l @1"
+	}
+end
+
 function simpletest(interpreter, e)
 	local badfile = e.ins[1]:ext(".bad")
 	rule {
@@ -179,6 +188,11 @@ end
 function apouttest(e)
 	e.ins = concat { e.ins, "bin/apout" }
 	return simpletest("bin/apout ", e)
+end
+
+function h6303test(e)
+	e.ins = concat { e.ins, "bin/h6303" }
+	return simpletest("bin/h6303", e)
 end
 
 function cowgol(e)
