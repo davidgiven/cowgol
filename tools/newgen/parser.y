@@ -44,11 +44,16 @@ spec ::= rules.
 rules ::= .
 rules ::= rules SEMICOLON.
 rules ::= rules REGISTER regdecls SEMICOLON.
+rules ::= rules OPERAND opdecls SEMICOLON.
 rules ::= rules regdata SEMICOLON.
 
 regdecls ::= .
 regdecls ::= regdecls ID(ID).
 { define_register(ID.u.string); }
+
+opdecls ::= .
+opdecls ::= opdecls ID(ID).
+{ define_operand(ID.u.string); }
 
 rules ::= rules REGCLASS ID(ID) ASSIGN regspec(R).
 { define_regclass(ID.u.string, R); }

@@ -114,6 +114,13 @@ static reg_t find_conflicting_registers(reg_t id)
 	return conflicting;
 }
 
+void define_operand(const char* name)
+{
+	Register* r = define_register(name);
+	r->isstacked = true;
+	r->isoperand = true;
+}
+
 void define_regclass(const char* name, reg_t reg)
 {
 	RegisterClass* rc = define_symbol(name, SYM_REGCLASS, sizeof(RegisterClass));

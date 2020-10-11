@@ -44,6 +44,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "cost"                    { return COST; }
 "gen"                     { return GEN; }
 "is"                      { return IS; }
+"operand"                 { return OPERAND; }
 "regclass"                { return REGCLASS; }
 "regdata"                 { return REGDATA; }
 "register"                { return REGISTER; }

@@ -75,6 +75,7 @@ struct reg
 	reg_t uses;
 	reg_t compatible;
 	bool isstacked;
+	bool isoperand;
 };
 
 typedef struct regclass RegisterClass;
@@ -131,6 +132,7 @@ extern void include_file(void* buffer);
 
 extern Register* define_register(const char* name);
 extern Register* lookup_register(const char* name);
+extern void define_operand(const char* name);
 extern void define_regclass(const char* name, reg_t reg);
 extern reg_t lookup_register_or_class(const char* name);
 extern int lookup_midcode(const char* name);
