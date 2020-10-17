@@ -66,4 +66,6 @@ extern struct cpu cpu;
 extern void cpu_reset P_((void));
 extern void cpu_print P_((void));
 
+extern void command_install (int (*func)());
+
 #endif /* CPU_H */

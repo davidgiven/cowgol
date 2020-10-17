@@ -64,6 +64,16 @@ int getword_ix  () {return mem_getw (getaddr_ix  ());}
 
 
 /*
+ * int_install - installs a custom interrupt handler
+ */
+static int (*int_handler)(u_int addr) = NULL;
+
+extern void int_install(int (*func)(u_int addr))
+{
+	int_handler = func;
+}
+
+/*
  * branch_expr - branch to offset pointed to by pc if expr is true
  */
 void branch_expr (int expr)
@@ -123,16 +133,19 @@ void tst_addr (int addr)		{alu_testbyte (mem_getb (addr));}
  */
 void int_addr (u_int addr)
 {
-	rti_pc = reg_getpc();
+	if (int_handler && !int_handler(addr))
+	{
+		rti_pc = reg_getpc();
 
-	pushword (reg_getpc ());
-	pushword (reg_getix());
-	pushbyte (reg_getacca ());
-	pushbyte (reg_getaccb ());
-	pushbyte (reg_getccr());
-	reg_setpc (mem_getw (addr));
-	callstack_push (reg_getpc ());               /* new subroutine ref. */
-	reg_setiflag (1);
+		pushword (reg_getpc ());
+		pushword (reg_getix());
+		pushbyte (reg_getacca ());
+		pushbyte (reg_getaccb ());
+		pushbyte (reg_getccr());
+		reg_setpc (mem_getw (addr));
+		callstack_push (reg_getpc ());               /* new subroutine ref. */
+		reg_setiflag (1);
+	}
 }
 
 

@@ -339,7 +339,7 @@ int command (u_char *buf)
 			}
 		}
 		cpu_start ();
-#ifdef HAS_TERMIO
+#if defined HAS_TERMIO && !defined BUFFERED_TTY
 		tty_noblock (0, (char *) tty);
 #endif
 		nerrors = 0;
@@ -384,7 +384,7 @@ int command (u_char *buf)
 		}
 
 		cpu_stop ();
-#ifdef HAS_TERMIO
+#if defined HAS_TERMIO && !defined BUFFERED_TTY
 		tty_restore (0, (char *)tty);
 #endif
 		if (usr_int)

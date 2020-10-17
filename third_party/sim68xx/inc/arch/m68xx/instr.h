@@ -11,5 +11,7 @@ extern void reset P_((void));
 extern int instr_exec P_((void));
 extern u_int instr_print P_((u_int addr));
 
+extern void int_install(int (*func)(u_int addr));
+
 #undef P_
 #endif /* INSTR_H */

@@ -52,6 +52,7 @@
 
 #include "fileio.h"
 #include "command.h"
+#include "memory.h"
 
 char *inifile = ".simrc";
 char *progname;
@@ -111,6 +112,23 @@ int main (int argc, char *argv[])
 	 * Try opening symbol file
 	 */
 	sym_readfile (filename, NULL);
+
+	/*
+	 * If this looks like a Fuzix binary, set the CPU to start at the beginning of the
+	 * program.
+	 */
+	if (mem_getw(0x100) == 0x80a8)
+	{
+		int hibyte = mem_getb(0x104);
+		int lobyte = mem_getb(0x10c);
+		if (hibyte != 1)
+		{
+			printf("Fuzix binaries must be loaded at 0x100\n");
+			exit(1);
+		}
+		u_int address = 0x0100 | lobyte;
+		mem_putw(RESVECTOR, address);
+	}
 
 	/*
 	 * Try opening basename of filename with ".sim" extension

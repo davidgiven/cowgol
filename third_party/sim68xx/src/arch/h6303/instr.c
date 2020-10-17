@@ -44,7 +44,6 @@
 #include "instr.h"
 #endif
 
-
 /*
  *  reset - jump to the reset vector
  */

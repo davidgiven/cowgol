@@ -38,12 +38,12 @@ cprogram {
         "third_party/sim68xx/src/base/main.c",
         "third_party/sim68xx/src/base/symtab.c",
         "third_party/sim68xx/src/base/tty.c",
-		"third_party/sim68xx/src/boards/noboard.c",
+		"third_party/sim68xx/src/boards/fuzix6303.c",
 	},
 	outs = {
 		"bin/h6303"
 	},
-	cflags = "-DUSE_PROTOTYPES -DHAS_SCI -DH6303"
+	cflags = "-DUSE_PROTOTYPES -DHAS_SCI -DH6303 -DBUFFERED_TTY"
 }
 
 
