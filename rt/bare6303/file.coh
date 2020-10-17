@@ -1,0 +1,40 @@
+# vim: ts=4 sw=4 et
+
+record FCB is
+end record;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := 1;
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := 1;
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := 1;
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	errno := 1;
+end sub;
+
+sub FCBSeek(fcb: [FCB], pos: uint32) is
+end sub;
+
+sub FCBPos(fcb: [FCB]): (pos: uint32) is
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+end sub;
+
+sub FCBGetChar(fcb: [FCB]): (c: uint8) is
+end sub;
+
+sub FCBPutChar(fcb: [FCB], c: uint8) is
+end sub;
+
+include "common-file.coh";
+
+
+

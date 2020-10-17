@@ -60,7 +60,7 @@ wordsize uint16;
 
 register a b d x;
 register vs mem;
-register stk4 param;
+register param;
 
 regdata a uses d       compatible a|b;
 regdata b uses d       compatible a|b;
@@ -68,8 +68,9 @@ regdata d uses a|b     compatible d|x;
 regdata x              compatible d|x;
 regdata vs stacked;
 regdata mem stacked;
-regdata stk4 stacked;
 regdata param stacked;
+
+operand stk4;
 
 // --- Core things ----------------------------------------------------------
 
