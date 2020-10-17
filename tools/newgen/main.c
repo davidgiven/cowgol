@@ -702,6 +702,8 @@ int main(int argc, const char* argv[])
 	fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
 	fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
 	fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
+	fprintf(outhfp, "record Operand is\n");
+	fprintf(outhfp, "end record;\n");
 	fprintf(outhfp, "record Register is\n");
 	fprintf(outhfp, "	name: string;\n");
 	fprintf(outhfp, "	id: RegId;\n");
