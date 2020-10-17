@@ -137,12 +137,12 @@ ALL_TOOLCHAINS = {
 	toolchain_ncgen,
 	toolchain_ncpm,
 	toolchain_ncpmz,
-	toolchain_lx386,
+	--toolchain_lx386,
 	toolchain_bbct,
-	toolchain_bbctiny,
-	toolchain_bbct6502,
-	toolchain_bbcti,
-	toolchain_unixv7,
+	--toolchain_bbctiny,
+	--toolchain_bbct6502,
+	--toolchain_bbcti,
+	--toolchain_unixv7,
 	--toolchain_bare6303,
 }
 
