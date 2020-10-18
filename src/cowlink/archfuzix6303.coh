@@ -32,11 +32,13 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\tdw text_end - text_start\n");
 	E("\tdw 0\n"); #E("\tdw data_end - data_start\n");
 	E("\tdw bss_end - bss_start\n");
-	E("\tdb text_start & 0xff\n"); # entry point low byte
+	E("\tdb entry & 0xff\n"); # entry point low byte
 	E("\tdb 0, 1, 0\n"); # use all pages for heap, w/ one page of stack, no zero page
-	E("\tdw 0\n"); # sigvec
+	E("\tdw sigvec\n"); # sigvec
 
 	E("text_start = *\n");
+	E("sigvec rts\n");
+	E("entry = *\n");
 	E("\tlds #0xfeff\n"); # for testing with h6803 only
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
