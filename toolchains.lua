@@ -130,6 +130,7 @@ toolchain_fuzix6303 = {
 	asmext = ".asm",
 	binext = ".6303.srec",
 	tester = h6303test,
+	archs = {},
 }
 
 ALL_TOOLCHAINS = {

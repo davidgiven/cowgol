@@ -560,7 +560,7 @@ sub Generate(rootnode: [Node]) is
 						BlockRegisters(consumer, producer, blocked);
 						producer.output_regs := producer.output_regs | blocked;
 					else
-						var compatible := FindCompatibleRegisters(node.desired_reg);
+						var compatible := FindCompatibleRegisters(node.desired_reg & ~OPERAND_REGS);
 						mask1 := producer.producable_regs & compatible & ~(blocked | producer.output_regs);
 						var mask2 := node.desired_reg & ~consumer.input_regs;
 						if (mask1 != 0) and (mask2 != 0) then

@@ -100,13 +100,37 @@
 		E_space();
 	end sub;
 
-	sub E_sta(reg: RegId) is
-		E_acc("staa", "stab", reg);
+	sub E_st(reg: RegId) is
+		E_tab();
+		if reg == REG_A then
+			E("staa ");
+		elseif reg == REG_B then
+			E("stab ");
+		elseif reg == REG_D then
+			E("std ");
+		elseif reg == REG_X then
+			E("stx ");
+		else
+			SimpleError("bad accumulator register");
+		end if;
+		E_space();
 	end sub;
 
-	sub E_lda(reg: RegId) is
+	sub E_ld(reg: RegId) is
 		R_flush(reg);
-		E_acc("ldaa", "ldab", reg);
+		E_tab();
+		if reg == REG_A then
+			E("ldaa ");
+		elseif reg == REG_B then
+			E("ldab ");
+		elseif reg == REG_D then
+			E("ldd ");
+		elseif reg == REG_X then
+			E("ldx ");
+		else
+			SimpleError("bad accumulator register");
+		end if;
+		E_space();
 	end sub;
 
 	sub E_ldx() is
@@ -151,6 +175,28 @@
 			E_insn("tab\n");
 		elseif (src == REG_B) and (dest == REG_A) then
 			E_insn("tba\n");
+		elseif (src == REG_X) and (dest == REG_D) then
+			E_insn("pshx\n");
+			E_insn("popa\n");
+			E_insn("popb\n");
+		elseif (src == REG_D) and (dest == REG_X) then
+			E_insn("pshb\n");
+			E_insn("psha\n");
+			E_insn("popx\n");
+		elseif dest == 0 then
+			case src is
+				when REG_A: E_insn("psha\n");
+				when REG_B: E_insn("pshb\n");
+				when REG_X: E_insn("pshx\n");
+				when REG_D: E_insn("pshb\n"); E_insn("psha\n");
+			end case;
+		elseif src == 0 then
+			case dest is
+				when REG_A: E_insn("popa\n");
+				when REG_B: E_insn("popb\n");
+				when REG_X: E_insn("popx\n");
+				when REG_D: E_insn("popa\n"); E_insn("popb\n");
+			end case;
 		else
 			StartError();
 			print("bad move: ");
@@ -175,11 +221,11 @@ register b; // 002
 register d; // 004
 register x; // 008
 register vs1; // 010
-register param; // 020
+register vs2; // 020
+register param; // 040
 
-operand imm; // 040
-operand mem; // 080
-operand stk4; // 100
+operand imm; // 080
+operand mem; // 100
 
 regdata a uses d       compatible a|b;
 regdata b uses d       compatible a|b;
@@ -266,7 +312,7 @@ gen RETURN()
 	E_nl();
 }
 
-// --- Operands -------------------------------------------------------------
+// --- Values ---------------------------------------------------------------
 
 gen mem := ADDRESS():a
 {
@@ -285,7 +331,7 @@ gen imm := CONSTANT():c
 
 gen vs1 := FALLBACK(a|b:lhs)
 {
-	E_sta($lhs);
+	E_st($lhs);
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
 	E_nl();
 
@@ -298,7 +344,20 @@ gen vs1 := FALLBACK(a|b:lhs)
 	self.n[0].operand := op;
 }
 
-// --- Loads ----------------------------------------------------------------
+gen vs2 := FALLBACK(d|x:lhs)
+{
+	E_st($lhs);
+	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
+	E_nl();
+
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.vs.sp := varsp;
+	varsp := varsp + 2;
+	if current_subr.arch.var_stack < varsp then
+		current_subr.arch.var_stack := varsp;
+	end if;
+	self.n[0].operand := op;
+}
 
 gen x|d := ADDRESS():a
 {
@@ -322,68 +381,195 @@ gen x|d := ADDRESS():a
 
 gen a|b|x := CONSTANT():c
 {
-	if $$ == REG_X then
-		E_ldx();
-		E_const();
-		E_u16($c.value as uint16);
-	else
-		E_lda($$);
-		E_const();
-		E_u8($c.value as uint8);
+	var cache := RegCacheFindConstant($c.value as uint16) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
 	end if;
+
+	E_ld($$);
+	E_const();
+	E_i16($c.value as int16);
 	E_nl();
+
+	RegCacheLeavesConstant($$, $c.value as uint16);
 }
 
-// --- Stores ---------------------------------------------------------------
+// --- Loads and stores -----------------------------------------------------
 
-gen STORE1(a|b:lhs, mem:rhs)
+gen STORE1(a|b:lhs, mem|x:rhs)
 {
+	var o := $@rhs.operand;
 	if $rhs == REG_MEM then
-		RegCacheLeavesValue($lhs, self.n[2].operand.mem.sym, self.n[2].operand.mem.off);
+		RegCacheLeavesValue($lhs, o.mem.sym, o.mem.off);
 	end if;
 
-	E_sta($lhs);
-	E_op($rhs, self.n[2].operand);
+	E_st($lhs);
+	E_op($rhs, o);
 	E_nl();
 }
 
-gen a|b := LOAD1(mem:rhs)
+gen STORE1(a|b:lhs, ADD2(x, CONSTANT():c))
+{
+	E_st($lhs);
+	E_i16($c.value as int16);
+	E(",x\n");
+}
+
+gen a|b := LOAD1(mem|x:rhs)
 {
 	if $rhs == REG_MEM then
 		var cache := RegCacheFindValue(self.n[1].operand.mem.sym, self.n[1].operand.mem.off) & $$;
 		if (cache & $$) != 0 then
 			# The value is already in the desired register.
-			Free(self.n[1].operand as [uint8]);
+			Free($@rhs.operand as [uint8]);
 			return;
 		end if;
-
-		RegCacheLeavesValue($$, self.n[1].operand.mem.sym, self.n[1].operand.mem.off);
 	end if;
 
-	E_lda($$);
-	E_op($rhs, self.n[1].operand);
+	E_ld($$);
+	if $rhs == REG_MEM then
+		RegCacheLeavesValue($$, $@rhs.operand.mem.sym, $@rhs.operand.mem.off);
+	end if;
+	E_op($rhs, $@rhs.operand);
 	E_nl();
 }
 
-gen a|b := ADD1($$:lhs, mem|imm|vs1|b:rhs)
+gen a|b := LOAD1(ADD2(x, CONSTANT():c))
 {
+	E_ld($$);
+	E_i16($c.value as int16);
+	E(",x\n");
+}
+
+gen STORE2(x|d:lhs, mem|x:rhs)
+{
+	var o := $@rhs.operand;
+	if $rhs == REG_MEM then
+		RegCacheLeavesValue($lhs, o.mem.sym, o.mem.off);
+	end if;
+
+	E_st($lhs);
+	E_op($rhs, o);
+	E_nl();
+}
+
+gen STORE2(d:lhs, ADD2(x, CONSTANT():c))
+{
+	E_st($lhs);
+	E_i16($c.value as int16);
+	E(",x\n");
+}
+
+gen d|x := LOAD2(mem|x:rhs)
+{
+	var o := $@rhs.operand;
+	if $rhs == REG_MEM then
+		var cache := RegCacheFindValue(o.mem.sym, o.mem.off) & $$;
+		if (cache & $$) != 0 then
+			# The value is already in the desired register.
+			Free(o as [uint8]);
+			return;
+		end if;
+	end if;
+
+	E_ld($$);
+	if $rhs == REG_MEM then
+		RegCacheLeavesValue($$, o.mem.sym, o.mem.off);
+	end if;
+	E_op($rhs, o);
+	E_nl();
+}
+
+gen x := LOAD2(ADD2(x, CONSTANT():c))
+{
+	E_ld($$);
+	E_i16($c.value as int16);
+	E(",x\n");
+}
+
+// --- 8-bit arithmetic -----------------------------------------------------
+
+gen a|b := ADD1($$:lhs, LOAD1(mem|x:rhs))
+{
+	RegCacheFlush($$);
+	E_add($$);
+	E_op($rhs, $@rhs.operand);
+	E_nl();
+}
+
+gen a|b := ADD1($$:lhs, imm|vs1|b:rhs)
+{
+	RegCacheFlush($$);
 	if ($rhs == REG_B) and ($lhs == REG_A) then
 		E_insn("aba\n");
 	else
 		E_add($$);
-		E_op($rhs, self.n[2].operand);
+		E_op($rhs, $@rhs.operand);
 		E_nl();
 	end if;
 }
 
-gen a|b := SUB1($$:lhs, mem|imm|vs1|b:rhs)
+gen a|b := SUB1($$:lhs, LOAD1(mem|x:rhs))
 {
+	RegCacheFlush($$);
+	E_sub($$);
+	E_op($rhs, $@rhs.operand);
+	E_nl();
+}
+
+gen a|b := SUB1($$:lhs, imm|vs1|b:rhs)
+{
+	RegCacheFlush($$);
 	if ($rhs == REG_B) and ($lhs == REG_A) then
 		E_insn("sba\n");
 	else
 		E_sub($$);
-		E_op($rhs, self.n[2].operand);
+		E_op($rhs, $@rhs.operand);
 		E_nl();
 	end if;
+}
+
+gen d := ADD2($$:lhs, LOAD2(mem|x:rhs))
+{
+	RegCacheFlush($$);
+	E_insn("addd ");
+	E_op($rhs, $@rhs.operand);
+	E_nl();
+}
+
+gen d := ADD2($$:lhs, imm:rhs)
+{
+	RegCacheFlush($$);
+	E_insn("addd ");
+	E_op($rhs, $@rhs.operand);
+	E_nl();
+}
+
+%{
+	sub is_byte(value: int32): (result: uint8) is
+		if (value & 0xffffff00) == 0 then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+%}
+
+gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b
+{
+	var cache := RegCacheFindConstant($c.value as uint16) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+	else
+		RegCacheFlush(REG_B);
+		E_insn("ldab #");
+		E_u8($c.value as uint8);
+		E_nl();
+		RegCacheLeavesConstant($$, $c.value as uint16);
+	end if;
+
+	RegCacheFlush($$);
+	E_insn("abx\n");
 }
 
