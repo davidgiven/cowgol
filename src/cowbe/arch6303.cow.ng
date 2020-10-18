@@ -28,8 +28,13 @@
 		sp: uint8;
 	end record;
 
+	record XIndOp is
+		off: uint16;
+	end record;
+
 	record Operand is
 		mem @at(0): MemOp;
+		xind @at(0): XIndOp;
 		imm @at(0): ImmOp;
 		vs @at(0): VsOp;
 	end record;
@@ -77,9 +82,19 @@
 		E_space();
 	end sub;
 
+	sub E_insn_simple(insn: string) is
+		E_tab();
+		E(insn);
+		E_nl();
+	end sub;
+
 	sub E_const() is
 		E("#");
 	end sub;
+
+	sub E_db() is E_insn("db"); end sub;
+	sub E_dw() is E_insn("dw"); end sub;
+	sub E_dl() is E_insn("dl"); end sub;
 
 	sub E_jump(insn: string, label: LabelRef) is
 		R_flushall();
@@ -87,6 +102,8 @@
 		E_labelref(label);
 		E_nl();
 	end sub;
+
+	sub E_jmp(label: LabelRef) is E_jump("jmp", label); end sub;
 
 	sub E_acc(ainsn: string, binsn: string, reg: RegId) is
 		E_tab();
@@ -101,36 +118,32 @@
 	end sub;
 
 	sub E_st(reg: RegId) is
-		E_tab();
 		if reg == REG_A then
-			E("staa ");
+			E_insn("staa");
 		elseif reg == REG_B then
-			E("stab ");
+			E_insn("stab");
 		elseif reg == REG_D then
-			E("std ");
+			E_insn("std");
 		elseif reg == REG_X then
-			E("stx ");
+			E_insn("stx");
 		else
 			SimpleError("bad accumulator register");
 		end if;
-		E_space();
 	end sub;
 
 	sub E_ld(reg: RegId) is
 		R_flush(reg);
-		E_tab();
 		if reg == REG_A then
-			E("ldaa ");
+			E_insn("ldaa");
 		elseif reg == REG_B then
-			E("ldab ");
+			E_insn("ldab");
 		elseif reg == REG_D then
-			E("ldd ");
+			E_insn("ldd");
 		elseif reg == REG_X then
-			E("ldx ");
+			E_insn("ldx");
 		else
 			SimpleError("bad accumulator register");
 		end if;
-		E_space();
 	end sub;
 
 	sub E_ldx() is
@@ -155,9 +168,10 @@
 
 	sub E_op(reg: RegId, operand: [Operand]) is
 		case reg is
-			when REG_MEM: E_symref(operand.mem.sym, operand.mem.off);
-			when REG_IMM: E_const(); E_i32(operand.imm.value);
-			when REG_X:   E(",x");
+			when REG_MEM:  E_symref(operand.mem.sym, operand.mem.off);
+			when REG_IMM:  E_const(); E_i32(operand.imm.value);
+			when REG_X:    E(",x");
+			when REG_XIND: E_u16(operand.xind.off); E(",x");
 
 			when REG_VS1:
 				E_wsref(current_subr.id, VARSTACK_WS, operand.vs.sp as uint16);
@@ -172,30 +186,30 @@
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if (src == REG_A) and (dest == REG_B) then
-			E_insn("tab\n");
+			E_insn_simple("tab");
 		elseif (src == REG_B) and (dest == REG_A) then
-			E_insn("tba\n");
+			E_insn_simple("tba");
 		elseif (src == REG_X) and (dest == REG_D) then
-			E_insn("pshx\n");
-			E_insn("popa\n");
-			E_insn("popb\n");
+			E_insn_simple("pshx");
+			E_insn_simple("popa");
+			E_insn_simple("popb");
 		elseif (src == REG_D) and (dest == REG_X) then
-			E_insn("pshb\n");
-			E_insn("psha\n");
-			E_insn("popx\n");
+			E_insn_simple("pshb");
+			E_insn_simple("psha");
+			E_insn_simple("popx");
 		elseif dest == 0 then
 			case src is
-				when REG_A: E_insn("psha\n");
-				when REG_B: E_insn("pshb\n");
-				when REG_X: E_insn("pshx\n");
-				when REG_D: E_insn("pshb\n"); E_insn("psha\n");
+				when REG_A: E_insn_simple("psha");
+				when REG_B: E_insn_simple("pshb");
+				when REG_X: E_insn_simple("pshx");
+				when REG_D: E_insn_simple("pshb"); E_insn_simple("psha");
 			end case;
 		elseif src == 0 then
 			case dest is
-				when REG_A: E_insn("popa\n");
-				when REG_B: E_insn("popb\n");
-				when REG_X: E_insn("popx\n");
-				when REG_D: E_insn("popa\n"); E_insn("popb\n");
+				when REG_A: E_insn_simple("popa");
+				when REG_B: E_insn_simple("popb");
+				when REG_X: E_insn_simple("popx");
+				when REG_D: E_insn_simple("popa"); E_insn_simple("popb");
 			end case;
 		else
 			StartError();
@@ -226,12 +240,15 @@ register param; // 040
 
 operand imm; // 080
 operand mem; // 100
+operand xind; // 200
 
 regdata a uses d       compatible a|b;
 regdata b uses d       compatible a|b;
 regdata d uses a|b     compatible d|x;
 regdata x              compatible d|x;
 regdata param stacked;
+
+regdata xind uses x;
 
 // --- Core things ----------------------------------------------------------
 
@@ -245,7 +262,7 @@ gen LABEL():b
 
 gen JUMP():j
 {
-	E_jump("jmp", $j.label);
+	E_jmp($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
@@ -319,6 +336,13 @@ gen mem := ADDRESS():a
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
 	op.mem.sym := &$a.sym;
 	op.mem.off := $a.off;
+	self.n[0].operand := op;
+}
+
+gen xind := ADD2(x, CONSTANT():c) cost 5
+{
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.xind.off := $c.value as uint16;
 	self.n[0].operand := op;
 }
 
@@ -397,7 +421,7 @@ gen a|b|x := CONSTANT():c
 
 // --- Loads and stores -----------------------------------------------------
 
-gen STORE1(a|b:lhs, mem|x:rhs)
+gen STORE1(a|b:lhs, mem|xind|x:rhs)
 {
 	var o := $@rhs.operand;
 	if $rhs == REG_MEM then
@@ -409,14 +433,7 @@ gen STORE1(a|b:lhs, mem|x:rhs)
 	E_nl();
 }
 
-gen STORE1(a|b:lhs, ADD2(x, CONSTANT():c))
-{
-	E_st($lhs);
-	E_i16($c.value as int16);
-	E(",x\n");
-}
-
-gen a|b := LOAD1(mem|x:rhs)
+gen a|b := LOAD1(mem|xind|x:rhs)
 {
 	if $rhs == REG_MEM then
 		var cache := RegCacheFindValue(self.n[1].operand.mem.sym, self.n[1].operand.mem.off) & $$;
@@ -435,14 +452,7 @@ gen a|b := LOAD1(mem|x:rhs)
 	E_nl();
 }
 
-gen a|b := LOAD1(ADD2(x, CONSTANT():c))
-{
-	E_ld($$);
-	E_i16($c.value as int16);
-	E(",x\n");
-}
-
-gen STORE2(x|d:lhs, mem|x:rhs)
+gen STORE2(x|d:lhs, mem|xind|x:rhs)
 {
 	var o := $@rhs.operand;
 	if $rhs == REG_MEM then
@@ -454,14 +464,7 @@ gen STORE2(x|d:lhs, mem|x:rhs)
 	E_nl();
 }
 
-gen STORE2(d:lhs, ADD2(x, CONSTANT():c))
-{
-	E_st($lhs);
-	E_i16($c.value as int16);
-	E(",x\n");
-}
-
-gen d|x := LOAD2(mem|x:rhs)
+gen d|x := LOAD2(mem|xind|x:rhs)
 {
 	var o := $@rhs.operand;
 	if $rhs == REG_MEM then
@@ -481,16 +484,9 @@ gen d|x := LOAD2(mem|x:rhs)
 	E_nl();
 }
 
-gen x := LOAD2(ADD2(x, CONSTANT():c))
-{
-	E_ld($$);
-	E_i16($c.value as int16);
-	E(",x\n");
-}
-
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a|b := ADD1($$:lhs, LOAD1(mem|x:rhs))
+gen a|b := ADD1($$:lhs, LOAD1(mem|xind|x:rhs))
 {
 	RegCacheFlush($$);
 	E_add($$);
@@ -502,7 +498,7 @@ gen a|b := ADD1($$:lhs, imm|vs1|b:rhs)
 {
 	RegCacheFlush($$);
 	if ($rhs == REG_B) and ($lhs == REG_A) then
-		E_insn("aba\n");
+		E_insn_simple("aba");
 	else
 		E_add($$);
 		E_op($rhs, $@rhs.operand);
@@ -510,7 +506,7 @@ gen a|b := ADD1($$:lhs, imm|vs1|b:rhs)
 	end if;
 }
 
-gen a|b := SUB1($$:lhs, LOAD1(mem|x:rhs))
+gen a|b := SUB1($$:lhs, LOAD1(mem|xind|x:rhs))
 {
 	RegCacheFlush($$);
 	E_sub($$);
@@ -522,7 +518,7 @@ gen a|b := SUB1($$:lhs, imm|vs1|b:rhs)
 {
 	RegCacheFlush($$);
 	if ($rhs == REG_B) and ($lhs == REG_A) then
-		E_insn("sba\n");
+		E_insn_simple("sba");
 	else
 		E_sub($$);
 		E_op($rhs, $@rhs.operand);
@@ -530,10 +526,12 @@ gen a|b := SUB1($$:lhs, imm|vs1|b:rhs)
 	end if;
 }
 
-gen d := ADD2($$:lhs, LOAD2(mem|x:rhs))
+// --- 16-bit arithmetic ----------------------------------------------------
+
+gen d := ADD2($$:lhs, LOAD2(mem|xind|x:rhs))
 {
 	RegCacheFlush($$);
-	E_insn("addd ");
+	E_insn("addd");
 	E_op($rhs, $@rhs.operand);
 	E_nl();
 }
@@ -541,7 +539,7 @@ gen d := ADD2($$:lhs, LOAD2(mem|x:rhs))
 gen d := ADD2($$:lhs, imm:rhs)
 {
 	RegCacheFlush($$);
-	E_insn("addd ");
+	E_insn("addd");
 	E_op($rhs, $@rhs.operand);
 	E_nl();
 }
@@ -570,6 +568,153 @@ gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b
 	end if;
 
 	RegCacheFlush($$);
-	E_insn("abx\n");
+	E_insn_simple("abx");
 }
+
+gen x := ADD2($$:lhs, CONSTANT(value == 1)) cost 1
+{
+	RegCacheFlush($$);
+	E_insn_simple("inx");
+}
+
+gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
+{
+	RegCacheFlush($$);
+	E_insn_simple("dex");
+}
+
+// --- Conditionals ---------------------------------------------------------
+
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+{
+    var label := $b.falselabel;
+    if $lhs.value == $rhs.value then
+        label := $b.truelabel;
+    end if;
+    if label != $b.fallthrough then
+        E_jmp(label);
+    end if;
+}
+
+// --- Strings --------------------------------------------------------------
+
+%{
+    sub E_string(data: string): (lid: uint16) is
+        lid := AllocPLabel();
+
+        EmitterOpenStream(current_subr);
+
+        E_label(lid);
+        E_db();
+
+        loop
+            var c := [data];
+            if c == 0 then
+                break;
+            end if;
+            data := data + 1;
+            
+            E_u8(c);
+            E_comma();
+        end loop;
+        E("0\n");
+        EmitterCloseStream();
+    end sub;
+%}
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+    EmitterOpenStream(current_subr);
+	E_symref(&$s.sym, 0);
+    E(":\n");
+}
+
+gen ENDINIT()
+{
+    EmitterCloseStream();
+}
+
+gen INIT1():c
+{
+    E_db();
+    E_u8($c.value as uint8);
+    E_nl();
+}
+
+gen INIT2():c
+{
+    E_dw();
+    E_u16($c.value as uint16);
+    E_nl();
+}
+
+gen INIT4():c
+{
+    E_dl();
+    E_u32($c.value as uint32);
+    E_nl();
+}
+
+gen INITADDRESS():a
+{
+	E_symref(&$a.sym, $a.off);
+}
+
+gen INITSUBREF():a
+{
+	E_subref($a.subr);
+}
+
+gen INITSTRING():s
+{
+    var sid := E_string($s.text);
+
+    E_dw();
+    E_labelref(sid);
+    E_nl();
+}
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMGROUPSTART();
+gen ASMGROUPEND();
+
+gen ASMSTART()
+{
+    E_tab();
+}
+
+gen ASMTEXT():t
+{
+    E($t.text);
+    E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	E_symref(&$s.sym, 0);
+    E_space();
+}
+
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
+    E_space();
+}
+
+gen ASMVALUE():c
+{
+    E_openp();
+    E_i32($c.value);
+    E_closep();
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
+// vim: sw=4 ts=4 et
 
