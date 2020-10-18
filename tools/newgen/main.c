@@ -12,7 +12,7 @@ static const char* SYM_REGCLASS = "register class";
 static Rule* rules[500];
 static int rulescount = 0;
 static int registercount = 0;
-static bool hasoperands = false;
+static reg_t operandregs = 0;
 
 static int maxdepth = 0;
 static Node* pattern;
@@ -110,7 +110,7 @@ void define_operand(const char* name)
 	Register* r = define_register(name);
 	r->isstacked = true;
 	r->isoperand = true;
-	hasoperands = true;
+	operandregs |= r->id;
 }
 
 void define_regclass(const char* name, reg_t reg)
@@ -702,10 +702,11 @@ int main(int argc, const char* argv[])
 	fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 	fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
 	fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
+	fprintf(outhfp, "const OPERAND_REGS := 0x%x;\n", operandregs);
 	fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
 	fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
 
-	if (hasoperands)
+	if (operandregs)
 	{
 		fprintf(outhfp, "record Operand is\n");
 		Register* reg = (Register*) symbol_table;
