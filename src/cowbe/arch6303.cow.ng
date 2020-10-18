@@ -178,7 +178,7 @@
 	sub E_op(reg: RegId, operand: [Operand]) is
 		case reg is
 			when REG_MEM:  E_symref(operand.mem.sym, operand.mem.off);
-			when REG_IMM:  E_const(); E_i32(operand.imm.value);
+			when REG_IMM:  E_const(); E_u32(operand.imm.value as uint32);
 			when REG_X:    E(",x");
 			when REG_XIND: E_u16(operand.xind.off); E(",x");
 
@@ -433,17 +433,18 @@ gen ENDSUB()
 
 gen         CALL(       param,      SUBREF():a) uses a|b|x { Call(&$a); }
 gen         CALL(  ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
-gen         CALL(  ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen         CALL(  ARG2(param, x),  SUBREF():a) uses     x { Call(&$a); }
 gen a :=    CALLE1(     param,      SUBREF():a) uses   b|x { Call(&$a); }
 gen a :=    CALLE1(ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
-gen a :=    CALLE1(ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, x),  SUBREF():a) uses     x { Call(&$a); }
 gen x :=    CALLE2(     param,      SUBREF():a) uses a|b   { Call(&$a); }
 gen x :=    CALLE2(ARG1(param, a),  SUBREF():a) uses a|b   { Call(&$a); }
-gen x :=    CALLE2(ARG2(param, d),  SUBREF():a) uses a|b   { Call(&$a); }
+gen x :=    CALLE2(ARG2(param, x),  SUBREF():a) uses a|b   { Call(&$a); }
 
 gen param := END();
 
 gen param := ARG1(param, a|b:lhs)  { E_push($lhs); }
+gen param := ARG2(param, d|x:lhs)  { E_push($lhs); }
 
 gen a   := POPARG1(remaining==0);
 gen d   := POPARG2(remaining==0);
@@ -591,7 +592,7 @@ gen STORE1(a|b:lhs, x)
 gen STORE1(a|b:lhs, ADD2(x, CONSTANT():c))
 {
 	E_st($lhs);
-	E_i16($c.value as int16);
+	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
@@ -612,7 +613,7 @@ gen STORE2(x|d:lhs, x)
 gen STORE2(x|d:lhs, ADD2(x, CONSTANT():c))
 {
 	E_st($lhs);
-	E_i16($c.value as int16);
+	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
@@ -649,7 +650,7 @@ gen a|b := LOAD1(ADDRESS():a)
 gen a|b := LOAD1(ADD2(x, CONSTANT():c))
 {
 	E_ld($$);
-	E_i16($c.value as int16);
+	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
@@ -676,7 +677,7 @@ gen x|d := LOAD2(ADDRESS():a)
 gen x|d := LOAD2(ADD2(x, CONSTANT():c))
 {
 	E_ld($$);
-	E_i16($c.value as int16);
+	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
@@ -827,6 +828,20 @@ gen BEQ2(d|x:lhs, op:rhs):b
         EmitterCloseStream();
     end sub;
 %}
+
+gen d|x := STRING():s
+{
+	var lid := E_string($s.text);
+	R_flush($$);
+	if $$ == REG_D then
+		E_insn("ldd");
+	else
+		E_insn("ldx");
+	end if;
+	E_const();
+	E_labelref(lid);
+	E_nl();
+}
 
 // --- Initialisers ---------------------------------------------------------
 

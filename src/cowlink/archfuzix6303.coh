@@ -37,7 +37,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\tdw 0\n"); # sigvec
 
 	E("text_start = *\n");
-	E("\tlds #0xff00\n"); # for testing with h6803 only
+	E("\tlds #0xfeff\n"); # for testing with h6803 only
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
