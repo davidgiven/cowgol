@@ -1,8 +1,37 @@
 %{
+    const VARMEM_WS := 0;
+    const VARSTACK_WS := 1;
+
+	var varsp: uint8 := 0;
+
+    record ArchSubroutine is
+        end_label: LabelRef;
+		var_stack: uint8;
+    end record;
+
 	record Extern is
 		name: string;
 		id: uint16;
 		next: [Extern];
+	end record;
+
+	record MemOp is
+		sym: [Symbol];
+		off: Size;
+	end record;
+		
+	record ImmOp is
+		value: Arith;
+	end record;
+
+	record VsOp is
+		sp: uint8;
+	end record;
+
+	record Operand is
+		mem @at(0): MemOp;
+		imm @at(0): ImmOp;
+		vs @at(0): VsOp;
 	end record;
 
 	var externs: [Extern] := (0 as [Extern]);
@@ -30,23 +59,106 @@
 		RegCacheFlush(FindConflictingRegisters(reg));
 	end sub;
 
+	sub AllocPLabel(): (lid: uint16) is
+		# Cheap and cheerful way to allocate a label which won't overlap the
+		# frontend's numbering.
+		lid := -AllocLabel();
+	end sub;
+
 	sub E_label(label: LabelRef) is
 		R_flushall();
 		E_labelref(label);
-		E(":\n");
+		E(" = *\n");
+	end sub;
+
+	sub E_insn(insn: string) is
+		E_tab();
+		E(insn);
+		E_space();
+	end sub;
+
+	sub E_const() is
+		E("#");
 	end sub;
 
 	sub E_jump(insn: string, label: LabelRef) is
 		R_flushall();
-		E_tab();
-		E(insn);
-		E_space();
+		E_insn(insn);
 		E_labelref(label);
 		E_nl();
 	end sub;
 
+	sub E_acc(ainsn: string, binsn: string, reg: RegId) is
+		E_tab();
+		if reg == REG_A then
+			E(ainsn);
+		elseif reg == REG_B then
+			E(binsn);
+		else
+			SimpleError("bad accumulator register");
+		end if;
+		E_space();
+	end sub;
+
+	sub E_sta(reg: RegId) is
+		E_acc("staa", "stab", reg);
+	end sub;
+
+	sub E_lda(reg: RegId) is
+		R_flush(reg);
+		E_acc("ldaa", "ldab", reg);
+	end sub;
+
+	sub E_ldx() is
+		R_flush(REG_X);
+		E_insn("ldx");
+	end sub;
+
+	sub E_ldd() is
+		R_flush(REG_D);
+		E_insn("ldd");
+	end sub;
+
+	sub E_add(reg: RegId) is
+		R_flush(reg);
+		E_acc("adda", "addb", reg);
+	end sub;
+
+	sub E_sub(reg: RegId) is
+		R_flush(reg);
+		E_acc("suba", "subb", reg);
+	end sub;
+
+	sub E_op(reg: RegId, operand: [Operand]) is
+		case reg is
+			when REG_MEM: E_symref(operand.mem.sym, operand.mem.off);
+			when REG_IMM: E_const(); E_i32(operand.imm.value);
+			when REG_X:   E(",x");
+
+			when REG_VS1:
+				E_wsref(current_subr.id, VARSTACK_WS, operand.vs.sp as uint16);
+				varsp := varsp - 1;
+
+			when else:
+				SimpleError("bad operand");
+		end case;
+		Free(operand as [uint8]);
+	end sub;
+
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
+		if (src == REG_A) and (dest == REG_B) then
+			E_insn("tab\n");
+		elseif (src == REG_B) and (dest == REG_A) then
+			E_insn("tba\n");
+		else
+			StartError();
+			print("bad move: ");
+			print_hex_i16(src);
+			print(" -> ");
+			print_hex_i16(dest);
+			EndError();
+		end if;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -58,19 +170,22 @@
 
 wordsize uint16;
 
-register a b d x;
-register vs mem;
-register param;
+register a; // 001
+register b; // 002
+register d; // 004
+register x; // 008
+register vs1; // 010
+register param; // 020
+
+operand imm; // 040
+operand mem; // 080
+operand stk4; // 100
 
 regdata a uses d       compatible a|b;
 regdata b uses d       compatible a|b;
 regdata d uses a|b     compatible d|x;
 regdata x              compatible d|x;
-regdata vs stacked;
-regdata mem stacked;
 regdata param stacked;
-
-operand stk4;
 
 // --- Core things ----------------------------------------------------------
 
@@ -87,4 +202,188 @@ gen JUMP():j
 	E_jump("jmp", $j.label);
 }
 
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB()
+{
+    current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+    current_subr.arch.end_label := AllocPLabel();
+
+    EmitterOpenStream(current_subr);
+
+    E("\n\n\t; ");
+    E(current_subr.name);
+    E_nl();
+
+#	E("\t.align 2\n");
+    E_b8(COO_ESCAPE_THISSUB);
+    E(":\n");
+#
+#    var count := current_subr.num_input_parameters;
+#    while count != 0 loop
+#        count := count - 1;
+#        var param := GetInputParameter(current_subr, count) as [Symbol];
+#
+#        case param.width is
+#            when 1: E_store1(param, 0);
+#			when 2: E_store2(param, 0);
+#			when 4: E_store4(param, 0);
+#        end case;
+#    end loop;
+}
+
+gen ENDSUB()
+{
+	E_label(current_subr.arch.end_label);
+
+#    var i: uint8 := 0;
+#    var count := current_subr.num_output_parameters;
+#    while i != count loop
+#        var param := GetOutputParameter(current_subr, i) as [Symbol];
+#
+#        var cache: RegId;
+#        case param.width is
+#            when 1: E_load1(param, 0);
+#            when 2: E_load2(param, 0);
+#            when 4: E_load4(param, 0);
+#		end case;
+#
+#        i := i + 1;
+#    end loop;
+#
+#	E_callhelper("exit");
+
+    EmitterCloseStream();
+
+    EmitterDeclareWorkspace(current_subr.id, VARSTACK_WS, current_subr.arch.var_stack as uint16);
+	Free(current_subr.arch as [uint8]);
+}
+
+gen RETURN()
+{
+	E_insn("jmp");
+	E_labelref(current_subr.arch.end_label);
+	E_nl();
+}
+
+// --- Operands -------------------------------------------------------------
+
+gen mem := ADDRESS():a
+{
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.mem.sym := &$a.sym;
+	op.mem.off := $a.off;
+	self.n[0].operand := op;
+}
+
+gen imm := CONSTANT():c
+{
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.imm.value := $c.value;
+	self.n[0].operand := op;
+}
+
+gen vs1 := FALLBACK(a|b:lhs)
+{
+	E_sta($lhs);
+	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
+	E_nl();
+
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.vs.sp := varsp;
+	varsp := varsp + 1;
+	if current_subr.arch.var_stack < varsp then
+		current_subr.arch.var_stack := varsp;
+	end if;
+	self.n[0].operand := op;
+}
+
+// --- Loads ----------------------------------------------------------------
+
+gen x|d := ADDRESS():a
+{
+	var cache := RegCacheFindAddress(&$a.sym, $a.off) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
+	end if;
+
+	if $$ == REG_X then
+		E_ldx();
+	else
+		E_ldd();
+	end if;
+	E_const();
+	E_symref(&$a.sym, $a.off);
+	E_nl();
+
+	RegCacheLeavesAddress($$, &$a.sym, $a.off);
+}
+
+gen a|b|x := CONSTANT():c
+{
+	if $$ == REG_X then
+		E_ldx();
+		E_const();
+		E_u16($c.value as uint16);
+	else
+		E_lda($$);
+		E_const();
+		E_u8($c.value as uint8);
+	end if;
+	E_nl();
+}
+
+// --- Stores ---------------------------------------------------------------
+
+gen STORE1(a|b:lhs, mem:rhs)
+{
+	if $rhs == REG_MEM then
+		RegCacheLeavesValue($lhs, self.n[2].operand.mem.sym, self.n[2].operand.mem.off);
+	end if;
+
+	E_sta($lhs);
+	E_op($rhs, self.n[2].operand);
+	E_nl();
+}
+
+gen a|b := LOAD1(mem:rhs)
+{
+	if $rhs == REG_MEM then
+		var cache := RegCacheFindValue(self.n[1].operand.mem.sym, self.n[1].operand.mem.off) & $$;
+		if (cache & $$) != 0 then
+			# The value is already in the desired register.
+			Free(self.n[1].operand as [uint8]);
+			return;
+		end if;
+
+		RegCacheLeavesValue($$, self.n[1].operand.mem.sym, self.n[1].operand.mem.off);
+	end if;
+
+	E_lda($$);
+	E_op($rhs, self.n[1].operand);
+	E_nl();
+}
+
+gen a|b := ADD1($$:lhs, mem|imm|vs1|b:rhs)
+{
+	if ($rhs == REG_B) and ($lhs == REG_A) then
+		E_insn("aba\n");
+	else
+		E_add($$);
+		E_op($rhs, self.n[2].operand);
+		E_nl();
+	end if;
+}
+
+gen a|b := SUB1($$:lhs, mem|imm|vs1|b:rhs)
+{
+	if ($rhs == REG_B) and ($lhs == REG_A) then
+		E_insn("sba\n");
+	else
+		E_sub($$);
+		E_op($rhs, self.n[2].operand);
+		E_nl();
+	end if;
+}
 

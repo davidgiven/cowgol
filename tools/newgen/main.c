@@ -706,21 +706,6 @@ int main(int argc, const char* argv[])
 	fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
 	fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
 
-	if (operandregs)
-	{
-		fprintf(outhfp, "record Operand is\n");
-		Register* reg = (Register*) symbol_table;
-		while(reg)
-		{
-			if ((reg->sym.kind == SYM_REGISTER) && reg->isoperand)
-			{
-				fprintf(outhfp, "  # operand %s\n", reg->sym.name);
-			}
-			reg = (Register*) reg->sym.next;
-		}
-		fprintf(outhfp, "end record;\n");
-	}
-
 	fprintf(outhfp, "record Register is\n");
 	fprintf(outhfp, "	name: string;\n");
 	fprintf(outhfp, "	id: RegId;\n");

@@ -18,7 +18,9 @@ sub ArchEmitSubRef(subr: [Subroutine]) is
 end sub;
 
 sub ArchEmitWSRef(wid: uint8, address: Size) is
-	E("ws+");
+	E("ws");
+	E_u8(wid);
+	E("+");
 	E_u16(address);
 end sub;
 
