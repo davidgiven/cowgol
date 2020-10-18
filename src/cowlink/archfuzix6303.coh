@@ -1,5 +1,3 @@
-const STACK_SIZE := 128;
-
 var workspaceSize: Size[NUM_WORKSPACES];
 
 sub E_nl() is
@@ -25,35 +23,47 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E("\tcpu 6303\n");
+	E("\tcpu 6803\n");
 	E("\toutput scode\n");
 	E("* = 0x100\n");
 
+	E("\tdw 0x80a8\n"); # magic
+	E("\tdb 2, 1, 1, 0\n"); # 6800, w/6803 extensions, loading at 0x100, no hints
+	E("\tdw text_end - text_start\n");
+	E("\tdw 0\n"); #E("\tdw data_end - data_start\n");
+	E("\tdw bss_end - bss_start\n");
+	E("\tdb text_start & 0xff\n"); # entry point low byte
+	E("\tdb 0, 1, 0\n"); # use all pages for heap, w/ one page of stack, no zero page
+	E("\tdw 0\n"); # sigvec
+
+	E("text_start = *\n");
+	E("\tlds #0xff00\n"); # for testing with h6803 only
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
-			E("\tjsr ");
+			E("\tbsr ");
 			ArchEmitSubRef(main);
 			E_nl();
 		end if;
 		coo := coo.next;
 	end loop;
-
-	E("\trst 0\n");
+	E("exit = *\n");
+	E("\tldd #0x0001\n");
+	E("\tswi\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-	E("TOP:\n");
+	E("text_end = *\n");
+	E("bss_start = *\n");
 
-	E("ws equ TOP+");
-	E_u16(STACK_SIZE);
-	E_nl();
+	E("ws0 = bss_start\n");
 
-	E("LOMEM equ ws+");
+	E("ws1 = ws0 + ");
 	E_u16(workspaceSize[0]);
 	E_nl();
 
-	E("\tend\n");
-	E_b8(26);
+	E("bss_end = ws1 + ");
+	E_u16(workspaceSize[1]);
+	E_nl();
 end sub;
 
