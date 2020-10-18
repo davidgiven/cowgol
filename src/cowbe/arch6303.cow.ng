@@ -103,7 +103,16 @@
 		E_nl();
 	end sub;
 
-	sub E_jmp(label: LabelRef) is E_jump("jmp", label); end sub;
+	sub E_jmp(label: LabelRef) is E_jump("bra", label); end sub;
+
+    sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node]) is
+        if node.beq.truelabel != node.beq.fallthrough then
+            E_jump(trueinsn, node.beq.truelabel);
+        end if;
+        if node.beq.falselabel != node.beq.fallthrough then
+            E_jump(falseinsn, node.beq.falselabel);
+        end if;
+    end sub;
 
 	sub E_acc(ainsn: string, binsn: string, reg: RegId) is
 		E_tab();
@@ -173,7 +182,7 @@
 			when REG_X:    E(",x");
 			when REG_XIND: E_u16(operand.xind.off); E(",x");
 
-			when REG_VS1:
+			when REG_VS:
 				E_wsref(current_subr.id, VARSTACK_WS, operand.vs.sp as uint16);
 				varsp := varsp - 1;
 
@@ -230,17 +239,16 @@
 
 wordsize uint16;
 
-register a; // 001
-register b; // 002
-register d; // 004
-register x; // 008
-register vs1; // 010
-register vs2; // 020
-register param; // 040
+register a;     // 001
+register b;     // 002
+register d;     // 004
+register x;     // 008
+register param; // 010
 
-operand imm; // 080
-operand mem; // 100
-operand xind; // 200
+operand imm;    // 020
+operand mem;    // 040
+operand xind;   // 080
+operand vs;     // 100
 
 regdata a uses d       compatible a|b;
 regdata b uses d       compatible a|b;
@@ -249,6 +257,8 @@ regdata x              compatible d|x;
 regdata param stacked;
 
 regdata xind uses x;
+
+regclass op := imm|mem|xind|vs;
 
 // --- Core things ----------------------------------------------------------
 
@@ -329,9 +339,9 @@ gen RETURN()
 	E_nl();
 }
 
-// --- Values ---------------------------------------------------------------
+// --- Read operands --------------------------------------------------------
 
-gen mem := ADDRESS():a
+gen mem := LOAD1(ADDRESS():a) cost 5
 {
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
 	op.mem.sym := &$a.sym;
@@ -339,21 +349,51 @@ gen mem := ADDRESS():a
 	self.n[0].operand := op;
 }
 
-gen xind := ADD2(x, CONSTANT():c) cost 5
+gen mem := LOAD2(ADDRESS():a) cost 5
+{
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.mem.sym := &$a.sym;
+	op.mem.off := $a.off;
+	self.n[0].operand := op;
+}
+
+gen mem := LOAD4(ADDRESS():a) cost 5
+{
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.mem.sym := &$a.sym;
+	op.mem.off := $a.off;
+	self.n[0].operand := op;
+}
+
+gen xind := LOAD1(ADD2(x, CONSTANT():c)) cost 5
 {
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
 	op.xind.off := $c.value as uint16;
 	self.n[0].operand := op;
 }
 
-gen imm := CONSTANT():c
+gen xind := LOAD2(ADD2(x, CONSTANT():c)) cost 5
+{
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.xind.off := $c.value as uint16;
+	self.n[0].operand := op;
+}
+
+gen xind := LOAD4(ADD2(x, CONSTANT():c)) cost 5
+{
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.xind.off := $c.value as uint16;
+	self.n[0].operand := op;
+}
+
+gen imm := CONSTANT():c cost 5
 {
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
 	op.imm.value := $c.value;
 	self.n[0].operand := op;
 }
 
-gen vs1 := FALLBACK(a|b:lhs)
+gen vs := FALLBACK(a|b:lhs)
 {
 	E_st($lhs);
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
@@ -368,7 +408,7 @@ gen vs1 := FALLBACK(a|b:lhs)
 	self.n[0].operand := op;
 }
 
-gen vs2 := FALLBACK(d|x:lhs)
+gen vs := FALLBACK(d|x:lhs)
 {
 	E_st($lhs);
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
@@ -382,6 +422,8 @@ gen vs2 := FALLBACK(d|x:lhs)
 	end if;
 	self.n[0].operand := op;
 }
+
+// --- Simple things --------------------------------------------------------
 
 gen x|d := ADDRESS():a
 {
@@ -419,74 +461,109 @@ gen a|b|x := CONSTANT():c
 	RegCacheLeavesConstant($$, $c.value as uint16);
 }
 
-// --- Loads and stores -----------------------------------------------------
+// --- Stores (these don't use operands) ------------------------------------
 
-gen STORE1(a|b:lhs, mem|xind|x:rhs)
+gen STORE1(a|b:lhs, x)
 {
-	var o := $@rhs.operand;
-	if $rhs == REG_MEM then
-		RegCacheLeavesValue($lhs, o.mem.sym, o.mem.off);
-	end if;
-
 	E_st($lhs);
-	E_op($rhs, o);
-	E_nl();
+	E(",x\n");
 }
 
-gen a|b := LOAD1(mem|xind|x:rhs)
+gen STORE1(a|b:lhs, ADD2(x, CONSTANT():c))
 {
-	if $rhs == REG_MEM then
-		var cache := RegCacheFindValue(self.n[1].operand.mem.sym, self.n[1].operand.mem.off) & $$;
-		if (cache & $$) != 0 then
-			# The value is already in the desired register.
-			Free($@rhs.operand as [uint8]);
-			return;
-		end if;
+	E_st($lhs);
+	E_i16($c.value as int16);
+	E(",x\n");
+}
+
+gen STORE1(a|b:lhs, ADDRESS():a)
+{
+	E_st($lhs);
+	E_symref(&$a.sym, $a.off);
+	E_nl();
+	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
+}
+
+gen STORE2(x|d:lhs, x)
+{
+	E_st($lhs);
+	E(",x\n");
+}
+
+gen STORE2(x|d:lhs, ADD2(x, CONSTANT():c))
+{
+	E_st($lhs);
+	E_i16($c.value as int16);
+	E(",x\n");
+}
+
+gen STORE2(x|d:lhs, ADDRESS():a)
+{
+	E_st($lhs);
+	E_symref(&$a.sym, $a.off);
+	E_nl();
+	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
+}
+
+// --- Loads (these don't use operands) ----------------------------------
+
+gen a|b := LOAD1(x)
+{
+	E_ld($$);
+	E(",x\n");
+}
+
+gen a|b := LOAD1(ADDRESS():a)
+{
+	var cache := RegCacheFindValue(&$a.sym, $a.off) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
 	end if;
 
 	E_ld($$);
-	if $rhs == REG_MEM then
-		RegCacheLeavesValue($$, $@rhs.operand.mem.sym, $@rhs.operand.mem.off);
-	end if;
-	E_op($rhs, $@rhs.operand);
+	E_symref(&$a.sym, $a.off);
 	E_nl();
+	RegCacheLeavesValue($$, &$a.sym, $a.off);
 }
 
-gen STORE2(x|d:lhs, mem|xind|x:rhs)
+gen a|b := LOAD1(ADD2(x, CONSTANT():c))
 {
-	var o := $@rhs.operand;
-	if $rhs == REG_MEM then
-		RegCacheLeavesValue($lhs, o.mem.sym, o.mem.off);
-	end if;
-
-	E_st($lhs);
-	E_op($rhs, o);
-	E_nl();
+	E_ld($$);
+	E_i16($c.value as int16);
+	E(",x\n");
 }
 
-gen d|x := LOAD2(mem|xind|x:rhs)
+gen x|d := LOAD2(x)
 {
-	var o := $@rhs.operand;
-	if $rhs == REG_MEM then
-		var cache := RegCacheFindValue(o.mem.sym, o.mem.off) & $$;
-		if (cache & $$) != 0 then
-			# The value is already in the desired register.
-			Free(o as [uint8]);
-			return;
-		end if;
+	E_ld($$);
+	E(",x\n");
+}
+
+gen x|d := LOAD2(ADDRESS():a)
+{
+	var cache := RegCacheFindValue(&$a.sym, $a.off) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
 	end if;
 
 	E_ld($$);
-	if $rhs == REG_MEM then
-		RegCacheLeavesValue($$, o.mem.sym, o.mem.off);
-	end if;
-	E_op($rhs, o);
+	E_symref(&$a.sym, $a.off);
 	E_nl();
+	RegCacheLeavesValue($$, &$a.sym, $a.off);
+}
+
+gen x|d := LOAD2(ADD2(x, CONSTANT():c))
+{
+	E_ld($$);
+	E_i16($c.value as int16);
+	E(",x\n");
 }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a|b := ADD1($$:lhs, LOAD1(mem|xind|x:rhs))
+gen a|b := ADD1($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
 	E_add($$);
@@ -494,19 +571,21 @@ gen a|b := ADD1($$:lhs, LOAD1(mem|xind|x:rhs))
 	E_nl();
 }
 
-gen a|b := ADD1($$:lhs, imm|vs1|b:rhs)
+gen a|b := ADD1($$:lhs, CONSTANT(value == 1))
 {
 	RegCacheFlush($$);
-	if ($rhs == REG_B) and ($lhs == REG_A) then
-		E_insn_simple("aba");
-	else
-		E_add($$);
-		E_op($rhs, $@rhs.operand);
-		E_nl();
-	end if;
+	E_acc("inca", "incb", $$);
+	E_nl();
 }
 
-gen a|b := SUB1($$:lhs, LOAD1(mem|xind|x:rhs))
+gen a|b := ADD1($$:lhs, CONSTANT(value == -1))
+{
+	RegCacheFlush($$);
+	E_acc("deca", "decb", $$);
+	E_nl();
+}
+
+gen a|b := SUB1($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
 	E_sub($$);
@@ -514,21 +593,9 @@ gen a|b := SUB1($$:lhs, LOAD1(mem|xind|x:rhs))
 	E_nl();
 }
 
-gen a|b := SUB1($$:lhs, imm|vs1|b:rhs)
-{
-	RegCacheFlush($$);
-	if ($rhs == REG_B) and ($lhs == REG_A) then
-		E_insn_simple("sba");
-	else
-		E_sub($$);
-		E_op($rhs, $@rhs.operand);
-		E_nl();
-	end if;
-}
-
 // --- 16-bit arithmetic ----------------------------------------------------
 
-gen d := ADD2($$:lhs, LOAD2(mem|xind|x:rhs))
+gen d := ADD2($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
 	E_insn("addd");
@@ -536,10 +603,10 @@ gen d := ADD2($$:lhs, LOAD2(mem|xind|x:rhs))
 	E_nl();
 }
 
-gen d := ADD2($$:lhs, imm:rhs)
+gen d := SUB2($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
-	E_insn("addd");
+	E_insn("subd");
 	E_op($rhs, $@rhs.operand);
 	E_nl();
 }
@@ -594,6 +661,14 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     if label != $b.fallthrough then
         E_jmp(label);
     end if;
+}
+
+gen BEQ1(a|b:lhs, op:rhs):b
+{
+	E_acc("cmpa", "cmpb", $lhs);
+	E_op($rhs, $@rhs.operand);
+	E_nl();
+	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
 }
 
 // --- Strings --------------------------------------------------------------
