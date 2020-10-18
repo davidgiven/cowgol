@@ -62,7 +62,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "{"                       { BEGIN(CSTRINGSTATE); nesting = 1; return BEGINCSTRING; }
 <CSTRINGSTATE>{LF}        { yylineno++; string = strdup("\n"); return CSTRING; }
 <CSTRINGSTATE>\$\$        |
-<CSTRINGSTATE>\${ID}      { string = strdup(yytext+1); return CID; }
+<CSTRINGSTATE>\$@?{ID}    { string = strdup(yytext+1); return CID; }
 <CSTRINGSTATE>"\""        { string = strdup("\""); BEGIN(CSTRINGQSTATE); return CSTRING; }
 <CSTRINGSTATE>"{"         { nesting++; string = strdup("{"); return CSTRING; }
 <CSTRINGSTATE>"}"         {

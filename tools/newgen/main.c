@@ -519,27 +519,44 @@ static void print_complex_action(Rule* r, Element* e)
 	if (e->next)
 		print_complex_action(r, e->next);
 
-	if (e->islabel)
+	switch (e->kind)
 	{
-		if (e->text[0] == '$')
-			fprintf(outfp, "selfreg");
-		else
-		{
-			Node* node = lookup_label(r->pattern, e->text);
-			if (!node)
-				fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
+		case ELEMENT_STRING:
+			fprintf(outfp, "%s", e->text);
+			break;
 
-			if (node->isregister)
-				fprintf(outfp, "slots[%d].reg", node->index);
+		case ELEMENT_REGLABEL:
+			if (e->text[0] == '$')
+				fprintf(outfp, "selfreg");
 			else
 			{
-				fprintf(outfp, "slots[%d].node.", node->index);
-				print_lower(midcodetypes[node->midcode]);
+				Node* node = lookup_label(r->pattern, e->text);
+				if (!node)
+					fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
+
+				if (node->isregister)
+					fprintf(outfp, "slots[%d].reg", node->index);
+				else
+				{
+					fprintf(outfp, "slots[%d].node.", node->index);
+					print_lower(midcodetypes[node->midcode]);
+				}
 			}
-		}
+			break;
+
+		case ELEMENT_NODELABEL:
+			if (e->text[0] == '$')
+				fprintf(outfp, "slots[0].node");
+			else
+			{
+				Node* node = lookup_label(r->pattern, e->text);
+				if (!node)
+					fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
+
+				fprintf(outfp, "slots[%d].node", node->index);
+			}
+			break;
 	}
-	else
-		fprintf(outfp, "%s", e->text);
 }
 
 static void print_line(int lineno)

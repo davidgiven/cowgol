@@ -253,16 +253,18 @@ cstrings(R) ::= .
 cstrings(R) ::= cstrings(LHS) CSTRING(RHS).
 {
     R = calloc(1, sizeof(Element));
-    R->islabel = false;
+    R->kind = ELEMENT_STRING;
     R->text = RHS.u.string;
     R->next = LHS;
 }
 
 cstrings(R) ::= cstrings(LHS) CID(RHS).
 {
+    const char* s = RHS.u.string;
+
     R = calloc(1, sizeof(Element));
-    R->islabel = true;
-    R->text = RHS.u.string;
+    R->kind = (*s == '@') ? ELEMENT_NODELABEL : ELEMENT_REGLABEL;
+    R->text = (*s == '@') ? (s+1) : s;
     R->next = LHS;
 }
 

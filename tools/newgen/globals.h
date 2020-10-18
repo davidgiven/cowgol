@@ -85,10 +85,17 @@ struct regclass
 	reg_t reg;
 };
 
+enum
+{
+	ELEMENT_STRING = 0,
+	ELEMENT_REGLABEL = 1,
+	ELEMENT_NODELABEL = 2
+};
+
 typedef struct element Element;
 struct element
 {
-	bool islabel;
+	int kind;
 	const char* text;
 	int lineno;
 	Element* next;
