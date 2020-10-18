@@ -192,6 +192,24 @@
 		Free(operand as [uint8]);
 	end sub;
 
+	sub E_pop(reg: RegId) is
+		case reg is
+			when REG_A: E_insn_simple("popa");
+			when REG_B: E_insn_simple("popb");
+			when REG_X: E_insn_simple("popx");
+			when REG_D: E_insn_simple("popa"); E_insn_simple("popb");
+		end case;
+	end sub;
+
+	sub E_push(reg: RegId) is
+		case reg is
+			when REG_A: E_insn_simple("psha");
+			when REG_B: E_insn_simple("pshb");
+			when REG_X: E_insn_simple("pshx");
+			when REG_D: E_insn_simple("pshb"); E_insn_simple("psha");
+		end case;
+	end sub;
+
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if (src == REG_A) and (dest == REG_B) then
@@ -199,27 +217,15 @@
 		elseif (src == REG_B) and (dest == REG_A) then
 			E_insn_simple("tba");
 		elseif (src == REG_X) and (dest == REG_D) then
-			E_insn_simple("pshx");
-			E_insn_simple("popa");
-			E_insn_simple("popb");
+			E_push(REG_X);
+			E_pop(REG_D);
 		elseif (src == REG_D) and (dest == REG_X) then
-			E_insn_simple("pshb");
-			E_insn_simple("psha");
-			E_insn_simple("popx");
+			E_push(REG_D);
+			E_pop(REG_X);
 		elseif dest == 0 then
-			case src is
-				when REG_A: E_insn_simple("psha");
-				when REG_B: E_insn_simple("pshb");
-				when REG_X: E_insn_simple("pshx");
-				when REG_D: E_insn_simple("pshb"); E_insn_simple("psha");
-			end case;
+			E_push(src);
 		elseif src == 0 then
-			case dest is
-				when REG_A: E_insn_simple("popa");
-				when REG_B: E_insn_simple("popb");
-				when REG_X: E_insn_simple("popx");
-				when REG_D: E_insn_simple("popa"); E_insn_simple("popb");
-			end case;
+			E_pop(dest);
 		else
 			StartError();
 			print("bad move: ");
@@ -291,46 +297,159 @@ gen STARTSUB()
 #	E("\t.align 2\n");
     E_b8(COO_ESCAPE_THISSUB);
     E(":\n");
-#
-#    var count := current_subr.num_input_parameters;
-#    while count != 0 loop
-#        count := count - 1;
-#        var param := GetInputParameter(current_subr, count) as [Symbol];
-#
-#        case param.width is
-#            when 1: E_store1(param, 0);
-#			when 2: E_store2(param, 0);
-#			when 4: E_store4(param, 0);
-#        end case;
-#    end loop;
+
+	var count := current_subr.num_input_parameters;
+	var lastparam := count - 1;
+	var popped: uint8 := 0;
+
+	sub pop_return_address() is
+		if popped == 0 then
+			E_pop(REG_D);
+			popped := 1;
+		end if;
+	end sub;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter(current_subr, count);
+
+		case param.width is
+			when 1:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_A);
+				end if;
+				E_insn("staa");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+
+			when 2:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_X);
+				end if;
+				E_insn("stx");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+
+			when 4:
+				pop_return_address();
+				E_pop(REG_X);
+
+				E_insn("stx");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+
+				E_pop(REG_X);
+
+				E_insn("stx");
+				E_symref(param as [Symbol], 2);
+				E_nl();
+		end case;
+	end loop;
+
+	if popped != 0 then
+		E_push(REG_D);
+	end if;
 }
 
 gen ENDSUB()
 {
 	E_label(current_subr.arch.end_label);
 
-#    var i: uint8 := 0;
-#    var count := current_subr.num_output_parameters;
-#    while i != count loop
-#        var param := GetOutputParameter(current_subr, i) as [Symbol];
-#
-#        var cache: RegId;
-#        case param.width is
-#            when 1: E_load1(param, 0);
-#            when 2: E_load2(param, 0);
-#            when 4: E_load4(param, 0);
-#		end case;
-#
-#        i := i + 1;
-#    end loop;
-#
-#	E_callhelper("exit");
+	var count: uint8 := 0;
+	var params := current_subr.num_output_parameters;
+	var pushed: uint8 := 0;
+
+	sub push_return_address() is
+		if pushed == 0 then
+			E_pop(REG_D);
+			pushed := 1;
+		end if;
+	end sub;
+
+	while count != params loop
+		var param := GetOutputParameter(current_subr, count);
+
+		case param.width is
+			when 1:
+				E_insn("ldaa");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+
+				if count != (params-1) then
+					push_return_address();
+					E_push(REG_A);
+				end if;
+
+			when 2:
+				E_insn("ldx");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+
+				if count != (params-1) then
+					push_return_address();
+					E_push(REG_X);
+				end if;
+
+			when 4:
+				push_return_address();
+				E_insn("ldx");
+				E_symref(param as [Symbol], 2);
+				E_nl();
+				E_push(REG_X);
+
+				E_insn("ldx");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+				E_push(REG_X);
+		end case;
+
+		count := count + 1;
+	end loop;
+
+	if pushed != 0 then
+		E_push(REG_D);
+	end if;
+	E_insn_simple("rts");
 
     EmitterCloseStream();
 
     EmitterDeclareWorkspace(current_subr.id, VARSTACK_WS, current_subr.arch.var_stack as uint16);
 	Free(current_subr.arch as [uint8]);
 }
+
+%{
+	sub Call(addr: [MidcodeSubref]) is
+		E_insn("jsr");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+
+	sub CallI() is
+		#E_callhelper("_jmpde");
+	end sub;
+%}
+
+gen         CALL(       param,      SUBREF():a) uses a|b|x { Call(&$a); }
+gen         CALL(  ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
+gen         CALL(  ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen a :=    CALLE1(     param,      SUBREF():a) uses   b|x { Call(&$a); }
+gen a :=    CALLE1(ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen x :=    CALLE2(     param,      SUBREF():a) uses a|b   { Call(&$a); }
+gen x :=    CALLE2(ARG1(param, a),  SUBREF():a) uses a|b   { Call(&$a); }
+gen x :=    CALLE2(ARG2(param, d),  SUBREF():a) uses a|b   { Call(&$a); }
+
+gen param := END();
+
+gen param := ARG1(param, a|b:lhs)  { E_push($lhs); }
+
+gen a   := POPARG1(remaining==0);
+gen d   := POPARG2(remaining==0);
+
+gen a|b := POPARG1(remaining!=0) { E_pop($$); }
+gen d|x := POPARG2(remaining!=0) { E_pop($$); }
 
 gen RETURN()
 {
@@ -666,6 +785,18 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 gen BEQ1(a|b:lhs, op:rhs):b
 {
 	E_acc("cmpa", "cmpb", $lhs);
+	E_op($rhs, $@rhs.operand);
+	E_nl();
+	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
+}
+
+gen BEQ2(d|x:lhs, op:rhs):b
+{
+	if $lhs == REG_D then
+		E_insn("cmpd");
+	else
+		E_insn("cpx");
+	end if;
 	E_op($rhs, $@rhs.operand);
 	E_nl();
 	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
