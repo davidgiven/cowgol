@@ -29,7 +29,7 @@
 	end record;
 
 	record XIndOp is
-		off: uint16;
+		off: uint8;
 	end record;
 
 	record Operand is
@@ -175,22 +175,45 @@
 		E_acc("suba", "subb", reg);
 	end sub;
 
-	sub E_op(reg: RegId, operand: [Operand]) is
-		case reg is
-			when REG_MEM:  E_symref(operand.mem.sym, operand.mem.off);
-			when REG_IMM:  E_const(); E_u32(operand.imm.value as uint32);
-			when REG_X:    E(",x");
-			when REG_XIND: E_u16(operand.xind.off); E(",x");
+    sub E_xgdx() is
+        R_flush(REG_D|REG_X);
+        E_insn_simple("xgdx");
+    end sub;
 
-			when REG_VS:
-				E_wsref(current_subr.id, VARSTACK_WS, operand.vs.sp as uint16);
-				varsp := varsp - 1;
+	sub E_op(reg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        sub dovs() is
+            E_wsref(current_subr.id, VARSTACK_WS, (operand.vs.sp+byte) as uint16);
+        end sub;
+
+		case reg is
+			when REG_MEM:
+                E_symref(operand.mem.sym, operand.mem.off + (byte as uint16));
+
+			when REG_IMM:
+                var value := ((operand.imm.value as uint32) >> shift) as uint16;
+                E_const();
+                E_u16(value);
+
+			when REG_X:
+                E_u8(byte);
+                E(",x");
+
+			when REG_XIND:
+                E_u8(operand.xind.off + byte);
+                E(",x");
+
+			when REG_VS1: dovs();
+			when REG_VS2: dovs();
+			when REG_VS4: dovs();
 
 			when else:
 				SimpleError("bad operand");
 		end case;
-		Free(operand as [uint8]);
 	end sub;
+
+    sub E_op0(reg: RegId, operand: [Operand]) is
+        E_op(reg, operand, 0, 0);
+    end sub;
 
 	sub E_pop(reg: RegId) is
 		case reg is
@@ -198,6 +221,10 @@
 			when REG_B: E_insn_simple("pulb");
 			when REG_X: E_insn_simple("pulx");
 			when REG_D: E_insn_simple("pula"); E_insn_simple("pulb");
+            when REG_XD:
+                E_insn_simple("pulx");
+                E_insn_simple("pula");
+                E_insn_simple("pulb");
 		end case;
 	end sub;
 
@@ -207,6 +234,10 @@
 			when REG_B: E_insn_simple("pshb");
 			when REG_X: E_insn_simple("pshx");
 			when REG_D: E_insn_simple("pshb"); E_insn_simple("psha");
+            when REG_XD:
+                E_insn_simple("pshb");
+                E_insn_simple("psha");
+                E_insn_simple("pshx");
 		end case;
 	end sub;
 
@@ -243,28 +274,32 @@
 	end sub;
 %}
 
-wordsize uint16;
+wordsize uint32;
 
 register a;     // 001
 register b;     // 002
 register d;     // 004
 register x;     // 008
-register param; // 010
+register xd;    // 010
+register param; // 020
 
-operand imm;    // 020
-operand mem;    // 040
-operand xind;   // 080
-operand vs;     // 100
+operand imm;    // 040
+operand mem;    // 080
+operand xind;   // 100
+operand vs1;    // 200
+operand vs2;    // 400
+operand vs4;    // 800
 
-regdata a uses d       compatible a|b;
-regdata b uses d       compatible a|b;
-regdata d uses a|b     compatible d|x;
-regdata x              compatible d|x;
+regdata a uses d  |xd  compatible a|b;
+regdata b uses d  |xd  compatible a|b;
+regdata d uses a|b|xd  compatible d|x;
+regdata x uses     xd  compatible d|x;
+regdata xd uses a|b|d|x;
 regdata param stacked;
 
 regdata xind uses x;
 
-regclass op := imm|mem|xind|vs;
+regclass op := imm|mem|xind;
 
 // --- Core things ----------------------------------------------------------
 
@@ -294,7 +329,6 @@ gen STARTSUB()
     E(current_subr.name);
     E_nl();
 
-#	E("\t.align 2\n");
     E_b8(COO_ESCAPE_THISSUB);
     E(" = *\n");
 
@@ -485,24 +519,24 @@ gen mem := LOAD4(ADDRESS():a) cost 5
 	self.n[0].operand := op;
 }
 
-gen xind := LOAD1(ADD2(x, CONSTANT():c)) cost 5
+gen xind := LOAD1(ADD2(x, CONSTANT(value is byte):c)) cost 5
 {
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
-	op.xind.off := $c.value as uint16;
+	op.xind.off := $c.value as uint8;
 	self.n[0].operand := op;
 }
 
-gen xind := LOAD2(ADD2(x, CONSTANT():c)) cost 5
+gen xind := LOAD2(ADD2(x, CONSTANT(value is bytem1):c)) cost 5
 {
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
-	op.xind.off := $c.value as uint16;
+	op.xind.off := $c.value as uint8;
 	self.n[0].operand := op;
 }
 
-gen xind := LOAD4(ADD2(x, CONSTANT():c)) cost 5
+gen xind := LOAD4(ADD2(x, CONSTANT(value is bytem3):c)) cost 5
 {
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
-	op.xind.off := $c.value as uint16;
+	op.xind.off := $c.value as uint8;
 	self.n[0].operand := op;
 }
 
@@ -513,7 +547,7 @@ gen imm := CONSTANT():c cost 5
 	self.n[0].operand := op;
 }
 
-gen vs := FALLBACK(a|b:lhs)
+gen vs1 := FALLBACK(a|b:lhs)
 {
 	E_st($lhs);
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
@@ -528,7 +562,7 @@ gen vs := FALLBACK(a|b:lhs)
 	self.n[0].operand := op;
 }
 
-gen vs := FALLBACK(d|x:lhs)
+gen vs2 := FALLBACK(d|x:lhs)
 {
 	E_st($lhs);
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
@@ -537,6 +571,25 @@ gen vs := FALLBACK(d|x:lhs)
 	var op := InternalAlloc(@bytesof Operand) as [Operand];
 	op.vs.sp := varsp;
 	varsp := varsp + 2;
+	if current_subr.arch.var_stack < varsp then
+		current_subr.arch.var_stack := varsp;
+	end if;
+	self.n[0].operand := op;
+}
+
+gen vs4 := FALLBACK(xd:lhs)
+{
+	E_st(REG_X);
+	E_wsref(current_subr.id, VARSTACK_WS, (varsp+0) as uint16);
+	E_nl();
+
+	E_st(REG_D);
+	E_wsref(current_subr.id, VARSTACK_WS, (varsp+2) as uint16);
+	E_nl();
+
+	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	op.vs.sp := varsp;
+	varsp := varsp + 4;
 	if current_subr.arch.var_stack < varsp then
 		current_subr.arch.var_stack := varsp;
 	end if;
@@ -567,7 +620,7 @@ gen x|d := ADDRESS():a
 
 gen a|b|d|x := CONSTANT():c
 {
-	var cache := RegCacheFindConstant($c.value as uint16) & $$;
+	var cache := RegCacheFindConstant($c.value as uint32) & $$;
 	if (cache & $$) != 0 then
 		# The value is already in the desired register.
 		return;
@@ -585,7 +638,28 @@ gen a|b|d|x := CONSTANT():c
 		E_nl();
 	end if;
 
-	RegCacheLeavesConstant($$, $c.value as uint16);
+	RegCacheLeavesConstant($$, $c.value as uint32);
+}
+
+gen xd := CONSTANT():c
+{
+	var cache := RegCacheFindConstant($c.value as uint32) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
+	end if;
+
+    E_ld(REG_X);
+    E_const();
+    E_u16(($c.value >> 16) as uint16);
+    E_nl();
+
+    E_ld(REG_D);
+    E_const();
+    E_u16($c.value as uint16);
+    E_nl();
+
+	RegCacheLeavesConstant($$, $c.value as uint32);
 }
 
 // --- Stores (these don't use operands) ------------------------------------
@@ -629,6 +703,19 @@ gen STORE2(x|d:lhs, ADDRESS():a)
 	E_st($lhs);
 	E_symref(&$a.sym, $a.off);
 	E_nl();
+	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
+}
+
+gen STORE4(xd:lhs, ADDRESS():a)
+{
+    E_st(REG_X);
+    E_symref(&$a.sym, $a.off);
+    E_nl();
+
+    E_st(REG_D);
+    E_symref(&$a.sym, $a.off+2);
+    E_nl();
+
 	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
 }
 
@@ -688,13 +775,32 @@ gen x|d := LOAD2(ADD2(x, CONSTANT():c))
 	E(",x\n");
 }
 
+gen xd := LOAD4(ADDRESS():a)
+{
+	var cache := RegCacheFindValue(&$a.sym, $a.off) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
+	end if;
+
+    E_ld(REG_X);
+    E_symref(&$a.sym, $a.off);
+    E_nl();
+
+    E_ld(REG_D);
+    E_symref(&$a.sym, $a.off+2);
+    E_nl();
+
+	RegCacheLeavesValue($$, &$a.sym, $a.off);
+}
+
 // --- 8-bit arithmetic -----------------------------------------------------
 
 gen a|b := ADD1($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
 	E_add($$);
-	E_op($rhs, $@rhs.operand);
+	E_op0($rhs, $@rhs.operand);
 	E_nl();
 }
 
@@ -716,7 +822,7 @@ gen a|b := SUB1($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
 	E_sub($$);
-	E_op($rhs, $@rhs.operand);
+	E_op0($rhs, $@rhs.operand);
 	E_nl();
 }
 
@@ -739,7 +845,7 @@ gen d := ADD2($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
 	E_insn("addd");
-	E_op($rhs, $@rhs.operand);
+	E_op0($rhs, $@rhs.operand);
 	E_nl();
 }
 
@@ -747,7 +853,7 @@ gen d := SUB2($$:lhs, op:rhs)
 {
 	RegCacheFlush($$);
 	E_insn("subd");
-	E_op($rhs, $@rhs.operand);
+	E_op0($rhs, $@rhs.operand);
 	E_nl();
 }
 
@@ -759,11 +865,27 @@ gen d := SUB2($$:lhs, op:rhs)
 			result := 0;
 		end if;
 	end sub;
+
+	sub is_bytem1(value: int32): (result: uint8) is
+        if (value >= 0) and (value <= 254) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+
+	sub is_bytem3(value: int32): (result: uint8) is
+        if (value >= 0) and (value <= 252) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
 %}
 
 gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b
 {
-	var cache := RegCacheFindConstant($c.value as uint16) & $$;
+	var cache := RegCacheFindConstant($c.value as uint32) & $$;
 	if (cache & $$) != 0 then
 		# The value is already in the desired register.
 	else
@@ -771,7 +893,7 @@ gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b
 		E_insn("ldab #");
 		E_u8($c.value as uint8);
 		E_nl();
-		RegCacheLeavesConstant($$, $c.value as uint16);
+		RegCacheLeavesConstant($$, $c.value as uint32);
 	end if;
 
 	RegCacheFlush($$);
@@ -790,6 +912,48 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 	E_insn_simple("dex");
 }
 
+// --- 32-bit arithmetic ----------------------------------------------------
+
+gen xd := ADD4($$:lhs, op|vs4:rhs)
+{
+    RegCacheFlush($$);
+    E_insn("addd");
+    E_op($rhs, $@rhs.operand, 2, 0);
+    E_nl();
+
+    E_xgdx();
+
+    E_insn("adcb");
+    E_op($rhs, $@rhs.operand, 1, 16);
+    E_nl();
+
+    E_insn("adca");
+    E_op($rhs, $@rhs.operand, 0, 24);
+    E_nl();
+
+    E_xgdx();
+}
+
+gen xd := SUB4($$:lhs, op|vs4:rhs)
+{
+    RegCacheFlush($$);
+    E_insn("subd");
+    E_op($rhs, $@rhs.operand, 2, 0);
+    E_nl();
+
+    E_xgdx();
+
+    E_insn("sbcb");
+    E_op($rhs, $@rhs.operand, 1, 16);
+    E_nl();
+
+    E_insn("sbca");
+    E_op($rhs, $@rhs.operand, 0, 24);
+    E_nl();
+
+    E_xgdx();
+}
+
 // --- Conditionals ---------------------------------------------------------
 
 gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
@@ -806,7 +970,7 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 gen BEQ1(a|b:lhs, op:rhs):b
 {
 	E_acc("cmpa", "cmpb", $lhs);
-	E_op($rhs, $@rhs.operand);
+	E_op0($rhs, $@rhs.operand);
 	E_nl();
 	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
 }
@@ -818,7 +982,7 @@ gen BEQ2(d|x:lhs, op:rhs):b
 	else
 		E_insn("cpx");
 	end if;
-	E_op($rhs, $@rhs.operand);
+	E_op0($rhs, $@rhs.operand);
 	E_nl();
 	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
 }

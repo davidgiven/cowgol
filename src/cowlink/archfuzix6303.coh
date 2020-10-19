@@ -25,6 +25,7 @@ end sub;
 sub ArchEmitHeader(coo: [Coo]) is
 	E("\tcpu 6803\n");
 	E("\toutput scode\n");
+	E("\txgdx macro\n db 0x18\n endm\n");
 	E("* = 0x100\n");
 
 	E("\tdw 0x80a8\n"); # magic
