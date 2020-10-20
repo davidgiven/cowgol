@@ -40,7 +40,6 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("text_start = *\n");
 	E("sigvec rts\n");
 	E("entry = *\n");
-	E("\tlds #0xfeff\n"); # for testing with h6803 only
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
@@ -51,7 +50,11 @@ sub ArchEmitHeader(coo: [Coo]) is
 		coo := coo.next;
 	end loop;
 	E("exit = *\n");
-	E("\tldd #0x0001\n");
+	E("\tclra\n");
+	E("\tclrb\n");
+	E("\tpshb\n");
+	E("\tpsha\n");
+	E("\tincb\n");
 	E("\tswi\n");
 end sub;
 
