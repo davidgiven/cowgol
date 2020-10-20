@@ -253,3 +253,7 @@ primarily written by Warren Toomey and Eric A. Edwards. It is distributed under
 the terms of the MIT license; see `third_party/apout/COPYRIGHT` for the full
 text.
 
+`third_party/rc2014emu` contains a subset of the RC2014 emulator written by
+Alan Cox. It is distributed under the terms of the GPL 3.0 license; see
+`third_party/rc2014emu/COPYING` for the full text.
+
