@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <errno.h>
 #include "globals.h"
 #include "6800.h"
 
@@ -15,9 +16,9 @@ uint8_t m6800_read(struct m6800 *cpu, uint16_t addr)
 	return ram[addr];
 }
 
-uint8_t readw(uint16_t addr)
+uint16_t readw(uint16_t addr)
 {
-	return (ram[addr]<<8) | ram[addr];
+	return (ram[addr]<<8) | ram[addr+1];
 }
 
 uint8_t m6800_debug_read(struct m6800 *cpu, uint16_t addr)
@@ -78,6 +79,14 @@ uint8_t readwfp(FILE* fp, uint16_t addr)
 	return (hi<<8) | lo;
 }
 
+static void setup_syscall_exit(int r)
+{
+	cpu.a = r>>8;
+	cpu.b = r;
+	if (r == -1)
+		cpu.x = errno;
+}
+
 int main(int argc, char* const argv[])
 {
 	m6800_reset(&cpu, 2);
@@ -136,14 +145,25 @@ end_of_opts:
 		
 	for (;;)
 	{
-		showregs();
+		//showregs();
 		if (cpu.pc == SWIVECTOR)
 		{
-			cpu.s += 9;
+			cpu.pc = readw(cpu.s + 6);
+			cpu.s += 7;
 			switch (cpu.a)
 			{
 				case 0: /* _exit */
-					exit(readw(cpu.s));
+					exit(readw(cpu.s+1));
+
+				case 8: /* write */
+				{
+					uint16_t len = readw(cpu.s+1);
+					uint16_t addr = readw(cpu.s+3);
+					uint16_t fd = readw(cpu.s+5);
+					int r = write(fd, &ram[addr], len);
+					setup_syscall_exit(r);
+					break;
+				}
 
 				default:
 					fprintf(stderr, "unhandled system call 0x%x\n", cpu.a);
