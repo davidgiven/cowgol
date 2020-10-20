@@ -243,11 +243,6 @@ assembler. It's in the public domain.
 `third_party/lemon` contains a copy of the lemon parser generator. It's in the
 public domain.
 
-`third_party/sim68xx` contains a copy of the sim68xx emulation library,
-primarily written by Arne Riiber and Felix Erckenbrecht. It is distributed
-under the terms of the GPL 2.0; see `third_party/sim68xx/LICENSE` for the full
-text.
-
 `third_party/apout` contains a copy of the apout PDP-11 SysV binary emulator,
 primarily written by Warren Toomey and Eric A. Edwards. It is distributed under
 the terms of the MIT license; see `third_party/apout/COPYRIGHT` for the full

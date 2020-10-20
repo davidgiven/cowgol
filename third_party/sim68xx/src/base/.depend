@@ -1,5 +1,0 @@
-error.o : error.c ../../inc/base/main.h 
-fprinthe.o : fprinthe.c 
-main.o : main.c ../../inc/base/defs.h ../../inc/base/fileio.h 
-symtab.o : symtab.c ../../inc/base/symtab.h 
-tty.o : tty.c ../../inc/base/defs.h 
