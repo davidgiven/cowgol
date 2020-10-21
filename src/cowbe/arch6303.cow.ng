@@ -1,20 +1,4 @@
-%{
-    const VARMEM_WS := 0;
-    const VARSTACK_WS := 1;
-
-	var varsp: uint8 := 0;
-
-    record ArchSubroutine is
-        end_label: LabelRef;
-		var_stack: uint8;
-    end record;
-
-	record Extern is
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
+%[
 	record MemOp is
 		sym: [Symbol];
 		off: Size;
@@ -37,6 +21,24 @@
 		xind @at(0): XIndOp;
 		imm @at(0): ImmOp;
 		vs @at(0): VsOp;
+	end record;
+%]
+
+%{
+    const VARMEM_WS := 0;
+    const VARSTACK_WS := 1;
+
+	var varsp: uint8 := 0;
+
+    record ArchSubroutine is
+        end_label: LabelRef;
+		var_stack: uint8;
+    end record;
+
+	record Extern is
+		name: string;
+		id: uint16;
+		next: [Extern];
 	end record;
 
 	var externs: [Extern] := (0 as [Extern]);
@@ -497,54 +499,47 @@ gen RETURN()
 
 gen mem := LOAD1(ADDRESS():a) cost 5
 {
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.mem.sym := &$a.sym;
 	op.mem.off := $a.off;
-	self.n[0].operand := op;
 }
 
 gen mem := LOAD2(ADDRESS():a) cost 5
 {
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.mem.sym := &$a.sym;
 	op.mem.off := $a.off;
-	self.n[0].operand := op;
 }
 
 gen mem := LOAD4(ADDRESS():a) cost 5
 {
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.mem.sym := &$a.sym;
 	op.mem.off := $a.off;
-	self.n[0].operand := op;
 }
 
 gen xind := LOAD1(ADD2(x, CONSTANT(value is byte):c)) cost 5
 {
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.xind.off := $c.value as uint8;
-	self.n[0].operand := op;
 }
 
 gen xind := LOAD2(ADD2(x, CONSTANT(value is bytem1):c)) cost 5
 {
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.xind.off := $c.value as uint8;
-	self.n[0].operand := op;
 }
 
 gen xind := LOAD4(ADD2(x, CONSTANT(value is bytem3):c)) cost 5
 {
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.xind.off := $c.value as uint8;
-	self.n[0].operand := op;
 }
 
 gen imm := CONSTANT():c cost 5
 {
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.imm.value := $c.value;
-	self.n[0].operand := op;
 }
 
 gen vs1 := FALLBACK(a|b:lhs)
@@ -553,13 +548,12 @@ gen vs1 := FALLBACK(a|b:lhs)
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
 	E_nl();
 
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.vs.sp := varsp;
 	varsp := varsp + 1;
 	if current_subr.arch.var_stack < varsp then
 		current_subr.arch.var_stack := varsp;
 	end if;
-	self.n[0].operand := op;
 }
 
 gen vs2 := FALLBACK(d|x:lhs)
@@ -574,7 +568,6 @@ gen vs2 := FALLBACK(d|x:lhs)
 	if current_subr.arch.var_stack < varsp then
 		current_subr.arch.var_stack := varsp;
 	end if;
-	self.n[0].operand := op;
 }
 
 gen vs4 := FALLBACK(xd:lhs)
@@ -587,14 +580,23 @@ gen vs4 := FALLBACK(xd:lhs)
 	E_wsref(current_subr.id, VARSTACK_WS, (varsp+2) as uint16);
 	E_nl();
 
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
+	var op := &self.n[0].operand;
 	op.vs.sp := varsp;
 	varsp := varsp + 4;
 	if current_subr.arch.var_stack < varsp then
 		current_subr.arch.var_stack := varsp;
 	end if;
-	self.n[0].operand := op;
 }
+
+%{
+    sub RetractVStack(reg: RegId, op: [Operand]) is
+        case reg is
+            when REG_VS1: varsp := varsp - 1;
+            when REG_VS2: varsp := varsp - 2;
+            when REG_VS4: varsp := varsp - 4;
+        end case;
+    end sub;
+%}
 
 // --- Simple things --------------------------------------------------------
 
@@ -798,44 +800,48 @@ gen xd := LOAD4(ADDRESS():a)
 
 gen a|b := ADD1($$:lhs, op:rhs)
 {
-	RegCacheFlush($$);
+    RetractVStack($$, &$@rhs.operand);
+
+	R_flush($$);
 	E_add($$);
-	E_op0($rhs, $@rhs.operand);
+	E_op0($rhs, &$@rhs.operand);
 	E_nl();
 }
 
 gen a|b := ADD1($$:lhs, CONSTANT(value == 1))
 {
-	RegCacheFlush($$);
+	R_flush($$);
 	E_acc("inca", "incb", $$);
 	E_nl();
 }
 
 gen a|b := ADD1($$:lhs, CONSTANT(value == -1))
 {
-	RegCacheFlush($$);
+	R_flush($$);
 	E_acc("deca", "decb", $$);
 	E_nl();
 }
 
 gen a|b := SUB1($$:lhs, op:rhs)
 {
-	RegCacheFlush($$);
+    RetractVStack($$, &$@rhs.operand);
+
+	R_flush($$);
 	E_sub($$);
-	E_op0($rhs, $@rhs.operand);
+	E_op0($rhs, &$@rhs.operand);
 	E_nl();
 }
 
 gen a|b := NEG1($$)
 {
-	RegCacheFlush($$);
+	R_flush($$);
 	E_acc("nega", "negb", $$);
 	E_nl();
 }
 
 gen a := MUL1(a, b)
 {
-	RegCacheFlush($$);
+	R_flush($$);
 	E_insn_simple("mul");
 }
 
@@ -843,17 +849,21 @@ gen a := MUL1(a, b)
 
 gen d := ADD2($$:lhs, op:rhs)
 {
-	RegCacheFlush($$);
+    RetractVStack($$, &$@rhs.operand);
+
+	R_flush($$);
 	E_insn("addd");
-	E_op0($rhs, $@rhs.operand);
+	E_op0($rhs, &$@rhs.operand);
 	E_nl();
 }
 
 gen d := SUB2($$:lhs, op:rhs)
 {
-	RegCacheFlush($$);
+    RetractVStack($$, &$@rhs.operand);
+
+	R_flush($$);
 	E_insn("subd");
-	E_op0($rhs, $@rhs.operand);
+	E_op0($rhs, &$@rhs.operand);
 	E_nl();
 }
 
@@ -889,26 +899,26 @@ gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b
 	if (cache & $$) != 0 then
 		# The value is already in the desired register.
 	else
-		RegCacheFlush(REG_B);
+		R_flush(REG_B);
 		E_insn("ldab #");
 		E_u8($c.value as uint8);
 		E_nl();
 		RegCacheLeavesConstant($$, $c.value as uint32);
 	end if;
 
-	RegCacheFlush($$);
+	R_flush($$);
 	E_insn_simple("abx");
 }
 
 gen x := ADD2($$:lhs, CONSTANT(value == 1)) cost 1
 {
-	RegCacheFlush($$);
+	R_flush($$);
 	E_insn_simple("inx");
 }
 
 gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 {
-	RegCacheFlush($$);
+	R_flush($$);
 	E_insn_simple("dex");
 }
 
@@ -916,42 +926,77 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 
 gen xd := ADD4($$:lhs, op|vs4:rhs)
 {
-    RegCacheFlush($$);
+    RetractVStack($$, &$@rhs.operand);
+
+    R_flush($$);
     E_insn("addd");
-    E_op($rhs, $@rhs.operand, 2, 0);
+    E_op($rhs, &$@rhs.operand, 2, 0);
     E_nl();
 
     E_xgdx();
 
     E_insn("adcb");
-    E_op($rhs, $@rhs.operand, 1, 16);
+    E_op($rhs, &$@rhs.operand, 1, 16);
     E_nl();
 
     E_insn("adca");
-    E_op($rhs, $@rhs.operand, 0, 24);
+    E_op($rhs, &$@rhs.operand, 0, 24);
     E_nl();
 
     E_xgdx();
 }
 
-gen xd := SUB4($$:lhs, op|vs4:rhs)
+//gen xd := SUB4($$:lhs, op|vs4:rhs)
+//{
+//    R_flush($$);
+//    E_insn("subd");
+//    E_op($rhs, &$@rhs.operand, 2, 0);
+//    E_nl();
+//
+//    E_xgdx();
+//
+//    E_insn("sbcb");
+//    E_op($rhs, &$@rhs.operand, 1, 16);
+//    E_nl();
+//
+//    E_insn("sbca");
+//    E_op($rhs, &$@rhs.operand, 0, 24);
+//    E_nl();
+//
+//    E_xgdx();
+//}
+
+gen vs4 := SUB4(imm|mem|vs4:lhs, op|vs4:rhs)
 {
-    RegCacheFlush($$);
-    E_insn("subd");
-    E_op($rhs, $@rhs.operand, 2, 0);
+    RetractVStack($$, &$@lhs.operand);
+    RetractVStack($$, &$@rhs.operand);
+
+    R_flush(REG_XD);
+
+    E_insn("ldd");
+    E_op($lhs, &$@lhs.operand, 2, 0);
     E_nl();
 
-    E_xgdx();
+    E_insn("subd");
+    E_op($rhs, &$@rhs.operand, 2, 0);
+    E_nl();
+
+    E_push(REG_D);
+
+    E_insn("ldd");
+    E_op($lhs, &$@lhs.operand, 0, 0);
+    E_nl();
 
     E_insn("sbcb");
-    E_op($rhs, $@rhs.operand, 1, 16);
+    E_op($rhs, &$@rhs.operand, 1, 16);
     E_nl();
 
     E_insn("sbca");
-    E_op($rhs, $@rhs.operand, 0, 24);
+    E_op($rhs, &$@rhs.operand, 0, 24);
     E_nl();
 
     E_xgdx();
+    E_pop(REG_X);
 }
 
 // --- Conditionals ---------------------------------------------------------
@@ -969,20 +1014,24 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 
 gen BEQ1(a|b:lhs, op:rhs):b
 {
+    RetractVStack($$, &$@rhs.operand);
+
 	E_acc("cmpa", "cmpb", $lhs);
-	E_op0($rhs, $@rhs.operand);
+	E_op0($rhs, &$@rhs.operand);
 	E_nl();
 	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
 }
 
 gen BEQ2(d|x:lhs, op:rhs):b
 {
+    RetractVStack($$, &$@rhs.operand);
+
 	if $lhs == REG_D then
 		E_insn("cmpd");
 	else
 		E_insn("cpx");
 	end if;
-	E_op0($rhs, $@rhs.operand);
+	E_op0($rhs, &$@rhs.operand);
 	E_nl();
 	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
 }

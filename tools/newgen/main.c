@@ -715,6 +715,9 @@ int main(int argc, const char* argv[])
 	if (machine_word)
 		fprintf(outhfp, "typedef Word is %s;\n", machine_word);
 
+	if (operandregs == 0)
+		fprintf(outhfp, "record Operand is end record;\n");
+
 	fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 	fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 	fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);

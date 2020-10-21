@@ -15,7 +15,8 @@
 %x CSTRINGSTATE
 %x CSTRINGQSTATE
 %x NUMBERSTATE
-%x COPYSTATE
+%x IMPLSTATE
+%x DECLSTATE
 
 LF (\r\n)|\r|\n
 SP [ \t]+
@@ -109,11 +110,17 @@ ID [A-Za-z][A-Za-z0-9_$]*
 }
 <NUMBERSTATE>.|{LF}       { BEGIN(INITIAL); unput(*yytext); return INT; }
 
-"%{"                      { BEGIN(COPYSTATE); }
-<COPYSTATE>"%}"           { BEGIN(INITIAL); }
-<COPYSTATE>{LF}           { fputc('\n', outfp); yylineno++; }
-<COPYSTATE>[^%\n\r]+      |
-<COPYSTATE>.              { fputs(yytext, outfp); }
+"%["                      { BEGIN(DECLSTATE); }
+<DECLSTATE>"%]"           { BEGIN(INITIAL); }
+<DECLSTATE>{LF}           { fputc('\n', outhfp); yylineno++; }
+<DECLSTATE>[^%\n\r]+      |
+<DECLSTATE>.              { fputs(yytext, outhfp); }
+
+"%{"                      { BEGIN(IMPLSTATE); }
+<IMPLSTATE>"%}"           { BEGIN(INITIAL); }
+<IMPLSTATE>{LF}           { fputc('\n', outfp); yylineno++; }
+<IMPLSTATE>[^%\n\r]+      |
+<IMPLSTATE>.              { fputs(yytext, outfp); }
 
 "//"[^\r\n]*              {}
 {LF}                      { yylineno++; }

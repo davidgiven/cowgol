@@ -126,6 +126,7 @@ struct rule
 
 extern int errcnt;
 extern FILE* outfp;
+extern FILE* outhfp;
 
 extern void fatal(const char* msg, ...);
 extern void warning(const char* msg, ...);

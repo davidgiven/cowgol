@@ -72,7 +72,7 @@ if (mode == "combined") or (mode == "be") then
 end
 if mode == "be" then
 	hfp:write("\tnext: [Node];\n")
-	hfp:write("\toperand: [Operand];\n")
+	hfp:write("\toperand: Operand;\n")
 end
 hfp:write("\top: uint8;\n")
 hfp:write("end record;\n");
