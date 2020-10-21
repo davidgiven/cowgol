@@ -182,6 +182,47 @@
         E_insn_simple("xgdx");
     end sub;
 
+    sub PrepareWorkspacePointerForAddress(sym: [Symbol], off: uint16) is
+        if (sym.subr == current_subr) and ((sym.off + off) < 252) then
+            var cache := RegCacheFindWsRef(sym.subr, VARMEM_WS, 0) & REG_X;
+            if cache != 0 then
+                # The workspace pointer is already in X.
+                return;
+            end if;
+            R_flush(REG_X);
+            E_insn("ldx");
+            E_const();
+			E_wsref(sym.subr.id, sym.wsid, 0);
+            E_nl();
+
+            RegCacheLeavesWsRef(REG_X, sym.subr, VARMEM_WS, 0);
+        end if;
+    end sub;
+
+    sub PrepareWorkspacePointer(reg: RegId, op: [Operand]) is
+        if reg == REG_MEM then
+            PrepareWorkspacePointerForAddress(op.mem.sym, op.mem.off);
+        end if;
+    end sub;
+
+    sub RetractVStack(reg: RegId, op: [Operand]) is
+        case reg is
+            when REG_VS1: varsp := varsp - 1;
+            when REG_VS2: varsp := varsp - 2;
+            when REG_VS4: varsp := varsp - 4;
+        end case;
+    end sub;
+
+    sub E_memop(sym: [Symbol], off: Size) is
+        off := off + sym.off;
+        if (sym.subr == current_subr) and (off < 252) then
+            E_u8(off as uint8);
+            E(",x");
+        else
+            E_symref(sym, off);
+        end if;
+    end sub;
+
 	sub E_op(reg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
         sub dovs() is
             E_wsref(current_subr.id, VARSTACK_WS, (operand.vs.sp+byte) as uint16);
@@ -189,7 +230,7 @@
 
 		case reg is
 			when REG_MEM:
-                E_symref(operand.mem.sym, operand.mem.off + (byte as uint16));
+                E_memop(operand.mem.sym, operand.mem.off + (byte as uint16));
 
 			when REG_IMM:
                 var value := ((operand.imm.value as uint32) >> shift) as uint16;
@@ -588,15 +629,10 @@ gen vs4 := FALLBACK(xd:lhs)
 	end if;
 }
 
-%{
-    sub RetractVStack(reg: RegId, op: [Operand]) is
-        case reg is
-            when REG_VS1: varsp := varsp - 1;
-            when REG_VS2: varsp := varsp - 2;
-            when REG_VS4: varsp := varsp - 4;
-        end case;
-    end sub;
-%}
+gen xd := FALLBACK(vs4:lhs)
+{
+    RetractVStack($lhs, &$@lhs.operand);
+}
 
 // --- Simple things --------------------------------------------------------
 
@@ -708,17 +744,24 @@ gen STORE2(x|d:lhs, ADDRESS():a)
 	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
 }
 
-gen STORE4(xd:lhs, ADDRESS():a)
+gen STORE4(vs4:lhs, ADDRESS():a)
 {
-    E_st(REG_X);
-    E_symref(&$a.sym, $a.off);
-    E_nl();
+    RetractVStack($lhs, &$@lhs.operand);
+    PrepareWorkspacePointerForAddress(&$a.sym, $a.off);
 
+    E_ld(REG_D);
+    E_wsref(current_subr.id, VARSTACK_WS, $@lhs.operand.vs.sp as uint16);
+    E_nl();
     E_st(REG_D);
-    E_symref(&$a.sym, $a.off+2);
+    E_memop(&$a.sym, $a.off+0);
     E_nl();
 
-	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
+    E_ld(REG_D);
+    E_wsref(current_subr.id, VARSTACK_WS, ($@lhs.operand.vs.sp+2) as uint16);
+    E_nl();
+    E_st(REG_D);
+    E_memop(&$a.sym, $a.off+2);
+    E_nl();
 }
 
 // --- Loads (these don't use operands) ----------------------------------
@@ -777,23 +820,30 @@ gen x|d := LOAD2(ADD2(x, CONSTANT():c))
 	E(",x\n");
 }
 
-gen xd := LOAD4(ADDRESS():a)
+gen vs4 := LOAD4(ADDRESS():a)
 {
-	var cache := RegCacheFindValue(&$a.sym, $a.off) & $$;
-	if (cache & $$) != 0 then
-		# The value is already in the desired register.
-		return;
-	end if;
+    PrepareWorkspacePointerForAddress(&$a.sym, $a.off);
 
-    E_ld(REG_X);
-    E_symref(&$a.sym, $a.off);
+    E_ld(REG_D);
+    E_memop(&$a.sym, $a.off+0);
+    E_nl();
+    E_st(REG_D);
+    E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
     E_nl();
 
     E_ld(REG_D);
-    E_symref(&$a.sym, $a.off+2);
+    E_memop(&$a.sym, $a.off+2);
+    E_nl();
+    E_st(REG_D);
+    E_wsref(current_subr.id, VARSTACK_WS, (varsp+2) as uint16);
     E_nl();
 
-	RegCacheLeavesValue($$, &$a.sym, $a.off);
+	var op := &self.n[0].operand;
+	op.vs.sp := varsp;
+	varsp := varsp + 4;
+	if current_subr.arch.var_stack < varsp then
+		current_subr.arch.var_stack := varsp;
+	end if;
 }
 
 // --- 8-bit arithmetic -----------------------------------------------------
@@ -924,26 +974,48 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
-gen xd := ADD4($$:lhs, op|vs4:rhs)
+gen vs4 := ADD4(imm|mem|vs4:lhs, op|vs4:rhs)
 {
-    RetractVStack($$, &$@rhs.operand);
+    RetractVStack($rhs, &$@rhs.operand);
 
-    R_flush($$);
+    R_flush(REG_D);
+    PrepareWorkspacePointer($lhs, &$@lhs.operand);
+    E_insn("ldd");
+    E_op($lhs, &$@lhs.operand, 2, 0);
+    E_nl();
+
+    PrepareWorkspacePointer($rhs, &$@rhs.operand);
     E_insn("addd");
     E_op($rhs, &$@rhs.operand, 2, 0);
     E_nl();
 
-    E_xgdx();
+    E_insn("std");
+    E_op($$, &$@$.operand, 2, 0);
+    E_nl();
 
+    PrepareWorkspacePointer($lhs, &$@lhs.operand);
+    E_insn("ldd");
+    E_op($lhs, &$@lhs.operand, 0, 0);
+    E_nl();
+
+    PrepareWorkspacePointer($rhs, &$@rhs.operand);
     E_insn("adcb");
     E_op($rhs, &$@rhs.operand, 1, 16);
     E_nl();
-
     E_insn("adca");
     E_op($rhs, &$@rhs.operand, 0, 24);
     E_nl();
 
-    E_xgdx();
+    E_insn("std");
+    E_op($$, &$@$.operand, 2, 0);
+    E_nl();
+
+	var op := &self.n[0].operand;
+	op.vs.sp := varsp;
+	varsp := varsp + 4;
+	if current_subr.arch.var_stack < varsp then
+		current_subr.arch.var_stack := varsp;
+	end if;
 }
 
 //gen xd := SUB4($$:lhs, op|vs4:rhs)
