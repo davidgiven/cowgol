@@ -2,7 +2,7 @@ const CACHE_SIZE := REGISTER_COUNT;
 
 const CACHE_SLOT_EMPTY    := 0;
 const CACHE_SLOT_CONSTANT := 1;
-const CACHE_SLOT_ADDRESS  := 2;
+const CACHE_SLOT_WSREF    := 2;
 const CACHE_SLOT_VALUE    := 3;
 
 record CacheSlot is
@@ -58,12 +58,11 @@ sub RegCacheLeavesConstant(reg: RegId, value: Word) is
 	end if;
 end sub;
 
-sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size) is
-	off := sym.off + off;
+sub RegCacheLeavesWsRef(reg: RegId, subr: [Subroutine], wsid: uint8, off: Size) is
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_ADDRESS) and (p.subr == sym.subr) 
-				and (p.wsid == sym.wsid) and (p.number == (off as Word)) then
+		if (p.state == CACHE_SLOT_WSREF) and (p.subr == subr) 
+				and (p.wsid == wsid) and (p.number == (off as Word)) then
 			p.reg := p.reg | reg;
 			return;
 		end if;
@@ -72,12 +71,16 @@ sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size) is
 
 	p := reg_i_find_empty_slot();
 	if p != (0 as [CacheSlot]) then
-		p.state := CACHE_SLOT_ADDRESS;
-		p.subr := sym.subr;
-		p.wsid := sym.wsid;
+		p.state := CACHE_SLOT_WSREF;
+		p.subr := subr;
+		p.wsid := wsid;
 		p.number := off as Word;
 		p.reg := reg;
 	end if;
+end sub;
+
+sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size) is
+	RegCacheLeavesWsRef(reg, sym.subr, sym.wsid, sym.off + off);
 end sub;
 
 sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size) is
@@ -114,18 +117,21 @@ sub RegCacheFindConstant(value: Word): (reg: RegId) is
 	end loop;
 end sub;
 
-sub RegCacheFindAddress(sym: [Symbol], off: Size): (reg: RegId) is
+sub RegCacheFindWsRef(subr: [Subroutine], wsid: uint8, off: Size): (reg: RegId) is
 	reg := 0;
-	off := sym.off + off;
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
-		if (p.state == CACHE_SLOT_ADDRESS) and (p.subr == sym.subr) 
-				and (p.wsid == sym.wsid) and (p.number == (off as Word)) then
+		if (p.state == CACHE_SLOT_WSREF) and (p.subr == subr) 
+				and (p.wsid == wsid) and (p.number == (off as Word)) then
 			reg := p.reg;
 			return;
 		end if;
 		p := @next p;
 	end loop;
+end sub;
+
+sub RegCacheFindAddress(sym: [Symbol], off: Size): (reg: RegId) is
+	reg := RegCacheFindWsRef(sym.subr, sym.wsid, sym.off + off);
 end sub;
 
 sub RegCacheFindValue(sym: [Symbol], off: Size): (reg: RegId) is
