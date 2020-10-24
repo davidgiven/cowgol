@@ -288,6 +288,11 @@
                 if (RegCacheFindConstant(operand.imm.value as uint16) & destreg) != 0 then
                     return;
                 end if;
+
+            when REG_MEM:
+                if (RegCacheFindValue(operand.mem.sym, operand.mem.off) & destreg) != 0 then
+                    return;
+                end if;
         end case;
 
         E_ldop(destreg, srcreg, operand, byte, shift);
@@ -295,6 +300,8 @@
         case srcreg is
             when REG_IMM:
                 RegCacheLeavesConstant(destreg, operand.imm.value as uint16);
+            when REG_MEM:
+                RegCacheLeavesValue(srcreg, operand.mem.sym, operand.mem.off);
         end case;
     end sub;
 
@@ -308,6 +315,17 @@
         end case;
         E_op(destreg, operand, byte, shift);
         E_nl();
+    end sub;
+
+    sub E_stop_c(srcreg: RegId, destreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        E_stop(srcreg, destreg, operand, byte, shift);
+
+        case destreg is
+            when REG_IMM:
+                RegCacheLeavesConstant(srcreg, operand.imm.value as uint16);
+            when REG_MEM:
+                RegCacheLeavesValue(srcreg, operand.mem.sym, operand.mem.off);
+        end case;
     end sub;
 
 	sub E_pop(reg: RegId) is
@@ -371,19 +389,19 @@
 
 wordsize uint16;
 
-register a;     // 001
-register b;     // 002
-register d;     // 004
-register x;     // 008
-register xd;    // 010
-register param; // 020
+register a;     // 0001
+register b;     // 0002
+register d;     // 0004
+register x;     // 0008
+register xd;    // 0010
+register param; // 0020
 
-operand imm;    // 040
-operand mem;    // 080
-operand xind;   // 100
-operand vs1;    // 200
-operand vs2;    // 400
-operand vs4;    // 800
+operand imm;    // 0040
+operand mem;    // 0080
+operand xind;   // 0100
+operand vs1;    // 0200
+operand vs2;    // 0400
+operand vs4;    // 0800
 
 regdata a uses d  |xd  compatible a|b;
 regdata b uses d  |xd  compatible a|b;
@@ -643,12 +661,7 @@ gen vs1 := FALLBACK(a|b:lhs)
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
 	E_nl();
 
-	var op := &self.n[0].operand;
-	op.vs.sp := varsp;
-	varsp := varsp + 1;
-	if current_subr.arch.var_stack < varsp then
-		current_subr.arch.var_stack := varsp;
-	end if;
+    PushVStack(&$@$.operand, 1);
 }
 
 gen vs2 := FALLBACK(d|x:lhs)
@@ -657,12 +670,7 @@ gen vs2 := FALLBACK(d|x:lhs)
 	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
 	E_nl();
 
-	var op := InternalAlloc(@bytesof Operand) as [Operand];
-	op.vs.sp := varsp;
-	varsp := varsp + 2;
-	if current_subr.arch.var_stack < varsp then
-		current_subr.arch.var_stack := varsp;
-	end if;
+    PushVStack(&$@$.operand, 2);
 }
 
 gen vs4 := FALLBACK(xd:lhs)
@@ -675,12 +683,7 @@ gen vs4 := FALLBACK(xd:lhs)
 	E_wsref(current_subr.id, VARSTACK_WS, (varsp+2) as uint16);
 	E_nl();
 
-	var op := &self.n[0].operand;
-	op.vs.sp := varsp;
-	varsp := varsp + 4;
-	if current_subr.arch.var_stack < varsp then
-		current_subr.arch.var_stack := varsp;
-	end if;
+    PushVStack(&$@$.operand, 4);
 }
 
 gen xd := FALLBACK(vs4:lhs)
@@ -720,6 +723,7 @@ gen a|b|d|x := CONSTANT():c
 
 	if ($$ & (REG_A|REG_B)) != 0 then
 		E_acc("clra", "clrb", $$);
+        E_nl();
 	elseif $$ == REG_D then
 		E_insn_simple("clra");
 		E_insn_simple("clrb");
@@ -775,10 +779,10 @@ gen STORE1(a|b:lhs, ADD2(x, CONSTANT():c))
 
 gen STORE1(a|b:lhs, ADDRESS():a)
 {
-	E_st($lhs);
-	E_symref(&$a.sym, $a.off);
-	E_nl();
-	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_stop_c($lhs, REG_MEM, &op, 0, 0);
 }
 
 gen STORE2(x|d:lhs, x)
@@ -794,12 +798,12 @@ gen STORE2(x|d:lhs, ADD2(x, CONSTANT():c))
 	E(",x\n");
 }
 
-gen STORE2(x|d:lhs, ADDRESS():a)
+gen STORE2(d:lhs, ADDRESS():a)
 {
-	E_st($lhs);
-	E_symref(&$a.sym, $a.off);
-	E_nl();
-	RegCacheLeavesValue($lhs, &$a.sym, $a.off);
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_stop_c($lhs, REG_MEM, &op, 0, 0);
 }
 
 gen STORE4(imm|mem|xind|vs4:lhs, ADDRESS():a)
@@ -865,23 +869,22 @@ gen x|d := LOAD2(ADD2(x, CONSTANT():c))
 	E(",x\n");
 }
 
-gen vs4 := LOAD4(ADDRESS():a)
+gen vs4 := LOAD4(ADDRESS():a) uses d
 {
-    PrepareWorkspacePointerForAddress(&$a.sym, $a.off);
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_ldop(REG_D, REG_MEM, &op, 0, 0);
 
-    E_ld(REG_D);
-    E_memop(&$a.sym, $a.off+0);
-    E_nl();
-    E_st(REG_D);
-    E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
-    E_nl();
+    op.vs.sp := varsp;
+    E_stop(REG_D, REG_VS4, &op, 2, 0);
 
-    E_ld(REG_D);
-    E_memop(&$a.sym, $a.off+2);
-    E_nl();
-    E_st(REG_D);
-    E_wsref(current_subr.id, VARSTACK_WS, (varsp+2) as uint16);
-    E_nl();
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_ldop(REG_D, REG_MEM, &op, 2, 16);
+
+    op.vs.sp := varsp;
+    E_stop(REG_D, REG_VS4, &op, 2, 16);
 
     PushVStack(&$@$.operand, 4);
 }
@@ -935,6 +938,22 @@ gen a := MUL1(a, b)
 	E_insn_simple("mul");
 }
 
+%{
+    sub Alu1(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
+        RetractVStack(rhs, rhsop);
+
+        R_flush(lhs);
+        E_acc(insna, insnb, lhs);
+        E_op(rhs, rhsop, 0, 0);
+        E_nl();
+    end sub;
+%}
+
+gen a|b := EOR1($$:lhs, op|vs1:rhs)
+{
+    Alu1($$, $rhs, &$@rhs.operand, "xora", "xorb");
+}
+
 // --- 16-bit arithmetic ----------------------------------------------------
 
 gen d := ADD2($$:lhs, op:rhs)
@@ -983,7 +1002,7 @@ gen d := SUB2($$:lhs, op:rhs)
 	end sub;
 %}
 
-gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b
+gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b cost -5
 {
 	var cache := RegCacheFindConstant($c.value as uint16) & $$;
 	if (cache & $$) != 0 then
@@ -1015,24 +1034,24 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 // --- 32-bit arithmetic ----------------------------------------------------
 
 %{
-    sub Add4(dest: RegId, destop: [Operand], lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand]) is
-        E("\t; ADD4\n");
+    sub AddSub4(dest: RegId, destop: [Operand], lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand], insnd: string, insnb: string, insna: string) is
+        E("\t; ADDSUB4\n");
         RetractVStack(lhs, lhsop);
         RetractVStack(rhs, rhsop);
 
         E_ldop(REG_D, lhs, lhsop, 2, 0);
         PrepareWorkspacePointer(rhs, rhsop);
-        E_insn("addd");
+        E_insn(insnd);
         E_op(rhs, rhsop, 2, 0);
         E_nl();
         E_stop(REG_D, dest, destop, 2, 0);
 
         E_ldop(REG_D, lhs, lhsop, 0, 0);
         PrepareWorkspacePointer(rhs, rhsop);
-        E_insn("adcb");
+        E_insn(insnb);
         E_op(rhs, rhsop, 1, 16);
         E_nl();
-        E_insn("adca");
+        E_insn(insna);
         E_op(rhs, rhsop, 0, 24);
         E_nl();
         E_stop(REG_D, dest, destop, 0, 0);
@@ -1041,7 +1060,8 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 
 gen vs4 := ADD4(imm|mem|vs4:lhs, op|vs4:rhs)
 {
-    Add4($$, &$@$.operand, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand);
+    AddSub4($$, &$@$.operand, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
+        "addd", "adcb", "adca");
     PushVStack(&$@$.operand, 4);
 }
 
@@ -1050,61 +1070,27 @@ gen STORE4(ADD4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a)
     var op: Operand;
     op.mem.sym := &$a.sym;
     op.mem.off := $a.off;
-    Add4(REG_MEM, &op, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand);
+    AddSub4(REG_MEM, &op, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
+        "addd", "adcb", "adca");
 }
-
-//gen xd := SUB4($$:lhs, op|vs4:rhs)
-//{
-//    R_flush($$);
-//    E_insn("subd");
-//    E_op($rhs, &$@rhs.operand, 2, 0);
-//    E_nl();
-//
-//    E_xgdx();
-//
-//    E_insn("sbcb");
-//    E_op($rhs, &$@rhs.operand, 1, 16);
-//    E_nl();
-//
-//    E_insn("sbca");
-//    E_op($rhs, &$@rhs.operand, 0, 24);
-//    E_nl();
-//
-//    E_xgdx();
-//}
 
 gen vs4 := SUB4(imm|mem|vs4:lhs, op|vs4:rhs)
 {
-    RetractVStack($lhs, &$@lhs.operand);
-    RetractVStack($rhs, &$@rhs.operand);
-
-    R_flush(REG_XD);
-
-    E_insn("ldd");
-    E_op($lhs, &$@lhs.operand, 2, 0);
-    E_nl();
-
-    E_insn("subd");
-    E_op($rhs, &$@rhs.operand, 2, 0);
-    E_nl();
-
-    E_push(REG_D);
-
-    E_insn("ldd");
-    E_op($lhs, &$@lhs.operand, 0, 0);
-    E_nl();
-
-    E_insn("sbcb");
-    E_op($rhs, &$@rhs.operand, 1, 16);
-    E_nl();
-
-    E_insn("sbca");
-    E_op($rhs, &$@rhs.operand, 0, 24);
-    E_nl();
-
-    E_xgdx();
-    E_pop(REG_X);
+    AddSub4($$, &$@$.operand, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
+        "subd", "sbcb", "sbca");
+    PushVStack(&$@$.operand, 4);
 }
+
+gen STORE4(SUB4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a)
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    AddSub4(REG_MEM, &op, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
+        "subd", "sbcb", "sbca");
+}
+
+
 
 // --- Conditionals ---------------------------------------------------------
 
