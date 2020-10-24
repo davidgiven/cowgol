@@ -1,0 +1,5 @@
+&X _divremu4
+; 32-bit unsigned divide.
+`` = *
+    rts
+

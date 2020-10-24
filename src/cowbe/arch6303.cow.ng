@@ -58,6 +58,29 @@
 		end if;
 	end sub;
 
+	# Does not persist the name; only call this with constant strings.
+	sub GetHelper(name: string): (e: [Extern]) is
+		e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := InternalAlloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
+	end sub;
+
 	sub R_flushall() is
 		RegCacheFlush(ALL_REGS);
 	end sub;
@@ -673,24 +696,6 @@ gen vs2 := FALLBACK(d|x:lhs)
     PushVStack(&$@$.operand, 2);
 }
 
-gen vs4 := FALLBACK(xd:lhs)
-{
-	E_st(REG_X);
-	E_wsref(current_subr.id, VARSTACK_WS, (varsp+0) as uint16);
-	E_nl();
-
-	E_st(REG_D);
-	E_wsref(current_subr.id, VARSTACK_WS, (varsp+2) as uint16);
-	E_nl();
-
-    PushVStack(&$@$.operand, 4);
-}
-
-gen xd := FALLBACK(vs4:lhs)
-{
-    RetractVStack($lhs, &$@lhs.operand);
-}
-
 // --- Simple things --------------------------------------------------------
 
 gen x|d := ADDRESS():a
@@ -833,7 +838,7 @@ gen a|b := LOAD1(x)
 	E(",x\n");
 }
 
-gen a|b := LOAD1(ADDRESS():a)
+gen a|b := LOAD1(ADDRESS():a) uses x
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -854,7 +859,7 @@ gen x|d := LOAD2(x)
 	E(",x\n");
 }
 
-gen x|d := LOAD2(ADDRESS():a)
+gen x|d := LOAD2(ADDRESS():a) uses x
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -869,7 +874,7 @@ gen x|d := LOAD2(ADD2(x, CONSTANT():c))
 	E(",x\n");
 }
 
-gen vs4 := LOAD4(ADDRESS():a) uses d
+gen vs4 := LOAD4(ADDRESS():a) uses d|x
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -891,7 +896,7 @@ gen vs4 := LOAD4(ADDRESS():a) uses d
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a|b := ADD1($$:lhs, op:rhs)
+gen a|b := ADD1($$:lhs, op:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -915,7 +920,7 @@ gen a|b := ADD1($$:lhs, CONSTANT(value == -1))
 	E_nl();
 }
 
-gen a|b := SUB1($$:lhs, op:rhs)
+gen a|b := SUB1($$:lhs, op:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -934,7 +939,7 @@ gen a|b := NEG1($$)
 
 gen a := MUL1(a, b)
 {
-	R_flush($$);
+	R_flush(REG_A|REG_B);
 	E_insn_simple("mul");
 }
 
@@ -949,14 +954,13 @@ gen a := MUL1(a, b)
     end sub;
 %}
 
-gen a|b := EOR1($$:lhs, op|vs1:rhs)
-{
-    Alu1($$, $rhs, &$@rhs.operand, "xora", "xorb");
-}
+gen a|b := EOR1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "eora", "eorb"); }
+gen a|b := OR1 ($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "oraa", "orab"); }
+gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "anda", "andb"); }
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
-gen d := ADD2($$:lhs, op:rhs)
+gen d := ADD2($$:lhs, op:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -966,7 +970,7 @@ gen d := ADD2($$:lhs, op:rhs)
 	E_nl();
 }
 
-gen d := SUB2($$:lhs, op:rhs)
+gen d := SUB2($$:lhs, op:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -1034,10 +1038,16 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 // --- 32-bit arithmetic ----------------------------------------------------
 
 %{
-    sub AddSub4(dest: RegId, destop: [Operand], lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand], insnd: string, insnb: string, insna: string) is
+    sub AddSub4(dest: RegId, destop: [Operand],
+            lhs: RegId, lhsop: [Operand],
+            rhs: RegId, rhsop: [Operand],
+            insnd: string, insnb: string, insna: string) is
         E("\t; ADDSUB4\n");
         RetractVStack(lhs, lhsop);
         RetractVStack(rhs, rhsop);
+        if dest == REG_VS4 then
+            destop.vs.sp := varsp;
+        end if;
 
         E_ldop(REG_D, lhs, lhsop, 2, 0);
         PrepareWorkspacePointer(rhs, rhsop);
@@ -1058,14 +1068,14 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
     end sub;
 %}
 
-gen vs4 := ADD4(imm|mem|vs4:lhs, op|vs4:rhs)
+gen vs4 := ADD4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
 {
     AddSub4($$, &$@$.operand, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
         "addd", "adcb", "adca");
     PushVStack(&$@$.operand, 4);
 }
 
-gen STORE4(ADD4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a)
+gen STORE4(ADD4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a) uses x
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -1074,14 +1084,14 @@ gen STORE4(ADD4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a)
         "addd", "adcb", "adca");
 }
 
-gen vs4 := SUB4(imm|mem|vs4:lhs, op|vs4:rhs)
+gen vs4 := SUB4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
 {
     AddSub4($$, &$@$.operand, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
         "subd", "sbcb", "sbca");
     PushVStack(&$@$.operand, 4);
 }
 
-gen STORE4(SUB4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a)
+gen STORE4(SUB4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a) uses x
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -1090,7 +1100,48 @@ gen STORE4(SUB4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a)
         "subd", "sbcb", "sbca");
 }
 
+gen vs4 := REMU4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
+{
+    var helper := GetHelper("_divremu4");
+    var id := helper.id;
 
+    E_ldop(REG_D, $lhs, &$@lhs.operand, 2, 0);
+    E_insn("std");
+    E_wsref(id, VARSTACK_WS, 0);
+    E_nl();
+    E_ldop(REG_D, $lhs, &$@lhs.operand, 0, 16);
+    E_insn("std");
+    E_wsref(id, VARSTACK_WS, 2);
+    E_nl();
+
+    E_ldop(REG_D, $rhs, &$@rhs.operand, 2, 0);
+    E_insn("std");
+    E_wsref(id, VARSTACK_WS, 4);
+    E_nl();
+    E_ldop(REG_D, $rhs, &$@rhs.operand, 0, 16);
+    E_insn("std");
+    E_wsref(id, VARSTACK_WS, 6);
+    E_nl();
+
+    R_flushall();
+    E_insn("bsr");
+    E_b8(COO_ESCAPE_SUBREF);
+    E_b16(id);
+    E_nl();
+
+    $@$.operand.vs.sp := varsp;
+    E_insn("ldd");
+    E_wsref(id, VARSTACK_WS, 0);
+    E_nl();
+    E_stop(REG_D, $$, &$@$.operand, 2, 0);
+    E_insn("ldd");
+    E_wsref(id, VARSTACK_WS, 2);
+    E_nl();
+    E_stop(REG_D, $$, &$@$.operand, 0, 16);
+
+    PushVStack(&$@$.operand, 4);
+
+}
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -1105,7 +1156,7 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
-gen BEQ1(a|b:lhs, op:rhs):b
+gen BEQ1(a|b:lhs, op:rhs):b uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
