@@ -1032,7 +1032,6 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
             lhs: RegId, lhsop: [Operand],
             rhs: RegId, rhsop: [Operand],
             insnd: string, insnb: string, insna: string) is
-        E("\t; ADDSUB4\n");
         RetractVStack(lhs, lhsop);
         RetractVStack(rhs, rhsop);
         if dest == REG_VS4 then
@@ -1149,7 +1148,58 @@ gen vs4 := REMS4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
     E_stop(REG_X, $$, &$@$.operand, 4, 16);
 }
 
+// --- Casts ----------------------------------------------------------------
+
+gen vs4 := CAST14(b, sext==0)
+{
+    PushVStack(&$@$.operand, 4);
+    R_flush(REG_D);
+    E_insn_simple("clra");
+    E_stop(REG_D, $$, &$@$.operand, 2, 0);
+    E_insn_simple("clrb");
+    E_stop(REG_D, $$, &$@$.operand, 0, 16);
+}
+
+gen vs4 := CAST24(b, sext==0)
+{
+    PushVStack(&$@$.operand, 4);
+    R_flush(REG_D);
+    E_stop(REG_D, $$, &$@$.operand, 2, 0);
+    E_insn_simple("clra");
+    E_insn_simple("clrb");
+    E_stop(REG_D, $$, &$@$.operand, 0, 16);
+}
+
+gen b|a := CAST41(op|vs4:lhs)
+{
+    RetractVStack($lhs, &$@lhs.operand);
+    E_ldop($$, $lhs, &$@lhs.operand, 3, 0);
+}
+
 // --- Conditionals ---------------------------------------------------------
+
+%{
+    sub Cmp4(lhs: RegId, lhsop: [Operand],
+            rhs: RegId, rhsop: [Operand]) is
+        RetractVStack(lhs, lhsop);
+        RetractVStack(rhs, rhsop);
+
+        E_ldop(REG_D, lhs, lhsop, 2, 0);
+        PrepareWorkspacePointer(rhs, rhsop);
+        E_insn("subd");
+        E_op(rhs, rhsop, 2, 0);
+        E_nl();
+
+        E_ldop(REG_D, lhs, lhsop, 0, 0);
+        PrepareWorkspacePointer(rhs, rhsop);
+        E_insn("sbcb");
+        E_op(rhs, rhsop, 1, 16);
+        E_nl();
+        E_insn("sbca");
+        E_op(rhs, rhsop, 0, 24);
+        E_nl();
+    end sub;
+%}
 
 gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 {
@@ -1169,7 +1219,7 @@ gen BEQ1(a|b:lhs, op:rhs):b uses x
 	E_acc("cmpa", "cmpb", $lhs);
 	E_op($rhs, &$@rhs.operand, 0, 0);
 	E_nl();
-	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
+	E_jumps_with_fallthrough("beq", "bne", $@$);
 }
 
 gen BEQ2(d|x:lhs, op:rhs):b
@@ -1183,7 +1233,19 @@ gen BEQ2(d|x:lhs, op:rhs):b
 	end if;
 	E_op($rhs, &$@rhs.operand, 0, 0);
 	E_nl();
-	E_jumps_with_fallthrough("beq", "bne", self.n[0]);
+	E_jumps_with_fallthrough("beq", "bne", $@$);
+}
+
+gen BEQ4(imm|mem|vs4:lhs, op|vs4:rhs)
+{
+    Cmp4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand);
+    E_jumps_with_fallthrough("beq", "bne", $@$);
+}
+
+gen BLTU4(imm|mem|vs4:lhs, op|vs4:rhs)
+{
+    Cmp4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand);
+    E_jumps_with_fallthrough("blo", "bhs", $@$);
 }
 
 // --- Strings --------------------------------------------------------------
