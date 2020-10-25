@@ -292,8 +292,8 @@ sub Generate(rootnode: [Node]) is
 	var first_instruction: [Instruction] := 0 as [Instruction];
 	var last_instruction: [Instruction] := 0 as [Instruction];
 
-	print_nl();
-	PrintNodes(rootnode);
+	#print_nl();
+	#PrintNodes(rootnode);
 
 	var old_next_node := next_node;
 	PushNode(rootnode);
