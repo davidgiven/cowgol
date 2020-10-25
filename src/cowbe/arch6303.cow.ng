@@ -232,7 +232,6 @@
         case reg is
             when REG_VS1: varsp := varsp - 1;
             when REG_VS2: varsp := varsp - 2;
-            when REG_VS4: varsp := varsp - 4;
         end case;
     end sub;
 
@@ -282,7 +281,6 @@
 
 			when REG_VS1: dovs();
 			when REG_VS2: dovs();
-			when REG_VS4: dovs();
 
 			when else:
                 StartError();
@@ -353,12 +351,13 @@
 
 	sub E_pop(reg: RegId) is
 		case reg is
-			when REG_A: E_insn_simple("pula");
-			when REG_B: E_insn_simple("pulb");
-			when REG_X: E_insn_simple("pulx");
-			when REG_D: E_insn_simple("pula"); E_insn_simple("pulb");
-            when REG_XD:
+			when REG_A:
+                E_insn_simple("pula");
+			when REG_B:
+                E_insn_simple("pulb");
+			when REG_X:
                 E_insn_simple("pulx");
+			when REG_D:
                 E_insn_simple("pula");
                 E_insn_simple("pulb");
 		end case;
@@ -366,17 +365,26 @@
 
 	sub E_push(reg: RegId) is
 		case reg is
-			when REG_A: E_insn_simple("psha");
-			when REG_B: E_insn_simple("pshb");
-			when REG_X: E_insn_simple("pshx");
-			when REG_D: E_insn_simple("pshb"); E_insn_simple("psha");
-            when REG_XD:
+			when REG_A:
+                E_insn_simple("psha");
+			when REG_B:
+                E_insn_simple("pshb");
+			when REG_X:
+                E_insn_simple("pshx");
+			when REG_D:
                 E_insn_simple("pshb");
                 E_insn_simple("psha");
-                E_insn_simple("pshx");
 		end case;
 	end sub;
 
+    sub E_callhelper(name: string) is
+        var helper := GetHelper(name);
+        E_insn("bsr");
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(helper.id);
+        E_nl();
+    end sub;
+        
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if (src == REG_A) and (dest == REG_B) then
@@ -416,7 +424,7 @@ register a;     // 0001
 register b;     // 0002
 register d;     // 0004
 register x;     // 0008
-register xd;    // 0010
+register i4;    // 0010
 register param; // 0020
 
 operand imm;    // 0040
@@ -424,14 +432,13 @@ operand mem;    // 0080
 operand xind;   // 0100
 operand vs1;    // 0200
 operand vs2;    // 0400
-operand vs4;    // 0800
 
-regdata a uses d  |xd  compatible a|b;
-regdata b uses d  |xd  compatible a|b;
-regdata d uses a|b|xd  compatible d|x;
-regdata x uses     xd  compatible d|x;
-regdata xd uses a|b|d|x;
+regdata a uses d   compatible a|b;
+regdata b uses d   compatible a|b;
+regdata d uses a|b compatible d|x;
+regdata x          compatible d|x;
 regdata param stacked;
+regdata i4 stacked;
 
 regdata xind uses x;
 
@@ -605,24 +612,42 @@ gen ENDSUB()
 
 gen         CALL(       param,      SUBREF():a) uses a|b|x { Call(&$a); }
 gen         CALL(  ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
-gen         CALL(  ARG2(param, x),  SUBREF():a) uses     x { Call(&$a); }
+gen         CALL(  ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
 gen a :=    CALLE1(     param,      SUBREF():a) uses   b|x { Call(&$a); }
 gen a :=    CALLE1(ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
-gen a :=    CALLE1(ARG2(param, x),  SUBREF():a) uses     x { Call(&$a); }
-gen x :=    CALLE2(     param,      SUBREF():a) uses a|b   { Call(&$a); }
-gen x :=    CALLE2(ARG1(param, a),  SUBREF():a) uses a|b   { Call(&$a); }
-gen x :=    CALLE2(ARG2(param, x),  SUBREF():a) uses a|b   { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen d :=    CALLE2(     param,      SUBREF():a) uses     x { Call(&$a); }
+gen d :=    CALLE2(ARG1(param, a),  SUBREF():a) uses     x { Call(&$a); }
+gen d :=    CALLE2(ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen i4 :=   CALLE4(     param,      SUBREF():a) uses a|b|x { Call(&$a); }
+gen i4 :=   CALLE4(ARG1(param, a),  SUBREF():a) uses a|b|x { Call(&$a); }
+gen i4 :=   CALLE4(ARG2(param, d),  SUBREF():a) uses a|b|x { Call(&$a); }
+
+gen         CALL(       param,      x) uses a|b { CallI(); }
+gen         CALL(  ARG1(param, a),  x) uses   b { CallI(); }
+gen         CALL(  ARG2(param, d),  x)          { CallI(); }
+gen a :=    CALLE1(     param,      x) uses   b { CallI(); }
+gen a :=    CALLE1(ARG1(param, a),  x) uses   b { CallI(); }
+gen a :=    CALLE1(ARG2(param, d),  x)          { CallI(); }
+gen d :=    CALLE2(     param,      x)          { CallI(); }
+gen d :=    CALLE2(ARG1(param, a),  x)          { CallI(); }
+gen d :=    CALLE2(ARG2(param, d),  x)          { CallI(); }
+gen i4 :=   CALLE4(     param,      x) uses a|b { CallI(); }
+gen i4 :=   CALLE4(ARG1(param, a),  x) uses a|b { CallI(); }
+gen i4 :=   CALLE4(ARG2(param, d),  x) uses a|b { CallI(); }
 
 gen param := END();
 
 gen param := ARG1(param, a|b:lhs)  { E_push($lhs); }
 gen param := ARG2(param, d|x:lhs)  { E_push($lhs); }
+gen param := ARG4(param, i4);
 
 gen a   := POPARG1(remaining==0);
 gen d   := POPARG2(remaining==0);
 
 gen a|b := POPARG1(remaining!=0) { E_pop($$); }
 gen d|x := POPARG2(remaining!=0) { E_pop($$); }
+gen i4  := POPARG4();
 
 gen RETURN()
 {
@@ -647,13 +672,6 @@ gen mem := LOAD2(ADDRESS():a) cost 5
 	op.mem.off := $a.off;
 }
 
-gen mem := LOAD4(ADDRESS():a) cost 5
-{
-	var op := &self.n[0].operand;
-	op.mem.sym := &$a.sym;
-	op.mem.off := $a.off;
-}
-
 gen xind := LOAD1(ADD2(x, CONSTANT(value is byte):c)) cost 5
 {
 	var op := &self.n[0].operand;
@@ -661,12 +679,6 @@ gen xind := LOAD1(ADD2(x, CONSTANT(value is byte):c)) cost 5
 }
 
 gen xind := LOAD2(ADD2(x, CONSTANT(value is bytem1):c)) cost 5
-{
-	var op := &self.n[0].operand;
-	op.xind.off := $c.value as uint8;
-}
-
-gen xind := LOAD4(ADD2(x, CONSTANT(value is bytem3):c)) cost 5
 {
 	var op := &self.n[0].operand;
 	op.xind.off := $c.value as uint8;
@@ -742,21 +754,26 @@ gen a|b|d|x := CONSTANT():c
 	RegCacheLeavesConstant($$, $c.value as uint16);
 }
 
-gen vs4 := CONSTANT():c
+gen d|x := SUBREF():s
 {
-    E("; VS4 CONSTANT\n");
+    R_flush($$);
+    E_ld($$);
+    E_const();
+    E_subref($s.subr);
+    E_nl();
+}
+
+gen i4 := CONSTANT():c
+{
     var op: Operand;
-
-    op.imm.value := ($c.value >> 16) as uint16 as int32;
-    E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
-
-    op.vs.sp := varsp;
-    E_stop(REG_D, REG_VS4, &op, 0, 0);
 
     op.imm.value := $c.value as uint16 as int32;
     E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
+    E_push(REG_D);
 
-    PushVStack(&$@$.operand, 4);
+    op.imm.value := ($c.value >> 16) as uint16 as int32;
+    E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
+    E_push(REG_D);
 }
 
 // --- Stores (these don't use operands) ------------------------------------
@@ -803,23 +820,23 @@ gen STORE2(d:lhs, ADDRESS():a)
     E_stop_c($lhs, REG_MEM, &op, 0, 0);
 }
 
-gen STORE4(imm|mem|xind|vs4:lhs, ADDRESS():a)
+gen STORE4(i4:lhs, ADDRESS():a) uses d
 {
-    RetractVStack($lhs, &$@lhs.operand);
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
 
-    E("\t; STORE4\n");
-    RetractVStack($lhs, &$@lhs.operand);
-    PrepareWorkspacePointerForAddress(&$a.sym, $a.off);
+    E_pop(REG_D);
+    E_stop(REG_D, REG_MEM, &op, 0, 16);
 
-    E_ldop(REG_D, $lhs, &$@lhs.operand, 2, 0);
-    E_st(REG_D);
-    E_memop(&$a.sym, $a.off+0);
-    E_nl();
+    E_pop(REG_D);
+    E_stop(REG_D, REG_MEM, &op, 2, 0);
+}
 
-    E_ldop(REG_D, $lhs, &$@lhs.operand, 0, 16);
-    E_st(REG_D);
-    E_memop(&$a.sym, $a.off+2);
-    E_nl();
+gen STORE4(i4:lhs, x) uses d
+{
+    R_flush(REG_D);
+    E_callhelper("_store4x");
 }
 
 // --- Loads (these don't use operands) ----------------------------------
@@ -866,27 +883,28 @@ gen x|d := LOAD2(ADD2(x, CONSTANT():c))
 	E(",x\n");
 }
 
-gen vs4 := LOAD4(ADDRESS():a) uses d|x
+gen i4 := LOAD4(ADDRESS():a) uses d|x
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
     op.mem.off := $a.off;
-    E_ldop(REG_D, REG_MEM, &op, 0, 0);
 
-    op.vs.sp := varsp;
-    E_stop(REG_D, REG_VS4, &op, 2, 0);
+    E_ldop(REG_D, REG_MEM, &op, 2, 0);
+    E_push(REG_D);
 
-    op.mem.sym := &$a.sym;
-    op.mem.off := $a.off;
-    E_ldop(REG_D, REG_MEM, &op, 2, 16);
+    E_ldop(REG_D, REG_MEM, &op, 0, 16);
+    E_push(REG_D);
+}
 
-    PushVStack(&$@$.operand, 4);
-    E_stop(REG_D, REG_VS4, &op, 2, 16);
+gen i4 := LOAD4(x) uses d
+{
+    R_flush(REG_D);
+    E_callhelper("_load4x");
 }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a|b := ADD1($$:lhs, op:rhs) uses x
+gen a|b := ADD1($$:lhs, op|vs1:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -910,7 +928,7 @@ gen a|b := ADD1($$:lhs, CONSTANT(value == -1))
 	E_nl();
 }
 
-gen a|b := SUB1($$:lhs, op:rhs) uses x
+gen a|b := SUB1($$:lhs, op|vs1:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -927,11 +945,22 @@ gen a|b := NEG1($$)
 	E_nl();
 }
 
+gen a|b := NOT1($$)
+{
+    R_flush($$);
+    E_acc("nota", "notb", $$);
+    E_nl();
+}
+
 gen a := MUL1(a, b)
 {
 	R_flush(REG_A|REG_B);
 	E_insn_simple("mul");
 }
+
+gen a := LSHIFT1(a, b)  { E_callhelper("_lsl1"); }
+gen a := RSHIFTU1(a, b) { E_callhelper("_lsr1"); }
+gen a := RSHIFTS1(a, b) { E_callhelper("_asr1"); }
 
 %{
     sub Alu1(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
@@ -950,7 +979,7 @@ gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "and
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
-gen d := ADD2($$:lhs, op:rhs) uses x
+gen d := ADD2($$:lhs, op|vs2:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -960,7 +989,7 @@ gen d := ADD2($$:lhs, op:rhs) uses x
 	E_nl();
 }
 
-gen d := SUB2($$:lhs, op:rhs) uses x
+gen d := SUB2($$:lhs, op|vs2:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
 
@@ -1025,181 +1054,102 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 	E_insn_simple("dex");
 }
 
+%{
+    sub Alu2(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
+        RetractVStack(rhs, rhsop);
+
+        R_flush(lhs);
+        E_insn(insnb);
+        E_op(rhs, rhsop, 1, 0);
+        E_nl();
+
+        E_insn(insna);
+        E_op(rhs, rhsop, 0, 8);
+        E_nl();
+    end sub;
+%}
+
+gen d := DIVU2(d, x)         { E_callhelper("_divu2"); }
+gen d := DIVS2(d, x)         { E_callhelper("_divs2"); }
+gen d := REMU2(d, x)         { E_callhelper("_remu2"); }
+gen d := REMS2(d, x)         { E_callhelper("_rems2"); }
+gen d := MUL2(d, x)          { E_callhelper("_mul4"); }
+
+gen d := NEG2(op|vs2:rhs)
+{
+    var op: Operand;
+    op.imm.value := 0;
+    E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
+    R_flush(REG_D);
+
+    E_insn("subd");
+    E_op($rhs, &$@rhs.operand, 0, 0);
+    E_nl();
+}
+
+gen d := NOT2(d)
+{
+    E_insn_simple("comb");
+    E_insn_simple("coma");
+}
+
+gen d := OR2(d, op|vs2:rhs)  { Alu2(REG_D, $rhs, &$@rhs.operand, "oraa", "orab"); }
+gen d := EOR2(d, op|vs2:rhs) { Alu2(REG_D, $rhs, &$@rhs.operand, "xora", "xorb"); }
+gen d := AND2(d, op|vs2:rhs) { Alu2(REG_D, $rhs, &$@rhs.operand, "anda", "andb"); }
+
+gen d := LSHIFT2(x, b)       { E_callhelper("_lsl2"); }
+gen d := RSHIFTU2(x, b)      { E_callhelper("_lsr2"); }
+gen d := RSHIFTS2(x, b)      { E_callhelper("_asr2"); }
+
 // --- 32-bit arithmetic ----------------------------------------------------
 
-%{
-    sub AddSub4(dest: RegId, destop: [Operand],
-            lhs: RegId, lhsop: [Operand],
-            rhs: RegId, rhsop: [Operand],
-            insnd: string, insnb: string, insna: string) is
-        RetractVStack(lhs, lhsop);
-        RetractVStack(rhs, rhsop);
-        if dest == REG_VS4 then
-            destop.vs.sp := varsp;
-        end if;
+gen i4 := ADD4(i4, i4) uses x|d { E_callhelper("_add4"); }
+gen i4 := SUB4(i4, i4) uses x|d { E_callhelper("_sub4"); }
+gen i4 := DIVU4(i4, i4) uses x|d { E_callhelper("_divu4"); }
+gen i4 := REMU4(i4, i4) uses x|d { E_callhelper("_remu4"); }
+gen i4 := DIVS4(i4, i4) uses x|d { E_callhelper("_divs4"); }
+gen i4 := REMS4(i4, i4) uses x|d { E_callhelper("_rems4"); }
+gen i4 := MUL4(i4, i4) uses x|d { E_callhelper("_mul4"); }
 
-        E_ldop(REG_D, lhs, lhsop, 2, 0);
-        PrepareWorkspacePointer(rhs, rhsop);
-        E_insn(insnd);
-        E_op(rhs, rhsop, 2, 0);
-        E_nl();
-        E_stop(REG_D, dest, destop, 2, 0);
+gen i4 := AND4(i4, i4) uses x|d { E_callhelper("_and4"); }
+gen i4 := OR4(i4, i4) uses x|d { E_callhelper("_or4"); }
+gen i4 := EOR4(i4, i4) uses x|d { E_callhelper("_eor4"); }
 
-        E_ldop(REG_D, lhs, lhsop, 0, 0);
-        PrepareWorkspacePointer(rhs, rhsop);
-        E_insn(insnb);
-        E_op(rhs, rhsop, 1, 16);
-        E_nl();
-        E_insn(insna);
-        E_op(rhs, rhsop, 0, 24);
-        E_nl();
-        E_stop(REG_D, dest, destop, 0, 0);
-    end sub;
-%}
+gen i4 := NEG4(i4) uses x|d { E_callhelper("_neg4"); }
+gen i4 := NOT4(i4) uses x|d { E_callhelper("_not4"); }
 
-gen vs4 := ADD4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
-{
-    AddSub4($$, &$@$.operand, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
-        "addd", "adcb", "adca");
-    PushVStack(&$@$.operand, 4);
-}
-
-gen STORE4(ADD4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a) uses x
-{
-    var op: Operand;
-    op.mem.sym := &$a.sym;
-    op.mem.off := $a.off;
-    AddSub4(REG_MEM, &op, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
-        "addd", "adcb", "adca");
-}
-
-gen vs4 := SUB4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
-{
-    AddSub4($$, &$@$.operand, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
-        "subd", "sbcb", "sbca");
-    PushVStack(&$@$.operand, 4);
-}
-
-gen STORE4(SUB4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a) uses x
-{
-    var op: Operand;
-    op.mem.sym := &$a.sym;
-    op.mem.off := $a.off;
-    AddSub4(REG_MEM, &op, $lhs, &$@lhs.operand, $rhs, &$@rhs.operand,
-        "subd", "sbcb", "sbca");
-}
-
-%{
-    sub DivRem4(lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand],
-            helpername: string) is
-        var helper := GetHelper(helpername);
-        var corehelper := GetHelper("_mathpad");
-        var id := corehelper.id;
-
-        E_ldop(REG_D, lhs, lhsop, 2, 0);
-        E_insn("std");
-        E_wsref(id, VARSTACK_WS, 0);
-        E_nl();
-        E_ldop(REG_D, lhs, lhsop, 0, 16);
-        E_insn("std");
-        E_wsref(id, VARSTACK_WS, 2);
-        E_nl();
-
-        E_ldop(REG_D, rhs, rhsop, 11, 0);
-        E_ldop(REG_X, rhs, rhsop, 8, 16);
-
-        R_flushall();
-        E_insn("bsr");
-        E_b8(COO_ESCAPE_SUBREF);
-        E_b16(helper.id);
-        E_nl();
-    end sub;
-%}
-
-gen vs4 := DIVU4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
-{
-    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_divu4");
-    PushVStack(&$@$.operand, 4);
-    E_stop(REG_D, $$, &$@$.operand, 2, 0);
-    E_stop(REG_X, $$, &$@$.operand, 0, 16);
-}
-
-gen vs4 := REMU4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
-{
-    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_remu4");
-    PushVStack(&$@$.operand, 4);
-    E_stop(REG_D, $$, &$@$.operand, 6, 0);
-    E_stop(REG_X, $$, &$@$.operand, 4, 16);
-}
-
-gen vs4 := DIVS4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
-{
-    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_divs4");
-    PushVStack(&$@$.operand, 4);
-    E_stop(REG_D, $$, &$@$.operand, 2, 0);
-    E_stop(REG_X, $$, &$@$.operand, 0, 16);
-}
-
-gen vs4 := REMS4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
-{
-    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_rems4");
-    PushVStack(&$@$.operand, 4);
-    E_stop(REG_D, $$, &$@$.operand, 6, 0);
-    E_stop(REG_X, $$, &$@$.operand, 4, 16);
-}
+gen i4 := LSHIFT4(i4, b)  { E_callhelper("_lsl4"); }
+gen i4 := RSHIFTU4(i4, b) { E_callhelper("_lsr4"); }
+gen i4 := RSHIFTS4(i4, b) { E_callhelper("_asr4"); }
 
 // --- Casts ----------------------------------------------------------------
 
-gen vs4 := CAST14(b, sext==0)
+gen d := CAST12(b, sext==0)
 {
-    PushVStack(&$@$.operand, 4);
-    R_flush(REG_D);
     E_insn_simple("clra");
-    E_stop(REG_D, $$, &$@$.operand, 2, 0);
-    E_insn_simple("clrb");
-    E_stop(REG_D, $$, &$@$.operand, 0, 16);
 }
 
-gen vs4 := CAST24(b, sext==0)
+gen b := CAST21(d);
+
+gen i4 := CAST14(b, sext==0) { E_callhelper("_castu14"); }
+gen i4 := CAST24(d, sext==0) { E_callhelper("_castu24"); }
+
+gen b|a := CAST41(i4)
 {
-    PushVStack(&$@$.operand, 4);
-    R_flush(REG_D);
-    E_stop(REG_D, $$, &$@$.operand, 2, 0);
-    E_insn_simple("clra");
-    E_insn_simple("clrb");
-    E_stop(REG_D, $$, &$@$.operand, 0, 16);
+    E_insn_simple("ins");
+    E_insn_simple("ins");
+    E_insn_simple("ins");
+    E_pop($$);
 }
 
-gen b|a := CAST41(op|vs4:lhs)
+gen d := CAST42(i4)
 {
-    RetractVStack($lhs, &$@lhs.operand);
-    E_ldop($$, $lhs, &$@lhs.operand, 3, 0);
+    E_insn_simple("ins");
+    E_insn_simple("ins");
+    E_pop($$);
 }
 
 // --- Conditionals ---------------------------------------------------------
-
-%{
-    sub Cmp4(lhs: RegId, lhsop: [Operand],
-            rhs: RegId, rhsop: [Operand]) is
-        RetractVStack(lhs, lhsop);
-        RetractVStack(rhs, rhsop);
-
-        E_ldop(REG_D, lhs, lhsop, 2, 0);
-        PrepareWorkspacePointer(rhs, rhsop);
-        E_insn("subd");
-        E_op(rhs, rhsop, 2, 0);
-        E_nl();
-
-        E_ldop(REG_D, lhs, lhsop, 0, 0);
-        PrepareWorkspacePointer(rhs, rhsop);
-        E_insn("sbcb");
-        E_op(rhs, rhsop, 1, 16);
-        E_nl();
-        E_insn("sbca");
-        E_op(rhs, rhsop, 0, 24);
-        E_nl();
-    end sub;
-%}
 
 gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 {
@@ -1212,41 +1162,97 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
-gen BEQ1(a|b:lhs, op:rhs):b uses x
+%{
+    sub Cmp1(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+        RetractVStack(rhs, rhsop);
+
+        E_acc("cmpa", "cmpb", lhs);
+        E_op(rhs, rhsop, 0, 0);
+        E_nl();
+    end sub;
+%}
+
+gen BEQ1(a|b:lhs, op|vs1:rhs):b  { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blo", "bhs", $@$); }
+gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
+
+%{
+    sub Cmp2(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+        RetractVStack(rhs, rhsop);
+
+        if lhs == REG_D then
+            E_insn("cmpd");
+        else
+            E_insn("cpx");
+        end if;
+        E_op(rhs, rhsop, 0, 0);
+        E_nl();
+    end sub;
+%}
+
+gen BEQ2(d|x:lhs, op|vs2:rhs):b  { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blo", "bhs", $@$); }
+gen BLTS2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
+
+gen BEQ4(i4, i4)
 {
-    RetractVStack($rhs, &$@rhs.operand);
-
-	E_acc("cmpa", "cmpb", $lhs);
-	E_op($rhs, &$@rhs.operand, 0, 0);
-	E_nl();
-	E_jumps_with_fallthrough("beq", "bne", $@$);
-}
-
-gen BEQ2(d|x:lhs, op:rhs):b
-{
-    RetractVStack($rhs, &$@rhs.operand);
-
-	if $lhs == REG_D then
-		E_insn("cmpd");
-	else
-		E_insn("cpx");
-	end if;
-	E_op($rhs, &$@rhs.operand, 0, 0);
-	E_nl();
-	E_jumps_with_fallthrough("beq", "bne", $@$);
-}
-
-gen BEQ4(imm|mem|vs4:lhs, op|vs4:rhs)
-{
-    Cmp4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand);
+    E_callhelper("_cmpeq4");
     E_jumps_with_fallthrough("beq", "bne", $@$);
 }
 
-gen BLTU4(imm|mem|vs4:lhs, op|vs4:rhs)
+gen BLTU4(i4, i4) { E_callhelper("_cmp4"); E_jumps_with_fallthrough("blo", "bhs", $@$); }
+gen BLTS4(i4, i4) { E_callhelper("_cmp4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
+
+// --- Case -----------------------------------------------------------------
+
+gen STARTCASE1(b);
+gen STARTCASE2(d);
+gen STARTCASE4(i4) { E_pop(REG_X); E_pop(REG_D); }
+
+gen WHENCASE1():c
 {
-    Cmp4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand);
-    E_jumps_with_fallthrough("blo", "bhs", $@$);
+    E_insn("cmpb");
+    E_const();
+    E_u8($c.value as uint8);
+    E_nl();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
 }
+
+gen WHENCASE2():c uses a
+{
+    E_insn("cmpd");
+    E_const();
+    E_u16($c.value as uint16);
+    E_nl();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
+}
+
+gen WHENCASE4():c uses a
+{
+    E_insn("cmpd");
+    E_const();
+    E_u16($c.value as uint16);
+    E_nl();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
+
+    E_insn("cpx");
+    E_const();
+    E_u16(($c.value >> 16) as uint16);
+    E_nl();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
+}
+
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4();
 
 // --- Strings --------------------------------------------------------------
 
