@@ -756,14 +756,6 @@ gen vs4 := CONSTANT():c
     op.imm.value := $c.value as uint16 as int32;
     E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
 
-    op.vs.sp := varsp;
-    E_stop(REG_D, REG_VS4, &op, 2, 0);
-	op.vs.sp := varsp;
-	varsp := varsp + 4;
-	if current_subr.arch.var_stack < varsp then
-		current_subr.arch.var_stack := varsp;
-	end if;
-
     PushVStack(&$@$.operand, 4);
 }
 
@@ -888,10 +880,8 @@ gen vs4 := LOAD4(ADDRESS():a) uses d|x
     op.mem.off := $a.off;
     E_ldop(REG_D, REG_MEM, &op, 2, 16);
 
-    op.vs.sp := varsp;
-    E_stop(REG_D, REG_VS4, &op, 2, 16);
-
     PushVStack(&$@$.operand, 4);
+    E_stop(REG_D, REG_VS4, &op, 2, 16);
 }
 
 // --- 8-bit arithmetic -----------------------------------------------------
@@ -1100,47 +1090,63 @@ gen STORE4(SUB4(imm|mem|vs4:lhs, op|vs4:rhs), ADDRESS():a) uses x
         "subd", "sbcb", "sbca");
 }
 
+%{
+    sub DivRem4(lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand],
+            helpername: string) is
+        var helper := GetHelper(helpername);
+        var corehelper := GetHelper("_mathpad");
+        var id := corehelper.id;
+
+        E_ldop(REG_D, lhs, lhsop, 2, 0);
+        E_insn("std");
+        E_wsref(id, VARSTACK_WS, 0);
+        E_nl();
+        E_ldop(REG_D, lhs, lhsop, 0, 16);
+        E_insn("std");
+        E_wsref(id, VARSTACK_WS, 2);
+        E_nl();
+
+        E_ldop(REG_D, rhs, rhsop, 11, 0);
+        E_ldop(REG_X, rhs, rhsop, 8, 16);
+
+        R_flushall();
+        E_insn("bsr");
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(helper.id);
+        E_nl();
+    end sub;
+%}
+
+gen vs4 := DIVU4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
+{
+    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_divu4");
+    PushVStack(&$@$.operand, 4);
+    E_stop(REG_D, $$, &$@$.operand, 2, 0);
+    E_stop(REG_X, $$, &$@$.operand, 0, 16);
+}
+
 gen vs4 := REMU4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
 {
-    var helper := GetHelper("_divremu4");
-    var id := helper.id;
-
-    E_ldop(REG_D, $lhs, &$@lhs.operand, 2, 0);
-    E_insn("std");
-    E_wsref(id, VARSTACK_WS, 0);
-    E_nl();
-    E_ldop(REG_D, $lhs, &$@lhs.operand, 0, 16);
-    E_insn("std");
-    E_wsref(id, VARSTACK_WS, 2);
-    E_nl();
-
-    E_ldop(REG_D, $rhs, &$@rhs.operand, 2, 0);
-    E_insn("std");
-    E_wsref(id, VARSTACK_WS, 4);
-    E_nl();
-    E_ldop(REG_D, $rhs, &$@rhs.operand, 0, 16);
-    E_insn("std");
-    E_wsref(id, VARSTACK_WS, 6);
-    E_nl();
-
-    R_flushall();
-    E_insn("bsr");
-    E_b8(COO_ESCAPE_SUBREF);
-    E_b16(id);
-    E_nl();
-
-    $@$.operand.vs.sp := varsp;
-    E_insn("ldd");
-    E_wsref(id, VARSTACK_WS, 0);
-    E_nl();
-    E_stop(REG_D, $$, &$@$.operand, 2, 0);
-    E_insn("ldd");
-    E_wsref(id, VARSTACK_WS, 2);
-    E_nl();
-    E_stop(REG_D, $$, &$@$.operand, 0, 16);
-
+    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_remu4");
     PushVStack(&$@$.operand, 4);
+    E_stop(REG_D, $$, &$@$.operand, 6, 0);
+    E_stop(REG_X, $$, &$@$.operand, 4, 16);
+}
 
+gen vs4 := DIVS4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
+{
+    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_divs4");
+    PushVStack(&$@$.operand, 4);
+    E_stop(REG_D, $$, &$@$.operand, 2, 0);
+    E_stop(REG_X, $$, &$@$.operand, 0, 16);
+}
+
+gen vs4 := REMS4(imm|mem|vs4:lhs, op|vs4:rhs) uses x
+{
+    DivRem4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, "_rems4");
+    PushVStack(&$@$.operand, 4);
+    E_stop(REG_D, $$, &$@$.operand, 6, 0);
+    E_stop(REG_X, $$, &$@$.operand, 4, 16);
 }
 
 // --- Conditionals ---------------------------------------------------------

@@ -1,5 +1,35 @@
+&X _mathpad
+&W _mathpad 1 12
+; This is a simple buffer of 12 bytes used for multiplication and division.
+; It's laid out as:
+;   +0..3  LHS, result
+;   +4..7  remainder for division, working space for multiplication
+;   +8..11 RHS
+
 &X _divremu4
 ; 32-bit unsigned divide.
 `` = *
+	ldd #0xffff
+	swi
     rts
+
+&X _remu4
+; 32-bit unsigned remainder of mathpad LHS / xd, leaving the remainder in xd.
+`` = *
+	stx `$_mathpad.1.8
+	std `$_mathpad.1.10
+	bsr `_divremu4
+	ldx `$_mathpad.1.4
+	ldd `$_mathpad.1.6
+	rts
+
+&X _divu4
+; 32-bit unsigned divide of mathpad LHS / xd, leaving the remainder in xd.
+`` = *
+	stx `$_mathpad.1.8
+	std `$_mathpad.1.10
+	bsr `_divremu4
+	ldx `$_mathpad.1.0
+	ldd `$_mathpad.1.2
+	rts
 

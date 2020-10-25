@@ -12,6 +12,17 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
+	@asm "ldx #1";
+	@asm "pshx";
+	@asm "ldx #", c;
+	@asm "pshx";
+	@asm "ldx #1";
+	@asm "pshx";
+	@asm "ldd #0x0803";
+	@asm "swi";
+	@asm "pulx";
+	@asm "pulx";
+	@asm "pulx";
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
