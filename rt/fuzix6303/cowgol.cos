@@ -1,3 +1,7 @@
+&X _return
+&W _return 1 2
+; Used to store the return address in helper routines.
+
 &X _mathpad
 &W _mathpad 1 12
 ; This is a simple buffer of 12 bytes used for multiplication and division.
@@ -5,6 +9,312 @@
 ;   +0..3  LHS, result
 ;   +4..7  remainder for division, working space for multiplication
 ;   +8..11 RHS
+
+&X _store4x
+; Stores TOS to [x].
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	popa
+	popb
+	std 0,x
+
+	popa
+	popb
+	std 2,x
+
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _load4x
+; Loads [x] to TOS.
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	ldd 2, x
+	pusha
+	pushb
+
+	ldd 0, x
+	pusha
+	pushb
+
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _castu14
+; Unsigned cast of b to i4.
+`` = *
+	popx
+
+	clra
+	pushd
+	pusha
+	pusha
+
+	jmp ,x
+	
+&X _castu24
+; Unsigned cast of d to i4.
+`` = *
+	popx
+
+	pushd
+	clra
+	pusha
+	pusha
+
+	jmp ,x
+	
+&X _lsl1
+; Shifts b left by a bits, putting the result in d.
+`` = *
+	inca
+	bra ``_entry
+``_loop = *
+	lslb
+``_entry
+	decb
+	beq ``_loop
+	rts
+	
+&X _lsr1
+; Logical shifts b right by a bits, putting the result in d.
+`` = *
+	inca
+	bra ``_entry
+``_loop = *
+	lsrb
+``_entry
+	decb
+	beq ``_loop
+	rts
+	
+&X _asr1
+; Arithmetic shifts b right by a bits, putting the result in d.
+`` = *
+	inca
+	bra ``_entry
+``_loop = *
+	asrb
+``_entry
+	decb
+	beq ``_loop
+	rts
+	
+&X _lsl2
+; Shifts x left by b bits, putting the result in d.
+`` = *
+	clra
+	xgdx
+	inx
+	bra ``_entry
+``_loop = *
+	lsld
+``_entry
+	dex
+	beq ``_loop
+	rts
+	
+&X _lsr2
+; Logically shifts x right by b bits, putting the result in d.
+`` = *
+	clra
+	xgdx
+	inx
+	bra ``_entry
+``_loop = *
+	lsrd
+``_entry
+	dex
+	beq ``_loop
+	rts
+	
+&X _asr2
+; Arithmetic shifts x right by b bits, putting the result in d.
+`` = *
+	clra
+	xgdx
+	inx
+	bra ``_entry
+``_loop = *
+	asra
+	rorb
+``_entry
+	dex
+	beq ``_loop
+	rts
+	
+&X _add4
+; 32-bit add; (i4 i4 -- i4)
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	ldd 3, x
+	addd 7, x
+	std 7, x
+	ldd 1, x
+	adcb 6, x
+	adca 5, x
+	std 5, x
+
+	popx
+	popx
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _sub4
+; 32-bit subtract; (i4 i4 -- i4)
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	ldd 3, x
+	subd 7, x
+	std 7, x
+	ldd 1, x
+	sbcb 6, x
+	sbca 5, x
+	std 5, x
+
+	popx
+	popx
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _neg4
+; 32-bit negate; (i4 -- i4)
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	clrb
+	clra
+	subd 3, x
+	std 3, x
+	clrb
+	clra
+	subd 1, x
+	std 1, x
+
+	ldx `$_return.1.0
+	jmp ,x
+	
+&X _not4
+; 32-bit NOT; (i4 i4 -- i4)
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	com 1, x
+	com 2, x
+	com 3, x
+	com 4, x
+
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _and4
+; 32-bit AND; (i4 i4 -- i4)
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	ldd 3, x
+	andb 8, x
+	anda 7, x
+	std 7, x
+	ldd 1, x
+	andb 6, x
+	anda 5, x
+	std 5, x
+
+	popx
+	popx
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _or4
+; 32-bit OR; (i4 i4 -- i4)
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	ldd 3, x
+	orab 8, x
+	oraa 7, x
+	std 7, x
+	ldd 1, x
+	orab 6, x
+	oraa 5, x
+	std 5, x
+
+	popx
+	popx
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _eor4
+; 32-bit EOR; (i4 i4 -- i4)
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	ldd 3, x
+	xorb 8, x
+	xora 7, x
+	std 7, x
+	ldd 1, x
+	xorb 6, x
+	xora 5, x
+	std 5, x
+
+	popx
+	popx
+	ldx `$_return.1.0
+	jmp ,x
+
+&X _cmpeq4
+; 32-bit compare; (i4 i4 --). Sets Z only.
+`` = *
+	popa
+	popb
+	std `$_return.1.0
+
+	tsx
+	ldd 3, x
+	cmp 7, x
+	bne ``_exit
+	ldd 1, x
+	cmp 5, x
+``_exit = *
+	tpa
+	popx
+	popx
+	popx
+	popx
+	ldx `$_return.1.0
+	tap
+	jmp ,x
 
 &X _divremu4
 ; 32-bit unsigned divide.

@@ -379,6 +379,7 @@
 
     sub E_callhelper(name: string) is
         var helper := GetHelper(name);
+        R_flushall();
         E_insn("bsr");
         E_b8(COO_ESCAPE_SUBREF);
         E_b16(helper.id);
@@ -958,9 +959,9 @@ gen a := MUL1(a, b)
 	E_insn_simple("mul");
 }
 
-gen a := LSHIFT1(a, b)  { E_callhelper("_lsl1"); }
-gen a := RSHIFTU1(a, b) { E_callhelper("_lsr1"); }
-gen a := RSHIFTS1(a, b) { E_callhelper("_asr1"); }
+gen b := LSHIFT1(b, a)  { E_callhelper("_lsl1"); }
+gen b := RSHIFTU1(b, a) { E_callhelper("_lsr1"); }
+gen b := RSHIFTS1(b, a) { E_callhelper("_asr1"); }
 
 %{
     sub Alu1(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
