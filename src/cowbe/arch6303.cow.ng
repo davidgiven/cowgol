@@ -128,7 +128,7 @@
 		E_nl();
 	end sub;
 
-	sub E_jmp(label: LabelRef) is E_jump("bra", label); end sub;
+	sub E_jmp(label: LabelRef) is E_jump("jmp", label); end sub;
 
     sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node]) is
         if node.beq.truelabel != node.beq.fallthrough then
@@ -380,7 +380,7 @@
     sub E_callhelper(name: string) is
         var helper := GetHelper(name);
         R_flushall();
-        E_insn("bsr");
+        E_insn("jsr");
         E_b8(COO_ESCAPE_SUBREF);
         E_b16(helper.id);
         E_nl();
@@ -600,7 +600,7 @@ gen ENDSUB()
 %{
 	sub Call(addr: [MidcodeSubref]) is
         R_flushall();
-		E_insn("bsr");
+		E_insn("jsr");
 		E_subref(addr.subr);
 		E_nl();
 	end sub;
@@ -1074,7 +1074,7 @@ gen d := DIVU2(d, x)         { E_callhelper("_divu2"); }
 gen d := DIVS2(d, x)         { E_callhelper("_divs2"); }
 gen d := REMU2(d, x)         { E_callhelper("_remu2"); }
 gen d := REMS2(d, x)         { E_callhelper("_rems2"); }
-gen d := MUL2(d, x)          { E_callhelper("_mul4"); }
+gen d := MUL2(d, x)          { E_callhelper("_mul2"); }
 
 gen d := NEG2(op|vs2:rhs)
 {
@@ -1174,7 +1174,7 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 %}
 
 gen BEQ1(a|b:lhs, op|vs1:rhs):b  { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
-gen BLTU1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blo", "bhs", $@$); }
+gen BLTU1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
 gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
 %{
@@ -1182,7 +1182,7 @@ gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_wit
         RetractVStack(rhs, rhsop);
 
         if lhs == REG_D then
-            E_insn("cmpd");
+            E_insn("subd");
         else
             E_insn("cpx");
         end if;
@@ -1192,7 +1192,7 @@ gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_wit
 %}
 
 gen BEQ2(d|x:lhs, op|vs2:rhs):b  { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
-gen BLTU2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blo", "bhs", $@$); }
+gen BLTU2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
 gen BLTS2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
 gen BEQ4(i4, i4)
@@ -1201,8 +1201,8 @@ gen BEQ4(i4, i4)
     E_jumps_with_fallthrough("beq", "bne", $@$);
 }
 
-gen BLTU4(i4, i4) { E_callhelper("_cmp4"); E_jumps_with_fallthrough("blo", "bhs", $@$); }
-gen BLTS4(i4, i4) { E_callhelper("_cmp4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
+gen BLTU4(i4, i4) { E_callhelper("_cmpltu4"); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS4(i4, i4) { E_callhelper("_cmplts4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
 // --- Case -----------------------------------------------------------------
 

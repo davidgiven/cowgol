@@ -13,16 +13,16 @@
 &X _store4x
 ; Stores TOS to [x].
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
-	popa
-	popb
+	pula
+	pulb
 	std 0,x
 
-	popa
-	popb
+	pula
+	pulb
 	std 2,x
 
 	ldx `$_return.1.0
@@ -31,17 +31,17 @@
 &X _load4x
 ; Loads [x] to TOS.
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
 	ldd 2, x
-	pusha
-	pushb
+	psha
+	pshb
 
 	ldd 0, x
-	pusha
-	pushb
+	psha
+	pshb
 
 	ldx `$_return.1.0
 	jmp ,x
@@ -49,24 +49,26 @@
 &X _castu14
 ; Unsigned cast of b to i4.
 `` = *
-	popx
+	pulx
 
 	clra
-	pushd
-	pusha
-	pusha
+	pshb
+	psha
+	psha
+	psha
 
 	jmp ,x
 	
 &X _castu24
 ; Unsigned cast of d to i4.
 `` = *
-	popx
+	pulx
 
-	pushd
+	pshb
 	clra
-	pusha
-	pusha
+	psha
+	psha
+	psha
 
 	jmp ,x
 	
@@ -76,8 +78,8 @@
 	inca
 	bra ``_entry
 ``_loop = *
-	lslb
-``_entry
+	aslb
+``_entry = *
 	decb
 	beq ``_loop
 	rts
@@ -89,7 +91,7 @@
 	bra ``_entry
 ``_loop = *
 	lsrb
-``_entry
+``_entry = *
 	decb
 	beq ``_loop
 	rts
@@ -101,7 +103,7 @@
 	bra ``_entry
 ``_loop = *
 	asrb
-``_entry
+``_entry = *
 	decb
 	beq ``_loop
 	rts
@@ -114,8 +116,8 @@
 	inx
 	bra ``_entry
 ``_loop = *
-	lsld
-``_entry
+	asld
+``_entry = *
 	dex
 	beq ``_loop
 	rts
@@ -129,7 +131,7 @@
 	bra ``_entry
 ``_loop = *
 	lsrd
-``_entry
+``_entry = *
 	dex
 	beq ``_loop
 	rts
@@ -144,180 +146,350 @@
 ``_loop = *
 	asra
 	rorb
-``_entry
+``_entry = *
 	dex
 	beq ``_loop
 	rts
 	
+&X _mul2
+; Multiplies d by x, putting the result in d.
+; This is a long multiplication in base 256:
+;       L1 L2
+;       R1 R2
+;       -----
+;       A1 A2 = L2 * R2
+;    B1 B2    = L1 * R2
+;    C1 C2    = L2 * R1
+; D1 D2       = L1 * R1
+; -----------
+; E1 E2 E3 E4
+;
+; ...but we only care about the bottom two bytes, of course.
+`` = *
+	stx ``$_mathpad.1.4
+	std ``$_mathpad.1.8
+
+	;ldab ``$_mathpad.1.5 ; already present
+	ldaa ``$_mathpad.1.9
+	mul
+	std ``$_mathpad.1.0
+
+	ldab ``$_mathpad.1.4
+	ldaa ``$_mathpad.1.9
+	mul
+	tba
+	clra
+	addd ``$_mathpad.1.0
+	std ``$_mathpad.1.0
+
+	ldab ``$_mathpad.1.5
+	ldaa ``$_mathpad.1.8
+	mul
+	tba
+	clra
+	addd ``$_mathpad.1.0
+	rts
+
+;   +0..3  LHS, result
+;   +4..7  remainder for division, working space for multiplication
+;   +8..11 RHS
 &X _add4
 ; 32-bit add; (i4 i4 -- i4)
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
 	tsx
-	ldd 3, x
-	addd 7, x
-	std 7, x
-	ldd 1, x
-	adcb 6, x
-	adca 5, x
-	std 5, x
+	ldd 2, x
+	addd 6, x
+	std 6, x
+	ldd 0, x
+	adcb 5, x
+	adca 4, x
+	std 4, x
 
-	popx
-	popx
+	pulx
+	pulx
 	ldx `$_return.1.0
 	jmp ,x
 
 &X _sub4
 ; 32-bit subtract; (i4 i4 -- i4)
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
 	tsx
-	ldd 3, x
-	subd 7, x
-	std 7, x
-	ldd 1, x
-	sbcb 6, x
-	sbca 5, x
-	std 5, x
+	ldd 2, x
+	subd 6, x
+	std 6, x
+	ldd 0, x
+	sbcb 5, x
+	sbca 4, x
+	std 4, x
 
-	popx
-	popx
+	pulx
+	pulx
 	ldx `$_return.1.0
 	jmp ,x
 
 &X _neg4
 ; 32-bit negate; (i4 -- i4)
 `` = *
-	popa
-	popb
-	std `$_return.1.0
-
 	tsx
 	clrb
 	clra
-	subd 3, x
-	std 3, x
+	subd 4, x
+	std 4, x
 	clrb
 	clra
-	subd 1, x
-	std 1, x
-
-	ldx `$_return.1.0
-	jmp ,x
+	subd 2, x
+	std 2, x
+	rts
 	
 &X _not4
-; 32-bit NOT; (i4 i4 -- i4)
+; 32-bit NOT; (i4 -- i4)
 `` = *
-	popa
-	popb
-	std `$_return.1.0
-
 	tsx
-	com 1, x
 	com 2, x
 	com 3, x
 	com 4, x
-
-	ldx `$_return.1.0
-	jmp ,x
+	com 5, x
+	rts
 
 &X _and4
 ; 32-bit AND; (i4 i4 -- i4)
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
 	tsx
-	ldd 3, x
-	andb 8, x
-	anda 7, x
-	std 7, x
-	ldd 1, x
-	andb 6, x
-	anda 5, x
-	std 5, x
+	ldd 2, x
+	andb 7, x
+	anda 6, x
+	std 6, x
+	ldd 0, x
+	andb 5, x
+	anda 4, x
+	std 4, x
 
-	popx
-	popx
+	pulx
+	pulx
 	ldx `$_return.1.0
 	jmp ,x
 
 &X _or4
 ; 32-bit OR; (i4 i4 -- i4)
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
 	tsx
-	ldd 3, x
-	orab 8, x
-	oraa 7, x
-	std 7, x
-	ldd 1, x
-	orab 6, x
-	oraa 5, x
-	std 5, x
+	ldd 2, x
+	orab 7, x
+	oraa 6, x
+	std 6, x
+	ldd 0, x
+	orab 5, x
+	oraa 4, x
+	std 4, x
 
-	popx
-	popx
+	pulx
+	pulx
 	ldx `$_return.1.0
 	jmp ,x
 
 &X _eor4
 ; 32-bit EOR; (i4 i4 -- i4)
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
 	tsx
-	ldd 3, x
-	xorb 8, x
-	xora 7, x
-	std 7, x
-	ldd 1, x
-	xorb 6, x
-	xora 5, x
-	std 5, x
+	ldd 2, x
+	xorb 7, x
+	xora 6, x
+	std 6, x
+	ldd 0, x
+	xorb 5, x
+	xora 4, x
+	std 4, x
 
-	popx
-	popx
+	pulx
+	pulx
 	ldx `$_return.1.0
 	jmp ,x
+
+&X _lsl4
+; 32-bit left shift by B; (i4 -- i4)
+`` = *
+	tsx
+	incb
+	bra ``_entry
+``_loop = *
+	asl 5, x
+	rol 4, x
+	rol 3, x
+	rol 2, x
+``_entry = *
+	decb
+	bne ``_loop
+	rts
+
+&X _lsr4
+; Logical 32-bit right shift by B; (i4 -- i4)
+`` = *
+	tsx
+	incb
+	bra ``_entry
+``_loop = *
+	lsr 2, x
+	ror 3, x
+	ror 4, x
+	ror 5, x
+``_entry = *
+	decb
+	bne ``_loop
+	rts
+
+&X _asr4
+; Arithmetic 32-bit right shift by B; (i4 -- i4)
+`` = *
+	tsx
+	incb
+	bra ``_entry
+``_loop = *
+	asr 2, x
+	ror 3, x
+	ror 4, x
+	ror 5, x
+``_entry = *
+	decb
+	bne ``_loop
+	rts
 
 &X _cmpeq4
 ; 32-bit compare; (i4 i4 --). Sets Z only.
 `` = *
-	popa
-	popb
+	pula
+	pulb
 	std `$_return.1.0
 
 	tsx
-	ldd 3, x
-	cmp 7, x
-	bne ``_exit
-	ldd 1, x
-	cmp 5, x
-``_exit = *
+	ldd 2, x
+	subd 6, x
+	bne `_pop8andreturn
+	ldd 0, x
+	subd 4, x
+	bra `_pop8andreturn
+
+&S _pop8andreturn
+; Pops eight bytes and jumps to the stored return address.
+`` = *
 	tpa
-	popx
-	popx
-	popx
-	popx
+	pulx
+	pulx
+	pulx
+	pulx
 	ldx `$_return.1.0
 	tap
 	jmp ,x
 
+&X _cmpltu4
+; 32-bit unsigned compare for LT; (i4 i4 --). Sets V and N only (not Z).
+`` = *
+	pula
+	pulb
+	std `$_return.1.0
+
+	tsx
+	ldd 2, x				; LHS
+	subd 6, x				; RHS
+	bcs `_pop8andreturn
+	ldd 0, x
+	subd 4, x
+	bra `_pop8andreturn
+
+&X _cmplts4
+; 32-bit signed compare for LT; (i4 i4 --). Sets V and N only (not Z).
+`` = *
+	pula
+	pulb
+	std `$_return.1.0
+
+	tsx
+	ldd 2, x				; LHS
+	subd 6, x				; RHS
+	blt `_pop8andreturn
+	ldd 0, x
+	subd 4, x
+	bra `_pop8andreturn
+
+&X _mul4
+; 32-bit multiply: (i4 i4 -- i4)
+	pula
+	pulb
+	std `$_return.1.0
+
+	pulx
+	stx `$_mathpad.1.0
+	pulx
+	stx `$_mathpad.1.2
+	clra
+	clrb
+	std `$_mathpad.1.4
+	std `$_mathpad.1.6
+	pulx
+	stx `$_mathpad.1.8
+	pulx
+	stx `$_mathpad.1.10
+
+	clc
+	ldx #0x21				; bit counter
+``_loop = *
+	ror `$_mathpad.1.4		; shift right result and lhs
+	ror `$_mathpad.1.5
+	ror `$_mathpad.1.6
+	ror `$_mathpad.1.7
+	ror `$_mathpad.1.0
+	ror `$_mathpad.1.1
+	ror `$_mathpad.1.2
+	ror `$_mathpad.1.3
+	bcc ``_noadd
+
+	ldd `$_mathpad.1.10		; add rhs to low half of result
+	addd `$_mathpad.1.2
+	std `$_mathpad.1.2
+	ldd `$_mathpad.1.8
+	adcb `$_mathpad.1.1
+	adca `$_mathpad.1.0
+	std `$_mathpad.1.0
+
+	dex
+	bne ``_loop
+
+	ldx `$_mathpad.1.2
+	pshx
+	ldx `$_mathpad.1.0
+	pshx
+
+	ldx `$_return.1.0
+	jmp ,x
+
 &X _divremu4
 ; 32-bit unsigned divide.
+`` = *
+	ldd #0xffff
+	swi
+    rts
+
+&X _divrems4
+; 32-bit signed divide.
 `` = *
 	ldd #0xffff
 	swi
@@ -339,6 +511,26 @@
 	stx `$_mathpad.1.8
 	std `$_mathpad.1.10
 	bsr `_divremu4
+	ldx `$_mathpad.1.0
+	ldd `$_mathpad.1.2
+	rts
+
+&X _rems4
+; 32-bit signed remainder of mathpad LHS / xd, leaving the remainder in xd.
+`` = *
+	stx `$_mathpad.1.8
+	std `$_mathpad.1.10
+	bsr `_divrems4
+	ldx `$_mathpad.1.4
+	ldd `$_mathpad.1.6
+	rts
+
+&X _divu4
+; 32-bit signed divide of mathpad LHS / xd, leaving the remainder in xd.
+`` = *
+	stx `$_mathpad.1.8
+	std `$_mathpad.1.10
+	bsr `_divrems4
 	ldx `$_mathpad.1.0
 	ldd `$_mathpad.1.2
 	rts

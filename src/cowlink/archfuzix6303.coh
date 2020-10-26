@@ -44,7 +44,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
-			E("\tbsr ");
+			E("\tjsr ");
 			ArchEmitSubRef(main);
 			E_nl();
 		end if;
