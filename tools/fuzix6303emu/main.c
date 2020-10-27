@@ -145,7 +145,7 @@ end_of_opts:
 		
 	for (;;)
 	{
-		showregs();
+		//showregs();
 		if (cpu.pc == SWIVECTOR)
 		{
 			cpu.pc = readw(cpu.s + 6);
