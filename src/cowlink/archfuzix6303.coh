@@ -23,10 +23,7 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E("\tcpu 6803\n");
-	E("\toutput scode\n");
-	E("\txgdx macro\n db 0x18\n endm\n");
-	E("* = 0x100\n");
+	E("\torg 0x100\n");
 	E("ws1 = 0x80\n");
 
 	E("\tdw 0x80a8\n"); # magic

@@ -125,7 +125,7 @@ toolchain_fuzix6303 = {
 	cowfe = "bin/cowfe-6303.nncgen.exe",
 	cowbe = "bin/cowbe-6303.nncgen.exe",
 	linker = "bin/cowlink-fuzix6303.nncgen.exe",
-	assembler = buildcrasm,
+	assembler = buildcowasm6303,
 	runtime = "rt/fuzix6303",
 	asmext = ".asm",
 	binext = ".6303.srec",
@@ -144,6 +144,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbct6502,
 	toolchain_bbcti,
 	toolchain_unixv7,
-	--toolchain_fuzix6303,
+	toolchain_fuzix6303,
 }
 

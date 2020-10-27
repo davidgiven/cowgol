@@ -137,20 +137,15 @@ function buildcowasmpdp11(e)
 	buildcowasm(e, "pdp11")
 end
 
+function buildcowasm6303(e)
+	buildcowasm(e, "6303")
+end
+
 function buildtass64(e)
 	local img = e.outs[1]:ext(".img"):obj()
 	tass64 {
 		ins = e.ins,
 		outs = e.outs,
-	}
-end
-
-function buildcrasm(e)
-	local srec = e.outs[1]:ext(".srec"):obj()
-	rule {
-		ins = e.ins,
-		outs = { srec },
-		cmd = "crasm -o &1 -l @1"
 	}
 end
 

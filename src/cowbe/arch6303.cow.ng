@@ -1301,7 +1301,7 @@ gen STARTINIT():s
 {
     EmitterOpenStream(current_subr);
 	E_symref(&$s.sym, 0);
-    E(" = *\n");
+    E(":\n");
 }
 
 gen ENDINIT()
