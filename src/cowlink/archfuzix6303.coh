@@ -24,7 +24,7 @@ end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
 	E("\torg 0x100\n");
-	E("ws1 = 0x80\n");
+	E("ws1 equ 0x80\n");
 
 	E("\tdw 0x80a8\n"); # magic
 	E("\tdb 2, 1, 1, 0\n"); # 6800, w/6803 extensions, loading at 0x100, no hints
@@ -35,9 +35,9 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\tdb 0, 1, 0\n"); # use all pages for heap, w/ one page of stack, no zero page
 	E("\tdw sigvec\n"); # sigvec
 
-	E("text_start = *\n");
+	E("text_start:\n");
 	E("sigvec rts\n");
-	E("entry = *\n");
+	E("entry:\n");
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
@@ -47,7 +47,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 		end if;
 		coo := coo.next;
 	end loop;
-	E("exit = *\n");
+	E("exit:\n");
 	E("\tclra\n");
 	E("\tclrb\n");
 	E("\tpshb\n");
@@ -57,12 +57,12 @@ sub ArchEmitHeader(coo: [Coo]) is
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-	E("text_end = *\n");
-	E("bss_start = *\n");
+	E("text_end:\n");
+	E("bss_start:\n");
 
-	E("ws0 = bss_start\n");
+	E("ws0 equ bss_start\n");
 
-	E("bss_end = ws0 + ");
+	E("bss_end equ ws0 + ");
 	E_u16(workspaceSize[0]);
 	E_nl();
 end sub;

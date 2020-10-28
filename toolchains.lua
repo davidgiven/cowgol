@@ -128,7 +128,7 @@ toolchain_fuzix6303 = {
 	assembler = buildcowasm6303,
 	runtime = "rt/fuzix6303",
 	asmext = ".asm",
-	binext = ".6303.srec",
+	binext = ".6303.exe",
 	tester = nil, --h6303test,
 	archs = {},
 }

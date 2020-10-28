@@ -98,7 +98,7 @@
 	sub E_label(label: LabelRef) is
 		R_flushall();
 		E_labelref(label);
-		E(" = *\n");
+		E(":\n");
 	end sub;
 
 	sub E_insn(insn: string) is
@@ -474,7 +474,7 @@ gen STARTSUB()
     E_nl();
 
     E_b8(COO_ESCAPE_THISSUB);
-    E(" = *\n");
+    E(":\n");
 
 	var count := current_subr.num_input_parameters;
 	var lastparam := count - 1;

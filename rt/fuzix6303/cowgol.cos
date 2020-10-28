@@ -81,7 +81,7 @@
 	aslb
 ``_entry:
 	decb
-	beq ``_loop
+	bne ``_loop
 	rts
 	
 &X _lsr1
@@ -93,7 +93,7 @@
 	lsrb
 ``_entry:
 	decb
-	beq ``_loop
+	bne ``_loop
 	rts
 	
 &X _asr1
@@ -105,7 +105,7 @@
 	asrb
 ``_entry:
 	decb
-	beq ``_loop
+	bne ``_loop
 	rts
 	
 &X _lsl2
@@ -119,7 +119,7 @@
 	asld
 ``_entry:
 	dex
-	beq ``_loop
+	bne ``_loop
 	rts
 	
 &X _lsr2
@@ -133,7 +133,7 @@
 	lsrd
 ``_entry:
 	dex
-	beq ``_loop
+	bne ``_loop
 	rts
 	
 &X _asr2
@@ -148,7 +148,7 @@
 	rorb
 ``_entry:
 	dex
-	beq ``_loop
+	bne ``_loop
 	rts
 	
 &X _mul2

@@ -6,6 +6,8 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 			toolchain = toolchain,
 			ins = {
 				"src/cowasm/arch"..arch..".cow",
+				"src/cowasm/cowasm.coh",
+				"src/cowasm/stdsyms.coh",
 			},
 			outs = { "bin/cowasm-"..arch }
 		}
