@@ -19,12 +19,22 @@ sub ReadOperand(): (token: Token) is
         token := ReadToken();
     end if;
 
+    sub Consume(t: Token) is
+        if token != t then
+            SyntaxError();
+        end if;
+        token := ReadToken();
+    end sub;
+
     var reg: uint8;
     var value: uint16;
+    print("token: ");
+    print_hex_i8(token);
+    print_nl();
     case token is
         when '-':
             Expect('(');
-            ExpectRegister();
+            ReadRegister();
             addressingMode := AM_PREDEC | (tokenSymbol.value as uint8);
             Expect(')');
             token := ReadToken();
@@ -38,8 +48,8 @@ sub ReadOperand(): (token: Token) is
             token := ReadToken();
             if (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == RegCb) then
                 reg := tokenSymbol.value as uint8;
-                Expect(')');
                 token := ReadToken();
+                Consume(')');
                 if token == '+' then
                     addressingMode := AM_POSTINC | reg;
                     token := ReadToken();
@@ -51,7 +61,7 @@ sub ReadOperand(): (token: Token) is
                 token := ReadExpression();
                 value := tokenNumber;
                 if token == '(' then
-                    ExpectRegister();
+                    ReadRegister();
                     addressingMode := AM_INDEX | (tokenSymbol.value as uint8);
 
                     Expect(')');
@@ -71,7 +81,7 @@ sub ReadOperand(): (token: Token) is
                 token := ReadExpression();
                 value := tokenNumber;
                 if token == '(' then
-                    ExpectRegister();
+                    ReadRegister();
                     addressingMode := AM__EXTENSION | AM_INDEX | (tokenSymbol.value as uint8);
                     extensionWord := value;
                     Expect(')');

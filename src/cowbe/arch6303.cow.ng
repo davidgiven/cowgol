@@ -51,6 +51,7 @@
 		if sym.wsid == WSID_STATIC then
 			E_wsref(sym.subr.id, sym.wsid, sym.off);
 			if off != 0 then
+                E("+0x");
 				E_u16(off as uint16);
 			end if;
 		else
@@ -119,7 +120,6 @@
 
 	sub E_db() is E_insn("db"); end sub;
 	sub E_dw() is E_insn("dw"); end sub;
-	sub E_dl() is E_insn("dl"); end sub;
 
 	sub E_jump(insn: string, label: LabelRef) is
 		R_flushall();
@@ -785,7 +785,7 @@ gen STORE1(a|b:lhs, x)
 	E(",x\n");
 }
 
-gen STORE1(a|b:lhs, ADD2(x, CONSTANT():c))
+gen STORE1(a|b:lhs, ADD2(x, CONSTANT(value is byte):c))
 {
 	E_st($lhs);
 	E_u16($c.value as uint16);
@@ -806,7 +806,7 @@ gen STORE2(x|d:lhs, x)
 	E(",x\n");
 }
 
-gen STORE2(x|d:lhs, ADD2(x, CONSTANT():c))
+gen STORE2(x|d:lhs, ADD2(x, CONSTANT(value is bytem1):c))
 {
 	E_st($lhs);
 	E_u16($c.value as uint16);
@@ -856,7 +856,7 @@ gen a|b := LOAD1(ADDRESS():a) uses x
     E_ldop_c($$, REG_MEM, &op, 0, 0);
 }
 
-gen a|b := LOAD1(ADD2(x, CONSTANT():c))
+gen a|b := LOAD1(ADD2(x, CONSTANT(value is byte):c))
 {
 	E_ld($$);
 	E_u16($c.value as uint16);
@@ -877,7 +877,7 @@ gen x|d := LOAD2(ADDRESS():a) uses x
     E_ldop_c($$, REG_MEM, &op, 0, 0);
 }
 
-gen x|d := LOAD2(ADD2(x, CONSTANT():c))
+gen x|d := LOAD2(ADD2(x, CONSTANT(value is bytem1):c))
 {
 	E_ld($$);
 	E_u16($c.value as uint16);
@@ -949,7 +949,7 @@ gen a|b := NEG1($$)
 gen a|b := NOT1($$)
 {
     R_flush($$);
-    E_acc("nota", "notb", $$);
+    E_acc("coma", "comb", $$);
     E_nl();
 }
 
@@ -1095,7 +1095,7 @@ gen d := NOT2(d)
 }
 
 gen d := OR2(d, op|vs2:rhs)  { Alu2(REG_D, $rhs, &$@rhs.operand, "oraa", "orab"); }
-gen d := EOR2(d, op|vs2:rhs) { Alu2(REG_D, $rhs, &$@rhs.operand, "xora", "xorb"); }
+gen d := EOR2(d, op|vs2:rhs) { Alu2(REG_D, $rhs, &$@rhs.operand, "eora", "eorb"); }
 gen d := AND2(d, op|vs2:rhs) { Alu2(REG_D, $rhs, &$@rhs.operand, "anda", "andb"); }
 
 gen d := LSHIFT2(x, b)       { E_callhelper("_lsl2"); }
@@ -1207,7 +1207,7 @@ gen BLTS4(i4, i4) { E_callhelper("_cmplts4"); E_jumps_with_fallthrough("blt", "b
 // --- Case -----------------------------------------------------------------
 
 gen STARTCASE1(b);
-gen STARTCASE2(d);
+gen STARTCASE2(x);
 gen STARTCASE4(i4) { E_pop(REG_X); E_pop(REG_D); }
 
 gen WHENCASE1():c
@@ -1223,7 +1223,7 @@ gen WHENCASE1():c
 
 gen WHENCASE2():c uses a
 {
-    E_insn("cmpd");
+    E_insn("cpx");
     E_const();
     E_u16($c.value as uint16);
     E_nl();
@@ -1234,7 +1234,7 @@ gen WHENCASE2():c uses a
 
 gen WHENCASE4():c uses a
 {
-    E_insn("cmpd");
+    E_insn("cpx");
     E_const();
     E_u16($c.value as uint16);
     E_nl();
@@ -1242,10 +1242,12 @@ gen WHENCASE4():c uses a
     E_labelref($c.falselabel);
     E_nl();
 
+    E_xgdx();
     E_insn("cpx");
     E_const();
     E_u16(($c.value >> 16) as uint16);
     E_nl();
+    E_xgdx();
     E_insn("bne");
     E_labelref($c.falselabel);
     E_nl();
@@ -1325,19 +1327,25 @@ gen INIT2():c
 
 gen INIT4():c
 {
-    E_dl();
-    E_u32($c.value as uint32);
+    E_dw();
+    E_u16(($c.value as uint32 >> 16) as uint16);
+    E_comma();
+    E_u16($c.value as uint16);
     E_nl();
 }
 
 gen INITADDRESS():a
 {
+    E_dw();
 	E_symref(&$a.sym, $a.off);
+    E_nl();
 }
 
 gen INITSUBREF():a
 {
+    E_dw();
 	E_subref($a.subr);
+    E_nl();
 }
 
 gen INITSTRING():s

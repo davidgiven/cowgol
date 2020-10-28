@@ -683,7 +683,7 @@ sub RegCb implements SymbolCallback is
     SimpleError("registers are not instructions");
 end sub;
 
-sub ExpectRegister() is
+sub ReadRegister() is
     var token := ReadToken();
     if (token != TOKEN_IDENTIFIER) or (tokenSymbol.callback != RegCb) then
         SimpleError("expected a register");
@@ -704,7 +704,9 @@ sub SetImplicitLabel() is
         and (currentLabel.callback != UndefinedLabelCb)
     then
         StartError();
-        print("label already defined (");
+        print("label '");
+        print(currentLabel.name);
+        print("' already defined (");
         print_hex_i16(currentLabel.value);
         print("h vs ");
         print_hex_i16([currentProgramCounter]);

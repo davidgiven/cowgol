@@ -166,33 +166,44 @@
 ;
 ; ...but we only care about the bottom two bytes, of course.
 ``:
-	stx ``$_mathpad.1.4
-	std ``$_mathpad.1.8
+	stx `$_mathpad.1.4
+	std `$_mathpad.1.8
 
-	;ldab ``$_mathpad.1.5 ; already present
-	ldaa ``$_mathpad.1.9
+	;ldab `$_mathpad.1.5 ; already present
+	ldaa `$_mathpad.1.9
 	mul
-	std ``$_mathpad.1.0
+	std `$_mathpad.1.0
 
-	ldab ``$_mathpad.1.4
-	ldaa ``$_mathpad.1.9
-	mul
-	tba
-	clra
-	addd ``$_mathpad.1.0
-	std ``$_mathpad.1.0
-
-	ldab ``$_mathpad.1.5
-	ldaa ``$_mathpad.1.8
+	ldab `$_mathpad.1.4
+	ldaa `$_mathpad.1.9
 	mul
 	tba
 	clra
-	addd ``$_mathpad.1.0
+	addd `$_mathpad.1.0
+	std `$_mathpad.1.0
+
+	ldab `$_mathpad.1.5
+	ldaa `$_mathpad.1.8
+	mul
+	tba
+	clra
+	addd `$_mathpad.1.0
 	rts
 
-;   +0..3  LHS, result
-;   +4..7  remainder for division, working space for multiplication
-;   +8..11 RHS
+&X _divu2
+; 16-bit unsigned divide.
+``:
+	ldd #0xffff
+	swi
+    rts
+
+&X _remu2
+; 16-bit signed divide.
+``:
+	ldd #0xffff
+	swi
+    rts
+
 &X _add4
 ; 32-bit add; (i4 i4 -- i4)
 ``:
@@ -312,12 +323,12 @@
 
 	tsx
 	ldd 2, x
-	xorb 7, x
-	xora 6, x
+	eorb 7, x
+	eora 6, x
 	std 6, x
 	ldd 0, x
-	xorb 5, x
-	xora 4, x
+	eorb 5, x
+	eora 4, x
 	std 4, x
 
 	pulx
@@ -432,6 +443,7 @@
 
 &X _mul4
 ; 32-bit multiply: (i4 i4 -- i4)
+``:
 	pula
 	pulb
 	std `$_return.1.0
@@ -469,6 +481,7 @@
 	adcb `$_mathpad.1.1
 	adca `$_mathpad.1.0
 	std `$_mathpad.1.0
+``_noadd:
 
 	dex
 	bne ``_loop
@@ -525,7 +538,7 @@
 	ldd `$_mathpad.1.6
 	rts
 
-&X _divu4
+&X _divs4
 ; 32-bit signed divide of mathpad LHS / xd, leaving the remainder in xd.
 ``:
 	stx `$_mathpad.1.8
