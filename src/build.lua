@@ -185,9 +185,9 @@ function apouttest(e)
 	return simpletest("bin/apout ", e)
 end
 
-function h6303test(e)
-	e.ins = concat { e.ins, "bin/h6303" }
-	return simpletest("bin/h6303", e)
+function fuzix6303test(e)
+	e.ins = concat { e.ins, "bin/fuzix6303emu" }
+	return simpletest("bin/fuzix6303emu", e)
 end
 
 function cowgol(e)

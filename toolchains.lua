@@ -129,7 +129,7 @@ toolchain_fuzix6303 = {
 	runtime = "rt/fuzix6303",
 	asmext = ".asm",
 	binext = ".6303.exe",
-	tester = nil, --h6303test,
+	tester = fuzix6303test,
 	archs = {},
 }
 

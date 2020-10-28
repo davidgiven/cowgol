@@ -94,16 +94,50 @@ sub OpBrCb implements SymbolCallback is
             Emit8(currentInsn.value as uint8);
             Emit8(delta as uint8);
         else
-            Emit8(currentInsn.value as uint8 ^ 1);
-            Emit8(3);
-            Emit8(0x7e); # JMP
+            case currentInsn.value is
+                when 0x8d: # BSR
+                    Emit8(0xbd); # JSR EXT
+
+                when 0x20: # BRA
+                    Emit8(0x7e); # JMP EXT
+
+                when else:
+                    Emit8(currentInsn.value as uint8 ^ 1);
+                    Emit8(3);
+                    Emit8(0x7e); # JMP EXT
+            end case;
             Emit16(tokenNumber);
         end if
     end if;
 end sub;
 
 sub OpImCb implements SymbolCallback is
-    SimpleError("im");
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+    if addressingMode != AM_IMM then
+        BadAddressingMode();
+    end if;
+    var immdata := extensionWord as uint8;
+
+    ExpectOperand();
+    if (addressingMode != AM_DIR) and (addressingMode != AM_IND) then
+        BadAddressingMode();
+    end if;
+
+    if addressingMode == AM_DIR then
+        # These instructions are magic.
+        addressingMode := AM_EXT;
+    end if;
+
+    Emit8(currentInsn.value as uint8 | addressingMode);
+    Emit8(immdata);
+    if addressingMode == AM_EXT then
+        Emit8(extensionWord as uint8);
+    else
+        Emit16(extensionWord);
+    end if;
 end sub;
 
 sub Op23Cb implements SymbolCallback is

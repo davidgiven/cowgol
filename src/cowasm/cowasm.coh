@@ -305,7 +305,7 @@ sub ReadToken(): (token: Token) is
 		var base: uint8 := 0;
 		var p := &tokenBuffer[0];
 		tokenLength := tokenLength - 1;
-        if (tokenLength > 2) and (tokenBuffer[0] == '0') then
+        if (tokenLength >= 2) and (tokenBuffer[0] == '0') then
             case tokenBuffer[1] is
                 when 'B': p := &tokenBuffer[2]; base := 2;
                 when 'O': p := &tokenBuffer[2]; base := 8;

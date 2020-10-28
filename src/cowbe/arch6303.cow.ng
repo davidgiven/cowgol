@@ -128,7 +128,7 @@
 		E_nl();
 	end sub;
 
-	sub E_jmp(label: LabelRef) is E_jump("jmp", label); end sub;
+	sub E_jmp(label: LabelRef) is E_jump("bra", label); end sub;
 
     sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node]) is
         if node.beq.truelabel != node.beq.fallthrough then
@@ -206,7 +206,7 @@
     end sub;
 
     sub PrepareWorkspacePointerForAddress(sym: [Symbol], off: uint16) is
-        if (sym.subr == current_subr) and ((sym.off + off) < 252) then
+        if (sym.subr == current_subr) and (sym.wsid == VARMEM_WS) and ((sym.off + off) < 252) then
             var cache := RegCacheFindWsRef(sym.subr, VARMEM_WS, 0) & REG_X;
             if cache != 0 then
                 # The workspace pointer is already in X.
@@ -215,7 +215,7 @@
             R_flush(REG_X);
             E_insn("ldx");
             E_const();
-			E_wsref(sym.subr.id, sym.wsid, 0);
+			E_wsref(current_subr.id, VARMEM_WS, 0);
             E_nl();
 
             RegCacheLeavesWsRef(REG_X, sym.subr, VARMEM_WS, 0);
@@ -248,9 +248,9 @@
     end sub;
 
     sub E_memop(sym: [Symbol], off: Size) is
-        off := off + sym.off;
-        if (sym.subr == current_subr) and (off < 252) then
-            E_u8(off as uint8);
+        var o := off + sym.off;
+        if (sym.subr == current_subr) and (sym.wsid == VARMEM_WS) and (o < 252) then
+            E_u8(o as uint8);
             E(",x");
         else
             E_symref(sym, off);
@@ -380,7 +380,7 @@
     sub E_callhelper(name: string) is
         var helper := GetHelper(name);
         R_flushall();
-        E_insn("jsr");
+        E_insn("bsr");
         E_b8(COO_ESCAPE_SUBREF);
         E_b16(helper.id);
         E_nl();
@@ -600,7 +600,7 @@ gen ENDSUB()
 %{
 	sub Call(addr: [MidcodeSubref]) is
         R_flushall();
-		E_insn("jsr");
+		E_insn("bsr");
 		E_subref(addr.subr);
 		E_nl();
 	end sub;
@@ -652,7 +652,7 @@ gen i4  := POPARG4();
 
 gen RETURN()
 {
-	E_insn("jmp");
+	E_insn("bra");
 	E_labelref(current_subr.arch.end_label);
 	E_nl();
 }
@@ -977,6 +977,39 @@ gen b := RSHIFTS1(b, a) { E_callhelper("_asr1"); }
 gen a|b := EOR1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "eora", "eorb"); }
 gen a|b := OR1 ($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "oraa", "orab"); }
 gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "anda", "andb"); }
+
+%{
+    sub is_inc_or_dec(value: Arith): (result: uint8) is
+        result := 0;
+        if (value == 1) or (value == -1) then
+            result := 1;
+        end if;
+    end sub;
+%}
+
+gen STORE1(
+        ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+        ADDRESS():a2) uses a cost 100
+{
+    var op: Operand;
+    op.mem.sym := &$a1.sym;
+    op.mem.off := $a1.off;
+    if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
+            and ($a1.off == $a2.off) then
+        if $c.value < 0 then
+            E_insn("dec");
+        else
+            E_insn("inc");
+        end if;
+        E_op(REG_MEM, &op, 0, 0);
+        E_nl();
+    else
+        E_ldop_c(REG_A, REG_MEM, &op, 0, 0);
+        R_flush(REG_A);
+        E_insn_simple("inca");
+        E_stop_c(REG_A, REG_MEM, &op, 0, 0);
+    end if;
+}
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
