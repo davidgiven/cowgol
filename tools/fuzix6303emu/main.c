@@ -15,6 +15,12 @@
 struct m6800 cpu;
 static uint8_t ram[65536];
 
+struct breakpoint
+{
+	uint16_t address;
+	bool enabled;
+};
+
 struct watchpoint
 {
 	uint16_t address;
@@ -22,10 +28,10 @@ struct watchpoint
 	bool enabled;
 };
 
-static uint16_t breakpoints[16];
+static struct breakpoint breakpoints[16];
 static struct watchpoint watchpoints[16];
 static bool tracing = false;
-static bool singlestepping = true;
+static bool singlestepping = false;
 
 uint8_t m6800_read(struct m6800 *cpu, uint16_t addr)
 {
@@ -123,9 +129,11 @@ static void cmd_break(void)
 		uint16_t breakpc = strtoul(w1, NULL, 16);
 		for (int i=0; i<sizeof(breakpoints)/sizeof(*breakpoints); i++)
 		{
-			if (breakpoints[i] == 0xffff)
+			struct breakpoint* b = &breakpoints[i];
+			if (!b->enabled)
 			{
-				breakpoints[i] = breakpc;
+				b->address = breakpc;
+				b->enabled = true;
 				return;
 			}
 		}
@@ -135,8 +143,9 @@ static void cmd_break(void)
 	{
 		for (int i=0; i<sizeof(breakpoints)/sizeof(*breakpoints); i++)
 		{
-			if (breakpoints[i] != 0xffff)
-				printf("%04x\n", breakpoints[i]);
+			struct breakpoint* b = &breakpoints[i];
+			if (b->enabled)
+				printf("%04x\n", b->address);
 		}
 	}
 }
@@ -179,9 +188,10 @@ static void cmd_delete_breakpoint(void)
 		uint16_t breakpc = strtoul(w1, NULL, 16);
 		for (int i=0; i<sizeof(breakpoints)/sizeof(*breakpoints); i++)
 		{
-			if (breakpoints[i] == breakpc)
+			struct breakpoint* b = &breakpoints[i];
+			if (b->enabled && (b->address == breakpc))
 			{
-				breakpoints[i] = 0xffff;
+				b->enabled = false;
 				return;
 			}
 		}
@@ -195,7 +205,7 @@ static void cmd_delete_watchpoint(void)
 	if (w1)
 	{
 		uint16_t address = strtoul(w1, NULL, 16);
-		for (int i=0; i<sizeof(breakpoints)/sizeof(*breakpoints); i++)
+		for (int i=0; i<sizeof(watchpoints)/sizeof(*watchpoints); i++)
 		{
 			struct watchpoint* w = &watchpoints[i];
 			if (w->enabled && (w->address == address))
@@ -362,7 +372,7 @@ uint8_t readbfp(FILE* fp, uint16_t addr)
 	return fgetc(fp);
 }
 
-uint8_t readwfp(FILE* fp, uint16_t addr)
+uint16_t readwfp(FILE* fp, uint16_t addr)
 {
 	fseek(fp, addr, SEEK_SET);
 	uint8_t hi = fgetc(fp);
@@ -443,8 +453,11 @@ end_of_opts:
 		if (!singlestepping)
 		{
 			for (int i=0; i<sizeof(breakpoints)/sizeof(*breakpoints); i++)
-				if (cpu.p == breakpoints[i])
+			{
+				struct breakpoint* b = &breakpoints[i];
+				if (cpu.pc == b->address)
 					singlestepping = true;
+			}
 		}
 		for (int i=0; i<sizeof(watchpoints)/sizeof(*watchpoints); i++)
 		{

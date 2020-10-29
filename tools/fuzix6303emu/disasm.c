@@ -218,7 +218,7 @@ static const struct op opcodes[256] =
 	{ "subb", imm }, /* c0 */
 	{ "cmpb", imm },
 	{ "sbcb", imm },
-	{ "subd", imm16 },
+	{ "addd", imm16 },
 	{ "andb", imm },
 	{ "bitb", imm },
 	{ "ldab", imm },
@@ -234,7 +234,7 @@ static const struct op opcodes[256] =
 	{ "subb", dir }, /* d0 */
 	{ "cmpb", dir },
 	{ "sbcb", dir },
-	{ "subd", dir },
+	{ "addd", dir },
 	{ "andb", dir },
 	{ "bitb", dir },
 	{ "ldab", dir },
@@ -250,7 +250,7 @@ static const struct op opcodes[256] =
 	{ "subb", ind }, /* e0 */
 	{ "cmpb", ind },
 	{ "sbcb", ind },
-	{ "subd", ind },
+	{ "addd", ind },
 	{ "andb", ind },
 	{ "bitb", ind },
 	{ "ldab", ind },
@@ -266,7 +266,7 @@ static const struct op opcodes[256] =
 	{ "subb", ext }, /* f0 */
 	{ "cmpb", ext },
 	{ "sbcb", ext },
-	{ "subd", ext },
+	{ "addd", ext },
 	{ "andb", ext },
 	{ "bitb", ext },
 	{ "ldab", ext },
@@ -288,26 +288,35 @@ static int inh(uint16_t pc, const uint8_t* ram, char* buffer)
 
 static int imm(uint16_t pc, const uint8_t* ram, char* buffer)
 {
+	sprintf(buffer, "#%02x", *ram);
 	return 1;
 }
 
 static int imm16(uint16_t pc, const uint8_t* ram, char* buffer)
 {
+	uint16_t w = *ram++ << 8;
+	w |= *ram;
+	sprintf(buffer, "#%04x", w);
 	return 2;
 }
 
 static int dir(uint16_t pc, const uint8_t* ram, char* buffer)
 {
+	sprintf(buffer, "%02x", *ram);
 	return 1;
 }
 
 static int ind(uint16_t pc, const uint8_t* ram, char* buffer)
 {
+	sprintf(buffer, "%02x, x", *ram);
 	return 1;
 }
 
 static int ext(uint16_t pc, const uint8_t* ram, char* buffer)
 {
+	uint16_t w = *ram++ << 8;
+	w |= *ram;
+	sprintf(buffer, "%04x", w);
 	return 2;
 }
 
