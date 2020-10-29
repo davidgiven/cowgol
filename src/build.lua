@@ -187,7 +187,7 @@ end
 
 function fuzix6303test(e)
 	e.ins = concat { e.ins, "bin/fuzix6303emu" }
-	return simpletest("bin/fuzix6303emu", e)
+	return simpletest("bin/fuzix6303emu -f", e)
 end
 
 function cowgol(e)
