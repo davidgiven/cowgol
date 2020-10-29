@@ -388,6 +388,7 @@
         
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
+        R_flush(dest);
 		if (src == REG_A) and (dest == REG_B) then
 			E_insn_simple("tab");
 		elseif (src == REG_B) and (dest == REG_A) then
@@ -490,6 +491,9 @@ gen STARTSUB()
 	while count != 0 loop
 		count := count - 1;
 		var param := GetInputParameter(current_subr, count);
+        var op: Operand;
+        op.mem.sym := param as [Symbol];
+        op.mem.off := 0;
 
 		case param.width is
 			when 1:
@@ -497,32 +501,23 @@ gen STARTSUB()
 					pop_return_address();
 					E_pop(REG_A);
 				end if;
-				E_insn("staa");
-				E_symref(param as [Symbol], 0);
-				E_nl();
+                E_stop(REG_A, REG_MEM, &op, 0, 0);
 
 			when 2:
 				if count != lastparam then
 					pop_return_address();
-					E_pop(REG_X);
+					E_pop(REG_D);
 				end if;
-				E_insn("stx");
-				E_symref(param as [Symbol], 0);
-				E_nl();
+                E_stop(REG_D, REG_MEM, &op, 0, 0);
 
 			when 4:
 				pop_return_address();
-				E_pop(REG_X);
 
-				E_insn("stx");
-				E_symref(param as [Symbol], 0);
-				E_nl();
+				E_pop(REG_D);
+                E_stop(REG_D, REG_MEM, &op, 0, 16);
 
-				E_pop(REG_X);
-
-				E_insn("stx");
-				E_symref(param as [Symbol], 2);
-				E_nl();
+				E_pop(REG_D);
+                E_stop(REG_D, REG_MEM, &op, 2, 0);
 		end case;
 	end loop;
 
@@ -739,17 +734,25 @@ gen a|b|d|x := CONSTANT():c
 		return;
 	end if;
 
-	if ($$ & (REG_A|REG_B)) != 0 then
-		E_acc("clra", "clrb", $$);
-        E_nl();
-	elseif $$ == REG_D then
-		E_insn_simple("clra");
-		E_insn_simple("clrb");
-	else
+    sub load16() is
 		E_ld($$);
 		E_const();
 		E_u16($c.value as uint16);
 		E_nl();
+    end sub;
+
+    if $c.value == 0 then
+        if ($$ & (REG_A|REG_B)) != 0 then
+            E_acc("clra", "clrb", $$);
+            E_nl();
+        elseif $$ == REG_D then
+            E_insn_simple("clra");
+            E_insn_simple("clrb");
+        else
+            load16();
+        end if;
+    else
+        load16();
 	end if;
 
 	RegCacheLeavesConstant($$, $c.value as uint16);
@@ -1161,6 +1164,16 @@ gen i4 := RSHIFTS4(i4, b) { E_callhelper("_asr4"); }
 gen d := CAST12(b, sext==0)
 {
     E_insn_simple("clra");
+}
+
+gen d := CAST12(b, sext==1)
+{
+    E_insn_simple("clra");
+    E_insn_simple("tstb");
+    var label := AllocPLabel();
+    E_jump("bpl", label);
+    E_insn_simple("coma");
+    E_label(label);
 }
 
 gen b := CAST21(d);
