@@ -164,10 +164,7 @@ sub Emit8(b: uint8) is
     [currentProgramCounter] := [currentProgramCounter] + 1;
 end sub;
 
-sub Emit16(w: uint16) is
-    Emit8(w as uint8);
-    Emit8((w>>8) as uint8);
-end sub;
+@decl sub Emit16(word: uint16);
 
 sub FindSymbol(name: string): (psymbol: [[Symbol]]) is
     var p := name;

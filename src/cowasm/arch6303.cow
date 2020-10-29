@@ -1,12 +1,17 @@
 include "cowasm.coh";
 
-const AM_IMM := 0;
-const AM_DIR := 1;
-const AM_IND := 2;
-const AM_EXT := 3;
+const AM_IMM := 0x00;
+const AM_DIR := 0x10;
+const AM_IND := 0x20;
+const AM_EXT := 0x30;
 
 var addressingMode: uint8;
 var extensionWord: uint16;
+
+@impl sub Emit16 is
+    Emit8((word>>8) as uint8);
+    Emit8(word as uint8);
+end sub;
 
 sub ReadOperand(): (token: Token) is
     token := ReadToken();
@@ -59,7 +64,7 @@ sub EmitInstruction(base: uint8) is
     case addressingMode is
         when AM_IMM:
             var b := base & 0x0f;
-            if (b == 3) or (b == 12) or (b == 15) then
+            if (b == 3) or (b == 12) or (b == 14) then
                 Emit16(extensionWord);
             else
                 Emit8(extensionWord as uint8);
@@ -89,7 +94,7 @@ sub OpBrCb implements SymbolCallback is
     if pass == 1 then
         [currentProgramCounter] := [currentProgramCounter] + 5;
     else
-        var delta := ([currentProgramCounter] + 2) - tokenNumber;
+        var delta := (tokenNumber - [currentProgramCounter] - 2) as int16;
         if (delta >= -0x80) and (delta <= 0x7f) then
             Emit8(currentInsn.value as uint8);
             Emit8(delta as uint8);
@@ -282,8 +287,8 @@ end sub;
         { "STAB",  0xc7, Op123Cb,       &s },
         { "JSR",   0x8d, Op123Cb,       &s },
         { "STD",   0xcd, Op123Cb,       &s },
-        { "STS",   0x8e, Op123Cb,       &s },
-        { "STX",   0xce, Op123Cb,       &s },
+        { "STS",   0x8f, Op123Cb,       &s },
+        { "STX",   0xcf, Op123Cb,       &s },
 
         # Operations taking IMM, DIR, IND or EXT addressing modes.
 
@@ -294,13 +299,13 @@ end sub;
         { "SBCA",  0x82, Op0123Cb,      &s },
         { "SBCB",  0xc2, Op0123Cb,      &s },
         { "SUBD",  0x83, Op0123Cb,      &s },
-        { "ADDD",  0x83, Op0123Cb,      &s },
+        { "ADDD",  0xc3, Op0123Cb,      &s },
         { "ANDA",  0x84, Op0123Cb,      &s },
         { "ANDB",  0xc4, Op0123Cb,      &s },
-        { "BITA",  0x86, Op0123Cb,      &s },
-        { "BITB",  0xc6, Op0123Cb,      &s },
-        { "LDAA",  0x87, Op0123Cb,      &s },
-        { "LDAB",  0xc7, Op0123Cb,      &s },
+        { "BITA",  0x85, Op0123Cb,      &s },
+        { "BITB",  0xc5, Op0123Cb,      &s },
+        { "LDAA",  0x86, Op0123Cb,      &s },
+        { "LDAB",  0xc6, Op0123Cb,      &s },
         { "EORA",  0x88, Op0123Cb,      &s },
         { "EORB",  0xc8, Op0123Cb,      &s },
         { "ADCA",  0x89, Op0123Cb,      &s },
@@ -309,8 +314,8 @@ end sub;
         { "ORAB",  0xca, Op0123Cb,      &s },
         { "ADDA",  0x8b, Op0123Cb,      &s },
         { "ADDB",  0xcb, Op0123Cb,      &s },
-        { "CPX",   0x8d, Op0123Cb,      &s },
-        { "LDD",   0xcd, Op0123Cb,      &s },
+        { "CPX",   0x8c, Op0123Cb,      &s },
+        { "LDD",   0xcc, Op0123Cb,      &s },
         { "LDS",   0x8e, Op0123Cb,      &s },
         { "LDX",   0xce, Op0123Cb,      &s },
 	};

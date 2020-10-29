@@ -11,6 +11,11 @@ const AM__RELATIVE  := 0o200;
 var addressingMode: uint8;
 var extensionWord: uint16;
 
+@impl sub Emit16 is
+    Emit8(word as uint8);
+    Emit8((word>>8) as uint8);
+end sub;
+
 sub ReadOperand(): (token: Token) is
     var deferred: uint8 := 0;
     token := ReadToken();
