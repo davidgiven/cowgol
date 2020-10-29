@@ -480,10 +480,13 @@ gen STARTSUB()
 	var count := current_subr.num_input_parameters;
 	var lastparam := count - 1;
 	var popped: uint8 := 0;
+    var retaddr: Operand;
 
 	sub pop_return_address() is
 		if popped == 0 then
+            PushVStack(&retaddr, 2);
 			E_pop(REG_D);
+            E_stop_c(REG_D, REG_VS2, &retaddr, 0, 0);
 			popped := 1;
 		end if;
 	end sub;
@@ -501,14 +504,14 @@ gen STARTSUB()
 					pop_return_address();
 					E_pop(REG_A);
 				end if;
-                E_stop(REG_A, REG_MEM, &op, 0, 0);
+                E_stop_c(REG_A, REG_MEM, &op, 0, 0);
 
 			when 2:
 				if count != lastparam then
 					pop_return_address();
 					E_pop(REG_D);
 				end if;
-                E_stop(REG_D, REG_MEM, &op, 0, 0);
+                E_stop_c(REG_D, REG_MEM, &op, 0, 0);
 
 			when 4:
 				pop_return_address();
@@ -522,7 +525,8 @@ gen STARTSUB()
 	end loop;
 
 	if popped != 0 then
-		E_push(REG_D);
+        E_ldop_c(REG_X, REG_VS2, &retaddr, 0, 0);
+		E_push(REG_X);
 	end if;
 }
 
@@ -533,58 +537,64 @@ gen ENDSUB()
 	var count: uint8 := 0;
 	var params := current_subr.num_output_parameters;
 	var pushed: uint8 := 0;
+    var retaddr: Operand;
 
 	sub push_return_address() is
 		if pushed == 0 then
+            PushVStack(&retaddr, 2);
 			E_pop(REG_D);
+            E_stop_c(REG_D, REG_VS2, &retaddr, 0, 0);
 			pushed := 1;
 		end if;
 	end sub;
 
+    sub maybe_push_return_address() is
+        if count != (params-1) then
+            push_return_address();
+        end if;
+    end sub;
+
 	while count != params loop
 		var param := GetOutputParameter(current_subr, count);
+        var op: Operand;
+        op.mem.sym := param as [Symbol];
+        op.mem.off := 0;
 
 		case param.width is
 			when 1:
-				E_insn("ldaa");
-				E_symref(param as [Symbol], 0);
-				E_nl();
+                maybe_push_return_address();
+                E_ldop_c(REG_A, REG_MEM, &op, 0, 0);
 
 				if count != (params-1) then
-					push_return_address();
 					E_push(REG_A);
 				end if;
 
 			when 2:
-				E_insn("ldx");
-				E_symref(param as [Symbol], 0);
-				E_nl();
+                maybe_push_return_address();
+                E_ldop_c(REG_D, REG_MEM, &op, 0, 0);
 
 				if count != (params-1) then
-					push_return_address();
-					E_push(REG_X);
+					E_push(REG_D);
 				end if;
 
 			when 4:
 				push_return_address();
-				E_insn("ldx");
-				E_symref(param as [Symbol], 2);
-				E_nl();
-				E_push(REG_X);
+                E_ldop_c(REG_D, REG_MEM, &op, 2, 0);
+				E_push(REG_D);
 
-				E_insn("ldx");
-				E_symref(param as [Symbol], 0);
-				E_nl();
-				E_push(REG_X);
+                E_ldop_c(REG_D, REG_MEM, &op, 0, 16);
+				E_push(REG_D);
 		end case;
 
 		count := count + 1;
 	end loop;
 
 	if pushed != 0 then
-		E_push(REG_D);
+        E_ldop_c(REG_X, REG_VS2, &retaddr, 0, 0);
+        E_insn_simple("jmp ,x");
+    else
+        E_insn_simple("rts");
 	end if;
-	E_insn_simple("rts");
 
     EmitterCloseStream();
 
@@ -990,29 +1000,30 @@ gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "and
     end sub;
 %}
 
-gen STORE1(
-        ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
-        ADDRESS():a2) uses a cost 100
-{
-    var op: Operand;
-    op.mem.sym := &$a1.sym;
-    op.mem.off := $a1.off;
-    if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
-            and ($a1.off == $a2.off) then
-        if $c.value < 0 then
-            E_insn("dec");
-        else
-            E_insn("inc");
-        end if;
-        E_op(REG_MEM, &op, 0, 0);
-        E_nl();
-    else
-        E_ldop_c(REG_A, REG_MEM, &op, 0, 0);
-        R_flush(REG_A);
-        E_insn_simple("inca");
-        E_stop_c(REG_A, REG_MEM, &op, 0, 0);
-    end if;
-}
+// This rule doesn't work, so disable it for now.
+//gen STORE1(
+//        ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+//        ADDRESS():a2) uses a cost 100
+//{
+//    var op: Operand;
+//    op.mem.sym := &$a1.sym;
+//    op.mem.off := $a1.off;
+//    if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
+//            and ($a1.off == $a2.off) then
+//        if $c.value < 0 then
+//            E_insn("dec");
+//        else
+//            E_insn("inc");
+//        end if;
+//        E_op(REG_MEM, &op, 0, 0);
+//        E_nl();
+//    else
+//        E_ldop_c(REG_A, REG_MEM, &op, 0, 0);
+//        R_flush(REG_A);
+//        E_insn_simple("inca");
+//        E_stop_c(REG_A, REG_MEM, &op, 0, 0);
+//    end if;
+//}
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
