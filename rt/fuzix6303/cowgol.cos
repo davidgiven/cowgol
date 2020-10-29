@@ -36,12 +36,12 @@
 	std `$_return.1.0
 
 	ldd 2, x
-	psha
 	pshb
+	psha
 
 	ldd 0, x
-	psha
 	pshb
+	psha
 
 	ldx `$_return.1.0
 	jmp ,x
