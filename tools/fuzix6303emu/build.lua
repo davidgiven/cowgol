@@ -6,7 +6,8 @@ cprogram {
 		"third_party/rc2014emu/6800.c",
 		"third_party/rc2014emu/6800.h",
 	},
-	outs = { "bin/fuzix6303emu" }
+	outs = { "bin/fuzix6303emu" },
+	ldflags = "-lreadline",
 }
 
 
