@@ -73,38 +73,38 @@
 	jmp ,x
 	
 &X _lsl1
-; Shifts b left by a bits, putting the result in d.
+; Shifts b left by a bits, putting the result in b.
 ``:
 	inca
 	bra ``_entry
 ``_loop:
 	aslb
 ``_entry:
-	decb
+	deca
 	bne ``_loop
 	rts
 	
 &X _lsr1
-; Logical shifts b right by a bits, putting the result in d.
+; Logical shifts b right by a bits, putting the result in b.
 ``:
 	inca
 	bra ``_entry
 ``_loop:
 	lsrb
 ``_entry:
-	decb
+	deca
 	bne ``_loop
 	rts
 	
 &X _asr1
-; Arithmetic shifts b right by a bits, putting the result in d.
+; Arithmetic shifts b right by a bits, putting the result in b.
 ``:
 	inca
 	bra ``_entry
 ``_loop:
 	asrb
 ``_entry:
-	decb
+	deca
 	bne ``_loop
 	rts
 	
