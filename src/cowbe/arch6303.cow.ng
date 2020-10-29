@@ -966,7 +966,7 @@ gen a|b := NOT1($$)
     E_nl();
 }
 
-gen a := MUL1(a, b)
+gen b := MUL1(a, b)
 {
 	R_flush(REG_A|REG_B);
 	E_insn_simple("mul");
