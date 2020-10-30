@@ -290,6 +290,26 @@
 		end case;
 	end sub;
 
+    sub E_insnop(insn: string, destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        PrepareWorkspacePointer(srcreg, operand);
+        R_flush(destreg);
+        E_insn(insn);
+        E_op(srcreg, operand, byte, shift);
+        E_nl();
+    end sub;
+
+    sub E_accop(insna: string, insnb: string, destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        PrepareWorkspacePointer(srcreg, operand);
+        R_flush(destreg);
+        if destreg == REG_A then
+            E_insn(insna);
+        else
+            E_insn(insnb);
+        end if;
+        E_op(srcreg, operand, byte, shift);
+        E_nl();
+    end sub;
+
     sub E_ldop(destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
         PrepareWorkspacePointer(srcreg, operand);
         R_flush(destreg);
@@ -922,11 +942,7 @@ gen i4 := LOAD4(x) uses d
 gen a|b := ADD1($$:lhs, op|vs1:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
-
-	R_flush($$);
-	E_add($$);
-	E_op($rhs, &$@rhs.operand, 0, 0);
-	E_nl();
+	E_accop("adda", "addb", $lhs, $rhs, &$@rhs.operand, 0, 0);
 }
 
 gen a|b := ADD1($$:lhs, CONSTANT(value == 1))
@@ -946,11 +962,7 @@ gen a|b := ADD1($$:lhs, CONSTANT(value == -1))
 gen a|b := SUB1($$:lhs, op|vs1:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
-
-	R_flush($$);
-	E_sub($$);
-	E_op($rhs, &$@rhs.operand, 0, 0);
-	E_nl();
+	E_accop("suba", "subb", $lhs, $rhs, &$@rhs.operand, 0, 0);
 }
 
 gen a|b := NEG1($$)
@@ -985,11 +997,7 @@ gen b := RSHIFTS1(b, a) { E_callhelper("_asr1"); }
 %{
     sub Alu1(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
         RetractVStack(rhs, rhsop);
-
-        R_flush(lhs);
-        E_acc(insna, insnb, lhs);
-        E_op(rhs, rhsop, 0, 0);
-        E_nl();
+        E_accop(insna, insnb, lhs, rhs, rhsop, 0, 0);
     end sub;
 %}
 
@@ -1036,23 +1044,13 @@ gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "and
 gen d := ADD2($$:lhs, op|vs2:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
-
-	R_flush($$);
-    PrepareWorkspacePointer($rhs, &$@rhs.operand);
-	E_insn("addd");
-	E_op($rhs, &$@rhs.operand, 0, 0);
-	E_nl();
+    E_insnop("addd", $lhs, $rhs, &$@rhs.operand, 0, 0);
 }
 
 gen d := SUB2($$:lhs, op|vs2:rhs) uses x
 {
     RetractVStack($rhs, &$@rhs.operand);
-
-	R_flush($$);
-    PrepareWorkspacePointer($rhs, &$@rhs.operand);
-	E_insn("subd");
-	E_op($rhs, &$@rhs.operand, 0, 0);
-	E_nl();
+    E_insnop("subd", $lhs, $rhs, &$@rhs.operand, 0, 0);
 }
 
 %{
@@ -1113,17 +1111,8 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
 %{
     sub Alu2(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
         RetractVStack(rhs, rhsop);
-
-        R_flush(lhs);
-        PrepareWorkspacePointer(rhs, rhsop);
-        E_insn(insnb);
-        E_op(rhs, rhsop, 1, 0);
-        E_nl();
-
-        PrepareWorkspacePointer(rhs, rhsop);
-        E_insn(insna);
-        E_op(rhs, rhsop, 0, 8);
-        E_nl();
+        E_insnop(insnb, REG_B, rhs, rhsop, 1, 0);
+        E_insnop(insna, REG_A, rhs, rhsop, 0, 8);
     end sub;
 %}
 
@@ -1140,12 +1129,8 @@ gen d := NEG2(op|vs2:rhs)
     var op: Operand;
     op.imm.value := 0;
     E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
-    R_flush(REG_D);
 
-    PrepareWorkspacePointer($rhs, &$@rhs.operand);
-    E_insn("subd");
-    E_op($rhs, &$@rhs.operand, 0, 0);
-    E_nl();
+    E_insnop("subd", REG_D, $rhs, &$@rhs.operand, 0, 0);
 }
 
 gen d := NOT2(d)
@@ -1238,11 +1223,7 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 %{
     sub Cmp1(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
         RetractVStack(rhs, rhsop);
-        PrepareWorkspacePointer(rhs, rhsop);
-
-        E_acc("cmpa", "cmpb", lhs);
-        E_op(rhs, rhsop, 0, 0);
-        E_nl();
+        E_accop("cmpa", "cmpb", lhs, rhs, rhsop, 0, 0);
     end sub;
 %}
 
@@ -1253,16 +1234,12 @@ gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_wit
 %{
     sub Cmp2(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
         RetractVStack(rhs, rhsop);
-        PrepareWorkspacePointer(rhs, rhsop);
-
-        if lhs == REG_D then
-            R_flush(lhs);
-            E_insn("subd");
-        else
-            E_insn("cpx");
+        var insn := "subd";
+        if lhs == REG_X then
+            insn := "cpx";
         end if;
-        E_op(rhs, rhsop, 0, 0);
-        E_nl();
+
+        E_insnop(insn, lhs, rhs, rhsop, 0, 0);
     end sub;
 %}
 
