@@ -974,10 +974,10 @@ gen b := MUL1(a, b)
 	E_insn_simple("mul");
 }
 
-gen b := DIVU1(a, b)    { E_callhelper("_divu1"); }
-gen b := REMU1(a, b)    { E_callhelper("_remu1"); }
-gen b := DIVS1(a, b)    { E_callhelper("_divs1"); }
-gen b := REMS1(a, b)    { E_callhelper("_rems1"); }
+gen b := DIVU1(a, b) uses x { E_callhelper("_divremu1"); }
+gen a := REMU1(a, b) uses x { E_callhelper("_divremu1"); }
+gen b := DIVS1(a, b) uses x { E_callhelper("_divrems1"); }
+gen a := REMS1(a, b) uses x { E_callhelper("_divrems1"); }
 
 gen b := LSHIFT1(b, a)  { E_callhelper("_lsl1"); }
 gen b := RSHIFTU1(b, a) { E_callhelper("_lsr1"); }
