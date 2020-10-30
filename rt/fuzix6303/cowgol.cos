@@ -169,24 +169,24 @@
 	stx `$_mathpad.1.4
 	std `$_mathpad.1.8
 
-	;ldab `$_mathpad.1.5 ; already present
-	ldaa `$_mathpad.1.9
+	ldaa `$_mathpad.1.5
+	;ldab `$_mathpad.1.9
 	mul
 	std `$_mathpad.1.0
 
 	ldab `$_mathpad.1.4
 	ldaa `$_mathpad.1.9
 	mul
-	tba
-	clra
+	tba						; multiply by 256
+	clrb
 	addd `$_mathpad.1.0
 	std `$_mathpad.1.0
 
 	ldab `$_mathpad.1.5
 	ldaa `$_mathpad.1.8
 	mul
-	tba
-	clra
+	tba						; multiply by 256
+	clrb
 	addd `$_mathpad.1.0
 	rts
 

@@ -83,6 +83,7 @@
 	end sub;
 
 	sub R_flushall() is
+        E("; flushall\n");
 		RegCacheFlush(ALL_REGS);
 	end sub;
 
@@ -1223,6 +1224,7 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 %{
     sub Cmp1(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
         RetractVStack(rhs, rhsop);
+        PrepareWorkspacePointer(rhs, rhsop);
 
         E_acc("cmpa", "cmpb", lhs);
         E_op(rhs, rhsop, 0, 0);
@@ -1237,6 +1239,7 @@ gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_wit
 %{
     sub Cmp2(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
         RetractVStack(rhs, rhsop);
+        PrepareWorkspacePointer(rhs, rhsop);
 
         if lhs == REG_D then
             E_insn("subd");
