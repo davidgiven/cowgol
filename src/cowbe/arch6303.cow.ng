@@ -83,7 +83,6 @@
 	end sub;
 
 	sub R_flushall() is
-        E("; flushall\n");
 		RegCacheFlush(ALL_REGS);
 	end sub;
 
@@ -1039,6 +1038,7 @@ gen d := ADD2($$:lhs, op|vs2:rhs) uses x
     RetractVStack($rhs, &$@rhs.operand);
 
 	R_flush($$);
+    PrepareWorkspacePointer($rhs, &$@rhs.operand);
 	E_insn("addd");
 	E_op($rhs, &$@rhs.operand, 0, 0);
 	E_nl();
@@ -1049,6 +1049,7 @@ gen d := SUB2($$:lhs, op|vs2:rhs) uses x
     RetractVStack($rhs, &$@rhs.operand);
 
 	R_flush($$);
+    PrepareWorkspacePointer($rhs, &$@rhs.operand);
 	E_insn("subd");
 	E_op($rhs, &$@rhs.operand, 0, 0);
 	E_nl();
@@ -1114,10 +1115,12 @@ gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
         RetractVStack(rhs, rhsop);
 
         R_flush(lhs);
+        PrepareWorkspacePointer(rhs, rhsop);
         E_insn(insnb);
         E_op(rhs, rhsop, 1, 0);
         E_nl();
 
+        PrepareWorkspacePointer(rhs, rhsop);
         E_insn(insna);
         E_op(rhs, rhsop, 0, 8);
         E_nl();
@@ -1132,11 +1135,14 @@ gen d := MUL2(d, x)          { E_callhelper("_mul2"); }
 
 gen d := NEG2(op|vs2:rhs)
 {
+    RetractVStack($rhs, &$@rhs.operand);
+
     var op: Operand;
     op.imm.value := 0;
     E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
     R_flush(REG_D);
 
+    PrepareWorkspacePointer($rhs, &$@rhs.operand);
     E_insn("subd");
     E_op($rhs, &$@rhs.operand, 0, 0);
     E_nl();
@@ -1250,6 +1256,7 @@ gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_wit
         PrepareWorkspacePointer(rhs, rhsop);
 
         if lhs == REG_D then
+            R_flush(lhs);
             E_insn("subd");
         else
             E_insn("cpx");
