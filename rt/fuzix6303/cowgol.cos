@@ -59,6 +59,23 @@
 
 	jmp ,x
 	
+&X _casts14
+; Signed cast of b to i4.
+``:
+	pulx
+
+	clra
+	tstb
+	bpl ``_skip
+	coma
+``_skip:
+	pshb
+	psha
+	psha
+	psha
+
+	jmp ,x
+
 &X _castu24
 ; Unsigned cast of d to i4.
 ``:
@@ -72,6 +89,23 @@
 
 	jmp ,x
 	
+&X _casts24
+; Signed cast of d to i4.
+``:
+	pulx
+
+	pshb
+	psha
+	clrb
+	tsta
+	bpl ``_skip
+	comb
+``_skip:
+	pshb
+	pshb
+
+	jmp ,x
+
 &X _lsl1
 ; Shifts b left by a bits, putting the result in b.
 ``:

@@ -974,6 +974,11 @@ gen b := MUL1(a, b)
 	E_insn_simple("mul");
 }
 
+gen b := DIVU1(a, b)    { E_callhelper("_divu1"); }
+gen b := REMU1(a, b)    { E_callhelper("_remu1"); }
+gen b := DIVS1(a, b)    { E_callhelper("_divs1"); }
+gen b := REMS1(a, b)    { E_callhelper("_rems1"); }
+
 gen b := LSHIFT1(b, a)  { E_callhelper("_lsl1"); }
 gen b := RSHIFTU1(b, a) { E_callhelper("_lsr1"); }
 gen b := RSHIFTS1(b, a) { E_callhelper("_asr1"); }
@@ -1179,7 +1184,7 @@ gen d := CAST12(b, sext==0)
     E_insn_simple("clra");
 }
 
-gen d := CAST12(b, sext==1)
+gen d := CAST12(b, sext!=0)
 {
     E_insn_simple("clra");
     E_insn_simple("tstb");
@@ -1192,7 +1197,9 @@ gen d := CAST12(b, sext==1)
 gen b := CAST21(d);
 
 gen i4 := CAST14(b, sext==0) { E_callhelper("_castu14"); }
+gen i4 := CAST14(b, sext!=0) { E_callhelper("_casts14"); }
 gen i4 := CAST24(d, sext==0) { E_callhelper("_castu24"); }
+gen i4 := CAST24(d, sext!=0) { E_callhelper("_casts24"); }
 
 gen b|a := CAST41(i4)
 {
