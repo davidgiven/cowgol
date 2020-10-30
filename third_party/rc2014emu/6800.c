@@ -2160,7 +2160,7 @@ static int m6800_execute_one(struct m6800 *cpu)
         m6800_maths8_noh(cpu, cpu->a, data8, cpu->a - data8);
         return clocks;
     case 0x82:	/* SBCA immed */
-        m6800_maths8_noh(cpu, cpu->a, data8, cpu->a - data8 - CARRY);
+        cpu->a = m6800_maths8_noh(cpu, cpu->a, data8, cpu->a - data8 - CARRY);
         return clocks;
     case 0x83:	/* SUBD immed16 */
         tmp16 = m6800_maths16_noh(cpu, REG_D, data16, REG_D - data16);
@@ -2243,7 +2243,7 @@ static int m6800_execute_one(struct m6800 *cpu)
         return clocks;
     case 0x92:	/* SBCA dir */
         tmp8 = m6800_do_read(cpu, data8);
-        m6800_maths8_noh(cpu, cpu->a, tmp8, cpu->a - tmp8 - CARRY);
+        cpu->a = m6800_maths8_noh(cpu, cpu->a, tmp8, cpu->a - tmp8 - CARRY);
         return clocks;
     case 0x93:	/* SUBD dir */
         tmp16 = m6800_do_read(cpu, data8) << 8;
@@ -2329,7 +2329,7 @@ static int m6800_execute_one(struct m6800 *cpu)
     case 0x18A2:
     case 0xA2:	/* SBCA indexed */
         tmp8 = m6800_do_read(cpu, data16);
-        m6800_maths8_noh(cpu, cpu->a, tmp8, cpu->a - tmp8 - CARRY);
+        cpu->a = m6800_maths8_noh(cpu, cpu->a, tmp8, cpu->a - tmp8 - CARRY);
         return clocks;
     case 0x18A3:
     case 0xA3:	/* SUBD indexed */
@@ -2426,7 +2426,7 @@ static int m6800_execute_one(struct m6800 *cpu)
         return clocks;
     case 0xB2:	/* SBCA extended */
         tmp8 = m6800_do_read(cpu, data16);
-        m6800_maths8_noh(cpu, cpu->a, tmp8, cpu->a - tmp8 - CARRY);
+        cpu->a = m6800_maths8_noh(cpu, cpu->a, tmp8, cpu->a - tmp8 - CARRY);
         return clocks;
     case 0xB3:	/* SUBD extended */
         tmp16 = m6800_do_read(cpu, data16) << 8;
@@ -2497,7 +2497,7 @@ static int m6800_execute_one(struct m6800 *cpu)
         m6800_do_write(cpu, data16 + 1, cpu->s);
         m6800_logic16(cpu, cpu->s);
         return clocks;
-    /* And then repeat for B instead of A and X instead of S, and ADD not
+    /* And then repeat for B instead of A and X instead of S, and ADDD not
        SUBD */
     case 0xC0:	/* SUBB immed */
         cpu->b = m6800_maths8_noh(cpu, cpu->b, data8, cpu->b - data8);
@@ -2506,7 +2506,7 @@ static int m6800_execute_one(struct m6800 *cpu)
         m6800_maths8_noh(cpu, cpu->b, data8, cpu->b - data8);
         return clocks;
     case 0xC2:	/* SBCB immed */
-        m6800_maths8_noh(cpu, cpu->b, data8, cpu->b - data8 - CARRY);
+        cpu->b = m6800_maths8_noh(cpu, cpu->b, data8, cpu->b - data8 - CARRY);
         return clocks;
     case 0xC3:	/* ADDD immed16 : weird case where the arg is 16bit */
         tmp16 = m6800_maths16_add(cpu, REG_D, data16, REG_D + data16);
@@ -2577,7 +2577,7 @@ static int m6800_execute_one(struct m6800 *cpu)
         return clocks;
     case 0xD2:	/* SBCB dir */
         tmp8 = m6800_do_read(cpu, data8);
-        m6800_maths8_noh(cpu, cpu->b, tmp8, cpu->b - tmp8 - CARRY);
+        cpu->b = m6800_maths8_noh(cpu, cpu->b, tmp8, cpu->b - tmp8 - CARRY);
         return clocks;
     case 0xD3:	/* ADDD dir */
         tmp16 = m6800_do_read(cpu, data8) << 8;
@@ -2660,12 +2660,12 @@ static int m6800_execute_one(struct m6800 *cpu)
     case 0x18E2:
     case 0xE2:	/* SBCB indexed */
         tmp8 = m6800_do_read(cpu, data16);
-        m6800_maths8_noh(cpu, cpu->b, tmp8, cpu->b - tmp8 - CARRY);
+        cpu->b = m6800_maths8_noh(cpu, cpu->b, tmp8, cpu->b - tmp8 - CARRY);
         return clocks;
-    case 0xE3:	/* SUBD indexed */
+    case 0xE3:	/* ADDD indexed */
         tmp16 = m6800_do_read(cpu, data16) << 8;
         tmp16 |= m6800_do_read(cpu, data16 + 1);
-        tmp16 = m6800_maths16_noh(cpu, REG_D, tmp16, REG_D + tmp16);
+        tmp16 = m6800_maths16_add(cpu, REG_D, tmp16, REG_D + tmp16);
         cpu->a = tmp16 >> 8;
         cpu->b = tmp16;
         return clocks;
@@ -2758,12 +2758,12 @@ static int m6800_execute_one(struct m6800 *cpu)
         return clocks;
     case 0xF2:	/* SBCB extended */
         tmp8 = m6800_do_read(cpu, data16);
-        m6800_maths8_noh(cpu, cpu->b, tmp8, cpu->b - tmp8 - CARRY);
+        cpu->b = m6800_maths8_noh(cpu, cpu->b, tmp8, cpu->b - tmp8 - CARRY);
         return clocks;
-    case 0xF3:	/* SUBD extended */
+    case 0xF3:	/* ADDD extended */
         tmp16 = m6800_do_read(cpu, data16) << 8;
         tmp16 |= m6800_do_read(cpu, data16 + 1);
-        tmp16 = m6800_maths16_noh(cpu, REG_D, tmp16, REG_D + tmp16);
+        tmp16 = m6800_maths16_add(cpu, REG_D, tmp16, REG_D + tmp16);
         cpu->a = tmp16 >> 8;
         cpu->b = tmp16;
         return clocks;

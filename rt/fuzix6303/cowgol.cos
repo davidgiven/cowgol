@@ -319,12 +319,12 @@
     std `$_return.1.0
 
     tsx
-    ldd 2, x
-    subd 6, x
+    ldd 6, x
+    subd 2, x
     std 6, x
-    ldd 0, x
-    sbcb 5, x
-    sbca 4, x
+    ldd 4, x
+    sbcb 1, x
+    sbca 0, x
     std 4, x
 
     pulx
@@ -340,9 +340,9 @@
     clra
     subd 4, x
     std 4, x
-    clrb
-    clra
-    subd 2, x
+    ldd #0              ; can't use clr as it resets carry
+    sbcb 3, x
+    sbca 2, x
     std 2, x
     rts
     
