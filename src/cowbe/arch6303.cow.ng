@@ -362,6 +362,7 @@
                 E_insn_simple("pula");
                 E_insn_simple("pulb");
 		end case;
+        R_flush(reg);
 	end sub;
 
 	sub E_push(reg: RegId) is
@@ -786,7 +787,7 @@ gen i4 := CONSTANT():c
     E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
     E_push(REG_D);
 
-    op.imm.value := ($c.value >> 16) as uint16 as int32;
+    op.imm.value := ($c.value as uint32 >> 16) as uint16 as int32;
     E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
     E_push(REG_D);
 }
@@ -1268,7 +1269,7 @@ gen BLTS4(i4, i4) { E_callhelper("_cmplts4"); E_jumps_with_fallthrough("blt", "b
 
 gen STARTCASE1(b);
 gen STARTCASE2(x);
-gen STARTCASE4(i4) { E_pop(REG_X); E_pop(REG_D); }
+gen STARTCASE4(i4) { E_pop(REG_D); E_pop(REG_X); }
 
 gen WHENCASE1():c
 {
