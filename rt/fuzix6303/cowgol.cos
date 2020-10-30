@@ -205,6 +205,38 @@
     bne ``_1
     rts
 
+&X _divrems1
+&W _divrems1 1 4
+; Signed division of a/b, yielding the result in b and the remainder in a.
+``:
+    std `$_divrems1.1.0 ; save LHS and RHS
+    staa `$_divrems1.1.3 ; save sign of remainder
+    eorb `$_divrems1.1.0 ; discover sign of result
+    stab `$_divrems1.1.2 ; save for later
+
+    tsta                ; does the LHS need inverting?
+    bpl ``_lhs_positive
+    nega
+``_lhs_positive:
+
+    ldab `$_divrems1.1.1 ; does RHS need inverting?
+    bpl ``_rhs_positive
+    negb
+``_rhs_positive:
+
+    bsr `_divremu1      ; do the unsigned division
+
+    tst `$_divrems1.1.2 ; does the result need inverting?
+    bpl ``_result_positive
+    negb
+``_result_positive:
+
+    tst `$_divrems1.1.3 ; does the remainder need inverting?
+    bpl ``_remainder_positive
+    nega
+``_remainder_positive:
+    rts
+
 &X _mul2
 ; Multiplies d by x, putting the result in d.
 ; This is a long multiplication in base 256:

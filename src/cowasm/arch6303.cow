@@ -225,7 +225,7 @@ end sub;
         { "ROLA", 0x49,  OpSimpleCb,    &s },
         { "DECA", 0x4a,  OpSimpleCb,    &s },
         { "INCA", 0x4c,  OpSimpleCb,    &s },
-        { "TXTA", 0x4d,  OpSimpleCb,    &s },
+        { "TSTA", 0x4d,  OpSimpleCb,    &s },
         { "CLRA", 0x4f,  OpSimpleCb,    &s },
         { "NEGB", 0x50,  OpSimpleCb,    &s },
         { "COMB", 0x53,  OpSimpleCb,    &s },
@@ -236,7 +236,7 @@ end sub;
         { "ROLB", 0x59,  OpSimpleCb,    &s },
         { "DECB", 0x5a,  OpSimpleCb,    &s },
         { "INCB", 0x5c,  OpSimpleCb,    &s },
-        { "TXTB", 0x5d,  OpSimpleCb,    &s },
+        { "TSTB", 0x5d,  OpSimpleCb,    &s },
         { "CLRB", 0x5f,  OpSimpleCb,    &s },
 
         # Branch encodings.
@@ -277,7 +277,7 @@ end sub;
         { "ROL",   0x49, Op23Cb,        &s },
         { "DEC",   0x4a, Op23Cb,        &s },
         { "INC",   0x4c, Op23Cb,        &s },
-        { "TXT",   0x4d, Op23Cb,        &s },
+        { "TST",   0x4d, Op23Cb,        &s },
         { "JMP",   0x4e, Op23Cb,        &s },
         { "CLR",   0x4f, Op23Cb,        &s },
 
