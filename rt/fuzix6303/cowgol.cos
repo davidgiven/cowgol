@@ -605,10 +605,10 @@
 
 &X _mul4
 ; 32-bit multiply: (i4 i4 -- i4)
+&W _mul4 1 2
 ``:
-    pula
-    pulb
-    std `$_return.1.0
+    pulx
+    stx `$_mul4.1.0
 
     pulx
     stx `$_mathpad.1.0
@@ -623,44 +623,87 @@
     pulx
     stx `$_mathpad.1.10
 
-    clc
-    ldx #0x21               ; bit counter
+    ldx #32                 ; bit counter
 ``_loop:
-    ror `$_mathpad.1.4      ; shift right result and lhs
-    ror `$_mathpad.1.5
-    ror `$_mathpad.1.6
-    ror `$_mathpad.1.7
-    ror `$_mathpad.1.0
-    ror `$_mathpad.1.1
-    ror `$_mathpad.1.2
-    ror `$_mathpad.1.3
+    asl `$_mathpad.1.7      ; shift right result and temp
+    rol `$_mathpad.1.6
+    rol `$_mathpad.1.5
+    rol `$_mathpad.1.4
+    rol `$_mathpad.1.3
+    rol `$_mathpad.1.2
+    rol `$_mathpad.1.1
+    rol `$_mathpad.1.0
     bcc ``_noadd
 
-    ldd `$_mathpad.1.10     ; add rhs to low half of result
-    addd `$_mathpad.1.2
-    std `$_mathpad.1.2
+    ldd `$_mathpad.1.10     ; add rhs to result
+    addd `$_mathpad.1.6
+    std `$_mathpad.1.6
     ldd `$_mathpad.1.8
-    adcb `$_mathpad.1.1
-    adca `$_mathpad.1.0
+    adcb `$_mathpad.1.5
+    adca `$_mathpad.1.4
+    std `$_mathpad.1.4
+    ldd `$_mathpad.1.2
+    adcb #0
+    adca #0
+    std `$_mathpad.1.2
+    ldd `$_mathpad.1.0
+    adcb #0
+    adca #0
     std `$_mathpad.1.0
 ``_noadd:
-
     dex
     bne ``_loop
 
-    ldx `$_mathpad.1.2
+    ldx `$_mathpad.1.6
     pshx
-    ldx `$_mathpad.1.0
+    ldx `$_mathpad.1.4
     pshx
 
-    ldx `$_return.1.0
+    ldx `$_mul4.1.0
     jmp ,x
 
 &X _divremu4
-; 32-bit unsigned divide.
+; 32-bit unsigned divide of the contents of mathpad.
 ``:
-    ldd #0xffff
-    swi
+    ldx #32             ; loop count
+    clra                ; clear remainder
+    clrb
+    std `$_mathpad.1.4
+    std `$_mathpad.1.6
+``_loop:
+    asl `$_mathpad.1.3  ; left shift LHS
+    rol `$_mathpad.1.2
+    rol `$_mathpad.1.1
+    rol `$_mathpad.1.0
+    rol `$_mathpad.1.7  ; ...putting the top bit into the remainder
+    rol `$_mathpad.1.6
+    rol `$_mathpad.1.5
+    rol `$_mathpad.1.4
+    ldd `$_mathpad.1.0  ; compare MSW of LHS against RHS
+    subd `$_mathpad.1.8
+    bcc ``_add          ; definitely less
+    ldd `$_mathpad.1.2  ; and LSW
+    sbcb `$_mathpad.1.11
+    sbca `$_mathpad.1.10
+    bcs ``_noadd
+``_add:
+    ldd `$_mathpad.1.2  ; increase result
+    addd #1
+    std `$_mathpad.1.2
+    ldd `$_mathpad.1.0
+    adcb #0
+    adca #0
+    std `$_mathpad.1.0
+    ldd `$_mathpad.1.6  ; decrease remainder
+    subd `$_mathpad.1.10
+    std `$_mathpad.1.6
+    ldd `$_mathpad.1.4
+    sbcb `$_mathpad.1.9
+    sbca `$_mathpad.1.8
+    std `$_mathpad.1.4
+``_noadd:
+    dex
+    bne ``_loop
     rts
 
 &X _divrems4
@@ -673,12 +716,28 @@
 &X _remu4
 ; 32-bit unsigned remainder of mathpad LHS / xd, leaving the remainder in xd.
 ``:
+    pulx
+    stx `$_return.1.0
+
+    pulx
     stx `$_mathpad.1.8
-    std `$_mathpad.1.10
+    pulx
+    stx `$_mathpad.1.10
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
     bsr `_divremu4
-    ldx `$_mathpad.1.4
-    ldd `$_mathpad.1.6
-    rts
+
+    ldx `$_mathpad.1.2
+    pshx
+    ldx `$_mathpad.1.0
+    pshx
+
+    ldx `$_return.1.0
+    jmp ,x
 
 &X _divu4
 ; 32-bit unsigned divide of mathpad LHS / xd, leaving the remainder in xd.
