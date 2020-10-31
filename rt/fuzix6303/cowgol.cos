@@ -312,19 +312,59 @@
     xgdx
     rts
 
+&X _rems2
+&W _rems2 1 6
+; 16-bit signed divrem; d := d / x; on exit, d=remainder, x=result
+``:
+    std `$_rems2.1.0    ; save LHS
+    stx `$_rems2.1.2    ; save RHS
+    staa `$_rems2.1.4   ; save sign of remainder
+    eora `$_rems2.1.2   ; discover sign of result
+    staa `$_rems2.1.5   ; save for later
+
+    ldd `$_rems2.1.0    ; LHS -> d
+    bpl ``_lhs_positive ; does the LHS need inverting?
+    clra
+    clrb
+    subd `$_rems2.1.0
+``_lhs_positive:
+    xgdx                ; LHS -> x
+
+    ldd `$_rems2.1.2    ; RHS -> d
+    bpl ``_rhs_positive ; does RHS need inverting?
+    clra
+    clrb
+    subd `$_rems2.1.2
+``_rhs_positive:
+    xgdx                ; d=LHS, x=RHS
+
+    bsr `_remu2         ; do the unsigned division
+                        ; d=remainder, x=dividend
+
+    tst `$_rems2.1.4    ; does the remainder need inverting?
+    bpl ``_remainder_positive
+    subd #1             ; 16-bit negate
+    coma
+    comb
+``_remainder_positive:
+    xgdx                ; d=dividend, x=remainder
+
+    tst `$_rems2.1.5    ; does the dividend need inverting?
+    bpl ``_dividend_positive
+    subd #1
+    coma
+    comb
+``_dividend_positive:
+    xgdx                ; d=remainder, x=dividend
+    rts
+
 &X _divs2
 ; 16-bit signed divide; d := d / x
 ``:
-    ldd #0xffff
-    swi
+    bsr `_rems2
+    xgdx
     rts
 
-&X _rems2
-; 16-bit signed remainder; d := d % x
-``:
-    ldd #0xffff
-    swi
-    rts
 
 &X _add4
 ; 32-bit add; (i4 i4 -- i4)
