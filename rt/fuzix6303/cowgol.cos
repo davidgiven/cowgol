@@ -605,10 +605,13 @@
 
 &X _mul4
 ; 32-bit multiply: (i4 i4 -- i4)
-&W _mul4 1 2
+&W _mul4 1 3
 ``:
     pulx
     stx `$_mul4.1.0
+
+    ldaa #32                ; loop counter
+    staa `$_mul4.1.2
 
     pulx
     stx `$_mathpad.1.0
@@ -623,35 +626,35 @@
     pulx
     stx `$_mathpad.1.10
 
-    ldx #32                 ; bit counter
 ``_loop:
-    asl `$_mathpad.1.7      ; shift right result and temp
-    rol `$_mathpad.1.6
-    rol `$_mathpad.1.5
-    rol `$_mathpad.1.4
-    rol `$_mathpad.1.3
-    rol `$_mathpad.1.2
-    rol `$_mathpad.1.1
-    rol `$_mathpad.1.0
+    clc                     ; shift left result and temp
+    ldx #8
+``_1:
+    rol `$_mathpad.1.0-1, x
+    dex
+    bne ``_1
     bcc ``_noadd
 
-    ldd `$_mathpad.1.10     ; add rhs to result
-    addd `$_mathpad.1.6
-    std `$_mathpad.1.6
-    ldd `$_mathpad.1.8
-    adcb `$_mathpad.1.5
-    adca `$_mathpad.1.4
-    std `$_mathpad.1.4
-    ldd `$_mathpad.1.2
-    adcb #0
-    adca #0
-    std `$_mathpad.1.2
-    ldd `$_mathpad.1.0
-    adcb #0
-    adca #0
-    std `$_mathpad.1.0
-``_noadd:
+    ldx #4                  ; add rhs to result
+    clc
+``_3:
+    ldaa `$_mathpad.1.4-1, x
+    adca `$_mathpad.1.8-1, x
+    staa `$_mathpad.1.4-1, x
     dex
+    bne ``_3
+
+    ldx #4                  ; (propagate carry through upper four bytes of result)
+``_2:
+    ;bcc ``_noadd            ; no more carries to propagate
+    clra
+    adca `$_mathpad.1.0-1, x
+    staa `$_mathpad.1.0-1, x
+    adca #0
+    dex
+    bne ``_2
+``_noadd:
+    dec `$_mul4.1.2
     bne ``_loop
 
     ldx `$_mathpad.1.6
