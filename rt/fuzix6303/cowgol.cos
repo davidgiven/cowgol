@@ -646,11 +646,10 @@
 
     ldx #4                  ; (propagate carry through upper four bytes of result)
 ``_2:
-    ;bcc ``_noadd            ; no more carries to propagate
-    clra
+    bcc ``_noadd           ; no more carries to propagate
+    ldaa #0                 ; clr resets carry
     adca `$_mathpad.1.0-1, x
     staa `$_mathpad.1.0-1, x
-    adca #0
     dex
     bne ``_2
 ``_noadd:
