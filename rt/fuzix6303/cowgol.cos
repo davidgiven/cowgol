@@ -581,11 +581,11 @@
     std `$_return.1.0
 
     tsx
-    ldd 2, x                ; LHS
-    subd 6, x               ; RHS
+    ldd 4, x                ; LHS
+    subd 0, x               ; RHS
     bcs `_pop8andreturn
-    ldd 0, x
-    subd 4, x
+    ldd 6, x
+    subd 2, x
     bra `_pop8andreturn
 
 &X _cmplts4
@@ -596,11 +596,11 @@
     std `$_return.1.0
 
     tsx
-    ldd 2, x                ; LHS
-    subd 6, x               ; RHS
+    ldd 4, x                ; LHS
+    subd 0, x               ; RHS
     blt `_pop8andreturn
-    ldd 0, x
-    subd 4, x
+    ldd 6, x
+    subd 2, x
     bra `_pop8andreturn
 
 &X _mul4
