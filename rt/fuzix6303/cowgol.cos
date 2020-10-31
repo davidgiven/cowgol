@@ -276,15 +276,51 @@
     addd `$_mathpad.1.0
     rts
 
+&X _remu2
+; 16-bit unsigned divrem; d := d / x; on exit, d=remainder, x=result
+&W _remu2 1 3
+``:
+    stx `$_remu2.1.1        ; RHS
+    xgdx                    ; X=LHS
+    ldaa #16                ; loop counter
+    staa `$_remu2.1.0
+    clra
+    clrb                    ; clear remainder
+``_loop:                    ; D=remainder, X=LHS
+    xgdx                    ; D=LHS, X=remainder
+    aslb                    ; left shift LHS
+    rola
+    xgdx                    ; D=remainder, X=LHS
+    rolb                    ; put top bit of LHS into remainder
+    rola
+
+    xgdx                    ; D=LHS, X=remainder
+    cpx `$_remu2.1.1        ; compare with RHS
+    xgdx                    ; D=remainder, X=LHS
+    bcs ``_noadd
+    inx                     ; increase result...
+    subd `$_remu2.1.1       ; ...decrease remainder
+``_noadd:
+    dec `$_remu2.1.0
+    bne ``_loop
+    rts
+
 &X _divu2
-; 16-bit unsigned divide.
+; 16-bit unsigned divide; d := d / x
+``:
+    bsr `_remu2
+    xgdx
+    rts
+
+&X _divs2
+; 16-bit signed divide; d := d / x
 ``:
     ldd #0xffff
     swi
     rts
 
-&X _remu2
-; 16-bit signed divide.
+&X _rems2
+; 16-bit signed remainder; d := d % x
 ``:
     ldd #0xffff
     swi
