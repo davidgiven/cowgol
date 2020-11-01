@@ -703,13 +703,6 @@
     bne ``_loop
     rts
 
-&X _divrems4
-; 32-bit signed divide.
-``:
-    ldd #0xffff
-    swi
-    rts
-
 &X _remu4
 ; 32-bit unsigned remainder. (i4 i4 -- i4)
 &W _remu4 1 2
@@ -764,26 +757,120 @@
     ldx `$_divu4.1.0
     jmp ,x
 
-&X _rems4
-; 32-bit signed remainder of mathpad LHS / xd, leaving the remainder in xd.
+&S _negxd
+; Negates xd.
 ``:
-    stx `$_mathpad.1.8
-    std `$_mathpad.1.10
-    bsr `_divrems4
-    ldx `$_mathpad.1.4
-    ldd `$_mathpad.1.6
+    subd #1
+    xgdx
+    adcb #0
+    adca #0
+    coma
+    comb
+    xgdx
+    coma
+    comb
     rts
 
-&X _divs4
-; 32-bit signed divide of mathpad LHS / xd, leaving the remainder in xd.
+&X _divrems4
+; 32-bit signed divide of mathpad.
 ``:
-    stx `$_mathpad.1.8
+    ldab `$_mathpad.1.0 ; get sign of LHS
+    pshb                ; save for later
+    eorb `$_mathpad.1.8 ; discover sign of result
+    pshb                ; save for later
+
+    ldx `$_mathpad.1.0  ; does the LHS need inverting?
+    bpl ``_lhs_positive
+    ldd `$_mathpad.1.2
+    bsr `_negxd
+    std `$_mathpad.1.2
+    stx `$_mathpad.1.0
+``_lhs_positive:
+
+    ldx `$_mathpad.1.8  ; does RHS need inverting?
+    bpl ``_rhs_positive
+    ldd `$_mathpad.1.10
+    bsr `_negxd
     std `$_mathpad.1.10
-    bsr `_divrems4
+    stx `$_mathpad.1.8
+``_rhs_positive:
+
+    bsr `_divremu4      ; do the unsigned division
+
+    pulb                ; fetch result sign
+    tstb
+    bpl ``_dividend_positive
     ldx `$_mathpad.1.0
     ldd `$_mathpad.1.2
+    bsr `_negxd
+    std `$_mathpad.1.2
+    stx `$_mathpad.1.0
+``_dividend_positive:
+
+    pulb                ; fetch remainder sign
+    tstb
+    bpl ``_remainder_positive
+    ldx `$_mathpad.1.4
+    ldd `$_mathpad.1.6
+    bsr `_negxd
+    std `$_mathpad.1.6
+    stx `$_mathpad.1.4
+``_remainder_positive:
     rts
 
+&X _rems4
+; 32-bit signed remainder. (i4 i4 -- i4)
+&W _rems4 1 2
+``:
+    pulx
+    stx `$_remu4.1.0
+
+    pulx
+    stx `$_mathpad.1.8
+    pulx
+    stx `$_mathpad.1.10
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
+    bsr `_divrems4
+
+    ldx `$_mathpad.1.6
+    pshx
+    ldx `$_mathpad.1.4
+    pshx
+
+    ldx `$_remu4.1.0
+    jmp ,x
+
+&X _divs4
+; 32-bit signed divide. (i4 i4 -- i4)
+&W _divs4 1 2
+``:
+    pulx
+    stx `$_divu4.1.0
+
+    pulx
+    stx `$_mathpad.1.8
+    pulx
+    stx `$_mathpad.1.10
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
+    bsr `_divrems4
+
+    ldx `$_mathpad.1.2
+    pshx
+    ldx `$_mathpad.1.0
+    pshx
+
+    ldx `$_divu4.1.0
+    jmp ,x
 ; vim: sw=4 ts=4 et
 
 
