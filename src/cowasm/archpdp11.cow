@@ -33,9 +33,6 @@ sub ReadOperand(): (token: Token) is
 
     var reg: uint8;
     var value: uint16;
-    print("token: ");
-    print_hex_i8(token);
-    print_nl();
     case token is
         when '-':
             Expect('(');
