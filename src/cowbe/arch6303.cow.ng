@@ -205,29 +205,6 @@
         E_insn_simple("xgdx");
     end sub;
 
-    sub PrepareWorkspacePointerForAddress(sym: [Symbol], off: uint16) is
-        if (sym.subr == current_subr) and (sym.wsid == VARMEM_WS) and ((sym.off + off) < 252) then
-            var cache := RegCacheFindWsRef(sym.subr, VARMEM_WS, 0) & REG_X;
-            if cache != 0 then
-                # The workspace pointer is already in X.
-                return;
-            end if;
-            R_flush(REG_X);
-            E_insn("ldx");
-            E_const();
-			E_wsref(current_subr.id, VARMEM_WS, 0);
-            E_nl();
-
-            RegCacheLeavesWsRef(REG_X, sym.subr, VARMEM_WS, 0);
-        end if;
-    end sub;
-
-    sub PrepareWorkspacePointer(reg: RegId, op: [Operand]) is
-        if reg == REG_MEM then
-            PrepareWorkspacePointerForAddress(op.mem.sym, op.mem.off);
-        end if;
-    end sub;
-
     sub RetractVStack(reg: RegId, op: [Operand]) is
         case reg is
             when REG_VS1: varsp := varsp - 1;
@@ -247,16 +224,6 @@
         E_wsref(current_subr.id, VARSTACK_WS, sp as uint16);
     end sub;
 
-    sub E_memop(sym: [Symbol], off: Size) is
-        var o := off + sym.off;
-        if (sym.subr == current_subr) and (sym.wsid == VARMEM_WS) and (o < 252) then
-            E_u8(o as uint8);
-            E(",x");
-        else
-            E_symref(sym, off);
-        end if;
-    end sub;
-
 	sub E_op(reg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
         sub dovs() is
             E_vsref(operand.vs.sp + byte);
@@ -264,7 +231,7 @@
 
 		case reg is
 			when REG_MEM:
-                E_memop(operand.mem.sym, operand.mem.off + (byte as uint16));
+                E_symref(operand.mem.sym, operand.mem.off + (byte as uint16));
 
 			when REG_IMM:
                 var value := ((operand.imm.value as uint32) >> shift) as uint16;
@@ -291,7 +258,6 @@
 	end sub;
 
     sub E_insnop(insn: string, destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
-        PrepareWorkspacePointer(srcreg, operand);
         R_flush(destreg);
         E_insn(insn);
         E_op(srcreg, operand, byte, shift);
@@ -299,7 +265,6 @@
     end sub;
 
     sub E_accop(insna: string, insnb: string, destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
-        PrepareWorkspacePointer(srcreg, operand);
         R_flush(destreg);
         if destreg == REG_A then
             E_insn(insna);
@@ -311,7 +276,6 @@
     end sub;
 
     sub E_ldop(destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
-        PrepareWorkspacePointer(srcreg, operand);
         R_flush(destreg);
         case destreg is
             when REG_A: E_insn("ldaa");
@@ -347,7 +311,6 @@
     end sub;
 
     sub E_stop(srcreg: RegId, destreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
-        PrepareWorkspacePointer(destreg, operand);
         case srcreg is
             when REG_A: E_insn("staa");
             when REG_B: E_insn("stab");
