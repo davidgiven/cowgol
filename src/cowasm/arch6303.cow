@@ -127,7 +127,12 @@ sub OpImCb implements SymbolCallback is
     var immdata := extensionWord as uint8;
 
     ExpectOperand();
-    if (addressingMode != AM_DIR) and (addressingMode != AM_IND) then
+    if addressingMode == AM_EXT then
+        if extensionWord >= 0x100 then
+            SimpleError("direct page address out of range");
+        end if;
+        addressingMode := AM_DIR;
+    elseif addressingMode != AM_IND then
         BadAddressingMode();
     end if;
 

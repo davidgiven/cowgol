@@ -198,7 +198,7 @@
     rola                ; ...putting the top bit into the remainder
     cmpa `$_divremu1.1.0 ; compare with RHS
     bcs ``_noadd
-    incb                ; increase result...
+    incb                ; set bottom bit of result (guaranteed clear)
     suba `$_divremu1.1.0 ; decrease remainder
 ``_noadd:
     dex
@@ -298,7 +298,7 @@
     cpx `$_remu2.1.1        ; compare with RHS
     xgdx                    ; D=remainder, X=LHS
     bcs ``_noadd
-    inx                     ; increase result...
+    inx                     ; set bottom bit of result (guaranteed clear)
     subd `$_remu2.1.1       ; ...decrease remainder
 ``_noadd:
     dec `$_remu2.1.0
@@ -681,21 +681,16 @@
     rol `$_mathpad.1.6
     rol `$_mathpad.1.5
     rol `$_mathpad.1.4
-    ldd `$_mathpad.1.0  ; compare MSW of LHS against RHS
-    subd `$_mathpad.1.8
-    bcc ``_add          ; definitely less
-    ldd `$_mathpad.1.2  ; and LSW
-    sbcb `$_mathpad.1.11
-    sbca `$_mathpad.1.10
+
+    ldd `$_mathpad.1.6  ; compare remainder against RHS
+    subd `$_mathpad.1.10
+    ldd `$_mathpad.1.4
+    sbcb `$_mathpad.1.9
+    sbca `$_mathpad.1.8
     bcs ``_noadd
-``_add:
-    ldd `$_mathpad.1.2  ; increase result
-    addd #1
-    std `$_mathpad.1.2
-    ldd `$_mathpad.1.0
-    adcb #0
-    adca #0
-    std `$_mathpad.1.0
+
+    inc `$_mathpad.1.3  ; set bottom bit of LHS (guarantee to be clear)
+
     ldd `$_mathpad.1.6  ; decrease remainder
     subd `$_mathpad.1.10
     std `$_mathpad.1.6
@@ -716,10 +711,38 @@
     rts
 
 &X _remu4
-; 32-bit unsigned remainder of mathpad LHS / xd, leaving the remainder in xd.
+; 32-bit unsigned remainder. (i4 i4 -- i4)
+&W _remu4 1 2
 ``:
     pulx
-    stx `$_return.1.0
+    stx `$_remu4.1.0
+
+    pulx
+    stx `$_mathpad.1.8
+    pulx
+    stx `$_mathpad.1.10
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
+    bsr `_divremu4
+
+    ldx `$_mathpad.1.6
+    pshx
+    ldx `$_mathpad.1.4
+    pshx
+
+    ldx `$_remu4.1.0
+    jmp ,x
+
+&X _divu4
+; 32-bit unsigned divide. (i4 i4 -- i4)
+&W _divu4 1 2
+``:
+    pulx
+    stx `$_divu4.1.0
 
     pulx
     stx `$_mathpad.1.8
@@ -738,18 +761,8 @@
     ldx `$_mathpad.1.0
     pshx
 
-    ldx `$_return.1.0
+    ldx `$_divu4.1.0
     jmp ,x
-
-&X _divu4
-; 32-bit unsigned divide of mathpad LHS / xd, leaving the remainder in xd.
-``:
-    stx `$_mathpad.1.8
-    std `$_mathpad.1.10
-    bsr `_divremu4
-    ldx `$_mathpad.1.0
-    ldd `$_mathpad.1.2
-    rts
 
 &X _rems4
 ; 32-bit signed remainder of mathpad LHS / xd, leaving the remainder in xd.
