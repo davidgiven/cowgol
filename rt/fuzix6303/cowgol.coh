@@ -1,6 +1,12 @@
 var LOMEM: [uint8];
 var HIMEM: [uint8];
 
+@asm "ldd #bss_end";
+@asm "std ", LOMEM;
+
+@asm "ldd #0xf000";
+@asm "std ", HIMEM;
+
 sub Exit() is
 end sub;
 
