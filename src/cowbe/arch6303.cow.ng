@@ -438,6 +438,9 @@
 	end sub;
 
 	sub ArchEndGroup() is
+        if varsp != 0 then
+            SimpleError("stray items on varstack");
+        end if;
 	end sub;
 %}
 
@@ -491,9 +494,27 @@ gen STARTSUB()
 
     EmitterOpenStream(current_subr);
 
-    E("\n\n\t; ");
-    E(current_subr.name);
-    E_nl();
+	E("\n\n\t; ");
+	E(current_subr.name);
+	E(" ws0 at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(VARMEM_WS);
+	E_b16(0);
+	E("+");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(VARMEM_WS);
+    E(" ws1 at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(VARSTACK_WS);
+	E_b16(0);
+	E("+");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(VARSTACK_WS);
+	E_nl();
 
     E_b8(COO_ESCAPE_THISSUB);
     E(":\n");
@@ -548,6 +569,7 @@ gen STARTSUB()
 	if popped != 0 then
         E_ldop_c(REG_X, REG_VS2, &retaddr, 0, 0);
 		E_push(REG_X);
+        RetractVStack(REG_VS2, &retaddr);
 	end if;
 }
 
@@ -613,6 +635,7 @@ gen ENDSUB()
 	if pushed != 0 then
         E_ldop_c(REG_X, REG_VS2, &retaddr, 0, 0);
         E_insn_simple("jmp ,x");
+        RetractVStack(REG_VS2, &retaddr);
     else
         E_insn_simple("rts");
 	end if;
