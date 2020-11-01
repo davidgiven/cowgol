@@ -415,11 +415,9 @@
 		elseif (src == REG_B) and (dest == REG_A) then
 			E_insn_simple("tba");
 		elseif (src == REG_X) and (dest == REG_D) then
-			E_push(REG_X);
-			E_pop(REG_D);
+            E_xgdx();
 		elseif (src == REG_D) and (dest == REG_X) then
-			E_push(REG_D);
-			E_pop(REG_X);
+            E_xgdx();
 		elseif dest == 0 then
 			E_push(src);
 		elseif src == 0 then
