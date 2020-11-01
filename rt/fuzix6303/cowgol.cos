@@ -596,11 +596,11 @@
     std `$_return.1.0
 
     tsx
-    ldd 4, x                ; LHS
-    subd 0, x               ; RHS
-    blt `_pop8andreturn
-    ldd 6, x
-    subd 2, x
+    ldd 6, x                ; LHS
+    subd 2, x               ; RHS
+    ldd 4, x
+    sbcb 1, x
+    sbca 0, x
     bra `_pop8andreturn
 
 &X _mul4
