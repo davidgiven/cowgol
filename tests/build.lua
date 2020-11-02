@@ -46,19 +46,21 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 	-- run the tests for it and they likely won't work anyway.
 	if toolchain.name ~= "ncgen" then
 		for _, test in ipairs(ALL_TESTS) do
-			local exe = cowgol {
-				toolchain = toolchain,
-				ins = {
-					"tests/"..test..".test.cow",
-					"tests/_framework.coh",
-				},
-				outs = { "$OBJ/tests/"..test }
-			}
+			if toolchain.tester then
+				local exe = cowgol {
+					toolchain = toolchain,
+					ins = {
+						"tests/"..test..".test.cow",
+						"tests/_framework.coh",
+					},
+					outs = { "$OBJ/tests/"..test }
+				}
 
-			toolchain.tester {
-				ins = { exe },
-				goodfile = "tests/"..test..".good"
-			}
+				toolchain.tester {
+					ins = { exe },
+					goodfile = "tests/"..test..".good"
+				}
+			end
 		end
 	end
 end

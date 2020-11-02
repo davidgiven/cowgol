@@ -15,7 +15,8 @@
 %x CSTRINGSTATE
 %x CSTRINGQSTATE
 %x NUMBERSTATE
-%x COPYSTATE
+%x IMPLSTATE
+%x DECLSTATE
 
 LF (\r\n)|\r|\n
 SP [ \t]+
@@ -44,6 +45,7 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "cost"                    { return COST; }
 "gen"                     { return GEN; }
 "is"                      { return IS; }
+"operand"                 { return OPERAND; }
 "regclass"                { return REGCLASS; }
 "regdata"                 { return REGDATA; }
 "register"                { return REGISTER; }
@@ -61,7 +63,8 @@ ID [A-Za-z][A-Za-z0-9_$]*
 "{"                       { BEGIN(CSTRINGSTATE); nesting = 1; return BEGINCSTRING; }
 <CSTRINGSTATE>{LF}        { yylineno++; string = strdup("\n"); return CSTRING; }
 <CSTRINGSTATE>\$\$        |
-<CSTRINGSTATE>\${ID}      { string = strdup(yytext+1); return CID; }
+<CSTRINGSTATE>\$@\$       |
+<CSTRINGSTATE>\$@?{ID}    { string = strdup(yytext+1); return CID; }
 <CSTRINGSTATE>"\""        { string = strdup("\""); BEGIN(CSTRINGQSTATE); return CSTRING; }
 <CSTRINGSTATE>"{"         { nesting++; string = strdup("{"); return CSTRING; }
 <CSTRINGSTATE>"}"         {
@@ -108,11 +111,17 @@ ID [A-Za-z][A-Za-z0-9_$]*
 }
 <NUMBERSTATE>.|{LF}       { BEGIN(INITIAL); unput(*yytext); return INT; }
 
-"%{"                      { BEGIN(COPYSTATE); }
-<COPYSTATE>"%}"           { BEGIN(INITIAL); }
-<COPYSTATE>{LF}           { fputc('\n', outfp); yylineno++; }
-<COPYSTATE>[^%\n\r]+      |
-<COPYSTATE>.              { fputs(yytext, outfp); }
+"%["                      { BEGIN(DECLSTATE); }
+<DECLSTATE>"%]"           { BEGIN(INITIAL); }
+<DECLSTATE>{LF}           { fputc('\n', outhfp); yylineno++; }
+<DECLSTATE>[^%\n\r]+      |
+<DECLSTATE>.              { fputs(yytext, outhfp); }
+
+"%{"                      { BEGIN(IMPLSTATE); }
+<IMPLSTATE>"%}"           { BEGIN(INITIAL); }
+<IMPLSTATE>{LF}           { fputc('\n', outfp); yylineno++; }
+<IMPLSTATE>[^%\n\r]+      |
+<IMPLSTATE>.              { fputs(yytext, outfp); }
 
 "//"[^\r\n]*              {}
 {LF}                      { yylineno++; }

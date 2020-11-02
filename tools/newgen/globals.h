@@ -75,6 +75,7 @@ struct reg
 	reg_t uses;
 	reg_t compatible;
 	bool isstacked;
+	bool isoperand;
 };
 
 typedef struct regclass RegisterClass;
@@ -84,10 +85,17 @@ struct regclass
 	reg_t reg;
 };
 
+enum
+{
+	ELEMENT_STRING = 0,
+	ELEMENT_REGLABEL = 1,
+	ELEMENT_NODELABEL = 2
+};
+
 typedef struct element Element;
 struct element
 {
-	bool islabel;
+	int kind;
 	const char* text;
 	int lineno;
 	Element* next;
@@ -118,6 +126,7 @@ struct rule
 
 extern int errcnt;
 extern FILE* outfp;
+extern FILE* outhfp;
 
 extern void fatal(const char* msg, ...);
 extern void warning(const char* msg, ...);
@@ -131,6 +140,7 @@ extern void include_file(void* buffer);
 
 extern Register* define_register(const char* name);
 extern Register* lookup_register(const char* name);
+extern void define_operand(const char* name);
 extern void define_regclass(const char* name, reg_t reg);
 extern reg_t lookup_register_or_class(const char* name);
 extern int lookup_midcode(const char* name);

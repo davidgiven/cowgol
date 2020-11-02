@@ -120,6 +120,19 @@ toolchain_unixv7 = {
 	tester = apouttest
 }
 
+toolchain_fuzix6303 = {
+	name = "fuzix6303",
+	cowfe = "bin/cowfe-6303.nncgen.exe",
+	cowbe = "bin/cowbe-6303.nncgen.exe",
+	linker = "bin/cowlink-fuzix6303.nncgen.exe",
+	assembler = buildcowasm6303,
+	runtime = "rt/fuzix6303",
+	asmext = ".asm",
+	binext = ".6303.exe",
+	tester = fuzix6303test,
+	archs = {},
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
@@ -131,5 +144,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbct6502,
 	toolchain_bbcti,
 	toolchain_unixv7,
+	toolchain_fuzix6303,
 }
 

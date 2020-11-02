@@ -610,7 +610,7 @@ gen JUMP():j
     E_jmp($j.label);
 }
 
-// --- Operands -------------------------------------------------------------
+// --- MOperands -------------------------------------------------------------
 
 %{
     const MODE_SYMBOLI := 0;
@@ -626,18 +626,18 @@ gen JUMP():j
         width: uint8;
     end record;
 
-    record Operand is
+    record MOperand is
         stk @at(0): StackOp;
         off @at(0): Size;
         val @at(0): Arith;
         sym: [Symbol];
         mode: uint8;
-        next: [Operand];
+        next: [MOperand];
     end record;
 
     const OPERAND_STACK_SIZE := 16;
-    var opstack: [Operand][OPERAND_STACK_SIZE];
-    var first_operand: [Operand] := 0 as [Operand];
+    var opstack: [MOperand][OPERAND_STACK_SIZE];
+    var first_operand: [MOperand] := 0 as [MOperand];
     var opsp: uint8 := 0;
 
     sub RegWidth(reg: RegId): (width: uint8) is
@@ -652,51 +652,51 @@ gen JUMP():j
         end if;
     end sub;
 
-    sub CleanupOperands() is
-        while first_operand != (0 as [Operand]) loop
+    sub CleanupMOperands() is
+        while first_operand != (0 as [MOperand]) loop
             var n := first_operand.next;
             Free(first_operand as [uint8]);
             first_operand := n;
         end loop;
     end sub;
 
-    sub PushOp(): (op: [Operand]) is
+    sub PushOp(): (op: [MOperand]) is
         if opsp == OPERAND_STACK_SIZE then
             SimpleError("opstack overflow");
         end if;
-        op := InternalAlloc(@bytesof Operand) as [Operand];
+        op := InternalAlloc(@bytesof MOperand) as [MOperand];
         opstack[opsp] := op;
         opsp := opsp + 1;
     end sub;
 
-    sub PushConstOp(value: Arith): (op: [Operand]) is
+    sub PushConstOp(value: Arith): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_CONST;
         op.val := value;
     end sub;
         
-    sub PushAddressOp(sym: [Symbol], off: Size): (op: [Operand]) is
+    sub PushAddressOp(sym: [Symbol], off: Size): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_ADDRESS;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushSymOp(sym: [Symbol], off: Size): (op: [Operand]) is
+    sub PushSymOp(sym: [Symbol], off: Size): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_SYMBOL;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushSymIOp(sym: [Symbol], off: Size): (op: [Operand]) is
+    sub PushSymIOp(sym: [Symbol], off: Size): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_SYMBOLI;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushStackOp(reg: RegId, width: uint8): (op: [Operand]) is
+    sub PushStackOp(reg: RegId, width: uint8): (op: [MOperand]) is
         var sid: uint16;
         if (reg & REG_P16) != 0 then
             sid := (PTRSTACK_WS<<8) | (ptrsp as uint16);
@@ -719,11 +719,11 @@ gen JUMP():j
         op.stk.width := width;
     end sub;
 
-    sub PushV32(): (op: [Operand]) is
+    sub PushV32(): (op: [MOperand]) is
         op := PushStackOp(REG_V32, 4);
     end sub;
 
-    sub PopOp(): (op: [Operand]) is
+    sub PopOp(): (op: [MOperand]) is
         if opsp == 0 then
             SimpleError("opstack underflow");
         end if;
@@ -741,14 +741,14 @@ gen JUMP():j
         end if;
     end sub;
 
-    sub PeekOp(): (op: [Operand]) is
+    sub PeekOp(): (op: [MOperand]) is
         if opsp == 0 then
             SimpleError("opstack underflow");
         end if;
         op := opstack[opsp-1];
     end sub;
 
-    sub DerefOp(op: [Operand]) is
+    sub DerefOp(op: [MOperand]) is
         case op.mode is
             when MODE_ADDRESS: op.mode := MODE_SYMBOL;
             when MODE_SYMBOL:  op.mode := MODE_SYMBOLI;
@@ -757,12 +757,12 @@ gen JUMP():j
         end case;
     end sub;
 
-    sub PopAndDerefOp(): (op: [Operand]) is
+    sub PopAndDerefOp(): (op: [MOperand]) is
         op := PopOp();
         DerefOp(op);
     end sub;
 
-    sub DoParamIndirect(operand: [Operand], oc: uint8, off: Size) is
+    sub DoParamIndirect(operand: [MOperand], oc: uint8, off: Size) is
         sub CheckSize() is
             if off != 0 then
                 SimpleError("bad indirect");
@@ -804,11 +804,11 @@ gen JUMP():j
         E_y_nl();
     end sub;
 
-    sub DoParamIndirect_lda(operand: [Operand]) is R_flush(REG_A); DoParamIndirect(operand, OC_LDA, 0); end sub; 
-    sub DoParamIndirect_sta(operand: [Operand]) is                 DoParamIndirect(operand, OC_STA, 0); end sub; 
-    sub DoParamIndirect_sbc(operand: [Operand]) is R_flush(REG_A); DoParamIndirect(operand, OC_SBC, 0); end sub;
+    sub DoParamIndirect_lda(operand: [MOperand]) is R_flush(REG_A); DoParamIndirect(operand, OC_LDA, 0); end sub; 
+    sub DoParamIndirect_sta(operand: [MOperand]) is                 DoParamIndirect(operand, OC_STA, 0); end sub; 
+    sub DoParamIndirect_sbc(operand: [MOperand]) is R_flush(REG_A); DoParamIndirect(operand, OC_SBC, 0); end sub;
 
-    sub DoParamDirect(operand: [Operand], oc: uint8, offset: uint8) is
+    sub DoParamDirect(operand: [MOperand], oc: uint8, offset: uint8) is
         var m := operand.mode;
 
         if (m == MODE_STACKI) or (m == MODE_SYMBOLI) then
@@ -874,9 +874,9 @@ gen JUMP():j
         E_nl();
     end sub;
 
-    sub DoParamDirect_lda(operand: [Operand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDA, offset); end sub;
-    sub DoParamDirect_ldy(operand: [Operand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDY, offset); end sub;
-    sub DoParamDirect_sta(operand: [Operand], offset: uint8) is                 DoParamDirect(operand, OC_STA, offset); end sub;
+    sub DoParamDirect_lda(operand: [MOperand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDA, offset); end sub;
+    sub DoParamDirect_ldy(operand: [MOperand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDY, offset); end sub;
+    sub DoParamDirect_sta(operand: [MOperand], offset: uint8) is                 DoParamDirect(operand, OC_STA, offset); end sub;
 
     # Note that this *destroys* the source register.
     sub ArchEmitMove(src: RegId, dest: RegId) is
@@ -953,7 +953,7 @@ gen JUMP():j
             E_nl();
         end if;
 
-        CleanupOperands();
+        CleanupMOperands();
     end sub;
 %}
 
@@ -1276,7 +1276,7 @@ gen RETURN()
 }
 
 %{
-    sub PopArg4(dest: [Operand]) is
+    sub PopArg4(dest: [MOperand]) is
         # WARNING: lowest byte on stack is MSB, so pop the MSB first!
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
@@ -1647,7 +1647,7 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
 // --- 32 bit ---------------------------------------------------------------
 
 %{
-    sub DoCopy4(dest: [Operand], lhs: [Operand]) is
+    sub DoCopy4(dest: [MOperand], lhs: [MOperand]) is
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
@@ -1674,7 +1674,7 @@ gen v32 := LOAD4(ptrs) uses a|x|y
 }
 
 %{
-    sub Do2Op4_not(lhs: [Operand], dest: [Operand]) is
+    sub Do2Op4_not(lhs: [MOperand], dest: [MOperand]) is
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
@@ -1686,7 +1686,7 @@ gen v32 := LOAD4(ptrs) uses a|x|y
         E_bpl(lid);
     end sub;
 
-    sub Do2Op4_neg(lhs: [Operand], dest: [Operand]) is
+    sub Do2Op4_neg(lhs: [MOperand], dest: [MOperand]) is
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
         E_sec();
@@ -1708,7 +1708,7 @@ gen STORE4(NEG4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs :
 gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_not(lhs, dest); }
 
 %{
-    sub Do3Op4(oc: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand]) is
+    sub Do3Op4(oc: uint8, lhs: [MOperand], rhs: [MOperand], dest: [MOperand]) is
         var lid: LabelRef;
         if (lhs.mode > MODE_STACKI) and (rhs.mode > MODE_STACKI) and (dest.mode > MODE_STACKI) then
             # None of the operands are indirected, so we can use a more efficient loop.
@@ -1750,7 +1750,7 @@ gen STORE4(OR4(in4s, in4s) , ptrs) uses a|x|y { var dest := PopAndDerefOp(); var
 gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_EOR, lhs, rhs, dest); }
 
 %{
-    sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand]) is
+    sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [MOperand], rhs: [MOperand], dest: [MOperand]) is
         var e := GetHelper("_mathpad");
 
         E_loadconst(REG_Y, 3);
@@ -1982,7 +1982,7 @@ gen xa := CAST12(a):c uses y
 }
 
 %{
-    sub Cast14(dest: [Operand], sext: uint8) is
+    sub Cast14(dest: [MOperand], sext: uint8) is
         DoParamDirect_sta(dest, 0);
 
         if sext != 0 then
@@ -2001,7 +2001,7 @@ gen v32 := CAST14(a):c        uses y { var dest := PushV32();       Cast14(dest,
 gen STORE4(CAST14(a):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast14(dest, $c.sext); }
 
 %{
-    sub Cast24(dest: [Operand], sext: uint8) is
+    sub Cast24(dest: [MOperand], sext: uint8) is
         DoParamDirect_sta(dest, 0);
         if dest.mode <= MODE_STACKI then
             E_txa();

@@ -2,7 +2,9 @@ typedef string is [uint8];
 typedef SubrId is uint16;
 typedef Size is uint16;
 typedef LabelRef is uint16;
+
 typedef RegId is uint8; # unused but required by midcodesbe
+record Operand is end record; # likewise
 
 record Symbol is
 	subr: [Subroutine];

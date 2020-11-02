@@ -44,11 +44,16 @@ spec ::= rules.
 rules ::= .
 rules ::= rules SEMICOLON.
 rules ::= rules REGISTER regdecls SEMICOLON.
+rules ::= rules OPERAND opdecls SEMICOLON.
 rules ::= rules regdata SEMICOLON.
 
 regdecls ::= .
 regdecls ::= regdecls ID(ID).
 { define_register(ID.u.string); }
+
+opdecls ::= .
+opdecls ::= opdecls ID(ID).
+{ define_operand(ID.u.string); }
 
 rules ::= rules REGCLASS ID(ID) ASSIGN regspec(R).
 { define_regclass(ID.u.string, R); }
@@ -248,16 +253,18 @@ cstrings(R) ::= .
 cstrings(R) ::= cstrings(LHS) CSTRING(RHS).
 {
     R = calloc(1, sizeof(Element));
-    R->islabel = false;
+    R->kind = ELEMENT_STRING;
     R->text = RHS.u.string;
     R->next = LHS;
 }
 
 cstrings(R) ::= cstrings(LHS) CID(RHS).
 {
+    const char* s = RHS.u.string;
+
     R = calloc(1, sizeof(Element));
-    R->islabel = true;
-    R->text = RHS.u.string;
+    R->kind = (*s == '@') ? ELEMENT_NODELABEL : ELEMENT_REGLABEL;
+    R->text = (*s == '@') ? (s+1) : s;
     R->next = LHS;
 }
 

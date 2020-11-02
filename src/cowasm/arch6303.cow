@@ -1,0 +1,333 @@
+include "cowasm.coh";
+
+const AM_IMM := 0x00;
+const AM_DIR := 0x10;
+const AM_IND := 0x20;
+const AM_EXT := 0x30;
+
+var addressingMode: uint8;
+var extensionWord: uint16;
+
+@impl sub Emit16 is
+    Emit8((word>>8) as uint8);
+    Emit8(word as uint8);
+end sub;
+
+sub ReadOperand(): (token: Token) is
+    token := ReadToken();
+
+    case token is
+        when ',':
+            ReadRegister();
+            addressingMode := AM_IND;
+            extensionWord := 0;
+            token := ReadToken();
+
+        when '#':
+            token := ReadExpression();
+            addressingMode := AM_IMM;
+            extensionWord := tokenNumber;
+
+        when else:
+            PushToken(token);
+            token := ReadExpression();
+            if token == ',' then
+                ReadRegister();
+                addressingMode := AM_IND;
+                extensionWord := tokenNumber;
+                token := ReadToken();
+            else
+                addressingMode := AM_EXT;
+                extensionWord := tokenNumber;
+            end if;
+    end case;
+end sub;
+
+sub ExpectOperand() is
+    if ReadOperand() != TOKEN_NL then
+        SimpleError("expected a single operand");
+    end if;
+end sub;
+
+sub BadAddressingMode() is
+    SimpleError("bad addressing mode");
+end sub;
+            
+sub ConvertExtToDir() is
+    if (pass > 1) and (addressingMode == AM_EXT) and (tokenNumber < 0x100) then
+        addressingMode := AM_DIR;
+    end if;
+end sub;
+
+sub EmitInstruction(base: uint8) is
+    Emit8(base | addressingMode);
+    case addressingMode is
+        when AM_IMM:
+            var b := base & 0x0f;
+            if (b == 3) or (b == 12) or (b == 14) then
+                Emit16(extensionWord);
+            else
+                Emit8(extensionWord as uint8);
+            end if;
+
+        when AM_IND:
+            if extensionWord > 0xff then
+                SimpleError("index displacement out of range");
+            end if;
+            Emit8(extensionWord as uint8);
+
+        when AM_DIR:
+            Emit8(extensionWord as uint8);
+
+        when AM_EXT:
+            Emit16(extensionWord);
+    end case;
+end sub;
+
+sub OpSimpleCb implements SymbolCallback is
+    Emit8(currentInsn.value as uint8);
+    Expect(TOKEN_NL);
+end sub;
+
+sub OpBrCb implements SymbolCallback is
+    ExpectExpression();
+    if pass == 1 then
+        [currentProgramCounter] := [currentProgramCounter] + 5;
+    else
+        var delta := (tokenNumber - [currentProgramCounter] - 2) as int16;
+        if (delta >= -0x80) and (delta <= 0x7f) then
+            Emit8(currentInsn.value as uint8);
+            Emit8(delta as uint8);
+        else
+            case currentInsn.value is
+                when 0x8d: # BSR
+                    Emit8(0xbd); # JSR EXT
+
+                when 0x20: # BRA
+                    Emit8(0x7e); # JMP EXT
+
+                when else:
+                    Emit8(currentInsn.value as uint8 ^ 1);
+                    Emit8(3);
+                    Emit8(0x7e); # JMP EXT
+            end case;
+            Emit16(tokenNumber);
+        end if
+    end if;
+end sub;
+
+sub OpImCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+    if addressingMode != AM_IMM then
+        BadAddressingMode();
+    end if;
+    var immdata := extensionWord as uint8;
+
+    ExpectOperand();
+    if addressingMode == AM_EXT then
+        if extensionWord >= 0x100 then
+            SimpleError("direct page address out of range");
+        end if;
+        addressingMode := AM_DIR;
+    elseif addressingMode != AM_IND then
+        BadAddressingMode();
+    end if;
+
+    if addressingMode == AM_DIR then
+        # These instructions are magic.
+        addressingMode := AM_EXT;
+    end if;
+
+    Emit8(currentInsn.value as uint8 | addressingMode);
+    Emit8(immdata);
+    if addressingMode == AM_EXT then
+        Emit8(extensionWord as uint8);
+    else
+        Emit16(extensionWord);
+    end if;
+end sub;
+
+sub Op23Cb implements SymbolCallback is
+    ExpectOperand();
+    if (addressingMode == AM_IMM) or (addressingMode == AM_DIR) then
+        BadAddressingMode();
+    end if;
+    EmitInstruction(currentInsn.value as uint8);
+end sub;
+
+sub Op123Cb implements SymbolCallback is
+    ExpectOperand();
+    if addressingMode == AM_IMM then
+        BadAddressingMode();
+    end if;
+    ConvertExtToDir();
+    EmitInstruction(currentInsn.value as uint8);
+end sub;
+
+sub Op0123Cb implements SymbolCallback is
+    ExpectOperand();
+    ConvertExtToDir();
+    EmitInstruction(currentInsn.value as uint8);
+end sub;
+
+@impl sub InitialiseSymbolTable is
+	var s: Symbol;
+	var symbols: Symbol[] := {
+        include "stdsyms.coh";
+
+        # The Register™
+
+        { "X",    0,     RegCb,         &s },
+        
+        # Simple instructions.
+
+        { "NOP",  0x01,  OpSimpleCb,    &s },
+        { "LSRD", 0x04,  OpSimpleCb,    &s },
+        { "ASLD", 0x05,  OpSimpleCb,    &s },
+        { "TAP",  0x06,  OpSimpleCb,    &s },
+        { "TPA",  0x07,  OpSimpleCb,    &s },
+        { "INX",  0x08,  OpSimpleCb,    &s },
+        { "DEX",  0x09,  OpSimpleCb,    &s },
+        { "CLV",  0x0a,  OpSimpleCb,    &s },
+        { "SEV",  0x0b,  OpSimpleCb,    &s },
+        { "CLC",  0x0c,  OpSimpleCb,    &s },
+        { "SEC",  0x0d,  OpSimpleCb,    &s },
+        { "CLI",  0x0e,  OpSimpleCb,    &s },
+        { "SEI",  0x0f,  OpSimpleCb,    &s },
+        { "SBA",  0x10,  OpSimpleCb,    &s },
+        { "CBA",  0x11,  OpSimpleCb,    &s },
+        { "TAB",  0x16,  OpSimpleCb,    &s },
+        { "TBA",  0x17,  OpSimpleCb,    &s },
+        { "XGDX", 0x18,  OpSimpleCb,    &s },
+        { "DAA",  0x19,  OpSimpleCb,    &s },
+        { "SLP",  0x1a,  OpSimpleCb,    &s },
+        { "ABA",  0x1b,  OpSimpleCb,    &s },
+        { "TSX",  0x30,  OpSimpleCb,    &s },
+        { "INS",  0x31,  OpSimpleCb,    &s },
+        { "PULA", 0x32,  OpSimpleCb,    &s },
+        { "PULB", 0x33,  OpSimpleCb,    &s },
+        { "DES",  0x34,  OpSimpleCb,    &s },
+        { "TXS",  0x35,  OpSimpleCb,    &s },
+        { "PSHA", 0x36,  OpSimpleCb,    &s },
+        { "PSHB", 0x37,  OpSimpleCb,    &s },
+        { "PULX", 0x38,  OpSimpleCb,    &s },
+        { "RTS",  0x39,  OpSimpleCb,    &s },
+        { "ABX",  0x3a,  OpSimpleCb,    &s },
+        { "RTI",  0x3b,  OpSimpleCb,    &s },
+        { "PSHX", 0x3c,  OpSimpleCb,    &s },
+        { "MUL",  0x3d,  OpSimpleCb,    &s },
+        { "WAI",  0x3e,  OpSimpleCb,    &s },
+        { "SWI",  0x3f,  OpSimpleCb,    &s },
+        { "NEGA", 0x40,  OpSimpleCb,    &s },
+        { "COMA", 0x43,  OpSimpleCb,    &s },
+        { "LSRA", 0x44,  OpSimpleCb,    &s },
+        { "RORA", 0x46,  OpSimpleCb,    &s },
+        { "ASRA", 0x47,  OpSimpleCb,    &s },
+        { "ASLA", 0x48,  OpSimpleCb,    &s },
+        { "ROLA", 0x49,  OpSimpleCb,    &s },
+        { "DECA", 0x4a,  OpSimpleCb,    &s },
+        { "INCA", 0x4c,  OpSimpleCb,    &s },
+        { "TSTA", 0x4d,  OpSimpleCb,    &s },
+        { "CLRA", 0x4f,  OpSimpleCb,    &s },
+        { "NEGB", 0x50,  OpSimpleCb,    &s },
+        { "COMB", 0x53,  OpSimpleCb,    &s },
+        { "LSRB", 0x54,  OpSimpleCb,    &s },
+        { "RORB", 0x56,  OpSimpleCb,    &s },
+        { "ASRB", 0x57,  OpSimpleCb,    &s },
+        { "ASLB", 0x58,  OpSimpleCb,    &s },
+        { "ROLB", 0x59,  OpSimpleCb,    &s },
+        { "DECB", 0x5a,  OpSimpleCb,    &s },
+        { "INCB", 0x5c,  OpSimpleCb,    &s },
+        { "TSTB", 0x5d,  OpSimpleCb,    &s },
+        { "CLRB", 0x5f,  OpSimpleCb,    &s },
+
+        # Branch encodings.
+
+        { "BRA",  0x20,  OpBrCb,        &s },
+        { "BRN",  0x21,  OpBrCb,        &s },
+        { "BHI",  0x22,  OpBrCb,        &s },
+        { "BLS",  0x23,  OpBrCb,        &s },
+        { "BCC",  0x24,  OpBrCb,        &s },
+        { "BCS",  0x25,  OpBrCb,        &s },
+        { "BNE",  0x26,  OpBrCb,        &s },
+        { "BEQ",  0x27,  OpBrCb,        &s },
+        { "BVC",  0x28,  OpBrCb,        &s },
+        { "BVS",  0x29,  OpBrCb,        &s },
+        { "BPL",  0x2a,  OpBrCb,        &s },
+        { "BMI",  0x2b,  OpBrCb,        &s },
+        { "BGE",  0x2c,  OpBrCb,        &s },
+        { "BLT",  0x2d,  OpBrCb,        &s },
+        { "BGT",  0x2e,  OpBrCb,        &s },
+        { "BLE",  0x2f,  OpBrCb,        &s },
+        { "BSR",  0x8d,  OpBrCb,        &s },
+
+        # The I/O instructions (which have special encodings).
+
+        { "AIM",  0x41,  OpImCb,        &s },
+        { "OIM",  0x42,  OpImCb,        &s },
+        { "EIM",  0x45,  OpImCb,        &s },
+        { "TIM",  0x4b,  OpImCb,        &s },
+
+        # Operations taking only IND and EXT addressing modes.
+
+        { "NEG",   0x40, Op23Cb,        &s },
+        { "COM",   0x43, Op23Cb,        &s },
+        { "LSR",   0x44, Op23Cb,        &s },
+        { "ROR",   0x46, Op23Cb,        &s },
+        { "ASR",   0x47, Op23Cb,        &s },
+        { "ASL",   0x48, Op23Cb,        &s },
+        { "ROL",   0x49, Op23Cb,        &s },
+        { "DEC",   0x4a, Op23Cb,        &s },
+        { "INC",   0x4c, Op23Cb,        &s },
+        { "TST",   0x4d, Op23Cb,        &s },
+        { "JMP",   0x4e, Op23Cb,        &s },
+        { "CLR",   0x4f, Op23Cb,        &s },
+
+        # Operations taking only DIR, IND or EXT addressing modes.
+
+        { "STAA",  0x87, Op123Cb,       &s },
+        { "STAB",  0xc7, Op123Cb,       &s },
+        { "JSR",   0x8d, Op123Cb,       &s },
+        { "STD",   0xcd, Op123Cb,       &s },
+        { "STS",   0x8f, Op123Cb,       &s },
+        { "STX",   0xcf, Op123Cb,       &s },
+
+        # Operations taking IMM, DIR, IND or EXT addressing modes.
+
+        { "SUBA",  0x80, Op0123Cb,      &s },
+        { "SUBB",  0xc0, Op0123Cb,      &s },
+        { "CMPA",  0x81, Op0123Cb,      &s },
+        { "CMPB",  0xc1, Op0123Cb,      &s },
+        { "SBCA",  0x82, Op0123Cb,      &s },
+        { "SBCB",  0xc2, Op0123Cb,      &s },
+        { "SUBD",  0x83, Op0123Cb,      &s },
+        { "ADDD",  0xc3, Op0123Cb,      &s },
+        { "ANDA",  0x84, Op0123Cb,      &s },
+        { "ANDB",  0xc4, Op0123Cb,      &s },
+        { "BITA",  0x85, Op0123Cb,      &s },
+        { "BITB",  0xc5, Op0123Cb,      &s },
+        { "LDAA",  0x86, Op0123Cb,      &s },
+        { "LDAB",  0xc6, Op0123Cb,      &s },
+        { "EORA",  0x88, Op0123Cb,      &s },
+        { "EORB",  0xc8, Op0123Cb,      &s },
+        { "ADCA",  0x89, Op0123Cb,      &s },
+        { "ADCB",  0xc9, Op0123Cb,      &s },
+        { "ORAA",  0x8a, Op0123Cb,      &s },
+        { "ORAB",  0xca, Op0123Cb,      &s },
+        { "ADDA",  0x8b, Op0123Cb,      &s },
+        { "ADDB",  0xcb, Op0123Cb,      &s },
+        { "CPX",   0x8c, Op0123Cb,      &s },
+        { "LDD",   0xcc, Op0123Cb,      &s },
+        { "LDS",   0x8e, Op0123Cb,      &s },
+        { "LDX",   0xce, Op0123Cb,      &s },
+	};
+
+    AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
+end sub;
+
+Main("6303 Assembler (C) 2020 David Given; ");
+
+# vim: sw=4 ts=4 et

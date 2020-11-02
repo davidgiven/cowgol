@@ -370,12 +370,6 @@
 		E_alu2_noflush("CMP", src, dest);
 	end sub;
 
-	sub E_cmp4(src: RegId, dest: RegId) is
-		E_alu2_noflush("CMP", hireg(src), hireg(dest));
-		E("\tbne\t$+4\n");
-		E_alu2_noflush("CMP", loreg(src), loreg(dest));
-	end sub;
-
 	sub E_alu2(insn: string, src: RegId, dest: RegId) is
 		R_flush(dest);
 		E_alu2_noflush(insn, src, dest);
@@ -464,21 +458,6 @@
 		E_nl();
 	end sub;
 
-	sub E_cmpi(value: Arith, src: RegId) is
-		E_insn("CMP", src);
-		E_reg(src);
-		E(", ");
-		E_b8('#');
-		E_i32(value);
-		E_nl();
-	end sub;
-
-	sub E_cmpi4(value: Arith, reg: RegId) is
-		E_cmpi(value >> 16, hireg(reg));
-		E("\tbne\t$+6\n");
-		E_cmpi(value & 0xffff, loreg(reg));
-	end sub;
-
 	sub E_addi(value: Arith, dest: RegId) is
 		case value is
 			when 1: E_inc(dest);
@@ -541,6 +520,39 @@
 
 	sub E_ori(value: Arith, dest: RegId) is
 		E_alu2i("BIS", value, dest);
+	end sub;
+
+	sub E_cmpeq4(src: RegId, dest: RegId) is
+		E_alu2_noflush("CMP", hireg(src), hireg(dest));
+		E("\tbne\t$+4\n");
+		E_alu2_noflush("CMP", loreg(src), loreg(dest));
+	end sub;
+
+	sub E_cmpu4(lhs: RegId, rhs: RegId) is
+		E_alu2_noflush("CMP", hireg(lhs), hireg(rhs));
+		E("\tblo\t$+4\n");
+		E_alu2_noflush("CMP", loreg(lhs), loreg(rhs));
+	end sub;
+
+	sub E_cmps4(lhs: RegId, rhs: RegId) is
+		E_sub(loreg(rhs), loreg(lhs));
+		E_sbc(hireg(lhs));
+		E_sub(hireg(rhs), hireg(lhs));
+	end sub;
+
+	sub E_cmpi(value: Arith, src: RegId) is
+		E_insn("CMP", src);
+		E_reg(src);
+		E(", ");
+		E_b8('#');
+		E_i32(value);
+		E_nl();
+	end sub;
+
+	sub E_cmpi4(value: Arith, reg: RegId) is
+		E_cmpi(value >> 16, hireg(reg));
+		E("\tbne\t$+6\n");
+		E_cmpi(value & 0xffff, loreg(reg));
 	end sub;
 
 	sub E_sxtb(reg: RegId) is
@@ -1458,22 +1470,22 @@ gen BEQ1(r8:lhs, r8:rhs):b         { E_cmp($lhs, $rhs);      CmpJumpsJe(self.n[0
 gen BEQ1(r8:lhs, CONSTANT():c):b   { if ($c.value == 0) then E_tst($lhs); else E_cmpi($c.value, $lhs); end if; CmpJumpsJe(self.n[0]); }
 gen BEQ2(r16:lhs, r16:rhs):b       { E_cmp($lhs, $rhs);      CmpJumpsJe(self.n[0]); }
 gen BEQ2(r16:lhs, CONSTANT():c):b  { if ($c.value == 0) then E_tst($lhs); else E_cmpi($c.value, $lhs); end if; CmpJumpsJe(self.n[0]); }
-gen BEQ4(r32:lhs, r32:rhs):b       { E_cmp4($lhs, $rhs);     CmpJumpsJe(self.n[0]); }
+gen BEQ4(r32:lhs, r32:rhs):b       { E_cmpeq4($lhs, $rhs);   CmpJumpsJe(self.n[0]); }
 //n BEQ4(r32:lhs, CONSTANT():c):b  { E_cmpi4($c.value, $lhs); CmpJumpsJe(self.n[0]); } // XXX deadlock
 
 gen BLTS1(r8:lhs, r8:rhs):b        { E_cmp($lhs, $rhs);      CmpJumpsJl(self.n[0]); }
 gen BLTS1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
 gen BLTS2(r16:lhs, r16:rhs):b      { E_cmp($lhs, $rhs);      CmpJumpsJl(self.n[0]); }
 gen BLTS2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
-gen BLTS4(r32:lhs, r32:rhs):b      { E_cmp4($lhs, $rhs);     CmpJumpsJl(self.n[0]); }
-gen BLTS4(r32:lhs, CONSTANT():c):b { E_cmpi4($c.value, $lhs); CmpJumpsJl(self.n[0]); }
+gen BLTS4(r32:lhs, r32:rhs):b      { E_cmps4($lhs, $rhs);     CmpJumpsJl(self.n[0]); }
+//gen BLTS4(r32:lhs, CONSTANT():c):b { E_cmpi4($c.value, $lhs); CmpJumpsJl(self.n[0]); }
 
 gen BLTU1(r8:lhs, r8:rhs):b        { E_cmp($lhs, $rhs);      CmpJumpsJb(self.n[0]); }
 gen BLTU1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
 gen BLTU2(r16:lhs, r16:rhs):b      { E_cmp($lhs, $rhs);      CmpJumpsJb(self.n[0]); }
 gen BLTU2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
-gen BLTU4(r32:lhs, r32:rhs):b      { E_cmp4($lhs, $rhs);     CmpJumpsJb(self.n[0]); }
-gen BLTU4(r32:lhs, CONSTANT():c):b { E_cmpi4($c.value, $lhs); CmpJumpsJb(self.n[0]); }
+gen BLTU4(r32:lhs, r32:rhs):b      { E_cmpu4($lhs, $rhs);     CmpJumpsJb(self.n[0]); }
+//gen BLTU4(r32:lhs, CONSTANT():c):b { E_cmpi4($c.value, $lhs); CmpJumpsJb(self.n[0]); }
 
 // --- Case -----------------------------------------------------------------
 
