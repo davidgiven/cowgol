@@ -823,7 +823,7 @@ gen xd := CONSTANT():c
     E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
 }
 
-gen i4 := CONSTANT():c uses d
+gen i4 := CONSTANT():c uses x
 {
     var op: Operand;
 
@@ -912,7 +912,7 @@ gen a|b := LOAD1(x)
 	E(",x\n");
 }
 
-gen a|b := LOAD1(ADDRESS():a) uses x
+gen a|b := LOAD1(ADDRESS():a)
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -933,7 +933,7 @@ gen x|d := LOAD2(x)
 	E(",x\n");
 }
 
-gen x|d := LOAD2(ADDRESS():a) uses x
+gen x|d := LOAD2(ADDRESS():a)
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -987,7 +987,7 @@ gen i4 := LOAD4(x) uses d
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a|b := ADD1($$:lhs, op|vs1:rhs) uses x
+gen a|b := ADD1($$:lhs, op|vs1:rhs)
 {
     RetractVStack($rhs, &$@rhs.operand);
 	E_accop("adda", "addb", $lhs, $rhs, &$@rhs.operand, 0, 0);
@@ -1007,7 +1007,7 @@ gen a|b := ADD1($$:lhs, CONSTANT(value == -1))
 	E_nl();
 }
 
-gen a|b := SUB1($$:lhs, op|vs1:rhs) uses x
+gen a|b := SUB1($$:lhs, op|vs1:rhs)
 {
     RetractVStack($rhs, &$@rhs.operand);
 	E_accop("suba", "subb", $lhs, $rhs, &$@rhs.operand, 0, 0);
@@ -1089,13 +1089,13 @@ gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "and
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
-gen d := ADD2($$:lhs, op|vs2:rhs) uses x
+gen d := ADD2($$:lhs, op|vs2:rhs)
 {
     RetractVStack($rhs, &$@rhs.operand);
     E_insnop("addd", $lhs, $rhs, &$@rhs.operand, 0, 0);
 }
 
-gen d := SUB2($$:lhs, op|vs2:rhs) uses x
+gen d := SUB2($$:lhs, op|vs2:rhs)
 {
     RetractVStack($rhs, &$@rhs.operand);
     E_insnop("subd", $lhs, $rhs, &$@rhs.operand, 0, 0);
@@ -1197,7 +1197,7 @@ gen d := RSHIFTS2(x, b)      { E_callhelper("_asr2"); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
-gen xd := ADD4(i4:lhs, xd:rhs)
+gen xd := ADD4(imm|mem|i4:lhs, imm|mem|xd:rhs)
 {
     if ($lhs == REG_I4) and ($rhs == REG_XD) then
         E_callhelper("_addxd4");
