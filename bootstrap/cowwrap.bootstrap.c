@@ -1,6 +1,6 @@
 #include "cowgol.h"
 static i8 workspace[0x00a9];
-static i1* ws = (i1*)workspace;
+#define ws ((i1*)workspace)
 
 // ExitWithError workspace at ws+1264 length ws+0
 void f6_ExitWithError(void) {
@@ -3273,4 +3273,4 @@ endsub:;
 void cmain(void) {
 	f3___main();
 }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
