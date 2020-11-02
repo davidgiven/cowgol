@@ -381,6 +381,11 @@
             E_xgdx();
 		elseif (src == REG_D) and (dest == REG_X) then
             E_xgdx();
+        elseif (src == REG_XD) and (dest == REG_I4) then
+            E_xgdx();
+            E_push(REG_X);
+            E_xgdx();
+            E_push(REG_X);
 		elseif dest == 0 then
 			E_push(src);
 		elseif src == 0 then
@@ -411,19 +416,21 @@ register a;     // 0001
 register b;     // 0002
 register d;     // 0004
 register x;     // 0008
-register i4;    // 0010
-register param; // 0020
+register xd;    // 0010
+register i4;    // 0020
+register param; // 0040
 
-operand imm;    // 0040
-operand mem;    // 0080
-operand xind;   // 0100
-operand vs1;    // 0200
-operand vs2;    // 0400
+operand imm;    // 0080
+operand mem;    // 0100
+operand xind;   // 0200
+operand vs1;    // 0400
+operand vs2;    // 0800
 
 regdata a uses d   compatible a|b;
 regdata b uses d   compatible a|b;
 regdata d uses a|b compatible d|x;
 regdata x          compatible d|x;
+regdata xd uses x|d;
 regdata param stacked;
 regdata i4 stacked;
 
@@ -719,6 +726,22 @@ gen vs2 := FALLBACK(d|x:lhs)
     PushVStack(&$@$.operand, 2);
 }
 
+gen xd := FALLBACK(i4)
+{
+    E_pop(REG_X);
+    E_xgdx();
+    E_pop(REG_X);
+    E_xgdx();
+}
+
+gen i4 := FALLBACK(xd)
+{
+    E_xgdx();
+    E_push(REG_X);
+    E_xgdx();
+    E_push(REG_X);
+}
+
 // --- Simple things --------------------------------------------------------
 
 gen x|d := ADDRESS():a
@@ -782,17 +805,28 @@ gen d|x := SUBREF():s
     E_nl();
 }
 
-gen i4 := CONSTANT():c
+gen xd := CONSTANT():c
 {
     var op: Operand;
 
     op.imm.value := $c.value as uint16 as int32;
     E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
-    E_push(REG_D);
 
     op.imm.value := ($c.value as uint32 >> 16) as uint16 as int32;
-    E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
-    E_push(REG_D);
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+}
+
+gen i4 := CONSTANT():c uses d
+{
+    var op: Operand;
+
+    op.imm.value := $c.value as uint16 as int32;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+    E_push(REG_X);
+
+    op.imm.value := ($c.value as uint32 >> 16) as uint16 as int32;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+    E_push(REG_X);
 }
 
 // --- Stores (these don't use operands) ------------------------------------
@@ -839,17 +873,22 @@ gen STORE2(d:lhs, ADDRESS():a)
     E_stop_c($lhs, REG_MEM, &op, 0, 0);
 }
 
-gen STORE4(i4:lhs, ADDRESS():a) uses d
+gen STORE4(i4|xd:lhs, ADDRESS():a) uses d
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
     op.mem.off := $a.off;
 
-    E_pop(REG_D);
-    E_stop(REG_D, REG_MEM, &op, 0, 16);
+    if $lhs == REG_I4 then
+        E_pop(REG_D);
+        E_stop(REG_D, REG_MEM, &op, 0, 16);
 
-    E_pop(REG_D);
-    E_stop(REG_D, REG_MEM, &op, 2, 0);
+        E_pop(REG_D);
+        E_stop(REG_D, REG_MEM, &op, 2, 0);
+    else
+        E_stop(REG_D, REG_MEM, &op, 2, 0);
+        E_stop(REG_X, REG_MEM, &op, 0, 16);
+    end if;
 }
 
 gen STORE4(i4:lhs, x) uses d
@@ -902,17 +941,35 @@ gen x|d := LOAD2(ADD2(x, CONSTANT(value is bytem1):c))
 	E(",x\n");
 }
 
-gen i4 := LOAD4(ADDRESS():a) uses d|x
+gen xd := LOAD4(ADDRESS():a)
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
     op.mem.off := $a.off;
 
+    R_flush($$);
     E_ldop(REG_D, REG_MEM, &op, 2, 0);
-    E_push(REG_D);
+    E_ldop(REG_X, REG_MEM, &op, 0, 16);
+}
 
-    E_ldop(REG_D, REG_MEM, &op, 0, 16);
-    E_push(REG_D);
+gen i4 := LOAD4(ADDRESS():a) uses x
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+
+    R_flush(REG_X);
+    E_ldop(REG_X, REG_MEM, &op, 2, 0);
+    E_push(REG_X);
+    E_ldop(REG_X, REG_MEM, &op, 0, 16);
+    E_push(REG_X);
+}
+
+gen xd := LOAD4(x)
+{
+    R_flush($$);
+    E_insn_simple("ldd 2, x");
+    E_insn_simple("ldx 0, x");
 }
 
 gen i4 := LOAD4(x) uses d
@@ -1133,20 +1190,20 @@ gen d := RSHIFTS2(x, b)      { E_callhelper("_asr2"); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
-gen i4 := ADD4(i4, i4) uses x|d { E_callhelper("_add4"); }
-gen i4 := SUB4(i4, i4) uses x|d { E_callhelper("_sub4"); }
-gen i4 := DIVU4(i4, i4) uses x|d { E_callhelper("_divu4"); }
-gen i4 := REMU4(i4, i4) uses x|d { E_callhelper("_remu4"); }
-gen i4 := DIVS4(i4, i4) uses x|d { E_callhelper("_divs4"); }
-gen i4 := REMS4(i4, i4) uses x|d { E_callhelper("_rems4"); }
-gen i4 := MUL4(i4, i4) uses x|d { E_callhelper("_mul4"); }
+gen xd := ADD4(i4, xd) { E_callhelper("_addxd4"); }
+gen xd := SUB4(i4, xd) { E_callhelper("_subxd4"); }
+gen xd := DIVU4(i4, xd) { E_callhelper("_divuxd4"); }
+gen xd := REMU4(i4, xd) { E_callhelper("_remuxd4"); }
+gen xd := DIVS4(i4, xd) { E_callhelper("_divsxd4"); }
+gen xd := REMS4(i4, xd) { E_callhelper("_remsxd4"); }
+gen xd := MUL4(i4, xd) { E_callhelper("_mulxd4"); }
 
-gen i4 := AND4(i4, i4) uses x|d { E_callhelper("_and4"); }
-gen i4 := OR4(i4, i4) uses x|d { E_callhelper("_or4"); }
-gen i4 := EOR4(i4, i4) uses x|d { E_callhelper("_eor4"); }
+gen xd := AND4(i4, xd) { E_callhelper("_andxd4"); }
+gen xd := OR4(i4, xd) { E_callhelper("_orxd4"); }
+gen xd := EOR4(i4, xd) { E_callhelper("_eorxd4"); }
 
-gen i4 := NEG4(i4) uses x|d { E_callhelper("_neg4"); }
-gen i4 := NOT4(i4) uses x|d { E_callhelper("_not4"); }
+gen xd := NEG4(xd) { E_callhelper("_negxd4"); }
+gen xd := NOT4(xd) { E_callhelper("_notxd4"); }
 
 gen i4 := LSHIFT4(i4, b)  { E_callhelper("_lsl4"); }
 gen i4 := RSHIFTU4(i4, b) { E_callhelper("_lsr4"); }
@@ -1171,25 +1228,30 @@ gen d := CAST12(b, sext!=0)
 
 gen b := CAST21(d);
 
-gen i4 := CAST14(b, sext==0) { E_callhelper("_castu14"); }
-gen i4 := CAST14(b, sext!=0) { E_callhelper("_casts14"); }
-gen i4 := CAST24(d, sext==0) { E_callhelper("_castu24"); }
-gen i4 := CAST24(d, sext!=0) { E_callhelper("_casts24"); }
-
-gen b|a := CAST41(i4)
+gen xd := CAST14(b, sext==0)
 {
-    E_insn_simple("ins");
-    E_insn_simple("ins");
-    E_insn_simple("ins");
-    E_pop($$);
+    R_flush($$);
+    E_insn_simple("clra");
+
+    var op: Operand;
+    op.imm.value := 0;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
 }
 
-gen d := CAST42(i4)
+gen xd := CAST24(d, sext==0)
 {
-    E_insn_simple("ins");
-    E_insn_simple("ins");
-    E_pop($$);
+    R_flush($$);
+
+    var op: Operand;
+    op.imm.value := 0;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
 }
+
+gen xd := CAST14(b, sext!=0) { E_callhelper("_castsxd14"); }
+gen xd := CAST24(d, sext!=0) { E_callhelper("_castsxd24"); }
+
+gen b := CAST41(xd);
+gen d := CAST42(xd);
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -1231,20 +1293,15 @@ gen BEQ2(d|x:lhs, op|vs2:rhs):b  { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_wit
 gen BLTU2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
 gen BLTS2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
-gen BEQ4(i4, i4)
-{
-    E_callhelper("_cmpeq4");
-    E_jumps_with_fallthrough("beq", "bne", $@$);
-}
-
-gen BLTU4(i4, i4) { E_callhelper("_cmpltu4"); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
-gen BLTS4(i4, i4) { E_callhelper("_cmplts4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
+gen BEQ4(i4, xd)  { E_callhelper("_cmpeqxd4"); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU4(i4, xd) { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS4(i4, xd) { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
 // --- Case -----------------------------------------------------------------
 
 gen STARTCASE1(b);
 gen STARTCASE2(x);
-gen STARTCASE4(i4) { E_pop(REG_D); E_pop(REG_X); }
+gen STARTCASE4(xd);
 
 gen WHENCASE1():c
 {
@@ -1272,7 +1329,7 @@ gen WHENCASE4():c uses a
 {
     E_insn("cpx");
     E_const();
-    E_u16($c.value as uint16);
+    E_u16(($c.value >> 16) as uint16);
     E_nl();
     E_insn("bne");
     E_labelref($c.falselabel);
@@ -1281,7 +1338,7 @@ gen WHENCASE4():c uses a
     E_xgdx();
     E_insn("cpx");
     E_const();
-    E_u16(($c.value >> 16) as uint16);
+    E_u16($c.value as uint16);
     E_nl();
     E_xgdx();
     E_insn("bne");

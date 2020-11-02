@@ -46,65 +46,27 @@
     ldx `$_return.1.0
     jmp ,x
 
-&X _castu14
-; Unsigned cast of b to i4.
+&X _castsxd14
+; Signed cast of b to xd.
 ``:
-    pulx
-
-    clra
-    pshb
-    psha
-    psha
-    psha
-
-    jmp ,x
-    
-&X _casts14
-; Signed cast of b to i4.
-``:
-    pulx
-
+    ldx #0
     clra
     tstb
     bpl ``_skip
     coma
+    dex
 ``_skip:
-    pshb
-    psha
-    psha
-    psha
+    rts
 
-    jmp ,x
-
-&X _castu24
-; Unsigned cast of d to i4.
+&X _castsxd24
+; Signed cast of d to xd.
 ``:
-    pulx
-
-    pshb
-    psha
-    clra
-    psha
-    psha
-
-    jmp ,x
-    
-&X _casts24
-; Signed cast of d to i4.
-``:
-    pulx
-
-    pshb
-    psha
-    clrb
+    ldx #0
     tsta
     bpl ``_skip
-    comb
+    dex
 ``_skip:
-    pshb
-    pshb
-
-    jmp ,x
+    rts
 
 &X _lsl1
 ; Shifts b left by a bits, putting the result in b.
@@ -365,138 +327,129 @@
     xgdx
     rts
 
-
-&X _add4
-; 32-bit add; (i4 i4 -- i4)
+&X _addxd4
+; 32-bit add; (i4 xd -- xd)
+&W _addxd4 1 4
 ``:
-    pula
-    pulb
-    std `$_return.1.0
-
+    pshx                ; high word of RHS
     tsx
-    ldd 2, x
     addd 6, x
-    std 6, x
-    ldd 0, x
+    std `$_addxd4.1.2   ; low word of result
+    ldd 0, x            ; high word of RHS
     adcb 5, x
     adca 4, x
-    std 4, x
-
-    pulx
-    pulx
-    ldx `$_return.1.0
-    jmp ,x
-
-&X _sub4
-; 32-bit subtract; (i4 i4 -- i4)
-``:
-    pula
-    pulb
-    std `$_return.1.0
-
-    tsx
-    ldd 6, x
-    subd 2, x
+    std `$_addxd4.1.0   ; high word of result
+    ldd 2, x            ; return address
     std 6, x
-    ldd 4, x
-    sbcb 1, x
-    sbca 0, x
-    std 4, x
-
     pulx
     pulx
-    ldx `$_return.1.0
-    jmp ,x
+    pulx
+    ldx `$_addxd4.1.0
+    ldd `$_addxd4.1.2
+    rts
 
-&X _neg4
-; 32-bit negate; (i4 -- i4)
+&X _subxd4
+; 32-bit sub; (i4 xd -- xd)
+&W _subxd4 1 4
 ``:
+    pshx                ; high word of RHS
+    xgdx
+    pshx                ; low word of RHS
     tsx
-    clrb
-    clra
-    subd 4, x
-    std 4, x
-    ldd #0              ; can't use clr as it resets carry
-    sbcb 3, x
+    ldd 8, x            ; low word of LHS
+    subd 0, x           ; low word of RHS
+    std `$_subxd4.1.2   ; low word of result
+    ldd 6, x            ; high word of LHS
+    sbcb 3, x           ; high word of RHS
     sbca 2, x
-    std 2, x
-    rts
-    
-&X _not4
-; 32-bit NOT; (i4 -- i4)
-``:
-    tsx
-    com 2, x
-    com 3, x
-    com 4, x
-    com 5, x
+    std `$_subxd4.1.0   ; high word of result
+
+    ldd 4, x            ; return address
+    std 8, x
+    pulx
+    pulx
+    pulx
+    pulx
+    ldx `$_subxd4.1.0
+    ldd `$_subxd4.1.2
     rts
 
-&X _and4
-; 32-bit AND; (i4 i4 -- i4)
+&X _notxd4
+; 32-bit NOT; (xd -- xd)
 ``:
-    pula
-    pulb
-    std `$_return.1.0
+    comb
+    coma
+    xgdx
+    comb
+    coma
+    xgdx
+    rts
 
+&X _andxd4
+; 32-bit AND; (i4 xd -- xd)
+&W _andxd4 1 4
+``:
+    pshx                ; high word of RHS
     tsx
-    ldd 2, x
     andb 7, x
     anda 6, x
-    std 6, x
-    ldd 0, x
+    std `$_andxd4.1.2   ; low word of result
+    ldd 0, x            ; high word of RHS
     andb 5, x
     anda 4, x
-    std 4, x
-
+    std `$_andxd4.1.0   ; high word of result
+    ldd 2, x            ; return andress
+    std 6, x
     pulx
     pulx
-    ldx `$_return.1.0
-    jmp ,x
+    pulx
+    ldx `$_andxd4.1.0
+    ldd `$_andxd4.1.2
+    rts
 
-&X _or4
-; 32-bit OR; (i4 i4 -- i4)
+&X _orxd4
+; 32-bit OR; (i4 xd -- xd)
+&W _orxd4 1 4
 ``:
-    pula
-    pulb
-    std `$_return.1.0
-
+    pshx                ; high word of RHS
     tsx
-    ldd 2, x
     orab 7, x
     oraa 6, x
-    std 6, x
-    ldd 0, x
+    std `$_orxd4.1.2    ; low word of result
+    ldd 0, x            ; high word of RHS
     orab 5, x
     oraa 4, x
-    std 4, x
-
+    std `$_orxd4.1.0    ; high word of result
+    ldd 2, x            ; return orress
+    std 6, x
     pulx
     pulx
-    ldx `$_return.1.0
-    jmp ,x
+    pulx
+    ldx `$_orxd4.1.0
+    ldd `$_orxd4.1.2
+    rts
 
-&X _eor4
-; 32-bit EOR; (i4 i4 -- i4)
+&X _eorxd4
+; 32-bit EOR; (i4 xd -- xd)
+&W _eorxd4 1 4
 ``:
-    pula
-    pulb
-    std `$_return.1.0
-
+    pshx                ; high word of RHS
     tsx
-    ldd 2, x
     eorb 7, x
     eora 6, x
-    std 6, x
-    ldd 0, x
+    std `$_eorxd4.1.2   ; low word of result
+    ldd 0, x            ; high word of RHS
     eorb 5, x
     eora 4, x
-    std 4, x
-
+    std `$_eorxd4.1.0   ; high word of result
+    ldd 2, x            ; return eorress
+    std 6, x
     pulx
     pulx
-    ldx `$_return.1.0
-    jmp ,x
+    pulx
+    ldx `$_eorxd4.1.0
+    ldd `$_eorxd4.1.2
+    rts
 
 &X _lsl4
 ; 32-bit left shift by B; (i4 -- i4)
@@ -546,20 +499,55 @@
     bne ``_loop
     rts
 
-&X _cmpeq4
-; 32-bit compare; (i4 i4 --). Sets Z only.
+&X _cmpeqxd4
+; 32-bit compare; (i4 xd --). Sets Z only.
 ``:
-    pula
-    pulb
-    std `$_return.1.0
+    pshx
 
     tsx
-    ldd 2, x
     subd 6, x
-    bne `_pop8andreturn
+    bne `_cmpxdret6
     ldd 0, x
     subd 4, x
-    bra `_pop8andreturn
+    bra `_cmpxdret6
+
+&X _cmpxdret6
+``:
+    tpa
+    psha
+    ldd 2, x
+    std 6, x
+    pula
+    tap
+    pulx
+    pulx
+    pulx
+    rts
+
+&X _cmpltxd4
+; 32-bit compare for LT; (i4 xd --). Sets V and N only (not Z).
+``:
+    pshx                    ; push RHS high word
+    xgdx
+    pshx                    ; push RHS low word (reverse order)
+
+    tsx
+    ldd 8, x                ; load LHS low word
+    subd 0, x               ; sub RHS low word
+    ldd 6, x                ; load LHS high word
+    sbcb 3, x               ; sub LHS high word
+    sbca 2, x
+    tpa
+    psha
+    ldd 4, x
+    std 8, x
+    pula
+    tap
+    pulx
+    pulx
+    pulx
+    pulx
+    rts
 
 &S _pop8andreturn
 ; Pops eight bytes and jumps to the stored return address.
@@ -603,20 +591,19 @@
     sbca 0, x
     bra `_pop8andreturn
 
-&X _mul4
-; 32-bit multiply: (i4 i4 -- i4)
-&W _mul4 1 3
+&X _mulxd4
+; 32-bit multiply: (i4 xd -- xd)
+&W _mulxd4 1 3
 ``:
+    stx `$_mathpad.1.0
+    std `$_mathpad.1.2
+
     pulx
-    stx `$_mul4.1.0
+    stx `$_mulxd4.1.0
 
     ldaa #32                ; loop counter
-    staa `$_mul4.1.2
+    staa `$_mulxd4.1.2
 
-    pulx
-    stx `$_mathpad.1.0
-    pulx
-    stx `$_mathpad.1.2
     clra
     clrb
     std `$_mathpad.1.4
@@ -646,23 +633,22 @@
 
     ldx #4                  ; (propagate carry through upper four bytes of result)
 ``_2:
-    bcc ``_noadd           ; no more carries to propagate
+    bcc ``_noadd            ; no more carries to propagate
     ldaa #0                 ; clr resets carry
     adca `$_mathpad.1.0-1, x
     staa `$_mathpad.1.0-1, x
     dex
     bne ``_2
 ``_noadd:
-    dec `$_mul4.1.2
+    dec `$_mulxd4.1.2
     bne ``_loop
 
-    ldx `$_mathpad.1.6
+    ldx `$_mulxd4.1.0
     pshx
+    
+    ldd `$_mathpad.1.6
     ldx `$_mathpad.1.4
-    pshx
-
-    ldx `$_mul4.1.0
-    jmp ,x
+    rts
 
 &X _divremu4
 ; 32-bit unsigned divide of the contents of mathpad.
@@ -703,17 +689,15 @@
     bne ``_loop
     rts
 
-&X _remu4
-; 32-bit unsigned remainder. (i4 i4 -- i4)
-&W _remu4 1 2
+&X _remuxd4
+; 32-bit unsigned remide. (i4 xd -- xd)
+&W _remuxd4 1 2
 ``:
-    pulx
-    stx `$_remu4.1.0
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
 
     pulx
-    stx `$_mathpad.1.8
-    pulx
-    stx `$_mathpad.1.10
+    stx `$_remuxd4.1.0
 
     pulx
     stx `$_mathpad.1.0
@@ -722,25 +706,22 @@
 
     bsr `_divremu4
 
-    ldx `$_mathpad.1.6
+    ldx `$_remuxd4.1.0
     pshx
+
+    ldd `$_mathpad.1.6
     ldx `$_mathpad.1.4
-    pshx
+    rts
 
-    ldx `$_remu4.1.0
-    jmp ,x
-
-&X _divu4
-; 32-bit unsigned divide. (i4 i4 -- i4)
-&W _divu4 1 2
+&X _divuxd4
+; 32-bit unsigned divide. (i4 xd -- xd)
+&W _divuxd4 1 2
 ``:
-    pulx
-    stx `$_divu4.1.0
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
 
     pulx
-    stx `$_mathpad.1.8
-    pulx
-    stx `$_mathpad.1.10
+    stx `$_divuxd4.1.0
 
     pulx
     stx `$_mathpad.1.0
@@ -749,21 +730,20 @@
 
     bsr `_divremu4
 
-    ldx `$_mathpad.1.2
+    ldx `$_divuxd4.1.0
     pshx
+
+    ldd `$_mathpad.1.2
     ldx `$_mathpad.1.0
-    pshx
+    rts
 
-    ldx `$_divu4.1.0
-    jmp ,x
-
-&S _negxd
+&X _negxd4
 ; Negates xd.
 ``:
     subd #1
     xgdx
-    adcb #0
-    adca #0
+    sbcb #0
+    sbca #0
     coma
     comb
     xgdx
@@ -782,7 +762,7 @@
     ldx `$_mathpad.1.0  ; does the LHS need inverting?
     bpl ``_lhs_positive
     ldd `$_mathpad.1.2
-    bsr `_negxd
+    bsr `_negxd4
     std `$_mathpad.1.2
     stx `$_mathpad.1.0
 ``_lhs_positive:
@@ -790,7 +770,7 @@
     ldx `$_mathpad.1.8  ; does RHS need inverting?
     bpl ``_rhs_positive
     ldd `$_mathpad.1.10
-    bsr `_negxd
+    bsr `_negxd4
     std `$_mathpad.1.10
     stx `$_mathpad.1.8
 ``_rhs_positive:
@@ -802,7 +782,7 @@
     bpl ``_dividend_positive
     ldx `$_mathpad.1.0
     ldd `$_mathpad.1.2
-    bsr `_negxd
+    bsr `_negxd4
     std `$_mathpad.1.2
     stx `$_mathpad.1.0
 ``_dividend_positive:
@@ -812,23 +792,21 @@
     bpl ``_remainder_positive
     ldx `$_mathpad.1.4
     ldd `$_mathpad.1.6
-    bsr `_negxd
+    bsr `_negxd4
     std `$_mathpad.1.6
     stx `$_mathpad.1.4
 ``_remainder_positive:
     rts
 
-&X _rems4
-; 32-bit signed remainder. (i4 i4 -- i4)
-&W _rems4 1 2
+&X _remsxd4
+; 32-bit unsigned remainder. (i4 xd -- xd)
+&W _remsxd4 1 2
 ``:
-    pulx
-    stx `$_remu4.1.0
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
 
     pulx
-    stx `$_mathpad.1.8
-    pulx
-    stx `$_mathpad.1.10
+    stx `$_remsxd4.1.0
 
     pulx
     stx `$_mathpad.1.0
@@ -837,25 +815,22 @@
 
     bsr `_divrems4
 
-    ldx `$_mathpad.1.6
+    ldx `$_remsxd4.1.0
     pshx
+
+    ldd `$_mathpad.1.6
     ldx `$_mathpad.1.4
-    pshx
+    rts
 
-    ldx `$_remu4.1.0
-    jmp ,x
-
-&X _divs4
-; 32-bit signed divide. (i4 i4 -- i4)
-&W _divs4 1 2
+&X _divsxd4
+; 32-bit unsigned divide. (i4 xd -- xd)
+&W _divsxd4 1 2
 ``:
-    pulx
-    stx `$_divu4.1.0
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
 
     pulx
-    stx `$_mathpad.1.8
-    pulx
-    stx `$_mathpad.1.10
+    stx `$_divsxd4.1.0
 
     pulx
     stx `$_mathpad.1.0
@@ -864,13 +839,13 @@
 
     bsr `_divrems4
 
-    ldx `$_mathpad.1.2
-    pshx
-    ldx `$_mathpad.1.0
+    ldx `$_divsxd4.1.0
     pshx
 
-    ldx `$_divu4.1.0
-    jmp ,x
+    ldd `$_mathpad.1.2
+    ldx `$_mathpad.1.0
+    rts
+
 ; vim: sw=4 ts=4 et
 
 
