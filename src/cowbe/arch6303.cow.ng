@@ -417,14 +417,14 @@ register b;     // 0002
 register d;     // 0004
 register x;     // 0008
 register xd;    // 0010
-register i4;    // 0020
-register param; // 0040
+register param; // 0020
 
-operand imm;    // 0080
-operand mem;    // 0100
-operand xind;   // 0200
-operand vs1;    // 0400
-operand vs2;    // 0800
+operand imm;    // 0040
+operand mem;    // 0080
+operand xind;   // 0100
+operand vs1;    // 0200
+operand vs2;    // 0400
+register i4;    // 0800
 
 regdata a uses d   compatible a|b;
 regdata b uses d   compatible a|b;
@@ -684,6 +684,13 @@ gen mem := LOAD1(ADDRESS():a) cost 5
 }
 
 gen mem := LOAD2(ADDRESS():a) cost 5
+{
+	var op := &self.n[0].operand;
+	op.mem.sym := &$a.sym;
+	op.mem.off := $a.off;
+}
+
+gen mem := LOAD4(ADDRESS():a) cost 5
 {
 	var op := &self.n[0].operand;
 	op.mem.sym := &$a.sym;
@@ -1190,7 +1197,29 @@ gen d := RSHIFTS2(x, b)      { E_callhelper("_asr2"); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
-gen xd := ADD4(i4, xd) { E_callhelper("_addxd4"); }
+gen xd := ADD4(imm|mem|i4:lhs, imm|mem|xd:rhs)
+{
+    if ($lhs == REG_I4) and ($rhs == REG_XD) then
+        E_callhelper("_addxd4");
+    elseif $lhs == REG_I4 then
+        E_ldop(REG_D, $rhs, &$@rhs.operand, 2, 0);
+        E_ldop(REG_X, $rhs, &$@rhs.operand, 0, 16);
+        E_callhelper("_addxd4");
+    else
+        if $rhs != REG_XD then
+            E_ldop(REG_D, $rhs, &$@rhs.operand, 2, 0);
+        end if;
+        E_insnop("addd", REG_D, $lhs, &$@lhs.operand, 2, 0);
+        E_xgdx();
+        if $rhs != REG_XD then
+            E_ldop(REG_D, $rhs, &$@rhs.operand, 0, 16);
+        end if;
+        E_insnop("adcb", REG_B, $lhs, &$@lhs.operand, 1, 16);
+        E_insnop("adca", REG_A, $lhs, &$@lhs.operand, 0, 24);
+        E_xgdx();
+    end if;
+}
+
 gen xd := SUB4(i4, xd) { E_callhelper("_subxd4"); }
 gen xd := DIVU4(i4, xd) { E_callhelper("_divuxd4"); }
 gen xd := REMU4(i4, xd) { E_callhelper("_remuxd4"); }
