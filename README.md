@@ -40,6 +40,9 @@ The following targets are supported. Adding more is easy.
 
   - 6502 and 65c02, on the BBC Micro with Tube second processor.
 
+  - 6303, on the 6303 version of Fuzix (if anyone knows about FLEX and wants to
+	make this work, please get in touch).
+
   - 6502 interpreted bytecode, on the BBC Micro with Tube second processor;
 	this works just like above, but produces a stack-based bytecode with
 	integrated interpreter. It's much smaller, but also slower.
@@ -79,6 +82,8 @@ In terms of machines you can run the compiler _on_:
 	haven't tried it yet.
 
   - PDP11 V7 Unix (untested). Likewise not tried.
+
+  - Any Fuzix platform (untested). Equally untried.
 
 ### About the language
 
