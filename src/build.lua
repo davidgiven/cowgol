@@ -149,6 +149,15 @@ function buildtass64(e)
 	}
 end
 
+function buildnasm(e)
+	local com = e.outs[1]:ext(".com"):obj()
+	rule {
+		ins = e.ins,
+		outs = { com },
+		cmd = "nasm -f bin -o &1 @1",
+	}
+end
+
 function simpletest(interpreter, e)
 	local badfile = e.ins[1]:ext(".bad")
 	rule {
