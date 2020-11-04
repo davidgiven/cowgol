@@ -222,7 +222,7 @@ gen v := SUBREF():a
 
 // --- Loads and stores --------------------------------------------------
 
-gen STORE1(CONSTANT():c, ADDRESS():a)
+gen STORE1(CONSTANT():c, DEREF1(ADDRESS():a))
 {
 	E("A(");
 	E_symref(&$a.sym, $a.off);
@@ -231,7 +231,7 @@ gen STORE1(CONSTANT():c, ADDRESS():a)
 	E_nl();
 }
 
-gen STORE1(v, ADDRESS():a)
+gen STORE1(v, DEREF1(ADDRESS():a))
 {
 	var vid := PopVar();
 	E("A(");
@@ -241,7 +241,7 @@ gen STORE1(v, ADDRESS():a)
 	E_nl();
 }
 
-gen STORE1(v, v)
+gen STORE1(v, DEREF1(v))
 {
 	var ptr := PopVar();
 	var vid := PopVar();
@@ -252,7 +252,7 @@ gen STORE1(v, v)
 	E_nl();
 }
 
-gen v := LOAD1(ADDRESS():a)
+gen v := DEREF1(ADDRESS():a)
 {
 	var vid := PushVar();
 	E_varref(vid);
@@ -261,7 +261,7 @@ gen v := LOAD1(ADDRESS():a)
 	E(")\n");
 }
 
-gen v := LOAD1(v)
+gen v := DEREF1(v)
 {
 	var ptr := PopVar();
 	var vid := PushVar();
