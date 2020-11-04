@@ -385,24 +385,24 @@ gen reg := ADDRESS():a
 
 // --- Loads and stores --------------------------------------------------
 
-//gen reg := LOAD1(ADDRESS(sym is current_sub):a)
+//gen reg := DEREF1(ADDRESS(sym is current_sub):a)
 //	{ E("\tldrb %s, [r8, %d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
-gen reg := LOAD1(reg:lhs)
+gen reg := DEREF1(reg:lhs)
 	{ E("\tldrb %s, [%s]\n", regref($$), regref($lhs)); }
 
-//gen reg := LOAD2(ADDRESS(sym is current_sub):a)
+//gen reg := DEREF2(ADDRESS(sym is current_sub):a)
 //	{ E("\tldrh %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
-gen reg := LOAD2(reg:lhs)
+gen reg := DEREF2(reg:lhs)
 	{ E("\tldrh %s, [%s]\n", regref($$), regref($lhs)); }
 
-rewrite CAST24(LOAD1(a)) := LOAD2(a);
+rewrite CAST24(DEREF1(a)) := DEREF2(a);
 
-//gen reg := LOAD4(ADDRESS(sym is current_sub):a)
+//gen reg := DEREF4(ADDRESS(sym is current_sub):a)
 //	{ E("\tldr %s, [r8, #%d]\n", regref($$), $a.sym->u.var.offset + $a.off); }
 
-gen reg := LOAD4(reg:lhs)
+gen reg := DEREF4(reg:lhs)
 	{ E("\tldr %s, [%s]\n", regref($$), regref($lhs)); }
 
 //gen STORE1(reg:val, ADDRESS(sym is current_sub):a)

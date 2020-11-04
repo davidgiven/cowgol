@@ -676,34 +676,34 @@ gen RETURN()
 
 // --- Read operands --------------------------------------------------------
 
-gen mem := LOAD1(ADDRESS():a) cost 5
+gen mem := DEREF1(ADDRESS():a) cost 5
 {
 	var op := &self.n[0].operand;
 	op.mem.sym := &$a.sym;
 	op.mem.off := $a.off;
 }
 
-gen mem := LOAD2(ADDRESS():a) cost 5
+gen mem := DEREF2(ADDRESS():a) cost 5
 {
 	var op := &self.n[0].operand;
 	op.mem.sym := &$a.sym;
 	op.mem.off := $a.off;
 }
 
-gen mem := LOAD4(ADDRESS():a) cost 5
+gen mem := DEREF4(ADDRESS():a) cost 5
 {
 	var op := &self.n[0].operand;
 	op.mem.sym := &$a.sym;
 	op.mem.off := $a.off;
 }
 
-gen xind := LOAD1(ADD2(x, CONSTANT(value is byte):c)) cost 5
+gen xind := DEREF1(ADD2(x, CONSTANT(value is byte):c)) cost 5
 {
 	var op := &self.n[0].operand;
 	op.xind.off := $c.value as uint8;
 }
 
-gen xind := LOAD2(ADD2(x, CONSTANT(value is bytem1):c)) cost 5
+gen xind := DEREF2(ADD2(x, CONSTANT(value is bytem1):c)) cost 5
 {
 	var op := &self.n[0].operand;
 	op.xind.off := $c.value as uint8;
@@ -838,20 +838,20 @@ gen i4 := CONSTANT():c uses x
 
 // --- Stores (these don't use operands) ------------------------------------
 
-gen STORE1(a|b:lhs, x)
+gen STORE(a|b:lhs, DEREF1(x))
 {
 	E_st($lhs);
 	E(",x\n");
 }
 
-gen STORE1(a|b:lhs, ADD2(x, CONSTANT(value is byte):c))
+gen STORE(a|b:lhs, DEREF1(ADD2(x, CONSTANT(value is byte):c)))
 {
 	E_st($lhs);
 	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
-gen STORE1(a|b:lhs, ADDRESS():a)
+gen STORE(a|b:lhs, DEREF1(ADDRESS():a))
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -859,20 +859,20 @@ gen STORE1(a|b:lhs, ADDRESS():a)
     E_stop_c($lhs, REG_MEM, &op, 0, 0);
 }
 
-gen STORE2(x|d:lhs, x)
+gen STORE(x|d:lhs, DEREF2(x))
 {
 	E_st($lhs);
 	E(",x\n");
 }
 
-gen STORE2(x|d:lhs, ADD2(x, CONSTANT(value is bytem1):c))
+gen STORE(x|d:lhs, DEREF2(ADD2(x, CONSTANT(value is bytem1):c)))
 {
 	E_st($lhs);
 	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
-gen STORE2(d:lhs, ADDRESS():a)
+gen STORE(d:lhs, DEREF2(ADDRESS():a))
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -880,7 +880,7 @@ gen STORE2(d:lhs, ADDRESS():a)
     E_stop_c($lhs, REG_MEM, &op, 0, 0);
 }
 
-gen STORE4(i4|xd:lhs, ADDRESS():a) uses d
+gen STORE(i4|xd:lhs, DEREF4(ADDRESS():a)) uses d
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -898,7 +898,7 @@ gen STORE4(i4|xd:lhs, ADDRESS():a) uses d
     end if;
 }
 
-gen STORE4(i4:lhs, x) uses d
+gen STORE(i4:lhs, DEREF4(x)) uses d
 {
     R_flush(REG_D);
     E_callhelper("_store4x");
@@ -906,13 +906,13 @@ gen STORE4(i4:lhs, x) uses d
 
 // --- Loads (these don't use operands) ----------------------------------
 
-gen a|b := LOAD1(x)
+gen a|b := DEREF1(x)
 {
 	E_ld($$);
 	E(",x\n");
 }
 
-gen a|b := LOAD1(ADDRESS():a)
+gen a|b := DEREF1(ADDRESS():a)
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -920,20 +920,20 @@ gen a|b := LOAD1(ADDRESS():a)
     E_ldop_c($$, REG_MEM, &op, 0, 0);
 }
 
-gen a|b := LOAD1(ADD2(x, CONSTANT(value is byte):c))
+gen a|b := DEREF1(ADD2(x, CONSTANT(value is byte):c))
 {
 	E_ld($$);
 	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
-gen x|d := LOAD2(x)
+gen x|d := DEREF2(x)
 {
 	E_ld($$);
 	E(",x\n");
 }
 
-gen x|d := LOAD2(ADDRESS():a)
+gen x|d := DEREF2(ADDRESS():a)
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -941,14 +941,14 @@ gen x|d := LOAD2(ADDRESS():a)
     E_ldop_c($$, REG_MEM, &op, 0, 0);
 }
 
-gen x|d := LOAD2(ADD2(x, CONSTANT(value is bytem1):c))
+gen x|d := DEREF2(ADD2(x, CONSTANT(value is bytem1):c))
 {
 	E_ld($$);
 	E_u16($c.value as uint16);
 	E(",x\n");
 }
 
-gen xd := LOAD4(ADDRESS():a)
+gen xd := DEREF4(ADDRESS():a)
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -959,7 +959,7 @@ gen xd := LOAD4(ADDRESS():a)
     E_ldop(REG_X, REG_MEM, &op, 0, 16);
 }
 
-gen i4 := LOAD4(ADDRESS():a) uses x
+gen i4 := DEREF4(ADDRESS():a) uses x
 {
     var op: Operand;
     op.mem.sym := &$a.sym;
@@ -972,14 +972,14 @@ gen i4 := LOAD4(ADDRESS():a) uses x
     E_push(REG_X);
 }
 
-gen xd := LOAD4(x)
+gen xd := DEREF4(x)
 {
     R_flush($$);
     E_insn_simple("ldd 2, x");
     E_insn_simple("ldx 0, x");
 }
 
-gen i4 := LOAD4(x) uses d
+gen i4 := DEREF4(x) uses d
 {
     R_flush(REG_D);
     E_callhelper("_load4x");
@@ -1064,7 +1064,7 @@ gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "and
 
 // This rule doesn't work, so disable it for now.
 //gen STORE1(
-//        ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+//        ADD1(DEREF1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
 //        ADDRESS():a2) uses a cost 100
 //{
 //    var op: Operand;

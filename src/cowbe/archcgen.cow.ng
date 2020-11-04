@@ -456,15 +456,15 @@ gen v8 := SUBREF():a
 	end sub;
 %}
 
-gen STORE1(v1:val, v8:addr) { StoreVV(1); }
-gen STORE2(v2:val, v8:addr) { StoreVV(2); }
-gen STORE4(v4:val, v8:addr) { StoreVV(4); }
-gen STORE8(v8:val, v8:addr) { StoreVV(8); }
+gen STORE(v1:val, DEREF1(v8:addr)) { StoreVV(1); }
+gen STORE(v2:val, DEREF2(v8:addr)) { StoreVV(2); }
+gen STORE(v4:val, DEREF4(v8:addr)) { StoreVV(4); }
+gen STORE(v8:val, DEREF8(v8:addr)) { StoreVV(8); }
 
-gen v1 := LOAD1(v8:addr) { LoadVV(1); }
-gen v2 := LOAD2(v8:addr) { LoadVV(2); }
-gen v4 := LOAD4(v8:addr) { LoadVV(4); }
-gen v8 := LOAD8(v8:addr) { LoadVV(8); }
+gen v1 := DEREF1(v8:addr) { LoadVV(1); }
+gen v2 := DEREF2(v8:addr) { LoadVV(2); }
+gen v4 := DEREF4(v8:addr) { LoadVV(4); }
+gen v8 := DEREF8(v8:addr) { LoadVV(8); }
 
 // --- Maths ----------------------------------------------------------------
 

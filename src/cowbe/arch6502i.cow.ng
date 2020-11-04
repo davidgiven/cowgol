@@ -340,29 +340,29 @@ gen s2 := SUBREF():a
 
 // --- Loads and stores -----------------------------------------------------
 
-gen STORE1(s1, ADDRESS():a)  { E_store1(&$a.sym, $a.off); }
-gen STORE2(s2, ADDRESS():a) { E_store2(&$a.sym, $a.off); }
-gen STORE4(s4, ADDRESS():a) { E_store4(&$a.sym, $a.off); }
+gen STORE(s1, DEREF1(ADDRESS():a))  { E_store1(&$a.sym, $a.off); }
+gen STORE(s2, DEREF2(ADDRESS():a)) { E_store2(&$a.sym, $a.off); }
+gen STORE(s4, DEREF4(ADDRESS():a)) { E_store4(&$a.sym, $a.off); }
 
-gen s1 := LOAD1(ADDRESS():a)  { E_load1(&$a.sym, $a.off); }
-gen s2 := LOAD2(ADDRESS():a) { E_load2(&$a.sym, $a.off); }
-gen s4 := LOAD4(ADDRESS():a) { E_load4(&$a.sym, $a.off); }
+gen s1 := DEREF1(ADDRESS():a)  { E_load1(&$a.sym, $a.off); }
+gen s2 := DEREF2(ADDRESS():a) { E_load2(&$a.sym, $a.off); }
+gen s4 := DEREF4(ADDRESS():a) { E_load4(&$a.sym, $a.off); }
 
-gen STORE1(s1, s2) { E_callhelper("store1"); }
-gen STORE2(s2, s2) { E_callhelper("store2"); }
-gen STORE4(s4, s2) { E_callhelper("store4"); }
+gen STORE(s1, DEREF1(s2)) { E_callhelper("store1"); }
+gen STORE(s2, DEREF2(s2)) { E_callhelper("store2"); }
+gen STORE(s4, DEREF4(s2)) { E_callhelper("store4"); }
 
-gen STORE1(s1, ADD2(s2, CONSTANT():c)) { E_callhelper("store1x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
-gen STORE2(s2, ADD2(s2, CONSTANT():c)) { E_callhelper("store2x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
-gen STORE4(s4, ADD2(s2, CONSTANT():c)) { E_callhelper("store4x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen STORE(s1, DEREF1(ADD2(s2, CONSTANT():c))) { E_callhelper("store1x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen STORE(s2, DEREF2(ADD2(s2, CONSTANT():c))) { E_callhelper("store2x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen STORE(s4, DEREF4(ADD2(s2, CONSTANT():c))) { E_callhelper("store4x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
 
-gen s1 := LOAD1(s2) { E_callhelper("load1"); }
-gen s2 := LOAD2(s2) { E_callhelper("load2"); }
-gen s4 := LOAD4(s2) { E_callhelper("load4"); }
+gen s1 := DEREF1(s2) { E_callhelper("load1"); }
+gen s2 := DEREF2(s2) { E_callhelper("load2"); }
+gen s4 := DEREF4(s2) { E_callhelper("load4"); }
 
-gen s1 := LOAD1(ADD2(s2, CONSTANT():c)) { E_callhelper("load1x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
-gen s2 := LOAD2(ADD2(s2, CONSTANT():c)) { E_callhelper("load2x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
-gen s4 := LOAD4(ADD2(s2, CONSTANT():c)) { E_callhelper("load4x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen s1 := DEREF1(ADD2(s2, CONSTANT():c)) { E_callhelper("load1x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen s2 := DEREF2(ADD2(s2, CONSTANT():c)) { E_callhelper("load2x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
+gen s4 := DEREF4(ADD2(s2, CONSTANT():c)) { E_callhelper("load4x"); E_dw(); E_u16($c.value as uint16); E_nl(); }
 
 // --- Maths ----------------------------------------------------------------
 
