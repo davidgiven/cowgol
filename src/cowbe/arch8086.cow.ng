@@ -125,8 +125,7 @@
 
 		case reg is
 			when REG_IMM:
-				E("0x");
-				E_h16(op.imm.value as uint16);
+				E_i16(op.imm.value as int16);
 
 			when REG_MEM1: memop("byte");
 			when REG_MEM2: memop("word");
@@ -243,6 +242,7 @@ wordsize uint16;
 
 operand imm;
 operand mem1 mem2 mem4;
+operand bxind1 bxind2 bxind4;
 register dxax bxcx;
 register ax bx cx dx si di;
 register al ah bl bh cl ch dl dh;
@@ -253,9 +253,13 @@ regclass rh8 := r8|ah|bh|ch|dh;
 regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := dxax|bxcx;
 
-regclass op1 := imm|mem1|r8;
-regclass op2 := imm|mem2|r16;
-regclass op4 := imm|mem4|r32;
+regclass op1 := imm|mem1|bxind1;
+regclass op2 := imm|mem2|bxind2;
+regclass op4 := imm|mem4|bxind4;
+
+regdata bxind1 uses bx;
+regdata bxind2 uses bx;
+regdata bxind4 uses bx;
 
 regdata ax compatible r16  uses ax|ah|al;
 regdata bx compatible r16  uses bx|bh|bl;
@@ -340,23 +344,33 @@ gen mem1 := DEREF1(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.me
 gen mem2 := DEREF2(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
 gen mem4 := DEREF4(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
 
+gen bxind2 := DEREF2(bx);
+
 // --- Loads and stores -----------------------------------------------------
 
-gen r8 := FALLBACK(op1:lhs)
-{ E_insn("mov"); E_reg($$); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
-
-gen r16 := FALLBACK(op2:lhs)
-{ E_insn("mov"); E_reg($$); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+gen r8 := FALLBACK(op1:lhs)  { E_insn("mov"); E_reg($$); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+gen r16 := FALLBACK(op2:lhs) { E_insn("mov"); E_reg($$); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
 
 //gen r32 := FALLBACK(op4:lhs);
 
-gen STORE(op1|r8:lhs, op1:rhs)
-{ E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
-
-gen STORE(op2|r16:lhs, op2:rhs)
-{ E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+gen STORE(r8:lhs, op1:rhs) { E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+gen STORE(r16:lhs, op2:rhs) { E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
 
 //gen STORE(r32, op4);
+
+// --- 8- and 16-bit arithmetic ---------------------------------------------
+
+//gen r8  := NEG1($$) { E_insn("neg"); E_reg($$); E_nl(); }
+//gen r16 := NEG2($$) { E_insn("neg"); E_reg($$); E_nl(); }
+//
+//gen r8  := NOT1($$) { E_insn("not"); E_reg($$); E_nl(); }
+//gen r16 := NOT2($$) { E_insn("not"); E_reg($$); E_nl(); }
+//
+//gen r8  := ADD1($$, op1|r8:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
+//gen r16 := ADD2($$, op2|r16:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
+//
+//gen r8  := SUB1($$, op1|r8:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
+//gen r16 := SUB2($$, op2|r16:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
 
 // --- Initialisers ---------------------------------------------------------
 
