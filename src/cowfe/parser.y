@@ -78,7 +78,7 @@ statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 	InitVariable(current_subr, S, T);
     CheckExpressionType(E, S.vardata.type);
 
-    Generate(MidStore(E.type.width as uint8, E, MidAddress(S, 0)));
+    Generate(MidStore(E, MidDeref(E.type.width as uint8, MidAddress(S, 0))));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
@@ -94,7 +94,7 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	InitVariable(current_subr, S, type);
 	CheckExpressionType(E, S.vardata.type);
 
-	Generate(MidStore(E.type.width as uint8, E, MidAddress(S, 0)));
+    Generate(MidStore(E, MidDeref(E.type.width as uint8, MidAddress(S, 0))));
 }
 
 /* --- Assignments ------------------------------------------------------- */
@@ -105,7 +105,7 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 	var address := UndoLValue(E1);
 
 	CheckExpressionType(E2, type);
-	Generate(MidStore(type.width as uint8, E2, address));
+    Generate(MidStore(E2, MidDeref(type.width as uint8, address)));
 }
 
 /* --- Simple loops ------------------------------------------------------ */
@@ -565,7 +565,7 @@ expression(E) ::= expression(E1) DOT ID(X).
 	while IsPtr(type) != 0 loop
 		type := type.pointertype.element;
 		CheckNotPartialType(type);
-		address := MidLoad(intptr_type.width as uint8, address);
+		address := MidDeref(intptr_type.width as uint8, address);
 	end loop;
 	CheckNotPartialType(type);
 
@@ -835,9 +835,9 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 
 		var w := param.vardata.type.width as uint8;
 		Generate(
-			MidStore(w,
+			MidStore(
 				MidPoparg(w, intfsubr, count),
-				arg
+				MidDeref(w, arg)
 			)
 		);
 

@@ -160,7 +160,7 @@ sub MakeLValue(address: [Node]): (lvalue: [Node]) is
 	if IsScalar(elementtype) != 0 then
 		w := elementtype.width as uint8;
 	end if;
-	lvalue := MidLoad(w, address);
+	lvalue := MidDeref(w, address);
 	lvalue.type := elementtype;
 
 	#print("make ");
@@ -170,7 +170,7 @@ end sub;
 
 sub UndoLValue(lvalue: [Node]): (address: [Node]) is
 	var k := lvalue.op;
-	if (k < MIDCODE_LOAD0) or (k > MIDCODE_LOAD8) then
+	if (k < MIDCODE_DEREF0) or (k > MIDCODE_DEREF8) then
 		SimpleError("lvalue required");
 	end if;
 

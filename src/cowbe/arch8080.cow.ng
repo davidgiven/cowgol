@@ -815,12 +815,12 @@ gen bc|de|hl := SUBREF():a
 
 // --- 8-bit loads and stores -----------------------------------------------
 
-gen a := LOAD1(ADDRESS():a)
+gen a := DEREF1(ADDRESS():a)
 {
 	E_lda(&$a.sym, $a.off);
 }
 
-gen a := LOAD1(bc|de|hl:ptr)
+gen a := DEREF1(bc|de|hl:ptr)
 {
 	if $ptr == REG_HL then
 		E_loadm(REG_A);
@@ -829,12 +829,12 @@ gen a := LOAD1(bc|de|hl:ptr)
 	end if;
 }
 
-gen STORE1(a, ADDRESS():a)
+gen STORE(a, DEREF1(ADDRESS():a))
 {
 	E_sta(&$a.sym, $a.off);
 }
 
-gen STORE1(a, bc|de|hl:ptr)
+gen STORE(a, DEREF1(bc|de|hl:ptr))
 {
 	if $ptr == REG_HL then
 		E_storem(REG_A);
@@ -851,7 +851,7 @@ gen STORE1(a, bc|de|hl:ptr)
 
 // --- 16-bit loads and stores ----------------------------------------------
 
-gen hl := LOAD2(ADDRESS():a)
+gen hl := DEREF2(ADDRESS():a)
 {
 	E_lhld(&$a.sym, $a.off);
 }
@@ -871,17 +871,17 @@ gen hl := LOAD2(ADDRESS():a)
 	end sub;
 %}
 
-gen hl|bc|de := LOAD2(hl) uses a
+gen hl|bc|de := DEREF2(hl) uses a
 {
 	load2($$);
 }
 
-gen STORE2(hl, ADDRESS():a)
+gen STORE(hl, DEREF2(ADDRESS():a))
 {
 	E_shld(&$a.sym, $a.off);
 }
 
-gen STORE2(bc|de:val, hl) uses a
+gen STORE(bc|de:val, DEREF2(hl)) uses a
 {
 	E_storem(loreg($val));
 	E_inx(REG_HL);
@@ -890,10 +890,10 @@ gen STORE2(bc|de:val, hl) uses a
 
 // --- 32-bit loads and stores ----------------------------------------------
 
-gen stk4 := LOAD4(hl)
+gen stk4 := DEREF4(hl)
 		{ E_callhelper("_load4"); }
 
-gen STORE4(stk4, hl)
+gen STORE(stk4, DEREF4(hl))
 		{ E_callhelper("_store4"); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
@@ -1487,10 +1487,10 @@ gen stk4 := CAST14(a:rhs, sext!=0) uses hl|b
 gen a := CAST21(hl|bc|de:rhs)
 		{ E_mov(REG_A, loreg($rhs)); }
 
-gen a := CAST21(LOAD2(ADDRESS():a))
+gen a := CAST21(DEREF2(ADDRESS():a))
 		{ E_lda(&$a.sym, $a.off); }
 
-gen a|b|d|h := CAST21(LOAD2(hl))
+gen a|b|d|h := CAST21(DEREF2(hl))
 		{ E_loadm($$); }
 
 gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
@@ -1518,10 +1518,10 @@ gen a := CAST41(stk4) uses hl
 	E_pop(REG_HL);
 }
 
-gen a := CAST41(LOAD4(ADDRESS():a))
+gen a := CAST41(DEREF4(ADDRESS():a))
 		{ E_lda(&$a.sym, $a.off); }
 
-gen a|b|d|h := CAST41(LOAD4(hl))
+gen a|b|d|h := CAST41(DEREF4(hl))
 		{ E_loadm($$); }
 
 gen hl := CAST42(stk4) uses bc
@@ -1530,10 +1530,10 @@ gen hl := CAST42(stk4) uses bc
 	E_pop(REG_BC);
 }
 
-gen hl := CAST42(LOAD4(ADDRESS():a))
+gen hl := CAST42(DEREF4(ADDRESS():a))
 		{ E_lhld(&$a.sym, $a.off); }
 	
-gen hl|bc|de := CAST42(LOAD4(hl))
+gen hl|bc|de := CAST42(DEREF4(hl))
 		{ load2($$); }
 	
 // --- Strings --------------------------------------------------------------
