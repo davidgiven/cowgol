@@ -156,6 +156,6 @@ ALL_TOOLCHAINS = {
 	toolchain_bbcti,
 	toolchain_unixv7,
 	toolchain_fuzix6303,
-	toolchain_msdos,
+	--toolchain_msdos,
 }
 

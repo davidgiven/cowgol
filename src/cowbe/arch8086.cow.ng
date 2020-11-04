@@ -1,3 +1,19 @@
+%[
+	record MemOp is
+		sym: [Symbol];
+		off: Size;
+	end record;
+		
+	record ImmOp is
+		value: Arith;
+	end record;
+
+	record Operand is
+		mem @at(0): MemOp;
+		imm @at(0): ImmOp;
+	end record;
+%]
+
 %{
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		newvalue := value;
@@ -28,87 +44,95 @@
 		E(":\n");
 	end sub;
 
-	sub getreg(reg: RegId, regtable: [RegId], name: string): (result: RegId) is
-		result := 0;
-		while reg != 0 loop
-			if (reg & 1) != 0 then
-				result := [regtable];
-				return;
-			end if;
-			reg := reg >> 1;
-			regtable := @next regtable;
-		end loop;
-
-		if result == 0 then
-			StartError();
-			print("bad ");
-			print(name);
-			print_char(' ');
-			print_hex_i32(reg);
-			EndError();
-		end if;
-	end sub;
-
 	sub loreg(reg: RegId): (loreg: RegId) is
-		var regs: RegId[] := {
-			REG_DL, REG_CL,
-			REG_AL, REG_BL, REG_CL, REG_DL, 0, 0,
-			REG_AL, REG_AL,
-			REG_BL, REG_BL,
-			REG_CL, REG_CL,
-			REG_DL, REG_DL
-		};
-
-		loreg := getreg(reg, &regs[0], "loreg");
+		case reg is
+			when REG_DXAX: loreg := REG_AL;
+			when REG_BXCX: loreg := REG_CL;
+			when REG_AL: loreg := REG_AL;
+			when REG_BL: loreg := REG_BL;
+			when REG_CL: loreg := REG_CL;
+			when REG_DL: loreg := REG_DL;
+			when REG_AX: loreg := REG_AL;
+			when REG_BX: loreg := REG_BL;
+			when REG_CX: loreg := REG_CL;
+			when REG_DX: loreg := REG_DL;
+			when else:
+				SimpleError("bad loreg");
+		end case;
 	end sub;
 
-	sub lowordreg(reg: RegId): (wordreg: RegId) is
-		var regs: RegId[] := {
-			REG_AX, REG_CX,
-			REG_AX, REG_BX, REG_CX, REG_DX, REG_SI, REG_DI,
-			REG_AX, REG_AX,
-			REG_BX, REG_BX,
-			REG_CX, REG_CX,
-			REG_DX, REG_DX
-		};
-
-		wordreg := getreg(reg, &regs[0], "lowordreg");
+	sub lowordreg(reg: RegId): (lowordreg: RegId) is
+		case reg is
+			when REG_DXAX: lowordreg := REG_AX;
+			when REG_BXCX: lowordreg := REG_CX;
+			when REG_AL: lowordreg := REG_AX;
+			when REG_BL: lowordreg := REG_BX;
+			when REG_CL: lowordreg := REG_CX;
+			when REG_DL: lowordreg := REG_DX;
+			when REG_AX: lowordreg := REG_AX;
+			when REG_BX: lowordreg := REG_BX;
+			when REG_CX: lowordreg := REG_CX;
+			when REG_DX: lowordreg := REG_DX;
+			when else:
+				SimpleError("bad lowordreg");
+		end case;
 	end sub;
 
-	sub hiwordreg(reg: RegId): (wordreg: RegId) is
-		var regs: RegId[] := {
-			REG_DX, REG_BX,
-			REG_AX, REG_BX, REG_CX, REG_DX, REG_SI, REG_DI,
-			REG_AX, REG_AX,
-			REG_BX, REG_BX,
-			REG_CX, REG_CX,
-			REG_DX, REG_DX
-		};
-
-		wordreg := getreg(reg, &regs[0], "hilowordreg");
+	sub hiwordreg(reg: RegId): (hiwordreg: RegId) is
+		case reg is
+			when REG_DXAX: hiwordreg := REG_DX;
+			when REG_BXCX: hiwordreg := REG_BX;
+			when REG_AL: hiwordreg := REG_AX;
+			when REG_BL: hiwordreg := REG_BX;
+			when REG_CL: hiwordreg := REG_CX;
+			when REG_DL: hiwordreg := REG_DX;
+			when REG_AX: hiwordreg := REG_AX;
+			when REG_BX: hiwordreg := REG_BX;
+			when REG_CX: hiwordreg := REG_CX;
+			when REG_DX: hiwordreg := REG_DX;
+			when else:
+				SimpleError("bad lowordreg");
+		end case;
 	end sub;
 
 	sub E_reg(reg: RegId) is
-		var names: string[] := {
-			"ax",  "bx",  "cx",  "dx",  "si",  "di",
-			"al", "ah", "bl", "bh", "cl", "ch", "dl", "dh"
-		};
+		case reg is
+			when REG_AL: E("al");
+			when REG_BL: E("bl");
+			when REG_CL: E("cl");
+			when REG_DL: E("dl");
+			when REG_AX: E("ax");
+			when REG_BX: E("bx");
+			when REG_CX: E("cx");
+			when REG_DX: E("dx");
+			when else:
+				SimpleError("bad reg");
+		end case;
+	end sub;
 
-		E_b8('%');
-		var p := &names[0];
-		while reg != 0 loop
-			if (reg & 1) != 0 then
-				E([p]);
-				return;
-			end if;
-			reg := reg >> 1;
-			p := @next p;
-		end loop;
+	sub E_op(reg: RegId, op: [Operand]) is
+		if (reg & (REGCLASS_R8|REGCLASS_R16)) != 0 then
+			E_reg(reg);
+			return;
+		end if;
 
-		StartError();
-		print("bad reg ");
-		print_hex_i32(reg);
-		EndError();
+		sub memop() is
+			E_symref(op.mem.sym, op.mem.off);
+		end sub;
+
+		case reg is
+			when REG_IMM:
+				E("0x");
+				E_h16(op.imm.value as uint16);
+
+			when REG_MEM1: memop();
+			when REG_MEM2: memop();
+			when REG_MEM4: memop();
+
+			when else:
+				E("bad op ");
+				E_h32(reg);
+		end case;
 	end sub;
 
 	sub E_push(reg: RegId) is
@@ -144,11 +168,15 @@
 		E_nl();
 	end sub;
 
-	sub E_jump(insn: string, label: LabelRef) is
-		R_flushall();
+	sub E_insn(insn: string) is
 		E_tab();
 		E(insn);
 		E_space();
+	end sub;
+
+	sub E_jump(insn: string, label: LabelRef) is
+		R_flushall();
+		E_insn(insn);
 		E_labelref(label);
 		E_nl();
 	end sub;
@@ -211,6 +239,8 @@
 
 wordsize uint16;
 
+operand imm;
+operand mem1 mem2 mem4;
 register dxax bxcx;
 register ax bx cx dx si di;
 register al ah bl bh cl ch dl dh;
@@ -220,6 +250,10 @@ regclass r8 := al|bl|cl|dl;
 regclass rh8 := r8|ah|bh|ch|dh;
 regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := dxax|bxcx;
+
+regclass op1 := imm|mem1|r8;
+regclass op2 := imm|mem2|r16;
+regclass op4 := imm|mem4|r32;
 
 regdata ax compatible r16  uses ax|ah|al;
 regdata bx compatible r16  uses bx|bh|bl;
@@ -293,6 +327,32 @@ gen RETURN()
 	E_subref(current_subr);
 	E_nl();
 }
+
+// --- Operands -------------------------------------------------------------
+
+gen imm := CONSTANT():c { $@$.operand.imm.value := $c.value; }
+
+gen mem1 := DEREF1(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+gen mem2 := DEREF2(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+gen mem4 := DEREF4(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+
+// --- Loads and stores -----------------------------------------------------
+
+gen r8 := FALLBACK(op1:lhs)
+{ E_insn("mov"); E_reg($$); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+
+gen r16 := FALLBACK(op2:lhs)
+{ E_insn("mov"); E_reg($$); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+
+//gen r32 := FALLBACK(op4:lhs);
+
+gen STORE(op1|r8:lhs, op1:rhs)
+{ E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+
+gen STORE(op2|r16:lhs, op2:rhs)
+{ E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+
+//gen STORE(r32, op4);
 
 // --- Initialisers ---------------------------------------------------------
 
