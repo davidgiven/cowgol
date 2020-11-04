@@ -353,24 +353,63 @@ gen r16 := FALLBACK(op2:lhs) { E_insn("mov"); E_reg($$); E_comma(); E_op($lhs, &
 
 //gen r32 := FALLBACK(op4:lhs);
 
-gen STORE(r8:lhs, op1:rhs) { E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
-gen STORE(r16:lhs, op2:rhs) { E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+gen STORE1(op1|r8:lhs, op1:rhs) { E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
+gen STORE2(op2|r16:lhs, op2:rhs) { E_insn("mov"); E_op($rhs, &$@rhs.operand); E_comma(); E_op($lhs, &$@lhs.operand); E_nl(); }
 
 //gen STORE(r32, op4);
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
 
-//gen r8  := NEG1($$) { E_insn("neg"); E_reg($$); E_nl(); }
-//gen r16 := NEG2($$) { E_insn("neg"); E_reg($$); E_nl(); }
-//
-//gen r8  := NOT1($$) { E_insn("not"); E_reg($$); E_nl(); }
-//gen r16 := NOT2($$) { E_insn("not"); E_reg($$); E_nl(); }
-//
-//gen r8  := ADD1($$, op1|r8:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
-//gen r16 := ADD2($$, op2|r16:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
-//
-//gen r8  := SUB1($$, op1|r8:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
-//gen r16 := SUB2($$, op2|r16:rhs) { E_insn("add"); E_reg($$); E_comma(); E_op($rhs, &$@rhs.operand); E_nl(); }
+gen r8  := NEG1($$) { E_insn("neg"); E_reg($$); E_nl(); }
+gen r16 := NEG2($$) { E_insn("neg"); E_reg($$); E_nl(); }
+
+gen r8  := NOT1($$) { E_insn("not"); E_reg($$); E_nl(); }
+gen r16 := NOT2($$) { E_insn("not"); E_reg($$); E_nl(); }
+
+%{
+	sub Alu2(insn: string, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+		E_insn(insn);
+		E_reg(lhs);
+		E_comma();
+		E_op(rhs, rhsop);
+		E_nl();
+	end sub;
+%}
+
+gen r8  := ADD1($$, op1|r8:rhs)  { Alu2("add", $$, $rhs, &$@rhs.operand); }
+gen r16 := ADD2($$, op2|r16:rhs) { Alu2("add", $$, $rhs, &$@rhs.operand); }
+
+gen r8  := SUB1($$, op1|r8:rhs)  { Alu2("sub", $$, $rhs, &$@rhs.operand); }
+gen r16 := SUB2($$, op2|r16:rhs) { Alu2("sub", $$, $rhs, &$@rhs.operand); }
+
+gen r8  := AND1($$, op1|r8:rhs)  { Alu2("and", $$, $rhs, &$@rhs.operand); }
+gen r16 := AND2($$, op2|r16:rhs) { Alu2("and", $$, $rhs, &$@rhs.operand); }
+
+gen r8  := OR1($$, op1|r8:rhs)   { Alu2("or", $$, $rhs, &$@rhs.operand); }
+gen r16 := OR2($$, op2|r16:rhs)  { Alu2("or", $$, $rhs, &$@rhs.operand); }
+
+gen r8  := EOR1($$, op1|r8:rhs)  { Alu2("eor", $$, $rhs, &$@rhs.operand); }
+gen r16 := EOR2($$, op2|r16:rhs) { Alu2("eor", $$, $rhs, &$@rhs.operand); }
+
+gen al  := MUL1($$, mem1|r8:rhs) uses ah { E_insn("imul"); E_op($rhs, &$@rhs.operand); E_nl(); }
+gen ax  := MUL2($$, mem2|r16:rhs)     	 { E_insn("imul"); E_op($rhs, &$@rhs.operand); E_nl(); }
+
+gen al := DIVU1(al, mem1|bl|cl|dl:rhs) uses ah { E("\txor ah, ah\n"); E_insn("div"); E_op($rhs, &$@rhs.operand); E_nl(); }
+gen al := REMU1(al, mem1|bl|cl|dl:rhs) uses ah { E("\txor ah, ah\n"); E_insn("div"); E_op($rhs, &$@rhs.operand); E_nl(); E("\tmov al, ah\n"); }
+gen al := DIVS1(al, mem1|bl|cl|dl:rhs) uses ah { E("\tcbw\n"); E_insn("idiv"); E_op($rhs, &$@rhs.operand); E_nl(); }
+gen al := REMS1(al, mem1|bl|cl|dl:rhs) uses ah { E("\tcbw\n"); E_insn("idiv"); E_op($rhs, &$@rhs.operand); E_nl(); E("\tmov al, ah\n"); }
+
+gen ax := DIVU2(ax, mem2|bx|cx|dx:rhs) uses dx { E("\txor dx, dx\n"); E_insn("div"); E_op($rhs, &$@rhs.operand); E_nl(); }
+gen dx := REMU2(ax, mem2|bx|cx|dx:rhs)         { E("\txor dx, dx\n"); E_insn("div"); E_op($rhs, &$@rhs.operand); E_nl(); }
+gen ax := DIVS2(ax, mem2|bx|cx|dx:rhs) uses dx { E("\tcwd\n"); E_insn("idiv"); E_op($rhs, &$@rhs.operand); E_nl(); }
+gen dx := REMS2(ax, mem2|bx|cx|dx:rhs)         { E("\tcwd\n"); E_insn("idiv"); E_op($rhs, &$@rhs.operand); E_nl(); }
+
+gen al|bl|dl       := LSHIFT1($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
+gen ax|bx|dx|si|di := LSHIFT2($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
+gen al|bl|dl       := RSHIFTU1($$:lhs, cl:rhs) { E_insn("shr"); E_reg($lhs); E(", cl\n"); }
+gen ax|bx|dx|si|di := RSHIFTU2($$:lhs, cl:rhs) { E_insn("shr"); E_reg($lhs); E(", cl\n"); }
+gen al|bl|dl       := RSHIFTS1($$:lhs, cl:rhs) { E_insn("sar"); E_reg($lhs); E(", cl\n"); }
+gen ax|bx|dx|si|di := RSHIFTS2($$:lhs, cl:rhs) { E_insn("sar"); E_reg($lhs); E(", cl\n"); }
 
 // --- Initialisers ---------------------------------------------------------
 
