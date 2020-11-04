@@ -1016,12 +1016,12 @@ gen r8 := DEREF1(ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c))
 	E_load8i($$, $ptr, $c.value as int8);
 }
 
-gen STORE(a, DEREF1(ADDRESS():a))
+gen STORE1(a, DEREF1(ADDRESS():a))
 {
 	E_sta(&$a.sym, $a.off);
 }
 
-gen STORE(a, DEREF1(hl|bc|de:ptr))
+gen STORE1(a, DEREF1(hl|bc|de:ptr))
 {
 	if $ptr == REG_HL then
 		E_storem(REG_A);
@@ -1030,12 +1030,12 @@ gen STORE(a, DEREF1(hl|bc|de:ptr))
 	end if;
 }
 
-gen STORE(r8:r, DEREF1(ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c)))
+gen STORE1(r8:r, DEREF1(ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c)))
 {
 	E_store8i($r, $ptr, $c.value as int8);
 }
 
-gen STORE(CONSTANT():v, DEREF1(ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c)))
+gen STORE1(CONSTANT():v, DEREF1(ADD2(ix|iy:ptr, CONSTANT(value is indexable_8bit):c)))
 {
 	E_store8ic($v.value as uint8, $ptr, $c.value as int8);
 }
@@ -1079,12 +1079,12 @@ gen hl|bc|de := DEREF2(ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c))
 	E_load8i(hireg($$), $rhs, ($c.value as int8)+1);
 }
 
-gen STORE(r16:ptr, DEREF2(ADDRESS():a))
+gen STORE2(r16:ptr, DEREF2(ADDRESS():a))
 {
 	E_store16($ptr, &$a.sym, $a.off);
 }
 
-gen STORE(hl|bc|de:val, DEREF2(hl|ix|iy:rhs)) uses a
+gen STORE2(hl|bc|de:val, DEREF2(hl|ix|iy:rhs)) uses a
 {
 	if ($rhs & (REG_IX|REG_IY)) != 0 then
 		E_store8i(loreg($val), $rhs, 0);
@@ -1096,13 +1096,13 @@ gen STORE(hl|bc|de:val, DEREF2(hl|ix|iy:rhs)) uses a
 	end if;
 }
 
-gen STORE(hl|bc|de:val, DEREF2(ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c))) uses a
+gen STORE2(hl|bc|de:val, DEREF2(ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c))) uses a
 {
 	E_store8i(loreg($val), $rhs, ($c.value as int8)+0);
 	E_store8i(hireg($val), $rhs, ($c.value as int8)+1);
 }
 
-gen STORE(CONSTANT():v, DEREF2(ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c))) uses a
+gen STORE2(CONSTANT():v, DEREF2(ADD2(ix|iy:rhs, CONSTANT(value is indexable_16bit):c))) uses a
 {
 	E_store8ic($v.value as uint8, $rhs, ($c.value as int8)+0);
 	E_store8ic(($v.value>>8) as uint8, $rhs, ($c.value as int8)+1);
@@ -1179,7 +1179,7 @@ gen r32 := DEREF4(ADDRESS():a)
 	RegCacheLeavesValue($$, &$a.sym, $a.off);
 }
 
-gen STORE(r32:val, DEREF4(hl|ix|iy:ptr))
+gen STORE4(r32:val, DEREF4(hl|ix|iy:ptr))
 {
 	if $ptr == REG_HL then
 		E_storem(loreg($val));           #  7
@@ -1204,7 +1204,7 @@ gen STORE(r32:val, DEREF4(hl|ix|iy:ptr))
 	end if;
 }
 
-gen STORE(r32:val, DEREF4(ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c)))
+gen STORE4(r32:val, DEREF4(ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c)))
 {
 	E_store8i(loreg($val), $ptr, ($c.value as int8)+0);
 	E_store8i(hireg($val), $ptr, ($c.value as int8)+1);
@@ -1214,7 +1214,7 @@ gen STORE(r32:val, DEREF4(ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c))
 	E_exx();
 }
 
-gen STORE(r32:val, DEREF4(ADDRESS():a))
+gen STORE4(r32:val, DEREF4(ADDRESS():a))
 {
 	E_store16(wordreg($val), &$a.sym, $a.off);
 	E_exx();
@@ -1223,7 +1223,7 @@ gen STORE(r32:val, DEREF4(ADDRESS():a))
 	RegCacheLeavesValue($$, &$a.sym, $a.off);
 }
 
-gen STORE(CONSTANT():c, DEREF4(ADDRESS():a)) uses hl
+gen STORE4(CONSTANT():c, DEREF4(ADDRESS():a)) uses hl
 {
 	E_lxi(REG_HL, $c.value as uint16);
 	E_store16(REG_HL, &$a.sym, $a.off);

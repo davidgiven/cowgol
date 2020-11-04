@@ -1367,7 +1367,7 @@ gen xa := POPARG2(remaining==0);
 gen xa := POPARG2(remaining!=0) { E_plxa(); }
 
 gen v32 := POPARG4()               uses x|y|a { PopArg4(PushV32()); }
-gen STORE(POPARG4(), DEREF4(ptrs)) uses x|y|a { PopArg4(PopAndDerefOp()); }
+gen STORE4(POPARG4(), DEREF4(ptrs)) uses x|y|a { PopArg4(PopAndDerefOp()); }
 
 // --- 8-bit -----------------------------------------------------------------
 
@@ -1390,14 +1390,14 @@ gen a|x|y := CONSTANT():c
     E_loadconst($$, $c.value as uint8);
 }
 
-gen STORE(a:lhs, DEREF1(ptrs)) uses y
+gen STORE1(a:lhs, DEREF1(ptrs)) uses y
 {
     var op := PopAndDerefOp();
 
     DoParamDirect_sta(op, 0);
 }
 
-gen STORE(a|x|y:lhs, DEREF1(ADDRESS():a))
+gen STORE1(a|x|y:lhs, DEREF1(ADDRESS():a))
 {
     E_st($lhs);
     E_symref(&$a.sym, $a.off);
@@ -1511,7 +1511,7 @@ gen xa := SUBREF():a
     E_loadsubref($a.subr);
 }
 
-gen STORE(xa, DEREF2(ADDRESS():a))
+gen STORE2(xa, DEREF2(ADDRESS():a))
 {
     E_sta();
     E_symref(&$a.sym, $a.off);
@@ -1523,7 +1523,7 @@ gen STORE(xa, DEREF2(ADDRESS():a))
     RegCacheLeavesValue(REG_XA, &$a.sym, $a.off);
 }
 
-gen STORE(xa, DEREF2(ptrs)) uses y
+gen STORE2(xa, DEREF2(ptrs)) uses y
 {
     var op := PopAndDerefOp();
 
@@ -1659,7 +1659,7 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
     end sub;
 %}
 
-gen STORE(in4s, DEREF4(ptrs)) uses a|x|y
+gen STORE4(in4s, DEREF4(ptrs)) uses a|x|y
 {
     var dest := PopAndDerefOp();
     var lhs := PopOp();
@@ -1704,8 +1704,8 @@ gen v32 := DEREF4(ptrs) uses a|x|y
 
 gen v32 := NEG4(in4s) uses a|x|y { var lhs := PopOp(); var dest := PushV32(); Do2Op4_neg(lhs, dest); }
 gen v32 := NOT4(in4s) uses a|x|y { var lhs := PopOp(); var dest := PushV32(); Do2Op4_not(lhs, dest); }
-gen STORE(NEG4(in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_neg(lhs, dest); }
-gen STORE(NOT4(in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_not(lhs, dest); }
+gen STORE4(NEG4(in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_neg(lhs, dest); }
+gen STORE4(NOT4(in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_not(lhs, dest); }
 
 %{
     sub Do3Op4(oc: uint8, lhs: [MOperand], rhs: [MOperand], dest: [MOperand]) is
@@ -1743,11 +1743,11 @@ gen v32 := SUB4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp();
 gen v32 := AND4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_AND, lhs, rhs, dest); }
 gen v32 := OR4(in4s, in4s)  uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_ORA, lhs, rhs, dest); }
 gen v32 := EOR4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_EOR, lhs, rhs, dest); }
-gen STORE(ADD4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_clc(); Do3Op4(OC_ADC, lhs, rhs, dest); }
-gen STORE(SUB4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_sec(); Do3Op4(OC_SBC, lhs, rhs, dest); }
-gen STORE(AND4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_AND, lhs, rhs, dest); }
-gen STORE(OR4(in4s, in4s) , DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_ORA, lhs, rhs, dest); }
-gen STORE(EOR4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_EOR, lhs, rhs, dest); }
+gen STORE4(ADD4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_clc(); Do3Op4(OC_ADC, lhs, rhs, dest); }
+gen STORE4(SUB4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_sec(); Do3Op4(OC_SBC, lhs, rhs, dest); }
+gen STORE4(AND4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_AND, lhs, rhs, dest); }
+gen STORE4(OR4(in4s, in4s) , DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_ORA, lhs, rhs, dest); }
+gen STORE4(EOR4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_EOR, lhs, rhs, dest); }
 
 %{
     sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [MOperand], rhs: [MOperand], dest: [MOperand]) is
@@ -1804,11 +1804,11 @@ gen v32 := DIVU4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divu4", 0); }
 gen v32 := REMU4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divu4", 4); }
 gen v32 := DIVS4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divs4", 0); }
 gen v32 := REMS4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divs4", 4); }
-gen STORE(MUL4(in4s, in4s),  DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_mul4", 0); }
-gen STORE(DIVU4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 0); }
-gen STORE(REMU4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 4); }
-gen STORE(DIVS4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 0); }
-gen STORE(REMS4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 4); }
+gen STORE4(MUL4(in4s, in4s),  DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_mul4", 0); }
+gen STORE4(DIVU4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 0); }
+gen STORE4(REMU4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 4); }
+gen STORE4(DIVS4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 0); }
+gen STORE4(REMS4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 4); }
 
 %{
     sub Shift4(helper: string) is
@@ -1998,7 +1998,7 @@ gen xa := CAST12(a):c uses y
 %}
 
 gen v32 := CAST14(a):c               uses y { var dest := PushV32();       Cast14(dest, $c.sext); }
-gen STORE(CAST14(a):c, DEREF4(ptrs)) uses y { var dest := PopAndDerefOp(); Cast14(dest, $c.sext); }
+gen STORE4(CAST14(a):c, DEREF4(ptrs)) uses y { var dest := PopAndDerefOp(); Cast14(dest, $c.sext); }
 
 %{
     sub Cast24(dest: [MOperand], sext: uint8) is
@@ -2023,7 +2023,7 @@ gen STORE(CAST14(a):c, DEREF4(ptrs)) uses y { var dest := PopAndDerefOp(); Cast1
 %}
 
 gen v32 := CAST24(xa):c               uses y { var dest := PushV32();       Cast24(dest, $c.sext); }
-gen STORE(CAST24(xa):c, DEREF4(ptrs)) uses y { var dest := PopAndDerefOp(); Cast24(dest, $c.sext); }
+gen STORE4(CAST24(xa):c, DEREF4(ptrs)) uses y { var dest := PopAndDerefOp(); Cast24(dest, $c.sext); }
 
 gen a := CAST21(in2s|xa:rhs)
 {
@@ -2252,21 +2252,21 @@ $ifdef ARCH_65C02
     // The 65C02 can store zero to a memory location without needing to use
     // a register. It's kinda limited when it comes to addressing modes.
 
-    gen STORE(CONSTANT(value==0), DEREF1(ADDRESS():a))
+    gen STORE1(CONSTANT(value==0), DEREF1(ADDRESS():a))
     {
         E_stz();
         E_symref(&$a.sym, $a.off);
         E_nl();
     }
 
-    gen STORE(CONSTANT(value==0), DEREF1(ADD2(ADDRESS():a, CAST12(x, sext==0))))
+    gen STORE1(CONSTANT(value==0), DEREF1(ADD2(ADDRESS():a, CAST12(x, sext==0))))
     {
         E_stz();
         E_symref(&$a.sym, $a.off);
         E_x_nl();
     }
 
-    gen STORE(CONSTANT(value==0), DEREF2(ADDRESS():a))
+    gen STORE2(CONSTANT(value==0), DEREF2(ADDRESS():a))
     {
         E_stz();
         E_symref(&$a.sym, $a.off);
@@ -2302,21 +2302,21 @@ $endif
 // The (zp),y addressing mode gives us a free addition to the pointer when
 // dereferencing.
 
-gen STORE(a, DEREF1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c))) uses y
+gen STORE1(a, DEREF1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c))) uses y
 {
     var dest := PopAndDerefOp();
     E_loadconst(REG_Y, $c.value as uint8);
     DoParamIndirect_sta(dest);
 }
 
-gen STORE(a, DEREF1(ADD2(ADDRESS():a, CAST12(x, sext==0))))
+gen STORE1(a, DEREF1(ADD2(ADDRESS():a, CAST12(x, sext==0))))
 {
     E_sta();
     E_symref(&$a.sym, $a.off);
     E_x_nl();
 }
 
-gen STORE(a, DEREF1(ADD2(ptrs, CAST12(y, sext==0))))
+gen STORE1(a, DEREF1(ADD2(ptrs, CAST12(y, sext==0))))
 {
     var dest := PopAndDerefOp();
     DoParamIndirect_sta(dest);
@@ -2342,7 +2342,7 @@ gen a := DEREF1(ADD2(ptrs, CAST12(y, sext==0)))
     DoParamIndirect_lda(src);
 }
 
-gen STORE(xa, DEREF2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c))) uses y
+gen STORE2(xa, DEREF2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c))) uses y
 {
     var dest := PopAndDerefOp();
 
@@ -2404,7 +2404,7 @@ gen a := DEREF1(DEREF2(ADDRESS(&sym is zp):a)) uses y
     end sub;
 %}
 
-gen STORE(
+gen STORE1(
         ADD1(DEREF1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
         DEREF1(ADDRESS():a2)) uses x cost 100
 {
@@ -2434,7 +2434,7 @@ gen STORE(
     end if;
 }
 
-gen STORE(
+gen STORE2(
         ADD2(DEREF2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
         DEREF2(ADDRESS():a2)) uses x|y|a cost 100
 {

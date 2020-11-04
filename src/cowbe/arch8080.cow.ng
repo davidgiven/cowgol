@@ -829,12 +829,12 @@ gen a := DEREF1(bc|de|hl:ptr)
 	end if;
 }
 
-gen STORE(a, DEREF1(ADDRESS():a))
+gen STORE1(a, DEREF1(ADDRESS():a))
 {
 	E_sta(&$a.sym, $a.off);
 }
 
-gen STORE(a, DEREF1(bc|de|hl:ptr))
+gen STORE1(a, DEREF1(bc|de|hl:ptr))
 {
 	if $ptr == REG_HL then
 		E_storem(REG_A);
@@ -876,12 +876,12 @@ gen hl|bc|de := DEREF2(hl) uses a
 	load2($$);
 }
 
-gen STORE(hl, DEREF2(ADDRESS():a))
+gen STORE2(hl, DEREF2(ADDRESS():a))
 {
 	E_shld(&$a.sym, $a.off);
 }
 
-gen STORE(bc|de:val, DEREF2(hl)) uses a
+gen STORE2(bc|de:val, DEREF2(hl)) uses a
 {
 	E_storem(loreg($val));
 	E_inx(REG_HL);
@@ -893,7 +893,7 @@ gen STORE(bc|de:val, DEREF2(hl)) uses a
 gen stk4 := DEREF4(hl)
 		{ E_callhelper("_load4"); }
 
-gen STORE(stk4, DEREF4(hl))
+gen STORE4(stk4, DEREF4(hl))
 		{ E_callhelper("_store4"); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
