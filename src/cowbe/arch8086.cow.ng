@@ -25,6 +25,37 @@
 		newvalue := value;
 	end sub;
 
+	record Extern is
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	# Does not persist the name; only call this with constant strings.
+	sub GetHelper(name: string): (e: [Extern]) is
+		e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := InternalAlloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
+	end sub;
+
 	sub E_symref(sym: [Symbol], off: Size) is
 		if sym.wsid == WSID_STATIC then
 			E_wsref(sym.subr.id, sym.wsid, sym.off);
@@ -215,6 +246,15 @@
 		E_space();
 	end sub;
 
+    sub E_callhelper(name: string) is
+        var helper := GetHelper(name);
+        R_flushall();
+        E_insn("call");
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(helper.id);
+        E_nl();
+    end sub;
+        
 	sub E_jump(insn: string, label: LabelRef) is
 		R_flushall();
 		E_insn(insn);
@@ -391,6 +431,62 @@ gen bxind1 := DEREF1(ADD2(bx:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; 
 gen bxind2 := DEREF2(bx:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
 gen bxind2 := DEREF2(ADD2(bx:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
 
+%{
+	sub Call(addr: [MidcodeSubref]) is
+		E_insn("call");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+%}
+
+gen         CALL(       param,         SUBREF():a) uses r32            { Call(&$a); }
+gen         CALL(  ARG1(param, al),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen         CALL(  ARG2(param, ax),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen         CALL(  ARG4(param, dxax),  SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen al   := CALLE1(     param,         SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen al   := CALLE1(ARG1(param, al),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen al   := CALLE1(ARG2(param, ax),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen al   := CALLE1(ARG4(param, dxax),  SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen ax   := CALLE2(     param,         SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen ax   := CALLE2(ARG1(param, al),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen ax   := CALLE2(ARG2(param, ax),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen ax   := CALLE2(ARG4(param, dxax),  SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen dxax := CALLE4(     param,         SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen dxax := CALLE4(ARG1(param, al),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen dxax := CALLE4(ARG2(param, ax),    SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+gen dxax := CALLE4(ARG4(param, dxax),  SUBREF():a) uses bx|cx|dx|si|di { Call(&$a); }
+
+//gen        CALL(       param,       ebx) uses r32                 { E_callebx(); }
+//gen        CALL(  ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen        CALL(  ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen        CALL(  ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen al :=  CALLE1(     param,       ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen al :=  CALLE1(ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen al :=  CALLE1(ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen al :=  CALLE1(ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen ax :=  CALLE2(     param,       ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen ax :=  CALLE2(ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen ax :=  CALLE2(ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen ax :=  CALLE2(ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen eax := CALLE4(     param,       ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen eax := CALLE4(ARG1(param, al),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen eax := CALLE4(ARG2(param, ax),  ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+//gen eax := CALLE4(ARG4(param, eax), ebx) uses ebx|ecx|edx|esi|edi { E_callebx(); }
+
+gen param := END();
+
+gen param := ARG1(param, r8:lhs)  { E_push($lhs); }
+gen param := ARG2(param, r16:lhs) { E_push($lhs); }
+gen param := ARG4(param, r32:lhs) { E_push($lhs); }
+
+gen al   := POPARG1(remaining==0);
+gen ax   := POPARG2(remaining==0);
+gen dxax := POPARG4(remaining==0);
+
+gen r8  := POPARG1(remaining!=0) { E_pop($$); }
+gen r16 := POPARG2(remaining!=0) { E_pop($$); }
+gen r32 := POPARG4(remaining!=0) { E_pop($$); }
+
 // --- Loads and stores -----------------------------------------------------
 
 gen r8 := FALLBACK(op1:lhs)  { E_insn("mov"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
@@ -506,6 +602,9 @@ gen r32 := AND4($$, op4|r32:rhs) { Alu4("and", "and", $$, $rhs, &$@rhs.operand);
 gen r32 := OR4($$, op4|r32:rhs)  { Alu4("or",  "or", $$, $rhs, &$@rhs.operand); }
 gen r32 := EOR4($$, op4|r32:rhs) { Alu4("xor", "xor", $$, $rhs, &$@rhs.operand); }
 
+gen dxax := DIVU4(dxax, bxcx) { E_callhelper("_divu4"); }
+gen bxcx := REMU4(dxax, bxcx) { E_callhelper("_remu4"); }
+
 // --- Conditionals ---------------------------------------------------------
 
 gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
@@ -518,6 +617,27 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
         E_jmp(label);
     end if;
 }
+
+%{
+	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node]) is
+		if node.beq.truelabel != node.beq.fallthrough then
+			E_jump(trueinsn, node.beq.truelabel);
+		end if;
+		if node.beq.falselabel != node.beq.fallthrough then
+			E_jump(falseinsn, node.beq.falselabel);
+		end if;
+	end sub;
+%}
+
+gen BEQ1(r8:lhs, r8|op1:rhs):b    { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BLTU1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
+gen BLTS1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+
+gen BEQ2(r16:lhs, r16|op2:rhs):b  { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BLTU2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
+gen BLTS2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+
+// --- Casts ----------------------------------------------------------------
 
 // --- Initialisers ---------------------------------------------------------
 
