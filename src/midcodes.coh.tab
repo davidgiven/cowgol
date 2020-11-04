@@ -57,7 +57,7 @@ y 0 1 POPARG(subr: [Subroutine], remaining: uint8)
 - 0 1 SUBREF(subr: [Subroutine])
 
 y 1 1 DEREF()
-- 2 0 STORE() # left is value, right is deref
+y 2 0 STORE() # left is value, right is deref
 
 - 2 1 BAND(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)
 - 2 1 BOR(truelabel: LabelRef, falselabel: LabelRef, fallthrough: LabelRef, negated: uint8) = ("true=%d false=%d, fallthrough=%d negated=%d", $$.truelabel, $$.falselabel, $$.fallthrough, $$.negated)

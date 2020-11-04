@@ -838,21 +838,21 @@ gen r32 := DEREF4(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
 
 // --- Stores ---------------------------------------------------------------
 
-gen STORE(r8:lhs, DEREF1(r32:rhs))  { E_storeix($lhs, $rhs, 0, 0); }
-gen STORE(r16:lhs, DEREF2(r32:rhs)) { E_storeix($lhs, $rhs, 0, 0); }
-gen STORE(r32:lhs, DEREF4(r32:rhs)) { E_storeix($lhs, $rhs, 0, 0); }
+gen STORE1(r8:lhs, DEREF1(r32:rhs))  { E_storeix($lhs, $rhs, 0, 0); }
+gen STORE2(r16:lhs, DEREF2(r32:rhs)) { E_storeix($lhs, $rhs, 0, 0); }
+gen STORE4(r32:lhs, DEREF4(r32:rhs)) { E_storeix($lhs, $rhs, 0, 0); }
 
-gen STORE(r8:lhs, DEREF1(ADD4(r32:rhs, r32:idx)))  { E_storeix($lhs, $rhs, $idx, 0); }
-gen STORE(r16:lhs, DEREF2(ADD4(r32:rhs, r32:idx))) { E_storeix($lhs, $rhs, $idx, 0); }
-gen STORE(r32:lhs, DEREF4(ADD4(r32:rhs, r32:idx))) { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE1(r8:lhs, DEREF1(ADD4(r32:rhs, r32:idx)))  { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE2(r16:lhs, DEREF2(ADD4(r32:rhs, r32:idx))) { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:rhs, r32:idx))) { E_storeix($lhs, $rhs, $idx, 0); }
 
-gen STORE(r8:lhs, DEREF1(ADD4(r32:rhs, CONSTANT():c)))  { E_storeix($lhs, $rhs, 0, $c.value); }
-gen STORE(r16:lhs, DEREF2(ADD4(r32:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, 0, $c.value); }
-gen STORE(r32:lhs, DEREF4(ADD4(r32:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE1(r8:lhs, DEREF1(ADD4(r32:rhs, CONSTANT():c)))  { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE2(r16:lhs, DEREF2(ADD4(r32:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, 0, $c.value); }
 
-gen STORE(r8:lhs, DEREF1(ADDRESS():a))  { E_store($lhs, &$a.sym, $a.off, 0); }
-gen STORE(r16:lhs, DEREF2(ADDRESS():a)) { E_store($lhs, &$a.sym, $a.off, 0); }
-gen STORE(r32:lhs, DEREF4(ADDRESS():a)) { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE1(r8:lhs, DEREF1(ADDRESS():a))  { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE2(r16:lhs, DEREF2(ADDRESS():a)) { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE4(r32:lhs, DEREF4(ADDRESS():a)) { E_store($lhs, &$a.sym, $a.off, 0); }
 
 // --- Maths ----------------------------------------------------------------
 

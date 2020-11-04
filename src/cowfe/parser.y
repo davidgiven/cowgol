@@ -78,7 +78,8 @@ statement ::= VAR newid(S) COLON typeref(T) ASSIGN expression(E) SEMICOLON.
 	InitVariable(current_subr, S, T);
     CheckExpressionType(E, S.vardata.type);
 
-    Generate(MidStore(E, MidDeref(E.type.width as uint8, MidAddress(S, 0))));
+	var w := E.type.width as uint8;
+    Generate(MidStore(w, E, MidDeref(w, MidAddress(S, 0))));
 }
 
 statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
@@ -94,7 +95,8 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 	InitVariable(current_subr, S, type);
 	CheckExpressionType(E, S.vardata.type);
 
-    Generate(MidStore(E, MidDeref(E.type.width as uint8, MidAddress(S, 0))));
+	var w := E.type.width as uint8;
+    Generate(MidStore(w, E, MidDeref(w, MidAddress(S, 0))));
 }
 
 /* --- Assignments ------------------------------------------------------- */
@@ -105,7 +107,8 @@ statement ::= expression(E1) ASSIGN expression(E2) SEMICOLON.
 	var address := UndoLValue(E1);
 
 	CheckExpressionType(E2, type);
-    Generate(MidStore(E2, MidDeref(type.width as uint8, address)));
+	var w := type.width as uint8;
+    Generate(MidStore(w, E2, MidDeref(w, address)));
 }
 
 /* --- Simple loops ------------------------------------------------------ */
@@ -836,6 +839,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		var w := param.vardata.type.width as uint8;
 		Generate(
 			MidStore(
+				w,
 				MidPoparg(w, intfsubr, count),
 				MidDeref(w, arg)
 			)
