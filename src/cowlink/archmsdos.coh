@@ -23,9 +23,9 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E("\torg 100h\n");
+	E("\tcpu 8086\n\torg 0x100\n");
 
-	E("\tlxi sp, TOP+");
+	E("\tmov sp, TOP+");
 	E_u16(STACK_SIZE);
 	E_nl();
 
@@ -39,7 +39,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 		coo := coo.next;
 	end loop;
 
-	E("\trst 0\n");
+	E("\tint 0x20\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
@@ -53,7 +53,6 @@ sub ArchEmitFooter(coo: [Coo]) is
 	E_u16(workspaceSize[0]);
 	E_nl();
 
-	E("\tend\n");
 	E_b8(26);
 end sub;
 

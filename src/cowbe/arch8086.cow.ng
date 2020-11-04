@@ -116,8 +116,11 @@
 			return;
 		end if;
 
-		sub memop() is
+		sub memop(kind: string) is
+			E(kind);
+			E(" [");
 			E_symref(op.mem.sym, op.mem.off);
+			E_b8(']');
 		end sub;
 
 		case reg is
@@ -125,9 +128,8 @@
 				E("0x");
 				E_h16(op.imm.value as uint16);
 
-			when REG_MEM1: memop();
-			when REG_MEM2: memop();
-			when REG_MEM4: memop();
+			when REG_MEM1: memop("byte");
+			when REG_MEM2: memop("word");
 
 			when else:
 				E("bad op ");
@@ -196,7 +198,7 @@
 
 		EmitterOpenStream(current_subr);
 
-		E("\t.text 1\n");
+		E("\tsection .text\n");
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('c');
 		E_u16(sid);
@@ -291,7 +293,7 @@ gen STARTSUB()
 
 	EmitterOpenStream(current_subr);
 
-	E("\n\n\t# ");
+	E("\n\n\t; ");
 	E(current_subr.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
@@ -304,7 +306,7 @@ gen STARTSUB()
 	E_b8(0);
 	E_nl();
 
-	E("\t.text\n");
+	E("\tsection .text\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -317,6 +319,8 @@ gen ENDSUB()
 	E("end_");
 	E_subref(current_subr);
 	E(":\n");
+
+	E("\tret\n");
 
 	EmitterCloseStream();
 }
