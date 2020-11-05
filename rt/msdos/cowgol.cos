@@ -63,9 +63,31 @@
     ret
 
 # Unsigned division of dxax by bxcx, leaving the result in dxax and the remainder in bxcx.
+# Turns out you can't use the 8086's 32/16=16 division instruction for 32/32=32 division.
+# So we have to do it the long way.
 &X _divremu4
 ``:
-    int 2
+    mov si, 32      ; loop count
+    xor di, di
+    xor bp, bp      ; clear remainder, which will be stored in bp:di
+``_loop:
+    shl ax, 1       ; left shift LHS...
+    rcl dx, 1
+    rcl di, 1       ; ...putting the result into the remainder
+    rcl bp, 1
+    cmp bp, bx      ; compare remainder against RHS
+    jc ``_noadd
+    cmp di, cx
+    jc ``_noadd
+    inc ax          ; set bottom bit of result (guaranteed clear)
+    sub di, cx      ; decrease remainder
+    sbb bp, bx
+``_noadd:
+    dec si
+    jnz ``_loop
+    mov bx, bp      ; put remainder into bx:cx
+    mov cx, di
+    ret
 
 # Signed division of dxax by bxcx, leaving the result in dxax and the remainder in bxcx.
 &X _divrems4
