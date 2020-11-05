@@ -858,12 +858,12 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 %}
 
 gen BEQ1(r8:lhs, r8|op1:rhs):b    { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
-gen BLTU1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
-gen BLTS1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTU1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTS1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
 gen BEQ2(r16:lhs, r16|op2:rhs):b  { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
-gen BLTU2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
-gen BLTS2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTU2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTS2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
 gen BEQ4(r32:lhs, r32|op4:rhs):b
 {
@@ -885,13 +885,13 @@ gen BEQ4(r32:lhs, r32|op4:rhs):b
 gen BLTU4(r32:lhs, r32|op4:rhs):b
 {
 	Alu4("sub", "sbb", $lhs, $rhs, &$@rhs.operand);
-	CmpJumps("jl", "jge", $@$);
+	CmpJumps("jb", "jae", $@$);
 }
 
 gen BLTS4(r32:lhs, r32|op4:rhs):b
 {
 	Alu4("sub", "sbb", $lhs, $rhs, &$@rhs.operand);
-	CmpJumps("jb", "jae", $@$);
+	CmpJumps("jl", "jge", $@$);
 }
 
 // --- Case -----------------------------------------------------------------
