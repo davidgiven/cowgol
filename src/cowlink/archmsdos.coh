@@ -23,6 +23,7 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
+	E("\t[warning -number-overflow]\n");
 	E("\tcpu 8086\n\torg 0x100\n");
 
 	E("\tmov sp, TOP+");

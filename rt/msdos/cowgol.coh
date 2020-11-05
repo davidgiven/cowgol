@@ -1,8 +1,8 @@
 var LOMEM: [uint8];
-@asm "mov ", LOMEM, ", LOMEM";
+@asm "mov word [", LOMEM, "], LOMEM";
 
 var HIMEM: [uint8];
-@asm "mov ", HIMEM, ", 0";
+@asm "mov word [", HIMEM, "], 0";
 
 sub Exit() is
 	@asm "int 0x20";
@@ -17,15 +17,9 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
-	if c == 10 then
-		@asm "mvi e, 13";
-		@asm "mvi c, 2";
-		@asm "call 5";
-	end if;
-	@asm "lda", c;
-	@asm "mov e, a";
-	@asm "mvi c, 2";
-	@asm "call 5";
+	@asm "mov dl, [", c, "]";
+	@asm "mov ah, 2";
+	@asm "int 0x21";
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
