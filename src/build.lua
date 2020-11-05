@@ -150,11 +150,11 @@ function buildtass64(e)
 end
 
 function buildnasm(e)
-	local com = e.outs[1]:ext(".com"):obj()
+	local lst = e.outs[1]:ext(".lst"):obj()
 	rule {
 		ins = e.ins,
-		outs = { com },
-		cmd = "nasm -f bin -o &1 @1",
+		outs = { e.outs[1], lst },
+		cmd = "nasm -f bin -o &1 -l &2 @1",
 	}
 end
 
