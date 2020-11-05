@@ -795,21 +795,17 @@ gen r32 := EOR4($$, op4|r32:rhs) { Alu4("xor", "xor", $$, $rhs, &$@rhs.operand);
 
 gen r32 := NEG4($$)
 {
-	E_insn("sub");
+	E_insn("not");
+	E_reg(hiwordreg($$));
+	E_nl();
+
+	E_insn("not");
 	E_reg(lowordreg($$));
-	E(", 1\n");
+	E_nl();
 
 	E_insn("sbb");
 	E_reg(hiwordreg($$));
 	E(", 0\n");
-
-	E_insn("not");
-	E_reg(lowordreg($$));
-	E_nl();
-
-	E_insn("not");
-	E_reg(hiwordreg($$));
-	E_nl();
 }
 
 gen r32 := NOT4($$)

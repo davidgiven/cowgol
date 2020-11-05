@@ -1,6 +1,7 @@
 # Left shifts dxax by cl bits.
 &X _lsl4
 ``:
+    xor ch, ch
     jcxz ``_ret
     shl ax, 1
     rcl dx, 1
@@ -11,6 +12,7 @@
 # Arithmetic right shifts dxax by cl bits.
 &X _asr4
 ``:
+    xor ch, ch
     jcxz ``_ret
     sar dx, 1
     rcr ax, 1
@@ -21,6 +23,7 @@
 # Logical right shifts dxax by cl bits.
 &X _lsr4
 ``:
+    xor ch, ch
     jcxz ``_ret
     shr dx, 1
     rcr ax, 1
@@ -92,7 +95,43 @@
 # Signed division of dxax by bxcx, leaving the result in dxax and the remainder in bxcx.
 &X _divrems4
 ``:
-    int 2
+    push dx         ; save sign of remainder
+    mov di, bx
+    xor di, dx      ; discover sign of result
+    push di         ; ...and save
+
+    or dx, dx
+    jns ``_lhs_positive
+    neg dx          ; negate LHS
+    neg ax
+    sbb dx, 0
+``_lhs_positive:
+
+    or bx, bx
+    jns ``_rhs_positive
+    neg bx          ; negate RHS
+    neg cx
+    sbb bx, 0
+``_rhs_positive:
+
+    call `_divremu4
+
+    pop di
+    or di, di
+    jns ``_dividend_positive
+    neg dx
+    neg ax
+    sbb dx, 0
+``_dividend_positive:
+
+    pop di
+    or di, di
+    jns ``_remainder_positive
+    neg bx
+    neg cx
+    sbb bx, 0
+``_remainder_positive:
+    ret
 
 # vim: ts=4 sw=4 et
 
