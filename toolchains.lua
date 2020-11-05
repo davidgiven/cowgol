@@ -141,7 +141,7 @@ toolchain_msdos = {
 	runtime = "rt/msdos",
 	asmext = ".asm",
 	binext = ".msdos.com",
-	tester = nil,
+	tester = emu2test,
 }
 
 ALL_TOOLCHAINS = {

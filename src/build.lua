@@ -199,6 +199,11 @@ function fuzix6303test(e)
 	return simpletest("bin/fuzix6303emu -f", e)
 end
 
+function emu2test(e)
+	e.ins = concat { e.ins, "bin/emu2" }
+	return simpletest("bin/emu2", e)
+end
+
 function cowgol(e)
 	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
 	local coo = out:ext(".coo"):obj()
