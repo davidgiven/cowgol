@@ -207,7 +207,7 @@
 					E("cx");
 				end if;
 
-			when REG_IMM: E_i16((op.imm.value >> (8*(off as uint8))) as int16);
+			when REG_IMM: E("0x"); E_h16((op.imm.value >> (8*(off as uint8))) as uint16);
 			when REG_ADR: E_symref(op.mem.sym, op.mem.off + off);
 
 			when REG_MEM1: memop("byte");
@@ -796,11 +796,11 @@ gen r32 := EOR4($$, op4|r32:rhs) { Alu4("xor", "xor", $$, $rhs, &$@rhs.operand);
 
 gen r32 := NEG4($$)
 {
-	E_insn("not");
+	E_insn("neg");
 	E_reg(hiwordreg($$));
 	E_nl();
 
-	E_insn("not");
+	E_insn("neg");
 	E_reg(lowordreg($$));
 	E_nl();
 
