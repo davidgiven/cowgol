@@ -426,6 +426,70 @@ gen STARTSUB()
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
+	var count := current_subr.num_input_parameters;
+	var lastparam := count - 1;
+	var popped: uint8 := 0;
+
+	sub pop_return_address() is
+		if popped == 0 then
+			E_pop(REG_CX);
+			popped := 1;
+		end if;
+	end sub;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter(current_subr, count);
+
+		var reg: RegId;
+		if count != lastparam then
+			pop_return_address();
+
+			case param.width is
+				when 1:
+					E("\tpop bx\nmov byte [");
+					E_symref(param as [Symbol], 0);
+					E("], bl\n");
+
+				when 2:
+					E("\tpop word [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+
+				when 4:
+					E("\tpop word [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+					E("\tpop word [");
+					E_symref(param as [Symbol], 2);
+					E("]\n");
+			end case;
+		else
+			case param.width is
+				when 1:
+					E("\tmov byte [");
+					E_symref(param as [Symbol], 0);
+					E("], al\n");
+
+				when 2:
+					E("\tmov word [");
+					E_symref(param as [Symbol], 0);
+					E("], ax\n");
+
+				when 4:
+					E("\tmov word [");
+					E_symref(param as [Symbol], 0);
+					E("], ax\n");
+					E("\tmov word [");
+					E_symref(param as [Symbol], 2);
+					E("], dx\n");
+			end case;
+		end if;
+	end loop;
+
+	if popped != 0 then
+		E_push(REG_CX);
+	end if;
 }
 
 gen ENDSUB()
@@ -436,7 +500,71 @@ gen ENDSUB()
 	E_subref(current_subr);
 	E(":\n");
 
-	E("\tret\n");
+	var count: uint8 := 0;
+	var params := current_subr.num_output_parameters;
+	var pushed: uint8 := 0;
+
+	sub push_return_address() is
+		if pushed == 0 then
+			E_pop(REG_CX);
+		end if;
+	end sub;
+
+	while count != params loop
+		var param := GetOutputParameter(current_subr, count);
+
+		if count != (params-1) then
+			push_return_address();
+
+			case param.width is
+				when 1:
+					E("\tpush word [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+
+				when 2:
+					E("\tpush word [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+
+				when 4:
+					E("\tpush word [");
+					E_symref(param as [Symbol], 2);
+					E("]\n");
+					E("\tpush word [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+			end case;
+		else
+			case param.width is
+				when 1:
+					E("\tmov al, byte [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+
+				when 2:
+					E("\tmov ax, word [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+
+				when 4:
+					E("\tmov ax, word [");
+					E_symref(param as [Symbol], 0);
+					E("]\n");
+					E("\tmov dx, word [");
+					E_symref(param as [Symbol], 2);
+					E("]\n");
+			end case;
+		end if;
+
+		count := count + 1;
+	end loop;
+
+	if pushed != 0 then
+		E("\tjmp cx\n");
+	else
+		E("\tret\n");
+	end if;
 
 	EmitterCloseStream();
 }

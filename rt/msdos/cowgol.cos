@@ -1,25 +1,31 @@
 # Left shifts dxax by cl bits.
 &X _lsl4
 ``:
+    jcxz ``_ret
     shl ax, 1
     rcl dx, 1
     loop ``
+``_ret:
     ret
  
 # Arithmetic right shifts dxax by cl bits.
 &X _asr4
 ``:
+    jcxz ``_ret
     sar dx, 1
     rcr ax, 1
     loop ``
+``_ret:
     ret
  
 # Logical right shifts dxax by cl bits.
 &X _lsr4
 ``:
+    jcxz ``_ret
     shr dx, 1
     rcr ax, 1
     loop ``
+``_ret:
     ret
  
 # Multiply dxax by bxcx, leaving the result in dxax.
