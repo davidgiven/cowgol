@@ -422,7 +422,7 @@ gen STARTSUB()
 	E_b8(0);
 	E_nl();
 
-	E("\tsection .text\n");
+	#E("\tsection .text\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -944,7 +944,7 @@ gen al := CAST21(ax);
 gen ax := CAST12(al, sext==0) { E("\txor ah, ah\n"); }
 gen ax := CAST12(al, sext!=0) { E("\tcbw\n"); }
 gen dxax := CAST14(al, sext==0) { E("\txor ah, ah\n\txor dx, dx\n"); }
-gen dxax := CAST14(al, sext!=0) { E("\tcbw\tcwd\n"); }
+gen dxax := CAST14(al, sext!=0) { E("\tcbw\n\tcwd\n"); }
 gen dxax := CAST24(ax, sext==0) { E("\txor dx, dx\n"); }
 gen dxax := CAST24(ax, sext!=0) { E("\tcwd\n"); }
 
@@ -953,7 +953,7 @@ gen dxax := CAST24(ax, sext!=0) { E("\tcwd\n"); }
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	E("\tsection .data\n");
+	#E("\tsection .data\n");
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }
