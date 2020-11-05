@@ -507,6 +507,7 @@ gen ENDSUB()
 	sub push_return_address() is
 		if pushed == 0 then
 			E_pop(REG_CX);
+			pushed := 1;
 		end if;
 	end sub;
 
