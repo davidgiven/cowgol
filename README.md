@@ -49,6 +49,8 @@ The following targets are supported. Adding more is easy.
 
   - 80386, on Linux.
 
+  - 8086, on DOS (it emits tiny mode .com files).
+
   - PDP11, on V7 Unix (thanks to
 	[shattered@github](https://github.com/shattered) for contributing the PDP11
 	backend for this).
@@ -81,9 +83,10 @@ In terms of machines you can run the compiler _on_:
   - Generic CP/M (untested). There's no reason why this shouldn't work, but I
 	haven't tried it yet.
 
-  - PDP11 V7 Unix (untested). Likewise not tried.
-
-  - Any Fuzix platform (untested). Equally untried.
+The other platforms have unfinished system call libraries, so while the
+compiler tests all pass and the compilers are being built, they won't work if
+you run them. This should be easy to fix if necessary --- let me know and ask.
+(I just haven't got round to it yet.)
 
 ### About the language
 
