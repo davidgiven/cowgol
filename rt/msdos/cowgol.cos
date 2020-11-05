@@ -29,9 +29,38 @@
     ret
  
 # Multiply dxax by bxcx, leaving the result in dxax.
+# This is a long multiplication in 16 bit values:
+#
+#       L1 L2
+#       R1 R2
+#       -----
+#       A1 A2 : L2 * R2
+#    B1 B2    : L1 * R2
+#    C1 C2    : L2 * R1
+#       -----
+#       R1 R2
+#
+# Of course, we only care about the bottom 32 bits.
 &X _mul4
-``:
-    int 2
+``:                 ; dx:ax=L bx:cx=R
+    mov di, dx
+    mov si, ax      ; dx:ax=L bx:cx=R di:si=L
+
+    mov ax, dx      ; ax=L1 bx:cx=R di:si=L
+    mul cx          ; L1 * R2; L1 is no longer used
+    mov di, ax      ; bx:cx=R di=B2 si=L2
+
+    mov ax, si      ; ax=L2 bx:cx=R di=B2 si=L2
+    mul cx          ; L2 * R2; R2 is no longer used; bx:cx=R di=B2 si=L2 dx:ax=A
+    mov cx, ax      ; bx=R1 cx=A2 di=B2 si=L2 dx:ax=A
+    add di, dx      ; di=A1+B2
+
+    mov ax, si      ; bx=R1 cx=A2 di=A1+B2 si=L2 ax=L2
+    mul bx          ; ax=C2
+    add ax, di      ; ax=A1+B2+C2
+    mov dx, ax
+    mov ax, cx
+    ret
 
 # Unsigned division of dxax by bxcx, leaving the result in dxax and the remainder in bxcx.
 &X _divremu4
