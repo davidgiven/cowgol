@@ -236,7 +236,9 @@ license](https://github.com/davidgiven/cowgol/blob/master/COPYING).  Simplified
 summary: do what you like with it, just don't claim you wrote it.
 
 The exceptions are the contents of the `third_party` directory, which were
-written by other people and are not covered by this license.
+written by other people and are not covered by this license. This directory as
+a whole contains GPL software, which means that if you redistribute the entire
+directory, you must conform to the terms of the GPL.
 
 `third_party/lib6502` contains a hacked copy of the lib6502 library, which is ©
 2005 Ian Plumarta and is available under the terms of the MIT license. See
@@ -256,4 +258,8 @@ text.
 `third_party/rc2014emu` contains a subset of the RC2014 emulator written by
 Alan Cox. It is distributed under the terms of the GPL 3.0 license; see
 `third_party/rc2014emu/COPYING` for the full text.
+
+`third_party/emu2` constains a copy of the emu2 DOS emulator written by
+dmsc@github (and others). It is distributed under the terms of the GPL 2.0
+license; see `third_party/emu2/LICENSE` for the full text.
 
