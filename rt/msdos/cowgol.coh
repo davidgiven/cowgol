@@ -5,11 +5,13 @@ var HIMEM: [uint8];
 @asm "mov word [", HIMEM, "], 0";
 
 sub Exit() is
-	@asm "int 0x20";
+	@asm "mov ax, 0x4c00";
+	@asm "int 0x21";
 end sub;
 
 sub ExitWithError() is
-	@asm "int 0x20";
+	@asm "mov ax, 0x4c01";
+	@asm "int 0x21";
 end sub;
 
 sub AlignUp(in: intptr): (out: intptr) is

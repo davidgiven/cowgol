@@ -359,9 +359,9 @@ regclass r8 := al|bl|cl|dl;
 regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := dxax|bxcx;
 
-regclass lv1 := mem1|bxind1;
-regclass lv2 := mem2|bxind2;
-regclass lv4 := mem4|bxind4;
+regclass lv1 := mem1|bxind1|siind1|diind1;
+regclass lv2 := mem2|bxind2|siind2|diind2;
+regclass lv4 := mem4|bxind4|siind4|diind4;
 
 regclass op1 := imm|adr|lv1;
 regclass op2 := imm|adr|lv2;
@@ -370,6 +370,12 @@ regclass op4 := imm|adr|lv4;
 regdata bxind1 uses bx;
 regdata bxind2 uses bx;
 regdata bxind4 uses bx;
+regdata siind1 uses si;
+regdata siind2 uses si;
+regdata siind4 uses si;
+regdata diind1 uses di;
+regdata diind2 uses di;
+regdata diind4 uses di;
 
 regdata dxax compatible r32 uses dxax|dx|ax|dl|al;
 regdata bxcx compatible r32 uses bxcx|bx|cx|bl|cl;
