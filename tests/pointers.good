@@ -1,3 +1,5 @@
 @next: yes
 @prev: yes
 p.byte==4: yes
+direct: yes
+indirect: yes
