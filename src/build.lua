@@ -149,6 +149,15 @@ function buildtass64(e)
 	}
 end
 
+function buildnasm(e)
+	local lst = e.outs[1]:ext(".lst"):obj()
+	rule {
+		ins = e.ins,
+		outs = { e.outs[1], lst },
+		cmd = "nasm -f bin -o &1 -l &2 @1",
+	}
+end
+
 function simpletest(interpreter, e)
 	local badfile = e.ins[1]:ext(".bad")
 	rule {
@@ -188,6 +197,11 @@ end
 function fuzix6303test(e)
 	e.ins = concat { e.ins, "bin/fuzix6303emu" }
 	return simpletest("bin/fuzix6303emu -f", e)
+end
+
+function emu2test(e)
+	e.ins = concat { e.ins, "bin/emu2" }
+	return simpletest("bin/emu2", e)
 end
 
 function cowgol(e)

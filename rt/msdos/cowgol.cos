@@ -1,0 +1,137 @@
+# Left shifts dxax by cl bits.
+&X _lsl4
+``:
+    xor ch, ch
+    jcxz ``_ret
+    shl ax, 1
+    rcl dx, 1
+    loop ``
+``_ret:
+    ret
+ 
+# Arithmetic right shifts dxax by cl bits.
+&X _asr4
+``:
+    xor ch, ch
+    jcxz ``_ret
+    sar dx, 1
+    rcr ax, 1
+    loop ``
+``_ret:
+    ret
+ 
+# Logical right shifts dxax by cl bits.
+&X _lsr4
+``:
+    xor ch, ch
+    jcxz ``_ret
+    shr dx, 1
+    rcr ax, 1
+    loop ``
+``_ret:
+    ret
+ 
+# Multiply dxax by bxcx, leaving the result in dxax.
+# This is a long multiplication in 16 bit values:
+#
+#       L1 L2
+#       R1 R2
+#       -----
+#       A1 A2 : L2 * R2
+#    B1 B2    : L1 * R2
+#    C1 C2    : L2 * R1
+#       -----
+#       R1 R2
+#
+# Of course, we only care about the bottom 32 bits.
+&X _mul4
+``:                 ; dx:ax=L bx:cx=R
+    mov di, dx
+    mov si, ax      ; dx:ax=L bx:cx=R di:si=L
+
+    mov ax, dx      ; ax=L1 bx:cx=R di:si=L
+    mul cx          ; L1 * R2; L1 is no longer used
+    mov di, ax      ; bx:cx=R di=B2 si=L2
+
+    mov ax, si      ; ax=L2 bx:cx=R di=B2 si=L2
+    mul cx          ; L2 * R2; R2 is no longer used; bx:cx=R di=B2 si=L2 dx:ax=A
+    mov cx, ax      ; bx=R1 cx=A2 di=B2 si=L2 dx:ax=A
+    add di, dx      ; di=A1+B2
+
+    mov ax, si      ; bx=R1 cx=A2 di=A1+B2 si=L2 ax=L2
+    mul bx          ; ax=C2
+    add ax, di      ; ax=A1+B2+C2
+    mov dx, ax
+    mov ax, cx
+    ret
+
+# Unsigned division of dxax by bxcx, leaving the result in dxax and the remainder in bxcx.
+# Turns out you can't use the 8086's 32/16=16 division instruction for 32/32=32 division.
+# So we have to do it the long way.
+&X _divremu4
+``:
+    mov si, 32      ; loop count
+    xor di, di
+    xor bp, bp      ; clear remainder, which will be stored in bp:di
+``_loop:
+    shl ax, 1       ; left shift LHS...
+    rcl dx, 1
+    rcl di, 1       ; ...putting the result into the remainder
+    rcl bp, 1
+    cmp bp, bx      ; compare remainder against RHS
+    jc ``_noadd
+    cmp di, cx
+    jc ``_noadd
+    inc ax          ; set bottom bit of result (guaranteed clear)
+    sub di, cx      ; decrease remainder
+    sbb bp, bx
+``_noadd:
+    dec si
+    jnz ``_loop
+    mov bx, bp      ; put remainder into bx:cx
+    mov cx, di
+    ret
+
+# Signed division of dxax by bxcx, leaving the result in dxax and the remainder in bxcx.
+&X _divrems4
+``:
+    push dx         ; save sign of remainder
+    mov di, bx
+    xor di, dx      ; discover sign of result
+    push di         ; ...and save
+
+    or dx, dx
+    jns ``_lhs_positive
+    neg dx          ; negate LHS
+    neg ax
+    sbb dx, 0
+``_lhs_positive:
+
+    or bx, bx
+    jns ``_rhs_positive
+    neg bx          ; negate RHS
+    neg cx
+    sbb bx, 0
+``_rhs_positive:
+
+    call `_divremu4
+
+    pop di
+    or di, di
+    jns ``_dividend_positive
+    neg dx
+    neg ax
+    sbb dx, 0
+``_dividend_positive:
+
+    pop di
+    or di, di
+    jns ``_remainder_positive
+    neg bx
+    neg cx
+    sbb bx, 0
+``_remainder_positive:
+    ret
+
+# vim: ts=4 sw=4 et
+

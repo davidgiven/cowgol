@@ -130,20 +130,32 @@ toolchain_fuzix6303 = {
 	asmext = ".asm",
 	binext = ".6303.exe",
 	tester = fuzix6303test,
-	archs = {},
+}
+
+toolchain_msdos = {
+	name = "msdos",
+	cowfe = "bin/cowfe-8086.nncgen.exe",
+	cowbe = "bin/cowbe-8086.nncgen.exe",
+	linker = "bin/cowlink-msdos.nncgen.exe",
+	assembler = buildnasm,
+	runtime = "rt/msdos",
+	asmext = ".asm",
+	binext = ".msdos.com",
+	tester = emu2test,
 }
 
 ALL_TOOLCHAINS = {
-	toolchain_nncgen,
+	toolchain_bbct,
+	toolchain_bbct6502,
+	toolchain_bbcti,
+	toolchain_bbctiny,
+	toolchain_fuzix6303,
+	toolchain_lx386,
+	toolchain_msdos,
 	toolchain_ncgen,
 	toolchain_ncpm,
 	toolchain_ncpmz,
-	toolchain_lx386,
-	toolchain_bbct,
-	toolchain_bbctiny,
-	toolchain_bbct6502,
-	toolchain_bbcti,
+	toolchain_nncgen,
 	toolchain_unixv7,
-	toolchain_fuzix6303,
 }
 
