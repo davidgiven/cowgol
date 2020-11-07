@@ -323,31 +323,14 @@ register al bl cl dl;
 register stk4 param;
 operand imm adr;
 operand mem1 mem2 mem4;
-operand bxind1 bxind2 bxind4;
-operand siind1 siind2 siind4;
-operand diind1 diind2 diind4;
 
 regclass r8 := al|bl|cl|dl;
 regclass r16 := ax|bx|cx|dx|si|di;
 regclass r32 := dxax|bxcx;
 
-regclass lv1 := mem1|bxind1|siind1|diind1;
-regclass lv2 := mem2|bxind2|siind2|diind2;
-regclass lv4 := mem4|bxind4|siind4|diind4;
-
-regclass op1 := imm|adr|lv1;
-regclass op2 := imm|adr|lv2;
-regclass op4 := imm|adr|lv4;
-
-regdata bxind1 uses bx;
-regdata bxind2 uses bx;
-regdata bxind4 uses bx;
-regdata siind1 uses si;
-regdata siind2 uses si;
-regdata siind4 uses si;
-regdata diind1 uses di;
-regdata diind2 uses di;
-regdata diind4 uses di;
+regclass op1 := imm|adr|mem1;
+regclass op2 := imm|adr|mem2;
+regclass op4 := imm|adr|mem4;
 
 regdata dxax compatible r32 uses dxax|dx|ax|dl|al;
 regdata bxcx compatible r32 uses bxcx|bx|cx|bl|cl;
@@ -572,9 +555,9 @@ gen imm := CONSTANT():c { $@$.operand.imm.value := $c.value; }
 
 gen adr := ADDRESS():a { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
 
-gen mem1 := DEREF1(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
-gen mem2 := DEREF2(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
-gen mem4 := DEREF4(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+gen mem1 := DEREF1(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+gen mem2 := DEREF2(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+gen mem4 := DEREF4(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
 
 %{
 	sub Call(addr: [MidcodeSubref]) is
@@ -636,7 +619,10 @@ gen r8  := POPARG1(remaining!=0) { E_pop($$); }
 gen r16 := POPARG2(remaining!=0) { E_pop($$); }
 gen r32 := POPARG4(remaining!=0) { E_pop($$); }
 
-// --- Loads and stores -----------------------------------------------------
+// --- Fallback loads -------------------------------------------------------
+
+// These rules ensure that any operand can be loaded into a register if
+// necessary.
 
 gen r8 := FALLBACK(op1:lhs)  { E_insn("mov"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
 gen r16 := FALLBACK(op2:lhs) { E_insn("mov"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
@@ -656,106 +642,82 @@ gen r32 := FALLBACK(op4:lhs)
 	E_nl();
 }
 
-gen STORE1(r8|imm|adr:lhs, lv1:rhs) { E_insn("mov"); E_op0($rhs, &$@rhs.operand); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
-gen STORE2(r16|imm|adr:lhs, lv2:rhs) { E_insn("mov"); E_op0($rhs, &$@rhs.operand); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
-
-gen STORE4(r32|imm|adr:lhs, lv4:rhs)
-{
-	E_insn("mov");
-	E_op($rhs, &$@rhs.operand, 0);
-	E_comma();
-	E_op($lhs, &$@lhs.operand, 0);
-	E_nl();
-
-	E_insn("mov");
-	E_op($rhs, &$@rhs.operand, 2);
-	E_comma();
-	E_op($lhs, &$@lhs.operand, 2);
-	E_nl();
-}
-
 // --- Indexed loads and stores ---------------------------------------------
 
 %{
-	sub E_indirect(base: RegId, offreg: RegId, offop: [Operand], delta: uint16) is
+	sub E_indirect(base: RegId, baseop: [Operand], extra: RegId, delta: uint16) is
 		E_b8('[');
-		E_reg(base);
-		if offreg != 0 then
+		E_op(base, baseop, 0);
+		if extra != 0 then
 			E_b8('+');
-			E_op(offreg, offop, 0);
+			E_reg(extra);
 		end if;
 		if delta != 0 then
 			E_i16(delta as int16);
 		end if;
 		E_b8(']');
 	end sub;
+
+	sub IndirectLoad(dest: RegId, base: RegId, baseop: [Operand], extra: RegId, disp: uint16, delta: uint16, size: string) is
+		E_insn("mov");
+		E_reg(dest);
+		E_comma();
+		E(size);
+		E_space();
+		E_indirect(base, baseop, extra, delta+disp);
+		E_nl();
+	end sub;
+
+	sub IndirectLoad4(dest: RegId, base: RegId, baseop: [Operand], extra: RegId, disp: uint16) is
+		IndirectLoad(lowordreg(dest), base, baseop, extra, disp, 0, "word");
+		IndirectLoad(hiwordreg(dest), base, baseop, extra, disp, 2, "word");
+	end sub;
+
+	sub IndirectStore(src: RegId, srcop: [Operand], base: RegId, baseop: [Operand], extra: RegId, disp: uint16, delta: uint16, size: string) is
+		E_insn("mov");
+		E(size);
+		E_space();
+		E_indirect(base, baseop, extra, delta+disp);
+		E_comma();
+		E_op(src, srcop, delta as uint16);
+		E_nl();
+	end sub;
+
+	sub IndirectStore4(src: RegId, srcop: [Operand], base: RegId, baseop: [Operand], extra: RegId, disp: uint16) is
+		IndirectStore(src, srcop, base, baseop, extra, disp, 0, "word");
+		IndirectStore(src, srcop, base, baseop, extra, disp, 2, "word");
+	end sub;
 %}
 
-gen r8 := DEREF1(bx|si|di:lhs)
-{
-	E_insn("mov");
-	E_reg($$);
-	E(", byte ");
-	E_indirect($lhs, 0, 0 as [Operand], 0);
-	E_nl();
-}
+gen r8 := DEREF1(bx|si|di|adr:lhs) { IndirectLoad($$, $lhs, &$@lhs.operand, 0, 0, 0, "byte"); }
+gen r16 := DEREF2(bx|si|di|adr:lhs) { IndirectLoad($$, $lhs, &$@lhs.operand, 0, 0, 0, "word"); }
+gen r32 := DEREF4(bx|si|di|adr:lhs) { IndirectLoad4($$, $lhs, &$@lhs.operand, 0, 0); }
 
-gen r16 := DEREF2(bx|si|di:lhs)
-{
-	E_insn("mov");
-	E_reg($$);
-	E(", word ");
-	E_indirect($lhs, 0, 0 as [Operand], 0);
-	E_nl();
-}
+gen r8 := DEREF1(ADD2(si|di|adr:lhs, bx:rhs)) { IndirectLoad($$, $lhs, &$@lhs.operand, $rhs, 0, 0, "byte"); }
+gen r16 := DEREF2(ADD2(si|di|adr:lhs, bx:rhs)) { IndirectLoad($$, $lhs, &$@lhs.operand, $rhs, 0, 0, "word"); }
+gen r32 := DEREF4(ADD2(si|di|adr:lhs, bx:rhs)) { IndirectLoad4($$, $lhs, &$@lhs.operand, $rhs, 0); }
 
-gen r32 := DEREF4(bx|si|di:lhs)
-{
-	E_insn("mov");
-	E_reg(lowordreg($$));
-	E(", word ");
-	E_indirect($lhs, 0, 0 as [Operand], 0);
-	E_nl();
+gen r8 := DEREF1(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad($$, $lhs, &$@lhs.operand, 0, $c.value as uint16, 0, "byte"); }
+gen r16 := DEREF2(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad($$, $lhs, &$@lhs.operand, 0, $c.value as uint16, 0, "word"); }
+gen r32 := DEREF4(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad4($$, $lhs, &$@lhs.operand, 0, $c.value as uint16); }
 
-	E_insn("mov");
-	E_reg(hiwordreg($$));
-	E(", word ");
-	E_indirect($lhs, 0, 0 as [Operand], 2);
-	E_nl();
-}
+gen STORE1(r8|adr|imm:lhs, DEREF1(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "byte"); }
+gen STORE2(r16|adr|imm:lhs, DEREF2(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "word"); }
+gen STORE4(r32|adr|imm:lhs, DEREF4(bx|si|di|adr:ptr)) { IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0); }
 
-gen STORE1(r8|imm|adr:lhs, DEREF1(bx|si|di:ptr))
-{
-	E_insn("mov byte");
-	E_indirect($ptr, 0, 0 as [Operand], 0);
-	E_comma();
-	E_op($lhs, &$@lhs.operand, 0);
-	E_nl();
-}
+gen STORE1(r8|adr|imm:lhs, DEREF1(ADD2(si|di|adr:ptr, bx:rhs)))
+	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0, 0, "byte"); }
+gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(si|di|adr:ptr, bx:rhs)))
+	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0, 0, "word"); }
+gen STORE4(r32|adr|imm:lhs, DEREF4(ADD2(si|di|adr:ptr, bx:rhs)))
+	{ IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0); }
 
-gen STORE2(r16|imm|adr:lhs, DEREF2(bx|si|di:ptr))
-{
-	E_insn("mov word");
-	E_indirect($ptr, 0, 0 as [Operand], 0);
-	E_comma();
-	E_op($lhs, &$@lhs.operand, 0);
-	E_nl();
-}
-
-gen STORE4(r32|imm|adr:lhs, DEREF4(bx|si|di:ptr))
-{
-	E_insn("mov word");
-	E_indirect($ptr, 0, 0 as [Operand], 0);
-	E_comma();
-	E_op($lhs, &$@lhs.operand, 0);
-	E_nl();
-
-	E_insn("mov word");
-	E_indirect($ptr, 0, 0 as [Operand], 2);
-	E_comma();
-	E_op($lhs, &$@lhs.operand, 2);
-	E_nl();
-}
+gen STORE1(r8|adr|imm:lhs, DEREF1(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
+	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16, 0, "byte"); }
+gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
+	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16, 0, "word"); }
+gen STORE4(r32|adr|imm:lhs, DEREF4(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
+	{ IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16); }
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
 
