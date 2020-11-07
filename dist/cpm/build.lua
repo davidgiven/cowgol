@@ -9,14 +9,6 @@ function cpmify(e)
 	}
 end
 
-function copy(e)
-	rule {
-		ins = e.ins,
-		outs = e.outs,
-		cmd = "cp @1 &1"
-	}
-end
-
 cpmify {
 	ins = { "examples/mandel.cow" },
 	outs = { "$OBJ/dist/cpm/mandel.cow" },

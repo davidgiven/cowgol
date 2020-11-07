@@ -35,5 +35,15 @@ if shorts[1] == 2 then yes(); else no(); end if;
 print("read long");
 if longs[1] == 2 then yes(); else no(); end if;
 
+var i: uint8 := 1;
+print("read byte indexed");
+if bytes[i] == 2 then yes(); else no(); end if;
+
+print("read short indexed");
+if shorts[i] == 2 then yes(); else no(); end if;
+
+print("read long indexed");
+if longs[i] == 2 then yes(); else no(); end if;
+
 Subroutine();
 

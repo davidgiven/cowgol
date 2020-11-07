@@ -40,7 +40,8 @@ sub ArchEmitHeader(coo: [Coo]) is
 		coo := coo.next;
 	end loop;
 
-	E("\tint 0x20\n");
+	E("\tmov ax, 0x4c00\n");
+	E("\tint 0x21\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is

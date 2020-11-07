@@ -15,3 +15,22 @@ print("@prev"); if @prev p == &unaligned[0] then yes(); else no(); end if;
 unaligned[1].byte := 4;
 print("p.byte==4"); if p.byte==4 then yes(); else no(); end if;
 
+sub IndexTest() is
+	record WithBuffer is
+		padding: uint8;
+		offset: uint16;
+		buffer: uint8[260];
+	end record;
+
+	var b: WithBuffer;
+	MemZero(&b as [uint8], @bytesof b);
+	b.offset := 2;
+	b.buffer[2] := 42;
+
+	print("direct"); if b.buffer[b.offset] == 42 then yes(); else no(); end if;
+
+	var p := &b;
+	print("indirect"); if p.buffer[p.offset] == 42 then yes(); else no(); end if;
+end sub;
+IndexTest();
+
