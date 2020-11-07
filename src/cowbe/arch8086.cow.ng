@@ -8,15 +8,9 @@
 		value: Arith;
 	end record;
 
-	record IndOp is
-		reg: uint32; # RegId isn't here yet
-		off: Size;
-	end record;
-
 	record Operand is
 		mem @at(0): MemOp;
 		imm @at(0): ImmOp;
-		ind @at(0): IndOp;
 	end record;
 %]
 
@@ -181,17 +175,6 @@
 			E_b8(']');
 		end sub;
 
-		sub indop(kind: string) is
-			E(kind);
-			E(" [");
-			E_reg(op.ind.reg);
-			off := off + (op.ind.off as uint16);
-			if off != 0 then
-				E_i16(off as int16);
-			end if;
-			E_b8(']');
-		end sub;
-
 		case reg is
 			when REG_DXAX:
 				if off == 2 then
@@ -213,18 +196,6 @@
 			when REG_MEM1: memop("byte");
 			when REG_MEM2: memop("word");
 			when REG_MEM4: memop("word");
-
-			when REG_BXIND1: indop("byte");
-			when REG_BXIND2: indop("word");
-			when REG_BXIND4: indop("word");
-
-			when REG_SIIND1: indop("byte");
-			when REG_SIIND2: indop("word");
-			when REG_SIIND4: indop("word");
-
-			when REG_DIIND1: indop("byte");
-			when REG_DIIND2: indop("word");
-			when REG_DIIND4: indop("word");
 
 			when else:
 				E("bad op ");
@@ -304,6 +275,7 @@
 	end sub;
 
 	sub ArchEmitMove(src: RegId, dest: RegId) is
+		E("\t; move\n");
 		if src == 0 then
 			E_pop(dest);
 		elseif dest == 0 then
@@ -604,27 +576,6 @@ gen mem1 := DEREF1(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.me
 gen mem2 := DEREF2(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
 gen mem4 := DEREF4(ADDRESS():a) { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
 
-gen bxind1 := DEREF1(bx:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen bxind1 := DEREF1(ADD2(bx:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-gen bxind2 := DEREF2(bx:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen bxind2 := DEREF2(ADD2(bx:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-gen bxind4 := DEREF4(bx:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen bxind4 := DEREF4(ADD2(bx:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-
-gen siind1 := DEREF1(si:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen siind1 := DEREF1(ADD2(si:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-gen siind2 := DEREF2(si:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen siind2 := DEREF2(ADD2(si:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-gen siind4 := DEREF4(si:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen siind4 := DEREF4(ADD2(si:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-
-gen diind1 := DEREF1(di:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen diind1 := DEREF1(ADD2(di:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-gen diind2 := DEREF2(di:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen diind2 := DEREF2(ADD2(di:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-gen diind4 := DEREF4(di:lhs)                     { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := 0; }
-gen diind4 := DEREF4(ADD2(di:lhs, CONSTANT():c)) { $@$.operand.ind.reg := $lhs; $@$.operand.ind.off := $c.value as Size; }
-
 %{
 	sub Call(addr: [MidcodeSubref]) is
 		E_insn("call");
@@ -718,6 +669,89 @@ gen STORE4(r32|imm|adr:lhs, lv4:rhs)
 
 	E_insn("mov");
 	E_op($rhs, &$@rhs.operand, 2);
+	E_comma();
+	E_op($lhs, &$@lhs.operand, 2);
+	E_nl();
+}
+
+// --- Indexed loads and stores ---------------------------------------------
+
+%{
+	sub E_indirect(base: RegId, offreg: RegId, offop: [Operand], delta: uint16) is
+		E_b8('[');
+		E_reg(base);
+		if offreg != 0 then
+			E_b8('+');
+			E_op(offreg, offop, 0);
+		end if;
+		if delta != 0 then
+			E_i16(delta as int16);
+		end if;
+		E_b8(']');
+	end sub;
+%}
+
+gen r8 := DEREF1(bx|si|di:lhs)
+{
+	E_insn("mov");
+	E_reg($$);
+	E(", byte ");
+	E_indirect($lhs, 0, 0 as [Operand], 0);
+	E_nl();
+}
+
+gen r16 := DEREF2(bx|si|di:lhs)
+{
+	E_insn("mov");
+	E_reg($$);
+	E(", word ");
+	E_indirect($lhs, 0, 0 as [Operand], 0);
+	E_nl();
+}
+
+gen r32 := DEREF4(bx|si|di:lhs)
+{
+	E_insn("mov");
+	E_reg(lowordreg($$));
+	E(", word ");
+	E_indirect($lhs, 0, 0 as [Operand], 0);
+	E_nl();
+
+	E_insn("mov");
+	E_reg(hiwordreg($$));
+	E(", word ");
+	E_indirect($lhs, 0, 0 as [Operand], 2);
+	E_nl();
+}
+
+gen STORE1(r8|imm|adr:lhs, DEREF1(bx|si|di:ptr))
+{
+	E_insn("mov byte");
+	E_indirect($ptr, 0, 0 as [Operand], 0);
+	E_comma();
+	E_op($lhs, &$@lhs.operand, 0);
+	E_nl();
+}
+
+gen STORE2(r16|imm|adr:lhs, DEREF2(bx|si|di:ptr))
+{
+	E_insn("mov word");
+	E_indirect($ptr, 0, 0 as [Operand], 0);
+	E_comma();
+	E_op($lhs, &$@lhs.operand, 0);
+	E_nl();
+}
+
+gen STORE4(r32|imm|adr:lhs, DEREF4(bx|si|di:ptr))
+{
+	E_insn("mov word");
+	E_indirect($ptr, 0, 0 as [Operand], 0);
+	E_comma();
+	E_op($lhs, &$@lhs.operand, 0);
+	E_nl();
+
+	E_insn("mov word");
+	E_indirect($ptr, 0, 0 as [Operand], 2);
 	E_comma();
 	E_op($lhs, &$@lhs.operand, 2);
 	E_nl();
