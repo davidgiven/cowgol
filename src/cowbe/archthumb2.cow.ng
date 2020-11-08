@@ -1,0 +1,592 @@
+%[
+	record ImmOp is
+		value: Arith;
+	end record;
+
+	record Operand is
+		imm @at(0): ImmOp;
+	end record;
+%]
+
+%{
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+		var a := (alignment-1) as Size;
+		newvalue := (value+a) & ~a;
+	end sub;
+
+	record Extern is
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	# Does not persist the name; only call this with constant strings.
+	sub GetHelper(name: string): (e: [Extern]) is
+		e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := InternalAlloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
+	end sub;
+
+	sub AllocPLabel(): (lid: uint16) is
+		# Cheap and cheerful way to allocate a label which won't overlap the
+		# frontend's numbering.
+		lid := -AllocLabel();
+	end sub;
+
+	sub E_label(label: LabelRef) is
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub E_reg(reg: RegId) is
+		case reg is
+			when REG_R0: E("r0");
+			when REG_R1: E("r1");
+			when REG_R2: E("r2");
+			when REG_R3: E("r3");
+			when REG_R4: E("r4");
+			when REG_R5: E("r5");
+			when REG_R6: E("r6");
+			when REG_R7: E("r7");
+			when REG_R8: E("r8");
+			when REG_R9: E("r9");
+			when REG_R10: E("r10");
+			when REG_R11: E("r11");
+			when REG_R12: E("r12");
+			when else:
+				StartError();
+				print("bad reg ");
+				print_hex_i16(reg);
+				EndError();
+		end case;
+	end sub;
+
+	sub E_push(reg: RegId) is
+		SimpleError("bad push");
+	end sub;
+
+	sub E_pop(reg: RegId) is
+		SimpleError("bad pop");
+	end sub;
+
+	sub E_insn(insn: string) is
+		E_tab();
+		E(insn);
+		E_space();
+	end sub;
+
+    sub E_callhelper(name: string) is
+        var helper := GetHelper(name);
+        E_insn("call");
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(helper.id);
+        E_nl();
+    end sub;
+        
+	sub E_jump(insn: string, label: LabelRef) is
+		E_insn(insn);
+		E_labelref(label);
+		E_nl();
+	end sub;
+
+	sub E_br(label: LabelRef) is
+		E_jump("br", label);
+		E("\t.pool\n");
+	end sub;
+
+	sub is_small(value: Arith): (result: uint8) is
+		if (value >= -128) and (value <= 127) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+
+	sub ArchEmitMove(src: RegId, dest: RegId) is
+		if src == 0 then
+			E_pop(dest);
+		elseif dest == 0 then
+			E_push(src);
+		else
+			StartError();
+			print("bad move ");
+			print_hex_i16(src);
+			print(" -> ");
+			print_hex_i16(dest);
+			EndError();
+		end if;
+	end sub;
+
+	sub ArchEndInstruction() is
+	end sub;
+
+	sub ArchEndGroup() is
+	end sub;
+%}
+
+wordsize uint32;
+
+register r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12;
+
+operand param;
+
+operand imm;
+
+regclass r32 := r0|r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_br($j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB()
+{
+	RegCacheReset();
+
+	EmitterOpenStream(current_subr);
+
+	E("\n\n\t; ");
+	E(current_subr.name);
+	E(" workspace at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_b16(0);
+	E(" length ");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_nl();
+
+	#E("\tsection .text\n");
+	E_b8(COO_ESCAPE_THISSUB);
+	E(":\n");
+
+#	var count := current_subr.num_input_parameters;
+#	var lastparam := count - 1;
+#	var popped: uint8 := 0;
+#
+#	sub pop_return_address() is
+#		if popped == 0 then
+#			E_pop(REG_CX);
+#			popped := 1;
+#		end if;
+#	end sub;
+#
+#	while count != 0 loop
+#		count := count - 1;
+#		var param := GetInputParameter(current_subr, count);
+#
+#		var reg: RegId;
+#		if count != lastparam then
+#			pop_return_address();
+#
+#			case param.width is
+#				when 1:
+#					E("\tpop bx\nmov byte [");
+#					E_symref(param as [Symbol], 0);
+#					E("], bl\n");
+#
+#				when 2:
+#					E("\tpop word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 4:
+#					E("\tpop word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#					E("\tpop word [");
+#					E_symref(param as [Symbol], 2);
+#					E("]\n");
+#			end case;
+#		else
+#			case param.width is
+#				when 1:
+#					E("\tmov byte [");
+#					E_symref(param as [Symbol], 0);
+#					E("], al\n");
+#
+#				when 2:
+#					E("\tmov word [");
+#					E_symref(param as [Symbol], 0);
+#					E("], ax\n");
+#
+#				when 4:
+#					E("\tmov word [");
+#					E_symref(param as [Symbol], 0);
+#					E("], ax\n");
+#					E("\tmov word [");
+#					E_symref(param as [Symbol], 2);
+#					E("], dx\n");
+#			end case;
+#		end if;
+#	end loop;
+#
+#	if popped != 0 then
+#		E_push(REG_CX);
+#	end if;
+}
+
+gen ENDSUB()
+{
+	E("end_");
+	E_subref(current_subr);
+	E(":\n");
+
+#	var count: uint8 := 0;
+#	var params := current_subr.num_output_parameters;
+#	var pushed: uint8 := 0;
+#
+#	sub push_return_address() is
+#		if pushed == 0 then
+#			E_pop(REG_CX);
+#			pushed := 1;
+#		end if;
+#	end sub;
+#
+#	while count != params loop
+#		var param := GetOutputParameter(current_subr, count);
+#
+#		if count != (params-1) then
+#			push_return_address();
+#
+#			case param.width is
+#				when 1:
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 2:
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 4:
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 2);
+#					E("]\n");
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#			end case;
+#		else
+#			case param.width is
+#				when 1:
+#					E("\tmov al, byte [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 2:
+#					E("\tmov ax, word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 4:
+#					E("\tmov ax, word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#					E("\tmov dx, word [");
+#					E_symref(param as [Symbol], 2);
+#					E("]\n");
+#			end case;
+#		end if;
+#
+#		count := count + 1;
+#	end loop;
+#
+#	if pushed != 0 then
+#		E("\tjmp cx\n");
+#	else
+#		E("\tret\n");
+#	end if;
+
+	EmitterCloseStream();
+}
+
+gen RETURN()
+{
+	E("\tjmp end_");
+	E_subref(current_subr);
+	E_nl();
+}
+
+// --- Miscellaneous --------------------------------------------------------
+
+gen r32 := SUBREF():s
+{
+#	E_insn("mov");
+#	E_reg($$);
+#	E_comma();
+#    E_subref($s.subr);
+#    E_nl();
+}
+
+gen r32 := CONSTANT():c
+{
+	E_insn("ldr");
+	E_reg($$);
+	E_comma();
+	E("=0x");
+	E_h32($c.value as uint32);
+	E_nl();
+}
+
+gen r32 := CONSTANT(value is small):c
+{
+	E_insn("mov");
+	E_reg($$);
+	E_comma();
+	E(" #");
+	E_i32($c.value);
+	E_nl();
+}
+
+// --- Operands -------------------------------------------------------------
+
+gen imm := CONSTANT(value is small):c { $@$.operand.imm.value := $c.value; }
+
+gen r32 := FALLBACK(imm:rhs)
+{
+	E_insn("mov");
+	E_reg($$);
+	E(", #");
+	E_i32($@rhs.operand.imm.value);
+	E_nl();
+}
+
+// --- Loads/stores ---------------------------------------------------------
+
+gen STORE4(r32:lhs, DEREF4(ADDRESS():a))
+{
+	E_insn("str");
+	E_reg($lhs);
+	E(", [");
+	E_symref(&$a.sym, $a.off);
+	E("]\n");
+}
+
+gen r32 := DEREF4(ADDRESS():a)
+{
+	E_insn("ldr");
+	E_reg($$);
+	E(", [");
+	E_symref(&$a.sym, $a.off);
+	E("]\n");
+}
+
+// --- Arithmetic -----------------------------------------------------------
+
+gen r32 := ADD4(r32:lhs, r32:rhs)
+{
+	E_insn("add");
+	E_reg($$);
+	E_comma();
+	E_reg($lhs);
+	E_comma();
+	E_reg($rhs);
+	E_nl();
+}
+
+// --- Conditionals ---------------------------------------------------------
+
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+{
+    var label := $b.falselabel;
+    if $lhs.value == $rhs.value then
+        label := $b.truelabel;
+    end if;
+    if label != $b.fallthrough then
+        E_br(label);
+    end if;
+}
+
+
+// --- Case -----------------------------------------------------------------
+
+
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4();
+
+// --- Casts ----------------------------------------------------------------
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+	EmitterOpenStream(current_subr);
+	#E("\tsection .data\n");
+	E_symref(&$s.sym, 0);
+	E(":\n");
+}
+
+gen ENDINIT()
+{
+	EmitterCloseStream();
+}
+
+gen INIT1():c
+{
+	E("\tdb ");
+	E_u8($c.value as uint8);
+	E_nl();
+}
+
+gen INIT2():c
+{
+	E("\tdw ");
+	E_u16($c.value as uint16);
+	E_nl();
+}
+
+gen INIT4():c
+{
+	E("\tdd ");
+	E_u32($c.value as uint32);
+	E_nl();
+}
+
+gen INITADDRESS():a
+{
+	E("\tdw ");
+    E_symref(&$a.sym, $a.off);
+    E_nl();
+}
+
+gen INITSUBREF():a
+{
+	E("\tdw ");
+    E_subref($a.subr);
+    E_nl();
+}
+
+gen INITSTRING():s
+{
+	E("\tdw ");
+	var lid := E_string($s.text);
+	E_labelref(lid);
+    E_nl();
+}
+
+// --- Strings --------------------------------------------------------------
+
+%{
+    sub E_string(data: string): (lid: uint16) is
+        lid := AllocPLabel();
+
+        EmitterOpenStream(current_subr);
+
+        E_label(lid);
+		E_insn("db");
+
+        loop
+            var c := [data];
+            if c == 0 then
+                break;
+            end if;
+            data := data + 1;
+            
+            E_u8(c);
+            E_comma();
+        end loop;
+        E("0\n");
+        EmitterCloseStream();
+    end sub;
+%}
+
+gen r32 := STRING():s
+{
+	var lid := E_string($s.text);
+#	R_flush($$);
+#	E_insn("mov");
+#	E_reg($$);
+#	E_comma();
+#	E_labelref(lid);
+#	E_nl();
+}
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMGROUPSTART();
+gen ASMGROUPEND();
+
+gen ASMSTART()
+{
+	E_tab();
+}
+
+gen ASMTEXT():t
+{
+	E($t.text);
+	E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	E_symref(&$s.sym, 0);
+    E_space();
+}
+
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
+    E_space();
+}
+
+gen ASMVALUE():c
+{
+	E_b8('(');
+	E_i32($c.value);
+	E_b8(')');
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
+
+
+
