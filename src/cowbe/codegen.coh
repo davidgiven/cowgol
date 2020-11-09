@@ -28,7 +28,13 @@ record Instruction is
 	reloads: RegMove[MAX_MOVE_COUNT];
 	num_spills: uint8;
 	num_reloads: uint8;
+	elided: uint8;
 	ruleid: uint8;
+end record;
+
+record SimpleValue is
+	address @at(0): [MidcodeAddress];
+	kind: uint8;
 end record;
 
 sub AllocLabel(): (label: LabelRef) is
@@ -127,6 +133,19 @@ end sub;
 
 # Blocks registers *between* the two bounds, not the end ones.
 sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
+	insn := insn.next;
+	while insn != last loop
+		insn.input_regs := insn.input_regs | blocked;
+		insn.output_regs := insn.output_regs | blocked;
+		if insn == last then
+			break;
+		end if;
+		insn := insn.next;
+	end loop;
+end sub;
+
+# Unblocks registers *between* the two bounds, not the end ones.
+sub UnblockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
 	insn := insn.next;
 	while insn != last loop
 		insn.input_regs := insn.input_regs | blocked;
@@ -270,7 +289,7 @@ sub PrintNodes(rootnode: [Node]) is
 
 		print_hex_i32(node as intptr as uint32);
 		print_char(' ');
-		print_i8(node.op);
+		print(MidcodeName(node.op));
 		print_char(' ');
 		print_hex_i16(node.desired_reg as uint16);
 		print_char(' ');
@@ -281,6 +300,81 @@ sub PrintNodes(rootnode: [Node]) is
 		print_hex_i32(node.right as intptr as uint32);
 		print_nl();
 	end loop;
+end sub;
+
+sub PrintInstructions(insn: [Instruction]) is
+	loop
+		if insn == (0 as [Instruction]) then
+			break;
+		end if;
+
+		print_hex_i32(insn as intptr as uint32);
+		print(" rule ");
+		print_i8(insn.ruleid);
+
+		var i: uint8 := 0;
+		while i != INSTRUCTION_TEMPLATE_DEPTH loop
+			var node := insn.n[i];
+
+			if node != (0 as [Node]) then
+				print_char(' ');
+				print(MidcodeName(node.op));
+			end if;
+
+			i := i + 1;
+		end loop;
+
+		print_nl();
+
+		insn := insn.prev;
+	end loop;
+end sub;
+
+sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
+	res := 0;
+	if IsStackedRegister(insn.producable_regs) == 0 then
+		var node := insn.n[0];
+		if node.op == MIDCODE_FALLBACK then
+			node := node.left;
+		end if;
+		if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
+			value.address := &node.left.address;
+			value.kind := MIDCODE_DEREF1;
+			res := 1;
+		elseif (node.op == MIDCODE_DEREF2) and (node.left.op == MIDCODE_ADDRESS) then
+			value.address := &node.left.address;
+			value.kind := MIDCODE_DEREF2;
+			res := 1;
+		elseif (node.op == MIDCODE_DEREF4) and (node.left.op == MIDCODE_ADDRESS) then
+			value.address := &node.left.address;
+			value.kind := MIDCODE_DEREF4;
+			res := 1;
+		elseif (node.op == MIDCODE_DEREF8) and (node.left.op == MIDCODE_ADDRESS) then
+			value.address := &node.left.address;
+			value.kind := MIDCODE_DEREF8;
+			res := 1;
+		end if;
+	end if;
+end sub;
+
+sub SimpleValuesMatch(left: [SimpleValue], right: [SimpleValue]): (res: uint8) is
+	res := 0;
+	if left.kind != right.kind then
+		return;
+	end if;
+
+	sub check_deref() is
+		if (left.address.sym.id == right.address.sym.id) and (left.address.off == right.address.off) then
+			res := 1;
+		end if;
+	end sub;
+
+	case left.kind is
+		when MIDCODE_DEREF1: check_deref();
+		when MIDCODE_DEREF2: check_deref();
+		when MIDCODE_DEREF4: check_deref();
+		when MIDCODE_DEREF8: check_deref();
+	end case;
 end sub;
 
 sub Generate(rootnode: [Node]) is
@@ -505,8 +599,6 @@ sub Generate(rootnode: [Node]) is
 		InstructionMatcher();
 
 		if producer.producable_regs != 0 then
-			# This instruction produces a register, so allocate one.
-
 			sub AllocateRegister() is
 				if IsStackedRegister(producer.producable_regs) != 0 then
 					# Stacked registers: we don't need to worry about finding an unallocated
@@ -686,6 +778,64 @@ sub Generate(rootnode: [Node]) is
 		end if;
 	end loop;
 
+	# We now have working code, but first, hunt for producers which can be amalgamated, and do so.
+
+	sub AmalgamateSimpleProducers() is
+		print_nl();
+		PrintInstructions(last_instruction);
+		var producer1 := last_instruction;
+		loop
+			if producer1 == (0 as [Instruction]) then
+				break;
+			end if;
+
+			var producer1_value: SimpleValue;
+			if IsSimpleValue(producer1, &producer1_value) != 0 then
+				var consumer1 := producer1.n[0].consumer;
+				var producer2 := producer1.prev;
+				var is_nested: uint8 := 1;
+				loop
+					if producer2 == (0 as [Instruction]) then
+						break;
+					end if;
+
+					if producer2 == consumer1 then
+						is_nested := 0;
+					end if;
+
+					var producer2_value: SimpleValue;
+					if (IsSimpleValue(producer2, &producer2_value) != 0) and (SimpleValuesMatch(&producer1_value, &producer2_value) != 0) then
+						var consumer2 := producer2.n[0].consumer;
+
+						var last_consumer := consumer2;
+						if is_nested != 0 then
+							last_consumer := consumer1;
+						end if;
+
+						print("matching ");
+						print_hex_i32(producer1 as intptr as uint32);
+						print(" -> ");
+						print_hex_i32(consumer1 as intptr as uint32);
+						print(" (");
+						print_hex_i32(producer1.produced_reg as uint32);
+						print(") and ");
+						print_hex_i32(producer2 as intptr as uint32);
+						print(" -> ");
+						print_hex_i32(consumer2 as intptr as uint32);
+						print(" (");
+						print_hex_i32(producer2.produced_reg as uint32);
+						print(")\n");
+					end if;
+
+					producer2 := producer2.prev;
+				end loop;
+			end if;
+
+			producer1 := producer1.prev;
+		end loop;
+	end sub;
+	AmalgamateSimpleProducers();
+
 	# We have a set of instructions for this expression; emit them. In reverse
 	# order.
 
@@ -702,7 +852,9 @@ sub Generate(rootnode: [Node]) is
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
-			EmitOneInstruction(insn.ruleid, insn);
+			if insn.elided == 0 then
+				EmitOneInstruction(insn.ruleid, insn);
+			end if;
 			ShuffleRegisters(&insn.spills[0]);
 			ArchEndInstruction();
 
