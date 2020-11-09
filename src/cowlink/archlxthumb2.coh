@@ -23,17 +23,19 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E("\t.arch i386\n");
-	E("\t.code32\n");
+	E(".syntax unified\n.global _start\n.code 32\n");
 	E(".global _start\n");
 	E("\t_start:\n");
-	E("\tlea 4(%esp), %eax\n");
-	E("\tmov %eax, (argv)\n");
+	E("\tldr r0, =_thumb_start\n");
+	E("\tbx r0\n");
+	E(".code 16\n");
+	E(".thumb_func\n");
+	E("_thumb_start:\n");
 
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
-			E("\tcall ");
+			E("\tbl ");
 			ArchEmitSubRef(main);
 			E_nl();
 		end if;
@@ -41,9 +43,9 @@ sub ArchEmitHeader(coo: [Coo]) is
 	end loop;
 
 	E("_exit:\n");
-	E("\tmov $1, %eax\n");
-	E("\txor %ebx, %ebx\n");
-	E("\tint $0x80\n");
+	E("\tmov r0, #0\n");
+	E("\tmov r7, #1\n"); # __exit()
+	E("\tsvc #0\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is

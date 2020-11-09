@@ -123,6 +123,17 @@
 		E("\t.pool\n");
 	end sub;
 
+	sub E_op(rhs: RegId, rhsop: [Operand]) is
+		if (rhs & REGCLASS_R32) != 0 then
+			E_reg(rhs);
+		elseif rhs == REG_IMM then
+			E_b8('#');
+			E_i32(rhsop.imm.value);
+		else
+			SimpleError("bad op");
+		end if;
+	end sub;
+
 	sub is_small(value: Arith): (result: uint8) is
 		if (value >= -128) and (value <= 127) then
 			result := 1;
@@ -186,7 +197,7 @@ gen STARTSUB()
 
 	EmitterOpenStream(current_subr);
 
-	E("\n\n\t; ");
+	E("\n\n\t# ");
 	E(current_subr.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
@@ -342,6 +353,7 @@ gen ENDSUB()
 #		E("\tret\n");
 #	end if;
 
+	E("\t.pool\n");
 	EmitterCloseStream();
 }
 
@@ -383,9 +395,30 @@ gen r32 := CONSTANT(value is small):c
 	E_nl();
 }
 
+gen r32 := CONSTANT():c
+{
+	E_insn("ldr");
+	E_reg($$);
+	E(", =");
+	E_i32($c.value);
+	E_nl();
+}
+
+gen r32 := ADDRESS():a
+{
+	E_insn("ldr");
+	E_reg($$);
+	E(", =");
+	E_symref(&$a.sym, $a.off);
+	E_nl();
+}
+
 // --- Operands -------------------------------------------------------------
 
-gen imm := CONSTANT(value is small):c { $@$.operand.imm.value := $c.value; }
+gen imm := CONSTANT(value is small):c cost 5
+{
+	$@$.operand.imm.value := $c.value;
+}
 
 gen r32 := FALLBACK(imm:rhs)
 {
@@ -398,36 +431,89 @@ gen r32 := FALLBACK(imm:rhs)
 
 // --- Loads/stores ---------------------------------------------------------
 
-gen STORE4(r32:lhs, DEREF4(ADDRESS():a))
+gen STORE1(r32:lhs, DEREF4(r32:rhs))
+{
+	E_insn("stb");
+	E_reg($lhs);
+	E(", [");
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen STORE2(r32:lhs, DEREF4(r32:rhs))
+{
+	E_insn("sth");
+	E_reg($lhs);
+	E(", [");
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen STORE4(r32:lhs, DEREF4(r32:rhs))
 {
 	E_insn("str");
 	E_reg($lhs);
 	E(", [");
-	E_symref(&$a.sym, $a.off);
+	E_reg($rhs);
 	E("]\n");
 }
 
-gen r32 := DEREF4(ADDRESS():a)
+gen r32 := DEREF1(r32:rhs)
+{
+	E_insn("ldb");
+	E_reg($$);
+	E(", [");
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen r32 := DEREF2(r32:rhs)
+{
+	E_insn("ldh");
+	E_reg($$);
+	E(", [");
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen r32 := DEREF4(r32:rhs)
 {
 	E_insn("ldr");
 	E_reg($$);
 	E(", [");
-	E_symref(&$a.sym, $a.off);
+	E_reg($rhs);
 	E("]\n");
 }
 
 // --- Arithmetic -----------------------------------------------------------
 
-gen r32 := ADD4(r32:lhs, r32:rhs)
-{
-	E_insn("add");
-	E_reg($$);
-	E_comma();
-	E_reg($lhs);
-	E_comma();
-	E_reg($rhs);
-	E_nl();
-}
+%{
+	sub Alu3(insn: string, dest: RegId, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+		E_insn(insn);
+		E_reg(dest);
+		E_comma();
+		E_reg(lhs);
+		E_comma();
+		E_op(rhs, rhsop);
+		E_nl();
+	end sub;
+%}
+
+gen r32 := ADD1(r32:lhs, r32|imm:rhs) { Alu3("add", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := ADD2(r32:lhs, r32|imm:rhs) { Alu3("add", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := ADD4(r32:lhs, r32|imm:rhs) { Alu3("add", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := SUB1(r32|imm:lhs, r32:rhs) cost 1 { Alu3("rsb", $$, $rhs, $lhs, &$@lhs.operand); }
+gen r32 := SUB2(r32|imm:lhs, r32:rhs) cost 1 { Alu3("rsb", $$, $rhs, $lhs, &$@lhs.operand); }
+gen r32 := SUB4(r32|imm:lhs, r32:rhs) cost 1 { Alu3("rsb", $$, $rhs, $lhs, &$@lhs.operand); }
+
+gen r32 := MUL1(r32:lhs, r32:rhs) { Alu3("mul", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := MUL2(r32:lhs, r32:rhs) { Alu3("mul", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := MUL4(r32:lhs, r32:rhs) { Alu3("mul", $$, $lhs, $rhs, 0 as [Operand]); }
+
+gen r32 := LSHIFT1(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := LSHIFT2(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := LSHIFT4(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -442,15 +528,16 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
-
 // --- Case -----------------------------------------------------------------
-
 
 gen ENDCASE1();
 gen ENDCASE2();
 gen ENDCASE4();
 
 // --- Casts ----------------------------------------------------------------
+
+gen r32 := CAST41(r32:lhs);
+gen r32 := CAST42(r32:lhs);
 
 // --- Initialisers ---------------------------------------------------------
 
