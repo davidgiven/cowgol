@@ -118,8 +118,8 @@
 		E_nl();
 	end sub;
 
-	sub E_br(label: LabelRef) is
-		E_jump("br", label);
+	sub E_b(label: LabelRef) is
+		E_jump("b", label);
 		E("\t.pool\n");
 	end sub;
 
@@ -186,7 +186,7 @@ gen LABEL():b
 
 gen JUMP():j
 {
-	E_br($j.label);
+	E_b($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
@@ -431,18 +431,18 @@ gen r32 := FALLBACK(imm:rhs)
 
 // --- Loads/stores ---------------------------------------------------------
 
-gen STORE1(r32:lhs, DEREF4(r32:rhs))
+gen STORE1(r32:lhs, DEREF1(r32:rhs))
 {
-	E_insn("stb");
+	E_insn("strb");
 	E_reg($lhs);
 	E(", [");
 	E_reg($rhs);
 	E("]\n");
 }
 
-gen STORE2(r32:lhs, DEREF4(r32:rhs))
+gen STORE2(r32:lhs, DEREF2(r32:rhs))
 {
-	E_insn("sth");
+	E_insn("strh");
 	E_reg($lhs);
 	E(", [");
 	E_reg($rhs);
@@ -460,7 +460,7 @@ gen STORE4(r32:lhs, DEREF4(r32:rhs))
 
 gen r32 := DEREF1(r32:rhs)
 {
-	E_insn("ldb");
+	E_insn("ldrb");
 	E_reg($$);
 	E(", [");
 	E_reg($rhs);
@@ -469,7 +469,7 @@ gen r32 := DEREF1(r32:rhs)
 
 gen r32 := DEREF2(r32:rhs)
 {
-	E_insn("ldh");
+	E_insn("ldrh");
 	E_reg($$);
 	E(", [");
 	E_reg($rhs);
@@ -511,9 +511,81 @@ gen r32 := MUL1(r32:lhs, r32:rhs) { Alu3("mul", $$, $lhs, $rhs, 0 as [Operand]);
 gen r32 := MUL2(r32:lhs, r32:rhs) { Alu3("mul", $$, $lhs, $rhs, 0 as [Operand]); }
 gen r32 := MUL4(r32:lhs, r32:rhs) { Alu3("mul", $$, $lhs, $rhs, 0 as [Operand]); }
 
+gen r32 := AND1(r32:lhs, r32:rhs) { Alu3("and", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := AND2(r32:lhs, r32:rhs) { Alu3("and", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := AND4(r32:lhs, r32:rhs) { Alu3("and", $$, $lhs, $rhs, 0 as [Operand]); }
+
+gen r32 := EOR1(r32:lhs, r32:rhs) { Alu3("eor", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := EOR2(r32:lhs, r32:rhs) { Alu3("eor", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := EOR4(r32:lhs, r32:rhs) { Alu3("eor", $$, $lhs, $rhs, 0 as [Operand]); }
+
+gen r32 := OR1(r32:lhs, r32:rhs) { Alu3("or", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := OR2(r32:lhs, r32:rhs) { Alu3("or", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := OR4(r32:lhs, r32:rhs) { Alu3("or", $$, $lhs, $rhs, 0 as [Operand]); }
+
+gen r32 := OR1(r32:lhs, NOT1(r32:rhs)) { Alu3("orn", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := OR2(r32:lhs, NOT2(r32:rhs)) { Alu3("orn", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := OR4(r32:lhs, NOT4(r32:rhs)) { Alu3("orn", $$, $lhs, $rhs, 0 as [Operand]); }
+
+gen r32 := OR1(NOT1(r32:lhs), r32:rhs) { Alu3("orn", $$, $rhs, $lhs, 0 as [Operand]); }
+gen r32 := OR2(NOT2(r32:lhs), r32:rhs) { Alu3("orn", $$, $rhs, $lhs, 0 as [Operand]); }
+gen r32 := OR4(NOT4(r32:lhs), r32:rhs) { Alu3("orn", $$, $rhs, $lhs, 0 as [Operand]); }
+
 gen r32 := LSHIFT1(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
 gen r32 := LSHIFT2(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
 gen r32 := LSHIFT4(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
+
+%{
+	sub RShift(extend: string, shift: string, dest: RegId, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+		if extend != (0 as string) then
+			E_insn(extend);
+			E_reg(dest);
+			E_comma();
+			E_reg(lhs);
+			E_nl();
+		end if;
+
+		E_insn(shift);
+		E_reg(dest);
+		E_comma();
+		E_op(rhs, rhsop);
+		E_nl();
+	end sub;
+%}
+
+gen r32 := RSHIFTU1(r32:lhs, r32|imm:rhs) { RShift("uxtb", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU2(r32:lhs, r32|imm:rhs) { RShift("uxth", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU4(r32:lhs, r32|imm:rhs) { RShift(0 as string, "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := RSHIFTS1(r32:lhs, r32|imm:rhs) { RShift("sxtb", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU2(r32:lhs, r32|imm:rhs) { RShift("sxth", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS4(r32:lhs, r32|imm:rhs) { RShift(0 as string, "asr", $$, $lhs, $rhs, &$@rhs.operand); }
+
+%{
+	sub Not(dest: RegId, lhs: RegId) is
+		E_insn("mvn");
+		E_reg(dest);
+		E_comma();
+		E_reg(lhs);
+		E_nl();
+	end sub;
+
+	sub Neg(dest: RegId, lhs: RegId) is
+		E_insn("rsb");
+		E_reg(dest);
+		E_comma();
+		E_reg(lhs);
+		E(", #0\n");
+	end sub;
+%}
+
+gen r32 := NOT1(r32:lhs) { Not($$, $lhs); }
+gen r32 := NOT2(r32:lhs) { Not($$, $lhs); }
+gen r32 := NOT4(r32:lhs) { Not($$, $lhs); }
+
+gen r32 := NEG1(r32:lhs) { Neg($$, $lhs); }
+gen r32 := NEG2(r32:lhs) { Neg($$, $lhs); }
+gen r32 := NEG4(r32:lhs) { Neg($$, $lhs); }
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -524,11 +596,30 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
         label := $b.truelabel;
     end if;
     if label != $b.fallthrough then
-        E_br(label);
+        E_b(label);
     end if;
 }
 
 // --- Case -----------------------------------------------------------------
+
+gen STARTCASE1(r32:lhs) { E_insn("sxtb"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
+gen STARTCASE2(r32:lhs) { E_insn("sxth"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
+gen STARTCASE4(r0);
+
+%{
+	sub WhenCase(c: [MidcodeWhencase]) is
+		E_insn("cmp");
+		E_reg(REG_R0);
+		E(", #");
+		E_i32(c.value);
+		E_nl();
+		E_jump("bne", c.falselabel);
+	end sub;
+%}
+
+gen WHENCASE1():c { WhenCase(&$c); }
+gen WHENCASE2():c { WhenCase(&$c); }
+gen WHENCASE4():c { WhenCase(&$c); }
 
 gen ENDCASE1();
 gen ENDCASE2();
