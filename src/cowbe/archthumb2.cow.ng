@@ -77,11 +77,6 @@
 			when REG_R5: E("r5");
 			when REG_R6: E("r6");
 			when REG_R7: E("r7");
-			when REG_R8: E("r8");
-			when REG_R9: E("r9");
-			when REG_R10: E("r10");
-			when REG_R11: E("r11");
-			when REG_R12: E("r12");
 			when else:
 				StartError();
 				print("bad reg ");
@@ -90,18 +85,26 @@
 		end case;
 	end sub;
 
-	sub E_push(reg: RegId) is
-		SimpleError("bad push");
-	end sub;
-
-	sub E_pop(reg: RegId) is
-		SimpleError("bad pop");
-	end sub;
-
 	sub E_insn(insn: string) is
 		E_tab();
 		E(insn);
 		E_space();
+	end sub;
+
+	sub E_push(reg: RegId) is
+		E_insn("push");
+		E_b8('{');
+		E_reg(reg);
+		E_b8('}');
+		E_nl();
+	end sub;
+
+	sub E_pop(reg: RegId) is
+		E_insn("pop");
+		E_b8('{');
+		E_reg(reg);
+		E_b8('}');
+		E_nl();
 	end sub;
 
     sub E_callhelper(name: string) is
@@ -148,12 +151,11 @@
 		elseif dest == 0 then
 			E_push(src);
 		else
-			StartError();
-			print("bad move ");
-			print_hex_i16(src);
-			print(" -> ");
-			print_hex_i16(dest);
-			EndError();
+			E_insn("mov");
+			E_reg(dest);
+			E_comma();
+			E_reg(src);
+			E_nl();
 		end if;
 	end sub;
 
@@ -166,13 +168,22 @@
 
 wordsize uint32;
 
-register r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11 r12;
+register r0 r1 r2 r3 r4 r5 r6 r7;
 
 operand param;
-
 operand imm;
 
-regclass r32 := r0|r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11|r12;
+regclass r32 := r0|r1|r2|r3|r4|r5|r6|r7;
+regclass r32x0 := r1|r2|r3|r4|r5|r6|r7;
+
+regdata r0 compatible r32;
+regdata r1 compatible r32;
+regdata r2 compatible r32;
+regdata r3 compatible r32;
+regdata r4 compatible r32;
+regdata r5 compatible r32;
+regdata r6 compatible r32;
+regdata r7 compatible r32;
 
 // --- Core things ----------------------------------------------------------
 
@@ -359,7 +370,7 @@ gen ENDSUB()
 
 gen RETURN()
 {
-	E("\tjmp end_");
+	E("\tb end_");
 	E_subref(current_subr);
 	E_nl();
 }
@@ -368,11 +379,11 @@ gen RETURN()
 
 gen r32 := SUBREF():s
 {
-#	E_insn("mov");
-#	E_reg($$);
-#	E_comma();
-#    E_subref($s.subr);
-#    E_nl();
+	E_insn("adr");
+	E_reg($$);
+	E_comma();
+    E_subref($s.subr);
+    E_nl();
 }
 
 gen r32 := CONSTANT():c
@@ -412,6 +423,47 @@ gen r32 := ADDRESS():a
 	E_symref(&$a.sym, $a.off);
 	E_nl();
 }
+
+// --- Calls ----------------------------------------------------------------
+
+%{
+	sub Call(addr: [MidcodeSubref]) is
+		E_insn("bl");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+%}
+
+gen       CALL(       param,      SUBREF():a) uses r32   { Call(&$a); }
+gen       CALL(  ARG1(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen       CALL(  ARG2(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen       CALL(  ARG4(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE1(     param,      SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE1(ARG1(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE1(ARG2(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE1(ARG4(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE2(     param,      SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE2(ARG1(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE2(ARG2(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE2(ARG4(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE4(     param,      SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE4(ARG1(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE4(ARG2(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+gen r0 := CALLE4(ARG4(param, r0), SUBREF():a) uses r32x0 { Call(&$a); }
+
+gen param := END();
+
+gen param := ARG1(param, r32:lhs) { E_push($lhs); }
+gen param := ARG2(param, r32:lhs) { E_push($lhs); }
+gen param := ARG4(param, r32:lhs) { E_push($lhs); }
+
+gen r0 := POPARG1(remaining==0);
+gen r0 := POPARG2(remaining==0);
+gen r0 := POPARG4(remaining==0);
+
+gen r32 := POPARG1(remaining!=0) { E_pop($$); }
+gen r32 := POPARG2(remaining!=0) { E_pop($$); }
+gen r32 := POPARG4(remaining!=0) { E_pop($$); }
 
 // --- Operands -------------------------------------------------------------
 
@@ -519,9 +571,9 @@ gen r32 := EOR1(r32:lhs, r32:rhs) { Alu3("eor", $$, $lhs, $rhs, 0 as [Operand]);
 gen r32 := EOR2(r32:lhs, r32:rhs) { Alu3("eor", $$, $lhs, $rhs, 0 as [Operand]); }
 gen r32 := EOR4(r32:lhs, r32:rhs) { Alu3("eor", $$, $lhs, $rhs, 0 as [Operand]); }
 
-gen r32 := OR1(r32:lhs, r32:rhs) { Alu3("or", $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := OR2(r32:lhs, r32:rhs) { Alu3("or", $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := OR4(r32:lhs, r32:rhs) { Alu3("or", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := OR1(r32:lhs, r32:rhs) { Alu3("orr", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := OR2(r32:lhs, r32:rhs) { Alu3("orr", $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := OR4(r32:lhs, r32:rhs) { Alu3("orr", $$, $lhs, $rhs, 0 as [Operand]); }
 
 gen r32 := OR1(r32:lhs, NOT1(r32:rhs)) { Alu3("orn", $$, $lhs, $rhs, 0 as [Operand]); }
 gen r32 := OR2(r32:lhs, NOT2(r32:rhs)) { Alu3("orn", $$, $lhs, $rhs, 0 as [Operand]); }
@@ -534,6 +586,116 @@ gen r32 := OR4(NOT4(r32:lhs), r32:rhs) { Alu3("orn", $$, $rhs, $lhs, 0 as [Opera
 gen r32 := LSHIFT1(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
 gen r32 := LSHIFT2(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
 gen r32 := LSHIFT4(r32:lhs, r32|imm:rhs) { Alu3("lsl", $$, $lhs, $rhs, &$@rhs.operand); }
+
+%{
+	sub Div(insn: string, dest: RegId, lhs: RegId, rhs: RegId) is
+		E_insn(insn);
+		E_reg(dest);
+		E_comma();
+		E_reg(lhs);
+		E_comma();
+		E_reg(rhs);
+		E_nl();
+	end sub;
+
+	sub Rem(insn: string, dest: RegId, lhs: RegId, rhs: RegId) is
+		Div(insn, REG_R6, lhs, rhs);
+
+		E_insn("mls");
+		E_reg(dest);
+		E_comma();
+		E_reg(REG_R6);
+		E_comma();
+		E_reg(rhs);
+		E_comma();
+		E_reg(lhs);
+		E_nl();
+	end sub;
+
+	sub Extend(insn: string, reg: RegId) is
+		E_insn(insn);
+		E_reg(reg);
+		E_comma();
+		E_reg(reg);
+		E_nl();
+	end sub;
+%}
+
+gen r32 := DIVU1(r32:lhs, r32:rhs) uses r6
+{
+	Extend("uxtb", $lhs);
+	Extend("uxtb", $rhs);
+	Div("udiv", $$, $lhs, $rhs);
+}
+
+gen r32 := DIVU2(r32:lhs, r32:rhs) uses r6
+{
+	Extend("uxth", $lhs);
+	Extend("uxth", $rhs);
+	Div("udiv", $$, $lhs, $rhs);
+}
+
+gen r32 := DIVU4(r32:lhs, r32:rhs) uses r6
+{
+	Div("udiv", $$, $lhs, $rhs);
+}
+
+gen r32 := DIVS1(r32:lhs, r32:rhs) uses r6
+{
+	Extend("sxtb", $lhs);
+	Extend("sxtb", $rhs);
+	Div("sdiv", $$, $lhs, $rhs);
+}
+
+gen r32 := DIVS2(r32:lhs, r32:rhs) uses r6
+{
+	Extend("sxth", $lhs);
+	Extend("sxth", $rhs);
+	Div("sdiv", $$, $lhs, $rhs);
+}
+
+gen r32 := DIVS4(r32:lhs, r32:rhs) uses r6
+{
+	Div("sdiv", $$, $lhs, $rhs);
+}
+
+gen r32 := REMU1(r32:lhs, r32:rhs) uses r6
+{
+	Extend("uxtb", $lhs);
+	Extend("uxtb", $rhs);
+	Rem("udiv", $$, $lhs, $rhs);
+}
+
+gen r32 := REMU2(r32:lhs, r32:rhs) uses r6
+{
+	Extend("uxth", $lhs);
+	Extend("uxth", $rhs);
+	Rem("udiv", $$, $lhs, $rhs);
+}
+
+gen r32 := REMU4(r32:lhs, r32:rhs) uses r6
+{
+	Rem("udiv", $$, $lhs, $rhs);
+}
+
+gen r32 := REMS1(r32:lhs, r32:rhs) uses r6
+{
+	Extend("sxtb", $lhs);
+	Extend("sxtb", $rhs);
+	Rem("sdiv", $$, $lhs, $rhs);
+}
+
+gen r32 := REMS2(r32:lhs, r32:rhs) uses r6
+{
+	Extend("sxth", $lhs);
+	Extend("sxth", $rhs);
+	Rem("sdiv", $$, $lhs, $rhs);
+}
+
+gen r32 := REMS4(r32:lhs, r32:rhs) uses r6
+{
+	Rem("sdiv", $$, $lhs, $rhs);
+}
 
 %{
 	sub RShift(extend: string, shift: string, dest: RegId, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
@@ -600,6 +762,105 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
+%{
+	sub Cmp2(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+		E_insn("cmp");
+		E_reg(lhs);
+		E_comma();
+		E_op(rhs, rhsop);
+		E_nl();
+	end sub;
+
+	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node]) is
+		if node.beq.truelabel != node.beq.fallthrough then
+			E_jump(trueinsn, node.beq.truelabel);
+		end if;
+		if node.beq.falselabel != node.beq.fallthrough then
+			E_jump(falseinsn, node.beq.falselabel);
+		end if;
+	end sub;
+%}
+
+gen BEQ4(r32:lhs, r32|imm:rhs):b
+{
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("beq", "bne", $@$);
+}
+
+gen BLTU4(r32:lhs, r32|imm:rhs):b
+{
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blo", "bhs", $@$);
+}
+
+gen BLTS4(r32:lhs, r32|imm:rhs):b
+{
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blt", "bge", $@$);
+}
+
+gen BEQ4(r32:lhs, r32|imm:rhs):b
+{
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("beq", "bne", $@$);
+}
+
+gen BEQ1(r32:lhs, r32:rhs):b
+{
+	Extend("uxtb", $lhs);
+	Extend("uxtb", $rhs);
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("beq", "bne", $@$);
+}
+
+gen BLTU1(r32:lhs, r32|imm:rhs):b
+{
+	Extend("uxtb", $lhs);
+	if ($rhs & REGCLASS_R32) != 0 then
+		Extend("uxtb", $rhs);
+	end if;
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blo", "bhs", $@$);
+}
+
+gen BLTS1(r32:lhs, r32|imm:rhs):b
+{
+	Extend("sxtb", $lhs);
+	if ($rhs & REGCLASS_R32) != 0 then
+		Extend("sxtb", $rhs);
+	end if;
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blt", "bge", $@$);
+}
+
+gen BEQ2(r32:lhs, r32:rhs):b
+{
+	Extend("uxth", $lhs);
+	Extend("uxth", $rhs);
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("beq", "bne", $@$);
+}
+
+gen BLTU2(r32:lhs, r32|imm:rhs):b
+{
+	Extend("uxth", $lhs);
+	if ($rhs & REGCLASS_R32) != 0 then
+		Extend("uxth", $rhs);
+	end if;
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blo", "bhs", $@$);
+}
+
+gen BLTS2(r32:lhs, r32|imm:rhs):b
+{
+	Extend("sxth", $lhs);
+	if ($rhs & REGCLASS_R32) != 0 then
+		Extend("sxth", $rhs);
+	end if;
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blt", "bge", $@$);
+}
+
 // --- Case -----------------------------------------------------------------
 
 gen STARTCASE1(r32:lhs) { E_insn("sxtb"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
@@ -627,8 +888,48 @@ gen ENDCASE4();
 
 // --- Casts ----------------------------------------------------------------
 
+gen r32 := CAST21(r32:lhs);
 gen r32 := CAST41(r32:lhs);
 gen r32 := CAST42(r32:lhs);
+
+gen r32 := CAST12(r32:lhs):c
+{
+	if $c.sext != 0 then
+		E_insn("sxtb");
+	else
+		E_insn("uxtb");
+	end if;
+	E_reg($$);
+	E_comma();
+	E_reg($lhs);
+	E_nl();
+}
+
+gen r32 := CAST14(r32:lhs):c
+{
+	if $c.sext != 0 then
+		E_insn("sxtb");
+	else
+		E_insn("uxtb");
+	end if;
+	E_reg($$);
+	E_comma();
+	E_reg($lhs);
+	E_nl();
+}
+
+gen r32 := CAST24(r32:lhs):c
+{
+	if $c.sext != 0 then
+		E_insn("sxth");
+	else
+		E_insn("uxth");
+	end if;
+	E_reg($$);
+	E_comma();
+	E_reg($lhs);
+	E_nl();
+}
 
 // --- Initialisers ---------------------------------------------------------
 
@@ -647,7 +948,7 @@ gen ENDINIT()
 
 gen INIT1():c
 {
-	E("\tdb ");
+	E("\t.byte ");
 	E_u8($c.value as uint8);
 	E_nl();
 }
@@ -697,7 +998,7 @@ gen INITSTRING():s
         EmitterOpenStream(current_subr);
 
         E_label(lid);
-		E_insn("db");
+		E_insn(".byte");
 
         loop
             var c := [data];

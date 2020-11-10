@@ -162,7 +162,7 @@ ALL_TOOLCHAINS = {
 	toolchain_bbcti,
 	toolchain_bbctiny,
 	toolchain_fuzix6303,
-	--toolchain_lxthumb2,
+	toolchain_lxthumb2,
 	toolchain_lx386,
 	toolchain_msdos,
 	toolchain_ncgen,

@@ -26,8 +26,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E(".syntax unified\n.global _start\n.code 32\n");
 	E(".global _start\n");
 	E("\t_start:\n");
-	E("\tldr r0, =_thumb_start\n");
-	E("\tbx r0\n");
+	E("\tblx _thumb_start\n");
 	E(".code 16\n");
 	E(".thumb_func\n");
 	E("_thumb_start:\n");

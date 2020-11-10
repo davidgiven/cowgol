@@ -4,53 +4,39 @@
 var LOMEM: [uint8];
 @asm ".extern _lomem";
 @asm "ldr r0, =_lomem";
-@asm "str r0, ", LOMEM;
+@asm "str r0, [", LOMEM;
 
 var HIMEM: [uint8];
 @asm ".extern _himem";
 @asm "ldr r0, =_himem";
 @asm "str r0, ", HIMEM;
 
-extern sub Exit() := "_exit";
+sub AlignUp(in: intptr): (out: intptr) is
+	out := (in + 3) & ~3;
+end sub;
 
-sub ExitWithError()
+sub Exit() is
+	@asm "mov r0, #0";
+	@asm "mov r7, #1"; # __exit()
+	@asm "svc #0";
+end sub;
+
+sub ExitWithError() is
 	@asm "mov r0, #1";
 	@asm "mov r7, #1"; # __exit()
 	@asm "svc #0";
 end sub;
 
-sub AlignUp(in: intptr): (out: intptr)
-	out := (in + 3) & ~3;
-end sub;
-
-sub print_char(c: uint8)
-	var pc := &c;
+sub print_char(c: uint8) is
 	@asm "mov r0, #1"; # file descriptor
-	@asm "ldr r1, ", pc;
+	@asm "ldr r1, =", c;
+	@asm "ldrb r1, [r1]";
 	@asm "mov r2, #1";
 	@asm "mov r7, #4"; # write()
 	@asm "svc #0";
 end sub;
 
-sub divmodu32(lhs: uint32, rhs: uint32): (quot: uint32, rem: uint32)
-	@asm "ldr r0, ", lhs;
-	@asm "ldr r1, ", rhs;
-	@asm "udiv r2, r0, r1";
-	@asm "str r2, ", quot;
-	@asm "mls r2, r2, r1, r0";
-	@asm "str r2, ", rem;
-end sub;
-
-sub divmods32(lhs: int32, rhs: int32): (quot: int32, rem: int32)
-	@asm "ldr r0, ", lhs;
-	@asm "ldr r1, ", rhs;
-	@asm "sdiv r2, r0, r1";
-	@asm "str r2, ", quot;
-	@asm "mls r2, r2, r1, r0";
-	@asm "str r2, ", rem;
-end sub;
-
-sub MemSet(buf: [uint8], byte: uint8, len: intptr)
+sub MemSet(buf: [uint8], byte: uint8, len: intptr) is
 	var bufend := buf + len;
 	loop
 		if buf == bufend then
