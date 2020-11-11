@@ -289,11 +289,13 @@ sub PrintNodes(rootnode: [Node]) is
 
 		print_hex_i32(node as intptr as uint32);
 		print_char(' ');
+		print_i8(node.op);
+		print_char('=');
 		print(MidcodeName(node.op));
 		print_char(' ');
-		print_hex_i16(node.desired_reg as uint16);
+		print_hex_i32(node.desired_reg as uint32);
 		print_char(' ');
-		print_hex_i16(node.produced_reg as uint16);
+		print_hex_i32(node.produced_reg as uint32);
 		print_char(' ');
 		print_hex_i32(node.left as intptr as uint32);
 		print_char(' ');
@@ -839,6 +841,9 @@ sub Generate(rootnode: [Node]) is
 	# We have a set of instructions for this expression; emit them. In reverse
 	# order.
 
+	#print_nl();
+	#PrintNodes(rootnode);
+
 	sub EmitAndFreeInstructions() is
 		loop
 			var insn := last_instruction;
@@ -849,12 +854,16 @@ sub Generate(rootnode: [Node]) is
 
 			#print("rule ");
 			#print_i8(insn.ruleid);
+			#print(" node ");
+			#print_hex_i32(insn.n[0] as intptr as uint32);
+			#print(" ");
+			#print_i8(insn.n[0].op);
+			#print("=");
+			#print(MidcodeName(insn.n[0].op));
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
-			if insn.elided == 0 then
-				EmitOneInstruction(insn.ruleid, insn);
-			end if;
+			EmitOneInstruction(insn.ruleid, insn);
 			ShuffleRegisters(&insn.spills[0]);
 			ArchEndInstruction();
 

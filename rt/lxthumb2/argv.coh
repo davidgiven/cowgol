@@ -1,7 +1,7 @@
 var argv_pointer: [[uint8]];
 
-sub ArgvInit()
-	@asm "ldr r0, =_argv";
+sub ArgvInit() is
+	@asm "ldr r0, =argv";
 	@asm "ldr r1, =", argv_pointer;
 	@asm "ldr r0, [r0]";
 	@asm "str r0, [r1]";
@@ -9,7 +9,7 @@ sub ArgvInit()
 end sub;
 
 # Returns null is there's no next argument.
-sub ArgvNext(): (arg: [uint8])
+sub ArgvNext(): (arg: [uint8]) is
 	# No more arguments?
 
 	if argv_pointer == (0 as [[uint8]]) then

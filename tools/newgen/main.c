@@ -482,10 +482,6 @@ static void create_rules(void)
 			flags |= 0x02;
 		fprintf(outfp, "0x%02x, ", flags);
 
-		fprintf(outfp, "0x%x, ", r->compatible_regs);
-		fprintf(outfp, "0x%x, ", r->result_reg);
-		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs));
-
 		uint32_t copymask = 1;
 		uint32_t regmask = 0;
 		for (int j=1; j<maxdepth; j++)
@@ -505,6 +501,10 @@ static void create_rules(void)
 			if (n && n->midcode)
 				significantmask |= 1<<j;
 		}
+
+		fprintf(outfp, "0x%x, ", r->compatible_regs);
+		fprintf(outfp, "0x%x, ", r->result_reg);
+		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs));
 		fprintf(outfp, "%d, ", significantmask);
 		fprintf(outfp, "%d, %d ", copymask, regmask);
 		fprintf(outfp, "}, ");
