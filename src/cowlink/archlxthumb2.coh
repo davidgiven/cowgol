@@ -30,6 +30,9 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E(".code 16\n");
 	E(".thumb_func\n");
 	E("_thumb_start:\n");
+	E("\tadd r1, sp, #4\n");
+	E("\tldr r0, =argv\n");
+	E("\tstr r1, [r0]\n");
 
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];

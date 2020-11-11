@@ -2,14 +2,14 @@
 # https://w3challs.com/syscalls/?arch=arm_thumb
 
 var LOMEM: [uint8];
-@asm ".extern _lomem";
-@asm "ldr r0, =_lomem";
-@asm "str r0, [", LOMEM;
+@asm "ldr r0, =LOMEM";
+@asm "ldr r1, =", LOMEM;
+@asm "str r0, [r1]";
 
 var HIMEM: [uint8];
-@asm ".extern _himem";
-@asm "ldr r0, =_himem";
-@asm "str r0, ", HIMEM;
+@asm "ldr r0, =HIMEM";
+@asm "ldr r1, =", HIMEM;
+@asm "str r0, [r1]";
 
 sub AlignUp(in: intptr): (out: intptr) is
 	out := (in + 3) & ~3;

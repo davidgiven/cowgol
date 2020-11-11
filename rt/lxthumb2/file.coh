@@ -15,12 +15,15 @@ sub fcb_i_gbpb(fcb: [FCB], s: uint8) is
 	var dma := &fcb.buffer[0];
 	var pos := fcb.block << 9;
 
-	@asm "ldrb r0, ", s;
-	@asm "ldrb r0, ", fd;
-	@asm "ldr r1, ", dma;
+	@asm "ldr r0, =", fd;
+	@asm "ldr r0, [r0]";
+	@asm "ldr r1, =", dma;
+	@asm "ldr r1, [r1]";
 	@asm "mov r2, #", FCB_BUFFER;
-	@asm "ldr r4, ", pos;
-	@asm "ldrb r7, ", s;
+	@asm "ldr r4, =", pos;
+	@asm "ldr r4, [r4]";
+	@asm "ldr r7, =", s;
+	@asm "ldrb r7, [r7]";
 	@asm "swi 0";
 end sub;
 
@@ -50,13 +53,16 @@ sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
 	fcb.bufferptr := FCB_BUFFER - 1;
 	fcb.block := -1;
 
-	@asm "ldr r0, ", filename;
-	@asm "ldr r1, ", flags;
+	@asm "ldr r0, =", filename;
+	@asm "ldr r0, [r0]";
+	@asm "ldr r1, =", flags;
+	@asm "ldr r1, [r1]";
 	@asm "mov r2, #", 0o666; # umask
 	@asm "mov r7, #5"; # OPEN
 	@asm "swi 0";
 	var fd: int32;
-	@asm "str r0, ", fd;
+	@asm "ldr r1, =", fd;
+	@asm "str r0, [r1]";
 	fcb.fd := fd as uint32;
 	if fd < 0 then
 		errno := (-fd) as uint8;
@@ -81,11 +87,13 @@ sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	fcb_i_blockout(fcb);
 
 	var fd := fcb.fd;
-	@asm "ldrb r0, ", fd;
+	@asm "ldr r0, =", fd;
+	@asm "ldrb r0, [r0]";
 	@asm "mov r7, #6"; # CLOSE
 	@asm "swi 0";
 	@asm "neg r0, r0";
-	@asm "strb r0, ", errno;
+	@asm "ldr r1, =", errno;
+	@asm "strb r0, [r1]";
 end sub;
 
 sub FCBSeek(fcb: [FCB], pos: uint32) is
@@ -104,12 +112,14 @@ sub FCBExt(fcb: [FCB]): (len: uint32) is
 	fcb_i_blockout(fcb);
 
 	var fd := fcb.fd;
-	@asm "ldrb r0, ", fd;
+	@asm "ldr r0, =", fd;
+	@asm "ldrb r0, [r0]";
 	@asm "mov r1, #0"; # offset
 	@asm "mov r2, #2"; # SEEK_END
 	@asm "mov r7, #19"; # LSEEK
 	@asm "swi 0";
-	@asm "str r0, ", len;
+	@asm "ldr r1, =", len;
+	@asm "str r0, [r1]";
 	len := (len + FCB_BUFFER - 1) & ~(FCB_BUFFER - 1);
 end sub;
 

@@ -1,7 +1,7 @@
 var argv_pointer: [[uint8]];
 
 sub ArgvInit() is
-	@asm "ldr r0, =_argv";
+	@asm "ldr r0, =argv";
 	@asm "ldr r1, =", argv_pointer;
 	@asm "ldr r0, [r0]";
 	@asm "str r0, [r1]";

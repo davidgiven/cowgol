@@ -699,9 +699,15 @@ sub Generate(rootnode: [Node]) is
 			end if;
 			last_instruction := last_instruction.prev;
 
-			#print("rule ");
-			#print_i8(insn.ruleid);
-			#print_nl();
+			print("rule ");
+			print_i8(insn.ruleid);
+			print(" node ");
+			print_hex_i32(insn.n[0] as intptr as uint32);
+			print_nl();
+			print_i8(insn.n[0].op);
+			print("=");
+			print(MidcodeName(insn.n[0].op));
+			print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
 			EmitOneInstruction(insn.ruleid, insn);
