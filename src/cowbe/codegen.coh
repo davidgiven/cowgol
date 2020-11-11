@@ -294,8 +294,8 @@ sub Generate(rootnode: [Node]) is
 	var first_instruction: [Instruction] := 0 as [Instruction];
 	var last_instruction: [Instruction] := 0 as [Instruction];
 
-	print_nl();
-	PrintNodes(rootnode);
+	#print_nl();
+	#PrintNodes(rootnode);
 
 	var old_next_node := next_node;
 	PushNode(rootnode);
@@ -691,6 +691,9 @@ sub Generate(rootnode: [Node]) is
 	# We have a set of instructions for this expression; emit them. In reverse
 	# order.
 
+	#print_nl();
+	#PrintNodes(rootnode);
+
 	sub EmitAndFreeInstructions() is
 		loop
 			var insn := last_instruction;
@@ -699,15 +702,15 @@ sub Generate(rootnode: [Node]) is
 			end if;
 			last_instruction := last_instruction.prev;
 
-			print("rule ");
-			print_i8(insn.ruleid);
-			print(" node ");
-			print_hex_i32(insn.n[0] as intptr as uint32);
-			print_nl();
-			print_i8(insn.n[0].op);
-			print("=");
-			print(MidcodeName(insn.n[0].op));
-			print_nl();
+			#print("rule ");
+			#print_i8(insn.ruleid);
+			#print(" node ");
+			#print_hex_i32(insn.n[0] as intptr as uint32);
+			#print(" ");
+			#print_i8(insn.n[0].op);
+			#print("=");
+			#print(MidcodeName(insn.n[0].op));
+			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
 			EmitOneInstruction(insn.ruleid, insn);

@@ -203,7 +203,6 @@ operand param;
 operand imm5 imm8 imm16;
 
 regclass r32 := r0|r1|r2|r3|r4|r5|r6|r7;
-regclass r32x0 := r1|r2|r3|r4|r5|r6|r7;
 
 regdata r0 compatible r32;
 regdata r1 compatible r32;
@@ -779,6 +778,36 @@ gen BEQ4(r32:lhs, r32|imm8:rhs):b
 	CmpJumps("beq", "bne", $@$);
 }
 
+gen BEQ2(r32:lhs, r32:rhs):b
+{
+	Extend("uxth", $lhs);
+	if ($rhs & REGCLASS_R32) != 0 then
+		Extend("uxth", $rhs);
+	end if;
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("beq", "bne", $@$);
+}
+
+gen BLTU2(r32:lhs, r32|imm8:rhs):b
+{
+	Extend("uxth", $lhs);
+	if ($rhs & REGCLASS_R32) != 0 then
+		Extend("uxth", $rhs);
+	end if;
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blo", "bhs", $@$);
+}
+
+gen BLTS2(r32:lhs, r32|imm8:rhs):b
+{
+	Extend("sxth", $lhs);
+	if ($rhs & REGCLASS_R32) != 0 then
+		Extend("sxth", $rhs);
+	end if;
+	Cmp2($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blt", "bge", $@$);
+}
+
 gen BEQ1(r32:lhs, r32:rhs):b
 {
 	Extend("uxtb", $lhs);
@@ -802,34 +831,6 @@ gen BLTS1(r32:lhs, r32|imm8:rhs):b
 	Extend("sxtb", $lhs);
 	if ($rhs & REGCLASS_R32) != 0 then
 		Extend("sxtb", $rhs);
-	end if;
-	Cmp2($lhs, $rhs, &$@rhs.operand);
-	CmpJumps("blt", "bge", $@$);
-}
-
-gen BEQ2(r32:lhs, r32:rhs):b
-{
-	Extend("uxth", $lhs);
-	Extend("uxth", $rhs);
-	Cmp2($lhs, $rhs, &$@rhs.operand);
-	CmpJumps("beq", "bne", $@$);
-}
-
-gen BLTU2(r32:lhs, r32|imm8:rhs):b
-{
-	Extend("uxth", $lhs);
-	if ($rhs & REGCLASS_R32) != 0 then
-		Extend("uxth", $rhs);
-	end if;
-	Cmp2($lhs, $rhs, &$@rhs.operand);
-	CmpJumps("blo", "bhs", $@$);
-}
-
-gen BLTS2(r32:lhs, r32|imm8:rhs):b
-{
-	Extend("sxth", $lhs);
-	if ($rhs & REGCLASS_R32) != 0 then
-		Extend("sxth", $rhs);
 	end if;
 	Cmp2($lhs, $rhs, &$@rhs.operand);
 	CmpJumps("blt", "bge", $@$);
@@ -878,9 +879,9 @@ gen ENDCASE4();
 
 // --- Casts ----------------------------------------------------------------
 
-gen r32 := CAST21(r32:lhs);
-gen r32 := CAST41(r32:lhs);
-gen r32 := CAST42(r32:lhs);
+gen r32 := CAST21($$:lhs);
+gen r32 := CAST41($$:lhs);
+gen r32 := CAST42($$:lhs);
 
 gen r32 := CAST12(r32:lhs):c
 {
