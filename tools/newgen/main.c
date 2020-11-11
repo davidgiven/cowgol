@@ -504,7 +504,7 @@ static void create_rules(void)
 
 		fprintf(outfp, "0x%x, ", r->compatible_regs);
 		fprintf(outfp, "0x%x, ", r->result_reg);
-		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs & ~r->compatible_regs & ~regmask));
+		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs));
 		fprintf(outfp, "%d, ", significantmask);
 		fprintf(outfp, "%d, %d ", copymask, regmask);
 		fprintf(outfp, "}, ");
