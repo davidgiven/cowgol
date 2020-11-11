@@ -55,7 +55,7 @@ toolchain_lxthumb2 = {
 	runtime = "rt/lxthumb2",
 	asmext = ".s",
 	binext = ".lxthumb2.exe",
-	tester = nil
+	tester = qemuarmtest
 }
 
 toolchain_lx386 = {
