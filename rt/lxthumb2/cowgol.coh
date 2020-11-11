@@ -1,0 +1,50 @@
+# System call numbers are here:
+# https://w3challs.com/syscalls/?arch=arm_thumb
+
+var LOMEM: [uint8];
+@asm "ldr r0, =LOMEM";
+@asm "ldr r1, =", LOMEM;
+@asm "str r0, [r1]";
+
+var HIMEM: [uint8];
+@asm "ldr r0, =HIMEM";
+@asm "ldr r1, =", HIMEM;
+@asm "str r0, [r1]";
+
+sub AlignUp(in: intptr): (out: intptr) is
+	out := (in + 3) & ~3;
+end sub;
+
+sub Exit() is
+	@asm "mov r0, #0";
+	@asm "mov r7, #1"; # __exit()
+	@asm "svc #0";
+end sub;
+
+sub ExitWithError() is
+	@asm "mov r0, #1";
+	@asm "mov r7, #1"; # __exit()
+	@asm "svc #0";
+end sub;
+
+sub print_char(c: uint8) is
+	@asm "mov r0, #1"; # file descriptor
+	@asm "ldr r1, =", c;
+	@asm "mov r2, #1";
+	@asm "mov r7, #4"; # write()
+	@asm "svc #0";
+end sub;
+
+sub MemSet(buf: [uint8], byte: uint8, len: intptr) is
+	var bufend := buf + len;
+	loop
+		if buf == bufend then
+			return;
+		end if;
+		[buf] := byte;
+		buf := buf + 1;
+	end loop;
+end sub;
+
+include "common.coh";
+

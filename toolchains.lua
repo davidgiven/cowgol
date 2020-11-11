@@ -46,6 +46,18 @@ toolchain_ncpmz = {
 	tester = cpmtest,
 }
 
+toolchain_lxthumb2 = {
+	name = "lxthumb2",
+	cowfe = "bin/cowfe-thumb2.nncgen.exe",
+	cowbe = "bin/cowbe-thumb2.nncgen.exe",
+	linker = "bin/cowlink-lxthumb2.nncgen.exe",
+	assembler = buildgasarm,
+	runtime = "rt/lxthumb2",
+	asmext = ".s",
+	binext = ".lxthumb2.exe",
+	tester = qemuarmtest
+}
+
 toolchain_lx386 = {
 	name = "lx386",
 	cowfe = "bin/cowfe-80386.nncgen.exe",
@@ -150,6 +162,7 @@ ALL_TOOLCHAINS = {
 	toolchain_bbcti,
 	toolchain_bbctiny,
 	toolchain_fuzix6303,
+	toolchain_lxthumb2,
 	toolchain_lx386,
 	toolchain_msdos,
 	toolchain_ncgen,
