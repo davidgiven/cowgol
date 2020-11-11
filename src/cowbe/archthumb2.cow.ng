@@ -1009,12 +1009,11 @@ gen INITSTRING():s
 gen r32 := STRING():s
 {
 	var lid := E_string($s.text);
-#	R_flush($$);
-#	E_insn("mov");
-#	E_reg($$);
-#	E_comma();
-#	E_labelref(lid);
-#	E_nl();
+	E_insn("ldr");
+	E_reg($$);
+	E(", =");
+	E_labelref(lid);
+	E_nl();
 }
 
 // --- Inline assembly ------------------------------------------------------
