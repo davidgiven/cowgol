@@ -16,20 +16,24 @@ record RegMove is
 	dest: RegId;
 end record;
 
+const INSN_ELIDED      := 1<<0;
+const INSN_AMALGAMATED := 2<<0;
 record Instruction is
 	next: [Instruction];
 	prev: [Instruction];
 	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
 	producable_regs: RegId;
 	produced_reg: RegId;
+	consumer: [Node];
 	input_regs: RegId;
 	output_regs: RegId;
 	spills: RegMove[MAX_MOVE_COUNT];
 	reloads: RegMove[MAX_MOVE_COUNT];
 	num_spills: uint8;
 	num_reloads: uint8;
-	elided: uint8;
+	flags: uint8;
 	ruleid: uint8;
+	chain: [Instruction]; # used for optimisation
 end record;
 
 record SimpleValue is
@@ -148,8 +152,8 @@ end sub;
 sub UnblockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
 	insn := insn.next;
 	while insn != last loop
-		insn.input_regs := insn.input_regs | blocked;
-		insn.output_regs := insn.output_regs | blocked;
+		insn.input_regs := insn.input_regs & ~blocked;
+		insn.output_regs := insn.output_regs & ~blocked;
 		if insn == last then
 			break;
 		end if;
@@ -309,20 +313,23 @@ sub PrintInstructions(insn: [Instruction]) is
 		if insn == (0 as [Instruction]) then
 			break;
 		end if;
+		var ruleid := insn.ruleid;
+		var rule := &codegen_rules[ruleid];
 
 		print_hex_i32(insn as intptr as uint32);
 		print(" rule ");
-		print_i8(insn.ruleid);
+		print_i8(ruleid);
 
+		var significant := rule.significant_nodes;
 		var i: uint8 := 0;
-		while i != INSTRUCTION_TEMPLATE_DEPTH loop
-			var node := insn.n[i];
-
-			if node != (0 as [Node]) then
+		while significant != 0 loop
+			if (significant & 1) != 0 then
+				var node := insn.n[i];
 				print_char(' ');
 				print(MidcodeName(node.op));
 			end if;
 
+			significant := significant >> 1;
 			i := i + 1;
 		end loop;
 
@@ -332,12 +339,41 @@ sub PrintInstructions(insn: [Instruction]) is
 	end loop;
 end sub;
 
+sub IsRegisterSpilt(insn: [Instruction], reg: RegId): (res: uint8) is
+	res := 0;
+
+	var spill := &insn.spills[0];
+	while spill != &insn.spills[MAX_MOVE_COUNT] loop
+		if spill.src == reg then
+			res := 1;
+			return;
+		end if;
+		spill := @next spill;
+	end loop;
+end sub;
+
+sub IsRegisterReloaded(insn: [Instruction], reg: RegId): (res: uint8) is
+	res := 0;
+
+	var reload := &insn.reloads[0];
+	while reload != &insn.reloads[MAX_MOVE_COUNT] loop
+		if reload.dest == reg then
+			res := 1;
+			return;
+		end if;
+		reload := @next reload;
+	end loop;
+end sub;
+
 sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
 	res := 0;
 	if IsStackedRegister(insn.producable_regs) == 0 then
 		var node := insn.n[0];
 		if node.op == MIDCODE_FALLBACK then
 			node := node.left;
+		end if;
+		if (node.left != (0 as [Node])) and (IsStackedRegister(node.produced_reg) == 0) then
+			return;
 		end if;
 		if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
 			value.address := &node.left.address;
@@ -355,6 +391,10 @@ sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
 			value.address := &node.left.address;
 			value.kind := MIDCODE_DEREF8;
 			res := 1;
+		elseif node.op == MIDCODE_ADDRESS then
+			value.address := &node.address;
+			value.kind := MIDCODE_ADDRESS;
+			res := 1;
 		end if;
 	end if;
 end sub;
@@ -366,7 +406,10 @@ sub SimpleValuesMatch(left: [SimpleValue], right: [SimpleValue]): (res: uint8) i
 	end if;
 
 	sub check_deref() is
-		if (left.address.sym.id == right.address.sym.id) and (left.address.off == right.address.off) then
+		if (left.address.sym.id == right.address.sym.id)
+				and (left.address.sym.off == right.address.sym.off)
+				and (left.address.sym.wsid == right.address.sym.wsid)
+				and (left.address.off == right.address.off) then
 			res := 1;
 		end if;
 	end sub;
@@ -376,6 +419,7 @@ sub SimpleValuesMatch(left: [SimpleValue], right: [SimpleValue]): (res: uint8) i
 		when MIDCODE_DEREF2: check_deref();
 		when MIDCODE_DEREF4: check_deref();
 		when MIDCODE_DEREF8: check_deref();
+		when MIDCODE_ADDRESS: check_deref();
 	end case;
 end sub;
 
@@ -595,6 +639,7 @@ sub Generate(rootnode: [Node]) is
 					i := i + 1;
 				end loop;
 				node.producer := producer;
+				producer.consumer := node;
 			end sub;
 			CopyChildNodes();
 		end sub;
@@ -783,57 +828,112 @@ sub Generate(rootnode: [Node]) is
 	# We now have working code, but first, hunt for producers which can be amalgamated, and do so.
 
 	sub AmalgamateSimpleProducers() is
-		print_nl();
-		PrintInstructions(last_instruction);
-		var producer1 := last_instruction;
+		if (first_instruction == last_instruction) then
+			return;
+		end if;
+		#print_nl();
+		#PrintInstructions(last_instruction);
+
+		var first_producer := last_instruction;
 		loop
-			if producer1 == (0 as [Instruction]) then
+			if first_producer == (0 as [Instruction]) then
 				break;
 			end if;
 
-			var producer1_value: SimpleValue;
-			if IsSimpleValue(producer1, &producer1_value) != 0 then
-				var consumer1 := producer1.n[0].consumer;
-				var producer2 := producer1.prev;
-				var is_nested: uint8 := 1;
+			var value: SimpleValue;
+			if ((first_producer.flags & INSN_AMALGAMATED) == 0)
+					and (IsRegisterSpilt(first_producer, first_producer.n[0].produced_reg) == 0)
+					and (IsSimpleValue(first_producer, &value) != 0) then
+				# We've found a candidate producer. Now go through and find all other producers.
+
+				var last_producer := first_producer;
+				last_producer.chain := 0 as [Instruction];
+
+				#print("matching ");
+				#print_hex_i32(first_producer as intptr as uint32);
+				#print_nl();
+				var insn := first_producer.prev;
 				loop
-					if producer2 == (0 as [Instruction]) then
+					if insn == (0 as [Instruction]) then
 						break;
 					end if;
 
-					if producer2 == consumer1 then
-						is_nested := 0;
+					var v: SimpleValue;
+					if ((insn.flags & INSN_AMALGAMATED) == 0)
+							and (IsRegisterSpilt(insn, insn.n[0].produced_reg) == 0)
+							and (IsSimpleValue(insn, &v) != 0)
+							and (SimpleValuesMatch(&v, &value) != 0) then
+						# We've found another producer of the same value. Add it to the chain.
+
+						#print("  and ");
+						#print_hex_i32(insn as intptr as uint32);
+						#print_nl();
+
+						insn.chain := 0 as [Instruction];
+						last_producer.chain := insn;
 					end if;
 
-					var producer2_value: SimpleValue;
-					if (IsSimpleValue(producer2, &producer2_value) != 0) and (SimpleValuesMatch(&producer1_value, &producer2_value) != 0) then
-						var consumer2 := producer2.n[0].consumer;
-
-						var last_consumer := consumer2;
-						if is_nested != 0 then
-							last_consumer := consumer1;
-						end if;
-
-						print("matching ");
-						print_hex_i32(producer1 as intptr as uint32);
-						print(" -> ");
-						print_hex_i32(consumer1 as intptr as uint32);
-						print(" (");
-						print_hex_i32(producer1.produced_reg as uint32);
-						print(") and ");
-						print_hex_i32(producer2 as intptr as uint32);
-						print(" -> ");
-						print_hex_i32(consumer2 as intptr as uint32);
-						print(" (");
-						print_hex_i32(producer2.produced_reg as uint32);
-						print(")\n");
-					end if;
-
-					producer2 := producer2.prev;
+					insn := insn.prev;
 				end loop;
+
+				# Okay, we've found a chain of producers we want to amalgamate. Figure out if there
+				# are any registers we can use.
+
+				var available := ~CalculateBlockedRegisters(first_instruction, last_instruction);
+				#print("registers available: ");
+				#print_hex_i32(available as uint32);
+				#print_nl();
+
+				var candidate := available;
+				insn := last_producer;
+				while insn != (0 as [Instruction]) loop
+					candidate := candidate & insn.producable_regs & insn.consumer.desired_reg
+						& ~insn.output_regs & ~insn.input_regs;
+					insn := insn.chain;
+				end loop;
+
+				#print("candidate ");
+				#print_hex_i32(candidate as uint32);
+				#print_nl();
+
+				if candidate != 0 then
+					# We can definitely allocate a new register which spans both producer/consumer
+					# pairs.
+
+					candidate := FindFirst(candidate);
+					#print("using register ");
+					#print_hex_i32(candidate as uint32);
+					#print_nl();
+
+					# We now need to unblock the current registers in all producer/consumer pairs,
+					# and replace them with our new one.
+
+					insn := last_producer;
+					while insn != (0 as [Instruction]) loop
+						var consumer := insn.n[0].consumer;
+						var reg := insn.n[0].produced_reg;
+						UnblockRegisters(consumer, insn, reg);
+						insn.output_regs := insn.output_regs & ~reg;
+						consumer.input_regs := insn.input_regs & ~reg;
+
+						insn.produced_reg := candidate;
+						insn.n[0].produced_reg := candidate;
+						insn.flags := insn.flags | (INSN_ELIDED|INSN_AMALGAMATED);
+						insn := insn.chain;
+					end loop;
+
+					# The first producer isn't elided.
+
+					first_producer.flags := first_producer.flags & ~INSN_ELIDED;
+
+					# Mark our register as in use, everywhere.
+
+					BlockRegisters(first_instruction, last_instruction, candidate);
+				end if;
+
 			end if;
 
-			producer1 := producer1.prev;
+			first_producer := first_producer.prev;
 		end loop;
 	end sub;
 	AmalgamateSimpleProducers();
@@ -863,7 +963,9 @@ sub Generate(rootnode: [Node]) is
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
-			EmitOneInstruction(insn.ruleid, insn);
+			if (insn.flags & INSN_ELIDED) == 0 then
+				EmitOneInstruction(insn.ruleid, insn);
+			end if;
 			ShuffleRegisters(&insn.spills[0]);
 			ArchEndInstruction();
 
