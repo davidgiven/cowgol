@@ -38,6 +38,7 @@ end record;
 
 record SimpleValue is
 	address @at(0): [MidcodeAddress];
+	constant @at(0): int32;
 	kind: uint8;
 end record;
 
@@ -106,6 +107,17 @@ sub FindFirst(inreg: RegId): (outreg: RegId) is
 		outreg := outreg << 1;
 	end loop;
 	outreg := 0;
+end sub;
+
+sub FindLast(inreg: RegId): (outreg: RegId) is
+	outreg := 0;
+	var reg: RegId := 1;
+	while reg != 0 loop
+		if (inreg & reg) != 0 then
+			outreg := reg;
+		end if;
+		reg := reg << 1;
+	end loop;
 end sub;
 
 include "inssel.coh";
@@ -395,6 +407,10 @@ sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
 			value.address := &node.address;
 			value.kind := MIDCODE_ADDRESS;
 			res := 1;
+		elseif node.op == MIDCODE_CONSTANT then
+			value.constant := node.constant.value;
+			value.kind := MIDCODE_CONSTANT;
+			res := 1;
 		end if;
 	end if;
 end sub;
@@ -420,6 +436,10 @@ sub SimpleValuesMatch(left: [SimpleValue], right: [SimpleValue]): (res: uint8) i
 		when MIDCODE_DEREF4: check_deref();
 		when MIDCODE_DEREF8: check_deref();
 		when MIDCODE_ADDRESS: check_deref();
+		when MIDCODE_CONSTANT:
+			if left.constant == right.constant then
+				res := 1;
+			end if;
 	end case;
 end sub;
 
@@ -900,7 +920,7 @@ sub Generate(rootnode: [Node]) is
 					# We can definitely allocate a new register which spans both producer/consumer
 					# pairs.
 
-					candidate := FindFirst(candidate);
+					candidate := FindLast(candidate);
 					#print("using register ");
 					#print_hex_i32(candidate as uint32);
 					#print_nl();
