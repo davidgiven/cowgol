@@ -46,6 +46,10 @@
 			when REG_R5: E("r5");
 			when REG_R6: E("r6");
 			when REG_R7: E("r7");
+			when REG_R8: E("r8");
+			when REG_R9: E("r9");
+			when REG_R10: E("r10");
+			when REG_R11: E("r11");
 			when else:
 				StartError();
 				print("bad reg ");
@@ -158,12 +162,12 @@
 
 wordsize uint32;
 
-register r0 r1 r2 r3 r4 r5 r6 r7;
+register r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11;
 
 operand param;
 operand imm5 imm8 imm16;
 
-regclass r32 := r0|r1|r2|r3|r4|r5|r6|r7;
+regclass r32 := r0|r1|r2|r3|r4|r5|r6|r7|r8|r9|r10|r11;
 
 regdata r0 compatible r32;
 regdata r1 compatible r32;
@@ -173,6 +177,10 @@ regdata r4 compatible r32;
 regdata r5 compatible r32;
 regdata r6 compatible r32;
 regdata r7 compatible r32;
+regdata r8 compatible r32;
+regdata r9 compatible r32;
+regdata r10 compatible r32;
+regdata r11 compatible r32;
 
 // --- Core things ----------------------------------------------------------
 
