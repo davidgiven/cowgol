@@ -589,8 +589,10 @@ register stk4 param;
 
 regclass r8 := al|bl|cl|dl;
 regclass rh8 := r8|ah|bh|ch|dh;
-regclass r16 := ax|bx|cx|dx|si|di;
-regclass r32 := eax|ebx|ecx|edx|esi|edi;
+regclass r16b := ax|bx|cx|dx; // 16-bit registers with byte access
+regclass r16 := r16b|si|di;
+regclass r32b := eax|ebx|ecx|edx; // 32-bit registers with byte access
+regclass r32 := r32b|esi|edi;
 regclass rix := ebx|esi|edi;
 
 regdata eax compatible r32 uses eax|ax|ah|al;
@@ -913,15 +915,15 @@ gen al := REMU1(al, bl|cl|dl:rhs) uses ah { E_xor(REG_AH, REG_AH); E_div($rhs); 
 gen al := DIVS1(al, bl|cl|dl:rhs) uses ah { E_cbw(); E_idiv($rhs); }
 gen al := REMS1(al, bl|cl|dl:rhs) uses ah { E_cbw(); E_idiv($rhs); E_move(REG_AH, REG_AL); }
 
-gen ax := DIVU2(ax, bx|cx|dx:rhs) uses dx { E_xor(REG_DX, REG_DX); E_div($rhs); }
-gen dx := REMU2(ax, bx|cx|dx:rhs)         { E_xor(REG_DX, REG_DX); E_div($rhs); }
-gen ax := DIVS2(ax, bx|cx|dx:rhs) uses dx { E_cwd(); E_idiv($rhs); }
-gen dx := REMS2(ax, bx|cx|dx:rhs)         { E_cwd(); E_idiv($rhs); }
+gen ax := DIVU2(ax, bx|cx:rhs) uses dx    { E_xor(REG_DX, REG_DX); E_div($rhs); }
+gen dx := REMU2(ax, bx|cx:rhs)            { E_xor(REG_DX, REG_DX); E_div($rhs); }
+gen ax := DIVS2(ax, bx|cx:rhs) uses dx    { E_cwd(); E_idiv($rhs); }
+gen dx := REMS2(ax, bx|cx:rhs)            { E_cwd(); E_idiv($rhs); }
 
-gen eax := DIVU4(eax, ebx|ecx|edx:rhs) uses edx { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
-gen edx := REMU4(eax, ebx|ecx|edx:rhs)          { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
-gen eax := DIVS4(eax, ebx|ecx|edx:rhs) uses edx { E_cdq(); E_idiv($rhs); }
-gen edx := REMS4(eax, ebx|ecx|edx:rhs)          { E_cdq(); E_idiv($rhs); }
+gen eax := DIVU4(eax, ebx|ecx:rhs) uses edx { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
+gen edx := REMU4(eax, ebx|ecx:rhs)          { E_xor(REG_EDX, REG_EDX); E_div($rhs); }
+gen eax := DIVS4(eax, ebx|ecx:rhs) uses edx { E_cdq(); E_idiv($rhs); }
+gen edx := REMS4(eax, ebx|ecx:rhs)          { E_cdq(); E_idiv($rhs); }
 
 gen al|bl|dl            := LSHIFT1($$:lhs, cl:rhs) { E_shl($lhs); }
 gen ax|bx|dx|si|di      := LSHIFT2($$:lhs, cl:rhs) { E_shl($lhs); }
@@ -1035,9 +1037,9 @@ gen ENDCASE4();
 
 // --- Casts ----------------------------------------------------------------
 
-gen r8 :=  CAST21(r16:val) { E_move(loreg($val), $$); }
-gen r8 :=  CAST41(r32:val) { E_move(loreg($val), $$); }
-gen r16 := CAST42(r32:val) { E_move(wordreg($val), $$); }
+gen r8 :=  CAST21(r16b:val) { E_move(loreg($val), $$); }
+gen r8 :=  CAST41(r32b:val) { E_move(loreg($val), $$); }
+gen r16 := CAST42(r32b:val) { E_move(wordreg($val), $$); }
 
 gen r16 := CAST12(r8:val):c  { E_ext($val, $$, $c.sext); }
 gen r32 := CAST14(r8:val):c  { E_ext($val, $$, $c.sext); }
