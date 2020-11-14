@@ -39,6 +39,7 @@ end record;
 record SimpleValue is
 	address @at(0): [MidcodeAddress];
 	constant @at(0): int32;
+	reg: RegId;
 	kind: uint8;
 end record;
 
@@ -446,6 +447,9 @@ end sub;
 sub Generate(rootnode: [Node]) is
 	var i: uint8;
 
+	var preferred_registers: SimpleValue[REGISTER_COUNT];
+	MemZero(&preferred_registers as [uint8], @bytesof preferred_registers);
+
 	# Remember that this list is actually emitted in *reverse* order, so
 	# last_instruction is the first machine code instruction in the clause.
 
@@ -666,6 +670,56 @@ sub Generate(rootnode: [Node]) is
 		InstructionMatcher();
 
 		if producer.producable_regs != 0 then
+			# This routine is used to allocate a register in the case where no
+			# spills are required. This has some logic in it so that certain
+			# values getting allocated preferential registers which can be
+			# preserved inside statements, and possibly from statement to
+			# statement. This allows suppression of subsequent materialisation
+			# and much better code generation on register-centric systems.
+			#
+			# It's all dubious as hell because since we're a single-pass
+			# compiler, we have no idea whether any value will be used again or
+			# not --- we just have to apply heuristics and guess.
+
+			sub FindPreferredRegister(mask: RegId): (reg: RegId) is
+				var value: SimpleValue;
+				if IsSimpleValue(producer, &value) != 0 then
+					# Do we have a preferred register for this value? If so, try to use
+					# that register.
+
+					var v := &preferred_registers[0];
+					var openslot: [SimpleValue] := 0 as [SimpleValue];
+					var all_preferred: RegId := 0;
+					while v != &preferred_registers[@sizeof preferred_registers] loop
+						all_preferred := all_preferred | v.reg;
+						if SimpleValuesMatch(&value, v) != 0 then
+							if (v.reg & mask) != 0 then
+								reg := v.reg;
+								return;
+							end if;
+						end if;
+						if v.reg == 0 then
+							openslot := v;
+						end if;
+						v := @next v;
+					end loop;
+
+					# No. Allocate a register which hasn't already been used
+					# for a preferred register and record it.
+
+					reg := FindLast(mask & ~all_preferred);
+					if (reg != 0) and (openslot != (0 as [SimpleValue])) then
+						MemCopy(&value as [uint8], @bytesof SimpleValue, openslot as [uint8]);
+						openslot.reg := reg;
+						return;
+					end if;
+
+					# Otherwise just give up and fall back to the normal behaviour.
+				end if;
+
+				reg := FindFirst(mask);
+			end sub;
+
 			sub AllocateRegister() is
 				if IsStackedRegister(producer.producable_regs) != 0 then
 					# Stacked registers: we don't need to worry about finding an unallocated
@@ -710,7 +764,7 @@ sub Generate(rootnode: [Node]) is
 						# Good news --- we can allocate the ideal register for
 						# both producer and consumer.
 
-						candidate := FindFirst(mask1);
+						candidate := FindPreferredRegister(mask1);
 						node.produced_reg := candidate;
 						producer.produced_reg := candidate;
 
