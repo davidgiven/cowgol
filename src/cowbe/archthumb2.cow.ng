@@ -640,12 +640,12 @@ gen r32 := REMS4(r32:lhs, r32:rhs) uses r6
 }
 
 %{
-	sub RShift(extend: string, shift: string, dest: RegId, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+	sub RShift(extend: string, shift: string, dest: RegId, rhs: RegId, rhsop: [Operand]) is
 		if extend != (0 as string) then
 			E_insn(extend);
 			E_reg(dest);
 			E_comma();
-			E_reg(lhs);
+			E_reg(dest);
 			E_nl();
 		end if;
 
@@ -657,13 +657,13 @@ gen r32 := REMS4(r32:lhs, r32:rhs) uses r6
 	end sub;
 %}
 
-gen r32 := RSHIFTU1(r32:lhs, r32|imm5:rhs) { RShift("uxtb", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTU2(r32:lhs, r32|imm5:rhs) { RShift("uxth", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTU4($$:lhs, r32|imm5:rhs) { RShift(0 as string, "lsr", $$, $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU1($$, r32|imm5:rhs) { RShift("uxtb", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU2($$, r32|imm5:rhs) { RShift("uxth", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU4($$, r32|imm5:rhs) { RShift(0 as string, "lsr", $$, $rhs, &$@rhs.operand); }
 
-gen r32 := RSHIFTS1(r32:lhs, r32|imm5:rhs) { RShift("sxtb", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTS2(r32:lhs, r32|imm5:rhs) { RShift("sxth", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTS4($$:lhs, r32|imm5:rhs) { RShift(0 as string, "asr", $$, $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS1($$, r32|imm5:rhs) { RShift("sxtb", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS2($$, r32|imm5:rhs) { RShift("sxth", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS4($$, r32|imm5:rhs) { RShift(0 as string, "asr", $$, $rhs, &$@rhs.operand); }
 
 %{
 	sub Not(dest: RegId, lhs: RegId) is
