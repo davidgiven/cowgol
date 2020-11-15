@@ -156,6 +156,18 @@ toolchain_msdos = {
 	tester = emu2test,
 }
 
+toolchain_tlcs90 = {
+	name = "tlcs90",
+	cowfe = "bin/cowfe-tlcs90.nncgen.exe",
+	cowbe = "bin/cowbe-tlcs90.nncgen.exe",
+	linker = "bin/cowlink-tlcs90.nncgen.exe",
+	assembler = nil,
+	runtime = "rt/tlcs90",
+	asmext = ".asm",
+	binext = ".msdos.com",
+	tester = nil,
+}
+
 ALL_TOOLCHAINS = {
 	toolchain_bbct,
 	toolchain_bbct6502,

@@ -1,0 +1,739 @@
+%[
+	record MemOp is
+		sym: [Symbol];
+		off: Size;
+	end record;
+		
+	record ImmOp is
+		value: Arith;
+	end record;
+
+	record Operand is
+		mem @at(0): MemOp;
+		imm @at(0): ImmOp;
+	end record;
+%]
+
+%{
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+		newvalue := value;
+	end sub;
+
+	record Extern is
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	# Does not persist the name; only call this with constant strings.
+	sub GetHelper(name: string): (e: [Extern]) is
+		e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := InternalAlloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
+	end sub;
+
+	sub R_flushall() is
+		RegCacheFlush(ALL_REGS);
+	end sub;
+
+	sub R_flush(reg: RegId) is
+		RegCacheFlush(FindConflictingRegisters(reg));
+	end sub;
+
+	sub AllocPLabel(): (lid: uint16) is
+		# Cheap and cheerful way to allocate a label which won't overlap the
+		# frontend's numbering.
+		lid := -AllocLabel();
+	end sub;
+
+	sub E_label(label: LabelRef) is
+		R_flushall();
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub loreg(reg: RegId): (loreg: RegId) is
+		case reg is
+			when REG_HL: loreg := REG_L;
+			when REG_BC: loreg := REG_C;
+			when REG_DE: loreg := REG_E;
+			when else:
+				SimpleError("bad loreg");
+		end case;
+	end sub;
+
+	sub hireg(reg: RegId): (hireg: RegId) is
+		case reg is
+			when REG_HL: hireg := REG_H;
+			when REG_BC: hireg := REG_B;
+			when REG_DE: hireg := REG_D;
+			when else:
+				StartError();
+				print("bad hireg ");
+				print_hex_i32(reg as uint32);
+				EndError();
+		end case;
+	end sub;
+
+	sub E_reg(reg: RegId) is
+		case reg is
+			when REG_A: E("a");
+			when REG_H: E("h");
+			when REG_L: E("l");
+			when REG_B: E("b");
+			when REG_C: E("c");
+			when REG_D: E("d");
+			when REG_E: E("e");
+			when REG_HL: E("hl");
+			when REG_BC: E("bc");
+			when REG_DE: E("de");
+			when REG_IX: E("ix");
+			when REG_IY: E("iy");
+			when else:
+				StartError();
+				print("bad reg ");
+				print_hex_i32(reg);
+				EndError();
+		end case;
+	end sub;
+
+	sub E_op(reg: RegId, op: [Operand], off: Size) is
+#		if (reg & (REGCLASS_R8|REGCLASS_R16)) != 0 then
+#			E_reg(reg);
+#			return;
+#		end if;
+#
+#		sub memop(kind: string) is
+#			E(kind);
+#			E(" [");
+#			E_symref(op.mem.sym, op.mem.off + off);
+#			E_b8(']');
+#		end sub;
+#
+#		case reg is
+#			when REG_DXAX:
+#				if off == 2 then
+#					E("dx");
+#				else
+#					E("ax");
+#				end if;
+#
+#			when REG_BXCX:
+#				if off == 2 then
+#					E("bx");
+#				else
+#					E("cx");
+#				end if;
+#
+#			when REG_IMM: E("0x"); E_h16((op.imm.value >> (8*(off as uint8))) as uint16);
+#			when REG_ADR: E_symref(op.mem.sym, op.mem.off + off);
+#
+#			when REG_MEM1: memop("byte");
+#			when REG_MEM2: memop("word");
+#			when REG_MEM4: memop("word");
+#
+#			when else:
+				E("bad op ");
+				E_h32(reg);
+#		end case;
+	end sub;
+
+	sub E_op0(reg: RegId, op: [Operand]) is
+		E_op(reg, op, 0);
+	end sub;
+
+	sub E_push(reg: RegId) is
+#		if (reg & REGCLASS_R8) != 0 then
+#			reg := lowordreg(reg);
+#		end if;
+#		if (reg & REGCLASS_R16) != 0 then
+#			E("\tpush word ");
+#			E_reg(reg);
+#		elseif (reg & REGCLASS_R32) != 0 then
+#			E("\tpush word ");
+#			E_reg(hiwordreg(reg));
+#			E("\n\tpush word ");
+#			E_reg(lowordreg(reg));
+#		else
+			SimpleError("bad push");
+#		end if;
+		E_nl();
+	end sub;
+
+	sub E_pop(reg: RegId) is
+		R_flush(reg);
+#		if (reg & REGCLASS_R8) != 0 then
+#			reg := lowordreg(reg);
+#		end if;
+#		if (reg & REGCLASS_R16) != 0 then
+#			E("\tpop word ");
+#			E_reg(reg);
+#		elseif (reg & REGCLASS_R32) != 0 then
+#			E("\tpop word ");
+#			E_reg(lowordreg(reg));
+#			E("\n\tpop word ");
+#			E_reg(hiwordreg(reg));
+#		else
+			SimpleError("bad pop");
+#		end if;
+		E_nl();
+	end sub;
+
+	sub E_insn(insn: string) is
+		E_tab();
+		E(insn);
+		E_space();
+	end sub;
+
+    sub E_callhelper(name: string) is
+        var helper := GetHelper(name);
+        R_flushall();
+        E_insn("call");
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(helper.id);
+        E_nl();
+    end sub;
+        
+	sub E_jump(insn: string, label: LabelRef) is
+		R_flushall();
+		E_insn(insn);
+		E_labelref(label);
+		E_nl();
+	end sub;
+
+	sub E_jmp(label: LabelRef) is
+		E_jump("jp", label);
+	end sub;
+
+	sub ArchEmitMove(src: RegId, dest: RegId) is
+#		E("\t; move\n");
+#		if src == 0 then
+#			E_pop(dest);
+#		elseif dest == 0 then
+#			E_push(src);
+#		elseif (src & REGCLASS_R32) != 0 then
+#			E_insn("mov");
+#			E_reg(hiwordreg(dest));
+#			E_comma();
+#			E_reg(hiwordreg(src));
+#			E_nl();
+#
+#			E_insn("mov");
+#			E_reg(lowordreg(dest));
+#			E_comma();
+#			E_reg(lowordreg(src));
+#			E_nl();
+#		elseif (src & (REGCLASS_R16|REGCLASS_R8)) != 0 then
+#			E_insn("mov");
+#			E_reg(dest);
+#			E_comma();
+#			E_reg(src);
+#			E_nl();
+#		else
+			StartError();
+			print("bad move ");
+			print_hex_i32(src);
+			print(" -> ");
+			print_hex_i32(dest);
+			EndError();
+#		end if;
+	end sub;
+
+	sub ArchEndInstruction() is
+	end sub;
+
+	sub ArchEndGroup() is
+	end sub;
+%}
+
+wordsize uint32;
+
+register a h l b c d e;
+register hl bc de ix iy;
+register hlhl bcbc dede;
+operand param;
+operand imm adr;
+operand mem1 mem2 mem4;
+
+regclass r8 := a|l|c|e;
+regclass r16 := hl|bc|de|ix|iy;
+regclass r32 := hlhl|bcbc|dede;
+regclass rix := ix|iy;
+
+regclass op1 := imm|adr|mem1;
+regclass op2 := imm|adr|mem2;
+regclass op4 := imm|adr|mem4;
+
+regdata a    compatible r8;
+regdata l    compatible r8;
+regdata c    compatible r8;
+regdata e    compatible r8;
+regdata hl   compatible r16 uses h|l;
+regdata bc   compatible r16 uses b|c;
+regdata de   compatible r16 uses d|e;
+regdata ix   compatible r16;
+regdata iy   compatible r16;
+regdata hlhl compatible r32 uses hl;
+regdata bcbc compatible r32 uses bc;
+regdata dede compatible r32 uses de;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jmp($j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB()
+{
+	RegCacheReset();
+
+	EmitterOpenStream(current_subr);
+
+	E("\n\n\t; ");
+	E(current_subr.name);
+	E(" workspace at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_b16(0);
+	E(" length ");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_nl();
+
+	#E("\tsection .text\n");
+	E_b8(COO_ESCAPE_THISSUB);
+	E(":\n");
+
+#	var count := current_subr.num_input_parameters;
+#	var lastparam := count - 1;
+#	var popped: uint8 := 0;
+#
+#	sub pop_return_address() is
+#		if popped == 0 then
+#			E_pop(REG_CX);
+#			popped := 1;
+#		end if;
+#	end sub;
+#
+#	while count != 0 loop
+#		count := count - 1;
+#		var param := GetInputParameter(current_subr, count);
+#
+#		var reg: RegId;
+#		if count != lastparam then
+#			pop_return_address();
+#
+#			case param.width is
+#				when 1:
+#					E("\tpop bx\nmov byte [");
+#					E_symref(param as [Symbol], 0);
+#					E("], bl\n");
+#
+#				when 2:
+#					E("\tpop word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 4:
+#					E("\tpop word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#					E("\tpop word [");
+#					E_symref(param as [Symbol], 2);
+#					E("]\n");
+#			end case;
+#		else
+#			case param.width is
+#				when 1:
+#					E("\tmov byte [");
+#					E_symref(param as [Symbol], 0);
+#					E("], al\n");
+#
+#				when 2:
+#					E("\tmov word [");
+#					E_symref(param as [Symbol], 0);
+#					E("], ax\n");
+#
+#				when 4:
+#					E("\tmov word [");
+#					E_symref(param as [Symbol], 0);
+#					E("], ax\n");
+#					E("\tmov word [");
+#					E_symref(param as [Symbol], 2);
+#					E("], dx\n");
+#			end case;
+#		end if;
+#	end loop;
+#
+#	if popped != 0 then
+#		E_push(REG_CX);
+#	end if;
+}
+
+gen ENDSUB()
+{
+	R_flushall();
+
+	E("end_");
+	E_subref(current_subr);
+	E(":\n");
+
+#	var count: uint8 := 0;
+#	var params := current_subr.num_output_parameters;
+#	var pushed: uint8 := 0;
+#
+#	sub push_return_address() is
+#		if pushed == 0 then
+#			E_pop(REG_CX);
+#			pushed := 1;
+#		end if;
+#	end sub;
+#
+#	while count != params loop
+#		var param := GetOutputParameter(current_subr, count);
+#
+#		if count != (params-1) then
+#			push_return_address();
+#
+#			case param.width is
+#				when 1:
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 2:
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 4:
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 2);
+#					E("]\n");
+#					E("\tpush word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#			end case;
+#		else
+#			case param.width is
+#				when 1:
+#					E("\tmov al, byte [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 2:
+#					E("\tmov ax, word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#
+#				when 4:
+#					E("\tmov ax, word [");
+#					E_symref(param as [Symbol], 0);
+#					E("]\n");
+#					E("\tmov dx, word [");
+#					E_symref(param as [Symbol], 2);
+#					E("]\n");
+#			end case;
+#		end if;
+#
+#		count := count + 1;
+#	end loop;
+#
+#	if pushed != 0 then
+#		E("\tjmp cx\n");
+#	else
+#		E("\tret\n");
+#	end if;
+
+	EmitterCloseStream();
+}
+
+gen RETURN()
+{
+	E("\tjmp end_");
+	E_subref(current_subr);
+	E_nl();
+}
+
+// --- Miscellaneous --------------------------------------------------------
+
+gen r16 := SUBREF():s
+{
+	E_insn("mov");
+	E_reg($$);
+	E_comma();
+    E_subref($s.subr);
+    E_nl();
+}
+
+// --- Operands -------------------------------------------------------------
+
+gen imm := CONSTANT():c { $@$.operand.imm.value := $c.value; }
+
+gen adr := ADDRESS():a { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+
+gen mem1 := DEREF1(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+gen mem2 := DEREF2(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+gen mem4 := DEREF4(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+
+%{
+	sub Call(addr: [MidcodeSubref]) is
+		E_insn("call");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+
+	sub CallDE() is
+		SimpleError("callde");
+	end sub;
+%}
+
+gen         CALL(       param,        SUBREF():a) uses a|r16       { Call(&$a); }
+gen         CALL(  ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
+gen         CALL(  ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
+gen         CALL(  ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
+gen a    := CALLE1(     param,        SUBREF():a) uses a|r16       { Call(&$a); }
+gen a    := CALLE1(ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
+gen a    := CALLE1(ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
+gen a    := CALLE1(ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
+gen hl   := CALLE2(     param,        SUBREF():a) uses a|r16       { Call(&$a); }
+gen hl   := CALLE2(ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
+gen hl   := CALLE2(ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
+gen hl   := CALLE2(ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
+gen hlhl := CALLE4(     param,        SUBREF():a) uses a|r16       { Call(&$a); }
+gen hlhl := CALLE4(ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
+gen hlhl := CALLE4(ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
+gen hlhl := CALLE4(ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
+
+gen         CALL(       param,        de) uses a|r16       { CallDE(); }
+gen         CALL(  ARG1(param, a),    de) uses   r16       { CallDE(); }
+gen         CALL(  ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
+gen         CALL(  ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
+gen a    := CALLE1(     param,        de) uses a|r16       { CallDE(); }
+gen a    := CALLE1(ARG1(param, a),    de) uses   r16       { CallDE(); }
+gen a    := CALLE1(ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
+gen a    := CALLE1(ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
+gen hl   := CALLE2(     param,        de) uses a|r16       { CallDE(); }
+gen hl   := CALLE2(ARG1(param, a),    de) uses   r16       { CallDE(); }
+gen hl   := CALLE2(ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
+gen hl   := CALLE2(ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
+gen hlhl := CALLE4(     param,        de) uses a|r16       { CallDE(); }
+gen hlhl := CALLE4(ARG1(param, a),    de) uses   r16       { CallDE(); }
+gen hlhl := CALLE4(ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
+gen hlhl := CALLE4(ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
+
+gen param := END();
+
+gen param := ARG1(param, r8:lhs)  { E_push($lhs); }
+gen param := ARG2(param, r16:lhs) { E_push($lhs); }
+gen param := ARG4(param, r32:lhs) { E_push($lhs); }
+
+gen a    := POPARG1(remaining==0);
+gen hl   := POPARG2(remaining==0);
+gen hlhl := POPARG4(remaining==0);
+
+gen r8  := POPARG1(remaining!=0) { E_pop($$); }
+gen r16 := POPARG2(remaining!=0) { E_pop($$); }
+gen r32 := POPARG4(remaining!=0) { E_pop($$); }
+
+// --- Fallback loads -------------------------------------------------------
+
+// These rules ensure that any operand can be loaded into a register if
+// necessary.
+
+// --- Indexed loads and stores ---------------------------------------------
+
+
+// --- 8- and 16-bit arithmetic ---------------------------------------------
+
+
+// --- 32-bit arithmetic ----------------------------------------------------
+
+
+// --- Conditionals ---------------------------------------------------------
+
+// --- Case -----------------------------------------------------------------
+
+// --- Casts ----------------------------------------------------------------
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+	EmitterOpenStream(current_subr);
+	#E("\tsection .data\n");
+	E_symref(&$s.sym, 0);
+	E(":\n");
+}
+
+gen ENDINIT()
+{
+	EmitterCloseStream();
+}
+
+gen INIT1():c
+{
+	E("\tdb ");
+	E_u8($c.value as uint8);
+	E_nl();
+}
+
+gen INIT2():c
+{
+	E("\tdw ");
+	E_u16($c.value as uint16);
+	E_nl();
+}
+
+gen INIT4():c
+{
+	E("\tdd ");
+	E_u32($c.value as uint32);
+	E_nl();
+}
+
+gen INITADDRESS():a
+{
+	E("\tdw ");
+    E_symref(&$a.sym, $a.off);
+    E_nl();
+}
+
+gen INITSUBREF():a
+{
+	E("\tdw ");
+    E_subref($a.subr);
+    E_nl();
+}
+
+gen INITSTRING():s
+{
+	E("\tdw ");
+	var lid := E_string($s.text);
+	E_labelref(lid);
+    E_nl();
+}
+
+// --- Strings --------------------------------------------------------------
+
+%{
+    sub E_string(data: string): (lid: uint16) is
+        lid := AllocPLabel();
+
+        EmitterOpenStream(current_subr);
+
+        E_label(lid);
+		E_insn("db");
+
+        loop
+            var c := [data];
+            if c == 0 then
+                break;
+            end if;
+            data := data + 1;
+            
+            E_u8(c);
+            E_comma();
+        end loop;
+        E("0\n");
+        EmitterCloseStream();
+    end sub;
+%}
+
+gen r16 := STRING():s
+{
+	var lid := E_string($s.text);
+	R_flush($$);
+	E_insn("mov");
+	E_reg($$);
+	E_comma();
+	E_labelref(lid);
+	E_nl();
+}
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMGROUPSTART();
+gen ASMGROUPEND();
+
+gen ASMSTART()
+{
+	R_flushall();
+	E_tab();
+}
+
+gen ASMTEXT():t
+{
+	E($t.text);
+	E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	E_symref(&$s.sym, 0);
+    E_space();
+}
+
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
+    E_space();
+}
+
+gen ASMVALUE():c
+{
+	E_b8('(');
+	E_i32($c.value);
+	E_b8(')');
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
+
+
+

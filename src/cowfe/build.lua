@@ -9,6 +9,7 @@ local ARCHS = {
 	"cgen",
 	"pdp11",
 	"thumb2",
+	"tlcs90",
 	"z80",
 }
 
