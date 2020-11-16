@@ -86,6 +86,8 @@
 			when REG_HL: loreg := REG_L;
 			when REG_BC: loreg := REG_C;
 			when REG_DE: loreg := REG_E;
+			when REG_DEHL: loreg := REG_HL;
+			when REG_BCIX: loreg := REG_IX;
 			when else:
 				SimpleError("bad loreg");
 		end case;
@@ -96,6 +98,8 @@
 			when REG_HL: hireg := REG_H;
 			when REG_BC: hireg := REG_B;
 			when REG_DE: hireg := REG_D;
+			when REG_DEHL: loreg := REG_DE;
+			when REG_BCIX: loreg := REG_BC;
 			when else:
 				StartError();
 				print("bad hireg ");
@@ -127,19 +131,18 @@
 	end sub;
 
 	sub E_op(reg: RegId, op: [Operand], off: Size) is
-#		if (reg & (REGCLASS_R8|REGCLASS_R16)) != 0 then
-#			E_reg(reg);
-#			return;
-#		end if;
-#
-#		sub memop(kind: string) is
-#			E(kind);
-#			E(" [");
-#			E_symref(op.mem.sym, op.mem.off + off);
-#			E_b8(']');
-#		end sub;
-#
-#		case reg is
+		if (reg & (REGCLASS_R8|REGCLASS_R16)) != 0 then
+			E_reg(reg);
+			return;
+		end if;
+
+		sub memop() is
+			E_b8('(');
+			E_symref(op.mem.sym, op.mem.off + off);
+			E_b8(')');
+		end sub;
+
+		case reg is
 #			when REG_DXAX:
 #				if off == 2 then
 #					E("dx");
@@ -154,17 +157,17 @@
 #					E("cx");
 #				end if;
 #
-#			when REG_IMM: E("0x"); E_h16((op.imm.value >> (8*(off as uint8))) as uint16);
-#			when REG_ADR: E_symref(op.mem.sym, op.mem.off + off);
-#
-#			when REG_MEM1: memop("byte");
-#			when REG_MEM2: memop("word");
-#			when REG_MEM4: memop("word");
-#
-#			when else:
+			when REG_IMM: E("0x"); E_h16((op.imm.value >> (8*(off as uint8))) as uint16);
+			when REG_ADR: E_symref(op.mem.sym, op.mem.off + off);
+
+			when REG_MEM1: memop();
+			when REG_MEM2: memop();
+			when REG_MEM4: memop();
+
+			when else:
 				E("bad op ");
 				E_h32(reg);
-#		end case;
+		end case;
 	end sub;
 
 	sub E_op0(reg: RegId, op: [Operand]) is
@@ -235,11 +238,10 @@
 	end sub;
 
 	sub ArchEmitMove(src: RegId, dest: RegId) is
-#		E("\t; move\n");
-#		if src == 0 then
-#			E_pop(dest);
-#		elseif dest == 0 then
-#			E_push(src);
+		if src == 0 then
+			E_pop(dest);
+		elseif dest == 0 then
+			E_push(src);
 #		elseif (src & REGCLASS_R32) != 0 then
 #			E_insn("mov");
 #			E_reg(hiwordreg(dest));
@@ -252,20 +254,20 @@
 #			E_comma();
 #			E_reg(lowordreg(src));
 #			E_nl();
-#		elseif (src & (REGCLASS_R16|REGCLASS_R8)) != 0 then
-#			E_insn("mov");
-#			E_reg(dest);
-#			E_comma();
-#			E_reg(src);
-#			E_nl();
-#		else
+		elseif (src & (REGCLASS_R16|REGCLASS_R8)) != 0 then
+			E_insn("ld");
+			E_reg(dest);
+			E_comma();
+			E_reg(src);
+			E_nl();
+		else
 			StartError();
 			print("bad move ");
 			print_hex_i32(src);
 			print(" -> ");
 			print_hex_i32(dest);
 			EndError();
-#		end if;
+		end if;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -286,7 +288,7 @@ operand mem1 mem2 mem4;
 
 regclass r8 := a|l|c|e;
 regclass r16 := hl|bc|de|ix|iy;
-regclass r32 := hlhl|bcbc|dede;
+regclass r32 := hlde|bcix;
 regclass rix := ix|iy;
 
 regclass op1 := imm|adr|mem1;
@@ -302,9 +304,8 @@ regdata bc   compatible r16 uses b|c;
 regdata de   compatible r16 uses d|e;
 regdata ix   compatible r16;
 regdata iy   compatible r16;
-regdata hlhl compatible r32 uses hl;
-regdata bcbc compatible r32 uses bc;
-regdata dede compatible r32 uses de;
+regdata dehl compatible r32 uses de|hl;
+regdata bcix compatible r32 uses bc|ix;
 
 // --- Core things ----------------------------------------------------------
 
@@ -583,11 +584,119 @@ gen r32 := POPARG4(remaining!=0) { E_pop($$); }
 // These rules ensure that any operand can be loaded into a register if
 // necessary.
 
-// --- Indexed loads and stores ---------------------------------------------
+gen r8 := FALLBACK(op1:lhs) cost 5 { E_insn("ld"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
+gen r16 := FALLBACK(op2:lhs) { E_insn("ld"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
 
+// --- Loads and stores -----------------------------------------------------
+
+%{
+	sub Store(lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand], off: int8) is
+		E_insn("ld");
+		E_op(rhs, rhsop, 0);
+		E_comma();
+		E_op(lhs, lhsop, off);
+		E_nl();
+	end sub;
+
+	sub LoadI(dest: RegId, ptr: RegId, off: int8) is
+		E_insn("ld");
+		E_reg(dest);
+		E(", (");
+		E_reg(ptr);
+		if off != 0 then
+			E_i8(off);
+		end if;
+		E(")\n");
+	end sub;
+
+	sub StoreI(lhs: RegId, lhsop: [Operand], ptr: RegId, off: int8) is
+		E_insn("ld");
+		E_b8('(');
+		E_reg(ptr);
+		if off != 0 then
+			E_i8(off);
+		end if;
+		E("), ");
+		E_op(lhs, lhsop, 0);
+		E_nl();
+	end sub;
+
+	sub is_byte(value: Arith): (res: uint8) is
+		res := 0;
+		if (value >= -128) and (value <= 127) then
+			res := 1;
+		end if;
+	end sub;
+%}
+
+gen r8 := DEREF1(ADDRESS():a)
+{
+	E_insn("ld");
+	E_reg($$);
+	E(", (");
+	E_symref(&$a.sym, $a.off);
+	E(")\n");
+}
+
+gen r8 := DEREF1(r16:ptr) { LoadI($$, $ptr, 0); }
+gen r8 := DEREF1(ADD2(rix:ptr, CONSTANT(value is byte):c)) { LoadI($$, $ptr, $c.value as int8); }
+
+gen r16 := DEREF2(r16:ptr) { LoadI($$, $ptr, 0); }
+gen r16 := DEREF2(ADD2(rix:ptr, CONSTANT(value is byte):c)) { LoadI($$, $ptr, $c.value as int8); }
+
+gen STORE1(r8|imm:lhs, mem1:rhs) cost 5                                  { Store($lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+gen STORE1(r8|imm:lhs, DEREF1(r16:rhs))                                  { StoreI($lhs, &$@lhs.operand, $rhs, 0); }
+gen STORE1(r8|imm:lhs, DEREF1(ADD2(rix:ptr, CONSTANT(value is byte):c))) { StoreI($lhs, &$@lhs.operand, $ptr, $c.value as int8); }
+
+gen STORE2(r16:lhs,         mem2:rhs) cost 5                                  { Store($lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+gen STORE2(r16|imm|adr:lhs, DEREF2(r16:rhs))                                  { StoreI($lhs, &$@lhs.operand, $rhs, 0); }
+gen STORE2(r16|imm|adr:lhs, DEREF2(ADD2(rix:ptr, CONSTANT(value is byte):c))) { StoreI($lhs, &$@lhs.operand, $ptr, $c.value as int8); }
+
+gen STORE4(r32:lhs,         mem2:rhs) cost 5                                  { Store4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+gen STORE4(r32|imm|adr:lhs, DEREF2(r16:rhs))                                  { StoreI4($lhs, &$@lhs.operand, $rhs, 0); }
+gen STORE4(r32|imm|adr:lhs, DEREF2(ADD2(rix:ptr, CONSTANT(value is byte):c))) { StoreI4($lhs, &$@lhs.operand, $ptr, $c.value as int8); }
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
 
+%{
+	sub Alu2(insn: string, dest: RegId, rhs: RegId, rhsop: [Operand]) is
+		E_insn(insn);
+		E_reg(dest);
+		E_comma();
+		E_op(rhs, rhsop, 0);
+		E_nl();
+	end sub;
+%}
+
+gen r8 := ADD1($$, CONSTANT(value == 1)) { E_insn("inc"); E_reg($$); E_nl(); }
+gen r16 := ADD1($$, CONSTANT(value == -1)) { E_insn("dec"); E_reg($$); E_nl(); }
+
+gen a := ADD1($$, r8|op1:rhs) { Alu2("add", $$, $rhs, &$@rhs.operand); }
+gen a := SUB1($$, r8|op1:rhs) { Alu2("sub", $$, $rhs, &$@rhs.operand); }
+gen a := AND1($$, r8|op1:rhs) { Alu2("and", $$, $rhs, &$@rhs.operand); }
+gen a := OR1($$,  r8|op1:rhs) { Alu2("or", $$, $rhs, &$@rhs.operand); }
+gen a := EOR1($$, r8|op1:rhs) { Alu2("xor", $$, $rhs, &$@rhs.operand); }
+
+gen l := MUL1($$, r8|op1:rhs) { Alu2("mul", REG_HL, $rhs, &$@rhs.operand); }
+gen l := DIVU1($$, r8|op1:rhs) { E("\tld h, 0\n"); Alu2("div", REG_HL, $rhs, &$@rhs.operand); }
+gen l := REMU1($$, r8|op1:rhs) { E("\tld h, 0\n"); Alu2("div", REG_HL, $rhs, &$@rhs.operand); E("\tld l, h"); }
+
+gen h := DIVS1(h, d) uses a { E_callhelper("_dvrms1"); }
+gen d := REMS1(h, d)        { E_callhelper("_dvrms1"); }
+
+gen r16 := ADD2($$, CONSTANT(value == 1)) { E_insn("inc"); E_reg($$); E_nl(); }
+gen r16 := ADD2($$, CONSTANT(value == -1)) { E_insn("dec"); E_reg($$); E_nl(); }
+
+gen hl := ADD2($$, r16|op2:rhs) { Alu2("add", $$, $rhs, &$@rhs.operand); }
+gen hl := SUB2($$, r16|op2:rhs) { Alu2("sub", $$, $rhs, &$@rhs.operand); }
+gen hl := AND2($$, r16|op2:rhs) { Alu2("and", $$, $rhs, &$@rhs.operand); }
+gen hl := OR2($$,  r16|op2:rhs) { Alu2("or", $$, $rhs, &$@rhs.operand); }
+gen hl := EOR2($$, r16|op2:rhs) { Alu2("xor", $$, $rhs, &$@rhs.operand); }
+
+gen hl := DIVU2(hl, de) { E_callhelper("_dvrmu2"); }
+gen de := REMU2(hl, de) { E_callhelper("_dvrmu2"); }
+gen hl := DIVS2(hl, de) { E_callhelper("_dvrms2"); }
+gen de := REMS2(hl, de) { E_callhelper("_dvrms2"); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
