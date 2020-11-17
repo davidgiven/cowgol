@@ -1,0 +1,580 @@
+include "cowgol.coh";
+include "file.coh";
+include "argv.coh";
+include "strings.coh";
+
+typedef string is [uint8];
+
+var inputFilename: string;
+var outputFilename: string;
+
+var inputFile: FCB;
+var outputFile: FCB;
+
+var filePos: uint32 := 0;
+var address: uint16;
+
+var insn: uint8[6];
+var insnLen: uint8;
+
+var opcode: uint8;
+var reg1: uint8;
+var reg2: uint8;
+var val1: uint16;
+var val2: uint16;
+
+const REG_A := 1;
+const REG_B := 2;
+const REG_C := 3;
+const REG_D := 4;
+const REG_E := 5;
+const REG_H := 6;
+const REG_L := 7;
+const REG_AF := 8;
+const REG_HL := 9;
+const REG_BC := 10;
+const REG_DE := 11;
+const REG_IX := 12;
+const REG_IY := 13;
+const REG_SP := 14;
+const REG_N := 15;
+const REG_NN := 16;
+
+const REG_INDIR := 128;
+
+var translateG: uint8[] := { REG_B, REG_C, REG_D, REG_E, REG_H, REG_L, REG_A, REG_N|REG_INDIR };
+var translateGG: uint8[] := { REG_BC, REG_DE, REG_HL, REG_NN, REG_IX, REG_IY, REG_SP, REG_N };
+var translateQQ: uint8[] := { REG_BC, REG_DE, REG_HL, 0, REG_IX, REG_IY, REG_AF, 0 };
+var translateIX: uint8[] := { REG_IX, REG_IY, REG_SP, 0 };
+
+var translateReg: string[] := {
+	"",
+	"a", "b", "c", "d", "e", "h", "l",
+	"af", "hl", "bc", "de", "ix", "iy", "sp"
+};
+
+interface OpcodePrinter(opcode: [Opcode]);
+
+record Opcode is
+	name: string;
+	callback: OpcodePrinter;
+end record;
+	
+sub StartError() is
+	print("error: ");
+end sub;
+
+sub EndError() is
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub SimpleError(s: string) is
+	StartError();
+	print(s);
+	EndError();
+end sub;
+
+sub ToUpper(cin: uint8): (cout: uint8) is
+	if (cin >= 'a') and (cin <= 'z') then
+		cout := cin - ('a' - 'A');
+	else
+		cout := cin;
+	end if;
+end sub;
+
+sub ReadByte(): (b: uint8) is
+	b := FCBGetChar(&inputFile);
+	insn[insnLen] := b;
+	insnLen := insnLen + 1;
+	filePos := filePos + 1;
+end sub;
+
+sub ReadWord(): (w: uint16) is
+	w := ReadByte() as uint16;
+	w := w | ((ReadByte() as uint16) << 8);
+end sub;
+
+sub PrintReg(reg: uint8, val: uint16) is
+	if (reg & REG_INDIR) != 0 then
+		print("(");
+	end if;
+	case reg & ~REG_INDIR is
+		when REG_N: print_hex_i8(val as uint8);
+		when REG_NN: print_hex_i16(val);
+		when else: print(translateReg[reg & ~REG_INDIR]);
+	end case;
+	if (reg & REG_INDIR) != 0 then
+		print(")");
+	end if;
+end sub;
+
+sub UnknownOpcodePrinter implements OpcodePrinter is
+	print("unknown");
+end sub;
+
+sub SimpleOpPrinter implements OpcodePrinter is
+	print(opcode.name);
+end sub;
+
+sub SingleOpPrinter implements OpcodePrinter is
+	print(opcode.name);
+	print(" ");
+	PrintReg(reg1, val1);
+end sub;
+
+sub BiOpPrinter implements OpcodePrinter is
+	print(opcode.name);
+	print(" ");
+	PrintReg(reg1, val1);
+	print(", ");
+	PrintReg(reg2, val2);
+end sub;
+
+var opcode_table: Opcode[256] := {
+	# 00
+	{ "nop", SimpleOpPrinter },
+	{ "halt", SimpleOpPrinter },
+	{ "di", SimpleOpPrinter },
+	{ "io", SimpleOpPrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	# 08
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	# 10
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	# 18
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "jp", SingleOpPrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "call", SingleOpPrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	# 20
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+
+	# 28
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+
+	# 30
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+
+	# 38
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+
+	# 40
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+
+	# 48
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+	{ "ld", BiOpPrinter },
+
+	# 50
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	# 58
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	# 60
+	{ "add", BiOpPrinter },
+	{ "adc", BiOpPrinter },
+	{ "sub", BiOpPrinter },
+	{ "sbc", BiOpPrinter },
+	{ "and", BiOpPrinter },
+	{ "xor", BiOpPrinter },
+	{ "or", BiOpPrinter },
+	{ "cp", BiOpPrinter },
+
+	# 68
+	{ "add", BiOpPrinter },
+	{ "adc", BiOpPrinter },
+	{ "sub", BiOpPrinter },
+	{ "sbc", BiOpPrinter },
+	{ "and", BiOpPrinter },
+	{ "xor", BiOpPrinter },
+	{ "or", BiOpPrinter },
+	{ "cp", BiOpPrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+	{ "", UnknownOpcodePrinter },
+};
+
+sub ReadInstruction() is
+	insnLen := 0;
+	opcode := ReadByte();
+
+	reg1 := REG_A;
+	reg2 := REG_A;
+
+	if (opcode & 0xf8) == 0x20 then
+		reg2 := translateG[opcode & 0x07];
+		if reg2 == REG_N|REG_INDIR then
+			val2 := 0xff00 | (ReadByte() as uint16);
+		end if;
+	elseif (opcode & 0xf8) == 0x30 then
+		reg2 := REG_N;
+		val2 := ReadByte() as uint16;
+	elseif (opcode & 0xf8) == 0x38 then
+		reg2 := REG_NN;
+		val2 := ReadWord();
+	elseif (opcode & 0xf8) == 0x60 then
+		reg2 := REG_N | REG_INDIR;
+		val2 := 0xff00 | (ReadByte() as uint16);
+	elseif (opcode & 0xf8) == 0xe0 then
+		reg1 := REG_A;
+		reg2 := translateGG[opcode & 0x07] | REG_INDIR;
+		if reg2 == REG_N|REG_INDIR then
+			val2 := 0xff00 | (ReadByte() as uint16);
+		elseif reg2 == REG_NN|REG_INDIR then
+			val2 := ReadWord();
+		end if;
+		opcode := ReadByte();
+	elseif (opcode & 0xf8) == 0xe8 then
+		reg1 := translateGG[opcode & 0x07] | REG_INDIR;
+		if reg1 == REG_N|REG_INDIR then
+			val1 := 0xff00 | (ReadByte() as uint16);
+		elseif reg1 == REG_NN|REG_INDIR then
+			val1 := ReadWord();
+		end if;
+		opcode := ReadByte();
+	end if;
+
+	if opcode == 0x3f then
+		reg2 := REG_NN;
+		val2 := ReadWord();
+		return;
+	elseif (opcode == 0x1a) or (opcode == 0x1c) then
+		reg1 := REG_NN;
+		val1 := ReadWord();
+	elseif (opcode & 0x38) == 0x30 then
+		reg1 := translateG[opcode & 0x07];
+		if reg1 == REG_N|REG_INDIR then
+			val1 := 0xff00 | (ReadByte() as uint16);
+		end if;
+	elseif (opcode & 0x38) == 0x38 then
+		reg1 := translateGG[opcode & 0x07];
+		if reg1 == REG_N|REG_INDIR then
+			val1 := 0xff00 | (ReadByte() as uint16);
+		end if;
+	elseif (opcode & 0xf8) == 0x68 then
+		reg2 := REG_N;
+		val2 := ReadByte() as uint16;
+	end if;
+end sub;
+
+sub ParseArguments() is
+	sub SyntaxError() is
+		StartError();
+		print("syntax: cowdis <inputfilename> [-o <outputfilename>]\n");
+		EndError();
+	end sub;
+
+	ArgvInit();
+	loop
+		var s := ArgvNext();
+		if s == (0 as string) then
+			break;
+		end if;
+
+		if [s] == '-' then
+			case ToUpper([s+1]) is
+				when 'O':
+					outputFilename := ArgvNext();
+
+				when 'A':
+					var p: [uint8];
+					var value: int32;
+					(value, p) := AToI(ArgvNext());
+					if [p] != 0 then
+						SimpleError("invalid start address");
+					end if;
+					address := value as uint16;
+
+				when else:
+					SyntaxError();
+			end case;
+		else
+			if inputFilename != (0 as string) then
+				SyntaxError();
+			end if;
+			inputFilename := s;
+		end if;
+	end loop;
+
+	if inputFilename == (0 as string) then
+		SyntaxError();
+	end if;
+
+	sub CheckFCBOpen(e: uint8, s: string) is
+		if e != 0 then
+			StartError();
+			print("cannot open ");
+			print(s);
+			EndError();
+		end if;
+	end sub;
+
+	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
+	if outputFilename != (0 as string) then
+		CheckFCBOpen(FCBOpenOut(&outputFile, outputFilename), outputFilename);
+	end if;
+end sub;
+
+ParseArguments();
+
+var fileLen := FCBExt(&inputFile);
+while filePos < fileLen loop
+	print_hex_i32(filePos);
+	print(" ");
+
+	ReadInstruction();
+
+	var i: uint8 := 0;
+	while i != insnLen loop
+		print_hex_i8(insn[i]);
+		print(" ");
+		i := i + 1;
+	end loop;
+
+	var op := &opcode_table[opcode];
+	(op.callback)(op);
+
+	print_nl();
+end loop;
+
