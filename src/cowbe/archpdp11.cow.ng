@@ -787,8 +787,7 @@
 	end sub;
 
 	sub E_mul(src: RegId, dest: RegId) is
-		R_flush(hireg(src));
-		R_flush(loreg(src));
+		R_flush(src|dest);
 		E_insn16("MUL");
 		E_reg(dest);
 		E(", ");
@@ -1388,8 +1387,8 @@ gen r32 := EOR4($$, r32:rhs)
 }
 
 // always use odd registers for 8- and 16-bit multiply and division
-gen r1b|r3b|r5b := MUL1($$, r0b|r2b|r4b:rhs)     { E_mul($rhs, $$); }
-gen r1|r3|r5 := MUL2($$, r0|r2|r4:rhs)           { E_mul($rhs, $$); }
+gen r1b|r3b|r5b := MUL1(r0b|r2b|r4b:rhs, $$)     { E_mul($rhs, $$); }
+gen r1|r3|r5 := MUL2(r0|r2|r4:rhs, $$)           { E_mul($rhs, $$); }
 gen r4r5 := MUL4(r2r3:lhs, r0r1:rhs)             { E_mul4($$, $lhs, $rhs); }
 
 gen r0b := DIVU1(r1b, r8n01:rhs)                 { E_uxtb($rhs); E_uxtb(REG_R1); E_clr(REG_R0); E_div($rhs, REG_R0); }
