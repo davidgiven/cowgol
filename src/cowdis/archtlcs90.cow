@@ -9,57 +9,1328 @@ var inputFilename: string;
 var outputFilename: string;
 
 var inputFile: FCB;
+var inputFileLen: uint32;
+var inputFilePos: uint32;
 var outputFile: FCB;
 
-var filePos: uint32 := 0;
 var address: uint16;
 
-var insn: uint8[6];
-var insnLen: uint8;
+var insnBuffer: uint8[6];
+var insnLen: uint8 := 0;
 
-var opcode: uint8;
-var reg1: uint8;
-var reg2: uint8;
-var val1: uint16;
-var val2: uint16;
+var outputBuffer: uint8[20];
+var outputLen: uint8 := 0;
 
-const REG_A := 1;
-const REG_B := 2;
-const REG_C := 3;
-const REG_D := 4;
-const REG_E := 5;
-const REG_H := 6;
-const REG_L := 7;
-const REG_AF := 8;
-const REG_HL := 9;
-const REG_BC := 10;
-const REG_DE := 11;
-const REG_IX := 12;
-const REG_IY := 13;
-const REG_SP := 14;
-const REG_N := 15;
-const REG_NN := 16;
+const PARAM_TEXT := 1;
+const PARAM_BYTE := 2;
+const PARAM_WORD := 3;
+const PARAM_XIX := 4;
+const PARAM_XIY := 5;
+const PARAM_XSP := 6;
 
-const REG_INDIR := 128;
+record Parameter is
+	value @at(0): uint16;
+	text @at(0): string;
+	type: uint8;
+end record;
 
-var translateG: uint8[] := { REG_B, REG_C, REG_D, REG_E, REG_H, REG_L, REG_A, REG_N|REG_INDIR };
-var translateGG: uint8[] := { REG_BC, REG_DE, REG_HL, REG_NN, REG_IX, REG_IY, REG_SP, REG_N };
-var translateQQ: uint8[] := { REG_BC, REG_DE, REG_HL, 0, REG_IX, REG_IY, REG_AF, 0 };
-var translateIX: uint8[] := { REG_IX, REG_IY, REG_SP, 0 };
+var parameters: Parameter[3];
 
-var translateReg: string[] := {
+var rolOps: string[] := { "rlc", "rrc", "rl", "rr", "sla", "sra", "sll", "srl" };
+var aluOps: string[] := { "add", "adc", "sub", "sbc", "and", "xor", "or", "cp" };
+var rRegisters: string[] := { "b", "c", "d", "e", "h", "l", "a", "?7" };
+var qRegisters: string[] := { "bc", "de", "hl", "?3", "ix", "iy", "sp", "?7" };
+var ccCodes: string[] := { "f", "lt", "le", "ule", "pe", "m", "z", "c",
+	"?8", "ge", "gt", "ugt", "po", "p", "nz", "nc" };
+	
+var baseTemplates: string[256] := {
+	# 00
+	"nop",
+	"halt",
+	"di",
+	"ei",
+	"?",
+	"?",
+	"?",
+	"D0incx (0)",
+
+	# 08
 	"",
-	"a", "b", "c", "d", "e", "h", "l",
-	"af", "hl", "bc", "de", "ix", "iy", "sp"
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 10
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 18
+	"",
+	"",
+	"W0jp 0",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 20
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"D0ld a, (0)",
+
+	# 28
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"D0ld (0), a",
+
+	# 30
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"D0B1ld (0), 1",
+
+	# 38
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 40
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 48
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 50
+	"Q0push 0",
+	"Q0push 0",
+	"Q0push 0",
+	"",
+	"Q0push 0",
+	"Q0push 0",
+	"Q0push 0",
+	"",
+
+	# 58
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 60
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+
+	# 68
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 70
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+
+	# 78
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+
+	# 80
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 88
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 90
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 98
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# a0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# a8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# c0
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+
+	# c8
+	"J0jr 0",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+
+	# d0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# d8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e8
+	"Q0T4",
+	"Q0T4",
+	"Q0T4",
+	"W0T4",
+	"Q0T4",
+	"Q0T4",
+	"Q0T4",
+	"D0T4",
+
+	# f0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# f8
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"swi",
 };
 
-interface OpcodePrinter(opcode: [Opcode]);
+var bank2Templates: string[256] := {
+	# 00
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
 
-record Opcode is
-	name: string;
-	callback: OpcodePrinter;
-end record;
-	
+	# 08
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 10
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 18
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 20
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 28
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 30
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 38
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 40
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 48
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 50
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 58
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 60
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 68
+	">0L2B12 0, 1",
+	">0L2B12 0, 1",
+	">0L2B12 0, 1",
+	">0L2B12 0, 1",
+	">0L2B12 0, 1",
+	">0L2B12 0, 1",
+	">0L2B12 0, 1",
+	">0L2B12 0, 1",
+
+	# 70
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 78
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 80
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 88
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 90
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 98
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# a0
+	">0S11 0",
+	">0S11 0",
+	">0S11 0",
+	">0S11 0",
+	">0S11 0",
+	">0S11 0",
+	">0S11 0",
+	">0S11 0",
+
+	# a8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# c0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# c8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# d0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# d8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# f0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# f8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+};
+
+var bank3Templates: string[256] := {
+	# 00
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 08
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 10
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 18
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 20
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 28
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 30
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 38
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 40
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 48
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 50
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 58
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 60
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 68
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 70
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 78
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 80
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 88
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 90
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 98
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# a0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# a8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# c0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# c8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# d0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# d8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# f0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# f8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+};
+
+var bank4Templates: string[256] := {
+	# 00
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 08
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 10
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 18
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 20
+	"R1ld (0), 1",
+	"R1ld (0), 1",
+	"R1ld (0), 1",
+	"R1ld (0), 1",
+	"R1ld (0), 1",
+	"R1ld (0), 1",
+	"R1ld (0), 1",
+	"R1ld (0), 1",
+
+	# 28
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 30
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 38
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 40
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 48
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 50
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 58
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 60
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 68
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 70
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 78
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 80
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 88
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 90
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# 98
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# a0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# a8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# b8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# c0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# c8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# d0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# d8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# e8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# f0
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+
+	# f8
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+	"",
+};
+
 sub StartError() is
 	print("error: ");
 end sub;
@@ -85,423 +1356,186 @@ end sub;
 
 sub ReadByte(): (b: uint8) is
 	b := FCBGetChar(&inputFile);
-	insn[insnLen] := b;
+	insnBuffer[insnLen] := b;
 	insnLen := insnLen + 1;
-	filePos := filePos + 1;
+	inputFilePos := inputFilePos + 1;
 end sub;
 
 sub ReadWord(): (w: uint16) is
 	w := ReadByte() as uint16;
-	w := w | ((ReadByte() as uint16) << 8);
+	w := w | (ReadByte() as uint16 << 8);
 end sub;
 
-sub PrintReg(reg: uint8, val: uint16) is
-	if (reg & REG_INDIR) != 0 then
-		print("(");
-	end if;
-	case reg & ~REG_INDIR is
-		when REG_N: print_hex_i8(val as uint8);
-		when REG_NN: print_hex_i16(val);
-		when else: print(translateReg[reg & ~REG_INDIR]);
+sub PrintByte(b: uint8) is
+	outputBuffer[outputLen] := b;
+	outputLen := outputLen + 1;
+end sub;
+
+sub Print(s: string) is
+	loop
+		var b := [s];
+		s := @next s;
+		if b == 0 then
+			return;
+		end if;
+		PrintByte(b);
+	end loop;
+end sub;
+
+sub PrintHexByte(value: uint8) is
+    var i: uint8 := 2;
+    loop
+        var digit := value >> 4;
+        if digit < 10 then
+            digit := digit + '0';
+        else
+            digit := digit + ('a' - 10);
+        end if;
+        PrintByte(digit);
+        value := value << 4;
+        i := i - 1;
+        if i == 0 then
+            break;
+        end if;
+    end loop;
+end sub;
+
+sub PrintHexWord(value: uint16) is
+    PrintHexByte((value >> 8) as uint8);
+    PrintHexByte(value as uint8);
+end sub;
+
+sub PrintParameter(param: [Parameter]) is
+	case param.type is
+		when PARAM_TEXT:
+			Print(param.text);
+
+		when PARAM_WORD:
+			PrintHexWord(param.value);
+
+		when PARAM_BYTE:
+			PrintHexByte(param.value as uint8);
 	end case;
-	if (reg & REG_INDIR) != 0 then
-		print(")");
-	end if;
 end sub;
 
-sub UnknownOpcodePrinter implements OpcodePrinter is
-	print("unknown");
+sub ExecuteTemplate(template: string) is
+	loop
+		var b := [template];
+		template := @next template;
+		if b == 0 then
+			return;
+		end if;
+
+		var paramIndex := (b - '0');
+		if ((b >= 'a') and (b <= 'z')) or (b == ' ') or (b == ',') or (b == '(') or (b == ')') then
+			PrintByte(b);
+		elseif paramIndex < @sizeof parameters then
+			PrintParameter(&parameters[paramIndex]);
+		else
+			paramIndex := [template] - '0';
+			var param := &parameters[paramIndex];
+			var current := insnBuffer[insnLen-1];
+			template := @next template;
+			case b is
+				when 'B':
+					param.type := PARAM_BYTE;
+					param.value := ReadByte() as uint16;
+
+				when 'W':
+					param.type := PARAM_WORD;
+					param.value := ReadWord() as uint16;
+
+				when 'D':
+					param.type := PARAM_WORD;
+					param.value := (ReadByte() as uint16) | 0xff00;
+
+				when 'Q':
+					param.type := PARAM_TEXT;
+					param.text := qRegisters[current & 7];
+
+				when 'R':
+					param.type := PARAM_TEXT;
+					param.text := rRegisters[current & 7];
+
+				when 'L':
+					param.type := PARAM_TEXT;
+					param.text := aluOps[current & 7];
+
+				when 'S':
+					param.type := PARAM_TEXT;
+					param.text := rolOps[current & 7];
+
+				when 'A':
+					param.type := PARAM_BYTE;
+					param.value := (current & 7) as uint16;
+
+				when 'C':
+					param.type := PARAM_TEXT;
+					param.text := ccCodes[current & 15];
+
+				when 'J':
+					param.type := PARAM_WORD;
+					param.value := address + (ReadByte() as int8 as uint16);
+
+				when 'P':
+					param.type := PARAM_WORD;
+					param.value := address + ReadWord();
+
+				when '>':
+					param.type := PARAM_TEXT;
+					param.text := rRegisters[param.value as uint8];
+
+				when '<':
+					param.type := PARAM_TEXT;
+					param.text := qRegisters[param.value as uint8];
+
+				when 'T':
+					b := ReadByte();
+					case paramIndex is
+						when 2: template := bank2Templates[b];
+						when 3: template := bank3Templates[b];
+						when 4: template := bank4Templates[b];
+						when else:
+							SimpleError("unimplemented template");
+					end case;
+					if [template] == 0 then
+						StartError();
+						print("unimplemented template for byte ");
+						print_hex_i8(b);
+						print(" bank ");
+						print_hex_i8(paramIndex as uint8);
+						EndError();
+					end if;
+
+				when else:
+					StartError();
+					print("bad template char ");
+					print_char(b);
+					EndError();
+			end case;
+		end if;
+	end loop;
 end sub;
-
-sub SimpleOpPrinter implements OpcodePrinter is
-	print(opcode.name);
-end sub;
-
-sub SingleOpPrinter implements OpcodePrinter is
-	print(opcode.name);
-	print(" ");
-	PrintReg(reg1, val1);
-end sub;
-
-sub BiOpPrinter implements OpcodePrinter is
-	print(opcode.name);
-	print(" ");
-	PrintReg(reg1, val1);
-	print(", ");
-	PrintReg(reg2, val2);
-end sub;
-
-var opcode_table: Opcode[256] := {
-	# 00
-	{ "nop", SimpleOpPrinter },
-	{ "halt", SimpleOpPrinter },
-	{ "di", SimpleOpPrinter },
-	{ "io", SimpleOpPrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	# 08
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	# 10
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	# 18
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "jp", SingleOpPrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "call", SingleOpPrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	# 20
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-
-	# 28
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-
-	# 30
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-
-	# 38
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-
-	# 40
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-
-	# 48
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-	{ "ld", BiOpPrinter },
-
-	# 50
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	# 58
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	# 60
-	{ "add", BiOpPrinter },
-	{ "adc", BiOpPrinter },
-	{ "sub", BiOpPrinter },
-	{ "sbc", BiOpPrinter },
-	{ "and", BiOpPrinter },
-	{ "xor", BiOpPrinter },
-	{ "or", BiOpPrinter },
-	{ "cp", BiOpPrinter },
-
-	# 68
-	{ "add", BiOpPrinter },
-	{ "adc", BiOpPrinter },
-	{ "sub", BiOpPrinter },
-	{ "sbc", BiOpPrinter },
-	{ "and", BiOpPrinter },
-	{ "xor", BiOpPrinter },
-	{ "or", BiOpPrinter },
-	{ "cp", BiOpPrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-	{ "", UnknownOpcodePrinter },
-};
 
 sub ReadInstruction() is
 	insnLen := 0;
-	opcode := ReadByte();
+	outputLen := 0;
 
-	reg1 := REG_A;
-	reg2 := REG_A;
-
-	if (opcode & 0xf8) == 0x20 then
-		reg2 := translateG[opcode & 0x07];
-		if reg2 == REG_N|REG_INDIR then
-			val2 := 0xff00 | (ReadByte() as uint16);
-		end if;
-	elseif (opcode & 0xf8) == 0x30 then
-		reg2 := REG_N;
-		val2 := ReadByte() as uint16;
-	elseif (opcode & 0xf8) == 0x38 then
-		reg2 := REG_NN;
-		val2 := ReadWord();
-	elseif (opcode & 0xf8) == 0x60 then
-		reg2 := REG_N | REG_INDIR;
-		val2 := 0xff00 | (ReadByte() as uint16);
-	elseif (opcode & 0xf8) == 0xe0 then
-		reg1 := REG_A;
-		reg2 := translateGG[opcode & 0x07] | REG_INDIR;
-		if reg2 == REG_N|REG_INDIR then
-			val2 := 0xff00 | (ReadByte() as uint16);
-		elseif reg2 == REG_NN|REG_INDIR then
-			val2 := ReadWord();
-		end if;
-		opcode := ReadByte();
-	elseif (opcode & 0xf8) == 0xe8 then
-		reg1 := translateGG[opcode & 0x07] | REG_INDIR;
-		if reg1 == REG_N|REG_INDIR then
-			val1 := 0xff00 | (ReadByte() as uint16);
-		elseif reg1 == REG_NN|REG_INDIR then
-			val1 := ReadWord();
-		end if;
-		opcode := ReadByte();
+	var b := ReadByte();
+	var template := baseTemplates[b];
+	if [template] == 0 then
+		StartError();
+		print("unimplemented template for byte ");
+		print_hex_i8(b);
+		EndError();
 	end if;
-
-	if opcode == 0x3f then
-		reg2 := REG_NN;
-		val2 := ReadWord();
-		return;
-	elseif (opcode == 0x1a) or (opcode == 0x1c) then
-		reg1 := REG_NN;
-		val1 := ReadWord();
-	elseif (opcode & 0x38) == 0x30 then
-		reg1 := translateG[opcode & 0x07];
-		if reg1 == REG_N|REG_INDIR then
-			val1 := 0xff00 | (ReadByte() as uint16);
-		end if;
-	elseif (opcode & 0x38) == 0x38 then
-		reg1 := translateGG[opcode & 0x07];
-		if reg1 == REG_N|REG_INDIR then
-			val1 := 0xff00 | (ReadByte() as uint16);
-		end if;
-	elseif (opcode & 0xf8) == 0x68 then
-		reg2 := REG_N;
-		val2 := ReadByte() as uint16;
-	end if;
+	ExecuteTemplate(template);
 end sub;
 
 sub ParseArguments() is
 	sub SyntaxError() is
 		StartError();
-		print("syntax: cowdis <inputfilename> [-o <outputfilename>]\n");
+		print("syntax: cowdis <inputfilename> [-o <outputfilename>] [-g <address>\n");
 		EndError();
 	end sub;
 
@@ -517,14 +1551,14 @@ sub ParseArguments() is
 				when 'O':
 					outputFilename := ArgvNext();
 
-				when 'A':
-					var p: [uint8];
-					var value: int32;
-					(value, p) := AToI(ArgvNext());
-					if [p] != 0 then
-						SimpleError("invalid start address");
+				when 'G':
+					var result: int32;
+					var ptr: [uint8];
+					(result, ptr) := AToI(ArgvNext());
+					if [ptr] != 0 then
+						SyntaxError();
 					end if;
-					address := value as uint16;
+					address := result as uint16;
 
 				when else:
 					SyntaxError();
@@ -551,30 +1585,35 @@ sub ParseArguments() is
 	end sub;
 
 	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
+	inputFileLen := FCBExt(&inputFile);
+	inputFilePos := 0;
 	if outputFilename != (0 as string) then
 		CheckFCBOpen(FCBOpenOut(&outputFile, outputFilename), outputFilename);
 	end if;
 end sub;
 
-ParseArguments();
+sub Main() is
+	while inputFilePos < inputFileLen loop
+		ReadInstruction();
 
-var fileLen := FCBExt(&inputFile);
-while filePos < fileLen loop
-	print_hex_i32(filePos);
-	print(" ");
-
-	ReadInstruction();
-
-	var i: uint8 := 0;
-	while i != insnLen loop
-		print_hex_i8(insn[i]);
+		print_hex_i16(address);
 		print(" ");
-		i := i + 1;
+		var i: uint8 := 0;
+		while i != insnLen loop
+			print_hex_i8(insnBuffer[i]);
+			print(" ");
+			i := i + 1;
+		end loop;
+
+		print(": ");
+		outputBuffer[outputLen] := 0;
+		print(&outputBuffer[0]);
+		print_nl();
+
+		address := address + (insnLen as uint16);
 	end loop;
+end sub;
 
-	var op := &opcode_table[opcode];
-	(op.callback)(op);
-
-	print_nl();
-end loop;
+ParseArguments();
+Main();
 
