@@ -43,6 +43,10 @@ record SimpleValue is
 	kind: uint8;
 end record;
 
+var preferred_values: SimpleValue[REGISTER_COUNT];
+var preferred_registers: RegId := ALL_REGS;
+MemZero(&preferred_values as [uint8], @bytesof preferred_values);
+
 sub AllocLabel(): (label: LabelRef) is
 	label := next_label_id;
 	next_label_id := next_label_id + 1;
@@ -447,9 +451,6 @@ end sub;
 sub Generate(rootnode: [Node]) is
 	var i: uint8;
 
-	var preferred_registers: SimpleValue[REGISTER_COUNT];
-	MemZero(&preferred_registers as [uint8], @bytesof preferred_registers);
-
 	# Remember that this list is actually emitted in *reverse* order, so
 	# last_instruction is the first machine code instruction in the clause.
 
@@ -687,13 +688,14 @@ sub Generate(rootnode: [Node]) is
 					# Do we have a preferred register for this value? If so, try to use
 					# that register.
 
-					var v := &preferred_registers[0];
+					var v := &preferred_values[0];
 					var openslot: [SimpleValue] := 0 as [SimpleValue];
-					var all_preferred: RegId := 0;
-					while v != &preferred_registers[@sizeof preferred_registers] loop
-						all_preferred := all_preferred | v.reg;
+					while v != &preferred_values[@sizeof preferred_values] loop
 						if SimpleValuesMatch(&value, v) != 0 then
 							if (v.reg & mask) != 0 then
+								print("use reg ");
+								print_hex_i32(reg as uint32);
+								print_nl();
 								reg := v.reg;
 								return;
 							end if;
@@ -704,13 +706,21 @@ sub Generate(rootnode: [Node]) is
 						v := @next v;
 					end loop;
 
-					# No. Allocate a register which hasn't already been used
-					# for a preferred register and record it.
+					# No. Try to find a register which hasn't already been used
+					# for a preferred register, and record it.
 
-					reg := FindLast(mask & ~all_preferred);
+					reg := FindLast(mask & preferred_registers);
+					if reg == 0 then
+						# Run out of preferred registers; start again from the top
+						# (so they're round-robined).
+
+						preferred_registers := ALL_REGS;
+						reg := FindLast(mask);
+					end if;
 					if (reg != 0) and (openslot != (0 as [SimpleValue])) then
 						MemCopy(&value as [uint8], @bytesof SimpleValue, openslot as [uint8]);
 						openslot.reg := reg;
+						preferred_registers := preferred_registers & ~reg;
 						return;
 					end if;
 
