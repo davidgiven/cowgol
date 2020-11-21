@@ -820,39 +820,39 @@ gen r32 := SUBREF():a
 
 // --- Loads ---------------------------------------------------------------
 
-gen r8 := LOAD1(r32:rhs)     { E_loadix($$, $rhs, 0, 0); }
-gen r16 := LOAD2(r32:rhs)    { E_loadix($$, $rhs, 0, 0); }
-gen r32 := LOAD4(r32:rhs)    { E_loadix($$, $rhs, 0, 0); }
+gen r8 := DEREF1(r32:rhs)     { E_loadix($$, $rhs, 0, 0); }
+gen r16 := DEREF2(r32:rhs)    { E_loadix($$, $rhs, 0, 0); }
+gen r32 := DEREF4(r32:rhs)    { E_loadix($$, $rhs, 0, 0); }
 
-gen r8 := LOAD1(ADD4(r32:rhs, r32:idx))  { E_loadix($$, $rhs, $idx, 0); }
-gen r16 := LOAD2(ADD4(r32:rhs, r32:idx)) { E_loadix($$, $rhs, $idx, 0); }
-gen r32 := LOAD4(ADD4(r32:rhs, r32:idx)) { E_loadix($$, $rhs, $idx, 0); }
+gen r8 := DEREF1(ADD4(r32:rhs, r32:idx))  { E_loadix($$, $rhs, $idx, 0); }
+gen r16 := DEREF2(ADD4(r32:rhs, r32:idx)) { E_loadix($$, $rhs, $idx, 0); }
+gen r32 := DEREF4(ADD4(r32:rhs, r32:idx)) { E_loadix($$, $rhs, $idx, 0); }
 
-gen r8 := LOAD1(ADD4(r32:rhs, CONSTANT():c))  { E_loadix($$, $rhs, 0, $c.value); }
-gen r16 := LOAD2(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
-gen r32 := LOAD4(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
+gen r8 := DEREF1(ADD4(r32:rhs, CONSTANT():c))  { E_loadix($$, $rhs, 0, $c.value); }
+gen r16 := DEREF2(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
+gen r32 := DEREF4(ADD4(r32:rhs, CONSTANT():c)) { E_loadix($$, $rhs, 0, $c.value); }
 
-gen r8 := LOAD1(ADDRESS():a)  { E_load($$, &$a.sym, $a.off, 0); }
-gen r16 := LOAD2(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
-gen r32 := LOAD4(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
+gen r8 := DEREF1(ADDRESS():a)  { E_load($$, &$a.sym, $a.off, 0); }
+gen r16 := DEREF2(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
+gen r32 := DEREF4(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
 
 // --- Stores ---------------------------------------------------------------
 
-gen STORE1(r8:lhs, r32:rhs)  { E_storeix($lhs, $rhs, 0, 0); }
-gen STORE2(r16:lhs, r32:rhs) { E_storeix($lhs, $rhs, 0, 0); }
-gen STORE4(r32:lhs, r32:rhs) { E_storeix($lhs, $rhs, 0, 0); }
+gen STORE1(r8:lhs, DEREF1(r32:rhs))  { E_storeix($lhs, $rhs, 0, 0); }
+gen STORE2(r16:lhs, DEREF2(r32:rhs)) { E_storeix($lhs, $rhs, 0, 0); }
+gen STORE4(r32:lhs, DEREF4(r32:rhs)) { E_storeix($lhs, $rhs, 0, 0); }
 
-gen STORE1(r8:lhs, ADD4(r32:rhs, r32:idx))  { E_storeix($lhs, $rhs, $idx, 0); }
-gen STORE2(r16:lhs, ADD4(r32:rhs, r32:idx)) { E_storeix($lhs, $rhs, $idx, 0); }
-gen STORE4(r32:lhs, ADD4(r32:rhs, r32:idx)) { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE1(r8:lhs, DEREF1(ADD4(r32:rhs, r32:idx)))  { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE2(r16:lhs, DEREF2(ADD4(r32:rhs, r32:idx))) { E_storeix($lhs, $rhs, $idx, 0); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:rhs, r32:idx))) { E_storeix($lhs, $rhs, $idx, 0); }
 
-gen STORE1(r8:lhs, ADD4(r32:rhs, CONSTANT():c))  { E_storeix($lhs, $rhs, 0, $c.value); }
-gen STORE2(r16:lhs, ADD4(r32:rhs, CONSTANT():c)) { E_storeix($lhs, $rhs, 0, $c.value); }
-gen STORE4(r32:lhs, ADD4(r32:rhs, CONSTANT():c)) { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE1(r8:lhs, DEREF1(ADD4(r32:rhs, CONSTANT():c)))  { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE2(r16:lhs, DEREF2(ADD4(r32:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, 0, $c.value); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, 0, $c.value); }
 
-gen STORE1(r8:lhs, ADDRESS():a)  { E_store($lhs, &$a.sym, $a.off, 0); }
-gen STORE2(r16:lhs, ADDRESS():a) { E_store($lhs, &$a.sym, $a.off, 0); }
-gen STORE4(r32:lhs, ADDRESS():a) { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE1(r8:lhs, DEREF1(ADDRESS():a))  { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE2(r16:lhs, DEREF2(ADDRESS():a)) { E_store($lhs, &$a.sym, $a.off, 0); }
+gen STORE4(r32:lhs, DEREF4(ADDRESS():a)) { E_store($lhs, &$a.sym, $a.off, 0); }
 
 // --- Maths ----------------------------------------------------------------
 

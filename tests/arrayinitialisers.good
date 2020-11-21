@@ -3,6 +3,9 @@ sizeof: yes
 read byte: yes
 read short: yes
 read long: yes
+read byte indexed: yes
+read short indexed: yes
+read long indexed: yes
 read byte: yes
 read short: yes
 read long: yes

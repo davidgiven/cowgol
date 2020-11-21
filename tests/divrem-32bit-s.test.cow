@@ -5,6 +5,7 @@ var seven: int32 := 7;
 var three: int32 := 3;
 var mseven: int32 := -7;
 var mthree: int32 := -3;
+var vbig: int32 := 0xabcde;
 
 print("7/3=2");    if seven/three == 2    then yes(); else no(); end if;
 print("-7/3=-2");  if mseven/three == -2  then yes(); else no(); end if;
@@ -15,6 +16,8 @@ print("7%3=1");    if seven%three == 1    then yes(); else no(); end if;
 print("-7%3=-1");  if mseven%three == -1  then yes(); else no(); end if;
 print("7%-3=1");   if seven%mthree == 1   then yes(); else no(); end if;
 print("-7%-3=-1"); if mseven%mthree == -1 then yes(); else no(); end if;
+
+print("vbig/16=0xabcd"); if vbig/16 == 0xabcd then yes(); else no(); end if;
 
 #var q: int32;
 #var r: int32;

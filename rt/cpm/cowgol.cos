@@ -795,12 +795,12 @@
     jm ``_exit
 
     dad h
-    jnc ``_skip
-    inx d
-``_skip:
-    xchg
-    dad h
-    xchg
+    mov a, e
+    ral
+    mov e, a
+    mov a, d
+    ral
+    mov d, a
 
     jmp ``_loop
 ``_exit:

@@ -271,10 +271,12 @@ sub PrintNodes(rootnode: [Node]) is
 		print_hex_i32(node as intptr as uint32);
 		print_char(' ');
 		print_i8(node.op);
+		print_char('=');
+		print(MidcodeName(node.op));
 		print_char(' ');
-		print_hex_i16(node.desired_reg as uint16);
+		print_hex_i32(node.desired_reg as uint32);
 		print_char(' ');
-		print_hex_i16(node.produced_reg as uint16);
+		print_hex_i32(node.produced_reg as uint32);
 		print_char(' ');
 		print_hex_i32(node.left as intptr as uint32);
 		print_char(' ');
@@ -560,7 +562,7 @@ sub Generate(rootnode: [Node]) is
 						BlockRegisters(consumer, producer, blocked);
 						producer.output_regs := producer.output_regs | blocked;
 					else
-						var compatible := FindCompatibleRegisters(node.desired_reg);
+						var compatible := FindCompatibleRegisters(node.desired_reg & ~OPERAND_REGS);
 						mask1 := producer.producable_regs & compatible & ~(blocked | producer.output_regs);
 						var mask2 := node.desired_reg & ~consumer.input_regs;
 						if (mask1 != 0) and (mask2 != 0) then
@@ -594,13 +596,16 @@ sub Generate(rootnode: [Node]) is
 								# Bad news --- we can't allocate any registers, so
 								# spill to the stack via a push and pop.
 
-								sub deadlock() is
+								sub deadlock(s: [uint8]) is
 									PrintNodes(rootnode);
 									print("producer: ");
 									print_hex_i32(producer.n[0] as intptr as uint32);
 									print_nl();
 									print("consumer: ");
 									print_hex_i32(consumer.n[0] as intptr as uint32);
+									print_nl();
+									print("node: ");
+									print_hex_i32(node as intptr as uint32);
 									print_nl();
 
 									print("producer.producable_regs=");
@@ -615,12 +620,18 @@ sub Generate(rootnode: [Node]) is
 									print("consumer.input_regs=");
 									print_hex_i32(consumer.input_regs as uint32);
 									print_nl();
-									SimpleError("register allocation deadlock");
+									print("compatible=");
+									print_hex_i32(compatible as uint32);
+									print_nl();
+									StartError();
+									print("register allocation deadlock: ");
+									print(s);
+									EndError();
 								end sub;
 
 								candidate := producer.producable_regs & compatible & ~producer.output_regs;
 								if candidate == 0 then
-									deadlock();
+									deadlock("producer");
 								end if;
 
 								producer.produced_reg := FindFirst(candidate);
@@ -630,7 +641,7 @@ sub Generate(rootnode: [Node]) is
 
 								candidate := node.desired_reg & ~consumer.input_regs;
 								if candidate == 0 then
-									deadlock();
+									deadlock("consumer");
 								end if;
 								node.produced_reg := FindFirst(candidate);
 								consumer.input_regs := consumer.input_regs
@@ -680,6 +691,9 @@ sub Generate(rootnode: [Node]) is
 	# We have a set of instructions for this expression; emit them. In reverse
 	# order.
 
+	#print_nl();
+	#PrintNodes(rootnode);
+
 	sub EmitAndFreeInstructions() is
 		loop
 			var insn := last_instruction;
@@ -690,6 +704,12 @@ sub Generate(rootnode: [Node]) is
 
 			#print("rule ");
 			#print_i8(insn.ruleid);
+			#print(" node ");
+			#print_hex_i32(insn.n[0] as intptr as uint32);
+			#print(" ");
+			#print_i8(insn.n[0].op);
+			#print("=");
+			#print(MidcodeName(insn.n[0].op));
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);

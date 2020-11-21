@@ -1,0 +1,94 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	var a := (alignment-1) as Size;
+	newvalue := (value+a) & ~a;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws+");
+	E_u16(address);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E("\tcseg\n");
+	E("\torg 0\n");
+	E("\tdw 407o\n"); # V7 combined I/D binary
+	E("\tdw text_end\n");
+	E("\tdw data_end - data_start\n");
+	E("\tdw bss_end - data_end\n");
+	E("\tdw 0, start, 0, 0\n"); # symbol table size, entry point, unused, unused
+	E("\torg 0\n");
+	E("\tdw 0, 0016600o\n"); # required to make apout think this is a UnixV7 binary
+	E("\tstart:\n");
+	E("\tmov sp, r0\n");
+	E("\tmov r0, himem\n");
+	E("\tadd #2, r0\n");
+	E("\tmov r0, argv\n");
+	E("\tmov #stack_end, sp\n");
+
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\tcall\t");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("exit:\n");
+	E("\tclr r0\n");
+	E("\ttrap 1\n");
+
+	E("\tdseg\n");
+	E("\torg text_end\n");
+	E("data_start:\n");
+
+	E("\tbseg\n");
+	E("\torg data_end\n");
+	E("bss_start:\n");
+
+	E("\tcseg\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("text_end:\n");
+
+	E("\tdseg\n");
+	E("\talign 2\n");
+	E("data_end:\n");
+	E("\tbseg\n");
+	E("stack_start:\n");
+	E("\tds ");
+	E_u16(STACK_SIZE);
+	E_nl();
+	E("stack_end:\n");
+
+	E("argv: ds 2\n");
+	E("himem: ds 2\n");
+	E("ws: ds ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("bss_end:\n");
+
+	var padding := (FCBExt(&outfcb) - FCBPos(&outfcb)) as uint16;
+	while padding != 0 loop
+		E_b8(' ');
+		padding := padding - 1;
+	end loop;
+end sub;
+

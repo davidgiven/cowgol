@@ -1,0 +1,457 @@
+%{
+    const VARMEM_WS := 1;
+
+    var varsp: uint8 := 0;
+
+    record ArchSubroutine is
+        var_stack: uint8;
+		end_label: LabelRef;
+    end record;
+
+	sub PushVar(): (vid: uint8) is
+		vid := varsp;
+		varsp := varsp + 1;
+		if varsp > current_subr.arch.var_stack then
+			current_subr.arch.var_stack := varsp;
+		end if;
+	end sub;
+
+	sub PopVar(): (vid: uint8) is
+		if varsp == 0 then
+			SimpleError("varstack underflow");
+		end if;
+		varsp := varsp - 1;
+		vid := varsp;
+	end sub;
+
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+		newvalue := value;
+	end sub;
+
+    sub AllocPLabel(): (lid: uint16) is
+        lid := AllocLabel() + 800;
+		if lid == 900 then
+			SimpleError("too many private labels");
+		end if;
+    end sub;
+
+	sub E_plabelref(label: LabelRef) is
+		E_b8('`');
+		E_h16(label);
+	end sub;
+
+	sub E_varref(vid: uint8) is
+		E_wsref(current_subr.id, VARMEM_WS, vid as uint16);
+	end sub;
+
+    sub E_symref(sym: [Symbol], off: Size) is
+		if sym.wsid == WSID_STATIC then
+			SimpleError("can't do statics");
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
+    end sub;
+
+	# Note that this *destroys* the source register.
+	sub ArchEmitMove(src: RegId, dest: RegId) is
+		SimpleError("move");
+	end sub;
+
+	sub ArchEndInstruction() is
+	end sub;
+
+	sub ArchEndGroup() is
+	end sub;
+%}
+
+wordsize uint16;
+
+register v param;
+
+regdata v stacked;
+regdata param stacked;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_plabelref($b.label);
+}
+
+gen JUMP():j
+{
+	E("goto ");
+	E_plabelref($j.label);
+	E_nl();
+}
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB()
+{
+    current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+	current_subr.arch.end_label := AllocPLabel();
+	EmitterOpenStream(current_subr);
+
+	E("rem ");
+	E(current_subr.name);
+	E(" workspace at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_b16(0);
+	E(" length ");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(0);
+	E_nl();
+
+	E_b8(COO_ESCAPE_THISSUB);
+
+	var count := current_subr.num_input_parameters;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter(current_subr, count);
+		
+		E("a=a-1:A(");
+		E_symref(param as [Symbol], 0);
+		E(")=b(a)\n");
+	end loop;
+}
+
+gen ENDSUB()
+{
+	E_plabelref(current_subr.arch.end_label);
+
+	var count: uint8 := 0;
+	var params := current_subr.num_output_parameters;
+
+	while count != params loop
+		var param := GetOutputParameter(current_subr, count);
+
+		E("b(a)=A(");
+		E_symref(param as [Symbol], 0);
+		E("):a=a+1\n");
+
+		count := count + 1;
+	end loop;
+
+	E("return\n");
+	EmitterCloseStream();
+}
+
+gen CALL(param, SUBREF():a)
+{
+	E("gosub ");
+	E_subref($a.subr);
+	E_nl();
+}
+
+gen v := CALLE1(param, SUBREF():a)
+{
+	E("gosub ");
+	E_subref($a.subr);
+	E_nl();
+
+	var res := PushVar();
+	E("a=a-1:");
+	E_varref(res);
+	E("=b(a)\n");
+}
+
+gen param := END();
+gen param := ARG1(param, v)
+{
+	var rhs := PopVar();
+	E("b(a)=");
+	E_varref(rhs);
+	E(":a=a+1\n");
+}
+
+gen v := POPARG1()
+{
+	var res := PushVar();
+	E("a=a-1:");
+	E_varref(res);
+	E("=b(a)\n");
+}
+
+gen RETURN()
+{
+    if current_subr.num_output_parameters == 0 then
+		E("return\n");
+	else
+		E("goto ");
+		E_plabelref(current_subr.arch.end_label);
+		E("\n");
+	end if;
+}
+
+// --- Constants ------------------------------------------------------------
+
+gen v := CONSTANT():rhs
+{
+	var vid := PushVar();
+	E_varref(vid);
+	E("=");
+	E_i32($rhs.value as int32);
+	E_nl();
+}
+
+gen v := ADDRESS():a
+{
+	var vid := PushVar();
+	E_varref(vid);
+	E("=");
+	E_i16(($a.sym.off + $a.off) as int16);
+	E_nl();
+}
+
+gen v := SUBREF():a
+{
+	var vid := PushVar();
+	E_varref(vid);
+	E("=");
+	E_subref($a.subr);
+	E_nl();
+}
+
+// --- Loads and stores --------------------------------------------------
+
+gen STORE1(CONSTANT():c, DEREF1(ADDRESS():a))
+{
+	E("A(");
+	E_symref(&$a.sym, $a.off);
+	E(")=");
+	E_i32($c.value);
+	E_nl();
+}
+
+gen STORE1(v, DEREF1(ADDRESS():a))
+{
+	var vid := PopVar();
+	E("A(");
+	E_symref(&$a.sym, $a.off);
+	E(")=");
+	E_varref(vid);
+	E_nl();
+}
+
+gen STORE1(v, DEREF1(v))
+{
+	var ptr := PopVar();
+	var vid := PopVar();
+	E("A(");
+	E_varref(ptr);
+	E(")=");
+	E_varref(vid);
+	E_nl();
+}
+
+gen v := DEREF1(ADDRESS():a)
+{
+	var vid := PushVar();
+	E_varref(vid);
+	E("=A(");
+	E_symref(&$a.sym, $a.off);
+	E(")\n");
+}
+
+gen v := DEREF1(v)
+{
+	var ptr := PopVar();
+	var vid := PushVar();
+	E_varref(vid);
+	E("=A(");
+	E_varref(ptr);
+	E(")\n");
+}
+
+// --- Arithmetic --------------------------------------------------------
+
+%{
+	sub Op2VV(op: string) is
+		var rhs := PopVar();
+		var lhs := PopVar();
+		var res := PushVar();
+		E_varref(res);
+		E("=int(");
+		E_varref(lhs);
+		E(op);
+		E_varref(rhs);
+		E(")\n");
+	end sub;
+
+	sub Op2VC(op: string, value: Arith) is
+		var lhs := PopVar();
+		var res := PushVar();
+		E_varref(res);
+		E("=int(");
+		E_varref(lhs);
+		E(op);
+		E_i32(value);
+		E(")\n");
+	end sub;
+
+	sub Op1V(op: string) is
+		var lhs := PopVar();
+		var res := PushVar();
+		E_varref(res);
+		E("=");
+		E(op);
+		E_varref(lhs);
+		E_nl();
+	end sub;
+%}
+
+gen v := ADD1(v, v)  { Op2VV("+"); }
+gen v := SUB1(v, v)  { Op2VV("-"); }
+gen v := MUL1(v, v)  { Op2VV("*"); }
+gen v := DIVS1(v, v) { Op2VV("/"); }
+gen v := REMS1(v, v) { Op2VV(" mod "); }
+gen v := NEG1(v)     { Op1V("-"); }
+gen v := AND1(v, v)  { Op2VV(" and "); }
+gen v := EOR1(v, v)  { Op2VV(" xor "); }
+gen v := OR1(v, v)   { Op2VV(" or "); }
+
+gen v := ADD1(v, CONSTANT():c)  { Op2VC("+", $c.value); }
+gen v := SUB1(v, CONSTANT():c)  { Op2VC("-", $c.value); }
+gen v := MUL1(v, CONSTANT():c)  { Op2VC("*", $c.value); }
+gen v := DIVS1(v, CONSTANT():c) { Op2VC("/", $c.value); }
+gen v := REMS1(v, CONSTANT():c) { Op2VC(" mod ", $c.value); }
+gen v := AND1(v, CONSTANT():c)  { Op2VC(" and ", $c.value); }
+gen v := EOR1(v, CONSTANT():c)  { Op2VC(" xor ", $c.value); }
+gen v := OR1(v, CONSTANT():c)   { Op2VC(" or ", $c.value); }
+
+gen v := LSHIFT1(v, v)
+{
+	var rhs := PopVar();
+	var lhs := PopVar();
+	var res := PushVar();
+	E_varref(res);
+	E("=");
+	E_varref(lhs);
+	E("*");
+	var one: int32 := 1;
+	E_i32(one << rhs);
+	E("\n");
+}
+
+gen v := RSHIFTS1(v, v)
+{
+	var rhs := PopVar();
+	var lhs := PopVar();
+	var res := PushVar();
+	E_varref(res);
+	E("=int(");
+	E_varref(lhs);
+	E("/");
+	var one: int32 := 1;
+	E_i32(one << rhs);
+	E(")\n");
+}
+
+// --- Conditionals ---------------------------------------------------------
+
+%{
+	sub branch(node: [Node], trueop: string, falseop: string) is
+		var rhs := PopVar();
+		var lhs := PopVar();
+		E("if ");
+		E_varref(lhs);
+		if node.beq.truelabel == node.beq.fallthrough then
+			E(falseop);
+		else
+			E(trueop);
+		end if;
+		E_varref(rhs);
+
+		E(" then goto ");
+		if node.beq.truelabel == node.beq.fallthrough then
+			E_plabelref(node.beq.falselabel);
+		else
+			E_plabelref(node.beq.truelabel);
+			if node.beq.falselabel != node.beq.fallthrough then
+				E(" else goto ");
+				E_plabelref(node.beq.falselabel);
+			end if;
+		end if;
+		E_nl();
+	end sub;
+
+	sub branchc(node: [Node], trueop: string, falseop: string, value: Arith) is
+		var lhs := PopVar();
+		E("if ");
+		E_varref(lhs);
+		if node.beq.truelabel == node.beq.fallthrough then
+			E(falseop);
+		else
+			E(trueop);
+		end if;
+		E_i32(value);
+
+		E(" then goto ");
+		if node.beq.truelabel == node.beq.fallthrough then
+			E_plabelref(node.beq.falselabel);
+		else
+			E_plabelref(node.beq.truelabel);
+			if node.beq.falselabel != node.beq.fallthrough then
+				E(" else goto ");
+				E_plabelref(node.beq.falselabel);
+			end if;
+		end if;
+		E_nl();
+	end sub;
+
+	sub beqc(node: [Node], lhs: Arith, rhs: Arith) is
+		var label := node.beq.falselabel;
+		if lhs == rhs then
+			label := node.beq.truelabel;
+		end if;
+		if label != node.beq.fallthrough then
+			E("goto ");
+			E_plabelref(label);
+		end if;
+	end sub;
+%}
+
+gen BEQ0(CONSTANT():c1, CONSTANT():c2):b { beqc(self.n[0], $c1.value, $c2.value); }
+gen BEQ1(v, v):b                         { branch(self.n[0], "=", "<>"); }
+gen BEQ1(v, CONSTANT():c):b              { branchc(self.n[0], "=", "<>", $c.value); }
+gen BLTS1(v, v):b                        { branch(self.n[0], "<", ">="); }
+gen BLTS1(v, CONSTANT():c):b             { branchc(self.n[0], "<", ">=", $c.value); }
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMGROUPSTART();
+gen ASMGROUPEND();
+gen ASMSTART();
+
+gen ASMTEXT():t
+{
+	E($t.text);
+	E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	E_symref(&$s.sym, 0);
+	E_space();
+}
+
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
+	E_space();
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
+

@@ -752,7 +752,10 @@ end sub;
 
 sub DsCb implements SymbolCallback is
     ExpectExpression();
-    programCounter := programCounter + tokenNumber;
+    while tokenNumber != 0 loop
+        Emit8(0);
+        tokenNumber := tokenNumber - 1;
+    end loop;
 end sub;
 
 sub DwCb implements SymbolCallback is

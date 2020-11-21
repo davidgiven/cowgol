@@ -1,5 +1,5 @@
 include "cowgol.coh";
-include "_framework.coh";
+include "tests/_framework.coh";
 include "strings.coh";
 include "malloc.coh";
 

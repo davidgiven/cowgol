@@ -610,7 +610,7 @@ gen JUMP():j
     E_jmp($j.label);
 }
 
-// --- Operands -------------------------------------------------------------
+// --- MOperands -------------------------------------------------------------
 
 %{
     const MODE_SYMBOLI := 0;
@@ -626,18 +626,18 @@ gen JUMP():j
         width: uint8;
     end record;
 
-    record Operand is
+    record MOperand is
         stk @at(0): StackOp;
         off @at(0): Size;
         val @at(0): Arith;
         sym: [Symbol];
         mode: uint8;
-        next: [Operand];
+        next: [MOperand];
     end record;
 
     const OPERAND_STACK_SIZE := 16;
-    var opstack: [Operand][OPERAND_STACK_SIZE];
-    var first_operand: [Operand] := 0 as [Operand];
+    var opstack: [MOperand][OPERAND_STACK_SIZE];
+    var first_operand: [MOperand] := 0 as [MOperand];
     var opsp: uint8 := 0;
 
     sub RegWidth(reg: RegId): (width: uint8) is
@@ -652,51 +652,51 @@ gen JUMP():j
         end if;
     end sub;
 
-    sub CleanupOperands() is
-        while first_operand != (0 as [Operand]) loop
+    sub CleanupMOperands() is
+        while first_operand != (0 as [MOperand]) loop
             var n := first_operand.next;
             Free(first_operand as [uint8]);
             first_operand := n;
         end loop;
     end sub;
 
-    sub PushOp(): (op: [Operand]) is
+    sub PushOp(): (op: [MOperand]) is
         if opsp == OPERAND_STACK_SIZE then
             SimpleError("opstack overflow");
         end if;
-        op := InternalAlloc(@bytesof Operand) as [Operand];
+        op := InternalAlloc(@bytesof MOperand) as [MOperand];
         opstack[opsp] := op;
         opsp := opsp + 1;
     end sub;
 
-    sub PushConstOp(value: Arith): (op: [Operand]) is
+    sub PushConstOp(value: Arith): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_CONST;
         op.val := value;
     end sub;
         
-    sub PushAddressOp(sym: [Symbol], off: Size): (op: [Operand]) is
+    sub PushAddressOp(sym: [Symbol], off: Size): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_ADDRESS;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushSymOp(sym: [Symbol], off: Size): (op: [Operand]) is
+    sub PushSymOp(sym: [Symbol], off: Size): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_SYMBOL;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushSymIOp(sym: [Symbol], off: Size): (op: [Operand]) is
+    sub PushSymIOp(sym: [Symbol], off: Size): (op: [MOperand]) is
         op := PushOp();
         op.mode := MODE_SYMBOLI;
         op.sym := sym;
         op.off := off;
     end sub;
         
-    sub PushStackOp(reg: RegId, width: uint8): (op: [Operand]) is
+    sub PushStackOp(reg: RegId, width: uint8): (op: [MOperand]) is
         var sid: uint16;
         if (reg & REG_P16) != 0 then
             sid := (PTRSTACK_WS<<8) | (ptrsp as uint16);
@@ -719,11 +719,11 @@ gen JUMP():j
         op.stk.width := width;
     end sub;
 
-    sub PushV32(): (op: [Operand]) is
+    sub PushV32(): (op: [MOperand]) is
         op := PushStackOp(REG_V32, 4);
     end sub;
 
-    sub PopOp(): (op: [Operand]) is
+    sub PopOp(): (op: [MOperand]) is
         if opsp == 0 then
             SimpleError("opstack underflow");
         end if;
@@ -741,14 +741,14 @@ gen JUMP():j
         end if;
     end sub;
 
-    sub PeekOp(): (op: [Operand]) is
+    sub PeekOp(): (op: [MOperand]) is
         if opsp == 0 then
             SimpleError("opstack underflow");
         end if;
         op := opstack[opsp-1];
     end sub;
 
-    sub DerefOp(op: [Operand]) is
+    sub DerefOp(op: [MOperand]) is
         case op.mode is
             when MODE_ADDRESS: op.mode := MODE_SYMBOL;
             when MODE_SYMBOL:  op.mode := MODE_SYMBOLI;
@@ -757,12 +757,12 @@ gen JUMP():j
         end case;
     end sub;
 
-    sub PopAndDerefOp(): (op: [Operand]) is
+    sub PopAndDerefOp(): (op: [MOperand]) is
         op := PopOp();
         DerefOp(op);
     end sub;
 
-    sub DoParamIndirect(operand: [Operand], oc: uint8, off: Size) is
+    sub DoParamIndirect(operand: [MOperand], oc: uint8, off: Size) is
         sub CheckSize() is
             if off != 0 then
                 SimpleError("bad indirect");
@@ -804,11 +804,11 @@ gen JUMP():j
         E_y_nl();
     end sub;
 
-    sub DoParamIndirect_lda(operand: [Operand]) is R_flush(REG_A); DoParamIndirect(operand, OC_LDA, 0); end sub; 
-    sub DoParamIndirect_sta(operand: [Operand]) is                 DoParamIndirect(operand, OC_STA, 0); end sub; 
-    sub DoParamIndirect_sbc(operand: [Operand]) is R_flush(REG_A); DoParamIndirect(operand, OC_SBC, 0); end sub;
+    sub DoParamIndirect_lda(operand: [MOperand]) is R_flush(REG_A); DoParamIndirect(operand, OC_LDA, 0); end sub; 
+    sub DoParamIndirect_sta(operand: [MOperand]) is                 DoParamIndirect(operand, OC_STA, 0); end sub; 
+    sub DoParamIndirect_sbc(operand: [MOperand]) is R_flush(REG_A); DoParamIndirect(operand, OC_SBC, 0); end sub;
 
-    sub DoParamDirect(operand: [Operand], oc: uint8, offset: uint8) is
+    sub DoParamDirect(operand: [MOperand], oc: uint8, offset: uint8) is
         var m := operand.mode;
 
         if (m == MODE_STACKI) or (m == MODE_SYMBOLI) then
@@ -874,9 +874,9 @@ gen JUMP():j
         E_nl();
     end sub;
 
-    sub DoParamDirect_lda(operand: [Operand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDA, offset); end sub;
-    sub DoParamDirect_ldy(operand: [Operand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDY, offset); end sub;
-    sub DoParamDirect_sta(operand: [Operand], offset: uint8) is                 DoParamDirect(operand, OC_STA, offset); end sub;
+    sub DoParamDirect_lda(operand: [MOperand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDA, offset); end sub;
+    sub DoParamDirect_ldy(operand: [MOperand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDY, offset); end sub;
+    sub DoParamDirect_sta(operand: [MOperand], offset: uint8) is                 DoParamDirect(operand, OC_STA, offset); end sub;
 
     # Note that this *destroys* the source register.
     sub ArchEmitMove(src: RegId, dest: RegId) is
@@ -953,23 +953,23 @@ gen JUMP():j
             E_nl();
         end if;
 
-        CleanupOperands();
+        CleanupMOperands();
     end sub;
 %}
 
 gen const := CONSTANT():c                        { var op := PushConstOp($c.value); }
 gen address := ADDRESS():a                       { var op := PushAddressOp(&$a.sym, $a.off); }
-gen mem1 := LOAD1(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
-gen mem2 := LOAD2(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
-gen mem2p := LOAD2(ADDRESS(&sym is zp):a)         { var op := PushSymOp(&$a.sym, $a.off); }
-gen mem4 := LOAD4(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
+gen mem1 := DEREF1(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
+gen mem2 := DEREF2(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
+gen mem2p := DEREF2(ADDRESS(&sym is zp):a)         { var op := PushSymOp(&$a.sym, $a.off); }
+gen mem4 := DEREF4(ADDRESS():a)                   { var op := PushSymOp(&$a.sym, $a.off); }
 $ifndef TINY
-    gen memi1 := LOAD1(LOAD2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
-    gen memi2 := LOAD2(LOAD2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
-    gen memi4 := LOAD4(LOAD2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
-    gen stacki1 := LOAD1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
-    gen stacki2 := LOAD2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
-    gen stacki4 := LOAD4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+    gen memi1 := DEREF1(DEREF2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
+    gen memi2 := DEREF2(DEREF2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
+    gen memi4 := DEREF4(DEREF2(ADDRESS(&sym is zp):a))  { var op := PushSymIOp(&$a.sym, $a.off); }
+    gen stacki1 := DEREF1(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+    gen stacki2 := DEREF2(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
+    gen stacki4 := DEREF4(p16)                        { var op := PeekOp(); op.mode := MODE_STACKI; }
 $endif
 
 // ==========================================================================
@@ -1276,7 +1276,7 @@ gen RETURN()
 }
 
 %{
-    sub PopArg4(dest: [Operand]) is
+    sub PopArg4(dest: [MOperand]) is
         # WARNING: lowest byte on stack is MSB, so pop the MSB first!
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
@@ -1366,8 +1366,8 @@ gen xa := POPARG2(remaining==0);
 
 gen xa := POPARG2(remaining!=0) { E_plxa(); }
 
-gen v32 := POPARG4()        uses x|y|a { PopArg4(PushV32()); }
-gen STORE4(POPARG4(), ptrs) uses x|y|a { PopArg4(PopAndDerefOp()); }
+gen v32 := POPARG4()               uses x|y|a { PopArg4(PushV32()); }
+gen STORE4(POPARG4(), DEREF4(ptrs)) uses x|y|a { PopArg4(PopAndDerefOp()); }
 
 // --- 8-bit -----------------------------------------------------------------
 
@@ -1390,14 +1390,14 @@ gen a|x|y := CONSTANT():c
     E_loadconst($$, $c.value as uint8);
 }
 
-gen STORE1(a:lhs, ptrs) uses y
+gen STORE1(a:lhs, DEREF1(ptrs)) uses y
 {
     var op := PopAndDerefOp();
 
     DoParamDirect_sta(op, 0);
 }
 
-gen STORE1(a|x|y:lhs, ADDRESS():a)
+gen STORE1(a|x|y:lhs, DEREF1(ADDRESS():a))
 {
     E_st($lhs);
     E_symref(&$a.sym, $a.off);
@@ -1405,7 +1405,7 @@ gen STORE1(a|x|y:lhs, ADDRESS():a)
     RegCacheLeavesValue($lhs, &$a.sym, $a.off);
 }
 
-gen a|x|y := LOAD1(ADDRESS():a)
+gen a|x|y := DEREF1(ADDRESS():a)
 {
     var cache := RegCacheFindValue(&$a.sym, $a.off) & $$;
     if cache == 0 then
@@ -1416,7 +1416,7 @@ gen a|x|y := LOAD1(ADDRESS():a)
     end if;
 }
 
-gen a := LOAD1(ptrs) uses y
+gen a := DEREF1(ptrs) uses y
 {
     var op := PopAndDerefOp();
 
@@ -1471,7 +1471,7 @@ gen xa := FALLBACK(a16) uses y cost -1000
     DoParamDirect(op, OC_LDX, 1);
 }
 
-gen xa := LOAD2(ADDRESS():a)
+gen xa := DEREF2(ADDRESS():a)
 {
     var cache := RegCacheFindValue(&$a.sym, $a.off);
     if cache != REG_XA then
@@ -1486,7 +1486,7 @@ gen xa := LOAD2(ADDRESS():a)
     RegCacheLeavesValue(REG_XA, &$a.sym, $a.off);
 }
 
-gen xa := LOAD2(ptrs)
+gen xa := DEREF2(ptrs)
 {
     var ptr := PopAndDerefOp();
 
@@ -1511,7 +1511,7 @@ gen xa := SUBREF():a
     E_loadsubref($a.subr);
 }
 
-gen STORE2(xa, ADDRESS():a)
+gen STORE2(xa, DEREF2(ADDRESS():a))
 {
     E_sta();
     E_symref(&$a.sym, $a.off);
@@ -1523,7 +1523,7 @@ gen STORE2(xa, ADDRESS():a)
     RegCacheLeavesValue(REG_XA, &$a.sym, $a.off);
 }
 
-gen STORE2(xa, ptrs) uses y
+gen STORE2(xa, DEREF2(ptrs)) uses y
 {
     var op := PopAndDerefOp();
 
@@ -1647,7 +1647,7 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
 // --- 32 bit ---------------------------------------------------------------
 
 %{
-    sub DoCopy4(dest: [Operand], lhs: [Operand]) is
+    sub DoCopy4(dest: [MOperand], lhs: [MOperand]) is
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
@@ -1659,14 +1659,14 @@ gen xa := REMS2(xa, in2s) uses y { Rem2("_divs2r"); }
     end sub;
 %}
 
-gen STORE4(in4s, ptrs) uses a|x|y
+gen STORE4(in4s, DEREF4(ptrs)) uses a|x|y
 {
     var dest := PopAndDerefOp();
     var lhs := PopOp();
     DoCopy4(dest, lhs);
 }
 
-gen v32 := LOAD4(ptrs) uses a|x|y
+gen v32 := DEREF4(ptrs) uses a|x|y
 {
     var lhs := PopAndDerefOp();
     var dest := PushV32();
@@ -1674,7 +1674,7 @@ gen v32 := LOAD4(ptrs) uses a|x|y
 }
 
 %{
-    sub Do2Op4_not(lhs: [Operand], dest: [Operand]) is
+    sub Do2Op4_not(lhs: [MOperand], dest: [MOperand]) is
         E_loadconst(REG_Y, 3);
         var lid := E_new_label();
 
@@ -1686,7 +1686,7 @@ gen v32 := LOAD4(ptrs) uses a|x|y
         E_bpl(lid);
     end sub;
 
-    sub Do2Op4_neg(lhs: [Operand], dest: [Operand]) is
+    sub Do2Op4_neg(lhs: [MOperand], dest: [MOperand]) is
         E_loadconst(REG_X, 4);
         E_loadconst(REG_Y, 0);
         E_sec();
@@ -1704,11 +1704,11 @@ gen v32 := LOAD4(ptrs) uses a|x|y
 
 gen v32 := NEG4(in4s) uses a|x|y { var lhs := PopOp(); var dest := PushV32(); Do2Op4_neg(lhs, dest); }
 gen v32 := NOT4(in4s) uses a|x|y { var lhs := PopOp(); var dest := PushV32(); Do2Op4_not(lhs, dest); }
-gen STORE4(NEG4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_neg(lhs, dest); }
-gen STORE4(NOT4(in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_not(lhs, dest); }
+gen STORE4(NEG4(in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_neg(lhs, dest); }
+gen STORE4(NOT4(in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var lhs := PopOp(); Do2Op4_not(lhs, dest); }
 
 %{
-    sub Do3Op4(oc: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand]) is
+    sub Do3Op4(oc: uint8, lhs: [MOperand], rhs: [MOperand], dest: [MOperand]) is
         var lid: LabelRef;
         if (lhs.mode > MODE_STACKI) and (rhs.mode > MODE_STACKI) and (dest.mode > MODE_STACKI) then
             # None of the operands are indirected, so we can use a more efficient loop.
@@ -1743,14 +1743,14 @@ gen v32 := SUB4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp();
 gen v32 := AND4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_AND, lhs, rhs, dest); }
 gen v32 := OR4(in4s, in4s)  uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_ORA, lhs, rhs, dest); }
 gen v32 := EOR4(in4s, in4s) uses a|x|y { var rhs := PopOp(); var lhs := PopOp(); var dest := PushV32();          Do3Op4(OC_EOR, lhs, rhs, dest); }
-gen STORE4(ADD4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_clc(); Do3Op4(OC_ADC, lhs, rhs, dest); }
-gen STORE4(SUB4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_sec(); Do3Op4(OC_SBC, lhs, rhs, dest); }
-gen STORE4(AND4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_AND, lhs, rhs, dest); }
-gen STORE4(OR4(in4s, in4s) , ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_ORA, lhs, rhs, dest); }
-gen STORE4(EOR4(in4s, in4s), ptrs) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_EOR, lhs, rhs, dest); }
+gen STORE4(ADD4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_clc(); Do3Op4(OC_ADC, lhs, rhs, dest); }
+gen STORE4(SUB4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp(); E_sec(); Do3Op4(OC_SBC, lhs, rhs, dest); }
+gen STORE4(AND4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_AND, lhs, rhs, dest); }
+gen STORE4(OR4(in4s, in4s) , DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_ORA, lhs, rhs, dest); }
+gen STORE4(EOR4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { var dest := PopAndDerefOp(); var rhs := PopOp(); var lhs := PopOp();          Do3Op4(OC_EOR, lhs, rhs, dest); }
 
 %{
-    sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [Operand], rhs: [Operand], dest: [Operand]) is
+    sub MulOrDivOrRem4(name: string, resultoffset: uint8, lhs: [MOperand], rhs: [MOperand], dest: [MOperand]) is
         var e := GetHelper("_mathpad");
 
         E_loadconst(REG_Y, 3);
@@ -1804,11 +1804,11 @@ gen v32 := DIVU4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divu4", 0); }
 gen v32 := REMU4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divu4", 4); }
 gen v32 := DIVS4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divs4", 0); }
 gen v32 := REMS4(in4s, in4s) uses a|x|y { MulOrDivOrRem4ToV32("_divs4", 4); }
-gen STORE4(MUL4(in4s, in4s), ptrs) uses a|x|y { MulOrDivOrRem4ToDest("_mul4", 0); }
-gen STORE4(DIVU4(in4s, in4s), ptrs) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 0); }
-gen STORE4(REMU4(in4s, in4s), ptrs) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 4); }
-gen STORE4(DIVS4(in4s, in4s), ptrs) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 0); }
-gen STORE4(REMS4(in4s, in4s), ptrs) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 4); }
+gen STORE4(MUL4(in4s, in4s),  DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_mul4", 0); }
+gen STORE4(DIVU4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 0); }
+gen STORE4(REMU4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divu4", 4); }
+gen STORE4(DIVS4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 0); }
+gen STORE4(REMS4(in4s, in4s), DEREF4(ptrs)) uses a|x|y { MulOrDivOrRem4ToDest("_divs4", 4); }
 
 %{
     sub Shift4(helper: string) is
@@ -1982,7 +1982,7 @@ gen xa := CAST12(a):c uses y
 }
 
 %{
-    sub Cast14(dest: [Operand], sext: uint8) is
+    sub Cast14(dest: [MOperand], sext: uint8) is
         DoParamDirect_sta(dest, 0);
 
         if sext != 0 then
@@ -1997,11 +1997,11 @@ gen xa := CAST12(a):c uses y
     end sub;
 %}
 
-gen v32 := CAST14(a):c        uses y { var dest := PushV32();       Cast14(dest, $c.sext); }
-gen STORE4(CAST14(a):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast14(dest, $c.sext); }
+gen v32 := CAST14(a):c               uses y { var dest := PushV32();       Cast14(dest, $c.sext); }
+gen STORE4(CAST14(a):c, DEREF4(ptrs)) uses y { var dest := PopAndDerefOp(); Cast14(dest, $c.sext); }
 
 %{
-    sub Cast24(dest: [Operand], sext: uint8) is
+    sub Cast24(dest: [MOperand], sext: uint8) is
         DoParamDirect_sta(dest, 0);
         if dest.mode <= MODE_STACKI then
             E_txa();
@@ -2022,8 +2022,8 @@ gen STORE4(CAST14(a):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast14(dest,
     end sub;
 %}
 
-gen v32 := CAST24(xa):c        uses y { var dest := PushV32();       Cast24(dest, $c.sext); }
-gen STORE4(CAST24(xa):c, ptrs) uses y { var dest := PopAndDerefOp(); Cast24(dest, $c.sext); }
+gen v32 := CAST24(xa):c               uses y { var dest := PushV32();       Cast24(dest, $c.sext); }
+gen STORE4(CAST24(xa):c, DEREF4(ptrs)) uses y { var dest := PopAndDerefOp(); Cast24(dest, $c.sext); }
 
 gen a := CAST21(in2s|xa:rhs)
 {
@@ -2252,21 +2252,21 @@ $ifdef ARCH_65C02
     // The 65C02 can store zero to a memory location without needing to use
     // a register. It's kinda limited when it comes to addressing modes.
 
-    gen STORE1(CONSTANT(value==0), ADDRESS():a)
+    gen STORE1(CONSTANT(value==0), DEREF1(ADDRESS():a))
     {
         E_stz();
         E_symref(&$a.sym, $a.off);
         E_nl();
     }
 
-    gen STORE1(CONSTANT(value==0), ADD2(ADDRESS():a, CAST12(x, sext==0)))
+    gen STORE1(CONSTANT(value==0), DEREF1(ADD2(ADDRESS():a, CAST12(x, sext==0))))
     {
         E_stz();
         E_symref(&$a.sym, $a.off);
         E_x_nl();
     }
 
-    gen STORE2(CONSTANT(value==0), ADDRESS():a)
+    gen STORE2(CONSTANT(value==0), DEREF2(ADDRESS():a))
     {
         E_stz();
         E_symref(&$a.sym, $a.off);
@@ -2302,47 +2302,47 @@ $endif
 // The (zp),y addressing mode gives us a free addition to the pointer when
 // dereferencing.
 
-gen STORE1(a, ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
+gen STORE1(a, DEREF1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c))) uses y
 {
     var dest := PopAndDerefOp();
     E_loadconst(REG_Y, $c.value as uint8);
     DoParamIndirect_sta(dest);
 }
 
-gen STORE1(a, ADD2(ADDRESS():a, CAST12(x, sext==0)))
+gen STORE1(a, DEREF1(ADD2(ADDRESS():a, CAST12(x, sext==0))))
 {
     E_sta();
     E_symref(&$a.sym, $a.off);
     E_x_nl();
 }
 
-gen STORE1(a, ADD2(ptrs, CAST12(y, sext==0)))
+gen STORE1(a, DEREF1(ADD2(ptrs, CAST12(y, sext==0))))
 {
     var dest := PopAndDerefOp();
     DoParamIndirect_sta(dest);
 }
 
-gen a := LOAD1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
+gen a := DEREF1(ADD2(ptrs, CONSTANT(value>=0, value<=255):c)) uses y
 {
     var src := PopAndDerefOp();
     E_loadconst(REG_Y, $c.value as uint8);
     DoParamIndirect_lda(src);
 }
 
-gen a := LOAD1(ADD2(ADDRESS():a, CAST12(x, sext==0)))
+gen a := DEREF1(ADD2(ADDRESS():a, CAST12(x, sext==0)))
 {
     E_lda();
     E_symref(&$a.sym, $a.off);
     E_x_nl();
 }
 
-gen a := LOAD1(ADD2(ptrs, CAST12(y, sext==0)))
+gen a := DEREF1(ADD2(ptrs, CAST12(y, sext==0)))
 {
     var src := PopAndDerefOp();
     DoParamIndirect_lda(src);
 }
 
-gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
+gen STORE2(xa, DEREF2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c))) uses y
 {
     var dest := PopAndDerefOp();
 
@@ -2352,7 +2352,7 @@ gen STORE2(xa, ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
     DoParamDirect_sta(dest, off+1);
 }
 
-gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
+gen xa := DEREF2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
 {
     var src := PopAndDerefOp();
 
@@ -2362,7 +2362,7 @@ gen xa := LOAD2(ADD2(ptrs, CONSTANT(value>=0, value<=254):c)) uses y
     DoParamDirect_lda(src, off);
 }
 
-gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
+gen xa := DEREF2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
 {
     E_lda();
     E_symref(&$a.sym, $a.off+0);
@@ -2373,7 +2373,7 @@ gen xa := LOAD2(ADD2(ADDRESS():a, CAST12(y, sext==0)))
     E_y_nl();
 }
 
-gen a := LOAD1(LOAD2(ADDRESS(&sym is zp):a)) uses y
+gen a := DEREF1(DEREF2(ADDRESS(&sym is zp):a)) uses y
 {
     $ifndef ARCH_65C02
         E_loadconst(REG_Y, 0);
@@ -2405,8 +2405,8 @@ gen a := LOAD1(LOAD2(ADDRESS(&sym is zp):a)) uses y
 %}
 
 gen STORE1(
-        ADD1(LOAD1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
-        ADDRESS():a2) uses x cost 100
+        ADD1(DEREF1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+        DEREF1(ADDRESS():a2)) uses x cost 100
 {
     if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
             and ($a1.off == $a2.off) then
@@ -2435,8 +2435,8 @@ gen STORE1(
 }
 
 gen STORE2(
-        ADD2(LOAD2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
-        ADDRESS():a2) uses x|y|a cost 100
+        ADD2(DEREF2(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+        DEREF2(ADDRESS():a2)) uses x|y|a cost 100
 {
     var lid := AllocPLabel();
     if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
@@ -2542,7 +2542,7 @@ gen BEQ2(xa, CONSTANT(value==0)):b uses a|y
     E_jumps_beq_bne(self.n[0]);
 }
 
-gen BEQ2(LOAD2(ADDRESS():a), CONSTANT(value==0)):b uses a
+gen BEQ2(DEREF2(ADDRESS():a), CONSTANT(value==0)):b uses a
 {
     E_lda();
     E_symref(&$a.sym, $a.off);

@@ -46,6 +46,18 @@ toolchain_ncpmz = {
 	tester = cpmtest,
 }
 
+toolchain_lxthumb2 = {
+	name = "lxthumb2",
+	cowfe = "bin/cowfe-thumb2.nncgen.exe",
+	cowbe = "bin/cowbe-thumb2.nncgen.exe",
+	linker = "bin/cowlink-lxthumb2.nncgen.exe",
+	assembler = buildgasarm,
+	runtime = "rt/lxthumb2",
+	asmext = ".s",
+	binext = ".lxthumb2.exe",
+	tester = qemuarmtest
+}
+
 toolchain_lx386 = {
 	name = "lx386",
 	cowfe = "bin/cowfe-80386.nncgen.exe",
@@ -108,15 +120,55 @@ toolchain_bbcti = {
 	tester = tubeemutest,
 }
 
+toolchain_unixv7 = {
+	name = "unixv7",
+	cowfe = "bin/cowfe-pdp11.nncgen.exe",
+	cowbe = "bin/cowbe-pdp11.nncgen.exe",
+	linker = "bin/cowlink-v7unix.nncgen.exe",
+	assembler = buildcowasmpdp11,
+	runtime = "rt/unixv7",
+	asmext = ".asm",
+	binext = ".exe",
+	tester = apouttest
+}
+
+toolchain_fuzix6303 = {
+	name = "fuzix6303",
+	cowfe = "bin/cowfe-6303.nncgen.exe",
+	cowbe = "bin/cowbe-6303.nncgen.exe",
+	linker = "bin/cowlink-fuzix6303.nncgen.exe",
+	assembler = buildcowasm6303,
+	runtime = "rt/fuzix6303",
+	asmext = ".asm",
+	binext = ".6303.exe",
+	tester = fuzix6303test,
+}
+
+toolchain_msdos = {
+	name = "msdos",
+	cowfe = "bin/cowfe-8086.nncgen.exe",
+	cowbe = "bin/cowbe-8086.nncgen.exe",
+	linker = "bin/cowlink-msdos.nncgen.exe",
+	assembler = buildnasm,
+	runtime = "rt/msdos",
+	asmext = ".asm",
+	binext = ".msdos.com",
+	tester = emu2test,
+}
+
 ALL_TOOLCHAINS = {
-	toolchain_nncgen,
+	toolchain_bbct,
+	toolchain_bbct6502,
+	toolchain_bbcti,
+	toolchain_bbctiny,
+	toolchain_fuzix6303,
+	toolchain_lxthumb2,
+	toolchain_lx386,
+	toolchain_msdos,
 	toolchain_ncgen,
 	toolchain_ncpm,
 	toolchain_ncpmz,
-	toolchain_lx386,
-	toolchain_bbct,
-	toolchain_bbctiny,
-	toolchain_bbct6502,
-	toolchain_bbcti,
+	toolchain_nncgen,
+	toolchain_unixv7,
 }
 

@@ -1,0 +1,175 @@
+# vim: ts=4 sw=4 et
+
+const FCB_BUFFER := 512;
+record FCB is
+	fd: uint16;
+	bufferptr: uint16; # byte to read
+	dirty: uint8;
+	block: uint32;
+	buffer: uint8[FCB_BUFFER];
+end record;
+
+sub fcb_i_gbpb(fcb: [FCB], s: uint8) is
+	var fd := fcb.fd;
+	var dma := &fcb.buffer[0];
+	var pos := fcb.block << 9;
+
+    @asm "mov bx, [", fd, "]";
+    @asm "mov cx, [", pos, "+2]";
+    @asm "mov dx, [", pos, "+0]";
+    @asm "mov ax, 0x4200";
+    @asm "int 0x21";
+
+    @asm "mov bx, [", fd, "]";
+    @asm "mov cx, ", FCB_BUFFER;
+    @asm "mov dx, [", dma, "]";
+    @asm "mov ah, [", s, "]";
+    @asm "int 0x21";
+end sub;
+
+sub fcb_i_blockin(fcb: [FCB]) is
+	MemSet(&fcb.buffer[0], 0, FCB_BUFFER);
+	fcb_i_gbpb(fcb, 0x3f); # Read file
+	fcb.dirty := 0;
+end sub;
+
+sub fcb_i_blockout(fcb: [FCB]) is
+	if fcb.dirty != 0 then
+		fcb_i_gbpb(fcb, 0x40); # Write file
+		fcb.dirty := 0;
+	end if;
+end sub;
+
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint32) is
+	if newblock != fcb.block then
+		fcb_i_blockout(fcb);
+		fcb.block := newblock;
+		fcb_i_blockin(fcb);
+	end if;
+end sub;
+
+sub fcb_init(fcb: [FCB], fd: uint16) is
+    MemSet(fcb as [uint8], 0, @bytesof FCB);
+    fcb.bufferptr := 0;
+    fcb.block := 0;
+    fcb.fd := fd;
+    fcb_i_blockin(fcb);
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    var res: uint16;
+    var failed: uint8 := 0;
+    @asm "mov ax, 0x3d00";
+    @asm "mov dx, [", filename, "]";
+    @asm "int 0x21";
+    @asm "mov word [", res, "], ax";
+    @asm "rcl byte [", failed, "], 1";
+    if failed != 0 then
+        errno := res as uint8;
+    else
+        errno := 0;
+        fcb_init(fcb, res);
+    end if;
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    var res: uint16;
+    var failed: uint8 := 0;
+    @asm "mov ax, 0x3d02";
+    @asm "mov dx, [", filename, "]";
+    @asm "int 0x21";
+    @asm "mov word [", res, "], ax";
+    @asm "rcl byte [", failed, "], 1";
+    if (failed != 0) and (res == 2) then # file not found
+        failed := 0;
+        @asm "mov ah, 0x3c";
+        @asm "mov dx, [", filename, "]";
+        @asm "xor cx, cx";
+        @asm "int 0x21";
+        @asm "mov word [", res, "], ax";
+        @asm "rcl byte [", failed, "], 1";
+    end if;
+    if failed != 0 then
+        errno := res as uint8;
+    else
+        errno := 0;
+        fcb_init(fcb, res);
+    end if;
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    errno := FCBOpenUp(fcb, filename);
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	fcb_i_blockout(fcb);
+
+    var failed: uint8 := 0;
+    var fd := fcb.fd;
+    @asm "mov bx, [", fd, "]";
+    @asm "mov ah, 0x3e";
+    @asm "int 0x21";
+    @asm "mov byte [", errno, "], al";
+    @asm "rcl byte [", failed, "], 1";
+    if failed == 0 then
+        errno := 0;
+    end if;
+end sub;
+
+sub FCBSeek(fcb: [FCB], pos: uint32) is
+	var newblock := pos >> 9;
+	var newptr := (pos as uint16) & (FCB_BUFFER-1);
+	fcb_i_changeblock(fcb, newblock);
+	fcb.bufferptr := newptr;
+end sub;
+
+sub FCBPos(fcb: [FCB]): (pos: uint32) is
+	pos := ((fcb.block << 9) + (fcb.bufferptr as uint32)) + 1;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+	fcb_i_blockout(fcb);
+
+	var fd := fcb.fd;
+    @asm "mov ax, 0x4202";
+    @asm "mov bx, [", fd, "]";
+    @asm "xor cx, cx";
+    @asm "xor dx, dx";
+    @asm "int 0x21";
+    @asm "mov [", len, "+0], ax";
+    @asm "mov [", len, "+2], dx";
+	len := (len + FCB_BUFFER - 1) & ~(FCB_BUFFER - 1);
+end sub;
+
+sub fcb_i_nextchar(fcb: [FCB]): (c: uint8) is
+	if fcb.bufferptr == FCB_BUFFER then
+		fcb_i_changeblock(fcb, fcb.block + 1);
+		fcb.bufferptr := 0;
+    else
+        fcb.bufferptr := fcb.bufferptr + 1;
+	end if;
+end sub;
+
+sub FCBGetChar(fcb: [FCB]): (c: uint8) is
+    c := fcb.buffer[fcb.bufferptr];
+    if fcb.bufferptr == (FCB_BUFFER-1) then
+		fcb_i_changeblock(fcb, fcb.block + 1);
+		fcb.bufferptr := 0;
+    else
+        fcb.bufferptr := fcb.bufferptr + 1;
+	end if;
+end sub;
+
+sub FCBPutChar(fcb: [FCB], c: uint8) is
+	fcb.buffer[fcb.bufferptr] := c;
+	fcb.dirty := 1;
+    if fcb.bufferptr == (FCB_BUFFER-1) then
+		fcb_i_changeblock(fcb, fcb.block + 1);
+		fcb.bufferptr := 0;
+    else
+        fcb.bufferptr := fcb.bufferptr + 1;
+	end if;
+end sub;
+
+include "common-file.coh";
+

@@ -116,12 +116,12 @@ function buildzmac(e)
 	}
 end
 
-function buildcowasm8080(e)
+function buildcowasm(e, asm)
 	local lst = e.outs[1]:ext(".lst"):obj()
 	rule {
 		ins = concat {
 			"scripts/quiet",
-			"bin/cowasm-8080.nncgen.exe",
+			"bin/cowasm-"..asm..".nncgen.exe",
 			e.ins
 		},
 		outs = { e.outs[1], lst },
@@ -129,11 +129,32 @@ function buildcowasm8080(e)
 	}
 end
 
+function buildcowasm8080(e)
+	buildcowasm(e, "8080")
+end
+
+function buildcowasmpdp11(e)
+	buildcowasm(e, "pdp11")
+end
+
+function buildcowasm6303(e)
+	buildcowasm(e, "6303")
+end
+
 function buildtass64(e)
 	local img = e.outs[1]:ext(".img"):obj()
 	tass64 {
 		ins = e.ins,
 		outs = e.outs,
+	}
+end
+
+function buildnasm(e)
+	local lst = e.outs[1]:ext(".lst"):obj()
+	rule {
+		ins = e.ins,
+		outs = { e.outs[1], lst },
+		cmd = "nasm -f bin -o &1 -l &2 @1",
 	}
 end
 
@@ -168,6 +189,21 @@ function tubeemutest(e)
 	return simpletest("bin/tubeemu -l 0x400 -e 0x400 -f", e)
 end
 
+function apouttest(e)
+	e.ins = concat { e.ins, "bin/apout" }
+	return simpletest("bin/apout ", e)
+end
+
+function fuzix6303test(e)
+	e.ins = concat { e.ins, "bin/fuzix6303emu" }
+	return simpletest("bin/fuzix6303emu -f", e)
+end
+
+function emu2test(e)
+	e.ins = concat { e.ins, "bin/emu2" }
+	return simpletest("bin/emu2", e)
+end
+
 function cowgol(e)
 	local out = e.outs[1].."."..e.toolchain.name..e.toolchain.binext
 	local coo = out:ext(".coo"):obj()
@@ -193,6 +229,8 @@ function cowgol(e)
 				"rt/malloc.coh",
 				"rt/strings.coh",
 				(e.toolchain.runtime.."/cowgol.coh"),
+				(e.toolchain.runtime.."/file.coh"),
+				(e.toolchain.runtime.."/argv.coh"),
 			},
 			outs = { coo },
 			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"
@@ -209,6 +247,8 @@ function cowgol(e)
 				"rt/malloc.coh",
 				"rt/strings.coh",
 				(e.toolchain.runtime.."/cowgol.coh"),
+				(e.toolchain.runtime.."/file.coh"),
+				(e.toolchain.runtime.."/argv.coh"),
 			},
 			outs = { cob },
 			cmd = "scripts/quiet @1 -Irt/ -I"..e.toolchain.runtime.."/ "..joined(hdrs).." @2 &1"

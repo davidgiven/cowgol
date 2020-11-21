@@ -1,0 +1,461 @@
+include "cowasm.coh";
+
+const AM_REG        := 0o000;
+const AM_POSTINC    := 0o020;
+const AM_PREDEC     := 0o040;
+const AM_INDEX      := 0o060;
+const AM__DEREF     := 0o010;
+const AM__EXTENSION := 0o100;
+const AM__RELATIVE  := 0o200;
+
+var addressingMode: uint8;
+var extensionWord: uint16;
+
+@impl sub Emit16 is
+    Emit8(word as uint8);
+    Emit8((word>>8) as uint8);
+end sub;
+
+sub ReadOperand(): (token: Token) is
+    var deferred: uint8 := 0;
+    token := ReadToken();
+    if token == '@' then
+        deferred := 1;
+        token := ReadToken();
+    end if;
+
+    sub Consume(t: Token) is
+        if token != t then
+            SyntaxError();
+        end if;
+        token := ReadToken();
+    end sub;
+
+    var reg: uint8;
+    var value: uint16;
+    case token is
+        when '-':
+            Expect('(');
+            ReadRegister();
+            addressingMode := AM_PREDEC | (tokenSymbol.value as uint8);
+            Expect(')');
+            token := ReadToken();
+
+        when '#':
+            token := ReadExpression();
+            extensionWord := tokenNumber;
+            addressingMode := AM__EXTENSION | AM_POSTINC | 7;
+
+        when '(':
+            token := ReadToken();
+            if (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == RegCb) then
+                reg := tokenSymbol.value as uint8;
+                token := ReadToken();
+                Consume(')');
+                if token == '+' then
+                    addressingMode := AM_POSTINC | reg;
+                    token := ReadToken();
+                else
+                    addressingMode := AM__DEREF | AM_REG | reg;
+                end if;
+            else
+                PushToken(token);
+                token := ReadExpression();
+                value := tokenNumber;
+                if token == '(' then
+                    ReadRegister();
+                    addressingMode := AM_INDEX | (tokenSymbol.value as uint8);
+
+                    Expect(')');
+                    token := ReadToken();
+                else
+                    addressingMode := AM__RELATIVE | AM__EXTENSION | AM_INDEX | 7;
+                    extensionWord := value;
+                end if;
+            end if;
+
+        when else:
+            if (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == RegCb) then
+                addressingMode := AM_REG | (tokenSymbol.value as uint8);
+                token := ReadToken();
+            else
+                PushToken(token);
+                token := ReadExpression();
+                value := tokenNumber;
+                if token == '(' then
+                    ReadRegister();
+                    addressingMode := AM__EXTENSION | AM_INDEX | (tokenSymbol.value as uint8);
+                    extensionWord := value;
+                    Expect(')');
+                    token := ReadToken();
+                else
+                    addressingMode := AM__RELATIVE | AM__EXTENSION | AM_INDEX | 7;
+                    extensionWord := value;
+                end if;
+            end if;
+    end case;
+
+    if deferred != 0 then
+        addressingMode := addressingMode | AM__DEREF;
+    end if;
+end sub;
+
+sub ExpectOperand() is
+    if ReadOperand() != TOKEN_NL then
+        SimpleError("expected a single operand");
+    end if;
+end sub;
+        
+sub EmitExtension(addressingMode: uint8, extensionWord: uint16) is
+    if (addressingMode & AM__EXTENSION) == 0 then
+        return;
+    end if;
+    if (addressingMode & AM__RELATIVE) != 0 then
+        extensionWord := extensionWord - [currentProgramCounter] - 2;
+    end if;
+    Emit16(extensionWord);
+end sub;
+
+sub Op1Cb implements SymbolCallback is
+    ExpectOperand();
+
+    Emit16(currentInsn.value
+        | (addressingMode & 0o77) as uint16);
+
+    EmitExtension(addressingMode, extensionWord);
+end sub;
+
+sub Op2Cb implements SymbolCallback is
+    if ReadOperand() != ',' then
+        BadSeparator();
+    end if;
+    var param1addressingMode := addressingMode;
+    var param1extensionWord := extensionWord;
+    ExpectOperand();
+
+    Emit16(currentInsn.value
+        | ((param1addressingMode & 0o77) as uint16 << 6)
+        | (addressingMode & 0o77) as uint16);
+
+    EmitExtension(param1addressingMode, param1extensionWord);
+    EmitExtension(addressingMode, extensionWord);
+end sub;
+
+sub JsrCb implements SymbolCallback is
+    if ReadOperand() != ',' then
+        BadSeparator();
+    end if;
+    if (addressingMode & 0o370) != AM_REG then
+        SimpleError("first parameter must be a register");
+    end if;
+    var param1addressingMode := addressingMode;
+    ExpectOperand();
+
+    Emit16(currentInsn.value
+        | ((param1addressingMode & 0o07) as uint16 << 6)
+        | (addressingMode & 0o77) as uint16);
+    EmitExtension(addressingMode, extensionWord);
+end sub;
+
+sub CallCb implements SymbolCallback is
+    ExpectOperand();
+
+    Emit16(currentInsn.value
+        | (addressingMode & 0o77) as uint16);
+    EmitExtension(addressingMode, extensionWord);
+end sub;
+
+sub RtsCb implements SymbolCallback is
+    ExpectOperand();
+    if (addressingMode & 0o370) != AM_REG then
+        SimpleError("first parameter must be a register");
+    end if;
+
+    Emit16(currentInsn.value
+        | (addressingMode & 0o77) as uint16);
+end sub;
+
+sub CondCb implements SymbolCallback is
+    ExpectExpression();
+    
+    if pass == 1 then
+        [currentProgramCounter] := [currentProgramCounter] + 6;
+    else
+        var delta := (tokenNumber - [currentProgramCounter] - 2) as int16 >> 1;
+        if (delta >= -128) and (delta <= 127) then
+            Emit16(currentInsn.value | (delta as uint16 & 0xff));
+        else
+            Emit16((currentInsn.value ^ 0o400) | 2);
+            Emit16(0o000167);
+            Emit16(tokenNumber - [currentProgramCounter] - 2);
+        end if;
+    end if;
+end sub;
+
+sub BrCb implements SymbolCallback is
+    ExpectExpression();
+    
+    if pass == 1 then
+        [currentProgramCounter] := [currentProgramCounter] + 4;
+    else
+        var delta := (tokenNumber - [currentProgramCounter] - 2) as int16 >> 1;
+        if (delta >= -128) and (delta <= 127) then
+            Emit16(currentInsn.value | (delta as uint16 & 0xff));
+        else
+            Emit16(0o000167);
+            Emit16(tokenNumber - [currentProgramCounter] - 2);
+        end if;
+    end if;
+end sub;
+
+sub Op2RegCb implements SymbolCallback is
+    if ReadOperand() != ',' then
+        BadSeparator();
+    end if;
+    if (addressingMode & 0o370) != AM_REG then
+        SimpleError("second parameter must be a register");
+    end if;
+    var param1addressingMode := addressingMode;
+    ExpectOperand();
+
+    Emit16(currentInsn.value
+        | (addressingMode & 0o77) as uint16
+        | ((param1addressingMode & 0o07) as uint16 << 6));
+
+    EmitExtension(addressingMode, extensionWord);
+end sub;
+
+# Reversed operands in the instruction encoding: the source is in
+# what's normally the destination field, and vice versa.
+sub Op2RegRCb implements SymbolCallback is
+    if ReadOperand() != ',' then
+        BadSeparator();
+    end if;
+    var param1addressingMode := addressingMode;
+    var param2extensionWord := extensionWord;
+    ExpectOperand();
+    if (addressingMode & 0o370) != AM_REG then
+        SimpleError("second parameter must be a register");
+    end if;
+
+    Emit16(currentInsn.value
+        | (param1addressingMode & 0o77) as uint16
+        | ((addressingMode & 0o07) as uint16 << 6));
+
+    EmitExtension(param1addressingMode, param2extensionWord);
+end sub;
+
+sub SobCb implements SymbolCallback is
+    if ReadOperand() != ',' then
+        BadSeparator();
+    end if;
+    if (addressingMode & 0o370) != AM_REG then
+        SimpleError("first parameter must be a register");
+    end if;
+    var param1addressingMode := addressingMode;
+    ExpectExpression();
+    
+    if pass == 1 then
+        [currentProgramCounter] := [currentProgramCounter] + 8;
+    else
+        var delta := (tokenNumber - [currentProgramCounter] - 2) as int16;
+        if (delta >= -256) and (delta <= 0) then
+            Emit16(currentInsn.value | (((-delta as uint16) >> 1) & 0o77));
+        elseif (delta >= -128) and (delta <= 126) then
+            Emit16(0o000401);
+            Emit16(0o000400 | (((delta as uint16) >> 1) & 0o77));
+            Emit16((currentInsn.value ^ 0o400) | 2);
+        else
+            Emit16(0o000402);
+            Emit16(0o000167);
+            Emit16(tokenNumber - [currentProgramCounter] - 2);
+            Emit16((currentInsn.value ^ 0o400) | 3);
+        end if;
+    end if;
+end sub;
+
+sub EmtTrapCb implements SymbolCallback is
+    ExpectExpression();
+    if tokenNumber > 0o77 then
+        SimpleError("EMT/TRAP value out of range");
+    end if;
+
+    Emit16(currentInsn.value | tokenNumber);
+end sub;
+
+sub JmpCb implements SymbolCallback is
+    ExpectOperand();
+    Emit16(currentInsn.value | (addressingMode & 0o77) as uint16);
+    EmitExtension(addressingMode, extensionWord);
+end sub;
+
+sub MarkCb implements SymbolCallback is
+    ExpectExpression();
+    if tokenNumber > 0o77 then
+        SimpleError("MARK value out of range");
+    end if;
+
+    Emit16(currentInsn.value | tokenNumber);
+end sub;
+
+sub SplCb implements SymbolCallback is
+    ExpectExpression();
+    if tokenNumber > 0o7 then
+        SimpleError("SPL value out of range");
+    end if;
+
+    Emit16(currentInsn.value | tokenNumber);
+end sub;
+
+sub SimpleCb implements SymbolCallback is
+    Emit16(currentInsn.value);
+end sub;
+
+@impl sub InitialiseSymbolTable is
+	var s: Symbol;
+	var symbols: Symbol[] := {
+        { "R0",    0,        RegCb,      &s },
+        { "R1",    1,        RegCb,      &s },
+        { "R2",    2,        RegCb,      &s },
+        { "R3",    3,        RegCb,      &s },
+        { "R4",    4,        RegCb,      &s },
+        { "R5",    5,        RegCb,      &s },
+        { "R6",    6,        RegCb,      &s },
+        { "R7",    7,        RegCb,      &s },
+        { "SP",    6,        RegCb,      &s },
+        { "PC",    7,        RegCb,      &s },
+
+        { "MOV",   0o010000, Op2Cb,      &s },
+        { "MOVB",  0o110000, Op2Cb,      &s },
+        { "CMP",   0o020000, Op2Cb,      &s },
+        { "CMPB",  0o120000, Op2Cb,      &s },
+        { "BIT",   0o030000, Op2Cb,      &s },
+        { "BITB",  0o130000, Op2Cb,      &s },
+        { "BIC",   0o040000, Op2Cb,      &s },
+        { "BICB",  0o140000, Op2Cb,      &s },
+        { "BIS",   0o050000, Op2Cb,      &s },
+        { "BISB",  0o150000, Op2Cb,      &s },
+        { "ADD",   0o060000, Op2Cb,      &s },
+        { "SUB",   0o160000, Op2Cb,      &s },
+
+        { "SWAB",  0o000300, Op1Cb,      &s },
+        { "CLR",   0o005000, Op1Cb,      &s },
+        { "CLRB",  0o105000, Op1Cb,      &s },
+        { "COM",   0o005100, Op1Cb,      &s },
+        { "COMB",  0o105100, Op1Cb,      &s },
+        { "INC",   0o005200, Op1Cb,      &s },
+        { "INCB",  0o105200, Op1Cb,      &s },
+        { "DEC",   0o005300, Op1Cb,      &s },
+        { "DECB",  0o105300, Op1Cb,      &s },
+        { "NEG",   0o005400, Op1Cb,      &s },
+        { "NEGB",  0o105400, Op1Cb,      &s },
+        { "ADC",   0o005500, Op1Cb,      &s },
+        { "ADCB",  0o105500, Op1Cb,      &s },
+        { "SBC",   0o005600, Op1Cb,      &s },
+        { "SBCB",  0o105600, Op1Cb,      &s },
+        { "TST",   0o005700, Op1Cb,      &s },
+        { "TSTB",  0o105700, Op1Cb,      &s },
+        { "ROR",   0o006000, Op1Cb,      &s },
+        { "RORB",  0o106000, Op1Cb,      &s },
+        { "ROL",   0o006100, Op1Cb,      &s },
+        { "ROLB",  0o106100, Op1Cb,      &s },
+        { "ASR",   0o006200, Op1Cb,      &s },
+        { "ASRB",  0o106200, Op1Cb,      &s },
+        { "ASL",   0o006300, Op1Cb,      &s },
+        { "ASLB",  0o106300, Op1Cb,      &s },
+        { "MTPS",  0o106400, Op1Cb,      &s },
+        { "MFPI",  0o006500, Op1Cb,      &s },
+        { "MFPD",  0o106500, Op1Cb,      &s },
+        { "MTPI",  0o006600, Op1Cb,      &s },
+        { "MTPD",  0o106600, Op1Cb,      &s },
+        { "SXT",   0o006700, Op1Cb,      &s },
+        { "MFPS",  0o106700, Op1Cb,      &s },
+        { "CSM",   0o007000, Op1Cb,      &s },
+
+        { "JSR",   0o004000, JsrCb,      &s },
+        { "CALL",  0o004700, CallCb,     &s },
+        { "RTS",   0o000200, RtsCb,      &s },
+        { "RET",   0o000207, SimpleCb,   &s },
+        { "HALT",  0o000000, SimpleCb,   &s },
+        { "WAIT",  0o000001, SimpleCb,   &s },
+        { "RTI",   0o000002, SimpleCb,   &s },
+        { "BPT",   0o000003, SimpleCb,   &s },
+        { "IOT",   0o000004, SimpleCb,   &s },
+        { "RESET", 0o000005, SimpleCb,   &s },
+        { "RTT",   0o000006, SimpleCb,   &s },
+        { "EMT",   0o104000, EmtTrapCb,  &s },
+        { "TRAP",  0o104400, EmtTrapCb,  &s },
+        { "LDUB",  0o170003, SimpleCb,   &s },
+        { "MED",   0o076600, SimpleCb,   &s },
+        { "SPL",   0o000230, SplCb,      &s },
+
+        { "SCC",   0o000277, SimpleCb,   &s },
+        { "SEC",   0o000261, SimpleCb,   &s },
+        { "SEV",   0o000262, SimpleCb,   &s },
+        { "SEZ",   0o000264, SimpleCb,   &s },
+        { "SEN",   0o000270, SimpleCb,   &s },
+
+        { "CCC",   0o000257, SimpleCb,   &s },
+        { "CLC",   0o000241, SimpleCb,   &s },
+        { "CLV",   0o000242, SimpleCb,   &s },
+        { "CLZ",   0o000244, SimpleCb,   &s },
+        { "CLN",   0o000250, SimpleCb,   &s },
+
+        { "BR",    0o000400, BrCb,       &s },
+        { "BNE",   0o001000, CondCb,     &s },
+        { "BEQ",   0o001400, CondCb,     &s },
+        { "BGE",   0o002000, CondCb,     &s },
+        { "BLT",   0o002400, CondCb,     &s },
+        { "BGT",   0o003000, CondCb,     &s },
+        { "BLE",   0o003400, CondCb,     &s },
+        { "BPL",   0o100000, CondCb,     &s },
+        { "BMI",   0o100400, CondCb,     &s },
+        { "BHI",   0o101000, CondCb,     &s },
+        { "BLOS",  0o101400, CondCb,     &s },
+        { "BVC",   0o102000, CondCb,     &s },
+        { "BVS",   0o102400, CondCb,     &s },
+        { "BCC",   0o103000, CondCb,     &s },
+        { "BCS",   0o103400, CondCb,     &s },
+        { "BHIS",  0o103000, CondCb,     &s },
+        { "BLO",   0o103400, CondCb,     &s },
+
+        { "MUL",   0o070000, Op2RegRCb,  &s },
+        { "DIV",   0o071000, Op2RegRCb,  &s },
+        { "ASH",   0o072000, Op2RegRCb,  &s },
+        { "ASHC",  0o073000, Op2RegRCb,  &s },
+        { "XOR",   0o074000, Op2RegCb,   &s },
+        { "SOB",   0o077000, SobCb,      &s },
+        { "JMP",   0o000100, JmpCb,      &s },
+        { "MARK",  0o006400, MarkCb,     &s },
+
+		{ "ORG",   0,            OrgCb,     &s },
+		{ "DB",    0,            DbCb,      &s },
+		{ "DS",    0,            DsCb,      &s },
+		{ "DW",    0,            DwCb,      &s },
+		{ "EQU",   0,            EquCb,     &s },
+		{ "ELSE",  0,            ElseCb,    &s },
+		{ "ENDIF", 0,            EndIfCb,   &s },
+		{ "END",   0,            EndCb,     &s },
+		{ "IF",    0,            IfCb,      &s },
+		{ "SET",   0,            SetCb,     &s },
+		{ "TITLE", 0,            TitleCb,   &s },
+        { "ALIGN", 0,            AlignCb,   &s },
+        { "CSEG",  SEGMENT_TEXT, SegmentCb, &s },
+        { "DSEG",  SEGMENT_DATA, SegmentCb, &s },
+        { "BSEG",  SEGMENT_BSS,  SegmentCb, &s },
+
+		{ "AND",   OP_AND,   OperatorCb, &s },
+		{ "MOD",   OP_MOD,   OperatorCb, &s },
+		{ "NOT",   OP_NOT,   OperatorCb, &s },
+		{ "OR",    OP_OR,    OperatorCb, &s },
+		{ "SHL",   OP_SHL,   OperatorCb, &s },
+		{ "SHR",   OP_SHR,   OperatorCb, &s },
+		{ "EOR",   OP_XOR,   OperatorCb, &s },
+	};
+
+    AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
+end sub;
+
+Main("PDP-11 Assembler (C) 2020 David Given; ");
+
+# vim: sw=4 ts=4 et

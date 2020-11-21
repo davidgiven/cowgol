@@ -1,0 +1,146 @@
+# System call numbers are here:
+# http://mdfs.net/Docs/Comp/PDP11/Unix/SYSCalls
+
+const FCB_BUFFER := 512;
+record FCB is
+	fd: uint16;
+	bufferptr: uint16; # byte just read
+	dirty: uint8;
+	block: uint32;
+	buffer: uint8[FCB_BUFFER];
+end record;
+
+sub fcb_i_gbpb(fcb: [FCB], sys: uint16) is
+    var fd := fcb.fd;
+    var dma := &fcb.buffer[0];
+    var pos := fcb.block << 9;
+
+    @asm "mov #0087h, -(sp)"; # ret
+    @asm "mov #0, -(sp)"; # whence
+    @asm "mov ", pos, "+0, -(sp)"; # pos lo
+    @asm "mov ", pos, "+2, -(sp)"; # pos hi
+    @asm "mov #8913h, -(sp)"; # lseek
+    @asm "mov ", fd, ", r0";
+    @asm "call @sp";
+    @asm "add #8, sp";
+
+    @asm "mov #", FCB_BUFFER, ", -(sp)";
+    @asm "mov ", dma, ", -(sp)";
+    @asm "mov ", sys, ", -(sp)";
+    @asm "mov ", fd, ", r0";
+    @asm "call @sp";
+    @asm "add #8, sp";
+end sub;
+
+sub fcb_i_blockin(fcb: [FCB]) is
+	MemSet(&fcb.buffer[0], 0, FCB_BUFFER);
+    fcb_i_gbpb(fcb, 0x8903);
+	fcb.dirty := 0;
+end sub;
+
+sub fcb_i_blockout(fcb: [FCB]) is
+	if fcb.dirty != 0 then
+        fcb_i_gbpb(fcb, 0x8904);
+		fcb.dirty := 0;
+	end if;
+end sub;
+
+sub fcb_i_changeblock(fcb: [FCB], newblock: uint32) is
+	if newblock != fcb.block then
+		fcb_i_blockout(fcb);
+		fcb.block := newblock;
+		fcb_i_blockin(fcb);
+	end if;
+end sub;
+
+sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
+	MemSet(fcb as [uint8], 0, @bytesof FCB);
+	fcb.bufferptr := FCB_BUFFER - 1;
+	fcb.block := -1;
+
+    @asm "mov #0087h, -(sp)"; # ret
+    @asm "mov #666o, -(sp)";
+    @asm "mov ", filename, ", -(sp)";
+    @asm "mov #8905h, -(sp)"; # trap 5
+    @asm "call @sp";
+    @asm "add #8, sp";
+
+	var fd: int16;
+    @asm "mov r0, ", fd;
+	fcb.fd := fd as uint16;
+	if fd < 0 then
+		errno := (-fd) as uint8;
+	else
+		errno := 0;
+	end if;
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o0000); # O_RDONLY
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o0002); # O_RDWR
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o1102); # O_RDWR|O_CREAT|O_TRUNC
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	fcb_i_blockout(fcb);
+
+	var fd := fcb.fd;
+    @asm "mov ", fd, ", r0";
+    @asm "trap 6";
+    @asm "neg r0";
+    @asm "mov r0, ", errno;
+end sub;
+
+sub FCBSeek(fcb: [FCB], pos: uint32) is
+	pos := pos - 1; # seek to *previous* character
+	var newblock := pos >> 9;
+	var newptr := (pos as uint16) & (FCB_BUFFER-1);
+	fcb_i_changeblock(fcb, newblock);
+	fcb.bufferptr := newptr;
+end sub;
+
+sub FCBPos(fcb: [FCB]): (pos: uint32) is
+	pos := ((fcb.block << 9) + (fcb.bufferptr as uint32)) + 1;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+	fcb_i_blockout(fcb);
+
+	var fd := fcb.fd;
+    @asm "mov ", fd, ", r0";
+    @asm "trap 19";
+    @asm "dw 0, 0"; # pos
+    @asm "dw 2"; # whence
+    @asm "mov r0, ", len, "+2";
+    @asm "mov r1, ", len, "+0";
+	len := (len + FCB_BUFFER - 1) & ~(FCB_BUFFER - 1);
+end sub;
+
+sub fcb_i_nextchar(fcb: [FCB]) is
+	fcb.bufferptr := fcb.bufferptr + 1;
+	if fcb.bufferptr == FCB_BUFFER then
+		fcb_i_changeblock(fcb, fcb.block + 1);
+		fcb.bufferptr := 0;
+	end if;
+end sub;
+
+sub FCBGetChar(fcb: [FCB]): (c: uint8) is
+	fcb_i_nextchar(fcb);
+	c := fcb.buffer[fcb.bufferptr];
+end sub;
+
+sub FCBPutChar(fcb: [FCB], c: uint8) is
+	fcb_i_nextchar(fcb);
+	fcb.buffer[fcb.bufferptr] := c;
+	fcb.dirty := 1;
+end sub;
+
+include "common-file.coh";
+
+# vim: ts=4 sw=4 et

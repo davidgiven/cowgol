@@ -3,11 +3,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#if defined COWGOL
-	#include "iburgcodes-coh.h"
-#else
-	#include "iburgcodes.h"
-#endif
+#include "iburgcodes-coh.h"
 
 static Symbol* symbol_table = NULL;
 static const char* SYM_REGISTER = "register";
@@ -16,6 +12,7 @@ static const char* SYM_REGCLASS = "register class";
 static Rule* rules[500];
 static int rulescount = 0;
 static int registercount = 0;
+static reg_t operandregs = 0;
 
 static int maxdepth = 0;
 static Node* pattern;
@@ -25,12 +22,6 @@ FILE* outfp;
 FILE* outhfp;
 
 const char* machine_word = NULL;
-
-#if defined COWGOL
-	#define DEREF "."
-#else
-	#define DEREF "->"
-#endif
 
 void* lookup_symbol(const char* name, const char* kind)
 {
@@ -112,6 +103,14 @@ static reg_t find_conflicting_registers(reg_t id)
 		reg = (Register*) reg->sym.next;
 	}
 	return conflicting;
+}
+
+void define_operand(const char* name)
+{
+	Register* r = define_register(name);
+	r->isstacked = true;
+	r->isoperand = true;
+	operandregs |= r->id;
 }
 
 void define_regclass(const char* name, reg_t reg)
@@ -326,25 +325,14 @@ static void print_upper(FILE* fp, const char* s)
 
 static void dump_registers(void)
 {
-	#if defined COWGOL
-	#else
-		fprintf(outhfp, "enum {\n");
-	#endif
-
 	Register* reg = (Register*) symbol_table;
 	while(reg)
 	{
 		if (reg->sym.kind == SYM_REGISTER)
 		{
-			#if defined COWGOL
-				fprintf(outhfp, "const REG_");
-				print_upper(outhfp, reg->sym.name);
-				fprintf(outhfp, " := 0x%x;\n", reg->id);
-			#else
-				fprintf(outhfp, "\tREG_");
-				print_upper(outhfp, reg->sym.name);
-				fprintf(outhfp, " = 0x%x,\n", reg->id);
-			#endif
+			fprintf(outhfp, "const REG_");
+			print_upper(outhfp, reg->sym.name);
+			fprintf(outhfp, " := 0x%x;\n", reg->id);
 		}
 		else if (reg->sym.kind == SYM_REGCLASS)
 		{
@@ -354,37 +342,20 @@ static void dump_registers(void)
 		}
 		reg = (Register*) reg->sym.next;
 	}
-	#if defined COWGOL
-	#else
-		fprintf(outhfp, "};\n");
-	#endif
 
-	#if defined COWGOL
-		fprintf(outhfp, "var registers: Register[] := {\n");
-	#else
-		fprintf(outfp, "const Register registers[] = {\n");
-	#endif
+	fprintf(outhfp, "var registers: Register[] := {\n");
 
 	reg = (Register*) symbol_table;
 	while(reg)
 	{
 		if (reg->sym.kind == SYM_REGISTER)
 		{
-			#if defined COWGOL
-				fprintf(outhfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
-					reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
-			#else
-				fprintf(outfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
-					reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
-			#endif
+			fprintf(outhfp, "\t{ \"%s\", 0x%x, 0x%x, 0x%x, %d },\n",
+				reg->sym.name, reg->id, reg->uses, reg->compatible, reg->isstacked);
 		}
 		reg = (Register*) reg->sym.next;
 	}
-	#if defined COWGOL
-		fprintf(outhfp, "};\n");
-	#else
-		fprintf(outfp, "};\n");
-	#endif
+	fprintf(outhfp, "};\n");
 }
 
 static const char* operator_name(int operator)
@@ -412,33 +383,19 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 	while (predicate)
 	{
 		if (!*first)
-		{
-			#if defined COWGOL
-				fprintf(outfp, " and");
-			#else
-				fprintf(outfp, " &&");
-			#endif
-		}
+			fprintf(outfp, " and");
 		*first = false;
 
 		switch (predicate->operator)
 		{
 			case IS:
-				#if defined COWGOL
-					fprintf(outfp, " (is_%s(%sslots[%d].", predicate->u.callback, predicate->deref ? "&" : "", index);
-				#else
-					fprintf(outfp, " (is_%s(n[%d]->u.", predicate->u.callback, index);
-				#endif
+				fprintf(outfp, " (is_%s(%sslots[%d].", predicate->u.callback, predicate->deref ? "&" : "", index);
 				print_lower(midcodetypes[template->midcode]);
 				fprintf(outfp, ".%s) != 0)", predicate->field);
 				break;
 
 			default:
-				#if defined COWGOL
-					fprintf(outfp, " (%sslots[%d].", predicate->deref ? "&" : "", index);
-				#else
-					fprintf(outfp, " (n[%d]->u.", index);
-				#endif
+				fprintf(outfp, " (%sslots[%d].", predicate->deref ? "&" : "", index);
 				print_lower(midcodetypes[template->midcode]);
 				fprintf(outfp, ".%s %s %d)",
 					predicate->field,
@@ -453,29 +410,19 @@ static void print_predicate(int index, bool* first, Node* template, Predicate* p
 
 static void create_match_predicates(void)
 {
-	#if defined COWGOL
-		fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8) is\n");
-		fprintf(outfp, "var slots: [Node][%d];\n", maxdepth);
-		fprintf(outfp, "MemCopy(n as [uint8], @bytesof slots, &slots[0] as [uint8]);\n");
-		fprintf(outfp, "matches := 0;\n");
-		fprintf(outfp, "case rule is\n");
-	#else
-		fprintf(outfp, "bool match_predicate(uint8_t rule, Node** n) {\n");
-		fprintf(outfp, "switch (rule) {\n");
-	#endif
+	fprintf(outfp, "sub MatchPredicate(rule: uint8, n: [[Node]]): (matches: uint8) is\n");
+	fprintf(outfp, "var slots: [Node][%d];\n", maxdepth);
+	fprintf(outfp, "MemCopy(n as [uint8], @bytesof slots, &slots[0] as [uint8]);\n");
+	fprintf(outfp, "matches := 0;\n");
+	fprintf(outfp, "case rule is\n");
 
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->has_predicates)
 		{
-			#if defined COWGOL
-				fprintf(outfp, "when %d:\n", i);
-				fprintf(outfp, "if ");
-			#else
-				fprintf(outfp, "case %d:\n", i);
-				fprintf(outfp, "\treturn");
-			#endif
+			fprintf(outfp, "when %d:\n", i);
+			fprintf(outfp, "if ");
 
 			bool first = true;
 			for (int j=0; j<maxdepth; j++)
@@ -484,60 +431,44 @@ static void create_match_predicates(void)
 				if (n)
 					print_predicate(j, &first, n, n->predicate);
 			}
-			#if defined COWGOL
-				fprintf(outfp, " then matches := 1; end if;\n");
-			#else
-				fprintf(outfp, ";\n");
-			#endif
+			fprintf(outfp, " then matches := 1; end if;\n");
 		}
 	}
 
-	#if defined COWGOL
-		fprintf(outfp, "end case;\n");
-		fprintf(outfp, "end sub;\n");
-	#else
-		fprintf(outfp, "}\n");
-		fprintf(outfp, "return false;\n");
-		fprintf(outfp, "}\n");
-	#endif
+	fprintf(outfp, "end case;\n");
+	fprintf(outfp, "end sub;\n");
 }
 
 static void create_rules(void)
 {
-	#if defined COWGOL
-		fprintf(outfp, "var codegen_midcodes: uint8[] := {\n");
-		for (int i=0; i<rulescount; i++)
+	fprintf(outfp, "var codegen_midcodes: uint8[] := {\n");
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+		for (int j=0; j<maxdepth; j++)
 		{
-			Rule* r = rules[i];
-			for (int j=0; j<maxdepth; j++)
-			{
-				Node* n = r->nodes[j];
-				if (n && n->midcode)
-					fprintf(outfp, "% 3d, ", n->midcode);
-			}
-			fprintf(outfp, "# %d\n", i);
+			Node* n = r->nodes[j];
+			if (n && n->midcode)
+				fprintf(outfp, "% 3d, ", n->midcode);
 		}
-		fprintf(outfp, "};\n");
-		fprintf(outfp, "var codegen_registers: RegId[] := {\n");
-		for (int i=0; i<rulescount; i++)
+		fprintf(outfp, "# %d\n", i);
+	}
+	fprintf(outfp, "};\n");
+	fprintf(outfp, "var codegen_registers: RegId[] := {\n");
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+		for (int j=0; j<maxdepth; j++)
 		{
-			Rule* r = rules[i];
-			for (int j=0; j<maxdepth; j++)
-			{
-				Node* n = r->nodes[j];
-				if (n && n->isregister)
-					fprintf(outfp, "0x%x, ", n->reg);
-			}
-			fprintf(outfp, "# %d\n", i);
+			Node* n = r->nodes[j];
+			if (n && n->isregister)
+				fprintf(outfp, "0x%x, ", n->reg);
 		}
-		fprintf(outfp, "};\n");
-	#endif
+		fprintf(outfp, "# %d\n", i);
+	}
+	fprintf(outfp, "};\n");
 
-	#if defined COWGOL
-		fprintf(outfp, "var codegen_rules: Rule[] := {\n");
-	#else
-		fprintf(outfp, "const Rule codegen_rules[] = {\n");
-	#endif
+	fprintf(outfp, "var codegen_rules: Rule[] := {\n");
 
 	for (int i=0; i<rulescount; i++)
 	{
@@ -551,33 +482,6 @@ static void create_rules(void)
 			flags |= 0x02;
 		fprintf(outfp, "0x%02x, ", flags);
 
-		fprintf(outfp, "0x%x, ", r->compatible_regs);
-		fprintf(outfp, "0x%x, ", r->result_reg);
-		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs));
-
-		#if !defined COWGOL
-			fprintf(outfp, "{ ");
-			for (int j=0; j<maxdepth; j++)
-			{
-				Node* n = r->nodes[j];
-				if (j)
-					fprintf(outfp, ", ");
-				if (n && n->isregister)
-					fprintf(outfp, "%d", n->reg);
-				else
-					fprintf(outfp, "0");
-			}
-			fprintf(outfp, " }, ");
-
-			fprintf(outfp, "{ ");
-			for (int j=0; j<maxdepth; j++)
-			{
-				Node* n = r->nodes[j];
-				fprintf(outfp, "%d, ", n ? n->midcode : 0);
-			}
-			fprintf(outfp, "}, ");
-		#endif
-
 		uint32_t copymask = 1;
 		uint32_t regmask = 0;
 		for (int j=1; j<maxdepth; j++)
@@ -589,24 +493,22 @@ static void create_rules(void)
 					regmask |= 1<<j;
 			}
 		}
-		#if defined COWGOL
-			uint32_t significantmask = 0;
-			for (int j=0; j<maxdepth; j++)
-			{
-				Node* n = r->nodes[j];
-				if (n && n->midcode)
-					significantmask |= 1<<j;
-			}
-			fprintf(outfp, "%d, ", significantmask);
-		#endif
+
+		uint32_t significantmask = 0;
+		for (int j=0; j<maxdepth; j++)
+		{
+			Node* n = r->nodes[j];
+			if (n && n->midcode)
+				significantmask |= 1<<j;
+		}
+
+		fprintf(outfp, "0x%x, ", r->compatible_regs);
+		fprintf(outfp, "0x%x, ", r->result_reg);
+		fprintf(outfp, "0x%x, ", find_conflicting_registers(r->uses_regs));
+		fprintf(outfp, "%d, ", significantmask);
 		fprintf(outfp, "%d, %d ", copymask, regmask);
 		fprintf(outfp, "}, ");
-
-		#if defined COWGOL
-			fprintf(outfp, "# %d\n", i);
-		#else
-			fprintf(outfp, "/* %d */\n", i);
-		#endif
+		fprintf(outfp, "# %d\n", i);
 	}
 
 	fprintf(outfp, "};\n");
@@ -617,43 +519,44 @@ static void print_complex_action(Rule* r, Element* e)
 	if (e->next)
 		print_complex_action(r, e->next);
 
-	if (e->islabel)
+	switch (e->kind)
 	{
-		if (e->text[0] == '$')
-		{
-			#if defined COWGOL
-				fprintf(outfp, "selfreg");
-			#else
-				fprintf(outfp, "self" DEREF "produced_reg");
-			#endif
-		}
-		else
-		{
-			Node* node = lookup_label(r->pattern, e->text);
-			if (!node)
-				fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
+		case ELEMENT_STRING:
+			fprintf(outfp, "%s", e->text);
+			break;
 
-			if (node->isregister)
-			{
-				#if defined COWGOL
-					fprintf(outfp, "slots[%d].reg", node->index);
-				#else
-					fprintf(outfp, "self" DEREF "n[%d]" DEREF "produced_reg", node->index);
-				#endif
-			}
+		case ELEMENT_REGLABEL:
+			if (e->text[0] == '$')
+				fprintf(outfp, "selfreg");
 			else
 			{
-				#if defined COWGOL
-					fprintf(outfp, "slots[%d].node" DEREF, node->index);
-				#else
-					fprintf(outfp, "self" DEREF "n[%d]" DEREF "u.", node->index);
-				#endif
-				print_lower(midcodetypes[node->midcode]);
+				Node* node = lookup_label(r->pattern, e->text);
+				if (!node)
+					fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
+
+				if (node->isregister)
+					fprintf(outfp, "slots[%d].reg", node->index);
+				else
+				{
+					fprintf(outfp, "slots[%d].node.", node->index);
+					print_lower(midcodetypes[node->midcode]);
+				}
 			}
-		}
+			break;
+
+		case ELEMENT_NODELABEL:
+			if (e->text[0] == '$')
+				fprintf(outfp, "slots[0].node");
+			else
+			{
+				Node* node = lookup_label(r->pattern, e->text);
+				if (!node)
+					fatal("nothing labelled '%s' at line %d", e->text, r->lineno);
+
+				fprintf(outfp, "slots[%d].node", node->index);
+			}
+			break;
 	}
-	else
-		fprintf(outfp, "%s", e->text);
 }
 
 static void print_line(int lineno)
@@ -663,43 +566,33 @@ static void print_line(int lineno)
 
 static void create_emitters(void)
 {
-	#if defined COWGOL
-		fprintf(outfp, "sub EmitOneInstruction(ruleid: uint8, self: [Instruction]) is\n");
-		fprintf(outfp, "record NodeSlot is\n");
-		fprintf(outfp, "\tnode: [Node];\n");
-		fprintf(outfp, "\treg: RegId;\n");
-		fprintf(outfp, "end record;\n");
-		fprintf(outfp, "var slots: NodeSlot[%d];\n", maxdepth);
-		fprintf(outfp, "var psrc := &self.n[0];\n");
-		fprintf(outfp, "var pdest := &slots[0];\n");
-		fprintf(outfp, "var i: uint8 := %d;\n", maxdepth);
-		fprintf(outfp, "while i != 0 loop\n");
-		fprintf(outfp, "\tpdest.node := [psrc];\n");
-		fprintf(outfp, "\tif pdest.node != (0 as [Node]) then\n");
-		fprintf(outfp, "\t\tpdest.reg := pdest.node.produced_reg;\n");
-		fprintf(outfp, "\tend if;\n");
-		fprintf(outfp, "\tpsrc := @next psrc;\n");
-		fprintf(outfp, "\tpdest := @next pdest;\n");
-		fprintf(outfp, "\ti := i - 1;\n");
-		fprintf(outfp, "end loop;\n");
-		fprintf(outfp, "var selfreg := self.produced_reg;\n");
-		fprintf(outfp, "interface Emitter();\n");
-	#else
-		fprintf(outfp, "void emit_one_instruction(uint8_t rule, Instruction* self) {\n");
-		fprintf(outfp, "switch (rule) {\n");
-	#endif
+	fprintf(outfp, "sub EmitOneInstruction(ruleid: uint8, self: [Instruction]) is\n");
+	fprintf(outfp, "record NodeSlot is\n");
+	fprintf(outfp, "\tnode: [Node];\n");
+	fprintf(outfp, "\treg: RegId;\n");
+	fprintf(outfp, "end record;\n");
+	fprintf(outfp, "var slots: NodeSlot[%d];\n", maxdepth);
+	fprintf(outfp, "var psrc := &self.n[0];\n");
+	fprintf(outfp, "var pdest := &slots[0];\n");
+	fprintf(outfp, "var i: uint8 := %d;\n", maxdepth);
+	fprintf(outfp, "while i != 0 loop\n");
+	fprintf(outfp, "\tpdest.node := [psrc];\n");
+	fprintf(outfp, "\tif pdest.node != (0 as [Node]) then\n");
+	fprintf(outfp, "\t\tpdest.reg := pdest.node.produced_reg;\n");
+	fprintf(outfp, "\tend if;\n");
+	fprintf(outfp, "\tpsrc := @next psrc;\n");
+	fprintf(outfp, "\tpdest := @next pdest;\n");
+	fprintf(outfp, "\ti := i - 1;\n");
+	fprintf(outfp, "end loop;\n");
+	fprintf(outfp, "var selfreg := self.produced_reg;\n");
+	fprintf(outfp, "interface Emitter();\n");
 
 	for (int i=0; i<rulescount; i++)
 	{
 		Rule* r = rules[i];
 		if (r->action)
 		{
-			#if defined COWGOL
-				fprintf(outfp, "sub emit_%d implements Emitter is\n", i);
-			#else
-				fprintf(outfp, "case %d: {\n", i);
-			#endif
-
+			fprintf(outfp, "sub emit_%d implements Emitter is\n", i);
 
 			print_line(r->lineno);
 
@@ -712,33 +605,24 @@ static void create_emitters(void)
 					fatal("simple actions not supported yet");
 			}
 
-			#if defined COWGOL
-				fprintf(outfp, "\nend sub;\n");
-			#else
-				fprintf(outfp, "\n} break;\n");
-			#endif
+			fprintf(outfp, "\nend sub;\n");
 		}
 	}
 
-	#if defined COWGOL
-		fprintf(outfp, "sub nop_emitter implements Emitter is end sub;\n");
-		fprintf(outfp, "var emitters: Emitter[] := {\n");
-		for (int i=0; i<rulescount; i++)
-		{
-			Rule* r = rules[i];
-			if (r->action)
-				fprintf(outfp, "\temit_%d,\n", i);
-			else
-				fprintf(outfp, "\tnop_emitter,\n");
-		}
-		fprintf(outfp, "};\n");
+	fprintf(outfp, "sub nop_emitter implements Emitter is end sub;\n");
+	fprintf(outfp, "var emitters: Emitter[] := {\n");
+	for (int i=0; i<rulescount; i++)
+	{
+		Rule* r = rules[i];
+		if (r->action)
+			fprintf(outfp, "\temit_%d,\n", i);
+		else
+			fprintf(outfp, "\tnop_emitter,\n");
+	}
+	fprintf(outfp, "};\n");
 
-		fprintf(outfp, "(emitters[ruleid])();\n");
-		fprintf(outfp, "end sub;\n");
-	#else
-		fprintf(outfp, "}\n");
-		fprintf(outfp, "}\n");
-	#endif
+	fprintf(outfp, "(emitters[ruleid as @indexof emitters])();\n");
+	fprintf(outfp, "end sub;\n");
 }
 
 static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
@@ -774,60 +658,34 @@ static void emit_replacement(Rule* rule, Node* pattern, Node* replacement)
 static void walk_matcher_tree(int* offset, Node* pattern)
 {
 	int thisoffset = *offset;
-	#if defined COWGOL
-		fprintf(outfp, "\t[matchbuf+%d] := [n + %d*@bytesof intptr].op;\n", thisoffset, thisoffset);
-	#else
-		fprintf(outfp, "\tmatchbuf[%d] = n[%d]->op;\n", thisoffset, thisoffset);
-	#endif
+	fprintf(outfp, "\t[matchbuf+%d] := [n + %d*@bytesof intptr].op;\n", thisoffset, thisoffset);
 
 	if (pattern->left)
 	{
 		(*offset)++;
-		#if defined COWGOL
-			fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].left;\n", *offset, thisoffset);
-			fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
-			walk_matcher_tree(offset, pattern->left);
-			fprintf(outfp, "\tend if;\n");
-		#else
-			fprintf(outfp, "\tn[%d] = n[%d]->left;\n", *offset, thisoffset);
-			fprintf(outfp, "\tif (n[%d]) {\n", *offset);
-			walk_matcher_tree(offset, pattern->left);
-			fprintf(outfp, "\t}\n");
-		#endif
+		fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].left;\n", *offset, thisoffset);
+		fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
+		walk_matcher_tree(offset, pattern->left);
+		fprintf(outfp, "\tend if;\n");
 	}
 	if (pattern->right)
 	{
 		(*offset)++;
-		#if defined COWGOL
-			fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].right;\n", *offset, thisoffset);
-			fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
-			walk_matcher_tree(offset, pattern->right);
-			fprintf(outfp, "\tend if;\n");
-		#else
-			fprintf(outfp, "\tn[%d] = n[%d]->right;\n", *offset, thisoffset);
-			fprintf(outfp, "\tif (n[%d]) {\n", *offset);
-			walk_matcher_tree(offset, pattern->right);
-			fprintf(outfp, "\t}\n");
-		#endif
+		fprintf(outfp, "\t[n + %d*@bytesof intptr] := [n + %d*@bytesof intptr].right;\n", *offset, thisoffset);
+		fprintf(outfp, "\tif [n + %d*@bytesof intptr] != (0 as [Node]) then\n", *offset);
+		walk_matcher_tree(offset, pattern->right);
+		fprintf(outfp, "\tend if;\n");
 	}
 }
 
 static void create_matcher(void)
 {
-	#if defined COWGOL
-		fprintf(outfp, "sub PopulateMatchBuffer(insn: [Instruction], n: [[Node]], matchbuf: [uint8]) is\n");
-	#else
-		fprintf(outfp, "void populate_match_buffer(Instruction* insn, Node** n, uint8_t* matchbuf) {\n");
-	#endif
+	fprintf(outfp, "sub PopulateMatchBuffer(insn: [Instruction], n: [[Node]], matchbuf: [uint8]) is\n");
 
 	int offset = 0;
 	walk_matcher_tree(&offset, pattern);
 
-	#if defined COWGOL
-		fprintf(outfp, "end sub;\n");
-	#else
-		fprintf(outfp, "};\n");
-	#endif
+	fprintf(outfp, "end sub;\n");
 
 }
 
@@ -854,41 +712,33 @@ int main(int argc, const char* argv[])
 
 	sort_rules();
 
-	#if defined COWGOL
-		if (machine_word)
-			fprintf(outhfp, "typedef Word is %s;\n", machine_word);
+	if (machine_word)
+		fprintf(outhfp, "typedef Word is %s;\n", machine_word);
 
-		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
-		fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
-		fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
-		fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
-		fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
-		fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
-		fprintf(outhfp, "record Register is\n");
-		fprintf(outhfp, "	name: string;\n");
-		fprintf(outhfp, "	id: RegId;\n");
-		fprintf(outhfp, "	uses: RegId;\n");
-		fprintf(outhfp, "	compatible: RegId;\n");
-		fprintf(outhfp, "	is_stacked: uint8;\n");
-		fprintf(outhfp, "end record;\n");
+	if (operandregs == 0)
+		fprintf(outhfp, "record Operand is end record;\n");
 
-	#else
-		fprintf(outhfp, "#ifndef NEWGEN_H\n");
-		fprintf(outhfp, "#define NEWGEN_H\n");
-		fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_DEPTH %d\n", maxdepth);
-		fprintf(outhfp, "#define INSTRUCTION_TEMPLATE_COUNT %d\n", rulescount);
-		fprintf(outhfp, "#define REGISTER_COUNT %d\n", registercount);
-	#endif
+	fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
+	fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
+	fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
+	fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
+	fprintf(outhfp, "const OPERAND_REGS := 0x%x;\n", operandregs);
+	fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
+	fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
+
+	fprintf(outhfp, "record Register is\n");
+	fprintf(outhfp, "	name: string;\n");
+	fprintf(outhfp, "	id: RegId;\n");
+	fprintf(outhfp, "	uses: RegId;\n");
+	fprintf(outhfp, "	compatible: RegId;\n");
+	fprintf(outhfp, "	is_stacked: uint8;\n");
+	fprintf(outhfp, "end record;\n");
 
 	dump_registers();
 	create_match_predicates();
 	create_emitters();
 	create_rules();
 	create_matcher();
-
-	#if !defined COWGOL
-		fprintf(outhfp, "#endif\n");
-	#endif
 
 	return errcnt>0;
 }

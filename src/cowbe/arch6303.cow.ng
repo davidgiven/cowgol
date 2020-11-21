@@ -1,0 +1,1548 @@
+%[
+	record MemOp is
+		sym: [Symbol];
+		off: Size;
+	end record;
+		
+	record ImmOp is
+		value: Arith;
+	end record;
+
+	record VsOp is
+		sp: uint8;
+	end record;
+
+	record XIndOp is
+		off: uint8;
+	end record;
+
+	record Operand is
+		mem @at(0): MemOp;
+		xind @at(0): XIndOp;
+		imm @at(0): ImmOp;
+		vs @at(0): VsOp;
+	end record;
+%]
+
+%{
+    const VARMEM_WS := 0;
+    const VARSTACK_WS := 1;
+
+	var varsp: uint8 := 0;
+
+    record ArchSubroutine is
+        end_label: LabelRef;
+		var_stack: uint8;
+    end record;
+
+	record Extern is
+		name: string;
+		id: uint16;
+		next: [Extern];
+	end record;
+
+	var externs: [Extern] := (0 as [Extern]);
+
+	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+		newvalue := value;
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+                E("+0x");
+				E_u16(off as uint16);
+			end if;
+		else
+			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
+	end sub;
+
+	# Does not persist the name; only call this with constant strings.
+	sub GetHelper(name: string): (e: [Extern]) is
+		e := externs;
+		while e != (0 as [Extern]) loop
+			if StrCmp(e.name, name) == 0 then
+				break;
+			end if;
+			e := e.next;
+		end loop;
+
+		if e == (0 as [Extern]) then
+			e := InternalAlloc(@bytesof Extern) as [Extern];
+			e.name := name;
+			e.id := AllocSubrId();
+			e.next := externs;
+			externs := e;
+
+			EmitterDeclareExternalSubroutine(e.id, name);
+		end if;
+
+		EmitterReferenceSubroutineById(current_subr.id, e.id);
+	end sub;
+
+	sub R_flushall() is
+		RegCacheFlush(ALL_REGS);
+	end sub;
+
+	sub R_flush(reg: RegId) is
+		RegCacheFlush(FindConflictingRegisters(reg));
+	end sub;
+
+	sub AllocPLabel(): (lid: uint16) is
+		# Cheap and cheerful way to allocate a label which won't overlap the
+		# frontend's numbering.
+		lid := -AllocLabel();
+	end sub;
+
+	sub E_label(label: LabelRef) is
+		R_flushall();
+		E_labelref(label);
+		E(":\n");
+	end sub;
+
+	sub E_insn(insn: string) is
+		E_tab();
+		E(insn);
+		E_space();
+	end sub;
+
+	sub E_insn_simple(insn: string) is
+		E_tab();
+		E(insn);
+		E_nl();
+	end sub;
+
+	sub E_const() is
+		E("#");
+	end sub;
+
+	sub E_db() is E_insn("db"); end sub;
+	sub E_dw() is E_insn("dw"); end sub;
+
+	sub E_jump(insn: string, label: LabelRef) is
+		R_flushall();
+		E_insn(insn);
+		E_labelref(label);
+		E_nl();
+	end sub;
+
+	sub E_jmp(label: LabelRef) is E_jump("bra", label); end sub;
+
+    sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node]) is
+        if node.beq.truelabel != node.beq.fallthrough then
+            E_jump(trueinsn, node.beq.truelabel);
+        end if;
+        if node.beq.falselabel != node.beq.fallthrough then
+            E_jump(falseinsn, node.beq.falselabel);
+        end if;
+    end sub;
+
+	sub E_acc(ainsn: string, binsn: string, reg: RegId) is
+		E_tab();
+		if reg == REG_A then
+			E(ainsn);
+		elseif reg == REG_B then
+			E(binsn);
+		else
+			SimpleError("bad accumulator register");
+		end if;
+		E_space();
+	end sub;
+
+	sub E_st(reg: RegId) is
+		if reg == REG_A then
+			E_insn("staa");
+		elseif reg == REG_B then
+			E_insn("stab");
+		elseif reg == REG_D then
+			E_insn("std");
+		elseif reg == REG_X then
+			E_insn("stx");
+		else
+			SimpleError("bad accumulator register");
+		end if;
+	end sub;
+
+	sub E_ld(reg: RegId) is
+		R_flush(reg);
+		if reg == REG_A then
+			E_insn("ldaa");
+		elseif reg == REG_B then
+			E_insn("ldab");
+		elseif reg == REG_D then
+			E_insn("ldd");
+		elseif reg == REG_X then
+			E_insn("ldx");
+		else
+			SimpleError("bad accumulator register");
+		end if;
+	end sub;
+
+	sub E_ldx() is
+		R_flush(REG_X);
+		E_insn("ldx");
+	end sub;
+
+	sub E_ldd() is
+		R_flush(REG_D);
+		E_insn("ldd");
+	end sub;
+
+	sub E_add(reg: RegId) is
+		R_flush(reg);
+		E_acc("adda", "addb", reg);
+	end sub;
+
+	sub E_sub(reg: RegId) is
+		R_flush(reg);
+		E_acc("suba", "subb", reg);
+	end sub;
+
+    sub E_xgdx() is
+        R_flush(REG_D|REG_X);
+        E_insn_simple("xgdx");
+    end sub;
+
+    sub RetractVStack(reg: RegId, op: [Operand]) is
+        case reg is
+            when REG_VS1: varsp := varsp - 1;
+            when REG_VS2: varsp := varsp - 2;
+        end case;
+    end sub;
+
+    sub PushVStack(op: [Operand], size: uint8) is
+        op.vs.sp := varsp;
+        varsp := varsp + size;
+        if current_subr.arch.var_stack < varsp then
+            current_subr.arch.var_stack := varsp;
+        end if;
+    end sub;
+
+    sub E_vsref(sp: uint8) is
+        E_wsref(current_subr.id, VARSTACK_WS, sp as uint16);
+    end sub;
+
+	sub E_op(reg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        sub dovs() is
+            E_vsref(operand.vs.sp + byte);
+        end sub;
+
+		case reg is
+			when REG_MEM:
+                E_symref(operand.mem.sym, operand.mem.off + (byte as uint16));
+
+			when REG_IMM:
+                var value := ((operand.imm.value as uint32) >> shift) as uint16;
+                E_const();
+                E_u16(value);
+
+			when REG_X:
+                E_u8(byte);
+                E(",x");
+
+			when REG_XIND:
+                E_u8(operand.xind.off + byte);
+                E(",x");
+
+			when REG_VS1: dovs();
+			when REG_VS2: dovs();
+
+			when else:
+                StartError();
+                print("bad operand ");
+                print_hex_i16(reg);
+                EndError();
+		end case;
+	end sub;
+
+    sub E_insnop(insn: string, destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        R_flush(destreg);
+        E_insn(insn);
+        E_op(srcreg, operand, byte, shift);
+        E_nl();
+    end sub;
+
+    sub E_accop(insna: string, insnb: string, destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        R_flush(destreg);
+        if destreg == REG_A then
+            E_insn(insna);
+        else
+            E_insn(insnb);
+        end if;
+        E_op(srcreg, operand, byte, shift);
+        E_nl();
+    end sub;
+
+    sub E_ldop(destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        R_flush(destreg);
+        case destreg is
+            when REG_A: E_insn("ldaa");
+            when REG_B: E_insn("ldab");
+            when REG_D: E_insn("ldd");
+            when REG_X: E_insn("ldx");
+        end case;
+        E_op(srcreg, operand, byte, shift);
+        E_nl();
+    end sub;
+
+    sub E_ldop_c(destreg: RegId, srcreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        case srcreg is
+            when REG_IMM:
+                if (RegCacheFindConstant(operand.imm.value as uint16) & destreg) != 0 then
+                    return;
+                end if;
+
+            when REG_MEM:
+                if (RegCacheFindValue(operand.mem.sym, operand.mem.off) & destreg) != 0 then
+                    return;
+                end if;
+        end case;
+
+        E_ldop(destreg, srcreg, operand, byte, shift);
+
+        case srcreg is
+            when REG_IMM:
+                RegCacheLeavesConstant(destreg, operand.imm.value as uint16);
+            when REG_MEM:
+                RegCacheLeavesValue(srcreg, operand.mem.sym, operand.mem.off);
+        end case;
+    end sub;
+
+    sub E_stop(srcreg: RegId, destreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        case srcreg is
+            when REG_A: E_insn("staa");
+            when REG_B: E_insn("stab");
+            when REG_D: E_insn("std");
+            when REG_X: E_insn("stx");
+        end case;
+        E_op(destreg, operand, byte, shift);
+        E_nl();
+    end sub;
+
+    sub E_stop_c(srcreg: RegId, destreg: RegId, operand: [Operand], byte: uint8, shift: uint8) is
+        E_stop(srcreg, destreg, operand, byte, shift);
+
+        case destreg is
+            when REG_IMM:
+                RegCacheLeavesConstant(srcreg, operand.imm.value as uint16);
+            when REG_MEM:
+                RegCacheLeavesValue(srcreg, operand.mem.sym, operand.mem.off);
+        end case;
+    end sub;
+
+	sub E_pop(reg: RegId) is
+		case reg is
+			when REG_A:
+                E_insn_simple("pula");
+			when REG_B:
+                E_insn_simple("pulb");
+			when REG_X:
+                E_insn_simple("pulx");
+			when REG_D:
+                E_insn_simple("pula");
+                E_insn_simple("pulb");
+		end case;
+        R_flush(reg);
+	end sub;
+
+	sub E_push(reg: RegId) is
+		case reg is
+			when REG_A:
+                E_insn_simple("psha");
+			when REG_B:
+                E_insn_simple("pshb");
+			when REG_X:
+                E_insn_simple("pshx");
+			when REG_D:
+                E_insn_simple("pshb");
+                E_insn_simple("psha");
+		end case;
+	end sub;
+
+    sub E_callhelper(name: string) is
+        var helper := GetHelper(name);
+        R_flushall();
+        E_insn("bsr");
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(helper.id);
+        E_nl();
+    end sub;
+        
+	# Note that this *destroys* the source register.
+	sub ArchEmitMove(src: RegId, dest: RegId) is
+        R_flush(dest);
+		if (src == REG_A) and (dest == REG_B) then
+			E_insn_simple("tab");
+		elseif (src == REG_B) and (dest == REG_A) then
+			E_insn_simple("tba");
+		elseif (src == REG_X) and (dest == REG_D) then
+            E_xgdx();
+		elseif (src == REG_D) and (dest == REG_X) then
+            E_xgdx();
+        elseif (src == REG_XD) and (dest == REG_I4) then
+            E_xgdx();
+            E_push(REG_X);
+            E_xgdx();
+            E_push(REG_X);
+		elseif dest == 0 then
+			E_push(src);
+		elseif src == 0 then
+			E_pop(dest);
+		else
+			StartError();
+			print("bad move: ");
+			print_hex_i16(src);
+			print(" -> ");
+			print_hex_i16(dest);
+			EndError();
+		end if;
+	end sub;
+
+	sub ArchEndInstruction() is
+	end sub;
+
+	sub ArchEndGroup() is
+        if varsp != 0 then
+            SimpleError("stray items on varstack");
+        end if;
+	end sub;
+%}
+
+wordsize uint16;
+
+register a;     // 0001
+register b;     // 0002
+register d;     // 0004
+register x;     // 0008
+register xd;    // 0010
+register param; // 0020
+
+operand imm;    // 0040
+operand mem;    // 0080
+operand xind;   // 0100
+operand vs1;    // 0200
+operand vs2;    // 0400
+register i4;    // 0800
+
+regdata a uses d   compatible a|b;
+regdata b uses d   compatible a|b;
+regdata d uses a|b compatible d|x;
+regdata x          compatible d|x;
+regdata xd uses x|d;
+regdata param stacked;
+regdata i4 stacked;
+
+regdata xind uses x;
+
+regclass op := imm|mem|xind;
+
+// --- Core things ----------------------------------------------------------
+
+gen STARTFILE();
+gen ENDFILE();
+
+gen LABEL():b
+{
+	E_label($b.label);
+}
+
+gen JUMP():j
+{
+	E_jmp($j.label);
+}
+
+// --- Subroutines ----------------------------------------------------------
+
+gen STARTSUB()
+{
+    current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
+    current_subr.arch.end_label := AllocPLabel();
+
+    EmitterOpenStream(current_subr);
+
+	E("\n\n\t; ");
+	E(current_subr.name);
+	E(" ws0 at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(VARMEM_WS);
+	E_b16(0);
+	E("+");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(VARMEM_WS);
+    E(" ws1 at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(VARSTACK_WS);
+	E_b16(0);
+	E("+");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(VARSTACK_WS);
+	E_nl();
+
+    E_b8(COO_ESCAPE_THISSUB);
+    E(":\n");
+
+	var count := current_subr.num_input_parameters;
+	var lastparam := count - 1;
+	var popped: uint8 := 0;
+    var retaddr: Operand;
+
+	sub pop_return_address() is
+		if popped == 0 then
+            PushVStack(&retaddr, 2);
+			E_pop(REG_D);
+            E_stop_c(REG_D, REG_VS2, &retaddr, 0, 0);
+			popped := 1;
+		end if;
+	end sub;
+
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter(current_subr, count);
+        var op: Operand;
+        op.mem.sym := param as [Symbol];
+        op.mem.off := 0;
+
+		case param.width is
+			when 1:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_A);
+				end if;
+                E_stop_c(REG_A, REG_MEM, &op, 0, 0);
+
+			when 2:
+				if count != lastparam then
+					pop_return_address();
+					E_pop(REG_D);
+				end if;
+                E_stop_c(REG_D, REG_MEM, &op, 0, 0);
+
+			when 4:
+				pop_return_address();
+
+				E_pop(REG_D);
+                E_stop(REG_D, REG_MEM, &op, 0, 16);
+
+				E_pop(REG_D);
+                E_stop(REG_D, REG_MEM, &op, 2, 0);
+		end case;
+	end loop;
+
+	if popped != 0 then
+        E_ldop_c(REG_X, REG_VS2, &retaddr, 0, 0);
+		E_push(REG_X);
+        RetractVStack(REG_VS2, &retaddr);
+	end if;
+}
+
+gen ENDSUB()
+{
+	E_label(current_subr.arch.end_label);
+
+	var count: uint8 := 0;
+	var params := current_subr.num_output_parameters;
+	var pushed: uint8 := 0;
+    var retaddr: Operand;
+
+	sub push_return_address() is
+		if pushed == 0 then
+            PushVStack(&retaddr, 2);
+			E_pop(REG_D);
+            E_stop_c(REG_D, REG_VS2, &retaddr, 0, 0);
+			pushed := 1;
+		end if;
+	end sub;
+
+    sub maybe_push_return_address() is
+        if count != (params-1) then
+            push_return_address();
+        end if;
+    end sub;
+
+	while count != params loop
+		var param := GetOutputParameter(current_subr, count);
+        var op: Operand;
+        op.mem.sym := param as [Symbol];
+        op.mem.off := 0;
+
+		case param.width is
+			when 1:
+                maybe_push_return_address();
+                E_ldop_c(REG_A, REG_MEM, &op, 0, 0);
+
+				if count != (params-1) then
+					E_push(REG_A);
+				end if;
+
+			when 2:
+                maybe_push_return_address();
+                E_ldop_c(REG_D, REG_MEM, &op, 0, 0);
+
+				if count != (params-1) then
+					E_push(REG_D);
+				end if;
+
+			when 4:
+				push_return_address();
+                E_ldop_c(REG_D, REG_MEM, &op, 2, 0);
+				E_push(REG_D);
+
+                E_ldop_c(REG_D, REG_MEM, &op, 0, 16);
+				E_push(REG_D);
+		end case;
+
+		count := count + 1;
+	end loop;
+
+	if pushed != 0 then
+        E_ldop_c(REG_X, REG_VS2, &retaddr, 0, 0);
+        E_insn_simple("jmp ,x");
+        RetractVStack(REG_VS2, &retaddr);
+    else
+        E_insn_simple("rts");
+	end if;
+
+    EmitterCloseStream();
+
+    EmitterDeclareWorkspace(current_subr.id, VARSTACK_WS, current_subr.arch.var_stack as uint16);
+	Free(current_subr.arch as [uint8]);
+}
+
+%{
+	sub Call(addr: [MidcodeSubref]) is
+        R_flushall();
+		E_insn("bsr");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+
+	sub CallI() is
+        R_flushall();
+		E_insn_simple("jsr ,x");
+	end sub;
+%}
+
+gen         CALL(       param,      SUBREF():a) uses a|b|x { Call(&$a); }
+gen         CALL(  ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
+gen         CALL(  ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen a :=    CALLE1(     param,      SUBREF():a) uses   b|x { Call(&$a); }
+gen a :=    CALLE1(ARG1(param, a),  SUBREF():a) uses   b|x { Call(&$a); }
+gen a :=    CALLE1(ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen d :=    CALLE2(     param,      SUBREF():a) uses     x { Call(&$a); }
+gen d :=    CALLE2(ARG1(param, a),  SUBREF():a) uses     x { Call(&$a); }
+gen d :=    CALLE2(ARG2(param, d),  SUBREF():a) uses     x { Call(&$a); }
+gen i4 :=   CALLE4(     param,      SUBREF():a) uses a|b|x { Call(&$a); }
+gen i4 :=   CALLE4(ARG1(param, a),  SUBREF():a) uses a|b|x { Call(&$a); }
+gen i4 :=   CALLE4(ARG2(param, d),  SUBREF():a) uses a|b|x { Call(&$a); }
+
+gen         CALL(       param,      x) uses a|b { CallI(); }
+gen         CALL(  ARG1(param, a),  x) uses   b { CallI(); }
+gen         CALL(  ARG2(param, d),  x)          { CallI(); }
+gen a :=    CALLE1(     param,      x) uses   b { CallI(); }
+gen a :=    CALLE1(ARG1(param, a),  x) uses   b { CallI(); }
+gen a :=    CALLE1(ARG2(param, d),  x)          { CallI(); }
+gen d :=    CALLE2(     param,      x)          { CallI(); }
+gen d :=    CALLE2(ARG1(param, a),  x)          { CallI(); }
+gen d :=    CALLE2(ARG2(param, d),  x)          { CallI(); }
+gen i4 :=   CALLE4(     param,      x) uses a|b { CallI(); }
+gen i4 :=   CALLE4(ARG1(param, a),  x) uses a|b { CallI(); }
+gen i4 :=   CALLE4(ARG2(param, d),  x) uses a|b { CallI(); }
+
+gen param := END();
+
+gen param := ARG1(param, a|b:lhs)  { E_push($lhs); }
+gen param := ARG2(param, d|x:lhs)  { E_push($lhs); }
+gen param := ARG4(param, i4);
+
+gen a   := POPARG1(remaining==0);
+gen d   := POPARG2(remaining==0);
+
+gen a|b := POPARG1(remaining!=0) { E_pop($$); }
+gen d|x := POPARG2(remaining!=0) { E_pop($$); }
+gen i4  := POPARG4();
+
+gen RETURN()
+{
+	E_insn("bra");
+	E_labelref(current_subr.arch.end_label);
+	E_nl();
+}
+
+// --- Read operands --------------------------------------------------------
+
+gen mem := DEREF1(ADDRESS():a) cost 5
+{
+	var op := &self.n[0].operand;
+	op.mem.sym := &$a.sym;
+	op.mem.off := $a.off;
+}
+
+gen mem := DEREF2(ADDRESS():a) cost 5
+{
+	var op := &self.n[0].operand;
+	op.mem.sym := &$a.sym;
+	op.mem.off := $a.off;
+}
+
+gen mem := DEREF4(ADDRESS():a) cost 5
+{
+	var op := &self.n[0].operand;
+	op.mem.sym := &$a.sym;
+	op.mem.off := $a.off;
+}
+
+gen xind := DEREF1(ADD2(x, CONSTANT(value is byte):c)) cost 5
+{
+	var op := &self.n[0].operand;
+	op.xind.off := $c.value as uint8;
+}
+
+gen xind := DEREF2(ADD2(x, CONSTANT(value is bytem1):c)) cost 5
+{
+	var op := &self.n[0].operand;
+	op.xind.off := $c.value as uint8;
+}
+
+gen imm := CONSTANT():c cost 5
+{
+	var op := &self.n[0].operand;
+	op.imm.value := $c.value;
+}
+
+gen vs1 := FALLBACK(a|b:lhs)
+{
+	E_st($lhs);
+	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
+	E_nl();
+
+    PushVStack(&$@$.operand, 1);
+}
+
+gen vs2 := FALLBACK(d|x:lhs)
+{
+	E_st($lhs);
+	E_wsref(current_subr.id, VARSTACK_WS, varsp as uint16);
+	E_nl();
+
+    PushVStack(&$@$.operand, 2);
+}
+
+gen xd := FALLBACK(i4)
+{
+    E_pop(REG_X);
+    E_xgdx();
+    E_pop(REG_X);
+    E_xgdx();
+}
+
+gen i4 := FALLBACK(xd)
+{
+    E_xgdx();
+    E_push(REG_X);
+    E_xgdx();
+    E_push(REG_X);
+}
+
+// --- Simple things --------------------------------------------------------
+
+gen x|d := ADDRESS():a
+{
+	var cache := RegCacheFindAddress(&$a.sym, $a.off) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
+	end if;
+
+	if $$ == REG_X then
+		E_ldx();
+	else
+		E_ldd();
+	end if;
+	E_const();
+	E_symref(&$a.sym, $a.off);
+	E_nl();
+
+	RegCacheLeavesAddress($$, &$a.sym, $a.off);
+}
+
+gen a|b|d|x := CONSTANT():c
+{
+	var cache := RegCacheFindConstant($c.value as uint16) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+		return;
+	end if;
+
+    sub load16() is
+		E_ld($$);
+		E_const();
+		E_u16($c.value as uint16);
+		E_nl();
+    end sub;
+
+    if $c.value == 0 then
+        if ($$ & (REG_A|REG_B)) != 0 then
+            E_acc("clra", "clrb", $$);
+            E_nl();
+        elseif $$ == REG_D then
+            E_insn_simple("clra");
+            E_insn_simple("clrb");
+        else
+            load16();
+        end if;
+    else
+        load16();
+	end if;
+
+	RegCacheLeavesConstant($$, $c.value as uint16);
+}
+
+gen d|x := SUBREF():s
+{
+    R_flush($$);
+    E_ld($$);
+    E_const();
+    E_subref($s.subr);
+    E_nl();
+}
+
+gen xd := CONSTANT():c
+{
+    var op: Operand;
+
+    op.imm.value := $c.value as uint16 as int32;
+    E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
+
+    op.imm.value := ($c.value as uint32 >> 16) as uint16 as int32;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+}
+
+gen i4 := CONSTANT():c uses x
+{
+    var op: Operand;
+
+    op.imm.value := $c.value as uint16 as int32;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+    E_push(REG_X);
+
+    op.imm.value := ($c.value as uint32 >> 16) as uint16 as int32;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+    E_push(REG_X);
+}
+
+// --- Stores (these don't use operands) ------------------------------------
+
+gen STORE1(a|b:lhs, DEREF1(x))
+{
+	E_st($lhs);
+	E(",x\n");
+}
+
+gen STORE1(a|b:lhs, DEREF1(ADD2(x, CONSTANT(value is byte):c)))
+{
+	E_st($lhs);
+	E_u16($c.value as uint16);
+	E(",x\n");
+}
+
+gen STORE1(a|b:lhs, DEREF1(ADDRESS():a))
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_stop_c($lhs, REG_MEM, &op, 0, 0);
+}
+
+gen STORE2(x|d:lhs, DEREF2(x))
+{
+	E_st($lhs);
+	E(",x\n");
+}
+
+gen STORE2(x|d:lhs, DEREF2(ADD2(x, CONSTANT(value is bytem1):c)))
+{
+	E_st($lhs);
+	E_u16($c.value as uint16);
+	E(",x\n");
+}
+
+gen STORE2(d:lhs, DEREF2(ADDRESS():a))
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_stop_c($lhs, REG_MEM, &op, 0, 0);
+}
+
+gen STORE4(i4|xd:lhs, DEREF4(ADDRESS():a)) uses d
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+
+    if $lhs == REG_I4 then
+        E_pop(REG_D);
+        E_stop(REG_D, REG_MEM, &op, 0, 16);
+
+        E_pop(REG_D);
+        E_stop(REG_D, REG_MEM, &op, 2, 0);
+    else
+        E_stop(REG_D, REG_MEM, &op, 2, 0);
+        E_stop(REG_X, REG_MEM, &op, 0, 16);
+    end if;
+}
+
+gen STORE4(i4:lhs, DEREF4(x)) uses d
+{
+    R_flush(REG_D);
+    E_callhelper("_store4x");
+}
+
+// --- Loads (these don't use operands) ----------------------------------
+
+gen a|b := DEREF1(x)
+{
+	E_ld($$);
+	E(",x\n");
+}
+
+gen a|b := DEREF1(ADDRESS():a)
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_ldop_c($$, REG_MEM, &op, 0, 0);
+}
+
+gen a|b := DEREF1(ADD2(x, CONSTANT(value is byte):c))
+{
+	E_ld($$);
+	E_u16($c.value as uint16);
+	E(",x\n");
+}
+
+gen x|d := DEREF2(x)
+{
+	E_ld($$);
+	E(",x\n");
+}
+
+gen x|d := DEREF2(ADDRESS():a)
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+    E_ldop_c($$, REG_MEM, &op, 0, 0);
+}
+
+gen x|d := DEREF2(ADD2(x, CONSTANT(value is bytem1):c))
+{
+	E_ld($$);
+	E_u16($c.value as uint16);
+	E(",x\n");
+}
+
+gen xd := DEREF4(ADDRESS():a)
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+
+    R_flush($$);
+    E_ldop(REG_D, REG_MEM, &op, 2, 0);
+    E_ldop(REG_X, REG_MEM, &op, 0, 16);
+}
+
+gen i4 := DEREF4(ADDRESS():a) uses x
+{
+    var op: Operand;
+    op.mem.sym := &$a.sym;
+    op.mem.off := $a.off;
+
+    R_flush(REG_X);
+    E_ldop(REG_X, REG_MEM, &op, 2, 0);
+    E_push(REG_X);
+    E_ldop(REG_X, REG_MEM, &op, 0, 16);
+    E_push(REG_X);
+}
+
+gen xd := DEREF4(x)
+{
+    R_flush($$);
+    E_insn_simple("ldd 2, x");
+    E_insn_simple("ldx 0, x");
+}
+
+gen i4 := DEREF4(x) uses d
+{
+    R_flush(REG_D);
+    E_callhelper("_load4x");
+}
+
+// --- 8-bit arithmetic -----------------------------------------------------
+
+gen a|b := ADD1($$:lhs, op|vs1:rhs)
+{
+    RetractVStack($rhs, &$@rhs.operand);
+	E_accop("adda", "addb", $lhs, $rhs, &$@rhs.operand, 0, 0);
+}
+
+gen a|b := ADD1($$:lhs, CONSTANT(value == 1))
+{
+	R_flush($$);
+	E_acc("inca", "incb", $$);
+	E_nl();
+}
+
+gen a|b := ADD1($$:lhs, CONSTANT(value == -1))
+{
+	R_flush($$);
+	E_acc("deca", "decb", $$);
+	E_nl();
+}
+
+gen a|b := SUB1($$:lhs, op|vs1:rhs)
+{
+    RetractVStack($rhs, &$@rhs.operand);
+	E_accop("suba", "subb", $lhs, $rhs, &$@rhs.operand, 0, 0);
+}
+
+gen a|b := NEG1($$)
+{
+	R_flush($$);
+	E_acc("nega", "negb", $$);
+	E_nl();
+}
+
+gen a|b := NOT1($$)
+{
+    R_flush($$);
+    E_acc("coma", "comb", $$);
+    E_nl();
+}
+
+gen b := MUL1(a, b)
+{
+	R_flush(REG_A|REG_B);
+	E_insn_simple("mul");
+}
+
+gen b := DIVU1(a, b) uses x { E_callhelper("_divremu1"); }
+gen a := REMU1(a, b) uses x { E_callhelper("_divremu1"); }
+gen b := DIVS1(a, b) uses x { E_callhelper("_divrems1"); }
+gen a := REMS1(a, b) uses x { E_callhelper("_divrems1"); }
+
+gen b := LSHIFT1(b, a)  { E_callhelper("_lsl1"); }
+gen b := RSHIFTU1(b, a) { E_callhelper("_lsr1"); }
+gen b := RSHIFTS1(b, a) { E_callhelper("_asr1"); }
+
+%{
+    sub Alu1(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
+        RetractVStack(rhs, rhsop);
+        E_accop(insna, insnb, lhs, rhs, rhsop, 0, 0);
+    end sub;
+%}
+
+gen a|b := EOR1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "eora", "eorb"); }
+gen a|b := OR1 ($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "oraa", "orab"); }
+gen a|b := AND1($$:lhs, op|vs1:rhs) uses x { Alu1($$, $rhs, &$@rhs.operand, "anda", "andb"); }
+
+%{
+    sub is_inc_or_dec(value: Arith): (result: uint8) is
+        result := 0;
+        if (value == 1) or (value == -1) then
+            result := 1;
+        end if;
+    end sub;
+%}
+
+// This rule doesn't work, so disable it for now.
+//gen STORE1(
+//        ADD1(DEREF1(ADDRESS():a1), CONSTANT(value is inc_or_dec):c),
+//        ADDRESS():a2) uses a cost 100
+//{
+//    var op: Operand;
+//    op.mem.sym := &$a1.sym;
+//    op.mem.off := $a1.off;
+//    if ($a1.sym.subr == $a2.sym.subr) and ($a1.sym.wsid == $a2.sym.wsid) and ($a1.sym.off == $a2.sym.off)
+//            and ($a1.off == $a2.off) then
+//        if $c.value < 0 then
+//            E_insn("dec");
+//        else
+//            E_insn("inc");
+//        end if;
+//        E_op(REG_MEM, &op, 0, 0);
+//        E_nl();
+//    else
+//        E_ldop_c(REG_A, REG_MEM, &op, 0, 0);
+//        R_flush(REG_A);
+//        E_insn_simple("inca");
+//        E_stop_c(REG_A, REG_MEM, &op, 0, 0);
+//    end if;
+//}
+
+// --- 16-bit arithmetic ----------------------------------------------------
+
+gen d := ADD2($$:lhs, op|vs2:rhs)
+{
+    RetractVStack($rhs, &$@rhs.operand);
+    E_insnop("addd", $lhs, $rhs, &$@rhs.operand, 0, 0);
+}
+
+gen d := SUB2($$:lhs, op|vs2:rhs)
+{
+    RetractVStack($rhs, &$@rhs.operand);
+    E_insnop("subd", $lhs, $rhs, &$@rhs.operand, 0, 0);
+}
+
+%{
+	sub is_byte(value: int32): (result: uint8) is
+		if (value & 0xffffff00) == 0 then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+
+	sub is_bytem1(value: int32): (result: uint8) is
+        if (value >= 0) and (value <= 254) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+
+	sub is_bytem3(value: int32): (result: uint8) is
+        if (value >= 0) and (value <= 252) then
+			result := 1;
+		else
+			result := 0;
+		end if;
+	end sub;
+%}
+
+gen x := ADD2($$:lhs, CONSTANT(value is byte):c) uses b cost -5
+{
+	var cache := RegCacheFindConstant($c.value as uint16) & $$;
+	if (cache & $$) != 0 then
+		# The value is already in the desired register.
+	else
+		R_flush(REG_B);
+		E_insn("ldab #");
+		E_u8($c.value as uint8);
+		E_nl();
+		RegCacheLeavesConstant($$, $c.value as uint16);
+	end if;
+
+	R_flush($$);
+	E_insn_simple("abx");
+}
+
+gen x := ADD2($$:lhs, CONSTANT(value == 1)) cost 1
+{
+	R_flush($$);
+	E_insn_simple("inx");
+}
+
+gen x := ADD2($$:lhs, CONSTANT(value == -1)) cost 1
+{
+	R_flush($$);
+	E_insn_simple("dex");
+}
+
+%{
+    sub Alu2(lhs: RegId, rhs: RegId, rhsop: [Operand], insna: string, insnb: string) is
+        RetractVStack(rhs, rhsop);
+        E_insnop(insnb, REG_B, rhs, rhsop, 1, 0);
+        E_insnop(insna, REG_A, rhs, rhsop, 0, 8);
+    end sub;
+%}
+
+gen d := DIVU2(d, x)         { E_callhelper("_divu2"); }
+gen d := DIVS2(d, x)         { E_callhelper("_divs2"); }
+gen d := REMU2(d, x)         { E_callhelper("_remu2"); }
+gen d := REMS2(d, x)         { E_callhelper("_rems2"); }
+gen d := MUL2(d, x)          { E_callhelper("_mul2"); }
+
+gen d := NEG2(op|vs2:rhs)
+{
+    RetractVStack($rhs, &$@rhs.operand);
+
+    var op: Operand;
+    op.imm.value := 0;
+    E_ldop_c(REG_D, REG_IMM, &op, 0, 0);
+
+    E_insnop("subd", REG_D, $rhs, &$@rhs.operand, 0, 0);
+}
+
+gen d := NOT2(d)
+{
+    E_insn_simple("comb");
+    E_insn_simple("coma");
+}
+
+gen d := OR2(d, op|vs2:rhs)  { Alu2(REG_D, $rhs, &$@rhs.operand, "oraa", "orab"); }
+gen d := EOR2(d, op|vs2:rhs) { Alu2(REG_D, $rhs, &$@rhs.operand, "eora", "eorb"); }
+gen d := AND2(d, op|vs2:rhs) { Alu2(REG_D, $rhs, &$@rhs.operand, "anda", "andb"); }
+
+gen d := LSHIFT2(x, b)       { E_callhelper("_lsl2"); }
+gen d := RSHIFTU2(x, b)      { E_callhelper("_lsr2"); }
+gen d := RSHIFTS2(x, b)      { E_callhelper("_asr2"); }
+
+// --- 32-bit arithmetic ----------------------------------------------------
+
+gen xd := ADD4(imm|mem|i4:lhs, imm|mem|xd:rhs)
+{
+    if ($lhs == REG_I4) and ($rhs == REG_XD) then
+        E_callhelper("_addxd4");
+    elseif $lhs == REG_I4 then
+        E_ldop(REG_D, $rhs, &$@rhs.operand, 2, 0);
+        E_ldop(REG_X, $rhs, &$@rhs.operand, 0, 16);
+        E_callhelper("_addxd4");
+    else
+        if $rhs != REG_XD then
+            E_ldop(REG_D, $rhs, &$@rhs.operand, 2, 0);
+        end if;
+        E_insnop("addd", REG_D, $lhs, &$@lhs.operand, 2, 0);
+        E_xgdx();
+        if $rhs != REG_XD then
+            E_ldop(REG_D, $rhs, &$@rhs.operand, 0, 16);
+        end if;
+        E_insnop("adcb", REG_B, $lhs, &$@lhs.operand, 1, 16);
+        E_insnop("adca", REG_A, $lhs, &$@lhs.operand, 0, 24);
+        E_xgdx();
+    end if;
+}
+
+gen xd := SUB4(i4, xd) { E_callhelper("_subxd4"); }
+gen xd := DIVU4(i4, xd) { E_callhelper("_divuxd4"); }
+gen xd := REMU4(i4, xd) { E_callhelper("_remuxd4"); }
+gen xd := DIVS4(i4, xd) { E_callhelper("_divsxd4"); }
+gen xd := REMS4(i4, xd) { E_callhelper("_remsxd4"); }
+gen xd := MUL4(i4, xd) { E_callhelper("_mulxd4"); }
+
+%{
+    sub SimpleAlu4(insna: string, insnb: string, helper: string, lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand]) is
+        if (lhs == REG_I4) and (rhs == REG_XD) then
+            E_callhelper(helper);
+        elseif lhs == REG_I4 then
+            E_ldop(REG_D, rhs, rhsop, 2, 0);
+            E_ldop(REG_X, rhs, rhsop, 0, 16);
+            E_callhelper(helper);
+        else
+            if rhs != REG_XD then
+                E_ldop(REG_D, rhs, rhsop, 2, 0);
+            end if;
+            E_insnop(insnb, REG_B, lhs, lhsop, 3, 0);
+            E_insnop(insna, REG_A, lhs, lhsop, 2, 8);
+            E_xgdx();
+            if rhs != REG_XD then
+                E_ldop(REG_D, rhs, rhsop, 0, 16);
+            end if;
+            E_insnop(insnb, REG_B, lhs, lhsop, 1, 16);
+            E_insnop(insna, REG_A, lhs, lhsop, 0, 24);
+            E_xgdx();
+        end if;
+    end sub;
+%}
+
+gen xd := AND4(imm|mem|i4:lhs, imm|mem|xd:rhs) { SimpleAlu4("anda", "andb", "_andxd4", $lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+gen xd := OR4(imm|mem|i4:lhs, imm|mem|xd:rhs) { SimpleAlu4("oraa", "orab", "_orxd4", $lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+gen xd := EOR4(imm|mem|i4:lhs, imm|mem|xd:rhs) { SimpleAlu4("eora", "eorb", "_eorxd4", $lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+
+gen xd := NEG4(xd) { E_callhelper("_negxd4"); }
+gen xd := NOT4(xd) { E_callhelper("_notxd4"); }
+
+gen i4 := LSHIFT4(i4, b)  { E_callhelper("_lsl4"); }
+gen i4 := RSHIFTU4(i4, b) { E_callhelper("_lsr4"); }
+gen i4 := RSHIFTS4(i4, b) { E_callhelper("_asr4"); }
+
+// --- Casts ----------------------------------------------------------------
+
+gen d := CAST12(b, sext==0)
+{
+    E_insn_simple("clra");
+}
+
+gen d := CAST12(b, sext!=0)
+{
+    E_insn_simple("clra");
+    E_insn_simple("tstb");
+    var label := AllocPLabel();
+    E_jump("bpl", label);
+    E_insn_simple("coma");
+    E_label(label);
+}
+
+gen b := CAST21(d);
+
+gen xd := CAST14(b, sext==0)
+{
+    R_flush($$);
+    E_insn_simple("clra");
+
+    var op: Operand;
+    op.imm.value := 0;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+}
+
+gen xd := CAST24(d, sext==0)
+{
+    R_flush($$);
+
+    var op: Operand;
+    op.imm.value := 0;
+    E_ldop_c(REG_X, REG_IMM, &op, 0, 0);
+}
+
+gen xd := CAST14(b, sext!=0) { E_callhelper("_castsxd14"); }
+gen xd := CAST24(d, sext!=0) { E_callhelper("_castsxd24"); }
+
+gen b := CAST41(xd);
+gen d := CAST42(xd);
+
+// --- Conditionals ---------------------------------------------------------
+
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+{
+    var label := $b.falselabel;
+    if $lhs.value == $rhs.value then
+        label := $b.truelabel;
+    end if;
+    if label != $b.fallthrough then
+        E_jmp(label);
+    end if;
+}
+
+%{
+    sub Cmp1(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+        RetractVStack(rhs, rhsop);
+        E_accop("cmpa", "cmpb", lhs, rhs, rhsop, 0, 0);
+    end sub;
+%}
+
+gen BEQ1(a|b:lhs, op|vs1:rhs):b  { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
+
+%{
+    sub Cmp2(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+        RetractVStack(rhs, rhsop);
+        var insn := "subd";
+        if lhs == REG_X then
+            insn := "cpx";
+        end if;
+
+        E_insnop(insn, lhs, rhs, rhsop, 0, 0);
+    end sub;
+%}
+
+gen BEQ2(d|x:lhs, op|vs2:rhs):b  { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
+
+gen BEQ4(i4, xd)  { E_callhelper("_cmpeqxd4"); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU4(i4, xd) { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS4(i4, xd) { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
+
+// --- Case -----------------------------------------------------------------
+
+gen STARTCASE1(b);
+gen STARTCASE2(x);
+gen STARTCASE4(xd);
+
+gen WHENCASE1():c
+{
+    E_insn("cmpb");
+    E_const();
+    E_u8($c.value as uint8);
+    E_nl();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
+}
+
+gen WHENCASE2():c uses a
+{
+    E_insn("cpx");
+    E_const();
+    E_u16($c.value as uint16);
+    E_nl();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
+}
+
+gen WHENCASE4():c uses a
+{
+    E_insn("cpx");
+    E_const();
+    E_u16(($c.value >> 16) as uint16);
+    E_nl();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
+
+    E_xgdx();
+    E_insn("cpx");
+    E_const();
+    E_u16($c.value as uint16);
+    E_nl();
+    E_xgdx();
+    E_insn("bne");
+    E_labelref($c.falselabel);
+    E_nl();
+}
+
+gen ENDCASE1();
+gen ENDCASE2();
+gen ENDCASE4();
+
+// --- Strings --------------------------------------------------------------
+
+%{
+    sub E_string(data: string): (lid: uint16) is
+        lid := AllocPLabel();
+
+        EmitterOpenStream(current_subr);
+
+        E_label(lid);
+        E_db();
+
+        loop
+            var c := [data];
+            if c == 0 then
+                break;
+            end if;
+            data := data + 1;
+            
+            E_u8(c);
+            E_comma();
+        end loop;
+        E("0\n");
+        EmitterCloseStream();
+    end sub;
+%}
+
+gen d|x := STRING():s
+{
+	var lid := E_string($s.text);
+	R_flush($$);
+	if $$ == REG_D then
+		E_insn("ldd");
+	else
+		E_insn("ldx");
+	end if;
+	E_const();
+	E_labelref(lid);
+	E_nl();
+}
+
+// --- Initialisers ---------------------------------------------------------
+
+gen STARTINIT():s
+{
+    EmitterOpenStream(current_subr);
+	E_symref(&$s.sym, 0);
+    E(":\n");
+}
+
+gen ENDINIT()
+{
+    EmitterCloseStream();
+}
+
+gen INIT1():c
+{
+    E_db();
+    E_u8($c.value as uint8);
+    E_nl();
+}
+
+gen INIT2():c
+{
+    E_dw();
+    E_u16($c.value as uint16);
+    E_nl();
+}
+
+gen INIT4():c
+{
+    E_dw();
+    E_u16(($c.value as uint32 >> 16) as uint16);
+    E_comma();
+    E_u16($c.value as uint16);
+    E_nl();
+}
+
+gen INITADDRESS():a
+{
+    E_dw();
+	E_symref(&$a.sym, $a.off);
+    E_nl();
+}
+
+gen INITSUBREF():a
+{
+    E_dw();
+	E_subref($a.subr);
+    E_nl();
+}
+
+gen INITSTRING():s
+{
+    var sid := E_string($s.text);
+
+    E_dw();
+    E_labelref(sid);
+    E_nl();
+}
+
+// --- Inline assembly ------------------------------------------------------
+
+gen ASMGROUPSTART();
+gen ASMGROUPEND();
+
+gen ASMSTART()
+{
+    E_tab();
+}
+
+gen ASMTEXT():t
+{
+    E($t.text);
+    E_space();
+}
+
+gen ASMSYMBOL():s
+{
+	E_symref(&$s.sym, 0);
+    E_space();
+}
+
+gen ASMSUBREF():s
+{
+	E_subref($s.subr);
+    E_space();
+}
+
+gen ASMVALUE():c
+{
+    E_openp();
+    E_i32($c.value);
+    E_closep();
+}
+
+gen ASMEND()
+{
+    E_nl();
+}
+
+// vim: sw=4 ts=4 et
+

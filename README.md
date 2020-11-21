@@ -40,15 +40,28 @@ The following targets are supported. Adding more is easy.
 
   - 6502 and 65c02, on the BBC Micro with Tube second processor.
 
+  - 6303, on the 6303 version of Fuzix (if anyone knows about FLEX and wants to
+	make this work, please get in touch).
+
   - 6502 interpreted bytecode, on the BBC Micro with Tube second processor;
 	this works just like above, but produces a stack-based bytecode with
 	integrated interpreter. It's much smaller, but also slower.
 
   - 80386, on Linux.
 
+  - 8086, on DOS (it emits tiny mode .com files).
+
+  - PDP11, on V7 Unix (thanks to
+	[shattered@github](https://github.com/shattered) for contributing the PDP11
+	backend for this).
+
   - Generic and terrible C. This produces very big and slow binaries which
     are used for bootstrapping the compiler if you don't have a Cowgol
 	compiler.
+
+  - Basic. Yes, really --- there's a backend which will transpile into terrible
+	Microsoft Basic. I wrote this mainly as a joke and only a subset of the
+	language is supported, but it does work.
 
 (It _used_ to [support the Apollo Guidance
 Computer](http://cowlark.com/2019-07-20-cowgol-agc/index.html) used in the
@@ -56,6 +69,8 @@ Apollo spacecraft, but I had to remove the code generator while rewriting the
 compiler and I haven't reworked the AGC backend.)
 
 In terms of machines you can run the compiler _on_:
+
+  - 80386 Linux, duh.
 
   - A BBC Micro with Tube second processor. [Follow this link for a live
 	in-browser
@@ -67,6 +82,11 @@ In terms of machines you can run the compiler _on_:
 
   - Generic CP/M (untested). There's no reason why this shouldn't work, but I
 	haven't tried it yet.
+
+The other platforms have unfinished system call libraries, so while the
+compiler tests all pass and the compilers are being built, they won't work if
+you run them. This should be easy to fix if necessary --- let me know and ask.
+(I just haven't got round to it yet.)
 
 ### About the language
 
@@ -203,9 +223,10 @@ Your mileage (or kilometreage, depending) may very. You Have Been Warned.
 Who?
 ----
 
-Cowgol was written, entirely so far, by me, David Given. Feel free to send me
-email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to visit
-my website](http://cowlark.com); there may or may not be something
+Cowgol was written mostly by me, David Given, with additional contributions
+from [shattered@github](https://github.com/shattered). Feel free to contact me
+by email at [dg@cowlark.com](mailto:dg@cowlark.com). You may also [like to
+visit my website](http://cowlark.com); there may or may not be something
 interesting there.
 
 
@@ -218,7 +239,9 @@ license](https://github.com/davidgiven/cowgol/blob/master/COPYING).  Simplified
 summary: do what you like with it, just don't claim you wrote it.
 
 The exceptions are the contents of the `third_party` directory, which were
-written by other people and are not covered by this license.
+written by other people and are not covered by this license. This directory as
+a whole contains GPL software, which means that if you redistribute the entire
+directory, you must conform to the terms of the GPL.
 
 `third_party/lib6502` contains a hacked copy of the lib6502 library, which is ©
 2005 Ian Plumarta and is available under the terms of the MIT license. See
@@ -230,8 +253,16 @@ assembler. It's in the public domain.
 `third_party/lemon` contains a copy of the lemon parser generator. It's in the
 public domain.
 
-`third_party/sim68xx` contains a copy of the sim68xx emulation library,
-primarily written by Arne Riiber and Felix Erckenbrecht. It is distributed
-under the terms of the GPL 2.0; see `third_party/sim68xx/LICENSE` for the full
+`third_party/apout` contains a copy of the apout PDP-11 SysV binary emulator,
+primarily written by Warren Toomey and Eric A. Edwards. It is distributed under
+the terms of the MIT license; see `third_party/apout/COPYRIGHT` for the full
 text.
+
+`third_party/rc2014emu` contains a subset of the RC2014 emulator written by
+Alan Cox. It is distributed under the terms of the GPL 3.0 license; see
+`third_party/rc2014emu/COPYING` for the full text.
+
+`third_party/emu2` constains a copy of the emu2 DOS emulator written by
+dmsc@github (and others). It is distributed under the terms of the GPL 2.0
+license; see `third_party/emu2/LICENSE` for the full text.
 

@@ -1,4 +1,17 @@
-local ARCHS = { "bbct", "bbcti", "bbctn", "lx386", "8080", "cgen" }
+local ARCHS = {
+	"8080",
+	"basic",
+	"bbct",
+	"bbcti",
+	"bbctn",
+	"cgen",
+	"fuzix6303",
+	"lx386",
+	"lxthumb2",
+	"msdos",
+	"rt11",
+	"v7unix",
+}
 
 for _, arch in ipairs(ARCHS) do
 	rule {
