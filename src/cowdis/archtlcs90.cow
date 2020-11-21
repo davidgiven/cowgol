@@ -1,0 +1,791 @@
+include "cowgol.coh";
+include "file.coh";
+include "argv.coh";
+include "strings.coh";
+
+typedef string is [uint8];
+
+var inputFilename: string;
+var outputFilename: string;
+
+var inputFile: FCB;
+var inputFileLen: uint32;
+var inputFilePos: uint32;
+var outputFile: FCB;
+
+var address: uint16;
+
+var insnBuffer: uint8[6];
+var insnLen: uint8 := 0;
+
+const XPOS_ADDRESS := 0;
+const XPOS_HEXDUMP := XPOS_ADDRESS + 4 + 3;
+const XPOS_ASCII := XPOS_HEXDUMP + (6*3) + 2;
+const XPOS_INSN := XPOS_ASCII + 6 + 3;
+
+var outputBuffer: uint8[80];
+var outputPos: uint8 := 0;
+
+const PARAM_TEXT := 1;
+const PARAM_BYTE := 2;
+const PARAM_WORD := 3;
+const PARAM_XIX := 4;
+const PARAM_XIY := 5;
+const PARAM_XSP := 6;
+const PARAM_XHLA := 7;
+
+record Parameter is
+	value @at(0): uint16;
+	text @at(0): string;
+	type: uint8;
+end record;
+
+var parameters: Parameter[3];
+
+var rolOps: string[] := { "rlc", "rrc", "rl", "rr", "sla", "sra", "sll", "srl" };
+var aluOps: string[] := { "add", "adc", "sub", "sbc", "and", "xor", "or", "cp" };
+var rRegisters: string[] := { "b", "c", "d", "e", "h", "l", "a", "?7" };
+var qRegisters: string[] := { "bc", "de", "hl", "?3", "ix", "iy", "sp", "?7" };
+var ccCodes: string[] := { "f", "lt", "le", "ule", "pe", "m", "z", "c",
+	"?8", "ge", "gt", "ugt", "po", "p", "nz", "nc" };
+	
+var baseTemplates: string[256] := {
+	# 00
+	"nop",
+	"halt",
+	"di",
+	"ei",
+	"?",
+	"?",
+	"?",
+	"D0incx (0)",
+
+	# 08
+	"ex de, hl",
+	"ex af, af'",
+	"exx",
+	"daa a",
+	"rcf",
+	"scf",
+	"ccf",
+	"D0decx (0)",
+
+	# 10
+	"cpl a",
+	"neg a",
+	"B0mul hl, 0",
+	"B0div hl, 0",
+	"Q0W1add 0, 1",
+	"Q0W1add 0, 1",
+	"Q0W1add 0, 1",
+	"P0ldar hl, 0",
+
+	# 18
+	"J0djnz 0",
+	"J0djnz bc, 0",
+	"W0jp 0",
+	"P0jrl 0",
+	"W0call 0",
+	"P0calr 0",
+	"ret",
+	"reti",
+
+	# 20
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"R0ld a, 0",
+	"D0ld a, (0)",
+
+	# 28
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"R0ld 0, a",
+	"D0ld (0), a",
+
+	# 30
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"R0B1ld 0, 1",
+	"D0B1ld (0), 1",
+
+	# 38
+	"Q0W1ld 0, 1",
+	"Q0W1ld 0, 1",
+	"Q0W1ld 0, 1",
+	"Q0W1ld 0, 1",
+	"Q0W1ld 0, 1",
+	"Q0W1ld 0, 1",
+	"Q0W1ld 0, 1",
+	"D0W1ldw (0), 1",
+
+	# 40
+	"Q0ld hl, 0",
+	"Q0ld hl, 0",
+	"Q0ld hl, 0",
+	"?",
+	"Q0ld hl, 0",
+	"Q0ld hl, 0",
+	"Q0ld hl, 0",
+	"D0ld hl, (0)",
+
+	# 48
+	"Q0ld 0, hl",
+	"Q0ld 0, hl",
+	"Q0ld 0, hl",
+	"?",
+	"Q0ld 0, hl",
+	"Q0ld 0, hl",
+	"Q0ld 0, hl",
+	"D0ld (0), hl",
+
+	# 50
+	"Q0push 0",
+	"Q0push 0",
+	"Q0push 0",
+	"?",
+	"Q0push 0",
+	"Q0push 0",
+	"push af",
+	"?",
+
+	# 58
+	"Q0pop 0",
+	"Q0pop 0",
+	"Q0pop 0",
+	"?",
+	"Q0pop 0",
+	"Q0pop 0",
+	"pop af",
+	"?",
+
+	# 60
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+	"L0D10 a, (1)",
+
+	# 68
+	"L0B10 a, 1",
+	"L0B10 a, 1",
+	"L0B10 a, 1",
+	"L0B10 a, 1",
+	"L0B10 a, 1",
+	"L0B10 a, 1",
+	"L0B10 a, 1",
+	"L0B10 a, 1",
+
+	# 70
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+	"L0D10 hl, (1)",
+
+	# 78
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+	"L0W10 hl, 1",
+
+	# 80
+	"R0inc 0",
+	"R0inc 0",
+	"R0inc 0",
+	"R0inc 0",
+	"R0inc 0",
+	"R0inc 0",
+	"R0inc 0",
+	"D0inc (0)",
+
+	# 88
+	"R0dec 0",
+	"R0dec 0",
+	"R0dec 0",
+	"R0dec 0",
+	"R0dec 0",
+	"R0dec 0",
+	"R0dec 0",
+	"D0dec (0)",
+
+	# 90
+	"Q0inc 0",
+	"Q0inc 0",
+	"Q0inc 0",
+	"Q0inc 0",
+	"Q0inc 0",
+	"Q0inc 0",
+	"Q0inc 0",
+	"D0incw (0)",
+
+	# 98
+	"Q0dec 0",
+	"Q0dec 0",
+	"Q0dec 0",
+	"Q0dec 0",
+	"Q0dec 0",
+	"Q0dec 0",
+	"Q0dec 0",
+	"D0decw (0)",
+
+	# a0
+	"S00 a",
+	"S00 a",
+	"S00 a",
+	"S00 a",
+	"S00 a",
+	"S00 a",
+	"S00 a",
+	"S00 a",
+
+	# a8
+	"A0D1bit 0, (1)",
+	"A0D1bit 0, (1)",
+	"A0D1bit 0, (1)",
+	"A0D1bit 0, (1)",
+	"A0D1bit 0, (1)",
+	"A0D1bit 0, (1)",
+	"A0D1bit 0, (1)",
+	"A0D1bit 0, (1)",
+
+	# b0
+	"A0D1res 0, (1)",
+	"A0D1res 0, (1)",
+	"A0D1res 0, (1)",
+	"A0D1res 0, (1)",
+	"A0D1res 0, (1)",
+	"A0D1res 0, (1)",
+	"A0D1res 0, (1)",
+	"A0D1res 0, (1)",
+
+	# b8
+	"A0D1set 0, (1)",
+	"A0D1set 0, (1)",
+	"A0D1set 0, (1)",
+	"A0D1set 0, (1)",
+	"A0D1set 0, (1)",
+	"A0D1set 0, (1)",
+	"A0D1set 0, (1)",
+	"A0D1set 0, (1)",
+
+	# c0
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+
+	# c8
+	"J0jr 0",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+	"C0J1jr 0, 1",
+
+	# d0
+	"?", "?", "?", "?", "?", "?", "?", "?",
+
+	# d8
+	"?", "?", "?", "?", "?", "?", "?", "?",
+
+	# e0
+	"Q0T3",
+	"Q0T3",
+	"Q0T3",
+	"W0T3",
+	"Q0T3",
+	"Q0T3",
+	"Q0T3",
+	"D0T3",
+
+	# e8
+	"Q0T4",
+	"Q0T4",
+	"Q0T4",
+	"W0T4",
+	"Q0T4",
+	"Q0T4",
+	"Q0T4",
+	"D0T4",
+
+	# f0
+	"X0T3",
+	"X0T3",
+	"X0T3",
+	"X0T3",
+	"X0T4",
+	"X0T4",
+	"X0T4",
+	"X0T4",
+
+	# f8
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"A0T2",
+	"swi",
+};
+
+sub bank2Template(b: uint8): (template: string) is
+	template := "?";
+	case b is
+		when 0x10: return;
+		when 0x11: return;
+		when 0x12: template := ">0mul hl, 0"; return;
+		when 0x13: template := ">0div hl, 0"; return;
+		when 0x17: return;
+		when 0x58: template := "ldi"; return;
+		when 0x59: template := "ldir"; return;
+		when 0x5a: template := "ldd"; return;
+		when 0x5b: template := "lddr"; return;
+		when 0x5c: template := "cpi"; return;
+		when 0x5d: template := "cpir"; return;
+		when 0x5e: template := "cpd"; return;
+		when 0x5f: template := "cpdr"; return;
+	end case;
+
+	case b & 0xf8 is
+		when 0x10: template := "<0Q1add 1, 0";
+		when 0x18: template := ">0A1test 1, 0";
+		when 0x30: template := ">0R1ld 1, 0";
+		when 0x38: template := "<0Q1ld 1, 0";
+		when 0x60: template := ">0L11 a, 0";
+		when 0x68: template := ">0L2B12 0, 1";
+		when 0x70: template := "<0L11 hl, 0";
+		when 0xa0: template := ">0S11 0";
+		when 0xa8: template := ">0A1bit 1, 0";
+		when 0xb0: template := ">0A1res 1, 0";
+		when 0xb8: template := ">0A1set 1, 0";
+		when 0xd0: template := "C1ret 1";
+		when 0xd8: template := "C1ret 1";
+	end case;
+end sub;
+
+sub bank3Template(b: uint8): (template: string) is
+	template := "?";
+	case b is
+		when 0x10: template := "rld (0)"; return;
+		when 0x11: template := "rrd (0)"; return;
+		when 0x12: template := "mul hl, (0)"; return;
+		when 0x13: template := "div hl, (0)"; return;
+		when 0x17: return;
+		when 0x53: return;
+		when 0x57: return;
+		when 0x87: template := "inc (0)"; return;
+		when 0x8f: template := "dec (0)"; return;
+		when 0x97: template := "incw (0)"; return;
+		when 0x9f: template := "decw (0)"; return;
+	end case;
+
+	case b & 0xf8 is
+		when 0x10: template := "Q1add 1, (0)";
+		when 0x18: template := "A1test 1, (0)";
+		when 0x28: template := "R1ld 1, (0)";
+		when 0x48: template := "Q1ld 1, (0)";
+		when 0x50: template := "Q1ex (0), 1";
+		when 0x60: template := "L11 a, (0)";
+		when 0x70: template := "L11 hl, (0)";
+		when 0xa0: template := "S11 (0)";
+		when 0xa8: template := "A1bit 1, (0)";
+		when 0xb0: template := "A1res 1, (0)";
+		when 0xb8: template := "A1set 1, (0)";
+	end case;
+end sub;
+
+sub bank4Template(b: uint8): (template: string) is
+	template := "?";
+	case b is
+		when 0x27: return;
+		when 0x37: template := "B1ld (0), 1"; return;
+		when 0x3b: return;
+		when 0x3f: template := "W1ld (0), 1"; return;
+		when 0x43: return;
+		when 0x47: return;
+	end case;
+
+	case b & 0xf8 is
+		when 0x20: template := "R1ld (0), 1";
+		when 0x38: template := "Q1ld 1, 0";
+		when 0x40: template := "Q1ld (0), 1";
+		when 0x68: template := "L1B21 (0), 2";
+		when 0xc0: template := "C1jp 1, 0";
+		when 0xc8: template := "C1jp 1, 0";
+		when 0xd0: template := "C1call 1, 0";
+		when 0xd8: template := "C1call 1, 0";
+	end case;
+end sub;
+
+sub StartError() is
+	print("error: ");
+end sub;
+
+sub EndError() is
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub SimpleError(s: string) is
+	StartError();
+	print(s);
+	EndError();
+end sub;
+
+sub ToUpper(cin: uint8): (cout: uint8) is
+	if (cin >= 'a') and (cin <= 'z') then
+		cout := cin - ('a' - 'A');
+	else
+		cout := cin;
+	end if;
+end sub;
+
+sub ReadByte(): (b: uint8) is
+	b := FCBGetChar(&inputFile);
+	insnBuffer[insnLen] := b;
+	insnLen := insnLen + 1;
+	inputFilePos := inputFilePos + 1;
+end sub;
+
+sub ReadWord(): (w: uint16) is
+	w := ReadByte() as uint16;
+	w := w | (ReadByte() as uint16 << 8);
+end sub;
+
+sub PrintByte(b: uint8) is
+	outputBuffer[outputPos] := b;
+	outputPos := outputPos + 1;
+end sub;
+
+sub Print(s: string) is
+	loop
+		var b := [s];
+		s := @next s;
+		if b == 0 then
+			return;
+		end if;
+		PrintByte(b);
+	end loop;
+end sub;
+
+sub PrintHexByte(value: uint8) is
+    var i: uint8 := 2;
+    loop
+        var digit := value >> 4;
+        if digit < 10 then
+            digit := digit + '0';
+        else
+            digit := digit + ('a' - 10);
+        end if;
+        PrintByte(digit);
+        value := value << 4;
+        i := i - 1;
+        if i == 0 then
+            break;
+        end if;
+    end loop;
+end sub;
+
+sub PrintSignedHexByte(value: int8) is
+	if value < 0 then
+		PrintByte('-');
+		value := -value;
+	else
+		PrintByte('+');
+	end if;
+	PrintHexByte(value as uint8);
+end sub;
+
+sub PrintHexWord(value: uint16) is
+    PrintHexByte((value >> 8) as uint8);
+    PrintHexByte(value as uint8);
+end sub;
+
+sub PrintParameter(param: [Parameter]) is
+	case param.type is
+		when PARAM_TEXT:
+			Print(param.text);
+
+		when PARAM_WORD:
+			PrintHexWord(param.value);
+
+		when PARAM_BYTE:
+			PrintHexByte(param.value as uint8);
+
+		when PARAM_XIX:
+			Print("ix");
+			PrintSignedHexByte(param.value as int8);
+
+		when PARAM_XIY:
+			Print("iy");
+			PrintSignedHexByte(param.value as int8);
+
+		when PARAM_XSP:
+			Print("sp");
+			PrintSignedHexByte(param.value as int8);
+
+		when PARAM_XHLA:
+			Print("hl+a");
+	end case;
+end sub;
+
+sub ExecuteTemplate(template: string) is
+	loop
+		var b := [template];
+		template := @next template;
+		if b == 0 then
+			return;
+		end if;
+
+		var paramIndex := (b - '0');
+		if ((b >= 'a') and (b <= 'z'))
+				or (b == ' ') or (b == ',') or (b == '(') or (b == ')') or (b == '?') or (b == '\'')
+		then
+			PrintByte(b);
+		elseif paramIndex < @sizeof parameters then
+			PrintParameter(&parameters[paramIndex]);
+		else
+			paramIndex := [template] - '0';
+			var param := &parameters[paramIndex];
+			var current := insnBuffer[insnLen-1];
+			template := @next template;
+			case b is
+				when 'B':
+					param.type := PARAM_BYTE;
+					param.value := ReadByte() as uint16;
+
+				when 'W':
+					param.type := PARAM_WORD;
+					param.value := ReadWord() as uint16;
+
+				when 'D':
+					param.type := PARAM_WORD;
+					param.value := (ReadByte() as uint16) | 0xff00;
+
+				when 'Q':
+					param.type := PARAM_TEXT;
+					param.text := qRegisters[current & 7];
+
+				when 'R':
+					param.type := PARAM_TEXT;
+					param.text := rRegisters[current & 7];
+
+				when 'L':
+					param.type := PARAM_TEXT;
+					param.text := aluOps[current & 7];
+
+				when 'S':
+					param.type := PARAM_TEXT;
+					param.text := rolOps[current & 7];
+
+				when 'A':
+					param.type := PARAM_BYTE;
+					param.value := (current & 7) as uint16;
+
+				when 'C':
+					param.type := PARAM_TEXT;
+					param.text := ccCodes[current & 15];
+
+				when 'J':
+					param.type := PARAM_WORD;
+					param.value := address + (ReadByte() as int8 as uint16) + 2;
+
+				when 'P':
+					param.type := PARAM_WORD;
+					param.value := address + ReadWord() + 2;
+
+				when 'X':
+					param.type := PARAM_XIX + (current & 3);
+					if param.type != PARAM_XHLA then
+						param.value := ReadByte() as uint16;
+					end if;
+
+				when '>':
+					param.type := PARAM_TEXT;
+					param.text := rRegisters[param.value as uint8];
+
+				when '<':
+					param.type := PARAM_TEXT;
+					param.text := qRegisters[param.value as uint8];
+
+				when 'T':
+					b := ReadByte();
+					case paramIndex is
+						when 2: template := bank2Template(b);
+						when 3: template := bank3Template(b);
+						when 4: template := bank4Template(b);
+						when else:
+							SimpleError("unimplemented template");
+					end case;
+					if [template] == 0 then
+						StartError();
+						print("unimplemented template for byte ");
+						print_hex_i8(b);
+						print(" bank ");
+						print_hex_i8(paramIndex as uint8);
+						EndError();
+					end if;
+
+				when else:
+					StartError();
+					print("bad template char ");
+					print_char(b);
+					EndError();
+			end case;
+		end if;
+	end loop;
+end sub;
+
+sub ReadInstruction() is
+	insnLen := 0;
+	outputPos := XPOS_INSN;
+
+	var b := ReadByte();
+	var template := baseTemplates[b];
+	if [template] == 0 then
+		StartError();
+		print("unimplemented template for byte ");
+		print_hex_i8(b);
+		EndError();
+	end if;
+	ExecuteTemplate(template);
+end sub;
+
+sub ParseArguments() is
+	sub SyntaxError() is
+		StartError();
+		print("syntax: cowdis <inputfilename> [-o <outputfilename>] [-g <address>\n");
+		EndError();
+	end sub;
+
+	ArgvInit();
+	loop
+		var s := ArgvNext();
+		if s == (0 as string) then
+			break;
+		end if;
+
+		if [s] == '-' then
+			case ToUpper([s+1]) is
+				when 'O':
+					outputFilename := ArgvNext();
+
+				when 'G':
+					var result: int32;
+					var ptr: [uint8];
+					(result, ptr) := AToI(ArgvNext());
+					if [ptr] != 0 then
+						SyntaxError();
+					end if;
+					address := result as uint16;
+
+				when else:
+					SyntaxError();
+			end case;
+		else
+			if inputFilename != (0 as string) then
+				SyntaxError();
+			end if;
+			inputFilename := s;
+		end if;
+	end loop;
+
+	if inputFilename == (0 as string) then
+		SyntaxError();
+	end if;
+
+	sub CheckFCBOpen(e: uint8, s: string) is
+		if e != 0 then
+			StartError();
+			print("cannot open ");
+			print(s);
+			EndError();
+		end if;
+	end sub;
+
+	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
+	inputFileLen := FCBExt(&inputFile);
+	inputFilePos := 0;
+	if outputFilename != (0 as string) then
+		CheckFCBOpen(FCBOpenOut(&outputFile, outputFilename), outputFilename);
+	end if;
+end sub;
+
+sub Main() is
+	while inputFilePos < inputFileLen loop
+		MemSet(&outputBuffer[0], ' ', @bytesof outputBuffer);
+		ReadInstruction();
+		outputBuffer[outputPos] := 0;
+
+		outputPos := XPOS_ADDRESS;
+		PrintHexWord(address);
+		Print(" : ");
+
+		outputPos := XPOS_HEXDUMP;
+		var i: uint8 := 0;
+		while i != insnLen loop
+			PrintHexByte(insnBuffer[i]);
+			PrintByte(' ');
+			i := i + 1;
+		end loop;
+
+		outputPos := XPOS_ASCII - 2;
+		Print(": ");
+		i := 0;
+		while i != insnLen loop
+			var b := insnBuffer[i];
+			if (b < 32) or (b > 126) then
+				b := '.';
+			end if;
+				
+			PrintByte(b);
+			i := i + 1;
+		end loop;
+
+		outputPos := XPOS_INSN - 2;
+		PrintByte(':');
+
+		if outputFilename == (0 as string) then
+			print(&outputBuffer[0]);
+			print_nl();
+		else
+			FCBPutString(&outputFile, &outputBuffer[0]);
+			FCBPutChar(&outputFile, '\n');
+		end if;
+
+		address := address + (insnLen as uint16);
+	end loop;
+end sub;
+
+ParseArguments();
+Main();
+
