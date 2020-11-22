@@ -393,23 +393,23 @@ sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
 			return;
 		end if;
 		if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
-			value.address := &node.left.address;
+			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF1;
 			res := 1;
 		elseif (node.op == MIDCODE_DEREF2) and (node.left.op == MIDCODE_ADDRESS) then
-			value.address := &node.left.address;
+			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF2;
 			res := 1;
 		elseif (node.op == MIDCODE_DEREF4) and (node.left.op == MIDCODE_ADDRESS) then
-			value.address := &node.left.address;
+			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF4;
 			res := 1;
 		elseif (node.op == MIDCODE_DEREF8) and (node.left.op == MIDCODE_ADDRESS) then
-			value.address := &node.left.address;
+			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF8;
 			res := 1;
 		elseif node.op == MIDCODE_ADDRESS then
-			value.address := &node.address;
+			MemCopy(&node.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
 			value.kind := MIDCODE_ADDRESS;
 			res := 1;
 		elseif node.op == MIDCODE_CONSTANT then
@@ -428,9 +428,10 @@ sub SimpleValuesMatch(left: [SimpleValue], right: [SimpleValue]): (res: uint8) i
 
 	sub check_deref() is
 		if (left.address.sym.id == right.address.sym.id)
-				and (left.address.sym.off == right.address.sym.off)
+				and ((left.address.sym.off+left.address.off)
+					== (right.address.sym.off+right.address.off))
 				and (left.address.sym.wsid == right.address.sym.wsid)
-				and (left.address.off == right.address.off) then
+		then
 			res := 1;
 		end if;
 	end sub;
@@ -688,14 +689,35 @@ sub Generate(rootnode: [Node]) is
 					# Do we have a preferred register for this value? If so, try to use
 					# that register.
 
+					ArchBeginComment();
+					E("searching for preferred register with mask ");
+					E_h32(mask as uint32);
+
+					if value.kind == MIDCODE_ADDRESS then
+						E(" value off ");
+						E_h32((value.address.sym.off+value.address.off) as uint32);
+						E(" id ");
+						E_h32(value.address.sym.id as uint32);
+						E(" wsid ");
+						E_h32(value.address.sym.wsid as uint32);
+					end if;
+					ArchEndComment();
+
 					var v := &preferred_values[0];
 					var openslot: [SimpleValue] := 0 as [SimpleValue];
 					while v != &preferred_values[@sizeof preferred_values] loop
 						if SimpleValuesMatch(&value, v) != 0 then
+							ArchBeginComment();
+							E("potential match in reg ");
+							E_h32(v.reg as uint32);
+							ArchEndComment();
 							if (v.reg & mask) != 0 then
-								print("use reg ");
-								print_hex_i32(reg as uint32);
-								print_nl();
+								ArchBeginComment();
+								E("use preferred register ");
+								E_h32(v.reg as uint32);
+								E(" with value ");
+								E_h32(v as intptr as uint32);
+								ArchEndComment();
 								reg := v.reg;
 								return;
 							end if;
@@ -724,6 +746,8 @@ sub Generate(rootnode: [Node]) is
 						ArchBeginComment();
 						E("alloc preferred register ");
 						E_h32(reg as uint32);
+						E(" with value ");
+						E_h32(openslot as intptr as uint32);
 						ArchEndComment();
 						return;
 					end if;
