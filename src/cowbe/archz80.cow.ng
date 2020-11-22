@@ -592,6 +592,14 @@
 		E_u16(sid);
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if src == 0 then
 			E_pop(dest);

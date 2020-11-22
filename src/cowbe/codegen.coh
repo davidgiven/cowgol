@@ -721,6 +721,10 @@ sub Generate(rootnode: [Node]) is
 						MemCopy(&value as [uint8], @bytesof SimpleValue, openslot as [uint8]);
 						openslot.reg := reg;
 						preferred_registers := preferred_registers & ~reg;
+						ArchBeginComment();
+						E("alloc preferred register ");
+						E_h32(reg as uint32);
+						ArchEndComment();
 						return;
 					end if;
 

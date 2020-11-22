@@ -878,6 +878,14 @@ gen JUMP():j
     sub DoParamDirect_ldy(operand: [MOperand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDY, offset); end sub;
     sub DoParamDirect_sta(operand: [MOperand], offset: uint8) is                 DoParamDirect(operand, OC_STA, offset); end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
     # Note that this *destroys* the source register.
     sub ArchEmitMove(src: RegId, dest: RegId) is
         var sid: uint16;

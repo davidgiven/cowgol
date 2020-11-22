@@ -274,6 +274,14 @@
 		E_jump("jne", label);
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		E("\t; move\n");
 		if src == 0 then
