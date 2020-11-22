@@ -564,7 +564,7 @@
 	end sub;
 
     sub ArchBeginComment() is
-        E("\t; ");
+        E("\t# ");
     end sub;
 
     sub ArchEndComment() is
