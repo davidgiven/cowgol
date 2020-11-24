@@ -37,9 +37,9 @@ record Instruction is
 end record;
 
 record SimpleValue is
-	address @at(0): [MidcodeAddress];
+	address @at(0): MidcodeAddress;
 	constant @at(0): int32;
-	reg: RegId;
+	count: uint8;
 	kind: uint8;
 end record;
 
@@ -393,23 +393,23 @@ sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
 			return;
 		end if;
 		if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
+			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF1;
 			res := 1;
 		elseif (node.op == MIDCODE_DEREF2) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
+			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF2;
 			res := 1;
 		elseif (node.op == MIDCODE_DEREF4) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
+			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF4;
 			res := 1;
 		elseif (node.op == MIDCODE_DEREF8) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
+			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
 			value.kind := MIDCODE_DEREF8;
 			res := 1;
 		elseif node.op == MIDCODE_ADDRESS then
-			MemCopy(&node.address as [uint8], @bytesof Symbol, &value.address as [uint8]);
+			MemCopy(&node.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
 			value.kind := MIDCODE_ADDRESS;
 			res := 1;
 		elseif node.op == MIDCODE_CONSTANT then
@@ -427,7 +427,7 @@ sub SimpleValuesMatch(left: [SimpleValue], right: [SimpleValue]): (res: uint8) i
 	end if;
 
 	sub check_deref() is
-		if (left.address.sym.id == right.address.sym.id)
+		if (left.address.sym.subr == right.address.sym.subr)
 				and ((left.address.sym.off+left.address.off)
 					== (right.address.sym.off+right.address.off))
 				and (left.address.sym.wsid == right.address.sym.wsid)
@@ -686,6 +686,16 @@ sub Generate(rootnode: [Node]) is
 			sub FindPreferredRegister(mask: RegId): (reg: RegId) is
 				var value: SimpleValue;
 				if IsSimpleValue(producer, &value) != 0 then
+					# All values decay.
+
+					var v := &preferred_values[0];
+					while v != &preferred_values[@sizeof preferred_values] loop
+						if v.count != 0 then
+							v.count := v.count - 1;
+						end if;
+						v := @next v;
+					end loop;
+
 					# Do we have a preferred register for this value? If so, try to use
 					# that register.
 
@@ -695,54 +705,66 @@ sub Generate(rootnode: [Node]) is
 
 					if value.kind == MIDCODE_ADDRESS then
 						E(" value off ");
-						E_h32((value.address.sym.off+value.address.off) as uint32);
-						E(" id ");
-						E_h32(value.address.sym.id as uint32);
+						E_h32(value.address.sym.off as uint32);
+						E("+");
+						E_h32(value.address.off as uint32);
+						E(" subr ");
+						E_h32(value.address.sym.subr as intptr as uint32);
 						E(" wsid ");
 						E_h32(value.address.sym.wsid as uint32);
 					end if;
 					ArchEndComment();
 
-					var v := &preferred_values[0];
-					var openslot: [SimpleValue] := 0 as [SimpleValue];
+					v := &preferred_values[0];
+					reg := 1;
 					while v != &preferred_values[@sizeof preferred_values] loop
-						if SimpleValuesMatch(&value, v) != 0 then
+						if (v.kind != 0) and ((reg & mask) != 0) and (SimpleValuesMatch(&value, v) != 0) then
 							ArchBeginComment();
-							E("potential match in reg ");
-							E_h32(v.reg as uint32);
+							E("use preferred register ");
+							E_h32(reg as uint32);
+							E(" with value ");
+							E_h32(v as intptr as uint32);
 							ArchEndComment();
-							if (v.reg & mask) != 0 then
-								ArchBeginComment();
-								E("use preferred register ");
-								E_h32(v.reg as uint32);
-								E(" with value ");
-								E_h32(v as intptr as uint32);
-								ArchEndComment();
-								reg := v.reg;
-								return;
-							end if;
-						end if;
-						if v.reg == 0 then
-							openslot := v;
+							v.count := 0xff;
+							return;
 						end if;
 						v := @next v;
+						reg := reg << 1;
 					end loop;
 
 					# No. Try to find a register which hasn't already been used
 					# for a preferred register, and record it.
 
-					reg := FindLast(mask & preferred_registers);
-					if reg == 0 then
-						# Run out of preferred registers; start again from the top
-						# (so they're round-robined).
+					var openslot := 0 as [SimpleValue];
+					var slotreg: RegId;
+					v := &preferred_values[0];
+					reg := 1;
+					while v != &preferred_values[@sizeof preferred_values] loop
+						if (reg & mask) != 0 then
+							if v.kind == 0 then
+								openslot := v;
+								slotreg := reg;
+								break;
+							end if;
 
-						preferred_registers := ALL_REGS;
-						reg := FindLast(mask);
-					end if;
-					if (reg != 0) and (openslot != (0 as [SimpleValue])) then
+							if openslot == (0 as [SimpleValue]) then
+								openslot := v;
+								slotreg := reg;
+							else
+								if v.count < openslot.count then
+									openslot := v;
+								end if;
+							end if;
+						end if;
+
+						v := @next v;
+						reg := reg << 1;
+					end loop;
+							
+					if openslot != (0 as [SimpleValue]) then
 						MemCopy(&value as [uint8], @bytesof SimpleValue, openslot as [uint8]);
-						openslot.reg := reg;
-						preferred_registers := preferred_registers & ~reg;
+						openslot.count := 0xff;
+						reg := slotreg;
 						ArchBeginComment();
 						E("alloc preferred register ");
 						E_h32(reg as uint32);
