@@ -507,6 +507,7 @@
             c := InternalAlloc(@bytesof Constant) as [Constant];
             c.lid := AllocPLabel();
             c.value := value;
+            c.subr := current_subr;
             c.next := constants;
             constants := c;
         end if;
@@ -1253,15 +1254,27 @@ gen ENDSUB()
             E("\tjmp $ffff\n");
         end if;
 
-        while constants != (0 as [Constant]) loop
-            var c := constants;
-            constants := constants.next;
+        var p := 0 as [Constant];
+        var c := constants;
+        while c != (0 as [Constant]) loop
+            if c.subr == current_subr then
+                E_label(c.lid);
+                E("\t.dword ");
+                E_u32(c.value as uint32);
+                E_nl();
 
-            E_label(c.lid);
-            E("\t.dword ");
-            E_u32(c.value as uint32);
-            E_nl();
-            Free(c as [uint8]);
+                if p == (0 as [Constant]) then
+                    constants := c.next;
+                else
+                    p.next := c.next;
+                end if;
+                var nc := c;
+                c := c.next;
+                Free(nc as [uint8]);
+            else
+                p := c;
+                c := c.next;
+            end if;
         end loop;
     end if;
 
