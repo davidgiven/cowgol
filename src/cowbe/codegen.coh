@@ -16,8 +16,9 @@ record RegMove is
 	dest: RegId;
 end record;
 
-const INSN_ELIDED      := 1<<0;
-const INSN_AMALGAMATED := 2<<0;
+const INSN_ELIDED   := 1<<0;
+const INSN_NOTFIRST := 2<<0;
+
 record Instruction is
 	next: [Instruction];
 	prev: [Instruction];
@@ -43,8 +44,9 @@ record SimpleValue is
 	kind: uint8;
 end record;
 
+var imported_values: SimpleValue[REGISTER_COUNT];
+MemZero(&imported_values as [uint8], @bytesof imported_values);
 var preferred_values: SimpleValue[REGISTER_COUNT];
-var preferred_registers: RegId := ALL_REGS;
 MemZero(&preferred_values as [uint8], @bytesof preferred_values);
 
 sub AllocLabel(): (label: LabelRef) is
@@ -122,6 +124,14 @@ sub FindLast(inreg: RegId): (outreg: RegId) is
 			outreg := reg;
 		end if;
 		reg := reg << 1;
+	end loop;
+end sub;
+
+sub FindBitNumber(reg: RegId): (bit: uint8) is
+	bit := 0;
+	while reg != 0 loop
+		bit := bit + 1;
+		reg := reg >> 1;
 	end loop;
 end sub;
 
@@ -716,7 +726,7 @@ sub Generate(rootnode: [Node]) is
 					ArchEndComment();
 
 					v := &preferred_values[0];
-					reg := 1;
+					reg := 1 << (REGISTER_COUNT-1);
 					while v != &preferred_values[@sizeof preferred_values] loop
 						if (v.kind != 0) and ((reg & mask) != 0) and (SimpleValuesMatch(&value, v) != 0) then
 							ArchBeginComment();
@@ -729,7 +739,7 @@ sub Generate(rootnode: [Node]) is
 							return;
 						end if;
 						v := @next v;
-						reg := reg << 1;
+						reg := reg >> 1;
 					end loop;
 
 					# No. Try to find a register which hasn't already been used
@@ -738,7 +748,7 @@ sub Generate(rootnode: [Node]) is
 					var openslot := 0 as [SimpleValue];
 					var slotreg: RegId;
 					v := &preferred_values[0];
-					reg := 1;
+					reg := 1 << (REGISTER_COUNT-1);
 					while v != &preferred_values[@sizeof preferred_values] loop
 						if (reg & mask) != 0 then
 							if v.kind == 0 then
@@ -758,7 +768,7 @@ sub Generate(rootnode: [Node]) is
 						end if;
 
 						v := @next v;
-						reg := reg << 1;
+						reg := reg >> 1;
 					end loop;
 							
 					if openslot != (0 as [SimpleValue]) then
@@ -959,6 +969,103 @@ sub Generate(rootnode: [Node]) is
 		end if;
 	end loop;
 
+	# Attempt to amalgamate repeated producers to suppress unneeded value
+	# materialisation.  The preferred register stuff further up should make
+	# this much more likely.
+
+	sub AmalgamateProducers() is
+		MemZero(&preferred_values as [uint8], @bytesof preferred_values);
+
+		var producer1 := last_instruction;
+		while producer1 != (0 as [Instruction]) loop
+			var producer1_value: SimpleValue;
+			if (producer1.producable_regs != 0) and (IsSimpleValue(producer1, &producer1_value) != 0) then
+				if (producer1.flags & INSN_NOTFIRST) == 0 then
+					ArchBeginComment();
+					E("maybe import ");
+					E_h32(producer1.produced_reg as uint32);
+					ArchEndComment();
+				end if;
+
+				# This is a producer that we haven't yet touched. Starting from this producer's
+				# consumer, look for another producer of the same value.
+
+				var reg := producer1.produced_reg;
+				var consumer := producer1.consumer.consumer;
+				var producer2 := consumer.prev;
+				while producer2 != (0 as [Instruction]) loop
+					var producer2_value: SimpleValue;
+					if (producer2.produced_reg == reg)
+						and (IsSimpleValue(producer2, &producer2_value) != 0)
+					then
+						producer2.flags := producer2.flags | INSN_NOTFIRST;
+						if SimpleValuesMatch(&producer1_value, &producer2_value) != 0 then
+							# This is a candidate for amalgamation; but, is it possible?
+
+							var blocked := consumer.output_regs
+								| producer2.input_regs
+								| CalculateBlockedRegisters(producer2, consumer);
+							if (blocked & reg) == 0 then
+								# Yes!
+
+								BlockRegisters(producer2, consumer, reg);
+								producer2.input_regs := producer2.input_regs | reg;
+								consumer.output_regs := consumer.output_regs | reg;
+								producer2.flags := producer2.flags | INSN_ELIDED;
+							end if;
+							break;
+						end if;
+					end if;
+
+					producer2 := producer2.prev;
+				end loop;
+
+				if producer2 == (0 as [Instruction]) then
+					# No second producer was found, so consumer is the last use
+					# of this value. Try to propagate it to the end of the
+					# statement.
+
+					blocked := consumer.output_regs;
+					if consumer != first_instruction then
+						blocked := blocked
+							| first_instruction.input_regs
+							| first_instruction.output_regs
+							| CalculateBlockedRegisters(first_instruction, consumer);
+					end if;
+					if (blocked & reg) == 0 then
+						# Yes!
+
+						var v := &preferred_values[REGISTER_COUNT - FindBitNumber(reg)];
+						MemCopy(&producer1_value as [uint8], @bytesof SimpleValue, v as [uint8]);
+						v.count := 0xff;
+
+						consumer.output_regs := consumer.output_regs | reg;
+						if consumer != first_instruction then
+							BlockRegisters(first_instruction, consumer, reg);
+							first_instruction.input_regs := first_instruction.input_regs | reg;
+							first_instruction.output_regs := first_instruction.output_regs | reg;
+						end if;
+
+						ArchBeginComment();
+						E("export reg ");
+						E_h32(reg as uint32);
+						E(" into value ");
+						E_h32(v as intptr as uint32);
+						ArchEndComment();
+					else
+						ArchBeginComment();
+						E("cannot export reg ");
+						E_h32(reg as uint32);
+						ArchEndComment();
+					end if;
+				end if;
+			end if; 
+
+			producer1 := producer1.prev;
+		end loop;
+	end sub;
+	AmalgamateProducers();
+
 	# We have a set of instructions for this expression; emit them. In reverse
 	# order.
 
@@ -984,7 +1091,12 @@ sub Generate(rootnode: [Node]) is
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
-			if (insn.flags & INSN_ELIDED) == 0 then
+			if (insn.flags & INSN_ELIDED) != 0 then
+				ArchBeginComment();
+				E("elided producer of reg ");
+				E_h32(insn.produced_reg as uint32);
+				ArchEndComment();
+			else
 				EmitOneInstruction(insn.ruleid, insn);
 			end if;
 			ShuffleRegisters(&insn.spills[0]);
