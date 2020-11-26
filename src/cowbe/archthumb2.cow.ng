@@ -207,7 +207,7 @@ gen JUMP():j
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
 	RegCacheReset();
 
@@ -256,7 +256,7 @@ gen STARTSUB()
 	E("\tpush {lr}\n");
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
 	E("end_");
 	E_subref(current_subr);
@@ -292,7 +292,7 @@ gen ENDSUB()
 	EmitterCloseStream();
 }
 
-gen RETURN()
+gen RETURN() uses all
 {
 	E("\tb end_");
 	E_subref(current_subr);

@@ -708,6 +708,7 @@ int main(int argc, const char* argv[])
 		fatal("cannot open output H file '%s': %s", argv[3], strerror(errno));
 
 	include_file(open_file(infp));
+	define_regclass("all", -1);
 	parse();
 
 	sort_rules();

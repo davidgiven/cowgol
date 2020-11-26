@@ -52,6 +52,8 @@ MemZero(&imported_values as [uint8], @bytesof imported_values);
 var preferred_values: SimpleValue[REGISTER_COUNT];
 MemZero(&preferred_values as [uint8], @bytesof preferred_values);
 
+var emitting_asm: uint8 := 0;
+
 sub AllocLabel(): (label: LabelRef) is
 	label := next_label_id;
 	next_label_id := next_label_id + 1;
@@ -163,6 +165,13 @@ sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocke
 		end if;
 		insn := insn.next;
 	end loop;
+end sub;
+
+sub CalculateBlockedRegistersInclusive(insn: [Instruction], last: [Instruction]): (blocked: RegId) is
+	blocked := last.output_regs | insn.input_regs;
+	if insn != last then
+		blocked := blocked | CalculateBlockedRegisters(insn, last);
+	end if;
 end sub;
 
 # Blocks registers *between* the two bounds, not the end ones.
@@ -982,15 +991,27 @@ sub Generate(rootnode: [Node]) is
 		while producer1 != (0 as [Instruction]) loop
 			var reg := producer1.produced_reg;
 			var producer1_value: SimpleValue;
-			if (reg != 0) and (IsSimpleValue(producer1, &producer1_value) != 0) then
+			if (reg != 0) and ((reg & OPERAND_REGS) == 0) and (IsSimpleValue(producer1, &producer1_value) != 0) then
 				var v := &preferred_values[REGISTER_COUNT - FindBitNumber(reg)];
 
 				if (producer1.flags & INSN_NOTFIRST) == 0 then
-					if (SimpleValuesMatch(v, &producer1_value) != 0) and ((v.flags | VALUE_IMPORTED) != 0) then
-						ArchBeginComment();
-						E("attempt import ");
-						E_h32(producer1.produced_reg as uint32);
-						ArchEndComment();
+					if (SimpleValuesMatch(v, &producer1_value) != 0) and ((v.flags & VALUE_IMPORTED) != 0) then
+						var blocked := CalculateBlockedRegistersInclusive(producer1, last_instruction);
+						if (blocked & reg) == 0 then
+							# Yes!
+
+							if last_instruction != producer1 then
+								BlockRegisters(producer1, last_instruction, reg);
+							end if;
+							last_instruction.output_regs := last_instruction.output_regs | reg;
+							producer1.input_regs := producer1.input_regs | reg;
+							producer1.flags := producer1.flags | INSN_ELIDED;
+
+							ArchBeginComment();
+							E("imported ");
+							E_h32(producer1.produced_reg as uint32);
+							ArchEndComment();
+						end if;
 					end if;
 				end if;
 
@@ -1008,9 +1029,7 @@ sub Generate(rootnode: [Node]) is
 						if SimpleValuesMatch(&producer1_value, &producer2_value) != 0 then
 							# This is a candidate for amalgamation; but, is it possible?
 
-							var blocked := consumer.output_regs
-								| producer2.input_regs
-								| CalculateBlockedRegisters(producer2, consumer);
+							blocked := consumer.output_regs | producer2.input_regs | CalculateBlockedRegisters(producer2, consumer);
 							if (blocked & reg) == 0 then
 								# Yes!
 
@@ -1031,13 +1050,7 @@ sub Generate(rootnode: [Node]) is
 					# of this value. Try to propagate it to the end of the
 					# statement.
 
-					blocked := consumer.output_regs;
-					if consumer != first_instruction then
-						blocked := blocked
-							| first_instruction.input_regs
-							| first_instruction.output_regs
-							| CalculateBlockedRegisters(first_instruction, consumer);
-					end if;
+					blocked := CalculateBlockedRegistersInclusive(first_instruction, consumer);
 					if (blocked & reg) == 0 then
 						# Yes!
 
@@ -1065,17 +1078,48 @@ sub Generate(rootnode: [Node]) is
 			producer1 := producer1.prev;
 		end loop;
 
-		# Turn any exports into imports for the next statement.
+		# Attempt to propagate any remaining preferred values through this instruction,
+		# and turn exports into imports.
+
+		if emitting_asm == 0 then
+			ArchBeginComment();
+			ArchEndComment();
+		end if;
 
 		v := &preferred_values[0];
+		reg := 1 << (REGISTER_COUNT-1);
+		var allBlocked := first_instruction.output_regs | last_instruction.input_regs;
+		if first_instruction != last_instruction then
+			allBlocked := CalculateBlockedRegisters(first_instruction, last_instruction);
+		end if;
 		while v != &preferred_values[@sizeof preferred_values] loop
-			if (v.flags & VALUE_EXPORTED) != 0 then
-				v.flags := VALUE_IMPORTED;
-			else
-				v.flags := 0;
+			if (reg & OPERAND_REGS) == 0 then
+				if ((v.flags & VALUE_IMPORTED) != 0) and ((allBlocked & reg) == 0) then
+					v.flags := v.flags | VALUE_EXPORTED;
+				end if;
+
+				if (v.flags & VALUE_EXPORTED) != 0 then
+					v.flags := VALUE_IMPORTED;
+				else
+					v.flags := 0;
+				end if;
+
+				if (emitting_asm == 0) and (v.kind != 0) then
+					ArchBeginComment();
+					E("preferred value ");
+					E_h32(v as intptr as uint32);
+					E(" in reg ");
+					E_h32(reg as uint32);
+					E(" count ");
+					E_h8(v.count);
+					E(" flags ");
+					E_h8(v.flags);
+					ArchEndComment();
+				end if;
 			end if;
 
 			v := @next v;
+			reg := reg >> 1;
 		end loop;
 	end sub;
 	AmalgamateProducers();
@@ -1105,11 +1149,18 @@ sub Generate(rootnode: [Node]) is
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
+			case insn.n[0].op is
+				when MIDCODE_ASMSTART: emitting_asm := 1;
+				when MIDCODE_ASMEND:   emitting_asm := 0;
+			end case;
+
 			if (insn.flags & INSN_ELIDED) != 0 then
-				ArchBeginComment();
-				E("elided producer of reg ");
-				E_h32(insn.produced_reg as uint32);
-				ArchEndComment();
+				if emitting_asm == 0 then
+					ArchBeginComment();
+					E("elided producer of reg ");
+					E_h32(insn.produced_reg as uint32);
+					ArchEndComment();
+				end if;
 			else
 				EmitOneInstruction(insn.ruleid, insn);
 			end if;
