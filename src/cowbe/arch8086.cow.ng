@@ -571,39 +571,39 @@ gen mem4 := DEREF4(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.ope
 	end sub;
 %}
 
-gen         CALL(       param,         SUBREF():a) uses ax|bx|cx|dx|si|di { Call(&$a); }
-gen         CALL(  ARG1(param, al),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen         CALL(  ARG2(param, ax),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen         CALL(  ARG4(param, dxax),  SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(     param,         SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(ARG1(param, al),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(ARG2(param, ax),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(ARG4(param, dxax),  SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(     param,         SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(ARG1(param, al),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(ARG2(param, ax),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(ARG4(param, dxax),  SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen dxax := CALLE4(     param,         SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
-gen dxax := CALLE4(ARG1(param, al),    SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
-gen dxax := CALLE4(ARG2(param, ax),    SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
-gen dxax := CALLE4(ARG4(param, dxax),  SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
+gen         CALL(       param,         SUBREF():a) uses all { Call(&$a); }
+gen         CALL(  ARG1(param, al),    SUBREF():a) uses all { Call(&$a); }
+gen         CALL(  ARG2(param, ax),    SUBREF():a) uses all { Call(&$a); }
+gen         CALL(  ARG4(param, dxax),  SUBREF():a) uses all { Call(&$a); }
+gen al   := CALLE1(     param,         SUBREF():a) uses all { Call(&$a); }
+gen al   := CALLE1(ARG1(param, al),    SUBREF():a) uses all { Call(&$a); }
+gen al   := CALLE1(ARG2(param, ax),    SUBREF():a) uses all { Call(&$a); }
+gen al   := CALLE1(ARG4(param, dxax),  SUBREF():a) uses all { Call(&$a); }
+gen ax   := CALLE2(     param,         SUBREF():a) uses all { Call(&$a); }
+gen ax   := CALLE2(ARG1(param, al),    SUBREF():a) uses all { Call(&$a); }
+gen ax   := CALLE2(ARG2(param, ax),    SUBREF():a) uses all { Call(&$a); }
+gen ax   := CALLE2(ARG4(param, dxax),  SUBREF():a) uses all { Call(&$a); }
+gen dxax := CALLE4(     param,         SUBREF():a) uses all { Call(&$a); }
+gen dxax := CALLE4(ARG1(param, al),    SUBREF():a) uses all { Call(&$a); }
+gen dxax := CALLE4(ARG2(param, ax),    SUBREF():a) uses all { Call(&$a); }
+gen dxax := CALLE4(ARG4(param, dxax),  SUBREF():a) uses all { Call(&$a); }
 
-gen         CALL(       param,        bx) uses ax|cx|dx|si|di { CallBX(); }
-gen         CALL(  ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen         CALL(  ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen         CALL(  ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(     param,        bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(     param,        bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(     param,        bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
+gen         CALL(       param,        bx) uses all { CallBX(); }
+gen         CALL(  ARG1(param, al),   bx) uses all { CallBX(); }
+gen         CALL(  ARG2(param, ax),   bx) uses all { CallBX(); }
+gen         CALL(  ARG4(param, dxax), bx) uses all { CallBX(); }
+gen al   := CALLE1(     param,        bx) uses all { CallBX(); }
+gen al   := CALLE1(ARG1(param, al),   bx) uses all { CallBX(); }
+gen al   := CALLE1(ARG2(param, ax),   bx) uses all { CallBX(); }
+gen al   := CALLE1(ARG4(param, dxax), bx) uses all { CallBX(); }
+gen ax   := CALLE2(     param,        bx) uses all { CallBX(); }
+gen ax   := CALLE2(ARG1(param, al),   bx) uses all { CallBX(); }
+gen ax   := CALLE2(ARG2(param, ax),   bx) uses all { CallBX(); }
+gen ax   := CALLE2(ARG4(param, dxax), bx) uses all { CallBX(); }
+gen dxax := CALLE4(     param,        bx) uses all { CallBX(); }
+gen dxax := CALLE4(ARG1(param, al),   bx) uses all { CallBX(); }
+gen dxax := CALLE4(ARG2(param, ax),   bx) uses all { CallBX(); }
+gen dxax := CALLE4(ARG4(param, dxax), bx) uses all { CallBX(); }
 
 gen param := END();
 
