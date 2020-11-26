@@ -728,19 +728,19 @@ regdata param stacked;
 gen STARTFILE();
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
 	E_label($b.label);
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
 	E_jp($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
 	RegCacheReset();
 
@@ -814,7 +814,7 @@ gen STARTSUB()
 	end if;
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
 	R_flushall();
 
@@ -935,7 +935,7 @@ gen r8  := POPARG1(remaining!=0) { E_pop($$); }
 gen r16 := POPARG2(remaining!=0) { E_pop($$); }
 gen r32 := POPARG4(remaining!=0) { ArchEmitMove(0, $$); }
 
-gen RETURN()
+gen RETURN() uses all
 {
     if current_subr.num_output_parameters == 0 then
 		E_ret();
@@ -1695,22 +1695,22 @@ gen hlhl := RSHIFTS4(hlhl, a)
 	end sub;
 %}
 
-gen BEQ0(CONSTANT():c1, CONSTANT():c2):b
+gen BEQ0(CONSTANT():c1, CONSTANT():c2):b uses all
 		{ beqc(self.n[0], $c1.value, $c2.value); }
 
-gen BEQ1(b|d|h:nota, a):b
+gen BEQ1(b|d|h:nota, a):b uses all
 		{ bequ1(self.n[0], $nota); }
 
-gen BEQ1(a, CONSTANT():c):b
+gen BEQ1(a, CONSTANT():c):b uses all
 		{ bequ1c(self.n[0], $c.value as uint8); }
 
-gen BLTU1(a, b|d|h:rhs):b
+gen BLTU1(a, b|d|h:rhs):b uses all
 {
 	E_cp($rhs);
 	E_jumps_jc_jnc(self.n[0]);
 }
 
-gen BLTU1(a, CONSTANT():c):b
+gen BLTU1(a, CONSTANT():c):b uses all
 {
 	var v := $c.value as uint8;
 	if v == 0 then
@@ -1721,7 +1721,7 @@ gen BLTU1(a, CONSTANT():c):b
 	E_jumps_jc_jnc(self.n[0]);
 }
 
-gen BLTS1(a, b|d|h:rhs):b
+gen BLTS1(a, b|d|h:rhs):b uses all
 {
 	E_sub($rhs);
 	E("\tjp po, $+5\n");
@@ -1729,7 +1729,7 @@ gen BLTS1(a, b|d|h:rhs):b
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BLTS1(a, CONSTANT():c):b
+gen BLTS1(a, CONSTANT():c):b uses all
 {
 	E_subi($c.value as uint8);
 	E("\tjp po, $+5\n");
@@ -1737,56 +1737,56 @@ gen BLTS1(a, CONSTANT():c):b
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BLTS1(a, CONSTANT(value==0)):b
+gen BLTS1(a, CONSTANT(value==0)):b uses all
 {
 	E_or(REG_A);
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BEQ2(bc|de:lhs, hl):a
+gen BEQ2(bc|de:lhs, hl):a uses all
 		{ bequ2(self.n[0], $lhs); }
 
-gen BEQ2(hl, CONSTANT():c) uses a|de
+gen BEQ2(hl, CONSTANT():c) uses all
 		{ bequ2c(self.n[0], $c.value as uint16); }
 
-gen BLTU2(hl, bc|de:rhs):b
+gen BLTU2(hl, bc|de:rhs):b uses all
 {
 	E_rcf();
 	E_sbc(REG_HL, $rhs);
 	E_jumps_jc_jnc(self.n[0]);
 }
 
-gen BLTS2(hl, de):b uses a|bc
+gen BLTS2(hl, de):b uses all
 {
 	E_callhelper("_cmps2");
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)):b
+gen BLTS2(hl|bc|de:lhs, CONSTANT(value==0)):b uses all
 {
 	E_bit(7, hireg($lhs));
 	E_jumps_jnz_jz(self.n[0]);
 }
 
-gen BEQ4(dede, hlhl):b uses a
+gen BEQ4(dede, hlhl):b uses all
 		{ bequ4(self.n[0]); }
 
-gen BEQ4(hlhl, CONSTANT():c):b uses dede|a
+gen BEQ4(hlhl, CONSTANT():c):b uses all
 		{ bequ4c(self.n[0], $c.value); }
 
-gen BLTU4(hlhl, dede):b
+gen BLTU4(hlhl, dede):b uses all
 {
 	E_callhelper("_cmpu4");
 	E_jumps_jc_jnc(self.n[0]);
 }
 
-gen BLTS4(hlhl, dede):b
+gen BLTS4(hlhl, dede):b uses all
 {
 	E_callhelper("_cmps4");
 	E_jumps_jm_jp(self.n[0]);
 }
 
-gen BLTS4(r32:lhs, CONSTANT(value==0)):b
+gen BLTS4(r32:lhs, CONSTANT(value==0)):b uses all
 {
 	E_exx();
 	E_bit(7, hireg($lhs));
@@ -1796,11 +1796,11 @@ gen BLTS4(r32:lhs, CONSTANT(value==0)):b
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(a);
+gen STARTCASE1(a) uses all;
 
-gen STARTCASE2(de);
+gen STARTCASE2(de) uses all;
 
-gen STARTCASE4(r32:val)
+gen STARTCASE4(r32:val) uses all
 {
 	E_exx();
 	E_push($val);
@@ -1814,7 +1814,7 @@ gen STARTCASE4(r32:val)
 	E_pop(REG_BC);
 }
 
-gen WHENCASE1():c
+gen WHENCASE1():c uses all
 {
 	if $c.value == 0 then
 		E_or(REG_A);
@@ -1842,12 +1842,12 @@ gen WHENCASE1():c
 	end sub;
 %}
 
-gen WHENCASE2():c uses a
+gen WHENCASE2():c uses all
 {
 	case2($c.value as uint16, REG_DE, $c.falselabel);
 }
 
-gen WHENCASE4():c uses a
+gen WHENCASE4():c uses all
 {
 	case2($c.value as uint16, REG_DE, $c.falselabel);
 	case2(($c.value >> 16) as uint16, REG_BC, $c.falselabel);
@@ -2004,7 +2004,7 @@ gen INITSTRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
+gen ASMGROUPSTART() uses all;
 gen ASMGROUPEND();
 
 gen ASMSTART()

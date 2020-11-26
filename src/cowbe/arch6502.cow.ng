@@ -584,6 +584,8 @@ regdata mem1 stacked;
 regdata mem2 stacked;
 regdata mem2p stacked;
 regdata mem4 stacked;
+regdata address stacked;
+regdata const stacked;
 $ifndef TINY
     regdata memi1 stacked;
     regdata memi2 stacked;
@@ -599,14 +601,14 @@ gen STARTFILE();
 
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
     R_flushall();
     E_labelref($b.label);
     E(":\n");
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
     E_jmp($j.label);
 }
@@ -989,7 +991,7 @@ $endif
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
     current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
     current_subr.arch.end_label := AllocPLabel();
@@ -1140,7 +1142,7 @@ gen STARTSUB()
     end if;
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
     if (current_subr.flags & SUB_IS_INTERFACE) == 0 then
         if current_subr.arch.seen_return != 0 then
@@ -1286,7 +1288,7 @@ gen ENDSUB()
     Free(current_subr.arch as [uint8]);
 }
 
-gen RETURN()
+gen RETURN() uses all
 {
     if (IsSimpleSub(current_subr) != 0) and (current_subr.num_output_parameters == 0) then
         E_rts();
@@ -1846,7 +1848,7 @@ gen v32 := RSHIFTS4(v32, y) { Shift4("_rshifts4"); }
 
 // --- Conditionals ---------------------------------------------------------
 
-gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 {
     var label := $b.falselabel;
     if $lhs.value == $rhs.value then
@@ -1857,21 +1859,21 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
-gen BEQ1(a:lhs, in1s:rhs):b
+gen BEQ1(a:lhs, in1s:rhs):b uses all
 {
     var rhs := PopOp();
     DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_beq_bne(self.n[0]);
 }
 
-gen BLTU1(a:lhs, in1s:rhs):b
+gen BLTU1(a:lhs, in1s:rhs):b uses all
 {
     var rhs := PopOp();
     DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_bcc_bcs(self.n[0]);
 }
 
-gen BLTS1(a:lhs, in1s:rhs):b
+gen BLTS1(a:lhs, in1s:rhs):b uses all
 {
     var rhs := PopOp();
     E_sec();
@@ -1881,7 +1883,7 @@ gen BLTS1(a:lhs, in1s:rhs):b
     E_jumps_bmi_bpl(self.n[0]);
 }
 
-gen BEQ2(xa:lhs, in2s:rhs):b
+gen BEQ2(xa:lhs, in2s:rhs):b uses all
 {
     var rhs := PopOp();
     DoParamDirect(rhs, OC_CMP, 0);
@@ -1898,7 +1900,7 @@ gen BEQ2(xa:lhs, in2s:rhs):b
     E_jumps_beq_bne(self.n[0]);
 }
 
-gen BLTU2(xa:lhs, in2s:rhs):c
+gen BLTU2(xa:lhs, in2s:rhs):c uses all
 {
     var rhs := PopOp();
     E_sec();
@@ -1986,9 +1988,9 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     end sub;
 %}
 
-gen BEQ4(in4s, in4s):b uses a|x|y { DoCmp4EQ(self.n[0]); }
-gen BLTU4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 0); }
-gen BLTS4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 1); }
+gen BEQ4(in4s, in4s):b uses all { DoCmp4EQ(self.n[0]); }
+gen BLTU4(in4s, in4s):b uses all { DoCmp4LT(self.n[0], 0); }
+gen BLTS4(in4s, in4s):b uses all { DoCmp4LT(self.n[0], 1); }
 
 // --- Casts ----------------------------------------------------------------
 
@@ -2070,10 +2072,10 @@ gen xa := CAST42(in4s)
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(a);
-gen STARTCASE2(xa);
+gen STARTCASE1(a) uses all;
+gen STARTCASE2(xa) uses all;
 
-gen STARTCASE4(v32)
+gen STARTCASE4(v32) uses all
 {
     var e := GetHelper("_when4");
     var op := PopOp();
@@ -2101,7 +2103,7 @@ gen STARTCASE4(v32)
     
 }
 
-gen WHENCASE1():c
+gen WHENCASE1():c uses all
 {
     E_cmp();
     E_const();
@@ -2110,7 +2112,7 @@ gen WHENCASE1():c
     E_bne($c.falselabel);
 }
 
-gen WHENCASE2():c uses a
+gen WHENCASE2():c uses all
 {
     E_cmp();
     E_const();
@@ -2125,7 +2127,7 @@ gen WHENCASE2():c uses a
     E_bne($c.falselabel);
 }
 
-gen WHENCASE4():c uses a
+gen WHENCASE4():c uses all
 {
     E_callhelper("_when4");
     E_dl();
@@ -2217,7 +2219,7 @@ gen INITSTRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
+gen ASMGROUPSTART() uses all;
 gen ASMGROUPEND();
 
 gen ASMSTART()

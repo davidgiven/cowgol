@@ -627,19 +627,19 @@ regdata param stacked;
 gen STARTFILE();
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
 	E_label($b.label);
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
 	E_jmp($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
 	RegCacheReset();
 
@@ -696,7 +696,7 @@ gen STARTSUB()
 	end if;
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
 	R_flushall();
 
@@ -742,7 +742,7 @@ gen ENDSUB()
 	EmitterCloseStream();
 }
 
-gen RETURN()
+gen RETURN() uses all
 {
 	if current_subr.num_output_parameters == 0 then
 		E_ret();
@@ -992,48 +992,48 @@ gen r32                 := RSHIFTS4($$:lhs, CONSTANT():c) { E_sari($c.value, $lh
 gen BEQ0(CONSTANT():c1, CONSTANT():c2):b
 	    { beqc(self.n[0], $c1.value, $c2.value); }
 
-gen BEQ1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQ2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQ4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
-gen BEQ1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
-gen BEQ2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
-gen BEQ4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ1(r8:lhs, r8:rhs):b        uses all { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQ2(r16:lhs, r16:rhs):b      uses all { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQ4(r32:lhs, r32:rhs):b      uses all { E_cmp($rhs, $lhs);      CmpJumpsJe(self.n[0]); }
+gen BEQ1(r8:lhs, CONSTANT():c):b  uses all { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ2(r16:lhs, CONSTANT():c):b uses all { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ4(r32:lhs, CONSTANT():c):b uses all { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
 
-gen BLTS1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
-gen BLTS2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
-gen BLTS4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
-gen BLTS1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
-gen BLTS2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
-gen BLTS4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
+gen BLTS1(r8:lhs, r8:rhs):b        uses all { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
+gen BLTS2(r16:lhs, r16:rhs):b      uses all { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
+gen BLTS4(r32:lhs, r32:rhs):b      uses all { E_cmp($rhs, $lhs);      CmpJumpsJl(self.n[0]); }
+gen BLTS1(r8:lhs, CONSTANT():c):b  uses all { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
+gen BLTS2(r16:lhs, CONSTANT():c):b uses all { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
+gen BLTS4(r32:lhs, CONSTANT():c):b uses all { E_cmpi($c.value, $lhs); CmpJumpsJl(self.n[0]); }
 
-gen BLTU1(r8:lhs, r8:rhs):b        { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
-gen BLTU2(r16:lhs, r16:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
-gen BLTU4(r32:lhs, r32:rhs):b      { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
-gen BLTU1(r8:lhs, CONSTANT():c):b  { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
-gen BLTU2(r16:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
-gen BLTU4(r32:lhs, CONSTANT():c):b { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
+gen BLTU1(r8:lhs, r8:rhs):b        uses all { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
+gen BLTU2(r16:lhs, r16:rhs):b      uses all { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
+gen BLTU4(r32:lhs, r32:rhs):b      uses all { E_cmp($rhs, $lhs);      CmpJumpsJb(self.n[0]); }
+gen BLTU1(r8:lhs, CONSTANT():c):b  uses all { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
+gen BLTU2(r16:lhs, CONSTANT():c):b uses all { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
+gen BLTU4(r32:lhs, CONSTANT():c):b uses all { E_cmpi($c.value, $lhs); CmpJumpsJb(self.n[0]); }
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(al);
+gen STARTCASE1(al) uses all;
 
-gen STARTCASE2(ax);
+gen STARTCASE2(ax) uses all;
 
-gen STARTCASE4(eax);
+gen STARTCASE4(eax) uses all;
 
-gen WHENCASE1():c
+gen WHENCASE1():c uses all
 {
 	E_cmpi($c.value & 0xff, REG_AL);
 	E_jne($c.falselabel);
 }
 
-gen WHENCASE2():c
+gen WHENCASE2():c uses all
 {
 	E_cmpi($c.value & 0xffff, REG_AX);
 	E_jne($c.falselabel);
 }
 
-gen WHENCASE4():c
+gen WHENCASE4():c uses all
 {
 	E_cmpi($c.value, REG_EAX);
 	E_jne($c.falselabel);
@@ -1125,8 +1125,8 @@ gen INITSTRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
-gen ASMGROUPEND();
+gen ASMGROUPSTART() uses all;
+gen ASMGROUPEND() uses all;
 
 gen ASMSTART()
 {

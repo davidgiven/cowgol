@@ -189,6 +189,14 @@ sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
 	end loop;
 end sub;
 
+sub BlockRegistersInclusive(insn: [Instruction], last: [Instruction], blocked: RegId) is
+	last.output_regs := last.output_regs | blocked;
+	insn.input_regs := insn.input_regs | blocked;
+	if insn != last then
+		BlockRegisters(insn, last, blocked);
+	end if;
+end sub;
+
 # Unblocks registers *between* the two bounds, not the end ones.
 sub UnblockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
 	insn := insn.next;
@@ -998,15 +1006,13 @@ sub Generate(rootnode: [Node]) is
 
 				if (producer1.flags & INSN_NOTFIRST) == 0 then
 					if (SimpleValuesMatch(v, &producer1_value) != 0) and ((v.flags & VALUE_IMPORTED) != 0) then
-						var blocked := CalculateBlockedRegistersInclusive(producer1, last_instruction);
+						var blocked := CalculateBlockedRegistersInclusive(producer1, last_instruction)
+							| last_instruction.used_regs
+							| producer1.used_regs;
 						if (blocked & reg) == 0 then
 							# Yes!
 
-							if last_instruction != producer1 then
-								BlockRegisters(producer1, last_instruction, reg);
-							end if;
-							last_instruction.output_regs := last_instruction.output_regs | reg;
-							producer1.input_regs := producer1.input_regs | reg;
+							BlockRegistersInclusive(producer1, last_instruction, reg);
 							producer1.flags := producer1.flags | INSN_ELIDED;
 
 							ArchBeginComment();
@@ -1031,13 +1037,12 @@ sub Generate(rootnode: [Node]) is
 						if SimpleValuesMatch(&producer1_value, &producer2_value) != 0 then
 							# This is a candidate for amalgamation; but, is it possible?
 
-							blocked := consumer.output_regs | producer2.input_regs | CalculateBlockedRegisters(producer2, consumer);
+							blocked := CalculateBlockedRegistersInclusive(producer2, consumer)
+								| producer2.used_regs | consumer.used_regs;
 							if (blocked & reg) == 0 then
 								# Yes!
 
-								BlockRegisters(producer2, consumer, reg);
-								producer2.input_regs := producer2.input_regs | reg;
-								consumer.output_regs := consumer.output_regs | reg;
+								BlockRegistersInclusive(producer2, consumer, reg);
 								producer2.flags := producer2.flags | INSN_ELIDED;
 							end if;
 							break;
@@ -1052,7 +1057,8 @@ sub Generate(rootnode: [Node]) is
 					# of this value. Try to propagate it to the end of the
 					# statement.
 
-					blocked := CalculateBlockedRegistersInclusive(first_instruction, consumer);
+					blocked := CalculateBlockedRegistersInclusive(first_instruction, consumer)
+						| first_instruction.used_regs;
 					if (blocked & reg) == 0 then
 						# Yes!
 
@@ -1061,9 +1067,7 @@ sub Generate(rootnode: [Node]) is
 
 							consumer.output_regs := consumer.output_regs | reg;
 							if consumer != first_instruction then
-								BlockRegisters(first_instruction, consumer, reg);
-								first_instruction.input_regs := first_instruction.input_regs | reg;
-								first_instruction.output_regs := first_instruction.output_regs | reg;
+								BlockRegistersInclusive(first_instruction, consumer, reg);
 							end if;
 
 							ArchBeginComment();
@@ -1090,13 +1094,25 @@ sub Generate(rootnode: [Node]) is
 
 		v := &preferred_values[0];
 		reg := 1 << (REGISTER_COUNT-1);
-		var allBlocked := first_instruction.output_regs | last_instruction.input_regs;
-		if first_instruction != last_instruction then
-			allBlocked := CalculateBlockedRegisters(first_instruction, last_instruction);
+		var allBlocked := CalculateBlockedRegistersInclusive(first_instruction, last_instruction)
+			| first_instruction.used_regs | last_instruction.used_regs;
+		if emitting_asm == 0 then
+			ArchBeginComment();
+			E("blocked regs ");
+			E_h32(allBlocked as uint32);
+			ArchEndComment();
 		end if;
 		while v != &preferred_values[@sizeof preferred_values] loop
 			if (reg & OPERAND_REGS) == 0 then
 				if ((v.flags & VALUE_IMPORTED) != 0) and ((allBlocked & reg) == 0) then
+					if emitting_asm == 0 then
+						ArchBeginComment();
+						E("passthrough value ");
+						E_h32(v as intptr as uint32);
+						E(" in reg ");
+						E_h32(reg as uint32);
+						ArchEndComment();
+					end if;
 					v.flags := v.flags | VALUE_EXPORTED;
 				end if;
 
