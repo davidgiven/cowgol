@@ -27,6 +27,7 @@ record Instruction is
 	produced_reg: RegId;
 	consumer: [Node];
 	input_regs: RegId;
+	used_regs: RegId;
 	output_regs: RegId;
 	spills: RegMove[MAX_MOVE_COUNT];
 	reloads: RegMove[MAX_MOVE_COUNT];
@@ -159,7 +160,7 @@ sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocke
 	blocked := 0;
 	insn := insn.next;
 	while insn != last loop
-		blocked := blocked | insn.input_regs | insn.output_regs;
+		blocked := blocked | insn.input_regs | insn.output_regs | insn.used_regs;
 		if insn == last then
 			break;
 		end if;
@@ -179,6 +180,7 @@ sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
 	insn := insn.next;
 	while insn != last loop
 		insn.input_regs := insn.input_regs | blocked;
+		insn.used_regs := insn.used_regs | blocked;
 		insn.output_regs := insn.output_regs | blocked;
 		if insn == last then
 			break;
@@ -662,7 +664,7 @@ sub Generate(rootnode: [Node]) is
 
 			producer.ruleid := ruleid;
 			producer.producable_regs := rule.producable_regs;
-			producer.output_regs := rule.uses_regs;
+			producer.used_regs := rule.uses_regs;
 
 			# Copy child nodes into the current instruction and make sure they're
 			# pushed for later instruction allocation.
