@@ -1061,11 +1061,6 @@ sub Generate(rootnode: [Node]) is
 		# Attempt to propagate any remaining preferred values through this instruction,
 		# and turn exports into imports.
 
-		if emitting_asm == 0 then
-			ArchBeginComment();
-			ArchEndComment();
-		end if;
-
 		v := &preferred_values[0];
 		reg := 1 << (REGISTER_COUNT-1);
 		var allBlocked := CalculateBlockedRegistersInclusive(first_instruction, last_instruction)
@@ -1122,7 +1117,7 @@ sub Generate(rootnode: [Node]) is
 			if (insn.flags & INSN_ELIDED) != 0 then
 				#if emitting_asm == 0 then
 				#	ArchBeginComment();
-				#	E("elided producer of reg ");
+				#    E("elided producer of reg ");
 				#	E_h32(insn.produced_reg as uint32);
 				#	ArchEndComment();
 				#end if;
