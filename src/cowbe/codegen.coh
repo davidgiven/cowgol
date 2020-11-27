@@ -158,6 +158,9 @@ end sub;
 # Calculates blocked registers *between* the two bounds, not the end ones.
 sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocked: RegId) is
 	blocked := 0;
+	if insn == last then
+		return;
+	end if;
 	insn := insn.next;
 	while insn != last loop
 		blocked := blocked | insn.input_regs | insn.output_regs | insn.used_regs;
@@ -177,6 +180,9 @@ end sub;
 
 # Blocks registers *between* the two bounds, not the end ones.
 sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
+	if insn == last then
+		return;
+	end if;
 	insn := insn.next;
 	while insn != last loop
 		insn.input_regs := insn.input_regs | blocked;
@@ -785,6 +791,7 @@ sub Generate(rootnode: [Node]) is
 							else
 								if v.count < openslot.count then
 									openslot := v;
+									slotreg := reg;
 								end if;
 							end if;
 						end if;
@@ -1006,9 +1013,18 @@ sub Generate(rootnode: [Node]) is
 
 				if (producer1.flags & INSN_NOTFIRST) == 0 then
 					if (SimpleValuesMatch(v, &producer1_value) != 0) and ((v.flags & VALUE_IMPORTED) != 0) then
-						var blocked := CalculateBlockedRegistersInclusive(producer1, last_instruction)
-							| last_instruction.used_regs
-							| producer1.used_regs;
+						var blocked := producer1.input_regs | producer1.used_regs;
+						if producer1 != last_instruction then
+							blocked := blocked | CalculateBlockedRegisters(producer1, last_instruction)
+								| last_instruction.input_regs
+								| last_instruction.used_regs;
+						end if;
+							ArchBeginComment();
+							E("maybe import reg ");
+							E_h32(reg as uint32);
+							E(" with blocked mask ");
+							E_h32(blocked as uint32);
+							ArchEndComment();
 						if (blocked & reg) == 0 then
 							# Yes!
 
@@ -1037,8 +1053,8 @@ sub Generate(rootnode: [Node]) is
 						if SimpleValuesMatch(&producer1_value, &producer2_value) != 0 then
 							# This is a candidate for amalgamation; but, is it possible?
 
-							blocked := CalculateBlockedRegistersInclusive(producer2, consumer)
-								| producer2.used_regs | consumer.used_regs;
+							blocked := consumer.used_regs | consumer.output_regs | producer2.input_regs | producer2.used_regs
+								| CalculateBlockedRegisters(producer2, consumer);
 							if (blocked & reg) == 0 then
 								# Yes!
 
@@ -1057,8 +1073,12 @@ sub Generate(rootnode: [Node]) is
 					# of this value. Try to propagate it to the end of the
 					# statement.
 
-					blocked := CalculateBlockedRegistersInclusive(first_instruction, consumer)
-						| first_instruction.used_regs;
+					blocked := consumer.used_regs | consumer.output_regs;
+					if consumer != first_instruction then
+						blocked := blocked | CalculateBlockedRegisters(first_instruction, consumer)
+							| first_instruction.used_regs
+							| first_instruction.output_regs;
+					end if;
 					if (blocked & reg) == 0 then
 						# Yes!
 

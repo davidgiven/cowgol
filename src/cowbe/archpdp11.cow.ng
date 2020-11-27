@@ -1422,17 +1422,17 @@ gen r32   := LSHIFT4($$:lhs, CONSTANT():c)       { E_shli4($c.value as uint8, $l
 
 gen r8n0  := RSHIFTU1($$:lhs, r0b:rhs)           { E_shr1($rhs, $lhs); }
 gen r8    := RSHIFTU1($$:lhs, CONSTANT():c)      { E_shri($c.value as uint8, $lhs); }
-gen r16n0 := RSHIFTU2($$:lhs, r0b:rhs) uses r5   { E_shr($rhs, $lhs); }
+gen r1|r2|r3|r4 := RSHIFTU2($$:lhs, r0b:rhs) uses r5 { E_shr($rhs, $lhs); }
 gen r16   := RSHIFTU2($$:lhs, CONSTANT():c)      { E_shri($c.value as uint8, $lhs); }
-gen r32n0 := RSHIFTU4($$:lhs, r0b:rhs) uses r4r5 { E_shr4($rhs, $lhs); }
-gen r32   := RSHIFTU4($$:lhs, CONSTANT():c) uses r5 { E_shri4($c.value as uint8, $lhs); }
+gen r2r3  := RSHIFTU4($$:lhs, r0b:rhs) uses r4r5 { E_shr4($rhs, $lhs); }
+gen r0r1|r2r3 := RSHIFTU4($$:lhs, CONSTANT():c) uses r5 { E_shri4($c.value as uint8, $lhs); }
 
 gen r8n0  := RSHIFTS1($$:lhs, r0b:rhs)           { E_sar1($rhs, $lhs); }
 gen r8    := RSHIFTS1($$:lhs, CONSTANT():c)      { E_sari($c.value as uint8, $lhs); }
 gen r16n0 := RSHIFTS2($$:lhs, r0b:rhs)           { E_sar($rhs, $lhs); }
 gen r16   := RSHIFTS2($$:lhs, CONSTANT():c)      { E_sari($c.value as uint8, $lhs); }
-gen r32n0 := RSHIFTS4($$:lhs, r0b:rhs) uses r4r5 { E_sar4($rhs, $lhs); }
-gen r32   := RSHIFTS4($$:lhs, CONSTANT():c) uses r5 { E_sari4($c.value as uint8, $lhs); }
+gen r32n0 := RSHIFTS4($$:lhs, r0b:rhs)           { E_sar4($rhs, $lhs); }
+gen r32   := RSHIFTS4($$:lhs, CONSTANT():c)      { E_sari4($c.value as uint8, $lhs); }
 
 // --- Conditionals ---------------------------------------------------------
 
