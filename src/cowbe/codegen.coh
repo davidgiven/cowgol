@@ -737,32 +737,10 @@ sub Generate(rootnode: [Node]) is
 					# Do we have a preferred register for this value? If so, try to use
 					# that register.
 
-					ArchBeginComment();
-					E("searching for preferred register with mask ");
-					E_h32(mask as uint32);
-
-					if value.kind == MIDCODE_ADDRESS then
-						E(" value off ");
-						E_h32(value.address.sym.off as uint32);
-						E("+");
-						E_h32(value.address.off as uint32);
-						E(" subr ");
-						E_h32(value.address.sym.subr as intptr as uint32);
-						E(" wsid ");
-						E_h32(value.address.sym.wsid as uint32);
-					end if;
-					ArchEndComment();
-
 					v := &preferred_values[0];
 					reg := 1 << (REGISTER_COUNT-1);
 					while v != &preferred_values[@sizeof preferred_values] loop
 						if (v.kind != 0) and ((reg & mask) != 0) and (SimpleValuesMatch(&value, v) != 0) then
-							ArchBeginComment();
-							E("use preferred register ");
-							E_h32(reg as uint32);
-							E(" with value ");
-							E_h32(v as intptr as uint32);
-							ArchEndComment();
 							v.count := 0xff;
 							return;
 						end if;
@@ -805,12 +783,6 @@ sub Generate(rootnode: [Node]) is
 						openslot.count := 0xff;
 						openslot.flags := 0;
 						reg := slotreg;
-						ArchBeginComment();
-						E("alloc preferred register ");
-						E_h32(reg as uint32);
-						E(" with value ");
-						E_h32(openslot as intptr as uint32);
-						ArchEndComment();
 						return;
 					end if;
 
@@ -1019,22 +991,11 @@ sub Generate(rootnode: [Node]) is
 								| last_instruction.input_regs
 								| last_instruction.used_regs;
 						end if;
-							ArchBeginComment();
-							E("maybe import reg ");
-							E_h32(reg as uint32);
-							E(" with blocked mask ");
-							E_h32(blocked as uint32);
-							ArchEndComment();
 						if (blocked & reg) == 0 then
 							# Yes!
 
 							BlockRegistersInclusive(producer1, last_instruction, reg);
 							producer1.flags := producer1.flags | INSN_ELIDED;
-
-							ArchBeginComment();
-							E("imported ");
-							E_h32(producer1.produced_reg as uint32);
-							ArchEndComment();
 						end if;
 					end if;
 				end if;
@@ -1089,13 +1050,6 @@ sub Generate(rootnode: [Node]) is
 							if consumer != first_instruction then
 								BlockRegistersInclusive(first_instruction, consumer, reg);
 							end if;
-
-							ArchBeginComment();
-							E("export reg ");
-							E_h32(reg as uint32);
-							E(" into value ");
-							E_h32(v as intptr as uint32);
-							ArchEndComment();
 						end if;
 					end if;
 				end if;
@@ -1116,23 +1070,9 @@ sub Generate(rootnode: [Node]) is
 		reg := 1 << (REGISTER_COUNT-1);
 		var allBlocked := CalculateBlockedRegistersInclusive(first_instruction, last_instruction)
 			| first_instruction.used_regs | last_instruction.used_regs;
-		if emitting_asm == 0 then
-			ArchBeginComment();
-			E("blocked regs ");
-			E_h32(allBlocked as uint32);
-			ArchEndComment();
-		end if;
 		while v != &preferred_values[@sizeof preferred_values] loop
 			if (reg & OPERAND_REGS) == 0 then
 				if ((v.flags & VALUE_IMPORTED) != 0) and ((allBlocked & reg) == 0) then
-					if emitting_asm == 0 then
-						ArchBeginComment();
-						E("passthrough value ");
-						E_h32(v as intptr as uint32);
-						E(" in reg ");
-						E_h32(reg as uint32);
-						ArchEndComment();
-					end if;
 					v.flags := v.flags | VALUE_EXPORTED;
 				end if;
 
@@ -1140,19 +1080,6 @@ sub Generate(rootnode: [Node]) is
 					v.flags := VALUE_IMPORTED;
 				else
 					v.flags := 0;
-				end if;
-
-				if (emitting_asm == 0) and (v.kind != 0) then
-					ArchBeginComment();
-					E("preferred value ");
-					E_h32(v as intptr as uint32);
-					E(" in reg ");
-					E_h32(reg as uint32);
-					E(" count ");
-					E_h8(v.count);
-					E(" flags ");
-					E_h8(v.flags);
-					ArchEndComment();
 				end if;
 			end if;
 
@@ -1193,12 +1120,12 @@ sub Generate(rootnode: [Node]) is
 			end case;
 
 			if (insn.flags & INSN_ELIDED) != 0 then
-				if emitting_asm == 0 then
-					ArchBeginComment();
-					E("elided producer of reg ");
-					E_h32(insn.produced_reg as uint32);
-					ArchEndComment();
-				end if;
+				#if emitting_asm == 0 then
+				#	ArchBeginComment();
+				#	E("elided producer of reg ");
+				#	E_h32(insn.produced_reg as uint32);
+				#	ArchEndComment();
+				#end if;
 			else
 				EmitOneInstruction(insn.ruleid, insn);
 			end if;
