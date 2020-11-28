@@ -128,6 +128,13 @@
 		end if;
 	end sub;
 
+	sub is_short(sym: [Symbol]): (result: uint8) is
+		result := 0;
+		if (sym.subr == current_subr) and (sym.off < 4000) and (sym.off >= 0) and (sym.wsid == 0) then
+			result := 1;
+		end if;
+	end sub;
+
     sub ArchBeginComment() is
         E("\t# ");
     end sub;
@@ -171,7 +178,7 @@ register r0 r1 r2 r3 r4 r5 r6 r7;
 operand param;
 operand imm5 imm8 imm16;
 
-regclass r32 := r0|r1|r2|r3|r4|r5|r6|r7;
+regclass r32 := r0|r1|r2|r3|r4|r5|r6;
 
 regdata r0 compatible r32;
 regdata r1 compatible r32;
@@ -180,7 +187,6 @@ regdata r3 compatible r32;
 regdata r4 compatible r32;
 regdata r5 compatible r32;
 regdata r6 compatible r32;
-regdata r7 compatible r32;
 
 // --- Core things ----------------------------------------------------------
 
@@ -224,28 +230,49 @@ gen STARTSUB() uses all
 	E(":\n");
 
 	var count := current_subr.num_input_parameters;
-	var lastparam := count - 1;
-
-	while count != 0 loop
-		count := count - 1;
-		var param := GetInputParameter(current_subr, count);
-
-		var reg: RegId;
-		if count != lastparam then
-			E_pop(REG_R0);
-		end if;
-		E("\tldr r1, =");
-		E_symref(param as [Symbol], 0);
+	if count == 0 then
+		E("\tpush {r7, lr}\n");
+		E("\tldr r7, =");
+		E_wsref(current_subr.id, 0, 0);
+		E_nl();
+	else
+		E("\tmov r2, r7\n");
+		E("\tldr r7, =");
+		E_wsref(current_subr.id, 0, 0);
 		E_nl();
 
-		case param.width is
-			when 1: E("\tstrb r0, [r1]\n");
-			when 2: E("\tstrh r0, [r1]\n");
-			when 4: E("\tstr r0, [r1]\n");
-		end case;
-	end loop;
+		var lastparam := count - 1;
 
-	E("\tpush {lr}\n");
+		while count != 0 loop
+			count := count - 1;
+			var param := GetInputParameter(current_subr, count);
+
+			var reg: RegId;
+			if count != lastparam then
+				E_pop(REG_R0);
+			end if;
+			if param.subr != current_subr then
+				E("\tldr r1, =");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+			end if;
+
+			case param.width is
+				when 1: E("\tstrb");
+				when 2: E("\tstrh");
+				when 4: E("\tstr");
+			end case;
+			if param.subr != current_subr then
+				E(" r0, [r1]\n");
+			else
+				E(" r0, [r7, #");
+				E_u16(param.off);
+				E("]\n");
+			end if;
+		end loop;
+
+		E("\tpush {r2, lr}\n");
+	end if;
 }
 
 gen ENDSUB() uses all
@@ -257,28 +284,44 @@ gen ENDSUB() uses all
 	var count: uint8 := 0;
 	var params := current_subr.num_output_parameters;
 
-	E("\tpop {lr}\n");
+	if params == 0 then
+		E("\tpop {r7, pc}\n");
+	else
+		E("\tpop {r2, lr}\n");
 
-	while count != params loop
-		var param := GetOutputParameter(current_subr, count);
+		while count != params loop
+			var param := GetOutputParameter(current_subr, count);
 
-		E("\tldr r1, =");
-		E_symref(param as [Symbol], 0);
-		E_nl();
-		case param.width is
-			when 1: E("\tldrb r0, [r1]\n");
-			when 2: E("\tldrh r0, [r1]\n");
-			when 4: E("\tldr r0, [r1]\n");
-		end case;
+			if param.subr != current_subr then
+				E("\tldr r1, =");
+				E_symref(param as [Symbol], 0);
+				E_nl();
+			end if;
 
-		if count != (params-1) then
-			E_push(REG_R0);
-		end if;
+			case param.width is
+				when 1: E("\tldrb");
+				when 2: E("\tldrh");
+				when 4: E("\tldr");
+			end case;
 
-		count := count + 1;
-	end loop;
+			if param.subr == current_subr then
+				E(" r0, [r7, #");
+				E_u16(param.off);
+				E("]\n");
+			else
+				E(" r0, [r1]\n");
+			end if;
 
-	E("\tbx lr\n");
+			if count != (params-1) then
+				E_push(REG_R0);
+			end if;
+
+			count := count + 1;
+		end loop;
+
+		E("\tmov r7, r2\n");
+		E("\tbx lr\n");
+	end if;
 
 	E("\t.pool\n");
 	EmitterCloseStream();
@@ -319,6 +362,16 @@ gen r32 := CONSTANT(value is u16):c
 	E_comma();
 	E(" #");
 	E_u16($c.value as uint16);
+	E_nl();
+}
+
+gen r32 := CONSTANT(value is i8):c
+{
+	E_insn("mov");
+	E_reg($$);
+	E_comma();
+	E(" #");
+	E_i8($c.value as int8);
 	E_nl();
 }
 
@@ -434,12 +487,47 @@ gen STORE1(r32:lhs, DEREF1(r32:rhs))
 	E("]\n");
 }
 
+gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, r32:rhs)))
+{
+	E_insn("strb");
+	E_reg($lhs);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E("]\n");
+}
+
 gen STORE2(r32:lhs, DEREF2(r32:rhs))
 {
 	E_insn("strh");
 	E_reg($lhs);
 	E(", [");
 	E_reg($rhs);
+	E("]\n");
+}
+
+gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, r32:rhs)))
+{
+	E_insn("strh");
+	E_reg($lhs);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, LSHIFT4(r32:rhs, CONSTANT():c))))
+{
+	E_insn("strh");
+	E_reg($lhs);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E(", lsl #");
+	E_u8($c.value as uint8);
 	E("]\n");
 }
 
@@ -452,11 +540,64 @@ gen STORE4(r32:lhs, DEREF4(r32:rhs))
 	E("]\n");
 }
 
+gen STORE4(r32:lhs, DEREF4(ADDRESS(&sym is short):a))
+{
+	E_insn("str");
+	E_reg($lhs);
+	E(", [r7, #");
+	E_i16(($a.sym.off + $a.off) as int16);
+	E("]\n");
+}
+
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, r32:rhs)))
+{
+	E_insn("str");
+	E_reg($lhs);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, LSHIFT4(r32:rhs, CONSTANT():c))))
+{
+	E_insn("str");
+	E_reg($lhs);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E(", lsl #");
+	E_u8($c.value as uint8);
+	E("]\n");
+}
+
 gen r32 := DEREF1(r32:rhs)
 {
 	E_insn("ldrb");
 	E_reg($$);
 	E(", [");
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen r32 := DEREF1(ADDRESS(&sym is short):a)
+{
+	E_insn("ldrb");
+	E_reg($$);
+	E(", [r7, #");
+	E_i16(($a.sym.off + $a.off) as int16);
+	E("]\n");
+}
+
+gen r32 := DEREF1(ADD4(r32:ptr, r32:rhs))
+{
+	E_insn("ldrb");
+	E_reg($$);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
 	E_reg($rhs);
 	E("]\n");
 }
@@ -470,12 +611,78 @@ gen r32 := DEREF2(r32:rhs)
 	E("]\n");
 }
 
+gen r32 := DEREF2(ADDRESS(&sym is short):a)
+{
+	E_insn("ldrh");
+	E_reg($$);
+	E(", [r7, #");
+	E_i16(($a.sym.off + $a.off) as int16);
+	E("]\n");
+}
+
+gen r32 := DEREF2(ADD4(r32:ptr, r32:rhs))
+{
+	E_insn("ldrh");
+	E_reg($$);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen r32 := DEREF2(ADD4(r32:ptr, LSHIFT4(r32:rhs, CONSTANT():c)))
+{
+	E_insn("ldrh");
+	E_reg($$);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E(", lsl #");
+	E_u8($c.value as uint8);
+	E("]\n");
+}
+
 gen r32 := DEREF4(r32:rhs)
 {
 	E_insn("ldr");
 	E_reg($$);
 	E(", [");
 	E_reg($rhs);
+	E("]\n");
+}
+
+gen r32 := DEREF4(ADDRESS(&sym is short):a)
+{
+	E_insn("ldr");
+	E_reg($$);
+	E(", [r7, #");
+	E_i16(($a.sym.off + $a.off) as int16);
+	E("]\n");
+}
+
+gen r32 := DEREF4(ADD4(r32:ptr, r32:rhs))
+{
+	E_insn("ldr");
+	E_reg($$);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E("]\n");
+}
+
+gen r32 := DEREF4(ADD4(r32:ptr, LSHIFT4(r32:rhs, CONSTANT():c)))
+{
+	E_insn("ldr");
+	E_reg($$);
+	E(", [");
+	E_reg($ptr);
+	E_comma();
+	E_reg($rhs);
+	E(", lsl #");
+	E_u8($c.value as uint8);
 	E("]\n");
 }
 

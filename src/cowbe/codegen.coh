@@ -430,23 +430,23 @@ sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
 		if (node.left != (0 as [Node])) and (IsStackedRegister(node.produced_reg) == 0) then
 			return;
 		end if;
-		if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
-			value.kind := MIDCODE_DEREF1;
-			res := 1;
-		elseif (node.op == MIDCODE_DEREF2) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
-			value.kind := MIDCODE_DEREF2;
-			res := 1;
-		elseif (node.op == MIDCODE_DEREF4) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
-			value.kind := MIDCODE_DEREF4;
-			res := 1;
-		elseif (node.op == MIDCODE_DEREF8) and (node.left.op == MIDCODE_ADDRESS) then
-			MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
-			value.kind := MIDCODE_DEREF8;
-			res := 1;
-		elseif node.op == MIDCODE_ADDRESS then
+		#if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF1;
+		#	res := 1;
+		#elseif (node.op == MIDCODE_DEREF2) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF2;
+		#	res := 1;
+		#elseif (node.op == MIDCODE_DEREF4) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF4;
+		#	res := 1;
+		#elseif (node.op == MIDCODE_DEREF8) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF8;
+		#	res := 1;
+		if node.op == MIDCODE_ADDRESS then
 			MemCopy(&node.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
 			value.kind := MIDCODE_ADDRESS;
 			res := 1;
