@@ -1,0 +1,16 @@
+
+DJLINK is distributed under the terms of the GNU General Public
+License (GPL).  See the file COPYING for details.  The author is:
+
+	DJ Delorie
+	dj@delorie.com
+
+The WWW Home Page for DJLINK is:
+
+	http://www.delorie.com/djgpp/16bit/djlink/
+
+In addition to the rights granted by the GPL, I also grant you the
+right to distribute executable versions of DJLINK based on unmodified
+sources as-is with no further requirements or constraints, provided
+unmodified copies of this file and the file COPYING are distributed
+with any such executables.

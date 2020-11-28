@@ -51,7 +51,7 @@ The following targets are supported. Adding more is easy.
 
   - ARM Thumb2, on Linux.
 
-  - 8086, on DOS (it emits tiny mode .com files).
+  - 8086, on DOS (it emits small mode .exe files with 64kB of code and 64kB of data).
 
   - PDP11, on V7 Unix (thanks to
 	[shattered@github](https://github.com/shattered) for contributing the PDP11
@@ -266,4 +266,9 @@ Alan Cox. It is distributed under the terms of the GPL 3.0 license; see
 `third_party/emu2` constains a copy of the emu2 DOS emulator written by
 dmsc@github (and others). It is distributed under the terms of the GPL 2.0
 license; see `third_party/emu2/LICENSE` for the full text.
+
+`third_party/djlink` contains a copy of the djlink 16-bit linker written by
+dj@delorie.com. It is distributed under the terms of the GPL 2.0 licesne; see
+`third_party/djlink/copying` for the full text, with additional grants
+described in `third_party/djlink/copying.dj`.
 

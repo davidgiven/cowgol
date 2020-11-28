@@ -24,18 +24,18 @@ copy {
 }
 
 copy {
-	ins = { "bin/cowfe-8086.msdos.msdos.com" },
-	outs = { "$OBJ/dist/msdos/cowfe.com" }
+	ins = { "bin/cowfe-8086.msdos.msdos.exe" },
+	outs = { "$OBJ/dist/msdos/cowfe.exe" }
 }
 
 copy {
-	ins = { "bin/cowbe-8086.msdos.msdos.com" },
-	outs = { "$OBJ/dist/msdos/cowbe.com" }
+	ins = { "bin/cowbe-8086.msdos.msdos.exe" },
+	outs = { "$OBJ/dist/msdos/cowbe.exe" }
 }
 
 copy {
-	ins = { "bin/cowlink-msdos.msdos.msdos.com" },
-	outs = { "$OBJ/dist/msdos/cowlink.com" }
+	ins = { "bin/cowlink-msdos.msdos.msdos.exe" },
+	outs = { "$OBJ/dist/msdos/cowlink.exe" }
 }
 
 

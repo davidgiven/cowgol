@@ -5,8 +5,10 @@ end
 print("OBJ = "..env("OBJ", ".obj"))
 print("LUA = "..env("LUA", "lua5.1"))
 print("CC = "..env("CC", "cc"))
+print("CXX = "..env("CC", "c++"))
 print("CPP = "..env("CC", "cpp"))
 print("CFLAGS = "..env("CFLAGS", ""))
+print("CXXFLAGS = "..env("CXXFLAGS", "$CFLAGS"))
 print("LDFLAGS = "..env("LDFLAGS", ""))
 print("rule build");
 print("  command = $command");
@@ -102,6 +104,7 @@ include "tools/build.lua"
 include "third_party/emu2/build.lua"
 include "third_party/apout/build.lua"
 include "third_party/zmac/build.lua"
+include "third_party/djlink/build.lua"
 include "tools/cpmemu/build.lua"
 include "tools/tubeemu/build.lua"
 include "tools/fuzix6303emu/build.lua"

@@ -152,7 +152,7 @@ toolchain_msdos = {
 	assembler = buildnasm,
 	runtime = "rt/msdos",
 	asmext = ".asm",
-	binext = ".msdos.com",
+	binext = ".msdos.exe",
 	tester = emu2test,
 }
 
