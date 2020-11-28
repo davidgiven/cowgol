@@ -34,6 +34,7 @@ ALL_TESTS = {
 	"rangetypes",
 	"recordinitialisers",
 	"records",
+	"regalloc",
 	"shifts-16bit",
 	"shifts-32bit",
 	"shifts-8bit",

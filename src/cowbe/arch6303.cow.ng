@@ -370,6 +370,14 @@
         E_nl();
     end sub;
         
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
         R_flush(dest);
@@ -443,19 +451,19 @@ regclass op := imm|mem|xind;
 gen STARTFILE();
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
 	E_label($b.label);
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
 	E_jmp($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
     current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
     current_subr.arch.end_label := AllocPLabel();
@@ -541,7 +549,7 @@ gen STARTSUB()
 	end if;
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
 	E_label(current_subr.arch.end_label);
 
@@ -667,7 +675,7 @@ gen a|b := POPARG1(remaining!=0) { E_pop($$); }
 gen d|x := POPARG2(remaining!=0) { E_pop($$); }
 gen i4  := POPARG4();
 
-gen RETURN()
+gen RETURN() uses all
 {
 	E_insn("bra");
 	E_labelref(current_subr.arch.end_label);
@@ -1309,7 +1317,7 @@ gen d := CAST42(xd);
 
 // --- Conditionals ---------------------------------------------------------
 
-gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 {
     var label := $b.falselabel;
     if $lhs.value == $rhs.value then
@@ -1327,9 +1335,9 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end sub;
 %}
 
-gen BEQ1(a|b:lhs, op|vs1:rhs):b  { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
-gen BLTU1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
-gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
+gen BEQ1(a|b:lhs, op|vs1:rhs):b  uses all { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU1(a|b:lhs, op|vs1:rhs):b uses all { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS1(a|b:lhs, op|vs1:rhs):b uses all { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
 %{
     sub Cmp2(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
@@ -1343,19 +1351,19 @@ gen BLTS1(a|b:lhs, op|vs1:rhs):b { Cmp1($lhs, $rhs, &$@rhs.operand); E_jumps_wit
     end sub;
 %}
 
-gen BEQ2(d|x:lhs, op|vs2:rhs):b  { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
-gen BLTU2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
-gen BLTS2(d|x:lhs, op|vs2:rhs):b { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
+gen BEQ2(d|x:lhs, op|vs2:rhs):b  uses all { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU2(d|x:lhs, op|vs2:rhs):b uses all { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS2(d|x:lhs, op|vs2:rhs):b uses all { Cmp2($lhs, $rhs, &$@rhs.operand); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
-gen BEQ4(i4, xd)  { E_callhelper("_cmpeqxd4"); E_jumps_with_fallthrough("beq", "bne", $@$); }
-gen BLTU4(i4, xd) { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
-gen BLTS4(i4, xd) { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
+gen BEQ4(i4, xd)  uses all { E_callhelper("_cmpeqxd4"); E_jumps_with_fallthrough("beq", "bne", $@$); }
+gen BLTU4(i4, xd) uses all { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("bcs", "bcc", $@$); }
+gen BLTS4(i4, xd) uses all { E_callhelper("_cmpltxd4"); E_jumps_with_fallthrough("blt", "bge", $@$); }
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(b);
-gen STARTCASE2(x);
-gen STARTCASE4(xd);
+gen STARTCASE1(b) uses all;
+gen STARTCASE2(x) uses all;
+gen STARTCASE4(xd) uses all;
 
 gen WHENCASE1():c
 {
@@ -1368,7 +1376,7 @@ gen WHENCASE1():c
     E_nl();
 }
 
-gen WHENCASE2():c uses a
+gen WHENCASE2():c uses all
 {
     E_insn("cpx");
     E_const();
@@ -1379,7 +1387,7 @@ gen WHENCASE2():c uses a
     E_nl();
 }
 
-gen WHENCASE4():c uses a
+gen WHENCASE4():c uses all
 {
     E_insn("cpx");
     E_const();
@@ -1506,7 +1514,7 @@ gen INITSTRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
+gen ASMGROUPSTART() uses all;
 gen ASMGROUPEND();
 
 gen ASMSTART()

@@ -274,6 +274,14 @@
 		E_jump("jne", label);
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		E("\t; move\n");
 		if src == 0 then
@@ -352,19 +360,19 @@ regdata param stacked;
 gen STARTFILE();
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
 	E_label($b.label);
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
 	E_jmp($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
 	RegCacheReset();
 
@@ -453,7 +461,7 @@ gen STARTSUB()
 	end if;
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
 	R_flushall();
 
@@ -531,7 +539,7 @@ gen ENDSUB()
 	EmitterCloseStream();
 }
 
-gen RETURN()
+gen RETURN() uses all
 {
 	E("\tjmp end_");
 	E_subref(current_subr);
@@ -834,7 +842,7 @@ gen dxax := RSHIFTU4(dxax, cl) { E_callhelper("_lsr4"); }
 
 // --- Conditionals ---------------------------------------------------------
 
-gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 {
     var label := $b.falselabel;
     if $lhs.value == $rhs.value then
@@ -856,15 +864,15 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 	end sub;
 %}
 
-gen BEQ1(r8:lhs, r8|op1:rhs):b    { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
-gen BLTU1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
-gen BLTS1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
+gen BEQ1(r8:lhs, r8|op1:rhs):b    uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BLTU1(r8:lhs, r8|op1:rhs):b   uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTS1(r8:lhs, r8|op1:rhs):b   uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
-gen BEQ2(r16:lhs, r16|op2:rhs):b  { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
-gen BLTU2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
-gen BLTS2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
+gen BEQ2(r16:lhs, r16|op2:rhs):b  uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BLTU2(r16:lhs, r16|op2:rhs):b uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTS2(r16:lhs, r16|op2:rhs):b uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
-gen BEQ4(r32:lhs, r32|op4:rhs):b
+gen BEQ4(r32:lhs, r32|op4:rhs):b uses all
 {
 	E_insn("cmp");
 	E_reg(lowordreg($lhs));
@@ -881,13 +889,13 @@ gen BEQ4(r32:lhs, r32|op4:rhs):b
 	CmpJumps("je", "jne", $@$);
 }
 
-gen BLTU4(r32:lhs, r32|op4:rhs):b
+gen BLTU4(r32:lhs, r32|op4:rhs):b uses all
 {
 	Alu4("sub", "sbb", $lhs, $rhs, &$@rhs.operand);
 	CmpJumps("jb", "jae", $@$);
 }
 
-gen BLTS4(r32:lhs, r32|op4:rhs):b
+gen BLTS4(r32:lhs, r32|op4:rhs):b uses all
 {
 	Alu4("sub", "sbb", $lhs, $rhs, &$@rhs.operand);
 	CmpJumps("jl", "jge", $@$);
@@ -895,13 +903,13 @@ gen BLTS4(r32:lhs, r32|op4:rhs):b
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(al);
+gen STARTCASE1(al) uses all;
 
-gen STARTCASE2(ax);
+gen STARTCASE2(ax) uses all;
 
-gen STARTCASE4(dxax);
+gen STARTCASE4(dxax) uses all;
 
-gen WHENCASE1():c
+gen WHENCASE1():c uses all
 {
 	E("\tcmp al, 0x");
 	E_h8($c.value as uint8);
@@ -909,7 +917,7 @@ gen WHENCASE1():c
 	E_jump("jne", $c.falselabel);
 }
 
-gen WHENCASE2():c
+gen WHENCASE2():c uses all
 {
 	E("\tcmp ax, 0x");
 	E_h16($c.value as uint16);
@@ -917,7 +925,7 @@ gen WHENCASE2():c
 	E_jump("jne", $c.falselabel);
 }
 
-gen WHENCASE4():c
+gen WHENCASE4():c uses all
 {
 	E("\tcmp ax, 0x");
 	E_h16($c.value as uint16);
@@ -1044,7 +1052,7 @@ gen r16 := STRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
+gen ASMGROUPSTART() uses all;
 gen ASMGROUPEND();
 
 gen ASMSTART()

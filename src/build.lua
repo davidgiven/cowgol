@@ -163,7 +163,7 @@ function simpletest(interpreter, e)
 	rule {
 		ins = e.ins,
 		outs = { badfile },
-		cmd = "timeout 5s "..interpreter.." @1 > &1 && diff -u -w &1 "..e.goodfile,
+		cmd = "timeout 5s "..interpreter.." @1 > &1.tmp && mv &1.tmp &1 && diff -u -w &1 "..e.goodfile,
 	}
 end
 

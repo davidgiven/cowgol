@@ -21,6 +21,14 @@
 	sub ArchEndGroup() is
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		SimpleError("can't move");
 	end sub;

@@ -14,37 +14,6 @@
 		newvalue := (value+a) & ~a;
 	end sub;
 
-	record Extern is
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
-	var externs: [Extern] := (0 as [Extern]);
-
-	# Does not persist the name; only call this with constant strings.
-	sub GetHelper(name: string): (e: [Extern]) is
-		e := externs;
-		while e != (0 as [Extern]) loop
-			if StrCmp(e.name, name) == 0 then
-				break;
-			end if;
-			e := e.next;
-		end loop;
-
-		if e == (0 as [Extern]) then
-			e := InternalAlloc(@bytesof Extern) as [Extern];
-			e.name := name;
-			e.id := AllocSubrId();
-			e.next := externs;
-			externs := e;
-
-			EmitterDeclareExternalSubroutine(e.id, name);
-		end if;
-
-		EmitterReferenceSubroutineById(current_subr.id, e.id);
-	end sub;
-
 	sub E_symref(sym: [Symbol], off: Size) is
 		if sym.wsid == WSID_STATIC then
 			E_wsref(sym.subr.id, sym.wsid, sym.off);
@@ -107,14 +76,6 @@
 		E_nl();
 	end sub;
 
-    sub E_callhelper(name: string) is
-        var helper := GetHelper(name);
-        E_insn("call");
-        E_b8(COO_ESCAPE_SUBREF);
-        E_b16(helper.id);
-        E_nl();
-    end sub;
-        
 	sub E_jump(insn: string, label: LabelRef) is
 		E_insn(insn);
 		E_labelref(label);
@@ -167,6 +128,14 @@
 		end if;
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t# ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if src == 0 then
 			E_pop(dest);
@@ -218,19 +187,19 @@ regdata r7 compatible r32;
 gen STARTFILE();
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
 	E_label($b.label);
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
 	E_b($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
 	RegCacheReset();
 
@@ -279,7 +248,7 @@ gen STARTSUB()
 	E("\tpush {lr}\n");
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
 	E("end_");
 	E_subref(current_subr);
@@ -315,7 +284,7 @@ gen ENDSUB()
 	EmitterCloseStream();
 }
 
-gen RETURN()
+gen RETURN() uses all
 {
 	E("\tb end_");
 	E_subref(current_subr);
@@ -671,12 +640,12 @@ gen r32 := REMS4(r32:lhs, r32:rhs) uses r6
 }
 
 %{
-	sub RShift(extend: string, shift: string, dest: RegId, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+	sub RShift(extend: string, shift: string, dest: RegId, rhs: RegId, rhsop: [Operand]) is
 		if extend != (0 as string) then
 			E_insn(extend);
 			E_reg(dest);
 			E_comma();
-			E_reg(lhs);
+			E_reg(dest);
 			E_nl();
 		end if;
 
@@ -688,13 +657,13 @@ gen r32 := REMS4(r32:lhs, r32:rhs) uses r6
 	end sub;
 %}
 
-gen r32 := RSHIFTU1(r32:lhs, r32|imm5:rhs) { RShift("uxtb", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTU2(r32:lhs, r32|imm5:rhs) { RShift("uxth", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTU4($$:lhs, r32|imm5:rhs) { RShift(0 as string, "lsr", $$, $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU1($$, r32|imm5:rhs) { RShift("uxtb", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU2($$, r32|imm5:rhs) { RShift("uxth", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU4($$, r32|imm5:rhs) { RShift(0 as string, "lsr", $$, $rhs, &$@rhs.operand); }
 
-gen r32 := RSHIFTS1(r32:lhs, r32|imm5:rhs) { RShift("sxtb", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTS2(r32:lhs, r32|imm5:rhs) { RShift("sxth", "lsr", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTS4($$:lhs, r32|imm5:rhs) { RShift(0 as string, "asr", $$, $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS1($$, r32|imm5:rhs) { RShift("sxtb", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS2($$, r32|imm5:rhs) { RShift("sxth", "lsr", $$, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS4($$, r32|imm5:rhs) { RShift(0 as string, "asr", $$, $rhs, &$@rhs.operand); }
 
 %{
 	sub Not(dest: RegId, lhs: RegId) is
@@ -724,7 +693,7 @@ gen r32 := NEG4(r32:lhs) { Neg($$, $lhs); }
 
 // --- Conditionals ---------------------------------------------------------
 
-gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 {
     var label := $b.falselabel;
     if $lhs.value == $rhs.value then
@@ -754,31 +723,31 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 	end sub;
 %}
 
-gen BEQ4(r32:lhs, r32|imm8:rhs):b
+gen BEQ4(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Cmp2($lhs, $rhs, &$@rhs.operand);
 	CmpJumps("beq", "bne", $@$);
 }
 
-gen BLTU4(r32:lhs, r32|imm8:rhs):b
+gen BLTU4(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Cmp2($lhs, $rhs, &$@rhs.operand);
 	CmpJumps("blo", "bhs", $@$);
 }
 
-gen BLTS4(r32:lhs, r32|imm8:rhs):b
+gen BLTS4(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Cmp2($lhs, $rhs, &$@rhs.operand);
 	CmpJumps("blt", "bge", $@$);
 }
 
-gen BEQ4(r32:lhs, r32|imm8:rhs):b
+gen BEQ4(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Cmp2($lhs, $rhs, &$@rhs.operand);
 	CmpJumps("beq", "bne", $@$);
 }
 
-gen BEQ2(r32:lhs, r32:rhs):b
+gen BEQ2(r32:lhs, r32:rhs):b uses all
 {
 	Extend("uxth", $lhs);
 	if ($rhs & REGCLASS_R32) != 0 then
@@ -788,7 +757,7 @@ gen BEQ2(r32:lhs, r32:rhs):b
 	CmpJumps("beq", "bne", $@$);
 }
 
-gen BLTU2(r32:lhs, r32|imm8:rhs):b
+gen BLTU2(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Extend("uxth", $lhs);
 	if ($rhs & REGCLASS_R32) != 0 then
@@ -798,7 +767,7 @@ gen BLTU2(r32:lhs, r32|imm8:rhs):b
 	CmpJumps("blo", "bhs", $@$);
 }
 
-gen BLTS2(r32:lhs, r32|imm8:rhs):b
+gen BLTS2(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Extend("sxth", $lhs);
 	if ($rhs & REGCLASS_R32) != 0 then
@@ -808,7 +777,7 @@ gen BLTS2(r32:lhs, r32|imm8:rhs):b
 	CmpJumps("blt", "bge", $@$);
 }
 
-gen BEQ1(r32:lhs, r32:rhs):b
+gen BEQ1(r32:lhs, r32:rhs):b uses all
 {
 	Extend("uxtb", $lhs);
 	Extend("uxtb", $rhs);
@@ -816,7 +785,7 @@ gen BEQ1(r32:lhs, r32:rhs):b
 	CmpJumps("beq", "bne", $@$);
 }
 
-gen BLTU1(r32:lhs, r32|imm8:rhs):b
+gen BLTU1(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Extend("uxtb", $lhs);
 	if ($rhs & REGCLASS_R32) != 0 then
@@ -826,7 +795,7 @@ gen BLTU1(r32:lhs, r32|imm8:rhs):b
 	CmpJumps("blo", "bhs", $@$);
 }
 
-gen BLTS1(r32:lhs, r32|imm8:rhs):b
+gen BLTS1(r32:lhs, r32|imm8:rhs):b uses all
 {
 	Extend("sxtb", $lhs);
 	if ($rhs & REGCLASS_R32) != 0 then
@@ -838,9 +807,9 @@ gen BLTS1(r32:lhs, r32|imm8:rhs):b
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(r32:lhs) { E_insn("sxtb"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
-gen STARTCASE2(r32:lhs) { E_insn("sxth"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
-gen STARTCASE4(r0);
+gen STARTCASE1(r32:lhs) uses all { E_insn("sxtb"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
+gen STARTCASE2(r32:lhs) uses all { E_insn("sxth"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
+gen STARTCASE4(r0) uses all;
 
 %{
 	sub WhenCase(c: [MidcodeWhencase]) is
@@ -869,9 +838,9 @@ gen STARTCASE4(r0);
 	end sub;
 %}
 
-gen WHENCASE1():c { WhenCase(&$c); }
-gen WHENCASE2():c { WhenCase(&$c); }
-gen WHENCASE4():c { WhenCase(&$c); }
+gen WHENCASE1():c uses all { WhenCase(&$c); }
+gen WHENCASE2():c uses all { WhenCase(&$c); }
+gen WHENCASE4():c uses all { WhenCase(&$c); }
 
 gen ENDCASE1();
 gen ENDCASE2();
@@ -1019,7 +988,7 @@ gen r32 := STRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
+gen ASMGROUPSTART() uses all;
 gen ASMGROUPEND();
 
 gen ASMSTART()

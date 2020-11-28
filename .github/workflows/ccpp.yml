@@ -12,5 +12,5 @@ jobs:
     - name: apt
       run: sudo apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu qemu-user gpp 64tass libfl-dev nasm
     - name: make
-      run: make
+      run: make NINJAFLAGS=-k1
 

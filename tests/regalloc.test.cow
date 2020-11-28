@@ -1,0 +1,25 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+# This is an expression which requires lots of registers to evaluate, so provoking spills.
+
+var a: uint8 := 1;
+var b: uint8 := 1;
+var c: uint8 := 1;
+var d: uint8 := 1;
+var e: uint8 := 1;
+var f: uint8 := 1;
+var g: uint8 := 1;
+var h: uint8 := 1;
+var i: uint8 := 1;
+var j: uint8 := 1;
+var k: uint8 := 1;
+var l: uint8 := 1;
+var m: uint8 := 1;
+var n: uint8 := 1;
+var o: uint8 := 1;
+var p: uint8 := 1;
+
+var res := (a+(b+(c+(d+(e+(f+(g+(h+(i+(j+(k+(l+(m+(n+(o+p)))))))))))))));
+
+print("result"); if res == 16 then yes(); else no(); end if;
