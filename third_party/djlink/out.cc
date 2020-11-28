@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "objs.h"
 #include "segments.h"
@@ -21,7 +22,7 @@ store_lidata(unsigned char *li)
   int block_count = li[2] + 256*li[3];
   unsigned char *rv=li;
   //  printf("lidata at %08x repeat %d block %d\n",
-  //	 li-libase, repeat_count, block_count);
+  //     li-libase, repeat_count, block_count);
   if (repeat_count == 0)
   {
     printf("Error: LIDATA with zero repeat count\n");
@@ -41,7 +42,7 @@ store_lidata(unsigned char *li)
     {
       unsigned char *tli = li+4;
       for (int block=0; block<block_count; block++)
-	tli = store_lidata(tli);
+        tli = store_lidata(tli);
       rv = tli;
     }
   }
@@ -63,15 +64,15 @@ find_start_address(void)
       int rt = o->records[ri][0];
       if (rt == MODEND)
       {
-	unsigned char *rd = o->records[ri]+3;
+        unsigned char *rd = o->records[ri]+3;
 
-	if (rd[0] & 0x40)
-	{
-	  FixupInfo fi;
-	  fixup_info(rd+1, &fi, o, 0);
-	  start_seg = fi.frame_addr / 16;
-	  start_ofs = fi.target_addr - fi.frame_addr;
-	}
+        if (rd[0] & 0x40)
+        {
+          FixupInfo fi;
+          fixup_info(rd+1, &fi, o, 0);
+          start_seg = fi.frame_addr / 16;
+          start_ofs = fi.target_addr - fi.frame_addr;
+        }
       }
     }
   }
@@ -121,11 +122,11 @@ write_output(char *filename)
     {
       SegFrag *f = (SegFrag *)o->segfrags.list[fi];
       if (f->combine == COMBINE_STACK
-	  && stack_addr < f->size + f->phys_addr)
+          && stack_addr < f->size + f->phys_addr)
       {
-	stack_addr = f->size + f->phys_addr;
-	stack_seg = f->group->phys_addr / 16;
-	stack_ofs = stack_addr - stack_seg * 16;
+        stack_addr = f->size + f->phys_addr;
+        stack_seg = f->group->phys_addr / 16;
+        stack_ofs = stack_addr - stack_seg * 16;
       }
     }
 
@@ -141,35 +142,35 @@ write_output(char *filename)
       switch (rt)
       {
       case LEDATA:
-	sf = (SegFrag *)o->segfrags.list[rd[0]];
-	frag_offset = rd[1] + 256*rd[2];
-	//printf("LEDATA at 0x%05x to 0x%05x\n", sf->phys_addr+frag_offset, sf->phys_addr+frag_offset+rl-4);
-	memcpy(final_data+sf->phys_addr+frag_offset, rd+3, rl-4);
-	if (max_real_data < sf->phys_addr+frag_offset+rl-4)
-	  max_real_data = sf->phys_addr+frag_offset+rl-4;
-	break;
+        sf = (SegFrag *)o->segfrags.list[rd[0]];
+        frag_offset = rd[1] + 256*rd[2];
+        //printf("LEDATA at 0x%05x to 0x%05x\n", sf->phys_addr+frag_offset, sf->phys_addr+frag_offset+rl-4);
+        memcpy(final_data+sf->phys_addr+frag_offset, rd+3, rl-4);
+        if (max_real_data < sf->phys_addr+frag_offset+rl-4)
+          max_real_data = sf->phys_addr+frag_offset+rl-4;
+        break;
 
       case LIDATA:
-	sf = (SegFrag *)o->segfrags.list[rd[0]];
-	frag_offset = rd[1] + 256*rd[2];
-	unsigned char *re = rd + rl - 1;
-	libase = rd;
+        sf = (SegFrag *)o->segfrags.list[rd[0]];
+        frag_offset = rd[1] + 256*rd[2];
+        unsigned char *re = rd + rl - 1;
+        libase = rd;
 
-	lidest = final_data+sf->phys_addr+frag_offset;
-	//printf("LIDATA at 0x%05x", sf->phys_addr+frag_offset);
-	rd += 3;
-	while (rd < re)
-	  rd = store_lidata(rd);
-	if (max_real_data < lidest-final_data)
-	  max_real_data = lidest-final_data;
-	//printf(" to 0x%05x\n", lidest-final_data);
-	break;
+        lidest = final_data+sf->phys_addr+frag_offset;
+        //printf("LIDATA at 0x%05x", sf->phys_addr+frag_offset);
+        rd += 3;
+        while (rd < re)
+          rd = store_lidata(rd);
+        if (max_real_data < lidest-final_data)
+          max_real_data = lidest-final_data;
+        //printf(" to 0x%05x\n", lidest-final_data);
+        break;
       }
     }
   }
 
   //  printf("final_size is %05x but max_real_data is %05x\n",
-  //	 final_size, max_real_data);
+  //     final_size, max_real_data);
   //  printf("stack is at %05x %04x:%04x\n", stack_addr, stack_seg, stack_ofs);
 
   FILE *f = fopen(filename, "wb");
@@ -207,21 +208,21 @@ write_output(char *filename)
     {
       if (fixup_offset >= 0x200)
       {
-	fwrite(exe_header, 1, 512, f);
-	written_size += 512;
-	memset(exe_header, 0, 512);
-	fixup_offset = 0;
+        fwrite(exe_header, 1, 512, f);
+        written_size += 512;
+        memset(exe_header, 0, 512);
+        fixup_offset = 0;
       }
-      PUTW(fixup_offset, (int)segment_fixups.list[i] & 0xffff);
+      PUTW(fixup_offset, (int)(intptr_t)segment_fixups.list[i] & 0xffff);
       fixup_offset += 2;
       if (fixup_offset >= 0x200)
       {
-	fwrite(exe_header, 1, 512, f);
-	written_size += 512;
-	memset(exe_header, 0, 512);
-	fixup_offset = 0;
+        fwrite(exe_header, 1, 512, f);
+        written_size += 512;
+        memset(exe_header, 0, 512);
+        fixup_offset = 0;
       }
-      PUTW(fixup_offset, (int)segment_fixups.list[i] >> 16);
+      PUTW(fixup_offset, (int)(intptr_t)segment_fixups.list[i] >> 16);
       fixup_offset += 2;
     }
     fwrite(exe_header, 1, 512, f);

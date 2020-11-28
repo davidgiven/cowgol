@@ -6,7 +6,7 @@
 typedef unsigned char uchar;
 #define gc() ((uchar)fgetc(f))
 
-char *fixup_locations[] = {
+const char *fixup_locations[] = {
   "8-bit offset  ",
   "16-bit offset ",
   "16-bit segment",
@@ -25,7 +25,7 @@ char *fixup_locations[] = {
   "N/A"
 };
 
-char *frame_names[] = {
+const char *frame_names[] = {
   "SEGDEF  ",
   "GRPDEF  ",
   "EXTDEF  ",
@@ -36,7 +36,7 @@ char *frame_names[] = {
   "N/A"
 };
 
-char *target_names[] = {
+const char *target_names[] = {
   "SEGDEF+disp",
   "GRPDEF+disp",
   "EXTDEF+disp",
