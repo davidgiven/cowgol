@@ -267,3 +267,8 @@ Alan Cox. It is distributed under the terms of the GPL 3.0 license; see
 dmsc@github (and others). It is distributed under the terms of the GPL 2.0
 license; see `third_party/emu2/LICENSE` for the full text.
 
+`third_party/djlink` contains a copy of the djlink 16-bit linker written by
+dj@delorie.com. It is distributed under the terms of the GPL 2.0 licesne; see
+`third_party/djlink/copying` for the full text, with additional grants
+described in `third_party/djlink/copying.dj`.
+
