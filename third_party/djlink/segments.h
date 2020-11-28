@@ -11,7 +11,7 @@ struct Group;
 
 struct GSCF {
   GSCF();
-  char *name;
+  const char *name;
   int alignment;
   int size;
   int phys_addr;
