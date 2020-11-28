@@ -49,6 +49,8 @@ The following targets are supported. Adding more is easy.
 
   - 80386, on Linux.
 
+  - ARM Thumb2, on Linux.
+
   - 8086, on DOS (it emits tiny mode .com files).
 
   - PDP11, on V7 Unix (thanks to
@@ -70,7 +72,7 @@ compiler and I haven't reworked the AGC backend.)
 
 In terms of machines you can run the compiler _on_:
 
-  - 80386 Linux, duh.
+  - 80386 and ARM Linux, duh.
 
   - A BBC Micro with Tube second processor. [Follow this link for a live
 	in-browser
@@ -80,8 +82,7 @@ In terms of machines you can run the compiler _on_:
 	done type OUT to run the result. This is generating full 65c02 machine
 	code.
 
-  - Generic CP/M (untested). There's no reason why this shouldn't work, but I
-	haven't tried it yet.
+  - Generic CP/M (both Z80 and 8080).
 
 The other platforms have unfinished system call libraries, so while the
 compiler tests all pass and the compilers are being built, they won't work if
