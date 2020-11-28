@@ -37,14 +37,10 @@ record Instruction is
 	ruleid: uint8;
 end record;
 
-const VALUE_IMPORTED := 1<<0;
-const VALUE_EXPORTED := 1<<1;
-
 record SimpleValue is
 	address @at(0): MidcodeAddress;
 	constant @at(0): int32;
 	count: uint8;
-	flags: uint8;
 	kind: uint8;
 end record;
 
@@ -781,7 +777,6 @@ sub Generate(rootnode: [Node]) is
 					if openslot != (0 as [SimpleValue]) then
 						MemCopy(&value as [uint8], @bytesof SimpleValue, openslot as [uint8]);
 						openslot.count := 0xff;
-						openslot.flags := 0;
 						reg := slotreg;
 						return;
 					end if;
@@ -971,119 +966,6 @@ sub Generate(rootnode: [Node]) is
 		end if;
 	end loop;
 
-	# Attempt to amalgamate repeated producers to suppress unneeded value
-	# materialisation.  The preferred register stuff further up should make
-	# this much more likely.
-
-	sub AmalgamateProducers() is
-		var producer1 := last_instruction;
-		while producer1 != (0 as [Instruction]) loop
-			var reg := producer1.produced_reg;
-			var producer1_value: SimpleValue;
-			if (reg != 0) and ((reg & OPERAND_REGS) == 0) and (IsSimpleValue(producer1, &producer1_value) != 0) then
-				var v := &preferred_values[REGISTER_COUNT - FindBitNumber(reg)];
-
-				if (producer1.flags & INSN_NOTFIRST) == 0 then
-					if (SimpleValuesMatch(v, &producer1_value) != 0) and ((v.flags & VALUE_IMPORTED) != 0) then
-						var blocked := producer1.input_regs | producer1.used_regs;
-						if producer1 != last_instruction then
-							blocked := blocked | CalculateBlockedRegisters(producer1, last_instruction)
-								| last_instruction.input_regs
-								| last_instruction.used_regs;
-						end if;
-						if (blocked & reg) == 0 then
-							# Yes!
-
-							BlockRegistersInclusive(producer1, last_instruction, reg);
-							producer1.flags := producer1.flags | INSN_ELIDED;
-						end if;
-					end if;
-				end if;
-
-				# This is a producer that we haven't yet touched. Starting from this producer's
-				# consumer, look for another producer of the same value.
-
-				var consumer := producer1.consumer.consumer;
-				var producer2 := consumer.prev;
-				while producer2 != (0 as [Instruction]) loop
-					var producer2_value: SimpleValue;
-					if (producer2.produced_reg == reg)
-						and (IsSimpleValue(producer2, &producer2_value) != 0)
-					then
-						producer2.flags := producer2.flags | INSN_NOTFIRST;
-						if SimpleValuesMatch(&producer1_value, &producer2_value) != 0 then
-							# This is a candidate for amalgamation; but, is it possible?
-
-							blocked := consumer.used_regs | consumer.output_regs | producer2.input_regs | producer2.used_regs
-								| CalculateBlockedRegisters(producer2, consumer);
-							if (blocked & reg) == 0 then
-								# Yes!
-
-								BlockRegistersInclusive(producer2, consumer, reg);
-								producer2.flags := producer2.flags | INSN_ELIDED;
-							end if;
-							break;
-						end if;
-					end if;
-
-					producer2 := producer2.prev;
-				end loop;
-
-				if producer2 == (0 as [Instruction]) then
-					# No second producer was found, so consumer is the last use
-					# of this value. Try to propagate it to the end of the
-					# statement.
-
-					blocked := consumer.used_regs | consumer.output_regs;
-					if consumer != first_instruction then
-						blocked := blocked | CalculateBlockedRegisters(first_instruction, consumer)
-							| first_instruction.used_regs
-							| first_instruction.output_regs;
-					end if;
-					if (blocked & reg) == 0 then
-						# Yes!
-
-						if SimpleValuesMatch(v, &producer1_value) != 0 then
-							v.flags := v.flags | VALUE_EXPORTED;
-
-							consumer.output_regs := consumer.output_regs | reg;
-							if consumer != first_instruction then
-								BlockRegistersInclusive(first_instruction, consumer, reg);
-							end if;
-						end if;
-					end if;
-				end if;
-			end if; 
-
-			producer1 := producer1.prev;
-		end loop;
-
-		# Attempt to propagate any remaining preferred values through this instruction,
-		# and turn exports into imports.
-
-		v := &preferred_values[0];
-		reg := 1 << (REGISTER_COUNT-1);
-		var allBlocked := CalculateBlockedRegistersInclusive(first_instruction, last_instruction)
-			| first_instruction.used_regs | last_instruction.used_regs;
-		while v != &preferred_values[@sizeof preferred_values] loop
-			if (reg & OPERAND_REGS) == 0 then
-				if ((v.flags & VALUE_IMPORTED) != 0) and ((allBlocked & reg) == 0) then
-					v.flags := v.flags | VALUE_EXPORTED;
-				end if;
-
-				if (v.flags & VALUE_EXPORTED) != 0 then
-					v.flags := VALUE_IMPORTED;
-				else
-					v.flags := 0;
-				end if;
-			end if;
-
-			v := @next v;
-			reg := reg >> 1;
-		end loop;
-	end sub;
-	AmalgamateProducers();
-
 	# We have a set of instructions for this expression; emit them. In reverse
 	# order.
 
@@ -1114,16 +996,7 @@ sub Generate(rootnode: [Node]) is
 				when MIDCODE_ASMEND:   emitting_asm := 0;
 			end case;
 
-			if (insn.flags & INSN_ELIDED) != 0 then
-				#if emitting_asm == 0 then
-				#	ArchBeginComment();
-				#    E("elided producer of reg ");
-				#	E_h32(insn.produced_reg as uint32);
-				#	ArchEndComment();
-				#end if;
-			else
-				EmitOneInstruction(insn.ruleid, insn);
-			end if;
+			EmitOneInstruction(insn.ruleid, insn);
 			ShuffleRegisters(&insn.spills[0]);
 			ArchEndInstruction();
 
