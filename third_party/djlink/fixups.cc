@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "fixups.h"
 #include "objs.h"
@@ -246,7 +247,7 @@ do_fixups()
 	      data[data_offset+1] = val >> 8;
 	      sf_seg = segfrag->segment->phys_addr / 16;
 	      sf_ofs = fixup_offset - sf_seg*16;
-	      segment_fixups.add((void *)((sf_seg<<16)|sf_ofs));
+	      segment_fixups.add((void *)(intptr_t)((sf_seg<<16)|sf_ofs));
 	      break;
 
 	    case 3:
@@ -266,7 +267,7 @@ do_fixups()
 	      data[data_offset+3] = val >> 8;
 	      sf_seg = segfrag->segment->phys_addr / 16;
 	      sf_ofs = fixup_offset+2 - sf_seg*16;
-	      segment_fixups.add((void *)((sf_seg<<16)|sf_ofs));
+	      segment_fixups.add((void *)(intptr_t)((sf_seg<<16)|sf_ofs));
 	      break;
 
 	    default:
