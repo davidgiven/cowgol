@@ -24,3 +24,18 @@ cxxprogram {
 	},
 	outs = { "bin/djlink" }
 }
+
+function djlink(e)
+	local map = e.outs[1]:ext(".map")
+	rule {
+		ins = concat {
+			"bin/djlink",
+			e.ins,
+		},
+		outs = concat {
+			e.outs,
+			map
+		},
+		cmd = "@1 -o &1 -m &2 @2 > /dev/null"
+	}
+end 

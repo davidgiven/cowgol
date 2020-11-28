@@ -391,7 +391,7 @@ gen STARTSUB() uses all
 	E_b8(0);
 	E_nl();
 
-	#E("\tsection .text\n");
+	E("\tsegment code\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -960,7 +960,7 @@ gen dxax := CAST24(ax, sext!=0) { E("\tcwd\n"); }
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	#E("\tsection .data\n");
+	E("\tsegment data\n");
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }
@@ -1021,6 +1021,7 @@ gen INITSTRING():s
 
         EmitterOpenStream(current_subr);
 
+        E("\tsegment data\n");
         E_label(lid);
 		E_insn("db");
 
