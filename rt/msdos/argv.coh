@@ -8,7 +8,7 @@ sub ArgvInit() is
         var c: uint8;
         @asm "mov bl, byte [", i, "]";
         @asm "xor bh, bh";
-        @asm "mov al, byte es:[bx]";
+        @asm "mov al, byte [es:bx]";
         @asm "mov byte [", c, "], al";
         if c == 13 then
             break;
