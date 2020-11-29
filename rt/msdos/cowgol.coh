@@ -19,6 +19,11 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
+    if c == 10 then
+        @asm "mov dl, 13";
+        @asm "mov ah, 2";
+        @asm "int 0x21";
+    end if;
 	@asm "mov dl, [", c, "]";
 	@asm "mov ah, 2";
 	@asm "int 0x21";
