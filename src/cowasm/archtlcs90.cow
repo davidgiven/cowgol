@@ -1,0 +1,845 @@
+include "cowasm.coh";
+
+const REG_A  := 6;
+const REG_DE := 1;
+const REG_HL := 2;
+const REG_IX := 4;
+const REG_IY := 5;
+const REG_SP := 6;
+const REG_AF := REG_SP;
+
+const CC_T := 8;
+
+const AM_REG8    := 0;
+const AM_REG16   := 1;
+const AM_NUMBER  := 2;
+const AM_INDEX   := 3;
+const AM_XHLA    := 4;
+const AM_ADDRESS := 5;
+const AM_DPAGE   := 6;
+
+var operandMode: uint8;
+var operandReg: uint8;
+var operandValue: uint16;
+
+@impl sub Emit16 is
+    Emit8(word as uint8);
+    Emit8((word>>8) as uint8);
+end sub;
+
+sub BadAddressingMode() is
+    SimpleError("bad addressing mode");
+end sub;
+
+sub CcCb implements SymbolCallback is
+    SimpleError("condition codes are not instructions");
+end sub;
+
+sub ReadIndex(): (token: Token) is
+    if (tokenSymbol.value & 0xf0) == 0 then
+        SimpleError("can only index 16-bit registers");
+    end if;
+    operandMode := AM_INDEX;
+    operandReg := (tokenSymbol.value & 0x0f) as uint8;
+
+    token := ReadToken();
+    if token == ')' then
+        operandValue := 0;
+        return;
+    end if;
+
+    if token == '+' then
+        token := ReadToken();
+        if token == TOKEN_NUMBER then
+            operandValue := tokenNumber;
+        elseif (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == RegCb)
+                and (tokenSymbol.value == REG_A)
+        then
+            operandMode := AM_XHLA;
+        else
+            SimpleError("bad indexed register");
+        end if;
+    elseif token == '-' then
+        token := ReadToken();
+        if token != TOKEN_NUMBER then
+            BadAddressingMode();
+        end if;
+        operandValue := -tokenNumber;
+    else
+        SimpleError("expected '+' or '-'");
+    end if;
+
+    token := ReadToken();
+end sub;
+
+sub ReadOperand(): (token: Token) is
+    token := ReadToken();
+    case token is
+        when TOKEN_IDENTIFIER:
+            if (tokenSymbol.callback == RegCb) then
+                var reg := tokenSymbol.value;
+                if (reg & 0xf0) != 0 then
+                    operandMode := AM_REG16;
+                else
+                    operandMode := AM_REG8;
+                end if;
+                operandReg := (reg & 0x0f) as uint8;
+                token := ReadToken();
+                return;
+            end if;
+
+        when TOKEN_NUMBER:
+            operandMode := AM_NUMBER;
+            operandValue := tokenNumber;
+            token := ReadToken();
+            return;
+
+        when '(':
+            token := ReadToken();
+            if (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == RegCb) then
+                token := ReadIndex();
+                if token != ')' then
+                    SimpleError("expected ')' terminating index operation");
+                end if;
+                token := ReadToken();
+            else
+                PushToken(token);
+                token := ReadExpression();
+                if token != ')' then
+                    SimpleError("expected ')' terminating expression");
+                end if;
+                if tokenNumber >= 0xff00 then
+                    operandMode := AM_DPAGE;
+                else
+                    operandMode := AM_ADDRESS;
+                end if;
+                operandValue := tokenNumber;
+                token := ReadToken();
+            end if;
+            return;
+    end case;
+    SimpleError("unsupported addressing mode");
+end sub;
+
+sub ExpectOperand() is
+    if ReadOperand() != TOKEN_NL then
+        SimpleError("expected a single operand");
+    end if;
+end sub;
+
+sub EmitIndexPrefix(qqprefix: uint8, ixprefix: uint8) is
+    if operandValue != 0 then
+        if (operandReg != REG_IX) and (operandReg != REG_IY) and (operandReg != REG_SP) then
+            SimpleError("can only supply a displacement with ix, iy or sp");
+        end if;
+        if ((operandValue as int16) < -128) or ((operandValue as int16) > 127) then
+            SimpleError("displacement out of range");
+        end if;
+        Emit8(ixprefix | (operandReg - REG_IX));
+        Emit8(operandValue as uint8);
+    else
+        Emit8(qqprefix | operandReg);
+    end if;
+end sub;
+
+sub EmitMemSrc() is
+    sub regOp() is
+        Emit8(0xf8 | operandReg);
+    end sub;
+
+    case operandMode is
+        when AM_REG8: regOp();
+        when AM_REG16: regOp();
+
+        when AM_INDEX:
+            EmitIndexPrefix(0xe0, 0xf0);
+
+        when AM_ADDRESS:
+            Emit8(0xe3);
+            Emit16(operandValue);
+
+        when AM_DPAGE:
+            Emit8(0xe7);
+            Emit8(operandValue as uint8);
+
+        when AM_XHLA:
+            Emit8(0xf3);
+
+        when else:
+            SimpleError("unsupported addressing mode in EmitMemSrc");
+    end case;
+end sub;
+
+sub EmitMemDest() is
+    case operandMode is
+        when AM_NUMBER:
+            SyntaxError();
+
+        when AM_INDEX:
+            EmitIndexPrefix(0xe8, 0xf4);
+
+        when AM_ADDRESS:
+            Emit8(0xeb);
+            Emit16(operandValue);
+
+        when AM_DPAGE:
+            Emit8(0xef);
+            Emit8(operandValue as uint8);
+
+        when AM_XHLA:
+            Emit8(0xf7);
+
+        when else:
+            BadAddressingMode();
+    end case;
+end sub;
+
+sub AluAccDest(opcode: uint8) is
+    var destReg := operandReg;
+    ExpectOperand();
+
+    sub regOp() is
+        Emit8(0xf8 | operandReg);
+        Emit8(opcode);
+    end sub;
+
+    case operandMode is
+        when AM_REG8: regOp();
+        when AM_REG16: regOp();
+
+        when AM_NUMBER:
+            case destReg is
+                when REG_A:
+                    Emit8(opcode | 0x08);
+                    Emit8(operandValue as uint8);
+
+                when REG_HL:
+                    Emit8(opcode | 0x08);
+                    Emit16(operandValue);
+                
+                when else:
+                    Emit8(opcode);
+                    Emit16(operandValue);
+            end case;
+
+        when AM_INDEX:
+            EmitIndexPrefix(0xe0, 0xf0);
+            Emit8(opcode);
+
+        when AM_ADDRESS:
+            Emit8(0xe3);
+            Emit16(operandValue);
+            Emit8(opcode);
+
+        when AM_DPAGE:
+            if (destReg == REG_A) or (destReg == REG_HL) then
+                Emit8(opcode);
+                Emit8(operandValue as uint8);
+            else
+                Emit8(0xe3);
+                Emit16(operandValue);
+                Emit8(opcode);
+            end if;
+
+        when AM_XHLA:
+            Emit8(0xf3);
+            Emit8(opcode);
+
+        when else:
+            SimpleError("unsupported addressing mode in SimpleDest");
+    end case;
+end sub;
+
+sub AluCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+    var reg: uint8;
+    case operandMode is
+        when AM_REG8:
+            if operandReg == REG_A then
+                AluAccDest(currentInsn.value as uint8);
+            else
+                reg := operandReg;
+                ExpectOperand();
+                if operandMode != AM_NUMBER then
+                    BadAddressingMode();
+                end if;
+                Emit8(0xf8 | reg);
+                Emit8(currentInsn.value as uint8 | 0x08);
+                Emit8(operandValue as uint8);
+            end if;
+
+        when AM_REG16:
+            case operandReg is
+                when REG_HL: AluAccDest(currentInsn.value as uint8 | 0x10);
+                when REG_IX: AluAccDest(0x14);
+                when REG_IY: AluAccDest(0x14);
+                when REG_SP: AluAccDest(0x14);
+                when else:
+                    BadAddressingMode();
+            end case;
+                
+        when else:
+            EmitMemDest();
+            Emit8(currentInsn.value as uint8 | 0x08);
+            ExpectOperand();
+            if operandMode != AM_NUMBER then
+                BadAddressingMode();
+            end if;
+            Emit8(operandValue as uint8);
+    end case;
+end sub;
+
+sub LdCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+
+    var destOperandMode := operandMode;
+    var destOperandReg := operandReg;
+    var destOperandValue := operandValue;
+    case destOperandMode is
+        when AM_REG8:
+            ExpectOperand();
+            if (destOperandReg == REG_A) and (operandMode == AM_DPAGE) then
+                Emit8(0x27);
+                Emit8(operandValue as uint8);
+            elseif operandMode == AM_REG8 then
+                if destOperandReg == REG_A then
+                    Emit8(0x20 | operandReg);
+                elseif operandReg == REG_A then
+                    Emit8(0x28 | destOperandReg);
+                else
+                    Emit8(0xf8 | operandReg);
+                    Emit8(0x30 | destOperandReg);
+                end if;
+            elseif operandMode == AM_NUMBER then
+                Emit8(0x30 | destOperandReg);
+                Emit8(operandValue as uint8);
+            else
+                EmitMemSrc();
+                Emit8(0x28 | destOperandReg);
+            end if;
+
+        when AM_REG16:
+            ExpectOperand();
+            if (destOperandReg == REG_HL) and (operandMode == AM_DPAGE) then
+                Emit8(0x47);
+                Emit8(operandValue as uint8);
+            elseif operandMode == AM_REG16 then
+                if destOperandReg == REG_HL then
+                    Emit8(0x40 | operandReg);
+                elseif operandReg == REG_HL then
+                    Emit8(0x48 | destOperandReg);
+                else
+                    Emit8(0xf8 | operandReg);
+                    Emit8(0x38 | destOperandReg);
+                end if;
+            elseif operandMode == AM_NUMBER then
+                Emit8(0x38 | destOperandReg);
+                Emit16(operandValue);
+            else
+                EmitMemSrc();
+                Emit8(0x48 | destOperandReg);
+            end if;
+            
+        when else:
+            ExpectOperand();
+            var srcOperandReg := operandReg;
+            var srcOperandValue := operandValue;
+            case operandMode is
+                when AM_REG8:
+                    if (srcOperandReg == REG_A) and (destOperandMode == AM_DPAGE) then
+                        Emit8(0x2f);
+                        Emit8(destOperandValue as uint8);
+                    else
+                        operandMode := destOperandMode;
+                        operandReg := destOperandReg;
+                        operandValue := destOperandValue;
+                        EmitMemDest();
+                        Emit8(0x20 | srcOperandReg);
+                    end if;
+
+                when AM_REG16:
+                    if (srcOperandReg == REG_HL) and (destOperandMode == AM_DPAGE) then
+                        Emit8(0x4f);
+                        Emit8(destOperandValue as uint8);
+                    else
+                        operandMode := destOperandMode;
+                        operandReg := destOperandReg;
+                        operandValue := destOperandValue;
+                        EmitMemDest();
+                        Emit8(0x40 | srcOperandReg);
+                    end if;
+
+                when AM_NUMBER:
+                    operandMode := destOperandMode;
+                    operandReg := destOperandReg;
+                    operandValue := destOperandValue;
+                    EmitMemDest();
+                    Emit8(0x37);
+                    Emit8(srcOperandValue as uint8);
+
+                when else:
+                    BadAddressingMode();
+            end case;
+    end case;
+end sub;
+
+sub LdwCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+
+    case operandMode is
+        when AM_INDEX:
+            EmitIndexPrefix(0xe8, 0xf4);
+            Emit8(0x3f);
+
+        when AM_ADDRESS:
+            Emit8(0xeb);
+            Emit16(operandValue);
+            Emit8(0x3f);
+
+        when AM_DPAGE:
+            Emit8(0x3f);
+            Emit8(operandValue as uint8);
+
+        when AM_XHLA:
+            Emit8(0xf7);
+            Emit8(0x3f);
+
+        when else:
+            BadAddressingMode();
+    end case;
+
+    ExpectOperand();
+    if operandMode != AM_NUMBER then
+        BadAddressingMode();
+    end if;
+    Emit16(operandValue);
+end sub;
+
+sub LdaCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+
+    if operandMode != AM_REG16 then
+        BadAddressingMode();
+    end if;
+    var destReg := operandReg;
+
+    token := ReadToken();
+    if (token != TOKEN_IDENTIFIER) or (tokenSymbol.callback != RegCb) then
+        SimpleError("expected register");
+    end if;
+
+    token := ReadIndex();
+    if token != '\n' then
+        SimpleError("garbage after insruction");
+    end if;
+
+    case operandMode is
+        when AM_INDEX:
+            Emit8(0xf4 | (operandReg - REG_IX));
+            Emit8(operandValue as uint8);
+            Emit8(0x38 | destReg);
+
+        when AM_XHLA:
+            Emit8(0xf7);
+            Emit8(0x38 | destReg);
+    end case;
+end sub;
+
+sub PushPopCb implements SymbolCallback is
+    ExpectOperand();
+    if operandMode != AM_REG16 then
+        SimpleError("expected a 16-bit register");
+    end if;
+
+    Emit8(currentInsn.value as uint8 | operandReg);
+end sub;
+
+sub ExCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+    var destOperandMode := operandMode;
+    var destOperandReg := operandReg;
+    var destOperandValue := operandValue;
+
+    ExpectOperand();
+    if operandMode != AM_REG16 then
+        SimpleError("expected a register");
+    end if;
+
+    case destOperandMode is
+        when AM_REG16:
+            if (destOperandReg == REG_AF) and (operandReg == REG_AF) then
+                Emit8(0x09);
+                return;
+            elseif (destOperandReg == REG_DE) and (operandReg == REG_HL) then
+                Emit8(0x08);
+                return;
+            end if;
+
+        when AM_REG8:
+
+        when else:
+            if operandMode == AM_REG16 then
+                var srcOperandReg := operandReg;
+                operandMode := destOperandMode;
+                operandReg := destOperandReg;
+                operandValue := destOperandValue;
+                EmitMemDest();
+                Emit8(0x50 | srcOperandReg);
+                return;
+            end if;
+    end case;
+    SimpleError("bad ex");
+end sub;
+
+sub Simple1Cb implements SymbolCallback is
+    Emit8(currentInsn.value as uint8);
+    Expect(TOKEN_NL);
+end sub;
+
+sub Simple2Cb implements SymbolCallback is
+    Emit16(currentInsn.value);
+    Expect(TOKEN_NL);
+end sub;
+
+sub SimpleACb implements SymbolCallback is
+    ExpectOperand();
+    if (operandMode != AM_REG8) or (operandReg != REG_A) then
+        BadAddressingMode();
+    end if;
+
+    Emit8(currentInsn.value as uint8);
+end sub;
+
+sub IncDecCb implements SymbolCallback is
+    ExpectOperand();
+
+    var opcode := currentInsn.value as uint8;
+    case operandMode is
+        when AM_REG8:
+            Emit8((opcode & ~0x10) | operandReg);
+
+        when AM_REG16:
+            Emit8(opcode | 0x10 | operandReg);
+
+        when AM_INDEX:
+            EmitIndexPrefix(0xe0, 0xf0);
+            Emit8(opcode | 0x07);
+
+        when AM_ADDRESS:
+            Emit8(0xe3);
+            Emit16(operandValue);
+            Emit8(opcode | 0x07);
+
+        when AM_DPAGE:
+            Emit8(opcode | 0x07);
+            Emit8(operandValue as uint8);
+
+        when AM_XHLA:
+            Emit8(0xf3);
+            Emit8(opcode | 0x07);
+
+        when else:
+            BadAddressingMode();
+   end case;
+end sub;
+
+sub IncDecXCb implements SymbolCallback is
+    ExpectOperand();
+    if operandMode != AM_DPAGE then
+        BadAddressingMode();
+    end if;
+
+    Emit8(currentInsn.value as uint8);
+    Emit8(operandValue as uint8);
+end sub;
+
+sub Type1Unop8Bit(opcode: uint8) is
+    ExpectOperand();
+    case operandMode is
+        when AM_REG8:
+            Emit8(0xf8 | operandReg);
+            Emit8(opcode);
+
+        when AM_REG16:
+            BadAddressingMode();
+
+        when AM_NUMBER:
+            Emit8(currentInsn.value as uint8);
+            Emit8(operandValue as uint8);
+
+        when AM_INDEX:
+            EmitIndexPrefix(0xe0, 0xf0);
+            Emit8(opcode);
+
+        when AM_ADDRESS:
+            Emit8(0xe3);
+            Emit16(operandValue);
+            Emit8(opcode);
+
+        when AM_DPAGE:
+            Emit8(0xe7);
+            Emit8(operandValue as uint8);
+            Emit8(opcode);
+
+        when AM_XHLA:
+            Emit8(0xf3);
+            Emit8(opcode);
+
+        when else:
+            BadAddressingMode();
+    end case;
+end sub;
+
+sub Type2Unop8Bit(opcode: uint8) is
+    ExpectOperand();
+    case operandMode is
+        when AM_REG8:
+            Emit8(0xf8 | operandReg);
+            Emit8(opcode);
+
+        when AM_REG16:
+            BadAddressingMode();
+
+        when AM_INDEX:
+            EmitIndexPrefix(0xe0, 0xf0);
+            Emit8(opcode);
+
+        when AM_ADDRESS:
+            Emit8(0xe3);
+            Emit16(operandValue);
+            Emit8(opcode);
+
+        when AM_DPAGE:
+            Emit8(opcode);
+            Emit8(operandValue as uint8);
+
+        when AM_XHLA:
+            Emit8(0xf3);
+            Emit8(opcode);
+
+        when else:
+            BadAddressingMode();
+    end case;
+end sub;
+
+sub MulDivCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+
+    if (operandMode != AM_REG16) or (operandReg != REG_HL) then
+        BadAddressingMode();
+    end if;
+
+    Type1Unop8Bit(currentInsn.value as uint8);
+end sub;
+
+sub RotateCb implements SymbolCallback is
+    Type1Unop8Bit(currentInsn.value as uint8);
+end sub;
+
+sub BitCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+
+    if (operandMode != AM_NUMBER) and (operandValue <= 7) then
+        BadAddressingMode();
+    end if;
+
+    Type2Unop8Bit((currentInsn.value as uint8) | (operandValue as uint8));
+end sub;
+
+sub Br16Cb implements SymbolCallback is
+    var token := ReadOperand();
+    var cc: uint8 := 8;
+    if token != TOKEN_NL then
+        if (token != TOKEN_IDENTIFIER) or (tokenSymbol.callback != CcReg) then
+            BadAddressingMode();
+        end if;
+        cc := tokenSymbol.value as uint8;
+        ExpectOperand();
+    end if;
+        
+    if (operandMode == AM_ADDRESS) and (cc == CC_T) then
+        Emit8((currentInsn.value >> 8) as uint8);
+        Emit16(operandValue);
+    else
+        
+    end if;
+end sub;
+
+@impl sub InitialiseSymbolTable is
+	var s: Symbol;
+	var symbols: Symbol[] := {
+        { "ORG",   0,            OrgCb,     &s },
+        { "DB",    0,            DbCb,      &s },
+        { "DS",    0,            DsCb,      &s },
+        { "DW",    0,            DwCb,      &s },
+        { "EQU",   0,            EquCb,     &s },
+        { "ELSE",  0,            ElseCb,    &s },
+        { "ENDIF", 0,            EndIfCb,   &s },
+        { "END",   0,            EndCb,     &s },
+        { "IF",    0,            IfCb,      &s },
+        { "TITLE", 0,            TitleCb,   &s },
+        { "ALIGN", 0,            AlignCb,   &s },
+        { "CSEG",  SEGMENT_TEXT, SegmentCb, &s },
+        { "DSEG",  SEGMENT_DATA, SegmentCb, &s },
+        { "BSEG",  SEGMENT_BSS,  SegmentCb, &s },
+
+        { "AND",   OP_AND,   OperatorCb, &s },
+        { "MOD",   OP_MOD,   OperatorCb, &s },
+        { "NOT",   OP_NOT,   OperatorCb, &s },
+        { "OR",    OP_OR,    OperatorCb, &s },
+        { "SHL",   OP_SHL,   OperatorCb, &s },
+        { "SHR",   OP_SHR,   OperatorCb, &s },
+        { "EOR",   OP_XOR,   OperatorCb, &s },
+
+        # The Registers
+
+        { "A",    0x06,   RegCb,         &s },
+        { "B",    0x00,   RegCb,         &s },
+        { "C",    0x01,   RegCb,         &s },
+        { "D",    0x02,   RegCb,         &s },
+        { "E",    0x03,   RegCb,         &s },
+        { "H",    0x04,   RegCb,         &s },
+        { "L",    0x05,   RegCb,         &s },
+        { "BC",   0x10,   RegCb,         &s },
+        { "DE",   0x11,   RegCb,         &s },
+        { "HL",   0x12,   RegCb,         &s },
+        { "IX",   0x14,   RegCb,         &s },
+        { "IY",   0x15,   RegCb,         &s },
+        { "SP",   0x16,   RegCb,         &s },
+        { "AF",   0x16,   RegCb,         &s },
+    
+        # Condition codes
+
+        { "F",    0,      CcCb,          &s },
+        { "LT",   1,      CcCb,          &s },
+        { "LE",   2,      CcCb,          &s },
+        { "ULE",  3,      CcCb,          &s },
+        { "PE",   4,      CcCb,          &s },
+        { "M",    5,      CcCb,          &s },
+        { "Z",    6,      CcCb,          &s },
+        { "C",    7,      CcCb,          &s },
+        { "GE",   9,      CcCb,          &s },
+        { "GT",   10,     CcCb,          &s },
+        { "UGT",  11,     CcCb,          &s },
+        { "PO",   12,     CcCb,          &s },
+        { "P",    13,     CcCb,          &s },
+        { "NZ",   14,     CcCb,          &s },
+        { "NC",   15,     CcCb,          &s },
+
+        # The instructions
+
+        { "LDW",  0,      LdwCb,         &s },
+        { "LD",   0,      LdCb,          &s },
+        { "LDA",  0,      LdaCb,         &s },
+
+        { "ADD",  0x60,   AluCb,         &s },
+        { "ADC",  0x61,   AluCb,         &s },
+        { "SUB",  0x62,   AluCb,         &s },
+        { "SBC",  0x63,   AluCb,         &s },
+        { "XOR",  0x65,   AluCb,         &s },
+        { "CP",   0x67,   AluCb,         &s },
+        { "MUL",  0x12,   MulDivCb,      &s },
+        { "DIV",  0x13,   MulDivCb,      &s },
+        
+        { "PUSH", 0x50,   PushPopCb,     &s },
+        { "POP",  0x58,   PushPopCb,     &s },
+        
+        { "EX",   0,      ExCb,          &s },
+
+        { "EXX",  0x0a,   Simple1Cb,     &s },
+        { "CCF",  0x0e,   Simple1Cb,     &s },
+        { "SCF",  0x0d,   Simple1Cb,     &s },
+        { "RCF",  0x0c,   Simple1Cb,     &s },
+        { "NOP",  0x00,   Simple1Cb,     &s },
+        { "HALT", 0x01,   Simple1Cb,     &s },
+        { "DI",   0x02,   Simple1Cb,     &s },
+        { "EI",   0x03,   Simple1Cb,     &s },
+        { "SWI",  0xff,   Simple1Cb,     &s },
+        { "LDI",  0x58fe, Simple2Cb,     &s },
+        { "LDIR", 0x59fe, Simple2Cb,     &s },
+        { "LDD",  0x5afe, Simple2Cb,     &s },
+        { "LDDR", 0x5bfe, Simple2Cb,     &s },
+        { "CPI",  0x5cfe, Simple2Cb,     &s },
+        { "CPIR", 0x5dfe, Simple2Cb,     &s },
+        { "CPD",  0x5efe, Simple2Cb,     &s },
+        { "CPDR", 0x5ffe, Simple2Cb,     &s },
+
+        { "INC",  0x80,   IncDecCb,      &s },
+        { "DEC",  0x88,   IncDecCb,      &s },
+        { "INCW", 0x90,   IncDecCb,      &s },
+        { "DECW", 0x98,   IncDecCb,      &s },
+        { "INCX", 0x07,   IncDecXCb,     &s },
+        { "DECX", 0x0f,   IncDecXCb,     &s },
+
+        { "DAA",  0x0b,   SimpleACb,     &s },
+        { "CPL",  0x10,   SimpleACb,     &s },
+        { "NEG",  0x11,   SimpleACb,     &s },
+
+        { "RLCA", 0xa0,   Simple1Cb,     &s },
+        { "RRCA", 0xa1,   Simple1Cb,     &s },
+        { "RLA",  0xa2,   Simple1Cb,     &s },
+        { "RRA",  0xa3,   Simple1Cb,     &s },
+        { "SLAA", 0xa4,   Simple1Cb,     &s },
+        { "SRAA", 0xa5,   Simple1Cb,     &s },
+        { "SLLA", 0xa6,   Simple1Cb,     &s },
+        { "SRLA", 0xa7,   Simple1Cb,     &s },
+
+        { "RLC",  0xa0,   RotateCb,      &s },
+        { "RRC",  0xa1,   RotateCb,      &s },
+        { "RL",   0xa2,   RotateCb,      &s },
+        { "RR",   0xa3,   RotateCb,      &s },
+        { "SLA",  0xa4,   RotateCb,      &s },
+        { "SRA",  0xa5,   RotateCb,      &s },
+        { "SLL",  0xa6,   RotateCb,      &s },
+        { "SRL",  0xa7,   RotateCb,      &s },
+        { "RLD",  0x10,   RotateCb,      &s },
+        { "RRD",  0x11,   RotateCb,      &s },
+
+        { "JP",   0x1ac0, Br16Cb,        &s },
+        { "CALL", 0x1cd0, Br16Cb,        &s },
+
+        { "BIT",  0xa8,   BitCb,         &s },
+        { "SET",  0xb8,   BitCb,         &s },
+        { "RES",  0xb0,   BitCb,         &s },
+        { "TEST", 0x18,   BitCb,         &s },
+	};
+
+    AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
+end sub;
+
+var andSymbol: Symbol := { "AND", 0x64, AluCb, &andSymbol };
+var orSymbol: Symbol := { "OR", 0x66, AluCb, &andSymbol };
+
+@impl sub MassageCurrentInsn is
+    if currentInsn.callback == OperatorCb then
+        case currentInsn.value is
+            when OP_AND: currentInsn := &andSymbol;
+            when OP_OR: currentInsn := &orSymbol;
+        end case;
+    end if;
+end sub;
+
+Main("TLCS90 Assembler (C) 2020 David Given; ");
+
+# vim: sw=4 ts=4 et
