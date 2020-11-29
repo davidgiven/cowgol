@@ -28,6 +28,8 @@ sub ArchEmitHeader(coo: [Coo]) is
     E("\tbits 16\n");
     E("\tsegment code align=16\n");
 
+    E("\tpush ds\n");
+    E("\tpop es\n");
     E("\tmov ax, dgroup\n");
     E("\tmov ds, ax\n");
 
