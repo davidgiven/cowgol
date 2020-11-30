@@ -8,7 +8,7 @@ local ARCHS = {
 	"basic",
 	"cgen",
 	"pdp11",
-	"thumb2",
+	"generic32bit",
 	"z80",
 }
 

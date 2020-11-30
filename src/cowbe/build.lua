@@ -10,6 +10,7 @@ local ARCHS = {
 	"basic",
 	"cgen",
 	"pdp11",
+	"powerpc",
 	"thumb2",
 	"z80",
 }

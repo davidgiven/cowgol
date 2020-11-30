@@ -48,7 +48,7 @@ toolchain_ncpmz = {
 
 toolchain_lxthumb2 = {
 	name = "lxthumb2",
-	cowfe = "bin/cowfe-thumb2.nncgen.exe",
+	cowfe = "bin/cowfe-generic32bit.nncgen.exe",
 	cowbe = "bin/cowbe-thumb2.nncgen.exe",
 	linker = "bin/cowlink-lxthumb2.nncgen.exe",
 	assembler = buildgasarm,
@@ -68,6 +68,18 @@ toolchain_lx386 = {
 	asmext = ".s",
 	binext = ".lx386.exe",
 	tester = qemu386test
+}
+
+toolchain_lxppc = {
+	name = "lxppc",
+	cowfe = "bin/cowfe-generic32bit.nncgen.exe",
+	cowbe = "bin/cowbe-powerpc.nncgen.exe",
+	linker = "bin/cowlink-lxppc.nncgen.exe",
+	assembler = buildgasppc,
+	runtime = "rt/lxppc",
+	asmext = ".s",
+	binext = ".lxppc.exe",
+	tester = qemuppctest
 }
 
 toolchain_bbct = {
