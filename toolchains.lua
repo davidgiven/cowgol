@@ -134,7 +134,7 @@ toolchain_unixv7 = {
 
 toolchain_fuzix6303 = {
 	name = "fuzix6303",
-	cowfe = "bin/cowfe-6303.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-6303.nncgen.exe",
 	linker = "bin/cowlink-fuzix6303.nncgen.exe",
 	assembler = buildcowasm6303,
