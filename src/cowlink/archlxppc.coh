@@ -23,16 +23,8 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E(".syntax unified\n.global _start\n.code 32\n");
 	E(".global _start\n");
 	E("\t_start:\n");
-	E("\tblx _thumb_start\n");
-	E(".code 16\n");
-	E(".thumb_func\n");
-	E("_thumb_start:\n");
-	E("\tadd r1, sp, #4\n");
-	E("\tldr r0, =argv\n");
-	E("\tstr r1, [r0]\n");
 
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
@@ -45,13 +37,13 @@ sub ArchEmitHeader(coo: [Coo]) is
 	end loop;
 
 	E("_exit:\n");
-	E("\tmov r0, #0\n");
-	E("\tmov r7, #1\n"); # __exit()
-	E("\tsvc #0\n");
+	#E("\tmov r0, #0\n");
+	#E("\tmov r7, #1\n"); # __exit()
+	#E("\tsvc #0\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-	E("\t.bss\n");
+	E("\t.section .bss\n");
 	E("argv: .space 4\n");
 	E("ws: .space ");
 	E_u16(workspaceSize[0]);
