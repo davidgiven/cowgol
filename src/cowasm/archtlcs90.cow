@@ -1,6 +1,8 @@
 include "cowasm.coh";
 
+const REG_C  := 1;
 const REG_A  := 6;
+const REG_BC := 0;
 const REG_DE := 1;
 const REG_HL := 2;
 const REG_IX := 4;
@@ -8,6 +10,7 @@ const REG_IY := 5;
 const REG_SP := 6;
 const REG_AF := REG_SP;
 
+const CC_C := 7;
 const CC_T := 8;
 
 const AM_REG8    := 0;
@@ -85,6 +88,12 @@ sub ReadOperand(): (token: Token) is
                 end if;
                 operandReg := (reg & 0x0f) as uint8;
                 token := ReadToken();
+                return;
+            else
+                PushToken(token);
+                token := ReadExpression();
+                operandMode := AM_NUMBER;
+                operandValue := tokenNumber;
                 return;
             end if;
 
@@ -457,6 +466,25 @@ sub LdaCb implements SymbolCallback is
     end case;
 end sub;
 
+sub LdarCb implements SymbolCallback is
+    var token := ReadOperand();
+    if token != ',' then
+        SyntaxError();
+    end if;
+    if (operandMode != AM_REG16) and (operandReg != REG_HL) then
+        BadAddressingMode();
+    end if;
+
+    ExpectOperand();
+    if operandMode != AM_NUMBER then
+        BadAddressingMode();
+    end if;
+
+    var d := operandValue - [currentProgramCounter] - 2;
+    Emit8(0x17);
+    Emit16(d);
+end sub;
+
 sub PushPopCb implements SymbolCallback is
     ExpectOperand();
     if operandMode != AM_REG16 then
@@ -668,21 +696,147 @@ sub BitCb implements SymbolCallback is
 end sub;
 
 sub Br16Cb implements SymbolCallback is
-    var token := ReadOperand();
+    var token := ReadToken();
     var cc: uint8 := 8;
-    if token != TOKEN_NL then
-        if (token != TOKEN_IDENTIFIER) or (tokenSymbol.callback != CcReg) then
-            BadAddressingMode();
-        end if;
+
+    if (token == TOKEN_IDENTIFIER)
+            and (tokenSymbol.callback == RegCb) and (tokenSymbol.value == REG_C)
+    then
+        cc := CC_C;
+        Expect(',');
+        ExpectOperand();
+    elseif (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == CcCb) then
         cc := tokenSymbol.value as uint8;
+        Expect(',');
+        ExpectOperand();
+    else
+        PushToken(token);
         ExpectOperand();
     end if;
         
-    if (operandMode == AM_ADDRESS) and (cc == CC_T) then
-        Emit8((currentInsn.value >> 8) as uint8);
-        Emit16(operandValue);
+    var opcode := currentInsn.value as uint8 | cc;
+    case operandMode is
+        when AM_NUMBER:
+            if cc == 8 then
+                Emit8((currentInsn.value >> 8) as uint8);
+                Emit16(operandValue);
+            else
+                Emit8(0xeb);
+                Emit16(operandValue);
+                Emit8(opcode);
+            end if;
+
+        when AM_INDEX:
+            EmitIndexPrefix(0xe8, 0xf4);
+            Emit8(opcode);
+
+        when AM_XHLA:
+            Emit8(0xf7);
+            Emit8(opcode);
+
+        when else:
+            BadAddressingMode();
+    end case;
+end sub;
+
+sub JrCb implements SymbolCallback is
+    var token := ReadToken();
+    var cc: uint8 := 8;
+
+    if (token == TOKEN_IDENTIFIER)
+            and (tokenSymbol.callback == RegCb) and (tokenSymbol.value == REG_C)
+    then
+        cc := CC_C;
+        Expect(',');
+        ExpectOperand();
+    elseif (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == CcCb) then
+        cc := tokenSymbol.value as uint8;
+        Expect(',');
+        ExpectOperand();
     else
+        PushToken(token);
+        ExpectOperand();
+    end if;
         
+    if operandMode != AM_NUMBER then
+        BadAddressingMode();
+    end if;
+
+    if pass == 1 then
+        [currentProgramCounter] := [currentProgramCounter] + 4;
+    else
+        var d := (operandValue - [currentProgramCounter] - 2) as int16;
+        if (d < -128) or (d > 127) then
+            Emit8(0xeb);
+            Emit16(operandValue);
+            Emit8(0xc0 | cc);
+        else
+            Emit8(0xc0 | cc);
+            Emit8(d as uint8);
+        end if;
+    end if;
+end sub;
+
+sub Jr16Cb implements SymbolCallback is
+    ExpectOperand();
+    if operandMode != AM_NUMBER then
+        BadAddressingMode();
+    end if;
+
+    var d := operandValue - [currentProgramCounter] - 2;
+    Emit8(currentInsn.value as uint8);
+    Emit16(d);
+end sub;
+
+sub DjnzCb implements SymbolCallback is
+    var token := ReadOperand();
+
+    var opcode: uint8;
+    if (operandMode == AM_REG16) and (operandReg == REG_BC) then
+        opcode := 0x19;
+        ExpectOperand();
+    else
+        opcode := 0x18;
+        if token != TOKEN_NL then
+            SimpleError("garbage at end of line");
+        end if;
+    end if;
+
+    if operandMode != AM_NUMBER then
+        BadAddressingMode();
+    end if;
+
+    var d := (operandValue - [currentProgramCounter] - 2) as int16;
+    if (d < -128) or (d > 127) then
+        SimpleError("near jump out of range");
+    else
+        Emit8(opcode);
+        Emit8(d as uint8);
+    end if;
+end sub;
+
+sub RetCb implements SymbolCallback is
+    var token := ReadToken();
+    var cc: uint8 := 8;
+
+    if (token == TOKEN_IDENTIFIER)
+            and (tokenSymbol.callback == RegCb) and (tokenSymbol.value == REG_C)
+    then
+        cc := CC_C;
+        token := ReadToken();
+    elseif (token == TOKEN_IDENTIFIER) and (tokenSymbol.callback == CcCb) then
+        cc := tokenSymbol.value as uint8;
+        token := ReadToken();
+    end if;
+    if token != TOKEN_NL then
+        SimpleError("garbage at end of line");
+    end if;
+
+    if cc == 8 then
+        Emit8(0x1e);
+    else
+        Emit8(0xfe);
+        Emit8(0xd0 | cc);
     end if;
 end sub;
 
@@ -738,7 +892,8 @@ end sub;
         { "PE",   4,      CcCb,          &s },
         { "M",    5,      CcCb,          &s },
         { "Z",    6,      CcCb,          &s },
-        { "C",    7,      CcCb,          &s },
+        #{ "C",    7,      CcCb,          &s },
+        { "T",    8,      CcCb,          &s },
         { "GE",   9,      CcCb,          &s },
         { "GT",   10,     CcCb,          &s },
         { "UGT",  11,     CcCb,          &s },
@@ -752,6 +907,7 @@ end sub;
         { "LDW",  0,      LdwCb,         &s },
         { "LD",   0,      LdCb,          &s },
         { "LDA",  0,      LdaCb,         &s },
+        { "LDAR", 0,      LdarCb,        &s },
 
         { "ADD",  0x60,   AluCb,         &s },
         { "ADC",  0x61,   AluCb,         &s },
@@ -775,6 +931,7 @@ end sub;
         { "HALT", 0x01,   Simple1Cb,     &s },
         { "DI",   0x02,   Simple1Cb,     &s },
         { "EI",   0x03,   Simple1Cb,     &s },
+        { "RETI", 0x1f,   Simple1Cb,     &s },
         { "SWI",  0xff,   Simple1Cb,     &s },
         { "LDI",  0x58fe, Simple2Cb,     &s },
         { "LDIR", 0x59fe, Simple2Cb,     &s },
@@ -818,6 +975,11 @@ end sub;
 
         { "JP",   0x1ac0, Br16Cb,        &s },
         { "CALL", 0x1cd0, Br16Cb,        &s },
+        { "JR",   0xc0,   JrCb,          &s },
+        { "JRL",  0x1b,   Jr16Cb,        &s },
+        { "CALR", 0x1d,   Jr16Cb,        &s },
+        { "DJNZ", 0,      DjnzCb,        &s },
+        { "RET",  0,      RetCb,         &s },
 
         { "BIT",  0xa8,   BitCb,         &s },
         { "SET",  0xb8,   BitCb,         &s },
