@@ -5,8 +5,8 @@ local ARCHS = {
 	"basic",
 	"cgen",
 	"pdp11",
-	"thumb2",
 	"16bit",
+	"32bita",
 }
 
 lemoncowgol {

@@ -48,7 +48,7 @@ toolchain_ncpmz = {
 
 toolchain_lxthumb2 = {
 	name = "lxthumb2",
-	cowfe = "bin/cowfe-thumb2.nncgen.exe",
+	cowfe = "bin/cowfe-32bita.nncgen.exe",
 	cowbe = "bin/cowbe-thumb2.nncgen.exe",
 	linker = "bin/cowlink-lxthumb2.nncgen.exe",
 	assembler = buildgasarm,
