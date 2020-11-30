@@ -43,7 +43,7 @@ copy {
 }
 
 copy {
-	ins = { "bin/cowfe-z80.ncpmz.z80.com" },
+	ins = { "bin/cowfe-16bit.ncpmz.z80.com" },
 	outs = { "$OBJ/dist/cpmz/cowfe.com" }
 }
 
