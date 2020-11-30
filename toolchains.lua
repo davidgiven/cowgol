@@ -24,7 +24,7 @@ toolchain_nncgen = {
 
 toolchain_ncpm = {
 	name = "ncpm",
-	cowfe = "bin/cowfe-8080.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-8080.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildcowasm8080,
@@ -36,7 +36,7 @@ toolchain_ncpm = {
 
 toolchain_ncpmz = {
 	name = "ncpmz",
-	cowfe = "bin/cowfe-z80.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-z80.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
@@ -110,7 +110,7 @@ toolchain_bbct6502 = {
 
 toolchain_bbcti = {
 	name = "bbcti",
-	cowfe = "bin/cowfe-6502i.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-6502i.nncgen.exe",
 	linker = "bin/cowlink-bbcti.nncgen.exe",
 	assembler = buildtass64,
@@ -146,7 +146,7 @@ toolchain_fuzix6303 = {
 
 toolchain_msdos = {
 	name = "msdos",
-	cowfe = "bin/cowfe-8086.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-8086.nncgen.exe",
 	linker = "bin/cowlink-msdos.nncgen.exe",
 	assembler = buildnasm,

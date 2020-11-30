@@ -1,15 +1,12 @@
 local ARCHS = {
 	"6303",
 	"6502",
-	"6502i",
 	"80386",
-	"8080",
-	"8086",
 	"basic",
 	"cgen",
 	"pdp11",
 	"thumb2",
-	"z80",
+	"16bit",
 }
 
 lemoncowgol {
