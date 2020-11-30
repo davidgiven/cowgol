@@ -24,7 +24,7 @@ copy {
 }
 
 copy {
-	ins = { "bin/cowfe-8086.msdos.msdos.exe" },
+	ins = { "bin/cowfe-16bit.msdos.msdos.exe" },
 	outs = { "$OBJ/dist/msdos/cowfe.exe" }
 }
 
