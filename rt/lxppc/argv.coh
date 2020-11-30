@@ -1,10 +1,10 @@
 var argv_pointer: [[uint8]];
 
 sub ArgvInit() is
-#	@asm "ldr r0, =argv";
-#	@asm "ldr r1, =", argv_pointer;
-#	@asm "ldr r0, [r0]";
-#	@asm "str r0, [r1]";
+	@asm "ldr r0, =argv";
+	@asm "ldr r1, =", argv_pointer;
+	@asm "ldr r0, [r0]";
+	@asm "str r0, [r1]";
 	argv_pointer := argv_pointer + 4;
 end sub;
 

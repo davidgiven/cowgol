@@ -822,59 +822,73 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
     end if;
 }
 
-//%{
-//	sub Cmp2(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
-//		E_insn("cmp");
-//		E_reg(lhs);
-//		E_comma();
-//		E_op(rhs, rhsop);
-//		E_nl();
-//	end sub;
-//
-//	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node]) is
-//		if node.beq.truelabel != node.beq.fallthrough then
-//			E_jump(trueinsn, node.beq.truelabel);
-//		end if;
-//		if node.beq.falselabel != node.beq.fallthrough then
-//			E_jump(falseinsn, node.beq.falselabel);
-//		end if;
-//	end sub;
-//%}
-//
-//gen BEQ4(r32:lhs, r32|imm8:rhs):b uses all
-//{
-//	Cmp2($lhs, $rhs, &$@rhs.operand);
-//	CmpJumps("beq", "bne", $@$);
-//}
-//
-//gen BLTU4(r32:lhs, r32|imm8:rhs):b uses all
-//{
-//	Cmp2($lhs, $rhs, &$@rhs.operand);
-//	CmpJumps("blo", "bhs", $@$);
-//}
-//
-//gen BLTS4(r32:lhs, r32|imm8:rhs):b uses all
-//{
-//	Cmp2($lhs, $rhs, &$@rhs.operand);
-//	CmpJumps("blt", "bge", $@$);
-//}
-//
-//gen BEQ4(r32:lhs, r32|imm8:rhs):b uses all
-//{
-//	Cmp2($lhs, $rhs, &$@rhs.operand);
-//	CmpJumps("beq", "bne", $@$);
-//}
-//
-//gen BEQ2(r32:lhs, r32:rhs):b uses all
-//{
-//	Extend("uxth", $lhs);
-//	if ($rhs & REGCLASS_R32) != 0 then
-//		Extend("uxth", $rhs);
-//	end if;
-//	Cmp2($lhs, $rhs, &$@rhs.operand);
-//	CmpJumps("beq", "bne", $@$);
-//}
-//
+%{
+	sub Cmp2(reginsn: string, imminsn: string, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+		if rhs == REG_IMM16 then
+			E_insn(imminsn);
+		else
+			E_insn(reginsn);
+		end if;
+		E_reg(lhs);
+		E_comma();
+		E_op(rhs, rhsop);
+		E_nl();
+	end sub;
+
+	sub Cmp2U(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+		Cmp2("cmplw", "cmplwi", lhs, rhs, rhsop);
+	end sub;
+
+	sub Cmp2S(lhs: RegId, rhs: RegId, rhsop: [Operand]) is
+		Cmp2("cmpw", "cmpwi", lhs, rhs, rhsop);
+	end sub;
+
+	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node]) is
+		if node.beq.truelabel != node.beq.fallthrough then
+			E_jump(trueinsn, node.beq.truelabel);
+		end if;
+		if node.beq.falselabel != node.beq.fallthrough then
+			E_jump(falseinsn, node.beq.falselabel);
+		end if;
+	end sub;
+%}
+
+gen BEQ4(r32:lhs, r32|imm16:rhs):b uses all
+{
+	Cmp2U($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("beq", "bne", $@$);
+}
+
+gen BLTU4(r32:lhs, r32|imm16:rhs):b uses all
+{
+	Cmp2U($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blt", "bge", $@$);
+}
+
+gen BLTS4(r32:lhs, r32|imm16:rhs):b uses all
+{
+	Cmp2S($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("blt", "bge", $@$);
+}
+
+gen BEQ2(r32:lhs, r32|imm16:rhs):b uses all
+{
+	E_insn("extsh");
+	E_reg($lhs);
+	E_comma();
+	E_reg($lhs);
+	E_nl();
+	if ($rhs & REGCLASS_R32) != 0 then
+		E_insn("extsh");
+		E_reg($rhs);
+		E_comma();
+		E_reg($rhs);
+		E_nl();
+	end if;
+	Cmp2S($lhs, $rhs, &$@rhs.operand);
+	CmpJumps("beq", "bne", $@$);
+}
+
 //gen BLTU2(r32:lhs, r32|imm8:rhs):b uses all
 //{
 //	Extend("uxth", $lhs);

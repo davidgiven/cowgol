@@ -72,7 +72,7 @@ toolchain_lx386 = {
 
 toolchain_lxppc = {
 	name = "lxppc",
-	cowfe = "bin/cowfe-generic32bit.nncgen.exe",
+	cowfe = "bin/cowfe-32bita.nncgen.exe",
 	cowbe = "bin/cowbe-powerpc.nncgen.exe",
 	linker = "bin/cowlink-lxppc.nncgen.exe",
 	assembler = buildgasppc,
@@ -176,6 +176,7 @@ ALL_TOOLCHAINS = {
 	toolchain_fuzix6303,
 	toolchain_lxthumb2,
 	toolchain_lx386,
+	toolchain_lxppc,
 	toolchain_msdos,
 	toolchain_ncgen,
 	toolchain_ncpm,
