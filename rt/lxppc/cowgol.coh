@@ -2,37 +2,40 @@
 # https://w3challs.com/syscalls/?arch=arm_thumb
 
 var LOMEM: [uint8];
-#@asm "ldr r0, =LOMEM";
-#@asm "ldr r1, =", LOMEM;
-#@asm "str r0, [r1]";
-#
+@asm "lis 3, LOMEM@h";
+@asm "ori 3, 3, LOMEM@l";
+@asm "lis 4, ", LOMEM, "@ha";
+@asm "stw 3, ", LOMEM, "@l(4)";
+
 var HIMEM: [uint8];
-#@asm "ldr r0, =HIMEM";
-#@asm "ldr r1, =", HIMEM;
-#@asm "str r0, [r1]";
+@asm "lis 3, HIMEM@h";
+@asm "ori 3, 3, HIMEM@l";
+@asm "lis 4, ", HIMEM, "@ha";
+@asm "stw 3, ", HIMEM, "@l(4)";
 
 sub AlignUp(in: intptr): (out: intptr) is
 	out := (in + 3) & ~3;
 end sub;
 
 sub Exit() is
-#	@asm "mov r0, #0";
-#	@asm "mov r7, #1"; # __exit()
-#	@asm "svc #0";
+	@asm "li 3,0";
+	@asm "li 0,1";
+	@asm "sc";
 end sub;
 
 sub ExitWithError() is
-#	@asm "mov r0, #1";
-#	@asm "mov r7, #1"; # __exit()
-#	@asm "svc #0";
+	@asm "li 3,1";
+	@asm "li 0,1";
+	@asm "sc";
 end sub;
 
 sub print_char(c: uint8) is
-#	@asm "mov r0, #1"; # file descriptor
-#	@asm "ldr r1, =", c;
-#	@asm "mov r2, #1";
-#	@asm "mov r7, #4"; # write()
-#	@asm "svc #0";
+	@asm "li 3,1"; # file descriptor
+	@asm "lis 4, ", c, "@h";
+	@asm "ori 4,4, ", c, "@l";
+	@asm "li 5,1"; # count
+	@asm "li 0,4"; # write()
+	@asm "sc";
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: intptr) is
