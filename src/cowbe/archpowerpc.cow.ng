@@ -46,6 +46,7 @@
 
 	sub E_reg(reg: RegId) is
 		case reg is
+			when REG_R0: E("0");
 			when REG_R3: E("3");
 			when REG_R4: E("4");
 			when REG_R5: E("5");
@@ -160,6 +161,7 @@
 
 wordsize uint32;
 
+register r0;
 register r3 r4 r5 r6 r7 r8 r9 r10 r11 r12;
 
 operand param;
@@ -176,6 +178,7 @@ regdata r8 compatible r32;
 regdata r9 compatible r32;
 regdata r10 compatible r32;
 regdata r11 compatible r32;
+regdata r12 compatible r32;
 regdata r12 compatible r32;
 
 // --- Core things ----------------------------------------------------------
@@ -287,21 +290,21 @@ gen ENDSUB() uses all
 	var count: uint8 := 0;
 	var params := current_subr.num_output_parameters;
 
-	E("\tlwz 4,4(1)\n");
+	E("\tlwz 4,4(1)\n"); # return address
 	if params == 0 then
-		E("\tlwz 31,0(1)\n");
+		E("\tlwz 31,0(1)\n"); # old ws
 		E("\taddi 1,1,8\n");
 	else
-		E("\tlwz 4,0(1)\n");
+		E("\tlwz 5,0(1)\n"); # old ws
 		E("\taddi 1,1,8\n");
 
 		while count != params loop
 			var param := GetOutputParameter(current_subr, count);
 
 			if param.subr != current_subr then
-				E("\tlis 5,");
+				E("\tlis 30,");
 				E_symref(param as [Symbol], 0);
-				E("@h\n\tori 5,5,");
+				E("@h\n\tori 30,30,");
 				E_symref(param as [Symbol], 0);
 				E("@l\n");
 			end if;
@@ -312,12 +315,12 @@ gen ENDSUB() uses all
 				when 4: E_insn("lwz");
 			end case;
 			E_reg(REG_R3);
-				E_comma();
+			E_comma();
 			if param.subr == current_subr then
 				E_u16(param.off);
 				E("(31)\n");
 			else
-				E("0(5)\n");
+				E("0(30)\n");
 			end if;
 
 			if count != (params-1) then
@@ -327,9 +330,10 @@ gen ENDSUB() uses all
 			count := count + 1;
 		end loop;
 
-		E("\tmr 31,4\n");
+		E("\tmr 31,5\n");
 	end if;
-	E("\tmtlr 0\n");
+	E("\tmtlr 4\n");
+	E("\tblr\n");
 
 	EmitterCloseStream();
 	R_flushall();
@@ -417,8 +421,8 @@ gen r32 := ADDRESS():a
 		E_reg($$);
 		E(", (");
 		E_symref(&$a.sym, $a.off);
-		E(")@ha\n");
-		E_insn("addi");
+		E(")@h\n");
+		E_insn("ori");
 		E_reg($$);
 		E_comma();
 		E_reg($$);
@@ -467,19 +471,19 @@ gen r3 := CALLE4(ARG2(param, r3), SUBREF():a) uses all { Call(&$a); }
 gen r3 := CALLE4(ARG4(param, r3), SUBREF():a) uses all { Call(&$a); }
 
 gen       CALL(       param,      r4) uses all { CallR4(); }
-gen       CALL(  ARG4(param, r3), r4) uses all { CallR4(); }
+gen       CALL(  ARG1(param, r3), r4) uses all { CallR4(); }
 gen       CALL(  ARG2(param, r3), r4) uses all { CallR4(); }
 gen       CALL(  ARG4(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE4(     param,      r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG4(param, r3), r4) uses all { CallR4(); }
+gen r3 := CALLE4(ARG1(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE4(ARG2(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE4(ARG4(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE2(     param,      r4) uses all { CallR4(); }
-gen r3 := CALLE2(ARG4(param, r3), r4) uses all { CallR4(); }
+gen r3 := CALLE2(ARG1(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE2(ARG2(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE2(ARG4(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE4(     param,      r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG4(param, r3), r4) uses all { CallR4(); }
+gen r3 := CALLE4(ARG1(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE4(ARG2(param, r3), r4) uses all { CallR4(); }
 gen r3 := CALLE4(ARG4(param, r3), r4) uses all { CallR4(); }
 
@@ -533,15 +537,15 @@ gen immu16 := CONSTANT(value is u16):c cost 5
 
 	sub StoreAddress(src: RegId, insn: string, sym: [Symbol], off: Size) is
 		RegCacheFlushValues();
-		E("\tlis 0, ");
+		E("\tlis 30, ");
 		E_symref(sym, off);
-		E("@h\n");
+		E("@ha\n");
 
 		E_insn(insn);
 		E_reg(src);
 		E_comma();
 		E_symref(sym, off);
-		E("@l(0)\n");
+		E("@l(30)\n");
 
 		RegCacheLeavesValue(src, sym, off);
 	end sub;
@@ -559,15 +563,15 @@ gen immu16 := CONSTANT(value is u16):c cost 5
 			E_reg(r);
 		else
 			RegCacheFlushValues();
-			E("\tlis 0, ");
+			E("\tlis 30, ");
 			E_symref(sym, off);
-			E("@h\n");
+			E("@ha\n");
 
 			E_insn(insn);
 			E_reg(dest);
 			E_comma();
 			E_symref(sym, off);
-			E("@l(0)");
+			E("@l(30)");
 		end if;
 		E_nl();
 
@@ -648,75 +652,7 @@ gen r32 := DEREF4(ADD4(r32:ptr, r32:rhs))           { R_flush($$); LoadStoreRegX
 		E_reg(lhs);
 		E_nl();
 	end sub;
-%}
 
-gen r32 := ADD1(r32:lhs, r32|imms16:rhs) { Alu3("add", "addi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := ADD2(r32:lhs, r32|imms16:rhs) { Alu3("add", "addi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := ADD4(r32:lhs, r32|imms16:rhs) { Alu3("add", "addi", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := SUB1(r32|imms16:lhs, r32:rhs) cost 1 { Alu3("subf", "subfic", $$, $rhs, $lhs, &$@lhs.operand); }
-gen r32 := SUB2(r32|imms16:lhs, r32:rhs) cost 1 { Alu3("subf", "subfic", $$, $rhs, $lhs, &$@lhs.operand); }
-gen r32 := SUB4(r32|imms16:lhs, r32:rhs) cost 1 { Alu3("subf", "subfic", $$, $rhs, $lhs, &$@lhs.operand); }
-
-gen r32 := MUL1(r32:lhs, r32|imms16:rhs) { Alu3("mullw", "mulli", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := MUL2(r32:lhs, r32|imms16:rhs) { Alu3("mullw", "mulli", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := MUL4(r32:lhs, r32|imms16:rhs) { Alu3("mullw", "mulli", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := DIVU1(r32:lhs, r32:rhs) { Alu3("divwu", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := DIVU2(r32:lhs, r32:rhs) { Alu3("divwu", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := DIVU4(r32:lhs, r32:rhs) { Alu3("divwu", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-
-gen r32 := DIVS1(r32:lhs, r32:rhs) { Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := DIVS2(r32:lhs, r32:rhs) { Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := DIVS4(r32:lhs, r32:rhs) { Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-
-gen r32 := REMU1(r32:lhs, r32:rhs) { Rem("divwu", $$, $lhs, $rhs); }
-gen r32 := REMU2(r32:lhs, r32:rhs) { Rem("divwu", $$, $lhs, $rhs); }
-gen r32 := REMU4(r32:lhs, r32:rhs) { Rem("divwu", $$, $lhs, $rhs); }
-
-gen r32 := REMS1(r32:lhs, r32:rhs) { Rem("divw", $$, $lhs, $rhs); }
-gen r32 := REMS2(r32:lhs, r32:rhs) { Rem("divw", $$, $lhs, $rhs); }
-gen r32 := REMS4(r32:lhs, r32:rhs) { Rem("divw", $$, $lhs, $rhs); }
-
-gen r32 := REMS1(r32:lhs, r32:rhs) { Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := REMS2(r32:lhs, r32:rhs) { Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-gen r32 := REMS4(r32:lhs, r32:rhs) { Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
-
-gen r32 := AND1(r32:lhs, r32|immu16:rhs) { Alu3("and", "andi.", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := AND2(r32:lhs, r32|immu16:rhs) { Alu3("and", "andi.", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := AND4(r32:lhs, r32|immu16:rhs) { Alu3("and", "andi.", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := EOR1(r32:lhs, r32|immu16:rhs) { Alu3("xor", "xori", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := EOR2(r32:lhs, r32|immu16:rhs) { Alu3("xor", "xori", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := EOR4(r32:lhs, r32|immu16:rhs) { Alu3("xor", "xori", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := OR1(r32:lhs, r32|immu16:rhs) { Alu3("or", "ori", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := OR2(r32:lhs, r32|immu16:rhs) { Alu3("or", "ori", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := OR4(r32:lhs, r32|immu16:rhs) { Alu3("or", "ori", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := LSHIFT1(r32:lhs, r32|immu16:rhs) { Alu3("slw", "slwi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := LSHIFT2(r32:lhs, r32|immu16:rhs) { Alu3("slw", "slwi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := LSHIFT4(r32:lhs, r32|immu16:rhs) { Alu3("slw", "slwi", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := RSHIFTU1(r32:lhs, r32|immu16:rhs) { Alu3("srw", "srwi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTU2(r32:lhs, r32|immu16:rhs) { Alu3("srw", "srwi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTU4(r32:lhs, r32|immu16:rhs) { Alu3("srw", "srwi", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := RSHIFTS1(r32:lhs, r32|immu16:rhs) { Alu3("sraw", "srawi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTS2(r32:lhs, r32|immu16:rhs) { Alu3("sraw", "srawi", $$, $lhs, $rhs, &$@rhs.operand); }
-gen r32 := RSHIFTS4(r32:lhs, r32|immu16:rhs) { Alu3("sraw", "srawi", $$, $lhs, $rhs, &$@rhs.operand); }
-
-gen r32 := NOT1(r32:lhs) { Alu2("not", $$, $lhs); }
-gen r32 := NOT2(r32:lhs) { Alu2("not", $$, $lhs); }
-gen r32 := NOT4(r32:lhs) { Alu2("not", $$, $lhs); }
-
-gen r32 := NEG1(r32:lhs) { Alu2("neg", $$, $lhs); }
-gen r32 := NEG2(r32:lhs) { Alu2("neg", $$, $lhs); }
-gen r32 := NEG4(r32:lhs) { Alu2("neg", $$, $lhs); }
-
-// --- Casts ----------------------------------------------------------------
-
-%{
 	sub Extend(dest: RegId, src: RegId, sext: uint8, width: uint8) is
 		R_flush(dest);
 		if sext == 0 then
@@ -743,6 +679,68 @@ gen r32 := NEG4(r32:lhs) { Alu2("neg", $$, $lhs); }
 		E_nl();
 	end sub;
 %}
+
+gen r32 := ADD1(r32:lhs, r32|imms16:rhs) { Alu3("add", "addi", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := ADD2(r32:lhs, r32|imms16:rhs) { Alu3("add", "addi", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := ADD4(r32:lhs, r32|imms16:rhs) { Alu3("add", "addi", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := SUB1(r32|imms16:lhs, r32:rhs) cost 1 { Alu3("subf", "subfic", $$, $rhs, $lhs, &$@lhs.operand); }
+gen r32 := SUB2(r32|imms16:lhs, r32:rhs) cost 1 { Alu3("subf", "subfic", $$, $rhs, $lhs, &$@lhs.operand); }
+gen r32 := SUB4(r32|imms16:lhs, r32:rhs) cost 1 { Alu3("subf", "subfic", $$, $rhs, $lhs, &$@lhs.operand); }
+
+gen r32 := MUL1(r32:lhs, r32|imms16:rhs) { Alu3("mullw", "mulli", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := MUL2(r32:lhs, r32|imms16:rhs) { Alu3("mullw", "mulli", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := MUL4(r32:lhs, r32|imms16:rhs) { Alu3("mullw", "mulli", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := DIVU1(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 0, 1); Extend($rhs, $rhs, 0, 1); Alu3("divwu", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := DIVU2(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 0, 2); Extend($rhs, $rhs, 0, 2); Alu3("divwu", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := DIVU4(r32:lhs, r32:rhs) {                                                     Alu3("divwu", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
+
+gen r32 := DIVS1(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 1, 1); Extend($rhs, $rhs, 1, 1); Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := DIVS2(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 1, 2); Extend($rhs, $rhs, 1, 2); Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
+gen r32 := DIVS4(r32:lhs, r32:rhs) {                                                     Alu3("divw", 0 as string, $$, $lhs, $rhs, 0 as [Operand]); }
+
+gen r32 := REMU1(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 0, 1); Extend($rhs, $rhs, 0, 1); Rem("divwu", $$, $lhs, $rhs); }
+gen r32 := REMU2(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 0, 2); Extend($rhs, $rhs, 0, 2); Rem("divwu", $$, $lhs, $rhs); }
+gen r32 := REMU4(r32:lhs, r32:rhs) {                                                     Rem("divwu", $$, $lhs, $rhs); }
+
+gen r32 := REMS1(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 1, 1); Extend($rhs, $rhs, 1, 1); Rem("divw", $$, $lhs, $rhs); }
+gen r32 := REMS2(r32:lhs, r32:rhs) { Extend($lhs, $lhs, 1, 2); Extend($rhs, $rhs, 1, 2); Rem("divw", $$, $lhs, $rhs); }
+gen r32 := REMS4(r32:lhs, r32:rhs) {                                                     Rem("divw", $$, $lhs, $rhs); }
+
+gen r32 := AND1(r32:lhs, r32|immu16:rhs) { Alu3("and", "andi.", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := AND2(r32:lhs, r32|immu16:rhs) { Alu3("and", "andi.", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := AND4(r32:lhs, r32|immu16:rhs) { Alu3("and", "andi.", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := EOR1(r32:lhs, r32|immu16:rhs) { Alu3("xor", "xori", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := EOR2(r32:lhs, r32|immu16:rhs) { Alu3("xor", "xori", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := EOR4(r32:lhs, r32|immu16:rhs) { Alu3("xor", "xori", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := OR1(r32:lhs, r32|immu16:rhs) { Alu3("or", "ori", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := OR2(r32:lhs, r32|immu16:rhs) { Alu3("or", "ori", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := OR4(r32:lhs, r32|immu16:rhs) { Alu3("or", "ori", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := LSHIFT1(r32:lhs, r32|immu16:rhs) { Alu3("slw", "slwi", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := LSHIFT2(r32:lhs, r32|immu16:rhs) { Alu3("slw", "slwi", $$, $lhs, $rhs, &$@rhs.operand); }
+gen r32 := LSHIFT4(r32:lhs, r32|immu16:rhs) { Alu3("slw", "slwi", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := RSHIFTU1(r32:lhs, r32|immu16:rhs) { Extend(REG_R0, $lhs, 0, 1); Alu3("srw", "srwi", $$, REG_R0, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU2(r32:lhs, r32|immu16:rhs) { Extend(REG_R0, $lhs, 0, 2); Alu3("srw", "srwi", $$, REG_R0, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTU4(r32:lhs, r32|immu16:rhs) {                             Alu3("srw", "srwi", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := RSHIFTS1(r32:lhs, r32|immu16:rhs) { Extend(REG_R0, $lhs, 1, 1); Alu3("sraw", "srawi", $$, REG_R0, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS2(r32:lhs, r32|immu16:rhs) { Extend(REG_R0, $lhs, 1, 2); Alu3("sraw", "srawi", $$, REG_R0, $rhs, &$@rhs.operand); }
+gen r32 := RSHIFTS4(r32:lhs, r32|immu16:rhs) {                             Alu3("sraw", "srawi", $$, $lhs, $rhs, &$@rhs.operand); }
+
+gen r32 := NOT1(r32:lhs) { Alu2("not", $$, $lhs); }
+gen r32 := NOT2(r32:lhs) { Alu2("not", $$, $lhs); }
+gen r32 := NOT4(r32:lhs) { Alu2("not", $$, $lhs); }
+
+gen r32 := NEG1(r32:lhs) { Alu2("neg", $$, $lhs); }
+gen r32 := NEG2(r32:lhs) { Alu2("neg", $$, $lhs); }
+gen r32 := NEG4(r32:lhs) { Alu2("neg", $$, $lhs); }
+
+// --- Casts ----------------------------------------------------------------
 
 gen r32 := CAST21($$:lhs);
 gen r32 := CAST41($$:lhs);
@@ -831,6 +829,7 @@ gen BEQ2(r32:lhs, r32|immu16|imms16:rhs):b uses all
 		Extend($rhs, $rhs, 0, 2);
 		Cmp2U($lhs, $rhs, 0 as [Operand]);
 	end if;
+	CmpJumps("beq", "bne", $@$);
 }
 
 gen BLTU2(r32:lhs, r32|immu16:rhs):b uses all
@@ -866,6 +865,7 @@ gen BEQ1(r32:lhs, r32|immu16:rhs):b uses all
 		Extend($rhs, $rhs, 0, 1);
 		Cmp2U($lhs, $rhs, 0 as [Operand]);
 	end if;
+	CmpJumps("beq", "bne", $@$);
 }
 
 gen BEQ1(r32:lhs, r32|imms16:rhs):b uses all
@@ -1029,8 +1029,8 @@ gen r32 := STRING():s
 	E_reg($$);
 	E(", (");
 	E_labelref(lid);
-	E(")@ha\n");
-	E_insn("addi");
+	E(")@h\n");
+	E_insn("ori");
 	E_reg($$);
 	E_comma();
 	E_reg($$);
