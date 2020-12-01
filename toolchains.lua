@@ -169,10 +169,10 @@ toolchain_msdos = {
 }
 
 ALL_TOOLCHAINS = {
-	--toolchain_bbct,
-	--toolchain_bbct6502,
-	--toolchain_bbcti,
-	--toolchain_bbctiny,
+	toolchain_bbct,
+	toolchain_bbct6502,
+	toolchain_bbcti,
+	toolchain_bbctiny,
 	toolchain_fuzix6303,
 	toolchain_lxthumb2,
 	toolchain_lx386,
