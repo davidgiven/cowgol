@@ -189,6 +189,10 @@ function qemuarmtest(e)
     return simpletest("qemu-arm", e)
 end
 
+function qemuppctest(e)
+    return simpletest("qemu-ppc", e)
+end
+
 function cpmtest(e)
     e.ins = concat { e.ins, "bin/cpmemu" }
     return simpletest("bin/cpmemu", e)
