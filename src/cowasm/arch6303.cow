@@ -328,6 +328,9 @@ end sub;
     AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
 end sub;
 
+@impl sub MassageCurrentInsn is
+end sub;
+
 Main("6303 Assembler (C) 2020 David Given; ");
 
 # vim: sw=4 ts=4 et
