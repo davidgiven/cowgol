@@ -1,6 +1,6 @@
 export OBJ = .obj
 export LUA = lua
-export CFLAGS = -g -O0 --std=c99
+export CFLAGS = -g -O0
 export LDFLAGS = -g
 export NINJAFLAGS = -k0
 
