@@ -9,10 +9,12 @@ function tass64(e)
 	end
 
 	local cflags = e.cflags or ""
+	local obj = e.outs[1]
+	local lst = obj:ext(".lst")
 	rule {
 		ins = e.ins,
-		outs = e.outs,
-		cmd = "64tass --quiet --long-branch --ascii --case-sensitive --nostart -o &1 @1"
+		outs = concat { obj, lst },
+		cmd = "64tass --quiet --long-branch --ascii --case-sensitive --nostart -o &1 -L &2 @1"
 	}
 end
 

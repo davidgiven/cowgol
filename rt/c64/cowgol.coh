@@ -1,13 +1,14 @@
 var LOMEM: [uint8];
-var _args: [uint8];
 @asm "lda #LOMEM & 255";
 @asm "sta ", LOMEM;
-@asm "sta ", _args;
 @asm "lda #LOMEM / 256";
 @asm "sta ", LOMEM, "+1";
-@asm "sta ", _args, "+1";
 
 var HIMEM: [uint8] := 0xf800 as [uint8];
+@asm "sec";
+@asm "jsr $ff9c"; # MEMTOP
+@asm "stx ", HIMEM;
+@asm "sty ", HIMEM, "+1";
 
 sub ExitWithError() is
 	@asm "brk";
@@ -23,7 +24,7 @@ sub print_char(c: uint8) is
 	@asm "cmp #$0a";
 	@asm "bne *+4";
 	@asm "lda #$0d";
-	@asm "jsr $ffe3"; # OSASCII
+	@asm "jsr $ffd2"; # CHROUT
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16) is

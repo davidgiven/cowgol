@@ -29,7 +29,6 @@ sub ArchEmitHeader(coo: [Coo]) is
 	end if;
 
 	E(".cpu \"6502\"\n");
-	E("* = $800\n");
 	E("ajsr .macro\n");
 	E("\t.if (* & $ff) == $fd\n");
 	E("\tnop\n");
@@ -61,8 +60,16 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E_u16(workspaceSize[1]);
 	E_nl();
 
-	E("\tdb $01, $08, 12, 8, 158, '2', '0', '6', '1'\n");
+	E("* = $7ff\n"); # yes, really
+	E("\t.word $801\n");
+	E("\t.word +, 1\n\t.null $9e, '2061'\n\t+ .word 0\n");
 
+	E("\tcmp #'c'\n\tbne not_cshell\n");
+	E("\tcpx #'s'\n\tbne not_cshell\n");
+	E("\tcpy #'h'\n\tbne not_cshell\n");
+	E("\tlda #1\n\tsta cshell\n");
+
+	E("entry:\n");
 	E("\ttsx\n");
 	E("\tstx sp\n");
 
@@ -76,12 +83,17 @@ sub ArchEmitHeader(coo: [Coo]) is
 		coo := coo.next;
 	end loop;
 
+	E("exit:\n");
 	E("\tldx sp\n");
 	E("\ttxs\n");
 	E("\trts\n");
+
+	E("not_cshell:\n\tlda #0\n\tsta cshell\n\tjmp entry\n");
+
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
+	E("cshell: .fill 1\n");
 	E("sp: .fill 1\n");
 	E("ws0: .fill ");
 	E_u16(workspaceSize[0]);
