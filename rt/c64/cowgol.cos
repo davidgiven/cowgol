@@ -1,0 +1,565 @@
+&X _mul4
+&X _divu4
+&X _remu4
+&X _cmp4
+&X _cmps4
+
+&X _lshift1
+; Shifts A left Y bits.
+``:
+    dey
+    bmi ``_exit
+    asl
+    jmp ``
+``_exit:
+    rts
+
+&X _rshiftu1
+; Logical shift A right Y bits.
+``:
+    dey
+    bmi ``_exit
+    lsr
+    jmp ``
+``_exit:
+    rts
+
+&X _rshifts1
+; Arithmetic shift A right Y bits.
+``:
+    dey
+    bmi ``_exit
+    cmp #$80
+    ror
+    jmp ``
+``_exit:
+    rts
+
+&X _lshift2
+&W _lshift2 1 2
+; Shifts XA left Y bits.
+``:
+    sta `$_lshift2.1.0
+    stx `$_lshift2.1.1
+``_loop:
+    dey
+    bmi ``_exit
+    asl `$_lshift2.1.0
+    rol `$_lshift2.1.1
+    jmp ``_loop
+``_exit:
+    lda `$_lshift2.1.0
+    ldx `$_lshift2.1.1
+    rts
+
+&X _rshiftu2
+&W _rshiftu2 1 2
+; Logical shifts XA right Y bits.
+``:
+    sta `$_lshift2.1.0
+    stx `$_lshift2.1.1
+``_loop:
+    dey
+    bmi ``_exit
+    lsr `$_lshift2.1.1
+    ror `$_lshift2.1.0
+    jmp ``_loop
+``_exit:
+    lda `$_lshift2.1.0
+    ldx `$_lshift2.1.1
+    rts
+
+&X _rshifts2
+&W _rshifts2 1 2
+; Arithmetic shifts XA right Y bits.
+``:
+    sta `$_lshift2.1.0
+    stx `$_lshift2.1.1
+``_loop:
+    dey
+    bmi ``_exit
+    lda `$_lshift2.1.1
+    cmp #$80
+    ror `$_lshift2.1.1
+    ror `$_lshift2.1.0
+    jmp ``_loop
+``_exit:
+    lda `$_lshift2.1.0
+    ldx `$_lshift2.1.1
+    rts
+
+&S shiftsmem
+&W shiftsmem 1 6
+
+&S startshift
+``:
+    sta `$shiftsmem.1.0
+    stx `$shiftsmem.1.1
+    tya
+    tax
+    ldy #3
+``_1:
+    lda (`$shiftsmem.1.0), y
+    sta `$shiftsmem.1.2, y
+    dey
+    bpl ``_1
+    rts
+
+&S endshift
+``:
+    ldy #3
+``_1
+    lda `$.1.2, y
+    sta (`$.1.0), y
+    dey
+    bpl ``_1
+    rts
+
+&X _lshift4
+; Shifts [AX] left Y bits.
+``:
+    jsr `startshift
+``_loop:
+    dex
+    bmi `endshift
+    asl `$shiftsmem.1.2
+    rol `$shiftsmem.1.3
+    rol `$shiftsmem.1.4
+    rol `$shiftsmem.1.5
+    jmp ``_loop
+
+&X _rshiftu4
+; Logical shifts [AX] right Y bits.
+``:
+    jsr `startshift
+``_loop:
+    dex
+    bmi `endshift
+    lsr `$shiftsmem.1.5
+    ror `$shiftsmem.1.4
+    ror `$shiftsmem.1.3
+    ror `$shiftsmem.1.2
+    jmp ``_loop
+
+&X _rshifts4
+; Arithmetic shifts [AX] right Y bits.
+``:
+    jsr `startshift
+``_loop:
+    dex
+    bmi `endshift
+    lda `$shiftsmem.1.5
+    cmp #$80
+    ror `$shiftsmem.1.5
+    ror `$shiftsmem.1.4
+    ror `$shiftsmem.1.3
+    ror `$shiftsmem.1.2
+    jmp ``_loop
+
+&X _mul1
+&W _mul1 1 2
+; Multiplies A = A * X.
+``:
+    sta `$.1.0
+    stx `$.1.1
+    lda #0
+    ldx #8
+    lsr `$.1.0
+``_loop:
+    bcc ``_noadd
+    clc
+    adc `$.1.1
+``_noadd:
+    ror
+    ror `$.1.0
+    dex
+    bne ``_loop
+    lda `$.1.0
+    rts
+
+&X _divu1
+&W _divu1 1 2
+; Unsigned divide of A = A / X, remainder in X.
+``:
+    sta `$.1.0
+    stx `$.1.1
+    lda #0
+    ldx #8
+    asl `$.1.0
+``_1:
+    rol
+    cmp `$.1.1
+    bcc ``_2
+    sbc `$.1.1
+``_2:
+    rol `$.1.0
+    dex
+    bne ``_1
+    tax
+    lda `$.1.0
+    rts
+
+&X _divs1
+&W _divs1 1 2
+; Signed divide of A = A / X, remainder in X.
+``:
+    sta `$.1.0
+    stx `$.1.1
+    eor `$.1.1          ; determine sign of result
+    php                 ; save result sign for later
+    lda `$.1.0          ; get LHS
+    php                 ; save remainder sign for later
+
+    bpl ``_1            ; negate LHS if negative
+    lda #0
+    sec
+    sbc `$.1.0
+    sta `$.1.0
+``_1:
+    lda `$.1.1          ; negate RHS if negative
+    bpl ``_2
+    lda #0
+    sec
+    sbc `$.1.1
+    sta `$.1.1
+``_2:
+    lda `$.1.0
+    ldx `$.1.1
+    jsr `_divu1         ; actually do the division
+    sta `$.1.0          ; save result
+    stx `$.1.1          ; save remainder
+
+    plp                 ; get sign of remainder
+    bpl ``_3            ; negate remainder if necessary
+    lda #0
+    sec
+    sbc `$.1.1
+    sta `$.1.1
+``_3:
+    plp                 ; get sign of result
+    bpl ``_4            ; negate result if necessary
+    lda #0
+    sec
+    sbc `$.1.0
+    sta `$.1.0
+``_4:
+    lda `$.1.0
+    ldx `$.1.1
+    rts
+
+&X _mathpad
+&W _mathpad 1 12
+; This is a simple buffer of 12 bytes used for multiplication and division.
+; It's laid out as:
+;   +0..3  LHS, result
+;   +4..7  remainder for division, working space for multiplication
+;   +8..11 RHS
+
+&S _neglhs
+; Negate the LHS of _mathpad.
+``:
+    ldx #-4
+    sec
+``_1:
+    lda #0
+    sbc @b`$_mathpad.1.0+4, x
+    sta @b`$_mathpad.1.0+4, x
+    inx
+    bne ``_1
+    rts
+
+&S _negrem
+; Negate the remainder part of _mathpad.
+``:
+    ldx #-4
+    sec
+``_1:
+    lda #0
+    sbc @b`$_mathpad.1.4+4, x
+    sta @b`$_mathpad.1.4+4, x
+    inx
+    bne ``_1
+    rts
+
+&S _negrhs
+; Negate the RHS part of _mathpad.
+``:
+    ldx #-4
+    sec
+``_1:
+    lda #0
+    sbc @b`$_mathpad.1.8+4, x
+    sta @b`$_mathpad.1.8+4, x
+    inx
+    bne ``_1
+    rts
+
+&X _mul2
+&W _mul2 1 5
+; Multiplies `$_mathpad.1.0to1 * XA. Returns XA.
+``:
+    sta `$_mathpad.1.2+0
+    stx `$_mathpad.1.2+1
+    lda #0
+    sta `$_mathpad.1.4
+    ldy #$11
+    clc
+``_loop:
+    ror `$_mathpad.1.4
+    ror
+    ror `$_mathpad.1.0+1
+    ror `$_mathpad.1.0+0
+    bcc ``_2
+    clc
+    adc `$_mathpad.1.2+0
+    pha
+    lda `$_mathpad.1.2+1
+    adc `$_mathpad.1.4
+    sta `$_mathpad.1.4
+    pla
+``_2:
+    dey
+    bne ``_loop
+    lda `$_mathpad.1.0+0
+    ldx `$_mathpad.1.0+1
+    rts
+
+&X _divu2
+; Unsigned division of values in _mathpad.
+``:
+    lda #0
+    sta `$_mathpad.1.4 ; remainder
+    sta `$_mathpad.1.5
+    ldx #16
+``_loop
+    asl `$_mathpad.1.0 ; LHS
+    rol `$_mathpad.1.1
+    rol `$_mathpad.1.4 ; remainder
+    rol `$_mathpad.1.5
+
+    lda `$_mathpad.1.4
+    sec
+    sbc `$_mathpad.1.8 ; RHS
+    tay
+    lda `$_mathpad.1.5
+    sbc `$_mathpad.1.9
+    bcc ``_1
+
+    sty `$_mathpad.1.4
+    sta `$_mathpad.1.5
+    inc `$_mathpad.1.0
+``_1
+    dex
+    bne ``_loop
+    rts
+
+&X _divu2r
+; Unsigned division of `$_mathpad.1.0to1 / XA; result is in XA.
+``:
+    sta `$_mathpad.1.8 ; RHS
+    stx `$_mathpad.1.9
+    jsr `_divu2
+    lda `$_mathpad.1.0
+    ldx `$_mathpad.1.1
+    rts
+    
+&X _divs2r
+; Signed division of `$_mathpad.1.0to1 / XA; result is in XA.
+``:
+    sta `$_mathpad.1.8 ; RHS
+    stx `$_mathpad.1.9
+
+    lda `$_mathpad.1.1  ; high byte of LHS
+    eor `$_mathpad.1.9  ; high byte of RHS
+    php                 ; save sign of result for later
+    lda `$_mathpad.1.1  ; high byte of LHS
+    php                 ; save sign of remainder for later
+    bpl ``_lhs_pos      ; negate LHS if negative
+    jsr `_neglhs
+``_lhs_pos:
+    lda `$_mathpad.1.9  ; get sign of RHS
+    bpl ``_rhs_pos      ; negate RHS if negative
+    jsr `_negrhs
+``_rhs_pos:
+    jsr `_divu2         ; actually do the division
+    plp                 ; get sign of remainder
+    bpl ``_rem_pos      ; invert remainder if required
+    jsr `_negrem
+``_rem_pos:
+    plp                 ; get sign of result
+    bpl ``_res_pos      ; invert result if required
+``_invert_lhs:
+    jsr `_neglhs
+``_res_pos:
+
+    lda `$_mathpad.1.0
+    ldx `$_mathpad.1.1
+    rts
+    
+&X _mul4
+; Multiplication of values in _mathpad.
+``:
+    lda #0              ; clear low part of result
+    sta `$_mathpad.1.4
+    sta `$_mathpad.1.5
+    sta `$_mathpad.1.6
+    sta `$_mathpad.1.7
+
+    clc
+    ldy #$21            ; bit counter
+
+``_loop:
+    ldx #8              ; shift right result and lhs
+``_1:
+    ror `$_mathpad.1.0-1, x
+    dex
+    bne ``_1
+    bcc ``_noadd
+
+    ldx #-4             ; add rhs to low half of result
+    clc
+``_2:
+    lda `$_mathpad.1.4+4, x
+    adc `$_mathpad.1.8+4, x
+    sta `$_mathpad.1.4+4, x
+    inx
+    bne ``_2
+
+``_noadd:
+    dey
+    bne ``_loop
+    rts
+
+&X _divu4
+; Unsigned division of values in _mathpad.
+``:
+    lda #0              ; clear remainder
+    ldx #3
+``_1:
+    sta `$_mathpad.1.4, x
+    dex
+    bpl ``_1
+
+    ldy #32             ; bit counter
+``_loop:
+    ldx #-8             ; left shift result and remainder
+    clc
+``_2:
+    rol `$_mathpad.1.0+8, x
+    inx
+    bne ``_2
+
+    sec                 ; if remainder < rhs
+    ldx #-4
+``_3:
+    lda `$_mathpad.1.4+4, x
+    sbc `$_mathpad.1.8+4, x
+    inx
+    bne ``_3
+    bcc ``_nosub
+    ; carry is set here
+
+    ldx #-4             ; remainder := remainder - rhs
+``_4:
+    lda `$_mathpad.1.4+4, x
+    sbc `$_mathpad.1.8+4, x
+    sta `$_mathpad.1.4+4, x
+    inx
+    bne ``_4
+    inc `$_mathpad.1.0
+
+``_nosub;
+    dey
+    bne ``_loop
+    rts
+
+&X _divs4
+; Signed division of the values in _mathpad.
+``:
+    lda `$_mathpad.1.3  ; high byte of LHS
+    eor `$_mathpad.1.11 ; high byte of RHS
+    php                 ; save sign of result for later
+    lda `$_mathpad.1.3  ; high byte of LHS
+    php                 ; save sign of remainder for later
+    bpl ``_lhs_pos      ; negate LHS if negative
+    jsr `_neglhs
+``_lhs_pos:
+    lda `$_mathpad.1.11 ; get sign of RHS
+    bpl ``_rhs_pos      ; negate RHS if negative
+    jsr `_negrhs
+``_rhs_pos:
+    jsr `_divu4         ; actually do the division
+    plp                 ; get sign of remainder
+    bpl ``_rem_pos      ; invert remainder if required
+    jsr `_negrem
+``_rem_pos:
+    plp                 ; get sign of result
+    bpl ``_res_pos      ; invert result if required
+``_invert_lhs:
+    jsr `_neglhs
+``_res_pos:
+    rts
+
+&X _signa
+; Propagates the sign bit of A, producing 0xff or 0.
+``:
+    rol
+    lda #0
+    adc #$ff
+    eor #$ff
+    rts
+
+&X _when4
+&W _when4 1 4
+; Compares the 32-bit value pointed at by `$.1.0to1 with the value immediately
+; after the call instruction and sets the flags appropriately.
+``:
+    ; Pop the return address and add one to it.
+    pla
+    sta `$.1.2
+    pla
+    sta `$.1.3
+    inc `$.1.2
+    bne ``_1
+    inc `$.1.3
+``_1:
+    ; Now compare the two numbers.
+
+    ldy #3
+``_2:
+    lda (`$.1.0), y
+    cmp (`$.1.2), y
+    bne ``_3
+    dey
+    bpl ``_2
+``_3:
+    ; Z will be unset here because Y just decremented to 0xff, so increment
+    ; it so it's zero again.
+    iny
+
+    ; Increment the address to skip the value.
+
+    php
+    clc
+    lda `$.1.2
+    adc #4
+    sta `$.1.2
+    bcc ``_4
+    inc `$.1.3
+``_4:
+    plp
+
+    ; Return.
+
+    jmp (`$.1.2)
+    
+&X _jmpxa
+&W _jmpxa 1 2
+; Jumps to the address in XA.
+``:
+    sta `$.1.0
+    stx `$.1.1
+    jmp (`$.1.0)
+
+; vim: sw=4 ts=4 et
+

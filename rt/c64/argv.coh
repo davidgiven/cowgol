@@ -1,0 +1,8 @@
+sub ArgvInit() is
+end sub;
+
+# Returns null is there's no next argument.
+sub ArgvNext(): (arg: [uint8]) is
+	arg := 0 as [uint8];
+end sub;
+

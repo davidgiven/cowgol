@@ -108,6 +108,17 @@ toolchain_bbct6502 = {
 	archs = { "6502i", "8080" },
 }
 
+toolchain_c64 = {
+	name = "c64",
+	cowfe = "bin/cowfe-6502.nncgen.exe",
+	cowbe = "bin/cowbe-6502.nncgen.exe",
+	linker = "bin/cowlink-c64.nncgen.exe",
+	assembler = buildtass64,
+	runtime = "rt/c64",
+	asmext = ".asm",
+	binext = ".c64",
+}
+
 toolchain_bbcti = {
 	name = "bbcti",
 	cowfe = "bin/cowfe-16bit.nncgen.exe",
@@ -161,6 +172,7 @@ ALL_TOOLCHAINS = {
 	toolchain_bbct6502,
 	toolchain_bbcti,
 	toolchain_bbctiny,
+	toolchain_c64,
 	toolchain_fuzix6303,
 	toolchain_lxthumb2,
 	toolchain_lx386,

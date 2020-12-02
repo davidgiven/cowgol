@@ -1,0 +1,96 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws");
+	E_b8(wid + '0');
+	E_i16(address as int16);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	if (workspaceSize[1] + workspaceSize[3]) > 0xee then
+		SimpleError("ran out of zero page space");
+	end if;
+
+	E(".cpu \"6502\"\n");
+	E("* = $800\n");
+	E("ajsr .macro\n");
+	E("\t.if (* & $ff) == $fd\n");
+	E("\tnop\n");
+	E("\t.endif\n");
+	E("\tjsr \\1\n");
+	E("\t.endm\n");
+
+	sub AliasMacro(srcname: string, destname: string) is
+		E(srcname);
+		E(" .macro\n\t");
+		E(destname);
+		E(" \\@\n\t.endm\n");
+	end sub;
+
+	AliasMacro("db", ".byte");
+	AliasMacro("dw", ".word");
+	AliasMacro("dl", ".dword");
+
+	AliasMacro("jra", "bra");
+	AliasMacro("jpl", "bpl");
+	AliasMacro("jmi", "bmi");
+	AliasMacro("jne", "bne");
+	AliasMacro("jeq", "beq");
+	AliasMacro("jcc", "bcc");
+	AliasMacro("jcs", "bcs");
+
+	E("ws1 = $14\n"); # zero page start
+	E("ws3 = ws1 + ");
+	E_u16(workspaceSize[1]);
+	E_nl();
+
+	E("\tdb $01, $08, 12, 8, 158, '2', '0', '6', '1'\n");
+
+	E("\ttsx\n");
+	E("\tstx sp\n");
+
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\tjsr ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("\tldx sp\n");
+	E("\ttxs\n");
+	E("\trts\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("sp: .fill 1\n");
+	E("ws0: .fill ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("ws2: .fill ");
+	E_u16(workspaceSize[2]);
+	E_nl();
+	E("LOMEM:\n");
+	E(".end\n");
+end sub;
+
+

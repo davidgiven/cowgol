@@ -4,6 +4,7 @@ local ARCHS = {
 	"bbct",
 	"bbcti",
 	"bbctn",
+	"c64",
 	"cgen",
 	"fuzix6303",
 	"lx386",
