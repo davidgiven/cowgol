@@ -13,6 +13,13 @@ end record;
 @decl sub FCBRawRead(fcb: [FCB], pos: uint32, len: FCBIndexType): (amount: FCBIndexType);
 @decl sub FCBRawWrite(fcb: [FCB], pos: uint32, len: FCBIndexType);
 
+sub _fcb_init(fcb: [FCB]) is
+	fcb.pos := 0;
+	fcb.buflen := 0;
+	fcb.index := 0;
+	fcb.flags := 0;
+end sub;
+
 sub _fcb_advance(fcb: [FCB]) is
 	fcb.index := fcb.index + 1;
 end sub;
@@ -58,6 +65,9 @@ sub _fcb_flushbuffer(fcb: [FCB], b: uint8) is
 end sub;
 
 sub FCBGetChar(fcb: [FCB]): (b: uint8) is
+	if (fcb.flags & FCB_FLAG_WRITE) != 0 then
+		FCBFlush(fcb);
+	end if;
 	var i := fcb.index;
 	if i == fcb.buflen then
 		b := _fcb_fillbuffer(fcb);
@@ -68,8 +78,11 @@ sub FCBGetChar(fcb: [FCB]): (b: uint8) is
 end sub;
 
 sub FCBPutChar(fcb: [FCB], b: uint8) is
+	if (fcb.flags & FCB_FLAG_READ) != 0 then
+		FCBFlush(fcb);
+	end if;
 	var i := fcb.index;
-	if i == fcb.buflen then
+	if i == FCB_BUFFER_SIZE then
 		_fcb_flushbuffer(fcb, b);
 	else
 		fcb.buffer[i] := b;

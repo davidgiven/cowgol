@@ -43,10 +43,7 @@ end sub;
 var fcb: FCB;
 
 sub InitFCB() is
-	fcb.pos := 0;
-	fcb.flags := 0;
-	fcb.index := 0;
-	fcb.buflen := 0;
+	_fcb_init(&fcb);
 end sub;
 
 sub ShowFCB() is
@@ -93,6 +90,8 @@ sub Flush() is
 	print("Flush()\n");
 	FCBFlush(&fcb);
 end sub;
+
+# --- Read tests ------------------------------------------------------------
 
 sub Read2() is
 	print("\nRead1\n");
@@ -163,6 +162,8 @@ sub Read_SeekImmediately() is
 end sub;
 Read_SeekImmediately();
 
+# --- Write tests -----------------------------------------------------------
+
 sub Write2() is
 	print("\nWrite2\n");
 	InitFCB();
@@ -174,4 +175,81 @@ sub Write2() is
 	Tell();
 end sub;
 Write2();
+
+sub Write6() is
+	print("\nWrite6\n");
+	InitFCB();
+	PutChar(1);
+	PutChar(2);
+	PutChar(3);
+	PutChar(4);
+	PutChar(5);
+	PutChar(6);
+	ShowFCB();
+	Flush();
+	ShowFCB();
+	Tell();
+end sub;
+Write6();
+
+sub Write_SeekBackwards() is
+	print("\nWrite_SeekBackwards\n");
+	InitFCB();
+	PutChar(1);
+	PutChar(2);
+	PutChar(3);
+	Seek(1);
+	PutChar(4);
+	ShowFCB();
+	Flush();
+	ShowFCB();
+	Tell();
+end sub;
+Write_SeekBackwards();
+
+sub Write_SeekForwards() is
+	print("\nWrite_SeekForwards\n");
+	InitFCB();
+	PutChar(1);
+	Seek(3);
+	PutChar(2);
+	ShowFCB();
+	Flush();
+	ShowFCB();
+	Tell();
+end sub;
+Write_SeekForwards();
+
+# --- Mixed tests -----------------------------------------------------------
+
+sub WriteThenRead() is
+	print("\nWriteThenRead\n");
+	InitFCB();
+	PutChar(1);
+	PutChar(2);
+	PutChar(3);
+	Seek(2);
+	GetChar();
+	ShowFCB();
+	Flush();
+	ShowFCB();
+	Tell();
+end sub;
+WriteThenRead();
+
+sub ReadThenWrite() is
+	print("\nReadThenWrite\n");
+	InitFCB();
+	GetChar();
+	GetChar();
+	GetChar();
+	GetChar();
+	Seek(2);
+	PutChar(9);
+	ShowFCB();
+	Flush();
+	ShowFCB();
+	Tell();
+end sub;
+ReadThenWrite();
 
