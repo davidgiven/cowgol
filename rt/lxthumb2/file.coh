@@ -15,6 +15,7 @@ include "fileio.coh";
 	var dma := &fcb.buffer[0];
 	var i: int32;
 
+	@asm "push {r7}";
 	@asm "ldr r0, =", fd;
 	@asm "ldr r0, [r0]";
 	@asm "ldr r1, =", dma;
@@ -28,6 +29,7 @@ include "fileio.coh";
 	@asm "swi 0";
 	@asm "ldr r1, =", i;
 	@asm "str r0, [r1]";
+	@asm "pop {r7}";
 
 	if i < 0 then
 		amount := 0;
@@ -42,6 +44,7 @@ end sub;
 	var dma := &fcb.buffer[0];
 	var i: int32;
 
+	@asm "push {r7}";
 	@asm "ldr r0, =", fd;
 	@asm "ldr r0, [r0]";
 	@asm "ldr r1, =", dma;
@@ -55,6 +58,7 @@ end sub;
 	@asm "swi 0";
 	@asm "ldr r1, =", i;
 	@asm "str r0, [r1]";
+	@asm "pop {r7}";
 
 	if i < 0 then
 		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
@@ -65,6 +69,7 @@ sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
 	_fcb_init(fcb);
 
 	var fd: int32;
+	@asm "push {r7}";
 	@asm "ldr r0, =", filename;
 	@asm "ldr r0, [r0]";
 	@asm "ldr r1, =", flags;
@@ -74,6 +79,7 @@ sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
 	@asm "swi 0";
 	@asm "ldr r1, =", fd;
 	@asm "str r0, [r1]";
+	@asm "pop {r7}";
 
 	fcb.fd := fd as uint32;
 	if fd < 0 then
@@ -99,6 +105,7 @@ sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	FCBFlush(fcb);
 
 	var fd := fcb.fd;
+	@asm "push {r7}";
 	@asm "ldr r0, =", fd;
 	@asm "ldrb r0, [r0]";
 	@asm "mov r7, #6"; # CLOSE
@@ -106,12 +113,14 @@ sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	@asm "neg r0, r0";
 	@asm "ldr r1, =", errno;
 	@asm "strb r0, [r1]";
+	@asm "pop {r7}";
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32) is
 	FCBFlush(fcb);
 
 	var fd := fcb.fd;
+	@asm "push {r7}";
 	@asm "ldr r0, =", fd;
 	@asm "ldrb r0, [r0]";
 	@asm "mov r1, #0"; # offset
@@ -120,6 +129,7 @@ sub FCBExt(fcb: [FCB]): (len: uint32) is
 	@asm "swi 0";
 	@asm "ldr r1, =", len;
 	@asm "str r0, [r1]";
+	@asm "pop {r7}";
 end sub;
 
 include "common-file.coh";
