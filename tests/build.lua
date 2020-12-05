@@ -13,6 +13,7 @@ ALL_TESTS = {
 	"divrem-32bit-u",
 	"divrem-8bit-s",
 	"divrem-8bit-u",
+	"fileio",
 	"folding",
 	"forwards",
 	"inputparams",

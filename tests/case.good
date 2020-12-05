@@ -1,17 +1,20 @@
 uint8 of 2 == 2: yes
 uint8 of 9 == 4: yes
+uint8 of 200 == 5: yes
 int8 of -2 == -2: yes
 int8 of 9 == 4: yes
 uint8 of 2 == 2: yes
 uint8 of 9 no else == 4: yes
 uint16 of 2 == 2: yes
 uint16 of 9 == 4: yes
+uint16 of 60000 == 5: yes
 int16 of -2 == -2: yes
 int16 of 9 == 4: yes
 uint16 of 2000 == 2: yes
 uint16 of 9000 == 4: yes
 uint32 of 2 == 2: yes
 uint32 of 9 == 4: yes
+uint32 of 0xf0000000 == 5: no
 int32 of -2 == -2: yes
 int32 of 9 == 4: yes
 0 of many bytes == 100: yes
