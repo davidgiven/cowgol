@@ -10,7 +10,7 @@ sub ArgvInit() is
 	@asm "lda 5";
 	@asm "sta ", argv_pointer, "+1";
 
-	argv_pointer := argv_pointer + ([argv_pointer+2] as uint16);
+	argv_pointer := argv_pointer + ([argv_pointer+4] as uint16);
 
 	@asm "argv_no_cshell:";
 end sub;

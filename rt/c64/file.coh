@@ -1,37 +1,180 @@
 # vim: ts=4 sw=4 et
 
-record FCB is
+var _fcb_channels: uint8[13]; # +1
+MemZero(&_fcb_channels[0], @bytesof _fcb_channels);
+
+const FCB_BUFFER_SIZE := 254;
+typedef FCBIndexType is uint8;
+
+record RawFCB is
+    channel: uint8;
+    realpos: uint32;
 end record;
 
+include "fileio.coh";
+
+@impl sub FCBRawRead is
+    var dma := &fcb.buffer[0];
+    var channel := fcb.channel;
+
+    @asm "ldx", channel;
+    @asm "jsr $ffc6"; # CHKIN
+
+    while fcb.realpos < pos loop
+        @asm "jsr $ffb7"; # READST
+        @asm "bcs +";
+        @asm "jsr $ffcf"; # CHRIN
+        @asm "ldy", len;
+        fcb.realpos := fcb.realpos + 1;
+    end loop;
+    @asm "+";
+
+    amount := 0;
+    while len != 0 loop
+        @asm "jsr $ffb7"; # READST
+        @asm "bcs +";
+        @asm "jsr $ffcf"; # CHRIN
+        @asm "ldy", amount;
+        @asm "sta (", dma, "), y";
+        len := len - 1;
+        amount := amount + 1;
+    end loop;
+    @asm "+";
+
+    @asm "ldx #0";
+    @asm "jsr $ffc6"; # CHKIN
+
+    fcb.realpos := fcb.realpos + (amount as uint32);
+end sub;
+
+@impl sub FCBRawWrite is
+    var dma := &fcb.buffer[0];
+    var channel := fcb.channel;
+
+    @asm "ldx", channel;
+    @asm "jsr $ffc9"; # CHKOUT
+
+    while fcb.realpos < pos loop
+        @asm "lda #0";
+        @asm "jsr $ffd2"; # CHROUT
+        fcb.realpos := fcb.realpos + 1;
+    end loop;
+    @asm "+";
+
+    var amount: uint8 := 0;
+    while len != 0 loop
+        @asm "ldy", amount;
+        @asm "lda (", dma, "), y";
+        @asm "jsr $ffd2"; # CHROUT
+        len := len - 1;
+        amount := amount + 1;
+    end loop;
+    @asm "+";
+
+    fcb.realpos := fcb.realpos + (amount as uint32);
+end sub;
+
+sub _file_read_error(): (errno: uint8) is
+    @asm "lda #15";
+    @asm "ldx #8";
+    @asm "lda #15";
+    @asm "jsr $ffba"; # SETLFS
+    @asm "jsr $ffc0"; # OPEN
+
+    @asm "ldx #15";
+    @asm "jsr $ffc6"; # CHKIN
+
+    @asm "jsr $ffcf"; # ChRIN
+    @asm "jsr $ffc9";
+    @asm "sec";
+    @asm "sbc #'0'";
+    @asm "sta", errno;
+
+    @asm "jsr $ffcf"; # CHRIN
+    @asm "jsr $ffc9";
+    @asm "sec";
+    @asm "sbc #'0'";
+    @asm "asl";
+    @asm "asl";
+    @asm "asl";
+    @asm "asl";
+    @asm "ora", errno;
+    @asm "sta", errno;
+
+    @asm "ldx #0";
+    @asm "jsr $ffc6"; # CHKIN
+    @asm "ldx #15";
+    @asm "jsr $ffc3"; # CLOSE
+end sub;
+
+sub _file_open(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    errno := 0xff;
+    
+    var channel: uint8 := 1;
+    while channel != 15 loop
+        if _fcb_channels[channel+1] == 0 then
+            break;
+        end if;
+        channel := channel + 1;
+    end loop;
+    if channel == 15 then
+        return;
+    end if;
+
+    var len: uint8 := 0;
+    loop
+        var c := [filename+(len as intptr)];
+        if c == 0 then
+            break;
+        end if;
+        len := len + 1;
+    end loop;
+
+    @asm "lda", channel;
+    @asm "ldx #8";
+    @asm "ldy", channel;
+    @asm "jsr $ffba"; # SETLFS
+
+    @asm "lda", len;
+    @asm "ldx 0+", filename;
+    @asm "ldy 1+", filename;
+    @asm "jsr $ffbd"; # SETNAM
+    @asm "jsr $ffc0"; # OPEN
+    errno := _file_read_error();
+    if errno < 0x20 then
+        errno := 0;
+    end if;
+
+    _fcb_init(fcb);
+    fcb.channel := channel;
+    fcb.realpos := 0;
+    _fcb_channels[channel+1] := 1;
+end sub;
+
 sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	errno := 1;
+    errno := _file_open(fcb, filename);
 end sub;
 
 sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	errno := 1;
+    errno := _file_open(fcb, filename);
 end sub;
 
 sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	errno := 1;
+    errno := _file_open(fcb, filename);
+end sub;
+
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+    var channel := fcb.channel;
+
+    @asm "ldx", channel;
+    @asm "jsr $ffc3"; # CLOSE
+
+    _fcb_channels[channel+1] := 0;
+    errno := 0;
 end sub;
 	
-sub FCBClose(fcb: [FCB]): (errno: uint8) is
-    errno := 1;
-end sub;
-
-sub FCBSeek(fcb: [FCB], pos: uint32) is
-end sub;
-
-sub FCBPos(fcb: [FCB]): (pos: uint32) is
-end sub;
-
 sub FCBExt(fcb: [FCB]): (len: uint32) is
-end sub;
-
-sub FCBGetChar(fcb: [FCB]): (c: uint8) is
-end sub;
-
-sub FCBPutChar(fcb: [FCB], c: uint8) is
+    len := 0xffffffff;
 end sub;
 
 include "common-file.coh";
