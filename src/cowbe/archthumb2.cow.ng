@@ -1048,29 +1048,28 @@ gen BLTS1(r32:lhs, r32|imm8:rhs):b uses all
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(r32:lhs) uses all { E_insn("sxtb"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
-gen STARTCASE2(r32:lhs) uses all { E_insn("sxth"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
+gen STARTCASE1(r32:lhs) uses all { E_insn("uxtb"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
+gen STARTCASE2(r32:lhs) uses all { E_insn("uxth"); E_reg(REG_R0); E_comma(); E_reg($lhs); E_nl(); }
 gen STARTCASE4(r0) uses all;
 
 %{
-	sub WhenCase(c: [MidcodeWhencase]) is
+	sub WhenCase(c: [MidcodeWhencase], value: uint32) is
 		R_flushall();
-		if (c.value >= -128) and (c.value < 127) then
+		if value < 256 then
 			E_insn("cmp");
 			E_reg(REG_R0);
 			E(", #");
-			E_i32(c.value);
+			E_u32(value);
 			E_nl();
 		else
-			var v := c.value as uint32;
 			E_insn("mov r1, #");
-			E_u16(v as uint16);
+			E_u16(value as uint16);
 			E_nl();
 
-			v := v >> 16;
-			if v != 0 then
+			value := value >> 16;
+			if value != 0 then
 				E_insn("movt r1, #");
-				E_u16(v as uint16);
+				E_u16(value as uint16);
 				E_nl();
 			end if;
 
@@ -1080,9 +1079,9 @@ gen STARTCASE4(r0) uses all;
 	end sub;
 %}
 
-gen WHENCASE1():c uses all { WhenCase(&$c); }
-gen WHENCASE2():c uses all { WhenCase(&$c); }
-gen WHENCASE4():c uses all { WhenCase(&$c); }
+gen WHENCASE1():c uses all { WhenCase(&$c, ($c.value & 0xff) as uint32); }
+gen WHENCASE2():c uses all { WhenCase(&$c, ($c.value & 0xffff) as uint32); }
+gen WHENCASE4():c uses all { WhenCase(&$c, $c.value as uint32); }
 
 gen ENDCASE1() { R_flushall(); };
 gen ENDCASE2() { R_flushall(); };

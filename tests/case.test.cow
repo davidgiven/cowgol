@@ -7,6 +7,9 @@ sub case_uint8(i: uint8): (out: uint8) is
 		when 1: out := 1;
 		when 2: out := 2;
 		when 3: out := 3;
+		when 200: out := 5;
+		when 201: out := 6;
+		when 202: out := 7;
 		when else: out := 4;
 	end case;
 end sub;
@@ -37,6 +40,9 @@ sub case_uint16(i: uint16): (out: uint8) is
 		when 1: out := 1;
 		when 2: out := 2;
 		when 3: out := 3;
+		when 60000: out := 5;
+		when 60001: out := 6;
+		when 60002: out := 7;
 		when else: out := 4;
 	end case;
 end sub;
@@ -67,6 +73,9 @@ sub case_uint32(i: uint32): (out: uint8) is
 		when 1: out := 1;
 		when 2: out := 2;
 		when 3: out := 3;
+		when 0xf000000: out := 5;
+		when 0xf000001: out := 6;
+		when 0xf000002: out := 7;
 		when else: out := 4;
 	end case;
 end sub;
@@ -176,6 +185,7 @@ end sub;
 sub test_case_bytes() is
 	print("uint8 of 2 == 2"); if case_uint8(2) == 2 then yes(); else no(); end if;
 	print("uint8 of 9 == 4"); if case_uint8(9) == 4 then yes(); else no(); end if;
+	print("uint8 of 200 == 5"); if case_uint8(200) == 5 then yes(); else no(); end if;
 
 	print("int8 of -2 == -2"); if case_int8(-2) == -2 then yes(); else no(); end if;
 	print("int8 of 9 == 4"); if case_int8(9) == 4 then yes(); else no(); end if;
@@ -191,6 +201,7 @@ test_case_bytes_noelse();
 sub test_case_shorts() is
 	print("uint16 of 2 == 2"); if case_uint16(2) == 2 then yes(); else no(); end if;
 	print("uint16 of 9 == 4"); if case_uint16(9) == 4 then yes(); else no(); end if;
+	print("uint16 of 60000 == 5"); if case_uint16(60000) == 5 then yes(); else no(); end if;
 
 	print("int16 of -2 == -2"); if case_int16(-2) == -2 then yes(); else no(); end if;
 	print("int16 of 9 == 4"); if case_int16(9) == 4 then yes(); else no(); end if;
@@ -206,6 +217,7 @@ test_case_shorts_large();
 sub test_case_longs() is
 	print("uint32 of 2 == 2"); if case_uint32(2) == 2 then yes(); else no(); end if;
 	print("uint32 of 9 == 4"); if case_uint32(9) == 4 then yes(); else no(); end if;
+	print("uint32 of 0xf0000000 == 5"); if case_uint32(0xf0000000) == 5 then yes(); else no(); end if;
 
 	print("int32 of -2 == -2"); if case_int32(-2) == -2 then yes(); else no(); end if;
 	print("int32 of 9 == 4"); if case_int32(9) == 4 then yes(); else no(); end if;
