@@ -37,7 +37,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 	# sp+4            argv (argc quads)
 	# sp              argc
 
-	E("\tlwz 3,4(1)\n"); # fetch argv
+	E("\taddi 3,1,4\n"); # compute argv
 	E("\tlis 4,argv@ha\n");
 	E("\tstw 3,argv@l(4)\n");
 
@@ -59,6 +59,7 @@ end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
 	E("\t.section .bss\n");
+	E("argc: .space 4\n");
 	E("argv: .space 4\n");
 	E("ws: .space ");
 	E_u16(workspaceSize[0]);
