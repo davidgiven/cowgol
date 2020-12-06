@@ -482,41 +482,32 @@ gen r32 := ADDRESS():a
 	end sub;
 %}
 
-gen       CALL(       param,      SUBREF():a) uses all { Call(&$a); }
-gen       CALL(  ARG1(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen       CALL(  ARG2(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen       CALL(  ARG4(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE1(     param,      SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE1(ARG1(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE1(ARG2(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE1(ARG4(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE2(     param,      SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE2(ARG1(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE2(ARG2(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE2(ARG4(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE4(     param,      SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE4(ARG1(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE4(ARG2(param, r3), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE4(ARG4(param, r3), SUBREF():a) uses all { Call(&$a); }
+gen       CALL(  END(), SUBREF():a) uses all { Call(&$a); }
+gen r3 := CALLE1(END(), SUBREF():a) uses all { Call(&$a); }
+gen r3 := CALLE2(END(), SUBREF():a) uses all { Call(&$a); }
+gen r3 := CALLE4(END(), SUBREF():a) uses all { Call(&$a); }
 
-gen       CALL(       param,      r4) uses all { CallR4(); }
-gen       CALL(  ARG1(param, r3), r4) uses all { CallR4(); }
-gen       CALL(  ARG2(param, r3), r4) uses all { CallR4(); }
-gen       CALL(  ARG4(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE4(     param,      r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG1(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG2(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG4(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE2(     param,      r4) uses all { CallR4(); }
-gen r3 := CALLE2(ARG1(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE2(ARG2(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE2(ARG4(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE4(     param,      r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG1(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG2(param, r3), r4) uses all { CallR4(); }
-gen r3 := CALLE4(ARG4(param, r3), r4) uses all { CallR4(); }
+gen       CALL(  r3, SUBREF():a) uses all { Call(&$a); }
+gen r3 := CALLE1(r3, SUBREF():a) uses all { Call(&$a); }
+gen r3 := CALLE2(r3, SUBREF():a) uses all { Call(&$a); }
+gen r3 := CALLE4(r3, SUBREF():a) uses all { Call(&$a); }
+
+gen       CALL(  END(), r4) uses all { CallR4(); }
+gen r3 := CALLE1(END(), r4) uses all { CallR4(); }
+gen r3 := CALLE2(END(), r4) uses all { CallR4(); }
+gen r3 := CALLE4(END(), r4) uses all { CallR4(); }
+
+gen       CALL(  r3, r4) uses all { CallR4(); }
+gen r3 := CALLE1(r3, r4) uses all { CallR4(); }
+gen r3 := CALLE2(r3, r4) uses all { CallR4(); }
+gen r3 := CALLE4(r3, r4) uses all { CallR4(); }
 
 gen param := END();
+
+gen r3 := END();
+gen r3 := ARG1(param, r3:lhs);
+gen r3 := ARG2(param, r3:lhs);
+gen r3 := ARG4(param, r3:lhs);
 
 gen param := ARG1(param, r32:lhs) { E_push($lhs); }
 gen param := ARG2(param, r32:lhs) { E_push($lhs); }
