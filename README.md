@@ -51,6 +51,8 @@ The following targets are supported. Adding more is easy.
 
   - ARM Thumb2, on Linux.
 
+  - PowerPC, on Linux.
+
   - 8086, on DOS (it emits small mode .exe files with 64kB of code and 64kB of data).
 
   - PDP11, on V7 Unix (thanks to
@@ -72,7 +74,7 @@ compiler and I haven't reworked the AGC backend.)
 
 In terms of machines you can run the compiler _on_:
 
-  - 80386 and ARM Linux, duh.
+  - 80386 and ARM and PowerPC Linux, duh.
 
   - A BBC Micro with Tube second processor. [Follow this link for a live
 	in-browser
