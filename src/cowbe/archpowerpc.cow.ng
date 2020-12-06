@@ -825,7 +825,7 @@ gen BEQ2(r32:lhs, r32|immu16|imms16:rhs):b uses all
 		Extend($lhs, $lhs, 0, 2);
 		Cmp2U($lhs, $rhs, &$@rhs.operand);
 	else
-		Extend($lhs, $rhs, 0, 2);
+		Extend($lhs, $lhs, 0, 2);
 		Extend($rhs, $rhs, 0, 2);
 		Cmp2U($lhs, $rhs, 0 as [Operand]);
 	end if;
@@ -861,7 +861,7 @@ gen BEQ1(r32:lhs, r32|immu16:rhs):b uses all
 		Extend($lhs, $lhs, 0, 1);
 		Cmp2U($lhs, $rhs, &$@rhs.operand);
 	else
-		Extend($lhs, $rhs, 0, 1);
+		Extend($lhs, $lhs, 0, 1);
 		Extend($rhs, $rhs, 0, 1);
 		Cmp2U($lhs, $rhs, 0 as [Operand]);
 	end if;
@@ -905,13 +905,9 @@ gen STARTCASE2(r32:lhs) uses all { Extend(REG_R3, $lhs, 0, 2); }
 gen STARTCASE4(r3) uses all;
 
 %{
-	sub WhenCase(c: [MidcodeWhencase]) is
+	sub WhenCase(c: [MidcodeWhencase], v: uint32) is
 		R_flushall();
-		var v := c.value;
-		if (v >= -32768) and (v <= 32767) then
-			E("\tcmpwi 3,");
-			E_i16(v as int16);
-		elseif (v >= 0) and (v <= 65535) then
+		if (v >= 0) and (v <= 65535) then
 			E("\tcmplwi 3,");
 			E_u16(v as uint16);
 		else
@@ -921,16 +917,16 @@ gen STARTCASE4(r3) uses all;
 			E("\tori 0,0,");
 			E_u16(v as uint16);
 			E_nl();
-			E("\tcmpw 3,0");
+			E("\tcmplw 3,0");
 		end if;
 		E_nl();
 		E_jump("bne", c.falselabel);
 	end sub;
 %}
 
-gen WHENCASE1():c uses all { WhenCase(&$c); }
-gen WHENCASE2():c uses all { WhenCase(&$c); }
-gen WHENCASE4():c uses all { WhenCase(&$c); }
+gen WHENCASE1():c uses all { WhenCase(&$c, ($c.value as uint32) & 0xff); }
+gen WHENCASE2():c uses all { WhenCase(&$c, ($c.value as uint32) & 0xffff); }
+gen WHENCASE4():c uses all { WhenCase(&$c, $c.value as uint32); }
 
 gen ENDCASE1() { R_flushall(); };
 gen ENDCASE2() { R_flushall(); };
