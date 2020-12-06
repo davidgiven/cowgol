@@ -1,3 +1,10 @@
+// The ABI used here is a bit special.
+//
+// r0:		temporary used for arithmetic
+// r3-r20:	normal registers
+// r30:		temporary used for address calculation
+// r31:		pointer to current workspace
+
 %[
 	record ImmOp is
 		value: Arith;
@@ -57,6 +64,14 @@
 			when REG_R10: E("10");
 			when REG_R11: E("11");
 			when REG_R12: E("12");
+			when REG_R13: E("13");
+			when REG_R14: E("14");
+			when REG_R15: E("15");
+			when REG_R16: E("16");
+			when REG_R17: E("17");
+			when REG_R18: E("18");
+			when REG_R19: E("19");
+			when REG_R20: E("20");
 			when else:
 				StartError();
 				print("bad reg ");
@@ -123,6 +138,13 @@
 		end if;
 	end sub;
 
+	sub is_short(sym: [Symbol]): (result: uint8) is
+		result := 0;
+		if (sym.subr == current_subr) and (sym.off < 0x7000) and (sym.wsid != WSID_STATIC) then
+			result := 1;
+		end if;
+	end sub;
+
     sub ArchBeginComment() is
         E("\t# ");
     end sub;
@@ -162,12 +184,12 @@
 wordsize uint32;
 
 register r0;
-register r3 r4 r5 r6 r7 r8 r9 r10 r11 r12;
+register r3 r4 r5 r6 r7 r8 r9 r10 r11 r12 r13 r14 r15 r16 r17 r18 r19 r20;
 
 operand param;
 operand imms16 immu16;
 
-regclass r32 := r3|r4|r5|r6|r7|r8|r9|r10|r11|r12;
+regclass r32 := r3|r4|r5|r6|r7|r8|r9|r10|r11|r12|r13|r14|r15|r16|r17|r18|r19|r20;
 
 regdata r3 compatible r32;
 regdata r4 compatible r32;
@@ -179,7 +201,14 @@ regdata r9 compatible r32;
 regdata r10 compatible r32;
 regdata r11 compatible r32;
 regdata r12 compatible r32;
-regdata r12 compatible r32;
+regdata r13 compatible r32;
+regdata r14 compatible r32;
+regdata r15 compatible r32;
+regdata r16 compatible r32;
+regdata r17 compatible r32;
+regdata r18 compatible r32;
+regdata r19 compatible r32;
+regdata r20 compatible r32;
 
 // --- Core things ----------------------------------------------------------
 
@@ -512,12 +541,12 @@ gen immu16 := CONSTANT(value is u16):c cost 5
 // --- Loads/stores ---------------------------------------------------------
 
 %{
-	sub LoadStoreReg(src: RegId, insn: string, reg1: RegId, off: Size) is
+	sub LoadStoreReg(src: RegId, insn: string, reg1: RegId, off: int16) is
 		RegCacheFlushValues();
 		E_insn(insn);
 		E_reg(src);
 		E_comma();
-		E_u16(off);
+		E_i16(off);
 		E("(");
 		E_reg(reg1);
 		E(")");
@@ -550,6 +579,18 @@ gen immu16 := CONSTANT(value is u16):c cost 5
 		RegCacheLeavesValue(src, sym, off);
 	end sub;
 
+	sub StoreShortAddress(src: RegId, insn: string, sym: [Symbol], off: Size) is
+		RegCacheFlushValues();
+
+		E_insn(insn);
+		E_reg(src);
+		E_comma();
+		E_u16(sym.off + off);
+		E("(31)\n");
+
+		RegCacheLeavesValue(src, sym, off);
+	end sub;
+
 	sub LoadAddress(dest: RegId, insn: string, sym: [Symbol], off: Size) is
 		var r := RegCacheFindValue(sym, off);
 		if r != 0 then
@@ -578,31 +619,69 @@ gen immu16 := CONSTANT(value is u16):c cost 5
 		R_flush(dest);
 		RegCacheLeavesValue(dest, sym, off);
 	end sub;
+
+	sub LoadShortAddress(dest: RegId, insn: string, sym: [Symbol], off: Size) is
+		var r := RegCacheFindValue(sym, off);
+		if r != 0 then
+			if (r & dest) != 0 then
+				return;
+			end if;
+			r := FindFirst(r);
+			E_insn("mr");
+			E_reg(dest);
+			E_comma();
+			E_reg(r);
+		else
+			RegCacheFlushValues();
+
+			E_insn(insn);
+			E_reg(dest);
+			E_comma();
+			E_u16(sym.off + off);
+			E("(31)");
+		end if;
+		E_nl();
+
+		R_flush(dest);
+		RegCacheLeavesValue(dest, sym, off);
+	end sub;
 %}
 
-gen STORE1(r32:lhs, DEREF1(r32:rhs))                { LoadStoreReg($lhs, "stb", $rhs, 0); }
-gen STORE1(r32:lhs, DEREF1(ADDRESS():a))            { StoreAddress($lhs, "stb", &$a.sym, $a.off); }
-gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, r32:rhs))) { LoadStoreRegX($lhs, "stbx", $ptr, $rhs); }
+gen STORE1(r32:lhs, DEREF1(r32:rhs))                  { LoadStoreReg($lhs, "stb", $rhs, 0); }
+gen STORE1(r32:lhs, DEREF1(ADDRESS(&sym is short):a)) { StoreShortAddress($lhs, "stb", &$a.sym, $a.off); }
+gen STORE1(r32:lhs, DEREF1(ADDRESS():a))              { StoreAddress($lhs, "stb", &$a.sym, $a.off); }
+gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, r32:rhs)))   { LoadStoreRegX($lhs, "stbx", $ptr, $rhs); }
+gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, CONSTANT(value is i16):c))) { LoadStoreReg($lhs, "stb", $ptr, $c.value as int16); }
 
-gen STORE2(r32:lhs, DEREF2(r32:rhs))                { LoadStoreReg($lhs, "sth", $rhs, 0); }
-gen STORE2(r32:lhs, DEREF2(ADDRESS():a))            { StoreAddress($lhs, "sth", &$a.sym, $a.off); }
-gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, r32:rhs))) { LoadStoreRegX($lhs, "sthx", $ptr, $rhs); }
+gen STORE2(r32:lhs, DEREF2(r32:rhs))                  { LoadStoreReg($lhs, "sth", $rhs, 0); }
+gen STORE2(r32:lhs, DEREF2(ADDRESS(&sym is short):a)) { StoreShortAddress($lhs, "sth", &$a.sym, $a.off); }
+gen STORE2(r32:lhs, DEREF2(ADDRESS():a))              { StoreAddress($lhs, "sth", &$a.sym, $a.off); }
+gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, r32:rhs)))   { LoadStoreRegX($lhs, "sthx", $ptr, $rhs); }
+gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c))) { LoadStoreReg($lhs, "sth", $ptr, $c.value as int16); }
 
-gen STORE4(r32:lhs, DEREF4(r32:rhs))                { LoadStoreReg($lhs, "stw", $rhs, 0); }
-gen STORE4(r32:lhs, DEREF4(ADDRESS():a))            { StoreAddress($lhs, "stw", &$a.sym, $a.off); }
-gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, r32:rhs))) { LoadStoreRegX($lhs, "stwx", $ptr, $rhs); }
+gen STORE4(r32:lhs, DEREF4(r32:rhs))                  { LoadStoreReg($lhs, "stw", $rhs, 0); }
+gen STORE4(r32:lhs, DEREF4(ADDRESS(&sym is short):a)) { StoreShortAddress($lhs, "stw", &$a.sym, $a.off); }
+gen STORE4(r32:lhs, DEREF4(ADDRESS():a))              { StoreAddress($lhs, "stw", &$a.sym, $a.off); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, r32:rhs)))   { LoadStoreRegX($lhs, "stwx", $ptr, $rhs); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, CONSTANT(value is i16):c))) { LoadStoreReg($lhs, "stw", $ptr, $c.value as int16); }
 
-gen r32 := DEREF1(r32:rhs)                          { R_flush($$); LoadStoreReg($$, "lbz", $rhs, 0); }
-gen r32 := DEREF1(ADDRESS():a)                      { LoadAddress($$, "lbz", &$a.sym, $a.off); }
-gen r32 := DEREF1(ADD4(r32:ptr, r32:rhs))           { R_flush($$); LoadStoreRegX($$, "lbzx", $ptr, $rhs); }
+gen r32 := DEREF1(r32:rhs)                            { R_flush($$); LoadStoreReg($$, "lbz", $rhs, 0); }
+gen r32 := DEREF1(ADDRESS(&sym is short):a)           { LoadShortAddress($$, "lbz", &$a.sym, $a.off); }
+gen r32 := DEREF1(ADDRESS():a)                        { LoadAddress($$, "lbz", &$a.sym, $a.off); }
+gen r32 := DEREF1(ADD4(r32:ptr, r32:rhs))             { R_flush($$); LoadStoreRegX($$, "lbzx", $ptr, $rhs); }
+gen r32 := DEREF1(ADD4(r32:ptr, CONSTANT(value is i16):c)) { R_flush($$); LoadStoreReg($$, "lbz", $ptr, $c.value as int16); }
 
-gen r32 := DEREF2(r32:rhs)                          { R_flush($$); LoadStoreReg($$, "lhz", $rhs, 0); }
-gen r32 := DEREF2(ADDRESS():a)                      { LoadAddress($$, "lhz", &$a.sym, $a.off); }
-gen r32 := DEREF2(ADD4(r32:ptr, r32:rhs))           { R_flush($$); LoadStoreRegX($$, "lhzx", $ptr, $rhs); }
+gen r32 := DEREF2(r32:rhs)                            { R_flush($$); LoadStoreReg($$, "lhz", $rhs, 0); }
+gen r32 := DEREF2(ADDRESS(&sym is short):a)           { LoadShortAddress($$, "lhz", &$a.sym, $a.off); }
+gen r32 := DEREF2(ADDRESS():a)                        { LoadAddress($$, "lhz", &$a.sym, $a.off); }
+gen r32 := DEREF2(ADD4(r32:ptr, r32:rhs))             { R_flush($$); LoadStoreRegX($$, "lhzx", $ptr, $rhs); }
+gen r32 := DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c)) { R_flush($$); LoadStoreReg($$, "lhz", $ptr, $c.value as int16); }
 
-gen r32 := DEREF4(r32:rhs)                          { R_flush($$); LoadStoreReg($$, "lwz", $rhs, 0); }
-gen r32 := DEREF4(ADDRESS():a)                      { LoadAddress($$, "lwz", &$a.sym, $a.off); }
-gen r32 := DEREF4(ADD4(r32:ptr, r32:rhs))           { R_flush($$); LoadStoreRegX($$, "lwzx", $ptr, $rhs); }
+gen r32 := DEREF4(r32:rhs)                            { R_flush($$); LoadStoreReg($$, "lwz", $rhs, 0); }
+gen r32 := DEREF4(ADDRESS(&sym is short):a)           { LoadShortAddress($$, "lwz", &$a.sym, $a.off); }
+gen r32 := DEREF4(ADDRESS():a)                        { LoadAddress($$, "lwz", &$a.sym, $a.off); }
+gen r32 := DEREF4(ADD4(r32:ptr, r32:rhs))             { R_flush($$); LoadStoreRegX($$, "lwzx", $ptr, $rhs); }
+gen r32 := DEREF4(ADD4(r32:ptr, CONSTANT(value is i16):c)) { R_flush($$); LoadStoreReg($$, "lwz", $ptr, $c.value as int16); }
 
 // --- Arithmetic -----------------------------------------------------------
 
