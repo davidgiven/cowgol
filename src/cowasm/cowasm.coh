@@ -74,6 +74,7 @@ const OP_XOR := 11;
 const OP_PAR := 12;
 
 @decl sub InitialiseSymbolTable();
+@decl sub MassageCurrentInsn();
 
 interface SymbolCallback();
 
@@ -366,7 +367,9 @@ sub ReadToken(): (token: Token) is
 				break;
 			end if;
 		end loop;
-		UngetC(c);
+        if c != '\'' then
+            UngetC(c);
+        end if;
 
 		tokenBuffer[tokenLength] := 0;
 
@@ -618,6 +621,9 @@ sub ReadExpression(): (token: Token) is
 
                 when ')':
                     WantOperator();
+                    if operatorSp == 0 then
+                        break;
+                    end if;
 
                     loop
                         if operatorSp == 0 then
@@ -946,6 +952,7 @@ sub Pass() is
         end if;
 
         if currentInsn != 0 as [Symbol] then
+            MassageCurrentInsn();
             var cb := currentInsn.callback;
             if (cb != SetCb) and (cb != EquCb) then
                 SetImplicitLabel();

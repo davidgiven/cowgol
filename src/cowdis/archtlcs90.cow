@@ -47,7 +47,7 @@ var aluOps: string[] := { "add", "adc", "sub", "sbc", "and", "xor", "or", "cp" }
 var rRegisters: string[] := { "b", "c", "d", "e", "h", "l", "a", "?7" };
 var qRegisters: string[] := { "bc", "de", "hl", "?3", "ix", "iy", "sp", "?7" };
 var ccCodes: string[] := { "f", "lt", "le", "ule", "pe", "m", "z", "c",
-	"?8", "ge", "gt", "ugt", "po", "p", "nz", "nc" };
+	"t", "ge", "gt", "ugt", "po", "p", "nz", "nc" };
 	
 var baseTemplates: string[256] := {
 	# 00
@@ -429,7 +429,7 @@ sub bank4Template(b: uint8): (template: string) is
 		when 0x27: return;
 		when 0x37: template := "B1ld (0), 1"; return;
 		when 0x3b: return;
-		when 0x3f: template := "W1ld (0), 1"; return;
+		when 0x3f: template := "W1ldw (0), 1"; return;
 		when 0x43: return;
 		when 0x47: return;
 	end case;
@@ -438,6 +438,7 @@ sub bank4Template(b: uint8): (template: string) is
 		when 0x20: template := "R1ld (0), 1";
 		when 0x38: template := "Q1ld 1, 0";
 		when 0x40: template := "Q1ld (0), 1";
+		when 0x50: template := "Q1ex (0), 1";
 		when 0x68: template := "L1B21 (0), 2";
 		when 0xc0: template := "C1jp 1, 0";
 		when 0xc8: template := "C1jp 1, 0";

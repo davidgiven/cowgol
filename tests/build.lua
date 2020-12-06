@@ -14,6 +14,7 @@ ALL_TESTS = {
 	"divrem-8bit-s",
 	"divrem-8bit-u",
 	"empty",
+	"fileio",
 	"folding",
 	"forwards",
 	"inputparams",

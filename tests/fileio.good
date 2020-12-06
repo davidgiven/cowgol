@@ -1,0 +1,130 @@
+
+Read1
+FCBRawRead(0, 4)
+GetChar() = 0
+GetChar() = 1
+FCB: pos=0 index=2/4 flags=0x02
+Pos() = 2
+
+Read6
+FCBRawRead(0, 4)
+GetChar() = 0
+GetChar() = 1
+GetChar() = 2
+GetChar() = 3
+FCBRawRead(4, 4)
+GetChar() = 0
+GetChar() = 1
+FCB: pos=4 index=2/4 flags=0x02
+Pos() = 6
+
+Read_SeekBackwards
+FCBRawRead(0, 4)
+GetChar() = 0
+GetChar() = 1
+GetChar() = 2
+GetChar() = 3
+Seek(1)
+GetChar() = 1
+GetChar() = 2
+FCB: pos=0 index=3/4 flags=0x02
+Pos() = 3
+
+Read_SeekForwards
+FCBRawRead(0, 4)
+GetChar() = 0
+GetChar() = 1
+GetChar() = 2
+GetChar() = 3
+Seek(10)
+FCBRawRead(10, 4)
+GetChar() = 0
+GetChar() = 1
+FCB: pos=10 index=2/4 flags=0x02
+Pos() = 12
+
+Read_SeekImmediately
+Seek(10)
+FCBRawRead(10, 4)
+GetChar() = 0
+GetChar() = 1
+GetChar() = 2
+GetChar() = 3
+FCBRawRead(14, 4)
+GetChar() = 0
+GetChar() = 1
+FCB: pos=14 index=2/4 flags=0x02
+Pos() = 16
+
+Write2
+PutChar(1);
+PutChar(2);
+FCB: pos=0 index=2/0 flags=0x04
+Flush()
+FCBRawWrite(0, 2): 1 2
+FCB: pos=2 index=0/0 flags=0x00
+Pos() = 2
+
+Write6
+PutChar(1);
+PutChar(2);
+PutChar(3);
+PutChar(4);
+PutChar(5);
+FCBRawWrite(0, 4): 1 2 3 4
+PutChar(6);
+FCB: pos=4 index=2/0 flags=0x04
+Flush()
+FCBRawWrite(4, 2): 5 6
+FCB: pos=6 index=0/0 flags=0x00
+Pos() = 6
+
+Write_SeekBackwards
+PutChar(1);
+PutChar(2);
+PutChar(3);
+Seek(1)
+PutChar(4);
+FCB: pos=0 index=2/0 flags=0x04
+Flush()
+FCBRawWrite(0, 2): 1 4
+FCB: pos=2 index=0/0 flags=0x00
+Pos() = 2
+
+Write_SeekForwards
+PutChar(1);
+Seek(3)
+FCBRawWrite(0, 1): 1
+PutChar(2);
+FCB: pos=3 index=1/0 flags=0x04
+Flush()
+FCBRawWrite(3, 1): 2
+FCB: pos=4 index=0/0 flags=0x00
+Pos() = 4
+
+WriteThenRead
+PutChar(1);
+PutChar(2);
+PutChar(3);
+Seek(2)
+FCBRawWrite(0, 2): 1 2
+FCBRawRead(2, 4)
+GetChar() = 0
+FCB: pos=2 index=1/4 flags=0x02
+Flush()
+FCB: pos=3 index=0/0 flags=0x00
+Pos() = 3
+
+ReadThenWrite
+FCBRawRead(0, 4)
+GetChar() = 0
+GetChar() = 1
+GetChar() = 2
+GetChar() = 3
+Seek(2)
+PutChar(9);
+FCB: pos=2 index=1/0 flags=0x04
+Flush()
+FCBRawWrite(2, 1): 9
+FCB: pos=3 index=0/0 flags=0x00
+Pos() = 3
