@@ -647,41 +647,59 @@ gen immu16 := CONSTANT(value is u16):c cost 5
 	end sub;
 %}
 
-gen STORE1(r32:lhs, DEREF1(r32:rhs))                  { LoadStoreReg($lhs, "stb", $rhs, 0); }
-gen STORE1(r32:lhs, DEREF1(ADDRESS(&sym is short):a)) { StoreShortAddress($lhs, "stb", &$a.sym, $a.off); }
-gen STORE1(r32:lhs, DEREF1(ADDRESS():a))              { StoreAddress($lhs, "stb", &$a.sym, $a.off); }
-gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, r32:rhs)))   { LoadStoreRegX($lhs, "stbx", $ptr, $rhs); }
-gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, CONSTANT(value is i16):c))) { LoadStoreReg($lhs, "stb", $ptr, $c.value as int16); }
+gen STORE1(r32:lhs, DEREF1(r32:rhs))                                   { LoadStoreReg($lhs, "stb", $rhs, 0); }
+gen STORE1(r32:lhs, DEREF1(ADDRESS(&sym is short):a))                  { StoreShortAddress($lhs, "stb", &$a.sym, $a.off); }
+gen STORE1(r32:lhs, DEREF1(ADDRESS():a))                               { StoreAddress($lhs, "stb", &$a.sym, $a.off); }
+gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, r32:rhs)))                    { LoadStoreRegX($lhs, "stbx", $ptr, $rhs); }
+gen STORE1(r32:lhs, DEREF1(ADD4(r32:ptr, CONSTANT(value is i16):c)))   { LoadStoreReg($lhs, "stb", $ptr, $c.value as int16); }
 
-gen STORE2(r32:lhs, DEREF2(r32:rhs))                  { LoadStoreReg($lhs, "sth", $rhs, 0); }
-gen STORE2(r32:lhs, DEREF2(ADDRESS(&sym is short):a)) { StoreShortAddress($lhs, "sth", &$a.sym, $a.off); }
-gen STORE2(r32:lhs, DEREF2(ADDRESS():a))              { StoreAddress($lhs, "sth", &$a.sym, $a.off); }
-gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, r32:rhs)))   { LoadStoreRegX($lhs, "sthx", $ptr, $rhs); }
-gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c))) { LoadStoreReg($lhs, "sth", $ptr, $c.value as int16); }
+gen STORE2(r32:lhs, DEREF2(r32:rhs))                                   { LoadStoreReg($lhs, "sth", $rhs, 0); }
+gen STORE2(r32:lhs, DEREF2(ADDRESS(&sym is short):a))                  { StoreShortAddress($lhs, "sth", &$a.sym, $a.off); }
+gen STORE2(r32:lhs, DEREF2(ADDRESS():a))                               { StoreAddress($lhs, "sth", &$a.sym, $a.off); }
+gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, r32:rhs)))                    { LoadStoreRegX($lhs, "sthx", $ptr, $rhs); }
+gen STORE2(r32:lhs, DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c)))   { LoadStoreReg($lhs, "sth", $ptr, $c.value as int16); }
 
-gen STORE4(r32:lhs, DEREF4(r32:rhs))                  { LoadStoreReg($lhs, "stw", $rhs, 0); }
-gen STORE4(r32:lhs, DEREF4(ADDRESS(&sym is short):a)) { StoreShortAddress($lhs, "stw", &$a.sym, $a.off); }
-gen STORE4(r32:lhs, DEREF4(ADDRESS():a))              { StoreAddress($lhs, "stw", &$a.sym, $a.off); }
-gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, r32:rhs)))   { LoadStoreRegX($lhs, "stwx", $ptr, $rhs); }
-gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, CONSTANT(value is i16):c))) { LoadStoreReg($lhs, "stw", $ptr, $c.value as int16); }
+gen STORE4(r32:lhs, DEREF4(r32:rhs))                                   { LoadStoreReg($lhs, "stw", $rhs, 0); }
+gen STORE4(r32:lhs, DEREF4(ADDRESS(&sym is short):a))                  { StoreShortAddress($lhs, "stw", &$a.sym, $a.off); }
+gen STORE4(r32:lhs, DEREF4(ADDRESS():a))                               { StoreAddress($lhs, "stw", &$a.sym, $a.off); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, r32:rhs)))                    { LoadStoreRegX($lhs, "stwx", $ptr, $rhs); }
+gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, CONSTANT(value is i16):c)))   { LoadStoreReg($lhs, "stw", $ptr, $c.value as int16); }
 
-gen r32 := DEREF1(r32:rhs)                            { R_flush($$); LoadStoreReg($$, "lbz", $rhs, 0); }
-gen r32 := DEREF1(ADDRESS(&sym is short):a)           { LoadShortAddress($$, "lbz", &$a.sym, $a.off); }
-gen r32 := DEREF1(ADDRESS():a)                        { LoadAddress($$, "lbz", &$a.sym, $a.off); }
-gen r32 := DEREF1(ADD4(r32:ptr, r32:rhs))             { R_flush($$); LoadStoreRegX($$, "lbzx", $ptr, $rhs); }
-gen r32 := DEREF1(ADD4(r32:ptr, CONSTANT(value is i16):c)) { R_flush($$); LoadStoreReg($$, "lbz", $ptr, $c.value as int16); }
+gen r32 := DEREF1(r32:rhs)                                             { R_flush($$); LoadStoreReg($$, "lbz", $rhs, 0); }
+gen r32 := DEREF1(ADDRESS(&sym is short):a)                            { LoadShortAddress($$, "lbz", &$a.sym, $a.off); }
+gen r32 := DEREF1(ADDRESS():a)                                         { LoadAddress($$, "lbz", &$a.sym, $a.off); }
+gen r32 := DEREF1(ADD4(r32:ptr, r32:rhs))                              { R_flush($$); LoadStoreRegX($$, "lbzx", $ptr, $rhs); }
+gen r32 := DEREF1(ADD4(r32:ptr, CONSTANT(value is i16):c))             { R_flush($$); LoadStoreReg($$, "lbz", $ptr, $c.value as int16); }
 
-gen r32 := DEREF2(r32:rhs)                            { R_flush($$); LoadStoreReg($$, "lhz", $rhs, 0); }
-gen r32 := DEREF2(ADDRESS(&sym is short):a)           { LoadShortAddress($$, "lhz", &$a.sym, $a.off); }
-gen r32 := DEREF2(ADDRESS():a)                        { LoadAddress($$, "lhz", &$a.sym, $a.off); }
-gen r32 := DEREF2(ADD4(r32:ptr, r32:rhs))             { R_flush($$); LoadStoreRegX($$, "lhzx", $ptr, $rhs); }
-gen r32 := DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c)) { R_flush($$); LoadStoreReg($$, "lhz", $ptr, $c.value as int16); }
+gen r32 := CAST14(DEREF1(r32:rhs), sext==0)                            { R_flush($$); LoadStoreReg($$, "lbz", $rhs, 0); }
+gen r32 := CAST14(DEREF1(ADDRESS(&sym is short):a), sext==0)           { LoadShortAddress($$, "lbz", &$a.sym, $a.off); }
+gen r32 := CAST14(DEREF1(ADDRESS():a), sext==0)                        { LoadAddress($$, "lbz", &$a.sym, $a.off); }
+gen r32 := CAST14(DEREF1(ADD4(r32:ptr, r32:rhs)), sext==0)             { R_flush($$); LoadStoreRegX($$, "lbzx", $ptr, $rhs); }
+gen r32 := CAST14(DEREF1(ADD4(r32:ptr, CONSTANT(value is i16):c)), sext==0) { R_flush($$); LoadStoreReg($$, "lbz", $ptr, $c.value as int16); }
 
-gen r32 := DEREF4(r32:rhs)                            { R_flush($$); LoadStoreReg($$, "lwz", $rhs, 0); }
-gen r32 := DEREF4(ADDRESS(&sym is short):a)           { LoadShortAddress($$, "lwz", &$a.sym, $a.off); }
-gen r32 := DEREF4(ADDRESS():a)                        { LoadAddress($$, "lwz", &$a.sym, $a.off); }
-gen r32 := DEREF4(ADD4(r32:ptr, r32:rhs))             { R_flush($$); LoadStoreRegX($$, "lwzx", $ptr, $rhs); }
-gen r32 := DEREF4(ADD4(r32:ptr, CONSTANT(value is i16):c)) { R_flush($$); LoadStoreReg($$, "lwz", $ptr, $c.value as int16); }
+gen r32 := DEREF2(r32:rhs)                                             { R_flush($$); LoadStoreReg($$, "lhz", $rhs, 0); }
+gen r32 := DEREF2(ADDRESS(&sym is short):a)                            { LoadShortAddress($$, "lhz", &$a.sym, $a.off); }
+gen r32 := DEREF2(ADDRESS():a)                                         { LoadAddress($$, "lhz", &$a.sym, $a.off); }
+gen r32 := DEREF2(ADD4(r32:ptr, r32:rhs))                              { R_flush($$); LoadStoreRegX($$, "lhzx", $ptr, $rhs); }
+gen r32 := DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c))             { R_flush($$); LoadStoreReg($$, "lhz", $ptr, $c.value as int16); }
+
+gen r32 := CAST24(DEREF2(r32:rhs), sext==0)                            { R_flush($$); LoadStoreReg($$, "lhz", $rhs, 0); }
+gen r32 := CAST24(DEREF2(ADDRESS(&sym is short):a), sext==0)           { LoadShortAddress($$, "lhz", &$a.sym, $a.off); }
+gen r32 := CAST24(DEREF2(ADDRESS():a), sext==0)                        { LoadAddress($$, "lhz", &$a.sym, $a.off); }
+gen r32 := CAST24(DEREF2(ADD4(r32:ptr, r32:rhs)), sext==0)             { R_flush($$); LoadStoreRegX($$, "lhzx", $ptr, $rhs); }
+gen r32 := CAST24(DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c)), sext==0) { R_flush($$); LoadStoreReg($$, "lhz", $ptr, $c.value as int16); }
+
+gen r32 := CAST24(DEREF2(r32:rhs), sext!=0)                            { R_flush($$); LoadStoreReg($$, "lha", $rhs, 0); }
+gen r32 := CAST24(DEREF2(ADDRESS(&sym is short):a), sext!=0)           { LoadShortAddress($$, "lha", &$a.sym, $a.off); }
+gen r32 := CAST24(DEREF2(ADDRESS():a), sext!=0)                        { LoadAddress($$, "lha", &$a.sym, $a.off); }
+gen r32 := CAST24(DEREF2(ADD4(r32:ptr, r32:rhs)), sext!=0)             { R_flush($$); LoadStoreRegX($$, "lhax", $ptr, $rhs); }
+gen r32 := CAST24(DEREF2(ADD4(r32:ptr, CONSTANT(value is i16):c)), sext!=0) { R_flush($$); LoadStoreReg($$, "lha", $ptr, $c.value as int16); }
+
+gen r32 := DEREF4(r32:rhs)                                             { R_flush($$); LoadStoreReg($$, "lwz", $rhs, 0); }
+gen r32 := DEREF4(ADDRESS(&sym is short):a)                            { LoadShortAddress($$, "lwz", &$a.sym, $a.off); }
+gen r32 := DEREF4(ADDRESS():a)                                         { LoadAddress($$, "lwz", &$a.sym, $a.off); }
+gen r32 := DEREF4(ADD4(r32:ptr, r32:rhs))                              { R_flush($$); LoadStoreRegX($$, "lwzx", $ptr, $rhs); }
+gen r32 := DEREF4(ADD4(r32:ptr, CONSTANT(value is i16):c))             { R_flush($$); LoadStoreReg($$, "lwz", $ptr, $c.value as int16); }
 
 // --- Arithmetic -----------------------------------------------------------
 
