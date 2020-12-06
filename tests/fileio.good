@@ -1,5 +1,5 @@
 
-Read1
+Read2
 FCBRawRead(0, 4)
 GetChar() = 0
 GetChar() = 1

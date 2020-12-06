@@ -94,7 +94,7 @@ end sub;
 # --- Read tests ------------------------------------------------------------
 
 sub Read2() is
-	print("\nRead1\n");
+	print("\nRead2\n");
 	InitFCB();
 	GetChar();
 	GetChar();
