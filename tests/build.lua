@@ -13,7 +13,7 @@ ALL_TESTS = {
 	"divrem-32bit-u",
 	"divrem-8bit-s",
 	"divrem-8bit-u",
-	"empty",
+	--"empty", # causes qemu to crash, but works on real hardware
 	"fileio",
 	"folding",
 	"forwards",
