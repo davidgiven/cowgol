@@ -10,6 +10,8 @@ end record;
 
 include "fileio.coh";
 
+@decl sub _fix_errno() @extern("_fix_errno");
+
 @impl sub FCBRawRead is
 	var fd := fcb.fd;
 	var dma := &fcb.buffer[0];
@@ -20,12 +22,14 @@ include "fileio.coh";
 	@asm "lis 4, ", dma, "@ha";
 	@asm "lwz 4, ", dma, "@l(4)";
 	@asm "lis 5, ", len, "@ha";
-	@asm "lwz 5, ", len, "@l(5)";
-	@asm "lis 6, ", pos, "@ha";
-	@asm "lwz 6, ", pos, "@l(6)";
+	@asm "lhz 5, ", len, "@l(5)";
+	@asm "li 6, 0";
 	@asm "li 7, 0";
+	@asm "lis 8, ", pos, "@ha";
+	@asm "lwz 8, ", pos, "@l(8)";
 	@asm "li 0, 0xb3"; # pread64
 	@asm "sc";
+	@asm "bsol ", _fix_errno;
 	@asm "lis 4, ", i, "@ha";
 	@asm "stw 3, ", i, "@l(4)";
 
@@ -47,12 +51,14 @@ end sub;
 	@asm "lis 4, ", dma, "@ha";
 	@asm "lwz 4, ", dma, "@l(4)";
 	@asm "lis 5, ", len, "@ha";
-	@asm "lwz 5, ", len, "@l(5)";
-	@asm "lis 6, ", pos, "@ha";
-	@asm "lwz 6, ", pos, "@l(6)";
+	@asm "lhz 5, ", len, "@l(5)";
+	@asm "li 6, 0";
 	@asm "li 7, 0";
+	@asm "lis 8, ", pos, "@ha";
+	@asm "lwz 8, ", pos, "@l(8)";
 	@asm "li 0, 0xb4"; # pwrite64
 	@asm "sc";
+	@asm "bsol ", _fix_errno;
 	@asm "lis 4, ", i, "@ha";
 	@asm "stw 3, ", i, "@l(4)";
 
@@ -72,12 +78,13 @@ sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
 	@asm "li 5, ", 0o666; # umask
 	@asm "li 0, 0x05"; # open
 	@asm "sc";
+	@asm "bsol ", _fix_errno;
 	@asm "lis 4, ", fd, "@ha";
 	@asm "stw 3, ", fd, "@l(4)";
-	fcb.fd := fd as uint32;
 	if fd < 0 then
 		errno := (-fd) as uint8;
 	else
+		fcb.fd := fd as uint32;
 		errno := 0;
 	end if;
 end sub;
