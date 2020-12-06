@@ -1,41 +1,116 @@
 # vim: ts=4 sw=4 et
 
-var _fcb_channels: uint8[13]; # +1
+var _fcb_channels: uint8[12]; # -1
 MemZero(&_fcb_channels[0], @bytesof _fcb_channels);
 
 const FCB_BUFFER_SIZE := 254;
+const FCB_FILENAME_SIZE := 32;
 typedef FCBIndexType is uint8;
 
 record RawFCB is
     channel: uint8;
     realpos: uint32;
+    filename: uint8[FCB_FILENAME_SIZE];
+    filenamelen: uint8;
 end record;
 
 include "fileio.coh";
+
+sub _file_read_error(): (errno: uint8) is
+    @asm "lda #15";
+    @asm "ldx #8";
+    @asm "ldy #15";
+    @asm "jsr $ffba"; # SETLFS
+    @asm "lda #0";
+    @asm "jsr $ffbd"; # SETNAM
+    @asm "jsr $ffc0"; # OPEN
+
+    @asm "ldx #15";
+    @asm "jsr $ffc6"; # CHKIN
+
+    @asm "jsr $ffcf"; # CHRIN
+    @asm "sec";
+    @asm "sbc #'0'";
+    @asm "asl";
+    @asm "asl";
+    @asm "asl";
+    @asm "asl";
+    @asm "sta", errno;
+
+    @asm "jsr $ffcf"; # CHRIN
+    @asm "sec";
+    @asm "sbc #'0'";
+    @asm "ora", errno;
+    @asm "sta", errno;
+
+    @asm "ldx #0";
+    @asm "jsr $ffc6"; # CHKIN
+    @asm "lda #15";
+    @asm "jsr $ffc3"; # CLOSE
+end sub;
+
+sub _file_realopen(fcb: [FCB]): (errno: uint8) is
+    var len := fcb.filenamelen;
+    var filename := &fcb.filename[0];
+    var channel := fcb.channel;
+
+    errno := 0;
+
+    @asm "lda", channel;
+    @asm "jsr $ffc3"; # CLOSE
+
+    @asm "lda", len;
+    @asm "ldx 0+", filename;
+    @asm "ldy 1+", filename;
+    @asm "jsr $ffbd"; # SETNAM
+
+    @asm "lda", channel;
+    @asm "ldx #8";
+    @asm "tay";
+    @asm "jsr $ffba"; # SETLFS
+
+    @asm "jsr $ffc0"; # OPEN
+    @asm "bcc +";
+    @asm "sta", errno;
+    @asm "+";
+    if errno != 0 then
+        return;
+    end if;
+    errno := _file_read_error();
+    if errno < 0x20 then
+        errno := 0;
+    end if;
+end sub;
 
 @impl sub FCBRawRead is
     var dma := &fcb.buffer[0];
     var channel := fcb.channel;
 
+    if (pos == 0) and (fcb.realpos != 0) then
+        var errno := _file_realopen(fcb);
+        fcb.realpos := 0;
+    end if;
+
     @asm "ldx", channel;
     @asm "jsr $ffc6"; # CHKIN
 
     while fcb.realpos < pos loop
-        @asm "jsr $ffb7"; # READST
-        @asm "bcs +";
         @asm "jsr $ffcf"; # CHRIN
-        @asm "ldy", len;
+        @asm "jsr $ffb7"; # READST
+        @asm "and #$40"; # eof
+        @asm "bne +";
         fcb.realpos := fcb.realpos + 1;
     end loop;
     @asm "+";
 
     amount := 0;
     while len != 0 loop
-        @asm "jsr $ffb7"; # READST
-        @asm "bcs +";
         @asm "jsr $ffcf"; # CHRIN
         @asm "ldy", amount;
         @asm "sta (", dma, "), y";
+        @asm "jsr $ffb7"; # READST
+        @asm "and #$40"; # eof
+        @asm "bne +";
         len := len - 1;
         amount := amount + 1;
     end loop;
@@ -74,102 +149,64 @@ end sub;
     fcb.realpos := fcb.realpos + (amount as uint32);
 end sub;
 
-sub _file_read_error(): (errno: uint8) is
-    @asm "lda #15";
-    @asm "ldx #8";
-    @asm "lda #15";
-    @asm "jsr $ffba"; # SETLFS
-    @asm "jsr $ffc0"; # OPEN
-
-    @asm "ldx #15";
-    @asm "jsr $ffc6"; # CHKIN
-
-    @asm "jsr $ffcf"; # ChRIN
-    @asm "jsr $ffc9";
-    @asm "sec";
-    @asm "sbc #'0'";
-    @asm "sta", errno;
-
-    @asm "jsr $ffcf"; # CHRIN
-    @asm "jsr $ffc9";
-    @asm "sec";
-    @asm "sbc #'0'";
-    @asm "asl";
-    @asm "asl";
-    @asm "asl";
-    @asm "asl";
-    @asm "ora", errno;
-    @asm "sta", errno;
-
-    @asm "ldx #0";
-    @asm "jsr $ffc6"; # CHKIN
-    @asm "ldx #15";
-    @asm "jsr $ffc3"; # CLOSE
+sub _file_strcat(dest: [uint8], src: [uint8]): (newdest: [uint8]) is
+    loop
+        var c := [src];
+        if c == 0 then
+            break;
+        end if;
+        [dest] := c;
+        src := @next src;
+        dest := @next dest;
+    end loop;
+    newdest := dest;
 end sub;
 
-sub _file_open(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-    errno := 0xff;
-    
-    var channel: uint8 := 1;
+sub _file_open(fcb: [FCB], filename: [uint8], suffix: [uint8]): (errno: uint8) is
+    var channel: uint8 := 2;
     while channel != 15 loop
-        if _fcb_channels[channel+1] == 0 then
+        if _fcb_channels[channel-2] == 0 then
             break;
         end if;
         channel := channel + 1;
     end loop;
     if channel == 15 then
+        errno := 0xff;
         return;
     end if;
 
-    var len: uint8 := 0;
-    loop
-        var c := [filename+(len as intptr)];
-        if c == 0 then
-            break;
-        end if;
-        len := len + 1;
-    end loop;
+    var fbufp := _file_strcat(&fcb.filename[0], filename);
+    fbufp := _file_strcat(fbufp, suffix);
+    [fbufp] := 0;
+    var len := (fbufp - &fcb.filename[0]) as uint8;
+    fcb.filenamelen := len;
 
-    @asm "lda", channel;
-    @asm "ldx #8";
-    @asm "ldy", channel;
-    @asm "jsr $ffba"; # SETLFS
-
-    @asm "lda", len;
-    @asm "ldx 0+", filename;
-    @asm "ldy 1+", filename;
-    @asm "jsr $ffbd"; # SETNAM
-    @asm "jsr $ffc0"; # OPEN
-    errno := _file_read_error();
-    if errno < 0x20 then
-        errno := 0;
-    end if;
-
-    _fcb_init(fcb);
     fcb.channel := channel;
-    fcb.realpos := 0;
-    _fcb_channels[channel+1] := 1;
+    errno := _file_realopen(fcb);
+    if errno == 0 then
+        _fcb_init(fcb);
+        fcb.realpos := 0;
+        _fcb_channels[channel-2] := 1;
+    end if;
 end sub;
 
 sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-    errno := _file_open(fcb, filename);
-end sub;
-
-sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-    errno := _file_open(fcb, filename);
+    errno := _file_open(fcb, filename, ",P,R");
 end sub;
 
 sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-    errno := _file_open(fcb, filename);
+    errno := _file_open(fcb, filename, ",P,W");
 end sub;
 
 sub FCBClose(fcb: [FCB]): (errno: uint8) is
+    FCBFlush(fcb);
+
     var channel := fcb.channel;
 
-    @asm "ldx", channel;
+    @asm "lda", channel;
     @asm "jsr $ffc3"; # CLOSE
 
-    _fcb_channels[channel+1] := 0;
+    _fcb_channels[channel-2] := 0;
     errno := 0;
 end sub;
 	
