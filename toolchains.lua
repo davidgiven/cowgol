@@ -70,6 +70,18 @@ toolchain_lx386 = {
 	tester = qemu386test
 }
 
+toolchain_lxppc = {
+	name = "lxppc",
+	cowfe = "bin/cowfe-32bita.nncgen.exe",
+	cowbe = "bin/cowbe-powerpc.nncgen.exe",
+	linker = "bin/cowlink-lxppc.nncgen.exe",
+	assembler = buildgasppc,
+	runtime = "rt/lxppc",
+	asmext = ".s",
+	binext = ".lxppc.exe",
+	tester = qemuppctest
+}
+
 toolchain_bbct = {
 	name = "bbct",
 	cowfe = "bin/cowfe-6502.nncgen.exe",
@@ -164,6 +176,7 @@ ALL_TOOLCHAINS = {
 	toolchain_fuzix6303,
 	toolchain_lxthumb2,
 	toolchain_lx386,
+	toolchain_lxppc,
 	toolchain_msdos,
 	toolchain_ncgen,
 	toolchain_ncpm,

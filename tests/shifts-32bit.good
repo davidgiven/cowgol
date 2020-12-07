@@ -20,5 +20,4 @@ mbig>>two == 0xe0000000: yes
 mbig>>0 == 0x80000000: yes
 mbig>>1 == 0xc0000000: yes
 mbig>>2 == 0xe0000000: yes
-twodtwo>>seven == 5: yes
 lshiftsub: yes

@@ -102,6 +102,10 @@ function buildgasarm(e)
     return buildgas("arm-linux-gnueabihf", e)
 end
 
+function buildgasppc(e)
+	return buildgas("powerpc-linux-gnu", e)
+end
+
 function buildzmac(e)
     local cim = e.outs[1]:ext(".cim"):obj()
     zmac {
@@ -183,6 +187,10 @@ end
 
 function qemuarmtest(e)
     return simpletest("qemu-arm", e)
+end
+
+function qemuppctest(e)
+    return simpletest("qemu-ppc", e)
 end
 
 function cpmtest(e)

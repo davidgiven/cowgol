@@ -46,7 +46,6 @@ sub rshifts() is
 	print("mbig>>0 == 0x80000000"); if mbig>>0 == 0x80000000 then yes(); else no(); end if;
 	print("mbig>>1 == 0xc0000000"); if mbig>>1 == 0xc0000000 then yes(); else no(); end if;
 	print("mbig>>2 == 0xe0000000"); if mbig>>2 == 0xe0000000 then yes(); else no(); end if;
-	print("twodtwo>>seven == 5");     if twodtwo>>seven == 5 then yes(); else no(); end if;
 end sub;
 rshifts();
 

@@ -7,6 +7,7 @@ local ARCHS = {
 	"cgen",
 	"fuzix6303",
 	"lx386",
+	"lxppc",
 	"lxthumb2",
 	"msdos",
 	"rt11",

@@ -1,0 +1,138 @@
+# System call numbers are here:
+# https://w3challs.com/syscalls/?arch=powerpc_32
+
+const FCB_BUFFER_SIZE := 512;
+typedef FCBIndexType is uint16;
+
+record RawFCB is
+	fd: uint32;
+end record;
+
+include "fileio.coh";
+
+@decl sub _fix_errno() @extern("_fix_errno");
+
+@impl sub FCBRawRead is
+	var fd := fcb.fd;
+	var dma := &fcb.buffer[0];
+	var i: int32;
+
+	@asm "lis 3, ", fd, "@ha";
+	@asm "lwz 3, ", fd, "@l(3)";
+	@asm "lis 4, ", dma, "@ha";
+	@asm "lwz 4, ", dma, "@l(4)";
+	@asm "lis 5, ", len, "@ha";
+	@asm "lhz 5, ", len, "@l(5)";
+	@asm "li 6, 0";
+	@asm "li 7, 0";
+	@asm "lis 8, ", pos, "@ha";
+	@asm "lwz 8, ", pos, "@l(8)";
+	@asm "li 0, 0xb3"; # pread64
+	@asm "sc";
+	@asm "bsol ", _fix_errno;
+	@asm "lis 4, ", i, "@ha";
+	@asm "stw 3, ", i, "@l(4)";
+
+	if i < 0 then
+		amount := 0;
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	else
+		amount := i as FCBIndexType;
+	end if;
+end sub;
+
+@impl sub FCBRawWrite is
+	var fd := fcb.fd;
+	var dma := &fcb.buffer[0];
+	var i: int32;
+
+	@asm "lis 3, ", fd, "@ha";
+	@asm "lwz 3, ", fd, "@l(3)";
+	@asm "lis 4, ", dma, "@ha";
+	@asm "lwz 4, ", dma, "@l(4)";
+	@asm "lis 5, ", len, "@ha";
+	@asm "lhz 5, ", len, "@l(5)";
+	@asm "li 6, 0";
+	@asm "li 7, 0";
+	@asm "lis 8, ", pos, "@ha";
+	@asm "lwz 8, ", pos, "@l(8)";
+	@asm "li 0, 0xb4"; # pwrite64
+	@asm "sc";
+	@asm "bsol ", _fix_errno;
+	@asm "lis 4, ", i, "@ha";
+	@asm "stw 3, ", i, "@l(4)";
+
+	if i < 0 then
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	end if;
+end sub;
+
+sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
+	_fcb_init(fcb);
+
+	var fd: int32;
+	@asm "lis 3, ", filename, "@ha";
+	@asm "lwz 3, ", filename, "@l(3)";
+	@asm "lis 4, ", flags, "@ha";
+	@asm "lwz 4, ", flags, "@l(4)";
+	@asm "li 5, ", 0o666; # umask
+	@asm "li 0, 0x05"; # open
+	@asm "sc";
+	@asm "bsol ", _fix_errno;
+	@asm "lis 4, ", fd, "@ha";
+	@asm "stw 3, ", fd, "@l(4)";
+	if fd < 0 then
+		errno := (-fd) as uint8;
+	else
+		fcb.fd := fd as uint32;
+		errno := 0;
+	end if;
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o0000); # O_RDONLY
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o0002); # O_RDWR
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o1102); # O_RDWR|O_CREAT|O_TRUNC
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	FCBFlush(fcb);
+
+	var fd := fcb.fd;
+	var r: int32;
+	@asm "lis 3, ", fd, "@ha";
+	@asm "lwz 3, ", fd, "@l(3)";
+	@asm "li 0, 0x06"; # close
+	@asm "sc";
+	@asm "lis 4, ", r, "@ha";
+	@asm "stw 3, ", r, "@l(4)";
+	if r < 0 then
+		errno := (-r) as uint8;
+	else
+		errno := 0;
+	end if;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+	FCBFlush(fcb);
+
+	var fd := fcb.fd;
+	@asm "lis 3, ", fd, "@ha";
+	@asm "lwz 3, ", fd, "@l(3)";
+	@asm "li 4, 0"; # offset
+	@asm "li 5, 2"; # seek_end
+	@asm "li 0, 0x13"; # lseek
+	@asm "sc";
+	@asm "lis 4, ", len, "@ha";
+	@asm "stw 3, ", len, "@l(4)";
+end sub;
+
+include "common-file.coh";
+
+
