@@ -991,14 +991,34 @@ sub Generate(rootnode: [Node]) is
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
-			case insn.n[0].op is
-				when MIDCODE_ASMSTART: emitting_asm := 1;
-				when MIDCODE_ASMEND:   emitting_asm := 0;
-			end case;
+			if insn.n[0].op == MIDCODE_ASMSTART then
+				emitting_asm := 1;
+			end if;
 
+			#if emitting_asm == 0 then
+			#	ArchBeginComment();
+			#	E_h32(insn as intptr as uint32);
+			#	E(" produced=");
+			#	E_h32(insn.produced_reg as uint32);
+			#	if insn.consumer != (0 as [Node]) then
+			#		E(" consumedby=");
+			#		E_h32(insn.consumer.consumer as intptr as uint32);
+			#	end if;
+			#	E(" inputs=");
+			#	E_h32(insn.input_regs as uint32);
+			#	E(" outputs=");
+			#	E_h32(insn.output_regs as uint32);
+			#	E(" uses=");
+			#	E_h32(insn.used_regs as uint32);
+			#	ArchEndComment();
+			#end if;
 			EmitOneInstruction(insn.ruleid, insn);
 			ShuffleRegisters(&insn.spills[0]);
 			ArchEndInstruction();
+
+			if insn.n[0].op == MIDCODE_ASMEND then
+				emitting_asm := 0;
+			end if;
 
 			# If the root node of this instruction is a fallback node, it's
 			# not part of the tree and won't be discarded with the tree.
