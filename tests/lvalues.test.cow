@@ -1,0 +1,17 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+record Record is
+	i: uint32;
+	j: uint32;
+end record;
+
+var r: Record := { 1, 2 };
+
+sub ReturnsPointer(): (ptr: [Record]) is
+	ptr := &r;
+end sub;
+
+print("r.i==1"); if ReturnsPointer().i == 1 then yes(); else no(); end if;
+print("r.j==2"); if ReturnsPointer().j == 2 then yes(); else no(); end if;
+
