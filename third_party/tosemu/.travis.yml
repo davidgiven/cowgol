@@ -1,0 +1,5 @@
+sudo: required
+dist: xenial
+language: c
+install: sh ./install-deps.sh
+script: make check

@@ -1,0 +1,6 @@
+*~
+tests/test-*
+tests/out
+*.o
+bin/
+gen/
