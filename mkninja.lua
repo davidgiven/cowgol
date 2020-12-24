@@ -7,6 +7,7 @@ print("LUA = "..env("LUA", "lua5.1"))
 print("CC = "..env("CC", "cc"))
 print("CXX = "..env("CC", "c++"))
 print("CPP = "..env("CC", "cpp"))
+print("AR = "..env("AR", "ar"))
 print("CFLAGS = "..env("CFLAGS", ""))
 print("CXXFLAGS = "..env("CXXFLAGS", "$CFLAGS"))
 print("LDFLAGS = "..env("LDFLAGS", ""))
@@ -105,6 +106,8 @@ include "third_party/emu2/build.lua"
 include "third_party/apout/build.lua"
 include "third_party/zmac/build.lua"
 include "third_party/djlink/build.lua"
+include "third_party/tosemu/build.lua"
+include "third_party/musashi/build.lua"
 include "tools/cpmemu/build.lua"
 include "tools/tubeemu/build.lua"
 include "tools/fuzix6303emu/build.lua"

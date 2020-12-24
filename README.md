@@ -274,3 +274,14 @@ dj@delorie.com. It is distributed under the terms of the GPL 2.0 licesne; see
 `third_party/djlink/copying` for the full text, with additional grants
 described in `third_party/djlink/copying.dj`.
 
+`third_party/musashi` contains a copy of the Musashi 68000 emulation library,
+written by Karl Stenerud. It is distributable under the terms of the MIT
+license; see `third_party/musashi/readme.txt` for the full text. It also in
+turn contains a copy of John R. Hauser's softfloat library, distributable under
+a custom but MIT-like license; see `third_party/musashi/softfloat/README.txt`
+for the text.
+
+`third_party/tosemu` contains a (slightly modified) copy of Johan Thelin's
+Atari TOS emulator. It is distributable under the terms of the GPL 2 license;
+see `third_party/tosemu/COPYING` for the full text.
+
