@@ -1,0 +1,6 @@
+[ptr]==3: yes
+[ptr]==4: yes
+r.i==1: yes
+r.j==2: yes
+r.i==2: yes
+r.j==1: yes

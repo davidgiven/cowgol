@@ -179,3 +179,23 @@ sub UndoLValue(lvalue: [Node]): (address: [Node]) is
 	Discard(lvalue);
 end sub;
 
+sub IsLValue(lvalue: [Node]): (result: uint8) is
+	result := 0;
+	var k := lvalue.op;
+	if (k >= MIDCODE_DEREF0) and (k <= MIDCODE_DEREF8) then
+		result := 1;
+	end if;
+end sub;
+
+sub MaybeUndoLValue(lvalue: [Node]): (address: [Node]) is
+	var k := lvalue.op;
+	if (k >= MIDCODE_DEREF0) and (k <= MIDCODE_DEREF8) then
+		address := lvalue.left;
+		lvalue.left := (0 as [Node]);
+	elseif IsPtr(lvalue.type) != 0 then
+		address := lvalue;
+	else
+		SimpleError("pointer or lvalue required");
+	end if;
+end sub;
+

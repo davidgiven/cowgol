@@ -1,17 +1,40 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-record Record is
-	i: uint32;
-	j: uint32;
-end record;
+sub PointerToScalar() is
+	var a: uint8[2] := { 3, 4 };
 
-var r: Record := { 1, 2 };
+	sub ReturnsPointer(): (ptr: [uint8]) is
+		ptr := &a[0];
+	end sub;
 
-sub ReturnsPointer(): (ptr: [Record]) is
-	ptr := &r;
+	print("[ptr]==3"); if [ReturnsPointer()] == 3 then yes(); else no(); end if;
+
+	[ReturnsPointer()] := 4;
+
+	print("[ptr]==4"); if [ReturnsPointer()] == 4 then yes(); else no(); end if;
 end sub;
+PointerToScalar();
 
-print("r.i==1"); if ReturnsPointer().i == 1 then yes(); else no(); end if;
-print("r.j==2"); if ReturnsPointer().j == 2 then yes(); else no(); end if;
+sub PointerToRecord() is
+	record Record is
+		i: uint32;
+		j: uint32;
+	end record;
+
+	var r: Record := { 1, 2 };
+	sub ReturnsPointer(): (ptr: [Record]) is
+		ptr := &r;
+	end sub;
+
+	print("r.i==1"); if ReturnsPointer().i == 1 then yes(); else no(); end if;
+	print("r.j==2"); if ReturnsPointer().j == 2 then yes(); else no(); end if;
+
+	r.i := 2;
+	r.j := 1;
+
+	print("r.i==2"); if ReturnsPointer().i == 2 then yes(); else no(); end if;
+	print("r.j==1"); if ReturnsPointer().j == 1 then yes(); else no(); end if;
+end sub;
+PointerToRecord();
 

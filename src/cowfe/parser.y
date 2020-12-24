@@ -531,7 +531,7 @@ leafexpression(E) ::= OPENSQ expression(E1) CLOSESQ.
 expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 {
 	var type := E1.type;
-	var address := UndoLValue(E1);
+	var address := MaybeUndoLValue(E1);
 
 	if IsArray(type) == 0 then
 		StartError();
@@ -561,22 +561,34 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 expression(E) ::= expression(E1) DOT ID(X).
 {
 	var type := E1.type;
-	var address := UndoLValue(E1);
+	var address := E1;
 
-	# Dereference pointers.
-
-	while IsPtr(type) != 0 loop
-		type := type.pointertype.element;
-		CheckNotPartialType(type);
-		address := MidDeref(intptr_type.width as uint8, address);
-	end loop;
-	CheckNotPartialType(type);
-
-	if IsRecord(type) == 0 then
+	sub BadType() is
 		StartError();
 		print(type.symbol.name);
 		print(" is not a record or pointer to a record");
 		EndError();
+	end sub;
+
+	if IsLValue(address) != 0 then
+		address := MaybeUndoLValue(E1);
+
+		# Dereference pointers.
+
+		while IsPtr(type) != 0 loop
+			type := type.pointertype.element;
+			CheckNotPartialType(type);
+			address := MidDeref(intptr_type.width as uint8, address);
+		end loop;
+	elseif IsPtr(type) != 0 then
+		type := type.pointertype.element;
+	else
+		BadType();
+	end if;
+	CheckNotPartialType(type);
+
+	if IsRecord(type) == 0 then
+		BadType();
 	end if;
 
 	var member := LookupSymbol(&type.recordtype.namespace, X.string);
