@@ -30,12 +30,6 @@ sub ArchEmitHeader(coo: [Coo]) is
 
 	E(".cpu \"65c02\"\n");
 	E("* = $400\n");
-	E("ajsr .macro\n");
-	E("\t.if (* & $ff) == $fd\n");
-	E("\tnop\n");
-	E("\t.endif\n");
-	E("\tjsr \\1\n");
-	E("\t.endm\n");
 
 	sub AliasMacro(srcname: string, destname: string) is
 		E(srcname);
