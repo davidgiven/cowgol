@@ -18,7 +18,8 @@ include "fileio.coh";
 	@asm "movl $0xb4, %eax"; # READ64
 	@asm "movl ", fd, ", %ebx";
 	@asm "movl ", dma, ", %ecx";
-	@asm "movl ", len, ", %edx";
+	@asm "movw ", len, ", %dx";
+	@asm "movzx %dx, %edx";
 	@asm "movl ", pos, ", %esi";
 	@asm "xorl %edi, %edi";
 	@asm "int $0x80";
@@ -40,7 +41,8 @@ end sub;
 	@asm "movl $0xb5, %eax"; # WRITE64
 	@asm "movl ", fd, ", %ebx";
 	@asm "movl ", dma, ", %ecx";
-	@asm "movl ", len, ", %edx";
+	@asm "movw ", len, ", %dx";
+	@asm "movzx %dx, %edx";
 	@asm "movl ", pos, ", %esi";
 	@asm "xorl %edi, %edi";
 	@asm "int $0x80";
