@@ -104,7 +104,6 @@
     const OC_BPL := 48;
     const OC_ASL := 49;
     const OC_LSR := 50;
-    const OC_AJSR := 51;
 
     sub E_oc(oc: uint8) is
         var ocs: string[] := {
@@ -114,7 +113,7 @@
             "clc", "sec", "rts", "jsr", "jmp", "phx", "phy", "plx",
             "ply", "tsx", "txs", "rol", "stz", "cmp", "cpx", "cpy",
             "inx", "iny", "dex", "dey", "inc", "dec", "jra", "jmi",
-            "jpl", "asl", "lsr", "ajsr"
+            "jpl", "asl", "lsr"
         };
 
         E_tab();
@@ -203,6 +202,7 @@
         E_jump(oc, label);
     end sub;
 
+    sub E_beq(label: LabelRef) is E_jump(OC_BEQ, label); end sub;
     sub E_bne(label: LabelRef) is E_jump(OC_BNE, label); end sub;
     sub E_bcs(label: LabelRef) is E_jump(OC_BCS, label); end sub;
     sub E_bmi(label: LabelRef) is E_jump(OC_BMI, label); end sub;
@@ -363,7 +363,7 @@
 
     sub E_call(subr: [Subroutine]) is
         R_flushall();
-        E_oc(OC_AJSR);
+        E_oc(OC_JSR);
         E_subref(subr);
         E_nl();
     end sub;
@@ -1017,18 +1017,26 @@ gen STARTSUB() uses all
             if popped == 0 then
                 $ifdef ARCH_65C02
                     E_plx();
+                    E_ply();
                 $else
                     E_pla();
                     E_tax();
+                    E_pla();
+                    E_tay();
                 $endif
-                E_pla();
                 E_inx();
 
                 E_stx();
                 E_labelref(current_subr.arch.rts_label);
                 E_nl();
 
-                E_sta();
+                var label := AllocPLabel();
+                E_bne(label);
+
+                E_iny();
+
+                E_label(label);
+                E_sty();
                 E_labelref(current_subr.arch.rts_label);
                 E_plusone();
                 E_nl();

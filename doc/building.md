@@ -19,7 +19,10 @@ dependencies.
   
   - flex and bison and libbsd and libreadline (these are standard)
 
-  - a C compiler and the i686-linux-gnu binutils
+  - a C compiler and the i686-linux-gnu, arm-linux-gnueabihf, and
+	powerpc-linux-gnu binutils
+
+  - the nasm ix86 assembler
 
   - the qemu userspace emulator
 
@@ -28,7 +31,7 @@ dependencies.
 If you're on a Debianish platform, you should be able to install them
 with:
 
-    apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu qemu-user gpp 64tass
+    apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu qemu-user gpp 64tass nasm
 
 Once done you can build the compiler itself with:
 
