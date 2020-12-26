@@ -1,0 +1,51 @@
+include "cowgol.coh";
+include "file.coh";
+
+const COUNT := 2000;
+var filename: [uint8] := "tmpfile";
+
+sub Check(e: uint8) is
+	if e != 0 then
+		print("failed");
+		print_nl();
+		ExitWithError();
+	end if;
+end sub;
+
+var fcb: FCB;
+Check(FCBOpenOut(&fcb, filename));
+
+var i: uint16 := 0;
+while i < COUNT loop
+	FCBPutChar(&fcb, i as uint8);
+	i := i + 1;
+end loop;
+
+print("output size: ");
+print_i32(FCBExt(&fcb));
+print_nl();
+
+Check(FCBClose(&fcb));
+
+Check(FCBOpenIn(&fcb, filename));
+print("input size: ");
+print_i32(FCBExt(&fcb));
+print_nl();
+
+i := 0;
+while i < COUNT loop
+	var c := FCBGetChar(&fcb);
+	if c != (i as uint8) then
+		print("bad char at ");
+		print_i32(FCBPos(&fcb));
+		print(": got ");
+		print_i8(i as uint8);
+		print(", wanted ");
+		print_i8(c);
+		print_nl();
+	end if;
+	i := i + 1;
+end loop;
+
+Check(FCBClose(&fcb));
+
