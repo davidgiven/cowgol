@@ -106,6 +106,10 @@ function buildgasppc(e)
 	return buildgas("powerpc-linux-gnu", e)
 end
 
+function buildgasataritos(e)
+	return buildgas("m68k-atari-mint", e)
+end
+
 function buildzmac(e)
     local cim = e.outs[1]:ext(".cim"):obj()
     zmac {

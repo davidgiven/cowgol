@@ -168,7 +168,20 @@ toolchain_msdos = {
 	tester = emu2test,
 }
 
+toolchain_ataritos = {
+	name = "ataritos",
+	cowfe = "bin/cowfe-32bit.nncgen.exe",
+	cowbe = "bin/cowbe-68000.nncgen.exe",
+	linker = "bin/cowlink-ataritos.nncgen.exe",
+	assembler = buildgasataritos,
+	runtime = "rt/ataritos",
+	asmext = ".s",
+	binext = ".ataritos.prg",
+	tester = ataritostest,
+}
+
 ALL_TOOLCHAINS = {
+	toolchain_ataritos,
 	toolchain_bbct,
 	toolchain_bbct6502,
 	toolchain_bbcti,

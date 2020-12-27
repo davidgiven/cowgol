@@ -713,6 +713,9 @@ int main(int argc, const char* argv[])
 
 	sort_rules();
 
+	if (registercount > 32)
+		fatal("too many registers; %d, maximum 32", registercount);
+
 	if (machine_word)
 		fprintf(outhfp, "typedef Word is %s;\n", machine_word);
 
@@ -722,9 +725,12 @@ int main(int argc, const char* argv[])
 	fprintf(outhfp, "const INSTRUCTION_TEMPLATE_DEPTH := %d;\n", maxdepth);
 	fprintf(outhfp, "const INSTRUCTION_TEMPLATE_COUNT := %d;\n", rulescount);
 	fprintf(outhfp, "const REGISTER_COUNT := %d;\n", registercount);
-	fprintf(outhfp, "const ALL_REGS := 0x%x;\n", (1<<registercount) - 1);
+	fprintf(outhfp, "const ALL_REGS := 0x%x;\n", ((uint64_t)1<<registercount) - 1);
 	fprintf(outhfp, "const OPERAND_REGS := 0x%x;\n", operandregs);
-	fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
+	if (registercount == 32)
+		fprintf(outhfp, "typedef RegId is uint32;\n");
+	else
+		fprintf(outhfp, "typedef RegId is int(0, ALL_REGS);\n");
 	fprintf(outhfp, "typedef NodeBitmap is int(0, 0x%x);\n", (1<<maxdepth) - 1);
 
 	fprintf(outhfp, "record Register is\n");
