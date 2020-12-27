@@ -1,0 +1,15 @@
+# 32-bit multiply.
+&X _mul4
+``:
+	rts
+
+# 32-bit unsigned divide.
+&X _divremu4
+``:
+	rts
+
+# 32-bit signed divide.
+&X _divrems4
+``:
+	rts
+
