@@ -115,23 +115,29 @@
 		E_space();
 	end sub;
 
-	sub E_push(reg: RegId) is
-		E_insn("move.l");
+	sub E_push(reg: RegId, insn: string) is
+		E_insn(insn);
 		E_reg(reg);
 		E(", -(sp)\n");
 	end sub;
 
-	sub E_pop(reg: RegId) is
-		E_insn("move.l");
+	sub E_pushw(reg: RegId) is E_push(reg, "move.w"); end sub;
+	sub E_pushl(reg: RegId) is E_push(reg, "move.l"); end sub;
+
+	sub E_pop(reg: RegId, insn: string) is
+		E_insn(insn);
 		E("(sp)+, ");
 		E_reg(reg);
 		E_nl();
 	end sub;
 
+	sub E_popw(reg: RegId) is E_pop(reg, "move.w"); end sub;
+	sub E_popl(reg: RegId) is E_pop(reg, "move.l"); end sub;
+
     sub E_callhelper(name: string) is
         var helper := GetHelper(name);
         R_flushall();
-        E_insn("bsr");
+        E_insn("jsr");
         E_b8(COO_ESCAPE_SUBREF);
         E_b16(helper.id);
         E_nl();
@@ -197,9 +203,9 @@
 
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if src == 0 then
-			E_pop(dest);
+			E_popl(dest);
 		elseif dest == 0 then
-			E_push(src);
+			E_pushl(src);
 		elseif ((src & REGCLASS_ANY) != 0) and ((dest & REGCLASS_ANY) != 0) then
 			E_insn("move.l");
 			E_reg(src);
@@ -298,60 +304,40 @@ gen STARTSUB() uses all
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
-#	sub load_r31() is
-#		E("\tlis 31,");
-#		E_wsref(current_subr.id, 0, 0);
-#		E("@h\n\tori 31,31,");
-#		E_wsref(current_subr.id, 0, 0);
-#		E("@l\n");
-#	end sub;
-#
-#	E("\tmflr 0\n");
-#	var count := current_subr.num_input_parameters;
-#	if count == 0 then
-#		E("\tstwu 0,-4(1)\n");
-#		E("\tstwu 31,-4(1)\n");
-#		load_r31();
-#	else
-#		E("\tmr 4,31\n");
-#		load_r31();
-#
-#		var lastparam := count - 1;
-#
-#		while count != 0 loop
-#			count := count - 1;
-#			var param := GetInputParameter(current_subr, count);
-#
-#			var reg: RegId;
-#			if count != lastparam then
-#				E_pop(REG_R3);
-#			end if;
-#			if param.subr != current_subr then
-#				E("\tlis 5,");
-#				E_symref(param as [Symbol], 0);
-#				E("@h\n\tori 5,5,");
-#				E_symref(param as [Symbol], 0);
-#				E("@l\n");
-#			end if;
-#
-#			case param.width is
-#				when 1: E_insn("stb");
-#				when 2: E_insn("sth");
-#				when 4: E_insn("stw");
-#			end case;
-#			E_reg(REG_R3);
-#			E_comma();
-#			if param.subr != current_subr then
-#				E("0(5)\n");
-#			else
-#				E_u16(param.off);
-#				E("(31)\n");
-#			end if;
-#		end loop;
-#
-#		E("\tstwu 0,-4(1)\n");
-#		E("\tstwu 4,-4(1)\n");
-#	end if;
+	var count := current_subr.num_input_parameters;
+	if count > 1 then
+		E_popl(REG_A5);
+	end if;
+		
+	var lastparam := count - 1;
+	while count != 0 loop
+		count := count - 1;
+		var param := GetInputParameter(current_subr, count);
+
+		var reg: RegId;
+		if count != lastparam then
+			if param.width == 4 then
+				E_popl(REG_D0);
+			else
+				E_popw(REG_D0);
+			end if;
+		end if;
+		case param.width is
+			when 1: E_insn("move.b");
+			when 2: E_insn("move.w");
+			when 4: E_insn("move.l");
+		end case;
+		E_reg(REG_D0);
+		E_comma();
+		E_openp();
+		E_symref(param as [Symbol], 0);
+		E_closep();
+		E_nl();
+	end loop;
+
+	if count > 1 then
+		E_pushl(REG_A5);
+	end if;
 
 	R_flushall();
 }
@@ -365,50 +351,41 @@ gen ENDSUB() uses all
 	var count: uint8 := 0;
 	var params := current_subr.num_output_parameters;
 
-#	E("\tlwz 4,4(1)\n"); # return address
-#	if params == 0 then
-#		E("\tlwz 31,0(1)\n"); # old ws
-#		E("\taddi 1,1,8\n");
-#	else
-#		E("\tlwz 5,0(1)\n"); # old ws
-#		E("\taddi 1,1,8\n");
-#
-#		while count != params loop
-#			var param := GetOutputParameter(current_subr, count);
-#
-#			if param.subr != current_subr then
-#				E("\tlis 30,");
-#				E_symref(param as [Symbol], 0);
-#				E("@h\n\tori 30,30,");
-#				E_symref(param as [Symbol], 0);
-#				E("@l\n");
-#			end if;
-#
-#			case param.width is
-#				when 1: E_insn("lbz");
-#				when 2: E_insn("lhz");
-#				when 4: E_insn("lwz");
-#			end case;
-#			E_reg(REG_R3);
-#			E_comma();
-#			if param.subr == current_subr then
-#				E_u16(param.off);
-#				E("(31)\n");
-#			else
-#				E("0(30)\n");
-#			end if;
-#
-#			if count != (params-1) then
-#				E_push(REG_R3);
-#			end if;
-#
-#			count := count + 1;
-#		end loop;
-#
-#		E("\tmr 31,5\n");
-#	end if;
-#	E("\tmtlr 4\n");
-#	E("\tblr\n");
+	if count > 1 then
+		E_popl(REG_A5); # return address
+	end if;
+
+	while count != params loop
+		var param := GetOutputParameter(current_subr, count);
+
+		case param.width is
+			when 1: E_insn("move.b");
+			when 2: E_insn("move.w");
+			when 4: E_insn("move.l");
+		end case;
+		E_openp();
+		E_symref(param as [Symbol], 0);
+		E_closep();
+		E_comma();
+		E_reg(REG_D0);
+		E_nl();
+		
+		if count != (params-1) then
+			if param.width == 4 then
+				E_pushl(REG_D0);
+			else
+				E_pushw(REG_D0);
+			end if;
+		end if;
+
+		count := count + 1;
+	end loop;
+
+	if count > 1 then
+		E("\tjmp (a5)\n");
+	else
+		E("\trts\n");
+	end if;
 
 	EmitterCloseStream();
 	R_flushall();
@@ -504,7 +481,7 @@ gen areg := SUBREF():s
 %{
 	sub Call(addr: [MidcodeSubref]) is
 		R_flushall();
-		E_insn("bsr");
+		E_insn("jsr");
 		E_subref(addr.subr);
 		E_nl();
 	end sub;
@@ -542,17 +519,17 @@ gen d0 := ARG1(param, d0:lhs);
 gen d0 := ARG2(param, d0:lhs);
 gen d0 := ARG4(param, d0:lhs);
 
-gen param := ARG1(param, any:lhs) { E_push($lhs); }
-gen param := ARG2(param, any:lhs) { E_push($lhs); }
-gen param := ARG4(param, any:lhs) { E_push($lhs); }
+gen param := ARG1(param, any:lhs) { E_pushw($lhs); }
+gen param := ARG2(param, any:lhs) { E_pushw($lhs); }
+gen param := ARG4(param, any:lhs) { E_pushl($lhs); }
 
 gen d0 := POPARG1(remaining==0);
 gen d0 := POPARG2(remaining==0);
 gen d0 := POPARG4(remaining==0);
 
-gen any := POPARG1(remaining!=0) { E_pop($$); }
-gen any := POPARG2(remaining!=0) { E_pop($$); }
-gen any := POPARG4(remaining!=0) { E_pop($$); }
+gen any := POPARG1(remaining!=0) { E_popw($$); }
+gen any := POPARG2(remaining!=0) { E_popw($$); }
+gen any := POPARG4(remaining!=0) { E_popl($$); }
 
 // --- Operands -------------------------------------------------------------
 

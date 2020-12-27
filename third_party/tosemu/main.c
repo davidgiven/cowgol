@@ -162,5 +162,5 @@ int main(int argc, char **argv)
     /* Clean up */
     free_tos_environment(&te);
     
-    return 0; 
+    return 1; 
 }

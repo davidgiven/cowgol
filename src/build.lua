@@ -107,7 +107,11 @@ function buildgasppc(e)
 end
 
 function buildgasataritos(e)
-	return buildgas("m68k-atari-mint", e)
+	rule {
+		ins = e.ins,
+		outs = e.outs,
+		cmd = "m68k-atari-mint-gcc @1 -Wa,-S -nostdlib -o &1"
+	}
 end
 
 function buildzmac(e)
@@ -220,6 +224,11 @@ end
 function emu2test(e)
     e.ins = concat { e.ins, "bin/emu2" }
     return simpletest("bin/emu2", e)
+end
+
+function tosemutest(e)
+	e.ins = concat { e.ins, "bin/tosemu" }
+	return simpletest("bin/tosemu", e)
 end
 
 function cowgol(e)

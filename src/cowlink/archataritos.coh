@@ -24,47 +24,33 @@ end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
 	E(".global _start\n");
+	E("\t.text\n");
 	E("\t_start:\n");
 
-	# This code is placed at the beginning of the ELF executable and is the
-	# first thing that runs.
-	#
-	# On entry, the stack looks like this:
-	#
-	# sp+...          NULL
-	# sp+8+(4*argc)   env (X quads)
-	# sp+4+(4*argc)   NULL
-	# sp+4            argv (argc quads)
-	# sp              argc
+	E("\tmove.l 4(sp), (basepage)\n");
 
-#	E("\taddi 3,1,4\n"); # compute argv
-#	E("\tlis 4,argv@ha\n");
-#	E("\tstw 3,argv@l(4)\n");
-#
-#	while coo != (0 as [Coo]) loop
-#		var main := coo.index.subroutines[0];
-#		if main != (0 as [Subroutine]) then
-#			E("\tbl ");
-#			ArchEmitSubRef(main);
-#			E_nl();
-#		end if;
-#		coo := coo.next;
-#	end loop;
-#
-#	E("_exit:\n");
-#	E("\tli 3,0\n");
-#	E("\tli 0,1\n"); # __exit();
-#	E("\tsc\n");
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\tjsr ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("_exit:\n");
+	E("\tmove.w #0, -(sp)\n"); # PTerm0
+	E("\ttrap #1\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-	#E("\t.section .bss\n");
-	E("argc: .space 4\n");
-	E("argv: .space 4\n");
+	E("\t.bss\n");
+	E("basepage: .space 4\n");
 	E("ws: .space ");
 	E_u16(workspaceSize[0]);
 	E_nl();
-	E("LOMEM: .space 1024*1024\n");
+	E("LOMEM: .space 64*1024\n");
 	E("HIMEM:\n");
 end sub;
 

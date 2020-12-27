@@ -177,7 +177,7 @@ toolchain_ataritos = {
 	runtime = "rt/ataritos",
 	asmext = ".s",
 	binext = ".ataritos.prg",
-	tester = ataritostest,
+	tester = tosemutest,
 }
 
 ALL_TOOLCHAINS = {
