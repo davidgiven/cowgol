@@ -6,22 +6,18 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
-
 #include <fcntl.h>
-
 #include "sim.h"
 #include "m68k.h"
 
 void disassemble_program();
 
 #define ADDRESS_MASK 0xffffffff
-#define RAM_BASE 0x08000000
-#define RAM_TOP  0x08100000
-
-#define BRK_TOP (RAM_TOP - 0x1000)
+#define RAM_BASE 0x00000000
+#define RAM_TOP  0x00100000
 
 #define INIT_SP RAM_TOP
-#define INIT_PC 0x08000054
+#define INIT_PC 0x00000900
 
 /* Read/write macros */
 #define READ_BYTE(BASE, ADDR) (BASE)[ADDR]
@@ -41,7 +37,6 @@ void disassemble_program();
 									(BASE)[(ADDR)+3] = (VAL)&0xff
 
 
-static void exit_error(char* fmt, ...);
 static void emulated_syscall(void);
 
 uint32_t cpu_read_byte(uint32_t address);
@@ -94,8 +89,8 @@ uint32_t cpu_read_long(uint32_t address)
 	{
 		case 0x00: return INIT_SP;
 		case 0x04: return entrypoint;
-		case 0x80: emulated_syscall(); return 0x10000;
-		case 0x10000: return 0x4e734e73; /* rte; rte */
+		case 0x84: gemdos_syscall(); return 0x100;
+		case 0x100: return 0x4e734e73; /* rte; rte */
 		case 0x10004: return 0;
 		default:
 		{
@@ -204,7 +199,7 @@ void cpu_instr_callback(int apc)
 	instr_size = m68k_disassemble(buff, pc, M68K_CPU_TYPE_68020);
 	make_hex(buff2, pc, instr_size);
 	printf("E %03x: %-20s: %s\n", pc, buff2, buff);
-	printf("  d0: %08x d1: %08x d2: %08x d3: %08x d4: %08x d5: %08x d6: %08x d7: %08x\n",
+	printf("  d0: %08x d1: %08x d2: %08x d3: %08x\n  d4: %08x d5: %08x d6: %08x d7: %08x\n",
 		m68k_get_reg(NULL, M68K_REG_D0),
 		m68k_get_reg(NULL, M68K_REG_D1),
 		m68k_get_reg(NULL, M68K_REG_D2),
@@ -213,7 +208,7 @@ void cpu_instr_callback(int apc)
 		m68k_get_reg(NULL, M68K_REG_D5),
 		m68k_get_reg(NULL, M68K_REG_D6),
 		m68k_get_reg(NULL, M68K_REG_D7));
-	printf("  a0: %08x a1: %08x a2: %08x a3: %08x a4: %08x a5: %08x a6: %08x a7: %08x\n",
+	printf("  a0: %08x a1: %08x a2: %08x a3: %08x\n  a4: %08x a5: %08x a6: %08x a7: %08x\n",
 		m68k_get_reg(NULL, M68K_REG_A0),
 		m68k_get_reg(NULL, M68K_REG_A1),
 		m68k_get_reg(NULL, M68K_REG_A2),
@@ -288,21 +283,6 @@ static void emulated_syscall(void)
 			break;
 		}
 
-		case 45: /* brk */
-		{
-			uint32_t newpos = m68k_get_reg(NULL, M68K_REG_D1);
-			if (newpos == 0)
-				m68k_set_reg(M68K_REG_D0, brkpos);
-			else if ((newpos < brkbase) || (newpos >= BRK_TOP))
-				m68k_set_reg(M68K_REG_D0, -ENOMEM);
-			else
-			{
-				brkpos = newpos;
-				m68k_set_reg(M68K_REG_D0, 0);
-			}
-			break;
-		}
-
 		case 20: /* getpid */
 		case 48: /* signal */
 		case 54: /* ioctl */
@@ -317,33 +297,83 @@ static void emulated_syscall(void)
 
 static void load_program(FILE* fd)
 {
+	/* The Atari TOS binary header looks like this:
+	 *
+	 * 00 x2 magic number
+	 * 02 x4 text segment size
+	 * 06 x4 data segment size
+	 * 0a x4 bss segment size
+	 * 0e x4 symbol table size
+	 * 12 x4 res
+	 * 16 x4 flags
+	 * 1a x2 absflag
+	 * 1c
+	 */
+
 	fseek(fd, 0, SEEK_SET);
-	if (fread(g_ram, 1, 0x34, fd) != 0x34)
-		exit_error("couldn't read ELF header");
+	if (fread(g_ram, 1, 0x1c, fd) != 0x1c)
+		exit_error("couldn't read TOS header");
 	
-	uint32_t phoff = READ_LONG(g_ram, 0x1c);
-	uint16_t phentsize = READ_WORD(g_ram, 0x2a);
-	uint16_t phnum = READ_WORD(g_ram, 0x2c);
-	entrypoint = READ_LONG(g_ram, 0x18);
-	if ((phentsize != 0x20) || (phnum != 1))
-		exit_error("unsupported ELF file");
+	if (READ_WORD(g_ram, 0x00) != 0x601a)
+		exit_error("bad magic number, not a TOS executable");
 
-	fseek(fd, phoff, SEEK_SET);
-	if (fread(g_ram, 1, phentsize, fd) != phentsize)
-		exit_error("couldn't read program header");
+	if (READ_WORD(g_ram, 0x1a))
+		exit_error("absolute binaries not supported");
 
-	uint32_t offset = READ_LONG(g_ram, 0x04);
-	uint32_t vaddr = READ_LONG(g_ram, 0x08);
-	uint32_t filesz = READ_LONG(g_ram, 0x10);
-	uint32_t memsz = READ_LONG(g_ram, 0x14);
-	brkbase = brkpos = vaddr + memsz;
+	uint32_t tsize = READ_LONG(g_ram, 0x02);
+	uint32_t dsize = READ_LONG(g_ram, 0x06);
+	uint32_t bsize = READ_LONG(g_ram, 0x0a);
+	uint32_t ssize = READ_LONG(g_ram, 0x0e);
+	uint32_t filesz = tsize + dsize + ssize;
 
-	uint32_t vaddroffset = transform_address(vaddr);
-	transform_address(vaddr + memsz); /* bounds check */
-	memset(g_ram+vaddroffset, 0, memsz);
-	fseek(fd, offset, SEEK_SET);
-	if (fread(g_ram+vaddroffset, 1, filesz, fd) != filesz)
+	if (fread(g_ram+0x0900, 1, filesz, fd) != filesz)
 		exit_error("couldn't read program data");
+
+	uint8_t buffer[4];
+	fread(buffer, 1, 4, fd);
+	uint32_t rptr = 0x900 + READ_LONG(buffer, 0);
+
+	WRITE_LONG(g_ram, rptr, READ_LONG(g_ram, rptr) + 0x900);
+	for (;;)
+	{
+		fread(buffer, 1, 1, fd);
+		uint8_t relo = buffer[0];
+		if (relo == 0)
+			break;
+		if (relo == 1)
+			rptr += 0xfe;
+		else
+		{
+			rptr += relo;
+			WRITE_LONG(g_ram, rptr, READ_LONG(g_ram, rptr) + 0x900);
+		}
+	}
+
+	/* Set up the base page:
+	 *
+	 * 00     uint32_t p_lowtpa;
+     * 04     uint32_t p_hitpa;
+     * 08 0c  uint32_t p_tbase, p_tlen;
+     * 10 14  uint32_t p_dbase, p_dlen;
+     * 18 1c  uint32_t p_bbase, p_blen;
+     * 20     uint32_t p_dta;
+     * 24     uint32_t p_parent;
+     * 28     uint32_t p_reserved;
+     * 2c     uint32_t p_env;
+     * 30     uint8_t p_undef[80];
+     * 80     uint8_t p_cmdlin[128];
+	 */
+
+	WRITE_LONG(g_ram, 0x00, 0x800);
+	WRITE_LONG(g_ram, 0x04, RAM_TOP);
+	WRITE_LONG(g_ram, 0x08, 0x900);
+	WRITE_LONG(g_ram, 0x0c, tsize);
+	WRITE_LONG(g_ram, 0x10, 0x900 + tsize);
+	WRITE_LONG(g_ram, 0x14, dsize);
+	WRITE_LONG(g_ram, 0x18, 0x900 + tsize + dsize);
+	WRITE_LONG(g_ram, 0x1c, bsize);
+	WRITE_LONG(g_ram, 0x20, 0x880);
+	WRITE_LONG(g_ram, 0x2c, 0x830);
 }
 
 /* The main loop */
@@ -364,37 +394,26 @@ int main(int argc, char* argv[])
 
 	//disassemble_program();
 
-	m68k_set_cpu_type(M68K_CPU_TYPE_68040);
+	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
 	m68k_pulse_reset();
 
-	/* On entry, the Linux stack looks like this.
+	/* On entry, the TOS stack looks like this.
 	 * 
-	 * sp+..           NULL
-	 * sp+8+(4*argc)   env (X quads)
-	 * sp+4+(4*argc)   NULL
-	 * sp+4            argv (argc quads)
-	 * sp              argc
-	 *
-	 * We'll set it up with a bodgy stack frame with argc=0 just to keep the
-	 * startup code happy.
+	 * sp+4            base page address
+	 * sp+0			   unused return address
 	 */
 
 	{
 		uint32_t sp = INIT_SP;
+		cpu_write_long(sp -= 4, 0x800);
 		cpu_write_long(sp -= 4, 0);
-		uint32_t envp = sp;
-		cpu_write_long(sp -= 4, envp);
-		cpu_write_long(sp -= 4, 0);
-		unsigned long argv = sp;
-		cpu_write_long(sp -= 4, argv);
-		cpu_write_long(sp -= 4, 0);
-		m68k_set_reg(M68K_REG_SP, sp);   /* init sp is also addr 0 */
+		m68k_set_reg(M68K_REG_SP, sp);
+		m68k_set_reg(M68K_REG_PC, INIT_PC);
 	}
 
-	for (;;) {
+	for (;;)
 		m68k_execute(100000);
-	}
 
 	return 0;
 }

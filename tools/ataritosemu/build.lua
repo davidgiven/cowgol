@@ -5,6 +5,7 @@ musashilib {
 
 cprogram {
 	ins = {
+		"tools/ataritosemu/gemdos.c",
 		"tools/ataritosemu/sim.c",
 		"tools/ataritosemu/sim.h",
 		"third_party/musashi/m68k.h",

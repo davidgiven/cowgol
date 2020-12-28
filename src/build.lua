@@ -226,9 +226,9 @@ function emu2test(e)
     return simpletest("bin/emu2", e)
 end
 
-function tosemutest(e)
-	e.ins = concat { e.ins, "bin/tosemu" }
-	return simpletest("bin/tosemu", e)
+function ataritosemutest(e)
+	e.ins = concat { e.ins, "bin/ataritosemu" }
+	return simpletest("bin/ataritosemu", e)
 end
 
 function cowgol(e)
