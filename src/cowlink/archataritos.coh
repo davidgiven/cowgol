@@ -8,6 +8,9 @@ end sub;
 
 sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 	newvalue := value;
+	if (alignment != 1) and ((newvalue & 1) == 1) then
+		newvalue := newvalue + 1;
+	end if;
 end sub;
 
 sub ArchEmitSubRef(subr: [Subroutine]) is
@@ -51,6 +54,7 @@ sub ArchEmitFooter(coo: [Coo]) is
 	E("ws: .space ");
 	E_u16(workspaceSize[0]);
 	E_nl();
+	E("\t.align 2\n");
 	E("LOMEM: .space 64*1024\n");
 	E("HIMEM:\n");
 end sub;
