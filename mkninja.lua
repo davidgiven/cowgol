@@ -46,6 +46,10 @@ function string:ext(newext)
 	return self:gsub("%.[^.]*$", newext)
 end
 
+function string:dir()
+	return self:gsub("[^/]*$", "")
+end
+
 function concat(...)
 	local result = {}
 
@@ -111,6 +115,7 @@ include "third_party/tosemu/build.lua"
 include "tools/cpmemu/build.lua"
 include "tools/tubeemu/build.lua"
 include "tools/fuzix6303emu/build.lua"
+include "tools/lx68kemu/build.lua"
 include "third_party/lemon/build.lua"
 include "tools/newgen/build.lua"
 include "src/build.lua"

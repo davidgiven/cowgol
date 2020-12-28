@@ -33,6 +33,7 @@ function musashilib(e)
 			"$OBJ/third_party/musashi/m68kops.c",
 			"$OBJ/third_party/musashi/m68kops.h"
 		},
+		objdir = e.outs[1]:dir().."musashi",
 		outs = e.outs
 	}
 end
