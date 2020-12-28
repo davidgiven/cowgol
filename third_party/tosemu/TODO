@@ -1,4 +1,0 @@
-- Move the whole execution loop into the tossystem module
-- Looks as if many parts of this will have to be implemented:
-    http://www.yardley.cc/atari/compendium/atari-compendium-appendb.htm
-    http://www.yardley.cc/atari/compendium/atari-compendium-appendb2.htm

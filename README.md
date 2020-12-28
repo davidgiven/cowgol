@@ -281,7 +281,3 @@ turn contains a copy of John R. Hauser's softfloat library, distributable under
 a custom but MIT-like license; see `third_party/musashi/softfloat/README.txt`
 for the text.
 
-`third_party/tosemu` contains a (slightly modified) copy of Johan Thelin's
-Atari TOS emulator. It is distributable under the terms of the GPL 2 license;
-see `third_party/tosemu/COPYING` for the full text.
-
