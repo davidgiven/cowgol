@@ -7,6 +7,7 @@ cprogram {
 	ins = {
 		"tools/lx68kemu/sim.c",
 		"tools/lx68kemu/sim.h",
+		"third_party/musashi/m68k.h",
 		"$OBJ/tools/lx68kemu/libmusashi.a",
 	},
 	outs = { "bin/lx68kemu" },
