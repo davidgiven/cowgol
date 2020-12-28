@@ -757,7 +757,7 @@ gen dreg := MUL1($$:lhs, dreg|imm:rhs)
 gen dreg := MUL2($$:lhs, op16:rhs)
 	{ Alu3("muls.w", $$, $rhs, &$@rhs.operand); }
 
-gen d0 := MUL4(d0:lhs, d1:rhs)
+gen d0 := MUL4(d0:lhs, d1:rhs) uses d2|d3
 	{ R_flush($$); E_callhelper("_mul4"); }
 
 gen dreg := DIVS1($$:lhs, dreg|imm:rhs)
