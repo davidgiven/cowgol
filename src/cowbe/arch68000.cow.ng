@@ -337,7 +337,7 @@ gen STARTSUB() uses all
 		E_nl();
 	end loop;
 
-	if count > 1 then
+	if current_subr.num_input_parameters > 1 then
 		E_pushl(REG_A5);
 	end if;
 
