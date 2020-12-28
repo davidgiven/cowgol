@@ -5,7 +5,7 @@ local ARCHS = {
 	"cgen",
 	"pdp11",
 	"16bit",
-	"32bit",
+	"32bita2",
 	"32bita",
 }
 

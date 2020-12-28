@@ -16,6 +16,9 @@
 
 %{
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+		if alignment > 2 then
+			alignment := 2;
+		end if;
 		var a := (alignment-1) as Size;
 		newvalue := (value+a) & ~a;
 	end sub;
@@ -1036,7 +1039,8 @@ gen ENDCASE4() { R_flushall(); };
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	E(".data 4\n");
+	E(".data\n");
+	E(".align 2\n");
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }
@@ -1097,7 +1101,7 @@ gen INITSTRING():s
 
         EmitterOpenStream(current_subr);
 
-		E(".data 1\n");
+		E(".data\n");
         E_label(lid);
 		E_insn(".byte");
 

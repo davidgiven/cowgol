@@ -46,6 +46,7 @@ end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
 	E("\t.bss\n");
+	E("\t.align 2\n");
 	E("basepage: .space 4\n");
 	E("ws: .space ");
 	E_u16(workspaceSize[0]);

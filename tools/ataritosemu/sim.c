@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -51,6 +52,8 @@ uint32_t brkbase = RAM_BASE;
 uint32_t brkpos = RAM_BASE;
 uint32_t entrypoint = RAM_BASE;
 
+static bool verbose = false;
+
 /* Exit with an error message.  Use printf syntax. */
 void exit_error(char* fmt, ...)
 {
@@ -89,9 +92,10 @@ uint32_t cpu_read_long(uint32_t address)
 	{
 		case 0x00: return INIT_SP;
 		case 0x04: return entrypoint;
+		case 0x08: exit_error("access fault");
+		case 0x0c: exit_error("address error");
 		case 0x84: gemdos_syscall(); return 0x100;
 		case 0x100: return 0x4e734e73; /* rte; rte */
-		case 0x10004: return 0;
 		default:
 		{
 			uint32_t value = READ_LONG(g_ram, transform_address(address));
@@ -184,41 +188,40 @@ void disassemble_program()
 
 void cpu_instr_callback(int apc)
 {
-        (void)apc;
+    (void)apc;
 	uint32_t pc = m68k_get_reg(NULL, M68K_REG_PC);
 	if (pc == 0xc)
 		exit_error("address exception");
 
-	/* The following code would print out instructions as they are executed */
+	if (verbose)
+	{
+		static char buff[100];
+		static char buff2[100];
+		static uint32_t instr_size;
 
-#if 0
-	static char buff[100];
-	static char buff2[100];
-	static uint32_t instr_size;
-
-	instr_size = m68k_disassemble(buff, pc, M68K_CPU_TYPE_68020);
-	make_hex(buff2, pc, instr_size);
-	printf("E %03x: %-20s: %s\n", pc, buff2, buff);
-	printf("  d0: %08x d1: %08x d2: %08x d3: %08x\n  d4: %08x d5: %08x d6: %08x d7: %08x\n",
-		m68k_get_reg(NULL, M68K_REG_D0),
-		m68k_get_reg(NULL, M68K_REG_D1),
-		m68k_get_reg(NULL, M68K_REG_D2),
-		m68k_get_reg(NULL, M68K_REG_D3),
-		m68k_get_reg(NULL, M68K_REG_D4),
-		m68k_get_reg(NULL, M68K_REG_D5),
-		m68k_get_reg(NULL, M68K_REG_D6),
-		m68k_get_reg(NULL, M68K_REG_D7));
-	printf("  a0: %08x a1: %08x a2: %08x a3: %08x\n  a4: %08x a5: %08x a6: %08x a7: %08x\n",
-		m68k_get_reg(NULL, M68K_REG_A0),
-		m68k_get_reg(NULL, M68K_REG_A1),
-		m68k_get_reg(NULL, M68K_REG_A2),
-		m68k_get_reg(NULL, M68K_REG_A3),
-		m68k_get_reg(NULL, M68K_REG_A4),
-		m68k_get_reg(NULL, M68K_REG_A5),
-		m68k_get_reg(NULL, M68K_REG_A6),
-		m68k_get_reg(NULL, M68K_REG_A7));
-	fflush(stdout);
-#endif
+		instr_size = m68k_disassemble(buff, pc, M68K_CPU_TYPE_68020);
+		make_hex(buff2, pc, instr_size);
+		printf("E %03x: %-20s: %s\n", pc, buff2, buff);
+		printf("  d0: %08x d1: %08x d2: %08x d3: %08x\n  d4: %08x d5: %08x d6: %08x d7: %08x\n",
+			m68k_get_reg(NULL, M68K_REG_D0),
+			m68k_get_reg(NULL, M68K_REG_D1),
+			m68k_get_reg(NULL, M68K_REG_D2),
+			m68k_get_reg(NULL, M68K_REG_D3),
+			m68k_get_reg(NULL, M68K_REG_D4),
+			m68k_get_reg(NULL, M68K_REG_D5),
+			m68k_get_reg(NULL, M68K_REG_D6),
+			m68k_get_reg(NULL, M68K_REG_D7));
+		printf("  a0: %08x a1: %08x a2: %08x a3: %08x\n  a4: %08x a5: %08x a6: %08x a7: %08x\n",
+			m68k_get_reg(NULL, M68K_REG_A0),
+			m68k_get_reg(NULL, M68K_REG_A1),
+			m68k_get_reg(NULL, M68K_REG_A2),
+			m68k_get_reg(NULL, M68K_REG_A3),
+			m68k_get_reg(NULL, M68K_REG_A4),
+			m68k_get_reg(NULL, M68K_REG_A5),
+			m68k_get_reg(NULL, M68K_REG_A6),
+			m68k_get_reg(NULL, M68K_REG_A7));
+		fflush(stdout);
+	}
 }
 
 /**
@@ -376,21 +379,33 @@ static void load_program(FILE* fd)
 	WRITE_LONG(g_ram, 0x2c, 0x830);
 }
 
-/* The main loop */
+static void syntax_error(void)
+{
+	exit_error("Usage: ataritosemu [-v] <binary.prg>");
+}
+
 int main(int argc, char* argv[])
 {
-	FILE* fhandle;
+	FILE* fd;
 
-	if(argc != 2)
+	if (argc < 2)
+		syntax_error();
+
+	const char** ptr = &argv[1];
+	if (strcmp(*ptr, "-v") == 0)
 	{
-		printf("Usage: sim <program file>\n");
-		exit(-1);
+		verbose = true;
+		ptr++;
 	}
 
-	if((fhandle = fopen(argv[1], "rb")) == NULL)
-		exit_error("Unable to open %s", argv[1]);
+	if (!*ptr)
+		syntax_error();
 
-	load_program(fhandle);
+	fd = fopen(*ptr, "rb");
+	if (!fd)
+		exit_error("Unable to open %s", *ptr);
+
+	load_program(fd);
 
 	//disassemble_program();
 

@@ -170,7 +170,7 @@ toolchain_msdos = {
 
 toolchain_ataritos = {
 	name = "ataritos",
-	cowfe = "bin/cowfe-32bit.nncgen.exe",
+	cowfe = "bin/cowfe-32bita2.nncgen.exe",
 	cowbe = "bin/cowbe-68000.nncgen.exe",
 	linker = "bin/cowlink-ataritos.nncgen.exe",
 	assembler = buildgasataritos,
