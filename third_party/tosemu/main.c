@@ -35,14 +35,12 @@
 
 int verbose;
 
-void cpu_instr_callback()
+void cpu_instr_callback(uint32_t pc)
 {
     static char buff[100];
-    static unsigned int pc;
 
     if (verbose)
     {
-        pc = m68k_get_reg(NULL, M68K_REG_PC);
         m68k_disassemble(buff, pc, M68K_CPU_TYPE_68000);
         printf("E %03x: %s\n", pc, buff);
 #if 0 /* Dump all regs */

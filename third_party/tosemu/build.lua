@@ -1,3 +1,8 @@
+musashilib {
+	m68kconf = "third_party/tosemu/m68kconf.h",
+	outs = { "$OBJ/third_party/tosemu/libmusashi.a" }
+}
+
 cprogram {
 	ins = {
 		"third_party/tosemu/bios.c",
@@ -25,7 +30,7 @@ cprogram {
 		"third_party/tosemu/xbios.c",
 		"third_party/tosemu/xbios.h",
 		"third_party/musashi/m68k.h",
-		"$OBJ/libmusashi.a",
+		"$OBJ/third_party/tosemu/libmusashi.a",
 	},
 	outs = { "bin/tosemu" },
 }

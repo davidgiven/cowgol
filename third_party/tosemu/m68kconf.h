@@ -27,10 +27,10 @@
  * THE SOFTWARE.
  */
 
-
-
 #ifndef M68KCONF__HEADER
 #define M68KCONF__HEADER
+
+#include <stdint.h>
 
 /* Configuration switches.
  * Use OPT_SPECIFY_HANDLER for configuration options that allow callbacks.
@@ -130,10 +130,10 @@
 /* If ON, CPU will call the instruction hook callback before every
  * instruction.
  */
-void cpu_instr_callback(); /* from main.c */
+void cpu_instr_callback(uint32_t pc); /* from main.c */
 
 #define M68K_INSTRUCTION_HOOK       OPT_SPECIFY_HANDLER
-#define M68K_INSTRUCTION_CALLBACK() cpu_instr_callback()
+#define M68K_INSTRUCTION_CALLBACK(pc) cpu_instr_callback(pc)
 /* #define M68K_INSTRUCTION_HOOK       OPT_OFF */
 /* #define M68K_INSTRUCTION_CALLBACK() your_instruction_hook_function() */
 
@@ -168,7 +168,7 @@ void cpu_instr_callback(); /* from main.c */
 /* If ON, the enulation core will use 64-bit integers to speed up some
  * operations.
 */
-#define M68K_USE_64_BIT  OPT_OFF
+#define M68K_USE_64_BIT  OPT_ON
 
 
 /* Set to your compiler's static inline keyword to enable it, or
