@@ -353,7 +353,7 @@ gen ENDSUB() uses all
 	var count: uint8 := 0;
 	var params := current_subr.num_output_parameters;
 
-	if count > 1 then
+	if params > 1 then
 		E_popl(REG_A5); # return address
 	end if;
 
@@ -383,7 +383,7 @@ gen ENDSUB() uses all
 		count := count + 1;
 	end loop;
 
-	if count > 1 then
+	if params > 1 then
 		E("\tjmp (a5)\n");
 	else
 		E("\trts\n");
@@ -402,23 +402,6 @@ gen RETURN() uses all
 }
 
 // --- Miscellaneous --------------------------------------------------------
-
-//gen any := SUBREF():s
-//{
-//	R_flush($$);
-//	E_insn("lis");
-//	E_reg($$);
-//	E(", (");
-//	E_subref($s.subr);
-//	E(")@h\n");
-//	E_insn("ori");
-//	E_reg($$);
-//	E_comma();
-//	E_reg($$);
-//	E_comma();
-//	E_subref($s.subr);
-//	E("@l\n");
-//}
 
 gen dreg|any|any := CONSTANT():c
 {
