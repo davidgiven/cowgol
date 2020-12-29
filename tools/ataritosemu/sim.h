@@ -1,5 +1,7 @@
-#ifndef SIM__HEADER
-#define SIM__HEADER
+#ifndef SIM_H
+#define SIM_H
+
+#include <stdint.h>
 
 extern void exit_error(char* fmt, ...);
 
