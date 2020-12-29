@@ -53,6 +53,9 @@ The following targets are supported. Adding more is easy.
 
   - PowerPC, on Linux.
 
+  - 68000, on Atari ST TOS (although most of the system calls aren't hooked up
+	yet so you can't do anything more than print stuff).
+
   - 8086, on DOS (it emits small mode .exe files with 64kB of code and 64kB of data).
 
   - PDP11, on V7 Unix (thanks to
@@ -86,7 +89,7 @@ In terms of machines you can run the compiler _on_:
 
   - Generic CP/M (both Z80 and 8080).
 
-The other platforms have unfinished system call libraries, so while the
+Many of the other platforms have unfinished system call libraries, so while the
 compiler tests all pass and the compilers are being built, they won't work if
 you run them. This should be easy to fix if necessary --- let me know and ask.
 (I just haven't got round to it yet.)
