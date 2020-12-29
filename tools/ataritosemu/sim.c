@@ -388,22 +388,28 @@ int main(int argc, char* argv[])
 {
 	FILE* fd;
 
-	if (argc < 2)
-		syntax_error();
-
-	const char** ptr = &argv[1];
-	if (strcmp(*ptr, "-v") == 0)
+	for (;;)
 	{
-		verbose = true;
-		ptr++;
+		int opt = getopt(argc, argv, "v");
+		if (opt == -1)
+			break;
+		switch (opt)
+		{
+			case 'v':
+				verbose = true;
+				break;
+
+			default:
+				syntax_error();
+		}
 	}
 
-	if (!*ptr)
+	if (optind >= argc)
 		syntax_error();
 
-	fd = fopen(*ptr, "rb");
+	fd = fopen(argv[optind], "rb");
 	if (!fd)
-		exit_error("Unable to open %s", *ptr);
+		exit_error("Unable to open %s", argv[optind]);
 
 	load_program(fd);
 
@@ -412,6 +418,26 @@ int main(int argc, char* argv[])
 	m68k_set_cpu_type(M68K_CPU_TYPE_68000);
 	m68k_init();
 	m68k_pulse_reset();
+
+	/* Write command line. */
+
+	{
+		uint8_t* ptr = &g_ram[0x880];
+		for (;;)
+		{
+			*ptr++ = ' ';
+
+			const char* arg = argv[++optind];
+			if (!arg)
+				break;
+
+			int len = strlen(arg);
+			memcpy((char*)ptr, arg, len);
+			ptr += len;
+		}
+
+		g_ram[0x880] = ptr - &g_ram[0x881];
+	}
 
 	/* On entry, the TOS stack looks like this.
 	 * 
