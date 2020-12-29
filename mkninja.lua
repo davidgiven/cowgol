@@ -148,4 +148,6 @@ include "dist/cpm/build.lua"
 include "dist/cpmz/build.lua"
 include "dist/cpmbasic/build.lua"
 include "dist/msdos/build.lua"
+include "dist/ataritos/build.lua"
+
 
