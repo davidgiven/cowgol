@@ -35,8 +35,35 @@
 	dbra d3, ``_loop
 	rts
 
-# 32-bit signed divide.
+# 32-bit signed divide of d0/d1 leaving the result in d0 and the remainder in d2.
+# Uses d3.
 &X _divrems4
 ``:
+	move.l d0, -(sp)	| save sign of remainder
+	move.l d1, d2
+	eor.l d0, d2		| discover sign of result
+	move.l d2, -(sp)	| ...and save
+
+	tst.l d0
+	bge.b ``_lhs_positive
+	neg.l d0			| negate LHS if negative
+``_lhs_positive:
+
+	tst.l d1
+	bge.b ``_rhs_positive
+	neg.l d1			| negate RHS if negative
+``_rhs_positive:
+
+	bsr.b `_divremu4	| actually do division
+
+	tst.l (sp)+			| should dividend be negative?
+	bge.b ``_dividend_positive
+	neg.l d0
+``_dividend_positive:
+
+	tst.l (sp)+	 		| should remainder be negative?
+	bge.b ``_remainder_positive
+	neg.l d2
+``_remainder_positive:
 	rts
 
