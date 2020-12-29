@@ -7,35 +7,143 @@ end record;
 
 include "fileio.coh";
 
+sub _fcb_seek(fcb: [FCB], pos: uint32) is
+    var fd := fcb.fd;
+
+    @asm "clr.w -(sp)"; # SEEK_SET
+    @asm "move.w (", fd, "), -(sp)";
+    @asm "move.l (", pos, "), -(sp)";
+    @asm "move.w #0x42, -(sp)"; # Fseek
+    @asm "trap #1"; # GEMDOS
+    @asm "add #10, sp";
+end sub;
+
 @impl sub FCBRawRead is
-	fcb.flags := fcb.flags | FCB_FLAG_ERROR;
-	amount := 0;
+    _fcb_seek(fcb, pos);
+
+    var dma := &fcb.buffer[0];
+    var fd := fcb.fd;
+    var i: int16;
+
+    @asm "move.l (", dma, "), -(sp)";
+    @asm "move.w (", len, "), -(sp)";
+    @asm "clr.w -(sp)";
+    @asm "move.w (", fd, "), -(sp)";
+    @asm "move.w #0x3f, -(sp)"; # Fread
+    @asm "trap #1"; # GEMDOS
+    @asm "add #12, sp";
+    @asm "move.w d0, (", i, ")";
+
+    if i < 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        amount := 0;
+    else
+        amount := i as FCBIndexType;
+    end if;
 end sub;
 
 @impl sub FCBRawWrite is
-	fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+    _fcb_seek(fcb, pos);
+
+    var dma := &fcb.buffer[0];
+    var fd := fcb.fd;
+    var i: int16;
+
+    @asm "move.l (", dma, "), -(sp)";
+    @asm "move.w (", len, "), -(sp)";
+    @asm "clr.w -(sp)";
+    @asm "move.w (", fd, "), -(sp)";
+    @asm "move.w #0x40, -(sp)"; # Fwrite
+    @asm "trap #1"; # GEMDOS
+    @asm "add #12, sp";
+    @asm "move.w d0, (", i, ")";
+
+    if i < 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+    end if;
+end sub;
+
+sub _fcb_open(fcb: [FCB], filename: [uint8], mode: uint16): (errno: uint8) is
+    _fcb_init(fcb);
+
+    var f: int16;
+    @asm "move.w (", mode, "), -(sp)";
+    @asm "move.l (", filename, "), -(sp)";
+    @asm "move.w #0x3d, -(sp)"; # Fopen
+    @asm "trap #1"; # GEMDOS
+    @asm "add #8, sp";
+    @asm "move.w d0, (", f, ")";
+
+    if f < 0 then
+        errno := 1;
+    else
+        errno := 0;
+        fcb.fd := f as uint16;
+    end if;
+end sub;
+
+sub _fcb_create(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    _fcb_init(fcb);
+
+    var f: int16;
+    @asm "clr.w -(sp)";
+    @asm "move.l (", filename, "), -(sp)";
+    @asm "move.w #0x3c, -(sp)"; # Fcreate
+    @asm "trap #1"; # GEMDOS
+    @asm "add #8, sp";
+    @asm "move.w d0, (", f, ")";
+
+    if f < 0 then
+        errno := 1;
+    else
+        errno := 0;
+        fcb.fd := f as uint16;
+    end if;
 end sub;
 
 sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	errno := 1;
+    errno := _fcb_open(fcb, filename, 0);
 end sub;
 
 sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	errno := 1;
+    errno := _fcb_open(fcb, filename, 2);
 end sub;
 
 sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-    errno := FCBOpenUp(fcb, filename);
+    errno := _fcb_open(fcb, filename, 1);
+    if errno != 0 then
+        errno := _fcb_create(fcb, filename);
+    end if;
 end sub;
 	
 sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	FCBFlush(fcb);
 
-	errno := 1;
+    var f: uint16 := fcb.fd;
+    @asm "move.w (", f, "), -(sp)";
+    @asm "move.w #0x3e, -(sp)"; # Fclose
+    @asm "trap #1"; # GEMDOS
+    @asm "add #4, sp";
+    @asm "move.w d0, (", f, ")";
+
+    if f != 0 then
+        errno := 1;
+    else
+        errno := 0;
+    end if;
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32) is
 	FCBFlush(fcb);
+
+    var fd := fcb.fd;
+    @asm "move.w #2, -(sp)"; # SEEK_END
+    @asm "move.w (", fd, "), -(sp)";
+    @asm "clr.l -(sp)";
+    @asm "move.w #0x42, -(sp)"; # Fseek
+    @asm "trap #1"; # GEMDOS
+    @asm "add #10, sp";
+    @asm "move.l d0, (", len, ")";
 end sub;
 
 include "common-file.coh";

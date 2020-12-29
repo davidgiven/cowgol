@@ -3,6 +3,8 @@
 
 extern void exit_error(char* fmt, ...);
 
+extern uint8_t g_ram[];
+
 extern unsigned int cpu_read_byte(unsigned int address);
 extern unsigned int cpu_read_word(unsigned int address);
 extern unsigned int cpu_read_long(unsigned int address);

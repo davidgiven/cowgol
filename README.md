@@ -92,7 +92,10 @@ In terms of machines you can run the compiler _on_:
 Many of the other platforms have unfinished system call libraries, so while the
 compiler tests all pass and the compilers are being built, they won't work if
 you run them. This should be easy to fix if necessary --- let me know and ask.
-(I just haven't got round to it yet.)
+(I just haven't got round to it yet.) Other platforms have working system call
+libraries but Cowgol doesn't provide an assembler, so you need to source your
+own (for example: MS-DOS and Atari ST TOS). So the compiler technically works
+there; you just can't do anything useful with it.
 
 ### About the language
 

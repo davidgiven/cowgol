@@ -47,7 +47,7 @@ void cpu_write_byte(uint32_t address, uint32_t value);
 void cpu_write_word(uint32_t address, uint32_t value);
 void cpu_write_long(uint32_t address, uint32_t value);
 
-unsigned char g_ram[RAM_TOP - RAM_BASE];
+uint8_t g_ram[RAM_TOP - RAM_BASE];
 uint32_t brkbase = RAM_BASE;
 uint32_t brkpos = RAM_BASE;
 uint32_t entrypoint = RAM_BASE;

@@ -23,8 +23,62 @@ void gemdos_syscall(void)
 			putchar(m68k_get_reg(NULL, M68K_REG_D0));
 			break;
 
+		case 0x3d: /* Fopen */
+		{
+			const char* filename = g_ram + cpu_read_long(sp + 8);
+			unsigned mode = cpu_read_word(sp + 12);
+			if (mode > 2)
+				exit_error("bad mode");
+
+			static int modes[] = { O_RDONLY, O_WRONLY, O_RDWR };
+			int fd = open(filename, modes[mode], 0666);
+			m68k_set_reg(M68K_REG_D0, fd);
+			break;
+		}
+
+		case 0x3e: /* Fclose */
+		{
+			int fd = cpu_read_word(sp + 8);
+			int e = close(fd);
+			m68k_set_reg(M68K_REG_D0, e);
+			break;
+		}
+
+		case 0x3f: /* Fread */
+		{
+			int fd = cpu_read_word(sp + 8);
+			uint32_t count = cpu_read_long(sp + 10);
+			uint8_t* data = g_ram + cpu_read_long(sp + 14);
+
+			ssize_t s = read(fd, data, count);
+			m68k_set_reg(M68K_REG_D0, s);
+			break;
+		}
+
+		case 0x40: /* Fwrite */
+		{
+			int fd = cpu_read_word(sp + 8);
+			uint32_t count = cpu_read_long(sp + 10);
+			const uint8_t* data = g_ram + cpu_read_long(sp + 14);
+
+			ssize_t s = write(fd, data, count);
+			m68k_set_reg(M68K_REG_D0, s);
+			break;
+		}
+
+		case 0x42: /* Fseek */
+		{
+			uint32_t pos = cpu_read_long(sp + 8);
+			int fd = cpu_read_word(sp + 12);
+			unsigned whence = cpu_read_word(sp + 14);
+
+			off_t newpos = lseek(fd, pos, whence);
+			m68k_set_reg(M68K_REG_D0, newpos);
+			break;
+		}
+
 		default:
-			exit_error("unimplemented GEMDOS syscall %d", syscall);
+			exit_error("unimplemented GEMDOS syscall 0x%x", syscall);
 	}
 }
 
