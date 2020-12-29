@@ -176,7 +176,7 @@ toolchain_ataritos = {
 	assembler = buildgasataritos,
 	runtime = "rt/ataritos",
 	asmext = ".s",
-	binext = ".ataritos.prg",
+	binext = ".ataritos.tos",
 	tester = ataritosemutest,
 }
 

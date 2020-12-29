@@ -4,16 +4,17 @@ include "file.coh";
 const COUNT := 2000;
 var filename: [uint8] := "tmpfile";
 
-sub Check(e: uint8) is
+sub Check(e: uint8, msg: [uint8]) is
 	if e != 0 then
-		print("failed");
+		print("failed: ");
+		print(msg);
 		print_nl();
 		ExitWithError();
 	end if;
 end sub;
 
 var fcb: FCB;
-Check(FCBOpenOut(&fcb, filename));
+Check(FCBOpenOut(&fcb, filename), "open file for writing");
 
 var i: uint16 := 0;
 while i < COUNT loop
@@ -25,9 +26,9 @@ print("output size: ");
 print_i32(FCBExt(&fcb));
 print_nl();
 
-Check(FCBClose(&fcb));
+Check(FCBClose(&fcb), "close file");
 
-Check(FCBOpenIn(&fcb, filename));
+Check(FCBOpenIn(&fcb, filename), "open file for reading");
 print("input size: ");
 print_i32(FCBExt(&fcb));
 print_nl();
@@ -47,5 +48,5 @@ while i < COUNT loop
 	i := i + 1;
 end loop;
 
-Check(FCBClose(&fcb));
+Check(FCBClose(&fcb), "close file again");
 

@@ -1,7 +1,11 @@
-#ifndef SIM__HEADER
-#define SIM__HEADER
+#ifndef SIM_H
+#define SIM_H
+
+#include <stdint.h>
 
 extern void exit_error(char* fmt, ...);
+
+extern uint8_t g_ram[];
 
 extern unsigned int cpu_read_byte(unsigned int address);
 extern unsigned int cpu_read_word(unsigned int address);
