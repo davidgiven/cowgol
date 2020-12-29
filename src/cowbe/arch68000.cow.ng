@@ -136,6 +136,12 @@
 	sub E_popw(reg: RegId) is E_pop(reg, "move.w"); end sub;
 	sub E_popl(reg: RegId) is E_pop(reg, "move.l"); end sub;
 
+	sub E_swap(reg: RegId) is
+		E_insn("swap");
+		E_reg(reg);
+		E_nl();
+	end sub;
+
     sub E_callhelper(name: string) is
         var helper := GetHelper(name);
         R_flushall();
@@ -683,32 +689,10 @@ gen any := DEREF4(ADDRESS():a)
 		E_nl();
 	end sub;
 
-#	sub Rem(insn: string, dest: RegId, lhs: RegId, rhs: RegId) is
-#		R_flush(dest);
-#
-#		E_insn(insn);
-#		E("0, ");
-#		E_reg(lhs);
-#		E_comma();
-#		E_reg(rhs);
-#		E_nl();
-#
-#		E_insn("mullw");
-#		E("0,0,");
-#		E_reg(rhs);
-#		E_nl();
-#
-#		E_insn("subf");
-#		E_reg(dest);
-#		E(",0,");
-#		E_reg(lhs);
-#		E_nl();
-#	end sub;
-
 	sub Extend(reg: RegId, sext: uint8, srcwidth: uint8, destwidth: uint8) is
 		R_flush(reg);
 		if sext == 0 then
-			E_insn("and");
+			E_insn("and.l");
 			E_const();
 			if srcwidth == 1 then
 				E("0xff");
@@ -733,8 +717,17 @@ gen any := DEREF4(ADDRESS():a)
 	end sub;
 
 	sub DivRem(helper: string) is
-		R_flushall();
+		R_flush(REG_D0|REG_D1|REG_D2|REG_D3);
 		E_callhelper(helper);
+	end sub;
+
+	sub DivRem1(insn: string, sext: uint8, dest: RegId, rhs: RegId, rhsop: [Operand]) is
+		Extend(dest, sext, 1, 4);
+		if rhs != REG_IMM then
+			Extend(rhs, sext, 1, 4);
+		end if;
+
+		Alu3(insn, dest, rhs, rhsop);
 	end sub;
 %}
 
@@ -761,14 +754,7 @@ gen d0 := MUL4(d0:lhs, d1:rhs) uses d2|d3
 	{ R_flush($$); E_callhelper("_mul4"); }
 
 gen dreg := DIVS1($$:lhs, dreg|imm:rhs)
-{
-	Extend($$, 1, 1, 4);
-	if $rhs != REG_IMM then
-		Extend($rhs, 1, 1, 4);
-	end if;
-
-	Alu3("divs.w", $$, $rhs, &$@rhs.operand);
-}
+	{ DivRem1("divs.w", 1, $$, $rhs, &$@rhs.operand); }
 
 gen any := DIVS2($$:lhs, op16:rhs)
 {
@@ -776,37 +762,48 @@ gen any := DIVS2($$:lhs, op16:rhs)
 	Alu3("divs.w", $$, $rhs, &$@rhs.operand);
 }
 
-gen d0 := DIVS4($$:lhs, dreg:rhs)
+gen d0 := DIVS4($$:lhs, d1:rhs) uses d2|d3
 	{ DivRem("_divrems4"); }
 
 gen dreg := DIVU1($$:lhs, dreg|imm:rhs)
-	{ Alu3("divu.w", $$, $rhs, &$@rhs.operand); }
-gen any := DIVU2($$:lhs, op16:rhs)
-	{ Alu3("divu.w", $$, $rhs, &$@rhs.operand); }
+	{ DivRem1("divu.w", 0, $$, $rhs, &$@rhs.operand); }
+
+gen dreg := DIVU2($$:lhs, op16:rhs)
+{
+	Extend($$, 0, 2, 4);
+	Alu3("divu.w", $$, $rhs, &$@rhs.operand);
+}
+
 gen d0 := DIVU4($$:lhs, dreg:rhs)
 	{ DivRem("_divremu4"); }
 
-gen any := REMS2($$:lhs, op16:rhs)
+gen dreg := REMS1($$:lhs, dreg|imm:rhs)
+{
+	DivRem1("divs.w", 1, $$, $rhs, &$@rhs.operand);
+	E_swap($$);
+}
+
+gen dreg := REMS2($$:lhs, op16:rhs)
 {
 	Extend($$, 1, 2, 4);
 	Alu3("divs.w", $$, $rhs, &$@rhs.operand);
-
-	E_insn("swap");
-	E_reg($$);
-	E_nl();
+	E_swap($$);
 }
 
-gen d1 := REMS4($$:lhs, dreg:rhs)
+gen d2 := REMS4(d0:lhs, d1:rhs) uses d3
 	{ DivRem("_divrems4"); }
 
-gen any := REMU2($$:lhs, op16:rhs)
+gen dreg := REMU1($$:lhs, dreg|imm:rhs)
+{
+	DivRem1("divu.w", 1, $$, $rhs, &$@rhs.operand);
+	E_swap($$);
+}
+
+gen dreg := REMU2($$:lhs, op16:rhs)
 {
 	Extend($$, 0, 2, 4);
 	Alu3("divs.w", $$, $rhs, &$@rhs.operand);
-
-	E_insn("swap");
-	E_reg($$);
-	E_nl();
+	E_swap($$);
 }
 
 gen d1 := REMU4($$:lhs, dreg:rhs)
@@ -897,9 +894,9 @@ gen dreg := NEG4($$) { Alu2("neg.l", $$); }
 
 // --- Casts ----------------------------------------------------------------
 
-gen any := CAST21($$:lhs);
-gen any := CAST41($$:lhs);
-gen any := CAST42($$:lhs);
+gen any := CAST21($$:lhs):c { Extend($$, 0, 1, 2); };
+gen any := CAST41($$:lhs):c { Extend($$, 0, 4, 1); };
+gen any := CAST42($$:lhs):c { Extend($$, 0, 4, 2); };
 
 gen any := CAST12($$:lhs):c { Extend($$, $c.sext, 1, 2); }
 gen any := CAST14($$:lhs):c { Extend($$, $c.sext, 1, 4); }
