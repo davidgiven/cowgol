@@ -20,6 +20,42 @@ function cprogram(e)
 	local objdir = e.objdir or "$OBJ"
 	local objs = {}
 	local hdrs = {}
+	local libs = {}
+	for _, src in ipairs(e.ins) do
+		if src:find("%.h$") then
+			hdrs[#hdrs+1] = src
+		end
+	end
+
+	for _, src in ipairs(e.ins) do
+		if src:find("%.a$") then
+			libs[#libs+1] = src
+		elseif not src:find("%.h$") then
+			local o = objdir.."/"..src:gsub("%.c$", ".o"):gsub("%.cpp$", ".o")
+			objs[#objs+1] = o
+			cfile {
+				ins = concat {
+					src,
+					hdrs
+				},
+				outs = { o },
+				cflags = e.cflags,
+			}
+		end
+	end
+
+	local ldflags = e.ldflags or ""
+	rule {
+		ins = concat { objs, libs },
+		outs = e.outs,
+		cmd = "$CC -o &1 @@ "..joined(libs).." $LDFLAGS "..ldflags
+	}
+end
+
+function clibrary(e)
+	local objdir = e.objdir or "$OBJ"
+	local objs = {}
+	local hdrs = {}
 	for _, src in ipairs(e.ins) do
 		if src:find("%.h$") then
 			hdrs[#hdrs+1] = src
@@ -41,11 +77,10 @@ function cprogram(e)
 		end
 	end
 
-	local ldflags = e.ldflags or ""
 	rule {
 		ins = objs,
 		outs = e.outs,
-		cmd = "$CC -o &1 @@ $LDFLAGS "..ldflags
+		cmd = "rm -f &1 && $AR qcs &1 @@"
 	}
 end
 

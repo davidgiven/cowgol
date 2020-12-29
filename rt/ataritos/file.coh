@@ -1,0 +1,45 @@
+const FCB_BUFFER_SIZE := 512;
+typedef FCBIndexType is uint16;
+
+record RawFCB is
+	fd: uint16;
+end record;
+
+include "fileio.coh";
+
+@impl sub FCBRawRead is
+	fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	amount := 0;
+end sub;
+
+@impl sub FCBRawWrite is
+	fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := 1;
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := 1;
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    errno := FCBOpenUp(fcb, filename);
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	FCBFlush(fcb);
+
+	errno := 1;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+	FCBFlush(fcb);
+end sub;
+
+include "common-file.coh";
+
+# vim: ts=4 sw=4 et
+
+

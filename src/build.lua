@@ -106,6 +106,14 @@ function buildgasppc(e)
 	return buildgas("powerpc-linux-gnu", e)
 end
 
+function buildgasataritos(e)
+	rule {
+		ins = e.ins,
+		outs = e.outs,
+		cmd = "m68k-atari-mint-gcc @1 -Wa,-S -nostdlib -o &1"
+	}
+end
+
 function buildzmac(e)
     local cim = e.outs[1]:ext(".cim"):obj()
     zmac {
@@ -216,6 +224,11 @@ end
 function emu2test(e)
     e.ins = concat { e.ins, "bin/emu2" }
     return simpletest("bin/emu2", e)
+end
+
+function ataritosemutest(e)
+	e.ins = concat { e.ins, "bin/ataritosemu" }
+	return simpletest("bin/ataritosemu", e)
 end
 
 function cowgol(e)

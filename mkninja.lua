@@ -7,6 +7,7 @@ print("LUA = "..env("LUA", "lua5.1"))
 print("CC = "..env("CC", "cc"))
 print("CXX = "..env("CC", "c++"))
 print("CPP = "..env("CC", "cpp"))
+print("AR = "..env("AR", "ar"))
 print("CFLAGS = "..env("CFLAGS", ""))
 print("CXXFLAGS = "..env("CXXFLAGS", "$CFLAGS"))
 print("LDFLAGS = "..env("LDFLAGS", ""))
@@ -43,6 +44,10 @@ end
 
 function string:ext(newext)
 	return self:gsub("%.[^.]*$", newext)
+end
+
+function string:dir()
+	return self:gsub("[^/]*$", "")
 end
 
 function concat(...)
@@ -105,9 +110,12 @@ include "third_party/emu2/build.lua"
 include "third_party/apout/build.lua"
 include "third_party/zmac/build.lua"
 include "third_party/djlink/build.lua"
+include "third_party/musashi/build.lua"
 include "tools/cpmemu/build.lua"
 include "tools/tubeemu/build.lua"
 include "tools/fuzix6303emu/build.lua"
+include "tools/lx68kemu/build.lua"
+include "tools/ataritosemu/build.lua"
 include "third_party/lemon/build.lua"
 include "tools/newgen/build.lua"
 include "src/build.lua"
@@ -121,6 +129,7 @@ include "src/cowbdmp/build.lua"
 include "src/cowasm/build.lua"
 include "src/cowdis/build.lua"
 include "src/misc/build.lua"
+include "rt/ataritos/build.lua"
 include "rt/cpm/build.lua"
 include "rt/cpmz/build.lua"
 include "rt/cgen/build.lua"

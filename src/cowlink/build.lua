@@ -1,5 +1,6 @@
 local ARCHS = {
 	"8080",
+	"ataritos",
 	"basic",
 	"bbct",
 	"bbcti",

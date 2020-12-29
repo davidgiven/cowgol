@@ -1,3 +1,5 @@
+# 32-bit frontend with 2-byte alignment. For the 68000 and ilk.
+
 var uint32_type: [Type];
 var int32_type: [Type];
 var uint16_type: [Type];
@@ -7,13 +9,15 @@ var int8_type: [Type];
 var intptr_type: [Type];
 
 sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
-	var a := (alignment-1) as Size;
-	newvalue := (value+a) & ~a;
+	newvalue := value;
+	if (alignment != 1) and ((newvalue & 1) == 1) then
+		newvalue := newvalue + 1;
+	end if;
 end sub;
 
 sub ArchInitTypes() is
-	uint32_type := MakeNumberType(4, 4, 0, "uint32");
-	int32_type := MakeNumberType(4, 4, 1, "int32");
+	uint32_type := MakeNumberType(4, 2, 0, "uint32");
+	int32_type := MakeNumberType(4, 2, 1, "int32");
 	uint16_type := MakeNumberType(2, 2, 0, "uint16");
 	int16_type := MakeNumberType(2, 2, 1, "int16");
 	uint8_type := MakeNumberType(1, 1, 0, "uint8");
