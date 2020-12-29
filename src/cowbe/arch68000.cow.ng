@@ -3,14 +3,8 @@
 		value: Arith;
 	end record;
 
-	record AdrOp is
-		sym: [Symbol];
-		off: Size;
-	end record;
-
 	record Operand is
 		imm @at(0): ImmOp;
-		adr @at(0): AdrOp;
 	end record;
 %]
 
@@ -53,7 +47,7 @@
 		EmitterReferenceSubroutineById(current_subr.id, e.id);
 	end sub;
 
-	sub E_symref(sym: [Symbol], off: Size) is
+	sub E_abssymref(sym: [Symbol], off: Size) is
 		if sym.wsid == WSID_STATIC then
 			E_wsref(sym.subr.id, sym.wsid, sym.off);
 			if off != 0 then
@@ -61,6 +55,21 @@
 			end if;
 		else
 			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_b8(COO_ESCAPE_WSOFF);
+			E_b16(sym.subr.id);
+			E_b8(sym.wsid);
+			E_b16(sym.off + off);
+			E(",a6");
 		end if;
 	end sub;
 
@@ -160,9 +169,6 @@
 	sub E_op(rhs: RegId, rhsop: [Operand]) is
 		if (rhs & REGCLASS_ANY) != 0 then
 			E_reg(rhs);
-		elseif rhs == REG_ADR then
-			E_const();
-			E_symref(rhsop.adr.sym, rhsop.adr.off);
 		elseif rhs == REG_IMM then
 			E_const();
 			E_i32(rhsop.imm.value);
@@ -243,7 +249,7 @@ register d0 d1 d2 d3 d4 d5 d6 d7;
 register a0 a1 a2 a3 a4 a5;
 
 operand param;
-operand imm adr mem1 mem2 mem4;
+operand imm mem1 mem2 mem4;
 
 regclass dreg := d0|d1|d2|d3|d4|d5|d6|d7;
 regclass areg := a0|a1|a2|a3|a4|a5;
@@ -251,7 +257,7 @@ regclass any := areg|dreg;
 
 regclass op8 := dreg|imm|mem1;
 regclass op16 := dreg|imm|mem2;
-regclass op32 := any|imm|adr|mem4;
+regclass op32 := any|imm|mem4;
 
 regdata d0 compatible any;
 regdata d1 compatible any;
@@ -444,7 +450,9 @@ gen areg := ADDRESS():a
 		E_reg(r);
 	else
 		E_insn("lea");
+		E_openp();
 		E_symref(&$a.sym, $a.off);
+		E_closep();
 	end if;
 	E_comma();
 	E_reg($$);
@@ -514,6 +522,22 @@ gen param := ARG1(param, any:lhs) { E_pushw($lhs); }
 gen param := ARG2(param, any:lhs) { E_pushw($lhs); }
 gen param := ARG4(param, any:lhs) { E_pushl($lhs); }
 
+gen param := ARG4(param, CONSTANT():c)
+{
+	E("\tpea (");
+	E_u32($c.value as uint32);
+	E(")\n");
+}
+
+gen param := ARG4(param, ADDRESS():a)
+{
+	E_insn("pea");
+	E_openp();
+	E_symref(&$a.sym, $a.off);
+	E_closep();
+	E_nl();
+}
+
 gen d0 := POPARG1(remaining==0);
 gen d0 := POPARG2(remaining==0);
 gen d0 := POPARG4(remaining==0);
@@ -526,9 +550,6 @@ gen any := POPARG4(remaining!=0) { E_popl($$); }
 
 gen imm := CONSTANT():c cost 5
 	{ $@$.operand.imm.value := $c.value; }
-
-gen adr := ADDRESS():a cost 5
-	{ $@$.operand.adr.sym := &$a.sym; $@$.operand.adr.off := $a.off; }
 
 // --- Loads/stores ---------------------------------------------------------
 
@@ -547,16 +568,19 @@ gen adr := ADDRESS():a cost 5
 		E_nl();
 	end sub;
 
-#	sub LoadStoreRegX(src: RegId, insn: string, reg1: RegId, reg2: RegId) is
-#		RegCacheFlushValues();
-#		E_insn(insn);
-#		E_reg(src);
-#		E_comma();
-#		E_reg(reg1);
-#		E_comma();
-#		E_reg(reg2);
-#		E_nl();
-#	end sub;
+	sub StoreRegX(src: RegId, srcop: [Operand], insn: string, reg1: RegId, reg2: RegId) is
+		RegCacheFlushValues();
+
+		E_insn(insn);
+		E_op(src, srcop);
+		E_comma();
+		E_openp();
+		E_reg(reg1);
+		E_comma();
+		E_reg(reg2);
+		E_closep();
+		E_nl();
+	end sub;
 
 	sub StoreAddress(src: RegId, srcop: [Operand], insn: string, sym: [Symbol], off: Size) is
 		RegCacheFlushValues();
@@ -574,18 +598,6 @@ gen adr := ADDRESS():a cost 5
 		end if;
 	end sub;
 
-#	sub StoreShortAddress(src: RegId, insn: string, sym: [Symbol], off: Size) is
-#		RegCacheFlushValues();
-#
-#		E_insn(insn);
-#		E_reg(src);
-#		E_comma();
-#		E_u16(sym.off + off);
-#		E("(31)\n");
-#
-#		RegCacheLeavesValue(src, sym, off);
-#	end sub;
-
 	sub LoadReg(dest: RegId, insn: string, reg1: RegId, off: int16) is
 		RegCacheFlushValues();
 
@@ -594,6 +606,20 @@ gen adr := ADDRESS():a cost 5
 		E_i16(off);
 		E_comma();
 		E_reg(reg1);
+		E_closep();
+		E_comma();
+		E_reg(dest);
+		E_nl();
+	end sub;
+
+	sub LoadRegX(dest: RegId, insn: string, reg1: RegId, reg2: RegId) is
+		RegCacheFlushValues();
+
+		E_insn(insn);
+		E_openp();
+		E_reg(reg1);
+		E_comma();
+		E_reg(reg2);
 		E_closep();
 		E_comma();
 		E_reg(dest);
@@ -632,6 +658,8 @@ gen STORE1(op8:lhs, DEREF1(areg:rhs))
 	{ StoreReg($lhs, &$@lhs.operand, "move.b", $rhs, 0); }
 gen STORE1(op8:lhs, DEREF1(ADD4(areg:rhs, CONSTANT():c)))
 	{ StoreReg($lhs, &$@lhs.operand, "move.b", $rhs, $c.value as int16); }
+gen STORE1(op8:lhs, DEREF1(ADD4(areg:rhs1, any:rhs2)))
+	{ StoreRegX($lhs, &$@lhs.operand, "move.b", $rhs1, $rhs2); }
 gen STORE1(op8:lhs, DEREF1(ADDRESS():a))
 	{ StoreAddress($lhs, &$@lhs.operand, "move.b", &$a.sym, $a.off); }
 
@@ -639,11 +667,15 @@ gen STORE2(op16:lhs, DEREF2(areg:rhs))
 	{ StoreReg($lhs, &$@lhs.operand, "move.w", $rhs, 0); }
 gen STORE2(op16:lhs, DEREF2(ADD4(areg:rhs, CONSTANT():c)))
 	{ StoreReg($lhs, &$@lhs.operand, "move.w", $rhs, $c.value as int16); }
+gen STORE2(op16:lhs, DEREF2(ADD4(areg:rhs1, any:rhs2)))
+	{ StoreRegX($lhs, &$@lhs.operand, "move.w", $rhs1, $rhs2); }
 gen STORE2(op16:lhs, DEREF2(ADDRESS():a))
 	{ StoreAddress($lhs, &$@lhs.operand, "move.w", &$a.sym, $a.off); }
 
 gen STORE4(op32:lhs, DEREF4(areg:rhs))
 	{ StoreReg($lhs, &$@lhs.operand, "move.l", $rhs, 0); }
+gen STORE4(op32:lhs, DEREF4(ADD4(areg:rhs1, any:rhs2)))
+	{ StoreRegX($lhs, &$@lhs.operand, "move.l", $rhs1, $rhs2); }
 gen STORE4(op32:lhs, DEREF4(ADD4(areg:rhs, CONSTANT():c)))
 	{ StoreReg($lhs, &$@lhs.operand, "move.l", $rhs, $c.value as int16); }
 gen STORE4(op32:lhs, DEREF4(ADDRESS():a))
@@ -651,20 +683,26 @@ gen STORE4(op32:lhs, DEREF4(ADDRESS():a))
 
 gen dreg := DEREF1(areg:rhs)
 	{ R_flush($$); LoadReg($$, "move.b", $rhs, 0); }
+gen dreg := DEREF1(ADD4(areg:rhs1, any:rhs2))
+	{ R_flush($$); LoadRegX($$, "move.b", $rhs1, $rhs2); }
 gen dreg := DEREF1(ADD4(areg:rhs, CONSTANT():c))
 	{ R_flush($$); LoadReg($$, "move.b", $rhs, $c.value as int16); }
 gen dreg := DEREF1(ADDRESS():a)
 	{ LoadAddress($$, "move.b", &$a.sym, $a.off); }
 
-gen any := DEREF2(areg:rhs)
+gen dreg := DEREF2(areg:rhs)
 	{ R_flush($$); LoadReg($$, "move.w", $rhs, 0); }
-gen any := DEREF2(ADD4(areg:rhs, CONSTANT():c))
+gen dreg := DEREF2(ADD4(areg:rhs1, any:rhs2))
+	{ R_flush($$); LoadRegX($$, "move.w", $rhs1, $rhs2); }
+gen dreg := DEREF2(ADD4(areg:rhs, CONSTANT():c))
 	{ R_flush($$); LoadReg($$, "move.w", $rhs, $c.value as int16); }
-gen any := DEREF2(ADDRESS():a)
+gen dreg := DEREF2(ADDRESS():a)
 	{ LoadAddress($$, "move.w", &$a.sym, $a.off); }
 
 gen any := DEREF4(areg:rhs)
 	{ R_flush($$); LoadReg($$, "move.l", $rhs, 0); }
+gen any := DEREF4(ADD4(areg:rhs1, any:rhs2))
+	{ R_flush($$); LoadRegX($$, "move.l", $rhs1, $rhs2); }
 gen any := DEREF4(ADD4(areg:rhs, CONSTANT():c))
 	{ R_flush($$); LoadReg($$, "move.l", $rhs, $c.value as int16); }
 gen any := DEREF4(ADDRESS():a)
@@ -756,7 +794,7 @@ gen d0 := MUL4(d0:lhs, d1:rhs) uses d2|d3
 gen dreg := DIVS1($$:lhs, dreg|imm:rhs)
 	{ DivRem1("divs.w", 1, $$, $rhs, &$@rhs.operand); }
 
-gen any := DIVS2($$:lhs, op16:rhs)
+gen dreg := DIVS2($$:lhs, op16:rhs)
 {
 	Extend($$, 1, 2, 4);
 	Alu3("divs.w", $$, $rhs, &$@rhs.operand);
@@ -811,23 +849,23 @@ gen d2 := REMU4(d0:lhs, d1:rhs) uses d3
 
 gen dreg := EOR1($$:lhs, dreg|imm:rhs)
 	{ Alu3("eor.b", $$, $rhs, &$@rhs.operand); }
-gen any := EOR2($$:lhs, any|imm:rhs)
+gen dreg := EOR2($$:lhs, dreg|imm:rhs)
 	{ Alu3("eor.w", $$, $rhs, &$@rhs.operand); }
-gen dreg := EOR4($$:lhs, any|adr|imm:rhs)
+gen dreg := EOR4($$:lhs, dreg|imm:rhs)
 	{ Alu3("eor.l", $$, $rhs, &$@rhs.operand); }
 
 gen dreg := AND1($$:lhs, dreg|imm:rhs)
 	{ Alu3("and.b", $$, $rhs, &$@rhs.operand); }
-gen any := AND2($$:lhs, any|imm:rhs)
+gen dreg := AND2($$:lhs, dreg|imm:rhs)
 	{ Alu3("and.w", $$, $rhs, &$@rhs.operand); }
-gen dreg := AND4($$:lhs, any|adr|imm:rhs)
+gen dreg := AND4($$:lhs, dreg|imm:rhs)
 	{ Alu3("and.l", $$, $rhs, &$@rhs.operand); }
 
 gen dreg := OR1($$:lhs, dreg|imm:rhs)
 	{ Alu3("or.b", $$, $rhs, &$@rhs.operand); }
-gen any := OR2($$:lhs, any|imm:rhs)
+gen dreg := OR2($$:lhs, dreg|imm:rhs)
 	{ Alu3("or.w", $$, $rhs, &$@rhs.operand); }
-gen dreg := OR4($$:lhs, any|adr|imm:rhs)
+gen dreg := OR4($$:lhs, dreg|imm:rhs)
 	{ Alu3("or.l", $$, $rhs, &$@rhs.operand); }
 
 %{
@@ -844,63 +882,63 @@ gen dreg := OR4($$:lhs, any|adr|imm:rhs)
 
 gen dreg := LSHIFT1($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "lsl.b", $c.value as uint8); }
-gen any := LSHIFT2($$:lhs, CONSTANT(value is u3):c)
+gen dreg := LSHIFT2($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "lsl.w", $c.value as uint8); }
 gen dreg := LSHIFT4($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "lsl.l", $c.value as uint8); }
 
 gen dreg := RSHIFTU1($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "lsr.b", $c.value as uint8); }
-gen any := RSHIFTU2($$:lhs, CONSTANT(value is u3):c)
+gen dreg := RSHIFTU2($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "lsr.w", $c.value as uint8); }
 gen dreg := RSHIFTU4($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "lsr.l", $c.value as uint8); }
 
 gen dreg := RSHIFTS1($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "asr.b", $c.value as uint8); }
-gen any := RSHIFTS2($$:lhs, CONSTANT(value is u3):c)
+gen dreg := RSHIFTS2($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "asr.w", $c.value as uint8); }
 gen dreg := RSHIFTS4($$:lhs, CONSTANT(value is u3):c)
 	{ ShiftI($$, "asr.l", $c.value as uint8); }
 
 gen dreg := LSHIFT1($$:lhs, dreg:rhs)
 	{ Alu3("lsl.b", $$, $rhs, 0 as [Operand]); }
-gen any := LSHIFT2($$:lhs, dreg:rhs)
+gen dreg := LSHIFT2($$:lhs, dreg:rhs)
 	{ Alu3("lsl.w", $$, $rhs, 0 as [Operand]); }
 gen dreg := LSHIFT4($$:lhs, dreg:rhs)
 	{ Alu3("lsl.l", $$, $rhs, 0 as [Operand]); }
 
 gen dreg := RSHIFTU1($$:lhs, dreg:rhs)
 	{ Alu3("lsr.b", $$, $rhs, 0 as [Operand]); }
-gen any := RSHIFTU2($$:lhs, dreg:rhs)
+gen dreg := RSHIFTU2($$:lhs, dreg:rhs)
 	{ Alu3("lsr.w", $$, $rhs, 0 as [Operand]); }
 gen dreg := RSHIFTU4($$:lhs, dreg:rhs)
 	{ Alu3("lsr.l", $$, $rhs, 0 as [Operand]); }
 
 gen dreg := RSHIFTS1($$:lhs, dreg:rhs)
 	{ Alu3("asr.b", $$, $rhs, 0 as [Operand]); }
-gen any := RSHIFTS2($$:lhs, dreg:rhs)
+gen dreg := RSHIFTS2($$:lhs, dreg:rhs)
 	{ Alu3("asr.w", $$, $rhs, 0 as [Operand]); }
 gen dreg := RSHIFTS4($$:lhs, dreg:rhs)
 	{ Alu3("asr.l", $$, $rhs, 0 as [Operand]); }
 
 gen dreg := NOT1($$) { Alu2("not.b", $$); }
-gen any := NOT2($$)  { Alu2("not.w", $$); }
+gen dreg := NOT2($$)  { Alu2("not.w", $$); }
 gen dreg := NOT4($$) { Alu2("not.l", $$); }
 
 gen dreg := NEG1($$) { Alu2("neg.b", $$); }
-gen any := NEG2($$)  { Alu2("neg.w", $$); }
+gen dreg := NEG2($$)  { Alu2("neg.w", $$); }
 gen dreg := NEG4($$) { Alu2("neg.l", $$); }
 
 // --- Casts ----------------------------------------------------------------
 
-gen any := CAST21($$:lhs):c { Extend($$, 0, 1, 2); };
-gen any := CAST41($$:lhs):c { Extend($$, 0, 4, 1); };
-gen any := CAST42($$:lhs):c { Extend($$, 0, 4, 2); };
+gen dreg := CAST21($$:lhs):c { Extend($$, 0, 1, 2); };
+gen dreg := CAST41($$:lhs):c { Extend($$, 0, 4, 1); };
+gen dreg := CAST42($$:lhs):c { Extend($$, 0, 4, 2); };
 
-gen any := CAST12($$:lhs):c { Extend($$, $c.sext, 1, 2); }
-gen any := CAST14($$:lhs):c { Extend($$, $c.sext, 1, 4); }
-gen any := CAST24($$:lhs):c { Extend($$, $c.sext, 2, 4); }
+gen dreg := CAST12($$:lhs):c { Extend($$, $c.sext, 1, 2); }
+gen dreg := CAST14($$:lhs):c { Extend($$, $c.sext, 1, 4); }
+gen dreg := CAST24($$:lhs):c { Extend($$, $c.sext, 2, 4); }
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -1053,7 +1091,7 @@ gen INIT4():c
 gen INITADDRESS():a
 {
 	E("\t.long ");
-    E_symref(&$a.sym, $a.off);
+    E_abssymref(&$a.sym, $a.off);
     E_nl();
 }
 
