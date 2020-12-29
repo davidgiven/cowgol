@@ -774,7 +774,7 @@ gen dreg := DIVU2($$:lhs, op16:rhs)
 	Alu3("divu.w", $$, $rhs, &$@rhs.operand);
 }
 
-gen d0 := DIVU4($$:lhs, dreg:rhs)
+gen d0 := DIVU4(d0:lhs, d1:rhs) uses d2|d3
 	{ DivRem("_divremu4"); }
 
 gen dreg := REMS1($$:lhs, dreg|imm:rhs)
@@ -806,7 +806,7 @@ gen dreg := REMU2($$:lhs, op16:rhs)
 	E_swap($$);
 }
 
-gen d1 := REMU4($$:lhs, dreg:rhs)
+gen d2 := REMU4(d0:lhs, d1:rhs) uses d3
 	{ DivRem("_divremu4"); }
 
 gen dreg := EOR1($$:lhs, dreg|imm:rhs)

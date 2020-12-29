@@ -16,9 +16,23 @@
 	add.l d2, d0
 	rts
 
-# 32-bit unsigned divide.
+# 32-bit unsigned divide of d0/d1 leaving the result in d0 and the remainder in d2.
+# You can't use the 68000's 32/16=16 division instruction for this, so we have to
+# do it the hard way.
+# Uses d3.
 &X _divremu4
 ``:
+	move.w #31, d3		| loop count
+	clr.l d2			| clear remainder
+``_loop:
+	lsl.l #1, d0		| shift left LHS...
+	roxl.l #1, d2		| ...putting the result into the remainder
+	cmp.l d2, d1		| compare remainder against RHS
+	bgt.b ``_noadd
+	add.l #1, d0		| set bottom bit of result (guaranteed clear)
+	sub.l d1, d2		| decrease remainder
+``_noadd:
+	dbra d3, ``_loop
 	rts
 
 # 32-bit signed divide.
