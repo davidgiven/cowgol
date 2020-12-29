@@ -31,6 +31,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\t_start:\n");
 
 	E("\tmove.l 4(sp), (basepage)\n");
+	E("\tlea (ws), a6\n");
 
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];

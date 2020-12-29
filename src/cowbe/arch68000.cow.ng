@@ -3,14 +3,8 @@
 		value: Arith;
 	end record;
 
-	record AdrOp is
-		sym: [Symbol];
-		off: Size;
-	end record;
-
 	record Operand is
 		imm @at(0): ImmOp;
-		adr @at(0): AdrOp;
 	end record;
 %]
 
@@ -53,7 +47,7 @@
 		EmitterReferenceSubroutineById(current_subr.id, e.id);
 	end sub;
 
-	sub E_symref(sym: [Symbol], off: Size) is
+	sub E_abssymref(sym: [Symbol], off: Size) is
 		if sym.wsid == WSID_STATIC then
 			E_wsref(sym.subr.id, sym.wsid, sym.off);
 			if off != 0 then
@@ -61,6 +55,21 @@
 			end if;
 		else
 			E_wsref(sym.subr.id, sym.wsid, sym.off + off);
+		end if;
+	end sub;
+
+	sub E_symref(sym: [Symbol], off: Size) is
+		if sym.wsid == WSID_STATIC then
+			E_wsref(sym.subr.id, sym.wsid, sym.off);
+			if off != 0 then
+				E_i16(off as int16);
+			end if;
+		else
+			E_b8(COO_ESCAPE_WSOFF);
+			E_b16(sym.subr.id);
+			E_b8(sym.wsid);
+			E_b16(sym.off + off);
+			E(",a6");
 		end if;
 	end sub;
 
@@ -160,9 +169,6 @@
 	sub E_op(rhs: RegId, rhsop: [Operand]) is
 		if (rhs & REGCLASS_ANY) != 0 then
 			E_reg(rhs);
-		elseif rhs == REG_ADR then
-			E_const();
-			E_symref(rhsop.adr.sym, rhsop.adr.off);
 		elseif rhs == REG_IMM then
 			E_const();
 			E_i32(rhsop.imm.value);
@@ -243,7 +249,7 @@ register d0 d1 d2 d3 d4 d5 d6 d7;
 register a0 a1 a2 a3 a4 a5;
 
 operand param;
-operand imm adr mem1 mem2 mem4;
+operand imm mem1 mem2 mem4;
 
 regclass dreg := d0|d1|d2|d3|d4|d5|d6|d7;
 regclass areg := a0|a1|a2|a3|a4|a5;
@@ -251,7 +257,7 @@ regclass any := areg|dreg;
 
 regclass op8 := dreg|imm|mem1;
 regclass op16 := dreg|imm|mem2;
-regclass op32 := any|imm|adr|mem4;
+regclass op32 := any|imm|mem4;
 
 regdata d0 compatible any;
 regdata d1 compatible any;
@@ -444,7 +450,9 @@ gen areg := ADDRESS():a
 		E_reg(r);
 	else
 		E_insn("lea");
+		E_openp();
 		E_symref(&$a.sym, $a.off);
+		E_closep();
 	end if;
 	E_comma();
 	E_reg($$);
@@ -526,9 +534,6 @@ gen any := POPARG4(remaining!=0) { E_popl($$); }
 
 gen imm := CONSTANT():c cost 5
 	{ $@$.operand.imm.value := $c.value; }
-
-gen adr := ADDRESS():a cost 5
-	{ $@$.operand.adr.sym := &$a.sym; $@$.operand.adr.off := $a.off; }
 
 // --- Loads/stores ---------------------------------------------------------
 
@@ -813,21 +818,21 @@ gen dreg := EOR1($$:lhs, dreg|imm:rhs)
 	{ Alu3("eor.b", $$, $rhs, &$@rhs.operand); }
 gen any := EOR2($$:lhs, any|imm:rhs)
 	{ Alu3("eor.w", $$, $rhs, &$@rhs.operand); }
-gen dreg := EOR4($$:lhs, any|adr|imm:rhs)
+gen dreg := EOR4($$:lhs, any|imm:rhs)
 	{ Alu3("eor.l", $$, $rhs, &$@rhs.operand); }
 
 gen dreg := AND1($$:lhs, dreg|imm:rhs)
 	{ Alu3("and.b", $$, $rhs, &$@rhs.operand); }
 gen any := AND2($$:lhs, any|imm:rhs)
 	{ Alu3("and.w", $$, $rhs, &$@rhs.operand); }
-gen dreg := AND4($$:lhs, any|adr|imm:rhs)
+gen dreg := AND4($$:lhs, any|imm:rhs)
 	{ Alu3("and.l", $$, $rhs, &$@rhs.operand); }
 
 gen dreg := OR1($$:lhs, dreg|imm:rhs)
 	{ Alu3("or.b", $$, $rhs, &$@rhs.operand); }
 gen any := OR2($$:lhs, any|imm:rhs)
 	{ Alu3("or.w", $$, $rhs, &$@rhs.operand); }
-gen dreg := OR4($$:lhs, any|adr|imm:rhs)
+gen dreg := OR4($$:lhs, any|imm:rhs)
 	{ Alu3("or.l", $$, $rhs, &$@rhs.operand); }
 
 %{
@@ -1053,7 +1058,7 @@ gen INIT4():c
 gen INITADDRESS():a
 {
 	E("\t.long ");
-    E_symref(&$a.sym, $a.off);
+    E_abssymref(&$a.sym, $a.off);
     E_nl();
 }
 
