@@ -111,11 +111,7 @@ function buildgasppc(e)
 end
 
 function buildgasataritos(e)
-	rule {
-		ins = e.ins,
-		outs = e.outs,
-		cmd = "m68k-atari-mint-gcc @1 -Wa,-S -nostdlib -o &1"
-	}
+	return buildgas("m68k-atari-mint", e)
 end
 
 function buildzmac(e)

@@ -19,8 +19,14 @@ dependencies.
   
   - flex and bison and libbsd and libreadline (these are standard)
 
-  - a C compiler and the i686-linux-gnu, arm-linux-gnueabihf, and
-	powerpc-linux-gnu binutils
+  - a C compiler and these GNU binutils packages:
+
+    - i686-linux-gnu
+	- arm-linux-gnueabihf
+	- m68k-linux-gnu
+	- m68k-atari-mint
+	  Packages are available from http://vincent.riviere.free.fr/soft/m68k-atari-mint
+	- powerpc-linux-gnu
 
   - the nasm ix86 assembler
 
@@ -28,10 +34,10 @@ dependencies.
 
   - the gpp preprocessor
 
-If you're on a Debianish platform, you should be able to install them
-with:
+If you're on a Debianish platform, you should be able to install them (after
+adding any custom package sources as above) with:
 
-    apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu qemu-user gpp 64tass nasm
+    apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu binutils-m68k-linux-gnu binutils-m68k-atari-mint qemu-user gpp 64tass nasm
 
 Once done you can build the compiler itself with:
 
