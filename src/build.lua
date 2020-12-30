@@ -98,6 +98,10 @@ function buildgas386(e)
     return buildgas("i686-linux-gnu", e)
 end
 
+function buildgas68k(e)
+    return buildgas("m68k-linux-gnu", e)
+end
+
 function buildgasarm(e)
     return buildgas("arm-linux-gnueabihf", e)
 end

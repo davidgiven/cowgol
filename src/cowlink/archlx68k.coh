@@ -27,10 +27,11 @@ end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
 	E(".global _start\n");
+	E("\tsp = a7\n");
 	E("\t.text\n");
 	E("\t_start:\n");
 
-	E("\tmove.l 4(%sp), (basepage)\n");
+	E("\tmove.l 4(%sp), (argv)\n");
 	E("\tlea (ws), %a6\n");
 
 	while coo != (0 as [Coo]) loop
@@ -51,7 +52,7 @@ end sub;
 sub ArchEmitFooter(coo: [Coo]) is
 	E("\t.bss\n");
 	E("\t.align 2\n");
-	E("basepage: .space 4\n");
+	E("argv: .space 4\n");
 	E("ws: .space ");
 	E_u16(workspaceSize[0]);
 	E_nl();

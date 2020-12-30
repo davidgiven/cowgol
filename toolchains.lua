@@ -1,3 +1,15 @@
+toolchain_ataritos = {
+	name = "ataritos",
+	cowfe = "bin/cowfe-32bita2.nncgen.exe",
+	cowbe = "bin/cowbe-68000.nncgen.exe",
+	linker = "bin/cowlink-ataritos.nncgen.exe",
+	assembler = buildgasataritos,
+	runtime = "rt/ataritos",
+	asmext = ".s",
+	binext = ".ataritos.tos",
+	tester = ataritosemutest,
+}
+
 toolchain_ncgen = {
 	name = "ncgen",
 	cowfe = "bin/cowfe-cgen.bootstrap.exe",
@@ -68,6 +80,18 @@ toolchain_lx386 = {
 	asmext = ".s",
 	binext = ".lx386.exe",
 	tester = qemu386test
+}
+
+toolchain_lx68k = {
+	name = "lx68k",
+	cowfe = "bin/cowfe-32bita2.nncgen.exe",
+	cowbe = "bin/cowbe-68000.nncgen.exe",
+	linker = "bin/cowlink-lx68k.nncgen.exe",
+	assembler = buildgas68k,
+	runtime = "rt/lx68k",
+	asmext = ".s",
+	binext = ".lx68k.exe",
+	tester = qemu68ktest
 }
 
 toolchain_lxppc = {
@@ -168,18 +192,6 @@ toolchain_msdos = {
 	tester = emu2test,
 }
 
-toolchain_ataritos = {
-	name = "ataritos",
-	cowfe = "bin/cowfe-32bita2.nncgen.exe",
-	cowbe = "bin/cowbe-68000.nncgen.exe",
-	linker = "bin/cowlink-ataritos.nncgen.exe",
-	assembler = buildgasataritos,
-	runtime = "rt/ataritos",
-	asmext = ".s",
-	binext = ".ataritos.tos",
-	tester = ataritosemutest,
-}
-
 ALL_TOOLCHAINS = {
 	toolchain_ataritos,
 	toolchain_bbct,
@@ -189,6 +201,7 @@ ALL_TOOLCHAINS = {
 	toolchain_fuzix6303,
 	toolchain_lxthumb2,
 	toolchain_lx386,
+	toolchain_lx68k,
 	toolchain_lxppc,
 	toolchain_msdos,
 	toolchain_ncgen,
