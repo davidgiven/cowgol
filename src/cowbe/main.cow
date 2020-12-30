@@ -29,7 +29,7 @@ sub PrintFreeMemory() is
 end sub;
 
 sub SyntaxError() is
-	print("syntax error: cowcom [-Ipath] <infile> <outfile>\n");
+	print("syntax error: cowbe [-Ipath] <infile> <outfile>\n");
 	ExitWithError();
 end sub;
 
