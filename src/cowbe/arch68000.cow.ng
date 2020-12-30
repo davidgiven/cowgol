@@ -69,7 +69,7 @@
 			E_b16(sym.subr.id);
 			E_b8(sym.wsid);
 			E_b16(sym.off + off);
-			E(",a6");
+			E(",%a6");
 		end if;
 	end sub;
 
@@ -98,20 +98,20 @@
 
 	sub E_reg(reg: RegId) is
 		case reg is
-			when REG_D0: E("d0");
-			when REG_D1: E("d1");
-			when REG_D2: E("d2");
-			when REG_D3: E("d3");
-			when REG_D4: E("d4");
-			when REG_D5: E("d5");
-			when REG_D6: E("d6");
-			when REG_D7: E("d7");
-			when REG_A0: E("a0");
-			when REG_A1: E("a1");
-			when REG_A2: E("a2");
-			when REG_A3: E("a3");
-			when REG_A4: E("a4");
-			when REG_A5: E("a5");
+			when REG_D0: E("%d0");
+			when REG_D1: E("%d1");
+			when REG_D2: E("%d2");
+			when REG_D3: E("%d3");
+			when REG_D4: E("%d4");
+			when REG_D5: E("%d5");
+			when REG_D6: E("%d6");
+			when REG_D7: E("%d7");
+			when REG_A0: E("%a0");
+			when REG_A1: E("%a1");
+			when REG_A2: E("%a2");
+			when REG_A3: E("%a3");
+			when REG_A4: E("%a4");
+			when REG_A5: E("%a5");
 			when else:
 				StartError();
 				print("bad reg ");
@@ -129,7 +129,7 @@
 	sub E_push(reg: RegId, insn: string) is
 		E_insn(insn);
 		E_reg(reg);
-		E(", -(sp)\n");
+		E(", -(%sp)\n");
 	end sub;
 
 	sub E_pushw(reg: RegId) is E_push(reg, "move.w"); end sub;
@@ -137,7 +137,7 @@
 
 	sub E_pop(reg: RegId, insn: string) is
 		E_insn(insn);
-		E("(sp)+, ");
+		E("(%sp)+, ");
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -396,7 +396,7 @@ gen ENDSUB() uses all
 	end loop;
 
 	if params > 1 then
-		E("\tjmp (a5)\n");
+		E("\tjmp (%a5)\n");
 	else
 		E("\trts\n");
 	end if;
@@ -487,7 +487,7 @@ gen areg := SUBREF():s
 
 	sub CallA5() is
 		R_flushall();
-		E("\tjsr (a5)\n");
+		E("\tjsr (%a5)\n");
 	end sub;
 %}
 

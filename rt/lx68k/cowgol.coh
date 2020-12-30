@@ -5,14 +5,15 @@ var HIMEM: [uint8];
 @asm "move.l #HIMEM, (", HIMEM, ")";
 
 sub Exit() is
-	@asm "move.w #0, -(%sp)"; # PTerm0
-	@asm "trap #1";
+	@asm "move.l #1, %d0"; # __exit
+	@asm "clr.l %d1";
+	@asm "trap #0";
 end sub;
 
 sub ExitWithError() is
-	@asm "move.w #1, -(%sp)";
-	@asm "move.w #0x4c, -(%sp)"; # PTerm
-	@asm "trap #1";
+	@asm "move.l #1, %d0"; # __exit
+	@asm "move.l %d0, %d1";
+	@asm "trap #0";
 end sub;
 
 sub AlignUp(in: intptr): (out: intptr) is
@@ -20,19 +21,12 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
-	if c == 10 then
-		@asm "move.b #13, d0";
-		@asm "move.w d0, -(%sp)";
-		@asm "move.w #2, -(%sp)"; # Cconout
-		@asm "trap #1";
-		@asm "add.l #4, %sp";
-	end if;
-
-	@asm "move.b (", c, "), d0";
-	@asm "move.w d0, -(%sp)";
-	@asm "move.w #2, -(%sp)"; # Cconout
-	@asm "trap #1";
-	@asm "add.l #4, %sp";
+	@asm "move.l #4, %d0"; # write
+	@asm "move.l #1, %d1"; # file descriptor
+	@asm "lea (", c, "), %a0";
+	@asm "move.l %a0, %d2"; # pointer
+	@asm "move.l %d1, %d3"; # length
+	@asm "trap #0";
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: intptr) is

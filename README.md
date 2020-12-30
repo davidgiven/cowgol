@@ -54,7 +54,8 @@ The following targets are supported. Adding more is easy.
   - PowerPC, on Linux.
 
   - 68000, on Atari ST TOS (although most of the system calls aren't hooked up
-	yet so you can't do anything more than print stuff).
+	yet so you can't do anything more than print stuff) and Linux m68k (if you
+	can still find a machine which will run this).
 
   - 8086, on DOS (it emits small mode .exe files with 64kB of code and 64kB of data).
 
@@ -77,7 +78,7 @@ compiler and I haven't reworked the AGC backend.)
 
 In terms of machines you can run the compiler _on_:
 
-  - 80386 and ARM and PowerPC Linux, duh.
+  - 80386 and ARM and PowerPC and 68000 Linux, duh.
 
   - A BBC Micro with Tube second processor. [Follow this link for a live
 	in-browser

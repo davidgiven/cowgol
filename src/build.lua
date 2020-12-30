@@ -98,6 +98,10 @@ function buildgas386(e)
     return buildgas("i686-linux-gnu", e)
 end
 
+function buildgas68k(e)
+    return buildgas("m68k-linux-gnu", e)
+end
+
 function buildgasarm(e)
     return buildgas("arm-linux-gnueabihf", e)
 end
@@ -107,11 +111,7 @@ function buildgasppc(e)
 end
 
 function buildgasataritos(e)
-	rule {
-		ins = e.ins,
-		outs = e.outs,
-		cmd = "m68k-atari-mint-gcc @1 -Wa,-S -nostdlib -o &1"
-	}
+	return buildgas("m68k-atari-mint", e)
 end
 
 function buildzmac(e)
@@ -191,6 +191,10 @@ end
 
 function qemu386test(e)
     return simpletest("qemu-i386", e)
+end
+
+function qemu68ktest(e)
+    return simpletest("qemu-m68k", e)
 end
 
 function qemuarmtest(e)
