@@ -19,7 +19,7 @@ sub ArgvNext(): (arg: [uint8]) is
 		# No more arguments.
 		argv_pointer := (0 as [[uint8]]);
 	else
-		argv_pointer := argv_pointer + 4;
+		argv_pointer := @next argv_pointer;
 	end if;
 end sub;
 

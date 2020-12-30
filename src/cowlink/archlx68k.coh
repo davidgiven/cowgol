@@ -40,7 +40,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 	# sp              argc
 
 	E("\tlea.l 4(%sp), %a0\n");
-	E("\tmove.l %a0, -(%sp)\n");
+	E("\tmove.l %a0, (argv)\n");
 	E("\tlea (ws), %a6\n");
 
 	while coo != (0 as [Coo]) loop
