@@ -31,7 +31,16 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\t.text\n");
 	E("\t_start:\n");
 
-	E("\tmove.l 4(%sp), (argv)\n");
+	# On entry, the stack looks like this:
+	#
+	# sp+..            NULL
+	# sp+8+(4*argc)   env (X quads)
+	# sp+4+(4*argc)   NULL
+	# sp+4            argv (argc quads)
+	# sp              argc
+
+	E("\tlea.l 4(%sp), %a0\n");
+	E("\tmove.l %a0, -(%sp)\n");
 	E("\tlea (ws), %a6\n");
 
 	while coo != (0 as [Coo]) loop
@@ -45,8 +54,9 @@ sub ArchEmitHeader(coo: [Coo]) is
 	end loop;
 
 	E("_exit:\n");
-	E("\tmove.w #0, -(%sp)\n"); # PTerm0
-	E("\ttrap #1\n");
+	E("\tmove.l #1, %d0\n"); # __exit
+	E("\tclr.l %d1\n"); # return status
+	E("\ttrap #0\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is

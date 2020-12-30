@@ -197,6 +197,10 @@ function qemu386test(e)
     return simpletest("qemu-i386", e)
 end
 
+function qemu68ktest(e)
+    return simpletest("qemu-m68k", e)
+end
+
 function qemuarmtest(e)
     return simpletest("qemu-arm", e)
 end

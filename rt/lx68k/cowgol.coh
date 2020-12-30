@@ -20,19 +20,12 @@ sub AlignUp(in: intptr): (out: intptr) is
 end sub;
 
 sub print_char(c: uint8) is
-	if c == 10 then
-		@asm "move.b #13, %d0";
-		@asm "move.w %d0, -(%sp)";
-		@asm "move.w #2, -(%sp)"; # Cconout
-		@asm "trap #1";
-		@asm "add.l #4, %sp";
-	end if;
-
-	@asm "move.b (", c, "), %d0";
-	@asm "move.w %d0, -(%sp)";
-	@asm "move.w #2, -(%sp)"; # Cconout
-	@asm "trap #1";
-	@asm "add.l #4, %sp";
+	@asm "move.l #4, %d0"; # write
+	@asm "move.l #1, %d1"; # file descriptor
+	@asm "lea (", c, "), %a0";
+	@asm "move.l %a0, %d2"; # pointer
+	@asm "move.l %d1, %d3"; # length
+	@asm "trap #0";
 end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: intptr) is
