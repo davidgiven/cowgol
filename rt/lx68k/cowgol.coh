@@ -5,14 +5,15 @@ var HIMEM: [uint8];
 @asm "move.l #HIMEM, (", HIMEM, ")";
 
 sub Exit() is
-	@asm "move.w #0, -(%sp)"; # PTerm0
-	@asm "trap #1";
+	@asm "move.l #1, %d0"; # __exit
+	@asm "clr.l %d1";
+	@asm "trap #0";
 end sub;
 
 sub ExitWithError() is
-	@asm "move.w #1, -(%sp)";
-	@asm "move.w #0x4c, -(%sp)"; # PTerm
-	@asm "trap #1";
+	@asm "move.l #1, %d0"; # __exit
+	@asm "move.l %d0, %d1";
+	@asm "trap #0";
 end sub;
 
 sub AlignUp(in: intptr): (out: intptr) is
