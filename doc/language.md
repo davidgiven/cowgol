@@ -35,7 +35,7 @@ end if
 # subroutine with one input parameter
 sub ThisIsASubroutine(i: uint8) is
   # subroutine with no input or output parameters
-  sub ThisIsANestedSubroutine is
+  sub ThisIsANestedSubroutine() is
     print("nested subroutines can access upvalues!");
     print_i8(i);
   end sub;
