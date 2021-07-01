@@ -1,0 +1,148 @@
+typedef Word is uint32;
+
+include "cowasm.coh";
+
+const AM_VAL := 0x00;
+const AM_IND := 0x10;
+
+var addressingMode: uint8;
+
+@impl sub EmitWord is
+    Emit8(word as uint8);
+	Emit8((word>>8) as uint8);
+	Emit8((word>>16) as uint8);
+
+    [currentProgramCounter] := [currentProgramCounter] - 2;
+end sub;
+
+sub ReadOperand(): (token: Token) is
+    token := ReadToken();
+
+    case token is
+		when '[':
+			if ReadExpression() != ']' then
+				SimpleError("unterminated indexed noun");
+			end if;
+			addressingMode := AM_IND;
+			token := ReadToken();
+
+        when else:
+            PushToken(token);
+            token := ReadExpression();
+			addressingMode := AM_VAL;
+    end case;
+end sub;
+
+sub ExpectOperand() is
+    if ReadOperand() != TOKEN_NL then
+        SimpleError("expected a single operand");
+    end if;
+end sub;
+
+sub OpNounCb implements SymbolCallback is
+    ExpectOperand();
+	var opcode := currentInsn.value as uint32;
+	if addressingMode == AM_IND then
+		opcode := opcode | 0o010000;
+	end if;
+    EmitWord(opcode | (tokenNumber as uint32));
+end sub;
+
+sub OpSimpleCb implements SymbolCallback is
+    EmitWord(currentInsn.value as uint32);
+    Expect(TOKEN_NL);
+end sub;
+
+@impl sub InitialiseSymbolTable is
+	var s: Symbol;
+	var symbols: Symbol[] := {
+		# Instructions which take addresses.
+
+		{ "ADX",  0o020000,  OpNounCb,      &s },
+		{ "ADD",  0o040000,  OpNounCb,      &s },
+		{ "BRM",  0o060000,  OpNounCb,      &s },
+		{ "STE",  0o100000,  OpNounCb,      &s },
+		{ "EXU",  0o120000,  OpNounCb,      &s },
+		{ "SHF",  0o140000,  OpNounCb,      &s },
+		{ "IO",   0o160000,  OpNounCb,      &s },
+		{ "LDA",  0o200000,  OpNounCb,      &s },
+		{ "XNGT", 0o220000,  OpNounCb,      &s },
+		{ "ILT",  0o260000,  OpNounCb,      &s },
+		{ "ETR",  0o300000,  OpNounCb,      &s },
+		{ "LDS",  0o320000,  OpNounCb,      &s },
+		{ "CYC",  0o340000,  OpNounCb,      &s },
+		{ "DSH",  0o360000,  OpNounCb,      &s },
+		{ "LDL",  0o400000,  OpNounCb,      &s },
+		{ "BRC",  0o420000,  OpNounCb,      &s },
+		{ "MUL",  0o440000,  OpNounCb,      &s },
+		{ "IET",  0o460000,  OpNounCb,      &s },
+		{ "MRG",  0o500000,  OpNounCb,      &s },
+		{ "LDE",  0o520000,  OpNounCb,      &s },
+		{ "LDX",  0o540000,  OpNounCb,      &s },
+		{ "DCY",  0o560000,  OpNounCb,      &s },
+		{ "STA",  0o600000,  OpNounCb,      &s },
+		{ "BRU",  0o620000,  OpNounCb,      &s },
+		{ "DIV",  0o640000,  OpNounCb,      &s },
+		{ "IGT",  0o660000,  OpNounCb,      &s },
+		{ "EORA", 0o700000,  OpNounCb,      &s },
+		{ "TIN",  0o720000,  OpNounCb,      &s },
+		{ "STX",  0o740000,  OpNounCb,      &s },
+
+        # Simple instructions.
+
+		{ "HLT",  0o000000,  OpSimpleCb,    &s },
+		{ "TOV",  0o000001,  OpSimpleCb,    &s },
+		{ "NOP",  0o000002,  OpSimpleCb,    &s },
+		{ "IGZ",  0o000003,  OpSimpleCb,    &s },
+		{ "NEG",  0o000004,  OpSimpleCb,    &s },
+		{ "IOP",  0o000005,  OpSimpleCb,    &s },
+        { "ADC",  0o000006,  OpSimpleCb,    &s },
+        { "ROV",  0o000007,  OpSimpleCb,    &s },
+        { "CMP",  0o000010,  OpSimpleCb,    &s },
+		{ "ANDD", 0o000011,  OpSimpleCb,    &s },
+		{ "LDP",  0o000012,  OpSimpleCb,    &s },
+		{ "LDD",  0o000013,  OpSimpleCb,    &s },
+		{ "NORM", 0o000014,  OpSimpleCb,    &s },
+		{ "ORD",  0o000015,  OpSimpleCb,    &s },
+		{ "EXIT", 0o000016,  OpSimpleCb,    &s },
+		{ "CPD",  0o000017,  OpSimpleCb,    &s },
+		{ "SSA",  0o000020,  OpSimpleCb,    &s },
+		{ "IEZ",  0o000021,  OpSimpleCb,    &s },
+		{ "FLP",  0o000022,  OpSimpleCb,    &s },
+		{ "RED",  0o000023,  OpSimpleCb,    &s },
+
+		# Standard symbols
+
+		{ "ORG",   0,            OrgCb,     &s },
+		{ "DW",    0,            DwCb,      &s },
+		{ "EQU",   0,            EquCb,     &s },
+		{ "ELSE",  0,            ElseCb,    &s },
+		{ "ENDIF", 0,            EndIfCb,   &s },
+		{ "END",   0,            EndCb,     &s },
+		{ "IF",    0,            IfCb,      &s },
+		{ "SET",   0,            SetCb,     &s },
+		{ "TITLE", 0,            TitleCb,   &s },
+		{ "ALIGN", 0,            AlignCb,   &s },
+		{ "CSEG",  SEGMENT_TEXT, SegmentCb, &s },
+		{ "DSEG",  SEGMENT_DATA, SegmentCb, &s },
+		{ "BSEG",  SEGMENT_BSS,  SegmentCb, &s },
+
+		{ "AND",   OP_AND,   OperatorCb, &s },
+		{ "MOD",   OP_MOD,   OperatorCb, &s },
+		{ "NOT",   OP_NOT,   OperatorCb, &s },
+		{ "OR",    OP_OR,    OperatorCb, &s },
+		{ "SHL",   OP_SHL,   OperatorCb, &s },
+		{ "SHR",   OP_SHR,   OperatorCb, &s },
+		{ "EOR",   OP_XOR,   OperatorCb, &s },
+	};
+
+    AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
+end sub;
+
+@impl sub MassageCurrentInsn is
+end sub;
+
+Main("OAO-3 Assembler (C) 2021 David Given; ");
+
+# vim: sw=4 ts=4 et
+

@@ -18,7 +18,7 @@ var eol: uint8;
 var lineno: uint16 := 0;
 var tokenLength: uint8;
 var tokenBuffer: uint8[64];
-var tokenNumber: uint16;
+var tokenNumber: Word;
 var tokenSymbol: [Symbol];
 
 const SEGMENT_TEXT := 0;
@@ -27,8 +27,8 @@ const SEGMENT_BSS := 2;
 
 var segment: uint8;
 var emitSegment: uint8;
-var programCounter: uint16[3];
-var currentProgramCounter: [uint16];
+var programCounter: Word[3];
+var currentProgramCounter: [Word];
 
 var currentInsn: [Symbol];
 var currentLabel: [Symbol];
@@ -80,7 +80,7 @@ interface SymbolCallback();
 
 record Symbol is
 	name: string;
-	value: uint16;
+	value: Word;
 	callback: SymbolCallback;
 	next: [Symbol];
 end record;
@@ -165,7 +165,7 @@ sub Emit8(b: uint8) is
     [currentProgramCounter] := [currentProgramCounter] + 1;
 end sub;
 
-@decl sub Emit16(word: uint16);
+@decl sub EmitWord(word: Word);
 
 sub FindSymbol(name: string): (psymbol: [[Symbol]]) is
     var p := name;
@@ -356,7 +356,7 @@ sub ReadToken(): (token: Token) is
 			if c >= base then
 				SimpleError("invalid number");
 			end if;
-			tokenNumber := tokenNumber*(base as uint16) + (c as uint16);
+			tokenNumber := tokenNumber*(base as Word) + (c as Word);
 		end loop;
 		token := TOKEN_NUMBER;
 	elseif (c >= 'A') and (c <= 'Z') then
@@ -432,7 +432,7 @@ sub UnbalancedParentheses() is
 end sub;
 
 sub ReadExpression(): (token: Token) is
-    interface OperatorCallback(left: uint16, right: uint16): (result: uint16);
+    interface OperatorCallback(left: Word, right: Word): (result: Word);
 
     record Operator is
         callback: OperatorCallback;
@@ -470,13 +470,13 @@ sub ReadExpression(): (token: Token) is
     };
 
     const STACK_DEPTH := 32;
-    var values: uint16[STACK_DEPTH];
+    var values: Word[STACK_DEPTH];
     var operators: [Operator][STACK_DEPTH];
     var valueSp: @indexof values := 0;
     var operatorSp: @indexof operators := 0;
     var seenValue: uint8 := 0;
 
-    sub PushValue(value: uint16) is
+    sub PushValue(value: Word) is
         if valueSp == STACK_DEPTH then
             SimpleError("expression stack overflow");
         end if;
@@ -484,7 +484,7 @@ sub ReadExpression(): (token: Token) is
         valueSp := valueSp + 1;
     end sub;
 
-    sub PopValue(): (value: uint16) is
+    sub PopValue(): (value: Word) is
         if valueSp == 0 then
             SimpleError("expression stack underflow");
         end if;
@@ -562,9 +562,9 @@ sub ReadExpression(): (token: Token) is
                         return;
                     end if;
 
-                    var v: uint16 := tokenBuffer[0] as uint16;
+                    var v: Word := tokenBuffer[0] as Word;
                     if tokenLength == 2 then
-                        v := (v<<8) | (tokenBuffer[1] as uint16);
+                        v := (v<<8) | (tokenBuffer[1] as Word);
                     end if;
                     if (tokenLength != 1) and (tokenLength != 2) then
                         SimpleError("invalid character constant");
@@ -710,9 +710,9 @@ sub SetImplicitLabel() is
         print("label '");
         print(currentLabel.name);
         print("' already defined (");
-        print_hex_i16(currentLabel.value);
+        print_hex_i16(currentLabel.value as uint16);
         print("h vs ");
-        print_hex_i16([currentProgramCounter]);
+        print_hex_i16([currentProgramCounter] as uint16);
         print("h)");
         EndError();
     elseif currentLabel.value != [currentProgramCounter] then
@@ -847,7 +847,7 @@ end sub;
 sub DwCb implements SymbolCallback is
     loop
         var t := ReadExpression();
-        Emit16(tokenNumber);
+        EmitWord(tokenNumber);
         if t != ',' then
             break;
         end if;
@@ -915,7 +915,7 @@ sub Pass() is
             listingBuffer[X_TEXT] := 0;
             var p := UIToA(lineno as uint32, 10, &listingBuffer[X_LINENO]);
             [p] := ':';
-            Hex16([currentProgramCounter], &listingBuffer[X_PROGRAMCOUNTER]);
+            Hex16([currentProgramCounter] as uint16, &listingBuffer[X_PROGRAMCOUNTER]);
             listingBuffer[X_PROGRAMCOUNTER_END] := ':';
         end if;
 

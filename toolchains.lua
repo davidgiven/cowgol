@@ -193,21 +193,22 @@ toolchain_msdos = {
 }
 
 ALL_TOOLCHAINS = {
-	toolchain_ataritos,
-	toolchain_bbct,
-	toolchain_bbct6502,
-	toolchain_bbcti,
-	toolchain_bbctiny,
-	toolchain_fuzix6303,
-	toolchain_lxthumb2,
-	toolchain_lx386,
-	toolchain_lx68k,
-	toolchain_lxppc,
-	toolchain_msdos,
-	toolchain_ncgen,
-	toolchain_ncpm,
-	toolchain_ncpmz,
 	toolchain_nncgen,
-	toolchain_unixv7,
+	toolchain_ncgen,
+
+--	toolchain_ataritos,
+--	toolchain_bbct,
+--	toolchain_bbct6502,
+--	toolchain_bbcti,
+--	toolchain_bbctiny,
+--	toolchain_fuzix6303,
+--	toolchain_lxthumb2,
+--	toolchain_lx386,
+--	toolchain_lx68k,
+--	toolchain_lxppc,
+--	toolchain_msdos,
+--	toolchain_ncpm,
+	toolchain_ncpmz,
+--	toolchain_unixv7,
 }
 
