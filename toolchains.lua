@@ -196,8 +196,8 @@ ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
 
---	toolchain_ataritos,
---	toolchain_bbct,
+	toolchain_ataritos,
+	toolchain_bbct,
 --	toolchain_bbct6502,
 --	toolchain_bbcti,
 --	toolchain_bbctiny,
@@ -207,7 +207,7 @@ ALL_TOOLCHAINS = {
 --	toolchain_lx68k,
 --	toolchain_lxppc,
 --	toolchain_msdos,
---	toolchain_ncpm,
+	toolchain_ncpm,
 	toolchain_ncpmz,
 --	toolchain_unixv7,
 }

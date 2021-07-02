@@ -40,6 +40,8 @@ static bool reg_fd;
 static bool reg_fa;
 static bool reg_fv;
 
+static void execute(uint32_t insn);
+
 void emulator_init(const char* filename)
 {
 	/* Load the binary */
@@ -57,7 +59,7 @@ void emulator_init(const char* filename)
 
 		if (address == MEMORY_SIZE)
 			fatal("image too big to fit in memory");
-		memory[address++] = value;
+		memory[address++] = value & 0777777;
 	}
 
 	fclose(fp);
@@ -118,6 +120,7 @@ static void disassemble(char* buffer, size_t buffersize, uint32_t address)
 		case 0160000: format = "IO %s%06o%s"; break;
 		case 0200000: format = "LDA %s%06o%s"; break;
 		case 0220000: format = "XNGT %s%06o%s"; break;
+		case 0240000: format = "SUB %s%06o%s"; break;
 		case 0260000: format = "ILT %s%06o%s"; break;
 		case 0300000: format = "ETR %s%06o%s"; break;
 		case 0320000: format = "LDS %s%06o%s"; break;
@@ -154,7 +157,7 @@ static void showregs(void)
 		reg_fd ? 'D' : 'd',
 		reg_fa ? 'A' : 'a',
 		reg_fv ? 'V' : 'v',
-		reg_pc, reg_a, reg_e, reg_x, reg_sl, reg_sc, reg_p);
+		reg_pc, reg_a, reg_e, reg_x, reg_sl, reg_sc & 077, reg_p);
 
 	char buffer[80];
 	disassemble(buffer, sizeof(buffer), reg_pc);
@@ -322,9 +325,9 @@ static void cmd_memory(void)
 			{
 				uint16_t pp = p + i;
 				if ((pp >= startaddr) && (pp < endaddr))
-					printf("%06o ", memory[pp] & 0777777);
+					printf("%06o ", memory[pp]);
 				else
-					printf("   ");
+					printf("       ");
 			}
 			p += 8;
 			putchar('\n');
@@ -475,8 +478,22 @@ static uint32_t do_add(uint32_t uleft, uint32_t uright)
 	int32_t right = sign(uright, 18);
 	int32_t result = left + right;
 
-	reg_fc = (left & SIGNBIT) != (result & SIGNBIT);
-	reg_fv = (result < SWORD_MIN) || (result > SWORD_MAX);
+	reg_fc = ((uleft & 0377777) + (uright & 0377777)) & 0400000;
+	if (!((left ^ right) & SIGNBIT))
+		reg_fv |= (left & SIGNBIT) != (result & SIGNBIT);
+
+	return result & 0777777;
+}
+
+static uint32_t do_sub(uint32_t uleft, uint32_t uright)
+{
+	int32_t left = sign(uleft, 18);
+	int32_t right = sign(uright, 18);
+	int32_t result = left - right;
+
+	reg_fc = ((uleft & 0377777) - (uright & 0377777)) & 0400000;
+	if ((left ^ right) & SIGNBIT)
+		reg_fv |= (left & SIGNBIT) != (result & SIGNBIT);
 
 	return result & 0777777;
 }
@@ -509,7 +526,7 @@ static uint32_t do_shf(uint32_t uvalue, uint32_t uamount)
 		value <<= amount;
 
 	reg_fv = (value & SIGNBIT) != (uvalue & SIGNBIT);
-	return value;
+	return value & 0777777;
 }
 
 static void do_cyc(uint32_t uamount)
@@ -524,7 +541,7 @@ static void do_cyc(uint32_t uamount)
 
 static void do_dcy(uint32_t uamount)
 {
-	uint64_t value = reg_e | (reg_a << 18);
+	uint64_t value = (uint64_t)reg_e | ((uint64_t)reg_a << 18);
 	int32_t amount = sign(uamount, 6);
 	if (amount < 0)
 		value = (value >> -amount) | (value << (36+amount));
@@ -536,7 +553,7 @@ static void do_dcy(uint32_t uamount)
 
 static void do_dsh(uint32_t uamount)
 {
-	int64_t value = (reg_e & 0377777) | ((int64_t)sign(reg_a, 18) << 17);
+	int64_t value = ((int64_t)reg_e & 0377777) | ((int64_t)sign(reg_a, 18) << 17);
 	int32_t amount = sign(uamount, 6);
 	if (amount < 0)
 		value >>= -amount;
@@ -594,69 +611,160 @@ static uint32_t do_flp(uint32_t value)
 	}
 }
 
-static void step_once(void)
+static void do_io(uint32_t value)
 {
-	uint32_t insn = memory[reg_pc++];
+	switch (value & 0600000)
+	{
+		case 0000000: /* set up DMA */
+			break;
+
+		case 0200000: /* function call */
+			break;
+
+		case 0400000: /* output A */
+			memory[7] = reg_a;
+			putchar(reg_a);
+			break;
+
+		case 0600000: /* input A */
+			reg_a = getchar() & 0777777;
+			memory[7] = reg_a;
+			break;
+	}
+}
+
+static void do_conditional(bool result)
+{
+	if (reg_fa)
+		reg_fd &= result;
+	else
+		reg_fd |= result;
+}
+
+static void do_brm(uint32_t ea)
+{
+	wr(reg_pc, ea);
+	reg_pc = ea + 1;
+}
+
+static void do_exu(uint32_t insn)
+{
+	if ((insn & 0760000) == 0120000)
+		return;
+	execute(insn);
+}
+
+static void do_mul(uint32_t rhs)
+{
+	int64_t result = (int64_t)sign(reg_a, 18) * (int64_t)sign(rhs, 18);
+	if (reg_sc > 0)
+	{
+		for (int i=0; i<reg_sc; i++)
+		{
+			int64_t oldsign = result & (1L<<34);
+			result <<= 1;
+			if ((result & (1L<<34)) != oldsign)
+				reg_fv = true;
+		}
+	}
+	else
+	{
+		for (int i=reg_sc; i<0; i++)
+			result >>= 1;
+	}
+
+	reg_a = (result >> 17) & 0777777;
+	reg_e = (reg_a & 0400000) | (result & 0377777);
+}
+
+static int countbits(uint32_t value)
+{
+	int count = 0;
+	for (int i=0; i<18; i++)
+	{
+		count += value & 1;
+		value >>= 1;
+	}
+	return count;
+}
+
+static void do_tin(uint32_t address)
+{
+	fatal("no tin");
+}
+
+static void emulator_interrupt(int irq)
+{
+	fatal("no execute_interrupt");
+}
+
+static void execute(uint32_t insn)
+{
 	switch (insn & 0760000)
 	{
 		case 0000000: /* Simple instruction */
 			switch (insn)
 			{
-				case 0000000: unimplemented_instruction();
-				case 0000001: unimplemented_instruction();
-				case 0000002: unimplemented_instruction();
-				case 0000003: unimplemented_instruction();
+				case 0000000: /* HLT */ exit(0);
+				case 0000001: /* TOV */ do_conditional(reg_fv); reg_fv = false; break;
+				case 0000002: /* NOP */ break;
+				case 0000003: /* IGZ */ do_conditional(!(reg_a & SIGNBIT)); break;
 				case 0000004: /* NEG */ reg_a = do_neg(reg_a); break;
-				case 0000005: unimplemented_instruction();
+				case 0000005: /* IOP */ do_conditional(countbits(reg_a) & 1); break;
         		case 0000006: /* ADC */ reg_a = do_add(reg_a, reg_fc); break;
-        		case 0000007: unimplemented_instruction();
+        		case 0000007: /* ROV */ reg_fv = false; break;
         		case 0000010: /* CMP */ reg_a = ~reg_a; break;
-				case 0000011: unimplemented_instruction();
-				case 0000012: unimplemented_instruction();
+				case 0000011: /* ANDD */ reg_fa = true; break;
+				case 0000012: /* LDP */ reg_p = (reg_a >> 12) & 0xf; break;
 				case 0000013: /* LDD */ do_ldd(); break;
 				case 0000014: /* NORM */ do_norm(); break;
-				case 0000015: unimplemented_instruction();
-				case 0000016: unimplemented_instruction();
-				case 0000017: unimplemented_instruction();
-				case 0000020: unimplemented_instruction();
-				case 0000021: unimplemented_instruction();
+				case 0000015: /* ORD */ reg_fa = false; break;
+				case 0000016: /* EXIT */ emulator_interrupt(16); break;
+				case 0000017: /* CPD */ reg_fd = !reg_fd; break;
+				case 0000020: /* SSA */ reg_a = reg_sc & 077; break;
+				case 0000021: /* IEZ */ do_conditional(reg_a == 0); break;
 				case 0000022: /* FLP */ reg_a = do_flp(reg_a); break;
-				case 0000023: unimplemented_instruction();
+				case 0000023: /* RED */ reg_fd = false; break;
 				default:      unimplemented_instruction();
 			}
 			break;
 
 		case 0020000: /* ADX */ reg_x += rd(ea(insn)); break;
 		case 0040000: /* ADD */ reg_a = do_add(reg_a, rd(ea(insn))); break;
-		case 0060000: unimplemented_instruction();
+		case 0060000: /* BRM */ do_brm(ea(insn)); break;
 		case 0100000: /* STE */ wr(reg_e, ea(insn)); break;
-		case 0120000: unimplemented_instruction();
+		case 0120000: /* EXU */ do_exu(rd(rd(ea(insn)))); break;
 		case 0140000: /* SHF */ reg_a = do_shf(reg_a, rd(ea(insn))); break;
-		case 0160000: unimplemented_instruction();
+		case 0160000: /* IO  */ do_io(rd(ea(insn))); break;
 		case 0200000: /* LDA */ reg_a = rd(ea(insn)); break;
-		case 0220000: unimplemented_instruction();
-		case 0260000: unimplemented_instruction();
+		case 0220000: /* XNGT */ do_conditional(reg_x <= rd(ea(insn))); break;
+		case 0240000: /* SUB */ reg_a = do_sub(reg_a, rd(ea(insn))); break;
+		case 0260000: /* ILT */ do_conditional(sign(reg_a, 18) < sign(rd(ea(insn)), 18)); break;
 		case 0300000: /* ETR */ reg_a &= rd(ea(insn)); break;
-		case 0320000: unimplemented_instruction();
+		case 0320000: /* LDS */ reg_sc = sign(rd(ea(insn)), 6); break;
 		case 0340000: /* CYC */ do_cyc(rd(ea(insn))); break;
 		case 0360000: /* DSH */ do_dsh(rd(ea(insn))); break;
 		case 0400000: /* LDL */ reg_a = ea(insn); break;
-		case 0420000: unimplemented_instruction();
-		case 0440000: unimplemented_instruction();
-		case 0460000: unimplemented_instruction();
+		case 0420000: /* BRC */ if (reg_fd) reg_pc = rd(ea(insn)); reg_fd = reg_fa = false; break;
+		case 0440000: /* MUL */ do_mul(rd(ea(insn))); break;
+		case 0460000: /* IET */ do_conditional(reg_a == rd(ea(insn))); break;
 		case 0500000: /* MRG */ reg_a |= rd(ea(insn)); break;
 		case 0520000: /* LDE */ reg_e = rd(ea(insn)); break;
 		case 0540000: /* LDX */ reg_x = rd(ea(insn)); break;
 		case 0560000: /* DCY */ do_dcy(rd(ea(insn))); break;
 		case 0600000: /* STA */ wr(reg_a, ea(insn)); break;
-		case 0620000: unimplemented_instruction();
+		case 0620000: /* BRU */ reg_pc = rd(ea(insn)); break;
 		case 0640000: unimplemented_instruction();
-		case 0660000: unimplemented_instruction();
+		case 0660000: /* IGT */ do_conditional(sign(reg_a, 18) > sign(rd(ea(insn)), 18)); break;
 		case 0700000: /* EORA */ reg_a ^= rd(ea(insn)); break;
-		case 0720000: unimplemented_instruction();
+		case 0720000: /* TIN */ do_tin(rd(ea(insn))); break;
 		case 0740000: /* STX */ wr(reg_x, ea(insn)); break;
 		default:	  unimplemented_instruction();
 	}
+}
+
+static void step_once(void)
+{
 }
 
 void emulator_run(void)
@@ -684,7 +792,8 @@ void emulator_run(void)
 	else if (tracing)
 		showregs();
 
-	step_once();
+	uint32_t insn = memory[reg_pc++];
+	execute(insn);
 }
 
 
