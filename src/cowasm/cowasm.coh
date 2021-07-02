@@ -874,16 +874,21 @@ sub AlignCb implements SymbolCallback is
     end loop;
 end sub;
 
+sub ChangeSegment(s: uint8) is
+    segment := s as uint8;
+    currentProgramCounter := &programCounter[s];
+end sub;
+
 sub SegmentCb implements SymbolCallback is
-    segment := currentInsn.value as uint8;
-    currentProgramCounter := &programCounter[segment];
+    ChangeSegment(currentInsn.value as uint8);
 end sub;
 
 sub Pass() is
     eol := 1;
     lineno := 0;
+    programCounter[SEGMENT_BSS] := programCounter[SEGMENT_DATA];
+    programCounter[SEGMENT_DATA] := programCounter[SEGMENT_TEXT];
     programCounter[SEGMENT_TEXT] := 0;
-    programCounter[SEGMENT_DATA] := 0;
     currentProgramCounter := &programCounter[SEGMENT_TEXT];
     labelsChanged := 0;
     
@@ -1072,6 +1077,8 @@ sub Main(banner: string) is
     ParseArguments();
     InitialiseSymbolTable();
 
+    programCounter[SEGMENT_DATA] := 0;
+    programCounter[SEGMENT_BSS] := 0;
     pass := 1;
     loop
         Pass();

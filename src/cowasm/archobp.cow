@@ -2,8 +2,9 @@ typedef Word is uint32;
 
 include "cowasm.coh";
 
-const AM_VAL := 0x00;
-const AM_IND := 0x10;
+const AM_EA  := 0x00;
+const AM_SEA := 0x10;
+const AM_VAL := 0x20;
 
 var addressingMode: uint8;
 
@@ -20,10 +21,17 @@ sub ReadOperand(): (token: Token) is
 
     case token is
 		when '[':
-			if ReadExpression() != ']' then
-				SimpleError("unterminated indexed noun");
+            token := ReadExpression();
+            if token == ',' then
+                ReadRegister();
+                addressingMode := AM_SEA;
+                token := ReadToken();
+            else
+                addressingMode := AM_EA;
+            end if;
+            if token != ']' then
+				SimpleError("unterminated indirected value");
 			end if;
-			addressingMode := AM_IND;
 			token := ReadToken();
 
         when else:
@@ -42,10 +50,23 @@ end sub;
 sub OpNounCb implements SymbolCallback is
     ExpectOperand();
 	var opcode := currentInsn.value as uint32;
-	if addressingMode == AM_IND then
-		opcode := opcode | 0o010000;
-	end if;
-    EmitWord(opcode | (tokenNumber as uint32));
+    case addressingMode is
+        when AM_EA:
+            # do nothing
+
+        when AM_SEA:
+            opcode := opcode | 0o010000;
+
+        when AM_VAL:
+            if segment != SEGMENT_TEXT then
+                SimpleError("can only use immediate values from the code segment");
+            end if;
+            ChangeSegment(SEGMENT_DATA);
+            EmitWord(tokenNumber);
+            ChangeSegment(SEGMENT_TEXT);
+            tokenNumber := programCounter[SEGMENT_DATA] - 1;
+    end case;
+    EmitWord(opcode | tokenNumber);
 end sub;
 
 sub OpSimpleCb implements SymbolCallback is
@@ -56,6 +77,10 @@ end sub;
 @impl sub InitialiseSymbolTable is
 	var s: Symbol;
 	var symbols: Symbol[] := {
+        # Register symbols.
+
+        { "X",    0,         RegCb,         &s },
+
 		# Instructions which take addresses.
 
 		{ "ADX",  0o020000,  OpNounCb,      &s },
@@ -67,6 +92,7 @@ end sub;
 		{ "IO",   0o160000,  OpNounCb,      &s },
 		{ "LDA",  0o200000,  OpNounCb,      &s },
 		{ "XNGT", 0o220000,  OpNounCb,      &s },
+        { "SUB",  0o240000,  OpNounCb,      &s },
 		{ "ILT",  0o260000,  OpNounCb,      &s },
 		{ "ETR",  0o300000,  OpNounCb,      &s },
 		{ "LDS",  0o320000,  OpNounCb,      &s },
@@ -142,7 +168,7 @@ end sub;
 @impl sub MassageCurrentInsn is
 end sub;
 
-Main("OAO-3 Assembler (C) 2021 David Given; ");
+Main("OBP Assembler (C) 2021 David Given; ");
 
 # vim: sw=4 ts=4 et
 
