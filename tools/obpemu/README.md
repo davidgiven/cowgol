@@ -45,6 +45,13 @@ DMA.
 The simulator, along with the rest of Cowgol, is 2-clause BSD licensed. See
 COPYING in the root directory for the full text.
 
+To build: simply compile and link together the two C files. It should be
+standard Posix C.
+
+To use: invoke it with `obpemu [-d] <imagefile>`. `-d` enters the debugger on
+startup. The image file should be a memory image, starting at 0, with each
+18-bit word encoded as three 8-bit bytes, little-endian order.
+
 David Given
 dg@cowlark.com
 2021-07-03
