@@ -1,8 +1,158 @@
 IOWR equ 0o400000
 
 	cseg
+
+interrupt0: dw 0, 0, 0, 0, 0, 0, 0, 0
+
+interrupt1:
+	dw 0
+	dw 0
+	dw 0
+	dw 0
+	dw 0
+	dw 0
+	dw 0o000777
+	dw entry
+
+interrupt2: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupt3: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupt4: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupt5: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupt6: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupt7: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupt8: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupt9: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupta: dw 0, 0, 0, 0, 0, 0, 0, 0
+interruptb: dw 0, 0, 0, 0, 0, 0, 0, 0
+interruptc: dw 0, 0, 0, 0, 0, 0, 0, 0
+interruptd: dw 0, 0, 0, 0, 0, 0, 0, 0
+interrupte: dw 0, 0, 0, 0, 0, 0, 0, 0
+interruptf: dw 0, 0, 0, 0, 0, 0, 0, 0
+
+interruptS:
+	dw 0, 0, 0, 0
+	dw 0 ; irqp
+	dw 0
+	dw 0o000777
+	dw systemcall
+
+entry:
 	ord
 	red
+
+	; DIV mixed signs
+
+	lds 0
+	lda -1
+	lde -3
+	div 2
+	tov
+	cpd
+	andd
+	iet -1
+	andd
+	ste [temp]
+	lda [temp]
+	iet 1
+	brc divms_success
+	lde 'J'
+	io IOWR
+	hlt
+divms_success:
+
+	; DIV left scaled
+
+	lds -1
+	lda 0
+	lde 3
+	div 2
+	tov
+	cpd
+	andd
+	iet 3
+	andd
+	ste [temp]
+	lda [temp]
+	iez
+	brc divls_success
+	lde 'I'
+	io IOWR
+	hlt
+divls_success:
+
+	; DIV right scaled
+
+	lds 17
+	lda 3
+	lde 0
+	div 2
+	tov
+	cpd
+	andd
+	iet 1
+	andd
+	ste [temp]
+	lda [temp]
+	iet 1
+	brc divrs_success
+	lde 'H'
+	io IOWR
+	hlt
+divrs_success:
+
+	; DIV simple
+
+	lds 0
+	lda 0
+	lde 3
+	div 2
+	tov
+	cpd
+	andd
+	iet 1
+	andd
+	ste [temp]
+	lda [temp]
+	iet 1
+	brc divs_success
+	lde 'G'
+	io IOWR
+	hlt
+divs_success:
+
+	; ADX
+
+	ldx 5
+	adx -6
+	stx [temp]
+	lda [temp]
+	iet -1
+	brc adx_success
+	lde 'F'
+	io IOWR
+	hlt
+adx_success:
+
+	; EXIT
+
+	lda 1
+	lde 2
+	ldx 3
+	exit
+	iet 2
+	andd
+	ste [temp]
+	lda [temp]
+	iet 2
+	andd
+	stx [temp]
+	lda [temp]
+	iet 2
+	brc exit_success
+	lda 'E'
+	io IOWR
+	hlt
+exit_success:
 
 	; LDP
 
@@ -494,6 +644,16 @@ test_subr:
 lda1:
 	lda 1
 	bru [test_subr]
+
+systemcall:
+	add 1
+	adx -1
+	tin interruptS
+
+saveda: dw 0
+savede: dw 0
+savedx: dw 0
+savedsc: dw 0
 
 	dseg
 temp: dw 0

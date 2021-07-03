@@ -33,14 +33,18 @@ static uint32_t reg_a;
 static uint32_t reg_e;
 static uint32_t reg_x;
 static uint32_t reg_sl;
+static uint16_t reg_irq;
+static uint16_t reg_irqp;
 static int reg_sc;
 static int reg_p;
 static bool reg_fc;
 static bool reg_fd;
 static bool reg_fa;
 static bool reg_fv;
+static bool halted;
 
 static void execute(uint32_t insn);
+static void do_tin(uint32_t address);
 
 void emulator_init(const char* filename)
 {
@@ -72,14 +76,16 @@ void emulator_init(const char* filename)
 
 	/* Initialise the system */
 
-	reg_sl = 0000777;
+	reg_p = 0;
+	halted = false;
+	do_tin(014);
 }
 
 static void disassemble(char* buffer, size_t buffersize, uint32_t address)
 {
 	uint32_t insn = memory[address];
 
-	const char* format = NULL;
+	const char* opcode = NULL;
 	switch (insn & 0760000)
 	{
 		case 0000000: /* Simple instruction */
@@ -111,60 +117,61 @@ static void disassemble(char* buffer, size_t buffersize, uint32_t address)
 			}
 			break;
 
-		case 0020000: format = "ADX %s%06o%s"; break;
-		case 0040000: format = "ADD %s%06o%s"; break;
-		case 0060000: format = "BRM %s%06o%s"; break;
-		case 0100000: format = "STE %s%06o%s"; break;
-		case 0120000: format = "EXU %s%06o%s"; break;
-		case 0140000: format = "SHF %s%06o%s"; break;
-		case 0160000: format = "IO %s%06o%s"; break;
-		case 0200000: format = "LDA %s%06o%s"; break;
-		case 0220000: format = "XNGT %s%06o%s"; break;
-		case 0240000: format = "SUB %s%06o%s"; break;
-		case 0260000: format = "ILT %s%06o%s"; break;
-		case 0300000: format = "ETR %s%06o%s"; break;
-		case 0320000: format = "LDS %s%06o%s"; break;
-		case 0340000: format = "CYC %s%06o%s"; break;
-		case 0360000: format = "DSH %s%06o%s"; break;
-		case 0400000: format = "LDL %s%06o%s"; break;
-		case 0420000: format = "BRC %s%06o%s"; break;
-		case 0440000: format = "MUL %s%06o%s"; break;
-		case 0460000: format = "IET %s%06o%s"; break;
-		case 0500000: format = "MRG %s%06o%s"; break;
-		case 0520000: format = "LDE %s%06o%s"; break;
-		case 0540000: format = "LDX %s%06o%s"; break;
-		case 0560000: format = "DCY %s%06o%s"; break;
-		case 0600000: format = "STA %s%06o%s"; break;
-		case 0620000: format = "BRU %s%06o%s"; break;
-		case 0640000: format = "DIV %s%06o%s"; break;
-		case 0660000: format = "IGT %s%06o%s"; break;
-		case 0700000: format = "EORA %s%06o%s"; break;
-		case 0720000: format = "TIN %s%06o%s"; break;
-		case 0740000: format = "STX %s%06o%s"; break;
+		case 0020000: opcode = "ADX"; break;
+		case 0040000: opcode = "ADD"; break;
+		case 0060000: opcode = "BRM"; break;
+		case 0100000: opcode = "STE"; break;
+		case 0120000: opcode = "EXU"; break;
+		case 0140000: opcode = "SHF"; break;
+		case 0160000: opcode = "IO";  break;
+		case 0200000: opcode = "LDA"; break;
+		case 0220000: opcode = "XNGT"; break;
+		case 0240000: opcode = "SUB"; break;
+		case 0260000: opcode = "ILT"; break;
+		case 0300000: opcode = "ETR"; break;
+		case 0320000: opcode = "LDS"; break;
+		case 0340000: opcode = "CYC"; break;
+		case 0360000: opcode = "DSH"; break;
+		case 0400000: opcode = "LDL"; break;
+		case 0420000: opcode = "BRC"; break;
+		case 0440000: opcode = "MUL"; break;
+		case 0460000: opcode = "IET"; break;
+		case 0500000: opcode = "MRG"; break;
+		case 0520000: opcode = "LDE"; break;
+		case 0540000: opcode = "LDX"; break;
+		case 0560000: opcode = "DCY"; break;
+		case 0600000: opcode = "STA"; break;
+		case 0620000: opcode = "BRU"; break;
+		case 0640000: opcode = "DIV"; break;
+		case 0660000: opcode = "IGT"; break;
+		case 0700000: opcode = "EORA"; break;
+		case 0720000: opcode = "TIN"; break;
+		case 0740000: opcode = "STX"; break;
 		default:
 			snprintf(buffer, buffersize, "UNKNOWN");
 			return;
 	}
 
 	bool indirect = insn & (1<<12);
-	snprintf(buffer, buffersize, format, indirect ? "[" : "", insn & 07777, indirect ? "]" : "");
+	snprintf(buffer, buffersize,
+			"%s [%06o%s]", opcode, insn & 07777, indirect ? ", x" : "");
 }
 
 static void showregs(void)
 {
-	printf("%c%c%c%c pc=%06o a=%06o e=%06o x=%06o sl=%06o sc=%02o p=%02o\n",
+	printf("%c%c%c%c pc=%06o a=%06o e=%06o x=%06o sl=%06o sc=%02o p=%02o\n     irq=%06o irqp=%06o\n",
 		reg_fc ? 'C' : 'c',
 		reg_fd ? 'D' : 'd',
 		reg_fa ? 'A' : 'a',
 		reg_fv ? 'V' : 'v',
-		reg_pc, reg_a, reg_e, reg_x, reg_sl, reg_sc & 077, reg_p);
+		reg_pc, reg_a, reg_e, reg_x, reg_sl, reg_sc & 077, reg_p,
+		reg_irq, reg_irqp);
 
 	char buffer[80];
 	disassemble(buffer, sizeof(buffer), reg_pc);
 	printf("%06o : %s\n", reg_pc, buffer);
 }
 
-#if 0
 static void cmd_register(void)
 {
 	char* w1 = strtok(NULL, " ");
@@ -172,41 +179,42 @@ static void cmd_register(void)
 
 	if (w1 && w2)
 	{
-		Z80_REG_T reg = -1;
-		if (strcmp(w1, "sp") == 0)
-			reg = regSP;
-		else if (strcmp(w1, "pc") == 0)
-			reg = regPC;
-		else if (strcmp(w1, "af") == 0)
-			reg = regAF;
-		else if (strcmp(w1, "bc") == 0)
-			reg = regBC;
-		else if (strcmp(w1, "de") == 0)
-			reg = regDE;
-		else if (strcmp(w1, "hl") == 0)
-			reg = regHL;
-		else if (strcmp(w1, "bc'") == 0)
-			reg = regBC_;
-		else if (strcmp(w1, "de'") == 0)
-			reg = regDE_;
-		else if (strcmp(w1, "hl'") == 0)
-			reg = regHL_;
-		else if (strcmp(w1, "ix") == 0)
-			reg = regIX;
-		else if (strcmp(w1, "iy") == 0)
-			reg = regIY;
+		uint32_t value = strtoul(w2, NULL, 8);
+		if (strcmp(w1, "pc") == 0)
+			reg_pc = value;
+		else if (strcmp(w1, "a") == 0)
+			reg_a = value;
+		else if (strcmp(w1, "e") == 0)
+			reg_e = value;
+		else if (strcmp(w1, "x") == 0)
+			reg_x = value;
+		else if (strcmp(w1, "sc") == 0)
+			reg_sc = value;
+		else if (strcmp(w1, "sl") == 0)
+			reg_sl = value;
+		else if (strcmp(w1, "p") == 0)
+			reg_p = value;
+		else if (strcmp(w1, "irq'") == 0)
+			reg_irq = value;
+		else if (strcmp(w1, "irqp'") == 0)
+			reg_irqp = value;
+		else if (strcmp(w1, "d") == 0)
+			reg_fd = value;
+		else if (strcmp(w1, "v") == 0)
+			reg_fv = value;
+		else if (strcmp(w1, "a") == 0)
+			reg_fa = value;
+		else if (strcmp(w1, "c") == 0)
+			reg_fc = value;
 		else
 		{
 			printf("Bad register\n");
 			return;
 		}
-
-		z80ex_set_reg(z80, reg, strtoul(w2, NULL, 16));
 	}
 
 	showregs();
 }
-#endif
 
 static void cmd_break(void)
 {
@@ -401,10 +409,8 @@ static void debug(void)
 		{
 			if (strcmp(token, "?") == 0)
 				cmd_help();
-			#if 0
 			else if (strcmp(token, "r") == 0)
 				cmd_register();
-			#endif
 			else if (strcmp(token, "b") == 0)
 				cmd_break();
 			else if (strcmp(token, "w") == 0)
@@ -465,11 +471,11 @@ static void wr(uint32_t value, uint32_t address)
 		memory[address] = value;
 }
 
-static int32_t sign(uint32_t uvalue, uint32_t size)
+static int64_t sign(uint64_t uvalue, int size)
 {
-	uvalue <<= 32-size;
-	int32_t svalue = uvalue;
-	return svalue >>= (32-size);
+	uvalue <<= 64-size;
+	int64_t svalue = uvalue;
+	return svalue >>= (64-size);
 }
 
 static uint32_t do_add(uint32_t uleft, uint32_t uright)
@@ -516,17 +522,66 @@ static uint32_t do_neg(uint32_t uvalue)
 	}
 }
 
+static int32_t leftshift18(int32_t value, int amount)
+{
+	while (amount--)
+	{
+		int32_t oldsign = value & (1L<<17);
+		value <<= 1;
+		if ((value & (1L<<17)) != oldsign)
+			reg_fv = true;
+	}
+	return value;
+}
+
+static int32_t rightshift18(int32_t value, int amount)
+{
+	return value >> amount;
+}
+
+static int64_t leftshift35(int64_t value, int amount)
+{
+	while (amount--)
+	{
+		int64_t oldsign = value & (1L<<34);
+		value <<= 1;
+		if ((value & (1L<<34)) != oldsign)
+			reg_fv = true;
+	}
+	return value;
+}
+
+static int64_t rightshift35(int64_t value, int amount)
+{
+	return value >> amount;
+}
+
 static uint32_t do_shf(uint32_t uvalue, uint32_t uamount)
 {
 	int32_t value = sign(uvalue, 18);
 	int32_t amount = sign(uamount, 6);
 	if (amount < 0)
-		value >>= -amount;
+		value = rightshift18(value, -amount);
 	else
-		value <<= amount;
+		value = leftshift18(value, amount);
 
-	reg_fv = (value & SIGNBIT) != (uvalue & SIGNBIT);
 	return value & 0777777;
+}
+
+static void do_dsh(uint32_t uamount)
+{
+	int64_t value = ((int64_t)reg_e & 0377777) | ((int64_t)sign(reg_a, 18) << 17);
+	int32_t amount = sign(uamount, 6);
+	if (amount < 0)
+		value = rightshift35(value, -amount);
+	else
+		value = leftshift35(value, amount);
+
+	reg_e &= 0400000;
+	reg_e |= value & 0377777;
+	int32_t new_reg_a = (value >> 17) & 0777777;
+	reg_fv = (new_reg_a & SIGNBIT) != (reg_a & SIGNBIT);
+	reg_a = new_reg_a;
 }
 
 static void do_cyc(uint32_t uamount)
@@ -549,22 +604,6 @@ static void do_dcy(uint32_t uamount)
 		value = (value << amount) | (value >> (36-amount));
 	reg_a = (value >> 18) & 0777777;
 	reg_e = value & 0777777;
-}
-
-static void do_dsh(uint32_t uamount)
-{
-	int64_t value = ((int64_t)reg_e & 0377777) | ((int64_t)sign(reg_a, 18) << 17);
-	int32_t amount = sign(uamount, 6);
-	if (amount < 0)
-		value >>= -amount;
-	else
-		value <<= amount;
-
-	reg_e &= 0400000;
-	reg_e |= value & 0377777;
-	int32_t new_reg_a = (value >> 17) & 0777777;
-	reg_fv = (new_reg_a & SIGNBIT) != (reg_a & SIGNBIT);
-	reg_a = new_reg_a;
 }
 
 static void do_norm(void)
@@ -658,23 +697,30 @@ static void do_mul(uint32_t rhs)
 {
 	int64_t result = (int64_t)sign(reg_a, 18) * (int64_t)sign(rhs, 18);
 	if (reg_sc > 0)
-	{
-		for (int i=0; i<reg_sc; i++)
-		{
-			int64_t oldsign = result & (1L<<34);
-			result <<= 1;
-			if ((result & (1L<<34)) != oldsign)
-				reg_fv = true;
-		}
-	}
+		result = leftshift35(result, reg_sc);
 	else
-	{
-		for (int i=reg_sc; i<0; i++)
-			result >>= 1;
-	}
+		result = rightshift35(result, -reg_sc);
 
 	reg_a = (result >> 17) & 0777777;
 	reg_e = (reg_a & 0400000) | (result & 0377777);
+}
+
+static void do_div(uint32_t urhs)
+{
+	int64_t lhs = sign(((int64_t)reg_a << 17) | ((int64_t)reg_e & 0377777L), 35);
+	if (reg_sc > 0)
+		lhs = rightshift35(lhs, reg_sc);
+	else
+		lhs = leftshift35(lhs, -reg_sc);
+
+	int32_t rhs = sign(urhs, 18);
+	if ((lhs >> 17) >= rhs)
+		reg_fv = true;
+	reg_a = (lhs / rhs) & 0777777;
+	int64_t remainder = lhs % rhs;
+	if ((remainder < 0) != (rhs < 0))
+		remainder *= -1;
+	reg_e = remainder & 0777777;
 }
 
 static int countbits(uint32_t value)
@@ -690,12 +736,20 @@ static int countbits(uint32_t value)
 
 static void do_tin(uint32_t address)
 {
-	fatal("no tin");
+	reg_irqp = rd(address+0) & 0xffff;
+	uint32_t i = rd(address+1);
+	reg_p = (i>>12) & 0xf;
+	reg_fc = i & (1<<6);
+	reg_fv = i & (1<<7);
+	reg_fd = i & (i<<9);
+	reg_sl = rd(address+2);
+	reg_pc = rd(address+3);
+	halted = false;
 }
 
 static void emulator_interrupt(int irq)
 {
-	fatal("no execute_interrupt");
+	reg_irq |= 1<<(irq-1);
 }
 
 static void execute(uint32_t insn)
@@ -705,7 +759,7 @@ static void execute(uint32_t insn)
 		case 0000000: /* Simple instruction */
 			switch (insn)
 			{
-				case 0000000: /* HLT */ exit(0);
+				case 0000000: /* HLT */ halted = true;
 				case 0000001: /* TOV */ do_conditional(reg_fv); reg_fv = false; break;
 				case 0000002: /* NOP */ break;
 				case 0000003: /* IGZ */ do_conditional(!(reg_a & SIGNBIT)); break;
@@ -729,7 +783,7 @@ static void execute(uint32_t insn)
 			}
 			break;
 
-		case 0020000: /* ADX */ reg_x += rd(ea(insn)); break;
+		case 0020000: /* ADX */ reg_x = (reg_x + rd(ea(insn))) & 0777777; break;
 		case 0040000: /* ADD */ reg_a = do_add(reg_a, rd(ea(insn))); break;
 		case 0060000: /* BRM */ do_brm(ea(insn)); break;
 		case 0100000: /* STE */ wr(reg_e, ea(insn)); break;
@@ -754,17 +808,13 @@ static void execute(uint32_t insn)
 		case 0560000: /* DCY */ do_dcy(rd(ea(insn))); break;
 		case 0600000: /* STA */ wr(reg_a, ea(insn)); break;
 		case 0620000: /* BRU */ reg_pc = rd(ea(insn)); break;
-		case 0640000: unimplemented_instruction();
+		case 0640000: /* DIV */ do_div(rd(ea(insn))); break;
 		case 0660000: /* IGT */ do_conditional(sign(reg_a, 18) > sign(rd(ea(insn)), 18)); break;
 		case 0700000: /* EORA */ reg_a ^= rd(ea(insn)); break;
 		case 0720000: /* TIN */ do_tin(rd(ea(insn))); break;
 		case 0740000: /* STX */ wr(reg_x, ea(insn)); break;
 		default:	  unimplemented_instruction();
 	}
-}
-
-static void step_once(void)
-{
 }
 
 void emulator_run(void)
@@ -792,8 +842,35 @@ void emulator_run(void)
 	else if (tracing)
 		showregs();
 
-	uint32_t insn = memory[reg_pc++];
-	execute(insn);
+	/* Read and execute the instruction if we're not halted */
+
+	if (!halted)
+	{
+		uint32_t insn = rd(reg_pc++);
+		execute(insn);
+	}
+
+	/* Scan for pending interrupts */
+
+	for (int irq=1; irq<=16; irq++)
+	{
+		uint16_t mask = 1<<(irq-1);
+		if ((reg_irq & mask) && !(reg_irqp & mask))
+		{
+			if (singlestepping || tracing)
+				printf("Taking interrupt %d\n", irq);
+
+			reg_irq &= ~mask;
+			uint32_t address = irq * 010;
+
+			memory[address+0] = reg_irqp;
+			memory[address+1] = 
+					(reg_fc << 6) | (reg_fv << 7) | (reg_fd << 9) | (reg_p << 12);
+			memory[address+2] = reg_sl;
+			memory[address+3] = reg_pc;
+			do_tin(address + 4);
+		}
+	}
 }
 
 
