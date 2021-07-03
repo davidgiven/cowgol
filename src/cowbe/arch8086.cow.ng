@@ -283,6 +283,10 @@
     end sub;
 
 	sub ArchEmitMove(src: RegId, dest: RegId) is
+		print_hex_i32(src);
+		print(" ");
+		print_hex_i32(dest);
+		print_nl();
 		E("\t; move\n");
 		if src == 0 then
 			E_pop(dest);
@@ -711,20 +715,20 @@ gen r32 := DEREF4(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad4($$, $lhs, &$@lh
 
 gen STORE1(r8|adr|imm:lhs, DEREF1(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "byte"); }
 gen STORE2(r16|adr|imm:lhs, DEREF2(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "word"); }
-gen STORE4(r32|adr|imm:lhs, DEREF4(bx|si|di|adr:ptr)) { IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0); }
+gen STORE4(r32:lhs, DEREF4(bx|si|di|adr:ptr)) { IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0); }
 
 gen STORE1(r8|adr|imm:lhs, DEREF1(ADD2(si|di|adr:ptr, bx:rhs)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0, 0, "byte"); }
 gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(si|di|adr:ptr, bx:rhs)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0, 0, "word"); }
-gen STORE4(r32|adr|imm:lhs, DEREF4(ADD2(si|di|adr:ptr, bx:rhs)))
+gen STORE4(r32:lhs, DEREF4(ADD2(si|di|adr:ptr, bx:rhs)))
 	{ IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0); }
 
 gen STORE1(r8|adr|imm:lhs, DEREF1(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16, 0, "byte"); }
 gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16, 0, "word"); }
-gen STORE4(r32|adr|imm:lhs, DEREF4(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
+gen STORE4(r32:lhs, DEREF4(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16); }
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
