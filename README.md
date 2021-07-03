@@ -71,6 +71,11 @@ The following targets are supported. Adding more is easy.
 	Microsoft Basic. I wrote this mainly as a joke and only a subset of the
 	language is supported, but it does work.
 
+In addition, there's emulator and assembler support for these platforms, but no compiler:
+
+  - the OBP spaceflight computer (used by, among other things, the OAO-3
+	Copernicus orbiting observatory)
+
 (It _used_ to [support the Apollo Guidance
 Computer](http://cowlark.com/2019-07-20-cowgol-agc/index.html) used in the
 Apollo spacecraft, but I had to remove the code generator while rewriting the
