@@ -988,6 +988,18 @@ sub Generate(rootnode: [Node]) is
 			#print_i8(insn.n[0].op);
 			#print("=");
 			#print(MidcodeName(insn.n[0].op));
+			#print(" produced=");
+			#print_hex_i32(insn.produced_reg as uint32);
+			#if insn.consumer != (0 as [Node]) then
+			#	print(" consumedby=");
+			#	print_hex_i32(insn.consumer.consumer as intptr as uint32);
+			#end if;
+			#print(" inputs=");
+			#print_hex_i32(insn.input_regs as uint32);
+			#print(" outputs=");
+			#print_hex_i32(insn.output_regs as uint32);
+			#print(" uses=");
+			#print_hex_i32(insn.used_regs as uint32);
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);

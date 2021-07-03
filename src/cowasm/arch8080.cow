@@ -153,7 +153,7 @@ sub Emit8(b: uint8) is
     programCounter := programCounter + 1;
 end sub;
 
-sub Emit16(w: uint16) is
+sub EmitWord(w: uint16) is
     Emit8(w as uint8);
     Emit8((w>>8) as uint8);
 end sub;
@@ -761,7 +761,7 @@ end sub;
 sub DwCb implements SymbolCallback is
     loop
         var t := ReadExpression();
-        Emit16(tokenNumber);
+        EmitWord(tokenNumber);
         if t != ',' then
             break;
         end if;
@@ -819,7 +819,7 @@ end sub;
 sub Simple3BCb implements SymbolCallback is
     ExpectExpression();
     Emit8(currentInsn.value as uint8);
-    Emit16(tokenNumber);
+    EmitWord(tokenNumber);
 end sub;
 
 sub LxiCb implements SymbolCallback is
@@ -829,7 +829,7 @@ sub LxiCb implements SymbolCallback is
     Emit8(0x01 | ((tokenNumber as uint8 & 6) << 3));
 
     ExpectExpression();
-    Emit16(tokenNumber);
+    EmitWord(tokenNumber);
 end sub;
 
 sub MviCb implements SymbolCallback is

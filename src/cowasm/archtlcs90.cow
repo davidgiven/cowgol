@@ -1,3 +1,4 @@
+typedef Word is uint16;
 include "cowasm.coh";
 
 const REG_C  := 1;
@@ -25,7 +26,7 @@ var operandMode: uint8;
 var operandReg: uint8;
 var operandValue: uint16;
 
-@impl sub Emit16 is
+@impl sub EmitWord is
     Emit8(word as uint8);
     Emit8((word>>8) as uint8);
 end sub;
@@ -165,7 +166,7 @@ sub EmitMemSrc() is
 
         when AM_ADDRESS:
             Emit8(0xe3);
-            Emit16(operandValue);
+            EmitWord(operandValue);
 
         when AM_DPAGE:
             Emit8(0xe7);
@@ -189,7 +190,7 @@ sub EmitMemDest() is
 
         when AM_ADDRESS:
             Emit8(0xeb);
-            Emit16(operandValue);
+            EmitWord(operandValue);
 
         when AM_DPAGE:
             Emit8(0xef);
@@ -224,11 +225,11 @@ sub AluAccDest(opcode: uint8) is
 
                 when REG_HL:
                     Emit8(opcode | 0x08);
-                    Emit16(operandValue);
+                    EmitWord(operandValue);
                 
                 when else:
                     Emit8(opcode);
-                    Emit16(operandValue);
+                    EmitWord(operandValue);
             end case;
 
         when AM_INDEX:
@@ -237,7 +238,7 @@ sub AluAccDest(opcode: uint8) is
 
         when AM_ADDRESS:
             Emit8(0xe3);
-            Emit16(operandValue);
+            EmitWord(operandValue);
             Emit8(opcode);
 
         when AM_DPAGE:
@@ -246,7 +247,7 @@ sub AluAccDest(opcode: uint8) is
                 Emit8(operandValue as uint8);
             else
                 Emit8(0xe3);
-                Emit16(operandValue);
+                EmitWord(operandValue);
                 Emit8(opcode);
             end if;
 
@@ -349,7 +350,7 @@ sub LdCb implements SymbolCallback is
                 end if;
             elseif operandMode == AM_NUMBER then
                 Emit8(0x38 | destOperandReg);
-                Emit16(operandValue);
+                EmitWord(operandValue);
             else
                 EmitMemSrc();
                 Emit8(0x48 | destOperandReg);
@@ -411,7 +412,7 @@ sub LdwCb implements SymbolCallback is
 
         when AM_ADDRESS:
             Emit8(0xeb);
-            Emit16(operandValue);
+            EmitWord(operandValue);
             Emit8(0x3f);
 
         when AM_DPAGE:
@@ -430,7 +431,7 @@ sub LdwCb implements SymbolCallback is
     if operandMode != AM_NUMBER then
         BadAddressingMode();
     end if;
-    Emit16(operandValue);
+    EmitWord(operandValue);
 end sub;
 
 sub LdaCb implements SymbolCallback is
@@ -482,7 +483,7 @@ sub LdarCb implements SymbolCallback is
 
     var d := operandValue - [currentProgramCounter] - 2;
     Emit8(0x17);
-    Emit16(d);
+    EmitWord(d);
 end sub;
 
 sub PushPopCb implements SymbolCallback is
@@ -540,7 +541,7 @@ sub Simple1Cb implements SymbolCallback is
 end sub;
 
 sub Simple2Cb implements SymbolCallback is
-    Emit16(currentInsn.value);
+    EmitWord(currentInsn.value);
     Expect(TOKEN_NL);
 end sub;
 
@@ -570,7 +571,7 @@ sub IncDecCb implements SymbolCallback is
 
         when AM_ADDRESS:
             Emit8(0xe3);
-            Emit16(operandValue);
+            EmitWord(operandValue);
             Emit8(opcode | 0x07);
 
         when AM_DPAGE:
@@ -616,7 +617,7 @@ sub Type1Unop8Bit(opcode: uint8) is
 
         when AM_ADDRESS:
             Emit8(0xe3);
-            Emit16(operandValue);
+            EmitWord(operandValue);
             Emit8(opcode);
 
         when AM_DPAGE:
@@ -649,7 +650,7 @@ sub Type2Unop8Bit(opcode: uint8) is
 
         when AM_ADDRESS:
             Emit8(0xe3);
-            Emit16(operandValue);
+            EmitWord(operandValue);
             Emit8(opcode);
 
         when AM_DPAGE:
@@ -719,10 +720,10 @@ sub Br16Cb implements SymbolCallback is
         when AM_NUMBER:
             if cc == 8 then
                 Emit8((currentInsn.value >> 8) as uint8);
-                Emit16(operandValue);
+                EmitWord(operandValue);
             else
                 Emit8(0xeb);
-                Emit16(operandValue);
+                EmitWord(operandValue);
                 Emit8(opcode);
             end if;
 
@@ -768,7 +769,7 @@ sub JrCb implements SymbolCallback is
         var d := (operandValue - [currentProgramCounter] - 2) as int16;
         if (d < -128) or (d > 127) then
             Emit8(0xeb);
-            Emit16(operandValue);
+            EmitWord(operandValue);
             Emit8(0xc0 | cc);
         else
             Emit8(0xc0 | cc);
@@ -785,7 +786,7 @@ sub Jr16Cb implements SymbolCallback is
 
     var d := operandValue - [currentProgramCounter] - 2;
     Emit8(currentInsn.value as uint8);
-    Emit16(d);
+    EmitWord(d);
 end sub;
 
 sub DjnzCb implements SymbolCallback is
