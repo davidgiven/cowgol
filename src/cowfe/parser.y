@@ -153,11 +153,17 @@ statement ::= startwhilestatement(LL) statements END LOOP.
 	TerminateNormalLoop(LL);
 }
 
-%type startwhilestatement {[LoopLabels]}
-startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
+%type initwhilestatement {[LoopLabels]}
+initwhilestatement(LL) ::= WHILE.
 {
 	LL := BeginNormalLoop();
 	Generate(MidLabel(continue_label));
+}
+
+%type startwhilestatement {[LoopLabels]}
+startwhilestatement(LL) ::= initwhilestatement(LL1) conditional(C) LOOP.
+{
+	LL := LL1;
 	var t := AllocLabel();
 	break_label := AllocLabel();
 	C.beq.truelabel := t;
@@ -799,10 +805,17 @@ expression(E) ::= startsubcall inputargs(INA).
 	end if;
 
 	var param := GetOutputParameter(intfsubr, 0);
-	E := MidCalle(param.vardata.type.width as uint8, INA, current_call.expr, intfsubr);
-	E.type := param.vardata.type;
+	var w := param.vardata.type.width as uint8;
+	var temp := AddSymbol(&current_subr.namespace, 0 as string);
+	InitVariable(current_subr, temp, param.vardata.type);
+
+	Generate(MidCall(INA, current_call.expr, intfsubr));
+    Generate(MidStore(w, MidPoparg(w, intfsubr, 0), MidDeref(w, MidAddress(temp, 0))));
 
 	i_end_call();
+
+	E := MidDeref(w, MidAddress(temp, 0));
+	E.type := param.vardata.type;
 }
 
 statement ::= startsubcall inputargs(INA) SEMICOLON.
