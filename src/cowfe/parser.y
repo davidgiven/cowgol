@@ -810,7 +810,7 @@ expression(E) ::= startsubcall inputargs(INA).
 	InitVariable(current_subr, temp, param.vardata.type);
 
 	Generate(MidCall(INA, current_call.expr, intfsubr));
-    Generate(MidStore(w, MidPoparg(w, intfsubr, 0), MidDeref(w, MidAddress(temp, 0))));
+    Generate(MidStore(w, MidPoparg(w, intfsubr, param, 0), MidDeref(w, MidAddress(temp, 0))));
 
 	i_end_call();
 
@@ -865,7 +865,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		Generate(
 			MidStore(
 				w,
-				MidPoparg(w, intfsubr, count),
+				MidPoparg(w, intfsubr, param, count),
 				MidDeref(w, arg)
 			)
 		);
@@ -943,6 +943,7 @@ inputarg(R) ::= expression(E).
 	current_call.num_input_args := current_call.num_input_args + 1;
 	R := MidArg(NodeWidth(E), MidEnd(), E,
 		current_call.intfsubr,
+		param,
 		current_call.intfsubr.num_input_parameters - current_call.num_input_args);
 }
 
