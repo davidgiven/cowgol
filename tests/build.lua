@@ -32,6 +32,7 @@ ALL_TESTS = {
 	"mul-32bit-u",
 	"mul-8bit-s",
 	"mul-8bit-u",
+	"nested-calls",
 	"outputparams",
 	"pointers",
 	"rangetypes",

@@ -35,21 +35,20 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 
 # These take a parameter list on the LHS and the thing to be called on the LHS.
 # The parameter list is a chain of ARG nodes containing the subroutine
-# arguments. Any return arguments are pushed onto the argument stack.  subr
+# arguments. Any return arguments are pushed onto the argument stack. subr
 # points at the real subroutine or the interface.
 - 2 0 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
-y 2 1 CALLE(subr: [Subroutine]) = ("%s", $$.subr.name)
 
 # Represents an argument to a call. The LHS points at the next argument or an
 # END. The RHS is the value. The values are left-to-right, so that the first
 # argument to be generated and pushed is the deepest in the list.
-y 2 1 ARG(subr: [Subroutine], remaining: uint8)
+y 2 1 ARG(subr: [Subroutine], sym: [Symbol], remaining: uint8)
 
 # POPARG is a leaf. Because the parameter stack and the spill stack occupy
 # the same physical space (at least on most architectures), POPARG must be the
 # first node actually generated in any tree. The frontend only generates it
 # for STORE(POPARG(), something) statements, which meets this requirement.
-y 0 1 POPARG(subr: [Subroutine], remaining: uint8)
+y 0 1 POPARG(subr: [Subroutine], sym: [Symbol], remaining: uint8)
 
 - 0 1 CONSTANT(value: int32) = ("%d", $$.value)
 - 0 1 STRING(text: string) = ("...")

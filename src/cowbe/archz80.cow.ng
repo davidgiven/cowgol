@@ -891,35 +891,11 @@ gen         CALL(       param,        SUBREF():a) uses a|bc|de|hl|rx { Call(&$a)
 gen         CALL(  ARG1(param, a),    SUBREF():a) uses   bc|de|hl|rx { Call(&$a); }
 gen         CALL(  ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
 gen         CALL(  ARG4(param, hlhl), SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
-gen a :=    CALLE1(     param,        SUBREF():a) uses   bc|de|hl|rx { Call(&$a); }
-gen a :=    CALLE1(ARG1(param, a),    SUBREF():a) uses   bc|de|hl|rx { Call(&$a); }
-gen a :=    CALLE1(ARG2(param, hl),   SUBREF():a) uses   bc|de   |rx { Call(&$a); }
-gen a :=    CALLE1(ARG4(param, hlhl), SUBREF():a) uses   bc|de   |rx { Call(&$a); }
-gen hl :=   CALLE2(     param,        SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
-gen hl :=   CALLE2(ARG1(param, a),    SUBREF():a) uses   bc|de   |rx { Call(&$a); }
-gen hl :=   CALLE2(ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
-gen hl :=   CALLE2(ARG4(param, hlhl), SUBREF():a) uses   bc|de   |rx { Call(&$a); }
-gen hlhl := CALLE4(     param,        SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
-gen hlhl := CALLE4(ARG1(param, a),    SUBREF():a) uses   bc|de   |rx { Call(&$a); }
-gen hlhl := CALLE4(ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
-gen hlhl := CALLE4(ARG4(param, hlhl), SUBREF():a) uses   bc|de   |rx { Call(&$a); }
 
 gen         CALL(       param,        de) uses a|bc|hl|rx { CallI(); }
 gen         CALL(  ARG1(param, a),    de) uses   bc|hl|rx { CallI(); }
 gen         CALL(  ARG2(param, hl),   de) uses a|bc   |rx { CallI(); }
 gen         CALL(  ARG4(param, hlhl), de) uses a|bc   |rx { CallI(); }
-gen a :=    CALLE1(     param,        de) uses   bc|hl|rx { CallI(); }
-gen a :=    CALLE1(ARG1(param, a),    de) uses   bc|hl|rx { CallI(); }
-gen a :=    CALLE1(ARG2(param, hl),   de) uses   bc   |rx { CallI(); }
-gen a :=    CALLE1(ARG4(param, hlhl), de) uses   bc   |rx { CallI(); }
-gen hl :=   CALLE2(     param,        de) uses a|bc   |rx { CallI(); }
-gen hl :=   CALLE2(ARG1(param, a),    de) uses   bc   |rx { CallI(); }
-gen hl :=   CALLE2(ARG2(param, hl),   de) uses a|bc   |rx { CallI(); }
-gen hl :=   CALLE2(ARG4(param, hlhl), de) uses a|bc   |rx { CallI(); }
-gen hlhl := CALLE4(     param,        de) uses a|bc   |rx { CallI(); }
-gen hlhl := CALLE4(ARG1(param, a),    de) uses   bc   |rx { CallI(); }
-gen hlhl := CALLE4(ARG2(param, hl),   de) uses a|bc   |rx { CallI(); }
-gen hlhl := CALLE4(ARG4(param, hlhl), de) uses a|bc   |rx { CallI(); }
 
 gen param := END();
 

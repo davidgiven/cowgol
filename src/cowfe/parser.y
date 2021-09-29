@@ -153,11 +153,17 @@ statement ::= startwhilestatement(LL) statements END LOOP.
 	TerminateNormalLoop(LL);
 }
 
-%type startwhilestatement {[LoopLabels]}
-startwhilestatement(LL) ::= WHILE conditional(C) LOOP.
+%type initwhilestatement {[LoopLabels]}
+initwhilestatement(LL) ::= WHILE.
 {
 	LL := BeginNormalLoop();
 	Generate(MidLabel(continue_label));
+}
+
+%type startwhilestatement {[LoopLabels]}
+startwhilestatement(LL) ::= initwhilestatement(LL1) conditional(C) LOOP.
+{
+	LL := LL1;
 	var t := AllocLabel();
 	break_label := AllocLabel();
 	C.beq.truelabel := t;
@@ -799,10 +805,17 @@ expression(E) ::= startsubcall inputargs(INA).
 	end if;
 
 	var param := GetOutputParameter(intfsubr, 0);
-	E := MidCalle(param.vardata.type.width as uint8, INA, current_call.expr, intfsubr);
-	E.type := param.vardata.type;
+	var w := param.vardata.type.width as uint8;
+	var temp := AddSymbol(&current_subr.namespace, 0 as string);
+	InitVariable(current_subr, temp, param.vardata.type);
+
+	Generate(MidCall(INA, current_call.expr, intfsubr));
+    Generate(MidStore(w, MidPoparg(w, intfsubr, param, 0), MidDeref(w, MidAddress(temp, 0))));
 
 	i_end_call();
+
+	E := MidDeref(w, MidAddress(temp, 0));
+	E.type := param.vardata.type;
 }
 
 statement ::= startsubcall inputargs(INA) SEMICOLON.
@@ -852,7 +865,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		Generate(
 			MidStore(
 				w,
-				MidPoparg(w, intfsubr, count),
+				MidPoparg(w, intfsubr, param, count),
 				MidDeref(w, arg)
 			)
 		);
@@ -930,6 +943,7 @@ inputarg(R) ::= expression(E).
 	current_call.num_input_args := current_call.num_input_args + 1;
 	R := MidArg(NodeWidth(E), MidEnd(), E,
 		current_call.intfsubr,
+		param,
 		current_call.intfsubr.num_input_parameters - current_call.num_input_args);
 }
 

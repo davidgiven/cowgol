@@ -483,24 +483,12 @@ gen r32 := ADDRESS():a
 %}
 
 gen       CALL(  END(), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE1(END(), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE2(END(), SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE4(END(), SUBREF():a) uses all { Call(&$a); }
 
 gen       CALL(  r3, SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE1(r3, SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE2(r3, SUBREF():a) uses all { Call(&$a); }
-gen r3 := CALLE4(r3, SUBREF():a) uses all { Call(&$a); }
 
 gen       CALL(  END(), r4) uses all { CallR4(); }
-gen r3 := CALLE1(END(), r4) uses all { CallR4(); }
-gen r3 := CALLE2(END(), r4) uses all { CallR4(); }
-gen r3 := CALLE4(END(), r4) uses all { CallR4(); }
 
 gen       CALL(  r3, r4) uses all { CallR4(); }
-gen r3 := CALLE1(r3, r4) uses all { CallR4(); }
-gen r3 := CALLE2(r3, r4) uses all { CallR4(); }
-gen r3 := CALLE4(r3, r4) uses all { CallR4(); }
 
 gen param := END();
 
