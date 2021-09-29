@@ -1338,20 +1338,8 @@ gen RETURN() uses all
 gen        CALL(       param,      SUBREF():a)             uses all { Call(&$a); }
 gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):a) uses all { Call(&$a); }
 gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):a) uses all { Call(&$a); }
-gen a :=   CALLE1(     param,      SUBREF():a)             uses all { Call(&$a); }
-gen a :=   CALLE1(ARG1(param, a),  SUBREF(subr is fast):a) uses all { Call(&$a); }
-gen a :=   CALLE1(ARG2(param, xa), SUBREF(subr is fast):a) uses all { Call(&$a); }
-gen xa :=  CALLE2(     param,      SUBREF():a)             uses all { Call(&$a); }
-gen xa :=  CALLE2(ARG1(param, a),  SUBREF(subr is fast):a) uses all { Call(&$a); }
-gen xa :=  CALLE2(ARG2(param, xa), SUBREF(subr is fast):a) uses all { Call(&$a); }
-gen v32 := CALLE4(     param,      SUBREF():a)             uses all { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG1(param, a),  SUBREF(subr is fast):a) uses all { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG2(param, xa), SUBREF(subr is fast):a) uses all { Call(&$a); PopArg4(PushV32()); }
 
 gen        CALL(  param, xa) uses all { CallI(); }
-gen a :=   CALLE1(param, xa) uses all { CallI(); }
-gen xa :=  CALLE2(param, xa) uses all { CallI(); }
-gen v32 := CALLE4(param, xa) uses all { CallI(); PopArg4(PushV32()); }
 
 gen param := END();
 

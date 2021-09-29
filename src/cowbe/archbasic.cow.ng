@@ -159,18 +159,6 @@ gen CALL(param, SUBREF():a)
 	E_nl();
 }
 
-gen v := CALLE1(param, SUBREF():a)
-{
-	E("gosub ");
-	E_subref($a.subr);
-	E_nl();
-
-	var res := PushVar();
-	E("a=a-1:");
-	E_varref(res);
-	E("=b(a)\n");
-}
-
 gen param := END();
 gen param := ARG1(param, v)
 {

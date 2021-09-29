@@ -763,35 +763,11 @@ gen        CALL(       param,       SUBREF():a) uses all { Call(&$a); }
 gen        CALL(  ARG1(param, al),  SUBREF():a) uses all { Call(&$a); }
 gen        CALL(  ARG2(param, ax),  SUBREF():a) uses all { Call(&$a); }
 gen        CALL(  ARG4(param, eax), SUBREF():a) uses all { Call(&$a); }
-gen al :=  CALLE1(     param,       SUBREF():a) uses all { Call(&$a); }
-gen al :=  CALLE1(ARG1(param, al),  SUBREF():a) uses all { Call(&$a); }
-gen al :=  CALLE1(ARG2(param, ax),  SUBREF():a) uses all { Call(&$a); }
-gen al :=  CALLE1(ARG4(param, eax), SUBREF():a) uses all { Call(&$a); }
-gen ax :=  CALLE2(     param,       SUBREF():a) uses all { Call(&$a); }
-gen ax :=  CALLE2(ARG1(param, al),  SUBREF():a) uses all { Call(&$a); }
-gen ax :=  CALLE2(ARG2(param, ax),  SUBREF():a) uses all { Call(&$a); }
-gen ax :=  CALLE2(ARG4(param, eax), SUBREF():a) uses all { Call(&$a); }
-gen eax := CALLE4(     param,       SUBREF():a) uses all { Call(&$a); }
-gen eax := CALLE4(ARG1(param, al),  SUBREF():a) uses all { Call(&$a); }
-gen eax := CALLE4(ARG2(param, ax),  SUBREF():a) uses all { Call(&$a); }
-gen eax := CALLE4(ARG4(param, eax), SUBREF():a) uses all { Call(&$a); }
 
 gen        CALL(       param,       ebx) uses all { E_callebx(); }
 gen        CALL(  ARG1(param, al),  ebx) uses all { E_callebx(); }
 gen        CALL(  ARG2(param, ax),  ebx) uses all { E_callebx(); }
 gen        CALL(  ARG4(param, eax), ebx) uses all { E_callebx(); }
-gen al :=  CALLE1(     param,       ebx) uses all { E_callebx(); }
-gen al :=  CALLE1(ARG1(param, al),  ebx) uses all { E_callebx(); }
-gen al :=  CALLE1(ARG2(param, ax),  ebx) uses all { E_callebx(); }
-gen al :=  CALLE1(ARG4(param, eax), ebx) uses all { E_callebx(); }
-gen ax :=  CALLE2(     param,       ebx) uses all { E_callebx(); }
-gen ax :=  CALLE2(ARG1(param, al),  ebx) uses all { E_callebx(); }
-gen ax :=  CALLE2(ARG2(param, ax),  ebx) uses all { E_callebx(); }
-gen ax :=  CALLE2(ARG4(param, eax), ebx) uses all { E_callebx(); }
-gen eax := CALLE4(     param,       ebx) uses all { E_callebx(); }
-gen eax := CALLE4(ARG1(param, al),  ebx) uses all { E_callebx(); }
-gen eax := CALLE4(ARG2(param, ax),  ebx) uses all { E_callebx(); }
-gen eax := CALLE4(ARG4(param, eax), ebx) uses all { E_callebx(); }
 
 gen param := END();
 

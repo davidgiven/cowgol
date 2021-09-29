@@ -259,7 +259,7 @@ gen STARTSUB():s
 		E_symref(param as [Symbol], 0);
 		E(") = p");
 		E_u16(pid);
-		E("; /*");
+		E("; /* ");
 		E(param.name);
 		E(" */\n");
 
@@ -373,10 +373,6 @@ gen ENDSUB()
 %}
 
 gen       CALL(  param, v8):s { Call($s.subr.id); }
-gen v1 := CALLE1(param, v8):s { Call($s.subr.id); }
-gen v2 := CALLE2(param, v8):s { Call($s.subr.id); }
-gen v4 := CALLE4(param, v8):s { Call($s.subr.id); }
-gen v8 := CALLE8(param, v8):s { Call($s.subr.id); }
 
 gen param := END();
 gen param := ARG1(param, v1);

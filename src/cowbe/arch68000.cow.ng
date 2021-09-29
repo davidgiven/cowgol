@@ -492,24 +492,9 @@ gen areg := SUBREF():s
 %}
 
 gen       CALL(  END(), SUBREF():a) uses all { Call(&$a); }
-gen d0 := CALLE1(END(), SUBREF():a) uses all { Call(&$a); }
-gen d0 := CALLE2(END(), SUBREF():a) uses all { Call(&$a); }
-gen d0 := CALLE4(END(), SUBREF():a) uses all { Call(&$a); }
-
 gen       CALL(  d0, SUBREF():a) uses all { Call(&$a); }
-gen d0 := CALLE1(d0, SUBREF():a) uses all { Call(&$a); }
-gen d0 := CALLE2(d0, SUBREF():a) uses all { Call(&$a); }
-gen d0 := CALLE4(d0, SUBREF():a) uses all { Call(&$a); }
-
 gen       CALL(  END(), a5) uses all { CallA5(); }
-gen d0 := CALLE1(END(), a5) uses all { CallA5(); }
-gen d0 := CALLE2(END(), a5) uses all { CallA5(); }
-gen d0 := CALLE4(END(), a5) uses all { CallA5(); }
-
 gen       CALL(  d0, a5) uses all { CallA5(); }
-gen d0 := CALLE1(d0, a5) uses all { CallA5(); }
-gen d0 := CALLE2(d0, a5) uses all { CallA5(); }
-gen d0 := CALLE4(d0, a5) uses all { CallA5(); }
 
 gen param := END();
 

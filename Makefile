@@ -2,7 +2,7 @@ export OBJ = .obj
 export LUA = lua
 export CFLAGS = -g -O0
 export LDFLAGS = -g
-export NINJAFLAGS = -k0
+export NINJAFLAGS =
 
 all: $(OBJ)/build.ninja
 	@ninja -f $(OBJ)/build.ninja $(NINJAFLAGS)
