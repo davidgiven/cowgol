@@ -1,0 +1,11 @@
+include "cowgol.coh";
+include "strings.coh";
+include "tests/_framework.coh";
+
+sub Add(a: uint8, b: uint8): (r: uint8) is
+	r := a + b;
+end sub;
+
+print("result=10");
+if Add(Add(1, 2), Add(3, 4)) == 10 then yes(); else no(); end if;
+
