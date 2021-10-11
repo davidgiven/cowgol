@@ -1,0 +1,156 @@
+typedef Word is uint16;
+include "cowasm.coh";
+
+const AM_IMM := 0x00;
+const AM_DIR := 0x10;
+const AM_IND := 0x20;
+const AM_REG := 0x30;
+
+const REG_A     := 0;
+const REG_DPTR  := 1;
+const REG_8     := 2;
+const REG_16    := 3;
+const REG_ADPTR := 4;
+
+var addressingMode: uint8;
+
+@impl sub EmitWord is
+    Emit8((word>>8) as uint8);
+    Emit8(word as uint8);
+end sub;
+
+sub ReadOperand(): (token: Token) is
+    token := ReadToken();
+
+    case token is
+        when '@':
+            ReadRegister();
+            addressingMode := AM_IND;
+            tokenNumber := tokenSymbol.value;
+            token := ReadToken();
+
+        when '#':
+            token := ReadExpression();
+            addressingMode := AM_IMM;
+
+        when else:
+            if tokenSymbol.callback == RegCb then
+                addressingMode := AM_REG;
+                token := ReadToken();
+            else
+                PushToken(token);
+                token := ReadExpression();
+                addressingMode := AM_DIR;
+            end if;
+    end case;
+end sub;
+
+sub ExpectOperand() is
+    if ReadOperand() != TOKEN_NL then
+        SimpleError("expected a single operand");
+    end if;
+end sub;
+
+sub BadAddressingMode() is
+    SimpleError("bad addressing mode");
+end sub;
+            
+sub ReadRegOrIndirectReg(): (token: Token) is
+    token := ReadOperand();
+    if (addressingMode != AM_REG) and (addressingMode != AM_IND) then
+        BadAddressingMode();
+    end if;
+end sub;
+
+sub ExpectRegOrIndirectReg() is
+    var token := ReadRegOrIndirectReg();
+    if token != TOKEN_NL then
+        SimpleError("expected a single operand");
+    end if;
+end sub;
+
+sub OpSimpleCb implements SymbolCallback is
+    Emit8(currentInsn.value as uint8);
+    Expect(TOKEN_NL);
+end sub;
+
+# A-format extended instructions with regular X, Y; X, @Y; @X, Y formats.
+
+sub OpARegular implements SymbolCallback is
+    var token := ReadRegOrIndirectReg();
+    if token != ',' then
+        SyntaxError();
+    end if;
+    var lhsType := addressingMode;
+    var lhsValue := tokenNumber as uint8;
+
+    ExpectRegOrIndirectReg();
+    var rhsType := addressingMode;
+    var rhsValue := tokenNumber as uint8;
+
+    if ((lhsValue & 0xf0) != REG_16) or ((rhsValue & 0xf0) != REG_16) then
+        SimpleError("wrong register type");
+    end if;
+    
+    Emit8(0xa5);
+    var op := currentInsn.value;
+    if (lhsType == AM_REG) and (rhsType == AM_REG) then
+        # nothing
+    elseif (lhsType == AM_REG) and (rhsType == AM_IND) then
+        op := op + 0x10;
+    elseif (lhsType == AM_IND) and (rhsType == AM_REG) then
+        op := op + 0x20;
+    else
+        SimpleError("bad addressing mode combination");
+    end if;
+
+    Emit8((op >> 8) as uint8);
+    Emit8((op as uint8) | ((lhsValue & 0x03) << 2) | (rhsValue & 0x03));
+end sub;
+
+@impl sub InitialiseSymbolTable is
+	var s: Symbol;
+	var symbols: Symbol[] := {
+        include "stdsyms.coh";
+
+        # The registers
+
+        { "A",      0x00,    RegCb,       &s },
+        { "DPTR",   0x10,    RegCb,       &s },
+        { "R0",     0x20,    RegCb,       &s },
+        { "R1",     0x21,    RegCb,       &s },
+        { "R2",     0x22,    RegCb,       &s },
+        { "R3",     0x23,    RegCb,       &s },
+        { "R4",     0x24,    RegCb,       &s },
+        { "R5",     0x25,    RegCb,       &s },
+        { "R6",     0x26,    RegCb,       &s },
+        { "R7",     0x27,    RegCb,       &s },
+        { "R0R1",   0x30,    RegCb,       &s },
+        { "R2R3",   0x31,    RegCb,       &s },
+        { "R4R5",   0x32,    RegCb,       &s },
+        { "R6R7",   0x33,    RegCb,       &s },
+        
+        # A-format regular instructions.
+
+        { "ADD16",   0x0000,  OpARegular,    &s },
+        { "ADDC16",  0x0030,  OpARegular,    &s },
+        { "ADD16S",  0x0060,  OpARegular,    &s },
+        { "ADDC16S", 0x0090,  OpARegular,    &s },
+        { "SUB16",   0x00c0,  OpARegular,    &s },
+        { "SUBC16",  0x00f0,  OpARegular,    &s },
+        { "SUB16S",  0x0120,  OpARegular,    &s },
+        { "SUBC16S", 0x0150,  OpARegular,    &s },
+        { "ANL16",   0x0180,  OpARegular,    &s },
+        { "ORL16",   0x01b0,  OpARegular,    &s },
+        { "XRL16",   0x01e0,  OpARegular,    &s },
+	};
+
+    AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
+end sub;
+
+@impl sub MassageCurrentInsn is
+end sub;
+
+Main("AC1082 Assembler (C) 2021 David Given; ");
+
+# vim: sw=4 ts=4 et

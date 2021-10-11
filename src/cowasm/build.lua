@@ -1,4 +1,4 @@
-local ARCHS = { "8080", "pdp11", "6303", "tlcs90", "obp" }
+local ARCHS = { "8080", "pdp11", "6303", "tlcs90", "obp", "ac1082" }
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 	for _, arch in ipairs(ARCHS) do

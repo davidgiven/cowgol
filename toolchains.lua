@@ -116,7 +116,7 @@ toolchain_bbct = {
 	asmext = ".asm",
 	binext = ".bbct",
 	tester = tubeemutest,
-	archs = { "6502i", "8080" }
+	archs = { "8080" }
 }
 
 toolchain_bbctiny = {
@@ -141,19 +141,7 @@ toolchain_bbct6502 = {
 	asmext = ".asm",
 	binext = ".bbct6502",
 	tester = tubeemutest,
-	archs = { "6502i", "8080" },
-}
-
-toolchain_bbcti = {
-	name = "bbcti",
-	cowfe = "bin/cowfe-16bit.nncgen.exe",
-	cowbe = "bin/cowbe-6502i.nncgen.exe",
-	linker = "bin/cowlink-bbcti.nncgen.exe",
-	assembler = buildtass64,
-	runtime = "rt/bbcti",
-	asmext = ".asm",
-	binext = ".bbcti",
-	tester = tubeemutest,
+	archs = { "8080" },
 }
 
 toolchain_unixv7 = {
@@ -196,7 +184,7 @@ ALL_TOOLCHAINS = {
 	toolchain_nncgen,
 	toolchain_ncgen,
 
-	toolchain_ataritos,
+	--toolchain_ataritos,
 	toolchain_bbct,
 	toolchain_bbct6502,
 	toolchain_bbcti,

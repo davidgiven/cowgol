@@ -3,7 +3,6 @@ local ARCHS = {
 	"ataritos",
 	"basic",
 	"bbct",
-	"bbcti",
 	"bbctn",
 	"cgen",
 	"fuzix6303",
