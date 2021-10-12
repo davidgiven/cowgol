@@ -6,48 +6,73 @@ const AM_DIR := 0x10;
 const AM_IND := 0x20;
 const AM_REG := 0x30;
 
-const REG_A     := 0;
-const REG_DPTR  := 1;
-const REG_8     := 2;
-const REG_16    := 3;
-const REG_ADPTR := 4;
+const REG_A     := 0x00;
+const REG_DPTR  := 0x10;
+const REG_8     := 0x20;
+const REG_16    := 0x30;
+const REG_ADPTR := 0x40;
+const REG_C     := 0x50;
 
-var addressingMode: uint8;
+record Operand is
+    addressingMode: uint8;
+    symbol: [Symbol];
+    value: uint16;
+end record;
+
+var lhs: Operand;
+var rhs: Operand;
 
 @impl sub EmitWord is
     Emit8((word>>8) as uint8);
     Emit8(word as uint8);
 end sub;
 
-sub ReadOperand(): (token: Token) is
+sub ReadOperand(op: [Operand]): (token: Token) is
     token := ReadToken();
+    op.symbol := tokenSymbol;
 
     case token is
         when '@':
             ReadRegister();
-            addressingMode := AM_IND;
-            tokenNumber := tokenSymbol.value;
+            op.addressingMode := AM_IND;
+            op.value := tokenSymbol.value;
             token := ReadToken();
 
         when '#':
             token := ReadExpression();
-            addressingMode := AM_IMM;
+            op.addressingMode := AM_IMM;
+            op.value := tokenNumber;
 
         when else:
             if tokenSymbol.callback == RegCb then
-                addressingMode := AM_REG;
+                op.addressingMode := AM_REG;
+                op.value := tokenSymbol.value;
                 token := ReadToken();
             else
                 PushToken(token);
                 token := ReadExpression();
-                addressingMode := AM_DIR;
+                op.addressingMode := AM_DIR;
+                op.value := tokenNumber;
             end if;
     end case;
 end sub;
 
-sub ExpectOperand() is
-    if ReadOperand() != TOKEN_NL then
-        SimpleError("expected a single operand");
+sub ExpectOneOperand() is
+    var token := ReadOperand(&lhs);
+    if token != TOKEN_NL then
+        SyntaxError();
+    end if;
+end sub;
+
+sub ExpectTwoOperands() is
+    var token := ReadOperand(&lhs);
+    if token != ',' then
+        SyntaxError();
+    end if;
+
+    token := ReadOperand(&rhs);
+    if token != TOKEN_NL then
+        SyntaxError();
     end if;
 end sub;
 
@@ -55,17 +80,27 @@ sub BadAddressingMode() is
     SimpleError("bad addressing mode");
 end sub;
             
-sub ReadRegOrIndirectReg(): (token: Token) is
-    token := ReadOperand();
-    if (addressingMode != AM_REG) and (addressingMode != AM_IND) then
+sub CheckOperandIsDirect(op: [Operand]) is
+    if op.addressingMode != AM_DIR then
         BadAddressingMode();
     end if;
 end sub;
 
-sub ExpectRegOrIndirectReg() is
-    var token := ReadRegOrIndirectReg();
-    if token != TOKEN_NL then
-        SimpleError("expected a single operand");
+sub CheckOperandIsRegisterOrIndirectRegister(op: [Operand]) is
+    if (op.addressingMode != AM_REG) and (op.addressingMode != AM_IND) then
+        BadAddressingMode();
+    end if;
+end sub;
+    
+sub CheckOperandIsA(op: [Operand]) is
+    if (op.addressingMode != AM_REG) or (op.value != REG_A) then
+        BadAddressingMode();
+    end if;
+end sub;
+
+sub CheckOperandIsReg8(op: [Operand]) is
+    if (op.addressingMode != AM_REG) or ((rhs.value & 0xf0) != REG_8) then
+        BadAddressingMode();
     end if;
 end sub;
 
@@ -76,36 +111,127 @@ end sub;
 
 # A-format extended instructions with regular X, Y; X, @Y; @X, Y formats.
 
-sub OpARegular implements SymbolCallback is
-    var token := ReadRegOrIndirectReg();
-    if token != ',' then
-        SyntaxError();
-    end if;
-    var lhsType := addressingMode;
-    var lhsValue := tokenNumber as uint8;
+sub OpARegularCb implements SymbolCallback is
+    ExpectTwoOperands();
+    CheckOperandIsRegisterOrIndirectRegister(&lhs);
+    CheckOperandIsRegisterOrIndirectRegister(&rhs);
 
-    ExpectRegOrIndirectReg();
-    var rhsType := addressingMode;
-    var rhsValue := tokenNumber as uint8;
-
-    if ((lhsValue & 0xf0) != REG_16) or ((rhsValue & 0xf0) != REG_16) then
+    if ((lhs.value & 0xf0) != REG_16) or ((rhs.value & 0xf0) != REG_16) then
         SimpleError("wrong register type");
     end if;
     
     Emit8(0xa5);
     var op := currentInsn.value;
-    if (lhsType == AM_REG) and (rhsType == AM_REG) then
+    var lhsam := lhs.addressingMode;
+    var rhsam := rhs.addressingMode;
+    if (lhsam == AM_REG) and (rhsam == AM_REG) then
         # nothing
-    elseif (lhsType == AM_REG) and (rhsType == AM_IND) then
+    elseif (lhsam == AM_REG) and (rhsam == AM_IND) then
         op := op + 0x10;
-    elseif (lhsType == AM_IND) and (rhsType == AM_REG) then
+    elseif (lhsam == AM_IND) and (rhsam == AM_REG) then
         op := op + 0x20;
     else
         SimpleError("bad addressing mode combination");
     end if;
 
-    Emit8((op >> 8) as uint8);
-    Emit8((op as uint8) | ((lhsValue & 0x03) << 2) | (rhsValue & 0x03));
+    EmitWord(op | ((lhs.value & 0x03) << 2) | (rhs.value & 0x03));
+end sub;
+
+# ALU regular instructions with all addressing modes.
+
+sub OpAluRegularCb implements SymbolCallback is
+    ExpectTwoOperands();
+    CheckOperandIsA(&lhs);
+
+    var op := currentInsn.value as uint8;
+    case rhs.addressingMode is
+        when AM_REG:
+            CheckOperandIsReg8(&rhs);
+            Emit8(op | 0x08 | (rhs.value as uint8));
+
+        when AM_IMM:
+            if op == 0xc0 then
+                BadAddressingMode(); # xch #imm
+            end if;
+            Emit8(op | 0x04);
+            Emit8(rhs.value as uint8);
+
+        when AM_DIR:
+            Emit8(op | 0x05);
+            Emit8(rhs.value as uint8);
+
+        when AM_IND:
+            CheckOperandIsReg8(&rhs);
+            if (rhs.value & 0xfe) != 0 then
+                BadAddressingMode();
+            end if;
+            Emit8(op | 0x06 | (rhs.value as uint8));
+
+        when else:
+            BadAddressingMode();
+    end case;
+end sub;
+
+# INC/DEC regular instructions with all addressing modes.
+
+sub OpIncDecCb implements SymbolCallback is
+    ExpectOneOperand();
+
+    var op := currentInsn.value as uint8;
+    case lhs.addressingMode is
+        when AM_REG:
+            if rhs.value == REG_A then
+                Emit8(op | 0x04);
+            elseif (rhs.value == REG_DPTR) and (op == 0) then
+                Emit8(0xa3);
+            else
+                CheckOperandIsReg8(&rhs);
+                Emit8(op | 0x08 | (lhs.value as uint8));
+            end if;
+
+        when AM_DIR:
+            Emit8(op | 0x05);
+            Emit8(lhs.value as uint8);
+
+        when AM_IND:
+            CheckOperandIsReg8(&lhs);
+            if (lhs.value & 0xfe) != 0 then
+                BadAddressingMode();
+            end if;
+            Emit8(op | 0x06 | (lhs.value as uint8));
+
+        when else:
+            BadAddressingMode();
+    end case;
+end sub;
+
+# Relative addressing modes.
+
+sub OpAbsoluteAddrCb implements SymbolCallback is
+    ExpectOneOperand();
+    CheckOperandIsDirect(&lhs);
+
+    var op := currentInsn.value as uint8;
+    if pass == 1 then
+        [currentProgramCounter] := [currentProgramCounter] + 3;
+    elseif (lhs.value & 0xf800) == ([currentProgramCounter] & 0xf800) then
+        var rel := lhs.value & 0x03ff;
+        Emit8(op | (rel as uint8 >> 3));
+        Emit8(rel as uint8);
+    else
+        Emit8(op+1);
+        EmitWord(lhs.value);
+    end if;
+end sub;
+
+# Long addressing modes.
+
+sub OpLongAddrCb implements SymbolCallback is
+    ExpectOneOperand();
+    CheckOperandIsDirect(&lhs);
+
+    Emit8(currentInsn.value as uint8);
+    EmitWord(lhs.value);
 end sub;
 
 @impl sub InitialiseSymbolTable is
@@ -115,34 +241,65 @@ end sub;
 
         # The registers
 
-        { "A",      0x00,    RegCb,       &s },
-        { "DPTR",   0x10,    RegCb,       &s },
-        { "R0",     0x20,    RegCb,       &s },
-        { "R1",     0x21,    RegCb,       &s },
-        { "R2",     0x22,    RegCb,       &s },
-        { "R3",     0x23,    RegCb,       &s },
-        { "R4",     0x24,    RegCb,       &s },
-        { "R5",     0x25,    RegCb,       &s },
-        { "R6",     0x26,    RegCb,       &s },
-        { "R7",     0x27,    RegCb,       &s },
-        { "R0R1",   0x30,    RegCb,       &s },
-        { "R2R3",   0x31,    RegCb,       &s },
-        { "R4R5",   0x32,    RegCb,       &s },
-        { "R6R7",   0x33,    RegCb,       &s },
+        { "A",      REG_A   |0, RegCb, &s },
+        { "DPTR",   REG_DPTR|0, RegCb, &s },
+        { "R0",     REG_8   |0, RegCb, &s },
+        { "R1",     REG_8   |1, RegCb, &s },
+        { "R2",     REG_8   |2, RegCb, &s },
+        { "R3",     REG_8   |3, RegCb, &s },
+        { "R4",     REG_8   |4, RegCb, &s },
+        { "R5",     REG_8   |5, RegCb, &s },
+        { "R6",     REG_8   |6, RegCb, &s },
+        { "R7",     REG_8   |7, RegCb, &s },
+        { "R0R1",   REG_16  |0, RegCb, &s },
+        { "R2R3",   REG_16  |1, RegCb, &s },
+        { "R4R5",   REG_16  |2, RegCb, &s },
+        { "R6R7",   REG_16  |3, RegCb, &s },
+        { "C",      REG_C   |0, RegCb, &s },
+        
         
         # A-format regular instructions.
 
-        { "ADD16",   0x0000,  OpARegular,    &s },
-        { "ADDC16",  0x0030,  OpARegular,    &s },
-        { "ADD16S",  0x0060,  OpARegular,    &s },
-        { "ADDC16S", 0x0090,  OpARegular,    &s },
-        { "SUB16",   0x00c0,  OpARegular,    &s },
-        { "SUBC16",  0x00f0,  OpARegular,    &s },
-        { "SUB16S",  0x0120,  OpARegular,    &s },
-        { "SUBC16S", 0x0150,  OpARegular,    &s },
-        { "ANL16",   0x0180,  OpARegular,    &s },
-        { "ORL16",   0x01b0,  OpARegular,    &s },
-        { "XRL16",   0x01e0,  OpARegular,    &s },
+        { "ADD16",   0x0000,  OpARegularCb,    &s },
+        { "ADDC16",  0x0030,  OpARegularCb,    &s },
+        { "ADD16S",  0x0060,  OpARegularCb,    &s },
+        { "ADDC16S", 0x0090,  OpARegularCb,    &s },
+        { "SUB16",   0x00c0,  OpARegularCb,    &s },
+        { "SUBC16",  0x00f0,  OpARegularCb,    &s },
+        { "SUB16S",  0x0120,  OpARegularCb,    &s },
+        { "SUBC16S", 0x0150,  OpARegularCb,    &s },
+        { "ANL16",   0x0180,  OpARegularCb,    &s },
+        { "ORL16",   0x01b0,  OpARegularCb,    &s },
+        { "XRL16",   0x01e0,  OpARegularCb,    &s },
+
+        # 8051 regular ALU instructions (XXX A, something).
+
+        { "ADD",     0x20, OpAluRegularCb, &s },
+        { "ADDC",    0x30, OpAluRegularCb, &s },
+        { "ORL",     0x40, OpAluRegularCb, &s },
+        { "ANL",     0x50, OpAluRegularCb, &s },
+        { "XRL",     0x60, OpAluRegularCb, &s },
+        { "SUBB",    0x90, OpAluRegularCb, &s },
+        { "XCH",     0xc0, OpAluRegularCb, &s },
+
+        # 8051 increment/decrement instructions.
+
+        { "INC",     0x00, OpIncDecCb, &s },
+        { "DEC",     0x01, OpIncDecCb, &s },
+
+        # 8051 'absolute' addresses.
+
+        { "AJMP",    0x01, OpAbsoluteAddrCb, &s },
+        { "ACALL",   0x11, OpAbsoluteAddrCb, &s },
+
+        # 8051 'long' addresses.
+
+        { "LJMP",    0x02, OpLongAddrCb, &s },
+        { "LCALL",   0x12, OpLongAddrCb, &s },
+
+        # 8051 simple instructions.
+
+        { "NOP",     0x00, OpSimpleCb, &s },
 	};
 
     AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
