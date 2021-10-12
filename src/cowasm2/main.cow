@@ -1,0 +1,97 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+include "strings.coh";
+
+typedef string is [uint8];
+
+var inputFilename: string;
+var outputFilename: string;
+var listingFilename: string;
+var inputFile: FCB;
+var outputFile: FCB;
+var listingFile: FCB;
+var lineno: uint16;
+
+sub StartError() is
+	if lineno != 0 then
+		print("error at line ");
+		print_i16(lineno);
+		print(": ");
+	else
+		print("error: ");
+	end if;
+end sub;
+
+sub EndError() is
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub SimpleError(s: string) is
+	StartError();
+	print(s);
+	EndError();
+end sub;
+
+sub ToUpper(cin: uint8): (cout: uint8) is
+	if (cin >= 'a') and (cin <= 'z') then
+		cout := cin - ('a' - 'A');
+	else
+		cout := cin;
+	end if;
+end sub;
+
+sub ParseArguments() is
+	sub SyntaxError() is
+		StartError();
+		print("syntax: cowasm <inputfilename> [-o <outputfilename>] [-l <listingfilename>\n");
+		EndError();
+	end sub;
+
+	ArgvInit();
+	loop
+		var s := ArgvNext();
+		if s == (0 as string) then
+			break;
+		end if;
+
+		if [s] == '-' then
+			case ToUpper([s+1]) is
+				when 'O':
+					outputFilename := ArgvNext();
+
+				when 'L':
+					listingFilename := ArgvNext();
+
+				when else:
+					SyntaxError();
+			end case;
+		else
+			if inputFilename != (0 as string) then
+				SyntaxError();
+			end if;
+			inputFilename := s;
+		end if;
+	end loop;
+
+	if (inputFilename == (0 as string)) or (outputFilename == (0 as string)) then
+		SyntaxError();
+	end if;
+
+	sub CheckFCBOpen(e: uint8, s: string) is
+		if e != 0 then
+			StartError();
+			print("cannot open ");
+			print(s);
+			EndError();
+		end if;
+	end sub;
+
+	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
+	CheckFCBOpen(FCBOpenOut(&outputFile, outputFilename), outputFilename);
+	if listingFilename != (0 as string) then
+		CheckFCBOpen(FCBOpenOut(&listingFile, listingFilename), listingFilename);
+	end if;
+end sub;
+

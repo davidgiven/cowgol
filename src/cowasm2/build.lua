@@ -1,16 +1,15 @@
-local ARCHS = { "8080", "pdp11", "6303", "tlcs90", "obp" }
+local ARCHS = { "ac1082" }
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 	for _, arch in ipairs(ARCHS) do
 		cowgol {
 			toolchain = toolchain,
 			ins = {
-				"src/cowasm/arch"..arch..".cow",
-				"src/cowasm/cowasm.coh",
-				"src/cowasm/stdsyms.coh",
+				"src/cowasm2/main.cow",
 			},
 			outs = { "bin/cowasm-"..arch }
 		}
 	end
 end
+
 
