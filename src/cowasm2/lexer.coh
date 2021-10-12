@@ -1,0 +1,682 @@
+record IncludePath is
+	next: [IncludePath];
+	path: string;
+end record;
+
+record File is
+	next: [File];
+	path: string;
+	lineno: uint16;
+	pos: uint32;
+end record;
+
+var include_paths: [IncludePath] := 0 as [IncludePath];
+var current_file: [File] := 0 as [File];
+var pushed_char: uint8 := 0;
+
+const TOKEN_BUFFER_SIZE := 128;
+var token_buffer: uint8[TOKEN_BUFFER_SIZE];
+var token_length: uint8 := 0;
+var token_value: int32;
+
+var infcb: FCB;
+
+const CTYPE_DECDIGIT := 0x01;
+const CTYPE_IDSTART  := 0x10;
+const CTYPE_IDCONT   := 0x20;
+const CTYPE_TOKEN    := 0x80;
+
+# One entry for every character from 33..127.
+var lexer_ctype: uint8[] := {
+	0,                           # 0x21 !
+	0,                           # 0x22 "
+	0,                           # 0x23 #
+	0,                           # 0x24 $ 
+	CTYPE_TOKEN|PERCENT,         # 0x25 %
+	CTYPE_TOKEN|AMPERSAND,       # 0x26 &
+	0,                           # 0x27 '
+	CTYPE_TOKEN|OPENPAREN,       # 0x28 (
+	CTYPE_TOKEN|CLOSEPAREN,      # 0x29 )
+	CTYPE_TOKEN|STAR,            # 0x2a *
+	CTYPE_TOKEN|PLUS,            # 0x2b +
+	CTYPE_TOKEN|COMMA,           # 0x2c ,
+	CTYPE_TOKEN|MINUS,           # 0x2d -
+	CTYPE_TOKEN|DOT,             # 0x2e .
+	CTYPE_TOKEN|SLASH,           # 0x2f /
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x30 0
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x31 1
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x32 2
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x33 3
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x34 4
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x35 5
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x36 6
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x37 7
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x38 8
+	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x39 9
+	CTYPE_TOKEN|COLON,           # 0x3a :
+	CTYPE_TOKEN|SEMICOLON,       # 0x3b ;
+	0,                           # 0x3c <
+	0,                           # 0x3d =
+	0,                           # 0x3e >
+	0,                           # 0x3f ?
+	CTYPE_IDSTART,               # 0x40 @
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x41 A
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x42 B
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x43 C
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x44 D
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x45 E
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x46 F
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x47 G
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x48 H
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x49 I
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4a J
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4b K
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4c L
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4d M
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4e N
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x4f O
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x50 P
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x51 Q
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x52 R
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x53 S
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x54 T
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x55 U
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x56 V
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x57 W
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x58 X
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x59 Y
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x5a Z
+	CTYPE_TOKEN|OPENSQ,          # 0x5b [
+	0,                           # 0x5c \
+	CTYPE_TOKEN|CLOSESQ,         # 0x5d ]
+	CTYPE_TOKEN|CARET,           # 0x5e ^
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x5f _
+	0,                           # 0x60 `
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x61 a
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x62 b
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x63 c
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x64 d
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x65 e
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x66 f
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x67 g
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x68 h
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x69 i
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6a j
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6b k
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6c l
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6d m
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6e n
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x6f o
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x70 p
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x71 q
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x72 r
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x73 s
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x74 t
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x75 u
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x76 v
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x77 w
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x78 x
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x79 y
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x7a z
+	CTYPE_TOKEN|OPENBR,          # 0x7b {
+	CTYPE_TOKEN|PIPE,            # 0x7c |
+	CTYPE_TOKEN|CLOSEBR,         # 0x7d }
+	CTYPE_TOKEN|TILDE            # 0x7e ~
+};
+
+var keyword_names: string[] := {
+	"@alias",
+	"@asm",
+	"@at",
+	"@bytesof",
+	"@decl",
+	"@extern",
+	"@indexof",
+	"@impl",
+	"@sizeof",
+	"@next",
+	"@prev",
+	"and",
+	"as",
+	"break",
+	"case",
+	"const",
+	"continue",
+	"else",
+	"elseif",
+	"end",
+	"extern",
+	"if",
+	"is",
+	"include",
+	"int",
+	"interface",
+	"implements",
+	"loop",
+	"not",
+	"or",
+	"record",
+	"return",
+	"sub",
+	"then",
+	"typedef",
+	"var",
+	"when",
+	"while",
+};
+
+const INCLUDE := 0xff; # This is special
+
+var keyword_ids: uint8[] := {
+	ALIAS,
+	ASM,
+	AT,
+	BYTESOF,
+	DECL,
+	EXTERN,
+	INDEXOF,
+	IMPL,
+	SIZEOF,
+	NEXT,
+	PREV,
+	AND,
+	AS,
+	BREAK,
+	CASE,
+	CONST,
+	CONTINUE,
+	ELSE,
+	ELSEIF,
+	END,
+	EXTERN,
+	IF,
+	IS,
+	INCLUDE,
+	INT,
+	INTERFACE,
+	IMPLEMENTS,
+	LOOP,
+	NOT,
+	OR,
+	RECORD,
+	RETURN,
+	SUB,
+	THEN,
+	TYPEDEF,
+	VAR,
+	WHEN,
+	WHILE
+};
+
+sub StartError() is
+	print("error: ");
+	if current_file == (0 as [File]) then
+		print("<eof>");
+	else
+		print(current_file.path);
+		print(": ");
+		print_i16(current_file.lineno);
+	end if;
+	print(": ");
+end sub;
+
+sub EndError() is
+	print_nl();
+	ExitWithError();
+end sub;
+
+sub SimpleError(message: string) is
+	StartError();
+	print(message);
+	EndError();
+end sub;
+
+sub LexerAddIncludePath(path: string) is
+	var p := InternalAlloc(@bytesof IncludePath) as [IncludePath];
+	p.next := include_paths;
+	p.path := path;
+	include_paths := p;
+end sub;
+
+var file_nesting: uint8 := 0;
+sub LexerPrintSpaces() is
+	var i := file_nesting;
+	while i != 0 loop
+		print("  ");
+		i := i - 1;
+	end loop;
+end sub;
+
+sub lexer_i_open(file: [File]): (result: uint8) is
+	if FCBOpenIn(&infcb, file.path) == 0 then
+		FCBSeek(&infcb, file.pos);
+		result := 0;
+	else
+		result := 1;
+	end if;
+end sub;
+
+sub lexer_i_close(file: [File]) is
+	file.pos := FCBPos(&infcb);
+	var e := FCBClose(&infcb);
+end sub;
+
+sub LexerIncludeFile(path: string) is
+	var f := InternalAlloc(@bytesof File) as [File];
+	f.next := current_file;
+	f.lineno := 1;
+
+	if current_file != (0 as [File]) then
+		lexer_i_close(current_file);
+	end if;
+
+	var p := include_paths;
+	var fl := StrLen(path);
+	while p != (0 as [IncludePath]) loop
+		var il := StrLen(p.path);
+		f.path := InternalAlloc(fl + il + 1);
+		MemCopy(p.path, il, f.path);
+		MemCopy(path, fl+1, f.path + il);
+		if lexer_i_open(f) == 0 then
+			file_nesting := file_nesting + 1;
+			LexerPrintSpaces();
+			print("> ");
+			print(f.path);
+			print_nl();
+
+			current_file := f;
+			return;
+		end if;
+
+		Free(f.path);
+		p := p.next;
+	end loop;
+
+	StartError();
+	print("cannot open '");
+	print(path);
+	print("'");
+	EndError();
+end sub;
+
+sub LexerReadToken(): (token: uint8) is
+	sub lexer_i_ctype(c: uint8): (type: uint8, token: uint8) is
+		if (c >= 33) and (c <= 127) then
+			type := lexer_ctype[c - 33];
+			if (type & CTYPE_TOKEN) != 0 then
+				token := type & ~CTYPE_TOKEN;
+				type := CTYPE_TOKEN;
+			end if;
+		else
+			type := 0;
+			token := 0;
+		end if;
+	end sub;
+
+	sub lexer_i_getchar(): (c: uint8) is
+		if pushed_char != 0 then
+			c := pushed_char;
+			pushed_char := 0;
+			return;
+		end if;
+
+		loop
+			if current_file == (0 as [File]) then
+				c := 0;
+				break;
+			end if;
+
+			var f := current_file;
+			c := FCBGetChar(&infcb);
+			if c == 26 then
+				c := 0;
+			end if;
+			if c != 0 then
+				break;
+			end if;
+
+			current_file := f.next;
+			lexer_i_close(f);
+			Free(f as [uint8]);
+
+			if current_file != (0 as [File]) then
+				file_nesting := file_nesting - 1;
+				LexerPrintSpaces();
+				print("< ");
+				print(current_file.path);
+				print_nl();
+				if lexer_i_open(current_file) != 0 then
+					SimpleError("I/O error");
+				end if;
+			end if;
+		end loop;
+	end sub;
+
+	sub lexer_i_unparseable(c: uint8) is
+		StartError();
+		print("unparseable character 0x");
+		print_hex_i8(c);
+		EndError();
+	end sub;
+
+	sub lexer_i_skipwhitespace() is
+		loop
+			var c := lexer_i_getchar();
+			case c is
+				when ' ':
+					# do nothing
+
+				when 13:
+					# do nothing
+
+				when 10:  
+					current_file.lineno := current_file.lineno + 1;
+					#print(current_file.path);
+					#print(":");
+					#print_i16(current_file.lineno);
+					#print_nl();
+
+				when 9:
+					# do nothing
+
+				when else:
+					break;
+			end case;
+		end loop;
+		pushed_char := c;
+	end sub;
+
+	sub lexer_i_read_identifier() is
+		loop
+			var c := lexer_i_getchar();
+			var type: uint8;
+			var token: uint8;
+			(type, token) := lexer_i_ctype(c);
+			if (type & CTYPE_IDCONT) != 0 then
+				token_buffer[token_length] := c;
+				token_length := token_length + 1;
+				if token_length == TOKEN_BUFFER_SIZE then
+					StartError();
+					print("token too long");
+					EndError();
+				end if;
+			else
+				pushed_char := c;
+				break;
+			end if;
+		end loop;
+		token_buffer[token_length] := 0;
+	end sub;
+
+	sub lexer_i_match_keyword(): (token: uint8) is
+		var i: @indexof keyword_names := 0;
+		while i != @sizeof keyword_names loop
+			if StrCmp(&token_buffer[0], keyword_names[i]) == 0 then
+				token := keyword_ids[i];
+				return;
+			end if;
+			i := i + 1;
+		end loop;
+		token := ID;
+	end sub;
+
+	sub lexer_i_read_number() is
+		token_value := 0;
+		var base: int32 := 10;
+
+		var type: uint8;
+		var token: uint8;
+		var c := lexer_i_getchar();
+		if c == '0' then
+			c := lexer_i_getchar();
+			case c is
+				when 'b': base := 2;
+				when 'o': base := 8;
+				when 'd': base := 10;
+				when 'x': base := 16;
+				when else:
+					pushed_char := c;
+					(type, token) := lexer_i_ctype(c);
+					if (type & CTYPE_IDCONT) == 0 then
+						# Just a 0 on its own.
+						return;
+					end if;
+			end case;
+		else
+			pushed_char := c;
+		end if;
+
+		loop
+			c := ToLower(lexer_i_getchar());
+			(type, token) := lexer_i_ctype(c);
+			if (type & CTYPE_IDCONT) == 0 then
+				pushed_char := c;
+				break;
+			end if;
+			if c >= 'a' then
+				c := c - ('a' - 10);
+			else
+				c := c - '0';
+			end if;
+			if c >= (base as uint8) then
+				StartError();
+				print("invalid number");
+				EndError();
+			end if;
+
+			token_value := token_value*base + (c as int32);
+		end loop;
+	end sub;
+
+	sub lexer_i_malformed(s: string) is
+		StartError();
+		print("malformed ");
+		print(s);
+		EndError();
+	end sub;
+
+	sub lexer_i_get_escaped(): (c: uint8) is
+		c := lexer_i_getchar();
+		case c is
+			when 'n':  c := 10;
+			when 'r':  c := 13;
+			when 't':  c := 9;
+			when '\\': c := '\\';
+			when '\'': c := '\'';
+			when '"':  c := '"';
+			when '0':  c := 0;
+			when else:
+				lexer_i_malformed("escape");
+		end case;
+	end sub;
+
+	sub lexer_i_read_string() is
+		token_length := 0;
+		loop
+			var c := lexer_i_getchar();
+			if c < 32 then
+				lexer_i_malformed("string constant");
+			end if;
+
+			case c is
+				when '"':
+					break;
+
+				when '\\':
+					c := lexer_i_get_escaped();
+			end case;
+
+			token_buffer[token_length] := c;
+			token_length := token_length + 1;
+			if token_length == TOKEN_BUFFER_SIZE then
+				StartError();
+				print("string constant too long");
+				EndError();
+			end if;
+		end loop;
+		token_buffer[token_length] := 0;
+	end sub;
+
+	sub lexer_i_read_char() is
+		sub malformed() is
+			lexer_i_malformed("character constant");
+		end sub;
+
+		var c := lexer_i_getchar();
+		if (c < 32) or (c == '\'') then
+			malformed();
+		end if;
+		if c == '\\' then
+			c := lexer_i_get_escaped();
+		end if;
+		token_value := c as Arith;
+
+		c := lexer_i_getchar();
+		if c != '\'' then
+			malformed();
+		end if;
+	end sub;
+
+	sub lexer_i_include() is
+		sub malformed_include() is
+			lexer_i_malformed("include directive");
+		end sub;
+
+		lexer_i_skipwhitespace();
+		var c := lexer_i_getchar();
+		if c != '"' then
+			malformed_include();
+		end if;
+
+		lexer_i_read_string();
+		lexer_i_skipwhitespace();
+		c := lexer_i_getchar();
+		if c != ';' then
+			malformed_include();
+		end if;
+
+		LexerIncludeFile(&token_buffer[0]);
+	end sub;
+
+	sub lexer_i_line_directive() is
+		lexer_i_skipwhitespace();
+		lexer_i_read_number();
+		lexer_i_skipwhitespace();
+		var c := lexer_i_getchar();
+		if c != '"' then
+			lexer_i_malformed("#line directive");
+		end if;
+		lexer_i_read_string();
+		current_file.lineno := token_value as uint16;
+		Free(current_file.path as [uint8]);
+		current_file.path := InternalStrDup(&token_buffer[0]);
+	end sub;
+
+	loop
+		lexer_i_skipwhitespace();
+		var c := lexer_i_getchar();
+
+		if c == '#' then
+			token_length := 0;
+			lexer_i_read_identifier();
+			if StrCmp(&token_buffer[0], "line") == 0 then
+				lexer_i_line_directive();
+			end if;
+			loop
+				c := lexer_i_getchar();
+				if (c == 10) or (c == 13) or (c == 0) then
+					pushed_char := c;
+					break;
+				end if;
+			end loop;
+			continue;
+		end if;
+
+		case c is
+			when 0:
+				token := 0;
+
+			when ':':
+				c := lexer_i_getchar();
+				if c == '=' then
+					token := ASSIGN;
+				else
+					pushed_char := c;
+					token := COLON;
+				end if;
+
+			when '<':
+				c := lexer_i_getchar();
+				case c is
+					when '<': token := LSHIFT;
+					when '=': token := LEOP;
+					when else:
+					pushed_char := c;
+					token := LTOP;
+				end case;
+
+			when '=':
+				c := lexer_i_getchar();
+				if c == '=' then
+					token := EQOP;
+				else
+					lexer_i_unparseable(c);
+				end if;
+
+			when '!':
+				c := lexer_i_getchar();
+				if c == '=' then
+					token := NEOP;
+				else
+					lexer_i_unparseable(c);
+				end if;
+
+			when '>':
+				c := lexer_i_getchar();
+				case c is
+					when '>': token := RSHIFT;
+					when '=': token := GEOP;
+					when else:
+						pushed_char := c;
+						token := GTOP;
+				end case;
+
+			when '"':
+				lexer_i_read_string();
+				token := STRING;
+
+			when '\'':
+				lexer_i_read_char();
+				token := NUMBER;
+
+			when else:
+				var type: uint8;
+				(type, token) := lexer_i_ctype(c);
+				if (type & CTYPE_TOKEN) != 0 then
+					# do nothing
+				elseif (type & CTYPE_DECDIGIT) != 0 then
+					pushed_char := c;
+					lexer_i_read_number();
+					token := NUMBER;
+				elseif (type & CTYPE_IDSTART) != 0 then
+					token_length := 1;
+					token_buffer[0] := c;
+					lexer_i_read_identifier();
+					token := lexer_i_match_keyword();
+				else
+					lexer_i_unparseable(c);
+				end if;
+		end case;
+		
+		if token == INCLUDE then
+			lexer_i_include();
+		else
+			break;
+		end if;
+	end loop;
+	
+	#print("token: ");
+	#print_i8(token);
+	#print_nl();
+end sub;
+
