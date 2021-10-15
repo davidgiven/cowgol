@@ -1,0 +1,4 @@
+sub Emit8(b: uint8) is
+	FCBPutChar(&outputFile, b);
+end sub;
+

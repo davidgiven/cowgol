@@ -1,0 +1,65 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+include "strings.coh";
+include "malloc.coh";
+
+typedef Arith is uint16;
+
+include "types.coh";
+include "archac1082.tokens.coh";
+
+var keywords: Keyword[] := {
+	{ ".ac1082", CPUTYPE,     0 },
+
+	{ "a",       REG_A,       0 },
+	{ "c",       REG_C,       0 },
+	{ "dptr",    REG_DPTR,    0 },
+	{ "r0",      REG_8,       0 },
+	{ "r1",      REG_8,       1 },
+	{ "r2",      REG_8,       2 },
+	{ "r3",      REG_8,       3 },
+	{ "r4",      REG_8,       4 },
+	{ "r5",      REG_8,       5 },
+	{ "r6",      REG_8,       6 },
+	{ "r7",      REG_8,       7 },
+	{ "r0r1",    REG_16,      0 },
+	{ "r2r3",    REG_16,      1 },
+	{ "r4r5",    REG_16,      2 },
+	{ "r6r7",    REG_16,      3 },
+
+	{ "add",     INSN_ALU,    0x20 },
+	{ "addc",    INSN_ALU,    0x30 },
+	{ "anl",     INSN_ALU,    0x50 },
+	{ "orl",     INSN_ALU,    0x40 },
+	{ "subb",    INSN_ALU,    0x90 },
+	{ "xrl",     INSN_ALU,    0x60 },
+
+	{ "ajmp",    INSN_ABSA,   0x01 },
+	{ "acall",   INSN_ABSA,   0x11 },
+
+	{ "ljmp",    INSN_ABSL,   0x01 },
+	{ "lcall",   INSN_ABSL,   0x11 },
+
+	{ "add16",   INSN_EXT_A,  0x0000 },
+	{ "addc16",  INSN_EXT_A,  0x0030 },
+	{ "add16s",  INSN_EXT_A,  0x0060 },
+	{ "addc16s", INSN_EXT_A,  0x0090 },
+	{ "sub16",   INSN_EXT_A,  0x00c0 },
+	{ "subc16",  INSN_EXT_A,  0x00f0 },
+	{ "sub16s",  INSN_EXT_A,  0x0120 },
+	{ "subc16s", INSN_EXT_A,  0x0150 },
+	{ "anl16",   INSN_EXT_A,  0x0180 },
+	{ "orl16",   INSN_EXT_A,  0x01b0 },
+	{ "xrl16",   INSN_EXT_A,  0x01e0 },
+
+	{ "nop",     INSN_SIMPLE, 0x00 },
+};
+
+include "lexer.coh";
+include "emitter.coh";
+include "archac1082.parser.coh";
+include "cowasm2.coh";
+
+Main("8051 family assembler (c) 2021 David Given");
+

@@ -1,39 +1,3 @@
-include "cowgol.coh";
-include "argv.coh";
-include "file.coh";
-include "strings.coh";
-
-typedef string is [uint8];
-
-var inputFilename: string;
-var outputFilename: string;
-var listingFilename: string;
-var inputFile: FCB;
-var outputFile: FCB;
-var listingFile: FCB;
-var lineno: uint16;
-
-sub StartError() is
-	if lineno != 0 then
-		print("error at line ");
-		print_i16(lineno);
-		print(": ");
-	else
-		print("error: ");
-	end if;
-end sub;
-
-sub EndError() is
-	print_nl();
-	ExitWithError();
-end sub;
-
-sub SimpleError(s: string) is
-	StartError();
-	print(s);
-	EndError();
-end sub;
-
 sub ToUpper(cin: uint8): (cout: uint8) is
 	if (cin >= 'a') and (cin <= 'z') then
 		cout := cin - ('a' - 'A');
@@ -93,5 +57,38 @@ sub ParseArguments() is
 	if listingFilename != (0 as string) then
 		CheckFCBOpen(FCBOpenOut(&listingFile, listingFilename), listingFilename);
 	end if;
+end sub;
+
+sub Parse() is
+	ParserInit();
+	loop
+		var yymajor := LexerReadToken();
+		var yyminor: YYMINORTYPE;
+		case yymajor is
+			when NUMBER:
+				yyminor.yy0.number := token_value;
+
+			when ID:
+				yyminor.yy0.string := StrDup(&token_buffer[0]);
+
+			when STRING:
+				yyminor.yy0.string := StrDup(&token_buffer[0]);
+
+			when else:
+				yyminor.yy0.number := token_value;
+		end case;
+		ParserFeedToken(yymajor, &yyminor);
+		if yymajor == 0 then
+			break;
+		end if;
+	end loop;
+end sub;
+
+sub Main(banner: string) is
+	print(banner);
+	print_nl();
+
+	ParseArguments();
+	Parse();
 end sub;
 

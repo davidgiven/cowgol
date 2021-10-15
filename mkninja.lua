@@ -50,6 +50,10 @@ function string:dir()
 	return self:gsub("[^/]*$", "")
 end
 
+function string:leaf()
+	return self:gsub("^.*/", "")
+end
+
 function concat(...)
 	local result = {}
 

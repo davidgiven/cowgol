@@ -1,25 +1,9 @@
-record IncludePath is
-	next: [IncludePath];
-	path: string;
-end record;
-
-record File is
-	next: [File];
-	path: string;
-	lineno: uint16;
-	pos: uint32;
-end record;
-
-var include_paths: [IncludePath] := 0 as [IncludePath];
-var current_file: [File] := 0 as [File];
 var pushed_char: uint8 := 0;
 
 const TOKEN_BUFFER_SIZE := 128;
 var token_buffer: uint8[TOKEN_BUFFER_SIZE];
 var token_length: uint8 := 0;
-var token_value: int32;
-
-var infcb: FCB;
+var token_value: Arith;
 
 const CTYPE_DECDIGIT := 0x01;
 const CTYPE_IDSTART  := 0x10;
@@ -30,8 +14,8 @@ const CTYPE_TOKEN    := 0x80;
 var lexer_ctype: uint8[] := {
 	0,                           # 0x21 !
 	0,                           # 0x22 "
-	0,                           # 0x23 #
-	0,                           # 0x24 $ 
+	CTYPE_TOKEN|HASH,            # 0x23 #
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x24 $ 
 	CTYPE_TOKEN|PERCENT,         # 0x25 %
 	CTYPE_TOKEN|AMPERSAND,       # 0x26 &
 	0,                           # 0x27 '
@@ -41,7 +25,7 @@ var lexer_ctype: uint8[] := {
 	CTYPE_TOKEN|PLUS,            # 0x2b +
 	CTYPE_TOKEN|COMMA,           # 0x2c ,
 	CTYPE_TOKEN|MINUS,           # 0x2d -
-	CTYPE_TOKEN|DOT,             # 0x2e .
+	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x2e .
 	CTYPE_TOKEN|SLASH,           # 0x2f /
 	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x30 0
 	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x31 1
@@ -54,12 +38,12 @@ var lexer_ctype: uint8[] := {
 	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x38 8
 	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x39 9
 	CTYPE_TOKEN|COLON,           # 0x3a :
-	CTYPE_TOKEN|SEMICOLON,       # 0x3b ;
+	CTYPE_TOKEN|EOS,             # 0x3b ;
 	0,                           # 0x3c <
 	0,                           # 0x3d =
 	0,                           # 0x3e >
 	0,                           # 0x3f ?
-	CTYPE_IDSTART,               # 0x40 @
+	CTYPE_TOKEN|AT,              # 0x40 @
 	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x41 A
 	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x42 B
 	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x43 C
@@ -124,99 +108,13 @@ var lexer_ctype: uint8[] := {
 	CTYPE_TOKEN|TILDE            # 0x7e ~
 };
 
-var keyword_names: string[] := {
-	"@alias",
-	"@asm",
-	"@at",
-	"@bytesof",
-	"@decl",
-	"@extern",
-	"@indexof",
-	"@impl",
-	"@sizeof",
-	"@next",
-	"@prev",
-	"and",
-	"as",
-	"break",
-	"case",
-	"const",
-	"continue",
-	"else",
-	"elseif",
-	"end",
-	"extern",
-	"if",
-	"is",
-	"include",
-	"int",
-	"interface",
-	"implements",
-	"loop",
-	"not",
-	"or",
-	"record",
-	"return",
-	"sub",
-	"then",
-	"typedef",
-	"var",
-	"when",
-	"while",
-};
-
 const INCLUDE := 0xff; # This is special
-
-var keyword_ids: uint8[] := {
-	ALIAS,
-	ASM,
-	AT,
-	BYTESOF,
-	DECL,
-	EXTERN,
-	INDEXOF,
-	IMPL,
-	SIZEOF,
-	NEXT,
-	PREV,
-	AND,
-	AS,
-	BREAK,
-	CASE,
-	CONST,
-	CONTINUE,
-	ELSE,
-	ELSEIF,
-	END,
-	EXTERN,
-	IF,
-	IS,
-	INCLUDE,
-	INT,
-	INTERFACE,
-	IMPLEMENTS,
-	LOOP,
-	NOT,
-	OR,
-	RECORD,
-	RETURN,
-	SUB,
-	THEN,
-	TYPEDEF,
-	VAR,
-	WHEN,
-	WHILE
-};
 
 sub StartError() is
 	print("error: ");
-	if current_file == (0 as [File]) then
-		print("<eof>");
-	else
-		print(current_file.path);
-		print(": ");
-		print_i16(current_file.lineno);
-	end if;
+	print(inputFilename);
+	print(": ");
+	print_i16(lineno);
 	print(": ");
 end sub;
 
@@ -228,74 +126,6 @@ end sub;
 sub SimpleError(message: string) is
 	StartError();
 	print(message);
-	EndError();
-end sub;
-
-sub LexerAddIncludePath(path: string) is
-	var p := InternalAlloc(@bytesof IncludePath) as [IncludePath];
-	p.next := include_paths;
-	p.path := path;
-	include_paths := p;
-end sub;
-
-var file_nesting: uint8 := 0;
-sub LexerPrintSpaces() is
-	var i := file_nesting;
-	while i != 0 loop
-		print("  ");
-		i := i - 1;
-	end loop;
-end sub;
-
-sub lexer_i_open(file: [File]): (result: uint8) is
-	if FCBOpenIn(&infcb, file.path) == 0 then
-		FCBSeek(&infcb, file.pos);
-		result := 0;
-	else
-		result := 1;
-	end if;
-end sub;
-
-sub lexer_i_close(file: [File]) is
-	file.pos := FCBPos(&infcb);
-	var e := FCBClose(&infcb);
-end sub;
-
-sub LexerIncludeFile(path: string) is
-	var f := InternalAlloc(@bytesof File) as [File];
-	f.next := current_file;
-	f.lineno := 1;
-
-	if current_file != (0 as [File]) then
-		lexer_i_close(current_file);
-	end if;
-
-	var p := include_paths;
-	var fl := StrLen(path);
-	while p != (0 as [IncludePath]) loop
-		var il := StrLen(p.path);
-		f.path := InternalAlloc(fl + il + 1);
-		MemCopy(p.path, il, f.path);
-		MemCopy(path, fl+1, f.path + il);
-		if lexer_i_open(f) == 0 then
-			file_nesting := file_nesting + 1;
-			LexerPrintSpaces();
-			print("> ");
-			print(f.path);
-			print_nl();
-
-			current_file := f;
-			return;
-		end if;
-
-		Free(f.path);
-		p := p.next;
-	end loop;
-
-	StartError();
-	print("cannot open '");
-	print(path);
-	print("'");
 	EndError();
 end sub;
 
@@ -320,36 +150,10 @@ sub LexerReadToken(): (token: uint8) is
 			return;
 		end if;
 
-		loop
-			if current_file == (0 as [File]) then
-				c := 0;
-				break;
-			end if;
-
-			var f := current_file;
-			c := FCBGetChar(&infcb);
-			if c == 26 then
-				c := 0;
-			end if;
-			if c != 0 then
-				break;
-			end if;
-
-			current_file := f.next;
-			lexer_i_close(f);
-			Free(f as [uint8]);
-
-			if current_file != (0 as [File]) then
-				file_nesting := file_nesting - 1;
-				LexerPrintSpaces();
-				print("< ");
-				print(current_file.path);
-				print_nl();
-				if lexer_i_open(current_file) != 0 then
-					SimpleError("I/O error");
-				end if;
-			end if;
-		end loop;
+		c := FCBGetChar(&inputFile);
+		if c == 26 then
+			c := 0;
+		end if;
 	end sub;
 
 	sub lexer_i_unparseable(c: uint8) is
@@ -368,13 +172,6 @@ sub LexerReadToken(): (token: uint8) is
 
 				when 13:
 					# do nothing
-
-				when 10:  
-					current_file.lineno := current_file.lineno + 1;
-					#print(current_file.path);
-					#print(":");
-					#print_i16(current_file.lineno);
-					#print_nl();
 
 				when 9:
 					# do nothing
@@ -409,10 +206,12 @@ sub LexerReadToken(): (token: uint8) is
 	end sub;
 
 	sub lexer_i_match_keyword(): (token: uint8) is
-		var i: @indexof keyword_names := 0;
-		while i != @sizeof keyword_names loop
-			if StrCmp(&token_buffer[0], keyword_names[i]) == 0 then
-				token := keyword_ids[i];
+		var i: @indexof keywords := 0;
+		while i != @sizeof keywords loop
+			var k := &keywords[i];
+			if StrCmp(&token_buffer[0], k.name) == 0 then
+				token := k.id;
+				token_value := k.value;
 				return;
 			end if;
 			i := i + 1;
@@ -422,7 +221,7 @@ sub LexerReadToken(): (token: uint8) is
 
 	sub lexer_i_read_number() is
 		token_value := 0;
-		var base: int32 := 10;
+		var base: Arith := 10;
 
 		var type: uint8;
 		var token: uint8;
@@ -464,7 +263,7 @@ sub LexerReadToken(): (token: uint8) is
 				EndError();
 			end if;
 
-			token_value := token_value*base + (c as int32);
+			token_value := token_value*base + (c as Arith);
 		end loop;
 	end sub;
 
@@ -537,51 +336,11 @@ sub LexerReadToken(): (token: uint8) is
 		end if;
 	end sub;
 
-	sub lexer_i_include() is
-		sub malformed_include() is
-			lexer_i_malformed("include directive");
-		end sub;
-
-		lexer_i_skipwhitespace();
-		var c := lexer_i_getchar();
-		if c != '"' then
-			malformed_include();
-		end if;
-
-		lexer_i_read_string();
-		lexer_i_skipwhitespace();
-		c := lexer_i_getchar();
-		if c != ';' then
-			malformed_include();
-		end if;
-
-		LexerIncludeFile(&token_buffer[0]);
-	end sub;
-
-	sub lexer_i_line_directive() is
-		lexer_i_skipwhitespace();
-		lexer_i_read_number();
-		lexer_i_skipwhitespace();
-		var c := lexer_i_getchar();
-		if c != '"' then
-			lexer_i_malformed("#line directive");
-		end if;
-		lexer_i_read_string();
-		current_file.lineno := token_value as uint16;
-		Free(current_file.path as [uint8]);
-		current_file.path := InternalStrDup(&token_buffer[0]);
-	end sub;
-
 	loop
 		lexer_i_skipwhitespace();
 		var c := lexer_i_getchar();
 
-		if c == '#' then
-			token_length := 0;
-			lexer_i_read_identifier();
-			if StrCmp(&token_buffer[0], "line") == 0 then
-				lexer_i_line_directive();
-			end if;
+		if c == '\\' then
 			loop
 				c := lexer_i_getchar();
 				if (c == 10) or (c == 13) or (c == 0) then
@@ -596,14 +355,12 @@ sub LexerReadToken(): (token: uint8) is
 			when 0:
 				token := 0;
 
+			when 10:
+				token := EOS;
+				lineno := lineno + 1;
+
 			when ':':
-				c := lexer_i_getchar();
-				if c == '=' then
-					token := ASSIGN;
-				else
-					pushed_char := c;
-					token := COLON;
-				end if;
+				token := COLON;
 
 			when '<':
 				c := lexer_i_getchar();
@@ -668,11 +425,7 @@ sub LexerReadToken(): (token: uint8) is
 				end if;
 		end case;
 		
-		if token == INCLUDE then
-			lexer_i_include();
-		else
-			break;
-		end if;
+		break;
 	end loop;
 	
 	#print("token: ");
