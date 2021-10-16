@@ -11,6 +11,11 @@ record Token is
 	string @at(0): string;
 end record;
 
+record Number is
+	number: Arith;
+	addressSpace: uint8;
+end record;
+
 var inputFilename: string;
 var outputFilename: string := "output.bin";
 var listingFilename: string;
@@ -19,4 +24,7 @@ var outputFile: FCB;
 var listingFile: FCB;
 var lineno: uint16 := 1;
 
+var pass: uint8;
+var programCounter: Arith[1];
+var currentProgramCounter := &programCounter[0];
 

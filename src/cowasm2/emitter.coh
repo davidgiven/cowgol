@@ -1,4 +1,5 @@
 sub Emit8(b: uint8) is
 	FCBPutChar(&outputFile, b);
+	[currentProgramCounter] := [currentProgramCounter] + 1;
 end sub;
 

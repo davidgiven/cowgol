@@ -1,0 +1,33 @@
+record Symbol: Number is
+	value: Number;
+	name: string;
+	next: [Symbol];
+end record;
+
+var hashtable: [Symbol][16];
+
+sub InitSymbolTable() is
+	var p := &hashtable[0];
+	while p != &hashtable[@sizeof hashtable] loop
+		[p] := 0 as [Symbol];
+		p := @next p;
+	end loop;
+end sub;
+InitSymbolTable();
+
+sub FindSymbol(name: string): (symbol: [Symbol]) is
+	var hash := [name] & 0xf;
+	var chain := &hashtable[hash];
+	symbol := [chain];
+	while symbol != (0 as [Symbol]) loop
+		if StrCmp(symbol.name, name) == 0 then
+			return;
+		end if;
+		symbol := symbol.next;
+	end loop;
+	symbol := Alloc(@bytesof Symbol) as [Symbol];
+	symbol.name := StrDup(name);
+	symbol.next := [chain];
+	[chain] := symbol;
+end sub;
+

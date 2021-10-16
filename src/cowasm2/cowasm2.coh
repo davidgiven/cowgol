@@ -6,6 +6,15 @@ sub ToUpper(cin: uint8): (cout: uint8) is
 	end if;
 end sub;
 
+sub CheckFCBOpen(e: uint8, s: string) is
+	if e != 0 then
+		StartError();
+		print("cannot open ");
+		print(s);
+		EndError();
+	end if;
+end sub;
+
 sub ParseArguments() is
 	sub SyntaxError() is
 		StartError();
@@ -43,16 +52,6 @@ sub ParseArguments() is
 		SyntaxError();
 	end if;
 
-	sub CheckFCBOpen(e: uint8, s: string) is
-		if e != 0 then
-			StartError();
-			print("cannot open ");
-			print(s);
-			EndError();
-		end if;
-	end sub;
-
-	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
 	CheckFCBOpen(FCBOpenOut(&outputFile, outputFilename), outputFilename);
 	if listingFilename != (0 as string) then
 		CheckFCBOpen(FCBOpenOut(&listingFile, listingFilename), listingFilename);
@@ -60,6 +59,7 @@ sub ParseArguments() is
 end sub;
 
 sub Parse() is
+	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
 	ParserInit();
 	loop
 		var yymajor := LexerReadToken();
@@ -82,6 +82,8 @@ sub Parse() is
 			break;
 		end if;
 	end loop;
+
+	var i := FCBClose(&inputFile);
 end sub;
 
 sub Main(banner: string) is
@@ -90,5 +92,6 @@ sub Main(banner: string) is
 
 	ParseArguments();
 	Parse();
+	var i := FCBClose(&outputFile);
 end sub;
 

@@ -16,6 +16,8 @@ for _, arch in ipairs(ARCHS) do
 				"src/cowasm2/arch"..arch..".cow",
 				"src/cowasm2/types.coh",
 				"src/cowasm2/lexer.coh",
+				"src/cowasm2/symbols.coh",
+				"src/cowasm2/emitter.coh",
 				"src/cowasm2/cowasm2.coh",
 				"$OBJ/src/cowasm2/arch"..arch..".parser.coh",
 				"$OBJ/src/cowasm2/arch"..arch..".tokens.coh",

@@ -9,6 +9,10 @@ typedef Arith is uint16;
 include "types.coh";
 include "archac1082.tokens.coh";
 
+const AS_NUMBER := 0;
+const AS_IDATA := 1;
+const AS_XDATA := 2;
+
 var keywords: Keyword[] := {
 	{ ".ac1082", CPUTYPE,     0 },
 
@@ -30,8 +34,8 @@ var keywords: Keyword[] := {
 
 	{ "add",     INSN_ALU,    0x20 },
 	{ "addc",    INSN_ALU,    0x30 },
-	{ "anl",     INSN_ALU,    0x50 },
-	{ "orl",     INSN_ALU,    0x40 },
+	{ "anl",     INSN_ANL,    0x50 },
+	{ "orl",     INSN_ORL,    0x40 },
 	{ "subb",    INSN_ALU,    0x90 },
 	{ "xrl",     INSN_ALU,    0x60 },
 
@@ -40,6 +44,8 @@ var keywords: Keyword[] := {
 
 	{ "ljmp",    INSN_ABSL,   0x01 },
 	{ "lcall",   INSN_ABSL,   0x11 },
+
+	{ "cjne",    INSN_CJNE,   0xb0 },
 
 	{ "add16",   INSN_EXT_A,  0x0000 },
 	{ "addc16",  INSN_EXT_A,  0x0030 },
@@ -58,6 +64,13 @@ var keywords: Keyword[] := {
 
 include "lexer.coh";
 include "emitter.coh";
+include "symbols.coh";
+
+sub Emit16(w: uint16) is
+	Emit8((w >> 8) as uint8);
+	Emit8(w as uint8);
+end sub;
+
 include "archac1082.parser.coh";
 include "cowasm2.coh";
 

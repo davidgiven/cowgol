@@ -114,7 +114,7 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTION
 	if stateno <= YY_REDUCE_COUNT then
 		var i := (yy_reduce_ofst[stateno as @indexof yy_reduce_ofst] as @indexof yy_action)
 				+ (yygoto as @indexof yy_action);
-		if (i>=0) and (i<YY_ACTTAB_COUNT) and (yy_lookahead[i] == yygoto) then
+		if (i>=0) and (i<YY_ACTTAB_COUNT) and (yy_lookahead[i as @indexof yy_lookahead] == yygoto) then
 			yyact := yy_action[i];
 		end if;
 	end if;
@@ -172,7 +172,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE]) is
 	loop
 		if yyact <= YY_MAX_SHIFT then
 			var i := yy_shift_ofst[yyact as @indexof yy_shift_ofst] + (yymajor as YYTOKENOFFSETTYPE);
-			if yy_lookahead[i] != yymajor then
+			if yy_lookahead[i as @indexof yy_lookahead] != yymajor then
 				yyact := yy_default[yyact as @indexof yy_default];
 			else
 				yyact := yy_action[i];
