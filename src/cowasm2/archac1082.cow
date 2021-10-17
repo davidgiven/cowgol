@@ -40,6 +40,7 @@ var keywords: Keyword[] := {
 	{ "orl",     INSN_ORL,    0x40 },
 	{ "subb",    INSN_ALU_A,  0x90 },
 	{ "xrl",     INSN_ALU_A,  0x60 },
+	{ "xch",     INSN_ALU_A,  0xc0 },
 
 	{ "dec",     INSN_ALU,    0x10 },
 
@@ -80,6 +81,25 @@ var keywords: Keyword[] := {
 
 	{ "nop",     INSN_SIMPLE, 0x00 },
 
+	{ "push",    INSN_JUST_D, 0xc0 },
+	{ "pop",     INSN_JUST_D, 0xd0 },
+
+	{ "ret",     INSN_SIMPLE, 0x22 },
+	{ "reti",    INSN_SIMPLE, 0x32 },
+
+	{ "rl",      INSN_JUST_A, 0x23 },
+	{ "rlc",     INSN_JUST_A, 0x33 },
+	{ "rr",      INSN_JUST_A, 0x03 },
+	{ "rrc",     INSN_JUST_A, 0x13 },
+
+	{ "setb",    INSN_SETB,   0x00 },
+	
+	{ "sjmp",    INSN_J,      0x80 },
+
+	{ "swap",    INSN_JUST_A, 0xc4 },
+
+	{ "xchd",    INSN_XCHD,   0x00 },
+
 	{ "add16",   INSN_EXT_A,  0x0000 },
 	{ "addc16",  INSN_EXT_A,  0x0030 },
 	{ "add16s",  INSN_EXT_A,  0x0060 },
@@ -91,7 +111,6 @@ var keywords: Keyword[] := {
 	{ "anl16",   INSN_EXT_A,  0x0180 },
 	{ "orl16",   INSN_EXT_A,  0x01b0 },
 	{ "xrl16",   INSN_EXT_A,  0x01e0 },
-
 };
 
 include "lexer.coh";

@@ -68,6 +68,10 @@ label ::= /* empty */.
 label ::= ID(I) COLON.
 	{ var s := FindSymbol(I.string); s.number := [currentProgramCounter]; s.addressSpace := AS_XDATA; }
 
+%type indir {uint8}
+indir(I) ::= AT REG_8(R).
+	{ I := R.number as uint8; CheckIndirectableReg(I); }
+
 /* --- Expressions ------------------------------------------------------- */
 
 %type expression {Number}
@@ -203,8 +207,8 @@ instruction ::= insn_alu_a(I) REG_A COMMA HASH expression(E).
 instruction ::= insn_alu_a(I) REG_A COMMA REG_8(R).
 	{ Emit8((I.number as uint8) | (R.number as uint8) | 0x08); }
 
-instruction ::= insn_alu_a(I) REG_A COMMA AT REG_8(R).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((I.number as uint8) | (R.number as uint8) | 0x06); }
+instruction ::= insn_alu_a(I) REG_A COMMA indir(R).
+	{ Emit8((I.number as uint8) | R | 0x06); }
 
 instruction ::= INSN_ANL REG_C COMMA expression(E).       { Emit8(0x82); EmitAddress(&E, AS_IDATA); }
 instruction ::= INSN_ANL REG_C COMMA SLASH expression(E). { Emit8(0xb0); EmitAddress(&E, AS_IDATA); }
@@ -214,6 +218,15 @@ instruction ::= INSN_ANL expression(E1) COMMA HASH expression(E2).
 
 instruction ::= INSN_ANL expression(E1) COMMA REG_A.
 	{ Emit8(0x52); EmitAddress(&E1, AS_IDATA); }
+
+instruction ::= INSN_ORL REG_C COMMA expression(E).       { Emit8(0x72); EmitAddress(&E, AS_IDATA); }
+instruction ::= INSN_ORL REG_C COMMA SLASH expression(E). { Emit8(0xa0); EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_ORL expression(E1) COMMA HASH expression(E2).
+	{ Emit8(0x43); EmitAddress(&E1, AS_IDATA); Emit8(E2.number as uint8); }
+
+instruction ::= INSN_ORL expression(E1) COMMA REG_A.
+	{ Emit8(0x42); EmitAddress(&E1, AS_IDATA); }
 
 instruction ::= INSN_EXT_A(I) REG_16(R1) COMMA REG_16(R2).
 	{ Emit8(0xa5); Emit16(I.number | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
@@ -244,8 +257,8 @@ instruction ::= insn_alu(I) expression(E).
 instruction ::= insn_alu(I) REG_8(R).
 	{ Emit8((I.number as uint8) | (R.number as uint8) | 0x08); }
 
-instruction ::= insn_alu(I) AT REG_8(R).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((I.number as uint8) | (R.number as uint8) | 0x06); }
+instruction ::= insn_alu(I) indir(R).
+	{ Emit8((I.number as uint8) | R | 0x06); }
 
 instruction ::= INSN_INC REG_DPTR. { Emit8(0xa3); }
 
@@ -271,9 +284,8 @@ instruction ::= INSN_CJNE(I) REG_A COMMA expression(E1) COMMA expression(E2).
 instruction ::= INSN_CJNE(I) REG_8(R) COMMA HASH expression(E1) COMMA expression(E2).
 	{ Emit8((I.number as uint8) | (R.number as uint8) | 0x08); Emit8(E1.number as uint8); EmitRelAddress(&E2, -1); }
 
-instruction ::= INSN_CJNE(I) AT REG_8(R) COMMA HASH expression(E1) COMMA expression(E2).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((I.number as uint8) | (R.number as uint8) | 0x06);
-	  Emit8(E1.number as uint8); EmitRelAddress(&E2, -1); }
+instruction ::= INSN_CJNE(I) indir(R) COMMA HASH expression(E1) COMMA expression(E2).
+	{ Emit8((I.number as uint8) | R | 0x06); Emit8(E1.number as uint8); EmitRelAddress(&E2, -1); }
 
 /* --- CLR --------------------------------------------------------------- */
 
@@ -311,22 +323,20 @@ instruction ::= INSN_JMP AT REG_A PLUS REG_DPTR.
 
 /* --- MOV -------------------------------------------------------------- */
 
-instruction ::= INSN_MOV AT REG_8(R) COMMA HASH expression(E).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0x76);
-	  Emit8(E.number as uint8); }
+instruction ::= INSN_MOV indir(R) COMMA HASH expression(E).
+	{ Emit8(R | 0x76); Emit8(E.number as uint8); }
 
-instruction ::= INSN_MOV AT REG_8(R) COMMA REG_A.
-	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xf6); }
+instruction ::= INSN_MOV indir(R) COMMA REG_A.
+	{ Emit8(R | 0xf6); }
 
-instruction ::= INSN_MOV AT REG_8(R) COMMA expression(E).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xa6);
-	  EmitAddress(&E, AS_IDATA); }
+instruction ::= INSN_MOV indir(R) COMMA expression(E).
+	{ Emit8(R | 0xa6); EmitAddress(&E, AS_IDATA); }
 
 instruction ::= INSN_MOV REG_A COMMA HASH expression(E).
 	{ Emit8(0x74); Emit8(E.number as uint8); }
 
-instruction ::= INSN_MOV REG_A COMMA AT REG_8(R).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xe6); }
+instruction ::= INSN_MOV REG_A COMMA indir(R).
+	{ Emit8(R | 0xe6); }
 
 instruction ::= INSN_MOV REG_A COMMA expression(E).
 	{ Emit8(0xe5); EmitAddress(&E, AS_IDATA); }
@@ -346,9 +356,8 @@ instruction ::= INSN_MOV expression(E1) COMMA expression(E2).
 instruction ::= INSN_MOV expression(E1) COMMA HASH expression(E2).
 	{ Emit8(0x75); EmitAddress(&E1, AS_IDATA); Emit8(E2.number as uint8); }
 
-instruction ::= INSN_MOV expression(E) COMMA AT REG_8(R).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0x86);
-	  EmitAddress(&E, AS_IDATA); }
+instruction ::= INSN_MOV expression(E) COMMA indir(R).
+	{ Emit8(R | 0x86); EmitAddress(&E, AS_IDATA); }
 
 instruction ::= INSN_MOV expression(E) COMMA REG_A.
 	{ Emit8(0xf5); EmitAddress(&E, AS_IDATA); }
@@ -378,16 +387,33 @@ instruction ::= INSN_MOVC REG_A COMMA AT REG_A PLUS REG_PC.
 
 /* --- MOVX -------------------------------------------------------------- */
 
-instruction ::= INSN_MOVX AT REG_8(R) COMMA REG_A.
-	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xf2); }
+instruction ::= INSN_MOVX indir(R) COMMA REG_A.
+	{ Emit8(R | 0xf2); }
 
 instruction ::= INSN_MOVX REG_A COMMA AT REG_DPTR.
 	{ Emit8(0xe0); }
 
-instruction ::= INSN_MOVX REG_A COMMA AT REG_8(R).
-	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xe2); }
+instruction ::= INSN_MOVX REG_A COMMA indir(R).
+	{ Emit8(R | 0xe2); }
 
 instruction ::= INSN_MOVX AT REG_DPTR COMMA REG_A.
 	{ Emit8(0xf0); }
 
+/* --- just direct ------------------------------------------------------- */
+
+instruction ::= INSN_JUST_D(I) expression(E).
+	{ Emit8(I.number as uint8); EmitAddress(&E, AS_IDATA); }
+
+/* --- SETB -------------------------------------------------------------- */
+
+instruction ::= INSN_SETB expression(E).
+	{ Emit8(0xd2); Emit8(E.number as uint8); }
+
+instruction ::= INSN_SETB REG_C.
+	{ Emit8(0xd3); }
+
+/* --- XCHD -------------------------------------------------------------- */
+
+instruction ::= INSN_XCHD REG_A COMMA indir(I).
+	{ Emit8(I | 0xd6); }
 
