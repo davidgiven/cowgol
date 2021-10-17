@@ -72,6 +72,14 @@ label ::= ID(I) COLON.
 indir(I) ::= AT REG_8(R).
 	{ I := R.number as uint8; CheckIndirectableReg(I); }
 
+%type const8 {uint8}
+const8(C) ::= HASH expression(E).
+	{ C := E.number as uint8; }
+
+%type reg16 {uint8}
+reg16(R) ::= REG_16(R1).
+	{ R := R1.number as uint8; }
+
 /* --- Expressions ------------------------------------------------------- */
 
 %type expression {Number}
@@ -227,15 +235,6 @@ instruction ::= INSN_ORL expression(E1) COMMA HASH expression(E2).
 
 instruction ::= INSN_ORL expression(E1) COMMA REG_A.
 	{ Emit8(0x42); EmitAddress(&E1, AS_IDATA); }
-
-instruction ::= INSN_EXT_A(I) REG_16(R1) COMMA REG_16(R2).
-	{ Emit8(0xa5); Emit16(I.number | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
-
-instruction ::= INSN_EXT_A(I) REG_16(R1) COMMA AT REG_16(R2).
-	{ Emit8(0xa5); Emit16(I.number | 0x0010 | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
-
-instruction ::= INSN_EXT_A(I) AT REG_16(R1) COMMA REG_16(R2).
-	{ Emit8(0xa5); Emit16(I.number | 0x0020 | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
 
 %type insn_alu_a {Token}
 insn_alu_a(I) ::= INSN_ALU_A(T). { I.number := T.number; }
@@ -416,4 +415,130 @@ instruction ::= INSN_SETB REG_C.
 
 instruction ::= INSN_XCHD REG_A COMMA indir(I).
 	{ Emit8(I | 0xd6); }
+
+/* ======================================================================= */
+/*                     AC1082 extended instructions                        */
+/* ======================================================================= */
+
+/* --- ri/ri ------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_RI_RI(I) REG_16(R1) COMMA REG_16(R2).
+	{ Emit8(0xa5); Emit16(I.number | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
+
+instruction ::= INSN_EXT_RI_RI(I) REG_16(R1) COMMA AT REG_16(R2).
+	{ Emit8(0xa5); Emit16((I.number + 0x0010) | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
+
+instruction ::= INSN_EXT_RI_RI(I) AT REG_16(R1) COMMA REG_16(R2).
+	{ Emit8(0xa5); Emit16((I.number + 0x0020) | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
+
+/* --- r/ri -------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_R_RI(I) REG_16(R1) COMMA REG_16(R2).
+	{ Emit8(0xa5); Emit16(I.number | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
+
+instruction ::= INSN_EXT_R_RI(I) REG_16(R1) COMMA AT REG_16(R2).
+	{ Emit8(0xa5); Emit16((I.number + 0x0010) | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
+
+/* --- MOVB -------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_MOVB REG_16(R1) COMMA AT REG_16(R2).
+	{ Emit8(0xa5); Emit16(0x0250 | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
+
+instruction ::= INSN_EXT_MOVB AT REG_16(R1) COMMA REG_16(R2).
+	{ Emit8(0xa5); Emit16(0x0260 | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
+
+/* --- LSL --------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_LSL reg16(R1) COMMA const8(C).
+	{ Emit8(0xa5); Emit16(0x0300 | ((C & 0x0c) as uint16 << 2) | ((C & 0x03) as uint16) | ((R1 << 2) as uint16)); }
+
+instruction ::= INSN_EXT_LSL reg16(R).
+	{ Emit8(0xa5); Emit8(0x34 | R); }
+
+instruction ::= INSN_EXT_LSL AT reg16(R).
+	{ Emit8(0xa5); Emit8(0x3c | R); }
+
+/* --- LSR --------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_LSR reg16(R1) COMMA const8(C).
+	{ Emit8(0xa5); Emit16(0x0340 | ((C & 0x0c) as uint16 << 2) | ((C & 0x03) as uint16) | ((R1 << 2) as uint16)); }
+
+instruction ::= INSN_EXT_LSR reg16(R).
+	{ Emit8(0xa5); Emit8(0x30 | R); }
+
+instruction ::= INSN_EXT_LSR AT reg16(R).
+	{ Emit8(0xa5); Emit8(0x38 | R); }
+
+/* --- ASR --------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_ASR reg16(R1) COMMA const8(C).
+	{ Emit8(0xa5); Emit16(0x03c0 | ((C & 0x0c) as uint16 << 2) | ((C & 0x03) as uint16) | ((R1 << 2) as uint16)); }
+
+instruction ::= INSN_EXT_ASR reg16(R).
+	{ Emit8(0xa5); Emit8(0x40 | R); }
+
+instruction ::= INSN_EXT_ASR AT reg16(R).
+	{ Emit8(0xa5); Emit8(0x44 | R); }
+
+/* --- ROTL -------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_ROTL reg16(R1) COMMA const8(C).
+	{ Emit8(0xa5); Emit16(0x0380 | ((C & 0x0c) as uint16 << 2) | ((C & 0x03) as uint16) | ((R1 << 2) as uint16)); }
+
+instruction ::= INSN_EXT_ROTL reg16(R).
+	{ Emit8(0xa5); Emit8(0x28 | R); }
+
+instruction ::= INSN_EXT_ROTL AT reg16(R).
+	{ Emit8(0xa5); Emit8(0x20 | R); }
+
+/* --- ROTR -------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_ROTR reg16(R).
+	{ Emit8(0xa5); Emit8(0x28 | R); }
+
+instruction ::= INSN_EXT_ROTR AT reg16(R).
+	{ Emit8(0xa5); Emit8(0x20 | R); }
+
+/* --- Two-byte just taking a register ----------------------------------- */
+
+instruction ::= INSN_EXT_JUST_REG(I) reg16(R).
+	{ Emit8(0xa5); Emit8((I.number as uint8) | R); }
+
+/* --- Two-byte just taking two registers -------------------------------- */
+
+instruction ::= INSN_EXT_JUST_REGS(I) reg16(R1) COMMA reg16(R2).
+	{ Emit8(0xa5); Emit8((I.number as uint8) | (R1 << 2) | R2); }
+
+/* --- MOV --------------------------------------------------------------- */
+
+instruction ::= INSN_EXT_MOV reg16(R1) COMMA reg16(R2).
+	{ Emit8(0xa5); Emit8(0x80 | (R1<<2) | R2); }
+
+instruction ::= INSN_EXT_MOV reg16(R1) COMMA AT reg16(R2).
+	{ Emit8(0xa5); Emit8(0xa0 | (R1<<2) | R2); }
+
+instruction ::= INSN_EXT_MOV AT reg16(R1) COMMA reg16(R2).
+	{ Emit8(0xa5); Emit8(0x90 | (R1<<2) | R2); }
+
+instruction ::= INSN_EXT_MOV AT reg16(R1) COMMA AT reg16(R2).
+	{ Emit8(0xa5); Emit8(0xb0 | (R1<<2) | R2); }
+
+/* --- MUL and MULS ------------------------------------------------------ */
+
+instruction ::= INSN_EXT_MUL(I) reg16(R1) COMMA reg16(R2).
+	{ Emit8(0xa5); Emit8((I.number as uint8) | (R1 << 2) | R2); }
+
+instruction ::= INSN_EXT_MUL(I) reg16(R1) COMMA AT reg16(R2).
+	{ Emit8(0xa5); Emit8((I.number as uint8 + 0x10) | (R1 << 2) | R2); }
+
+/* --- MULWR and MULSWR -------------------------------------------------- */
+
+instruction ::= INSN_EXT_MULWR(I) reg16(R1) COMMA reg16(R2).
+	{
+		if (R1 != 2) or (R2 != 1) then
+			SimpleError("bad registers");
+		end if;
+		Emit8(0xa5);
+		Emit8(I.number as uint8);
+	}
 

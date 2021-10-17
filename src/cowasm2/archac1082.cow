@@ -14,7 +14,7 @@ const AS_IDATA := 1;
 const AS_XDATA := 2;
 
 var keywords: Keyword[] := {
-	{ ".ac1082", CPUTYPE,     0 },
+	# --- 'Normal' 8051 instructions -------------------------------------
 
 	{ "a",       REG_A,       0 },
 	{ "ab",      REG_AB,      0 },
@@ -29,10 +29,6 @@ var keywords: Keyword[] := {
 	{ "r5",      REG_8,       5 },
 	{ "r6",      REG_8,       6 },
 	{ "r7",      REG_8,       7 },
-	{ "r0r1",    REG_16,      0 },
-	{ "r2r3",    REG_16,      1 },
-	{ "r4r5",    REG_16,      2 },
-	{ "r6r7",    REG_16,      3 },
 
 	{ "add",     INSN_ALU_A,  0x20 },
 	{ "addc",    INSN_ALU_A,  0x30 },
@@ -100,17 +96,49 @@ var keywords: Keyword[] := {
 
 	{ "xchd",    INSN_XCHD,   0x00 },
 
-	{ "add16",   INSN_EXT_A,  0x0000 },
-	{ "addc16",  INSN_EXT_A,  0x0030 },
-	{ "add16s",  INSN_EXT_A,  0x0060 },
-	{ "addc16s", INSN_EXT_A,  0x0090 },
-	{ "sub16",   INSN_EXT_A,  0x00c0 },
-	{ "subc16",  INSN_EXT_A,  0x00f0 },
-	{ "sub16s",  INSN_EXT_A,  0x0120 },
-	{ "subc16s", INSN_EXT_A,  0x0150 },
-	{ "anl16",   INSN_EXT_A,  0x0180 },
-	{ "orl16",   INSN_EXT_A,  0x01b0 },
-	{ "xrl16",   INSN_EXT_A,  0x01e0 },
+	# --- AC1082 extended instructions -----------------------------------
+
+	{ "r0r1",    REG_16,           0 },
+	{ "r2r3",    REG_16,           1 },
+	{ "r4r5",    REG_16,           2 },
+	{ "r6r7",    REG_16,           3 },
+
+	{ "add16",   INSN_EXT_RI_RI,   0x0000 },
+	{ "addc16",  INSN_EXT_RI_RI,   0x0030 },
+	{ "add16s",  INSN_EXT_RI_RI,   0x0060 },
+	{ "addc16s", INSN_EXT_RI_RI,   0x0090 },
+	{ "sub16",   INSN_EXT_RI_RI,   0x00c0 },
+	{ "subc16",  INSN_EXT_RI_RI,   0x00f0 },
+	{ "sub16s",  INSN_EXT_RI_RI,   0x0120 },
+	{ "subc16s", INSN_EXT_RI_RI,   0x0150 },
+	{ "anl16",   INSN_EXT_RI_RI,   0x0180 },
+	{ "orl16",   INSN_EXT_RI_RI,   0x01b0 },
+	{ "xrl16",   INSN_EXT_RI_RI,   0x01e0 },
+
+	{ "mac16",   INSN_EXT_R_RI,    0x0210 },
+	{ "mac16s",  INSN_EXT_R_RI,    0x0230 },
+
+	{ "mov16b",  INSN_EXT_MOVB,    0 },
+
+	{ "lsr16",   INSN_EXT_LSR,     0 },
+	{ "lsl16",   INSN_EXT_LSL,     0 },
+	{ "asr16",   INSN_EXT_ASR,     0 },
+	{ "rotl16",  INSN_EXT_ROTL,    0 },
+	{ "rotr16",  INSN_EXT_ROTR,    0 },
+
+	{ "inc16",   INSN_EXT_JUST_REG, 0x10 },
+	{ "inc216",  INSN_EXT_JUST_REG, 0x14 },
+	{ "dec16",   INSN_EXT_JUST_REG, 0x18 },
+	{ "dec216",  INSN_EXT_JUST_REG, 0x1c },
+
+	{ "cmp16",   INSN_EXT_JUST_REGS, 0x60 },
+
+	{ "mov16",   INSN_EXT_MOV,     0 },
+
+	{ "mul16",   INSN_EXT_MUL,     0xc0 },
+	{ "mul16s",  INSN_EXT_MUL,     0xd0 },
+	{ "mul16wr", INSN_EXT_MULWR,   0x06 },
+	{ "mul16swr", INSN_EXT_MULWR,  0x07 },
 };
 
 include "lexer.coh";
