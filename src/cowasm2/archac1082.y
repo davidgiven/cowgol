@@ -368,4 +368,26 @@ instruction ::= INSN_MOV REG_8(R) COMMA REG_A.
 instruction ::= INSN_MOV REG_8(R) COMMA expression(E).
 	{ Emit8((R.number as uint8) | 0xa8); EmitAddress(&E, AS_IDATA); }
 
+/* --- MOVC -------------------------------------------------------------- */
+
+instruction ::= INSN_MOVC REG_A COMMA AT REG_A PLUS REG_DPTR.
+	{ Emit8(0x93); }
+
+instruction ::= INSN_MOVC REG_A COMMA AT REG_A PLUS REG_PC.
+	{ Emit8(0x83); }
+
+/* --- MOVX -------------------------------------------------------------- */
+
+instruction ::= INSN_MOVX AT REG_8(R) COMMA REG_A.
+	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xf2); }
+
+instruction ::= INSN_MOVX REG_A COMMA AT REG_DPTR.
+	{ Emit8(0xe0); }
+
+instruction ::= INSN_MOVX REG_A COMMA AT REG_8(R).
+	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xe2); }
+
+instruction ::= INSN_MOVX AT REG_DPTR COMMA REG_A.
+	{ Emit8(0xf0); }
+
 

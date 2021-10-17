@@ -20,6 +20,7 @@ var keywords: Keyword[] := {
 	{ "ab",      REG_AB,      0 },
 	{ "c",       REG_C,       0 },
 	{ "dptr",    REG_DPTR,    0 },
+	{ "pc",      REG_PC,      0 },
 	{ "r0",      REG_8,       0 },
 	{ "r1",      REG_8,       1 },
 	{ "r2",      REG_8,       2 },
@@ -54,7 +55,9 @@ var keywords: Keyword[] := {
 	{ "cpl",     INSN_CPL,    0x00 },
 
 	{ "da",      INSN_JUST_A, 0xd4 },
+
 	{ "div",     INSN_JUST_AB, 0x84 },
+	{ "mul",     INSN_JUST_AB, 0xa4 },
 
 	{ "djnz",    INSN_DJNZ,   0xd0 },
 
@@ -72,6 +75,10 @@ var keywords: Keyword[] := {
 	{ "jmp",     INSN_JMP,    0x00 },
 
 	{ "mov",     INSN_MOV,    0x00 },
+	{ "movc",    INSN_MOVC,   0x00 },
+	{ "movx",    INSN_MOVX,   0x00 },
+
+	{ "nop",     INSN_SIMPLE, 0x00 },
 
 	{ "add16",   INSN_EXT_A,  0x0000 },
 	{ "addc16",  INSN_EXT_A,  0x0030 },
@@ -85,7 +92,6 @@ var keywords: Keyword[] := {
 	{ "orl16",   INSN_EXT_A,  0x01b0 },
 	{ "xrl16",   INSN_EXT_A,  0x01e0 },
 
-	{ "nop",     INSN_SIMPLE, 0x00 },
 };
 
 include "lexer.coh";
