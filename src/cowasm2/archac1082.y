@@ -170,6 +170,8 @@ expression ::= expression RSHIFT expression.
 
 instruction ::= /* empty */.
 
+/* --- ACALL/AJMP -------------------------------------------------------- */
+
 instruction ::= INSN_ABSA(I) expression(E).
 	{
 		if (E.addressSpace != AS_NUMBER) and (E.addressSpace != AS_XDATA) then
@@ -185,8 +187,10 @@ instruction ::= INSN_ABSA(I) expression(E).
 		end if;
 	}
 
+/* --- LCALL/LJMP -------------------------------------------------------- */
+
 instruction ::= INSN_ABSL(I) expression(E).
-	{ Emit8((I.number as uint8) | 0x01); EmitAddress(&E, AS_XDATA); }
+	{ Emit8(I.number as uint8); EmitAddress(&E, AS_XDATA); }
 
 /* --- semi-regular xxx A, something ------------------------------------- */
 
@@ -284,10 +288,84 @@ instruction ::= INSN_CPL REG_C.          { Emit8(0xb3); }
 instruction ::= INSN_CPL expression(E).  { Emit8(0xb2); EmitAddress(&E, AS_IDATA); }
 
 /* --- DJNZ -------------------------------------------------------------- */
-
 instruction ::= INSN_DJNZ(I) expression(E1) COMMA expression(E2).
 	{ Emit8((I.number as uint8) | 0x05); EmitAddress(&E1, AS_IDATA); EmitRelAddress(&E2, -1); }
 
 instruction ::= INSN_DJNZ(I) REG_8(R) COMMA expression(E).
 	{ Emit8((I.number as uint8) | (R.number as uint8) | 0x08); EmitRelAddress(&E, -1); }
+
+/* --- JB ---------------------------------------------------------------- */
+
+instruction ::= INSN_JB(I) expression(E1) COMMA expression(E2).
+	{ Emit8(I.number as uint8); EmitAddress(&E1, AS_IDATA); EmitRelAddress(&E2, -1); }
+
+/* --- J ---------------------------------------------------------------- */
+
+instruction ::= INSN_J(I) expression(E).
+	{ Emit8(I.number as uint8); EmitRelAddress(&E, -1); }
+
+/* --- JMP -------------------------------------------------------------- */
+
+instruction ::= INSN_JMP AT REG_A PLUS REG_DPTR.
+	{ Emit8(0x73); }
+
+/* --- MOV -------------------------------------------------------------- */
+
+instruction ::= INSN_MOV AT REG_8(R) COMMA HASH expression(E).
+	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0x76);
+	  Emit8(E.number as uint8); }
+
+instruction ::= INSN_MOV AT REG_8(R) COMMA REG_A.
+	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xf6); }
+
+instruction ::= INSN_MOV AT REG_8(R) COMMA expression(E).
+	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xa6);
+	  EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_MOV REG_A COMMA HASH expression(E).
+	{ Emit8(0x74); Emit8(E.number as uint8); }
+
+instruction ::= INSN_MOV REG_A COMMA AT REG_8(R).
+	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0xe6); }
+
+instruction ::= INSN_MOV REG_A COMMA expression(E).
+	{ Emit8(0xe5); EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_MOV REG_A COMMA REG_8(R).
+	{ Emit8((R.number as uint8) | 0xe8); }
+
+instruction ::= INSN_MOV expression(E) COMMA REG_C.
+	{ Emit8(0x92); EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_MOV REG_C COMMA expression(E).
+	{ Emit8(0xa2); EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_MOV expression(E1) COMMA expression(E2).
+	{ Emit8(0x85); EmitAddress(&E2, AS_IDATA); EmitAddress(&E1, AS_IDATA); }
+
+instruction ::= INSN_MOV expression(E1) COMMA HASH expression(E2).
+	{ Emit8(0x75); EmitAddress(&E1, AS_IDATA); Emit8(E2.number as uint8); }
+
+instruction ::= INSN_MOV expression(E) COMMA AT REG_8(R).
+	{ CheckIndirectableReg(R.number as uint8); Emit8((R.number as uint8) | 0x86);
+	  EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_MOV expression(E) COMMA REG_A.
+	{ Emit8(0xf5); EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_MOV expression(E) COMMA REG_8(R).
+	{ Emit8((R.number as uint8) | 0x88); EmitAddress(&E, AS_IDATA); }
+
+instruction ::= INSN_MOV REG_DPTR COMMA HASH expression(E).
+	{ Emit8(0x90); Emit16(E.number as uint16); }
+
+instruction ::= INSN_MOV REG_8(R) COMMA HASH expression(E).
+	{ Emit8((R.number as uint8) | 0x78); Emit8(E.number as uint8); }
+
+instruction ::= INSN_MOV REG_8(R) COMMA REG_A.
+	{ Emit8((R.number as uint8) | 0xf8); }
+
+instruction ::= INSN_MOV REG_8(R) COMMA expression(E).
+	{ Emit8((R.number as uint8) | 0xa8); EmitAddress(&E, AS_IDATA); }
+
 

@@ -45,8 +45,8 @@ var keywords: Keyword[] := {
 	{ "ajmp",    INSN_ABSA,   0x01 },
 	{ "acall",   INSN_ABSA,   0x11 },
 
-	{ "ljmp",    INSN_ABSL,   0x01 },
-	{ "lcall",   INSN_ABSL,   0x11 },
+	{ "ljmp",    INSN_ABSL,   0x02 },
+	{ "lcall",   INSN_ABSL,   0x12 },
 
 	{ "cjne",    INSN_CJNE,   0xb0 },
 
@@ -59,6 +59,19 @@ var keywords: Keyword[] := {
 	{ "djnz",    INSN_DJNZ,   0xd0 },
 
 	{ "inc",     INSN_INC,    0x00 },
+
+	{ "jb",      INSN_JB,     0x20 },
+	{ "jbc",     INSN_JB,     0x10 },
+	{ "jnb",     INSN_JB,     0x30 },
+	
+	{ "jc",      INSN_J,      0x40 },
+	{ "jnc",     INSN_J,      0x50 },
+	{ "jz",      INSN_J,      0x60 },
+	{ "jnz",     INSN_J,      0x70 },
+
+	{ "jmp",     INSN_JMP,    0x00 },
+
+	{ "mov",     INSN_MOV,    0x00 },
 
 	{ "add16",   INSN_EXT_A,  0x0000 },
 	{ "addc16",  INSN_EXT_A,  0x0030 },
