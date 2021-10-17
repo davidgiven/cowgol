@@ -175,7 +175,7 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE]) is
 			if yy_lookahead[i as @indexof yy_lookahead] != yymajor then
 				yyact := yy_default[yyact as @indexof yy_default];
 			else
-				yyact := yy_action[i];
+				yyact := yy_action[i as @indexof yy_action];
 			end if;
 		end if;
 

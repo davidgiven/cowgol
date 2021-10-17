@@ -6,13 +6,20 @@
 %token EQOP NEOP HASH AT.
 
 %token CPUTYPE.
-%token REG_A REG_C REG_DPTR REG_8 REG_16.
-%token INSN_ANL.
-%token INSN_ORL.
-%token INSN_ALU.
+%token REG_A REG_AB REG_C REG_DPTR REG_8 REG_16.
 %token INSN_ABSA.
 %token INSN_ABSL.
+%token INSN_ALU.
+%token INSN_ALU_A.
+%token INSN_ANL.
+%token INSN_CJNE.
+%token INSN_CLR.
+%token INSN_CPL.
+%token INSN_DJNZ.
 %token INSN_EXT_A.
+%token INSN_JUST_A.
+%token INSN_JUST_AB.
+%token INSN_ORL.
 
 %left COMMA.
 %left AMPERSAND.
@@ -163,9 +170,6 @@ expression ::= expression RSHIFT expression.
 
 instruction ::= /* empty */.
 
-instruction ::= INSN_SIMPLE(I).
-	{ Emit8(I.number as uint8); }
-
 instruction ::= INSN_ABSA(I) expression(E).
 	{
 		if (E.addressSpace != AS_NUMBER) and (E.addressSpace != AS_XDATA) then
@@ -184,16 +188,18 @@ instruction ::= INSN_ABSA(I) expression(E).
 instruction ::= INSN_ABSL(I) expression(E).
 	{ Emit8((I.number as uint8) | 0x01); EmitAddress(&E, AS_XDATA); }
 
-instruction ::= insn_alu(I) REG_A COMMA expression(E).
+/* --- semi-regular xxx A, something ------------------------------------- */
+
+instruction ::= insn_alu_a(I) REG_A COMMA expression(E).
 	{ Emit8((I.number as uint8) | 0x05); EmitAddress(&E, AS_IDATA); }
 
-instruction ::= insn_alu(I) REG_A COMMA HASH expression(E).
+instruction ::= insn_alu_a(I) REG_A COMMA HASH expression(E).
 	{ Emit8((I.number as uint8) | 0x04); Emit8(E.number as uint8); }
 
-instruction ::= insn_alu(I) REG_A COMMA REG_8(R).
+instruction ::= insn_alu_a(I) REG_A COMMA REG_8(R).
 	{ Emit8((I.number as uint8) | (R.number as uint8) | 0x08); }
 
-instruction ::= insn_alu(I) REG_A COMMA AT REG_8(R).
+instruction ::= insn_alu_a(I) REG_A COMMA AT REG_8(R).
 	{ CheckIndirectableReg(R.number as uint8); Emit8((I.number as uint8) | (R.number as uint8) | 0x06); }
 
 instruction ::= INSN_ANL REG_C COMMA expression(E).       { Emit8(0x82); EmitAddress(&E, AS_IDATA); }
@@ -214,12 +220,43 @@ instruction ::= INSN_EXT_A(I) REG_16(R1) COMMA AT REG_16(R2).
 instruction ::= INSN_EXT_A(I) AT REG_16(R1) COMMA REG_16(R2).
 	{ Emit8(0xa5); Emit16(I.number | 0x0020 | ((R1.number & 0x03) << 2) | ((R2.number & 0x03) << 2)); }
 
+%type insn_alu_a {Token}
+insn_alu_a(I) ::= INSN_ALU_A(T). { I.number := T.number; }
+insn_alu_a(I) ::= INSN_ANL(T). { I.number := T.number; }
+insn_alu_a(I) ::= INSN_ORL(T). { I.number := T.number; }
+
+/* --- semi-regular xxx something ---------------------------------------- */
+
 %type insn_alu {Token}
 insn_alu(I) ::= INSN_ALU(T). { I.number := T.number; }
-insn_alu(I) ::= INSN_ANL(T). { I.number := T.number; }
-insn_alu(I) ::= INSN_ORL(T). { I.number := T.number; }
+insn_alu(I) ::= INSN_INC(T). { I.number := T.number; }
 
-/* --- cjne -------------------------------------------------------------- */
+instruction ::= insn_alu(I) REG_A.
+	{ Emit8((I.number as uint8) | 0x04); }
+
+instruction ::= insn_alu(I) expression(E).
+	{ Emit8((I.number as uint8) | 0x05); EmitAddress(&E, AS_IDATA); }
+
+instruction ::= insn_alu(I) REG_8(R).
+	{ Emit8((I.number as uint8) | (R.number as uint8) | 0x08); }
+
+instruction ::= insn_alu(I) AT REG_8(R).
+	{ CheckIndirectableReg(R.number as uint8); Emit8((I.number as uint8) | (R.number as uint8) | 0x06); }
+
+instruction ::= INSN_INC REG_DPTR. { Emit8(0xa3); }
+
+/* --- Simple instructions ----------------------------------------------- */
+
+instruction ::= INSN_JUST_A(I) REG_A.
+	{ Emit8(I.number as uint8); }
+
+instruction ::= INSN_JUST_AB(I) REG_AB.
+	{ Emit8(I.number as uint8); }
+
+instruction ::= INSN_SIMPLE(I).
+	{ Emit8(I.number as uint8); }
+
+/* --- CJNE -------------------------------------------------------------- */
 
 instruction ::= INSN_CJNE(I) REG_A COMMA HASH expression(E1) COMMA expression(E2).
 	{ Emit8((I.number as uint8) | 0x04); Emit8(E1.number as uint8); EmitRelAddress(&E2, -1); }
@@ -233,4 +270,24 @@ instruction ::= INSN_CJNE(I) REG_8(R) COMMA HASH expression(E1) COMMA expression
 instruction ::= INSN_CJNE(I) AT REG_8(R) COMMA HASH expression(E1) COMMA expression(E2).
 	{ CheckIndirectableReg(R.number as uint8); Emit8((I.number as uint8) | (R.number as uint8) | 0x06);
 	  Emit8(E1.number as uint8); EmitRelAddress(&E2, -1); }
+
+/* --- CLR --------------------------------------------------------------- */
+
+instruction ::= INSN_CLR REG_A.          { Emit8(0xe4); }
+instruction ::= INSN_CLR REG_C.          { Emit8(0xc3); }
+instruction ::= INSN_CLR expression(E).  { Emit8(0xc2); EmitAddress(&E, AS_IDATA); }
+
+/* --- CPL --------------------------------------------------------------- */
+
+instruction ::= INSN_CPL REG_A.          { Emit8(0xf4); }
+instruction ::= INSN_CPL REG_C.          { Emit8(0xb3); }
+instruction ::= INSN_CPL expression(E).  { Emit8(0xb2); EmitAddress(&E, AS_IDATA); }
+
+/* --- DJNZ -------------------------------------------------------------- */
+
+instruction ::= INSN_DJNZ(I) expression(E1) COMMA expression(E2).
+	{ Emit8((I.number as uint8) | 0x05); EmitAddress(&E1, AS_IDATA); EmitRelAddress(&E2, -1); }
+
+instruction ::= INSN_DJNZ(I) REG_8(R) COMMA expression(E).
+	{ Emit8((I.number as uint8) | (R.number as uint8) | 0x08); EmitRelAddress(&E, -1); }
 

@@ -17,6 +17,7 @@ var keywords: Keyword[] := {
 	{ ".ac1082", CPUTYPE,     0 },
 
 	{ "a",       REG_A,       0 },
+	{ "ab",      REG_AB,      0 },
 	{ "c",       REG_C,       0 },
 	{ "dptr",    REG_DPTR,    0 },
 	{ "r0",      REG_8,       0 },
@@ -32,12 +33,14 @@ var keywords: Keyword[] := {
 	{ "r4r5",    REG_16,      2 },
 	{ "r6r7",    REG_16,      3 },
 
-	{ "add",     INSN_ALU,    0x20 },
-	{ "addc",    INSN_ALU,    0x30 },
+	{ "add",     INSN_ALU_A,  0x20 },
+	{ "addc",    INSN_ALU_A,  0x30 },
 	{ "anl",     INSN_ANL,    0x50 },
 	{ "orl",     INSN_ORL,    0x40 },
-	{ "subb",    INSN_ALU,    0x90 },
-	{ "xrl",     INSN_ALU,    0x60 },
+	{ "subb",    INSN_ALU_A,  0x90 },
+	{ "xrl",     INSN_ALU_A,  0x60 },
+
+	{ "dec",     INSN_ALU,    0x10 },
 
 	{ "ajmp",    INSN_ABSA,   0x01 },
 	{ "acall",   INSN_ABSA,   0x11 },
@@ -46,6 +49,16 @@ var keywords: Keyword[] := {
 	{ "lcall",   INSN_ABSL,   0x11 },
 
 	{ "cjne",    INSN_CJNE,   0xb0 },
+
+	{ "clr",     INSN_CLR,    0x00 },
+	{ "cpl",     INSN_CPL,    0x00 },
+
+	{ "da",      INSN_JUST_A, 0xd4 },
+	{ "div",     INSN_JUST_AB, 0x84 },
+
+	{ "djnz",    INSN_DJNZ,   0xd0 },
+
+	{ "inc",     INSN_INC,    0x00 },
 
 	{ "add16",   INSN_EXT_A,  0x0000 },
 	{ "addc16",  INSN_EXT_A,  0x0030 },
