@@ -50,6 +50,10 @@ function string:dir()
 	return self:gsub("[^/]*$", "")
 end
 
+function string:leaf()
+	return self:gsub("^.*/", "")
+end
+
 function concat(...)
 	local result = {}
 
@@ -128,6 +132,7 @@ include "src/cowbe/build.lua"
 include "src/cowwrap/build.lua"
 include "src/cowbdmp/build.lua"
 include "src/cowasm/build.lua"
+include "src/cowasm2/build.lua"
 include "src/cowdis/build.lua"
 include "src/misc/build.lua"
 include "rt/ataritos/build.lua"
@@ -145,11 +150,11 @@ include "rt/fuzix6303/build.lua"
 include "rt/msdos/build.lua"
 include "examples/build.lua"
 include "tests/build.lua"
-include "dist/bbct/build.lua"
-include "dist/cpm/build.lua"
-include "dist/cpmz/build.lua"
-include "dist/cpmbasic/build.lua"
-include "dist/msdos/build.lua"
-include "dist/ataritos/build.lua"
+--include "dist/bbct/build.lua"
+--include "dist/cpm/build.lua"
+--include "dist/cpmz/build.lua"
+--include "dist/cpmbasic/build.lua"
+--include "dist/msdos/build.lua"
+--include "dist/ataritos/build.lua"
 
 

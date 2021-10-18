@@ -1,0 +1,34 @@
+typedef string is [uint8];
+
+record Keyword is
+	name: string;
+	id: uint8;
+	value: Arith;
+end record;
+
+record Token is
+	number @at(0): Arith;
+	string @at(0): string;
+end record;
+
+record Number is
+	number: Arith;
+	addressSpace: uint8;
+end record;
+
+var inputFilename: string;
+var outputFilename: string := "output.bin";
+var listingFilename: string;
+var inputFile: FCB;
+var outputFile: FCB;
+var listingFile: FCB;
+var lineno: uint16 := 1;
+
+var pass: uint8;
+var lastPass: uint8 := 0;
+var symbolsModified: uint8;
+var programCounter: Arith[4];
+var emitSegment: uint8 := 0;
+var currentSegment: uint8 := 0;
+var currentProgramCounter := &programCounter[0];
+

@@ -4335,9 +4335,10 @@ void ReportTable(
   fprintf(out, "const YY_SHIFT_COUNT    := %d;\n", n-1); lineno++;
   fprintf(out, "const YY_SHIFT_MIN      := %d;\n", mnTknOfst); lineno++;
   fprintf(out, "const YY_SHIFT_MAX      := %d;\n", mxTknOfst); lineno++;
-  fprintf(out, "var yy_shift_ofst: %s[] := {\n",
-       minimum_size_type(mnTknOfst, lemp->nterminal+lemp->nactiontab, &sz));
-       lineno++;
+  fprintf(out, "typedef YYTOKENOFFSETTYPE is %s;\n",
+       minimum_size_type(mnTknOfst, mxTknOfst, &sz));
+  fprintf(out, "var yy_shift_ofst: YYTOKENOFFSETTYPE[] := {\n");
+  lineno++;
   lemp->tablesize += n*sz;
   for(i=j=0; i<n; i++){
     int ofst;

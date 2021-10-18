@@ -25,6 +25,7 @@ end
 
 function lemoncowgol(e)
 	local dir = e.outs[1]:gsub("/[^/]*$", "").."/tmp"
+	local leaf = e.ins[1]:leaf():ext("")
 	rule {
 		ins = concat {
 			"bin/lemon-cowgol",
@@ -33,8 +34,8 @@ function lemoncowgol(e)
 		},
 		outs = e.outs,
 		cmd = "mkdir -p "..dir.." && @1 -T@2 -d"..dir.." @3"
-			.." && mv "..dir.."/parser.c &1"
-			.." && mv "..dir.."/parser.h &2"
+			.." && mv "..dir.."/"..leaf..".c &1"
+			.." && mv "..dir.."/"..leaf..".h &2"
 	}
 end
 
