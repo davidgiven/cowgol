@@ -180,23 +180,23 @@ toolchain_msdos = {
 	tester = emu2test,
 }
 
-ALL_TOOLCHAINS = {
-	toolchain_nncgen,
-	toolchain_ncgen,
+ALL_TOOLCHAINS = {}
+addto(ALL_TOOLCHAINS, toolchain_nncgen)
+addto(ALL_TOOLCHAINS, toolchain_ncgen)
 
-	--toolchain_ataritos,
-	toolchain_bbct,
-	toolchain_bbct6502,
-	toolchain_bbcti,
-	toolchain_bbctiny,
-	toolchain_fuzix6303,
-	toolchain_lxthumb2,
-	toolchain_lx386,
-	toolchain_lx68k,
-	toolchain_lxppc,
-	toolchain_msdos,
-	toolchain_ncpm,
-	toolchain_ncpmz,
-	toolchain_unixv7,
-}
+addto(ALL_TOOLCHAINS, toolchain_bbct)
+addto(ALL_TOOLCHAINS, toolchain_bbct6502)
+addto(ALL_TOOLCHAINS, toolchain_bbcti)
+addto(ALL_TOOLCHAINS, toolchain_bbctiny)
+addto(ALL_TOOLCHAINS, toolchain_fuzix6303)
+addto(ALL_TOOLCHAINS, toolchain_ncpm)
+addto(ALL_TOOLCHAINS, toolchain_ncpmz)
+addto(ALL_TOOLCHAINS, toolchain_unixv7)
+
+if WITH_ATARITOS then addto(ALL_TOOLCHAINS, toolchain_ataritos) end
+if WITH_LX386    then addto(ALL_TOOLCHAINS, toolchain_lx386) end
+if WITH_LX68K    then addto(ALL_TOOLCHAINS, toolchain_lx68k) end
+if WITH_LXPPC    then addto(ALL_TOOLCHAINS, toolchain_lxppc) end
+if WITH_LXTHUMB2 then addto(ALL_TOOLCHAINS, toolchain_lxthumb2) end
+if WITH_MSDOS    then addto(ALL_TOOLCHAINS, toolchain_msdos) end
 

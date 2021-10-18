@@ -91,6 +91,11 @@ function set(t)
 	return s
 end
 
+function command_present(name)
+	return os.execute("command -v "..name.." >/dev/null") == 0
+end
+
+
 function rule(e)
 	print(string.format("build %s: build %s",
 		table.concat(e.outs, " "),
@@ -103,6 +108,25 @@ function rule(e)
 	print("  command = "..cmd)
 	print("")
 end
+
+function addto(t, v)
+	t[#t+1] = v
+end
+
+function enable_if(name, command)
+	local v = command_present(command)
+	if not v then
+		io.stderr:write(name.." is 0 as "..command.." is not present\n")
+	end
+	_G[name] = v
+end
+
+enable_if("WITH_ATARITOS", "m68k-atari-mint-as")
+enable_if("WITH_MSDOS", "nasm")
+enable_if("WITH_LX386", "i686-linux-gnu-as")
+enable_if("WITH_LX68K", "m68k-linux-gnu-as")
+enable_if("WITH_LXTHUMB2", "arm-linux-gnueabihf-as")
+enable_if("WITH_LXPPC", "powerpc-linux-gnu-as")
 
 include "build/c.lua"
 include "build/yacc.lua"
@@ -150,11 +174,11 @@ include "rt/fuzix6303/build.lua"
 include "rt/msdos/build.lua"
 include "examples/build.lua"
 include "tests/build.lua"
---include "dist/bbct/build.lua"
---include "dist/cpm/build.lua"
---include "dist/cpmz/build.lua"
---include "dist/cpmbasic/build.lua"
---include "dist/msdos/build.lua"
---include "dist/ataritos/build.lua"
+include "dist/bbct/build.lua"
+include "dist/cpm/build.lua"
+include "dist/cpmz/build.lua"
+include "dist/cpmbasic/build.lua"
+include "dist/msdos/build.lua"
+include "dist/ataritos/build.lua"
 
 
