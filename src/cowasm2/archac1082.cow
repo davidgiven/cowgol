@@ -14,6 +14,13 @@ const AS_IDATA := 1;
 const AS_XDATA := 2;
 
 var keywords: Keyword[] := {
+	# --- Special pseudo-instructions ------------------------------------
+
+	{ ".org",    INSN_ORG,     0 },
+	{ ".seg",    INSN_SEGMENT, 0 },
+	{ ".db",     INSN_DB,      0 },
+	{ ".dw",     INSN_DW,      0 },
+
 	# --- 'Normal' 8051 instructions -------------------------------------
 
 	{ "a",       REG_A,       0 },

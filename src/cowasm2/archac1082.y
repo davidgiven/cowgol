@@ -68,6 +68,32 @@ label ::= /* empty */.
 label ::= ID(I) COLON.
 	{ var s := FindSymbol(I.string); s.number := [currentProgramCounter]; s.addressSpace := AS_XDATA; }
 
+instruction ::= INSN_ORG expression(E).
+	{ [currentProgramCounter] := E.number; }
+
+instruction ::= INSN_SEGMENT expression(E).
+	{
+		var s := E.number as uint8;
+		if s >= @sizeof programCounter then
+			SimpleError("segment out of range");
+		end if;
+		currentProgramCounter := &programCounter[s];
+	}
+
+instruction ::= INSN_DB db_list.
+instruction ::= INSN_DW dw_list.
+
+db_list ::= expression(E).               { Emit8(E.number as uint8); }
+db_list ::= db_list COMMA expression(E). { Emit8(E.number as uint8); }
+
+dw_list ::= expression(E).               { Emit16(E.number); }
+dw_list ::= dw_list COMMA expression(E). { Emit16(E.number); }
+
+statement ::= ID(I) EQUALS expression(E) EOS.
+	{ var s := FindSymbol(I.string); s.number := E.number; s.addressSpace := E.addressSpace; }
+
+/* --- Elements ---------------------------------------------------------- */
+
 %type indir {uint8}
 indir(I) ::= AT REG_8(R).
 	{ I := R.number as uint8; CheckIndirectableReg(I); }

@@ -377,7 +377,8 @@ sub LexerReadToken(): (token: uint8) is
 				if c == '=' then
 					token := EQOP;
 				else
-					lexer_i_unparseable(c);
+					pushed_char := c;
+					token := EQUALS;
 				end if;
 
 			when '!':
