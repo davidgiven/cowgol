@@ -66,18 +66,18 @@ statement ::= label instruction EOS.
 
 label ::= /* empty */.
 label ::= ID(I) COLON.
-	{ var s := FindSymbol(I.string); s.number := [currentProgramCounter]; s.addressSpace := AS_XDATA; }
+	{ SetSymbol(I.string, [currentProgramCounter], AS_XDATA); }
 
 instruction ::= INSN_ORG expression(E).
 	{ [currentProgramCounter] := E.number; }
 
 instruction ::= INSN_SEGMENT expression(E).
 	{
-		var s := E.number as uint8;
-		if s >= @sizeof programCounter then
+		currentSegment := E.number as uint8;
+		if currentSegment >= @sizeof programCounter then
 			SimpleError("segment out of range");
 		end if;
-		currentProgramCounter := &programCounter[s];
+		currentProgramCounter := &programCounter[currentSegment];
 	}
 
 instruction ::= INSN_DB db_list.
@@ -90,7 +90,7 @@ dw_list ::= expression(E).               { Emit16(E.number); }
 dw_list ::= dw_list COMMA expression(E). { Emit16(E.number); }
 
 statement ::= ID(I) EQUALS expression(E) EOS.
-	{ var s := FindSymbol(I.string); s.number := E.number; s.addressSpace := E.addressSpace; }
+	{ SetSymbol(I.string, E.number, E.addressSpace); }
 
 /* --- Elements ---------------------------------------------------------- */
 

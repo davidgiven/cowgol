@@ -31,3 +31,12 @@ sub FindSymbol(name: string): (symbol: [Symbol]) is
 	[chain] := symbol;
 end sub;
 
+sub SetSymbol(name: string, value: Arith, addressSpace: uint8) is
+	var s := FindSymbol(name);
+	if (s.number != value) or (s.addressSpace != addressSpace) then
+		symbolsModified := 1;
+	end if;
+	s.number := value;
+	s.addressSpace := addressSpace;
+end sub;
+

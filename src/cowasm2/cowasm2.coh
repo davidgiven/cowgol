@@ -59,6 +59,16 @@ sub ParseArguments() is
 end sub;
 
 sub Parse() is
+	print("pass ");
+	print_i8(pass);
+	print_nl();
+
+	var p: [Arith] := &programCounter[0];
+	while p != &programCounter[@sizeof programCounter] loop
+		[p] := 0;
+		p := @next p;
+	end loop;
+
 	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
 	ParserInit();
 	loop
@@ -91,7 +101,26 @@ sub Main(banner: string) is
 	print_nl();
 
 	ParseArguments();
-	Parse();
+	pass := 1;
+	loop
+		symbolsModified := 0;
+		Parse();
+		pass := pass + 1;
+		if symbolsModified == 0 then
+			break;
+		end if;
+	end loop;
+	lastPass := 1;
+	emitSegment := 0;
+	while emitSegment < @sizeof programCounter loop
+		print("emit segment ");
+		print_i8(emitSegment);
+		print(" ");
+		Parse();
+		pass := pass + 1;
+		emitSegment := emitSegment + 1;
+	end loop;
+
 	var i := FCBClose(&outputFile);
 end sub;
 

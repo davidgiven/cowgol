@@ -25,6 +25,10 @@ var listingFile: FCB;
 var lineno: uint16 := 1;
 
 var pass: uint8;
-var programCounter: Arith[1];
+var lastPass: uint8 := 0;
+var symbolsModified: uint8;
+var programCounter: Arith[4];
+var emitSegment: uint8 := 0;
+var currentSegment: uint8 := 0;
 var currentProgramCounter := &programCounter[0];
 

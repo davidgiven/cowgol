@@ -1,5 +1,7 @@
 sub Emit8(b: uint8) is
-	FCBPutChar(&outputFile, b);
+	if emitSegment == currentSegment then
+		FCBPutChar(&outputFile, b);
+	end if;
 	[currentProgramCounter] := [currentProgramCounter] + 1;
 end sub;
 
