@@ -4,6 +4,7 @@ local ARCHS = {
 	"basic",
 	"bbct",
 	"bbctn",
+	"buddha",
 	"cgen",
 	"fuzix6303",
 	"lx386",

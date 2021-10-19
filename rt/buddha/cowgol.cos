@@ -1,0 +1,851 @@
+&X _return
+&W _return 1 2
+; Used to store the return address in helper routines.
+
+&X _mathpad
+&W _mathpad 1 12
+; This is a simple buffer of 12 bytes used for multiplication and division.
+; It's laid out as:
+;   +0..3  LHS, result
+;   +4..7  remainder for division, working space for multiplication
+;   +8..11 RHS
+
+&X _store4x
+; Stores TOS to [x].
+``:
+    pula
+    pulb
+    std `$_return.1.0
+
+    pula
+    pulb
+    std 0,x
+
+    pula
+    pulb
+    std 2,x
+
+    ldx `$_return.1.0
+    jmp ,x
+
+&X _load4x
+; Loads [x] to TOS.
+``:
+    pula
+    pulb
+    std `$_return.1.0
+
+    ldd 2, x
+    pshb
+    psha
+
+    ldd 0, x
+    pshb
+    psha
+
+    ldx `$_return.1.0
+    jmp ,x
+
+&X _castsxd14
+; Signed cast of b to xd.
+``:
+    ldx #0
+    clra
+    tstb
+    bpl ``_skip
+    coma
+    dex
+``_skip:
+    rts
+
+&X _castsxd24
+; Signed cast of d to xd.
+``:
+    ldx #0
+    tsta
+    bpl ``_skip
+    dex
+``_skip:
+    rts
+
+&X _lsl1
+; Shifts b left by a bits, putting the result in b.
+``:
+    inca
+    bra ``_entry
+``_loop:
+    aslb
+``_entry:
+    deca
+    bne ``_loop
+    rts
+    
+&X _lsr1
+; Logical shifts b right by a bits, putting the result in b.
+``:
+    inca
+    bra ``_entry
+``_loop:
+    lsrb
+``_entry:
+    deca
+    bne ``_loop
+    rts
+    
+&X _asr1
+; Arithmetic shifts b right by a bits, putting the result in b.
+``:
+    inca
+    bra ``_entry
+``_loop:
+    asrb
+``_entry:
+    deca
+    bne ``_loop
+    rts
+    
+&X _lsl2
+; Shifts x left by b bits, putting the result in d.
+``:
+    clra
+    xgdx
+    inx
+    bra ``_entry
+``_loop:
+    asld
+``_entry:
+    dex
+    bne ``_loop
+    rts
+    
+&X _lsr2
+; Logically shifts x right by b bits, putting the result in d.
+``:
+    clra
+    xgdx
+    inx
+    bra ``_entry
+``_loop:
+    lsrd
+``_entry:
+    dex
+    bne ``_loop
+    rts
+    
+&X _asr2
+; Arithmetic shifts x right by b bits, putting the result in d.
+``:
+    clra
+    xgdx
+    inx
+    bra ``_entry
+``_loop:
+    asra
+    rorb
+``_entry:
+    dex
+    bne ``_loop
+    rts
+    
+&X _divremu1
+&W _divremu1 1 1
+; Unsigned division of a/b, yielding the result in b and the remainder in a.
+``:
+    ldx #8              ; loop count
+    stab `$_divremu1.1.0 ; store RHS
+    tab                 ; put LHS in B
+    clra                ; clear remainder
+``_1:
+    aslb                ; left shift LHS
+    rola                ; ...putting the top bit into the remainder
+    cmpa `$_divremu1.1.0 ; compare with RHS
+    bcs ``_noadd
+    incb                ; set bottom bit of result (guaranteed clear)
+    suba `$_divremu1.1.0 ; decrease remainder
+``_noadd:
+    dex
+    bne ``_1
+    rts
+
+&X _divrems1
+&W _divrems1 1 4
+; Signed division of a/b, yielding the result in b and the remainder in a.
+``:
+    std `$_divrems1.1.0 ; save LHS and RHS
+    staa `$_divrems1.1.3 ; save sign of remainder
+    eorb `$_divrems1.1.0 ; discover sign of result
+    stab `$_divrems1.1.2 ; save for later
+
+    tsta                ; does the LHS need inverting?
+    bpl ``_lhs_positive
+    nega
+``_lhs_positive:
+
+    ldab `$_divrems1.1.1 ; does RHS need inverting?
+    bpl ``_rhs_positive
+    negb
+``_rhs_positive:
+
+    bsr `_divremu1      ; do the unsigned division
+
+    tst `$_divrems1.1.2 ; does the result need inverting?
+    bpl ``_result_positive
+    negb
+``_result_positive:
+
+    tst `$_divrems1.1.3 ; does the remainder need inverting?
+    bpl ``_remainder_positive
+    nega
+``_remainder_positive:
+    rts
+
+&X _mul2
+; Multiplies d by x, putting the result in d.
+; This is a long multiplication in base 256:
+;       L1 L2
+;       R1 R2
+;       -----
+;       A1 A2 = L2 * R2
+;    B1 B2    = L1 * R2
+;    C1 C2    = L2 * R1
+; D1 D2       = L1 * R1
+; -----------
+; E1 E2 E3 E4
+;
+; ...but we only care about the bottom two bytes, of course.
+``:
+    stx `$_mathpad.1.4
+    std `$_mathpad.1.8
+
+    ldaa `$_mathpad.1.5
+    ;ldab `$_mathpad.1.9
+    mul
+    std `$_mathpad.1.0
+
+    ldab `$_mathpad.1.4
+    ldaa `$_mathpad.1.9
+    mul
+    tba                     ; multiply by 256
+    clrb
+    addd `$_mathpad.1.0
+    std `$_mathpad.1.0
+
+    ldab `$_mathpad.1.5
+    ldaa `$_mathpad.1.8
+    mul
+    tba                     ; multiply by 256
+    clrb
+    addd `$_mathpad.1.0
+    rts
+
+&X _remu2
+; 16-bit unsigned divrem; d := d / x; on exit, d=remainder, x=result
+&W _remu2 1 3
+``:
+    stx `$_remu2.1.1        ; RHS
+    xgdx                    ; X=LHS
+    ldaa #16                ; loop counter
+    staa `$_remu2.1.0
+    clra
+    clrb                    ; clear remainder
+``_loop:                    ; D=remainder, X=LHS
+    xgdx                    ; D=LHS, X=remainder
+    aslb                    ; left shift LHS
+    rola
+    xgdx                    ; D=remainder, X=LHS
+    rolb                    ; put top bit of LHS into remainder
+    rola
+
+    xgdx                    ; D=LHS, X=remainder
+    cpx `$_remu2.1.1        ; compare with RHS
+    xgdx                    ; D=remainder, X=LHS
+    bcs ``_noadd
+    inx                     ; set bottom bit of result (guaranteed clear)
+    subd `$_remu2.1.1       ; ...decrease remainder
+``_noadd:
+    dec `$_remu2.1.0
+    bne ``_loop
+    rts
+
+&X _divu2
+; 16-bit unsigned divide; d := d / x
+``:
+    bsr `_remu2
+    xgdx
+    rts
+
+&X _rems2
+&W _rems2 1 6
+; 16-bit signed divrem; d := d / x; on exit, d=remainder, x=result
+``:
+    std `$_rems2.1.0    ; save LHS
+    stx `$_rems2.1.2    ; save RHS
+    staa `$_rems2.1.4   ; save sign of remainder
+    eora `$_rems2.1.2   ; discover sign of result
+    staa `$_rems2.1.5   ; save for later
+
+    ldd `$_rems2.1.0    ; LHS -> d
+    bpl ``_lhs_positive ; does the LHS need inverting?
+    clra
+    clrb
+    subd `$_rems2.1.0
+``_lhs_positive:
+    xgdx                ; LHS -> x
+
+    ldd `$_rems2.1.2    ; RHS -> d
+    bpl ``_rhs_positive ; does RHS need inverting?
+    clra
+    clrb
+    subd `$_rems2.1.2
+``_rhs_positive:
+    xgdx                ; d=LHS, x=RHS
+
+    bsr `_remu2         ; do the unsigned division
+                        ; d=remainder, x=dividend
+
+    tst `$_rems2.1.4    ; does the remainder need inverting?
+    bpl ``_remainder_positive
+    subd #1             ; 16-bit negate
+    coma
+    comb
+``_remainder_positive:
+    xgdx                ; d=dividend, x=remainder
+
+    tst `$_rems2.1.5    ; does the dividend need inverting?
+    bpl ``_dividend_positive
+    subd #1
+    coma
+    comb
+``_dividend_positive:
+    xgdx                ; d=remainder, x=dividend
+    rts
+
+&X _divs2
+; 16-bit signed divide; d := d / x
+``:
+    bsr `_rems2
+    xgdx
+    rts
+
+&X _addxd4
+; 32-bit add; (i4 xd -- xd)
+&W _addxd4 1 4
+``:
+    pshx                ; high word of RHS
+    tsx
+    addd 6, x
+    std `$_addxd4.1.2   ; low word of result
+    ldd 0, x            ; high word of RHS
+    adcb 5, x
+    adca 4, x
+    std `$_addxd4.1.0   ; high word of result
+    ldd 2, x            ; return address
+    std 6, x
+    pulx
+    pulx
+    pulx
+    ldx `$_addxd4.1.0
+    ldd `$_addxd4.1.2
+    rts
+
+&X _subxd4
+; 32-bit sub; (i4 xd -- xd)
+&W _subxd4 1 4
+``:
+    pshx                ; high word of RHS
+    xgdx
+    pshx                ; low word of RHS
+    tsx
+    ldd 8, x            ; low word of LHS
+    subd 0, x           ; low word of RHS
+    std `$_subxd4.1.2   ; low word of result
+    ldd 6, x            ; high word of LHS
+    sbcb 3, x           ; high word of RHS
+    sbca 2, x
+    std `$_subxd4.1.0   ; high word of result
+
+    ldd 4, x            ; return address
+    std 8, x
+    pulx
+    pulx
+    pulx
+    pulx
+    ldx `$_subxd4.1.0
+    ldd `$_subxd4.1.2
+    rts
+
+&X _notxd4
+; 32-bit NOT; (xd -- xd)
+``:
+    comb
+    coma
+    xgdx
+    comb
+    coma
+    xgdx
+    rts
+
+&X _andxd4
+; 32-bit AND; (i4 xd -- xd)
+&W _andxd4 1 4
+``:
+    pshx                ; high word of RHS
+    tsx
+    andb 7, x
+    anda 6, x
+    std `$_andxd4.1.2   ; low word of result
+    ldd 0, x            ; high word of RHS
+    andb 5, x
+    anda 4, x
+    std `$_andxd4.1.0   ; high word of result
+    ldd 2, x            ; return andress
+    std 6, x
+    pulx
+    pulx
+    pulx
+    ldx `$_andxd4.1.0
+    ldd `$_andxd4.1.2
+    rts
+
+&X _orxd4
+; 32-bit OR; (i4 xd -- xd)
+&W _orxd4 1 4
+``:
+    pshx                ; high word of RHS
+    tsx
+    orab 7, x
+    oraa 6, x
+    std `$_orxd4.1.2    ; low word of result
+    ldd 0, x            ; high word of RHS
+    orab 5, x
+    oraa 4, x
+    std `$_orxd4.1.0    ; high word of result
+    ldd 2, x            ; return orress
+    std 6, x
+    pulx
+    pulx
+    pulx
+    ldx `$_orxd4.1.0
+    ldd `$_orxd4.1.2
+    rts
+
+&X _eorxd4
+; 32-bit EOR; (i4 xd -- xd)
+&W _eorxd4 1 4
+``:
+    pshx                ; high word of RHS
+    tsx
+    eorb 7, x
+    eora 6, x
+    std `$_eorxd4.1.2   ; low word of result
+    ldd 0, x            ; high word of RHS
+    eorb 5, x
+    eora 4, x
+    std `$_eorxd4.1.0   ; high word of result
+    ldd 2, x            ; return eorress
+    std 6, x
+    pulx
+    pulx
+    pulx
+    ldx `$_eorxd4.1.0
+    ldd `$_eorxd4.1.2
+    rts
+
+&X _lsl4
+; 32-bit left shift by B; (i4 -- i4)
+``:
+    tsx
+    incb
+    bra ``_entry
+``_loop:
+    asl 5, x
+    rol 4, x
+    rol 3, x
+    rol 2, x
+``_entry:
+    decb
+    bne ``_loop
+    rts
+
+&X _lsr4
+; Logical 32-bit right shift by B; (i4 -- i4)
+``:
+    tsx
+    incb
+    bra ``_entry
+``_loop:
+    lsr 2, x
+    ror 3, x
+    ror 4, x
+    ror 5, x
+``_entry:
+    decb
+    bne ``_loop
+    rts
+
+&X _asr4
+; Arithmetic 32-bit right shift by B; (i4 -- i4)
+``:
+    tsx
+    incb
+    bra ``_entry
+``_loop:
+    asr 2, x
+    ror 3, x
+    ror 4, x
+    ror 5, x
+``_entry:
+    decb
+    bne ``_loop
+    rts
+
+&X _cmpeqxd4
+; 32-bit compare; (i4 xd --). Sets Z only.
+``:
+    pshx
+
+    tsx
+    subd 6, x
+    bne `_cmpxdret6
+    ldd 0, x
+    subd 4, x
+    bra `_cmpxdret6
+
+&X _cmpxdret6
+``:
+    tpa
+    psha
+    ldd 2, x
+    std 6, x
+    pula
+    tap
+    pulx
+    pulx
+    pulx
+    rts
+
+&X _cmpltxd4
+; 32-bit compare for LT; (i4 xd --). Sets V and N only (not Z).
+``:
+    pshx                    ; push RHS high word
+    xgdx
+    pshx                    ; push RHS low word (reverse order)
+
+    tsx
+    ldd 8, x                ; load LHS low word
+    subd 0, x               ; sub RHS low word
+    ldd 6, x                ; load LHS high word
+    sbcb 3, x               ; sub LHS high word
+    sbca 2, x
+    tpa
+    psha
+    ldd 4, x
+    std 8, x
+    pula
+    tap
+    pulx
+    pulx
+    pulx
+    pulx
+    rts
+
+&S _pop8andreturn
+; Pops eight bytes and jumps to the stored return address.
+``:
+    tpa
+    pulx
+    pulx
+    pulx
+    pulx
+    ldx `$_return.1.0
+    tap
+    jmp ,x
+
+&X _cmpltu4
+; 32-bit unsigned compare for LT; (i4 i4 --). Sets V and N only (not Z).
+``:
+    pula
+    pulb
+    std `$_return.1.0
+
+    tsx
+    ldd 4, x                ; LHS
+    subd 0, x               ; RHS
+    bcs `_pop8andreturn
+    ldd 6, x
+    subd 2, x
+    bra `_pop8andreturn
+
+&X _cmplts4
+; 32-bit signed compare for LT; (i4 i4 --). Sets V and N only (not Z).
+``:
+    pula
+    pulb
+    std `$_return.1.0
+
+    tsx
+    ldd 6, x                ; LHS
+    subd 2, x               ; RHS
+    ldd 4, x
+    sbcb 1, x
+    sbca 0, x
+    bra `_pop8andreturn
+
+&X _mulxd4
+; 32-bit multiply: (i4 xd -- xd)
+&W _mulxd4 1 3
+``:
+    stx `$_mathpad.1.0
+    std `$_mathpad.1.2
+
+    pulx
+    stx `$_mulxd4.1.0
+
+    ldaa #32                ; loop counter
+    staa `$_mulxd4.1.2
+
+    clra
+    clrb
+    std `$_mathpad.1.4
+    std `$_mathpad.1.6
+    pulx
+    stx `$_mathpad.1.8
+    pulx
+    stx `$_mathpad.1.10
+
+``_loop:
+    clc                     ; shift left result and temp
+    ldx #8
+``_1:
+    rol `$_mathpad.1.0-1, x
+    dex
+    bne ``_1
+    bcc ``_noadd
+
+    ldx #4                  ; add rhs to result
+    clc
+``_3:
+    ldaa `$_mathpad.1.4-1, x
+    adca `$_mathpad.1.8-1, x
+    staa `$_mathpad.1.4-1, x
+    dex
+    bne ``_3
+
+    ldx #4                  ; (propagate carry through upper four bytes of result)
+``_2:
+    bcc ``_noadd            ; no more carries to propagate
+    ldaa #0                 ; clr resets carry
+    adca `$_mathpad.1.0-1, x
+    staa `$_mathpad.1.0-1, x
+    dex
+    bne ``_2
+``_noadd:
+    dec `$_mulxd4.1.2
+    bne ``_loop
+
+    ldx `$_mulxd4.1.0
+    pshx
+    
+    ldd `$_mathpad.1.6
+    ldx `$_mathpad.1.4
+    rts
+
+&X _divremu4
+; 32-bit unsigned divide of the contents of mathpad.
+``:
+    ldx #32             ; loop count
+    clra                ; clear remainder
+    clrb
+    std `$_mathpad.1.4
+    std `$_mathpad.1.6
+``_loop:
+    asl `$_mathpad.1.3  ; left shift LHS
+    rol `$_mathpad.1.2
+    rol `$_mathpad.1.1
+    rol `$_mathpad.1.0
+    rol `$_mathpad.1.7  ; ...putting the top bit into the remainder
+    rol `$_mathpad.1.6
+    rol `$_mathpad.1.5
+    rol `$_mathpad.1.4
+
+    ldd `$_mathpad.1.6  ; compare remainder against RHS
+    subd `$_mathpad.1.10
+    ldd `$_mathpad.1.4
+    sbcb `$_mathpad.1.9
+    sbca `$_mathpad.1.8
+    bcs ``_noadd
+
+    inc `$_mathpad.1.3  ; set bottom bit of LHS (guarantee to be clear)
+
+    ldd `$_mathpad.1.6  ; decrease remainder
+    subd `$_mathpad.1.10
+    std `$_mathpad.1.6
+    ldd `$_mathpad.1.4
+    sbcb `$_mathpad.1.9
+    sbca `$_mathpad.1.8
+    std `$_mathpad.1.4
+``_noadd:
+    dex
+    bne ``_loop
+    rts
+
+&X _remuxd4
+; 32-bit unsigned remide. (i4 xd -- xd)
+&W _remuxd4 1 2
+``:
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
+
+    pulx
+    stx `$_remuxd4.1.0
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
+    bsr `_divremu4
+
+    ldx `$_remuxd4.1.0
+    pshx
+
+    ldd `$_mathpad.1.6
+    ldx `$_mathpad.1.4
+    rts
+
+&X _divuxd4
+; 32-bit unsigned divide. (i4 xd -- xd)
+&W _divuxd4 1 2
+``:
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
+
+    pulx
+    stx `$_divuxd4.1.0
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
+    bsr `_divremu4
+
+    ldx `$_divuxd4.1.0
+    pshx
+
+    ldd `$_mathpad.1.2
+    ldx `$_mathpad.1.0
+    rts
+
+&X _negxd4
+; Negates xd.
+``:
+    subd #1
+    xgdx
+    sbcb #0
+    sbca #0
+    coma
+    comb
+    xgdx
+    coma
+    comb
+    rts
+
+&X _divrems4
+; 32-bit signed divide of mathpad.
+``:
+    ldab `$_mathpad.1.0 ; get sign of LHS
+    pshb                ; save for later
+    eorb `$_mathpad.1.8 ; discover sign of result
+    pshb                ; save for later
+
+    ldx `$_mathpad.1.0  ; does the LHS need inverting?
+    bpl ``_lhs_positive
+    ldd `$_mathpad.1.2
+    bsr `_negxd4
+    std `$_mathpad.1.2
+    stx `$_mathpad.1.0
+``_lhs_positive:
+
+    ldx `$_mathpad.1.8  ; does RHS need inverting?
+    bpl ``_rhs_positive
+    ldd `$_mathpad.1.10
+    bsr `_negxd4
+    std `$_mathpad.1.10
+    stx `$_mathpad.1.8
+``_rhs_positive:
+
+    bsr `_divremu4      ; do the unsigned division
+
+    pulb                ; fetch result sign
+    tstb
+    bpl ``_dividend_positive
+    ldx `$_mathpad.1.0
+    ldd `$_mathpad.1.2
+    bsr `_negxd4
+    std `$_mathpad.1.2
+    stx `$_mathpad.1.0
+``_dividend_positive:
+
+    pulb                ; fetch remainder sign
+    tstb
+    bpl ``_remainder_positive
+    ldx `$_mathpad.1.4
+    ldd `$_mathpad.1.6
+    bsr `_negxd4
+    std `$_mathpad.1.6
+    stx `$_mathpad.1.4
+``_remainder_positive:
+    rts
+
+&X _remsxd4
+; 32-bit unsigned remainder. (i4 xd -- xd)
+&W _remsxd4 1 2
+``:
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
+
+    pulx
+    stx `$_remsxd4.1.0
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
+    bsr `_divrems4
+
+    ldx `$_remsxd4.1.0
+    pshx
+
+    ldd `$_mathpad.1.6
+    ldx `$_mathpad.1.4
+    rts
+
+&X _divsxd4
+; 32-bit unsigned divide. (i4 xd -- xd)
+&W _divsxd4 1 2
+``:
+    stx `$_mathpad.1.8
+    std `$_mathpad.1.10
+
+    pulx
+    stx `$_divsxd4.1.0
+
+    pulx
+    stx `$_mathpad.1.0
+    pulx
+    stx `$_mathpad.1.2
+
+    bsr `_divrems4
+
+    ldx `$_divsxd4.1.0
+    pshx
+
+    ldd `$_mathpad.1.2
+    ldx `$_mathpad.1.0
+    rts
+
+; vim: sw=4 ts=4 et
+
+
