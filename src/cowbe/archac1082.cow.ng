@@ -91,22 +91,36 @@
         end case;
     end sub;
 
-    sub E_reglo(reg: RegId) is
+    sub reglo(reg: RegId): (oreg: RegId) is
         case reg is
-            when REG_R0R1: E("r1"); return;
-            when REG_R2R3: E("r3"); return;
-            when REG_R4R5: E("r5"); return;
-            when REG_R6R7: E("r7"); return;
+            when REG_R0R1: oreg := REG_R1;
+            when REG_R2R3: oreg := REG_R3;
+            when REG_R4R5: oreg := REG_R5;
+            when REG_R6R7: oreg := REG_R7;
+            when REG_R0R1R2R3: oreg := REG_R2R3;
+            when REG_R4R5R6R7: oreg := REG_R6R7;
+            when else: SimpleError("bad reglo");
         end case;
     end sub;
 
-    sub E_reghi(reg: RegId) is
+    sub reghi(reg: RegId): (oreg: RegId) is
         case reg is
-            when REG_R0R1: E("r0"); return;
-            when REG_R2R3: E("r2"); return;
-            when REG_R4R5: E("r4"); return;
-            when REG_R6R7: E("r6"); return;
+            when REG_R0R1: oreg := REG_R0;
+            when REG_R2R3: oreg := REG_R2;
+            when REG_R4R5: oreg := REG_R4;
+            when REG_R6R7: oreg := REG_R6;
+            when REG_R0R1R2R3: oreg := REG_R0R1;
+            when REG_R4R5R6R7: oreg := REG_R4R5;
+            when else: SimpleError("bad reghi");
         end case;
+    end sub;
+
+    sub E_reglo(reg: RegId) is
+        E_reg(reglo(reg));
+    end sub;
+
+    sub E_reghi(reg: RegId) is
+        E_reg(reghi(reg));
     end sub;
 
     sub E_regi(reg: RegId) is
@@ -114,6 +128,36 @@
         E_reg(reg);
     end sub;
 
+    sub E_mov8(dest: RegId, src: RegId) is
+        E_insn("mov");
+        E_reg(dest);
+        E_comma();
+        E_reg(src);
+        E_nl();
+    end sub;
+
+    sub E_mov16(dest: RegId, src: RegId) is
+        E_insn("mov16");
+        E_reg(dest);
+        E_comma();
+        E_reg(src);
+        E_nl();
+    end sub;
+        
+    sub E_mov32(dest: RegId, src: RegId) is
+        E_mov16(reglo(dest), reglo(src));
+        E_mov16(reghi(dest), reghi(src));
+    end sub;
+
+    sub E_callhelper(name: string) is
+        var helper := GetHelper(name);
+        R_flushall();
+        E_insn("call");
+        E_b8(COO_ESCAPE_SUBREF);
+        E_b16(helper.id);
+        E_nl();
+    end sub;
+        
     sub ArchBeginComment() is
         E("\t\\ ");
     end sub;
@@ -133,18 +177,18 @@
             E_reg(src);
             E_nl();
         elseif (src & (REG_A|REGCLASS_R8)) != 0 then
-            E_insn("mov");
-            E_reg(dest);
-            E_comma();
-            E_reg(src);
-            E_nl();
+            E_mov8(dest, src);
+        elseif (src & REGCLASS_R16) != 0 then
+            E_mov16(dest, src);
+        elseif (src & REGCLASS_R32) != 0 then
+            E_mov32(dest, src);
         else
             R_flush(dest);
             StartError();
             print("bad move: ");
-            print_hex_i16(src);
+            print_hex_i32(src);
             print(" -> ");
-            print_hex_i16(dest);
+            print_hex_i32(dest);
             EndError();
         end if;
 	end sub;
@@ -178,12 +222,15 @@ regdata r4         compatible r8|a;
 regdata r5         compatible r8|a;
 regdata r6         compatible r8|a;
 regdata r7         compatible r8|a;
-regdata r0r1 uses r0|r1 compatible r16|dptr;
-regdata r2r3 uses r2|r3 compatible r16|dptr;
-regdata r4r5 uses r4|r5 compatible r16|dptr;
-regdata r6r7 uses r6|r7 compatible r16|dptr;
+regdata r0r1 uses r0|r1|r0r1r2r3 compatible r16|dptr;
+regdata r2r3 uses r2|r3|r0r1r2r3 compatible r16|dptr;
+regdata r4r5 uses r4|r5|r4r5r6r7 compatible r16|dptr;
+regdata r6r7 uses r6|r7|r4r5r6r7 compatible r16|dptr;
 regdata r0r1r2r3 uses r0|r1|r2|r3|r0r1|r2r3 compatible r32;
 regdata r4r5r6r7 uses r4|r5|r6|r7|r4r5|r6r7 compatible r32;
+
+register param;
+regdata param;
 
 // --- Core things ----------------------------------------------------------
 
@@ -230,40 +277,19 @@ gen ENDSUB() uses all
     EmitterCloseStream();
 }
 
-%{
-	sub Call(addr: [MidcodeSubref]) is
-        R_flushall();
-		E_insn("bsr");
-		E_subref(addr.subr);
-		E_nl();
-	end sub;
+gen CALL(param, SUBREF()):s
+    { E_insn("jsr"); E_subref($s.subr); E_nl(); }
+gen CALL(param, r0r1):s
+    { E_callhelper("__indirectcall"); }
 
-	sub CallI() is
-        R_flushall();
-		E_insn_simple("jsr ,x");
-	end sub;
-%}
+gen param := END();
+gen param := ARG1(param, r8:r):a;
+gen param := ARG2(param, r16:r):a;
+gen param := ARG4(param, r32:r):a;
 
-//gen         CALL(       param,      SUBREF():a) uses all { Call(&$a); }
-//gen         CALL(  ARG1(param, a),  SUBREF():a) uses all { Call(&$a); }
-//gen         CALL(  ARG2(param, d),  SUBREF():a) uses all { Call(&$a); }
-//
-//gen         CALL(       param,      x) uses all { CallI(); }
-//gen         CALL(  ARG1(param, a),  x) uses all { CallI(); }
-//gen         CALL(  ARG2(param, d),  x) uses all { CallI(); }
-//
-//gen param := END();
-//
-//gen param := ARG1(param, a|b:lhs)  { E_push($lhs); }
-//gen param := ARG2(param, d|x:lhs)  { E_push($lhs); }
-//gen param := ARG4(param, i4);
-//
-//gen a   := POPARG1(remaining==0);
-//gen d   := POPARG2(remaining==0);
-//
-//gen a|b := POPARG1(remaining!=0) { E_pop($$); }
-//gen d|x := POPARG2(remaining!=0) { E_pop($$); }
-//gen i4  := POPARG4();
+gen r8 := POPARG1():a { }
+gen r16 := POPARG2():a { }
+gen r32 := POPARG4():a { }
 
 gen RETURN() uses all
 {
@@ -340,6 +366,38 @@ gen r8|a := CONSTANT():c
 	RegCacheLeavesConstant($$, $c.value as uint16);
 }
 
+gen r32 := CONSTANT():c
+{
+    var v := $c.value;
+
+    E_insn("mov");
+    E_reglo(reglo($$));
+    E(",#");
+    E_u8(v as uint8);
+    E_nl();
+    v := v >> 8;
+
+    E_insn("mov");
+    E_reghi(reglo($$));
+    E(",#");
+    E_u8(v as uint8);
+    E_nl();
+    v := v >> 8;
+
+    E_insn("mov");
+    E_reglo(reghi($$));
+    E(",#");
+    E_u8(v as uint8);
+    E_nl();
+    v := v >> 8;
+
+    E_insn("mov");
+    E_reghi(reghi($$));
+    E(",#");
+    E_u8(v as uint8);
+    E_nl();
+}
+
 //
 //gen d|x := SUBREF():s
 //{
@@ -352,8 +410,8 @@ gen r8|a := CONSTANT():c
 
 // --- Loads and stores -----------------------------------------------------
 
-gen a := DEREF1(dptr:rhs)
-    { E_insn_simple("movx a,@dptr"); }
+gen r8 := DEREF1(r16:rhs)
+    { E_insn("mov16b"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
 
 gen r8 := DEREF1(r16:rhs)
     { E_insn("movb16"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
@@ -361,14 +419,56 @@ gen r8 := DEREF1(r16:rhs)
 gen r16 := DEREF2(r16:rhs)
     { E_insn("mov16"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
 
+gen r32 := DEREF4(r16:rhs)
+    {
+        E_insn("mov16");
+        E_reghi($$);
+        E_comma();
+        E_regi($rhs);
+        E_nl();
+
+        E_insn("inc216");
+        E_reg($rhs);
+        E_nl();
+
+        E_insn("mov16");
+        E_reglo($$);
+        E_comma();
+        E_regi($rhs);
+        E_nl();
+
+        RegCacheApplyDelta($rhs, 2);
+    }
+
 gen STORE2(r16:lhs, DEREF2(r16:rhs))
     { E_insn("mov"); E_regi($rhs); E_comma(); E_reg($lhs); E_nl(); }
 
 gen STORE2(DEREF2(r16:lhs), DEREF2(r16:rhs))
     { E_insn("mov"); E_regi($rhs); E_comma(); E_regi($lhs); E_nl(); }
 
-gen STORE1(a:lhs, DEREF1(dptr:rhs))
-    { E_insn_simple("movx @dptr,a"); }
+gen STORE1(r8:lhs, DEREF1(r16:rhs))
+    { E_insn("mov16b"); E_regi($rhs); E_comma(); E_reg($lhs); E_nl(); }
+
+gen STORE4(r32:lhs, DEREF4(r16:rhs))
+    {
+        E_insn("mov16");
+        E_regi($rhs);
+        E_comma();
+        E_reghi($lhs);
+        E_nl();
+
+        E_insn("inc216");
+        E_reg($rhs);
+        E_nl();
+
+        E_insn("mov16");
+        E_regi($rhs);
+        E_comma();
+        E_reglo($lhs);
+        E_nl();
+
+        RegCacheApplyDelta($rhs, 2);
+    }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
@@ -397,9 +497,47 @@ gen r16 := ADD2($$:lhs, CONSTANT(value==2))
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
+gen r0r1r2r3 := DIVU4(r0r1r2r3, r4r5r6r7)
+    { E_callhelper("__divremu4"); }
+
+gen r4r5r6r7 := REMU4(r0r1r2r3, r4r5r6r7)
+    { E_callhelper("__divremu4"); }
+
+gen $$ := ADD4(r32:rhs, $$)
+{
+    E_insn("add16");
+    E_reglo($$);
+    E_comma();
+    E_reglo($rhs);
+    E_nl();
+
+    E_insn("addc16");
+    E_reghi($$);
+    E_comma();
+    E_reghi($rhs);
+    E_nl();
+}
 
 // --- Casts ----------------------------------------------------------------
 
+gen r32 := CAST14(r8:rhs, sext==0)
+{
+    R_flush($$);
+
+    E_mov8(reglo(reglo($$)), $rhs);
+
+    E_insn_simple("clr a");
+    E_mov8(reghi(reglo($$)), REG_A);
+    E_mov8(reglo(reghi($$)), REG_A);
+    E_mov8(reghi(reghi($$)), REG_A);
+}
+
+gen r8 := CAST41(r32:rhs)
+{
+    R_flush($$);
+
+    E_mov8($$, reglo(reglo($rhs)));
+}
 
 // --- Conditionals ---------------------------------------------------------
 
@@ -414,6 +552,63 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
     end if;
 }
 
+%{
+    sub Cmp2(lhs: RegId, rhs: RegId) is
+        E_insn("cmp16");
+        E_reg(lhs);
+        E_comma();
+        E_reg(rhs);
+        E_nl();
+    end sub;
+%}
+
+gen BEQ1(r8:lhs, a:rhs):b uses all
+{
+    E_insn_simple("clr c");
+    E_insn("subb a,");
+    E_reg($lhs);
+    E_nl();
+
+    E_jumps_with_fallthrough("jz", "jnz", $@$);
+}
+
+gen BEQ2(r16:lhs, r16:rhs):b uses all
+{
+    Cmp2($lhs, $rhs);
+
+    E_insn("jb UD,");
+    E_labelref($b.truelabel);
+    E_nl();
+
+    if $b.falselabel != $b.fallthrough then
+        E_insn("jmp");
+        E_labelref($b.falselabel);
+        E_nl();
+    end if;
+}
+
+gen BLTU2(r16:lhs, r16:rhs):b uses all
+{
+    E_insn("sub16");
+    E_reg($lhs);
+    E_comma();
+    E_reg($rhs);
+    E_nl();
+
+    E_jumps_with_fallthrough("jc", "jnc", $@$);
+}
+
+gen BLTU4(r0r1r2r3, r4r5r6r7):b uses all
+{
+    E_callhelper("__cmp32u");
+    E_jumps_with_fallthrough("jc", "jnc", $@$);
+}
+
+gen BEQ4(r0r1r2r3, r4r5r6r7):b uses all
+{
+    E_callhelper("__cmp32z");
+    E_jumps_with_fallthrough("jz", "jnz", $@$);
+}
 
 // --- Case -----------------------------------------------------------------
 

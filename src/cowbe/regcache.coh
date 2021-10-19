@@ -158,3 +158,14 @@ sub RegCacheFindValue(sym: [Symbol], off: Size): (reg: RegId) is
 	end loop;
 end sub;
 
+sub RegCacheApplyDelta(reg: RegId, delta: uint8) is
+	var p := &register_cache[0];
+	while p != &register_cache[@sizeof register_cache] loop
+		if p.reg == reg then
+			p.number := p.number + (delta as Word);
+			return;
+		end if;
+		p := @next p;
+	end loop;
+end sub;
+
