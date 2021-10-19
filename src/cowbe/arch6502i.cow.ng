@@ -3,14 +3,6 @@
         end_label: LabelRef;
     end record;
 
-    record Extern is
-        name: string;
-        id: uint16;
-        next: [Extern];
-    end record;
-
-    var externs: [Extern] := (0 as [Extern]);
-
     sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
         newvalue := value;
     end sub;
@@ -32,28 +24,6 @@
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		SimpleError("can't move");
 	end sub;
-
-    sub GetHelper(name: string): (e: [Extern]) is
-        e := externs;
-        while e != (0 as [Extern]) loop
-            if StrCmp(e.name, name) == 0 then
-                break;
-            end if;
-            e := e.next;
-        end loop;
-
-        if e == (0 as [Extern]) then
-            e := InternalAlloc(@bytesof Extern) as [Extern];
-            e.name := name;
-            e.id := AllocSubrId();
-            e.next := externs;
-            externs := e;
-
-            EmitterDeclareExternalSubroutine(e.id, name);
-        end if;
-
-		EmitterReferenceSubroutineById(current_subr.id, e.id);
-    end sub;
 
 	sub E_db() is E("\t.byte "); end sub;
 	sub E_dw() is E("\t.word "); end sub;

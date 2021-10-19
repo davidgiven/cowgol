@@ -1112,3 +1112,26 @@ sub GenerateConditional(rootnode: [Node]) is
 	end loop;
 end sub;
 
+# Does not persist the name; only call this with constant strings.
+@impl sub GetHelper is
+	e := externs;
+	while e != (0 as [Extern]) loop
+		if StrCmp(e.name, name) == 0 then
+			break;
+		end if;
+		e := e.next;
+	end loop;
+
+	if e == (0 as [Extern]) then
+		e := InternalAlloc(@bytesof Extern) as [Extern];
+		e.name := name;
+		e.id := AllocSubrId();
+		e.next := externs;
+		externs := e;
+
+		EmitterDeclareExternalSubroutine(e.id, name);
+	end if;
+
+	EmitterReferenceSubroutineById(current_subr.id, e.id);
+end sub;
+

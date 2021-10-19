@@ -260,4 +260,3 @@ sub EmitterDeclareWorkspace(subrid: SubrId, wid: uint8, workspace: Size) is
 	WriteB8(wid);
 	WriteB16(workspace as uint16);
 end sub;
-

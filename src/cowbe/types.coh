@@ -51,3 +51,15 @@ var next_node := &nodes[0];
 
 @decl sub FindSubr(subrid: uint16): (subr: [Subroutine]);
 
+# Externals
+
+record Extern is
+	name: string;
+	id: uint16;
+	next: [Extern];
+end record;
+
+var externs: [Extern] := (0 as [Extern]);
+@decl sub GetHelper(name: string): (e: [Extern]);
+
+

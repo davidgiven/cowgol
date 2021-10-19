@@ -20,4 +20,3 @@ sub CannotOpen(filename: [uint8]) is
 	print("'");
 	EndError();
 end sub;
-

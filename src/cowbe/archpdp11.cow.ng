@@ -7,14 +7,6 @@
 		var_stack: uint8;
 	end record;
 
-	record Extern is
-		name: string;
-		id: uint16;
-		next: [Extern];
-	end record;
-
-	var externs: [Extern] := (0 as [Extern]);
-
 	sub E_symref(sym: [Symbol], off: Size) is
 		if sym.wsid == WSID_STATIC then
 			E_wsref(sym.subr.id, sym.wsid, sym.off);
