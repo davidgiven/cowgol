@@ -74,15 +74,16 @@
 
     sub E_reg(reg: RegId) is
         case reg is
-            when REG_A:  E("a"); return;
-            when REG_R0: E("r0"); return;
-            when REG_R1: E("r1"); return;
-            when REG_R2: E("r2"); return;
-            when REG_R3: E("r3"); return;
-            when REG_R4: E("r4"); return;
-            when REG_R5: E("r5"); return;
-            when REG_R6: E("r6"); return;
-            when REG_R7: E("r7"); return;
+            when REG_A:    E("a"); return;
+            when REG_DPTR: E("dptr"); return;
+            when REG_R0:   E("r0"); return;
+            when REG_R1:   E("r1"); return;
+            when REG_R2:   E("r2"); return;
+            when REG_R3:   E("r3"); return;
+            when REG_R4:   E("r4"); return;
+            when REG_R5:   E("r5"); return;
+            when REG_R6:   E("r6"); return;
+            when REG_R7:   E("r7"); return;
             when REG_R0R1: E("r0r1"); return;
             when REG_R2R3: E("r2r3"); return;
             when REG_R4R5: E("r4r5"); return;
@@ -123,13 +124,29 @@
 
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
-        R_flush(dest);
-        StartError();
-        print("bad move: ");
-        print_hex_i16(src);
-        print(" -> ");
-        print_hex_i16(dest);
-        EndError();
+        if src == 0 then
+            E_insn("pop");
+            E_reg(dest);
+            E_nl();
+        elseif dest == 0 then
+            E_insn("push");
+            E_reg(src);
+            E_nl();
+        elseif (src & (REG_A|REGCLASS_R8)) != 0 then
+            E_insn("mov");
+            E_reg(dest);
+            E_comma();
+            E_reg(src);
+            E_nl();
+        else
+            R_flush(dest);
+            StartError();
+            print("bad move: ");
+            print_hex_i16(src);
+            print(" -> ");
+            print_hex_i16(dest);
+            EndError();
+        end if;
 	end sub;
 
 	sub ArchEndInstruction() is
@@ -336,10 +353,13 @@ gen r8|a := CONSTANT():c
 // --- Loads and stores -----------------------------------------------------
 
 gen a := DEREF1(dptr:rhs)
-    { E_insn_simple("mov a,@dptr"); }
+    { E_insn_simple("movx a,@dptr"); }
 
 gen r8 := DEREF1(r16:rhs)
-    { E_insn("movb"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
+    { E_insn("movb16"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
+
+gen r16 := DEREF2(r16:rhs)
+    { E_insn("mov16"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
 
 gen STORE2(r16:lhs, DEREF2(r16:rhs))
     { E_insn("mov"); E_regi($rhs); E_comma(); E_reg($lhs); E_nl(); }
@@ -348,16 +368,32 @@ gen STORE2(DEREF2(r16:lhs), DEREF2(r16:rhs))
     { E_insn("mov"); E_regi($rhs); E_comma(); E_regi($lhs); E_nl(); }
 
 gen STORE1(a:lhs, DEREF1(dptr:rhs))
-    { E_insn_simple("mov @dptr,a"); }
-
-gen STORE1(CONSTANT():c, DEREF1(dptr:rhs))
-    { E_insn("mov @dptr,#"); E_u8($c.value as uint8); E_nl(); }
+    { E_insn_simple("movx @dptr,a"); }
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
+gen a := ADD1(a, CONSTANT(value==1):c)
+    { E_insn_simple("inc a"); }
+
+gen a := ADD1(a, CONSTANT():c)
+    { E_insn("add a,#"); E_u8($c.value as uint8); E_nl(); }
+
+gen a := ADD1(a, r8:rhs)
+    { E_insn("add a,"); E_reg($rhs); E_nl(); }
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
+gen r16 := ADD2(r16:lhs, $$:rhs)
+    { E_insn("add16"); E_reg($$); E_comma(); E_reg($lhs); E_nl(); }
+
+gen r16 := ADD2(DEREF2(r16:lhs), $$:rhs)
+    { E_insn("add16"); E_reg($$); E_comma(); E_regi($lhs); E_nl(); }
+
+gen r16 := ADD2($$:lhs, CONSTANT(value==1))
+    { E_insn("inc16"); E_reg($$); E_nl(); }
+
+gen r16 := ADD2($$:lhs, CONSTANT(value==2))
+    { E_insn("inc216"); E_reg($$); E_nl(); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
@@ -381,7 +417,7 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 
 // --- Case -----------------------------------------------------------------
 
-//gen STARTCASE1(b) uses all;
+gen STARTCASE1(a) uses all;
 //gen STARTCASE2(x) uses all;
 //gen STARTCASE4(xd) uses all;
 //
