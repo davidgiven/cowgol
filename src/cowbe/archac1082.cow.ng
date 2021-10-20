@@ -260,7 +260,7 @@ gen STARTSUB() uses all
 	E_b16(current_subr.id);
 	E_b8(0);
 	E_b16(0);
-	E("+");
+	E(" with size ");
 	E_b8(COO_ESCAPE_WSSIZE);
 	E_b16(current_subr.id);
 	E_b8(0);
@@ -493,6 +493,9 @@ gen a := AND1(a, r8:rhs)
 gen a := EOR1(a, r8:rhs)
     { E_insn("xrl a,"); E_reg($rhs); E_nl(); }
 
+gen a := NEG1(a)
+    { R_flush($$); E_insn_simple("cpl a"); E_insn_simple("inc a"); }
+
 gen a := RSHIFTU1(a, r0)
     { E_callhelper("__lsr1"); }
 
@@ -586,35 +589,36 @@ gen r0r1r2r3 := DIVU4(r0r1r2r3, r4r5r6r7)
 gen r4r5r6r7 := REMU4(r0r1r2r3, r4r5r6r7)
     { E_callhelper("__divremu4"); }
 
-gen $$ := ADD4(r32:lhs, $$)
-{
-    E_insn("add16");
-    E_reglo($$);
-    E_comma();
-    E_reglo($lhs);
-    E_nl();
+gen r0r1r2r3 := DIVS4(r0r1r2r3, r4r5r6r7)
+    { E_callhelper("__divrems4"); }
 
-    E_insn("addc16");
-    E_reghi($$);
-    E_comma();
-    E_reghi($lhs);
-    E_nl();
-}
+gen r4r5r6r7 := REMS4(r0r1r2r3, r4r5r6r7)
+    { E_callhelper("__divrems4"); }
 
-gen $$ := SUB4($$, r32:rhs)
-{
-    E_insn("sub16");
-    E_reglo($$);
-    E_comma();
-    E_reglo($rhs);
-    E_nl();
+%{
+    sub SimpleAlu4(lhs: RegId, rhs: RegId, loinsn: string, hiinsn: string) is
+        E_insn(loinsn);
+        E_reglo(lhs);
+        E_comma();
+        E_reglo(rhs);
+        E_nl();
 
-    E_insn("subb16");
-    E_reghi($$);
-    E_comma();
-    E_reghi($rhs);
-    E_nl();
-}
+        E_insn(hiinsn);
+        E_reghi(lhs);
+        E_comma();
+        E_reghi(rhs);
+        E_nl();
+    end sub;
+%}
+
+gen $$ := AND4(r32:lhs, $$) { SimpleAlu4($$, $lhs, "anl16", "anl16"); }
+gen $$ := OR4(r32:lhs, $$)  { SimpleAlu4($$, $lhs, "orl16", "orl16"); }
+gen $$ := EOR4(r32:lhs, $$) { SimpleAlu4($$, $lhs, "xrl16", "xrl16"); }
+gen $$ := ADD4(r32:lhs, $$) { SimpleAlu4($$, $lhs, "add16", "addc16"); }
+gen $$ := SUB4($$, r32:rhs) { SimpleAlu4($$, $rhs, "sub16", "subb16"); }
+
+gen r0r1r2r3 := NOT4(r0r1r2r3:rhs) uses a
+    { E_callhelper("__not4"); }
 
 gen r4r5r6r7 := NEG4(r0r1r2r3:rhs) uses a
     { E_callhelper("__neg4"); }
@@ -638,7 +642,7 @@ gen r16 := CAST12(r8:rhs, sext==0) uses a
 
     E_insn("mov");
     E_reghi($$);
-    E(",#0");
+    E(",#0\n");
 }
 
 gen r32 := CAST14(r8:rhs, sext==0) uses a
@@ -728,6 +732,12 @@ gen BLTU1(a:lhs, r8:rhs):b uses all
     E_jumps_with_fallthrough("jnc", "jc", $@$);
 }
 
+gen BLTS1(a:lhs, r0:rhs):b uses all
+{
+    E_callhelper("__cmp1s");
+    E_jumps_with_fallthrough("jc", "jnc", $@$);
+}
+
 gen BEQ2(r16:lhs, r16:rhs):b uses all
 {
     Cmp2($lhs, $rhs);
@@ -762,19 +772,19 @@ gen BLTS2(r0r1:lhs, r2r3:rhs):b uses all
 
 gen BLTU4(r0r1r2r3, r4r5r6r7):b uses all
 {
-    E_callhelper("__cmp32u");
+    E_callhelper("__cmp4u");
     E_jumps_with_fallthrough("jc", "jnc", $@$);
 }
 
 gen BLTS4(r0r1r2r3, r4r5r6r7):b uses all
 {
-    E_callhelper("__cmp32s");
+    E_callhelper("__cmp4s");
     E_jumps_with_fallthrough("jc", "jnc", $@$);
 }
 
 gen BEQ4(r0r1r2r3, r4r5r6r7):b uses all
 {
-    E_callhelper("__cmp32z");
+    E_callhelper("__cmp4z");
     E_jumps_with_fallthrough("jz", "jnz", $@$);
 }
 
