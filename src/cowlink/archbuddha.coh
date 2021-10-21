@@ -23,11 +23,11 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E("\torg 0x1900\n");
+	E("\t.org 0x1900\n");
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
-			E("\tjsr ");
+			E("\tqcall ");
 			ArchEmitSubRef(main);
 			E_nl();
 		end if;

@@ -164,6 +164,12 @@ expression ::= expression MINUS expression.
 expression ::= expression PLUS expression.
 expression ::= expression RSHIFT expression.
 
+expression(E) ::= LTOP expression(E1).
+	{ E.number := (E1.number>>8) & 0xff; E.addressSpace := AS_NUMBER; }
+
+expression(E) ::= GTOP expression(E1).
+	{ E.number := E1.number & 0xff; E.addressSpace := AS_NUMBER; }
+
 /* --- Instructions ------------------------------------------------------ */
 
 %include
@@ -217,8 +223,7 @@ instruction ::= INSN_ABSA(I) expression(E).
 		end if;
 		var pc := [currentProgramCounter] + 2;
 		if (E.number & 0xfc00) != (pc & 0xfc00) then
-			Emit8((I.number as uint8) | 0x01);
-			Emit16(E.number);
+			SimpleError("ACALL/AJMP out of range");
 		else
 			Emit8((I.number as uint8) | ((E.number >> 3) as uint8));
 			Emit8(E.number as uint8);
@@ -229,6 +234,34 @@ instruction ::= INSN_ABSA(I) expression(E).
 
 instruction ::= INSN_ABSL(I) expression(E).
 	{ Emit8(I.number as uint8); EmitAddress(&E, AS_XDATA); }
+
+/* --- CALL/JMP ---------------------------------------------------------- */
+
+instruction ::= INSN_ABSREL(I) expression(E).
+	{
+		if (E.addressSpace != AS_NUMBER) and (E.addressSpace != AS_XDATA) then
+			BadAddressType();
+		end if;
+		var pc := [currentProgramCounter] + 2;
+		if (E.number & 0xfc00) != (pc & 0xfc00) then
+			# LJMP/LCALL
+			Emit8((I.number as uint8) | 0x01);
+			Emit16(E.number);
+		else
+			if I.number == 0 then
+				var delta := (E.number as int16) - (pc as int16);
+				if (delta < -0x80) or (delta > 0x7f) then
+					# SJMP
+					Emit8(0x80);
+					Emit8(delta as uint8);
+					return;
+				end if;
+			end if;
+			# AJMP/ACALL
+			Emit8((I.number as uint8) | ((E.number >> 3) as uint8));
+			Emit8(E.number as uint8);
+		end if;
+	}
 
 /* --- semi-regular xxx A, something ------------------------------------- */
 
@@ -334,7 +367,15 @@ instruction ::= INSN_DJNZ(I) REG_8(R) COMMA expression(E).
 /* --- JB ---------------------------------------------------------------- */
 
 instruction ::= INSN_JB(I) expression(E1) COMMA expression(E2).
-	{ Emit8(I.number as uint8); EmitAddress(&E1, AS_IDATA); EmitRelAddress(&E2, -1); }
+	{
+		if pass == 1 then
+			[currentProgramCounter] := [currentProgramCounter] + 3;
+			return;
+		end if;
+		Emit8(I.number as uint8);
+		EmitAddress(&E1, AS_IDATA);
+		EmitRelAddress(&E2, -1);
+	}
 
 /* --- J ---------------------------------------------------------------- */
 

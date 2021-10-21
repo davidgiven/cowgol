@@ -53,6 +53,9 @@ var keywords: Keyword[] := {
 	{ "ljmp",    INSN_ABSL,   0x02 },
 	{ "lcall",   INSN_ABSL,   0x12 },
 
+	{ "qjmp",    INSN_ABSREL, 0x00 },
+	{ "qcall",   INSN_ABSREL, 0x10 },
+
 	{ "cjne",    INSN_CJNE,   0xb0 },
 
 	{ "clr",     INSN_CLR,    0x00 },

@@ -61,7 +61,7 @@
 		E_nl();
 	end sub;
 
-	sub E_jmp(label: LabelRef) is E_jump("sjmp", label); end sub;
+	sub E_jmp(label: LabelRef) is E_jump("qjmp", label); end sub;
 
     sub E_jumps_with_fallthrough(trueinsn: string, falseinsn: string, node: [Node]) is
         if node.beq.truelabel != node.beq.fallthrough then
@@ -152,7 +152,7 @@
     sub E_callhelper(name: string) is
         var helper := GetHelper(name);
         R_flushall();
-        E_insn("call");
+        E_insn("qcall");
         E_b8(COO_ESCAPE_SUBREF);
         E_b16(helper.id);
         E_nl();
@@ -222,10 +222,10 @@ regdata r4         compatible r8|a;
 regdata r5         compatible r8|a;
 regdata r6         compatible r8|a;
 regdata r7         compatible r8|a;
-regdata r0r1 uses r0|r1|r0r1r2r3 compatible r16|dptr;
-regdata r2r3 uses r2|r3|r0r1r2r3 compatible r16|dptr;
-regdata r4r5 uses r4|r5|r4r5r6r7 compatible r16|dptr;
-regdata r6r7 uses r6|r7|r4r5r6r7 compatible r16|dptr;
+regdata r0r1 uses r0|r1|r0r1r2r3 compatible r16;
+regdata r2r3 uses r2|r3|r0r1r2r3 compatible r16;
+regdata r4r5 uses r4|r5|r4r5r6r7 compatible r16;
+regdata r6r7 uses r6|r7|r4r5r6r7 compatible r16;
 regdata r0r1r2r3 uses r0|r1|r2|r3|r0r1|r2r3 compatible r32;
 regdata r4r5r6r7 uses r4|r5|r6|r7|r4r5|r6r7 compatible r32;
 
@@ -253,7 +253,7 @@ gen STARTSUB() uses all
 {
     EmitterOpenStream(current_subr);
 
-	E("\n\n\t; ");
+	E("\n\n\t\\ ");
 	E(current_subr.name);
 	E(" ws0 at ");
 	E_b8(COO_ESCAPE_WSREF);
@@ -278,7 +278,7 @@ gen ENDSUB() uses all
 }
 
 gen CALL(param, SUBREF()):s
-    { E_insn("jsr"); E_subref($s.subr); E_nl(); }
+    { E_insn("qcall"); E_subref($s.subr); E_nl(); }
 gen CALL(param, r0r1):s
     { E_callhelper("__indirectcall"); }
 
@@ -298,7 +298,7 @@ gen RETURN() uses all
 
 // --- Simple things --------------------------------------------------------
 
-gen r16|dptr := ADDRESS():a
+gen r16 := ADDRESS():a
 {
 	var cache := RegCacheFindAddress(&$a.sym, $a.off) & $$;
 	if (cache & $$) != 0 then
@@ -306,21 +306,16 @@ gen r16|dptr := ADDRESS():a
 		return;
 	end if;
 
-	if $$ == REG_DPTR then
-        E_insn("mov dptr,#");
-        E_symref(&$a.sym, $a.off);
-	else
-        E_insn("mov");
-        E_reghi($$);
-        E(",#<");
-        E_symref(&$a.sym, $a.off);
-        E_nl();
+    E_insn("mov");
+    E_reghi($$);
+    E(",#<");
+    E_symref(&$a.sym, $a.off);
+    E_nl();
 
-        E_insn("mov");
-        E_reglo($$);
-        E(",#>");
-        E_symref(&$a.sym, $a.off);
-    end if;
+    E_insn("mov");
+    E_reglo($$);
+    E(",#>");
+    E_symref(&$a.sym, $a.off);
     E_nl();
 
 	RegCacheLeavesAddress($$, &$a.sym, $a.off);
@@ -398,15 +393,22 @@ gen r32 := CONSTANT():c
     E_nl();
 }
 
-//
-//gen d|x := SUBREF():s
-//{
-//    R_flush($$);
-//    E_ld($$);
-//    E_const();
-//    E_subref($s.subr);
-//    E_nl();
-//}
+gen r16 := SUBREF():s
+{
+    R_flush($$);
+
+    E_insn("mov");
+    E_reghi($$);
+    E(",#<");
+    E_subref($s.subr);
+    E_nl();
+
+    E_insn("mov");
+    E_reglo($$);
+    E(",#>");
+    E_subref($s.subr);
+    E_nl();
+}
 
 // --- Loads and stores -----------------------------------------------------
 
@@ -441,10 +443,10 @@ gen r32 := DEREF4(r16:rhs)
     }
 
 gen STORE2(r16:lhs, DEREF2(r16:rhs))
-    { E_insn("mov"); E_regi($rhs); E_comma(); E_reg($lhs); E_nl(); }
+    { E_insn("mov16"); E_regi($rhs); E_comma(); E_reg($lhs); E_nl(); }
 
 gen STORE2(DEREF2(r16:lhs), DEREF2(r16:rhs))
-    { E_insn("mov"); E_regi($rhs); E_comma(); E_regi($lhs); E_nl(); }
+    { E_insn("mov16"); E_regi($rhs); E_comma(); E_regi($lhs); E_nl(); }
 
 gen STORE1(r8:lhs, DEREF1(r16:rhs))
     { E_insn("mov16b"); E_regi($rhs); E_comma(); E_reg($lhs); E_nl(); }
@@ -473,37 +475,40 @@ gen STORE4(r32:lhs, DEREF4(r16:rhs))
 // --- 8-bit arithmetic -----------------------------------------------------
 
 gen a := ADD1(a, CONSTANT(value==1):c)
-    { E_insn_simple("inc a"); }
+    { R_flush($$); E_insn_simple("inc a"); }
 
 gen a := ADD1(a, CONSTANT():c)
-    { E_insn("add a,#"); E_u8($c.value as uint8); E_nl(); }
+    { R_flush($$); E_insn("add a,#"); E_u8($c.value as uint8); E_nl(); }
 
 gen a := ADD1(a, r8:rhs)
-    { E_insn("add a,"); E_reg($rhs); E_nl(); }
+    { R_flush($$); E_insn("add a,"); E_reg($rhs); E_nl(); }
 
 gen a := SUB1(a, r8:rhs)
-    { E_insn_simple("clr c"); E_insn("subb a,"); E_reg($rhs); E_nl(); }
+    { R_flush($$); E_insn_simple("clr c"); E_insn("subb a,"); E_reg($rhs); E_nl(); }
 
 gen a := OR1(a, r8:rhs)
-    { E_insn("orl a,"); E_reg($rhs); E_nl(); }
+    { R_flush($$); E_insn("orl a,"); E_reg($rhs); E_nl(); }
 
 gen a := AND1(a, r8:rhs)
-    { E_insn("anl a,"); E_reg($rhs); E_nl(); }
+    { R_flush($$); E_insn("anl a,"); E_reg($rhs); E_nl(); }
 
 gen a := EOR1(a, r8:rhs)
-    { E_insn("xrl a,"); E_reg($rhs); E_nl(); }
+    { R_flush($$); E_insn("xrl a,"); E_reg($rhs); E_nl(); }
 
 gen a := NEG1(a)
     { R_flush($$); E_insn_simple("cpl a"); E_insn_simple("inc a"); }
 
+gen a := NOT1(a)
+    { R_flush($$); E_insn_simple("cpl a"); }
+
 gen a := RSHIFTU1(a, r0)
-    { E_callhelper("__lsr1"); }
+    { R_flush($$); E_callhelper("__lsr1"); }
 
 gen a := RSHIFTS1(a, r0)
-    { E_callhelper("__asr1"); }
+    { R_flush($$); E_callhelper("__asr1"); }
 
 gen a := LSHIFT1(a, r0)
-    { E_callhelper("__lsr1"); }
+    { R_flush($$); E_callhelper("__lsr1"); }
 
 // --- 16-bit arithmetic ----------------------------------------------------
 
@@ -566,6 +571,9 @@ gen r16 := RSHIFTU2($$:lhs, a)
 gen r16 := RSHIFTS2($$:lhs, a)
     { E_insn("asr16"); E_reg($lhs); E(",a\n"); }
 
+gen r16 := MUL2(r16:lhs, $$:rhs)
+    { E_insn("mul16"); E_reg($$); E_comma(); E_reg($lhs); E_nl(); }
+
 gen r0r1 := DIVU2(r0r1:lhs, r2r3:rhs)
     { E_callhelper("__divremu2"); }
 
@@ -617,7 +625,7 @@ gen $$ := EOR4(r32:lhs, $$) { SimpleAlu4($$, $lhs, "xrl16", "xrl16"); }
 gen $$ := ADD4(r32:lhs, $$) { SimpleAlu4($$, $lhs, "add16", "addc16"); }
 gen $$ := SUB4($$, r32:rhs) { SimpleAlu4($$, $rhs, "sub16", "subb16"); }
 
-gen r0r1r2r3 := NOT4(r0r1r2r3:rhs) uses a
+gen r0r1r2r3 := NOT4(r0r1r2r3:rhs) uses a|r4r5r6r7
     { E_callhelper("__not4"); }
 
 gen r4r5r6r7 := NEG4(r0r1r2r3:rhs) uses a
@@ -645,25 +653,51 @@ gen r16 := CAST12(r8:rhs, sext==0) uses a
     E(",#0\n");
 }
 
-gen r32 := CAST14(r8:rhs, sext==0) uses a
+gen r16 := CAST12(r8:rhs, sext!=0) uses a
+{
+    R_flush($$|REG_A);
+
+    E_mov8(REG_A, $rhs);
+    E_insn_simple("rlc a");
+    E_insn_simple("subb a, 0xe0"); # A
+
+    E_mov8(reghi($$), REG_A);
+    E_mov8(reglo($$), $rhs);
+}
+
+gen r32 := CAST14(r8:rhs):c uses a
 {
     R_flush($$);
 
     E_mov8(reglo(reglo($$)), $rhs);
 
-    E_insn_simple("clr a");
+    if $c.sext == 0 then
+        E_insn_simple("clr a");
+    else
+        E_mov8(REG_A, $rhs);
+        E_insn_simple("rlc a");
+        E_insn_simple("subb a, 0xe0"); # A
+    end if;
+
     E_mov8(reghi(reglo($$)), REG_A);
     E_mov8(reglo(reghi($$)), REG_A);
     E_mov8(reghi(reghi($$)), REG_A);
 }
 
-gen r32 := CAST24(r16:rhs, sext==0) uses a
+gen r32 := CAST24(r16:rhs):c uses a
 {
     R_flush($$);
 
     E_mov16(reglo($$), $rhs);
 
-    E_insn_simple("clr a");
+    if $c.sext == 0 then
+        E_insn_simple("clr a");
+    else
+        E_mov8(REG_A, $rhs);
+        E_insn_simple("rlc a");
+        E_insn_simple("subb a, 0xe0"); # A
+    end if;
+
     E_mov8(reglo(reghi($$)), REG_A);
     E_mov8(reghi(reghi($$)), REG_A);
 }
@@ -747,7 +781,7 @@ gen BEQ2(r16:lhs, r16:rhs):b uses all
     E_nl();
 
     if $b.falselabel != $b.fallthrough then
-        E_insn("jmp");
+        E_insn("qjmp");
         E_labelref($b.falselabel);
         E_nl();
     end if;
@@ -803,37 +837,39 @@ gen WHENCASE1():c
     E_nl();
 }
 
-//gen WHENCASE2():c uses all
-//{
-//    E_insn("cpx");
-//    E_const();
-//    E_u16($c.value as uint16);
-//    E_nl();
-//    E_insn("bne");
-//    E_labelref($c.falselabel);
-//    E_nl();
-//}
-//
-//gen WHENCASE4():c uses all
-//{
-//    E_insn("cpx");
-//    E_const();
-//    E_u16(($c.value >> 16) as uint16);
-//    E_nl();
-//    E_insn("bne");
-//    E_labelref($c.falselabel);
-//    E_nl();
-//
-//    E_xgdx();
-//    E_insn("cpx");
-//    E_const();
-//    E_u16($c.value as uint16);
-//    E_nl();
-//    E_xgdx();
-//    E_insn("bne");
-//    E_labelref($c.falselabel);
-//    E_nl();
-//}
+gen WHENCASE2():c uses all
+{
+    E_insn("cjne r0,#<");
+    E_u16($c.value as uint16);
+    E_comma();
+    E_labelref($c.falselabel);
+    E_nl();
+
+    E_insn("cjne r1,#<");
+    E_u16($c.value as uint16);
+    E_comma();
+    E_labelref($c.falselabel);
+    E_nl();
+}
+
+gen WHENCASE4():c uses all
+{
+    var v := $c.value;
+
+    var i: uint8 := 0;
+    while i != 4 loop
+        E_insn("cjne");
+        E_b8('r');
+        E_b8('0' + i);
+        E(",#");
+        E_u8(v as uint8);
+        E_comma();
+        E_labelref($c.falselabel);
+        E_nl();
+        v := v >> 8;
+        i := i + 1;
+    end loop;
+}
 
 gen ENDCASE1();
 gen ENDCASE2();

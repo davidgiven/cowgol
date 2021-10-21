@@ -1,3 +1,7 @@
+&X __cmp1s
+\ Signed comparison of r0 and a.
+``:
+
 &X __cmp2s
 \ Signed comparison of r0r1 and r2r3.
 ``:
@@ -9,7 +13,7 @@
     jb UD, ``_notzero
     cmp16 r0r1, r4r5
     jb UD, ``_notzero
-    clrb c
+    clr c
     ret
 ``_notzero:
     setb c
@@ -27,7 +31,15 @@
 \ r0r1r2r3 = r0r1r2r3*r4r5r6r7
 ``:
 
+&X __asr4
+\ r0r1r2r3 >>= a
+``:
+
 &X __lsr4
+\ r0r1r2r3 >>= a
+``:
+
+&X __lsl4
 \ r0r1r2r3 <<= a
 ``:
 
@@ -47,6 +59,17 @@
     subb16 r4r5, r0r1
     ret
 
+&X __not4
+\ r0r1r2r3 = r0r1r2r3
+``:
+    mov a, #0xff
+    mov r4, a
+    mov r5, a
+    mov r6, a
+    mov r7, a
+    xrl16 r0r1r2r3, r4r5r6r7
+    ret
+
 &X __divremu2
 \ r0r1%r2r3 = r0r1/r2r3
 ``:
@@ -55,5 +78,17 @@
 \ r0r1r2r3%r4r5r6r7 = r0r1r2r3/r4r5r6r7
 ``:
    
+&X __divrems4
+\ r0r1r2r3%r4r5r6r7 = r0r1r2r3/r4r5r6r7
+``:
+   
+&X __indirectcall
+\ Calls r0r1.
+``:
+    mov 0x83, r0 \ DPH
+    mov 0x84, r1 \ DPL
+    clr a
+    jmp @a+dptr
+
 \ vim: sw=4 ts=4 et
 
