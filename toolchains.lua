@@ -182,7 +182,7 @@ toolchain_msdos = {
 
 toolchain_buddha = {
 	name = "buddha",
-	cowfe = "bin/cowfe-16bit.nncgen.exe",
+	cowfe = "bin/cowfe-ac1082.nncgen.exe",
 	cowbe = "bin/cowbe-ac1082.nncgen.exe",
 	linker = "bin/cowlink-buddha.nncgen.exe",
 	assembler = buildcowasmac1082,
@@ -198,7 +198,7 @@ addto(ALL_TOOLCHAINS, toolchain_ncgen)
 addto(ALL_TOOLCHAINS, toolchain_bbct)
 addto(ALL_TOOLCHAINS, toolchain_bbct6502)
 addto(ALL_TOOLCHAINS, toolchain_bbctiny)
-addto(ALL_TOOLCHAINS, toolchain_buddha)
+--addto(ALL_TOOLCHAINS, toolchain_buddha)
 addto(ALL_TOOLCHAINS, toolchain_fuzix6303)
 addto(ALL_TOOLCHAINS, toolchain_ncpm)
 addto(ALL_TOOLCHAINS, toolchain_ncpmz)

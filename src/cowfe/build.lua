@@ -1,6 +1,7 @@
 local ARCHS = {
 	"6502",
 	"80386",
+	"ac1082",
 	"basic",
 	"cgen",
 	"pdp11",
