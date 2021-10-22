@@ -41,16 +41,8 @@ sub ArchGuessIntType(min: Arith, max: Arith): (symbol: [Type]) is
 	end if;
 end sub;
 
-sub get_ws(sym: [Symbol]): (result: uint8) is
-	if IsScalar(sym.vardata.type) != 0 then
-		result := IMEM_WS;
-	else
-		result := XMEM_WS;
-	end if;
-end sub;
-
 sub ArchInitVariable(symbol: [Symbol]) is
-	if IsScalar(symbol.vardata.type) != 0 then
+	if (IsScalar(symbol.vardata.type) != 0) and (symbol.vardata.type.width == 1) then
 		symbol.vardata.wsid := IMEM_WS;
 	else
 		symbol.vardata.wsid := XMEM_WS;

@@ -1,4 +1,39 @@
+%[
+	record MemOp is
+		sym: [Symbol];
+		off: Size;
+	end record;
+		
+	record ImmOp is
+		value: Arith;
+	end record;
+
+	record Operand is
+		mem @at(0): MemOp;
+		imm @at(0): ImmOp;
+	end record;
+%]
+
 %{
+    const XMEM_WS := 0;
+    const IMEM_WS := 1;
+
+    sub is_iram(sym: [Symbol]): (result: uint8) is
+        if sym.wsid == IMEM_WS then
+            result := 1;
+        else
+            result := 0;
+        end if;
+    end sub;
+
+    sub is_xram(sym: [Symbol]): (result: uint8) is
+        if sym.wsid == XMEM_WS then
+            result := 1;
+        else
+            result := 0;
+        end if;
+    end sub;
+
 	sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
 		newvalue := value;
 	end sub;
@@ -128,6 +163,19 @@
         E_reg(reg);
     end sub;
 
+    sub E_op1(reg: RegId, op: [Operand]) is
+        if (reg & (REGCLASS_R8|REG_A)) != 0 then
+            E_reg(reg);
+            return;
+        end if;
+
+        case reg is
+            when REG_IMM: E("#0x"); E_h8(op.imm.value as uint8);
+            when REG_MEM1: E_symref(op.mem.sym, op.mem.off);
+            when else: E("bad op "); E_h32(reg);
+        end case;
+    end sub;
+
     sub E_mov8(dest: RegId, src: RegId) is
         E_insn("mov");
         E_reg(dest);
@@ -212,6 +260,10 @@ regclass r8 := r0|r1|r2|r3|r4|r5|r6|r7;
 regclass r16 := r0r1|r2r3|r4r5|r6r7;
 regclass r32 := r0r1r2r3|r4r5r6r7;
 
+operand imm mem1;
+
+regclass op1 := imm|mem1|r8;
+
 regdata a          compatible r8;
 regdata dptr       compatible r16;
 regdata r0         compatible r8|a;
@@ -258,12 +310,21 @@ gen STARTSUB() uses all
 	E(" ws0 at ");
 	E_b8(COO_ESCAPE_WSREF);
 	E_b16(current_subr.id);
-	E_b8(0);
+	E_b8(XMEM_WS);
 	E_b16(0);
 	E(" with size ");
 	E_b8(COO_ESCAPE_WSSIZE);
 	E_b16(current_subr.id);
-	E_b8(0);
+	E_b8(XMEM_WS);
+    E("; ws1 at ");
+	E_b8(COO_ESCAPE_WSREF);
+	E_b16(current_subr.id);
+	E_b8(IMEM_WS);
+	E_b16(0);
+	E(" with size ");
+	E_b8(COO_ESCAPE_WSSIZE);
+	E_b16(current_subr.id);
+	E_b8(IMEM_WS);
 	E_nl();
 
     E_b8(COO_ESCAPE_THISSUB);
@@ -296,6 +357,14 @@ gen RETURN() uses all
     E_insn_simple("ret");
 }
 
+// --- Operands -------------------------------------------------------------
+
+gen mem1 := DEREF1(ADDRESS(&sym is iram):a) cost 5
+    { $@$.operand.mem.sym := &$a.sym; $@$.operand.mem.off := $a.off; }
+
+gen imm := CONSTANT():c cost 5
+    { $@$.operand.imm.value := $c.value; }
+
 // --- Simple things --------------------------------------------------------
 
 gen r16 := ADDRESS():a
@@ -305,6 +374,10 @@ gen r16 := ADDRESS():a
 		# The value is already in the desired register.
 		return;
 	end if;
+
+    if is_iram(&$a.sym) != 0 then
+        SimpleError("can't take address of iram value");
+    end if;
 
     E_insn("mov");
     E_reghi($$);
@@ -418,6 +491,13 @@ gen r8 := DEREF1(r16:rhs)
 gen r8 := DEREF1(r16:rhs)
     { E_insn("movb16"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
 
+gen a := DEREF1(ADDRESS(&sym is xram):a)
+    { E_insn("mov dptr,#"); E_symref(&$a.sym, $a.off); E_nl();
+      E_insn_simple("movx a, @dptr"); }
+
+gen r8|a := DEREF1(ADDRESS(&sym is iram):a)
+    { E_insn("mov"); E_reg($$); E_comma(); E_symref(&$a.sym, $a.off); E_nl(); }
+
 gen r16 := DEREF2(r16:rhs)
     { E_insn("mov16"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
 
@@ -448,8 +528,12 @@ gen STORE2(r16:lhs, DEREF2(r16:rhs))
 gen STORE2(DEREF2(r16:lhs), DEREF2(r16:rhs))
     { E_insn("mov16"); E_regi($rhs); E_comma(); E_regi($lhs); E_nl(); }
 
-gen STORE1(r8:lhs, DEREF1(r16:rhs))
-    { E_insn("mov16b"); E_regi($rhs); E_comma(); E_reg($lhs); E_nl(); }
+gen STORE1(op1|a:lhs, op1:rhs)
+    { E_insn("mov"); E_op1($rhs, &$@rhs.operand); E_comma(); E_op1($lhs, &$@lhs.operand); E_nl(); }
+
+gen STORE1(a:lhs, DEREF1(ADDRESS(&sym is xram):a))
+    { E_insn("mov dptr,#"); E_symref(&$a.sym, $a.off); E_nl();
+      E_insn_simple("movx @dptr, a"); }
 
 gen STORE4(r32:lhs, DEREF4(r16:rhs))
     {
@@ -474,26 +558,33 @@ gen STORE4(r32:lhs, DEREF4(r16:rhs))
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
+%{
+    sub Alu1(insn: string, rhs: RegId, op: [Operand]) is
+        R_flush(REG_A);
+        E_insn(insn);
+        E("a,");
+        E_op1(rhs, op);
+        E_nl();
+    end sub;
+%}
+
 gen a := ADD1(a, CONSTANT(value==1):c)
     { R_flush($$); E_insn_simple("inc a"); }
 
-gen a := ADD1(a, CONSTANT():c)
-    { R_flush($$); E_insn("add a,#"); E_u8($c.value as uint8); E_nl(); }
+gen a := ADD1(a, op1:rhs)
+    { Alu1("add", $rhs, &$@rhs.operand); }
 
-gen a := ADD1(a, r8:rhs)
-    { R_flush($$); E_insn("add a,"); E_reg($rhs); E_nl(); }
+gen a := SUB1(a, op1:rhs)
+    { E_insn_simple("clr c"); Alu1("subb", $rhs, &$@rhs.operand); }
 
-gen a := SUB1(a, r8:rhs)
-    { R_flush($$); E_insn_simple("clr c"); E_insn("subb a,"); E_reg($rhs); E_nl(); }
+gen a := OR1(a, op1:rhs)
+    { Alu1("orl", $rhs, &$@rhs.operand); }
 
-gen a := OR1(a, r8:rhs)
-    { R_flush($$); E_insn("orl a,"); E_reg($rhs); E_nl(); }
+gen a := AND1(a, op1:rhs)
+    { Alu1("anl", $rhs, &$@rhs.operand); }
 
-gen a := AND1(a, r8:rhs)
-    { R_flush($$); E_insn("anl a,"); E_reg($rhs); E_nl(); }
-
-gen a := EOR1(a, r8:rhs)
-    { R_flush($$); E_insn("xrl a,"); E_reg($rhs); E_nl(); }
+gen a := EOR1(a, op1:rhs)
+    { Alu1("xrl", $rhs, &$@rhs.operand); }
 
 gen a := NEG1(a)
     { R_flush($$); E_insn_simple("cpl a"); E_insn_simple("inc a"); }
@@ -527,14 +618,26 @@ gen r16 := ADD2($$:lhs, CONSTANT(value==2))
 gen r16 := SUB2($$:lhs, r16:rhs)
     { E_insn("sub16"); E_reg($$); E_comma(); E_reg($rhs); E_nl(); }
 
+gen r16 := SUB2($$:lhs, DEREF2(r16:rhs))
+    { E_insn("sub16"); E_reg($$); E_comma(); E_regi($rhs); E_nl(); }
+
 gen r16 := AND2(r16:lhs, $$:rhs)
     { E_insn("anl16"); E_reg($$); E_comma(); E_reg($lhs); E_nl(); }
+
+gen r16 := AND2(DEREF2(r16:lhs), $$:rhs)
+    { E_insn("anl16"); E_reg($$); E_comma(); E_regi($lhs); E_nl(); }
 
 gen r16 := OR2(r16:lhs, $$:rhs)
     { E_insn("orl16"); E_reg($$); E_comma(); E_reg($lhs); E_nl(); }
 
+gen r16 := OR2(DEREF2(r16:lhs), $$:rhs)
+    { E_insn("orl16"); E_reg($$); E_comma(); E_regi($lhs); E_nl(); }
+
 gen r16 := EOR2(r16:lhs, $$:rhs)
     { E_insn("xrl16"); E_reg($$); E_comma(); E_reg($lhs); E_nl(); }
+
+gen r16 := EOR2(DEREF2(r16:lhs), $$:rhs)
+    { E_insn("xrl16"); E_reg($$); E_comma(); E_regi($lhs); E_nl(); }
 
 gen r16 := NOT2(r16:lhs) uses a
 {
@@ -642,7 +745,7 @@ gen r0r1r2r3 := LSHIFT4($$:lhs, a)
 
 // --- Casts ----------------------------------------------------------------
 
-gen r16 := CAST12(r8:rhs, sext==0) uses a
+gen r16 := CAST12(r8|a:rhs, sext==0) uses a
 {
     R_flush($$);
 
@@ -653,7 +756,7 @@ gen r16 := CAST12(r8:rhs, sext==0) uses a
     E(",#0\n");
 }
 
-gen r16 := CAST12(r8:rhs, sext!=0) uses a
+gen r16 := CAST12(r8|a:rhs, sext!=0) uses a
 {
     R_flush($$|REG_A);
 
@@ -665,7 +768,7 @@ gen r16 := CAST12(r8:rhs, sext!=0) uses a
     E_mov8(reglo($$), $rhs);
 }
 
-gen r32 := CAST14(r8:rhs):c uses a
+gen r32 := CAST14(r8|a:rhs):c uses a
 {
     R_flush($$);
 
@@ -702,14 +805,14 @@ gen r32 := CAST24(r16:rhs):c uses a
     E_mov8(reghi(reghi($$)), REG_A);
 }
 
-gen r8 := CAST21(r16:rhs)
+gen r8|a := CAST21(r16:rhs)
 {
     R_flush($$);
 
     E_mov8($$, reglo($rhs));
 }
 
-gen r8 := CAST41(r32:rhs)
+gen r8|a := CAST41(r32:rhs)
 {
     R_flush($$);
 
@@ -746,23 +849,17 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
     end sub;
 %}
 
-gen BEQ1(r8:lhs, a:rhs):b uses all
+gen BEQ1(op1:lhs, a:rhs):b uses all
 {
-    E_insn_simple("clr c");
-    E_insn("subb a,");
-    E_reg($lhs);
-    E_nl();
-
+    E_insn_simple("clr b");
+    Alu1("subb", $lhs, &$@lhs.operand);
     E_jumps_with_fallthrough("jz", "jnz", $@$);
 }
 
-gen BLTU1(a:lhs, r8:rhs):b uses all
+gen BLTU1(a:lhs, op1:rhs):b uses all
 {
-    E_insn_simple("clr c");
-    E_insn("subb a,");
-    E_reg($rhs);
-    E_nl();
-
+    E_insn_simple("clr b");
+    Alu1("subb", $rhs, &$@rhs.operand);
     E_jumps_with_fallthrough("jnc", "jc", $@$);
 }
 
