@@ -1,0 +1,137 @@
+%token EOS NUMBER STRING ID.
+%token PERCENT OPENPAREN CLOSEPAREN OPENSQ CLOSESQ.
+%token COLON PLUS SLASH STAR MINUS.
+%token PIPE CARET COMMA AMPERSAND LSHIFT RSHIFT.
+%token OPENBR CLOSEBR TILDE LEOP LTOP GEOP GTOP.
+%token EQOP NEOP HASH AT.
+
+%left COMMA.
+%left AMPERSAND.
+%left PIPE.
+%left CARET.
+%nonassoc LTOP LEOP GTOP GEOP EQOP NEOP.
+%left LSHIFT RSHIFT.
+%left PLUS MINUS.
+%left STAR SLASH PERCENT.
+%right NOT TILDE.
+
+%token_type {Token}
+
+%syntax_error
+{
+        StartError();
+        print("unexpected ");
+        print(yyTokenName[yymajor]);
+        EndError();
+}
+
+%stack_size 100
+%stack_overflow
+{
+        StartError();
+        print("parser stack overflow");
+        EndError();
+}
+
+%token_destructor
+{
+        if (yymajor == STRING) or (yymajor == ID) then
+                print("free unused string\n");
+                Free($$.string as [uint8]);
+        end if;
+}
+
+program ::= statements.
+
+statements ::= /* empty */.
+statements ::= statements statement.
+
+statement ::= label instruction EOS.
+
+label ::= /* empty */.
+label ::= ID(I) COLON.
+	{ SetSymbol(I.string, [currentProgramCounter], AS_XDATA); }
+
+instruction ::= INSN_ORG expression(E).
+	{ [currentProgramCounter] := E.number; }
+
+instruction ::= INSN_SEGMENT expression(E).
+	{
+		currentSegment := E.number as uint8;
+		if currentSegment >= @sizeof programCounter then
+			SimpleError("segment out of range");
+		end if;
+		currentProgramCounter := &programCounter[currentSegment];
+	}
+
+instruction ::= INSN_DB db_list.
+instruction ::= INSN_DW dw_list.
+
+db_list ::= expression(E).               { Emit8(E.number as uint8); }
+db_list ::= db_list COMMA expression(E). { Emit8(E.number as uint8); }
+
+dw_list ::= expression(E).               { Emit16(E.number); }
+dw_list ::= dw_list COMMA expression(E). { Emit16(E.number); }
+
+statement ::= ID(I) EQUALS expression(E) EOS.
+	{ SetSymbol(I.string, E.number, E.addressSpace); }
+
+/* --- Expressions ------------------------------------------------------- */
+
+%type expression {Number}
+
+%include
+{
+	sub CheckNumber(space: uint8) is
+		if space != AS_NUMBER then
+			SimpleError("must use a simple number here");
+		end if;
+	end sub;
+
+	sub SimpleComputation(e: [Number], e1: [Number], e2: [Number], v: Arith) is
+		CheckNumber(e1.addressSpace);
+		CheckNumber(e2.addressSpace);
+		e.number := v;
+		e.addressSpace := AS_NUMBER;
+	end sub;
+}
+
+expression(E) ::= NUMBER(T).
+	{ E.number := T.number; E.addressSpace := AS_NUMBER; }
+
+expression(E) ::= ID(I).
+	{ var s := FindSymbol(I.string); E.number := s.number; E.addressSpace := s.addressSpace; }
+
+expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.
+	{ E.number := E1.number; E.addressSpace := E1.addressSpace; }
+
+expression(E) ::= MINUS expression(E1).
+	{ CheckNumber(E1.addressSpace); E.number := -E1.number; E.addressSpace := AS_NUMBER; }
+
+expression(E) ::= TILDE expression(E1).
+	{ CheckNumber(E1.addressSpace); E.number := ~E1.number; E.addressSpace := AS_NUMBER; }
+
+expression(E) ::= expression(E1) AMPERSAND expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number & E2.number); }
+
+expression(E) ::= expression(E1) CARET expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number ^ E2.number); }
+
+expression(E) ::= expression(E1) PIPE expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number | E2.number); }
+
+expression(E) ::= expression(E1) STAR expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number * E2.number); }
+
+expression(E) ::= expression(E1) SLASH expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number / E2.number); }
+
+expression(E) ::= expression(E1) PERCENT expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number % E2.number); }
+
+expression ::= expression LSHIFT expression.
+expression ::= expression MINUS expression.
+expression ::= expression PLUS expression.
+expression ::= expression RSHIFT expression.
+
+

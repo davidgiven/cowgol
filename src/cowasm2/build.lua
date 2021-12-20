@@ -1,8 +1,13 @@
 local ARCHS = { "ac1082" }
 
 for _, arch in ipairs(ARCHS) do
-	lemoncowgol {
+	gpp {
 		ins = { "src/cowasm2/arch"..arch..".y" },
+		outs = { "$OBJ/src/cowasm2/arch"..arch..".y" }
+	}
+
+	lemoncowgol {
+		ins = { "$OBJ/src/cowasm2/arch"..arch..".y" },
 		outs = {
 			"$OBJ/src/cowasm2/arch"..arch..".parser.coh",
 			"$OBJ/src/cowasm2/arch"..arch..".tokens.coh",
