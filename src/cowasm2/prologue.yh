@@ -129,9 +129,32 @@ expression(E) ::= expression(E1) SLASH expression(E2).
 expression(E) ::= expression(E1) PERCENT expression(E2).
 	{ SimpleComputation(&E, &E1, &E2, E1.number % E2.number); }
 
-expression ::= expression LSHIFT expression.
-expression ::= expression MINUS expression.
-expression ::= expression PLUS expression.
-expression ::= expression RSHIFT expression.
+expression(E) ::= expression(E1) LSHIFT expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number << (E2.number as uint8)); }
 
+expression(E) ::= expression(E1) RSHIFT expression(E2).
+	{ SimpleComputation(&E, &E1, &E2, E1.number >> (E2.number as uint8)); }
+
+expression(E) ::= expression(E1) MINUS expression(E2).
+	{
+		if E2.type == AS_NUMBER then
+			E.number := E1.number - E2.number;
+			E.type := E1.type;
+		elseif E1.type == E2.type then
+			E.number := E1.number - E2.number;
+			E.type := AS_NUMBER;
+		else
+			SimpleError("incompatible number types");
+		end if;
+	}
+
+expression(E) ::= expression(E1) PLUS expression(E2).
+	{
+		if E2.type == AS_NUMBER then
+			E.number := E1.number + E2.number;
+			E.type := E1.type;
+		else
+			SimpleError("incompatible number types");
+		end if;
+	}
 
