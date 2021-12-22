@@ -3,7 +3,8 @@ local ARCHS = { "ac1082" }
 for _, arch in ipairs(ARCHS) do
 	gpp {
 		ins = { "src/cowasm2/arch"..arch..".y" },
-		outs = { "$OBJ/src/cowasm2/arch"..arch..".y" }
+		outs = { "$OBJ/src/cowasm2/arch"..arch..".y" },
+		deps = { "src/cowasm2/prologue.yh" }
 	}
 
 	lemoncowgol {

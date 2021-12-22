@@ -74,7 +74,7 @@ dw_list ::= expression(E).               { Emit16(E.number); }
 dw_list ::= dw_list COMMA expression(E). { Emit16(E.number); }
 
 statement ::= ID(I) EQUALS expression(E) EOS.
-	{ SetSymbol(I.string, E.number, E.addressSpace); }
+	{ SetSymbol(I.string, E.number, E.type); }
 
 /* --- Expressions ------------------------------------------------------- */
 
@@ -89,27 +89,27 @@ statement ::= ID(I) EQUALS expression(E) EOS.
 	end sub;
 
 	sub SimpleComputation(e: [Number], e1: [Number], e2: [Number], v: Arith) is
-		CheckNumber(e1.addressSpace);
-		CheckNumber(e2.addressSpace);
+		CheckNumber(e1.type);
+		CheckNumber(e2.type);
 		e.number := v;
-		e.addressSpace := AS_NUMBER;
+		e.type := AS_NUMBER;
 	end sub;
 }
 
 expression(E) ::= NUMBER(T).
-	{ E.number := T.number; E.addressSpace := AS_NUMBER; }
+	{ E.number := T.number; E.type := AS_NUMBER; }
 
 expression(E) ::= ID(I).
-	{ var s := FindSymbol(I.string); E.number := s.number; E.addressSpace := s.addressSpace; }
+	{ var s := FindSymbol(I.string); E.number := s.number; E.type := s.type; }
 
 expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.
-	{ E.number := E1.number; E.addressSpace := E1.addressSpace; }
+	{ E.number := E1.number; E.type := E1.type; }
 
 expression(E) ::= MINUS expression(E1).
-	{ CheckNumber(E1.addressSpace); E.number := -E1.number; E.addressSpace := AS_NUMBER; }
+	{ CheckNumber(E1.type); E.number := -E1.number; E.type := AS_NUMBER; }
 
 expression(E) ::= TILDE expression(E1).
-	{ CheckNumber(E1.addressSpace); E.number := ~E1.number; E.addressSpace := AS_NUMBER; }
+	{ CheckNumber(E1.type); E.number := ~E1.number; E.type := AS_NUMBER; }
 
 expression(E) ::= expression(E1) AMPERSAND expression(E2).
 	{ SimpleComputation(&E, &E1, &E2, E1.number & E2.number); }

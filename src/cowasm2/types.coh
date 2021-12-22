@@ -13,7 +13,7 @@ end record;
 
 record Number is
 	number: Arith;
-	addressSpace: uint8;
+	type: uint8;
 end record;
 
 var inputFilename: string;
@@ -31,4 +31,6 @@ var programCounter: Arith[4];
 var emitSegment: uint8 := 0;
 var currentSegment: uint8 := 0;
 var currentProgramCounter := &programCounter[0];
+
+const AS_NUMBER := 0xff;
 

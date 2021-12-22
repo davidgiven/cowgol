@@ -9,9 +9,8 @@ typedef Arith is uint16;
 include "types.coh";
 include "archac1082.tokens.coh";
 
-const AS_NUMBER := 0;
-const AS_IDATA := 1;
-const AS_XDATA := 2;
+const AS_IDATA := 0x80;
+const AS_XDATA := 0x81;
 
 var keywords: Keyword[] := {
 	# --- Special pseudo-instructions ------------------------------------

@@ -39,7 +39,7 @@ reg16(R) ::= REG_16(R1).
 	end sub;
 
 	sub EmitAddress(expr: [Number], kind: uint8) is
-		if (expr.addressSpace != AS_NUMBER) and (expr.addressSpace != kind) then
+		if (expr.type != AS_NUMBER) and (expr.type != kind) then
 			SimpleError("mismatched address types");
 		end if;
 		if kind == AS_IDATA then
@@ -78,7 +78,7 @@ instruction ::= /* empty */.
 
 instruction ::= INSN_ABSA(I) expression(E).
 	{
-		if (E.addressSpace != AS_NUMBER) and (E.addressSpace != AS_XDATA) then
+		if (E.type != AS_NUMBER) and (E.type != AS_XDATA) then
 			BadAddressType();
 		end if;
 		var pc := [currentProgramCounter] + 2;
