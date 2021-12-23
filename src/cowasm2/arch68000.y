@@ -78,16 +78,17 @@ dd_list ::= dd_list COMMA expression(E). { Emit32(&E); }
 
 /* --- Instructions ------------------------------------------------------ */
 
-/* dX,dX or --aX,--aX */
-instruction ::= INSN_D_PDA(I) ea(R1) COMMA ea(R2).
+/* dX,dX or -(aX),-(aX) only */
+instruction ::= INSN_ABCD(I) ea(R1) COMMA ea(R2).
 	{
-		if R1.mode != R2.mode then
-			SimpleError("invalid operand combination");
+		if (R1.mode != R2.mode) and (R1.mode != AM_REGD) and (R1.mode != AM_PREDEC) then
+			InvalidOperand();
 		end if;
 		var rm: uint16 := 0;
 		if R1.mode == AM_PREDEC then
 			rm := 1;
 		end if;
+
 		Emit16((I.number as uint16) | (R1.reg as uint16)
 			| (R2.reg as uint16 << 9) | (rm << 3));
 	}

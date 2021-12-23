@@ -48,6 +48,8 @@ statements ::= statements statement.
 
 statement ::= label instruction EOS.
 
+instruction ::= /* empty */.
+
 instruction ::= INSN_ORG expression(E).
 	{ [currentProgramCounter] := E.number; }
 

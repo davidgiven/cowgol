@@ -87,8 +87,6 @@ label ::= ID(I) COLON.
 	end sub;
 }
 
-instruction ::= /* empty */.
-
 /* --- ACALL/AJMP -------------------------------------------------------- */
 
 instruction ::= INSN_ABSA(I) expression(E).
