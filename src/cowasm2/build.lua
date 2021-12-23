@@ -1,4 +1,4 @@
-local ARCHS = { "ac1082" }
+local ARCHS = { "ac1082", "68000" }
 
 for _, arch in ipairs(ARCHS) do
 	gpp {

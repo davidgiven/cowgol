@@ -1,0 +1,90 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+include "strings.coh";
+include "malloc.coh";
+
+typedef Arith is uint32;
+
+include "types.coh";
+include "arch68000.tokens.coh";
+
+# These are the internal addressing mode encodings.
+const AM_REGD    := 0b000000;
+const AM_REGA    := 0b001000;
+const AM_IND     := 0b010000;
+const AM_POSTINC := 0b011000;
+const AM_PREDEC  := 0b100000;
+const AM_ADISP   := 0b101000;
+const AM_AINDEX  := 0b110000;
+const AM_PCDISP  := 0b111010;
+const AM_PCINDEX := 0b111011;
+const AM_ABSW    := 0b111000;
+const AM_ABSL    := 0b111001;
+const AM_IMM     := 0b111100;
+
+record AddressingMode is
+	mode: uint8;
+	reg: uint8;
+	xreg: uint8;
+	value: Number;
+end record;
+
+var keywords: Keyword[] := {
+	# --- Special pseudo-instructions ------------------------------------
+
+	{ ".org",    INSN_ORG,     0 },
+	{ ".seg",    INSN_SEGMENT, 0 },
+	{ ".db",     INSN_DB,      0 },
+	{ ".dw",     INSN_DW,      0 },
+	{ ".dd",     INSN_DD,      0 },
+
+	# --- Registers and modifiers ----------------------------------------
+
+	{ "d0",		 REG_D,        0 },
+	{ "d1",		 REG_D,        1 },
+	{ "d2",		 REG_D,        2 },
+	{ "d3",		 REG_D,        3 },
+	{ "d4",		 REG_D,        4 },
+	{ "d5",		 REG_D,        5 },
+	{ "d6",		 REG_D,        6 },
+	{ "d7",		 REG_D,        7 },
+	{ "a0",		 REG_A,        0 },
+	{ "a1",		 REG_A,        1 },
+	{ "a2",		 REG_A,        2 },
+	{ "a3",		 REG_A,        3 },
+	{ "a4",		 REG_A,        4 },
+	{ "a5",		 REG_A,        5 },
+	{ "a6",		 REG_A,        6 },
+	{ "a7",		 REG_A,        7 },
+	{ "pc",      REG_PC,       0 },
+
+	{ "w",       REG_MOD,      0 },
+	{ "l",       REG_MOD,      1 },
+
+	# --- Instructions ---------------------------------------------------
+
+	{ "abcd",    INSN_D_PDA,   0b1100000100000000 },
+};
+
+include "lexer.coh";
+include "emitter.coh";
+include "symbols.coh";
+
+sub Emit16(w: uint16) is
+	Emit8(w as uint8);
+	Emit8((w >> 8) as uint8);
+end sub;
+
+sub Emit32(n: [Number]) is
+	var d := n.number;
+	Emit16(d as uint16);
+	Emit16((d >> 16) as uint16);
+end sub;
+
+include "arch68000.parser.coh";
+include "cowasm2.coh";
+
+Main("68000 family assembler (c) 2021 David Given");
+
+

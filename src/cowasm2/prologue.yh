@@ -48,10 +48,6 @@ statements ::= statements statement.
 
 statement ::= label instruction EOS.
 
-label ::= /* empty */.
-label ::= ID(I) COLON.
-	{ SetSymbol(I.string, [currentProgramCounter], AS_XDATA); }
-
 instruction ::= INSN_ORG expression(E).
 	{ [currentProgramCounter] := E.number; }
 
@@ -63,15 +59,6 @@ instruction ::= INSN_SEGMENT expression(E).
 		end if;
 		currentProgramCounter := &programCounter[currentSegment];
 	}
-
-instruction ::= INSN_DB db_list.
-instruction ::= INSN_DW dw_list.
-
-db_list ::= expression(E).               { Emit8(E.number as uint8); }
-db_list ::= db_list COMMA expression(E). { Emit8(E.number as uint8); }
-
-dw_list ::= expression(E).               { Emit16(E.number); }
-dw_list ::= dw_list COMMA expression(E). { Emit16(E.number); }
 
 statement ::= ID(I) EQUALS expression(E) EOS.
 	{ SetSymbol(I.string, E.number, E.type); }

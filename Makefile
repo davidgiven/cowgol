@@ -1,5 +1,5 @@
 export OBJ = .obj
-export LUA = lua
+export LUA = lua5.2
 export CFLAGS = -g -O0
 export LDFLAGS = -g
 export NINJAFLAGS =
