@@ -16,11 +16,11 @@ const AM_IND     := 0b010000;
 const AM_POSTINC := 0b011000;
 const AM_PREDEC  := 0b100000;
 const AM_ADISP   := 0b101000;
-const AM_AINDEX  := 0b110000;
-const AM_PCDISP  := 0b111010;
-const AM_PCINDEX := 0b111011;
+#const AM_AINDEX  := 0b110000; # extension
 const AM_ABSW    := 0b111000;
 const AM_ABSL    := 0b111001;
+const AM_PCDISP  := 0b111010;
+#const AM_PCINDEX := 0b111011; # extension
 const AM_IMM     := 0b111100;
 
 record AddressingMode is
@@ -59,19 +59,44 @@ var keywords: Keyword[] := {
 	{ "a7",		 REG_A,        7 },
 	{ "pc",      REG_PC,       0 },
 
-	{ "w",       REG_MOD,      0 },
-	{ "l",       REG_MOD,      1 },
+	{ ".b",      REG_MOD,      0 },
+	{ ".w",      REG_MOD,      1 },
+	{ ".l",      REG_MOD,      2 },
 
 	# --- Instructions ---------------------------------------------------
 
 	# dX,dY or -(aX),-(aY) only
 
 	{ "abcd",    INSN_ABCD,    0b1100000100000000 },
+	{ "sbcd",    INSN_ABCD,    0b1000000100000000 },
+
+	# add, addq, adda, addi
+
+	{ "add",     INSN_ADD,     0 },
+	{ "addq",    INSN_ADD,     0 },
+	{ "adda",    INSN_ADD,     0 },
+	{ "addi",    INSN_ADD,     0 },
 };
 
 include "lexer.coh";
 include "emitter.coh";
 include "symbols.coh";
+
+sub MustBeRawNumber(type: uint8) is
+	if type != AS_NUMBER then
+		SimpleError("only raw numbers are allowed as displacements");
+	end if;
+end sub;
+
+sub DisplacementOutOfRange(disp: uint32, max: uint32) is
+	if disp > max then
+		SimpleError("displacement out of range");
+	end if;
+end sub;
+
+sub InvalidOperand() is
+	SimpleError("invalid operand");
+end sub;
 
 sub Emit16(w: uint16) is
 	Emit8((w >> 8) as uint8);
@@ -84,8 +109,48 @@ sub Emit32(n: [Number]) is
 	Emit16(d as uint16);
 end sub;
 
-sub InvalidOperand() is
-	SimpleError("invalid operand");
+sub EmitX(ea: [AddressingMode], size: uint8) is
+	case ea.mode is
+		when AM_ADISP:
+			MustBeRawNumber(ea.value.type);
+			Emit16(ea.value.number as uint16);
+
+		#when AM_AINDEX:
+		#	MustBeRawNumber(ea.value.type);
+		#	DisplacementOutOfRange(ea.value.number, 0xff);
+		#	var m: uint16 := 0;
+		#	if size == 0 then
+		#		InvalidOperand();
+		#	elseif size == 2 then
+		#		m := 1;
+		#	end if;
+
+		#	Emit16((ea.value.number as uint16)
+		#		| (ea.xreg as uint16 << 12)
+		#		| (m << 11));
+
+		when AM_ABSW:
+			MustBeRawNumber(ea.value.type);
+			if (ea.value.type > 0x7fff) and (ea.value.type < 0xffff8000) then
+				SimpleError("absolute word address out of range");
+			end if;
+			Emit16(ea.value.number as uint16);
+
+		when AM_ABSL:
+			Emit32(&ea.value);
+
+		when AM_IMM:
+			if size == 2 then
+				Emit32(&ea.value);
+			else
+				MustBeRawNumber(ea.value.type);
+				Emit16(ea.value.number as uint16);
+			end if;
+
+		when AM_PCDISP:
+			MustBeRawNumber(ea.value.type);
+			Emit16(ea.value.number as uint16);
+	end case;
 end sub;
 
 include "arch68000.parser.coh";

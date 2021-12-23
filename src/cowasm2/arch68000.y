@@ -5,6 +5,13 @@ $include "prologue.yh"
 
 /* --- Elements ---------------------------------------------------------- */
 
+%type mod {uint8}
+mod(M) ::= /* empty */.
+	{ M := 2; }
+
+mod(M) ::= REG_MOD(T).
+	{ M := T.number as uint8; }
+
 %type ea {AddressingMode}
 
 ea(R) ::= REG_A(T).
@@ -26,6 +33,7 @@ ea(R) ::= OPENPAREN expression(E) COMMA REG_A(T) CLOSEPAREN.
 	{ R.mode := AM_ADISP; R.reg := T.number as uint8;
       R.value.type := E.type; R.value.number := E.number; }
 
+/*
 ea(R) ::= OPENPAREN expression(E) COMMA REG_A(T) COMMA REG_D(X) CLOSEPAREN.
 	{ R.mode := AM_AINDEX; R.reg := T.number as uint8;
       R.xreg := X.number as uint8;
@@ -35,26 +43,38 @@ ea(R) ::= OPENPAREN expression(E) COMMA REG_A(T) COMMA REG_A(X) CLOSEPAREN.
 	{ R.mode := AM_AINDEX; R.reg := T.number as uint8;
       R.xreg := X.number as uint8 | 8;
       R.value.type := E.type; R.value.number := E.number; }
+*/
 
 ea(R) ::= OPENPAREN expression(E) COMMA REG_PC CLOSEPAREN.
-	{ R.mode := AM_PCDISP; R.value.type := E.type; R.value.number := E.number; }
+	{ R.mode := AM_PCDISP;
+	  R.reg := 0;
+      R.value.type := E.type; R.value.number := E.number; }
 
+/*
 ea(R) ::= OPENPAREN expression(E) COMMA REG_PC COMMA REG_D(X) CLOSEPAREN.
 	{ R.mode := AM_PCINDEX;
+	  R.reg := 0;
       R.xreg := X.number as uint8;
       R.value.type := E.type; R.value.number := E.number; }
 
 ea(R) ::= OPENPAREN expression(E) COMMA REG_PC COMMA REG_A(X) CLOSEPAREN.
 	{ R.mode := AM_PCINDEX;
+	  R.reg := 0;
       R.xreg := X.number as uint8 | 8;
       R.value.type := E.type; R.value.number := E.number; }
+*/
 
-ea(R) ::= OPENPAREN expression(E) CLOSEPAREN DOT REG_MOD(M).
-	{ R.mode := AM_ABSW + (M.number as uint8);
+ea(R) ::= OPENPAREN expression(E) CLOSEPAREN mod(M).
+	{ if M == 0 then
+	    SimpleError("byte size not allowed in EA");
+	  end if;
+      R.mode := AM_ABSW - 1 + M;
+	  R.reg := 0;
 	  R.value.type := E.type; R.value.number := E.number; }
 
 ea(R) ::= HASH expression(E).
 	{ R.mode := AM_IMM;
+	  R.reg := 0;
 	  R.value.type := E.type; R.value.number := E.number; }
 
 /* --- Major pseudoinstructions ------------------------------------------ */
@@ -93,4 +113,75 @@ instruction ::= INSN_ABCD(I) ea(R1) COMMA ea(R2).
 			| (R2.reg as uint16 << 9) | (rm << 3));
 	}
 
+/* All the adds */
+instruction ::= INSN_ADD mod(M) ea(R1) COMMA ea(R2).
+	{
+		if (R2.mode == AM_IMM) or (R2.mode == AM_PCDISP) then
+			InvalidOperand();
+		end if;
 
+		if (R1.mode == AM_IMM)
+			and (R1.value.type == AS_NUMBER)
+			and (R1.value.number < 8)
+		then
+			# addq
+			Emit16(0b0101000000000000
+				| (R1.value.number as uint16 << 9)
+				| (M as uint16 << 6)
+				| (R2.mode as uint16)
+				| (R2.reg as uint16));
+			EmitX(&R2, M);
+			return;
+		end if;
+
+		if R2.mode == AM_REGA then
+			# adda
+			Emit16(0b1101000000000000
+				| (R2.reg as uint16 << 9)
+				| (M as uint16 << 6)
+				| (R1.mode as uint16)
+				| (R1.reg as uint16));
+			EmitX(&R1, M);
+			return;
+		end if;
+
+		if (R1.mode == AM_IMM) and (R2.mode != AM_REGA) then
+			# addi
+			Emit16(0b0000011000000000
+				| (M as uint16 << 6)
+				| (R2.mode as uint16)
+				| (R2.reg as uint16));
+			if M == 2 then
+				Emit32(&R1.value);
+			else
+				MustBeRawNumber(R1.value.type);
+				Emit16(R1.value.number as uint16);
+			end if;
+			EmitX(&R2, M);
+			return;
+		end if;
+
+		if R2.mode == AM_REGD then
+			# add ea, dX
+			Emit16(0b1101000000000000
+				| (M as uint16 << 6)
+				| (R2.reg as uint16 << 9)
+				| (R1.mode as uint16)
+				| (R1.reg as uint16));
+			EmitX(&R1, M);
+			return;
+		end if;
+
+		if R1.mode == AM_REGD then
+			# add dX, ea
+			Emit16(0b1101000100000000
+				| (M as uint16 << 6)
+				| (R1.reg as uint16 << 9)
+				| (R2.mode as uint16)
+				| (R2.reg as uint16));
+			EmitX(&R2, M);
+			return;
+		end if;
+
+		SimpleError("bad add");
+	}

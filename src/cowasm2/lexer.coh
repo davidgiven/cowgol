@@ -25,7 +25,7 @@ var lexer_ctype: uint8[] := {
 	CTYPE_TOKEN|PLUS,            # 0x2b +
 	CTYPE_TOKEN|COMMA,           # 0x2c ,
 	CTYPE_TOKEN|MINUS,           # 0x2d -
-	CTYPE_IDSTART|CTYPE_IDCONT,  # 0x2e .
+	CTYPE_IDSTART,               # 0x2e .
 	CTYPE_TOKEN|SLASH,           # 0x2f /
 	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x30 0
 	CTYPE_IDCONT|CTYPE_DECDIGIT, # 0x31 1
@@ -247,6 +247,9 @@ sub LexerReadToken(): (token: uint8) is
 
 		loop
 			c := ToLower(lexer_i_getchar());
+			if c == '_' then
+				continue;
+			end if;
 			(type, token) := lexer_i_ctype(c);
 			if (type & CTYPE_IDCONT) == 0 then
 				pushed_char := c;
