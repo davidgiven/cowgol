@@ -384,7 +384,7 @@ instruction ::= INSN_BRA(T) expression(E).
 					when else: # long conditional
 						Emit16(((T.number as uint16 ^ 1) << 8)
 							| 0b0110000000000110);
-						Emit16(0b0100111010111001);
+						Emit16(0b0100111010111001); # jmp
 				end case;
 				Emit32(&E);
 				return;
@@ -404,6 +404,45 @@ instruction ::= INSN_BRA(T) expression(E).
 					Emit16(0b0100111010111001);
 					Emit32(&E);
 				end if;
+			end if;
+		end if;
+	}
+
+/* dbt and friends */
+
+instruction ::= INSN_DBT(T) ea(R) COMMA expression(E).
+	{
+		if R.mode != AM_REGD then
+			InvalidOperand();
+		end if;
+
+		if pass == 1 then
+			[currentProgramCounter] := [currentProgramCounter] + 10;
+		else
+			var delta: int32;
+			if E.type == AS_NUMBER then
+				Emit16((T.number as uint16 ^ 0x100)
+					| (R.reg as uint16));
+				Emit16(0b0100111010111001); # jmp
+				Emit32(&E);
+				return;
+			elseif E.type == currentSegment then
+				delta := (E.number - [currentProgramCounter] - 2) as int32;
+				if (delta >= -0x80) and (delta <= 0x7f) then
+					Emit16((T.number as uint16)
+						| (R.reg as uint16)
+						| (delta as uint8 as uint16));
+				elseif (delta >= -0x8000) and (delta <= 0x7fff) then
+					Emit16((T.number as uint16)
+						| (R.reg as uint16));
+					Emit16(delta as uint16);
+				else
+					Emit16((T.number as uint16 ^ 0x100)
+						| (R.reg as uint16));
+					Emit16(0b0100111010111001); # jmp
+					Emit32(&E);
+				end if;
+				return;
 			end if;
 		end if;
 	}

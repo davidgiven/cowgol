@@ -170,6 +170,8 @@ var keywords: Keyword[] := {
 	{ "bmi",     INSN_BRA,     0xb },
 	{ "bge",     INSN_BRA,     0xc },
 	{ "blt",     INSN_BRA,     0xd },
+	{ "bgt",     INSN_BRA,     0xe },
+	{ "ble",     INSN_BRA,     0xf },
 
 	# Bit operations
 
@@ -197,6 +199,26 @@ var keywords: Keyword[] := {
 	# Weird special instructions.
 
 	{ "cmpm",    INSN_CMPM,    0b1011000100001000 },
+
+	# dbt (all of them).
+
+	{ "dbt",     INSN_DBT,     0b0101000011001000 },
+	{ "dbf",     INSN_DBT,     0b0101000111001000 },
+	{ "dbhi",    INSN_DBT,     0b0101001011001000 },
+	{ "dbls",    INSN_DBT,     0b0101001111001000 },
+	{ "dbcc",    INSN_DBT,     0b0101010011001000 },
+	{ "dbcs",    INSN_DBT,     0b0101010111001000 },
+	{ "dbne",    INSN_DBT,     0b0101011011001000 },
+	{ "dbeq",    INSN_DBT,     0b0101011111001000 },
+	{ "dbvc",    INSN_DBT,     0b0101100011001000 },
+	{ "dbvs",    INSN_DBT,     0b0101100111001000 },
+	{ "dbpl",    INSN_DBT,     0b0101101011001000 },
+	{ "dbmi",    INSN_DBT,     0b0101101111001000 },
+	{ "dbge",    INSN_DBT,     0b0101110011001000 },
+	{ "dblt",    INSN_DBT,     0b0101110111001000 },
+	{ "dbgt",    INSN_DBT,     0b0101111011001000 },
+	{ "dble",    INSN_DBT,     0b0101111111001000 },
+
 };
 
 include "lexer.coh";
