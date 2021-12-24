@@ -312,3 +312,46 @@ instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
 
 		InvalidOperand();
 	}
+
+instruction ::= INSN_ASL(T) mod(M) ea(R1) COMMA ea(R2).
+	{
+		if (R1.mode == AM_REGD) and (R2.mode == AM_REGD) then
+			print_i8(T.number as uint8); print_nl();
+			Emit16(((T.number as uint16 & 0b110) << 2)
+				| ((T.number as uint16 & 0b001) << 8)
+				| 0b1110000000100000
+				| (R1.reg as uint16 << 9)
+				| (M as uint16 << 6)
+				| (R2.reg as uint16));
+		elseif (R1.mode == AM_IMM) and (R2.mode == AM_REGD) then
+			MustBeRawNumber(R1.value.type);
+			if (R1.value.number == 0) or (R1.value.number > 8) then
+				SimpleError("shift out of range");
+			end if;
+			Emit16(((T.number as uint16 & 0b110) << 2)
+				| ((T.number as uint16 & 0b001) << 8)
+				| 0b1110000000000000
+				| ((R1.value.number as uint16 & 7) << 9)
+				| (M as uint16 << 6)
+				| (R2.reg as uint16));
+		else
+			InvalidOperand();
+		end if;
+	}
+
+instruction ::= INSN_ASL(T) mod(M) ea(R1).
+	{
+		if M != 1 then
+			InvalidOperand();
+		end if;
+
+		if IsLvalueM(R1.mode) == 0 then
+			InvalidOperand();
+		end if;
+		Emit16((T.number as uint16 << 8)
+			| 0b1110000011000000
+			| (R1.mode as uint16)
+			| (R1.reg as uint16));
+		EmitX(&R1, M);
+	}
+

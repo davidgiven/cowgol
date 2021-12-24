@@ -56,6 +56,14 @@ sub IsLvalueD(am: uint8): (r: uint8) is
 	end if;
 end sub;
 
+sub IsLvalueM(am: uint8): (r: uint8) is
+	if am <= AM_REGA then
+		r := 0;
+	else
+		am := IsLvalue(am);
+	end if;
+end sub;
+
 record AddressingMode is
 	mode: uint8;
 	reg: uint8;
@@ -130,6 +138,17 @@ var keywords: Keyword[] := {
 
 	{ "eor",     INSN_ADDSUB,  4 },
 	{ "eori",    INSN_ADDSUB,  4 },
+
+	# Shifts
+
+	{ "asr",     INSN_ASL,     0b000 },
+	{ "asl",     INSN_ASL,     0b001 },
+	{ "lsr",     INSN_ASL,     0b010 },
+	{ "lsl",     INSN_ASL,     0b011 },
+	{ "roxr",    INSN_ASL,     0b100 },
+	{ "roxl",    INSN_ASL,     0b101 },
+	{ "ror",     INSN_ASL,     0b110 },
+	{ "rol",     INSN_ASL,     0b111 },
 };
 
 include "lexer.coh";
