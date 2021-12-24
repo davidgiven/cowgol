@@ -77,6 +77,9 @@ ea(R) ::= HASH expression(E).
 	  R.reg := 0;
 	  R.value.type := E.type; R.value.number := E.number; }
 
+ea(R) ::= REG_CCRSR(T).
+	{ R.mode := AM_CCR + (T.number as uint8); }
+
 /* --- Major pseudoinstructions ------------------------------------------ */
 
 label ::= /* empty */.
@@ -147,7 +150,7 @@ instruction ::= INSN_ADDX(I) mod(M) ea(R1) COMMA ea(R2).
 
 	sub AddSub(addq: uint16, adda: uint16, addi: uint16, add: uint16,
 			m: uint8, r1: [AddressingMode], r2: [AddressingMode]) is
-		if (r2.mode == AM_IMM) or (r2.mode == AM_PCDISP) then
+		if IsRvalue(r2.mode) == 0 then
 			InvalidOperand();
 		end if;
 
@@ -214,79 +217,98 @@ instruction ::= INSN_ADDX(I) mod(M) ea(R1) COMMA ea(R2).
 
 		InvalidOperand();
 	end sub;
+
+	sub AluSpecial(op: uint16, r1: [AddressingMode]) is
+		Emit16(op);
+		MustBeRawNumber(r1.value.type);
+		Emit16(r1.value.number as uint16);
+	end sub;
 }
 
 /* All the adds */
 instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
 	{
 		case T.number as uint8 is
-			when 0:
+			when 0: # add
 				AddSub(
 					0b0101000000000000, # addq
 					0b1101000000000000, # adda
 					0b0000011000000000, # addi
 					0b1101000000000000, # add
 					M, &R1, &R2);
+				return;
 
-			when 1:
+			when 1: # sub
 				AddSub(
 					0b0101000100000000, # subq
 					0b1001000000000000, # suba
 					0b0000010000000000, # subi
 					0b1001000000000000, # sub
 					M, &R1, &R2);
+				return;
 
-			when 2:
+			when 2: # and
+				if R2.mode == AM_CCR then
+					AluSpecial(0b0000001000111100, &R1);
+					return;
+				elseif R2.mode == AM_SR then
+					AluSpecial(0b0000001001111100, &R1);
+					return;
+				end if;
+
 				AddSub(
 					0,
 					0,
 					0b0000001000000000, # andi
 					0b1100000000000000, # and
 					M, &R1, &R2);
+				return;
 
-			when 3:
+			when 3: # or
+				if R2.mode == AM_CCR then
+					AluSpecial(0b0000000000111100, &R1);
+					return;
+				elseif R2.mode == AM_SR then
+					AluSpecial(0b0000000001111100, &R1);
+					return;
+				end if;
+
 				AddSub(
 					0,
 					0,
 					0b0000000000000000, # ori
 					0b1000000000000000, # or
 					M, &R1, &R2);
+				return;
 
-			when 4:
-				if (R1.mode != AM_IMM) and (R1.mode != AM_REGD) then
+			when 4: # eor is special
+				if R2.mode == AM_CCR then
+					AluSpecial(0b0000101000111100, &R1);
+					return;
+				elseif R2.mode == AM_SR then
+					AluSpecial(0b0000101001111100, &R1);
+					return;
+				end if;
+
+				if IsRvalueD(R2.mode) == 0 then
 					InvalidOperand();
 				end if;
-				AddSub(
-					0,
-					0,
-					0b0000101000000000, # eori
-					0b1011000100000000, # eor
-					M, &R1, &R2);
+
+				if R1.mode == AM_IMM then
+					AluImm(0b0000101000000000, M, &R1, &R2);
+					return;
+				end if;
+
+				if R1.mode == AM_REGD then
+					Emit16(0b1011000100000000
+						| (M as uint16 << 6)
+						| (R1.reg as uint16 << 9)
+						| (R2.mode as uint16)
+						| (R2.reg as uint16));
+					EmitX(&R2, M);
+					return;
+				end if;
 		end case;
-	}
-
-/* Eor is special */
-instruction ::= INSN_EOR mod(M) ea(R1) COMMA ea(R2).
-	{
-		if (R2.mode == AM_PCDISP) or (R2.mode == AM_IMM) or (R2.mode == AM_REGA) then
-			InvalidOperand();
-		end if;
-
-		if R1.mode == AM_IMM then
-			AluImm(0b0000101000000000, M, &R1, &R2);
-			return;
-		end if;
-
-		if R1.mode == AM_REGD then
-			Emit16(0b1011000100000000
-				| (M as uint16 << 6)
-				| (R1.reg as uint16 << 9)
-				| (R2.mode as uint16)
-				| (R2.reg as uint16));
-			EmitX(&R2, M);
-			return;
-		end if;
 
 		InvalidOperand();
 	}
-

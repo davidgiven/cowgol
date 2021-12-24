@@ -23,6 +23,39 @@ const AM_PCDISP  := 0b111010;
 #const AM_PCINDEX := 0b111011; # extension
 const AM_IMM     := 0b111100;
 
+const AM_CCR     := 0x80;
+const AM_SR      := 0x81;
+
+sub IsRvalue(am: uint8): (r: uint8) is
+	r := 1;
+	if am >= AM_PCDISP then
+		r := 0;
+	end if;
+end sub;
+
+sub IsRvalueD(am: uint8): (r: uint8) is
+	if am == AM_REGA then
+		r := 0;
+	else
+		am := IsRvalue(am);
+	end if;
+end sub;
+
+sub IsLvalue(am: uint8): (r: uint8) is
+	r := 1;
+	if am >= AM_IMM then
+		r := 0;
+	end if;
+end sub;
+
+sub IsLvalueD(am: uint8): (r: uint8) is
+	if am == AM_REGA then
+		r := 0;
+	else
+		am := IsLvalue(am);
+	end if;
+end sub;
+
 record AddressingMode is
 	mode: uint8;
 	reg: uint8;
@@ -57,7 +90,10 @@ var keywords: Keyword[] := {
 	{ "a5",		 REG_A,        5 },
 	{ "a6",		 REG_A,        6 },
 	{ "a7",		 REG_A,        7 },
+
 	{ "pc",      REG_PC,       0 },
+	{ "ccr",     REG_CCRSR,    0 },
+	{ "sr",      REG_CCRSR,    1 },
 
 	{ ".b",      REG_MOD,      0 },
 	{ ".w",      REG_MOD,      1 },
@@ -92,9 +128,8 @@ var keywords: Keyword[] := {
 	{ "or",      INSN_ADDSUB,  3 },
 	{ "ori",     INSN_ADDSUB,  3 },
 
-	{ "eor",     INSN_EOR,     0 },
-	{ "eori",    INSN_EOR,     0 },
-
+	{ "eor",     INSN_ADDSUB,  4 },
+	{ "eori",    INSN_ADDSUB,  4 },
 };
 
 include "lexer.coh";
