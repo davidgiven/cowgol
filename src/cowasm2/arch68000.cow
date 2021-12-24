@@ -70,7 +70,12 @@ var keywords: Keyword[] := {
 	{ "abcd",    INSN_ABCD,    0b1100000100000000 },
 	{ "sbcd",    INSN_ABCD,    0b1000000100000000 },
 
-	# add, addq, adda, addi and the corresponding subs
+	# dX,dY or -(aX),-(aY) with size mod
+
+	{ "addx",    INSN_ADDX,    0b1101000100000000 },
+	{ "subx",    INSN_ADDX,    0b1001000100000000 },
+
+	# add, addq, adda, addi and friends
 
 	{ "add",     INSN_ADDSUB,  0 },
 	{ "addq",    INSN_ADDSUB,  0 },
@@ -81,6 +86,14 @@ var keywords: Keyword[] := {
 	{ "subq",    INSN_ADDSUB,  1 },
 	{ "suba",    INSN_ADDSUB,  1 },
 	{ "subi",    INSN_ADDSUB,  1 },
+
+	{ "and",     INSN_ADDSUB,  2 },
+	{ "andi",    INSN_ADDSUB,  2 },
+	{ "or",      INSN_ADDSUB,  3 },
+	{ "ori",     INSN_ADDSUB,  3 },
+
+	{ "eor",     INSN_EOR,     0 },
+	{ "eori",    INSN_EOR,     0 },
 
 };
 
