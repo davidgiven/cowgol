@@ -173,6 +173,14 @@ var keywords: Keyword[] := {
 	{ "bchg",    INSN_BTST,    0b01 },
 	{ "bclr",    INSN_BTST,    0b10 },
 	{ "bset",    INSN_BTST,    0b11 },
+
+	# CHK, DIV, and friends
+
+	{ "chk",     INSN_CHK,     0b0100000110000000 },
+	{ "divu",    INSN_CHK,     0b1000000011000000 },
+	{ "divs",    INSN_CHK,     0b1000000111000000 },
+	{ "mulu",    INSN_CHK,     0b1100000011000000 },
+	{ "muls",    INSN_CHK,     0b1100000111000000 },
 };
 
 include "lexer.coh";

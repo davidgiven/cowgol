@@ -426,3 +426,17 @@ instruction ::= INSN_BTST(T) ea(R1) COMMA ea(R2).
 		end if;
 	}
 
+/* .w ea,dX instructions */
+
+instruction ::= INSN_CHK(T) ea(R1) COMMA ea(R2).
+	{
+		if (IsLvalueD(R1.mode) == 0) or (R2.mode != AM_REGD) then
+			InvalidOperand();
+		end if;
+
+		Emit16((T.number as uint16)
+			| (R2.reg as uint16 << 9)
+			| (R1.mode as uint16)
+			| (R1.reg as uint16));
+		EmitX(&R1, 1);
+	}
