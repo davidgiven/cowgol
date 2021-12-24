@@ -170,12 +170,12 @@ instruction ::= INSN_ADDX(I) mod(M) ea(R1) COMMA ea(R2).
 
 		if r2.mode == AM_REGA then
 			# adda
-			if adda == 0 then
+			if (adda == 0) or (m == 1) then
 				InvalidOperand();
 			end if;
 			Emit16(adda
 				| (r2.reg as uint16 << 9)
-				| (m as uint16 << 6)
+				| ((m & 0b10) as uint16 << 7)
 				| (r1.mode as uint16)
 				| (r1.reg as uint16));
 			EmitX(r1, m);
@@ -231,7 +231,7 @@ instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
 			when 0: # add
 				AddSub(
 					0b0101000000000000, # addq
-					0b1101000000000000, # adda
+					0b1101000011000000, # adda
 					0b0000011000000000, # addi
 					0b1101000000000000, # add
 					M, &R1, &R2);
@@ -240,7 +240,7 @@ instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
 			when 1: # sub
 				AddSub(
 					0b0101000100000000, # subq
-					0b1001000000000000, # suba
+					0b1001000011000000, # suba
 					0b0000010000000000, # subi
 					0b1001000000000000, # sub
 					M, &R1, &R2);
@@ -307,6 +307,16 @@ instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
 					EmitX(&R2, M);
 					return;
 				end if;
+
+			when 5: # cmp
+				AddSub(
+					0, # cmpq
+					0b1011000011000000, # cmpa
+					0b0000110000000000, # cmpi
+					0b1011000000000000, # cmp
+					M, &R1, &R2);
+				return;
+
 		end case;
 
 		InvalidOperand();

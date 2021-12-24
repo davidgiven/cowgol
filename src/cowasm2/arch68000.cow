@@ -139,6 +139,10 @@ var keywords: Keyword[] := {
 	{ "eor",     INSN_ADDSUB,  4 },
 	{ "eori",    INSN_ADDSUB,  4 },
 
+	{ "cmp",     INSN_ADDSUB,  5 },
+	{ "cmpa",    INSN_ADDSUB,  5 },
+	{ "cmpi",    INSN_ADDSUB,  5 },
+
 	# Shifts
 
 	{ "asr",     INSN_ASL,     0b000 },
