@@ -519,3 +519,36 @@ instruction ::= INSN_CMPM(T) mod(M) ea(R1) COMMA ea(R2).
 			| (R2.reg as uint16));
 	}
 
+/* exg is weird. */
+
+instruction ::= INSN_EXG(T) ea(R1) COMMA ea(R2).
+	{
+		if ((R1.mode != AM_REGD) and (R1.mode != AM_REGA))
+			or ((R2.mode != AM_REGD) and (R2.mode != AM_REGA))
+		then
+			InvalidOperand();
+		end if;
+
+		if (R1.mode == AM_REGD) and (R2.mode == AM_REGD) then
+			Emit16((T.number as uint16)
+				| 0b0000000001000000
+				| (R1.reg as uint16 << 9)
+				| (R2.reg as uint16));
+		elseif (R1.mode == AM_REGA) and (R2.mode == AM_REGA) then
+			Emit16((T.number as uint16)
+				| 0b0000000001001000
+				| (R1.reg as uint16 << 9)
+				| (R2.reg as uint16));
+		elseif R2.mode == AM_REGA then
+			Emit16((T.number as uint16)
+				| 0b0000000010001000
+				| (R1.reg as uint16 << 9)
+				| (R2.reg as uint16));
+		else
+			Emit16((T.number as uint16)
+				| 0b0000000010001000
+				| (R2.reg as uint16 << 9)
+				| (R1.reg as uint16));
+		end if;
+	}
+

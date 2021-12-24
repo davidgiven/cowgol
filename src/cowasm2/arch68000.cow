@@ -199,6 +199,7 @@ var keywords: Keyword[] := {
 	# Weird special instructions.
 
 	{ "cmpm",    INSN_CMPM,    0b1011000100001000 },
+	{ "exg",     INSN_EXG,     0b1100000100000000 },
 
 	# dbt (all of them).
 
