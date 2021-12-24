@@ -1,5 +1,4 @@
 %token REG_A REG_D REG_PC.
-%token INSN_D_PDA.
 
 $include "prologue.yh"
 
@@ -318,7 +317,6 @@ instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
 instruction ::= INSN_ASL(T) mod(M) ea(R1) COMMA ea(R2).
 	{
 		if (R1.mode == AM_REGD) and (R2.mode == AM_REGD) then
-			print_i8(T.number as uint8); print_nl();
 			Emit16(((T.number as uint16 & 0b110) << 2)
 				| ((T.number as uint16 & 0b001) << 8)
 				| 0b1110000000100000
@@ -397,6 +395,34 @@ instruction ::= INSN_BRA(T) expression(E).
 					Emit32(&E);
 				end if;
 			end if;
+		end if;
+	}
+
+/* Bit operations */
+
+instruction ::= INSN_BTST(T) ea(R1) COMMA ea(R2).
+	{
+		if ((R1.mode != AM_IMM) and (R1.mode != AM_REGD))
+			or (IsLvalueD(R2.mode) == 0)
+		then
+			InvalidOperand();
+		end if;
+
+		if R1.mode == AM_IMM then
+			MustBeRawNumber(R1.value.type);
+			Emit16((T.number as uint16 << 6)
+				| 0b0000100000000000
+				| (R2.mode as uint16)
+				| (R2.reg as uint16));
+			Emit16(R1.value.number as uint8 as uint16);
+			EmitX(&R2, 2);
+		else
+			Emit16((T.number as uint16 << 6)
+				| 0b0000000100000000
+				| (R1.reg as uint16 << 9)
+				| (R2.mode as uint16)
+				| (R2.reg as uint16));
+			EmitX(&R2, 0);
 		end if;
 	}
 

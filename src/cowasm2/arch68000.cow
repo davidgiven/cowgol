@@ -167,6 +167,12 @@ var keywords: Keyword[] := {
 	{ "bge",     INSN_BRA,     0xc },
 	{ "blt",     INSN_BRA,     0xd },
 
+	# Bit operations
+
+	{ "btst",    INSN_BTST,    0b00 },
+	{ "bchg",    INSN_BTST,    0b01 },
+	{ "bclr",    INSN_BTST,    0b10 },
+	{ "bset",    INSN_BTST,    0b11 },
 };
 
 include "lexer.coh";
