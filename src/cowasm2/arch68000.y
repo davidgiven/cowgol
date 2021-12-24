@@ -113,75 +113,98 @@ instruction ::= INSN_ABCD(I) ea(R1) COMMA ea(R2).
 			| (R2.reg as uint16 << 9) | (rm << 3));
 	}
 
-/* All the adds */
-instruction ::= INSN_ADD mod(M) ea(R1) COMMA ea(R2).
-	{
-		if (R2.mode == AM_IMM) or (R2.mode == AM_PCDISP) then
+%include
+{
+	sub AddSub(addq: uint16, adda: uint16, addi: uint16, add: uint16,
+			m: uint8, r1: [AddressingMode], r2: [AddressingMode]) is
+		if (r2.mode == AM_IMM) or (r2.mode == AM_PCDISP) then
 			InvalidOperand();
 		end if;
 
-		if (R1.mode == AM_IMM)
-			and (R1.value.type == AS_NUMBER)
-			and (R1.value.number < 8)
+		if (r1.mode == AM_IMM)
+			and (r1.value.type == AS_NUMBER)
+			and (r1.value.number < 8)
 		then
 			# addq
-			Emit16(0b0101000000000000
-				| (R1.value.number as uint16 << 9)
-				| (M as uint16 << 6)
-				| (R2.mode as uint16)
-				| (R2.reg as uint16));
-			EmitX(&R2, M);
+			Emit16(addq
+				| (r1.value.number as uint16 << 9)
+				| (m as uint16 << 6)
+				| (r2.mode as uint16)
+				| (r2.reg as uint16));
+			EmitX(r2, m);
 			return;
 		end if;
 
-		if R2.mode == AM_REGA then
+		if r2.mode == AM_REGA then
 			# adda
-			Emit16(0b1101000000000000
-				| (R2.reg as uint16 << 9)
-				| (M as uint16 << 6)
-				| (R1.mode as uint16)
-				| (R1.reg as uint16));
-			EmitX(&R1, M);
+			Emit16(adda
+				| (r2.reg as uint16 << 9)
+				| (m as uint16 << 6)
+				| (r1.mode as uint16)
+				| (r1.reg as uint16));
+			EmitX(r1, m);
 			return;
 		end if;
 
-		if (R1.mode == AM_IMM) and (R2.mode != AM_REGA) then
+		if (r1.mode == AM_IMM) and (r2.mode != AM_REGA) then
 			# addi
-			Emit16(0b0000011000000000
-				| (M as uint16 << 6)
-				| (R2.mode as uint16)
-				| (R2.reg as uint16));
-			if M == 2 then
-				Emit32(&R1.value);
+			Emit16(addi
+				| (m as uint16 << 6)
+				| (r2.mode as uint16)
+				| (r2.reg as uint16));
+			if m == 2 then
+				Emit32(&r1.value);
 			else
-				MustBeRawNumber(R1.value.type);
-				Emit16(R1.value.number as uint16);
+				MustBeRawNumber(r1.value.type);
+				Emit16(r1.value.number as uint16);
 			end if;
-			EmitX(&R2, M);
+			EmitX(r2, m);
 			return;
 		end if;
 
-		if R2.mode == AM_REGD then
+		if r2.mode == AM_REGD then
 			# add ea, dX
-			Emit16(0b1101000000000000
-				| (M as uint16 << 6)
-				| (R2.reg as uint16 << 9)
-				| (R1.mode as uint16)
-				| (R1.reg as uint16));
-			EmitX(&R1, M);
+			Emit16(add
+				| (m as uint16 << 6)
+				| (r2.reg as uint16 << 9)
+				| (r1.mode as uint16)
+				| (r1.reg as uint16));
+			EmitX(r1, m);
 			return;
 		end if;
 
-		if R1.mode == AM_REGD then
+		if r1.mode == AM_REGD then
 			# add dX, ea
-			Emit16(0b1101000100000000
-				| (M as uint16 << 6)
-				| (R1.reg as uint16 << 9)
-				| (R2.mode as uint16)
-				| (R2.reg as uint16));
-			EmitX(&R2, M);
+			Emit16(add
+				| 0b0000000100000000
+				| (m as uint16 << 6)
+				| (r1.reg as uint16 << 9)
+				| (r2.mode as uint16)
+				| (r2.reg as uint16));
+			EmitX(r2, m);
 			return;
 		end if;
 
 		SimpleError("bad add");
+	end sub;
+}
+
+/* All the adds */
+instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
+	{
+		if T.number == 0 then
+			AddSub(
+				0b0101000000000000, # addq
+				0b1101000000000000, # adda
+				0b0000011000000000, # addi
+				0b1101000000000000, # add
+				M, &R1, &R2);
+		else
+			AddSub(
+				0b0101000100000000, # addq
+				0b1001000000000000, # adda
+				0b0000010000000000, # addi
+				0b1001000000000000, # add
+				M, &R1, &R2);
+		end if;
 	}

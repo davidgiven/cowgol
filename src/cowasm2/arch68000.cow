@@ -70,12 +70,18 @@ var keywords: Keyword[] := {
 	{ "abcd",    INSN_ABCD,    0b1100000100000000 },
 	{ "sbcd",    INSN_ABCD,    0b1000000100000000 },
 
-	# add, addq, adda, addi
+	# add, addq, adda, addi and the corresponding subs
 
-	{ "add",     INSN_ADD,     0 },
-	{ "addq",    INSN_ADD,     0 },
-	{ "adda",    INSN_ADD,     0 },
-	{ "addi",    INSN_ADD,     0 },
+	{ "add",     INSN_ADDSUB,  0 },
+	{ "addq",    INSN_ADDSUB,  0 },
+	{ "adda",    INSN_ADDSUB,  0 },
+	{ "addi",    INSN_ADDSUB,  0 },
+
+	{ "sub",     INSN_ADDSUB,  1 },
+	{ "subq",    INSN_ADDSUB,  1 },
+	{ "suba",    INSN_ADDSUB,  1 },
+	{ "subi",    INSN_ADDSUB,  1 },
+
 };
 
 include "lexer.coh";
