@@ -149,6 +149,24 @@ var keywords: Keyword[] := {
 	{ "roxl",    INSN_ASL,     0b101 },
 	{ "ror",     INSN_ASL,     0b110 },
 	{ "rol",     INSN_ASL,     0b111 },
+	
+	# Branches
+
+	{ "bra",     INSN_BRA,     0x0 },
+	{ "bsr",     INSN_BRA,     0x1 },
+	{ "bhi",     INSN_BRA,     0x2 },
+	{ "bls",     INSN_BRA,     0x3 },
+	{ "bcc",     INSN_BRA,     0x4 },
+	{ "bcs",     INSN_BRA,     0x5 },
+	{ "bne",     INSN_BRA,     0x6 },
+	{ "beq",     INSN_BRA,     0x7 },
+	{ "bvc",     INSN_BRA,     0x8 },
+	{ "bvs",     INSN_BRA,     0x9 },
+	{ "bpl",     INSN_BRA,     0xa },
+	{ "bmi",     INSN_BRA,     0xb },
+	{ "bge",     INSN_BRA,     0xc },
+	{ "blt",     INSN_BRA,     0xd },
+
 };
 
 include "lexer.coh";

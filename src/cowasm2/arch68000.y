@@ -313,6 +313,8 @@ instruction ::= INSN_ADDSUB(T) mod(M) ea(R1) COMMA ea(R2).
 		InvalidOperand();
 	}
 
+/* Shifts */
+
 instruction ::= INSN_ASL(T) mod(M) ea(R1) COMMA ea(R2).
 	{
 		if (R1.mode == AM_REGD) and (R2.mode == AM_REGD) then
@@ -353,5 +355,48 @@ instruction ::= INSN_ASL(T) mod(M) ea(R1).
 			| (R1.mode as uint16)
 			| (R1.reg as uint16));
 		EmitX(&R1, M);
+	}
+
+/* Branches */
+
+instruction ::= INSN_BRA(T) expression(E).
+	{
+		if pass == 1 then
+			[currentProgramCounter] := [currentProgramCounter] + 6;
+		else
+			var delta: int32;
+			if E.type == AS_NUMBER then
+				case T.number as uint8 is
+					when 0: # bra
+						Emit16(0b0100111011111001);
+
+					when 1: # bsr
+						Emit16(0b0100111010111001);
+
+					when else: # long conditional
+						Emit16(((T.number as uint16 ^ 1) << 8)
+							| 0b0110000000000110);
+						Emit16(0b0100111010111001);
+				end case;
+				Emit32(&E);
+				return;
+			elseif E.type == currentSegment then
+				delta := (E.number - [currentProgramCounter] - 2) as int32;
+				if (delta >= -0x80) and (delta <= 0x7f) then
+					Emit16((T.number as uint16 << 8)
+						| 0b0110000000000000
+						| (delta as uint8 as uint16));
+				elseif (delta >= -0x8000) and (delta <= 0x7fff) then
+					Emit16((T.number as uint16 << 8)
+						| 0b0110000000000000);
+					Emit16(delta as uint16);
+				else
+					Emit16(((T.number as uint16 ^ 1) << 8)
+						| 0b0110000000000110);
+					Emit16(0b0100111010111001);
+					Emit32(&E);
+				end if;
+			end if;
+		end if;
 	}
 
