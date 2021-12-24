@@ -181,6 +181,14 @@ var keywords: Keyword[] := {
 	{ "divs",    INSN_CHK,     0b1000000111000000 },
 	{ "mulu",    INSN_CHK,     0b1100000011000000 },
 	{ "muls",    INSN_CHK,     0b1100000111000000 },
+
+	# Multi-size uniop instructions.
+
+	{ "negx",    INSN_NEGX,    0b0100000000000000 },
+	{ "clr",     INSN_NEGX,    0b0100001000000000 },
+	{ "neg",     INSN_NEGX,    0b0100010000000000 },
+	{ "not",     INSN_NEGX,    0b0100011000000000 },
+	{ "tst",     INSN_NEGX,    0b0100101000000000 },
 };
 
 include "lexer.coh";

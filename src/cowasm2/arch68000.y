@@ -440,3 +440,19 @@ instruction ::= INSN_CHK(T) ea(R1) COMMA ea(R2).
 			| (R1.reg as uint16));
 		EmitX(&R1, 1);
 	}
+
+/* Multisize uniop instructions */
+
+instruction ::= INSN_NEGX(T) mod(M) ea(R).
+	{
+		if IsLvalueD(R.mode) == 0 then
+			InvalidOperand();
+		end if;
+
+		Emit16((T.number as uint16)
+			| (M as uint16 << 6)
+			| (R.mode as uint16)
+			| (R.reg as uint16));
+		EmitX(&R, M);
+	}
+
