@@ -193,6 +193,10 @@ var keywords: Keyword[] := {
 	{ "neg",     INSN_NEGX,    0b0100010000000000 },
 	{ "not",     INSN_NEGX,    0b0100011000000000 },
 	{ "tst",     INSN_NEGX,    0b0100101000000000 },
+
+	# Weird special instructions.
+
+	{ "cmpm",    INSN_CMPM,    0b1011000100001000 },
 };
 
 include "lexer.coh";

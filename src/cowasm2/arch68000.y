@@ -466,3 +466,17 @@ instruction ::= INSN_NEGX(T) mod(M) ea(R).
 		EmitX(&R, M);
 	}
 
+/* cmpm is weird. */
+
+instruction ::= INSN_CMPM(T) mod(M) ea(R1) COMMA ea(R2).
+	{
+		if (R1.mode != AM_POSTINC) or (R2.mode != AM_POSTINC) then
+			InvalidOperand();
+		end if;
+
+		Emit16((T.number as uint16)
+			| (M as uint16 << 6)
+			| (R1.reg as uint16 << 9)
+			| (R2.reg as uint16));
+	}
+
