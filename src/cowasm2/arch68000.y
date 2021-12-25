@@ -528,6 +528,51 @@ instruction ::= INSN_JMP(T) ea(R).
 		EmitX(&R, 2);
 	}
 
+/* Moves. */
+
+instruction ::= INSN_MOVE mod(M) ea(R1) COMMA ea(R2).
+	{
+		var sizes: uint16[] := { 0b01, 0b11, 0b10 };
+
+		if R2.mode == AM_REGA then
+			# movea
+			if (M == 0) or (IsLvalue(R1.mode) == 0) then
+				InvalidOperand();
+			end if;
+			Emit16(0b0000000001000000
+				| (sizes[M] << 12)
+				| (R2.reg as uint16 << 9)
+				| (R1.mode as uint16)
+				| (R1.reg as uint16));
+			return;
+		end if;
+
+		if (R1.mode == AM_IMM) and (R1.value.type == AS_NUMBER)
+			and (R2.mode == AM_REGD)
+			and (IsSignedByte(R1.value.number) != 0)
+		then
+			# moveq
+			if M != 2 then
+				InvalidOperand();
+			end if;
+			Emit16(0b0111000000000000
+				| (R2.reg as uint16 << 9)
+				| (R1.value.number as uint8 as uint16));
+			return;
+		end if;
+
+		var m2: uint16 := R2.mode as uint16 & 0b111000;
+		var r2: uint16 := R2.mode as uint16 & 0b000111;
+		Emit16((sizes[M] << 12)
+			| (r2 << 9)
+			| (R2.reg as uint16 << 9)
+			| (m2 << 3)
+			| (R1.mode as uint16)
+			| (R1.reg as uint16));
+		EmitX(&R1, M);
+		EmitX(&R2, M);
+	}
+
 /* cmpm is weird. */
 
 instruction ::= INSN_CMPM(T) mod(M) ea(R1) COMMA ea(R2).

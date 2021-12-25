@@ -64,6 +64,13 @@ sub IsLvalueM(am: uint8): (r: uint8) is
 	end if;
 end sub;
 
+sub IsSignedByte(value: uint32): (r: uint8) is
+	r := 0;
+	if (value > 0xffffff80) or (value < 0x7f) then
+		r := 1;
+	end if;
+end sub;
+
 record AddressingMode is
 	mode: uint8;
 	reg: uint8;
@@ -237,6 +244,12 @@ var keywords: Keyword[] := {
 
 	{ "jmp",     INSN_JMP,     0b0100111011000000 },
 	{ "jsr",     INSN_JMP,     0b0100111010000000 },
+
+	# Move.
+
+	{ "move",    INSN_MOVE,    0 },
+	{ "movea",   INSN_MOVE,    0 },
+	{ "moveq",   INSN_MOVE,    0 },
 };
 
 include "lexer.coh";
