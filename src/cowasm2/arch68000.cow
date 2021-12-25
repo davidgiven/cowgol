@@ -42,6 +42,14 @@ sub IsRvalueD(am: uint8): (r: uint8) is
 	end if;
 end sub;
 
+sub IsRvalueM(am: uint8): (r: uint8) is
+	if am <= AM_REGA then
+		r := 0;
+	else
+		r := IsRvalue(am);
+	end if;
+end sub;
+
 sub IsLvalue(am: uint8): (r: uint8) is
 	r := 1;
 	if am >= AM_IMM then
@@ -212,6 +220,7 @@ var keywords: Keyword[] := {
 	{ "ext",     INSN_EXT,     0b0100100010000000 },
 	{ "lea",     INSN_LEA,     0b0100000111000000 },
 	{ "link",    INSN_LINK,    0b0100111001010000 },
+	{ "movem",   INSN_MOVEM,   0b0100100010000000 },
 
 	# dbt (all of them).
 

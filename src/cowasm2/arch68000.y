@@ -79,6 +79,30 @@ ea(R) ::= HASH expression(E).
 ea(R) ::= REG_CCRSR(T).
 	{ R.mode := AM_CCR + (T.number as uint8); }
 
+/* --- Register lists ---------------------------------------------------- */
+
+%type srcregs {uint16}
+%type destregs {uint16}
+%type srcdestreg {uint8}
+
+srcdestreg(O) ::= REG_A(R).
+	{ O := R.number as uint8 + 8; }
+
+srcdestreg(O) ::= REG_D(R).
+	{ O := R.number as uint8; }
+
+srcregs(O) ::= srcregs(A) COMMA srcregs(B).
+	{ O := A | B; }
+
+srcregs(O) ::= srcdestreg(R).
+	{ O := 0x8000; O := O>>R; }
+
+destregs(O) ::= destregs(A) COMMA destregs(B).
+	{ O := A | B; }
+
+destregs(O) ::= srcdestreg(R).
+	{ O := 1; O := O<<R; }
+
 /* --- Major pseudoinstructions ------------------------------------------ */
 
 label ::= /* empty */.
@@ -730,3 +754,35 @@ instruction ::= INSN_LINK(T) ea(R1) COMMA ea(R2).
 			| (R1.reg as uint16));
 		Emit16(R2.value.number as uint16);
 	}
+
+/* movem is weird. */
+
+instruction ::= INSN_MOVEM mod(M) OPENBR srcregs(R) CLOSEBR COMMA ea(A).
+	{
+		if (M == 0) or (IsLvalueM(A.mode) == 0) or (A.mode == AM_POSTINC) then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100100010000000
+			| ((M-1) as uint16 << 6)
+			| (A.mode as uint16)
+			| (A.reg as uint16));
+		Emit16(R);
+		EmitX(&A, M);
+	}
+
+instruction ::= INSN_MOVEM mod(M) ea(A) COMMA OPENBR destregs(R) CLOSEBR.
+	{
+		if (M == 0) or (IsRvalueM(A.mode) == 0) or (A.mode == AM_PREDEC) then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100110010000000
+			| ((M-1) as uint16 << 6)
+			| (A.mode as uint16)
+			| (A.reg as uint16));
+		Emit16(R);
+		EmitX(&A, M);
+	}
+
+
