@@ -201,6 +201,7 @@ var keywords: Keyword[] := {
 	{ "cmpm",    INSN_CMPM,    0b1011000100001000 },
 	{ "exg",     INSN_EXG,     0b1100000100000000 },
 	{ "ext",     INSN_EXT,     0b0100100010000000 },
+	{ "lea",     INSN_LEA,     0b0100000111000000 },
 
 	# dbt (all of them).
 

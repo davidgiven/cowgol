@@ -593,3 +593,20 @@ instruction ::= INSN_EXT(T) mod(M) ea(R).
 			| (R.reg as uint16));
 	}
 
+/* lea is weird. */
+
+instruction ::= INSN_LEA(T) ea(R1) COMMA ea(R2).
+	{
+		if (R1.mode == AM_REGD) or (R1.mode == AM_REGA)
+			or (R1.mode == AM_POSTINC) or (R1.mode == AM_PREDEC)
+			or (R1.mode == AM_IMM) or (R2.mode != AM_REGA)
+		then
+			InvalidOperand();
+		end if;
+
+		Emit16((T.number as uint16)
+			| (R2.reg as uint16 << 9)
+			| (R1.mode as uint16)
+			| (R1.reg as uint16));
+		EmitX(&R1, 2);
+	}
