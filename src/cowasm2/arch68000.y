@@ -512,6 +512,22 @@ instruction ::= INSN_SIMPLE(T).
 		Emit16(T.number as uint16);
 	}
 
+/* Jumps. */
+
+instruction ::= INSN_JMP(T) ea(R).
+	{
+		if (R.mode == AM_REGA) or (R.mode == AM_REGD)
+			or (R.mode == AM_POSTINC) or (R.mode == AM_PREDEC)
+		then
+			InvalidOperand();
+		end if;
+
+		Emit16((T.number as uint16)
+			| (R.mode as uint16)
+			| (R.reg as uint16));
+		EmitX(&R, 2);
+	}
+
 /* cmpm is weird. */
 
 instruction ::= INSN_CMPM(T) mod(M) ea(R1) COMMA ea(R2).

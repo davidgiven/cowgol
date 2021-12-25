@@ -230,6 +230,11 @@ var keywords: Keyword[] := {
 	{ "rts",     INSN_SIMPLE,  0b0100111001110101 },
 	{ "trapv",   INSN_SIMPLE,  0b0100111001110110 },
 	{ "rtr",     INSN_SIMPLE,  0b0100111001110111 },
+
+	# Jumps.
+
+	{ "jmp",     INSN_JMP,     0b0100111011000000 },
+	{ "jsr",     INSN_JMP,     0b0100111010000000 },
 };
 
 include "lexer.coh";
