@@ -610,3 +610,20 @@ instruction ::= INSN_LEA(T) ea(R1) COMMA ea(R2).
 			| (R1.reg as uint16));
 		EmitX(&R1, 2);
 	}
+
+/* link is weird. */
+
+instruction ::= INSN_LINK(T) ea(R1) COMMA ea(R2).
+	{
+		if (R1.mode != AM_REGA) or (R2.mode != AM_IMM) then
+			InvalidOperand();
+		end if;
+		MustBeRawNumber(R2.value.type);
+		if R2.value.number > 0xffff then
+			SimpleError("displacement out of range");
+		end if;
+
+		Emit16((T.number as uint16)
+			| (R1.reg as uint16));
+		Emit16(R2.value.number as uint16);
+	}
