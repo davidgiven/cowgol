@@ -200,6 +200,7 @@ var keywords: Keyword[] := {
 
 	{ "cmpm",    INSN_CMPM,    0b1011000100001000 },
 	{ "exg",     INSN_EXG,     0b1100000100000000 },
+	{ "ext",     INSN_EXT,     0b0100100010000000 },
 
 	# dbt (all of them).
 
@@ -220,6 +221,15 @@ var keywords: Keyword[] := {
 	{ "dbgt",    INSN_DBT,     0b0101111011001000 },
 	{ "dble",    INSN_DBT,     0b0101111111001000 },
 
+	# Simple instructions.
+
+	{ "illegal", INSN_SIMPLE,  0b0100101011111100 },
+	{ "reset",   INSN_SIMPLE,  0b0100111001110000 },
+	{ "nop",     INSN_SIMPLE,  0b0100111001110001 },
+	{ "rte",     INSN_SIMPLE,  0b0100111001110011 },
+	{ "rts",     INSN_SIMPLE,  0b0100111001110101 },
+	{ "trapv",   INSN_SIMPLE,  0b0100111001110110 },
+	{ "rtr",     INSN_SIMPLE,  0b0100111001110111 },
 };
 
 include "lexer.coh";

@@ -505,6 +505,13 @@ instruction ::= INSN_NEGX(T) mod(M) ea(R).
 		EmitX(&R, M);
 	}
 
+/* Simple one-word instructions. */
+
+instruction ::= INSN_SIMPLE(T).
+	{
+		Emit16(T.number as uint16);
+	}
+
 /* cmpm is weird. */
 
 instruction ::= INSN_CMPM(T) mod(M) ea(R1) COMMA ea(R2).
@@ -550,5 +557,23 @@ instruction ::= INSN_EXG(T) ea(R1) COMMA ea(R2).
 				| (R2.reg as uint16 << 9)
 				| (R1.reg as uint16));
 		end if;
+	}
+
+/* ext is weird. */
+
+instruction ::= INSN_EXT(T) mod(M) ea(R).
+	{
+		if (M == 0) or (R.mode != AM_REGD) then
+			InvalidOperand();
+		end if;
+
+		var mode: uint16 := 0b011;
+		if M == 1 then
+			mode := 0b010;
+		end if;
+
+		Emit16((T.number as uint16)
+			| (mode << 6)
+			| (R.reg as uint16));
 	}
 
