@@ -25,6 +25,7 @@ const AM_IMM     := 0b111100;
 
 const AM_CCR     := 0x80;
 const AM_SR      := 0x81;
+const AM_USP     := 0x82;
 
 sub IsRvalue(am: uint8): (r: uint8) is
 	r := 1;
@@ -109,6 +110,7 @@ var keywords: Keyword[] := {
 	{ "pc",      REG_PC,       0 },
 	{ "ccr",     REG_CCRSR,    0 },
 	{ "sr",      REG_CCRSR,    1 },
+	{ "usp",     REG_CCRSR,    2 },
 
 	{ ".b",      REG_MOD,      0 },
 	{ ".w",      REG_MOD,      1 },

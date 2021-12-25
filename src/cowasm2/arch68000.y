@@ -534,6 +534,64 @@ instruction ::= INSN_MOVE mod(M) ea(R1) COMMA ea(R2).
 	{
 		var sizes: uint16[] := { 0b01, 0b11, 0b10 };
 
+		if R2.mode == AM_CCR then
+			# move dX, ccr
+			if (M != 1) or (IsRvalueD(R1.mode) == 0) then
+				InvalidOperand();
+			end if;
+			Emit16(0b0100010011000000
+				| (R1.mode as uint16)
+				| (R1.reg as uint16));
+			return;
+		end if;
+
+		if R2.mode == AM_SR then
+			# move dX, ssr
+			if (M != 1) or (IsRvalueD(R1.mode) == 0) then
+				InvalidOperand();
+			end if;
+			Emit16(0b0100011011000000
+				| (R1.mode as uint16)
+				| (R1.reg as uint16));
+			return;
+		end if;
+
+		if R1.mode == AM_CCR then
+			# move ccr, dX
+			InvalidOperand();
+		end if;
+
+		if R1.mode == AM_SR then
+			# move ssr, dX
+			if (M != 1) or (IsLvalueD(R2.mode) == 0) then
+				InvalidOperand();
+			end if;
+			Emit16(0b0100000011000000
+				| (R2.mode as uint16)
+				| (R2.reg as uint16));
+			return;
+		end if;
+
+		if R2.mode == AM_USP then
+			# move aX, usp
+			if (M != 2) or (R1.mode != AM_REGA) then
+				InvalidOperand();
+			end if;
+			Emit16(0b0100111001100000
+				| (R1.reg as uint16));
+			return;
+		end if;
+
+		if R1.mode == AM_USP then
+			# move usp, aX
+			if (M != 2) or (R2.mode != AM_REGA) then
+				InvalidOperand();
+			end if;
+			Emit16(0b0100111001101000
+				| (R2.reg as uint16));
+			return;
+		end if;
+
 		if R2.mode == AM_REGA then
 			# movea
 			if (M == 0) or (IsLvalue(R1.mode) == 0) then
