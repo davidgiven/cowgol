@@ -890,3 +890,16 @@ instruction ::= INSN_TAS mod(M) ea(R).
 			| (R.reg as uint16));
 		EmitX(&R, 1);
 	}
+
+/* trap is weird. */
+
+instruction ::= INSN_TRAP ea(R).
+	{
+		if (R.mode != AM_IMM) or (R.value.type != AS_NUMBER) or (R.value.number > 0xf) then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100111001000000
+			| (R.value.number as uint16));
+	}
+
