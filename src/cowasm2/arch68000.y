@@ -836,3 +836,18 @@ instruction ::= INSN_NBCD mod(M) ea(R).
 		EmitX(&R, 0);
 	}
 
+/* pea is weird. */
+
+instruction ::= INSN_PEA mod(M) ea(R).
+	{
+		if (IsRvalueM(R.mode) == 0) or (R.mode == AM_POSTINC) or (R.mode == AM_PREDEC)
+			or (M != 2)
+		then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100100001000000
+			| (R.reg as uint16)
+			| (R.mode as uint16));
+		EmitX(&R, 0);
+	}

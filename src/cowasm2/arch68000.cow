@@ -29,7 +29,7 @@ const AM_USP     := 0x82;
 
 sub IsRvalue(am: uint8): (r: uint8) is
 	r := 1;
-	if am >= AM_PCDISP then
+	if am > AM_PCDISP then
 		r := 0;
 	end if;
 end sub;
@@ -223,6 +223,7 @@ var keywords: Keyword[] := {
 	{ "movem",   INSN_MOVEM,   0b0100100010000000 },
 	{ "movep",   INSN_MOVEP,   0 },
 	{ "nbcd",    INSN_NBCD,    0 },
+	{ "pea",     INSN_PEA,     0 },
 
 	# dbt (all of them).
 
