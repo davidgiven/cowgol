@@ -171,7 +171,8 @@ sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE]) is
 
 	loop
 		if yyact <= YY_MAX_SHIFT then
-			var i := yy_shift_ofst[yyact as @indexof yy_shift_ofst] + (yymajor as YYTOKENOFFSETTYPE);
+			var i := yy_shift_ofst[yyact as @indexof yy_shift_ofst] as @indexof yy_action
+					+ (yymajor as @indexof yy_action);
 			if yy_lookahead[i as @indexof yy_lookahead] != yymajor then
 				yyact := yy_default[yyact as @indexof yy_default];
 			else
