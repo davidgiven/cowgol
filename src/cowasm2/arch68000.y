@@ -903,3 +903,15 @@ instruction ::= INSN_TRAP ea(R).
 			| (R.value.number as uint16));
 	}
 
+/* unlk is weird. */
+
+instruction ::= INSN_UNLK ea(R).
+	{
+		if R.mode != AM_REGA then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100111001011000
+			| (R.reg as uint16));
+	}
+
