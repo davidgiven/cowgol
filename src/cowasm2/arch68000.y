@@ -472,6 +472,20 @@ instruction ::= INSN_DBT(T) ea(R) COMMA expression(E).
 		end if;
 	}
 
+/* st and friends */
+
+instruction ::= INSN_ST(T) ea(R).
+	{
+		if IsLvalueD(R.mode) == 0 then
+			InvalidOperand();
+		end if;
+
+		Emit16((T.number as uint16)
+			| (R.reg as uint16)
+			| (R.mode as uint16));
+		EmitX(&R, 0);
+	}
+
 /* Bit operations */
 
 instruction ::= INSN_BTST(T) ea(R1) COMMA ea(R2).

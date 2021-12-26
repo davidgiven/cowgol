@@ -244,6 +244,25 @@ var keywords: Keyword[] := {
 	{ "dbgt",    INSN_DBT,     0b0101111011001000 },
 	{ "dble",    INSN_DBT,     0b0101111111001000 },
 
+	# st (all of them).
+
+	{ "st",      INSN_ST,      0b0101000011000000 },
+	{ "sf",      INSN_ST,      0b0101000111000000 },
+	{ "shi",     INSN_ST,      0b0101001011000000 },
+	{ "sls",     INSN_ST,      0b0101001111000000 },
+	{ "scc",     INSN_ST,      0b0101010011000000 },
+	{ "scs",     INSN_ST,      0b0101010111000000 },
+	{ "sne",     INSN_ST,      0b0101011011000000 },
+	{ "seq",     INSN_ST,      0b0101011111000000 },
+	{ "svc",     INSN_ST,      0b0101100011000000 },
+	{ "svs",     INSN_ST,      0b0101100111000000 },
+	{ "spl",     INSN_ST,      0b0101101011000000 },
+	{ "smi",     INSN_ST,      0b0101101111000000 },
+	{ "sge",     INSN_ST,      0b0101110011000000 },
+	{ "slt",     INSN_ST,      0b0101110111000000 },
+	{ "sgt",     INSN_ST,      0b0101111011000000 },
+	{ "sle",     INSN_ST,      0b0101111111000000 },
+
 	# Simple instructions.
 
 	{ "illegal", INSN_SIMPLE,  0b0100101011111100 },
