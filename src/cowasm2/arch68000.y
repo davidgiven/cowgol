@@ -865,3 +865,16 @@ instruction ::= INSN_PEA mod(M) ea(R).
 			| (R.mode as uint16));
 		EmitX(&R, 0);
 	}
+
+/* swap is weird. */
+
+instruction ::= INSN_SWAP mod(M) ea(R).
+	{
+		if (R.mode != AM_REGD) or (M != 1) then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100100001000000
+			| (R.reg as uint16));
+	}
+
