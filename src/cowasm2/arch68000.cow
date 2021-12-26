@@ -225,6 +225,7 @@ var keywords: Keyword[] := {
 	{ "nbcd",    INSN_NBCD,    0 },
 	{ "pea",     INSN_PEA,     0 },
 	{ "swap",    INSN_SWAP,    0 },
+	{ "tas",     INSN_TAS,     0 },
 
 	# dbt (all of them).
 

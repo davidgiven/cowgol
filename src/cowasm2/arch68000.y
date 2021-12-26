@@ -1,5 +1,4 @@
 %token REG_A REG_D REG_PC.
-%token INSN_MOVEP.
 
 $include "prologue.yh"
 
@@ -878,3 +877,16 @@ instruction ::= INSN_SWAP mod(M) ea(R).
 			| (R.reg as uint16));
 	}
 
+/* tas is weird. */
+
+instruction ::= INSN_TAS mod(M) ea(R).
+	{
+		if (IsLvalueD(R.mode) == 0) or (M != 0) then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100101011000000
+			| (R.mode as uint16)
+			| (R.reg as uint16));
+		EmitX(&R, 1);
+	}
