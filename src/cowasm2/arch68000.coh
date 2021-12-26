@@ -9,6 +9,9 @@ typedef Arith is uint32;
 include "types.coh";
 include "arch68000.tokens.coh";
 
+@decl sub Emit16(w: uint16);
+@decl sub Emit32(n: [Number]);
+
 # These are the internal addressing mode encodings.
 const AM_REGD    := 0b000000;
 const AM_REGA    := 0b001000;
@@ -308,4 +311,51 @@ end sub;
 sub InvalidOperand() is
 	SimpleError("invalid operand");
 end sub;
+
+sub EmitX(ea: [AddressingMode], size: uint8) is
+	case ea.mode is
+		when AM_ADISP:
+			MustBeRawNumber(ea.value.type);
+			Emit16(ea.value.number as uint16);
+
+		#when AM_AINDEX:
+		#	MustBeRawNumber(ea.value.type);
+		#	DisplacementOutOfRange(ea.value.number, 0xff);
+		#	var m: uint16 := 0;
+		#	if size == 0 then
+		#		InvalidOperand();
+		#	elseif size == 2 then
+		#		m := 1;
+		#	end if;
+
+		#	Emit16((ea.value.number as uint16)
+		#		| (ea.xreg as uint16 << 12)
+		#		| (m << 11));
+
+		when AM_ABSW:
+			MustBeRawNumber(ea.value.type);
+			if (ea.value.type > 0x7fff) and (ea.value.type < 0xffff8000) then
+				SimpleError("absolute word address out of range");
+			end if;
+			Emit16(ea.value.number as uint16);
+
+		when AM_ABSL:
+			Emit32(&ea.value);
+
+		when AM_IMM:
+			if size == 2 then
+				Emit32(&ea.value);
+			else
+				MustBeRawNumber(ea.value.type);
+				Emit16(ea.value.number as uint16);
+			end if;
+
+		when AM_PCDISP:
+			MustBeRawNumber(ea.value.type);
+			Emit16(ea.value.number as uint16);
+	end case;
+end sub;
+
+include "arch68000.parser.coh";
+include "cowasm2.coh";
 

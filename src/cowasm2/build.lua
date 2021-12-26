@@ -17,14 +17,17 @@ for _, yarch in ipairs(YARCHS) do
 end
 
 local function build(arch, yarch)
-	if not yarch then
+	local deps = {}
+	if yarch then
+		deps = { "src/cowasm2/arch"..yarch..".coh" }
+	else
 		yarch = arch
 	end
 
 	for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 		cowgol {
 			toolchain = toolchain,
-			ins = {
+			ins = concat({
 				"src/cowasm2/arch"..arch..".cow",
 				"src/cowasm2/types.coh",
 				"src/cowasm2/lexer.coh",
@@ -33,13 +36,13 @@ local function build(arch, yarch)
 				"src/cowasm2/cowasm2.coh",
 				"$OBJ/src/cowasm2/arch"..yarch..".parser.coh",
 				"$OBJ/src/cowasm2/arch"..yarch..".tokens.coh",
-			},
-			outs = { "bin/cowasm-"..arch }
+				}, deps),
+			outs = { "bin/cowasm-"..arch },
 		}
 	end
 end
 
 build("ac1082")
-build("68000")
+build("68000", "68000")
 build("atarist", "68000")
 

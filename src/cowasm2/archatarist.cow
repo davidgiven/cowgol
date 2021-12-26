@@ -1,62 +1,15 @@
 include "arch68000.coh";
 
-sub Emit16(w: uint16) is
+@impl sub Emit16 is
 	Emit8((w >> 8) as uint8);
 	Emit8(w as uint8);
 end sub;
 
-sub Emit32(n: [Number]) is
+@impl sub Emit32 is
 	var d := n.number;
 	Emit16((d >> 16) as uint16);
 	Emit16(d as uint16);
 end sub;
 
-sub EmitX(ea: [AddressingMode], size: uint8) is
-	case ea.mode is
-		when AM_ADISP:
-			MustBeRawNumber(ea.value.type);
-			Emit16(ea.value.number as uint16);
-
-		#when AM_AINDEX:
-		#	MustBeRawNumber(ea.value.type);
-		#	DisplacementOutOfRange(ea.value.number, 0xff);
-		#	var m: uint16 := 0;
-		#	if size == 0 then
-		#		InvalidOperand();
-		#	elseif size == 2 then
-		#		m := 1;
-		#	end if;
-
-		#	Emit16((ea.value.number as uint16)
-		#		| (ea.xreg as uint16 << 12)
-		#		| (m << 11));
-
-		when AM_ABSW:
-			MustBeRawNumber(ea.value.type);
-			if (ea.value.type > 0x7fff) and (ea.value.type < 0xffff8000) then
-				SimpleError("absolute word address out of range");
-			end if;
-			Emit16(ea.value.number as uint16);
-
-		when AM_ABSL:
-			Emit32(&ea.value);
-
-		when AM_IMM:
-			if size == 2 then
-				Emit32(&ea.value);
-			else
-				MustBeRawNumber(ea.value.type);
-				Emit16(ea.value.number as uint16);
-			end if;
-
-		when AM_PCDISP:
-			MustBeRawNumber(ea.value.type);
-			Emit16(ea.value.number as uint16);
-	end case;
-end sub;
-
-include "arch68000.parser.coh";
-include "cowasm2.coh";
-
-Main("68000 flat binary assembler (c) 2021 David Given");
+Main("68000 Atari ST assembler (c) 2021 David Given");
 
