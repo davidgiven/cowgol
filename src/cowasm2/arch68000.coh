@@ -1,0 +1,311 @@
+include "cowgol.coh";
+include "argv.coh";
+include "file.coh";
+include "strings.coh";
+include "malloc.coh";
+
+typedef Arith is uint32;
+
+include "types.coh";
+include "arch68000.tokens.coh";
+
+# These are the internal addressing mode encodings.
+const AM_REGD    := 0b000000;
+const AM_REGA    := 0b001000;
+const AM_IND     := 0b010000;
+const AM_POSTINC := 0b011000;
+const AM_PREDEC  := 0b100000;
+const AM_ADISP   := 0b101000;
+#const AM_AINDEX  := 0b110000; # extension
+const AM_ABSW    := 0b111000;
+const AM_ABSL    := 0b111001;
+const AM_PCDISP  := 0b111010;
+#const AM_PCINDEX := 0b111011; # extension
+const AM_IMM     := 0b111100;
+
+const AM_CCR     := 0x80;
+const AM_SR      := 0x81;
+const AM_USP     := 0x82;
+
+sub IsRvalue(am: uint8): (r: uint8) is
+	r := 1;
+	if am > AM_PCDISP then
+		r := 0;
+	end if;
+end sub;
+
+sub IsRvalueD(am: uint8): (r: uint8) is
+	if am == AM_REGA then
+		r := 0;
+	else
+		am := IsRvalue(am);
+	end if;
+end sub;
+
+sub IsRvalueM(am: uint8): (r: uint8) is
+	if am <= AM_REGA then
+		r := 0;
+	else
+		r := IsRvalue(am);
+	end if;
+end sub;
+
+sub IsLvalue(am: uint8): (r: uint8) is
+	r := 1;
+	if am >= AM_IMM then
+		r := 0;
+	end if;
+end sub;
+
+sub IsLvalueD(am: uint8): (r: uint8) is
+	if am == AM_REGA then
+		r := 0;
+	else
+		am := IsLvalue(am);
+	end if;
+end sub;
+
+sub IsLvalueM(am: uint8): (r: uint8) is
+	if am <= AM_REGA then
+		r := 0;
+	else
+		am := IsLvalue(am);
+	end if;
+end sub;
+
+sub IsSignedByte(value: uint32): (r: uint8) is
+	r := 0;
+	if (value > 0xffffff80) or (value < 0x7f) then
+		r := 1;
+	end if;
+end sub;
+
+record AddressingMode is
+	mode: uint8;
+	reg: uint8;
+	xreg: uint8;
+	value: Number;
+end record;
+
+var keywords: Keyword[] := {
+	# --- Special pseudo-instructions ------------------------------------
+
+	{ ".org",    INSN_ORG,     0 },
+	{ ".seg",    INSN_SEGMENT, 0 },
+	{ ".db",     INSN_DB,      0 },
+	{ ".dw",     INSN_DW,      0 },
+	{ ".dd",     INSN_DD,      0 },
+
+	# --- Registers and modifiers ----------------------------------------
+
+	{ "d0",		 REG_D,        0 },
+	{ "d1",		 REG_D,        1 },
+	{ "d2",		 REG_D,        2 },
+	{ "d3",		 REG_D,        3 },
+	{ "d4",		 REG_D,        4 },
+	{ "d5",		 REG_D,        5 },
+	{ "d6",		 REG_D,        6 },
+	{ "d7",		 REG_D,        7 },
+	{ "a0",		 REG_A,        0 },
+	{ "a1",		 REG_A,        1 },
+	{ "a2",		 REG_A,        2 },
+	{ "a3",		 REG_A,        3 },
+	{ "a4",		 REG_A,        4 },
+	{ "a5",		 REG_A,        5 },
+	{ "a6",		 REG_A,        6 },
+	{ "a7",		 REG_A,        7 },
+
+	{ "pc",      REG_PC,       0 },
+	{ "ccr",     REG_CCRSR,    0 },
+	{ "sr",      REG_CCRSR,    1 },
+	{ "usp",     REG_CCRSR,    2 },
+
+	{ ".b",      REG_MOD,      0 },
+	{ ".w",      REG_MOD,      1 },
+	{ ".l",      REG_MOD,      2 },
+
+	# --- Instructions ---------------------------------------------------
+
+	# dX,dY or -(aX),-(aY) only
+
+	{ "abcd",    INSN_ABCD,    0b1100000100000000 },
+	{ "sbcd",    INSN_ABCD,    0b1000000100000000 },
+
+	# dX,dY or -(aX),-(aY) with size mod
+
+	{ "addx",    INSN_ADDX,    0b1101000100000000 },
+	{ "subx",    INSN_ADDX,    0b1001000100000000 },
+
+	# add, addq, adda, addi and friends
+
+	{ "add",     INSN_ADDSUB,  0 },
+	{ "addq",    INSN_ADDSUB,  0 },
+	{ "adda",    INSN_ADDSUB,  0 },
+	{ "addi",    INSN_ADDSUB,  0 },
+
+	{ "sub",     INSN_ADDSUB,  1 },
+	{ "subq",    INSN_ADDSUB,  1 },
+	{ "suba",    INSN_ADDSUB,  1 },
+	{ "subi",    INSN_ADDSUB,  1 },
+
+	{ "and",     INSN_ADDSUB,  2 },
+	{ "andi",    INSN_ADDSUB,  2 },
+	{ "or",      INSN_ADDSUB,  3 },
+	{ "ori",     INSN_ADDSUB,  3 },
+
+	{ "eor",     INSN_ADDSUB,  4 },
+	{ "eori",    INSN_ADDSUB,  4 },
+
+	{ "cmp",     INSN_ADDSUB,  5 },
+	{ "cmpa",    INSN_ADDSUB,  5 },
+	{ "cmpi",    INSN_ADDSUB,  5 },
+
+	# Shifts
+
+	{ "asr",     INSN_ASL,     0b000 },
+	{ "asl",     INSN_ASL,     0b001 },
+	{ "lsr",     INSN_ASL,     0b010 },
+	{ "lsl",     INSN_ASL,     0b011 },
+	{ "roxr",    INSN_ASL,     0b100 },
+	{ "roxl",    INSN_ASL,     0b101 },
+	{ "ror",     INSN_ASL,     0b110 },
+	{ "rol",     INSN_ASL,     0b111 },
+	
+	# Branches
+
+	{ "bra",     INSN_BRA,     0x0 },
+	{ "bsr",     INSN_BRA,     0x1 },
+	{ "bhi",     INSN_BRA,     0x2 },
+	{ "bls",     INSN_BRA,     0x3 },
+	{ "bcc",     INSN_BRA,     0x4 },
+	{ "bcs",     INSN_BRA,     0x5 },
+	{ "bne",     INSN_BRA,     0x6 },
+	{ "beq",     INSN_BRA,     0x7 },
+	{ "bvc",     INSN_BRA,     0x8 },
+	{ "bvs",     INSN_BRA,     0x9 },
+	{ "bpl",     INSN_BRA,     0xa },
+	{ "bmi",     INSN_BRA,     0xb },
+	{ "bge",     INSN_BRA,     0xc },
+	{ "blt",     INSN_BRA,     0xd },
+	{ "bgt",     INSN_BRA,     0xe },
+	{ "ble",     INSN_BRA,     0xf },
+
+	# Bit operations
+
+	{ "btst",    INSN_BTST,    0b00 },
+	{ "bchg",    INSN_BTST,    0b01 },
+	{ "bclr",    INSN_BTST,    0b10 },
+	{ "bset",    INSN_BTST,    0b11 },
+
+	# CHK, DIV, and friends
+
+	{ "chk",     INSN_CHK,     0b0100000110000000 },
+	{ "divu",    INSN_CHK,     0b1000000011000000 },
+	{ "divs",    INSN_CHK,     0b1000000111000000 },
+	{ "mulu",    INSN_CHK,     0b1100000011000000 },
+	{ "muls",    INSN_CHK,     0b1100000111000000 },
+
+	# Multi-size uniop instructions.
+
+	{ "negx",    INSN_NEGX,    0b0100000000000000 },
+	{ "clr",     INSN_NEGX,    0b0100001000000000 },
+	{ "neg",     INSN_NEGX,    0b0100010000000000 },
+	{ "not",     INSN_NEGX,    0b0100011000000000 },
+	{ "tst",     INSN_NEGX,    0b0100101000000000 },
+
+	# Weird special instructions.
+
+	{ "cmpm",    INSN_CMPM,    0b1011000100001000 },
+	{ "exg",     INSN_EXG,     0b1100000100000000 },
+	{ "ext",     INSN_EXT,     0b0100100010000000 },
+	{ "lea",     INSN_LEA,     0b0100000111000000 },
+	{ "link",    INSN_LINK,    0b0100111001010000 },
+	{ "movem",   INSN_MOVEM,   0b0100100010000000 },
+	{ "movep",   INSN_MOVEP,   0 },
+	{ "nbcd",    INSN_NBCD,    0 },
+	{ "pea",     INSN_PEA,     0 },
+	{ "swap",    INSN_SWAP,    0 },
+	{ "tas",     INSN_TAS,     0 },
+	{ "trap",    INSN_TRAP,    0 },
+	{ "unlk",    INSN_UNLK,    0 },
+
+	# dbt (all of them).
+
+	{ "dbt",     INSN_DBT,     0b0101000011001000 },
+	{ "dbf",     INSN_DBT,     0b0101000111001000 },
+	{ "dbhi",    INSN_DBT,     0b0101001011001000 },
+	{ "dbls",    INSN_DBT,     0b0101001111001000 },
+	{ "dbcc",    INSN_DBT,     0b0101010011001000 },
+	{ "dbcs",    INSN_DBT,     0b0101010111001000 },
+	{ "dbne",    INSN_DBT,     0b0101011011001000 },
+	{ "dbeq",    INSN_DBT,     0b0101011111001000 },
+	{ "dbvc",    INSN_DBT,     0b0101100011001000 },
+	{ "dbvs",    INSN_DBT,     0b0101100111001000 },
+	{ "dbpl",    INSN_DBT,     0b0101101011001000 },
+	{ "dbmi",    INSN_DBT,     0b0101101111001000 },
+	{ "dbge",    INSN_DBT,     0b0101110011001000 },
+	{ "dblt",    INSN_DBT,     0b0101110111001000 },
+	{ "dbgt",    INSN_DBT,     0b0101111011001000 },
+	{ "dble",    INSN_DBT,     0b0101111111001000 },
+
+	# st (all of them).
+
+	{ "st",      INSN_ST,      0b0101000011000000 },
+	{ "sf",      INSN_ST,      0b0101000111000000 },
+	{ "shi",     INSN_ST,      0b0101001011000000 },
+	{ "sls",     INSN_ST,      0b0101001111000000 },
+	{ "scc",     INSN_ST,      0b0101010011000000 },
+	{ "scs",     INSN_ST,      0b0101010111000000 },
+	{ "sne",     INSN_ST,      0b0101011011000000 },
+	{ "seq",     INSN_ST,      0b0101011111000000 },
+	{ "svc",     INSN_ST,      0b0101100011000000 },
+	{ "svs",     INSN_ST,      0b0101100111000000 },
+	{ "spl",     INSN_ST,      0b0101101011000000 },
+	{ "smi",     INSN_ST,      0b0101101111000000 },
+	{ "sge",     INSN_ST,      0b0101110011000000 },
+	{ "slt",     INSN_ST,      0b0101110111000000 },
+	{ "sgt",     INSN_ST,      0b0101111011000000 },
+	{ "sle",     INSN_ST,      0b0101111111000000 },
+
+	# Simple instructions.
+
+	{ "illegal", INSN_SIMPLE,  0b0100101011111100 },
+	{ "reset",   INSN_SIMPLE,  0b0100111001110000 },
+	{ "nop",     INSN_SIMPLE,  0b0100111001110001 },
+	{ "rte",     INSN_SIMPLE,  0b0100111001110011 },
+	{ "rts",     INSN_SIMPLE,  0b0100111001110101 },
+	{ "trapv",   INSN_SIMPLE,  0b0100111001110110 },
+	{ "rtr",     INSN_SIMPLE,  0b0100111001110111 },
+
+	# Jumps.
+
+	{ "jmp",     INSN_JMP,     0b0100111011000000 },
+	{ "jsr",     INSN_JMP,     0b0100111010000000 },
+
+	# Move.
+
+	{ "move",    INSN_MOVE,    0 },
+	{ "movea",   INSN_MOVE,    0 },
+	{ "moveq",   INSN_MOVE,    0 },
+};
+
+include "lexer.coh";
+include "emitter.coh";
+include "symbols.coh";
+
+sub MustBeRawNumber(type: uint8) is
+	if type != AS_NUMBER then
+		SimpleError("only raw numbers are allowed as displacements");
+	end if;
+end sub;
+
+sub DisplacementOutOfRange(disp: uint32, max: uint32) is
+	if disp > max then
+		SimpleError("displacement out of range");
+	end if;
+end sub;
+
+sub InvalidOperand() is
+	SimpleError("invalid operand");
+end sub;
+
