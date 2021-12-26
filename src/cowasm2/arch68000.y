@@ -1,4 +1,5 @@
 %token REG_A REG_D REG_PC.
+%token INSN_MOVEP.
 
 $include "prologue.yh"
 
@@ -785,4 +786,39 @@ instruction ::= INSN_MOVEM mod(M) ea(A) COMMA OPENBR destregs(R) CLOSEBR.
 		EmitX(&A, M);
 	}
 
+/* movep is weird. */
+
+instruction ::= INSN_MOVEP mod(M) ea(R1) COMMA OPENBR expression(D) COMMA ea(R2) CLOSEBR.
+	{
+		if (R1.mode != AM_REGD) or (R2.mode != AM_REGA)
+			or (D.type != AS_NUMBER) or (D.number > 0xffff)
+			or (M == 0) then
+			InvalidOperand();
+		end if;
+
+		var sizes: uint16[] := { 0b000000000, 0b110000000, 0b111000000 };
+			
+		Emit16(0b0000000000001000
+			| sizes[M]
+			| (R1.reg as uint16 << 9)
+			| (R2.reg as uint16));
+		Emit16(D.number as uint16);
+	}
+
+instruction ::= INSN_MOVEP mod(M) OPENBR expression(D) COMMA ea(R1) CLOSEBR COMMA ea(R2).
+	{
+		if (R1.mode != AM_REGA) or (R2.mode != AM_REGD)
+			or (D.type != AS_NUMBER) or (D.number > 0xffff)
+			or (M == 0) then
+			InvalidOperand();
+		end if;
+
+		var sizes: uint16[] := { 0b000000000, 0b100000000, 0b101000000 };
+			
+		Emit16(0b0000000000001000
+			| sizes[M]
+			| (R2.reg as uint16 << 9)
+			| (R1.reg as uint16));
+		Emit16(D.number as uint16);
+	}
 
