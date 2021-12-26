@@ -222,6 +222,7 @@ var keywords: Keyword[] := {
 	{ "link",    INSN_LINK,    0b0100111001010000 },
 	{ "movem",   INSN_MOVEM,   0b0100100010000000 },
 	{ "movep",   INSN_MOVEP,   0 },
+	{ "nbcd",    INSN_NBCD,    0 },
 
 	# dbt (all of them).
 

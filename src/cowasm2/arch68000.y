@@ -822,3 +822,17 @@ instruction ::= INSN_MOVEP mod(M) OPENBR expression(D) COMMA ea(R1) CLOSEBR COMM
 		Emit16(D.number as uint16);
 	}
 
+/* nbcd is weird. */
+
+instruction ::= INSN_NBCD mod(M) ea(R).
+	{
+		if (IsLvalueD(R.mode) == 0) or (M != 0) then
+			InvalidOperand();
+		end if;
+
+		Emit16(0b0100100000000000
+			| (R.reg as uint16)
+			| (R.mode as uint16));
+		EmitX(&R, 0);
+	}
+
