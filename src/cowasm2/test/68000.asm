@@ -1,4 +1,4 @@
-	.seg 0
+	.seg 0 \ text
 begin:
 	abcd d0, d1
 	abcd -(a0), -(a1)
@@ -406,4 +406,10 @@ bra_label:
 	
 	unlk a5
 
+	.seg 1 \ data
+	.dd 0x12345678
+	.dd bra_label
+
+	.seg 2 \ bss
+	.dd 0x87654321
 

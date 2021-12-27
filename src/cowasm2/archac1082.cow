@@ -158,6 +158,7 @@ end sub;
 
 include "archac1082.parser.coh";
 include "cowasm2.coh";
+include "flatemitter.coh";
 
 Main("8051 family assembler (c) 2021 David Given");
 

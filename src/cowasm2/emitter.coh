@@ -1,6 +1,10 @@
+sub EmitRaw(b: uint8) is
+	FCBPutChar(&outputFile, b);
+end sub;
+
 sub Emit8(b: uint8) is
 	if emitSegment == currentSegment then
-		FCBPutChar(&outputFile, b);
+		EmitRaw(b);
 	end if;
 	[currentProgramCounter] := [currentProgramCounter] + 1;
 end sub;

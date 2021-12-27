@@ -11,5 +11,7 @@ end sub;
 	Emit16(d as uint16);
 end sub;
 
+include "flatemitter.coh";
+
 Main("68000 flat binary assembler (c) 2021 David Given");
 

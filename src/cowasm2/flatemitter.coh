@@ -1,0 +1,28 @@
+sub Main(banner: string) is
+	print(banner);
+	print_nl();
+
+	ParseArguments();
+	pass := 1;
+	loop
+		symbolsModified := 0;
+		Parse();
+		pass := pass + 1;
+		if symbolsModified == 0 then
+			break;
+		end if;
+	end loop;
+	lastPass := 1;
+	emitSegment := 0;
+	while emitSegment < @sizeof programCounter loop
+		print("emit segment ");
+		print_i8(emitSegment);
+		print(" ");
+		Parse();
+		pass := pass + 1;
+		emitSegment := emitSegment + 1;
+	end loop;
+
+	var i := FCBClose(&outputFile);
+end sub;
+

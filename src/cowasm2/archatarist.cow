@@ -1,14 +1,101 @@
 include "arch68000.coh";
 
+sub EmitRaw16(w: uint16) is
+	EmitRaw((w >> 8) as uint8);
+	EmitRaw(w as uint8);
+end sub;
+
 @impl sub Emit16 is
 	Emit8((w >> 8) as uint8);
 	Emit8(w as uint8);
 end sub;
 
+sub EmitRaw32(d: uint32) is
+	EmitRaw16((d >> 16) as uint16);
+	EmitRaw16(d as uint16);
+end sub;
+
+var bases: uint32[3];
+var emitRelocations: uint8 := 0;
+var relocationSegment: uint8 := 0;
+var lastRelocation: uint32 := 0;
 @impl sub Emit32 is
 	var d := n.number;
-	Emit16((d >> 16) as uint16);
-	Emit16(d as uint16);
+	if (emitRelocations != 0) and (relocationSegment == currentSegment)
+			and (n.type != AS_NUMBER) then
+		var addr := bases[currentSegment] + [currentProgramCounter];
+		if emitRelocations == 1 then
+			EmitRaw32(addr);
+			emitRelocations := 2;
+		else
+			var delta := addr - lastRelocation;
+			while delta >= 254 loop
+				EmitRaw(1);
+				delta := delta - 254;
+			end loop;
+			EmitRaw(delta as uint8);
+		end if;
+		lastRelocation := addr;
+		[currentProgramCounter] := [currentProgramCounter] + 4;
+	else
+		Emit16((d >> 16) as uint16);
+		Emit16(d as uint16);
+	end if;
+end sub;
+
+sub Main(banner: string) is
+	print(banner);
+	print_nl();
+
+	ParseArguments();
+	pass := 1;
+	loop
+		symbolsModified := 0;
+		Parse();
+		pass := pass + 1;
+		if symbolsModified == 0 then
+			break;
+		end if;
+	end loop;
+	lastPass := 1;
+
+	bases[0] := 0;
+	bases[1] := programCounter[0];
+	bases[2] := programCounter[0] + programCounter[1];
+
+	EmitRaw16(0x601a);
+	EmitRaw32(programCounter[0]);
+	EmitRaw32(programCounter[1]);
+	EmitRaw32(programCounter[2]);
+	EmitRaw32(0);
+	EmitRaw32(0);
+	EmitRaw32(0b00000111);
+	EmitRaw16(0);
+
+	print("Text: ");
+	emitSegment := 0;
+	Parse();
+	pass := pass + 1;
+
+	print("Data: ");
+	emitSegment := 1;
+	Parse();
+	pass := pass + 1;
+
+	print("Text relocations: ");
+	emitSegment := 0xff;
+	emitRelocations := 1;
+	relocationSegment := 0;
+	Parse();
+	pass := pass + 1;
+
+	print("Data relocations: ");
+	emitSegment := 0xff;
+	relocationSegment := 1;
+	Parse();
+	pass := pass + 1;
+
+	var i := FCBClose(&outputFile);
 end sub;
 
 Main("68000 Atari ST assembler (c) 2021 David Given");
