@@ -13,22 +13,22 @@ mod(M) ::= REG_MOD(T).
 
 %type ea {AddressingMode}
 
-ea(R) ::= REG_A(T).
+ea(R) ::= PERCENT REG_A(T).
 	{ R.mode := AM_REGA; R.reg := T.number as uint8; }
 
-ea(R) ::= REG_D(T).
+ea(R) ::= PERCENT REG_D(T).
 	{ R.mode := AM_REGD; R.reg := T.number as uint8; }
 
-ea(R) ::= OPENPAREN REG_A(T) CLOSEPAREN.
+ea(R) ::= OPENPAREN PERCENT REG_A(T) CLOSEPAREN.
 	{ R.mode := AM_IND; R.reg := T.number as uint8; }
 
-ea(R) ::= MINUS OPENPAREN REG_A(T) CLOSEPAREN.
+ea(R) ::= MINUS OPENPAREN PERCENT REG_A(T) CLOSEPAREN.
 	{ R.mode := AM_PREDEC; R.reg := T.number as uint8; }
 
-ea(R) ::= OPENPAREN REG_A(T) CLOSEPAREN PLUS.
+ea(R) ::= OPENPAREN PERCENT REG_A(T) CLOSEPAREN PLUS.
 	{ R.mode := AM_POSTINC; R.reg := T.number as uint8; }
 
-ea(R) ::= OPENPAREN expression(E) COMMA REG_A(T) CLOSEPAREN.
+ea(R) ::= OPENPAREN expression(E) COMMA PERCENT REG_A(T) CLOSEPAREN.
 	{ R.mode := AM_ADISP; R.reg := T.number as uint8;
       R.value.type := E.type; R.value.number := E.number; }
 
@@ -44,7 +44,7 @@ ea(R) ::= OPENPAREN expression(E) COMMA REG_A(T) COMMA REG_A(X) CLOSEPAREN.
       R.value.type := E.type; R.value.number := E.number; }
 */
 
-ea(R) ::= OPENPAREN expression(E) COMMA REG_PC CLOSEPAREN.
+ea(R) ::= OPENPAREN expression(E) COMMA PERCENT REG_PC CLOSEPAREN.
 	{ R.mode := AM_PCDISP;
 	  R.reg := 0;
       R.value.type := E.type; R.value.number := E.number; }
@@ -76,7 +76,7 @@ ea(R) ::= HASH expression(E).
 	  R.reg := 0;
 	  R.value.type := E.type; R.value.number := E.number; }
 
-ea(R) ::= REG_CCRSR(T).
+ea(R) ::= PERCENT REG_CCRSR(T).
 	{ R.mode := AM_CCR + (T.number as uint8); }
 
 /* --- Register lists ---------------------------------------------------- */
@@ -85,10 +85,10 @@ ea(R) ::= REG_CCRSR(T).
 %type destregs {uint16}
 %type srcdestreg {uint8}
 
-srcdestreg(O) ::= REG_A(R).
+srcdestreg(O) ::= PERCENT REG_A(R).
 	{ O := R.number as uint8 + 8; }
 
-srcdestreg(O) ::= REG_D(R).
+srcdestreg(O) ::= PERCENT REG_D(R).
 	{ O := R.number as uint8; }
 
 srcregs(O) ::= srcregs(A) COMMA srcregs(B).
@@ -515,9 +515,9 @@ instruction ::= INSN_BTST(T) ea(R1) COMMA ea(R2).
 
 /* .w ea,dX instructions */
 
-instruction ::= INSN_CHK(T) ea(R1) COMMA ea(R2).
+instruction ::= INSN_CHK(T) mod(M) ea(R1) COMMA ea(R2).
 	{
-		if (IsLvalueD(R1.mode) == 0) or (R2.mode != AM_REGD) then
+		if (IsLvalueD(R1.mode) == 0) or (R2.mode != AM_REGD) or (M != 1) then
 			InvalidOperand();
 		end if;
 
@@ -646,11 +646,9 @@ instruction ::= INSN_MOVE mod(M) ea(R1) COMMA ea(R2).
 		if (R1.mode == AM_IMM) and (R1.value.type == AS_NUMBER)
 			and (R2.mode == AM_REGD)
 			and (IsSignedByte(R1.value.number) != 0)
+			and (M == 2)
 		then
 			# moveq
-			if M != 2 then
-				InvalidOperand();
-			end if;
 			Emit16(0b0111000000000000
 				| (R2.reg as uint16 << 9)
 				| (R1.value.number as uint8 as uint16));

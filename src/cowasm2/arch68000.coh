@@ -117,6 +117,7 @@ var keywords: Keyword[] := {
 	{ "a5",		 REG_A,        5 },
 	{ "a6",		 REG_A,        6 },
 	{ "a7",		 REG_A,        7 },
+	{ "sp",		 REG_A,        7 },
 
 	{ "pc",      REG_PC,       0 },
 	{ "ccr",     REG_CCRSR,    0 },
@@ -234,6 +235,7 @@ var keywords: Keyword[] := {
 
 	# dbt (all of them).
 
+	{ "dbra",    INSN_DBT,     0b0101000111001000 },
 	{ "dbt",     INSN_DBT,     0b0101000011001000 },
 	{ "dbf",     INSN_DBT,     0b0101000111001000 },
 	{ "dbhi",    INSN_DBT,     0b0101001011001000 },

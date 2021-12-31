@@ -3,9 +3,9 @@ toolchain_ataritos = {
 	cowfe = "bin/cowfe-32bita2.nncgen.exe",
 	cowbe = "bin/cowbe-68000.nncgen.exe",
 	linker = "bin/cowlink-ataritos.nncgen.exe",
-	assembler = buildgasataritos,
+	assembler = buildcowasmatarist,
 	runtime = "rt/ataritos",
-	asmext = ".s",
+	asmext = ".asm",
 	binext = ".ataritos.tos",
 	tester = ataritosemutest,
 }
@@ -184,6 +184,7 @@ ALL_TOOLCHAINS = {}
 addto(ALL_TOOLCHAINS, toolchain_nncgen)
 addto(ALL_TOOLCHAINS, toolchain_ncgen)
 
+addto(ALL_TOOLCHAINS, toolchain_ataritos)
 addto(ALL_TOOLCHAINS, toolchain_bbct)
 addto(ALL_TOOLCHAINS, toolchain_bbct6502)
 addto(ALL_TOOLCHAINS, toolchain_bbcti)
@@ -193,7 +194,6 @@ addto(ALL_TOOLCHAINS, toolchain_ncpm)
 addto(ALL_TOOLCHAINS, toolchain_ncpmz)
 addto(ALL_TOOLCHAINS, toolchain_unixv7)
 
-if WITH_ATARITOS then addto(ALL_TOOLCHAINS, toolchain_ataritos) end
 if WITH_LX386    then addto(ALL_TOOLCHAINS, toolchain_lx386) end
 if WITH_LX68K    then addto(ALL_TOOLCHAINS, toolchain_lx68k) end
 if WITH_LXPPC    then addto(ALL_TOOLCHAINS, toolchain_lxppc) end

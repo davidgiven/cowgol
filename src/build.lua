@@ -153,6 +153,10 @@ function buildcowasm6303(e)
     buildcowasm(e, "6303")
 end
 
+function buildcowasmatarist(e)
+	buildcowasm(e, "atarist")
+end
+
 function buildtass64(e)
     local img = e.outs[1]:ext(".img"):obj()
     tass64 {

@@ -27,6 +27,7 @@ sub FindSymbol(name: string): (symbol: [Symbol]) is
 	end loop;
 	symbol := Alloc(@bytesof Symbol) as [Symbol];
 	symbol.name := StrDup(name);
+	symbol.type := AS_NUMBER;
 	symbol.next := [chain];
 	[chain] := symbol;
 end sub;

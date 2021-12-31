@@ -97,6 +97,9 @@ expression(E) ::= OPENPAREN expression(E1) CLOSEPAREN.
 expression(E) ::= MINUS expression(E1).
 	{ CheckNumber(E1.type); E.number := -E1.number; E.type := AS_NUMBER; }
 
+expression(E) ::= PLUS expression(E1).
+	{ CheckNumber(E1.type); E.number := E1.number; E.type := AS_NUMBER; }
+
 expression(E) ::= TILDE expression(E1).
 	{ CheckNumber(E1.type); E.number := ~E1.number; E.type := AS_NUMBER; }
 

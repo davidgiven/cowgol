@@ -26,19 +26,18 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
-	E(".global _start\n");
-	E("\t.text\n");
+	E("\t.seg 0\n");
 	E("\t_start:\n");
 
-	E("\tmove.l 4(%sp), (basepage)\n");
+	E("\tmove.l (4, %sp), (basepage)\n");
 	E("\tlea (ws), %a6\n");
 
 	while coo != (0 as [Coo]) loop
 		var main := coo.index.subroutines[0];
 		if main != (0 as [Subroutine]) then
-			E("\tjsr ");
+			E("\tbsr ");
 			ArchEmitSubRef(main);
-			E_nl();
+			E("\n");
 		end if;
 		coo := coo.next;
 	end loop;
@@ -49,7 +48,7 @@ sub ArchEmitHeader(coo: [Coo]) is
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-	E("\t.bss\n");
+	E("\t.seg 2\n");
 	E("\t.align 2\n");
 	E("basepage: .space 4\n");
 	E("ws: .space ");

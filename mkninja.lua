@@ -121,7 +121,6 @@ function enable_if(name, command)
 	_G[name] = v
 end
 
-enable_if("WITH_ATARITOS", "m68k-atari-mint-as")
 enable_if("WITH_MSDOS", "nasm")
 enable_if("WITH_LX386", "i686-linux-gnu-as")
 enable_if("WITH_LX68K", "m68k-linux-gnu-as")

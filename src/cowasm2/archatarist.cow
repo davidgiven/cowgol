@@ -72,24 +72,24 @@ sub Main(banner: string) is
 	EmitRaw32(0b00000111);
 	EmitRaw16(0);
 
-	print("Text: ");
+	print("emitting text: ");
 	emitSegment := 0;
 	Parse();
 	pass := pass + 1;
 
-	print("Data: ");
+	print("emitting data: ");
 	emitSegment := 1;
 	Parse();
 	pass := pass + 1;
 
-	print("Text relocations: ");
+	print("emitting text relocations: ");
 	emitSegment := 0xff;
 	emitRelocations := 1;
 	relocationSegment := 0;
 	Parse();
 	pass := pass + 1;
 
-	print("Data relocations: ");
+	print("emitting data relocations: ");
 	emitSegment := 0xff;
 	relocationSegment := 1;
 	Parse();

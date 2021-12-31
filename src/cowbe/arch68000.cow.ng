@@ -154,7 +154,7 @@
     sub E_callhelper(name: string) is
         var helper := GetHelper(name);
         R_flushall();
-        E_insn("jsr");
+        E_insn("bsr");
         E_b8(COO_ESCAPE_SUBREF);
         E_b16(helper.id);
         E_nl();
@@ -208,7 +208,7 @@
 	end sub;
 
     sub ArchBeginComment() is
-        E("\t# ");
+        E("\t\\ ");
     end sub;
 
     sub ArchEndComment() is
@@ -301,7 +301,7 @@ gen STARTSUB() uses all
 
 	EmitterOpenStream(current_subr);
 
-	E("\n\n\t# ");
+	E("\n\n\t\\ ");
 	E(current_subr.name);
 	E(" workspace at ");
 	E_b8(COO_ESCAPE_WSREF);
@@ -314,7 +314,7 @@ gen STARTSUB() uses all
 	E_b8(0);
 	E_nl();
 
-	E(".text\n");
+	E("\t.seg 0\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -480,7 +480,7 @@ gen areg := SUBREF():s
 %{
 	sub Call(addr: [MidcodeSubref]) is
 		R_flushall();
-		E_insn("jsr");
+		E_insn("bsr");
 		E_subref(addr.subr);
 		E_nl();
 	end sub;
