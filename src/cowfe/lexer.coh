@@ -448,6 +448,10 @@ sub LexerReadToken(): (token: uint8) is
 
 		loop
 			c := ToLower(lexer_i_getchar());
+			if c == '_' then
+				continue;
+			end if;
+
 			(type, token) := lexer_i_ctype(c);
 			if (type & CTYPE_IDCONT) == 0 then
 				pushed_char := c;
