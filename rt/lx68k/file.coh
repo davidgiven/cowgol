@@ -1,0 +1,116 @@
+# System call numbers are here:
+# https://fedora.juszkiewicz.com.pl/syscalls.html
+
+const FCB_BUFFER_SIZE := 512;
+typedef FCBIndexType is uint16;
+
+record RawFCB is
+	fd: uint32;
+end record;
+
+include "fileio.coh";
+
+@impl sub FCBRawRead is
+	var fd := fcb.fd;
+	var dma := &fcb.buffer[0];
+	var i: int32;
+
+	@asm "move.l #0xb4, %d0"; # READ64
+	@asm "move.l (", fd, "), %d1";
+	@asm "move.l (", dma, "), %d2";
+	@asm "clr.l %d3";
+	@asm "move.w (", len, "), %d3";
+	@asm "clr.l %d4";
+	@asm "move.l (", pos, "), %d5";
+	@asm "trap #0";
+	@asm "move.l %d0, (", i, ")";
+
+	if i < 0 then
+		amount := 0;
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	else
+		amount := i as FCBIndexType;
+	end if;
+end sub;
+
+@impl sub FCBRawWrite is
+	var fd := fcb.fd;
+	var dma := &fcb.buffer[0];
+	var i: int32;
+
+	@asm "move.l #0xb5, %d0"; # WRITE64
+	@asm "move.l (", fd, "), %d1";
+	@asm "move.l (", dma, "), %d2";
+	@asm "clr.l %d3";
+	@asm "move.w (", len, "), %d3";
+	@asm "clr.l %d4";
+	@asm "move.l (", pos, "), %d5";
+	@asm "trap #0";
+	@asm "move.l %d0, (", i, ")";
+
+	if i < 0 then
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	end if;
+end sub;
+
+sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
+	_fcb_init(fcb);
+
+	var fd: int32;
+	@asm "move.l #5, %d0"; # OPEN
+	@asm "move.l (", filename, "), %d1";
+	@asm "move.l (", flags, "), %d2";
+	@asm "move.l #", 0o666, ", %d3";
+	@asm "trap #0";
+	@asm "move.l %d0, (", fd, ")";
+	fcb.fd := fd as uint32;
+	if fd < 0 then
+		errno := (-fd) as uint8;
+	else
+		errno := 0;
+	end if;
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o0000); # O_RDONLY
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o0002); # O_RDWR
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	(errno) := fcb_i_open(fcb, filename, 0o1102); # O_RDWR|O_CREAT|O_TRUNC
+end sub;
+	
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	FCBFlush(fcb);
+
+	var fd := fcb.fd;
+	var i: int32;
+	@asm "move.l #6, %d0"; # CLOSE
+	@asm "move.l (", fd, "), %d1";
+	@asm "trap #0";
+	@asm "move.l %d0, (", i, ")";
+
+	if i < 0 then
+		errno := 1;
+	else
+		errno := 0;
+	end if;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+	FCBFlush(fcb);
+
+	var fd := fcb.fd;
+	@asm "move.l #19, %d0"; # LSEEK
+	@asm "move.l (", fd, "), %d1";
+	@asm "clr.l %d2"; # offset
+	@asm "move.l #2, %d3"; # SEEK_END
+	@asm "trap #0";
+	@asm "move.l %d0, (", len, ")";
+end sub;
+
+include "common-file.coh";
+

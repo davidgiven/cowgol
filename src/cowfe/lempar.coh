@@ -73,7 +73,7 @@ sub yy_trace_shift(stateno: YYACTIONTYPE, msg: string) is
 	print(" '");
 	print(yyTokenName[yytos.major]);
 	print("', go to state ");
-	print_i16(stateno);
+	print_i16(stateno as uint16);
 	print_nl();
 end sub;
 
@@ -114,7 +114,7 @@ sub yy_reduce(yyruleno: YYACTIONTYPE, yylookahead: YYCODETYPE): (yyact: YYACTION
 	if stateno <= YY_REDUCE_COUNT then
 		var i := (yy_reduce_ofst[stateno as @indexof yy_reduce_ofst] as @indexof yy_action)
 				+ (yygoto as @indexof yy_action);
-		if (i>=0) and (i<YY_ACTTAB_COUNT) and (yy_lookahead[i] == yygoto) then
+		if (i>=0) and (i<YY_ACTTAB_COUNT) and (yy_lookahead[i as @indexof yy_lookahead] == yygoto) then
 			yyact := yy_action[i];
 		end if;
 	end if;
@@ -158,24 +158,24 @@ end sub;
 sub ParserFeedToken(yymajor: YYCODETYPE, yyminor: [YYMINORTYPE]) is
 	var yyact := yytos.stateno;
 
-	#print("Input '")
+	#print("Input '");
 	#print(yyTokenName[yymajor]);
 	#if yyact < YY_MIN_REDUCE then
 	#	print("' in state ");
-	#	print_i16(yyact);
+	#	print_i16(yyact as uint16);
 	#else
 	#	print("' with pending reduce ");
-	#	print_i16(yyact - YY_MIN_REDUCE);
+	#	print_i16((yyact - YY_MIN_REDUCE) as uint16);
 	#end if;
 	#print_nl();
 
 	loop
 		if yyact <= YY_MAX_SHIFT then
-			var i := yy_shift_ofst[yyact as @indexof yy_shift_ofst] + (yymajor as uint16);
-			if yy_lookahead[i] != yymajor then
+			var i := yy_shift_ofst[yyact as @indexof yy_shift_ofst] + (yymajor as YYTOKENOFFSETTYPE);
+			if yy_lookahead[i as @indexof yy_lookahead] != yymajor then
 				yyact := yy_default[yyact as @indexof yy_default];
 			else
-				yyact := yy_action[i];
+				yyact := yy_action[i as @indexof yy_action];
 			end if;
 		end if;
 

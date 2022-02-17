@@ -1,0 +1,74 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+	if (alignment != 1) and ((newvalue & 1) == 1) then
+		newvalue := newvalue + 1;
+	end if;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws+");
+	E_u16(address);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E(".global _start\n");
+	E("\tsp = a7\n");
+	E("\t.text\n");
+	E("\t_start:\n");
+
+	# On entry, the stack looks like this:
+	#
+	# sp+..            NULL
+	# sp+8+(4*argc)   env (X quads)
+	# sp+4+(4*argc)   NULL
+	# sp+4            argv (argc quads)
+	# sp              argc
+
+	E("\tlea.l 4(%sp), %a0\n");
+	E("\tmove.l %a0, (argv)\n");
+	E("\tlea (ws), %a6\n");
+
+	while coo != (0 as [Coo]) loop
+		var main := coo.index.subroutines[0];
+		if main != (0 as [Subroutine]) then
+			E("\tjsr ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("_exit:\n");
+	E("\tmove.l #1, %d0\n"); # __exit
+	E("\tclr.l %d1\n"); # return status
+	E("\ttrap #0\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("\t.bss\n");
+	E("\t.align 2\n");
+	E("argv: .space 4\n");
+	E("ws: .space ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("\t.align 2\n");
+	E("LOMEM: .space 64*1024\n");
+	E("HIMEM:\n");
+end sub;
+
+

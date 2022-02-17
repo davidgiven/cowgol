@@ -49,7 +49,15 @@ The following targets are supported. Adding more is easy.
 
   - 80386, on Linux.
 
-  - 8086, on DOS (it emits tiny mode .com files).
+  - ARM Thumb2, on Linux.
+
+  - PowerPC, on Linux.
+
+  - 68000, on Atari ST TOS (although most of the system calls aren't hooked up
+	yet so you can't do anything more than print stuff) and Linux m68k (if you
+	can still find a machine which will run this).
+
+  - 8086, on DOS (it emits small mode .exe files with 64kB of code and 64kB of data).
 
   - PDP11, on V7 Unix (thanks to
 	[shattered@github](https://github.com/shattered) for contributing the PDP11
@@ -63,6 +71,11 @@ The following targets are supported. Adding more is easy.
 	Microsoft Basic. I wrote this mainly as a joke and only a subset of the
 	language is supported, but it does work.
 
+In addition, there's emulator and assembler support for these platforms, but no compiler:
+
+  - the OBP spaceflight computer (used by, among other things, the OAO-3
+	Copernicus orbiting observatory)
+
 (It _used_ to [support the Apollo Guidance
 Computer](http://cowlark.com/2019-07-20-cowgol-agc/index.html) used in the
 Apollo spacecraft, but I had to remove the code generator while rewriting the
@@ -70,7 +83,7 @@ compiler and I haven't reworked the AGC backend.)
 
 In terms of machines you can run the compiler _on_:
 
-  - 80386 Linux, duh.
+  - 80386 and ARM and PowerPC and 68000 Linux, duh.
 
   - A BBC Micro with Tube second processor. [Follow this link for a live
 	in-browser
@@ -80,13 +93,15 @@ In terms of machines you can run the compiler _on_:
 	done type OUT to run the result. This is generating full 65c02 machine
 	code.
 
-  - Generic CP/M (untested). There's no reason why this shouldn't work, but I
-	haven't tried it yet.
+  - Generic CP/M (both Z80 and 8080).
 
-The other platforms have unfinished system call libraries, so while the
+Many of the other platforms have unfinished system call libraries, so while the
 compiler tests all pass and the compilers are being built, they won't work if
 you run them. This should be easy to fix if necessary --- let me know and ask.
-(I just haven't got round to it yet.)
+(I just haven't got round to it yet.) Other platforms have working system call
+libraries but Cowgol doesn't provide an assembler, so you need to source your
+own (for example: MS-DOS and Atari ST TOS). So the compiler technically works
+there; you just can't do anything useful with it.
 
 ### About the language
 
@@ -265,4 +280,16 @@ Alan Cox. It is distributed under the terms of the GPL 3.0 license; see
 `third_party/emu2` constains a copy of the emu2 DOS emulator written by
 dmsc@github (and others). It is distributed under the terms of the GPL 2.0
 license; see `third_party/emu2/LICENSE` for the full text.
+
+`third_party/djlink` contains a copy of the djlink 16-bit linker written by
+dj@delorie.com. It is distributed under the terms of the GPL 2.0 licesne; see
+`third_party/djlink/copying` for the full text, with additional grants
+described in `third_party/djlink/copying.dj`.
+
+`third_party/musashi` contains a copy of the Musashi 68000 emulation library,
+written by Karl Stenerud. It is distributable under the terms of the MIT
+license; see `third_party/musashi/readme.txt` for the full text. It also in
+turn contains a copy of John R. Hauser's softfloat library, distributable under
+a custom but MIT-like license; see `third_party/musashi/softfloat/README.txt`
+for the text.
 

@@ -71,6 +71,9 @@ sub WriteCharacterFromStream(c: uint8) is
 			when COO_ESCAPE_WSSIZE:
 				stream_output_buffer_wanted := 4;
 
+			when COO_ESCAPE_WSOFF:
+				stream_output_buffer_wanted := 6;
+
 			when '\n':
 				E_nl();
 				return;
@@ -93,6 +96,15 @@ sub WriteCharacterFromStream(c: uint8) is
 		var wid: uint8;
 		var off: uint16;
 
+		sub ParseWsRef() is
+			subid := (stream_output_buffer[1] as uint16) | (stream_output_buffer[2] as uint16 << 8);
+			wid := stream_output_buffer[3];
+			off := (stream_output_buffer[4] as uint16) | (stream_output_buffer[5] as uint16 << 8);
+			subr := FindOrCreateSub(current_subroutine.coo, subid);
+			subr := Deref(subr);
+			CheckSubExists(subr);
+		end sub;
+
 		case stream_output_buffer[0] is
 			when COO_ESCAPE_SUBREF:
 				subid := (stream_output_buffer[1] as uint16) | (stream_output_buffer[2] as uint16 << 8);
@@ -102,12 +114,7 @@ sub WriteCharacterFromStream(c: uint8) is
 				ArchEmitSubRef(subr);
 
 			when COO_ESCAPE_WSREF:
-				subid := (stream_output_buffer[1] as uint16) | (stream_output_buffer[2] as uint16 << 8);
-				wid := stream_output_buffer[3];
-				off := (stream_output_buffer[4] as uint16) | (stream_output_buffer[5] as uint16 << 8);
-				subr := FindOrCreateSub(current_subroutine.coo, subid);
-				subr := Deref(subr);
-				CheckSubExists(subr);
+				ParseWsRef();
 				ArchEmitWSRef(wid, subr.workspaceAddress[wid] + off);
 
 			when COO_ESCAPE_WSSIZE:
@@ -117,6 +124,10 @@ sub WriteCharacterFromStream(c: uint8) is
 				subr := Deref(subr);
 				CheckSubExists(subr);
 				ArchEmitWSRef(wid, subr.workspaceSize[wid]);
+
+			when COO_ESCAPE_WSOFF:
+				ParseWsRef();
+				E_u16(subr.workspaceAddress[wid] + off);
 		end case;
 
 		stream_output_buffer_wanted := 0;

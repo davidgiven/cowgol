@@ -1,0 +1,126 @@
+sub ToUpper(cin: uint8): (cout: uint8) is
+	if (cin >= 'a') and (cin <= 'z') then
+		cout := cin - ('a' - 'A');
+	else
+		cout := cin;
+	end if;
+end sub;
+
+sub CheckFCBOpen(e: uint8, s: string) is
+	if e != 0 then
+		StartError();
+		print("cannot open ");
+		print(s);
+		EndError();
+	end if;
+end sub;
+
+sub ParseArguments() is
+	sub SyntaxError() is
+		StartError();
+		print("syntax: cowasm <inputfilename> [-o <outputfilename>] [-l <listingfilename>\n");
+		EndError();
+	end sub;
+
+	ArgvInit();
+	loop
+		var s := ArgvNext();
+		if s == (0 as string) then
+			break;
+		end if;
+
+		if [s] == '-' then
+			case ToUpper([s+1]) is
+				when 'O':
+					outputFilename := ArgvNext();
+
+				when 'L':
+					listingFilename := ArgvNext();
+
+				when else:
+					SyntaxError();
+			end case;
+		else
+			if inputFilename != (0 as string) then
+				SyntaxError();
+			end if;
+			inputFilename := s;
+		end if;
+	end loop;
+
+	if (inputFilename == (0 as string)) or (outputFilename == (0 as string)) then
+		SyntaxError();
+	end if;
+
+	CheckFCBOpen(FCBOpenOut(&outputFile, outputFilename), outputFilename);
+	if listingFilename != (0 as string) then
+		CheckFCBOpen(FCBOpenOut(&listingFile, listingFilename), listingFilename);
+	end if;
+end sub;
+
+sub Parse() is
+	print("pass ");
+	print_i8(pass);
+	print_nl();
+
+	var p: [Arith] := &programCounter[0];
+	while p != &programCounter[@sizeof programCounter] loop
+		[p] := 0;
+		p := @next p;
+	end loop;
+
+	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
+	ParserInit();
+	loop
+		var yymajor := LexerReadToken();
+		var yyminor: YYMINORTYPE;
+		case yymajor is
+			when NUMBER:
+				yyminor.yy0.number := token_value;
+
+			when ID:
+				yyminor.yy0.string := StrDup(&token_buffer[0]);
+
+			when STRING:
+				yyminor.yy0.string := StrDup(&token_buffer[0]);
+
+			when else:
+				yyminor.yy0.number := token_value;
+		end case;
+		ParserFeedToken(yymajor, &yyminor);
+		if yymajor == 0 then
+			break;
+		end if;
+	end loop;
+
+	var i := FCBClose(&inputFile);
+end sub;
+
+sub Main(banner: string) is
+	print(banner);
+	print_nl();
+
+	ParseArguments();
+	pass := 1;
+	loop
+		symbolsModified := 0;
+		Parse();
+		pass := pass + 1;
+		if symbolsModified == 0 then
+			break;
+		end if;
+	end loop;
+	lastPass := 1;
+	emitSegment := 0;
+	while emitSegment < @sizeof programCounter loop
+		print("emit segment ");
+		print_i8(emitSegment);
+		print(" ");
+		Parse();
+		pass := pass + 1;
+		emitSegment := emitSegment + 1;
+	end loop;
+
+	var i := FCBClose(&outputFile);
+end sub;
+

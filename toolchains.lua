@@ -1,3 +1,15 @@
+toolchain_ataritos = {
+	name = "ataritos",
+	cowfe = "bin/cowfe-32bita2.nncgen.exe",
+	cowbe = "bin/cowbe-68000.nncgen.exe",
+	linker = "bin/cowlink-ataritos.nncgen.exe",
+	assembler = buildgasataritos,
+	runtime = "rt/ataritos",
+	asmext = ".s",
+	binext = ".ataritos.tos",
+	tester = ataritosemutest,
+}
+
 toolchain_ncgen = {
 	name = "ncgen",
 	cowfe = "bin/cowfe-cgen.bootstrap.exe",
@@ -24,7 +36,7 @@ toolchain_nncgen = {
 
 toolchain_ncpm = {
 	name = "ncpm",
-	cowfe = "bin/cowfe-8080.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-8080.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildcowasm8080,
@@ -36,7 +48,7 @@ toolchain_ncpm = {
 
 toolchain_ncpmz = {
 	name = "ncpmz",
-	cowfe = "bin/cowfe-z80.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-z80.nncgen.exe",
 	linker = "bin/cowlink-8080.nncgen.exe",
 	assembler = buildzmac,
@@ -48,7 +60,7 @@ toolchain_ncpmz = {
 
 toolchain_lxthumb2 = {
 	name = "lxthumb2",
-	cowfe = "bin/cowfe-thumb2.nncgen.exe",
+	cowfe = "bin/cowfe-32bita.nncgen.exe",
 	cowbe = "bin/cowbe-thumb2.nncgen.exe",
 	linker = "bin/cowlink-lxthumb2.nncgen.exe",
 	assembler = buildgasarm,
@@ -70,6 +82,30 @@ toolchain_lx386 = {
 	tester = qemu386test
 }
 
+toolchain_lx68k = {
+	name = "lx68k",
+	cowfe = "bin/cowfe-32bita2.nncgen.exe",
+	cowbe = "bin/cowbe-68000.nncgen.exe",
+	linker = "bin/cowlink-lx68k.nncgen.exe",
+	assembler = buildgas68k,
+	runtime = "rt/lx68k",
+	asmext = ".s",
+	binext = ".lx68k.exe",
+	tester = qemu68ktest
+}
+
+toolchain_lxppc = {
+	name = "lxppc",
+	cowfe = "bin/cowfe-32bita.nncgen.exe",
+	cowbe = "bin/cowbe-powerpc.nncgen.exe",
+	linker = "bin/cowlink-lxppc.nncgen.exe",
+	assembler = buildgasppc,
+	runtime = "rt/lxppc",
+	asmext = ".s",
+	binext = ".lxppc.exe",
+	tester = qemuppctest
+}
+
 toolchain_bbct = {
 	name = "bbct",
 	cowfe = "bin/cowfe-6502.nncgen.exe",
@@ -80,7 +116,7 @@ toolchain_bbct = {
 	asmext = ".asm",
 	binext = ".bbct",
 	tester = tubeemutest,
-	archs = { "6502i", "8080" }
+	archs = { "8080" }
 }
 
 toolchain_bbctiny = {
@@ -105,19 +141,7 @@ toolchain_bbct6502 = {
 	asmext = ".asm",
 	binext = ".bbct6502",
 	tester = tubeemutest,
-	archs = { "6502i", "8080" },
-}
-
-toolchain_bbcti = {
-	name = "bbcti",
-	cowfe = "bin/cowfe-6502i.nncgen.exe",
-	cowbe = "bin/cowbe-6502i.nncgen.exe",
-	linker = "bin/cowlink-bbcti.nncgen.exe",
-	assembler = buildtass64,
-	runtime = "rt/bbcti",
-	asmext = ".asm",
-	binext = ".bbcti",
-	tester = tubeemutest,
+	archs = { "8080" },
 }
 
 toolchain_unixv7 = {
@@ -134,7 +158,7 @@ toolchain_unixv7 = {
 
 toolchain_fuzix6303 = {
 	name = "fuzix6303",
-	cowfe = "bin/cowfe-6303.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-6303.nncgen.exe",
 	linker = "bin/cowlink-fuzix6303.nncgen.exe",
 	assembler = buildcowasm6303,
@@ -146,13 +170,13 @@ toolchain_fuzix6303 = {
 
 toolchain_msdos = {
 	name = "msdos",
-	cowfe = "bin/cowfe-8086.nncgen.exe",
+	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-8086.nncgen.exe",
 	linker = "bin/cowlink-msdos.nncgen.exe",
 	assembler = buildnasm,
 	runtime = "rt/msdos",
 	asmext = ".asm",
-	binext = ".msdos.com",
+	binext = ".msdos.exe",
 	tester = emu2test,
 }
 
@@ -168,19 +192,23 @@ toolchain_tlcs90 = {
 	tester = nil,
 }
 
-ALL_TOOLCHAINS = {
-	toolchain_bbct,
-	toolchain_bbct6502,
-	toolchain_bbcti,
-	toolchain_bbctiny,
-	toolchain_fuzix6303,
-	toolchain_lxthumb2,
-	toolchain_lx386,
-	toolchain_msdos,
-	toolchain_ncgen,
-	toolchain_ncpm,
-	toolchain_ncpmz,
-	toolchain_nncgen,
-	toolchain_unixv7,
-}
+ALL_TOOLCHAINS = {}
+addto(ALL_TOOLCHAINS, toolchain_nncgen)
+addto(ALL_TOOLCHAINS, toolchain_ncgen)
+
+addto(ALL_TOOLCHAINS, toolchain_bbct)
+addto(ALL_TOOLCHAINS, toolchain_bbct6502)
+addto(ALL_TOOLCHAINS, toolchain_bbcti)
+addto(ALL_TOOLCHAINS, toolchain_bbctiny)
+addto(ALL_TOOLCHAINS, toolchain_fuzix6303)
+addto(ALL_TOOLCHAINS, toolchain_ncpm)
+addto(ALL_TOOLCHAINS, toolchain_ncpmz)
+addto(ALL_TOOLCHAINS, toolchain_unixv7)
+
+if WITH_ATARITOS then addto(ALL_TOOLCHAINS, toolchain_ataritos) end
+if WITH_LX386    then addto(ALL_TOOLCHAINS, toolchain_lx386) end
+if WITH_LX68K    then addto(ALL_TOOLCHAINS, toolchain_lx68k) end
+if WITH_LXPPC    then addto(ALL_TOOLCHAINS, toolchain_lxppc) end
+if WITH_LXTHUMB2 then addto(ALL_TOOLCHAINS, toolchain_lxthumb2) end
+if WITH_MSDOS    then addto(ALL_TOOLCHAINS, toolchain_msdos) end
 

@@ -18,6 +18,12 @@ sub AlignUp(in: intptr): (out: intptr) is
 	out := in;
 end sub;
 
+sub get_char(): (c: uint8) is
+	@asm "mvi c, 1";
+	@asm "call 5";
+	@asm "sta", c;
+end sub;
+
 sub print_char(c: uint8) is
 	if c == 10 then
 		@asm "mvi e, 13";

@@ -16,20 +16,40 @@ record RegMove is
 	dest: RegId;
 end record;
 
+const INSN_ELIDED   := 1<<0;
+const INSN_NOTFIRST := 2<<0;
+
 record Instruction is
 	next: [Instruction];
 	prev: [Instruction];
 	n: [Node][INSTRUCTION_TEMPLATE_DEPTH];
 	producable_regs: RegId;
 	produced_reg: RegId;
+	consumer: [Node];
 	input_regs: RegId;
+	used_regs: RegId;
 	output_regs: RegId;
 	spills: RegMove[MAX_MOVE_COUNT];
 	reloads: RegMove[MAX_MOVE_COUNT];
 	num_spills: uint8;
 	num_reloads: uint8;
+	flags: uint8;
 	ruleid: uint8;
 end record;
+
+record SimpleValue is
+	address @at(0): MidcodeAddress;
+	constant @at(0): int32;
+	count: uint8;
+	kind: uint8;
+end record;
+
+var imported_values: SimpleValue[REGISTER_COUNT];
+MemZero(&imported_values as [uint8], @bytesof imported_values);
+var preferred_values: SimpleValue[REGISTER_COUNT];
+MemZero(&preferred_values as [uint8], @bytesof preferred_values);
+
+var emitting_asm: uint8 := 0;
 
 sub AllocLabel(): (label: LabelRef) is
 	label := next_label_id;
@@ -98,6 +118,25 @@ sub FindFirst(inreg: RegId): (outreg: RegId) is
 	outreg := 0;
 end sub;
 
+sub FindLast(inreg: RegId): (outreg: RegId) is
+	outreg := 0;
+	var reg: RegId := 1;
+	while reg != 0 loop
+		if (inreg & reg) != 0 then
+			outreg := reg;
+		end if;
+		reg := reg << 1;
+	end loop;
+end sub;
+
+sub FindBitNumber(reg: RegId): (bit: uint8) is
+	bit := 0;
+	while reg != 0 loop
+		bit := bit + 1;
+		reg := reg >> 1;
+	end loop;
+end sub;
+
 include "inssel.coh";
 
 sub IsStackedRegister(regid: RegId): (result: uint8) is
@@ -115,9 +154,12 @@ end sub;
 # Calculates blocked registers *between* the two bounds, not the end ones.
 sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocked: RegId) is
 	blocked := 0;
+	if insn == last then
+		return;
+	end if;
 	insn := insn.next;
 	while insn != last loop
-		blocked := blocked | insn.input_regs | insn.output_regs;
+		blocked := blocked | insn.input_regs | insn.output_regs | insn.used_regs;
 		if insn == last then
 			break;
 		end if;
@@ -125,12 +167,44 @@ sub CalculateBlockedRegisters(insn: [Instruction], last: [Instruction]): (blocke
 	end loop;
 end sub;
 
+sub CalculateBlockedRegistersInclusive(insn: [Instruction], last: [Instruction]): (blocked: RegId) is
+	blocked := last.output_regs | insn.input_regs;
+	if insn != last then
+		blocked := blocked | CalculateBlockedRegisters(insn, last);
+	end if;
+end sub;
+
 # Blocks registers *between* the two bounds, not the end ones.
 sub BlockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
+	if insn == last then
+		return;
+	end if;
 	insn := insn.next;
 	while insn != last loop
 		insn.input_regs := insn.input_regs | blocked;
+		insn.used_regs := insn.used_regs | blocked;
 		insn.output_regs := insn.output_regs | blocked;
+		if insn == last then
+			break;
+		end if;
+		insn := insn.next;
+	end loop;
+end sub;
+
+sub BlockRegistersInclusive(insn: [Instruction], last: [Instruction], blocked: RegId) is
+	last.output_regs := last.output_regs | blocked;
+	insn.input_regs := insn.input_regs | blocked;
+	if insn != last then
+		BlockRegisters(insn, last, blocked);
+	end if;
+end sub;
+
+# Unblocks registers *between* the two bounds, not the end ones.
+sub UnblockRegisters(insn: [Instruction], last: [Instruction], blocked: RegId) is
+	insn := insn.next;
+	while insn != last loop
+		insn.input_regs := insn.input_regs & ~blocked;
+		insn.output_regs := insn.output_regs & ~blocked;
 		if insn == last then
 			break;
 		end if;
@@ -283,6 +357,130 @@ sub PrintNodes(rootnode: [Node]) is
 		print_hex_i32(node.right as intptr as uint32);
 		print_nl();
 	end loop;
+end sub;
+
+sub PrintInstructions(insn: [Instruction]) is
+	loop
+		if insn == (0 as [Instruction]) then
+			break;
+		end if;
+		var ruleid := insn.ruleid;
+		var rule := &codegen_rules[ruleid];
+
+		print_hex_i32(insn as intptr as uint32);
+		print(" rule ");
+		print_i8(ruleid);
+
+		var significant := rule.significant_nodes;
+		var i: uint8 := 0;
+		while significant != 0 loop
+			if (significant & 1) != 0 then
+				var node := insn.n[i];
+				print_char(' ');
+				print(MidcodeName(node.op));
+			end if;
+
+			significant := significant >> 1;
+			i := i + 1;
+		end loop;
+
+		print_nl();
+
+		insn := insn.prev;
+	end loop;
+end sub;
+
+sub IsRegisterSpilt(insn: [Instruction], reg: RegId): (res: uint8) is
+	res := 0;
+
+	var spill := &insn.spills[0];
+	while spill != &insn.spills[MAX_MOVE_COUNT] loop
+		if spill.src == reg then
+			res := 1;
+			return;
+		end if;
+		spill := @next spill;
+	end loop;
+end sub;
+
+sub IsRegisterReloaded(insn: [Instruction], reg: RegId): (res: uint8) is
+	res := 0;
+
+	var reload := &insn.reloads[0];
+	while reload != &insn.reloads[MAX_MOVE_COUNT] loop
+		if reload.dest == reg then
+			res := 1;
+			return;
+		end if;
+		reload := @next reload;
+	end loop;
+end sub;
+
+sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
+	res := 0;
+	if IsStackedRegister(insn.producable_regs) == 0 then
+		var node := insn.n[0];
+		if node.op == MIDCODE_FALLBACK then
+			node := node.left;
+		end if;
+		if (node.left != (0 as [Node])) and (IsStackedRegister(node.produced_reg) == 0) then
+			return;
+		end if;
+		#if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF1;
+		#	res := 1;
+		#elseif (node.op == MIDCODE_DEREF2) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF2;
+		#	res := 1;
+		#elseif (node.op == MIDCODE_DEREF4) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF4;
+		#	res := 1;
+		#elseif (node.op == MIDCODE_DEREF8) and (node.left.op == MIDCODE_ADDRESS) then
+		#	MemCopy(&node.left.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+		#	value.kind := MIDCODE_DEREF8;
+		#	res := 1;
+		if node.op == MIDCODE_ADDRESS then
+			MemCopy(&node.address as [uint8], @bytesof MidcodeAddress, &value.address as [uint8]);
+			value.kind := MIDCODE_ADDRESS;
+			res := 1;
+		elseif node.op == MIDCODE_CONSTANT then
+			value.constant := node.constant.value;
+			value.kind := MIDCODE_CONSTANT;
+			res := 1;
+		end if;
+	end if;
+end sub;
+
+sub SimpleValuesMatch(left: [SimpleValue], right: [SimpleValue]): (res: uint8) is
+	res := 0;
+	if left.kind != right.kind then
+		return;
+	end if;
+
+	sub check_deref() is
+		if (left.address.sym.subr == right.address.sym.subr)
+				and ((left.address.sym.off+left.address.off)
+					== (right.address.sym.off+right.address.off))
+				and (left.address.sym.wsid == right.address.sym.wsid)
+		then
+			res := 1;
+		end if;
+	end sub;
+
+	case left.kind is
+		when MIDCODE_DEREF1: check_deref();
+		when MIDCODE_DEREF2: check_deref();
+		when MIDCODE_DEREF4: check_deref();
+		when MIDCODE_DEREF8: check_deref();
+		when MIDCODE_ADDRESS: check_deref();
+		when MIDCODE_CONSTANT:
+			if left.constant == right.constant then
+				res := 1;
+			end if;
+	end case;
 end sub;
 
 sub Generate(rootnode: [Node]) is
@@ -476,7 +674,7 @@ sub Generate(rootnode: [Node]) is
 
 			producer.ruleid := ruleid;
 			producer.producable_regs := rule.producable_regs;
-			producer.output_regs := rule.uses_regs;
+			producer.used_regs := rule.uses_regs;
 
 			# Copy child nodes into the current instruction and make sure they're
 			# pushed for later instruction allocation.
@@ -501,13 +699,93 @@ sub Generate(rootnode: [Node]) is
 					i := i + 1;
 				end loop;
 				node.producer := producer;
+				producer.consumer := node;
 			end sub;
 			CopyChildNodes();
 		end sub;
 		InstructionMatcher();
 
 		if producer.producable_regs != 0 then
-			# This instruction produces a register, so allocate one.
+			# This routine is used to allocate a register in the case where no
+			# spills are required. This has some logic in it so that certain
+			# values getting allocated preferential registers which can be
+			# preserved inside statements, and possibly from statement to
+			# statement. This allows suppression of subsequent materialisation
+			# and much better code generation on register-centric systems.
+			#
+			# It's all dubious as hell because since we're a single-pass
+			# compiler, we have no idea whether any value will be used again or
+			# not --- we just have to apply heuristics and guess.
+
+			sub FindPreferredRegister(mask: RegId): (reg: RegId) is
+				var value: SimpleValue;
+				if IsSimpleValue(producer, &value) != 0 then
+					# All values decay.
+
+					var v := &preferred_values[0];
+					while v != &preferred_values[@sizeof preferred_values] loop
+						if v.count != 0 then
+							v.count := v.count - 1;
+						end if;
+						v := @next v;
+					end loop;
+
+					# Do we have a preferred register for this value? If so, try to use
+					# that register.
+
+					v := &preferred_values[0];
+					reg := 1 << (REGISTER_COUNT-1);
+					while v != &preferred_values[@sizeof preferred_values] loop
+						if (v.kind != 0) and ((reg & mask) != 0) and (SimpleValuesMatch(&value, v) != 0) then
+							v.count := 0xff;
+							return;
+						end if;
+						v := @next v;
+						reg := reg >> 1;
+					end loop;
+
+					# No. Try to find a register which hasn't already been used
+					# for a preferred register, and record it.
+
+					var openslot := 0 as [SimpleValue];
+					var slotreg: RegId;
+					v := &preferred_values[0];
+					reg := 1 << (REGISTER_COUNT-1);
+					while v != &preferred_values[@sizeof preferred_values] loop
+						if (reg & mask) != 0 then
+							if v.kind == 0 then
+								openslot := v;
+								slotreg := reg;
+								break;
+							end if;
+
+							if openslot == (0 as [SimpleValue]) then
+								openslot := v;
+								slotreg := reg;
+							else
+								if v.count < openslot.count then
+									openslot := v;
+									slotreg := reg;
+								end if;
+							end if;
+						end if;
+
+						v := @next v;
+						reg := reg >> 1;
+					end loop;
+							
+					if openslot != (0 as [SimpleValue]) then
+						MemCopy(&value as [uint8], @bytesof SimpleValue, openslot as [uint8]);
+						openslot.count := 0xff;
+						reg := slotreg;
+						return;
+					end if;
+
+					# Otherwise just give up and fall back to the normal behaviour.
+				end if;
+
+				reg := FindFirst(mask);
+			end sub;
 
 			sub AllocateRegister() is
 				if IsStackedRegister(producer.producable_regs) != 0 then
@@ -553,7 +831,7 @@ sub Generate(rootnode: [Node]) is
 						# Good news --- we can allocate the ideal register for
 						# both producer and consumer.
 
-						candidate := FindFirst(mask1);
+						candidate := FindPreferredRegister(mask1);
 						node.produced_reg := candidate;
 						producer.produced_reg := candidate;
 
@@ -710,12 +988,49 @@ sub Generate(rootnode: [Node]) is
 			#print_i8(insn.n[0].op);
 			#print("=");
 			#print(MidcodeName(insn.n[0].op));
+			#print(" produced=");
+			#print_hex_i32(insn.produced_reg as uint32);
+			#if insn.consumer != (0 as [Node]) then
+			#	print(" consumedby=");
+			#	print_hex_i32(insn.consumer.consumer as intptr as uint32);
+			#end if;
+			#print(" inputs=");
+			#print_hex_i32(insn.input_regs as uint32);
+			#print(" outputs=");
+			#print_hex_i32(insn.output_regs as uint32);
+			#print(" uses=");
+			#print_hex_i32(insn.used_regs as uint32);
 			#print_nl();
 
 			ShuffleRegisters(&insn.reloads[0]);
+			if insn.n[0].op == MIDCODE_ASMSTART then
+				emitting_asm := 1;
+			end if;
+
+			#if emitting_asm == 0 then
+			#	ArchBeginComment();
+			#	E_h32(insn as intptr as uint32);
+			#	E(" produced=");
+			#	E_h32(insn.produced_reg as uint32);
+			#	if insn.consumer != (0 as [Node]) then
+			#		E(" consumedby=");
+			#		E_h32(insn.consumer.consumer as intptr as uint32);
+			#	end if;
+			#	E(" inputs=");
+			#	E_h32(insn.input_regs as uint32);
+			#	E(" outputs=");
+			#	E_h32(insn.output_regs as uint32);
+			#	E(" uses=");
+			#	E_h32(insn.used_regs as uint32);
+			#	ArchEndComment();
+			#end if;
 			EmitOneInstruction(insn.ruleid, insn);
 			ShuffleRegisters(&insn.spills[0]);
 			ArchEndInstruction();
+
+			if insn.n[0].op == MIDCODE_ASMEND then
+				emitting_asm := 0;
+			end if;
 
 			# If the root node of this instruction is a fallback node, it's
 			# not part of the tree and won't be discarded with the tree.

@@ -21,6 +21,14 @@
 	sub ArchEndGroup() is
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		SimpleError("can't move");
 	end sub;
@@ -301,14 +309,8 @@ gen RETURN()
 %}
 
 gen       CALL(  param, SUBREF():a) { Call(&$a); }
-gen s1 := CALLE1(param, SUBREF():a) { Call(&$a); }
-gen s2 := CALLE2(param, SUBREF():a) { Call(&$a); }
-gen s4 := CALLE4(param, SUBREF():a) { Call(&$a); }
 
 gen       CALL(  param, s2) { CallI(); }
-gen s1 := CALLE1(param, s2) { CallI(); }
-gen s2 := CALLE2(param, s2) { CallI(); }
-gen s4 := CALLE4(param, s2) { CallI(); }
 
 gen param := END();
 

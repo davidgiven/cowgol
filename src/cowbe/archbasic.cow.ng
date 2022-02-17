@@ -52,6 +52,14 @@
 		end if;
     end sub;
 
+    sub ArchBeginComment() is
+        E("rem ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		SimpleError("move");
@@ -149,18 +157,6 @@ gen CALL(param, SUBREF():a)
 	E("gosub ");
 	E_subref($a.subr);
 	E_nl();
-}
-
-gen v := CALLE1(param, SUBREF():a)
-{
-	E("gosub ");
-	E_subref($a.subr);
-	E_nl();
-
-	var res := PushVar();
-	E("a=a-1:");
-	E_varref(res);
-	E("=b(a)\n");
 }
 
 gen param := END();

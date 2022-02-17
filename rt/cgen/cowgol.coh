@@ -20,6 +20,10 @@ sub MemSet(buf: [uint8], byte: uint8, len: intptr) is
 	@asm "memset((void*)(intptr_t)", buf, ", ", byte, ", ", len, ");";
 end sub;
 
+sub get_char(): (c: uint8) is
+	@asm c, " = getchar();";
+end sub;
+
 sub print_char(c: uint8) is
 	@asm "putchar(", c, ");";
 end sub;

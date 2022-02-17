@@ -1,0 +1,6 @@
+cowfe mandel.cow mandel.cob
+cowbe mandel.cob mandel.coo
+era mandel.cob
+cowlink cowgol.coo mandel.coo -o mandel.asm
+cowasm mandel.asm -o mandel.com
+

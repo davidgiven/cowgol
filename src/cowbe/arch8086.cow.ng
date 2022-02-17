@@ -274,7 +274,19 @@
 		E_jump("jne", label);
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	sub ArchEmitMove(src: RegId, dest: RegId) is
+		print_hex_i32(src);
+		print(" ");
+		print_hex_i32(dest);
+		print_nl();
 		E("\t; move\n");
 		if src == 0 then
 			E_pop(dest);
@@ -352,19 +364,19 @@ regdata param stacked;
 gen STARTFILE();
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
 	E_label($b.label);
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
 	E_jmp($j.label);
 }
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
 	RegCacheReset();
 
@@ -383,7 +395,7 @@ gen STARTSUB()
 	E_b8(0);
 	E_nl();
 
-	#E("\tsection .text\n");
+	E("\tsegment code\n");
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -453,7 +465,7 @@ gen STARTSUB()
 	end if;
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
 	R_flushall();
 
@@ -531,7 +543,7 @@ gen ENDSUB()
 	EmitterCloseStream();
 }
 
-gen RETURN()
+gen RETURN() uses all
 {
 	E("\tjmp end_");
 	E_subref(current_subr);
@@ -571,39 +583,15 @@ gen mem4 := DEREF4(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.ope
 	end sub;
 %}
 
-gen         CALL(       param,         SUBREF():a) uses ax|bx|cx|dx|si|di { Call(&$a); }
-gen         CALL(  ARG1(param, al),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen         CALL(  ARG2(param, ax),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen         CALL(  ARG4(param, dxax),  SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(     param,         SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(ARG1(param, al),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(ARG2(param, ax),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen al   := CALLE1(ARG4(param, dxax),  SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(     param,         SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(ARG1(param, al),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(ARG2(param, ax),    SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen ax   := CALLE2(ARG4(param, dxax),  SUBREF():a) uses    bx|cx|dx|si|di { Call(&$a); }
-gen dxax := CALLE4(     param,         SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
-gen dxax := CALLE4(ARG1(param, al),    SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
-gen dxax := CALLE4(ARG2(param, ax),    SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
-gen dxax := CALLE4(ARG4(param, dxax),  SUBREF():a) uses    bx|cx   |si|di { Call(&$a); }
+gen         CALL(       param,         SUBREF():a) uses all { Call(&$a); }
+gen         CALL(  ARG1(param, al),    SUBREF():a) uses all { Call(&$a); }
+gen         CALL(  ARG2(param, ax),    SUBREF():a) uses all { Call(&$a); }
+gen         CALL(  ARG4(param, dxax),  SUBREF():a) uses all { Call(&$a); }
 
-gen         CALL(       param,        bx) uses ax|cx|dx|si|di { CallBX(); }
-gen         CALL(  ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen         CALL(  ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen         CALL(  ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(     param,        bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen al   := CALLE1(ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(     param,        bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen ax   := CALLE2(ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(     param,        bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(ARG1(param, al),   bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(ARG2(param, ax),   bx) uses    cx|dx|si|di { CallBX(); }
-gen dxax := CALLE4(ARG4(param, dxax), bx) uses    cx|dx|si|di { CallBX(); }
+gen         CALL(       param,        bx) uses all { CallBX(); }
+gen         CALL(  ARG1(param, al),   bx) uses all { CallBX(); }
+gen         CALL(  ARG2(param, ax),   bx) uses all { CallBX(); }
+gen         CALL(  ARG4(param, dxax), bx) uses all { CallBX(); }
 
 gen param := END();
 
@@ -703,20 +691,20 @@ gen r32 := DEREF4(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad4($$, $lhs, &$@lh
 
 gen STORE1(r8|adr|imm:lhs, DEREF1(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "byte"); }
 gen STORE2(r16|adr|imm:lhs, DEREF2(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "word"); }
-gen STORE4(r32|adr|imm:lhs, DEREF4(bx|si|di|adr:ptr)) { IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0); }
+gen STORE4(r32:lhs, DEREF4(bx|si|di|adr:ptr)) { IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0); }
 
 gen STORE1(r8|adr|imm:lhs, DEREF1(ADD2(si|di|adr:ptr, bx:rhs)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0, 0, "byte"); }
 gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(si|di|adr:ptr, bx:rhs)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0, 0, "word"); }
-gen STORE4(r32|adr|imm:lhs, DEREF4(ADD2(si|di|adr:ptr, bx:rhs)))
+gen STORE4(r32:lhs, DEREF4(ADD2(si|di|adr:ptr, bx:rhs)))
 	{ IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, 0); }
 
 gen STORE1(r8|adr|imm:lhs, DEREF1(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16, 0, "byte"); }
 gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16, 0, "word"); }
-gen STORE4(r32|adr|imm:lhs, DEREF4(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
+gen STORE4(r32:lhs, DEREF4(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16); }
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
@@ -834,7 +822,7 @@ gen dxax := RSHIFTU4(dxax, cl) { E_callhelper("_lsr4"); }
 
 // --- Conditionals ---------------------------------------------------------
 
-gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 {
     var label := $b.falselabel;
     if $lhs.value == $rhs.value then
@@ -856,15 +844,15 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
 	end sub;
 %}
 
-gen BEQ1(r8:lhs, r8|op1:rhs):b    { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
-gen BLTU1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
-gen BLTS1(r8:lhs, r8|op1:rhs):b   { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
+gen BEQ1(r8:lhs, r8|op1:rhs):b    uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BLTU1(r8:lhs, r8|op1:rhs):b   uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTS1(r8:lhs, r8|op1:rhs):b   uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
-gen BEQ2(r16:lhs, r16|op2:rhs):b  { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
-gen BLTU2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
-gen BLTS2(r16:lhs, r16|op2:rhs):b { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
+gen BEQ2(r16:lhs, r16|op2:rhs):b  uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BLTU2(r16:lhs, r16|op2:rhs):b uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
+gen BLTS2(r16:lhs, r16|op2:rhs):b uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
-gen BEQ4(r32:lhs, r32|op4:rhs):b
+gen BEQ4(r32:lhs, r32|op4:rhs):b uses all
 {
 	E_insn("cmp");
 	E_reg(lowordreg($lhs));
@@ -881,13 +869,13 @@ gen BEQ4(r32:lhs, r32|op4:rhs):b
 	CmpJumps("je", "jne", $@$);
 }
 
-gen BLTU4(r32:lhs, r32|op4:rhs):b
+gen BLTU4(r32:lhs, r32|op4:rhs):b uses all
 {
 	Alu4("sub", "sbb", $lhs, $rhs, &$@rhs.operand);
 	CmpJumps("jb", "jae", $@$);
 }
 
-gen BLTS4(r32:lhs, r32|op4:rhs):b
+gen BLTS4(r32:lhs, r32|op4:rhs):b uses all
 {
 	Alu4("sub", "sbb", $lhs, $rhs, &$@rhs.operand);
 	CmpJumps("jl", "jge", $@$);
@@ -895,13 +883,13 @@ gen BLTS4(r32:lhs, r32|op4:rhs):b
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(al);
+gen STARTCASE1(al) uses all;
 
-gen STARTCASE2(ax);
+gen STARTCASE2(ax) uses all;
 
-gen STARTCASE4(dxax);
+gen STARTCASE4(dxax) uses all;
 
-gen WHENCASE1():c
+gen WHENCASE1():c uses all
 {
 	E("\tcmp al, 0x");
 	E_h8($c.value as uint8);
@@ -909,7 +897,7 @@ gen WHENCASE1():c
 	E_jump("jne", $c.falselabel);
 }
 
-gen WHENCASE2():c
+gen WHENCASE2():c uses all
 {
 	E("\tcmp ax, 0x");
 	E_h16($c.value as uint16);
@@ -917,7 +905,7 @@ gen WHENCASE2():c
 	E_jump("jne", $c.falselabel);
 }
 
-gen WHENCASE4():c
+gen WHENCASE4():c uses all
 {
 	E("\tcmp ax, 0x");
 	E_h16($c.value as uint16);
@@ -952,7 +940,7 @@ gen dxax := CAST24(ax, sext!=0) { E("\tcwd\n"); }
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	#E("\tsection .data\n");
+	E("\tsegment data\n");
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }
@@ -1013,6 +1001,7 @@ gen INITSTRING():s
 
         EmitterOpenStream(current_subr);
 
+        E("\tsegment data\n");
         E_label(lid);
 		E_insn("db");
 
@@ -1044,7 +1033,7 @@ gen r16 := STRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
+gen ASMGROUPSTART() uses all;
 gen ASMGROUPEND();
 
 gen ASMSTART()

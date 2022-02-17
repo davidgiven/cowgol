@@ -9,6 +9,14 @@ function cpmify(e)
 	}
 end
 
+function copy(e)
+	rule {
+		ins = e.ins,
+		outs = e.outs,
+		cmd = "cp @1 &1"
+	}
+end
+
 cpmify {
 	ins = { "examples/mandel.cow" },
 	outs = { "$OBJ/dist/cpm/mandel.cow" },
@@ -35,7 +43,7 @@ copy {
 }
 
 copy {
-	ins = { "bin/cowfe-8080.ncpm.8080.com" },
+	ins = { "bin/cowfe-16bit.ncpm.8080.com" },
 	outs = { "$OBJ/dist/cpm/cowfe.com" }
 }
 

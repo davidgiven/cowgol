@@ -10,60 +10,12 @@
 		newvalue := (value+a) & ~a;
 	end sub;
 
-	sub EmitFunctionSignature(subr: [Subroutine]) is
-		E("(");
-		var first: uint8 := 1;
-		sub comma() is
-			if first == 0 then
-				E(", ");
-			end if;
-			first := 0;
-		end sub;
-
-		# Output parameters, left to right (the rightmost gets pushed last)
-
-		var count: uint8 := 0;
-		while count != subr.num_output_parameters loop
-			var param := GetOutputParameter(subr, count);
-
-			comma();
-			E("i");
-			E_u8(param.width);
-			E("* /* ");
-			E(param.name);
-			E(" */");
-			count := count + 1;
-		end loop;
-
-		# Input parameters, right to left (the rightmost was pushed last
-		# and so is the first C parameter)
-
-		count := subr.num_input_parameters;
-		while count != 0 loop
-			count := count - 1;
-			param := GetInputParameter(subr, count);
-
-			comma();
-			E("i");
-			E_u8(param.width);
-			E(" /* ");
-			E(param.name);
-			E(" */");
-		end loop;
-
-		if (subr.num_input_parameters + subr.num_output_parameters) == 0 then
-			E("void");
-		end if;
-		E(")");
-	end sub;
-
 	sub E_subref_sig(subr: [Subroutine]) is
 		EmitterOpenStream(current_subr);
 
 		E("\tvoid ");
 		E_subref(subr);
-		EmitFunctionSignature(subr);
-		E(";\n");
+		E("(void);\n");
 
 		EmitterCloseStream();
 		E_subref(subr);
@@ -129,6 +81,14 @@
 		vid := varstack[varsp-1];
 	end sub;
 
+    sub ArchBeginComment() is
+        E("\t// ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 	end sub;
@@ -164,7 +124,7 @@ gen JUMP():j
 
 gen RETURN()
 {
-	E("\tgoto endsub;\n");
+	E("\treturn;\n");
 }
 
 // --- Subroutines ----------------------------------------------------------
@@ -186,97 +146,11 @@ gen STARTSUB():s
 	E_b8(0);
 	E("\nvoid ");
 	E_subref(current_subr);
-	E("(");
-
-	var first: uint8 := 1;
-	sub comma() is
-		if first == 0 then
-			E(", ");
-		end if;
-		first := 0;
-	end sub;
-
-	# Output parameters, left to right (the rightmost gets pushed last)
-
-	var count: uint8 := 0;
-	while count != current_subr.num_output_parameters loop
-		var param := GetOutputParameter(current_subr, count);
-		var pid := Push();
-
-		comma();
-		E("i");
-		E_u8(param.width as uint8);
-		E("* p");
-		E_u16(pid);
-
-		E(" /* ");
-		E(param.name);
-		E(" */");
-		count := count + 1;
-	end loop;
-
-	# Input parameters, right to left (the rightmost was pushed last
-	# and so is the first C parameter)
-
-	count := current_subr.num_input_parameters;
-	while count != 0 loop
-		count := count - 1;
-		param := GetInputParameter(current_subr, count);
-		pid := Push();
-
-		comma();
-		E("i");
-		E_u8(param.width as uint8);
-		E(" p");
-		E_u16(pid);
-
-		E(" /* ");
-		E(param.name);
-		E(" */");
-	end loop;
-
-	if (current_subr.num_input_parameters + current_subr.num_output_parameters) == 0 then
-		E("void");
-	end if;
-	E(") {\n");
-
-	count := 0;
-	while count != current_subr.num_input_parameters loop
-		param := GetInputParameter(current_subr, count);
-		pid := Pop();
-
-		E("\t*(i");
-		E_u8(param.width as uint8);
-		E("*)(intptr_t)(");
-		E_symref(param as [Symbol], 0);
-		E(") = p");
-		E_u16(pid);
-		E("; /*");
-		E(param.name);
-		E(" */\n");
-
-		count := count + 1;
-	end loop;
+	E("(void) {\n");
 }
 
 gen ENDSUB()
 {
-	E("endsub:;\n");
-
-	var count: uint8 := current_subr.num_output_parameters;
-	while count != 0 loop
-		count := count - 1;
-		var param := GetOutputParameter(current_subr, count);
-		var pid := Pop();
-
-		E("\t*p");
-		E_u16(pid);
-		E(" = *(i");
-		E_u8(param.width as uint8);
-		E("*)(intptr_t)(");
-		E_symref(param as [Symbol], 0);
-		E(");\n");
-	end loop;
 	E("}\n");
 	EmitterCloseStream();
 }
@@ -287,99 +161,52 @@ gen ENDSUB()
 		var subr := FindSubr(subrid);
 		var pid := Pop();
 
-		# Allocate vids for the return parameters.
+		# Call the subroutine itself.
 
-		var outputvid := varid;
-		varid := varid + (subr.num_output_parameters as Slot);
-
-		# Declare variables for the output parameters.
-
-		var count: uint8 := 0;
-		while count != subr.num_output_parameters loop
-			var param := GetOutputParameter(subr, count);
-
-			E("\ti");
-			E_u8(param.width as uint8);
-			E(" v");
-			E_u16(outputvid + (count as Slot));
-			E(";\n");
-
-			count := count + 1;
-		end loop;
-
-		# Emit the typecast to make the function call work.
-
-		E("\n\t((void(*)");
-		EmitFunctionSignature(subr);
-		E(")(intptr_t)v");
+		E("\n\t((void(*)(void))(intptr_t)v");
 		E_u16(pid);
-		E(")(");
+		E(")();\n");
+	end sub;
 
-		# Emit the function call itself.
+	sub PokeArg(width: uint8, sym: [Symbol]) is
+		var vid := Pop();
 
-		var first: uint8 := 1;
-		sub comma() is
-			if first == 0 then
-				E(", ");
-			end if;
-			first := 0;
-		end sub;
+		E("\t*(i");
+		E_u8(width);
+		E("*)(intptr_t)(");
+		E_symref(sym, 0);
+		E(") = v");
+		E_u16(vid);
+		E(";\n");
+	end sub;
 
-		# Output parameters (left to right).
+	sub PeekArg(width: uint8, sym: [Symbol]) is
+		var vid := Push();
 
-		count := 0;
-		while count != subr.num_output_parameters loop
-			param := GetOutputParameter(subr, count);
-
-			comma();
-			E("&v");
-			E_u16(outputvid + (count as Slot));
-
-			count := count + 1;
-		end loop;
-
-		# Input parameters (right to left; the rightmost gets pushed last)
-
-		count := 0;
-		while count != subr.num_input_parameters loop
-			var vid := Pop();
-			comma();
-			E("v");
-			E_u16(vid);
-
-			count := count + 1;
-		end loop;
-
+		E("\ti");
+		E_u8(width);
+		E(" v");
+		E_u16(vid);
+		E(" = *(i");
+		E_u8(width);
+		E("*)(intptr_t)(");
+		E_symref(sym, 0);
 		E(");\n");
-
-		# Now push the output parameters (left to right; the last one will be
-		# popped first).
-
-		count := 0;
-		while count != subr.num_output_parameters loop
-			vid := outputvid + (count as Slot);
-			PushVid(vid);
-			count := count + 1;
-		end loop;
 	end sub;
 %}
 
 gen       CALL(  param, v8):s { Call($s.subr.id); }
-gen v1 := CALLE1(param, v8):s { Call($s.subr.id); }
-gen v2 := CALLE2(param, v8):s { Call($s.subr.id); }
-gen v4 := CALLE4(param, v8):s { Call($s.subr.id); }
-gen v8 := CALLE8(param, v8):s { Call($s.subr.id); }
 
 gen param := END();
-gen param := ARG1(param, v1);
-gen param := ARG2(param, v2);
-gen param := ARG4(param, v4);
-gen param := ARG8(param, v8);
+gen param := ARG1(param, v1):a { PokeArg(1, &$a.sym); }
+gen param := ARG2(param, v2):a { PokeArg(2, &$a.sym); }
+gen param := ARG4(param, v4):a { PokeArg(4, &$a.sym); }
+gen param := ARG8(param, v8):a { PokeArg(8, &$a.sym); }
 
-gen v1 := POPARG1();
-gen v2 := POPARG2();
-gen v4 := POPARG4();
-gen v8 := POPARG8();
+gen v1 := POPARG1():a { PeekArg(1, &$a.sym); }
+gen v2 := POPARG2():a { PeekArg(2, &$a.sym); }
+gen v4 := POPARG4():a { PeekArg(4, &$a.sym); }
+gen v8 := POPARG8():a { PeekArg(8, &$a.sym); }
 
 // --- Core conversions --------------------------------------------------
 

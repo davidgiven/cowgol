@@ -1,3 +1,4 @@
+typedef Word is uint16;
 include "cowasm.coh";
 
 const AM_REG        := 0o000;
@@ -11,7 +12,7 @@ const AM__RELATIVE  := 0o200;
 var addressingMode: uint8;
 var extensionWord: uint16;
 
-@impl sub Emit16 is
+@impl sub EmitWord is
     Emit8(word as uint8);
     Emit8((word>>8) as uint8);
 end sub;
@@ -113,13 +114,13 @@ sub EmitExtension(addressingMode: uint8, extensionWord: uint16) is
     if (addressingMode & AM__RELATIVE) != 0 then
         extensionWord := extensionWord - [currentProgramCounter] - 2;
     end if;
-    Emit16(extensionWord);
+    EmitWord(extensionWord);
 end sub;
 
 sub Op1Cb implements SymbolCallback is
     ExpectOperand();
 
-    Emit16(currentInsn.value
+    EmitWord(currentInsn.value
         | (addressingMode & 0o77) as uint16);
 
     EmitExtension(addressingMode, extensionWord);
@@ -133,7 +134,7 @@ sub Op2Cb implements SymbolCallback is
     var param1extensionWord := extensionWord;
     ExpectOperand();
 
-    Emit16(currentInsn.value
+    EmitWord(currentInsn.value
         | ((param1addressingMode & 0o77) as uint16 << 6)
         | (addressingMode & 0o77) as uint16);
 
@@ -151,7 +152,7 @@ sub JsrCb implements SymbolCallback is
     var param1addressingMode := addressingMode;
     ExpectOperand();
 
-    Emit16(currentInsn.value
+    EmitWord(currentInsn.value
         | ((param1addressingMode & 0o07) as uint16 << 6)
         | (addressingMode & 0o77) as uint16);
     EmitExtension(addressingMode, extensionWord);
@@ -160,7 +161,7 @@ end sub;
 sub CallCb implements SymbolCallback is
     ExpectOperand();
 
-    Emit16(currentInsn.value
+    EmitWord(currentInsn.value
         | (addressingMode & 0o77) as uint16);
     EmitExtension(addressingMode, extensionWord);
 end sub;
@@ -171,7 +172,7 @@ sub RtsCb implements SymbolCallback is
         SimpleError("first parameter must be a register");
     end if;
 
-    Emit16(currentInsn.value
+    EmitWord(currentInsn.value
         | (addressingMode & 0o77) as uint16);
 end sub;
 
@@ -183,11 +184,11 @@ sub CondCb implements SymbolCallback is
     else
         var delta := (tokenNumber - [currentProgramCounter] - 2) as int16 >> 1;
         if (delta >= -128) and (delta <= 127) then
-            Emit16(currentInsn.value | (delta as uint16 & 0xff));
+            EmitWord(currentInsn.value | (delta as uint16 & 0xff));
         else
-            Emit16((currentInsn.value ^ 0o400) | 2);
-            Emit16(0o000167);
-            Emit16(tokenNumber - [currentProgramCounter] - 2);
+            EmitWord((currentInsn.value ^ 0o400) | 2);
+            EmitWord(0o000167);
+            EmitWord(tokenNumber - [currentProgramCounter] - 2);
         end if;
     end if;
 end sub;
@@ -200,10 +201,10 @@ sub BrCb implements SymbolCallback is
     else
         var delta := (tokenNumber - [currentProgramCounter] - 2) as int16 >> 1;
         if (delta >= -128) and (delta <= 127) then
-            Emit16(currentInsn.value | (delta as uint16 & 0xff));
+            EmitWord(currentInsn.value | (delta as uint16 & 0xff));
         else
-            Emit16(0o000167);
-            Emit16(tokenNumber - [currentProgramCounter] - 2);
+            EmitWord(0o000167);
+            EmitWord(tokenNumber - [currentProgramCounter] - 2);
         end if;
     end if;
 end sub;
@@ -218,7 +219,7 @@ sub Op2RegCb implements SymbolCallback is
     var param1addressingMode := addressingMode;
     ExpectOperand();
 
-    Emit16(currentInsn.value
+    EmitWord(currentInsn.value
         | (addressingMode & 0o77) as uint16
         | ((param1addressingMode & 0o07) as uint16 << 6));
 
@@ -238,7 +239,7 @@ sub Op2RegRCb implements SymbolCallback is
         SimpleError("second parameter must be a register");
     end if;
 
-    Emit16(currentInsn.value
+    EmitWord(currentInsn.value
         | (param1addressingMode & 0o77) as uint16
         | ((addressingMode & 0o07) as uint16 << 6));
 
@@ -260,16 +261,16 @@ sub SobCb implements SymbolCallback is
     else
         var delta := (tokenNumber - [currentProgramCounter] - 2) as int16;
         if (delta >= -256) and (delta <= 0) then
-            Emit16(currentInsn.value | (((-delta as uint16) >> 1) & 0o77));
+            EmitWord(currentInsn.value | (((-delta as uint16) >> 1) & 0o77));
         elseif (delta >= -128) and (delta <= 126) then
-            Emit16(0o000401);
-            Emit16(0o000400 | (((delta as uint16) >> 1) & 0o77));
-            Emit16((currentInsn.value ^ 0o400) | 2);
+            EmitWord(0o000401);
+            EmitWord(0o000400 | (((delta as uint16) >> 1) & 0o77));
+            EmitWord((currentInsn.value ^ 0o400) | 2);
         else
-            Emit16(0o000402);
-            Emit16(0o000167);
-            Emit16(tokenNumber - [currentProgramCounter] - 2);
-            Emit16((currentInsn.value ^ 0o400) | 3);
+            EmitWord(0o000402);
+            EmitWord(0o000167);
+            EmitWord(tokenNumber - [currentProgramCounter] - 2);
+            EmitWord((currentInsn.value ^ 0o400) | 3);
         end if;
     end if;
 end sub;
@@ -280,12 +281,12 @@ sub EmtTrapCb implements SymbolCallback is
         SimpleError("EMT/TRAP value out of range");
     end if;
 
-    Emit16(currentInsn.value | tokenNumber);
+    EmitWord(currentInsn.value | tokenNumber);
 end sub;
 
 sub JmpCb implements SymbolCallback is
     ExpectOperand();
-    Emit16(currentInsn.value | (addressingMode & 0o77) as uint16);
+    EmitWord(currentInsn.value | (addressingMode & 0o77) as uint16);
     EmitExtension(addressingMode, extensionWord);
 end sub;
 
@@ -295,7 +296,7 @@ sub MarkCb implements SymbolCallback is
         SimpleError("MARK value out of range");
     end if;
 
-    Emit16(currentInsn.value | tokenNumber);
+    EmitWord(currentInsn.value | tokenNumber);
 end sub;
 
 sub SplCb implements SymbolCallback is
@@ -304,11 +305,11 @@ sub SplCb implements SymbolCallback is
         SimpleError("SPL value out of range");
     end if;
 
-    Emit16(currentInsn.value | tokenNumber);
+    EmitWord(currentInsn.value | tokenNumber);
 end sub;
 
 sub SimpleCb implements SymbolCallback is
-    Emit16(currentInsn.value);
+    EmitWord(currentInsn.value);
 end sub;
 
 @impl sub InitialiseSymbolTable is
@@ -454,6 +455,9 @@ end sub;
 	};
 
     AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
+end sub;
+
+@impl sub MassageCurrentInsn is
 end sub;
 
 Main("PDP-11 Assembler (C) 2020 David Given; ");

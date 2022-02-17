@@ -1,9 +1,9 @@
 include "cowgol.coh";
 include "tests/_framework.coh";
 
-const THREE := 0x03300303;
-const TWO := 0x02200202;
-const ONE := 0x01100101;
+const THREE := 0x0330_0303;
+const TWO := 0x0220_0202;
+const ONE := 0x0110_0101;
 const ZERO := 0;
 const MONE := -ONE;
 const MTWO := -TWO;

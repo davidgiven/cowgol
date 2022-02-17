@@ -1,0 +1,6 @@
+# Extracts the errno on a failed system call.
+&X _fix_errno
+``:
+	neg 3, 3
+	blr
+

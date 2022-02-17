@@ -104,7 +104,6 @@
     const OC_BPL := 48;
     const OC_ASL := 49;
     const OC_LSR := 50;
-    const OC_AJSR := 51;
 
     sub E_oc(oc: uint8) is
         var ocs: string[] := {
@@ -114,7 +113,7 @@
             "clc", "sec", "rts", "jsr", "jmp", "phx", "phy", "plx",
             "ply", "tsx", "txs", "rol", "stz", "cmp", "cpx", "cpy",
             "inx", "iny", "dex", "dey", "inc", "dec", "jra", "jmi",
-            "jpl", "asl", "lsr", "ajsr"
+            "jpl", "asl", "lsr"
         };
 
         E_tab();
@@ -203,6 +202,7 @@
         E_jump(oc, label);
     end sub;
 
+    sub E_beq(label: LabelRef) is E_jump(OC_BEQ, label); end sub;
     sub E_bne(label: LabelRef) is E_jump(OC_BNE, label); end sub;
     sub E_bcs(label: LabelRef) is E_jump(OC_BCS, label); end sub;
     sub E_bmi(label: LabelRef) is E_jump(OC_BMI, label); end sub;
@@ -363,7 +363,7 @@
 
     sub E_call(subr: [Subroutine]) is
         R_flushall();
-        E_oc(OC_AJSR);
+        E_oc(OC_JSR);
         E_subref(subr);
         E_nl();
     end sub;
@@ -507,6 +507,7 @@
             c := InternalAlloc(@bytesof Constant) as [Constant];
             c.lid := AllocPLabel();
             c.value := value;
+            c.subr := current_subr;
             c.next := constants;
             constants := c;
         end if;
@@ -583,6 +584,8 @@ regdata mem1 stacked;
 regdata mem2 stacked;
 regdata mem2p stacked;
 regdata mem4 stacked;
+regdata address stacked;
+regdata const stacked;
 $ifndef TINY
     regdata memi1 stacked;
     regdata memi2 stacked;
@@ -598,14 +601,14 @@ gen STARTFILE();
 
 gen ENDFILE();
 
-gen LABEL():b
+gen LABEL():b uses all
 {
     R_flushall();
     E_labelref($b.label);
     E(":\n");
 }
 
-gen JUMP():j
+gen JUMP():j uses all
 {
     E_jmp($j.label);
 }
@@ -878,6 +881,14 @@ gen JUMP():j
     sub DoParamDirect_ldy(operand: [MOperand], offset: uint8) is R_flush(REG_A); DoParamDirect(operand, OC_LDY, offset); end sub;
     sub DoParamDirect_sta(operand: [MOperand], offset: uint8) is                 DoParamDirect(operand, OC_STA, offset); end sub;
 
+    sub ArchBeginComment() is
+        E("\t; ");
+    end sub;
+
+    sub ArchEndComment() is
+        E_nl();
+    end sub;
+
     # Note that this *destroys* the source register.
     sub ArchEmitMove(src: RegId, dest: RegId) is
         var sid: uint16;
@@ -980,7 +991,7 @@ $endif
 
 // --- Subroutines ----------------------------------------------------------
 
-gen STARTSUB()
+gen STARTSUB() uses all
 {
     current_subr.arch := InternalAlloc(@bytesof ArchSubroutine) as [ArchSubroutine];
     current_subr.arch.end_label := AllocPLabel();
@@ -1006,18 +1017,26 @@ gen STARTSUB()
             if popped == 0 then
                 $ifdef ARCH_65C02
                     E_plx();
+                    E_ply();
                 $else
                     E_pla();
                     E_tax();
+                    E_pla();
+                    E_tay();
                 $endif
-                E_pla();
                 E_inx();
 
                 E_stx();
                 E_labelref(current_subr.arch.rts_label);
                 E_nl();
 
-                E_sta();
+                var label := AllocPLabel();
+                E_bne(label);
+
+                E_iny();
+
+                E_label(label);
+                E_sty();
                 E_labelref(current_subr.arch.rts_label);
                 E_plusone();
                 E_nl();
@@ -1131,7 +1150,7 @@ gen STARTSUB()
     end if;
 }
 
-gen ENDSUB()
+gen ENDSUB() uses all
 {
     if (current_subr.flags & SUB_IS_INTERFACE) == 0 then
         if current_subr.arch.seen_return != 0 then
@@ -1245,15 +1264,27 @@ gen ENDSUB()
             E("\tjmp $ffff\n");
         end if;
 
-        while constants != (0 as [Constant]) loop
-            var c := constants;
-            constants := constants.next;
+        var p := 0 as [Constant];
+        var c := constants;
+        while c != (0 as [Constant]) loop
+            if c.subr == current_subr then
+                E_label(c.lid);
+                E("\t.dword ");
+                E_u32(c.value as uint32);
+                E_nl();
 
-            E_label(c.lid);
-            E("\t.dword ");
-            E_u32(c.value as uint32);
-            E_nl();
-            Free(c as [uint8]);
+                if p == (0 as [Constant]) then
+                    constants := c.next;
+                else
+                    p.next := c.next;
+                end if;
+                var nc := c;
+                c := c.next;
+                Free(nc as [uint8]);
+            else
+                p := c;
+                c := c.next;
+            end if;
         end loop;
     end if;
 
@@ -1265,7 +1296,7 @@ gen ENDSUB()
     Free(current_subr.arch as [uint8]);
 }
 
-gen RETURN()
+gen RETURN() uses all
 {
     if (IsSimpleSub(current_subr) != 0) and (current_subr.num_output_parameters == 0) then
         E_rts();
@@ -1304,23 +1335,11 @@ gen RETURN()
     end sub;
 %}
 
-gen        CALL(       param,      SUBREF():a)             uses x|y|a { Call(&$a); }
-gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):a) uses x|y|a { Call(&$a); }
-gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):a) uses x|y|a { Call(&$a); }
-gen a :=   CALLE1(     param,      SUBREF():a)             uses x|y   { Call(&$a); }
-gen a :=   CALLE1(ARG1(param, a),  SUBREF(subr is fast):a) uses x|y   { Call(&$a); }
-gen a :=   CALLE1(ARG2(param, xa), SUBREF(subr is fast):a) uses x|y   { Call(&$a); }
-gen xa :=  CALLE2(     param,      SUBREF():a)             uses y     { Call(&$a); }
-gen xa :=  CALLE2(ARG1(param, a),  SUBREF(subr is fast):a) uses y     { Call(&$a); }
-gen xa :=  CALLE2(ARG2(param, xa), SUBREF(subr is fast):a) uses y     { Call(&$a); }
-gen v32 := CALLE4(     param,      SUBREF():a)             uses x|y|a { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG1(param, a),  SUBREF(subr is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
-gen v32 := CALLE4(ARG2(param, xa), SUBREF(subr is fast):a) uses x|y|a { Call(&$a); PopArg4(PushV32()); }
+gen        CALL(       param,      SUBREF():a)             uses all { Call(&$a); }
+gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):a) uses all { Call(&$a); }
+gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):a) uses all { Call(&$a); }
 
-gen        CALL(  param, xa) uses y { CallI(); }
-gen a :=   CALLE1(param, xa) uses y { CallI(); }
-gen xa :=  CALLE2(param, xa) uses y { CallI(); }
-gen v32 := CALLE4(param, xa) uses y { CallI(); PopArg4(PushV32()); }
+gen        CALL(  param, xa) uses all { CallI(); }
 
 gen param := END();
 
@@ -1825,7 +1844,7 @@ gen v32 := RSHIFTS4(v32, y) { Shift4("_rshifts4"); }
 
 // --- Conditionals ---------------------------------------------------------
 
-gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
+gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 {
     var label := $b.falselabel;
     if $lhs.value == $rhs.value then
@@ -1836,21 +1855,21 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b
     end if;
 }
 
-gen BEQ1(a:lhs, in1s:rhs):b
+gen BEQ1(a:lhs, in1s:rhs):b uses all
 {
     var rhs := PopOp();
     DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_beq_bne(self.n[0]);
 }
 
-gen BLTU1(a:lhs, in1s:rhs):b
+gen BLTU1(a:lhs, in1s:rhs):b uses all
 {
     var rhs := PopOp();
     DoParamDirect(rhs, OC_CMP, 0);
     E_jumps_bcc_bcs(self.n[0]);
 }
 
-gen BLTS1(a:lhs, in1s:rhs):b
+gen BLTS1(a:lhs, in1s:rhs):b uses all
 {
     var rhs := PopOp();
     E_sec();
@@ -1860,7 +1879,7 @@ gen BLTS1(a:lhs, in1s:rhs):b
     E_jumps_bmi_bpl(self.n[0]);
 }
 
-gen BEQ2(xa:lhs, in2s:rhs):b
+gen BEQ2(xa:lhs, in2s:rhs):b uses all
 {
     var rhs := PopOp();
     DoParamDirect(rhs, OC_CMP, 0);
@@ -1877,7 +1896,7 @@ gen BEQ2(xa:lhs, in2s:rhs):b
     E_jumps_beq_bne(self.n[0]);
 }
 
-gen BLTU2(xa:lhs, in2s:rhs):c
+gen BLTU2(xa:lhs, in2s:rhs):c uses all
 {
     var rhs := PopOp();
     E_sec();
@@ -1965,9 +1984,9 @@ gen BLTS2(xa:lhs, in2s:rhs):c
     end sub;
 %}
 
-gen BEQ4(in4s, in4s):b uses a|x|y { DoCmp4EQ(self.n[0]); }
-gen BLTU4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 0); }
-gen BLTS4(in4s, in4s):b uses a|x|y { DoCmp4LT(self.n[0], 1); }
+gen BEQ4(in4s, in4s):b uses all { DoCmp4EQ(self.n[0]); }
+gen BLTU4(in4s, in4s):b uses all { DoCmp4LT(self.n[0], 0); }
+gen BLTS4(in4s, in4s):b uses all { DoCmp4LT(self.n[0], 1); }
 
 // --- Casts ----------------------------------------------------------------
 
@@ -2049,10 +2068,10 @@ gen xa := CAST42(in4s)
 
 // --- Case -----------------------------------------------------------------
 
-gen STARTCASE1(a);
-gen STARTCASE2(xa);
+gen STARTCASE1(a) uses all;
+gen STARTCASE2(xa) uses all;
 
-gen STARTCASE4(v32)
+gen STARTCASE4(v32) uses all
 {
     var e := GetHelper("_when4");
     var op := PopOp();
@@ -2080,7 +2099,7 @@ gen STARTCASE4(v32)
     
 }
 
-gen WHENCASE1():c
+gen WHENCASE1():c uses all
 {
     E_cmp();
     E_const();
@@ -2089,7 +2108,7 @@ gen WHENCASE1():c
     E_bne($c.falselabel);
 }
 
-gen WHENCASE2():c uses a
+gen WHENCASE2():c uses all
 {
     E_cmp();
     E_const();
@@ -2104,7 +2123,7 @@ gen WHENCASE2():c uses a
     E_bne($c.falselabel);
 }
 
-gen WHENCASE4():c uses a
+gen WHENCASE4():c uses all
 {
     E_callhelper("_when4");
     E_dl();
@@ -2196,7 +2215,7 @@ gen INITSTRING():s
 
 // --- Inline assembly ------------------------------------------------------
 
-gen ASMGROUPSTART();
+gen ASMGROUPSTART() uses all;
 gen ASMGROUPEND();
 
 gen ASMSTART()

@@ -1,3 +1,4 @@
+typedef Word is uint16;
 include "cowasm.coh";
 
 const AM_IMM := 0x00;
@@ -8,7 +9,7 @@ const AM_EXT := 0x30;
 var addressingMode: uint8;
 var extensionWord: uint16;
 
-@impl sub Emit16 is
+@impl sub EmitWord is
     Emit8((word>>8) as uint8);
     Emit8(word as uint8);
 end sub;
@@ -65,7 +66,7 @@ sub EmitInstruction(base: uint8) is
         when AM_IMM:
             var b := base & 0x0f;
             if (b == 3) or (b == 12) or (b == 14) then
-                Emit16(extensionWord);
+                EmitWord(extensionWord);
             else
                 Emit8(extensionWord as uint8);
             end if;
@@ -80,7 +81,7 @@ sub EmitInstruction(base: uint8) is
             Emit8(extensionWord as uint8);
 
         when AM_EXT:
-            Emit16(extensionWord);
+            EmitWord(extensionWord);
     end case;
 end sub;
 
@@ -111,7 +112,7 @@ sub OpBrCb implements SymbolCallback is
                     Emit8(3);
                     Emit8(0x7e); # JMP EXT
             end case;
-            Emit16(tokenNumber);
+            EmitWord(tokenNumber);
         end if
     end if;
 end sub;
@@ -146,7 +147,7 @@ sub OpImCb implements SymbolCallback is
     if addressingMode == AM_EXT then
         Emit8(extensionWord as uint8);
     else
-        Emit16(extensionWord);
+        EmitWord(extensionWord);
     end if;
 end sub;
 
@@ -326,6 +327,9 @@ end sub;
 	};
 
     AddSymbols(&symbols[0], &symbols[@sizeof symbols]);
+end sub;
+
+@impl sub MassageCurrentInsn is
 end sub;
 
 Main("6303 Assembler (C) 2020 David Given; ");

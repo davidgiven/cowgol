@@ -1,0 +1,4 @@
+include "cowgol.coh";
+
+# This produces an empty file which does nothing, as a very minimal test.
+
