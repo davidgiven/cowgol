@@ -92,7 +92,7 @@ function set(t)
 end
 
 function command_present(name)
-	return os.execute("command -v "..name.." >/dev/null") == 0
+	return os.execute("command -v "..name.." >/dev/null") ~= false
 end
 
 
