@@ -12,6 +12,7 @@ local ARCHS = {
 	"pdp11",
 	"powerpc",
 	"thumb2",
+	"tlcs90",
 	"z80",
 }
 

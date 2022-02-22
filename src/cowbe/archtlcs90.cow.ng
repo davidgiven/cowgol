@@ -86,7 +86,7 @@
 			when REG_HL: loreg := REG_L;
 			when REG_BC: loreg := REG_C;
 			when REG_DE: loreg := REG_E;
-			when REG_DEHL: loreg := REG_HL;
+			when REG_HLDE: loreg := REG_DE;
 			when REG_BCIX: loreg := REG_IX;
 			when else:
 				SimpleError("bad loreg");
@@ -98,8 +98,8 @@
 			when REG_HL: hireg := REG_H;
 			when REG_BC: hireg := REG_B;
 			when REG_DE: hireg := REG_D;
-			when REG_DEHL: loreg := REG_DE;
-			when REG_BCIX: loreg := REG_BC;
+			when REG_HLDE: hireg := REG_HL;
+			when REG_BCIX: hireg := REG_BC;
 			when else:
 				StartError();
 				print("bad hireg ");
@@ -130,7 +130,7 @@
 		end case;
 	end sub;
 
-	sub E_op(reg: RegId, op: [Operand], off: Size) is
+	sub E_op(reg: RegId, op: [Operand], off: uint16) is
 		if (reg & (REGCLASS_R8|REGCLASS_R16)) != 0 then
 			E_reg(reg);
 			return;
@@ -281,7 +281,7 @@ wordsize uint32;
 
 register a h l b c d e;
 register hl bc de ix iy;
-register hlhl bcbc dede;
+register hlde bcix;
 operand param;
 operand imm adr;
 operand mem1 mem2 mem4;
@@ -304,7 +304,7 @@ regdata bc   compatible r16 uses b|c;
 regdata de   compatible r16 uses d|e;
 regdata ix   compatible r16;
 regdata iy   compatible r16;
-regdata dehl compatible r32 uses de|hl;
+regdata hlde compatible r32 uses de|hl;
 regdata bcix compatible r32 uses bc|ix;
 
 // --- Core things ----------------------------------------------------------
@@ -531,53 +531,29 @@ gen mem4 := DEREF4(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.ope
 	end sub;
 %}
 
-gen         CALL(       param,        SUBREF():a) uses a|r16       { Call(&$a); }
-gen         CALL(  ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
-gen         CALL(  ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
-gen         CALL(  ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
-gen a    := CALLE1(     param,        SUBREF():a) uses a|r16       { Call(&$a); }
-gen a    := CALLE1(ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
-gen a    := CALLE1(ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
-gen a    := CALLE1(ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
-gen hl   := CALLE2(     param,        SUBREF():a) uses a|r16       { Call(&$a); }
-gen hl   := CALLE2(ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
-gen hl   := CALLE2(ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
-gen hl   := CALLE2(ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
-gen hlhl := CALLE4(     param,        SUBREF():a) uses a|r16       { Call(&$a); }
-gen hlhl := CALLE4(ARG1(param, a),    SUBREF():a) uses   r16       { Call(&$a); }
-gen hlhl := CALLE4(ARG2(param, hl),   SUBREF():a) uses a|r16|~hl   { Call(&$a); }
-gen hlhl := CALLE4(ARG4(param, hlhl), SUBREF():a) uses a|r16|~hlhl { Call(&$a); }
+gen         CALL(       param,        SUBREF():a) uses a|bc|de|hl|rix { Call(&$a); }
+gen         CALL(  ARG1(param, a),    SUBREF():a) uses   bc|de|hl|rix { Call(&$a); }
+gen         CALL(  ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rix { Call(&$a); }
+gen         CALL(  ARG4(param, hlde), SUBREF():a) uses a|bc|de   |rix { Call(&$a); }
 
-gen         CALL(       param,        de) uses a|r16       { CallDE(); }
-gen         CALL(  ARG1(param, a),    de) uses   r16       { CallDE(); }
-gen         CALL(  ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
-gen         CALL(  ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
-gen a    := CALLE1(     param,        de) uses a|r16       { CallDE(); }
-gen a    := CALLE1(ARG1(param, a),    de) uses   r16       { CallDE(); }
-gen a    := CALLE1(ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
-gen a    := CALLE1(ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
-gen hl   := CALLE2(     param,        de) uses a|r16       { CallDE(); }
-gen hl   := CALLE2(ARG1(param, a),    de) uses   r16       { CallDE(); }
-gen hl   := CALLE2(ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
-gen hl   := CALLE2(ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
-gen hlhl := CALLE4(     param,        de) uses a|r16       { CallDE(); }
-gen hlhl := CALLE4(ARG1(param, a),    de) uses   r16       { CallDE(); }
-gen hlhl := CALLE4(ARG2(param, hl),   de) uses a|r16|~hl   { CallDE(); }
-gen hlhl := CALLE4(ARG4(param, hlhl), de) uses a|r16|~hlhl { CallDE(); }
+gen         CALL(       param,        de) uses a|bc|hl|rix { CallDE(); }
+gen         CALL(  ARG1(param, a),    de) uses   bc|hl|rix { CallDE(); }
+gen         CALL(  ARG2(param, hl),   de) uses a|bc   |rix { CallDE(); }
+gen         CALL(  ARG4(param, hlde), de) uses a|bc   |rix { CallDE(); }
 
 gen param := END();
 
-gen param := ARG1(param, r8:lhs)  { E_push($lhs); }
-gen param := ARG2(param, r16:lhs) { E_push($lhs); }
-gen param := ARG4(param, r32:lhs) { E_push($lhs); }
+gen param := ARG1(param, a|b|d|h:lhs)  { E_push($lhs); }
+gen param := ARG2(param, bc|de|hl:lhs) { E_push($lhs); }
+gen param := ARG4(param, r32:lhs)      { ArchEmitMove($lhs, 0); }
 
 gen a    := POPARG1(remaining==0);
 gen hl   := POPARG2(remaining==0);
-gen hlhl := POPARG4(remaining==0);
+gen hlde := POPARG4(remaining==0);
 
 gen r8  := POPARG1(remaining!=0) { E_pop($$); }
 gen r16 := POPARG2(remaining!=0) { E_pop($$); }
-gen r32 := POPARG4(remaining!=0) { E_pop($$); }
+gen r32 := POPARG4(remaining!=0) { ArchEmitMove(0, $$); }
 
 // --- Fallback loads -------------------------------------------------------
 
@@ -585,12 +561,12 @@ gen r32 := POPARG4(remaining!=0) { E_pop($$); }
 // necessary.
 
 gen r8 := FALLBACK(op1:lhs) cost 5 { E_insn("ld"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
-gen r16 := FALLBACK(op2:lhs) { E_insn("ld"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
+gen r16 := FALLBACK(op2:lhs)       { E_insn("ld"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
 
 // --- Loads and stores -----------------------------------------------------
 
 %{
-	sub Store(lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand], off: int8) is
+	sub Store(lhs: RegId, lhsop: [Operand], rhs: RegId, rhsop: [Operand], off: uint16) is
 		E_insn("ld");
 		E_op(rhs, rhsop, 0);
 		E_comma();
@@ -644,17 +620,17 @@ gen r8 := DEREF1(ADD2(rix:ptr, CONSTANT(value is byte):c)) { LoadI($$, $ptr, $c.
 gen r16 := DEREF2(r16:ptr) { LoadI($$, $ptr, 0); }
 gen r16 := DEREF2(ADD2(rix:ptr, CONSTANT(value is byte):c)) { LoadI($$, $ptr, $c.value as int8); }
 
-gen STORE1(r8|imm:lhs, mem1:rhs) cost 5                                  { Store($lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+gen STORE1(r8|imm:lhs, mem1:rhs) cost 5                                  { Store($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, 0); }
 gen STORE1(r8|imm:lhs, DEREF1(r16:rhs))                                  { StoreI($lhs, &$@lhs.operand, $rhs, 0); }
 gen STORE1(r8|imm:lhs, DEREF1(ADD2(rix:ptr, CONSTANT(value is byte):c))) { StoreI($lhs, &$@lhs.operand, $ptr, $c.value as int8); }
 
-gen STORE2(r16:lhs,         mem2:rhs) cost 5                                  { Store($lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+gen STORE2(r16:lhs,         mem2:rhs) cost 5                                  { Store($lhs, &$@lhs.operand, $rhs, &$@rhs.operand, 0); }
 gen STORE2(r16|imm|adr:lhs, DEREF2(r16:rhs))                                  { StoreI($lhs, &$@lhs.operand, $rhs, 0); }
 gen STORE2(r16|imm|adr:lhs, DEREF2(ADD2(rix:ptr, CONSTANT(value is byte):c))) { StoreI($lhs, &$@lhs.operand, $ptr, $c.value as int8); }
 
-gen STORE4(r32:lhs,         mem2:rhs) cost 5                                  { Store4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
-gen STORE4(r32|imm|adr:lhs, DEREF2(r16:rhs))                                  { StoreI4($lhs, &$@lhs.operand, $rhs, 0); }
-gen STORE4(r32|imm|adr:lhs, DEREF2(ADD2(rix:ptr, CONSTANT(value is byte):c))) { StoreI4($lhs, &$@lhs.operand, $ptr, $c.value as int8); }
+//gen STORE4(r32:lhs,         mem2:rhs) cost 5                                  { Store4($lhs, &$@lhs.operand, $rhs, &$@rhs.operand); }
+//gen STORE4(r32|imm|adr:lhs, DEREF2(r16:rhs))                                  { StoreI4($lhs, &$@lhs.operand, $rhs, 0); }
+//gen STORE4(r32|imm|adr:lhs, DEREF2(ADD2(rix:ptr, CONSTANT(value is byte):c))) { StoreI4($lhs, &$@lhs.operand, $ptr, $c.value as int8); }
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
 
