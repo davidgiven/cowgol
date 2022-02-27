@@ -12,6 +12,7 @@ local ARCHS = {
 	"lxthumb2",
 	"msdos",
 	"rt11",
+	"tlcs90",
 	"v7unix",
 }
 
