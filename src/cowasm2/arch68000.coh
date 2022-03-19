@@ -84,10 +84,10 @@ sub IsSignedByte(value: uint32): (r: uint8) is
 end sub;
 
 record AddressingMode is
+	value: Number;
 	mode: uint8;
 	reg: uint8;
 	xreg: uint8;
-	value: Number;
 end record;
 
 var keywords: Keyword[] := {
@@ -336,10 +336,11 @@ sub EmitX(ea: [AddressingMode], size: uint8) is
 
 		when AM_ABSW:
 			MustBeRawNumber(ea.value.type);
-			if (ea.value.type > 0x7fff) and (ea.value.type < 0xffff8000) then
+			var number := ea.value.number;
+			if (number > 0x7fff) and (number < 0xffff8000) then
 				SimpleError("absolute word address out of range");
 			end if;
-			Emit16(ea.value.number as uint16);
+			Emit16(number as uint16);
 
 		when AM_ABSL:
 			Emit32(&ea.value);
