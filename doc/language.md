@@ -15,13 +15,19 @@ stack frames, which old processors don't really support well.
 ## Basic syntax
 
 ```
-var i: uint8 := 4; # variable declaration with initialiser
-var j: uint8;      # variable declaration without initialiser
-var k := fnord;    # you can omit the type if the RHS is non-constant
+var i: uint8 := 4;    # variable declaration with initialiser
+var j: uint8;         # variable declaration without initialiser
+var k := fnord;       # you can omit the type if the RHS is non-constant
 
-j := i + 1;        # assignment and expressions
-j := i + 1 * 2;    # standard priorities; this adds 3 to i
-j := (i + 1) * 2;  # of course parentheses work
+var hex := 0x1234;    # hexadecimal
+var dec := 0d1234;    # explicit decimal
+var oct := 0o1234;    # octal
+var bin := 0b1010;    # binary
+var grouped := 12_32; # _ characters are ignored in numbers
+
+j := i + 1;           # assignment and expressions
+j := i + 1 * 2;       # standard priorities; this adds 3 to i
+j := (i + 1) * 2;     # of course parentheses work
 
 # Block ifs
 if j == 4 then
