@@ -63,11 +63,7 @@ sub Parse() is
 	print_i8(pass);
 	print_nl();
 
-	var p: [Arith] := &programCounter[0];
-	while p != &programCounter[@sizeof programCounter] loop
-		[p] := 0;
-		p := @next p;
-	end loop;
+	UpdateProgramCounters();
 
 	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
 	ParserInit();

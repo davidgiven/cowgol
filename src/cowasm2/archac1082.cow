@@ -9,6 +9,8 @@ typedef Arith is uint16;
 include "types.coh";
 include "archac1082.tokens.coh";
 
+@decl sub UpdateProgramCounters();
+
 const AS_IDATA := 0x80;
 const AS_XDATA := 0x81;
 

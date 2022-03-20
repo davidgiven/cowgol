@@ -16,6 +16,7 @@ sub EmitRaw32(d: uint32) is
 end sub;
 
 var bases: uint32[3];
+var sizes: uint32[3];
 var emitRelocations: uint8 := 0;
 var relocationSegment: uint8 := 0;
 var lastRelocation: uint32 := 0;
@@ -23,7 +24,7 @@ var lastRelocation: uint32 := 0;
 	var d := n.number;
 	if (emitRelocations != 0) and (relocationSegment == currentSegment)
 			and (n.type != AS_NUMBER) then
-		var addr := bases[currentSegment] + [currentProgramCounter];
+		var addr := [currentProgramCounter];
 		if emitRelocations == 1 then
 			EmitRaw32(addr);
 			emitRelocations := 2;
@@ -41,6 +42,12 @@ var lastRelocation: uint32 := 0;
 		Emit16((d >> 16) as uint16);
 		Emit16(d as uint16);
 	end if;
+end sub;
+
+@impl sub UpdateProgramCounters is
+	programCounter[2] := programCounter[1];
+	programCounter[1] := programCounter[0];
+	programCounter[0] := 0;
 end sub;
 
 sub Main(banner: string) is
@@ -61,23 +68,31 @@ sub Main(banner: string) is
 
 	bases[0] := 0;
 	bases[1] := programCounter[0];
-	bases[2] := programCounter[0] + programCounter[1];
+	bases[2] := programCounter[1];
+
+	sizes[0] := programCounter[0] - bases[0];
+	sizes[1] := programCounter[1] - bases[1];
+	sizes[2] := programCounter[2] - bases[2];
 
 	EmitRaw16(0x601a);
-	EmitRaw32(programCounter[0]);
-	EmitRaw32(programCounter[1]);
-	EmitRaw32(programCounter[2]);
+	EmitRaw32(sizes[0]);
+	EmitRaw32(sizes[1]);
+	EmitRaw32(sizes[2]);
 	EmitRaw32(0);
 	EmitRaw32(0);
 	EmitRaw32(0b00000111);
 	EmitRaw16(0);
 
-	print("emitting text: ");
+	print("emitting 0x");
+	print_hex_i32(sizes[0]);
+	print(" bytes of text: ");
 	emitSegment := 0;
 	Parse();
 	pass := pass + 1;
 
-	print("emitting data: ");
+	print("emitting 0x");
+	print_hex_i32(sizes[1]);
+	print(" bytes of data: ");
 	emitSegment := 1;
 	Parse();
 	pass := pass + 1;
@@ -95,6 +110,7 @@ sub Main(banner: string) is
 	Parse();
 	pass := pass + 1;
 
+	EmitRaw(0);
 	var i := FCBClose(&outputFile);
 end sub;
 

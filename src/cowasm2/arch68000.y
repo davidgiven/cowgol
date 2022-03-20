@@ -383,7 +383,7 @@ instruction ::= INSN_BRA(T) mod expression(E).
 					when 0: # bra
 						Emit16(0b0100111011111001);
 
-					when 1: # bsr
+					when 1: # jsr
 						Emit16(0b0100111010111001);
 
 					when else: # long conditional
@@ -406,6 +406,7 @@ instruction ::= INSN_BRA(T) mod expression(E).
 				else
 					Emit16(((T.number as uint16 ^ 1) << 8)
 						| 0b0110000000000110);
+					Emit16(6);
 					Emit16(0b0100111010111001);
 					Emit32(&E);
 				end if;
@@ -433,17 +434,14 @@ instruction ::= INSN_DBT(T) ea(R) COMMA expression(E).
 				return;
 			elseif E.type == currentSegment then
 				delta := (E.number - [currentProgramCounter] - 2) as int32;
-				if (delta >= -0x80) and (delta <= 0x7f) then
-					Emit16((T.number as uint16)
-						| (R.reg as uint16)
-						| (delta as uint8 as uint16));
-				elseif (delta >= -0x8000) and (delta <= 0x7fff) then
+				if (delta >= -0x8000) and (delta <= 0x7fff) then
 					Emit16((T.number as uint16)
 						| (R.reg as uint16));
 					Emit16(delta as uint16);
 				else
 					Emit16((T.number as uint16 ^ 0x100)
 						| (R.reg as uint16));
+					Emit16(6);
 					Emit16(0b0100111010111001); # jmp
 					Emit32(&E);
 				end if;
@@ -621,6 +619,7 @@ instruction ::= INSN_MOVE mod(M) ea(R1) COMMA ea(R2).
 				| (R2.reg as uint16 << 9)
 				| (R1.mode as uint16)
 				| (R1.reg as uint16));
+			EmitX(&R1, M);
 			return;
 		end if;
 

@@ -11,6 +11,7 @@ include "arch68000.tokens.coh";
 
 @decl sub Emit16(w: uint16);
 @decl sub Emit32(n: [Number]);
+@decl sub UpdateProgramCounters();
 
 # These are the internal addressing mode encodings.
 const AM_REGD    := 0b000000;

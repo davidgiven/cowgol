@@ -78,6 +78,43 @@ void exit_error(char* fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
+static void hexdump(uint32_t start, uint32_t end)
+{
+	uint32_t startrounded = start & ~0xf;
+	uint32_t endrounded = (end + 0xf) & ~0xf;
+
+	uint32_t p = startrounded;
+
+	while (p < endrounded)
+	{
+		printf("%08x : ", p);
+		for (int i = 0; i < 16; i++)
+		{
+			uint32_t pp = p + i;
+			if ((pp >= start) && (pp < end))
+				printf("%02x ", g_ram[pp]);
+			else
+				printf("   ");
+		}
+		printf(": ");
+		for (int i = 0; i < 16; i++)
+		{
+			uint32_t pp = p + i;
+			if ((pp >= start) && (pp < end))
+			{
+				uint8_t c = g_ram[pp];
+				if ((c < 32) || (c > 127))
+					c = '.';
+				putchar(c);
+			}
+			else
+				putchar(' ');
+		}
+		p += 16;
+		putchar('\n');
+	}
+}
+
 static inline uint32_t transform_address(uint32_t address)
 {
 	uint32_t i = (address & ADDRESS_MASK) - RAM_BASE;
@@ -323,14 +360,23 @@ static void load_program(FILE* fd)
 	if (READ_WORD(g_ram, 0x1a))
 		exit_error("absolute binaries not supported");
 
-	uint32_t tsize = READ_LONG(g_ram, 0x02);
-	uint32_t dsize = READ_LONG(g_ram, 0x06);
-	uint32_t bsize = READ_LONG(g_ram, 0x0a);
-	uint32_t ssize = READ_LONG(g_ram, 0x0e);
-	uint32_t filesz = tsize + dsize + ssize;
+	int32_t tsize = READ_LONG(g_ram, 0x02);
+	int32_t dsize = READ_LONG(g_ram, 0x06);
+	int32_t bsize = READ_LONG(g_ram, 0x0a);
+	int32_t ssize = READ_LONG(g_ram, 0x0e);
+	int32_t filesz = tsize + dsize + ssize;
+
+	if (verbose)
+	{
+		fprintf(stdout, "data at: 0x%08x\n", 0x0900+tsize);
+		fprintf(stdout, " bss at: 0x%08x\n", 0x0900+tsize+dsize);
+	}
+
+	if ((tsize < 0) || (dsize < 0) || (bsize < 0) || (ssize < 0))
+		exit_error("invalid binary");
 
 	if (fread(g_ram+0x0900, 1, filesz, fd) != filesz)
-		exit_error("couldn't read program data");
+		exit_error("couldn't read program data of length 0x%x", filesz);
 
 	uint8_t buffer[4];
 	fread(buffer, 1, 4, fd);
@@ -348,8 +394,16 @@ static void load_program(FILE* fd)
 		else
 		{
 			rptr += relo;
+			if (verbose)
+				fprintf(stdout, "relocating 0x%08x\n", rptr);
 			WRITE_LONG(g_ram, rptr, READ_LONG(g_ram, rptr) + 0x900);
 		}
+	}
+
+	if (verbose)
+	{
+		hexdump(0x900, 0x0900+tsize+dsize);
+		printf("\n");
 	}
 
 	/* Set up the base page:
