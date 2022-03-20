@@ -148,12 +148,19 @@ var keywords: Keyword[] := {
 };
 
 include "lexer.coh";
+include "utils.coh";
 include "emitter.coh";
 include "symbols.coh";
 
 sub Emit16(w: uint16) is
 	Emit8((w >> 8) as uint8);
 	Emit8(w as uint8);
+end sub;
+
+sub Emit32(n: [Number]) is
+	var d := n.number;
+	Emit16((d >> 16) as uint16);
+	Emit16(d as uint16);
 end sub;
 
 include "archac1082.parser.coh";

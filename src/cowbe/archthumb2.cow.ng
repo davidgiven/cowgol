@@ -561,13 +561,13 @@ gen STORE4(r32:lhs, DEREF4(ADD4(r32:ptr, LSHIFT4(r32:rhs, CONSTANT():c))))
 	sub LoadAddress(dest: RegId, insn: string, sym: [Symbol], off: Size) is
 		var r := RegCacheFindValue(sym, off);
 		if r != 0 then
-			if r == dest then
+			if (r & dest) != 0 then
 				return;
 			end if;
 			E_insn("mov");
 			E_reg(dest);
 			E_comma();
-			E_reg(r);
+			E_reg(FindFirst(r));
 			E_nl();
 		else
 			E_insn(insn);

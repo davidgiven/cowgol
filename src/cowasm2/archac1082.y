@@ -30,21 +30,6 @@ const8(C) ::= HASH expression(E).
 reg16(R) ::= REG_16(R1).
 	{ R := R1.number as uint8; }
 
-/* --- Major pseudoinstructions ------------------------------------------ */
-
-instruction ::= INSN_DB db_list.
-instruction ::= INSN_DW dw_list.
-
-db_list ::= expression(E).               { Emit8(E.number as uint8); }
-db_list ::= db_list COMMA expression(E). { Emit8(E.number as uint8); }
-
-dw_list ::= expression(E).               { Emit16(E.number); }
-dw_list ::= dw_list COMMA expression(E). { Emit16(E.number); }
-
-label ::= /* empty */.
-label ::= ID(I) COLON.
-	{ SetSymbol(I.string, [currentProgramCounter], AS_XDATA); }
-
 /* --- Instructions ------------------------------------------------------ */
 
 %include

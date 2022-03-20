@@ -491,10 +491,10 @@ gen areg := SUBREF():s
 	end sub;
 %}
 
-gen       CALL(  END(), SUBREF():a) uses all { Call(&$a); }
-gen       CALL(  d0, SUBREF():a) uses all { Call(&$a); }
-gen       CALL(  END(), a5) uses all { CallA5(); }
-gen       CALL(  d0, a5) uses all { CallA5(); }
+gen       CALL(END(), SUBREF():a) uses all { Call(&$a); }
+gen       CALL(d0, SUBREF():a) uses all { Call(&$a); }
+gen       CALL(END(), a5) uses all { CallA5(); }
+gen       CALL(d0, a5) uses all { CallA5(); }
 
 gen param := END();
 
@@ -503,8 +503,8 @@ gen d0 := ARG1(param, d0:lhs);
 gen d0 := ARG2(param, d0:lhs);
 gen d0 := ARG4(param, d0:lhs);
 
-gen param := ARG1(param, any:lhs) { E_pushw($lhs); }
-gen param := ARG2(param, any:lhs) { E_pushw($lhs); }
+gen param := ARG1(param, dreg:lhs) { E_pushw($lhs); }
+gen param := ARG2(param, dreg:lhs) { E_pushw($lhs); }
 gen param := ARG4(param, any:lhs) { E_pushl($lhs); }
 
 gen param := ARG4(param, CONSTANT():c)
@@ -639,12 +639,15 @@ gen imm := CONSTANT():c cost 5
 	end sub;
 %}
 
+// The RegX forms below are (a0+d0) indexed operations, which it turns out
+// don't work on the stock 68000, so they're disabled for now.
+
 gen STORE1(op8:lhs, DEREF1(areg:rhs))
 	{ StoreReg($lhs, &$@lhs.operand, "move.b", $rhs, 0); }
 gen STORE1(op8:lhs, DEREF1(ADD4(areg:rhs, CONSTANT():c)))
 	{ StoreReg($lhs, &$@lhs.operand, "move.b", $rhs, $c.value as int16); }
-gen STORE1(op8:lhs, DEREF1(ADD4(areg:rhs1, any:rhs2)))
-	{ StoreRegX($lhs, &$@lhs.operand, "move.b", $rhs1, $rhs2); }
+//gen STORE1(op8:lhs, DEREF1(ADD4(areg:rhs1, any:rhs2)))
+//	{ StoreRegX($lhs, &$@lhs.operand, "move.b", $rhs1, $rhs2); }
 gen STORE1(op8:lhs, DEREF1(ADDRESS():a))
 	{ StoreAddress($lhs, &$@lhs.operand, "move.b", &$a.sym, $a.off); }
 
@@ -652,15 +655,15 @@ gen STORE2(op16:lhs, DEREF2(areg:rhs))
 	{ StoreReg($lhs, &$@lhs.operand, "move.w", $rhs, 0); }
 gen STORE2(op16:lhs, DEREF2(ADD4(areg:rhs, CONSTANT():c)))
 	{ StoreReg($lhs, &$@lhs.operand, "move.w", $rhs, $c.value as int16); }
-gen STORE2(op16:lhs, DEREF2(ADD4(areg:rhs1, any:rhs2)))
-	{ StoreRegX($lhs, &$@lhs.operand, "move.w", $rhs1, $rhs2); }
+//gen STORE2(op16:lhs, DEREF2(ADD4(areg:rhs1, any:rhs2)))
+//	{ StoreRegX($lhs, &$@lhs.operand, "move.w", $rhs1, $rhs2); }
 gen STORE2(op16:lhs, DEREF2(ADDRESS():a))
 	{ StoreAddress($lhs, &$@lhs.operand, "move.w", &$a.sym, $a.off); }
 
 gen STORE4(op32:lhs, DEREF4(areg:rhs))
 	{ StoreReg($lhs, &$@lhs.operand, "move.l", $rhs, 0); }
-gen STORE4(op32:lhs, DEREF4(ADD4(areg:rhs1, any:rhs2)))
-	{ StoreRegX($lhs, &$@lhs.operand, "move.l", $rhs1, $rhs2); }
+//gen STORE4(op32:lhs, DEREF4(ADD4(areg:rhs1, any:rhs2)))
+//	{ StoreRegX($lhs, &$@lhs.operand, "move.l", $rhs1, $rhs2); }
 gen STORE4(op32:lhs, DEREF4(ADD4(areg:rhs, CONSTANT():c)))
 	{ StoreReg($lhs, &$@lhs.operand, "move.l", $rhs, $c.value as int16); }
 gen STORE4(op32:lhs, DEREF4(ADDRESS():a))
@@ -668,8 +671,8 @@ gen STORE4(op32:lhs, DEREF4(ADDRESS():a))
 
 gen dreg := DEREF1(areg:rhs)
 	{ R_flush($$); LoadReg($$, "move.b", $rhs, 0); }
-gen dreg := DEREF1(ADD4(areg:rhs1, any:rhs2))
-	{ R_flush($$); LoadRegX($$, "move.b", $rhs1, $rhs2); }
+//gen dreg := DEREF1(ADD4(areg:rhs1, any:rhs2))
+//	{ R_flush($$); LoadRegX($$, "move.b", $rhs1, $rhs2); }
 gen dreg := DEREF1(ADD4(areg:rhs, CONSTANT():c))
 	{ R_flush($$); LoadReg($$, "move.b", $rhs, $c.value as int16); }
 gen dreg := DEREF1(ADDRESS():a)
@@ -677,8 +680,8 @@ gen dreg := DEREF1(ADDRESS():a)
 
 gen dreg := DEREF2(areg:rhs)
 	{ R_flush($$); LoadReg($$, "move.w", $rhs, 0); }
-gen dreg := DEREF2(ADD4(areg:rhs1, any:rhs2))
-	{ R_flush($$); LoadRegX($$, "move.w", $rhs1, $rhs2); }
+//gen dreg := DEREF2(ADD4(areg:rhs1, any:rhs2))
+//	{ R_flush($$); LoadRegX($$, "move.w", $rhs1, $rhs2); }
 gen dreg := DEREF2(ADD4(areg:rhs, CONSTANT():c))
 	{ R_flush($$); LoadReg($$, "move.w", $rhs, $c.value as int16); }
 gen dreg := DEREF2(ADDRESS():a)
@@ -686,8 +689,8 @@ gen dreg := DEREF2(ADDRESS():a)
 
 gen any := DEREF4(areg:rhs)
 	{ R_flush($$); LoadReg($$, "move.l", $rhs, 0); }
-gen any := DEREF4(ADD4(areg:rhs1, any:rhs2))
-	{ R_flush($$); LoadRegX($$, "move.l", $rhs1, $rhs2); }
+//gen any := DEREF4(ADD4(areg:rhs1, any:rhs2))
+//	{ R_flush($$); LoadRegX($$, "move.l", $rhs1, $rhs2); }
 gen any := DEREF4(ADD4(areg:rhs, CONSTANT():c))
 	{ R_flush($$); LoadReg($$, "move.l", $rhs, $c.value as int16); }
 gen any := DEREF4(ADDRESS():a)
@@ -1041,7 +1044,7 @@ gen ENDCASE4() { R_flushall(); };
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
-	E(".data\n");
+	E(".seg 1\n");
 	E(".align 2\n");
 	E_symref(&$s.sym, 0);
 	E(":\n");
@@ -1103,7 +1106,7 @@ gen INITSTRING():s
 
         EmitterOpenStream(current_subr);
 
-		E(".data\n");
+		E(".seg 1\n");
         E_label(lid);
 		E_insn(".byte");
 
@@ -1126,7 +1129,9 @@ gen areg := STRING():s
 {
 	var lid := E_string($s.text);
 	E_insn("lea");
+	E_openp();
 	E_labelref(lid);
+	E_closep();
 	E_comma();
 	E_reg($$);
 	E_nl();

@@ -195,7 +195,7 @@ addto(ALL_TOOLCHAINS, toolchain_ncpmz)
 addto(ALL_TOOLCHAINS, toolchain_unixv7)
 
 if WITH_LX386    then addto(ALL_TOOLCHAINS, toolchain_lx386) end
-if WITH_LX68K    then addto(ALL_TOOLCHAINS, toolchain_lx68k) end
+--if WITH_LX68K    then addto(ALL_TOOLCHAINS, toolchain_lx68k) end
 if WITH_LXPPC    then addto(ALL_TOOLCHAINS, toolchain_lxppc) end
 if WITH_LXTHUMB2 then addto(ALL_TOOLCHAINS, toolchain_lxthumb2) end
 if WITH_MSDOS    then addto(ALL_TOOLCHAINS, toolchain_msdos) end

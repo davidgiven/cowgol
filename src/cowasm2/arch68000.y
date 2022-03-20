@@ -103,25 +103,6 @@ destregs(O) ::= destregs(A) COMMA destregs(B).
 destregs(O) ::= srcdestreg(R).
 	{ O := 1; O := O<<R; }
 
-/* --- Major pseudoinstructions ------------------------------------------ */
-
-label ::= /* empty */.
-label ::= ID(I) COLON.
-	{ SetSymbol(I.string, [currentProgramCounter], currentSegment); }
-
-instruction ::= INSN_DB db_list.
-instruction ::= INSN_DW dw_list.
-instruction ::= INSN_DD dd_list.
-
-db_list ::= expression(E).               { Emit8(E.number as uint8); }
-db_list ::= db_list COMMA expression(E). { Emit8(E.number as uint8); }
-
-dw_list ::= expression(E).               { Emit16(E.number as uint16); }
-dw_list ::= dw_list COMMA expression(E). { Emit16(E.number as uint16); }
-
-dd_list ::= expression(E).               { Emit32(&E); }
-dd_list ::= dd_list COMMA expression(E). { Emit32(&E); }
-
 /* --- Instructions ------------------------------------------------------ */
 
 /* dX,dX or -(aX),-(aX) only */
@@ -391,7 +372,7 @@ instruction ::= INSN_ASL(T) mod(M) ea(R1).
 
 /* Branches */
 
-instruction ::= INSN_BRA(T) expression(E).
+instruction ::= INSN_BRA(T) mod expression(E).
 	{
 		if pass == 1 then
 			[currentProgramCounter] := [currentProgramCounter] + 6;
@@ -865,9 +846,9 @@ instruction ::= INSN_PEA mod(M) ea(R).
 
 /* swap is weird. */
 
-instruction ::= INSN_SWAP mod(M) ea(R).
+instruction ::= INSN_SWAP ea(R).
 	{
-		if (R.mode != AM_REGD) or (M != 1) then
+		if R.mode != AM_REGD then
 			InvalidOperand();
 		end if;
 

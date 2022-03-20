@@ -1,0 +1,7 @@
+sub MustBeRawNumber(type: uint8) is
+	if type != AS_NUMBER then
+		SimpleError("only raw numbers are allowed as displacements");
+	end if;
+end sub;
+
+

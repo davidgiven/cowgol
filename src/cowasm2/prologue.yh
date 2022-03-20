@@ -65,6 +65,49 @@ instruction ::= INSN_SEGMENT expression(E).
 statement ::= ID(I) EQUALS expression(E) EOS.
 	{ SetSymbol(I.string, E.number, E.type); }
 
+/* --- Major pseudoinstructions ------------------------------------------ */
+
+label ::= /* empty */.
+label ::= ID(I) COLON.
+	{ SetSymbol(I.string, [currentProgramCounter], currentSegment); }
+
+instruction ::= INSN_DB db_list.
+instruction ::= INSN_DW dw_list.
+instruction ::= INSN_DD dd_list.
+
+db_list ::= expression(E).               { Emit8(E.number as uint8); }
+db_list ::= db_list COMMA expression(E). { Emit8(E.number as uint8); }
+
+dw_list ::= expression(E).               { Emit16(E.number as uint16); }
+dw_list ::= dw_list COMMA expression(E). { Emit16(E.number as uint16); }
+
+dd_list ::= expression(E).               { Emit32(&E); }
+dd_list ::= dd_list COMMA expression(E). { Emit32(&E); }
+
+instruction ::= INSN_ALIGN expression(E).
+	{
+		MustBeRawNumber(E.type);
+		var number := E.number;
+		if (number & (number-1)) != 0 then
+			SimpleError("can only align to powers of two");
+		end if;
+		var mask := number - 1;
+
+		while ([currentProgramCounter] & mask) != 0 loop
+			Emit8(0);
+		end loop;
+	}
+
+instruction ::= INSN_DS expression(E).
+	{
+		MustBeRawNumber(E.type);
+		var number := E.number;
+		while number != 0 loop
+			Emit8(0);
+			number := number - 1;
+		end loop;
+	}
+
 /* --- Expressions ------------------------------------------------------- */
 
 %type expression {Number}

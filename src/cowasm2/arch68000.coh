@@ -95,9 +95,15 @@ var keywords: Keyword[] := {
 
 	{ ".org",    INSN_ORG,     0 },
 	{ ".seg",    INSN_SEGMENT, 0 },
+	{ ".align",  INSN_ALIGN,   0 },
 	{ ".db",     INSN_DB,      0 },
+	{ ".byte",   INSN_DB,      0 },
 	{ ".dw",     INSN_DW,      0 },
+	{ ".short",  INSN_DW,      0 },
 	{ ".dd",     INSN_DD,      0 },
+	{ ".long",   INSN_DD,      0 },
+	{ ".ds",     INSN_DS,      0 },
+	{ ".space",  INSN_DS,      0 },
 
 	# --- Registers and modifiers ----------------------------------------
 
@@ -182,7 +188,9 @@ var keywords: Keyword[] := {
 	{ "bhi",     INSN_BRA,     0x2 },
 	{ "bls",     INSN_BRA,     0x3 },
 	{ "bcc",     INSN_BRA,     0x4 },
+	{ "bhs",     INSN_BRA,     0x4 },
 	{ "bcs",     INSN_BRA,     0x5 },
+	{ "blo",     INSN_BRA,     0x5 },
 	{ "bne",     INSN_BRA,     0x6 },
 	{ "beq",     INSN_BRA,     0x7 },
 	{ "bvc",     INSN_BRA,     0x8 },
@@ -295,14 +303,9 @@ var keywords: Keyword[] := {
 };
 
 include "lexer.coh";
+include "utils.coh";
 include "emitter.coh";
 include "symbols.coh";
-
-sub MustBeRawNumber(type: uint8) is
-	if type != AS_NUMBER then
-		SimpleError("only raw numbers are allowed as displacements");
-	end if;
-end sub;
 
 sub DisplacementOutOfRange(disp: uint32, max: uint32) is
 	if disp > max then
