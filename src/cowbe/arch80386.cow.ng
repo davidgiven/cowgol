@@ -296,6 +296,23 @@
 		E_nl();
 	end sub;
 
+	sub E_tailcall(subr: [Subroutine]) is
+		E_push(REG_EDX);
+		R_flushall();
+		E_tab();
+		E("jmp ");
+		E_subref(subr);
+		E_nl();
+	end sub;
+
+	sub E_tailcallebx() is
+		E_push(REG_EDX);
+		R_flushall();
+		E_tab();
+		E("jmp *%ebx");
+		E_nl();
+	end sub;
+
 	sub E_ret() is
 		E("\tret\n");
 	end sub;
@@ -757,6 +774,10 @@ gen RETURN() uses all
 	sub Call(addr: [MidcodeSubref]) is
 		E_call(addr.subr);
 	end sub;
+
+	sub Tailcall(addr: [MidcodeSubref]) is
+		E_tailcall(addr.subr);
+	end sub;
 %}
 
 gen        CALL(       param,       SUBREF():a) uses all { Call(&$a); }
@@ -768,6 +789,18 @@ gen        CALL(       param,       ebx) uses all { E_callebx(); }
 gen        CALL(  ARG1(param, al),  ebx) uses all { E_callebx(); }
 gen        CALL(  ARG2(param, ax),  ebx) uses all { E_callebx(); }
 gen        CALL(  ARG4(param, eax), ebx) uses all { E_callebx(); }
+
+gen    TAILCALL(       param,       SUBREF():a) uses all { Tailcall(&$a); }
+gen    TAILCALL(  ARG1(param, al),  SUBREF():a) uses all { Tailcall(&$a); }
+gen    TAILCALL(  ARG2(param, ax),  SUBREF():a) uses all { Tailcall(&$a); }
+gen    TAILCALL(  ARG4(param, eax), SUBREF():a) uses all { Tailcall(&$a); }
+
+gen    TAILCALL(       param,       ebx) uses all { E_tailcallebx(); }
+gen    TAILCALL(  ARG1(param, al),  ebx) uses all { E_tailcallebx(); }
+gen    TAILCALL(  ARG2(param, ax),  ebx) uses all { E_tailcallebx(); }
+gen    TAILCALL(  ARG4(param, eax), ebx) uses all { E_tailcallebx(); }
+
+gen PREPARETAIL() {E_pop(REG_EDX);}
 
 gen param := END();
 

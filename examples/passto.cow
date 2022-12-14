@@ -1,0 +1,131 @@
+# A demonstration of the passto statement.
+include "cowgol.coh";
+include "argv.coh";
+
+interface instruction(ip: [instruction]);
+
+var stack: int32[16];
+var sp: uint8 := 255;
+
+sub push(x: int32) is
+	if sp == 255 or sp < 63 then
+		sp := sp + 1;
+		stack[sp] := x;
+	else
+		print("Error: Too many numbers in storage.\n");
+		ExitWithError();
+	end if;
+end sub;
+
+sub pop(): (result: int32) is
+	if sp < 64 and sp >= 0 then
+		result := stack[sp];
+		sp := sp - 1;
+	else
+		print("Error: No numbers to calculate with.\n");
+		ExitWithError();
+	end if;
+end sub;
+
+sub lit implements instruction is
+	ip := @next ip;
+	var num := [ip] as int32;
+	push(num);
+	ip := @next ip;
+	passto [ip](ip);	
+end sub;
+
+sub plus implements instruction is
+	var y := pop();
+	var x := pop();
+	push(x + y);
+	ip := @next ip;
+	passto [ip](ip);	
+end sub;
+
+sub minus implements instruction is
+	var y := pop();
+	var x := pop();
+	push(x - y);
+	ip := @next ip;
+	passto [ip](ip);	
+end sub;
+
+sub mul implements instruction is
+	var y := pop();
+	var x := pop();
+	push(x * y);
+	ip := @next ip;
+	passto [ip](ip);	
+end sub;
+
+sub div implements instruction is
+	var y := pop();
+	var x := pop();
+	if y == 0 then
+		print("Error: division by zero.\n");
+		ExitWithError();
+	end if;
+	push(x / y);
+	ip := @next ip;
+	passto [ip](ip);	
+end sub;
+
+sub quit implements instruction is
+	var x := pop();
+	if x < 0 then
+		x := -x;
+		print_char('-');
+	end if;
+	print_i32(x as uint32);
+	print("\n");
+	return;
+end sub;
+
+var code: instruction[128];
+var i: intptr := 0;
+var ip := &code[0];
+ArgvInit();
+var arg := ArgvNext();
+
+while arg != 0 and [arg] != 0 and i < 128 * @bytesof instruction loop
+	if ([arg] >= '0' and [arg] <= '9')
+		or (
+			[arg] == '-'
+			and ([arg + 1] >= '0' and [arg + 1] <= '9')
+		)
+	then
+		var _: [uint8];
+		var x: int32;
+		(x, _) := AToI(arg);
+		[ip + i] := lit;
+		i := i + @bytesof instruction;
+		[ip + i] := x as instruction;
+	elseif [arg] == '+' then
+		[ip + i] := plus;
+	elseif [arg] == '-' then
+		[ip + i] := minus;
+	elseif [arg] == 'x' then
+		[ip + i] := mul;
+	elseif [arg] == '/' then
+		[ip + i] := div;
+	else
+		i := 0;
+		break;
+	end if;
+	arg := ArgvNext();
+	i := i + @bytesof instruction;
+end loop;
+
+if i > 0 then
+	[ip + i] := quit;
+	[ip](ip);
+elseif i >= 128 * @bytesof instruction then
+	print("Error: exceeded limit on input.\n");
+else
+	print("Usage: passto [calculation]\n");
+	print("Operators are +, -, x, and /.\nPlace spaces in between numbers and operators.\n");
+	print("Enter the input in Reverse-Polish Notation order (e.g. 1 1 + instead of 1 + 1).\n");
+end if;
+
+ExitWithError();
