@@ -71,9 +71,13 @@ sub div implements instruction is
 	passto [ip](ip);	
 end sub;
 
+
 sub quit implements instruction is
-	var x := pop();
-	if x < 0 then
+	#trickery to print signed integers at any size:
+	var x := pop() as intptr;
+	var e: intptr := -1;
+	e := e / 2;
+	if x > e then
 		x := -x;
 		print_char('-');
 	end if;
