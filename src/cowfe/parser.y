@@ -6,6 +6,7 @@
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
 %token INT TYPEDEF SIZEOF STRING.
 %token IMPL DECL EXTERN INTERFACE.
+%token PASSTO.
 
 %left COMMA.
 %left AND.
@@ -978,6 +979,43 @@ outputarg(E) ::= expression(E1).
 {
 	E := UndoLValue(E1);
 }
+
+/* --- The Passto statement ---------------------------------------------- */
+
+statement ::= PASSTO startsubcall inputargs(INA) SEMICOLON.
+{
+	var intfsubr1 := current_call.intfsubr;
+	var intfsubr2 := current_subr.intfsubr;
+	i_check_sub_call_args();
+
+	var paramindex1 := intfsubr1.num_output_parameters;
+	var paramindex2 := intfsubr2.num_output_parameters;
+	var error: uint8 := 0;
+	if paramindex1 != paramindex2 then
+		error := 1;
+	end if;
+	while paramindex1 > 0 and error == 0 loop
+		paramindex1 := paramindex1 - 1;
+		var param1 := GetOutputParameter(intfsubr1, paramindex1);
+		var param2 := GetOutputParameter(intfsubr2, paramindex1);
+
+		if param1.vardata.type != param2.vardata.type then
+			error := 1;
+		end if;
+	end loop;
+	if error != 0 then
+		StartError();
+		print(intfsubr1.symbol.name);
+		print(" must have the same output parameters as ");
+		print(intfsubr2.symbol.name);
+		print(" to be used in this passto statement.");
+		EndError();
+	end if;
+
+	Generate(MidPreparetail());
+	Generate(MidTailcall(INA, current_call.expr, intfsubr1));
+}
+
 
 /* --- Subroutine definitions -------------------------------------------- */
 

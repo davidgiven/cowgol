@@ -1779,157 +1779,159 @@ const i1 c02_s0024[] = { 0x4c,0x41,0x42,0x45,0x4c,0 };
 const i1 c02_s0025[] = { 0x4a,0x55,0x4d,0x50,0 };
 const i1 c02_s0026[] = { 0x52,0x45,0x54,0x55,0x52,0x4e,0 };
 const i1 c02_s0027[] = { 0x43,0x41,0x4c,0x4c,0 };
-const i1 c02_s0028[] = { 0x41,0x52,0x47,0x30,0 };
-const i1 c02_s0029[] = { 0x41,0x52,0x47,0x31,0 };
-const i1 c02_s002a[] = { 0x41,0x52,0x47,0x32,0 };
-const i1 c02_s002b[] = { 0x41,0x52,0x47,0x34,0 };
-const i1 c02_s002c[] = { 0x41,0x52,0x47,0x38,0 };
-const i1 c02_s002d[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x30,0 };
-const i1 c02_s002e[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x31,0 };
-const i1 c02_s002f[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x32,0 };
-const i1 c02_s0030[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x34,0 };
-const i1 c02_s0031[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x38,0 };
-const i1 c02_s0032[] = { 0x43,0x4f,0x4e,0x53,0x54,0x41,0x4e,0x54,0 };
-const i1 c02_s0033[] = { 0x53,0x54,0x52,0x49,0x4e,0x47,0 };
-const i1 c02_s0034[] = { 0x41,0x44,0x44,0x52,0x45,0x53,0x53,0 };
-const i1 c02_s0035[] = { 0x53,0x55,0x42,0x52,0x45,0x46,0 };
-const i1 c02_s0036[] = { 0x44,0x45,0x52,0x45,0x46,0x30,0 };
-const i1 c02_s0037[] = { 0x44,0x45,0x52,0x45,0x46,0x31,0 };
-const i1 c02_s0038[] = { 0x44,0x45,0x52,0x45,0x46,0x32,0 };
-const i1 c02_s0039[] = { 0x44,0x45,0x52,0x45,0x46,0x34,0 };
-const i1 c02_s003a[] = { 0x44,0x45,0x52,0x45,0x46,0x38,0 };
-const i1 c02_s003b[] = { 0x53,0x54,0x4f,0x52,0x45,0x30,0 };
-const i1 c02_s003c[] = { 0x53,0x54,0x4f,0x52,0x45,0x31,0 };
-const i1 c02_s003d[] = { 0x53,0x54,0x4f,0x52,0x45,0x32,0 };
-const i1 c02_s003e[] = { 0x53,0x54,0x4f,0x52,0x45,0x34,0 };
-const i1 c02_s003f[] = { 0x53,0x54,0x4f,0x52,0x45,0x38,0 };
-const i1 c02_s0040[] = { 0x42,0x41,0x4e,0x44,0 };
-const i1 c02_s0041[] = { 0x42,0x4f,0x52,0 };
-const i1 c02_s0042[] = { 0x42,0x45,0x51,0x30,0 };
-const i1 c02_s0043[] = { 0x42,0x45,0x51,0x31,0 };
-const i1 c02_s0044[] = { 0x42,0x45,0x51,0x32,0 };
-const i1 c02_s0045[] = { 0x42,0x45,0x51,0x34,0 };
-const i1 c02_s0046[] = { 0x42,0x45,0x51,0x38,0 };
-const i1 c02_s0047[] = { 0x42,0x4c,0x54,0x53,0x30,0 };
-const i1 c02_s0048[] = { 0x42,0x4c,0x54,0x53,0x31,0 };
-const i1 c02_s0049[] = { 0x42,0x4c,0x54,0x53,0x32,0 };
-const i1 c02_s004a[] = { 0x42,0x4c,0x54,0x53,0x34,0 };
-const i1 c02_s004b[] = { 0x42,0x4c,0x54,0x53,0x38,0 };
-const i1 c02_s004c[] = { 0x42,0x4c,0x54,0x55,0x30,0 };
-const i1 c02_s004d[] = { 0x42,0x4c,0x54,0x55,0x31,0 };
-const i1 c02_s004e[] = { 0x42,0x4c,0x54,0x55,0x32,0 };
-const i1 c02_s004f[] = { 0x42,0x4c,0x54,0x55,0x34,0 };
-const i1 c02_s0050[] = { 0x42,0x4c,0x54,0x55,0x38,0 };
-const i1 c02_s0051[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x30,0 };
-const i1 c02_s0052[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x31,0 };
-const i1 c02_s0053[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x32,0 };
-const i1 c02_s0054[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x34,0 };
-const i1 c02_s0055[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x38,0 };
-const i1 c02_s0056[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x30,0 };
-const i1 c02_s0057[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x31,0 };
-const i1 c02_s0058[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x32,0 };
-const i1 c02_s0059[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x34,0 };
-const i1 c02_s005a[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x38,0 };
-const i1 c02_s005b[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x30,0 };
-const i1 c02_s005c[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x31,0 };
-const i1 c02_s005d[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x32,0 };
-const i1 c02_s005e[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x34,0 };
-const i1 c02_s005f[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x38,0 };
-const i1 c02_s0060[] = { 0x43,0x41,0x53,0x54,0x31,0x30,0 };
-const i1 c02_s0061[] = { 0x43,0x41,0x53,0x54,0x31,0x31,0 };
-const i1 c02_s0062[] = { 0x43,0x41,0x53,0x54,0x31,0x32,0 };
-const i1 c02_s0063[] = { 0x43,0x41,0x53,0x54,0x31,0x34,0 };
-const i1 c02_s0064[] = { 0x43,0x41,0x53,0x54,0x31,0x38,0 };
-const i1 c02_s0065[] = { 0x43,0x41,0x53,0x54,0x32,0x30,0 };
-const i1 c02_s0066[] = { 0x43,0x41,0x53,0x54,0x32,0x31,0 };
-const i1 c02_s0067[] = { 0x43,0x41,0x53,0x54,0x32,0x32,0 };
-const i1 c02_s0068[] = { 0x43,0x41,0x53,0x54,0x32,0x34,0 };
-const i1 c02_s0069[] = { 0x43,0x41,0x53,0x54,0x32,0x38,0 };
-const i1 c02_s006a[] = { 0x43,0x41,0x53,0x54,0x34,0x30,0 };
-const i1 c02_s006b[] = { 0x43,0x41,0x53,0x54,0x34,0x31,0 };
-const i1 c02_s006c[] = { 0x43,0x41,0x53,0x54,0x34,0x32,0 };
-const i1 c02_s006d[] = { 0x43,0x41,0x53,0x54,0x34,0x34,0 };
-const i1 c02_s006e[] = { 0x43,0x41,0x53,0x54,0x34,0x38,0 };
-const i1 c02_s006f[] = { 0x43,0x41,0x53,0x54,0x38,0x30,0 };
-const i1 c02_s0070[] = { 0x43,0x41,0x53,0x54,0x38,0x31,0 };
-const i1 c02_s0071[] = { 0x43,0x41,0x53,0x54,0x38,0x32,0 };
-const i1 c02_s0072[] = { 0x43,0x41,0x53,0x54,0x38,0x34,0 };
-const i1 c02_s0073[] = { 0x43,0x41,0x53,0x54,0x38,0x38,0 };
-const i1 c02_s0074[] = { 0x4e,0x4f,0x54,0x30,0 };
-const i1 c02_s0075[] = { 0x4e,0x4f,0x54,0x31,0 };
-const i1 c02_s0076[] = { 0x4e,0x4f,0x54,0x32,0 };
-const i1 c02_s0077[] = { 0x4e,0x4f,0x54,0x34,0 };
-const i1 c02_s0078[] = { 0x4e,0x4f,0x54,0x38,0 };
-const i1 c02_s0079[] = { 0x4e,0x45,0x47,0x30,0 };
-const i1 c02_s007a[] = { 0x4e,0x45,0x47,0x31,0 };
-const i1 c02_s007b[] = { 0x4e,0x45,0x47,0x32,0 };
-const i1 c02_s007c[] = { 0x4e,0x45,0x47,0x34,0 };
-const i1 c02_s007d[] = { 0x4e,0x45,0x47,0x38,0 };
-const i1 c02_s007e[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x30,0 };
-const i1 c02_s007f[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x31,0 };
-const i1 c02_s0080[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x32,0 };
-const i1 c02_s0081[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x34,0 };
-const i1 c02_s0082[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x38,0 };
-const i1 c02_s0083[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x30,0 };
-const i1 c02_s0084[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x31,0 };
-const i1 c02_s0085[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x32,0 };
-const i1 c02_s0086[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x34,0 };
-const i1 c02_s0087[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x38,0 };
-const i1 c02_s0088[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x30,0 };
-const i1 c02_s0089[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x31,0 };
-const i1 c02_s008a[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x32,0 };
-const i1 c02_s008b[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x34,0 };
-const i1 c02_s008c[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x38,0 };
-const i1 c02_s008d[] = { 0x53,0x55,0x42,0x30,0 };
-const i1 c02_s008e[] = { 0x53,0x55,0x42,0x31,0 };
-const i1 c02_s008f[] = { 0x53,0x55,0x42,0x32,0 };
-const i1 c02_s0090[] = { 0x53,0x55,0x42,0x34,0 };
-const i1 c02_s0091[] = { 0x53,0x55,0x42,0x38,0 };
-const i1 c02_s0092[] = { 0x44,0x49,0x56,0x55,0x30,0 };
-const i1 c02_s0093[] = { 0x44,0x49,0x56,0x55,0x31,0 };
-const i1 c02_s0094[] = { 0x44,0x49,0x56,0x55,0x32,0 };
-const i1 c02_s0095[] = { 0x44,0x49,0x56,0x55,0x34,0 };
-const i1 c02_s0096[] = { 0x44,0x49,0x56,0x55,0x38,0 };
-const i1 c02_s0097[] = { 0x44,0x49,0x56,0x53,0x30,0 };
-const i1 c02_s0098[] = { 0x44,0x49,0x56,0x53,0x31,0 };
-const i1 c02_s0099[] = { 0x44,0x49,0x56,0x53,0x32,0 };
-const i1 c02_s009a[] = { 0x44,0x49,0x56,0x53,0x34,0 };
-const i1 c02_s009b[] = { 0x44,0x49,0x56,0x53,0x38,0 };
-const i1 c02_s009c[] = { 0x52,0x45,0x4d,0x55,0x30,0 };
-const i1 c02_s009d[] = { 0x52,0x45,0x4d,0x55,0x31,0 };
-const i1 c02_s009e[] = { 0x52,0x45,0x4d,0x55,0x32,0 };
-const i1 c02_s009f[] = { 0x52,0x45,0x4d,0x55,0x34,0 };
-const i1 c02_s00a0[] = { 0x52,0x45,0x4d,0x55,0x38,0 };
-const i1 c02_s00a1[] = { 0x52,0x45,0x4d,0x53,0x30,0 };
-const i1 c02_s00a2[] = { 0x52,0x45,0x4d,0x53,0x31,0 };
-const i1 c02_s00a3[] = { 0x52,0x45,0x4d,0x53,0x32,0 };
-const i1 c02_s00a4[] = { 0x52,0x45,0x4d,0x53,0x34,0 };
-const i1 c02_s00a5[] = { 0x52,0x45,0x4d,0x53,0x38,0 };
-const i1 c02_s00a6[] = { 0x41,0x44,0x44,0x30,0 };
-const i1 c02_s00a7[] = { 0x41,0x44,0x44,0x31,0 };
-const i1 c02_s00a8[] = { 0x41,0x44,0x44,0x32,0 };
-const i1 c02_s00a9[] = { 0x41,0x44,0x44,0x34,0 };
-const i1 c02_s00aa[] = { 0x41,0x44,0x44,0x38,0 };
-const i1 c02_s00ab[] = { 0x4d,0x55,0x4c,0x30,0 };
-const i1 c02_s00ac[] = { 0x4d,0x55,0x4c,0x31,0 };
-const i1 c02_s00ad[] = { 0x4d,0x55,0x4c,0x32,0 };
-const i1 c02_s00ae[] = { 0x4d,0x55,0x4c,0x34,0 };
-const i1 c02_s00af[] = { 0x4d,0x55,0x4c,0x38,0 };
-const i1 c02_s00b0[] = { 0x41,0x4e,0x44,0x30,0 };
-const i1 c02_s00b1[] = { 0x41,0x4e,0x44,0x31,0 };
-const i1 c02_s00b2[] = { 0x41,0x4e,0x44,0x32,0 };
-const i1 c02_s00b3[] = { 0x41,0x4e,0x44,0x34,0 };
-const i1 c02_s00b4[] = { 0x41,0x4e,0x44,0x38,0 };
-const i1 c02_s00b5[] = { 0x4f,0x52,0x30,0 };
-const i1 c02_s00b6[] = { 0x4f,0x52,0x31,0 };
-const i1 c02_s00b7[] = { 0x4f,0x52,0x32,0 };
-const i1 c02_s00b8[] = { 0x4f,0x52,0x34,0 };
-const i1 c02_s00b9[] = { 0x4f,0x52,0x38,0 };
-const i1 c02_s00ba[] = { 0x45,0x4f,0x52,0x30,0 };
-const i1 c02_s00bb[] = { 0x45,0x4f,0x52,0x31,0 };
-const i1 c02_s00bc[] = { 0x45,0x4f,0x52,0x32,0 };
-const i1 c02_s00bd[] = { 0x45,0x4f,0x52,0x34,0 };
-const i1 c02_s00be[] = { 0x45,0x4f,0x52,0x38,0 };
+const i1 c02_s0028[] = { 0x54,0x41,0x49,0x4c,0x43,0x41,0x4c,0x4c,0 };
+const i1 c02_s0029[] = { 0x50,0x52,0x45,0x50,0x41,0x52,0x45,0x54,0x41,0x49,0x4c,0 };
+const i1 c02_s002a[] = { 0x41,0x52,0x47,0x30,0 };
+const i1 c02_s002b[] = { 0x41,0x52,0x47,0x31,0 };
+const i1 c02_s002c[] = { 0x41,0x52,0x47,0x32,0 };
+const i1 c02_s002d[] = { 0x41,0x52,0x47,0x34,0 };
+const i1 c02_s002e[] = { 0x41,0x52,0x47,0x38,0 };
+const i1 c02_s002f[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x30,0 };
+const i1 c02_s0030[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x31,0 };
+const i1 c02_s0031[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x32,0 };
+const i1 c02_s0032[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x34,0 };
+const i1 c02_s0033[] = { 0x50,0x4f,0x50,0x41,0x52,0x47,0x38,0 };
+const i1 c02_s0034[] = { 0x43,0x4f,0x4e,0x53,0x54,0x41,0x4e,0x54,0 };
+const i1 c02_s0035[] = { 0x53,0x54,0x52,0x49,0x4e,0x47,0 };
+const i1 c02_s0036[] = { 0x41,0x44,0x44,0x52,0x45,0x53,0x53,0 };
+const i1 c02_s0037[] = { 0x53,0x55,0x42,0x52,0x45,0x46,0 };
+const i1 c02_s0038[] = { 0x44,0x45,0x52,0x45,0x46,0x30,0 };
+const i1 c02_s0039[] = { 0x44,0x45,0x52,0x45,0x46,0x31,0 };
+const i1 c02_s003a[] = { 0x44,0x45,0x52,0x45,0x46,0x32,0 };
+const i1 c02_s003b[] = { 0x44,0x45,0x52,0x45,0x46,0x34,0 };
+const i1 c02_s003c[] = { 0x44,0x45,0x52,0x45,0x46,0x38,0 };
+const i1 c02_s003d[] = { 0x53,0x54,0x4f,0x52,0x45,0x30,0 };
+const i1 c02_s003e[] = { 0x53,0x54,0x4f,0x52,0x45,0x31,0 };
+const i1 c02_s003f[] = { 0x53,0x54,0x4f,0x52,0x45,0x32,0 };
+const i1 c02_s0040[] = { 0x53,0x54,0x4f,0x52,0x45,0x34,0 };
+const i1 c02_s0041[] = { 0x53,0x54,0x4f,0x52,0x45,0x38,0 };
+const i1 c02_s0042[] = { 0x42,0x41,0x4e,0x44,0 };
+const i1 c02_s0043[] = { 0x42,0x4f,0x52,0 };
+const i1 c02_s0044[] = { 0x42,0x45,0x51,0x30,0 };
+const i1 c02_s0045[] = { 0x42,0x45,0x51,0x31,0 };
+const i1 c02_s0046[] = { 0x42,0x45,0x51,0x32,0 };
+const i1 c02_s0047[] = { 0x42,0x45,0x51,0x34,0 };
+const i1 c02_s0048[] = { 0x42,0x45,0x51,0x38,0 };
+const i1 c02_s0049[] = { 0x42,0x4c,0x54,0x53,0x30,0 };
+const i1 c02_s004a[] = { 0x42,0x4c,0x54,0x53,0x31,0 };
+const i1 c02_s004b[] = { 0x42,0x4c,0x54,0x53,0x32,0 };
+const i1 c02_s004c[] = { 0x42,0x4c,0x54,0x53,0x34,0 };
+const i1 c02_s004d[] = { 0x42,0x4c,0x54,0x53,0x38,0 };
+const i1 c02_s004e[] = { 0x42,0x4c,0x54,0x55,0x30,0 };
+const i1 c02_s004f[] = { 0x42,0x4c,0x54,0x55,0x31,0 };
+const i1 c02_s0050[] = { 0x42,0x4c,0x54,0x55,0x32,0 };
+const i1 c02_s0051[] = { 0x42,0x4c,0x54,0x55,0x34,0 };
+const i1 c02_s0052[] = { 0x42,0x4c,0x54,0x55,0x38,0 };
+const i1 c02_s0053[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x30,0 };
+const i1 c02_s0054[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x31,0 };
+const i1 c02_s0055[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x32,0 };
+const i1 c02_s0056[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x34,0 };
+const i1 c02_s0057[] = { 0x53,0x54,0x41,0x52,0x54,0x43,0x41,0x53,0x45,0x38,0 };
+const i1 c02_s0058[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x30,0 };
+const i1 c02_s0059[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x31,0 };
+const i1 c02_s005a[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x32,0 };
+const i1 c02_s005b[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x34,0 };
+const i1 c02_s005c[] = { 0x57,0x48,0x45,0x4e,0x43,0x41,0x53,0x45,0x38,0 };
+const i1 c02_s005d[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x30,0 };
+const i1 c02_s005e[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x31,0 };
+const i1 c02_s005f[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x32,0 };
+const i1 c02_s0060[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x34,0 };
+const i1 c02_s0061[] = { 0x45,0x4e,0x44,0x43,0x41,0x53,0x45,0x38,0 };
+const i1 c02_s0062[] = { 0x43,0x41,0x53,0x54,0x31,0x30,0 };
+const i1 c02_s0063[] = { 0x43,0x41,0x53,0x54,0x31,0x31,0 };
+const i1 c02_s0064[] = { 0x43,0x41,0x53,0x54,0x31,0x32,0 };
+const i1 c02_s0065[] = { 0x43,0x41,0x53,0x54,0x31,0x34,0 };
+const i1 c02_s0066[] = { 0x43,0x41,0x53,0x54,0x31,0x38,0 };
+const i1 c02_s0067[] = { 0x43,0x41,0x53,0x54,0x32,0x30,0 };
+const i1 c02_s0068[] = { 0x43,0x41,0x53,0x54,0x32,0x31,0 };
+const i1 c02_s0069[] = { 0x43,0x41,0x53,0x54,0x32,0x32,0 };
+const i1 c02_s006a[] = { 0x43,0x41,0x53,0x54,0x32,0x34,0 };
+const i1 c02_s006b[] = { 0x43,0x41,0x53,0x54,0x32,0x38,0 };
+const i1 c02_s006c[] = { 0x43,0x41,0x53,0x54,0x34,0x30,0 };
+const i1 c02_s006d[] = { 0x43,0x41,0x53,0x54,0x34,0x31,0 };
+const i1 c02_s006e[] = { 0x43,0x41,0x53,0x54,0x34,0x32,0 };
+const i1 c02_s006f[] = { 0x43,0x41,0x53,0x54,0x34,0x34,0 };
+const i1 c02_s0070[] = { 0x43,0x41,0x53,0x54,0x34,0x38,0 };
+const i1 c02_s0071[] = { 0x43,0x41,0x53,0x54,0x38,0x30,0 };
+const i1 c02_s0072[] = { 0x43,0x41,0x53,0x54,0x38,0x31,0 };
+const i1 c02_s0073[] = { 0x43,0x41,0x53,0x54,0x38,0x32,0 };
+const i1 c02_s0074[] = { 0x43,0x41,0x53,0x54,0x38,0x34,0 };
+const i1 c02_s0075[] = { 0x43,0x41,0x53,0x54,0x38,0x38,0 };
+const i1 c02_s0076[] = { 0x4e,0x4f,0x54,0x30,0 };
+const i1 c02_s0077[] = { 0x4e,0x4f,0x54,0x31,0 };
+const i1 c02_s0078[] = { 0x4e,0x4f,0x54,0x32,0 };
+const i1 c02_s0079[] = { 0x4e,0x4f,0x54,0x34,0 };
+const i1 c02_s007a[] = { 0x4e,0x4f,0x54,0x38,0 };
+const i1 c02_s007b[] = { 0x4e,0x45,0x47,0x30,0 };
+const i1 c02_s007c[] = { 0x4e,0x45,0x47,0x31,0 };
+const i1 c02_s007d[] = { 0x4e,0x45,0x47,0x32,0 };
+const i1 c02_s007e[] = { 0x4e,0x45,0x47,0x34,0 };
+const i1 c02_s007f[] = { 0x4e,0x45,0x47,0x38,0 };
+const i1 c02_s0080[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x30,0 };
+const i1 c02_s0081[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x31,0 };
+const i1 c02_s0082[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x32,0 };
+const i1 c02_s0083[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x34,0 };
+const i1 c02_s0084[] = { 0x4c,0x53,0x48,0x49,0x46,0x54,0x38,0 };
+const i1 c02_s0085[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x30,0 };
+const i1 c02_s0086[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x31,0 };
+const i1 c02_s0087[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x32,0 };
+const i1 c02_s0088[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x34,0 };
+const i1 c02_s0089[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x55,0x38,0 };
+const i1 c02_s008a[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x30,0 };
+const i1 c02_s008b[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x31,0 };
+const i1 c02_s008c[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x32,0 };
+const i1 c02_s008d[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x34,0 };
+const i1 c02_s008e[] = { 0x52,0x53,0x48,0x49,0x46,0x54,0x53,0x38,0 };
+const i1 c02_s008f[] = { 0x53,0x55,0x42,0x30,0 };
+const i1 c02_s0090[] = { 0x53,0x55,0x42,0x31,0 };
+const i1 c02_s0091[] = { 0x53,0x55,0x42,0x32,0 };
+const i1 c02_s0092[] = { 0x53,0x55,0x42,0x34,0 };
+const i1 c02_s0093[] = { 0x53,0x55,0x42,0x38,0 };
+const i1 c02_s0094[] = { 0x44,0x49,0x56,0x55,0x30,0 };
+const i1 c02_s0095[] = { 0x44,0x49,0x56,0x55,0x31,0 };
+const i1 c02_s0096[] = { 0x44,0x49,0x56,0x55,0x32,0 };
+const i1 c02_s0097[] = { 0x44,0x49,0x56,0x55,0x34,0 };
+const i1 c02_s0098[] = { 0x44,0x49,0x56,0x55,0x38,0 };
+const i1 c02_s0099[] = { 0x44,0x49,0x56,0x53,0x30,0 };
+const i1 c02_s009a[] = { 0x44,0x49,0x56,0x53,0x31,0 };
+const i1 c02_s009b[] = { 0x44,0x49,0x56,0x53,0x32,0 };
+const i1 c02_s009c[] = { 0x44,0x49,0x56,0x53,0x34,0 };
+const i1 c02_s009d[] = { 0x44,0x49,0x56,0x53,0x38,0 };
+const i1 c02_s009e[] = { 0x52,0x45,0x4d,0x55,0x30,0 };
+const i1 c02_s009f[] = { 0x52,0x45,0x4d,0x55,0x31,0 };
+const i1 c02_s00a0[] = { 0x52,0x45,0x4d,0x55,0x32,0 };
+const i1 c02_s00a1[] = { 0x52,0x45,0x4d,0x55,0x34,0 };
+const i1 c02_s00a2[] = { 0x52,0x45,0x4d,0x55,0x38,0 };
+const i1 c02_s00a3[] = { 0x52,0x45,0x4d,0x53,0x30,0 };
+const i1 c02_s00a4[] = { 0x52,0x45,0x4d,0x53,0x31,0 };
+const i1 c02_s00a5[] = { 0x52,0x45,0x4d,0x53,0x32,0 };
+const i1 c02_s00a6[] = { 0x52,0x45,0x4d,0x53,0x34,0 };
+const i1 c02_s00a7[] = { 0x52,0x45,0x4d,0x53,0x38,0 };
+const i1 c02_s00a8[] = { 0x41,0x44,0x44,0x30,0 };
+const i1 c02_s00a9[] = { 0x41,0x44,0x44,0x31,0 };
+const i1 c02_s00aa[] = { 0x41,0x44,0x44,0x32,0 };
+const i1 c02_s00ab[] = { 0x41,0x44,0x44,0x34,0 };
+const i1 c02_s00ac[] = { 0x41,0x44,0x44,0x38,0 };
+const i1 c02_s00ad[] = { 0x4d,0x55,0x4c,0x30,0 };
+const i1 c02_s00ae[] = { 0x4d,0x55,0x4c,0x31,0 };
+const i1 c02_s00af[] = { 0x4d,0x55,0x4c,0x32,0 };
+const i1 c02_s00b0[] = { 0x4d,0x55,0x4c,0x34,0 };
+const i1 c02_s00b1[] = { 0x4d,0x55,0x4c,0x38,0 };
+const i1 c02_s00b2[] = { 0x41,0x4e,0x44,0x30,0 };
+const i1 c02_s00b3[] = { 0x41,0x4e,0x44,0x31,0 };
+const i1 c02_s00b4[] = { 0x41,0x4e,0x44,0x32,0 };
+const i1 c02_s00b5[] = { 0x41,0x4e,0x44,0x34,0 };
+const i1 c02_s00b6[] = { 0x41,0x4e,0x44,0x38,0 };
+const i1 c02_s00b7[] = { 0x4f,0x52,0x30,0 };
+const i1 c02_s00b8[] = { 0x4f,0x52,0x31,0 };
+const i1 c02_s00b9[] = { 0x4f,0x52,0x32,0 };
+const i1 c02_s00ba[] = { 0x4f,0x52,0x34,0 };
+const i1 c02_s00bb[] = { 0x4f,0x52,0x38,0 };
+const i1 c02_s00bc[] = { 0x45,0x4f,0x52,0x30,0 };
+const i1 c02_s00bd[] = { 0x45,0x4f,0x52,0x31,0 };
+const i1 c02_s00be[] = { 0x45,0x4f,0x52,0x32,0 };
+const i1 c02_s00bf[] = { 0x45,0x4f,0x52,0x34,0 };
+const i1 c02_s00c0[] = { 0x45,0x4f,0x52,0x38,0 };
 static data f78_MidcodeName_s010d[] = {
 
 	{ .ptr = (void*)c02_s000b },
@@ -2291,6 +2293,10 @@ static data f78_MidcodeName_s010d[] = {
 	{ .ptr = (void*)c02_s00bd },
 
 	{ .ptr = (void*)c02_s00be },
+
+	{ .ptr = (void*)c02_s00bf },
+
+	{ .ptr = (void*)c02_s00c0 },
 
 };
 
@@ -3052,7 +3058,7 @@ c02_0146:;
 }
 	void f83_E_b8(void);
 	void f84_E_b16(void);
-const i1 c02_s00bf[] = { 0x5f,0x73,0 };
+const i1 c02_s00c1[] = { 0x5f,0x73,0 };
 	void f92_E(void);
 	void f101_E_h16(void);
 	void f83_E_b8(void);
@@ -3083,7 +3089,7 @@ c02_014e:;
 
 	((void(*)(void))(intptr_t)v1372)();
 
-	i8 v1373 = (i8)(intptr_t)c02_s00bf;
+	i8 v1373 = (i8)(intptr_t)c02_s00c1;
 	*(i8*)(intptr_t)(ws+4320) = v1373;
 	i8 v1374 = (i8)(intptr_t)(f92_E);
 
@@ -3225,7 +3231,7 @@ c02_0155:;
 
 }
 	void f54_FCBOpenOut(void);
-const i1 c02_s00c0[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
+const i1 c02_s00c2[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
 	void f68_SimpleError(void);
 
 // EmitterOpenfile workspace at ws+3984 length ws+9
@@ -3251,7 +3257,7 @@ void f108_EmitterOpenfile(void) {
 
 c02_015d:;
 
-	i8 v1436 = (i8)(intptr_t)c02_s00c0;
+	i8 v1436 = (i8)(intptr_t)c02_s00c2;
 	*(i8*)(intptr_t)(ws+4280) = v1436;
 	i8 v1437 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -3265,7 +3271,7 @@ c02_015a:;
 	void f80_WriteB8(void);
 	void f81_WriteB16(void);
 	void f55_FCBClose(void);
-const i1 c02_s00c1[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x63,0x6c,0x6f,0x73,0x65,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
+const i1 c02_s00c3[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x63,0x6c,0x6f,0x73,0x65,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
 	void f68_SimpleError(void);
 
 // EmitterClosefile workspace at ws+3984 length ws+1
@@ -3300,7 +3306,7 @@ void f109_EmitterClosefile(void) {
 
 c02_0162:;
 
-	i8 v1449 = (i8)(intptr_t)c02_s00c1;
+	i8 v1449 = (i8)(intptr_t)c02_s00c3;
 	*(i8*)(intptr_t)(ws+4280) = v1449;
 	i8 v1450 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -3808,11 +3814,15 @@ void f123_ReadMid1(void) {
 
 }
 	void f116_I_b16(void);
+	void f65_FindSubr(void);
 	void f116_I_b16(void);
-	void f116_I_b16(void);
+	void f65_FindSubr(void);
+	void f115_I_b8(void);
+	void f118_I_bsize(void);
+	void f115_I_b8(void);
 	void f115_I_b8(void);
 
-// ReadMid2 workspace at ws+4088 length ws+7
+// ReadMid2 workspace at ws+4088 length ws+38
 void f124_ReadMid2(void) {
 
 	i8 v1654 = (i8)(intptr_t)(f116_I_b16);
@@ -3825,74 +3835,174 @@ void f124_ReadMid2(void) {
 
 	i8 v1657 = (i8)(intptr_t)(ws+4088);
 	i2 v1658 = *(i2*)(intptr_t)v1657;
-	i8 v1659 = (i8)(intptr_t)(ws+4080);
-	i8 v1660 = *(i8*)(intptr_t)v1659;
-	*(i2*)(intptr_t)v1660 = v1658;
+	*(i2*)(intptr_t)(ws+4256) = v1658;
+	i8 v1659 = (i8)(intptr_t)(f65_FindSubr);
 
-	i8 v1661 = (i8)(intptr_t)(f116_I_b16);
+	((void(*)(void))(intptr_t)v1659)();
 
-	((void(*)(void))(intptr_t)v1661)();
+	i8 v1660 = *(i8*)(intptr_t)(ws+4264);
+	i8 v1661 = (i8)(intptr_t)(ws+4096);
+	*(i8*)(intptr_t)v1661 = v1660;
 
-	i2 v1662 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1663 = (i8)(intptr_t)(ws+4090);
-	*(i2*)(intptr_t)v1663 = v1662;
+	i8 v1662 = (i8)(intptr_t)(ws+4096);
+	i8 v1663 = *(i8*)(intptr_t)v1662;
+	i8 v1664 = (i8)(intptr_t)(ws+4080);
+	i8 v1665 = *(i8*)(intptr_t)v1664;
+	*(i8*)(intptr_t)v1665 = v1663;
 
-	i8 v1664 = (i8)(intptr_t)(ws+4090);
-	i2 v1665 = *(i2*)(intptr_t)v1664;
-	i8 v1666 = (i8)(intptr_t)(ws+4080);
-	i8 v1667 = *(i8*)(intptr_t)v1666;
-	i8 v1668 = v1667+(+2);
-	*(i2*)(intptr_t)v1668 = v1665;
+	i8 v1666 = (i8)(intptr_t)(f116_I_b16);
 
-	i8 v1669 = (i8)(intptr_t)(f116_I_b16);
+	((void(*)(void))(intptr_t)v1666)();
 
-	((void(*)(void))(intptr_t)v1669)();
+	i2 v1667 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1668 = (i8)(intptr_t)(ws+4104);
+	*(i2*)(intptr_t)v1668 = v1667;
 
-	i2 v1670 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1671 = (i8)(intptr_t)(ws+4092);
-	*(i2*)(intptr_t)v1671 = v1670;
+	i8 v1669 = (i8)(intptr_t)(ws+4104);
+	i2 v1670 = *(i2*)(intptr_t)v1669;
+	*(i2*)(intptr_t)(ws+4256) = v1670;
+	i8 v1671 = (i8)(intptr_t)(f65_FindSubr);
 
-	i8 v1672 = (i8)(intptr_t)(ws+4092);
-	i2 v1673 = *(i2*)(intptr_t)v1672;
-	i8 v1674 = (i8)(intptr_t)(ws+4080);
+	((void(*)(void))(intptr_t)v1671)();
+
+	i8 v1672 = *(i8*)(intptr_t)(ws+4264);
+	i8 v1673 = (i8)(intptr_t)(ws+4112);
+	*(i8*)(intptr_t)v1673 = v1672;
+
+	i8 v1674 = (i8)(intptr_t)(ws+4112);
 	i8 v1675 = *(i8*)(intptr_t)v1674;
-	i8 v1676 = v1675+(+4);
-	*(i2*)(intptr_t)v1676 = v1673;
+	i8 v1676 = (i8)(intptr_t)(ws+4080);
+	i8 v1677 = *(i8*)(intptr_t)v1676;
+	i8 v1678 = v1677+(+8);
+	*(i8*)(intptr_t)v1678 = v1675;
 
-	i8 v1677 = (i8)(intptr_t)(f115_I_b8);
+	i8 v1679 = (i8)(intptr_t)(f115_I_b8);
 
-	((void(*)(void))(intptr_t)v1677)();
+	((void(*)(void))(intptr_t)v1679)();
 
-	i1 v1678 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1679 = (i8)(intptr_t)(ws+4094);
-	*(i1*)(intptr_t)v1679 = v1678;
+	i1 v1680 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1681 = (i8)(intptr_t)(ws+4120);
+	*(i1*)(intptr_t)v1681 = v1680;
 
-	i8 v1680 = (i8)(intptr_t)(ws+4094);
-	i1 v1681 = *(i1*)(intptr_t)v1680;
-	i8 v1682 = (i8)(intptr_t)(ws+4080);
-	i8 v1683 = *(i8*)(intptr_t)v1682;
-	i8 v1684 = v1683+(+6);
-	*(i1*)(intptr_t)v1684 = v1681;
+	i8 v1682 = (i8)(intptr_t)(ws+4120);
+	i1 v1683 = *(i1*)(intptr_t)v1682;
+	i8 v1684 = (i8)(intptr_t)(ws+4080);
+	i8 v1685 = *(i8*)(intptr_t)v1684;
+	i8 v1686 = v1685+(+18);
+	*(i1*)(intptr_t)v1686 = v1683;
+
+	i8 v1687 = (i8)(intptr_t)(f118_I_bsize);
+
+	((void(*)(void))(intptr_t)v1687)();
+
+	i2 v1688 = *(i2*)(intptr_t)(ws+4128);
+	i8 v1689 = (i8)(intptr_t)(ws+4122);
+	*(i2*)(intptr_t)v1689 = v1688;
+
+	i8 v1690 = (i8)(intptr_t)(ws+4122);
+	i2 v1691 = *(i2*)(intptr_t)v1690;
+	i8 v1692 = (i8)(intptr_t)(ws+4080);
+	i8 v1693 = *(i8*)(intptr_t)v1692;
+	i8 v1694 = v1693+(+20);
+	*(i2*)(intptr_t)v1694 = v1691;
+
+	i8 v1695 = (i8)(intptr_t)(f115_I_b8);
+
+	((void(*)(void))(intptr_t)v1695)();
+
+	i1 v1696 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1697 = (i8)(intptr_t)(ws+4124);
+	*(i1*)(intptr_t)v1697 = v1696;
+
+	i8 v1698 = (i8)(intptr_t)(ws+4124);
+	i1 v1699 = *(i1*)(intptr_t)v1698;
+	i8 v1700 = (i8)(intptr_t)(ws+4080);
+	i8 v1701 = *(i8*)(intptr_t)v1700;
+	i8 v1702 = v1701+(+22);
+	*(i1*)(intptr_t)v1702 = v1699;
+
+	i8 v1703 = (i8)(intptr_t)(f115_I_b8);
+
+	((void(*)(void))(intptr_t)v1703)();
+
+	i1 v1704 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1705 = (i8)(intptr_t)(ws+4125);
+	*(i1*)(intptr_t)v1705 = v1704;
+
+	i8 v1706 = (i8)(intptr_t)(ws+4125);
+	i1 v1707 = *(i1*)(intptr_t)v1706;
+	i8 v1708 = (i8)(intptr_t)(ws+4080);
+	i8 v1709 = *(i8*)(intptr_t)v1708;
+	i8 v1710 = v1709+(+23);
+	*(i1*)(intptr_t)v1710 = v1707;
 
 }
 	void f116_I_b16(void);
+	void f116_I_b16(void);
+	void f116_I_b16(void);
+	void f115_I_b8(void);
 
-// ReadMid3 workspace at ws+4088 length ws+2
+// ReadMid3 workspace at ws+4088 length ws+7
 void f125_ReadMid3(void) {
 
-	i8 v1685 = (i8)(intptr_t)(f116_I_b16);
+	i8 v1711 = (i8)(intptr_t)(f116_I_b16);
 
-	((void(*)(void))(intptr_t)v1685)();
+	((void(*)(void))(intptr_t)v1711)();
 
-	i2 v1686 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1687 = (i8)(intptr_t)(ws+4088);
-	*(i2*)(intptr_t)v1687 = v1686;
+	i2 v1712 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1713 = (i8)(intptr_t)(ws+4088);
+	*(i2*)(intptr_t)v1713 = v1712;
 
-	i8 v1688 = (i8)(intptr_t)(ws+4088);
-	i2 v1689 = *(i2*)(intptr_t)v1688;
-	i8 v1690 = (i8)(intptr_t)(ws+4080);
-	i8 v1691 = *(i8*)(intptr_t)v1690;
-	*(i2*)(intptr_t)v1691 = v1689;
+	i8 v1714 = (i8)(intptr_t)(ws+4088);
+	i2 v1715 = *(i2*)(intptr_t)v1714;
+	i8 v1716 = (i8)(intptr_t)(ws+4080);
+	i8 v1717 = *(i8*)(intptr_t)v1716;
+	*(i2*)(intptr_t)v1717 = v1715;
+
+	i8 v1718 = (i8)(intptr_t)(f116_I_b16);
+
+	((void(*)(void))(intptr_t)v1718)();
+
+	i2 v1719 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1720 = (i8)(intptr_t)(ws+4090);
+	*(i2*)(intptr_t)v1720 = v1719;
+
+	i8 v1721 = (i8)(intptr_t)(ws+4090);
+	i2 v1722 = *(i2*)(intptr_t)v1721;
+	i8 v1723 = (i8)(intptr_t)(ws+4080);
+	i8 v1724 = *(i8*)(intptr_t)v1723;
+	i8 v1725 = v1724+(+2);
+	*(i2*)(intptr_t)v1725 = v1722;
+
+	i8 v1726 = (i8)(intptr_t)(f116_I_b16);
+
+	((void(*)(void))(intptr_t)v1726)();
+
+	i2 v1727 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1728 = (i8)(intptr_t)(ws+4092);
+	*(i2*)(intptr_t)v1728 = v1727;
+
+	i8 v1729 = (i8)(intptr_t)(ws+4092);
+	i2 v1730 = *(i2*)(intptr_t)v1729;
+	i8 v1731 = (i8)(intptr_t)(ws+4080);
+	i8 v1732 = *(i8*)(intptr_t)v1731;
+	i8 v1733 = v1732+(+4);
+	*(i2*)(intptr_t)v1733 = v1730;
+
+	i8 v1734 = (i8)(intptr_t)(f115_I_b8);
+
+	((void(*)(void))(intptr_t)v1734)();
+
+	i1 v1735 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1736 = (i8)(intptr_t)(ws+4094);
+	*(i1*)(intptr_t)v1736 = v1735;
+
+	i8 v1737 = (i8)(intptr_t)(ws+4094);
+	i1 v1738 = *(i1*)(intptr_t)v1737;
+	i8 v1739 = (i8)(intptr_t)(ws+4080);
+	i8 v1740 = *(i8*)(intptr_t)v1739;
+	i8 v1741 = v1740+(+6);
+	*(i1*)(intptr_t)v1741 = v1738;
 
 }
 	void f115_I_b8(void);
@@ -3900,195 +4010,75 @@ void f125_ReadMid3(void) {
 // ReadMid4 workspace at ws+4088 length ws+1
 void f126_ReadMid4(void) {
 
-	i8 v1692 = (i8)(intptr_t)(f115_I_b8);
+	i8 v1742 = (i8)(intptr_t)(f115_I_b8);
 
-	((void(*)(void))(intptr_t)v1692)();
+	((void(*)(void))(intptr_t)v1742)();
 
-	i1 v1693 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1694 = (i8)(intptr_t)(ws+4088);
-	*(i1*)(intptr_t)v1694 = v1693;
+	i1 v1743 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1744 = (i8)(intptr_t)(ws+4088);
+	*(i1*)(intptr_t)v1744 = v1743;
 
-	i8 v1695 = (i8)(intptr_t)(ws+4088);
-	i1 v1696 = *(i1*)(intptr_t)v1695;
-	i8 v1697 = (i8)(intptr_t)(ws+4080);
-	i8 v1698 = *(i8*)(intptr_t)v1697;
-	*(i1*)(intptr_t)v1698 = v1696;
+	i8 v1745 = (i8)(intptr_t)(ws+4088);
+	i1 v1746 = *(i1*)(intptr_t)v1745;
+	i8 v1747 = (i8)(intptr_t)(ws+4080);
+	i8 v1748 = *(i8*)(intptr_t)v1747;
+	*(i1*)(intptr_t)v1748 = v1746;
 
 }
+	void f117_I_b32(void);
 	void f116_I_b16(void);
-	void f65_FindSubr(void);
-	void f115_I_b8(void);
-	void f118_I_bsize(void);
-	void f115_I_b8(void);
-	void f118_I_bsize(void);
 
-// ReadMid5 workspace at ws+4088 length ws+24
+// ReadMid5 workspace at ws+4088 length ws+6
 void f127_ReadMid5(void) {
 
-	i8 v1699 = (i8)(intptr_t)(f116_I_b16);
+	i8 v1749 = (i8)(intptr_t)(f117_I_b32);
 
-	((void(*)(void))(intptr_t)v1699)();
+	((void(*)(void))(intptr_t)v1749)();
 
-	i2 v1700 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1701 = (i8)(intptr_t)(ws+4088);
-	*(i2*)(intptr_t)v1701 = v1700;
+	i4 v1750 = *(i4*)(intptr_t)(ws+4096);
+	i8 v1751 = (i8)(intptr_t)(ws+4088);
+	*(i4*)(intptr_t)v1751 = v1750;
 
-	i8 v1702 = (i8)(intptr_t)(ws+4088);
-	i2 v1703 = *(i2*)(intptr_t)v1702;
-	*(i2*)(intptr_t)(ws+4256) = v1703;
-	i8 v1704 = (i8)(intptr_t)(f65_FindSubr);
+	i8 v1752 = (i8)(intptr_t)(ws+4088);
+	i4 v1753 = *(i4*)(intptr_t)v1752;
+	i8 v1754 = (i8)(intptr_t)(ws+4080);
+	i8 v1755 = *(i8*)(intptr_t)v1754;
+	*(i4*)(intptr_t)v1755 = v1753;
 
-	((void(*)(void))(intptr_t)v1704)();
+	i8 v1756 = (i8)(intptr_t)(f116_I_b16);
 
-	i8 v1705 = *(i8*)(intptr_t)(ws+4264);
-	i8 v1706 = (i8)(intptr_t)(ws+4096);
-	*(i8*)(intptr_t)v1706 = v1705;
+	((void(*)(void))(intptr_t)v1756)();
 
-	i8 v1707 = (i8)(intptr_t)(ws+4096);
-	i8 v1708 = *(i8*)(intptr_t)v1707;
-	i8 v1709 = (i8)(intptr_t)(ws+4080);
-	i8 v1710 = *(i8*)(intptr_t)v1709;
-	*(i8*)(intptr_t)v1710 = v1708;
+	i2 v1757 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1758 = (i8)(intptr_t)(ws+4092);
+	*(i2*)(intptr_t)v1758 = v1757;
 
-	i8 v1711 = (i8)(intptr_t)(f115_I_b8);
-
-	((void(*)(void))(intptr_t)v1711)();
-
-	i1 v1712 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1713 = (i8)(intptr_t)(ws+4104);
-	*(i1*)(intptr_t)v1713 = v1712;
-
-	i8 v1714 = (i8)(intptr_t)(ws+4104);
-	i1 v1715 = *(i1*)(intptr_t)v1714;
-	i8 v1716 = (i8)(intptr_t)(ws+4080);
-	i8 v1717 = *(i8*)(intptr_t)v1716;
-	i8 v1718 = v1717+(+10);
-	*(i1*)(intptr_t)v1718 = v1715;
-
-	i8 v1719 = (i8)(intptr_t)(f118_I_bsize);
-
-	((void(*)(void))(intptr_t)v1719)();
-
-	i2 v1720 = *(i2*)(intptr_t)(ws+4128);
-	i8 v1721 = (i8)(intptr_t)(ws+4106);
-	*(i2*)(intptr_t)v1721 = v1720;
-
-	i8 v1722 = (i8)(intptr_t)(ws+4106);
-	i2 v1723 = *(i2*)(intptr_t)v1722;
-	i8 v1724 = (i8)(intptr_t)(ws+4080);
-	i8 v1725 = *(i8*)(intptr_t)v1724;
-	i8 v1726 = v1725+(+12);
-	*(i2*)(intptr_t)v1726 = v1723;
-
-	i8 v1727 = (i8)(intptr_t)(f115_I_b8);
-
-	((void(*)(void))(intptr_t)v1727)();
-
-	i1 v1728 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1729 = (i8)(intptr_t)(ws+4108);
-	*(i1*)(intptr_t)v1729 = v1728;
-
-	i8 v1730 = (i8)(intptr_t)(ws+4108);
-	i1 v1731 = *(i1*)(intptr_t)v1730;
-	i8 v1732 = (i8)(intptr_t)(ws+4080);
-	i8 v1733 = *(i8*)(intptr_t)v1732;
-	i8 v1734 = v1733+(+14);
-	*(i1*)(intptr_t)v1734 = v1731;
-
-	i8 v1735 = (i8)(intptr_t)(f118_I_bsize);
-
-	((void(*)(void))(intptr_t)v1735)();
-
-	i2 v1736 = *(i2*)(intptr_t)(ws+4128);
-	i8 v1737 = (i8)(intptr_t)(ws+4110);
-	*(i2*)(intptr_t)v1737 = v1736;
-
-	i8 v1738 = (i8)(intptr_t)(ws+4110);
-	i2 v1739 = *(i2*)(intptr_t)v1738;
-	i8 v1740 = (i8)(intptr_t)(ws+4080);
-	i8 v1741 = *(i8*)(intptr_t)v1740;
-	i8 v1742 = v1741+(+16);
-	*(i2*)(intptr_t)v1742 = v1739;
+	i8 v1759 = (i8)(intptr_t)(ws+4092);
+	i2 v1760 = *(i2*)(intptr_t)v1759;
+	i8 v1761 = (i8)(intptr_t)(ws+4080);
+	i8 v1762 = *(i8*)(intptr_t)v1761;
+	i8 v1763 = v1762+(+4);
+	*(i2*)(intptr_t)v1763 = v1760;
 
 }
 	void f116_I_b16(void);
-	void f65_FindSubr(void);
-	void f115_I_b8(void);
-	void f118_I_bsize(void);
-	void f115_I_b8(void);
 
-// ReadMid6 workspace at ws+4088 length ws+21
+// ReadMid6 workspace at ws+4088 length ws+2
 void f128_ReadMid6(void) {
 
-	i8 v1743 = (i8)(intptr_t)(f116_I_b16);
+	i8 v1764 = (i8)(intptr_t)(f116_I_b16);
 
-	((void(*)(void))(intptr_t)v1743)();
+	((void(*)(void))(intptr_t)v1764)();
 
-	i2 v1744 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1745 = (i8)(intptr_t)(ws+4088);
-	*(i2*)(intptr_t)v1745 = v1744;
+	i2 v1765 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1766 = (i8)(intptr_t)(ws+4088);
+	*(i2*)(intptr_t)v1766 = v1765;
 
-	i8 v1746 = (i8)(intptr_t)(ws+4088);
-	i2 v1747 = *(i2*)(intptr_t)v1746;
-	*(i2*)(intptr_t)(ws+4256) = v1747;
-	i8 v1748 = (i8)(intptr_t)(f65_FindSubr);
-
-	((void(*)(void))(intptr_t)v1748)();
-
-	i8 v1749 = *(i8*)(intptr_t)(ws+4264);
-	i8 v1750 = (i8)(intptr_t)(ws+4096);
-	*(i8*)(intptr_t)v1750 = v1749;
-
-	i8 v1751 = (i8)(intptr_t)(ws+4096);
-	i8 v1752 = *(i8*)(intptr_t)v1751;
-	i8 v1753 = (i8)(intptr_t)(ws+4080);
-	i8 v1754 = *(i8*)(intptr_t)v1753;
-	*(i8*)(intptr_t)v1754 = v1752;
-
-	i8 v1755 = (i8)(intptr_t)(f115_I_b8);
-
-	((void(*)(void))(intptr_t)v1755)();
-
-	i1 v1756 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1757 = (i8)(intptr_t)(ws+4104);
-	*(i1*)(intptr_t)v1757 = v1756;
-
-	i8 v1758 = (i8)(intptr_t)(ws+4104);
-	i1 v1759 = *(i1*)(intptr_t)v1758;
-	i8 v1760 = (i8)(intptr_t)(ws+4080);
-	i8 v1761 = *(i8*)(intptr_t)v1760;
-	i8 v1762 = v1761+(+10);
-	*(i1*)(intptr_t)v1762 = v1759;
-
-	i8 v1763 = (i8)(intptr_t)(f118_I_bsize);
-
-	((void(*)(void))(intptr_t)v1763)();
-
-	i2 v1764 = *(i2*)(intptr_t)(ws+4128);
-	i8 v1765 = (i8)(intptr_t)(ws+4106);
-	*(i2*)(intptr_t)v1765 = v1764;
-
-	i8 v1766 = (i8)(intptr_t)(ws+4106);
-	i2 v1767 = *(i2*)(intptr_t)v1766;
-	i8 v1768 = (i8)(intptr_t)(ws+4080);
-	i8 v1769 = *(i8*)(intptr_t)v1768;
-	i8 v1770 = v1769+(+12);
-	*(i2*)(intptr_t)v1770 = v1767;
-
-	i8 v1771 = (i8)(intptr_t)(f115_I_b8);
-
-	((void(*)(void))(intptr_t)v1771)();
-
-	i1 v1772 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1773 = (i8)(intptr_t)(ws+4108);
-	*(i1*)(intptr_t)v1773 = v1772;
-
-	i8 v1774 = (i8)(intptr_t)(ws+4108);
-	i1 v1775 = *(i1*)(intptr_t)v1774;
-	i8 v1776 = (i8)(intptr_t)(ws+4080);
-	i8 v1777 = *(i8*)(intptr_t)v1776;
-	i8 v1778 = v1777+(+14);
-	*(i1*)(intptr_t)v1778 = v1775;
+	i8 v1767 = (i8)(intptr_t)(ws+4088);
+	i2 v1768 = *(i2*)(intptr_t)v1767;
+	i8 v1769 = (i8)(intptr_t)(ws+4080);
+	i8 v1770 = *(i8*)(intptr_t)v1769;
+	*(i2*)(intptr_t)v1770 = v1768;
 
 }
 	void f119_I_countedstring(void);
@@ -4096,143 +4086,99 @@ void f128_ReadMid6(void) {
 // ReadMid7 workspace at ws+4088 length ws+8
 void f129_ReadMid7(void) {
 
-	i8 v1779 = (i8)(intptr_t)(f119_I_countedstring);
+	i8 v1771 = (i8)(intptr_t)(f119_I_countedstring);
 
-	((void(*)(void))(intptr_t)v1779)();
+	((void(*)(void))(intptr_t)v1771)();
 
-	i8 v1780 = *(i8*)(intptr_t)(ws+4112);
-	i8 v1781 = (i8)(intptr_t)(ws+4088);
-	*(i8*)(intptr_t)v1781 = v1780;
+	i8 v1772 = *(i8*)(intptr_t)(ws+4112);
+	i8 v1773 = (i8)(intptr_t)(ws+4088);
+	*(i8*)(intptr_t)v1773 = v1772;
 
-	i8 v1782 = (i8)(intptr_t)(ws+4088);
-	i8 v1783 = *(i8*)(intptr_t)v1782;
-	i8 v1784 = (i8)(intptr_t)(ws+4080);
-	i8 v1785 = *(i8*)(intptr_t)v1784;
-	*(i8*)(intptr_t)v1785 = v1783;
+	i8 v1774 = (i8)(intptr_t)(ws+4088);
+	i8 v1775 = *(i8*)(intptr_t)v1774;
+	i8 v1776 = (i8)(intptr_t)(ws+4080);
+	i8 v1777 = *(i8*)(intptr_t)v1776;
+	*(i8*)(intptr_t)v1777 = v1775;
 
 }
-	void f116_I_b16(void);
-	void f65_FindSubr(void);
 	void f116_I_b16(void);
 	void f65_FindSubr(void);
 	void f115_I_b8(void);
 	void f118_I_bsize(void);
 	void f115_I_b8(void);
-	void f115_I_b8(void);
 
-// ReadMid8 workspace at ws+4088 length ws+38
+// ReadMid8 workspace at ws+4088 length ws+21
 void f130_ReadMid8(void) {
 
-	i8 v1786 = (i8)(intptr_t)(f116_I_b16);
+	i8 v1778 = (i8)(intptr_t)(f116_I_b16);
 
-	((void(*)(void))(intptr_t)v1786)();
+	((void(*)(void))(intptr_t)v1778)();
 
-	i2 v1787 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1788 = (i8)(intptr_t)(ws+4088);
-	*(i2*)(intptr_t)v1788 = v1787;
+	i2 v1779 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1780 = (i8)(intptr_t)(ws+4088);
+	*(i2*)(intptr_t)v1780 = v1779;
 
-	i8 v1789 = (i8)(intptr_t)(ws+4088);
-	i2 v1790 = *(i2*)(intptr_t)v1789;
-	*(i2*)(intptr_t)(ws+4256) = v1790;
-	i8 v1791 = (i8)(intptr_t)(f65_FindSubr);
+	i8 v1781 = (i8)(intptr_t)(ws+4088);
+	i2 v1782 = *(i2*)(intptr_t)v1781;
+	*(i2*)(intptr_t)(ws+4256) = v1782;
+	i8 v1783 = (i8)(intptr_t)(f65_FindSubr);
 
-	((void(*)(void))(intptr_t)v1791)();
+	((void(*)(void))(intptr_t)v1783)();
 
-	i8 v1792 = *(i8*)(intptr_t)(ws+4264);
-	i8 v1793 = (i8)(intptr_t)(ws+4096);
-	*(i8*)(intptr_t)v1793 = v1792;
+	i8 v1784 = *(i8*)(intptr_t)(ws+4264);
+	i8 v1785 = (i8)(intptr_t)(ws+4096);
+	*(i8*)(intptr_t)v1785 = v1784;
 
-	i8 v1794 = (i8)(intptr_t)(ws+4096);
-	i8 v1795 = *(i8*)(intptr_t)v1794;
-	i8 v1796 = (i8)(intptr_t)(ws+4080);
-	i8 v1797 = *(i8*)(intptr_t)v1796;
-	*(i8*)(intptr_t)v1797 = v1795;
+	i8 v1786 = (i8)(intptr_t)(ws+4096);
+	i8 v1787 = *(i8*)(intptr_t)v1786;
+	i8 v1788 = (i8)(intptr_t)(ws+4080);
+	i8 v1789 = *(i8*)(intptr_t)v1788;
+	*(i8*)(intptr_t)v1789 = v1787;
 
-	i8 v1798 = (i8)(intptr_t)(f116_I_b16);
+	i8 v1790 = (i8)(intptr_t)(f115_I_b8);
+
+	((void(*)(void))(intptr_t)v1790)();
+
+	i1 v1791 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1792 = (i8)(intptr_t)(ws+4104);
+	*(i1*)(intptr_t)v1792 = v1791;
+
+	i8 v1793 = (i8)(intptr_t)(ws+4104);
+	i1 v1794 = *(i1*)(intptr_t)v1793;
+	i8 v1795 = (i8)(intptr_t)(ws+4080);
+	i8 v1796 = *(i8*)(intptr_t)v1795;
+	i8 v1797 = v1796+(+10);
+	*(i1*)(intptr_t)v1797 = v1794;
+
+	i8 v1798 = (i8)(intptr_t)(f118_I_bsize);
 
 	((void(*)(void))(intptr_t)v1798)();
 
-	i2 v1799 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1800 = (i8)(intptr_t)(ws+4104);
+	i2 v1799 = *(i2*)(intptr_t)(ws+4128);
+	i8 v1800 = (i8)(intptr_t)(ws+4106);
 	*(i2*)(intptr_t)v1800 = v1799;
 
-	i8 v1801 = (i8)(intptr_t)(ws+4104);
+	i8 v1801 = (i8)(intptr_t)(ws+4106);
 	i2 v1802 = *(i2*)(intptr_t)v1801;
-	*(i2*)(intptr_t)(ws+4256) = v1802;
-	i8 v1803 = (i8)(intptr_t)(f65_FindSubr);
+	i8 v1803 = (i8)(intptr_t)(ws+4080);
+	i8 v1804 = *(i8*)(intptr_t)v1803;
+	i8 v1805 = v1804+(+12);
+	*(i2*)(intptr_t)v1805 = v1802;
 
-	((void(*)(void))(intptr_t)v1803)();
+	i8 v1806 = (i8)(intptr_t)(f115_I_b8);
 
-	i8 v1804 = *(i8*)(intptr_t)(ws+4264);
-	i8 v1805 = (i8)(intptr_t)(ws+4112);
-	*(i8*)(intptr_t)v1805 = v1804;
+	((void(*)(void))(intptr_t)v1806)();
 
-	i8 v1806 = (i8)(intptr_t)(ws+4112);
-	i8 v1807 = *(i8*)(intptr_t)v1806;
-	i8 v1808 = (i8)(intptr_t)(ws+4080);
-	i8 v1809 = *(i8*)(intptr_t)v1808;
-	i8 v1810 = v1809+(+8);
-	*(i8*)(intptr_t)v1810 = v1807;
+	i1 v1807 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1808 = (i8)(intptr_t)(ws+4108);
+	*(i1*)(intptr_t)v1808 = v1807;
 
-	i8 v1811 = (i8)(intptr_t)(f115_I_b8);
-
-	((void(*)(void))(intptr_t)v1811)();
-
-	i1 v1812 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1813 = (i8)(intptr_t)(ws+4120);
-	*(i1*)(intptr_t)v1813 = v1812;
-
-	i8 v1814 = (i8)(intptr_t)(ws+4120);
-	i1 v1815 = *(i1*)(intptr_t)v1814;
-	i8 v1816 = (i8)(intptr_t)(ws+4080);
-	i8 v1817 = *(i8*)(intptr_t)v1816;
-	i8 v1818 = v1817+(+18);
-	*(i1*)(intptr_t)v1818 = v1815;
-
-	i8 v1819 = (i8)(intptr_t)(f118_I_bsize);
-
-	((void(*)(void))(intptr_t)v1819)();
-
-	i2 v1820 = *(i2*)(intptr_t)(ws+4128);
-	i8 v1821 = (i8)(intptr_t)(ws+4122);
-	*(i2*)(intptr_t)v1821 = v1820;
-
-	i8 v1822 = (i8)(intptr_t)(ws+4122);
-	i2 v1823 = *(i2*)(intptr_t)v1822;
-	i8 v1824 = (i8)(intptr_t)(ws+4080);
-	i8 v1825 = *(i8*)(intptr_t)v1824;
-	i8 v1826 = v1825+(+20);
-	*(i2*)(intptr_t)v1826 = v1823;
-
-	i8 v1827 = (i8)(intptr_t)(f115_I_b8);
-
-	((void(*)(void))(intptr_t)v1827)();
-
-	i1 v1828 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1829 = (i8)(intptr_t)(ws+4124);
-	*(i1*)(intptr_t)v1829 = v1828;
-
-	i8 v1830 = (i8)(intptr_t)(ws+4124);
-	i1 v1831 = *(i1*)(intptr_t)v1830;
-	i8 v1832 = (i8)(intptr_t)(ws+4080);
-	i8 v1833 = *(i8*)(intptr_t)v1832;
-	i8 v1834 = v1833+(+22);
-	*(i1*)(intptr_t)v1834 = v1831;
-
-	i8 v1835 = (i8)(intptr_t)(f115_I_b8);
-
-	((void(*)(void))(intptr_t)v1835)();
-
-	i1 v1836 = *(i1*)(intptr_t)(ws+4152);
-	i8 v1837 = (i8)(intptr_t)(ws+4125);
-	*(i1*)(intptr_t)v1837 = v1836;
-
-	i8 v1838 = (i8)(intptr_t)(ws+4125);
-	i1 v1839 = *(i1*)(intptr_t)v1838;
-	i8 v1840 = (i8)(intptr_t)(ws+4080);
-	i8 v1841 = *(i8*)(intptr_t)v1840;
-	i8 v1842 = v1841+(+23);
-	*(i1*)(intptr_t)v1842 = v1839;
+	i8 v1809 = (i8)(intptr_t)(ws+4108);
+	i1 v1810 = *(i1*)(intptr_t)v1809;
+	i8 v1811 = (i8)(intptr_t)(ws+4080);
+	i8 v1812 = *(i8*)(intptr_t)v1811;
+	i8 v1813 = v1812+(+14);
+	*(i1*)(intptr_t)v1813 = v1810;
 
 }
 	void f116_I_b16(void);
@@ -4241,65 +4187,125 @@ void f130_ReadMid8(void) {
 // ReadMid9 workspace at ws+4088 length ws+16
 void f131_ReadMid9(void) {
 
-	i8 v1843 = (i8)(intptr_t)(f116_I_b16);
+	i8 v1814 = (i8)(intptr_t)(f116_I_b16);
 
-	((void(*)(void))(intptr_t)v1843)();
+	((void(*)(void))(intptr_t)v1814)();
 
-	i2 v1844 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1845 = (i8)(intptr_t)(ws+4088);
-	*(i2*)(intptr_t)v1845 = v1844;
+	i2 v1815 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1816 = (i8)(intptr_t)(ws+4088);
+	*(i2*)(intptr_t)v1816 = v1815;
 
-	i8 v1846 = (i8)(intptr_t)(ws+4088);
-	i2 v1847 = *(i2*)(intptr_t)v1846;
-	*(i2*)(intptr_t)(ws+4256) = v1847;
-	i8 v1848 = (i8)(intptr_t)(f65_FindSubr);
+	i8 v1817 = (i8)(intptr_t)(ws+4088);
+	i2 v1818 = *(i2*)(intptr_t)v1817;
+	*(i2*)(intptr_t)(ws+4256) = v1818;
+	i8 v1819 = (i8)(intptr_t)(f65_FindSubr);
 
-	((void(*)(void))(intptr_t)v1848)();
+	((void(*)(void))(intptr_t)v1819)();
 
-	i8 v1849 = *(i8*)(intptr_t)(ws+4264);
-	i8 v1850 = (i8)(intptr_t)(ws+4096);
-	*(i8*)(intptr_t)v1850 = v1849;
+	i8 v1820 = *(i8*)(intptr_t)(ws+4264);
+	i8 v1821 = (i8)(intptr_t)(ws+4096);
+	*(i8*)(intptr_t)v1821 = v1820;
 
-	i8 v1851 = (i8)(intptr_t)(ws+4096);
-	i8 v1852 = *(i8*)(intptr_t)v1851;
-	i8 v1853 = (i8)(intptr_t)(ws+4080);
-	i8 v1854 = *(i8*)(intptr_t)v1853;
-	*(i8*)(intptr_t)v1854 = v1852;
+	i8 v1822 = (i8)(intptr_t)(ws+4096);
+	i8 v1823 = *(i8*)(intptr_t)v1822;
+	i8 v1824 = (i8)(intptr_t)(ws+4080);
+	i8 v1825 = *(i8*)(intptr_t)v1824;
+	*(i8*)(intptr_t)v1825 = v1823;
 
 }
-	void f117_I_b32(void);
 	void f116_I_b16(void);
+	void f65_FindSubr(void);
+	void f115_I_b8(void);
+	void f118_I_bsize(void);
+	void f115_I_b8(void);
+	void f118_I_bsize(void);
 
-// ReadMid10 workspace at ws+4088 length ws+6
+// ReadMid10 workspace at ws+4088 length ws+24
 void f132_ReadMid10(void) {
 
-	i8 v1855 = (i8)(intptr_t)(f117_I_b32);
+	i8 v1826 = (i8)(intptr_t)(f116_I_b16);
 
-	((void(*)(void))(intptr_t)v1855)();
+	((void(*)(void))(intptr_t)v1826)();
 
-	i4 v1856 = *(i4*)(intptr_t)(ws+4096);
-	i8 v1857 = (i8)(intptr_t)(ws+4088);
-	*(i4*)(intptr_t)v1857 = v1856;
+	i2 v1827 = *(i2*)(intptr_t)(ws+4136);
+	i8 v1828 = (i8)(intptr_t)(ws+4088);
+	*(i2*)(intptr_t)v1828 = v1827;
 
-	i8 v1858 = (i8)(intptr_t)(ws+4088);
-	i4 v1859 = *(i4*)(intptr_t)v1858;
-	i8 v1860 = (i8)(intptr_t)(ws+4080);
-	i8 v1861 = *(i8*)(intptr_t)v1860;
-	*(i4*)(intptr_t)v1861 = v1859;
+	i8 v1829 = (i8)(intptr_t)(ws+4088);
+	i2 v1830 = *(i2*)(intptr_t)v1829;
+	*(i2*)(intptr_t)(ws+4256) = v1830;
+	i8 v1831 = (i8)(intptr_t)(f65_FindSubr);
 
-	i8 v1862 = (i8)(intptr_t)(f116_I_b16);
+	((void(*)(void))(intptr_t)v1831)();
+
+	i8 v1832 = *(i8*)(intptr_t)(ws+4264);
+	i8 v1833 = (i8)(intptr_t)(ws+4096);
+	*(i8*)(intptr_t)v1833 = v1832;
+
+	i8 v1834 = (i8)(intptr_t)(ws+4096);
+	i8 v1835 = *(i8*)(intptr_t)v1834;
+	i8 v1836 = (i8)(intptr_t)(ws+4080);
+	i8 v1837 = *(i8*)(intptr_t)v1836;
+	*(i8*)(intptr_t)v1837 = v1835;
+
+	i8 v1838 = (i8)(intptr_t)(f115_I_b8);
+
+	((void(*)(void))(intptr_t)v1838)();
+
+	i1 v1839 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1840 = (i8)(intptr_t)(ws+4104);
+	*(i1*)(intptr_t)v1840 = v1839;
+
+	i8 v1841 = (i8)(intptr_t)(ws+4104);
+	i1 v1842 = *(i1*)(intptr_t)v1841;
+	i8 v1843 = (i8)(intptr_t)(ws+4080);
+	i8 v1844 = *(i8*)(intptr_t)v1843;
+	i8 v1845 = v1844+(+10);
+	*(i1*)(intptr_t)v1845 = v1842;
+
+	i8 v1846 = (i8)(intptr_t)(f118_I_bsize);
+
+	((void(*)(void))(intptr_t)v1846)();
+
+	i2 v1847 = *(i2*)(intptr_t)(ws+4128);
+	i8 v1848 = (i8)(intptr_t)(ws+4106);
+	*(i2*)(intptr_t)v1848 = v1847;
+
+	i8 v1849 = (i8)(intptr_t)(ws+4106);
+	i2 v1850 = *(i2*)(intptr_t)v1849;
+	i8 v1851 = (i8)(intptr_t)(ws+4080);
+	i8 v1852 = *(i8*)(intptr_t)v1851;
+	i8 v1853 = v1852+(+12);
+	*(i2*)(intptr_t)v1853 = v1850;
+
+	i8 v1854 = (i8)(intptr_t)(f115_I_b8);
+
+	((void(*)(void))(intptr_t)v1854)();
+
+	i1 v1855 = *(i1*)(intptr_t)(ws+4152);
+	i8 v1856 = (i8)(intptr_t)(ws+4108);
+	*(i1*)(intptr_t)v1856 = v1855;
+
+	i8 v1857 = (i8)(intptr_t)(ws+4108);
+	i1 v1858 = *(i1*)(intptr_t)v1857;
+	i8 v1859 = (i8)(intptr_t)(ws+4080);
+	i8 v1860 = *(i8*)(intptr_t)v1859;
+	i8 v1861 = v1860+(+14);
+	*(i1*)(intptr_t)v1861 = v1858;
+
+	i8 v1862 = (i8)(intptr_t)(f118_I_bsize);
 
 	((void(*)(void))(intptr_t)v1862)();
 
-	i2 v1863 = *(i2*)(intptr_t)(ws+4136);
-	i8 v1864 = (i8)(intptr_t)(ws+4092);
+	i2 v1863 = *(i2*)(intptr_t)(ws+4128);
+	i8 v1864 = (i8)(intptr_t)(ws+4110);
 	*(i2*)(intptr_t)v1864 = v1863;
 
-	i8 v1865 = (i8)(intptr_t)(ws+4092);
+	i8 v1865 = (i8)(intptr_t)(ws+4110);
 	i2 v1866 = *(i2*)(intptr_t)v1865;
 	i8 v1867 = (i8)(intptr_t)(ws+4080);
 	i8 v1868 = *(i8*)(intptr_t)v1867;
-	i8 v1869 = v1868+(+4);
+	i8 v1869 = v1868+(+16);
 	*(i2*)(intptr_t)v1869 = v1866;
 
 }
@@ -4348,7 +4354,7 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x00,0x00,0x00,0x09,0x09,0x06,0x01,0x01}},
+	{ .i1 = { 0x00,0x00,0x00,0x09,0x09,0x08,0x01,0x01}},
 
 
 
@@ -4357,7 +4363,7 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x01,0x01,0x01,0x07,0x05,0x09,0x00,0x00}},
+	{ .i1 = { 0x01,0x01,0x01,0x07,0x0a,0x09,0x00,0x00}},
 
 
 
@@ -4366,7 +4372,7 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x00,0x00,0x07,0x06,0x09,0x01,0x00,0x00}},
+	{ .i1 = { 0x00,0x00,0x07,0x08,0x09,0x01,0x00,0x00}},
 
 
 
@@ -4375,34 +4381,7 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x00,0x03,0x03,0x00,0x09,0x08,0x08,0x08}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x01}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x07,0x05,0x09,0x00,0x00,0x00,0x00,0x00}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x00,0x00,0x00,0x00,0x00,0x02,0x02,0x02}},
+	{ .i1 = { 0x00,0x06,0x06,0x00,0x09,0x09,0x00,0x02}},
 
 
 
@@ -4420,7 +4399,7 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x02,0x02,0x02,0x02,0x02,0x02,0x00,0x00}},
+	{ .i1 = { 0x02,0x01,0x07,0x0a,0x09,0x00,0x00,0x00}},
 
 
 
@@ -4429,7 +4408,7 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x00,0x00,0x00,0x0a,0x0a,0x0a,0x0a,0x0a}},
+	{ .i1 = { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03}},
 
 
 
@@ -4438,7 +4417,34 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x00,0x00,0x00,0x00,0x00,0x04,0x04,0x04}},
+	{ .i1 = { 0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03}},
+
+
+
+
+
+
+
+
+	{ .i1 = { 0x03,0x03,0x03,0x03,0x03,0x03,0x03,0x03}},
+
+
+
+
+
+
+
+
+	{ .i1 = { 0x00,0x00,0x00,0x00,0x00,0x05,0x05,0x05}},
+
+
+
+
+
+
+
+
+	{ .i1 = { 0x05,0x05,0x00,0x00,0x00,0x00,0x00,0x04}},
 
 
 
@@ -4465,7 +4471,7 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00}},
+	{ .i1 = { 0x04,0x04,0x04,0x00,0x00,0x00,0x00,0x00}},
 
 
 
@@ -4543,7 +4549,9 @@ static data f3___main_s0170[] = {
 
 
 
-	{ .i1 = { 0x00,0x00,0x00,0x00}},
+
+
+	{ .i1 = { 0x00,0x00,0x00,0x00,0x00,0x00}},
 };
 static data f3___main_s0171[] = {
 
@@ -4581,7 +4589,7 @@ static data f3___main_s0171[] = {
 
 
 
-	{ .i1 = { 0x02,0x00,0x00,0x00,0x02,0x02,0x02,0x02}},
+	{ .i1 = { 0x02,0x00,0x00,0x00,0x02,0x02,0x00,0x02}},
 
 
 
@@ -4590,52 +4598,7 @@ static data f3___main_s0171[] = {
 
 
 
-	{ .i1 = { 0x02,0x02,0x00,0x00,0x00,0x00,0x00,0x00}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x00,0x00,0x00,0x01,0x01,0x01,0x01,0x01}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x02,0x02,0x02,0x02,0x02,0x02,0x02,0x02}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x02,0x02,0x02,0x02,0x02,0x02,0x02,0x02}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x02,0x02,0x02,0x02,0x02,0x02,0x01,0x01}},
-
-
-
-
-
-
-
-
-	{ .i1 = { 0x01,0x01,0x01,0x00,0x00,0x00,0x00,0x00}},
+	{ .i1 = { 0x02,0x02,0x02,0x02,0x00,0x00,0x00,0x00}},
 
 
 
@@ -4653,6 +4616,51 @@ static data f3___main_s0171[] = {
 
 
 
+	{ .i1 = { 0x01,0x01,0x02,0x02,0x02,0x02,0x02,0x02}},
+
+
+
+
+
+
+
+
+	{ .i1 = { 0x02,0x02,0x02,0x02,0x02,0x02,0x02,0x02}},
+
+
+
+
+
+
+
+
+	{ .i1 = { 0x02,0x02,0x02,0x02,0x02,0x02,0x02,0x02}},
+
+
+
+
+
+
+
+
+	{ .i1 = { 0x01,0x01,0x01,0x01,0x01,0x00,0x00,0x00}},
+
+
+
+
+
+
+
+
+	{ .i1 = { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x01}},
+
+
+
+
+
+
+
+
 	{ .i1 = { 0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01}},
 
 
@@ -4680,7 +4688,7 @@ static data f3___main_s0171[] = {
 
 
 
-	{ .i1 = { 0x01,0x01,0x01,0x02,0x02,0x02,0x02,0x02}},
+	{ .i1 = { 0x01,0x01,0x01,0x01,0x01,0x02,0x02,0x02}},
 
 
 
@@ -4749,7 +4757,9 @@ static data f3___main_s0171[] = {
 
 
 
-	{ .i1 = { 0x02,0x02,0x02,0x02}},
+
+
+	{ .i1 = { 0x02,0x02,0x02,0x02,0x02,0x02}},
 };
 	void f23_MemZero(void);
 	void f23_MemZero(void);
@@ -5045,10 +5055,10 @@ c02_0237:;
 
 }
 	void f106_EmitterOpenStream(void);
-const i1 c02_s00c2[] = { 0x09,0x76,0x6f,0x69,0x64,0x20,0 };
+const i1 c02_s00c4[] = { 0x09,0x76,0x6f,0x69,0x64,0x20,0 };
 	void f92_E(void);
 	void f104_E_subref(void);
-const i1 c02_s00c3[] = { 0x28,0x76,0x6f,0x69,0x64,0x29,0x3b,0x0a,0 };
+const i1 c02_s00c5[] = { 0x28,0x76,0x6f,0x69,0x64,0x29,0x3b,0x0a,0 };
 	void f92_E(void);
 	void f107_EmitterCloseStream(void);
 	void f104_E_subref(void);
@@ -5063,7 +5073,7 @@ void f155_E_subref_sig(void) {
 
 	((void(*)(void))(intptr_t)v2495)();
 
-	i8 v2496 = (i8)(intptr_t)c02_s00c2;
+	i8 v2496 = (i8)(intptr_t)c02_s00c4;
 	*(i8*)(intptr_t)(ws+4320) = v2496;
 	i8 v2497 = (i8)(intptr_t)(f92_E);
 
@@ -5076,7 +5086,7 @@ void f155_E_subref_sig(void) {
 
 	((void(*)(void))(intptr_t)v2500)();
 
-	i8 v2501 = (i8)(intptr_t)c02_s00c3;
+	i8 v2501 = (i8)(intptr_t)c02_s00c5;
 	*(i8*)(intptr_t)(ws+4320) = v2501;
 	i8 v2502 = (i8)(intptr_t)(f92_E);
 
@@ -5094,7 +5104,7 @@ void f155_E_subref_sig(void) {
 	((void(*)(void))(intptr_t)v2506)();
 
 }
-const i1 c02_s00c4[] = { 0x28,0x69,0x31,0x2a,0x29,0 };
+const i1 c02_s00c6[] = { 0x28,0x69,0x31,0x2a,0x29,0 };
 	void f92_E(void);
 	void f105_E_wsref(void);
 	void f97_E_i16(void);
@@ -5112,7 +5122,7 @@ void f156_E_symref(void) {
 
 c02_0251:;
 
-	i8 v2512 = (i8)(intptr_t)c02_s00c4;
+	i8 v2512 = (i8)(intptr_t)c02_s00c6;
 	*(i8*)(intptr_t)(ws+4320) = v2512;
 	i8 v2513 = (i8)(intptr_t)(f92_E);
 
@@ -5201,7 +5211,7 @@ void f158_ArchEndGroup(void) {
 	((void(*)(void))(intptr_t)v2551)();
 
 }
-const i1 c02_s00c5[] = { 0x76,0x61,0x72,0x73,0x74,0x61,0x63,0x6b,0x20,0x6f,0x76,0x65,0x72,0x66,0x6c,0x6f,0x77,0 };
+const i1 c02_s00c7[] = { 0x76,0x61,0x72,0x73,0x74,0x61,0x63,0x6b,0x20,0x6f,0x76,0x65,0x72,0x66,0x6c,0x6f,0x77,0 };
 	void f68_SimpleError(void);
 
 // PushVid workspace at ws+4272 length ws+2
@@ -5214,7 +5224,7 @@ void f159_PushVid(void) {
 
 c02_025b:;
 
-	i8 v2555 = (i8)(intptr_t)c02_s00c5;
+	i8 v2555 = (i8)(intptr_t)c02_s00c7;
 	*(i8*)(intptr_t)(ws+4280) = v2555;
 	i8 v2556 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -5266,7 +5276,7 @@ void f160_Push(void) {
 	((void(*)(void))(intptr_t)v2579)();
 
 }
-const i1 c02_s00c6[] = { 0x76,0x61,0x72,0x73,0x74,0x61,0x63,0x6b,0x20,0x75,0x6e,0x64,0x65,0x72,0x66,0x6c,0x6f,0x77,0 };
+const i1 c02_s00c8[] = { 0x76,0x61,0x72,0x73,0x74,0x61,0x63,0x6b,0x20,0x75,0x6e,0x64,0x65,0x72,0x66,0x6c,0x6f,0x77,0 };
 	void f68_SimpleError(void);
 
 // CheckVarstackUnderflow workspace at ws+4272 length ws+0
@@ -5279,7 +5289,7 @@ void f161_CheckVarstackUnderflow(void) {
 
 c02_0260:;
 
-	i8 v2583 = (i8)(intptr_t)c02_s00c6;
+	i8 v2583 = (i8)(intptr_t)c02_s00c8;
 	*(i8*)(intptr_t)(ws+4280) = v2583;
 	i8 v2584 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -5324,10 +5334,10 @@ void f166_ArchEmitMove(void) {
 }
 	void f65_FindSubr(void);
 	void f162_Pop(void);
-const i1 c02_s00c8[] = { 0x0a,0x09,0x28,0x28,0x76,0x6f,0x69,0x64,0x28,0x2a,0x29,0x28,0x76,0x6f,0x69,0x64,0x29,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x76,0 };
+const i1 c02_s00ca[] = { 0x0a,0x09,0x28,0x28,0x76,0x6f,0x69,0x64,0x28,0x2a,0x29,0x28,0x76,0x6f,0x69,0x64,0x29,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00c9[] = { 0x29,0x28,0x29,0x3b,0x0a,0 };
+const i1 c02_s00cb[] = { 0x29,0x28,0x29,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Call workspace at ws+4224 length ws+28
@@ -5362,7 +5372,7 @@ void f167_Call(void) {
 	i8 v2626 = (i8)(intptr_t)(ws+4250);
 	*(i2*)(intptr_t)v2626 = v2625;
 
-	i8 v2627 = (i8)(intptr_t)c02_s00c8;
+	i8 v2627 = (i8)(intptr_t)c02_s00ca;
 	*(i8*)(intptr_t)(ws+4320) = v2627;
 	i8 v2628 = (i8)(intptr_t)(f92_E);
 
@@ -5375,7 +5385,7 @@ void f167_Call(void) {
 
 	((void(*)(void))(intptr_t)v2631)();
 
-	i8 v2632 = (i8)(intptr_t)c02_s00c9;
+	i8 v2632 = (i8)(intptr_t)c02_s00cb;
 	*(i8*)(intptr_t)(ws+4320) = v2632;
 	i8 v2633 = (i8)(intptr_t)(f92_E);
 
@@ -5383,16 +5393,16 @@ void f167_Call(void) {
 
 }
 	void f162_Pop(void);
-const i1 c02_s00ca[] = { 0x09,0x2a,0x28,0x69,0 };
+const i1 c02_s00cc[] = { 0x09,0x2a,0x28,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00cb[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
+const i1 c02_s00cd[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
 	void f92_E(void);
 	void f156_E_symref(void);
-const i1 c02_s00cc[] = { 0x29,0x20,0x3d,0x20,0x76,0 };
+const i1 c02_s00ce[] = { 0x29,0x20,0x3d,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00cd[] = { 0x3b,0x0a,0 };
+const i1 c02_s00cf[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // PokeArg workspace at ws+4224 length ws+20
@@ -5411,7 +5421,7 @@ void f168_PokeArg(void) {
 	i8 v2639 = (i8)(intptr_t)(ws+4242);
 	*(i2*)(intptr_t)v2639 = v2638;
 
-	i8 v2640 = (i8)(intptr_t)c02_s00ca;
+	i8 v2640 = (i8)(intptr_t)c02_s00cc;
 	*(i8*)(intptr_t)(ws+4320) = v2640;
 	i8 v2641 = (i8)(intptr_t)(f92_E);
 
@@ -5424,7 +5434,7 @@ void f168_PokeArg(void) {
 
 	((void(*)(void))(intptr_t)v2644)();
 
-	i8 v2645 = (i8)(intptr_t)c02_s00cb;
+	i8 v2645 = (i8)(intptr_t)c02_s00cd;
 	*(i8*)(intptr_t)(ws+4320) = v2645;
 	i8 v2646 = (i8)(intptr_t)(f92_E);
 
@@ -5439,7 +5449,7 @@ void f168_PokeArg(void) {
 
 	((void(*)(void))(intptr_t)v2650)();
 
-	i8 v2651 = (i8)(intptr_t)c02_s00cc;
+	i8 v2651 = (i8)(intptr_t)c02_s00ce;
 	*(i8*)(intptr_t)(ws+4320) = v2651;
 	i8 v2652 = (i8)(intptr_t)(f92_E);
 
@@ -5452,7 +5462,7 @@ void f168_PokeArg(void) {
 
 	((void(*)(void))(intptr_t)v2655)();
 
-	i8 v2656 = (i8)(intptr_t)c02_s00cd;
+	i8 v2656 = (i8)(intptr_t)c02_s00cf;
 	*(i8*)(intptr_t)(ws+4320) = v2656;
 	i8 v2657 = (i8)(intptr_t)(f92_E);
 
@@ -5460,19 +5470,19 @@ void f168_PokeArg(void) {
 
 }
 	void f160_Push(void);
-const i1 c02_s00ce[] = { 0x09,0x69,0 };
+const i1 c02_s00d0[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00cf[] = { 0x20,0x76,0 };
+const i1 c02_s00d1[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00d0[] = { 0x20,0x3d,0x20,0x2a,0x28,0x69,0 };
+const i1 c02_s00d2[] = { 0x20,0x3d,0x20,0x2a,0x28,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00d1[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
+const i1 c02_s00d3[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
 	void f92_E(void);
 	void f156_E_symref(void);
-const i1 c02_s00d2[] = { 0x29,0x3b,0x0a,0 };
+const i1 c02_s00d4[] = { 0x29,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // PeekArg workspace at ws+4224 length ws+20
@@ -5491,7 +5501,7 @@ void f169_PeekArg(void) {
 	i8 v2663 = (i8)(intptr_t)(ws+4242);
 	*(i2*)(intptr_t)v2663 = v2662;
 
-	i8 v2664 = (i8)(intptr_t)c02_s00ce;
+	i8 v2664 = (i8)(intptr_t)c02_s00d0;
 	*(i8*)(intptr_t)(ws+4320) = v2664;
 	i8 v2665 = (i8)(intptr_t)(f92_E);
 
@@ -5504,7 +5514,7 @@ void f169_PeekArg(void) {
 
 	((void(*)(void))(intptr_t)v2668)();
 
-	i8 v2669 = (i8)(intptr_t)c02_s00cf;
+	i8 v2669 = (i8)(intptr_t)c02_s00d1;
 	*(i8*)(intptr_t)(ws+4320) = v2669;
 	i8 v2670 = (i8)(intptr_t)(f92_E);
 
@@ -5517,7 +5527,7 @@ void f169_PeekArg(void) {
 
 	((void(*)(void))(intptr_t)v2673)();
 
-	i8 v2674 = (i8)(intptr_t)c02_s00d0;
+	i8 v2674 = (i8)(intptr_t)c02_s00d2;
 	*(i8*)(intptr_t)(ws+4320) = v2674;
 	i8 v2675 = (i8)(intptr_t)(f92_E);
 
@@ -5530,7 +5540,7 @@ void f169_PeekArg(void) {
 
 	((void(*)(void))(intptr_t)v2678)();
 
-	i8 v2679 = (i8)(intptr_t)c02_s00d1;
+	i8 v2679 = (i8)(intptr_t)c02_s00d3;
 	*(i8*)(intptr_t)(ws+4320) = v2679;
 	i8 v2680 = (i8)(intptr_t)(f92_E);
 
@@ -5545,7 +5555,7 @@ void f169_PeekArg(void) {
 
 	((void(*)(void))(intptr_t)v2684)();
 
-	i8 v2685 = (i8)(intptr_t)c02_s00d2;
+	i8 v2685 = (i8)(intptr_t)c02_s00d4;
 	*(i8*)(intptr_t)(ws+4320) = v2685;
 	i8 v2686 = (i8)(intptr_t)(f92_E);
 
@@ -5553,19 +5563,19 @@ void f169_PeekArg(void) {
 
 }
 	void f160_Push(void);
-const i1 c02_s00d3[] = { 0x09,0x69,0 };
+const i1 c02_s00d5[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00d4[] = { 0x20,0x76,0 };
+const i1 c02_s00d6[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00d5[] = { 0x20,0x3d,0x20,0x28,0x69,0 };
+const i1 c02_s00d7[] = { 0x20,0x3d,0x20,0x28,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00d6[] = { 0x29,0 };
+const i1 c02_s00d8[] = { 0x29,0 };
 	void f92_E(void);
 	void f98_E_i32(void);
-const i1 c02_s00d7[] = { 0x3b,0x0a,0 };
+const i1 c02_s00d9[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // LoadConstant workspace at ws+4224 length ws+12
@@ -5584,7 +5594,7 @@ void f170_LoadConstant(void) {
 	i8 v2692 = (i8)(intptr_t)(ws+4234);
 	*(i2*)(intptr_t)v2692 = v2691;
 
-	i8 v2693 = (i8)(intptr_t)c02_s00d3;
+	i8 v2693 = (i8)(intptr_t)c02_s00d5;
 	*(i8*)(intptr_t)(ws+4320) = v2693;
 	i8 v2694 = (i8)(intptr_t)(f92_E);
 
@@ -5597,7 +5607,7 @@ void f170_LoadConstant(void) {
 
 	((void(*)(void))(intptr_t)v2697)();
 
-	i8 v2698 = (i8)(intptr_t)c02_s00d4;
+	i8 v2698 = (i8)(intptr_t)c02_s00d6;
 	*(i8*)(intptr_t)(ws+4320) = v2698;
 	i8 v2699 = (i8)(intptr_t)(f92_E);
 
@@ -5610,7 +5620,7 @@ void f170_LoadConstant(void) {
 
 	((void(*)(void))(intptr_t)v2702)();
 
-	i8 v2703 = (i8)(intptr_t)c02_s00d5;
+	i8 v2703 = (i8)(intptr_t)c02_s00d7;
 	*(i8*)(intptr_t)(ws+4320) = v2703;
 	i8 v2704 = (i8)(intptr_t)(f92_E);
 
@@ -5623,7 +5633,7 @@ void f170_LoadConstant(void) {
 
 	((void(*)(void))(intptr_t)v2707)();
 
-	i8 v2708 = (i8)(intptr_t)c02_s00d6;
+	i8 v2708 = (i8)(intptr_t)c02_s00d8;
 	*(i8*)(intptr_t)(ws+4320) = v2708;
 	i8 v2709 = (i8)(intptr_t)(f92_E);
 
@@ -5636,7 +5646,7 @@ void f170_LoadConstant(void) {
 
 	((void(*)(void))(intptr_t)v2712)();
 
-	i8 v2713 = (i8)(intptr_t)c02_s00d7;
+	i8 v2713 = (i8)(intptr_t)c02_s00d9;
 	*(i8*)(intptr_t)(ws+4320) = v2713;
 	i8 v2714 = (i8)(intptr_t)(f92_E);
 
@@ -5645,16 +5655,16 @@ void f170_LoadConstant(void) {
 }
 	void f162_Pop(void);
 	void f162_Pop(void);
-const i1 c02_s00d8[] = { 0x09,0x2a,0x28,0x69,0 };
+const i1 c02_s00da[] = { 0x09,0x2a,0x28,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00d9[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x76,0 };
+const i1 c02_s00db[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00da[] = { 0x20,0x3d,0x20,0x76,0 };
+const i1 c02_s00dc[] = { 0x20,0x3d,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00db[] = { 0x3b,0x0a,0 };
+const i1 c02_s00dd[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // StoreVV workspace at ws+4224 length ws+10
@@ -5686,7 +5696,7 @@ void f171_StoreVV(void) {
 	i8 v2726 = (i8)(intptr_t)(ws+4232);
 	*(i2*)(intptr_t)v2726 = v2725;
 
-	i8 v2727 = (i8)(intptr_t)c02_s00d8;
+	i8 v2727 = (i8)(intptr_t)c02_s00da;
 	*(i8*)(intptr_t)(ws+4320) = v2727;
 	i8 v2728 = (i8)(intptr_t)(f92_E);
 
@@ -5699,7 +5709,7 @@ void f171_StoreVV(void) {
 
 	((void(*)(void))(intptr_t)v2731)();
 
-	i8 v2732 = (i8)(intptr_t)c02_s00d9;
+	i8 v2732 = (i8)(intptr_t)c02_s00db;
 	*(i8*)(intptr_t)(ws+4320) = v2732;
 	i8 v2733 = (i8)(intptr_t)(f92_E);
 
@@ -5712,7 +5722,7 @@ void f171_StoreVV(void) {
 
 	((void(*)(void))(intptr_t)v2736)();
 
-	i8 v2737 = (i8)(intptr_t)c02_s00da;
+	i8 v2737 = (i8)(intptr_t)c02_s00dc;
 	*(i8*)(intptr_t)(ws+4320) = v2737;
 	i8 v2738 = (i8)(intptr_t)(f92_E);
 
@@ -5725,7 +5735,7 @@ void f171_StoreVV(void) {
 
 	((void(*)(void))(intptr_t)v2741)();
 
-	i8 v2742 = (i8)(intptr_t)c02_s00db;
+	i8 v2742 = (i8)(intptr_t)c02_s00dd;
 	*(i8*)(intptr_t)(ws+4320) = v2742;
 	i8 v2743 = (i8)(intptr_t)(f92_E);
 
@@ -5734,19 +5744,19 @@ void f171_StoreVV(void) {
 }
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s00dc[] = { 0x09,0x69,0 };
+const i1 c02_s00de[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00dd[] = { 0x20,0x76,0 };
+const i1 c02_s00df[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00de[] = { 0x20,0x3d,0x20,0x2a,0x28,0x69,0 };
+const i1 c02_s00e0[] = { 0x20,0x3d,0x20,0x2a,0x28,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00df[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x76,0 };
+const i1 c02_s00e1[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00e0[] = { 0x3b,0x0a,0 };
+const i1 c02_s00e2[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // LoadVV workspace at ws+4224 length ws+10
@@ -5778,7 +5788,7 @@ void f172_LoadVV(void) {
 	i8 v2755 = (i8)(intptr_t)(ws+4232);
 	*(i2*)(intptr_t)v2755 = v2754;
 
-	i8 v2756 = (i8)(intptr_t)c02_s00dc;
+	i8 v2756 = (i8)(intptr_t)c02_s00de;
 	*(i8*)(intptr_t)(ws+4320) = v2756;
 	i8 v2757 = (i8)(intptr_t)(f92_E);
 
@@ -5791,7 +5801,7 @@ void f172_LoadVV(void) {
 
 	((void(*)(void))(intptr_t)v2760)();
 
-	i8 v2761 = (i8)(intptr_t)c02_s00dd;
+	i8 v2761 = (i8)(intptr_t)c02_s00df;
 	*(i8*)(intptr_t)(ws+4320) = v2761;
 	i8 v2762 = (i8)(intptr_t)(f92_E);
 
@@ -5804,7 +5814,7 @@ void f172_LoadVV(void) {
 
 	((void(*)(void))(intptr_t)v2765)();
 
-	i8 v2766 = (i8)(intptr_t)c02_s00de;
+	i8 v2766 = (i8)(intptr_t)c02_s00e0;
 	*(i8*)(intptr_t)(ws+4320) = v2766;
 	i8 v2767 = (i8)(intptr_t)(f92_E);
 
@@ -5817,7 +5827,7 @@ void f172_LoadVV(void) {
 
 	((void(*)(void))(intptr_t)v2770)();
 
-	i8 v2771 = (i8)(intptr_t)c02_s00df;
+	i8 v2771 = (i8)(intptr_t)c02_s00e1;
 	*(i8*)(intptr_t)(ws+4320) = v2771;
 	i8 v2772 = (i8)(intptr_t)(f92_E);
 
@@ -5830,7 +5840,7 @@ void f172_LoadVV(void) {
 
 	((void(*)(void))(intptr_t)v2775)();
 
-	i8 v2776 = (i8)(intptr_t)c02_s00e0;
+	i8 v2776 = (i8)(intptr_t)c02_s00e2;
 	*(i8*)(intptr_t)(ws+4320) = v2776;
 	i8 v2777 = (i8)(intptr_t)(f92_E);
 
@@ -5840,20 +5850,20 @@ void f172_LoadVV(void) {
 	void f162_Pop(void);
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s00e1[] = { 0x09,0x69,0 };
+const i1 c02_s00e3[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00e2[] = { 0x20,0x76,0 };
+const i1 c02_s00e4[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00e3[] = { 0x20,0x3d,0x20,0x76,0 };
+const i1 c02_s00e5[] = { 0x20,0x3d,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
 	void f92_E(void);
-const i1 c02_s00e4[] = { 0x76,0 };
+const i1 c02_s00e6[] = { 0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00e5[] = { 0x3b,0x0a,0 };
+const i1 c02_s00e7[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Op2VV workspace at ws+4224 length ws+28
@@ -5898,7 +5908,7 @@ void f173_Op2VV(void) {
 	i8 v2795 = (i8)(intptr_t)(ws+4250);
 	*(i2*)(intptr_t)v2795 = v2794;
 
-	i8 v2796 = (i8)(intptr_t)c02_s00e1;
+	i8 v2796 = (i8)(intptr_t)c02_s00e3;
 	*(i8*)(intptr_t)(ws+4320) = v2796;
 	i8 v2797 = (i8)(intptr_t)(f92_E);
 
@@ -5911,7 +5921,7 @@ void f173_Op2VV(void) {
 
 	((void(*)(void))(intptr_t)v2800)();
 
-	i8 v2801 = (i8)(intptr_t)c02_s00e2;
+	i8 v2801 = (i8)(intptr_t)c02_s00e4;
 	*(i8*)(intptr_t)(ws+4320) = v2801;
 	i8 v2802 = (i8)(intptr_t)(f92_E);
 
@@ -5924,7 +5934,7 @@ void f173_Op2VV(void) {
 
 	((void(*)(void))(intptr_t)v2805)();
 
-	i8 v2806 = (i8)(intptr_t)c02_s00e3;
+	i8 v2806 = (i8)(intptr_t)c02_s00e5;
 	*(i8*)(intptr_t)(ws+4320) = v2806;
 	i8 v2807 = (i8)(intptr_t)(f92_E);
 
@@ -5944,7 +5954,7 @@ void f173_Op2VV(void) {
 
 	((void(*)(void))(intptr_t)v2813)();
 
-	i8 v2814 = (i8)(intptr_t)c02_s00e4;
+	i8 v2814 = (i8)(intptr_t)c02_s00e6;
 	*(i8*)(intptr_t)(ws+4320) = v2814;
 	i8 v2815 = (i8)(intptr_t)(f92_E);
 
@@ -5957,7 +5967,7 @@ void f173_Op2VV(void) {
 
 	((void(*)(void))(intptr_t)v2818)();
 
-	i8 v2819 = (i8)(intptr_t)c02_s00e5;
+	i8 v2819 = (i8)(intptr_t)c02_s00e7;
 	*(i8*)(intptr_t)(ws+4320) = v2819;
 	i8 v2820 = (i8)(intptr_t)(f92_E);
 
@@ -5966,20 +5976,20 @@ void f173_Op2VV(void) {
 }
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s00e6[] = { 0x09,0x69,0 };
+const i1 c02_s00e8[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00e7[] = { 0x20,0x76,0 };
+const i1 c02_s00e9[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00e8[] = { 0x20,0x3d,0x20,0x76,0 };
+const i1 c02_s00ea[] = { 0x20,0x3d,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
 	void f92_E(void);
-const i1 c02_s00e9[] = { 0x28,0 };
+const i1 c02_s00eb[] = { 0x28,0 };
 	void f92_E(void);
 	void f98_E_i32(void);
-const i1 c02_s00ea[] = { 0x29,0x3b,0x0a,0 };
+const i1 c02_s00ec[] = { 0x29,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Op2VC workspace at ws+4224 length ws+28
@@ -6011,7 +6021,7 @@ void f174_Op2VC(void) {
 	i8 v2832 = (i8)(intptr_t)(ws+4250);
 	*(i2*)(intptr_t)v2832 = v2831;
 
-	i8 v2833 = (i8)(intptr_t)c02_s00e6;
+	i8 v2833 = (i8)(intptr_t)c02_s00e8;
 	*(i8*)(intptr_t)(ws+4320) = v2833;
 	i8 v2834 = (i8)(intptr_t)(f92_E);
 
@@ -6024,7 +6034,7 @@ void f174_Op2VC(void) {
 
 	((void(*)(void))(intptr_t)v2837)();
 
-	i8 v2838 = (i8)(intptr_t)c02_s00e7;
+	i8 v2838 = (i8)(intptr_t)c02_s00e9;
 	*(i8*)(intptr_t)(ws+4320) = v2838;
 	i8 v2839 = (i8)(intptr_t)(f92_E);
 
@@ -6037,7 +6047,7 @@ void f174_Op2VC(void) {
 
 	((void(*)(void))(intptr_t)v2842)();
 
-	i8 v2843 = (i8)(intptr_t)c02_s00e8;
+	i8 v2843 = (i8)(intptr_t)c02_s00ea;
 	*(i8*)(intptr_t)(ws+4320) = v2843;
 	i8 v2844 = (i8)(intptr_t)(f92_E);
 
@@ -6057,7 +6067,7 @@ void f174_Op2VC(void) {
 
 	((void(*)(void))(intptr_t)v2850)();
 
-	i8 v2851 = (i8)(intptr_t)c02_s00e9;
+	i8 v2851 = (i8)(intptr_t)c02_s00eb;
 	*(i8*)(intptr_t)(ws+4320) = v2851;
 	i8 v2852 = (i8)(intptr_t)(f92_E);
 
@@ -6070,7 +6080,7 @@ void f174_Op2VC(void) {
 
 	((void(*)(void))(intptr_t)v2855)();
 
-	i8 v2856 = (i8)(intptr_t)c02_s00ea;
+	i8 v2856 = (i8)(intptr_t)c02_s00ec;
 	*(i8*)(intptr_t)(ws+4320) = v2856;
 	i8 v2857 = (i8)(intptr_t)(f92_E);
 
@@ -6080,26 +6090,26 @@ void f174_Op2VC(void) {
 	void f162_Pop(void);
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s00eb[] = { 0x09,0x69,0 };
+const i1 c02_s00ed[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00ec[] = { 0x20,0x76,0 };
+const i1 c02_s00ee[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00ed[] = { 0x20,0x3d,0x20,0x28,0x73,0 };
-	void f92_E(void);
-	void f95_E_u8(void);
-const i1 c02_s00ee[] = { 0x29,0x76,0 };
-	void f92_E(void);
-	void f94_E_u16(void);
-	void f92_E(void);
-const i1 c02_s00ef[] = { 0x28,0x73,0 };
+const i1 c02_s00ef[] = { 0x20,0x3d,0x20,0x28,0x73,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
 const i1 c02_s00f0[] = { 0x29,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00f1[] = { 0x3b,0x0a,0 };
+	void f92_E(void);
+const i1 c02_s00f1[] = { 0x28,0x73,0 };
+	void f92_E(void);
+	void f95_E_u8(void);
+const i1 c02_s00f2[] = { 0x29,0x76,0 };
+	void f92_E(void);
+	void f94_E_u16(void);
+const i1 c02_s00f3[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Op2VVSigned workspace at ws+4224 length ws+28
@@ -6144,7 +6154,7 @@ void f175_Op2VVSigned(void) {
 	i8 v2875 = (i8)(intptr_t)(ws+4250);
 	*(i2*)(intptr_t)v2875 = v2874;
 
-	i8 v2876 = (i8)(intptr_t)c02_s00eb;
+	i8 v2876 = (i8)(intptr_t)c02_s00ed;
 	*(i8*)(intptr_t)(ws+4320) = v2876;
 	i8 v2877 = (i8)(intptr_t)(f92_E);
 
@@ -6157,7 +6167,7 @@ void f175_Op2VVSigned(void) {
 
 	((void(*)(void))(intptr_t)v2880)();
 
-	i8 v2881 = (i8)(intptr_t)c02_s00ec;
+	i8 v2881 = (i8)(intptr_t)c02_s00ee;
 	*(i8*)(intptr_t)(ws+4320) = v2881;
 	i8 v2882 = (i8)(intptr_t)(f92_E);
 
@@ -6170,7 +6180,7 @@ void f175_Op2VVSigned(void) {
 
 	((void(*)(void))(intptr_t)v2885)();
 
-	i8 v2886 = (i8)(intptr_t)c02_s00ed;
+	i8 v2886 = (i8)(intptr_t)c02_s00ef;
 	*(i8*)(intptr_t)(ws+4320) = v2886;
 	i8 v2887 = (i8)(intptr_t)(f92_E);
 
@@ -6183,7 +6193,7 @@ void f175_Op2VVSigned(void) {
 
 	((void(*)(void))(intptr_t)v2890)();
 
-	i8 v2891 = (i8)(intptr_t)c02_s00ee;
+	i8 v2891 = (i8)(intptr_t)c02_s00f0;
 	*(i8*)(intptr_t)(ws+4320) = v2891;
 	i8 v2892 = (i8)(intptr_t)(f92_E);
 
@@ -6203,7 +6213,7 @@ void f175_Op2VVSigned(void) {
 
 	((void(*)(void))(intptr_t)v2898)();
 
-	i8 v2899 = (i8)(intptr_t)c02_s00ef;
+	i8 v2899 = (i8)(intptr_t)c02_s00f1;
 	*(i8*)(intptr_t)(ws+4320) = v2899;
 	i8 v2900 = (i8)(intptr_t)(f92_E);
 
@@ -6216,7 +6226,7 @@ void f175_Op2VVSigned(void) {
 
 	((void(*)(void))(intptr_t)v2903)();
 
-	i8 v2904 = (i8)(intptr_t)c02_s00f0;
+	i8 v2904 = (i8)(intptr_t)c02_s00f2;
 	*(i8*)(intptr_t)(ws+4320) = v2904;
 	i8 v2905 = (i8)(intptr_t)(f92_E);
 
@@ -6229,7 +6239,7 @@ void f175_Op2VVSigned(void) {
 
 	((void(*)(void))(intptr_t)v2908)();
 
-	i8 v2909 = (i8)(intptr_t)c02_s00f1;
+	i8 v2909 = (i8)(intptr_t)c02_s00f3;
 	*(i8*)(intptr_t)(ws+4320) = v2909;
 	i8 v2910 = (i8)(intptr_t)(f92_E);
 
@@ -6238,20 +6248,20 @@ void f175_Op2VVSigned(void) {
 }
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s00f2[] = { 0x09,0x69,0 };
+const i1 c02_s00f4[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00f3[] = { 0x20,0x76,0 };
+const i1 c02_s00f5[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00f4[] = { 0x20,0x3d,0x20,0x76,0 };
+const i1 c02_s00f6[] = { 0x20,0x3d,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
 	void f92_E(void);
-const i1 c02_s00f5[] = { 0x28,0 };
+const i1 c02_s00f7[] = { 0x28,0 };
 	void f92_E(void);
 	void f98_E_i32(void);
-const i1 c02_s00f6[] = { 0x29,0x3b,0x0a,0 };
+const i1 c02_s00f8[] = { 0x29,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Op2VCSigned workspace at ws+4224 length ws+28
@@ -6283,7 +6293,7 @@ void f176_Op2VCSigned(void) {
 	i8 v2922 = (i8)(intptr_t)(ws+4250);
 	*(i2*)(intptr_t)v2922 = v2921;
 
-	i8 v2923 = (i8)(intptr_t)c02_s00f2;
+	i8 v2923 = (i8)(intptr_t)c02_s00f4;
 	*(i8*)(intptr_t)(ws+4320) = v2923;
 	i8 v2924 = (i8)(intptr_t)(f92_E);
 
@@ -6296,7 +6306,7 @@ void f176_Op2VCSigned(void) {
 
 	((void(*)(void))(intptr_t)v2927)();
 
-	i8 v2928 = (i8)(intptr_t)c02_s00f3;
+	i8 v2928 = (i8)(intptr_t)c02_s00f5;
 	*(i8*)(intptr_t)(ws+4320) = v2928;
 	i8 v2929 = (i8)(intptr_t)(f92_E);
 
@@ -6309,7 +6319,7 @@ void f176_Op2VCSigned(void) {
 
 	((void(*)(void))(intptr_t)v2932)();
 
-	i8 v2933 = (i8)(intptr_t)c02_s00f4;
+	i8 v2933 = (i8)(intptr_t)c02_s00f6;
 	*(i8*)(intptr_t)(ws+4320) = v2933;
 	i8 v2934 = (i8)(intptr_t)(f92_E);
 
@@ -6329,7 +6339,7 @@ void f176_Op2VCSigned(void) {
 
 	((void(*)(void))(intptr_t)v2940)();
 
-	i8 v2941 = (i8)(intptr_t)c02_s00f5;
+	i8 v2941 = (i8)(intptr_t)c02_s00f7;
 	*(i8*)(intptr_t)(ws+4320) = v2941;
 	i8 v2942 = (i8)(intptr_t)(f92_E);
 
@@ -6342,7 +6352,7 @@ void f176_Op2VCSigned(void) {
 
 	((void(*)(void))(intptr_t)v2945)();
 
-	i8 v2946 = (i8)(intptr_t)c02_s00f6;
+	i8 v2946 = (i8)(intptr_t)c02_s00f8;
 	*(i8*)(intptr_t)(ws+4320) = v2946;
 	i8 v2947 = (i8)(intptr_t)(f92_E);
 
@@ -6351,19 +6361,19 @@ void f176_Op2VCSigned(void) {
 }
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s00f7[] = { 0x09,0x69,0 };
+const i1 c02_s00f9[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00f8[] = { 0x20,0x76,0 };
+const i1 c02_s00fa[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00f9[] = { 0x20,0x3d,0x20,0 };
+const i1 c02_s00fb[] = { 0x20,0x3d,0x20,0 };
 	void f92_E(void);
 	void f92_E(void);
-const i1 c02_s00fa[] = { 0x76,0 };
+const i1 c02_s00fc[] = { 0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00fb[] = { 0x3b,0x0a,0 };
+const i1 c02_s00fd[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Op1V workspace at ws+4224 length ws+24
@@ -6395,7 +6405,7 @@ void f177_Op1V(void) {
 	i8 v2959 = (i8)(intptr_t)(ws+4246);
 	*(i2*)(intptr_t)v2959 = v2958;
 
-	i8 v2960 = (i8)(intptr_t)c02_s00f7;
+	i8 v2960 = (i8)(intptr_t)c02_s00f9;
 	*(i8*)(intptr_t)(ws+4320) = v2960;
 	i8 v2961 = (i8)(intptr_t)(f92_E);
 
@@ -6408,7 +6418,7 @@ void f177_Op1V(void) {
 
 	((void(*)(void))(intptr_t)v2964)();
 
-	i8 v2965 = (i8)(intptr_t)c02_s00f8;
+	i8 v2965 = (i8)(intptr_t)c02_s00fa;
 	*(i8*)(intptr_t)(ws+4320) = v2965;
 	i8 v2966 = (i8)(intptr_t)(f92_E);
 
@@ -6421,7 +6431,7 @@ void f177_Op1V(void) {
 
 	((void(*)(void))(intptr_t)v2969)();
 
-	i8 v2970 = (i8)(intptr_t)c02_s00f9;
+	i8 v2970 = (i8)(intptr_t)c02_s00fb;
 	*(i8*)(intptr_t)(ws+4320) = v2970;
 	i8 v2971 = (i8)(intptr_t)(f92_E);
 
@@ -6434,7 +6444,7 @@ void f177_Op1V(void) {
 
 	((void(*)(void))(intptr_t)v2974)();
 
-	i8 v2975 = (i8)(intptr_t)c02_s00fa;
+	i8 v2975 = (i8)(intptr_t)c02_s00fc;
 	*(i8*)(intptr_t)(ws+4320) = v2975;
 	i8 v2976 = (i8)(intptr_t)(f92_E);
 
@@ -6447,7 +6457,7 @@ void f177_Op1V(void) {
 
 	((void(*)(void))(intptr_t)v2979)();
 
-	i8 v2980 = (i8)(intptr_t)c02_s00fb;
+	i8 v2980 = (i8)(intptr_t)c02_s00fd;
 	*(i8*)(intptr_t)(ws+4320) = v2980;
 	i8 v2981 = (i8)(intptr_t)(f92_E);
 
@@ -6457,25 +6467,25 @@ void f177_Op1V(void) {
 	void f162_Pop(void);
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s00fc[] = { 0x09,0x69,0 };
+const i1 c02_s00fe[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s00fd[] = { 0x20,0x76,0 };
+const i1 c02_s00ff[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s00fe[] = { 0x20,0x3d,0x20,0x28,0x28,0 };
+const i1 c02_s0100[] = { 0x20,0x3d,0x20,0x28,0x28,0 };
 	void f92_E(void);
 	void f92_E(void);
-const i1 c02_s00ff[] = { 0x29,0x76,0 };
-	void f92_E(void);
-	void f94_E_u16(void);
-const i1 c02_s0100[] = { 0x29,0 };
-	void f92_E(void);
-	void f92_E(void);
-const i1 c02_s0101[] = { 0x76,0 };
+const i1 c02_s0101[] = { 0x29,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s0102[] = { 0x3b,0x0a,0 };
+const i1 c02_s0102[] = { 0x29,0 };
+	void f92_E(void);
+	void f92_E(void);
+const i1 c02_s0103[] = { 0x76,0 };
+	void f92_E(void);
+	void f94_E_u16(void);
+const i1 c02_s0104[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Shift workspace at ws+4224 length ws+36
@@ -6520,7 +6530,7 @@ void f178_Shift(void) {
 	i8 v2999 = (i8)(intptr_t)(ws+4258);
 	*(i2*)(intptr_t)v2999 = v2998;
 
-	i8 v3000 = (i8)(intptr_t)c02_s00fc;
+	i8 v3000 = (i8)(intptr_t)c02_s00fe;
 	*(i8*)(intptr_t)(ws+4320) = v3000;
 	i8 v3001 = (i8)(intptr_t)(f92_E);
 
@@ -6533,7 +6543,7 @@ void f178_Shift(void) {
 
 	((void(*)(void))(intptr_t)v3004)();
 
-	i8 v3005 = (i8)(intptr_t)c02_s00fd;
+	i8 v3005 = (i8)(intptr_t)c02_s00ff;
 	*(i8*)(intptr_t)(ws+4320) = v3005;
 	i8 v3006 = (i8)(intptr_t)(f92_E);
 
@@ -6546,7 +6556,7 @@ void f178_Shift(void) {
 
 	((void(*)(void))(intptr_t)v3009)();
 
-	i8 v3010 = (i8)(intptr_t)c02_s00fe;
+	i8 v3010 = (i8)(intptr_t)c02_s0100;
 	*(i8*)(intptr_t)(ws+4320) = v3010;
 	i8 v3011 = (i8)(intptr_t)(f92_E);
 
@@ -6559,7 +6569,7 @@ void f178_Shift(void) {
 
 	((void(*)(void))(intptr_t)v3014)();
 
-	i8 v3015 = (i8)(intptr_t)c02_s00ff;
+	i8 v3015 = (i8)(intptr_t)c02_s0101;
 	*(i8*)(intptr_t)(ws+4320) = v3015;
 	i8 v3016 = (i8)(intptr_t)(f92_E);
 
@@ -6572,7 +6582,7 @@ void f178_Shift(void) {
 
 	((void(*)(void))(intptr_t)v3019)();
 
-	i8 v3020 = (i8)(intptr_t)c02_s0100;
+	i8 v3020 = (i8)(intptr_t)c02_s0102;
 	*(i8*)(intptr_t)(ws+4320) = v3020;
 	i8 v3021 = (i8)(intptr_t)(f92_E);
 
@@ -6585,7 +6595,7 @@ void f178_Shift(void) {
 
 	((void(*)(void))(intptr_t)v3024)();
 
-	i8 v3025 = (i8)(intptr_t)c02_s0101;
+	i8 v3025 = (i8)(intptr_t)c02_s0103;
 	*(i8*)(intptr_t)(ws+4320) = v3025;
 	i8 v3026 = (i8)(intptr_t)(f92_E);
 
@@ -6598,7 +6608,7 @@ void f178_Shift(void) {
 
 	((void(*)(void))(intptr_t)v3029)();
 
-	i8 v3030 = (i8)(intptr_t)c02_s0102;
+	i8 v3030 = (i8)(intptr_t)c02_s0104;
 	*(i8*)(intptr_t)(ws+4320) = v3030;
 	i8 v3031 = (i8)(intptr_t)(f92_E);
 
@@ -6607,20 +6617,20 @@ void f178_Shift(void) {
 }
 	void f162_Pop(void);
 	void f162_Pop(void);
-const i1 c02_s0103[] = { 0x09,0x69,0x66,0x20,0x28,0x76,0 };
+const i1 c02_s0105[] = { 0x09,0x69,0x66,0x20,0x28,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
 	void f92_E(void);
-const i1 c02_s0104[] = { 0x76,0 };
+const i1 c02_s0106[] = { 0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s0105[] = { 0x29,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
+const i1 c02_s0107[] = { 0x29,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
 	void f92_E(void);
 	void f103_E_labelref(void);
-const i1 c02_s0106[] = { 0x3b,0x20,0x65,0x6c,0x73,0x65,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
+const i1 c02_s0108[] = { 0x3b,0x20,0x65,0x6c,0x73,0x65,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
 	void f92_E(void);
 	void f103_E_labelref(void);
-const i1 c02_s0107[] = { 0x3b,0x0a,0 };
+const i1 c02_s0109[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Branch workspace at ws+4224 length ws+24
@@ -6652,7 +6662,7 @@ void f179_Branch(void) {
 	i8 v3043 = (i8)(intptr_t)(ws+4246);
 	*(i2*)(intptr_t)v3043 = v3042;
 
-	i8 v3044 = (i8)(intptr_t)c02_s0103;
+	i8 v3044 = (i8)(intptr_t)c02_s0105;
 	*(i8*)(intptr_t)(ws+4320) = v3044;
 	i8 v3045 = (i8)(intptr_t)(f92_E);
 
@@ -6672,7 +6682,7 @@ void f179_Branch(void) {
 
 	((void(*)(void))(intptr_t)v3051)();
 
-	i8 v3052 = (i8)(intptr_t)c02_s0104;
+	i8 v3052 = (i8)(intptr_t)c02_s0106;
 	*(i8*)(intptr_t)(ws+4320) = v3052;
 	i8 v3053 = (i8)(intptr_t)(f92_E);
 
@@ -6685,7 +6695,7 @@ void f179_Branch(void) {
 
 	((void(*)(void))(intptr_t)v3056)();
 
-	i8 v3057 = (i8)(intptr_t)c02_s0105;
+	i8 v3057 = (i8)(intptr_t)c02_s0107;
 	*(i8*)(intptr_t)(ws+4320) = v3057;
 	i8 v3058 = (i8)(intptr_t)(f92_E);
 
@@ -6699,7 +6709,7 @@ void f179_Branch(void) {
 
 	((void(*)(void))(intptr_t)v3062)();
 
-	i8 v3063 = (i8)(intptr_t)c02_s0106;
+	i8 v3063 = (i8)(intptr_t)c02_s0108;
 	*(i8*)(intptr_t)(ws+4320) = v3063;
 	i8 v3064 = (i8)(intptr_t)(f92_E);
 
@@ -6714,7 +6724,7 @@ void f179_Branch(void) {
 
 	((void(*)(void))(intptr_t)v3069)();
 
-	i8 v3070 = (i8)(intptr_t)c02_s0107;
+	i8 v3070 = (i8)(intptr_t)c02_s0109;
 	*(i8*)(intptr_t)(ws+4320) = v3070;
 	i8 v3071 = (i8)(intptr_t)(f92_E);
 
@@ -6723,26 +6733,26 @@ void f179_Branch(void) {
 }
 	void f162_Pop(void);
 	void f162_Pop(void);
-const i1 c02_s0108[] = { 0x09,0x69,0x66,0x20,0x28,0x28,0x73,0 };
-	void f92_E(void);
-	void f95_E_u8(void);
-const i1 c02_s0109[] = { 0x29,0x76,0 };
-	void f92_E(void);
-	void f94_E_u16(void);
-	void f92_E(void);
-const i1 c02_s010a[] = { 0x28,0x73,0 };
+const i1 c02_s010a[] = { 0x09,0x69,0x66,0x20,0x28,0x28,0x73,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
 const i1 c02_s010b[] = { 0x29,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s010c[] = { 0x29,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
+	void f92_E(void);
+const i1 c02_s010c[] = { 0x28,0x73,0 };
+	void f92_E(void);
+	void f95_E_u8(void);
+const i1 c02_s010d[] = { 0x29,0x76,0 };
+	void f92_E(void);
+	void f94_E_u16(void);
+const i1 c02_s010e[] = { 0x29,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
 	void f92_E(void);
 	void f103_E_labelref(void);
-const i1 c02_s010d[] = { 0x3b,0x20,0x65,0x6c,0x73,0x65,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
+const i1 c02_s010f[] = { 0x3b,0x20,0x65,0x6c,0x73,0x65,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
 	void f92_E(void);
 	void f103_E_labelref(void);
-const i1 c02_s010e[] = { 0x3b,0x0a,0 };
+const i1 c02_s0110[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // BranchSigned workspace at ws+4224 length ws+32
@@ -6774,7 +6784,7 @@ void f180_BranchSigned(void) {
 	i8 v3083 = (i8)(intptr_t)(ws+4254);
 	*(i2*)(intptr_t)v3083 = v3082;
 
-	i8 v3084 = (i8)(intptr_t)c02_s0108;
+	i8 v3084 = (i8)(intptr_t)c02_s010a;
 	*(i8*)(intptr_t)(ws+4320) = v3084;
 	i8 v3085 = (i8)(intptr_t)(f92_E);
 
@@ -6787,7 +6797,7 @@ void f180_BranchSigned(void) {
 
 	((void(*)(void))(intptr_t)v3088)();
 
-	i8 v3089 = (i8)(intptr_t)c02_s0109;
+	i8 v3089 = (i8)(intptr_t)c02_s010b;
 	*(i8*)(intptr_t)(ws+4320) = v3089;
 	i8 v3090 = (i8)(intptr_t)(f92_E);
 
@@ -6807,7 +6817,7 @@ void f180_BranchSigned(void) {
 
 	((void(*)(void))(intptr_t)v3096)();
 
-	i8 v3097 = (i8)(intptr_t)c02_s010a;
+	i8 v3097 = (i8)(intptr_t)c02_s010c;
 	*(i8*)(intptr_t)(ws+4320) = v3097;
 	i8 v3098 = (i8)(intptr_t)(f92_E);
 
@@ -6820,7 +6830,7 @@ void f180_BranchSigned(void) {
 
 	((void(*)(void))(intptr_t)v3101)();
 
-	i8 v3102 = (i8)(intptr_t)c02_s010b;
+	i8 v3102 = (i8)(intptr_t)c02_s010d;
 	*(i8*)(intptr_t)(ws+4320) = v3102;
 	i8 v3103 = (i8)(intptr_t)(f92_E);
 
@@ -6833,7 +6843,7 @@ void f180_BranchSigned(void) {
 
 	((void(*)(void))(intptr_t)v3106)();
 
-	i8 v3107 = (i8)(intptr_t)c02_s010c;
+	i8 v3107 = (i8)(intptr_t)c02_s010e;
 	*(i8*)(intptr_t)(ws+4320) = v3107;
 	i8 v3108 = (i8)(intptr_t)(f92_E);
 
@@ -6847,7 +6857,7 @@ void f180_BranchSigned(void) {
 
 	((void(*)(void))(intptr_t)v3112)();
 
-	i8 v3113 = (i8)(intptr_t)c02_s010d;
+	i8 v3113 = (i8)(intptr_t)c02_s010f;
 	*(i8*)(intptr_t)(ws+4320) = v3113;
 	i8 v3114 = (i8)(intptr_t)(f92_E);
 
@@ -6862,24 +6872,24 @@ void f180_BranchSigned(void) {
 
 	((void(*)(void))(intptr_t)v3119)();
 
-	i8 v3120 = (i8)(intptr_t)c02_s010e;
+	i8 v3120 = (i8)(intptr_t)c02_s0110;
 	*(i8*)(intptr_t)(ws+4320) = v3120;
 	i8 v3121 = (i8)(intptr_t)(f92_E);
 
 	((void(*)(void))(intptr_t)v3121)();
 
 }
-const i1 c02_s010f[] = { 0x09,0x67,0x6f,0x74,0x6f,0x20,0 };
+const i1 c02_s0111[] = { 0x09,0x67,0x6f,0x74,0x6f,0x20,0 };
 	void f92_E(void);
 	void f103_E_labelref(void);
 	void f103_E_labelref(void);
-const i1 c02_s0110[] = { 0x3b,0x0a,0 };
+const i1 c02_s0112[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // BranchConstant workspace at ws+4224 length ws+16
 void f181_BranchConstant(void) {
 
-	i8 v3122 = (i8)(intptr_t)c02_s010f;
+	i8 v3122 = (i8)(intptr_t)c02_s0111;
 	*(i8*)(intptr_t)(ws+4320) = v3122;
 	i8 v3123 = (i8)(intptr_t)(f92_E);
 
@@ -6916,23 +6926,23 @@ c02_0266:;
 
 c02_0262:;
 
-	i8 v3137 = (i8)(intptr_t)c02_s0110;
+	i8 v3137 = (i8)(intptr_t)c02_s0112;
 	*(i8*)(intptr_t)(ws+4320) = v3137;
 	i8 v3138 = (i8)(intptr_t)(f92_E);
 
 	((void(*)(void))(intptr_t)v3138)();
 
 }
-const i1 c02_s0111[] = { 0x09,0x69,0x66,0x20,0x28,0x76,0 };
+const i1 c02_s0113[] = { 0x09,0x69,0x66,0x20,0x28,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s0112[] = { 0x20,0x21,0x3d,0x20,0 };
+const i1 c02_s0114[] = { 0x20,0x21,0x3d,0x20,0 };
 	void f92_E(void);
 	void f98_E_i32(void);
-const i1 c02_s0113[] = { 0x29,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
+const i1 c02_s0115[] = { 0x29,0x20,0x67,0x6f,0x74,0x6f,0x20,0 };
 	void f92_E(void);
 	void f103_E_labelref(void);
-const i1 c02_s0114[] = { 0x3b,0x0a,0 };
+const i1 c02_s0116[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Whencase workspace at ws+4224 length ws+8
@@ -6950,7 +6960,7 @@ void f182_Whencase(void) {
 	i8 v3148 = (i8)(intptr_t)(ws+4230);
 	*(i2*)(intptr_t)v3148 = v3147;
 
-	i8 v3149 = (i8)(intptr_t)c02_s0111;
+	i8 v3149 = (i8)(intptr_t)c02_s0113;
 	*(i8*)(intptr_t)(ws+4320) = v3149;
 	i8 v3150 = (i8)(intptr_t)(f92_E);
 
@@ -6963,7 +6973,7 @@ void f182_Whencase(void) {
 
 	((void(*)(void))(intptr_t)v3153)();
 
-	i8 v3154 = (i8)(intptr_t)c02_s0112;
+	i8 v3154 = (i8)(intptr_t)c02_s0114;
 	*(i8*)(intptr_t)(ws+4320) = v3154;
 	i8 v3155 = (i8)(intptr_t)(f92_E);
 
@@ -6976,7 +6986,7 @@ void f182_Whencase(void) {
 
 	((void(*)(void))(intptr_t)v3158)();
 
-	i8 v3159 = (i8)(intptr_t)c02_s0113;
+	i8 v3159 = (i8)(intptr_t)c02_s0115;
 	*(i8*)(intptr_t)(ws+4320) = v3159;
 	i8 v3160 = (i8)(intptr_t)(f92_E);
 
@@ -6989,7 +6999,7 @@ void f182_Whencase(void) {
 
 	((void(*)(void))(intptr_t)v3163)();
 
-	i8 v3164 = (i8)(intptr_t)c02_s0114;
+	i8 v3164 = (i8)(intptr_t)c02_s0116;
 	*(i8*)(intptr_t)(ws+4320) = v3164;
 	i8 v3165 = (i8)(intptr_t)(f92_E);
 
@@ -6998,26 +7008,26 @@ void f182_Whencase(void) {
 }
 	void f162_Pop(void);
 	void f160_Push(void);
-const i1 c02_s0115[] = { 0x09,0x69,0 };
+const i1 c02_s0117[] = { 0x09,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s0116[] = { 0x20,0x76,0 };
+const i1 c02_s0118[] = { 0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s0117[] = { 0x20,0x3d,0x20,0 };
+const i1 c02_s0119[] = { 0x20,0x3d,0x20,0 };
 	void f92_E(void);
-const i1 c02_s0118[] = { 0x28,0x73,0 };
-	void f92_E(void);
-	void f95_E_u8(void);
-const i1 c02_s0119[] = { 0x29,0x28,0x73,0 };
+const i1 c02_s011a[] = { 0x28,0x73,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s011a[] = { 0x29,0 };
+const i1 c02_s011b[] = { 0x29,0x28,0x73,0 };
 	void f92_E(void);
-const i1 c02_s011b[] = { 0x76,0 };
+	void f95_E_u8(void);
+const i1 c02_s011c[] = { 0x29,0 };
+	void f92_E(void);
+const i1 c02_s011d[] = { 0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s011c[] = { 0x3b,0x0a,0 };
+const i1 c02_s011e[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // Cast workspace at ws+4224 length ws+12
@@ -7049,7 +7059,7 @@ void f183_Cast(void) {
 	i8 v3177 = (i8)(intptr_t)(ws+4234);
 	*(i2*)(intptr_t)v3177 = v3176;
 
-	i8 v3178 = (i8)(intptr_t)c02_s0115;
+	i8 v3178 = (i8)(intptr_t)c02_s0117;
 	*(i8*)(intptr_t)(ws+4320) = v3178;
 	i8 v3179 = (i8)(intptr_t)(f92_E);
 
@@ -7062,7 +7072,7 @@ void f183_Cast(void) {
 
 	((void(*)(void))(intptr_t)v3182)();
 
-	i8 v3183 = (i8)(intptr_t)c02_s0116;
+	i8 v3183 = (i8)(intptr_t)c02_s0118;
 	*(i8*)(intptr_t)(ws+4320) = v3183;
 	i8 v3184 = (i8)(intptr_t)(f92_E);
 
@@ -7075,7 +7085,7 @@ void f183_Cast(void) {
 
 	((void(*)(void))(intptr_t)v3187)();
 
-	i8 v3188 = (i8)(intptr_t)c02_s0117;
+	i8 v3188 = (i8)(intptr_t)c02_s0119;
 	*(i8*)(intptr_t)(ws+4320) = v3188;
 	i8 v3189 = (i8)(intptr_t)(f92_E);
 
@@ -7088,7 +7098,7 @@ void f183_Cast(void) {
 
 c02_026a:;
 
-	i8 v3193 = (i8)(intptr_t)c02_s0118;
+	i8 v3193 = (i8)(intptr_t)c02_s011a;
 	*(i8*)(intptr_t)(ws+4320) = v3193;
 	i8 v3194 = (i8)(intptr_t)(f92_E);
 
@@ -7101,7 +7111,7 @@ c02_026a:;
 
 	((void(*)(void))(intptr_t)v3197)();
 
-	i8 v3198 = (i8)(intptr_t)c02_s0119;
+	i8 v3198 = (i8)(intptr_t)c02_s011b;
 	*(i8*)(intptr_t)(ws+4320) = v3198;
 	i8 v3199 = (i8)(intptr_t)(f92_E);
 
@@ -7114,7 +7124,7 @@ c02_026a:;
 
 	((void(*)(void))(intptr_t)v3202)();
 
-	i8 v3203 = (i8)(intptr_t)c02_s011a;
+	i8 v3203 = (i8)(intptr_t)c02_s011c;
 	*(i8*)(intptr_t)(ws+4320) = v3203;
 	i8 v3204 = (i8)(intptr_t)(f92_E);
 
@@ -7124,7 +7134,7 @@ c02_026b:;
 
 c02_0267:;
 
-	i8 v3205 = (i8)(intptr_t)c02_s011b;
+	i8 v3205 = (i8)(intptr_t)c02_s011d;
 	*(i8*)(intptr_t)(ws+4320) = v3205;
 	i8 v3206 = (i8)(intptr_t)(f92_E);
 
@@ -7137,7 +7147,7 @@ c02_0267:;
 
 	((void(*)(void))(intptr_t)v3209)();
 
-	i8 v3210 = (i8)(intptr_t)c02_s011c;
+	i8 v3210 = (i8)(intptr_t)c02_s011e;
 	*(i8*)(intptr_t)(ws+4320) = v3210;
 	i8 v3211 = (i8)(intptr_t)(f92_E);
 
@@ -7145,19 +7155,19 @@ c02_0267:;
 
 }
 	void f106_EmitterOpenStream(void);
-const i1 c02_s011d[] = { 0x63,0x6f,0x6e,0x73,0x74,0x20,0x69,0x31,0x20,0 };
+const i1 c02_s011f[] = { 0x63,0x6f,0x6e,0x73,0x74,0x20,0x69,0x31,0x20,0 };
 	void f92_E(void);
 	void f83_E_b8(void);
 	void f83_E_b8(void);
 	void f101_E_h16(void);
-const i1 c02_s011e[] = { 0x5b,0x5d,0x20,0x3d,0x20,0x7b,0x20,0 };
+const i1 c02_s0120[] = { 0x5b,0x5d,0x20,0x3d,0x20,0x7b,0x20,0 };
 	void f92_E(void);
 	void f87_E_comma(void);
-const i1 c02_s011f[] = { 0x30,0x78,0 };
+const i1 c02_s0121[] = { 0x30,0x78,0 };
 	void f92_E(void);
 	void f100_E_h8(void);
 	void f87_E_comma(void);
-const i1 c02_s0120[] = { 0x30,0x20,0x7d,0x3b,0x0a,0 };
+const i1 c02_s0122[] = { 0x30,0x20,0x7d,0x3b,0x0a,0 };
 	void f92_E(void);
 	void f107_EmitterCloseStream(void);
 
@@ -7182,7 +7192,7 @@ void f184_E_string(void) {
 
 	((void(*)(void))(intptr_t)v3223)();
 
-	i8 v3224 = (i8)(intptr_t)c02_s011d;
+	i8 v3224 = (i8)(intptr_t)c02_s011f;
 	*(i8*)(intptr_t)(ws+4320) = v3224;
 	i8 v3225 = (i8)(intptr_t)(f92_E);
 
@@ -7207,7 +7217,7 @@ void f184_E_string(void) {
 
 	((void(*)(void))(intptr_t)v3232)();
 
-	i8 v3233 = (i8)(intptr_t)c02_s011e;
+	i8 v3233 = (i8)(intptr_t)c02_s0120;
 	*(i8*)(intptr_t)(ws+4320) = v3233;
 	i8 v3234 = (i8)(intptr_t)(f92_E);
 
@@ -7263,7 +7273,7 @@ c02_0273:;
 	i8 v3253 = (i8)(intptr_t)(ws+4242);
 	*(i1*)(intptr_t)v3253 = v3252;
 
-	i8 v3254 = (i8)(intptr_t)c02_s011f;
+	i8 v3254 = (i8)(intptr_t)c02_s0121;
 	*(i8*)(intptr_t)(ws+4320) = v3254;
 	i8 v3255 = (i8)(intptr_t)(f92_E);
 
@@ -7295,7 +7305,7 @@ c02_027c:;
 
 c02_0278:;
 
-	i8 v3263 = (i8)(intptr_t)c02_s0120;
+	i8 v3263 = (i8)(intptr_t)c02_s0122;
 	*(i8*)(intptr_t)(ws+4320) = v3263;
 	i8 v3264 = (i8)(intptr_t)(f92_E);
 
@@ -7306,13 +7316,13 @@ c02_0278:;
 	((void(*)(void))(intptr_t)v3265)();
 
 }
-const i1 c02_s0121[] = { 0x09,0x7b,0x20,0x2e,0x69,0x31,0x20,0x3d,0x20,0x7b,0x20,0 };
+const i1 c02_s0123[] = { 0x09,0x7b,0x20,0x2e,0x69,0x31,0x20,0x3d,0x20,0x7b,0x20,0 };
 	void f92_E(void);
 	void f87_E_comma(void);
-const i1 c02_s0122[] = { 0x30,0x78,0 };
+const i1 c02_s0124[] = { 0x30,0x78,0 };
 	void f92_E(void);
 	void f100_E_h8(void);
-const i1 c02_s0123[] = { 0x7d,0x7d,0x2c,0x0a,0 };
+const i1 c02_s0125[] = { 0x7d,0x7d,0x2c,0x0a,0 };
 	void f92_E(void);
 
 // FlushInitialiserBuffer workspace at ws+4240 length ws+1
@@ -7325,7 +7335,7 @@ void f185_FlushInitialiserBuffer(void) {
 
 c02_0280:;
 
-	i8 v3271 = (i8)(intptr_t)c02_s0121;
+	i8 v3271 = (i8)(intptr_t)c02_s0123;
 	*(i8*)(intptr_t)(ws+4320) = v3271;
 	i8 v3272 = (i8)(intptr_t)(f92_E);
 
@@ -7360,7 +7370,7 @@ c02_028c:;
 
 c02_0288:;
 
-	i8 v3283 = (i8)(intptr_t)c02_s0122;
+	i8 v3283 = (i8)(intptr_t)c02_s0124;
 	*(i8*)(intptr_t)(ws+4320) = v3283;
 	i8 v3284 = (i8)(intptr_t)(f92_E);
 
@@ -7387,7 +7397,7 @@ c02_0288:;
 
 c02_0287:;
 
-	i8 v3296 = (i8)(intptr_t)c02_s0123;
+	i8 v3296 = (i8)(intptr_t)c02_s0125;
 	*(i8*)(intptr_t)(ws+4320) = v3296;
 	i8 v3297 = (i8)(intptr_t)(f92_E);
 
@@ -7465,7 +7475,7 @@ c02_0292:;
 
 }
 	void f66_StartError(void);
-const i1 c02_s0124[] = { 0x62,0x61,0x64,0x20,0x69,0x6e,0x69,0x74,0x69,0x61,0x6c,0x69,0x73,0x65,0x72,0x20,0x61,0x6c,0x69,0x67,0x6e,0x6d,0x65,0x6e,0x74,0x3a,0x20,0 };
+const i1 c02_s0126[] = { 0x62,0x61,0x64,0x20,0x69,0x6e,0x69,0x74,0x69,0x61,0x6c,0x69,0x73,0x65,0x72,0x20,0x61,0x6c,0x69,0x67,0x6e,0x6d,0x65,0x6e,0x74,0x3a,0x20,0 };
 	void f12_print(void);
 	void f18_print_i8(void);
 	void f67_EndError(void);
@@ -7484,7 +7494,7 @@ c02_029b:;
 
 	((void(*)(void))(intptr_t)v3330)();
 
-	i8 v3331 = (i8)(intptr_t)c02_s0124;
+	i8 v3331 = (i8)(intptr_t)c02_s0126;
 	*(i8*)(intptr_t)(ws+4288) = v3331;
 	i8 v3332 = (i8)(intptr_t)(f12_print);
 
@@ -7609,7 +7619,7 @@ void f195_emit_4(void) {
 	((void(*)(void))(intptr_t)v3409)();
 
 }
-const i1 c02_s0125[] = { 0x2b,0 };
+const i1 c02_s0127[] = { 0x2b,0 };
 	void f174_Op2VC(void);
 
 // emit_5 workspace at ws+4224 length ws+0
@@ -7617,7 +7627,7 @@ void f196_emit_5(void) {
 
 	i1 v3410 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3410;
-	i8 v3411 = (i8)(intptr_t)c02_s0125;
+	i8 v3411 = (i8)(intptr_t)c02_s0127;
 	*(i8*)(intptr_t)(ws+4232) = v3411;
 	i8 v3412 = (i8)(intptr_t)(ws+4168);
 	i8 v3413 = *(i8*)(intptr_t)v3412;
@@ -7628,7 +7638,7 @@ void f196_emit_5(void) {
 	((void(*)(void))(intptr_t)v3415)();
 
 }
-const i1 c02_s0126[] = { 0x2b,0 };
+const i1 c02_s0128[] = { 0x2b,0 };
 	void f174_Op2VC(void);
 
 // emit_6 workspace at ws+4224 length ws+0
@@ -7636,7 +7646,7 @@ void f197_emit_6(void) {
 
 	i1 v3416 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3416;
-	i8 v3417 = (i8)(intptr_t)c02_s0126;
+	i8 v3417 = (i8)(intptr_t)c02_s0128;
 	*(i8*)(intptr_t)(ws+4232) = v3417;
 	i8 v3418 = (i8)(intptr_t)(ws+4168);
 	i8 v3419 = *(i8*)(intptr_t)v3418;
@@ -7647,7 +7657,7 @@ void f197_emit_6(void) {
 	((void(*)(void))(intptr_t)v3421)();
 
 }
-const i1 c02_s0127[] = { 0x2b,0 };
+const i1 c02_s0129[] = { 0x2b,0 };
 	void f174_Op2VC(void);
 
 // emit_7 workspace at ws+4224 length ws+0
@@ -7655,7 +7665,7 @@ void f198_emit_7(void) {
 
 	i1 v3422 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3422;
-	i8 v3423 = (i8)(intptr_t)c02_s0127;
+	i8 v3423 = (i8)(intptr_t)c02_s0129;
 	*(i8*)(intptr_t)(ws+4232) = v3423;
 	i8 v3424 = (i8)(intptr_t)(ws+4168);
 	i8 v3425 = *(i8*)(intptr_t)v3424;
@@ -7666,7 +7676,7 @@ void f198_emit_7(void) {
 	((void(*)(void))(intptr_t)v3427)();
 
 }
-const i1 c02_s0128[] = { 0x2b,0 };
+const i1 c02_s012a[] = { 0x2b,0 };
 	void f174_Op2VC(void);
 
 // emit_8 workspace at ws+4224 length ws+0
@@ -7674,7 +7684,7 @@ void f199_emit_8(void) {
 
 	i1 v3428 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3428;
-	i8 v3429 = (i8)(intptr_t)c02_s0128;
+	i8 v3429 = (i8)(intptr_t)c02_s012a;
 	*(i8*)(intptr_t)(ws+4232) = v3429;
 	i8 v3430 = (i8)(intptr_t)(ws+4168);
 	i8 v3431 = *(i8*)(intptr_t)v3430;
@@ -7685,7 +7695,7 @@ void f199_emit_8(void) {
 	((void(*)(void))(intptr_t)v3433)();
 
 }
-const i1 c02_s0129[] = { 0x2d,0 };
+const i1 c02_s012b[] = { 0x2d,0 };
 	void f174_Op2VC(void);
 
 // emit_9 workspace at ws+4224 length ws+0
@@ -7693,7 +7703,7 @@ void f200_emit_9(void) {
 
 	i1 v3434 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3434;
-	i8 v3435 = (i8)(intptr_t)c02_s0129;
+	i8 v3435 = (i8)(intptr_t)c02_s012b;
 	*(i8*)(intptr_t)(ws+4232) = v3435;
 	i8 v3436 = (i8)(intptr_t)(ws+4168);
 	i8 v3437 = *(i8*)(intptr_t)v3436;
@@ -7704,7 +7714,7 @@ void f200_emit_9(void) {
 	((void(*)(void))(intptr_t)v3439)();
 
 }
-const i1 c02_s012a[] = { 0x2d,0 };
+const i1 c02_s012c[] = { 0x2d,0 };
 	void f174_Op2VC(void);
 
 // emit_10 workspace at ws+4224 length ws+0
@@ -7712,7 +7722,7 @@ void f201_emit_10(void) {
 
 	i1 v3440 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3440;
-	i8 v3441 = (i8)(intptr_t)c02_s012a;
+	i8 v3441 = (i8)(intptr_t)c02_s012c;
 	*(i8*)(intptr_t)(ws+4232) = v3441;
 	i8 v3442 = (i8)(intptr_t)(ws+4168);
 	i8 v3443 = *(i8*)(intptr_t)v3442;
@@ -7723,7 +7733,7 @@ void f201_emit_10(void) {
 	((void(*)(void))(intptr_t)v3445)();
 
 }
-const i1 c02_s012b[] = { 0x2d,0 };
+const i1 c02_s012d[] = { 0x2d,0 };
 	void f174_Op2VC(void);
 
 // emit_11 workspace at ws+4224 length ws+0
@@ -7731,7 +7741,7 @@ void f202_emit_11(void) {
 
 	i1 v3446 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3446;
-	i8 v3447 = (i8)(intptr_t)c02_s012b;
+	i8 v3447 = (i8)(intptr_t)c02_s012d;
 	*(i8*)(intptr_t)(ws+4232) = v3447;
 	i8 v3448 = (i8)(intptr_t)(ws+4168);
 	i8 v3449 = *(i8*)(intptr_t)v3448;
@@ -7742,7 +7752,7 @@ void f202_emit_11(void) {
 	((void(*)(void))(intptr_t)v3451)();
 
 }
-const i1 c02_s012c[] = { 0x2d,0 };
+const i1 c02_s012e[] = { 0x2d,0 };
 	void f174_Op2VC(void);
 
 // emit_12 workspace at ws+4224 length ws+0
@@ -7750,7 +7760,7 @@ void f203_emit_12(void) {
 
 	i1 v3452 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3452;
-	i8 v3453 = (i8)(intptr_t)c02_s012c;
+	i8 v3453 = (i8)(intptr_t)c02_s012e;
 	*(i8*)(intptr_t)(ws+4232) = v3453;
 	i8 v3454 = (i8)(intptr_t)(ws+4168);
 	i8 v3455 = *(i8*)(intptr_t)v3454;
@@ -7761,7 +7771,7 @@ void f203_emit_12(void) {
 	((void(*)(void))(intptr_t)v3457)();
 
 }
-const i1 c02_s012d[] = { 0x2a,0 };
+const i1 c02_s012f[] = { 0x2a,0 };
 	void f174_Op2VC(void);
 
 // emit_13 workspace at ws+4224 length ws+0
@@ -7769,7 +7779,7 @@ void f204_emit_13(void) {
 
 	i1 v3458 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3458;
-	i8 v3459 = (i8)(intptr_t)c02_s012d;
+	i8 v3459 = (i8)(intptr_t)c02_s012f;
 	*(i8*)(intptr_t)(ws+4232) = v3459;
 	i8 v3460 = (i8)(intptr_t)(ws+4168);
 	i8 v3461 = *(i8*)(intptr_t)v3460;
@@ -7780,7 +7790,7 @@ void f204_emit_13(void) {
 	((void(*)(void))(intptr_t)v3463)();
 
 }
-const i1 c02_s012e[] = { 0x2a,0 };
+const i1 c02_s0130[] = { 0x2a,0 };
 	void f174_Op2VC(void);
 
 // emit_14 workspace at ws+4224 length ws+0
@@ -7788,7 +7798,7 @@ void f205_emit_14(void) {
 
 	i1 v3464 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3464;
-	i8 v3465 = (i8)(intptr_t)c02_s012e;
+	i8 v3465 = (i8)(intptr_t)c02_s0130;
 	*(i8*)(intptr_t)(ws+4232) = v3465;
 	i8 v3466 = (i8)(intptr_t)(ws+4168);
 	i8 v3467 = *(i8*)(intptr_t)v3466;
@@ -7799,7 +7809,7 @@ void f205_emit_14(void) {
 	((void(*)(void))(intptr_t)v3469)();
 
 }
-const i1 c02_s012f[] = { 0x2a,0 };
+const i1 c02_s0131[] = { 0x2a,0 };
 	void f174_Op2VC(void);
 
 // emit_15 workspace at ws+4224 length ws+0
@@ -7807,7 +7817,7 @@ void f206_emit_15(void) {
 
 	i1 v3470 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3470;
-	i8 v3471 = (i8)(intptr_t)c02_s012f;
+	i8 v3471 = (i8)(intptr_t)c02_s0131;
 	*(i8*)(intptr_t)(ws+4232) = v3471;
 	i8 v3472 = (i8)(intptr_t)(ws+4168);
 	i8 v3473 = *(i8*)(intptr_t)v3472;
@@ -7818,7 +7828,7 @@ void f206_emit_15(void) {
 	((void(*)(void))(intptr_t)v3475)();
 
 }
-const i1 c02_s0130[] = { 0x2a,0 };
+const i1 c02_s0132[] = { 0x2a,0 };
 	void f174_Op2VC(void);
 
 // emit_16 workspace at ws+4224 length ws+0
@@ -7826,7 +7836,7 @@ void f207_emit_16(void) {
 
 	i1 v3476 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3476;
-	i8 v3477 = (i8)(intptr_t)c02_s0130;
+	i8 v3477 = (i8)(intptr_t)c02_s0132;
 	*(i8*)(intptr_t)(ws+4232) = v3477;
 	i8 v3478 = (i8)(intptr_t)(ws+4168);
 	i8 v3479 = *(i8*)(intptr_t)v3478;
@@ -7837,7 +7847,7 @@ void f207_emit_16(void) {
 	((void(*)(void))(intptr_t)v3481)();
 
 }
-const i1 c02_s0131[] = { 0x2f,0 };
+const i1 c02_s0133[] = { 0x2f,0 };
 	void f174_Op2VC(void);
 
 // emit_17 workspace at ws+4224 length ws+0
@@ -7845,7 +7855,7 @@ void f208_emit_17(void) {
 
 	i1 v3482 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3482;
-	i8 v3483 = (i8)(intptr_t)c02_s0131;
+	i8 v3483 = (i8)(intptr_t)c02_s0133;
 	*(i8*)(intptr_t)(ws+4232) = v3483;
 	i8 v3484 = (i8)(intptr_t)(ws+4168);
 	i8 v3485 = *(i8*)(intptr_t)v3484;
@@ -7856,7 +7866,7 @@ void f208_emit_17(void) {
 	((void(*)(void))(intptr_t)v3487)();
 
 }
-const i1 c02_s0132[] = { 0x2f,0 };
+const i1 c02_s0134[] = { 0x2f,0 };
 	void f174_Op2VC(void);
 
 // emit_18 workspace at ws+4224 length ws+0
@@ -7864,7 +7874,7 @@ void f209_emit_18(void) {
 
 	i1 v3488 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3488;
-	i8 v3489 = (i8)(intptr_t)c02_s0132;
+	i8 v3489 = (i8)(intptr_t)c02_s0134;
 	*(i8*)(intptr_t)(ws+4232) = v3489;
 	i8 v3490 = (i8)(intptr_t)(ws+4168);
 	i8 v3491 = *(i8*)(intptr_t)v3490;
@@ -7875,7 +7885,7 @@ void f209_emit_18(void) {
 	((void(*)(void))(intptr_t)v3493)();
 
 }
-const i1 c02_s0133[] = { 0x2f,0 };
+const i1 c02_s0135[] = { 0x2f,0 };
 	void f174_Op2VC(void);
 
 // emit_19 workspace at ws+4224 length ws+0
@@ -7883,7 +7893,7 @@ void f210_emit_19(void) {
 
 	i1 v3494 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3494;
-	i8 v3495 = (i8)(intptr_t)c02_s0133;
+	i8 v3495 = (i8)(intptr_t)c02_s0135;
 	*(i8*)(intptr_t)(ws+4232) = v3495;
 	i8 v3496 = (i8)(intptr_t)(ws+4168);
 	i8 v3497 = *(i8*)(intptr_t)v3496;
@@ -7894,7 +7904,7 @@ void f210_emit_19(void) {
 	((void(*)(void))(intptr_t)v3499)();
 
 }
-const i1 c02_s0134[] = { 0x2f,0 };
+const i1 c02_s0136[] = { 0x2f,0 };
 	void f174_Op2VC(void);
 
 // emit_20 workspace at ws+4224 length ws+0
@@ -7902,7 +7912,7 @@ void f211_emit_20(void) {
 
 	i1 v3500 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3500;
-	i8 v3501 = (i8)(intptr_t)c02_s0134;
+	i8 v3501 = (i8)(intptr_t)c02_s0136;
 	*(i8*)(intptr_t)(ws+4232) = v3501;
 	i8 v3502 = (i8)(intptr_t)(ws+4168);
 	i8 v3503 = *(i8*)(intptr_t)v3502;
@@ -7913,7 +7923,7 @@ void f211_emit_20(void) {
 	((void(*)(void))(intptr_t)v3505)();
 
 }
-const i1 c02_s0135[] = { 0x25,0 };
+const i1 c02_s0137[] = { 0x25,0 };
 	void f174_Op2VC(void);
 
 // emit_21 workspace at ws+4224 length ws+0
@@ -7921,7 +7931,7 @@ void f212_emit_21(void) {
 
 	i1 v3506 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3506;
-	i8 v3507 = (i8)(intptr_t)c02_s0135;
+	i8 v3507 = (i8)(intptr_t)c02_s0137;
 	*(i8*)(intptr_t)(ws+4232) = v3507;
 	i8 v3508 = (i8)(intptr_t)(ws+4168);
 	i8 v3509 = *(i8*)(intptr_t)v3508;
@@ -7932,7 +7942,7 @@ void f212_emit_21(void) {
 	((void(*)(void))(intptr_t)v3511)();
 
 }
-const i1 c02_s0136[] = { 0x25,0 };
+const i1 c02_s0138[] = { 0x25,0 };
 	void f174_Op2VC(void);
 
 // emit_22 workspace at ws+4224 length ws+0
@@ -7940,7 +7950,7 @@ void f213_emit_22(void) {
 
 	i1 v3512 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3512;
-	i8 v3513 = (i8)(intptr_t)c02_s0136;
+	i8 v3513 = (i8)(intptr_t)c02_s0138;
 	*(i8*)(intptr_t)(ws+4232) = v3513;
 	i8 v3514 = (i8)(intptr_t)(ws+4168);
 	i8 v3515 = *(i8*)(intptr_t)v3514;
@@ -7951,7 +7961,7 @@ void f213_emit_22(void) {
 	((void(*)(void))(intptr_t)v3517)();
 
 }
-const i1 c02_s0137[] = { 0x25,0 };
+const i1 c02_s0139[] = { 0x25,0 };
 	void f174_Op2VC(void);
 
 // emit_23 workspace at ws+4224 length ws+0
@@ -7959,7 +7969,7 @@ void f214_emit_23(void) {
 
 	i1 v3518 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3518;
-	i8 v3519 = (i8)(intptr_t)c02_s0137;
+	i8 v3519 = (i8)(intptr_t)c02_s0139;
 	*(i8*)(intptr_t)(ws+4232) = v3519;
 	i8 v3520 = (i8)(intptr_t)(ws+4168);
 	i8 v3521 = *(i8*)(intptr_t)v3520;
@@ -7970,7 +7980,7 @@ void f214_emit_23(void) {
 	((void(*)(void))(intptr_t)v3523)();
 
 }
-const i1 c02_s0138[] = { 0x25,0 };
+const i1 c02_s013a[] = { 0x25,0 };
 	void f174_Op2VC(void);
 
 // emit_24 workspace at ws+4224 length ws+0
@@ -7978,7 +7988,7 @@ void f215_emit_24(void) {
 
 	i1 v3524 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3524;
-	i8 v3525 = (i8)(intptr_t)c02_s0138;
+	i8 v3525 = (i8)(intptr_t)c02_s013a;
 	*(i8*)(intptr_t)(ws+4232) = v3525;
 	i8 v3526 = (i8)(intptr_t)(ws+4168);
 	i8 v3527 = *(i8*)(intptr_t)v3526;
@@ -7989,7 +7999,7 @@ void f215_emit_24(void) {
 	((void(*)(void))(intptr_t)v3529)();
 
 }
-const i1 c02_s0139[] = { 0x2f,0 };
+const i1 c02_s013b[] = { 0x2f,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_25 workspace at ws+4224 length ws+0
@@ -7997,7 +8007,7 @@ void f216_emit_25(void) {
 
 	i1 v3530 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3530;
-	i8 v3531 = (i8)(intptr_t)c02_s0139;
+	i8 v3531 = (i8)(intptr_t)c02_s013b;
 	*(i8*)(intptr_t)(ws+4232) = v3531;
 	i8 v3532 = (i8)(intptr_t)(ws+4168);
 	i8 v3533 = *(i8*)(intptr_t)v3532;
@@ -8008,7 +8018,7 @@ void f216_emit_25(void) {
 	((void(*)(void))(intptr_t)v3535)();
 
 }
-const i1 c02_s013a[] = { 0x2f,0 };
+const i1 c02_s013c[] = { 0x2f,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_26 workspace at ws+4224 length ws+0
@@ -8016,7 +8026,7 @@ void f217_emit_26(void) {
 
 	i1 v3536 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3536;
-	i8 v3537 = (i8)(intptr_t)c02_s013a;
+	i8 v3537 = (i8)(intptr_t)c02_s013c;
 	*(i8*)(intptr_t)(ws+4232) = v3537;
 	i8 v3538 = (i8)(intptr_t)(ws+4168);
 	i8 v3539 = *(i8*)(intptr_t)v3538;
@@ -8027,7 +8037,7 @@ void f217_emit_26(void) {
 	((void(*)(void))(intptr_t)v3541)();
 
 }
-const i1 c02_s013b[] = { 0x2f,0 };
+const i1 c02_s013d[] = { 0x2f,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_27 workspace at ws+4224 length ws+0
@@ -8035,7 +8045,7 @@ void f218_emit_27(void) {
 
 	i1 v3542 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3542;
-	i8 v3543 = (i8)(intptr_t)c02_s013b;
+	i8 v3543 = (i8)(intptr_t)c02_s013d;
 	*(i8*)(intptr_t)(ws+4232) = v3543;
 	i8 v3544 = (i8)(intptr_t)(ws+4168);
 	i8 v3545 = *(i8*)(intptr_t)v3544;
@@ -8046,7 +8056,7 @@ void f218_emit_27(void) {
 	((void(*)(void))(intptr_t)v3547)();
 
 }
-const i1 c02_s013c[] = { 0x2f,0 };
+const i1 c02_s013e[] = { 0x2f,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_28 workspace at ws+4224 length ws+0
@@ -8054,7 +8064,7 @@ void f219_emit_28(void) {
 
 	i1 v3548 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3548;
-	i8 v3549 = (i8)(intptr_t)c02_s013c;
+	i8 v3549 = (i8)(intptr_t)c02_s013e;
 	*(i8*)(intptr_t)(ws+4232) = v3549;
 	i8 v3550 = (i8)(intptr_t)(ws+4168);
 	i8 v3551 = *(i8*)(intptr_t)v3550;
@@ -8065,7 +8075,7 @@ void f219_emit_28(void) {
 	((void(*)(void))(intptr_t)v3553)();
 
 }
-const i1 c02_s013d[] = { 0x25,0 };
+const i1 c02_s013f[] = { 0x25,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_29 workspace at ws+4224 length ws+0
@@ -8073,7 +8083,7 @@ void f220_emit_29(void) {
 
 	i1 v3554 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3554;
-	i8 v3555 = (i8)(intptr_t)c02_s013d;
+	i8 v3555 = (i8)(intptr_t)c02_s013f;
 	*(i8*)(intptr_t)(ws+4232) = v3555;
 	i8 v3556 = (i8)(intptr_t)(ws+4168);
 	i8 v3557 = *(i8*)(intptr_t)v3556;
@@ -8084,7 +8094,7 @@ void f220_emit_29(void) {
 	((void(*)(void))(intptr_t)v3559)();
 
 }
-const i1 c02_s013e[] = { 0x25,0 };
+const i1 c02_s0140[] = { 0x25,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_30 workspace at ws+4224 length ws+0
@@ -8092,7 +8102,7 @@ void f221_emit_30(void) {
 
 	i1 v3560 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3560;
-	i8 v3561 = (i8)(intptr_t)c02_s013e;
+	i8 v3561 = (i8)(intptr_t)c02_s0140;
 	*(i8*)(intptr_t)(ws+4232) = v3561;
 	i8 v3562 = (i8)(intptr_t)(ws+4168);
 	i8 v3563 = *(i8*)(intptr_t)v3562;
@@ -8103,7 +8113,7 @@ void f221_emit_30(void) {
 	((void(*)(void))(intptr_t)v3565)();
 
 }
-const i1 c02_s013f[] = { 0x25,0 };
+const i1 c02_s0141[] = { 0x25,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_31 workspace at ws+4224 length ws+0
@@ -8111,7 +8121,7 @@ void f222_emit_31(void) {
 
 	i1 v3566 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3566;
-	i8 v3567 = (i8)(intptr_t)c02_s013f;
+	i8 v3567 = (i8)(intptr_t)c02_s0141;
 	*(i8*)(intptr_t)(ws+4232) = v3567;
 	i8 v3568 = (i8)(intptr_t)(ws+4168);
 	i8 v3569 = *(i8*)(intptr_t)v3568;
@@ -8122,7 +8132,7 @@ void f222_emit_31(void) {
 	((void(*)(void))(intptr_t)v3571)();
 
 }
-const i1 c02_s0140[] = { 0x25,0 };
+const i1 c02_s0142[] = { 0x25,0 };
 	void f176_Op2VCSigned(void);
 
 // emit_32 workspace at ws+4224 length ws+0
@@ -8130,7 +8140,7 @@ void f223_emit_32(void) {
 
 	i1 v3572 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3572;
-	i8 v3573 = (i8)(intptr_t)c02_s0140;
+	i8 v3573 = (i8)(intptr_t)c02_s0142;
 	*(i8*)(intptr_t)(ws+4232) = v3573;
 	i8 v3574 = (i8)(intptr_t)(ws+4168);
 	i8 v3575 = *(i8*)(intptr_t)v3574;
@@ -8141,7 +8151,7 @@ void f223_emit_32(void) {
 	((void(*)(void))(intptr_t)v3577)();
 
 }
-const i1 c02_s0141[] = { 0x26,0 };
+const i1 c02_s0143[] = { 0x26,0 };
 	void f174_Op2VC(void);
 
 // emit_33 workspace at ws+4224 length ws+0
@@ -8149,7 +8159,7 @@ void f224_emit_33(void) {
 
 	i1 v3578 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3578;
-	i8 v3579 = (i8)(intptr_t)c02_s0141;
+	i8 v3579 = (i8)(intptr_t)c02_s0143;
 	*(i8*)(intptr_t)(ws+4232) = v3579;
 	i8 v3580 = (i8)(intptr_t)(ws+4168);
 	i8 v3581 = *(i8*)(intptr_t)v3580;
@@ -8160,7 +8170,7 @@ void f224_emit_33(void) {
 	((void(*)(void))(intptr_t)v3583)();
 
 }
-const i1 c02_s0142[] = { 0x26,0 };
+const i1 c02_s0144[] = { 0x26,0 };
 	void f174_Op2VC(void);
 
 // emit_34 workspace at ws+4224 length ws+0
@@ -8168,7 +8178,7 @@ void f225_emit_34(void) {
 
 	i1 v3584 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3584;
-	i8 v3585 = (i8)(intptr_t)c02_s0142;
+	i8 v3585 = (i8)(intptr_t)c02_s0144;
 	*(i8*)(intptr_t)(ws+4232) = v3585;
 	i8 v3586 = (i8)(intptr_t)(ws+4168);
 	i8 v3587 = *(i8*)(intptr_t)v3586;
@@ -8179,7 +8189,7 @@ void f225_emit_34(void) {
 	((void(*)(void))(intptr_t)v3589)();
 
 }
-const i1 c02_s0143[] = { 0x26,0 };
+const i1 c02_s0145[] = { 0x26,0 };
 	void f174_Op2VC(void);
 
 // emit_35 workspace at ws+4224 length ws+0
@@ -8187,7 +8197,7 @@ void f226_emit_35(void) {
 
 	i1 v3590 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3590;
-	i8 v3591 = (i8)(intptr_t)c02_s0143;
+	i8 v3591 = (i8)(intptr_t)c02_s0145;
 	*(i8*)(intptr_t)(ws+4232) = v3591;
 	i8 v3592 = (i8)(intptr_t)(ws+4168);
 	i8 v3593 = *(i8*)(intptr_t)v3592;
@@ -8198,7 +8208,7 @@ void f226_emit_35(void) {
 	((void(*)(void))(intptr_t)v3595)();
 
 }
-const i1 c02_s0144[] = { 0x26,0 };
+const i1 c02_s0146[] = { 0x26,0 };
 	void f174_Op2VC(void);
 
 // emit_36 workspace at ws+4224 length ws+0
@@ -8206,7 +8216,7 @@ void f227_emit_36(void) {
 
 	i1 v3596 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3596;
-	i8 v3597 = (i8)(intptr_t)c02_s0144;
+	i8 v3597 = (i8)(intptr_t)c02_s0146;
 	*(i8*)(intptr_t)(ws+4232) = v3597;
 	i8 v3598 = (i8)(intptr_t)(ws+4168);
 	i8 v3599 = *(i8*)(intptr_t)v3598;
@@ -8217,7 +8227,7 @@ void f227_emit_36(void) {
 	((void(*)(void))(intptr_t)v3601)();
 
 }
-const i1 c02_s0145[] = { 0x7c,0 };
+const i1 c02_s0147[] = { 0x7c,0 };
 	void f174_Op2VC(void);
 
 // emit_37 workspace at ws+4224 length ws+0
@@ -8225,7 +8235,7 @@ void f228_emit_37(void) {
 
 	i1 v3602 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3602;
-	i8 v3603 = (i8)(intptr_t)c02_s0145;
+	i8 v3603 = (i8)(intptr_t)c02_s0147;
 	*(i8*)(intptr_t)(ws+4232) = v3603;
 	i8 v3604 = (i8)(intptr_t)(ws+4168);
 	i8 v3605 = *(i8*)(intptr_t)v3604;
@@ -8236,7 +8246,7 @@ void f228_emit_37(void) {
 	((void(*)(void))(intptr_t)v3607)();
 
 }
-const i1 c02_s0146[] = { 0x7c,0 };
+const i1 c02_s0148[] = { 0x7c,0 };
 	void f174_Op2VC(void);
 
 // emit_38 workspace at ws+4224 length ws+0
@@ -8244,7 +8254,7 @@ void f229_emit_38(void) {
 
 	i1 v3608 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3608;
-	i8 v3609 = (i8)(intptr_t)c02_s0146;
+	i8 v3609 = (i8)(intptr_t)c02_s0148;
 	*(i8*)(intptr_t)(ws+4232) = v3609;
 	i8 v3610 = (i8)(intptr_t)(ws+4168);
 	i8 v3611 = *(i8*)(intptr_t)v3610;
@@ -8255,7 +8265,7 @@ void f229_emit_38(void) {
 	((void(*)(void))(intptr_t)v3613)();
 
 }
-const i1 c02_s0147[] = { 0x7c,0 };
+const i1 c02_s0149[] = { 0x7c,0 };
 	void f174_Op2VC(void);
 
 // emit_39 workspace at ws+4224 length ws+0
@@ -8263,7 +8273,7 @@ void f230_emit_39(void) {
 
 	i1 v3614 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3614;
-	i8 v3615 = (i8)(intptr_t)c02_s0147;
+	i8 v3615 = (i8)(intptr_t)c02_s0149;
 	*(i8*)(intptr_t)(ws+4232) = v3615;
 	i8 v3616 = (i8)(intptr_t)(ws+4168);
 	i8 v3617 = *(i8*)(intptr_t)v3616;
@@ -8274,7 +8284,7 @@ void f230_emit_39(void) {
 	((void(*)(void))(intptr_t)v3619)();
 
 }
-const i1 c02_s0148[] = { 0x7c,0 };
+const i1 c02_s014a[] = { 0x7c,0 };
 	void f174_Op2VC(void);
 
 // emit_40 workspace at ws+4224 length ws+0
@@ -8282,7 +8292,7 @@ void f231_emit_40(void) {
 
 	i1 v3620 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3620;
-	i8 v3621 = (i8)(intptr_t)c02_s0148;
+	i8 v3621 = (i8)(intptr_t)c02_s014a;
 	*(i8*)(intptr_t)(ws+4232) = v3621;
 	i8 v3622 = (i8)(intptr_t)(ws+4168);
 	i8 v3623 = *(i8*)(intptr_t)v3622;
@@ -8293,7 +8303,7 @@ void f231_emit_40(void) {
 	((void(*)(void))(intptr_t)v3625)();
 
 }
-const i1 c02_s0149[] = { 0x5e,0 };
+const i1 c02_s014b[] = { 0x5e,0 };
 	void f174_Op2VC(void);
 
 // emit_41 workspace at ws+4224 length ws+0
@@ -8301,7 +8311,7 @@ void f232_emit_41(void) {
 
 	i1 v3626 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3626;
-	i8 v3627 = (i8)(intptr_t)c02_s0149;
+	i8 v3627 = (i8)(intptr_t)c02_s014b;
 	*(i8*)(intptr_t)(ws+4232) = v3627;
 	i8 v3628 = (i8)(intptr_t)(ws+4168);
 	i8 v3629 = *(i8*)(intptr_t)v3628;
@@ -8312,7 +8322,7 @@ void f232_emit_41(void) {
 	((void(*)(void))(intptr_t)v3631)();
 
 }
-const i1 c02_s014a[] = { 0x5e,0 };
+const i1 c02_s014c[] = { 0x5e,0 };
 	void f174_Op2VC(void);
 
 // emit_42 workspace at ws+4224 length ws+0
@@ -8320,7 +8330,7 @@ void f233_emit_42(void) {
 
 	i1 v3632 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3632;
-	i8 v3633 = (i8)(intptr_t)c02_s014a;
+	i8 v3633 = (i8)(intptr_t)c02_s014c;
 	*(i8*)(intptr_t)(ws+4232) = v3633;
 	i8 v3634 = (i8)(intptr_t)(ws+4168);
 	i8 v3635 = *(i8*)(intptr_t)v3634;
@@ -8331,7 +8341,7 @@ void f233_emit_42(void) {
 	((void(*)(void))(intptr_t)v3637)();
 
 }
-const i1 c02_s014b[] = { 0x5e,0 };
+const i1 c02_s014d[] = { 0x5e,0 };
 	void f174_Op2VC(void);
 
 // emit_43 workspace at ws+4224 length ws+0
@@ -8339,7 +8349,7 @@ void f234_emit_43(void) {
 
 	i1 v3638 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3638;
-	i8 v3639 = (i8)(intptr_t)c02_s014b;
+	i8 v3639 = (i8)(intptr_t)c02_s014d;
 	*(i8*)(intptr_t)(ws+4232) = v3639;
 	i8 v3640 = (i8)(intptr_t)(ws+4168);
 	i8 v3641 = *(i8*)(intptr_t)v3640;
@@ -8350,7 +8360,7 @@ void f234_emit_43(void) {
 	((void(*)(void))(intptr_t)v3643)();
 
 }
-const i1 c02_s014c[] = { 0x5e,0 };
+const i1 c02_s014e[] = { 0x5e,0 };
 	void f174_Op2VC(void);
 
 // emit_44 workspace at ws+4224 length ws+0
@@ -8358,7 +8368,7 @@ void f235_emit_44(void) {
 
 	i1 v3644 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3644;
-	i8 v3645 = (i8)(intptr_t)c02_s014c;
+	i8 v3645 = (i8)(intptr_t)c02_s014e;
 	*(i8*)(intptr_t)(ws+4232) = v3645;
 	i8 v3646 = (i8)(intptr_t)(ws+4168);
 	i8 v3647 = *(i8*)(intptr_t)v3646;
@@ -8370,7 +8380,7 @@ void f235_emit_44(void) {
 
 }
 	void f103_E_labelref(void);
-const i1 c02_s014d[] = { 0x3a,0x3b,0x0a,0 };
+const i1 c02_s014f[] = { 0x3a,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // emit_47 workspace at ws+4224 length ws+0
@@ -8384,23 +8394,23 @@ void f236_emit_47(void) {
 
 	((void(*)(void))(intptr_t)v3653)();
 
-	i8 v3654 = (i8)(intptr_t)c02_s014d;
+	i8 v3654 = (i8)(intptr_t)c02_s014f;
 	*(i8*)(intptr_t)(ws+4320) = v3654;
 	i8 v3655 = (i8)(intptr_t)(f92_E);
 
 	((void(*)(void))(intptr_t)v3655)();
 
 }
-const i1 c02_s014e[] = { 0x09,0x67,0x6f,0x74,0x6f,0x20,0 };
+const i1 c02_s0150[] = { 0x09,0x67,0x6f,0x74,0x6f,0x20,0 };
 	void f92_E(void);
 	void f103_E_labelref(void);
-const i1 c02_s014f[] = { 0x3b,0x0a,0 };
+const i1 c02_s0151[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // emit_48 workspace at ws+4224 length ws+0
 void f237_emit_48(void) {
 
-	i8 v3656 = (i8)(intptr_t)c02_s014e;
+	i8 v3656 = (i8)(intptr_t)c02_s0150;
 	*(i8*)(intptr_t)(ws+4320) = v3656;
 	i8 v3657 = (i8)(intptr_t)(f92_E);
 
@@ -8414,20 +8424,20 @@ void f237_emit_48(void) {
 
 	((void(*)(void))(intptr_t)v3661)();
 
-	i8 v3662 = (i8)(intptr_t)c02_s014f;
+	i8 v3662 = (i8)(intptr_t)c02_s0151;
 	*(i8*)(intptr_t)(ws+4320) = v3662;
 	i8 v3663 = (i8)(intptr_t)(f92_E);
 
 	((void(*)(void))(intptr_t)v3663)();
 
 }
-const i1 c02_s0150[] = { 0x09,0x72,0x65,0x74,0x75,0x72,0x6e,0x3b,0x0a,0 };
+const i1 c02_s0152[] = { 0x09,0x72,0x65,0x74,0x75,0x72,0x6e,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // emit_49 workspace at ws+4224 length ws+0
 void f238_emit_49(void) {
 
-	i8 v3664 = (i8)(intptr_t)c02_s0150;
+	i8 v3664 = (i8)(intptr_t)c02_s0152;
 	*(i8*)(intptr_t)(ws+4320) = v3664;
 	i8 v3665 = (i8)(intptr_t)(f92_E);
 
@@ -8435,24 +8445,24 @@ void f238_emit_49(void) {
 
 }
 	void f106_EmitterOpenStream(void);
-const i1 c02_s0151[] = { 0x0a,0x2f,0x2f,0x20,0 };
+const i1 c02_s0153[] = { 0x0a,0x2f,0x2f,0x20,0 };
 	void f92_E(void);
 	void f92_E(void);
-const i1 c02_s0152[] = { 0x20,0x77,0x6f,0x72,0x6b,0x73,0x70,0x61,0x63,0x65,0x20,0x61,0x74,0x20,0 };
-	void f92_E(void);
-	void f83_E_b8(void);
-	void f84_E_b16(void);
-	void f83_E_b8(void);
-	void f84_E_b16(void);
-const i1 c02_s0153[] = { 0x20,0x6c,0x65,0x6e,0x67,0x74,0x68,0x20,0 };
+const i1 c02_s0154[] = { 0x20,0x77,0x6f,0x72,0x6b,0x73,0x70,0x61,0x63,0x65,0x20,0x61,0x74,0x20,0 };
 	void f92_E(void);
 	void f83_E_b8(void);
 	void f84_E_b16(void);
 	void f83_E_b8(void);
-const i1 c02_s0154[] = { 0x0a,0x76,0x6f,0x69,0x64,0x20,0 };
+	void f84_E_b16(void);
+const i1 c02_s0155[] = { 0x20,0x6c,0x65,0x6e,0x67,0x74,0x68,0x20,0 };
+	void f92_E(void);
+	void f83_E_b8(void);
+	void f84_E_b16(void);
+	void f83_E_b8(void);
+const i1 c02_s0156[] = { 0x0a,0x76,0x6f,0x69,0x64,0x20,0 };
 	void f92_E(void);
 	void f104_E_subref(void);
-const i1 c02_s0155[] = { 0x28,0x76,0x6f,0x69,0x64,0x29,0x20,0x7b,0x0a,0 };
+const i1 c02_s0157[] = { 0x28,0x76,0x6f,0x69,0x64,0x29,0x20,0x7b,0x0a,0 };
 	void f92_E(void);
 
 // emit_50 workspace at ws+4224 length ws+0
@@ -8465,7 +8475,7 @@ void f239_emit_50(void) {
 
 	((void(*)(void))(intptr_t)v3668)();
 
-	i8 v3669 = (i8)(intptr_t)c02_s0151;
+	i8 v3669 = (i8)(intptr_t)c02_s0153;
 	*(i8*)(intptr_t)(ws+4320) = v3669;
 	i8 v3670 = (i8)(intptr_t)(f92_E);
 
@@ -8479,7 +8489,7 @@ void f239_emit_50(void) {
 
 	((void(*)(void))(intptr_t)v3674)();
 
-	i8 v3675 = (i8)(intptr_t)c02_s0152;
+	i8 v3675 = (i8)(intptr_t)c02_s0154;
 	*(i8*)(intptr_t)(ws+4320) = v3675;
 	i8 v3676 = (i8)(intptr_t)(f92_E);
 
@@ -8512,7 +8522,7 @@ void f239_emit_50(void) {
 
 	((void(*)(void))(intptr_t)v3687)();
 
-	i8 v3688 = (i8)(intptr_t)c02_s0153;
+	i8 v3688 = (i8)(intptr_t)c02_s0155;
 	*(i8*)(intptr_t)(ws+4320) = v3688;
 	i8 v3689 = (i8)(intptr_t)(f92_E);
 
@@ -8539,7 +8549,7 @@ void f239_emit_50(void) {
 
 	((void(*)(void))(intptr_t)v3698)();
 
-	i8 v3699 = (i8)(intptr_t)c02_s0154;
+	i8 v3699 = (i8)(intptr_t)c02_s0156;
 	*(i8*)(intptr_t)(ws+4320) = v3699;
 	i8 v3700 = (i8)(intptr_t)(f92_E);
 
@@ -8552,21 +8562,21 @@ void f239_emit_50(void) {
 
 	((void(*)(void))(intptr_t)v3703)();
 
-	i8 v3704 = (i8)(intptr_t)c02_s0155;
+	i8 v3704 = (i8)(intptr_t)c02_s0157;
 	*(i8*)(intptr_t)(ws+4320) = v3704;
 	i8 v3705 = (i8)(intptr_t)(f92_E);
 
 	((void(*)(void))(intptr_t)v3705)();
 
 }
-const i1 c02_s0156[] = { 0x7d,0x0a,0 };
+const i1 c02_s0158[] = { 0x7d,0x0a,0 };
 	void f92_E(void);
 	void f107_EmitterCloseStream(void);
 
 // emit_51 workspace at ws+4224 length ws+0
 void f240_emit_51(void) {
 
-	i8 v3706 = (i8)(intptr_t)c02_s0156;
+	i8 v3706 = (i8)(intptr_t)c02_s0158;
 	*(i8*)(intptr_t)(ws+4320) = v3706;
 	i8 v3707 = (i8)(intptr_t)(f92_E);
 
@@ -8786,13 +8796,13 @@ void f253_emit_65(void) {
 
 }
 	void f160_Push(void);
-const i1 c02_s0157[] = { 0x09,0x69,0x38,0x20,0x76,0 };
+const i1 c02_s0159[] = { 0x09,0x69,0x38,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s0158[] = { 0x20,0x3d,0x20,0x28,0x69,0x38,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
+const i1 c02_s015a[] = { 0x20,0x3d,0x20,0x28,0x69,0x38,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
 	void f92_E(void);
 	void f156_E_symref(void);
-const i1 c02_s0159[] = { 0x29,0x3b,0x0a,0 };
+const i1 c02_s015b[] = { 0x29,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // emit_66 workspace at ws+4224 length ws+4
@@ -8811,7 +8821,7 @@ void f254_emit_66(void) {
 	i8 v3780 = (i8)(intptr_t)(ws+4226);
 	*(i2*)(intptr_t)v3780 = v3779;
 
-	i8 v3781 = (i8)(intptr_t)c02_s0157;
+	i8 v3781 = (i8)(intptr_t)c02_s0159;
 	*(i8*)(intptr_t)(ws+4320) = v3781;
 	i8 v3782 = (i8)(intptr_t)(f92_E);
 
@@ -8824,7 +8834,7 @@ void f254_emit_66(void) {
 
 	((void(*)(void))(intptr_t)v3785)();
 
-	i8 v3786 = (i8)(intptr_t)c02_s0158;
+	i8 v3786 = (i8)(intptr_t)c02_s015a;
 	*(i8*)(intptr_t)(ws+4320) = v3786;
 	i8 v3787 = (i8)(intptr_t)(f92_E);
 
@@ -8842,7 +8852,7 @@ void f254_emit_66(void) {
 
 	((void(*)(void))(intptr_t)v3794)();
 
-	i8 v3795 = (i8)(intptr_t)c02_s0159;
+	i8 v3795 = (i8)(intptr_t)c02_s015b;
 	*(i8*)(intptr_t)(ws+4320) = v3795;
 	i8 v3796 = (i8)(intptr_t)(f92_E);
 
@@ -8850,13 +8860,13 @@ void f254_emit_66(void) {
 
 }
 	void f160_Push(void);
-const i1 c02_s015a[] = { 0x09,0x69,0x38,0x20,0x76,0 };
+const i1 c02_s015c[] = { 0x09,0x69,0x38,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s015b[] = { 0x20,0x3d,0x20,0x28,0x69,0x38,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
+const i1 c02_s015d[] = { 0x20,0x3d,0x20,0x28,0x69,0x38,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
 	void f92_E(void);
 	void f155_E_subref_sig(void);
-const i1 c02_s015c[] = { 0x29,0x3b,0x0a,0 };
+const i1 c02_s015e[] = { 0x29,0x3b,0x0a,0 };
 	void f92_E(void);
 
 // emit_67 workspace at ws+4224 length ws+4
@@ -8875,7 +8885,7 @@ void f255_emit_67(void) {
 	i8 v3802 = (i8)(intptr_t)(ws+4226);
 	*(i2*)(intptr_t)v3802 = v3801;
 
-	i8 v3803 = (i8)(intptr_t)c02_s015a;
+	i8 v3803 = (i8)(intptr_t)c02_s015c;
 	*(i8*)(intptr_t)(ws+4320) = v3803;
 	i8 v3804 = (i8)(intptr_t)(f92_E);
 
@@ -8888,7 +8898,7 @@ void f255_emit_67(void) {
 
 	((void(*)(void))(intptr_t)v3807)();
 
-	i8 v3808 = (i8)(intptr_t)c02_s015b;
+	i8 v3808 = (i8)(intptr_t)c02_s015d;
 	*(i8*)(intptr_t)(ws+4320) = v3808;
 	i8 v3809 = (i8)(intptr_t)(f92_E);
 
@@ -8902,7 +8912,7 @@ void f255_emit_67(void) {
 
 	((void(*)(void))(intptr_t)v3813)();
 
-	i8 v3814 = (i8)(intptr_t)c02_s015c;
+	i8 v3814 = (i8)(intptr_t)c02_s015e;
 	*(i8*)(intptr_t)(ws+4320) = v3814;
 	i8 v3815 = (i8)(intptr_t)(f92_E);
 
@@ -8957,7 +8967,7 @@ void f259_emit_71(void) {
 	((void(*)(void))(intptr_t)v3823)();
 
 }
-const i1 c02_s015d[] = { 0x2b,0 };
+const i1 c02_s015f[] = { 0x2b,0 };
 	void f173_Op2VV(void);
 
 // emit_72 workspace at ws+4224 length ws+0
@@ -8965,14 +8975,14 @@ void f260_emit_72(void) {
 
 	i1 v3824 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3824;
-	i8 v3825 = (i8)(intptr_t)c02_s015d;
+	i8 v3825 = (i8)(intptr_t)c02_s015f;
 	*(i8*)(intptr_t)(ws+4232) = v3825;
 	i8 v3826 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3826)();
 
 }
-const i1 c02_s015e[] = { 0x2b,0 };
+const i1 c02_s0160[] = { 0x2b,0 };
 	void f173_Op2VV(void);
 
 // emit_73 workspace at ws+4224 length ws+0
@@ -8980,14 +8990,14 @@ void f261_emit_73(void) {
 
 	i1 v3827 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3827;
-	i8 v3828 = (i8)(intptr_t)c02_s015e;
+	i8 v3828 = (i8)(intptr_t)c02_s0160;
 	*(i8*)(intptr_t)(ws+4232) = v3828;
 	i8 v3829 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3829)();
 
 }
-const i1 c02_s015f[] = { 0x2b,0 };
+const i1 c02_s0161[] = { 0x2b,0 };
 	void f173_Op2VV(void);
 
 // emit_74 workspace at ws+4224 length ws+0
@@ -8995,14 +9005,14 @@ void f262_emit_74(void) {
 
 	i1 v3830 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3830;
-	i8 v3831 = (i8)(intptr_t)c02_s015f;
+	i8 v3831 = (i8)(intptr_t)c02_s0161;
 	*(i8*)(intptr_t)(ws+4232) = v3831;
 	i8 v3832 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3832)();
 
 }
-const i1 c02_s0160[] = { 0x2b,0 };
+const i1 c02_s0162[] = { 0x2b,0 };
 	void f173_Op2VV(void);
 
 // emit_75 workspace at ws+4224 length ws+0
@@ -9010,14 +9020,14 @@ void f263_emit_75(void) {
 
 	i1 v3833 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3833;
-	i8 v3834 = (i8)(intptr_t)c02_s0160;
+	i8 v3834 = (i8)(intptr_t)c02_s0162;
 	*(i8*)(intptr_t)(ws+4232) = v3834;
 	i8 v3835 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3835)();
 
 }
-const i1 c02_s0161[] = { 0x2d,0 };
+const i1 c02_s0163[] = { 0x2d,0 };
 	void f173_Op2VV(void);
 
 // emit_76 workspace at ws+4224 length ws+0
@@ -9025,14 +9035,14 @@ void f264_emit_76(void) {
 
 	i1 v3836 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3836;
-	i8 v3837 = (i8)(intptr_t)c02_s0161;
+	i8 v3837 = (i8)(intptr_t)c02_s0163;
 	*(i8*)(intptr_t)(ws+4232) = v3837;
 	i8 v3838 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3838)();
 
 }
-const i1 c02_s0162[] = { 0x2d,0 };
+const i1 c02_s0164[] = { 0x2d,0 };
 	void f173_Op2VV(void);
 
 // emit_77 workspace at ws+4224 length ws+0
@@ -9040,14 +9050,14 @@ void f265_emit_77(void) {
 
 	i1 v3839 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3839;
-	i8 v3840 = (i8)(intptr_t)c02_s0162;
+	i8 v3840 = (i8)(intptr_t)c02_s0164;
 	*(i8*)(intptr_t)(ws+4232) = v3840;
 	i8 v3841 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3841)();
 
 }
-const i1 c02_s0163[] = { 0x2d,0 };
+const i1 c02_s0165[] = { 0x2d,0 };
 	void f173_Op2VV(void);
 
 // emit_78 workspace at ws+4224 length ws+0
@@ -9055,14 +9065,14 @@ void f266_emit_78(void) {
 
 	i1 v3842 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3842;
-	i8 v3843 = (i8)(intptr_t)c02_s0163;
+	i8 v3843 = (i8)(intptr_t)c02_s0165;
 	*(i8*)(intptr_t)(ws+4232) = v3843;
 	i8 v3844 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3844)();
 
 }
-const i1 c02_s0164[] = { 0x2d,0 };
+const i1 c02_s0166[] = { 0x2d,0 };
 	void f173_Op2VV(void);
 
 // emit_79 workspace at ws+4224 length ws+0
@@ -9070,14 +9080,14 @@ void f267_emit_79(void) {
 
 	i1 v3845 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3845;
-	i8 v3846 = (i8)(intptr_t)c02_s0164;
+	i8 v3846 = (i8)(intptr_t)c02_s0166;
 	*(i8*)(intptr_t)(ws+4232) = v3846;
 	i8 v3847 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3847)();
 
 }
-const i1 c02_s0165[] = { 0x2a,0 };
+const i1 c02_s0167[] = { 0x2a,0 };
 	void f173_Op2VV(void);
 
 // emit_80 workspace at ws+4224 length ws+0
@@ -9085,14 +9095,14 @@ void f268_emit_80(void) {
 
 	i1 v3848 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3848;
-	i8 v3849 = (i8)(intptr_t)c02_s0165;
+	i8 v3849 = (i8)(intptr_t)c02_s0167;
 	*(i8*)(intptr_t)(ws+4232) = v3849;
 	i8 v3850 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3850)();
 
 }
-const i1 c02_s0166[] = { 0x2a,0 };
+const i1 c02_s0168[] = { 0x2a,0 };
 	void f173_Op2VV(void);
 
 // emit_81 workspace at ws+4224 length ws+0
@@ -9100,14 +9110,14 @@ void f269_emit_81(void) {
 
 	i1 v3851 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3851;
-	i8 v3852 = (i8)(intptr_t)c02_s0166;
+	i8 v3852 = (i8)(intptr_t)c02_s0168;
 	*(i8*)(intptr_t)(ws+4232) = v3852;
 	i8 v3853 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3853)();
 
 }
-const i1 c02_s0167[] = { 0x2a,0 };
+const i1 c02_s0169[] = { 0x2a,0 };
 	void f173_Op2VV(void);
 
 // emit_82 workspace at ws+4224 length ws+0
@@ -9115,14 +9125,14 @@ void f270_emit_82(void) {
 
 	i1 v3854 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3854;
-	i8 v3855 = (i8)(intptr_t)c02_s0167;
+	i8 v3855 = (i8)(intptr_t)c02_s0169;
 	*(i8*)(intptr_t)(ws+4232) = v3855;
 	i8 v3856 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3856)();
 
 }
-const i1 c02_s0168[] = { 0x2a,0 };
+const i1 c02_s016a[] = { 0x2a,0 };
 	void f173_Op2VV(void);
 
 // emit_83 workspace at ws+4224 length ws+0
@@ -9130,14 +9140,14 @@ void f271_emit_83(void) {
 
 	i1 v3857 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3857;
-	i8 v3858 = (i8)(intptr_t)c02_s0168;
+	i8 v3858 = (i8)(intptr_t)c02_s016a;
 	*(i8*)(intptr_t)(ws+4232) = v3858;
 	i8 v3859 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3859)();
 
 }
-const i1 c02_s0169[] = { 0x2f,0 };
+const i1 c02_s016b[] = { 0x2f,0 };
 	void f173_Op2VV(void);
 
 // emit_84 workspace at ws+4224 length ws+0
@@ -9145,14 +9155,14 @@ void f272_emit_84(void) {
 
 	i1 v3860 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3860;
-	i8 v3861 = (i8)(intptr_t)c02_s0169;
+	i8 v3861 = (i8)(intptr_t)c02_s016b;
 	*(i8*)(intptr_t)(ws+4232) = v3861;
 	i8 v3862 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3862)();
 
 }
-const i1 c02_s016a[] = { 0x2f,0 };
+const i1 c02_s016c[] = { 0x2f,0 };
 	void f173_Op2VV(void);
 
 // emit_85 workspace at ws+4224 length ws+0
@@ -9160,14 +9170,14 @@ void f273_emit_85(void) {
 
 	i1 v3863 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3863;
-	i8 v3864 = (i8)(intptr_t)c02_s016a;
+	i8 v3864 = (i8)(intptr_t)c02_s016c;
 	*(i8*)(intptr_t)(ws+4232) = v3864;
 	i8 v3865 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3865)();
 
 }
-const i1 c02_s016b[] = { 0x2f,0 };
+const i1 c02_s016d[] = { 0x2f,0 };
 	void f173_Op2VV(void);
 
 // emit_86 workspace at ws+4224 length ws+0
@@ -9175,14 +9185,14 @@ void f274_emit_86(void) {
 
 	i1 v3866 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3866;
-	i8 v3867 = (i8)(intptr_t)c02_s016b;
+	i8 v3867 = (i8)(intptr_t)c02_s016d;
 	*(i8*)(intptr_t)(ws+4232) = v3867;
 	i8 v3868 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3868)();
 
 }
-const i1 c02_s016c[] = { 0x2f,0 };
+const i1 c02_s016e[] = { 0x2f,0 };
 	void f173_Op2VV(void);
 
 // emit_87 workspace at ws+4224 length ws+0
@@ -9190,14 +9200,14 @@ void f275_emit_87(void) {
 
 	i1 v3869 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3869;
-	i8 v3870 = (i8)(intptr_t)c02_s016c;
+	i8 v3870 = (i8)(intptr_t)c02_s016e;
 	*(i8*)(intptr_t)(ws+4232) = v3870;
 	i8 v3871 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3871)();
 
 }
-const i1 c02_s016d[] = { 0x25,0 };
+const i1 c02_s016f[] = { 0x25,0 };
 	void f173_Op2VV(void);
 
 // emit_88 workspace at ws+4224 length ws+0
@@ -9205,14 +9215,14 @@ void f276_emit_88(void) {
 
 	i1 v3872 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3872;
-	i8 v3873 = (i8)(intptr_t)c02_s016d;
+	i8 v3873 = (i8)(intptr_t)c02_s016f;
 	*(i8*)(intptr_t)(ws+4232) = v3873;
 	i8 v3874 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3874)();
 
 }
-const i1 c02_s016e[] = { 0x25,0 };
+const i1 c02_s0170[] = { 0x25,0 };
 	void f173_Op2VV(void);
 
 // emit_89 workspace at ws+4224 length ws+0
@@ -9220,14 +9230,14 @@ void f277_emit_89(void) {
 
 	i1 v3875 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3875;
-	i8 v3876 = (i8)(intptr_t)c02_s016e;
+	i8 v3876 = (i8)(intptr_t)c02_s0170;
 	*(i8*)(intptr_t)(ws+4232) = v3876;
 	i8 v3877 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3877)();
 
 }
-const i1 c02_s016f[] = { 0x25,0 };
+const i1 c02_s0171[] = { 0x25,0 };
 	void f173_Op2VV(void);
 
 // emit_90 workspace at ws+4224 length ws+0
@@ -9235,14 +9245,14 @@ void f278_emit_90(void) {
 
 	i1 v3878 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3878;
-	i8 v3879 = (i8)(intptr_t)c02_s016f;
+	i8 v3879 = (i8)(intptr_t)c02_s0171;
 	*(i8*)(intptr_t)(ws+4232) = v3879;
 	i8 v3880 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3880)();
 
 }
-const i1 c02_s0170[] = { 0x25,0 };
+const i1 c02_s0172[] = { 0x25,0 };
 	void f173_Op2VV(void);
 
 // emit_91 workspace at ws+4224 length ws+0
@@ -9250,14 +9260,14 @@ void f279_emit_91(void) {
 
 	i1 v3881 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3881;
-	i8 v3882 = (i8)(intptr_t)c02_s0170;
+	i8 v3882 = (i8)(intptr_t)c02_s0172;
 	*(i8*)(intptr_t)(ws+4232) = v3882;
 	i8 v3883 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3883)();
 
 }
-const i1 c02_s0171[] = { 0x2f,0 };
+const i1 c02_s0173[] = { 0x2f,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_92 workspace at ws+4224 length ws+0
@@ -9265,14 +9275,14 @@ void f280_emit_92(void) {
 
 	i1 v3884 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3884;
-	i8 v3885 = (i8)(intptr_t)c02_s0171;
+	i8 v3885 = (i8)(intptr_t)c02_s0173;
 	*(i8*)(intptr_t)(ws+4232) = v3885;
 	i8 v3886 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3886)();
 
 }
-const i1 c02_s0172[] = { 0x2f,0 };
+const i1 c02_s0174[] = { 0x2f,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_93 workspace at ws+4224 length ws+0
@@ -9280,14 +9290,14 @@ void f281_emit_93(void) {
 
 	i1 v3887 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3887;
-	i8 v3888 = (i8)(intptr_t)c02_s0172;
+	i8 v3888 = (i8)(intptr_t)c02_s0174;
 	*(i8*)(intptr_t)(ws+4232) = v3888;
 	i8 v3889 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3889)();
 
 }
-const i1 c02_s0173[] = { 0x2f,0 };
+const i1 c02_s0175[] = { 0x2f,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_94 workspace at ws+4224 length ws+0
@@ -9295,14 +9305,14 @@ void f282_emit_94(void) {
 
 	i1 v3890 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3890;
-	i8 v3891 = (i8)(intptr_t)c02_s0173;
+	i8 v3891 = (i8)(intptr_t)c02_s0175;
 	*(i8*)(intptr_t)(ws+4232) = v3891;
 	i8 v3892 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3892)();
 
 }
-const i1 c02_s0174[] = { 0x2f,0 };
+const i1 c02_s0176[] = { 0x2f,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_95 workspace at ws+4224 length ws+0
@@ -9310,14 +9320,14 @@ void f283_emit_95(void) {
 
 	i1 v3893 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3893;
-	i8 v3894 = (i8)(intptr_t)c02_s0174;
+	i8 v3894 = (i8)(intptr_t)c02_s0176;
 	*(i8*)(intptr_t)(ws+4232) = v3894;
 	i8 v3895 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3895)();
 
 }
-const i1 c02_s0175[] = { 0x25,0 };
+const i1 c02_s0177[] = { 0x25,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_96 workspace at ws+4224 length ws+0
@@ -9325,14 +9335,14 @@ void f284_emit_96(void) {
 
 	i1 v3896 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3896;
-	i8 v3897 = (i8)(intptr_t)c02_s0175;
+	i8 v3897 = (i8)(intptr_t)c02_s0177;
 	*(i8*)(intptr_t)(ws+4232) = v3897;
 	i8 v3898 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3898)();
 
 }
-const i1 c02_s0176[] = { 0x25,0 };
+const i1 c02_s0178[] = { 0x25,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_97 workspace at ws+4224 length ws+0
@@ -9340,14 +9350,14 @@ void f285_emit_97(void) {
 
 	i1 v3899 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3899;
-	i8 v3900 = (i8)(intptr_t)c02_s0176;
+	i8 v3900 = (i8)(intptr_t)c02_s0178;
 	*(i8*)(intptr_t)(ws+4232) = v3900;
 	i8 v3901 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3901)();
 
 }
-const i1 c02_s0177[] = { 0x25,0 };
+const i1 c02_s0179[] = { 0x25,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_98 workspace at ws+4224 length ws+0
@@ -9355,14 +9365,14 @@ void f286_emit_98(void) {
 
 	i1 v3902 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3902;
-	i8 v3903 = (i8)(intptr_t)c02_s0177;
+	i8 v3903 = (i8)(intptr_t)c02_s0179;
 	*(i8*)(intptr_t)(ws+4232) = v3903;
 	i8 v3904 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3904)();
 
 }
-const i1 c02_s0178[] = { 0x25,0 };
+const i1 c02_s017a[] = { 0x25,0 };
 	void f175_Op2VVSigned(void);
 
 // emit_99 workspace at ws+4224 length ws+0
@@ -9370,14 +9380,14 @@ void f287_emit_99(void) {
 
 	i1 v3905 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3905;
-	i8 v3906 = (i8)(intptr_t)c02_s0178;
+	i8 v3906 = (i8)(intptr_t)c02_s017a;
 	*(i8*)(intptr_t)(ws+4232) = v3906;
 	i8 v3907 = (i8)(intptr_t)(f175_Op2VVSigned);
 
 	((void(*)(void))(intptr_t)v3907)();
 
 }
-const i1 c02_s0179[] = { 0x26,0 };
+const i1 c02_s017b[] = { 0x26,0 };
 	void f173_Op2VV(void);
 
 // emit_100 workspace at ws+4224 length ws+0
@@ -9385,14 +9395,14 @@ void f288_emit_100(void) {
 
 	i1 v3908 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3908;
-	i8 v3909 = (i8)(intptr_t)c02_s0179;
+	i8 v3909 = (i8)(intptr_t)c02_s017b;
 	*(i8*)(intptr_t)(ws+4232) = v3909;
 	i8 v3910 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3910)();
 
 }
-const i1 c02_s017a[] = { 0x26,0 };
+const i1 c02_s017c[] = { 0x26,0 };
 	void f173_Op2VV(void);
 
 // emit_101 workspace at ws+4224 length ws+0
@@ -9400,14 +9410,14 @@ void f289_emit_101(void) {
 
 	i1 v3911 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3911;
-	i8 v3912 = (i8)(intptr_t)c02_s017a;
+	i8 v3912 = (i8)(intptr_t)c02_s017c;
 	*(i8*)(intptr_t)(ws+4232) = v3912;
 	i8 v3913 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3913)();
 
 }
-const i1 c02_s017b[] = { 0x26,0 };
+const i1 c02_s017d[] = { 0x26,0 };
 	void f173_Op2VV(void);
 
 // emit_102 workspace at ws+4224 length ws+0
@@ -9415,14 +9425,14 @@ void f290_emit_102(void) {
 
 	i1 v3914 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3914;
-	i8 v3915 = (i8)(intptr_t)c02_s017b;
+	i8 v3915 = (i8)(intptr_t)c02_s017d;
 	*(i8*)(intptr_t)(ws+4232) = v3915;
 	i8 v3916 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3916)();
 
 }
-const i1 c02_s017c[] = { 0x26,0 };
+const i1 c02_s017e[] = { 0x26,0 };
 	void f173_Op2VV(void);
 
 // emit_103 workspace at ws+4224 length ws+0
@@ -9430,14 +9440,14 @@ void f291_emit_103(void) {
 
 	i1 v3917 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3917;
-	i8 v3918 = (i8)(intptr_t)c02_s017c;
+	i8 v3918 = (i8)(intptr_t)c02_s017e;
 	*(i8*)(intptr_t)(ws+4232) = v3918;
 	i8 v3919 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3919)();
 
 }
-const i1 c02_s017d[] = { 0x7c,0 };
+const i1 c02_s017f[] = { 0x7c,0 };
 	void f173_Op2VV(void);
 
 // emit_104 workspace at ws+4224 length ws+0
@@ -9445,14 +9455,14 @@ void f292_emit_104(void) {
 
 	i1 v3920 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3920;
-	i8 v3921 = (i8)(intptr_t)c02_s017d;
+	i8 v3921 = (i8)(intptr_t)c02_s017f;
 	*(i8*)(intptr_t)(ws+4232) = v3921;
 	i8 v3922 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3922)();
 
 }
-const i1 c02_s017e[] = { 0x7c,0 };
+const i1 c02_s0180[] = { 0x7c,0 };
 	void f173_Op2VV(void);
 
 // emit_105 workspace at ws+4224 length ws+0
@@ -9460,14 +9470,14 @@ void f293_emit_105(void) {
 
 	i1 v3923 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3923;
-	i8 v3924 = (i8)(intptr_t)c02_s017e;
+	i8 v3924 = (i8)(intptr_t)c02_s0180;
 	*(i8*)(intptr_t)(ws+4232) = v3924;
 	i8 v3925 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3925)();
 
 }
-const i1 c02_s017f[] = { 0x7c,0 };
+const i1 c02_s0181[] = { 0x7c,0 };
 	void f173_Op2VV(void);
 
 // emit_106 workspace at ws+4224 length ws+0
@@ -9475,14 +9485,14 @@ void f294_emit_106(void) {
 
 	i1 v3926 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3926;
-	i8 v3927 = (i8)(intptr_t)c02_s017f;
+	i8 v3927 = (i8)(intptr_t)c02_s0181;
 	*(i8*)(intptr_t)(ws+4232) = v3927;
 	i8 v3928 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3928)();
 
 }
-const i1 c02_s0180[] = { 0x7c,0 };
+const i1 c02_s0182[] = { 0x7c,0 };
 	void f173_Op2VV(void);
 
 // emit_107 workspace at ws+4224 length ws+0
@@ -9490,14 +9500,14 @@ void f295_emit_107(void) {
 
 	i1 v3929 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3929;
-	i8 v3930 = (i8)(intptr_t)c02_s0180;
+	i8 v3930 = (i8)(intptr_t)c02_s0182;
 	*(i8*)(intptr_t)(ws+4232) = v3930;
 	i8 v3931 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3931)();
 
 }
-const i1 c02_s0181[] = { 0x5e,0 };
+const i1 c02_s0183[] = { 0x5e,0 };
 	void f173_Op2VV(void);
 
 // emit_108 workspace at ws+4224 length ws+0
@@ -9505,14 +9515,14 @@ void f296_emit_108(void) {
 
 	i1 v3932 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3932;
-	i8 v3933 = (i8)(intptr_t)c02_s0181;
+	i8 v3933 = (i8)(intptr_t)c02_s0183;
 	*(i8*)(intptr_t)(ws+4232) = v3933;
 	i8 v3934 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3934)();
 
 }
-const i1 c02_s0182[] = { 0x5e,0 };
+const i1 c02_s0184[] = { 0x5e,0 };
 	void f173_Op2VV(void);
 
 // emit_109 workspace at ws+4224 length ws+0
@@ -9520,14 +9530,14 @@ void f297_emit_109(void) {
 
 	i1 v3935 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3935;
-	i8 v3936 = (i8)(intptr_t)c02_s0182;
+	i8 v3936 = (i8)(intptr_t)c02_s0184;
 	*(i8*)(intptr_t)(ws+4232) = v3936;
 	i8 v3937 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3937)();
 
 }
-const i1 c02_s0183[] = { 0x5e,0 };
+const i1 c02_s0185[] = { 0x5e,0 };
 	void f173_Op2VV(void);
 
 // emit_110 workspace at ws+4224 length ws+0
@@ -9535,14 +9545,14 @@ void f298_emit_110(void) {
 
 	i1 v3938 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3938;
-	i8 v3939 = (i8)(intptr_t)c02_s0183;
+	i8 v3939 = (i8)(intptr_t)c02_s0185;
 	*(i8*)(intptr_t)(ws+4232) = v3939;
 	i8 v3940 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3940)();
 
 }
-const i1 c02_s0184[] = { 0x5e,0 };
+const i1 c02_s0186[] = { 0x5e,0 };
 	void f173_Op2VV(void);
 
 // emit_111 workspace at ws+4224 length ws+0
@@ -9550,14 +9560,14 @@ void f299_emit_111(void) {
 
 	i1 v3941 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3941;
-	i8 v3942 = (i8)(intptr_t)c02_s0184;
+	i8 v3942 = (i8)(intptr_t)c02_s0186;
 	*(i8*)(intptr_t)(ws+4232) = v3942;
 	i8 v3943 = (i8)(intptr_t)(f173_Op2VV);
 
 	((void(*)(void))(intptr_t)v3943)();
 
 }
-const i1 c02_s0185[] = { 0x2d,0 };
+const i1 c02_s0187[] = { 0x2d,0 };
 	void f177_Op1V(void);
 
 // emit_112 workspace at ws+4224 length ws+0
@@ -9565,14 +9575,14 @@ void f300_emit_112(void) {
 
 	i1 v3944 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3944;
-	i8 v3945 = (i8)(intptr_t)c02_s0185;
+	i8 v3945 = (i8)(intptr_t)c02_s0187;
 	*(i8*)(intptr_t)(ws+4232) = v3945;
 	i8 v3946 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3946)();
 
 }
-const i1 c02_s0186[] = { 0x2d,0 };
+const i1 c02_s0188[] = { 0x2d,0 };
 	void f177_Op1V(void);
 
 // emit_113 workspace at ws+4224 length ws+0
@@ -9580,14 +9590,14 @@ void f301_emit_113(void) {
 
 	i1 v3947 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3947;
-	i8 v3948 = (i8)(intptr_t)c02_s0186;
+	i8 v3948 = (i8)(intptr_t)c02_s0188;
 	*(i8*)(intptr_t)(ws+4232) = v3948;
 	i8 v3949 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3949)();
 
 }
-const i1 c02_s0187[] = { 0x2d,0 };
+const i1 c02_s0189[] = { 0x2d,0 };
 	void f177_Op1V(void);
 
 // emit_114 workspace at ws+4224 length ws+0
@@ -9595,14 +9605,14 @@ void f302_emit_114(void) {
 
 	i1 v3950 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3950;
-	i8 v3951 = (i8)(intptr_t)c02_s0187;
+	i8 v3951 = (i8)(intptr_t)c02_s0189;
 	*(i8*)(intptr_t)(ws+4232) = v3951;
 	i8 v3952 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3952)();
 
 }
-const i1 c02_s0188[] = { 0x2d,0 };
+const i1 c02_s018a[] = { 0x2d,0 };
 	void f177_Op1V(void);
 
 // emit_115 workspace at ws+4224 length ws+0
@@ -9610,14 +9620,14 @@ void f303_emit_115(void) {
 
 	i1 v3953 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3953;
-	i8 v3954 = (i8)(intptr_t)c02_s0188;
+	i8 v3954 = (i8)(intptr_t)c02_s018a;
 	*(i8*)(intptr_t)(ws+4232) = v3954;
 	i8 v3955 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3955)();
 
 }
-const i1 c02_s0189[] = { 0x7e,0 };
+const i1 c02_s018b[] = { 0x7e,0 };
 	void f177_Op1V(void);
 
 // emit_116 workspace at ws+4224 length ws+0
@@ -9625,14 +9635,14 @@ void f304_emit_116(void) {
 
 	i1 v3956 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3956;
-	i8 v3957 = (i8)(intptr_t)c02_s0189;
+	i8 v3957 = (i8)(intptr_t)c02_s018b;
 	*(i8*)(intptr_t)(ws+4232) = v3957;
 	i8 v3958 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3958)();
 
 }
-const i1 c02_s018a[] = { 0x7e,0 };
+const i1 c02_s018c[] = { 0x7e,0 };
 	void f177_Op1V(void);
 
 // emit_117 workspace at ws+4224 length ws+0
@@ -9640,14 +9650,14 @@ void f305_emit_117(void) {
 
 	i1 v3959 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3959;
-	i8 v3960 = (i8)(intptr_t)c02_s018a;
+	i8 v3960 = (i8)(intptr_t)c02_s018c;
 	*(i8*)(intptr_t)(ws+4232) = v3960;
 	i8 v3961 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3961)();
 
 }
-const i1 c02_s018b[] = { 0x7e,0 };
+const i1 c02_s018d[] = { 0x7e,0 };
 	void f177_Op1V(void);
 
 // emit_118 workspace at ws+4224 length ws+0
@@ -9655,14 +9665,14 @@ void f306_emit_118(void) {
 
 	i1 v3962 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3962;
-	i8 v3963 = (i8)(intptr_t)c02_s018b;
+	i8 v3963 = (i8)(intptr_t)c02_s018d;
 	*(i8*)(intptr_t)(ws+4232) = v3963;
 	i8 v3964 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3964)();
 
 }
-const i1 c02_s018c[] = { 0x7e,0 };
+const i1 c02_s018e[] = { 0x7e,0 };
 	void f177_Op1V(void);
 
 // emit_119 workspace at ws+4224 length ws+0
@@ -9670,15 +9680,15 @@ void f307_emit_119(void) {
 
 	i1 v3965 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3965;
-	i8 v3966 = (i8)(intptr_t)c02_s018c;
+	i8 v3966 = (i8)(intptr_t)c02_s018e;
 	*(i8*)(intptr_t)(ws+4232) = v3966;
 	i8 v3967 = (i8)(intptr_t)(f177_Op1V);
 
 	((void(*)(void))(intptr_t)v3967)();
 
 }
-const i1 c02_s018d[] = { 0x69,0x31,0 };
-const i1 c02_s018e[] = { 0x3c,0x3c,0 };
+const i1 c02_s018f[] = { 0x69,0x31,0 };
+const i1 c02_s0190[] = { 0x3c,0x3c,0 };
 	void f178_Shift(void);
 
 // emit_120 workspace at ws+4224 length ws+0
@@ -9686,17 +9696,17 @@ void f308_emit_120(void) {
 
 	i1 v3968 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3968;
-	i8 v3969 = (i8)(intptr_t)c02_s018d;
+	i8 v3969 = (i8)(intptr_t)c02_s018f;
 	*(i8*)(intptr_t)(ws+4232) = v3969;
-	i8 v3970 = (i8)(intptr_t)c02_s018e;
+	i8 v3970 = (i8)(intptr_t)c02_s0190;
 	*(i8*)(intptr_t)(ws+4240) = v3970;
 	i8 v3971 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3971)();
 
 }
-const i1 c02_s018f[] = { 0x69,0x32,0 };
-const i1 c02_s0190[] = { 0x3c,0x3c,0 };
+const i1 c02_s0191[] = { 0x69,0x32,0 };
+const i1 c02_s0192[] = { 0x3c,0x3c,0 };
 	void f178_Shift(void);
 
 // emit_121 workspace at ws+4224 length ws+0
@@ -9704,17 +9714,17 @@ void f309_emit_121(void) {
 
 	i1 v3972 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3972;
-	i8 v3973 = (i8)(intptr_t)c02_s018f;
+	i8 v3973 = (i8)(intptr_t)c02_s0191;
 	*(i8*)(intptr_t)(ws+4232) = v3973;
-	i8 v3974 = (i8)(intptr_t)c02_s0190;
+	i8 v3974 = (i8)(intptr_t)c02_s0192;
 	*(i8*)(intptr_t)(ws+4240) = v3974;
 	i8 v3975 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3975)();
 
 }
-const i1 c02_s0191[] = { 0x69,0x34,0 };
-const i1 c02_s0192[] = { 0x3c,0x3c,0 };
+const i1 c02_s0193[] = { 0x69,0x34,0 };
+const i1 c02_s0194[] = { 0x3c,0x3c,0 };
 	void f178_Shift(void);
 
 // emit_122 workspace at ws+4224 length ws+0
@@ -9722,17 +9732,17 @@ void f310_emit_122(void) {
 
 	i1 v3976 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3976;
-	i8 v3977 = (i8)(intptr_t)c02_s0191;
+	i8 v3977 = (i8)(intptr_t)c02_s0193;
 	*(i8*)(intptr_t)(ws+4232) = v3977;
-	i8 v3978 = (i8)(intptr_t)c02_s0192;
+	i8 v3978 = (i8)(intptr_t)c02_s0194;
 	*(i8*)(intptr_t)(ws+4240) = v3978;
 	i8 v3979 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3979)();
 
 }
-const i1 c02_s0193[] = { 0x69,0x38,0 };
-const i1 c02_s0194[] = { 0x3c,0x3c,0 };
+const i1 c02_s0195[] = { 0x69,0x38,0 };
+const i1 c02_s0196[] = { 0x3c,0x3c,0 };
 	void f178_Shift(void);
 
 // emit_123 workspace at ws+4224 length ws+0
@@ -9740,17 +9750,17 @@ void f311_emit_123(void) {
 
 	i1 v3980 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3980;
-	i8 v3981 = (i8)(intptr_t)c02_s0193;
+	i8 v3981 = (i8)(intptr_t)c02_s0195;
 	*(i8*)(intptr_t)(ws+4232) = v3981;
-	i8 v3982 = (i8)(intptr_t)c02_s0194;
+	i8 v3982 = (i8)(intptr_t)c02_s0196;
 	*(i8*)(intptr_t)(ws+4240) = v3982;
 	i8 v3983 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3983)();
 
 }
-const i1 c02_s0195[] = { 0x69,0x31,0 };
-const i1 c02_s0196[] = { 0x3e,0x3e,0 };
+const i1 c02_s0197[] = { 0x69,0x31,0 };
+const i1 c02_s0198[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_124 workspace at ws+4224 length ws+0
@@ -9758,17 +9768,17 @@ void f312_emit_124(void) {
 
 	i1 v3984 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v3984;
-	i8 v3985 = (i8)(intptr_t)c02_s0195;
+	i8 v3985 = (i8)(intptr_t)c02_s0197;
 	*(i8*)(intptr_t)(ws+4232) = v3985;
-	i8 v3986 = (i8)(intptr_t)c02_s0196;
+	i8 v3986 = (i8)(intptr_t)c02_s0198;
 	*(i8*)(intptr_t)(ws+4240) = v3986;
 	i8 v3987 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3987)();
 
 }
-const i1 c02_s0197[] = { 0x69,0x32,0 };
-const i1 c02_s0198[] = { 0x3e,0x3e,0 };
+const i1 c02_s0199[] = { 0x69,0x32,0 };
+const i1 c02_s019a[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_125 workspace at ws+4224 length ws+0
@@ -9776,17 +9786,17 @@ void f313_emit_125(void) {
 
 	i1 v3988 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v3988;
-	i8 v3989 = (i8)(intptr_t)c02_s0197;
+	i8 v3989 = (i8)(intptr_t)c02_s0199;
 	*(i8*)(intptr_t)(ws+4232) = v3989;
-	i8 v3990 = (i8)(intptr_t)c02_s0198;
+	i8 v3990 = (i8)(intptr_t)c02_s019a;
 	*(i8*)(intptr_t)(ws+4240) = v3990;
 	i8 v3991 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3991)();
 
 }
-const i1 c02_s0199[] = { 0x69,0x34,0 };
-const i1 c02_s019a[] = { 0x3e,0x3e,0 };
+const i1 c02_s019b[] = { 0x69,0x34,0 };
+const i1 c02_s019c[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_126 workspace at ws+4224 length ws+0
@@ -9794,17 +9804,17 @@ void f314_emit_126(void) {
 
 	i1 v3992 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v3992;
-	i8 v3993 = (i8)(intptr_t)c02_s0199;
+	i8 v3993 = (i8)(intptr_t)c02_s019b;
 	*(i8*)(intptr_t)(ws+4232) = v3993;
-	i8 v3994 = (i8)(intptr_t)c02_s019a;
+	i8 v3994 = (i8)(intptr_t)c02_s019c;
 	*(i8*)(intptr_t)(ws+4240) = v3994;
 	i8 v3995 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3995)();
 
 }
-const i1 c02_s019b[] = { 0x69,0x38,0 };
-const i1 c02_s019c[] = { 0x3e,0x3e,0 };
+const i1 c02_s019d[] = { 0x69,0x38,0 };
+const i1 c02_s019e[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_127 workspace at ws+4224 length ws+0
@@ -9812,17 +9822,17 @@ void f315_emit_127(void) {
 
 	i1 v3996 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v3996;
-	i8 v3997 = (i8)(intptr_t)c02_s019b;
+	i8 v3997 = (i8)(intptr_t)c02_s019d;
 	*(i8*)(intptr_t)(ws+4232) = v3997;
-	i8 v3998 = (i8)(intptr_t)c02_s019c;
+	i8 v3998 = (i8)(intptr_t)c02_s019e;
 	*(i8*)(intptr_t)(ws+4240) = v3998;
 	i8 v3999 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v3999)();
 
 }
-const i1 c02_s019d[] = { 0x73,0x31,0 };
-const i1 c02_s019e[] = { 0x3e,0x3e,0 };
+const i1 c02_s019f[] = { 0x73,0x31,0 };
+const i1 c02_s01a0[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_128 workspace at ws+4224 length ws+0
@@ -9830,17 +9840,17 @@ void f316_emit_128(void) {
 
 	i1 v4000 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4224) = v4000;
-	i8 v4001 = (i8)(intptr_t)c02_s019d;
+	i8 v4001 = (i8)(intptr_t)c02_s019f;
 	*(i8*)(intptr_t)(ws+4232) = v4001;
-	i8 v4002 = (i8)(intptr_t)c02_s019e;
+	i8 v4002 = (i8)(intptr_t)c02_s01a0;
 	*(i8*)(intptr_t)(ws+4240) = v4002;
 	i8 v4003 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v4003)();
 
 }
-const i1 c02_s019f[] = { 0x73,0x32,0 };
-const i1 c02_s01a0[] = { 0x3e,0x3e,0 };
+const i1 c02_s01a1[] = { 0x73,0x32,0 };
+const i1 c02_s01a2[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_129 workspace at ws+4224 length ws+0
@@ -9848,17 +9858,17 @@ void f317_emit_129(void) {
 
 	i1 v4004 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4224) = v4004;
-	i8 v4005 = (i8)(intptr_t)c02_s019f;
+	i8 v4005 = (i8)(intptr_t)c02_s01a1;
 	*(i8*)(intptr_t)(ws+4232) = v4005;
-	i8 v4006 = (i8)(intptr_t)c02_s01a0;
+	i8 v4006 = (i8)(intptr_t)c02_s01a2;
 	*(i8*)(intptr_t)(ws+4240) = v4006;
 	i8 v4007 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v4007)();
 
 }
-const i1 c02_s01a1[] = { 0x73,0x34,0 };
-const i1 c02_s01a2[] = { 0x3e,0x3e,0 };
+const i1 c02_s01a3[] = { 0x73,0x34,0 };
+const i1 c02_s01a4[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_130 workspace at ws+4224 length ws+0
@@ -9866,17 +9876,17 @@ void f318_emit_130(void) {
 
 	i1 v4008 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4224) = v4008;
-	i8 v4009 = (i8)(intptr_t)c02_s01a1;
+	i8 v4009 = (i8)(intptr_t)c02_s01a3;
 	*(i8*)(intptr_t)(ws+4232) = v4009;
-	i8 v4010 = (i8)(intptr_t)c02_s01a2;
+	i8 v4010 = (i8)(intptr_t)c02_s01a4;
 	*(i8*)(intptr_t)(ws+4240) = v4010;
 	i8 v4011 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v4011)();
 
 }
-const i1 c02_s01a3[] = { 0x73,0x38,0 };
-const i1 c02_s01a4[] = { 0x3e,0x3e,0 };
+const i1 c02_s01a5[] = { 0x73,0x38,0 };
+const i1 c02_s01a6[] = { 0x3e,0x3e,0 };
 	void f178_Shift(void);
 
 // emit_131 workspace at ws+4224 length ws+0
@@ -9884,16 +9894,16 @@ void f319_emit_131(void) {
 
 	i1 v4012 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4224) = v4012;
-	i8 v4013 = (i8)(intptr_t)c02_s01a3;
+	i8 v4013 = (i8)(intptr_t)c02_s01a5;
 	*(i8*)(intptr_t)(ws+4232) = v4013;
-	i8 v4014 = (i8)(intptr_t)c02_s01a4;
+	i8 v4014 = (i8)(intptr_t)c02_s01a6;
 	*(i8*)(intptr_t)(ws+4240) = v4014;
 	i8 v4015 = (i8)(intptr_t)(f178_Shift);
 
 	((void(*)(void))(intptr_t)v4015)();
 
 }
-const i1 c02_s01a5[] = { 0x3d,0x3d,0 };
+const i1 c02_s01a7[] = { 0x3d,0x3d,0 };
 	void f179_Branch(void);
 
 // emit_132 workspace at ws+4224 length ws+0
@@ -9904,14 +9914,14 @@ void f320_emit_132(void) {
 	i8 v4018 = v4017+(+16);
 	i8 v4019 = *(i8*)(intptr_t)v4018;
 	*(i8*)(intptr_t)(ws+4224) = v4019;
-	i8 v4020 = (i8)(intptr_t)c02_s01a5;
+	i8 v4020 = (i8)(intptr_t)c02_s01a7;
 	*(i8*)(intptr_t)(ws+4232) = v4020;
 	i8 v4021 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4021)();
 
 }
-const i1 c02_s01a6[] = { 0x3d,0x3d,0 };
+const i1 c02_s01a8[] = { 0x3d,0x3d,0 };
 	void f179_Branch(void);
 
 // emit_133 workspace at ws+4224 length ws+0
@@ -9922,14 +9932,14 @@ void f321_emit_133(void) {
 	i8 v4024 = v4023+(+16);
 	i8 v4025 = *(i8*)(intptr_t)v4024;
 	*(i8*)(intptr_t)(ws+4224) = v4025;
-	i8 v4026 = (i8)(intptr_t)c02_s01a6;
+	i8 v4026 = (i8)(intptr_t)c02_s01a8;
 	*(i8*)(intptr_t)(ws+4232) = v4026;
 	i8 v4027 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4027)();
 
 }
-const i1 c02_s01a7[] = { 0x3d,0x3d,0 };
+const i1 c02_s01a9[] = { 0x3d,0x3d,0 };
 	void f179_Branch(void);
 
 // emit_134 workspace at ws+4224 length ws+0
@@ -9940,14 +9950,14 @@ void f322_emit_134(void) {
 	i8 v4030 = v4029+(+16);
 	i8 v4031 = *(i8*)(intptr_t)v4030;
 	*(i8*)(intptr_t)(ws+4224) = v4031;
-	i8 v4032 = (i8)(intptr_t)c02_s01a7;
+	i8 v4032 = (i8)(intptr_t)c02_s01a9;
 	*(i8*)(intptr_t)(ws+4232) = v4032;
 	i8 v4033 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4033)();
 
 }
-const i1 c02_s01a8[] = { 0x3d,0x3d,0 };
+const i1 c02_s01aa[] = { 0x3d,0x3d,0 };
 	void f179_Branch(void);
 
 // emit_135 workspace at ws+4224 length ws+0
@@ -9958,14 +9968,14 @@ void f323_emit_135(void) {
 	i8 v4036 = v4035+(+16);
 	i8 v4037 = *(i8*)(intptr_t)v4036;
 	*(i8*)(intptr_t)(ws+4224) = v4037;
-	i8 v4038 = (i8)(intptr_t)c02_s01a8;
+	i8 v4038 = (i8)(intptr_t)c02_s01aa;
 	*(i8*)(intptr_t)(ws+4232) = v4038;
 	i8 v4039 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4039)();
 
 }
-const i1 c02_s01a9[] = { 0x3c,0 };
+const i1 c02_s01ab[] = { 0x3c,0 };
 	void f179_Branch(void);
 
 // emit_136 workspace at ws+4224 length ws+0
@@ -9976,14 +9986,14 @@ void f324_emit_136(void) {
 	i8 v4042 = v4041+(+16);
 	i8 v4043 = *(i8*)(intptr_t)v4042;
 	*(i8*)(intptr_t)(ws+4224) = v4043;
-	i8 v4044 = (i8)(intptr_t)c02_s01a9;
+	i8 v4044 = (i8)(intptr_t)c02_s01ab;
 	*(i8*)(intptr_t)(ws+4232) = v4044;
 	i8 v4045 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4045)();
 
 }
-const i1 c02_s01aa[] = { 0x3c,0 };
+const i1 c02_s01ac[] = { 0x3c,0 };
 	void f179_Branch(void);
 
 // emit_137 workspace at ws+4224 length ws+0
@@ -9994,14 +10004,14 @@ void f325_emit_137(void) {
 	i8 v4048 = v4047+(+16);
 	i8 v4049 = *(i8*)(intptr_t)v4048;
 	*(i8*)(intptr_t)(ws+4224) = v4049;
-	i8 v4050 = (i8)(intptr_t)c02_s01aa;
+	i8 v4050 = (i8)(intptr_t)c02_s01ac;
 	*(i8*)(intptr_t)(ws+4232) = v4050;
 	i8 v4051 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4051)();
 
 }
-const i1 c02_s01ab[] = { 0x3c,0 };
+const i1 c02_s01ad[] = { 0x3c,0 };
 	void f179_Branch(void);
 
 // emit_138 workspace at ws+4224 length ws+0
@@ -10012,14 +10022,14 @@ void f326_emit_138(void) {
 	i8 v4054 = v4053+(+16);
 	i8 v4055 = *(i8*)(intptr_t)v4054;
 	*(i8*)(intptr_t)(ws+4224) = v4055;
-	i8 v4056 = (i8)(intptr_t)c02_s01ab;
+	i8 v4056 = (i8)(intptr_t)c02_s01ad;
 	*(i8*)(intptr_t)(ws+4232) = v4056;
 	i8 v4057 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4057)();
 
 }
-const i1 c02_s01ac[] = { 0x3c,0 };
+const i1 c02_s01ae[] = { 0x3c,0 };
 	void f179_Branch(void);
 
 // emit_139 workspace at ws+4224 length ws+0
@@ -10030,14 +10040,14 @@ void f327_emit_139(void) {
 	i8 v4060 = v4059+(+16);
 	i8 v4061 = *(i8*)(intptr_t)v4060;
 	*(i8*)(intptr_t)(ws+4224) = v4061;
-	i8 v4062 = (i8)(intptr_t)c02_s01ac;
+	i8 v4062 = (i8)(intptr_t)c02_s01ae;
 	*(i8*)(intptr_t)(ws+4232) = v4062;
 	i8 v4063 = (i8)(intptr_t)(f179_Branch);
 
 	((void(*)(void))(intptr_t)v4063)();
 
 }
-const i1 c02_s01ad[] = { 0x3c,0 };
+const i1 c02_s01af[] = { 0x3c,0 };
 	void f180_BranchSigned(void);
 
 // emit_140 workspace at ws+4224 length ws+0
@@ -10050,14 +10060,14 @@ void f328_emit_140(void) {
 	*(i8*)(intptr_t)(ws+4224) = v4067;
 	i1 v4068 = (i1)+1;
 	*(i1*)(intptr_t)(ws+4232) = v4068;
-	i8 v4069 = (i8)(intptr_t)c02_s01ad;
+	i8 v4069 = (i8)(intptr_t)c02_s01af;
 	*(i8*)(intptr_t)(ws+4240) = v4069;
 	i8 v4070 = (i8)(intptr_t)(f180_BranchSigned);
 
 	((void(*)(void))(intptr_t)v4070)();
 
 }
-const i1 c02_s01ae[] = { 0x3c,0 };
+const i1 c02_s01b0[] = { 0x3c,0 };
 	void f180_BranchSigned(void);
 
 // emit_141 workspace at ws+4224 length ws+0
@@ -10070,14 +10080,14 @@ void f329_emit_141(void) {
 	*(i8*)(intptr_t)(ws+4224) = v4074;
 	i1 v4075 = (i1)+2;
 	*(i1*)(intptr_t)(ws+4232) = v4075;
-	i8 v4076 = (i8)(intptr_t)c02_s01ae;
+	i8 v4076 = (i8)(intptr_t)c02_s01b0;
 	*(i8*)(intptr_t)(ws+4240) = v4076;
 	i8 v4077 = (i8)(intptr_t)(f180_BranchSigned);
 
 	((void(*)(void))(intptr_t)v4077)();
 
 }
-const i1 c02_s01af[] = { 0x3c,0 };
+const i1 c02_s01b1[] = { 0x3c,0 };
 	void f180_BranchSigned(void);
 
 // emit_142 workspace at ws+4224 length ws+0
@@ -10090,14 +10100,14 @@ void f330_emit_142(void) {
 	*(i8*)(intptr_t)(ws+4224) = v4081;
 	i1 v4082 = (i1)+4;
 	*(i1*)(intptr_t)(ws+4232) = v4082;
-	i8 v4083 = (i8)(intptr_t)c02_s01af;
+	i8 v4083 = (i8)(intptr_t)c02_s01b1;
 	*(i8*)(intptr_t)(ws+4240) = v4083;
 	i8 v4084 = (i8)(intptr_t)(f180_BranchSigned);
 
 	((void(*)(void))(intptr_t)v4084)();
 
 }
-const i1 c02_s01b0[] = { 0x3c,0 };
+const i1 c02_s01b2[] = { 0x3c,0 };
 	void f180_BranchSigned(void);
 
 // emit_143 workspace at ws+4224 length ws+0
@@ -10110,7 +10120,7 @@ void f331_emit_143(void) {
 	*(i8*)(intptr_t)(ws+4224) = v4088;
 	i1 v4089 = (i1)+8;
 	*(i1*)(intptr_t)(ws+4232) = v4089;
-	i8 v4090 = (i8)(intptr_t)c02_s01b0;
+	i8 v4090 = (i8)(intptr_t)c02_s01b2;
 	*(i8*)(intptr_t)(ws+4240) = v4090;
 	i8 v4091 = (i8)(intptr_t)(f180_BranchSigned);
 
@@ -10457,16 +10467,16 @@ void f351_emit_167(void) {
 
 }
 	void f160_Push(void);
-const i1 c02_s01b1[] = { 0x09,0x69,0x38,0x20,0x76,0 };
+const i1 c02_s01b3[] = { 0x09,0x69,0x38,0x20,0x76,0 };
 	void f92_E(void);
 	void f94_E_u16(void);
-const i1 c02_s01b2[] = { 0x20,0x3d,0x20,0x28,0x69,0x38,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0 };
+const i1 c02_s01b4[] = { 0x20,0x3d,0x20,0x28,0x69,0x38,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0 };
 	void f92_E(void);
 	void f83_E_b8(void);
 	void f83_E_b8(void);
 	void f184_E_string(void);
 	void f101_E_h16(void);
-const i1 c02_s01b3[] = { 0x3b,0x0a,0 };
+const i1 c02_s01b5[] = { 0x3b,0x0a,0 };
 	void f92_E(void);
 
 // emit_168 workspace at ws+4224 length ws+6
@@ -10485,7 +10495,7 @@ void f352_emit_168(void) {
 	i8 v4220 = (i8)(intptr_t)(ws+4226);
 	*(i2*)(intptr_t)v4220 = v4219;
 
-	i8 v4221 = (i8)(intptr_t)c02_s01b1;
+	i8 v4221 = (i8)(intptr_t)c02_s01b3;
 	*(i8*)(intptr_t)(ws+4320) = v4221;
 	i8 v4222 = (i8)(intptr_t)(f92_E);
 
@@ -10498,7 +10508,7 @@ void f352_emit_168(void) {
 
 	((void(*)(void))(intptr_t)v4225)();
 
-	i8 v4226 = (i8)(intptr_t)c02_s01b2;
+	i8 v4226 = (i8)(intptr_t)c02_s01b4;
 	*(i8*)(intptr_t)(ws+4320) = v4226;
 	i8 v4227 = (i8)(intptr_t)(f92_E);
 
@@ -10535,7 +10545,7 @@ void f352_emit_168(void) {
 
 	((void(*)(void))(intptr_t)v4240)();
 
-	i8 v4241 = (i8)(intptr_t)c02_s01b3;
+	i8 v4241 = (i8)(intptr_t)c02_s01b5;
 	*(i8*)(intptr_t)(ws+4320) = v4241;
 	i8 v4242 = (i8)(intptr_t)(f92_E);
 
@@ -10543,10 +10553,10 @@ void f352_emit_168(void) {
 
 }
 	void f106_EmitterOpenStream(void);
-const i1 c02_s01b4[] = { 0x73,0x74,0x61,0x74,0x69,0x63,0x20,0x64,0x61,0x74,0x61,0x20,0 };
+const i1 c02_s01b6[] = { 0x73,0x74,0x61,0x74,0x69,0x63,0x20,0x64,0x61,0x74,0x61,0x20,0 };
 	void f92_E(void);
 	void f105_E_wsref(void);
-const i1 c02_s01b5[] = { 0x5b,0x5d,0x20,0x3d,0x20,0x7b,0x0a,0 };
+const i1 c02_s01b7[] = { 0x5b,0x5d,0x20,0x3d,0x20,0x7b,0x0a,0 };
 	void f92_E(void);
 
 // emit_169 workspace at ws+4224 length ws+0
@@ -10559,7 +10569,7 @@ void f353_emit_169(void) {
 
 	((void(*)(void))(intptr_t)v4245)();
 
-	i8 v4246 = (i8)(intptr_t)c02_s01b4;
+	i8 v4246 = (i8)(intptr_t)c02_s01b6;
 	*(i8*)(intptr_t)(ws+4320) = v4246;
 	i8 v4247 = (i8)(intptr_t)(f92_E);
 
@@ -10585,7 +10595,7 @@ void f353_emit_169(void) {
 
 	((void(*)(void))(intptr_t)v4261)();
 
-	i8 v4262 = (i8)(intptr_t)c02_s01b5;
+	i8 v4262 = (i8)(intptr_t)c02_s01b7;
 	*(i8*)(intptr_t)(ws+4320) = v4262;
 	i8 v4263 = (i8)(intptr_t)(f92_E);
 
@@ -10657,10 +10667,10 @@ void f357_emit_173(void) {
 
 }
 	void f187_CheckBufferAlignment(void);
-const i1 c02_s01b6[] = { 0x09,0x7b,0x20,0x2e,0x70,0x74,0x72,0x20,0x3d,0x20,0x28,0x76,0x6f,0x69,0x64,0x2a,0x29,0 };
+const i1 c02_s01b8[] = { 0x09,0x7b,0x20,0x2e,0x70,0x74,0x72,0x20,0x3d,0x20,0x28,0x76,0x6f,0x69,0x64,0x2a,0x29,0 };
 	void f92_E(void);
 	void f155_E_subref_sig(void);
-const i1 c02_s01b7[] = { 0x20,0x7d,0x2c,0x0a,0 };
+const i1 c02_s01b9[] = { 0x20,0x7d,0x2c,0x0a,0 };
 	void f92_E(void);
 
 // emit_174 workspace at ws+4224 length ws+0
@@ -10670,7 +10680,7 @@ void f358_emit_174(void) {
 
 	((void(*)(void))(intptr_t)v4282)();
 
-	i8 v4283 = (i8)(intptr_t)c02_s01b6;
+	i8 v4283 = (i8)(intptr_t)c02_s01b8;
 	*(i8*)(intptr_t)(ws+4320) = v4283;
 	i8 v4284 = (i8)(intptr_t)(f92_E);
 
@@ -10684,7 +10694,7 @@ void f358_emit_174(void) {
 
 	((void(*)(void))(intptr_t)v4288)();
 
-	i8 v4289 = (i8)(intptr_t)c02_s01b7;
+	i8 v4289 = (i8)(intptr_t)c02_s01b9;
 	*(i8*)(intptr_t)(ws+4320) = v4289;
 	i8 v4290 = (i8)(intptr_t)(f92_E);
 
@@ -10692,10 +10702,10 @@ void f358_emit_174(void) {
 
 }
 	void f187_CheckBufferAlignment(void);
-const i1 c02_s01b8[] = { 0x09,0x7b,0x20,0x2e,0x70,0x74,0x72,0x20,0x3d,0x20,0x28,0x76,0x6f,0x69,0x64,0x2a,0x29,0 };
+const i1 c02_s01ba[] = { 0x09,0x7b,0x20,0x2e,0x70,0x74,0x72,0x20,0x3d,0x20,0x28,0x76,0x6f,0x69,0x64,0x2a,0x29,0 };
 	void f92_E(void);
 	void f156_E_symref(void);
-const i1 c02_s01b9[] = { 0x20,0x7d,0x2c,0x0a,0 };
+const i1 c02_s01bb[] = { 0x20,0x7d,0x2c,0x0a,0 };
 	void f92_E(void);
 
 // emit_175 workspace at ws+4224 length ws+0
@@ -10705,7 +10715,7 @@ void f359_emit_175(void) {
 
 	((void(*)(void))(intptr_t)v4291)();
 
-	i8 v4292 = (i8)(intptr_t)c02_s01b8;
+	i8 v4292 = (i8)(intptr_t)c02_s01ba;
 	*(i8*)(intptr_t)(ws+4320) = v4292;
 	i8 v4293 = (i8)(intptr_t)(f92_E);
 
@@ -10723,7 +10733,7 @@ void f359_emit_175(void) {
 
 	((void(*)(void))(intptr_t)v4300)();
 
-	i8 v4301 = (i8)(intptr_t)c02_s01b9;
+	i8 v4301 = (i8)(intptr_t)c02_s01bb;
 	*(i8*)(intptr_t)(ws+4320) = v4301;
 	i8 v4302 = (i8)(intptr_t)(f92_E);
 
@@ -10731,13 +10741,13 @@ void f359_emit_175(void) {
 
 }
 	void f187_CheckBufferAlignment(void);
-const i1 c02_s01ba[] = { 0x09,0x7b,0x20,0x2e,0x70,0x74,0x72,0x20,0x3d,0x20,0x28,0x76,0x6f,0x69,0x64,0x2a,0x29,0 };
+const i1 c02_s01bc[] = { 0x09,0x7b,0x20,0x2e,0x70,0x74,0x72,0x20,0x3d,0x20,0x28,0x76,0x6f,0x69,0x64,0x2a,0x29,0 };
 	void f92_E(void);
 	void f83_E_b8(void);
 	void f83_E_b8(void);
 	void f184_E_string(void);
 	void f101_E_h16(void);
-const i1 c02_s01bb[] = { 0x20,0x7d,0x2c,0x0a,0 };
+const i1 c02_s01bd[] = { 0x20,0x7d,0x2c,0x0a,0 };
 	void f92_E(void);
 
 // emit_176 workspace at ws+4224 length ws+2
@@ -10747,7 +10757,7 @@ void f360_emit_176(void) {
 
 	((void(*)(void))(intptr_t)v4303)();
 
-	i8 v4304 = (i8)(intptr_t)c02_s01ba;
+	i8 v4304 = (i8)(intptr_t)c02_s01bc;
 	*(i8*)(intptr_t)(ws+4320) = v4304;
 	i8 v4305 = (i8)(intptr_t)(f92_E);
 
@@ -10784,7 +10794,7 @@ void f360_emit_176(void) {
 
 	((void(*)(void))(intptr_t)v4318)();
 
-	i8 v4319 = (i8)(intptr_t)c02_s01bb;
+	i8 v4319 = (i8)(intptr_t)c02_s01bd;
 	*(i8*)(intptr_t)(ws+4320) = v4319;
 	i8 v4320 = (i8)(intptr_t)(f92_E);
 
@@ -10792,7 +10802,7 @@ void f360_emit_176(void) {
 
 }
 	void f185_FlushInitialiserBuffer(void);
-const i1 c02_s01bc[] = { 0x7d,0x3b,0x0a,0 };
+const i1 c02_s01be[] = { 0x7d,0x3b,0x0a,0 };
 	void f92_E(void);
 	void f107_EmitterCloseStream(void);
 
@@ -10803,7 +10813,7 @@ void f361_emit_177(void) {
 
 	((void(*)(void))(intptr_t)v4321)();
 
-	i8 v4322 = (i8)(intptr_t)c02_s01bc;
+	i8 v4322 = (i8)(intptr_t)c02_s01be;
 	*(i8*)(intptr_t)(ws+4320) = v4322;
 	i8 v4323 = (i8)(intptr_t)(f92_E);
 
@@ -10843,20 +10853,20 @@ void f363_emit_181(void) {
 	((void(*)(void))(intptr_t)v4330)();
 
 }
-const i1 c02_s01bd[] = { 0x2a,0x28,0x69,0 };
+const i1 c02_s01bf[] = { 0x2a,0x28,0x69,0 };
 	void f92_E(void);
 	void f95_E_u8(void);
-const i1 c02_s01be[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
+const i1 c02_s01c0[] = { 0x2a,0x29,0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
 	void f92_E(void);
 	void f156_E_symref(void);
-const i1 c02_s01bf[] = { 0x29,0 };
+const i1 c02_s01c1[] = { 0x29,0 };
 	void f92_E(void);
 	void f86_E_space(void);
 
 // emit_182 workspace at ws+4224 length ws+0
 void f364_emit_182(void) {
 
-	i8 v4331 = (i8)(intptr_t)c02_s01bd;
+	i8 v4331 = (i8)(intptr_t)c02_s01bf;
 	*(i8*)(intptr_t)(ws+4320) = v4331;
 	i8 v4332 = (i8)(intptr_t)(f92_E);
 
@@ -10871,7 +10881,7 @@ void f364_emit_182(void) {
 
 	((void(*)(void))(intptr_t)v4337)();
 
-	i8 v4338 = (i8)(intptr_t)c02_s01be;
+	i8 v4338 = (i8)(intptr_t)c02_s01c0;
 	*(i8*)(intptr_t)(ws+4320) = v4338;
 	i8 v4339 = (i8)(intptr_t)(f92_E);
 
@@ -10886,7 +10896,7 @@ void f364_emit_182(void) {
 
 	((void(*)(void))(intptr_t)v4343)();
 
-	i8 v4344 = (i8)(intptr_t)c02_s01bf;
+	i8 v4344 = (i8)(intptr_t)c02_s01c1;
 	*(i8*)(intptr_t)(ws+4320) = v4344;
 	i8 v4345 = (i8)(intptr_t)(f92_E);
 
@@ -10897,17 +10907,17 @@ void f364_emit_182(void) {
 	((void(*)(void))(intptr_t)v4346)();
 
 }
-const i1 c02_s01c0[] = { 0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
+const i1 c02_s01c2[] = { 0x28,0x69,0x6e,0x74,0x70,0x74,0x72,0x5f,0x74,0x29,0x28,0 };
 	void f92_E(void);
 	void f155_E_subref_sig(void);
-const i1 c02_s01c1[] = { 0x29,0 };
+const i1 c02_s01c3[] = { 0x29,0 };
 	void f92_E(void);
 	void f86_E_space(void);
 
 // emit_183 workspace at ws+4224 length ws+0
 void f365_emit_183(void) {
 
-	i8 v4347 = (i8)(intptr_t)c02_s01c0;
+	i8 v4347 = (i8)(intptr_t)c02_s01c2;
 	*(i8*)(intptr_t)(ws+4320) = v4347;
 	i8 v4348 = (i8)(intptr_t)(f92_E);
 
@@ -10921,7 +10931,7 @@ void f365_emit_183(void) {
 
 	((void(*)(void))(intptr_t)v4352)();
 
-	i8 v4353 = (i8)(intptr_t)c02_s01c1;
+	i8 v4353 = (i8)(intptr_t)c02_s01c3;
 	*(i8*)(intptr_t)(ws+4320) = v4353;
 	i8 v4354 = (i8)(intptr_t)(f92_E);
 
@@ -11822,7 +11832,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x38,0x28,0x28,0x32,0x2d,0x33,0x2e,0x34}},
+	{ .i1 = { 0x3a,0x2a,0x2a,0x34,0x2f,0x35,0x30,0x36}},
 
 
 
@@ -11831,7 +11841,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x2f,0x35,0x30,0x9d,0x28,0x9e,0x28,0x9f}},
+	{ .i1 = { 0x31,0x37,0x32,0x9f,0x2a,0xa0,0x2a,0xa1}},
 
 
 
@@ -11840,7 +11850,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0xa0,0x28,0x84,0x28,0x85,0x28,0x86}},
+	{ .i1 = { 0x2a,0xa2,0x2a,0x86,0x2a,0x87,0x2a,0x88}},
 
 
 
@@ -11849,7 +11859,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0x87,0x28,0xa2,0x28,0xa3,0x28,0xa4}},
+	{ .i1 = { 0x2a,0x89,0x2a,0xa4,0x2a,0xa5,0x2a,0xa6}},
 
 
 
@@ -11858,7 +11868,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0xa5,0x28,0x89,0x28,0x8a,0x28,0x8b}},
+	{ .i1 = { 0x2a,0xa7,0x2a,0x8b,0x2a,0x8c,0x2a,0x8d}},
 
 
 
@@ -11867,7 +11877,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0x8c,0x28,0x93,0x28,0x94,0x28,0x95}},
+	{ .i1 = { 0x2a,0x8e,0x2a,0x95,0x2a,0x96,0x2a,0x97}},
 
 
 
@@ -11876,7 +11886,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0x96,0x28,0x8e,0x28,0x8f,0x28,0x90}},
+	{ .i1 = { 0x2a,0x98,0x2a,0x90,0x2a,0x91,0x2a,0x92}},
 
 
 
@@ -11885,7 +11895,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0x91,0x28,0x98,0x28,0x99,0x28,0x9a}},
+	{ .i1 = { 0x2a,0x93,0x2a,0x9a,0x2a,0x9b,0x2a,0x9c}},
 
 
 
@@ -11894,7 +11904,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0x9b,0x28,0xa7,0x28,0xa8,0x28,0xa9}},
+	{ .i1 = { 0x2a,0x9d,0x2a,0xa9,0x2a,0xaa,0x2a,0xab}},
 
 
 
@@ -11903,7 +11913,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0xaa,0x28,0xac,0x28,0xad,0x28,0xae}},
+	{ .i1 = { 0x2a,0xac,0x2a,0xae,0x2a,0xaf,0x2a,0xb0}},
 
 
 
@@ -11912,7 +11922,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0xaf,0x28,0xb1,0x28,0xb2,0x28,0xb3}},
+	{ .i1 = { 0x2a,0xb1,0x2a,0xb3,0x2a,0xb4,0x2a,0xb5}},
 
 
 
@@ -11921,7 +11931,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x28,0xb4,0x28,0x02,0x03,0x1a,0x1b,0x1c}},
+	{ .i1 = { 0x2a,0xb6,0x2a,0x02,0x03,0x1a,0x1b,0x1c}},
 
 
 
@@ -11930,7 +11940,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x04,0x05,0x1d,0x01,0x1f,0x20,0x21,0x22}},
+	{ .i1 = { 0x04,0x05,0x1d,0x01,0x21,0x22,0x23,0x24}},
 
 
 
@@ -11939,7 +11949,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x24,0x25,0x26,0x27,0x28,0x28,0x28,0x28}},
+	{ .i1 = { 0x26,0x27,0x28,0x29,0x2a,0x2a,0x2a,0x2a}},
 
 
 
@@ -11948,7 +11958,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x2a,0x2b,0x2d,0x2e,0x2f,0x30,0x9d,0x9e}},
+	{ .i1 = { 0x2c,0x2d,0x2f,0x30,0x31,0x32,0x9f,0xa0}},
 
 
 
@@ -11957,7 +11967,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x9f,0xa0,0x84,0x85,0x86,0x87,0xa2,0xa3}},
+	{ .i1 = { 0xa1,0xa2,0x86,0x87,0x88,0x89,0xa4,0xa5}},
 
 
 
@@ -11966,7 +11976,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0xa4,0xa5,0x89,0x8a,0x8b,0x8c,0x93,0x94}},
+	{ .i1 = { 0xa6,0xa7,0x8b,0x8c,0x8d,0x8e,0x95,0x96}},
 
 
 
@@ -11975,7 +11985,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x95,0x96,0x8e,0x8f,0x90,0x91,0x98,0x99}},
+	{ .i1 = { 0x97,0x98,0x90,0x91,0x92,0x93,0x9a,0x9b}},
 
 
 
@@ -11984,7 +11994,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x9a,0x9b,0xa7,0xa8,0xa9,0xaa,0xac,0xad}},
+	{ .i1 = { 0x9c,0x9d,0xa9,0xaa,0xab,0xac,0xae,0xaf}},
 
 
 
@@ -11993,7 +12003,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0xae,0xaf,0xb1,0xb2,0xb3,0xb4,0x70,0x71}},
+	{ .i1 = { 0xb0,0xb1,0xb3,0xb4,0xb5,0xb6,0x72,0x73}},
 
 
 
@@ -12002,7 +12012,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x72,0x73,0x6b,0x6c,0x6d,0x6e,0x75,0x76}},
+	{ .i1 = { 0x74,0x75,0x6d,0x6e,0x6f,0x70,0x77,0x78}},
 
 
 
@@ -12011,7 +12021,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x77,0x78,0x7a,0x7b,0x7c,0x7d,0x7f,0x80}},
+	{ .i1 = { 0x79,0x7a,0x7c,0x7d,0x7e,0x7f,0x81,0x82}},
 
 
 
@@ -12020,7 +12030,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x81,0x82,0x39,0x3a,0x3b,0x3c,0x43,0x44}},
+	{ .i1 = { 0x83,0x84,0x3b,0x3c,0x3d,0x3e,0x45,0x46}},
 
 
 
@@ -12029,7 +12039,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x45,0x46,0x3e,0x3f,0x40,0x41,0x48,0x49}},
+	{ .i1 = { 0x47,0x48,0x40,0x41,0x42,0x43,0x4a,0x4b}},
 
 
 
@@ -12038,7 +12048,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x4a,0x4b,0x4d,0x4e,0x4f,0x50,0x52,0x53}},
+	{ .i1 = { 0x4c,0x4d,0x4f,0x50,0x51,0x52,0x54,0x55}},
 
 
 
@@ -12047,7 +12057,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x54,0x55,0x58,0x59,0x5a,0x5c,0x5e,0x5f}},
+	{ .i1 = { 0x56,0x57,0x5a,0x5b,0x5c,0x5e,0x60,0x61}},
 
 
 
@@ -12056,7 +12066,7 @@ static data f3___main_s02aa[] = {
 
 
 
-	{ .i1 = { 0x61,0x62,0x64,0x66,0x67,0x68,0x29,0x06}},
+	{ .i1 = { 0x63,0x64,0x66,0x68,0x69,0x6a,0x2b,0x06}},
 
 
 
@@ -14141,7 +14151,7 @@ c02_02e7:;
 c02_02e6:;
 
 }
-const i1 c02_s01c2[] = { 0x74,0x6f,0x6f,0x20,0x6d,0x61,0x6e,0x79,0x20,0x73,0x70,0x69,0x6c,0x6c,0x73,0 };
+const i1 c02_s01c4[] = { 0x74,0x6f,0x6f,0x20,0x6d,0x61,0x6e,0x79,0x20,0x73,0x70,0x69,0x6c,0x6c,0x73,0 };
 	void f68_SimpleError(void);
 
 // CreateSpill workspace at ws+4152 length ws+24
@@ -14161,7 +14171,7 @@ void f376_CreateSpill(void) {
 
 c02_02ff:;
 
-	i8 v4665 = (i8)(intptr_t)c02_s01c2;
+	i8 v4665 = (i8)(intptr_t)c02_s01c4;
 	*(i8*)(intptr_t)(ws+4280) = v4665;
 	i8 v4666 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -14205,7 +14215,7 @@ c02_02fc:;
 	*(i1*)(intptr_t)v4691 = v4688;
 
 }
-const i1 c02_s01c3[] = { 0x74,0x6f,0x6f,0x20,0x6d,0x61,0x6e,0x79,0x20,0x72,0x65,0x6c,0x6f,0x61,0x64,0x73,0 };
+const i1 c02_s01c5[] = { 0x74,0x6f,0x6f,0x20,0x6d,0x61,0x6e,0x79,0x20,0x72,0x65,0x6c,0x6f,0x61,0x64,0x73,0 };
 	void f68_SimpleError(void);
 
 // CreateReload workspace at ws+4152 length ws+24
@@ -14225,7 +14235,7 @@ void f377_CreateReload(void) {
 
 c02_0304:;
 
-	i8 v4700 = (i8)(intptr_t)c02_s01c3;
+	i8 v4700 = (i8)(intptr_t)c02_s01c5;
 	*(i8*)(intptr_t)(ws+4280) = v4700;
 	i8 v4701 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -15048,7 +15058,7 @@ c02_039a:;
 	i8 v5204 = *(i8*)(intptr_t)v5203;
 	i8 v5205 = v5204+(+256);
 	i1 v5206 = *(i1*)(intptr_t)v5205;
-	i1 v5207 = (i1)+42;
+	i1 v5207 = (i1)+44;
 	if (v5206==v5207) goto c02_03a5; else goto c02_03a6;
 
 c02_03a5:;
@@ -15065,7 +15075,7 @@ c02_03a5:;
 
 	((void(*)(void))(intptr_t)v5213)();
 
-	i1 v5214 = (i1)+42;
+	i1 v5214 = (i1)+44;
 	i8 v5215 = (i8)(intptr_t)(ws+4224);
 	i8 v5216 = *(i8*)(intptr_t)v5215;
 	i8 v5217 = v5216+(+19);
@@ -15083,7 +15093,7 @@ c02_03a6:;
 	i8 v5221 = *(i8*)(intptr_t)v5220;
 	i8 v5222 = v5221+(+256);
 	i1 v5223 = *(i1*)(intptr_t)v5222;
-	i1 v5224 = (i1)+40;
+	i1 v5224 = (i1)+42;
 	if (v5223==v5224) goto c02_03a9; else goto c02_03aa;
 
 c02_03a9:;
@@ -15095,7 +15105,7 @@ c02_03a9:;
 	i8 v5229 = *(i8*)(intptr_t)v5228;
 	*(i4*)(intptr_t)v5229 = v5227;
 
-	i1 v5230 = (i1)+40;
+	i1 v5230 = (i1)+42;
 	i8 v5231 = (i8)(intptr_t)(ws+4224);
 	i8 v5232 = *(i8*)(intptr_t)v5231;
 	i8 v5233 = v5232+(+19);
@@ -15208,7 +15218,7 @@ c02_03ab:;
 	i8 v5282 = v5281+(+19);
 	i1 v5283 = *(i1*)(intptr_t)v5282;
 
-	if (v5283 != +45) goto c02_03bc;
+	if (v5283 != +47) goto c02_03bc;
 
 	i8 v5284 = (i8)(intptr_t)(f385_check_deref);
 
@@ -15218,7 +15228,7 @@ c02_03ab:;
 
 c02_03bc:;
 
-	if (v5283 != +46) goto c02_03bd;
+	if (v5283 != +48) goto c02_03bd;
 
 	i8 v5285 = (i8)(intptr_t)(f385_check_deref);
 
@@ -15228,7 +15238,7 @@ c02_03bc:;
 
 c02_03bd:;
 
-	if (v5283 != +47) goto c02_03be;
+	if (v5283 != +49) goto c02_03be;
 
 	i8 v5286 = (i8)(intptr_t)(f385_check_deref);
 
@@ -15238,7 +15248,7 @@ c02_03bd:;
 
 c02_03be:;
 
-	if (v5283 != +48) goto c02_03bf;
+	if (v5283 != +50) goto c02_03bf;
 
 	i8 v5287 = (i8)(intptr_t)(f385_check_deref);
 
@@ -15248,7 +15258,7 @@ c02_03be:;
 
 c02_03bf:;
 
-	if (v5283 != +42) goto c02_03c0;
+	if (v5283 != +44) goto c02_03c0;
 
 	i8 v5288 = (i8)(intptr_t)(f385_check_deref);
 
@@ -15258,7 +15268,7 @@ c02_03bf:;
 
 c02_03c0:;
 
-	if (v5283 != +40) goto c02_03c1;
+	if (v5283 != +42) goto c02_03c1;
 
 	i8 v5289 = (i8)(intptr_t)(ws+4216);
 	i8 v5290 = *(i8*)(intptr_t)v5289;
@@ -15656,11 +15666,11 @@ c02_040d:;
 	void f388_RewindRulePointers(void);
 	void f379_PrintNodes(void);
 	void f66_StartError(void);
-const i1 c02_s01c5[] = { 0x75,0x6e,0x6d,0x61,0x74,0x63,0x68,0x65,0x64,0x20,0x69,0x6e,0x73,0x74,0x72,0x75,0x63,0x74,0x69,0x6f,0x6e,0x3a,0x20,0 };
+const i1 c02_s01c7[] = { 0x75,0x6e,0x6d,0x61,0x74,0x63,0x68,0x65,0x64,0x20,0x69,0x6e,0x73,0x74,0x72,0x75,0x63,0x74,0x69,0x6f,0x6e,0x3a,0x20,0 };
 	void f12_print(void);
 	void f18_print_i8(void);
 	void f9_print_char(void);
-const i1 c02_s01c6[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x69,0x6e,0x67,0x20,0 };
+const i1 c02_s01c8[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x69,0x6e,0x67,0x20,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f67_EndError(void);
@@ -15888,7 +15898,7 @@ c02_0400:;
 
 	((void(*)(void))(intptr_t)v5546)();
 
-	i8 v5547 = (i8)(intptr_t)c02_s01c5;
+	i8 v5547 = (i8)(intptr_t)c02_s01c7;
 	*(i8*)(intptr_t)(ws+4288) = v5547;
 	i8 v5548 = (i8)(intptr_t)(f12_print);
 
@@ -15934,7 +15944,7 @@ c02_0417:;
 
 c02_0418:;
 
-	i8 v5567 = (i8)(intptr_t)c02_s01c6;
+	i8 v5567 = (i8)(intptr_t)c02_s01c8;
 	*(i8*)(intptr_t)(ws+4288) = v5567;
 	i8 v5568 = (i8)(intptr_t)(f12_print);
 
@@ -16469,40 +16479,40 @@ c02_0449:;
 	void f149_FindConflictingRegisters(void);
 	void f376_CreateSpill(void);
 	void f379_PrintNodes(void);
-const i1 c02_s01c7[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0x3a,0x20,0 };
+const i1 c02_s01c9[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0x3a,0x20,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
-const i1 c02_s01c8[] = { 0x63,0x6f,0x6e,0x73,0x75,0x6d,0x65,0x72,0x3a,0x20,0 };
+const i1 c02_s01ca[] = { 0x63,0x6f,0x6e,0x73,0x75,0x6d,0x65,0x72,0x3a,0x20,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
-const i1 c02_s01c9[] = { 0x6e,0x6f,0x64,0x65,0x3a,0x20,0 };
+const i1 c02_s01cb[] = { 0x6e,0x6f,0x64,0x65,0x3a,0x20,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
-const i1 c02_s01ca[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0x2e,0x70,0x72,0x6f,0x64,0x75,0x63,0x61,0x62,0x6c,0x65,0x5f,0x72,0x65,0x67,0x73,0x3d,0 };
+const i1 c02_s01cc[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0x2e,0x70,0x72,0x6f,0x64,0x75,0x63,0x61,0x62,0x6c,0x65,0x5f,0x72,0x65,0x67,0x73,0x3d,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
-const i1 c02_s01cb[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0x2e,0x6f,0x75,0x74,0x70,0x75,0x74,0x5f,0x72,0x65,0x67,0x73,0x3d,0 };
+const i1 c02_s01cd[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0x2e,0x6f,0x75,0x74,0x70,0x75,0x74,0x5f,0x72,0x65,0x67,0x73,0x3d,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
-const i1 c02_s01cc[] = { 0x6e,0x6f,0x64,0x65,0x2e,0x64,0x65,0x73,0x69,0x72,0x65,0x64,0x5f,0x72,0x65,0x67,0x3d,0 };
+const i1 c02_s01ce[] = { 0x6e,0x6f,0x64,0x65,0x2e,0x64,0x65,0x73,0x69,0x72,0x65,0x64,0x5f,0x72,0x65,0x67,0x3d,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
-const i1 c02_s01cd[] = { 0x63,0x6f,0x6e,0x73,0x75,0x6d,0x65,0x72,0x2e,0x69,0x6e,0x70,0x75,0x74,0x5f,0x72,0x65,0x67,0x73,0x3d,0 };
+const i1 c02_s01cf[] = { 0x63,0x6f,0x6e,0x73,0x75,0x6d,0x65,0x72,0x2e,0x69,0x6e,0x70,0x75,0x74,0x5f,0x72,0x65,0x67,0x73,0x3d,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
-const i1 c02_s01ce[] = { 0x63,0x6f,0x6d,0x70,0x61,0x74,0x69,0x62,0x6c,0x65,0x3d,0 };
+const i1 c02_s01d0[] = { 0x63,0x6f,0x6d,0x70,0x61,0x74,0x69,0x62,0x6c,0x65,0x3d,0 };
 	void f12_print(void);
 	void f21_print_hex_i32(void);
 	void f13_print_nl(void);
 	void f66_StartError(void);
-const i1 c02_s01cf[] = { 0x72,0x65,0x67,0x69,0x73,0x74,0x65,0x72,0x20,0x61,0x6c,0x6c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x20,0x64,0x65,0x61,0x64,0x6c,0x6f,0x63,0x6b,0x3a,0x20,0 };
+const i1 c02_s01d1[] = { 0x72,0x65,0x67,0x69,0x73,0x74,0x65,0x72,0x20,0x61,0x6c,0x6c,0x6f,0x63,0x61,0x74,0x69,0x6f,0x6e,0x20,0x64,0x65,0x61,0x64,0x6c,0x6f,0x63,0x6b,0x3a,0x20,0 };
 	void f12_print(void);
 	void f12_print(void);
 	void f67_EndError(void);
@@ -16517,7 +16527,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6292)();
 
-	i8 v6293 = (i8)(intptr_t)c02_s01c7;
+	i8 v6293 = (i8)(intptr_t)c02_s01c9;
 	*(i8*)(intptr_t)(ws+4288) = v6293;
 	i8 v6294 = (i8)(intptr_t)(f12_print);
 
@@ -16537,7 +16547,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6301)();
 
-	i8 v6302 = (i8)(intptr_t)c02_s01c8;
+	i8 v6302 = (i8)(intptr_t)c02_s01ca;
 	*(i8*)(intptr_t)(ws+4288) = v6302;
 	i8 v6303 = (i8)(intptr_t)(f12_print);
 
@@ -16557,7 +16567,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6310)();
 
-	i8 v6311 = (i8)(intptr_t)c02_s01c9;
+	i8 v6311 = (i8)(intptr_t)c02_s01cb;
 	*(i8*)(intptr_t)(ws+4288) = v6311;
 	i8 v6312 = (i8)(intptr_t)(f12_print);
 
@@ -16575,7 +16585,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6317)();
 
-	i8 v6318 = (i8)(intptr_t)c02_s01ca;
+	i8 v6318 = (i8)(intptr_t)c02_s01cc;
 	*(i8*)(intptr_t)(ws+4288) = v6318;
 	i8 v6319 = (i8)(intptr_t)(f12_print);
 
@@ -16595,7 +16605,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6326)();
 
-	i8 v6327 = (i8)(intptr_t)c02_s01cb;
+	i8 v6327 = (i8)(intptr_t)c02_s01cd;
 	*(i8*)(intptr_t)(ws+4288) = v6327;
 	i8 v6328 = (i8)(intptr_t)(f12_print);
 
@@ -16615,7 +16625,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6335)();
 
-	i8 v6336 = (i8)(intptr_t)c02_s01cc;
+	i8 v6336 = (i8)(intptr_t)c02_s01ce;
 	*(i8*)(intptr_t)(ws+4288) = v6336;
 	i8 v6337 = (i8)(intptr_t)(f12_print);
 
@@ -16635,7 +16645,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6344)();
 
-	i8 v6345 = (i8)(intptr_t)c02_s01cd;
+	i8 v6345 = (i8)(intptr_t)c02_s01cf;
 	*(i8*)(intptr_t)(ws+4288) = v6345;
 	i8 v6346 = (i8)(intptr_t)(f12_print);
 
@@ -16655,7 +16665,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6353)();
 
-	i8 v6354 = (i8)(intptr_t)c02_s01ce;
+	i8 v6354 = (i8)(intptr_t)c02_s01d0;
 	*(i8*)(intptr_t)(ws+4288) = v6354;
 	i8 v6355 = (i8)(intptr_t)(f12_print);
 
@@ -16677,7 +16687,7 @@ void f394_deadlock(void) {
 
 	((void(*)(void))(intptr_t)v6361)();
 
-	i8 v6362 = (i8)(intptr_t)c02_s01cf;
+	i8 v6362 = (i8)(intptr_t)c02_s01d1;
 	*(i8*)(intptr_t)(ws+4288) = v6362;
 	i8 v6363 = (i8)(intptr_t)(f12_print);
 
@@ -16695,12 +16705,12 @@ void f394_deadlock(void) {
 	((void(*)(void))(intptr_t)v6367)();
 
 }
-const i1 c02_s01d0[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0 };
+const i1 c02_s01d2[] = { 0x70,0x72,0x6f,0x64,0x75,0x63,0x65,0x72,0 };
 	void f394_deadlock(void);
 	void f151_FindFirst(void);
 	void f149_FindConflictingRegisters(void);
 	void f376_CreateSpill(void);
-const i1 c02_s01d1[] = { 0x63,0x6f,0x6e,0x73,0x75,0x6d,0x65,0x72,0 };
+const i1 c02_s01d3[] = { 0x63,0x6f,0x6e,0x73,0x75,0x6d,0x65,0x72,0 };
 	void f394_deadlock(void);
 	void f151_FindFirst(void);
 	void f149_FindConflictingRegisters(void);
@@ -17381,7 +17391,7 @@ c02_04a6:;
 
 c02_04ab:;
 
-	i8 v6385 = (i8)(intptr_t)c02_s01d0;
+	i8 v6385 = (i8)(intptr_t)c02_s01d2;
 	*(i8*)(intptr_t)(ws+4152) = v6385;
 	i8 v6386 = (i8)(intptr_t)(f394_deadlock);
 
@@ -17468,7 +17478,7 @@ c02_04a8:;
 
 c02_04b0:;
 
-	i8 v6436 = (i8)(intptr_t)c02_s01d1;
+	i8 v6436 = (i8)(intptr_t)c02_s01d3;
 	*(i8*)(intptr_t)(ws+4152) = v6436;
 	i8 v6437 = (i8)(intptr_t)(f394_deadlock);
 
@@ -17987,7 +17997,7 @@ c02_03cc:;
 	((void(*)(void))(intptr_t)v6614)();
 
 }
-const i1 c02_s01d2[] = { 0x6e,0x6f,0x64,0x65,0x20,0x73,0x74,0x61,0x63,0x6b,0x20,0x6f,0x76,0x65,0x72,0x66,0x6c,0x6f,0x77,0 };
+const i1 c02_s01d4[] = { 0x6e,0x6f,0x64,0x65,0x20,0x73,0x74,0x61,0x63,0x6b,0x20,0x6f,0x76,0x65,0x72,0x66,0x6c,0x6f,0x77,0 };
 	void f68_SimpleError(void);
 
 // PushNode workspace at ws+4232 length ws+8
@@ -18007,7 +18017,7 @@ c02_04ff:;
 
 c02_0504:;
 
-	i8 v6782 = (i8)(intptr_t)c02_s01d2;
+	i8 v6782 = (i8)(intptr_t)c02_s01d4;
 	*(i8*)(intptr_t)(ws+4280) = v6782;
 	i8 v6783 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -18179,7 +18189,7 @@ c02_0512:;
 
 c02_0513:;
 
-	if (v6838 != +41) goto c02_0514;
+	if (v6838 != +43) goto c02_0514;
 
 	i8 v6847 = (i8)(intptr_t)(ws+4136);
 	i8 v6848 = *(i8*)(intptr_t)v6847;
@@ -18436,10 +18446,10 @@ c02_0520:;
 }
 	void f33_Alloc(void);
 	void f66_StartError(void);
-const i1 c02_s01d3[] = { 0x64,0x75,0x70,0x6c,0x69,0x63,0x61,0x74,0x65,0x20,0x73,0x75,0x62,0x72,0x69,0x64,0x20,0x30,0x78,0 };
+const i1 c02_s01d5[] = { 0x64,0x75,0x70,0x6c,0x69,0x63,0x61,0x74,0x65,0x20,0x73,0x75,0x62,0x72,0x69,0x64,0x20,0x30,0x78,0 };
 	void f12_print(void);
 	void f20_print_hex_i16(void);
-const i1 c02_s01d4[] = { 0x20,0x61,0x74,0x20,0x30,0x78,0 };
+const i1 c02_s01d6[] = { 0x20,0x61,0x74,0x20,0x30,0x78,0 };
 	void f12_print(void);
 	void f48_FCBPos(void);
 	void f21_print_hex_i32(void);
@@ -18537,7 +18547,7 @@ c02_0539:;
 
 	((void(*)(void))(intptr_t)v7027)();
 
-	i8 v7028 = (i8)(intptr_t)c02_s01d3;
+	i8 v7028 = (i8)(intptr_t)c02_s01d5;
 	*(i8*)(intptr_t)(ws+4288) = v7028;
 	i8 v7029 = (i8)(intptr_t)(f12_print);
 
@@ -18550,7 +18560,7 @@ c02_0539:;
 
 	((void(*)(void))(intptr_t)v7032)();
 
-	i8 v7033 = (i8)(intptr_t)c02_s01d4;
+	i8 v7033 = (i8)(intptr_t)c02_s01d6;
 	*(i8*)(intptr_t)(ws+4288) = v7033;
 	i8 v7034 = (i8)(intptr_t)(f12_print);
 
@@ -18619,10 +18629,10 @@ c02_0536:;
 
 }
 	void f66_StartError(void);
-const i1 c02_s01d5[] = { 0x75,0x6e,0x6b,0x6e,0x6f,0x77,0x6e,0x20,0x73,0x75,0x62,0x72,0x69,0x64,0x20,0 };
+const i1 c02_s01d7[] = { 0x75,0x6e,0x6b,0x6e,0x6f,0x77,0x6e,0x20,0x73,0x75,0x62,0x72,0x69,0x64,0x20,0 };
 	void f12_print(void);
 	void f20_print_hex_i16(void);
-const i1 c02_s01d6[] = { 0x20,0x61,0x74,0x20,0x30,0x78,0 };
+const i1 c02_s01d8[] = { 0x20,0x61,0x74,0x20,0x30,0x78,0 };
 	void f12_print(void);
 	void f48_FCBPos(void);
 	void f21_print_hex_i32(void);
@@ -18661,7 +18671,7 @@ c02_0544:;
 
 	((void(*)(void))(intptr_t)v7074)();
 
-	i8 v7075 = (i8)(intptr_t)c02_s01d5;
+	i8 v7075 = (i8)(intptr_t)c02_s01d7;
 	*(i8*)(intptr_t)(ws+4288) = v7075;
 	i8 v7076 = (i8)(intptr_t)(f12_print);
 
@@ -18674,7 +18684,7 @@ c02_0544:;
 
 	((void(*)(void))(intptr_t)v7079)();
 
-	i8 v7080 = (i8)(intptr_t)c02_s01d6;
+	i8 v7080 = (i8)(intptr_t)c02_s01d8;
 	*(i8*)(intptr_t)(ws+4288) = v7080;
 	i8 v7081 = (i8)(intptr_t)(f12_print);
 
@@ -18961,7 +18971,7 @@ c02_054f:;
 c02_054b:;
 
 }
-const i1 c02_s01d7[] = { 0x70,0x61,0x72,0x61,0x6d,0x65,0x74,0x65,0x72,0x73,0x20,0x73,0x70,0x65,0x63,0x69,0x66,0x69,0x65,0x64,0x20,0x74,0x77,0x69,0x63,0x65,0 };
+const i1 c02_s01d9[] = { 0x70,0x61,0x72,0x61,0x6d,0x65,0x74,0x65,0x72,0x73,0x20,0x73,0x70,0x65,0x63,0x69,0x66,0x69,0x65,0x64,0x20,0x74,0x77,0x69,0x63,0x65,0 };
 	void f68_SimpleError(void);
 	void f33_Alloc(void);
 	void f33_Alloc(void);
@@ -18983,7 +18993,7 @@ void f404_ReadParameters(void) {
 
 c02_0553:;
 
-	i8 v7210 = (i8)(intptr_t)c02_s01d7;
+	i8 v7210 = (i8)(intptr_t)c02_s01d9;
 	*(i8*)(intptr_t)(ws+4280) = v7210;
 	i8 v7211 = (i8)(intptr_t)(f68_SimpleError);
 
@@ -19477,10 +19487,10 @@ void f409_ReadF(void) {
 	void f408_ReadR(void);
 	void f409_ReadF(void);
 	void f66_StartError(void);
-const i1 c02_s01d8[] = { 0x75,0x6e,0x73,0x75,0x70,0x70,0x6f,0x72,0x74,0x65,0x64,0x20,0x72,0x65,0x63,0x6f,0x72,0x64,0x20,0x30,0x78,0 };
+const i1 c02_s01da[] = { 0x75,0x6e,0x73,0x75,0x70,0x70,0x6f,0x72,0x74,0x65,0x64,0x20,0x72,0x65,0x63,0x6f,0x72,0x64,0x20,0x30,0x78,0 };
 	void f12_print(void);
 	void f19_print_hex_i8(void);
-const i1 c02_s01d9[] = { 0x20,0x61,0x74,0x20,0x30,0x78,0 };
+const i1 c02_s01db[] = { 0x20,0x61,0x74,0x20,0x30,0x78,0 };
 	void f12_print(void);
 	void f48_FCBPos(void);
 	void f21_print_hex_i32(void);
@@ -19605,7 +19615,7 @@ c02_0566:;
 
 	((void(*)(void))(intptr_t)v7448)();
 
-	i8 v7449 = (i8)(intptr_t)c02_s01d8;
+	i8 v7449 = (i8)(intptr_t)c02_s01da;
 	*(i8*)(intptr_t)(ws+4288) = v7449;
 	i8 v7450 = (i8)(intptr_t)(f12_print);
 
@@ -19618,7 +19628,7 @@ c02_0566:;
 
 	((void(*)(void))(intptr_t)v7453)();
 
-	i8 v7454 = (i8)(intptr_t)c02_s01d9;
+	i8 v7454 = (i8)(intptr_t)c02_s01db;
 	*(i8*)(intptr_t)(ws+4288) = v7454;
 	i8 v7455 = (i8)(intptr_t)(f12_print);
 
@@ -19655,7 +19665,7 @@ c02_055c:;
 }
 	void f38_GetFreeMemory(void);
 	void f17_print_i16(void);
-const i1 c02_s01da[] = { 0x6b,0x42,0x20,0x66,0x72,0x65,0x65,0x0a,0 };
+const i1 c02_s01dc[] = { 0x6b,0x42,0x20,0x66,0x72,0x65,0x65,0x0a,0 };
 	void f12_print(void);
 
 // PrintFreeMemory workspace at ws+3984 length ws+8
@@ -19679,21 +19689,21 @@ void f411_PrintFreeMemory(void) {
 
 	((void(*)(void))(intptr_t)v7472)();
 
-	i8 v7473 = (i8)(intptr_t)c02_s01da;
+	i8 v7473 = (i8)(intptr_t)c02_s01dc;
 	*(i8*)(intptr_t)(ws+4288) = v7473;
 	i8 v7474 = (i8)(intptr_t)(f12_print);
 
 	((void(*)(void))(intptr_t)v7474)();
 
 }
-const i1 c02_s01db[] = { 0x73,0x79,0x6e,0x74,0x61,0x78,0x20,0x65,0x72,0x72,0x6f,0x72,0x3a,0x20,0x63,0x6f,0x77,0x62,0x65,0x20,0x5b,0x2d,0x49,0x70,0x61,0x74,0x68,0x5d,0x20,0x3c,0x69,0x6e,0x66,0x69,0x6c,0x65,0x3e,0x20,0x3c,0x6f,0x75,0x74,0x66,0x69,0x6c,0x65,0x3e,0x0a,0 };
+const i1 c02_s01dd[] = { 0x73,0x79,0x6e,0x74,0x61,0x78,0x20,0x65,0x72,0x72,0x6f,0x72,0x3a,0x20,0x63,0x6f,0x77,0x62,0x65,0x20,0x5b,0x2d,0x49,0x70,0x61,0x74,0x68,0x5d,0x20,0x3c,0x69,0x6e,0x66,0x69,0x6c,0x65,0x3e,0x20,0x3c,0x6f,0x75,0x74,0x66,0x69,0x6c,0x65,0x3e,0x0a,0 };
 	void f12_print(void);
 	void f6_ExitWithError(void);
 
 // SyntaxError workspace at ws+4008 length ws+0
 void f412_SyntaxError(void) {
 
-	i8 v7475 = (i8)(intptr_t)c02_s01db;
+	i8 v7475 = (i8)(intptr_t)c02_s01dd;
 	*(i8*)(intptr_t)(ws+4288) = v7475;
 	i8 v7476 = (i8)(intptr_t)(f12_print);
 
@@ -19781,7 +19791,7 @@ c02_056f:;
 c02_0567:;
 
 }
-const i1 c02_s01dc[] = { 0x43,0x4f,0x57,0x42,0x45,0x3a,0x20,0 };
+const i1 c02_s01de[] = { 0x43,0x4f,0x57,0x42,0x45,0x3a,0x20,0 };
 	void f12_print(void);
 	void f411_PrintFreeMemory(void);
 	void f413_ParseArguments(void);
@@ -19790,7 +19800,7 @@ const i1 c02_s01dc[] = { 0x43,0x4f,0x57,0x42,0x45,0x3a,0x20,0 };
 	void f410_ProcessFile(void);
 	void f109_EmitterClosefile(void);
 	void f121_InputterClosefile(void);
-const i1 c02_s01dd[] = { 0x64,0x6f,0x6e,0x65,0x3a,0x20,0 };
+const i1 c02_s01df[] = { 0x64,0x6f,0x6e,0x65,0x3a,0x20,0 };
 	void f12_print(void);
 	void f411_PrintFreeMemory(void);
 
@@ -20107,7 +20117,7 @@ void f3___main(void) {
 
 
 
-	i8 v7504 = (i8)(intptr_t)c02_s01dc;
+	i8 v7504 = (i8)(intptr_t)c02_s01de;
 	*(i8*)(intptr_t)(ws+4288) = v7504;
 	i8 v7505 = (i8)(intptr_t)(f12_print);
 
@@ -20147,7 +20157,7 @@ void f3___main(void) {
 
 	((void(*)(void))(intptr_t)v7516)();
 
-	i8 v7517 = (i8)(intptr_t)c02_s01dd;
+	i8 v7517 = (i8)(intptr_t)c02_s01df;
 	*(i8*)(intptr_t)(ws+4288) = v7517;
 	i8 v7518 = (i8)(intptr_t)(f12_print);
 
