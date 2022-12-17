@@ -159,6 +159,15 @@ gen CALL(param, SUBREF():a)
 	E_nl();
 }
 
+gen TAILCALL(param, SUBREF():a)
+{
+	E("goto ");
+	E_subref($a.subr);
+	E_nl();
+}
+
+gen PREPARETAIL();
+
 gen param := END();
 gen param := ARG1(param, v)
 {

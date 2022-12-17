@@ -44,7 +44,7 @@
 			EmitterDeclareExternalSubroutine(e.id, name);
 		end if;
 
-		EmitterReferenceSubroutineById(current_subr.id, e.id);
+		EmitterReferenceSubroutineById(current_subr.id, e.id, 0);
 	end sub;
 
 	sub E_abssymref(sym: [Symbol], off: Size) is

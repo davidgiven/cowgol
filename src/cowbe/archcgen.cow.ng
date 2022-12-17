@@ -124,6 +124,9 @@ gen JUMP():j
 
 gen RETURN()
 {
+	E("\tif (passer2normalcall) {\n");
+	E("\t\ttframe_ptr->activated = 1;\n");
+	E("\t}\n");
 	E("\treturn;\n");
 }
 
@@ -147,10 +150,21 @@ gen STARTSUB():s
 	E("\nvoid ");
 	E_subref(current_subr);
 	E("(void) {\n");
+	E("i1 passer2normalcall = 0;");
+	E("\tif (tframe_ptr->activated) {\n");
+	E("\t\tif (!(tframe_ptr->tramp2function)) {\n");
+	E("\t\t\tpasser2normalcall = 1;\n");
+	E("\t\t\ttframe_ptr->activated = 0;\n");
+	E("\t\t}\n");
+	E("\t\ttframe_ptr->tramp2function = 0;\n");
+	E("\t}\n");
 }
 
 gen ENDSUB()
 {
+	E("\tif (passer2normalcall) {\n");
+	E("\t\ttframe_ptr->activated = 1;\n");
+	E("\t}\n");
 	E("}\n");
 	EmitterCloseStream();
 }
@@ -167,6 +181,19 @@ gen ENDSUB()
 		E_u16(pid);
 		E(")();\n");
 	end sub;
+
+	# subr here is the *interface*.
+	sub Tailcall(subrid: SubrId) is
+		var subr := FindSubr(subrid);
+		var pid := Pop();
+
+		# Call the subroutine itself.
+
+		E("\n\tTAILCALL(((void(*)(void))(intptr_t)v");
+		E_u16(pid);
+		E("));\n");
+	end sub;
+
 
 	sub PokeArg(width: uint8, sym: [Symbol]) is
 		var vid := Pop();
@@ -196,6 +223,9 @@ gen ENDSUB()
 %}
 
 gen       CALL(  param, v8):s { Call($s.subr.id); }
+gen   TAILCALL(  param, v8):s { Tailcall($s.subr.id); }
+
+gen PREPARETAIL();
 
 gen param := END();
 gen param := ARG1(param, v1):a { PokeArg(1, &$a.sym); }

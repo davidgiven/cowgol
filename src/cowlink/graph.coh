@@ -39,6 +39,33 @@ sub ResolveExternals() is
 	end if;
 end sub;
 
+# Due to how interfaces are referenced, it's possible for a cycle
+# to form in the linker if an interface does a passto statement to
+# itself. 'cycle' is true if called or called's callees are the same as the subroutine.
+sub DetectCycle(subroutine: [Subroutine], called: [Subroutine]): (cycle: uint8) is
+	cycle := 0;
+	if called.id == subroutine.id then
+		cycle := 1;
+	end if;
+	var refs := &called.refs;
+	while refs != (0 as [References]) loop
+		var j: uint8 := 0;
+		while j != COO_REFS_SIZE loop
+			called := refs.calls[j];
+			var tc := refs.is_tailcall[j];
+			j := j + 1;
+			if called == (0 as [Subroutine]) then
+				break;
+			end if;
+			called := Deref(called);
+			if called.id == subroutine.id and tc == 0 then
+				cycle := 1;
+			end if;
+		end loop;
+		refs := refs.next;
+	end loop;
+end sub;
+
 # Walks the call graph, calculating both which subroutines are actually
 # used and also allocating spaces in the subroutine workspaces.
 
@@ -95,6 +122,7 @@ sub PlaceSubroutines(subroutine: [Subroutine]) is
 			var j: uint8 := 0;
 			while j != COO_REFS_SIZE loop
 				var called := refs.calls[j];
+				var tc := refs.is_tailcall[j];
 				j := j + 1;
 
 				if called == (0 as [Subroutine]) then
@@ -103,16 +131,24 @@ sub PlaceSubroutines(subroutine: [Subroutine]) is
 				called := Deref(called);
 
 				i := 0;
+				if tc != 0 and DetectCycle(subroutine, called) != 0 then
+					continue;
+				end if;
 				while i != NUM_WORKSPACES loop
+					var reqAddr: Size;
 					var curAddr := called.workspaceAddress[i];
-					var reqAddr := watermark[i];
+					if tc == 0 then
+						reqAddr := watermark[i];
+					else
+						reqAddr := subroutine.workspaceAddress[i];
+					end if;
 					if reqAddr > curAddr then
-						#print(subroutine.name);
-						#print(" calling ");
-						#print(called.name);
-						#print(" -> ");
-						#print_hex_i16(reqAddr);
-						#print_nl();
+						print(subroutine.name);
+						print(" calling ");
+						print(called.name);
+						print(" -> ");
+						print_hex_i16(reqAddr);
+						print_nl();
 						called.workspaceAddress[i] := reqAddr;
 						# The subroutine's workspace has moved, so make sure it
 						# gets reprocessed.

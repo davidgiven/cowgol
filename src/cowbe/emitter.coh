@@ -242,15 +242,16 @@ sub EmitterDeclareExternalSubroutine(subrid: uint16, external: string) is
 	FCBPutBlock(&outfcb, external, len as intptr);
 end sub;
 
-sub EmitterReferenceSubroutineById(user: uint16, used: uint16) is
+sub EmitterReferenceSubroutineById(user: uint16, used: uint16, tailcall: uint8) is
 	WriteB8('R');
-	WriteB16(4);
+	WriteB16(5);
 	WriteB16(user);
 	WriteB16(used);
+	WriteB8(tailcall);
 end sub;
 
-sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine]) is
-	EmitterReferenceSubroutineById(user.id, used.id);
+sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine], tailcall: uint8) is
+	EmitterReferenceSubroutineById(user.id, used.id, tailcall);
 end sub;
 
 sub EmitterDeclareWorkspace(subrid: SubrId, wid: uint8, workspace: Size) is

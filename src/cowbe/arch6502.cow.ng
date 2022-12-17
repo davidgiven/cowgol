@@ -472,7 +472,7 @@
     sub E_callhelper(name: string) is
         var e := GetHelper(name);
 
-        EmitterReferenceSubroutineById(current_subr.id, e.id);
+        EmitterReferenceSubroutineById(current_subr.id, e.id, 0);
 
         R_flushall();
         E_oc(OC_JSR);

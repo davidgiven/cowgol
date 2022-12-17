@@ -861,7 +861,7 @@
 			EmitterDeclareExternalSubroutine(e.id, name);
 		end if;
 
-		EmitterReferenceSubroutineById(current_subr.id, e.id);
+		EmitterReferenceSubroutineById(current_subr.id, e.id, 0);
 
 		R_flushall();
 		E("\tCALL\t");

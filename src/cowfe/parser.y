@@ -788,8 +788,12 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 		end if;
 	end sub;
 
-	sub i_end_call() is
-		EmitterReferenceSubroutine(current_subr, current_call.intfsubr);
+	sub i_end_call(tailcall: uint8) is
+		EmitterReferenceSubroutine(
+			current_subr,
+			current_call.intfsubr,
+			tailcall
+		);
 		var call := current_call;
 		current_call := call.parent;
 		Free(call as [uint8]);
@@ -813,7 +817,7 @@ expression(E) ::= startsubcall inputargs(INA).
 	Generate(MidCall(INA, current_call.expr, intfsubr));
     Generate(MidStore(w, MidPoparg(w, intfsubr, param, 0), MidDeref(w, MidAddress(temp, 0))));
 
-	i_end_call();
+	i_end_call(0);
 
 	E := MidDeref(w, MidAddress(temp, 0));
 	E.type := param.vardata.type;
@@ -829,7 +833,7 @@ statement ::= startsubcall inputargs(INA) SEMICOLON.
 
 	Generate(MidCall(INA, current_call.expr, intfsubr));
 
-	i_end_call();
+	i_end_call(0);
 }
 
 statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
@@ -880,7 +884,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		SimpleError("too few output arguments");
 	end if;
 
-	i_end_call();
+	i_end_call(0);
 }
 
 startsubcall ::= leafexpression(E).
@@ -1014,6 +1018,7 @@ statement ::= PASSTO startsubcall inputargs(INA) SEMICOLON.
 
 	Generate(MidPreparetail());
 	Generate(MidTailcall(INA, current_call.expr, intfsubr1));
+	i_end_call(1);
 }
 
 
@@ -1067,8 +1072,8 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_IMPLEMENTATION;
 	preparing_subr.intfsubr := intfsubr;
 	preparing_subr.type := T;
-	EmitterReferenceSubroutine(current_subr, intfsubr);
-	EmitterReferenceSubroutine(intfsubr, preparing_subr);
+	EmitterReferenceSubroutine(current_subr, intfsubr, 0);
+	EmitterReferenceSubroutine(intfsubr, preparing_subr, 0);
 
 	preparing_subr.num_input_parameters := intfsubr.num_input_parameters;
 	if preparing_subr.num_input_parameters != 0 then
@@ -1550,7 +1555,7 @@ asm ::= oldid(S).
 	case S.kind is
 		when TYPE:
 			if IsSubroutine(S.typedata) != 0 then
-				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr);
+				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr, 0);
 				Generate(MidAsmsubref(S.typedata.subrtype.subr));
 			else
 				bad_reference();
