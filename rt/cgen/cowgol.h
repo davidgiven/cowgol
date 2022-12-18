@@ -52,16 +52,14 @@ i8* global_argv;
 /* A rather thorny bit of logic controls how tail calls operate.
  * Trampoline frames allows for multiple levels of the passto statement.
  * The i1s are mark different states in the execution of the trampoline.
- * There's also a single i1 in each function called 'passer2normalcall'
- * to mark if a passer has called a normal function. It's a relatively
- * expensive system in total, but most of it is only incurred if the
- * passto statement is in use. */
+ * It's a relatively expensive system in total, but most of it is only
+ * incurred if the passto statement is in use. */
 typedef struct {
 /*:The function called by the passto statement: */
 	void(*destination)(void);
 /*1 if a passto statement is in use, 0 otherwise: */
 	i1 activated;
-/*1 if passto-> trampoline, 0 if normal return->trampoline. */
+/*1 if passto->trampoline, 0 if normal return->trampoline. */
 	i1 passer2tramp;
 /*1 if trampoline->function, 0 if function->function */
 	i1 tramp2function;
@@ -80,7 +78,6 @@ void trampoline(void(*dest)(void))
 	tframe_ptr++;
 	tframe_ptr->destination = dest;
 	tframe_ptr->passer2tramp = 1;
-	tframe_ptr->activated = 1;
 	for(;;) {
 		if (tframe_ptr->passer2tramp) {
 			tframe_ptr->passer2tramp = 0;
@@ -100,8 +97,6 @@ void trampoline(void(*dest)(void))
 {\
 	if (!(tframe_ptr->activated)) {\
 		trampoline((dest));\
-		if (passer2normalcall)\
-			tframe_ptr->activated = 1;\
 	} else {\
 		tframe_ptr->passer2tramp = 1;\
 		tframe_ptr->destination = (dest);\

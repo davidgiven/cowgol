@@ -124,9 +124,6 @@ gen JUMP():j
 
 gen RETURN()
 {
-	E("\tif (passer2normalcall) {\n");
-	E("\t\ttframe_ptr->activated = 1;\n");
-	E("\t}\n");
 	E("\treturn;\n");
 }
 
@@ -150,21 +147,12 @@ gen STARTSUB():s
 	E("\nvoid ");
 	E_subref(current_subr);
 	E("(void) {\n");
-	E("i1 passer2normalcall = 0;");
-	E("\tif (tframe_ptr->activated) {\n");
-	E("\t\tif (!(tframe_ptr->tramp2function)) {\n");
-	E("\t\t\tpasser2normalcall = 1;\n");
-	E("\t\t\ttframe_ptr->activated = 0;\n");
-	E("\t\t}\n");
-	E("\t\ttframe_ptr->tramp2function = 0;\n");
-	E("\t}\n");
+	E("\ttframe_ptr->activated = tframe_ptr->tramp2function;\n");
+	E("\ttframe_ptr->tramp2function = 0;\n");
 }
 
 gen ENDSUB()
 {
-	E("\tif (passer2normalcall) {\n");
-	E("\t\ttframe_ptr->activated = 1;\n");
-	E("\t}\n");
 	E("}\n");
 	EmitterCloseStream();
 }

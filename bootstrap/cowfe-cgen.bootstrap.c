@@ -4,13 +4,8 @@ static i8 workspace[0x01d5];
 
 // ExitWithError workspace at ws+3672 length ws+0
 void f6_ExitWithError(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	
@@ -18,20 +13,12 @@ exit(1);
 
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // MemSet workspace at ws+3640 length ws+24
 void f7_MemSet(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	
@@ -45,20 +32,12 @@ memset((void*)(intptr_t)
 
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // print_char workspace at ws+3712 length ws+1
 void f9_print_char(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	
@@ -68,21 +47,13 @@ putchar(
 
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f9_print_char(void);
 
 // print workspace at ws+3696 length ws+9
 void f12_print(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_0001:;
 
@@ -99,9 +70,6 @@ c02_0001:;
 
 c02_0006:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0007:;
@@ -125,21 +93,13 @@ c02_0003:;
 
 c02_0002:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f9_print_char(void);
 
 // print_nl workspace at ws+3656 length ws+0
 void f13_print_nl(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v20 = (i1)+10;
 	*(i1*)(intptr_t)(ws+3712) = v20;
@@ -147,20 +107,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v21)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // UIToA workspace at ws+3696 length ws+49
 void f14_UIToA(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v22 = (i8)(intptr_t)(ws+3704);
 	i8 v23 = *(i8*)(intptr_t)v22;
@@ -303,22 +255,14 @@ c02_0019:;
 	i8 v96 = *(i8*)(intptr_t)v95;
 	*(i1*)(intptr_t)v96 = v94;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f14_UIToA(void);
 	void f12_print(void);
 
 // print_i32 workspace at ws+3664 length ws+32
 void f16_print_i32(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v123 = (i8)(intptr_t)(ws+3664);
 	i4 v124 = *(i4*)(intptr_t)v123;
@@ -346,21 +290,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v134)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f16_print_i32(void);
 
 // print_i16 workspace at ws+3656 length ws+2
 void f17_print_i16(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v135 = (i8)(intptr_t)(ws+3656);
 	i2 v136 = *(i2*)(intptr_t)v135;
@@ -370,21 +306,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v138)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f16_print_i32(void);
 
 // print_i8 workspace at ws+3496 length ws+1
 void f18_print_i8(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v139 = (i8)(intptr_t)(ws+3496);
 	i1 v140 = *(i1*)(intptr_t)v139;
@@ -394,21 +322,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v142)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f9_print_char(void);
 
 // print_hex_i8 workspace at ws+3488 length ws+3
 void f19_print_hex_i8(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v143 = (i1)+2;
 	i8 v144 = (i8)(intptr_t)(ws+3489);
@@ -485,9 +405,6 @@ c02_0026:;
 
 c02_0020:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f19_print_hex_i8(void);
 	void f19_print_hex_i8(void);
@@ -496,13 +413,8 @@ c02_0020:;
 
 // print_hex_i32 workspace at ws+3480 length ws+4
 void f21_print_hex_i32(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v186 = (i8)(intptr_t)(ws+3480);
 	i4 v187 = *(i4*)(intptr_t)v186;
@@ -542,20 +454,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v207)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // ArgvInit workspace at ws+3280 length ws+0
 void f24_ArgvInit(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	
@@ -570,20 +474,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v318 = (i8)(intptr_t)(ws+16);
 	*(i8*)(intptr_t)v318 = v317;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // ArgvNext workspace at ws+3280 length ws+8
 void f25_ArgvNext(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v319 = (i8)(intptr_t)(ws+16);
 	i8 v320 = *(i8*)(intptr_t)v319;
@@ -596,9 +492,6 @@ c02_0052:;
 	i8 v323 = (i8)(intptr_t)(ws+3280);
 	*(i8*)(intptr_t)v323 = v322;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0053:;
@@ -634,20 +527,12 @@ c02_0058:;
 
 c02_0054:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // StrCmp workspace at ws+3560 length ws+17
 void f26_StrCmp(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_0059:;
 
@@ -698,20 +583,12 @@ c02_005b:;
 
 c02_005a:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // ToLower workspace at ws+3312 length ws+2
 void f27_ToLower(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v360 = (i8)(intptr_t)(ws+3312);
 	i1 v361 = *(i1*)(intptr_t)v360;
@@ -744,20 +621,12 @@ c02_0069:;
 
 c02_0063:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // StrLen workspace at ws+3584 length ws+25
 void f29_StrLen(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v406 = (i8)(intptr_t)(ws+3584);
 	i8 v407 = *(i8*)(intptr_t)v406;
@@ -803,20 +672,12 @@ c02_0076:;
 	i8 v425 = (i8)(intptr_t)(ws+3592);
 	*(i8*)(intptr_t)v425 = v424;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // MemCopy workspace at ws+3576 length ws+24
 void f31_MemCopy(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_0083:;
 
@@ -856,20 +717,12 @@ c02_0087:;
 
 c02_0088:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // RawAlloc workspace at ws+3672 length ws+16
 void f32_RawAlloc(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	
@@ -880,20 +733,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // Free workspace at ws+3680 length ws+8
 void f34_Free(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	
@@ -903,39 +748,23 @@ free((void*)(intptr_t)
 
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // GetFreeMemory workspace at ws+3272 length ws+8
 void f38_GetFreeMemory(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v479 = (i8)+0;
 	i8 v480 = (i8)(intptr_t)(ws+3272);
 	*(i8*)(intptr_t)v480 = v479;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // _fcb_init workspace at ws+3440 length ws+8
 void f41__fcb_init(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i4 v481 = (i4)+0;
 	i8 v482 = (i8)(intptr_t)(ws+3440);
@@ -961,20 +790,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v496 = v495+(+524);
 	*(i1*)(intptr_t)v496 = v493;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // _fcb_advance workspace at ws+3640 length ws+8
 void f42__fcb_advance(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v497 = (i8)(intptr_t)(ws+3640);
 	i8 v498 = *(i8*)(intptr_t)v497;
@@ -986,22 +807,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v504 = v503+(+10);
 	*(i2*)(intptr_t)v504 = v501;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f39_FCBRawRead(void);
 	void f42__fcb_advance(void);
 
 // _fcb_fillbuffer workspace at ws+3352 length ws+18
 void f43__fcb_fillbuffer(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v505 = (i8)(intptr_t)(ws+3352);
 	i8 v506 = *(i8*)(intptr_t)v505;
@@ -1053,9 +866,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 c02_0091:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0092:;
@@ -1108,21 +918,13 @@ c02_0097:;
 
 c02_0093:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f40_FCBRawWrite(void);
 
 // FCBFlush workspace at ws+3640 length ws+12
 void f44_FCBFlush(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v563 = (i8)(intptr_t)(ws+3640);
 	i8 v564 = *(i8*)(intptr_t)v563;
@@ -1166,9 +968,6 @@ c02_009b:;
 
 c02_00a0:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_00a1:;
@@ -1210,22 +1009,14 @@ c02_0098:;
 	i8 v611 = v610+(+8);
 	*(i2*)(intptr_t)v611 = v608;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f44_FCBFlush(void);
 	void f42__fcb_advance(void);
 
 // _fcb_flushbuffer workspace at ws+3624 length ws+9
 void f45__fcb_flushbuffer(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v612 = (i8)(intptr_t)(ws+3624);
 	i8 v613 = *(i8*)(intptr_t)v612;
@@ -1244,9 +1035,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 c02_00a5:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_00a6:;
@@ -1273,9 +1061,6 @@ c02_00a2:;
 
 	((void(*)(void))(intptr_t)v632)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f44_FCBFlush(void);
 	void f43__fcb_fillbuffer(void);
@@ -1283,13 +1068,8 @@ c02_00a2:;
 
 // FCBGetChar workspace at ws+3336 length ws+13
 void f46_FCBGetChar(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v633 = (i8)(intptr_t)(ws+3336);
 	i8 v634 = *(i8*)(intptr_t)v633;
@@ -1369,9 +1149,6 @@ c02_00b0:;
 
 c02_00ac:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f44_FCBFlush(void);
 	void f45__fcb_flushbuffer(void);
@@ -1379,13 +1156,8 @@ c02_00ac:;
 
 // FCBPutChar workspace at ws+3608 length ws+12
 void f47_FCBPutChar(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v673 = (i8)(intptr_t)(ws+3608);
 	i8 v674 = *(i8*)(intptr_t)v673;
@@ -1466,20 +1238,12 @@ c02_00b6:;
 	i8 v714 = v713+(+524);
 	*(i1*)(intptr_t)v714 = v711;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // FCBPos workspace at ws+3384 length ws+12
 void f48_FCBPos(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v715 = (i8)(intptr_t)(ws+3384);
 	i8 v716 = *(i8*)(intptr_t)v715;
@@ -1494,21 +1258,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v725 = (i8)(intptr_t)(ws+3392);
 	*(i4*)(intptr_t)v725 = v724;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f44_FCBFlush(void);
 
 // FCBSeek workspace at ws+3384 length ws+16
 void f50_FCBSeek(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v736 = (i8)(intptr_t)(ws+3392);
 	i4 v737 = *(i4*)(intptr_t)v736;
@@ -1549,9 +1305,6 @@ c02_00c8:;
 	i8 v762 = v761+(+10);
 	*(i2*)(intptr_t)v762 = v759;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_00c9:;
@@ -1591,9 +1344,6 @@ c02_00d1:;
 	i8 v781 = v780+(+10);
 	*(i2*)(intptr_t)v781 = v778;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_00d2:;
@@ -1618,20 +1368,12 @@ c02_00c0:;
 	i8 v789 = v788+(+4);
 	*(i4*)(intptr_t)v789 = v786;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // FCBRawRead workspace at ws+3376 length ws+36
 void f39_FCBRawRead(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v790 = (i8)(intptr_t)(ws+3376);
 	i8 v791 = *(i8*)(intptr_t)v790;
@@ -1693,20 +1435,12 @@ c02_00d7:;
 
 c02_00d3:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // FCBRawWrite workspace at ws+3656 length ws+36
 void f40_FCBRawWrite(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v815 = (i8)(intptr_t)(ws+3656);
 	i8 v816 = *(i8*)(intptr_t)v815;
@@ -1756,21 +1490,13 @@ c02_00dc:;
 
 c02_00d8:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f41__fcb_init(void);
 
 // fcb_i_open workspace at ws+3408 length ws+28
 void f51_fcb_i_open(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v834 = (i8)(intptr_t)(ws+3408);
 	i8 v835 = *(i8*)(intptr_t)v834;
@@ -1826,21 +1552,13 @@ c02_00e1:;
 
 c02_00dd:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f51_fcb_i_open(void);
 
 // FCBOpenIn workspace at ws+3384 length ws+18
 void f52_FCBOpenIn(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v846 = (i8)(intptr_t)(ws+3384);
 	i8 v847 = *(i8*)(intptr_t)v846;
@@ -1863,21 +1581,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v856 = (i8)(intptr_t)(ws+3400);
 	*(i1*)(intptr_t)v856 = v855;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f51_fcb_i_open(void);
 
 // FCBOpenOut workspace at ws+3280 length ws+18
 void f54_FCBOpenOut(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v868 = (i8)(intptr_t)(ws+3280);
 	i8 v869 = *(i8*)(intptr_t)v868;
@@ -1900,21 +1610,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v878 = (i8)(intptr_t)(ws+3296);
 	*(i1*)(intptr_t)v878 = v877;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f44_FCBFlush(void);
 
 // FCBClose workspace at ws+3384 length ws+16
 void f55_FCBClose(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v879 = (i8)(intptr_t)(ws+3384);
 	i8 v880 = *(i8*)(intptr_t)v879;
@@ -1946,9 +1648,6 @@ close(
 
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f29_StrLen(void);
 	void f69_InternalAlloc(void);
@@ -1956,13 +1655,8 @@ close(
 
 // StrDupBraced workspace at ws+3528 length ws+48
 void f70_StrDupBraced(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v958 = (i8)(intptr_t)(ws+3528);
 	i8 v959 = *(i8*)(intptr_t)v958;
@@ -2050,9 +1744,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v1007 = *(i8*)(intptr_t)v1006;
 	*(i1*)(intptr_t)v1007 = v1005;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f29_StrLen(void);
 	void f69_InternalAlloc(void);
@@ -2060,13 +1751,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // StrDupArrayed workspace at ws+3448 length ws+56
 void f71_StrDupArrayed(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1008 = (i8)(intptr_t)(ws+3448);
 	i8 v1009 = *(i8*)(intptr_t)v1008;
@@ -2154,9 +1840,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v1057 = *(i8*)(intptr_t)v1056;
 	*(i1*)(intptr_t)v1057 = v1055;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f29_StrLen(void);
 	void f69_InternalAlloc(void);
@@ -2164,13 +1847,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // InternalStrDup workspace at ws+3464 length ws+40
 void f72_InternalStrDup(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1058 = (i8)(intptr_t)(ws+3464);
 	i8 v1059 = *(i8*)(intptr_t)v1058;
@@ -2218,22 +1896,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v1081)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f7_MemSet(void);
 	void f69_InternalAlloc(void);
 
 // AllocNewSymbol workspace at ws+3568 length ws+16
 void f64_AllocNewSymbol(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1084 = (i8)(intptr_t)(ws+232);
 	i8 v1085 = *(i8*)(intptr_t)v1084;
@@ -2286,20 +1956,12 @@ c02_00f9:;
 
 c02_00f5:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // FreeSymbol workspace at ws+3464 length ws+8
 void f65_FreeSymbol(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1107 = (i8)(intptr_t)(ws+232);
 	i8 v1108 = *(i8*)(intptr_t)v1107;
@@ -2313,22 +1975,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v1114 = (i8)(intptr_t)(ws+232);
 	*(i8*)(intptr_t)v1114 = v1113;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f7_MemSet(void);
 	void f69_InternalAlloc(void);
 
 // AllocNewType workspace at ws+3528 length ws+16
 void f66_AllocNewType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1117 = (i8)(intptr_t)(ws+240);
 	i8 v1118 = *(i8*)(intptr_t)v1117;
@@ -2381,20 +2035,12 @@ c02_00fe:;
 
 c02_00fa:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // FreeType workspace at ws+3464 length ws+8
 void f67_FreeType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1140 = (i8)(intptr_t)(ws+240);
 	i8 v1141 = *(i8*)(intptr_t)v1140;
@@ -2408,9 +2054,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v1147 = (i8)(intptr_t)(ws+240);
 	*(i8*)(intptr_t)v1147 = v1146;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f32_RawAlloc(void);
 	void f34_Free(void);
@@ -2423,13 +2066,8 @@ const i1 c02_s0001[] = { 0x4f,0x75,0x74,0x20,0x6f,0x66,0x20,0x6d,0x65,0x6d,0x6f,
 
 // InternalAlloc workspace at ws+3640 length ws+32
 void f69_InternalAlloc(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1148 = (i8)(intptr_t)(ws+3640);
 	i8 v1149 = *(i8*)(intptr_t)v1148;
@@ -2563,9 +2201,6 @@ c02_0103:;
 
 c02_00ff:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 static data f3___main_s0115[] = {
 
@@ -2856,13 +2491,8 @@ const i1 c02_s002c[] = { 0x3a,0x20,0 };
 
 // StartError workspace at ws+3656 length ws+0
 void f74_StartError(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1210 = (i8)(intptr_t)c02_s0029;
 	*(i8*)(intptr_t)(ws+3696) = v1210;
@@ -2919,22 +2549,14 @@ c02_0118:;
 
 	((void(*)(void))(intptr_t)v1230)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f13_print_nl(void);
 	void f6_ExitWithError(void);
 
 // EndError workspace at ws+3656 length ws+0
 void f75_EndError(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1231 = (i8)(intptr_t)(f13_print_nl);
 
@@ -2944,9 +2566,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v1232)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 	void f12_print(void);
@@ -2954,13 +2573,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // SimpleError workspace at ws+3648 length ws+8
 void f76_SimpleError(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1233 = (i8)(intptr_t)(f74_StartError);
 
@@ -2977,21 +2591,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v1237)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f69_InternalAlloc(void);
 
 // LexerAddIncludePath workspace at ws+3280 length ws+24
 void f77_LexerAddIncludePath(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1238 = (i8)+16;
 	*(i8*)(intptr_t)(ws+3640) = v1238;
@@ -3026,22 +2632,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v1256 = (i8)(intptr_t)(ws+248);
 	*(i8*)(intptr_t)v1256 = v1255;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s002d[] = { 0x20,0x20,0 };
 	void f12_print(void);
 
 // LexerPrintSpaces workspace at ws+3368 length ws+1
 void f78_LexerPrintSpaces(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1259 = (i8)(intptr_t)(ws+925);
 	i1 v1260 = *(i1*)(intptr_t)v1259;
@@ -3073,22 +2671,14 @@ c02_0121:;
 
 c02_0122:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f52_FCBOpenIn(void);
 	void f50_FCBSeek(void);
 
 // lexer_i_open workspace at ws+3368 length ws+10
 void f79_lexer_i_open(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1271 = (i8)(intptr_t)(ws+400);
 	*(i8*)(intptr_t)(ws+3384) = v1271;
@@ -3137,22 +2727,14 @@ c02_0127:;
 
 c02_0123:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f48_FCBPos(void);
 	void f55_FCBClose(void);
 
 // lexer_i_close workspace at ws+3368 length ws+14
 void f80_lexer_i_close(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1292 = (i8)(intptr_t)(ws+400);
 	*(i8*)(intptr_t)(ws+3384) = v1292;
@@ -3186,9 +2768,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v1307 = (i8)(intptr_t)(ws+3381);
 	*(i1*)(intptr_t)v1307 = v1306;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f69_InternalAlloc(void);
 	void f80_lexer_i_close(void);
@@ -3214,13 +2793,8 @@ const i1 c02_s0030[] = { 0x27,0 };
 
 // LexerIncludeFile workspace at ws+3288 length ws+73
 void f81_LexerIncludeFile(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1308 = (i8)+24;
 	*(i8*)(intptr_t)(ws+3640) = v1308;
@@ -3425,9 +2999,6 @@ c02_0136:;
 	i8 v1414 = (i8)(intptr_t)(ws+256);
 	*(i8*)(intptr_t)v1414 = v1413;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0137:;
@@ -3480,20 +3051,12 @@ c02_0132:;
 
 	((void(*)(void))(intptr_t)v1432)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // lexer_i_ctype workspace at ws+3312 length ws+3
 void f83_lexer_i_ctype(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1433 = (i8)(intptr_t)(ws+3312);
 	i1 v1434 = *(i1*)(intptr_t)v1433;
@@ -3555,9 +3118,6 @@ c02_013e:;
 
 c02_0138:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f46_FCBGetChar(void);
 	void f80_lexer_i_close(void);
@@ -3573,13 +3133,8 @@ const i1 c02_s0032[] = { 0x49,0x2f,0x4f,0x20,0x65,0x72,0x72,0x6f,0x72,0 };
 
 // lexer_i_getchar workspace at ws+3312 length ws+18
 void f84_lexer_i_getchar(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1461 = (i8)(intptr_t)(ws+264);
 	i1 v1462 = *(i1*)(intptr_t)v1461;
@@ -3597,9 +3152,6 @@ c02_0148:;
 	i8 v1468 = (i8)(intptr_t)(ws+264);
 	*(i1*)(intptr_t)v1468 = v1467;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0149:;
@@ -3765,9 +3317,6 @@ c02_015b:;
 
 c02_014b:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s0033[] = { 0x75,0x6e,0x70,0x61,0x72,0x73,0x65,0x61,0x62,0x6c,0x65,0x20,0x63,0x68,0x61,0x72,0x61,0x63,0x74,0x65,0x72,0x20,0x30,0x78,0 };
@@ -3777,13 +3326,8 @@ const i1 c02_s0033[] = { 0x75,0x6e,0x70,0x61,0x72,0x73,0x65,0x61,0x62,0x6c,0x65,
 
 // lexer_i_unparseable workspace at ws+3280 length ws+1
 void f85_lexer_i_unparseable(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1528 = (i8)(intptr_t)(f74_StartError);
 
@@ -3806,21 +3350,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v1534)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f84_lexer_i_getchar(void);
 
 // lexer_i_skipwhitespace workspace at ws+3296 length ws+2
 void f86_lexer_i_skipwhitespace(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_0165:;
 
@@ -3888,9 +3424,6 @@ c02_0166:;
 	i8 v1553 = (i8)(intptr_t)(ws+264);
 	*(i1*)(intptr_t)v1553 = v1552;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f84_lexer_i_getchar(void);
 	void f83_lexer_i_ctype(void);
@@ -3901,13 +3434,8 @@ const i1 c02_s0034[] = { 0x74,0x6f,0x6b,0x65,0x6e,0x20,0x74,0x6f,0x6f,0x20,0x6c,
 
 // lexer_i_read_identifier workspace at ws+3280 length ws+4
 void f87_lexer_i_read_identifier(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_016c:;
 
@@ -4012,21 +3540,13 @@ c02_016d:;
 	i8 v1597 = v1593+v1596;
 	*(i1*)(intptr_t)v1597 = v1592;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f26_StrCmp(void);
 
 // lexer_i_match_keyword workspace at ws+3280 length ws+3
 void f88_lexer_i_match_keyword(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v1598 = (i1)+0;
 	i8 v1599 = (i8)(intptr_t)(ws+3281);
@@ -4076,9 +3596,6 @@ c02_0181:;
 	i8 v1624 = (i8)(intptr_t)(ws+3280);
 	*(i1*)(intptr_t)v1624 = v1623;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0182:;
@@ -4099,9 +3616,6 @@ c02_017d:;
 	i8 v1630 = (i8)(intptr_t)(ws+3280);
 	*(i1*)(intptr_t)v1630 = v1629;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f84_lexer_i_getchar(void);
 	void f84_lexer_i_getchar(void);
@@ -4116,13 +3630,8 @@ const i1 c02_s0035[] = { 0x69,0x6e,0x76,0x61,0x6c,0x69,0x64,0x20,0x6e,0x75,0x6d,
 
 // lexer_i_read_number workspace at ws+3296 length ws+11
 void f89_lexer_i_read_number(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i4 v1631 = (i4)+0;
 	i8 v1632 = (i8)(intptr_t)(ws+396);
@@ -4236,9 +3745,6 @@ c02_018c:;
 
 c02_0190:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0191:;
@@ -4400,9 +3906,6 @@ c02_01a3:;
 
 c02_0193:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s0036[] = { 0x6d,0x61,0x6c,0x66,0x6f,0x72,0x6d,0x65,0x64,0x20,0 };
@@ -4412,13 +3915,8 @@ const i1 c02_s0036[] = { 0x6d,0x61,0x6c,0x66,0x6f,0x72,0x6d,0x65,0x64,0x20,0 };
 
 // lexer_i_malformed workspace at ws+3312 length ws+8
 void f90_lexer_i_malformed(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1735 = (i8)(intptr_t)(f74_StartError);
 
@@ -4441,9 +3939,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v1741)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f84_lexer_i_getchar(void);
 const i1 c02_s0037[] = { 0x65,0x73,0x63,0x61,0x70,0x65,0 };
@@ -4451,13 +3946,8 @@ const i1 c02_s0037[] = { 0x65,0x73,0x63,0x61,0x70,0x65,0 };
 
 // lexer_i_get_escaped workspace at ws+3304 length ws+2
 void f91_lexer_i_get_escaped(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1742 = (i8)(intptr_t)(f84_lexer_i_getchar);
 
@@ -4554,9 +4044,6 @@ c02_01af:;
 c02_01a8:;
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f84_lexer_i_getchar(void);
 const i1 c02_s0038[] = { 0x73,0x74,0x72,0x69,0x6e,0x67,0x20,0x63,0x6f,0x6e,0x73,0x74,0x61,0x6e,0x74,0 };
@@ -4569,13 +4056,8 @@ const i1 c02_s0039[] = { 0x73,0x74,0x72,0x69,0x6e,0x67,0x20,0x63,0x6f,0x6e,0x73,
 
 // lexer_i_read_string workspace at ws+3296 length ws+3
 void f92_lexer_i_read_string(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v1766 = (i1)+0;
 	i8 v1767 = (i8)(intptr_t)(ws+393);
@@ -4694,22 +4176,14 @@ c02_01b1:;
 	i8 v1810 = v1806+v1809;
 	*(i1*)(intptr_t)v1810 = v1805;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s003a[] = { 0x63,0x68,0x61,0x72,0x61,0x63,0x74,0x65,0x72,0x20,0x63,0x6f,0x6e,0x73,0x74,0x61,0x6e,0x74,0 };
 	void f90_lexer_i_malformed(void);
 
 // malformed workspace at ws+3288 length ws+0
 void f94_malformed(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1811 = (i8)(intptr_t)c02_s003a;
 	*(i8*)(intptr_t)(ws+3312) = v1811;
@@ -4717,9 +4191,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v1812)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f84_lexer_i_getchar(void);
 	void f94_malformed(void);
@@ -4729,13 +4200,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // lexer_i_read_char workspace at ws+3280 length ws+4
 void f93_lexer_i_read_char(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	i8 v1813 = (i8)(intptr_t)(f84_lexer_i_getchar);
@@ -4831,22 +4297,14 @@ c02_01d0:;
 
 c02_01cc:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s003b[] = { 0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,0x20,0x64,0x69,0x72,0x65,0x63,0x74,0x69,0x76,0x65,0 };
 	void f90_lexer_i_malformed(void);
 
 // malformed_include workspace at ws+3288 length ws+0
 void f96_malformed_include(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1849 = (i8)(intptr_t)c02_s003b;
 	*(i8*)(intptr_t)(ws+3312) = v1849;
@@ -4854,9 +4312,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v1850)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f86_lexer_i_skipwhitespace(void);
 	void f84_lexer_i_getchar(void);
@@ -4869,13 +4324,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // lexer_i_include workspace at ws+3280 length ws+3
 void f95_lexer_i_include(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	i8 v1851 = (i8)(intptr_t)(f86_lexer_i_skipwhitespace);
@@ -4952,9 +4402,6 @@ c02_01d6:;
 
 	((void(*)(void))(intptr_t)v1875)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f86_lexer_i_skipwhitespace(void);
 	void f89_lexer_i_read_number(void);
@@ -4968,13 +4415,8 @@ const i1 c02_s003c[] = { 0x23,0x6c,0x69,0x6e,0x65,0x20,0x64,0x69,0x72,0x65,0x63,
 
 // lexer_i_line_directive workspace at ws+3280 length ws+16
 void f97_lexer_i_line_directive(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v1876 = (i8)(intptr_t)(f86_lexer_i_skipwhitespace);
 
@@ -5056,9 +4498,6 @@ c02_01db:;
 	i8 v1910 = v1909+(+8);
 	*(i8*)(intptr_t)v1910 = v1907;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f86_lexer_i_skipwhitespace(void);
 	void f84_lexer_i_getchar(void);
@@ -5085,13 +4524,8 @@ const i1 c02_s003d[] = { 0x6c,0x69,0x6e,0x65,0 };
 
 // LexerReadToken workspace at ws+3264 length ws+12
 void f82_LexerReadToken(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 
@@ -5629,20 +5063,12 @@ c02_0224:;
 
 c02_01e1:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // CountParameters workspace at ws+3392 length ws+9
 void f98_CountParameters(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2083 = (i1)+0;
 	i8 v2084 = (i8)(intptr_t)(ws+3400);
@@ -5675,20 +5101,12 @@ c02_022d:;
 
 c02_022e:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // GetInputParameter workspace at ws+3464 length ws+24
 void f99_GetInputParameter(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2098 = (i8)(intptr_t)(ws+3464);
 	i8 v2099 = *(i8*)(intptr_t)v2098;
@@ -5742,20 +5160,12 @@ c02_0233:;
 
 c02_022f:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // GetOutputParameter workspace at ws+3488 length ws+24
 void f100_GetOutputParameter(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2122 = (i8)(intptr_t)(ws+3488);
 	i8 v2123 = *(i8*)(intptr_t)v2122;
@@ -5819,20 +5229,12 @@ c02_023e:;
 
 c02_023a:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // WidthToIndex workspace at ws+3592 length ws+2
 void f102_WidthToIndex(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2161 = (i8)(intptr_t)(ws+3592);
 	i1 v2162 = *(i1*)(intptr_t)v2161;
@@ -5865,21 +5267,13 @@ c02_0247:;
 c02_0245:;
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmgroupend workspace at ws+3520 length ws+16
 void f104_MidAsmgroupend(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2170 = (i1)+17;
 	*(i1*)(intptr_t)(ws+3616) = v2170;
@@ -5896,22 +5290,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2176 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v2176 = v2175;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidInit workspace at ws+3480 length ws+32
 void f105_MidInit(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2177 = (i8)(intptr_t)(ws+3480);
 	i1 v2178 = *(i1*)(intptr_t)v2177;
@@ -5947,22 +5333,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2194 = *(i8*)(intptr_t)v2193;
 	*(i4*)(intptr_t)v2194 = v2192;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidWhencase workspace at ws+3416 length ws+40
 void f107_MidWhencase(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2219 = (i8)(intptr_t)(ws+3416);
 	i1 v2220 = *(i1*)(intptr_t)v2219;
@@ -6005,21 +5383,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2241 = v2240+(+4);
 	*(i2*)(intptr_t)v2241 = v2238;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmvalue workspace at ws+3416 length ws+24
 void f109_MidAsmvalue(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2265 = (i1)+22;
 	*(i1*)(intptr_t)(ws+3616) = v2265;
@@ -6042,21 +5412,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2275 = *(i8*)(intptr_t)v2274;
 	*(i4*)(intptr_t)v2275 = v2273;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidBor workspace at ws+3392 length ws+40
 void f110_MidBor(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2276 = (i1)+57;
 	*(i1*)(intptr_t)(ws+3616) = v2276;
@@ -6114,21 +5476,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2311 = v2310+(+6);
 	*(i1*)(intptr_t)v2311 = v2308;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidEnd workspace at ws+3416 length ws+16
 void f112_MidEnd(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2336 = (i1)+1;
 	*(i1*)(intptr_t)(ws+3616) = v2336;
@@ -6145,21 +5499,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2342 = (i8)(intptr_t)(ws+3416);
 	*(i8*)(intptr_t)v2342 = v2341;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmsymbol workspace at ws+3416 length ws+24
 void f113_MidAsmsymbol(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2343 = (i1)+20;
 	*(i1*)(intptr_t)(ws+3616) = v2343;
@@ -6182,21 +5528,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2353 = *(i8*)(intptr_t)v2352;
 	*(i8*)(intptr_t)v2353 = v2351;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmsubref workspace at ws+3416 length ws+24
 void f115_MidAsmsubref(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2378 = (i1)+21;
 	*(i1*)(intptr_t)(ws+3616) = v2378;
@@ -6219,21 +5557,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2388 = *(i8*)(intptr_t)v2387;
 	*(i8*)(intptr_t)v2388 = v2386;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidPair workspace at ws+3392 length ws+32
 void f118_MidPair(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2436 = (i1)+25;
 	*(i1*)(intptr_t)(ws+3616) = v2436;
@@ -6264,21 +5594,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2452 = v2451+(+40);
 	*(i8*)(intptr_t)v2452 = v2449;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidCall workspace at ws+3488 length ws+40
 void f119_MidCall(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2453 = (i1)+29;
 	*(i1*)(intptr_t)(ws+3616) = v2453;
@@ -6315,21 +5637,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2473 = *(i8*)(intptr_t)v2472;
 	*(i8*)(intptr_t)v2473 = v2471;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidSubref workspace at ws+3424 length ws+24
 void f120_MidSubref(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2474 = (i1)+45;
 	*(i1*)(intptr_t)(ws+3616) = v2474;
@@ -6352,22 +5666,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2484 = *(i8*)(intptr_t)v2483;
 	*(i8*)(intptr_t)v2484 = v2482;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidPoparg workspace at ws+3488 length ws+56
 void f121_MidPoparg(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2485 = (i8)(intptr_t)(ws+3488);
 	i1 v2486 = *(i1*)(intptr_t)v2485;
@@ -6417,21 +5723,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2512 = v2511+(+16);
 	*(i1*)(intptr_t)v2512 = v2509;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidString workspace at ws+3400 length ws+24
 void f122_MidString(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2513 = (i1)+43;
 	*(i1*)(intptr_t)(ws+3616) = v2513;
@@ -6454,21 +5752,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2523 = *(i8*)(intptr_t)v2522;
 	*(i8*)(intptr_t)v2523 = v2521;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidPreparetail workspace at ws+3456 length ws+16
 void f123_MidPreparetail(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2524 = (i1)+31;
 	*(i1*)(intptr_t)(ws+3616) = v2524;
@@ -6485,21 +5775,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2530 = (i8)(intptr_t)(ws+3456);
 	*(i8*)(intptr_t)v2530 = v2529;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmgroupstart workspace at ws+3520 length ws+16
 void f124_MidAsmgroupstart(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2531 = (i1)+16;
 	*(i1*)(intptr_t)(ws+3616) = v2531;
@@ -6516,21 +5798,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2537 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v2537 = v2536;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmstart workspace at ws+3392 length ws+16
 void f126_MidAsmstart(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2550 = (i1)+18;
 	*(i1*)(intptr_t)(ws+3616) = v2550;
@@ -6547,21 +5821,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2556 = (i8)(intptr_t)(ws+3392);
 	*(i8*)(intptr_t)v2556 = v2555;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidStartinit workspace at ws+3408 length ws+24
 void f127_MidStartinit(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2557 = (i1)+6;
 	*(i1*)(intptr_t)(ws+3616) = v2557;
@@ -6584,22 +5850,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2567 = *(i8*)(intptr_t)v2566;
 	*(i8*)(intptr_t)v2567 = v2565;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidBlts workspace at ws+3456 length ws+56
 void f128_MidBlts(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2568 = (i8)(intptr_t)(ws+3456);
 	i1 v2569 = *(i1*)(intptr_t)v2568;
@@ -6670,21 +5928,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2610 = v2609+(+6);
 	*(i1*)(intptr_t)v2610 = v2607;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidStartsub workspace at ws+3408 length ws+24
 void f130_MidStartsub(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2635 = (i1)+4;
 	*(i1*)(intptr_t)(ws+3616) = v2635;
@@ -6707,21 +5957,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2645 = *(i8*)(intptr_t)v2644;
 	*(i8*)(intptr_t)v2645 = v2643;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidTailcall workspace at ws+3456 length ws+40
 void f132_MidTailcall(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2670 = (i1)+30;
 	*(i1*)(intptr_t)(ws+3616) = v2670;
@@ -6758,21 +6000,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2690 = *(i8*)(intptr_t)v2689;
 	*(i8*)(intptr_t)v2690 = v2688;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidJump workspace at ws+3416 length ws+24
 void f133_MidJump(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2691 = (i1)+27;
 	*(i1*)(intptr_t)(ws+3616) = v2691;
@@ -6795,22 +6029,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2701 = *(i8*)(intptr_t)v2700;
 	*(i2*)(intptr_t)v2701 = v2699;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidDeref workspace at ws+3544 length ws+40
 void f134_MidDeref(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2702 = (i8)(intptr_t)(ws+3544);
 	i1 v2703 = *(i1*)(intptr_t)v2702;
@@ -6847,21 +6073,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2720 = v2719+(+32);
 	*(i8*)(intptr_t)v2720 = v2717;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmend workspace at ws+3392 length ws+16
 void f135_MidAsmend(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2721 = (i1)+23;
 	*(i1*)(intptr_t)(ws+3616) = v2721;
@@ -6878,21 +6096,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2727 = (i8)(intptr_t)(ws+3392);
 	*(i8*)(intptr_t)v2727 = v2726;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidLabel workspace at ws+3472 length ws+24
 void f136_MidLabel(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2728 = (i1)+26;
 	*(i1*)(intptr_t)(ws+3616) = v2728;
@@ -6915,21 +6125,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2738 = *(i8*)(intptr_t)v2737;
 	*(i2*)(intptr_t)v2738 = v2736;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidEndsub workspace at ws+3408 length ws+24
 void f140_MidEndsub(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2805 = (i1)+5;
 	*(i1*)(intptr_t)(ws+3616) = v2805;
@@ -6952,21 +6154,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2815 = *(i8*)(intptr_t)v2814;
 	*(i8*)(intptr_t)v2815 = v2813;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidInitsubref workspace at ws+3448 length ws+24
 void f141_MidInitsubref(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2816 = (i1)+14;
 	*(i1*)(intptr_t)(ws+3616) = v2816;
@@ -6989,22 +6183,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2826 = *(i8*)(intptr_t)v2825;
 	*(i8*)(intptr_t)v2826 = v2824;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidBltu workspace at ws+3456 length ws+56
 void f146_MidBltu(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2923 = (i8)(intptr_t)(ws+3456);
 	i1 v2924 = *(i1*)(intptr_t)v2923;
@@ -7075,21 +6261,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2965 = v2964+(+6);
 	*(i1*)(intptr_t)v2965 = v2962;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidReturn workspace at ws+3392 length ws+16
 void f147_MidReturn(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2966 = (i1)+28;
 	*(i1*)(intptr_t)(ws+3616) = v2966;
@@ -7106,22 +6284,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2972 = (i8)(intptr_t)(ws+3392);
 	*(i8*)(intptr_t)v2972 = v2971;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidEndcase workspace at ws+3416 length ws+32
 void f148_MidEndcase(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v2973 = (i8)(intptr_t)(ws+3416);
 	i1 v2974 = *(i1*)(intptr_t)v2973;
@@ -7151,21 +6321,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2986 = (i8)(intptr_t)(ws+3424);
 	*(i8*)(intptr_t)v2986 = v2985;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidInitstring workspace at ws+3448 length ws+24
 void f149_MidInitstring(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2987 = (i1)+12;
 	*(i1*)(intptr_t)(ws+3616) = v2987;
@@ -7188,21 +6350,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v2997 = *(i8*)(intptr_t)v2996;
 	*(i8*)(intptr_t)v2997 = v2995;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidConstant workspace at ws+3592 length ws+24
 void f150_MidConstant(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v2998 = (i1)+42;
 	*(i1*)(intptr_t)(ws+3616) = v2998;
@@ -7225,21 +6379,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3008 = *(i8*)(intptr_t)v3007;
 	*(i4*)(intptr_t)v3008 = v3006;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidBand workspace at ws+3392 length ws+40
 void f151_MidBand(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3009 = (i1)+56;
 	*(i1*)(intptr_t)(ws+3616) = v3009;
@@ -7297,22 +6443,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3044 = v3043+(+6);
 	*(i1*)(intptr_t)v3044 = v3041;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidStartcase workspace at ws+3416 length ws+40
 void f152_MidStartcase(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3045 = (i8)(intptr_t)(ws+3416);
 	i1 v3046 = *(i1*)(intptr_t)v3045;
@@ -7349,21 +6487,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3063 = v3062+(+32);
 	*(i8*)(intptr_t)v3063 = v3060;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAsmtext workspace at ws+3392 length ws+24
 void f153_MidAsmtext(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3064 = (i1)+19;
 	*(i1*)(intptr_t)(ws+3616) = v3064;
@@ -7386,21 +6516,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3074 = *(i8*)(intptr_t)v3073;
 	*(i8*)(intptr_t)v3074 = v3072;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidEndfile workspace at ws+3264 length ws+16
 void f154_MidEndfile(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3075 = (i1)+3;
 	*(i1*)(intptr_t)(ws+3616) = v3075;
@@ -7417,22 +6539,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3081 = (i8)(intptr_t)(ws+3264);
 	*(i8*)(intptr_t)v3081 = v3080;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidArg workspace at ws+3416 length ws+72
 void f155_MidArg(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3082 = (i8)(intptr_t)(ws+3416);
 	i1 v3083 = *(i1*)(intptr_t)v3082;
@@ -7496,21 +6610,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3119 = v3118+(+16);
 	*(i1*)(intptr_t)v3119 = v3116;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidStartfile workspace at ws+3264 length ws+16
 void f158_MidStartfile(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3168 = (i1)+2;
 	*(i1*)(intptr_t)(ws+3616) = v3168;
@@ -7527,21 +6633,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3174 = (i8)(intptr_t)(ws+3264);
 	*(i8*)(intptr_t)v3174 = v3173;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidEndinit workspace at ws+3392 length ws+16
 void f159_MidEndinit(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3175 = (i1)+15;
 	*(i1*)(intptr_t)(ws+3616) = v3175;
@@ -7558,22 +6656,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3181 = (i8)(intptr_t)(ws+3392);
 	*(i8*)(intptr_t)v3181 = v3180;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidBeq workspace at ws+3448 length ws+56
 void f160_MidBeq(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3182 = (i8)(intptr_t)(ws+3448);
 	i1 v3183 = *(i1*)(intptr_t)v3182;
@@ -7644,22 +6734,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3224 = v3223+(+6);
 	*(i1*)(intptr_t)v3224 = v3221;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidStore workspace at ws+3488 length ws+48
 void f162_MidStore(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3244 = (i8)(intptr_t)(ws+3488);
 	i1 v3245 = *(i1*)(intptr_t)v3244;
@@ -7703,21 +6785,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3267 = v3266+(+40);
 	*(i8*)(intptr_t)v3267 = v3264;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidInitaddress workspace at ws+3448 length ws+32
 void f163_MidInitaddress(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3268 = (i1)+13;
 	*(i1*)(intptr_t)(ws+3616) = v3268;
@@ -7747,21 +6821,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3283 = v3282+(+8);
 	*(i2*)(intptr_t)v3283 = v3280;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f103_AllocateNewNode(void);
 
 // MidAddress workspace at ws+3488 length ws+32
 void f165_MidAddress(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3307 = (i1)+44;
 	*(i1*)(intptr_t)(ws+3616) = v3307;
@@ -7791,22 +6857,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3322 = v3321+(+8);
 	*(i2*)(intptr_t)v3322 = v3319;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f7_MemSet(void);
 	void f69_InternalAlloc(void);
 
 // AllocateNewNode workspace at ws+3616 length ws+24
 void f103_AllocateNewNode(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3335 = (i8)(intptr_t)(ws+928);
 	i8 v3336 = *(i8*)(intptr_t)v3335;
@@ -7866,20 +6924,12 @@ c02_0249:;
 	i8 v3362 = v3361+(+48);
 	*(i1*)(intptr_t)v3362 = v3359;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // FreeNode workspace at ws+3624 length ws+8
 void f167_FreeNode(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3363 = (i8)(intptr_t)(ws+928);
 	i8 v3364 = *(i8*)(intptr_t)v3363;
@@ -7893,21 +6943,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v3370 = (i8)(intptr_t)(ws+928);
 	*(i8*)(intptr_t)v3370 = v3369;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f34_Free(void);
 
 // PurgeAllFreeNodes workspace at ws+3672 length ws+8
 void f73_PurgeAllFreeNodes(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_024e:;
 
@@ -7941,20 +6983,12 @@ c02_0252:;
 
 c02_0253:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // NodeWidth workspace at ws+3456 length ws+9
 void f168_NodeWidth(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3385 = (i1)+0;
 	i8 v3386 = (i8)(intptr_t)(ws+3464);
@@ -7983,22 +7017,14 @@ c02_0258:;
 
 c02_0254:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s00f5[] = { 0x62,0x61,0x64,0x20,0x66,0x6f,0x6c,0x64,0 };
 	void f76_SimpleError(void);
 
 // midcodec_i_bad_fold workspace at ws+3632 length ws+0
 void f169_midcodec_i_bad_fold(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3400 = (i8)(intptr_t)c02_s00f5;
 	*(i8*)(intptr_t)(ws+3648) = v3400;
@@ -8006,21 +7032,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v3401)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f169_midcodec_i_bad_fold(void);
 
 // FoldConstant1 workspace at ws+3472 length ws+24
 void f170_FoldConstant1(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3402 = (i8)(intptr_t)(ws+3480);
 	i8 v3403 = *(i8*)(intptr_t)v3402;
@@ -8062,21 +7080,13 @@ c02_025b:;
 c02_0259:;
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f169_midcodec_i_bad_fold(void);
 
 // FoldConstant2 workspace at ws+3592 length ws+36
 void f171_FoldConstant2(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3417 = (i8)(intptr_t)(ws+3600);
 	i8 v3418 = *(i8*)(intptr_t)v3417;
@@ -8285,9 +7295,6 @@ c02_0269:;
 c02_025c:;
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f170_FoldConstant1(void);
 	void f102_WidthToIndex(void);
@@ -8295,13 +7302,8 @@ c02_025c:;
 
 // MidC1Op workspace at ws+3432 length ws+40
 void f172_MidC1Op(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3509 = (i8)(intptr_t)(ws+3440);
 	i8 v3510 = *(i8*)(intptr_t)v3509;
@@ -8380,20 +7382,12 @@ c02_026e:;
 
 c02_026a:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // GetPowerOfTwo workspace at ws+3592 length ws+5
 void f173_GetPowerOfTwo(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v3549 = (i1)+0;
 	i8 v3550 = (i8)(intptr_t)(ws+3596);
@@ -8447,9 +7441,6 @@ c02_0275:;
 
 c02_026f:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f171_FoldConstant2(void);
 	void f150_MidConstant(void);
@@ -8469,13 +7460,8 @@ c02_026f:;
 
 // MidC2Op workspace at ws+3496 length ws+96
 void f174_MidC2Op(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3573 = (i8)(intptr_t)(ws+3496);
 	i1 v3574 = *(i1*)(intptr_t)v3573;
@@ -8841,9 +7827,6 @@ c02_02c7:;
 	i8 v3744 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v3744 = v3743;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_02c8:;
@@ -8888,9 +7871,6 @@ c02_02d4:;
 	i8 v3760 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v3760 = v3759;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_02d5:;
@@ -8942,9 +7922,6 @@ c02_02d9:;
 	i8 v3788 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v3788 = v3787;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_02dc:;
@@ -8975,9 +7952,6 @@ c02_02dc:;
 	i8 v3804 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v3804 = v3803;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_02dd:;
@@ -9050,9 +8024,6 @@ c02_02e3:;
 	i8 v3833 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v3833 = v3832;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_02e4:;
@@ -9103,22 +8074,14 @@ c02_02de:;
 	i8 v3859 = v3858+(+40);
 	*(i8*)(intptr_t)v3859 = v3856;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f102_WidthToIndex(void);
 	void f103_AllocateNewNode(void);
 
 // MidCCast workspace at ws+3496 length ws+48
 void f175_MidCCast(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3860 = (i8)(intptr_t)(ws+3504);
 	i8 v3861 = *(i8*)(intptr_t)v3860;
@@ -9134,9 +8097,6 @@ c02_02e9:;
 	i8 v3867 = (i8)(intptr_t)(ws+3520);
 	*(i8*)(intptr_t)v3867 = v3866;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_02ea:;
@@ -9259,21 +8219,13 @@ c02_02f0:;
 
 c02_02eb:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f47_FCBPutChar(void);
 
 // E_b8 workspace at ws+3600 length ws+1
 void f176_E_b8(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3918 = (i8)(intptr_t)(ws+936);
 	*(i8*)(intptr_t)(ws+3608) = v3918;
@@ -9284,22 +8236,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v3921)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f176_E_b8(void);
 
 // E_b16 workspace at ws+3576 length ws+2
 void f177_E_b16(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3922 = (i8)(intptr_t)(ws+3576);
 	i2 v3923 = *(i2*)(intptr_t)v3922;
@@ -9319,22 +8263,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v3931)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 	void f177_E_b16(void);
 
 // E_b32 workspace at ws+3568 length ws+4
 void f178_E_b32(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3932 = (i8)(intptr_t)(ws+3568);
 	i4 v3933 = *(i4*)(intptr_t)v3932;
@@ -9354,21 +8290,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v3941)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 
 // E_bsize workspace at ws+3568 length ws+2
 void f179_E_bsize(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3942 = (i8)(intptr_t)(ws+3568);
 	i2 v3943 = *(i2*)(intptr_t)v3942;
@@ -9377,21 +8305,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v3944)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 
 // E workspace at ws+3584 length ws+9
 void f186_E(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_02f5:;
 
@@ -9431,9 +8351,6 @@ c02_02f7:;
 
 c02_02f6:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f29_StrLen(void);
 	void f176_E_b8(void);
@@ -9441,13 +8358,8 @@ c02_02f6:;
 
 // E_countedstring workspace at ws+3568 length ws+16
 void f187_E_countedstring(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v3971 = (i8)(intptr_t)(ws+3568);
 	i8 v3972 = *(i8*)(intptr_t)v3971;
@@ -9475,9 +8387,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v3982)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f54_FCBOpenOut(void);
 const i1 c02_s00f6[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x66,0x69,0x6c,0x65,0 };
@@ -9485,13 +8394,8 @@ const i1 c02_s00f6[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x6f,0x70,0x65,0x6e,
 
 // EmitterOpenfile workspace at ws+3264 length ws+9
 void f198_EmitterOpenfile(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4104 = (i8)(intptr_t)(ws+936);
 	*(i8*)(intptr_t)(ws+3280) = v4104;
@@ -9523,9 +8427,6 @@ c02_031c:;
 
 c02_0318:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f55_FCBClose(void);
@@ -9534,13 +8435,8 @@ const i1 c02_s00f7[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x63,0x6c,0x6f,0x73,
 
 // EmitterClosefile workspace at ws+3264 length ws+1
 void f199_EmitterClosefile(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4115 = (i1)+69;
 	*(i1*)(intptr_t)(ws+3600) = v4115;
@@ -9575,9 +8471,6 @@ c02_0321:;
 
 c02_031d:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f177_E_b16(void);
@@ -9585,13 +8478,8 @@ c02_031d:;
 
 // EmitterDeclareSubroutine workspace at ws+3416 length ws+8
 void f200_EmitterDeclareSubroutine(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4126 = (i1)+78;
 	*(i1*)(intptr_t)(ws+3600) = v4126;
@@ -9618,9 +8506,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4138)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f177_E_b16(void);
@@ -9628,13 +8513,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // EmitterDeclareExternalSubroutine workspace at ws+3384 length ws+16
 void f201_EmitterDeclareExternalSubroutine(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4139 = (i1)+88;
 	*(i1*)(intptr_t)(ws+3600) = v4139;
@@ -9656,9 +8536,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4146)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f177_E_b16(void);
@@ -9667,13 +8544,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // EmitterReferenceSubroutineById workspace at ws+3528 length ws+5
 void f202_EmitterReferenceSubroutineById(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4147 = (i1)+82;
 	*(i1*)(intptr_t)(ws+3600) = v4147;
@@ -9702,21 +8574,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4157)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f202_EmitterReferenceSubroutineById(void);
 
 // EmitterReferenceSubroutine workspace at ws+3504 length ws+17
 void f203_EmitterReferenceSubroutine(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4158 = (i8)(intptr_t)(ws+3504);
 	i8 v4159 = *(i8*)(intptr_t)v4158;
@@ -9735,9 +8599,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4168)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f177_E_b16(void);
@@ -9746,13 +8607,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // EmitterDeclareWorkspace workspace at ws+3424 length ws+12
 void f204_EmitterDeclareWorkspace(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4169 = (i1)+87;
 	*(i1*)(intptr_t)(ws+3600) = v4169;
@@ -9783,9 +8639,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4181)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 	void f176_E_b8(void);
@@ -9795,13 +8648,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // EmitParameterList workspace at ws+3424 length ws+8
 void f205_EmitParameterList(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_0322:;
 
@@ -9877,9 +8725,6 @@ c02_0326:;
 
 c02_0327:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f177_E_b16(void);
@@ -9889,13 +8734,8 @@ c02_0327:;
 
 // EmitterEmitInputParameters workspace at ws+3408 length ws+16
 void f206_EmitterEmitInputParameters(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4224 = (i1)+73;
 	*(i1*)(intptr_t)(ws+3600) = v4224;
@@ -9941,9 +8781,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4244)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f177_E_b16(void);
@@ -9953,13 +8790,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // EmitterEmitOutputParameters workspace at ws+3408 length ws+16
 void f207_EmitterEmitOutputParameters(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4245 = (i1)+79;
 	*(i1*)(intptr_t)(ws+3600) = v4245;
@@ -10005,9 +8837,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4265)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 	void f177_E_b16(void);
@@ -10015,13 +8844,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // EmitterEmitSubroutineFlags workspace at ws+3408 length ws+8
 void f208_EmitterEmitSubroutineFlags(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4266 = (i1)+70;
 	*(i1*)(intptr_t)(ws+3600) = v4266;
@@ -10047,21 +8871,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4277)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f26_StrCmp(void);
 
 // LookupSymbolInNamespace workspace at ws+3528 length ws+25
 void f218_LookupSymbolInNamespace(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4597 = (i8)(intptr_t)(ws+3528);
 	i8 v4598 = *(i8*)(intptr_t)v4597;
@@ -10122,9 +8938,6 @@ c02_03bf:;
 
 c02_03c0:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_03ba:;
@@ -10146,21 +8959,13 @@ c02_03b5:;
 	i8 v4631 = (i8)(intptr_t)(ws+3544);
 	*(i8*)(intptr_t)v4631 = v4630;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f218_LookupSymbolInNamespace(void);
 
 // LookupSymbol workspace at ws+3488 length ws+32
 void f219_LookupSymbol(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4632 = (i8)(intptr_t)(ws+3488);
 	i8 v4633 = *(i8*)(intptr_t)v4632;
@@ -10214,9 +9019,6 @@ c02_03ca:;
 
 c02_03cf:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_03d0:;
@@ -10238,20 +9040,12 @@ c02_03cb:;
 	i8 v4661 = (i8)(intptr_t)(ws+3504);
 	*(i8*)(intptr_t)v4661 = v4660;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // AddToNamespace workspace at ws+3568 length ws+16
 void f220_AddToNamespace(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4662 = (i8)(intptr_t)(ws+3568);
 	i8 v4663 = *(i8*)(intptr_t)v4662;
@@ -10304,9 +9098,6 @@ c02_03d1:;
 	i8 v4692 = v4691+(+16);
 	*(i8*)(intptr_t)v4692 = v4689;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f64_AllocNewSymbol(void);
 	void f218_LookupSymbolInNamespace(void);
@@ -10321,13 +9112,8 @@ const i1 c02_s00f9[] = { 0x27,0x20,0x69,0x73,0x20,0x61,0x6c,0x72,0x65,0x61,0x64,
 
 // AddSymbol workspace at ws+3488 length ws+40
 void f221_AddSymbol(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4693 = (i8)(intptr_t)(ws+3488);
 	i8 v4694 = *(i8*)(intptr_t)v4693;
@@ -10439,21 +9225,13 @@ c02_03df:;
 
 c02_03db:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f221_AddSymbol(void);
 
 // AddAlias workspace at ws+3400 length ws+40
 void f222_AddAlias(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4738 = (i8)(intptr_t)(ws+3400);
 	i8 v4739 = *(i8*)(intptr_t)v4738;
@@ -10486,21 +9264,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v4755 = *(i8*)(intptr_t)v4754;
 	*(i8*)(intptr_t)v4755 = v4753;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f222_AddAlias(void);
 
 // AddAliasString workspace at ws+3336 length ws+32
 void f223_AddAliasString(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4756 = (i8)+0;
 	*(i8*)(intptr_t)(ws+3400) = v4756;
@@ -10523,9 +9293,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v4766 = (i8)(intptr_t)(ws+3360);
 	*(i8*)(intptr_t)v4766 = v4765;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s00fa[] = { 0x27,0 };
@@ -10537,13 +9304,8 @@ const i1 c02_s00fb[] = { 0x27,0x20,0x69,0x73,0x20,0x61,0x20,0x70,0x61,0x72,0x74,
 
 // CheckNotPartialType workspace at ws+3520 length ws+8
 void f224_CheckNotPartialType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4767 = (i8)(intptr_t)(ws+3520);
 	i8 v4768 = *(i8*)(intptr_t)v4767;
@@ -10589,22 +9351,14 @@ c02_03e9:;
 
 c02_03e5:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f64_AllocNewSymbol(void);
 	void f220_AddToNamespace(void);
 
 // AddTypeToNamespace workspace at ws+3528 length ws+40
 void f225_AddTypeToNamespace(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4785 = (i8)(intptr_t)(f64_AllocNewSymbol);
 
@@ -10655,22 +9409,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4813)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f66_AllocNewType(void);
 	void f225_AddTypeToNamespace(void);
 
 // MakeNumberType workspace at ws+3336 length ws+32
 void f226_MakeNumberType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4814 = (i8)(intptr_t)(f66_AllocNewType);
 
@@ -10734,20 +9480,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v4852)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // IsTypeOfKind workspace at ws+3576 length ws+10
 void f227_IsTypeOfKind(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4853 = (i1)+0;
 	i8 v4854 = (i8)(intptr_t)(ws+3585);
@@ -10778,21 +9516,13 @@ c02_03f0:;
 
 c02_03ea:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f227_IsTypeOfKind(void);
 
 // IsArray workspace at ws+3496 length ws+10
 void f228_IsArray(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4866 = (i8)(intptr_t)(ws+3496);
 	i8 v4867 = *(i8*)(intptr_t)v4866;
@@ -10812,21 +9542,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v4874 = (i8)(intptr_t)(ws+3504);
 	*(i1*)(intptr_t)v4874 = v4873;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f227_IsTypeOfKind(void);
 
 // IsPtr workspace at ws+3560 length ws+10
 void f68_IsPtr(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4875 = (i8)(intptr_t)(ws+3560);
 	i8 v4876 = *(i8*)(intptr_t)v4875;
@@ -10846,21 +9568,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v4883 = (i8)(intptr_t)(ws+3568);
 	*(i1*)(intptr_t)v4883 = v4882;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f227_IsTypeOfKind(void);
 
 // IsSubroutine workspace at ws+3560 length ws+10
 void f229_IsSubroutine(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4884 = (i8)(intptr_t)(ws+3560);
 	i8 v4885 = *(i8*)(intptr_t)v4884;
@@ -10880,21 +9594,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v4892 = (i8)(intptr_t)(ws+3568);
 	*(i1*)(intptr_t)v4892 = v4891;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f227_IsTypeOfKind(void);
 
 // IsNum workspace at ws+3560 length ws+10
 void f230_IsNum(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4893 = (i8)(intptr_t)(ws+3560);
 	i8 v4894 = *(i8*)(intptr_t)v4893;
@@ -10931,21 +9637,13 @@ c02_03f6:;
 
 c02_03f2:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f227_IsTypeOfKind(void);
 
 // IsSNum workspace at ws+3456 length ws+10
 void f231_IsSNum(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4907 = (i8)(intptr_t)(ws+3456);
 	i8 v4908 = *(i8*)(intptr_t)v4907;
@@ -11004,9 +9702,6 @@ c02_0401:;
 
 c02_03f7:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f68_IsPtr(void);
 	void f230_IsNum(void);
@@ -11014,13 +9709,8 @@ c02_03f7:;
 
 // IsScalar workspace at ws+3544 length ws+12
 void f232_IsScalar(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4929 = (i8)(intptr_t)(ws+3544);
 	i8 v4930 = *(i8*)(intptr_t)v4929;
@@ -11090,21 +9780,13 @@ c02_040b:;
 
 c02_0403:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f227_IsTypeOfKind(void);
 
 // IsRecord workspace at ws+3488 length ws+10
 void f233_IsRecord(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v4957 = (i8)(intptr_t)(ws+3488);
 	i8 v4958 = *(i8*)(intptr_t)v4957;
@@ -11124,22 +9806,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v4965 = (i8)(intptr_t)(ws+3496);
 	*(i1*)(intptr_t)v4965 = v4964;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f232_IsScalar(void);
 	void f134_MidDeref(void);
 
 // MakeLValue workspace at ws+3496 length ws+48
 void f234_MakeLValue(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v4966 = (i1)+0;
 	i8 v4967 = (i8)(intptr_t)(ws+3512);
@@ -11209,9 +9883,6 @@ c02_040e:;
 	i8 v5002 = v5001+(+24);
 	*(i8*)(intptr_t)v5002 = v4999;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s00fc[] = { 0x6c,0x76,0x61,0x6c,0x75,0x65,0x20,0x72,0x65,0x71,0x75,0x69,0x72,0x65,0x64,0 };
 	void f76_SimpleError(void);
@@ -11219,13 +9890,8 @@ const i1 c02_s00fc[] = { 0x6c,0x76,0x61,0x6c,0x75,0x65,0x20,0x72,0x65,0x71,0x75,
 
 // UndoLValue workspace at ws+3432 length ws+17
 void f235_UndoLValue(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5003 = (i8)(intptr_t)(ws+3432);
 	i8 v5004 = *(i8*)(intptr_t)v5003;
@@ -11278,20 +9944,12 @@ c02_0413:;
 
 	((void(*)(void))(intptr_t)v5027)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // IsLValue workspace at ws+3488 length ws+10
 void f236_IsLValue(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v5028 = (i1)+0;
 	i8 v5029 = (i8)(intptr_t)(ws+3496);
@@ -11326,9 +9984,6 @@ c02_0421:;
 
 c02_041b:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f68_IsPtr(void);
 const i1 c02_s00fd[] = { 0x70,0x6f,0x69,0x6e,0x74,0x65,0x72,0x20,0x6f,0x72,0x20,0x6c,0x76,0x61,0x6c,0x75,0x65,0x20,0x72,0x65,0x71,0x75,0x69,0x72,0x65,0x64,0 };
@@ -11336,13 +9991,8 @@ const i1 c02_s00fd[] = { 0x70,0x6f,0x69,0x6e,0x74,0x65,0x72,0x20,0x6f,0x72,0x20,
 
 // MaybeUndoLValue workspace at ws+3496 length ws+18
 void f237_MaybeUndoLValue(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5043 = (i8)(intptr_t)(ws+3496);
 	i8 v5044 = *(i8*)(intptr_t)v5043;
@@ -11419,20 +10069,12 @@ c02_042e:;
 
 c02_0423:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // AllocLabel workspace at ws+3472 length ws+2
 void f238_AllocLabel(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5078 = (i8)(intptr_t)(ws+48);
 	i2 v5079 = *(i2*)(intptr_t)v5078;
@@ -11445,20 +10087,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v5084 = (i8)(intptr_t)(ws+48);
 	*(i2*)(intptr_t)v5084 = v5083;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // AllocSubrId workspace at ws+3416 length ws+2
 void f239_AllocSubrId(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5085 = (i8)(intptr_t)(ws+50);
 	i2 v5086 = *(i2*)(intptr_t)v5085;
@@ -11471,35 +10105,19 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v5091 = (i8)(intptr_t)(ws+50);
 	*(i2*)(intptr_t)v5091 = v5090;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // MidWriter workspace at ws+3560 length ws+8
 void f240_MidWriter(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // ArchAlignUp workspace at ws+3544 length ws+8
 void f241_ArchAlignUp(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5092 = (i8)(intptr_t)(ws+3546);
 	i1 v5093 = *(i1*)(intptr_t)v5092;
@@ -11520,9 +10138,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v5106 = (i8)(intptr_t)(ws+3548);
 	*(i2*)(intptr_t)v5106 = v5105;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s00fe[] = { 0x75,0x69,0x6e,0x74,0x36,0x34,0 };
 	void f226_MakeNumberType(void);
@@ -11547,13 +10162,8 @@ const i1 c02_s0107[] = { 0x69,0x6e,0x74,0x70,0x74,0x72,0 };
 
 // ArchInitTypes workspace at ws+3264 length ws+72
 void f242_ArchInitTypes(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v5107 = (i1)+8;
 	*(i1*)(intptr_t)(ws+3336) = v5107;
@@ -11749,20 +10359,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5198)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // ArchGuessIntType workspace at ws+3448 length ws+16
 void f243_ArchGuessIntType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5199 = (i8)(intptr_t)(ws+3448);
 	i4 v5200 = *(i4*)(intptr_t)v5199;
@@ -11879,21 +10481,13 @@ c02_044f:;
 
 c02_042f:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f241_ArchAlignUp(void);
 
 // ArchInitVariable workspace at ws+3520 length ws+20
 void f244_ArchInitVariable(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5244 = (i8)(intptr_t)(ws+3520);
 	i8 v5245 = *(i8*)(intptr_t)v5244;
@@ -11955,21 +10549,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v5286 = v5285+(+58);
 	*(i2*)(intptr_t)v5286 = v5283;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f241_ArchAlignUp(void);
 
 // ArchInitMember workspace at ws+3392 length ws+20
 void f245_ArchInitMember(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5287 = (i8)(intptr_t)(ws+3408);
 	i2 v5288 = *(i2*)(intptr_t)v5287;
@@ -12035,36 +10621,20 @@ c02_0454:;
 
 c02_0450:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // WriteMid1 workspace at ws+3568 length ws+0
 void f246_WriteMid1(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f178_E_b32(void);
 
 // WriteMid2 workspace at ws+3568 length ws+0
 void f247_WriteMid2(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5328 = (i8)(intptr_t)(ws+3560);
 	i8 v5329 = *(i8*)(intptr_t)v5328;
@@ -12074,9 +10644,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5331)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 	void f177_E_b16(void);
@@ -12087,13 +10654,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // WriteMid3 workspace at ws+3568 length ws+0
 void f248_WriteMid3(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5332 = (i8)(intptr_t)(ws+3560);
 	i8 v5333 = *(i8*)(intptr_t)v5332;
@@ -12166,9 +10728,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5378)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 	void f177_E_b16(void);
@@ -12177,13 +10736,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // WriteMid4 workspace at ws+3568 length ws+0
 void f249_WriteMid4(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5379 = (i8)(intptr_t)(ws+3560);
 	i8 v5380 = *(i8*)(intptr_t)v5379;
@@ -12220,21 +10774,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5397)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f176_E_b8(void);
 
 // WriteMid5 workspace at ws+3568 length ws+0
 void f250_WriteMid5(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5398 = (i8)(intptr_t)(ws+3560);
 	i8 v5399 = *(i8*)(intptr_t)v5398;
@@ -12244,22 +10790,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5401)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f178_E_b32(void);
 	void f177_E_b16(void);
 
 // WriteMid6 workspace at ws+3568 length ws+0
 void f251_WriteMid6(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5402 = (i8)(intptr_t)(ws+3560);
 	i8 v5403 = *(i8*)(intptr_t)v5402;
@@ -12278,21 +10816,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5410)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 
 // WriteMid7 workspace at ws+3568 length ws+0
 void f252_WriteMid7(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5411 = (i8)(intptr_t)(ws+3560);
 	i8 v5412 = *(i8*)(intptr_t)v5411;
@@ -12302,21 +10832,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5414)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f187_E_countedstring(void);
 
 // WriteMid8 workspace at ws+3568 length ws+0
 void f253_WriteMid8(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5415 = (i8)(intptr_t)(ws+3560);
 	i8 v5416 = *(i8*)(intptr_t)v5415;
@@ -12326,9 +10848,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5418)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 	void f176_E_b8(void);
@@ -12337,13 +10856,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // WriteMid9 workspace at ws+3568 length ws+0
 void f254_WriteMid9(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5419 = (i8)(intptr_t)(ws+3560);
 	i8 v5420 = *(i8*)(intptr_t)v5419;
@@ -12393,21 +10907,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5450)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 
 // WriteMid10 workspace at ws+3568 length ws+0
 void f255_WriteMid10(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5451 = (i8)(intptr_t)(ws+3560);
 	i8 v5452 = *(i8*)(intptr_t)v5451;
@@ -12419,9 +10925,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5456)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f177_E_b16(void);
 	void f176_E_b8(void);
@@ -12431,13 +10934,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // WriteMid11 workspace at ws+3568 length ws+0
 void f256_WriteMid11(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5457 = (i8)(intptr_t)(ws+3560);
 	i8 v5458 = *(i8*)(intptr_t)v5457;
@@ -12496,9 +10994,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5493)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f246_WriteMid1(void);
 	void f247_WriteMid2(void);
@@ -12752,13 +11247,8 @@ static data f3___main_s0456[] = {
 
 // ReallyGenerate workspace at ws+3520 length ws+33
 void f258_ReallyGenerate(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v5541 = (i1)+77;
 	*(i1*)(intptr_t)(ws+3600) = v5541;
@@ -12847,9 +11337,6 @@ c02_0467:;
 
 	((void(*)(void))(intptr_t)v5586)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f63_Discard(void);
 	void f124_MidAsmgroupstart(void);
@@ -12860,13 +11347,8 @@ c02_0467:;
 
 // Generate workspace at ws+3488 length ws+32
 void f259_Generate(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5589 = (i8)(intptr_t)(ws+3488);
 	i8 v5590 = *(i8*)(intptr_t)v5589;
@@ -12910,9 +11392,6 @@ c02_0475:;
 
 	((void(*)(void))(intptr_t)v5608)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_0476:;
@@ -13001,9 +11480,6 @@ c02_0480:;
 
 	((void(*)(void))(intptr_t)v5638)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f60_PushNode(void);
 	void f61_PopNode(void);
@@ -13013,13 +11489,8 @@ c02_0480:;
 
 // push_and_free workspace at ws+3472 length ws+0
 void f261_push_and_free(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5698 = (i8)(intptr_t)(ws+3424);
 	i2 v5699 = *(i2*)(intptr_t)v5698;
@@ -13074,9 +11545,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5728)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f238_AllocLabel(void);
 	void f261_push_and_free(void);
@@ -13088,13 +11556,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // GenerateConditional workspace at ws+3392 length ws+80
 void f260_GenerateConditional(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5639 = (i8)(intptr_t)(ws+224);
 	i8 v5640 = *(i8*)(intptr_t)v5639;
@@ -13335,9 +11798,6 @@ c02_0493:;
 
 c02_048d:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f224_CheckNotPartialType(void);
 	void f69_InternalAlloc(void);
@@ -13345,13 +11805,8 @@ c02_048d:;
 
 // InitVariable workspace at ws+3488 length ws+32
 void f262_InitVariable(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5793 = (i8)(intptr_t)(ws+3504);
 	i8 v5794 = *(i8*)(intptr_t)v5793;
@@ -13404,9 +11859,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v5821)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f66_AllocNewType(void);
 	void f70_StrDupBraced(void);
@@ -13414,13 +11866,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // MakePointerType workspace at ws+3496 length ws+32
 void f263_MakePointerType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5822 = (i8)(intptr_t)(ws+3496);
 	i8 v5823 = *(i8*)(intptr_t)v5822;
@@ -13531,9 +11978,6 @@ c02_049a:;
 
 c02_0496:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f224_CheckNotPartialType(void);
 	void f66_AllocNewType(void);
@@ -13543,13 +11987,8 @@ c02_0496:;
 
 // MakeArrayType workspace at ws+3392 length ws+56
 void f264_MakeArrayType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5890 = (i8)(intptr_t)(ws+3392);
 	i8 v5891 = *(i8*)(intptr_t)v5890;
@@ -13706,20 +12145,12 @@ c02_049b:;
 
 	((void(*)(void))(intptr_t)v5987)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // QueueNamespace workspace at ws+3464 length ws+16
 void f266_QueueNamespace(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_04a0:;
 
@@ -13761,9 +12192,6 @@ c02_04a4:;
 
 c02_04a5:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f100_GetOutputParameter(void);
 	void f99_GetInputParameter(void);
@@ -13777,13 +12205,8 @@ c02_04a5:;
 
 // DestructSubroutineContents workspace at ws+3408 length ws+56
 void f265_DestructSubroutineContents(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v5988 = (i8)+0;
 	i8 v5989 = (i8)(intptr_t)(ws+3416);
@@ -14045,9 +12468,6 @@ c02_04c0:;
 	i8 v6128 = v6127+(+24);
 	*(i8*)(intptr_t)v6128 = v6125;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f72_InternalStrDup(void);
 	void f221_AddSymbol(void);
@@ -14055,13 +12475,8 @@ c02_04c0:;
 
 // CopyParameterList workspace at ws+3408 length ws+56
 void f267_CopyParameterList(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6129 = (i8)+0;
 	i8 v6130 = (i8)(intptr_t)(ws+3424);
@@ -14209,9 +12624,6 @@ c02_04cb:;
 
 c02_04ca:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f66_AllocNewType(void);
 	void f64_AllocNewSymbol(void);
@@ -14221,13 +12633,8 @@ const i1 c02_s0108[] = { 0x5f,0x5f,0x6d,0x61,0x69,0x6e,0 };
 
 // CreateMainSubroutine workspace at ws+3264 length ws+40
 void f268_CreateMainSubroutine(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6216 = (i8)(intptr_t)(f66_AllocNewType);
 
@@ -14338,21 +12745,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v6279)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f204_EmitterDeclareWorkspace(void);
 
 // ReportWorkspaces workspace at ws+3408 length ws+12
 void f269_ReportWorkspaces(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v6280 = (i1)+0;
 	i8 v6281 = (i8)(intptr_t)(ws+3416);
@@ -14414,9 +12813,6 @@ c02_04d6:;
 
 c02_04d5:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 	void f12_print(void);
@@ -14429,13 +12825,8 @@ const i1 c02_s010a[] = { 0x20,0x61,0x72,0x65,0x20,0x6e,0x6f,0x74,0x20,0x63,0x6f,
 
 // expr_i_cant_do_that workspace at ws+3504 length ws+16
 void f270_expr_i_cant_do_that(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6310 = (i8)(intptr_t)(f74_StartError);
 
@@ -14483,9 +12874,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v6333)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s010b[] = { 0x74,0x79,0x70,0x65,0x20,0x6d,0x69,0x73,0x6d,0x61,0x74,0x63,0x68,0x3a,0x20,0x65,0x78,0x70,0x72,0x65,0x73,0x73,0x69,0x6f,0x6e,0x20,0x77,0x61,0x73,0x20,0x61,0x20,0 };
@@ -14506,13 +12894,8 @@ const i1 c02_s010e[] = { 0x20,0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x62,0x65,0x20,
 
 // CheckExpressionType workspace at ws+3496 length ws+17
 void f271_CheckExpressionType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6334 = (i8)(intptr_t)(ws+3496);
 	i8 v6335 = *(i8*)(intptr_t)v6334;
@@ -14645,9 +13028,6 @@ c02_04e9:;
 
 c02_04e5:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f230_IsNum(void);
 	void f68_IsPtr(void);
@@ -14668,13 +13048,8 @@ const i1 c02_s0112[] = { 0x70,0x6f,0x69,0x6e,0x74,0x65,0x72,0x73,0x20,0x6d,0x61,
 
 // ResolveUntypedConstantsForAddOrSub workspace at ws+3456 length ws+20
 void f272_ResolveUntypedConstantsForAddOrSub(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6393 = (i8)(intptr_t)(ws+3456);
 	i8 v6394 = *(i8*)(intptr_t)v6393;
@@ -14895,21 +13270,13 @@ c02_0501:;
 
 c02_04fb:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f270_expr_i_cant_do_that(void);
 
 // ResolveUntypedConstantsSimply workspace at ws+3472 length ws+32
 void f273_ResolveUntypedConstantsSimply(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6494 = (i8)(intptr_t)(ws+3472);
 	i8 v6495 = *(i8*)(intptr_t)v6494;
@@ -14997,9 +13364,6 @@ c02_051e:;
 
 c02_050c:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f230_IsNum(void);
 const i1 c02_s0113[] = { 0x6e,0x75,0x6d,0x62,0x65,0x72,0x20,0x72,0x65,0x71,0x75,0x69,0x72,0x65,0x64,0 };
@@ -15007,13 +13371,8 @@ const i1 c02_s0113[] = { 0x6e,0x75,0x6d,0x62,0x65,0x72,0x20,0x72,0x65,0x71,0x75,
 
 // CheckNumber workspace at ws+3472 length ws+9
 void f274_CheckNumber(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6535 = (i8)(intptr_t)(ws+3472);
 	i8 v6536 = *(i8*)(intptr_t)v6535;
@@ -15045,9 +13404,6 @@ c02_0523:;
 
 c02_051f:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f273_ResolveUntypedConstantsSimply(void);
 	void f274_CheckNumber(void);
@@ -15055,13 +13411,8 @@ c02_051f:;
 
 // ResolveUntypedConstantsNeedingNumbers workspace at ws+3456 length ws+16
 void f275_ResolveUntypedConstantsNeedingNumbers(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6547 = (i8)(intptr_t)(ws+3456);
 	i8 v6548 = *(i8*)(intptr_t)v6547;
@@ -15087,22 +13438,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v6557)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f273_ResolveUntypedConstantsSimply(void);
 	void f270_expr_i_cant_do_that(void);
 
 // CondSimple workspace at ws+3456 length ws+16
 void f276_CondSimple(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6558 = (i8)(intptr_t)(ws+3456);
 	i8 v6559 = *(i8*)(intptr_t)v6558;
@@ -15140,22 +13483,14 @@ c02_0528:;
 
 c02_0524:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f168_NodeWidth(void);
 	void f172_MidC1Op(void);
 
 // Expr1Simple workspace at ws+3392 length ws+40
 void f277_Expr1Simple(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6576 = (i8)(intptr_t)(ws+3400);
 	i8 v6577 = *(i8*)(intptr_t)v6576;
@@ -15199,22 +13534,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v6599 = v6598+(+24);
 	*(i8*)(intptr_t)v6599 = v6596;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f272_ResolveUntypedConstantsForAddOrSub(void);
 	void f270_expr_i_cant_do_that(void);
 
 // cant_add_that workspace at ws+3448 length ws+0
 void f279_cant_add_that(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6605 = (i8)(intptr_t)(ws+3392);
 	i8 v6606 = *(i8*)(intptr_t)v6605;
@@ -15226,9 +13553,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v6609)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f68_IsPtr(void);
 	void f68_IsPtr(void);
@@ -15242,13 +13566,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // ExprAdd workspace at ws+3392 length ws+56
 void f278_ExprAdd(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6600 = (i8)(intptr_t)(ws+3392);
 	i8 v6601 = *(i8*)(intptr_t)v6600;
@@ -15433,22 +13752,14 @@ c02_0529:;
 	i8 v6685 = v6684+(+24);
 	*(i8*)(intptr_t)v6685 = v6682;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f272_ResolveUntypedConstantsForAddOrSub(void);
 	void f270_expr_i_cant_do_that(void);
 
 // cant_sub_that workspace at ws+3456 length ws+0
 void f281_cant_sub_that(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6691 = (i8)(intptr_t)(ws+3392);
 	i8 v6692 = *(i8*)(intptr_t)v6691;
@@ -15460,9 +13771,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v6695)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f68_IsPtr(void);
 	void f68_IsPtr(void);
@@ -15479,13 +13787,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // ExprSub workspace at ws+3392 length ws+57
 void f280_ExprSub(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6686 = (i8)(intptr_t)(ws+3392);
 	i8 v6687 = *(i8*)(intptr_t)v6686;
@@ -15741,9 +14044,6 @@ c02_0563:;
 
 c02_055d:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f275_ResolveUntypedConstantsNeedingNumbers(void);
 	void f231_IsSNum(void);
@@ -15752,13 +14052,8 @@ c02_055d:;
 
 // Expr2Simple workspace at ws+3392 length ws+64
 void f282_Expr2Simple(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6805 = (i8)(intptr_t)(ws+3400);
 	i8 v6806 = *(i8*)(intptr_t)v6805;
@@ -15854,22 +14149,14 @@ c02_0565:;
 	i8 v6854 = v6853+(+24);
 	*(i8*)(intptr_t)v6854 = v6851;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s0114[] = { 0x4c,0x48,0x53,0x20,0x6f,0x66,0x20,0x73,0x68,0x69,0x66,0x74,0x20,0x63,0x61,0x6e,0x20,0x6f,0x6e,0x6c,0x79,0x20,0x62,0x65,0x20,0x63,0x6f,0x6e,0x73,0x74,0x61,0x6e,0x74,0x20,0x69,0x66,0x20,0x74,0x68,0x65,0x20,0x52,0x48,0x53,0x20,0x69,0x73,0x20,0x61,0x6c,0x73,0x6f,0x20,0x63,0x6f,0x6e,0x73,0x74,0x61,0x6e,0x74,0 };
 	void f76_SimpleError(void);
 
 // expr_i_checkrhsconst workspace at ws+3456 length ws+8
 void f283_expr_i_checkrhsconst(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6855 = (i8)(intptr_t)(ws+3456);
 	i8 v6856 = *(i8*)(intptr_t)v6855;
@@ -15890,9 +14177,6 @@ c02_056e:;
 
 c02_056a:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f230_IsNum(void);
 const i1 c02_s0115[] = { 0x6e,0x75,0x6d,0x62,0x65,0x72,0x20,0x72,0x65,0x71,0x75,0x69,0x72,0x65,0x64,0x20,0x6f,0x6e,0x20,0x4c,0x48,0x53,0x20,0x6f,0x66,0x20,0x73,0x68,0x69,0x66,0x74,0 };
@@ -15901,13 +14185,8 @@ const i1 c02_s0115[] = { 0x6e,0x75,0x6d,0x62,0x65,0x72,0x20,0x72,0x65,0x71,0x75,
 
 // expr_i_checkshift workspace at ws+3456 length ws+17
 void f284_expr_i_checkshift(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6862 = (i8)(intptr_t)(ws+3456);
 	i8 v6863 = *(i8*)(intptr_t)v6862;
@@ -15949,9 +14228,6 @@ c02_056f:;
 
 	((void(*)(void))(intptr_t)v6878)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f231_IsSNum(void);
 	void f283_expr_i_checkrhsconst(void);
@@ -15963,13 +14239,8 @@ c02_056f:;
 
 // ExprShift workspace at ws+3392 length ws+64
 void f285_ExprShift(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6879 = (i8)(intptr_t)(ws+3393);
 	i1 v6880 = *(i1*)(intptr_t)v6879;
@@ -16056,9 +14327,6 @@ c02_057c:;
 
 	((void(*)(void))(intptr_t)v6921)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_057d:;
@@ -16125,22 +14393,14 @@ c02_0579:;
 	i8 v6955 = v6954+(+24);
 	*(i8*)(intptr_t)v6955 = v6952;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s0116[] = { 0x6e,0x6f,0x64,0x65,0x20,0x73,0x74,0x61,0x63,0x6b,0x20,0x6f,0x76,0x65,0x72,0x66,0x6c,0x6f,0x77,0 };
 	void f76_SimpleError(void);
 
 // PushNode workspace at ws+3640 length ws+8
 void f60_PushNode(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6956 = (i8)(intptr_t)(ws+3640);
 	i8 v6957 = *(i8*)(intptr_t)v6956;
@@ -16182,20 +14442,12 @@ c02_0582:;
 
 c02_057e:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // PopNode workspace at ws+3640 length ws+8
 void f61_PopNode(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6972 = (i8)(intptr_t)(ws+224);
 	i8 v6973 = *(i8*)(intptr_t)v6972;
@@ -16209,9 +14461,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v6979 = (i8)(intptr_t)(ws+3640);
 	*(i8*)(intptr_t)v6979 = v6978;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f61_PopNode(void);
 	void f60_PushNode(void);
@@ -16219,13 +14468,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // NextNode workspace at ws+3624 length ws+16
 void f62_NextNode(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6980 = (i8)(intptr_t)(f61_PopNode);
 
@@ -16269,9 +14513,6 @@ c02_058c:;
 
 c02_0588:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f60_PushNode(void);
 	void f62_NextNode(void);
@@ -16279,13 +14520,8 @@ c02_0588:;
 
 // Discard workspace at ws+3592 length ws+32
 void f63_Discard(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v6999 = (i8)(intptr_t)(ws+224);
 	i8 v7000 = *(i8*)(intptr_t)v6999;
@@ -16333,9 +14569,6 @@ c02_0591:;
 
 c02_0592:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f69_InternalAlloc(void);
 	void f238_AllocLabel(void);
@@ -16343,13 +14576,8 @@ c02_0592:;
 
 // BeginNormalLoop workspace at ws+3400 length ws+20
 void f286_BeginNormalLoop(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7018 = (i8)+8;
 	*(i8*)(intptr_t)(ws+3640) = v7018;
@@ -16422,9 +14650,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v7058 = (i8)(intptr_t)(ws+54);
 	*(i2*)(intptr_t)v7058 = v7057;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f133_MidJump(void);
 	void f259_Generate(void);
@@ -16434,13 +14659,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // TerminateNormalLoop workspace at ws+3384 length ws+24
 void f287_TerminateNormalLoop(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7059 = (i8)(intptr_t)(ws+54);
 	i2 v7060 = *(i2*)(intptr_t)v7059;
@@ -16499,20 +14719,12 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7087)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // Negate workspace at ws+3384 length ws+8
 void f288_Negate(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7088 = (i8)(intptr_t)(ws+3384);
 	i8 v7089 = *(i8*)(intptr_t)v7088;
@@ -16524,9 +14736,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v7095 = v7094+(+6);
 	*(i1*)(intptr_t)v7095 = v7092;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f276_CondSimple(void);
 	void f238_AllocLabel(void);
@@ -16536,13 +14745,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // ConditionalEq workspace at ws+3392 length ws+56
 void f289_ConditionalEq(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7096 = (i8)(intptr_t)(ws+3392);
 	i8 v7097 = *(i8*)(intptr_t)v7096;
@@ -16629,9 +14833,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v7139 = (i8)(intptr_t)(ws+3416);
 	*(i8*)(intptr_t)v7139 = v7138;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f276_CondSimple(void);
 	void f238_AllocLabel(void);
@@ -16643,13 +14844,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // ConditionalLt workspace at ws+3392 length ws+64
 void f290_ConditionalLt(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7140 = (i8)(intptr_t)(ws+3392);
 	i8 v7141 = *(i8*)(intptr_t)v7140;
@@ -16795,22 +14991,14 @@ c02_0597:;
 
 c02_0593:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s0117[] = { 0x40,0x6e,0x65,0x78,0x74,0x20,0x61,0x6e,0x64,0x20,0x40,0x70,0x72,0x65,0x76,0x20,0x6f,0x6e,0x6c,0x79,0x20,0x77,0x6f,0x72,0x6b,0x20,0x6f,0x6e,0x20,0x70,0x6f,0x69,0x6e,0x74,0x65,0x72,0x73,0 };
 	void f76_SimpleError(void);
 
 // parser_i_bad_next_prev workspace at ws+3408 length ws+0
 void f291_parser_i_bad_next_prev(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7213 = (i8)(intptr_t)c02_s0117;
 	*(i8*)(intptr_t)(ws+3648) = v7213;
@@ -16818,22 +15006,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7214)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s0118[] = { 0x6f,0x6e,0x6c,0x79,0x20,0x63,0x6f,0x6e,0x73,0x74,0x61,0x6e,0x74,0x20,0x76,0x61,0x6c,0x75,0x65,0x73,0x20,0x61,0x72,0x65,0x20,0x61,0x6c,0x6c,0x6f,0x77,0x65,0x64,0x20,0x68,0x65,0x72,0x65,0 };
 	void f76_SimpleError(void);
 
 // parser_i_constant_error workspace at ws+3448 length ws+0
 void f292_parser_i_constant_error(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7215 = (i8)(intptr_t)c02_s0118;
 	*(i8*)(intptr_t)(ws+3648) = v7215;
@@ -16841,9 +15021,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7216)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s0119[] = { 0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x20,0 };
@@ -16859,13 +15036,8 @@ const i1 c02_s011b[] = { 0x20,0x62,0x75,0x74,0x20,0x77,0x61,0x73,0x20,0x67,0x69,
 
 // i_check_sub_call_args workspace at ws+3488 length ws+8
 void f293_i_check_sub_call_args(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7217 = (i8)(intptr_t)(ws+80);
 	i8 v7218 = *(i8*)(intptr_t)v7217;
@@ -16944,22 +15116,14 @@ c02_059c:;
 
 c02_0598:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f203_EmitterReferenceSubroutine(void);
 	void f34_Free(void);
 
 // i_end_call workspace at ws+3488 length ws+16
 void f294_i_end_call(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7254 = (i8)(intptr_t)(ws+40);
 	i8 v7255 = *(i8*)(intptr_t)v7254;
@@ -16995,9 +15159,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7273)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s011c[] = { 0x61,0x74,0x74,0x65,0x6d,0x70,0x74,0x20,0x74,0x6f,0x20,0x72,0x65,0x64,0x65,0x66,0x69,0x6e,0x65,0x20,0 };
@@ -17007,13 +15168,8 @@ const i1 c02_s011c[] = { 0x61,0x74,0x74,0x65,0x6d,0x70,0x74,0x20,0x74,0x6f,0x20,
 
 // SymbolRedeclarationError workspace at ws+3392 length ws+0
 void f295_SymbolRedeclarationError(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7274 = (i8)(intptr_t)(f74_StartError);
 
@@ -17040,9 +15196,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7284)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s011d[] = { 0x77,0x72,0x6f,0x6e,0x67,0x20,0x6e,0x75,0x6d,0x62,0x65,0x72,0x20,0x6f,0x66,0x20,0x65,0x6c,0x65,0x6d,0x65,0x6e,0x74,0x73,0x20,0x69,0x6e,0x20,0x69,0x6e,0x69,0x74,0x69,0x61,0x6c,0x69,0x73,0x65,0x72,0x20,0x66,0x6f,0x72,0x20,0 };
@@ -17052,13 +15205,8 @@ const i1 c02_s011d[] = { 0x77,0x72,0x6f,0x6e,0x67,0x20,0x6e,0x75,0x6d,0x62,0x65,
 
 // WrongNumberOfElementsError workspace at ws+3464 length ws+0
 void f296_WrongNumberOfElementsError(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7285 = (i8)(intptr_t)(f74_StartError);
 
@@ -17085,9 +15233,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7295)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f228_IsArray(void);
 	void f241_ArchAlignUp(void);
@@ -17097,13 +15242,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // CheckEndOfInitialiser workspace at ws+3392 length ws+16
 void f297_CheckEndOfInitialiser(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7296 = (i8)(intptr_t)(ws+72);
 	i8 v7297 = *(i8*)(intptr_t)v7296;
@@ -17249,21 +15389,13 @@ c02_05ac:;
 
 c02_059d:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f228_IsArray(void);
 
 // GetInitedMember workspace at ws+3464 length ws+17
 void f298_GetInitedMember(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7368 = (i8)+0;
 	i8 v7369 = (i8)(intptr_t)(ws+3464);
@@ -17308,9 +15440,6 @@ c02_05b9:;
 	i8 v7386 = (i8)(intptr_t)(ws+3472);
 	*(i8*)(intptr_t)v7386 = v7385;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_05ba:;
@@ -17338,9 +15467,6 @@ c02_05b6:;
 
 c02_05b1:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f241_ArchAlignUp(void);
 	void f105_MidInit(void);
@@ -17348,13 +15474,8 @@ c02_05b1:;
 
 // AlignTo workspace at ws+3464 length ws+16
 void f299_AlignTo(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7400 = (i8)(intptr_t)(ws+1562);
 	i2 v7401 = *(i2*)(intptr_t)v7400;
@@ -17420,22 +15541,14 @@ c02_05bf:;
 
 c02_05c0:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s011e[] = { 0x6f,0x75,0x74,0x20,0x6f,0x66,0x20,0x6f,0x72,0x64,0x65,0x72,0x20,0x73,0x74,0x61,0x74,0x69,0x63,0x20,0x69,0x6e,0x69,0x74,0x69,0x61,0x6c,0x69,0x73,0x61,0x74,0x69,0x6f,0x6e,0 };
 	void f76_SimpleError(void);
 
 // CheckForOverlaps workspace at ws+3464 length ws+8
 void f300_CheckForOverlaps(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7430 = (i8)(intptr_t)(ws+3464);
 	i8 v7431 = *(i8*)(intptr_t)v7430;
@@ -17444,9 +15557,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 c02_05c4:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_05c5:;
@@ -17474,9 +15584,6 @@ c02_05ca:;
 
 c02_05c6:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f298_GetInitedMember(void);
 	void f296_WrongNumberOfElementsError(void);
@@ -17485,13 +15592,8 @@ c02_05c6:;
 
 // GetInitedMemberChecked workspace at ws+3448 length ws+16
 void f301_GetInitedMemberChecked(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7442 = (i8)(intptr_t)(f298_GetInitedMember);
 
@@ -17536,9 +15638,6 @@ c02_05cb:;
 
 	((void(*)(void))(intptr_t)v7458)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 static data f3___main_s05d0[] = {
 
@@ -21555,13 +19654,8 @@ const i1 c02_s0165[] = { 0x66,0x72,0x65,0x65,0x20,0x75,0x6e,0x75,0x73,0x65,0x64,
 
 // token_destructor workspace at ws+3512 length ws+0
 void f303_token_destructor(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7459 = (i8)(intptr_t)(ws+3496);
 	i1 v7460 = *(i1*)(intptr_t)v7459;
@@ -21595,21 +19689,13 @@ c02_05dc:;
 
 c02_05d6:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f303_token_destructor(void);
 
 // yy_destructor workspace at ws+3496 length ws+16
 void f302_yy_destructor(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	i8 v7471 = (i8)(intptr_t)(ws+3496);
@@ -21634,21 +19720,13 @@ c02_05e4:;
 
 c02_05de:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // yy_pop_parser_stack workspace at ws+3384 length ws+0
 void f304_yy_pop_parser_stack(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7478 = (i8)(intptr_t)(ws+1568);
 	i8 v7479 = *(i8*)(intptr_t)v7478;
@@ -21669,21 +19747,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7489)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f304_yy_pop_parser_stack(void);
 
 // yy_pop_all_parser_stack workspace at ws+3384 length ws+0
 void f305_yy_pop_all_parser_stack(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_05e6:;
 
@@ -21702,9 +19772,6 @@ c02_05ea:;
 
 c02_05eb:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f305_yy_pop_all_parser_stack(void);
 	void f74_StartError(void);
@@ -21714,13 +19781,8 @@ const i1 c02_s0166[] = { 0x70,0x61,0x72,0x73,0x65,0x72,0x20,0x73,0x74,0x61,0x63,
 
 // yy_stack_overflow workspace at ws+3384 length ws+0
 void f306_yy_stack_overflow(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7494 = (i8)(intptr_t)(f305_yy_pop_all_parser_stack);
 
@@ -21740,9 +19802,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7498)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 static data f3___main_s05ec[] = {
 
@@ -22072,13 +20131,8 @@ static data f3___main_s05ed[] = {
 
 // CopyMinor workspace at ws+3384 length ws+16
 void f308_CopyMinor(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7521 = (i8)(intptr_t)(ws+3384);
 	i8 v7522 = *(i8*)(intptr_t)v7521;
@@ -22092,26 +20146,15 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7526)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f306_yy_stack_overflow(void);
 	void f308_CopyMinor(void);
 
 // Reducer workspace at ws+3384 length ws+0
 void f310_Reducer(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f147_MidReturn(void);
 	void f259_Generate(void);
@@ -22119,13 +20162,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_0 workspace at ws+3384 length ws+8
 void f311_reduce_0(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7565 = (i8)(intptr_t)(f147_MidReturn);
 
@@ -22150,9 +20188,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7573)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f262_InitVariable(void);
 	void f302_yy_destructor(void);
@@ -22160,13 +20195,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_1 workspace at ws+3384 length ws+0
 void f312_reduce_1(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7574 = (i8)(intptr_t)(ws+40);
 	i8 v7575 = *(i8*)(intptr_t)v7574;
@@ -22197,9 +20227,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7586)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f262_InitVariable(void);
 	void f271_CheckExpressionType(void);
@@ -22213,13 +20240,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_2 workspace at ws+3384 length ws+32
 void f313_reduce_2(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7587 = (i8)(intptr_t)(ws+40);
 	i8 v7588 = *(i8*)(intptr_t)v7587;
@@ -22331,9 +20353,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7642)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s0169[] = { 0x74,0x79,0x70,0x65,0x73,0x20,0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x62,0x65,0x20,0x69,0x6e,0x66,0x65,0x72,0x72,0x65,0x64,0x20,0x66,0x6f,0x72,0x20,0x6e,0x75,0x6d,0x65,0x72,0x69,0x63,0x20,0x63,0x6f,0x6e,0x73,0x74,0x61,0x6e,0x74,0x73,0 };
 	void f76_SimpleError(void);
@@ -22351,13 +20370,8 @@ const i1 c02_s016a[] = { 0x79,0x6f,0x75,0x20,0x63,0x61,0x6e,0x20,0x6f,0x6e,0x6c,
 
 // reduce_3 workspace at ws+3384 length ws+40
 void f314_reduce_3(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7643 = (i8)(intptr_t)(ws+3312);
 	i8 v7644 = *(i8*)(intptr_t)v7643;
@@ -22513,9 +20527,6 @@ c02_05fe:;
 
 	((void(*)(void))(intptr_t)v7715)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f235_UndoLValue(void);
 	void f271_CheckExpressionType(void);
@@ -22527,13 +20538,8 @@ c02_05fe:;
 
 // reduce_4 workspace at ws+3384 length ws+48
 void f315_reduce_4(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7716 = (i8)(intptr_t)(ws+3328);
 	i8 v7717 = *(i8*)(intptr_t)v7716;
@@ -22630,9 +20636,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7764)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f287_TerminateNormalLoop(void);
 	void f302_yy_destructor(void);
@@ -22640,13 +20643,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_5 workspace at ws+3384 length ws+0
 void f316_reduce_5(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7765 = (i8)(intptr_t)(ws+3328);
 	i8 v7766 = *(i8*)(intptr_t)v7765;
@@ -22671,9 +20669,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7773)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f286_BeginNormalLoop(void);
 	void f136_MidLabel(void);
@@ -22681,13 +20676,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_6 workspace at ws+3384 length ws+16
 void f317_reduce_6(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7774 = (i8)(intptr_t)(f286_BeginNormalLoop);
 
@@ -22720,9 +20710,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7787)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f287_TerminateNormalLoop(void);
 	void f302_yy_destructor(void);
@@ -22730,13 +20717,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_7 workspace at ws+3384 length ws+0
 void f318_reduce_7(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7788 = (i8)(intptr_t)(ws+3328);
 	i8 v7789 = *(i8*)(intptr_t)v7788;
@@ -22761,9 +20743,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7796)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f286_BeginNormalLoop(void);
 	void f136_MidLabel(void);
@@ -22771,13 +20750,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_8 workspace at ws+3384 length ws+16
 void f319_reduce_8(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7797 = (i8)(intptr_t)(f286_BeginNormalLoop);
 
@@ -22810,9 +20784,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7810)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f238_AllocLabel(void);
 	void f238_AllocLabel(void);
@@ -22821,13 +20792,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_9 workspace at ws+3384 length ws+6
 void f320_reduce_9(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7811 = (i8)(intptr_t)(ws+3320);
 	i8 v7812 = *(i8*)(intptr_t)v7811;
@@ -22902,9 +20868,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7850)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s016b[] = { 0x6e,0x6f,0x74,0x68,0x69,0x6e,0x67,0x20,0x74,0x6f,0x20,0x62,0x72,0x65,0x61,0x6b,0x20,0x74,0x6f,0 };
 	void f76_SimpleError(void);
@@ -22914,13 +20877,8 @@ const i1 c02_s016b[] = { 0x6e,0x6f,0x74,0x68,0x69,0x6e,0x67,0x20,0x74,0x6f,0x20,
 
 // reduce_10 workspace at ws+3384 length ws+8
 void f321_reduce_10(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7851 = (i8)(intptr_t)(ws+52);
 	i2 v7852 = *(i2*)(intptr_t)v7851;
@@ -22965,9 +20923,6 @@ c02_0603:;
 
 	((void(*)(void))(intptr_t)v7866)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s016c[] = { 0x6e,0x6f,0x74,0x68,0x69,0x6e,0x67,0x20,0x74,0x6f,0x20,0x63,0x6f,0x6e,0x74,0x69,0x6e,0x75,0x65,0x20,0x74,0x6f,0 };
 	void f76_SimpleError(void);
@@ -22977,13 +20932,8 @@ const i1 c02_s016c[] = { 0x6e,0x6f,0x74,0x68,0x69,0x6e,0x67,0x20,0x74,0x6f,0x20,
 
 // reduce_11 workspace at ws+3384 length ws+8
 void f322_reduce_11(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7867 = (i8)(intptr_t)(ws+54);
 	i2 v7868 = *(i2*)(intptr_t)v7867;
@@ -23028,9 +20978,6 @@ c02_0608:;
 
 	((void(*)(void))(intptr_t)v7882)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f136_MidLabel(void);
 	void f259_Generate(void);
@@ -23041,13 +20988,8 @@ c02_0608:;
 
 // reduce_12 workspace at ws+3384 length ws+16
 void f323_reduce_12(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7883 = (i8)(intptr_t)(ws+56);
 	i8 v7884 = *(i8*)(intptr_t)v7883;
@@ -23111,22 +21053,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7911)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f69_InternalAlloc(void);
 	void f238_AllocLabel(void);
 
 // reduce_13 workspace at ws+3384 length ws+18
 void f324_reduce_13(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7912 = (i8)+16;
 	*(i8*)(intptr_t)(ws+3640) = v7912;
@@ -23169,9 +21103,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v7933 = *(i8*)(intptr_t)v7932;
 	*(i2*)(intptr_t)v7933 = v7931;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f238_AllocLabel(void);
 	void f238_AllocLabel(void);
@@ -23179,13 +21110,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_14 workspace at ws+3384 length ws+8
 void f325_reduce_14(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7934 = (i8)(intptr_t)(f238_AllocLabel);
 
@@ -23254,22 +21180,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7972)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f136_MidLabel(void);
 	void f259_Generate(void);
 
 // reduce_15 workspace at ws+3384 length ws+8
 void f326_reduce_15(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7973 = (i8)(intptr_t)(ws+56);
 	i8 v7974 = *(i8*)(intptr_t)v7973;
@@ -23291,9 +21209,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v7982)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f133_MidJump(void);
 	void f259_Generate(void);
@@ -23302,13 +21217,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_16 workspace at ws+3384 length ws+16
 void f327_reduce_16(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7983 = (i8)(intptr_t)(ws+56);
 	i8 v7984 = *(i8*)(intptr_t)v7983;
@@ -23349,9 +21259,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8001)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f133_MidJump(void);
 	void f259_Generate(void);
@@ -23360,13 +21267,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_17 workspace at ws+3384 length ws+16
 void f328_reduce_17(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8002 = (i8)(intptr_t)(ws+56);
 	i8 v8003 = *(i8*)(intptr_t)v8002;
@@ -23407,9 +21309,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8020)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f136_MidLabel(void);
 	void f259_Generate(void);
@@ -23424,13 +21323,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_18 workspace at ws+3384 length ws+32
 void f329_reduce_18(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8021 = (i8)(intptr_t)(ws+64);
 	i8 v8022 = *(i8*)(intptr_t)v8021;
@@ -23555,9 +21449,6 @@ c02_060d:;
 
 	((void(*)(void))(intptr_t)v8078)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f69_InternalAlloc(void);
 	void f238_AllocLabel(void);
@@ -23571,13 +21462,8 @@ const i1 c02_s016d[] = { 0x63,0x61,0x73,0x65,0x20,0x6f,0x6e,0x6c,0x79,0x20,0x77,
 
 // reduce_19 workspace at ws+3384 length ws+32
 void f330_reduce_19(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8079 = (i8)+18;
 	*(i8*)(intptr_t)(ws+3640) = v8079;
@@ -23707,9 +21593,6 @@ c02_0615:;
 
 	((void(*)(void))(intptr_t)v8143)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s016e[] = { 0x77,0x68,0x65,0x6e,0x20,0x65,0x6c,0x73,0x65,0x20,0x6d,0x75,0x73,0x74,0x20,0x67,0x6f,0x20,0x6c,0x61,0x73,0x74,0 };
 	void f76_SimpleError(void);
@@ -23724,13 +21607,8 @@ const i1 c02_s016e[] = { 0x77,0x68,0x65,0x6e,0x20,0x65,0x6c,0x73,0x65,0x20,0x6d,
 
 // reduce_20 workspace at ws+3384 length ws+32
 void f331_reduce_20(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8144 = (i8)(intptr_t)(ws+64);
 	i8 v8145 = *(i8*)(intptr_t)v8144;
@@ -23851,9 +21729,6 @@ c02_061f:;
 
 	((void(*)(void))(intptr_t)v8198)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s016f[] = { 0x6f,0x6e,0x6c,0x79,0x20,0x6f,0x6e,0x65,0x20,0x77,0x68,0x65,0x6e,0x20,0x65,0x6c,0x73,0x65,0x20,0x61,0x6c,0x6c,0x6f,0x77,0x65,0x64,0 };
 	void f76_SimpleError(void);
@@ -23866,13 +21741,8 @@ const i1 c02_s016f[] = { 0x6f,0x6e,0x6c,0x79,0x20,0x6f,0x6e,0x65,0x20,0x77,0x68,
 
 // reduce_21 workspace at ws+3384 length ws+16
 void f332_reduce_21(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8199 = (i8)(intptr_t)(ws+64);
 	i8 v8200 = *(i8*)(intptr_t)v8199;
@@ -23971,21 +21841,13 @@ c02_0629:;
 
 	((void(*)(void))(intptr_t)v8241)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_22 workspace at ws+3384 length ws+0
 void f333_reduce_22(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8242 = (i8)(intptr_t)(ws+3312);
 	i8 v8243 = *(i8*)(intptr_t)v8242;
@@ -24000,21 +21862,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8247)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f288_Negate(void);
 
 // reduce_23 workspace at ws+3384 length ws+0
 void f334_reduce_23(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8248 = (i8)(intptr_t)(ws+3304);
 	i8 v8249 = *(i8*)(intptr_t)v8248;
@@ -24028,22 +21882,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8253)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f151_MidBand(void);
 	void f302_yy_destructor(void);
 
 // reduce_24 workspace at ws+3384 length ws+8
 void f335_reduce_24(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8254 = (i8)(intptr_t)(ws+3320);
 	i8 v8255 = *(i8*)(intptr_t)v8254;
@@ -24080,22 +21926,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8270)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f110_MidBor(void);
 	void f302_yy_destructor(void);
 
 // reduce_25 workspace at ws+3384 length ws+8
 void f336_reduce_25(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8271 = (i8)(intptr_t)(ws+3320);
 	i8 v8272 = *(i8*)(intptr_t)v8271;
@@ -24132,22 +21970,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8287)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f289_ConditionalEq(void);
 	void f302_yy_destructor(void);
 
 // reduce_26 workspace at ws+3384 length ws+8
 void f337_reduce_26(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8288 = (i8)(intptr_t)(ws+3320);
 	i8 v8289 = *(i8*)(intptr_t)v8288;
@@ -24178,22 +22008,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8301)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f289_ConditionalEq(void);
 	void f302_yy_destructor(void);
 
 // reduce_27 workspace at ws+3384 length ws+8
 void f338_reduce_27(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8302 = (i8)(intptr_t)(ws+3320);
 	i8 v8303 = *(i8*)(intptr_t)v8302;
@@ -24224,22 +22046,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8315)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f290_ConditionalLt(void);
 	void f302_yy_destructor(void);
 
 // reduce_28 workspace at ws+3384 length ws+8
 void f339_reduce_28(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8316 = (i8)(intptr_t)(ws+3320);
 	i8 v8317 = *(i8*)(intptr_t)v8316;
@@ -24270,22 +22084,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8329)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f290_ConditionalLt(void);
 	void f302_yy_destructor(void);
 
 // reduce_29 workspace at ws+3384 length ws+8
 void f340_reduce_29(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8330 = (i8)(intptr_t)(ws+3320);
 	i8 v8331 = *(i8*)(intptr_t)v8330;
@@ -24316,22 +22122,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8343)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f290_ConditionalLt(void);
 	void f302_yy_destructor(void);
 
 // reduce_30 workspace at ws+3384 length ws+8
 void f341_reduce_30(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8344 = (i8)(intptr_t)(ws+3304);
 	i8 v8345 = *(i8*)(intptr_t)v8344;
@@ -24362,22 +22160,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8357)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f290_ConditionalLt(void);
 	void f302_yy_destructor(void);
 
 // reduce_31 workspace at ws+3384 length ws+8
 void f342_reduce_31(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8358 = (i8)(intptr_t)(ws+3304);
 	i8 v8359 = *(i8*)(intptr_t)v8358;
@@ -24408,21 +22198,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8371)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f150_MidConstant(void);
 
 // reduce_32 workspace at ws+3384 length ws+8
 void f343_reduce_32(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8372 = (i8)(intptr_t)(ws+3304);
 	i4 v8373 = *(i4*)(intptr_t)v8372;
@@ -24440,21 +22222,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v8379 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v8379 = v8378;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_33 workspace at ws+3384 length ws+0
 void f344_reduce_33(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8380 = (i8)(intptr_t)(ws+3312);
 	i8 v8381 = *(i8*)(intptr_t)v8380;
@@ -24469,41 +22243,25 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8385)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // reduce_34 workspace at ws+3384 length ws+0
 void f345_reduce_34(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8386 = (i8)(intptr_t)(ws+3304);
 	i8 v8387 = *(i8*)(intptr_t)v8386;
 	i8 v8388 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v8388 = v8387;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f277_Expr1Simple(void);
 
 // reduce_35 workspace at ws+3384 length ws+8
 void f346_reduce_35(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8389 = (i1)+113;
 	*(i1*)(intptr_t)(ws+3392) = v8389;
@@ -24523,21 +22281,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v8397 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v8397 = v8396;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f277_Expr1Simple(void);
 
 // reduce_36 workspace at ws+3384 length ws+8
 void f347_reduce_36(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8398 = (i1)+108;
 	*(i1*)(intptr_t)(ws+3392) = v8398;
@@ -24557,22 +22307,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v8406 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v8406 = v8405;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f278_ExprAdd(void);
 	void f302_yy_destructor(void);
 
 // reduce_37 workspace at ws+3384 length ws+8
 void f348_reduce_37(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8407 = (i8)(intptr_t)(ws+3320);
 	i8 v8408 = *(i8*)(intptr_t)v8407;
@@ -24601,22 +22343,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8419)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f280_ExprSub(void);
 	void f302_yy_destructor(void);
 
 // reduce_38 workspace at ws+3384 length ws+8
 void f349_reduce_38(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8420 = (i8)(intptr_t)(ws+3320);
 	i8 v8421 = *(i8*)(intptr_t)v8420;
@@ -24645,22 +22379,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8432)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f282_Expr2Simple(void);
 	void f302_yy_destructor(void);
 
 // reduce_39 workspace at ws+3384 length ws+8
 void f350_reduce_39(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8433 = (i1)+163;
 	*(i1*)(intptr_t)(ws+3392) = v8433;
@@ -24693,22 +22419,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8447)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f282_Expr2Simple(void);
 	void f302_yy_destructor(void);
 
 // reduce_40 workspace at ws+3384 length ws+8
 void f351_reduce_40(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8448 = (i1)+143;
 	*(i1*)(intptr_t)(ws+3392) = v8448;
@@ -24741,22 +22459,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8462)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f282_Expr2Simple(void);
 	void f302_yy_destructor(void);
 
 // reduce_41 workspace at ws+3384 length ws+8
 void f352_reduce_41(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8463 = (i1)+153;
 	*(i1*)(intptr_t)(ws+3392) = v8463;
@@ -24789,22 +22499,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8477)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f282_Expr2Simple(void);
 	void f302_yy_destructor(void);
 
 // reduce_42 workspace at ws+3384 length ws+8
 void f353_reduce_42(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8478 = (i1)+178;
 	*(i1*)(intptr_t)(ws+3392) = v8478;
@@ -24837,22 +22539,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8492)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f282_Expr2Simple(void);
 	void f302_yy_destructor(void);
 
 // reduce_43 workspace at ws+3384 length ws+8
 void f354_reduce_43(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8493 = (i1)+168;
 	*(i1*)(intptr_t)(ws+3392) = v8493;
@@ -24885,22 +22579,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8507)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f282_Expr2Simple(void);
 	void f302_yy_destructor(void);
 
 // reduce_44 workspace at ws+3384 length ws+8
 void f355_reduce_44(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8508 = (i1)+173;
 	*(i1*)(intptr_t)(ws+3392) = v8508;
@@ -24933,22 +22619,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8522)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f285_ExprShift(void);
 	void f302_yy_destructor(void);
 
 // reduce_45 workspace at ws+3384 length ws+8
 void f356_reduce_45(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8523 = (i1)+118;
 	*(i1*)(intptr_t)(ws+3392) = v8523;
@@ -24981,22 +22659,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8537)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f285_ExprShift(void);
 	void f302_yy_destructor(void);
 
 // reduce_46 workspace at ws+3384 length ws+8
 void f357_reduce_46(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v8538 = (i1)+128;
 	*(i1*)(intptr_t)(ws+3392) = v8538;
@@ -25029,9 +22699,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8552)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f224_CheckNotPartialType(void);
 	void f68_IsPtr(void);
@@ -25044,13 +22711,8 @@ const i1 c02_s0170[] = { 0x63,0x61,0x73,0x74,0x20,0x62,0x65,0x74,0x77,0x65,0x65,
 
 // reduce_47 workspace at ws+3384 length ws+16
 void f358_reduce_47(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8553 = (i8)(intptr_t)(ws+3304);
 	i8 v8554 = *(i8*)(intptr_t)v8553;
@@ -25194,9 +22856,6 @@ c02_062e:;
 
 	((void(*)(void))(intptr_t)v8623)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f235_UndoLValue(void);
 	void f232_IsScalar(void);
@@ -25205,13 +22864,8 @@ const i1 c02_s0171[] = { 0x79,0x6f,0x75,0x20,0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,
 
 // reduce_48 workspace at ws+3384 length ws+17
 void f359_reduce_48(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8624 = (i8)(intptr_t)(ws+3304);
 	i8 v8625 = *(i8*)(intptr_t)v8624;
@@ -25278,22 +22932,14 @@ c02_0642:;
 
 c02_063e:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f235_UndoLValue(void);
 	void f302_yy_destructor(void);
 
 // reduce_49 workspace at ws+3384 length ws+8
 void f360_reduce_49(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8653 = (i8)(intptr_t)(ws+3304);
 	i8 v8654 = *(i8*)(intptr_t)v8653;
@@ -25319,9 +22965,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8663)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f68_IsPtr(void);
 	void f291_parser_i_bad_next_prev(void);
@@ -25330,13 +22973,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_50 workspace at ws+3384 length ws+24
 void f361_reduce_50(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8664 = (i8)(intptr_t)(ws+3304);
 	i8 v8665 = *(i8*)(intptr_t)v8664;
@@ -25419,9 +23057,6 @@ c02_0648:;
 	i8 v8708 = v8707+(+24);
 	*(i8*)(intptr_t)v8708 = v8705;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f68_IsPtr(void);
 	void f291_parser_i_bad_next_prev(void);
@@ -25430,13 +23065,8 @@ c02_0648:;
 
 // reduce_51 workspace at ws+3384 length ws+24
 void f362_reduce_51(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8709 = (i8)(intptr_t)(ws+3304);
 	i8 v8710 = *(i8*)(intptr_t)v8709;
@@ -25519,21 +23149,13 @@ c02_064d:;
 	i8 v8753 = v8752+(+24);
 	*(i8*)(intptr_t)v8753 = v8750;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f150_MidConstant(void);
 
 // reduce_52 workspace at ws+3384 length ws+8
 void f363_reduce_52(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8754 = (i8)(intptr_t)(ws+3304);
 	i8 v8755 = *(i8*)(intptr_t)v8754;
@@ -25554,9 +23176,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v8764 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v8764 = v8763;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f228_IsArray(void);
 const i1 c02_s0172[] = { 0x61,0x72,0x72,0x61,0x79,0x20,0x65,0x78,0x70,0x65,0x63,0x74,0x65,0x64,0 };
@@ -25565,13 +23184,8 @@ const i1 c02_s0172[] = { 0x61,0x72,0x72,0x61,0x79,0x20,0x65,0x78,0x70,0x65,0x63,
 
 // reduce_53 workspace at ws+3384 length ws+16
 void f364_reduce_53(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8765 = (i8)(intptr_t)(ws+3304);
 	i8 v8766 = *(i8*)(intptr_t)v8765;
@@ -25620,9 +23234,6 @@ c02_0652:;
 	i8 v8785 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v8785 = v8784;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 	void f12_print(void);
@@ -25632,13 +23243,8 @@ const i1 c02_s0173[] = { 0x20,0x69,0x73,0x20,0x6e,0x6f,0x74,0x20,0x61,0x20,0x76,
 
 // not_a_value workspace at ws+3424 length ws+0
 void f366_not_a_value(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8786 = (i8)(intptr_t)(f74_StartError);
 
@@ -25663,9 +23269,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v8794)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f150_MidConstant(void);
 	void f165_MidAddress(void);
@@ -25677,13 +23280,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_54 workspace at ws+3384 length ws+40
 void f365_reduce_54(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	i8 v8795 = (i8)(intptr_t)(ws+3304);
@@ -25838,9 +23436,6 @@ c02_065a:;
 c02_0657:;
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f68_IsPtr(void);
 const i1 c02_s0174[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x64,0x65,0x72,0x65,0x66,0x65,0x72,0x65,0x6e,0x63,0x65,0x20,0x6e,0x6f,0x6e,0x2d,0x70,0x6f,0x69,0x6e,0x74,0x65,0x72,0x73,0 };
@@ -25850,13 +23445,8 @@ const i1 c02_s0174[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x64,0x65,0x72,0x65,
 
 // reduce_55 workspace at ws+3384 length ws+16
 void f367_reduce_55(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8866 = (i8)(intptr_t)(ws+3312);
 	i8 v8867 = *(i8*)(intptr_t)v8866;
@@ -25912,9 +23502,6 @@ c02_0660:;
 
 	((void(*)(void))(intptr_t)v8888)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f237_MaybeUndoLValue(void);
 	void f228_IsArray(void);
@@ -25938,13 +23525,8 @@ const i1 c02_s0176[] = { 0x61,0x72,0x72,0x61,0x79,0x20,0x69,0x6e,0x64,0x69,0x63,
 
 // reduce_56 workspace at ws+3384 length ws+112
 void f368_reduce_56(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v8889 = (i8)(intptr_t)(ws+3328);
 	i8 v8890 = *(i8*)(intptr_t)v8889;
@@ -26210,9 +23792,6 @@ c02_066a:;
 
 	((void(*)(void))(intptr_t)v9023)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 	void f12_print(void);
@@ -26222,13 +23801,8 @@ const i1 c02_s0177[] = { 0x20,0x69,0x73,0x20,0x6e,0x6f,0x74,0x20,0x61,0x20,0x72,
 
 // BadType workspace at ws+3488 length ws+0
 void f370_BadType(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9032 = (i8)(intptr_t)(f74_StartError);
 
@@ -26255,9 +23829,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9042)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f236_IsLValue(void);
 	void f237_MaybeUndoLValue(void);
@@ -26287,13 +23858,8 @@ const i1 c02_s0179[] = { 0x27,0 };
 
 // reduce_57 workspace at ws+3384 length ws+104
 void f369_reduce_57(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9024 = (i8)(intptr_t)(ws+3320);
 	i8 v9025 = *(i8*)(intptr_t)v9024;
@@ -26633,22 +24199,14 @@ c02_0683:;
 
 	((void(*)(void))(intptr_t)v9191)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f122_MidString(void);
 	void f263_MakePointerType(void);
 
 // reduce_58 workspace at ws+3384 length ws+16
 void f371_reduce_58(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9192 = (i8)(intptr_t)(ws+3304);
 	i8 v9193 = *(i8*)(intptr_t)v9192;
@@ -26684,22 +24242,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v9209 = v9208+(+24);
 	*(i8*)(intptr_t)v9209 = v9206;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f292_parser_i_constant_error(void);
 	void f63_Discard(void);
 
 // reduce_59 workspace at ws+3384 length ws+0
 void f372_reduce_59(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9210 = (i8)(intptr_t)(ws+3304);
 	i8 v9211 = *(i8*)(intptr_t)v9210;
@@ -26731,22 +24281,14 @@ c02_0688:;
 
 	((void(*)(void))(intptr_t)v9222)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 	void f302_yy_destructor(void);
 
 // reduce_60 workspace at ws+3384 length ws+0
 void f373_reduce_60(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v9223 = (i1)+7;
 	i8 v9224 = (i8)(intptr_t)(ws+3328);
@@ -26776,9 +24318,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9236)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s017a[] = { 0x69,0x6e,0x76,0x61,0x6c,0x69,0x64,0x20,0x69,0x6e,0x74,0x65,0x67,0x65,0x72,0x20,0x74,0x79,0x70,0x65,0x20,0x72,0x61,0x6e,0x67,0x65,0 };
 	void f76_SimpleError(void);
@@ -26789,13 +24328,8 @@ const i1 c02_s017a[] = { 0x69,0x6e,0x76,0x61,0x6c,0x69,0x64,0x20,0x69,0x6e,0x74,
 
 // reduce_61 workspace at ws+3384 length ws+8
 void f374_reduce_61(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9237 = (i8)(intptr_t)(ws+3328);
 	i4 v9238 = *(i4*)(intptr_t)v9237;
@@ -26858,9 +24392,6 @@ c02_068d:;
 
 	((void(*)(void))(intptr_t)v9261)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f66_AllocNewType(void);
 	void f74_StartError(void);
@@ -26873,13 +24404,8 @@ const i1 c02_s017c[] = { 0x20,0x74,0x6f,0x20,0x62,0x65,0x20,0x61,0x20,0x74,0x79,
 
 // reduce_62 workspace at ws+3384 length ws+24
 void f375_reduce_62(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9262 = (i8)(intptr_t)(ws+3304);
 	i8 v9263 = *(i8*)(intptr_t)v9262;
@@ -26985,22 +24511,14 @@ c02_0697:;
 	i8 v9312 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v9312 = v9311;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f263_MakePointerType(void);
 	void f302_yy_destructor(void);
 
 // reduce_63 workspace at ws+3384 length ws+8
 void f376_reduce_63(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9313 = (i8)(intptr_t)(ws+3312);
 	i8 v9314 = *(i8*)(intptr_t)v9313;
@@ -27026,9 +24544,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9323)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f264_MakeArrayType(void);
 	void f302_yy_destructor(void);
@@ -27036,13 +24551,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_64 workspace at ws+3384 length ws+8
 void f377_reduce_64(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9324 = (i8)(intptr_t)(ws+3328);
 	i8 v9325 = *(i8*)(intptr_t)v9324;
@@ -27080,9 +24590,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9340)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f264_MakeArrayType(void);
 	void f302_yy_destructor(void);
@@ -27090,13 +24597,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_65 workspace at ws+3384 length ws+8
 void f378_reduce_65(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9341 = (i8)(intptr_t)(ws+3320);
 	i8 v9342 = *(i8*)(intptr_t)v9341;
@@ -27132,9 +24634,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9355)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f228_IsArray(void);
 	void f74_StartError(void);
@@ -27145,13 +24644,8 @@ const i1 c02_s017d[] = { 0x20,0x69,0x73,0x20,0x6e,0x6f,0x74,0x20,0x61,0x6e,0x20,
 
 // reduce_66 workspace at ws+3384 length ws+1
 void f379_reduce_66(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9356 = (i8)(intptr_t)(ws+3304);
 	i8 v9357 = *(i8*)(intptr_t)v9356;
@@ -27207,9 +24701,6 @@ c02_069c:;
 	i8 v9379 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v9379 = v9378;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f222_AddAlias(void);
 	void f302_yy_destructor(void);
@@ -27217,13 +24708,8 @@ c02_069c:;
 
 // reduce_67 workspace at ws+3384 length ws+16
 void f380_reduce_67(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9380 = (i8)+0;
 	*(i8*)(intptr_t)(ws+3400) = v9380;
@@ -27264,21 +24750,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9398)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f221_AddSymbol(void);
 
 // reduce_68 workspace at ws+3384 length ws+8
 void f381_reduce_68(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9399 = (i8)+0;
 	*(i8*)(intptr_t)(ws+3488) = v9399;
@@ -27298,9 +24776,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v9407 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v9407 = v9406;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f219_LookupSymbol(void);
 	void f74_StartError(void);
@@ -27314,13 +24789,8 @@ const i1 c02_s017f[] = { 0x27,0x20,0x6e,0x6f,0x74,0x20,0x66,0x6f,0x75,0x6e,0x64,
 
 // reduce_69 workspace at ws+3384 length ws+24
 void f382_reduce_69(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9408 = (i8)(intptr_t)(ws+3304);
 	i8 v9409 = *(i8*)(intptr_t)v9408;
@@ -27395,9 +24865,6 @@ c02_06a1:;
 	i8 v9437 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v9437 = v9436;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f219_LookupSymbol(void);
 	void f221_AddSymbol(void);
@@ -27405,13 +24872,8 @@ c02_06a1:;
 
 // reduce_70 workspace at ws+3384 length ws+32
 void f383_reduce_70(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9438 = (i8)(intptr_t)(ws+3304);
 	i8 v9439 = *(i8*)(intptr_t)v9438;
@@ -27479,22 +24941,14 @@ c02_06a6:;
 	i8 v9467 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v9467 = v9466;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s0180[] = { 0x73,0x69,0x6d,0x70,0x6c,0x65,0x20,0x74,0x79,0x70,0x65,0x20,0x6f,0x72,0x20,0x76,0x61,0x72,0x69,0x61,0x62,0x6c,0x65,0x20,0x6e,0x61,0x6d,0x65,0x20,0x65,0x78,0x70,0x65,0x63,0x74,0x65,0x64,0 };
 	void f76_SimpleError(void);
 
 // reduce_71 workspace at ws+3384 length ws+0
 void f384_reduce_71(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9468 = (i8)(intptr_t)(ws+3304);
 	i8 v9469 = *(i8*)(intptr_t)v9468;
@@ -27535,21 +24989,13 @@ c02_06ad:;
 c02_06ab:;
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_72 workspace at ws+3384 length ws+0
 void f385_reduce_72(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9483 = (i8)(intptr_t)(ws+3312);
 	i8 v9484 = *(i8*)(intptr_t)v9483;
@@ -27564,9 +25010,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9488)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f293_i_check_sub_call_args(void);
 const i1 c02_s0181[] = { 0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x73,0x20,0x63,0x61,0x6c,0x6c,0x65,0x64,0x20,0x61,0x73,0x20,0x66,0x75,0x6e,0x63,0x74,0x69,0x6f,0x6e,0x73,0x20,0x6d,0x75,0x73,0x74,0x20,0x68,0x61,0x76,0x65,0x20,0x65,0x78,0x61,0x63,0x74,0x6c,0x79,0x20,0x6f,0x6e,0x65,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x70,0x61,0x72,0x61,0x6d,0x65,0x74,0x65,0x72,0 };
@@ -27587,13 +25030,8 @@ const i1 c02_s0181[] = { 0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x73,
 
 // reduce_73 workspace at ws+3384 length ws+104
 void f386_reduce_73(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9489 = (i8)(intptr_t)(ws+80);
 	i8 v9490 = *(i8*)(intptr_t)v9489;
@@ -27835,9 +25273,6 @@ c02_06ae:;
 	i8 v9614 = v9613+(+24);
 	*(i8*)(intptr_t)v9614 = v9611;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f293_i_check_sub_call_args(void);
 const i1 c02_s0182[] = { 0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x20,0x72,0x65,0x71,0x75,0x69,0x72,0x65,0x73,0x20,0x6f,0x75,0x74,0x70,0x75,0x74,0x20,0x61,0x72,0x67,0x75,0x6d,0x65,0x6e,0x74,0x73,0 };
@@ -27849,13 +25284,8 @@ const i1 c02_s0182[] = { 0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x20,
 
 // reduce_74 workspace at ws+3384 length ws+16
 void f387_reduce_74(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9615 = (i8)(intptr_t)(ws+80);
 	i8 v9616 = *(i8*)(intptr_t)v9615;
@@ -27926,9 +25356,6 @@ c02_06b3:;
 
 	((void(*)(void))(intptr_t)v9645)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f293_i_check_sub_call_args(void);
 	void f119_MidCall(void);
@@ -27956,13 +25383,8 @@ const i1 c02_s0185[] = { 0x74,0x6f,0x6f,0x20,0x66,0x65,0x77,0x20,0x6f,0x75,0x74,
 
 // reduce_75 workspace at ws+3384 length ws+104
 void f388_reduce_75(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9646 = (i8)(intptr_t)(ws+80);
 	i8 v9647 = *(i8*)(intptr_t)v9646;
@@ -28293,9 +25715,6 @@ c02_06c8:;
 
 	((void(*)(void))(intptr_t)v9811)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f229_IsSubroutine(void);
 	void f74_StartError(void);
@@ -28311,13 +25730,8 @@ const i1 c02_s0187[] = { 0x20,0x74,0x6f,0x20,0x62,0x65,0x20,0x61,0x20,0x73,0x75,
 
 // reduce_76 workspace at ws+3384 length ws+48
 void f389_reduce_76(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9812 = (i8)(intptr_t)(ws+3304);
 	i8 v9813 = *(i8*)(intptr_t)v9812;
@@ -28464,21 +25878,13 @@ c02_06cd:;
 	i8 v9888 = (i8)(intptr_t)(ws+80);
 	*(i8*)(intptr_t)v9888 = v9887;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_77 workspace at ws+3384 length ws+0
 void f390_reduce_77(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9889 = (i8)(intptr_t)(ws+3312);
 	i8 v9890 = *(i8*)(intptr_t)v9889;
@@ -28493,22 +25899,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9894)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f112_MidEnd(void);
 	void f302_yy_destructor(void);
 
 // reduce_78 workspace at ws+3384 length ws+8
 void f391_reduce_78(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9895 = (i8)(intptr_t)(f112_MidEnd);
 
@@ -28531,42 +25929,26 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9903)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // reduce_79 workspace at ws+3384 length ws+0
 void f392_reduce_79(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9904 = (i8)(intptr_t)(ws+3304);
 	i8 v9905 = *(i8*)(intptr_t)v9904;
 	i8 v9906 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v9906 = v9905;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f63_Discard(void);
 	void f302_yy_destructor(void);
 
 // reduce_80 workspace at ws+3384 length ws+0
 void f393_reduce_80(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9907 = (i8)(intptr_t)(ws+3304);
 	i8 v9908 = *(i8*)(intptr_t)v9907;
@@ -28597,9 +25979,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v9922)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s0188[] = { 0x74,0x6f,0x6f,0x20,0x6d,0x61,0x6e,0x79,0x20,0x70,0x61,0x72,0x61,0x6d,0x65,0x74,0x65,0x72,0x73,0x20,0x69,0x6e,0x20,0x63,0x61,0x6c,0x6c,0x20,0x74,0x6f,0x20,0 };
@@ -28615,13 +25994,8 @@ const i1 c02_s0188[] = { 0x74,0x6f,0x6f,0x20,0x6d,0x61,0x6e,0x79,0x20,0x70,0x61,
 
 // reduce_81 workspace at ws+3384 length ws+32
 void f394_reduce_81(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v9923 = (i8)(intptr_t)(ws+80);
 	i8 v9924 = *(i8*)(intptr_t)v9923;
@@ -28780,9 +26154,6 @@ c02_06d2:;
 	i8 v10014 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v10014 = v10013;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f118_MidPair(void);
 	void f302_yy_destructor(void);
@@ -28790,13 +26161,8 @@ c02_06d2:;
 
 // reduce_82 workspace at ws+3384 length ws+8
 void f395_reduce_82(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10015 = (i8)(intptr_t)(ws+3312);
 	i8 v10016 = *(i8*)(intptr_t)v10015;
@@ -28833,21 +26199,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10030)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f118_MidPair(void);
 
 // reduce_83 workspace at ws+3384 length ws+8
 void f396_reduce_83(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10031 = (i8)(intptr_t)(ws+3304);
 	i8 v10032 = *(i8*)(intptr_t)v10031;
@@ -28867,22 +26225,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v10039 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v10039 = v10038;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f118_MidPair(void);
 	void f302_yy_destructor(void);
 
 // reduce_84 workspace at ws+3384 length ws+8
 void f397_reduce_84(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10040 = (i8)(intptr_t)(ws+3304);
 	i8 v10041 = *(i8*)(intptr_t)v10040;
@@ -28911,21 +26261,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10052)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f235_UndoLValue(void);
 
 // reduce_85 workspace at ws+3384 length ws+8
 void f398_reduce_85(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10053 = (i8)(intptr_t)(ws+3304);
 	i8 v10054 = *(i8*)(intptr_t)v10053;
@@ -28943,9 +26285,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v10060 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v10060 = v10059;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f293_i_check_sub_call_args(void);
 	void f100_GetOutputParameter(void);
@@ -28967,13 +26306,8 @@ const i1 c02_s018a[] = { 0x20,0x74,0x6f,0x20,0x62,0x65,0x20,0x75,0x73,0x65,0x64,
 
 // reduce_86 workspace at ws+3384 length ws+72
 void f399_reduce_86(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10061 = (i8)(intptr_t)(ws+80);
 	i8 v10062 = *(i8*)(intptr_t)v10061;
@@ -29216,9 +26550,6 @@ c02_06ea:;
 
 	((void(*)(void))(intptr_t)v10174)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f208_EmitterEmitSubroutineFlags(void);
 	void f130_MidStartsub(void);
@@ -29230,13 +26561,8 @@ c02_06ea:;
 
 // reduce_87 workspace at ws+3384 length ws+16
 void f400_reduce_87(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10175 = (i8)(intptr_t)(ws+1544);
 	i8 v10176 = *(i8*)(intptr_t)v10175;
@@ -29318,22 +26644,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10215)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s018b[] = { 0x74,0x79,0x70,0x65,0x20,0x69,0x73,0x20,0x6e,0x6f,0x74,0x20,0x61,0x6e,0x20,0x69,0x6e,0x74,0x65,0x72,0x66,0x61,0x63,0x65,0 };
 	void f76_SimpleError(void);
 
 // not_an_interface workspace at ws+3408 length ws+0
 void f402_not_an_interface(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10216 = (i8)(intptr_t)c02_s018b;
 	*(i8*)(intptr_t)(ws+3648) = v10216;
@@ -29341,9 +26659,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10217)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f229_IsSubroutine(void);
 	void f402_not_an_interface(void);
@@ -29360,13 +26675,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_88 workspace at ws+3384 length ws+24
 void f401_reduce_88(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	i8 v10218 = (i8)(intptr_t)(ws+3304);
@@ -29575,9 +26885,6 @@ c02_06fe:;
 
 	((void(*)(void))(intptr_t)v10321)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f201_EmitterDeclareExternalSubroutine(void);
 	void f302_yy_destructor(void);
@@ -29586,13 +26893,8 @@ c02_06fe:;
 
 // reduce_89 workspace at ws+3384 length ws+0
 void f403_reduce_89(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10322 = (i8)(intptr_t)(ws+1544);
 	i8 v10323 = *(i8*)(intptr_t)v10322;
@@ -29630,9 +26932,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10337)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f69_InternalAlloc(void);
 	void f239_AllocSubrId(void);
@@ -29641,13 +26940,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_90 workspace at ws+3384 length ws+32
 void f404_reduce_90(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10338 = (i8)+83;
 	*(i8*)(intptr_t)(ws+3640) = v10338;
@@ -29797,9 +27091,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v10431 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v10431 = v10430;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f229_IsSubroutine(void);
 const i1 c02_s018c[] = { 0x6e,0x6f,0x74,0x20,0x61,0x20,0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0 };
@@ -29812,13 +27103,8 @@ const i1 c02_s018e[] = { 0x63,0x61,0x6e,0x6e,0x6f,0x74,0x20,0x69,0x6d,0x70,0x6c,
 
 // reduce_91 workspace at ws+3384 length ws+1
 void f405_reduce_91(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10432 = (i8)(intptr_t)(ws+3304);
 	i8 v10433 = *(i8*)(intptr_t)v10432;
@@ -29913,9 +27199,6 @@ c02_0710:;
 
 	((void(*)(void))(intptr_t)v10471)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f69_InternalAlloc(void);
 	void f130_MidStartsub(void);
@@ -29923,13 +27206,8 @@ c02_0710:;
 
 // reduce_92 workspace at ws+3384 length ws+24
 void f406_reduce_92(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10472 = (i8)+16;
 	*(i8*)(intptr_t)(ws+3640) = v10472;
@@ -30012,9 +27290,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v10518 = v10517+(+82);
 	*(i1*)(intptr_t)v10518 = v10515;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f140_MidEndsub(void);
 	void f259_Generate(void);
@@ -30025,13 +27300,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_93 workspace at ws+3384 length ws+24
 void f407_reduce_93(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10519 = (i8)(intptr_t)(ws+40);
 	i8 v10520 = *(i8*)(intptr_t)v10519;
@@ -30117,22 +27387,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10563)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f206_EmitterEmitInputParameters(void);
 	void f207_EmitterEmitOutputParameters(void);
 
 // reduce_94 workspace at ws+3384 length ws+0
 void f408_reduce_94(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v10564 = (i1)+0;
 	i8 v10565 = (i8)(intptr_t)(ws+1544);
@@ -30154,9 +27416,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10573)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f98_CountParameters(void);
 	void f206_EmitterEmitInputParameters(void);
@@ -30165,13 +27424,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_95 workspace at ws+3384 length ws+1
 void f409_reduce_95(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10574 = (i8)(intptr_t)(ws+3304);
 	i8 v10575 = *(i8*)(intptr_t)v10574;
@@ -30213,21 +27467,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10592)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f98_CountParameters(void);
 
 // reduce_96 workspace at ws+3384 length ws+1
 void f410_reduce_96(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10593 = (i8)(intptr_t)(ws+3304);
 	i8 v10594 = *(i8*)(intptr_t)v10593;
@@ -30247,21 +27493,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v10602 = v10601+(+80);
 	*(i1*)(intptr_t)v10602 = v10599;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_97 workspace at ws+3384 length ws+0
 void f411_reduce_97(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10603 = (i8)+0;
 	i8 v10604 = (i8)(intptr_t)(ws+3296);
@@ -30275,21 +27513,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10607)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_98 workspace at ws+3384 length ws+0
 void f412_reduce_98(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10608 = (i8)(intptr_t)(ws+3312);
 	i8 v10609 = *(i8*)(intptr_t)v10608;
@@ -30304,41 +27534,25 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10613)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // reduce_99 workspace at ws+3384 length ws+0
 void f413_reduce_99(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10614 = (i8)(intptr_t)(ws+3304);
 	i8 v10615 = *(i8*)(intptr_t)v10614;
 	i8 v10616 = (i8)(intptr_t)(ws+3296);
 	*(i8*)(intptr_t)v10616 = v10615;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_100 workspace at ws+3384 length ws+0
 void f414_reduce_100(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10617 = (i8)(intptr_t)(ws+3304);
 	i8 v10618 = *(i8*)(intptr_t)v10617;
@@ -30361,9 +27575,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10628)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f221_AddSymbol(void);
 	void f262_InitVariable(void);
@@ -30371,13 +27582,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_101 workspace at ws+3384 length ws+8
 void f415_reduce_101(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10629 = (i8)(intptr_t)(ws+1544);
 	i8 v10630 = *(i8*)(intptr_t)v10629;
@@ -30420,9 +27626,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10649)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f241_ArchAlignUp(void);
 	void f302_yy_destructor(void);
@@ -30431,13 +27634,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_102 workspace at ws+3384 length ws+2
 void f416_reduce_102(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10650 = (i8)(intptr_t)(ws+72);
 	i8 v10651 = *(i8*)(intptr_t)v10650;
@@ -30488,9 +27686,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10674)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f295_SymbolRedeclarationError(void);
 	void f66_AllocNewType(void);
@@ -30498,13 +27693,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_103 workspace at ws+3384 length ws+8
 void f417_reduce_103(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10675 = (i8)(intptr_t)(ws+3304);
 	i8 v10676 = *(i8*)(intptr_t)v10675;
@@ -30591,9 +27781,6 @@ c02_0715:;
 	i8 v10712 = v10711+(+52);
 	*(i1*)(intptr_t)v10712 = v10709;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f224_CheckNotPartialType(void);
 	void f233_IsRecord(void);
@@ -30605,13 +27792,8 @@ const i1 c02_s018f[] = { 0x20,0x69,0x73,0x20,0x6e,0x6f,0x74,0x20,0x61,0x20,0x72,
 
 // reduce_104 workspace at ws+3384 length ws+1
 void f418_reduce_104(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10713 = (i8)(intptr_t)(ws+3304);
 	i8 v10714 = *(i8*)(intptr_t)v10713;
@@ -30692,9 +27874,6 @@ c02_071d:;
 	i8 v10753 = v10752+(+16);
 	*(i8*)(intptr_t)v10753 = v10750;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f224_CheckNotPartialType(void);
 	void f69_InternalAlloc(void);
@@ -30704,13 +27883,8 @@ c02_071d:;
 
 // reduce_105 workspace at ws+3384 length ws+8
 void f419_reduce_105(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10754 = (i8)(intptr_t)(ws+3312);
 	i8 v10755 = *(i8*)(intptr_t)v10754;
@@ -30802,20 +27976,12 @@ c02_0722:;
 
 	((void(*)(void))(intptr_t)v10801)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // reduce_106 workspace at ws+3384 length ws+0
 void f420_reduce_106(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10802 = (i8)(intptr_t)(ws+72);
 	i8 v10803 = *(i8*)(intptr_t)v10802;
@@ -30824,22 +27990,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v10806 = (i8)(intptr_t)(ws+3296);
 	*(i2*)(intptr_t)v10806 = v10805;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 	void f302_yy_destructor(void);
 
 // reduce_107 workspace at ws+3384 length ws+0
 void f421_reduce_107(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10807 = (i8)(intptr_t)(ws+3312);
 	i4 v10808 = *(i4*)(intptr_t)v10807;
@@ -30863,21 +28021,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10816)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f221_AddSymbol(void);
 
 // reduce_108 workspace at ws+3384 length ws+8
 void f422_reduce_108(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10817 = (i8)(intptr_t)(ws+72);
 	i8 v10818 = *(i8*)(intptr_t)v10817;
@@ -30908,9 +28058,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v10834 = v10833+(+24);
 	*(i1*)(intptr_t)v10834 = v10831;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f297_CheckEndOfInitialiser(void);
 	void f159_MidEndinit(void);
@@ -30921,13 +28068,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_109 workspace at ws+3384 length ws+8
 void f423_reduce_109(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10835 = (i8)(intptr_t)(f297_CheckEndOfInitialiser);
 
@@ -30972,9 +28114,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v10850)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f224_CheckNotPartialType(void);
 	void f69_InternalAlloc(void);
@@ -30994,13 +28133,8 @@ const i1 c02_s0191[] = { 0x79,0x6f,0x75,0x20,0x63,0x61,0x6e,0x27,0x74,0x20,0x73,
 
 // reduce_110 workspace at ws+3384 length ws+24
 void f424_reduce_110(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10851 = (i8)(intptr_t)(ws+3312);
 	i8 v10852 = *(i8*)(intptr_t)v10851;
@@ -31227,9 +28361,6 @@ c02_0737:;
 
 	((void(*)(void))(intptr_t)v10956)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f301_GetInitedMemberChecked(void);
 	void f299_AlignTo(void);
@@ -31256,13 +28387,8 @@ const i1 c02_s0195[] = { 0x69,0x6e,0x69,0x74,0x69,0x61,0x6c,0x69,0x73,0x65,0x72,
 
 // reduce_111 workspace at ws+3384 length ws+64
 void f425_reduce_111(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v10957 = (i8)(intptr_t)(f301_GetInitedMemberChecked);
 
@@ -31541,9 +28667,6 @@ c02_073c:;
 	i8 v11075 = (i8)(intptr_t)(ws+1562);
 	*(i2*)(intptr_t)v11075 = v11074;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f297_CheckEndOfInitialiser(void);
 	void f34_Free(void);
@@ -31551,13 +28674,8 @@ c02_073c:;
 
 // reduce_112 workspace at ws+3384 length ws+0
 void f426_reduce_112(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11076 = (i8)(intptr_t)(f297_CheckEndOfInitialiser);
 
@@ -31601,9 +28719,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11099)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f301_GetInitedMemberChecked(void);
 	void f299_AlignTo(void);
@@ -31615,13 +28730,8 @@ const i1 c02_s0196[] = { 0x62,0x72,0x61,0x63,0x65,0x64,0x20,0x69,0x6e,0x69,0x74,
 
 // reduce_113 workspace at ws+3384 length ws+26
 void f427_reduce_113(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11100 = (i8)(intptr_t)(f301_GetInitedMemberChecked);
 
@@ -31750,9 +28860,6 @@ c02_0760:;
 
 c02_0758:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f135_MidAsmend(void);
 	void f259_Generate(void);
@@ -31760,13 +28867,8 @@ c02_0758:;
 
 // reduce_114 workspace at ws+3384 length ws+8
 void f428_reduce_114(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11160 = (i8)(intptr_t)(f135_MidAsmend);
 
@@ -31791,22 +28893,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11168)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f126_MidAsmstart(void);
 	void f259_Generate(void);
 
 // reduce_115 workspace at ws+3384 length ws+8
 void f429_reduce_115(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11169 = (i8)(intptr_t)(f126_MidAsmstart);
 
@@ -31823,9 +28917,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11174)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f153_MidAsmtext(void);
 	void f259_Generate(void);
@@ -31833,13 +28924,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_116 workspace at ws+3384 length ws+8
 void f430_reduce_116(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11175 = (i8)(intptr_t)(ws+3304);
 	i8 v11176 = *(i8*)(intptr_t)v11175;
@@ -31866,22 +28952,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11185)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f109_MidAsmvalue(void);
 	void f259_Generate(void);
 
 // reduce_117 workspace at ws+3384 length ws+8
 void f431_reduce_117(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11186 = (i8)(intptr_t)(ws+3304);
 	i4 v11187 = *(i4*)(intptr_t)v11186;
@@ -31901,22 +28979,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11193)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s0197[] = { 0x79,0x6f,0x75,0x20,0x63,0x61,0x6e,0x20,0x6f,0x6e,0x6c,0x79,0x20,0x65,0x6d,0x69,0x74,0x20,0x72,0x65,0x66,0x65,0x72,0x65,0x6e,0x63,0x65,0x73,0x20,0x74,0x6f,0x20,0x76,0x61,0x72,0x69,0x61,0x62,0x6c,0x65,0x73,0x2c,0x20,0x73,0x75,0x62,0x72,0x6f,0x75,0x74,0x69,0x6e,0x65,0x73,0x2c,0x20,0x6f,0x72,0x20,0x63,0x6f,0x6e,0x73,0x74,0x61,0x6e,0x74,0x73,0 };
 	void f76_SimpleError(void);
 
 // bad_reference workspace at ws+3416 length ws+0
 void f433_bad_reference(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11194 = (i8)(intptr_t)c02_s0197;
 	*(i8*)(intptr_t)(ws+3648) = v11194;
@@ -31924,9 +28994,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11195)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f229_IsSubroutine(void);
 	void f203_EmitterReferenceSubroutine(void);
@@ -31941,13 +29008,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // reduce_118 workspace at ws+3384 length ws+32
 void f432_reduce_118(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	i8 v11196 = (i8)(intptr_t)(ws+3304);
@@ -32080,21 +29142,13 @@ c02_0769:;
 c02_0761:;
 
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_124 workspace at ws+3384 length ws+0
 void f434_reduce_124(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11246 = (i1)+26;
 	*(i1*)(intptr_t)(ws+3496) = v11246;
@@ -32104,21 +29158,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11248)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_128 workspace at ws+3384 length ws+0
 void f435_reduce_128(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11249 = (i1)+22;
 	*(i1*)(intptr_t)(ws+3496) = v11249;
@@ -32128,22 +29174,14 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11251)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 	void f302_yy_destructor(void);
 
 // reduce_129 workspace at ws+3384 length ws+0
 void f436_reduce_129(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11252 = (i1)+25;
 	*(i1*)(intptr_t)(ws+3496) = v11252;
@@ -32161,21 +29199,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11257)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_130 workspace at ws+3384 length ws+0
 void f437_reduce_130(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11258 = (i1)+22;
 	*(i1*)(intptr_t)(ws+3496) = v11258;
@@ -32185,21 +29215,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11260)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_131 workspace at ws+3384 length ws+0
 void f438_reduce_131(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11261 = (i1)+22;
 	*(i1*)(intptr_t)(ws+3496) = v11261;
@@ -32209,21 +29231,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11263)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_137 workspace at ws+3384 length ws+0
 void f439_reduce_137(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11264 = (i1)+46;
 	*(i1*)(intptr_t)(ws+3496) = v11264;
@@ -32233,21 +29247,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11266)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f302_yy_destructor(void);
 
 // reduce_140 workspace at ws+3384 length ws+0
 void f440_reduce_140(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11267 = (i1)+46;
 	*(i1*)(intptr_t)(ws+3496) = v11267;
@@ -32257,24 +29263,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11269)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // reduce_default workspace at ws+3384 length ws+0
 void f441_reduce_default(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f311_reduce_0(void);
 	void f312_reduce_1(void);
@@ -32706,13 +29701,8 @@ static data f309_yy_reduce_s076a[] = {
 
 // yy_reduce workspace at ws+3288 length ws+94
 void f309_yy_reduce(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v7527 = (i8)(intptr_t)((i1*)f3___main_s05ed);
 	i8 v7528 = (i8)(intptr_t)(ws+3288);
@@ -33056,29 +30046,18 @@ c02_076b:;
 	i8 v11358 = v11357+(+2);
 	*(i1*)(intptr_t)v11358 = v11355;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f305_yy_pop_all_parser_stack(void);
 
 // yy_parse_failed workspace at ws+3288 length ws+0
 void f442_yy_parse_failed(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11359 = (i8)(intptr_t)(f305_yy_pop_all_parser_stack);
 
 	((void(*)(void))(intptr_t)v11359)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f74_StartError(void);
 const i1 c02_s0198[] = { 0x75,0x6e,0x65,0x78,0x70,0x65,0x63,0x74,0x65,0x64,0x20,0 };
@@ -33088,13 +30067,8 @@ const i1 c02_s0198[] = { 0x75,0x6e,0x65,0x78,0x70,0x65,0x63,0x74,0x65,0x64,0x20,
 
 // yy_syntax_error workspace at ws+3288 length ws+16
 void f443_yy_syntax_error(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11360 = (i8)(intptr_t)(f74_StartError);
 
@@ -33123,35 +30097,19 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11372)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // yy_accept workspace at ws+3288 length ws+0
 void f444_yy_accept(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 
 // ParserInit workspace at ws+3264 length ws+0
 void f445_ParserInit(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i1 v11373 = (i1)-1;
 	i8 v11374 = (i8)(intptr_t)(ws+3192);
@@ -33169,21 +30127,13 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 	i8 v11380 = (i8)(intptr_t)(ws+1578);
 	*(i1*)(intptr_t)v11380 = v11379;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f304_yy_pop_parser_stack(void);
 
 // ParserDeinit workspace at ws+3264 length ws+0
 void f446_ParserDeinit(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 c02_077b:;
 
@@ -33202,9 +30152,6 @@ c02_077f:;
 
 c02_0780:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f309_yy_reduce(void);
 	void f306_yy_stack_overflow(void);
@@ -33216,13 +30163,8 @@ c02_0780:;
 
 // ParserFeedToken workspace at ws+3264 length ws+22
 void f447_ParserFeedToken(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11385 = (i8)(intptr_t)(ws+1568);
 	i8 v11386 = *(i8*)(intptr_t)v11385;
@@ -33349,9 +30291,6 @@ c02_0799:;
 
 	((void(*)(void))(intptr_t)v11453)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 	return;
 
 c02_079a:;
@@ -33522,9 +30461,6 @@ c02_07b3:;
 
 c02_0782:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f38_GetFreeMemory(void);
 	void f17_print_i16(void);
@@ -33533,13 +30469,8 @@ const i1 c02_s0199[] = { 0x6b,0x42,0x20,0x66,0x72,0x65,0x65,0x0a,0 };
 
 // PrintFreeMemory workspace at ws+3264 length ws+8
 void f448_PrintFreeMemory(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11519 = (i8)(intptr_t)(f38_GetFreeMemory);
 
@@ -33565,9 +30496,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11529)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s019a[] = { 0x73,0x79,0x6e,0x74,0x61,0x78,0x20,0x65,0x72,0x72,0x6f,0x72,0x3a,0x20,0x63,0x6f,0x77,0x66,0x65,0x20,0x5b,0x2d,0x49,0x70,0x61,0x74,0x68,0x5d,0x20,0x3c,0x69,0x6e,0x66,0x69,0x6c,0x65,0x3e,0x20,0x3c,0x6f,0x75,0x74,0x66,0x69,0x6c,0x65,0x3e,0x0a,0 };
 	void f12_print(void);
@@ -33575,13 +30503,8 @@ const i1 c02_s019a[] = { 0x73,0x79,0x6e,0x74,0x61,0x78,0x20,0x65,0x72,0x72,0x6f,
 
 // SyntaxError workspace at ws+3280 length ws+0
 void f449_SyntaxError(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11530 = (i8)(intptr_t)c02_s019a;
 	*(i8*)(intptr_t)(ws+3696) = v11530;
@@ -33593,9 +30516,6 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 	((void(*)(void))(intptr_t)v11532)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 	void f24_ArgvInit(void);
 	void f25_ArgvNext(void);
@@ -33606,13 +30526,8 @@ i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
 
 // ParseArguments workspace at ws+3264 length ws+16
 void f450_ParseArguments(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 	i8 v11533 = (i8)(intptr_t)(f24_ArgvInit);
 
@@ -33761,9 +30676,6 @@ c02_07d8:;
 
 c02_07d2:;
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 const i1 c02_s019b[] = { 0x43,0x4f,0x57,0x46,0x45,0x3a,0x20,0 };
 	void f12_print(void);
@@ -33798,13 +30710,8 @@ const i1 c02_s019d[] = { 0x64,0x6f,0x6e,0x65,0x3a,0x20,0 };
 
 // __main workspace at ws+0 length ws+3264
 void f3___main(void) {
-i1 passer2normalcall = 0;	if (tframe_ptr->activated) {
-		if (!(tframe_ptr->tramp2function)) {
-			passer2normalcall = 1;
-			tframe_ptr->activated = 0;
-		}
-		tframe_ptr->tramp2function = 0;
-	}
+	tframe_ptr->activated = tframe_ptr->tramp2function;
+	tframe_ptr->tramp2function = 0;
 
 
 	
@@ -34434,9 +31341,6 @@ c02_07db:;
 
 	((void(*)(void))(intptr_t)v11670)();
 
-	if (passer2normalcall) {
-		tframe_ptr->activated = 1;
-	}
 }
 void cmain(void) {
 	f3___main();

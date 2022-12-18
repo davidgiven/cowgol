@@ -143,12 +143,12 @@ sub PlaceSubroutines(subroutine: [Subroutine]) is
 						reqAddr := subroutine.workspaceAddress[i];
 					end if;
 					if reqAddr > curAddr then
-						print(subroutine.name);
-						print(" calling ");
-						print(called.name);
-						print(" -> ");
-						print_hex_i16(reqAddr);
-						print_nl();
+						#print(subroutine.name);
+						#print(" calling ");
+						#print(called.name);
+						#print(" -> ");
+						#print_hex_i16(reqAddr);
+						#print_nl();
 						called.workspaceAddress[i] := reqAddr;
 						# The subroutine's workspace has moved, so make sure it
 						# gets reprocessed.
