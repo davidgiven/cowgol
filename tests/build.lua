@@ -70,41 +70,33 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 	end
 end
 
-local exe = cowgol {
-	toolchain = toolchain_nncgen,
-	ins = {
-		"tests/passto.test.cow",
-		"tests/_framework.coh",
-	},
-	outs = { "$OBJ/tests/passto" }
-}
-toolchain_nncgen.tester {
-	ins = { exe },
-goodfile = "tests/passto.good"
+
+local passto_toolchains = {
+	["ataritos"] = true,
+	["nncgen"] = true ,
+	["lxthumb2"] = true,
+	["lx386"] = true ,
+	["lx68k"] = true,
+	["lxppc"] = true,
+	["unixv7"] = true,
+	["msdos"] = true
 }
 
-local exe2 = cowgol {
-	toolchain = toolchain_lx386,
-	ins = {
-		"tests/passto.test.cow",
-		"tests/_framework.coh",
-	},
-	outs = { "$OBJ/tests/passto" }
-}
-toolchain_lx386.tester {
-	ins = { exe2 },
-goodfile = "tests/passto.good"
-}
-
-local exe3 = cowgol {
-	toolchain = toolchain_msdos,
-	ins = {
-		"tests/passto.test.cow",
-		"tests/_framework.coh",
-	},
-	outs = { "$OBJ/tests/passto" }
-}
-toolchain_msdos.tester {
-	ins = { exe3 },
-goodfile = "tests/passto.good"
-}
+for _, toolchain in ipairs(ALL_TOOLCHAINS) do
+	if toolchain.tester
+		and passto_toolchains[toolchain.name]
+	then
+		local exe = cowgol {
+			toolchain = toolchain,
+			ins = {
+				"tests/passto.test.cow",
+				"tests/_framework.coh",
+			},
+			outs = { "$OBJ/tests/passto" }
+		}
+		toolchain.tester {
+			ins = { exe },
+			goodfile = "tests/passto.good"
+		}
+	end
+end

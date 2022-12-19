@@ -12,8 +12,7 @@ print("simple-tailrec");
 if doloop(10, 1) == 0 then yes(); else no(); end if;
 
 print("does-not-smash-stack"); #should run to completion and not crash.
-var x := -1 as uint16;
-if doloop(x as intptr, 1) == 0 then yes(); end if;
+if doloop(0xFFFF, 1) == 0 then yes(); end if;
 
 @decl sub mutual2(x: intptr): (r: intptr);
 
@@ -57,10 +56,11 @@ print("triple-tailrec");
 if doloop3(144) == 0 then yes(); else no(); end if;
 
 interface indirect(x: intptr): (r: intptr);
+var ind_ptr: [indirect];
 
 sub doloop4 implements indirect is
 	if x > 0 then
-		passto doloop4(doloop3(x));
+		passto [ind_ptr](doloop3(x));
 	else
 		r := x;
 	end if;
@@ -68,6 +68,6 @@ end sub;
 
 
 var ind: indirect[] := {doloop4};
-var ind_ptr := &ind[0];
+ind_ptr := &ind[0];
 print("indirect-tailrec");
 if [ind_ptr](72) == 0 then yes(); else no(); end if;

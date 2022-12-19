@@ -476,8 +476,8 @@ gen r32 := ADDRESS():a
 	end sub;
 
 	sub Tailcall(addr: [MidcodeSubref]) is
+		E("\tmtlr 4\n");
 		R_flushall();
-		E("\tmfctr 31\n");
 		E_insn("b");
 		E_subref(addr.subr);
 		E_nl();
@@ -490,8 +490,8 @@ gen r32 := ADDRESS():a
 	end sub;
 
 	sub TailcallR12() is
+		E("\tmtlr 4\n");
 		R_flushall();
-		E("\tmfctr 31\n");
 		E("\tmtctr 12\n"); #load counter register with address
 		E("\tbctr\n");
 	end sub;
@@ -508,12 +508,10 @@ gen   TAILCALL(  END(), r12) uses all { TailcallR12(); }
 gen   TAILCALL(  r3, r12) uses all { TailcallR12(); }
 
 gen PREPARETAIL() {
-	R_flushall();
+	var params := current_subr.num_output_parameters;
 	E("\tlwz 4,4(1)\n"); # return address
-	E("\tmtlr 4\n");
-	E("\tlwz 0,0(1)\n");
-	E("\tmtctr 0\n");
-	E("\taddi 1, 1, 8\n");
+	E("\tlwz 31,0(1)\n");
+	E("\taddi 1,1,8\n");
 }
 
 gen param := END();
