@@ -988,6 +988,17 @@ outputarg(E) ::= expression(E1).
 
 statement ::= PASSTO startsubcall inputargs(INA) SEMICOLON.
 {
+	sub isParent(child: [Subroutine], subr: [Subroutine]): (b: uint8) is
+		b := 0;
+		while child.parent != 0 loop
+			if child.parent.id == subr.id then
+				b := 1;
+				break;
+			else
+				child := child.parent;
+			end if;
+		end loop;
+	end sub;
 	var intfsubr1 := current_call.intfsubr;
 	var intfsubr2 := current_subr.intfsubr;
 	i_check_sub_call_args();
@@ -1015,7 +1026,11 @@ statement ::= PASSTO startsubcall inputargs(INA) SEMICOLON.
 		print(" to be used in this passto statement.");
 		EndError();
 	end if;
-
+	error := isParent(intfsubr1, intfsubr2);
+	error := error | isParent(intfsubr2, intfsubr1);
+	if error != 0 then
+		SimpleError("Passer and catcher must be of equal levels of nesting in a passto statement.");
+	end if;
 	Generate(MidPreparetail());
 	Generate(MidTailcall(INA, current_call.expr, intfsubr1));
 	i_end_call(1);
