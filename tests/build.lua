@@ -34,6 +34,7 @@ ALL_TESTS = {
 	"mul-8bit-u",
 	"nested-calls",
 	"outputparams",
+	"passto",
 	"pointers",
 	"rangetypes",
 	"recordinitialisers",
@@ -67,36 +68,5 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 				}
 			end
 		end
-	end
-end
-
-
-local passto_toolchains = {
-	["ataritos"] = true,
-	["nncgen"] = true ,
-	["lxthumb2"] = true,
-	["lx386"] = true ,
-	["lx68k"] = true,
-	["lxppc"] = true,
-	["unixv7"] = true,
-	["msdos"] = true
-}
-
-for _, toolchain in ipairs(ALL_TOOLCHAINS) do
-	if toolchain.tester
-		and passto_toolchains[toolchain.name]
-	then
-		local exe = cowgol {
-			toolchain = toolchain,
-			ins = {
-				"tests/passto.test.cow",
-				"tests/_framework.coh",
-			},
-			outs = { "$OBJ/tests/passto" }
-		}
-		toolchain.tester {
-			ins = { exe },
-			goodfile = "tests/passto.good"
-		}
 	end
 end

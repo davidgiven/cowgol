@@ -624,25 +624,69 @@ gen ENDSUB() uses all
 
 %{
 	sub Call(addr: [MidcodeSubref]) is
-        R_flushall();
+	        R_flushall();
 		E_insn("bsr");
 		E_subref(addr.subr);
 		E_nl();
 	end sub;
 
+	var retaddr: Operand;
+
+	sub Tailcall(addr: [MidcodeSubref]) is
+		PushVStack(&retaddr, 2);
+		E_ldop_c(REG_X, REG_VS2, &retaddr, 0, 0);
+		E_push(REG_X);
+		RetractVStack(REG_VS2, &retaddr);
+		R_flushall();
+		E_insn("ldx #");
+		E_subref(addr.subr);
+		E_nl();
+		E_insn_simple("jmp ,x");
+	end sub;
+
 	sub CallI() is
-        R_flushall();
+		R_flushall();
 		E_insn_simple("jsr ,x");
+	end sub;
+
+	sub TailcallI() is
+		var dcontents: Operand;
+		PushVStack(&retaddr, 2);
+		PushVStack(&dcontents, 2);
+		E_stop_c(REG_D, REG_VS2, &dcontents, 0, 0);
+		RetractVStack(REG_VS2, &dcontents);
+		E_ldop_c(REG_D, REG_VS2, &retaddr, 0, 0);
+		E_push(REG_D);
+		PushVStack(&retaddr, 2);
+		E_ldop_c(REG_D, REG_VS2, &retaddr, 0, 0);
+		RetractVStack(REG_VS2, &dcontents);
+		RetractVStack(REG_VS2, &retaddr);
+		R_flushall();
+		E_insn_simple("jmp ,x");
 	end sub;
 %}
 
 gen         CALL(       param,      SUBREF():a) uses all { Call(&$a); }
 gen         CALL(  ARG1(param, a),  SUBREF():a) uses all { Call(&$a); }
 gen         CALL(  ARG2(param, d),  SUBREF():a) uses all { Call(&$a); }
+gen     TAILCALL(       param,      SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG1(param, a),  SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG2(param, d),  SUBREF():a) uses all { Tailcall(&$a); }
 
 gen         CALL(       param,      x) uses all { CallI(); }
 gen         CALL(  ARG1(param, a),  x) uses all { CallI(); }
 gen         CALL(  ARG2(param, d),  x) uses all { CallI(); }
+gen     TAILCALL(       param,      x) uses all { TailcallI(); }
+gen     TAILCALL(  ARG1(param, a),  x) uses all { TailcallI(); }
+gen     TAILCALL(  ARG2(param, d),  x) uses all { TailcallI(); }
+
+gen PREPARETAIL() {
+	R_flushall();
+	PushVStack(&retaddr, 2);
+	E_pop(REG_X);
+	E_stop_c(REG_X, REG_VS2, &retaddr, 0, 0);
+	RetractVStack(REG_VS2, &retaddr);
+}
 
 gen param := END();
 

@@ -1,5 +1,6 @@
 include "cowgol.coh";
-include "_framework.coh";
+include "tests/_framework.coh";
+
 sub doloop(x: intptr, y: intptr): (r: intptr) is
 	if x > 0 then
 		passto doloop(x - y, y);

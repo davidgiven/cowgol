@@ -368,6 +368,27 @@
         E_nl();
     end sub;
 
+    sub E_tailcall(subr: [Subroutine]) is
+        R_flushall();
+        E_oc(OC_JMP);
+        E_subref(subr);
+        E_nl();
+    end sub;
+
+    sub E_tailcallI() is
+        var jmpaddr := AllocPLabel();
+        E_sta();
+        E_labelref(jmpaddr);
+        E_nl();
+        E_stx();
+        E_labelref(jmpaddr);
+        E_plusone();
+        E_nl();
+        E_labelref(jmpaddr);
+        E("=*+1\n");
+        E("\tjmp $ffff\n");
+    end sub;
+
     sub E_loadconst(reg: RegId, value: uint8) is
         var cache := RegCacheFindConstant(value);
         if (cache & reg) == 0 then
@@ -1318,12 +1339,47 @@ gen RETURN() uses all
         E_bpl(lid);
     end sub;
 
+    sub PushRet() is
+        if IsSimpleSub(current_subr) == 0 then
+           E_ldy();
+           E_labelref(current_subr.arch.rts_label);
+           E_nl();
+           var label := AllocPLabel();
+           E_bne(label);
+           E_dec();
+           E_labelref(current_subr.arch.rts_label);
+           E_plusone();
+           E_nl();
+           E_label(label);
+           E_ldy();
+           E_labelref(current_subr.arch.rts_label);
+           E_plusone();
+           E_nl();
+           E_phy();
+           E_ldy();
+           E_labelref(current_subr.arch.rts_label);
+           E_nl();
+           E_dey();
+           E_phy();
+        end if;
+    end sub;
+
     sub Call(addr: [MidcodeSubref]) is
         E_call(addr.subr);
     end sub;
 
+    sub Tailcall(addr: [MidcodeSubref]) is
+        PushRet();
+        E_tailcall(addr.subr);
+    end sub;
+
     sub CallI() is
         E_callhelper("_jmpxa");
+    end sub;
+
+    sub TailcallI() is
+        PushRet();
+        E_tailcallI();
     end sub;
 
     sub is_fast(subr: [Subroutine]): (result: uint8) is
@@ -1338,8 +1394,15 @@ gen RETURN() uses all
 gen        CALL(       param,      SUBREF():a)             uses all { Call(&$a); }
 gen        CALL(  ARG1(param, a),  SUBREF(subr is fast):a) uses all { Call(&$a); }
 gen        CALL(  ARG2(param, xa), SUBREF(subr is fast):a) uses all { Call(&$a); }
+gen    TAILCALL(       param,      SUBREF():a)             uses all { Tailcall(&$a); }
+gen    TAILCALL(  ARG1(param, a),  SUBREF(subr is fast):a) uses all { Tailcall(&$a); }
+gen    TAILCALL(  ARG2(param, xa), SUBREF(subr is fast):a) uses all { Tailcall(&$a); }
+
 
 gen        CALL(  param, xa) uses all { CallI(); }
+gen    TAILCALL(  param, xa) uses all { TailcallI(); }
+
+gen PREPARETAIL();
 
 gen param := END();
 

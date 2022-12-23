@@ -304,6 +304,15 @@
 		E_nl();
 	end sub;
 
+	sub E_tailcall(subr: [Subroutine]) is
+		E_push(REG_IX);
+		R_flushall();
+		E_tab();
+		E("jr ");
+		E_subref(subr);
+		E_nl();
+	end sub;
+
 	sub E_loada(ptr: RegId) is
 		if ptr == REG_HL then
 			E_loadm(REG_A);
@@ -882,8 +891,19 @@ gen ENDSUB() uses all
 		E_call(addr.subr);
 	end sub;
 
+	sub Tailcall(addr: [MidcodeSubref]) is
+		E_tailcall(addr.subr);
+	end sub;
+
 	sub CallI() is
 		E_callhelper("_jpde");
+	end sub;
+
+	sub TailcallI() is
+		E_push(REG_IX);
+		R_flushall();
+		E("\tpush de\n");
+		E("\tret\n");
 	end sub;
 %}
 
@@ -892,10 +912,22 @@ gen         CALL(  ARG1(param, a),    SUBREF():a) uses   bc|de|hl|rx { Call(&$a)
 gen         CALL(  ARG2(param, hl),   SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
 gen         CALL(  ARG4(param, hlhl), SUBREF():a) uses a|bc|de   |rx { Call(&$a); }
 
+gen     TAILCALL(       param,        SUBREF():a) uses a|bc|de|hl    { Tailcall(&$a); }
+gen     TAILCALL(  ARG1(param, a),    SUBREF():a) uses   bc|de|hl    { Tailcall(&$a); }
+gen     TAILCALL(  ARG2(param, hl),   SUBREF():a) uses a|bc|de       { Tailcall(&$a); }
+gen     TAILCALL(  ARG4(param, hlhl), SUBREF():a) uses a|bc|de       { Tailcall(&$a); }
+
 gen         CALL(       param,        de) uses a|bc|hl|rx { CallI(); }
 gen         CALL(  ARG1(param, a),    de) uses   bc|hl|rx { CallI(); }
 gen         CALL(  ARG2(param, hl),   de) uses a|bc   |rx { CallI(); }
 gen         CALL(  ARG4(param, hlhl), de) uses a|bc   |rx { CallI(); }
+
+gen     TAILCALL(       param,        de) uses a|bc|hl    { TailcallI(); }
+gen     TAILCALL(  ARG1(param, a),    de) uses   bc|hl    { TailcallI(); }
+gen     TAILCALL(  ARG2(param, hl),   de) uses a|bc       { TailcallI(); }
+gen     TAILCALL(  ARG4(param, hlhl), de) uses a|bc       { TailcallI(); }
+
+gen PREPARETAIL() {E_pop(REG_IX); }
 
 gen param := END();
 
