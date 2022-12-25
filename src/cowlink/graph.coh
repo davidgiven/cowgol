@@ -44,9 +44,6 @@ end sub;
 # itself. 'cycle' is true if called or called's callees are the same as the subroutine.
 sub DetectCycle(subroutine: [Subroutine], called: [Subroutine]): (cycle: uint8) is
 	cycle := 0;
-	if called.id == subroutine.id then
-		cycle := 1;
-	end if;
 	var refs := &called.refs;
 	while refs != (0 as [References]) loop
 		var j: uint8 := 0;
@@ -55,7 +52,7 @@ sub DetectCycle(subroutine: [Subroutine], called: [Subroutine]): (cycle: uint8) 
 			var tc := refs.is_tailcall[j];
 			j := j + 1;
 			if called == (0 as [Subroutine]) then
-				break;
+				continue;
 			end if;
 			called := Deref(called);
 			if called.id == subroutine.id and tc == 0 then
