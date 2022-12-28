@@ -52,7 +52,7 @@ sub AddInputFile(filename: [uint8]) is
 		end if;
 	end if;
 	if mostRecentSubroutine != (0 as [Subroutine]) then
-		AddRef(mostRecentSubroutine, thisMain);
+		AddRef(mostRecentSubroutine, thisMain, 0);
 	end if;
 	mostRecentSubroutine := thisMain;
 end sub;

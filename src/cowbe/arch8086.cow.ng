@@ -47,7 +47,7 @@
 			EmitterDeclareExternalSubroutine(e.id, name);
 		end if;
 
-		EmitterReferenceSubroutineById(current_subr.id, e.id);
+		EmitterReferenceSubroutineById(current_subr.id, e.id, 0);
 	end sub;
 
 	sub E_symref(sym: [Symbol], off: Size) is
@@ -578,8 +578,20 @@ gen mem4 := DEREF4(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.ope
 		E_nl();
 	end sub;
 
+	sub Tailcall(addr: [MidcodeSubref]) is
+		E_push(REG_CX);
+		E_insn("jmp");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+
 	sub CallBX() is
 		E("\tcall bx\n");
+	end sub;
+
+	sub TailcallBX() is
+		E_push(REG_CX);
+		E("\tjmp bx\n");
 	end sub;
 %}
 
@@ -592,6 +604,18 @@ gen         CALL(       param,        bx) uses all { CallBX(); }
 gen         CALL(  ARG1(param, al),   bx) uses all { CallBX(); }
 gen         CALL(  ARG2(param, ax),   bx) uses all { CallBX(); }
 gen         CALL(  ARG4(param, dxax), bx) uses all { CallBX(); }
+
+gen     TAILCALL(       param,         SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG1(param, al),    SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG2(param, ax),    SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG4(param, dxax),  SUBREF():a) uses all { Tailcall(&$a); }
+
+gen     TAILCALL(       param,        bx) uses all { TailcallBX(); }
+gen     TAILCALL(  ARG1(param, al),   bx) uses all { TailcallBX(); }
+gen     TAILCALL(  ARG2(param, ax),   bx) uses all { TailcallBX(); }
+gen     TAILCALL(  ARG4(param, dxax), bx) uses all { TailcallBX(); }
+
+gen PREPARETAIL() {E_pop(REG_CX);}
 
 gen param := END();
 

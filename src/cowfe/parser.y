@@ -6,6 +6,7 @@
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
 %token INT TYPEDEF SIZEOF STRING.
 %token IMPL DECL EXTERN INTERFACE.
+%token PASSTO.
 
 %left COMMA.
 %left AND.
@@ -787,8 +788,12 @@ varortypeid(T) ::= OPENPAREN typeref(T1) CLOSEPAREN.
 		end if;
 	end sub;
 
-	sub i_end_call() is
-		EmitterReferenceSubroutine(current_subr, current_call.intfsubr);
+	sub i_end_call(tailcall: uint8) is
+		EmitterReferenceSubroutine(
+			current_subr,
+			current_call.intfsubr,
+			tailcall
+		);
 		var call := current_call;
 		current_call := call.parent;
 		Free(call as [uint8]);
@@ -812,7 +817,7 @@ expression(E) ::= startsubcall inputargs(INA).
 	Generate(MidCall(INA, current_call.expr, intfsubr));
     Generate(MidStore(w, MidPoparg(w, intfsubr, param, 0), MidDeref(w, MidAddress(temp, 0))));
 
-	i_end_call();
+	i_end_call(0);
 
 	E := MidDeref(w, MidAddress(temp, 0));
 	E.type := param.vardata.type;
@@ -828,7 +833,7 @@ statement ::= startsubcall inputargs(INA) SEMICOLON.
 
 	Generate(MidCall(INA, current_call.expr, intfsubr));
 
-	i_end_call();
+	i_end_call(0);
 }
 
 statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
@@ -879,7 +884,7 @@ statement ::= outputargs(OUTA) ASSIGN startsubcall inputargs(INA) SEMICOLON.
 		SimpleError("too few output arguments");
 	end if;
 
-	i_end_call();
+	i_end_call(0);
 }
 
 startsubcall ::= leafexpression(E).
@@ -979,6 +984,59 @@ outputarg(E) ::= expression(E1).
 	E := UndoLValue(E1);
 }
 
+/* --- The Passto statement ---------------------------------------------- */
+
+statement ::= PASSTO startsubcall inputargs(INA) SEMICOLON.
+{
+	sub isParent(child: [Subroutine], subr: [Subroutine]): (b: uint8) is
+		b := 0;
+		while child.parent != 0 loop
+			if child.parent.id == subr.id then
+				b := 1;
+				break;
+			else
+				child := child.parent;
+			end if;
+		end loop;
+	end sub;
+	var intfsubr1 := current_call.intfsubr;
+	var intfsubr2 := current_subr.intfsubr;
+	i_check_sub_call_args();
+
+	var paramindex1 := intfsubr1.num_output_parameters;
+	var paramindex2 := intfsubr2.num_output_parameters;
+	var error: uint8 := 0;
+	if paramindex1 != paramindex2 then
+		error := 1;
+	end if;
+	while paramindex1 > 0 and error == 0 loop
+		paramindex1 := paramindex1 - 1;
+		var param1 := GetOutputParameter(intfsubr1, paramindex1);
+		var param2 := GetOutputParameter(intfsubr2, paramindex1);
+
+		if param1.vardata.type != param2.vardata.type then
+			error := 1;
+		end if;
+	end loop;
+	if error != 0 then
+		StartError();
+		print(intfsubr1.symbol.name);
+		print(" must have the same output parameters as ");
+		print(intfsubr2.symbol.name);
+		print(" to be used in this passto statement.");
+		EndError();
+	end if;
+	error := isParent(intfsubr1, intfsubr2);
+	error := error | isParent(intfsubr2, intfsubr1);
+	if error != 0 then
+		SimpleError("Passer and catcher must be of equal levels of nesting in a passto statement.");
+	end if;
+	Generate(MidPreparetail());
+	Generate(MidTailcall(INA, current_call.expr, intfsubr1));
+	i_end_call(1);
+}
+
+
 /* --- Subroutine definitions -------------------------------------------- */
 
 %include
@@ -1029,8 +1087,8 @@ implementsstart ::= SUB newsubid IMPLEMENTS typeref(T).
 	preparing_subr.flags := preparing_subr.flags | SUB_IS_IMPLEMENTATION;
 	preparing_subr.intfsubr := intfsubr;
 	preparing_subr.type := T;
-	EmitterReferenceSubroutine(current_subr, intfsubr);
-	EmitterReferenceSubroutine(intfsubr, preparing_subr);
+	EmitterReferenceSubroutine(current_subr, intfsubr, 0);
+	EmitterReferenceSubroutine(intfsubr, preparing_subr, 0);
 
 	preparing_subr.num_input_parameters := intfsubr.num_input_parameters;
 	if preparing_subr.num_input_parameters != 0 then
@@ -1512,7 +1570,7 @@ asm ::= oldid(S).
 	case S.kind is
 		when TYPE:
 			if IsSubroutine(S.typedata) != 0 then
-				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr);
+				EmitterReferenceSubroutine(current_subr, S.typedata.subrtype.subr, 0);
 				Generate(MidAsmsubref(S.typedata.subrtype.subr));
 			else
 				bad_reference();

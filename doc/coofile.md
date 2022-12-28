@@ -63,11 +63,14 @@ string is taken from the record size.
 ### R: reference subroutine
 
 ```
-<userid:16><usedid:16>
+<userid:16><usedid:16><tailcall:8>
 ```
 
 Indicates that subroutine `userid` calls `usedid`. Used to tell the linker
 about the call graph.
+
+`tailcall` is a boolean which indicates if a call uses tail recursion.
+If so, the current subroutine's workspace can be reused.
 
 ### W: declare workspace
 

@@ -96,10 +96,12 @@ end sub;
 sub ReadR() is
 	var userid := I_b16();
 	var usedid := I_b16();
+	var tailcall := I_b8();
 	print("R: ");
 	print_hex_i16(userid);
 	print(" ");
 	print_hex_i16(usedid);
+	print_hex_i8(tailcall);
 	print_nl();
 end sub;
 

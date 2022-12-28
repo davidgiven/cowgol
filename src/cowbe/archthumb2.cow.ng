@@ -440,9 +440,23 @@ gen r32 := ADDRESS():a
 		E_nl();
 	end sub;
 
+	sub Tailcall(addr: [MidcodeSubref]) is
+		E("\tmov r7, r2\n");
+		R_flushall();
+		E_insn("b");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+
 	sub CallR1() is
 		R_flushall();
 		E("\tblx r1\n");
+	end sub;
+
+	sub TailcallR1() is
+		E("\tmov r7, r2\n");
+		R_flushall();
+		E("\tbx r1\n");
 	end sub;
 %}
 
@@ -451,10 +465,22 @@ gen       CALL(  ARG1(param, r0), SUBREF():a) uses all { Call(&$a); }
 gen       CALL(  ARG2(param, r0), SUBREF():a) uses all { Call(&$a); }
 gen       CALL(  ARG4(param, r0), SUBREF():a) uses all { Call(&$a); }
 
+gen   TAILCALL(       param,      SUBREF():a) uses all { Tailcall(&$a); }
+gen   TAILCALL(  ARG1(param, r0), SUBREF():a) uses all { Tailcall(&$a); }
+gen   TAILCALL(  ARG2(param, r0), SUBREF():a) uses all { Tailcall(&$a); }
+gen   TAILCALL(  ARG4(param, r0), SUBREF():a) uses all { Tailcall(&$a); }
+
 gen       CALL(       param,      r1) uses all { CallR1(); }
 gen       CALL(  ARG1(param, r0), r1) uses all { CallR1(); }
 gen       CALL(  ARG2(param, r0), r1) uses all { CallR1(); }
 gen       CALL(  ARG4(param, r0), r1) uses all { CallR1(); }
+
+gen   TAILCALL(       param,      r1) uses all { TailcallR1(); }
+gen   TAILCALL(  ARG1(param, r0), r1) uses all { TailcallR1(); }
+gen   TAILCALL(  ARG2(param, r0), r1) uses all { TailcallR1(); }
+gen   TAILCALL(  ARG4(param, r0), r1) uses all { TailcallR1(); }
+
+gen PREPARETAIL() {E("\tpop {r2, lr}\n");}
 
 gen param := END();
 

@@ -161,7 +161,7 @@ sub ProcessFile() is
 		var symbol := current_subr;
 		if buffer[0] != 0 then
 			symbol := GetSymbol(&buffer[0]);
-			EmitterReferenceSubroutine(current_subr.id, symbol.id);
+			EmitterReferenceSubroutine(current_subr.id, symbol.id, 0);
 		end if;
 		ExpectC('.');
 		var wid := ReadNumber() as uint8;
@@ -201,7 +201,7 @@ sub ProcessFile() is
 							var subr := GetSymbol(&buffer[0]);
 							E_b8(COO_ESCAPE_SUBREF);
 							E_b16(subr.id);
-							EmitterReferenceSubroutine(current_subr.id, subr.id);
+							EmitterReferenceSubroutine(current_subr.id, subr.id, 0);
 					end case;
 				else
 					E_b8(c);

@@ -22,10 +22,9 @@ sub read_string(fcb: [FCB], len: uint8): (ptr: [uint8]) is
 	end loop;
 end sub;
 
-sub AddRef(subr: [Subroutine], calls: [Subroutine]) is
+sub AddRef(subr: [Subroutine], calls: [Subroutine], tailcall: uint8) is
 	var refid := subr.numRefs;
 	subr.numRefs := refid + 1;
-
 	var ref := &subr.refs;
 	while refid >= COO_REFS_SIZE loop
 		if ref.next == (0 as [References]) then
@@ -36,6 +35,7 @@ sub AddRef(subr: [Subroutine], calls: [Subroutine]) is
 	end loop;
 
 	ref.calls[refid as uint8] := calls;
+	ref.is_tailcall[refid as uint8] := tailcall;
 end sub;
 
 sub FindSub(coo: [Coo], id: uint16): (ptr: [[Subroutine]]) is
@@ -117,7 +117,8 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo]) is
 		elseif c == 'R' then
 			var subrid := read_bin2(&coo.fcb);
 			var requiresid := read_bin2(&coo.fcb);
-			AddRef(FindOrCreateSub(coo, subrid), FindOrCreateSub(coo, requiresid));
+			var tailcall := read_bin1(&coo.fcb);
+			AddRef(FindOrCreateSub(coo, subrid), FindOrCreateSub(coo, requiresid), tailcall);
 		elseif c == 'W' then
 			id := read_bin2(&coo.fcb);
 			subroutine := FindOrCreateSub(coo, id);

@@ -1,10 +1,12 @@
 local PROGRAMS = {
 	"argv",
+	"cowcalc",
 	"file",
 	"filetester",
 	"helloworld",
 	"icando",
 	"mandel",
+	"passto"
 }
 
 for _, toolchain in ipairs(ALL_TOOLCHAINS) do

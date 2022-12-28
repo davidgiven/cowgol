@@ -34,6 +34,7 @@ ALL_TESTS = {
 	"mul-8bit-u",
 	"nested-calls",
 	"outputparams",
+	"passto",
 	"pointers",
 	"rangetypes",
 	"recordinitialisers",
@@ -69,4 +70,3 @@ for _, toolchain in ipairs(ALL_TOOLCHAINS) do
 		end
 	end
 end
-
