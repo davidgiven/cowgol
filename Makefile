@@ -5,7 +5,7 @@ export LDFLAGS = -g
 export NINJAFLAGS =
 
 all: $(OBJ)/build.mk
-	@make -f $(OBJ)/build.mk hide= y
+	@make -f $(OBJ)/build.mk hide= +cfile
 
 clean:
 	@echo CLEAN
