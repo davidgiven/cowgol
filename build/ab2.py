@@ -1,18 +1,47 @@
 from collections.abc import Iterable, Sequence
 from os.path import *
+from types import SimpleNamespace
 import argparse
+import copy
 import functools
+import importlib
+import importlib.abc
+import importlib.util
 import inspect
 import re
 import sys
-import copy
+import types
+import pathlib
+import builtins
 
 defaultGlobals = {}
 targets = {}
-cwd = ""
+currentInvocation = None
 unmaterialisedTargets = set()
 emitter = None
 currentVars = None
+
+sys.path += ["."]
+old_import = builtins.__import__
+
+
+def new_import(name, *args, **kwargs):
+    if name not in sys.modules:
+        path = name.replace(".", "/")+".py"
+        if isfile(path):
+            sys.stderr.write(f"loading {path}\n")
+            loader = importlib.machinery.SourceFileLoader(name, path)
+
+            spec = importlib.util.spec_from_loader(
+                name, loader, origin="built-in")
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            spec.loader.exec_module(module)
+
+    return old_import(name, *args, **kwargs)
+
+
+builtins.__import__ = new_import
 
 
 class ABException(BaseException):
@@ -62,24 +91,35 @@ def Vars(parent=None):
 
     return VarsImpl()
 
+
 class Invocation:
     name = None
     callback = None
     types = None
-    ins = []
-    outs = []
-    rawArgs = {}
+    ins = None
+    outs = None
+    rawArgs = None
     vars = None
     varsettings = None
 
     def materialise(self):
         if self in unmaterialisedTargets:
+            # Create a new invocation frame.
+
+            global currentInvocation
+            oldInvocation = currentInvocation
+            currentInvocation = self
+
+            # Perform type conversion to the declared rule parameter types.
+
             self.args = {}
             for k, v in self.rawArgs.items():
                 t = self.types.get(k, None)
                 if t:
-                    v = t.convert(v)
+                    v = t.convert(v, self)
                 self.args[k] = v
+
+            # Create a new variable frame and set any variables.
 
             global currentVars
             self.vars = Vars(self.callerVars)
@@ -94,20 +134,32 @@ class Invocation:
                     else:
                         self.vars[k] = ParameterList(v)
 
-            self.callback.__globals__["self"] = self
-            newInvocation = self.callback(**self.args)
-            newInvocation = newInvocation or self
-            if newInvocation != self:
-                for k in dir(newInvocation):
-                    if not k.startswith("_"):
-                        setattr(self, k, getattr(newInvocation, k))
-                self.materialise()
+            # Actually call the callback. If it returns another invocation,
+            # then replace the current one with it.
+
+            proxy = self.callback(**self.args)
+            currentInvocation = oldInvocation
+
+            if proxy:
+                if self.ins or self.outs:
+                    raise ABException(
+                        f"{self.name} is a proxy, but sets self.ins or self.outs")
+                proxy.materialise()
+                self.ins = [proxy]
+                self.outs = proxy.outs
+            else:
+                if not self.outs:
+                    raise ABException(
+                        f"{self.name} is not a proxy, but didn't set self.outs")
+
+            # Destack the variable and invocation frame.
 
             currentVars = oldVars
             unmaterialisedTargets.remove(self)
+            currentInvocation = oldInvocation
 
-    def __str__(self):
-        return "<Invocation %s>" % self.fullname
+    def __repr__(self):
+        return "<Invocation %s>" % self.name
 
 
 class Type:
@@ -115,26 +167,34 @@ class Type:
 
 
 class String(Type):
-    def convert(self, value):
+    def convert(self, value, invocation):
         if type(value) != "string":
             raise ABException("rule wanted a String, but got a "+type(value))
         return value
 
 
 class Strings(Type):
-    def convert(self, value):
+    def convert(self, value, invocation):
         if type(value) == "string":
             value = [value]
         return value
 
 
 class Targets(Type):
-    def convert(self, value):
+    def convert(self, value, invocation):
         if type(value) is str:
             value = [value]
         if type(value) is list:
-            value = [targetof(v) for v in value]
+            value = targetsof(value, cwd=invocation.cwd)
         return value
+
+
+class TargetsMap(Type):
+    def convert(self, value, invocation):
+        if type(value) is dict:
+            return {
+                targetof(k, cwd=invocation.cwd): targetof(v, cwd=invocation.cwd) for k, v in value.items()}
+        raise ABException(f"wanted a dict of targets, got a {type(value)}")
 
 
 def debug(*s):
@@ -152,40 +212,78 @@ def flatten(*xs):
     return list(recurse(xs))
 
 
-def targetof(s):
-    if isinstance(s, Invocation):
-        return s
+def massagefilename(s):
+    callername = inspect.stack()[1][0].f_globals["__name__"]
+    cwd = dirname(callername.replace(".", "/"))
 
-    if s.startswith("+"):
-        s = cwd + s
-    if s.startswith("./"):
-        s = cwd + "/" + s
+    if ("+" in name) and not name.startswith("+"):
+        (cwd, target) = name.split("+", 1)
+
+    i = Invocation()
+    if name.startswith("./"):
+        name = join(cwd, name)
+    elif "+" not in name:
+        name = cwd + "+" + name
+
+
+def targetof(s, cwd):
+    if isinstance(s, Invocation):
+        s.materialise()
+        return s
 
     if s in targets:
         t = targets[s]
         t.materialise()
         return t
 
-    if "+" in s:
-        raise ABException("target reference %s not supported yet" % s)
-    else:
-        i = Invocation()
-        i.outs = [s]
-        targets[s] = i
-        return i
+    if s.startswith("+"):
+        s = cwd + s
+    if s.startswith("./"):
+        s = join(cwd, s)
+
+    if "+" not in s:
+        if isdir(s):
+            s = s + "+" + basename(s)
+        else:
+            i = Invocation()
+            i.name = "(anonymous)"
+            i.outs = [s]
+            targets[s] = i
+            return i
+
+    (path, target) = s.split("+", 2)
+    loadbuildfile(join(path, "build.py"))
+    if not s in targets:
+        raise ABException(
+            f"build file at {path} doesn't contain +{target}")
+    i = targets[s]
+    i.materialise()
+    return i
 
 
-def targetsof(*xs):
-    return flatten([targetof(x) for x in flatten(xs)])
+def targetsof(*xs, cwd):
+    return flatten([targetof(x, cwd) for x in flatten(xs)])
 
 
 def filenamesof(*xs):
-    xs = targetsof(xs)
+    fs = []
+    for t in flatten(xs):
+        if type(t) == str:
+            fs += [t]
+        else:
+            fs += [normpath(f) for f in t.outs]
+    return fs
 
-    f = []
-    for t in xs:
-        f += t.outs
-    return f
+
+def filenameof(x):
+    xs = filenamesof(x)
+    if len(xs) != 1:
+        raise ABException("expected a single item")
+    return xs[0]
+
+
+def stripext(path):
+    return splitext(path)[0]
 
 
 def emit(*args):
@@ -251,39 +349,51 @@ class NinjaEmitter:
 
 
 def Rule(func):
-    name = func.__name__
     sig = inspect.signature(func)
-    if "self" in func.__globals__:
-        os.exit()
 
     @functools.wraps(func)
     def wrapper(*, name, **kwargs):
+        callername = inspect.stack()[1][0].f_globals["__name__"]
+        cwd = dirname(callername.replace(".", "/"))
+
+        if ("+" in name) and not name.startswith("+"):
+            (cwd, target) = name.split("+", 1)
+
         i = Invocation()
-        i.cwd = cwd
-        i.fullname = cwd + "+" + name
+        if name.startswith("./"):
+            name = join(cwd, name)
+        elif "+" not in name:
+            name = cwd + "+" + name
+
         i.name = name
+        i.cwd = cwd
         i.types = func.__annotations__
         i.callback = func
         i.callerVars = currentVars
         i.varsettings = kwargs.get("vars", None)
-        if i.varsettings:
-            kwargs.pop("vars")
+        setattr(i, func.__name__, SimpleNamespace())
 
-        bound = sig.bind(name=name, **kwargs)
+        kwargs.pop("vars", None)
+
+        bound = sig.bind(name=name, self=i, **kwargs)
         bound.apply_defaults()
         i.rawArgs = bound.arguments
 
-        targets[i.fullname] = i
+        if name in targets:
+            raise ABException(f"target {i.name} has already been defined")
+
+        targets[name] = i
         unmaterialisedTargets.add(i)
         return i
 
-    defaultGlobals[name] = wrapper
+    defaultGlobals[func.__name__] = wrapper
     return wrapper
 
 
 @Rule
 def simplerule(
-        name=None,
+        self,
+        name,
         ins: Targets() = [],
         outs=[],
         deps: Targets() = [],
@@ -291,7 +401,7 @@ def simplerule(
         label="RULE"):
     self.ins = ins
     self.outs = outs
-    emitter.rule(self.fullname, filenamesof(ins, deps), outs)
+    emitter.rule(self.name, filenamesof(ins, deps), outs)
     emitter.exec(templateexpand("echo {label} {ins}", self))
 
     for out in filenamesof(outs):
@@ -305,6 +415,7 @@ def simplerule(
 
 @Rule
 def normalrule(
+        self,
         name=None,
         ins: Targets() = [],
         deps: Targets() = [],
@@ -312,10 +423,10 @@ def normalrule(
         label="RULE",
         objdir=None,
         commands=[]):
-    objdir = objdir or join("$(OBJ)", self.cwd, name)
+    objdir = objdir or join("$(OBJ)", name)
 
     return simplerule(
-        name=name,
+        name=name+"/simplerule",
         ins=ins,
         deps=deps,
         outs=[join(objdir, f) for f in outleaves],
@@ -325,14 +436,19 @@ def normalrule(
 
 @Rule
 def installable(
+        self,
         name=None,
-        items={}):
+        items: TargetsMap() = {}):
 
-    emitter.rule(self.fullname, filenamesof(items.values()), items.keys())
-    emitter.exec(templateexpand("echo EXPORT {name}", self))
+    emitter.rule(self.name, filenamesof(
+        items.values()), filenamesof(items.keys()))
+    emitter.exec(f"echo EXPORT {self.name}")
 
+    self.ins = items.values()
+    self.outs = []
     for dest, src in items.items():
-        dir = dirname(dest)
+        destf = filenameof(dest)
+        dir = dirname(destf)
         if dir:
             emitter.exec("mkdir -p "+dir)
 
@@ -341,18 +457,20 @@ def installable(
             raise ABException(
                 "a dependency of an installable must have exactly one output file")
 
-        emitter.exec("cp %s %s" % (srcs[0], dest))
+        emitter.exec("cp %s %s" % (srcs[0], destf))
+        self.outs += destf
 
 
 def loadbuildfile(filename):
-    with open(filename, "r") as fp:
-        global cwd
-        code = compile(fp.read(), filename,
-                       mode="exec")
-        oldCwd = cwd
-        cwd = dirname(filename)
-        exec(code, dict(defaultGlobals, CWD=cwd))
-        cwd = oldCwd
+    filename = filename.replace("/", ".").removesuffix(".py")
+    builtins.__import__(filename)
+
+
+def load(filename):
+    loadbuildfile(filename)
+    callerglobals = inspect.stack()[1][0].f_globals
+    for k, v in defaultGlobals.items():
+        callerglobals[k] = v
 
 
 def main():
@@ -372,13 +490,18 @@ def main():
     global currentVars
     currentVars = Vars()
 
-    for k in ("Rule", "Targets"):
+    for k in ("Rule", "Targets", "load", "filenamesof", "stripext"):
         defaultGlobals[k] = globals()[k]
     defaultGlobals["print"] = debug
+
+    global __name__
+    sys.modules["build.ab2"] = sys.modules[__name__]
+    __name__ = "build.ab2"
 
     for f in args.files:
         loadbuildfile(f)
 
+    total = 0
     while unmaterialisedTargets:
         total = len(targets)
         finished = total - len(unmaterialisedTargets)

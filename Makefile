@@ -5,14 +5,14 @@ export LDFLAGS = -g
 export NINJAFLAGS =
 
 all: $(OBJ)/build.mk
-	@make -f $(OBJ)/build.mk hide= +cfile
+	@make -f $(OBJ)/build.mk +all
 
 clean:
 	@echo CLEAN
 	@rm -rf $(OBJ) bin
 
-build-files = $(shell find . -name 'build.py')
-$(OBJ)/build.mk: build/ab2.py Makefile $(build-files)
+build-files = $(shell find . -name 'build.py') build/*.py
+$(OBJ)/build.mk: Makefile $(build-files)
 	@echo ACKBUILDER
 	@mkdir -p $(OBJ)
 	@python3 \
