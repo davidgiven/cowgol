@@ -442,7 +442,7 @@ def normalrule(
 
 
 @Rule
-def installable(self, name=None, items: TargetsMap() = {}, deps: Targets() = []):
+def export(self, name=None, items: TargetsMap() = {}, deps: Targets() = []):
     emitter.rule(
         self.name, filenamesof(items.values(), deps), filenamesof(items.keys())
     )
@@ -459,7 +459,7 @@ def installable(self, name=None, items: TargetsMap() = {}, deps: Targets() = [])
         srcs = filenamesof(src)
         if len(srcs) != 1:
             raise ABException(
-                "a dependency of an installable must have exactly one output file"
+                "a dependency of an export must have exactly one output file"
             )
 
         emitter.exec("cp %s %s" % (srcs[0], destf))
