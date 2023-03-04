@@ -29,7 +29,7 @@ def newgencowgol(self, name, srcs: Targets() = []):
     normalrule(
         replaces=self,
         ins=["+newgen", preprocessed],
-        outleaves=["inssel.coh", "inssel.decl.coh"],
+        outs=["inssel.coh", "inssel.decl.coh"],
         commands=["{ins[0]} {ins[1]} {outs[0]} {outs[1]}"],
         label="NEWGEN",
     )

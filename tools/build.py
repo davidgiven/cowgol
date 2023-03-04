@@ -17,7 +17,7 @@ def objectify(self, name, src: Target() = None, symbol=None):
     normalrule(
         replaces=self,
         ins=["tools/objectify", src],
-        outleaves=[symbol + ".c"],
+        outs=[symbol + ".c"],
         commands=["lua {ins[0]} " + symbol + " < {ins[1]} > {outs}"],
         label="OBJECTIFY",
     )

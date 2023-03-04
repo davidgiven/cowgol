@@ -25,7 +25,7 @@ def zmac(self, name, srcs: Targets() = []):
     normalrule(
         replaces=self,
         ins=["third_party/zmac", srcs[0]],
-        outleaves=[self.localname + ".cim"],
+        outs=[self.localname + ".cim"],
         commands=[
             "{ins[0]} -j -m "
             + archflag

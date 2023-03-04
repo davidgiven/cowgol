@@ -14,7 +14,7 @@ def buildgasimpl(self, prefix):
     normalrule(
         replaces=self,
         ins=self.args["srcs"],
-        outleaves=[self.localname + ".elf"],
+        outs=[self.localname + ".elf"],
         commands=[
             prefix + "-as -g {ins} -o {outs[0]}.s",
             prefix + "-ld -g {outs[0]}.s -o {outs[0]}",
@@ -85,7 +85,7 @@ def cowlib(
     cob = normalrule(
         name=name + "/cowfe",
         ins=[toolchain.cowfe, cow] + srcs,
-        outleaves=[self.localname + ".cob"],
+        outs=[self.localname + ".cob"],
         commands=[
             "scripts/quiet {ins[0]} "
             + (" ".join(flags))
@@ -97,7 +97,7 @@ def cowlib(
     normalrule(
         replaces=self,
         ins=[toolchain.cowbe, cob],
-        outleaves=[self.localname + ".coo"],
+        outs=[self.localname + ".coo"],
         commands=["scripts/quiet {ins[0]} {ins[1]} {outs}"],
         label="COWBE-" + toolchain.localname.upper(),
     )
@@ -113,7 +113,7 @@ def cowlink(self, name, deps: Targets() = [], toolchain: Target() = None):
     asm = normalrule(
         name=name + "/cowlink",
         ins=[toolchain.cowlink] + [coos],
-        outleaves=[self.localname + toolchain.asmext],
+        outs=[self.localname + toolchain.asmext],
         commands=["scripts/quiet {ins[0]} -o {outs} {' '.join(ins[1:])}"],
         label="COWLINK-" + toolchain.localname.upper(),
     )
@@ -144,7 +144,7 @@ def cowwrap(self, name, src: Target() = None, toolchain:Target()="src+ncgen"):
     normalrule(
         replaces=self,
         ins=["bootstrap+cowwrap", src],
-        outleaves=["cowgol.coo"],
+        outs=["cowgol.coo"],
         label="COWWRAP-"+toolchain.localname.upper(),
         commands=[
             "{ins[0]} {ins[1]} {outs}"
@@ -218,7 +218,7 @@ normalrule(
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outleaves=["midcodesfe.coh"],
+    outs=["midcodesfe.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]} fe"],
     label="MKMIDCODESFE",
 )
@@ -230,7 +230,7 @@ normalrule(
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outleaves=["midcodesbe.coh"],
+    outs=["midcodesbe.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]} be"],
     label="MKMIDCODESBE",
 )
@@ -242,7 +242,7 @@ normalrule(
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outleaves=["cobout.coh"],
+    outs=["cobout.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKCOBOUT",
 )
@@ -254,7 +254,7 @@ normalrule(
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outleaves=["iburgcodes-coh.h"],
+    outs=["iburgcodes-coh.h"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKIBURGCODES",
 )
@@ -266,7 +266,7 @@ normalrule(
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outleaves=["cobin.coh"],
+    outs=["cobin.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKCOBIN",
 )

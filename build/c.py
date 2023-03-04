@@ -32,7 +32,7 @@ def cfileimpl(self, name, srcs, deps, suffix, commands, label, kind, flags):
         replaces=self,
         ins=srcs,
         deps=deps,
-        outleaves=[outleaf],
+        outs=[outleaf],
         label=label,
         commands=commands,
         vars={"+" + flags: flatten(includeflags)},
@@ -100,7 +100,7 @@ def clibrary(
     normalrule(
         replaces=self,
         ins=findsources(name, srcs, deps),
-        outleaves=[basename(name) + ".a"],
+        outs=[basename(name) + ".a"],
         label=label,
         commands=commands,
     )
@@ -121,7 +121,7 @@ def programimpl(self, name, srcs, deps, commands, label, filerule, kind):
     normalrule(
         replaces=self,
         ins=findsources(name, srcs, deps),
-        outleaves=[basename(name)],
+        outs=[basename(name)],
         label=label,
         commands=commands,
         vars={"+ldflags": libraries},

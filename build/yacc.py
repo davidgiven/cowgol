@@ -6,7 +6,7 @@ def yacc(self, name, srcs: Targets() = []):
     normalrule(
         replaces=self,
         ins=srcs,
-        outleaves=["y.tab.c", "y.tab.h"],
+        outs=["y.tab.c", "y.tab.h"],
         commands=["bison -y -t -o {outs[0]} --defines={outs[1]} {ins}"],
         label="YACC",
     )
@@ -17,7 +17,7 @@ def flex(self, name, srcs: Targets() = []):
     normalrule(
         replaces=self,
         ins=srcs,
-        outleaves=["lexer.c"],
+        outs=["lexer.c"],
         commands=["flex -8 -Cem -s -t {ins[0]} > {outs[0]}"],
         label="FLEX",
     )

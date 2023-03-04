@@ -9,7 +9,7 @@ def gpp(self, name, srcs: Targets() = []):
     normalrule(
         replaces=self,
         ins=srcs,
-        outleaves=[self.localname + ".i"],
+        outs=[self.localname + ".i"],
         commands=[
             "gpp --nostdinc -U '' '' '(' ',' ')' '(' ')' '$$' '' -M '$$' '\\n' ' ' ' ' '\\n' '(' ')' "
             + (" ".join(hdrs))

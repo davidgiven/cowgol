@@ -22,7 +22,7 @@ for arch in ARCHS:
     normalrule(
         name="arch-" + arch,
         ins=["./arch" + arch + ".coh"],
-        outleaves=["archlink.coh"],
+        outs=["archlink.coh"],
         commands=["cp {ins} {outs}"],
         label="COPY",
     )
