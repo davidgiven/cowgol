@@ -144,7 +144,9 @@ class Invocation:
             try:
                 self.callback(**self.args)
             except BaseException as e:
-                print(f"Error materialising {self} ({id(self)}): {self.callback}")
+                print(
+                    f"Error materialising {self} ({id(self)}): {self.callback}"
+                )
                 print(f"Arguments: {self.args}")
                 raise e
             if not self.outs:

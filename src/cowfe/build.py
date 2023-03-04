@@ -27,7 +27,7 @@ for arch in ARCHS:
 items = {}
 for toolchain in TOOLCHAINS:
     for arch in ARCHS:
-        name="cowfe-for-" + arch + "-with-" + toolchain.localname
+        name = "cowfe-for-" + arch + "-with-" + toolchain.localname
         items[name] = cowgol(
             name="cowfe-for-" + arch + "-with-" + toolchain.localname,
             toolchain=toolchain,
@@ -51,5 +51,3 @@ for toolchain in TOOLCHAINS:
                 "src+midcodesfecoh",
             ],
         )
-
-
