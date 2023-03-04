@@ -4,6 +4,8 @@ from os.path import *
 from third_party.zmac.build import zmac
 from types import SimpleNamespace
 from build.tass64 import tass64
+from build.nasm import nasm
+from third_party.djlink.build import djlink
 
 
 @Rule
@@ -45,8 +47,39 @@ def buildgasppc(self, name, srcs: Targets() = None):
 
 
 @Rule
+def buildgasataritos(self, name, srcs: Targets() = None):
+    buildgasimpl(self, "m68k-atari-mint")
+
+
+@Rule
 def buildtass64(self, name, srcs: Targets() = None):
     tass64(replaces=self, srcs=srcs)
+
+
+def buildcowasmimpl(self, asm):
+    normalrule(
+        replaces=self,
+        ins=[asm] + self.args["srcs"],
+        outs=[self.localname + ".bin"],
+        commands=["scripts/quiet {ins[0]} -o {outs[0]} {ins[1]}"],
+        label="ASM",
+    )
+
+
+@Rule
+def buildcowasmpdp11(self, name, srcs: Targets() = None):
+    buildcowasmimpl(self, "src/cowasm+cowasm-for-pdp11-with-ncgen")
+
+
+@Rule
+def buildcowasm6303(self, name, srcs: Targets() = None):
+    buildcowasmimpl(self, "src/cowasm+cowasm-for-6303-with-ncgen")
+
+
+@Rule
+def buildnasm(self, name, srcs: Targets() = None):
+    o = nasm(name=name + "/obj", srcs=srcs)
+    djlink(replaces=self, srcs=[o])
 
 
 @Rule
@@ -294,6 +327,50 @@ TOOLCHAINS = [
         asmext=".asm",
         binext=".bin",
         assembler=buildtass64,
+    ),
+    toolchain(
+        name="unixv7",
+        cowfe="src/cowfe+cowfe-for-pdp11-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-pdp11-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-v7unix-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/unixv7",
+        asmext=".asm",
+        binext=".exe",
+        assembler=buildcowasmpdp11,
+    ),
+    toolchain(
+        name="fuzix6303",
+        cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-6303-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-fuzix6303-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/fuzix6303",
+        asmext=".asm",
+        binext=".exe",
+        assembler=buildcowasm6303,
+    ),
+    toolchain(
+        name="msdos",
+        cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-8086-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-msdos-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/msdos",
+        asmext=".asm",
+        binext=".exe",
+        assembler=buildnasm,
+    ),
+    toolchain(
+        name="ataritos",
+        cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-ataritos-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/ataritos",
+        asmext=".asm",
+        binext=".tos",
+        assembler=buildgasataritos,
     ),
 ]
 
