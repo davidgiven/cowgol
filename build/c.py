@@ -6,8 +6,8 @@ def cfileimpl(self, name, srcs, deps, suffix, commands, label, kind, flags):
     if not name:
         name = filenamesof(srcs)[1]
 
-    headers = [filenamesof(d.clibrary.hdrs) for d in deps if d.clibrary]
-    headers = set(["-I"+dirname(f) for f in flatten(headers)])
+    dirs = [d.clibrary.dirs for d in deps if hasattr(d, "clibrary")]
+    dirs = set(["-I"+f for f in filenamesof(dirs)])
 
     outleaf = stripext(basename(name)) + suffix
 
@@ -19,7 +19,7 @@ def cfileimpl(self, name, srcs, deps, suffix, commands, label, kind, flags):
         label=label,
         commands=commands,
         vars={
-            "+"+flags: flatten(headers)
+            "+"+flags: flatten(dirs)
         }
     )
 
@@ -52,9 +52,8 @@ def cxxfile(self,
 
 def findsources(name, srcs, deps):
     ins = []
-    for i in srcs:
-        f = filenameof(i)
-        if f.endswith(".c") or f.endswith(".cc"):
+    for f in filenamesof(srcs):
+        if f.endswith(".c") or f.endswith(".cc") or f.endswith(".cpp"):
             ins += [
                 cfile(
                     name=name+"/"+basename(filenamesof(f)[0]),
@@ -64,7 +63,7 @@ def findsources(name, srcs, deps):
             ]
     return ins
 
-    
+
 @Rule
 def clibrary(self,
              name,
@@ -84,9 +83,12 @@ def clibrary(self,
         commands=commands)
     r.materialise()
 
+    dirs = set([dirname(f) for f in filenamesof(hdrs)])
+
     self.ins = [r]
     self.outs = r.outs
     self.clibrary.hdrs = hdrs
+    self.clibrary.dirs = dirs
 
 
 def programimpl(self, name, srcs, deps, commands, label, filerule, kind):

@@ -226,6 +226,14 @@ def massagefilename(s):
         name = cwd + "+" + name
 
 
+def fileinvocation(s):
+    i = Invocation()
+    i.name = "(anonymous)"
+    i.outs = [s]
+    targets[s] = i
+    return i
+
+
 def targetof(s, cwd):
     if isinstance(s, Invocation):
         s.materialise()
@@ -240,16 +248,14 @@ def targetof(s, cwd):
         s = cwd + s
     if s.startswith("./"):
         s = join(cwd, s)
+    if s.startswith("$"):
+        return fileinvocation(s)
 
     if "+" not in s:
         if isdir(s):
             s = s + "+" + basename(s)
         else:
-            i = Invocation()
-            i.name = "(anonymous)"
-            i.outs = [s]
-            targets[s] = i
-            return i
+            return fileinvocation(s)
 
     (path, target) = s.split("+", 2)
     loadbuildfile(join(path, "build.py"))
