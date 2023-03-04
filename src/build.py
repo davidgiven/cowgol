@@ -160,7 +160,7 @@ def cowwrap(self, name, src: Target() = None, toolchain:Target()="src+ncgen"):
         outs=["cowgol.coo"],
         label="COWWRAP-"+toolchain.localname.upper(),
         commands=[
-            "{ins[0]} {ins[1]} {outs}"
+            "scripts/quiet {ins[0]} {ins[1]} {outs}"
         ])
 
 

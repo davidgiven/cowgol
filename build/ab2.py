@@ -268,6 +268,10 @@ def filenamesof(*xs):
     return fs
 
 
+def targetnamesof(*xs):
+    return [x.name for x in flatten(xs)]
+
+
 def filenameof(x):
     xs = filenamesof(x)
     if len(xs) != 1:
@@ -315,7 +319,9 @@ class MakeEmitter:
         emit(name + "=" + unmake(value))
 
     def rule(self, name, ins, outs):
+        ins = filenamesof(ins)
         if outs:
+            outs = filenamesof(outs)
             emit(".PHONY:", name)
             emit(name, ":", unmake(outs))
             emit(outs, "&:", unmake(ins))
@@ -446,7 +452,7 @@ def normalrule(
 @Rule
 def export(self, name=None, items: TargetsMap() = {}, deps: Targets() = []):
     emitter.rule(
-        self.name, filenamesof(items.values(), deps), filenamesof(items.keys())
+        self.name, flatten(items.values(), deps), filenamesof(items.keys())
     )
     emitter.exec(f"echo EXPORT {self.name}")
 
@@ -487,6 +493,7 @@ def main():
     )
     parser.add_argument("-o", "--output")
     parser.add_argument("files", nargs="+")
+    parser.add_argument("-t", "--targets", nargs="+")
     args = parser.parse_args()
 
     global outputFp
@@ -512,14 +519,8 @@ def main():
     for f in args.files:
         loadbuildfile(f)
 
-    total = 0
-    while unmaterialisedTargets:
-        total = len(targets)
-        finished = total - len(unmaterialisedTargets)
-        sys.stderr.write("%d/%d\r" % (finished, total))
-        next(iter(unmaterialisedTargets)).materialise()
-    sys.stderr.write("%d/%d\n" % (total, total))
-
+    for t in args.targets:
+        targets[t].materialise()
     emitter.end()
 
 
