@@ -1,11 +1,31 @@
 from build.ab2 import Rule, Target, Targets, export, normalrule, filenamesof
 from build.c import cprogram
 from os.path import *
+from third_party.zmac.build import zmac
+from types import SimpleNamespace
 
 
 @Rule
 def cgen(self, name, srcs: Targets() = []):
     cprogram(replaces=self, srcs=srcs + ["rt/cgen/cowgol.h"])
+
+
+def buildgasimpl(self, prefix):
+    normalrule(
+        replaces=self,
+        ins=self.args["srcs"],
+        outleaves=[self.localname + ".elf"],
+        commands=[
+            prefix + "-as -g {ins} -o {outs[0]}.s",
+            prefix + "-ld -g {outs[0]}.s -o {outs[0]}",
+        ],
+        label="ASM-" + prefix.upper(),
+    )
+
+
+@Rule
+def buildgasarm(self, name, srcs: Targets() = None):
+    buildgasimpl(self, "arm-linux-gnueabihf")
 
 
 @Rule
@@ -18,6 +38,7 @@ def toolchain(
     cowwrap: Target() = None,
     runtime=None,
     asmext=None,
+    binext=None,
     assembler=None,
 ):
     id = self.localname
@@ -39,7 +60,13 @@ def toolchain(
 
 
 @Rule
-def cowgol(self, name, srcs: Targets() = [], toolchain: Target() = None):
+def cowlib(
+    self,
+    name,
+    srcs: Targets() = [],
+    deps: Targets() = [],
+    toolchain: Target() = None,
+):
     srcs += [
         "rt/common-file.coh",
         "rt/common.coh",
@@ -60,28 +87,68 @@ def cowgol(self, name, srcs: Targets() = [], toolchain: Target() = None):
         ins=[toolchain.cowfe, cow] + srcs,
         outleaves=[self.localname + ".cob"],
         commands=[
-            "scripts/quiet {ins[0]} " + (" ".join(flags)) + " {ins[1]} {outs[0]}"
+            "scripts/quiet {ins[0]} "
+            + (" ".join(flags))
+            + " {ins[1]} {outs[0]}"
         ],
         label="COWFE-" + toolchain.localname.upper(),
     )
 
-    coo = normalrule(
-        name=name + "/cowbe",
+    normalrule(
+        replaces=self,
         ins=[toolchain.cowbe, cob],
         outleaves=[self.localname + ".coo"],
         commands=["scripts/quiet {ins[0]} {ins[1]} {outs}"],
         label="COWBE-" + toolchain.localname.upper(),
     )
 
+
+@Rule
+def cowlink(self, name, deps: Targets() = [], toolchain: Target() = None):
+    coos = []
+    for d in deps:
+        if hasattr(d, "cowlib"):
+            coos += filenamesof(d)
+
     asm = normalrule(
         name=name + "/cowlink",
-        ins=[toolchain.cowlink, coo],
+        ins=[toolchain.cowlink] + [coos],
         outleaves=[self.localname + toolchain.asmext],
         commands=["scripts/quiet {ins[0]} -o {outs} {' '.join(ins[1:])}"],
         label="COWLINK-" + toolchain.localname.upper(),
     )
 
     toolchain.assembler(replaces=self, srcs=[asm])
+
+
+@Rule
+def cowgol(
+    self,
+    name,
+    srcs: Targets() = [],
+    deps: Targets() = [],
+    toolchain: Target() = None,
+):
+    coo = cowlib(name=name + "/main", srcs=srcs, toolchain=toolchain)
+
+    cowlink(
+        replaces=self,
+        deps=[coo, toolchain.runtime + "+cowgolcoo"] + deps,
+        toolchain=toolchain,
+    )
+
+
+@Rule
+def cowwrap(self, name, src: Target() = None, toolchain:Target()="src+ncgen"):
+    self.cowlib = SimpleNamespace()
+    normalrule(
+        replaces=self,
+        ins=["bootstrap+cowwrap", src],
+        outleaves=["cowgol.coo"],
+        label="COWWRAP-"+toolchain.localname.upper(),
+        commands=[
+            "{ins[0]} {ins[1]} {outs}"
+        ])
 
 
 TOOLCHAINS = [
@@ -93,6 +160,7 @@ TOOLCHAINS = [
         cowwrap="bootstrap+cowwrap",
         runtime="rt/cgen",
         asmext=".c",
+        binext=".exe",
         assembler=cgen,
     ),
     toolchain(
@@ -103,19 +171,53 @@ TOOLCHAINS = [
         cowwrap="src/cowwrap+cowwrap-with-ncgen",
         runtime="rt/cgen",
         asmext=".c",
+        binext=".exe",
         assembler=cgen,
     ),
-    # toolchain(
-    #    name="ncpm", cowfe="src/cowfe+cowfe-for-16bit-with-nncgen", runtime="rt/cpm",
-    #    asmext=".asm",
-    # ),
+    toolchain(
+        name="ncpm",
+        cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-8080-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-8080-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/cpm",
+        asmext=".asm",
+        binext=".com",
+        assembler=zmac,
+    ),
+    toolchain(
+        name="ncpmz",
+        cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-z80-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-8080-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/cpmz",
+        asmext=".z80",
+        binext=".com",
+        assembler=zmac,
+    ),
+    toolchain(
+        name="lxthumb2",
+        cowfe="src/cowfe+cowfe-for-32bita-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-thumb2-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-lxthumb2-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/lxthumb2",
+        asmext=".s",
+        binext=".exe",
+        assembler=buildgasarm,
+    ),
 ]
 
 export(name="toolchains", deps=TOOLCHAINS)
 
 normalrule(
     name="midcodesfecoh",
-    ins=["scripts/mkmidcodescoh.lua", "scripts/libcowgol.lua", "src/midcodes.coh.tab"],
+    ins=[
+        "scripts/mkmidcodescoh.lua",
+        "scripts/libcowgol.lua",
+        "src/midcodes.coh.tab",
+    ],
     outleaves=["midcodesfe.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]} fe"],
     label="MKMIDCODESFE",
@@ -123,7 +225,11 @@ normalrule(
 
 normalrule(
     name="midcodesbecoh",
-    ins=["scripts/mkmidcodescoh.lua", "scripts/libcowgol.lua", "src/midcodes.coh.tab"],
+    ins=[
+        "scripts/mkmidcodescoh.lua",
+        "scripts/libcowgol.lua",
+        "src/midcodes.coh.tab",
+    ],
     outleaves=["midcodesbe.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]} be"],
     label="MKMIDCODESBE",
@@ -131,7 +237,11 @@ normalrule(
 
 normalrule(
     name="coboutcoh",
-    ins=["scripts/mkcobout.lua", "scripts/libcowgol.lua", "src/midcodes.coh.tab"],
+    ins=[
+        "scripts/mkcobout.lua",
+        "scripts/libcowgol.lua",
+        "src/midcodes.coh.tab",
+    ],
     outleaves=["cobout.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKCOBOUT",
@@ -139,7 +249,11 @@ normalrule(
 
 normalrule(
     name="iburgcodes",
-    ins=["scripts/mkiburgcodes.lua", "scripts/libcowgol.lua", "src/midcodes.coh.tab"],
+    ins=[
+        "scripts/mkiburgcodes.lua",
+        "scripts/libcowgol.lua",
+        "src/midcodes.coh.tab",
+    ],
     outleaves=["iburgcodes-coh.h"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKIBURGCODES",
@@ -147,7 +261,11 @@ normalrule(
 
 normalrule(
     name="cobincoh",
-    ins=["scripts/mkcobin.lua", "scripts/libcowgol.lua", "src/midcodes.coh.tab"],
+    ins=[
+        "scripts/mkcobin.lua",
+        "scripts/libcowgol.lua",
+        "src/midcodes.coh.tab",
+    ],
     outleaves=["cobin.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKCOBIN",
