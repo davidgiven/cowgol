@@ -5,7 +5,7 @@ export LDFLAGS = -g
 export NINJAFLAGS =
 
 all: $(OBJ)/build.mk
-	@make -f $(OBJ)/build.mk +all
+	@+make -f $(OBJ)/build.mk +all
 
 clean:
 	@echo CLEAN
@@ -15,8 +15,4 @@ build-files = $(shell find . -name 'build.py') build/*.py
 $(OBJ)/build.mk: Makefile $(build-files)
 	@echo ACKBUILDER
 	@mkdir -p $(OBJ)
-	@python3 \
-		build/ab2.py \
-		-m make \
-		build.py \
-		> $@
+	@python3 build/ab2.py -m make build.py > $@

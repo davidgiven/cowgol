@@ -402,7 +402,7 @@ def simplerule(
     self.ins = ins
     self.outs = outs
     emitter.rule(self.name, filenamesof(ins, deps), outs)
-    emitter.exec(templateexpand("echo {label} {ins}", self))
+    emitter.exec(templateexpand("echo {label} {name}", self))
 
     for out in filenamesof(outs):
         dir = dirname(out)
@@ -438,10 +438,11 @@ def normalrule(
 def installable(
         self,
         name=None,
-        items: TargetsMap() = {}):
+        items: TargetsMap() = {},
+        deps: Targets() = []):
 
     emitter.rule(self.name, filenamesof(
-        items.values()), filenamesof(items.keys()))
+        items.values(), deps), filenamesof(items.keys()))
     emitter.exec(f"echo EXPORT {self.name}")
 
     self.ins = items.values()
@@ -458,7 +459,7 @@ def installable(
                 "a dependency of an installable must have exactly one output file")
 
         emitter.exec("cp %s %s" % (srcs[0], destf))
-        self.outs += destf
+        self.outs += [destf]
 
 
 def loadbuildfile(filename):
