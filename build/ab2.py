@@ -18,6 +18,7 @@ defaultGlobals = {}
 targets = {}
 currentInvocation = None
 unmaterialisedTargets = set()
+outputFp = None
 emitter = None
 currentVars = None
 
@@ -27,13 +28,12 @@ old_import = builtins.__import__
 
 def new_import(name, *args, **kwargs):
     if name not in sys.modules:
-        path = name.replace(".", "/")+".py"
+        path = name.replace(".", "/") + ".py"
         if isfile(path):
             sys.stderr.write(f"loading {path}\n")
             loader = importlib.machinery.SourceFileLoader(name, path)
 
-            spec = importlib.util.spec_from_loader(
-                name, loader, origin="built-in")
+            spec = importlib.util.spec_from_loader(name, loader, origin="built-in")
             module = importlib.util.module_from_spec(spec)
             sys.modules[name] = module
             spec.loader.exec_module(module)
@@ -143,14 +143,17 @@ class Invocation:
             if proxy:
                 if self.ins or self.outs:
                     raise ABException(
-                        f"{self.name} is a proxy, but sets self.ins or self.outs")
+                        f"{self.name} is a proxy, but sets self.ins or self.outs"
+                    )
                 proxy.materialise()
-                self.ins = [proxy]
-                self.outs = proxy.outs
+                for k in dir(proxy):
+                    if not k.startswith("_"):
+                        setattr(self, k, getattr(proxy, k))
             else:
                 if not self.outs:
                     raise ABException(
-                        f"{self.name} is not a proxy, but didn't set self.outs")
+                        f"{self.name} is not a proxy, but didn't set self.outs"
+                    )
 
             # Destack the variable and invocation frame.
 
@@ -169,7 +172,7 @@ class Type:
 class String(Type):
     def convert(self, value, invocation):
         if type(value) != "string":
-            raise ABException("rule wanted a String, but got a "+type(value))
+            raise ABException("rule wanted a String, but got a " + type(value))
         return value
 
 
@@ -189,16 +192,19 @@ class Targets(Type):
         return value
 
 
+class Target(Type):
+    def convert(self, value, invocation):
+        return targetof(value, cwd=invocation.cwd)
+
+
 class TargetsMap(Type):
     def convert(self, value, invocation):
         if type(value) is dict:
             return {
-                targetof(k, cwd=invocation.cwd): targetof(v, cwd=invocation.cwd) for k, v in value.items()}
+                targetof(k, cwd=invocation.cwd): targetof(v, cwd=invocation.cwd)
+                for k, v in value.items()
+            }
         raise ABException(f"wanted a dict of targets, got a {type(value)}")
-
-
-def debug(*s):
-    print(*s, file=sys.stderr)
 
 
 def flatten(*xs):
@@ -260,8 +266,7 @@ def targetof(s, cwd):
     (path, target) = s.split("+", 2)
     loadbuildfile(join(path, "build.py"))
     if not s in targets:
-        raise ABException(
-            f"build file at {path} doesn't contain +{target}")
+        raise ABException(f"build file at {path} doesn't contain +{target}")
     i = targets[s]
     i.materialise()
     return i
@@ -293,7 +298,8 @@ def stripext(path):
 
 
 def emit(*args):
-    print(*flatten(args))
+    outputFp.write(" ".join(flatten(args)))
+    outputFp.write("\n")
 
 
 def unmake(ss):
@@ -322,7 +328,7 @@ class MakeEmitter:
 
     def var(self, name, value):
         # Don't let emit insert spaces.
-        emit(name+"="+unmake(value))
+        emit(name + "=" + unmake(value))
 
     def rule(self, name, ins, outs):
         if outs:
@@ -344,7 +350,7 @@ class NinjaEmitter:
 
     def var(self, name, value):
         # Don't let emit insert spaces.
-        emit(name+"="+unmake(value))
+        emit(name + "=" + unmake(value))
 
     def rule(self, name, ins, outs):
         if outs:
@@ -372,6 +378,7 @@ def Rule(func):
             name = cwd + "+" + name
 
         i.name = name
+        i.localname = name.split("+")[-1]
         i.cwd = cwd
         i.types = func.__annotations__
         i.callback = func
@@ -398,13 +405,14 @@ def Rule(func):
 
 @Rule
 def simplerule(
-        self,
-        name,
-        ins: Targets() = [],
-        outs=[],
-        deps: Targets() = [],
-        commands: Strings() = [],
-        label="RULE"):
+    self,
+    name,
+    ins: Targets() = [],
+    outs=[],
+    deps: Targets() = [],
+    commands: Strings() = [],
+    label="RULE",
+):
     self.ins = ins
     self.outs = outs
     emitter.rule(self.name, filenamesof(ins, deps), outs)
@@ -413,7 +421,7 @@ def simplerule(
     for out in filenamesof(outs):
         dir = dirname(out)
         if dir:
-            emitter.exec("mkdir -p "+dir)
+            emitter.exec("mkdir -p " + dir)
 
     for c in commands:
         emitter.exec(templateexpand(c, self))
@@ -421,34 +429,32 @@ def simplerule(
 
 @Rule
 def normalrule(
-        self,
-        name=None,
-        ins: Targets() = [],
-        deps: Targets() = [],
-        outleaves=[],
-        label="RULE",
-        objdir=None,
-        commands=[]):
+    self,
+    name=None,
+    ins: Targets() = [],
+    deps: Targets() = [],
+    outleaves=[],
+    label="RULE",
+    objdir=None,
+    commands=[],
+):
     objdir = objdir or join("$(OBJ)", name)
 
     return simplerule(
-        name=name+"/simplerule",
+        name=name + "/simplerule",
         ins=ins,
         deps=deps,
         outs=[join(objdir, f) for f in outleaves],
         label=label,
-        commands=commands)
+        commands=commands,
+    )
 
 
 @Rule
-def installable(
-        self,
-        name=None,
-        items: TargetsMap() = {},
-        deps: Targets() = []):
-
-    emitter.rule(self.name, filenamesof(
-        items.values(), deps), filenamesof(items.keys()))
+def installable(self, name=None, items: TargetsMap() = {}, deps: Targets() = []):
+    emitter.rule(
+        self.name, filenamesof(items.values(), deps), filenamesof(items.keys())
+    )
     emitter.exec(f"echo EXPORT {self.name}")
 
     self.ins = items.values()
@@ -457,12 +463,13 @@ def installable(
         destf = filenameof(dest)
         dir = dirname(destf)
         if dir:
-            emitter.exec("mkdir -p "+dir)
+            emitter.exec("mkdir -p " + dir)
 
         srcs = filenamesof(src)
         if len(srcs) != 1:
             raise ABException(
-                "a dependency of an installable must have exactly one output file")
+                "a dependency of an installable must have exactly one output file"
+            )
 
         emitter.exec("cp %s %s" % (srcs[0], destf))
         self.outs += [destf]
@@ -482,10 +489,13 @@ def load(filename):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-m", "--mode", choices=["make", "ninja"], default="make")
+    parser.add_argument("-m", "--mode", choices=["make", "ninja"], default="make")
+    parser.add_argument("-o", "--output")
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()
+
+    global outputFp
+    outputFp = open(args.output, "wt")
 
     global emitter
     if args.mode == "make":
@@ -499,7 +509,6 @@ def main():
 
     for k in ("Rule", "Targets", "load", "filenamesof", "stripext"):
         defaultGlobals[k] = globals()[k]
-    defaultGlobals["print"] = debug
 
     global __name__
     sys.modules["build.ab2"] = sys.modules[__name__]

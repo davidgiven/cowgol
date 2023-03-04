@@ -16,7 +16,5 @@ cprogram(
         "./src/utils.c",
         "./src/video.c",
     ],
-    vars={
-        "+ldflags": ["-lm"]
-    }
+    vars={"+ldflags": ["-lm"]},
 )

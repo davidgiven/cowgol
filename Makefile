@@ -15,4 +15,4 @@ build-files = $(shell find . -name 'build.py') build/*.py
 $(OBJ)/build.mk: Makefile $(build-files)
 	@echo ACKBUILDER
 	@mkdir -p $(OBJ)
-	@python3 -B build/ab2.py -m make build.py > $@
+	@python3 -B build/ab2.py -m make -o $@ build.py

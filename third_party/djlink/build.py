@@ -47,5 +47,5 @@ installable(
         "bin/objdump": "+objdump",
         "bin/bindiff": "+bindiff",
         "bin/djlink": "+djlink",
-    }
+    },
 )
