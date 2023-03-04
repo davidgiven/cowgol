@@ -14,6 +14,7 @@ installable(
         "bin/cpmemu": "tools/cpmemu",
         "bin/ataritosemu": "tools/ataritosemu",
         "bin/lx68kemu": "tools/lx68kemu",
+        "bin/fuzix6303emu": "tools/fuzix6303emu",
     },
     deps=["third_party/djlink+djlink-programs"],
 )
