@@ -14,8 +14,8 @@ normalrule(
 
 @Rule
 def musashilib(self, name, m68kconf: Target() = None):
-    return clibrary(
-        name=name + "/musashilib",
+    clibrary(
+        replaces=self,
         srcs=[
             m68kconf,
             "third_party/musashi/m68kcpu.c",

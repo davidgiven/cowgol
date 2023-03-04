@@ -16,7 +16,6 @@ import builtins
 
 defaultGlobals = {}
 targets = {}
-currentInvocation = None
 unmaterialisedTargets = set()
 outputFp = None
 emitter = None
@@ -104,12 +103,6 @@ class Invocation:
 
     def materialise(self):
         if self in unmaterialisedTargets:
-            # Create a new invocation frame.
-
-            global currentInvocation
-            oldInvocation = currentInvocation
-            currentInvocation = self
-
             # Perform type conversion to the declared rule parameter types.
 
             self.args = {}
@@ -134,32 +127,19 @@ class Invocation:
                     else:
                         self.vars[k] = ParameterList(v)
 
-            # Actually call the callback. If it returns another invocation,
-            # then replace the current one with it.
+            # Actually call the callback.
 
-            proxy = self.callback(**self.args)
-            currentInvocation = oldInvocation
-
-            if proxy:
-                if self.ins or self.outs:
-                    raise ABException(
-                        f"{self.name} is a proxy, but sets self.ins or self.outs"
-                    )
-                proxy.materialise()
-                for k in dir(proxy):
-                    if not k.startswith("_"):
-                        setattr(self, k, getattr(proxy, k))
-            else:
-                if not self.outs:
-                    raise ABException(
-                        f"{self.name} is not a proxy, but didn't set self.outs"
-                    )
+            self.callback(**self.args)
+            if not self.outs:
+                raise ABException(
+                    f"{self.name} didn't set self.outs"
+                )
 
             # Destack the variable and invocation frame.
 
             currentVars = oldVars
-            unmaterialisedTargets.remove(self)
-            currentInvocation = oldInvocation
+            if self in unmaterialisedTargets:
+                unmaterialisedTargets.remove(self)
 
     def __repr__(self):
         return "<Invocation %s>" % self.name
@@ -364,21 +344,32 @@ def Rule(func):
     sig = inspect.signature(func)
 
     @functools.wraps(func)
-    def wrapper(*, name, **kwargs):
+    def wrapper(*, name=None, replaces=None, **kwargs):
         callername = inspect.stack()[1][0].f_globals["__name__"]
         cwd = dirname(callername.replace(".", "/"))
 
-        if ("+" in name) and not name.startswith("+"):
-            (cwd, target) = name.split("+", 1)
+        if name:
+            if ("+" in name) and not name.startswith("+"):
+                (cwd, target) = name.split("+", 1)
 
-        i = Invocation()
-        if name.startswith("./"):
-            name = join(cwd, name)
-        elif "+" not in name:
-            name = cwd + "+" + name
+            i = Invocation()
+            if name.startswith("./"):
+                name = join(cwd, name)
+            elif "+" not in name:
+                name = cwd + "+" + name
 
-        i.name = name
-        i.localname = name.split("+")[-1]
+            i.name = name
+            i.localname = name.split("+")[-1]
+
+            if name in targets:
+                raise ABException(f"target {i.name} has already been defined")
+            targets[name] = i
+        elif replaces:
+            i = replaces
+            name = i.name
+        else:
+            raise ABException("you must supply either name or replaces")
+
         i.cwd = cwd
         i.types = func.__annotations__
         i.callback = func
@@ -392,11 +383,9 @@ def Rule(func):
         bound.apply_defaults()
         i.rawArgs = bound.arguments
 
-        if name in targets:
-            raise ABException(f"target {i.name} has already been defined")
-
-        targets[name] = i
         unmaterialisedTargets.add(i)
+        if replaces:
+            i.materialise()
         return i
 
     defaultGlobals[func.__name__] = wrapper
@@ -440,8 +429,8 @@ def normalrule(
 ):
     objdir = objdir or join("$(OBJ)", name)
 
-    return simplerule(
-        name=name + "/simplerule",
+    simplerule(
+        replaces=self,
         ins=ins,
         deps=deps,
         outs=[join(objdir, f) for f in outleaves],
