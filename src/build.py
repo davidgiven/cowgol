@@ -29,6 +29,19 @@ def buildgasarm(self, name, srcs: Targets() = None):
 
 
 @Rule
+def buildgas386(self, name, srcs: Targets() = None):
+    buildgasimpl(self, "i686-linux-gnu")
+
+@Rule
+def buildgas68k(self, name, srcs: Targets() = None):
+    buildgasimpl(self, "m68k-linux-gnu")
+
+@Rule
+def buildgasppc(self, name, srcs: Targets() = None):
+    buildgasimpl(self, "powerpc-linux-gnu")
+
+
+@Rule
 def toolchain(
     self,
     name,
@@ -143,7 +156,7 @@ def cowwrap(self, name, src: Target() = None, toolchain:Target()="src+ncgen"):
     self.cowlib = SimpleNamespace()
     normalrule(
         replaces=self,
-        ins=["bootstrap+cowwrap", src],
+        ins=[toolchain.cowwrap, src],
         outs=["cowgol.coo"],
         label="COWWRAP-"+toolchain.localname.upper(),
         commands=[
@@ -206,6 +219,39 @@ TOOLCHAINS = [
         asmext=".s",
         binext=".exe",
         assembler=buildgasarm,
+    ),
+    toolchain(
+        name="lx386",
+        cowfe="src/cowfe+cowfe-for-80386-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-80386-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-lx386-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/lx386",
+        asmext=".s",
+        binext=".exe",
+        assembler=buildgas386,
+    ),
+    toolchain(
+        name="lx68k",
+        cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-lx68k-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/lx68k",
+        asmext=".s",
+        binext=".exe",
+        assembler=buildgas68k,
+    ),
+    toolchain(
+        name="lxppc",
+        cowfe="src/cowfe+cowfe-for-32bita-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-powerpc-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-lxppc-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/lxppc",
+        asmext=".s",
+        binext=".exe",
+        assembler=buildgasppc,
     ),
 ]
 
