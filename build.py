@@ -1,25 +1,5 @@
 from build.ab2 import Rule, installable
 from os.path import *
-from src.build import toolchain
-
-toolchains = [
-    toolchain(
-        name="ncgen",
-        id="ncgen",
-        cowfe="bootstrap+cowfe",
-        cowbe="bootstrap+cowbe",
-        cowlink="bootstrap+cowlink",
-        cowwrap="bootstrap+cowwrap",
-    ),
-    toolchain(
-        name="nncgen",
-        id="nncgen",
-        cowfe="bootstrap+cowfe",
-        cowbe="bootstrap+cowbe",
-        cowlink="bootstrap+cowlink",
-        cowwrap="bootstrap+cowwrap",
-    ),
-]
 
 installable(
     name="all",
@@ -36,5 +16,5 @@ installable(
         "bin/lx68kemu": "tools/lx68kemu",
         "bin/fuzix6303emu": "tools/fuzix6303emu",
     },
-    deps=["third_party/djlink+djlink-programs"] + toolchains,
+    deps=["third_party/djlink+djlink-programs", "src+toolchains"],
 )

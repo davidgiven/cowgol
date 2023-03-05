@@ -172,6 +172,8 @@ class Targets(Type):
 
 class Target(Type):
     def convert(self, value, invocation):
+        if not value:
+            return None
         return targetof(value, cwd=invocation.cwd)
 
 
@@ -300,6 +302,8 @@ def templateexpand(s, invocation):
 class MakeEmitter:
     def begin(self):
         emit("hide = @")
+        emit(".DELETE_ON_ERROR:")
+        emit(".SECONDARY:")
 
     def end(self):
         pass
@@ -445,7 +449,7 @@ def installable(self, name=None, items: TargetsMap() = {}, deps: Targets() = [])
     emitter.exec(f"echo EXPORT {self.name}")
 
     self.ins = items.values()
-    self.outs = []
+    self.outs = filenamesof(deps)
     for dest, src in items.items():
         destf = filenameof(dest)
         dir = dirname(destf)
